@@ -1,26 +1,30 @@
 # Transfer-Learning
 
-I made some toy examples which is similar with Apple's Sticker.
-The Mobile ssd V2 tensor flow lite model is used for the feature extractor and Nearest Neighbor is used for the classifier. All the training and testing is done on the Galaxy S8.
+Unlike using kNN for the classifier at #55 , we could add new layer at the end of feature extractor.
+In this toy example, fully connected layer is added to classify as below. The size of the feature is also same with previous example and the training set and test set are also same. ( 3 classes, 5 training set and 2 test set of each )
+Only fully connected layer is updatable and Mobilenet ssd v2 is used for feature extractor like previous example and all the testing and training is done on the Galaxy S8.
+I wrote some code for the forward and backward propagation during fully connected layer training.
 
-![image](https://github.sec.samsung.net/storage/user/19415/files/08b09a80-ef29-11e9-8303-475fd75f4b83)
+Sigmoid function is used for the activation. Square error loss function and gradient decent is used for the loss function and optimizer. Just 20 neuron is used for the hidden layer and iterate 300 times to make is more simple.
 
-Happy(^^), sad(TT), soso(ㅡㅡ) classes are used and prepare 5 images for the training and two images for the test set each as below.
+The configuration of the example is below,
+<p align = "center">
+<img src="https://github.sec.samsung.net/storage/user/19415/files/02a7ee80-f0ce-11e9-97b8-bcc19b7eb222" width="400" height="250" > </p>
 
-![image](https://github.sec.samsung.net/storage/user/19415/files/a73cfb80-ef29-11e9-9ae9-0d6531538eaf)
+Training set and test set are below
+<p align = "center">
+<img src="https://github.sec.samsung.net/storage/user/19415/files/7944ec00-f0ce-11e9-87af-aea730bcd0f5" >
+</p>
 
-After remove the fully connected layer of mobile ssd v2, 128 features are extracted. The features from first training set data is below.
+After Iterating 300 times, the change of L2 Norm of the Loss function is below.
+<p align = "center">
+<img src="https://github.sec.samsung.net/storage/user/19415/files/d42b1300-f0cf-11e9-9b6f-6db30def4684" width="500" height="300">
+</p>
 
-![image](https://github.sec.samsung.net/storage/user/19415/files/0997fb00-ef2e-11e9-90a3-51c27bf4013f)
+and the test results for the 8 test cases are below. Step function is used to make more clear.
+As you can see, the test result is quite good.
 
-
-Simple euclidean distance is calculated and the result is quite good. All the test set is collected.
-
-![image](https://github.sec.samsung.net/storage/user/19415/files/87103b00-ef2f-11e9-9c1a-83da0faafb63)
-
-Due to the simplicity of this toy example, all the test results are collect.
-
-I made two more random pictures which little bit differ from right image. As you can see, it is little bit hard to tell which class it is. First image could be classified as "happy" but the red zone is across with sad and the variance is quite small. Second image is more confused. Cause the smallest distance is all over the classes.
-May be should be define the threshold which I didn't.^^;;
-
-![image](https://github.sec.samsung.net/storage/user/19415/files/33552000-ef36-11e9-88f6-ea6a35ccdf6b)
+<p align ="center">
+<img src="https://github.sec.samsung.net/storage/user/19415/files/16555400-f0d2-11e9-959b-f61935fefd5a" width ="500" height="180">
+</p>
+Afterwards, I'm looking into more deeply how we support these and what kind of software structure must be required in nnstreamer.
