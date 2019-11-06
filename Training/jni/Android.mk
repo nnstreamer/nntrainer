@@ -82,7 +82,7 @@ LOCAL_MODULE_TAGS := optional
 LOCAL_ARM_MODE := arm
 LOCAL_MODULE := transfer_learning_fc
 
-LOCAL_SRC_FILES := main.cpp matrix.cpp bitmap_helpers.cpp
+LOCAL_SRC_FILES := main.cpp matrix.cpp bitmap_helpers.cpp neuralnet.cpp
 
 LOCAL_STATIC_LIBRARIES := tensorflow-lite
 
