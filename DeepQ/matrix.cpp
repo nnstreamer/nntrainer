@@ -33,6 +33,8 @@ Matrix Matrix::multiply(double const &value) {
 }
 
 Matrix Matrix::add(Matrix const &m) const {
+  // std::cout << height << " " << m.height <<" " << width << " " <<
+  // m.width<<"\n";
   assert(height == m.height && width == m.width);
 
   Matrix result(height, width);
@@ -179,4 +181,30 @@ Matrix &Matrix::copy(const Matrix &from) {
     }
   }
   return *this;
+}
+
+std::vector<double> Matrix::Mat2Vec() {
+  std::vector<double> ret;
+  // printf(" -----  width : height %d:%d\n", width, height);
+  for (int i = 0; i < height; i++)
+    for (int j = 0; j < width; j++)
+      ret.push_back(array[i][j]);
+
+  return ret;
+}
+
+void Matrix::save(std::ofstream &file) {
+  for (int i = 0; i < height; i++) {
+    for (int j = 0; j < width; j++) {
+      file.write((char *)&array[i][j], sizeof(double));
+    }
+  }
+}
+
+void Matrix::read(std::ifstream &file) {
+  for (int i = 0; i < height; i++) {
+    for (int j = 0; j < width; j++) {
+      file.read((char *)&array[i][j], sizeof(double));
+    }
+  }
 }

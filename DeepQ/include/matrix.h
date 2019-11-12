@@ -1,6 +1,7 @@
 #ifndef MATRIX_H
 #define MATRIX_H
 
+#include <fstream>
 #include <iostream>
 #include <vector>
 
@@ -20,11 +21,19 @@ public:
   Matrix transpose() const;
   double sum() const;
 
+  std::vector<double> Mat2Vec();
+
   Matrix applyFunction(double (*function)(double)) const;
 
   void print(std::ostream &flux) const;
 
+  int getWidth() { return width; };
+  int getHeight() { return height; };
+
   Matrix &copy(Matrix const &from);
+
+  void save(std::ofstream &file);
+  void read(std::ifstream &file);
 
 private:
   std::vector<std::vector<double>> array;
