@@ -8,24 +8,50 @@ Matrix::Matrix() {}
 Matrix::Matrix(int height, int width) {
   this->height = height;
   this->width = width;
-  this->array =
-      std::vector<std::vector<double>>(height, std::vector<double>(width));
+  this->batch = 1;
+  this->dim = 2;
+  this->array.push_back(
+      std::vector<std::vector<double>>(height, std::vector<double>(width)));
+}
+
+Matrix::Matrix(int batch, int height, int width) {
+  this->height = height;
+  this->width = width;
+  this->batch = batch;
+  this->dim = 3;
+  for (int i = 0; i < batch; i++) {
+    this->array.push_back(
+        std::vector<std::vector<double>>(height, std::vector<double>(width)));
+  }
 }
 
 Matrix::Matrix(std::vector<std::vector<double>> const &array) {
   assert(array.size() != 0);
   this->height = array.size();
   this->width = array[0].size();
+  this->batch = 1;
+  this->dim = 2;
+  this->array.push_back(array);
+}
+
+Matrix::Matrix(std::vector<std::vector<std::vector<double>>> const &array) {
+  assert(array.size() != 0 && array[0].size() != 0);
+  this->batch = array.size();
+  this->height = array[0].size();
+  this->width = array[0][0].size();
+  this->dim = 3;
   this->array = array;
 }
 
 Matrix Matrix::multiply(double const &value) {
-  Matrix result(height, width);
-  int i, j;
+  Matrix result(batch, height, width);
+  int i, j, k;
 
-  for (i = 0; i < height; i++) {
-    for (j = 0; j < width; j++) {
-      result.array[i][j] = array[i][j] * value;
+  for (k = 0; k < batch; k++) {
+    for (i = 0; i < height; i++) {
+      for (j = 0; j < width; j++) {
+        result.array[k][i][j] = array[k][i][j] * value;
+      }
     }
   }
 
@@ -33,15 +59,25 @@ Matrix Matrix::multiply(double const &value) {
 }
 
 Matrix Matrix::add(Matrix const &m) const {
-  // std::cout << height << " " << m.height <<" " << width << " " <<
-  // m.width<<"\n";
   assert(height == m.height && width == m.width);
 
-  Matrix result(height, width);
-  int i, j;
-  for (i = 0; i < height; i++) {
-    for (j = 0; j < width; j++) {
-      result.array[i][j] = array[i][j] + m.array[i][j];
+  Matrix result(batch, height, width);
+  int i, j, k;
+  if (m.batch == 1) {
+    for (k = 0; k < batch; k++) {
+      for (i = 0; i < height; i++) {
+        for (j = 0; j < width; j++) {
+          result.array[k][i][j] = array[k][i][j] + m.array[0][i][j];
+        }
+      }
+    }
+  } else {
+    for (k = 0; k < batch; k++) {
+      for (i = 0; i < height; i++) {
+        for (j = 0; j < width; j++) {
+          result.array[k][i][j] = array[k][i][j] + m.array[k][i][j];
+        }
+      }
     }
   }
   return result;
@@ -49,58 +85,101 @@ Matrix Matrix::add(Matrix const &m) const {
 
 Matrix Matrix::subtract(Matrix const &m) const {
   assert(height == m.height && width == m.width);
-  Matrix result(height, width);
-  int i, j;
+  Matrix result(batch, height, width);
+  int i, j, k;
 
-  for (i = 0; i < height; i++) {
-    for (j = 0; j < width; j++) {
-      result.array[i][j] = array[i][j] - m.array[i][j];
+  if (m.batch == 1) {
+    for (k = 0; k < batch; k++) {
+      for (i = 0; i < height; i++) {
+        for (j = 0; j < width; j++) {
+          result.array[k][i][j] = array[k][i][j] - m.array[0][i][j];
+        }
+      }
+    }
+  } else {
+    for (k = 0; k < batch; k++) {
+      for (i = 0; i < height; i++) {
+        for (j = 0; j < width; j++) {
+          result.array[k][i][j] = array[k][i][j] - m.array[k][i][j];
+        }
+      }
     }
   }
-
   return result;
 }
 
 Matrix Matrix::multiply(Matrix const &m) const {
   assert(height == m.height && width == m.width);
-  Matrix result(height, width);
+  Matrix result(batch, height, width);
 
-  int i, j;
+  int i, j, k;
 
-  for (i = 0; i < height; i++) {
-    for (j = 0; j < width; j++) {
-      result.array[i][j] = array[i][j] * m.array[i][j];
+  if (m.batch == 1) {
+    for (k = 0; k < batch; k++) {
+      for (i = 0; i < height; i++) {
+        for (j = 0; j < width; j++) {
+          result.array[k][i][j] = array[k][i][j] * m.array[0][i][j];
+        }
+      }
+    }
+  } else {
+    for (k = 0; k < batch; k++) {
+      for (i = 0; i < height; i++) {
+        for (j = 0; j < width; j++) {
+          result.array[k][i][j] = array[k][i][j] * m.array[k][i][j];
+        }
+      }
     }
   }
 
   return result;
 }
 
-double Matrix::sum() const {
-  int i, j;
-  double ret = 0.0;
-  for (i = 0; i < height; i++) {
-    for (j = 0; j < width; j++) {
-      ret += array[i][j];
+Matrix Matrix::sum() const {
+  int i, j, k;
+  Matrix ret(batch, 1, 1);
+
+  for (k = 0; k < batch; k++) {
+    ret.array[k][0][0] = 0.0;
+    for (i = 0; i < height; i++) {
+      for (j = 0; j < width; j++) {
+        ret.array[k][0][0] += array[k][i][j];
+      }
     }
   }
+
   return ret;
 }
 
 Matrix Matrix::dot(Matrix const &m) const {
   assert(width == m.height);
-  int i, j, h, mwidth = m.width;
+  int i, j, h, k, mwidth = m.width;
   double w = 0;
 
-  Matrix result(height, mwidth);
-
-  for (i = 0; i < height; i++) {
-    for (j = 0; j < mwidth; j++) {
-      for (h = 0; h < width; h++) {
-        w += array[i][h] * m.array[h][j];
+  Matrix result(batch, height, mwidth);
+  if (m.batch == 1) {
+    for (k = 0; k < batch; k++) {
+      for (i = 0; i < height; i++) {
+        for (j = 0; j < mwidth; j++) {
+          for (h = 0; h < width; h++) {
+            w += array[k][i][h] * m.array[0][h][j];
+          }
+          result.array[k][i][j] = w;
+          w = 0;
+        }
       }
-      result.array[i][j] = w;
-      w = 0;
+    }
+  } else {
+    for (k = 0; k < batch; k++) {
+      for (i = 0; i < height; i++) {
+        for (j = 0; j < mwidth; j++) {
+          for (h = 0; h < width; h++) {
+            w += array[k][i][h] * m.array[k][h][j];
+          }
+          result.array[k][i][j] = w;
+          w = 0;
+        }
+      }
     }
   }
 
@@ -108,23 +187,27 @@ Matrix Matrix::dot(Matrix const &m) const {
 }
 
 Matrix Matrix::transpose() const {
-  Matrix result(width, height);
-  int i, j;
-  for (i = 0; i < width; i++) {
-    for (j = 0; j < height; j++) {
-      result.array[i][j] = array[j][i];
+  Matrix result(batch, width, height);
+  int i, j, k;
+  for (k = 0; k < batch; k++) {
+    for (i = 0; i < width; i++) {
+      for (j = 0; j < height; j++) {
+        result.array[k][i][j] = array[k][j][i];
+      }
     }
   }
   return result;
 }
 
 Matrix Matrix::applyFunction(double (*function)(double)) const {
-  Matrix result(height, width);
-  int i, j;
+  Matrix result(batch, height, width);
+  int i, j, k;
 
-  for (i = 0; i < height; i++) {
-    for (j = 0; j < width; j++) {
-      result.array[i][j] = (*function)(array[i][j]);
+  for (k = 0; k < batch; k++) {
+    for (i = 0; i < height; i++) {
+      for (j = 0; j < width; j++) {
+        result.array[k][i][j] = (*function)(array[k][i][j]);
+      }
     }
   }
 
@@ -132,35 +215,41 @@ Matrix Matrix::applyFunction(double (*function)(double)) const {
 }
 
 void Matrix::print(std::ostream &flux) const {
-  int i, j;
-  int maxLength[width];
+  int i, j, k, l;
+  int maxLength[batch][width];
   std::stringstream ss;
 
-  for (i = 0; i < width; i++) {
-    maxLength[i] = 0;
-  }
-
-  for (i = 0; i < height; i++) {
-    for (j = 0; j < width; j++) {
-      ss << array[i][j];
-      if (maxLength[j] < (int)(ss.str().size())) {
-        maxLength[j] = ss.str().size();
-      }
-      ss.str(std::string());
+  for (k = 0; k < batch; k++) {
+    for (i = 0; i < width; i++) {
+      maxLength[k][i] = 0;
     }
   }
 
-  for (i = 0; i < height; i++) {
-    for (j = 0; j < width; j++) {
-      flux << array[i][j];
-      ss << array[i][j];
-
-      for (int k = 0; k < (int)(maxLength[j] - ss.str().size() + 1); k++) {
-        flux << " ";
+  for (k = 0; k < batch; k++) {
+    for (i = 0; i < height; i++) {
+      for (j = 0; j < width; j++) {
+        ss << array[k][i][j];
+        if (maxLength[k][j] < (int)(ss.str().size())) {
+          maxLength[k][j] = ss.str().size();
+        }
+        ss.str(std::string());
       }
-      ss.str(std::string());
     }
-    flux << std::endl;
+  }
+
+  for (l = 0; l < batch; l++) {
+    for (i = 0; i < height; i++) {
+      for (j = 0; j < width; j++) {
+        flux << array[l][i][j];
+        ss << array[l][i][j];
+
+        for (int k = 0; k < (int)(maxLength[l][j] - ss.str().size() + 1); k++) {
+          flux << " ";
+        }
+        ss.str(std::string());
+      }
+      flux << std::endl;
+    }
   }
 }
 
@@ -173,10 +262,12 @@ Matrix &Matrix::copy(const Matrix &from) {
   if (this != &from) {
     height = from.height;
     width = from.width;
-    printf("%d %d\n", height, width);
-    for (int i = 0; i < height; i++) {
-      for (int j = 0; j < width; j++) {
-        array[i][j] = from.array[i][j];
+    batch = from.batch;
+    for (int k = 0; k < batch; k++) {
+      for (int i = 0; i < height; i++) {
+        for (int j = 0; j < width; j++) {
+          array[k][i][j] = from.array[k][i][j];
+        }
       }
     }
   }
@@ -185,26 +276,86 @@ Matrix &Matrix::copy(const Matrix &from) {
 
 std::vector<double> Matrix::Mat2Vec() {
   std::vector<double> ret;
-  // printf(" -----  width : height %d:%d\n", width, height);
-  for (int i = 0; i < height; i++)
-    for (int j = 0; j < width; j++)
-      ret.push_back(array[i][j]);
+  for (int k = 0; k < batch; k++)
+    for (int i = 0; i < height; i++)
+      for (int j = 0; j < width; j++)
+        ret.push_back(array[k][i][j]);
 
   return ret;
 }
 
 void Matrix::save(std::ofstream &file) {
-  for (int i = 0; i < height; i++) {
-    for (int j = 0; j < width; j++) {
-      file.write((char *)&array[i][j], sizeof(double));
+  for (int k = 0; k < batch; k++) {
+    for (int i = 0; i < height; i++) {
+      for (int j = 0; j < width; j++) {
+        file.write((char *)&array[k][i][j], sizeof(double));
+      }
     }
   }
 }
 
 void Matrix::read(std::ifstream &file) {
-  for (int i = 0; i < height; i++) {
-    for (int j = 0; j < width; j++) {
-      file.read((char *)&array[i][j], sizeof(double));
+  for (int k = 0; k < batch; k++) {
+    for (int i = 0; i < height; i++) {
+      for (int j = 0; j < width; j++) {
+        file.read((char *)&array[k][i][j], sizeof(double));
+      }
     }
   }
+}
+
+Matrix Matrix::average() const {
+  if (batch == 1)
+    return *this;
+
+  Matrix result(1, height, width);
+  for (int i = 0; i < height; i++) {
+    for (int j = 0; j < width; j++) {
+      result.array[0][i][j] = 0.0;
+      for (int k = 0; k < batch; k++) {
+        result.array[0][i][j] += array[k][i][j];
+      }
+      result.array[0][i][j] = result.array[0][i][j] / (double)batch;
+    }
+  }
+  return result;
+}
+
+void Matrix::setZero() {
+  for (int k = 0; k < batch; k++) {
+    for (int i = 0; i < height; i++) {
+      for (int j = 0; j < width; j++) {
+        this->array[k][i][j] = 0.0;
+      }
+    }
+  }
+}
+
+Matrix Matrix::softmax() const {
+  Matrix result(batch, height, width);
+  Matrix mother(batch, height, 1);
+
+  mother.setZero();
+
+  for (int k = 0; k < batch; k++) {
+    for (int i = 0; i < height; i++) {
+      for (int j = 0; j < width; j++) {
+        mother.array[k][i][0] += exp(this->array[k][i][j]);
+      }
+    }
+  }
+
+  for (int k = 0; k < batch; k++) {
+    for (int i = 0; i < height; i++) {
+      for (int j = 0; j < width; j++) {
+        result.array[k][i][j] =
+            exp(this->array[k][i][j]) / mother.array[k][i][0];
+      }
+    }
+  }
+  return result;
+}
+
+void Matrix::setValue(int batch, int height, int width, double value) {
+  this->array[batch][height][width] = value;
 }

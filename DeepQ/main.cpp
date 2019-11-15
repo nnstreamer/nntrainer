@@ -6,14 +6,16 @@
 #include <iterator>
 #include <queue>
 #include <stdio.h>
+#include <unistd.h>
 
 #define MAX_EPISODS 10000
-#define HIDDEN_LAYER_SIZE 40
+#define HIDDEN_LAYER_SIZE 50
 #define RENDER true
 #define REPLAY_MEMORY 50000
-#define MINI_BATCH 10
+#define MINI_BATCH 30
 #define DISCOUNT 0.9
 #define TRAINING true
+#define LEARNIG_RATE 0.05
 
 typedef struct {
   Gym::State state;
@@ -41,7 +43,6 @@ static int rangeRandom(int min, int max) {
 static std::vector<Experience> getMiniBatch(std::deque<Experience> Q) {
   int max = (MINI_BATCH > Q.size()) ? MINI_BATCH : Q.size();
   int min = (MINI_BATCH < Q.size()) ? MINI_BATCH : Q.size();
-  // std::cout << "MINI_BATCH : "<< MINI_BATCH <<" q.size : " <<Q.size()<<"\n";
 
   bool duplicate[max];
   std::vector<int> mem;
@@ -71,8 +72,8 @@ static int argmax(std::vector<double> vec) {
   int ret = 0;
   double val = 0.0;
   for (unsigned int i = 0; i < vec.size(); i++) {
-    if (val < vec[i]) {
-      val = vec[i];
+    if (val < vec[i] * 100000) {
+      val = vec[i] * 100000;
       ret = i;
     }
   }
@@ -155,8 +156,10 @@ int main(int argc, char **argv) {
   Network::NeuralNetwork mainNet;
   Network::NeuralNetwork targetNet;
 
-  mainNet.init(input_size, HIDDEN_LAYER_SIZE, output_size, 0.9);
-  targetNet.init(input_size, HIDDEN_LAYER_SIZE, output_size, 0.9);
+  mainNet.init(input_size, HIDDEN_LAYER_SIZE, output_size, MINI_BATCH,
+               LEARNIG_RATE, "tanh", true);
+  targetNet.init(input_size, HIDDEN_LAYER_SIZE, output_size, MINI_BATCH,
+                 LEARNIG_RATE, "tanh", true);
 
   if (is_file_exist(model_path)) {
     mainNet.readModel(model_path);
@@ -164,7 +167,6 @@ int main(int argc, char **argv) {
   }
 
   targetNet.copy(mainNet);
-  // writeFile << "init loss " << mainNet.getLoss() << "\n";
 
   for (int episode = 0; episode < MAX_EPISODS; episode++) {
     float epsilon = 1. / ((episode / 10) + 1);
@@ -182,11 +184,10 @@ int main(int argc, char **argv) {
       if (r < epsilon) {
         action_space = env->action_space();
         action = action_space->sample();
-        // std::cout <<" epsilon : r "<< epsilon << " : "<<r  <<"\n";
         std::cout << "test result random action : " << action[0] << "\n";
       } else {
         std::vector<double> input(s.observation.begin(), s.observation.end());
-        Matrix test = mainNet.forwarding(input);
+        Matrix test = mainNet.forwarding(Matrix({input}));
         std::vector<double> temp = test.Mat2Vec();
         action.push_back(argmax(temp));
 
@@ -210,8 +211,10 @@ int main(int argc, char **argv) {
       done = next_s.done;
       if (done) {
         std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! DONE : Episode "
-                  << episode << " \n";
-        ex.reward = -100;
+                  << episode << " Iteration : " << step_count << "\n";
+        ex.reward = -100.0;
+        if (!TRAINING)
+          break;
       }
 
       expQ.push_back(ex);
@@ -219,50 +222,65 @@ int main(int argc, char **argv) {
       s = next_s;
       step_count++;
 
-      if (step_count > 10000)
+      if (step_count > 10000) {
+        std::cout << "step_count is over 10000\n";
         break;
+      }
     }
     if (step_count > 10000)
+      break;
+
+    if (!TRAINING && done)
       break;
 
     if (episode % 10 == 1 && TRAINING) {
       for (int iter = 0; iter < 50; iter++) {
         std::vector<Experience> in_Exp = getMiniBatch(expQ);
+        std::vector<std::vector<std::vector<double>>> inbatch;
+        std::vector<std::vector<std::vector<double>>> next_inbatch;
+
         for (unsigned int i = 0; i < in_Exp.size(); i++) {
           Gym::State state = in_Exp[i].state;
           Gym::State next_state = in_Exp[i].next_state;
-
           std::vector<double> in(state.observation.begin(),
                                  state.observation.end());
-          Matrix Q = mainNet.forwarding(in);
-          std::vector<double> qa = Q.Mat2Vec();
+          inbatch.push_back({in});
+
           std::vector<double> next_in(next_state.observation.begin(),
                                       next_state.observation.end());
-          Matrix NQ = targetNet.forwarding(next_in);
-          std::vector<double> nqa = NQ.Mat2Vec();
-          double next = (nqa[0] > nqa[1]) ? nqa[0] : nqa[1];
-
-          if (in_Exp[i].done) {
-            qa[in_Exp[i].action[0]] = (double)in_Exp[i].reward;
-          } else {
-            qa[in_Exp[i].action[0]] =
-                (double)(in_Exp[i].reward + DISCOUNT * next);
-          }
-
-          std::vector<double> _in(qa.begin(), qa.end());
-          mainNet.backwarding(_in);
+          next_inbatch.push_back({next_in});
         }
+
+        Matrix Q = mainNet.forwarding(Matrix(inbatch));
+
+        Matrix NQ = targetNet.forwarding(Matrix(next_inbatch));
+        std::vector<double> nqa = NQ.Mat2Vec();
+
+        for (unsigned int i = 0; i < in_Exp.size(); i++) {
+          if (in_Exp[i].done) {
+            Q.setValue(i, 0, (int)in_Exp[i].action[0],
+                       (double)in_Exp[i].reward);
+          } else {
+            double next = (nqa[i * NQ.getWidth()] > nqa[i * NQ.getWidth() + 1])
+                              ? nqa[i * NQ.getWidth()]
+                              : nqa[i * NQ.getWidth() + 1];
+            Q.setValue(i, 0, (int)in_Exp[i].action[0],
+                       (double)in_Exp[i].reward + DISCOUNT * next);
+          }
+        }
+        mainNet.backwarding(Matrix(inbatch), Q);
       }
 
-      writeFile << "===================== Loss : " << mainNet.getLoss()
-                << " mainNet\n";
-      std::cout << "\n\n===================== Loss : " << mainNet.getLoss()
-                << " mainNet\n";
-
+      writeFile << "=== mainNet Loss : " << mainNet.getLoss()
+                << " : targetNet Loss : " << targetNet.getLoss() << "\n";
+      std::cout << "=== mainNet Loss : " << mainNet.getLoss()
+                << " : targetNet Loss : " << targetNet.getLoss() << "\n";
       targetNet.copy(mainNet);
       mainNet.saveModel(model_path);
+      sleep(1);
     }
   }
+
   writeFile.close();
   return 0;
 }
