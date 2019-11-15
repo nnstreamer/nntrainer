@@ -17,20 +17,30 @@ void NeuralNetwork::init(int input, int hidden, int output, double rate) {
   learning_rate = rate;
   loss = 0.0;
   W1 = Matrix(inputNeuron, hiddenNeuron);
-  W2 = Matrix(hiddenNeuron, outputNeuron);
+  // W2 = Matrix(hiddenNeuron, outputNeuron);
+  W2 = Matrix(hiddenNeuron, hiddenNeuron);
+  W3 = Matrix(hiddenNeuron, outputNeuron);  
   B1 = Matrix(1, hiddenNeuron);
-  B2 = Matrix(1, outputNeuron);
+  B2 = Matrix(1, hiddenNeuron);  
+  B3 = Matrix(1, outputNeuron);
 
   W1 = W1.applyFunction(random);
   W2 = W2.applyFunction(random);
+  W3 = W3.applyFunction(random);  
   B1 = B1.applyFunction(random);
   B2 = B2.applyFunction(random);
+  B3 = B3.applyFunction(random);
 }
 
 Matrix NeuralNetwork::forwarding(std::vector<double> input) {
   X = Matrix({input});
-  H = X.dot(W1).add(B1).applyFunction(sigmoid);
-  Y = H.dot(W2).add(B2).applyFunction(sigmoid);
+  // H = X.dot(W1).add(B1).applyFunction(sigmoid);
+  // Y = H.dot(W2).add(B2).applyFunction(sigmoid);
+
+  H1 = X.dot(W1).add(B1).applyFunction(sigmoid);
+  H2 = H1.dot(W2).add(B2).applyFunction(sigmoid);  
+  Y = H2.dot(W3).add(B3).applyFunction(sigmoid);
+  
   return Y;
 }
 
@@ -40,17 +50,30 @@ void NeuralNetwork::backwarding(std::vector<double> expectedOutput) {
   if (l > loss)
     loss = l;
   Y2 = Matrix({expectedOutput});
-  dJdB2 =
-      Y.subtract(Y2).multiply(H.dot(W2).add(B2).applyFunction(sigmoidePrime));
+
+  dJdB3 =
+      Y.subtract(Y2).multiply(H2.dot(W3).add(B3).applyFunction(sigmoidePrime));
+  dJdB2 =dJdB3.dot(W3.transpose())
+              .multiply(H1.dot(W2).add(B2).applyFunction(sigmoidePrime));
   dJdB1 = dJdB2.dot(W2.transpose())
               .multiply(X.dot(W1).add(B1).applyFunction(sigmoidePrime));
-  dJdW2 = H.transpose().dot(dJdB2);
+  dJdW3 = H2.transpose().dot(dJdB3);  
+  dJdW2 = H1.transpose().dot(dJdB2);
   dJdW1 = X.transpose().dot(dJdB1);
+  
+  // dJdB2 =
+  //     Y.subtract(Y2).multiply(H.dot(W2).add(B2).applyFunction(sigmoidePrime));
+  // dJdB1 = dJdB2.dot(W2.transpose())
+  //             .multiply(X.dot(W1).add(B1).applyFunction(sigmoidePrime));
+  // dJdW2 = H.transpose().dot(dJdB2);
+  // dJdW1 = X.transpose().dot(dJdB1);
 
   W1 = W1.subtract(dJdW1.multiply(learning_rate));
   W2 = W2.subtract(dJdW2.multiply(learning_rate));
+  W3 = W3.subtract(dJdW3.multiply(learning_rate));  
   B1 = B1.subtract(dJdB1.multiply(learning_rate));
   B2 = B2.subtract(dJdB2.multiply(learning_rate));
+  B3 = B3.subtract(dJdB3.multiply(learning_rate));  
 }
 
 double NeuralNetwork::getLoss() { return loss; }
@@ -71,4 +94,27 @@ NeuralNetwork &NeuralNetwork::copy(NeuralNetwork const &from) {
   }
   return *this;
 }
+void NeuralNetwork::saveModel(std::string model_path) {
+  std::ofstream modelFile(model_path, std::ios::out | std::ios::binary);
+    W1.save(modelFile);
+    W2.save(modelFile);
+    W3.save(modelFile);
+    B1.save(modelFile);
+    B2.save(modelFile);
+    B3.save(modelFile);
+    modelFile.close();
 }
+
+void NeuralNetwork::readModel(std::string model_path) {
+  std::ifstream modelFile(model_path, std::ios::in | std::ios::binary);
+    W1.read(modelFile);
+    W2.read(modelFile);
+    W3.read(modelFile);
+    B1.read(modelFile);
+    B2.read(modelFile);
+    B3.read(modelFile);
+    modelFile.close();
+}  
+  
+}
+

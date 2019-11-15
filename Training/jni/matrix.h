@@ -2,6 +2,7 @@
 #define MATRIX_H
 
 #include <iostream>
+#include <fstream>
 #include <vector>
 
 class Matrix {
@@ -23,6 +24,8 @@ public:
   Matrix applyFunction(double (*function)(double)) const;
 
   void print(std::ostream &flux) const;
+  void save(std::ofstream &file);
+  void read(std::ifstream &file);
 
   Matrix &copy(Matrix const &from);
 

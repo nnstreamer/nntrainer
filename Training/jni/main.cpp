@@ -20,7 +20,7 @@
 
 using namespace std;
 
-string data_path = "/sdcard/Transfer-Learning/";
+string data_path;
 
 double stepFunction(double x) {
   if (x > 0.9) {
@@ -35,8 +35,6 @@ double stepFunction(double x) {
 }
 
 void getFeature(const string filename, vector<double> &feature_input) {
-  int tensor_size;
-  int node_size;
   int input_size;
   int output_size;
   int *output_idx_list;
@@ -45,18 +43,16 @@ void getFeature(const string filename, vector<double> &feature_input) {
   int outputDim[4];
   int input_idx_list_len = 0;
   int output_idx_list_len = 0;
-
+  std::string model_path = data_path+"ssd_mobilenet_v2_coco_feature.tflite";
   std::unique_ptr<tflite::FlatBufferModel> model =
       tflite::FlatBufferModel::BuildFromFile(
-          "/sdcard/Transfer-Learning/ssd_mobilenet_v2_coco_feature.tflite");
+					     model_path.c_str());
 
   assert(model != NULL);
   tflite::ops::builtin::BuiltinOpResolver resolver;
   std::unique_ptr<tflite::Interpreter> interpreter;
   tflite::InterpreterBuilder (*model.get(), resolver)(&interpreter);
 
-  tensor_size = interpreter->tensors_size();
-  node_size = interpreter->nodes_size();
   input_size = interpreter->inputs().size();
   output_size = interpreter->outputs().size();
 
@@ -129,7 +125,7 @@ void getFeature(const string filename, vector<double> &feature_input) {
   delete[] output_idx_list;
 }
 
-void ExtractFeatures(const char *path, vector<vector<double>> &feature_input,
+void ExtractFeatures(std::string p, vector<vector<double>> &feature_input,
                      vector<vector<double>> &feature_output) {
   string total_label[TOTAL_LABEL_SIZE] = {"happy", "sad", "soso"};
 
@@ -141,7 +137,7 @@ void ExtractFeatures(const char *path, vector<vector<double>> &feature_input,
   int count = 0;
 
   for (int i = 0; i < TOTAL_LABEL_SIZE; i++) {
-    std::string path = data_path;
+    std::string path = p;
     path += total_label[i];
 
     for (int j = 0; j < TOTAL_DATA_SIZE; j++) {
@@ -160,11 +156,13 @@ void ExtractFeatures(const char *path, vector<vector<double>> &feature_input,
 }
 
 int main(int argc, char *argv[]) {
-
+  const vector<string> args(argv+1, argv+argc);
+  data_path = args[0];
+  std::string ini_file=data_path+"ini.bin";
   srand(time(NULL));
 
   std::vector<std::vector<double>> inputVector, outputVector;
-  ExtractFeatures("/sdcard/Transfer-Learning/", inputVector, outputVector);
+  ExtractFeatures(data_path, inputVector, outputVector);
 
   Network::NeuralNetwork NN;
   Network::NeuralNetwork NN2;
@@ -172,8 +170,11 @@ int main(int argc, char *argv[]) {
   NN.init(128, 20, TOTAL_LABEL_SIZE, 0.7);
   NN2.init(128, 20, TOTAL_LABEL_SIZE, 0.7);
 
+  // NN.saveModel(ini_file);
+  NN.readModel(ini_file);
+
   for (int i = 0; i < ITERATION; i++) {
-    for (int j = 0; j < inputVector.size(); j++) {
+    for (unsigned int j = 0; j < inputVector.size(); j++) {
       NN.forwarding(inputVector[j]);
       NN.backwarding(outputVector[j]);
     }

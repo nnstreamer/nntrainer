@@ -180,3 +180,15 @@ Matrix &Matrix::copy(const Matrix &from) {
   }
   return *this;
 }
+
+void Matrix::read(std::ifstream &file){
+  for (int i=0;i<height;i++)
+    for(int j=0;j<width;j++)
+      file.read((char*)&array[i][j], sizeof(double));
+}
+
+void Matrix::save(std::ofstream &file){
+  for (int i=0;i<height;i++)
+    for(int j=0;j<width;j++)
+      file.write((char*)&array[i][j], sizeof(double));
+}

@@ -15,7 +15,8 @@ limitations under the License.
 
 #ifndef TENSORFLOW_CONTRIB_LITE_EXAMPLES_LABEL_IMAGE_BITMAP_HELPERS_H_
 #define TENSORFLOW_CONTRIB_LITE_EXAMPLES_LABEL_IMAGE_BITMAP_HELPERS_H_
-
+#include <cstdint>
+#include <iostream>
 namespace tflite
 {
   namespace label_image
