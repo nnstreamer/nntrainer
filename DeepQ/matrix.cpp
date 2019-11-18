@@ -58,6 +58,36 @@ Matrix Matrix::multiply(double const &value) {
   return result;
 }
 
+Matrix Matrix::divide(double const &value) {
+  Matrix result(batch, height, width);
+  int i, j, k;
+
+  for (k = 0; k < batch; k++) {
+    for (i = 0; i < height; i++) {
+      for (j = 0; j < width; j++) {
+        result.array[k][i][j] = array[k][i][j] / value;
+      }
+    }
+  }
+
+  return result;
+}
+
+Matrix Matrix::add(double const &value) {
+  Matrix result(batch, height, width);
+  int i, j, k;
+
+  for (k = 0; k < batch; k++) {
+    for (i = 0; i < height; i++) {
+      for (j = 0; j < width; j++) {
+        result.array[k][i][j] = array[k][i][j] + value;
+      }
+    }
+  }
+
+  return result;
+}
+
 Matrix Matrix::add(Matrix const &m) const {
   assert(height == m.height && width == m.width);
 
@@ -127,6 +157,33 @@ Matrix Matrix::multiply(Matrix const &m) const {
       for (i = 0; i < height; i++) {
         for (j = 0; j < width; j++) {
           result.array[k][i][j] = array[k][i][j] * m.array[k][i][j];
+        }
+      }
+    }
+  }
+
+  return result;
+}
+
+Matrix Matrix::divide(Matrix const &m) const {
+  assert(height == m.height && width == m.width);
+  Matrix result(batch, height, width);
+
+  int i, j, k;
+
+  if (m.batch == 1) {
+    for (k = 0; k < batch; k++) {
+      for (i = 0; i < height; i++) {
+        for (j = 0; j < width; j++) {
+          result.array[k][i][j] = array[k][i][j] / m.array[0][i][j];
+        }
+      }
+    }
+  } else {
+    for (k = 0; k < batch; k++) {
+      for (i = 0; i < height; i++) {
+        for (j = 0; j < width; j++) {
+          result.array[k][i][j] = array[k][i][j] / m.array[k][i][j];
         }
       }
     }

@@ -15,10 +15,12 @@ public:
   Matrix(std::vector<std::vector<std::vector<double>>> const &array);
 
   Matrix multiply(double const &value);
-
+  Matrix divide(double const &value);
   Matrix add(Matrix const &m) const;
+  Matrix add(double const &value);
   Matrix subtract(Matrix const &m) const;
   Matrix multiply(Matrix const &m) const;
+  Matrix divide(Matrix const &m) const;
 
   Matrix dot(Matrix const &m) const;
   Matrix transpose() const;

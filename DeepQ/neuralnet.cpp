@@ -3,13 +3,6 @@
 #include <cmath>
 #include <stdio.h>
 
-// double random(double x) {
-//   double min =-0.01;
-//   double max = 0.01;
-//   double r = (double)rand() / (double)RAND_MAX;
-//   return min + r * (max - min);
-// }
-
 double random(double x) { return (double)(rand() % 10000 + 1) / 10000 - 0.5; }
 
 double sigmoid(double x) { return 1 / (1 + exp(-x)); }
@@ -22,18 +15,20 @@ double tanhPrime(double x) {
 }
 
 namespace Network {
+std::vector<std::string> Optimizer_string = {"sgd", "adam"};
+
 void NeuralNetwork::init(int input, int hidden, int output, int batch,
                          double rate, std::string acti, bool init_zero) {
   inputNeuron = input;
   hiddenNeuron = hidden;
   outputNeuron = output;
   batchsize = batch;
-
   learning_rate = rate;
   loss = 100000.0;
   W1 = Matrix(inputNeuron, hiddenNeuron);
   W2 = Matrix(hiddenNeuron, hiddenNeuron);
   W3 = Matrix(hiddenNeuron, outputNeuron);
+
   B1 = Matrix(1, hiddenNeuron);
   B2 = Matrix(1, hiddenNeuron);
   B3 = Matrix(1, outputNeuron);
@@ -83,7 +78,8 @@ Matrix NeuralNetwork::forwarding(Matrix input) {
   // return Y.softmax();
 }
 
-void NeuralNetwork::backwarding(Matrix input, Matrix expected_output) {
+void NeuralNetwork::backwarding(Matrix input, Matrix expected_output,
+                                int iteration) {
   double lossSum = 0.0;
   // Matrix Y2 = expected_output.softmax();
   Matrix Y2 = expected_output;
@@ -113,9 +109,34 @@ void NeuralNetwork::backwarding(Matrix input, Matrix expected_output) {
   Matrix dJdW2 = H1.transpose().dot(dJdB2);
   Matrix dJdW1 = X.transpose().dot(dJdB1);
 
-  W1 = W1.subtract(dJdW1.average().multiply(learning_rate));
-  W2 = W2.subtract(dJdW2.average().multiply(learning_rate));
-  W3 = W3.subtract(dJdW3.average().multiply(learning_rate));
+  switch (opt.type) {
+  case OPT_SGD:
+    W1 = W1.subtract(dJdW1.average().multiply(opt.learning_rate));
+    W2 = W2.subtract(dJdW2.average().multiply(opt.learning_rate));
+    W3 = W3.subtract(dJdW3.average().multiply(opt.learning_rate));
+    break;
+  case OPT_ADAM:
+    m1 = m1.multiply(opt.beta1).add(dJdW1.average().multiply(1 - opt.beta1));
+    v1 = v1.multiply(opt.beta2).add(
+        (dJdW1.average().multiply(dJdW1.average())).multiply(1 - opt.beta2));
+    W1 = W1.subtract((m1.divide(v1.applyFunction(sqrt).add(opt.epsilon)))
+                         .multiply(opt.learning_rate));
+
+    m2 = m2.multiply(opt.beta1).add(dJdW2.average().multiply(1 - opt.beta1));
+    v2 = v2.multiply(opt.beta2).add(
+        (dJdW2.average().multiply(dJdW2.average())).multiply(1 - opt.beta2));
+    W2 = W2.subtract((m2.divide(v2.applyFunction(sqrt).add(opt.epsilon)))
+                         .multiply(opt.learning_rate));
+
+    m3 = m3.multiply(opt.beta1).add(dJdW3.average().multiply(1 - opt.beta1));
+    v3 = v3.multiply(opt.beta2).add(
+        (dJdW3.average().multiply(dJdW3.average())).multiply(1 - opt.beta2));
+    W3 = W3.subtract((m3.divide(v3.applyFunction(sqrt).add(opt.epsilon)))
+                         .multiply(opt.learning_rate));
+    break;
+  default:
+    break;
+  }
 
   if (!init_zero) {
     B1 = B1.subtract(dJdB1.average().multiply(learning_rate));
@@ -143,6 +164,7 @@ NeuralNetwork &NeuralNetwork::copy(NeuralNetwork &from) {
     B1.copy(from.B1);
     B2.copy(from.B2);
     B3.copy(from.B3);
+    opt = from.opt;
   }
   return *this;
 }
@@ -167,5 +189,46 @@ void NeuralNetwork::readModel(std::string model_path) {
   B2.read(modelFile);
   B3.read(modelFile);
   modelFile.close();
+}
+
+void NeuralNetwork::setOptimizer(std::string ty, double lr, double bt1,
+                                 double bt2, double ep) {
+  this->opt.type = OPT_SGD;
+  this->opt.beta1 = 0.0;
+  this->opt.beta2 = 0.0;
+  this->opt.epsilon = 0.0;
+
+  for (unsigned int i = 0; i < Optimizer_string.size(); i++) {
+    if (Optimizer_string[i].compare(ty) == 0) {
+      this->opt.type = (opt_type)i;
+      break;
+    }
+  }
+
+  this->opt.learning_rate = lr;
+  if (bt1)
+    this->opt.beta1 = bt1;
+  if (bt2)
+    this->opt.beta2 = bt2;
+  if (ep)
+    this->opt.epsilon = ep;
+
+  if (opt.type == OPT_ADAM) {
+    m1 = Matrix(inputNeuron, hiddenNeuron);
+    m2 = Matrix(hiddenNeuron, hiddenNeuron);
+    m3 = Matrix(hiddenNeuron, outputNeuron);
+
+    v1 = Matrix(inputNeuron, hiddenNeuron);
+    v2 = Matrix(hiddenNeuron, hiddenNeuron);
+    v3 = Matrix(hiddenNeuron, outputNeuron);
+
+    m1.setZero();
+    m2.setZero();
+    m3.setZero();
+
+    v1.setZero();
+    v2.setZero();
+    v3.setZero();
+  }
 }
 }

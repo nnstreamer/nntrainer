@@ -8,14 +8,14 @@
 #include <stdio.h>
 #include <unistd.h>
 
-#define MAX_EPISODS 10000
+#define MAX_EPISODS 50000
 #define HIDDEN_LAYER_SIZE 50
 #define RENDER true
 #define REPLAY_MEMORY 50000
 #define MINI_BATCH 30
 #define DISCOUNT 0.9
 #define TRAINING true
-#define LEARNIG_RATE 0.05
+#define LEARNIG_RATE 0.001
 
 typedef struct {
   Gym::State state;
@@ -72,8 +72,8 @@ static int argmax(std::vector<double> vec) {
   int ret = 0;
   double val = 0.0;
   for (unsigned int i = 0; i < vec.size(); i++) {
-    if (val < vec[i] * 100000) {
-      val = vec[i] * 100000;
+    if (val < vec[i]) {
+      val = vec[i];
       ret = i;
     }
   }
@@ -144,7 +144,8 @@ int main(int argc, char **argv) {
 
   int input_size, output_size;
   try {
-    client = Gym::client_create("127.0.0.1", 5000);
+    // client = Gym::client_create("127.0.0.1", 5000);
+    client = Gym::client_create("10.113.112.176", 5000);
   } catch (const std::exception &e) {
     fprintf(stderr, "ERROR: %s\n", e.what());
     return 1;
@@ -158,6 +159,9 @@ int main(int argc, char **argv) {
 
   mainNet.init(input_size, HIDDEN_LAYER_SIZE, output_size, MINI_BATCH,
                LEARNIG_RATE, "tanh", true);
+
+  mainNet.setOptimizer("adam", LEARNIG_RATE, 0.9, 0.999, 1e-8);
+
   targetNet.init(input_size, HIDDEN_LAYER_SIZE, output_size, MINI_BATCH,
                  LEARNIG_RATE, "tanh", true);
 
@@ -181,7 +185,7 @@ int main(int argc, char **argv) {
       std::vector<float> action;
       double r = RandomDouble(0.0, 1.0);
 
-      if (r < epsilon) {
+      if (r < epsilon && TRAINING) {
         action_space = env->action_space();
         action = action_space->sample();
         std::cout << "test result random action : " << action[0] << "\n";
@@ -268,7 +272,7 @@ int main(int argc, char **argv) {
                        (double)in_Exp[i].reward + DISCOUNT * next);
           }
         }
-        mainNet.backwarding(Matrix(inbatch), Q);
+        mainNet.backwarding(Matrix(inbatch), Q, iter);
       }
 
       writeFile << "=== mainNet Loss : " << mainNet.getLoss()
@@ -277,7 +281,6 @@ int main(int argc, char **argv) {
                 << " : targetNet Loss : " << targetNet.getLoss() << "\n";
       targetNet.copy(mainNet);
       mainNet.saveModel(model_path);
-      sleep(1);
     }
   }
 
