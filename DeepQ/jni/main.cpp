@@ -7,6 +7,7 @@
 #include <queue>
 #include <stdio.h>
 #include <unistd.h>
+#include <memory>
 
 #ifdef USING_CUSTOM_ENV
 #include "CartPole/cartpole.h"
@@ -23,7 +24,7 @@
 #define REPLAY_MEMORY 50000
 #define MINI_BATCH 30
 #define DISCOUNT 0.9
-#define TRAINING true
+#define TRAINING false
 #define LEARNIG_RATE 0.001
 
 typedef struct {
@@ -89,17 +90,17 @@ static int argmax(std::vector<double> vec) {
   return ret;
 }
 
-static boost::shared_ptr<ENV> init_environment(int &input_size,
+static std::shared_ptr<ENV> init_environment(int &input_size,
                                                int &output_size) {
 
 #ifdef USING_CUSTOM_ENV
 
-  boost::shared_ptr<ENV> env(new ENV);
+  std::shared_ptr<ENV> env(new ENV);
   env->init();
   input_size = env->getInputSize();
   output_size = env->getOutputSize();
 #else
-  boost::shared_ptr<Gym::Client> client;
+  std::shared_ptr<Gym::Client> client;
   std::string env_id = "CartPole-v0";
   try {
     client = Gym::client_create("127.0.0.1", 5000);
@@ -108,9 +109,9 @@ static boost::shared_ptr<ENV> init_environment(int &input_size,
     return NULL;
   }
 
-  boost::shared_ptr<ENV> env = client->make(env_id);
-  boost::shared_ptr<Gym::Space> action_space = env->action_space();
-  boost::shared_ptr<Gym::Space> observation_space = env->observation_space();
+  std::shared_ptr<ENV> env = client->make(env_id);
+  std::shared_ptr<Gym::Space> action_space = env->action_space();
+  std::shared_ptr<Gym::Space> observation_space = env->observation_space();
 
   input_size = observation_space->sample().size();
 
@@ -135,7 +136,7 @@ int main(int argc, char **argv) {
   srand(time(NULL));
   std::deque<Experience> expQ;
 
-  boost::shared_ptr<ENV> env;
+  std::shared_ptr<ENV> env;
 
   int input_size, output_size;
   env = init_environment(input_size, output_size);
@@ -176,7 +177,7 @@ int main(int argc, char **argv) {
 #ifdef USING_CUSTOM_ENV
         action = env->sample();
 #else
-        boost::shared_ptr<Gym::Space> action_space = env->action_space();
+        std::shared_ptr<Gym::Space> action_space = env->action_space();
         action = action_space->sample();
 #endif
         std::cout << "test result random action : " << action[0] << "\n";

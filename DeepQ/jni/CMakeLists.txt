@@ -14,7 +14,7 @@ link_libraries(${JSONCPP_LIBRARIES})
 pkg_check_modules(CURL libcurl)
 link_libraries(${CURL_LIBRARIES})
 
-set(ENVDIR ../Environment)
+set(ENVDIR ../../Environment)
 include_directories( ${include_directories}
                      ${CMAKE_CURRENT_SOURCE_DIR}/include
 		     ${JSONCPP_INCLUDE_DIRS}
