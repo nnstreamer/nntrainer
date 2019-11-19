@@ -10,13 +10,14 @@
 #include <stdlib.h>
 #include <time.h>
 
-#include "matrix.h"
-#include "neuralnet.h"
+#include "include/matrix.h"
+#include "include/neuralnet.h"
 
 #define TOTAL_DATA_SIZE 5
 #define TOTAL_LABEL_SIZE 3
 #define TOTAL_TEST_SIZE 8
 #define ITERATION 300
+#define LEARNING_RATE 0.7
 
 using namespace std;
 
@@ -43,7 +44,7 @@ void getFeature(const string filename, vector<double> &feature_input) {
   int outputDim[4];
   int input_idx_list_len = 0;
   int output_idx_list_len = 0;
-  std::string model_path = data_path+"ssd_mobilenet_v2_coco_feature.tflite";
+  std::string model_path=data_path+"ssd_mobilenet_v2_coco_feature.tflite";
   std::unique_ptr<tflite::FlatBufferModel> model =
       tflite::FlatBufferModel::BuildFromFile(
 					     model_path.c_str());
@@ -125,7 +126,7 @@ void getFeature(const string filename, vector<double> &feature_input) {
   delete[] output_idx_list;
 }
 
-void ExtractFeatures(std::string p, vector<vector<double>> &feature_input,
+void ExtractFeatures(std::string p , vector<vector<double>> &feature_input,
                      vector<vector<double>> &feature_output) {
   string total_label[TOTAL_LABEL_SIZE] = {"happy", "sad", "soso"};
 
@@ -156,34 +157,31 @@ void ExtractFeatures(std::string p, vector<vector<double>> &feature_input,
 }
 
 int main(int argc, char *argv[]) {
+
   const vector<string> args(argv+1, argv+argc);
   data_path = args[0];
-  std::string ini_file=data_path+"ini.bin";
-  srand(time(NULL));
 
+  srand(time(NULL));
+  std::string ini_file = data_path+"ini.bin";
   std::vector<std::vector<double>> inputVector, outputVector;
   ExtractFeatures(data_path, inputVector, outputVector);
 
   Network::NeuralNetwork NN;
   Network::NeuralNetwork NN2;
 
-  NN.init(128, 20, TOTAL_LABEL_SIZE, 0.7);
-  NN2.init(128, 20, TOTAL_LABEL_SIZE, 0.7);
+  NN.init(128, 20, TOTAL_LABEL_SIZE, 1, LEARNING_RATE, "sigmoid", false);
 
-  // NN.saveModel(ini_file);
-  NN.readModel(ini_file);
+  NN.setOptimizer("sgd", LEARNING_RATE, 0.9, 0.999, 1e-8);  
 
   for (int i = 0; i < ITERATION; i++) {
     for (unsigned int j = 0; j < inputVector.size(); j++) {
-      NN.forwarding(inputVector[j]);
-      NN.backwarding(outputVector[j]);
+      NN.forwarding(Matrix({inputVector[j]}));
+      NN.backwarding(Matrix({inputVector[j]}), Matrix({outputVector[j]}), j);
     }
     cout << "#" << i + 1 << "/" << ITERATION << " - Loss : " << NN.getLoss()
          << endl;
     NN.setLoss(0.0);
   }
-
-  NN2.copy(NN);
 
   for (int i = 0; i < TOTAL_TEST_SIZE; i++) {
     std::string path = data_path;

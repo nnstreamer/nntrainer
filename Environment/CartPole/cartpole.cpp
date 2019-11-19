@@ -64,7 +64,8 @@ void CartPole::step(const std::vector<float> &action, bool rendering,
 
   S.done = (bool)(x < x_threshold * -1.0 || x > x_threshold ||
                   theta < theta_threshold_radians * -1.0 ||
-                  theta > theta_threshold_radians || count >= 200);
+                  theta > theta_threshold_radians);
+                  // theta > theta_threshold_radians || count >= 200);
   count++;
   s->done = S.done;
 

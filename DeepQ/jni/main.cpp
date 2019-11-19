@@ -24,7 +24,7 @@
 #define REPLAY_MEMORY 50000
 #define MINI_BATCH 30
 #define DISCOUNT 0.9
-#define TRAINING false
+#define TRAINING true
 #define LEARNIG_RATE 0.001
 
 typedef struct {
@@ -187,9 +187,13 @@ int main(int argc, char **argv) {
         std::vector<double> temp = test.Mat2Vec();
         action.push_back(argmax(temp));
 
-        std::cout << "test result : " << temp[0] << " : " << temp[1] << " ---> "
-                  << argmax(temp) << " size of action : " << action.size()
-                  << "\n";
+        std::cout << "qvalues : [";
+	std::cout.width(10);
+	std::cout<< temp[0] << "][";
+	std::cout.width(10);	
+	std::cout<< temp[1] << "] : ACTION (argmax) = ";
+	std::cout.width(3);
+	std::cout<< argmax(temp) << "\n";
       }
 
       env->step(action, RENDER, &next_s);

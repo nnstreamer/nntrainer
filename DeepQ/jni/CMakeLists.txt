@@ -15,21 +15,23 @@ pkg_check_modules(CURL libcurl)
 link_libraries(${CURL_LIBRARIES})
 
 set(ENVDIR ../../Environment)
+set(NEURALNET ../../NeuralNet)
 include_directories( ${include_directories}
                      ${CMAKE_CURRENT_SOURCE_DIR}/include
 		     ${JSONCPP_INCLUDE_DIRS}
 		     ${ENVDIR}
+		     ${NEURALNET}
 		     )
 set(SRCS
 	main.cpp
 	gym_binding.cpp
-	neuralnet.cpp
-	matrix.cpp
 	${ENVDIR}/CartPole/cartpole.cpp
+	${NEURALNET}/neuralnet.cpp
+	${NEURALNET}/matrix.cpp	
 	)
 
 add_executable(DeepQ ${SRCS})
-target_link_libraries( DeepQ ${JSONCPP_LIBRARIES} ${PYTHON3_LIBRARIES} ${CURL_LIBRARIES}) 
+target_link_libraries( DeepQ ${JSONCPP_LIBRARIES} ${CURL_LIBRARIES}) 
 
 install (TARGETS DeepQ
 	RUNTIME DESTINATION bin

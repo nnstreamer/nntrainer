@@ -10,6 +10,7 @@ endif
 include $(CLEAR_VARS)
 
 ENVDIR=../../Environment
+NEURALNET=../../NeuralNet
 
 LOCAL_ARM_NEON := true
 LOCAL_CFLAGS += -std=c++11 -Ofast -mcpu=cortex-a53 -Ilz4-nougat/lib -fexceptions -DUSING_CUSTOM_ENV
@@ -21,8 +22,9 @@ LOCAL_MODULE_TAGS := optional
 LOCAL_ARM_MODE := arm
 LOCAL_MODULE := DeepQ
 
-LOCAL_SRC_FILES := main.cpp matrix.cpp neuralnet.cpp $(ENVDIR)/CartPole/cartpole.cpp
+LOCAL_SRC_FILES := main.cpp $(NEURALNET)/matrix.cpp $(NEURALNET)/neuralnet.cpp \
+		   $(ENVDIR)/CartPole/cartpole.cpp
 
-LOCAL_C_INCLUDES += $(ENVDIR) $(LOCAL_PATH)/include
+LOCAL_C_INCLUDES += $(ENVDIR) $(LOCAL_PATH)/include $(NEURALNET)
 
 include $(BUILD_EXECUTABLE)

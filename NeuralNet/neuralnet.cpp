@@ -1,4 +1,4 @@
-#include "neuralnet.h"
+#include "include/neuralnet.h"
 #include <assert.h>
 #include <cmath>
 #include <stdio.h>
