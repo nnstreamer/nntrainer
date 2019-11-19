@@ -8,6 +8,15 @@
 #include <stdio.h>
 #include <unistd.h>
 
+#ifdef USING_CUSTOM_ENV
+#include "CartPole/cartpole.h"
+#define STATE Env::State
+#define ENV Env::CartPole
+#else
+#define STATE Gym::State
+#define ENV Gym::Environment
+#endif
+
 #define MAX_EPISODS 50000
 #define HIDDEN_LAYER_SIZE 50
 #define RENDER true
@@ -18,10 +27,10 @@
 #define LEARNIG_RATE 0.001
 
 typedef struct {
-  Gym::State state;
+  STATE state;
   std::vector<float> action;
   float reward;
-  Gym::State next_state;
+  STATE next_state;
   bool done;
 } Experience;
 
@@ -80,45 +89,33 @@ static int argmax(std::vector<double> vec) {
   return ret;
 }
 
-#if 0
-static void run_single_environment(const boost::shared_ptr<Gym::Client> &client,
-                                   const std::string &env_id,
-                                   int episodes_to_run) {
-  boost::shared_ptr<Gym::Environment> env = client->make(env_id);
-  boost::shared_ptr<Gym::Space> action_space = env->action_space();
-  boost::shared_ptr<Gym::Space> observation_space = env->observation_space();
+static boost::shared_ptr<ENV> init_environment(int &input_size,
+                                               int &output_size) {
 
-  for (int e = 0; e < episodes_to_run; ++e) {
-    printf("%s episode %i...\n", env_id.c_str(), e);
-    Gym::State s;
-    env->reset(&s);
-    float total_reward = 0;
-    int total_steps = 0;
-    while (1) {
-      std::vector<float> action = action_space->sample();
-      env->step(action, true, &s);
-      assert(s.observation.size() == observation_space->sample().size());
-      total_reward += s.reward;
-      total_steps += 1;
-      if (s.done)
-        break;
-    }
-    printf("%s episode %i finished in %i steps with reward %0.2f\n",
-           env_id.c_str(), e, total_steps, total_reward);
+#ifdef USING_CUSTOM_ENV
+
+  boost::shared_ptr<ENV> env(new ENV);
+  env->init();
+  input_size = env->getInputSize();
+  output_size = env->getOutputSize();
+#else
+  boost::shared_ptr<Gym::Client> client;
+  std::string env_id = "CartPole-v0";
+  try {
+    client = Gym::client_create("127.0.0.1", 5000);
+  } catch (const std::exception &e) {
+    fprintf(stderr, "ERROR: %s\n", e.what());
+    return NULL;
   }
-}
-#endif
 
-static boost::shared_ptr<Gym::Environment>
-init_environment(const boost::shared_ptr<Gym::Client> &client,
-                 const std::string &env_id, int &input_size, int &output_size) {
-  boost::shared_ptr<Gym::Environment> env = client->make(env_id);
+  boost::shared_ptr<ENV> env = client->make(env_id);
   boost::shared_ptr<Gym::Space> action_space = env->action_space();
   boost::shared_ptr<Gym::Space> observation_space = env->observation_space();
 
   input_size = observation_space->sample().size();
 
   output_size = action_space->discreet_n;
+#endif
 
   return env;
 }
@@ -138,20 +135,10 @@ int main(int argc, char **argv) {
   srand(time(NULL));
   std::deque<Experience> expQ;
 
-  boost::shared_ptr<Gym::Client> client;
-  boost::shared_ptr<Gym::Environment> env;
-  boost::shared_ptr<Gym::Space> action_space;
+  boost::shared_ptr<ENV> env;
 
   int input_size, output_size;
-  try {
-    // client = Gym::client_create("127.0.0.1", 5000);
-    client = Gym::client_create("10.113.112.176", 5000);
-  } catch (const std::exception &e) {
-    fprintf(stderr, "ERROR: %s\n", e.what());
-    return 1;
-  }
-
-  env = init_environment(client, "CartPole-v0", input_size, output_size);
+  env = init_environment(input_size, output_size);
   printf("input_size %d, output_size %d\n", input_size, output_size);
 
   Network::NeuralNetwork mainNet;
@@ -176,8 +163,8 @@ int main(int argc, char **argv) {
     float epsilon = 1. / ((episode / 10) + 1);
     bool done = false;
     int step_count = 0;
-    Gym::State s;
-    Gym::State next_s;
+    STATE s;
+    STATE next_s;
 
     env->reset(&s);
 
@@ -186,8 +173,12 @@ int main(int argc, char **argv) {
       double r = RandomDouble(0.0, 1.0);
 
       if (r < epsilon && TRAINING) {
-        action_space = env->action_space();
+#ifdef USING_CUSTOM_ENV
+        action = env->sample();
+#else
+        boost::shared_ptr<Gym::Space> action_space = env->action_space();
         action = action_space->sample();
+#endif
         std::cout << "test result random action : " << action[0] << "\n";
       } else {
         std::vector<double> input(s.observation.begin(), s.observation.end());
@@ -244,8 +235,8 @@ int main(int argc, char **argv) {
         std::vector<std::vector<std::vector<double>>> next_inbatch;
 
         for (unsigned int i = 0; i < in_Exp.size(); i++) {
-          Gym::State state = in_Exp[i].state;
-          Gym::State next_state = in_Exp[i].next_state;
+          STATE state = in_Exp[i].state;
+          STATE next_state = in_Exp[i].next_state;
           std::vector<double> in(state.observation.begin(),
                                  state.observation.end());
           inbatch.push_back({in});
