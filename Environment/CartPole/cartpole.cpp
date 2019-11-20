@@ -1,10 +1,10 @@
 #include "cartpole.h"
+#include <stdlib.h>
 
 #define M_PI 3.14159265358979323846
 
 static double RandomDouble(double min, double max) {
-  double r = (double)rand() / (double)RAND_MAX;
-  return min + r * (max - min);
+  return min + ((double)rand() / (RAND_MAX / (max - min)));
 }
 
 static int random0to1() { return rand() % 2; }
@@ -65,13 +65,13 @@ void CartPole::step(const std::vector<float> &action, bool rendering,
   S.done = (bool)(x < x_threshold * -1.0 || x > x_threshold ||
                   theta < theta_threshold_radians * -1.0 ||
                   theta > theta_threshold_radians);
-                  // theta > theta_threshold_radians || count >= 200);
+  // theta > theta_threshold_radians || count >= 200);
   count++;
   s->done = S.done;
 
   if (!S.done) {
     S.reward = 1.0;
-  } else if (steps_beyond_done == -1.0) {
+  } else if (steps_beyond_done == -1) {
     steps_beyond_done = 0;
     S.reward = 1.0;
   } else {

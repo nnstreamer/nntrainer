@@ -4,10 +4,10 @@
 #include <fstream>
 #include <iostream>
 #include <iterator>
+#include <memory>
 #include <queue>
 #include <stdio.h>
 #include <unistd.h>
-#include <memory>
 
 #ifdef USING_CUSTOM_ENV
 #include "CartPole/cartpole.h"
@@ -25,7 +25,7 @@
 #define MINI_BATCH 30
 #define DISCOUNT 0.9
 #define TRAINING true
-#define LEARNIG_RATE 0.001
+#define LEARNING_RATE 0.001
 
 typedef struct {
   STATE state;
@@ -91,7 +91,7 @@ static int argmax(std::vector<double> vec) {
 }
 
 static std::shared_ptr<ENV> init_environment(int &input_size,
-                                               int &output_size) {
+                                             int &output_size) {
 
 #ifdef USING_CUSTOM_ENV
 
@@ -146,12 +146,12 @@ int main(int argc, char **argv) {
   Network::NeuralNetwork targetNet;
 
   mainNet.init(input_size, HIDDEN_LAYER_SIZE, output_size, MINI_BATCH,
-               LEARNIG_RATE, "tanh", true);
+               LEARNING_RATE, "tanh", true);
 
-  mainNet.setOptimizer("adam", LEARNIG_RATE, 0.9, 0.999, 1e-8);
+  mainNet.setOptimizer("adam", LEARNING_RATE, 0.9, 0.999, 1e-8);
 
   targetNet.init(input_size, HIDDEN_LAYER_SIZE, output_size, MINI_BATCH,
-                 LEARNIG_RATE, "tanh", true);
+                 LEARNING_RATE, "tanh", true);
 
   if (is_file_exist(model_path)) {
     mainNet.readModel(model_path);
@@ -188,12 +188,12 @@ int main(int argc, char **argv) {
         action.push_back(argmax(temp));
 
         std::cout << "qvalues : [";
-	std::cout.width(10);
-	std::cout<< temp[0] << "][";
-	std::cout.width(10);	
-	std::cout<< temp[1] << "] : ACTION (argmax) = ";
-	std::cout.width(3);
-	std::cout<< argmax(temp) << "\n";
+        std::cout.width(10);
+        std::cout << temp[0] << "][";
+        std::cout.width(10);
+        std::cout << temp[1] << "] : ACTION (argmax) = ";
+        std::cout.width(3);
+        std::cout << argmax(temp) << "\n";
       }
 
       env->step(action, RENDER, &next_s);
@@ -271,10 +271,15 @@ int main(int argc, char **argv) {
         mainNet.backwarding(Matrix(inbatch), Q, iter);
       }
 
-      writeFile << "=== mainNet Loss : " << mainNet.getLoss()
+      writeFile << "mainNet Loss : " << mainNet.getLoss()
                 << " : targetNet Loss : " << targetNet.getLoss() << "\n";
-      std::cout << "=== mainNet Loss : " << mainNet.getLoss()
-                << " : targetNet Loss : " << targetNet.getLoss() << "\n";
+      std::cout << "\n\n =================== TRAINIG & COPY NET "
+                   "==================\n\n";
+      std::cout << "mainNet Loss : ";
+      std::cout.width(15);
+      std::cout << mainNet.getLoss() << "\n targetNet Loss : ";
+      std::cout.width(15);
+      std::cout << targetNet.getLoss() << "\n\n";
       targetNet.copy(mainNet);
       mainNet.saveModel(model_path);
     }
