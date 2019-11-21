@@ -8,6 +8,7 @@
 #include "bitmap_helpers.h"
 #include <iostream>
 #include <fstream>
+#include <vector>
 #include "math.h"
 
 #define TOTAL_DATA_SIZE 5
@@ -16,9 +17,8 @@
 
 int KNN(float out[3][5][128], float *test){
   int ret=0;
-  float dist[15];
+  std::vector<float> dist;
 
-  int count =0;
   float sum=0.0;
   float max=100000.0;
   int id = 0;
@@ -29,7 +29,7 @@ int KNN(float out[3][5][128], float *test){
 	sum += (out[i][j][k] - test[k])*(out[i][j][k] - test[k]);
       }
       d=sqrt(sum);
-      dist[count++]=d;
+      dist.push_back(d);
       if(d < max){
 	max=d;
 	id=i;
@@ -44,9 +44,7 @@ int KNN(float out[3][5][128], float *test){
 }
 
 
-int main(){
-  int tensor_size;
-  int node_size;
+int main(int argc, char *argv[]){
   int input_size;
   int output_size;
   int *output_idx_list;
@@ -57,10 +55,13 @@ int main(){
   int output_idx_list_len = 0;
   float out[TOTAL_LABEL_SIZE][TOTAL_DATA_SIZE][128];
 
-  char *total_label[TOTAL_LABEL_SIZE]={"happy","sad","soso"};
-  char *data_path="/sdcard/Transfer-Learning/";
+  std::vector<std::string> total_label = {"happy","sad","soso"};
+
+  const std::vector<std::string> args(argv + 1, argv + argc);
+  std::string data_path = args[0];
+  std::string model_path = data_path+"ssd_mobilenet_v2_coco_feature.tflite";
   
-  std::unique_ptr<tflite::FlatBufferModel> model= tflite::FlatBufferModel::BuildFromFile("/sdcard/Transfer-Learning/ssd_mobilenet_v2_coco_feature.tflite");
+  std::unique_ptr<tflite::FlatBufferModel> model= tflite::FlatBufferModel::BuildFromFile(model_path.c_str());
 
   if(!model){
     printf("Failed to mmap mdoel\n");
@@ -71,8 +72,6 @@ int main(){
   std::unique_ptr<tflite::Interpreter> interpreter;
   tflite::InterpreterBuilder(*model.get(), resolver)(&interpreter);
 
-  tensor_size = interpreter->tensors_size();
-  node_size = interpreter->nodes_size();
   input_size = interpreter->inputs().size();
   output_size = interpreter->outputs().size();
 

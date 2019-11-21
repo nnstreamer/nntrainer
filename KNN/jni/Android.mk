@@ -82,7 +82,7 @@ LOCAL_MODULE_TAGS := optional
 LOCAL_ARM_MODE := arm
 LOCAL_MODULE := transfer_learning
 
-LOCAL_SRC_FILES := demo.cpp bitmap_helpers.cc
+LOCAL_SRC_FILES := demo.cpp bitmap_helpers.cpp
 
 LOCAL_STATIC_LIBRARIES := tensorflow-lite
 
