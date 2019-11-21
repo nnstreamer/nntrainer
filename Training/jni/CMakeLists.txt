@@ -20,6 +20,7 @@ set(SRCS
 	bitmap_helpers.cpp
 	${NEURALNET}/neuralnet.cpp
 	${NEURALNET}/matrix.cpp
+	${NEURALNET}/layers.cpp
 	)
 
 add_executable(TransferLearning ${SRCS})

@@ -168,13 +168,12 @@ int main(int argc, char *argv[]) {
   Network::NeuralNetwork NN;
   Network::NeuralNetwork NN2;
 
-  NN.init(128, 20, TOTAL_LABEL_SIZE, 1, LEARNING_RATE, "sigmoid", false);
+  NN.init(128, 20, TOTAL_LABEL_SIZE, 1, LEARNING_RATE, "sigmoid", true);
 
   NN.setOptimizer("sgd", LEARNING_RATE, 0.9, 0.999, 1e-8);
 
   for (int i = 0; i < ITERATION; i++) {
     for (unsigned int j = 0; j < inputVector.size(); j++) {
-      NN.forwarding(Matrix({inputVector[j]}));
       NN.backwarding(Matrix({inputVector[j]}), Matrix({outputVector[j]}), j);
     }
     cout << "#" << i + 1 << "/" << ITERATION << " - Loss : " << NN.getLoss()
@@ -193,6 +192,8 @@ int main(int argc, char *argv[]) {
     std::vector<double> featureVector, resultVector;
     featureVector.resize(128);
     getFeature(img, featureVector);
-    cout << NN.forwarding(featureVector).applyFunction(stepFunction) << endl;
+    Matrix X = Matrix({featureVector});
+    cout << NN.forwarding(X).applyFunction(stepFunction) << endl;
   }
+  NN.finalize();
 }

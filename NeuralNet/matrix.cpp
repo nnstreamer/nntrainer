@@ -316,7 +316,7 @@ std::ostream &operator<<(std::ostream &flux, Matrix const &m) {
 }
 
 Matrix &Matrix::copy(const Matrix &from) {
-  if (this != &from) {
+  if (this != &from && from.array.size() != 0) {
     height = from.height;
     width = from.width;
     batch = from.batch;

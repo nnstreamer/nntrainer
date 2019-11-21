@@ -152,6 +152,7 @@ int main(int argc, char **argv) {
 
   targetNet.init(input_size, HIDDEN_LAYER_SIZE, output_size, MINI_BATCH,
                  LEARNING_RATE, "tanh", true);
+  targetNet.setOptimizer("adam", LEARNING_RATE, 0.9, 0.999, 1e-8);
 
   if (is_file_exist(model_path)) {
     mainNet.readModel(model_path);
@@ -284,7 +285,8 @@ int main(int argc, char **argv) {
       mainNet.saveModel(model_path);
     }
   }
-
+  targetNet.finalize();
+  mainNet.finalize();
   writeFile.close();
   return 0;
 }
