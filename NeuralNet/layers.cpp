@@ -126,6 +126,8 @@ Matrix FullyConnectedLayer::backwarding(Matrix derivative, int iteration) {
     M = M.multiply(opt.beta1).add(dJdW.average().multiply(1 - opt.beta1));
     V = V.multiply(opt.beta2).add(
         (dJdW.average().multiply(dJdW.average())).multiply(1 - opt.beta2));
+    M.divide(1 - pow(opt.beta1, iteration + 1));
+    V.divide(1 - pow(opt.beta2, iteration + 1));
     Weight = Weight.subtract((M.divide(V.applyFunction(sqrt).add(opt.epsilon)))
                                  .multiply(opt.learning_rate));
     break;
@@ -231,6 +233,8 @@ Matrix OutputLayer::backwarding(Matrix label, int iteration) {
     M = M.multiply(opt.beta1).add(dJdW.average().multiply(1 - opt.beta1));
     V = V.multiply(opt.beta2).add(
         (dJdW.average().multiply(dJdW.average())).multiply(1 - opt.beta2));
+    M.divide(1 - pow(opt.beta1, iteration + 1));
+    V.divide(1 - pow(opt.beta2, iteration + 1));
     Weight = Weight.subtract((M.divide(V.applyFunction(sqrt).add(opt.epsilon)))
                                  .multiply(opt.learning_rate));
     break;

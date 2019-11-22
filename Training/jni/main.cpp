@@ -166,15 +166,16 @@ int main(int argc, char *argv[]) {
   ExtractFeatures(data_path, inputVector, outputVector);
 
   Network::NeuralNetwork NN;
-  Network::NeuralNetwork NN2;
 
   NN.init(128, 20, TOTAL_LABEL_SIZE, 1, LEARNING_RATE, "sigmoid", true);
 
   NN.setOptimizer("sgd", LEARNING_RATE, 0.9, 0.999, 1e-8);
 
+  // NN.readModel("model.bin");
+
   for (int i = 0; i < ITERATION; i++) {
     for (unsigned int j = 0; j < inputVector.size(); j++) {
-      NN.backwarding(Matrix({inputVector[j]}), Matrix({outputVector[j]}), j);
+      NN.backwarding(Matrix({inputVector[j]}), Matrix({outputVector[j]}), i);
     }
     cout << "#" << i + 1 << "/" << ITERATION << " - Loss : " << NN.getLoss()
          << endl;

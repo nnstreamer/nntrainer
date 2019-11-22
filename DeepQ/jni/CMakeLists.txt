@@ -4,7 +4,7 @@ project(DeepQ)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Werror -g")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Werror -g -std=c++11")
 
-# ADD_DEFINITIONS(-DUSING_CUSTOM_ENV)
+ADD_DEFINITIONS(-DUSING_CUSTOM_ENV)
 
 find_package(PkgConfig REQUIRED)
 

@@ -147,7 +147,6 @@ int main(int argc, char **argv) {
 
   mainNet.init(input_size, HIDDEN_LAYER_SIZE, output_size, MINI_BATCH,
                LEARNING_RATE, "tanh", true);
-
   mainNet.setOptimizer("adam", LEARNING_RATE, 0.9, 0.999, 1e-8);
 
   targetNet.init(input_size, HIDDEN_LAYER_SIZE, output_size, MINI_BATCH,
