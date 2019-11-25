@@ -156,9 +156,13 @@ void ExtractFeatures(std::string p, vector<vector<double>> &feature_input,
 }
 
 int main(int argc, char *argv[]) {
-
+  if (argc < 3) {
+    std::cout << "./TransferLearning Config.ini resources\n";
+    exit(0);
+  }
   const vector<string> args(argv + 1, argv + argc);
-  data_path = args[0];
+  std::string config = args[0];
+  data_path = args[1];
 
   srand(time(NULL));
   std::string ini_file = data_path + "ini.bin";
@@ -166,12 +170,8 @@ int main(int argc, char *argv[]) {
   ExtractFeatures(data_path, inputVector, outputVector);
 
   Network::NeuralNetwork NN;
-
-  NN.init(128, 20, TOTAL_LABEL_SIZE, 1, LEARNING_RATE, "sigmoid", true);
-
-  NN.setOptimizer("sgd", LEARNING_RATE, 0.9, 0.999, 1e-8);
-
-  // NN.readModel("model.bin");
+  NN.setConfig(config);
+  NN.init();
 
   for (int i = 0; i < ITERATION; i++) {
     for (unsigned int j = 0; j < inputVector.size(); j++) {

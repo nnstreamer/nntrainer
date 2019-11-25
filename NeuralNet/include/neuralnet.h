@@ -9,22 +9,32 @@
 
 namespace Network {
 
+typedef enum { NET_KNN, NET_REG, NET_NEU, NET_UNKNOWN } net_type;
+typedef enum {
+  TOKEN_OPT,
+  TOKEN_COST,
+  TOKEN_NET,
+  TOKEN_ACTI,
+  TOKEN_LAYER,
+  TOKEN_UNKNOWN
+} input_type;
+
 class NeuralNetwork {
+
 public:
   NeuralNetwork(){};
+  NeuralNetwork(std::string config_path);
   ~NeuralNetwork(){};
 
   double getLoss();
   void setLoss(double l);
 
-  void init(int input, int hidden, int output, int batch, double rate,
-            std::string acti, bool init_zero);
+  void init();
   Matrix forwarding(Matrix input);
   void backwarding(Matrix input, Matrix expectedOutput, int iteration);
-  void saveModel(std::string model_path);
-  void readModel(std::string model_path);
-  void setOptimizer(std::string ty, double lr, double bt1, double bt2,
-                    double ep);
+  void saveModel();
+  void readModel();
+  void setConfig(std::string config_path);
   NeuralNetwork &copy(NeuralNetwork &from);
   void finalize();
 
@@ -36,9 +46,14 @@ private:
   double (*activation)(double);
   double (*activationPrime)(double);
   double learning_rate;
+  unsigned int epoch;
   double loss;
   bool init_zero;
+  Layers::cost_type cost;
+  std::string model;
+  std::string config;
   Layers::Optimizer opt;
+  net_type nettype;
   std::vector<Layers::Layer *> layers;
 };
 }

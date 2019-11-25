@@ -16,12 +16,17 @@ namespace Layers {
 
 void InputLayer::setOptimizer(Optimizer opt) {
   this->opt = opt;
-  if (opt.activation.compare("tanh") == 0) {
+  switch (opt.activation) {
+  case ACT_TANH:
     activation = tanh;
     activationPrime = tanhPrime;
-  } else {
+    break;
+  case ACT_SIGMOID:
     activation = sigmoid;
     activationPrime = sigmoidePrime;
+    break;
+  default:
+    break;
   }
 }
 
@@ -68,14 +73,18 @@ void FullyConnectedLayer::initialize(int b, int h, int w, int id,
 
 void FullyConnectedLayer::setOptimizer(Optimizer opt) {
   this->opt = opt;
-  if (opt.activation.compare("tanh") == 0) {
+  switch (opt.activation) {
+  case ACT_TANH:
     activation = tanh;
     activationPrime = tanhPrime;
-  } else {
+    break;
+  case ACT_SIGMOID:
     activation = sigmoid;
     activationPrime = sigmoidePrime;
+    break;
+  default:
+    break;
   }
-
   if (opt.type == OPT_ADAM) {
     M = Matrix(height, width);
     V = Matrix(height, width);
@@ -190,12 +199,17 @@ void OutputLayer::copy(Layer *l) {
 
 void OutputLayer::setOptimizer(Optimizer opt) {
   this->opt = opt;
-  if (opt.activation.compare("tanh") == 0) {
+  switch (opt.activation) {
+  case ACT_TANH:
     activation = tanh;
     activationPrime = tanhPrime;
-  } else {
+    break;
+  case ACT_SIGMOID:
     activation = sigmoid;
     activationPrime = sigmoidePrime;
+    break;
+  default:
+    break;
   }
 
   if (opt.type == OPT_ADAM) {

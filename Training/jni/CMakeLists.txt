@@ -10,10 +10,13 @@ link_libraries(${TFLITE_LIBRARIES})
 
 set(NEURALNET ../../NeuralNet)
 
+set(INIPARSER ../../iniparser/src)
+
 include_directories( ${include_directories}
 		     ${CMAKE_CURRENT_SOURCE_DIR}
 		     ${TFLITE_INCLUDE_DIRS}
 		     ${NEURALNET}
+		     ${INIPARSER}
 		     )
 set(SRCS
 	main.cpp
@@ -21,6 +24,8 @@ set(SRCS
 	${NEURALNET}/neuralnet.cpp
 	${NEURALNET}/matrix.cpp
 	${NEURALNET}/layers.cpp
+	${INIPARSER}/iniparser.c
+	${INIPARSER}/dictionary.c
 	)
 
 add_executable(TransferLearning ${SRCS})

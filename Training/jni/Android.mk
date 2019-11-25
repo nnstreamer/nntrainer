@@ -7,6 +7,19 @@ ifndef ANDROID_NDK
 $(error ANDROID_NDK is not defined!)
 endif
 
+INIPARSER=../../iniparser/src/
+LOCAL_MODULE :=iniparser
+INIPARSER_SRCS := \
+	$(INIPARSER)/iniparser.c \
+	$(INIPARSER)/dictionary.c
+
+LOCAL_SRC_FILES :=$(INIPARSER_SRCS)
+LOCAL_C_INCLUDES := $(INIPARSER)
+
+LOCAL_CFLAGS += -O3 -DNDEBUG
+
+include $(BUILD_STATIC_LIBRARY)
+
 include $(CLEAR_VARS)
 
 ifndef TENSORFLOW_ROOT
@@ -71,7 +84,7 @@ LOCAL_CXXFLAGS += -std=c++11 -frtti -fexceptions -O3 -DNDEBUG
 include $(BUILD_STATIC_LIBRARY)
 
 include $(CLEAR_VARS)
-
+NEURALNET=../../NeuralNet
 LOCAL_ARM_NEON := true
 LOCAL_CFLAGS += -std=c++11 -Ofast -mcpu=cortex-a53 -Ilz4-nougat/lib
 LOCAL_LDFLAGS += -Llz4-nougat/lib/obj/local/arm64-v8a/
@@ -80,12 +93,13 @@ LOCAL_CFLAGS += -pthread -fopenmp
 LOCAL_LDFLAGS += -fopenmp 
 LOCAL_MODULE_TAGS := optional
 LOCAL_ARM_MODE := arm
-LOCAL_MODULE := transfer_learning_fc
+LOCAL_MODULE := TransferLearning
 
-LOCAL_SRC_FILES := main.cpp matrix.cpp bitmap_helpers.cpp neuralnet.cpp
+LOCAL_SRC_FILES := main.cpp  $(NEURALNET)/matrix.cpp $(NEURALNET)/neuralnet.cpp \
+		   $(NEURALNET)/layers.cpp bitmap_helpers.cpp
 
-LOCAL_STATIC_LIBRARIES := tensorflow-lite
+LOCAL_STATIC_LIBRARIES := tensorflow-lite iniparser
 
-LOCAL_C_INCLUDES += $(TFLITE_INCLUDES)
+LOCAL_C_INCLUDES += $(TFLITE_INCLUDES) $(INIPARSER) $(NEURALNET)
 
 include $(BUILD_EXECUTABLE)

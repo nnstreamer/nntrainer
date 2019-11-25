@@ -19,13 +19,11 @@
 #endif
 
 #define MAX_EPISODS 50000
-#define HIDDEN_LAYER_SIZE 50
 #define RENDER true
 #define REPLAY_MEMORY 50000
 #define MINI_BATCH 30
 #define DISCOUNT 0.9
 #define TRAINING true
-#define LEARNING_RATE 0.001
 
 typedef struct {
   STATE state;
@@ -121,14 +119,15 @@ static std::shared_ptr<ENV> init_environment(int &input_size,
   return env;
 }
 
-static bool is_file_exist(std::string filename) {
-  std::ifstream infile(filename);
-  return infile.good();
-}
-
 int main(int argc, char **argv) {
+  if (argc < 2) {
+    std::cout << "./DeepQ Config.ini\n";
+    exit(0);
+  }
+  const std::vector<std::string> args(argv + 1, argv + argc);
+  std::string config = args[0];
+
   std::string filepath = "debug.txt";
-  std::string model_path = "model.bin";
   std::ofstream writeFile(filepath.data());
 
   writeFile.is_open();
@@ -142,21 +141,13 @@ int main(int argc, char **argv) {
   env = init_environment(input_size, output_size);
   printf("input_size %d, output_size %d\n", input_size, output_size);
 
-  Network::NeuralNetwork mainNet;
-  Network::NeuralNetwork targetNet;
+  Network::NeuralNetwork mainNet(config);
+  Network::NeuralNetwork targetNet(config);
 
-  mainNet.init(input_size, HIDDEN_LAYER_SIZE, output_size, MINI_BATCH,
-               LEARNING_RATE, "tanh", true);
-  mainNet.setOptimizer("adam", LEARNING_RATE, 0.9, 0.999, 1e-8);
+  mainNet.init();
+  targetNet.init();
 
-  targetNet.init(input_size, HIDDEN_LAYER_SIZE, output_size, MINI_BATCH,
-                 LEARNING_RATE, "tanh", true);
-  targetNet.setOptimizer("adam", LEARNING_RATE, 0.9, 0.999, 1e-8);
-
-  if (is_file_exist(model_path)) {
-    mainNet.readModel(model_path);
-    std::cout << "read model file \n";
-  }
+  mainNet.readModel();
 
   targetNet.copy(mainNet);
 
@@ -281,7 +272,7 @@ int main(int argc, char **argv) {
       std::cout.width(15);
       std::cout << targetNet.getLoss() << "\n\n";
       targetNet.copy(mainNet);
-      mainNet.saveModel(model_path);
+      mainNet.saveModel();
     }
   }
   targetNet.finalize();

@@ -8,7 +8,13 @@
 
 namespace Layers {
 
-typedef enum { OPT_SGD = 0, OPT_ADAM = 1, OPT_UNKNOWN } opt_type;
+typedef enum { OPT_SGD, OPT_ADAM, OPT_UNKNOWN } opt_type;
+
+typedef enum { COST_MSR, COST_LOGISTIC, COST_UNKNOWN } cost_type;
+
+typedef enum { ACT_TANH, ACT_SIGMOID, ACT_UNKNOWN } acti_type;
+
+typedef enum { LAYER_IN, LAYER_FC, LAYER_OUT, LAYER_UNKNOWN } layer_type;
 
 typedef struct {
   opt_type type;
@@ -16,7 +22,7 @@ typedef struct {
   double beta1;
   double beta2;
   double epsilon;
-  std::string activation;
+  acti_type activation;
 } Optimizer;
 
 class Layer {
@@ -28,6 +34,7 @@ public:
   virtual void read(std::ifstream &file) = 0;
   virtual void save(std::ofstream &file) = 0;
   virtual void setOptimizer(Optimizer opt) = 0;
+  void setType(layer_type type) { this->type = type; }
   virtual void copy(Layer *l) = 0;
 
   Matrix Input;
@@ -38,6 +45,7 @@ public:
   unsigned int height;
   Optimizer opt;
   bool init_zero;
+  layer_type type;
   double (*activation)(double);
   double (*activationPrime)(double);
 };
