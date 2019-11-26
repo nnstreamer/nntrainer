@@ -159,6 +159,7 @@ void OutputLayer::initialize(int b, int h, int w, int id, bool init_zero) {
   this->init_zero = init_zero;
   Weight = Matrix(h, w);
   Bias = Matrix(1, w);
+  this->cost = cost;
 
   Weight = Weight.applyFunction(random);
   if (init_zero) {
@@ -170,7 +171,10 @@ void OutputLayer::initialize(int b, int h, int w, int id, bool init_zero) {
 
 Matrix OutputLayer::forwarding(Matrix input) {
   Input = input;
-  hidden = input.dot(Weight).add(Bias).applyFunction(activation);
+  if (cost == COST_LOGISTIC)
+    hidden = input.dot(Weight).applyFunction(activation);
+  else
+    hidden = input.dot(Weight).add(Bias).applyFunction(activation);
   return hidden;
 }
 
@@ -224,18 +228,30 @@ Matrix OutputLayer::backwarding(Matrix label, int iteration) {
   double lossSum = 0.0;
   Matrix Y2 = label;
   Matrix Y = hidden;
-  Matrix sub = Y2.subtract(Y);
-  Matrix l = (sub.multiply(sub)).sum().multiply(0.5);
   Matrix ret;
-  std::vector<double> t = l.Mat2Vec();
-  for (int i = 0; i < l.getBatch(); i++) {
-    lossSum += t[i];
+  Matrix dJdB;
+
+  if (cost == COST_LOGISTIC) {
+    dJdB = Y.subtract(Y2);
+    Matrix temp =
+        ((Y2.multiply(-1.0).transpose().dot(Y.add(1e-5).applyFunction(log)))
+             .subtract(Y2.multiply(-1.0).add(1.0).transpose().dot(
+                 Y.multiply(-1.0).add(1.0).add(1e-5).applyFunction(log))));
+    loss = (1.0 / Y.Mat2Vec().size()) * temp.Mat2Vec()[0];
+  } else {
+    Matrix sub = Y2.subtract(Y);
+    Matrix l = (sub.multiply(sub)).sum().multiply(0.5);
+    std::vector<double> t = l.Mat2Vec();
+    for (int i = 0; i < l.getBatch(); i++) {
+      lossSum += t[i];
+    }
+
+    loss = lossSum / (double)l.getBatch();
+
+    dJdB = Y.subtract(Y2).multiply(
+        Input.dot(Weight).add(Bias).applyFunction(activationPrime));
   }
 
-  loss = lossSum / (double)l.getBatch();
-
-  Matrix dJdB = Y.subtract(Y2).multiply(
-      Input.dot(Weight).add(Bias).applyFunction(activationPrime));
   Matrix dJdW = Input.transpose().dot(dJdB);
   ret = dJdB.dot(Weight.transpose());
 

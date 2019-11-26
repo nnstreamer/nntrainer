@@ -35,6 +35,7 @@ public:
   void saveModel();
   void readModel();
   void setConfig(std::string config_path);
+  unsigned int getEpoch() { return epoch; };
   NeuralNetwork &copy(NeuralNetwork &from);
   void finalize();
 

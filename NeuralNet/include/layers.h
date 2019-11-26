@@ -55,7 +55,7 @@ public:
   InputLayer(){};
   ~InputLayer(){};
   void read(std::ifstream &file){};
-  void save(std::ofstream &file){};
+  void save(std::ofstream &file) { return; };
   Matrix backwarding(Matrix input, int iteration) { return Input; };
   Matrix forwarding(Matrix input);
   void setOptimizer(Optimizer opt);
@@ -93,6 +93,7 @@ public:
   void setOptimizer(Optimizer opt);
   void initialize(int b, int w, int h, int id, bool init_zero);
   double getLoss() { return loss; }
+  void setCost(cost_type c) { this->cost = c; };
   void copy(Layer *l);
 
 private:
@@ -101,6 +102,7 @@ private:
   Matrix M;
   Matrix V;
   double loss;
+  cost_type cost;
 };
 }
 

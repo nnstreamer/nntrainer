@@ -5,6 +5,19 @@
 #include <sstream>
 #include <stdio.h>
 
+bool compareChar(char &c1, char &c2) {
+  if (c1 == c2)
+    return true;
+  else if (std::toupper(c1) == std::toupper(c2))
+    return true;
+  return false;
+}
+
+bool caseInSensitiveCompare(std::string &str1, std::string &str2) {
+  return ((str1.size() == str2.size()) &&
+          std::equal(str1.begin(), str1.end(), str2.begin(), &compareChar));
+}
+
 namespace Network {
 
 std::vector<std::string> Optimizer_string = {"sgd", "adam"};
@@ -40,7 +53,7 @@ unsigned int parseType(std::string ll, input_type t) {
   switch (t) {
   case TOKEN_OPT:
     for (i = 0; i < Optimizer_string.size(); i++) {
-      if (Optimizer_string[i].compare(ll) == 0) {
+      if (caseInSensitiveCompare(Optimizer_string[i], ll)) {
         return (i);
       }
     }
@@ -48,7 +61,7 @@ unsigned int parseType(std::string ll, input_type t) {
     break;
   case TOKEN_COST:
     for (i = 0; i < Cost_string.size(); i++) {
-      if (Cost_string[i].compare(ll) == 0) {
+      if (caseInSensitiveCompare(Cost_string[i], ll)) {
         return (i);
       }
     }
@@ -56,7 +69,7 @@ unsigned int parseType(std::string ll, input_type t) {
     break;
   case TOKEN_NET:
     for (i = 0; i < NetworkType_string.size(); i++) {
-      if (NetworkType_string[i].compare(ll) == 0) {
+      if (caseInSensitiveCompare(NetworkType_string[i], ll)) {
         return (i);
       }
     }
@@ -64,7 +77,7 @@ unsigned int parseType(std::string ll, input_type t) {
     break;
   case TOKEN_ACTI:
     for (i = 0; i < activation_string.size(); i++) {
-      if (activation_string[i].compare(ll) == 0) {
+      if (caseInSensitiveCompare(activation_string[i], ll)) {
         return (i);
       }
     }
@@ -72,7 +85,7 @@ unsigned int parseType(std::string ll, input_type t) {
     break;
   case TOKEN_LAYER:
     for (i = 0; i < layer_string.size(); i++) {
-      if (layer_string[i].compare(ll) == 0) {
+      if (caseInSensitiveCompare(layer_string[i], ll)) {
         return (i);
       }
     }
@@ -126,9 +139,6 @@ void NeuralNetwork::init() {
   for (unsigned int i = 0; i < layers_name.size(); i++)
     std::cout << layers_name[i] << std::endl;
 
-  // std::cout << learning_rate<< " " << epoch << " " << opt.type<< " " <<
-  // opt.activation<< " " << cost << " " << model << " " << batchsize<< " \n";
-
   loss = 100000.0;
 
   for (unsigned int i = 0; i < layers_name.size(); i++) {
@@ -139,8 +149,8 @@ void NeuralNetwork::init() {
     id = iniparser_getint(ini, (layers_name[i] + ":Id").c_str(), 0);
     b_zero = iniparser_getboolean(ini, (layers_name[i] + ":Bias_zero").c_str(),
                                   true);
-    std::cout << l_type << " " << t << " " << w << " " << b_zero << " " << id
-              << std::endl;
+    std::cout << l_type << " " << t << " " << w << " " << h << " " << b_zero
+              << " " << id << std::endl;
     switch (t) {
     case Layers::LAYER_IN: {
       Layers::InputLayer *inputlayer = new (Layers::InputLayer);
@@ -161,6 +171,7 @@ void NeuralNetwork::init() {
       outputlayer->setType(t);
       outputlayer->initialize(batchsize, h, w, id, b_zero);
       outputlayer->setOptimizer(opt);
+      outputlayer->setCost(cost);
       layers.push_back(outputlayer);
     } break;
     case Layers::LAYER_UNKNOWN:
