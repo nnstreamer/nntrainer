@@ -234,9 +234,9 @@ Matrix OutputLayer::backwarding(Matrix label, int iteration) {
   if (cost == COST_LOGISTIC) {
     dJdB = Y.subtract(Y2);
     Matrix temp =
-        ((Y2.multiply(-1.0).transpose().dot(Y.add(1e-5).applyFunction(log)))
+        ((Y2.multiply(-1.0).transpose().dot(Y.add(opt.epsilon).applyFunction(log)))
              .subtract(Y2.multiply(-1.0).add(1.0).transpose().dot(
-                 Y.multiply(-1.0).add(1.0).add(1e-5).applyFunction(log))));
+                 Y.multiply(-1.0).add(1.0).add(opt.epsilon).applyFunction(log))));
     loss = (1.0 / Y.Mat2Vec().size()) * temp.Mat2Vec()[0];
   } else {
     Matrix sub = Y2.subtract(Y);
