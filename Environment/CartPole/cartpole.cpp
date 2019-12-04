@@ -1,12 +1,27 @@
+/**
+ * @file	cartpole.cpp
+ * @date	04 December 2019
+ * @brief	This is environment class for cartpole example
+ * @see		https://github.sec.samsung.net/jijoong-moon/Transfer-Learning.git
+ * @author	Jijoong Moon <jijoong.moon@samsung.com>
+ * @bug		No known bugs except for NYI items
+ *
+ */
 #include "cartpole.h"
 #include <stdlib.h>
 
 #define M_PI 3.14159265358979323846
 
-static double RandomDouble(double min, double max) {
-  return min + ((double)rand() / (RAND_MAX / (max - min)));
-}
+/**
+ * @brief     Generate Random Double value between min to max
+ * @retval    random value
+ */
+static double RandomDouble(double min, double max) { return min + ((double)rand() / (RAND_MAX / (max - min))); }
 
+/**
+ * @brief     Generate Random integer 0 or 1
+ * @retval    random value
+ */
 static int random0to1() { return rand() % 2; }
 
 namespace Env {
@@ -30,8 +45,7 @@ void CartPole::init() {
     S.observation.push_back(0.0);
 }
 
-void CartPole::step(const std::vector<float> &action, bool rendering,
-                    State *s) {
+void CartPole::step(const std::vector<float> &action, bool rendering, State *s) {
   double x = S.observation[0];
   double x_dot = S.observation[1];
   double theta = S.observation[2];
@@ -40,11 +54,9 @@ void CartPole::step(const std::vector<float> &action, bool rendering,
 
   double costheta = cos(theta);
   double sintheta = sin(theta);
-  double temp =
-      (force + polemass_length * theta_dot * theta_dot * sintheta) / total_mass;
+  double temp = (force + polemass_length * theta_dot * theta_dot * sintheta) / total_mass;
   double thetaacc =
-      (gravity * sintheta - costheta * temp) /
-      (length * (4.0 / 3.0 - masspole * costheta * costheta / total_mass));
+      (gravity * sintheta - costheta * temp) / (length * (4.0 / 3.0 - masspole * costheta * costheta / total_mass));
   double xacc = temp - polemass_length * thetaacc * costheta / total_mass;
 
   x = x + tau * x_dot;
@@ -62,8 +74,7 @@ void CartPole::step(const std::vector<float> &action, bool rendering,
   s->observation.push_back(theta);
   s->observation.push_back(theta_dot);
 
-  S.done = (bool)(x < x_threshold * -1.0 || x > x_threshold ||
-                  theta < theta_threshold_radians * -1.0 ||
+  S.done = (bool)(x < x_threshold * -1.0 || x > x_threshold || theta < theta_threshold_radians * -1.0 ||
                   theta > theta_threshold_radians);
   // theta > theta_threshold_radians || count >= 200);
   count++;

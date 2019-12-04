@@ -1,3 +1,13 @@
+/**
+ * @file	main.cpp
+ * @date	04 December 2019
+ * @brief	This is simple example to use Env CartPole-v0
+ * @see		https://github.sec.samsung.net/jijoong-moon/Transfer-Learning.git
+ * @author	Jijoong Moon <jijoong.moon@samsung.com>
+ * @bug		No known bugs except for NYI items
+ *
+ */
+
 #include "cartpole.h"
 #include <iostream>
 #include <stdio.h>
@@ -7,7 +17,7 @@ int main() {
   Env::CartPole cartpole;
   srand(time(NULL));
   std::vector<float> action;
-  action=cartpole.sample();
+  action = cartpole.sample();
   cartpole.init();
   for (int episode = 0; episode < 100; episode++) {
     cartpole.reset(&state);
@@ -15,16 +25,14 @@ int main() {
     int total_steps = 0;
     while (1) {
       action = cartpole.sample();
-      cartpole.step(action,false, &state);
+      cartpole.step(action, false, &state);
       total_reward += state.reward;
       total_steps += 1;
-      printf("action : %f --> state : %f %f %f %f\n", action[0],
-             state.observation[0], state.observation[1], state.observation[2],
-             state.observation[3]);
+      printf("action : %f --> state : %f %f %f %f\n", action[0], state.observation[0], state.observation[1],
+             state.observation[2], state.observation[3]);
       if (state.done)
         break;
     }
-    printf("episode %i finished in %i steps with reward %02f\n", episode,
-           total_steps, total_reward);
+    printf("episode %i finished in %i steps with reward %02f\n", episode, total_steps, total_reward);
   }
 }
