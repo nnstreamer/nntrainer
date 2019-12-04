@@ -1,9 +1,22 @@
+/**
+ * @file	main.cpp
+ * @date	04 December 2019
+ * @see		https://github.sec.samsung.net/jijoong-moon/Transfer-Learning.git
+ * @author	Jijoong Moon <jijoong.moon@samsung.com>
+ * @bug		No known bugs except for NYI items
+ * @brief	This is Binary Logistic Regression Example
+ *
+ *              Trainig set (dataset1.txt) : two colume data + result (1.0 or 0.0)
+ *              Configuration file : ../../res/LogisticRegression.ini
+ *              Test set (test.txt)
+ */
+
+#include <stdlib.h>
+#include <time.h>
 #include <cmath>
 #include <fstream>
 #include <iostream>
 #include <sstream>
-#include <stdlib.h>
-#include <time.h>
 
 #include "include/matrix.h"
 #include "include/neuralnet.h"
@@ -11,6 +24,11 @@
 
 std::string data_file;
 
+/**
+ * @brief     step function
+ * @param[in] x value to be distinguished
+ * @retval 0.0 or 1.0
+ */
 double stepFunction(double x) {
   if (x > 0.5) {
     return 1.0;
@@ -23,6 +41,12 @@ double stepFunction(double x) {
   return x;
 }
 
+/**
+ * @brief     create NN
+ *            back propagation of NN
+ * @param[in]  arg 1 : configuration file path
+ * @param[in]  arg 2 : resource path (dataset.txt or testset.txt)
+ */
 int main(int argc, char *argv[]) {
   if (argc < 3) {
     std::cout << "./LogisticRegression Config.ini data.txt\n";
@@ -35,13 +59,22 @@ int main(int argc, char *argv[]) {
 
   srand(time(NULL));
 
+  /**
+   * @brief     Create NN with configuration file path
+   */
   std::vector<std::vector<double>> inputVector, outputVector;
   Network::NeuralNetwork NN(config);
 
+  /**
+   * @brief     Initialize NN
+   */
   NN.init();
   if (!training)
     NN.readModel();
 
+  /**
+   * @brief     Generate Trainig Set
+   */
   std::ifstream dataFile(data_file);
   if (dataFile.is_open()) {
     std::string temp;
@@ -67,18 +100,30 @@ int main(int argc, char *argv[]) {
       index++;
     }
   }
+
+  /**
+   * @brief     training NN ( back propagation )
+   */
   if (training) {
     for (unsigned int i = 0; i < NN.getEpoch(); i++) {
       NN.backwarding(Matrix(inputVector), Matrix(outputVector), i);
-      std::cout << "#" << i + 1 << "/" << NN.getEpoch()
-                << " - Loss : " << NN.getLoss() << std::endl;
+      std::cout << "#" << i + 1 << "/" << NN.getEpoch() << " - Loss : " << NN.getLoss() << std::endl;
       NN.setLoss(0.0);
     }
   } else {
-    std::cout << NN.forwarding(Matrix(inputVector)).applyFunction(stepFunction)
-              << std::endl;
+    /**
+     * @brief     forward propagation
+     */
+    std::cout << NN.forwarding(Matrix(inputVector)).applyFunction(stepFunction) << std::endl;
   }
 
+  /**
+   * @brief     save Weight & Bias
+   */
   NN.saveModel();
+
+  /**
+   * @brief     Finalize NN
+   */
   NN.finalize();
 }
