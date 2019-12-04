@@ -1,17 +1,24 @@
+/**
+ * @file	matrix.cpp
+ * @date	04 December 2019
+ * @brief	This is Matrix class for calculation
+ * @see		https://github.sec.samsung.net/jijoong-moon/Transfer-Learning.git
+ * @author	Jijoong Moon <jijoong.moon@samsung.com>
+ * @bug		No known bugs except for NYI items
+ *
+ */
+
 #include "include/matrix.h"
 #include <assert.h>
-#include <sstream>
 #include <stdio.h>
-
-Matrix::Matrix() {}
+#include <sstream>
 
 Matrix::Matrix(int height, int width) {
   this->height = height;
   this->width = width;
   this->batch = 1;
   this->dim = 2;
-  this->array.push_back(
-      std::vector<std::vector<double>>(height, std::vector<double>(width)));
+  this->data.push_back(std::vector<std::vector<double>>(height, std::vector<double>(width)));
 }
 
 Matrix::Matrix(int batch, int height, int width) {
@@ -19,28 +26,28 @@ Matrix::Matrix(int batch, int height, int width) {
   this->width = width;
   this->batch = batch;
   this->dim = 3;
+
   for (int i = 0; i < batch; i++) {
-    this->array.push_back(
-        std::vector<std::vector<double>>(height, std::vector<double>(width)));
+    this->data.push_back(std::vector<std::vector<double>>(height, std::vector<double>(width)));
   }
 }
 
-Matrix::Matrix(std::vector<std::vector<double>> const &array) {
-  assert(array.size() != 0);
-  this->height = array.size();
-  this->width = array[0].size();
+Matrix::Matrix(std::vector<std::vector<double>> const &data) {
+  assert(data.size() != 0);
+  this->height = data.size();
+  this->width = data[0].size();
   this->batch = 1;
   this->dim = 2;
-  this->array.push_back(array);
+  this->data.push_back(data);
 }
 
-Matrix::Matrix(std::vector<std::vector<std::vector<double>>> const &array) {
-  assert(array.size() != 0 && array[0].size() != 0);
-  this->batch = array.size();
-  this->height = array[0].size();
-  this->width = array[0][0].size();
+Matrix::Matrix(std::vector<std::vector<std::vector<double>>> const &data) {
+  assert(data.size() != 0 && data[0].size() != 0);
+  this->batch = data.size();
+  this->height = data[0].size();
+  this->width = data[0][0].size();
   this->dim = 3;
-  this->array = array;
+  this->data = data;
 }
 
 Matrix Matrix::multiply(double const &value) {
@@ -50,7 +57,7 @@ Matrix Matrix::multiply(double const &value) {
   for (k = 0; k < batch; k++) {
     for (i = 0; i < height; i++) {
       for (j = 0; j < width; j++) {
-        result.array[k][i][j] = array[k][i][j] * value;
+        result.data[k][i][j] = data[k][i][j] * value;
       }
     }
   }
@@ -65,7 +72,7 @@ Matrix Matrix::divide(double const &value) {
   for (k = 0; k < batch; k++) {
     for (i = 0; i < height; i++) {
       for (j = 0; j < width; j++) {
-        result.array[k][i][j] = array[k][i][j] / value;
+        result.data[k][i][j] = data[k][i][j] / value;
       }
     }
   }
@@ -80,7 +87,7 @@ Matrix Matrix::add(double const &value) {
   for (k = 0; k < batch; k++) {
     for (i = 0; i < height; i++) {
       for (j = 0; j < width; j++) {
-        result.array[k][i][j] = array[k][i][j] + value;
+        result.data[k][i][j] = data[k][i][j] + value;
       }
     }
   }
@@ -97,7 +104,7 @@ Matrix Matrix::add(Matrix const &m) const {
     for (k = 0; k < batch; k++) {
       for (i = 0; i < height; i++) {
         for (j = 0; j < width; j++) {
-          result.array[k][i][j] = array[k][i][j] + m.array[0][i][j];
+          result.data[k][i][j] = data[k][i][j] + m.data[0][i][j];
         }
       }
     }
@@ -105,7 +112,7 @@ Matrix Matrix::add(Matrix const &m) const {
     for (k = 0; k < batch; k++) {
       for (i = 0; i < height; i++) {
         for (j = 0; j < width; j++) {
-          result.array[k][i][j] = array[k][i][j] + m.array[k][i][j];
+          result.data[k][i][j] = data[k][i][j] + m.data[k][i][j];
         }
       }
     }
@@ -122,7 +129,7 @@ Matrix Matrix::subtract(Matrix const &m) const {
     for (k = 0; k < batch; k++) {
       for (i = 0; i < height; i++) {
         for (j = 0; j < width; j++) {
-          result.array[k][i][j] = array[k][i][j] - m.array[0][i][j];
+          result.data[k][i][j] = data[k][i][j] - m.data[0][i][j];
         }
       }
     }
@@ -130,7 +137,7 @@ Matrix Matrix::subtract(Matrix const &m) const {
     for (k = 0; k < batch; k++) {
       for (i = 0; i < height; i++) {
         for (j = 0; j < width; j++) {
-          result.array[k][i][j] = array[k][i][j] - m.array[k][i][j];
+          result.data[k][i][j] = data[k][i][j] - m.data[k][i][j];
         }
       }
     }
@@ -148,7 +155,7 @@ Matrix Matrix::multiply(Matrix const &m) const {
     for (k = 0; k < batch; k++) {
       for (i = 0; i < height; i++) {
         for (j = 0; j < width; j++) {
-          result.array[k][i][j] = array[k][i][j] * m.array[0][i][j];
+          result.data[k][i][j] = data[k][i][j] * m.data[0][i][j];
         }
       }
     }
@@ -156,7 +163,7 @@ Matrix Matrix::multiply(Matrix const &m) const {
     for (k = 0; k < batch; k++) {
       for (i = 0; i < height; i++) {
         for (j = 0; j < width; j++) {
-          result.array[k][i][j] = array[k][i][j] * m.array[k][i][j];
+          result.data[k][i][j] = data[k][i][j] * m.data[k][i][j];
         }
       }
     }
@@ -175,7 +182,7 @@ Matrix Matrix::divide(Matrix const &m) const {
     for (k = 0; k < batch; k++) {
       for (i = 0; i < height; i++) {
         for (j = 0; j < width; j++) {
-          result.array[k][i][j] = array[k][i][j] / m.array[0][i][j];
+          result.data[k][i][j] = data[k][i][j] / m.data[0][i][j];
         }
       }
     }
@@ -183,7 +190,7 @@ Matrix Matrix::divide(Matrix const &m) const {
     for (k = 0; k < batch; k++) {
       for (i = 0; i < height; i++) {
         for (j = 0; j < width; j++) {
-          result.array[k][i][j] = array[k][i][j] / m.array[k][i][j];
+          result.data[k][i][j] = data[k][i][j] / m.data[k][i][j];
         }
       }
     }
@@ -192,15 +199,19 @@ Matrix Matrix::divide(Matrix const &m) const {
   return result;
 }
 
+/**
+ * This is to sum the Matrix data according to the batch.
+ * Therefore the result has M(batch, 1, 1) dimension.
+ */
 Matrix Matrix::sum() const {
   int i, j, k;
   Matrix ret(batch, 1, 1);
 
   for (k = 0; k < batch; k++) {
-    ret.array[k][0][0] = 0.0;
+    ret.data[k][0][0] = 0.0;
     for (i = 0; i < height; i++) {
       for (j = 0; j < width; j++) {
-        ret.array[k][0][0] += array[k][i][j];
+        ret.data[k][0][0] += data[k][i][j];
       }
     }
   }
@@ -208,6 +219,10 @@ Matrix Matrix::sum() const {
   return ret;
 }
 
+/**
+ * If the batch sizeo of m is one, the it is reused for
+ * every calculation along with batch
+ */
 Matrix Matrix::dot(Matrix const &m) const {
   assert(width == m.height);
   int i, j, h, k, mwidth = m.width;
@@ -219,9 +234,9 @@ Matrix Matrix::dot(Matrix const &m) const {
       for (i = 0; i < height; i++) {
         for (j = 0; j < mwidth; j++) {
           for (h = 0; h < width; h++) {
-            w += array[k][i][h] * m.array[0][h][j];
+            w += data[k][i][h] * m.data[0][h][j];
           }
-          result.array[k][i][j] = w;
+          result.data[k][i][j] = w;
           w = 0;
         }
       }
@@ -231,9 +246,9 @@ Matrix Matrix::dot(Matrix const &m) const {
       for (i = 0; i < height; i++) {
         for (j = 0; j < mwidth; j++) {
           for (h = 0; h < width; h++) {
-            w += array[k][i][h] * m.array[k][h][j];
+            w += data[k][i][h] * m.data[k][h][j];
           }
-          result.array[k][i][j] = w;
+          result.data[k][i][j] = w;
           w = 0;
         }
       }
@@ -249,7 +264,7 @@ Matrix Matrix::transpose() const {
   for (k = 0; k < batch; k++) {
     for (i = 0; i < width; i++) {
       for (j = 0; j < height; j++) {
-        result.array[k][i][j] = array[k][j][i];
+        result.data[k][i][j] = data[k][j][i];
       }
     }
   }
@@ -263,67 +278,41 @@ Matrix Matrix::applyFunction(double (*function)(double)) const {
   for (k = 0; k < batch; k++) {
     for (i = 0; i < height; i++) {
       for (j = 0; j < width; j++) {
-        result.array[k][i][j] = (*function)(array[k][i][j]);
+        result.data[k][i][j] = (*function)(data[k][i][j]);
       }
     }
   }
-
   return result;
 }
 
-void Matrix::print(std::ostream &flux) const {
-  int i, j, k, l;
-  int maxLength[batch][width];
+void Matrix::print(std::ostream &out) const {
+  int i, j, k;
   std::stringstream ss;
-
-  for (k = 0; k < batch; k++) {
-    for (i = 0; i < width; i++) {
-      maxLength[k][i] = 0;
-    }
-  }
-
   for (k = 0; k < batch; k++) {
     for (i = 0; i < height; i++) {
       for (j = 0; j < width; j++) {
-        ss << array[k][i][j];
-        if (maxLength[k][j] < (int)(ss.str().size())) {
-          maxLength[k][j] = ss.str().size();
-        }
-        ss.str(std::string());
+        out << data[k][i][j] << " ";
       }
+      out << std::endl;
     }
-  }
-
-  for (l = 0; l < batch; l++) {
-    for (i = 0; i < height; i++) {
-      for (j = 0; j < width; j++) {
-        flux << array[l][i][j];
-        ss << array[l][i][j];
-
-        for (int k = 0; k < (int)(maxLength[l][j] - ss.str().size() + 1); k++) {
-          flux << " ";
-        }
-        ss.str(std::string());
-      }
-      flux << std::endl;
-    }
+    out << std::endl;
   }
 }
 
-std::ostream &operator<<(std::ostream &flux, Matrix const &m) {
-  m.print(flux);
-  return flux;
+std::ostream &operator<<(std::ostream &out, Matrix const &m) {
+  m.print(out);
+  return out;
 }
 
 Matrix &Matrix::copy(const Matrix &from) {
-  if (this != &from && from.array.size() != 0) {
+  if (this != &from && from.data.size() != 0) {
     height = from.height;
     width = from.width;
     batch = from.batch;
     for (int k = 0; k < batch; k++) {
       for (int i = 0; i < height; i++) {
         for (int j = 0; j < width; j++) {
-          array[k][i][j] = from.array[k][i][j];
+          data[k][i][j] = from.data[k][i][j];
         }
       }
     }
@@ -331,12 +320,15 @@ Matrix &Matrix::copy(const Matrix &from) {
   return *this;
 }
 
+/**
+ * This generate one dimension vector has the every element in Matrix
+ */
 std::vector<double> Matrix::Mat2Vec() {
   std::vector<double> ret;
   for (int k = 0; k < batch; k++)
     for (int i = 0; i < height; i++)
       for (int j = 0; j < width; j++)
-        ret.push_back(array[k][i][j]);
+        ret.push_back(data[k][i][j]);
 
   return ret;
 }
@@ -345,7 +337,7 @@ void Matrix::save(std::ofstream &file) {
   for (int k = 0; k < batch; k++) {
     for (int i = 0; i < height; i++) {
       for (int j = 0; j < width; j++) {
-        file.write((char *)&array[k][i][j], sizeof(double));
+        file.write((char *)&data[k][i][j], sizeof(double));
       }
     }
   }
@@ -355,12 +347,16 @@ void Matrix::read(std::ifstream &file) {
   for (int k = 0; k < batch; k++) {
     for (int i = 0; i < height; i++) {
       for (int j = 0; j < width; j++) {
-        file.read((char *)&array[k][i][j], sizeof(double));
+        file.read((char *)&data[k][i][j], sizeof(double));
       }
     }
   }
 }
 
+/**
+ * This calculates average value according to the batch direction.
+ * That is the why it has (1, height, width) dimension.
+ */
 Matrix Matrix::average() const {
   if (batch == 1)
     return *this;
@@ -368,11 +364,11 @@ Matrix Matrix::average() const {
   Matrix result(1, height, width);
   for (int i = 0; i < height; i++) {
     for (int j = 0; j < width; j++) {
-      result.array[0][i][j] = 0.0;
+      result.data[0][i][j] = 0.0;
       for (int k = 0; k < batch; k++) {
-        result.array[0][i][j] += array[k][i][j];
+        result.data[0][i][j] += data[k][i][j];
       }
-      result.array[0][i][j] = result.array[0][i][j] / (double)batch;
+      result.data[0][i][j] = result.data[0][i][j] / (double)batch;
     }
   }
   return result;
@@ -382,7 +378,7 @@ void Matrix::setZero() {
   for (int k = 0; k < batch; k++) {
     for (int i = 0; i < height; i++) {
       for (int j = 0; j < width; j++) {
-        this->array[k][i][j] = 0.0;
+        this->data[k][i][j] = 0.0;
       }
     }
   }
@@ -390,14 +386,14 @@ void Matrix::setZero() {
 
 Matrix Matrix::softmax() const {
   Matrix result(batch, height, width);
-  Matrix mother(batch, height, 1);
+  Matrix divisor(batch, height, 1);
 
-  mother.setZero();
+  divisor.setZero();
 
   for (int k = 0; k < batch; k++) {
     for (int i = 0; i < height; i++) {
       for (int j = 0; j < width; j++) {
-        mother.array[k][i][0] += exp(this->array[k][i][j]);
+        divisor.data[k][i][0] += exp(this->data[k][i][j]);
       }
     }
   }
@@ -405,14 +401,11 @@ Matrix Matrix::softmax() const {
   for (int k = 0; k < batch; k++) {
     for (int i = 0; i < height; i++) {
       for (int j = 0; j < width; j++) {
-        result.array[k][i][j] =
-            exp(this->array[k][i][j]) / mother.array[k][i][0];
+        result.data[k][i][j] = exp(this->data[k][i][j]) / divisor.data[k][i][0];
       }
     }
   }
   return result;
 }
 
-void Matrix::setValue(int batch, int height, int width, double value) {
-  this->array[batch][height][width] = value;
-}
+void Matrix::setValue(int batch, int height, int width, double value) { this->data[batch][height][width] = value; }

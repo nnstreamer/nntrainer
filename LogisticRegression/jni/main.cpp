@@ -7,7 +7,7 @@
 
 #include "include/matrix.h"
 #include "include/neuralnet.h"
-#define training false
+#define training true
 
 std::string data_file;
 
