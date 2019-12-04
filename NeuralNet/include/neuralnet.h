@@ -63,12 +63,11 @@ class NeuralNetwork {
    */
   ~NeuralNetwork(){};
 
-  p /**
+  /**
     * @brief     Get Loss
     * @retval    loss value
     */
-      double
-      getLoss();
+  double getLoss();
 
   /**
    * @brief     Set Loss
