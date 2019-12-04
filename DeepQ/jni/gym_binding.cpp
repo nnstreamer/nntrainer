@@ -1,3 +1,11 @@
+/**
+ * @file	gym_binding.cpp
+ * @date	04 December 2019
+ * @see		https://github.com/openai/gym-http-api.git
+ * @bug		No known bugs except for NYI items
+ * @brief	This is Binary Logistic Regression Example
+ *              This is from openai/gym-http-api to run gymAI for C/C++
+ */
 #include "include/gym/gym.h"
 #include <memory>
 #include <assert.h>
