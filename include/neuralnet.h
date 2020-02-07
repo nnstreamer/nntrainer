@@ -27,7 +27,7 @@
 #include <iostream>
 #include <vector>
 #include "layers.h"
-#include "matrix.h"
+#include "tensor.h"
 
 /**
  * @Namespace   Namespace of Network
@@ -95,18 +95,18 @@ class NeuralNetwork {
 
   /**
    * @brief     forward propagation
-   * @param[in] input Input Matrix X
-   * @retval    Output Matrix Y
+   * @param[in] input Input Tensor X
+   * @retval    Output Tensor Y
    */
-  Matrix forwarding(Matrix input);
+  Tensor forwarding(Tensor input);
 
   /**
    * @brief     back propagation to update W & B
-   * @param[in] input Input Matrix X
-   * @param[in] expectedOutput Lable Matrix Y
+   * @param[in] input Input Tensor X
+   * @param[in] expectedOutput Lable Tensor Y
    * @param[in] iteration Epoch Number for ADAM
    */
-  void backwarding(Matrix input, Matrix expectedOutput, int iteration);
+  void backwarding(Tensor input, Tensor expectedOutput, int iteration);
 
   /**
    * @brief     save W & B into file

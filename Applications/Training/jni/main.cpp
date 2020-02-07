@@ -39,7 +39,7 @@
 #include "tensorflow/contrib/lite/string_util.h"
 #include "tensorflow/contrib/lite/tools/gen_op_registration.h"
 
-#include "matrix.h"
+#include "tensor.h"
 #include "neuralnet.h"
 
 /**
@@ -246,7 +246,7 @@ int main(int argc, char *argv[]) {
    */
   for (int i = 0; i < ITERATION; i++) {
     for (unsigned int j = 0; j < inputVector.size(); j++) {
-      NN.backwarding(Matrix({inputVector[j]}), Matrix({outputVector[j]}), i);
+      NN.backwarding(Tensor({inputVector[j]}), Tensor({outputVector[j]}), i);
     }
     cout << "#" << i + 1 << "/" << ITERATION << " - Loss : " << NN.getLoss() << endl;
     NN.setLoss(0.0);
@@ -266,7 +266,7 @@ int main(int argc, char *argv[]) {
     std::vector<double> featureVector, resultVector;
     featureVector.resize(128);
     getFeature(img, featureVector);
-    Matrix X = Matrix({featureVector});
+    Tensor X = Tensor({featureVector});
     cout << NN.forwarding(X).applyFunction(stepFunction) << endl;
   }
 

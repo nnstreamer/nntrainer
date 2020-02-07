@@ -25,7 +25,7 @@
 #include <fstream>
 #include <iostream>
 #include <vector>
-#include "matrix.h"
+#include "tensor.h"
 
 /**
  * @Namespace   Namespace of Layers
@@ -91,18 +91,18 @@ class Layer {
 
   /**
    * @brief     Forward Propation of neural Network
-   * @param[in] input Input Matrix taken by upper layer
-   * @retval    Output Matrix
+   * @param[in] input Input Tensor taken by upper layer
+   * @retval    Output Tensor
    */
-  virtual Matrix forwarding(Matrix input) = 0;
+  virtual Tensor forwarding(Tensor input) = 0;
 
   /**
    * @brief     Back Propation of neural Network
-   * @param[in] input Input Matrix taken by lower layer
+   * @param[in] input Input Tensor taken by lower layer
    * @param[in] iteration Epoch value for the ADAM Optimizer
-   * @retval    Output Matrix
+   * @retval    Output Tensor
    */
-  virtual Matrix backwarding(Matrix input, int iteration) = 0;
+  virtual Tensor backwarding(Tensor input, int iteration) = 0;
 
   /**
    * @brief     Initialize the layer
@@ -146,15 +146,15 @@ class Layer {
   virtual void copy(Layer *l) = 0;
 
   /**
-   * @brief     Input Matrix
+   * @brief     Input Tensor
    */
-  Matrix Input;
+  Tensor Input;
 
   /**
-   * @brief     Hidden Layer Matrix which store the
+   * @brief     Hidden Layer Tensor which store the
    *            forwading result
    */
-  Matrix hidden;
+  Tensor hidden;
 
   /**
    * @brief     Layer index
@@ -231,19 +231,19 @@ class InputLayer : public Layer {
   /**
    * @brief     It is back propagation of input layer.
    *            It return Input as it is.
-   * @param[in] input input Matrix from lower layer.
+   * @param[in] input input Tensor from lower layer.
    * @param[in] iteration Epoch Number for ADAM
    * @retval
    */
-  Matrix backwarding(Matrix input, int iteration) { return Input; };
+  Tensor backwarding(Tensor input, int iteration) { return Input; };
 
   /**
-   * @brief     foward propagation : return Input Matrix
+   * @brief     foward propagation : return Input Tensor
    *            It return Input as it is.
-   * @param[in] input input Matrix from lower layer.
-   * @retval    return Input Matrix
+   * @param[in] input input Tensor from lower layer.
+   * @retval    return Input Tensor
    */
-  Matrix forwarding(Matrix input);
+  Tensor forwarding(Tensor input);
 
   /**
    * @brief     Set Optimizer
@@ -298,19 +298,19 @@ class FullyConnectedLayer : public Layer {
 
   /**
    * @brief     forward propagation with input
-   * @param[in] input Input Matrix from upper layer
+   * @param[in] input Input Tensor from upper layer
    * @retval    Activation(W x input + B)
    */
-  Matrix forwarding(Matrix input);
+  Tensor forwarding(Tensor input);
 
   /**
    * @brief     back propagation
    *            Calculate dJdB & dJdW & Update W & B
-   * @param[in] input Input Matrix from lower layer
+   * @param[in] input Input Tensor from lower layer
    * @param[in] iteration Number of Epoch for ADAM
-   * @retval    dJdB x W Matrix
+   * @retval    dJdB x W Tensor
    */
-  Matrix backwarding(Matrix input, int iteration);
+  Tensor backwarding(Tensor input, int iteration);
 
   /**
    * @brief     set optimizer
@@ -335,18 +335,18 @@ class FullyConnectedLayer : public Layer {
   void initialize(int b, int h, int w, int id, bool init_zero);
 
  private:
-  Matrix Weight;
-  Matrix Bias;
+  Tensor Weight;
+  Tensor Bias;
 
   /**
-   * @brief     First Momentum Matrix for the ADAM
+   * @brief     First Momentum Tensor for the ADAM
    */
-  Matrix M;
+  Tensor M;
 
   /**
-   * @brief     Second Momentum Matrix for the ADAM
+   * @brief     Second Momentum Tensor for the ADAM
    */
-  Matrix V;
+  Tensor V;
 };
 
 /**
@@ -379,19 +379,19 @@ class OutputLayer : public Layer {
 
   /**
    * @brief     forward propagation with input
-   * @param[in] input Input Matrix from upper layer
+   * @param[in] input Input Tensor from upper layer
    * @retval    Activation(W x input + B)
    */
-  Matrix forwarding(Matrix input);
+  Tensor forwarding(Tensor input);
 
   /**
    * @brief     back propagation
    *            Calculate dJdB & dJdW & Update W & B
-   * @param[in] input Input Matrix from lower layer
+   * @param[in] input Input Tensor from lower layer
    * @param[in] iteration Number of Epoch for ADAM
-   * @retval    dJdB x W Matrix
+   * @retval    dJdB x W Tensor
    */
-  Matrix backwarding(Matrix label, int iteration);
+  Tensor backwarding(Tensor label, int iteration);
 
   /**
    * @brief     set optimizer
@@ -427,10 +427,10 @@ class OutputLayer : public Layer {
   void copy(Layer *l);
 
  private:
-  Matrix Weight;
-  Matrix Bias;
-  Matrix M;
-  Matrix V;
+  Tensor Weight;
+  Tensor Bias;
+  Tensor M;
+  Tensor V;
   double loss;
   cost_type cost;
 };

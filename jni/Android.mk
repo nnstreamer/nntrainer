@@ -10,7 +10,7 @@ include $(CLEAR_VARS)
 INIPARSER_ROOT :=$(NNTRAINER_ROOT)/external/iniparser
 
 NNTRAINER_SRCS := $(NNTRAINER_ROOT)/src/neuralnet.cpp \
-                  $(NNTRAINER_ROOT)/src/matrix.cpp \
+                  $(NNTRAINER_ROOT)/src/tensor.cpp \
                   $(NNTRAINER_ROOT)/src/layers.cpp
 
 NNTRAINER_INCLUDES := $(NNTRAINER_ROOT)

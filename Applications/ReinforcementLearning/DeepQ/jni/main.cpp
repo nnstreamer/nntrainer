@@ -68,7 +68,7 @@
 #include <memory>
 #include <queue>
 #include "include/gym/gym.h"
-#include "matrix.h"
+#include "tensor.h"
 #include "neuralnet.h"
 
 #ifdef USING_CUSTOM_ENV
@@ -317,7 +317,7 @@ int main(int argc, char **argv) {
         /**
          * @brief     get action with input State with mainNet
          */
-        Matrix test = mainNet.forwarding(Matrix({input}));
+        Tensor test = mainNet.forwarding(Tensor({input}));
         std::vector<double> temp = test.Mat2Vec();
         action.push_back(argmax(temp));
 
@@ -405,12 +405,12 @@ int main(int argc, char **argv) {
         /**
          * @brief     run forward propagation with mainNet
          */
-        Matrix Q = mainNet.forwarding(Matrix(inbatch));
+        Tensor Q = mainNet.forwarding(Tensor(inbatch));
 
         /**
          * @brief     run forward propagation with targetNet
          */
-        Matrix NQ = targetNet.forwarding(Matrix(next_inbatch));
+        Tensor NQ = targetNet.forwarding(Tensor(next_inbatch));
         std::vector<double> nqa = NQ.Mat2Vec();
 
         /**
@@ -425,7 +425,7 @@ int main(int argc, char **argv) {
             Q.setValue(i, 0, (int)in_Exp[i].action[0], (double)in_Exp[i].reward + DISCOUNT * next);
           }
         }
-        mainNet.backwarding(Matrix(inbatch), Q, iter);
+        mainNet.backwarding(Tensor(inbatch), Q, iter);
       }
 
       writeFile << "mainNet Loss : " << mainNet.getLoss() << " : targetNet Loss : " << targetNet.getLoss() << "\n";

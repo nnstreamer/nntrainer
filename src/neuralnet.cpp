@@ -268,8 +268,8 @@ void NeuralNetwork::finalize() {
 /**
  * @brief     forward propagation using layers object which has layer
  */
-Matrix NeuralNetwork::forwarding(Matrix input) {
-  Matrix X = input;
+Tensor NeuralNetwork::forwarding(Tensor input) {
+  Tensor X = input;
   for (unsigned int i = 0; i < layers.size(); i++) {
     X = layers[i]->forwarding(X);
   }
@@ -281,10 +281,10 @@ Matrix NeuralNetwork::forwarding(Matrix input) {
  *            Call backwarding function of layer in reverse order
  *            No need to call at first Input Layer (No data to be updated)
  */
-void NeuralNetwork::backwarding(Matrix input, Matrix expected_output, int iteration) {
-  Matrix Y2 = expected_output;
-  Matrix X = input;
-  Matrix Y = forwarding(X);
+void NeuralNetwork::backwarding(Tensor input, Tensor expected_output, int iteration) {
+  Tensor Y2 = expected_output;
+  Tensor X = input;
+  Tensor Y = forwarding(X);
 
   for (unsigned int i = layers.size() - 1; i > 0; i--) {
     Y2 = layers[i]->backwarding(Y2, i);

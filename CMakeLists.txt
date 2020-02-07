@@ -21,13 +21,13 @@ include_directories( ${include_directories}
 
 set(SRCS
 	src/neuralnet.cpp
-	src/matrix.cpp
+	src/tensor.cpp
 	src/layers.cpp
 	${INIPARSER}/iniparser.c
 	${INIPARSER}/dictionary.c
 	)
 
-set(NNTRAINER_HEADERS include/neuralnet.h include/matrix.h include/layers.h)      
+set(NNTRAINER_HEADERS include/neuralnet.h include/tensor.h include/layers.h)      
 
 add_library( ${PROJECT_NAME} SHARED ${SRCS} )
 

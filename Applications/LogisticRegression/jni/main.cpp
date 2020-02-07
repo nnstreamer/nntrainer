@@ -31,7 +31,7 @@
 #include <iostream>
 #include <sstream>
 
-#include "matrix.h"
+#include "tensor.h"
 #include "neuralnet.h"
 #define training true
 
@@ -119,7 +119,7 @@ int main(int argc, char *argv[]) {
    */
   if (training) {
     for (unsigned int i = 0; i < NN.getEpoch(); i++) {
-      NN.backwarding(Matrix(inputVector), Matrix(outputVector), i);
+      NN.backwarding(Tensor(inputVector), Tensor(outputVector), i);
       std::cout << "#" << i + 1 << "/" << NN.getEpoch() << " - Loss : " << NN.getLoss() << std::endl;
       NN.setLoss(0.0);
     }
@@ -127,7 +127,7 @@ int main(int argc, char *argv[]) {
     /**
      * @brief     forward propagation
      */
-    std::cout << NN.forwarding(Matrix(inputVector)).applyFunction(stepFunction) << std::endl;
+    std::cout << NN.forwarding(Tensor(inputVector)).applyFunction(stepFunction) << std::endl;
   }
 
   /**

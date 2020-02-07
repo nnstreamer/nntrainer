@@ -80,7 +80,7 @@ void InputLayer::copy(Layer *l) {
   this->hidden.copy(from->hidden);
 }
 
-Matrix InputLayer::forwarding(Matrix input) {
+Tensor InputLayer::forwarding(Tensor input) {
   Input = input;
   return Input;
 }
@@ -99,8 +99,8 @@ void FullyConnectedLayer::initialize(int b, int h, int w, int id, bool init_zero
   this->index = id;
   this->init_zero = init_zero;
 
-  Weight = Matrix(h, w);
-  Bias = Matrix(1, w);
+  Weight = Tensor(h, w);
+  Bias = Tensor(1, w);
 
   Weight = Weight.applyFunction(random);
   if (init_zero) {
@@ -125,14 +125,14 @@ void FullyConnectedLayer::setOptimizer(Optimizer opt) {
       break;
   }
   if (opt.type == OPT_ADAM) {
-    M = Matrix(height, width);
-    V = Matrix(height, width);
+    M = Tensor(height, width);
+    V = Tensor(height, width);
     M.setZero();
     V.setZero();
   }
 }
 
-Matrix FullyConnectedLayer::forwarding(Matrix input) {
+Tensor FullyConnectedLayer::forwarding(Tensor input) {
   Input = input;
   hidden = Input.dot(Weight).add(Bias).applyFunction(activation);
   return hidden;
@@ -160,10 +160,10 @@ void FullyConnectedLayer::copy(Layer *l) {
   this->Bias.copy(from->Bias);
 }
 
-Matrix FullyConnectedLayer::backwarding(Matrix derivative, int iteration) {
-  Matrix dJdB = derivative.multiply(Input.dot(Weight).add(Bias).applyFunction(activationPrime));
-  Matrix dJdW = Input.transpose().dot(dJdB);
-  Matrix ret = dJdB.dot(Weight.transpose());
+Tensor FullyConnectedLayer::backwarding(Tensor derivative, int iteration) {
+  Tensor dJdB = derivative.multiply(Input.dot(Weight).add(Bias).applyFunction(activationPrime));
+  Tensor dJdW = Input.transpose().dot(dJdB);
+  Tensor ret = dJdB.dot(Weight.transpose());
 
   switch (opt.type) {
     case OPT_SGD:
@@ -193,8 +193,8 @@ void OutputLayer::initialize(int b, int h, int w, int id, bool init_zero) {
   this->height = h;
   this->index = id;
   this->init_zero = init_zero;
-  Weight = Matrix(h, w);
-  Bias = Matrix(1, w);
+  Weight = Tensor(h, w);
+  Bias = Tensor(1, w);
   this->cost = cost;
 
   Weight = Weight.applyFunction(random);
@@ -205,7 +205,7 @@ void OutputLayer::initialize(int b, int h, int w, int id, bool init_zero) {
   }
 }
 
-Matrix OutputLayer::forwarding(Matrix input) {
+Tensor OutputLayer::forwarding(Tensor input) {
   Input = input;
   if (cost == COST_ENTROPY)
     hidden = input.dot(Weight).applyFunction(activation);
@@ -253,29 +253,29 @@ void OutputLayer::setOptimizer(Optimizer opt) {
   }
 
   if (opt.type == OPT_ADAM) {
-    M = Matrix(height, width);
-    V = Matrix(height, width);
+    M = Tensor(height, width);
+    V = Tensor(height, width);
     M.setZero();
     V.setZero();
   }
 }
 
-Matrix OutputLayer::backwarding(Matrix label, int iteration) {
+Tensor OutputLayer::backwarding(Tensor label, int iteration) {
   double lossSum = 0.0;
-  Matrix Y2 = label;
-  Matrix Y = hidden;
-  Matrix ret;
-  Matrix dJdB;
+  Tensor Y2 = label;
+  Tensor Y = hidden;
+  Tensor ret;
+  Tensor dJdB;
 
   if (cost == COST_ENTROPY) {
     dJdB = Y.subtract(Y2);
-    Matrix temp = ((Y2.multiply(-1.0).transpose().dot(Y.add(opt.epsilon).applyFunction(log)))
+    Tensor temp = ((Y2.multiply(-1.0).transpose().dot(Y.add(opt.epsilon).applyFunction(log)))
                        .subtract(Y2.multiply(-1.0).add(1.0).transpose().dot(
                            Y.multiply(-1.0).add(1.0).add(opt.epsilon).applyFunction(log))));
     loss = (1.0 / Y.Mat2Vec().size()) * temp.Mat2Vec()[0];
   } else {
-    Matrix sub = Y2.subtract(Y);
-    Matrix l = (sub.multiply(sub)).sum().multiply(0.5);
+    Tensor sub = Y2.subtract(Y);
+    Tensor l = (sub.multiply(sub)).sum().multiply(0.5);
     std::vector<double> t = l.Mat2Vec();
     for (int i = 0; i < l.getBatch(); i++) {
       lossSum += t[i];
@@ -286,7 +286,7 @@ Matrix OutputLayer::backwarding(Matrix label, int iteration) {
     dJdB = Y.subtract(Y2).multiply(Input.dot(Weight).add(Bias).applyFunction(activationPrime));
   }
 
-  Matrix dJdW = Input.transpose().dot(dJdB);
+  Tensor dJdW = Input.transpose().dot(dJdB);
   ret = dJdB.dot(Weight.transpose());
 
   switch (opt.type) {

@@ -12,21 +12,21 @@
  * limitations under the License.
  *
  *
- * @file	matrix.cpp
+ * @file	tensor.cpp
  * @date	04 December 2019
- * @brief	This is Matrix class for calculation
+ * @brief	This is Tensor class for calculation
  * @see		https://github.sec.samsung.net/jijoong-moon/Transfer-Learning.git
  * @author	Jijoong Moon <jijoong.moon@samsung.com>
  * @bug		No known bugs except for NYI items
  *
  */
 
-#include "include/matrix.h"
+#include "include/tensor.h"
 #include <assert.h>
 #include <stdio.h>
 #include <sstream>
 
-Matrix::Matrix(int height, int width) {
+Tensor::Tensor(int height, int width) {
   this->height = height;
   this->width = width;
   this->batch = 1;
@@ -34,7 +34,7 @@ Matrix::Matrix(int height, int width) {
   this->data.push_back(std::vector<std::vector<double>>(height, std::vector<double>(width)));
 }
 
-Matrix::Matrix(int batch, int height, int width) {
+Tensor::Tensor(int batch, int height, int width) {
   this->height = height;
   this->width = width;
   this->batch = batch;
@@ -45,7 +45,7 @@ Matrix::Matrix(int batch, int height, int width) {
   }
 }
 
-Matrix::Matrix(std::vector<std::vector<double>> const &data) {
+Tensor::Tensor(std::vector<std::vector<double>> const &data) {
   assert(data.size() != 0);
   this->height = data.size();
   this->width = data[0].size();
@@ -54,7 +54,7 @@ Matrix::Matrix(std::vector<std::vector<double>> const &data) {
   this->data.push_back(data);
 }
 
-Matrix::Matrix(std::vector<std::vector<std::vector<double>>> const &data) {
+Tensor::Tensor(std::vector<std::vector<std::vector<double>>> const &data) {
   assert(data.size() != 0 && data[0].size() != 0);
   this->batch = data.size();
   this->height = data[0].size();
@@ -63,8 +63,8 @@ Matrix::Matrix(std::vector<std::vector<std::vector<double>>> const &data) {
   this->data = data;
 }
 
-Matrix Matrix::multiply(double const &value) {
-  Matrix result(batch, height, width);
+Tensor Tensor::multiply(double const &value) {
+  Tensor result(batch, height, width);
   int i, j, k;
 
   for (k = 0; k < batch; k++) {
@@ -78,8 +78,8 @@ Matrix Matrix::multiply(double const &value) {
   return result;
 }
 
-Matrix Matrix::divide(double const &value) {
-  Matrix result(batch, height, width);
+Tensor Tensor::divide(double const &value) {
+  Tensor result(batch, height, width);
   int i, j, k;
 
   for (k = 0; k < batch; k++) {
@@ -93,8 +93,8 @@ Matrix Matrix::divide(double const &value) {
   return result;
 }
 
-Matrix Matrix::add(double const &value) {
-  Matrix result(batch, height, width);
+Tensor Tensor::add(double const &value) {
+  Tensor result(batch, height, width);
   int i, j, k;
 
   for (k = 0; k < batch; k++) {
@@ -108,10 +108,10 @@ Matrix Matrix::add(double const &value) {
   return result;
 }
 
-Matrix Matrix::add(Matrix const &m) const {
+Tensor Tensor::add(Tensor const &m) const {
   assert(height == m.height && width == m.width);
 
-  Matrix result(batch, height, width);
+  Tensor result(batch, height, width);
   int i, j, k;
   if (m.batch == 1) {
     for (k = 0; k < batch; k++) {
@@ -133,9 +133,9 @@ Matrix Matrix::add(Matrix const &m) const {
   return result;
 }
 
-Matrix Matrix::subtract(Matrix const &m) const {
+Tensor Tensor::subtract(Tensor const &m) const {
   assert(height == m.height && width == m.width);
-  Matrix result(batch, height, width);
+  Tensor result(batch, height, width);
   int i, j, k;
 
   if (m.batch == 1) {
@@ -158,9 +158,9 @@ Matrix Matrix::subtract(Matrix const &m) const {
   return result;
 }
 
-Matrix Matrix::multiply(Matrix const &m) const {
+Tensor Tensor::multiply(Tensor const &m) const {
   assert(height == m.height && width == m.width);
-  Matrix result(batch, height, width);
+  Tensor result(batch, height, width);
 
   int i, j, k;
 
@@ -185,9 +185,9 @@ Matrix Matrix::multiply(Matrix const &m) const {
   return result;
 }
 
-Matrix Matrix::divide(Matrix const &m) const {
+Tensor Tensor::divide(Tensor const &m) const {
   assert(height == m.height && width == m.width);
-  Matrix result(batch, height, width);
+  Tensor result(batch, height, width);
 
   int i, j, k;
 
@@ -213,12 +213,12 @@ Matrix Matrix::divide(Matrix const &m) const {
 }
 
 /**
- * This is to sum the Matrix data according to the batch.
+ * This is to sum the Tensor data according to the batch.
  * Therefore the result has M(batch, 1, 1) dimension.
  */
-Matrix Matrix::sum() const {
+Tensor Tensor::sum() const {
   int i, j, k;
-  Matrix ret(batch, 1, 1);
+  Tensor ret(batch, 1, 1);
 
   for (k = 0; k < batch; k++) {
     ret.data[k][0][0] = 0.0;
@@ -236,12 +236,12 @@ Matrix Matrix::sum() const {
  * If the batch sizeo of m is one, the it is reused for
  * every calculation along with batch
  */
-Matrix Matrix::dot(Matrix const &m) const {
+Tensor Tensor::dot(Tensor const &m) const {
   assert(width == m.height);
   int i, j, h, k, mwidth = m.width;
   double w = 0;
 
-  Matrix result(batch, height, mwidth);
+  Tensor result(batch, height, mwidth);
   if (m.batch == 1) {
     for (k = 0; k < batch; k++) {
       for (i = 0; i < height; i++) {
@@ -271,8 +271,8 @@ Matrix Matrix::dot(Matrix const &m) const {
   return result;
 }
 
-Matrix Matrix::transpose() const {
-  Matrix result(batch, width, height);
+Tensor Tensor::transpose() const {
+  Tensor result(batch, width, height);
   int i, j, k;
   for (k = 0; k < batch; k++) {
     for (i = 0; i < width; i++) {
@@ -284,8 +284,8 @@ Matrix Matrix::transpose() const {
   return result;
 }
 
-Matrix Matrix::applyFunction(double (*function)(double)) const {
-  Matrix result(batch, height, width);
+Tensor Tensor::applyFunction(double (*function)(double)) const {
+  Tensor result(batch, height, width);
   int i, j, k;
 
   for (k = 0; k < batch; k++) {
@@ -298,7 +298,7 @@ Matrix Matrix::applyFunction(double (*function)(double)) const {
   return result;
 }
 
-void Matrix::print(std::ostream &out) const {
+void Tensor::print(std::ostream &out) const {
   int i, j, k;
   std::stringstream ss;
   for (k = 0; k < batch; k++) {
@@ -312,12 +312,12 @@ void Matrix::print(std::ostream &out) const {
   }
 }
 
-std::ostream &operator<<(std::ostream &out, Matrix const &m) {
+std::ostream &operator<<(std::ostream &out, Tensor const &m) {
   m.print(out);
   return out;
 }
 
-Matrix &Matrix::copy(const Matrix &from) {
+Tensor &Tensor::copy(const Tensor &from) {
   if (this != &from && from.data.size() != 0) {
     height = from.height;
     width = from.width;
@@ -334,9 +334,9 @@ Matrix &Matrix::copy(const Matrix &from) {
 }
 
 /**
- * This generate one dimension vector has the every element in Matrix
+ * This generate one dimension vector has the every element in Tensor
  */
-std::vector<double> Matrix::Mat2Vec() {
+std::vector<double> Tensor::Mat2Vec() {
   std::vector<double> ret;
   for (int k = 0; k < batch; k++)
     for (int i = 0; i < height; i++)
@@ -346,7 +346,7 @@ std::vector<double> Matrix::Mat2Vec() {
   return ret;
 }
 
-void Matrix::save(std::ofstream &file) {
+void Tensor::save(std::ofstream &file) {
   for (int k = 0; k < batch; k++) {
     for (int i = 0; i < height; i++) {
       for (int j = 0; j < width; j++) {
@@ -356,7 +356,7 @@ void Matrix::save(std::ofstream &file) {
   }
 }
 
-void Matrix::read(std::ifstream &file) {
+void Tensor::read(std::ifstream &file) {
   for (int k = 0; k < batch; k++) {
     for (int i = 0; i < height; i++) {
       for (int j = 0; j < width; j++) {
@@ -370,11 +370,11 @@ void Matrix::read(std::ifstream &file) {
  * This calculates average value according to the batch direction.
  * That is the why it has (1, height, width) dimension.
  */
-Matrix Matrix::average() const {
+Tensor Tensor::average() const {
   if (batch == 1)
     return *this;
 
-  Matrix result(1, height, width);
+  Tensor result(1, height, width);
   for (int i = 0; i < height; i++) {
     for (int j = 0; j < width; j++) {
       result.data[0][i][j] = 0.0;
@@ -387,7 +387,7 @@ Matrix Matrix::average() const {
   return result;
 }
 
-void Matrix::setZero() {
+void Tensor::setZero() {
   for (int k = 0; k < batch; k++) {
     for (int i = 0; i < height; i++) {
       for (int j = 0; j < width; j++) {
@@ -397,9 +397,9 @@ void Matrix::setZero() {
   }
 }
 
-Matrix Matrix::softmax() const {
-  Matrix result(batch, height, width);
-  Matrix divisor(batch, height, 1);
+Tensor Tensor::softmax() const {
+  Tensor result(batch, height, width);
+  Tensor divisor(batch, height, 1);
 
   divisor.setZero();
 
@@ -421,4 +421,4 @@ Matrix Matrix::softmax() const {
   return result;
 }
 
-void Matrix::setValue(int batch, int height, int width, double value) { this->data[batch][height][width] = value; }
+void Tensor::setValue(int batch, int height, int width, double value) { this->data[batch][height][width] = value; }
