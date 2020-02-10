@@ -100,17 +100,17 @@ class CartPole {
   std::vector<float> sample();
 
  private:
-  double gravity;
-  double masscart;
-  double masspole;
-  double total_mass;
-  double length;
-  double polemass_length;
-  double force_mag;
-  double tau;
+  float gravity;
+  float masscart;
+  float masspole;
+  float total_mass;
+  float length;
+  float polemass_length;
+  float force_mag;
+  float tau;
   std::string kinematics_integrator;
-  double theta_threshold_radians;
-  double x_threshold;
+  float theta_threshold_radians;
+  float x_threshold;
   int steps_beyond_done;
   int count;
   int action_dim;

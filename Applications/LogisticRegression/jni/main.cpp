@@ -31,8 +31,8 @@
 #include <iostream>
 #include <sstream>
 
-#include "tensor.h"
 #include "neuralnet.h"
+#include "tensor.h"
 #define training true
 
 std::string data_file;
@@ -42,7 +42,7 @@ std::string data_file;
  * @param[in] x value to be distinguished
  * @retval 0.0 or 1.0
  */
-double stepFunction(double x) {
+float stepFunction(float x) {
   if (x > 0.5) {
     return 1.0;
   }
@@ -75,7 +75,7 @@ int main(int argc, char *argv[]) {
   /**
    * @brief     Create NN with configuration file path
    */
-  std::vector<std::vector<double>> inputVector, outputVector;
+  std::vector<std::vector<float>> inputVector, outputVector;
   Network::NeuralNetwork NN(config);
 
   /**
@@ -99,9 +99,9 @@ int main(int argc, char *argv[]) {
         continue;
       }
       std::istringstream buffer(temp);
-      std::vector<double> line;
-      std::vector<double> out;
-      double x;
+      std::vector<float> line;
+      std::vector<float> out;
+      float x;
       for (int i = 0; i < 2; i++) {
         buffer >> x;
         line.push_back(x);

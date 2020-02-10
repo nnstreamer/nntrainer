@@ -26,29 +26,46 @@
 
 /**
  * @brief     random function
- * @param[in] x double
+ * @param[in] x float
  */
-double random(double x) { return (double)(rand() % 10000 + 1) / 10000 - 0.5; }
+float random(float x) { return (float)(rand() % 10000 + 1) / 10000 - 0.5; }
+
+/**
+ * @brief     sqrt function for float type
+ * @param[in] x float
+ */
+float sqrt_float(float x) { return (float)(sqrt(x)); }
+
+/**
+ * @brief     log function for float type
+ * @param[in] x float
+ */
+float log_float(float x) { return (float)(log(x)); }
 
 /**
  * @brief     sigmoid activation function
  * @param[in] x input
  */
-
-double sigmoid(double x) { return 1 / (1 + exp(-x)); }
+float sigmoid(float x) { return 1 / (1 + exp(-x)); }
 
 /**
  * @brief     derivative sigmoid function
  * @param[in] x input
  */
-double sigmoidePrime(double x) { return exp(-x) / (pow(1 + exp(-x), 2)); }
+float sigmoidePrime(float x) { return (float)(1.0 / ((1 + exp(-x)) * (1.0 + 1.0 / (exp(-x) + 0.0000001)))); }
+
+/**
+ * @brief     tanh function for float type
+ * @param[in] x input
+ */
+float tanh_float(float x) { return (float)tanh(x); }
 
 /**
  * @brief     derivative tanh function
  * @param[in] x input
  */
-double tanhPrime(double x) {
-  double th = tanh(x);
+float tanhPrime(float x) {
+  float th = (float)tanh(x);
   return 1.0 - th * th;
 }
 
@@ -58,7 +75,7 @@ void InputLayer::setOptimizer(Optimizer opt) {
   this->opt = opt;
   switch (opt.activation) {
     case ACT_TANH:
-      activation = tanh;
+      activation = tanh_float;
       activationPrime = tanhPrime;
       break;
     case ACT_SIGMOID:
@@ -114,7 +131,7 @@ void FullyConnectedLayer::setOptimizer(Optimizer opt) {
   this->opt = opt;
   switch (opt.activation) {
     case ACT_TANH:
-      activation = tanh;
+      activation = tanh_float;
       activationPrime = tanhPrime;
       break;
     case ACT_SIGMOID:
@@ -174,7 +191,7 @@ Tensor FullyConnectedLayer::backwarding(Tensor derivative, int iteration) {
       V = V.multiply(opt.beta2).add((dJdW.average().multiply(dJdW.average())).multiply(1 - opt.beta2));
       M.divide(1 - pow(opt.beta1, iteration + 1));
       V.divide(1 - pow(opt.beta2, iteration + 1));
-      Weight = Weight.subtract((M.divide(V.applyFunction(sqrt).add(opt.epsilon))).multiply(opt.learning_rate));
+      Weight = Weight.subtract((M.divide(V.applyFunction(sqrt_float).add(opt.epsilon))).multiply(opt.learning_rate));
       break;
     default:
       break;
@@ -241,7 +258,7 @@ void OutputLayer::setOptimizer(Optimizer opt) {
   this->opt = opt;
   switch (opt.activation) {
     case ACT_TANH:
-      activation = tanh;
+      activation = tanh_float;
       activationPrime = tanhPrime;
       break;
     case ACT_SIGMOID:
@@ -261,7 +278,7 @@ void OutputLayer::setOptimizer(Optimizer opt) {
 }
 
 Tensor OutputLayer::backwarding(Tensor label, int iteration) {
-  double lossSum = 0.0;
+  float lossSum = 0.0;
   Tensor Y2 = label;
   Tensor Y = hidden;
   Tensor ret;
@@ -269,19 +286,19 @@ Tensor OutputLayer::backwarding(Tensor label, int iteration) {
 
   if (cost == COST_ENTROPY) {
     dJdB = Y.subtract(Y2);
-    Tensor temp = ((Y2.multiply(-1.0).transpose().dot(Y.add(opt.epsilon).applyFunction(log)))
+    Tensor temp = ((Y2.multiply(-1.0).transpose().dot(Y.add(opt.epsilon).applyFunction(log_float)))
                        .subtract(Y2.multiply(-1.0).add(1.0).transpose().dot(
-                           Y.multiply(-1.0).add(1.0).add(opt.epsilon).applyFunction(log))));
+                           Y.multiply(-1.0).add(1.0).add(opt.epsilon).applyFunction(log_float))));
     loss = (1.0 / Y.Mat2Vec().size()) * temp.Mat2Vec()[0];
   } else {
     Tensor sub = Y2.subtract(Y);
     Tensor l = (sub.multiply(sub)).sum().multiply(0.5);
-    std::vector<double> t = l.Mat2Vec();
+    std::vector<float> t = l.Mat2Vec();
     for (int i = 0; i < l.getBatch(); i++) {
       lossSum += t[i];
     }
 
-    loss = lossSum / (double)l.getBatch();
+    loss = lossSum / (float)l.getBatch();
 
     dJdB = Y.subtract(Y2).multiply(Input.dot(Weight).add(Bias).applyFunction(activationPrime));
   }
@@ -298,7 +315,7 @@ Tensor OutputLayer::backwarding(Tensor label, int iteration) {
       V = V.multiply(opt.beta2).add((dJdW.average().multiply(dJdW.average())).multiply(1 - opt.beta2));
       M.divide(1 - pow(opt.beta1, iteration + 1));
       V.divide(1 - pow(opt.beta2, iteration + 1));
-      Weight = Weight.subtract((M.divide(V.applyFunction(sqrt).add(opt.epsilon))).multiply(opt.learning_rate));
+      Weight = Weight.subtract((M.divide(V.applyFunction(sqrt_float).add(opt.epsilon))).multiply(opt.learning_rate));
       break;
     default:
       break;

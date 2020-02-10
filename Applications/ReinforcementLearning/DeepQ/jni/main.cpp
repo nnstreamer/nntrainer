@@ -127,9 +127,9 @@ typedef struct {
  * @param[in] max : maximum value
  * @retval    min < random value < max
  */
-static double RandomDouble(double min, double max) {
-  double r = (double)rand() / (double)RAND_MAX;
-  return min + r * (max - min);
+static float RandomFloat(float min, float max) {
+  float r = min + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX) / (max - min));
+  return r;
 }
 
 /**
@@ -187,9 +187,9 @@ static std::vector<Experience> getMiniBatch(std::deque<Experience> Q) {
  * @param[in] vec input to calculate argmax
  * @retval argmax
  */
-static int argmax(std::vector<double> vec) {
+static int argmax(std::vector<float> vec) {
   int ret = 0;
-  double val = 0.0;
+  float val = 0.0;
   for (unsigned int i = 0; i < vec.size(); i++) {
     if (val < vec[i]) {
       val = vec[i];
@@ -302,7 +302,7 @@ int main(int argc, char **argv) {
      */
     while (!done) {
       std::vector<float> action;
-      double r = RandomDouble(0.0, 1.0);
+      float r = RandomFloat(0.0, 1.0);
 
       if (r < epsilon && TRAINING) {
 #ifdef USING_CUSTOM_ENV
@@ -313,12 +313,12 @@ int main(int argc, char **argv) {
 #endif
         std::cout << "test result random action : " << action[0] << "\n";
       } else {
-        std::vector<double> input(s.observation.begin(), s.observation.end());
+        std::vector<float> input(s.observation.begin(), s.observation.end());
         /**
          * @brief     get action with input State with mainNet
          */
         Tensor test = mainNet.forwarding(Tensor({input}));
-        std::vector<double> temp = test.Mat2Vec();
+        std::vector<float> temp = test.Mat2Vec();
         action.push_back(argmax(temp));
 
         std::cout << "qvalues : [";
@@ -386,8 +386,8 @@ int main(int argc, char **argv) {
          * @brief     Get Minibatch size of Experience
          */
         std::vector<Experience> in_Exp = getMiniBatch(expQ);
-        std::vector<std::vector<std::vector<double>>> inbatch;
-        std::vector<std::vector<std::vector<double>>> next_inbatch;
+        std::vector<std::vector<std::vector<float>>> inbatch;
+        std::vector<std::vector<std::vector<float>>> next_inbatch;
 
         /**
          * @brief     Generate Lable with next state
@@ -395,10 +395,10 @@ int main(int argc, char **argv) {
         for (unsigned int i = 0; i < in_Exp.size(); i++) {
           STATE state = in_Exp[i].state;
           STATE next_state = in_Exp[i].next_state;
-          std::vector<double> in(state.observation.begin(), state.observation.end());
+          std::vector<float> in(state.observation.begin(), state.observation.end());
           inbatch.push_back({in});
 
-          std::vector<double> next_in(next_state.observation.begin(), next_state.observation.end());
+          std::vector<float> next_in(next_state.observation.begin(), next_state.observation.end());
           next_inbatch.push_back({next_in});
         }
 
@@ -411,18 +411,18 @@ int main(int argc, char **argv) {
          * @brief     run forward propagation with targetNet
          */
         Tensor NQ = targetNet.forwarding(Tensor(next_inbatch));
-        std::vector<double> nqa = NQ.Mat2Vec();
+        std::vector<float> nqa = NQ.Mat2Vec();
 
         /**
          * @brief     Update Q values & udpate mainNetwork
          */
         for (unsigned int i = 0; i < in_Exp.size(); i++) {
           if (in_Exp[i].done) {
-            Q.setValue(i, 0, (int)in_Exp[i].action[0], (double)in_Exp[i].reward);
+            Q.setValue(i, 0, (int)in_Exp[i].action[0], (float)in_Exp[i].reward);
           } else {
-            double next = (nqa[i * NQ.getWidth()] > nqa[i * NQ.getWidth() + 1]) ? nqa[i * NQ.getWidth()]
+            float next = (nqa[i * NQ.getWidth()] > nqa[i * NQ.getWidth() + 1]) ? nqa[i * NQ.getWidth()]
                                                                                 : nqa[i * NQ.getWidth() + 1];
-            Q.setValue(i, 0, (int)in_Exp[i].action[0], (double)in_Exp[i].reward + DISCOUNT * next);
+            Q.setValue(i, 0, (int)in_Exp[i].action[0], (float)in_Exp[i].reward + DISCOUNT * next);
           }
         }
         mainNet.backwarding(Tensor(inbatch), Q, iter);

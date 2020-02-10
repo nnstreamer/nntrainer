@@ -80,13 +80,13 @@ class NeuralNetwork {
     * @brief     Get Loss
     * @retval    loss value
     */
-  double getLoss();
+  float getLoss();
 
   /**
    * @brief     Set Loss
    * @param[in] l loss value
    */
-  void setLoss(double l);
+  void setLoss(float l);
 
   /**
    * @brief     Initialize Network
@@ -151,17 +151,17 @@ class NeuralNetwork {
   /**
    * @brief     function pointer for activation
    */
-  double (*activation)(double);
+  float (*activation)(float);
 
   /**
    * @brief     function pointer for derivative of activation
    */
-  double (*activationPrime)(double);
+  float (*activationPrime)(float);
 
   /**
    * @brief     learning rate
    */
-  double learning_rate;
+  float learning_rate;
 
   /**
    * @brief     Maximum Epoch
@@ -171,7 +171,7 @@ class NeuralNetwork {
   /**
    * @brief     loss
    */
-  double loss;
+  float loss;
 
   /**
    * @brief     boolean to set the Bias zero

@@ -31,7 +31,7 @@ Tensor::Tensor(int height, int width) {
   this->width = width;
   this->batch = 1;
   this->dim = 2;
-  this->data.push_back(std::vector<std::vector<double>>(height, std::vector<double>(width)));
+  this->data.push_back(std::vector<std::vector<float>>(height, std::vector<float>(width)));
 }
 
 Tensor::Tensor(int batch, int height, int width) {
@@ -41,11 +41,11 @@ Tensor::Tensor(int batch, int height, int width) {
   this->dim = 3;
 
   for (int i = 0; i < batch; i++) {
-    this->data.push_back(std::vector<std::vector<double>>(height, std::vector<double>(width)));
+    this->data.push_back(std::vector<std::vector<float>>(height, std::vector<float>(width)));
   }
 }
 
-Tensor::Tensor(std::vector<std::vector<double>> const &data) {
+Tensor::Tensor(std::vector<std::vector<float>> const &data) {
   assert(data.size() != 0);
   this->height = data.size();
   this->width = data[0].size();
@@ -54,7 +54,7 @@ Tensor::Tensor(std::vector<std::vector<double>> const &data) {
   this->data.push_back(data);
 }
 
-Tensor::Tensor(std::vector<std::vector<std::vector<double>>> const &data) {
+Tensor::Tensor(std::vector<std::vector<std::vector<float>>> const &data) {
   assert(data.size() != 0 && data[0].size() != 0);
   this->batch = data.size();
   this->height = data[0].size();
@@ -63,7 +63,7 @@ Tensor::Tensor(std::vector<std::vector<std::vector<double>>> const &data) {
   this->data = data;
 }
 
-Tensor Tensor::multiply(double const &value) {
+Tensor Tensor::multiply(float const &value) {
   Tensor result(batch, height, width);
   int i, j, k;
 
@@ -78,7 +78,7 @@ Tensor Tensor::multiply(double const &value) {
   return result;
 }
 
-Tensor Tensor::divide(double const &value) {
+Tensor Tensor::divide(float const &value) {
   Tensor result(batch, height, width);
   int i, j, k;
 
@@ -93,7 +93,7 @@ Tensor Tensor::divide(double const &value) {
   return result;
 }
 
-Tensor Tensor::add(double const &value) {
+Tensor Tensor::add(float const &value) {
   Tensor result(batch, height, width);
   int i, j, k;
 
@@ -239,7 +239,7 @@ Tensor Tensor::sum() const {
 Tensor Tensor::dot(Tensor const &m) const {
   assert(width == m.height);
   int i, j, h, k, mwidth = m.width;
-  double w = 0;
+  float w = 0;
 
   Tensor result(batch, height, mwidth);
   if (m.batch == 1) {
@@ -284,7 +284,7 @@ Tensor Tensor::transpose() const {
   return result;
 }
 
-Tensor Tensor::applyFunction(double (*function)(double)) const {
+Tensor Tensor::applyFunction(float (*function)(float)) const {
   Tensor result(batch, height, width);
   int i, j, k;
 
@@ -336,8 +336,8 @@ Tensor &Tensor::copy(const Tensor &from) {
 /**
  * This generate one dimension vector has the every element in Tensor
  */
-std::vector<double> Tensor::Mat2Vec() {
-  std::vector<double> ret;
+std::vector<float> Tensor::Mat2Vec() {
+  std::vector<float> ret;
   for (int k = 0; k < batch; k++)
     for (int i = 0; i < height; i++)
       for (int j = 0; j < width; j++)
@@ -350,7 +350,7 @@ void Tensor::save(std::ofstream &file) {
   for (int k = 0; k < batch; k++) {
     for (int i = 0; i < height; i++) {
       for (int j = 0; j < width; j++) {
-        file.write((char *)&data[k][i][j], sizeof(double));
+        file.write((char *)&data[k][i][j], sizeof(float));
       }
     }
   }
@@ -360,7 +360,7 @@ void Tensor::read(std::ifstream &file) {
   for (int k = 0; k < batch; k++) {
     for (int i = 0; i < height; i++) {
       for (int j = 0; j < width; j++) {
-        file.read((char *)&data[k][i][j], sizeof(double));
+        file.read((char *)&data[k][i][j], sizeof(float));
       }
     }
   }
@@ -381,7 +381,7 @@ Tensor Tensor::average() const {
       for (int k = 0; k < batch; k++) {
         result.data[0][i][j] += data[k][i][j];
       }
-      result.data[0][i][j] = result.data[0][i][j] / (double)batch;
+      result.data[0][i][j] = result.data[0][i][j] / (float)batch;
     }
   }
   return result;
@@ -421,4 +421,4 @@ Tensor Tensor::softmax() const {
   return result;
 }
 
-void Tensor::setValue(int batch, int height, int width, double value) { this->data[batch][height][width] = value; }
+void Tensor::setValue(int batch, int height, int width, float value) { this->data[batch][height][width] = value; }

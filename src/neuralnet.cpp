@@ -291,12 +291,12 @@ void NeuralNetwork::backwarding(Tensor input, Tensor expected_output, int iterat
   }
 }
 
-double NeuralNetwork::getLoss() {
+float NeuralNetwork::getLoss() {
   Layers::OutputLayer *out = static_cast<Layers::OutputLayer *>((layers[layers.size() - 1]));
   return out->getLoss();
 }
 
-void NeuralNetwork::setLoss(double l) { loss = l; }
+void NeuralNetwork::setLoss(float l) { loss = l; }
 
 NeuralNetwork &NeuralNetwork::copy(NeuralNetwork &from) {
   if (this != &from) {

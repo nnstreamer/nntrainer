@@ -71,7 +71,7 @@ typedef enum { LAYER_IN, LAYER_FC, LAYER_OUT, LAYER_UNKNOWN } layer_type;
  */
 typedef struct {
   opt_type type;
-  double learning_rate;
+  float learning_rate;
   double beta1;
   double beta2;
   double epsilon;
@@ -194,12 +194,12 @@ class Layer {
   /**
    * @brief     Activation function pointer
    */
-  double (*activation)(double);
+  float (*activation)(float);
 
   /**
    * @brief     Activation Derivative function pointer
    */
-  double (*activationPrime)(double);
+  float (*activationPrime)(float);
 };
 
 /**
@@ -412,7 +412,7 @@ class OutputLayer : public Layer {
   /**
    * @brief     get Loss value
    */
-  double getLoss() { return loss; }
+  float getLoss() { return loss; }
 
   /**
    * @brief     set cost function
@@ -431,7 +431,7 @@ class OutputLayer : public Layer {
   Tensor Bias;
   Tensor M;
   Tensor V;
-  double loss;
+  float loss;
   cost_type cost;
 };
 }

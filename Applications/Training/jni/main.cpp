@@ -39,8 +39,8 @@
 #include "tensorflow/contrib/lite/string_util.h"
 #include "tensorflow/contrib/lite/tools/gen_op_registration.h"
 
-#include "tensor.h"
 #include "neuralnet.h"
+#include "tensor.h"
 
 /**
  * @brief     Data size for each category
@@ -74,7 +74,7 @@ string data_path;
  * @param[in] x value to be distinguished
  * @retval 0.0 or 1.0
  */
-double stepFunction(double x) {
+float stepFunction(float x) {
   if (x > 0.9) {
     return 1.0;
   }
@@ -92,7 +92,7 @@ double stepFunction(double x) {
  * @param[in] filename input file path
  * @param[out] feature_input save output of tflite
  */
-void getFeature(const string filename, vector<double> &feature_input) {
+void getFeature(const string filename, vector<float> &feature_input) {
   int input_size;
   int output_size;
   int *output_idx_list;
@@ -181,7 +181,7 @@ void getFeature(const string filename, vector<double> &feature_input) {
  * @param[out] feature_input save output of tflite
  * @param[out] feature_output save label data
  */
-void ExtractFeatures(std::string p, vector<vector<double>> &feature_input, vector<vector<double>> &feature_output) {
+void ExtractFeatures(std::string p, vector<vector<float>> &feature_input, vector<vector<float>> &feature_output) {
   string total_label[TOTAL_LABEL_SIZE] = {"happy", "sad", "soso"};
 
   int trainingSize = TOTAL_LABEL_SIZE * TOTAL_DATA_SIZE;
@@ -227,7 +227,7 @@ int main(int argc, char *argv[]) {
 
   srand(time(NULL));
   std::string ini_file = data_path + "ini.bin";
-  std::vector<std::vector<double>> inputVector, outputVector;
+  std::vector<std::vector<float>> inputVector, outputVector;
 
   /**
    * @brief     Extract Feature
@@ -263,7 +263,7 @@ int main(int argc, char *argv[]) {
     img += "test" + std::to_string(i + 1) + ".bmp";
     printf("%s\n", img.c_str());
 
-    std::vector<double> featureVector, resultVector;
+    std::vector<float> featureVector, resultVector;
     featureVector.resize(128);
     getFeature(img, featureVector);
     Tensor X = Tensor({featureVector});

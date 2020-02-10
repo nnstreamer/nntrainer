@@ -26,10 +26,13 @@
 #define M_PI 3.14159265358979323846
 
 /**
- * @brief     Generate Random Double value between min to max
+ * @brief     Generate Random Float value between min to max
  * @retval    random value
  */
-static double RandomDouble(double min, double max) { return min + ((double)rand() / (RAND_MAX / (max - min))); }
+static float RandomFloat(float min, float max) {
+  float r = min + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX) / (max - min));
+  return r;
+}
 
 /**
  * @brief     Generate Random integer 0 or 1
@@ -59,18 +62,18 @@ void CartPole::init() {
 }
 
 void CartPole::step(const std::vector<float> &action, bool rendering, State *s) {
-  double x = S.observation[0];
-  double x_dot = S.observation[1];
-  double theta = S.observation[2];
-  double theta_dot = S.observation[3];
-  double force = (action[0] == 1) ? force_mag : force_mag * -1.0;
+  float x = S.observation[0];
+  float x_dot = S.observation[1];
+  float theta = S.observation[2];
+  float theta_dot = S.observation[3];
+  float force = (action[0] == 1) ? force_mag : force_mag * -1.0;
 
-  double costheta = cos(theta);
-  double sintheta = sin(theta);
-  double temp = (force + polemass_length * theta_dot * theta_dot * sintheta) / total_mass;
-  double thetaacc =
+  float costheta = cos(theta);
+  float sintheta = sin(theta);
+  float temp = (force + polemass_length * theta_dot * theta_dot * sintheta) / total_mass;
+  float thetaacc =
       (gravity * sintheta - costheta * temp) / (length * (4.0 / 3.0 - masspole * costheta * costheta / total_mass));
-  double xacc = temp - polemass_length * thetaacc * costheta / total_mass;
+  float xacc = temp - polemass_length * thetaacc * costheta / total_mass;
 
   x = x + tau * x_dot;
   x_dot = x_dot + tau * xacc;
@@ -111,7 +114,7 @@ void CartPole::step(const std::vector<float> &action, bool rendering, State *s) 
 void CartPole::reset(State *initial_s) {
   initial_s->observation.clear();
   for (int i = 0; i < 4; i++) {
-    S.observation[i] = RandomDouble(-0.05, 0.05);
+    S.observation[i] = RandomFloat(-0.05, 0.05);
     initial_s->observation.push_back(S.observation[i]);
   }
   steps_beyond_done = -1;
