@@ -76,6 +76,8 @@ typedef struct {
   double beta2;
   double epsilon;
   acti_type activation;
+  float decay_rate;
+  float decay_steps;
 } Optimizer;
 
 /**

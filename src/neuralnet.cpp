@@ -197,7 +197,12 @@ void NeuralNetwork::init() {
   nettype = (Network::net_type)parseType(iniparser_getstring(ini, "Network:Type", NULL), TOKEN_NET);
   std::vector<std::string> layers_name = parseLayerName(iniparser_getstring(ini, "Network:Layers", NULL));
   learning_rate = iniparser_getdouble(ini, "Network:Learning_rate", 0.0);
+  decay_rate = iniparser_getdouble(ini, "Network:Decay_rate", 0.0);
+  decay_steps = iniparser_getint(ini, "Network:Decay_steps", -1);
+
   opt.learning_rate = learning_rate;
+  opt.decay_steps = decay_steps;
+  opt.decay_rate = decay_rate;
   epoch = iniparser_getint(ini, "Network:Epoch", 100);
   opt.type = (Layers::opt_type)parseType(iniparser_getstring(ini, "Network:Optimizer", NULL), TOKEN_OPT);
   opt.activation = (Layers::acti_type)parseType(iniparser_getstring(ini, "Network:Activation", NULL), TOKEN_ACTI);

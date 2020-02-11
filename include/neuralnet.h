@@ -164,6 +164,16 @@ class NeuralNetwork {
   float learning_rate;
 
   /**
+   * @brief     decay_rate for decayed learning rate
+   */
+  float decay_rate;
+
+  /**
+   * @brief     decay_step for decayed learning rate
+   */
+  float decay_steps;
+
+  /**
    * @brief     Maximum Epoch
    */
   unsigned int epoch;

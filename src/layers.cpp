@@ -182,23 +182,28 @@ Tensor FullyConnectedLayer::backwarding(Tensor derivative, int iteration) {
   Tensor dJdW = Input.transpose().dot(dJdB);
   Tensor ret = dJdB.dot(Weight.transpose());
 
+  float ll = opt.learning_rate;
+  if (opt.decay_steps != -1) {
+    ll = opt.learning_rate * pow(opt.decay_rate, (iteration / opt.decay_steps));
+  }
+
   switch (opt.type) {
     case OPT_SGD:
-      Weight = Weight.subtract(dJdW.average().multiply(opt.learning_rate));
+      Weight = Weight.subtract(dJdW.average().multiply(ll));
       break;
     case OPT_ADAM:
       M = M.multiply(opt.beta1).add(dJdW.average().multiply(1 - opt.beta1));
       V = V.multiply(opt.beta2).add((dJdW.average().multiply(dJdW.average())).multiply(1 - opt.beta2));
       M.divide(1 - pow(opt.beta1, iteration + 1));
       V.divide(1 - pow(opt.beta2, iteration + 1));
-      Weight = Weight.subtract((M.divide(V.applyFunction(sqrt_float).add(opt.epsilon))).multiply(opt.learning_rate));
+      Weight = Weight.subtract((M.divide(V.applyFunction(sqrt_float).add(opt.epsilon))).multiply(ll));
       break;
     default:
       break;
   }
 
   if (!this->init_zero) {
-    Bias = Bias.subtract(dJdB.average().multiply(opt.learning_rate));
+    Bias = Bias.subtract(dJdB.average().multiply(ll));
   }
 
   return ret;
@@ -284,6 +289,11 @@ Tensor OutputLayer::backwarding(Tensor label, int iteration) {
   Tensor ret;
   Tensor dJdB;
 
+  float ll = opt.learning_rate;
+  if (opt.decay_steps != -1) {
+    ll = opt.learning_rate * pow(opt.decay_rate, (iteration / opt.decay_steps));
+  }
+
   if (cost == COST_ENTROPY) {
     dJdB = Y.subtract(Y2);
     Tensor temp = ((Y2.multiply(-1.0).transpose().dot(Y.add(opt.epsilon).applyFunction(log_float)))
@@ -308,21 +318,21 @@ Tensor OutputLayer::backwarding(Tensor label, int iteration) {
 
   switch (opt.type) {
     case Layers::OPT_SGD:
-      Weight = Weight.subtract(dJdW.average().multiply(opt.learning_rate));
+      Weight = Weight.subtract(dJdW.average().multiply(ll));
       break;
     case Layers::OPT_ADAM:
       M = M.multiply(opt.beta1).add(dJdW.average().multiply(1 - opt.beta1));
       V = V.multiply(opt.beta2).add((dJdW.average().multiply(dJdW.average())).multiply(1 - opt.beta2));
       M.divide(1 - pow(opt.beta1, iteration + 1));
       V.divide(1 - pow(opt.beta2, iteration + 1));
-      Weight = Weight.subtract((M.divide(V.applyFunction(sqrt_float).add(opt.epsilon))).multiply(opt.learning_rate));
+      Weight = Weight.subtract((M.divide(V.applyFunction(sqrt_float).add(opt.epsilon))).multiply(ll));
       break;
     default:
       break;
   }
 
   if (!this->init_zero) {
-    Bias = Bias.subtract(dJdB.average().multiply(opt.learning_rate));
+    Bias = Bias.subtract(dJdB.average().multiply(ll));
   }
 
   return ret;
