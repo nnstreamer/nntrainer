@@ -10,10 +10,10 @@ Even though it trains part of the neural network models, NNtrainer requires quit
 
 ## Maintainer
 * [Jijoong Moon](https://github.com/jijoongmoon)
-
-## Reviewers
 * [MyungJoo Ham](https://github.com/myungjoo)
 * [Geunsik Lim](https://github.com/leemgs)
+
+## Reviewers
 * [Sangjung Woo](https://github.com/again4you)
 * [Wook Song](https://github.com/wooksong)
 * [Jaeyun Jung](https://github.com/jaeyun-jung)
@@ -89,7 +89,7 @@ Applications  CMakeLists.txt  external  include  jni  LICENSE  package.pc.in
 ```
 
 There are four applications tested on the Android and Ubuntu (16.04). All of them include the code in NeuralNet directory and has their own CMake file to compile. This is the draft version of the code and need more tailoring. 
-Just for the example, let¡¯s compile Training application. Once it is compiled and install you will find the libnntrainer.so and related .h in /usr/local/lib and /usr/local/includes directory.
+Just for the example, let\'s compile Training application. Once it is compiled and install you will find the libnntrainer.so and related .h in /usr/local/lib and /usr/local/includes directory.
 
 ``` bash
 $ mkdir build
