@@ -24,9 +24,16 @@
 #ifndef __TENSOR_H__
 #define __TENSOR_H__
 
+#ifdef USE_BLAS
+extern "C" {
+#include <cblas.h>
+}
+#endif
+
 #include <cmath>
 #include <fstream>
 #include <iostream>
+#include <memory>
 #include <vector>
 
 /**
@@ -38,7 +45,7 @@ class Tensor {
   /**
    * @brief     Constructor of Tensor
    */
-  Tensor(){};
+  Tensor() : height(0), width(0), batch(0), dim(0), len(0){};
 
   /**
    * @brief     Constructor of Tensor with batch size one
@@ -57,15 +64,23 @@ class Tensor {
 
   /**
    * @brief   Constructor of Tensor
-   * @param[in] data data for the Tensor with batch size one
+   * @param[in] d data for the Tensor with batch size one
    */
-  Tensor(std::vector<std::vector<float>> const &data);
+  Tensor(std::vector<std::vector<float>> const &d);
 
   /**
    * @brief     Constructor of Tensor
-   * @param[in] data data for the Tensor
+   * @param[in] d data for the Tensor
    */
-  Tensor(std::vector<std::vector<std::vector<float>>> const &data);
+  Tensor(std::vector<std::vector<std::vector<float>>> const &d);
+
+  /**
+   * @brief     return value at specific location
+   * @param[in] batch batch location
+   * @param[in] h height location
+   * @param[in] w width location
+   */
+  float getValue(int batch, int h, int w);
 
   /**
    * @brief     Multiply value element by element
@@ -218,13 +233,20 @@ class Tensor {
    */
   void read(std::ifstream &file);
 
+  /**
+   * @brief     return argument index which value is max
+   * @retval    int argument index
+   */
+  int argmax();
+
  private:
   /**< handle the data as a std::vector type */
-  std::vector<std::vector<std::vector<float>>> data;
+  std::vector<float> data;
   int height;
   int width;
   int batch;
   int dim;
+  int len;
 };
 
 /**
