@@ -83,6 +83,18 @@ class NeuralNetwork {
   float getLoss();
 
   /**
+    * @brief     Get Optimizer
+    * @retval    Optimizer
+    */
+  Layers::Optimizer getOptimizer() { return opt; };
+
+  /**
+    * @brief     Get Learing rate
+    * @retval    Learning rate
+    */
+  float getLearningRate() { return learning_rate; };
+
+  /**
    * @brief     Set Loss
    * @param[in] l loss value
    */
