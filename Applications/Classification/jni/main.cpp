@@ -45,7 +45,9 @@
 /**
  * @brief     Data size for each category
  */
-#define TOTAL_DATA_SIZE 500
+#define TOTAL_TRAIN_DATA_SIZE 500
+
+#define TOTAL_VAL_DATA_SIZE 50
 
 /**
  * @brief     Number of category : Three
@@ -75,7 +77,8 @@ using namespace std;
  */
 string data_path;
 
-bool duplicate[TOTAL_LABEL_SIZE * TOTAL_DATA_SIZE];
+bool duplicate[TOTAL_LABEL_SIZE * TOTAL_TRAIN_DATA_SIZE];
+bool valduplicate[TOTAL_LABEL_SIZE * TOTAL_VAL_DATA_SIZE];
 
 /**
  * @brief     step function
@@ -209,10 +212,19 @@ void getFeature(const string filename, vector<float> &feature_input) {
  * @param[out] feature_input save output of tflite
  * @param[out] feature_output save label data
  */
-void ExtractFeatures(std::string p, vector<vector<float>> &feature_input, vector<vector<float>> &feature_output) {
+void ExtractFeatures(std::string p, vector<vector<float>> &feature_input, vector<vector<float>> &feature_output,
+                     std::string type) {
   string total_label[10] = {"airplane", "automobile", "bird", "cat", "deer", "dog", "frog", "horse", "ship", "truck"};
 
-  int trainingSize = TOTAL_LABEL_SIZE * TOTAL_DATA_SIZE;
+  int data_size = TOTAL_TRAIN_DATA_SIZE;
+  bool val = false;
+
+  if (!type.compare("val")) {
+    data_size = TOTAL_VAL_DATA_SIZE;
+    val = true;
+  }
+
+  int trainingSize = TOTAL_LABEL_SIZE * data_size;
 
   feature_input.resize(trainingSize);
   feature_output.resize(trainingSize);
@@ -223,10 +235,16 @@ void ExtractFeatures(std::string p, vector<vector<float>> &feature_input, vector
     std::string path = p;
     path += total_label[i];
 
-    for (int j = 0; j < TOTAL_DATA_SIZE; j++) {
+    for (int j = 0; j < data_size; j++) {
       std::string img = path + "/";
       std::stringstream ss;
-      ss << std::setw(4) << std::setfill('0') << (j + 1);
+
+      if (val) {
+        ss << std::setw(4) << std::setfill('0') << (5000 - j);
+      } else {
+        ss << std::setw(4) << std::setfill('0') << (j + 1);
+      }
+
       img += ss.str() + ".bmp";
       printf("%s\n", img.c_str());
 
@@ -246,8 +264,9 @@ bool getMiniBatch(std::vector<std::vector<float>> inVec, std::vector<std::vector
   std::vector<int> memI;
   std::vector<int> memJ;
   int count = 0;
+  int data_size = TOTAL_TRAIN_DATA_SIZE;
 
-  for (int i = 0; i < TOTAL_LABEL_SIZE * TOTAL_DATA_SIZE; i++) {
+  for (int i = 0; i < TOTAL_LABEL_SIZE * data_size; i++) {
     if (!duplicate[i])
       count++;
   }
@@ -257,7 +276,7 @@ bool getMiniBatch(std::vector<std::vector<float>> inVec, std::vector<std::vector
 
   count = 0;
   while (count < MINI_BATCH) {
-    int nomI = rangeRandom(0, TOTAL_LABEL_SIZE * TOTAL_DATA_SIZE - 1);
+    int nomI = rangeRandom(0, TOTAL_LABEL_SIZE * data_size - 1);
     if (!duplicate[nomI]) {
       memI.push_back(nomI);
       duplicate[nomI] = true;
@@ -277,10 +296,17 @@ bool getMiniBatch(std::vector<std::vector<float>> inVec, std::vector<std::vector
   return true;
 }
 
-void save(std::vector<std::vector<float>> inVec, std::vector<std::vector<float>> inLabel) {
-  std::string file = "trainingSet.dat";
+void save(std::vector<std::vector<float>> inVec, std::vector<std::vector<float>> inLabel, std::string type) {
+  std::string file = type + "Set.dat";
+  unsigned int data_size;
+  if (!type.compare("training")) {
+    data_size = TOTAL_TRAIN_DATA_SIZE;
+  } else if (!type.compare("val")) {
+    data_size = TOTAL_VAL_DATA_SIZE;
+  }
+
   std::ofstream TrainigSet(file, std::ios::out | std::ios::binary);
-  for (unsigned int i = 0; i < TOTAL_LABEL_SIZE * TOTAL_DATA_SIZE; i++) {
+  for (unsigned int i = 0; i < TOTAL_LABEL_SIZE * data_size; i++) {
     for (unsigned int j = 0; j < FEATURE_SIZE; j++) {
       TrainigSet.write((char *)&inVec[i][j], sizeof(float));
     }
@@ -289,16 +315,24 @@ void save(std::vector<std::vector<float>> inVec, std::vector<std::vector<float>>
   }
 }
 
-bool read(std::vector<std::vector<float>> &inVec, std::vector<std::vector<float>> &inLabel) {
-  std::string file = "trainingSet.dat";
+bool read(std::vector<std::vector<float>> &inVec, std::vector<std::vector<float>> &inLabel, std::string type) {
+  std::string file = type + "Set.dat";
+
+  unsigned int data_size;
+  if (!type.compare("training")) {
+    data_size = TOTAL_TRAIN_DATA_SIZE;
+  } else if (!type.compare("val")) {
+    data_size = TOTAL_VAL_DATA_SIZE;
+  }
+
   std::ifstream TrainigSet(file, std::ios::out | std::ios::binary);
   if (!TrainigSet.good())
     return false;
 
-  inVec.resize(TOTAL_LABEL_SIZE * TOTAL_DATA_SIZE);
-  inLabel.resize(TOTAL_LABEL_SIZE * TOTAL_DATA_SIZE);
+  inVec.resize(TOTAL_LABEL_SIZE * data_size);
+  inLabel.resize(TOTAL_LABEL_SIZE * data_size);
 
-  for (unsigned int i = 0; i < TOTAL_LABEL_SIZE * TOTAL_DATA_SIZE; i++) {
+  for (unsigned int i = 0; i < TOTAL_LABEL_SIZE * data_size; i++) {
     inVec[i].resize(FEATURE_SIZE);
     for (unsigned int j = 0; j < FEATURE_SIZE; j++) {
       TrainigSet.read((char *)&inVec[i][j], sizeof(float));
@@ -329,13 +363,22 @@ int main(int argc, char *argv[]) {
   srand(time(NULL));
   std::string ini_file = data_path + "ini.bin";
   std::vector<std::vector<float>> inputVector, outputVector;
+  std::vector<std::vector<float>> inputValVector, outputValVector;
 
-  if (!read(inputVector, outputVector)) {
+  if (!read(inputVector, outputVector, "training")) {
     /**
      * @brief     Extract Feature
      */
-    ExtractFeatures(data_path, inputVector, outputVector);
-    save(inputVector, outputVector);
+    ExtractFeatures(data_path, inputVector, outputVector, "training");
+    save(inputVector, outputVector, "training");
+  }
+
+  if (!read(inputValVector, outputValVector, "val")) {
+    /**
+     * @brief     Extract Feature
+     */
+    ExtractFeatures(data_path, inputValVector, outputValVector, "val");
+    save(inputValVector, outputValVector, "val");
   }
 
   /**
@@ -350,9 +393,10 @@ int main(int argc, char *argv[]) {
    * @brief     back propagation
    */
   if (training) {
+    float trainingloss = 0.0;
     for (int i = 0; i < ITERATION; i++) {
       int count = 0;
-      for (int j = 0; j < TOTAL_LABEL_SIZE * TOTAL_DATA_SIZE; j++) {
+      for (int j = 0; j < TOTAL_LABEL_SIZE * TOTAL_TRAIN_DATA_SIZE; j++) {
         duplicate[j] = false;
       }
 
@@ -367,10 +411,31 @@ int main(int argc, char *argv[]) {
         }
       }
 
+      trainingloss = NN.getLoss();
+
       Layers::Optimizer opt = NN.getOptimizer();
-      cout << "#" << i + 1 << "/" << ITERATION << " - Loss : " << NN.getLoss() << "( " << opt.decay_rate << " "
-           << opt.decay_steps << " : " << NN.getLearningRate() * pow(opt.decay_rate, (i / opt.decay_steps)) << " )"
-           << endl;
+
+      int right = 0;
+      float valloss = 0.0;
+
+      for (int j = 0; j < TOTAL_LABEL_SIZE; j++) {
+        for (int k = 0; k < TOTAL_VAL_DATA_SIZE; k++) {
+          Tensor X = Tensor({inputValVector[j * TOTAL_VAL_DATA_SIZE + k]});
+          Tensor Y2 = Tensor({outputValVector[j * TOTAL_VAL_DATA_SIZE + k]});
+          Tensor Y = NN.forwarding(X, Y2);
+          if (Y.argmax() == j)
+            right++;
+          valloss += NN.getLoss();
+        }
+      }
+
+      valloss = valloss / (float)(TOTAL_LABEL_SIZE * TOTAL_VAL_DATA_SIZE);
+
+      cout << "#" << i + 1 << "/" << ITERATION << " - Loss : " << trainingloss << " ( " << opt.decay_rate << " "
+           << opt.decay_steps << " : " << NN.getLearningRate() * pow(opt.decay_rate, (i / opt.decay_steps))
+           << " ) >> [ Accuracy : " << right / (float)(TOTAL_LABEL_SIZE * TOTAL_VAL_DATA_SIZE) * 100.0
+           << "% ] [ Validation Loss : " << valloss << " ] " << endl;
+
       NN.setLoss(0.0);
       if (training)
         NN.saveModel();

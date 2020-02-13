@@ -100,6 +100,13 @@ class Layer {
   virtual Tensor forwarding(Tensor input) = 0;
 
   /**
+   * @brief     Forward Propation of neural Network
+   * @param[in] input Input Tensor taken by upper layer
+   * @retval    Output Tensor
+   */
+  virtual Tensor forwarding(Tensor input, Tensor output) = 0;
+
+  /**
    * @brief     Back Propation of neural Network
    * @param[in] input Input Tensor taken by lower layer
    * @param[in] iteration Epoch value for the ADAM Optimizer
@@ -249,6 +256,17 @@ class InputLayer : public Layer {
   Tensor forwarding(Tensor input);
 
   /**
+   * @brief     foward propagation : return Input Tensor
+   *            It return Input as it is.
+   * @param[in] input input Tensor from lower layer.
+   * @param[in] output label Tensor.
+   * @retval    return Input Tensor
+   */
+  Tensor forwarding(Tensor input, Tensor output){
+    return forwarding(input);
+  };
+
+  /**
    * @brief     Set Optimizer
    * @param[in] opt optimizer
    */
@@ -305,6 +323,17 @@ class FullyConnectedLayer : public Layer {
    * @retval    Activation(W x input + B)
    */
   Tensor forwarding(Tensor input);
+
+  /**
+   * @brief     foward propagation : return Input Tensor
+   *            It return Input as it is.
+   * @param[in] input input Tensor from lower layer.
+   * @param[in] output label Tensor.
+   * @retval    Activation(W x input + B)
+   */
+  Tensor forwarding(Tensor input, Tensor output){
+    return forwarding (input);
+  };
 
   /**
    * @brief     back propagation
@@ -386,6 +415,14 @@ class OutputLayer : public Layer {
    * @retval    Activation(W x input + B)
    */
   Tensor forwarding(Tensor input);
+
+  /**
+   * @brief     forward propagation with input and set loss
+   * @param[in] input Input Tensor from upper layer
+   * @param[in] output Label Tensor
+   * @retval    Activation(W x input + B)
+   */
+  Tensor forwarding(Tensor input, Tensor output);
 
   /**
    * @brief     back propagation

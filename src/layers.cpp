@@ -235,6 +235,50 @@ Tensor OutputLayer::forwarding(Tensor input) {
   return hidden;
 }
 
+Tensor OutputLayer::forwarding(Tensor input, Tensor output) {
+  Input = input;
+  hidden = input.dot(Weight).add(Bias).applyFunction(activation);
+  Tensor Y2 = output;
+  Tensor Y = hidden.softmax();
+  float lossSum = 0.0;
+
+  switch (cost) {
+    case COST_CATEGORICAL: {
+      Tensor temp = ((Y2.multiply(-1.0).transpose().dot(Y.add(opt.epsilon).applyFunction(log_float)))
+                         .subtract(Y2.multiply(-1.0).add(1.0).transpose().dot(
+                             Y.multiply(-1.0).add(1.0).add(opt.epsilon).applyFunction(log_float))));
+      loss = (1.0 / Y.Mat2Vec().size()) * temp.Mat2Vec()[0];
+    } break;
+    case COST_MSR: {
+      Tensor sub = Y2.subtract(Y);
+      Tensor l = (sub.multiply(sub)).sum().multiply(0.5);
+      std::vector<float> t = l.Mat2Vec();
+      for (int i = 0; i < l.getBatch(); i++) {
+        lossSum += t[i];
+      }
+
+      loss = lossSum / (float)l.getBatch();
+    } break;
+    case COST_ENTROPY: {
+      Tensor l = (Y2.multiply(Y.applyFunction(log_float))
+                      .add((Y2.multiply(-1.0).add(1.0)).multiply((Y.multiply(-1.0).add(1.0)).applyFunction(log_float))))
+                     .multiply(-1.0 / (Y2.getWidth()))
+                     .sum();
+
+      std::vector<float> t = l.Mat2Vec();
+
+      for (int i = 0; i < l.getBatch(); i++) {
+        lossSum += t[i];
+      }
+      loss = lossSum / (float)l.getBatch();
+    } break;
+    case COST_UNKNOWN:
+    default:
+      break;
+  }
+  return hidden;
+}
+
 void OutputLayer::read(std::ifstream &file) {
   Weight.read(file);
   Bias.read(file);

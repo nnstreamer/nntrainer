@@ -113,6 +113,14 @@ class NeuralNetwork {
   Tensor forwarding(Tensor input);
 
   /**
+   * @brief     forward propagation
+   * @param[in] input Input Tensor X
+   * @param[in] label Input Tensor Y2
+   * @retval    Output Tensor Y
+   */
+  Tensor forwarding(Tensor input, Tensor output);
+
+  /**
    * @brief     back propagation to update W & B
    * @param[in] input Input Tensor X
    * @param[in] expectedOutput Lable Tensor Y

@@ -282,6 +282,18 @@ Tensor NeuralNetwork::forwarding(Tensor input) {
 }
 
 /**
+ * @brief     forward propagation using layers object which has layer
+ */
+Tensor NeuralNetwork::forwarding(Tensor input, Tensor output) {
+  Tensor X = input;
+  Tensor Y2 = output;
+  for (unsigned int i = 0; i < layers.size(); i++) {
+    X = layers[i]->forwarding(X,Y2);
+  }
+  return X;
+}
+
+/**
  * @brief     back propagation
  *            Call backwarding function of layer in reverse order
  *            No need to call at first Input Layer (No data to be updated)
