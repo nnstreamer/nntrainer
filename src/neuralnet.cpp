@@ -66,7 +66,7 @@ std::vector<std::string> Optimizer_string = {"sgd", "adam"};
  *            "msr"  : Mean Squared Roots
  *            "caterogical" : Categorical Cross Entropy
  */
-std::vector<std::string> Cost_string = {"msr", "categorical"};
+std::vector<std::string> Cost_string = {"categorical", "msr", "cross"};
 
 /**
  * @brief     Network Type String from configure file

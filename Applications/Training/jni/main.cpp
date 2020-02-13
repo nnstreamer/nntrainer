@@ -60,7 +60,7 @@
 /**
  * @brief     Max Epoch
  */
-#define ITERATION 300
+#define ITERATION 1000
 
 using namespace std;
 

@@ -119,7 +119,7 @@ Tensor Tensor::add(float const &value) {
     tmp.data[i] = 1.0;
   cblas_saxpy(this->len, value, tmp.data.data(), 1, result.data.data(), 1);
 #else
-  for (int k = 0; k < batch; ++k) {
+  for (int k = 0; k < len; ++k) {
     result.data[k] = data[k] + value;
   }
 #endif
@@ -245,7 +245,7 @@ Tensor Tensor::divide(Tensor const &m) const {
         result.data[b + i + 2] = this->data[b + i + 2] / m.data[i + 2];
         result.data[b + i + 3] = this->data[b + i + 3] / m.data[i + 3];
       }
-      for (int j = i - 1; j < width * height; ++j)
+      for (int j = i; j < width * height; ++j)
         result.data[b + j] = this->data[b + j] / m.data[j];
     }
   } else {
@@ -255,7 +255,7 @@ Tensor Tensor::divide(Tensor const &m) const {
       result.data[i + 2] = this->data[i + 2] / m.data[i + 2];
       result.data[i + 3] = this->data[i + 3] / m.data[i + 3];
     }
-    for (int j = i - 1; j < len; ++j)
+    for (int j = i; j < len; ++j)
       result.data[j] = this->data[j] / m.data[j];
   }
 

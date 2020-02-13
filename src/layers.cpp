@@ -52,7 +52,9 @@ float sigmoid(float x) { return 1 / (1 + exp(-x)); }
  * @brief     derivative sigmoid function
  * @param[in] x input
  */
-float sigmoidePrime(float x) { return (float)(1.0 / ((1 + exp(-x)) * (1.0 + 1.0 / (exp(-x) + 0.0000001)))); }
+float sigmoidePrime(float x) {
+  return (float)(1.0 / ((1 + exp(-x)) * (1.0 + 1.0 / (exp(-x) + 0.0000001))));
+}
 
 /**
  * @brief     tanh function for float type
@@ -229,10 +231,7 @@ void OutputLayer::initialize(int b, int h, int w, int id, bool init_zero) {
 
 Tensor OutputLayer::forwarding(Tensor input) {
   Input = input;
-  if (cost == COST_ENTROPY)
-    hidden = input.dot(Weight).applyFunction(activation);
-  else
-    hidden = input.dot(Weight).add(Bias).applyFunction(activation);
+  hidden = input.dot(Weight).add(Bias).applyFunction(activation);
   return hidden;
 }
 
@@ -285,7 +284,7 @@ void OutputLayer::setOptimizer(Optimizer opt) {
 Tensor OutputLayer::backwarding(Tensor label, int iteration) {
   float lossSum = 0.0;
   Tensor Y2 = label;
-  Tensor Y = hidden;
+  Tensor Y = hidden.softmax();
   Tensor ret;
   Tensor dJdB;
 
@@ -294,23 +293,50 @@ Tensor OutputLayer::backwarding(Tensor label, int iteration) {
     ll = opt.learning_rate * pow(opt.decay_rate, (iteration / opt.decay_steps));
   }
 
-  if (cost == COST_ENTROPY) {
-    dJdB = Y.subtract(Y2);
-    Tensor temp = ((Y2.multiply(-1.0).transpose().dot(Y.add(opt.epsilon).applyFunction(log_float)))
-                       .subtract(Y2.multiply(-1.0).add(1.0).transpose().dot(
-                           Y.multiply(-1.0).add(1.0).add(opt.epsilon).applyFunction(log_float))));
-    loss = (1.0 / Y.Mat2Vec().size()) * temp.Mat2Vec()[0];
-  } else {
-    Tensor sub = Y2.subtract(Y);
-    Tensor l = (sub.multiply(sub)).sum().multiply(0.5);
-    std::vector<float> t = l.Mat2Vec();
-    for (int i = 0; i < l.getBatch(); i++) {
-      lossSum += t[i];
-    }
+  switch (cost) {
+    case COST_CATEGORICAL: {
+      dJdB = Y.subtract(Y2);
+      Tensor temp = ((Y2.multiply(-1.0).transpose().dot(Y.add(opt.epsilon).applyFunction(log_float)))
+                         .subtract(Y2.multiply(-1.0).add(1.0).transpose().dot(
+                             Y.multiply(-1.0).add(1.0).add(opt.epsilon).applyFunction(log_float))));
+      loss = (1.0 / Y.Mat2Vec().size()) * temp.Mat2Vec()[0];
+    } break;
+    case COST_MSR: {
+      Tensor sub = Y2.subtract(Y);
+      Tensor l = (sub.multiply(sub)).sum().multiply(0.5);
+      std::vector<float> t = l.Mat2Vec();
+      for (int i = 0; i < l.getBatch(); i++) {
+        lossSum += t[i];
+      }
 
-    loss = lossSum / (float)l.getBatch();
+      loss = lossSum / (float)l.getBatch();
 
-    dJdB = Y.subtract(Y2).multiply(Input.dot(Weight).add(Bias).applyFunction(activationPrime));
+      dJdB = Y.subtract(Y2).multiply(Input.dot(Weight).add(Bias).applyFunction(activationPrime));
+    } break;
+    case COST_ENTROPY: {
+      if (activation == sigmoid)
+        dJdB = Y.subtract(Y2).multiply(1.0 / Y.getWidth());
+      else
+        dJdB = (Y.subtract(Y2))
+                   .multiply(Input.dot(Weight).add(Bias).applyFunction(activationPrime))
+                   .divide(Y.multiply(Y.multiply(-1.0).add(1.0)))
+                   .multiply(1.0 / Y.getWidth());
+
+      Tensor l = (Y2.multiply(Y.applyFunction(log_float))
+                      .add((Y2.multiply(-1.0).add(1.0)).multiply((Y.multiply(-1.0).add(1.0)).applyFunction(log_float))))
+                     .multiply(-1.0 / (Y2.getWidth()))
+                     .sum();
+
+      std::vector<float> t = l.Mat2Vec();
+
+      for (int i = 0; i < l.getBatch(); i++) {
+        lossSum += t[i];
+      }
+      loss = lossSum / (float)l.getBatch();
+    } break;
+    case COST_UNKNOWN:
+    default:
+      break;
   }
 
   Tensor dJdW = Input.transpose().dot(dJdB);
