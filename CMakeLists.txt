@@ -24,11 +24,12 @@ set(SRCS
 	src/neuralnet.cpp
 	src/tensor.cpp
 	src/layers.cpp
+	src/databuffer.cpp
 	${INIPARSER}/iniparser.c
 	${INIPARSER}/dictionary.c
 	)
 
-set(NNTRAINER_HEADERS include/neuralnet.h include/tensor.h include/layers.h)
+set(NNTRAINER_HEADERS include/neuralnet.h include/tensor.h include/layers.h include/databuffer.h)
 
 if(USE_BLAS)
   ADD_DEFINITIONS(-DUSE_BLAS)

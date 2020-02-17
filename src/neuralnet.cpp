@@ -304,7 +304,7 @@ void NeuralNetwork::backwarding(Tensor input, Tensor expected_output, int iterat
   Tensor Y = forwarding(X);
 
   for (unsigned int i = layers.size() - 1; i > 0; i--) {
-    Y2 = layers[i]->backwarding(Y2, i);
+    Y2 = layers[i]->backwarding(Y2, iteration);
   }
 }
 

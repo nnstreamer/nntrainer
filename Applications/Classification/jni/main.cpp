@@ -38,6 +38,7 @@
 #include "tensorflow/contrib/lite/string_util.h"
 #include "tensorflow/contrib/lite/tools/gen_op_registration.h"
 
+#include "databuffer.h"
 #include "layers.h"
 #include "neuralnet.h"
 #include "tensor.h"
@@ -45,9 +46,13 @@
 /**
  * @brief     Data size for each category
  */
-#define TOTAL_TRAIN_DATA_SIZE 500
+#define TOTAL_TRAIN_DATA_SIZE 100
 
-#define TOTAL_VAL_DATA_SIZE 50
+#define TOTAL_VAL_DATA_SIZE 10
+
+#define TOTAL_TEST_DATA_SIZE 100
+
+#define BUFFER_SIZE 100
 
 /**
  * @brief     Number of category : Three
@@ -213,7 +218,7 @@ void getFeature(const string filename, vector<float> &feature_input) {
  * @param[out] feature_output save label data
  */
 void ExtractFeatures(std::string p, vector<vector<float>> &feature_input, vector<vector<float>> &feature_output,
-                     std::string type) {
+                     std::string type, std::ofstream &f) {
   string total_label[10] = {"airplane", "automobile", "bird", "cat", "deer", "dog", "frog", "horse", "ship", "truck"};
 
   int data_size = TOTAL_TRAIN_DATA_SIZE;
@@ -222,6 +227,9 @@ void ExtractFeatures(std::string p, vector<vector<float>> &feature_input, vector
   if (!type.compare("val")) {
     data_size = TOTAL_VAL_DATA_SIZE;
     val = true;
+  } else if (!type.compare("test")) {
+    data_size = TOTAL_TEST_DATA_SIZE;
+    val = false;
   }
 
   int trainingSize = TOTAL_LABEL_SIZE * data_size;
@@ -233,7 +241,11 @@ void ExtractFeatures(std::string p, vector<vector<float>> &feature_input, vector
 
   for (int i = 0; i < TOTAL_LABEL_SIZE; i++) {
     std::string path = p;
-    path += total_label[i];
+    if (!type.compare("val") || !type.compare("training")) {
+      path += "train/" + total_label[i];
+    } else if (!type.compare("test")) {
+      path += "test/" + total_label[i];
+    }
 
     for (int j = 0; j < data_size; j++) {
       std::string img = path + "/";
@@ -248,23 +260,44 @@ void ExtractFeatures(std::string p, vector<vector<float>> &feature_input, vector
       img += ss.str() + ".bmp";
       printf("%s\n", img.c_str());
 
-      feature_input[count].resize(FEATURE_SIZE);
+      std::vector<float> _input, _output;
+      _input.resize(FEATURE_SIZE);
+      _output.resize(TOTAL_LABEL_SIZE);
 
-      getFeature(img, feature_input[count]);
-      feature_output[count].resize(TOTAL_LABEL_SIZE);
-      feature_output[count][i] = 1;
+      getFeature(img, _input);
+      _output[i] = 1;
+
+      for (unsigned int k = 0; k < FEATURE_SIZE; ++k)
+        f.write((char *)&_input[k], sizeof(float));
+
+      for (unsigned int k = 0; k < TOTAL_LABEL_SIZE; ++k)
+        f.write((char *)&_output[k], sizeof(float));
+
       count++;
     }
   }
 }
 
-bool getMiniBatch(std::vector<std::vector<float>> inVec, std::vector<std::vector<float>> inLabel,
-                  std::vector<std::vector<std::vector<float>>> &outVec,
-                  std::vector<std::vector<std::vector<float>>> &outLabel) {
+bool getData(std::ifstream &F, std::vector<float> &outVec, std::vector<float> &outLabel, int id) {
+  long pos = F.tellg();
+  F.seekg(pos + (FEATURE_SIZE + TOTAL_LABEL_SIZE) * id);
+  for (int i = 0; i < FEATURE_SIZE; i++)
+    F.read((char *)&outVec[i], sizeof(float));
+  for (int i = 0; i < TOTAL_LABEL_SIZE; i++)
+    F.read((char *)&outLabel[i], sizeof(float));
+
+  return true;
+}
+
+bool getMiniBatch(std::vector<std::vector<std::vector<float>>> &outVec,
+                  std::vector<std::vector<std::vector<float>>> &outLabel, std::string type) {
   std::vector<int> memI;
   std::vector<int> memJ;
   int count = 0;
   int data_size = TOTAL_TRAIN_DATA_SIZE;
+
+  std::string filename = type + "Set.dat";
+  std::ifstream F(filename, std::ios::in | std::ios::binary);
 
   for (int i = 0; i < TOTAL_LABEL_SIZE * data_size; i++) {
     if (!duplicate[i])
@@ -286,13 +319,23 @@ bool getMiniBatch(std::vector<std::vector<float>> inVec, std::vector<std::vector
 
   for (int i = 0; i < count; i++) {
     std::vector<std::vector<float>> out;
-    out.push_back(inVec[memI[i]]);
-    outVec.push_back(out);
-
     std::vector<std::vector<float>> outL;
-    outL.push_back(inLabel[memI[i]]);
+    std::vector<float> o;
+    std::vector<float> l;
+
+    o.resize(FEATURE_SIZE);
+    l.resize(TOTAL_LABEL_SIZE);
+
+    getData(F, o, l, memI[i]);
+
+    out.push_back(o);
+    outL.push_back(l);
+
+    outVec.push_back(out);
     outLabel.push_back(outL);
   }
+
+  F.close();
   return true;
 }
 
@@ -303,14 +346,16 @@ void save(std::vector<std::vector<float>> inVec, std::vector<std::vector<float>>
     data_size = TOTAL_TRAIN_DATA_SIZE;
   } else if (!type.compare("val")) {
     data_size = TOTAL_VAL_DATA_SIZE;
+  } else if (!type.compare("test")) {
+    data_size = TOTAL_TEST_DATA_SIZE;
   }
 
   std::ofstream TrainigSet(file, std::ios::out | std::ios::binary);
-  for (unsigned int i = 0; i < TOTAL_LABEL_SIZE * data_size; i++) {
-    for (unsigned int j = 0; j < FEATURE_SIZE; j++) {
+  for (unsigned int i = 0; i < TOTAL_LABEL_SIZE * data_size; ++i) {
+    for (unsigned int j = 0; j < FEATURE_SIZE; ++j) {
       TrainigSet.write((char *)&inVec[i][j], sizeof(float));
     }
-    for (unsigned int j = 0; j < TOTAL_LABEL_SIZE; j++)
+    for (unsigned int j = 0; j < TOTAL_LABEL_SIZE; ++j)
       TrainigSet.write((char *)&inLabel[i][j], sizeof(float));
   }
 }
@@ -318,30 +363,11 @@ void save(std::vector<std::vector<float>> inVec, std::vector<std::vector<float>>
 bool read(std::vector<std::vector<float>> &inVec, std::vector<std::vector<float>> &inLabel, std::string type) {
   std::string file = type + "Set.dat";
 
-  unsigned int data_size;
-  if (!type.compare("training")) {
-    data_size = TOTAL_TRAIN_DATA_SIZE;
-  } else if (!type.compare("val")) {
-    data_size = TOTAL_VAL_DATA_SIZE;
-  }
+  std::ifstream TrainingSet(file, std::ios::in | std::ios::binary);
 
-  std::ifstream TrainigSet(file, std::ios::out | std::ios::binary);
-  if (!TrainigSet.good())
+  if (!TrainingSet.good())
     return false;
 
-  inVec.resize(TOTAL_LABEL_SIZE * data_size);
-  inLabel.resize(TOTAL_LABEL_SIZE * data_size);
-
-  for (unsigned int i = 0; i < TOTAL_LABEL_SIZE * data_size; i++) {
-    inVec[i].resize(FEATURE_SIZE);
-    for (unsigned int j = 0; j < FEATURE_SIZE; j++) {
-      TrainigSet.read((char *)&inVec[i][j], sizeof(float));
-    }
-    inLabel[i].resize(TOTAL_LABEL_SIZE);
-    for (unsigned int j = 0; j < TOTAL_LABEL_SIZE; j++)
-      TrainigSet.read((char *)&inLabel[i][j], sizeof(float));
-  }
-  std::cout << "read done\n" << std::endl;
   return true;
 }
 
@@ -364,21 +390,36 @@ int main(int argc, char *argv[]) {
   std::string ini_file = data_path + "ini.bin";
   std::vector<std::vector<float>> inputVector, outputVector;
   std::vector<std::vector<float>> inputValVector, outputValVector;
+  std::vector<std::vector<float>> inputTestVector, outputTestVector;
 
   if (!read(inputVector, outputVector, "training")) {
     /**
      * @brief     Extract Feature
      */
-    ExtractFeatures(data_path, inputVector, outputVector, "training");
-    save(inputVector, outputVector, "training");
+    std::string filename = "trainingSet.dat";
+    std::ofstream f(filename, std::ios::out | std::ios::binary);
+    ExtractFeatures(data_path, inputVector, outputVector, "training", f);
+    f.close();
   }
 
   if (!read(inputValVector, outputValVector, "val")) {
     /**
      * @brief     Extract Feature
      */
-    ExtractFeatures(data_path, inputValVector, outputValVector, "val");
-    save(inputValVector, outputValVector, "val");
+    std::string filename = "valSet.dat";
+    std::ofstream f(filename, std::ios::out | std::ios::binary);
+    ExtractFeatures(data_path, inputValVector, outputValVector, "val", f);
+    f.close();
+  }
+
+  if (!read(inputValVector, outputValVector, "test")) {
+    /**
+     * @brief     Extract Feature
+     */
+    std::string filename = "testSet.dat";
+    std::ofstream f(filename, std::ios::out | std::ios::binary);
+    ExtractFeatures(data_path, inputTestVector, outputTestVector, "test", f);
+    f.close();
   }
 
   /**
@@ -388,6 +429,18 @@ int main(int argc, char *argv[]) {
   NN.setConfig(config);
   NN.init();
   NN.readModel();
+
+  DataBuffer buf;
+
+  std::ifstream train_file("trainingSet.dat", std::ios::in | std::ios::binary);
+  std::ifstream val_file("valSet.dat", std::ios::in | std::ios::binary);
+  std::ifstream test_file("testSet.dat", std::ios::in | std::ios::binary);
+
+  buf.init(MINI_BATCH, BUFFER_SIZE, BUFFER_SIZE, BUFFER_SIZE, train_file, val_file, test_file,
+           TOTAL_LABEL_SIZE * TOTAL_TRAIN_DATA_SIZE, TOTAL_LABEL_SIZE * TOTAL_VAL_DATA_SIZE,
+           TOTAL_LABEL_SIZE * TOTAL_TEST_DATA_SIZE, FEATURE_SIZE, 10);
+  buf.run(BUF_TRAIN, train_file);
+  buf.run(BUF_VAL, val_file);
 
   /**
    * @brief     back propagation
@@ -402,11 +455,13 @@ int main(int argc, char *argv[]) {
 
       while (true) {
         std::vector<std::vector<std::vector<float>>> in, label;
-        if (getMiniBatch(inputVector, outputVector, in, label)) {
+        if (buf.getDatafromBuffer(BUF_TRAIN, in, label, MINI_BATCH, FEATURE_SIZE, 1, TOTAL_LABEL_SIZE)) {
           NN.backwarding(Tensor(in), Tensor(label), i);
           count++;
           std::cout << count * 32 << " backwoarding done : " << NN.getLoss() << std::endl;
         } else {
+          buf.clear(BUF_TRAIN, train_file);
+          buf.run(BUF_TRAIN, train_file);
           break;
         }
       }
@@ -418,14 +473,21 @@ int main(int argc, char *argv[]) {
       int right = 0;
       float valloss = 0.0;
 
-      for (int j = 0; j < TOTAL_LABEL_SIZE; j++) {
-        for (int k = 0; k < TOTAL_VAL_DATA_SIZE; k++) {
-          Tensor X = Tensor({inputValVector[j * TOTAL_VAL_DATA_SIZE + k]});
-          Tensor Y2 = Tensor({outputValVector[j * TOTAL_VAL_DATA_SIZE + k]});
-          Tensor Y = NN.forwarding(X, Y2);
-          if (Y.argmax() == j)
-            right++;
-          valloss += NN.getLoss();
+      while (true) {
+        std::vector<std::vector<std::vector<float>>> in, label;
+        if (buf.getDatafromBuffer(BUF_VAL, in, label, MINI_BATCH, FEATURE_SIZE, 1, TOTAL_LABEL_SIZE)) {
+          for (int i = 0; i < MINI_BATCH; ++i) {
+            Tensor X = Tensor({in[i]});
+            Tensor Y2 = Tensor({label[i]});
+            Tensor Y = NN.forwarding(X, Y2);
+            if (Y.argmax() == Y2.argmax())
+              right++;
+            valloss += NN.getLoss();
+          }
+        } else {
+          buf.clear(BUF_VAL, val_file);
+          buf.run(BUF_VAL, val_file);
+          break;
         }
       }
 
@@ -436,10 +498,14 @@ int main(int argc, char *argv[]) {
            << " ) >> [ Accuracy : " << right / (float)(TOTAL_LABEL_SIZE * TOTAL_VAL_DATA_SIZE) * 100.0
            << "% ] [ Validation Loss : " << valloss << " ] " << endl;
 
-      NN.setLoss(0.0);
+      // NN.setLoss(0.0);
+
       if (training)
         NN.saveModel();
     }
+    buf.clear(BUF_TRAIN, train_file);
+    buf.clear(BUF_VAL, val_file);
+    buf.clear(BUF_TEST, test_file);
   }
 
   if (!training) {
