@@ -231,7 +231,10 @@ void OutputLayer::initialize(int b, int h, int w, int id, bool init_zero) {
 
 Tensor OutputLayer::forwarding(Tensor input) {
   Input = input;
-  hidden = input.dot(Weight).add(Bias).applyFunction(activation);
+  if (cost == COST_CATEGORICAL)
+    hidden = input.dot(Weight).applyFunction(activation);
+  else
+    hidden = input.dot(Weight).add(Bias).applyFunction(activation);
   return hidden;
 }
 
