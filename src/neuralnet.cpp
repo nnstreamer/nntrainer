@@ -250,6 +250,7 @@ void NeuralNetwork::init() {
         outputlayer->setOptimizer(opt);
         outputlayer->setCost(cost);
         layers.push_back(outputlayer);
+        outputlayer->setSoftmax(iniparser_getboolean(ini, (layers_name[i] + ":Softmax").c_str(), false));
       } break;
       case Layers::LAYER_UNKNOWN:
         break;

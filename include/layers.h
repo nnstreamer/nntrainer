@@ -461,6 +461,12 @@ class OutputLayer : public Layer {
   void setCost(cost_type c) { this->cost = c; };
 
   /**
+   * @brief     set softmax
+   * @param[in] enable boolean
+   */
+  void setSoftmax(bool enable) { this->softmax = enable; };
+
+  /**
    * @brief     copy layer
    * @param[in] l layer to copy
    */
@@ -473,6 +479,7 @@ class OutputLayer : public Layer {
   Tensor V;
   float loss;
   cost_type cost;
+  bool softmax;
 };
 }
 

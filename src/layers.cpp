@@ -331,7 +331,11 @@ void OutputLayer::setOptimizer(Optimizer opt) {
 Tensor OutputLayer::backwarding(Tensor label, int iteration) {
   float lossSum = 0.0;
   Tensor Y2 = label;
-  Tensor Y = hidden.softmax();
+  Tensor Y;
+  if(softmax)
+    Y = hidden.softmax();
+  else
+    Y = hidden;
   Tensor ret;
   Tensor dJdB;
 
