@@ -195,6 +195,23 @@ Tensor Tensor::subtract(Tensor const &m) const {
   return result;
 }
 
+Tensor Tensor::subtract(float const &value) {
+  Tensor result(batch, height, width);
+#ifdef USE_BLAS
+  cblas_scopy(this->len, this->data.data(), 1, result.data.data(), 1);
+  Tensor tmp(batch, height, width);
+  for (int i = 0; i < tmp.len; ++i)
+    tmp.data[i] = -1.0;
+  cblas_saxpy(this->len, value, tmp.data.data(), 1, result.data.data(), 1);
+#else
+  for (int k = 0; k < len; ++k) {
+    result.data[k] = data[k] - value;
+  }
+#endif
+
+  return result;
+}
+
 Tensor Tensor::multiply(Tensor const &m) const {
   assert(height == m.height && width == m.width);
   Tensor result(batch, height, width);
@@ -283,6 +300,54 @@ Tensor Tensor::sum() const {
   }
 #endif
 
+  return ret;
+}
+
+Tensor Tensor::sum(int axis) const {
+  int k;
+  Tensor ret;
+
+  switch (axis) {
+    case 0: {
+      ret = Tensor(1, height, width);
+      for (int i = 0; i < height; ++i) {
+        int I = I * width;
+        for (int j = 0; j < width; ++j) {
+          for (int k = 0; k < batch; ++k) {
+            int K = k * width * height;
+            ret.data[I + j] += data[K + I + j];
+          }
+        }
+      }
+    } break;
+    case 1: {
+      ret = Tensor(batch, 1, width);
+      for (int k = 0; k < batch; ++k) {
+        int K = k * width;
+        for (int j = 0; j < width; ++j) {
+          for (int i = 0; i < height; ++i) {
+            int I = i * width * batch;
+            ret.data[K + j] += data[K + I + j];
+          }
+        }
+      }
+    } break;
+    case 2: {
+      ret = Tensor(batch, height, width);
+      for (int k = 0; k < batch; ++k) {
+        int K = k * height;
+        for (int i = 0; i < height; ++i) {
+          for (int j = 0; j < width; ++j) {
+            int J = j * height * batch;
+            ret.data[K + i] += data[K + J + i];
+          }
+        }
+      }
+    } break;
+    default:
+      std::runtime_error("Error: Cannot excide 2");
+      break;
+  }
   return ret;
 }
 

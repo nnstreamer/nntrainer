@@ -118,6 +118,13 @@ class Tensor {
   Tensor subtract(Tensor const &m) const;
 
   /**
+   * @brief     subtract value Element by Element
+   * @param[in] value value to be added
+   * @retval    Calculated Tensor
+   */
+  Tensor subtract(float const &value);
+
+  /**
    * @brief     Multiply Tensor Element by Element ( Not the MxM )
    * @param[in] m Tensor to be multiplied
    * @retval    Calculated Tensor
@@ -149,6 +156,12 @@ class Tensor {
    * @retval    Calculated Tensor(batch, 1, 1)
    */
   Tensor sum() const;
+
+  /**
+   * @brief     sum all the Tensor elements according to the axis
+   * @retval    Calculated Tensor
+   */
+  Tensor Tensor::sum(int axis) const;
 
   /**
    * @brief     Averaging the Tensor elements according to the batch
