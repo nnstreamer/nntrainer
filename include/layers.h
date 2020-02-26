@@ -65,7 +65,7 @@ typedef enum { ACT_TANH, ACT_SIGMOID, ACT_UNKNOWN } acti_type;
  *            2. Output Layer type
  *            3. Unknown
  */
-typedef enum { LAYER_IN, LAYER_FC, LAYER_OUT, LAYER_UNKNOWN } layer_type;
+typedef enum { LAYER_IN, LAYER_FC, LAYER_OUT, LAYER_BN, LAYER_UNKNOWN } layer_type;
 
 /**
  * @brief     type for the Optimizor to save hyper-parameter
@@ -155,6 +155,8 @@ class Layer {
    */
   virtual void copy(Layer *l) = 0;
 
+  void setBNfallow(bool ok) { this->bnfallow = ok; }
+
   /**
    * @brief     Input Tensor
    */
@@ -210,6 +212,8 @@ class Layer {
    * @brief     Activation Derivative function pointer
    */
   float (*activationPrime)(float);
+
+  bool bnfallow;
 };
 
 /**
@@ -262,9 +266,7 @@ class InputLayer : public Layer {
    * @param[in] output label Tensor.
    * @retval    return Input Tensor
    */
-  Tensor forwarding(Tensor input, Tensor output){
-    return forwarding(input);
-  };
+  Tensor forwarding(Tensor input, Tensor output) { return forwarding(input); };
 
   /**
    * @brief     Set Optimizer
@@ -331,9 +333,7 @@ class FullyConnectedLayer : public Layer {
    * @param[in] output label Tensor.
    * @retval    Activation(W x input + B)
    */
-  Tensor forwarding(Tensor input, Tensor output){
-    return forwarding (input);
-  };
+  Tensor forwarding(Tensor input, Tensor output) { return forwarding(input); };
 
   /**
    * @brief     back propagation
@@ -480,6 +480,91 @@ class OutputLayer : public Layer {
   float loss;
   cost_type cost;
   bool softmax;
+};
+
+/**
+ * @class   BatchNormalizationLayer
+ * @brief   Batch Noramlization Layer
+ */
+class BatchNormalizationLayer : public Layer {
+ public:
+  /**
+   * @brief     Constructor of Batch Noramlization Layer
+   */
+  BatchNormalizationLayer(){};
+
+  /**
+   * @brief     Destructor of BatchNormalizationLayer
+   */
+  ~BatchNormalizationLayer(){};
+
+  /**
+   * @brief     Read Weight & Bias Data from file
+   * @param[in] file input stream file
+   */
+  void read(std::ifstream &file);
+
+  /**
+   * @brief     Save Weight & Bias Data to file
+   * @param[in] file output stream file
+   */
+  void save(std::ofstream &file);
+
+  /**
+   * @brief     forward propagation with input
+   * @param[in] input Input Tensor from upper layer
+   * @retval    Activation(W x input + B)
+   */
+  Tensor forwarding(Tensor input);
+
+  /**
+   * @brief     foward propagation : return Input Tensor
+   *            It return Input as it is.
+   * @param[in] input input Tensor from lower layer.
+   * @param[in] output label Tensor.
+   * @retval    Activation(W x input + B)
+   */
+  Tensor forwarding(Tensor input, Tensor output) { return forwarding(input); };
+
+  /**
+   * @brief     back propagation
+   *            Calculate dJdB & dJdW & Update W & B
+   * @param[in] input Input Tensor from lower layer
+   * @param[in] iteration Number of Epoch for ADAM
+   * @retval    dJdB x W Tensor
+   */
+  Tensor backwarding(Tensor input, int iteration);
+
+  /**
+   * @brief     set optimizer
+   * @param[in] opt Optimizer
+   */
+  void setOptimizer(Optimizer opt);
+
+  /**
+   * @brief     copy layer
+   * @param[in] l layer to copy
+   */
+  void copy(Layer *l);
+
+  /**
+   * @brief     initialize layer
+   * @param[in] b batch size
+   * @param[in] h height
+   * @param[in] w width
+   * @param[in] id layer index
+   * @param[in] init_zero boolean to set Bias zero
+   */
+  void initialize(int b, int h, int w, int id, bool init_zero);
+
+ private:
+  Tensor Weight;
+  Tensor Bias;
+  Tensor mu;
+  Tensor var;
+  Tensor gamma;
+  Tensor beta;
+  float epsilon;
 };
 }
 

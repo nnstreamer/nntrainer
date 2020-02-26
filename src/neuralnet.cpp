@@ -89,7 +89,7 @@ std::vector<std::string> activation_string = {"tanh", "sigmoid"};
  *            "FullyConnectedLayer" : Fully Connected Layer Object
  *            "OutputLayer" : Output Layer Object
  */
-std::vector<std::string> layer_string = {"InputLayer", "FullyConnectedLayer", "OutputLayer"};
+std::vector<std::string> layer_string = {"InputLayer", "FullyConnectedLayer", "OutputLayer", "BatchNormalizationLayer"};
 
 /**
  * @brief     Check Existance of File
@@ -183,12 +183,13 @@ NeuralNetwork::NeuralNetwork(std::string config) { this->config = config; }
 void NeuralNetwork::setConfig(std::string config) { this->config = config; }
 
 void NeuralNetwork::init() {
-  int w, h, id;
+  int id;
   bool b_zero;
   std::string l_type;
   Layers::layer_type t;
   std::string inifile = config;
   dictionary *ini = iniparser_load(inifile.c_str());
+  std::vector<int> HiddenSize;
 
   if (ini == NULL) {
     fprintf(stderr, "cannot parse file: %s\n", inifile.c_str());
@@ -220,37 +221,67 @@ void NeuralNetwork::init() {
 
   loss = 100000.0;
 
+  for (unsigned int i = 0; i < layers_name.size(); ++i) {
+    unsigned int hidden_size;
+    l_type = iniparser_getstring(ini, (layers_name[i] + ":Type").c_str(), NULL);
+    t = (Layers::layer_type)parseType(l_type, TOKEN_LAYER);
+
+    switch (t) {
+      case Layers::LAYER_BN: {
+        if (i == 0)
+          std::runtime_error("Error: Batch NormalizationLayer should be after InputLayer.");
+        hidden_size = HiddenSize[i - 1];
+      }
+
+      break;
+      case Layers::LAYER_IN:
+      case Layers::LAYER_FC:
+      case Layers::LAYER_OUT:
+      default:
+        hidden_size = iniparser_getint(ini, (layers_name[i] + ":HiddenSize").c_str(), 1);
+        break;
+    }
+    HiddenSize.push_back(hidden_size);
+  }
+
   for (unsigned int i = 0; i < layers_name.size(); i++) {
     l_type = iniparser_getstring(ini, (layers_name[i] + ":Type").c_str(), NULL);
     t = (Layers::layer_type)parseType(l_type, TOKEN_LAYER);
-    w = iniparser_getint(ini, (layers_name[i] + ":Width").c_str(), 1);
-    h = iniparser_getint(ini, (layers_name[i] + ":Height").c_str(), 1);
     id = iniparser_getint(ini, (layers_name[i] + ":Id").c_str(), 0);
     b_zero = iniparser_getboolean(ini, (layers_name[i] + ":Bias_zero").c_str(), true);
-    std::cout << l_type << " " << t << " " << w << " " << h << " " << b_zero << " " << id << std::endl;
+    std::cout << id << ": " << l_type << " "
+              << " " << HiddenSize[i] << " " << b_zero << " " << std::endl;
     switch (t) {
       case Layers::LAYER_IN: {
         Layers::InputLayer *inputlayer = new (Layers::InputLayer);
         inputlayer->setType(t);
-        inputlayer->initialize(batchsize, h, w, id, b_zero);
+        inputlayer->initialize(batchsize, 1, HiddenSize[i], id, b_zero);
         inputlayer->setOptimizer(opt);
         layers.push_back(inputlayer);
       } break;
       case Layers::LAYER_FC: {
         Layers::FullyConnectedLayer *fclayer = new (Layers::FullyConnectedLayer);
         fclayer->setType(t);
-        fclayer->initialize(batchsize, h, w, id, b_zero);
+        fclayer->initialize(batchsize, HiddenSize[i - 1], HiddenSize[i], id, b_zero);
         fclayer->setOptimizer(opt);
         layers.push_back(fclayer);
       } break;
       case Layers::LAYER_OUT: {
         Layers::OutputLayer *outputlayer = new (Layers::OutputLayer);
         outputlayer->setType(t);
-        outputlayer->initialize(batchsize, h, w, id, b_zero);
+        outputlayer->initialize(batchsize, HiddenSize[i - 1], HiddenSize[i], id, b_zero);
         outputlayer->setOptimizer(opt);
         outputlayer->setCost(cost);
         layers.push_back(outputlayer);
         outputlayer->setSoftmax(iniparser_getboolean(ini, (layers_name[i] + ":Softmax").c_str(), false));
+      } break;
+      case Layers::LAYER_BN: {
+        Layers::BatchNormalizationLayer *bnlayer = new (Layers::BatchNormalizationLayer);
+        bnlayer->setType(t);
+        bnlayer->setOptimizer(opt);
+        bnlayer->initialize(batchsize, 1, HiddenSize[i], id, b_zero);
+        layers.push_back(bnlayer);
+        layers[i - 1]->setBNfallow(true);
       } break;
       case Layers::LAYER_UNKNOWN:
         break;
@@ -289,7 +320,7 @@ Tensor NeuralNetwork::forwarding(Tensor input, Tensor output) {
   Tensor X = input;
   Tensor Y2 = output;
   for (unsigned int i = 0; i < layers.size(); i++) {
-    X = layers[i]->forwarding(X,Y2);
+    X = layers[i]->forwarding(X, Y2);
   }
   return X;
 }

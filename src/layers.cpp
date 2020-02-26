@@ -52,9 +52,7 @@ float sigmoid(float x) { return 1 / (1 + exp(-x)); }
  * @brief     derivative sigmoid function
  * @param[in] x input
  */
-float sigmoidePrime(float x) {
-  return (float)(1.0 / ((1 + exp(-x)) * (1.0 + 1.0 / (exp(-x) + 0.0000001))));
-}
+float sigmoidePrime(float x) { return (float)(1.0 / ((1 + exp(-x)) * (1.0 + 1.0 / (exp(-x) + 0.0000001)))); }
 
 /**
  * @brief     tanh function for float type
@@ -105,10 +103,11 @@ Tensor InputLayer::forwarding(Tensor input) {
 }
 
 void InputLayer::initialize(int b, int h, int w, int id, bool init_zero) {
-  batch = b;
-  width = w;
-  height = h;
-  index = 0;
+  this->batch = b;
+  this->width = w;
+  this->height = h;
+  this->index = 0;
+  this->bnfallow = false;
 }
 
 void FullyConnectedLayer::initialize(int b, int h, int w, int id, bool init_zero) {
@@ -117,6 +116,7 @@ void FullyConnectedLayer::initialize(int b, int h, int w, int id, bool init_zero
   this->height = h;
   this->index = id;
   this->init_zero = init_zero;
+  this->bnfallow = false;
 
   Weight = Tensor(h, w);
   Bias = Tensor(1, w);
@@ -153,7 +153,11 @@ void FullyConnectedLayer::setOptimizer(Optimizer opt) {
 
 Tensor FullyConnectedLayer::forwarding(Tensor input) {
   Input = input;
-  hidden = Input.dot(Weight).add(Bias).applyFunction(activation);
+  hidden = Input.dot(Weight).add(Bias);
+
+  if (!this->bnfallow)
+    hidden = hidden.applyFunction(activation);
+
   return hidden;
 }
 
@@ -220,6 +224,7 @@ void OutputLayer::initialize(int b, int h, int w, int id, bool init_zero) {
   Weight = Tensor(h, w);
   Bias = Tensor(1, w);
   this->cost = cost;
+  this->bnfallow = false;
 
   Weight = Weight.applyFunction(random);
   if (init_zero) {
@@ -319,7 +324,6 @@ void OutputLayer::setOptimizer(Optimizer opt) {
     default:
       break;
   }
-
   if (opt.type == OPT_ADAM) {
     M = Tensor(height, width);
     V = Tensor(height, width);
@@ -332,7 +336,7 @@ Tensor OutputLayer::backwarding(Tensor label, int iteration) {
   float lossSum = 0.0;
   Tensor Y2 = label;
   Tensor Y;
-  if(softmax)
+  if (softmax)
     Y = hidden.softmax();
   else
     Y = hidden;
@@ -413,5 +417,54 @@ Tensor OutputLayer::backwarding(Tensor label, int iteration) {
   }
 
   return ret;
+}
+
+void BatchNormalizationLayer::initialize(int b, int h, int w, int id, bool init_zero) {
+  this->batch = b;
+  this->width = w;
+  this->height = h;
+  this->index = id;
+  this->init_zero = init_zero;
+
+  this->gamma = Tensor(batch, w);
+  this->beta = Tensor(batch, w);
+  beta.setZero();
+  gamma.setZero();
+}
+
+void BatchNormalizationLayer::setOptimizer(Optimizer opt) {
+  this->opt = opt;
+  switch (opt.activation) {
+    case ACT_TANH:
+      activation = tanh_float;
+      activationPrime = tanhPrime;
+      break;
+    case ACT_SIGMOID:
+      activation = sigmoid;
+      activationPrime = sigmoidePrime;
+      break;
+    default:
+      break;
+  }
+}
+
+Tensor BatchNormalizationLayer::forwarding(Tensor input) {
+
+}
+
+Tensor BatchNormalizationLayer::backwarding(Tensor derivative, int iteration) {
+
+}
+
+void BatchNormalizationLayer::read(std::ifstream &file) {
+
+}
+
+void BatchNormalizationLayer::save(std::ofstream &file) {
+
+}
+
+void BatchNormalizationLayer::copy(Layer *l) {
+
 }
 }
