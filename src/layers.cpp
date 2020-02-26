@@ -449,22 +449,94 @@ void BatchNormalizationLayer::setOptimizer(Optimizer opt) {
 }
 
 Tensor BatchNormalizationLayer::forwarding(Tensor input) {
+  Tensor temp;
+  float s = 0.0;
+  hidden = input;
 
+  mu = input.sum(0).multiply(1.0 / batch);
+
+  temp = input.subtract(mu * -1.0);
+  std::vector<float> var_batch = temp.multiply(temp).sum().Mat2Vec();
+  for (unsigned int i = 0; i < batch; ++i)
+    s += var_batch[i];
+  s = s / batch;
+  var = s / width;
+
+  Tensor hath = temp.multiply(pow(var + opt.epsilon, -1.0 / 2.0));
+
+  Tensor ret = hath.multiply(gamma).add(beta).applyFunction(activation);
+
+  return ret;
 }
 
 Tensor BatchNormalizationLayer::backwarding(Tensor derivative, int iteration) {
+  float dbeta = 0.0, dgamma = 0.0, s = 0.0, ss = 0.0;
+  std::vector<float> ddbeta_batch = derivative.sum().Mat2Vec();
+  for (unsigned int i = 0; i < batch; ++i)
+    dbeta += ddbeta_batch[i];
+  dbeta = dbeta / batch;
 
+  std::vector<float> dgamma_batch =
+      ((hidden.subtract(mu).multiply((pow(var + opt.epsilon, -1.0 / 2.0)))).multiply(derivative)).sum().Mat2Vec();
+  for (unsigned int i = 0; i < batch; ++i)
+    dgamma += dgamma_batch[i];
+
+  dgamma = dgamma / batch;
+
+  std::vector<float> t = derivative.multiply(hidden.subtract(mu)).sum().Mat2Vec();
+  for (unsigned int i = 0; i < batch; ++i)
+    s += t[i];
+
+  s = s / batch;
+
+  std::vector<float> derivative_sum = derivative.sum().Mat2Vec();
+  for (int i = 0; i < derivative.getBatch(); ++i)
+    ss += derivative_sum[i];
+
+  ss = ss / derivative.getBatch();
+
+  Tensor Temp = (derivative.multiply(width).subtract(ss))
+                    .subtract(hidden.subtract(mu).multiply(pow(var + opt.epsilon, -1.0) * s));
+  Tensor dh = Temp.multiply(1.0 / width).multiply(pow(var + opt.epsilon, -1.0 / 2.0)).multiply(gamma);
+
+  float ll = opt.learning_rate;
+  if (opt.decay_steps != -1) {
+    ll = opt.learning_rate * pow(opt.decay_rate, (iteration / opt.decay_steps));
+  }
+
+  gamma = gamma.subtract(dgamma * ll);
+  beta = beta.subtract(dbeta * ll);
+
+  return dh;
 }
 
 void BatchNormalizationLayer::read(std::ifstream &file) {
-
+  file.read((char *)&mu, sizeof(float));
+  file.read((char *)&var, sizeof(float));
+  gamma.read(file);
+  beta.read(file);
 }
 
 void BatchNormalizationLayer::save(std::ofstream &file) {
-
+  file.write((char *)&mu, sizeof(float));
+  file.write((char *)&var, sizeof(float));
+  gamma.save(file);
+  beta.save(file);
 }
 
 void BatchNormalizationLayer::copy(Layer *l) {
-
+  BatchNormalizationLayer *from = static_cast<BatchNormalizationLayer *>(l);
+  this->opt = from->opt;
+  this->index = from->index;
+  this->height = from->height;
+  this->width = from->width;
+  this->Input.copy(from->Input);
+  this->hidden.copy(from->hidden);
+  this->Weight.copy(from->Weight);
+  this->Bias.copy(from->Bias);
+  this->mu = from->mu;
+  this->var = from->var;
+  this->gamma.copy(from->gamma);
+  this->beta.copy(from->beta);
 }
 }
