@@ -450,19 +450,18 @@ void BatchNormalizationLayer::setOptimizer(Optimizer opt) {
 
 Tensor BatchNormalizationLayer::forwarding(Tensor input) {
   Tensor temp;
-  float s = 0.0;
+
   hidden = input;
 
   mu = input.sum(0).multiply(1.0 / batch);
 
-  temp = input.subtract(mu * -1.0);
-  std::vector<float> var_batch = temp.multiply(temp).sum().Mat2Vec();
-  for (unsigned int i = 0; i < batch; ++i)
-    s += var_batch[i];
-  s = s / batch;
-  var = s / width;
+  temp = input.subtract(mu);
 
-  Tensor hath = temp.multiply(pow(var + opt.epsilon, -1.0 / 2.0));
+  var = temp.multiply(temp).sum(0).multiply(1.0 / batch);
+
+  Tensor hath = temp.divide(var.add(0.001).applyFunction(sqrt_float));
+
+  hidden = hath;
 
   Tensor ret = hath.multiply(gamma).add(beta).applyFunction(activation);
 
@@ -470,42 +469,26 @@ Tensor BatchNormalizationLayer::forwarding(Tensor input) {
 }
 
 Tensor BatchNormalizationLayer::backwarding(Tensor derivative, int iteration) {
-  float dbeta = 0.0, dgamma = 0.0, s = 0.0, ss = 0.0;
-  std::vector<float> ddbeta_batch = derivative.sum().Mat2Vec();
-  for (unsigned int i = 0; i < batch; ++i)
-    dbeta += ddbeta_batch[i];
-  dbeta = dbeta / batch;
+  Tensor dbeta;
+  Tensor dgamma;
+  Tensor hath = hidden;
+  Tensor dy = derivative.multiply(hath.multiply(gamma).add(beta).applyFunction(activationPrime));
 
-  std::vector<float> dgamma_batch =
-      ((hidden.subtract(mu).multiply((pow(var + opt.epsilon, -1.0 / 2.0)))).multiply(derivative)).sum().Mat2Vec();
-  for (unsigned int i = 0; i < batch; ++i)
-    dgamma += dgamma_batch[i];
+  dbeta = dy.sum(0);
+  dgamma = (Input.subtract(mu).divide(var.add(0.001).applyFunction(sqrt_float)).multiply(dy).sum(0));
 
-  dgamma = dgamma / batch;
-
-  std::vector<float> t = derivative.multiply(hidden.subtract(mu)).sum().Mat2Vec();
-  for (unsigned int i = 0; i < batch; ++i)
-    s += t[i];
-
-  s = s / batch;
-
-  std::vector<float> derivative_sum = derivative.sum().Mat2Vec();
-  for (int i = 0; i < derivative.getBatch(); ++i)
-    ss += derivative_sum[i];
-
-  ss = ss / derivative.getBatch();
-
-  Tensor Temp = (derivative.multiply(width).subtract(ss))
-                    .subtract(hidden.subtract(mu).multiply(pow(var + opt.epsilon, -1.0) * s));
-  Tensor dh = Temp.multiply(1.0 / width).multiply(pow(var + opt.epsilon, -1.0 / 2.0)).multiply(gamma);
+  Tensor Temp =
+      (dy.multiply(batch).subtract(dy.sum(0)))
+          .subtract(Input.subtract(mu).divide(var.add(0.001)).multiply(dy.multiply(Input.subtract(mu)).sum(0)));
+  Tensor dh = Temp.multiply(1.0 / batch).multiply(var.add(0.001).applyFunction(sqrt_float)).multiply(gamma);
 
   float ll = opt.learning_rate;
   if (opt.decay_steps != -1) {
     ll = opt.learning_rate * pow(opt.decay_rate, (iteration / opt.decay_steps));
   }
 
-  gamma = gamma.subtract(dgamma * ll);
-  beta = beta.subtract(dbeta * ll);
+  gamma = gamma.subtract(dgamma.multiply(ll));
+  beta = beta.subtract(dbeta.multiply(ll));
 
   return dh;
 }

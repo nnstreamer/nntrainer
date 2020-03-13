@@ -304,7 +304,6 @@ Tensor Tensor::sum() const {
 }
 
 Tensor Tensor::sum(int axis) const {
-  int k;
   Tensor ret;
 
   switch (axis) {

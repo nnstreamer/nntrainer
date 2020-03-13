@@ -161,7 +161,7 @@ class Tensor {
    * @brief     sum all the Tensor elements according to the axis
    * @retval    Calculated Tensor
    */
-  Tensor Tensor::sum(int axis) const;
+  Tensor sum(int axis) const;
 
   /**
    * @brief     Averaging the Tensor elements according to the batch
