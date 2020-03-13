@@ -163,6 +163,10 @@ class DataBuffer {
   bool val_running;
   bool test_running;
 
+  std::vector<unsigned int> train_mark;
+  std::vector<unsigned int> val_mark;
+  std::vector<unsigned int> test_mark;
+
   std::thread train_thread;
   std::thread val_thread;
   std::thread test_thread;

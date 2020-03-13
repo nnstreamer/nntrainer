@@ -25,6 +25,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <condition_variable>
 #include <cstring>
 #include <functional>
 #include <mutex>
@@ -32,6 +33,18 @@
 #include <thread>
 
 std::mutex data_lock;
+
+std::mutex readyTrainData;
+std::mutex readyValData;
+std::mutex readyTestData;
+
+std::condition_variable cv_train;
+std::condition_variable cv_val;
+std::condition_variable cv_test;
+
+bool trainReadyFlag;
+bool valReadyFlag;
+bool testReadyFlag;
 
 static int rangeRandom(int min, int max) {
   int n = max - min + 1;
@@ -56,9 +69,9 @@ bool DataBuffer::init(int mini_batch, unsigned int train_bufsize, unsigned int v
   this->input_size = in_size;
   this->class_num = c_num;
 
-  this->cur_train_bufsize = train_bufsize;
-  this->cur_val_bufsize = val_bufsize;
-  this->cur_test_bufsize = test_bufsize;
+  this->cur_train_bufsize = 0;
+  this->cur_val_bufsize = 0;
+  this->cur_test_bufsize = 0;
 
   this->train_bufsize = train_bufsize;
   this->val_bufsize = val_bufsize;
@@ -78,58 +91,10 @@ bool DataBuffer::init(int mini_batch, unsigned int train_bufsize, unsigned int v
   this->val_running = true;
   this->test_running = true;
 
-  for (unsigned int i = 0; i < train_bufsize; ++i) {
-    std::vector<float> vec;
-    std::vector<float> veclabel;
-    for (unsigned int j = 0; j < input_size; ++j) {
-      float data;
-      train_file.read((char *)&data, sizeof(float));
-      vec.push_back(data);
-    }
-    trainData.push_back(vec);
-    for (unsigned int j = 0; j < class_num; ++j) {
-      float data;
-      train_file.read((char *)&data, sizeof(float));
-      veclabel.push_back(data);
-    }
-    trainDataLabel.push_back(veclabel);
-    rest_train--;
-  }
-  for (unsigned int i = 0; i < val_bufsize; ++i) {
-    std::vector<float> vec;
-    std::vector<float> veclabel;
-    for (unsigned int j = 0; j < input_size; ++j) {
-      float data;
-      val_file.read((char *)&data, sizeof(float));
-      vec.push_back(data);
-    }
-    valData.push_back(vec);
-    for (unsigned int j = 0; j < class_num; ++j) {
-      float data;
-      val_file.read((char *)&data, sizeof(float));
-      veclabel.push_back(data);
-    }
-    valDataLabel.push_back(veclabel);
-    rest_val--;
-  }
+  trainReadyFlag = false;
+  valReadyFlag = false;
+  testReadyFlag = false;
 
-  for (unsigned int i = 0; i < test_bufsize; ++i) {
-    std::vector<float> vec;
-    std::vector<float> veclabel;
-    for (unsigned int j = 0; j < input_size; ++j) {
-      float data;
-      test_file.read((char *)&data, sizeof(float));
-      vec.push_back(data);
-    }
-    testData.push_back(vec);
-    for (unsigned int j = 0; j < class_num; ++j) {
-      float data;
-      test_file.read((char *)&data, sizeof(float));
-      veclabel.push_back(data);
-    }
-    testDataLabel.push_back(veclabel);
-    rest_test--;
-  }
   return true;
 }
 
@@ -141,125 +106,129 @@ void DataBuffer::UpdateData(buffer_type type, std::ifstream &file) {
       for (unsigned int i = 0; i < max_train; ++i) {
         mark[i] = i;
       }
+
       unsigned int I;
-      while (train_running || mark.size() == 0) {
-        if (train_bufsize - cur_train_bufsize >= mini_batch && rest_train > mini_batch) {
+      while (train_running && mark.size() != 0) {
+        if (train_bufsize - cur_train_bufsize > 0 && rest_train > 0) {
           data_lock.lock();
-          std::vector<int> list;
-          for (unsigned int i = 0; i < mini_batch; ++i) {
-            std::vector<float> vec;
-            std::vector<float> veclabel;
+          std::vector<float> vec;
+          std::vector<float> veclabel;
 
-            unsigned int id = rangeRandom(0, mark.size() - 1);
-            I = mark[id];
-            mark.erase(mark.begin() + id);
+          unsigned int id = rangeRandom(0, mark.size() - 1);
+          I = mark[id];
+          mark.erase(mark.begin() + id);
 
-            list.push_back(I);
-            int64_t position = (I * input_size + I * class_num) * sizeof(float);
-            file.seekg(position, std::ios::beg);
+          int64_t position = (I * input_size + I * class_num) * sizeof(float);
+          file.seekg(position, std::ios::beg);
 
-            for (unsigned int j = 0; j < input_size; ++j) {
-              float data;
-              file.read((char *)&data, sizeof(float));
-              vec.push_back(data);
-            }
-            trainData.push_back(vec);
-            for (unsigned int j = 0; j < class_num; ++j) {
-              float data;
-              file.read((char *)&data, sizeof(float));
-              veclabel.push_back(data);
-            }
-            trainDataLabel.push_back(veclabel);
-            rest_train--;
+          for (unsigned int j = 0; j < input_size; ++j) {
+            float data;
+            file.read((char *)&data, sizeof(float));
+            vec.push_back(data);
           }
-          cur_train_bufsize += mini_batch;
+          trainData.push_back(vec);
+          for (unsigned int j = 0; j < class_num; ++j) {
+            float data;
+            file.read((char *)&data, sizeof(float));
+            veclabel.push_back(data);
+          }
+          trainDataLabel.push_back(veclabel);
+          rest_train--;
+          cur_train_bufsize++;
           data_lock.unlock();
+        }
+        if (train_bufsize == cur_train_bufsize) {
+          std::lock_guard<std::mutex> lgtrain(readyTrainData);
+          trainReadyFlag = true;
+          cv_train.notify_all();
         }
       }
     } break;
     case BUF_VAL: {
-      std::vector<int> mark;
+      unsigned int I;
+      std::vector<unsigned int> mark;
       mark.resize(max_val);
-
-      memset(mark.data(), 0, sizeof(int) * max_val);
-
       for (unsigned int i = 0; i < max_val; ++i) {
         mark[i] = i;
       }
 
-      int I;
-
-      while (val_running || mark.size() == 0) {
-        if (val_bufsize - cur_val_bufsize >= mini_batch && rest_val > mini_batch) {
+      while (val_running && mark.size() != 0) {
+        if (val_bufsize - cur_val_bufsize > 0 && rest_val > 0) {
           data_lock.lock();
-          for (unsigned int i = 0; i < mini_batch; ++i) {
-            std::vector<float> vec;
-            std::vector<float> veclabel;
+          std::vector<float> vec;
+          std::vector<float> veclabel;
 
-            unsigned int id = rangeRandom(0, mark.size() - 1);
-            I = mark[id];
-            mark.erase(mark.begin() + id);
+          unsigned int id = rangeRandom(0, mark.size() - 1);
+          I = mark[id];
+          mark.erase(mark.begin() + id);
 
-            int64_t position = (I * input_size + I * class_num) * sizeof(float);
-            file.seekg(position, std::ios::beg);
+          int64_t position = (I * input_size + I * class_num) * sizeof(float);
+          file.seekg(position, std::ios::beg);
 
-            for (unsigned int j = 0; j < input_size; ++j) {
-              float data;
-              file.read((char *)&data, sizeof(float));
-              vec.push_back(data);
-            }
-            valData.push_back(vec);
-            for (unsigned int j = 0; j < class_num; ++j) {
-              float data;
-              file.read((char *)&data, sizeof(float));
-              veclabel.push_back(data);
-            }
-            valDataLabel.push_back(veclabel);
-            rest_val--;
+          for (unsigned int j = 0; j < input_size; ++j) {
+            float data;
+            file.read((char *)&data, sizeof(float));
+            vec.push_back(data);
           }
-          cur_val_bufsize += mini_batch;
+          valData.push_back(vec);
+          for (unsigned int j = 0; j < class_num; ++j) {
+            float data;
+            file.read((char *)&data, sizeof(float));
+            veclabel.push_back(data);
+          }
+          valDataLabel.push_back(veclabel);
+          rest_val--;
+          cur_val_bufsize++;
           data_lock.unlock();
+        }
+        if (val_bufsize == cur_val_bufsize) {
+          std::lock_guard<std::mutex> lgval(readyValData);
+          valReadyFlag = true;
+          cv_val.notify_all();
         }
       }
     } break;
     case BUF_TEST: {
+      int I;
       std::vector<int> mark;
       mark.resize(max_test);
       for (unsigned int i = 0; i < max_test; ++i) {
         mark[i] = i;
       }
-      int I;
 
-      while (test_running || mark.size() == 0) {
-        if (test_bufsize - cur_test_bufsize >= mini_batch && rest_test > mini_batch) {
+      while (test_running && mark.size() != 0) {
+        if (test_bufsize - cur_test_bufsize >= 0 && rest_test > 0) {
           data_lock.lock();
-          for (unsigned int i = 0; i < mini_batch; ++i) {
-            std::vector<float> vec;
-            std::vector<float> veclabel;
+          std::vector<float> vec;
+          std::vector<float> veclabel;
 
-            unsigned int id = rangeRandom(0, mark.size() - 1);
-            I = mark[id];
-            mark.erase(mark.begin() + id);
+          unsigned int id = rangeRandom(0, mark.size() - 1);
+          I = mark[id];
+          mark.erase(mark.begin() + id);
 
-            int64_t position = (I * input_size + I * class_num) * sizeof(float);
-            file.seekg(position, std::ios::beg);
+          int64_t position = (I * input_size + I * class_num) * sizeof(float);
+          file.seekg(position, std::ios::beg);
 
-            for (unsigned int j = 0; j < input_size; ++j) {
-              float data;
-              file.read((char *)&data, sizeof(float));
-              vec.push_back(data);
-            }
-            testData.push_back(vec);
-            for (unsigned int j = 0; j < class_num; ++j) {
-              float data;
-              file.read((char *)&data, sizeof(float));
-              veclabel.push_back(data);
-            }
-            testDataLabel.push_back(veclabel);
-            rest_test--;
+          for (unsigned int j = 0; j < input_size; ++j) {
+            float data;
+            file.read((char *)&data, sizeof(float));
+            vec.push_back(data);
           }
-          cur_test_bufsize += mini_batch;
+          testData.push_back(vec);
+          for (unsigned int j = 0; j < class_num; ++j) {
+            float data;
+            file.read((char *)&data, sizeof(float));
+            veclabel.push_back(data);
+          }
+          testDataLabel.push_back(veclabel);
+          rest_test--;
+          cur_test_bufsize++;
           data_lock.unlock();
+        }
+        if (test_bufsize == cur_test_bufsize) {
+          std::lock_guard<std::mutex> lgtest(readyTestData);
+          testReadyFlag = true;
+          cv_test.notify_all();
         }
       }
     } break;
@@ -288,18 +257,18 @@ void DataBuffer::run(buffer_type type, std::ifstream &file) {
 }
 
 bool DataBuffer::getStatus(buffer_type type) {
-  bool ret = true;
+  int ret = true;
   switch (type) {
     case BUF_TRAIN:
-      if (trainData.size() < mini_batch)
+      if ((trainData.size() < mini_batch) && trainReadyFlag)
         ret = false;
       break;
     case BUF_VAL:
-      if (valData.size() < mini_batch)
+      if ((valData.size() < mini_batch) && valReadyFlag)
         ret = false;
       break;
     case BUF_TEST:
-      if (testData.size() < mini_batch)
+      if ((testData.size() < mini_batch) && testReadyFlag)
         ret = false;
       break;
     default:
@@ -314,88 +283,38 @@ void DataBuffer::clear(buffer_type type, std::ifstream &file) {
       train_running = false;
       this->trainData.clear();
       this->trainDataLabel.clear();
-      this->cur_train_bufsize = this->train_bufsize;
+      this->cur_train_bufsize = 0;
       this->rest_train = max_train;
+      trainReadyFlag = false;
 
-      this->train_running = true;
       file.clear();
       file.seekg(0, std::ios::beg);
 
-      for (unsigned int i = 0; i < train_bufsize; ++i) {
-        std::vector<float> vec;
-        std::vector<float> veclabel;
-        for (unsigned int j = 0; j < input_size; ++j) {
-          float data;
-          file.read((char *)&data, sizeof(float));
-          vec.push_back(data);
-        }
-        trainData.push_back(vec);
-        for (unsigned int j = 0; j < class_num; ++j) {
-          float data;
-          file.read((char *)&data, sizeof(float));
-          veclabel.push_back(data);
-        }
-        trainDataLabel.push_back(veclabel);
-        rest_train--;
-      }
+      this->train_running = true;
     } break;
     case BUF_VAL: {
       val_running = false;
       this->valData.clear();
-      this->cur_val_bufsize = this->val_bufsize;
+      this->valDataLabel.clear();
+      this->cur_val_bufsize = 0;
       this->rest_val = max_val;
+      valReadyFlag = false;
 
-      this->val_running = true;
       file.clear();
       file.seekg(0, std::ios::beg);
 
-      for (unsigned int i = 0; i < val_bufsize; ++i) {
-        std::vector<float> vec;
-        std::vector<float> veclabel;
-        for (unsigned int j = 0; j < input_size; ++j) {
-          float data;
-          file.read((char *)&data, sizeof(float));
-          vec.push_back(data);
-        }
-        valData.push_back(vec);
-        for (unsigned int j = 0; j < class_num; ++j) {
-          float data;
-          file.read((char *)&data, sizeof(float));
-          veclabel.push_back(data);
-        }
-        valDataLabel.push_back(veclabel);
-        rest_val--;
-      }
-
+      this->val_running = true;
     } break;
     case BUF_TEST: {
       test_running = false;
       this->testData.clear();
-      this->cur_test_bufsize = this->test_bufsize;
+      this->testDataLabel.clear();
+      this->cur_test_bufsize = 0;
       this->rest_test = max_test;
-
-      this->test_running = true;
-
+      testReadyFlag = false;
       file.clear();
       file.seekg(0, std::ios::beg);
-
-      for (unsigned int i = 0; i < test_bufsize; ++i) {
-        std::vector<float> vec;
-        std::vector<float> veclabel;
-        for (unsigned int j = 0; j < input_size; ++j) {
-          float data;
-          file.read((char *)&data, sizeof(float));
-          vec.push_back(data);
-        }
-        testData.push_back(vec);
-        for (unsigned int j = 0; j < class_num; ++j) {
-          float data;
-          file.read((char *)&data, sizeof(float));
-          veclabel.push_back(data);
-        }
-        testDataLabel.push_back(veclabel);
-        rest_test--;
-      }
+      this->test_running = true;
     } break;
     default:
       break;
@@ -414,6 +333,12 @@ bool DataBuffer::getDatafromBuffer(buffer_type type, std::vector<std::vector<std
 
       if (!getStatus(BUF_TRAIN))
         return false;
+
+      {
+        std::unique_lock<std::mutex> ultest(readyTrainData);
+        cv_train.wait(ultest, []() -> bool { return trainReadyFlag; });
+      }
+
       data_lock.lock();
       for (k = 0; k < batch; ++k) {
         nomI = rangeRandom(0, trainData.size() - 1);
@@ -441,6 +366,12 @@ bool DataBuffer::getDatafromBuffer(buffer_type type, std::vector<std::vector<std
       std::vector<int> list;
       if (!getStatus(BUF_VAL))
         return false;
+
+      {
+        std::unique_lock<std::mutex> ulval(readyValData);
+        cv_val.wait(ulval, []() -> bool { return valReadyFlag; });
+      }
+
       data_lock.lock();
       for (k = 0; k < batch; ++k) {
         nomI = rangeRandom(0, valData.size() - 1);
@@ -468,6 +399,12 @@ bool DataBuffer::getDatafromBuffer(buffer_type type, std::vector<std::vector<std
       std::vector<int> list;
       if (!getStatus(BUF_TEST))
         return false;
+
+      {
+        std::unique_lock<std::mutex> ultest(readyTestData);
+        cv_test.wait(ultest, []() -> bool { return testReadyFlag; });
+      }
+
       data_lock.lock();
       for (k = 0; k < batch; ++k) {
         nomI = rangeRandom(0, testData.size() - 1);
@@ -490,12 +427,12 @@ bool DataBuffer::getDatafromBuffer(buffer_type type, std::vector<std::vector<std
         testDataLabel.erase(testDataLabel.begin() + list[i]);
         cur_test_bufsize--;
       }
-    }
-    break;
-  default:
-    return false;
-    break;
+    } break;
+    default:
+      return false;
+      break;
   }
   data_lock.unlock();
+
   return true;
 }
