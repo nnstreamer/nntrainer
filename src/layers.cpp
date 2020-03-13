@@ -69,6 +69,30 @@ float tanhPrime(float x) {
   return 1.0 - th * th;
 }
 
+/**
+ * @brief     relu activation function
+ * @param[in] x input
+ */
+float Relu(float x) {
+  if (x <= 0.0) {
+    return 0.0;
+  } else {
+    return x;
+  }
+}
+
+/**
+ * @brief     derivative relu function
+ * @param[in] x input
+ */
+float ReluPrime(float x) {
+  if (x <= 0.0) {
+    return 0.0;
+  } else {
+    return 1.0;
+  }
+}
+
 namespace Layers {
 
 void InputLayer::setOptimizer(Optimizer opt) {
@@ -81,6 +105,10 @@ void InputLayer::setOptimizer(Optimizer opt) {
     case ACT_SIGMOID:
       activation = sigmoid;
       activationPrime = sigmoidePrime;
+      break;
+    case ACT_RELU:
+      activation = Relu;
+      activationPrime = ReluPrime;
       break;
     default:
       break;
@@ -139,6 +167,10 @@ void FullyConnectedLayer::setOptimizer(Optimizer opt) {
     case ACT_SIGMOID:
       activation = sigmoid;
       activationPrime = sigmoidePrime;
+      break;
+    case ACT_RELU:
+      activation = Relu;
+      activationPrime = ReluPrime;
       break;
     default:
       break;
@@ -321,6 +353,10 @@ void OutputLayer::setOptimizer(Optimizer opt) {
       activation = sigmoid;
       activationPrime = sigmoidePrime;
       break;
+    case ACT_RELU:
+      activation = Relu;
+      activationPrime = ReluPrime;
+      break;
     default:
       break;
   }
@@ -442,6 +478,10 @@ void BatchNormalizationLayer::setOptimizer(Optimizer opt) {
     case ACT_SIGMOID:
       activation = sigmoid;
       activationPrime = sigmoidePrime;
+      break;
+    case ACT_RELU:
+      activation = Relu;
+      activationPrime = ReluPrime;
       break;
     default:
       break;

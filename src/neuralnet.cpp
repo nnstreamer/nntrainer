@@ -80,8 +80,9 @@ std::vector<std::string> NetworkType_string = {"knn", "regression", "neuralnet"}
  * @brief     Activation Type String from configure file
  *            "tanh"  : tanh
  *            "sigmoid" : sigmoid
+ *            "relu" : relu
  */
-std::vector<std::string> activation_string = {"tanh", "sigmoid"};
+std::vector<std::string> activation_string = {"tanh", "sigmoid", "relu"};
 
 /**
  * @brief     Layer Type String from configure file

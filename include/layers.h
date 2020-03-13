@@ -54,9 +54,10 @@ typedef enum { COST_CATEGORICAL, COST_MSR, COST_ENTROPY, COST_UNKNOWN } cost_typ
  * @brief     Enumeration of activation function type
  *            0. tanh
  *            1. sigmoid
- *            2. Unknown
+ *            2. relu
+ *            3. Unknown
  */
-typedef enum { ACT_TANH, ACT_SIGMOID, ACT_UNKNOWN } acti_type;
+ typedef enum { ACT_TANH, ACT_SIGMOID, ACT_RELU, ACT_UNKNOWN } acti_type;
 
 /**
  * @brief     Enumeration of layer type
