@@ -290,6 +290,15 @@ class InputLayer : public Layer {
    * @param[in] l layer to copy
    */
   void copy(Layer *l);
+
+  /**
+   * @brief     set normalization
+   * @param[in] enable boolean
+   */
+  void setNormalization(bool enable) { this->normalization = enable; };
+
+ private:
+  bool normalization;
 };
 
 /**

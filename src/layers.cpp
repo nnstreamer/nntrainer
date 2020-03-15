@@ -127,6 +127,8 @@ void InputLayer::copy(Layer *l) {
 
 Tensor InputLayer::forwarding(Tensor input) {
   Input = input;
+  if (normalization)
+    Input = Input.normalization();
   return Input;
 }
 

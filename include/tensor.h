@@ -176,6 +176,12 @@ class Tensor {
   Tensor softmax() const;
 
   /**
+   * @brief     Normalize the Tensor elements
+   * @retval    Calculated Tensor
+   */
+  Tensor normalization() const;
+
+  /**
    * @brief     Fill the Tensor elements with zero
    */
   void setZero();

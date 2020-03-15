@@ -562,3 +562,33 @@ int Tensor::argmax() {
   }
   return index;
 }
+
+Tensor Tensor::normalization() const {
+  Tensor results(batch, height, width);
+  float Min = 1000000.0;
+  float Max = 0.0;
+
+  for (int k = 0; k < batch; ++k) {
+    for (int i = 0; i < height; ++i) {
+      for (int j = 0; j < width; ++j) {
+        int id = k * height * width + i * width + j;
+        if (this->data[id] < Min)
+          Min = this->data[id];
+        if (this->data[id] > Max)
+          Max = this->data[id];
+      }
+    }
+  }
+  float dif = Max - Min;
+
+  for (int k = 0; k < batch; ++k) {
+    for (int i = 0; i < height; ++i) {
+      for (int j = 0; j < width; ++j) {
+        int id = k * height * width + i * width + j;
+        results.data[id] = (this->data[id] - Min) / dif;
+      }
+    }
+  }
+
+  return results;
+}

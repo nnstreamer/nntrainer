@@ -258,7 +258,9 @@ void NeuralNetwork::init() {
         inputlayer->setType(t);
         inputlayer->initialize(batchsize, 1, HiddenSize[i], id, b_zero);
         inputlayer->setOptimizer(opt);
+        inputlayer->setNormalization(iniparser_getboolean(ini, (layers_name[i] + ":Normalization").c_str(), false));
         layers.push_back(inputlayer);
+
       } break;
       case Layers::LAYER_FC: {
         Layers::FullyConnectedLayer *fclayer = new (Layers::FullyConnectedLayer);
@@ -273,8 +275,8 @@ void NeuralNetwork::init() {
         outputlayer->initialize(batchsize, HiddenSize[i - 1], HiddenSize[i], id, b_zero);
         outputlayer->setOptimizer(opt);
         outputlayer->setCost(cost);
-        layers.push_back(outputlayer);
         outputlayer->setSoftmax(iniparser_getboolean(ini, (layers_name[i] + ":Softmax").c_str(), false));
+        layers.push_back(outputlayer);
       } break;
       case Layers::LAYER_BN: {
         Layers::BatchNormalizationLayer *bnlayer = new (Layers::BatchNormalizationLayer);
