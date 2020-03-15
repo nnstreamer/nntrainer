@@ -175,11 +175,16 @@ void FullyConnectedLayer::setOptimizer(Optimizer opt) {
     default:
       break;
   }
+
   if (opt.type == OPT_ADAM) {
-    M = Tensor(height, width);
-    V = Tensor(height, width);
-    M.setZero();
-    V.setZero();
+    WM = Tensor(height, width);
+    WV = Tensor(height, width);
+    WM.setZero();
+    WV.setZero();
+    BM = Tensor(1, width);
+    BV = Tensor(1, width);
+    BM.setZero();
+    BV.setZero();
   }
 }
 
@@ -230,11 +235,16 @@ Tensor FullyConnectedLayer::backwarding(Tensor derivative, int iteration) {
       Weight = Weight.subtract(dJdW.average().multiply(ll));
       break;
     case OPT_ADAM:
-      M = M.multiply(opt.beta1).add(dJdW.average().multiply(1 - opt.beta1));
-      V = V.multiply(opt.beta2).add((dJdW.average().multiply(dJdW.average())).multiply(1 - opt.beta2));
-      M.divide(1 - pow(opt.beta1, iteration + 1));
-      V.divide(1 - pow(opt.beta2, iteration + 1));
-      Weight = Weight.subtract((M.divide(V.applyFunction(sqrt_float).add(opt.epsilon))).multiply(ll));
+      WM = WM.multiply(opt.beta1).add(dJdW.average().multiply(1 - opt.beta1));
+      WV = WV.multiply(opt.beta2).add((dJdW.average().multiply(dJdW.average())).multiply(1 - opt.beta2));
+      WM.divide(1 - pow(opt.beta1, iteration + 1));
+      WV.divide(1 - pow(opt.beta2, iteration + 1));
+      Weight = Weight.subtract((WM.divide(WV.applyFunction(sqrt_float).add(opt.epsilon))).multiply(ll));
+      BM = BM.multiply(opt.beta1).add(dJdB.average().multiply(1 - opt.beta1));
+      BV = BV.multiply(opt.beta2).add((dJdB.average().multiply(dJdB.average())).multiply(1 - opt.beta2));
+      BM.divide(1 - pow(opt.beta1, iteration + 1));
+      BV.divide(1 - pow(opt.beta2, iteration + 1));
+      Bias = Bias.subtract((BM.divide(BV.applyFunction(sqrt_float).add(opt.epsilon))).multiply(ll));
       break;
     default:
       break;
@@ -361,10 +371,14 @@ void OutputLayer::setOptimizer(Optimizer opt) {
       break;
   }
   if (opt.type == OPT_ADAM) {
-    M = Tensor(height, width);
-    V = Tensor(height, width);
-    M.setZero();
-    V.setZero();
+    WM = Tensor(height, width);
+    WV = Tensor(height, width);
+    WM.setZero();
+    WV.setZero();
+    BM = Tensor(1, width);
+    BV = Tensor(1, width);
+    BM.setZero();
+    BV.setZero();
   }
 }
 
@@ -438,11 +452,16 @@ Tensor OutputLayer::backwarding(Tensor label, int iteration) {
       Weight = Weight.subtract(dJdW.average().multiply(ll));
       break;
     case Layers::OPT_ADAM:
-      M = M.multiply(opt.beta1).add(dJdW.average().multiply(1 - opt.beta1));
-      V = V.multiply(opt.beta2).add((dJdW.average().multiply(dJdW.average())).multiply(1 - opt.beta2));
-      M.divide(1 - pow(opt.beta1, iteration + 1));
-      V.divide(1 - pow(opt.beta2, iteration + 1));
-      Weight = Weight.subtract((M.divide(V.applyFunction(sqrt_float).add(opt.epsilon))).multiply(ll));
+      WM = WM.multiply(opt.beta1).add(dJdW.average().multiply(1 - opt.beta1));
+      WV = WV.multiply(opt.beta2).add((dJdW.average().multiply(dJdW.average())).multiply(1 - opt.beta2));
+      WM.divide(1 - pow(opt.beta1, iteration + 1));
+      WV.divide(1 - pow(opt.beta2, iteration + 1));
+      Weight = Weight.subtract((WM.divide(WV.applyFunction(sqrt_float).add(opt.epsilon))).multiply(ll));
+      BM = BM.multiply(opt.beta1).add(dJdB.average().multiply(1 - opt.beta1));
+      BV = BV.multiply(opt.beta2).add((dJdB.average().multiply(dJdB.average())).multiply(1 - opt.beta2));
+      BM.divide(1 - pow(opt.beta1, iteration + 1));
+      BV.divide(1 - pow(opt.beta2, iteration + 1));
+      Bias = Bias.subtract((BM.divide(BV.applyFunction(sqrt_float).add(opt.epsilon))).multiply(ll));
       break;
     default:
       break;

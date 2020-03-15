@@ -57,7 +57,7 @@ typedef enum { COST_CATEGORICAL, COST_MSR, COST_ENTROPY, COST_UNKNOWN } cost_typ
  *            2. relu
  *            3. Unknown
  */
- typedef enum { ACT_TANH, ACT_SIGMOID, ACT_RELU, ACT_UNKNOWN } acti_type;
+typedef enum { ACT_TANH, ACT_SIGMOID, ACT_RELU, ACT_UNKNOWN } acti_type;
 
 /**
  * @brief     Enumeration of layer type
@@ -374,12 +374,16 @@ class FullyConnectedLayer : public Layer {
   /**
    * @brief     First Momentum Tensor for the ADAM
    */
-  Tensor M;
+  Tensor WM;
+
+  Tensor BM;
 
   /**
    * @brief     Second Momentum Tensor for the ADAM
    */
-  Tensor V;
+  Tensor WV;
+
+  Tensor BV;
 };
 
 /**
@@ -476,8 +480,10 @@ class OutputLayer : public Layer {
  private:
   Tensor Weight;
   Tensor Bias;
-  Tensor M;
-  Tensor V;
+  Tensor WM;
+  Tensor WV;
+  Tensor BM;
+  Tensor BV;
   float loss;
   cost_type cost;
   bool softmax;
