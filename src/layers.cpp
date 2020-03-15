@@ -289,7 +289,9 @@ Tensor OutputLayer::forwarding(Tensor input, Tensor output) {
   Input = input;
   hidden = input.dot(Weight).add(Bias).applyFunction(activation);
   Tensor Y2 = output;
-  Tensor Y = hidden.softmax();
+  Tensor Y = hidden;
+  if (softmax)
+    Y = Y.softmax();
   float lossSum = 0.0;
 
   switch (cost) {
@@ -385,11 +387,10 @@ void OutputLayer::setOptimizer(Optimizer opt) {
 Tensor OutputLayer::backwarding(Tensor label, int iteration) {
   float lossSum = 0.0;
   Tensor Y2 = label;
-  Tensor Y;
+  Tensor Y = hidden;
   if (softmax)
-    Y = hidden.softmax();
-  else
-    Y = hidden;
+    Y = Y.softmax();
+
   Tensor ret;
   Tensor dJdB;
 

@@ -531,12 +531,19 @@ Tensor Tensor::softmax() const {
     }
   }
 
+  for (int k = 0; k < batch; ++k) {
+    int index = k * height;
+    for (int i = 1; i < height; ++i) {
+      divisor.data[index] += divisor.data[index + i];
+    }
+  }
+
   for (int k = 0; k < batch; k++) {
     int index = k * height;
     for (int i = 0; i < height; i++) {
       for (int j = 0; j < width; j++) {
         int id = k * height * width + i * width + j;
-        result.data[id] = exp(this->data[id]) / divisor.data[index + i];
+        result.data[id] = exp(this->data[id]) / divisor.data[index];
       }
     }
   }
