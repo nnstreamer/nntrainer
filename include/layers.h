@@ -69,6 +69,25 @@ typedef enum { ACT_TANH, ACT_SIGMOID, ACT_RELU, ACT_UNKNOWN } acti_type;
 typedef enum { LAYER_IN, LAYER_FC, LAYER_OUT, LAYER_BN, LAYER_UNKNOWN } layer_type;
 
 /**
+ * @brief     Enumeration of Weight Initialization Type
+ *            0. WEIGHT_LECUN_NORMAL ( LeCun normal initialization )
+ *            1. WEIGHT_LECUN_UNIFORM (LeCun uniform initialization )
+ *            2. WEIGHT_XAVIER_NORMAL ( Xavier normal initialization )
+ *            3. WEIGHT_XAVIER_UNIFORM ( Xavier uniform initialization )
+ *            4. WEIGHT_HE_NORMAL ( He normal initialization )
+ *            5. WEIGHT_HE_UNIFORM ( He uniform initialization )
+ */
+typedef enum {
+  WEIGHT_LECUN_NORMAL,
+  WEIGHT_LECUN_UNIFORM,
+  WEIGHT_XAVIER_NORMAL,
+  WEIGHT_XAVIER_UNIFORM,
+  WEIGHT_HE_NORMAL,
+  WEIGHT_HE_UNIFORM,
+  WEIGHT_UNKNOWN
+} weightIni_type;
+
+/**
  * @brief     type for the Optimizor to save hyper-parameter
  */
 typedef struct {
@@ -123,8 +142,9 @@ class Layer {
    * @param[in] w Width
    * @param[in] id index of this layer
    * @param[in] init_zero Bias initialization with zero
+   * @param[in] wini Weight Initialization Scheme
    */
-  virtual void initialize(int b, int h, int w, int id, bool init_zero) = 0;
+  virtual void initialize(int b, int h, int w, int id, bool init_zero, weightIni_type wini) = 0;
 
   /**
    * @brief     read layer Weight & Bias data from file
@@ -282,8 +302,9 @@ class InputLayer : public Layer {
    * @param[in] w width
    * @param[in] id index of this layer
    * @param[in] init_zero boolean to set Bias zero
+   * @param[in] wini Weight Initialization Scheme
    */
-  void initialize(int b, int h, int w, int id, bool init_zero);
+  void initialize(int b, int h, int w, int id, bool init_zero, weightIni_type wini);
 
   /**
    * @brief     Copy Layer
@@ -380,8 +401,9 @@ class FullyConnectedLayer : public Layer {
    * @param[in] w width
    * @param[in] id layer index
    * @param[in] init_zero boolean to set Bias zero
+   * @param[in] wini Weight Initialization Scheme
    */
-  void initialize(int b, int h, int w, int id, bool init_zero);
+  void initialize(int b, int h, int w, int id, bool init_zero, weightIni_type wini);
 
  private:
   Tensor Weight;
@@ -467,8 +489,9 @@ class OutputLayer : public Layer {
    * @param[in] w width
    * @param[in] id layer index
    * @param[in] init_zero boolean to set Bias zero
+   * @param[in] wini Weight Initialization Scheme
    */
-  void initialize(int b, int w, int h, int id, bool init_zero);
+  void initialize(int b, int w, int h, int id, bool init_zero, weightIni_type wini);
 
   /**
    * @brief     get Loss value
@@ -577,8 +600,9 @@ class BatchNormalizationLayer : public Layer {
    * @param[in] w width
    * @param[in] id layer index
    * @param[in] init_zero boolean to set Bias zero
+   * @param[in] wini Weight Initialization Scheme
    */
-  void initialize(int b, int h, int w, int id, bool init_zero);
+  void initialize(int b, int h, int w, int id, bool init_zero, weightIni_type wini);
 
  private:
   Tensor Weight;

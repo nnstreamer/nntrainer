@@ -23,6 +23,7 @@
 
 #include "include/layers.h"
 #include <assert.h>
+#include <random>
 
 /**
  * @brief     random function
@@ -93,6 +94,63 @@ float ReluPrime(float x) {
   }
 }
 
+static void WeightInitialization(Tensor W, unsigned int width, unsigned int height, Layers::weightIni_type init_type) {
+  std::random_device rd;
+  std::mt19937 gen(rd());
+
+  switch (init_type) {
+    case Layers::WEIGHT_LECUN_NORMAL: {
+      std::normal_distribution<float> dist(0, sqrt(1 / height));
+      for (unsigned int i = 0; i < width; ++i)
+        for (unsigned int j = 0; j < height; ++j) {
+          float f = dist(gen);
+          W.setValue(0, j, i, f);
+        }
+    } break;
+    case Layers::WEIGHT_LECUN_UNIFORM: {
+      std::uniform_real_distribution<float> dist(-1.0 * sqrt(1.0 / height), sqrt(1.0 / height));
+      for (unsigned int i = 0; i < width; ++i)
+        for (unsigned int j = 0; j < height; ++j) {
+          float f = dist(gen);
+          W.setValue(0, j, i, f);
+        }
+    } break;
+    case Layers::WEIGHT_XAVIER_NORMAL: {
+      std::normal_distribution<float> dist(0, sqrt(2.0 / (width + height)));
+      for (unsigned int i = 0; i < width; ++i)
+        for (unsigned int j = 0; j < height; ++j) {
+          float f = dist(gen);
+          W.setValue(0, j, i, f);
+        }
+    } break;
+    case Layers::WEIGHT_XAVIER_UNIFORM: {
+      std::uniform_real_distribution<float> dist(-1.0 * sqrt(6.0 / (height + width)), sqrt(6.0 / (height + width)));
+      for (unsigned int i = 0; i < width; ++i)
+        for (unsigned int j = 0; j < height; ++j) {
+          float f = dist(gen);
+          W.setValue(0, j, i, f);
+        }
+    } break;
+    case Layers::WEIGHT_HE_NORMAL: {
+      std::normal_distribution<float> dist(0, sqrt(2.0 / (height)));
+      for (unsigned int i = 0; i < width; ++i)
+        for (unsigned int j = 0; j < height; ++j) {
+          float f = dist(gen);
+          W.setValue(0, j, i, f);
+        }
+    } break;
+    case Layers::WEIGHT_HE_UNIFORM: {
+      std::uniform_real_distribution<float> dist(-1.0 * sqrt(6.0 / (height)), sqrt(6.0 / (height)));
+      for (unsigned int i = 0; i < width; ++i)
+        for (unsigned int j = 0; j < height; ++j) {
+          float f = dist(gen);
+          W.setValue(0, j, i, f);
+        }
+    } break;
+    default:
+      break;
+  }
+}
 namespace Layers {
 
 void InputLayer::setOptimizer(Optimizer opt) {
@@ -132,7 +190,7 @@ Tensor InputLayer::forwarding(Tensor input) {
   return Input;
 }
 
-void InputLayer::initialize(int b, int h, int w, int id, bool init_zero) {
+void InputLayer::initialize(int b, int h, int w, int id, bool init_zero, weightIni_type wini) {
   this->batch = b;
   this->width = w;
   this->height = h;
@@ -140,7 +198,7 @@ void InputLayer::initialize(int b, int h, int w, int id, bool init_zero) {
   this->bnfallow = false;
 }
 
-void FullyConnectedLayer::initialize(int b, int h, int w, int id, bool init_zero) {
+void FullyConnectedLayer::initialize(int b, int h, int w, int id, bool init_zero, weightIni_type wini) {
   this->batch = b;
   this->width = w;
   this->height = h;
@@ -151,7 +209,8 @@ void FullyConnectedLayer::initialize(int b, int h, int w, int id, bool init_zero
   Weight = Tensor(h, w);
   Bias = Tensor(1, w);
 
-  Weight = Weight.applyFunction(random);
+  WeightInitialization(Weight, w, h, wini);
+
   if (init_zero) {
     Bias.setZero();
   } else {
@@ -259,7 +318,7 @@ Tensor FullyConnectedLayer::backwarding(Tensor derivative, int iteration) {
   return ret;
 }
 
-void OutputLayer::initialize(int b, int h, int w, int id, bool init_zero) {
+void OutputLayer::initialize(int b, int h, int w, int id, bool init_zero, weightIni_type wini) {
   this->batch = b;
   this->width = w;
   this->height = h;
@@ -270,7 +329,9 @@ void OutputLayer::initialize(int b, int h, int w, int id, bool init_zero) {
   this->cost = cost;
   this->bnfallow = false;
 
-  Weight = Weight.applyFunction(random);
+  // Weight = Weight.applyFunction(random);
+  WeightInitialization(Weight, w, h, wini);
+
   if (init_zero) {
     Bias.setZero();
   } else {
@@ -477,7 +538,7 @@ Tensor OutputLayer::backwarding(Tensor label, int iteration) {
   return ret;
 }
 
-void BatchNormalizationLayer::initialize(int b, int h, int w, int id, bool init_zero) {
+void BatchNormalizationLayer::initialize(int b, int h, int w, int id, bool init_zero, weightIni_type wini) {
   this->batch = b;
   this->width = w;
   this->height = h;

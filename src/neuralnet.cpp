@@ -93,6 +93,17 @@ std::vector<std::string> activation_string = {"tanh", "sigmoid", "relu"};
 std::vector<std::string> layer_string = {"InputLayer", "FullyConnectedLayer", "OutputLayer", "BatchNormalizationLayer"};
 
 /**
+ * @brief     Weight Initialization Type String from configure file
+ *            "lecun_normal"  : LeCun Normal Initialization
+ *            "lecun_uniform"  : LeCun Uniform Initialization
+ *            "xavier_normal"  : Xavier Normal Initialization
+ *            "xavier_uniform"  : Xavier Uniform Initialization
+ *            "he_normal"  : He Normal Initialization
+ *            "he_uniform"  : He Uniform Initialization
+ */
+  std::vector<std::string> weightini_string = {"lecun_normal", "lecun_uniform", "xavier_normal", "xavier_uniform", "he_normal", "he_uniform"};
+
+/**
  * @brief     Check Existance of File
  * @param[in] filename file path to check
  * @retval    boolean true if exists
@@ -171,6 +182,14 @@ unsigned int parseType(std::string ll, input_type t) {
       }
       ret = i - 1;
       break;
+    case TOKEN_WEIGHTINI:
+      for (i = 0; i < weightini_string.size(); i++) {
+        if (caseInSensitiveCompare(weightini_string[i], ll)) {
+          return (i);
+        }
+      }
+      ret = i - 1;
+      break;
     case TOKEN_UNKNOWN:
     default:
       ret = 3;
@@ -209,6 +228,7 @@ void NeuralNetwork::init() {
   opt.type = (Layers::opt_type)parseType(iniparser_getstring(ini, "Network:Optimizer", NULL), TOKEN_OPT);
   opt.activation = (Layers::acti_type)parseType(iniparser_getstring(ini, "Network:Activation", NULL), TOKEN_ACTI);
   cost = (Layers::cost_type)parseType(iniparser_getstring(ini, "Network:Cost", NULL), TOKEN_COST);
+  weightini = (Layers::weightIni_type)parseType(iniparser_getstring(ini, "Network:WeightIni", "xavier_normal"), TOKEN_WEIGHTINI);
 
   model = iniparser_getstring(ini, "Network:Model", "model.bin");
   batchsize = iniparser_getint(ini, "Network:minibatch", 1);
@@ -256,7 +276,7 @@ void NeuralNetwork::init() {
       case Layers::LAYER_IN: {
         Layers::InputLayer *inputlayer = new (Layers::InputLayer);
         inputlayer->setType(t);
-        inputlayer->initialize(batchsize, 1, HiddenSize[i], id, b_zero);
+        inputlayer->initialize(batchsize, 1, HiddenSize[i], id, b_zero, weightini);
         inputlayer->setOptimizer(opt);
         inputlayer->setNormalization(iniparser_getboolean(ini, (layers_name[i] + ":Normalization").c_str(), false));
         inputlayer->setStandardization(iniparser_getboolean(ini, (layers_name[i] + ":Standardization").c_str(), false));
@@ -265,14 +285,14 @@ void NeuralNetwork::init() {
       case Layers::LAYER_FC: {
         Layers::FullyConnectedLayer *fclayer = new (Layers::FullyConnectedLayer);
         fclayer->setType(t);
-        fclayer->initialize(batchsize, HiddenSize[i - 1], HiddenSize[i], id, b_zero);
+        fclayer->initialize(batchsize, HiddenSize[i - 1], HiddenSize[i], id, b_zero, weightini);
         fclayer->setOptimizer(opt);
         layers.push_back(fclayer);
       } break;
       case Layers::LAYER_OUT: {
         Layers::OutputLayer *outputlayer = new (Layers::OutputLayer);
         outputlayer->setType(t);
-        outputlayer->initialize(batchsize, HiddenSize[i - 1], HiddenSize[i], id, b_zero);
+        outputlayer->initialize(batchsize, HiddenSize[i - 1], HiddenSize[i], id, b_zero, weightini);
         outputlayer->setOptimizer(opt);
         outputlayer->setCost(cost);
         outputlayer->setSoftmax(iniparser_getboolean(ini, (layers_name[i] + ":Softmax").c_str(), false));
@@ -282,7 +302,7 @@ void NeuralNetwork::init() {
         Layers::BatchNormalizationLayer *bnlayer = new (Layers::BatchNormalizationLayer);
         bnlayer->setType(t);
         bnlayer->setOptimizer(opt);
-        bnlayer->initialize(batchsize, 1, HiddenSize[i], id, b_zero);
+        bnlayer->initialize(batchsize, 1, HiddenSize[i], id, b_zero, weightini);
         layers.push_back(bnlayer);
         layers[i - 1]->setBNfallow(true);
       } break;
