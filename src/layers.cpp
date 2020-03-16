@@ -284,6 +284,11 @@ void FullyConnectedLayer::copy(Layer *l) {
 Tensor FullyConnectedLayer::backwarding(Tensor derivative, int iteration) {
   Tensor dJdB = derivative.multiply(Input.dot(Weight).add(Bias).applyFunction(activationPrime));
   Tensor dJdW = Input.transpose().dot(dJdB);
+
+  if (opt.weight_decay.type == WEIGHT_DECAY_L2NORM) {
+    dJdW = dJdW.subtract(Weight.multiply(opt.weight_decay.lambda));
+  }
+
   Tensor ret = dJdB.dot(Weight.transpose());
 
   float ll = opt.learning_rate;
@@ -469,6 +474,10 @@ Tensor OutputLayer::backwarding(Tensor label, int iteration) {
                          .subtract(Y2.multiply(-1.0).add(1.0).transpose().dot(
                              Y.multiply(-1.0).add(1.0).add(opt.epsilon).applyFunction(log_float))));
       loss = (1.0 / Y.Mat2Vec().size()) * temp.Mat2Vec()[0];
+      if (opt.weight_decay.type == WEIGHT_DECAY_L2NORM) {
+        loss += opt.weight_decay.lambda * 0.5 * (Weight.l2norm());
+      }
+
     } break;
     case COST_MSR: {
       Tensor sub = Y2.subtract(Y);
@@ -479,6 +488,9 @@ Tensor OutputLayer::backwarding(Tensor label, int iteration) {
       }
 
       loss = lossSum / (float)l.getBatch();
+      if (opt.weight_decay.type == WEIGHT_DECAY_L2NORM) {
+        loss += opt.weight_decay.lambda * 0.5 * (Weight.l2norm());
+      }
 
       dJdB = Y.subtract(Y2).multiply(Input.dot(Weight).add(Bias).applyFunction(activationPrime));
     } break;
@@ -502,6 +514,11 @@ Tensor OutputLayer::backwarding(Tensor label, int iteration) {
         lossSum += t[i];
       }
       loss = lossSum / (float)l.getBatch();
+
+      if (opt.weight_decay.type == WEIGHT_DECAY_L2NORM) {
+        loss += opt.weight_decay.lambda * 0.5 * (Weight.l2norm());
+      }
+
     } break;
     case COST_UNKNOWN:
     default:
@@ -509,6 +526,11 @@ Tensor OutputLayer::backwarding(Tensor label, int iteration) {
   }
 
   Tensor dJdW = Input.transpose().dot(dJdB);
+
+  if (opt.weight_decay.type == WEIGHT_DECAY_L2NORM) {
+    dJdW = dJdW.subtract(Weight.multiply(opt.weight_decay.lambda));
+  }
+
   ret = dJdB.dot(Weight.transpose());
 
   switch (opt.type) {

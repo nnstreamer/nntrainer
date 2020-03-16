@@ -176,6 +176,12 @@ class Tensor {
   Tensor softmax() const;
 
   /**
+   * @brief     l2norm the Tensor elements
+   * @retval    Calculated l2norm
+   */
+  float l2norm() const;
+
+  /**
    * @brief     Normalize the Tensor elements
    * @retval    Calculated Tensor
    */

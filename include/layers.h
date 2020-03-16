@@ -60,6 +60,14 @@ typedef enum { COST_CATEGORICAL, COST_MSR, COST_ENTROPY, COST_UNKNOWN } cost_typ
 typedef enum { ACT_TANH, ACT_SIGMOID, ACT_RELU, ACT_UNKNOWN } acti_type;
 
 /**
+ * @brief     Enumeration of Weight Decay type
+ *            0. L2Norm
+ *            1. Regression
+ *            2. Unknown
+ */
+typedef enum { WEIGHT_DECAY_L2NORM, WEIGHT_DECAY_REGRESSION, WEIGHT_DECAY_UNKNOWN } weight_decay_type;
+
+/**
  * @brief     Enumeration of layer type
  *            0. Input Layer type
  *            1. Fully Connected Layer type
@@ -91,6 +99,14 @@ typedef enum {
  * @brief     type for the Optimizor to save hyper-parameter
  */
 typedef struct {
+  weight_decay_type type;
+  float lambda;
+} Weight_Decay_param;
+
+/**
+ * @brief     type for the Optimizor to save hyper-parameter
+ */
+typedef struct {
   opt_type type;
   float learning_rate;
   double beta1;
@@ -99,6 +115,7 @@ typedef struct {
   acti_type activation;
   float decay_rate;
   float decay_steps;
+  Weight_Decay_param weight_decay;
 } Optimizer;
 
 /**

@@ -101,7 +101,14 @@ std::vector<std::string> layer_string = {"InputLayer", "FullyConnectedLayer", "O
  *            "he_normal"  : He Normal Initialization
  *            "he_uniform"  : He Uniform Initialization
  */
-  std::vector<std::string> weightini_string = {"lecun_normal", "lecun_uniform", "xavier_normal", "xavier_uniform", "he_normal", "he_uniform"};
+std::vector<std::string> weightini_string = {"lecun_normal", "lecun_uniform", "xavier_normal", "xavier_uniform", "he_normal", "he_uniform"};
+
+/**
+ * @brief     Weight Decay String from configure file
+ *            "L2Norm"  : squared norm regularization
+ *            "Regression" : Regression
+ */
+std::vector<std::string> weight_decay_string = {"L2Norm", "Regression"};
 
 /**
  * @brief     Check Existance of File
@@ -190,6 +197,14 @@ unsigned int parseType(std::string ll, input_type t) {
       }
       ret = i - 1;
       break;
+    case TOKEN_WEIGHT_DECAY:
+      for (i = 0; i < weight_decay_string.size(); i++) {
+        if (caseInSensitiveCompare(weight_decay_string[i], ll)) {
+          return (i);
+        }
+      }
+      ret = i - 1;
+      break;
     case TOKEN_UNKNOWN:
     default:
       ret = 3;
@@ -229,6 +244,12 @@ void NeuralNetwork::init() {
   opt.activation = (Layers::acti_type)parseType(iniparser_getstring(ini, "Network:Activation", NULL), TOKEN_ACTI);
   cost = (Layers::cost_type)parseType(iniparser_getstring(ini, "Network:Cost", NULL), TOKEN_COST);
   weightini = (Layers::weightIni_type)parseType(iniparser_getstring(ini, "Network:WeightIni", "xavier_normal"), TOKEN_WEIGHTINI);
+
+  opt.weight_decay.type = (Layers::weight_decay_type)parseType(iniparser_getstring(ini, "Network:Weight_Decay", NULL), TOKEN_WEIGHT_DECAY);
+
+  if (opt.weight_decay.type == Layers::WEIGHT_DECAY_L2NORM){
+    opt.weight_decay.lambda = iniparser_getdouble(ini, "Network:weight_decay_lambda", 0.0);
+  }
 
   model = iniparser_getstring(ini, "Network:Model", "model.bin");
   batchsize = iniparser_getint(ini, "Network:minibatch", 1);

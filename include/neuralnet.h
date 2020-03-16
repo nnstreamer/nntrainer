@@ -52,10 +52,19 @@ typedef enum { NET_KNN, NET_REG, NET_NEU, NET_UNKNOWN } net_type;
  *            3. ACTI    ( Activation Token )
  *            4. LAYER   ( Layer Token )
  *            5. WEIGHTINI  ( Weight Initialization Token )
- *            6. UNKNOWN
+ *            7. WEIGHT_DECAY  ( Weight Decay Token )
+ *            8. UNKNOWN
  */
-typedef enum { TOKEN_OPT, TOKEN_COST, TOKEN_NET, TOKEN_ACTI, TOKEN_LAYER, TOKEN_WEIGHTINI, TOKEN_UNKNOWN } input_type;
-
+typedef enum {
+  TOKEN_OPT,
+  TOKEN_COST,
+  TOKEN_NET,
+  TOKEN_ACTI,
+  TOKEN_LAYER,
+  TOKEN_WEIGHTINI,
+  TOKEN_WEIGHT_DECAY,
+  TOKEN_UNKNOWN
+} input_type;
 
 /**
  * @class   NeuralNetwork Class

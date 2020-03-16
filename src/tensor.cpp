@@ -563,6 +563,15 @@ int Tensor::argmax() {
   return index;
 }
 
+float Tensor::l2norm() const {
+  float sum = 0.0;
+  for(int i=0;i<len;i++){
+    sum += this->data[i] * this->data[i];
+  }
+
+  return sqrt(sum);
+}
+
 Tensor Tensor::normalization() const {
   Tensor results(batch, height, width);
   float Min = 1000000.0;
