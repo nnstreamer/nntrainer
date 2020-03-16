@@ -182,6 +182,12 @@ class Tensor {
   Tensor normalization() const;
 
   /**
+   * @brief     Standardize the Tensor elements
+   * @retval    Calculated Tensor
+   */
+  Tensor standardization() const;
+
+  /**
    * @brief     Fill the Tensor elements with zero
    */
   void setZero();

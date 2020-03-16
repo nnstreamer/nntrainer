@@ -259,8 +259,8 @@ void NeuralNetwork::init() {
         inputlayer->initialize(batchsize, 1, HiddenSize[i], id, b_zero);
         inputlayer->setOptimizer(opt);
         inputlayer->setNormalization(iniparser_getboolean(ini, (layers_name[i] + ":Normalization").c_str(), false));
+        inputlayer->setStandardization(iniparser_getboolean(ini, (layers_name[i] + ":Standardization").c_str(), false));
         layers.push_back(inputlayer);
-
       } break;
       case Layers::LAYER_FC: {
         Layers::FullyConnectedLayer *fclayer = new (Layers::FullyConnectedLayer);

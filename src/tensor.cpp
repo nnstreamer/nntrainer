@@ -592,3 +592,45 @@ Tensor Tensor::normalization() const {
 
   return results;
 }
+
+Tensor Tensor::standardization() const {
+  Tensor result(batch, height, width);
+
+  for (int k = 0; k < batch; ++k) {
+    int K = k * height * width;
+    float mean;
+    float mean_tmp = 0.0;
+    float std_tmp = 0.0;
+    float std_dev = 0.0;
+
+    for (int i = 0; i < height; ++i) {
+      int I = K + i * width;
+      for (int j = 0; j < width; ++j) {
+        int J = I + j;
+        mean_tmp += this->data[J];
+      }
+    }
+
+    mean = mean_tmp / (this->width * this->height);
+
+    for (int i = 0; i < height; ++i) {
+      int I = K + i * width;
+      for (int j = 0; j < width; ++j) {
+        int J = I + j;
+        std_tmp += (this->data[J] - mean) * (this->data[J] - mean);
+      }
+    }
+
+    std_dev = sqrt(std_tmp) / (this->height * this->width);
+
+    for (int i = 0; i < height; ++i) {
+      int I = K + i * width;
+      for (int j = 0; j < width; ++j) {
+        int J = I + j;
+        result.data[J] = (this->data[J] - mean) / std_dev;
+      }
+    }
+  }
+
+  return result;
+}

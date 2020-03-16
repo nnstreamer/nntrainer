@@ -297,8 +297,15 @@ class InputLayer : public Layer {
    */
   void setNormalization(bool enable) { this->normalization = enable; };
 
+  /**
+   * @brief     set standardization
+   * @param[in] enable boolean
+   */
+  void setStandardization(bool enable) { this->standardization = enable; };
+
  private:
   bool normalization;
+  bool standardization;
 };
 
 /**
