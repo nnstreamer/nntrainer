@@ -94,9 +94,10 @@ float ReluPrime(float x) {
   }
 }
 
-static void WeightInitialization(Tensor W, unsigned int width, unsigned int height, Layers::weightIni_type init_type) {
+static Tensor WeightInitialization(unsigned int width, unsigned int height, Layers::weightIni_type init_type) {
   std::random_device rd;
   std::mt19937 gen(rd());
+  Tensor W = Tensor(height, width);
 
   switch (init_type) {
     case Layers::WEIGHT_LECUN_NORMAL: {
@@ -148,9 +149,12 @@ static void WeightInitialization(Tensor W, unsigned int width, unsigned int heig
         }
     } break;
     default:
+      W.setZero();
       break;
   }
+  return W;
 }
+
 namespace Layers {
 
 void InputLayer::setOptimizer(Optimizer opt) {
@@ -206,10 +210,8 @@ void FullyConnectedLayer::initialize(int b, int h, int w, int id, bool init_zero
   this->init_zero = init_zero;
   this->bnfallow = false;
 
-  Weight = Tensor(h, w);
   Bias = Tensor(1, w);
-
-  WeightInitialization(Weight, w, h, wini);
+  Weight = WeightInitialization(w, h, wini);
 
   if (init_zero) {
     Bias.setZero();
@@ -286,7 +288,7 @@ Tensor FullyConnectedLayer::backwarding(Tensor derivative, int iteration) {
   Tensor dJdW = Input.transpose().dot(dJdB);
 
   if (opt.weight_decay.type == WEIGHT_DECAY_L2NORM) {
-    dJdW = dJdW.subtract(Weight.multiply(opt.weight_decay.lambda));
+    dJdW = dJdW.add(Weight.multiply(opt.weight_decay.lambda));
   }
 
   Tensor ret = dJdB.dot(Weight.transpose());
@@ -329,13 +331,12 @@ void OutputLayer::initialize(int b, int h, int w, int id, bool init_zero, weight
   this->height = h;
   this->index = id;
   this->init_zero = init_zero;
-  Weight = Tensor(h, w);
+
   Bias = Tensor(1, w);
   this->cost = cost;
   this->bnfallow = false;
 
-  // Weight = Weight.applyFunction(random);
-  WeightInitialization(Weight, w, h, wini);
+  Weight = WeightInitialization(w, h, wini);
 
   if (init_zero) {
     Bias.setZero();
@@ -528,7 +529,7 @@ Tensor OutputLayer::backwarding(Tensor label, int iteration) {
   Tensor dJdW = Input.transpose().dot(dJdB);
 
   if (opt.weight_decay.type == WEIGHT_DECAY_L2NORM) {
-    dJdW = dJdW.subtract(Weight.multiply(opt.weight_decay.lambda));
+    dJdW = dJdW.add(Weight.multiply(opt.weight_decay.lambda));
   }
 
   ret = dJdB.dot(Weight.transpose());

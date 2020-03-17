@@ -59,14 +59,14 @@ namespace Network {
  *            "sgd"  : Stochestic Gradient Descent
  *            "adam" : Adaptive Moment Estimation
  */
-std::vector<std::string> Optimizer_string = {"sgd", "adam"};
+std::vector<std::string> Optimizer_string = {"sgd", "adam", "unkown"};
 
 /**
  * @brief     Cost Function String from configure file
  *            "msr"  : Mean Squared Roots
  *            "caterogical" : Categorical Cross Entropy
  */
-std::vector<std::string> Cost_string = {"categorical", "msr", "cross"};
+std::vector<std::string> Cost_string = {"categorical", "msr", "cross", "unkown"};
 
 /**
  * @brief     Network Type String from configure file
@@ -74,7 +74,7 @@ std::vector<std::string> Cost_string = {"categorical", "msr", "cross"};
  *            "regression" : Logistic Regression
  *            "neuralnet" : Neural Network
  */
-std::vector<std::string> NetworkType_string = {"knn", "regression", "neuralnet"};
+std::vector<std::string> NetworkType_string = {"knn", "regression", "neuralnet", "unkown"};
 
 /**
  * @brief     Activation Type String from configure file
@@ -82,7 +82,7 @@ std::vector<std::string> NetworkType_string = {"knn", "regression", "neuralnet"}
  *            "sigmoid" : sigmoid
  *            "relu" : relu
  */
-std::vector<std::string> activation_string = {"tanh", "sigmoid", "relu"};
+std::vector<std::string> activation_string = {"tanh", "sigmoid", "relu", "unkown"};
 
 /**
  * @brief     Layer Type String from configure file
@@ -90,7 +90,7 @@ std::vector<std::string> activation_string = {"tanh", "sigmoid", "relu"};
  *            "FullyConnectedLayer" : Fully Connected Layer Object
  *            "OutputLayer" : Output Layer Object
  */
-std::vector<std::string> layer_string = {"InputLayer", "FullyConnectedLayer", "OutputLayer", "BatchNormalizationLayer"};
+std::vector<std::string> layer_string = {"InputLayer", "FullyConnectedLayer", "OutputLayer", "BatchNormalizationLayer", "Unkown"};
 
 /**
  * @brief     Weight Initialization Type String from configure file
@@ -101,14 +101,14 @@ std::vector<std::string> layer_string = {"InputLayer", "FullyConnectedLayer", "O
  *            "he_normal"  : He Normal Initialization
  *            "he_uniform"  : He Uniform Initialization
  */
-std::vector<std::string> weightini_string = {"lecun_normal", "lecun_uniform", "xavier_normal", "xavier_uniform", "he_normal", "he_uniform"};
+  std::vector<std::string> weightini_string = {"lecun_normal", "lecun_uniform", "xavier_normal", "xavier_uniform", "he_normal", "he_uniform", "unkown"};
 
 /**
  * @brief     Weight Decay String from configure file
  *            "L2Norm"  : squared norm regularization
  *            "Regression" : Regression
  */
-std::vector<std::string> weight_decay_string = {"L2Norm", "Regression"};
+std::vector<std::string> weight_decay_string = {"l2norm", "regression", "unkown"};
 
 /**
  * @brief     Check Existance of File
@@ -245,10 +245,11 @@ void NeuralNetwork::init() {
   cost = (Layers::cost_type)parseType(iniparser_getstring(ini, "Network:Cost", NULL), TOKEN_COST);
   weightini = (Layers::weightIni_type)parseType(iniparser_getstring(ini, "Network:WeightIni", "xavier_normal"), TOKEN_WEIGHTINI);
 
-  opt.weight_decay.type = (Layers::weight_decay_type)parseType(iniparser_getstring(ini, "Network:Weight_Decay", NULL), TOKEN_WEIGHT_DECAY);
+  opt.weight_decay.type = (Layers::weight_decay_type)parseType(iniparser_getstring(ini, "Network:Weight_Decay", "Unknown"), TOKEN_WEIGHT_DECAY);
 
+  opt.weight_decay.lambda = 0.0;
   if (opt.weight_decay.type == Layers::WEIGHT_DECAY_L2NORM){
-    opt.weight_decay.lambda = iniparser_getdouble(ini, "Network:weight_decay_lambda", 0.0);
+    opt.weight_decay.lambda = iniparser_getdouble(ini, "Network:Weight_Decay_Lambda", 0.0);
   }
 
   model = iniparser_getstring(ini, "Network:Model", "model.bin");
