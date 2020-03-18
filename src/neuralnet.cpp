@@ -82,7 +82,7 @@ std::vector<std::string> NetworkType_string = {"knn", "regression", "neuralnet",
  *            "sigmoid" : sigmoid
  *            "relu" : relu
  */
-std::vector<std::string> activation_string = {"tanh", "sigmoid", "relu", "unkown"};
+std::vector<std::string> activation_string = {"tanh", "sigmoid", "relu", "softmax", "unkown"};
 
 /**
  * @brief     Layer Type String from configure file
@@ -90,7 +90,8 @@ std::vector<std::string> activation_string = {"tanh", "sigmoid", "relu", "unkown
  *            "FullyConnectedLayer" : Fully Connected Layer Object
  *            "OutputLayer" : Output Layer Object
  */
-std::vector<std::string> layer_string = {"InputLayer", "FullyConnectedLayer", "OutputLayer", "BatchNormalizationLayer", "Unkown"};
+std::vector<std::string> layer_string = {"InputLayer", "FullyConnectedLayer", "OutputLayer", "BatchNormalizationLayer",
+                                         "Unkown"};
 
 /**
  * @brief     Weight Initialization Type String from configure file
@@ -101,7 +102,8 @@ std::vector<std::string> layer_string = {"InputLayer", "FullyConnectedLayer", "O
  *            "he_normal"  : He Normal Initialization
  *            "he_uniform"  : He Uniform Initialization
  */
-  std::vector<std::string> weightini_string = {"lecun_normal", "lecun_uniform", "xavier_normal", "xavier_uniform", "he_normal", "he_uniform", "unkown"};
+std::vector<std::string> weightini_string = {"lecun_normal", "lecun_uniform", "xavier_normal", "xavier_uniform",
+                                             "he_normal",    "he_uniform",    "unkown"};
 
 /**
  * @brief     Weight Decay String from configure file
@@ -241,14 +243,15 @@ void NeuralNetwork::init() {
   opt.decay_rate = decay_rate;
   epoch = iniparser_getint(ini, "Network:Epoch", 100);
   opt.type = (Layers::opt_type)parseType(iniparser_getstring(ini, "Network:Optimizer", NULL), TOKEN_OPT);
-  opt.activation = (Layers::acti_type)parseType(iniparser_getstring(ini, "Network:Activation", NULL), TOKEN_ACTI);
   cost = (Layers::cost_type)parseType(iniparser_getstring(ini, "Network:Cost", NULL), TOKEN_COST);
-  weightini = (Layers::weightIni_type)parseType(iniparser_getstring(ini, "Network:WeightIni", "xavier_normal"), TOKEN_WEIGHTINI);
+  weightini = (Layers::weightIni_type)parseType(iniparser_getstring(ini, "Network:WeightIni", "xavier_normal"),
+                                                TOKEN_WEIGHTINI);
 
-  opt.weight_decay.type = (Layers::weight_decay_type)parseType(iniparser_getstring(ini, "Network:Weight_Decay", "Unknown"), TOKEN_WEIGHT_DECAY);
+  opt.weight_decay.type = (Layers::weight_decay_type)parseType(
+      iniparser_getstring(ini, "Network:Weight_Decay", "Unknown"), TOKEN_WEIGHT_DECAY);
 
   opt.weight_decay.lambda = 0.0;
-  if (opt.weight_decay.type == Layers::WEIGHT_DECAY_L2NORM){
+  if (opt.weight_decay.type == Layers::WEIGHT_DECAY_L2NORM) {
     opt.weight_decay.lambda = iniparser_getdouble(ini, "Network:Weight_Decay_Lambda", 0.0);
   }
 
@@ -302,6 +305,8 @@ void NeuralNetwork::init() {
         inputlayer->setOptimizer(opt);
         inputlayer->setNormalization(iniparser_getboolean(ini, (layers_name[i] + ":Normalization").c_str(), false));
         inputlayer->setStandardization(iniparser_getboolean(ini, (layers_name[i] + ":Standardization").c_str(), false));
+        inputlayer->setActivation((Layers::acti_type)parseType(
+            iniparser_getstring(ini, (layers_name[i] + ":Activation").c_str(), "sigmoid"), TOKEN_ACTI));
         layers.push_back(inputlayer);
       } break;
       case Layers::LAYER_FC: {
@@ -309,15 +314,18 @@ void NeuralNetwork::init() {
         fclayer->setType(t);
         fclayer->initialize(batchsize, HiddenSize[i - 1], HiddenSize[i], id, b_zero, weightini);
         fclayer->setOptimizer(opt);
+        fclayer->setActivation((Layers::acti_type)parseType(
+            iniparser_getstring(ini, (layers_name[i] + ":Activation").c_str(), NULL), TOKEN_ACTI));
         layers.push_back(fclayer);
       } break;
       case Layers::LAYER_OUT: {
         Layers::OutputLayer *outputlayer = new (Layers::OutputLayer);
         outputlayer->setType(t);
+        outputlayer->setCost(cost);
         outputlayer->initialize(batchsize, HiddenSize[i - 1], HiddenSize[i], id, b_zero, weightini);
         outputlayer->setOptimizer(opt);
-        outputlayer->setCost(cost);
-        outputlayer->setSoftmax(iniparser_getboolean(ini, (layers_name[i] + ":Softmax").c_str(), false));
+        outputlayer->setActivation((Layers::acti_type)parseType(
+            iniparser_getstring(ini, (layers_name[i] + ":Activation").c_str(), NULL), TOKEN_ACTI));
         layers.push_back(outputlayer);
       } break;
       case Layers::LAYER_BN: {
@@ -327,6 +335,8 @@ void NeuralNetwork::init() {
         bnlayer->initialize(batchsize, 1, HiddenSize[i], id, b_zero, weightini);
         layers.push_back(bnlayer);
         layers[i - 1]->setBNfallow(true);
+        bnlayer->setActivation((Layers::acti_type)parseType(
+            iniparser_getstring(ini, (layers_name[i] + ":Activation").c_str(), NULL), TOKEN_ACTI));
       } break;
       case Layers::LAYER_UNKNOWN:
         break;

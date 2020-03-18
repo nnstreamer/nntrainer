@@ -57,7 +57,7 @@ typedef enum { COST_CATEGORICAL, COST_MSR, COST_ENTROPY, COST_UNKNOWN } cost_typ
  *            2. relu
  *            3. Unknown
  */
-typedef enum { ACT_TANH, ACT_SIGMOID, ACT_RELU, ACT_UNKNOWN } acti_type;
+typedef enum { ACT_TANH, ACT_SIGMOID, ACT_RELU, ACT_SOFTMAX, ACT_UNKNOWN } acti_type;
 
 /**
  * @brief     Enumeration of Weight Decay type
@@ -112,7 +112,6 @@ typedef struct {
   double beta1;
   double beta2;
   double epsilon;
-  acti_type activation;
   float decay_rate;
   float decay_steps;
   Weight_Decay_param weight_decay;
@@ -180,6 +179,12 @@ class Layer {
    * @param[in] opt Optimizer
    */
   virtual void setOptimizer(Optimizer opt) = 0;
+
+  /**
+   * @brief     Activation Setter
+   * @param[in] activation activation type
+   */
+  void setActivation(acti_type activation);
 
   /**
    * @brief     Layer type Setter
@@ -250,6 +255,8 @@ class Layer {
    * @brief     Activation Derivative function pointer
    */
   float (*activationPrime)(float);
+
+  acti_type activation_type;
 
   bool bnfallow;
 };
@@ -522,12 +529,6 @@ class OutputLayer : public Layer {
   void setCost(cost_type c) { this->cost = c; };
 
   /**
-   * @brief     set softmax
-   * @param[in] enable boolean
-   */
-  void setSoftmax(bool enable) { this->softmax = enable; };
-
-  /**
    * @brief     copy layer
    * @param[in] l layer to copy
    */
@@ -542,7 +543,6 @@ class OutputLayer : public Layer {
   Tensor BV;
   float loss;
   cost_type cost;
-  bool softmax;
 };
 
 /**

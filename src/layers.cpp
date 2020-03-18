@@ -94,6 +94,33 @@ float ReluPrime(float x) {
   }
 }
 
+Tensor softmaxPrime(Tensor x) {
+  int batch = x.getBatch();
+  int width = x.getWidth();
+  int height = x.getHeight();
+
+  assert(height == 1);
+
+  Tensor PI = Tensor(batch, height, width);
+
+  for (int k = 0; k < batch; ++k) {
+    for (int i = 0; i < height; ++i) {
+      for (int j = 0; j < width; ++j) {
+        float sum = 0.0;
+        for (int l = 0; l < width; ++l) {
+          if (j == l) {
+            sum += x.getValue(k, i, l) * (1.0 - x.getValue(k, i, j));
+          } else {
+            sum += x.getValue(k, i, l) * x.getValue(k, i, j) * -1.0;
+          }
+        }
+        PI.setValue(k, i, j, sum);
+      }
+    }
+  }
+  return PI;
+}
+
 static Tensor WeightInitialization(unsigned int width, unsigned int height, Layers::weightIni_type init_type) {
   std::random_device rd;
   std::mt19937 gen(rd());
@@ -157,9 +184,9 @@ static Tensor WeightInitialization(unsigned int width, unsigned int height, Laye
 
 namespace Layers {
 
-void InputLayer::setOptimizer(Optimizer opt) {
-  this->opt = opt;
-  switch (opt.activation) {
+void Layer::setActivation(acti_type acti) {
+  activation_type = acti;
+  switch (acti) {
     case ACT_TANH:
       activation = tanh_float;
       activationPrime = tanhPrime;
@@ -175,6 +202,10 @@ void InputLayer::setOptimizer(Optimizer opt) {
     default:
       break;
   }
+}
+
+void InputLayer::setOptimizer(Optimizer opt) {
+  this->opt = opt;
 }
 
 void InputLayer::copy(Layer *l) {
@@ -222,23 +253,6 @@ void FullyConnectedLayer::initialize(int b, int h, int w, int id, bool init_zero
 
 void FullyConnectedLayer::setOptimizer(Optimizer opt) {
   this->opt = opt;
-  switch (opt.activation) {
-    case ACT_TANH:
-      activation = tanh_float;
-      activationPrime = tanhPrime;
-      break;
-    case ACT_SIGMOID:
-      activation = sigmoid;
-      activationPrime = sigmoidePrime;
-      break;
-    case ACT_RELU:
-      activation = Relu;
-      activationPrime = ReluPrime;
-      break;
-    default:
-      break;
-  }
-
   if (opt.type == OPT_ADAM) {
     WM = Tensor(height, width);
     WV = Tensor(height, width);
@@ -255,10 +269,11 @@ Tensor FullyConnectedLayer::forwarding(Tensor input) {
   Input = input;
   hidden = Input.dot(Weight).add(Bias);
 
-  if (!this->bnfallow)
-    hidden = hidden.applyFunction(activation);
+  if (this->bnfallow)
+    return hidden;
 
-  return hidden;
+  return hidden.applyFunction(activation);
+  ;
 }
 
 void FullyConnectedLayer::read(std::ifstream &file) {
@@ -284,7 +299,10 @@ void FullyConnectedLayer::copy(Layer *l) {
 }
 
 Tensor FullyConnectedLayer::backwarding(Tensor derivative, int iteration) {
-  Tensor dJdB = derivative.multiply(Input.dot(Weight).add(Bias).applyFunction(activationPrime));
+  Tensor dJdB;
+
+  dJdB = derivative.multiply(hidden.applyFunction(activationPrime));
+
   Tensor dJdW = Input.transpose().dot(dJdB);
 
   if (opt.weight_decay.type == WEIGHT_DECAY_L2NORM) {
@@ -338,6 +356,9 @@ void OutputLayer::initialize(int b, int h, int w, int id, bool init_zero, weight
 
   Weight = WeightInitialization(w, h, wini);
 
+  if (cost == COST_CATEGORICAL)
+    init_zero = true;
+
   if (init_zero) {
     Bias.setZero();
   } else {
@@ -347,20 +368,26 @@ void OutputLayer::initialize(int b, int h, int w, int id, bool init_zero, weight
 
 Tensor OutputLayer::forwarding(Tensor input) {
   Input = input;
-  if (cost == COST_CATEGORICAL)
-    hidden = input.dot(Weight).applyFunction(activation);
-  else
-    hidden = input.dot(Weight).add(Bias).applyFunction(activation);
-  return hidden;
+  hidden = input.dot(Weight).add(Bias);
+  if (activation_type == ACT_SOFTMAX) {
+    return hidden.softmax();
+  } else {
+    return hidden.applyFunction(activation);
+  }
 }
 
 Tensor OutputLayer::forwarding(Tensor input, Tensor output) {
   Input = input;
-  hidden = input.dot(Weight).add(Bias).applyFunction(activation);
+  hidden = input.dot(Weight).add(Bias);
   Tensor Y2 = output;
   Tensor Y = hidden;
-  if (softmax)
+
+  if (activation_type == ACT_SOFTMAX) {
     Y = Y.softmax();
+  } else {
+    Y = Y.applyFunction(activation);
+  }
+
   float lossSum = 0.0;
 
   switch (cost) {
@@ -381,10 +408,18 @@ Tensor OutputLayer::forwarding(Tensor input, Tensor output) {
       loss = lossSum / (float)l.getBatch();
     } break;
     case COST_ENTROPY: {
-      Tensor l = (Y2.multiply(Y.applyFunction(log_float))
-                      .add((Y2.multiply(-1.0).add(1.0)).multiply((Y.multiply(-1.0).add(1.0)).applyFunction(log_float))))
-                     .multiply(-1.0 / (Y2.getWidth()))
-                     .sum();
+      Tensor l;
+      if (activation_type == ACT_SIGMOID) {
+        l = (Y2.multiply(Y.applyFunction(log_float))
+                 .add((Y2.multiply(-1.0).add(1.0)).multiply((Y.multiply(-1.0).add(1.0)).applyFunction(log_float))))
+                .multiply(-1.0 / (Y2.getWidth()))
+                .sum();
+      } else if (activation_type == ACT_SOFTMAX) {
+        l = (Y2.multiply(Y.applyFunction(log_float))).multiply(-1.0 / (Y2.getWidth())).sum();
+      } else {
+        std::cout << "Only support sigmoid & softmax for cross entropy loss" << std::endl;
+        exit(0);
+      }
 
       std::vector<float> t = l.Mat2Vec();
 
@@ -392,12 +427,17 @@ Tensor OutputLayer::forwarding(Tensor input, Tensor output) {
         lossSum += t[i];
       }
       loss = lossSum / (float)l.getBatch();
+
+      if (opt.weight_decay.type == WEIGHT_DECAY_L2NORM) {
+        loss += opt.weight_decay.lambda * 0.5 * (Weight.l2norm());
+      }
+
     } break;
     case COST_UNKNOWN:
     default:
       break;
   }
-  return hidden;
+  return Y;
 }
 
 void OutputLayer::read(std::ifstream &file) {
@@ -425,22 +465,6 @@ void OutputLayer::copy(Layer *l) {
 
 void OutputLayer::setOptimizer(Optimizer opt) {
   this->opt = opt;
-  switch (opt.activation) {
-    case ACT_TANH:
-      activation = tanh_float;
-      activationPrime = tanhPrime;
-      break;
-    case ACT_SIGMOID:
-      activation = sigmoid;
-      activationPrime = sigmoidePrime;
-      break;
-    case ACT_RELU:
-      activation = Relu;
-      activationPrime = ReluPrime;
-      break;
-    default:
-      break;
-  }
   if (opt.type == OPT_ADAM) {
     WM = Tensor(height, width);
     WV = Tensor(height, width);
@@ -456,9 +480,11 @@ void OutputLayer::setOptimizer(Optimizer opt) {
 Tensor OutputLayer::backwarding(Tensor label, int iteration) {
   float lossSum = 0.0;
   Tensor Y2 = label;
-  Tensor Y = hidden;
-  if (softmax)
-    Y = Y.softmax();
+  Tensor Y;
+  if (activation_type == ACT_SOFTMAX)
+    Y = hidden.softmax();
+  else
+    Y = hidden.applyFunction(activation);
 
   Tensor ret;
   Tensor dJdB;
@@ -478,7 +504,6 @@ Tensor OutputLayer::backwarding(Tensor label, int iteration) {
       if (opt.weight_decay.type == WEIGHT_DECAY_L2NORM) {
         loss += opt.weight_decay.lambda * 0.5 * (Weight.l2norm());
       }
-
     } break;
     case COST_MSR: {
       Tensor sub = Y2.subtract(Y);
@@ -492,22 +517,27 @@ Tensor OutputLayer::backwarding(Tensor label, int iteration) {
       if (opt.weight_decay.type == WEIGHT_DECAY_L2NORM) {
         loss += opt.weight_decay.lambda * 0.5 * (Weight.l2norm());
       }
-
-      dJdB = Y.subtract(Y2).multiply(Input.dot(Weight).add(Bias).applyFunction(activationPrime));
+      if (activation_type == ACT_SOFTMAX) {
+        dJdB = Y.subtract(Y2).multiply(softmaxPrime(Y));
+      } else {
+        dJdB = Y.subtract(Y2).multiply(hidden.applyFunction(activationPrime));
+      }
     } break;
     case COST_ENTROPY: {
-      if (activation == sigmoid)
+      Tensor l;
+      if (activation_type == ACT_SIGMOID) {
         dJdB = Y.subtract(Y2).multiply(1.0 / Y.getWidth());
-      else
-        dJdB = (Y.subtract(Y2))
-                   .multiply(Input.dot(Weight).add(Bias).applyFunction(activationPrime))
-                   .divide(Y.multiply(Y.multiply(-1.0).add(1.0)))
-                   .multiply(1.0 / Y.getWidth());
-
-      Tensor l = (Y2.multiply(Y.applyFunction(log_float))
-                      .add((Y2.multiply(-1.0).add(1.0)).multiply((Y.multiply(-1.0).add(1.0)).applyFunction(log_float))))
-                     .multiply(-1.0 / (Y2.getWidth()))
-                     .sum();
+        l = (Y2.multiply(Y.applyFunction(log_float))
+                 .add((Y2.multiply(-1.0).add(1.0)).multiply((Y.multiply(-1.0).add(1.0)).applyFunction(log_float))))
+                .multiply(-1.0 / (Y2.getWidth()))
+                .sum();
+      } else if (activation_type == ACT_SOFTMAX) {
+        dJdB = Y.subtract(Y2).multiply(1.0 / Y.getWidth());
+        l = (Y2.multiply(Y.applyFunction(log_float))).multiply(-1.0 / (Y2.getWidth())).sum();
+      } else {
+        std::cout << "Only support sigmoid & softmax for cross entropy loss" << std::endl;
+        exit(0);
+      }
 
       std::vector<float> t = l.Mat2Vec();
 
@@ -576,22 +606,6 @@ void BatchNormalizationLayer::initialize(int b, int h, int w, int id, bool init_
 
 void BatchNormalizationLayer::setOptimizer(Optimizer opt) {
   this->opt = opt;
-  switch (opt.activation) {
-    case ACT_TANH:
-      activation = tanh_float;
-      activationPrime = tanhPrime;
-      break;
-    case ACT_SIGMOID:
-      activation = sigmoid;
-      activationPrime = sigmoidePrime;
-      break;
-    case ACT_RELU:
-      activation = Relu;
-      activationPrime = ReluPrime;
-      break;
-    default:
-      break;
-  }
 }
 
 Tensor BatchNormalizationLayer::forwarding(Tensor input) {
