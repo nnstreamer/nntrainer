@@ -453,12 +453,25 @@ int main(int argc, char *argv[]) {
         duplicate[j] = false;
       }
 
+      float progress = 0.0;
+      int barWidth = 20;
+
       while (true) {
         std::vector<std::vector<std::vector<float>>> in, label;
         if (buf.getDatafromBuffer(BUF_TRAIN, in, label, MINI_BATCH, FEATURE_SIZE, 1, TOTAL_LABEL_SIZE)) {
           NN.backwarding(Tensor(in), Tensor(label), i);
           count++;
-          std::cout << count * 32 << " backwoarding done : " << NN.getLoss() << std::endl;
+          progress = (((float)(count * MINI_BATCH)) / (TOTAL_LABEL_SIZE * TOTAL_TRAIN_DATA_SIZE));
+          int pos = barWidth * progress;
+          std::cout << "#" << i + 1 << " [ ";
+          for (int l = 0; l < barWidth; ++l) {
+            if (l <= pos)
+              std::cout << "=";
+            else
+              std::cout << " ";
+          }
+          std::cout << " ] " << int(progress * 100.0) << "% ( Training Loss: " << NN.getLoss() << " )\r";
+          std::cout.flush();
         } else {
           buf.clear(BUF_TRAIN, train_file);
           buf.run(BUF_TRAIN, train_file);
@@ -468,14 +481,13 @@ int main(int argc, char *argv[]) {
 
       trainingloss = NN.getLoss();
 
-      Layers::Optimizer opt = NN.getOptimizer();
-
       int right = 0;
       float valloss = 0.0;
 
       while (true) {
         std::vector<std::vector<std::vector<float>>> in, label;
-        if (buf.getDatafromBuffer(BUF_VAL, in, label, MINI_BATCH, FEATURE_SIZE, 1, TOTAL_LABEL_SIZE)) {
+        // if (buf.getDatafromBuffer(BUF_VAL, in, label, MINI_BATCH, FEATURE_SIZE, 1, TOTAL_LABEL_SIZE)) {
+        if (buf.getDatafromBuffer(BUF_TRAIN, in, label, MINI_BATCH, FEATURE_SIZE, 1, TOTAL_LABEL_SIZE)) {
           for (int i = 0; i < MINI_BATCH; ++i) {
             Tensor X = Tensor({in[i]});
             Tensor Y2 = Tensor({label[i]});
@@ -485,20 +497,22 @@ int main(int argc, char *argv[]) {
             valloss += NN.getLoss();
           }
         } else {
-          buf.clear(BUF_VAL, val_file);
-          buf.run(BUF_VAL, val_file);
+          // buf.clear(BUF_VAL, val_file);
+          // buf.run(BUF_VAL, val_file);
+          buf.clear(BUF_TRAIN, train_file);
+          buf.run(BUF_TRAIN, train_file);
           break;
         }
       }
 
       valloss = valloss / (float)(TOTAL_LABEL_SIZE * TOTAL_VAL_DATA_SIZE);
 
-      cout << "#" << i + 1 << "/" << ITERATION << " - Loss : " << trainingloss << " ( " << opt.decay_rate << " "
-           << opt.decay_steps << " : " << NN.getLearningRate() * pow(opt.decay_rate, (i / opt.decay_steps))
-           << " ) >> [ Accuracy : " << right / (float)(TOTAL_LABEL_SIZE * TOTAL_VAL_DATA_SIZE) * 100.0
-           << "% ] [ Validation Loss : " << valloss << " ] " << endl;
-
-      // NN.setLoss(0.0);
+      // cout << "#" << i + 1 << "/" << ITERATION << " - Training Loss: " << trainingloss << " >> [ Accuracy: " << right
+      // / (float)(TOTAL_LABEL_SIZE * TOTAL_VAL_DATA_SIZE) * 100.0
+      //      << "% - Validation Loss : " << valloss << " ] " << endl;
+      cout << "#" << i + 1 << "/" << ITERATION << " - Training Loss: " << trainingloss
+           << " >> [ Accuracy: " << right / (float)(TOTAL_LABEL_SIZE * TOTAL_TRAIN_DATA_SIZE) * 100.0
+           << "% - Validation Loss : " << valloss << " ] " << endl;
 
       if (training)
         NN.saveModel();
