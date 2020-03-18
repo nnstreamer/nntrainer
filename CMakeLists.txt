@@ -1,6 +1,17 @@
 cmake_minimum_required(VERSION 2.8.3)
 
 project(nntrainer)
+set(NNTRAINER_MAJOR 0)
+set(NNTRAINER_MINOR 0)
+set(NNTRAINER_RELEASE 1)
+set(NNTRAINER_VERSION ${NNTRAINER_MAJOR}.${NNTRAINER_MINOR}.${NNTRAINER_RELEASE})
+
+option(TIZEN "Build for Tizen" OFF)
+
+set (BLASLIB blas-openblas)
+if(TIZEN)
+  set (BLASLIB openblas)
+endif(TIZEN)
 
 set(CMAKE_INSTALL_INCLUDEDIR ${CMAKE_INSTALL_PREFIX}/include/)
 set(CMAKE_INSTALL_LIBDIR ${CMAKE_INSTALL_PREFIX}/lib/)
@@ -16,36 +27,39 @@ include_directories(${INIPARSER_INCLUDE_DIRS})
 
 option(USE_BLAS "Use BLAS library" ON)
 
-include_directories( ${include_directories}
-		     ${CMAKE_CURRENT_SOURCE_DIR}
-		     )
-
 set(SRCS
-	src/neuralnet.cpp
-	src/tensor.cpp
-	src/layers.cpp
-	src/databuffer.cpp
-	)
+  src/neuralnet.cpp
+  src/tensor.cpp
+  src/layers.cpp
+  src/databuffer.cpp
+  )
 
-set(NNTRAINER_HEADERS include/neuralnet.h include/tensor.h include/layers.h include/databuffer.h)
+set(NNTRAINER_HEADERS
+  include/neuralnet.h
+  include/tensor.h
+  include/layers.h
+  include/databuffer.h
+  )
+
+include_directories(
+  ${CMAKE_CURRENT_SOURCE_DIR}
+  )
 
 if(USE_BLAS)
   ADD_DEFINITIONS(-DUSE_BLAS)
-  pkg_check_modules(BLAS cblas)
+  pkg_check_modules(BLAS ${BLASLIB})
   link_libraries(${BLAS_LIBRARIES})
   include_directories(${BLAS_INCLUDE_DIRS})
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -lcblas")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lcblas")
   message("[-DUSE_BLAS] is enabled")
 endif(USE_BLAS)
 
 add_library( ${PROJECT_NAME} SHARED ${SRCS} )
 
 configure_file("package.pc.in" "${PROJECT_BINARY_DIR}/${CMAKE_PROJECT_NAME}.pc" @ONLY)
-install (FILES "${PROJECT_BINARY_DIR}/${CMAKE_PROJECT_NAME}.pc" DESTINATION "${PKGCONFIG_INSTALL_DIR}")
+install (FILES "${PROJECT_BINARY_DIR}/${CMAKE_PROJECT_NAME}.pc" DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
 
 install (TARGETS nntrainer
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   )
 
-install (FILES ${NNTRAINER_HEADERS} DESTINATION include)
+install (FILES ${NNTRAINER_HEADERS} DESTINATION include/nntrainer)

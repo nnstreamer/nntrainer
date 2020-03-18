@@ -3,7 +3,7 @@ libdir=${prefix}/lib
 includedir=${prefix}/include
 
 Name : nntrainer
-Version : 0.0.1
-Description: On Device Learning Framework
+Version : @NNTRAINER_VERSION@
+Description: Software Framework for Training Neural Network on Device
 Libs: -L${libdir} -lnntrainer
-Cflags: -I${includedir}
+Cflags: -I${includedir}/nntrainer
