@@ -228,12 +228,15 @@ void NeuralNetwork::init() {
   dictionary *ini = iniparser_load(inifile.c_str());
   std::vector<int> HiddenSize;
 
+  char unknown[] = "Unkown";
+  char model_name[] = "model.bin";
+
   if (ini == NULL) {
     fprintf(stderr, "cannot parse file: %s\n", inifile.c_str());
   }
 
-  nettype = (Network::net_type)parseType(iniparser_getstring(ini, "Network:Type", NULL), TOKEN_NET);
-  std::vector<std::string> layers_name = parseLayerName(iniparser_getstring(ini, "Network:Layers", NULL));
+  nettype = (Network::net_type)parseType(iniparser_getstring(ini, "Network:Type", unknown), TOKEN_NET);
+  std::vector<std::string> layers_name = parseLayerName(iniparser_getstring(ini, "Network:Layers", unknown));
   learning_rate = iniparser_getdouble(ini, "Network:Learning_rate", 0.0);
   decay_rate = iniparser_getdouble(ini, "Network:Decay_rate", 0.0);
   decay_steps = iniparser_getint(ini, "Network:Decay_steps", -1);
@@ -242,20 +245,20 @@ void NeuralNetwork::init() {
   opt.decay_steps = decay_steps;
   opt.decay_rate = decay_rate;
   epoch = iniparser_getint(ini, "Network:Epoch", 100);
-  opt.type = (Layers::opt_type)parseType(iniparser_getstring(ini, "Network:Optimizer", NULL), TOKEN_OPT);
-  cost = (Layers::cost_type)parseType(iniparser_getstring(ini, "Network:Cost", NULL), TOKEN_COST);
-  weightini = (Layers::weightIni_type)parseType(iniparser_getstring(ini, "Network:WeightIni", "xavier_normal"),
-                                                TOKEN_WEIGHTINI);
+  opt.type = (Layers::opt_type)parseType(iniparser_getstring(ini, "Network:Optimizer", unknown), TOKEN_OPT);
+  cost = (Layers::cost_type)parseType(iniparser_getstring(ini, "Network:Cost", unknown), TOKEN_COST);
+  weightini =
+      (Layers::weightIni_type)parseType(iniparser_getstring(ini, "Network:WeightIni", unknown), TOKEN_WEIGHTINI);
 
   opt.weight_decay.type = (Layers::weight_decay_type)parseType(
-      iniparser_getstring(ini, "Network:Weight_Decay", "Unknown"), TOKEN_WEIGHT_DECAY);
+      iniparser_getstring(ini, "Network:Weight_Decay", unknown), TOKEN_WEIGHT_DECAY);
 
   opt.weight_decay.lambda = 0.0;
   if (opt.weight_decay.type == Layers::WEIGHT_DECAY_L2NORM) {
     opt.weight_decay.lambda = iniparser_getdouble(ini, "Network:Weight_Decay_Lambda", 0.0);
   }
 
-  model = iniparser_getstring(ini, "Network:Model", "model.bin");
+  model = iniparser_getstring(ini, "Network:Model", model_name);
   batchsize = iniparser_getint(ini, "Network:minibatch", 1);
 
   opt.beta1 = iniparser_getdouble(ini, "Network:beta1", 0.0);
@@ -269,7 +272,7 @@ void NeuralNetwork::init() {
 
   for (unsigned int i = 0; i < layers_name.size(); ++i) {
     unsigned int hidden_size;
-    l_type = iniparser_getstring(ini, (layers_name[i] + ":Type").c_str(), NULL);
+    l_type = iniparser_getstring(ini, (layers_name[i] + ":Type").c_str(), unknown);
     t = (Layers::layer_type)parseType(l_type, TOKEN_LAYER);
 
     switch (t) {
@@ -291,7 +294,7 @@ void NeuralNetwork::init() {
   }
 
   for (unsigned int i = 0; i < layers_name.size(); i++) {
-    l_type = iniparser_getstring(ini, (layers_name[i] + ":Type").c_str(), NULL);
+    l_type = iniparser_getstring(ini, (layers_name[i] + ":Type").c_str(), unknown);
     t = (Layers::layer_type)parseType(l_type, TOKEN_LAYER);
     id = iniparser_getint(ini, (layers_name[i] + ":Id").c_str(), 0);
     b_zero = iniparser_getboolean(ini, (layers_name[i] + ":Bias_zero").c_str(), true);
@@ -306,7 +309,7 @@ void NeuralNetwork::init() {
         inputlayer->setNormalization(iniparser_getboolean(ini, (layers_name[i] + ":Normalization").c_str(), false));
         inputlayer->setStandardization(iniparser_getboolean(ini, (layers_name[i] + ":Standardization").c_str(), false));
         inputlayer->setActivation((Layers::acti_type)parseType(
-            iniparser_getstring(ini, (layers_name[i] + ":Activation").c_str(), "sigmoid"), TOKEN_ACTI));
+            iniparser_getstring(ini, (layers_name[i] + ":Activation").c_str(), unknown), TOKEN_ACTI));
         layers.push_back(inputlayer);
       } break;
       case Layers::LAYER_FC: {
@@ -315,7 +318,7 @@ void NeuralNetwork::init() {
         fclayer->initialize(batchsize, HiddenSize[i - 1], HiddenSize[i], id, b_zero, weightini);
         fclayer->setOptimizer(opt);
         fclayer->setActivation((Layers::acti_type)parseType(
-            iniparser_getstring(ini, (layers_name[i] + ":Activation").c_str(), NULL), TOKEN_ACTI));
+            iniparser_getstring(ini, (layers_name[i] + ":Activation").c_str(), unknown), TOKEN_ACTI));
         layers.push_back(fclayer);
       } break;
       case Layers::LAYER_OUT: {
@@ -325,7 +328,7 @@ void NeuralNetwork::init() {
         outputlayer->initialize(batchsize, HiddenSize[i - 1], HiddenSize[i], id, b_zero, weightini);
         outputlayer->setOptimizer(opt);
         outputlayer->setActivation((Layers::acti_type)parseType(
-            iniparser_getstring(ini, (layers_name[i] + ":Activation").c_str(), NULL), TOKEN_ACTI));
+            iniparser_getstring(ini, (layers_name[i] + ":Activation").c_str(), unknown), TOKEN_ACTI));
         layers.push_back(outputlayer);
       } break;
       case Layers::LAYER_BN: {
@@ -336,7 +339,7 @@ void NeuralNetwork::init() {
         layers.push_back(bnlayer);
         layers[i - 1]->setBNfallow(true);
         bnlayer->setActivation((Layers::acti_type)parseType(
-            iniparser_getstring(ini, (layers_name[i] + ":Activation").c_str(), NULL), TOKEN_ACTI));
+            iniparser_getstring(ini, (layers_name[i] + ":Activation").c_str(), unknown), TOKEN_ACTI));
       } break;
       case Layers::LAYER_UNKNOWN:
         break;

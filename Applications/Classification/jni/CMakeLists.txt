@@ -8,13 +8,17 @@ find_package(PkgConfig REQUIRED)
 pkg_check_modules(TFLITE tensorflow-lite)
 link_libraries(${TFLITE_LIBRARIES})
 
+pkg_check_modules(INIPARSER iniparser)
+link_libraries(${INIPARSER_LIBRARIES})
+
 pkg_check_modules(NNTRAINER nntrainer)
 link_libraries(${NNTRAINER_LIBRARIES})
 
 include_directories( ${include_directories}
 		     ${CMAKE_CURRENT_SOURCE_DIR}
 		     ${TFLITE_INCLUDE_DIRS}
-		     ${NNTRAINER_INCLUDE_DIRS}		     		     
+		     ${NNTRAINER_INCLUDE_DIRS}
+		     ${INIPARSER_INCLUDE_DIRS}
 		     )
 		   
 set(SRCS
@@ -23,7 +27,7 @@ set(SRCS
 	)
 
 add_executable(Classification ${SRCS})
-target_link_libraries( Classification ${TFLITE_LIBRARIES} ${CMAKE_DL_LIBS} ${NNTRAINER_LIBRARIES}) 
+target_link_libraries( Classification ${TFLITE_LIBRARIES} ${CMAKE_DL_LIBS} ${NNTRAINER_LIBRARIES} ${INIPARSER_LIBRARIES}) 
 
 install (TARGETS Classification
 	RUNTIME DESTINATION bin

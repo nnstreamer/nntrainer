@@ -126,6 +126,8 @@ static Tensor WeightInitialization(unsigned int width, unsigned int height, Laye
   std::mt19937 gen(rd());
   Tensor W = Tensor(height, width);
 
+  if(init_type == Layers::WEIGHT_UNKNOWN)
+    init_type = Layers::WEIGHT_XAVIER_NORMAL;
   switch (init_type) {
     case Layers::WEIGHT_LECUN_NORMAL: {
       std::normal_distribution<float> dist(0, sqrt(1 / height));
@@ -185,6 +187,10 @@ static Tensor WeightInitialization(unsigned int width, unsigned int height, Laye
 namespace Layers {
 
 void Layer::setActivation(acti_type acti) {
+  if(acti == ACT_UNKNOWN){
+    std::cout << "have to specify activation function" << std::endl;
+    exit(0);
+  }
   activation_type = acti;
   switch (acti) {
     case ACT_TANH:
