@@ -315,7 +315,7 @@ Tensor Tensor::sum(int axis) const {
     case 0: {
       ret = Tensor(1, height, width);
       for (int i = 0; i < height; ++i) {
-        int I = I * width;
+        int I = i * width;
         for (int j = 0; j < width; ++j) {
           for (int k = 0; k < batch; ++k) {
             int K = k * width * height;
