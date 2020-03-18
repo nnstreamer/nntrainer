@@ -27,6 +27,11 @@
 #include <cstring>
 #include <sstream>
 
+#ifdef USE_CUBLAS
+#include <helper_functions.h>
+#include <helper_cuda.h>
+#endif
+
 Tensor::Tensor(int height, int width) {
   this->height = height;
   this->width = width;
@@ -379,6 +384,68 @@ Tensor Tensor::dot(Tensor const &m) const {
                   width, &(m.data.data()[j]), mwidth, beta_dgemm, &(result.data.data()[ii]), mwidth);
     }
   }
+#elif USE_CUBLAS
+  int devID = 0;
+  cudaDeviceProp deviceProp;
+  cudaGetDeviceProperties(&deviceProp, devID);
+  float *d_A, *d_B, *d_C;
+
+  unsigned int size_A = this->width * height * sizeof(float);
+  unsigned int size_B = m.width * m.height * sizeof(float);
+  unsigned int size_C = result.width * result.height * sizeof(float);
+
+  if (m.batch == 1) {
+    for (int k = 0; k < batch; k++) {
+      int i = k * width * height;
+      int ii = k * height * mwidth;
+
+      cudaMalloc((void **)&d_A, size_A);
+      cudaMalloc((void **)&d_B, size_B);
+      cudaMemcpy(d_A, &data.data()[i], size_A, cudaMemcpyHostToDevice);
+      cudaMemcpy(d_B, m.data.data(), size_B, cudaMemcpyHostToDevice);
+      cudaMalloc((void **)&d_C, size_C);
+
+      {
+        const float alpha = 1.0f;
+        const float beta = 0.0f;
+        cublasHandle_t handle;
+
+        (cublasCreate(&handle));
+
+        (cublasSgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, m.width, height, width, &alpha, d_B, m.width, d_A, width, &beta,
+                     d_C, m.width));
+
+        (cudaMemcpy(&result.data.data()[ii], d_C, size_C, cudaMemcpyDeviceToHost));
+        (cublasDestroy(handle));
+      }
+    }
+  } else {
+    for (int k = 0; k < batch; k++) {
+      int i = k * width * height;
+      int j = k * m.width * m.height;
+      int ii = k * height * mwidth;
+
+      (cudaMalloc((void **)&d_A, size_A));
+      (cudaMalloc((void **)&d_B, size_B));
+      (cudaMemcpy(d_A, &data.data()[i], size_A, cudaMemcpyHostToDevice));
+      (cudaMemcpy(d_B, &m.data.data()[j], size_B, cudaMemcpyHostToDevice));
+      (cudaMalloc((void **)&d_C, size_C));
+
+      {
+        const float alpha = 1.0f;
+        const float beta = 0.0f;
+        cublasHandle_t handle;
+
+        (cublasCreate(&handle));
+
+        (cublasSgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, m.width, height, width, &alpha, d_B, m.width, d_A, width, &beta,
+                     d_C, m.width));
+
+        (cudaMemcpy(&result.data.data()[ii], d_C, size_C, cudaMemcpyDeviceToHost));
+        (cublasDestroy(handle));
+      }
+    }
+  }
 #else
   float w = 0.0;
   int i, j, k, h;
@@ -408,6 +475,7 @@ Tensor Tensor::dot(Tensor const &m) const {
     }
   }
 #endif
+
 
   return result;
 }
