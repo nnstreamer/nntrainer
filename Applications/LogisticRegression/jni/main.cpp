@@ -119,7 +119,12 @@ int main(int argc, char *argv[]) {
    */
   if (training) {
     for (unsigned int i = 0; i < NN.getEpoch(); i++) {
-      NN.backwarding(Tensor(inputVector), Tensor(outputVector), i);
+      for (unsigned int j = 0; j < inputVector.size(); ++j) {
+        std::vector<std::vector<float>> in, label;
+        in.push_back(inputVector[j]);
+        label.push_back(outputVector[j]);
+        NN.backwarding(Tensor(in), Tensor(label), i);
+      }
       std::cout << "#" << i + 1 << "/" << NN.getEpoch() << " - Loss : " << NN.getLoss() << std::endl;
       NN.setLoss(0.0);
     }
@@ -127,7 +132,15 @@ int main(int argc, char *argv[]) {
     /**
      * @brief     forward propagation
      */
-    std::cout << NN.forwarding(Tensor(inputVector)).applyFunction(stepFunction) << std::endl;
+    int cn = 0;
+    for (unsigned int j = 0; j < inputVector.size(); ++j) {
+      std::vector<std::vector<float>> in, label;
+      in.push_back(inputVector[j]);
+      label.push_back(outputVector[j]);
+      if (NN.forwarding(Tensor(in)).applyFunction(stepFunction).getValue(0, 0, 0) == label[0][0])
+        cn++;
+    }
+    std::cout << "[ Accuracy ] : " << ((float)(cn) / inputVector.size()) * 100.0 << "%" << std::endl;
   }
 
   /**
