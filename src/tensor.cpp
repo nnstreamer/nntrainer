@@ -32,7 +32,23 @@
 #include <helper_cuda.h>
 #endif
 
-namespace Tensors{
+namespace Tensors {
+
+void TensorDim::setTensorDim(std::string input_shape) {
+  std::regex words_regex("[^\\s.,:;!?]+");
+  auto words_begin = std::sregex_iterator(input_shape.begin(), input_shape.end(), words_regex);
+  auto words_end = std::sregex_iterator();
+  int cur_dim = std::distance(words_begin, words_end);
+  if (cur_dim > 4) {
+    std::cout << "Tensor Dimension should be less than 4" << std::endl;
+    exit(0);
+  }
+  int cn =0;
+  for (std::sregex_iterator i = words_begin; i != words_end; ++i) {
+    Dim[MAXDIM - cur_dim + cn] = std::stoi((*i).str());
+    cn++;
+  }
+}
 
 Tensor::Tensor(int height, int width) {
   this->height = height;

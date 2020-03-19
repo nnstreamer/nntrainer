@@ -35,6 +35,9 @@ extern "C" {
 #include <iostream>
 #include <memory>
 #include <vector>
+#include <regex>
+
+#define MAXDIM 4
 
 /**
  * @Namespace   Namespace of Tensor
@@ -42,12 +45,31 @@ extern "C" {
  */
 namespace Tensors {
 
-typedef struct {
-  unsigned int batch;
-  unsigned int channel;
-  unsigned int height;
-  unsigned int width;
-} TensorDim;
+class TensorDim {
+ public:
+  TensorDim() {
+    for (int i = 0; i < MAXDIM; ++i) {
+      Dim[i] = 1;
+    }
+  }
+  ~TensorDim(){};
+  unsigned int batch() { return Dim[0]; };
+  unsigned int channel() { return Dim[1]; };
+  unsigned int height() { return Dim[2]; };
+  unsigned int width() { return Dim[3]; };
+
+  void batch(unsigned int b) { Dim[0] = b; };
+  void channel(unsigned int c) { Dim[1] = c; };
+  void height(unsigned int h) { Dim[2] = h; };
+  void width(unsigned int w) { Dim[3] = w; };
+
+  unsigned int *getDim() { return Dim; }
+
+  void setTensorDim(std::string input_shape);
+
+ private:
+  unsigned int Dim[4];
+};
 
 /**
  * @class   Tensor Class for Calculation
