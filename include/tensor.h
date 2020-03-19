@@ -37,10 +37,24 @@ extern "C" {
 #include <vector>
 
 /**
+ * @Namespace   Namespace of Tensor
+ * @brief       Namespace for Tensor
+ */
+namespace Tensors {
+
+typedef struct {
+  unsigned int batch;
+  unsigned int channel;
+  unsigned int height;
+  unsigned int width;
+} TensorDim;
+
+/**
  * @class   Tensor Class for Calculation
  * @brief   Tensor Class for Calculation
  */
 class Tensor {
+  
  public:
   /**
    * @brief     Constructor of Tensor
@@ -284,5 +298,6 @@ class Tensor {
  * @brief   Overriding output stream
  */
 std::ostream &operator<<(std::ostream &out, Tensor const &m);
+}
 
 #endif

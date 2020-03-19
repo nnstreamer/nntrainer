@@ -133,14 +133,14 @@ class Layer {
    * @param[in] input Input Tensor taken by upper layer
    * @retval    Output Tensor
    */
-  virtual Tensor forwarding(Tensor input) = 0;
+  virtual Tensors::Tensor forwarding(Tensors::Tensor input) = 0;
 
   /**
    * @brief     Forward Propation of neural Network
    * @param[in] input Input Tensor taken by upper layer
    * @retval    Output Tensor
    */
-  virtual Tensor forwarding(Tensor input, Tensor output) = 0;
+  virtual Tensors::Tensor forwarding(Tensors::Tensor input, Tensors::Tensor output) = 0;
 
   /**
    * @brief     Back Propation of neural Network
@@ -148,7 +148,7 @@ class Layer {
    * @param[in] iteration Epoch value for the ADAM Optimizer
    * @retval    Output Tensor
    */
-  virtual Tensor backwarding(Tensor input, int iteration) = 0;
+  virtual Tensors::Tensor backwarding(Tensors::Tensor input, int iteration) = 0;
 
   /**
    * @brief     Initialize the layer
@@ -203,13 +203,13 @@ class Layer {
   /**
    * @brief     Input Tensor
    */
-  Tensor Input;
+  Tensors::Tensor Input;
 
   /**
    * @brief     Hidden Layer Tensor which store the
    *            forwading result
    */
-  Tensor hidden;
+  Tensors::Tensor hidden;
 
   /**
    * @brief     Layer index
@@ -294,7 +294,7 @@ class InputLayer : public Layer {
    * @param[in] iteration Epoch Number for ADAM
    * @retval
    */
-  Tensor backwarding(Tensor input, int iteration) { return Input; };
+  Tensors::Tensor backwarding(Tensors::Tensor input, int iteration) { return Input; };
 
   /**
    * @brief     foward propagation : return Input Tensor
@@ -302,7 +302,7 @@ class InputLayer : public Layer {
    * @param[in] input input Tensor from lower layer.
    * @retval    return Input Tensor
    */
-  Tensor forwarding(Tensor input);
+  Tensors::Tensor forwarding(Tensors::Tensor input);
 
   /**
    * @brief     foward propagation : return Input Tensor
@@ -311,7 +311,7 @@ class InputLayer : public Layer {
    * @param[in] output label Tensor.
    * @retval    return Input Tensor
    */
-  Tensor forwarding(Tensor input, Tensor output) { return forwarding(input); };
+  Tensors::Tensor forwarding(Tensors::Tensor input, Tensors::Tensor output) { return forwarding(input); };
 
   /**
    * @brief     Set Optimizer
@@ -386,7 +386,7 @@ class FullyConnectedLayer : public Layer {
    * @param[in] input Input Tensor from upper layer
    * @retval    Activation(W x input + B)
    */
-  Tensor forwarding(Tensor input);
+  Tensors::Tensor forwarding(Tensors::Tensor input);
 
   /**
    * @brief     foward propagation : return Input Tensor
@@ -395,7 +395,7 @@ class FullyConnectedLayer : public Layer {
    * @param[in] output label Tensor.
    * @retval    Activation(W x input + B)
    */
-  Tensor forwarding(Tensor input, Tensor output) { return forwarding(input); };
+  Tensors::Tensor forwarding(Tensors::Tensor input, Tensors::Tensor output) { return forwarding(input); };
 
   /**
    * @brief     back propagation
@@ -404,7 +404,7 @@ class FullyConnectedLayer : public Layer {
    * @param[in] iteration Number of Epoch for ADAM
    * @retval    dJdB x W Tensor
    */
-  Tensor backwarding(Tensor input, int iteration);
+  Tensors::Tensor backwarding(Tensors::Tensor input, int iteration);
 
   /**
    * @brief     set optimizer
@@ -430,22 +430,22 @@ class FullyConnectedLayer : public Layer {
   void initialize(int b, int h, int w, int id, bool init_zero, weightIni_type wini);
 
  private:
-  Tensor Weight;
-  Tensor Bias;
+  Tensors::Tensor Weight;
+  Tensors::Tensor Bias;
 
   /**
    * @brief     First Momentum Tensor for the ADAM
    */
-  Tensor WM;
+  Tensors::Tensor WM;
 
-  Tensor BM;
+  Tensors::Tensor BM;
 
   /**
    * @brief     Second Momentum Tensor for the ADAM
    */
-  Tensor WV;
+  Tensors::Tensor WV;
 
-  Tensor BV;
+  Tensors::Tensor BV;
 };
 
 /**
@@ -481,7 +481,7 @@ class OutputLayer : public Layer {
    * @param[in] input Input Tensor from upper layer
    * @retval    Activation(W x input + B)
    */
-  Tensor forwarding(Tensor input);
+  Tensors::Tensor forwarding(Tensors::Tensor input);
 
   /**
    * @brief     forward propagation with input and set loss
@@ -489,7 +489,7 @@ class OutputLayer : public Layer {
    * @param[in] output Label Tensor
    * @retval    Activation(W x input + B)
    */
-  Tensor forwarding(Tensor input, Tensor output);
+  Tensors::Tensor forwarding(Tensors::Tensor input, Tensors::Tensor output);
 
   /**
    * @brief     back propagation
@@ -498,7 +498,7 @@ class OutputLayer : public Layer {
    * @param[in] iteration Number of Epoch for ADAM
    * @retval    dJdB x W Tensor
    */
-  Tensor backwarding(Tensor label, int iteration);
+  Tensors::Tensor backwarding(Tensors::Tensor label, int iteration);
 
   /**
    * @brief     set optimizer
@@ -535,12 +535,12 @@ class OutputLayer : public Layer {
   void copy(Layer *l);
 
  private:
-  Tensor Weight;
-  Tensor Bias;
-  Tensor WM;
-  Tensor WV;
-  Tensor BM;
-  Tensor BV;
+  Tensors::Tensor Weight;
+  Tensors::Tensor Bias;
+  Tensors::Tensor WM;
+  Tensors::Tensor WV;
+  Tensors::Tensor BM;
+  Tensors::Tensor BV;
   float loss;
   cost_type cost;
 };
@@ -578,7 +578,7 @@ class BatchNormalizationLayer : public Layer {
    * @param[in] input Input Tensor from upper layer
    * @retval    Activation(W x input + B)
    */
-  Tensor forwarding(Tensor input);
+  Tensors::Tensor forwarding(Tensors::Tensor input);
 
   /**
    * @brief     foward propagation : return Input Tensor
@@ -587,7 +587,7 @@ class BatchNormalizationLayer : public Layer {
    * @param[in] output label Tensor.
    * @retval    Activation(W x input + B)
    */
-  Tensor forwarding(Tensor input, Tensor output) { return forwarding(input); };
+  Tensors::Tensor forwarding(Tensors::Tensor input, Tensors::Tensor output) { return forwarding(input); };
 
   /**
    * @brief     back propagation
@@ -596,7 +596,7 @@ class BatchNormalizationLayer : public Layer {
    * @param[in] iteration Number of Epoch for ADAM
    * @retval    dJdB x W Tensor
    */
-  Tensor backwarding(Tensor input, int iteration);
+  Tensors::Tensor backwarding(Tensors::Tensor input, int iteration);
 
   /**
    * @brief     set optimizer
@@ -622,12 +622,12 @@ class BatchNormalizationLayer : public Layer {
   void initialize(int b, int h, int w, int id, bool init_zero, weightIni_type wini);
 
  private:
-  Tensor Weight;
-  Tensor Bias;
-  Tensor mu;
-  Tensor var;
-  Tensor gamma;
-  Tensor beta;
+  Tensors::Tensor Weight;
+  Tensors::Tensor Bias;
+  Tensors::Tensor mu;
+  Tensors::Tensor var;
+  Tensors::Tensor gamma;
+  Tensors::Tensor beta;
   float epsilon;
 };
 }

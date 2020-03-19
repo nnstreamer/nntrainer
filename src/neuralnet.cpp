@@ -363,8 +363,8 @@ void NeuralNetwork::finalize() {
 /**
  * @brief     forward propagation using layers object which has layer
  */
-Tensor NeuralNetwork::forwarding(Tensor input) {
-  Tensor X = input;
+Tensors::Tensor NeuralNetwork::forwarding(Tensors::Tensor input) {
+  Tensors::Tensor X = input;
   for (unsigned int i = 0; i < layers.size(); i++) {
     X = layers[i]->forwarding(X);
   }
@@ -374,9 +374,9 @@ Tensor NeuralNetwork::forwarding(Tensor input) {
 /**
  * @brief     forward propagation using layers object which has layer
  */
-Tensor NeuralNetwork::forwarding(Tensor input, Tensor output) {
-  Tensor X = input;
-  Tensor Y2 = output;
+Tensors::Tensor NeuralNetwork::forwarding(Tensors::Tensor input, Tensors::Tensor output) {
+  Tensors::Tensor X = input;
+  Tensors::Tensor Y2 = output;
   for (unsigned int i = 0; i < layers.size(); i++) {
     X = layers[i]->forwarding(X, Y2);
   }
@@ -388,10 +388,10 @@ Tensor NeuralNetwork::forwarding(Tensor input, Tensor output) {
  *            Call backwarding function of layer in reverse order
  *            No need to call at first Input Layer (No data to be updated)
  */
-void NeuralNetwork::backwarding(Tensor input, Tensor expected_output, int iteration) {
-  Tensor Y2 = expected_output;
-  Tensor X = input;
-  Tensor Y = forwarding(X);
+void NeuralNetwork::backwarding(Tensors::Tensor input, Tensors::Tensor expected_output, int iteration) {
+  Tensors::Tensor Y2 = expected_output;
+  Tensors::Tensor X = input;
+  Tensors::Tensor Y = forwarding(X);
 
   for (unsigned int i = layers.size() - 1; i > 0; i--) {
     Y2 = layers[i]->backwarding(Y2, iteration);

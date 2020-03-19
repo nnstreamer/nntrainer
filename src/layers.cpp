@@ -94,14 +94,14 @@ float ReluPrime(float x) {
   }
 }
 
-Tensor softmaxPrime(Tensor x) {
+Tensors::Tensor softmaxPrime(Tensors::Tensor x) {
   int batch = x.getBatch();
   int width = x.getWidth();
   int height = x.getHeight();
 
   assert(height == 1);
 
-  Tensor PI = Tensor(batch, height, width);
+  Tensors::Tensor PI = Tensors::Tensor(batch, height, width);
 
   for (int k = 0; k < batch; ++k) {
     for (int i = 0; i < height; ++i) {
@@ -121,12 +121,12 @@ Tensor softmaxPrime(Tensor x) {
   return PI;
 }
 
-static Tensor WeightInitialization(unsigned int width, unsigned int height, Layers::weightIni_type init_type) {
+static Tensors::Tensor WeightInitialization(unsigned int width, unsigned int height, Layers::weightIni_type init_type) {
   std::random_device rd;
   std::mt19937 gen(rd());
-  Tensor W = Tensor(height, width);
+  Tensors::Tensor W = Tensors::Tensor(height, width);
 
-  if(init_type == Layers::WEIGHT_UNKNOWN)
+  if (init_type == Layers::WEIGHT_UNKNOWN)
     init_type = Layers::WEIGHT_XAVIER_NORMAL;
   switch (init_type) {
     case Layers::WEIGHT_LECUN_NORMAL: {
@@ -187,7 +187,7 @@ static Tensor WeightInitialization(unsigned int width, unsigned int height, Laye
 namespace Layers {
 
 void Layer::setActivation(acti_type acti) {
-  if(acti == ACT_UNKNOWN){
+  if (acti == ACT_UNKNOWN) {
     std::cout << "have to specify activation function" << std::endl;
     exit(0);
   }
@@ -210,9 +210,7 @@ void Layer::setActivation(acti_type acti) {
   }
 }
 
-void InputLayer::setOptimizer(Optimizer opt) {
-  this->opt = opt;
-}
+void InputLayer::setOptimizer(Optimizer opt) { this->opt = opt; }
 
 void InputLayer::copy(Layer *l) {
   InputLayer *from = static_cast<InputLayer *>(l);
@@ -224,7 +222,7 @@ void InputLayer::copy(Layer *l) {
   this->hidden.copy(from->hidden);
 }
 
-Tensor InputLayer::forwarding(Tensor input) {
+Tensors::Tensor InputLayer::forwarding(Tensors::Tensor input) {
   Input = input;
   if (normalization)
     Input = Input.normalization();
@@ -247,7 +245,7 @@ void FullyConnectedLayer::initialize(int b, int h, int w, int id, bool init_zero
   this->init_zero = init_zero;
   this->bnfallow = false;
 
-  Bias = Tensor(1, w);
+  Bias = Tensors::Tensor(1, w);
   Weight = WeightInitialization(w, h, wini);
 
   if (init_zero) {
@@ -260,18 +258,18 @@ void FullyConnectedLayer::initialize(int b, int h, int w, int id, bool init_zero
 void FullyConnectedLayer::setOptimizer(Optimizer opt) {
   this->opt = opt;
   if (opt.type == OPT_ADAM) {
-    WM = Tensor(height, width);
-    WV = Tensor(height, width);
+    WM = Tensors::Tensor(height, width);
+    WV = Tensors::Tensor(height, width);
     WM.setZero();
     WV.setZero();
-    BM = Tensor(1, width);
-    BV = Tensor(1, width);
+    BM = Tensors::Tensor(1, width);
+    BV = Tensors::Tensor(1, width);
     BM.setZero();
     BV.setZero();
   }
 }
 
-Tensor FullyConnectedLayer::forwarding(Tensor input) {
+Tensors::Tensor FullyConnectedLayer::forwarding(Tensors::Tensor input) {
   Input = input;
   hidden = Input.dot(Weight).add(Bias);
 
@@ -304,18 +302,18 @@ void FullyConnectedLayer::copy(Layer *l) {
   this->Bias.copy(from->Bias);
 }
 
-Tensor FullyConnectedLayer::backwarding(Tensor derivative, int iteration) {
-  Tensor dJdB;
+Tensors::Tensor FullyConnectedLayer::backwarding(Tensors::Tensor derivative, int iteration) {
+  Tensors::Tensor dJdB;
 
   dJdB = derivative.multiply(hidden.applyFunction(activationPrime));
 
-  Tensor dJdW = Input.transpose().dot(dJdB);
+  Tensors::Tensor dJdW = Input.transpose().dot(dJdB);
 
   if (opt.weight_decay.type == WEIGHT_DECAY_L2NORM) {
     dJdW = dJdW.add(Weight.multiply(opt.weight_decay.lambda));
   }
 
-  Tensor ret = dJdB.dot(Weight.transpose());
+  Tensors::Tensor ret = dJdB.dot(Weight.transpose());
 
   float ll = opt.learning_rate;
   if (opt.decay_steps != -1) {
@@ -356,7 +354,7 @@ void OutputLayer::initialize(int b, int h, int w, int id, bool init_zero, weight
   this->index = id;
   this->init_zero = init_zero;
 
-  Bias = Tensor(1, w);
+  Bias = Tensors::Tensor(1, w);
   this->cost = cost;
   this->bnfallow = false;
 
@@ -372,7 +370,7 @@ void OutputLayer::initialize(int b, int h, int w, int id, bool init_zero, weight
   }
 }
 
-Tensor OutputLayer::forwarding(Tensor input) {
+Tensors::Tensor OutputLayer::forwarding(Tensors::Tensor input) {
   Input = input;
   hidden = input.dot(Weight).add(Bias);
   if (activation_type == ACT_SOFTMAX) {
@@ -382,11 +380,11 @@ Tensor OutputLayer::forwarding(Tensor input) {
   }
 }
 
-Tensor OutputLayer::forwarding(Tensor input, Tensor output) {
+Tensors::Tensor OutputLayer::forwarding(Tensors::Tensor input, Tensors::Tensor output) {
   Input = input;
   hidden = input.dot(Weight).add(Bias);
-  Tensor Y2 = output;
-  Tensor Y = hidden;
+  Tensors::Tensor Y2 = output;
+  Tensors::Tensor Y = hidden;
 
   if (activation_type == ACT_SOFTMAX) {
     Y = Y.softmax();
@@ -398,14 +396,14 @@ Tensor OutputLayer::forwarding(Tensor input, Tensor output) {
 
   switch (cost) {
     case COST_CATEGORICAL: {
-      Tensor temp = ((Y2.multiply(-1.0).transpose().dot(Y.add(opt.epsilon).applyFunction(log_float)))
-                         .subtract(Y2.multiply(-1.0).add(1.0).transpose().dot(
-                             Y.multiply(-1.0).add(1.0).add(opt.epsilon).applyFunction(log_float))));
+      Tensors::Tensor temp = ((Y2.multiply(-1.0).transpose().dot(Y.add(opt.epsilon).applyFunction(log_float)))
+                                  .subtract(Y2.multiply(-1.0).add(1.0).transpose().dot(
+                                      Y.multiply(-1.0).add(1.0).add(opt.epsilon).applyFunction(log_float))));
       loss = (1.0 / Y.Mat2Vec().size()) * temp.Mat2Vec()[0];
     } break;
     case COST_MSR: {
-      Tensor sub = Y2.subtract(Y);
-      Tensor l = (sub.multiply(sub)).sum().multiply(0.5);
+      Tensors::Tensor sub = Y2.subtract(Y);
+      Tensors::Tensor l = (sub.multiply(sub)).sum().multiply(0.5);
       std::vector<float> t = l.Mat2Vec();
       for (int i = 0; i < l.getBatch(); i++) {
         lossSum += t[i];
@@ -414,7 +412,7 @@ Tensor OutputLayer::forwarding(Tensor input, Tensor output) {
       loss = lossSum / (float)l.getBatch();
     } break;
     case COST_ENTROPY: {
-      Tensor l;
+      Tensors::Tensor l;
       if (activation_type == ACT_SIGMOID) {
         l = (Y2.multiply(Y.applyFunction(log_float))
                  .add((Y2.multiply(-1.0).add(1.0)).multiply((Y.multiply(-1.0).add(1.0)).applyFunction(log_float))))
@@ -472,28 +470,28 @@ void OutputLayer::copy(Layer *l) {
 void OutputLayer::setOptimizer(Optimizer opt) {
   this->opt = opt;
   if (opt.type == OPT_ADAM) {
-    WM = Tensor(height, width);
-    WV = Tensor(height, width);
+    WM = Tensors::Tensor(height, width);
+    WV = Tensors::Tensor(height, width);
     WM.setZero();
     WV.setZero();
-    BM = Tensor(1, width);
-    BV = Tensor(1, width);
+    BM = Tensors::Tensor(1, width);
+    BV = Tensors::Tensor(1, width);
     BM.setZero();
     BV.setZero();
   }
 }
 
-Tensor OutputLayer::backwarding(Tensor label, int iteration) {
+Tensors::Tensor OutputLayer::backwarding(Tensors::Tensor label, int iteration) {
   float lossSum = 0.0;
-  Tensor Y2 = label;
-  Tensor Y;
+  Tensors::Tensor Y2 = label;
+  Tensors::Tensor Y;
   if (activation_type == ACT_SOFTMAX)
     Y = hidden.softmax();
   else
     Y = hidden.applyFunction(activation);
 
-  Tensor ret;
-  Tensor dJdB;
+  Tensors::Tensor ret;
+  Tensors::Tensor dJdB;
 
   float ll = opt.learning_rate;
   if (opt.decay_steps != -1) {
@@ -503,17 +501,17 @@ Tensor OutputLayer::backwarding(Tensor label, int iteration) {
   switch (cost) {
     case COST_CATEGORICAL: {
       dJdB = Y.subtract(Y2);
-      Tensor temp = ((Y2.multiply(-1.0).transpose().dot(Y.add(opt.epsilon).applyFunction(log_float)))
-                         .subtract(Y2.multiply(-1.0).add(1.0).transpose().dot(
-                             Y.multiply(-1.0).add(1.0).add(opt.epsilon).applyFunction(log_float))));
+      Tensors::Tensor temp = ((Y2.multiply(-1.0).transpose().dot(Y.add(opt.epsilon).applyFunction(log_float)))
+                                  .subtract(Y2.multiply(-1.0).add(1.0).transpose().dot(
+                                      Y.multiply(-1.0).add(1.0).add(opt.epsilon).applyFunction(log_float))));
       loss = (1.0 / Y.Mat2Vec().size()) * temp.Mat2Vec()[0];
       if (opt.weight_decay.type == WEIGHT_DECAY_L2NORM) {
         loss += opt.weight_decay.lambda * 0.5 * (Weight.l2norm());
       }
     } break;
     case COST_MSR: {
-      Tensor sub = Y2.subtract(Y);
-      Tensor l = (sub.multiply(sub)).sum().multiply(0.5);
+      Tensors::Tensor sub = Y2.subtract(Y);
+      Tensors::Tensor l = (sub.multiply(sub)).sum().multiply(0.5);
       std::vector<float> t = l.Mat2Vec();
       for (int i = 0; i < l.getBatch(); i++) {
         lossSum += t[i];
@@ -530,7 +528,7 @@ Tensor OutputLayer::backwarding(Tensor label, int iteration) {
       }
     } break;
     case COST_ENTROPY: {
-      Tensor l;
+      Tensors::Tensor l;
       if (activation_type == ACT_SIGMOID) {
         dJdB = Y.subtract(Y2).multiply(1.0 / Y.getWidth());
         l = (Y2.multiply(Y.applyFunction(log_float))
@@ -562,7 +560,7 @@ Tensor OutputLayer::backwarding(Tensor label, int iteration) {
       break;
   }
 
-  Tensor dJdW = Input.transpose().dot(dJdB);
+  Tensors::Tensor dJdW = Input.transpose().dot(dJdB);
 
   if (opt.weight_decay.type == WEIGHT_DECAY_L2NORM) {
     dJdW = dJdW.add(Weight.multiply(opt.weight_decay.lambda));
@@ -604,18 +602,16 @@ void BatchNormalizationLayer::initialize(int b, int h, int w, int id, bool init_
   this->index = id;
   this->init_zero = init_zero;
 
-  this->gamma = Tensor(batch, w);
-  this->beta = Tensor(batch, w);
+  this->gamma = Tensors::Tensor(batch, w);
+  this->beta = Tensors::Tensor(batch, w);
   beta.setZero();
   gamma.setZero();
 }
 
-void BatchNormalizationLayer::setOptimizer(Optimizer opt) {
-  this->opt = opt;
-}
+void BatchNormalizationLayer::setOptimizer(Optimizer opt) { this->opt = opt; }
 
-Tensor BatchNormalizationLayer::forwarding(Tensor input) {
-  Tensor temp;
+Tensors::Tensor BatchNormalizationLayer::forwarding(Tensors::Tensor input) {
+  Tensors::Tensor temp;
 
   hidden = input;
 
@@ -625,28 +621,28 @@ Tensor BatchNormalizationLayer::forwarding(Tensor input) {
 
   var = temp.multiply(temp).sum(0).multiply(1.0 / batch);
 
-  Tensor hath = temp.divide(var.add(0.001).applyFunction(sqrt_float));
+  Tensors::Tensor hath = temp.divide(var.add(0.001).applyFunction(sqrt_float));
 
   hidden = hath;
 
-  Tensor ret = hath.multiply(gamma).add(beta).applyFunction(activation);
+  Tensors::Tensor ret = hath.multiply(gamma).add(beta).applyFunction(activation);
 
   return ret;
 }
 
-Tensor BatchNormalizationLayer::backwarding(Tensor derivative, int iteration) {
-  Tensor dbeta;
-  Tensor dgamma;
-  Tensor hath = hidden;
-  Tensor dy = derivative.multiply(hath.multiply(gamma).add(beta).applyFunction(activationPrime));
+Tensors::Tensor BatchNormalizationLayer::backwarding(Tensors::Tensor derivative, int iteration) {
+  Tensors::Tensor dbeta;
+  Tensors::Tensor dgamma;
+  Tensors::Tensor hath = hidden;
+  Tensors::Tensor dy = derivative.multiply(hath.multiply(gamma).add(beta).applyFunction(activationPrime));
 
   dbeta = dy.sum(0);
   dgamma = (Input.subtract(mu).divide(var.add(0.001).applyFunction(sqrt_float)).multiply(dy).sum(0));
 
-  Tensor Temp =
+  Tensors::Tensor Temp =
       (dy.multiply(batch).subtract(dy.sum(0)))
           .subtract(Input.subtract(mu).divide(var.add(0.001)).multiply(dy.multiply(Input.subtract(mu)).sum(0)));
-  Tensor dh = Temp.multiply(1.0 / batch).multiply(var.add(0.001).applyFunction(sqrt_float)).multiply(gamma);
+  Tensors::Tensor dh = Temp.multiply(1.0 / batch).multiply(var.add(0.001).applyFunction(sqrt_float)).multiply(gamma);
 
   float ll = opt.learning_rate;
   if (opt.decay_steps != -1) {

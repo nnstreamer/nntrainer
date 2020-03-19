@@ -121,7 +121,7 @@ class NeuralNetwork {
    * @param[in] input Input Tensor X
    * @retval    Output Tensor Y
    */
-  Tensor forwarding(Tensor input);
+  Tensors::Tensor forwarding(Tensors::Tensor input);
 
   /**
    * @brief     forward propagation
@@ -129,7 +129,7 @@ class NeuralNetwork {
    * @param[in] label Input Tensor Y2
    * @retval    Output Tensor Y
    */
-  Tensor forwarding(Tensor input, Tensor output);
+  Tensors::Tensor forwarding(Tensors::Tensor input, Tensors::Tensor output);
 
   /**
    * @brief     back propagation to update W & B
@@ -137,7 +137,7 @@ class NeuralNetwork {
    * @param[in] expectedOutput Lable Tensor Y
    * @param[in] iteration Epoch Number for ADAM
    */
-  void backwarding(Tensor input, Tensor expectedOutput, int iteration);
+  void backwarding(Tensors::Tensor input, Tensors::Tensor expectedOutput, int iteration);
 
   /**
    * @brief     save W & B into file

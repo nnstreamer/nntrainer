@@ -459,7 +459,7 @@ int main(int argc, char *argv[]) {
       while (true) {
         std::vector<std::vector<std::vector<float>>> in, label;
         if (buf.getDatafromBuffer(BUF_TRAIN, in, label, MINI_BATCH, FEATURE_SIZE, 1, TOTAL_LABEL_SIZE)) {
-          NN.backwarding(Tensor(in), Tensor(label), i);
+          NN.backwarding(Tensors::Tensor(in), Tensors::Tensor(label), i);
           count++;
           progress = (((float)(count * MINI_BATCH)) / (TOTAL_LABEL_SIZE * TOTAL_TRAIN_DATA_SIZE));
           int pos = barWidth * progress;
@@ -489,9 +489,9 @@ int main(int argc, char *argv[]) {
         // if (buf.getDatafromBuffer(BUF_VAL, in, label, MINI_BATCH, FEATURE_SIZE, 1, TOTAL_LABEL_SIZE)) {
         if (buf.getDatafromBuffer(BUF_TRAIN, in, label, MINI_BATCH, FEATURE_SIZE, 1, TOTAL_LABEL_SIZE)) {
           for (int i = 0; i < MINI_BATCH; ++i) {
-            Tensor X = Tensor({in[i]});
-            Tensor Y2 = Tensor({label[i]});
-            Tensor Y = NN.forwarding(X, Y2);
+            Tensors::Tensor X = Tensors::Tensor({in[i]});
+            Tensors::Tensor Y2 = Tensors::Tensor({label[i]});
+            Tensors::Tensor Y = NN.forwarding(X, Y2);
             if (Y.argmax() == Y2.argmax())
               right++;
             valloss += NN.getLoss();
@@ -527,7 +527,7 @@ int main(int argc, char *argv[]) {
     std::vector<float> featureVector, resultVector;
     featureVector.resize(FEATURE_SIZE);
     getFeature(img, featureVector);
-    Tensor X = Tensor({featureVector});
+    Tensors::Tensor X = Tensors::Tensor({featureVector});
     cout << NN.forwarding(X).applyFunction(stepFunction) << endl;
   }
   /**

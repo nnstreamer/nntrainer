@@ -32,6 +32,8 @@
 #include <helper_cuda.h>
 #endif
 
+namespace Tensors{
+
 Tensor::Tensor(int height, int width) {
   this->height = height;
   this->width = width;
@@ -710,4 +712,5 @@ Tensor Tensor::standardization() const {
   }
 
   return result;
+}
 }
