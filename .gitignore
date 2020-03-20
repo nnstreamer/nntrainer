@@ -1,0 +1,21 @@
+##
+# @brief .gitignore list
+
+# ignore build directory
+/build
+
+# CTag
+/tags
+/TAGS
+
+# vi files
+*.h~
+*.c~
+*.cc~
+*.swp
+
+# binary files
+*.out
+*.so
+*.o
+*.a
