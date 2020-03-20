@@ -107,7 +107,7 @@ void getFeature(const string filename, vector<float> &feature_input) {
   assert(model != NULL);
   tflite::ops::builtin::BuiltinOpResolver resolver;
   std::unique_ptr<tflite::Interpreter> interpreter;
-  tflite::InterpreterBuilder (*model.get(), resolver)(&interpreter);
+  tflite::InterpreterBuilder(*model.get(), resolver)(&interpreter);
 
   input_size = interpreter->inputs().size();
   output_size = interpreter->outputs().size();

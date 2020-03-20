@@ -139,7 +139,7 @@ void getFeature(const string filename, vector<float> &feature_input) {
   assert(model != NULL);
   tflite::ops::builtin::BuiltinOpResolver resolver;
   std::unique_ptr<tflite::Interpreter> interpreter;
-  tflite::InterpreterBuilder (*model.get(), resolver)(&interpreter);
+  tflite::InterpreterBuilder(*model.get(), resolver)(&interpreter);
 
   input_size = interpreter->inputs().size();
   output_size = interpreter->outputs().size();
@@ -341,10 +341,10 @@ bool getMiniBatch(std::vector<std::vector<std::vector<float>>> &outVec,
 
 void save(std::vector<std::vector<float>> inVec, std::vector<std::vector<float>> inLabel, std::string type) {
   std::string file = type + "Set.dat";
-  unsigned int data_size;
-  if (!type.compare("training")) {
-    data_size = TOTAL_TRAIN_DATA_SIZE;
-  } else if (!type.compare("val")) {
+
+  unsigned int data_size = TOTAL_TRAINING_DATA_SIZE;
+
+  if (!type.compare("val")) {
     data_size = TOTAL_VAL_DATA_SIZE;
   } else if (!type.compare("test")) {
     data_size = TOTAL_TEST_DATA_SIZE;

@@ -11,18 +11,18 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
+@file	bitmat_helpers.h
+@brief  bitmap_helpers from tensorflow
+
 ==============================================================================*/
 
 #ifndef TENSORFLOW_CONTRIB_LITE_EXAMPLES_LABEL_IMAGE_BITMAP_HELPERS_H_
 #define TENSORFLOW_CONTRIB_LITE_EXAMPLES_LABEL_IMAGE_BITMAP_HELPERS_H_
 
-namespace tflite
-{
-  namespace label_image
-  {
-    uint8_t *read_bmp (const std::string & input_bmp_name, int *width,
-        int *height, int *channels);
-  }                             // namespace label_image
-}                               // namespace tflite
+namespace tflite {
+namespace label_image {
+uint8_t *read_bmp(const std::string &input_bmp_name, int *width, int *height, int *channels);
+}  // namespace label_image
+}  // namespace tflite
 
-#endif                          // TENSORFLOW_CONTRIB_LITE_EXAMPLES_LABEL_IMAGE_BITMAP_HELPERS_H
+#endif  // TENSORFLOW_CONTRIB_LITE_EXAMPLES_LABEL_IMAGE_BITMAP_HELPERS_H

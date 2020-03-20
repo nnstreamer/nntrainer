@@ -6,9 +6,9 @@
  * @brief	This is Binary Logistic Regression Example
  *              This is from openai/gym-http-api to run gymAI for C/C++
  */
-#include "include/gym/gym.h"
 #include <assert.h>
 #include <memory>
+#include "include/gym/gym.h"
 
 #include <curl/curl.h>
 

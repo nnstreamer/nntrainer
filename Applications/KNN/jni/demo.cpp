@@ -121,7 +121,7 @@ int main(int argc, char *argv[]) {
    */
   tflite::ops::builtin::BuiltinOpResolver resolver;
   std::unique_ptr<tflite::Interpreter> interpreter;
-  tflite::InterpreterBuilder (*model.get(), resolver)(&interpreter);
+  tflite::InterpreterBuilder(*model.get(), resolver)(&interpreter);
 
   input_size = interpreter->inputs().size();
   output_size = interpreter->outputs().size();
@@ -153,6 +153,9 @@ int main(int argc, char *argv[]) {
   len = interpreter->tensor(output_idx_list[0])->dims->size;
   std::reverse_copy(interpreter->tensor(output_idx_list[0])->dims->data,
                     interpreter->tensor(output_idx_list[0])->dims->data + len, outputDim);
+
+  delete[] input_idx_list;
+  delete[] output_idx_list;
 
   printf("input %d %d %d %d\n", inputDim[0], inputDim[1], inputDim[2], inputDim[3]);
   printf("output %d %d %d %d\n", outputDim[0], outputDim[1], outputDim[2], outputDim[3]);
@@ -256,9 +259,6 @@ int main(int argc, char *argv[]) {
     ret = KNN(out, testout[i]);
     printf("class %d\n", ret);
   }
-
-  delete[] input_idx_list;
-  delete[] output_idx_list;
 
   return 0;
 }

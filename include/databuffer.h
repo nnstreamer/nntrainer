@@ -40,18 +40,16 @@
  */
 typedef enum { BUF_TRAIN, BUF_VAL, BUF_TEST, BUFF_UNKNOWN } buffer_type;
 
-
 /**
  * @class   DataBuffer Data Buffers
  * @brief   Data Buffer for read and manage data
  */
 class DataBuffer {
  public:
-
   /**
    * @brief     Create Buffer
    * @retval    DataBuffer
-   */  
+   */
   DataBuffer() : train_running(), val_running(), test_running(), train_thread(), val_thread(), test_thread(){};
 
   /**
@@ -60,9 +58,9 @@ class DataBuffer {
    * @param[in] val_bufsize size buffer
    * @param[in] test_bufsize size buffer
    * @retval    DataBuffer
-   */  
+   */
   DataBuffer(int train_bufsize, int val_bufsize, int test_bufsize);
-  
+
   /**
    * @brief     Initialize Buffer
    * @param[in] mini_batch size of minibatch
@@ -77,8 +75,8 @@ class DataBuffer {
    * @param[in] max_test maximum number of test data
    * @param[in] in_size input size
    * @param[in] c_num number of class
-   * @retval    true / false 
-   */  
+   * @retval    true / false
+   */
   bool init(int mini_batch, unsigned int train_bufsize, unsigned int val_bufsize, unsigned int test_bufsize,
             std::ifstream &train_file, std::ifstream &val_file, std::ifstream &test_file, unsigned int max_train,
             unsigned int max_val, unsigned int max_test, unsigned int in_size, unsigned int c_num);
@@ -86,33 +84,33 @@ class DataBuffer {
   /**
    * @brief     Update Data Buffer ( it is for child thread )
    * @param[in] buffer_type training, validation, test
-   * @param[in] file input file stream 
+   * @param[in] file input file stream
    * @retval    void
-   */  
+   */
   void UpdateData(buffer_type type, std::ifstream &file);
 
   /**
    * @brief     function for thread ( training, validation, test )
    * @param[in] buffer_type training, validation, test
-   * @param[in] file input file stream 
+   * @param[in] file input file stream
    * @retval    void
-   */  
+   */
   void run(buffer_type type, std::ifstream &file);
 
   /**
    * @brief     clear thread ( training, validation, test )
    * @param[in] buffer_type training, validation, test
-   * @param[in] file input file stream 
+   * @param[in] file input file stream
    * @retval    void
-   */  
+   */
   void clear(buffer_type type, std::ifstream &file);
 
   /**
-   * @brief     get Status of Buffer. if number of rest data 
+   * @brief     get Status of Buffer. if number of rest data
    *            is samller than minibatch, the return false
    * @param[in] buffer_type training, validation, test
    * @retval    true/false
-   */  
+   */
   bool getStatus(buffer_type type);
 
   /**
@@ -125,7 +123,7 @@ class DataBuffer {
    * @param[in] height height
    * @param[in] c_num number of class
    * @retval    true/false
-   */  
+   */
   bool getDatafromBuffer(buffer_type type, std::vector<std::vector<std::vector<float>>> &outVec,
                          std::vector<std::vector<std::vector<float>>> &outLabel, unsigned int batch, unsigned int width,
                          unsigned int height, unsigned int c_num);

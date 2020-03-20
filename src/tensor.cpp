@@ -28,8 +28,8 @@
 #include <sstream>
 
 #ifdef USE_CUBLAS
-#include <helper_functions.h>
 #include <helper_cuda.h>
+#include <helper_functions.h>
 #endif
 
 namespace Tensors {
@@ -43,7 +43,7 @@ void TensorDim::setTensorDim(std::string input_shape) {
     std::cout << "Tensor Dimension should be less than 4" << std::endl;
     exit(0);
   }
-  int cn =0;
+  int cn = 0;
   for (std::sregex_iterator i = words_begin; i != words_end; ++i) {
     Dim[MAXDIM - cur_dim + cn] = std::stoi((*i).str());
     cn++;
@@ -70,9 +70,7 @@ Tensor::Tensor(int batch, int height, int width) {
   setZero();
 }
 
-float Tensor::getValue(int batch, int h, int w) {
-  return this->data[batch * height * width + h * width + w];
-}
+float Tensor::getValue(int batch, int h, int w) { return this->data[batch * height * width + h * width + w]; }
 
 void Tensor::setValue(int batch, int h, int w, float value) {
   this->data[batch * height * width + h * width + w] = value;
@@ -494,7 +492,6 @@ Tensor Tensor::dot(Tensor const &m) const {
   }
 #endif
 
-
   return result;
 }
 
@@ -651,7 +648,7 @@ int Tensor::argmax() {
 
 float Tensor::l2norm() const {
   float sum = 0.0;
-  for(int i=0;i<len;i++){
+  for (int i = 0; i < len; i++) {
     sum += this->data[i] * this->data[i];
   }
 

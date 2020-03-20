@@ -42,7 +42,7 @@ CXXFLAGS=`echo $CXXFLAGS | sed -e "s|-std=gnu++11||"`
 
 mkdir -p build
 pushd build
-cmake .. -DCMAKE_INSTALL_PREFIX=/usr %{enable_cblas} -DTIZEN=ON
+cmake .. -DCMAKE_INSTALL_PREFIX=/usr %{enable_cblas} -DTIZEN=ON -DTARGET_ARCH=%{_arch}
 make %{?jobs:-j%jobs}
 popd
 

@@ -34,8 +34,8 @@ extern "C" {
 #include <fstream>
 #include <iostream>
 #include <memory>
-#include <vector>
 #include <regex>
+#include <vector>
 
 #define MAXDIM 4
 
@@ -76,7 +76,6 @@ class TensorDim {
  * @brief   Tensor Class for Calculation
  */
 class Tensor {
-  
  public:
   /**
    * @brief     Constructor of Tensor
