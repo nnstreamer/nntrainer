@@ -246,7 +246,7 @@ int main(int argc, char *argv[]) {
    */
   for (int i = 0; i < ITERATION; i++) {
     for (unsigned int j = 0; j < inputVector.size(); j++) {
-      NN.backwarding(Tensor({inputVector[j]}), Tensor({outputVector[j]}), i);
+      NN.backwarding(Tensors::Tensor({inputVector[j]}), Tensors::Tensor({outputVector[j]}), i);
     }
     cout << "#" << i + 1 << "/" << ITERATION << " - Loss : " << NN.getLoss() << endl;
     NN.setLoss(0.0);
@@ -266,7 +266,7 @@ int main(int argc, char *argv[]) {
     std::vector<float> featureVector, resultVector;
     featureVector.resize(128);
     getFeature(img, featureVector);
-    Tensor X = Tensor({featureVector});
+    Tensors::Tensor X = Tensors::Tensor({featureVector});
     cout << NN.forwarding(X).applyFunction(stepFunction) << endl;
   }
 

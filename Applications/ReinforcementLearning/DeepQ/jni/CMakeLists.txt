@@ -17,13 +17,17 @@ link_libraries(${CURL_LIBRARIES})
 pkg_check_modules(NNTRAINER nntrainer)
 link_libraries(${NNTRAINER_LIBRARIES})
 
+pkg_check_modules(INIPARSER iniparser)
+link_libraries(${INIPARSER_LIBRARIES})
+
 set(ENVDIR ../../Environment)
 
 include_directories( ${include_directories}
                      ${CMAKE_CURRENT_SOURCE_DIR}/include
 		     ${JSONCPP_INCLUDE_DIRS}
 		     ${ENVDIR}
-		     ${NNTRAINER_INCLUDE_DIRS}		     		     
+		     ${NNTRAINER_INCLUDE_DIRS}
+		     ${INIPARSER_INCLUDE_DIRS}		     
 		     )
 set(SRCS
 	main.cpp
@@ -32,7 +36,7 @@ set(SRCS
 	)
 
 add_executable(DeepQ ${SRCS})
-target_link_libraries( DeepQ ${JSONCPP_LIBRARIES} ${CURL_LIBRARIES} ${NNTRAINER_LIBRARIES})
+target_link_libraries( DeepQ ${JSONCPP_LIBRARIES} ${CURL_LIBRARIES} ${NNTRAINER_LIBRARIES} ${INIPARSER_INCLUDE_DIRS})
 
 install (TARGETS DeepQ
 	RUNTIME DESTINATION bin

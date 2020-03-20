@@ -68,8 +68,8 @@
 #include <memory>
 #include <queue>
 #include "include/gym/gym.h"
-#include "tensor.h"
 #include "neuralnet.h"
+#include "tensor.h"
 
 #ifdef USING_CUSTOM_ENV
 #include "CartPole/cartpole.h"
@@ -317,7 +317,7 @@ int main(int argc, char **argv) {
         /**
          * @brief     get action with input State with mainNet
          */
-        Tensor test = mainNet.forwarding(Tensor({input}));
+        Tensors::Tensor test = mainNet.forwarding(Tensors::Tensor({input}));
         std::vector<float> temp = test.Mat2Vec();
         action.push_back(argmax(temp));
 
@@ -405,12 +405,12 @@ int main(int argc, char **argv) {
         /**
          * @brief     run forward propagation with mainNet
          */
-        Tensor Q = mainNet.forwarding(Tensor(inbatch));
+        Tensors::Tensor Q = mainNet.forwarding(Tensors::Tensor(inbatch));
 
         /**
          * @brief     run forward propagation with targetNet
          */
-        Tensor NQ = targetNet.forwarding(Tensor(next_inbatch));
+        Tensors::Tensor NQ = targetNet.forwarding(Tensors::Tensor(next_inbatch));
         std::vector<float> nqa = NQ.Mat2Vec();
 
         /**
@@ -421,11 +421,11 @@ int main(int argc, char **argv) {
             Q.setValue(i, 0, (int)in_Exp[i].action[0], (float)in_Exp[i].reward);
           } else {
             float next = (nqa[i * NQ.getWidth()] > nqa[i * NQ.getWidth() + 1]) ? nqa[i * NQ.getWidth()]
-                                                                                : nqa[i * NQ.getWidth() + 1];
+                                                                               : nqa[i * NQ.getWidth() + 1];
             Q.setValue(i, 0, (int)in_Exp[i].action[0], (float)in_Exp[i].reward + DISCOUNT * next);
           }
         }
-        mainNet.backwarding(Tensor(inbatch), Q, iter);
+        mainNet.backwarding(Tensors::Tensor(inbatch), Q, iter);
       }
 
       writeFile << "mainNet Loss : " << mainNet.getLoss() << " : targetNet Loss : " << targetNet.getLoss() << "\n";

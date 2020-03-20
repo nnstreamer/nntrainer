@@ -21,9 +21,9 @@
  *
  */
 
-#include "cartpole.h"
-#include <iostream>
 #include <stdio.h>
+#include <iostream>
+#include "cartpole.h"
 
 int main() {
   Env::State state;

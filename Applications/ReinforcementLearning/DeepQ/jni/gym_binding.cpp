@@ -7,16 +7,16 @@
  *              This is from openai/gym-http-api to run gymAI for C/C++
  */
 #include "include/gym/gym.h"
-#include <memory>
 #include <assert.h>
+#include <memory>
 
 #include <curl/curl.h>
 
 #include <json/reader.h>
 #include <json/value.h>
 
-#include <random>
 #include <stdio.h>
+#include <random>
 
 namespace Gym {
 
@@ -59,9 +59,7 @@ static std::shared_ptr<Space> space_from_json(const Json::Value &j) {
   std::string type = require(v, "name");
   if (type == "Discrete") {
     r->type = Space::DISCRETE;
-    r->discreet_n =
-        v["n"]
-            .asInt(); // will throw runtime_error if cannot be converted to int
+    r->discreet_n = v["n"].asInt();  // will throw runtime_error if cannot be converted to int
 
   } else if (type == "Box") {
     r->type = Space::BOX;
@@ -97,17 +95,15 @@ static std::shared_ptr<Space> space_from_json(const Json::Value &j) {
 
 // curl
 
-static std::size_t curl_save_to_string(void *buffer, std::size_t size,
-                                       std::size_t nmemb, void *userp) {
+static std::size_t curl_save_to_string(void *buffer, std::size_t size, std::size_t nmemb, void *userp) {
   std::string *str = static_cast<std::string *>(userp);
   const std::size_t bytes = nmemb * size;
   str->append(static_cast<char *>(buffer), bytes);
   return bytes;
 }
 
-class ClientReal : public Client,
-                   public std::enable_shared_from_this<ClientReal> {
-public:
+class ClientReal : public Client, public std::enable_shared_from_this<ClientReal> {
+ public:
   std::string addr;
   int port;
 
@@ -127,8 +123,7 @@ public:
     curl_error_buf.assign(CURL_ERROR_SIZE, 0);
     curl_easy_setopt(c, CURLOPT_ERRORBUFFER, curl_error_buf.data());
     h.reset(c, std::ptr_fun(curl_easy_cleanup));
-    headers.reset(curl_slist_append(0, "Content-Type: application/json"),
-                  std::ptr_fun(curl_slist_free_all));
+    headers.reset(curl_slist_append(0, "Content-Type: application/json"), std::ptr_fun(curl_slist_free_all));
   }
 
   Json::Value GET(const std::string &route) {
@@ -164,8 +159,7 @@ public:
 
     curl_easy_setopt(h.get(), CURLOPT_POST, 1);
     curl_easy_setopt(h.get(), CURLOPT_POSTFIELDS, post_data.c_str());
-    curl_easy_setopt(h.get(), CURLOPT_POSTFIELDSIZE_LARGE,
-                     (curl_off_t)post_data.size());
+    curl_easy_setopt(h.get(), CURLOPT_POSTFIELDSIZE_LARGE, (curl_off_t)post_data.size());
     curl_easy_setopt(h.get(), CURLOPT_HTTPHEADER, headers.get());
     curl_easy_setopt(h.get(), CURLOPT_PROXY, "");
 
@@ -179,11 +173,9 @@ public:
     return j;
   }
 
-  void throw_server_error_or_response_code(const std::string &answer,
-                                           Json::Value &j) {
+  void throw_server_error_or_response_code(const std::string &answer, Json::Value &j) {
     long response_code;
-    CURLcode r =
-        curl_easy_getinfo(h.get(), CURLINFO_RESPONSE_CODE, &response_code);
+    CURLcode r = curl_easy_getinfo(h.get(), CURLINFO_RESPONSE_CODE, &response_code);
     if (r)
       throw std::runtime_error(curl_error_buf.data());
     if (verbose)
@@ -202,9 +194,7 @@ public:
     if (response_code != 200 && j.isObject() && j.isMember("message")) {
       throw std::runtime_error(j["message"].asString());
     } else if (response_code != 200) {
-      throw std::runtime_error(
-          "bad HTTP response code, and also cannot parse server message: " +
-          answer);
+      throw std::runtime_error("bad HTTP response code, and also cannot parse server message: " + answer);
     } else {
       // 200, but maybe invalid json
       if (!parse_error.empty())
@@ -225,7 +215,7 @@ std::shared_ptr<Client> client_create(const std::string &addr, int port) {
 // environment
 
 class EnvironmentReal : public Environment {
-public:
+ public:
   std::string instance_id;
   std::shared_ptr<ClientReal> client;
   std::shared_ptr<Space> space_act;
@@ -233,15 +223,13 @@ public:
 
   std::shared_ptr<Space> action_space() override {
     if (!space_act)
-      space_act = space_from_json(
-          client->GET("/v1/envs/" + instance_id + "/action_space"));
+      space_act = space_from_json(client->GET("/v1/envs/" + instance_id + "/action_space"));
     return space_act;
   }
 
   std::shared_ptr<Space> observation_space() override {
     if (!space_obs)
-      space_obs = space_from_json(
-          client->GET("/v1/envs/" + instance_id + "/observation_space"));
+      space_obs = space_from_json(client->GET("/v1/envs/" + instance_id + "/observation_space"));
     return space_obs;
   }
 
@@ -259,43 +247,37 @@ public:
     observation_parse(ans["observation"], save_initial_state_here->observation);
   }
 
-  void step(const std::vector<float> &action, bool render,
-            State *save_state_here) override {
+  void step(const std::vector<float> &action, bool render, State *save_state_here) override {
     Json::Value act_json;
     std::shared_ptr<Space> aspace = action_space();
     if (aspace->type == Space::DISCRETE) {
       act_json["action"] = (int)action[0];
     } else if (aspace->type == Space::BOX) {
       Json::Value &array = act_json["action"];
-      assert(action.size() == aspace->box_low.size()); // really assert, it's a
-                                                       // programming error on
-                                                       // C++ part
+      assert(action.size() == aspace->box_low.size());  // really assert, it's a
+                                                        // programming error on
+                                                        // C++ part
       for (int c = 0; c < (int)action.size(); ++c)
         array[c] = action[c];
     } else {
       assert(0);
     }
     act_json["render"] = render;
-    Json::Value ans = client->POST("/v1/envs/" + instance_id + "/step/",
-                                   act_json.toStyledString());
+    Json::Value ans = client->POST("/v1/envs/" + instance_id + "/step/", act_json.toStyledString());
     observation_parse(ans["observation"], save_state_here->observation);
     save_state_here->done = ans["done"].asBool();
     save_state_here->reward = ans["reward"].asFloat();
   }
 
-  void monitor_start(const std::string &directory, bool force,
-                     bool resume) override {
+  void monitor_start(const std::string &directory, bool force, bool resume) override {
     Json::Value data;
     data["directory"] = directory;
     data["force"] = force;
     data["resume"] = resume;
-    client->POST("/v1/envs/" + instance_id + "/monitor/start/",
-                 data.toStyledString());
+    client->POST("/v1/envs/" + instance_id + "/monitor/start/", data.toStyledString());
   }
 
-  void monitor_stop() override {
-    client->POST("/v1/envs/" + instance_id + "/monitor/close/", "");
-  }
+  void monitor_stop() override { client->POST("/v1/envs/" + instance_id + "/monitor/close/", ""); }
 };
 
 std::shared_ptr<Environment> ClientReal::make(const std::string &env_id) {
@@ -306,12 +288,11 @@ std::shared_ptr<Environment> ClientReal::make(const std::string &env_id) {
   std::string instance_id = require(ans, "instance_id");
 
   if (verbose)
-    printf(" * created %s instance_id=%s\n", env_id.c_str(),
-           instance_id.c_str());
+    printf(" * created %s instance_id=%s\n", env_id.c_str(), instance_id.c_str());
   std::shared_ptr<EnvironmentReal> env(new EnvironmentReal);
   env->client = shared_from_this();
   env->instance_id = instance_id;
   return env;
 }
 
-} // namespace
+}  // namespace
