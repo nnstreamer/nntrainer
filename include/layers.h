@@ -43,12 +43,11 @@ typedef enum { OPT_SGD, OPT_ADAM, OPT_UNKNOWN } opt_type;
 
 /**
  * @brief     Enumeration of cost(loss) function type
- *            0. CATEGORICAL ( Categorical Cross Entropy )
- *            1. MSR ( Mean Squared Roots )
- *            2. ENTROPY ( Cross Entropy )
- *            3. Unknown
+ *            0. MSR ( Mean Squared Roots )
+ *            1. ENTROPY ( Cross Entropy )
+ *            2. Unknown
  */
-typedef enum { COST_CATEGORICAL, COST_MSR, COST_ENTROPY, COST_UNKNOWN } cost_type;
+typedef enum { COST_MSR, COST_ENTROPY, COST_UNKNOWN } cost_type;
 
 /**
  * @brief     Enumeration of activation function type

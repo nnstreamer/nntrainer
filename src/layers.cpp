@@ -360,9 +360,6 @@ void OutputLayer::initialize(int b, int h, int w, int id, bool init_zero, weight
 
   Weight = WeightInitialization(w, h, wini);
 
-  if (cost == COST_CATEGORICAL)
-    init_zero = true;
-
   if (init_zero) {
     Bias.setZero();
   } else {
@@ -395,12 +392,6 @@ Tensors::Tensor OutputLayer::forwarding(Tensors::Tensor input, Tensors::Tensor o
   float lossSum = 0.0;
 
   switch (cost) {
-    case COST_CATEGORICAL: {
-      Tensors::Tensor temp = ((Y2.multiply(-1.0).transpose().dot(Y.add(opt.epsilon).applyFunction(log_float)))
-                                  .subtract(Y2.multiply(-1.0).add(1.0).transpose().dot(
-                                      Y.multiply(-1.0).add(1.0).add(opt.epsilon).applyFunction(log_float))));
-      loss = (1.0 / Y.Mat2Vec().size()) * temp.Mat2Vec()[0];
-    } break;
     case COST_MSR: {
       Tensors::Tensor sub = Y2.subtract(Y);
       Tensors::Tensor l = (sub.multiply(sub)).sum().multiply(0.5);
@@ -499,16 +490,6 @@ Tensors::Tensor OutputLayer::backwarding(Tensors::Tensor label, int iteration) {
   }
 
   switch (cost) {
-    case COST_CATEGORICAL: {
-      dJdB = Y.subtract(Y2);
-      Tensors::Tensor temp = ((Y2.multiply(-1.0).transpose().dot(Y.add(opt.epsilon).applyFunction(log_float)))
-                                  .subtract(Y2.multiply(-1.0).add(1.0).transpose().dot(
-                                      Y.multiply(-1.0).add(1.0).add(opt.epsilon).applyFunction(log_float))));
-      loss = (1.0 / Y.Mat2Vec().size()) * temp.Mat2Vec()[0];
-      if (opt.weight_decay.type == WEIGHT_DECAY_L2NORM) {
-        loss += opt.weight_decay.lambda * 0.5 * (Weight.l2norm());
-      }
-    } break;
     case COST_MSR: {
       Tensors::Tensor sub = Y2.subtract(Y);
       Tensors::Tensor l = (sub.multiply(sub)).sum().multiply(0.5);
