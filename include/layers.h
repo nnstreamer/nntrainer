@@ -14,7 +14,7 @@
  * @file	layers.h
  * @date	04 December 2019
  * @brief	This is Layer classes of Neural Network
- * @see		https://github.sec.samsung.net/jijoong-moon/Transfer-Learning.git
+ * @see		https://github.com/nnstreamer/nntrainer
  * @author	Jijoong Moon <jijoong.moon@samsung.com>
  * @bug		No known bugs except for NYI items
  *
