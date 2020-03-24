@@ -14,8 +14,8 @@
  *
  * @file	databuffer.cpp
  * @date	04 December 2019
- * @brief	This is Matrix class for calculation using blas library
- * @see https://github.sec.samsung.net/jijoong-moon/Transfer-Learning.git
+ * @brief	This is buffer object to handle big data
+ * @see		https://github.com/nnstreamer/nntrainer
  * @author	Jijoong Moon <jijoong.moon@samsung.com>
  * @bug		No known bugs except for NYI items
  *

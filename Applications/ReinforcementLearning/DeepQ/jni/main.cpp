@@ -14,7 +14,7 @@
  *
  * @file	main.cpp
  * @date	04 December 2019
- * @see		https://github.sec.samsung.net/jijoong-moon/Transfer-Learning.git
+ * @see		https://github.com/nnstreamer/nntrainer
  * @author	Jijoong Moon <jijoong.moon@samsung.com>
  * @bug		No known bugs except for NYI items
  * @brief	This is DeepQ Reinforcement Learning Example
