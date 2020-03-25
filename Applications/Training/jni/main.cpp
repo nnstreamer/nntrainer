@@ -267,7 +267,7 @@ int main(int argc, char *argv[]) {
     featureVector.resize(128);
     getFeature(img, featureVector);
     Tensors::Tensor X = Tensors::Tensor({featureVector});
-    cout << NN.forwarding(X).applyFunction(stepFunction) << endl;
+    cout << NN.forwarding(X).apply(stepFunction) << endl;
   }
 
   /**
