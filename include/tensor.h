@@ -244,7 +244,14 @@ class Tensor {
    * @param[in] *function function pointer applied
    * @retval    Tensor
    */
-  Tensor applyFunction(float (*function)(float)) const;
+  Tensor apply(float (*function)(float)) const;
+
+  /**
+   * @brief     Apply function to Tensor
+   * @param[in] *function function pointer applied
+   * @retval    Tensor
+   */
+  Tensor apply(Tensor (*function)(Tensor)) const;
 
   /**
    * @brief     Print element
@@ -304,6 +311,12 @@ class Tensor {
    * @retval    int argument index
    */
   int argmax();
+
+  /**
+   * @brief     return Data pointer of Tensor
+   * @retval    float pointer
+   */
+  float *getData() { return data.data(); }
 
  private:
   /**< handle the data as a std::vector type */

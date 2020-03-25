@@ -137,7 +137,7 @@ int main(int argc, char *argv[]) {
       std::vector<std::vector<float>> in, label;
       in.push_back(inputVector[j]);
       label.push_back(outputVector[j]);
-      if (NN.forwarding(Tensors::Tensor(in)).applyFunction(stepFunction).getValue(0, 0, 0) == label[0][0])
+      if (NN.forwarding(Tensors::Tensor(in)).apply(stepFunction).getValue(0, 0, 0) == label[0][0])
         cn++;
     }
     std::cout << "[ Accuracy ] : " << ((float)(cn) / inputVector.size()) * 100.0 << "%" << std::endl;

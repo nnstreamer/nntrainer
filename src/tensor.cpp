@@ -509,7 +509,7 @@ Tensor Tensor::transpose() const {
   return result;
 }
 
-Tensor Tensor::applyFunction(float (*function)(float)) const {
+Tensor Tensor::apply(float (*function)(float)) const {
   Tensor result(batch, height, width);
   int i;
 
@@ -518,6 +518,8 @@ Tensor Tensor::applyFunction(float (*function)(float)) const {
 
   return result;
 }
+
+Tensor Tensor::apply(Tensor (*function)(Tensor)) const { return (*function)(*this); }
 
 void Tensor::print(std::ostream &out) const {
   int i, j, k;

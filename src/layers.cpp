@@ -26,6 +26,93 @@
 #include <random>
 
 /**
+ * @brief     derivative softmax function for Tensor Type
+ * @param[in] x Tensor
+ * @retVal    Tensor
+ */
+Tensors::Tensor softmaxPrime(Tensors::Tensor x) {
+  int batch = x.getBatch();
+  int width = x.getWidth();
+  int height = x.getHeight();
+  assert(height == 1);
+
+  Tensors::Tensor PI = Tensors::Tensor(batch, height, width);
+
+  float *xp = x.getData();
+  float *pp = PI.getData();
+
+  for (int k = 0; k < batch; ++k) {
+    int K = k * height * width;
+    for (int i = 0; i < height; ++i) {
+      int I = K + i * width;
+      for (int j = 0; j < width; ++j) {
+        float sum = 0.0;
+        for (int l = 0; l < width; ++l) {
+          if (j == l) {
+            sum += xp[I + l] * (1.0 - xp[I + j]);
+          } else {
+            sum += xp[I + l] * xp[I + j] * -1.0;
+          }
+        }
+        pp[I + j] = sum;
+      }
+    }
+  }
+  return PI;
+}
+
+/**
+ * @brief       Calculate softmax for Tensor Type
+ * @param[in] t Tensor
+ * @retval      Tensor
+ */
+Tensors::Tensor softmax(Tensors::Tensor t) {
+  int batch = t.getBatch();
+  int height = t.getHeight();
+  int width = t.getWidth();
+  float *dp;
+  float *rp;
+  float *tp;
+
+  Tensors::Tensor result(batch, height, width);
+  Tensors::Tensor divisor(batch, height, 1);
+
+  dp = divisor.getData();
+  rp = result.getData();
+  tp = t.getData();
+
+  divisor.setZero();
+
+  for (int k = 0; k < batch; k++) {
+    int index = k * height;
+    for (int i = 0; i < height; i++) {
+      for (int j = 0; j < width; j++) {
+        dp[index + i] += exp(tp[k * height * width + i * width + j]);
+      }
+    }
+  }
+
+  for (int k = 0; k < batch; ++k) {
+    int index = k * height;
+    for (int i = 1; i < height; ++i) {
+      dp[index] += dp[index + i];
+    }
+  }
+
+  for (int k = 0; k < batch; k++) {
+    int index = k * height;
+    for (int i = 0; i < height; i++) {
+      for (int j = 0; j < width; j++) {
+        int id = k * height * width + i * width + j;
+        rp[id] = exp(tp[id]) / dp[index];
+      }
+    }
+  }
+
+  return result;
+}
+
+/**
  * @brief     random function
  * @param[in] x float
  */
@@ -92,33 +179,6 @@ float ReluPrime(float x) {
   } else {
     return 1.0;
   }
-}
-
-Tensors::Tensor softmaxPrime(Tensors::Tensor x) {
-  int batch = x.getBatch();
-  int width = x.getWidth();
-  int height = x.getHeight();
-
-  assert(height == 1);
-
-  Tensors::Tensor PI = Tensors::Tensor(batch, height, width);
-
-  for (int k = 0; k < batch; ++k) {
-    for (int i = 0; i < height; ++i) {
-      for (int j = 0; j < width; ++j) {
-        float sum = 0.0;
-        for (int l = 0; l < width; ++l) {
-          if (j == l) {
-            sum += x.getValue(k, i, l) * (1.0 - x.getValue(k, i, j));
-          } else {
-            sum += x.getValue(k, i, l) * x.getValue(k, i, j) * -1.0;
-          }
-        }
-        PI.setValue(k, i, j, sum);
-      }
-    }
-  }
-  return PI;
 }
 
 static Tensors::Tensor WeightInitialization(unsigned int width, unsigned int height, Layers::weightIni_type init_type) {
@@ -251,7 +311,7 @@ void FullyConnectedLayer::initialize(int b, int h, int w, int id, bool init_zero
   if (init_zero) {
     Bias.setZero();
   } else {
-    Bias = Bias.applyFunction(random);
+    Bias = Bias.apply(random);
   }
 }
 
@@ -276,7 +336,7 @@ Tensors::Tensor FullyConnectedLayer::forwarding(Tensors::Tensor input) {
   if (this->bnfallow)
     return hidden;
 
-  return hidden.applyFunction(activation);
+  return hidden.apply(activation);
   ;
 }
 
@@ -305,7 +365,7 @@ void FullyConnectedLayer::copy(Layer *l) {
 Tensors::Tensor FullyConnectedLayer::backwarding(Tensors::Tensor derivative, int iteration) {
   Tensors::Tensor dJdB;
 
-  dJdB = derivative.multiply(hidden.applyFunction(activationPrime));
+  dJdB = derivative.multiply(hidden.apply(activationPrime));
 
   Tensors::Tensor dJdW = Input.transpose().dot(dJdB);
 
@@ -329,12 +389,12 @@ Tensors::Tensor FullyConnectedLayer::backwarding(Tensors::Tensor derivative, int
       WV = WV.multiply(opt.beta2).add((dJdW.average().multiply(dJdW.average())).multiply(1 - opt.beta2));
       WM.divide(1 - pow(opt.beta1, iteration + 1));
       WV.divide(1 - pow(opt.beta2, iteration + 1));
-      Weight = Weight.subtract((WM.divide(WV.applyFunction(sqrt_float).add(opt.epsilon))).multiply(ll));
+      Weight = Weight.subtract((WM.divide(WV.apply(sqrt_float).add(opt.epsilon))).multiply(ll));
       BM = BM.multiply(opt.beta1).add(dJdB.average().multiply(1 - opt.beta1));
       BV = BV.multiply(opt.beta2).add((dJdB.average().multiply(dJdB.average())).multiply(1 - opt.beta2));
       BM.divide(1 - pow(opt.beta1, iteration + 1));
       BV.divide(1 - pow(opt.beta2, iteration + 1));
-      Bias = Bias.subtract((BM.divide(BV.applyFunction(sqrt_float).add(opt.epsilon))).multiply(ll));
+      Bias = Bias.subtract((BM.divide(BV.apply(sqrt_float).add(opt.epsilon))).multiply(ll));
       break;
     default:
       break;
@@ -363,7 +423,7 @@ void OutputLayer::initialize(int b, int h, int w, int id, bool init_zero, weight
   if (init_zero) {
     Bias.setZero();
   } else {
-    Bias = Bias.applyFunction(random);
+    Bias = Bias.apply(random);
   }
 }
 
@@ -371,9 +431,9 @@ Tensors::Tensor OutputLayer::forwarding(Tensors::Tensor input) {
   Input = input;
   hidden = input.dot(Weight).add(Bias);
   if (activation_type == ACT_SOFTMAX) {
-    return hidden.softmax();
+    return hidden.apply(softmax);
   } else {
-    return hidden.applyFunction(activation);
+    return hidden.apply(activation);
   }
 }
 
@@ -384,9 +444,9 @@ Tensors::Tensor OutputLayer::forwarding(Tensors::Tensor input, Tensors::Tensor o
   Tensors::Tensor Y = hidden;
 
   if (activation_type == ACT_SOFTMAX) {
-    Y = Y.softmax();
+    Y = Y.apply(softmax);
   } else {
-    Y = Y.applyFunction(activation);
+    Y = Y.apply(activation);
   }
 
   float lossSum = 0.0;
@@ -405,12 +465,12 @@ Tensors::Tensor OutputLayer::forwarding(Tensors::Tensor input, Tensors::Tensor o
     case COST_ENTROPY: {
       Tensors::Tensor l;
       if (activation_type == ACT_SIGMOID) {
-        l = (Y2.multiply(Y.applyFunction(log_float))
-                 .add((Y2.multiply(-1.0).add(1.0)).multiply((Y.multiply(-1.0).add(1.0)).applyFunction(log_float))))
+        l = (Y2.multiply(Y.apply(log_float))
+                 .add((Y2.multiply(-1.0).add(1.0)).multiply((Y.multiply(-1.0).add(1.0)).apply(log_float))))
                 .multiply(-1.0 / (Y2.getWidth()))
                 .sum();
       } else if (activation_type == ACT_SOFTMAX) {
-        l = (Y2.multiply(Y.applyFunction(log_float))).multiply(-1.0 / (Y2.getWidth())).sum();
+        l = (Y2.multiply(Y.apply(log_float))).multiply(-1.0 / (Y2.getWidth())).sum();
       } else {
         std::cout << "Only support sigmoid & softmax for cross entropy loss" << std::endl;
         exit(0);
@@ -477,9 +537,9 @@ Tensors::Tensor OutputLayer::backwarding(Tensors::Tensor label, int iteration) {
   Tensors::Tensor Y2 = label;
   Tensors::Tensor Y;
   if (activation_type == ACT_SOFTMAX)
-    Y = hidden.softmax();
+    Y = hidden.apply(softmax);
   else
-    Y = hidden.applyFunction(activation);
+    Y = hidden.apply(activation);
 
   Tensors::Tensor ret;
   Tensors::Tensor dJdB;
@@ -503,22 +563,22 @@ Tensors::Tensor OutputLayer::backwarding(Tensors::Tensor label, int iteration) {
         loss += opt.weight_decay.lambda * 0.5 * (Weight.l2norm());
       }
       if (activation_type == ACT_SOFTMAX) {
-        dJdB = Y.subtract(Y2).multiply(softmaxPrime(Y));
+        dJdB = Y.subtract(Y2).multiply(Y.apply(softmaxPrime));
       } else {
-        dJdB = Y.subtract(Y2).multiply(hidden.applyFunction(activationPrime));
+        dJdB = Y.subtract(Y2).multiply(hidden.apply(activationPrime));
       }
     } break;
     case COST_ENTROPY: {
       Tensors::Tensor l;
       if (activation_type == ACT_SIGMOID) {
         dJdB = Y.subtract(Y2).multiply(1.0 / Y.getWidth());
-        l = (Y2.multiply(Y.applyFunction(log_float))
-                 .add((Y2.multiply(-1.0).add(1.0)).multiply((Y.multiply(-1.0).add(1.0)).applyFunction(log_float))))
+        l = (Y2.multiply(Y.apply(log_float))
+                 .add((Y2.multiply(-1.0).add(1.0)).multiply((Y.multiply(-1.0).add(1.0)).apply(log_float))))
                 .multiply(-1.0 / (Y2.getWidth()))
                 .sum();
       } else if (activation_type == ACT_SOFTMAX) {
         dJdB = Y.subtract(Y2).multiply(1.0 / Y.getWidth());
-        l = (Y2.multiply(Y.applyFunction(log_float))).multiply(-1.0 / (Y2.getWidth())).sum();
+        l = (Y2.multiply(Y.apply(log_float))).multiply(-1.0 / (Y2.getWidth())).sum();
       } else {
         std::cout << "Only support sigmoid & softmax for cross entropy loss" << std::endl;
         exit(0);
@@ -558,12 +618,12 @@ Tensors::Tensor OutputLayer::backwarding(Tensors::Tensor label, int iteration) {
       WV = WV.multiply(opt.beta2).add((dJdW.average().multiply(dJdW.average())).multiply(1 - opt.beta2));
       WM.divide(1 - pow(opt.beta1, iteration + 1));
       WV.divide(1 - pow(opt.beta2, iteration + 1));
-      Weight = Weight.subtract((WM.divide(WV.applyFunction(sqrt_float).add(opt.epsilon))).multiply(ll));
+      Weight = Weight.subtract((WM.divide(WV.apply(sqrt_float).add(opt.epsilon))).multiply(ll));
       BM = BM.multiply(opt.beta1).add(dJdB.average().multiply(1 - opt.beta1));
       BV = BV.multiply(opt.beta2).add((dJdB.average().multiply(dJdB.average())).multiply(1 - opt.beta2));
       BM.divide(1 - pow(opt.beta1, iteration + 1));
       BV.divide(1 - pow(opt.beta2, iteration + 1));
-      Bias = Bias.subtract((BM.divide(BV.applyFunction(sqrt_float).add(opt.epsilon))).multiply(ll));
+      Bias = Bias.subtract((BM.divide(BV.apply(sqrt_float).add(opt.epsilon))).multiply(ll));
       break;
     default:
       break;
@@ -602,11 +662,11 @@ Tensors::Tensor BatchNormalizationLayer::forwarding(Tensors::Tensor input) {
 
   var = temp.multiply(temp).sum(0).multiply(1.0 / batch);
 
-  Tensors::Tensor hath = temp.divide(var.add(0.001).applyFunction(sqrt_float));
+  Tensors::Tensor hath = temp.divide(var.add(0.001).apply(sqrt_float));
 
   hidden = hath;
 
-  Tensors::Tensor ret = hath.multiply(gamma).add(beta).applyFunction(activation);
+  Tensors::Tensor ret = hath.multiply(gamma).add(beta).apply(activation);
 
   return ret;
 }
@@ -615,15 +675,15 @@ Tensors::Tensor BatchNormalizationLayer::backwarding(Tensors::Tensor derivative,
   Tensors::Tensor dbeta;
   Tensors::Tensor dgamma;
   Tensors::Tensor hath = hidden;
-  Tensors::Tensor dy = derivative.multiply(hath.multiply(gamma).add(beta).applyFunction(activationPrime));
+  Tensors::Tensor dy = derivative.multiply(hath.multiply(gamma).add(beta).apply(activationPrime));
 
   dbeta = dy.sum(0);
-  dgamma = (Input.subtract(mu).divide(var.add(0.001).applyFunction(sqrt_float)).multiply(dy).sum(0));
+  dgamma = (Input.subtract(mu).divide(var.add(0.001).apply(sqrt_float)).multiply(dy).sum(0));
 
   Tensors::Tensor Temp =
       (dy.multiply(batch).subtract(dy.sum(0)))
           .subtract(Input.subtract(mu).divide(var.add(0.001)).multiply(dy.multiply(Input.subtract(mu)).sum(0)));
-  Tensors::Tensor dh = Temp.multiply(1.0 / batch).multiply(var.add(0.001).applyFunction(sqrt_float)).multiply(gamma);
+  Tensors::Tensor dh = Temp.multiply(1.0 / batch).multiply(var.add(0.001).apply(sqrt_float)).multiply(gamma);
 
   float ll = opt.learning_rate;
   if (opt.decay_steps != -1) {

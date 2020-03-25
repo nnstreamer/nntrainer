@@ -342,7 +342,7 @@ bool getMiniBatch(std::vector<std::vector<std::vector<float>>> &outVec,
 void save(std::vector<std::vector<float>> inVec, std::vector<std::vector<float>> inLabel, std::string type) {
   std::string file = type + "Set.dat";
 
-  unsigned int data_size = TOTAL_TRAINING_DATA_SIZE;
+  unsigned int data_size = TOTAL_TRAIN_DATA_SIZE;
 
   if (!type.compare("val")) {
     data_size = TOTAL_VAL_DATA_SIZE;
@@ -528,7 +528,7 @@ int main(int argc, char *argv[]) {
     featureVector.resize(FEATURE_SIZE);
     getFeature(img, featureVector);
     Tensors::Tensor X = Tensors::Tensor({featureVector});
-    cout << NN.forwarding(X).applyFunction(stepFunction) << endl;
+    cout << NN.forwarding(X).apply(stepFunction) << endl;
   }
   /**
    * @brief     Finalize NN
