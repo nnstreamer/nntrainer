@@ -87,7 +87,17 @@ endif
 libm_dep = cxx.find_library('m') # cmath library
 libdl_dep = cxx.find_library('dl') # DL library
 thread_dep = dependency('threads') # pthread for tensorflow-lite
-iniparser_dep = dependency('iniparser') # iniparser
+iniparser_dep = dependency('iniparser', required : false) # iniparser
+if not iniparser_dep.found()
+  message('falling back to find libiniparser library and header files')
+  libiniparser_dep = cxx.find_library('iniparser')
+  if libiniparser_dep.found() and cxx.has_header('iniparser.h', \
+        args : '-I/usr/include/iniparser')
+    iniparser_dep = declare_dependency (dependencies : libiniparser_dep,
+      compile_args : '-I/usr/include/iniparser')
+  endif
+endif
+
 jsoncpp_dep = dependency('jsoncpp') # jsoncpp
 libcurl_dep = dependency('libcurl')
 
