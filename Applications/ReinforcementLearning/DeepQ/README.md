@@ -21,6 +21,6 @@ For the Environment,
 The results is below.
 
 <p align=center>
-<img src =https://github.com/nnstreamer/nntrainer/doc/de916e80-0b9f-11ea-9950-5c40d2bef8e4.gif width=300 >
-<img src =https://github.com/nnstreamer/nntrainer/doc/d2f17800-0b9e-11ea-8060-edfeacd6c71e.gif width=300 >
+<img src =https://github.com/nnstreamer/nntrainer/blob/master/doc/de916e80-0b9f-11ea-9950-5c40d2bef8e4.gif width=300 >
+<img src =https://github.com/nnstreamer/nntrainer/blob/master/doc/d2f17800-0b9e-11ea-8060-edfeacd6c71e.gif width=300 >
 </p>
