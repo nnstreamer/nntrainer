@@ -39,6 +39,7 @@ struct State {
 
 class Environment {
  public:
+  virtual ~Environment(){};
   virtual std::shared_ptr<Space> action_space() = 0;
   virtual std::shared_ptr<Space> observation_space() = 0;
 
@@ -52,6 +53,7 @@ class Environment {
 
 class Client {
  public:
+  virtual ~Client(){};
   virtual std::shared_ptr<Environment> make(const std::string& name) = 0;
 };
 
