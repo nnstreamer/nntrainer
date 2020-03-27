@@ -182,14 +182,18 @@ class ClientReal : public Client, public std::enable_shared_from_this<ClientReal
       printf("%i\n%s\n", (int)response_code, answer.c_str());
 
     std::string parse_error;
-    Json::Reader jr;
-    if (!jr.parse(answer, j, false)) {
-      parse_error = jr.getFormattedErrorMessages();
+
+    Json::CharReaderBuilder builder;
+    Json::CharReader *jr = builder.newCharReader();
+
+    if (!jr->parse(answer.c_str(), answer.c_str() + answer.size(), &j, &parse_error)) {
       parse_error += "original json that caused error: " + answer;
     } else if (!j.isObject()) {
       parse_error = "top level json is not an object";
       parse_error += "original json that caused error: " + answer;
     }
+
+    delete jr;
 
     if (response_code != 200 && j.isObject() && j.isMember("message")) {
       throw std::runtime_error(j["message"].asString());

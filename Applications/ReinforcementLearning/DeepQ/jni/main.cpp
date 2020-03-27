@@ -127,8 +127,8 @@ typedef struct {
  * @param[in] max : maximum value
  * @retval    min < random value < max
  */
-static float RandomFloat(float min, float max) {
-  float r = min + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX) / (max - min));
+static float RandomFloat(float Min, float Max) {
+  float r = Min + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX) / (Max - Min));
   return r;
 }
 
@@ -138,14 +138,14 @@ static float RandomFloat(float min, float max) {
  * @param[in] max : maximum value
  * @retval    min < random value < max
  */
-static int rangeRandom(int min, int max) {
-  int n = max - min + 1;
+static int rangeRandom(int Min, int Max) {
+  int n = Max - Min + 1;
   int remainder = RAND_MAX % n;
   int x;
   do {
     x = rand();
   } while (x >= RAND_MAX - remainder);
-  return min + x % n;
+  return Min + x % n;
 }
 
 /**
@@ -155,18 +155,20 @@ static int rangeRandom(int min, int max) {
  * @retval    Experience vector
  */
 static std::vector<Experience> getMiniBatch(std::deque<Experience> Q) {
-  int max = (MINI_BATCH > Q.size()) ? MINI_BATCH : Q.size();
-  int min = (MINI_BATCH < Q.size()) ? MINI_BATCH : Q.size();
+  int Max = (MINI_BATCH > Q.size()) ? MINI_BATCH : Q.size();
+  int Min = (MINI_BATCH < Q.size()) ? MINI_BATCH : Q.size();
 
-  bool duplicate[max];
+  std::vector<bool> duplicate;
   std::vector<int> mem;
   std::vector<Experience> in_Exp;
   int count = 0;
 
-  for (int i = 0; i < max; i++)
+  duplicate.resize(Max);
+
+  for (int i = 0; i < Max; i++)
     duplicate[i] = false;
 
-  while (count < min) {
+  while (count < Min) {
     int nomi = rangeRandom(0, Q.size() - 1);
     if (!duplicate[nomi]) {
       mem.push_back(nomi);
@@ -175,7 +177,7 @@ static std::vector<Experience> getMiniBatch(std::deque<Experience> Q) {
     }
   }
 
-  for (int i = 0; i < min; i++) {
+  for (int i = 0; i < Min; i++) {
     in_Exp.push_back(Q[mem[i]]);
   }
 
