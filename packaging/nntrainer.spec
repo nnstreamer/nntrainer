@@ -1,32 +1,45 @@
 %define         enable_cblas 1
+%define		nntrainerapplicationdir	%{_libdir}/nntrainer/bin
 
 Name:		nntrainer
 Summary:	Software framework for traning neural networks
-Version:        0.0.1
-Release:        0
-Packager:       Jijoong Moon <jijoong.moon@sansumg.com>
-License:        Apache-2.0
-Source0:        nntrainer-%{version}.tar.gz
-Source1001:     nntrainer.manifest
+Version:	0.0.1
+Release:	0
+Packager:	Jijoong Moon <jijoong.moon@sansumg.com>
+License:	Apache-2.0
+Source0:	nntrainer-%{version}.tar.gz
+Source1001:	nntrainer.manifest
 
-BuildRequires:  cmake >= 2.8.3
-BuildRequires:  openblas-devel
-BuildRequires:  iniparser-devel
-Requires:       iniparser
-Requires:       libopenblas
+BuildRequires:	meson >= 0.50.0
+BuildRequires:	openblas-devel
+BuildRequires:	iniparser-devel
+Requires:	iniparser
+Requires:	libopenblas
 
 %description
 NNtrainer is Software Framework for Training Nerual Network Models on Devices.
 
 %package devel
-Summary:        Development package for custom nntrainer developers
-Requires:       nntrainer = %{version}-%{release}
-Requires:       iniparser-devel
-Requires:       openblas-devel
+Summary:	Development package for custom nntrainer developers
+Requires:	nntrainer = %{version}-%{release}
+Requires:	iniparser-devel
+Requires:	openblas-devel
 
 %description devel
 Development pacage for custom nntrainer developers.
 This contains corresponding header files and .pc pkgconfig file.
+
+%package applications
+Summary:	NNTrainer Examples
+Requires:	nntrainer = %{version}-%{release}
+Requires:	iniparser
+BuildRequires:	tensorflow-lite-devel
+BuildRequires:	pkgconfig(jsoncpp)
+BuildRequires:	pkgconfig(libcurl)
+BuildRequires:	pkgconfig(dlog)
+
+%description applications
+NNTraier Exmaples for test purpose.
 
 # Using cblas for Matrix calculation
 %if 0%{?enable_cblas}
@@ -40,17 +53,21 @@ cp %{SOURCE1001} .
 %build
 CXXFLAGS=`echo $CXXFLAGS | sed -e "s|-std=gnu++11||"`
 
+# mkdir -p build
+# pushd build
+# cmake .. -DCMAKE_INSTALL_PREFIX=/usr %{enable_cblas} -DTIZEN=ON -DTARGET_ARCH=%{_arch}
+# make %{?jobs:-j%jobs}
+# popd
+
 mkdir -p build
-pushd build
-cmake .. -DCMAKE_INSTALL_PREFIX=/usr %{enable_cblas} -DTIZEN=ON -DTARGET_ARCH=%{_arch}
-make %{?jobs:-j%jobs}
-popd
+meson --buildtype=plain --prefix=%{_prefix} --sysconfdir=%{_sysconfdir} \
+      --libdir=%{_libdir} --bindir=%{nntrainerapplicationdir} --includedir=%{_includedir}\
+      -Dinstall-app=true -Denable-tizen=true build
+
+ninja -C build %{?_smp_mflags}
 
 %install
-pushd build
-%make_install
-popd
-
+DESTDIR=%{buildroot} ninja -C build %{?_smp_mflags} install
 
 %files
 %manifest nntrainer.manifest
@@ -63,7 +80,14 @@ popd
 %{_includedir}/nntrainer/layers.h
 %{_includedir}/nntrainer/neuralnet.h
 %{_includedir}/nntrainer/tensor.h
+%{_libdir}/*.a
 %{_libdir}/pkgconfig/nntrainer.pc
+
+%files applications
+%manifest nntrainer.manifest
+%defattr(-,root,root,-)
+%license LICENSE
+%{_libdir}/nntrainer/bin/applications/*
 
 %changelog
 * Wed Mar 18 2020 Jijoong Moon <jijoong.moon@samsung.com>

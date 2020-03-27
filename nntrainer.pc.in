@@ -1,9 +1,9 @@
-prefix=@CMAKE_INSTALL_PREFIX@
-libdir=${prefix}/lib
-includedir=${prefix}/include
+prefix=@PREFIX@
+libdir=@LIB_INSTALL_DIR@
+includedir=@INCLUDE_INSTALL_DIR@
 
 Name : nntrainer
-Version : @NNTRAINER_VERSION@
+Version : @VERSION@
 Description: Software Framework for Training Neural Network on Device
 Libs: -L${libdir} -lnntrainer
 Cflags: -I${includedir}/nntrainer
