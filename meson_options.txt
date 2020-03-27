@@ -1,0 +1,4 @@
+option('enable-tizen', type: 'boolean', value: false)
+option('enable-blas', type: 'boolean', value: true)
+option('enable-app', type: 'boolean', value: true)
+option('install-app', type: 'boolean', value: true)
