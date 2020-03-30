@@ -1,0 +1,33 @@
+Source: nntrainer
+Section: libs
+Priority: optional
+Maintainer: Jijoong Moon <jijoong.moon@samsung.com>
+Build-Depends: gcc-9 | gcc-8 | gcc-7 | gcc-6 | gcc-5 (>=5.4),
+ pkg-config, cmake, ninja-build, meson (>=0.50), debhelper (>=9),
+ libopenblas-dev, libiniparser-dev, tensorflow-lite-dev, libjsoncpp-dev,
+ libcurl3-gnutls-dev | libcurl4-gnutls-dev | libcurl3-openssl-dev |
+ libcurl4-openssl-dev | libcurl3-nns-dev | libcurl4-nns-dev
+Standards-Version: 3.9.6
+Homepage: https://github.com/nnstreamer/nntrainer
+
+Package: nntrainer
+Architecture: any
+Multi-Arch: same
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Training Neural Network Models on Devices.
+ This is software framework for training neural network model on devices
+
+Package: nntrainer-dev
+Architecture: any
+Multi-Arch: same
+Depends: nntrainer
+Description: NNtrainer development package
+ This is development package for nntrainer.
+
+Package: nntrainer-applications
+Architecture: any
+Multi-Arch: same
+Depends: nntrainer, ${shlibs:Depends}, ${misc:Depends}
+Description: NNTrainer Applications pacakge
+ This is nntrainer applications package.
+
