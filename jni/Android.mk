@@ -1,3 +1,4 @@
+# ndk-build NDK_PROJECT_PATH=. APP_BUILD_SCRIPT=./Android.mk NDK_APPLICATION_MK=./Application.mk -j2
 LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
 
@@ -7,13 +8,25 @@ endif
 
 include $(CLEAR_VARS)
 
-INIPARSER_ROOT :=$(NNTRAINER_ROOT)/external/iniparser
+ifndef INIPARSER_ROOT
+ifneq ($(MAKECMDGOALS),clean)
+$(warning INIPARSER_ROOT is not defined!)
+$(warning INIPARSER SRC is going to be downloaded!)
 
-NNTRAINER_SRCS := $(NNTRAINER_ROOT)/src/neuralnet.cpp \
-                  $(NNTRAINER_ROOT)/src/tensor.cpp \
-                  $(NNTRAINER_ROOT)/src/layers.cpp
+INIPARSER_ROOT :=./iniparser
 
-NNTRAINER_INCLUDES := $(NNTRAINER_ROOT)
+$(info $(shell ($(LOCAL_PATH)/prepare_iniparser.sh )))
+
+endif
+endif
+
+
+NNTRAINER_SRCS := $(NNTRAINER_ROOT)/nntrainer/src/neuralnet.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/src/tensor.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/src/layers.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/src/databuffer.cpp
+
+NNTRAINER_INCLUDES := $(NNTRAINER_ROOT)/nntrainer
 
 INIPARSER_SRCS := $(INIPARSER_ROOT)/src/iniparser.c \
                   $(INIPARSER_ROOT)/src/dictionary.c
@@ -30,3 +43,4 @@ LOCAL_SRC_FILES     := $(NNTRAINER_SRCS) $(INIPARSER_SRCS)
 LOCAL_C_INCLUDES    += $(NNTRAINER_INCLUDES) $(INIPARSER_INCLUDES)
 
 include $(BUILD_SHARED_LIBRARY)
+

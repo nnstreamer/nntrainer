@@ -8,8 +8,8 @@ $(error ANDROID_NDK is not defined!)
 endif
 
 ifndef NNTRAINER_ROOT
-NNTRAINER_ROOT := $(LOCAL_PATH)/../../../libs/arm64-v8a
-NNTRAINER_INCLUDE := $(LOCAL_PATH)/../../../include
+NNTRAINER_ROOT := $(LOCAL_PATH)/../../../jni/libs/arm64-v8a
+NNTRAINER_INCLUDE := $(LOCAL_PATH)/../../../nntrainer/include
 endif
 
 LOCAL_MODULE := nntrainer
@@ -27,7 +27,7 @@ LOCAL_CFLAGS += -pthread -fopenmp
 LOCAL_LDFLAGS += -fopenmp 
 LOCAL_MODULE_TAGS := optional
 LOCAL_ARM_MODE := arm
-LOCAL_MODULE := LogisticRegressoin
+LOCAL_MODULE := nntrainer_logistic
 
 LOCAL_SRC_FILES := main.cpp
 

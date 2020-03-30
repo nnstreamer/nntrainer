@@ -8,8 +8,8 @@ $(error ANDROID_NDK is not defined!)
 endif
 
 ifndef NNTRAINER_ROOT
-NNTRAINER_ROOT := $(LOCAL_PATH)/../../../libs/arm64-v8a
-NNTRAINER_INCLUDES := $(LOCAL_PATH)/../../../include
+NNTRAINER_ROOT := $(LOCAL_PATH)/../../../jni/libs/arm64-v8a
+NNTRAINER_INCLUDES := $(LOCAL_PATH)/../../../nntrainer/include
 endif
 
 include $(CLEAR_VARS)
@@ -19,10 +19,12 @@ ifneq ($(MAKECMDGOALS),clean)
 $(warning TENSORFLOW_ROOT is not defined!)
 $(warning TENSORFLOW SRC is going to be downloaded!)
 
-# Currently we are using tensorflow 1.9.0
-$(info $(shell ($(LOCAL_PATH)/prepare_tflite.sh)))
+NNTRAINER_APPLICATION := $(LOCAL_PATH)/../../
 
-TENSORFLOW_ROOT := $(LOCAL_PATH)/tensorflow-1.9.0
+# Currently we are using tensorflow 1.9.0
+$(info $(shell ($(LOCAL_PATH)/../../prepare_tflite.sh $(NNTRAINER_APPLICATION))))
+
+TENSORFLOW_ROOT := $(LOCAL_PATH)/../../tensorflow-1.9.0
 
 endif
 endif
@@ -92,9 +94,9 @@ LOCAL_CFLAGS += -pthread -fopenmp
 LOCAL_LDFLAGS += -fopenmp 
 LOCAL_MODULE_TAGS := optional
 LOCAL_ARM_MODE := arm
-LOCAL_MODULE := transfer_learning
+LOCAL_MODULE := nntrainer_knn
 
-LOCAL_SRC_FILES := demo.cpp bitmap_helpers.cpp
+LOCAL_SRC_FILES := main.cpp bitmap_helpers.cpp
 
 LOCAL_SHARED_LIBRARIES := nntrainer
 
