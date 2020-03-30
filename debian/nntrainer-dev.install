@@ -1,0 +1,6 @@
+/usr/include/nntrainer/databuffer.h
+/usr/include/nntrainer/layers.h
+/usr/include/nntrainer/neuralnet.h
+/usr/include/nntrainer/tensor.h
+/usr/lib/*/pkgconfig/*.pc
+/usr/lib/*/*.a

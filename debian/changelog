@@ -1,0 +1,5 @@
+nntrainer (0.0.1-1) unstable; urgency=medium
+
+  * Initial debian dist files added
+
+ -- Jijoong Moon <jijoong.moon@samsung.com>  Mon, 30 Mar 2020 11:11:49 +0900

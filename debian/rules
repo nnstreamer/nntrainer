@@ -1,0 +1,38 @@
+#!/usr/bin/make -f
+# See debhelper(7) (uncomment to enable)
+# output every command that modifies files on the build system.
+#export DH_VERBOSE = 1
+
+
+# see FEATURE AREAS in dpkg-buildflags(1)
+#export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+
+# see ENVIRONMENT in dpkg-buildflags(1)
+# package maintainers to append CFLAGS
+#export DEB_CFLAGS_MAINT_APPEND  = -Wall -pedantic
+# package maintainers to append LDFLAGS
+#export DEB_LDFLAGS_MAINT_APPEND = -Wl,--as-needed
+
+ROOT_DIR:=$(shell pwd)
+export DEB_HOST_MULTIARCH ?= $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
+export DEB_HOST_ARCH ?= $(shell dpkg-architecture -qDEB_HOST_ARCH)
+
+%:
+	dh $@ --parallel
+
+override_dh_auto_clean:
+	rm -rf build
+
+override_dh_auto_configure:
+	mkdir -p build
+	meson --buildtype=plain --prefix=/usr --sysconfdir=/etc --libdir=lib/$(DEB_HOST_MULTIARCH) --bindir=lib/nntrainer/bin --includedir=include \
+	-Dinstall-app=true build
+
+override_dh_auto_build:
+	ninja -C build
+
+override_dh_auto_install:
+	DESTDIR=$(CURDIR)/debian/tmp ninja -C build install
+
+override_dh_install:
+	dh_install --sourcedir=debian/tmp --list-missing
