@@ -30,6 +30,7 @@
 #include <functional>
 #include <mutex>
 #include <sstream>
+#include <stdexcept>
 #include <thread>
 
 std::mutex data_lock;
@@ -103,6 +104,9 @@ void DataBuffer::UpdateData(buffer_type type, std::ifstream &file) {
     case BUF_TRAIN: {
       std::vector<unsigned int> mark;
       mark.resize(max_train);
+      file.seekg(0, std::ios_base::end);
+      int64_t file_length = file.tellg();
+
       for (unsigned int i = 0; i < max_train; ++i) {
         mark[i] = i;
       }
@@ -116,9 +120,16 @@ void DataBuffer::UpdateData(buffer_type type, std::ifstream &file) {
 
           unsigned int id = rangeRandom(0, mark.size() - 1);
           I = mark[id];
+          if (I > max_test)
+            throw std::runtime_error("Error: Test case id cannot exceed maximum number of test");
+
           mark.erase(mark.begin() + id);
 
           int64_t position = (I * input_size + I * class_num) * sizeof(float);
+
+          if (position > file_length)
+            throw std::runtime_error("Error: Cannot exceed max file size");
+
           file.seekg(position, std::ios::beg);
 
           for (unsigned int j = 0; j < input_size; ++j) {
@@ -148,6 +159,9 @@ void DataBuffer::UpdateData(buffer_type type, std::ifstream &file) {
       unsigned int I;
       std::vector<unsigned int> mark;
       mark.resize(max_val);
+      file.seekg(0, std::ios_base::end);
+      int64_t file_length = file.tellg();
+
       for (unsigned int i = 0; i < max_val; ++i) {
         mark[i] = i;
       }
@@ -160,9 +174,16 @@ void DataBuffer::UpdateData(buffer_type type, std::ifstream &file) {
 
           unsigned int id = rangeRandom(0, mark.size() - 1);
           I = mark[id];
+          if (I > max_test)
+            throw std::runtime_error("Error: Test case id cannot exceed maximum number of test");
+
           mark.erase(mark.begin() + id);
 
           int64_t position = (I * input_size + I * class_num) * sizeof(float);
+
+          if (position > file_length)
+            throw std::runtime_error("Error: Cannot exceed max file size");
+
           file.seekg(position, std::ios::beg);
 
           for (unsigned int j = 0; j < input_size; ++j) {
@@ -189,9 +210,12 @@ void DataBuffer::UpdateData(buffer_type type, std::ifstream &file) {
       }
     } break;
     case BUF_TEST: {
-      int I;
+      unsigned int I;
       std::vector<int> mark;
       mark.resize(max_test);
+      file.seekg(0, std::ios_base::end);
+      int64_t file_length = file.tellg();
+
       for (unsigned int i = 0; i < max_test; ++i) {
         mark[i] = i;
       }
@@ -204,9 +228,16 @@ void DataBuffer::UpdateData(buffer_type type, std::ifstream &file) {
 
           unsigned int id = rangeRandom(0, mark.size() - 1);
           I = mark[id];
+          if (I > max_test)
+            throw std::runtime_error("Error: Test case id cannot exceed maximum number of test");
+
           mark.erase(mark.begin() + id);
 
           int64_t position = (I * input_size + I * class_num) * sizeof(float);
+
+          if (position > file_length)
+            throw std::runtime_error("Error: Cannot exceed max file size");
+
           file.seekg(position, std::ios::beg);
 
           for (unsigned int j = 0; j < input_size; ++j) {
