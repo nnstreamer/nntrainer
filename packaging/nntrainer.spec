@@ -1,4 +1,5 @@
 %define         enable_cblas 1
+%define         use_gym 0
 %define		nntrainerapplicationdir	%{_libdir}/nntrainer/bin
 
 Name:		nntrainer
@@ -13,6 +14,16 @@ Source1001:	nntrainer.manifest
 BuildRequires:	meson >= 0.50.0
 BuildRequires:	openblas-devel
 BuildRequires:	iniparser-devel
+
+# OpenAI interface
+
+%define use_gym_option -Duse_gym=false
+
+%if 0%{?use_gym}
+BuildRequires:	gym-http-api-devel
+%define use_gym_option -Duse_gym=true
+%endif
+
 Requires:	iniparser
 Requires:	libopenblas
 
@@ -53,16 +64,10 @@ cp %{SOURCE1001} .
 %build
 CXXFLAGS=`echo $CXXFLAGS | sed -e "s|-std=gnu++11||"`
 
-# mkdir -p build
-# pushd build
-# cmake .. -DCMAKE_INSTALL_PREFIX=/usr %{enable_cblas} -DTIZEN=ON -DTARGET_ARCH=%{_arch}
-# make %{?jobs:-j%jobs}
-# popd
-
 mkdir -p build
 meson --buildtype=plain --prefix=%{_prefix} --sysconfdir=%{_sysconfdir} \
       --libdir=%{_libdir} --bindir=%{nntrainerapplicationdir} --includedir=%{_includedir}\
-      -Dinstall-app=true -Denable-tizen=true build
+      -Dinstall-app=true -Denable-tizen=true %{use_gym_option} build
 
 ninja -C build %{?_smp_mflags}
 

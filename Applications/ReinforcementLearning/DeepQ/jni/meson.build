@@ -2,18 +2,30 @@ env_dir='../../Environment'
 
 deepq_sources = [
   'main.cpp',
-  'gym_binding.cpp',
   join_paths(env_dir, 'CartPole/cartpole.cpp')
 ]
 
 deepq_inc = [
-  env_dir,
-  './'
+  env_dir
 ]
+
+deepq_deps=[
+  iniparser_dep,
+  nntrainer_dep,
+  tflite_dep,
+  jsoncpp_dep,
+  libcurl_dep
+]
+
+if get_option('use_gym')
+   message('[Applications/ReinforcementLearning] Eabling OpenAI/Gym using gym-http-api')
+   deepq_deps += dependency('gym-http-api')
+   deepq_deps += dependency('boost')
+endif
 
 executable('nntrainer_deepq',
   deepq_sources,
-  dependencies: [iniparser_dep, nntrainer_dep, tflite_dep, jsoncpp_dep, libcurl_dep],
+  dependencies: deepq_deps,
   include_directories: include_directories(env_dir),
   install: get_option('install-app'),
   install_dir: application_install_dir

@@ -84,6 +84,10 @@ if get_option('enable-blas')
   endif
 endif
 
+if get_option('use_gym')
+   add_project_arguments('-DUSE_GYM=1', language:['c','cpp'])
+endif
+
 libm_dep = cxx.find_library('m') # cmath library
 libdl_dep = cxx.find_library('dl') # DL library
 thread_dep = dependency('threads') # pthread for tensorflow-lite

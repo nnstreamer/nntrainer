@@ -67,17 +67,19 @@
 #include <iterator>
 #include <memory>
 #include <queue>
-#include "include/gym/gym.h"
 #include "neuralnet.h"
 #include "tensor.h"
 
-#ifdef USING_CUSTOM_ENV
+#ifdef USE_GYM
+#include "include/gym/gym.h"
+#define STATE Gym::State
+#define ENV Gym::Environment
+#define PTR boost::shared_ptr<ENV>
+#else
 #include "CartPole/cartpole.h"
 #define STATE Env::State
 #define ENV Env::CartPole
-#else
-#define STATE Gym::State
-#define ENV Gym::Environment
+#define PTR std::shared_ptr<ENV>
 #endif
 
 /**
@@ -207,15 +209,9 @@ static int argmax(std::vector<float> vec) {
  * @param[in] output_size Action Size : 2 for cartpole-v0
  * @retval Env object pointer
  */
-static std::shared_ptr<ENV> init_environment(int &input_size, int &output_size) {
-#ifdef USING_CUSTOM_ENV
-
-  std::shared_ptr<ENV> env(new ENV);
-  env->init();
-  input_size = env->getInputSize();
-  output_size = env->getOutputSize();
-#else
-  std::shared_ptr<Gym::Client> client;
+static PTR init_environment(int &input_size, int &output_size) {
+#ifdef USE_GYM
+  boost::shared_ptr<Gym::Client> client;
   std::string env_id = "CartPole-v0";
   try {
     client = Gym::client_create("127.0.0.1", 5000);
@@ -224,13 +220,18 @@ static std::shared_ptr<ENV> init_environment(int &input_size, int &output_size) 
     return NULL;
   }
 
-  std::shared_ptr<ENV> env = client->make(env_id);
-  std::shared_ptr<Gym::Space> action_space = env->action_space();
-  std::shared_ptr<Gym::Space> observation_space = env->observation_space();
+  boost::shared_ptr<ENV> env = client->make(env_id);
+  boost::shared_ptr<Gym::Space> action_space = env->action_space();
+  boost::shared_ptr<Gym::Space> observation_space = env->observation_space();
 
   input_size = observation_space->sample().size();
 
   output_size = action_space->discreet_n;
+#else
+  std::shared_ptr<ENV> env(new ENV);
+  env->init();
+  input_size = env->getInputSize();
+  output_size = env->getOutputSize();
 #endif
 
   return env;
@@ -256,7 +257,7 @@ int main(int argc, char **argv) {
   srand(time(NULL));
   std::deque<Experience> expQ;
 
-  std::shared_ptr<ENV> env;
+  PTR env;
 
   /**
    * @brief     Initialize Environment
@@ -307,11 +308,11 @@ int main(int argc, char **argv) {
       float r = RandomFloat(0.0, 1.0);
 
       if (r < epsilon && TRAINING) {
-#ifdef USING_CUSTOM_ENV
-        action = env->sample();
-#else
-        std::shared_ptr<Gym::Space> action_space = env->action_space();
+#ifdef USE_GYM
+        boost::shared_ptr<Gym::Space> action_space = env->action_space();
         action = action_space->sample();
+#else
+        action = env->sample();
 #endif
         std::cout << "test result random action : " << action[0] << "\n";
       } else {
