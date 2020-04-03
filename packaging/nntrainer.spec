@@ -14,6 +14,7 @@ Source1001:	nntrainer.manifest
 BuildRequires:	meson >= 0.50.0
 BuildRequires:	openblas-devel
 BuildRequires:	iniparser-devel
+BuildRequires:	gtest-devel
 
 # OpenAI interface
 
@@ -85,6 +86,7 @@ DESTDIR=%{buildroot} ninja -C build %{?_smp_mflags} install
 %{_includedir}/nntrainer/layers.h
 %{_includedir}/nntrainer/neuralnet.h
 %{_includedir}/nntrainer/tensor.h
+%{_includedir}/nntrainer/nntrainer.h
 %{_libdir}/*.a
 %{_libdir}/pkgconfig/nntrainer.pc
 

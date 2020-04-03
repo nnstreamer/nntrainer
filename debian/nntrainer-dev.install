@@ -2,5 +2,6 @@
 /usr/include/nntrainer/layers.h
 /usr/include/nntrainer/neuralnet.h
 /usr/include/nntrainer/tensor.h
+/usr/include/nntrainer/nntrainer.h
 /usr/lib/*/pkgconfig/*.pc
 /usr/lib/*/*.a

@@ -118,3 +118,10 @@ if get_option('enable-app')
   tflite_dep = dependency('tensorflow-lite', required: true)
   subdir('Applications')
 endif
+
+# Build api
+subdir('api')
+
+if get_option('enable-test')
+   subdir('test')
+endif
