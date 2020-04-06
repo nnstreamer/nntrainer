@@ -77,6 +77,26 @@ int ml_nnmodel_construct(ml_nnmodel_h *model) {
   return status;
 }
 
+int ml_nnmodel_construct_with_conf(const char *model_conf, ml_nnmodel_h *model) {
+  int status = ML_ERROR_NONE;
+  ml_nnmodel *nnmodel;
+
+  std::ifstream conf_file(model_conf);
+  if (!conf_file.good()) {
+    std::cerr << "Error: Cannot open model configuration file : " << model_conf << std::endl;
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
+  status = ml_nnmodel_construct(model);
+
+  nnmodel = (ml_nnmodel *)(*model);
+
+  Network::NeuralNetwork *nn = (nnmodel)->network;
+
+  nn->setConfig(model_conf);
+  return status;
+}
+
 int ml_nnmodel_destruct(ml_nnmodel_h model) {
   int status = ML_ERROR_NONE;
   ml_nnmodel *nnmodel;
