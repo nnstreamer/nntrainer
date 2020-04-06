@@ -47,6 +47,32 @@ TEST(nntrainer_nnmodel_construct_deconstruct, nntrainer_02_n) {
 }
 
 /**
+ * @brief Neural Network Model Construct wit Configuration File Test
+ * @return 0 success, -EINVAL if failed.
+ */
+TEST(nntrainer_nnmodel_construct_deconstruct, nntrainer_04_n) {
+  ml_nnmodel_h handle;
+  const char *model_conf = "/test/cannot_find.ini";
+  int status;
+  status = ml_nnmodel_construct_with_conf(model_conf, &handle);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+}
+
+/**
+ * @brief Neural Network Model Construct wit Configuration File Test
+ * @return 0 success, -EINVAL if failed.
+ */
+TEST(nntrainer_nnmodel_construct_deconstruct, nntrainer_05_p) {
+  ml_nnmodel_h handle = NULL;
+  const char *model_conf = "../test/tizen_capi/test_conf.ini";
+  int status;
+  status = ml_nnmodel_construct_with_conf(model_conf, &handle);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = ml_nnmodel_destruct(handle);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
  * @brief Main gtest
  */
 int main(int argc, char **argv) {

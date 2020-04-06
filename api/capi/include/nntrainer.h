@@ -39,13 +39,13 @@ extern "C" {
 
 /**
  * @brief A handle of an NNTrainer model.
- * @since_tizen 5.5
+ * @since_tizen 6.x
  */
 typedef void *ml_nnmodel_h;
 
 /**
  * @brief Enumeration for the error codes of NNTrainer.
- * @since_tizen 5.5
+ * @since_tizen 6.x
  */
 typedef enum {
   ML_ERROR_NONE = TIZEN_ERROR_NONE,                                   /**< Success! */
@@ -62,7 +62,7 @@ typedef enum {
 /**
  * @brief Constructs the neural network model.
  * @details Use this function to create Neural Netowrk Model.
- * @since_tizen 5.5
+ * @since_tizen 6.x
  * @param[in] model The NNTrainer Model handler from the given description.
  * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
@@ -71,9 +71,22 @@ typedef enum {
 int ml_nnmodel_construct(ml_nnmodel_h *model);
 
 /**
+ * @brief Constructs the neural network model with configuration file.
+ * @details Use this function to create Neural Netowrk Model.
+ * @since_tizen 6.x
+ * @param[in] model_conf The location of nntrainer model configuration file.
+ * @param[in] model The NNTrainer Model handler from the given description.
+ * @return @c 0 on success. Otherwise a negative error value.
+ * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
+ * @retval #ML_ERROR_CANNOT_ASSIGN_ADDRESS Cannot assign object.
+ */
+int ml_nnmodel_construct_with_conf(const char *model_conf, ml_nnmodel_h *model);
+
+/**
  * @brief Destructs the neural network model.
  * @details Use this function to delete Neural Netowrk Model.
- * @since_tizen 5.5
+ * @since_tizen 6.x
  * @param[in] model The NNTrainer model handler from the given description.
  * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
