@@ -1,6 +1,7 @@
 %define         enable_cblas 1
 %define         use_gym 0
 %define		nntrainerapplicationdir	%{_libdir}/nntrainer/bin
+%define         test_script $(pwd)/packaging/run_unittests.sh
 
 Name:		nntrainer
 Summary:	Software framework for traning neural networks
@@ -71,6 +72,10 @@ meson --buildtype=plain --prefix=%{_prefix} --sysconfdir=%{_sysconfdir} \
       -Dinstall-app=true -Denable-tizen=true %{use_gym_option} build
 
 ninja -C build %{?_smp_mflags}
+
+%if 0%{?unit_test}
+   bash %{test_script} ./test
+%endif
 
 %install
 DESTDIR=%{buildroot} ninja -C build %{?_smp_mflags} install
