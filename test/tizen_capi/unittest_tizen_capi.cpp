@@ -24,9 +24,8 @@
 
 /**
  * @brief Neural Network Model Contruct / Destruct Test (possitive test )
- * @return 0 success, -EADDRNOTAVIL if falied, -EFAULT if failed, -EVALID if failed.
  */
-TEST(nntrainer_nnmodel_construct_deconstruct, nntrainer_01_p) {
+TEST(nntrainer_capi_nnmodel, construct_destruct_01_p) {
   ml_nnmodel_h handle;
   int status;
   status = ml_nnmodel_construct(&handle);
@@ -37,9 +36,8 @@ TEST(nntrainer_nnmodel_construct_deconstruct, nntrainer_01_p) {
 
 /**
  * @brief Neural Network Model Destruct Test (negative test )
- * @return 0 success, -EINVAL if failed.
  */
-TEST(nntrainer_nnmodel_construct_deconstruct, nntrainer_02_n) {
+TEST(nntrainer_capi_nnmodel, construct_destruct_02_n) {
   ml_nnmodel_h handle = NULL;
   int status;
   status = ml_nnmodel_destruct(handle);
@@ -48,9 +46,8 @@ TEST(nntrainer_nnmodel_construct_deconstruct, nntrainer_02_n) {
 
 /**
  * @brief Neural Network Model Construct wit Configuration File Test
- * @return 0 success, -EINVAL if failed.
  */
-TEST(nntrainer_nnmodel_construct_deconstruct, nntrainer_04_n) {
+TEST(nntrainer_capi_nnmodel, construct_destruct_03_n) {
   ml_nnmodel_h handle;
   const char *model_conf = "/test/cannot_find.ini";
   int status;
@@ -60,11 +57,10 @@ TEST(nntrainer_nnmodel_construct_deconstruct, nntrainer_04_n) {
 
 /**
  * @brief Neural Network Model Construct wit Configuration File Test
- * @return 0 success, -EINVAL if failed.
  */
-TEST(nntrainer_nnmodel_construct_deconstruct, nntrainer_05_p) {
+TEST(nntrainer_capi_nnmodel, construct_destruct_04_p) {
   ml_nnmodel_h handle = NULL;
-  const char *model_conf = "./test/tizen_capi/test_conf.ini";
+  const char *model_conf = "../test/tizen_capi/test_conf.ini";
   int status;
   status = ml_nnmodel_construct_with_conf(model_conf, &handle);
   EXPECT_EQ(status, ML_ERROR_NONE);

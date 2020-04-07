@@ -16,6 +16,7 @@ if [ -f "$1" ]; then
 elif [ -d "$1" ]; then
     testlist=(`find "$1" -type f -executable -name "unittest_*"`)
     for t in ${testlist}; do
+	echo "running: ${t} @$(pwd)"
 	${t}
 	ret=$?
 	if [ $ret -ne 0 ]; then
@@ -25,3 +26,4 @@ elif [ -d "$1" ]; then
 fi
 
 popd
+exit $ret
