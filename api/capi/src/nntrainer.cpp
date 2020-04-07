@@ -12,7 +12,7 @@
  * limitations under the License.
  */
 /**
- * @file nntrainer.c
+ * @file nntrainer.cpp
  * @date 02 April 2020
  * @brief NNTrainer C-API Wrapper.
  *        This allows to construct and control NNTrainer Model.
@@ -24,6 +24,7 @@
 #include <nntrainer.h>
 #include <string.h>
 #include "neuralnet.h"
+#include "nntrainer_log.h"
 
 #define ML_NNTRAINER_MAGIC 0x777F888F
 
@@ -36,17 +37,17 @@ typedef struct {
   Network::NeuralNetwork *network;
 } ml_nnmodel;
 
-#define ML_NNTRAINER_CHECK_MODEL_VALIDATION(nnmodel, model)                       \
-  do {                                                                            \
-    if (!model) {                                                                 \
-      std::cerr << "Error: Invalid Parameter : model is Empty" << std::endl;      \
-      return ML_ERROR_INVALID_PARAMETER;                                          \
-    }                                                                             \
-    nnmodel = (ml_nnmodel *)model;                                                \
-    if (nnmodel->magic != ML_NNTRAINER_MAGIC) {                                   \
-      std::cerr << "Error: Invalid Parameter : nnmodel is invalid." << std::endl; \
-      return ML_ERROR_INVALID_PARAMETER;                                          \
-    }                                                                             \
+#define ML_NNTRAINER_CHECK_MODEL_VALIDATION(nnmodel, model)      \
+  do {                                                           \
+    if (!model) {                                                \
+      ml_loge("Error: Invalid Parameter : model is empty.");     \
+      return ML_ERROR_INVALID_PARAMETER;                         \
+    }                                                            \
+    nnmodel = (ml_nnmodel *)model;                               \
+    if (nnmodel->magic != ML_NNTRAINER_MAGIC) {                  \
+      ml_loge("Error: Invalid Parameter : nnmodel is invalid."); \
+      return ML_ERROR_INVALID_PARAMETER;                         \
+    }                                                            \
   } while (0)
 
 /**
@@ -62,7 +63,7 @@ static int nn_object(ml_nnmodel_h *model) {
   try {
     nnmodel->network = new Network::NeuralNetwork();
   } catch (const char *e) {
-    std::cerr << "Error: heap exception: " << e << std::endl;
+    ml_loge("Error: heap exception: %s", e);
     status = ML_ERROR_CANNOT_ASSIGN_ADDRESS;
     delete nnmodel;
   }
@@ -83,7 +84,7 @@ int ml_nnmodel_construct_with_conf(const char *model_conf, ml_nnmodel_h *model) 
 
   std::ifstream conf_file(model_conf);
   if (!conf_file.good()) {
-    std::cerr << "Error: Cannot open model configuration file : " << model_conf << std::endl;
+    ml_loge("Error: Cannot open model configuration file : %s", model_conf);
     return ML_ERROR_INVALID_PARAMETER;
   }
 

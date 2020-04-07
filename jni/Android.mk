@@ -39,6 +39,8 @@ LOCAL_CXXFLAGS      += -std=c++11 -frtti -fexceptions
 LOCAL_LDFLAGS       += -fuse-ld=bfd
 LOCAL_MODULE_TAGS   := optional
 
+LOCAL_LDLIBS        := -llog
+
 LOCAL_MODULE        := nntrainer
 LOCAL_SRC_FILES     := $(NNTRAINER_SRCS) $(INIPARSER_SRCS)
 LOCAL_C_INCLUDES    += $(NNTRAINER_INCLUDES) $(INIPARSER_INCLUDES)

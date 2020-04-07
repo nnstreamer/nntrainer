@@ -26,6 +26,7 @@
 #include <stdio.h>
 #include <cstring>
 #include <sstream>
+#include "include/nntrainer_log.h"
 
 #ifdef USE_CUBLAS
 #include <helper_cuda.h>
@@ -40,7 +41,7 @@ void TensorDim::setTensorDim(std::string input_shape) {
   auto words_end = std::sregex_iterator();
   int cur_dim = std::distance(words_begin, words_end);
   if (cur_dim > 4) {
-    std::cout << "Tensor Dimension should be less than 4" << std::endl;
+    ml_loge("Tensor Dimension should be less than 4");
     exit(0);
   }
   int cn = 0;

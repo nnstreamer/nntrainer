@@ -95,6 +95,7 @@ LOCAL_LDFLAGS += -fopenmp
 LOCAL_MODULE_TAGS := optional
 LOCAL_ARM_MODE := arm
 LOCAL_MODULE := nntrainer_knn
+LOCAL_LDLIBS := -llog
 
 LOCAL_SRC_FILES := main.cpp bitmap_helpers.cpp
 

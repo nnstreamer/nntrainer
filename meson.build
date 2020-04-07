@@ -17,6 +17,7 @@ build_platform = ''
 if get_option('enable-tizen')
   # Pass __TIZEN__ to the compiler
   build_platform = 'tizen'
+  add_project_arguments('-D__TIZEN__=1', language:['c','cpp'])
 endif
 
 warning_flags = [
@@ -86,6 +87,10 @@ endif
 
 if get_option('use_gym')
    add_project_arguments('-DUSE_GYM=1', language:['c','cpp'])
+endif
+
+if get_option('enable-logging')
+   add_project_arguments('-D__LOGGING__=1', language:['c','cpp'])
 endif
 
 libm_dep = cxx.find_library('m') # cmath library
