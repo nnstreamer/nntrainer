@@ -24,6 +24,7 @@
 #include "include/neuralnet.h"
 #include <assert.h>
 #include <stdio.h>
+#include <array>
 #include <cmath>
 #include <sstream>
 #include "include/nntrainer_log.h"
@@ -54,64 +55,6 @@ bool caseInSensitiveCompare(std::string &str1, std::string &str2) {
 }
 
 namespace Network {
-
-/**
- * @brief     Optimizer String from configure file
- *            "sgd"  : Stochestic Gradient Descent
- *            "adam" : Adaptive Moment Estimation
- */
-std::vector<std::string> Optimizer_string = {"sgd", "adam", "unkown"};
-
-/**
- * @brief     Cost Function String from configure file
- *            "msr"  : Mean Squared Roots
- *            "caterogical" : Categorical Cross Entropy
- */
-std::vector<std::string> Cost_string = {"msr", "cross", "unkown"};
-
-/**
- * @brief     Network Type String from configure file
- *            "knn"  : K Neearest Neighbor
- *            "regression" : Logistic Regression
- *            "neuralnet" : Neural Network
- */
-std::vector<std::string> NetworkType_string = {"knn", "regression", "neuralnet", "unkown"};
-
-/**
- * @brief     Activation Type String from configure file
- *            "tanh"  : tanh
- *            "sigmoid" : sigmoid
- *            "relu" : relu
- */
-std::vector<std::string> activation_string = {"tanh", "sigmoid", "relu", "softmax", "unkown"};
-
-/**
- * @brief     Layer Type String from configure file
- *            "InputLayer"  : InputLayer Object
- *            "FullyConnectedLayer" : Fully Connected Layer Object
- *            "OutputLayer" : Output Layer Object
- */
-std::vector<std::string> layer_string = {"InputLayer", "FullyConnectedLayer", "OutputLayer", "BatchNormalizationLayer",
-                                         "Unkown"};
-
-/**
- * @brief     Weight Initialization Type String from configure file
- *            "lecun_normal"  : LeCun Normal Initialization
- *            "lecun_uniform"  : LeCun Uniform Initialization
- *            "xavier_normal"  : Xavier Normal Initialization
- *            "xavier_uniform"  : Xavier Uniform Initialization
- *            "he_normal"  : He Normal Initialization
- *            "he_uniform"  : He Uniform Initialization
- */
-std::vector<std::string> weightini_string = {"lecun_normal", "lecun_uniform", "xavier_normal", "xavier_uniform",
-                                             "he_normal",    "he_uniform",    "unkown"};
-
-/**
- * @brief     Weight Decay String from configure file
- *            "L2Norm"  : squared norm regularization
- *            "Regression" : Regression
- */
-std::vector<std::string> weight_decay_string = {"l2norm", "regression", "unkown"};
 
 /**
  * @brief     Check Existance of File
@@ -150,6 +93,66 @@ std::vector<std::string> parseLayerName(std::string ll) {
 unsigned int parseType(std::string ll, input_type t) {
   int ret;
   unsigned int i;
+
+  /**
+   * @brief     Optimizer String from configure file
+   *            "sgd"  : Stochestic Gradient Descent
+   *            "adam" : Adaptive Moment Estimation
+   */
+  std::array<std::string, 150> Optimizer_string = {"sgd", "adam", "unknown"};
+
+  /**
+   * @brief     Cost Function String from configure file
+   *            "msr"  : Mean Squared Roots
+   *            "caterogical" : Categorical Cross Entropy
+   */
+  std::array<std::string, 150> Cost_string = {"msr", "cross", "unknown"};
+
+  /**
+   * @brief     Network Type String from configure file
+   *            "knn"  : K Neearest Neighbor
+   *            "regression" : Logistic Regression
+   *            "neuralnet" : Neural Network
+   */
+  std::array<std::string, 150> NetworkType_string = {"knn", "regression", "neuralnet", "unknown"};
+
+  /**
+   * @brief     Activation Type String from configure file
+   *            "tanh"  : tanh
+   *            "sigmoid" : sigmoid
+   *            "relu" : relu
+   *            "softmax" : softmax
+   */
+  std::array<std::string, 150> activation_string = {"tanh", "sigmoid", "relu", "softmax", "unknown"};
+
+  /**
+   * @brief     Layer Type String from configure file
+   *            "InputLayer"  : InputLayer Object
+   *            "FullyConnectedLayer" : Fully Connected Layer Object
+   *            "OutputLayer" : Output Layer Object
+   *            "BatchNormalizationLayer" : Batch Normalization Layer
+   */
+  std::array<std::string, 150> layer_string = {"InputLayer", "FullyConnectedLayer", "OutputLayer",
+                                               "BatchNormalizationLayer", "Unknown"};
+
+  /**
+   * @brief     Weight Initialization Type String from configure file
+   *            "lecun_normal"  : LeCun Normal Initialization
+   *            "lecun_uniform"  : LeCun Uniform Initialization
+   *            "xavier_normal"  : Xavier Normal Initialization
+   *            "xavier_uniform"  : Xavier Uniform Initialization
+   *            "he_normal"  : He Normal Initialization
+   *            "he_uniform"  : He Uniform Initialization
+   */
+  std::array<std::string, 150> weightini_string = {"lecun_normal", "lecun_uniform", "xavier_normal", "xavier_uniform",
+                                                   "he_normal",    "he_uniform",    "unknown"};
+
+  /**
+   * @brief     Weight Decay String from configure file
+   *            "L2Norm"  : squared norm regularization
+   *            "Regression" : Regression
+   */
+  std::array<std::string, 150> weight_decay_string = {"l2norm", "regression", "unknown"};
 
   switch (t) {
     case TOKEN_OPT:
@@ -229,7 +232,7 @@ void NeuralNetwork::init() {
   dictionary *ini = iniparser_load(inifile.c_str());
   std::vector<int> HiddenSize;
 
-  char unknown[] = "Unkown";
+  char unknown[] = "Unknown";
   char model_name[] = "model.bin";
 
   if (ini == NULL) {
