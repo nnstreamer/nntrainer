@@ -24,6 +24,7 @@
 #include "include/layers.h"
 #include <assert.h>
 #include <random>
+#include "include/nntrainer_log.h"
 
 /**
  * @brief     derivative softmax function for Tensor Type
@@ -248,7 +249,7 @@ namespace Layers {
 
 void Layer::setActivation(acti_type acti) {
   if (acti == ACT_UNKNOWN) {
-    std::cout << "have to specify activation function" << std::endl;
+    ml_loge("have to specify activation function");
     exit(0);
   }
   activation_type = acti;
@@ -472,7 +473,7 @@ Tensors::Tensor OutputLayer::forwarding(Tensors::Tensor input, Tensors::Tensor o
       } else if (activation_type == ACT_SOFTMAX) {
         l = (Y2.multiply(Y.apply(log_float))).multiply(-1.0 / (Y2.getWidth())).sum();
       } else {
-        std::cout << "Only support sigmoid & softmax for cross entropy loss" << std::endl;
+        ml_loge("Only support sigmoid & softmax for cross entropy loss");
         exit(0);
       }
 
@@ -580,7 +581,7 @@ Tensors::Tensor OutputLayer::backwarding(Tensors::Tensor label, int iteration) {
         dJdB = Y.subtract(Y2).multiply(1.0 / Y.getWidth());
         l = (Y2.multiply(Y.apply(log_float))).multiply(-1.0 / (Y2.getWidth())).sum();
       } else {
-        std::cout << "Only support sigmoid & softmax for cross entropy loss" << std::endl;
+        ml_loge("Only support sigmoid & softmax for cross entropy loss");
         exit(0);
       }
 

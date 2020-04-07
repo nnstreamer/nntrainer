@@ -74,7 +74,7 @@ meson --buildtype=plain --prefix=%{_prefix} --sysconfdir=%{_sysconfdir} \
 ninja -C build %{?_smp_mflags}
 
 %if 0%{?unit_test}
-   bash %{test_script} ./test
+bash %{test_script} ./build/test
 %endif
 
 %install
@@ -92,6 +92,8 @@ DESTDIR=%{buildroot} ninja -C build %{?_smp_mflags} install
 %{_includedir}/nntrainer/neuralnet.h
 %{_includedir}/nntrainer/tensor.h
 %{_includedir}/nntrainer/nntrainer.h
+%{_includedir}/nntrainer/nntrainer_log.h
+%{_includedir}/nntrainer/nntrainer_logger.h
 %{_libdir}/*.a
 %{_libdir}/pkgconfig/nntrainer.pc
 

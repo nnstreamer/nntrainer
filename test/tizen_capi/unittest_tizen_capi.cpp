@@ -64,7 +64,7 @@ TEST(nntrainer_nnmodel_construct_deconstruct, nntrainer_04_n) {
  */
 TEST(nntrainer_nnmodel_construct_deconstruct, nntrainer_05_p) {
   ml_nnmodel_h handle = NULL;
-  const char *model_conf = "../test/tizen_capi/test_conf.ini";
+  const char *model_conf = "./test/tizen_capi/test_conf.ini";
   int status;
   status = ml_nnmodel_construct_with_conf(model_conf, &handle);
   EXPECT_EQ(status, ML_ERROR_NONE);

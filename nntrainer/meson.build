@@ -17,14 +17,17 @@ nntrainer_sources = [
   'src/neuralnet.cpp',
   'src/tensor.cpp',
   'src/layers.cpp',
-  'src/databuffer.cpp'
+  'src/databuffer.cpp',
+  'src/nntrainer_logger.cpp'
 ]
 
 nntrainer_headers = [
   'include/neuralnet.h',
   'include/tensor.h',
   'include/layers.h',
-  'include/databuffer.h'
+  'include/databuffer.h',
+  'include/nntrainer_log.h',
+  'include/nntrainer_logger.h'
 ]
 
 

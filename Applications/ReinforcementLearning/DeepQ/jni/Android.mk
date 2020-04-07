@@ -31,6 +31,7 @@ LOCAL_LDFLAGS += -fopenmp
 LOCAL_MODULE_TAGS := optional
 LOCAL_ARM_MODE := arm
 LOCAL_MODULE := nntrainer_deepq
+LOCAL_LDLIBS := -llog
 
 LOCAL_SRC_FILES := main.cpp $(ENVDIR)/CartPole/cartpole.cpp
 

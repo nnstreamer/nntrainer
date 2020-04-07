@@ -26,6 +26,7 @@
 #include <stdio.h>
 #include <cmath>
 #include <sstream>
+#include "include/nntrainer_log.h"
 #include "iniparser.h"
 
 /**
@@ -266,7 +267,7 @@ void NeuralNetwork::init() {
   opt.epsilon = iniparser_getdouble(ini, "Network:epsilon", 0.0);
 
   for (unsigned int i = 0; i < layers_name.size(); i++)
-    std::cout << layers_name[i] << std::endl;
+    ml_logi("%s", layers_name[i].c_str());
 
   loss = 100000.0;
 
@@ -298,8 +299,9 @@ void NeuralNetwork::init() {
     t = (Layers::layer_type)parseType(l_type, TOKEN_LAYER);
     id = iniparser_getint(ini, (layers_name[i] + ":Id").c_str(), 0);
     b_zero = iniparser_getboolean(ini, (layers_name[i] + ":Bias_zero").c_str(), true);
-    std::cout << id << ": " << l_type << " "
-              << " " << HiddenSize[i] << " " << b_zero << " " << std::endl;
+    std::stringstream ss;
+    ml_logi("%d : %s %d %d", id, l_type.c_str(), HiddenSize[i], b_zero);
+
     switch (t) {
       case Layers::LAYER_IN: {
         Layers::InputLayer *inputlayer = new (Layers::InputLayer);
@@ -440,6 +442,6 @@ void NeuralNetwork::readModel() {
   for (unsigned int i = 0; i < layers.size(); i++)
     layers[i]->read(modelFile);
   modelFile.close();
-  std::cout << "read model file \n";
+  ml_logi("read modelfile: %s", model.c_str());
 }
 }

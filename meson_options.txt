@@ -5,4 +5,5 @@ option('install-app', type: 'boolean', value: true)
 option('use_gym', type: 'boolean', value: false)
 option('enable-capi', type: 'boolean', value: true)
 option('enable-test', type: 'boolean', value: true)
+option('enable-logging', type: 'boolean', value: true)
 
