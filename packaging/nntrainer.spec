@@ -74,7 +74,7 @@ meson --buildtype=plain --prefix=%{_prefix} --sysconfdir=%{_sysconfdir} \
 ninja -C build %{?_smp_mflags}
 
 %if 0%{?unit_test}
-bash %{test_script} ./build/test
+bash %{test_script} ./test
 %endif
 
 %install
