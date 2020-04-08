@@ -93,7 +93,6 @@ std::vector<std::string> parseLayerName(std::string ll) {
 unsigned int parseType(std::string ll, input_type t) {
   int ret;
   unsigned int i;
-
   /**
    * @brief     Optimizer String from configure file
    *            "sgd"  : Stochestic Gradient Descent
@@ -130,7 +129,6 @@ unsigned int parseType(std::string ll, input_type t) {
    *            "InputLayer"  : InputLayer Object
    *            "FullyConnectedLayer" : Fully Connected Layer Object
    *            "OutputLayer" : Output Layer Object
-   *            "BatchNormalizationLayer" : Batch Normalization Layer
    */
   std::array<std::string, 150> layer_string = {"InputLayer", "FullyConnectedLayer", "OutputLayer",
                                                "BatchNormalizationLayer", "Unknown"};
@@ -231,6 +229,7 @@ void NeuralNetwork::init() {
   std::string inifile = config;
   dictionary *ini = iniparser_load(inifile.c_str());
   std::vector<int> HiddenSize;
+  OptParam popt;
 
   char unknown[] = "Unknown";
   char model_name[] = "model.bin";
@@ -245,29 +244,31 @@ void NeuralNetwork::init() {
   decay_rate = iniparser_getdouble(ini, "Network:Decay_rate", 0.0);
   decay_steps = iniparser_getint(ini, "Network:Decay_steps", -1);
 
-  opt.learning_rate = learning_rate;
-  opt.decay_steps = decay_steps;
-  opt.decay_rate = decay_rate;
+  popt.learning_rate = learning_rate;
+  popt.decay_steps = decay_steps;
+  popt.decay_rate = decay_rate;
   epoch = iniparser_getint(ini, "Network:Epoch", 100);
-  opt.type = (Layers::opt_type)parseType(iniparser_getstring(ini, "Network:Optimizer", unknown), TOKEN_OPT);
+  opt.setType((OptType)parseType(iniparser_getstring(ini, "Network:Optimizer", unknown), TOKEN_OPT));
   cost = (Layers::cost_type)parseType(iniparser_getstring(ini, "Network:Cost", unknown), TOKEN_COST);
   weightini =
       (Layers::weightIni_type)parseType(iniparser_getstring(ini, "Network:WeightIni", unknown), TOKEN_WEIGHTINI);
 
-  opt.weight_decay.type = (Layers::weight_decay_type)parseType(
-      iniparser_getstring(ini, "Network:Weight_Decay", unknown), TOKEN_WEIGHT_DECAY);
+  popt.weight_decay.type =
+      (WeightDecayType)parseType(iniparser_getstring(ini, "Network:Weight_Decay", unknown), TOKEN_WEIGHT_DECAY);
 
-  opt.weight_decay.lambda = 0.0;
-  if (opt.weight_decay.type == Layers::WEIGHT_DECAY_L2NORM) {
-    opt.weight_decay.lambda = iniparser_getdouble(ini, "Network:Weight_Decay_Lambda", 0.0);
+  popt.weight_decay.lambda = 0.0;
+  if (popt.weight_decay.type == WeightDecayType::l2norm) {
+    popt.weight_decay.lambda = iniparser_getdouble(ini, "Network:Weight_Decay_Lambda", 0.0);
   }
 
   model = iniparser_getstring(ini, "Network:Model", model_name);
   batchsize = iniparser_getint(ini, "Network:minibatch", 1);
 
-  opt.beta1 = iniparser_getdouble(ini, "Network:beta1", 0.0);
-  opt.beta2 = iniparser_getdouble(ini, "Network:beta2", 0.0);
-  opt.epsilon = iniparser_getdouble(ini, "Network:epsilon", 0.0);
+  popt.beta1 = iniparser_getdouble(ini, "Network:beta1", 0.0);
+  popt.beta2 = iniparser_getdouble(ini, "Network:beta2", 0.0);
+  popt.epsilon = iniparser_getdouble(ini, "Network:epsilon", 0.0);
+
+  opt.setOptParam(popt);
 
   for (unsigned int i = 0; i < layers_name.size(); i++)
     ml_logi("%s", layers_name[i].c_str());

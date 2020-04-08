@@ -27,6 +27,7 @@
 #include <iostream>
 #include <vector>
 #include "layers.h"
+#include "optimizer.h"
 #include "tensor.h"
 
 /**
@@ -97,7 +98,7 @@ class NeuralNetwork {
     * @brief     Get Optimizer
     * @retval    Optimizer
     */
-  Layers::Optimizer getOptimizer() { return opt; };
+  Optimizer getOptimizer() { return opt; };
 
   /**
     * @brief     Get Learing rate
@@ -242,7 +243,7 @@ class NeuralNetwork {
   /**
    * @brief     Optimizer
    */
-  Layers::Optimizer opt;
+  Optimizer opt;
 
   /**
    * @brief     Network Type
