@@ -94,6 +94,8 @@ DESTDIR=%{buildroot} ninja -C build %{?_smp_mflags} install
 %{_includedir}/nntrainer/nntrainer.h
 %{_includedir}/nntrainer/nntrainer_log.h
 %{_includedir}/nntrainer/nntrainer_logger.h
+%{_includedir}/nntrainer/optimizer.h
+%{_includedir}/nntrainer/util_func.h
 %{_libdir}/*.a
 %{_libdir}/pkgconfig/nntrainer.pc
 

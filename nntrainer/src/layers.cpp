@@ -25,162 +25,7 @@
 #include <assert.h>
 #include <random>
 #include "include/nntrainer_log.h"
-
-/**
- * @brief     derivative softmax function for Tensor Type
- * @param[in] x Tensor
- * @retVal    Tensor
- */
-Tensors::Tensor softmaxPrime(Tensors::Tensor x) {
-  int batch = x.getBatch();
-  int width = x.getWidth();
-  int height = x.getHeight();
-  assert(height == 1);
-
-  Tensors::Tensor PI = Tensors::Tensor(batch, height, width);
-
-  float *xp = x.getData();
-  float *pp = PI.getData();
-
-  for (int k = 0; k < batch; ++k) {
-    int K = k * height * width;
-    for (int i = 0; i < height; ++i) {
-      int I = K + i * width;
-      for (int j = 0; j < width; ++j) {
-        float sum = 0.0;
-        for (int l = 0; l < width; ++l) {
-          if (j == l) {
-            sum += xp[I + l] * (1.0 - xp[I + j]);
-          } else {
-            sum += xp[I + l] * xp[I + j] * -1.0;
-          }
-        }
-        pp[I + j] = sum;
-      }
-    }
-  }
-  return PI;
-}
-
-/**
- * @brief       Calculate softmax for Tensor Type
- * @param[in] t Tensor
- * @retval      Tensor
- */
-Tensors::Tensor softmax(Tensors::Tensor t) {
-  int batch = t.getBatch();
-  int height = t.getHeight();
-  int width = t.getWidth();
-  float *dp;
-  float *rp;
-  float *tp;
-
-  Tensors::Tensor result(batch, height, width);
-  Tensors::Tensor divisor(batch, height, 1);
-
-  dp = divisor.getData();
-  rp = result.getData();
-  tp = t.getData();
-
-  divisor.setZero();
-
-  for (int k = 0; k < batch; k++) {
-    int index = k * height;
-    for (int i = 0; i < height; i++) {
-      for (int j = 0; j < width; j++) {
-        dp[index + i] += exp(tp[k * height * width + i * width + j]);
-      }
-    }
-  }
-
-  for (int k = 0; k < batch; ++k) {
-    int index = k * height;
-    for (int i = 1; i < height; ++i) {
-      dp[index] += dp[index + i];
-    }
-  }
-
-  for (int k = 0; k < batch; k++) {
-    int index = k * height;
-    for (int i = 0; i < height; i++) {
-      for (int j = 0; j < width; j++) {
-        int id = k * height * width + i * width + j;
-        rp[id] = exp(tp[id]) / dp[index];
-      }
-    }
-  }
-
-  return result;
-}
-
-/**
- * @brief     random function
- * @param[in] x float
- */
-float random(float x) { return (float)(rand() % 10000 + 1) / 10000 - 0.5; }
-
-/**
- * @brief     sqrt function for float type
- * @param[in] x float
- */
-float sqrt_float(float x) { return (float)(sqrt(x)); }
-
-/**
- * @brief     log function for float type
- * @param[in] x float
- */
-float log_float(float x) { return (float)(log(x)); }
-
-/**
- * @brief     sigmoid activation function
- * @param[in] x input
- */
-float sigmoid(float x) { return 1 / (1 + exp(-x)); }
-
-/**
- * @brief     derivative sigmoid function
- * @param[in] x input
- */
-float sigmoidePrime(float x) { return (float)(1.0 / ((1 + exp(-x)) * (1.0 + 1.0 / (exp(-x) + 0.0000001)))); }
-
-/**
- * @brief     tanh function for float type
- * @param[in] x input
- */
-float tanh_float(float x) { return (float)tanh(x); }
-
-/**
- * @brief     derivative tanh function
- * @param[in] x input
- */
-float tanhPrime(float x) {
-  float th = (float)tanh(x);
-  return 1.0 - th * th;
-}
-
-/**
- * @brief     relu activation function
- * @param[in] x input
- */
-float Relu(float x) {
-  if (x <= 0.0) {
-    return 0.0;
-  } else {
-    return x;
-  }
-}
-
-/**
- * @brief     derivative relu function
- * @param[in] x input
- */
-float ReluPrime(float x) {
-  if (x <= 0.0) {
-    return 0.0;
-  } else {
-    return 1.0;
-  }
-}
+#include "include/util_func.h"
 
 static Tensors::Tensor WeightInitialization(unsigned int width, unsigned int height, Layers::weightIni_type init_type) {
   std::random_device rd;
@@ -271,7 +116,15 @@ void Layer::setActivation(acti_type acti) {
   }
 }
 
-void InputLayer::setOptimizer(Optimizer opt) { this->opt = opt; }
+void Layer::setOptimizer(Optimizer opt) {
+  this->opt = opt;
+  this->opt.initialize(height, width, true);
+}
+
+void InputLayer::setOptimizer(Optimizer opt) {
+  this->opt = opt;
+  this->opt.initialize(height, width, false);
+}
 
 void InputLayer::copy(Layer *l) {
   InputLayer *from = static_cast<InputLayer *>(l);
@@ -316,20 +169,6 @@ void FullyConnectedLayer::initialize(int b, int h, int w, int id, bool init_zero
   }
 }
 
-void FullyConnectedLayer::setOptimizer(Optimizer opt) {
-  this->opt = opt;
-  if (opt.type == OPT_ADAM) {
-    WM = Tensors::Tensor(height, width);
-    WV = Tensors::Tensor(height, width);
-    WM.setZero();
-    WV.setZero();
-    BM = Tensors::Tensor(1, width);
-    BV = Tensors::Tensor(1, width);
-    BM.setZero();
-    BV.setZero();
-  }
-}
-
 Tensors::Tensor FullyConnectedLayer::forwarding(Tensors::Tensor input) {
   Input = input;
   hidden = Input.dot(Weight).add(Bias);
@@ -368,42 +207,11 @@ Tensors::Tensor FullyConnectedLayer::backwarding(Tensors::Tensor derivative, int
 
   dJdB = derivative.multiply(hidden.apply(activationPrime));
 
-  Tensors::Tensor dJdW = Input.transpose().dot(dJdB);
-
-  if (opt.weight_decay.type == WEIGHT_DECAY_L2NORM) {
-    dJdW = dJdW.add(Weight.multiply(opt.weight_decay.lambda));
-  }
-
   Tensors::Tensor ret = dJdB.dot(Weight.transpose());
 
-  float ll = opt.learning_rate;
-  if (opt.decay_steps != -1) {
-    ll = opt.learning_rate * pow(opt.decay_rate, (iteration / opt.decay_steps));
-  }
+  Tensors::Tensor dJdW = Input.transpose().dot(dJdB);
 
-  switch (opt.type) {
-    case OPT_SGD:
-      Weight = Weight.subtract(dJdW.average().multiply(ll));
-      break;
-    case OPT_ADAM:
-      WM = WM.multiply(opt.beta1).add(dJdW.average().multiply(1 - opt.beta1));
-      WV = WV.multiply(opt.beta2).add((dJdW.average().multiply(dJdW.average())).multiply(1 - opt.beta2));
-      WM.divide(1 - pow(opt.beta1, iteration + 1));
-      WV.divide(1 - pow(opt.beta2, iteration + 1));
-      Weight = Weight.subtract((WM.divide(WV.apply(sqrt_float).add(opt.epsilon))).multiply(ll));
-      BM = BM.multiply(opt.beta1).add(dJdB.average().multiply(1 - opt.beta1));
-      BV = BV.multiply(opt.beta2).add((dJdB.average().multiply(dJdB.average())).multiply(1 - opt.beta2));
-      BM.divide(1 - pow(opt.beta1, iteration + 1));
-      BV.divide(1 - pow(opt.beta2, iteration + 1));
-      Bias = Bias.subtract((BM.divide(BV.apply(sqrt_float).add(opt.epsilon))).multiply(ll));
-      break;
-    default:
-      break;
-  }
-
-  if (!this->init_zero) {
-    Bias = Bias.subtract(dJdB.average().multiply(ll));
-  }
+  opt.calculate(dJdW, dJdB, Weight, Bias, iteration, this->init_zero);
 
   return ret;
 }
@@ -484,8 +292,8 @@ Tensors::Tensor OutputLayer::forwarding(Tensors::Tensor input, Tensors::Tensor o
       }
       loss = lossSum / (float)l.getBatch();
 
-      if (opt.weight_decay.type == WEIGHT_DECAY_L2NORM) {
-        loss += opt.weight_decay.lambda * 0.5 * (Weight.l2norm());
+      if (opt.getWeightDecayType() == WeightDecayType::l2norm) {
+        loss += opt.getWeightDecayLambda() * 0.5 * (Weight.l2norm());
       }
 
     } break;
@@ -519,20 +327,6 @@ void OutputLayer::copy(Layer *l) {
   this->loss = from->loss;
 }
 
-void OutputLayer::setOptimizer(Optimizer opt) {
-  this->opt = opt;
-  if (opt.type == OPT_ADAM) {
-    WM = Tensors::Tensor(height, width);
-    WV = Tensors::Tensor(height, width);
-    WM.setZero();
-    WV.setZero();
-    BM = Tensors::Tensor(1, width);
-    BV = Tensors::Tensor(1, width);
-    BM.setZero();
-    BV.setZero();
-  }
-}
-
 Tensors::Tensor OutputLayer::backwarding(Tensors::Tensor label, int iteration) {
   float lossSum = 0.0;
   Tensors::Tensor Y2 = label;
@@ -545,9 +339,9 @@ Tensors::Tensor OutputLayer::backwarding(Tensors::Tensor label, int iteration) {
   Tensors::Tensor ret;
   Tensors::Tensor dJdB;
 
-  float ll = opt.learning_rate;
-  if (opt.decay_steps != -1) {
-    ll = opt.learning_rate * pow(opt.decay_rate, (iteration / opt.decay_steps));
+  float ll = opt.getLearningRate();
+  if (opt.getDecaySteps() != -1) {
+    ll = ll * pow(opt.getDecayRate(), (iteration / opt.getDecaySteps()));
   }
 
   switch (cost) {
@@ -560,8 +354,8 @@ Tensors::Tensor OutputLayer::backwarding(Tensors::Tensor label, int iteration) {
       }
 
       loss = lossSum / (float)l.getBatch();
-      if (opt.weight_decay.type == WEIGHT_DECAY_L2NORM) {
-        loss += opt.weight_decay.lambda * 0.5 * (Weight.l2norm());
+      if (opt.getWeightDecayType() == WeightDecayType::l2norm) {
+        loss += opt.getWeightDecayLambda() * 0.5 * (Weight.l2norm());
       }
       if (activation_type == ACT_SOFTMAX) {
         dJdB = Y.subtract(Y2).multiply(Y.apply(softmaxPrime));
@@ -592,8 +386,8 @@ Tensors::Tensor OutputLayer::backwarding(Tensors::Tensor label, int iteration) {
       }
       loss = lossSum / (float)l.getBatch();
 
-      if (opt.weight_decay.type == WEIGHT_DECAY_L2NORM) {
-        loss += opt.weight_decay.lambda * 0.5 * (Weight.l2norm());
+      if (opt.getWeightDecayType() == WeightDecayType::l2norm) {
+        loss += opt.getWeightDecayLambda() * 0.5 * (Weight.l2norm());
       }
 
     } break;
@@ -604,35 +398,9 @@ Tensors::Tensor OutputLayer::backwarding(Tensors::Tensor label, int iteration) {
 
   Tensors::Tensor dJdW = Input.transpose().dot(dJdB);
 
-  if (opt.weight_decay.type == WEIGHT_DECAY_L2NORM) {
-    dJdW = dJdW.add(Weight.multiply(opt.weight_decay.lambda));
-  }
-
   ret = dJdB.dot(Weight.transpose());
 
-  switch (opt.type) {
-    case Layers::OPT_SGD:
-      Weight = Weight.subtract(dJdW.average().multiply(ll));
-      break;
-    case Layers::OPT_ADAM:
-      WM = WM.multiply(opt.beta1).add(dJdW.average().multiply(1 - opt.beta1));
-      WV = WV.multiply(opt.beta2).add((dJdW.average().multiply(dJdW.average())).multiply(1 - opt.beta2));
-      WM.divide(1 - pow(opt.beta1, iteration + 1));
-      WV.divide(1 - pow(opt.beta2, iteration + 1));
-      Weight = Weight.subtract((WM.divide(WV.apply(sqrt_float).add(opt.epsilon))).multiply(ll));
-      BM = BM.multiply(opt.beta1).add(dJdB.average().multiply(1 - opt.beta1));
-      BV = BV.multiply(opt.beta2).add((dJdB.average().multiply(dJdB.average())).multiply(1 - opt.beta2));
-      BM.divide(1 - pow(opt.beta1, iteration + 1));
-      BV.divide(1 - pow(opt.beta2, iteration + 1));
-      Bias = Bias.subtract((BM.divide(BV.apply(sqrt_float).add(opt.epsilon))).multiply(ll));
-      break;
-    default:
-      break;
-  }
-
-  if (!this->init_zero) {
-    Bias = Bias.subtract(dJdB.average().multiply(ll));
-  }
+  opt.calculate(dJdW, dJdB, Weight, Bias, iteration, this->init_zero);
 
   return ret;
 }
@@ -650,7 +418,10 @@ void BatchNormalizationLayer::initialize(int b, int h, int w, int id, bool init_
   gamma.setZero();
 }
 
-void BatchNormalizationLayer::setOptimizer(Optimizer opt) { this->opt = opt; }
+void BatchNormalizationLayer::setOptimizer(Optimizer opt) {
+  this->opt = opt;
+  this->opt.initialize(height, width, false);
+}
 
 Tensors::Tensor BatchNormalizationLayer::forwarding(Tensors::Tensor input) {
   Tensors::Tensor temp;
@@ -686,9 +457,9 @@ Tensors::Tensor BatchNormalizationLayer::backwarding(Tensors::Tensor derivative,
           .subtract(Input.subtract(mu).divide(var.add(0.001)).multiply(dy.multiply(Input.subtract(mu)).sum(0)));
   Tensors::Tensor dh = Temp.multiply(1.0 / batch).multiply(var.add(0.001).apply(sqrt_float)).multiply(gamma);
 
-  float ll = opt.learning_rate;
-  if (opt.decay_steps != -1) {
-    ll = opt.learning_rate * pow(opt.decay_rate, (iteration / opt.decay_steps));
+  float ll = opt.getLearningRate();
+  if (opt.getDecaySteps() != -1) {
+    ll = ll * pow(opt.getDecayRate(), (iteration / opt.getDecaySteps()));
   }
 
   gamma = gamma.subtract(dgamma.multiply(ll));

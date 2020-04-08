@@ -25,6 +25,7 @@
 #include <fstream>
 #include <iostream>
 #include <vector>
+#include "optimizer.h"
 #include "tensor.h"
 
 /**
@@ -32,14 +33,6 @@
  * @brief       Namespace for Layers
  */
 namespace Layers {
-
-/**
- * @brief     Enumeration of optimizer type
- *            0. SGD ( Stocastic Gradient Descent )
- *            1. ADAM ( Adaptive Moment Estimation )
- *            2. Unknown
- */
-typedef enum { OPT_SGD, OPT_ADAM, OPT_UNKNOWN } opt_type;
 
 /**
  * @brief     Enumeration of cost(loss) function type
@@ -57,14 +50,6 @@ typedef enum { COST_MSR, COST_ENTROPY, COST_UNKNOWN } cost_type;
  *            3. Unknown
  */
 typedef enum { ACT_TANH, ACT_SIGMOID, ACT_RELU, ACT_SOFTMAX, ACT_UNKNOWN } acti_type;
-
-/**
- * @brief     Enumeration of Weight Decay type
- *            0. L2Norm
- *            1. Regression
- *            2. Unknown
- */
-typedef enum { WEIGHT_DECAY_L2NORM, WEIGHT_DECAY_REGRESSION, WEIGHT_DECAY_UNKNOWN } weight_decay_type;
 
 /**
  * @brief     Enumeration of layer type
@@ -93,28 +78,6 @@ typedef enum {
   WEIGHT_HE_UNIFORM,
   WEIGHT_UNKNOWN
 } weightIni_type;
-
-/**
- * @brief     type for the Optimizor to save hyper-parameter
- */
-typedef struct {
-  weight_decay_type type;
-  float lambda;
-} Weight_Decay_param;
-
-/**
- * @brief     type for the Optimizor to save hyper-parameter
- */
-typedef struct {
-  opt_type type;
-  float learning_rate;
-  double beta1;
-  double beta2;
-  double epsilon;
-  float decay_rate;
-  float decay_steps;
-  Weight_Decay_param weight_decay;
-} Optimizer;
 
 /**
  * @class   Layer Base class for layers
@@ -177,7 +140,7 @@ class Layer {
    * @brief     Optimizer Setter
    * @param[in] opt Optimizer
    */
-  virtual void setOptimizer(Optimizer opt) = 0;
+  virtual void setOptimizer(Optimizer opt);
 
   /**
    * @brief     Activation Setter
@@ -406,12 +369,6 @@ class FullyConnectedLayer : public Layer {
   Tensors::Tensor backwarding(Tensors::Tensor input, int iteration);
 
   /**
-   * @brief     set optimizer
-   * @param[in] opt Optimizer
-   */
-  void setOptimizer(Optimizer opt);
-
-  /**
    * @brief     copy layer
    * @param[in] l layer to copy
    */
@@ -431,20 +388,6 @@ class FullyConnectedLayer : public Layer {
  private:
   Tensors::Tensor Weight;
   Tensors::Tensor Bias;
-
-  /**
-   * @brief     First Momentum Tensor for the ADAM
-   */
-  Tensors::Tensor WM;
-
-  Tensors::Tensor BM;
-
-  /**
-   * @brief     Second Momentum Tensor for the ADAM
-   */
-  Tensors::Tensor WV;
-
-  Tensors::Tensor BV;
 };
 
 /**
@@ -500,12 +443,6 @@ class OutputLayer : public Layer {
   Tensors::Tensor backwarding(Tensors::Tensor label, int iteration);
 
   /**
-   * @brief     set optimizer
-   * @param[in] opt Optimizer
-   */
-  void setOptimizer(Optimizer opt);
-
-  /**
    * @brief     initialize layer
    * @param[in] b batch size
    * @param[in] h height
@@ -536,10 +473,6 @@ class OutputLayer : public Layer {
  private:
   Tensors::Tensor Weight;
   Tensors::Tensor Bias;
-  Tensors::Tensor WM;
-  Tensors::Tensor WV;
-  Tensors::Tensor BM;
-  Tensors::Tensor BV;
   float loss;
   cost_type cost;
 };
