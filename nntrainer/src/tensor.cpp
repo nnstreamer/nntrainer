@@ -21,12 +21,12 @@
  *
  */
 
-#include "include/tensor.h"
+#include "tensor.h"
 #include <assert.h>
+#include <nntrainer_log.h>
 #include <stdio.h>
 #include <cstring>
 #include <sstream>
-#include "include/nntrainer_log.h"
 
 #ifdef USE_CUBLAS
 #include <helper_cuda.h>

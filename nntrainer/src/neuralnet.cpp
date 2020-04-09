@@ -21,13 +21,13 @@
  *
  */
 
-#include "include/neuralnet.h"
+#include "neuralnet.h"
 #include <assert.h>
+#include <nntrainer_log.h>
 #include <stdio.h>
 #include <array>
 #include <cmath>
 #include <sstream>
-#include "include/nntrainer_log.h"
 #include "iniparser.h"
 
 /**

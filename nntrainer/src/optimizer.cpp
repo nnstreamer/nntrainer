@@ -21,9 +21,9 @@
  *
  */
 
-#include "include/optimizer.h"
-#include "include/nntrainer_log.h"
-#include "include/util_func.h"
+#include "optimizer.h"
+#include <nntrainer_log.h>
+#include "util_func.h"
 
 void Optimizer::initialize(unsigned int height, unsigned int width, bool setTensor) {
   if (type == OptType::adam && setTensor) {

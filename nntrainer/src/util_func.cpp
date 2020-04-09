@@ -22,10 +22,10 @@
 
 #ifndef __UTIL_FUNC_H__
 #define __UTIL_FUNC_H__
-#include "include/util_func.h"
+#include "util_func.h"
 #include <assert.h>
-#include "include/tensor.h"
 #include "math.h"
+#include "tensor.h"
 
 Tensors::Tensor softmaxPrime(Tensors::Tensor x) {
   int batch = x.getBatch();
