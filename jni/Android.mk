@@ -28,7 +28,7 @@ NNTRAINER_SRCS := $(NNTRAINER_ROOT)/nntrainer/src/neuralnet.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/src/util_func.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/src/optimizer.cpp \
 
-NNTRAINER_INCLUDES := $(NNTRAINER_ROOT)/nntrainer
+NNTRAINER_INCLUDES := $(NNTRAINER_ROOT)/nntrainer/include
 
 INIPARSER_SRCS := $(INIPARSER_ROOT)/src/iniparser.c \
                   $(INIPARSER_ROOT)/src/dictionary.c

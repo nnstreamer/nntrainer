@@ -21,7 +21,7 @@
  * @bug No known bugs except for NYI items
  */
 
-#include <nntrainer_logger.h>
+#include "nntrainer_logger.h"
 #include <stdarg.h>
 #include <cstring>
 #include <ctime>

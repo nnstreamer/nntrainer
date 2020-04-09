@@ -21,11 +21,11 @@
  *
  */
 
-#include "include/layers.h"
+#include "layers.h"
 #include <assert.h>
+#include <nntrainer_log.h>
 #include <random>
-#include "include/nntrainer_log.h"
-#include "include/util_func.h"
+#include "util_func.h"
 
 static auto rng = [] {
   std::mt19937 rng;
