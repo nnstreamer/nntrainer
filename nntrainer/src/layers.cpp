@@ -27,64 +27,61 @@
 #include "include/nntrainer_log.h"
 #include "include/util_func.h"
 
+static auto rng = [] {
+  std::mt19937 rng;
+  rng.seed(std::random_device()());
+  return rng;
+}();
+
+template <typename... Args>
+static void RandNormal(Tensors::Tensor &W, Args &&... args) {
+  std::normal_distribution<float> dist(std::forward<Args>(args)...);
+  unsigned int width = W.getWidth();
+  unsigned int height = W.getHeight();
+
+  for (unsigned int i = 0; i < width; ++i) {
+    for (unsigned int j = 0; j < height; ++j) {
+      W.setValue(0, j, i, dist(rng));
+    }
+  }
+}
+
+template <typename... Args>
+static void RandUniform(Tensors::Tensor &W, Args &&... args) {
+  std::uniform_real_distribution<float> dist(std::forward<Args>(args)...);
+  unsigned int width = W.getWidth();
+  unsigned int height = W.getHeight();
+
+  for (unsigned int i = 0; i < width; ++i) {
+    for (unsigned int j = 0; j < height; ++j) {
+      W.setValue(0, j, i, dist(rng));
+    }
+  }
+}
+
 static Tensors::Tensor WeightInitialization(unsigned int width, unsigned int height, Layers::weightIni_type init_type) {
-  std::random_device rd;
-  std::mt19937 gen(rd());
   Tensors::Tensor W = Tensors::Tensor(height, width);
 
-  if (init_type == Layers::WEIGHT_UNKNOWN)
-    init_type = Layers::WEIGHT_XAVIER_NORMAL;
   switch (init_type) {
-    case Layers::WEIGHT_LECUN_NORMAL: {
-      std::normal_distribution<float> dist(0, sqrt(1 / height));
-      for (unsigned int i = 0; i < width; ++i)
-        for (unsigned int j = 0; j < height; ++j) {
-          float f = dist(gen);
-          W.setValue(0, j, i, f);
-        }
-    } break;
-    case Layers::WEIGHT_LECUN_UNIFORM: {
-      std::uniform_real_distribution<float> dist(-1.0 * sqrt(1.0 / height), sqrt(1.0 / height));
-      for (unsigned int i = 0; i < width; ++i)
-        for (unsigned int j = 0; j < height; ++j) {
-          float f = dist(gen);
-          W.setValue(0, j, i, f);
-        }
-    } break;
-    case Layers::WEIGHT_XAVIER_NORMAL: {
-      std::normal_distribution<float> dist(0, sqrt(2.0 / (width + height)));
-      for (unsigned int i = 0; i < width; ++i)
-        for (unsigned int j = 0; j < height; ++j) {
-          float f = dist(gen);
-          W.setValue(0, j, i, f);
-        }
-    } break;
-    case Layers::WEIGHT_XAVIER_UNIFORM: {
-      std::uniform_real_distribution<float> dist(-1.0 * sqrt(6.0 / (height + width)), sqrt(6.0 / (height + width)));
-      for (unsigned int i = 0; i < width; ++i)
-        for (unsigned int j = 0; j < height; ++j) {
-          float f = dist(gen);
-          W.setValue(0, j, i, f);
-        }
-    } break;
-    case Layers::WEIGHT_HE_NORMAL: {
-      std::normal_distribution<float> dist(0, sqrt(2.0 / (height)));
-      for (unsigned int i = 0; i < width; ++i)
-        for (unsigned int j = 0; j < height; ++j) {
-          float f = dist(gen);
-          W.setValue(0, j, i, f);
-        }
-    } break;
-    case Layers::WEIGHT_HE_UNIFORM: {
-      std::uniform_real_distribution<float> dist(-1.0 * sqrt(6.0 / (height)), sqrt(6.0 / (height)));
-      for (unsigned int i = 0; i < width; ++i)
-        for (unsigned int j = 0; j < height; ++j) {
-          float f = dist(gen);
-          W.setValue(0, j, i, f);
-        }
-    } break;
+    case Layers::WEIGHT_LECUN_NORMAL:
+      RandNormal(W, 0, sqrt(1 / height));
+      break;
+    case Layers::WEIGHT_XAVIER_NORMAL:
+      RandNormal(W, 0, sqrt(2.0 / (width + height)));
+      break;
+    case Layers::WEIGHT_HE_NORMAL:
+      RandNormal(W, 0, sqrt(2.0 / (height)));
+      break;
+    case Layers::WEIGHT_LECUN_UNIFORM:
+      RandUniform(W, -1.0 * sqrt(1.0 / height), sqrt(1.0 / height));
+      break;
+    case Layers::WEIGHT_XAVIER_UNIFORM:
+      RandUniform(W, -1.0 * sqrt(6.0 / (height + width)), sqrt(6.0 / (height + width)));
+      break;
+    case Layers::WEIGHT_HE_UNIFORM:
+      RandUniform(W, -1.0 * sqrt(6.0 / (height)), sqrt(6.0 / (height)));
+      break;
     default:
-      W.setZero();
       break;
   }
   return W;
