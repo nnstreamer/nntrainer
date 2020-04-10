@@ -33,7 +33,7 @@
 #include <helper_functions.h>
 #endif
 
-namespace Tensors {
+namespace nntrainer {
 
 void TensorDim::setTensorDim(std::string input_shape) {
   std::regex words_regex("[^\\s.,:;!?]+");
@@ -46,7 +46,7 @@ void TensorDim::setTensorDim(std::string input_shape) {
   }
   int cn = 0;
   for (std::sregex_iterator i = words_begin; i != words_end; ++i) {
-    Dim[MAXDIM - cur_dim + cn] = std::stoi((*i).str());
+    dim[MAXDIM - cur_dim + cn] = std::stoi((*i).str());
     cn++;
   }
 }
@@ -55,7 +55,7 @@ Tensor::Tensor(int height, int width) {
   this->height = height;
   this->width = width;
   this->batch = 1;
-  this->dim = 2;
+  this->ndim = 2;
   this->len = height * width * batch;
   this->data = std::vector<float>(len);
   setZero();
@@ -65,7 +65,7 @@ Tensor::Tensor(int batch, int height, int width) {
   this->height = height;
   this->width = width;
   this->batch = batch;
-  this->dim = 3;
+  this->ndim = 3;
   this->len = height * width * batch;
   this->data = std::vector<float>(len);
   setZero();
@@ -82,7 +82,7 @@ Tensor::Tensor(std::vector<std::vector<float>> const &d) {
   this->height = d.size();
   this->width = d[0].size();
   this->batch = 1;
-  this->dim = 2;
+  this->ndim = 2;
   this->len = height * width * batch;
   this->data = std::vector<float>(len);
 
@@ -96,7 +96,7 @@ Tensor::Tensor(std::vector<std::vector<std::vector<float>>> const &d) {
   this->batch = d.size();
   this->height = d[0].size();
   this->width = d[0][0].size();
-  this->dim = 3;
+  this->ndim = 3;
   this->len = this->batch * this->height * this->width;
   this->data = std::vector<float>(len);
 
@@ -560,7 +560,7 @@ Tensor &Tensor::copy(const Tensor &from) {
 /**
  * This generate one dimension vector has the every element in Tensor
  */
-std::vector<float> Tensor::Mat2Vec() {
+std::vector<float> Tensor::mat2vec() {
   std::vector<float> ret;
 
   for (int i = 0; i < this->len; i++)
@@ -729,4 +729,4 @@ Tensor Tensor::standardization() const {
 
   return result;
 }
-}
+} /* namespace nntrainer */

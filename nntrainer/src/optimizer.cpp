@@ -25,23 +25,24 @@
 #include <nntrainer_log.h>
 #include "util_func.h"
 
-void Optimizer::initialize(unsigned int height, unsigned int width, bool setTensor) {
-  if (type == OptType::adam && setTensor) {
-    WM = Tensors::Tensor(height, width);
-    WV = Tensors::Tensor(height, width);
-    WM.setZero();
-    WV.setZero();
-    BM = Tensors::Tensor(1, width);
-    BV = Tensors::Tensor(1, width);
-    BM.setZero();
-    BV.setZero();
+namespace nntrainer {
+
+void Optimizer::initialize(unsigned int height, unsigned int width, bool set_tensor) {
+  if (type == OptType::adam && set_tensor) {
+    wm = Tensor(height, width);
+    wv = Tensor(height, width);
+    wm.setZero();
+    wv.setZero();
+    bm = Tensor(1, width);
+    bv = Tensor(1, width);
+    bm.setZero();
+    bv.setZero();
   }
 }
 
-void Optimizer::calculate(Tensors::Tensor& dJdW, Tensors::Tensor& dJdB, Tensors::Tensor& Weight, Tensors::Tensor& Bias,
-                          int iteration, bool init_zero) {
+void Optimizer::calculate(Tensor& djdw, Tensor& djdb, Tensor& weight, Tensor& bias, int iteration, bool init_zero) {
   if (popt.weight_decay.type == WeightDecayType::l2norm) {
-    dJdW = dJdW.add(Weight.multiply(popt.weight_decay.lambda));
+    djdw = djdw.add(weight.multiply(popt.weight_decay.lambda));
   }
 
   float ll = popt.learning_rate;
@@ -51,25 +52,26 @@ void Optimizer::calculate(Tensors::Tensor& dJdW, Tensors::Tensor& dJdB, Tensors:
 
   switch (type) {
     case OptType::sgd:
-      Weight = Weight.subtract(dJdW.average().multiply(ll));
+      weight = weight.subtract(djdw.average().multiply(ll));
       break;
     case OptType::adam:
-      WM = WM.multiply(popt.beta1).add(dJdW.average().multiply(1 - popt.beta1));
-      WV = WV.multiply(popt.beta2).add((dJdW.average().multiply(dJdW.average())).multiply(1 - popt.beta2));
-      WM.divide(1 - pow(popt.beta1, iteration + 1));
-      WV.divide(1 - pow(popt.beta2, iteration + 1));
-      Weight = Weight.subtract((WM.divide(WV.apply(sqrt_float).add(popt.epsilon))).multiply(ll));
-      BM = BM.multiply(popt.beta1).add(dJdB.average().multiply(1 - popt.beta1));
-      BV = BV.multiply(popt.beta2).add((dJdB.average().multiply(dJdB.average())).multiply(1 - popt.beta2));
-      BM.divide(1 - pow(popt.beta1, iteration + 1));
-      BV.divide(1 - pow(popt.beta2, iteration + 1));
-      Bias = Bias.subtract((BM.divide(BV.apply(sqrt_float).add(popt.epsilon))).multiply(ll));
+      wm = wm.multiply(popt.beta1).add(djdw.average().multiply(1 - popt.beta1));
+      wv = wv.multiply(popt.beta2).add((djdw.average().multiply(djdw.average())).multiply(1 - popt.beta2));
+      wm.divide(1 - pow(popt.beta1, iteration + 1));
+      wv.divide(1 - pow(popt.beta2, iteration + 1));
+      weight = weight.subtract((wm.divide(wv.apply(sqrtFloat).add(popt.epsilon))).multiply(ll));
+      bm = bm.multiply(popt.beta1).add(djdb.average().multiply(1 - popt.beta1));
+      bv = bv.multiply(popt.beta2).add((djdb.average().multiply(djdb.average())).multiply(1 - popt.beta2));
+      bm.divide(1 - pow(popt.beta1, iteration + 1));
+      bv.divide(1 - pow(popt.beta2, iteration + 1));
+      bias = bias.subtract((bm.divide(bv.apply(sqrtFloat).add(popt.epsilon))).multiply(ll));
       break;
     default:
       break;
   }
 
   if (init_zero) {
-    Bias = Bias.subtract(dJdB.average().multiply(ll));
+    bias = bias.subtract(djdb.average().multiply(ll));
   }
 }
+} /* namesapce nntrainer */

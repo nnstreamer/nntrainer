@@ -22,21 +22,25 @@
 
 #ifndef __UTIL_FUNC_H__
 #define __UTIL_FUNC_H__
+#ifdef __cplusplus
+
 #include "tensor.h"
+
+namespace nntrainer {
 
 /**
  * @brief     derivative softmax function for Tensor Type
  * @param[in] x Tensor
  * @retVal    Tensor
  */
-Tensors::Tensor softmaxPrime(Tensors::Tensor x);
+Tensor softmaxPrime(Tensor x);
 
 /**
  * @brief       Calculate softmax for Tensor Type
  * @param[in] t Tensor
  * @retval      Tensor
  */
-Tensors::Tensor softmax(Tensors::Tensor t);
+Tensor softmax(Tensor t);
 
 /**
  * @brief     random function
@@ -48,13 +52,13 @@ float random(float x);
  * @brief     sqrt function for float type
  * @param[in] x float
  */
-float sqrt_float(float x);
+float sqrtFloat(float x);
 
 /**
  * @brief     log function for float type
  * @param[in] x float
  */
-float log_float(float x);
+float logFloat(float x);
 
 /**
  * @brief     sigmoid activation function
@@ -72,7 +76,7 @@ float sigmoidePrime(float x);
  * @brief     tanh function for float type
  * @param[in] x input
  */
-float tanh_float(float x);
+float tanhFloat(float x);
 
 /**
  * @brief     derivative tanh function
@@ -84,12 +88,15 @@ float tanhPrime(float x);
  * @brief     relu activation function
  * @param[in] x input
  */
-float Relu(float x);
+float relu(float x);
 
 /**
  * @brief     derivative relu function
  * @param[in] x input
  */
-float ReluPrime(float x);
+float reluPrime(float x);
 
-#endif
+} /* namespace nntrainer */
+
+#endif /* __cplusplus */
+#endif /* __UTIL_FUNC_H__ */

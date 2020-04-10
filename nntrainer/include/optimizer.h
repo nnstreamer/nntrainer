@@ -21,9 +21,12 @@
  */
 #ifndef __OPTIMIZER_H__
 #define __OPTIMIZER_H__
+#ifdef __cplusplus
 
 #include <iostream>
 #include "tensor.h"
+
+namespace nntrainer {
 
 /**
  * @brief     Enumeration of Optimizer
@@ -57,7 +60,7 @@ enum class WeightDecayType
 typedef struct {
   WeightDecayType type;
   float lambda;
-} weight_decay_param;
+} WeightDecayParam;
 
 /**
  * @brief     type for the Optimizor to save hyper-parameter
@@ -69,7 +72,7 @@ typedef struct {
   double epsilon;
   float decay_rate;
   float decay_steps;
-  weight_decay_param weight_decay;
+  WeightDecayParam weight_decay;
 } OptParam;
 
 class Optimizer {
@@ -151,8 +154,7 @@ class Optimizer {
    * @param[in] iteration nth epoch number
    * @param[in] init_zero bool it is true if bias sets zero.
    */
-  void calculate(Tensors::Tensor& dJdW, Tensors::Tensor& dJdB, Tensors::Tensor& Weight, Tensors::Tensor& Bias,
-                 int iteration, bool init_zero);
+  void calculate(Tensor& djdw, Tensor& djdb, Tensor& weight, Tensor& bias, int iteration, bool init_zero);
 
  private:
   /**
@@ -168,10 +170,12 @@ class Optimizer {
   /**
    * @brief Internal Tesnors for adam Optimizer
    */
-  Tensors::Tensor WM;
-  Tensors::Tensor BM;
-  Tensors::Tensor WV;
-  Tensors::Tensor BV;
+  Tensor wm;
+  Tensor bm;
+  Tensor wv;
+  Tensor bv;
 };
+} /* namespace nntrainer */
 
-#endif
+#endif /* __cplusplus */
+#endif /* __OPTIMIZER_H__ */
