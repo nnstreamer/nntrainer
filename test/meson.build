@@ -8,4 +8,5 @@ endif
 
 if get_option('enable-capi')
   subdir('tizen_capi')
+  subdir('unittest')
 endif
