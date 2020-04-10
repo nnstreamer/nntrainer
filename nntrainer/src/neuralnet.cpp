@@ -29,6 +29,7 @@
 #include <cmath>
 #include <sstream>
 #include "iniparser.h"
+#include "nntrainer_error.h"
 
 /**
  * @brief     compare character to remove case sensitivity
@@ -219,7 +220,18 @@ unsigned int parseType(std::string ll, input_type t) {
 
 NeuralNetwork::NeuralNetwork(std::string config) { this->config = config; }
 
-void NeuralNetwork::setConfig(std::string config) { this->config = config; }
+int NeuralNetwork::setConfig(std::string config) {
+  int status = ML_ERROR_NONE;
+  std::ifstream conf_file(config);
+  if (!conf_file.good()) {
+    ml_loge("Error: Cannot open model configuration file");
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
+  this->config = config;
+
+  return status;
+}
 
 void NeuralNetwork::init() {
   int id;

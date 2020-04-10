@@ -14,7 +14,7 @@ if [ -f "$1" ]; then
     {$1}
     return $?
 elif [ -d "$1" ]; then
-    testlist=(`find "$1" -type f -executable -name "unittest_*"`)
+    testlist=$(find $1 -type f -executable -name "unittest_*")
     for t in ${testlist}; do
 	echo "running: ${t} @$(pwd)"
 	${t}

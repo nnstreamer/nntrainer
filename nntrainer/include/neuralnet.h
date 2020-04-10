@@ -153,8 +153,10 @@ class NeuralNetwork {
   /**
    * @brief     set configuration file
    * @param[in] config_path configuration file path
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  void setConfig(std::string config_path);
+  int setConfig(std::string config_path);
 
   /**
    * @brief     get Epoch
