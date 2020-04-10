@@ -30,7 +30,7 @@
 TEST(nntrainer_NeuralNetwork, setConfig_01_p) {
   int status = ML_ERROR_NONE;
   std::string config_file = "../test/tizen_capi/test_conf.ini";
-  Network::NeuralNetwork NN;
+  nntrainer::NeuralNetwork NN;
   status = NN.setConfig(config_file);
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
@@ -41,7 +41,7 @@ TEST(nntrainer_NeuralNetwork, setConfig_01_p) {
 TEST(nntrainer_NeuralNetwork, setConfig_02_n) {
   int status = ML_ERROR_NONE;
   std::string config_file = "../test/not_found.ini";
-  Network::NeuralNetwork NN;
+  nntrainer::NeuralNetwork NN;
   status = NN.setConfig(config_file);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }

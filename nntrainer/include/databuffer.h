@@ -23,6 +23,7 @@
 
 #ifndef __DATABUFFER_H__
 #define __DATABUFFER_H__
+#ifdef __cplusplus
 
 #include <atomic>
 #include <fstream>
@@ -31,6 +32,7 @@
 #include <thread>
 #include <vector>
 
+namespace nntrainer {
 /**
  * @brief     Enumeration of buffer type
  *            0. BUF_TRAIN ( Buffer for training )
@@ -38,7 +40,7 @@
  *            2. BUF_TEST ( Buffer for test )
  *            3. Unknown
  */
-typedef enum { BUF_TRAIN, BUF_VAL, BUF_TEST, BUFF_UNKNOWN } buffer_type;
+typedef enum { BUF_TRAIN, BUF_VAL, BUF_TEST, BUFF_UNKNOWN } BufferType;
 
 /**
  * @class   DataBuffer Data Buffers
@@ -83,39 +85,39 @@ class DataBuffer {
 
   /**
    * @brief     Update Data Buffer ( it is for child thread )
-   * @param[in] buffer_type training, validation, test
+   * @param[in] BufferType training, validation, test
    * @param[in] file input file stream
    * @retval    void
    */
-  void UpdateData(buffer_type type, std::ifstream &file);
+  void updateData(BufferType type, std::ifstream &file);
 
   /**
    * @brief     function for thread ( training, validation, test )
-   * @param[in] buffer_type training, validation, test
+   * @param[in] BufferType training, validation, test
    * @param[in] file input file stream
    * @retval    void
    */
-  void run(buffer_type type, std::ifstream &file);
+  void run(BufferType type, std::ifstream &file);
 
   /**
    * @brief     clear thread ( training, validation, test )
-   * @param[in] buffer_type training, validation, test
+   * @param[in] BufferType training, validation, test
    * @param[in] file input file stream
    * @retval    void
    */
-  void clear(buffer_type type, std::ifstream &file);
+  void clear(BufferType type, std::ifstream &file);
 
   /**
    * @brief     get Status of Buffer. if number of rest data
    *            is samller than minibatch, the return false
-   * @param[in] buffer_type training, validation, test
+   * @param[in] BufferType training, validation, test
    * @retval    true/false
    */
-  bool getStatus(buffer_type type);
+  bool getStatus(BufferType type);
 
   /**
    * @brief     get Data from Data Buffer
-   * @param[in] buffer_type training, validation, test
+   * @param[in] BufferType training, validation, test
    * @param[in] outVec feature data ( minibatch size )
    * @param[in] outLabel label data ( minibatch size )
    * @param[in] batch size of batch
@@ -124,17 +126,17 @@ class DataBuffer {
    * @param[in] c_num number of class
    * @retval    true/false
    */
-  bool getDatafromBuffer(buffer_type type, std::vector<std::vector<std::vector<float>>> &outVec,
-                         std::vector<std::vector<std::vector<float>>> &outLabel, unsigned int batch, unsigned int width,
-                         unsigned int height, unsigned int c_num);
+  bool getDataFromBuffer(BufferType type, std::vector<std::vector<std::vector<float>>> &out_vec,
+                         std::vector<std::vector<std::vector<float>>> &out_label, unsigned int batch,
+                         unsigned int width, unsigned int height, unsigned int c_num);
 
  private:
-  std::vector<std::vector<float>> trainData;
-  std::vector<std::vector<float>> trainDataLabel;
-  std::vector<std::vector<float>> valData;
-  std::vector<std::vector<float>> valDataLabel;
-  std::vector<std::vector<float>> testData;
-  std::vector<std::vector<float>> testDataLabel;
+  std::vector<std::vector<float>> train_data;
+  std::vector<std::vector<float>> train_data_label;
+  std::vector<std::vector<float>> val_data;
+  std::vector<std::vector<float>> val_data_label;
+  std::vector<std::vector<float>> test_data;
+  std::vector<std::vector<float>> test_data_label;
 
   unsigned int input_size;
   unsigned int class_num;
@@ -169,5 +171,6 @@ class DataBuffer {
   std::thread val_thread;
   std::thread test_thread;
 };
-
-#endif
+}
+#endif /* __cplusplus */
+#endif /* __DATABUFFER_H__ */

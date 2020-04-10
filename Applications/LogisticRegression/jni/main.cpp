@@ -76,7 +76,7 @@ int main(int argc, char *argv[]) {
    * @brief     Create NN with configuration file path
    */
   std::vector<std::vector<float>> inputVector, outputVector;
-  Network::NeuralNetwork NN(config);
+  nntrainer::NeuralNetwork NN(config);
 
   /**
    * @brief     Initialize NN
@@ -123,7 +123,7 @@ int main(int argc, char *argv[]) {
         std::vector<std::vector<float>> in, label;
         in.push_back(inputVector[j]);
         label.push_back(outputVector[j]);
-        NN.backwarding(Tensors::Tensor(in), Tensors::Tensor(label), i);
+        NN.backwarding(nntrainer::Tensor(in), nntrainer::Tensor(label), i);
       }
       std::cout << "#" << i + 1 << "/" << NN.getEpoch() << " - Loss : " << NN.getLoss() << std::endl;
       NN.setLoss(0.0);
@@ -137,7 +137,7 @@ int main(int argc, char *argv[]) {
       std::vector<std::vector<float>> in, label;
       in.push_back(inputVector[j]);
       label.push_back(outputVector[j]);
-      if (NN.forwarding(Tensors::Tensor(in)).apply(stepFunction).getValue(0, 0, 0) == label[0][0])
+      if (NN.forwarding(nntrainer::Tensor(in)).apply(stepFunction).getValue(0, 0, 0) == label[0][0])
         cn++;
     }
     std::cout << "[ Accuracy ] : " << ((float)(cn) / inputVector.size()) * 100.0 << "%" << std::endl;

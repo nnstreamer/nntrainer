@@ -23,6 +23,7 @@
 
 #ifndef __TENSOR_H__
 #define __TENSOR_H__
+#ifdef __cplusplus
 
 #ifdef USE_BLAS
 extern "C" {
@@ -37,38 +38,34 @@ extern "C" {
 #include <regex>
 #include <vector>
 
-#define MAXDIM 4
+namespace nntrainer {
 
-/**
- * @Namespace   Namespace of Tensor
- * @brief       Namespace for Tensor
- */
-namespace Tensors {
+#define MAXDIM 4
 
 class TensorDim {
  public:
   TensorDim() {
     for (int i = 0; i < MAXDIM; ++i) {
-      Dim[i] = 1;
+      dim[i] = 1;
     }
   }
   ~TensorDim(){};
-  unsigned int batch() { return Dim[0]; };
-  unsigned int channel() { return Dim[1]; };
-  unsigned int height() { return Dim[2]; };
-  unsigned int width() { return Dim[3]; };
+  unsigned int batch() { return dim[0]; };
+  unsigned int channel() { return dim[1]; };
+  unsigned int height() { return dim[2]; };
+  unsigned int width() { return dim[3]; };
 
-  void batch(unsigned int b) { Dim[0] = b; };
-  void channel(unsigned int c) { Dim[1] = c; };
-  void height(unsigned int h) { Dim[2] = h; };
-  void width(unsigned int w) { Dim[3] = w; };
+  void batch(unsigned int b) { dim[0] = b; };
+  void channel(unsigned int c) { dim[1] = c; };
+  void height(unsigned int h) { dim[2] = h; };
+  void width(unsigned int w) { dim[3] = w; };
 
-  unsigned int *getDim() { return Dim; }
+  unsigned int *getDim() { return dim; }
 
   void setTensorDim(std::string input_shape);
 
  private:
-  unsigned int Dim[4];
+  unsigned int dim[4];
 };
 
 /**
@@ -80,7 +77,7 @@ class Tensor {
   /**
    * @brief     Constructor of Tensor
    */
-  Tensor() : height(0), width(0), batch(0), dim(0), len(0){};
+  Tensor() : height(0), width(0), batch(0), ndim(0), len(0){};
 
   /**
    * @brief     Constructor of Tensor with batch size one
@@ -237,7 +234,7 @@ class Tensor {
    * @brief     Reduce Rank ( Tensor to Vector )
    * @retval    Saved vector
    */
-  std::vector<float> Mat2Vec();
+  std::vector<float> mat2vec();
 
   /**
    * @brief     Apply function element by element
@@ -324,7 +321,7 @@ class Tensor {
   int height;
   int width;
   int batch;
-  int dim;
+  int ndim;
   int len;
 };
 
@@ -332,6 +329,8 @@ class Tensor {
  * @brief   Overriding output stream
  */
 std::ostream &operator<<(std::ostream &out, Tensor const &m);
-}
 
-#endif
+} /* namespace nntrainer */
+
+#endif /* __cplusplus */
+#endif /* __TENSOR_H__ */

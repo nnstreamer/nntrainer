@@ -29,6 +29,8 @@
 #include <sstream>
 #include <stdexcept>
 
+namespace nntrainer {
+
 /**
  * @brief     logfile name
  */
@@ -146,3 +148,4 @@ void __nntrainer_log_print(nntrainer_loglevel loglevel, const std::string format
 #ifdef __cplusplus
 }
 #endif
+} /* namespace nntrainer */

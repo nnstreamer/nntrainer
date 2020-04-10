@@ -237,7 +237,7 @@ int main(int argc, char *argv[]) {
   /**
    * @brief     Neural Network Create & Initialization
    */
-  Network::NeuralNetwork NN;
+  nntrainer::NeuralNetwork NN;
   NN.setConfig(config);
   NN.init();
 
@@ -246,7 +246,7 @@ int main(int argc, char *argv[]) {
    */
   for (int i = 0; i < ITERATION; i++) {
     for (unsigned int j = 0; j < inputVector.size(); j++) {
-      NN.backwarding(Tensors::Tensor({inputVector[j]}), Tensors::Tensor({outputVector[j]}), i);
+      NN.backwarding(nntrainer::Tensor({inputVector[j]}), nntrainer::Tensor({outputVector[j]}), i);
     }
     cout << "#" << i + 1 << "/" << ITERATION << " - Loss : " << NN.getLoss() << endl;
     NN.setLoss(0.0);
@@ -266,7 +266,7 @@ int main(int argc, char *argv[]) {
     std::vector<float> featureVector, resultVector;
     featureVector.resize(128);
     getFeature(img, featureVector);
-    Tensors::Tensor X = Tensors::Tensor({featureVector});
+    nntrainer::Tensor X = nntrainer::Tensor({featureVector});
     cout << NN.forwarding(X).apply(stepFunction) << endl;
   }
 

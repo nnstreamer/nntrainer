@@ -20,6 +20,9 @@
  * @author Jijoong Moon <jijoong.moon@samsung.com>
  * @bug No known bugs except for NYI items
  */
+#ifndef __NNTRAINER_LOGGER_H___
+#define __NNTRAINER_LOGGER_H___
+#ifdef __cplusplus
 
 #include <fstream>
 #include <iostream>
@@ -40,6 +43,8 @@ typedef enum {
   NNTRAINER_LOG_WARN,
   NNTRAINER_LOG_ERROR
 } nntrainer_loglevel;
+
+namespace nntrainer {
 
 /**
  * @class   NNTrainer Logger Class
@@ -96,10 +101,12 @@ class Logger {
   Logger& operator=(const Logger&);
   static std::mutex smutex;
 };
+} /* namespace nntrainer */
 
-#ifdef __cplusplus
 extern "C" {
-#endif
+
+#endif /* __cplusplus */
+
 /**
  * @brief     Interface function for C
  */
@@ -107,4 +114,6 @@ void __nntrainer_log_print(nntrainer_loglevel loglevel, const std::string format
 
 #ifdef __cplusplus
 }
-#endif
+#endif /* __cplusplus */
+
+#endif /* __NNTRAINER_LOGGER_H___ */

@@ -425,12 +425,12 @@ int main(int argc, char *argv[]) {
   /**
    * @brief     Neural Network Create & Initialization
    */
-  Network::NeuralNetwork NN;
+  nntrainer::NeuralNetwork NN;
   NN.setConfig(config);
   NN.init();
   NN.readModel();
 
-  DataBuffer buf;
+  nntrainer::DataBuffer buf;
 
   std::ifstream train_file("trainingSet.dat", std::ios::in | std::ios::binary);
   std::ifstream val_file("valSet.dat", std::ios::in | std::ios::binary);
@@ -439,8 +439,8 @@ int main(int argc, char *argv[]) {
   buf.init(MINI_BATCH, BUFFER_SIZE, BUFFER_SIZE, BUFFER_SIZE, train_file, val_file, test_file,
            TOTAL_LABEL_SIZE * TOTAL_TRAIN_DATA_SIZE, TOTAL_LABEL_SIZE * TOTAL_VAL_DATA_SIZE,
            TOTAL_LABEL_SIZE * TOTAL_TEST_DATA_SIZE, FEATURE_SIZE, 10);
-  buf.run(BUF_TRAIN, train_file);
-  buf.run(BUF_VAL, val_file);
+  buf.run(nntrainer::BUF_TRAIN, train_file);
+  buf.run(nntrainer::BUF_VAL, val_file);
 
   /**
    * @brief     back propagation
@@ -458,8 +458,8 @@ int main(int argc, char *argv[]) {
 
       while (true) {
         std::vector<std::vector<std::vector<float>>> in, label;
-        if (buf.getDatafromBuffer(BUF_TRAIN, in, label, MINI_BATCH, FEATURE_SIZE, 1, TOTAL_LABEL_SIZE)) {
-          NN.backwarding(Tensors::Tensor(in), Tensors::Tensor(label), i);
+        if (buf.getDataFromBuffer(nntrainer::BUF_TRAIN, in, label, MINI_BATCH, FEATURE_SIZE, 1, TOTAL_LABEL_SIZE)) {
+          NN.backwarding(nntrainer::Tensor(in), nntrainer::Tensor(label), i);
           count++;
           progress = (((float)(count * MINI_BATCH)) / (TOTAL_LABEL_SIZE * TOTAL_TRAIN_DATA_SIZE));
           int pos = barWidth * progress;
@@ -473,8 +473,8 @@ int main(int argc, char *argv[]) {
           std::cout << " ] " << int(progress * 100.0) << "% ( Training Loss: " << NN.getLoss() << " )\r";
           std::cout.flush();
         } else {
-          buf.clear(BUF_TRAIN, train_file);
-          buf.run(BUF_TRAIN, train_file);
+          buf.clear(nntrainer::BUF_TRAIN, train_file);
+          buf.run(nntrainer::BUF_TRAIN, train_file);
           break;
         }
       }
@@ -486,12 +486,12 @@ int main(int argc, char *argv[]) {
 
       while (true) {
         std::vector<std::vector<std::vector<float>>> in, label;
-        // if (buf.getDatafromBuffer(BUF_VAL, in, label, MINI_BATCH, FEATURE_SIZE, 1, TOTAL_LABEL_SIZE)) {
-        if (buf.getDatafromBuffer(BUF_TRAIN, in, label, MINI_BATCH, FEATURE_SIZE, 1, TOTAL_LABEL_SIZE)) {
+        // if (buf.getDataFromBuffer(BUF_VAL, in, label, MINI_BATCH, FEATURE_SIZE, 1, TOTAL_LABEL_SIZE)) {
+        if (buf.getDataFromBuffer(nntrainer::BUF_TRAIN, in, label, MINI_BATCH, FEATURE_SIZE, 1, TOTAL_LABEL_SIZE)) {
           for (int i = 0; i < MINI_BATCH; ++i) {
-            Tensors::Tensor X = Tensors::Tensor({in[i]});
-            Tensors::Tensor Y2 = Tensors::Tensor({label[i]});
-            Tensors::Tensor Y = NN.forwarding(X, Y2);
+            nntrainer::Tensor X = nntrainer::Tensor({in[i]});
+            nntrainer::Tensor Y2 = nntrainer::Tensor({label[i]});
+            nntrainer::Tensor Y = NN.forwarding(X, Y2);
             if (Y.argmax() == Y2.argmax())
               right++;
             valloss += NN.getLoss();
@@ -499,8 +499,8 @@ int main(int argc, char *argv[]) {
         } else {
           // buf.clear(BUF_VAL, val_file);
           // buf.run(BUF_VAL, val_file);
-          buf.clear(BUF_TRAIN, train_file);
-          buf.run(BUF_TRAIN, train_file);
+          buf.clear(nntrainer::BUF_TRAIN, train_file);
+          buf.run(nntrainer::BUF_TRAIN, train_file);
           break;
         }
       }
@@ -517,9 +517,9 @@ int main(int argc, char *argv[]) {
       if (training)
         NN.saveModel();
     }
-    buf.clear(BUF_TRAIN, train_file);
-    buf.clear(BUF_VAL, val_file);
-    buf.clear(BUF_TEST, test_file);
+    buf.clear(nntrainer::BUF_TRAIN, train_file);
+    buf.clear(nntrainer::BUF_VAL, val_file);
+    buf.clear(nntrainer::BUF_TEST, test_file);
   }
 
   if (!training) {
@@ -527,7 +527,7 @@ int main(int argc, char *argv[]) {
     std::vector<float> featureVector, resultVector;
     featureVector.resize(FEATURE_SIZE);
     getFeature(img, featureVector);
-    Tensors::Tensor X = Tensors::Tensor({featureVector});
+    nntrainer::Tensor X = nntrainer::Tensor({featureVector});
     cout << NN.forwarding(X).apply(stepFunction) << endl;
   }
   /**

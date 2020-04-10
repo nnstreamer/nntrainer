@@ -20,20 +20,20 @@
  *
  */
 
-#ifndef __UTIL_FUNC_H__
-#define __UTIL_FUNC_H__
 #include "util_func.h"
 #include <assert.h>
 #include "math.h"
 #include "tensor.h"
 
-Tensors::Tensor softmaxPrime(Tensors::Tensor x) {
+namespace nntrainer {
+
+Tensor softmaxPrime(Tensor x) {
   int batch = x.getBatch();
   int width = x.getWidth();
   int height = x.getHeight();
   assert(height == 1);
 
-  Tensors::Tensor PI = Tensors::Tensor(batch, height, width);
+  Tensor PI = Tensor(batch, height, width);
 
   float *xp = x.getData();
   float *pp = PI.getData();
@@ -58,7 +58,7 @@ Tensors::Tensor softmaxPrime(Tensors::Tensor x) {
   return PI;
 }
 
-Tensors::Tensor softmax(Tensors::Tensor t) {
+Tensor softmax(Tensor t) {
   int batch = t.getBatch();
   int height = t.getHeight();
   int width = t.getWidth();
@@ -66,8 +66,8 @@ Tensors::Tensor softmax(Tensors::Tensor t) {
   float *rp;
   float *tp;
 
-  Tensors::Tensor result(batch, height, width);
-  Tensors::Tensor divisor(batch, height, 1);
+  Tensor result(batch, height, width);
+  Tensor divisor(batch, height, 1);
 
   dp = divisor.getData();
   rp = result.getData();
@@ -106,22 +106,22 @@ Tensors::Tensor softmax(Tensors::Tensor t) {
 
 float random(float x) { return (float)(rand() % 10000 + 1) / 10000 - 0.5; }
 
-float sqrt_float(float x) { return (float)(sqrt(x)); };
+float sqrtFloat(float x) { return (float)(sqrt(x)); };
 
-float log_float(float x) { return (float)(log(x)); }
+float logFloat(float x) { return (float)(log(x)); }
 
 float sigmoid(float x) { return 1 / (1 + exp(-x)); }
 
 float sigmoidePrime(float x) { return (float)(1.0 / ((1 + exp(-x)) * (1.0 + 1.0 / (exp(-x) + 0.0000001)))); }
 
-float tanh_float(float x) { return (float)tanh(x); }
+float tanhFloat(float x) { return (float)tanh(x); }
 
 float tanhPrime(float x) {
   float th = (float)tanh(x);
   return 1.0 - th * th;
 }
 
-float Relu(float x) {
+float relu(float x) {
   if (x <= 0.0) {
     return 0.0;
   } else {
@@ -129,12 +129,11 @@ float Relu(float x) {
   }
 }
 
-float ReluPrime(float x) {
+float reluPrime(float x) {
   if (x <= 0.0) {
     return 0.0;
   } else {
     return 1.0;
   }
 }
-
-#endif
+} /* namespace nntrainer */

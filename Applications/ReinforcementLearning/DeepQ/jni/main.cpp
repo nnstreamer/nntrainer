@@ -269,8 +269,8 @@ int main(int argc, char **argv) {
   /**
    * @brief     Create mainNet & Target Net
    */
-  Network::NeuralNetwork mainNet(config);
-  Network::NeuralNetwork targetNet(config);
+  nntrainer::NeuralNetwork mainNet(config);
+  nntrainer::NeuralNetwork targetNet(config);
 
   /**
    * @brief     initialize mainNet & Target Net
@@ -320,8 +320,8 @@ int main(int argc, char **argv) {
         /**
          * @brief     get action with input State with mainNet
          */
-        Tensors::Tensor test = mainNet.forwarding(Tensors::Tensor({input}));
-        std::vector<float> temp = test.Mat2Vec();
+        nntrainer::Tensor test = mainNet.forwarding(nntrainer::Tensor({input}));
+        std::vector<float> temp = test.mat2vec();
         action.push_back(argmax(temp));
 
         std::cout << "qvalues : [";
@@ -408,13 +408,13 @@ int main(int argc, char **argv) {
         /**
          * @brief     run forward propagation with mainNet
          */
-        Tensors::Tensor Q = mainNet.forwarding(Tensors::Tensor(inbatch));
+        nntrainer::Tensor Q = mainNet.forwarding(nntrainer::Tensor(inbatch));
 
         /**
          * @brief     run forward propagation with targetNet
          */
-        Tensors::Tensor NQ = targetNet.forwarding(Tensors::Tensor(next_inbatch));
-        std::vector<float> nqa = NQ.Mat2Vec();
+        nntrainer::Tensor NQ = targetNet.forwarding(nntrainer::Tensor(next_inbatch));
+        std::vector<float> nqa = NQ.mat2vec();
 
         /**
          * @brief     Update Q values & udpate mainNetwork
@@ -428,7 +428,7 @@ int main(int argc, char **argv) {
             Q.setValue(i, 0, (int)in_Exp[i].action[0], (float)in_Exp[i].reward + DISCOUNT * next);
           }
         }
-        mainNet.backwarding(Tensors::Tensor(inbatch), Q, iter);
+        mainNet.backwarding(nntrainer::Tensor(inbatch), Q, iter);
       }
 
       writeFile << "mainNet Loss : " << mainNet.getLoss() << " : targetNet Loss : " << targetNet.getLoss() << "\n";

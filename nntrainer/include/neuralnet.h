@@ -22,6 +22,7 @@
  */
 #ifndef __NEURALNET_H__
 #define __NEURALNET_H__
+#ifdef __cplusplus
 
 #include <fstream>
 #include <iostream>
@@ -30,11 +31,7 @@
 #include "optimizer.h"
 #include "tensor.h"
 
-/**
- * @Namespace   Namespace of Network
- * @brief       Namespace for Network
- */
-namespace Network {
+namespace nntrainer {
 
 /**
  * @brief     Enumeration of Network Type
@@ -43,7 +40,7 @@ namespace Network {
  *            2. NEU ( Neural Network )
  *            3. Unknown
  */
-typedef enum { NET_KNN, NET_REG, NET_NEU, NET_UNKNOWN } net_type;
+typedef enum { NET_KNN, NET_REG, NET_NEU, NET_UNKNOWN } NetType;
 
 /**
  * @brief     Enumeration for input configuration file parsing
@@ -65,7 +62,7 @@ typedef enum {
   TOKEN_WEIGHTINI,
   TOKEN_WEIGHT_DECAY,
   TOKEN_UNKNOWN
-} input_type;
+} InputType;
 
 /**
  * @class   NeuralNetwork Class
@@ -122,7 +119,7 @@ class NeuralNetwork {
    * @param[in] input Input Tensor X
    * @retval    Output Tensor Y
    */
-  Tensors::Tensor forwarding(Tensors::Tensor input);
+  Tensor forwarding(Tensor input);
 
   /**
    * @brief     forward propagation
@@ -130,7 +127,7 @@ class NeuralNetwork {
    * @param[in] label Input Tensor Y2
    * @retval    Output Tensor Y
    */
-  Tensors::Tensor forwarding(Tensors::Tensor input, Tensors::Tensor output);
+  Tensor forwarding(Tensor input, Tensor output);
 
   /**
    * @brief     back propagation to update W & B
@@ -138,7 +135,7 @@ class NeuralNetwork {
    * @param[in] expectedOutput Lable Tensor Y
    * @param[in] iteration Epoch Number for ADAM
    */
-  void backwarding(Tensors::Tensor input, Tensors::Tensor expectedOutput, int iteration);
+  void backwarding(Tensor input, Tensor expected_output, int iteration);
 
   /**
    * @brief     save W & B into file
@@ -180,7 +177,7 @@ class NeuralNetwork {
   /**
    * @brief     batch size
    */
-  int batchsize;
+  int batch_size;
 
   /**
    * @brief     function pointer for activation
@@ -190,7 +187,7 @@ class NeuralNetwork {
   /**
    * @brief     function pointer for derivative of activation
    */
-  float (*activationPrime)(float);
+  float (*activation_prime)(float);
 
   /**
    * @brief     learning rate
@@ -225,12 +222,12 @@ class NeuralNetwork {
   /**
    * @brief     Cost Function type
    */
-  Layers::cost_type cost;
+  CostType cost;
 
   /**
    * @brief     Weight Initialization type
    */
-  Layers::weightIni_type weightini;
+  WeightIniType weight_ini;
 
   /**
    * @brief     Model path to save or read
@@ -250,13 +247,15 @@ class NeuralNetwork {
   /**
    * @brief     Network Type
    */
-  net_type nettype;
+  NetType net_type;
 
   /**
    * @brief     vector for store layer pointers.
    */
-  std::vector<Layers::Layer *> layers;
+  std::vector<Layer *> layers;
 };
-}
 
-#endif
+} /* namespace nntrainer */
+
+#endif /* __cplusplus */
+#endif /* __NEURALNET_H__ */

@@ -34,7 +34,7 @@ extern "C" {
 
 typedef struct {
   uint magic;
-  Network::NeuralNetwork *network;
+  nntrainer::NeuralNetwork *network;
 } ml_nnmodel;
 
 #define ML_NNTRAINER_CHECK_MODEL_VALIDATION(nnmodel, model)      \
@@ -61,7 +61,7 @@ static int nn_object(ml_nnmodel_h *model) {
   *model = nnmodel;
 
   try {
-    nnmodel->network = new Network::NeuralNetwork();
+    nnmodel->network = new nntrainer::NeuralNetwork();
   } catch (const char *e) {
     ml_loge("Error: heap exception: %s", e);
     status = ML_ERROR_CANNOT_ASSIGN_ADDRESS;
@@ -92,7 +92,7 @@ int ml_nnmodel_construct_with_conf(const char *model_conf, ml_nnmodel_h *model) 
 
   nnmodel = (ml_nnmodel *)(*model);
 
-  Network::NeuralNetwork *nn = (nnmodel)->network;
+  nntrainer::NeuralNetwork *nn = (nnmodel)->network;
 
   nn->setConfig(model_conf);
   return status;
@@ -104,7 +104,7 @@ int ml_nnmodel_destruct(ml_nnmodel_h model) {
 
   ML_NNTRAINER_CHECK_MODEL_VALIDATION(nnmodel, model);
 
-  Network::NeuralNetwork *NN;
+  nntrainer::NeuralNetwork *NN;
   NN = nnmodel->network;
   NN->finalize();
   delete NN;
