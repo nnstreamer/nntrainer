@@ -6,7 +6,7 @@ NNtrainer is Software Framework for Training Neural Network Models on Devices.
 
 NNtrainer is an Open Source Project. The aim of the NNtrainer is to develop Software Framework to train neural network model on embedded devices which has relatively limited resources. Rather than training the whole layers, NNtrainer trains only one or a few layers added after the feature extractor.
 
-Even though it trains part of the neural network models, NNtrainer requires quite alot of functionalities to train from common neural network frameworks. By implementing them, it is good enough to run several examples which can help to understand how it works. There are KNN, Neural Network, Logistic Regression and Reinforcement Learning with CartPole in Applications directory and some of them use Mobilenet V2 with tensorflow-lite as a feature extractor. All of them tested on Galaxy S8 with Android and PC (Ubuntu 16.04).
+Even though it trains part of the neural network models, NNtrainer requires quite a lot of functionalities to train from common neural network frameworks. By implementing them, it is good enough to run several examples which can help to understand how it works. There are KNN, Neural Network, Logistic Regression and Reinforcement Learning with CartPole in Applications directory and some of them use Mobilenet V2 with tensorflow-lite as a feature extractor. All of them tested on Galaxy S8 with Android and PC (Ubuntu 16.04).
 
 ## Maintainer
 * [Jijoong Moon](https://github.com/jijoongmoon)
@@ -27,21 +27,21 @@ Even though it trains part of the neural network models, NNtrainer requires quit
 
 ### NeuralNetwork
 
-This is the component which control neural network layers. Read the configuration file ([Iniparser](https://github.com/ndevilla/iniparser) is used to parse the configuration file.) and constructs Layers including Input and Output Layer, according to configured information by the user.
-Most Important role of this component is to activate forward / backward propagation. It activates Inferencing and training of each layer while handle the data properly among them. There are properties to describe network model as below:
+This is the component which controls neural network layers. Read the configuration file ([Iniparser](https://github.com/ndevilla/iniparser) is used to parse the configuration file.) and constructs Layers including Input and Output Layer, according to configured information by the user.
+The most important role of this component is to activate forward / backward propagation. It activates inferencing and training of each layer while handling the data properly among them. There are properties to describe network model as below:
 
 - **_Type:_** Network Type - Regression, KNN, NeuralNetwork
 - **_Layers:_** Name of Layers of Network Model
 - **_Learning\_rate:_** Learning rate which is used for all Layers
 - **_Decay\_rate:_** Rate for Exponentially Decayed Learning Rate
-- **_Epoch:_** Max Number of Training Iteration. 
+- **_Epoch:_** Max Number of Training Iteration.
 - **_Optimizer:_** Optimizer for the Network Model - sgd, adam
 - **_Activation:_** Activation Function - sigmoid , tanh
 - **_Cost:_** Cost Function -
       msr(mean square root error), categorical (for logistic regression), cross (cross entropy)
 - **_Model:_** Name of Model. Weight Data is saved in the name of this.
 - **_minibach:_** mini batch size
-- **_beta1,beta2,epsilon:_** hyper parmeters for the adam optimizer
+- **_beta1,beta2,epsilon:_** hyper parameters for the adam optimizer
 
 
 ### Layers
@@ -88,8 +88,8 @@ $ ls
 Applications  CMakeLists.txt  external  include  jni  LICENSE  package.pc.in
 ```
 
-There are four applications tested on the Android and Ubuntu (16.04). All of them include the code in NeuralNet directory and has their own CMake file to compile. This is the draft version of the code and need more tailoring. 
-Just for the example, let\'s compile Training application. Once it is compiled and install you will find the libnntrainer.so and related .h in /usr/local/lib and /usr/local/includes directory.
+There are four applications tested on the Android and Ubuntu (16.04). All of them include the code in NeuralNet directory and has their own CMake file to compile. This is the draft version of the code and need more tailoring.
+Just for the example, let\'s compile Training application. Once it is compiled and installed you will find the libnntrainer.so and related .h in /usr/local/lib and /usr/local/include directories.
 
 ``` bash
 $ mkdir build
@@ -99,8 +99,8 @@ $ make
 $ sudo make install
 ```
 
-And you could test the nntrainer with Examples in Applications. There are several examples you could try and you can compile with cmake(Ubuntu) and ndk-build (Android). Tensorflow-lite is pre-requite for this example, so you have to intall it by your self. If you are trying to run on the Android, it will automatically download tensorflow (1.9.0) and compile as static library. 
-For the Training Examles, you can do like this:
+And you could test the nntrainer with Examples in Applications. There are several examples you could try and you can compile with cmake(Ubuntu) and ndk-build (Android). Tensorflow-lite is pre-requite for this example, so you have to install it by your self. If you are trying to run on the Android, it will automatically download tensorflow (1.9.0) and compile as static library.
+For the Training Examples, you can do like this:
 
 ```bash
 $ cd Application/Training/jni
@@ -125,4 +125,4 @@ $ ./Transfer_learning ../../res/Training.ini ../../res/
 
 ## Open Source License
 
-The nntrainer is an open sourceOpen Source project released under the terms of the Apache License version 2.0.
+The nntrainer is an open source project released under the terms of the Apache License version 2.0.
