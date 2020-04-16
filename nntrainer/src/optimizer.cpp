@@ -23,9 +23,38 @@
 
 #include "optimizer.h"
 #include <nntrainer_log.h>
+#include "nntrainer_error.h"
 #include "util_func.h"
 
 namespace nntrainer {
+
+int Optimizer::setType(OptType t) {
+  int status = ML_ERROR_NONE;
+  if (t == OptType::unknown) {
+    ml_loge("Error: Optimizer is unknown");
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+  return status;
+}
+
+int Optimizer::setOptParam(OptParam p) {
+  int status = ML_ERROR_NONE;
+  if (p.learning_rate <= 0) {
+    ml_loge("Error: learning_rate should be grater than 0 (%f)", p.learning_rate);
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
+  if (p.decay_steps == -1 && p.beta1 && p.beta2 && p.epsilon) {
+    ml_logw("Although you set the learning rate decay param, you didn't set decay_steps");
+  }
+
+  if (p.weight_decay.type == WeightDecayType::unknown && p.weight_decay.lambda) {
+    ml_logw("Even though you set the weight decay lambda, you didn't set weight decay type");
+  }
+
+  popt = p;
+  return status;
+}
 
 void Optimizer::initialize(unsigned int height, unsigned int width, bool set_tensor) {
   if (type == OptType::adam && set_tensor) {
@@ -74,4 +103,4 @@ void Optimizer::calculate(Tensor& djdw, Tensor& djdb, Tensor& weight, Tensor& bi
     bias = bias.subtract(djdb.average().multiply(ll));
   }
 }
-} /* namesapce nntrainer */
+}  // namespace nntrainer

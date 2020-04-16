@@ -99,14 +99,14 @@ unsigned int parseType(std::string ll, InputType t) {
    *            "sgd"  : Stochestic Gradient Descent
    *            "adam" : Adaptive Moment Estimation
    */
-  std::array<std::string, 150> optimizer_string = {"sgd", "adam", "unknown"};
+  std::array<std::string, 3> optimizer_string = {"sgd", "adam", "unknown"};
 
   /**
    * @brief     Cost Function String from configure file
    *            "msr"  : Mean Squared Roots
    *            "caterogical" : Categorical Cross Entropy
    */
-  std::array<std::string, 150> cost_string = {"msr", "cross", "unknown"};
+  std::array<std::string, 3> cost_string = {"msr", "cross", "unknown"};
 
   /**
    * @brief     Network Type String from configure file
@@ -114,7 +114,7 @@ unsigned int parseType(std::string ll, InputType t) {
    *            "regression" : Logistic Regression
    *            "neuralnet" : Neural Network
    */
-  std::array<std::string, 150> network_type_string = {"knn", "regression", "neuralnet", "unknown"};
+  std::array<std::string, 4> network_type_string = {"knn", "regression", "neuralnet", "unknown"};
 
   /**
    * @brief     Activation Type String from configure file
@@ -123,7 +123,7 @@ unsigned int parseType(std::string ll, InputType t) {
    *            "relu" : relu
    *            "softmax" : softmax
    */
-  std::array<std::string, 150> activation_string = {"tanh", "sigmoid", "relu", "softmax", "unknown"};
+  std::array<std::string, 5> activation_string = {"tanh", "sigmoid", "relu", "softmax", "unknown"};
 
   /**
    * @brief     Layer Type String from configure file
@@ -131,8 +131,8 @@ unsigned int parseType(std::string ll, InputType t) {
    *            "FullyConnectedLayer" : Fully Connected Layer Object
    *            "OutputLayer" : Output Layer Object
    */
-  std::array<std::string, 150> layer_string = {"InputLayer", "FullyConnectedLayer", "OutputLayer",
-                                               "BatchNormalizationLayer", "Unknown"};
+  std::array<std::string, 5> layer_string = {"InputLayer", "FullyConnectedLayer", "OutputLayer",
+                                             "BatchNormalizationLayer", "Unknown"};
 
   /**
    * @brief     Weight Initialization Type String from configure file
@@ -143,15 +143,15 @@ unsigned int parseType(std::string ll, InputType t) {
    *            "he_normal"  : He Normal Initialization
    *            "he_uniform"  : He Uniform Initialization
    */
-  std::array<std::string, 150> weight_ini_string = {"lecun_normal", "lecun_uniform", "xavier_normal", "xavier_uniform",
-                                                    "he_normal",    "he_uniform",    "unknown"};
+  std::array<std::string, 7> weight_ini_string = {"lecun_normal", "lecun_uniform", "xavier_normal", "xavier_uniform",
+                                                  "he_normal",    "he_uniform",    "unknown"};
 
   /**
    * @brief     Weight Decay String from configure file
    *            "L2Norm"  : squared norm regularization
    *            "Regression" : Regression
    */
-  std::array<std::string, 150> weight_decay_string = {"l2norm", "regression", "unknown"};
+  std::array<std::string, 3> weight_decay_string = {"l2norm", "regression", "unknown"};
 
   switch (t) {
     case TOKEN_OPT:
@@ -218,7 +218,7 @@ unsigned int parseType(std::string ll, InputType t) {
   return ret;
 }
 
-NeuralNetwork::NeuralNetwork(std::string config) { this->config = config; }
+NeuralNetwork::NeuralNetwork(std::string config) { this->setConfig(config); }
 
 int NeuralNetwork::setConfig(std::string config) {
   int status = ML_ERROR_NONE;
@@ -233,7 +233,8 @@ int NeuralNetwork::setConfig(std::string config) {
   return status;
 }
 
-void NeuralNetwork::init() {
+int NeuralNetwork::init() {
+  int status = ML_ERROR_NONE;
   int id;
   bool b_zero;
   std::string l_type;
@@ -247,11 +248,17 @@ void NeuralNetwork::init() {
   char model_name[] = "model.bin";
 
   if (ini == NULL) {
-    fprintf(stderr, "cannot parse file: %s\n", ini_file.c_str());
+    ml_loge("Error: cannot parse file: %s\n", ini_file.c_str());
+    return ML_ERROR_INVALID_PARAMETER;
   }
 
   net_type = (nntrainer::NetType)parseType(iniparser_getstring(ini, "Network:Type", unknown), TOKEN_NET);
-  std::vector<std::string> layers_name = parseLayerName(iniparser_getstring(ini, "Network:Layers", unknown));
+  std::vector<std::string> layers_name = parseLayerName(iniparser_getstring(ini, "Network:Layers", ""));
+  if (!layers_name.size()) {
+    ml_loge("Error: There is no layer");
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
   learning_rate = iniparser_getdouble(ini, "Network:Learning_rate", 0.0);
   decay_rate = iniparser_getdouble(ini, "Network:Decay_rate", 0.0);
   decay_steps = iniparser_getint(ini, "Network:Decay_steps", -1);
@@ -260,7 +267,11 @@ void NeuralNetwork::init() {
   popt.decay_steps = decay_steps;
   popt.decay_rate = decay_rate;
   epoch = iniparser_getint(ini, "Network:Epoch", 100);
-  opt.setType((OptType)parseType(iniparser_getstring(ini, "Network:Optimizer", unknown), TOKEN_OPT));
+  status = opt.setType((OptType)parseType(iniparser_getstring(ini, "Network:Optimizer", unknown), TOKEN_OPT));
+  if (status != ML_ERROR_NONE) {
+    return status;
+  }
+
   cost = (CostType)parseType(iniparser_getstring(ini, "Network:Cost", unknown), TOKEN_COST);
   weight_ini = (WeightIniType)parseType(iniparser_getstring(ini, "Network:WeightIni", unknown), TOKEN_WEIGHTINI);
 
@@ -273,13 +284,16 @@ void NeuralNetwork::init() {
   }
 
   model = iniparser_getstring(ini, "Network:Model", model_name);
-  batch_size = iniparser_getint(ini, "Network:minibatch", 1);
+  batch_size = iniparser_getint(ini, "Network:Minibatch", 1);
 
   popt.beta1 = iniparser_getdouble(ini, "Network:beta1", 0.0);
   popt.beta2 = iniparser_getdouble(ini, "Network:beta2", 0.0);
   popt.epsilon = iniparser_getdouble(ini, "Network:epsilon", 0.0);
 
-  opt.setOptParam(popt);
+  status = opt.setOptParam(popt);
+  if (status != ML_ERROR_NONE) {
+    return status;
+  }
 
   for (unsigned int i = 0; i < layers_name.size(); i++)
     ml_logi("%s", layers_name[i].c_str());
@@ -293,8 +307,10 @@ void NeuralNetwork::init() {
 
     switch (t) {
       case LAYER_BN: {
-        if (i == 0)
-          std::runtime_error("Error: Batch NormalizationLayer should be after InputLayer.");
+        if (i == 0) {
+          ml_loge("Error: Batch NormalizationLayer should be after InputLayer.");
+          return ML_ERROR_INVALID_PARAMETER;
+        }
         h_size = hidden_size[i - 1];
       }
 
@@ -308,6 +324,18 @@ void NeuralNetwork::init() {
     }
     hidden_size.push_back(h_size);
   }
+
+  if (hidden_size.size() != layers_name.size()) {
+    ml_loge("Error: Missing HiddenSize!");
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
+  data_buffer.setClassNum(hidden_size[layers_name.size() - 1]);
+
+  data_buffer.setDataFile(iniparser_getstring(ini, "Network:TrainData", NULL), DATA_TRAIN);
+  data_buffer.setDataFile(iniparser_getstring(ini, "Network:ValidData", NULL), DATA_VAL);
+  data_buffer.setDataFile(iniparser_getstring(ini, "Network:TestData", NULL), DATA_TEST);
+  data_buffer.setDataFile(iniparser_getstring(ini, "Network:LabelData", NULL), DATA_LABEL);
 
   for (unsigned int i = 0; i < layers_name.size(); i++) {
     l_type = iniparser_getstring(ini, (layers_name[i] + ":Type").c_str(), unknown);
@@ -367,6 +395,7 @@ void NeuralNetwork::init() {
   }
 
   iniparser_freedict(ini);
+  return status;
 }
 
 /**

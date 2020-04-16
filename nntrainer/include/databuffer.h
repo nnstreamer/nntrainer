@@ -33,6 +33,7 @@
 #include <vector>
 
 namespace nntrainer {
+
 /**
  * @brief     Enumeration of buffer type
  *            0. BUF_TRAIN ( Buffer for training )
@@ -41,6 +42,16 @@ namespace nntrainer {
  *            3. Unknown
  */
 typedef enum { BUF_TRAIN, BUF_VAL, BUF_TEST, BUFF_UNKNOWN } BufferType;
+
+/**
+ * @brief     Enumeration of data type
+ *            0. DATA_TRAIN ( Data for training )
+ *            1. DATA_VAL ( Data for validation )
+ *            2. DATA_TEST ( Data for test )
+ *            3. DATA_LABEL ( Data for test )
+ *            3. Unknown
+ */
+typedef enum { DATA_TRAIN, DATA_VAL, DATA_TEST, DATA_LABEL, DATA_UNKNOWN } DataType;
 
 /**
  * @class   DataBuffer Data Buffers
@@ -130,6 +141,23 @@ class DataBuffer {
                          std::vector<std::vector<std::vector<float>>> &out_label, unsigned int batch,
                          unsigned int width, unsigned int height, unsigned int c_num);
 
+  /**
+   * @brief     set train data file name
+   * @param[in] path file path
+   * @param[in] type data type : DATA_TRAIN, DATA_VAL, DATA_TEST
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  int setDataFile(std::string path, DataType type);
+
+  /**
+   * @brief     set number of class
+   * @param[in] number of class
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  int setClassNum(unsigned int n);
+
  private:
   std::vector<std::vector<float>> train_data;
   std::vector<std::vector<float>> train_data_label;
@@ -170,7 +198,12 @@ class DataBuffer {
   std::thread train_thread;
   std::thread val_thread;
   std::thread test_thread;
+
+  std::string train_file;
+  std::string val_file;
+  std::string test_file;
+  std::vector<std::string> labels;
 };
-}
+}  // namespace nntrainer
 #endif /* __cplusplus */
 #endif /* __DATABUFFER_H__ */

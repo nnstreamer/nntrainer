@@ -38,7 +38,7 @@ enum class OptType
 {
   sgd = 0,
   adam = 1,
-  unkonwn = 2
+  unknown = 2
 };
 
 /**
@@ -90,8 +90,10 @@ class Optimizer {
   /**
    * @brief     set Optimizer Type
    * @param[in] t Optimizer type
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  void setType(OptType t) { type = t; };
+  int setType(OptType t);
 
   /**
    * @brief     get Optimizer Type
@@ -120,8 +122,10 @@ class Optimizer {
   /**
    * @brief     set Optimizer Parameters
    * @param[in] p Optimizer Parameter : OptParam
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  void setOptParam(OptParam p) { popt = p; };
+  int setOptParam(OptParam p);
 
   /**
    * @brief     get Weight Decay Type
