@@ -21,10 +21,10 @@
  * @bug No known bugs except for NYI items
  */
 
-#include <nntrainer.h>
-#include <string.h>
 #include "neuralnet.h"
 #include "nntrainer_log.h"
+#include <nntrainer.h>
+#include <string.h>
 
 #define ML_NNTRAINER_MAGIC 0x777F888F
 
@@ -78,7 +78,8 @@ int ml_nnmodel_construct(ml_nnmodel_h *model) {
   return status;
 }
 
-int ml_nnmodel_construct_with_conf(const char *model_conf, ml_nnmodel_h *model) {
+int ml_nnmodel_construct_with_conf(const char *model_conf,
+                                   ml_nnmodel_h *model) {
   int status = ML_ERROR_NONE;
   ml_nnmodel *nnmodel;
 

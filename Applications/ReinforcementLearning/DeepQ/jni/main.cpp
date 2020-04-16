@@ -20,7 +20,8 @@
  * @brief	This is DeepQ Reinforcement Learning Example
  *              Environment : CartPole-v0 ( from Native or Open AI / Gym )
  *              Support Experience Replay to remove data co-relation
- *              To maintain stability, two Neural Net are used ( mainNN, targetNN )
+ *              To maintain stability, two Neural Net are used ( mainNN,
+ * targetNN )
  *
  *
  *                  +---------------------+              +----------+
@@ -60,15 +61,15 @@
  *
  */
 
-#include <stdio.h>
-#include <unistd.h>
+#include "neuralnet.h"
+#include "tensor.h"
 #include <fstream>
 #include <iostream>
 #include <iterator>
 #include <memory>
 #include <queue>
-#include "neuralnet.h"
-#include "tensor.h"
+#include <stdio.h>
+#include <unistd.h>
 
 #ifdef USE_GYM
 #include "include/gym/gym.h"
@@ -130,7 +131,8 @@ typedef struct {
  * @retval    min < random value < max
  */
 static float RandomFloat(float Min, float Max) {
-  float r = Min + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX) / (Max - Min));
+  float r = Min + static_cast<float>(rand()) /
+                    (static_cast<float>(RAND_MAX) / (Max - Min));
   return r;
 }
 
@@ -354,8 +356,8 @@ int main(int argc, char **argv) {
        * @brief     Set Penalty or reward
        */
       if (done) {
-        std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! DONE : Episode " << episode << " Iteration : " << step_count
-                  << "\n";
+        std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! DONE : Episode "
+                  << episode << " Iteration : " << step_count << "\n";
         ex.reward = -100.0;
         if (!TRAINING)
           break;
@@ -398,10 +400,12 @@ int main(int argc, char **argv) {
         for (unsigned int i = 0; i < in_Exp.size(); i++) {
           STATE state = in_Exp[i].state;
           STATE next_state = in_Exp[i].next_state;
-          std::vector<float> in(state.observation.begin(), state.observation.end());
+          std::vector<float> in(state.observation.begin(),
+                                state.observation.end());
           inbatch.push_back({in});
 
-          std::vector<float> next_in(next_state.observation.begin(), next_state.observation.end());
+          std::vector<float> next_in(next_state.observation.begin(),
+                                     next_state.observation.end());
           next_inbatch.push_back({next_in});
         }
 
@@ -413,7 +417,8 @@ int main(int argc, char **argv) {
         /**
          * @brief     run forward propagation with targetNet
          */
-        nntrainer::Tensor NQ = targetNet.forwarding(nntrainer::Tensor(next_inbatch));
+        nntrainer::Tensor NQ =
+          targetNet.forwarding(nntrainer::Tensor(next_inbatch));
         std::vector<float> nqa = NQ.mat2vec();
 
         /**
@@ -423,15 +428,18 @@ int main(int argc, char **argv) {
           if (in_Exp[i].done) {
             Q.setValue(i, 0, (int)in_Exp[i].action[0], (float)in_Exp[i].reward);
           } else {
-            float next = (nqa[i * NQ.getWidth()] > nqa[i * NQ.getWidth() + 1]) ? nqa[i * NQ.getWidth()]
-                                                                               : nqa[i * NQ.getWidth() + 1];
-            Q.setValue(i, 0, (int)in_Exp[i].action[0], (float)in_Exp[i].reward + DISCOUNT * next);
+            float next = (nqa[i * NQ.getWidth()] > nqa[i * NQ.getWidth() + 1])
+                           ? nqa[i * NQ.getWidth()]
+                           : nqa[i * NQ.getWidth() + 1];
+            Q.setValue(i, 0, (int)in_Exp[i].action[0],
+                       (float)in_Exp[i].reward + DISCOUNT * next);
           }
         }
         mainNet.backwarding(nntrainer::Tensor(inbatch), Q, iter);
       }
 
-      writeFile << "mainNet Loss : " << mainNet.getLoss() << " : targetNet Loss : " << targetNet.getLoss() << "\n";
+      writeFile << "mainNet Loss : " << mainNet.getLoss()
+                << " : targetNet Loss : " << targetNet.getLoss() << "\n";
       std::cout << "\n\n =================== TRAINIG & COPY NET "
                    "==================\n\n";
       std::cout << "mainNet Loss : ";

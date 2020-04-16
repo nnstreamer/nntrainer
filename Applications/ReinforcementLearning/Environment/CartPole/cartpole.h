@@ -50,7 +50,7 @@ typedef struct {
  * @brief   CartPole-v0 example for Reinforcement Learning
  */
 class CartPole {
- public:
+public:
   /**
    * @brief     Constructor of CartPole
    */
@@ -99,7 +99,7 @@ class CartPole {
    */
   std::vector<float> sample();
 
- private:
+private:
   float gravity;
   float masscart;
   float masspole;
@@ -116,6 +116,6 @@ class CartPole {
   int action_dim;
   State S;
 };
-}
+} // namespace Env
 
 #endif

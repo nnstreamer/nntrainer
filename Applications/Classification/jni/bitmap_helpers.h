@@ -22,8 +22,9 @@ limitations under the License.
 #include <iostream>
 namespace tflite {
 namespace label_image {
-uint8_t *read_bmp(const std::string &input_bmp_name, int *width, int *height, int *channels);
-}  // namespace label_image
-}  // namespace tflite
+uint8_t *read_bmp(const std::string &input_bmp_name, int *width, int *height,
+                  int *channels);
+} // namespace label_image
+} // namespace tflite
 
-#endif  // TENSORFLOW_CONTRIB_LITE_EXAMPLES_LABEL_IMAGE_BITMAP_HELPERS_H
+#endif // TENSORFLOW_CONTRIB_LITE_EXAMPLES_LABEL_IMAGE_BITMAP_HELPERS_H

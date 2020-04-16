@@ -23,11 +23,11 @@
 #define __LAYERS_H__
 #ifdef __cplusplus
 
+#include "optimizer.h"
+#include "tensor.h"
 #include <fstream>
 #include <iostream>
 #include <vector>
-#include "optimizer.h"
-#include "tensor.h"
 
 namespace nntrainer {
 
@@ -46,7 +46,13 @@ typedef enum { COST_MSR, COST_ENTROPY, COST_UNKNOWN } CostType;
  *            2. relu
  *            3. Unknown
  */
-typedef enum { ACT_TANH, ACT_SIGMOID, ACT_RELU, ACT_SOFTMAX, ACT_UNKNOWN } ActiType;
+typedef enum {
+  ACT_TANH,
+  ACT_SIGMOID,
+  ACT_RELU,
+  ACT_SOFTMAX,
+  ACT_UNKNOWN
+} ActiType;
 
 /**
  * @brief     Enumeration of layer type
@@ -55,7 +61,13 @@ typedef enum { ACT_TANH, ACT_SIGMOID, ACT_RELU, ACT_SOFTMAX, ACT_UNKNOWN } ActiT
  *            2. Output Layer type
  *            3. Unknown
  */
-typedef enum { LAYER_IN, LAYER_FC, LAYER_OUT, LAYER_BN, LAYER_UNKNOWN } LayerType;
+typedef enum {
+  LAYER_IN,
+  LAYER_FC,
+  LAYER_OUT,
+  LAYER_BN,
+  LAYER_UNKNOWN
+} LayerType;
 
 /**
  * @brief     Enumeration of Weight Initialization Type
@@ -81,7 +93,7 @@ typedef enum {
  * @brief   Base class for all layers
  */
 class Layer {
- public:
+public:
   /**
    * @brief     Destructor of Layer Class
    */
@@ -119,7 +131,8 @@ class Layer {
    * @param[in] init_zero Bias initialization with zero
    * @param[in] wini Weight Initialization Scheme
    */
-  virtual void initialize(int b, int h, int w, int id, bool init_zero, WeightIniType wini) = 0;
+  virtual void initialize(int b, int h, int w, int id, bool init_zero,
+                          WeightIniType wini) = 0;
 
   /**
    * @brief     read layer Weight & Bias data from file
@@ -225,7 +238,7 @@ class Layer {
  * @brief   Just Handle the Input of Network
  */
 class InputLayer : public Layer {
- public:
+public:
   /**
    * @brief     Constructor of InputLayer
    */
@@ -287,7 +300,8 @@ class InputLayer : public Layer {
    * @param[in] init_zero boolean to set Bias zero
    * @param[in] wini Weight Initialization Scheme
    */
-  void initialize(int b, int h, int w, int id, bool init_zero, WeightIniType wini);
+  void initialize(int b, int h, int w, int id, bool init_zero,
+                  WeightIniType wini);
 
   /**
    * @brief     Copy Layer
@@ -307,7 +321,7 @@ class InputLayer : public Layer {
    */
   void setStandardization(bool enable) { this->standardization = enable; };
 
- private:
+private:
   bool normalization;
   bool standardization;
 };
@@ -317,7 +331,7 @@ class InputLayer : public Layer {
  * @brief   fully connected layer
  */
 class FullyConnectedLayer : public Layer {
- public:
+public:
   /**
    * @brief     Constructor of Fully Connected Layer
    */
@@ -380,9 +394,10 @@ class FullyConnectedLayer : public Layer {
    * @param[in] init_zero boolean to set Bias zero
    * @param[in] wini Weight Initialization Scheme
    */
-  void initialize(int b, int h, int w, int id, bool init_zero, WeightIniType wini);
+  void initialize(int b, int h, int w, int id, bool init_zero,
+                  WeightIniType wini);
 
- private:
+private:
   Tensor weight;
   Tensor bias;
 };
@@ -392,7 +407,7 @@ class FullyConnectedLayer : public Layer {
  * @brief   OutputLayer (has Cost Function & Weight, Bias)
  */
 class OutputLayer : public Layer {
- public:
+public:
   /**
    * @brief     Constructor of OutputLayer
    */
@@ -448,7 +463,8 @@ class OutputLayer : public Layer {
    * @param[in] init_zero boolean to set Bias zero
    * @param[in] wini Weight Initialization Scheme
    */
-  void initialize(int b, int w, int h, int id, bool init_zero, WeightIniType wini);
+  void initialize(int b, int w, int h, int id, bool init_zero,
+                  WeightIniType wini);
 
   /**
    * @brief     get Loss value
@@ -467,7 +483,7 @@ class OutputLayer : public Layer {
    */
   void copy(Layer *l);
 
- private:
+private:
   Tensor weight;
   Tensor bias;
   float loss;
@@ -479,7 +495,7 @@ class OutputLayer : public Layer {
  * @brief   Batch Noramlization Layer
  */
 class BatchNormalizationLayer : public Layer {
- public:
+public:
   /**
    * @brief     Constructor of Batch Noramlization Layer
    */
@@ -548,9 +564,10 @@ class BatchNormalizationLayer : public Layer {
    * @param[in] init_zero boolean to set Bias zero
    * @param[in] wini Weight Initialization Scheme
    */
-  void initialize(int b, int h, int w, int id, bool init_zero, WeightIniType wini);
+  void initialize(int b, int h, int w, int id, bool init_zero,
+                  WeightIniType wini);
 
- private:
+private:
   Tensor weight;
   Tensor bias;
   Tensor mu;
@@ -559,7 +576,7 @@ class BatchNormalizationLayer : public Layer {
   Tensor beta;
   float epsilon;
 };
-}
+} // namespace nntrainer
 
 #endif /* __cplusplus */
 #endif /* __LAYERS_H__ */

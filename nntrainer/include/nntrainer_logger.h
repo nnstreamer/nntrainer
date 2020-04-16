@@ -48,30 +48,33 @@ namespace nntrainer {
 
 /**
  * @class   NNTrainer Logger Class
- * @brief   Class for Logging. This is alternatives when there is no logging system.
- *          For the tizen, we are going to use dlog and it is android_log for android.
+ * @brief   Class for Logging. This is alternatives when there is no logging
+ * system. For the tizen, we are going to use dlog and it is android_log for
+ * android.
  */
 class Logger {
- public:
+public:
   /**
-   * @brief     Logging Instance Function. Get a lock and create Logger if it is null;
+   * @brief     Logging Instance Function. Get a lock and create Logger if it
+   * is null;
    */
-  static Logger& instance();
+  static Logger &instance();
 
   /**
    * @brief     Logging member function for logging messages.
    */
-  void log(const std::string& message, const nntrainer_loglevel loglevel = NNTRAINER_LOG_INFO);
+  void log(const std::string &message,
+           const nntrainer_loglevel loglevel = NNTRAINER_LOG_INFO);
 
- protected:
+protected:
   /**
    * @brief     Logging instance
    */
-  static Logger* ainstance;
+  static Logger *ainstance;
   /**
    * @brief     Log file name
    */
-  static const char* const logfile_name;
+  static const char *const logfile_name;
 
   /**
    * @brief     output stream
@@ -84,11 +87,11 @@ class Logger {
    */
   friend class Cleanup;
   class Cleanup {
-   public:
+  public:
     ~Cleanup();
   };
 
- private:
+private:
   /**
    * @brief     Constructor
    */
@@ -97,8 +100,8 @@ class Logger {
    * @brief     Destructor
    */
   virtual ~Logger();
-  Logger(const Logger&);
-  Logger& operator=(const Logger&);
+  Logger(const Logger &);
+  Logger &operator=(const Logger &);
   static std::mutex smutex;
 };
 } /* namespace nntrainer */
@@ -110,7 +113,8 @@ extern "C" {
 /**
  * @brief     Interface function for C
  */
-void __nntrainer_log_print(nntrainer_loglevel loglevel, const std::string format, ...);
+void __nntrainer_log_print(nntrainer_loglevel loglevel,
+                           const std::string format, ...);
 
 #ifdef __cplusplus
 }

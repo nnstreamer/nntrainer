@@ -23,10 +23,10 @@
 
 #include "tensor.h"
 #include <assert.h>
-#include <nntrainer_log.h>
-#include <stdio.h>
 #include <cstring>
+#include <nntrainer_log.h>
 #include <sstream>
+#include <stdio.h>
 
 #ifdef USE_CUBLAS
 #include <helper_cuda.h>
@@ -37,7 +37,8 @@ namespace nntrainer {
 
 void TensorDim::setTensorDim(std::string input_shape) {
   std::regex words_regex("[^\\s.,:;!?]+");
-  auto words_begin = std::sregex_iterator(input_shape.begin(), input_shape.end(), words_regex);
+  auto words_begin =
+    std::sregex_iterator(input_shape.begin(), input_shape.end(), words_regex);
   auto words_end = std::sregex_iterator();
   int cur_dim = std::distance(words_begin, words_end);
   if (cur_dim > 4) {
@@ -71,7 +72,9 @@ Tensor::Tensor(int batch, int height, int width) {
   setZero();
 }
 
-float Tensor::getValue(int batch, int h, int w) { return this->data[batch * height * width + h * width + w]; }
+float Tensor::getValue(int batch, int h, int w) {
+  return this->data[batch * height * width + h * width + w];
+}
 
 void Tensor::setValue(int batch, int h, int w, float value) {
   this->data[batch * height * width + h * width + w] = value;
@@ -123,7 +126,8 @@ Tensor Tensor::divide(float const &value) {
   Tensor result(batch, height, width);
 #ifdef USE_BLAS
   memset(result.data.data(), 0, sizeof(float) * result.len);
-  cblas_saxpy(this->len, 1.0 / value, this->data.data(), 1, result.data.data(), 1);
+  cblas_saxpy(this->len, 1.0 / value, this->data.data(), 1, result.data.data(),
+              1);
 #else
   for (int k = 0; k < len; ++k) {
     result.data[k] = data[k] / value;
@@ -158,7 +162,8 @@ Tensor Tensor::add(Tensor const &m) const {
   int size = this->width * this->height;
   if (m.batch == 1) {
     for (int k = 0; k < batch; ++k) {
-      cblas_saxpy(size, 1.0, m.data.data(), 1, &(result.data.data()[k * size]), 1);
+      cblas_saxpy(size, 1.0, m.data.data(), 1, &(result.data.data()[k * size]),
+                  1);
     }
   } else {
     cblas_saxpy(this->len, 1.0, m.data.data(), 1, result.data.data(), 1);
@@ -193,7 +198,8 @@ Tensor Tensor::subtract(Tensor const &m) const {
 
   if (m.batch == 1) {
     for (int k = 0; k < batch; ++k) {
-      cblas_saxpy(size, alpha, m.data.data(), 1, &(result.data.data()[k * size]), 1);
+      cblas_saxpy(size, alpha, m.data.data(), 1,
+                  &(result.data.data()[k * size]), 1);
     }
   } else {
     assert(batch == m.batch);
@@ -310,7 +316,8 @@ Tensor Tensor::sum() const {
   Tensor ret(batch, 1, 1);
 #ifdef USE_BLAS
   for (k = 0; k < batch; ++k)
-    ret.data[k] = cblas_sasum(width * height, &(data.data()[k * width * height]), 1);
+    ret.data[k] =
+      cblas_sasum(width * height, &(data.data()[k * width * height]), 1);
 #else
   int i;
   for (k = 0; k < batch; ++k) {
@@ -329,45 +336,45 @@ Tensor Tensor::sum(int axis) const {
   Tensor ret;
 
   switch (axis) {
-    case 0: {
-      ret = Tensor(1, height, width);
-      for (int i = 0; i < height; ++i) {
-        int I = i * width;
-        for (int j = 0; j < width; ++j) {
-          for (int k = 0; k < batch; ++k) {
-            int K = k * width * height;
-            ret.data[I + j] += data[K + I + j];
-          }
+  case 0: {
+    ret = Tensor(1, height, width);
+    for (int i = 0; i < height; ++i) {
+      int I = i * width;
+      for (int j = 0; j < width; ++j) {
+        for (int k = 0; k < batch; ++k) {
+          int K = k * width * height;
+          ret.data[I + j] += data[K + I + j];
         }
       }
-    } break;
-    case 1: {
-      ret = Tensor(batch, 1, width);
-      for (int k = 0; k < batch; ++k) {
-        int K = k * width;
-        for (int j = 0; j < width; ++j) {
-          for (int i = 0; i < height; ++i) {
-            int I = i * width * batch;
-            ret.data[K + j] += data[K + I + j];
-          }
-        }
-      }
-    } break;
-    case 2: {
-      ret = Tensor(batch, height, width);
-      for (int k = 0; k < batch; ++k) {
-        int K = k * height;
+    }
+  } break;
+  case 1: {
+    ret = Tensor(batch, 1, width);
+    for (int k = 0; k < batch; ++k) {
+      int K = k * width;
+      for (int j = 0; j < width; ++j) {
         for (int i = 0; i < height; ++i) {
-          for (int j = 0; j < width; ++j) {
-            int J = j * height * batch;
-            ret.data[K + i] += data[K + J + i];
-          }
+          int I = i * width * batch;
+          ret.data[K + j] += data[K + I + j];
         }
       }
-    } break;
-    default:
-      std::runtime_error("Error: Cannot excide 2");
-      break;
+    }
+  } break;
+  case 2: {
+    ret = Tensor(batch, height, width);
+    for (int k = 0; k < batch; ++k) {
+      int K = k * height;
+      for (int i = 0; i < height; ++i) {
+        for (int j = 0; j < width; ++j) {
+          int J = j * height * batch;
+          ret.data[K + i] += data[K + J + i];
+        }
+      }
+    }
+  } break;
+  default:
+    std::runtime_error("Error: Cannot excide 2");
+    break;
   }
   return ret;
 }
@@ -388,8 +395,9 @@ Tensor Tensor::dot(Tensor const &m) const {
     for (int k = 0; k < batch; k++) {
       int i = k * width * height;
       int ii = k * height * mwidth;
-      cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, height, mwidth, width, alpha_dgemm, &(data.data()[i]),
-                  width, m.data.data(), mwidth, beta_dgemm, &(result.data.data()[ii]), mwidth);
+      cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, height, mwidth,
+                  width, alpha_dgemm, &(data.data()[i]), width, m.data.data(),
+                  mwidth, beta_dgemm, &(result.data.data()[ii]), mwidth);
     }
   } else {
     for (int k = 0; k < batch; k++) {
@@ -397,8 +405,10 @@ Tensor Tensor::dot(Tensor const &m) const {
       int j = k * m.width * m.height;
       int ii = k * height * mwidth;
 
-      cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, height, mwidth, width, alpha_dgemm, &(data.data()[i]),
-                  width, &(m.data.data()[j]), mwidth, beta_dgemm, &(result.data.data()[ii]), mwidth);
+      cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, height, mwidth,
+                  width, alpha_dgemm, &(data.data()[i]), width,
+                  &(m.data.data()[j]), mwidth, beta_dgemm,
+                  &(result.data.data()[ii]), mwidth);
     }
   }
 #elif USE_CUBLAS
@@ -429,10 +439,11 @@ Tensor Tensor::dot(Tensor const &m) const {
 
         (cublasCreate(&handle));
 
-        (cublasSgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, m.width, height, width, &alpha, d_B, m.width, d_A, width, &beta,
-                     d_C, m.width));
+        (cublasSgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, m.width, height, width,
+                     &alpha, d_B, m.width, d_A, width, &beta, d_C, m.width));
 
-        (cudaMemcpy(&result.data.data()[ii], d_C, size_C, cudaMemcpyDeviceToHost));
+        (cudaMemcpy(&result.data.data()[ii], d_C, size_C,
+                    cudaMemcpyDeviceToHost));
         (cublasDestroy(handle));
       }
     }
@@ -455,10 +466,11 @@ Tensor Tensor::dot(Tensor const &m) const {
 
         (cublasCreate(&handle));
 
-        (cublasSgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, m.width, height, width, &alpha, d_B, m.width, d_A, width, &beta,
-                     d_C, m.width));
+        (cublasSgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, m.width, height, width,
+                     &alpha, d_B, m.width, d_A, width, &beta, d_C, m.width));
 
-        (cudaMemcpy(&result.data.data()[ii], d_C, size_C, cudaMemcpyDeviceToHost));
+        (cudaMemcpy(&result.data.data()[ii], d_C, size_C,
+                    cudaMemcpyDeviceToHost));
         (cublasDestroy(handle));
       }
     }
@@ -471,7 +483,8 @@ Tensor Tensor::dot(Tensor const &m) const {
       for (i = 0; i < height; ++i) {
         for (j = 0; j < mwidth; ++j) {
           for (h = 0; h < width; ++h) {
-            w += data[k * height * width + i * width + h] * m.data[h * mwidth + j];
+            w +=
+              data[k * height * width + i * width + h] * m.data[h * mwidth + j];
           }
           result.data[k * height * mwidth + i * mwidth + j] = w;
           w = 0.0;
@@ -483,7 +496,8 @@ Tensor Tensor::dot(Tensor const &m) const {
       for (i = 0; i < height; i++) {
         for (j = 0; j < mwidth; j++) {
           for (h = 0; h < width; h++) {
-            w += data[k * height * width + i * width + h] * m.data[k * width * mwidth + h * mwidth + j];
+            w += data[k * height * width + i * width + h] *
+                 m.data[k * width * mwidth + h * mwidth + j];
           }
           result.data[k * height * mwidth + i * mwidth + j] = w;
           w = 0.0;
@@ -520,7 +534,9 @@ Tensor Tensor::apply(float (*function)(float)) const {
   return result;
 }
 
-Tensor Tensor::apply(Tensor (*function)(Tensor)) const { return (*function)(*this); }
+Tensor Tensor::apply(Tensor (*function)(Tensor)) const {
+  return (*function)(*this);
+}
 
 void Tensor::print(std::ostream &out) const {
   int i, j, k;
@@ -600,7 +616,9 @@ Tensor Tensor::average() const {
   return result;
 }
 
-void Tensor::setZero() { memset(this->data.data(), 0, sizeof(float) * this->len); }
+void Tensor::setZero() {
+  memset(this->data.data(), 0, sizeof(float) * this->len);
+}
 
 Tensor Tensor::softmax() const {
   Tensor result(batch, height, width);
@@ -612,7 +630,8 @@ Tensor Tensor::softmax() const {
     int index = k * height;
     for (int i = 0; i < height; i++) {
       for (int j = 0; j < width; j++) {
-        divisor.data[index + i] += exp(this->data[k * height * width + i * width + j]);
+        divisor.data[index + i] +=
+          exp(this->data[k * height * width + i * width + j]);
       }
     }
   }

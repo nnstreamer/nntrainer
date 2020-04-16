@@ -22,19 +22,19 @@
  */
 
 #include "databuffer.h"
+#include "nntrainer_error.h"
 #include <assert.h>
-#include <nntrainer_log.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <climits>
 #include <condition_variable>
 #include <cstring>
 #include <functional>
 #include <mutex>
+#include <nntrainer_log.h>
 #include <sstream>
 #include <stdexcept>
+#include <stdio.h>
+#include <stdlib.h>
 #include <thread>
-#include "nntrainer_error.h"
 
 namespace nntrainer {
 
@@ -68,10 +68,12 @@ DataBuffer::DataBuffer(int train_num, int val_num, int test_num) {
   this->test_bufsize = test_num;
 }
 
-bool DataBuffer::init(int mini_batch, unsigned int train_bufsize, unsigned int val_bufsize, unsigned int test_bufsize,
-                      std::ifstream &train_file, std::ifstream &val_file, std::ifstream &test_file,
-                      unsigned int max_train, unsigned int max_val, unsigned int max_test, unsigned int in_size,
-                      unsigned int c_num) {
+bool DataBuffer::init(int mini_batch, unsigned int train_bufsize,
+                      unsigned int val_bufsize, unsigned int test_bufsize,
+                      std::ifstream &train_file, std::ifstream &val_file,
+                      std::ifstream &test_file, unsigned int max_train,
+                      unsigned int max_val, unsigned int max_test,
+                      unsigned int in_size, unsigned int c_num) {
   this->input_size = in_size;
   this->class_num = c_num;
 
@@ -114,35 +116,35 @@ void DataBuffer::updateData(BufferType type, std::ifstream &file) {
   std::vector<std::vector<float>> *datalabel = NULL;
 
   switch (type) {
-    case BUF_TRAIN:
-      max_size = max_train;
-      buf_size = train_bufsize;
-      rest_size = &rest_train;
-      cur_size = &cur_train_bufsize;
-      running = &train_running;
-      data = &train_data;
-      datalabel = &train_data_label;
-      break;
-    case BUF_VAL:
-      max_size = max_val;
-      buf_size = val_bufsize;
-      rest_size = &rest_val;
-      cur_size = &cur_val_bufsize;
-      running = &val_running;
-      data = &val_data;
-      datalabel = &val_data_label;
-      break;
-    case BUF_TEST:
-      max_size = max_test;
-      buf_size = test_bufsize;
-      rest_size = &rest_test;
-      cur_size = &cur_test_bufsize;
-      running = &test_running;
-      data = &test_data;
-      datalabel = &test_data_label;
-      break;
-    default:
-      break;
+  case BUF_TRAIN:
+    max_size = max_train;
+    buf_size = train_bufsize;
+    rest_size = &rest_train;
+    cur_size = &cur_train_bufsize;
+    running = &train_running;
+    data = &train_data;
+    datalabel = &train_data_label;
+    break;
+  case BUF_VAL:
+    max_size = max_val;
+    buf_size = val_bufsize;
+    rest_size = &rest_val;
+    cur_size = &cur_val_bufsize;
+    running = &val_running;
+    data = &val_data;
+    datalabel = &val_data_label;
+    break;
+  case BUF_TEST:
+    max_size = max_test;
+    buf_size = test_bufsize;
+    rest_size = &rest_test;
+    cur_size = &cur_test_bufsize;
+    running = &test_running;
+    data = &test_data;
+    datalabel = &test_data_label;
+    break;
+  default:
+    break;
   }
 
   unsigned int I;
@@ -195,23 +197,23 @@ void DataBuffer::updateData(BufferType type, std::ifstream &file) {
 
     if (buf_size == (*cur_size)) {
       switch (type) {
-        case BUF_TRAIN: {
-          std::lock_guard<std::mutex> lgtrain(readyTrainData);
-          trainReadyFlag = true;
-          cv_train.notify_all();
-        } break;
-        case BUF_VAL: {
-          std::lock_guard<std::mutex> lgval(readyValData);
-          valReadyFlag = true;
-          cv_val.notify_all();
-        } break;
-        case BUF_TEST: {
-          std::lock_guard<std::mutex> lgtest(readyTestData);
-          testReadyFlag = true;
-          cv_test.notify_all();
-        } break;
-        default:
-          break;
+      case BUF_TRAIN: {
+        std::lock_guard<std::mutex> lgtrain(readyTrainData);
+        trainReadyFlag = true;
+        cv_train.notify_all();
+      } break;
+      case BUF_VAL: {
+        std::lock_guard<std::mutex> lgval(readyValData);
+        valReadyFlag = true;
+        cv_val.notify_all();
+      } break;
+      case BUF_TEST: {
+        std::lock_guard<std::mutex> lgtest(readyTestData);
+        testReadyFlag = true;
+        cv_test.notify_all();
+      } break;
+      default:
+        break;
       }
     }
   }
@@ -219,198 +221,202 @@ void DataBuffer::updateData(BufferType type, std::ifstream &file) {
 
 void DataBuffer::run(BufferType type, std::ifstream &file) {
   switch (type) {
-    case BUF_TRAIN:
-      this->train_thread = std::thread(&DataBuffer::updateData, this, BUF_TRAIN, std::ref(file));
-      this->train_thread.detach();
-      break;
-    case BUF_VAL:
-      this->val_thread = std::thread(&DataBuffer::updateData, this, BUF_VAL, std::ref(file));
-      this->val_thread.detach();
-      break;
-    case BUF_TEST:
-      this->test_thread = std::thread(&DataBuffer::updateData, this, BUF_TEST, std::ref(file));
-      this->test_thread.detach();
-      break;
-    default:
-      break;
+  case BUF_TRAIN:
+    this->train_thread =
+      std::thread(&DataBuffer::updateData, this, BUF_TRAIN, std::ref(file));
+    this->train_thread.detach();
+    break;
+  case BUF_VAL:
+    this->val_thread =
+      std::thread(&DataBuffer::updateData, this, BUF_VAL, std::ref(file));
+    this->val_thread.detach();
+    break;
+  case BUF_TEST:
+    this->test_thread =
+      std::thread(&DataBuffer::updateData, this, BUF_TEST, std::ref(file));
+    this->test_thread.detach();
+    break;
+  default:
+    break;
   }
 }
 
 bool DataBuffer::getStatus(BufferType type) {
   int ret = true;
   switch (type) {
-    case BUF_TRAIN:
-      if ((train_data.size() < mini_batch) && trainReadyFlag)
-        ret = false;
-      break;
-    case BUF_VAL:
-      if ((val_data.size() < mini_batch) && valReadyFlag)
-        ret = false;
-      break;
-    case BUF_TEST:
-      if ((test_data.size() < mini_batch) && testReadyFlag)
-        ret = false;
-      break;
-    default:
-      break;
+  case BUF_TRAIN:
+    if ((train_data.size() < mini_batch) && trainReadyFlag)
+      ret = false;
+    break;
+  case BUF_VAL:
+    if ((val_data.size() < mini_batch) && valReadyFlag)
+      ret = false;
+    break;
+  case BUF_TEST:
+    if ((test_data.size() < mini_batch) && testReadyFlag)
+      ret = false;
+    break;
+  default:
+    break;
   }
   return ret;
 }
 
 void DataBuffer::clear(BufferType type, std::ifstream &file) {
   switch (type) {
-    case BUF_TRAIN: {
-      train_running = false;
-      this->train_data.clear();
-      this->train_data_label.clear();
-      this->cur_train_bufsize = 0;
-      this->rest_train = max_train;
-      trainReadyFlag = false;
+  case BUF_TRAIN: {
+    train_running = false;
+    this->train_data.clear();
+    this->train_data_label.clear();
+    this->cur_train_bufsize = 0;
+    this->rest_train = max_train;
+    trainReadyFlag = false;
 
-      file.clear();
-      file.seekg(0, std::ios::beg);
+    file.clear();
+    file.seekg(0, std::ios::beg);
 
-      this->train_running = true;
-    } break;
-    case BUF_VAL: {
-      val_running = false;
-      this->val_data.clear();
-      this->val_data_label.clear();
-      this->cur_val_bufsize = 0;
-      this->rest_val = max_val;
-      valReadyFlag = false;
+    this->train_running = true;
+  } break;
+  case BUF_VAL: {
+    val_running = false;
+    this->val_data.clear();
+    this->val_data_label.clear();
+    this->cur_val_bufsize = 0;
+    this->rest_val = max_val;
+    valReadyFlag = false;
 
-      file.clear();
-      file.seekg(0, std::ios::beg);
+    file.clear();
+    file.seekg(0, std::ios::beg);
 
-      this->val_running = true;
-    } break;
-    case BUF_TEST: {
-      test_running = false;
-      this->test_data.clear();
-      this->test_data_label.clear();
-      this->cur_test_bufsize = 0;
-      this->rest_test = max_test;
-      testReadyFlag = false;
-      file.clear();
-      file.seekg(0, std::ios::beg);
-      this->test_running = true;
-    } break;
-    default:
-      break;
+    this->val_running = true;
+  } break;
+  case BUF_TEST: {
+    test_running = false;
+    this->test_data.clear();
+    this->test_data_label.clear();
+    this->cur_test_bufsize = 0;
+    this->rest_test = max_test;
+    testReadyFlag = false;
+    file.clear();
+    file.seekg(0, std::ios::beg);
+    this->test_running = true;
+  } break;
+  default:
+    break;
   }
 }
 
-bool DataBuffer::getDataFromBuffer(BufferType type, std::vector<std::vector<std::vector<float>>> &outVec,
-                                   std::vector<std::vector<std::vector<float>>> &outLabel, unsigned int batch,
-                                   unsigned int width, unsigned int height, unsigned int c_num) {
+bool DataBuffer::getDataFromBuffer(
+  BufferType type, std::vector<std::vector<std::vector<float>>> &outVec,
+  std::vector<std::vector<std::vector<float>>> &outLabel, unsigned int batch,
+  unsigned int width, unsigned int height, unsigned int c_num) {
   int nomI;
   unsigned int J, i, j, k;
 
   switch (type) {
-    case BUF_TRAIN: {
-      std::vector<int> list;
+  case BUF_TRAIN: {
+    std::vector<int> list;
 
-      if (!getStatus(BUF_TRAIN))
-        return false;
-
-      {
-        std::unique_lock<std::mutex> ultest(readyTrainData);
-        cv_train.wait(ultest, []() -> bool { return trainReadyFlag; });
-      }
-
-      data_lock.lock();
-      for (k = 0; k < batch; ++k) {
-        nomI = rangeRandom(0, train_data.size() - 1);
-        std::vector<std::vector<float>> v_height;
-        for (j = 0; j < height; ++j) {
-          J = j * width;
-          std::vector<float> v_width;
-          for (i = 0; i < width; ++i) {
-            v_width.push_back(train_data[nomI][J + i]);
-          }
-          v_height.push_back(v_width);
-        }
-
-        list.push_back(nomI);
-        outVec.push_back(v_height);
-        outLabel.push_back({train_data_label[nomI]});
-      }
-      for (i = 0; i < batch; ++i) {
-        train_data.erase(train_data.begin() + list[i]);
-        train_data_label.erase(train_data_label.begin() + list[i]);
-        cur_train_bufsize--;
-      }
-    } break;
-    case BUF_VAL: {
-      std::vector<int> list;
-      if (!getStatus(BUF_VAL))
-        return false;
-
-      {
-        std::unique_lock<std::mutex> ulval(readyValData);
-        cv_val.wait(ulval, []() -> bool { return valReadyFlag; });
-      }
-
-      data_lock.lock();
-      for (k = 0; k < batch; ++k) {
-        nomI = rangeRandom(0, val_data.size() - 1);
-        std::vector<std::vector<float>> v_height;
-        for (j = 0; j < height; ++j) {
-          J = j * width;
-          std::vector<float> v_width;
-          for (i = 0; i < width; ++i) {
-            v_width.push_back(val_data[nomI][J + i]);
-          }
-          v_height.push_back(v_width);
-        }
-
-        list.push_back(nomI);
-        outVec.push_back(v_height);
-        outLabel.push_back({val_data_label[nomI]});
-      }
-      for (i = 0; i < batch; ++i) {
-        val_data.erase(val_data.begin() + list[i]);
-        val_data_label.erase(val_data_label.begin() + list[i]);
-        cur_val_bufsize--;
-      }
-    } break;
-    case BUF_TEST: {
-      std::vector<int> list;
-      if (!getStatus(BUF_TEST))
-        return false;
-
-      {
-        std::unique_lock<std::mutex> ultest(readyTestData);
-        cv_test.wait(ultest, []() -> bool { return testReadyFlag; });
-      }
-
-      data_lock.lock();
-      for (k = 0; k < batch; ++k) {
-        nomI = rangeRandom(0, test_data.size() - 1);
-        std::vector<std::vector<float>> v_height;
-        for (j = 0; j < height; ++j) {
-          J = j * width;
-          std::vector<float> v_width;
-          for (i = 0; i < width; ++i) {
-            v_width.push_back(test_data[nomI][J + i]);
-          }
-          v_height.push_back(v_width);
-        }
-
-        list.push_back(nomI);
-        outVec.push_back(v_height);
-        outLabel.push_back({test_data_label[nomI]});
-      }
-      for (i = 0; i < batch; ++i) {
-        test_data.erase(test_data.begin() + list[i]);
-        test_data_label.erase(test_data_label.begin() + list[i]);
-        cur_test_bufsize--;
-      }
-    } break;
-    default:
+    if (!getStatus(BUF_TRAIN))
       return false;
-      break;
+
+    {
+      std::unique_lock<std::mutex> ultest(readyTrainData);
+      cv_train.wait(ultest, []() -> bool { return trainReadyFlag; });
+    }
+
+    data_lock.lock();
+    for (k = 0; k < batch; ++k) {
+      nomI = rangeRandom(0, train_data.size() - 1);
+      std::vector<std::vector<float>> v_height;
+      for (j = 0; j < height; ++j) {
+        J = j * width;
+        std::vector<float> v_width;
+        for (i = 0; i < width; ++i) {
+          v_width.push_back(train_data[nomI][J + i]);
+        }
+        v_height.push_back(v_width);
+      }
+
+      list.push_back(nomI);
+      outVec.push_back(v_height);
+      outLabel.push_back({train_data_label[nomI]});
+    }
+    for (i = 0; i < batch; ++i) {
+      train_data.erase(train_data.begin() + list[i]);
+      train_data_label.erase(train_data_label.begin() + list[i]);
+      cur_train_bufsize--;
+    }
+  } break;
+  case BUF_VAL: {
+    std::vector<int> list;
+    if (!getStatus(BUF_VAL))
+      return false;
+
+    {
+      std::unique_lock<std::mutex> ulval(readyValData);
+      cv_val.wait(ulval, []() -> bool { return valReadyFlag; });
+    }
+
+    data_lock.lock();
+    for (k = 0; k < batch; ++k) {
+      nomI = rangeRandom(0, val_data.size() - 1);
+      std::vector<std::vector<float>> v_height;
+      for (j = 0; j < height; ++j) {
+        J = j * width;
+        std::vector<float> v_width;
+        for (i = 0; i < width; ++i) {
+          v_width.push_back(val_data[nomI][J + i]);
+        }
+        v_height.push_back(v_width);
+      }
+
+      list.push_back(nomI);
+      outVec.push_back(v_height);
+      outLabel.push_back({val_data_label[nomI]});
+    }
+    for (i = 0; i < batch; ++i) {
+      val_data.erase(val_data.begin() + list[i]);
+      val_data_label.erase(val_data_label.begin() + list[i]);
+      cur_val_bufsize--;
+    }
+  } break;
+  case BUF_TEST: {
+    std::vector<int> list;
+    if (!getStatus(BUF_TEST))
+      return false;
+
+    {
+      std::unique_lock<std::mutex> ultest(readyTestData);
+      cv_test.wait(ultest, []() -> bool { return testReadyFlag; });
+    }
+
+    data_lock.lock();
+    for (k = 0; k < batch; ++k) {
+      nomI = rangeRandom(0, test_data.size() - 1);
+      std::vector<std::vector<float>> v_height;
+      for (j = 0; j < height; ++j) {
+        J = j * width;
+        std::vector<float> v_width;
+        for (i = 0; i < width; ++i) {
+          v_width.push_back(test_data[nomI][J + i]);
+        }
+        v_height.push_back(v_width);
+      }
+
+      list.push_back(nomI);
+      outVec.push_back(v_height);
+      outLabel.push_back({test_data_label[nomI]});
+    }
+    for (i = 0; i < batch; ++i) {
+      test_data.erase(test_data.begin() + list[i]);
+      test_data_label.erase(test_data_label.begin() + list[i]);
+      cur_test_bufsize--;
+    }
+  } break;
+  default:
+    return false;
+    break;
   }
   data_lock.unlock();
 
@@ -426,31 +432,33 @@ int DataBuffer::setDataFile(std::string path, DataType type) {
   }
 
   switch (type) {
-    case DATA_TRAIN:
-      train_file = path;
-      break;
-    case DATA_VAL:
-      val_file = path;
-      break;
-    case DATA_TEST:
-      test_file = path;
-      break;
-    case DATA_LABEL: {
-      std::string data;
-      while (data_file >> data) {
-        labels.push_back(data);
-      }
+  case DATA_TRAIN:
+    train_file = path;
+    break;
+  case DATA_VAL:
+    val_file = path;
+    break;
+  case DATA_TEST:
+    test_file = path;
+    break;
+  case DATA_LABEL: {
+    std::string data;
+    while (data_file >> data) {
+      labels.push_back(data);
+    }
 
-      if (labels.size() != class_num) {
-        ml_loge("Error: number of label is not equal to number of class : %d vs. %d", (int)labels.size(), class_num);
-        return ML_ERROR_INVALID_PARAMETER;
-      }
-    } break;
-    case DATA_UNKNOWN:
-    default:
-      ml_loge("Error: Data Type is unknown");
+    if (labels.size() != class_num) {
+      ml_loge("Error: number of label is not equal to number of class : "
+              "%d vs. %d",
+              (int)labels.size(), class_num);
       return ML_ERROR_INVALID_PARAMETER;
-      break;
+    }
+  } break;
+  case DATA_UNKNOWN:
+  default:
+    ml_loge("Error: Data Type is unknown");
+    return ML_ERROR_INVALID_PARAMETER;
+    break;
   }
   return status;
 }

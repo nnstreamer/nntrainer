@@ -22,14 +22,14 @@
  */
 
 #include "neuralnet.h"
-#include <assert.h>
-#include <nntrainer_log.h>
-#include <stdio.h>
-#include <array>
-#include <cmath>
-#include <sstream>
 #include "iniparser.h"
 #include "nntrainer_error.h"
+#include <array>
+#include <assert.h>
+#include <cmath>
+#include <nntrainer_log.h>
+#include <sstream>
+#include <stdio.h>
 
 namespace nntrainer {
 
@@ -54,7 +54,8 @@ bool compareChar(char &c1, char &c2) {
  * @retval    boolean true if they are same
  */
 bool caseInSensitiveCompare(std::string &str1, std::string &str2) {
-  return ((str1.size() == str2.size()) && std::equal(str1.begin(), str1.end(), str2.begin(), &compareChar));
+  return ((str1.size() == str2.size()) &&
+          std::equal(str1.begin(), str1.end(), str2.begin(), &compareChar));
 }
 
 /**
@@ -114,7 +115,8 @@ unsigned int parseType(std::string ll, InputType t) {
    *            "regression" : Logistic Regression
    *            "neuralnet" : Neural Network
    */
-  std::array<std::string, 4> network_type_string = {"knn", "regression", "neuralnet", "unknown"};
+  std::array<std::string, 4> network_type_string = {"knn", "regression",
+                                                    "neuralnet", "unknown"};
 
   /**
    * @brief     Activation Type String from configure file
@@ -123,7 +125,8 @@ unsigned int parseType(std::string ll, InputType t) {
    *            "relu" : relu
    *            "softmax" : softmax
    */
-  std::array<std::string, 5> activation_string = {"tanh", "sigmoid", "relu", "softmax", "unknown"};
+  std::array<std::string, 5> activation_string = {"tanh", "sigmoid", "relu",
+                                                  "softmax", "unknown"};
 
   /**
    * @brief     Layer Type String from configure file
@@ -131,8 +134,9 @@ unsigned int parseType(std::string ll, InputType t) {
    *            "FullyConnectedLayer" : Fully Connected Layer Object
    *            "OutputLayer" : Output Layer Object
    */
-  std::array<std::string, 5> layer_string = {"InputLayer", "FullyConnectedLayer", "OutputLayer",
-                                             "BatchNormalizationLayer", "Unknown"};
+  std::array<std::string, 5> layer_string = {
+    "InputLayer", "FullyConnectedLayer", "OutputLayer",
+    "BatchNormalizationLayer", "Unknown"};
 
   /**
    * @brief     Weight Initialization Type String from configure file
@@ -143,77 +147,79 @@ unsigned int parseType(std::string ll, InputType t) {
    *            "he_normal"  : He Normal Initialization
    *            "he_uniform"  : He Uniform Initialization
    */
-  std::array<std::string, 7> weight_ini_string = {"lecun_normal", "lecun_uniform", "xavier_normal", "xavier_uniform",
-                                                  "he_normal",    "he_uniform",    "unknown"};
+  std::array<std::string, 7> weight_ini_string = {
+    "lecun_normal", "lecun_uniform", "xavier_normal", "xavier_uniform",
+    "he_normal",    "he_uniform",    "unknown"};
 
   /**
    * @brief     Weight Decay String from configure file
    *            "L2Norm"  : squared norm regularization
    *            "Regression" : Regression
    */
-  std::array<std::string, 3> weight_decay_string = {"l2norm", "regression", "unknown"};
+  std::array<std::string, 3> weight_decay_string = {"l2norm", "regression",
+                                                    "unknown"};
 
   switch (t) {
-    case TOKEN_OPT:
-      for (i = 0; i < optimizer_string.size(); i++) {
-        if (caseInSensitiveCompare(optimizer_string[i], ll)) {
-          return (i);
-        }
+  case TOKEN_OPT:
+    for (i = 0; i < optimizer_string.size(); i++) {
+      if (caseInSensitiveCompare(optimizer_string[i], ll)) {
+        return (i);
       }
-      ret = i - 1;
-      break;
-    case TOKEN_COST:
-      for (i = 0; i < cost_string.size(); i++) {
-        if (caseInSensitiveCompare(cost_string[i], ll)) {
-          return (i);
-        }
+    }
+    ret = i - 1;
+    break;
+  case TOKEN_COST:
+    for (i = 0; i < cost_string.size(); i++) {
+      if (caseInSensitiveCompare(cost_string[i], ll)) {
+        return (i);
       }
-      ret = i - 1;
-      break;
-    case TOKEN_NET:
-      for (i = 0; i < network_type_string.size(); i++) {
-        if (caseInSensitiveCompare(network_type_string[i], ll)) {
-          return (i);
-        }
+    }
+    ret = i - 1;
+    break;
+  case TOKEN_NET:
+    for (i = 0; i < network_type_string.size(); i++) {
+      if (caseInSensitiveCompare(network_type_string[i], ll)) {
+        return (i);
       }
-      ret = i - 1;
-      break;
-    case TOKEN_ACTI:
-      for (i = 0; i < activation_string.size(); i++) {
-        if (caseInSensitiveCompare(activation_string[i], ll)) {
-          return (i);
-        }
+    }
+    ret = i - 1;
+    break;
+  case TOKEN_ACTI:
+    for (i = 0; i < activation_string.size(); i++) {
+      if (caseInSensitiveCompare(activation_string[i], ll)) {
+        return (i);
       }
-      ret = i - 1;
-      break;
-    case TOKEN_LAYER:
-      for (i = 0; i < layer_string.size(); i++) {
-        if (caseInSensitiveCompare(layer_string[i], ll)) {
-          return (i);
-        }
+    }
+    ret = i - 1;
+    break;
+  case TOKEN_LAYER:
+    for (i = 0; i < layer_string.size(); i++) {
+      if (caseInSensitiveCompare(layer_string[i], ll)) {
+        return (i);
       }
-      ret = i - 1;
-      break;
-    case TOKEN_WEIGHTINI:
-      for (i = 0; i < weight_ini_string.size(); i++) {
-        if (caseInSensitiveCompare(weight_ini_string[i], ll)) {
-          return (i);
-        }
+    }
+    ret = i - 1;
+    break;
+  case TOKEN_WEIGHTINI:
+    for (i = 0; i < weight_ini_string.size(); i++) {
+      if (caseInSensitiveCompare(weight_ini_string[i], ll)) {
+        return (i);
       }
-      ret = i - 1;
-      break;
-    case TOKEN_WEIGHT_DECAY:
-      for (i = 0; i < weight_decay_string.size(); i++) {
-        if (caseInSensitiveCompare(weight_decay_string[i], ll)) {
-          return (i);
-        }
+    }
+    ret = i - 1;
+    break;
+  case TOKEN_WEIGHT_DECAY:
+    for (i = 0; i < weight_decay_string.size(); i++) {
+      if (caseInSensitiveCompare(weight_decay_string[i], ll)) {
+        return (i);
       }
-      ret = i - 1;
-      break;
-    case TOKEN_UNKNOWN:
-    default:
-      ret = 3;
-      break;
+    }
+    ret = i - 1;
+    break;
+  case TOKEN_UNKNOWN:
+  default:
+    ret = 3;
+    break;
   }
   return ret;
 }
@@ -252,8 +258,10 @@ int NeuralNetwork::init() {
     return ML_ERROR_INVALID_PARAMETER;
   }
 
-  net_type = (nntrainer::NetType)parseType(iniparser_getstring(ini, "Network:Type", unknown), TOKEN_NET);
-  std::vector<std::string> layers_name = parseLayerName(iniparser_getstring(ini, "Network:Layers", ""));
+  net_type = (nntrainer::NetType)parseType(
+    iniparser_getstring(ini, "Network:Type", unknown), TOKEN_NET);
+  std::vector<std::string> layers_name =
+    parseLayerName(iniparser_getstring(ini, "Network:Layers", ""));
   if (!layers_name.size()) {
     ml_loge("Error: There is no layer");
     return ML_ERROR_INVALID_PARAMETER;
@@ -267,20 +275,25 @@ int NeuralNetwork::init() {
   popt.decay_steps = decay_steps;
   popt.decay_rate = decay_rate;
   epoch = iniparser_getint(ini, "Network:Epoch", 100);
-  status = opt.setType((OptType)parseType(iniparser_getstring(ini, "Network:Optimizer", unknown), TOKEN_OPT));
+  status = opt.setType((OptType)parseType(
+    iniparser_getstring(ini, "Network:Optimizer", unknown), TOKEN_OPT));
   if (status != ML_ERROR_NONE) {
     return status;
   }
 
-  cost = (CostType)parseType(iniparser_getstring(ini, "Network:Cost", unknown), TOKEN_COST);
-  weight_ini = (WeightIniType)parseType(iniparser_getstring(ini, "Network:WeightIni", unknown), TOKEN_WEIGHTINI);
+  cost = (CostType)parseType(iniparser_getstring(ini, "Network:Cost", unknown),
+                             TOKEN_COST);
+  weight_ini = (WeightIniType)parseType(
+    iniparser_getstring(ini, "Network:WeightIni", unknown), TOKEN_WEIGHTINI);
 
-  popt.weight_decay.type =
-      (WeightDecayType)parseType(iniparser_getstring(ini, "Network:Weight_Decay", unknown), TOKEN_WEIGHT_DECAY);
+  popt.weight_decay.type = (WeightDecayType)parseType(
+    iniparser_getstring(ini, "Network:Weight_Decay", unknown),
+    TOKEN_WEIGHT_DECAY);
 
   popt.weight_decay.lambda = 0.0;
   if (popt.weight_decay.type == WeightDecayType::l2norm) {
-    popt.weight_decay.lambda = iniparser_getdouble(ini, "Network:Weight_Decay_Lambda", 0.0);
+    popt.weight_decay.lambda =
+      iniparser_getdouble(ini, "Network:Weight_Decay_Lambda", 0.0);
   }
 
   model = iniparser_getstring(ini, "Network:Model", model_name);
@@ -302,25 +315,28 @@ int NeuralNetwork::init() {
 
   for (unsigned int i = 0; i < layers_name.size(); ++i) {
     unsigned int h_size;
-    l_type = iniparser_getstring(ini, (layers_name[i] + ":Type").c_str(), unknown);
+    l_type =
+      iniparser_getstring(ini, (layers_name[i] + ":Type").c_str(), unknown);
     t = (LayerType)parseType(l_type, TOKEN_LAYER);
 
     switch (t) {
-      case LAYER_BN: {
-        if (i == 0) {
-          ml_loge("Error: Batch NormalizationLayer should be after InputLayer.");
-          return ML_ERROR_INVALID_PARAMETER;
-        }
-        h_size = hidden_size[i - 1];
+    case LAYER_BN: {
+      if (i == 0) {
+        ml_loge("Error: Batch NormalizationLayer should be after "
+                "InputLayer.");
+        return ML_ERROR_INVALID_PARAMETER;
       }
+      h_size = hidden_size[i - 1];
+    }
 
+    break;
+    case LAYER_IN:
+    case LAYER_FC:
+    case LAYER_OUT:
+    default:
+      h_size =
+        iniparser_getint(ini, (layers_name[i] + ":HiddenSize").c_str(), 1);
       break;
-      case LAYER_IN:
-      case LAYER_FC:
-      case LAYER_OUT:
-      default:
-        h_size = iniparser_getint(ini, (layers_name[i] + ":HiddenSize").c_str(), 1);
-        break;
     }
     hidden_size.push_back(h_size);
   }
@@ -332,65 +348,84 @@ int NeuralNetwork::init() {
 
   data_buffer.setClassNum(hidden_size[layers_name.size() - 1]);
 
-  data_buffer.setDataFile(iniparser_getstring(ini, "Network:TrainData", NULL), DATA_TRAIN);
-  data_buffer.setDataFile(iniparser_getstring(ini, "Network:ValidData", NULL), DATA_VAL);
-  data_buffer.setDataFile(iniparser_getstring(ini, "Network:TestData", NULL), DATA_TEST);
-  data_buffer.setDataFile(iniparser_getstring(ini, "Network:LabelData", NULL), DATA_LABEL);
+  data_buffer.setDataFile(iniparser_getstring(ini, "Network:TrainData", NULL),
+                          DATA_TRAIN);
+  data_buffer.setDataFile(iniparser_getstring(ini, "Network:ValidData", NULL),
+                          DATA_VAL);
+  data_buffer.setDataFile(iniparser_getstring(ini, "Network:TestData", NULL),
+                          DATA_TEST);
+  data_buffer.setDataFile(iniparser_getstring(ini, "Network:LabelData", NULL),
+                          DATA_LABEL);
 
   for (unsigned int i = 0; i < layers_name.size(); i++) {
-    l_type = iniparser_getstring(ini, (layers_name[i] + ":Type").c_str(), unknown);
+    l_type =
+      iniparser_getstring(ini, (layers_name[i] + ":Type").c_str(), unknown);
     t = (LayerType)parseType(l_type, TOKEN_LAYER);
     id = iniparser_getint(ini, (layers_name[i] + ":Id").c_str(), 0);
-    b_zero = iniparser_getboolean(ini, (layers_name[i] + ":Bias_zero").c_str(), true);
+    b_zero =
+      iniparser_getboolean(ini, (layers_name[i] + ":Bias_zero").c_str(), true);
     std::stringstream ss;
     ml_logi("%d : %s %d %d", id, l_type.c_str(), hidden_size[i], b_zero);
 
     switch (t) {
-      case LAYER_IN: {
-        InputLayer *input_layer = new (InputLayer);
-        input_layer->setType(t);
-        input_layer->initialize(batch_size, 1, hidden_size[i], id, b_zero, weight_ini);
-        input_layer->setOptimizer(opt);
-        input_layer->setNormalization(iniparser_getboolean(ini, (layers_name[i] + ":Normalization").c_str(), false));
-        input_layer->setStandardization(
-            iniparser_getboolean(ini, (layers_name[i] + ":Standardization").c_str(), false));
-        input_layer->setActivation((ActiType)parseType(
-            iniparser_getstring(ini, (layers_name[i] + ":Activation").c_str(), unknown), TOKEN_ACTI));
-        layers.push_back(input_layer);
-      } break;
-      case LAYER_FC: {
-        FullyConnectedLayer *fc_layer = new (FullyConnectedLayer);
-        fc_layer->setType(t);
-        fc_layer->initialize(batch_size, hidden_size[i - 1], hidden_size[i], id, b_zero, weight_ini);
-        fc_layer->setOptimizer(opt);
-        fc_layer->setActivation((ActiType)parseType(
-            iniparser_getstring(ini, (layers_name[i] + ":Activation").c_str(), unknown), TOKEN_ACTI));
-        layers.push_back(fc_layer);
-      } break;
-      case LAYER_OUT: {
-        OutputLayer *output_layer = new (OutputLayer);
-        output_layer->setType(t);
-        output_layer->setCost(cost);
-        output_layer->initialize(batch_size, hidden_size[i - 1], hidden_size[i], id, b_zero, weight_ini);
-        output_layer->setOptimizer(opt);
-        output_layer->setActivation((ActiType)parseType(
-            iniparser_getstring(ini, (layers_name[i] + ":Activation").c_str(), unknown), TOKEN_ACTI));
-        layers.push_back(output_layer);
-      } break;
-      case LAYER_BN: {
-        BatchNormalizationLayer *bn_layer = new (BatchNormalizationLayer);
-        bn_layer->setType(t);
-        bn_layer->setOptimizer(opt);
-        bn_layer->initialize(batch_size, 1, hidden_size[i], id, b_zero, weight_ini);
-        layers.push_back(bn_layer);
-        layers[i - 1]->setBNfallow(true);
-        bn_layer->setActivation((ActiType)parseType(
-            iniparser_getstring(ini, (layers_name[i] + ":Activation").c_str(), unknown), TOKEN_ACTI));
-      } break;
-      case LAYER_UNKNOWN:
-        break;
-      default:
-        break;
+    case LAYER_IN: {
+      InputLayer *input_layer = new (InputLayer);
+      input_layer->setType(t);
+      input_layer->initialize(batch_size, 1, hidden_size[i], id, b_zero,
+                              weight_ini);
+      input_layer->setOptimizer(opt);
+      input_layer->setNormalization(iniparser_getboolean(
+        ini, (layers_name[i] + ":Normalization").c_str(), false));
+      input_layer->setStandardization(iniparser_getboolean(
+        ini, (layers_name[i] + ":Standardization").c_str(), false));
+      input_layer->setActivation((ActiType)parseType(
+        iniparser_getstring(ini, (layers_name[i] + ":Activation").c_str(),
+                            unknown),
+        TOKEN_ACTI));
+      layers.push_back(input_layer);
+    } break;
+    case LAYER_FC: {
+      FullyConnectedLayer *fc_layer = new (FullyConnectedLayer);
+      fc_layer->setType(t);
+      fc_layer->initialize(batch_size, hidden_size[i - 1], hidden_size[i], id,
+                           b_zero, weight_ini);
+      fc_layer->setOptimizer(opt);
+      fc_layer->setActivation((ActiType)parseType(
+        iniparser_getstring(ini, (layers_name[i] + ":Activation").c_str(),
+                            unknown),
+        TOKEN_ACTI));
+      layers.push_back(fc_layer);
+    } break;
+    case LAYER_OUT: {
+      OutputLayer *output_layer = new (OutputLayer);
+      output_layer->setType(t);
+      output_layer->setCost(cost);
+      output_layer->initialize(batch_size, hidden_size[i - 1], hidden_size[i],
+                               id, b_zero, weight_ini);
+      output_layer->setOptimizer(opt);
+      output_layer->setActivation((ActiType)parseType(
+        iniparser_getstring(ini, (layers_name[i] + ":Activation").c_str(),
+                            unknown),
+        TOKEN_ACTI));
+      layers.push_back(output_layer);
+    } break;
+    case LAYER_BN: {
+      BatchNormalizationLayer *bn_layer = new (BatchNormalizationLayer);
+      bn_layer->setType(t);
+      bn_layer->setOptimizer(opt);
+      bn_layer->initialize(batch_size, 1, hidden_size[i], id, b_zero,
+                           weight_ini);
+      layers.push_back(bn_layer);
+      layers[i - 1]->setBNfallow(true);
+      bn_layer->setActivation((ActiType)parseType(
+        iniparser_getstring(ini, (layers_name[i] + ":Activation").c_str(),
+                            unknown),
+        TOKEN_ACTI));
+    } break;
+    case LAYER_UNKNOWN:
+      break;
+    default:
+      break;
     }
   }
 
@@ -435,7 +470,8 @@ Tensor NeuralNetwork::forwarding(Tensor input, Tensor output) {
  *            Call backwarding function of layer in reverse order
  *            No need to call at first Input Layer (No data to be updated)
  */
-void NeuralNetwork::backwarding(Tensor input, Tensor expected_output, int iteration) {
+void NeuralNetwork::backwarding(Tensor input, Tensor expected_output,
+                                int iteration) {
   Tensor Y2 = expected_output;
   Tensor X = input;
   Tensor Y = forwarding(X);

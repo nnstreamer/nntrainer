@@ -1,5 +1,5 @@
 /**
-* Copyright (C) 2020 Samsung Electronics Co., Ltd. All Rights Reserved.
+ * Copyright (C) 2020 Samsung Electronics Co., Ltd. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,13 +40,17 @@
 #elif defined(__ANDROID__)
 #include <android/log.h>
 
-#define ml_logi(...) __android_log_print(ANDROID_LOG_INFO, TAG_NAME, __VA_ARGS__)
+#define ml_logi(...) \
+  __android_log_print(ANDROID_LOG_INFO, TAG_NAME, __VA_ARGS__)
 
-#define ml_logw(...) __android_log_print(ANDROID_LOG_WARN, TAG_NAME, __VA_ARGS__)
+#define ml_logw(...) \
+  __android_log_print(ANDROID_LOG_WARN, TAG_NAME, __VA_ARGS__)
 
-#define ml_loge(...) __android_log_print(ANDROID_LOG_ERROR, TAG_NAME, __VA_ARGS__)
+#define ml_loge(...) \
+  __android_log_print(ANDROID_LOG_ERROR, TAG_NAME, __VA_ARGS__)
 
-#define ml_logd(...) __android_log_print(ANDROID_LOG_DEBUG, TAG_NAME, __VA_ARGS__)
+#define ml_logd(...) \
+  __android_log_print(ANDROID_LOG_DEBUG, TAG_NAME, __VA_ARGS__)
 
 #else /* Linux distro */
 #include <nntrainer_logger.h>

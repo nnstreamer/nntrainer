@@ -27,17 +27,17 @@
  *
  */
 
-#include <stdlib.h>
-#include <time.h>
-#include <cmath>
-#include <fstream>
-#include <iostream>
 #include "bitmap_helpers.h"
 #include "tensorflow/contrib/lite/interpreter.h"
 #include "tensorflow/contrib/lite/kernels/register.h"
 #include "tensorflow/contrib/lite/model.h"
 #include "tensorflow/contrib/lite/string_util.h"
 #include "tensorflow/contrib/lite/tools/gen_op_registration.h"
+#include <cmath>
+#include <fstream>
+#include <iostream>
+#include <stdlib.h>
+#include <time.h>
 
 #include "neuralnet.h"
 #include "tensor.h"
@@ -102,7 +102,8 @@ void getFeature(const string filename, vector<float> &feature_input) {
   int input_idx_list_len = 0;
   int output_idx_list_len = 0;
   std::string model_path = data_path + "ssd_mobilenet_v2_coco_feature.tflite";
-  std::unique_ptr<tflite::FlatBufferModel> model = tflite::FlatBufferModel::BuildFromFile(model_path.c_str());
+  std::unique_ptr<tflite::FlatBufferModel> model =
+    tflite::FlatBufferModel::BuildFromFile(model_path.c_str());
 
   assert(model != NULL);
   tflite::ops::builtin::BuiltinOpResolver resolver;
@@ -118,11 +119,13 @@ void getFeature(const string filename, vector<float> &feature_input) {
   int t_size = interpreter->tensors_size();
   for (int i = 0; i < t_size; i++) {
     for (int j = 0; j < input_size; j++) {
-      if (strcmp(interpreter->tensor(i)->name, interpreter->GetInputName(j)) == 0)
+      if (strcmp(interpreter->tensor(i)->name, interpreter->GetInputName(j)) ==
+          0)
         input_idx_list[input_idx_list_len++] = i;
     }
     for (int j = 0; j < output_size; j++) {
-      if (strcmp(interpreter->tensor(i)->name, interpreter->GetOutputName(j)) == 0)
+      if (strcmp(interpreter->tensor(i)->name, interpreter->GetOutputName(j)) ==
+          0)
         output_idx_list[output_idx_list_len++] = i;
     }
   }
@@ -133,10 +136,12 @@ void getFeature(const string filename, vector<float> &feature_input) {
 
   int len = interpreter->tensor(input_idx_list[0])->dims->size;
   std::reverse_copy(interpreter->tensor(input_idx_list[0])->dims->data,
-                    interpreter->tensor(input_idx_list[0])->dims->data + len, inputDim);
+                    interpreter->tensor(input_idx_list[0])->dims->data + len,
+                    inputDim);
   len = interpreter->tensor(output_idx_list[0])->dims->size;
   std::reverse_copy(interpreter->tensor(output_idx_list[0])->dims->data,
-                    interpreter->tensor(output_idx_list[0])->dims->data + len, outputDim);
+                    interpreter->tensor(output_idx_list[0])->dims->data + len,
+                    outputDim);
 
   int output_number_of_pixels = 1;
   int wanted_channels = inputDim[0];
@@ -150,14 +155,16 @@ void getFeature(const string filename, vector<float> &feature_input) {
 
   uint8_t *in;
   float *output;
-  in = tflite::label_image::read_bmp(filename, &wanted_width, &wanted_height, &wanted_channels);
+  in = tflite::label_image::read_bmp(filename, &wanted_width, &wanted_height,
+                                     &wanted_channels);
   if (interpreter->AllocateTensors() != kTfLiteOk) {
     std::cout << "Failed to allocate tensors!" << std::endl;
     exit(0);
   }
 
   for (int l = 0; l < output_number_of_pixels; l++) {
-    (interpreter->typed_tensor<float>(_input))[l] = ((float)in[l] - 127.5f) / 127.5f;
+    (interpreter->typed_tensor<float>(_input))[l] =
+      ((float)in[l] - 127.5f) / 127.5f;
   }
 
   if (interpreter->Invoke() != kTfLiteOk) {
@@ -181,7 +188,8 @@ void getFeature(const string filename, vector<float> &feature_input) {
  * @param[out] feature_input save output of tflite
  * @param[out] feature_output save label data
  */
-void ExtractFeatures(std::string p, vector<vector<float>> &feature_input, vector<vector<float>> &feature_output) {
+void ExtractFeatures(std::string p, vector<vector<float>> &feature_input,
+                     vector<vector<float>> &feature_output) {
   string total_label[TOTAL_LABEL_SIZE] = {"happy", "sad", "soso"};
 
   int trainingSize = TOTAL_LABEL_SIZE * TOTAL_DATA_SIZE;
@@ -246,9 +254,11 @@ int main(int argc, char *argv[]) {
    */
   for (int i = 0; i < ITERATION; i++) {
     for (unsigned int j = 0; j < inputVector.size(); j++) {
-      NN.backwarding(nntrainer::Tensor({inputVector[j]}), nntrainer::Tensor({outputVector[j]}), i);
+      NN.backwarding(nntrainer::Tensor({inputVector[j]}),
+                     nntrainer::Tensor({outputVector[j]}), i);
     }
-    cout << "#" << i + 1 << "/" << ITERATION << " - Loss : " << NN.getLoss() << endl;
+    cout << "#" << i + 1 << "/" << ITERATION << " - Loss : " << NN.getLoss()
+         << endl;
     NN.setLoss(0.0);
   }
 

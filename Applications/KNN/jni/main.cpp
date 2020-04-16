@@ -25,10 +25,6 @@
  *                                  ( modified to use feature extracter )
  *              Classifier : KNN
  */
-#include <stdio.h>
-#include <fstream>
-#include <iostream>
-#include <vector>
 #include "bitmap_helpers.h"
 #include "math.h"
 #include "tensorflow/contrib/lite/interpreter.h"
@@ -37,6 +33,10 @@
 #include "tensorflow/contrib/lite/string.h"
 #include "tensorflow/contrib/lite/string_util.h"
 #include "tensorflow/contrib/lite/tools/gen_op_registration.h"
+#include <fstream>
+#include <iostream>
+#include <stdio.h>
+#include <vector>
 
 /**
  * @brief     Data size for each category
@@ -109,7 +109,8 @@ int main(int argc, char *argv[]) {
   std::string data_path = args[0];
   std::string model_path = data_path + "ssd_mobilenet_v2_coco_feature.tflite";
 
-  std::unique_ptr<tflite::FlatBufferModel> model = tflite::FlatBufferModel::BuildFromFile(model_path.c_str());
+  std::unique_ptr<tflite::FlatBufferModel> model =
+    tflite::FlatBufferModel::BuildFromFile(model_path.c_str());
 
   if (!model) {
     printf("Failed to mmap mdoel\n");
@@ -132,11 +133,13 @@ int main(int argc, char *argv[]) {
   int t_size = interpreter->tensors_size();
   for (int i = 0; i < t_size; i++) {
     for (int j = 0; j < input_size; j++) {
-      if (strcmp(interpreter->tensor(i)->name, interpreter->GetInputName(j)) == 0)
+      if (strcmp(interpreter->tensor(i)->name, interpreter->GetInputName(j)) ==
+          0)
         input_idx_list[input_idx_list_len++] = i;
     }
     for (int j = 0; j < output_size; j++) {
-      if (strcmp(interpreter->tensor(i)->name, interpreter->GetOutputName(j)) == 0)
+      if (strcmp(interpreter->tensor(i)->name, interpreter->GetOutputName(j)) ==
+          0)
         output_idx_list[output_idx_list_len++] = i;
     }
   }
@@ -148,17 +151,21 @@ int main(int argc, char *argv[]) {
 
   int len = interpreter->tensor(input_idx_list[0])->dims->size;
   std::reverse_copy(interpreter->tensor(input_idx_list[0])->dims->data,
-                    interpreter->tensor(input_idx_list[0])->dims->data + len, inputDim);
+                    interpreter->tensor(input_idx_list[0])->dims->data + len,
+                    inputDim);
 
   len = interpreter->tensor(output_idx_list[0])->dims->size;
   std::reverse_copy(interpreter->tensor(output_idx_list[0])->dims->data,
-                    interpreter->tensor(output_idx_list[0])->dims->data + len, outputDim);
+                    interpreter->tensor(output_idx_list[0])->dims->data + len,
+                    outputDim);
 
   delete[] input_idx_list;
   delete[] output_idx_list;
 
-  printf("input %d %d %d %d\n", inputDim[0], inputDim[1], inputDim[2], inputDim[3]);
-  printf("output %d %d %d %d\n", outputDim[0], outputDim[1], outputDim[2], outputDim[3]);
+  printf("input %d %d %d %d\n", inputDim[0], inputDim[1], inputDim[2],
+         inputDim[3]);
+  printf("output %d %d %d %d\n", outputDim[0], outputDim[1], outputDim[2],
+         outputDim[3]);
 
   int output_number_of_pixels = 1;
 
@@ -183,7 +190,8 @@ int main(int argc, char *argv[]) {
 
       uint8_t *in;
       float *output;
-      in = tflite::label_image::read_bmp(img, &wanted_width, &wanted_height, &wanted_channels);
+      in = tflite::label_image::read_bmp(img, &wanted_width, &wanted_height,
+                                         &wanted_channels);
 
       if (interpreter->AllocateTensors() != kTfLiteOk) {
         std::cout << "Failed to allocate tnesors!" << std::endl;
@@ -191,7 +199,8 @@ int main(int argc, char *argv[]) {
       }
 
       for (int l = 0; l < output_number_of_pixels; l++) {
-        (interpreter->typed_tensor<float>(input))[l] = ((float)in[l] - 127.5f) / 127.5f;
+        (interpreter->typed_tensor<float>(input))[l] =
+          ((float)in[l] - 127.5f) / 127.5f;
       }
 
       if (interpreter->Invoke() != kTfLiteOk) {
@@ -232,7 +241,8 @@ int main(int argc, char *argv[]) {
 
     uint8_t *in;
     float *output;
-    in = tflite::label_image::read_bmp(img, &wanted_width, &wanted_height, &wanted_channels);
+    in = tflite::label_image::read_bmp(img, &wanted_width, &wanted_height,
+                                       &wanted_channels);
 
     if (interpreter->AllocateTensors() != kTfLiteOk) {
       std::cout << "Failed to allocate tnesors!" << std::endl;
@@ -240,7 +250,8 @@ int main(int argc, char *argv[]) {
     }
 
     for (int l = 0; l < output_number_of_pixels; l++) {
-      (interpreter->typed_tensor<float>(input))[l] = ((float)in[l] - 127.5f) / 127.5f;
+      (interpreter->typed_tensor<float>(input))[l] =
+        ((float)in[l] - 127.5f) / 127.5f;
     }
 
     if (interpreter->Invoke() != kTfLiteOk) {

@@ -51,19 +51,27 @@ typedef enum { BUF_TRAIN, BUF_VAL, BUF_TEST, BUFF_UNKNOWN } BufferType;
  *            3. DATA_LABEL ( Data for test )
  *            3. Unknown
  */
-typedef enum { DATA_TRAIN, DATA_VAL, DATA_TEST, DATA_LABEL, DATA_UNKNOWN } DataType;
+typedef enum {
+  DATA_TRAIN,
+  DATA_VAL,
+  DATA_TEST,
+  DATA_LABEL,
+  DATA_UNKNOWN
+} DataType;
 
 /**
  * @class   DataBuffer Data Buffers
  * @brief   Data Buffer for read and manage data
  */
 class DataBuffer {
- public:
+public:
   /**
    * @brief     Create Buffer
    * @retval    DataBuffer
    */
-  DataBuffer() : train_running(), val_running(), test_running(), train_thread(), val_thread(), test_thread(){};
+  DataBuffer()
+    : train_running(), val_running(), test_running(), train_thread(),
+      val_thread(), test_thread(){};
 
   /**
    * @brief     Create Buffer
@@ -90,9 +98,12 @@ class DataBuffer {
    * @param[in] c_num number of class
    * @retval    true / false
    */
-  bool init(int mini_batch, unsigned int train_bufsize, unsigned int val_bufsize, unsigned int test_bufsize,
-            std::ifstream &train_file, std::ifstream &val_file, std::ifstream &test_file, unsigned int max_train,
-            unsigned int max_val, unsigned int max_test, unsigned int in_size, unsigned int c_num);
+  bool init(int mini_batch, unsigned int train_bufsize,
+            unsigned int val_bufsize, unsigned int test_bufsize,
+            std::ifstream &train_file, std::ifstream &val_file,
+            std::ifstream &test_file, unsigned int max_train,
+            unsigned int max_val, unsigned int max_test, unsigned int in_size,
+            unsigned int c_num);
 
   /**
    * @brief     Update Data Buffer ( it is for child thread )
@@ -137,9 +148,10 @@ class DataBuffer {
    * @param[in] c_num number of class
    * @retval    true/false
    */
-  bool getDataFromBuffer(BufferType type, std::vector<std::vector<std::vector<float>>> &out_vec,
-                         std::vector<std::vector<std::vector<float>>> &out_label, unsigned int batch,
-                         unsigned int width, unsigned int height, unsigned int c_num);
+  bool getDataFromBuffer(
+    BufferType type, std::vector<std::vector<std::vector<float>>> &out_vec,
+    std::vector<std::vector<std::vector<float>>> &out_label, unsigned int batch,
+    unsigned int width, unsigned int height, unsigned int c_num);
 
   /**
    * @brief     set train data file name
@@ -158,7 +170,7 @@ class DataBuffer {
    */
   int setClassNum(unsigned int n);
 
- private:
+private:
   std::vector<std::vector<float>> train_data;
   std::vector<std::vector<float>> train_data_label;
   std::vector<std::vector<float>> val_data;
@@ -204,6 +216,6 @@ class DataBuffer {
   std::string test_file;
   std::vector<std::string> labels;
 };
-}  // namespace nntrainer
+} // namespace nntrainer
 #endif /* __cplusplus */
 #endif /* __DATABUFFER_H__ */
