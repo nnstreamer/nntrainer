@@ -27,6 +27,7 @@
 #include <fstream>
 #include <iostream>
 #include <vector>
+#include "databuffer.h"
 #include "layers.h"
 #include "optimizer.h"
 #include "tensor.h"
@@ -86,21 +87,21 @@ class NeuralNetwork {
   ~NeuralNetwork(){};
 
   /**
-    * @brief     Get Loss
-    * @retval    loss value
-    */
+   * @brief     Get Loss
+   * @retval    loss value
+   */
   float getLoss();
 
   /**
-    * @brief     Get Optimizer
-    * @retval    Optimizer
-    */
+   * @brief     Get Optimizer
+   * @retval    Optimizer
+   */
   Optimizer getOptimizer() { return opt; };
 
   /**
-    * @brief     Get Learing rate
-    * @retval    Learning rate
-    */
+   * @brief     Get Learning rate
+   * @retval    Learning rate
+   */
   float getLearningRate() { return learning_rate; };
 
   /**
@@ -111,8 +112,10 @@ class NeuralNetwork {
 
   /**
    * @brief     Initialize Network
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  void init();
+  int init();
 
   /**
    * @brief     forward propagation
@@ -253,6 +256,8 @@ class NeuralNetwork {
    * @brief     vector for store layer pointers.
    */
   std::vector<Layer *> layers;
+
+  DataBuffer data_buffer;
 };
 
 } /* namespace nntrainer */

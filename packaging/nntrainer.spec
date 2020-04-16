@@ -13,6 +13,10 @@ Packager:	Jijoong Moon <jijoong.moon@sansumg.com>
 License:	Apache-2.0
 Source0:	nntrainer-%{version}.tar.gz
 Source1001:	nntrainer.manifest
+Source2001:	trainset.tar.gz
+Source2002:	valset.tar.gz
+Source2003:	testset.tar.gz
+Source2004:	label.dat
 
 BuildRequires:	meson >= 0.50.0
 BuildRequires:	openblas-devel
@@ -79,6 +83,10 @@ HTML pages of lcov results of NNTrainer generated during rpmbuild
 %prep
 %setup -q
 cp %{SOURCE1001} .
+cp %{SOURCE2001} .
+cp %{SOURCE2002} .
+cp %{SOURCE2003} .
+cp %{SOURCE2004} .
 
 %build
 CXXFLAGS=`echo $CXXFLAGS | sed -e "s|-std=gnu++11||"`
@@ -96,6 +104,10 @@ meson --buildtype=plain --prefix=%{_prefix} --sysconfdir=%{_sysconfdir} \
 ninja -C build %{?_smp_mflags}
 
 %if 0%{?unit_test}
+tar xzf trainset.tar.gz -C build
+tar xzf valset.tar.gz -C build
+tar xzf testset.tar.gz -C build
+cp label.dat build
 bash %{test_script} ./test
 %endif
 

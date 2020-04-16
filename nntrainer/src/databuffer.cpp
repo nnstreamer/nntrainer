@@ -34,6 +34,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <thread>
+#include "nntrainer_error.h"
 
 namespace nntrainer {
 
@@ -415,4 +416,53 @@ bool DataBuffer::getDataFromBuffer(BufferType type, std::vector<std::vector<std:
 
   return true;
 }
+
+int DataBuffer::setDataFile(std::string path, DataType type) {
+  int status = ML_ERROR_NONE;
+  std::ifstream data_file(path);
+  if (!data_file.good()) {
+    ml_loge("Error: Cannot open configuraiotn file %s", path.c_str());
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
+  switch (type) {
+    case DATA_TRAIN:
+      train_file = path;
+      break;
+    case DATA_VAL:
+      val_file = path;
+      break;
+    case DATA_TEST:
+      test_file = path;
+      break;
+    case DATA_LABEL: {
+      std::string data;
+      while (data_file >> data) {
+        labels.push_back(data);
+      }
+
+      if (labels.size() != class_num) {
+        ml_loge("Error: number of label is not equal to number of class : %d vs. %d", (int)labels.size(), class_num);
+        return ML_ERROR_INVALID_PARAMETER;
+      }
+    } break;
+    case DATA_UNKNOWN:
+    default:
+      ml_loge("Error: Data Type is unknown");
+      return ML_ERROR_INVALID_PARAMETER;
+      break;
+  }
+  return status;
+}
+
+int DataBuffer::setClassNum(unsigned int num) {
+  int status = ML_ERROR_NONE;
+  if (num <= 0) {
+    ml_loge("Error: number of class should be bigger than 0");
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+  class_num = num;
+  return status;
+}
+
 } /* namespace nntrainer */
