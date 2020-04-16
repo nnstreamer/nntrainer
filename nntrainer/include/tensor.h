@@ -43,7 +43,7 @@ namespace nntrainer {
 #define MAXDIM 4
 
 class TensorDim {
- public:
+public:
   TensorDim() {
     for (int i = 0; i < MAXDIM; ++i) {
       dim[i] = 1;
@@ -64,7 +64,7 @@ class TensorDim {
 
   void setTensorDim(std::string input_shape);
 
- private:
+private:
   unsigned int dim[4];
 };
 
@@ -73,7 +73,7 @@ class TensorDim {
  * @brief   Tensor Class for Calculation
  */
 class Tensor {
- public:
+public:
   /**
    * @brief     Constructor of Tensor
    */
@@ -315,7 +315,7 @@ class Tensor {
    */
   float *getData() { return data.data(); }
 
- private:
+private:
   /**< handle the data as a std::vector type */
   std::vector<float> data;
   int height;

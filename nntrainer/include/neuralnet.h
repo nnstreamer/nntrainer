@@ -24,13 +24,13 @@
 #define __NEURALNET_H__
 #ifdef __cplusplus
 
-#include <fstream>
-#include <iostream>
-#include <vector>
 #include "databuffer.h"
 #include "layers.h"
 #include "optimizer.h"
 #include "tensor.h"
+#include <fstream>
+#include <iostream>
+#include <vector>
 
 namespace nntrainer {
 
@@ -70,14 +70,15 @@ typedef enum {
  * @brief   NeuralNetwork Class which has Network Configuration & Layers
  */
 class NeuralNetwork {
- public:
+public:
   /**
    * @brief     Constructor of NeuralNetwork Class
    */
   NeuralNetwork(){};
 
   /**
-   * @brief     Constructor of NeuralNetwork Class with Configuration file path
+   * @brief     Constructor of NeuralNetwork Class with Configuration file
+   * path
    */
   NeuralNetwork(std::string config_path);
 
@@ -176,7 +177,7 @@ class NeuralNetwork {
    */
   void finalize();
 
- private:
+private:
   /**
    * @brief     batch size
    */

@@ -22,7 +22,7 @@ limitations under the License.
 #include <fstream>
 #include <iostream>
 
-#include <unistd.h>  // NOLINT(build/include_order)
+#include <unistd.h> // NOLINT(build/include_order)
 
 #include "bitmap_helpers.h"
 
@@ -31,8 +31,8 @@ limitations under the License.
 namespace tflite {
 namespace label_image {
 
-uint8_t *decode_bmp(const uint8_t *input, int row_size, uint8_t *const output, int width, int height, int channels,
-                    bool top_down) {
+uint8_t *decode_bmp(const uint8_t *input, int row_size, uint8_t *const output,
+                    int width, int height, int channels, bool top_down) {
   for (int i = 0; i < height; i++) {
     int src_pos;
     int dst_pos;
@@ -47,25 +47,25 @@ uint8_t *decode_bmp(const uint8_t *input, int row_size, uint8_t *const output, i
       dst_pos = (i * width + j) * channels;
 
       switch (channels) {
-        case 1:
-          output[dst_pos] = input[src_pos];
-          break;
-        case 3:
-          // BGR -> RGB
-          output[dst_pos] = input[src_pos + 2];
-          output[dst_pos + 1] = input[src_pos + 1];
-          output[dst_pos + 2] = input[src_pos];
-          break;
-        case 4:
-          // BGRA -> RGBA
-          output[dst_pos] = input[src_pos + 2];
-          output[dst_pos + 1] = input[src_pos + 1];
-          output[dst_pos + 2] = input[src_pos];
-          output[dst_pos + 3] = input[src_pos + 3];
-          break;
-        default:
-          LOG(FATAL) << "Unexpected number of channels: " << channels;
-          break;
+      case 1:
+        output[dst_pos] = input[src_pos];
+        break;
+      case 3:
+        // BGR -> RGB
+        output[dst_pos] = input[src_pos + 2];
+        output[dst_pos + 1] = input[src_pos + 1];
+        output[dst_pos + 2] = input[src_pos];
+        break;
+      case 4:
+        // BGRA -> RGBA
+        output[dst_pos] = input[src_pos + 2];
+        output[dst_pos + 1] = input[src_pos + 1];
+        output[dst_pos + 2] = input[src_pos];
+        output[dst_pos + 3] = input[src_pos + 3];
+        break;
+      default:
+        LOG(FATAL) << "Unexpected number of channels: " << channels;
+        break;
       }
     }
   }
@@ -73,7 +73,8 @@ uint8_t *decode_bmp(const uint8_t *input, int row_size, uint8_t *const output, i
   return output;
 }
 
-uint8_t *read_bmp(const std::string &input_bmp_name, int *width, int *height, int *channels) {
+uint8_t *read_bmp(const std::string &input_bmp_name, int *width, int *height,
+                  int *channels) {
   int begin, end;
 
   std::ifstream file(input_bmp_name, std::ios::in | std::ios::binary);
@@ -90,7 +91,8 @@ uint8_t *read_bmp(const std::string &input_bmp_name, int *width, int *height, in
   const uint8_t *img_bytes = new uint8_t[len];
   file.seekg(0, std::ios::beg);
   file.read((char *)img_bytes, len);
-  const int32_t header_size = *(reinterpret_cast<const int32_t *>(img_bytes + 10));
+  const int32_t header_size =
+    *(reinterpret_cast<const int32_t *>(img_bytes + 10));
   *width = *(reinterpret_cast<const int32_t *>(img_bytes + 18));
   *height = *(reinterpret_cast<const int32_t *>(img_bytes + 22));
   const int32_t bpp = *(reinterpret_cast<const int32_t *>(img_bytes + 28));
@@ -107,8 +109,9 @@ uint8_t *read_bmp(const std::string &input_bmp_name, int *width, int *height, in
   // Decode image, allocating tensor once the image size is known
   uint8_t *output = new uint8_t[abs(*height) * *width * *channels];
   const uint8_t *bmp_pixels = &img_bytes[header_size];
-  return decode_bmp(bmp_pixels, row_size, output, *width, abs(*height), *channels, top_down);
+  return decode_bmp(bmp_pixels, row_size, output, *width, abs(*height),
+                    *channels, top_down);
 }
 
-}  // namespace label_image
-}  // namespace tflite
+} // namespace label_image
+} // namespace tflite

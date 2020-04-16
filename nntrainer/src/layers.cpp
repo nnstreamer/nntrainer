@@ -22,10 +22,10 @@
  */
 
 #include "layers.h"
+#include "util_func.h"
 #include <assert.h>
 #include <nntrainer_log.h>
 #include <random>
-#include "util_func.h"
 
 namespace nntrainer {
 
@@ -35,8 +35,7 @@ static auto rng = [] {
   return rng;
 }();
 
-template <typename... Args>
-static void RandNormal(Tensor &w, Args &&... args) {
+template <typename... Args> static void RandNormal(Tensor &w, Args &&... args) {
   std::normal_distribution<float> dist(std::forward<Args>(args)...);
   unsigned int width = w.getWidth();
   unsigned int height = w.getHeight();
@@ -61,30 +60,32 @@ static void RandUniform(Tensor &w, Args &&... args) {
   }
 }
 
-static Tensor weightInitialization(unsigned int width, unsigned int height, WeightIniType init_type) {
+static Tensor weightInitialization(unsigned int width, unsigned int height,
+                                   WeightIniType init_type) {
   Tensor w = Tensor(height, width);
 
   switch (init_type) {
-    case WEIGHT_LECUN_NORMAL:
-      RandNormal(w, 0, sqrt(1 / height));
-      break;
-    case WEIGHT_XAVIER_NORMAL:
-      RandNormal(w, 0, sqrt(2.0 / (width + height)));
-      break;
-    case WEIGHT_HE_NORMAL:
-      RandNormal(w, 0, sqrt(2.0 / (height)));
-      break;
-    case WEIGHT_LECUN_UNIFORM:
-      RandUniform(w, -1.0 * sqrt(1.0 / height), sqrt(1.0 / height));
-      break;
-    case WEIGHT_XAVIER_UNIFORM:
-      RandUniform(w, -1.0 * sqrt(6.0 / (height + width)), sqrt(6.0 / (height + width)));
-      break;
-    case WEIGHT_HE_UNIFORM:
-      RandUniform(w, -1.0 * sqrt(6.0 / (height)), sqrt(6.0 / (height)));
-      break;
-    default:
-      break;
+  case WEIGHT_LECUN_NORMAL:
+    RandNormal(w, 0, sqrt(1 / height));
+    break;
+  case WEIGHT_XAVIER_NORMAL:
+    RandNormal(w, 0, sqrt(2.0 / (width + height)));
+    break;
+  case WEIGHT_HE_NORMAL:
+    RandNormal(w, 0, sqrt(2.0 / (height)));
+    break;
+  case WEIGHT_LECUN_UNIFORM:
+    RandUniform(w, -1.0 * sqrt(1.0 / height), sqrt(1.0 / height));
+    break;
+  case WEIGHT_XAVIER_UNIFORM:
+    RandUniform(w, -1.0 * sqrt(6.0 / (height + width)),
+                sqrt(6.0 / (height + width)));
+    break;
+  case WEIGHT_HE_UNIFORM:
+    RandUniform(w, -1.0 * sqrt(6.0 / (height)), sqrt(6.0 / (height)));
+    break;
+  default:
+    break;
   }
   return w;
 }
@@ -96,20 +97,20 @@ void Layer::setActivation(ActiType acti) {
   }
   activation_type = acti;
   switch (acti) {
-    case ACT_TANH:
-      activation = tanhFloat;
-      activation_prime = tanhPrime;
-      break;
-    case ACT_SIGMOID:
-      activation = sigmoid;
-      activation_prime = sigmoidePrime;
-      break;
-    case ACT_RELU:
-      activation = relu;
-      activation_prime = reluPrime;
-      break;
-    default:
-      break;
+  case ACT_TANH:
+    activation = tanhFloat;
+    activation_prime = tanhPrime;
+    break;
+  case ACT_SIGMOID:
+    activation = sigmoid;
+    activation_prime = sigmoidePrime;
+    break;
+  case ACT_RELU:
+    activation = relu;
+    activation_prime = reluPrime;
+    break;
+  default:
+    break;
   }
 }
 
@@ -140,7 +141,8 @@ Tensor InputLayer::forwarding(Tensor in) {
   return input;
 }
 
-void InputLayer::initialize(int b, int h, int w, int id, bool init_zero, WeightIniType wini) {
+void InputLayer::initialize(int b, int h, int w, int id, bool init_zero,
+                            WeightIniType wini) {
   this->batch = b;
   this->width = w;
   this->height = h;
@@ -148,7 +150,8 @@ void InputLayer::initialize(int b, int h, int w, int id, bool init_zero, WeightI
   this->bn_fallow = false;
 }
 
-void FullyConnectedLayer::initialize(int b, int h, int w, int id, bool init_zero, WeightIniType wini) {
+void FullyConnectedLayer::initialize(int b, int h, int w, int id,
+                                     bool init_zero, WeightIniType wini) {
   this->batch = b;
   this->width = w;
   this->height = h;
@@ -213,7 +216,8 @@ Tensor FullyConnectedLayer::backwarding(Tensor derivative, int iteration) {
   return ret;
 }
 
-void OutputLayer::initialize(int b, int h, int w, int id, bool init_zero, WeightIniType wini) {
+void OutputLayer::initialize(int b, int h, int w, int id, bool init_zero,
+                             WeightIniType wini) {
   this->batch = b;
   this->width = w;
   this->height = h;
@@ -258,45 +262,47 @@ Tensor OutputLayer::forwarding(Tensor in, Tensor output) {
   float loss_sum = 0.0;
 
   switch (cost) {
-    case COST_MSR: {
-      Tensor sub = y2.subtract(y);
-      Tensor l = (sub.multiply(sub)).sum().multiply(0.5);
-      std::vector<float> t = l.mat2vec();
-      for (int i = 0; i < l.getBatch(); i++) {
-        loss_sum += t[i];
-      }
+  case COST_MSR: {
+    Tensor sub = y2.subtract(y);
+    Tensor l = (sub.multiply(sub)).sum().multiply(0.5);
+    std::vector<float> t = l.mat2vec();
+    for (int i = 0; i < l.getBatch(); i++) {
+      loss_sum += t[i];
+    }
 
-      loss = loss_sum / (float)l.getBatch();
-    } break;
-    case COST_ENTROPY: {
-      Tensor l;
-      if (activation_type == ACT_SIGMOID) {
-        l = (y2.multiply(y.apply(logFloat))
-                 .add((y2.multiply(-1.0).add(1.0)).multiply((y.multiply(-1.0).add(1.0)).apply(logFloat))))
-                .multiply(-1.0 / (y2.getWidth()))
-                .sum();
-      } else if (activation_type == ACT_SOFTMAX) {
-        l = (y2.multiply(y.apply(logFloat))).multiply(-1.0 / (y2.getWidth())).sum();
-      } else {
-        ml_loge("Only support sigmoid & softmax for cross entropy loss");
-        exit(0);
-      }
+    loss = loss_sum / (float)l.getBatch();
+  } break;
+  case COST_ENTROPY: {
+    Tensor l;
+    if (activation_type == ACT_SIGMOID) {
+      l = (y2.multiply(y.apply(logFloat))
+             .add((y2.multiply(-1.0).add(1.0))
+                    .multiply((y.multiply(-1.0).add(1.0)).apply(logFloat))))
+            .multiply(-1.0 / (y2.getWidth()))
+            .sum();
+    } else if (activation_type == ACT_SOFTMAX) {
+      l =
+        (y2.multiply(y.apply(logFloat))).multiply(-1.0 / (y2.getWidth())).sum();
+    } else {
+      ml_loge("Only support sigmoid & softmax for cross entropy loss");
+      exit(0);
+    }
 
-      std::vector<float> t = l.mat2vec();
+    std::vector<float> t = l.mat2vec();
 
-      for (int i = 0; i < l.getBatch(); i++) {
-        loss_sum += t[i];
-      }
-      loss = loss_sum / (float)l.getBatch();
+    for (int i = 0; i < l.getBatch(); i++) {
+      loss_sum += t[i];
+    }
+    loss = loss_sum / (float)l.getBatch();
 
-      if (opt.getWeightDecayType() == WeightDecayType::l2norm) {
-        loss += opt.getWeightDecayLambda() * 0.5 * (weight.l2norm());
-      }
+    if (opt.getWeightDecayType() == WeightDecayType::l2norm) {
+      loss += opt.getWeightDecayLambda() * 0.5 * (weight.l2norm());
+    }
 
-    } break;
-    case COST_UNKNOWN:
-    default:
-      break;
+  } break;
+  case COST_UNKNOWN:
+  default:
+    break;
   }
   return y;
 }
@@ -342,55 +348,57 @@ Tensor OutputLayer::backwarding(Tensor label, int iteration) {
   }
 
   switch (cost) {
-    case COST_MSR: {
-      Tensor sub = y2.subtract(y);
-      Tensor l = (sub.multiply(sub)).sum().multiply(0.5);
-      std::vector<float> t = l.mat2vec();
-      for (int i = 0; i < l.getBatch(); i++) {
-        loss_sum += t[i];
-      }
+  case COST_MSR: {
+    Tensor sub = y2.subtract(y);
+    Tensor l = (sub.multiply(sub)).sum().multiply(0.5);
+    std::vector<float> t = l.mat2vec();
+    for (int i = 0; i < l.getBatch(); i++) {
+      loss_sum += t[i];
+    }
 
-      loss = loss_sum / (float)l.getBatch();
-      if (opt.getWeightDecayType() == WeightDecayType::l2norm) {
-        loss += opt.getWeightDecayLambda() * 0.5 * (weight.l2norm());
-      }
-      if (activation_type == ACT_SOFTMAX) {
-        djdb = y.subtract(y2).multiply(y.apply(softmaxPrime));
-      } else {
-        djdb = y.subtract(y2).multiply(hidden.apply(activation_prime));
-      }
-    } break;
-    case COST_ENTROPY: {
-      Tensor l;
-      if (activation_type == ACT_SIGMOID) {
-        djdb = y.subtract(y2).multiply(1.0 / y.getWidth());
-        l = (y2.multiply(y.apply(logFloat))
-                 .add((y2.multiply(-1.0).add(1.0)).multiply((y.multiply(-1.0).add(1.0)).apply(logFloat))))
-                .multiply(-1.0 / (y2.getWidth()))
-                .sum();
-      } else if (activation_type == ACT_SOFTMAX) {
-        djdb = y.subtract(y2).multiply(1.0 / y.getWidth());
-        l = (y2.multiply(y.apply(logFloat))).multiply(-1.0 / (y2.getWidth())).sum();
-      } else {
-        ml_loge("Only support sigmoid & softmax for cross entropy loss");
-        exit(0);
-      }
+    loss = loss_sum / (float)l.getBatch();
+    if (opt.getWeightDecayType() == WeightDecayType::l2norm) {
+      loss += opt.getWeightDecayLambda() * 0.5 * (weight.l2norm());
+    }
+    if (activation_type == ACT_SOFTMAX) {
+      djdb = y.subtract(y2).multiply(y.apply(softmaxPrime));
+    } else {
+      djdb = y.subtract(y2).multiply(hidden.apply(activation_prime));
+    }
+  } break;
+  case COST_ENTROPY: {
+    Tensor l;
+    if (activation_type == ACT_SIGMOID) {
+      djdb = y.subtract(y2).multiply(1.0 / y.getWidth());
+      l = (y2.multiply(y.apply(logFloat))
+             .add((y2.multiply(-1.0).add(1.0))
+                    .multiply((y.multiply(-1.0).add(1.0)).apply(logFloat))))
+            .multiply(-1.0 / (y2.getWidth()))
+            .sum();
+    } else if (activation_type == ACT_SOFTMAX) {
+      djdb = y.subtract(y2).multiply(1.0 / y.getWidth());
+      l =
+        (y2.multiply(y.apply(logFloat))).multiply(-1.0 / (y2.getWidth())).sum();
+    } else {
+      ml_loge("Only support sigmoid & softmax for cross entropy loss");
+      exit(0);
+    }
 
-      std::vector<float> t = l.mat2vec();
+    std::vector<float> t = l.mat2vec();
 
-      for (int i = 0; i < l.getBatch(); i++) {
-        loss_sum += t[i];
-      }
-      loss = loss_sum / (float)l.getBatch();
+    for (int i = 0; i < l.getBatch(); i++) {
+      loss_sum += t[i];
+    }
+    loss = loss_sum / (float)l.getBatch();
 
-      if (opt.getWeightDecayType() == WeightDecayType::l2norm) {
-        loss += opt.getWeightDecayLambda() * 0.5 * (weight.l2norm());
-      }
+    if (opt.getWeightDecayType() == WeightDecayType::l2norm) {
+      loss += opt.getWeightDecayLambda() * 0.5 * (weight.l2norm());
+    }
 
-    } break;
-    case COST_UNKNOWN:
-    default:
-      break;
+  } break;
+  case COST_UNKNOWN:
+  default:
+    break;
   }
 
   Tensor djdw = input.transpose().dot(djdb);
@@ -402,7 +410,8 @@ Tensor OutputLayer::backwarding(Tensor label, int iteration) {
   return ret;
 }
 
-void BatchNormalizationLayer::initialize(int b, int h, int w, int id, bool init_zero, WeightIniType wini) {
+void BatchNormalizationLayer::initialize(int b, int h, int w, int id,
+                                         bool init_zero, WeightIniType wini) {
   this->batch = b;
   this->width = w;
   this->height = h;
@@ -444,15 +453,23 @@ Tensor BatchNormalizationLayer::backwarding(Tensor derivative, int iteration) {
   Tensor dbeta;
   Tensor dgamma;
   Tensor hath = hidden;
-  Tensor dy = derivative.multiply(hath.multiply(gamma).add(beta).apply(activation_prime));
+  Tensor dy =
+    derivative.multiply(hath.multiply(gamma).add(beta).apply(activation_prime));
 
   dbeta = dy.sum(0);
-  dgamma = (input.subtract(mu).divide(var.add(0.001).apply(sqrtFloat)).multiply(dy).sum(0));
+  dgamma = (input.subtract(mu)
+              .divide(var.add(0.001).apply(sqrtFloat))
+              .multiply(dy)
+              .sum(0));
 
   Tensor Temp =
-      (dy.multiply(batch).subtract(dy.sum(0)))
-          .subtract(input.subtract(mu).divide(var.add(0.001)).multiply(dy.multiply(input.subtract(mu)).sum(0)));
-  Tensor dh = Temp.multiply(1.0 / batch).multiply(var.add(0.001).apply(sqrtFloat)).multiply(gamma);
+    (dy.multiply(batch).subtract(dy.sum(0)))
+      .subtract(input.subtract(mu)
+                  .divide(var.add(0.001))
+                  .multiply(dy.multiply(input.subtract(mu)).sum(0)));
+  Tensor dh = Temp.multiply(1.0 / batch)
+                .multiply(var.add(0.001).apply(sqrtFloat))
+                .multiply(gamma);
 
   float ll = opt.getLearningRate();
   if (opt.getDecaySteps() != -1) {

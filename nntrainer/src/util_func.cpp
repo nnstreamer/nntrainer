@@ -21,9 +21,9 @@
  */
 
 #include "util_func.h"
-#include <assert.h>
 #include "math.h"
 #include "tensor.h"
+#include <assert.h>
 
 namespace nntrainer {
 
@@ -112,7 +112,9 @@ float logFloat(float x) { return (float)(log(x)); }
 
 float sigmoid(float x) { return 1 / (1 + exp(-x)); }
 
-float sigmoidePrime(float x) { return (float)(1.0 / ((1 + exp(-x)) * (1.0 + 1.0 / (exp(-x) + 0.0000001)))); }
+float sigmoidePrime(float x) {
+  return (float)(1.0 / ((1 + exp(-x)) * (1.0 + 1.0 / (exp(-x) + 0.0000001))));
+}
 
 float tanhFloat(float x) { return (float)tanh(x); }
 

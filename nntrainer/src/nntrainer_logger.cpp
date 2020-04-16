@@ -22,11 +22,11 @@
  */
 
 #include "nntrainer_logger.h"
-#include <stdarg.h>
 #include <cstring>
 #include <ctime>
 #include <iomanip>
 #include <sstream>
+#include <stdarg.h>
 #include <stdexcept>
 
 namespace nntrainer {
@@ -34,19 +34,19 @@ namespace nntrainer {
 /**
  * @brief     logfile name
  */
-const char* const Logger::logfile_name = "log_nntrainer_";
+const char *const Logger::logfile_name = "log_nntrainer_";
 
 /**
  * @brief     instance for single logger
  */
-Logger* Logger::ainstance = nullptr;
+Logger *Logger::ainstance = nullptr;
 
 /**
  * @brief     mutex for lock
  */
 std::mutex Logger::smutex;
 
-Logger& Logger::instance() {
+Logger &Logger::instance() {
   static Cleanup cleanup;
 
   std::lock_guard<std::mutex> guard(smutex);
@@ -65,42 +65,47 @@ Logger::~Logger() { outputstream.close(); }
 
 Logger::Logger() {
   time_t t = time(0);
-  struct tm* now = localtime(&t);
+  struct tm *now = localtime(&t);
   std::stringstream ss;
-  ss << logfile_name << std::dec << (now->tm_year + 1900) << std::setfill('0') << std::setw(2) << (now->tm_mon + 1)
-     << std::setfill('0') << std::setw(2) << now->tm_mday << std::setfill('0') << std::setw(2) << now->tm_hour
-     << std::setfill('0') << std::setw(2) << now->tm_min << std::setfill('0') << std::setw(2) << now->tm_sec << ".out";
+  ss << logfile_name << std::dec << (now->tm_year + 1900) << std::setfill('0')
+     << std::setw(2) << (now->tm_mon + 1) << std::setfill('0') << std::setw(2)
+     << now->tm_mday << std::setfill('0') << std::setw(2) << now->tm_hour
+     << std::setfill('0') << std::setw(2) << now->tm_min << std::setfill('0')
+     << std::setw(2) << now->tm_sec << ".out";
   outputstream.open(ss.str(), std::ios_base::app);
   if (!outputstream.good()) {
     throw std::runtime_error("Unable to initialize the Logger!");
   }
 }
 
-void Logger::log(const std::string& message, const nntrainer_loglevel loglevel) {
+void Logger::log(const std::string &message,
+                 const nntrainer_loglevel loglevel) {
   std::lock_guard<std::mutex> guard(smutex);
   time_t t = time(0);
-  struct tm* now = localtime(&t);
+  struct tm *now = localtime(&t);
   std::stringstream ss;
   switch (loglevel) {
-    case NNTRAINER_LOG_INFO:
-      ss << "[NNTRAINER INFO  ";
-      break;
-    case NNTRAINER_LOG_WARN:
-      ss << "[NNTRAINER WARNING ";
-      break;
-    case NNTRAINER_LOG_ERROR:
-      ss << "[NNTRAINER ERROR ";
-      break;
-    case NNTRAINER_LOG_DEBUG:
-      ss << "[NNTRAINER DEBUG ";
-      break;
-    default:
-      break;
+  case NNTRAINER_LOG_INFO:
+    ss << "[NNTRAINER INFO  ";
+    break;
+  case NNTRAINER_LOG_WARN:
+    ss << "[NNTRAINER WARNING ";
+    break;
+  case NNTRAINER_LOG_ERROR:
+    ss << "[NNTRAINER ERROR ";
+    break;
+  case NNTRAINER_LOG_DEBUG:
+    ss << "[NNTRAINER DEBUG ";
+    break;
+  default:
+    break;
   }
 
-  ss << std::dec << (now->tm_year + 1900) << '-' << std::setfill('0') << std::setw(2) << (now->tm_mon + 1) << '-'
-     << std::setfill('0') << std::setw(2) << now->tm_mday << '-' << std::setfill('0') << std::setw(2) << now->tm_hour
-     << std::setfill('0') << std::setw(2) << now->tm_min << std::setfill('0') << std::setw(2) << now->tm_sec << ']';
+  ss << std::dec << (now->tm_year + 1900) << '-' << std::setfill('0')
+     << std::setw(2) << (now->tm_mon + 1) << '-' << std::setfill('0')
+     << std::setw(2) << now->tm_mday << '-' << std::setfill('0') << std::setw(2)
+     << now->tm_hour << std::setfill('0') << std::setw(2) << now->tm_min
+     << std::setfill('0') << std::setw(2) << now->tm_sec << ']';
 
   outputstream << ss.str() << " " << message << std::endl;
 }
@@ -108,7 +113,8 @@ void Logger::log(const std::string& message, const nntrainer_loglevel loglevel) 
 #ifdef __cplusplus
 extern "C" {
 #endif
-void __nntrainer_log_print(nntrainer_loglevel loglevel, const std::string format_str, ...) {
+void __nntrainer_log_print(nntrainer_loglevel loglevel,
+                           const std::string format_str, ...) {
   int final_n, n = ((int)format_str.size()) * 2;
   std::unique_ptr<char[]> formatted;
   va_list ap;
@@ -131,15 +137,15 @@ void __nntrainer_log_print(nntrainer_loglevel loglevel, const std::string format
   Logger::instance().log(ss, loglevel);
 #else
   switch (loglevel) {
-    case NNTRAINER_LOG_ERROR:
-      std::cerr << ss << std::endl;
-      break;
-    case NNTRAINER_LOG_INFO:
-    case NNTRAINER_LOG_WARN:
-    case NNTRAINER_LOG_DEBUG:
-      std::cout << ss << std::endl;
-    default:
-      break;
+  case NNTRAINER_LOG_ERROR:
+    std::cerr << ss << std::endl;
+    break;
+  case NNTRAINER_LOG_INFO:
+  case NNTRAINER_LOG_WARN:
+  case NNTRAINER_LOG_DEBUG:
+    std::cout << ss << std::endl;
+  default:
+    break;
   }
 
 #endif

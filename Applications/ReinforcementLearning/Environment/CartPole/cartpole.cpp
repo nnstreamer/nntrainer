@@ -30,7 +30,8 @@
  * @retval    random value
  */
 static float RandomFloat(float min, float max) {
-  float r = min + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX) / (max - min));
+  float r = min + static_cast<float>(rand()) /
+                    (static_cast<float>(RAND_MAX) / (max - min));
   return r;
 }
 
@@ -61,7 +62,8 @@ void CartPole::init() {
     S.observation.push_back(0.0);
 }
 
-void CartPole::step(const std::vector<float> &action, bool rendering, State *s) {
+void CartPole::step(const std::vector<float> &action, bool rendering,
+                    State *s) {
   float x = S.observation[0];
   float x_dot = S.observation[1];
   float theta = S.observation[2];
@@ -70,9 +72,11 @@ void CartPole::step(const std::vector<float> &action, bool rendering, State *s) 
 
   float costheta = cos(theta);
   float sintheta = sin(theta);
-  float temp = (force + polemass_length * theta_dot * theta_dot * sintheta) / total_mass;
+  float temp =
+    (force + polemass_length * theta_dot * theta_dot * sintheta) / total_mass;
   float thetaacc =
-      (gravity * sintheta - costheta * temp) / (length * (4.0 / 3.0 - masspole * costheta * costheta / total_mass));
+    (gravity * sintheta - costheta * temp) /
+    (length * (4.0 / 3.0 - masspole * costheta * costheta / total_mass));
   float xacc = temp - polemass_length * thetaacc * costheta / total_mass;
 
   x = x + tau * x_dot;
@@ -90,7 +94,8 @@ void CartPole::step(const std::vector<float> &action, bool rendering, State *s) 
   s->observation.push_back(theta);
   s->observation.push_back(theta_dot);
 
-  S.done = (bool)(x < x_threshold * -1.0 || x > x_threshold || theta < theta_threshold_radians * -1.0 ||
+  S.done = (bool)(x < x_threshold * -1.0 || x > x_threshold ||
+                  theta < theta_threshold_radians * -1.0 ||
                   theta > theta_threshold_radians);
   // theta > theta_threshold_radians || count >= 200);
   count++;
@@ -132,4 +137,4 @@ std::vector<float> CartPole::sample() {
   action.push_back((float)random0to1());
   return action;
 }
-}
+} // namespace Env

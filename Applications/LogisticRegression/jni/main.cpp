@@ -19,17 +19,17 @@
  * @bug		No known bugs except for NYI items
  * @brief	This is Binary Logistic Regression Example
  *
- *              Trainig set (dataset1.txt) : two colume data + result (1.0 or 0.0)
- *              Configuration file : ../../res/LogisticRegression.ini
- *              Test set (test.txt)
+ *              Trainig set (dataset1.txt) : two colume data + result (1.0 or
+ * 0.0) Configuration file : ../../res/LogisticRegression.ini Test set
+ * (test.txt)
  */
 
-#include <stdlib.h>
-#include <time.h>
 #include <cmath>
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <stdlib.h>
+#include <time.h>
 
 #include "neuralnet.h"
 #include "tensor.h"
@@ -125,7 +125,8 @@ int main(int argc, char *argv[]) {
         label.push_back(outputVector[j]);
         NN.backwarding(nntrainer::Tensor(in), nntrainer::Tensor(label), i);
       }
-      std::cout << "#" << i + 1 << "/" << NN.getEpoch() << " - Loss : " << NN.getLoss() << std::endl;
+      std::cout << "#" << i + 1 << "/" << NN.getEpoch()
+                << " - Loss : " << NN.getLoss() << std::endl;
       NN.setLoss(0.0);
     }
   } else {
@@ -137,10 +138,13 @@ int main(int argc, char *argv[]) {
       std::vector<std::vector<float>> in, label;
       in.push_back(inputVector[j]);
       label.push_back(outputVector[j]);
-      if (NN.forwarding(nntrainer::Tensor(in)).apply(stepFunction).getValue(0, 0, 0) == label[0][0])
+      if (NN.forwarding(nntrainer::Tensor(in))
+            .apply(stepFunction)
+            .getValue(0, 0, 0) == label[0][0])
         cn++;
     }
-    std::cout << "[ Accuracy ] : " << ((float)(cn) / inputVector.size()) * 100.0 << "%" << std::endl;
+    std::cout << "[ Accuracy ] : " << ((float)(cn) / inputVector.size()) * 100.0
+              << "%" << std::endl;
   }
 
   /**

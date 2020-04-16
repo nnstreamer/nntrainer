@@ -18,25 +18,26 @@
  * @author	Jijoong Moon <jijoong.moon@samsung.com>
  * @bug		No known bugs except for NYI items
  * @brief	This is Classification Example with one FC Layer
- *              The base model for feature extractor is mobilenet v2 with 1280*7*7 feature size.
- *              It read the Classification.ini in res directory and run according to the configureation.
+ *              The base model for feature extractor is mobilenet v2 with
+ * 1280*7*7 feature size. It read the Classification.ini in res directory and
+ * run according to the configureation.
  *
  */
 
-#include <stdlib.h>
-#include <time.h>
-#include <cmath>
-#include <fstream>
-#include <iomanip>
-#include <iostream>
-#include <queue>
-#include <sstream>
 #include "bitmap_helpers.h"
 #include "tensorflow/contrib/lite/interpreter.h"
 #include "tensorflow/contrib/lite/kernels/register.h"
 #include "tensorflow/contrib/lite/model.h"
 #include "tensorflow/contrib/lite/string_util.h"
 #include "tensorflow/contrib/lite/tools/gen_op_registration.h"
+#include <cmath>
+#include <fstream>
+#include <iomanip>
+#include <iostream>
+#include <queue>
+#include <sstream>
+#include <stdlib.h>
+#include <time.h>
 
 #include "databuffer.h"
 #include "layers.h"
@@ -134,7 +135,8 @@ void getFeature(const string filename, vector<float> &feature_input) {
   int input_idx_list_len = 0;
   int output_idx_list_len = 0;
   std::string model_path = "../../res/mobilenetv2.tflite";
-  std::unique_ptr<tflite::FlatBufferModel> model = tflite::FlatBufferModel::BuildFromFile(model_path.c_str());
+  std::unique_ptr<tflite::FlatBufferModel> model =
+    tflite::FlatBufferModel::BuildFromFile(model_path.c_str());
 
   assert(model != NULL);
   tflite::ops::builtin::BuiltinOpResolver resolver;
@@ -150,11 +152,13 @@ void getFeature(const string filename, vector<float> &feature_input) {
   int t_size = interpreter->tensors_size();
   for (int i = 0; i < t_size; i++) {
     for (int j = 0; j < input_size; j++) {
-      if (strcmp(interpreter->tensor(i)->name, interpreter->GetInputName(j)) == 0)
+      if (strcmp(interpreter->tensor(i)->name, interpreter->GetInputName(j)) ==
+          0)
         input_idx_list[input_idx_list_len++] = i;
     }
     for (int j = 0; j < output_size; j++) {
-      if (strcmp(interpreter->tensor(i)->name, interpreter->GetOutputName(j)) == 0)
+      if (strcmp(interpreter->tensor(i)->name, interpreter->GetOutputName(j)) ==
+          0)
         output_idx_list[output_idx_list_len++] = i;
     }
   }
@@ -165,10 +169,12 @@ void getFeature(const string filename, vector<float> &feature_input) {
 
   int len = interpreter->tensor(input_idx_list[0])->dims->size;
   std::reverse_copy(interpreter->tensor(input_idx_list[0])->dims->data,
-                    interpreter->tensor(input_idx_list[0])->dims->data + len, inputDim);
+                    interpreter->tensor(input_idx_list[0])->dims->data + len,
+                    inputDim);
   len = interpreter->tensor(output_idx_list[0])->dims->size;
   std::reverse_copy(interpreter->tensor(output_idx_list[0])->dims->data,
-                    interpreter->tensor(output_idx_list[0])->dims->data + len, outputDim);
+                    interpreter->tensor(output_idx_list[0])->dims->data + len,
+                    outputDim);
 
   int output_number_of_pixels = 1;
   int wanted_channels = inputDim[0];
@@ -182,7 +188,8 @@ void getFeature(const string filename, vector<float> &feature_input) {
 
   uint8_t *in;
   float *output;
-  in = tflite::label_image::read_bmp(filename, &wanted_width, &wanted_height, &wanted_channels);
+  in = tflite::label_image::read_bmp(filename, &wanted_width, &wanted_height,
+                                     &wanted_channels);
   if (interpreter->AllocateTensors() != kTfLiteOk) {
     std::cout << "Failed to allocate tensors!" << std::endl;
     exit(0);
@@ -199,8 +206,10 @@ void getFeature(const string filename, vector<float> &feature_input) {
 
   output = interpreter->typed_output_tensor<float>(0);
 
-  std::cout << inputDim[0] << " " << inputDim[1] << " " << inputDim[2] << " " << inputDim[3] << std::endl;
-  std::cout << outputDim[0] << " " << outputDim[1] << " " << outputDim[2] << " " << outputDim[3] << std::endl;
+  std::cout << inputDim[0] << " " << inputDim[1] << " " << inputDim[2] << " "
+            << inputDim[3] << std::endl;
+  std::cout << outputDim[0] << " " << outputDim[1] << " " << outputDim[2] << " "
+            << outputDim[3] << std::endl;
 
   for (int l = 0; l < FEATURE_SIZE; l++) {
     feature_input[l] = output[l];
@@ -217,9 +226,11 @@ void getFeature(const string filename, vector<float> &feature_input) {
  * @param[out] feature_input save output of tflite
  * @param[out] feature_output save label data
  */
-void ExtractFeatures(std::string p, vector<vector<float>> &feature_input, vector<vector<float>> &feature_output,
-                     std::string type, std::ofstream &f) {
-  string total_label[10] = {"airplane", "automobile", "bird", "cat", "deer", "dog", "frog", "horse", "ship", "truck"};
+void ExtractFeatures(std::string p, vector<vector<float>> &feature_input,
+                     vector<vector<float>> &feature_output, std::string type,
+                     std::ofstream &f) {
+  string total_label[10] = {"airplane", "automobile", "bird",  "cat",  "deer",
+                            "dog",      "frog",       "horse", "ship", "truck"};
 
   int data_size = TOTAL_TRAIN_DATA_SIZE;
   bool val = false;
@@ -278,7 +289,8 @@ void ExtractFeatures(std::string p, vector<vector<float>> &feature_input, vector
   }
 }
 
-bool getData(std::ifstream &F, std::vector<float> &outVec, std::vector<float> &outLabel, int id) {
+bool getData(std::ifstream &F, std::vector<float> &outVec,
+             std::vector<float> &outLabel, int id) {
   long pos = F.tellg();
   F.seekg(pos + (FEATURE_SIZE + TOTAL_LABEL_SIZE) * id);
   for (int i = 0; i < FEATURE_SIZE; i++)
@@ -290,7 +302,8 @@ bool getData(std::ifstream &F, std::vector<float> &outVec, std::vector<float> &o
 }
 
 bool getMiniBatch(std::vector<std::vector<std::vector<float>>> &outVec,
-                  std::vector<std::vector<std::vector<float>>> &outLabel, std::string type) {
+                  std::vector<std::vector<std::vector<float>>> &outLabel,
+                  std::string type) {
   std::vector<int> memI;
   std::vector<int> memJ;
   int count = 0;
@@ -339,7 +352,8 @@ bool getMiniBatch(std::vector<std::vector<std::vector<float>>> &outVec,
   return true;
 }
 
-void save(std::vector<std::vector<float>> inVec, std::vector<std::vector<float>> inLabel, std::string type) {
+void save(std::vector<std::vector<float>> inVec,
+          std::vector<std::vector<float>> inLabel, std::string type) {
   std::string file = type + "Set.dat";
 
   unsigned int data_size = TOTAL_TRAIN_DATA_SIZE;
@@ -360,7 +374,8 @@ void save(std::vector<std::vector<float>> inVec, std::vector<std::vector<float>>
   }
 }
 
-bool read(std::vector<std::vector<float>> &inVec, std::vector<std::vector<float>> &inLabel, std::string type) {
+bool read(std::vector<std::vector<float>> &inVec,
+          std::vector<std::vector<float>> &inLabel, std::string type) {
   std::string file = type + "Set.dat";
 
   std::ifstream TrainingSet(file, std::ios::in | std::ios::binary);
@@ -436,8 +451,9 @@ int main(int argc, char *argv[]) {
   std::ifstream val_file("valSet.dat", std::ios::in | std::ios::binary);
   std::ifstream test_file("testSet.dat", std::ios::in | std::ios::binary);
 
-  buf.init(MINI_BATCH, BUFFER_SIZE, BUFFER_SIZE, BUFFER_SIZE, train_file, val_file, test_file,
-           TOTAL_LABEL_SIZE * TOTAL_TRAIN_DATA_SIZE, TOTAL_LABEL_SIZE * TOTAL_VAL_DATA_SIZE,
+  buf.init(MINI_BATCH, BUFFER_SIZE, BUFFER_SIZE, BUFFER_SIZE, train_file,
+           val_file, test_file, TOTAL_LABEL_SIZE * TOTAL_TRAIN_DATA_SIZE,
+           TOTAL_LABEL_SIZE * TOTAL_VAL_DATA_SIZE,
            TOTAL_LABEL_SIZE * TOTAL_TEST_DATA_SIZE, FEATURE_SIZE, 10);
   buf.run(nntrainer::BUF_TRAIN, train_file);
   buf.run(nntrainer::BUF_VAL, val_file);
@@ -458,10 +474,12 @@ int main(int argc, char *argv[]) {
 
       while (true) {
         std::vector<std::vector<std::vector<float>>> in, label;
-        if (buf.getDataFromBuffer(nntrainer::BUF_TRAIN, in, label, MINI_BATCH, FEATURE_SIZE, 1, TOTAL_LABEL_SIZE)) {
+        if (buf.getDataFromBuffer(nntrainer::BUF_TRAIN, in, label, MINI_BATCH,
+                                  FEATURE_SIZE, 1, TOTAL_LABEL_SIZE)) {
           NN.backwarding(nntrainer::Tensor(in), nntrainer::Tensor(label), i);
           count++;
-          progress = (((float)(count * MINI_BATCH)) / (TOTAL_LABEL_SIZE * TOTAL_TRAIN_DATA_SIZE));
+          progress = (((float)(count * MINI_BATCH)) /
+                      (TOTAL_LABEL_SIZE * TOTAL_TRAIN_DATA_SIZE));
           int pos = barWidth * progress;
           std::cout << "#" << i + 1 << " [ ";
           for (int l = 0; l < barWidth; ++l) {
@@ -470,7 +488,8 @@ int main(int argc, char *argv[]) {
             else
               std::cout << " ";
           }
-          std::cout << " ] " << int(progress * 100.0) << "% ( Training Loss: " << NN.getLoss() << " )\r";
+          std::cout << " ] " << int(progress * 100.0)
+                    << "% ( Training Loss: " << NN.getLoss() << " )\r";
           std::cout.flush();
         } else {
           buf.clear(nntrainer::BUF_TRAIN, train_file);
@@ -486,8 +505,10 @@ int main(int argc, char *argv[]) {
 
       while (true) {
         std::vector<std::vector<std::vector<float>>> in, label;
-        // if (buf.getDataFromBuffer(BUF_VAL, in, label, MINI_BATCH, FEATURE_SIZE, 1, TOTAL_LABEL_SIZE)) {
-        if (buf.getDataFromBuffer(nntrainer::BUF_TRAIN, in, label, MINI_BATCH, FEATURE_SIZE, 1, TOTAL_LABEL_SIZE)) {
+        // if (buf.getDataFromBuffer(BUF_VAL, in, label, MINI_BATCH,
+        // FEATURE_SIZE, 1, TOTAL_LABEL_SIZE)) {
+        if (buf.getDataFromBuffer(nntrainer::BUF_TRAIN, in, label, MINI_BATCH,
+                                  FEATURE_SIZE, 1, TOTAL_LABEL_SIZE)) {
           for (int i = 0; i < MINI_BATCH; ++i) {
             nntrainer::Tensor X = nntrainer::Tensor({in[i]});
             nntrainer::Tensor Y2 = nntrainer::Tensor({label[i]});
@@ -507,11 +528,13 @@ int main(int argc, char *argv[]) {
 
       valloss = valloss / (float)(TOTAL_LABEL_SIZE * TOTAL_VAL_DATA_SIZE);
 
-      // cout << "#" << i + 1 << "/" << ITERATION << " - Training Loss: " << trainingloss << " >> [ Accuracy: " << right
-      // / (float)(TOTAL_LABEL_SIZE * TOTAL_VAL_DATA_SIZE) * 100.0
+      // cout << "#" << i + 1 << "/" << ITERATION << " - Training Loss: "
+      // << trainingloss << " >> [ Accuracy: " << right /
+      // (float)(TOTAL_LABEL_SIZE * TOTAL_VAL_DATA_SIZE) * 100.0
       //      << "% - Validation Loss : " << valloss << " ] " << endl;
-      cout << "#" << i + 1 << "/" << ITERATION << " - Training Loss: " << trainingloss
-           << " >> [ Accuracy: " << right / (float)(TOTAL_LABEL_SIZE * TOTAL_TRAIN_DATA_SIZE) * 100.0
+      cout << "#" << i + 1 << "/" << ITERATION
+           << " - Training Loss: " << trainingloss << " >> [ Accuracy: "
+           << right / (float)(TOTAL_LABEL_SIZE * TOTAL_TRAIN_DATA_SIZE) * 100.0
            << "% - Validation Loss : " << valloss << " ] " << endl;
 
       if (training)

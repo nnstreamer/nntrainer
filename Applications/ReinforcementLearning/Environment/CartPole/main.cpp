@@ -21,9 +21,9 @@
  *
  */
 
-#include <stdio.h>
-#include <iostream>
 #include "cartpole.h"
+#include <iostream>
+#include <stdio.h>
 
 int main() {
   Env::State state;
@@ -41,11 +41,13 @@ int main() {
       cartpole.step(action, false, &state);
       total_reward += state.reward;
       total_steps += 1;
-      printf("action : %f --> state : %f %f %f %f\n", action[0], state.observation[0], state.observation[1],
-             state.observation[2], state.observation[3]);
+      printf("action : %f --> state : %f %f %f %f\n", action[0],
+             state.observation[0], state.observation[1], state.observation[2],
+             state.observation[3]);
       if (state.done)
         break;
     }
-    printf("episode %i finished in %i steps with reward %02f\n", episode, total_steps, total_reward);
+    printf("episode %i finished in %i steps with reward %02f\n", episode,
+           total_steps, total_reward);
   }
 }
