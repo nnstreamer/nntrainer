@@ -130,13 +130,15 @@ unsigned int parseType(std::string ll, InputType t) {
 
   /**
    * @brief     Layer Type String from configure file
-   *            "InputLayer"  : InputLayer Object
-   *            "FullyConnectedLayer" : Fully Connected Layer Object
-   *            "OutputLayer" : Output Layer Object
+   *            "input"  : Input Layer Object
+   *            "fully_conntected" : Fully Connected Layer Object
+   *            "output" : Output Layer Object
+   *            "batch_normalization" : Batch Normalization Layer Object
+   *            "unknown" : Batch Normalization Layer Object
    */
   std::array<std::string, 5> layer_string = {
-    "InputLayer", "FullyConnectedLayer", "OutputLayer",
-    "BatchNormalizationLayer", "Unknown"};
+    "input", "fully_connected", "output",
+    "batch_normalization", "unknown"};
 
   /**
    * @brief     Weight Initialization Type String from configure file

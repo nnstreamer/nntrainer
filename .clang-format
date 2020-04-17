@@ -1,6 +1,5 @@
 ---
 Language:        Cpp
-# BasedOnStyle:  NPU
 AccessModifierOffset: -2
 AlignAfterOpenBracket: Align
 AlignEscapedNewlinesLeft: true
