@@ -39,9 +39,9 @@ namespace nntrainer {
  *            0. BUF_TRAIN ( Buffer for training )
  *            1. BUF_VAL ( Buffer for validation )
  *            2. BUF_TEST ( Buffer for test )
- *            3. Unknown
+ *            3. BUF_UNKNOWN
  */
-typedef enum { BUF_TRAIN, BUF_VAL, BUF_TEST, BUFF_UNKNOWN } BufferType;
+typedef enum { BUF_TRAIN, BUF_VAL, BUF_TEST, BUF_UNKNOWN } BufferType;
 
 /**
  * @brief     Enumeration of data type
@@ -49,7 +49,7 @@ typedef enum { BUF_TRAIN, BUF_VAL, BUF_TEST, BUFF_UNKNOWN } BufferType;
  *            1. DATA_VAL ( Data for validation )
  *            2. DATA_TEST ( Data for test )
  *            3. DATA_LABEL ( Data for test )
- *            3. Unknown
+ *            4. DATA_UNKNOWN
  */
 typedef enum {
   DATA_TRAIN,

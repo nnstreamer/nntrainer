@@ -130,9 +130,11 @@ public:
    * @param[in] id index of this layer
    * @param[in] init_zero Bias initialization with zero
    * @param[in] wini Weight Initialization Scheme
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  virtual void initialize(int b, int h, int w, int id, bool init_zero,
-                          WeightIniType wini) = 0;
+  virtual int initialize(int b, int h, int w, int id, bool init_zero,
+                         WeightIniType wini) = 0;
 
   /**
    * @brief     read layer Weight & Bias data from file
@@ -149,14 +151,18 @@ public:
   /**
    * @brief     Optimizer Setter
    * @param[in] opt Optimizer
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  virtual void setOptimizer(Optimizer opt);
+  virtual int setOptimizer(Optimizer opt);
 
   /**
    * @brief     Activation Setter
    * @param[in] activation activation type
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  void setActivation(ActiType activation);
+  int setActivation(ActiType activation);
 
   /**
    * @brief     Layer type Setter
@@ -288,8 +294,10 @@ public:
   /**
    * @brief     Set Optimizer
    * @param[in] opt optimizer
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  void setOptimizer(Optimizer opt);
+  int setOptimizer(Optimizer opt);
 
   /**
    * @brief     Initializer of Input Layer
@@ -299,9 +307,11 @@ public:
    * @param[in] id index of this layer
    * @param[in] init_zero boolean to set Bias zero
    * @param[in] wini Weight Initialization Scheme
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  void initialize(int b, int h, int w, int id, bool init_zero,
-                  WeightIniType wini);
+  int initialize(int b, int h, int w, int id, bool init_zero,
+                 WeightIniType wini);
 
   /**
    * @brief     Copy Layer
@@ -393,9 +403,11 @@ public:
    * @param[in] id layer index
    * @param[in] init_zero boolean to set Bias zero
    * @param[in] wini Weight Initialization Scheme
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  void initialize(int b, int h, int w, int id, bool init_zero,
-                  WeightIniType wini);
+  int initialize(int b, int h, int w, int id, bool init_zero,
+                 WeightIniType wini);
 
 private:
   Tensor weight;
@@ -462,9 +474,11 @@ public:
    * @param[in] id layer index
    * @param[in] init_zero boolean to set Bias zero
    * @param[in] wini Weight Initialization Scheme
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  void initialize(int b, int w, int h, int id, bool init_zero,
-                  WeightIniType wini);
+  int initialize(int b, int w, int h, int id, bool init_zero,
+                 WeightIniType wini);
 
   /**
    * @brief     get Loss value
@@ -474,8 +488,10 @@ public:
   /**
    * @brief     set cost function
    * @param[in] c cost function type
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  void setCost(CostType c) { this->cost = c; };
+  int setCost(CostType c);
 
   /**
    * @brief     copy layer
@@ -546,8 +562,10 @@ public:
   /**
    * @brief     set optimizer
    * @param[in] opt Optimizer
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  void setOptimizer(Optimizer opt);
+  int setOptimizer(Optimizer opt);
 
   /**
    * @brief     copy layer
@@ -563,9 +581,11 @@ public:
    * @param[in] id layer index
    * @param[in] init_zero boolean to set Bias zero
    * @param[in] wini Weight Initialization Scheme
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  void initialize(int b, int h, int w, int id, bool init_zero,
-                  WeightIniType wini);
+  int initialize(int b, int h, int w, int id, bool init_zero,
+                 WeightIniType wini);
 
 private:
   Tensor weight;
