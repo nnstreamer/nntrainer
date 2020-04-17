@@ -60,8 +60,13 @@ int Optimizer::setOptParam(OptParam p) {
   return status;
 }
 
-void Optimizer::initialize(unsigned int height, unsigned int width,
-                           bool set_tensor) {
+int Optimizer::initialize(unsigned int height, unsigned int width,
+                          bool set_tensor) {
+  int status = ML_ERROR_NONE;
+  if (height == 0 || width == 0) {
+    ml_loge("Error: Tensor Dimension must be greater than 0");
+    return ML_ERROR_INVALID_PARAMETER;
+  }
   if (type == OptType::adam && set_tensor) {
     wm = Tensor(height, width);
     wv = Tensor(height, width);
@@ -72,6 +77,7 @@ void Optimizer::initialize(unsigned int height, unsigned int width,
     bm.setZero();
     bv.setZero();
   }
+  return status;
 }
 
 void Optimizer::calculate(Tensor &djdw, Tensor &djdb, Tensor &weight,

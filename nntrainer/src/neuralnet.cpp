@@ -27,9 +27,18 @@
 #include <array>
 #include <assert.h>
 #include <cmath>
+#include <fstream>
 #include <nntrainer_log.h>
 #include <sstream>
 #include <stdio.h>
+
+#define NN_RETURN_STATUS()         \
+  do {                             \
+    if (status != ML_ERROR_NONE) { \
+      iniparser_freedict(ini);     \
+      return status;               \
+    }                              \
+  } while (0)
 
 namespace nntrainer {
 
@@ -230,8 +239,7 @@ NeuralNetwork::NeuralNetwork(std::string config) { this->setConfig(config); }
 
 int NeuralNetwork::setConfig(std::string config) {
   int status = ML_ERROR_NONE;
-  std::ifstream conf_file(config);
-  if (!conf_file.good()) {
+  if (!is_file_exist(config)) {
     ml_loge("Error: Cannot open model configuration file");
     return ML_ERROR_INVALID_PARAMETER;
   }
@@ -266,6 +274,7 @@ int NeuralNetwork::init() {
     parseLayerName(iniparser_getstring(ini, "Network:Layers", ""));
   if (!layers_name.size()) {
     ml_loge("Error: There is no layer");
+    iniparser_freedict(ini);
     return ML_ERROR_INVALID_PARAMETER;
   }
 
@@ -279,9 +288,7 @@ int NeuralNetwork::init() {
   epoch = iniparser_getint(ini, "Network:Epoch", 100);
   status = opt.setType((OptType)parseType(
     iniparser_getstring(ini, "Network:Optimizer", unknown), TOKEN_OPT));
-  if (status != ML_ERROR_NONE) {
-    return status;
-  }
+  NN_RETURN_STATUS();
 
   cost = (CostType)parseType(iniparser_getstring(ini, "Network:Cost", unknown),
                              TOKEN_COST);
@@ -306,9 +313,7 @@ int NeuralNetwork::init() {
   popt.epsilon = iniparser_getdouble(ini, "Network:epsilon", 0.0);
 
   status = opt.setOptParam(popt);
-  if (status != ML_ERROR_NONE) {
-    return status;
-  }
+  NN_RETURN_STATUS();
 
   for (unsigned int i = 0; i < layers_name.size(); i++)
     ml_logi("%s", layers_name[i].c_str());
@@ -337,7 +342,7 @@ int NeuralNetwork::init() {
     case LAYER_OUT:
     default:
       h_size =
-        iniparser_getint(ini, (layers_name[i] + ":HiddenSize").c_str(), 1);
+        iniparser_getint(ini, (layers_name[i] + ":HiddenSize").c_str(), 0);
       break;
     }
     hidden_size.push_back(h_size);
@@ -345,19 +350,24 @@ int NeuralNetwork::init() {
 
   if (hidden_size.size() != layers_name.size()) {
     ml_loge("Error: Missing HiddenSize!");
+    iniparser_freedict(ini);
     return ML_ERROR_INVALID_PARAMETER;
   }
 
-  data_buffer.setClassNum(hidden_size[layers_name.size() - 1]);
-
-  data_buffer.setDataFile(iniparser_getstring(ini, "Network:TrainData", NULL),
-                          DATA_TRAIN);
-  data_buffer.setDataFile(iniparser_getstring(ini, "Network:ValidData", NULL),
-                          DATA_VAL);
-  data_buffer.setDataFile(iniparser_getstring(ini, "Network:TestData", NULL),
-                          DATA_TEST);
-  data_buffer.setDataFile(iniparser_getstring(ini, "Network:LabelData", NULL),
-                          DATA_LABEL);
+  status = data_buffer.setClassNum(hidden_size[layers_name.size() - 1]);
+  NN_RETURN_STATUS();
+  status = data_buffer.setDataFile(
+    iniparser_getstring(ini, "Network:TrainData", ""), DATA_TRAIN);
+  NN_RETURN_STATUS();
+  status = data_buffer.setDataFile(
+    iniparser_getstring(ini, "Network:ValidData", ""), DATA_VAL);
+  NN_RETURN_STATUS();
+  status = data_buffer.setDataFile(
+    iniparser_getstring(ini, "Network:TestData", ""), DATA_TEST);
+  NN_RETURN_STATUS();
+  status = data_buffer.setDataFile(
+    iniparser_getstring(ini, "Network:LabelData", ""), DATA_LABEL);
+  NN_RETURN_STATUS();
 
   for (unsigned int i = 0; i < layers_name.size(); i++) {
     l_type =
@@ -373,58 +383,75 @@ int NeuralNetwork::init() {
     case LAYER_IN: {
       InputLayer *input_layer = new (InputLayer);
       input_layer->setType(t);
-      input_layer->initialize(batch_size, 1, hidden_size[i], id, b_zero,
-                              weight_ini);
-      input_layer->setOptimizer(opt);
+      status = input_layer->initialize(batch_size, 1, hidden_size[i], id,
+                                       b_zero, weight_ini);
+      NN_RETURN_STATUS();
+
+      status = input_layer->setOptimizer(opt);
+      NN_RETURN_STATUS();
+
       input_layer->setNormalization(iniparser_getboolean(
         ini, (layers_name[i] + ":Normalization").c_str(), false));
       input_layer->setStandardization(iniparser_getboolean(
         ini, (layers_name[i] + ":Standardization").c_str(), false));
-      input_layer->setActivation((ActiType)parseType(
+      status = input_layer->setActivation((ActiType)parseType(
         iniparser_getstring(ini, (layers_name[i] + ":Activation").c_str(),
                             unknown),
         TOKEN_ACTI));
+      NN_RETURN_STATUS();
       layers.push_back(input_layer);
     } break;
     case LAYER_FC: {
       FullyConnectedLayer *fc_layer = new (FullyConnectedLayer);
       fc_layer->setType(t);
-      fc_layer->initialize(batch_size, hidden_size[i - 1], hidden_size[i], id,
-                           b_zero, weight_ini);
-      fc_layer->setOptimizer(opt);
-      fc_layer->setActivation((ActiType)parseType(
+      status = fc_layer->initialize(batch_size, hidden_size[i - 1],
+                                    hidden_size[i], id, b_zero, weight_ini);
+      NN_RETURN_STATUS();
+      status = fc_layer->setOptimizer(opt);
+      NN_RETURN_STATUS();
+      status = fc_layer->setActivation((ActiType)parseType(
         iniparser_getstring(ini, (layers_name[i] + ":Activation").c_str(),
                             unknown),
         TOKEN_ACTI));
+      NN_RETURN_STATUS();
       layers.push_back(fc_layer);
     } break;
     case LAYER_OUT: {
       OutputLayer *output_layer = new (OutputLayer);
       output_layer->setType(t);
-      output_layer->setCost(cost);
-      output_layer->initialize(batch_size, hidden_size[i - 1], hidden_size[i],
-                               id, b_zero, weight_ini);
-      output_layer->setOptimizer(opt);
-      output_layer->setActivation((ActiType)parseType(
+      status = output_layer->setCost(cost);
+      NN_RETURN_STATUS();
+      status = output_layer->initialize(batch_size, hidden_size[i - 1],
+                                        hidden_size[i], id, b_zero, weight_ini);
+      NN_RETURN_STATUS();
+      status = output_layer->setOptimizer(opt);
+      NN_RETURN_STATUS();
+      status = output_layer->setActivation((ActiType)parseType(
         iniparser_getstring(ini, (layers_name[i] + ":Activation").c_str(),
                             unknown),
         TOKEN_ACTI));
+      NN_RETURN_STATUS();
       layers.push_back(output_layer);
     } break;
     case LAYER_BN: {
       BatchNormalizationLayer *bn_layer = new (BatchNormalizationLayer);
       bn_layer->setType(t);
-      bn_layer->setOptimizer(opt);
-      bn_layer->initialize(batch_size, 1, hidden_size[i], id, b_zero,
-                           weight_ini);
+      status = bn_layer->setOptimizer(opt);
+      NN_RETURN_STATUS();
+      status = bn_layer->initialize(batch_size, 1, hidden_size[i], id, b_zero,
+                                    weight_ini);
+      NN_RETURN_STATUS();
       layers.push_back(bn_layer);
       layers[i - 1]->setBNfallow(true);
-      bn_layer->setActivation((ActiType)parseType(
+      status = bn_layer->setActivation((ActiType)parseType(
         iniparser_getstring(ini, (layers_name[i] + ":Activation").c_str(),
                             unknown),
         TOKEN_ACTI));
+      NN_RETURN_STATUS();
     } break;
     case LAYER_UNKNOWN:
+      ml_loge("Error: Unknown layer type");
+      status = ML_ERROR_INVALID_PARAMETER;
       break;
     default:
       break;

@@ -425,24 +425,37 @@ bool DataBuffer::getDataFromBuffer(
 
 int DataBuffer::setDataFile(std::string path, DataType type) {
   int status = ML_ERROR_NONE;
-  std::ifstream data_file(path);
-  if (!data_file.good()) {
-    ml_loge("Error: Cannot open configuraiotn file %s", path.c_str());
-    return ML_ERROR_INVALID_PARAMETER;
-  }
+  std::ifstream data_file(path.c_str());
 
   switch (type) {
   case DATA_TRAIN:
+    if (!data_file.good()) {
+      ml_loge(
+        "Error: Cannot open data file, Datafile is necessary for training");
+      return ML_ERROR_INVALID_PARAMETER;
+    }
     train_file = path;
     break;
   case DATA_VAL:
+    if (!data_file.good()) {
+      ml_logw("Warning: Cannot open validation data file. Cannot validate "
+              "training result");
+    }
     val_file = path;
     break;
   case DATA_TEST:
+    if (!data_file.good()) {
+      ml_logw(
+        "Warning: Cannot open test data file. Cannot test training result");
+    }
     test_file = path;
     break;
   case DATA_LABEL: {
     std::string data;
+    if (!data_file.good()) {
+      ml_loge("Error: Cannot open label file");
+      return ML_ERROR_INVALID_PARAMETER;
+    }
     while (data_file >> data) {
       labels.push_back(data);
     }

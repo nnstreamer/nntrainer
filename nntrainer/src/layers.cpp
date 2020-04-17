@@ -22,6 +22,7 @@
  */
 
 #include "layers.h"
+#include "nntrainer_error.h"
 #include "util_func.h"
 #include <assert.h>
 #include <nntrainer_log.h>
@@ -61,8 +62,15 @@ static void RandUniform(Tensor &w, Args &&... args) {
 }
 
 static Tensor weightInitialization(unsigned int width, unsigned int height,
-                                   WeightIniType init_type) {
+                                   WeightIniType init_type, int &status) {
+
   Tensor w = Tensor(height, width);
+
+  if (init_type == WEIGHT_UNKNOWN) {
+    ml_logw("Warning: Weight Initalization Type is not set. "
+            "WEIGHT_XAVIER_NORMAL is used by default");
+    init_type = WEIGHT_XAVIER_NORMAL;
+  }
 
   switch (init_type) {
   case WEIGHT_LECUN_NORMAL:
@@ -90,10 +98,11 @@ static Tensor weightInitialization(unsigned int width, unsigned int height,
   return w;
 }
 
-void Layer::setActivation(ActiType acti) {
+int Layer::setActivation(ActiType acti) {
+  int status = ML_ERROR_NONE;
   if (acti == ACT_UNKNOWN) {
-    ml_loge("have to specify activation function");
-    exit(0);
+    ml_loge("Error:have to specify activation function");
+    return ML_ERROR_INVALID_PARAMETER;
   }
   activation_type = acti;
   switch (acti) {
@@ -112,16 +121,17 @@ void Layer::setActivation(ActiType acti) {
   default:
     break;
   }
+  return status;
 }
 
-void Layer::setOptimizer(Optimizer opt) {
+int Layer::setOptimizer(Optimizer opt) {
   this->opt = opt;
-  this->opt.initialize(height, width, true);
+  return this->opt.initialize(height, width, true);
 }
 
-void InputLayer::setOptimizer(Optimizer opt) {
+int InputLayer::setOptimizer(Optimizer opt) {
   this->opt = opt;
-  this->opt.initialize(height, width, false);
+  return this->opt.initialize(height, width, false);
 }
 
 void InputLayer::copy(Layer *l) {
@@ -141,17 +151,30 @@ Tensor InputLayer::forwarding(Tensor in) {
   return input;
 }
 
-void InputLayer::initialize(int b, int h, int w, int id, bool init_zero,
-                            WeightIniType wini) {
+int InputLayer::initialize(int b, int h, int w, int id, bool init_zero,
+                           WeightIniType wini) {
+  int status = ML_ERROR_NONE;
+  if (b <= 0 || h <= 0 || w <= 0) {
+    ml_loge("Error: Dimension must be greater than 0");
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
   this->batch = b;
   this->width = w;
   this->height = h;
   this->index = 0;
   this->bn_fallow = false;
+  return status;
 }
 
-void FullyConnectedLayer::initialize(int b, int h, int w, int id,
-                                     bool init_zero, WeightIniType wini) {
+int FullyConnectedLayer::initialize(int b, int h, int w, int id, bool init_zero,
+                                    WeightIniType wini) {
+  int status = ML_ERROR_NONE;
+  if (b <= 0 || h <= 0 || w <= 0) {
+    ml_loge("Error: Dimension must be greater than 0");
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
   this->batch = b;
   this->width = w;
   this->height = h;
@@ -160,13 +183,17 @@ void FullyConnectedLayer::initialize(int b, int h, int w, int id,
   this->bn_fallow = false;
 
   bias = Tensor(1, w);
-  weight = weightInitialization(w, h, wini);
+  weight = weightInitialization(w, h, wini, status);
+
+  if (status != ML_ERROR_NONE)
+    return status;
 
   if (init_zero) {
     bias.setZero();
   } else {
     bias = bias.apply(random);
   }
+  return status;
 }
 
 Tensor FullyConnectedLayer::forwarding(Tensor in) {
@@ -216,8 +243,14 @@ Tensor FullyConnectedLayer::backwarding(Tensor derivative, int iteration) {
   return ret;
 }
 
-void OutputLayer::initialize(int b, int h, int w, int id, bool init_zero,
-                             WeightIniType wini) {
+int OutputLayer::initialize(int b, int h, int w, int id, bool init_zero,
+                            WeightIniType wini) {
+  int status = ML_ERROR_NONE;
+  if (b <= 0 || h <= 0 || w <= 0) {
+    ml_loge("Error: Dimension must be greater than 0");
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
   this->batch = b;
   this->width = w;
   this->height = h;
@@ -228,13 +261,24 @@ void OutputLayer::initialize(int b, int h, int w, int id, bool init_zero,
   this->cost = cost;
   this->bn_fallow = false;
 
-  weight = weightInitialization(w, h, wini);
+  weight = weightInitialization(w, h, wini, status);
 
   if (init_zero) {
     bias.setZero();
   } else {
     bias = bias.apply(random);
   }
+  return status;
+}
+
+int OutputLayer::setCost(CostType c) {
+  int status = ML_ERROR_NONE;
+  if (c == COST_UNKNOWN) {
+    ml_loge("Error: Unknown cost fucntion");
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+  cost = c;
+  return status;
 }
 
 Tensor OutputLayer::forwarding(Tensor in) {
@@ -410,8 +454,14 @@ Tensor OutputLayer::backwarding(Tensor label, int iteration) {
   return ret;
 }
 
-void BatchNormalizationLayer::initialize(int b, int h, int w, int id,
-                                         bool init_zero, WeightIniType wini) {
+int BatchNormalizationLayer::initialize(int b, int h, int w, int id,
+                                        bool init_zero, WeightIniType wini) {
+  int status = ML_ERROR_NONE;
+  if (b <= 0 || h <= 0 || w <= 0) {
+    ml_loge("Error: Dimension must be greater than 0");
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
   this->batch = b;
   this->width = w;
   this->height = h;
@@ -422,11 +472,12 @@ void BatchNormalizationLayer::initialize(int b, int h, int w, int id,
   this->beta = Tensor(batch, w);
   beta.setZero();
   gamma.setZero();
+  return status;
 }
 
-void BatchNormalizationLayer::setOptimizer(Optimizer opt) {
+int BatchNormalizationLayer::setOptimizer(Optimizer opt) {
   this->opt = opt;
-  this->opt.initialize(height, width, false);
+  return this->opt.initialize(height, width, false);
 }
 
 Tensor BatchNormalizationLayer::forwarding(Tensor in) {

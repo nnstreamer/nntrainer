@@ -57,9 +57,17 @@ const std::string config_str = "[Network]"
                                "\n"
                                "epsilon = 1e-7"
                                "\n"
+                               "TrainData = trainingSet.dat"
+                               "\n"
+                               "ValidData = valSet.dat"
+                               "\n"
+                               "TestData = testSet.dat"
+                               "\n"
+                               "LabelData = label.dat"
+                               "\n"
                                "[inputlayer]"
                                "\n"
-                               "Type = InputLayer"
+                               "Type = input"
                                "\n"
                                "Id = 0"
                                "\n"
@@ -73,7 +81,7 @@ const std::string config_str = "[Network]"
                                "\n"
                                "[outputlayer]"
                                "\n"
-                               "Type = OutputLayer"
+                               "Type = output"
                                "\n"
                                "Id = 1"
                                "\n"
@@ -84,14 +92,15 @@ const std::string config_str = "[Network]"
                                "Activation = softmax"
                                "\n";
 
-void replaceString(const std::string &from, const std::string &to) {
+void replaceString(const std::string &from, const std::string &to,
+                   const std::string n) {
   size_t start_pos = 0;
   std::string s = config_str;
   while ((start_pos = s.find(from, start_pos)) != std::string::npos) {
     s.replace(start_pos, from.length(), to);
     start_pos += to.length();
   }
-  std::ofstream data_file("test.ini");
+  std::ofstream data_file(n.c_str());
   data_file << s;
   data_file.close();
 }
@@ -123,7 +132,12 @@ TEST(nntrainer_NeuralNetwork, setConfig_02_n) {
  */
 TEST(nntrainer_NeuralNetwork, init_01_p) {
   int status = ML_ERROR_NONE;
-  nntrainer::NeuralNetwork NN("../test/tizen_capi/test_conf.ini");
+  std::string config_file = "./test.ini";
+  replaceString("Layers = inputlayer outputlayer",
+                "Layers = inputlayer outputlayer", config_file);
+  nntrainer::NeuralNetwork NN;
+  status = NN.setConfig(config_file);
+  EXPECT_EQ(status, ML_ERROR_NONE);
   status = NN.init();
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
@@ -133,7 +147,7 @@ TEST(nntrainer_NeuralNetwork, init_01_p) {
  */
 TEST(nntrainer_NeuralNetwork, init_02_n) {
   int status = ML_ERROR_NONE;
-  replaceString("Layers = inputlayer outputlayer", "");
+  replaceString("Layers = inputlayer outputlayer", "", "./test.ini");
   nntrainer::NeuralNetwork NN;
   status = NN.setConfig("./test.ini");
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -146,7 +160,7 @@ TEST(nntrainer_NeuralNetwork, init_02_n) {
  */
 TEST(nntrainer_NeuralNetwork, init_03_n) {
   int status = ML_ERROR_NONE;
-  replaceString("adam", "aaaadam");
+  replaceString("adam", "aaaadam", "./test.ini");
   nntrainer::NeuralNetwork NN;
   status = NN.setConfig("./test.ini");
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -159,7 +173,86 @@ TEST(nntrainer_NeuralNetwork, init_03_n) {
  */
 TEST(nntrainer_NeuralNetwork, init_04_n) {
   int status = ML_ERROR_NONE;
-  replaceString("Learning_rate = 0.0001", "Learning_rate = -0.0001");
+  replaceString("HiddenSize = 62720", "HiddenSize = 0", "./test.ini");
+  nntrainer::NeuralNetwork NN;
+  status = NN.setConfig("./test.ini");
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = NN.init();
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+}
+
+/**
+ * @brief Neural Network Model initialization
+ */
+TEST(nntrainer_NeuralNetwork, init_05_n) {
+  int status = ML_ERROR_NONE;
+  replaceString("HiddenSize = 62720", "", "./test.ini");
+  nntrainer::NeuralNetwork NN;
+  status = NN.setConfig("./test.ini");
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = NN.init();
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+}
+
+/**
+ * @brief Neural Network Model initialization
+ */
+TEST(nntrainer_NeuralNetwork, init_06_n) {
+  int status = ML_ERROR_NONE;
+  replaceString("Learning_rate = 0.0001", "Learning_rate = -0.0001",
+                "./test.ini");
+  nntrainer::NeuralNetwork NN;
+  status = NN.setConfig("./test.ini");
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = NN.init();
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+}
+
+/**
+ * @brief Neural Network Model initialization
+ */
+TEST(nntrainer_NeuralNetwork, init_07_n) {
+  int status = ML_ERROR_NONE;
+  replaceString("TrainData = trainingSet.dat", "", "./test.ini");
+  nntrainer::NeuralNetwork NN;
+  status = NN.setConfig("./test.ini");
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = NN.init();
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+}
+
+/**
+ * @brief Neural Network Model initialization
+ */
+TEST(nntrainer_NeuralNetwork, init_08_n) {
+  int status = ML_ERROR_NONE;
+  replaceString("TestData = testSet.dat", "", "./test.ini");
+  nntrainer::NeuralNetwork NN;
+  status = NN.setConfig("./test.ini");
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = NN.init();
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Neural Network Model initialization
+ */
+TEST(nntrainer_NeuralNetwork, init_09_n) {
+  int status = ML_ERROR_NONE;
+  replaceString("HiddenSize = 10", "HiddenSize = 9", "./test.ini");
+  nntrainer::NeuralNetwork NN;
+  status = NN.setConfig("./test.ini");
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = NN.init();
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+}
+
+/**
+ * @brief Neural Network Model initialization
+ */
+TEST(nntrainer_NeuralNetwork, init_10_n) {
+  int status = ML_ERROR_NONE;
+  replaceString("LabelData = label.dat", "", "./test.ini");
   nntrainer::NeuralNetwork NN;
   status = NN.setConfig("./test.ini");
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -283,6 +376,302 @@ TEST(nntrainer_Optimizer, setOptParam_01_p) {
   p.weight_decay.type = nntrainer::WeightDecayType::l2norm;
   p.weight_decay.lambda = 0.001;
   status = op.setOptParam(p);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+}
+
+/**
+ * @brief Input Layer
+ */
+TEST(nntrainer_InputLayer, initialize_01_p) {
+  int status = ML_ERROR_NONE;
+  nntrainer::InputLayer layer;
+  status = layer.initialize(1, 1, 1, 0, true, nntrainer::WEIGHT_XAVIER_NORMAL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Input Layer
+ */
+TEST(nntrainer_InputLayer, initialize_02_n) {
+  int status = ML_ERROR_NONE;
+  nntrainer::InputLayer layer;
+  status = layer.initialize(1, 0, 1, 0, true, nntrainer::WEIGHT_XAVIER_NORMAL);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+}
+
+/**
+ * @brief Input Layer
+ */
+TEST(nntrainer_InputLayer, setOptimizer_01_p) {
+  int status = ML_ERROR_NONE;
+  nntrainer::InputLayer layer;
+  status = layer.initialize(1, 1, 1, 0, true, nntrainer::WEIGHT_XAVIER_NORMAL);
+  nntrainer::Optimizer op;
+  nntrainer::OptType t = nntrainer::OptType::adam;
+  nntrainer::OptParam p;
+  status = op.setType(t);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  p.learning_rate = 0.001;
+  p.beta1 = 0.9;
+  p.beta2 = 0.9999;
+  p.epsilon = 1e-7;
+  p.weight_decay.type = nntrainer::WeightDecayType::l2norm;
+  p.weight_decay.lambda = 0.001;
+  status = op.setOptParam(p);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = layer.setOptimizer(op);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Input Layer
+ */
+TEST(nntrainer_InputLayer, setActivation_01_p) {
+  int status = ML_ERROR_NONE;
+  nntrainer::InputLayer layer;
+  status = layer.setActivation(nntrainer::ACT_TANH);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Input Layer
+ */
+TEST(nntrainer_InputLayer, setActivation_02_n) {
+  int status = ML_ERROR_NONE;
+  nntrainer::InputLayer layer;
+  status = layer.setActivation(nntrainer::ACT_UNKNOWN);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+}
+
+/**
+ * @brief Fully Connected Layer
+ */
+TEST(nntrainer_FullyConnectedLayer, initialize_01_p) {
+  int status = ML_ERROR_NONE;
+  nntrainer::FullyConnectedLayer layer;
+  status = layer.initialize(1, 1, 1, 0, true, nntrainer::WEIGHT_XAVIER_NORMAL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Fully Connected Layer
+ */
+TEST(nntrainer_FullyConnectedLayer, initialize_02_n) {
+  int status = ML_ERROR_NONE;
+  nntrainer::FullyConnectedLayer layer;
+  status = layer.initialize(1, 0, 1, 0, true, nntrainer::WEIGHT_XAVIER_NORMAL);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+}
+
+/**
+ * @brief Fully Connected Layer
+ */
+TEST(nntrainer_FullyConnectedLayer, initialize_03_n) {
+  int status = ML_ERROR_NONE;
+  nntrainer::FullyConnectedLayer layer;
+  status = layer.initialize(1, 1, 1, 0, true, nntrainer::WEIGHT_UNKNOWN);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Fully Connected Layer
+ */
+TEST(nntrainer_FullyConnectedLayer, setOptimizer_01_p) {
+  int status = ML_ERROR_NONE;
+  nntrainer::FullyConnectedLayer layer;
+  status = layer.initialize(1, 1, 1, 0, true, nntrainer::WEIGHT_XAVIER_NORMAL);
+  nntrainer::Optimizer op;
+  nntrainer::OptType t = nntrainer::OptType::adam;
+  nntrainer::OptParam p;
+  status = op.setType(t);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  p.learning_rate = 0.001;
+  p.beta1 = 0.9;
+  p.beta2 = 0.9999;
+  p.epsilon = 1e-7;
+  p.weight_decay.type = nntrainer::WeightDecayType::l2norm;
+  p.weight_decay.lambda = 0.001;
+  status = op.setOptParam(p);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = layer.setOptimizer(op);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Fully Connected Layer
+ */
+TEST(nntrainer_FullyConnectedLayer, setActivation_01_p) {
+  int status = ML_ERROR_NONE;
+  nntrainer::FullyConnectedLayer layer;
+  status = layer.setActivation(nntrainer::ACT_TANH);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Fully Connected Layer
+ */
+TEST(nntrainer_FullyConnectedLayer, setActivation_02_n) {
+  int status = ML_ERROR_NONE;
+  nntrainer::FullyConnectedLayer layer;
+  status = layer.setActivation(nntrainer::ACT_UNKNOWN);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+}
+
+/**
+ * @brief Output Layer
+ */
+TEST(nntrainer_OutputLayer, initialize_01_p) {
+  int status = ML_ERROR_NONE;
+  nntrainer::OutputLayer layer;
+  status = layer.initialize(1, 1, 1, 0, true, nntrainer::WEIGHT_XAVIER_NORMAL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Output Layer
+ */
+TEST(nntrainer_OutputLayer, initialize_02_n) {
+  int status = ML_ERROR_NONE;
+  nntrainer::OutputLayer layer;
+  status = layer.initialize(1, 0, 1, 0, true, nntrainer::WEIGHT_XAVIER_NORMAL);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+}
+
+/**
+ * @brief Output Layer
+ */
+TEST(nntrainer_OutputLayer, initialize_03_n) {
+  int status = ML_ERROR_NONE;
+  nntrainer::OutputLayer layer;
+  status = layer.initialize(1, 1, 1, 0, true, nntrainer::WEIGHT_UNKNOWN);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Output Layer
+ */
+TEST(nntrainer_OutputLayer, setOptimizer_01_p) {
+  int status = ML_ERROR_NONE;
+  nntrainer::OutputLayer layer;
+  status = layer.initialize(1, 1, 1, 0, true, nntrainer::WEIGHT_XAVIER_NORMAL);
+  nntrainer::Optimizer op;
+  nntrainer::OptType t = nntrainer::OptType::adam;
+  nntrainer::OptParam p;
+  status = op.setType(t);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  p.learning_rate = 0.001;
+  p.beta1 = 0.9;
+  p.beta2 = 0.9999;
+  p.epsilon = 1e-7;
+  p.weight_decay.type = nntrainer::WeightDecayType::l2norm;
+  p.weight_decay.lambda = 0.001;
+  status = op.setOptParam(p);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = layer.setOptimizer(op);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Output Layer
+ */
+TEST(nntrainer_OutputLayer, setActivation_01_p) {
+  int status = ML_ERROR_NONE;
+  nntrainer::OutputLayer layer;
+  status = layer.setActivation(nntrainer::ACT_SIGMOID);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Output Layer
+ */
+TEST(nntrainer_OutputLayer, setActivation_02_n) {
+  int status = ML_ERROR_NONE;
+  nntrainer::OutputLayer layer;
+  status = layer.setActivation(nntrainer::ACT_UNKNOWN);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+}
+
+/**
+ * @brief Output Layer
+ */
+TEST(nntrainer_OutputLayer, setCost_01_p) {
+  int status = ML_ERROR_NONE;
+  nntrainer::OutputLayer layer;
+  status = layer.setCost(nntrainer::COST_ENTROPY);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Output Layer
+ */
+TEST(nntrainer_OutputLayer, setCost_02_n) {
+  int status = ML_ERROR_NONE;
+  nntrainer::OutputLayer layer;
+  status = layer.setCost(nntrainer::COST_UNKNOWN);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+}
+
+/**
+ * @brief Batch Normalization Layer
+ */
+TEST(nntrainer_BatchNormalizationLayer, initialize_01_p) {
+  int status = ML_ERROR_NONE;
+  nntrainer::BatchNormalizationLayer layer;
+  status = layer.initialize(1, 1, 1, 0, true, nntrainer::WEIGHT_XAVIER_NORMAL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Batch Normalization Layer
+ */
+TEST(nntrainer_BatchNormalizationLayer, initialize_02_n) {
+  int status = ML_ERROR_NONE;
+  nntrainer::BatchNormalizationLayer layer;
+  status = layer.initialize(1, 0, 1, 0, true, nntrainer::WEIGHT_XAVIER_NORMAL);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+}
+
+/**
+ * @brief Batch Normalization Layer
+ */
+TEST(nntrainer_BatchNormalizationLayer, setOptimizer_01_p) {
+  int status = ML_ERROR_NONE;
+  nntrainer::BatchNormalizationLayer layer;
+  status = layer.initialize(1, 1, 1, 0, true, nntrainer::WEIGHT_XAVIER_NORMAL);
+  nntrainer::Optimizer op;
+  nntrainer::OptType t = nntrainer::OptType::adam;
+  nntrainer::OptParam p;
+  status = op.setType(t);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  p.learning_rate = 0.001;
+  p.beta1 = 0.9;
+  p.beta2 = 0.9999;
+  p.epsilon = 1e-7;
+  p.weight_decay.type = nntrainer::WeightDecayType::l2norm;
+  p.weight_decay.lambda = 0.001;
+  status = op.setOptParam(p);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = layer.setOptimizer(op);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Batch Normalization Layer
+ */
+TEST(nntrainer_BatchNormalizationLayer, setActivation_01_p) {
+  int status = ML_ERROR_NONE;
+  nntrainer::BatchNormalizationLayer layer;
+  status = layer.setActivation(nntrainer::ACT_SIGMOID);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Batch Normalization Layer
+ */
+TEST(nntrainer_BatchNormalizationLayer, setActivation_02_n) {
+  int status = ML_ERROR_NONE;
+  nntrainer::BatchNormalizationLayer layer;
+  status = layer.setActivation(nntrainer::ACT_UNKNOWN);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
