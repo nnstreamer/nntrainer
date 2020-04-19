@@ -1,6 +1,9 @@
 # NNtrainer
 
 [![Code Coverage](http://ec2-54-180-96-14.ap-northeast-2.compute.amazonaws.com/nntrainer/ci/badge/codecoverage.svg)](http://ec2-54-180-96-14.ap-northeast-2.compute.amazonaws.com/nntrainer/ci/gcov_html/index.html)
+![GitHub repo size](https://img.shields.io/github/repo-size/nnstreamer/nntrainer)
+![GitHub issues](https://img.shields.io/github/issues/nnstreamer/nntrainer)
+![GitHub pull requests](https://img.shields.io/github/issues-pr/nnstreamer/nntrainer)
 
 NNtrainer is Software Framework for Training Neural Network Models on Devices.
 
