@@ -32,6 +32,8 @@
 #include <thread>
 #include <vector>
 
+#define NBUFTYPE 4
+
 namespace nntrainer {
 
 /**
@@ -71,7 +73,10 @@ public:
    */
   DataBuffer()
     : train_running(), val_running(), test_running(), train_thread(),
-      val_thread(), test_thread(){};
+      val_thread(), test_thread() {
+    for (int i = 0; i < NBUFTYPE; ++i)
+      validation[i] = true;
+  };
 
   /**
    * @brief     Create Buffer
@@ -104,6 +109,8 @@ public:
             std::ifstream &test_file, unsigned int max_train,
             unsigned int max_val, unsigned int max_test, unsigned int in_size,
             unsigned int c_num);
+
+  int init();
 
   /**
    * @brief     Update Data Buffer ( it is for child thread )
@@ -170,6 +177,30 @@ public:
    */
   int setClassNum(unsigned int n);
 
+  /**
+   * @brief     set buffer size
+   * @param[in] buffer size
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  int setBufSize(unsigned int n);
+
+  /**
+   * @brief     set mini batch size
+   * @param[in] mini batch size
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  int setMiniBatch(unsigned int n);
+
+  /**
+   * @brief     set feature size
+   * @param[in] feature batch size. It is equal to input layer's hidden size
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  int setFeatureSize(unsigned int n);
+
 private:
   std::vector<std::vector<float>> train_data;
   std::vector<std::vector<float>> train_data_label;
@@ -188,6 +219,8 @@ private:
   unsigned int train_bufsize;
   unsigned int val_bufsize;
   unsigned int test_bufsize;
+
+  unsigned int bufsize;
 
   unsigned int max_train;
   unsigned int max_val;
@@ -215,6 +248,7 @@ private:
   std::string val_file;
   std::string test_file;
   std::vector<std::string> labels;
+  bool validation[NBUFTYPE];
 };
 } // namespace nntrainer
 #endif /* __cplusplus */

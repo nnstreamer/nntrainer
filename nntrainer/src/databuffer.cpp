@@ -34,6 +34,7 @@
 #include <stdexcept>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/stat.h>
 #include <thread>
 
 namespace nntrainer {
@@ -62,7 +63,16 @@ static int rangeRandom(int min, int max) {
   return min + x % n;
 }
 
+static long getFileSize(std::string filename) {
+  struct stat stat_buf;
+  int rc = stat(filename.c_str(), &stat_buf);
+  return rc == 0 ? stat_buf.st_size : -1;
+}
+
 DataBuffer::DataBuffer(int train_num, int val_num, int test_num) {
+  for (int i = 0; i < NBUFTYPE; ++i)
+    validation[i] = true;
+
   this->train_bufsize = train_num;
   this->val_bufsize = val_num;
   this->test_bufsize = test_num;
@@ -104,6 +114,53 @@ bool DataBuffer::init(int mini_batch, unsigned int train_bufsize,
   testReadyFlag = false;
 
   return true;
+}
+
+int DataBuffer::init() {
+
+  int status = ML_ERROR_NONE;
+
+  if (!this->class_num) {
+    ml_loge("Error: number of class must be set");
+    for (int i = 0; i < NBUFTYPE; ++i)
+      validation[i] = false;
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
+  if (!this->input_size) {
+    ml_loge("Error: featuer size must be set");
+    for (int i = 0; i < NBUFTYPE; ++i)
+      validation[i] = false;
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
+  this->cur_train_bufsize = 0;
+  this->cur_val_bufsize = 0;
+  this->cur_test_bufsize = 0;
+
+  this->train_bufsize = bufsize;
+  this->val_bufsize = bufsize;
+  this->test_bufsize = bufsize;
+
+  if (mini_batch == 0) {
+    ml_loge("Error: mini batch size must be greater than 0");
+    for (int i = 0; i < NBUFTYPE; ++i)
+      validation[i] = false;
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
+  this->rest_train = max_train;
+  this->rest_val = max_val;
+  this->rest_test = max_test;
+
+  this->train_running = true;
+  this->val_running = true;
+  this->test_running = true;
+
+  trainReadyFlag = false;
+  valReadyFlag = false;
+  testReadyFlag = false;
+  return status;
 }
 
 void DataBuffer::updateData(BufferType type, std::ifstream &file) {
@@ -432,6 +489,7 @@ int DataBuffer::setDataFile(std::string path, DataType type) {
     if (!data_file.good()) {
       ml_loge(
         "Error: Cannot open data file, Datafile is necessary for training");
+      validation[0] = false;
       return ML_ERROR_INVALID_PARAMETER;
     }
     train_file = path;
@@ -440,6 +498,7 @@ int DataBuffer::setDataFile(std::string path, DataType type) {
     if (!data_file.good()) {
       ml_logw("Warning: Cannot open validation data file. Cannot validate "
               "training result");
+      validation[1] = false;
     }
     val_file = path;
     break;
@@ -447,6 +506,7 @@ int DataBuffer::setDataFile(std::string path, DataType type) {
     if (!data_file.good()) {
       ml_logw(
         "Warning: Cannot open test data file. Cannot test training result");
+      validation[2] = false;
     }
     test_file = path;
     break;
@@ -454,6 +514,8 @@ int DataBuffer::setDataFile(std::string path, DataType type) {
     std::string data;
     if (!data_file.good()) {
       ml_loge("Error: Cannot open label file");
+      for (int i = 0; i < NBUFTYPE; ++i)
+        validation[i] = false;
       return ML_ERROR_INVALID_PARAMETER;
     }
     while (data_file >> data) {
@@ -464,12 +526,17 @@ int DataBuffer::setDataFile(std::string path, DataType type) {
       ml_loge("Error: number of label is not equal to number of class : "
               "%d vs. %d",
               (int)labels.size(), class_num);
+      for (int i = 0; i < NBUFTYPE; ++i)
+        validation[i] = false;
+
       return ML_ERROR_INVALID_PARAMETER;
     }
   } break;
   case DATA_UNKNOWN:
   default:
     ml_loge("Error: Data Type is unknown");
+    for (int i = 0; i < NBUFTYPE; ++i)
+      validation[i] = false;
     return ML_ERROR_INVALID_PARAMETER;
     break;
   }
@@ -480,9 +547,69 @@ int DataBuffer::setClassNum(unsigned int num) {
   int status = ML_ERROR_NONE;
   if (num <= 0) {
     ml_loge("Error: number of class should be bigger than 0");
+    for (int i = 0; i < NBUFTYPE; ++i)
+      validation[i] = false;
     return ML_ERROR_INVALID_PARAMETER;
   }
   class_num = num;
+  return status;
+}
+
+int DataBuffer::setBufSize(unsigned int size) {
+  int status = ML_ERROR_NONE;
+  if (size < mini_batch) {
+    ml_loge("Error: buffer size must be greater than batch size");
+    for (int i = 0; i < NBUFTYPE; ++i)
+      validation[i] = false;
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+  bufsize = size;
+  return status;
+}
+
+int DataBuffer::setMiniBatch(unsigned int size) {
+  int status = ML_ERROR_NONE;
+  if (size == 0) {
+    ml_loge("Error: batch size must be greater than 0");
+    for (int i = 0; i < NBUFTYPE; ++i)
+      validation[i] = false;
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+  mini_batch = size;
+  return status;
+}
+
+int DataBuffer::setFeatureSize(unsigned int size) {
+  int status = ML_ERROR_NONE;
+  if (size == 0) {
+    ml_loge("Error: batch size must be greater than 0");
+    for (int i = 0; i < NBUFTYPE; ++i)
+      validation[i] = false;
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
+  input_size = size;
+  max_train = static_cast<unsigned int>(
+    getFileSize(train_file) /
+    (class_num * sizeof(int) + input_size * sizeof(float)));
+  if (max_train < mini_batch) {
+    ml_logw("Warning: number of training data is smaller than mini batch size");
+  }
+
+  max_val = static_cast<unsigned int>(
+    getFileSize(val_file) /
+    (class_num * sizeof(int) + input_size * sizeof(float)));
+  if (max_val < mini_batch) {
+    ml_logw("Warning: number of training data is smaller than mini batch size");
+  }
+
+  max_test = static_cast<unsigned int>(
+    getFileSize(test_file) /
+    (class_num * sizeof(int) + input_size * sizeof(float)));
+  if (max_test < mini_batch) {
+    ml_logw("Warning: number of training data is smaller than mini batch size");
+  }
+
   return status;
 }
 
