@@ -146,8 +146,7 @@ unsigned int parseType(std::string ll, InputType t) {
    *            "unknown" : Batch Normalization Layer Object
    */
   std::array<std::string, 5> layer_string = {
-    "input", "fully_connected", "output",
-    "batch_normalization", "unknown"};
+    "input", "fully_connected", "output", "batch_normalization", "unknown"};
 
   /**
    * @brief     Weight Initialization Type String from configure file
@@ -307,6 +306,8 @@ int NeuralNetwork::init() {
 
   model = iniparser_getstring(ini, "Network:Model", model_name);
   batch_size = iniparser_getint(ini, "Network:Minibatch", 1);
+  status = data_buffer.setMiniBatch(batch_size);
+  NN_RETURN_STATUS();
 
   popt.beta1 = iniparser_getdouble(ini, "Network:beta1", 0.0);
   popt.beta2 = iniparser_getdouble(ini, "Network:beta2", 0.0);
@@ -368,6 +369,9 @@ int NeuralNetwork::init() {
   status = data_buffer.setDataFile(
     iniparser_getstring(ini, "Network:LabelData", ""), DATA_LABEL);
   NN_RETURN_STATUS();
+
+  status = data_buffer.setBufSize(
+    iniparser_getint(ini, "Network:BufferSize", batch_size * 3));
 
   for (unsigned int i = 0; i < layers_name.size(); i++) {
     l_type =
@@ -457,6 +461,12 @@ int NeuralNetwork::init() {
       break;
     }
   }
+
+  status = data_buffer.setFeatureSize(hidden_size[0]);
+  NN_RETURN_STATUS();
+
+  status = data_buffer.init();
+  NN_RETURN_STATUS();
 
   iniparser_freedict(ini);
   return status;
