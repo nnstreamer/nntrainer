@@ -565,4 +565,67 @@ void NeuralNetwork::readModel() {
   ml_logi("read modelfile: %s", model.c_str());
 }
 
+int NeuralNetwork::train() {
+  int status = ML_ERROR_NONE;
+  data_buffer.run(nntrainer::BUF_TRAIN);
+  data_buffer.run(nntrainer::BUF_VAL);
+  data_buffer.run(nntrainer::BUF_TEST);
+
+  float training_loss = 0.0;
+  for (unsigned int i = 0; i < epoch; ++i) {
+    int count = 0;
+    while (true) {
+      std::vector<std::vector<std::vector<float>>> in, label;
+      if (data_buffer.getDataFromBuffer(nntrainer::BUF_TRAIN, in, label)) {
+        backwarding(nntrainer::Tensor(in), nntrainer::Tensor(label), i);
+        count++;
+        std::cout << "#" << i + 1;
+        data_buffer.displayProgress(count, nntrainer::BUF_TRAIN, getLoss());
+      } else {
+        data_buffer.clear(nntrainer::BUF_TRAIN);
+        data_buffer.run(nntrainer::BUF_TRAIN);
+        break;
+      }
+    }
+    training_loss = getLoss();
+
+    std::cout << "#" << i + 1 << "/" << epoch
+              << " - Training Loss: " << training_loss;
+
+    if (data_buffer.getValidation()[1]) {
+      int right = 0;
+      float valloss = 0.0;
+      while (true) {
+        std::vector<std::vector<std::vector<float>>> in, label;
+        if (data_buffer.getDataFromBuffer(nntrainer::BUF_VAL, in, label)) {
+          for (int i = 0; i < batch_size; ++i) {
+            nntrainer::Tensor X = nntrainer::Tensor({in[i]});
+            nntrainer::Tensor Y2 = nntrainer::Tensor({label[i]});
+            nntrainer::Tensor Y = forwarding(X, Y2);
+            if (Y.argmax() == Y2.argmax())
+              right++;
+            valloss += getLoss();
+          }
+        } else {
+          data_buffer.clear(nntrainer::BUF_VAL);
+          data_buffer.run(nntrainer::BUF_VAL);
+          break;
+        }
+      }
+
+      valloss = valloss / (float)(data_buffer.getMaxVal());
+      std::cout << " >> [ Accuracy: "
+                << right / (float)(data_buffer.getMaxVal()) * 100.0
+                << "% - Validation Loss : " << valloss << " ] ";
+    }
+    std::cout << std::endl;
+    saveModel();
+  }
+  data_buffer.clear(nntrainer::BUF_TRAIN);
+  data_buffer.clear(nntrainer::BUF_VAL);
+  data_buffer.clear(nntrainer::BUF_TEST);
+
+  return status;
+}
+
 } /* namespace nntrainer */

@@ -177,6 +177,8 @@ public:
    */
   void finalize();
 
+  int train();
+
 private:
   /**
    * @brief     batch size
