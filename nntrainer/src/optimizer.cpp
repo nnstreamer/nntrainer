@@ -34,6 +34,7 @@ int Optimizer::setType(OptType t) {
     ml_loge("Error: Optimizer is unknown");
     return ML_ERROR_INVALID_PARAMETER;
   }
+  type = t;
   return status;
 }
 

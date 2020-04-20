@@ -740,6 +740,52 @@ TEST(nntrainer_DataBuffer, setMiniBatch_02_n) {
 }
 
 /**
+ * @brief Data Buffer
+ */
+TEST(nntrainer_DataBuffer, init_01_p) {
+  int status = ML_ERROR_NONE;
+  nntrainer::DataBuffer data_buffer;
+  status = data_buffer.setMiniBatch(32);
+  EXPECT_EQ(status, ML_ERROR_NONE);  
+  status = data_buffer.setClassNum(10);
+  EXPECT_EQ(status, ML_ERROR_NONE);  
+  status=data_buffer.setDataFile("trainingSet.dat", nntrainer::DATA_TRAIN);
+  EXPECT_EQ(status, ML_ERROR_NONE);  
+  status=data_buffer.setDataFile("valSet.dat",nntrainer::DATA_VAL);
+  EXPECT_EQ(status, ML_ERROR_NONE);  
+  status=data_buffer.setDataFile("testSet.dat",nntrainer::DATA_TEST);
+  EXPECT_EQ(status, ML_ERROR_NONE);  
+  status=data_buffer.setDataFile("label.dat", nntrainer::DATA_LABEL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = data_buffer.setFeatureSize(62720);
+  EXPECT_EQ(status, ML_ERROR_NONE);  
+  status = data_buffer.init();  
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Data Buffer
+ */
+TEST(nntrainer_DataBuffer, init_02_n) {
+  int status = ML_ERROR_NONE;
+  nntrainer::DataBuffer data_buffer;
+  status = data_buffer.setMiniBatch(32);
+  status = data_buffer.setClassNum(10);
+  EXPECT_EQ(status, ML_ERROR_NONE);  
+  status=data_buffer.setDataFile("trainingSet.dat", nntrainer::DATA_TRAIN);
+  EXPECT_EQ(status, ML_ERROR_NONE);  
+  status=data_buffer.setDataFile("valSet.dat",nntrainer::DATA_VAL);
+  EXPECT_EQ(status, ML_ERROR_NONE);  
+  status=data_buffer.setDataFile("testSet.dat",nntrainer::DATA_TEST);
+  EXPECT_EQ(status, ML_ERROR_NONE);  
+  status=data_buffer.setDataFile("label.dat", nntrainer::DATA_LABEL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = data_buffer.init();
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+}
+
+
+/**
  * @brief Main gtest
  */
 int main(int argc, char **argv) {

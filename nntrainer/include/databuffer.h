@@ -76,6 +76,8 @@ public:
       val_thread(), test_thread() {
     for (int i = 0; i < NBUFTYPE; ++i)
       validation[i] = true;
+    input_size = 0;
+    class_num = 0;
   };
 
   /**
@@ -110,6 +112,11 @@ public:
             unsigned int max_val, unsigned int max_test, unsigned int in_size,
             unsigned int c_num);
 
+  /**
+   * @brief     Initialize Buffer with data buffer private variables
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
   int init();
 
   /**
@@ -129,12 +136,26 @@ public:
   void run(BufferType type, std::ifstream &file);
 
   /**
+   * @brief     function for thread ( training, validation, test )
+   * @param[in] BufferType training, validation, test
+   * @retval    void
+   */
+  void run(BufferType type);
+
+  /**
    * @brief     clear thread ( training, validation, test )
    * @param[in] BufferType training, validation, test
    * @param[in] file input file stream
    * @retval    void
    */
   void clear(BufferType type, std::ifstream &file);
+
+  /**
+   * @brief     clear thread ( training, validation, test )
+   * @param[in] BufferType training, validation, test
+   * @retval    void
+   */
+  void clear(BufferType type);
 
   /**
    * @brief     get Status of Buffer. if number of rest data
@@ -159,6 +180,18 @@ public:
     BufferType type, std::vector<std::vector<std::vector<float>>> &out_vec,
     std::vector<std::vector<std::vector<float>>> &out_label, unsigned int batch,
     unsigned int width, unsigned int height, unsigned int c_num);
+
+  /**
+   * @brief     get Data from Data Buffer using databuffer param
+   * @param[in] BufferType training, validation, test
+   * @param[in] outVec feature data ( minibatch size )
+   * @param[in] outLabel label data ( minibatch size )
+   * @retval    true/false
+   */
+  bool
+  getDataFromBuffer(BufferType type,
+                    std::vector<std::vector<std::vector<float>>> &out_vec,
+                    std::vector<std::vector<std::vector<float>>> &out_label);
 
   /**
    * @brief     set train data file name
@@ -200,6 +233,38 @@ public:
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
   int setFeatureSize(unsigned int n);
+
+  /**
+   * @brief     set feature size
+   * @retval max_train
+   */
+  unsigned int getMaxTrain() { return max_train; }
+
+  /**
+   * @brief     set feature size
+   * @retval max_val
+   */
+  unsigned int getMaxVal() { return max_val; }
+
+  /**
+   * @brief     set feature size
+   * @retval max_test
+   */
+  unsigned int getMaxTest() { return max_test; }
+
+  /**
+   * @brief     Display Progress
+   * @param[in] count calculated set ( mini_batch size )
+   * @param[in] type buffer type ( BUF_TRAIN, BUF_VAL, BUF_TEST )
+   * @retval void
+   */
+  void displayProgress(const int count, BufferType type, float loss);
+
+  /**
+   * @brief     return validation of data set
+   * @retval validation
+   */
+  bool *getValidation() { return validation; }
 
 private:
   std::vector<std::vector<float>> train_data;
@@ -244,9 +309,10 @@ private:
   std::thread val_thread;
   std::thread test_thread;
 
-  std::string train_file;
-  std::string val_file;
-  std::string test_file;
+  std::ifstream train_stream;
+  std::ifstream val_stream;
+  std::ifstream test_stream;
+
   std::vector<std::string> labels;
   bool validation[NBUFTYPE];
 };
