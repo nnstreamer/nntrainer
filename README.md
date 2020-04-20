@@ -70,52 +70,104 @@ Tensor is responsible for the calculation of Layer. It executes the addition, di
 
 The following dependencies are needed to compile / build / run.
 
-*	gcc/g++
-*	CMake ( >= 2.8.3)
-*	blas library ( CBLAS ) (for CPU Acceleration)
-*	cuda, cudart, cublas (should match the version) (GPU Acceleration on PC)
-*	tensorflow-lite (>=1.4.0)
-*	jsoncpp ( >=0.6.0) (openAI Environment on PC) 
-*	libcurl3 (>= 7.47 ) (openAI Environment on PC)
+*   gcc/g++
+*   meson (>=0.50.0)
+*   blas library ( CBLAS ) (for CPU Acceleration)
+*   cuda, cudart, cublas (should match the version) (GPU Acceleration on PC)
+*   tensorflow-lite (>=1.4.0)
+*   jsoncpp ( >=0.6.0) (openAI Environment on PC)
+*   libcurl3 (>= 7.47 ) (openAI Environment on PC)
 
 ### How to Build
 
-Download the source file by clone the github repository.
+Download the source file by cloning the github repository.
 
 ```bash
-$ git clone https://github.com/nnsuite/nntrainer
+$ git clone https://github.com/nnstreamer/nntrainer
 ```
 
-After completing download the sources, you can find the several directories as below.
+After completing download the sources, you can find the several directories and files as below.
 
 ``` bash
-$ ls
-Applications  CMakeLists.txt  external  include  jni  LICENSE  package.pc.in
+$ cd nntrainer
+
+$ ls -1
+api
+Applications
+debian
+doc
+jni
+LICENSE
+meson.build
+meson_options.txt
+nntrainer
+nntrainer.pc.in
+packaging
+README.md
+test
+
+$ git log --oneline
+f1a3a05 (HEAD -> master, origin/master, origin/HEAD) Add more badges
+37032a1 Add Unit Test Cases for Neural Network Initialization
+181a003 lower case for layer type.
+1eb399b Update clang-format
+87f1de7 Add Unit Test for Neural Network
+cd5c36e Add Coverage Test badge for nntrainer
+...
 ```
 
-There are four applications tested on the Android and Ubuntu (16.04). All of them include the code in NeuralNet directory and has their own CMake file to compile. This is the draft version of the code and need more tailoring.
-Just for the example, let\'s compile Training application. Once it is compiled and installed you will find the libnntrainer.so and related .h in /usr/local/lib and /usr/local/include directories.
-
-``` bash
-$ mkdir build
-$ cd build
-$ cmake  ..
-$ make
-$ sudo make install
-```
-
-And you could test the nntrainer with Examples in Applications. There are several examples you could try and you can compile with cmake(Ubuntu) and ndk-build (Android). Tensorflow-lite is pre-requite for this example, so you have to install it by your self. If you are trying to run on the Android, it will automatically download tensorflow (1.9.0) and compile as static library.
-For the Training Examples, you can do like this:
-
+You can find the source code of the core library in nntrainer/src. In order to build them, use [meson](https://mesonbuild.com/)
 ```bash
-$ cd Application/Training/jni
-$ mkdir build
-$ cd build
-$ cmake  ..
-$ make
-$ ls 
-CMakeCache.txt  CMakeFiles  cmake_install.cmake  Makefile  TransferLearning
-$ ./Transfer_learning ../../res/Training.ini ../../res/
+$ meson build
+The Meson build system
+Version: 0.50.1
+Source dir: /home/wook/Work/NNS/nntrainer
+Build dir: /home/wook/Work/NNS/nntrainer/build
+Build type: native build
+Project name: nntrainer
+Project version: 0.0.1
+Native C compiler: cc (gcc 7.5.0 "cc (Ubuntu 7.5.0-3ubuntu1~18.04) 7.5.0")
+Native C++ compiler: c++ (gcc 7.5.0 "c++ (Ubuntu 7.5.0-3ubuntu1~18.04) 7.5.0")
+Build machine cpu family: x86_64
+Build machine cpu: x86_64
+...
+Build targets in project: 11
+Found ninja-1.8.2 at /usr/bin/ninja
+
+$ ninja -C build
+ninja: Entering directory `build'
+[41/41] Linking target test/unittest/unittest_nntrainer_internal.
+```
+
+After completion of the build, the shared library, 'libnntrainer.so' and the static library, 'libnntrainer.a' will be placed in build/nntrainer.
+```bash
+$ ls build/nntrainer -1
+d48ed23@@nntrainer@sha
+d48ed23@@nntrainer@sta
+libnntrainer.a
+libnntrainer.so
+```
+
+In order to install them with related header files to your system, use the 'install' sub-command.
+```bash
+$ ninja -C build install
+```
+Then, you will find the libnntrainer.so and related .h files in /usr/local/lib and /usr/local/include directories.
+
+By default, the command ```ninja -C build`` generates the five example application binaries (Classification, KNN, LogisticRegression, ReinforcementLearning, and Training) you could try in build/Applications. For 'Training' as an example case,
+```bash
+$ ls build/Applications/Training/jni/ -1
+e189c96@@nntrainer_training@exe
+nntrainer_training
+```
+
+In order to run such example binaries, Tensorflow-lite is a prerequisite. If you are trying to run on the Android, it will automatically download tensorflow (1.9.0) and compile as static library. Otherwise, you need to install it by yourself.
+
+To run the 'Training' example, do as follows
+```bash
+$ pwd
+./nntrainer
+$ LD_LIBRARY_PATH=./build/nntrainer ./build/Applications/Training/jni/nntrainer_training ./Applications/Training/res/Training.ini ./Applications/Training/res/
 ../../res/happy/happy1.bmp
 ../../res/happy/happy2.bmp
 ../../res/happy/happy3.bmp
