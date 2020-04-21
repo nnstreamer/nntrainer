@@ -435,7 +435,7 @@ int main(int argc, char *argv[]) {
   NN.init();
   NN.readModel();
 
-  NN.train();
+  int status = NN.train();
 
   if (!TRAINING) {
     std::string img = data_path;
@@ -449,4 +449,5 @@ int main(int argc, char *argv[]) {
    * @brief     Finalize NN
    */
   NN.finalize();
+  return status;
 }
