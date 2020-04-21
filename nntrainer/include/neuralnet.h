@@ -260,7 +260,7 @@ private:
    */
   std::vector<Layer *> layers;
 
-  DataBuffer data_buffer;
+  DataBuffer *data_buffer;
 };
 
 } /* namespace nntrainer */
