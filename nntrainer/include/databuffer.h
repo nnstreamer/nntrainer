@@ -32,7 +32,16 @@
 #include <thread>
 #include <vector>
 
+/*
+ * @brief Number of Data Set
+ */
 #define NBUFTYPE 4
+
+#define SET_VALIDATION(val)                                              \
+  do {                                                                   \
+    for (DataType i = DATA_TRAIN; i < DATA_UNKNOWN; i = DataType(i + 1)) \
+      validation[i] = val;                                               \
+  } while (0)
 
 namespace nntrainer {
 
@@ -74,50 +83,22 @@ public:
   DataBuffer()
     : train_running(), val_running(), test_running(), train_thread(),
       val_thread(), test_thread() {
-    for (int i = 0; i < NBUFTYPE; ++i)
-      validation[i] = true;
+    SET_VALIDATION(true);
     input_size = 0;
     class_num = 0;
   };
 
   /**
-   * @brief     Create Buffer
-   * @param[in] train_bufsize size buffer
-   * @param[in] val_bufsize size buffer
-   * @param[in] test_bufsize size buffer
-   * @retval    DataBuffer
+   * @brief     Destructor
    */
-  DataBuffer(int train_bufsize, int val_bufsize, int test_bufsize);
-
-  /**
-   * @brief     Initialize Buffer
-   * @param[in] mini_batch size of minibatch
-   * @param[in] train_bufsize size of training buffer
-   * @param[in] val_bufsize size of validation buffer
-   * @param[in] test_bufsize size of test buffer
-   * @param[in] train_file input file stream for training
-   * @param[in] val_file input file stream for validataion
-   * @param[in] test_file input file stream for test
-   * @param[in] max_train maximum number of traing data
-   * @param[in] max_val maximum number of validation data
-   * @param[in] max_test maximum number of test data
-   * @param[in] in_size input size
-   * @param[in] c_num number of class
-   * @retval    true / false
-   */
-  bool init(int mini_batch, unsigned int train_bufsize,
-            unsigned int val_bufsize, unsigned int test_bufsize,
-            std::ifstream &train_file, std::ifstream &val_file,
-            std::ifstream &test_file, unsigned int max_train,
-            unsigned int max_val, unsigned int max_test, unsigned int in_size,
-            unsigned int c_num);
+  virtual ~DataBuffer(){};
 
   /**
    * @brief     Initialize Buffer with data buffer private variables
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int init();
+  virtual int init() = 0;
 
   /**
    * @brief     Update Data Buffer ( it is for child thread )
@@ -125,37 +106,21 @@ public:
    * @param[in] file input file stream
    * @retval    void
    */
-  void updateData(BufferType type, std::ifstream &file);
-
-  /**
-   * @brief     function for thread ( training, validation, test )
-   * @param[in] BufferType training, validation, test
-   * @param[in] file input file stream
-   * @retval    void
-   */
-  void run(BufferType type, std::ifstream &file);
+  virtual void updateData(BufferType type) = 0;
 
   /**
    * @brief     function for thread ( training, validation, test )
    * @param[in] BufferType training, validation, test
    * @retval    void
    */
-  void run(BufferType type);
-
-  /**
-   * @brief     clear thread ( training, validation, test )
-   * @param[in] BufferType training, validation, test
-   * @param[in] file input file stream
-   * @retval    void
-   */
-  void clear(BufferType type, std::ifstream &file);
+  virtual void run(BufferType type);
 
   /**
    * @brief     clear thread ( training, validation, test )
    * @param[in] BufferType training, validation, test
    * @retval    void
    */
-  void clear(BufferType type);
+  virtual void clear(BufferType type);
 
   /**
    * @brief     get Status of Buffer. if number of rest data
@@ -166,41 +131,16 @@ public:
   bool getStatus(BufferType type);
 
   /**
-   * @brief     get Data from Data Buffer
-   * @param[in] BufferType training, validation, test
-   * @param[in] outVec feature data ( minibatch size )
-   * @param[in] outLabel label data ( minibatch size )
-   * @param[in] batch size of batch
-   * @param[in] width width
-   * @param[in] height height
-   * @param[in] c_num number of class
-   * @retval    true/false
-   */
-  bool getDataFromBuffer(
-    BufferType type, std::vector<std::vector<std::vector<float>>> &out_vec,
-    std::vector<std::vector<std::vector<float>>> &out_label, unsigned int batch,
-    unsigned int width, unsigned int height, unsigned int c_num);
-
-  /**
    * @brief     get Data from Data Buffer using databuffer param
    * @param[in] BufferType training, validation, test
    * @param[in] outVec feature data ( minibatch size )
    * @param[in] outLabel label data ( minibatch size )
    * @retval    true/false
    */
-  bool
+  virtual bool
   getDataFromBuffer(BufferType type,
                     std::vector<std::vector<std::vector<float>>> &out_vec,
                     std::vector<std::vector<std::vector<float>>> &out_label);
-
-  /**
-   * @brief     set train data file name
-   * @param[in] path file path
-   * @param[in] type data type : DATA_TRAIN, DATA_VAL, DATA_TEST
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   */
-  int setDataFile(std::string path, DataType type);
 
   /**
    * @brief     set number of class
@@ -232,7 +172,7 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int setFeatureSize(unsigned int n);
+  virtual int setFeatureSize(unsigned int n);
 
   /**
    * @brief     set feature size
@@ -266,7 +206,10 @@ public:
    */
   bool *getValidation() { return validation; }
 
-private:
+protected:
+  /**
+   * @brief     Data Queues for each data set
+   */
   std::vector<std::vector<float>> train_data;
   std::vector<std::vector<float>> train_data_label;
   std::vector<std::vector<float>> val_data;
@@ -274,47 +217,168 @@ private:
   std::vector<std::vector<float>> test_data;
   std::vector<std::vector<float>> test_data_label;
 
+  /**
+   * @brief     feature size
+   */
   unsigned int input_size;
+
+  /**
+   * @brief     number of class
+   */
   unsigned int class_num;
 
+  /**
+   * @brief     number of remain data for each data queue
+   */
   unsigned int cur_train_bufsize;
   unsigned int cur_val_bufsize;
   unsigned int cur_test_bufsize;
 
-  unsigned int train_bufsize;
-  unsigned int val_bufsize;
-  unsigned int test_bufsize;
-
+  /**
+   * @brief     queue size for each data set
+   */
   unsigned int bufsize;
 
   unsigned int max_train;
   unsigned int max_val;
   unsigned int max_test;
 
+  /**
+   * @brief     remain data set size
+   */
   unsigned int rest_train;
   unsigned int rest_val;
   unsigned int rest_test;
 
+  /**
+   * @brief     mini batch size
+   */
   unsigned int mini_batch;
 
+  /**
+   * @brief     flags to check status
+   */
   bool train_running;
   bool val_running;
   bool test_running;
 
+  /**
+   * @brief     ids to check duplication
+   */
   std::vector<unsigned int> train_mark;
   std::vector<unsigned int> val_mark;
   std::vector<unsigned int> test_mark;
 
+  /**
+   * @brief     threads to generate data for queue
+   */
   std::thread train_thread;
   std::thread val_thread;
   std::thread test_thread;
 
-  std::ifstream train_stream;
-  std::ifstream val_stream;
-  std::ifstream test_stream;
-
   std::vector<std::string> labels;
   bool validation[NBUFTYPE];
+};
+
+/**
+ * @class   DataBufferFromDataFile Data Buffer from Raw Data File
+ * @brief   Data Buffer from reading raw data
+ */
+class DataBufferFromDataFile : public DataBuffer {
+
+public:
+  /**
+   * @brief     Constructor
+   */
+  DataBufferFromDataFile(){};
+
+  /**
+   * @brief     Destructor
+   */
+  ~DataBufferFromDataFile(){};
+
+  /**
+   * @brief     Initialize Buffer with data buffer private variables
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  int init();
+
+  /**
+   * @brief     Update Data Buffer ( it is for child thread )
+   * @param[in] BufferType training, validation, test
+   * @retval    void
+   */
+  void updateData(BufferType type);
+
+  /**
+   * @brief     set train data file name
+   * @param[in] path file path
+   * @param[in] type data type : DATA_TRAIN, DATA_VAL, DATA_TEST
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  int setDataFile(std::string path, DataType type);
+
+  /**
+   * @brief     set feature size
+   * @param[in] feature batch size. It is equal to input layer's hidden size
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  int setFeatureSize(unsigned int n);
+
+private:
+  /**
+   * @brief     raw data file names
+   */
+  std::string train_name;
+  std::string val_name;
+  std::string test_name;
+};
+
+/**
+ * @class   DataBufferFromCallback Data Buffer from callback given by user
+ * @brief   Data Buffer from callback function
+ * NYI
+ */
+class DataBufferFromCallback : public DataBuffer {
+public:
+  /**
+   * @brief     Constructor
+   */
+  DataBufferFromCallback(){};
+
+  /**
+   * @brief     Destructor
+   */
+  ~DataBufferFromCallback(){};
+
+  /**
+   * @brief     Initialize Buffer
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  int init() {
+    /* NYI */
+    return 0;
+  };
+
+  /**
+   * @brief     Update Data Buffer ( it is for child thread )
+   * @param[in] BufferType training, validation, test
+   * @retval    void
+   */
+  void updateData(BufferType type){
+    /* NYI */
+  };
+
+private:
+  /**
+   * @brief     Callback function given by user
+   */
+  int (*callback)(BufferType, std::vector<std::vector<std::vector<float>>>,
+                  std::vector<std::vector<std::vector<float>>>);
 };
 } // namespace nntrainer
 #endif /* __cplusplus */

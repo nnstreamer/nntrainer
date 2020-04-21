@@ -39,42 +39,36 @@
 #include <stdlib.h>
 #include <time.h>
 
-#include "databuffer.h"
 #include "layers.h"
 #include "neuralnet.h"
 #include "tensor.h"
 
+#define TRAINING true
+
 /**
  * @brief     Data size for each category
  */
-#define TOTAL_TRAIN_DATA_SIZE 100
+const unsigned int total_train_data_size = 100;
 
-#define TOTAL_VAL_DATA_SIZE 10
+const unsigned int total_val_data_size = 10;
 
-#define TOTAL_TEST_DATA_SIZE 100
+const unsigned int total_test_data_size = 100;
 
-#define BUFFER_SIZE 100
+const unsigned int buffer_size = 100;
 
 /**
  * @brief     Number of category : Three
  */
-#define TOTAL_LABEL_SIZE 10
-
-/**
- * @brief     Number of Test Set
- */
-#define TOTAL_TEST_SIZE 8
+const unsigned int total_label_size = 10;
 
 /**
  * @brief     Max Epoch
  */
-#define ITERATION 3000
+const unsigned int iteration = 3000;
 
-#define MINI_BATCH 32
+const unsigned int mini_batch = 32;
 
-#define training true
-
-#define FEATURE_SIZE 62720
+const unsigned int feature_size = 62720;
 
 using namespace std;
 
@@ -83,8 +77,8 @@ using namespace std;
  */
 string data_path;
 
-bool duplicate[TOTAL_LABEL_SIZE * TOTAL_TRAIN_DATA_SIZE];
-bool valduplicate[TOTAL_LABEL_SIZE * TOTAL_VAL_DATA_SIZE];
+bool duplicate[total_label_size * total_train_data_size];
+bool valduplicate[total_label_size * total_val_data_size];
 
 /**
  * @brief     step function
@@ -130,8 +124,8 @@ void getFeature(const string filename, vector<float> &feature_input) {
   int output_size;
   int *output_idx_list;
   int *input_idx_list;
-  int inputDim[4];
-  int outputDim[4];
+  int input_dim[4];
+  int output_dim[4];
   int input_idx_list_len = 0;
   int output_idx_list_len = 0;
   std::string model_path = "../../res/mobilenetv2.tflite";
@@ -152,37 +146,37 @@ void getFeature(const string filename, vector<float> &feature_input) {
   int t_size = interpreter->tensors_size();
   for (int i = 0; i < t_size; i++) {
     for (int j = 0; j < input_size; j++) {
-      if (strcmp(interpreter->tensor(i)->name, interpreter->GetInputName(j)) ==
-          0)
+      if (strncmp(interpreter->tensor(i)->name, interpreter->GetInputName(j),
+                  sizeof(interpreter->tensor(i)->name)) == 0)
         input_idx_list[input_idx_list_len++] = i;
     }
     for (int j = 0; j < output_size; j++) {
-      if (strcmp(interpreter->tensor(i)->name, interpreter->GetOutputName(j)) ==
-          0)
+      if (strncmp(interpreter->tensor(i)->name, interpreter->GetOutputName(j),
+                  sizeof(interpreter->tensor(i)->name)) == 0)
         output_idx_list[output_idx_list_len++] = i;
     }
   }
   for (int i = 0; i < 4; i++) {
-    inputDim[i] = 1;
-    outputDim[i] = 1;
+    input_dim[i] = 1;
+    output_dim[i] = 1;
   }
 
   int len = interpreter->tensor(input_idx_list[0])->dims->size;
   std::reverse_copy(interpreter->tensor(input_idx_list[0])->dims->data,
                     interpreter->tensor(input_idx_list[0])->dims->data + len,
-                    inputDim);
+                    input_dim);
   len = interpreter->tensor(output_idx_list[0])->dims->size;
   std::reverse_copy(interpreter->tensor(output_idx_list[0])->dims->data,
                     interpreter->tensor(output_idx_list[0])->dims->data + len,
-                    outputDim);
+                    output_dim);
 
   int output_number_of_pixels = 1;
-  int wanted_channels = inputDim[0];
-  int wanted_height = inputDim[1];
-  int wanted_width = inputDim[2];
+  int wanted_channels = input_dim[0];
+  int wanted_height = input_dim[1];
+  int wanted_width = input_dim[2];
 
   for (int k = 0; k < 4; k++)
-    output_number_of_pixels *= inputDim[k];
+    output_number_of_pixels *= input_dim[k];
 
   int _input = interpreter->inputs()[0];
 
@@ -206,12 +200,12 @@ void getFeature(const string filename, vector<float> &feature_input) {
 
   output = interpreter->typed_output_tensor<float>(0);
 
-  std::cout << inputDim[0] << " " << inputDim[1] << " " << inputDim[2] << " "
-            << inputDim[3] << std::endl;
-  std::cout << outputDim[0] << " " << outputDim[1] << " " << outputDim[2] << " "
-            << outputDim[3] << std::endl;
+  std::cout << input_dim[0] << " " << input_dim[1] << " " << input_dim[2] << " "
+            << input_dim[3] << std::endl;
+  std::cout << output_dim[0] << " " << output_dim[1] << " " << output_dim[2]
+            << " " << output_dim[3] << std::endl;
 
-  for (int l = 0; l < FEATURE_SIZE; l++) {
+  for (unsigned int l = 0; l < feature_size; l++) {
     feature_input[l] = output[l];
   }
 
@@ -232,25 +226,23 @@ void ExtractFeatures(std::string p, vector<vector<float>> &feature_input,
   string total_label[10] = {"airplane", "automobile", "bird",  "cat",  "deer",
                             "dog",      "frog",       "horse", "ship", "truck"};
 
-  int data_size = TOTAL_TRAIN_DATA_SIZE;
+  int data_size = total_train_data_size;
   bool val = false;
 
   if (!type.compare("val")) {
-    data_size = TOTAL_VAL_DATA_SIZE;
+    data_size = total_val_data_size;
     val = true;
   } else if (!type.compare("test")) {
-    data_size = TOTAL_TEST_DATA_SIZE;
+    data_size = total_test_data_size;
     val = false;
   }
 
-  int trainingSize = TOTAL_LABEL_SIZE * data_size;
+  int trainingSize = total_label_size * data_size;
 
   feature_input.resize(trainingSize);
   feature_output.resize(trainingSize);
 
-  int count = 0;
-
-  for (int i = 0; i < TOTAL_LABEL_SIZE; i++) {
+  for (unsigned int i = 0; i < total_label_size; i++) {
     std::string path = p;
     if (!type.compare("val") || !type.compare("training")) {
       path += "train/" + total_label[i];
@@ -272,19 +264,17 @@ void ExtractFeatures(std::string p, vector<vector<float>> &feature_input,
       printf("%s\n", img.c_str());
 
       std::vector<float> _input, _output;
-      _input.resize(FEATURE_SIZE);
-      _output.resize(TOTAL_LABEL_SIZE);
+      _input.resize(feature_size);
+      _output.resize(total_label_size);
 
       getFeature(img, _input);
       _output[i] = 1;
 
-      for (unsigned int k = 0; k < FEATURE_SIZE; ++k)
+      for (unsigned int k = 0; k < feature_size; ++k)
         f.write((char *)&_input[k], sizeof(float));
 
-      for (unsigned int k = 0; k < TOTAL_LABEL_SIZE; ++k)
+      for (unsigned int k = 0; k < total_label_size; ++k)
         f.write((char *)&_output[k], sizeof(float));
-
-      count++;
     }
   }
 }
@@ -292,37 +282,37 @@ void ExtractFeatures(std::string p, vector<vector<float>> &feature_input,
 bool getData(std::ifstream &F, std::vector<float> &outVec,
              std::vector<float> &outLabel, int id) {
   long pos = F.tellg();
-  F.seekg(pos + (FEATURE_SIZE + TOTAL_LABEL_SIZE) * id);
-  for (int i = 0; i < FEATURE_SIZE; i++)
+  F.seekg(pos + (feature_size + total_label_size) * id);
+  for (unsigned int i = 0; i < feature_size; i++)
     F.read((char *)&outVec[i], sizeof(float));
-  for (int i = 0; i < TOTAL_LABEL_SIZE; i++)
+  for (unsigned int i = 0; i < total_label_size; i++)
     F.read((char *)&outLabel[i], sizeof(float));
 
   return true;
 }
 
-bool getMiniBatch(std::vector<std::vector<std::vector<float>>> &outVec,
-                  std::vector<std::vector<std::vector<float>>> &outLabel,
-                  std::string type) {
+bool getMiniBatch(std::string type,
+                  std::vector<std::vector<std::vector<float>>> &outVec,
+                  std::vector<std::vector<std::vector<float>>> &outLabel) {
   std::vector<int> memI;
   std::vector<int> memJ;
-  int count = 0;
-  int data_size = TOTAL_TRAIN_DATA_SIZE;
+  unsigned int count = 0;
+  int data_size = total_train_data_size;
 
   std::string filename = type + "Set.dat";
   std::ifstream F(filename, std::ios::in | std::ios::binary);
 
-  for (int i = 0; i < TOTAL_LABEL_SIZE * data_size; i++) {
+  for (unsigned int i = 0; i < total_label_size * data_size; i++) {
     if (!duplicate[i])
       count++;
   }
 
-  if (count < MINI_BATCH)
+  if (count < mini_batch)
     return false;
 
   count = 0;
-  while (count < MINI_BATCH) {
-    int nomI = rangeRandom(0, TOTAL_LABEL_SIZE * data_size - 1);
+  while (count < mini_batch) {
+    int nomI = rangeRandom(0, total_label_size * data_size - 1);
     if (!duplicate[nomI]) {
       memI.push_back(nomI);
       duplicate[nomI] = true;
@@ -330,14 +320,14 @@ bool getMiniBatch(std::vector<std::vector<std::vector<float>>> &outVec,
     }
   }
 
-  for (int i = 0; i < count; i++) {
+  for (unsigned int i = 0; i < count; i++) {
     std::vector<std::vector<float>> out;
     std::vector<std::vector<float>> outL;
     std::vector<float> o;
     std::vector<float> l;
 
-    o.resize(FEATURE_SIZE);
-    l.resize(TOTAL_LABEL_SIZE);
+    o.resize(feature_size);
+    l.resize(total_label_size);
 
     getData(F, o, l, memI[i]);
 
@@ -356,20 +346,20 @@ void save(std::vector<std::vector<float>> inVec,
           std::vector<std::vector<float>> inLabel, std::string type) {
   std::string file = type + "Set.dat";
 
-  unsigned int data_size = TOTAL_TRAIN_DATA_SIZE;
+  unsigned int data_size = total_train_data_size;
 
   if (!type.compare("val")) {
-    data_size = TOTAL_VAL_DATA_SIZE;
+    data_size = total_val_data_size;
   } else if (!type.compare("test")) {
-    data_size = TOTAL_TEST_DATA_SIZE;
+    data_size = total_test_data_size;
   }
 
   std::ofstream TrainigSet(file, std::ios::out | std::ios::binary);
-  for (unsigned int i = 0; i < TOTAL_LABEL_SIZE * data_size; ++i) {
-    for (unsigned int j = 0; j < FEATURE_SIZE; ++j) {
+  for (unsigned int i = 0; i < total_label_size * data_size; ++i) {
+    for (unsigned int j = 0; j < feature_size; ++j) {
       TrainigSet.write((char *)&inVec[i][j], sizeof(float));
     }
-    for (unsigned int j = 0; j < TOTAL_LABEL_SIZE; ++j)
+    for (unsigned int j = 0; j < total_label_size; ++j)
       TrainigSet.write((char *)&inLabel[i][j], sizeof(float));
   }
 }
@@ -445,110 +435,12 @@ int main(int argc, char *argv[]) {
   NN.init();
   NN.readModel();
 
-  nntrainer::DataBuffer buf;
+  NN.train();
 
-  std::ifstream train_file("trainingSet.dat", std::ios::in | std::ios::binary);
-  std::ifstream val_file("valSet.dat", std::ios::in | std::ios::binary);
-  std::ifstream test_file("testSet.dat", std::ios::in | std::ios::binary);
-
-  buf.init(MINI_BATCH, BUFFER_SIZE, BUFFER_SIZE, BUFFER_SIZE, train_file,
-           val_file, test_file, TOTAL_LABEL_SIZE * TOTAL_TRAIN_DATA_SIZE,
-           TOTAL_LABEL_SIZE * TOTAL_VAL_DATA_SIZE,
-           TOTAL_LABEL_SIZE * TOTAL_TEST_DATA_SIZE, FEATURE_SIZE, 10);
-  buf.run(nntrainer::BUF_TRAIN, train_file);
-  buf.run(nntrainer::BUF_VAL, val_file);
-
-  /**
-   * @brief     back propagation
-   */
-  if (training) {
-    float trainingloss = 0.0;
-    for (int i = 0; i < ITERATION; i++) {
-      int count = 0;
-      for (int j = 0; j < TOTAL_LABEL_SIZE * TOTAL_TRAIN_DATA_SIZE; j++) {
-        duplicate[j] = false;
-      }
-
-      float progress = 0.0;
-      int barWidth = 20;
-
-      while (true) {
-        std::vector<std::vector<std::vector<float>>> in, label;
-        if (buf.getDataFromBuffer(nntrainer::BUF_TRAIN, in, label, MINI_BATCH,
-                                  FEATURE_SIZE, 1, TOTAL_LABEL_SIZE)) {
-          NN.backwarding(nntrainer::Tensor(in), nntrainer::Tensor(label), i);
-          count++;
-          progress = (((float)(count * MINI_BATCH)) /
-                      (TOTAL_LABEL_SIZE * TOTAL_TRAIN_DATA_SIZE));
-          int pos = barWidth * progress;
-          std::cout << "#" << i + 1 << " [ ";
-          for (int l = 0; l < barWidth; ++l) {
-            if (l <= pos)
-              std::cout << "=";
-            else
-              std::cout << " ";
-          }
-          std::cout << " ] " << int(progress * 100.0)
-                    << "% ( Training Loss: " << NN.getLoss() << " )\r";
-          std::cout.flush();
-        } else {
-          buf.clear(nntrainer::BUF_TRAIN, train_file);
-          buf.run(nntrainer::BUF_TRAIN, train_file);
-          break;
-        }
-      }
-
-      trainingloss = NN.getLoss();
-
-      int right = 0;
-      float valloss = 0.0;
-
-      while (true) {
-        std::vector<std::vector<std::vector<float>>> in, label;
-        // if (buf.getDataFromBuffer(BUF_VAL, in, label, MINI_BATCH,
-        // FEATURE_SIZE, 1, TOTAL_LABEL_SIZE)) {
-        if (buf.getDataFromBuffer(nntrainer::BUF_TRAIN, in, label, MINI_BATCH,
-                                  FEATURE_SIZE, 1, TOTAL_LABEL_SIZE)) {
-          for (int i = 0; i < MINI_BATCH; ++i) {
-            nntrainer::Tensor X = nntrainer::Tensor({in[i]});
-            nntrainer::Tensor Y2 = nntrainer::Tensor({label[i]});
-            nntrainer::Tensor Y = NN.forwarding(X, Y2);
-            if (Y.argmax() == Y2.argmax())
-              right++;
-            valloss += NN.getLoss();
-          }
-        } else {
-          // buf.clear(BUF_VAL, val_file);
-          // buf.run(BUF_VAL, val_file);
-          buf.clear(nntrainer::BUF_TRAIN, train_file);
-          buf.run(nntrainer::BUF_TRAIN, train_file);
-          break;
-        }
-      }
-
-      valloss = valloss / (float)(TOTAL_LABEL_SIZE * TOTAL_VAL_DATA_SIZE);
-
-      // cout << "#" << i + 1 << "/" << ITERATION << " - Training Loss: "
-      // << trainingloss << " >> [ Accuracy: " << right /
-      // (float)(TOTAL_LABEL_SIZE * TOTAL_VAL_DATA_SIZE) * 100.0
-      //      << "% - Validation Loss : " << valloss << " ] " << endl;
-      cout << "#" << i + 1 << "/" << ITERATION
-           << " - Training Loss: " << trainingloss << " >> [ Accuracy: "
-           << right / (float)(TOTAL_LABEL_SIZE * TOTAL_TRAIN_DATA_SIZE) * 100.0
-           << "% - Validation Loss : " << valloss << " ] " << endl;
-
-      if (training)
-        NN.saveModel();
-    }
-    buf.clear(nntrainer::BUF_TRAIN, train_file);
-    buf.clear(nntrainer::BUF_VAL, val_file);
-    buf.clear(nntrainer::BUF_TEST, test_file);
-  }
-
-  if (!training) {
+  if (!TRAINING) {
     std::string img = data_path;
     std::vector<float> featureVector, resultVector;
-    featureVector.resize(FEATURE_SIZE);
+    featureVector.resize(feature_size);
     getFeature(img, featureVector);
     nntrainer::Tensor X = nntrainer::Tensor({featureVector});
     cout << NN.forwarding(X).apply(stepFunction) << endl;

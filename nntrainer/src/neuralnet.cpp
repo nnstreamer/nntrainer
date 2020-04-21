@@ -306,8 +306,6 @@ int NeuralNetwork::init() {
 
   model = iniparser_getstring(ini, "Network:Model", model_name);
   batch_size = iniparser_getint(ini, "Network:Minibatch", 1);
-  status = data_buffer.setMiniBatch(batch_size);
-  NN_RETURN_STATUS();
 
   popt.beta1 = iniparser_getdouble(ini, "Network:beta1", 0.0);
   popt.beta2 = iniparser_getdouble(ini, "Network:beta2", 0.0);
@@ -355,23 +353,41 @@ int NeuralNetwork::init() {
     return ML_ERROR_INVALID_PARAMETER;
   }
 
-  status = data_buffer.setClassNum(hidden_size[layers_name.size() - 1]);
-  NN_RETURN_STATUS();
-  status = data_buffer.setDataFile(
-    iniparser_getstring(ini, "Network:TrainData", ""), DATA_TRAIN);
-  NN_RETURN_STATUS();
-  status = data_buffer.setDataFile(
-    iniparser_getstring(ini, "Network:ValidData", ""), DATA_VAL);
-  NN_RETURN_STATUS();
-  status = data_buffer.setDataFile(
-    iniparser_getstring(ini, "Network:TestData", ""), DATA_TEST);
-  NN_RETURN_STATUS();
-  status = data_buffer.setDataFile(
-    iniparser_getstring(ini, "Network:LabelData", ""), DATA_LABEL);
+  if (iniparser_find_entry(ini, "DataSet:TrainData")) {
+    data_buffer = new DataBufferFromDataFile();
+
+    DataBufferFromDataFile *dbuffer =
+      static_cast<DataBufferFromDataFile *>(data_buffer);
+    status = dbuffer->setDataFile(
+      iniparser_getstring(ini, "DataSet:TrainData", ""), DATA_TRAIN);
+    NN_RETURN_STATUS();
+    status = dbuffer->setDataFile(
+      iniparser_getstring(ini, "DataSet:ValidData", ""), DATA_VAL);
+    NN_RETURN_STATUS();
+    status = dbuffer->setDataFile(
+      iniparser_getstring(ini, "DataSet:TestData", ""), DATA_TEST);
+    NN_RETURN_STATUS();
+    status = dbuffer->setDataFile(
+      iniparser_getstring(ini, "DataSet:LabelData", ""), DATA_LABEL);
+    NN_RETURN_STATUS();
+
+  } else if (iniparser_find_entry(ini, "DataSet:Tflite")) {
+    ml_loge("Error: Not yet implemented!");
+    return ML_ERROR_INVALID_PARAMETER;
+  } else {
+    data_buffer = new DataBufferFromCallback();
+    ml_loge("Error: Not yet implemented!");
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
+  status = data_buffer->setMiniBatch(batch_size);
   NN_RETURN_STATUS();
 
-  status = data_buffer.setBufSize(
-    iniparser_getint(ini, "Network:BufferSize", batch_size * 3));
+  status = data_buffer->setClassNum(hidden_size[layers_name.size() - 1]);
+  NN_RETURN_STATUS();
+
+  status = data_buffer->setBufSize(
+    iniparser_getint(ini, "DataSet:BufferSize", batch_size * 3));
 
   for (unsigned int i = 0; i < layers_name.size(); i++) {
     l_type =
@@ -462,10 +478,10 @@ int NeuralNetwork::init() {
     }
   }
 
-  status = data_buffer.setFeatureSize(hidden_size[0]);
+  status = data_buffer->setFeatureSize(hidden_size[0]);
   NN_RETURN_STATUS();
 
-  status = data_buffer.init();
+  status = data_buffer->init();
   NN_RETURN_STATUS();
 
   iniparser_freedict(ini);
@@ -567,23 +583,23 @@ void NeuralNetwork::readModel() {
 
 int NeuralNetwork::train() {
   int status = ML_ERROR_NONE;
-  data_buffer.run(nntrainer::BUF_TRAIN);
-  data_buffer.run(nntrainer::BUF_VAL);
-  data_buffer.run(nntrainer::BUF_TEST);
+  data_buffer->run(nntrainer::BUF_TRAIN);
+  data_buffer->run(nntrainer::BUF_VAL);
+  data_buffer->run(nntrainer::BUF_TEST);
 
   float training_loss = 0.0;
   for (unsigned int i = 0; i < epoch; ++i) {
     int count = 0;
     while (true) {
       std::vector<std::vector<std::vector<float>>> in, label;
-      if (data_buffer.getDataFromBuffer(nntrainer::BUF_TRAIN, in, label)) {
+      if (data_buffer->getDataFromBuffer(nntrainer::BUF_TRAIN, in, label)) {
         backwarding(nntrainer::Tensor(in), nntrainer::Tensor(label), i);
         count++;
         std::cout << "#" << i + 1;
-        data_buffer.displayProgress(count, nntrainer::BUF_TRAIN, getLoss());
+        data_buffer->displayProgress(count, nntrainer::BUF_TRAIN, getLoss());
       } else {
-        data_buffer.clear(nntrainer::BUF_TRAIN);
-        data_buffer.run(nntrainer::BUF_TRAIN);
+        data_buffer->clear(nntrainer::BUF_TRAIN);
+        data_buffer->run(nntrainer::BUF_TRAIN);
         break;
       }
     }
@@ -592,12 +608,12 @@ int NeuralNetwork::train() {
     std::cout << "#" << i + 1 << "/" << epoch
               << " - Training Loss: " << training_loss;
 
-    if (data_buffer.getValidation()[1]) {
+    if (data_buffer->getValidation()[1]) {
       int right = 0;
       float valloss = 0.0;
       while (true) {
         std::vector<std::vector<std::vector<float>>> in, label;
-        if (data_buffer.getDataFromBuffer(nntrainer::BUF_VAL, in, label)) {
+        if (data_buffer->getDataFromBuffer(nntrainer::BUF_VAL, in, label)) {
           for (int i = 0; i < batch_size; ++i) {
             nntrainer::Tensor X = nntrainer::Tensor({in[i]});
             nntrainer::Tensor Y2 = nntrainer::Tensor({label[i]});
@@ -607,23 +623,23 @@ int NeuralNetwork::train() {
             valloss += getLoss();
           }
         } else {
-          data_buffer.clear(nntrainer::BUF_VAL);
-          data_buffer.run(nntrainer::BUF_VAL);
+          data_buffer->clear(nntrainer::BUF_VAL);
+          data_buffer->run(nntrainer::BUF_VAL);
           break;
         }
       }
 
-      valloss = valloss / (float)(data_buffer.getMaxVal());
+      valloss = valloss / (float)(data_buffer->getMaxVal());
       std::cout << " >> [ Accuracy: "
-                << right / (float)(data_buffer.getMaxVal()) * 100.0
+                << right / (float)(data_buffer->getMaxVal()) * 100.0
                 << "% - Validation Loss : " << valloss << " ] ";
     }
     std::cout << std::endl;
     saveModel();
   }
-  data_buffer.clear(nntrainer::BUF_TRAIN);
-  data_buffer.clear(nntrainer::BUF_VAL);
-  data_buffer.clear(nntrainer::BUF_TEST);
+  data_buffer->clear(nntrainer::BUF_TRAIN);
+  data_buffer->clear(nntrainer::BUF_VAL);
+  data_buffer->clear(nntrainer::BUF_TEST);
 
   return status;
 }
