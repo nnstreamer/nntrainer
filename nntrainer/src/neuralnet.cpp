@@ -583,9 +583,23 @@ void NeuralNetwork::readModel() {
 
 int NeuralNetwork::train() {
   int status = ML_ERROR_NONE;
-  data_buffer->run(nntrainer::BUF_TRAIN);
-  data_buffer->run(nntrainer::BUF_VAL);
-  data_buffer->run(nntrainer::BUF_TEST);
+  status = data_buffer->run(nntrainer::BUF_TRAIN);
+  if (status != ML_ERROR_NONE) {
+    data_buffer->clear(BUF_TRAIN);
+    return status;
+  }
+
+  status = data_buffer->run(nntrainer::BUF_VAL);
+  if (status != ML_ERROR_NONE) {
+    data_buffer->clear(BUF_VAL);
+    return status;
+  }
+
+  status = data_buffer->run(nntrainer::BUF_TEST);
+  if (status != ML_ERROR_NONE) {
+    data_buffer->clear(BUF_TEST);
+    return status;
+  }
 
   float training_loss = 0.0;
   for (unsigned int i = 0; i < epoch; ++i) {
@@ -599,7 +613,11 @@ int NeuralNetwork::train() {
         data_buffer->displayProgress(count, nntrainer::BUF_TRAIN, getLoss());
       } else {
         data_buffer->clear(nntrainer::BUF_TRAIN);
-        data_buffer->run(nntrainer::BUF_TRAIN);
+        status = data_buffer->run(nntrainer::BUF_TRAIN);
+        if (status != ML_ERROR_NONE) {
+          data_buffer->clear(BUF_TRAIN);
+          return status;
+        }
         break;
       }
     }
@@ -624,7 +642,11 @@ int NeuralNetwork::train() {
           }
         } else {
           data_buffer->clear(nntrainer::BUF_VAL);
-          data_buffer->run(nntrainer::BUF_VAL);
+          status = data_buffer->run(nntrainer::BUF_VAL);
+          if (status != ML_ERROR_NONE) {
+            data_buffer->clear(BUF_VAL);
+            return status;
+          }
           break;
         }
       }

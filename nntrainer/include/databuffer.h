@@ -43,6 +43,12 @@
       validation[i] = val;                                               \
   } while (0)
 
+typedef enum {
+  DATA_NOT_READY=0,
+  DATA_READY=1,
+  DATA_ERROR=2,
+} DataStatus;
+
 namespace nntrainer {
 
 /**
@@ -106,29 +112,31 @@ public:
    * @param[in] file input file stream
    * @retval    void
    */
-  virtual void updateData(BufferType type) = 0;
+  virtual void updateData(BufferType type, int &status) = 0;
 
   /**
    * @brief     function for thread ( training, validation, test )
    * @param[in] BufferType training, validation, test
-   * @retval    void
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  virtual void run(BufferType type);
+  virtual int run(BufferType type);
 
   /**
    * @brief     clear thread ( training, validation, test )
    * @param[in] BufferType training, validation, test
-   * @retval    void
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  virtual void clear(BufferType type);
+  virtual int clear(BufferType type);
 
   /**
    * @brief     get Status of Buffer. if number of rest data
    *            is samller than minibatch, the return false
    * @param[in] BufferType training, validation, test
-   * @retval    true/false
+   * @retval    DataStatus
    */
-  bool getStatus(BufferType type);
+  DataStatus getStatus(BufferType type);
 
   /**
    * @brief     get Data from Data Buffer using databuffer param
@@ -309,7 +317,7 @@ public:
    * @param[in] BufferType training, validation, test
    * @retval    void
    */
-  void updateData(BufferType type);
+  void updateData(BufferType type, int &status);
 
   /**
    * @brief     set train data file name
@@ -369,7 +377,7 @@ public:
    * @param[in] BufferType training, validation, test
    * @retval    void
    */
-  void updateData(BufferType type){
+  void updateData(BufferType type, int &status){
     /* NYI */
   };
 

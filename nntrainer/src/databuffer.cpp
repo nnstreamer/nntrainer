@@ -36,6 +36,31 @@
 #include <stdlib.h>
 #include <thread>
 
+#define NN_EXCEPTION_NOTI(val)                             \
+  do {                                                     \
+    switch (type) {                                        \
+    case BUF_TRAIN: {                                      \
+      std::lock_guard<std::mutex> lgtrain(readyTrainData); \
+      trainReadyFlag = val;                                \
+      cv_train.notify_all();                               \
+    } break;                                               \
+    case BUF_VAL: {                                        \
+      std::lock_guard<std::mutex> lgval(readyValData);     \
+      valReadyFlag = val;                                  \
+      cv_val.notify_all();                                 \
+    } break;                                               \
+    case BUF_TEST: {                                       \
+      std::lock_guard<std::mutex> lgtest(readyTestData);   \
+      testReadyFlag = val;                                 \
+      cv_test.notify_all();                                \
+    } break;                                               \
+    default:                                               \
+      break;                                               \
+    }                                                      \
+  } while (0)
+
+static std::exception_ptr globalExceptionPtr = nullptr;
+
 namespace nntrainer {
 
 std::mutex data_lock;
@@ -48,9 +73,9 @@ std::condition_variable cv_train;
 std::condition_variable cv_val;
 std::condition_variable cv_test;
 
-bool trainReadyFlag;
-bool valReadyFlag;
-bool testReadyFlag;
+DataStatus trainReadyFlag;
+DataStatus valReadyFlag;
+DataStatus testReadyFlag;
 
 static int rangeRandom(int min, int max) {
   int n = max - min + 1;
@@ -72,33 +97,70 @@ static long getFileSize(std::string file_name) {
   }
 }
 
-void DataBuffer::run(BufferType type) {
-
+int DataBuffer::run(BufferType type) {
+  int status = ML_ERROR_NONE;
   switch (type) {
   case BUF_TRAIN:
+    if (trainReadyFlag == DATA_ERROR)
+      return ML_ERROR_INVALID_PARAMETER;
+
     if (validation[DATA_TRAIN]) {
-      this->train_thread = std::thread(&DataBuffer::updateData, this, type);
-      this->train_thread.detach();
+      this->train_thread =
+        std::thread(&DataBuffer::updateData, this, type, std::ref(status));
+      if (globalExceptionPtr) {
+        try {
+          std::rethrow_exception(globalExceptionPtr);
+        } catch (const std::exception &ex) {
+          std::cout << ex.what() << "\n";
+          return ML_ERROR_INVALID_PARAMETER;
+        }
+      }
     }
     break;
   case BUF_VAL:
+    if (valReadyFlag == DATA_ERROR)
+      return ML_ERROR_INVALID_PARAMETER;
     if (validation[DATA_VAL]) {
-      this->val_thread = std::thread(&DataBuffer::updateData, this, type);
-      this->val_thread.detach();
+      this->val_thread =
+        std::thread(&DataBuffer::updateData, this, type, std::ref(status));
+      if (globalExceptionPtr) {
+        try {
+          std::rethrow_exception(globalExceptionPtr);
+        } catch (const std::exception &ex) {
+          std::cout << ex.what() << "\n";
+          return ML_ERROR_INVALID_PARAMETER;
+        }
+      }
     }
     break;
   case BUF_TEST:
+    if (testReadyFlag == DATA_ERROR)
+      return ML_ERROR_INVALID_PARAMETER;
+
     if (validation[DATA_TEST]) {
-      this->test_thread = std::thread(&DataBuffer::updateData, this, type);
-      this->test_thread.detach();
+      this->test_thread =
+        std::thread(&DataBuffer::updateData, this, type, std::ref(status));
+      if (globalExceptionPtr) {
+        try {
+          std::rethrow_exception(globalExceptionPtr);
+        } catch (const std::exception &ex) {
+          std::cout << ex.what() << "\n";
+          return ML_ERROR_INVALID_PARAMETER;
+        }
+      }
     }
     break;
   default:
+    ml_loge("Error: Not Supported Data Type");
+    status = ML_ERROR_INVALID_PARAMETER;
     break;
   }
+
+  return status;
 }
 
-void DataBuffer::clear(BufferType type) {
+int DataBuffer::clear(BufferType type) {
+  int status = ML_ERROR_NONE;
   switch (type) {
   case BUF_TRAIN: {
     train_running = false;
@@ -106,8 +168,10 @@ void DataBuffer::clear(BufferType type) {
     this->train_data_label.clear();
     this->cur_train_bufsize = 0;
     this->rest_train = max_train;
-    trainReadyFlag = false;
+    trainReadyFlag = DATA_NOT_READY;
     this->train_running = true;
+    if (validation[DATA_TRAIN] && true == train_thread.joinable())
+      train_thread.join();
   } break;
   case BUF_VAL: {
     val_running = false;
@@ -115,8 +179,11 @@ void DataBuffer::clear(BufferType type) {
     this->val_data_label.clear();
     this->cur_val_bufsize = 0;
     this->rest_val = max_val;
-    valReadyFlag = false;
+    valReadyFlag = DATA_NOT_READY;
     this->val_running = true;
+    if (validation[DATA_VAL] && true == val_thread.joinable())
+      val_thread.join();
+
   } break;
   case BUF_TEST: {
     test_running = false;
@@ -124,30 +191,40 @@ void DataBuffer::clear(BufferType type) {
     this->test_data_label.clear();
     this->cur_test_bufsize = 0;
     this->rest_test = max_test;
-    testReadyFlag = false;
+    testReadyFlag = DATA_NOT_READY;
     this->test_running = true;
+    if (validation[DATA_TEST] && true == test_thread.joinable())
+      test_thread.join();
   } break;
   default:
+    ml_loge("Error: Not Supported Data Type");
+    status = ML_ERROR_INVALID_PARAMETER;
     break;
   }
+  return status;
 }
 
-bool DataBuffer::getStatus(BufferType type) {
-  int ret = true;
+DataStatus DataBuffer::getStatus(BufferType type) {
+  DataStatus ret = DATA_READY;
+  if (globalExceptionPtr)
+    ret = DATA_ERROR;
+  
   switch (type) {
   case BUF_TRAIN:
     if ((train_data.size() < mini_batch) && trainReadyFlag)
-      ret = false;
+      ret = DATA_NOT_READY;
     break;
   case BUF_VAL:
     if ((val_data.size() < mini_batch) && valReadyFlag)
-      ret = false;
+      ret = DATA_NOT_READY;
     break;
   case BUF_TEST:
     if ((test_data.size() < mini_batch) && testReadyFlag)
-      ret = false;
+      ret = DATA_NOT_READY;
     break;
   default:
+    ml_loge("Error: Not Supported Data Type");
+    ret = DATA_ERROR;
     break;
   }
   return ret;
@@ -165,12 +242,16 @@ bool DataBuffer::getDataFromBuffer(
   case BUF_TRAIN: {
     std::vector<int> list;
 
-    if (!getStatus(BUF_TRAIN))
+    if (getStatus(BUF_TRAIN) != DATA_READY)
       return false;
 
     {
       std::unique_lock<std::mutex> ultest(readyTrainData);
-      cv_train.wait(ultest, []() -> bool { return trainReadyFlag; });
+      cv_train.wait(ultest, []() -> int { return trainReadyFlag; });
+    }
+
+    if (trainReadyFlag == DATA_ERROR) {
+      return false;
     }
 
     data_lock.lock();
@@ -198,7 +279,7 @@ bool DataBuffer::getDataFromBuffer(
   } break;
   case BUF_VAL: {
     std::vector<int> list;
-    if (!getStatus(BUF_VAL))
+    if (getStatus(BUF_VAL) != DATA_READY)
       return false;
 
     {
@@ -231,7 +312,7 @@ bool DataBuffer::getDataFromBuffer(
   } break;
   case BUF_TEST: {
     std::vector<int> list;
-    if (!getStatus(BUF_TEST))
+    if (getStatus(BUF_TEST) != DATA_READY)
       return false;
 
     {
@@ -263,6 +344,7 @@ bool DataBuffer::getDataFromBuffer(
     }
   } break;
   default:
+    ml_loge("Error: Not Supported Data Type");
     return false;
     break;
   }
@@ -335,6 +417,7 @@ void DataBuffer::displayProgress(const int count, BufferType type, float loss) {
     max_size = max_test;
     break;
   default:
+    ml_loge("Error: Not Supported Data Type");
     break;
   }
 
@@ -391,13 +474,13 @@ int DataBufferFromDataFile::init() {
   this->val_running = true;
   this->test_running = true;
 
-  trainReadyFlag = false;
-  valReadyFlag = false;
-  testReadyFlag = false;
+  trainReadyFlag = DATA_NOT_READY;
+  valReadyFlag = DATA_NOT_READY;
+  testReadyFlag = DATA_NOT_READY;
   return status;
 }
 
-void DataBufferFromDataFile::updateData(BufferType type) {
+void DataBufferFromDataFile::updateData(BufferType type, int &status) {
   unsigned int max_size = 0;
   unsigned int buf_size = 0;
   unsigned int *rest_size = NULL;
@@ -441,6 +524,13 @@ void DataBufferFromDataFile::updateData(BufferType type) {
     file.swap(test_stream);
   } break;
   default:
+    try {
+      throw std::runtime_error("Error: Not Supported Data Type");
+    } catch (...) {
+      globalExceptionPtr = std::current_exception();
+      NN_EXCEPTION_NOTI(DATA_ERROR);
+      return;
+    }
     break;
   }
 
@@ -450,6 +540,7 @@ void DataBufferFromDataFile::updateData(BufferType type) {
   file.clear();
   file.seekg(0, std::ios_base::end);
   uint64_t file_length = file.tellg();
+
   for (unsigned int i = 0; i < max_size; ++i) {
     mark[i] = i;
   }
@@ -461,14 +552,33 @@ void DataBufferFromDataFile::updateData(BufferType type) {
 
       unsigned int id = rangeRandom(0, mark.size() - 1);
       I = mark[id];
-      if (I > max_size)
-        ml_loge("Error: Test case id cannot exceed maximum number of test");
+      
+      try {
+        if (I > max_size) {
+          ml_loge("Error: Test case id cannot exceed maximum number of test");
+          status = ML_ERROR_INVALID_PARAMETER;
+          throw std::runtime_error(
+            "Error: Test case id cannot exceed maximum number of test");
+        }
+      } catch (...) {
+        globalExceptionPtr = std::current_exception();
+        NN_EXCEPTION_NOTI(DATA_ERROR);
+        return;
+      }
 
       mark.erase(mark.begin() + id);
       uint64_t position = (I * input_size + I * class_num) * sizeof(float);
-
-      if (position > file_length || position > ULLONG_MAX)
-        ml_loge("Error: Cannot exceed max file size");
+      try {
+        if (position > file_length || position > ULLONG_MAX) {
+          ml_loge("Error: Cannot exceed max file size");
+          status = ML_ERROR_INVALID_PARAMETER;
+          throw std::runtime_error("Error: Cannot exceed max file size");
+        }
+      } catch (...) {
+        globalExceptionPtr = std::current_exception();
+        NN_EXCEPTION_NOTI(DATA_ERROR);
+        return;
+      }
 
       file.seekg(position, std::ios::beg);
 
@@ -493,25 +603,7 @@ void DataBufferFromDataFile::updateData(BufferType type) {
     }
 
     if (buf_size == (*cur_size)) {
-      switch (type) {
-      case BUF_TRAIN: {
-        std::lock_guard<std::mutex> lgtrain(readyTrainData);
-        trainReadyFlag = true;
-        cv_train.notify_all();
-      } break;
-      case BUF_VAL: {
-        std::lock_guard<std::mutex> lgval(readyValData);
-        valReadyFlag = true;
-        cv_val.notify_all();
-      } break;
-      case BUF_TEST: {
-        std::lock_guard<std::mutex> lgtest(readyTestData);
-        testReadyFlag = true;
-        cv_test.notify_all();
-      } break;
-      default:
-        break;
-      }
+      NN_EXCEPTION_NOTI(DATA_READY);
     }
   }
   file.close();
@@ -568,7 +660,7 @@ int DataBufferFromDataFile::setDataFile(std::string path, DataType type) {
   } break;
   case DATA_UNKNOWN:
   default:
-    ml_loge("Error: Data Type is unknown");
+    ml_loge("Error: Not Supported Data Type");
     SET_VALIDATION(false);
     return ML_ERROR_INVALID_PARAMETER;
     break;
