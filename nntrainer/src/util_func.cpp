@@ -67,7 +67,7 @@ Tensor softmax(Tensor t) {
   float *tp;
 
   Tensor result(batch, height, width);
-  Tensor divisor(batch, height, 1);
+  Tensor divisor(batch, height, width);
 
   dp = divisor.getData();
   rp = result.getData();
@@ -76,27 +76,29 @@ Tensor softmax(Tensor t) {
   divisor.setZero();
 
   for (int k = 0; k < batch; k++) {
-    int index = k * height;
+    int index = k * height * width;
+    float m = std::numeric_limits<float>::lowest();
+    // find max
     for (int i = 0; i < height; i++) {
       for (int j = 0; j < width; j++) {
-        dp[index + i] += exp(tp[k * height * width + i * width + j]);
+        if (tp[index + i * width + j] > m)
+          m = tp[index + i * width + j];
       }
     }
-  }
 
-  for (int k = 0; k < batch; ++k) {
-    int index = k * height;
-    for (int i = 1; i < height; ++i) {
-      dp[index] += dp[index + i];
-    }
-  }
-
-  for (int k = 0; k < batch; k++) {
-    int index = k * height;
+    // shiftx
+    float sum = 0.0;
     for (int i = 0; i < height; i++) {
       for (int j = 0; j < width; j++) {
-        int id = k * height * width + i * width + j;
-        rp[id] = exp(tp[id]) / dp[index];
+        dp[index + width * i + j] = exp(tp[index + i * width + j] - m);
+        sum += dp[index + width * i + j];
+      }
+    }
+
+    assert(sum > 0);
+    for (int i = 0; i < height; i++) {
+      for (int j = 0; j < width; j++) {
+        rp[index + width * i + j] = dp[index + width * i + j] / sum;
       }
     }
   }
