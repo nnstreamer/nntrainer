@@ -27,6 +27,7 @@
 
 #include <atomic>
 #include <fstream>
+#include <functional>
 #include <iostream>
 #include <memory>
 #include <thread>
@@ -37,6 +38,8 @@
  */
 #define NBUFTYPE 4
 
+typedef std::vector<std::vector<std::vector<float>>> vec_3d;
+
 #define SET_VALIDATION(val)                                              \
   do {                                                                   \
     for (DataType i = DATA_TRAIN; i < DATA_UNKNOWN; i = DataType(i + 1)) \
@@ -44,9 +47,9 @@
   } while (0)
 
 typedef enum {
-  DATA_NOT_READY=0,
-  DATA_READY=1,
-  DATA_ERROR=2,
+  DATA_NOT_READY = 0,
+  DATA_READY = 1,
+  DATA_ERROR = 2,
 } DataStatus;
 
 namespace nntrainer {
@@ -348,7 +351,6 @@ private:
 /**
  * @class   DataBufferFromCallback Data Buffer from callback given by user
  * @brief   Data Buffer from callback function
- * NYI
  */
 class DataBufferFromCallback : public DataBuffer {
 public:
@@ -367,26 +369,38 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int init() {
-    /* NYI */
-    return 0;
-  };
+  int init();
+
+  /**
+   * @brief     set function pointer for each type
+   * @param[in] type Buffer Type
+   * @param[in] call back function pointer
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  int setFunc(BufferType type,
+              std::function<bool(vec_3d &, vec_3d &, int &)> func);
 
   /**
    * @brief     Update Data Buffer ( it is for child thread )
    * @param[in] BufferType training, validation, test
    * @retval    void
    */
-  void updateData(BufferType type, int &status){
-    /* NYI */
-  };
+  void updateData(BufferType type, int &status);
 
 private:
   /**
-   * @brief     Callback function given by user
+   *
+   * @brief Callback function to get user specific data
+   * @param[in] X data  3D float vector type
+   * @param[in] Y label 3D float vector type
+   * @param[out] status status for error handle
+   * @retval true / false generate all data for this epoch
+   *
    */
-  int (*callback)(BufferType, std::vector<std::vector<std::vector<float>>>,
-                  std::vector<std::vector<std::vector<float>>>);
+  std::function<bool(vec_3d &, vec_3d &, int &)> callback_train;
+  std::function<bool(vec_3d &, vec_3d &, int &)> callback_val;
+  std::function<bool(vec_3d &, vec_3d &, int &)> callback_test;
 };
 } // namespace nntrainer
 #endif /* __cplusplus */

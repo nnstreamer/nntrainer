@@ -244,14 +244,14 @@ TEST(nntrainer_NeuralNetwork, init_06_n) {
 /**
  * @brief Neural Network Model initialization
  */
-TEST(nntrainer_NeuralNetwork, init_07_n) {
+TEST(nntrainer_NeuralNetwork, init_07_p) {
   int status = ML_ERROR_NONE;
   replaceString("TrainData = trainingSet.dat", "", "./test.ini");
   nntrainer::NeuralNetwork NN;
   status = NN.setConfig("./test.ini");
   EXPECT_EQ(status, ML_ERROR_NONE);
   status = NN.init();
-  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+  EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
 /**
