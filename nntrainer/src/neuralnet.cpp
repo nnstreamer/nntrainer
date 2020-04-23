@@ -376,8 +376,6 @@ int NeuralNetwork::init() {
     return ML_ERROR_INVALID_PARAMETER;
   } else {
     data_buffer = new DataBufferFromCallback();
-    ml_loge("Error: Not yet implemented!");
-    return ML_ERROR_INVALID_PARAMETER;
   }
 
   status = data_buffer->setMiniBatch(batch_size);
@@ -387,7 +385,7 @@ int NeuralNetwork::init() {
   NN_RETURN_STATUS();
 
   status = data_buffer->setBufSize(
-    iniparser_getint(ini, "DataSet:BufferSize", batch_size * 3));
+    iniparser_getint(ini, "DataSet:BufferSize", batch_size));
 
   for (unsigned int i = 0; i < layers_name.size(); i++) {
     l_type =
@@ -581,6 +579,37 @@ void NeuralNetwork::readModel() {
   ml_logi("read modelfile: %s", model.c_str());
 }
 
+/**
+ * @brief     Run NeuralNetwork train
+ */
+int NeuralNetwork::train(
+  std::function<bool(vec_3d &, vec_3d &, int &)> train_func,
+  std::function<bool(vec_3d &, vec_3d &, int &)> val_func,
+  std::function<bool(vec_3d &, vec_3d &, int &)> test_func) {
+
+  int status = ML_ERROR_NONE;
+
+  DataBufferFromCallback *callback_buffer =
+    static_cast<DataBufferFromCallback *>(data_buffer);
+
+  status = callback_buffer->setFunc(nntrainer::BUF_TRAIN, (train_func));
+  if (status != ML_ERROR_NONE)
+    return status;
+
+  status = callback_buffer->setFunc(nntrainer::BUF_VAL, (val_func));
+  if (status != ML_ERROR_NONE)
+    return status;
+
+  status = callback_buffer->setFunc(nntrainer::BUF_TEST, (test_func));
+  if (status != ML_ERROR_NONE)
+    return status;
+
+  return train();
+};
+
+/**
+ * @brief     Run NeuralNetwork train with callback function by user
+ */
 int NeuralNetwork::train() {
   int status = ML_ERROR_NONE;
   status = data_buffer->run(nntrainer::BUF_TRAIN);
@@ -605,11 +634,11 @@ int NeuralNetwork::train() {
   for (unsigned int i = 0; i < epoch; ++i) {
     int count = 0;
     while (true) {
-      std::vector<std::vector<std::vector<float>>> in, label;
+      vec_3d in, label;
       if (data_buffer->getDataFromBuffer(nntrainer::BUF_TRAIN, in, label)) {
         backwarding(nntrainer::Tensor(in), nntrainer::Tensor(label), i);
         count++;
-        std::cout << "#" << i + 1;
+        std::cout << "#" << i + 1 << "/" << epoch;
         data_buffer->displayProgress(count, nntrainer::BUF_TRAIN, getLoss());
       } else {
         data_buffer->clear(nntrainer::BUF_TRAIN);
@@ -629,8 +658,9 @@ int NeuralNetwork::train() {
     if (data_buffer->getValidation()[1]) {
       int right = 0;
       float valloss = 0.0;
+      int tcases = 0;
       while (true) {
-        std::vector<std::vector<std::vector<float>>> in, label;
+        vec_3d in, label;
         if (data_buffer->getDataFromBuffer(nntrainer::BUF_VAL, in, label)) {
           for (int i = 0; i < batch_size; ++i) {
             nntrainer::Tensor X = nntrainer::Tensor({in[i]});
@@ -639,6 +669,7 @@ int NeuralNetwork::train() {
             if (Y.argmax() == Y2.argmax())
               right++;
             valloss += getLoss();
+            tcases++;
           }
         } else {
           data_buffer->clear(nntrainer::BUF_VAL);
@@ -651,9 +682,8 @@ int NeuralNetwork::train() {
         }
       }
 
-      valloss = valloss / (float)(data_buffer->getMaxVal());
-      std::cout << " >> [ Accuracy: "
-                << right / (float)(data_buffer->getMaxVal()) * 100.0
+      valloss = valloss / (float)(tcases);
+      std::cout << " >> [ Accuracy: " << right / (float)(tcases)*100.0
                 << "% - Validation Loss : " << valloss << " ] ";
     }
     std::cout << std::endl;

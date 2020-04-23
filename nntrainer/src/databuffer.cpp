@@ -28,6 +28,7 @@
 #include <condition_variable>
 #include <cstring>
 #include <functional>
+#include <iomanip>
 #include <mutex>
 #include <nntrainer_log.h>
 #include <sstream>
@@ -208,7 +209,7 @@ DataStatus DataBuffer::getStatus(BufferType type) {
   DataStatus ret = DATA_READY;
   if (globalExceptionPtr)
     ret = DATA_ERROR;
-  
+
   switch (type) {
   case BUF_TRAIN:
     if ((train_data.size() < mini_batch) && trainReadyFlag)
@@ -230,9 +231,8 @@ DataStatus DataBuffer::getStatus(BufferType type) {
   return ret;
 }
 
-bool DataBuffer::getDataFromBuffer(
-  BufferType type, std::vector<std::vector<std::vector<float>>> &outVec,
-  std::vector<std::vector<std::vector<float>>> &outLabel) {
+bool DataBuffer::getDataFromBuffer(BufferType type, vec_3d &outVec,
+                                   vec_3d &outLabel) {
   int nomI;
   unsigned int J, i, j, k;
   unsigned int width = input_size;
@@ -420,23 +420,40 @@ void DataBuffer::displayProgress(const int count, BufferType type, float loss) {
     ml_loge("Error: Not Supported Data Type");
     break;
   }
+  std::stringstream ssInt;
+  ssInt << count * mini_batch;
 
-  float progress;
-  if (mini_batch > max_size)
-    progress = 1.0;
-  else
-    progress = (((float)(count * mini_batch)) / max_size);
+  std::string str = ssInt.str();
+  int len = str.length();
 
-  int pos = barWidth * progress;
-  std::cout << " [ ";
-  for (int l = 0; l < barWidth; ++l) {
-    if (l <= pos)
-      std::cout << "=";
+  if (max_size == 0) {
+    int pad_left = (barWidth - len) / 2;
+    int pad_right = barWidth - pad_left - len;
+    std::string out_str =
+      std::string(pad_left, ' ') + str + std::string(pad_right, ' ');
+    std::cout << " [ ";
+    std::cout << out_str;
+    std::cout << " ] "
+              << " ( Training Loss: " << loss << " )\r";
+  } else {
+    float progress;
+    if (mini_batch > max_size)
+      progress = 1.0;
     else
-      std::cout << " ";
+      progress = (((float)(count * mini_batch)) / max_size);
+
+    int pos = barWidth * progress;
+    std::cout << " [ ";
+    for (int l = 0; l < barWidth; ++l) {
+      if (l <= pos)
+        std::cout << "=";
+      else
+        std::cout << " ";
+    }
+    std::cout << " ] " << int(progress * 100.0) << "% ( Training Loss: " << loss
+              << " )\r";
   }
-  std::cout << " ] " << int(progress * 100.0) << "% ( Training Loss: " << loss
-            << " )\r";
+
   std::cout.flush();
 }
 
@@ -552,7 +569,7 @@ void DataBufferFromDataFile::updateData(BufferType type, int &status) {
 
       unsigned int id = rangeRandom(0, mark.size() - 1);
       I = mark[id];
-      
+
       try {
         if (I > max_size) {
           ml_loge("Error: Test case id cannot exceed maximum number of test");
@@ -712,4 +729,171 @@ int DataBufferFromDataFile::setFeatureSize(unsigned int size) {
 
   return status;
 }
+
+int DataBufferFromCallback::init() {
+  int status = ML_ERROR_NONE;
+
+  if (!class_num) {
+    ml_loge("Error: number of class must be set");
+    SET_VALIDATION(false);
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
+  if (!this->input_size) {
+    ml_loge("Error: featuer size must be set");
+    SET_VALIDATION(false);
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
+  this->cur_train_bufsize = 0;
+  this->cur_val_bufsize = 0;
+  this->cur_test_bufsize = 0;
+
+  this->max_train = 0;
+  this->max_val = 0;
+  this->max_test = 0;
+
+  if (mini_batch == 0) {
+    ml_loge("Error: mini batch size must be greater than 0");
+    SET_VALIDATION(false);
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
+  this->train_running = true;
+  this->val_running = true;
+  this->test_running = true;
+
+  trainReadyFlag = DATA_NOT_READY;
+  valReadyFlag = DATA_NOT_READY;
+  testReadyFlag = DATA_NOT_READY;
+
+  return status;
+}
+
+int DataBufferFromCallback::setFunc(
+  BufferType type, std::function<bool(vec_3d &, vec_3d &, int &)> func) {
+
+  int status = ML_ERROR_NONE;
+  switch (type) {
+  case BUF_TRAIN:
+    callback_train = func;
+    if (func == NULL)
+      validation[0] = false;
+    break;
+  case BUF_VAL:
+    callback_val = func;
+    if (func == NULL)
+      validation[1] = false;
+    break;
+  case BUF_TEST:
+    callback_test = func;
+    if (func == NULL)
+      validation[2] = false;
+    break;
+  default:
+    status = ML_ERROR_INVALID_PARAMETER;
+    break;
+  }
+
+  return status;
+}
+
+void DataBufferFromCallback::updateData(BufferType type, int &status) {
+  status = ML_ERROR_NONE;
+
+  unsigned int buf_size = 0;
+  unsigned int *cur_size = NULL;
+  bool *running = NULL;
+  std::vector<std::vector<float>> *data = NULL;
+  std::vector<std::vector<float>> *datalabel = NULL;
+  std::function<bool(vec_3d &, vec_3d &, int &)> callback;
+
+  switch (type) {
+  case BUF_TRAIN: {
+    buf_size = bufsize;
+    cur_size = &cur_train_bufsize;
+    running = &train_running;
+    data = &train_data;
+    datalabel = &train_data_label;
+    callback = callback_train;
+  } break;
+  case BUF_VAL: {
+    buf_size = bufsize;
+    cur_size = &cur_val_bufsize;
+    running = &val_running;
+    data = &val_data;
+    datalabel = &val_data_label;
+    callback = callback_val;
+  } break;
+  case BUF_TEST: {
+    buf_size = bufsize;
+    cur_size = &cur_test_bufsize;
+    running = &test_running;
+    data = &test_data;
+    datalabel = &test_data_label;
+    callback = callback_test;
+  } break;
+  default:
+    break;
+  }
+
+  while ((*running)) {
+    if (buf_size - (*cur_size) > 0) {
+      vec_3d vec;
+      vec_3d veclabel;
+
+      bool endflag = callback(vec, veclabel, status);
+      if (!endflag)
+        break;
+
+      if (vec.size() != veclabel.size()) {
+        status = ML_ERROR_INVALID_PARAMETER;
+      }
+
+      for (unsigned int i = 0; i < vec.size(); ++i) {
+        std::vector<float> v;
+        std::vector<float> vl;
+        for (unsigned int j = 0; j < vec[i].size(); ++j) {
+          for (unsigned int k = 0; k < vec[i][j].size(); ++k) {
+            v.push_back(vec[i][j][k]);
+          }
+        }
+        for (unsigned int j = 0; j < veclabel[i].size(); ++j) {
+          for (unsigned int k = 0; k < veclabel[i][j].size(); ++k) {
+            vl.push_back(veclabel[i][j][k]);
+          }
+        }
+
+        data_lock.lock();
+        data->push_back(v);
+        datalabel->push_back(vl);
+        (*cur_size)++;
+        data_lock.unlock();
+      }
+    }
+
+    if (buf_size == (*cur_size)) {
+      switch (type) {
+      case BUF_TRAIN: {
+        std::lock_guard<std::mutex> lgtrain(readyTrainData);
+        trainReadyFlag = DATA_READY;
+        cv_train.notify_all();
+      } break;
+      case BUF_VAL: {
+        std::lock_guard<std::mutex> lgval(readyValData);
+        valReadyFlag = DATA_READY;
+        cv_val.notify_all();
+      } break;
+      case BUF_TEST: {
+        std::lock_guard<std::mutex> lgtest(readyTestData);
+        testReadyFlag = DATA_READY;
+        cv_test.notify_all();
+      } break;
+      default:
+        break;
+      }
+    }
+  }
+}
+
 } /* namespace nntrainer */
