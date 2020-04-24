@@ -62,7 +62,7 @@ public:
 
   unsigned int *getDim() { return dim; }
 
-  void setTensorDim(std::string input_shape);
+  int setTensorDim(std::string input_shape);
 
 private:
   unsigned int dim[4];
