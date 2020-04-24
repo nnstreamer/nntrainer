@@ -22,6 +22,7 @@
  */
 
 #include "tensor.h"
+#include "nntrainer_error.h"
 #include <assert.h>
 #include <cstring>
 #include <nntrainer_log.h>
@@ -35,7 +36,8 @@
 
 namespace nntrainer {
 
-void TensorDim::setTensorDim(std::string input_shape) {
+int TensorDim::setTensorDim(std::string input_shape) {
+  int status = ML_ERROR_NONE;
   std::regex words_regex("[^\\s.,:;!?]+");
   auto words_begin =
     std::sregex_iterator(input_shape.begin(), input_shape.end(), words_regex);
@@ -43,13 +45,14 @@ void TensorDim::setTensorDim(std::string input_shape) {
   int cur_dim = std::distance(words_begin, words_end);
   if (cur_dim > 4) {
     ml_loge("Tensor Dimension should be less than 4");
-    exit(0);
+    return ML_ERROR_INVALID_PARAMETER;
   }
   int cn = 0;
   for (std::sregex_iterator i = words_begin; i != words_end; ++i) {
     dim[MAXDIM - cur_dim + cn] = std::stoi((*i).str());
     cn++;
   }
+  return status;
 }
 
 Tensor::Tensor(int height, int width) {
@@ -81,7 +84,10 @@ void Tensor::setValue(int batch, int h, int w, float value) {
 }
 
 Tensor::Tensor(std::vector<std::vector<float>> const &d) {
-  assert(d.size() != 0);
+  if (d.size() == 0) {
+    throw std::runtime_error("Error: d.size() is greater than 0");
+  }
+
   this->height = d.size();
   this->width = d[0].size();
   this->batch = 1;
@@ -95,7 +101,10 @@ Tensor::Tensor(std::vector<std::vector<float>> const &d) {
 }
 
 Tensor::Tensor(std::vector<std::vector<std::vector<float>>> const &d) {
-  assert(d.size() != 0 && d[0].size() != 0);
+  if (d.size() == 0 || d[0].size() == 0) {
+    throw std::runtime_error("Error: d.size() is greater than 0");
+  }
+
   this->batch = d.size();
   this->height = d[0].size();
   this->width = d[0][0].size();
@@ -124,6 +133,9 @@ Tensor Tensor::multiply(float const &value) {
 
 Tensor Tensor::divide(float const &value) {
   Tensor result(batch, height, width);
+  if (value == 0.0) {
+    throw std::runtime_error("Error: Divide by zero");
+  }
 #ifdef USE_BLAS
   memset(result.data.data(), 0, sizeof(float) * result.len);
   cblas_saxpy(this->len, 1.0 / value, this->data.data(), 1, result.data.data(),
@@ -154,7 +166,9 @@ Tensor Tensor::add(float const &value) {
 }
 
 Tensor Tensor::add(Tensor const &m) const {
-  assert(height == m.height && width == m.width);
+  if (height != m.height || width != m.width) {
+    throw std::runtime_error("Error: Dimension must be equal each other");
+  }
 
   Tensor result(batch, height, width);
 #ifdef USE_BLAS
@@ -188,7 +202,10 @@ Tensor Tensor::add(Tensor const &m) const {
 }
 
 Tensor Tensor::subtract(Tensor const &m) const {
-  assert(height == m.height && width == m.width);
+  if (height != m.height || width != m.width) {
+    throw std::runtime_error("Error: Dimension must be equal each other");
+  }
+
   Tensor result(batch, height, width);
 
 #ifdef USE_BLAS
@@ -241,7 +258,10 @@ Tensor Tensor::subtract(float const &value) {
 }
 
 Tensor Tensor::multiply(Tensor const &m) const {
-  assert(height == m.height && width == m.width);
+  if (height != m.height || width != m.width) {
+    throw std::runtime_error("Error: Dimension must be equal each other");
+  }
+
   Tensor result(batch, height, width);
 
   int end = this->len / 4;
@@ -274,7 +294,10 @@ Tensor Tensor::multiply(Tensor const &m) const {
 }
 
 Tensor Tensor::divide(Tensor const &m) const {
-  assert(height == m.height && width == m.width);
+  if (height != m.height || width != m.width) {
+    throw std::runtime_error("Error: Dimension must be equal each other");
+  }
+
   Tensor result(batch, height, width);
 
   int end = this->len / 4;
@@ -361,7 +384,7 @@ Tensor Tensor::sum(int axis) const {
     }
   } break;
   case 2: {
-    ret = Tensor(batch, height, width);
+    ret = Tensor(batch, height, 1);
     for (int k = 0; k < batch; ++k) {
       int K = k * height;
       for (int i = 0; i < height; ++i) {
@@ -373,7 +396,7 @@ Tensor Tensor::sum(int axis) const {
     }
   } break;
   default:
-    std::runtime_error("Error: Cannot excide 2");
+    throw std::out_of_range("Error: Cannot exceede 2");
     break;
   }
   return ret;
@@ -384,7 +407,9 @@ Tensor Tensor::sum(int axis) const {
  * every calculation along with batch
  */
 Tensor Tensor::dot(Tensor const &m) const {
-  assert(width == m.height);
+  if (width != m.height) {
+    throw std::runtime_error("Error width != m.height");
+  }
   int mwidth = m.width;
   Tensor result(batch, height, mwidth);
 
@@ -618,42 +643,6 @@ Tensor Tensor::average() const {
 
 void Tensor::setZero() {
   memset(this->data.data(), 0, sizeof(float) * this->len);
-}
-
-Tensor Tensor::softmax() const {
-  Tensor result(batch, height, width);
-  Tensor divisor(batch, height, 1);
-
-  divisor.setZero();
-
-  for (int k = 0; k < batch; k++) {
-    int index = k * height;
-    for (int i = 0; i < height; i++) {
-      for (int j = 0; j < width; j++) {
-        divisor.data[index + i] +=
-          exp(this->data[k * height * width + i * width + j]);
-      }
-    }
-  }
-
-  for (int k = 0; k < batch; ++k) {
-    int index = k * height;
-    for (int i = 1; i < height; ++i) {
-      divisor.data[index] += divisor.data[index + i];
-    }
-  }
-
-  for (int k = 0; k < batch; k++) {
-    int index = k * height;
-    for (int i = 0; i < height; i++) {
-      for (int j = 0; j < width; j++) {
-        int id = k * height * width + i * width + j;
-        result.data[id] = exp(this->data[id]) / divisor.data[index];
-      }
-    }
-  }
-
-  return result;
 }
 
 int Tensor::argmax() {
