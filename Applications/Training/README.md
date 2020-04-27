@@ -9,22 +9,22 @@ Sigmoid function is used for the activation. Square error loss function and grad
 
 The configuration of the example is below,
 <p align = "center">
-<img src="https://github.com/nnstreamer/nntrainer/blob/master/doc/02a7ee80-f0ce-11e9-97b8-bcc19b7eb222.png" width="400" height="250" > </p>
+<img src="https://github.com/nnstreamer/nntrainer/blob/master/docs/images/02a7ee80-f0ce-11e9-97b8-bcc19b7eb222.png" width="400" height="250" > </p>
 
 Training set and test set are below
 <p align = "center">
-<img src="https://github.com/nnstreamer/nntrainer/blob/master/doc/7944ec00-f0ce-11e9-87af-aea730bcd0f5.png" >
+<img src="https://github.com/nnstreamer/nntrainer/blob/master/docs/images/7944ec00-f0ce-11e9-87af-aea730bcd0f5.png" >
 </p>
 
 After Iterating 300 times, the change of L2 Norm of the Loss function is below.
 <p align = "center">
-<img src="https://github.com/nnstreamer/nntrainer/blob/master/doc/d42b1300-f0cf-11e9-9b6f-6db30def4684.png" width="500" height="300">
+<img src="https://github.com/nnstreamer/nntrainer/blob/master/docs/images/d42b1300-f0cf-11e9-9b6f-6db30def4684.png" width="500" height="300">
 </p>
 
 and the test results for the 8 test cases are below. Step function is used to make more clear.
 As you can see, the test result is ok.
 
 <p align ="center">
-<img src="https://github.com/nnstreamer/nntrainer/blob/master/doc/16555400-f0d2-11e9-959b-f61935fefd5a.png" width ="500" height="180">
+<img src="https://github.com/nnstreamer/nntrainer/blob/master/docs/images/16555400-f0d2-11e9-959b-f61935fefd5a.png" width ="500" height="180">
 </p>
 
