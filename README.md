@@ -72,11 +72,34 @@ The following dependencies are needed to compile / build / run.
 
 *   gcc/g++
 *   meson (>=0.50.0)
-*   blas library ( CBLAS ) (for CPU Acceleration)
+*   blas library ( CBLAS ) (for CPU Acceleration, libopenblas is used for now)
 *   cuda, cudart, cublas (should match the version) (GPU Acceleration on PC)
 *   tensorflow-lite (>=1.4.0)
-*   jsoncpp ( >=0.6.0) (openAI Environment on PC)
+*   libjsoncpp ( >=0.6.0) (openAI Environment on PC)
 *   libcurl3 (>= 7.47 ) (openAI Environment on PC)
+*   libiniparser
+*   libgtest (for testing)
+
+
+### Give It a Go Build with Docker
+
+You can use [docker image](https://hub.docker.com/r/lunapocket/nntrainer-build-env) to easily set up and try building.
+
+To run the docker 
+
+```bash
+$ docker pull lunapocket/nntrainer-build-env:ubuntu-18.04
+$ docker run --rm -it  lunapocket/nntrainer-build-env:ubuntu-18.04
+```
+
+Inside docker...
+
+```bash
+$ cd /root/nntrainer
+$ git pull # If you want to build with latests sources.
+```
+
+You can try build from now on without concerning about Prerequisites.
 
 ### How to Build
 
@@ -163,7 +186,19 @@ nntrainer_training
 
 In order to run such example binaries, Tensorflow-lite is a prerequisite. If you are trying to run on the Android, it will automatically download tensorflow (1.9.0) and compile as static library. Otherwise, you need to install it by yourself.
 
-To run the 'Training' example, do as follows
+### Running Examples
+
+
+1. [Training](https://github.com/nnstreamer/nntrainer/blob/master/Applications/Training/README.md)
+
+After build, run with following arguments
+Make sure to put last '/' for the resources directory.
+```bash
+$./path/to/example ./path/to/settings.ini ./path/to/resource/directory/
+```
+
+To run the 'Training', for example, do as follows.
+
 ```bash
 $ pwd
 ./nntrainer
