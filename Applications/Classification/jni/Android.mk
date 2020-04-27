@@ -105,3 +105,25 @@ LOCAL_STATIC_LIBRARIES := tensorflow-lite
 LOCAL_C_INCLUDES += $(TFLITE_INCLUDES) $(NNTRAINER_INCLUDES)
 
 include $(BUILD_EXECUTABLE)
+
+include $(CLEAR_VARS)
+LOCAL_ARM_NEON := true
+LOCAL_CFLAGS += -std=c++11 -Ofast -mcpu=cortex-a53 -Ilz4-nougat/lib
+LOCAL_LDFLAGS += -Llz4-nougat/lib/obj/local/arm64-v8a/
+LOCAL_CXXFLAGS += -std=c++11
+LOCAL_CFLAGS += -pthread -fopenmp
+LOCAL_LDFLAGS += -fopenmp 
+LOCAL_MODULE_TAGS := optional
+LOCAL_ARM_MODE := arm
+LOCAL_MODULE := nntrainer_classification_func
+LOCAL_LDLIBS := -llog
+
+LOCAL_SRC_FILES := main_func.cpp
+
+LOCAL_SHARED_LIBRARIES := nntrainer
+
+LOCAL_STATIC_LIBRARIES := tensorflow-lite
+
+LOCAL_C_INCLUDES += $(TFLITE_INCLUDES) $(NNTRAINER_INCLUDES)
+
+include $(BUILD_EXECUTABLE)

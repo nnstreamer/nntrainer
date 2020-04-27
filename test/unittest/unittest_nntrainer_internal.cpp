@@ -20,6 +20,8 @@
  * @author      Jijoong Moon <jijoong.moon@samsung.com>
  * @bug         No known bugs
  */
+#include "databuffer_file.h"
+#include "databuffer_func.h"
 #include "neuralnet.h"
 #include "util_func.h"
 #include <fstream>

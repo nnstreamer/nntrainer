@@ -18,6 +18,8 @@ nntrainer_sources = [
   'src/tensor.cpp',
   'src/layers.cpp',
   'src/databuffer.cpp',
+  'src/databuffer_file.cpp',
+  'src/databuffer_func.cpp',
   'src/nntrainer_logger.cpp',
   'src/optimizer.cpp',
   'src/util_func.cpp'
@@ -28,6 +30,8 @@ nntrainer_headers = [
   'include/tensor.h',
   'include/layers.h',
   'include/databuffer.h',
+  'include/databuffer_file.h',
+  'include/databuffer_func.h',
   'include/nntrainer_log.h',
   'include/nntrainer_logger.h',
   'include/optimizer.h',

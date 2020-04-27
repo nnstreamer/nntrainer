@@ -22,6 +22,8 @@
  */
 
 #include "neuralnet.h"
+#include "databuffer_file.h"
+#include "databuffer_func.h"
 #include "iniparser.h"
 #include "nntrainer_error.h"
 #include <array>

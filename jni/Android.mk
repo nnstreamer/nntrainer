@@ -25,6 +25,8 @@ NNTRAINER_SRCS := $(NNTRAINER_ROOT)/nntrainer/src/neuralnet.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/src/tensor.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/src/layers.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/src/databuffer.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/src/databuffer_func.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/src/databuffer_file.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/src/util_func.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/src/optimizer.cpp \
 
