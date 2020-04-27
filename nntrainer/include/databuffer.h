@@ -289,119 +289,16 @@ protected:
 
   std::vector<std::string> labels;
   bool validation[NBUFTYPE];
+
+  /**
+   * @brief     return random int value between min to max
+   * @param[in] min minimum vaule
+   * @param[in] max maximum value
+   * @retval    int return value
+   */
+  int rangeRandom(int min, int max);
 };
 
-/**
- * @class   DataBufferFromDataFile Data Buffer from Raw Data File
- * @brief   Data Buffer from reading raw data
- */
-class DataBufferFromDataFile : public DataBuffer {
-
-public:
-  /**
-   * @brief     Constructor
-   */
-  DataBufferFromDataFile(){};
-
-  /**
-   * @brief     Destructor
-   */
-  ~DataBufferFromDataFile(){};
-
-  /**
-   * @brief     Initialize Buffer with data buffer private variables
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   */
-  int init();
-
-  /**
-   * @brief     Update Data Buffer ( it is for child thread )
-   * @param[in] BufferType training, validation, test
-   * @retval    void
-   */
-  void updateData(BufferType type, int &status);
-
-  /**
-   * @brief     set train data file name
-   * @param[in] path file path
-   * @param[in] type data type : DATA_TRAIN, DATA_VAL, DATA_TEST
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   */
-  int setDataFile(std::string path, DataType type);
-
-  /**
-   * @brief     set feature size
-   * @param[in] feature batch size. It is equal to input layer's hidden size
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   */
-  int setFeatureSize(unsigned int n);
-
-private:
-  /**
-   * @brief     raw data file names
-   */
-  std::string train_name;
-  std::string val_name;
-  std::string test_name;
-};
-
-/**
- * @class   DataBufferFromCallback Data Buffer from callback given by user
- * @brief   Data Buffer from callback function
- */
-class DataBufferFromCallback : public DataBuffer {
-public:
-  /**
-   * @brief     Constructor
-   */
-  DataBufferFromCallback(){};
-
-  /**
-   * @brief     Destructor
-   */
-  ~DataBufferFromCallback(){};
-
-  /**
-   * @brief     Initialize Buffer
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   */
-  int init();
-
-  /**
-   * @brief     set function pointer for each type
-   * @param[in] type Buffer Type
-   * @param[in] call back function pointer
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   */
-  int setFunc(BufferType type,
-              std::function<bool(vec_3d &, vec_3d &, int &)> func);
-
-  /**
-   * @brief     Update Data Buffer ( it is for child thread )
-   * @param[in] BufferType training, validation, test
-   * @retval    void
-   */
-  void updateData(BufferType type, int &status);
-
-private:
-  /**
-   *
-   * @brief Callback function to get user specific data
-   * @param[in] X data  3D float vector type
-   * @param[in] Y label 3D float vector type
-   * @param[out] status status for error handle
-   * @retval true / false generate all data for this epoch
-   *
-   */
-  std::function<bool(vec_3d &, vec_3d &, int &)> callback_train;
-  std::function<bool(vec_3d &, vec_3d &, int &)> callback_val;
-  std::function<bool(vec_3d &, vec_3d &, int &)> callback_test;
-};
 } // namespace nntrainer
 #endif /* __cplusplus */
 #endif /* __DATABUFFER_H__ */

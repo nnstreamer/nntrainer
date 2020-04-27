@@ -267,10 +267,8 @@ int main(int argc, char *argv[]) {
   }
   const vector<string> args(argv + 1, argv + argc);
   std::string config = args[0];
-  data_path = args[1];
 
   srand(time(NULL));
-  std::string ini_file = data_path + "ini.bin";
   std::vector<std::vector<float>> inputVector, outputVector;
   std::vector<std::vector<float>> inputValVector, outputValVector;
   std::vector<std::vector<float>> inputTestVector, outputTestVector;
