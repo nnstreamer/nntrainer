@@ -417,7 +417,7 @@ int main(int argc, char *argv[]) {
     f.close();
   }
 
-  if (!read(inputValVector, outputValVector, "test")) {
+  if (!read(inputTestVector, outputTestVector, "test")) {
     /**
      * @brief     Extract Feature
      */

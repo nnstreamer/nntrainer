@@ -70,7 +70,7 @@ public:
   /**
    * @brief     Constructor of Optimizer Class
    */
-  Optimizer(){};
+  Optimizer();
 
   /**
    * @brief     Destructor of Optimizer Class
@@ -116,6 +116,12 @@ public:
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
   int setOptParam(OptParam p);
+
+  /**
+   * @brief     get Optimizer Parameters
+   * @retval OptParam
+   */
+  OptParam getOptParam() { return popt; };
 
   /**
    * @brief     get Weight Decay Type

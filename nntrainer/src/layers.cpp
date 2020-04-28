@@ -74,7 +74,7 @@ static Tensor weightInitialization(unsigned int width, unsigned int height,
 
   switch (init_type) {
   case WEIGHT_LECUN_NORMAL:
-    RandNormal(w, 0, sqrt(1 / height));
+    RandNormal(w, 0, sqrt(1.0 / height));
     break;
   case WEIGHT_XAVIER_NORMAL:
     RandNormal(w, 0, sqrt(2.0 / (width + height)));
@@ -124,19 +124,21 @@ int Layer::setActivation(ActiType acti) {
   return status;
 }
 
-int Layer::setOptimizer(Optimizer opt) {
-  this->opt = opt;
+int Layer::setOptimizer(Optimizer &opt) {
+  this->opt.setType(opt.getType());
+  this->opt.setOptParam(opt.getOptParam());
+
   return this->opt.initialize(height, width, true);
 }
 
 int Layer::checkValidation() {
   int status = ML_ERROR_NONE;
-  if (!type || type == LAYER_UNKNOWN) {
+  if (type == LAYER_UNKNOWN) {
     ml_loge("Error: Layer type is unknown");
     return ML_ERROR_INVALID_PARAMETER;
   }
 
-  if (!activation_type || activation_type == ACT_UNKNOWN) {
+  if (activation_type == ACT_UNKNOWN) {
     ml_loge("Error: Have to set activation for this layer");
     return ML_ERROR_INVALID_PARAMETER;
   }
@@ -147,8 +149,10 @@ int Layer::checkValidation() {
   return status;
 }
 
-int InputLayer::setOptimizer(Optimizer opt) {
-  this->opt = opt;
+int InputLayer::setOptimizer(Optimizer &opt) {
+  this->opt.setType(opt.getType());
+  this->opt.setOptParam(opt.getOptParam());
+
   return this->opt.initialize(height, width, false);
 }
 
@@ -161,7 +165,6 @@ void InputLayer::copy(Layer *l) {
   this->input.copy(from->input);
   this->hidden.copy(from->hidden);
 }
-
 
 Tensor InputLayer::forwarding(Tensor in) {
   input = in;
@@ -277,7 +280,6 @@ int OutputLayer::initialize(int b, int h, int w, int id, bool init_zero,
   this->init_zero = init_zero;
 
   bias = Tensor(1, w);
-  this->cost = cost;
   this->bn_fallow = false;
 
   weight = weightInitialization(w, h, wini, status);
@@ -494,8 +496,11 @@ int BatchNormalizationLayer::initialize(int b, int h, int w, int id,
   return status;
 }
 
-int BatchNormalizationLayer::setOptimizer(Optimizer opt) {
-  this->opt = opt;
+int BatchNormalizationLayer::setOptimizer(Optimizer &opt) {
+  this->opt.setType(opt.getType());
+  this->opt.setOptParam(opt.getOptParam());
+
+  this->epsilon = 0.0;
   return this->opt.initialize(height, width, false);
 }
 

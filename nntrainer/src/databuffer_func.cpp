@@ -37,6 +37,8 @@
 #include <stdlib.h>
 #include <thread>
 
+extern std::exception_ptr globalExceptionPtr;
+
 namespace nntrainer {
 
 extern std::mutex data_lock;
@@ -158,6 +160,16 @@ void DataBufferFromCallback::updateData(BufferType type, int &status) {
   } break;
   default:
     break;
+  }
+
+  try {
+    if ((cur_size == NULL) || (running == NULL) || (data == NULL) ||
+        (datalabel == NULL))
+      throw std::runtime_error("Error: assining error");
+  } catch (...) {
+    globalExceptionPtr = std::current_exception();
+    NN_EXCEPTION_NOTI(DATA_ERROR);
+    return;
   }
 
   while ((*running)) {

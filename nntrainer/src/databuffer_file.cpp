@@ -37,29 +37,6 @@
 #include <stdlib.h>
 #include <thread>
 
-#define NN_EXCEPTION_NOTI(val)                             \
-  do {                                                     \
-    switch (type) {                                        \
-    case BUF_TRAIN: {                                      \
-      std::lock_guard<std::mutex> lgtrain(readyTrainData); \
-      trainReadyFlag = val;                                \
-      cv_train.notify_all();                               \
-    } break;                                               \
-    case BUF_VAL: {                                        \
-      std::lock_guard<std::mutex> lgval(readyValData);     \
-      valReadyFlag = val;                                  \
-      cv_val.notify_all();                                 \
-    } break;                                               \
-    case BUF_TEST: {                                       \
-      std::lock_guard<std::mutex> lgtest(readyTestData);   \
-      testReadyFlag = val;                                 \
-      cv_test.notify_all();                                \
-    } break;                                               \
-    default:                                               \
-      break;                                               \
-    }                                                      \
-  } while (0)
-
 extern std::exception_ptr globalExceptionPtr;
 
 namespace nntrainer {
@@ -215,6 +192,7 @@ void DataBufferFromDataFile::updateData(BufferType type, int &status) {
       }
 
       mark.erase(mark.begin() + id);
+      
       uint64_t position = (I * input_size + I * class_num) * sizeof(float);
       try {
         if (position > file_length || position > ULLONG_MAX) {

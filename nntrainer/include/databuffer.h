@@ -46,6 +46,30 @@ typedef std::vector<std::vector<std::vector<float>>> vec_3d;
       validation[i] = val;                                               \
   } while (0)
 
+
+#define NN_EXCEPTION_NOTI(val)                             \
+  do {                                                     \
+    switch (type) {                                        \
+    case BUF_TRAIN: {                                      \
+      std::lock_guard<std::mutex> lgtrain(readyTrainData); \
+      trainReadyFlag = val;                                \
+      cv_train.notify_all();                               \
+    } break;                                               \
+    case BUF_VAL: {                                        \
+      std::lock_guard<std::mutex> lgval(readyValData);     \
+      valReadyFlag = val;                                  \
+      cv_val.notify_all();                                 \
+    } break;                                               \
+    case BUF_TEST: {                                       \
+      std::lock_guard<std::mutex> lgtest(readyTestData);   \
+      testReadyFlag = val;                                 \
+      cv_test.notify_all();                                \
+    } break;                                               \
+    default:                                               \
+      break;                                               \
+    }                                                      \
+  } while (0)
+
 typedef enum {
   DATA_NOT_READY = 0,
   DATA_READY = 1,
@@ -95,6 +119,20 @@ public:
     SET_VALIDATION(true);
     input_size = 0;
     class_num = 0;
+    cur_train_bufsize = 0;
+    cur_val_bufsize = 0;
+    cur_test_bufsize = 0;
+    bufsize = 0;
+    max_train = 0;
+    max_val = 0;
+    max_test = 0;
+    rest_train = 0;
+    rest_val = 0;
+    rest_test = 0;
+    mini_batch = 0;
+    train_running = false;
+    val_running = false;
+    test_running = false;
   };
 
   /**
