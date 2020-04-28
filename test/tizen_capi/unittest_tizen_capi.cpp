@@ -19,7 +19,7 @@
  * @author      Jijoong Moon <jijoong.moon@samsung.com>
  * @bug         No known bugs
  */
-#include <gtest/gtest.h>
+#include "nntrainer_test_util.h"
 #include <nntrainer.h>
 
 /**
@@ -60,9 +60,28 @@ TEST(nntrainer_capi_nnmodel, construct_destruct_03_n) {
  */
 TEST(nntrainer_capi_nnmodel, construct_destruct_04_p) {
   ml_nnmodel_h handle = NULL;
-  const char *model_conf = "../test/tizen_capi/test_conf.ini";
-  int status;
-  status = ml_nnmodel_construct_with_conf(model_conf, &handle);
+  int status = ML_ERROR_NONE;
+  std::string config_file = "./test.ini";
+  replaceString("Layers = inputlayer outputlayer",
+                "Layers = inputlayer outputlayer", config_file);
+  status = ml_nnmodel_construct_with_conf(config_file.c_str(), &handle);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = ml_nnmodel_destruct(handle);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Neural Network Model Construct wit Configuration File Test
+ */
+TEST(nntrainer_capi_nnmodel, compile_05_p) {
+  ml_nnmodel_h handle = NULL;
+  int status = ML_ERROR_NONE;
+  std::string config_file = "./test.ini";
+  replaceString("Layers = inputlayer outputlayer",
+                "Layers = inputlayer outputlayer", config_file);
+  status = ml_nnmodel_construct_with_conf(config_file.c_str(), &handle);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = ml_nnmodel_compile(handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
   status = ml_nnmodel_destruct(handle);
   EXPECT_EQ(status, ML_ERROR_NONE);

@@ -99,6 +99,20 @@ int ml_nnmodel_construct_with_conf(const char *model_conf,
   return status;
 }
 
+int ml_nnmodel_compile(ml_nnmodel_h model) {
+  int status = ML_ERROR_NONE;
+  ml_nnmodel *nnmodel;
+
+  ML_NNTRAINER_CHECK_MODEL_VALIDATION(nnmodel, model);
+  nntrainer::NeuralNetwork *NN;
+  NN = nnmodel->network;
+  status = NN->checkValidation();
+  if (status != ML_ERROR_NONE)
+    return status;
+  status = NN->init();
+  return status;
+}
+
 int ml_nnmodel_destruct(ml_nnmodel_h model) {
   int status = ML_ERROR_NONE;
   ml_nnmodel *nnmodel;

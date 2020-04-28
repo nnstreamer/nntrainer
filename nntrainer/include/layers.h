@@ -41,13 +41,13 @@ typedef enum { COST_MSR, COST_ENTROPY, COST_UNKNOWN } CostType;
 
 /**
  * @brief     Enumeration of activation function type
- *            0. tanh
- *            1. sigmoid
- *            2. relu
- *            3. Unknown
+ *            1. tanh
+ *            2. sigmoid
+ *            3. relu
+ *            4. Unknown
  */
 typedef enum {
-  ACT_TANH,
+  ACT_TANH = 1,
   ACT_SIGMOID,
   ACT_RELU,
   ACT_SOFTMAX,
@@ -56,13 +56,13 @@ typedef enum {
 
 /**
  * @brief     Enumeration of layer type
- *            0. Input Layer type
- *            1. Fully Connected Layer type
- *            2. Output Layer type
- *            3. Unknown
+ *            1. Input Layer type
+ *            2. Fully Connected Layer type
+ *            3. Output Layer type
+ *            4. Unknown
  */
 typedef enum {
-  LAYER_IN,
+  LAYER_IN = 1,
   LAYER_FC,
   LAYER_OUT,
   LAYER_BN,
@@ -177,6 +177,8 @@ public:
   virtual void copy(Layer *l) = 0;
 
   void setBNfallow(bool ok) { this->bn_fallow = ok; }
+
+  int checkValidation();
 
   /**
    * @brief     Input Tensor
