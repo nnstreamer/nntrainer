@@ -41,13 +41,13 @@ typedef enum { COST_MSR, COST_ENTROPY, COST_UNKNOWN } CostType;
 
 /**
  * @brief     Enumeration of activation function type
- *            1. tanh
- *            2. sigmoid
- *            3. relu
- *            4. Unknown
+ *            0. tanh
+ *            1. sigmoid
+ *            2. relu
+ *            3. Unknown
  */
 typedef enum {
-  ACT_TANH = 1,
+  ACT_TANH,
   ACT_SIGMOID,
   ACT_RELU,
   ACT_SOFTMAX,
@@ -56,13 +56,13 @@ typedef enum {
 
 /**
  * @brief     Enumeration of layer type
- *            1. Input Layer type
- *            2. Fully Connected Layer type
- *            3. Output Layer type
- *            4. Unknown
+ *            0. Input Layer type
+ *            1. Fully Connected Layer type
+ *            2. Output Layer type
+ *            3. Unknown
  */
 typedef enum {
-  LAYER_IN = 1,
+  LAYER_IN,
   LAYER_FC,
   LAYER_OUT,
   LAYER_BN,
@@ -94,6 +94,7 @@ typedef enum {
  */
 class Layer {
 public:
+  Layer() : type(LAYER_UNKNOWN), activation_type(ACT_UNKNOWN){};
   /**
    * @brief     Destructor of Layer Class
    */
@@ -154,7 +155,7 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  virtual int setOptimizer(Optimizer opt);
+  virtual int setOptimizer(Optimizer &opt);
 
   /**
    * @brief     Activation Setter
@@ -250,7 +251,7 @@ public:
   /**
    * @brief     Constructor of InputLayer
    */
-  InputLayer(){};
+  InputLayer() : normalization(false), standardization(false){};
 
   /**
    * @brief     Destructor of InputLayer
@@ -299,7 +300,7 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int setOptimizer(Optimizer opt);
+  int setOptimizer(Optimizer &opt);
 
   /**
    * @brief     Initializer of Input Layer
@@ -567,7 +568,7 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int setOptimizer(Optimizer opt);
+  int setOptimizer(Optimizer &opt);
 
   /**
    * @brief     copy layer

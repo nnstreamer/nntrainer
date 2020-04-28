@@ -74,7 +74,7 @@ public:
   /**
    * @brief     Constructor of NeuralNetwork Class
    */
-  NeuralNetwork(){};
+  NeuralNetwork();
 
   /**
    * @brief     Constructor of NeuralNetwork Class with Configuration file
@@ -208,16 +208,6 @@ private:
   int batch_size;
 
   /**
-   * @brief     function pointer for activation
-   */
-  float (*activation)(float);
-
-  /**
-   * @brief     function pointer for derivative of activation
-   */
-  float (*activation_prime)(float);
-
-  /**
    * @brief     learning rate
    */
   float learning_rate;
@@ -241,11 +231,6 @@ private:
    * @brief     loss
    */
   float loss;
-
-  /**
-   * @brief     boolean to set the Bias zero
-   */
-  bool init_zero;
 
   /**
    * @brief     Cost Function type

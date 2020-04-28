@@ -120,7 +120,7 @@ void __nntrainer_log_print(nntrainer_loglevel loglevel,
   va_list ap;
   while (1) {
     formatted.reset(new char[n]);
-    std::strcpy(&formatted[0], format_str.c_str());
+    std::strncpy(&formatted[0], format_str.c_str(), format_str.size());
     va_start(ap, format_str);
     final_n = vsnprintf(&formatted[0], n, format_str.c_str(), ap);
     va_end(ap);

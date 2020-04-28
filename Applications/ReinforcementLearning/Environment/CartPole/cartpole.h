@@ -54,7 +54,7 @@ public:
   /**
    * @brief     Constructor of CartPole
    */
-  CartPole(){};
+  CartPole();
 
   /**
    * @brief     Destructor of CartPole

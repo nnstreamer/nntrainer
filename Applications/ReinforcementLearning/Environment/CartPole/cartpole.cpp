@@ -42,8 +42,7 @@ static float RandomFloat(float min, float max) {
 static int random0to1() { return rand() % 2; }
 
 namespace Env {
-
-void CartPole::init() {
+CartPole::CartPole() {
   gravity = 9.8;
   masscart = 1.0;
   masspole = 0.1;
@@ -58,6 +57,9 @@ void CartPole::init() {
   steps_beyond_done = -1;
   count = 0;
   action_dim = 2;
+}
+
+void CartPole::init() {
   for (int i = 0; i < 4; i++)
     S.observation.push_back(0.0);
 }

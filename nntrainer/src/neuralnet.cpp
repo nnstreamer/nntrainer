@@ -178,6 +178,9 @@ unsigned int parseType(std::string ll, InputType t) {
         return (i);
       }
     }
+    if (i == 0) {
+      i = optimizer_string.size() - 1;
+    }
     ret = i - 1;
     break;
   case TOKEN_COST:
@@ -185,6 +188,9 @@ unsigned int parseType(std::string ll, InputType t) {
       if (caseInSensitiveCompare(cost_string[i], ll)) {
         return (i);
       }
+    }
+    if (i == 0) {
+      i = cost_string.size() - 1;
     }
     ret = i - 1;
     break;
@@ -194,6 +200,10 @@ unsigned int parseType(std::string ll, InputType t) {
         return (i);
       }
     }
+    if (i == 0) {
+      i = network_type_string.size() - 1;
+    }
+
     ret = i - 1;
     break;
   case TOKEN_ACTI:
@@ -201,6 +211,9 @@ unsigned int parseType(std::string ll, InputType t) {
       if (caseInSensitiveCompare(activation_string[i], ll)) {
         return (i);
       }
+    }
+    if (i == 0) {
+      i = activation_string.size() - 1;
     }
     ret = i - 1;
     break;
@@ -210,6 +223,9 @@ unsigned int parseType(std::string ll, InputType t) {
         return (i);
       }
     }
+    if (i == 0) {
+      i = layer_string.size() - 1;
+    }
     ret = i - 1;
     break;
   case TOKEN_WEIGHTINI:
@@ -218,6 +234,9 @@ unsigned int parseType(std::string ll, InputType t) {
         return (i);
       }
     }
+    if (i == 0) {
+      i = weight_ini_string.size() - 1;
+    }
     ret = i - 1;
     break;
   case TOKEN_WEIGHT_DECAY:
@@ -225,6 +244,9 @@ unsigned int parseType(std::string ll, InputType t) {
       if (caseInSensitiveCompare(weight_decay_string[i], ll)) {
         return (i);
       }
+    }
+    if (i == 0) {
+      i = weight_decay_string.size() - 1;
     }
     ret = i - 1;
     break;
@@ -236,7 +258,31 @@ unsigned int parseType(std::string ll, InputType t) {
   return ret;
 }
 
-NeuralNetwork::NeuralNetwork(std::string config) { this->setConfig(config); }
+NeuralNetwork::NeuralNetwork() {
+  batch_size = 0;
+  learning_rate = 0.0;
+  decay_rate = 0.0;
+  epoch = 0;
+  loss = 0.0;
+  cost = COST_UNKNOWN;
+  weight_ini = WEIGHT_UNKNOWN;
+  net_type = NET_UNKNOWN;
+  data_buffer = NULL;
+  config = "";
+}
+
+NeuralNetwork::NeuralNetwork(std::string config) {
+  batch_size = 0;
+  learning_rate = 0.0;
+  decay_rate = 0.0;
+  epoch = 0;
+  loss = 0.0;
+  cost = COST_UNKNOWN;
+  weight_ini = WEIGHT_UNKNOWN;
+  net_type = NET_UNKNOWN;
+  data_buffer = NULL;
+  this->setConfig(config);
+}
 
 int NeuralNetwork::setConfig(std::string config) {
   int status = ML_ERROR_NONE;
@@ -462,6 +508,10 @@ int NeuralNetwork::init() {
                                     weight_ini);
       NN_RETURN_STATUS();
       layers.push_back(bn_layer);
+      if (i == 0) {
+        ml_loge("Error: BN layer shouldn't be first layer of network");
+        return ML_ERROR_INVALID_PARAMETER;
+      }
       layers[i - 1]->setBNfallow(true);
       status = bn_layer->setActivation((ActiType)parseType(
         iniparser_getstring(ini, (layers_name[i] + ":Activation").c_str(),

@@ -28,6 +28,18 @@
 
 namespace nntrainer {
 
+Optimizer::Optimizer() {
+  type = OptType::unknown;
+  popt.learning_rate = 0.0;
+  popt.beta1 = 0.0;
+  popt.beta2 = 0.0;
+  popt.epsilon = 0.0;
+  popt.decay_rate = 0.0;
+  popt.decay_steps = 0.0;
+  popt.weight_decay.type = WeightDecayType::unknown;
+  popt.weight_decay.lambda = 0.0;
+};
+
 int Optimizer::setType(OptType t) {
   int status = ML_ERROR_NONE;
   if (t == OptType::unknown) {

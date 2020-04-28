@@ -180,6 +180,7 @@ void getFeature(const string filename, vector<float> &feature_input) {
 
   delete[] input_idx_list;
   delete[] output_idx_list;
+  delete[] in;
 }
 
 /**
@@ -254,8 +255,9 @@ int main(int argc, char *argv[]) {
    */
   for (int i = 0; i < ITERATION; i++) {
     for (unsigned int j = 0; j < inputVector.size(); j++) {
-      NN.backwarding(nntrainer::Tensor({inputVector[j]}),
-                     nntrainer::Tensor({outputVector[j]}), i);
+      nntrainer::Tensor in = nntrainer::Tensor({inputVector[j]});
+      nntrainer::Tensor out = nntrainer::Tensor({outputVector[j]});
+      NN.backwarding(in, out, i);
     }
     cout << "#" << i + 1 << "/" << ITERATION << " - Loss : " << NN.getLoss()
          << endl;

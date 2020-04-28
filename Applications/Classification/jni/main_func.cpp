@@ -117,10 +117,14 @@ static int rangeRandom(int min, int max) {
  */
 bool getData(std::ifstream &F, std::vector<float> &outVec,
              std::vector<float> &outLabel, int id) {
+  F.clear();
+  F.seekg(0, std::ios_base::end);
+  uint64_t file_length = F.tellg();
   uint64_t position = (feature_size + total_label_size) * id * sizeof(float);
-  if ((position + (feature_size + total_label_size) * sizeof(float)) >
-      ULLONG_MAX)
+
+  if (position > file_length || position > ULLONG_MAX) {
     return false;
+  }
   F.seekg(position, std::ios::beg);
   for (unsigned int i = 0; i < feature_size; i++)
     F.read((char *)&outVec[i], sizeof(float));
