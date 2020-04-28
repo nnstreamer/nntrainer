@@ -129,6 +129,24 @@ int Layer::setOptimizer(Optimizer opt) {
   return this->opt.initialize(height, width, true);
 }
 
+int Layer::checkValidation() {
+  int status = ML_ERROR_NONE;
+  if (!type || type == LAYER_UNKNOWN) {
+    ml_loge("Error: Layer type is unknown");
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
+  if (!activation_type || activation_type == ACT_UNKNOWN) {
+    ml_loge("Error: Have to set activation for this layer");
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+  if (batch == 0 || width == 0 || height == 0) {
+    ml_loge("Error: Tensor Dimension must be set before initialization");
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+  return status;
+}
+
 int InputLayer::setOptimizer(Optimizer opt) {
   this->opt = opt;
   return this->opt.initialize(height, width, false);
@@ -143,6 +161,7 @@ void InputLayer::copy(Layer *l) {
   this->input.copy(from->input);
   this->hidden.copy(from->hidden);
 }
+
 
 Tensor InputLayer::forwarding(Tensor in) {
   input = in;

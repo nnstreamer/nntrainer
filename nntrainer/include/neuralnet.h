@@ -199,6 +199,8 @@ public:
             std::function<bool(vec_3d &, vec_3d &, int &)> function_val,
             std::function<bool(vec_3d &, vec_3d &, int &)> function_test);
 
+  int checkValidation();
+
 private:
   /**
    * @brief     batch size

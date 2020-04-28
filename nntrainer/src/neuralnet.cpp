@@ -698,4 +698,21 @@ int NeuralNetwork::train() {
   return status;
 }
 
+int NeuralNetwork::checkValidation() {
+  int status = ML_ERROR_NONE;
+  if (config.empty())
+    return status;
+  if (layers.size()) {
+    return ML_ERROR_INVALID_PARAMETER;
+  } else {
+    for (std::vector<nntrainer::Layer *>::iterator layer = layers.begin();
+         layer != layers.end(); ++layer) {
+      if (!(*layer)->checkValidation())
+        return ML_ERROR_INVALID_PARAMETER;
+    }
+  }
+
+  return status;
+}
+
 } /* namespace nntrainer */
