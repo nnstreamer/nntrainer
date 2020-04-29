@@ -121,6 +121,27 @@ TEST(nntrainer_capi_nnmodel, compile_03_n) {
 }
 
 /**
+ * @brief Neural Network Model Compile Test
+ */
+TEST(nntrainer_capi_nnmodel, train_01_p) {
+  ml_nnmodel_h handle = NULL;
+  int status = ML_ERROR_NONE;
+  std::string config_file = "./test_train_01_p.ini";
+  RESET_CONFIG(config_file.c_str());
+  replaceString("HiddenSize = 62720", "HiddenSize=62720", config_file);
+  replaceString("minibatch = 32", "minibatch = 16", config_file);
+  replaceString("BufferSize=100", "", config_file);
+  status = ml_nnmodel_construct_with_conf(config_file.c_str(), &handle);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = ml_nnmodel_compile(handle);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = ml_nnmodel_train(handle);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = ml_nnmodel_destruct(handle);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
  * @brief Main gtest
  */
 int main(int argc, char **argv) {

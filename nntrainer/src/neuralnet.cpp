@@ -736,9 +736,6 @@ int NeuralNetwork::train() {
     std::cout << std::endl;
     saveModel();
   }
-  data_buffer->clear(nntrainer::BUF_TRAIN);
-  data_buffer->clear(nntrainer::BUF_VAL);
-  data_buffer->clear(nntrainer::BUF_TEST);
 
   return status;
 }
