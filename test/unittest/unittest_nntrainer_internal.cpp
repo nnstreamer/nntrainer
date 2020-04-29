@@ -34,6 +34,7 @@
 TEST(nntrainer_NeuralNetwork, setConfig_01_p) {
   int status = ML_ERROR_NONE;
   std::string config_file = "./test.ini";
+  RESET_CONFIG(config_file.c_str());
   replaceString("Layers = inputlayer outputlayer",
                 "Layers = inputlayer outputlayer", config_file);
   nntrainer::NeuralNetwork NN;
@@ -58,6 +59,7 @@ TEST(nntrainer_NeuralNetwork, setConfig_02_n) {
 TEST(nntrainer_NeuralNetwork, init_01_p) {
   int status = ML_ERROR_NONE;
   std::string config_file = "./test.ini";
+  RESET_CONFIG(config_file.c_str());
   replaceString("Layers = inputlayer outputlayer",
                 "Layers = inputlayer outputlayer", config_file);
   nntrainer::NeuralNetwork NN;
@@ -72,6 +74,7 @@ TEST(nntrainer_NeuralNetwork, init_01_p) {
  */
 TEST(nntrainer_NeuralNetwork, init_02_n) {
   int status = ML_ERROR_NONE;
+  RESET_CONFIG("./test.ini");
   replaceString("Layers = inputlayer outputlayer", "", "./test.ini");
   nntrainer::NeuralNetwork NN;
   status = NN.setConfig("./test.ini");
@@ -85,6 +88,7 @@ TEST(nntrainer_NeuralNetwork, init_02_n) {
  */
 TEST(nntrainer_NeuralNetwork, init_03_n) {
   int status = ML_ERROR_NONE;
+  RESET_CONFIG("./test.ini");
   replaceString("adam", "aaaadam", "./test.ini");
   nntrainer::NeuralNetwork NN;
   status = NN.setConfig("./test.ini");
@@ -98,6 +102,7 @@ TEST(nntrainer_NeuralNetwork, init_03_n) {
  */
 TEST(nntrainer_NeuralNetwork, init_04_n) {
   int status = ML_ERROR_NONE;
+  RESET_CONFIG("./test.ini");
   replaceString("HiddenSize = 62720", "HiddenSize = 0", "./test.ini");
   nntrainer::NeuralNetwork NN;
   status = NN.setConfig("./test.ini");
@@ -111,6 +116,7 @@ TEST(nntrainer_NeuralNetwork, init_04_n) {
  */
 TEST(nntrainer_NeuralNetwork, init_05_n) {
   int status = ML_ERROR_NONE;
+  RESET_CONFIG("./test.ini");
   replaceString("HiddenSize = 62720", "", "./test.ini");
   nntrainer::NeuralNetwork NN;
   status = NN.setConfig("./test.ini");
@@ -124,6 +130,7 @@ TEST(nntrainer_NeuralNetwork, init_05_n) {
  */
 TEST(nntrainer_NeuralNetwork, init_06_n) {
   int status = ML_ERROR_NONE;
+  RESET_CONFIG("./test.ini");
   replaceString("Learning_rate = 0.0001", "Learning_rate = -0.0001",
                 "./test.ini");
   nntrainer::NeuralNetwork NN;
@@ -138,6 +145,7 @@ TEST(nntrainer_NeuralNetwork, init_06_n) {
  */
 TEST(nntrainer_NeuralNetwork, init_07_p) {
   int status = ML_ERROR_NONE;
+  RESET_CONFIG("./test.ini");
   replaceString("TrainData = trainingSet.dat", "", "./test.ini");
   nntrainer::NeuralNetwork NN;
   status = NN.setConfig("./test.ini");
@@ -151,6 +159,7 @@ TEST(nntrainer_NeuralNetwork, init_07_p) {
  */
 TEST(nntrainer_NeuralNetwork, init_08_n) {
   int status = ML_ERROR_NONE;
+  RESET_CONFIG("./test.ini");
   replaceString("TestData = testSet.dat", "", "./test.ini");
   nntrainer::NeuralNetwork NN;
   status = NN.setConfig("./test.ini");
@@ -164,6 +173,7 @@ TEST(nntrainer_NeuralNetwork, init_08_n) {
  */
 TEST(nntrainer_NeuralNetwork, init_09_n) {
   int status = ML_ERROR_NONE;
+  RESET_CONFIG("./test.ini");
   replaceString("HiddenSize = 10", "HiddenSize = 9", "./test.ini");
   nntrainer::NeuralNetwork NN;
   status = NN.setConfig("./test.ini");
@@ -177,6 +187,7 @@ TEST(nntrainer_NeuralNetwork, init_09_n) {
  */
 TEST(nntrainer_NeuralNetwork, init_10_n) {
   int status = ML_ERROR_NONE;
+  RESET_CONFIG("./test.ini");
   replaceString("LabelData = label.dat", "", "./test.ini");
   nntrainer::NeuralNetwork NN;
   status = NN.setConfig("./test.ini");
@@ -191,6 +202,7 @@ TEST(nntrainer_NeuralNetwork, init_10_n) {
 TEST(nntrainer_NeuralNetwork, init_011_p) {
   int status = ML_ERROR_NONE;
   std::string config_file = "./test.ini";
+  RESET_CONFIG(config_file.c_str());
   replaceString("ValidData = valSet.dat", "", config_file);
   nntrainer::NeuralNetwork NN;
   status = NN.setConfig(config_file);

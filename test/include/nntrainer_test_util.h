@@ -25,7 +25,7 @@
 #define __NNTRAINER_TEST_UTIL_H__
 #ifdef __cplusplus
 
-
+#include "nntrainer_log.h"
 #include <fstream>
 #include <gtest/gtest.h>
 
@@ -125,6 +125,17 @@ const std::string config_str = "[Network]"
     FAIL() << "exception '" << MESSAGE << "' not thrown with expected type '" \
            << #EXCEPTION_TYPE << "'!";                                        \
   }
+
+#define RESET_CONFIG(conf_name)                              \
+  do {                                                       \
+    std::ifstream file_stream(conf_name, std::ifstream::in); \
+    if (file_stream.good()) {                                \
+      if (std::remove(conf_name) != 0)                       \
+        ml_loge("Error: Cannot delete file: %s", conf_name); \
+      else                                                   \
+        ml_logi("Info: deleteing file: %s", conf_name);      \
+    }                                                        \
+  } while (0)
 
 /**
  * @brief replace string and save in file
