@@ -8,6 +8,18 @@ unittest_nntrainer_src=[
   '../nntrainer_test_util.cpp'
 ]
 
+
+unzip_target = ['trainset.tar.gz', 'valset.tar.gz', 'testset.tar.gz']
+src_path = join_paths(meson.source_root(), 'packaging')
+dest_path = meson.build_root()
+
+foreach target: unzip_target
+  _src_path = join_paths(src_path, target)
+  run_command(['tar', 'xzf', _src_path, '-C', dest_path])
+endforeach
+
+run_command(['cp', join_paths(src_path, 'label.dat'), join_paths(dest_path, 'label.dat')])
+
 unittest_nntrainer_internal = executable('unittest_nntrainer_internal',
   unittest_nntrainer_src,
   dependencies: [unittest_nntrainer_internal_deps],
