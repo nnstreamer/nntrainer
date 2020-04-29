@@ -113,6 +113,17 @@ int ml_nnmodel_compile(ml_nnmodel_h model) {
   return status;
 }
 
+int ml_nnmodel_train(ml_nnmodel_h model) {
+  int status = ML_ERROR_NONE;
+  ml_nnmodel *nnmodel;
+
+  ML_NNTRAINER_CHECK_MODEL_VALIDATION(nnmodel, model);
+  nntrainer::NeuralNetwork *NN;
+  NN = nnmodel->network;
+  status = NN->train();
+  return status;
+}
+
 int ml_nnmodel_destruct(ml_nnmodel_h model) {
   int status = ML_ERROR_NONE;
   ml_nnmodel *nnmodel;

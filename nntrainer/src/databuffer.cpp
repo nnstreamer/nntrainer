@@ -73,6 +73,7 @@ int DataBuffer::run(BufferType type) {
       return ML_ERROR_INVALID_PARAMETER;
 
     if (validation[DATA_TRAIN]) {
+      this->train_running = true;
       this->train_thread =
         std::thread(&DataBuffer::updateData, this, type, std::ref(status));
       if (globalExceptionPtr) {
@@ -89,6 +90,7 @@ int DataBuffer::run(BufferType type) {
     if (valReadyFlag == DATA_ERROR)
       return ML_ERROR_INVALID_PARAMETER;
     if (validation[DATA_VAL]) {
+      this->val_running = true;
       this->val_thread =
         std::thread(&DataBuffer::updateData, this, type, std::ref(status));
       if (globalExceptionPtr) {
@@ -106,6 +108,7 @@ int DataBuffer::run(BufferType type) {
       return ML_ERROR_INVALID_PARAMETER;
 
     if (validation[DATA_TEST]) {
+      this->test_running = true;
       this->test_thread =
         std::thread(&DataBuffer::updateData, this, type, std::ref(status));
       if (globalExceptionPtr) {
@@ -137,7 +140,6 @@ int DataBuffer::clear(BufferType type) {
     this->cur_train_bufsize = 0;
     this->rest_train = max_train;
     trainReadyFlag = DATA_NOT_READY;
-    this->train_running = true;
     if (validation[DATA_TRAIN] && true == train_thread.joinable())
       train_thread.join();
   } break;
@@ -148,10 +150,8 @@ int DataBuffer::clear(BufferType type) {
     this->cur_val_bufsize = 0;
     this->rest_val = max_val;
     valReadyFlag = DATA_NOT_READY;
-    this->val_running = true;
     if (validation[DATA_VAL] && true == val_thread.joinable())
       val_thread.join();
-
   } break;
   case BUF_TEST: {
     test_running = false;
@@ -160,7 +160,6 @@ int DataBuffer::clear(BufferType type) {
     this->cur_test_bufsize = 0;
     this->rest_test = max_test;
     testReadyFlag = DATA_NOT_READY;
-    this->test_running = true;
     if (validation[DATA_TEST] && true == test_thread.joinable())
       test_thread.join();
   } break;
