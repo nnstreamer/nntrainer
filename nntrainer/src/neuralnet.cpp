@@ -450,6 +450,11 @@ int NeuralNetwork::init() {
     case LAYER_FC: {
       FullyConnectedLayer *fc_layer = new (FullyConnectedLayer);
       fc_layer->setType(t);
+      if (i == 0) {
+        ml_loge("Error: Fully Connected Layer should be after "
+                "InputLayer.");
+        return ML_ERROR_INVALID_PARAMETER;
+      }
       status = fc_layer->initialize(batch_size, hidden_size[i - 1],
                                     hidden_size[i], id, b_zero, weight_ini);
       NN_RETURN_STATUS();
