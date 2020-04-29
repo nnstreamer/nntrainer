@@ -178,9 +178,6 @@ unsigned int parseType(std::string ll, InputType t) {
         return (i);
       }
     }
-    if (i == 0) {
-      i = optimizer_string.size() - 1;
-    }
     ret = i - 1;
     break;
   case TOKEN_COST:
@@ -188,9 +185,6 @@ unsigned int parseType(std::string ll, InputType t) {
       if (caseInSensitiveCompare(cost_string[i], ll)) {
         return (i);
       }
-    }
-    if (i == 0) {
-      i = cost_string.size() - 1;
     }
     ret = i - 1;
     break;
@@ -200,10 +194,6 @@ unsigned int parseType(std::string ll, InputType t) {
         return (i);
       }
     }
-    if (i == 0) {
-      i = network_type_string.size() - 1;
-    }
-
     ret = i - 1;
     break;
   case TOKEN_ACTI:
@@ -211,9 +201,6 @@ unsigned int parseType(std::string ll, InputType t) {
       if (caseInSensitiveCompare(activation_string[i], ll)) {
         return (i);
       }
-    }
-    if (i == 0) {
-      i = activation_string.size() - 1;
     }
     ret = i - 1;
     break;
@@ -223,9 +210,6 @@ unsigned int parseType(std::string ll, InputType t) {
         return (i);
       }
     }
-    if (i == 0) {
-      i = layer_string.size() - 1;
-    }
     ret = i - 1;
     break;
   case TOKEN_WEIGHTINI:
@@ -234,9 +218,6 @@ unsigned int parseType(std::string ll, InputType t) {
         return (i);
       }
     }
-    if (i == 0) {
-      i = weight_ini_string.size() - 1;
-    }
     ret = i - 1;
     break;
   case TOKEN_WEIGHT_DECAY:
@@ -244,9 +225,6 @@ unsigned int parseType(std::string ll, InputType t) {
       if (caseInSensitiveCompare(weight_decay_string[i], ll)) {
         return (i);
       }
-    }
-    if (i == 0) {
-      i = weight_decay_string.size() - 1;
     }
     ret = i - 1;
     break;
@@ -262,6 +240,7 @@ NeuralNetwork::NeuralNetwork() {
   batch_size = 0;
   learning_rate = 0.0;
   decay_rate = 0.0;
+  decay_steps = 0.0;
   epoch = 0;
   loss = 0.0;
   cost = COST_UNKNOWN;
@@ -275,6 +254,7 @@ NeuralNetwork::NeuralNetwork(std::string config) {
   batch_size = 0;
   learning_rate = 0.0;
   decay_rate = 0.0;
+  decay_steps = 0.0;
   epoch = 0;
   loss = 0.0;
   cost = COST_UNKNOWN;
@@ -487,6 +467,10 @@ int NeuralNetwork::init() {
       output_layer->setType(t);
       status = output_layer->setCost(cost);
       NN_RETURN_STATUS();
+      if (i == 0) {
+        ml_loge("Error: Output layer shouldn't be first layer of network");
+        return ML_ERROR_INVALID_PARAMETER;
+      }
       status = output_layer->initialize(batch_size, hidden_size[i - 1],
                                         hidden_size[i], id, b_zero, weight_ini);
       NN_RETURN_STATUS();

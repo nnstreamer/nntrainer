@@ -779,20 +779,6 @@ TEST(nntrainer_Tensor, Tensor_03_p) {
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
-TEST(nntrainer_Tensor, Tensor_04_n) {
-  std::vector<std::vector<float>> input;
-
-  ASSERT_EXCEPTION({ nntrainer::Tensor tensor = nntrainer::Tensor(input); },
-                   std::runtime_error, "Error: d.size() is greater than 0");
-}
-
-TEST(nntrainer_Tensor, Tensor_05_n) {
-  std::vector<std::vector<std::vector<float>>> input;
-
-  ASSERT_EXCEPTION({ nntrainer::Tensor tensor = nntrainer::Tensor(input); },
-                   std::runtime_error, "Error: d.size() is greater than 0");
-}
-
 TEST(nntrainer_Tensor, multiply_01_p) {
   int status = ML_ERROR_NONE;
   int batch = 3;

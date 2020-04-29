@@ -94,7 +94,7 @@ typedef enum {
  */
 class Layer {
 public:
-  Layer() : type(LAYER_UNKNOWN), activation_type(ACT_UNKNOWN){};
+  Layer();
   /**
    * @brief     Destructor of Layer Class
    */
@@ -426,7 +426,7 @@ public:
   /**
    * @brief     Constructor of OutputLayer
    */
-  OutputLayer(){};
+  OutputLayer() : loss(0.0), cost(COST_UNKNOWN){};
 
   /**
    * @brief     Destructor of OutputLayer
@@ -518,7 +518,7 @@ public:
   /**
    * @brief     Constructor of Batch Noramlization Layer
    */
-  BatchNormalizationLayer(){};
+  BatchNormalizationLayer() : epsilon(0.0){};
 
   /**
    * @brief     Destructor of BatchNormalizationLayer
