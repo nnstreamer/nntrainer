@@ -283,6 +283,12 @@ int NeuralNetwork::init() {
   std::string l_type;
   LayerType t;
   std::string ini_file = config;
+
+  if (ini_file.empty()) {
+    ml_loge("Error: Configuration File is not defined");
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
   dictionary *ini = iniparser_load(ini_file.c_str());
   std::vector<int> hidden_size;
   OptParam popt;
@@ -734,7 +740,7 @@ int NeuralNetwork::train() {
 
 int NeuralNetwork::checkValidation() {
   int status = ML_ERROR_NONE;
-  if (config.empty())
+  if (!config.empty())
     return status;
   if (layers.size()) {
     return ML_ERROR_INVALID_PARAMETER;

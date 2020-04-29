@@ -22,6 +22,7 @@
  */
 
 #include "nntrainer_test_util.h"
+#include <iostream>
 
 /**
  * @brief replace string and save it in file
@@ -29,11 +30,20 @@
 void replaceString(const std::string &from, const std::string &to,
                    const std::string n) {
   size_t start_pos = 0;
-  std::string s = config_str;
+  std::string s;
+  std::ifstream file_stream(n.c_str(), std::ifstream::in);
+  if (file_stream.good()) {
+    s.assign((std::istreambuf_iterator<char>(file_stream)),
+             std::istreambuf_iterator<char>());
+    file_stream.close();
+  } else {
+    s = config_str;
+  }
   while ((start_pos = s.find(from, start_pos)) != std::string::npos) {
     s.replace(start_pos, from.length(), to);
     start_pos += to.length();
   }
+
   std::ofstream data_file(n.c_str());
   data_file << s;
   data_file.close();

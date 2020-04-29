@@ -61,7 +61,8 @@ TEST(nntrainer_capi_nnmodel, construct_destruct_03_n) {
 TEST(nntrainer_capi_nnmodel, construct_destruct_04_p) {
   ml_nnmodel_h handle = NULL;
   int status = ML_ERROR_NONE;
-  std::string config_file = "./test.ini";
+  std::string config_file = "./test_construct_destruct_04_p.ini";
+  RESET_CONFIG(config_file.c_str());
   replaceString("Layers = inputlayer outputlayer",
                 "Layers = inputlayer outputlayer", config_file);
   status = ml_nnmodel_construct_with_conf(config_file.c_str(), &handle);
@@ -71,18 +72,50 @@ TEST(nntrainer_capi_nnmodel, construct_destruct_04_p) {
 }
 
 /**
- * @brief Neural Network Model Construct wit Configuration File Test
+ * @brief Neural Network Model Compile Test
  */
-TEST(nntrainer_capi_nnmodel, compile_05_p) {
+TEST(nntrainer_capi_nnmodel, compile_01_p) {
   ml_nnmodel_h handle = NULL;
   int status = ML_ERROR_NONE;
-  std::string config_file = "./test.ini";
+  std::string config_file = "./test_compile_01_p.ini";
+  RESET_CONFIG(config_file.c_str());
   replaceString("Layers = inputlayer outputlayer",
                 "Layers = inputlayer outputlayer", config_file);
   status = ml_nnmodel_construct_with_conf(config_file.c_str(), &handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
   status = ml_nnmodel_compile(handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
+  status = ml_nnmodel_destruct(handle);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Neural Network Model Compile Test
+ */
+TEST(nntrainer_capi_nnmodel, compile_02_n) {
+  ml_nnmodel_h handle = NULL;
+  int status = ML_ERROR_NONE;
+  status = ml_nnmodel_construct(&handle);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = ml_nnmodel_compile(handle);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+  status = ml_nnmodel_destruct(handle);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Neural Network Model Compile Test
+ */
+TEST(nntrainer_capi_nnmodel, compile_03_n) {
+  ml_nnmodel_h handle = NULL;
+  int status = ML_ERROR_NONE;
+  std::string config_file = "./test_compile_03_n.ini";
+  RESET_CONFIG(config_file.c_str());
+  replaceString("HiddenSize = 62720", "HiddenSize=0", config_file);
+  status = ml_nnmodel_construct_with_conf(config_file.c_str(), &handle);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = ml_nnmodel_compile(handle);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
   status = ml_nnmodel_destruct(handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
