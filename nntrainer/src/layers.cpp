@@ -98,6 +98,19 @@ static Tensor weightInitialization(unsigned int width, unsigned int height,
   return w;
 }
 
+Layer::Layer() {
+  type = LAYER_UNKNOWN;
+  activation_type = ACT_UNKNOWN;
+  index = 0;
+  batch = 0;
+  width = 0;
+  height = 0;
+  init_zero = false;
+  activation = NULL;
+  activation_prime = NULL;
+  bn_fallow = false;
+}
+
 int Layer::setActivation(ActiType acti) {
   int status = ML_ERROR_NONE;
   if (acti == ACT_UNKNOWN) {

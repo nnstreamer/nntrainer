@@ -84,9 +84,6 @@ void Tensor::setValue(int batch, int h, int w, float value) {
 }
 
 Tensor::Tensor(std::vector<std::vector<float>> const &d) {
-  if (d.size() == 0) {
-    throw std::runtime_error("Error: d.size() is greater than 0");
-  }
 
   this->height = d.size();
   this->width = d[0].size();
@@ -101,9 +98,6 @@ Tensor::Tensor(std::vector<std::vector<float>> const &d) {
 }
 
 Tensor::Tensor(std::vector<std::vector<std::vector<float>>> const &d) {
-  if (d.size() == 0 || d[0].size() == 0) {
-    throw std::runtime_error("Error: d.size() is greater than 0");
-  }
 
   this->batch = d.size();
   this->height = d[0].size();
