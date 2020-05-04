@@ -1,13 +1,4 @@
-unittest_nntrainer_internal_deps = [
-  nntrainer_unittest_deps,
-  gtest_dep
-]
-
-unittest_nntrainer_src=[
-  'unittest_nntrainer_internal.cpp',
-  '../nntrainer_test_util.cpp'
-]
-
+unittest_nntrainer_deps = [nntrainer_test_deps] # if unittest-wide dep is added, this is the place to add
 
 unzip_target = ['trainset.tar.gz', 'valset.tar.gz', 'testset.tar.gz']
 src_path = join_paths(meson.source_root(), 'packaging')
@@ -21,9 +12,8 @@ endforeach
 run_command(['cp', join_paths(src_path, 'label.dat'), join_paths(dest_path, 'label.dat')])
 
 unittest_nntrainer_internal = executable('unittest_nntrainer_internal',
-  unittest_nntrainer_src,
-  dependencies: [unittest_nntrainer_internal_deps],
-  include_directories: nntrainer_test_inc,
+  'unittest_nntrainer_internal.cpp',
+  dependencies: unittest_nntrainer_deps,
   install: get_option('enable-test'),
   install_dir: application_install_dir
 )
@@ -32,7 +22,7 @@ test('unittest_nntrainer_internal', unittest_nntrainer_internal)
 
 unittest_util_func = executable('unittest_util_func',
   'unittest_util_func.cpp',
-  dependencies: [unittest_nntrainer_internal_deps],
+  dependencies: unittest_nntrainer_deps,
   install: get_option('enable-test'),
   install_dir: application_install_dir
 )
