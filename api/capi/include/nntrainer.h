@@ -75,7 +75,7 @@ int ml_nnmodel_construct(ml_nnmodel_h *model);
  * @details Use this function to create Neural Netowrk Model.
  * @since_tizen 6.x
  * @param[in] model_conf The location of nntrainer model configuration file.
- * @param[in] model The NNTrainer Model handler from the given description.
+ * @param[out] model The NNTrainer Model handler from the given description.
  * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
