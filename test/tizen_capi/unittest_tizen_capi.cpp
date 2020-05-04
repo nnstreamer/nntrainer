@@ -147,9 +147,17 @@ TEST(nntrainer_capi_nnmodel, train_01_p) {
 int main(int argc, char **argv) {
   int result = -1;
 
-  testing::InitGoogleTest(&argc, argv);
+  try {
+    testing::InitGoogleTest (&argc, argv);
+  } catch (...) {
+    ml_loge("Failed to init gtest\n");
+  }
 
-  result = RUN_ALL_TESTS();
+  try {
+    result = RUN_ALL_TESTS();
+  } catch (...) {
+    ml_loge("Failed to run test.\n");
+  }
 
   return result;
 }
