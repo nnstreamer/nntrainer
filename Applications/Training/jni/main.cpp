@@ -237,7 +237,7 @@ int main(int argc, char *argv[]) {
   srand(time(NULL));
   std::string ini_file = data_path + "ini.bin";
   std::vector<std::vector<float>> inputVector, outputVector;
-
+  int status = 0;
   /**
    * @brief     Extract Feature
    */
@@ -279,7 +279,7 @@ int main(int argc, char *argv[]) {
     featureVector.resize(128);
     getFeature(img, featureVector);
     nntrainer::Tensor X = nntrainer::Tensor({featureVector});
-    cout << NN.forwarding(X).apply(stepFunction) << endl;
+    cout << NN.forwarding(X, status).apply(stepFunction) << endl;
   }
 
   /**

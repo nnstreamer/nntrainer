@@ -123,7 +123,7 @@ public:
    * @param[in] input Input Tensor X
    * @retval    Output Tensor Y
    */
-  Tensor forwarding(Tensor input);
+  Tensor forwarding(Tensor input, int &status);
 
   /**
    * @brief     forward propagation
@@ -131,7 +131,7 @@ public:
    * @param[in] label Input Tensor Y2
    * @retval    Output Tensor Y
    */
-  Tensor forwarding(Tensor input, Tensor output);
+  Tensor forwarding(Tensor input, Tensor output, int &status);
 
   /**
    * @brief     back propagation to update W & B
@@ -139,7 +139,7 @@ public:
    * @param[in] expectedOutput Lable Tensor Y
    * @param[in] iteration Epoch Number for ADAM
    */
-  void backwarding(Tensor input, Tensor expected_output, int iteration);
+  int backwarding(Tensor input, Tensor expected_output, int iteration);
 
   /**
    * @brief     save W & B into file

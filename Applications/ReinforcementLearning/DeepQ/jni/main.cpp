@@ -260,6 +260,7 @@ int main(int argc, char **argv) {
   std::deque<Experience> expQ;
 
   PTR env;
+  int status = 0;
 
   /**
    * @brief     Initialize Environment
@@ -322,7 +323,8 @@ int main(int argc, char **argv) {
         /**
          * @brief     get action with input State with mainNet
          */
-        nntrainer::Tensor test = mainNet.forwarding(nntrainer::Tensor({input}));
+        nntrainer::Tensor test =
+          mainNet.forwarding(nntrainer::Tensor({input}), status);
         std::vector<float> temp = test.mat2vec();
         action.push_back(argmax(temp));
 
@@ -412,13 +414,14 @@ int main(int argc, char **argv) {
         /**
          * @brief     run forward propagation with mainNet
          */
-        nntrainer::Tensor Q = mainNet.forwarding(nntrainer::Tensor(inbatch));
+        nntrainer::Tensor Q =
+          mainNet.forwarding(nntrainer::Tensor(inbatch), status);
 
         /**
          * @brief     run forward propagation with targetNet
          */
         nntrainer::Tensor NQ =
-          targetNet.forwarding(nntrainer::Tensor(next_inbatch));
+          targetNet.forwarding(nntrainer::Tensor(next_inbatch), status);
         std::vector<float> nqa = NQ.mat2vec();
 
         /**

@@ -143,12 +143,11 @@ unsigned int parseType(std::string ll, InputType t) {
    * @brief     Layer Type String from configure file
    *            "input"  : Input Layer Object
    *            "fully_conntected" : Fully Connected Layer Object
-   *            "output" : Output Layer Object
    *            "batch_normalization" : Batch Normalization Layer Object
    *            "unknown" : Batch Normalization Layer Object
    */
-  std::array<std::string, 5> layer_string = {
-    "input", "fully_connected", "output", "batch_normalization", "unknown"};
+  std::array<std::string, 4> layer_string = {"input", "fully_connected",
+                                             "batch_normalization", "unknown"};
 
   /**
    * @brief     Weight Initialization Type String from configure file
@@ -278,7 +277,6 @@ int NeuralNetwork::setConfig(std::string config) {
 
 int NeuralNetwork::init() {
   int status = ML_ERROR_NONE;
-  int id;
   bool b_zero;
   std::string l_type;
   LayerType t;
@@ -372,7 +370,6 @@ int NeuralNetwork::init() {
     break;
     case LAYER_IN:
     case LAYER_FC:
-    case LAYER_OUT:
     default:
       h_size =
         iniparser_getint(ini, (layers_name[i] + ":HiddenSize").c_str(), 0);
@@ -422,20 +419,23 @@ int NeuralNetwork::init() {
     iniparser_getint(ini, "DataSet:BufferSize", batch_size));
 
   for (unsigned int i = 0; i < layers_name.size(); i++) {
+    bool last = false;
     l_type =
       iniparser_getstring(ini, (layers_name[i] + ":Type").c_str(), unknown);
     t = (LayerType)parseType(l_type, TOKEN_LAYER);
-    id = iniparser_getint(ini, (layers_name[i] + ":Id").c_str(), 0);
+    if (i == (layers_name.size() - 1)) {
+      last = true;
+    }
     b_zero =
       iniparser_getboolean(ini, (layers_name[i] + ":Bias_zero").c_str(), true);
     std::stringstream ss;
-    ml_logi("%d : %s %d %d", id, l_type.c_str(), hidden_size[i], b_zero);
+    ml_logi("%d : %s %d %d", i, l_type.c_str(), hidden_size[i], b_zero);
 
     switch (t) {
     case LAYER_IN: {
       InputLayer *input_layer = new (InputLayer);
       input_layer->setType(t);
-      status = input_layer->initialize(batch_size, 1, hidden_size[i], id,
+      status = input_layer->initialize(batch_size, 1, hidden_size[i], last,
                                        b_zero, weight_ini);
       NN_RETURN_STATUS();
 
@@ -456,13 +456,15 @@ int NeuralNetwork::init() {
     case LAYER_FC: {
       FullyConnectedLayer *fc_layer = new (FullyConnectedLayer);
       fc_layer->setType(t);
+      status = fc_layer->setCost(cost);
+      NN_RETURN_STATUS();
       if (i == 0) {
         ml_loge("Error: Fully Connected Layer should be after "
                 "InputLayer.");
         return ML_ERROR_INVALID_PARAMETER;
       }
       status = fc_layer->initialize(batch_size, hidden_size[i - 1],
-                                    hidden_size[i], id, b_zero, weight_ini);
+                                    hidden_size[i], last, b_zero, weight_ini);
       NN_RETURN_STATUS();
       status = fc_layer->setOptimizer(opt);
       NN_RETURN_STATUS();
@@ -473,33 +475,12 @@ int NeuralNetwork::init() {
       NN_RETURN_STATUS();
       layers.push_back(fc_layer);
     } break;
-    case LAYER_OUT: {
-      OutputLayer *output_layer = new (OutputLayer);
-      output_layer->setType(t);
-      status = output_layer->setCost(cost);
-      NN_RETURN_STATUS();
-      if (i == 0) {
-        ml_loge("Error: Output layer shouldn't be first layer of network");
-        return ML_ERROR_INVALID_PARAMETER;
-      }
-      status = output_layer->initialize(batch_size, hidden_size[i - 1],
-                                        hidden_size[i], id, b_zero, weight_ini);
-      NN_RETURN_STATUS();
-      status = output_layer->setOptimizer(opt);
-      NN_RETURN_STATUS();
-      status = output_layer->setActivation((ActiType)parseType(
-        iniparser_getstring(ini, (layers_name[i] + ":Activation").c_str(),
-                            unknown),
-        TOKEN_ACTI));
-      NN_RETURN_STATUS();
-      layers.push_back(output_layer);
-    } break;
     case LAYER_BN: {
       BatchNormalizationLayer *bn_layer = new (BatchNormalizationLayer);
       bn_layer->setType(t);
       status = bn_layer->setOptimizer(opt);
       NN_RETURN_STATUS();
-      status = bn_layer->initialize(batch_size, 1, hidden_size[i], id, b_zero,
+      status = bn_layer->initialize(batch_size, 1, hidden_size[i], last, b_zero,
                                     weight_ini);
       NN_RETURN_STATUS();
       layers.push_back(bn_layer);
@@ -545,10 +526,10 @@ void NeuralNetwork::finalize() {
 /**
  * @brief     forward propagation using layers object which has layer
  */
-Tensor NeuralNetwork::forwarding(Tensor input) {
+Tensor NeuralNetwork::forwarding(Tensor input, int &status) {
   Tensor X = input;
   for (unsigned int i = 0; i < layers.size(); i++) {
-    X = layers[i]->forwarding(X);
+    X = layers[i]->forwarding(X, status);
   }
   return X;
 }
@@ -556,11 +537,11 @@ Tensor NeuralNetwork::forwarding(Tensor input) {
 /**
  * @brief     forward propagation using layers object which has layer
  */
-Tensor NeuralNetwork::forwarding(Tensor input, Tensor output) {
+Tensor NeuralNetwork::forwarding(Tensor input, Tensor output, int &status) {
   Tensor X = input;
   Tensor Y2 = output;
   for (unsigned int i = 0; i < layers.size(); i++) {
-    X = layers[i]->forwarding(X, Y2);
+    X = layers[i]->forwarding(X, Y2, status);
   }
   return X;
 }
@@ -570,19 +551,22 @@ Tensor NeuralNetwork::forwarding(Tensor input, Tensor output) {
  *            Call backwarding function of layer in reverse order
  *            No need to call at first Input Layer (No data to be updated)
  */
-void NeuralNetwork::backwarding(Tensor input, Tensor expected_output,
-                                int iteration) {
+int NeuralNetwork::backwarding(Tensor input, Tensor expected_output,
+                               int iteration) {
+  int status = ML_ERROR_NONE;
   Tensor Y2 = expected_output;
   Tensor X = input;
-  Tensor Y = forwarding(X);
+  Tensor Y = forwarding(X, status);
 
   for (unsigned int i = layers.size() - 1; i > 0; i--) {
     Y2 = layers[i]->backwarding(Y2, iteration);
   }
+  return status;
 }
 
 float NeuralNetwork::getLoss() {
-  OutputLayer *out = static_cast<OutputLayer *>((layers[layers.size() - 1]));
+  FullyConnectedLayer *out =
+    static_cast<FullyConnectedLayer *>((layers[layers.size() - 1]));
   return out->getLoss();
 }
 
@@ -712,7 +696,7 @@ int NeuralNetwork::train() {
           for (int i = 0; i < batch_size; ++i) {
             nntrainer::Tensor X = nntrainer::Tensor({in[i]});
             nntrainer::Tensor Y2 = nntrainer::Tensor({label[i]});
-            nntrainer::Tensor Y = forwarding(X, Y2);
+            nntrainer::Tensor Y = forwarding(X, Y2, status);
             if (Y.argmax() == Y2.argmax())
               right++;
             valloss += getLoss();

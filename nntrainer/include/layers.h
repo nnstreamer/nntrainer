@@ -58,16 +58,9 @@ typedef enum {
  * @brief     Enumeration of layer type
  *            0. Input Layer type
  *            1. Fully Connected Layer type
- *            2. Output Layer type
- *            3. Unknown
+ *            2. Unknown
  */
-typedef enum {
-  LAYER_IN,
-  LAYER_FC,
-  LAYER_OUT,
-  LAYER_BN,
-  LAYER_UNKNOWN
-} LayerType;
+typedef enum { LAYER_IN, LAYER_FC, LAYER_BN, LAYER_UNKNOWN } LayerType;
 
 /**
  * @brief     Enumeration of Weight Initialization Type
@@ -105,14 +98,14 @@ public:
    * @param[in] in Input Tensor taken by upper layer
    * @retval    Output Tensor
    */
-  virtual Tensor forwarding(Tensor in) = 0;
+  virtual Tensor forwarding(Tensor in, int &status) = 0;
 
   /**
    * @brief     Forward Propation of neural Network
    * @param[in] in Input Tensor taken by upper layer
    * @retval    Output Tensor
    */
-  virtual Tensor forwarding(Tensor in, Tensor output) = 0;
+  virtual Tensor forwarding(Tensor in, Tensor output, int &status) = 0;
 
   /**
    * @brief     Back Propation of neural Network
@@ -128,13 +121,13 @@ public:
    * @param[in] b batch
    * @param[in] h Height
    * @param[in] w Width
-   * @param[in] id index of this layer
+   * @param[in] last last layer
    * @param[in] init_zero Bias initialization with zero
    * @param[in] wini Weight Initialization Scheme
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  virtual int initialize(int b, int h, int w, int id, bool init_zero,
+  virtual int initialize(int b, int h, int w, bool last, bool init_zero,
                          WeightIniType wini) = 0;
 
   /**
@@ -181,6 +174,7 @@ public:
 
   int checkValidation();
 
+protected:
   /**
    * @brief     Input Tensor
    */
@@ -193,9 +187,9 @@ public:
   Tensor hidden;
 
   /**
-   * @brief     Layer index
+   * @brief     last layer
    */
-  unsigned int index;
+  bool last_layer;
 
   /**
    * @brief     batch size of Weight Data
@@ -283,7 +277,7 @@ public:
    * @param[in] in input Tensor from lower layer.
    * @retval    return Input Tensor
    */
-  Tensor forwarding(Tensor in);
+  Tensor forwarding(Tensor in, int &status);
 
   /**
    * @brief     foward propagation : return Input Tensor
@@ -292,7 +286,9 @@ public:
    * @param[in] output label Tensor.
    * @retval    return Input Tensor
    */
-  Tensor forwarding(Tensor in, Tensor output) { return forwarding(in); };
+  Tensor forwarding(Tensor in, Tensor output, int &status) {
+    return forwarding(in, status);
+  };
 
   /**
    * @brief     Set Optimizer
@@ -307,13 +303,13 @@ public:
    * @param[in] b batch size
    * @param[in] h height
    * @param[in] w width
-   * @param[in] id index of this layer
+   * @param[in] last last layer
    * @param[in] init_zero boolean to set Bias zero
    * @param[in] wini Weight Initialization Scheme
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int initialize(int b, int h, int w, int id, bool init_zero,
+  int initialize(int b, int h, int w, bool last, bool init_zero,
                  WeightIniType wini);
 
   /**
@@ -348,7 +344,7 @@ public:
   /**
    * @brief     Constructor of Fully Connected Layer
    */
-  FullyConnectedLayer(){};
+  FullyConnectedLayer() : loss(0.0), cost(COST_UNKNOWN){};
 
   /**
    * @brief     Destructor of Fully Connected Layer
@@ -372,7 +368,7 @@ public:
    * @param[in] in Input Tensor from upper layer
    * @retval    Activation(W x input + B)
    */
-  Tensor forwarding(Tensor in);
+  Tensor forwarding(Tensor in, int &status);
 
   /**
    * @brief     foward propagation : return Input Tensor
@@ -381,7 +377,7 @@ public:
    * @param[in] output label Tensor.
    * @retval    Activation(W x input + B)
    */
-  Tensor forwarding(Tensor in, Tensor output) { return forwarding(in); };
+  Tensor forwarding(Tensor in, Tensor output, int &status);
 
   /**
    * @brief     back propagation
@@ -403,86 +399,14 @@ public:
    * @param[in] b batch size
    * @param[in] h height
    * @param[in] w width
-   * @param[in] id layer index
+   * @param[in] last last layer
    * @param[in] init_zero boolean to set Bias zero
    * @param[in] wini Weight Initialization Scheme
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int initialize(int b, int h, int w, int id, bool init_zero,
+  int initialize(int b, int h, int w, bool last, bool init_zero,
                  WeightIniType wini);
-
-private:
-  Tensor weight;
-  Tensor bias;
-};
-
-/**
- * @class   OutputLayer
- * @brief   OutputLayer (has Cost Function & Weight, Bias)
- */
-class OutputLayer : public Layer {
-public:
-  /**
-   * @brief     Constructor of OutputLayer
-   */
-  OutputLayer() : loss(0.0), cost(COST_UNKNOWN){};
-
-  /**
-   * @brief     Destructor of OutputLayer
-   */
-  ~OutputLayer(){};
-
-  /**
-   * @brief     Read Weight & Bias Data from file
-   * @param[in] file input stream file
-   */
-  void read(std::ifstream &file);
-
-  /**
-   * @brief     Save Weight & Bias Data to file
-   * @param[in] file output stream file
-   */
-  void save(std::ofstream &flle);
-
-  /**
-   * @brief     forward propagation with input
-   * @param[in] in Input Tensor from upper layer
-   * @retval    Activation(W x input + B)
-   */
-  Tensor forwarding(Tensor in);
-
-  /**
-   * @brief     forward propagation with input and set loss
-   * @param[in] in Input Tensor from upper layer
-   * @param[in] output Label Tensor
-   * @retval    Activation(W x input + B)
-   */
-  Tensor forwarding(Tensor in, Tensor output);
-
-  /**
-   * @brief     back propagation
-   *            Calculate dJdB & dJdW & Update W & B
-   * @param[in] input Input Tensor from lower layer
-   * @param[in] iteration Number of Epoch for ADAM
-   * @retval    dJdB x W Tensor
-   */
-  Tensor backwarding(Tensor label, int iteration);
-
-  /**
-   * @brief     initialize layer
-   * @param[in] b batch size
-   * @param[in] h height
-   * @param[in] w width
-   * @param[in] id layer index
-   * @param[in] init_zero boolean to set Bias zero
-   * @param[in] wini Weight Initialization Scheme
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   */
-  int initialize(int b, int w, int h, int id, bool init_zero,
-                 WeightIniType wini);
-
   /**
    * @brief     get Loss value
    */
@@ -495,12 +419,6 @@ public:
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
   int setCost(CostType c);
-
-  /**
-   * @brief     copy layer
-   * @param[in] l layer to copy
-   */
-  void copy(Layer *l);
 
 private:
   Tensor weight;
@@ -542,7 +460,7 @@ public:
    * @param[in] in Input Tensor from upper layer
    * @retval    Activation(W x input + B)
    */
-  Tensor forwarding(Tensor in);
+  Tensor forwarding(Tensor in, int &status);
 
   /**
    * @brief     foward propagation : return Input Tensor
@@ -551,7 +469,9 @@ public:
    * @param[in] output label Tensor.
    * @retval    Activation(W x input + B)
    */
-  Tensor forwarding(Tensor in, Tensor output) { return forwarding(in); };
+  Tensor forwarding(Tensor in, Tensor output, int &status) {
+    return forwarding(in, status);
+  };
 
   /**
    * @brief     back propagation
@@ -581,13 +501,13 @@ public:
    * @param[in] b batch size
    * @param[in] h height
    * @param[in] w width
-   * @param[in] id layer index
+   * @param[in] last last layer
    * @param[in] init_zero boolean to set Bias zero
    * @param[in] wini Weight Initialization Scheme
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int initialize(int b, int h, int w, int id, bool init_zero,
+  int initialize(int b, int h, int w, bool last, bool init_zero,
                  WeightIniType wini);
 
 private:

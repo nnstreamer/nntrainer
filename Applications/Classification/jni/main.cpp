@@ -443,7 +443,7 @@ int main(int argc, char *argv[]) {
     featureVector.resize(feature_size);
     getFeature(img, featureVector);
     nntrainer::Tensor X = nntrainer::Tensor({featureVector});
-    cout << NN.forwarding(X).apply(stepFunction) << endl;
+    cout << NN.forwarding(X, status).apply(stepFunction) << endl;
   }
   /**
    * @brief     Finalize NN
