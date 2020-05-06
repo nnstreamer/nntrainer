@@ -97,7 +97,7 @@ Inside docker...
 
 ```bash
 $ cd /root/nntrainer
-$ git pull # If you want to build with latests sources.
+$ git pull # If you want to build with latest sources.
 ```
 
 You can try build from now on without concerning about Prerequisites.
