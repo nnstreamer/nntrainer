@@ -37,6 +37,11 @@ typedef struct {
   nntrainer::NeuralNetwork *network;
 } ml_nnmodel;
 
+typedef struct {
+  uint magic;
+  nntrainer::Layer *layer;
+} ml_nnlayer;
+
 #define ML_NNTRAINER_CHECK_MODEL_VALIDATION(nnmodel, model)      \
   do {                                                           \
     if (!model) {                                                \
@@ -46,6 +51,19 @@ typedef struct {
     nnmodel = (ml_nnmodel *)model;                               \
     if (nnmodel->magic != ML_NNTRAINER_MAGIC) {                  \
       ml_loge("Error: Invalid Parameter : nnmodel is invalid."); \
+      return ML_ERROR_INVALID_PARAMETER;                         \
+    }                                                            \
+  } while (0)
+
+#define ML_NNTRAINER_CHECK_LAYER_VALIDATION(nnlayer, layer)      \
+  do {                                                           \
+    if (!layer) {                                                \
+      ml_loge("Error: Invalid Parameter : layer is empty.");     \
+      return ML_ERROR_INVALID_PARAMETER;                         \
+    }                                                            \
+    nnlayer = (ml_nnlayer *)layer;                               \
+    if (nnlayer->magic != ML_NNTRAINER_MAGIC) {                  \
+      ml_loge("Error: Invalid Parameter : nnlayer is invalid."); \
       return ML_ERROR_INVALID_PARAMETER;                         \
     }                                                            \
   } while (0)
@@ -134,6 +152,50 @@ int ml_nnmodel_destruct(ml_nnmodel_h model) {
   NN = nnmodel->network;
   NN->finalize();
   delete NN;
+
+  return status;
+}
+
+int ml_nnlayer_create(ml_nnlayer_h *layer, ml_layer_type_e type) {
+  int status = ML_ERROR_NONE;
+  ml_nnlayer *nnlayer = new ml_nnlayer;
+  nnlayer->magic = ML_NNTRAINER_MAGIC;
+  *layer = nnlayer;
+  try {
+    switch (type) {
+    case ML_LAYER_TYPE_INPUT:
+      nnlayer->layer = new nntrainer::InputLayer();
+      nnlayer->layer->setType(nntrainer::LAYER_IN);
+      break;
+    case ML_LAYER_TYPE_FC:
+      nnlayer->layer = new nntrainer::FullyConnectedLayer();
+      nnlayer->layer->setType(nntrainer::LAYER_FC);
+      break;
+    default:
+      delete nnlayer;
+      ml_loge("Error: Unknown layer type");
+      status = ML_ERROR_INVALID_PARAMETER;
+      break;
+    }
+  } catch (const char *e) {
+    ml_loge("Error: heap exception: %s", e);
+    status = ML_ERROR_CANNOT_ASSIGN_ADDRESS;
+    delete nnlayer;
+  }
+
+  return status;
+}
+
+int ml_nnlayer_delete(ml_nnlayer_h layer) {
+  int status = ML_ERROR_NONE;
+  ml_nnlayer *nnlayer;
+
+  ML_NNTRAINER_CHECK_LAYER_VALIDATION(nnlayer, layer);
+
+  nntrainer::Layer *NL;
+  NL = nnlayer->layer;
+  delete NL;
+  delete nnlayer;
 
   return status;
 }
