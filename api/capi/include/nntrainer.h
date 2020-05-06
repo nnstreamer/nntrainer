@@ -44,6 +44,12 @@ extern "C" {
 typedef void *ml_nnmodel_h;
 
 /**
+ * @brief A handle of an NNTrainer layer.
+ * @since_tizen 6.x
+ */
+typedef void *ml_nnlayer_h;
+
+/**
  * @brief Enumeration for the error codes of NNTrainer.
  * @since_tizen 6.x
  */
@@ -60,10 +66,20 @@ typedef enum {
 } ml_error_e;
 
 /**
+ * @brief Enumeration for the neural network layer type of NNTrainer.
+ * @since_tizen 6.x
+ */
+typedef enum {
+  ML_LAYER_TYPE_INPUT = 0, /**< Input Layer */
+  ML_LAYER_TYPE_FC,        /**< Fully Connected Layer */
+  ML_LAYER_TYPE_UNKNOWN    /**< Unknown Lyaer */
+} ml_layer_type_e;
+
+/**
  * @brief Constructs the neural network model.
  * @details Use this function to create Neural Netowrk Model.
  * @since_tizen 6.x
- * @param[in] model The NNTrainer Model handler from the given description.
+ * @param[out] model The NNTrainer Model handler from the given description.
  * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
  * @retval #ML_ERROR_CANNOT_ASSIGN_ADDRESS Cannot assign object.
@@ -115,6 +131,30 @@ int ml_nnmodel_train(ml_nnmodel_h model);
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter.
  */
 int ml_nnmodel_destruct(ml_nnmodel_h model);
+
+/**
+ * @brief Create the neural network layer.
+ * @details Use this function to create Neural Netowrk Layer.
+ * @since_tizen 6.x
+ * @param[out] layer The NNTrainer Layer handler from the given description.
+ * @param[in]  type The NNTrainer Layer type
+ * @return @c 0 on success. Otherwise a negative error value.
+ * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
+ * @retval #ML_ERROR_CANNOT_ASSIGN_ADDRESS Cannot assign object.
+ */
+int ml_nnlayer_create(ml_nnlayer_h *layer, ml_layer_type_e type);
+
+/**
+ * @brief Delete the neural network layer.
+ * @details Use this function to delete Neural Netowrk Layer.
+ * @since_tizen 6.x
+ * @param[in] layer The NNTrainer layer handler from the given description.
+ * @return @c 0 on success. Otherwise a negative error value.
+ * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter.
+ */
+int ml_nnlayer_delete(ml_nnlayer_h layer);
 
 /**
  * @}
