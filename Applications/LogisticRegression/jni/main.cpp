@@ -134,11 +134,12 @@ int main(int argc, char *argv[]) {
      * @brief     forward propagation
      */
     int cn = 0;
+    int status = 0;
     for (unsigned int j = 0; j < inputVector.size(); ++j) {
       std::vector<std::vector<float>> in, label;
       in.push_back(inputVector[j]);
       label.push_back(outputVector[j]);
-      if (NN.forwarding(nntrainer::Tensor(in))
+      if (NN.forwarding(nntrainer::Tensor(in), status)
             .apply(stepFunction)
             .getValue(0, 0, 0) == label[0][0])
         cn++;

@@ -101,7 +101,7 @@ static Tensor weightInitialization(unsigned int width, unsigned int height,
 Layer::Layer() {
   type = LAYER_UNKNOWN;
   activation_type = ACT_UNKNOWN;
-  index = 0;
+  last_layer = false;
   batch = 0;
   width = 0;
   height = 0;
@@ -172,21 +172,21 @@ int InputLayer::setOptimizer(Optimizer &opt) {
 void InputLayer::copy(Layer *l) {
   InputLayer *from = static_cast<InputLayer *>(l);
   this->opt = from->opt;
-  this->index = from->index;
+  this->last_layer = from->last_layer;
   this->height = from->height;
   this->width = from->width;
   this->input.copy(from->input);
   this->hidden.copy(from->hidden);
 }
 
-Tensor InputLayer::forwarding(Tensor in) {
+Tensor InputLayer::forwarding(Tensor in, int &status) {
   input = in;
   if (normalization)
     input = input.normalization();
   return input;
 }
 
-int InputLayer::initialize(int b, int h, int w, int id, bool init_zero,
+int InputLayer::initialize(int b, int h, int w, bool last, bool init_zero,
                            WeightIniType wini) {
   int status = ML_ERROR_NONE;
   if (b <= 0 || h <= 0 || w <= 0) {
@@ -197,13 +197,13 @@ int InputLayer::initialize(int b, int h, int w, int id, bool init_zero,
   this->batch = b;
   this->width = w;
   this->height = h;
-  this->index = 0;
+  this->last_layer = last;
   this->bn_fallow = false;
   return status;
 }
 
-int FullyConnectedLayer::initialize(int b, int h, int w, int id, bool init_zero,
-                                    WeightIniType wini) {
+int FullyConnectedLayer::initialize(int b, int h, int w, bool last,
+                                    bool init_zero, WeightIniType wini) {
   int status = ML_ERROR_NONE;
   if (b <= 0 || h <= 0 || w <= 0) {
     ml_loge("Error: Dimension must be greater than 0");
@@ -213,7 +213,7 @@ int FullyConnectedLayer::initialize(int b, int h, int w, int id, bool init_zero,
   this->batch = b;
   this->width = w;
   this->height = h;
-  this->index = id;
+  this->last_layer = last;
   this->init_zero = init_zero;
   this->bn_fallow = false;
 
@@ -231,81 +231,7 @@ int FullyConnectedLayer::initialize(int b, int h, int w, int id, bool init_zero,
   return status;
 }
 
-Tensor FullyConnectedLayer::forwarding(Tensor in) {
-  input = in;
-  hidden = input.dot(weight).add(bias);
-
-  if (this->bn_fallow)
-    return hidden;
-
-  return hidden.apply(activation);
-  ;
-}
-
-void FullyConnectedLayer::read(std::ifstream &file) {
-  weight.read(file);
-  bias.read(file);
-}
-
-void FullyConnectedLayer::save(std::ofstream &file) {
-  weight.save(file);
-  bias.save(file);
-}
-
-void FullyConnectedLayer::copy(Layer *l) {
-  FullyConnectedLayer *from = static_cast<FullyConnectedLayer *>(l);
-  this->opt = from->opt;
-  this->index = from->index;
-  this->height = from->height;
-  this->width = from->width;
-  this->input.copy(from->input);
-  this->hidden.copy(from->hidden);
-  this->weight.copy(from->weight);
-  this->bias.copy(from->bias);
-}
-
-Tensor FullyConnectedLayer::backwarding(Tensor derivative, int iteration) {
-  Tensor djdb;
-
-  djdb = derivative.multiply(hidden.apply(activation_prime));
-
-  Tensor ret = djdb.dot(weight.transpose());
-
-  Tensor djdw = input.transpose().dot(djdb);
-
-  opt.calculate(djdw, djdb, weight, bias, iteration, this->init_zero);
-
-  return ret;
-}
-
-int OutputLayer::initialize(int b, int h, int w, int id, bool init_zero,
-                            WeightIniType wini) {
-  int status = ML_ERROR_NONE;
-  if (b <= 0 || h <= 0 || w <= 0) {
-    ml_loge("Error: Dimension must be greater than 0");
-    return ML_ERROR_INVALID_PARAMETER;
-  }
-
-  this->batch = b;
-  this->width = w;
-  this->height = h;
-  this->index = id;
-  this->init_zero = init_zero;
-
-  bias = Tensor(1, w);
-  this->bn_fallow = false;
-
-  weight = weightInitialization(w, h, wini, status);
-
-  if (init_zero) {
-    bias.setZero();
-  } else {
-    bias = bias.apply(random);
-  }
-  return status;
-}
-
-int OutputLayer::setCost(CostType c) {
+int FullyConnectedLayer::setCost(CostType c) {
   int status = ML_ERROR_NONE;
   if (c == COST_UNKNOWN) {
     ml_loge("Error: Unknown cost fucntion");
@@ -315,9 +241,13 @@ int OutputLayer::setCost(CostType c) {
   return status;
 }
 
-Tensor OutputLayer::forwarding(Tensor in) {
+Tensor FullyConnectedLayer::forwarding(Tensor in, int &status) {
   input = in;
   hidden = input.dot(weight).add(bias);
+
+  if (this->bn_fallow)
+    return hidden;
+
   if (activation_type == ACT_SOFTMAX) {
     return hidden.apply(softmax);
   } else {
@@ -325,7 +255,11 @@ Tensor OutputLayer::forwarding(Tensor in) {
   }
 }
 
-Tensor OutputLayer::forwarding(Tensor in, Tensor output) {
+Tensor FullyConnectedLayer::forwarding(Tensor in, Tensor output, int &status) {
+  if (!this->last_layer) {
+    ml_loge("Error: Cannot update cost. This is not last layer of network");
+    status = ML_ERROR_INVALID_PARAMETER;
+  }
   input = in;
   hidden = input.dot(weight).add(bias);
   Tensor y2 = output;
@@ -385,20 +319,20 @@ Tensor OutputLayer::forwarding(Tensor in, Tensor output) {
   return y;
 }
 
-void OutputLayer::read(std::ifstream &file) {
+void FullyConnectedLayer::read(std::ifstream &file) {
   weight.read(file);
   bias.read(file);
 }
 
-void OutputLayer::save(std::ofstream &file) {
+void FullyConnectedLayer::save(std::ofstream &file) {
   weight.save(file);
   bias.save(file);
 }
 
-void OutputLayer::copy(Layer *l) {
-  OutputLayer *from = static_cast<OutputLayer *>(l);
+void FullyConnectedLayer::copy(Layer *l) {
+  FullyConnectedLayer *from = static_cast<FullyConnectedLayer *>(l);
   this->opt = from->opt;
-  this->index = from->index;
+  this->last_layer = from->last_layer;
   this->height = from->height;
   this->width = from->width;
   this->input.copy(from->input);
@@ -408,87 +342,90 @@ void OutputLayer::copy(Layer *l) {
   this->loss = from->loss;
 }
 
-Tensor OutputLayer::backwarding(Tensor label, int iteration) {
-  float loss_sum = 0.0;
-  Tensor y2 = label;
-  Tensor y;
-  if (activation_type == ACT_SOFTMAX)
-    y = hidden.apply(softmax);
-  else
-    y = hidden.apply(activation);
-
-  Tensor ret;
+Tensor FullyConnectedLayer::backwarding(Tensor derivative, int iteration) {
   Tensor djdb;
+  float loss_sum = 0.0;
+  Tensor y2 = derivative;
+  Tensor y;
 
-  float ll = opt.getLearningRate();
-  if (opt.getDecaySteps() != -1) {
-    ll = ll * pow(opt.getDecayRate(), (iteration / opt.getDecaySteps()));
+  if (!last_layer) {
+    djdb = derivative.multiply(hidden.apply(activation_prime));
+  } else {
+    if (activation_type == ACT_SOFTMAX)
+      y = hidden.apply(softmax);
+    else
+      y = hidden.apply(activation);
+    float ll = opt.getLearningRate();
+    if (opt.getDecaySteps() != -1) {
+      ll = ll * pow(opt.getDecayRate(), (iteration / opt.getDecaySteps()));
+    }
+
+    switch (cost) {
+    case COST_MSR: {
+      Tensor sub = y2.subtract(y);
+      Tensor l = (sub.multiply(sub)).sum().multiply(0.5);
+      std::vector<float> t = l.mat2vec();
+      for (int i = 0; i < l.getBatch(); i++) {
+        loss_sum += t[i];
+      }
+
+      loss = loss_sum / (float)l.getBatch();
+      if (opt.getWeightDecayType() == WeightDecayType::l2norm) {
+        loss += opt.getWeightDecayLambda() * 0.5 * (weight.l2norm());
+      }
+      if (activation_type == ACT_SOFTMAX) {
+        djdb = y.subtract(y2).multiply(y.apply(softmaxPrime));
+      } else {
+        djdb = y.subtract(y2).multiply(hidden.apply(activation_prime));
+      }
+    } break;
+    case COST_ENTROPY: {
+      Tensor l;
+      if (activation_type == ACT_SIGMOID) {
+        djdb = y.subtract(y2).multiply(1.0 / y.getWidth());
+        l = (y2.multiply(y.apply(logFloat))
+               .add((y2.multiply(-1.0).add(1.0))
+                      .multiply((y.multiply(-1.0).add(1.0)).apply(logFloat))))
+              .multiply(-1.0 / (y2.getWidth()))
+              .sum();
+      } else if (activation_type == ACT_SOFTMAX) {
+        djdb = y.subtract(y2).multiply(1.0 / y.getWidth());
+        l = (y2.multiply(y.apply(logFloat)))
+              .multiply(-1.0 / (y2.getWidth()))
+              .sum();
+      } else {
+        ml_loge("Only support sigmoid & softmax for cross entropy loss");
+        exit(0);
+      }
+
+      std::vector<float> t = l.mat2vec();
+
+      for (int i = 0; i < l.getBatch(); i++) {
+        loss_sum += t[i];
+      }
+      loss = loss_sum / (float)l.getBatch();
+
+      if (opt.getWeightDecayType() == WeightDecayType::l2norm) {
+        loss += opt.getWeightDecayLambda() * 0.5 * (weight.l2norm());
+      }
+
+    } break;
+    case COST_UNKNOWN:
+    default:
+      break;
+    }
   }
 
-  switch (cost) {
-  case COST_MSR: {
-    Tensor sub = y2.subtract(y);
-    Tensor l = (sub.multiply(sub)).sum().multiply(0.5);
-    std::vector<float> t = l.mat2vec();
-    for (int i = 0; i < l.getBatch(); i++) {
-      loss_sum += t[i];
-    }
-
-    loss = loss_sum / (float)l.getBatch();
-    if (opt.getWeightDecayType() == WeightDecayType::l2norm) {
-      loss += opt.getWeightDecayLambda() * 0.5 * (weight.l2norm());
-    }
-    if (activation_type == ACT_SOFTMAX) {
-      djdb = y.subtract(y2).multiply(y.apply(softmaxPrime));
-    } else {
-      djdb = y.subtract(y2).multiply(hidden.apply(activation_prime));
-    }
-  } break;
-  case COST_ENTROPY: {
-    Tensor l;
-    if (activation_type == ACT_SIGMOID) {
-      djdb = y.subtract(y2).multiply(1.0 / y.getWidth());
-      l = (y2.multiply(y.apply(logFloat))
-             .add((y2.multiply(-1.0).add(1.0))
-                    .multiply((y.multiply(-1.0).add(1.0)).apply(logFloat))))
-            .multiply(-1.0 / (y2.getWidth()))
-            .sum();
-    } else if (activation_type == ACT_SOFTMAX) {
-      djdb = y.subtract(y2).multiply(1.0 / y.getWidth());
-      l =
-        (y2.multiply(y.apply(logFloat))).multiply(-1.0 / (y2.getWidth())).sum();
-    } else {
-      ml_loge("Only support sigmoid & softmax for cross entropy loss");
-      exit(0);
-    }
-
-    std::vector<float> t = l.mat2vec();
-
-    for (int i = 0; i < l.getBatch(); i++) {
-      loss_sum += t[i];
-    }
-    loss = loss_sum / (float)l.getBatch();
-
-    if (opt.getWeightDecayType() == WeightDecayType::l2norm) {
-      loss += opt.getWeightDecayLambda() * 0.5 * (weight.l2norm());
-    }
-
-  } break;
-  case COST_UNKNOWN:
-  default:
-    break;
-  }
+  Tensor ret = djdb.dot(weight.transpose());
 
   Tensor djdw = input.transpose().dot(djdb);
-
-  ret = djdb.dot(weight.transpose());
 
   opt.calculate(djdw, djdb, weight, bias, iteration, this->init_zero);
 
   return ret;
 }
 
-int BatchNormalizationLayer::initialize(int b, int h, int w, int id,
+int BatchNormalizationLayer::initialize(int b, int h, int w, bool last,
                                         bool init_zero, WeightIniType wini) {
   int status = ML_ERROR_NONE;
   if (b <= 0 || h <= 0 || w <= 0) {
@@ -499,7 +436,7 @@ int BatchNormalizationLayer::initialize(int b, int h, int w, int id,
   this->batch = b;
   this->width = w;
   this->height = h;
-  this->index = id;
+  this->last_layer = last;
   this->init_zero = init_zero;
 
   this->gamma = Tensor(batch, w);
@@ -517,7 +454,7 @@ int BatchNormalizationLayer::setOptimizer(Optimizer &opt) {
   return this->opt.initialize(height, width, false);
 }
 
-Tensor BatchNormalizationLayer::forwarding(Tensor in) {
+Tensor BatchNormalizationLayer::forwarding(Tensor in, int &status) {
   Tensor temp;
 
   hidden = in;
@@ -587,7 +524,7 @@ void BatchNormalizationLayer::save(std::ofstream &file) {
 void BatchNormalizationLayer::copy(Layer *l) {
   BatchNormalizationLayer *from = static_cast<BatchNormalizationLayer *>(l);
   this->opt = from->opt;
-  this->index = from->index;
+  this->last_layer = from->last_layer;
   this->height = from->height;
   this->width = from->width;
   this->input.copy(from->input);
