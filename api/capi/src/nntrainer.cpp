@@ -152,6 +152,7 @@ int ml_nnmodel_destruct(ml_nnmodel_h model) {
   NN = nnmodel->network;
   NN->finalize();
   delete NN;
+  delete nnmodel;
 
   return status;
 }

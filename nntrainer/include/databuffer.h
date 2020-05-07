@@ -172,6 +172,14 @@ public:
   virtual int clear(BufferType type);
 
   /**
+   * @brief     clear all thread ( training, validation, test )
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  virtual int clear();
+
+
+  /**
    * @brief     get Status of Buffer. if number of rest data
    *            is samller than minibatch, the return false
    * @param[in] BufferType training, validation, test

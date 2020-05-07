@@ -186,6 +186,89 @@ TEST(nntrainer_DataBuffer, setDataFile_04_n) {
 
 
 /**
+ * @brief Data buffer clear all
+ */
+TEST(nntrainer_DataBuffer, clear_01_p){
+  int status = ML_ERROR_NONE;
+  nntrainer::DataBufferFromDataFile data_buffer;
+  status = data_buffer.setMiniBatch(32);
+  ASSERT_EQ(status, ML_ERROR_NONE);
+  status = data_buffer.setClassNum(10);
+  ASSERT_EQ(status, ML_ERROR_NONE);
+  status = data_buffer.setDataFile("trainingSet.dat", nntrainer::DATA_TRAIN);
+  ASSERT_EQ(status, ML_ERROR_NONE);
+  status = data_buffer.setDataFile("valSet.dat", nntrainer::DATA_VAL);
+  ASSERT_EQ(status, ML_ERROR_NONE);
+  status = data_buffer.setDataFile("testSet.dat", nntrainer::DATA_TEST);
+  ASSERT_EQ(status, ML_ERROR_NONE);
+  status = data_buffer.setDataFile("label.dat", nntrainer::DATA_LABEL);
+  ASSERT_EQ(status, ML_ERROR_NONE);
+  status = data_buffer.setFeatureSize(62720);
+  ASSERT_EQ(status, ML_ERROR_NONE);
+  status = data_buffer.init();
+  ASSERT_EQ(status, ML_ERROR_NONE);
+  status = data_buffer.run(nntrainer::BUF_TRAIN);
+  ASSERT_EQ(status, ML_ERROR_NONE);
+  status = data_buffer.run(nntrainer::BUF_TEST);
+  ASSERT_EQ(status, ML_ERROR_NONE);
+  status = data_buffer.run(nntrainer::BUF_VAL);
+  ASSERT_EQ(status, ML_ERROR_NONE);
+  status = data_buffer.clear();
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Data buffer partial clear
+ */
+TEST(nntrainer_DataBuffer, clear_02_p){
+  int status = ML_ERROR_NONE;
+  nntrainer::DataBufferFromDataFile data_buffer;
+  status = data_buffer.setDataFile("testSet.dat", nntrainer::DATA_TEST);
+  ASSERT_EQ(status, ML_ERROR_NONE);
+  status = data_buffer.clear(nntrainer::BUF_TEST);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Data buffer all clear after partial clear
+ */
+TEST(nntrainer_DataBuffer, clear_03_p){
+  int status = ML_ERROR_NONE;
+  nntrainer::DataBufferFromDataFile data_buffer;
+  status = data_buffer.setDataFile("testSet.dat", nntrainer::DATA_TEST);
+  ASSERT_EQ(status, ML_ERROR_NONE);
+  status = data_buffer.clear(nntrainer::BUF_TEST);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = data_buffer.clear();
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+
+/**
+ * @brief Data buffer partial clear after all clear
+ */
+TEST(nntrainer_DataBuffer, clear_04_p){
+  int status = ML_ERROR_NONE;
+  nntrainer::DataBufferFromDataFile data_buffer;
+  status = data_buffer.setDataFile("testSet.dat", nntrainer::DATA_TEST);
+  ASSERT_EQ(status, ML_ERROR_NONE);
+  status = data_buffer.clear(nntrainer::BUF_TEST);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = data_buffer.clear();
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Data buffer clear BUF_UNKNOWN
+ */
+TEST(nntrainer_DataBuffer, clear_05_n){
+  int status = ML_ERROR_NONE;
+  nntrainer::DataBufferFromDataFile data_buffer;
+  status = data_buffer.clear(nntrainer::BUF_UNKNOWN);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+}
+
+/**
  * @brief Main gtest
  */
 int main(int argc, char **argv) {

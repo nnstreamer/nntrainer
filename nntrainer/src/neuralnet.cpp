@@ -521,6 +521,11 @@ void NeuralNetwork::finalize() {
   for (unsigned int i = 0; i < layers.size(); i++) {
     delete layers[i];
   }
+
+  if (data_buffer){
+    data_buffer->clear();
+    delete data_buffer;
+  }
 }
 
 /**

@@ -171,6 +171,23 @@ int DataBuffer::clear(BufferType type) {
   return status;
 }
 
+int DataBuffer::clear(){
+  unsigned int i;
+
+  int status = ML_ERROR_NONE;
+  for(i = BUF_TRAIN; i <= BUF_TEST; ++i){
+    BufferType type = static_cast<BufferType>(i);
+    status = this->clear(type);
+
+    if(status != ML_ERROR_NONE){
+      ml_loge("Error: error occurred during clearing");
+      return status;
+    }
+  }
+
+  return status;
+}
+
 DataStatus DataBuffer::getStatus(BufferType type) {
   DataStatus ret = DATA_READY;
   if (globalExceptionPtr)
