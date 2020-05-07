@@ -22,7 +22,8 @@ nntrainer_sources = [
   'src/databuffer_func.cpp',
   'src/nntrainer_logger.cpp',
   'src/optimizer.cpp',
-  'src/util_func.cpp'
+  'src/util_func.cpp',
+  'src/parse_util.cpp'
 ]
 
 nntrainer_headers = [
@@ -35,7 +36,8 @@ nntrainer_headers = [
   'include/nntrainer_log.h',
   'include/nntrainer_logger.h',
   'include/optimizer.h',
-  'include/util_func.h'
+  'include/util_func.h',
+  'include/parse_util.h'
 ]
 
 

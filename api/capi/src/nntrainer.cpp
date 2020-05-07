@@ -22,51 +22,13 @@
  */
 
 #include "neuralnet.h"
+#include "nntrainer_internal.h"
 #include "nntrainer_log.h"
-#include <nntrainer.h>
 #include <string.h>
-
-#define ML_NNTRAINER_MAGIC 0x777F888F
 
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-typedef struct {
-  uint magic;
-  nntrainer::NeuralNetwork *network;
-} ml_nnmodel;
-
-typedef struct {
-  uint magic;
-  nntrainer::Layer *layer;
-} ml_nnlayer;
-
-#define ML_NNTRAINER_CHECK_MODEL_VALIDATION(nnmodel, model)      \
-  do {                                                           \
-    if (!model) {                                                \
-      ml_loge("Error: Invalid Parameter : model is empty.");     \
-      return ML_ERROR_INVALID_PARAMETER;                         \
-    }                                                            \
-    nnmodel = (ml_nnmodel *)model;                               \
-    if (nnmodel->magic != ML_NNTRAINER_MAGIC) {                  \
-      ml_loge("Error: Invalid Parameter : nnmodel is invalid."); \
-      return ML_ERROR_INVALID_PARAMETER;                         \
-    }                                                            \
-  } while (0)
-
-#define ML_NNTRAINER_CHECK_LAYER_VALIDATION(nnlayer, layer)      \
-  do {                                                           \
-    if (!layer) {                                                \
-      ml_loge("Error: Invalid Parameter : layer is empty.");     \
-      return ML_ERROR_INVALID_PARAMETER;                         \
-    }                                                            \
-    nnlayer = (ml_nnlayer *)layer;                               \
-    if (nnlayer->magic != ML_NNTRAINER_MAGIC) {                  \
-      ml_loge("Error: Invalid Parameter : nnlayer is invalid."); \
-      return ML_ERROR_INVALID_PARAMETER;                         \
-    }                                                            \
-  } while (0)
 
 /**
  * @brief Function to create Network::NeuralNetwork object.
@@ -195,8 +157,23 @@ int ml_nnlayer_delete(ml_nnlayer_h layer) {
 
   nntrainer::Layer *NL;
   NL = nnlayer->layer;
+
   delete NL;
   delete nnlayer;
+
+  return status;
+}
+
+int ml_nnlayer_set_property(ml_nnlayer_h layer, ml_layer_property_e key,
+                            const char *value) {
+  int status = ML_ERROR_NONE;
+  ml_nnlayer *nnlayer;
+  ML_NNTRAINER_CHECK_LAYER_VALIDATION(nnlayer, layer);
+
+  nntrainer::Layer *NL;
+  NL = nnlayer->layer;
+
+  status = NL->setProperty(key, value);
 
   return status;
 }

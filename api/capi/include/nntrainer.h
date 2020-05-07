@@ -76,6 +76,22 @@ typedef enum {
 } ml_layer_type_e;
 
 /**
+ * @brief Enumeration for the neural network layer property
+ *        InputLayer has 0, 1, 2, 3 properties.
+ *        FullyConnectedLayer has 0, 1, 4 properties.
+ *        BatchNormalizationLayer has 0, 1, 5 properties.
+ * @since_tizen 6.x
+ */
+typedef enum {
+  ML_INPUT_SHAPE = 0,     /**< Input Shaep */
+  ML_BIAS_ZERO = 1,       /**< Fill Bias with Zero  */
+  ML_NORMALIZATION = 2,   /**< Noramlization Flag  */
+  ML_STANDARDIZATION = 3, /**< Standardization Flag  */
+  ML_ACTIVATION = 4,      /**< Actication for Layer  */
+  ML_EPSILON = 5          /**< Epsilon for Batch Normalization  */
+} ml_layer_property_e;
+
+/**
  * @brief Constructs the neural network model.
  * @details Use this function to create Neural Netowrk Model.
  * @since_tizen 6.x
@@ -155,6 +171,20 @@ int ml_nnlayer_create(ml_nnlayer_h *layer, ml_layer_type_e type);
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter.
  */
 int ml_nnlayer_delete(ml_nnlayer_h layer);
+
+/**
+ * @brief Set the neural network layer Property.
+ * @details Use this function to set Neural Netowrk Layer Property.
+ * @since_tizen 6.x
+ * @param[in] layer The NNTrainer Layer handler from the given description.
+ * @param[in]  key Property key to set
+ * @param[in]  value Property value
+ * @return @c 0 on success. Otherwise a negative error value.
+ * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
+ */
+int ml_nnlayer_set_property(ml_nnlayer_h layer, ml_layer_property_e key,
+                            const char *value);
 
 /**
  * @}

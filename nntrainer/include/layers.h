@@ -143,6 +143,15 @@ public:
   virtual void save(std::ofstream &file) = 0;
 
   /**
+   * @brief     set Property of layer
+   * @param[in] key key of property
+   * @param[in] value value of property
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  virtual int setProperty(unsigned int key, const char* value) = 0;
+
+  /**
    * @brief     Optimizer Setter
    * @param[in] opt Optimizer
    * @retval #ML_ERROR_NONE Successful.
@@ -163,6 +172,12 @@ public:
    * @param[in] type layer type
    */
   void setType(LayerType type) { this->type = type; }
+
+  /**
+   * @brief     Layer type Getter
+   * @retval type LayerType
+   */
+  LayerType getType() { return type; }
 
   /**
    * @brief     Copy Layer
@@ -192,19 +207,9 @@ protected:
   bool last_layer;
 
   /**
-   * @brief     batch size of Weight Data
+   * @brief     Dimension of this layer
    */
-  unsigned int batch;
-
-  /**
-   * @brief     width size of Weight Data
-   */
-  unsigned int width;
-
-  /**
-   * @brief     height size of Weight Data
-   */
-  unsigned int height;
+  TensorDim dim;
 
   /**
    * @brief     Optimizer for this layer
@@ -330,6 +335,29 @@ public:
    */
   void setStandardization(bool enable) { this->standardization = enable; };
 
+  /**
+   * @brief     set Property of layer
+   * @param[in] key key of property
+   * @param[in] value value of property
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  int setProperty(unsigned int key, const char* value);
+
+  /**
+   * @brief     Property Enumeration
+   *            0. input shape : string
+   *            1. bias zero : bool
+   *            2. normalization : bool
+   *            3. normalization : bool
+   */
+  enum class PropertyType {
+    input_shape = 0,
+    bias_zero = 1,
+    normalization = 2,
+    standardization = 3
+  };
+
 private:
   bool normalization;
   bool standardization;
@@ -420,6 +448,27 @@ public:
    */
   int setCost(CostType c);
 
+  /**
+   * @brief     set Property of layer
+   * @param[in] key key of property
+   * @param[in] value value of property
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  int setProperty(unsigned key, const char* value);
+
+  /**
+   * @brief     Property Enumeration
+   *            0. input shape : string
+   *            1. bias zero : bool
+   *            2. activation : bool
+   */
+  enum class PropertyType {
+    input_shape = 0,
+    bias_zero = 1,
+    activation = 4
+  };
+
 private:
   Tensor weight;
   Tensor bias;
@@ -509,6 +558,27 @@ public:
    */
   int initialize(int b, int h, int w, bool last, bool init_zero,
                  WeightIniType wini);
+
+  /**
+   * @brief     set Property of layer
+   * @param[in] key key of property
+   * @param[in] value value of property
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  int setProperty(unsigned int key, const char* value);
+
+  /**
+   * @brief     Property Enumeration
+   *            0. input shape : string
+   *            1. bias zero : bool
+   *            2. epsilon : float
+   */
+  enum class PropertyType {
+    input_shape = 0,
+    bias_zero = 1,
+    epsilon = 5,
+  };
 
 private:
   Tensor weight;

@@ -23,8 +23,10 @@
 
 #include "layers.h"
 #include "nntrainer_error.h"
+#include "parse_util.h"
 #include "util_func.h"
 #include <assert.h>
+#include <cstring>
 #include <nntrainer_log.h>
 #include <random>
 
@@ -102,9 +104,10 @@ Layer::Layer() {
   type = LAYER_UNKNOWN;
   activation_type = ACT_UNKNOWN;
   last_layer = false;
-  batch = 0;
-  width = 0;
-  height = 0;
+  dim.batch(0);
+  dim.channel(0);
+  dim.width(0);
+  dim.height(0);
   init_zero = false;
   activation = NULL;
   activation_prime = NULL;
@@ -141,7 +144,7 @@ int Layer::setOptimizer(Optimizer &opt) {
   this->opt.setType(opt.getType());
   this->opt.setOptParam(opt.getOptParam());
 
-  return this->opt.initialize(height, width, true);
+  return this->opt.initialize(dim.height(), dim.width(), true);
 }
 
 int Layer::checkValidation() {
@@ -155,7 +158,7 @@ int Layer::checkValidation() {
     ml_loge("Error: Have to set activation for this layer");
     return ML_ERROR_INVALID_PARAMETER;
   }
-  if (batch == 0 || width == 0 || height == 0) {
+  if (dim.batch() == 0 || dim.width() == 0 || dim.height() == 0) {
     ml_loge("Error: Tensor Dimension must be set before initialization");
     return ML_ERROR_INVALID_PARAMETER;
   }
@@ -166,15 +169,39 @@ int InputLayer::setOptimizer(Optimizer &opt) {
   this->opt.setType(opt.getType());
   this->opt.setOptParam(opt.getOptParam());
 
-  return this->opt.initialize(height, width, false);
+  return this->opt.initialize(dim.height(), dim.width(), false);
+}
+
+int InputLayer::setProperty(unsigned int key, const char *value) {
+  int status = ML_ERROR_NONE;
+
+  switch (static_cast<PropertyType>(key)) {
+  case PropertyType::input_shape:
+    status = dim.setTensorDim(value);
+    break;
+  case PropertyType::bias_zero:
+    init_zero = (strcasecmp("true", value) == 0);
+    break;
+  case PropertyType::normalization:
+    normalization = (strcasecmp("true", value) == 0);
+    break;
+  case PropertyType::standardization:
+    standardization = (strcasecmp("true", value) == 0);
+    break;
+  default:
+    ml_loge("Error: Unknown Layer Property Key");
+    status = ML_ERROR_INVALID_PARAMETER;
+    break;
+  }
+
+  return status;
 }
 
 void InputLayer::copy(Layer *l) {
   InputLayer *from = static_cast<InputLayer *>(l);
   this->opt = from->opt;
   this->last_layer = from->last_layer;
-  this->height = from->height;
-  this->width = from->width;
+  this->dim = from->dim;
   this->input.copy(from->input);
   this->hidden.copy(from->hidden);
 }
@@ -194,9 +221,9 @@ int InputLayer::initialize(int b, int h, int w, bool last, bool init_zero,
     return ML_ERROR_INVALID_PARAMETER;
   }
 
-  this->batch = b;
-  this->width = w;
-  this->height = h;
+  this->dim.batch(b);
+  this->dim.width(w);
+  this->dim.height(h);
   this->last_layer = last;
   this->bn_fallow = false;
   return status;
@@ -210,9 +237,10 @@ int FullyConnectedLayer::initialize(int b, int h, int w, bool last,
     return ML_ERROR_INVALID_PARAMETER;
   }
 
-  this->batch = b;
-  this->width = w;
-  this->height = h;
+  this->dim.batch(b);
+  this->dim.width(w);
+  this->dim.height(h);
+
   this->last_layer = last;
   this->init_zero = init_zero;
   this->bn_fallow = false;
@@ -238,6 +266,27 @@ int FullyConnectedLayer::setCost(CostType c) {
     return ML_ERROR_INVALID_PARAMETER;
   }
   cost = c;
+  return status;
+}
+
+int FullyConnectedLayer::setProperty(unsigned int key, const char *value) {
+  int status = ML_ERROR_NONE;
+  switch (static_cast<PropertyType>(key)) {
+  case PropertyType::input_shape:
+    status = dim.setTensorDim(value);
+    break;
+  case PropertyType::bias_zero: {
+    bool isTrue = (strcasecmp("true", value) == 0);
+    init_zero = isTrue;
+  } break;
+  case PropertyType::activation:
+    status = setActivation((ActiType)parseType(value, TOKEN_ACTI));
+    break;
+  default:
+    ml_loge("Error: Unknown Layer Property Key");
+    status = ML_ERROR_INVALID_PARAMETER;
+    break;
+  }
   return status;
 }
 
@@ -333,8 +382,7 @@ void FullyConnectedLayer::copy(Layer *l) {
   FullyConnectedLayer *from = static_cast<FullyConnectedLayer *>(l);
   this->opt = from->opt;
   this->last_layer = from->last_layer;
-  this->height = from->height;
-  this->width = from->width;
+  this->dim = from->dim;
   this->input.copy(from->input);
   this->hidden.copy(from->hidden);
   this->weight.copy(from->weight);
@@ -433,14 +481,15 @@ int BatchNormalizationLayer::initialize(int b, int h, int w, bool last,
     return ML_ERROR_INVALID_PARAMETER;
   }
 
-  this->batch = b;
-  this->width = w;
-  this->height = h;
+  this->dim.batch(b);
+  this->dim.width(w);
+  this->dim.height(h);
+
   this->last_layer = last;
   this->init_zero = init_zero;
 
-  this->gamma = Tensor(batch, w);
-  this->beta = Tensor(batch, w);
+  this->gamma = Tensor(b, w);
+  this->beta = Tensor(b, w);
   beta.setZero();
   gamma.setZero();
   return status;
@@ -451,19 +500,42 @@ int BatchNormalizationLayer::setOptimizer(Optimizer &opt) {
   this->opt.setOptParam(opt.getOptParam());
 
   this->epsilon = 0.0;
-  return this->opt.initialize(height, width, false);
+  return this->opt.initialize(dim.height(), dim.width(), false);
+}
+
+int BatchNormalizationLayer::setProperty(unsigned int key, const char *value) {
+  int status = ML_ERROR_NONE;
+
+  switch (static_cast<PropertyType>(key)) {
+  case PropertyType::input_shape:
+    status = dim.setTensorDim(value);
+    break;
+  case PropertyType::bias_zero: {
+    bool isTrue = (strcasecmp("true", value) == 0);
+    init_zero = isTrue;
+  } break;
+  case PropertyType::epsilon:
+    epsilon = std::stof(value);
+    break;
+  default:
+    ml_loge("Error: Unknown Layer Property Key");
+    status = ML_ERROR_INVALID_PARAMETER;
+    break;
+  }
+
+  return status;
 }
 
 Tensor BatchNormalizationLayer::forwarding(Tensor in, int &status) {
   Tensor temp;
-
+  assert(dim.batch() > 0);
   hidden = in;
 
-  mu = in.sum(0).multiply(1.0 / batch);
+  mu = in.sum(0).multiply(1.0 / dim.batch());
 
   temp = in.subtract(mu);
 
-  var = temp.multiply(temp).sum(0).multiply(1.0 / batch);
+  var = temp.multiply(temp).sum(0).multiply(1.0 / dim.batch());
 
   Tensor hath = temp.divide(var.add(0.001).apply(sqrtFloat));
 
@@ -477,6 +549,8 @@ Tensor BatchNormalizationLayer::forwarding(Tensor in, int &status) {
 Tensor BatchNormalizationLayer::backwarding(Tensor derivative, int iteration) {
   Tensor dbeta;
   Tensor dgamma;
+  assert(dim.batch() > 0);
+
   Tensor hath = hidden;
   Tensor dy =
     derivative.multiply(hath.multiply(gamma).add(beta).apply(activation_prime));
@@ -488,11 +562,11 @@ Tensor BatchNormalizationLayer::backwarding(Tensor derivative, int iteration) {
               .sum(0));
 
   Tensor Temp =
-    (dy.multiply(batch).subtract(dy.sum(0)))
+    (dy.multiply(dim.batch()).subtract(dy.sum(0)))
       .subtract(input.subtract(mu)
                   .divide(var.add(0.001))
                   .multiply(dy.multiply(input.subtract(mu)).sum(0)));
-  Tensor dh = Temp.multiply(1.0 / batch)
+  Tensor dh = Temp.multiply(1.0 / dim.batch())
                 .multiply(var.add(0.001).apply(sqrtFloat))
                 .multiply(gamma);
 
@@ -525,8 +599,7 @@ void BatchNormalizationLayer::copy(Layer *l) {
   BatchNormalizationLayer *from = static_cast<BatchNormalizationLayer *>(l);
   this->opt = from->opt;
   this->last_layer = from->last_layer;
-  this->height = from->height;
-  this->width = from->width;
+  this->dim = from->dim;
   this->input.copy(from->input);
   this->hidden.copy(from->hidden);
   this->weight.copy(from->weight);
