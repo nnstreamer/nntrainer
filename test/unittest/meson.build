@@ -19,7 +19,6 @@ unittest_nntrainer_internal = executable('unittest_nntrainer_internal',
 )
 test('unittest_nntrainer_internal', unittest_nntrainer_internal)
 
-
 unittest_util_func = executable('unittest_util_func',
   'unittest_util_func.cpp',
   dependencies: unittest_nntrainer_deps,
@@ -30,7 +29,7 @@ test('unittest_util_func', unittest_util_func)
 
 unittest_databuffer_file = executable('unittest_databuffer_file',
   ['../nntrainer_test_util.cpp', 'unittest_databuffer_file.cpp'],
-  dependencies: [unittest_nntrainer_internal_deps],
+  dependencies: [unittest_nntrainer_deps],
   include_directories: nntrainer_test_inc,
   install: get_option('enable-test'),
   install_dir: application_install_dir
