@@ -17,7 +17,7 @@
  * @date        10 April 2020
  * @brief       Unit test for util_func.cpp.
  * @see         https://github.com/nnstreamer/nntrainer
- * @author      Jihoon Lee <jhoon.it.lee@samsung.com>
+ * @author      Jijoong Moon <jijoong.moon@samsung.com>
  * @bug         No known bugs
  */
 
