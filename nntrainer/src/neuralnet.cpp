@@ -26,6 +26,7 @@
 #include "databuffer_func.h"
 #include "iniparser.h"
 #include "nntrainer_error.h"
+#include "parse_util.h"
 #include <array>
 #include <assert.h>
 #include <cmath>
@@ -44,30 +45,6 @@
 
 namespace nntrainer {
 
-/**
- * @brief     compare character to remove case sensitivity
- * @param[in] c1 characer #1
- * @param[in] c2 characer #2
- * @retval    boolean true if they are same
- */
-bool compareChar(char &c1, char &c2) {
-  if (c1 == c2)
-    return true;
-  else if (std::toupper(c1) == std::toupper(c2))
-    return true;
-  return false;
-}
-
-/**
- * @brief     compare string with case insensitive
- * @param[in] str1 string #1
- * @param[in] str2 string #2
- * @retval    boolean true if they are same
- */
-bool caseInSensitiveCompare(std::string &str1, std::string &str2) {
-  return ((str1.size() == str2.size()) &&
-          std::equal(str1.begin(), str1.end(), str2.begin(), &compareChar));
-}
 
 /**
  * @brief     Check Existance of File
@@ -94,144 +71,6 @@ std::vector<std::string> parseLayerName(std::string ll) {
       ret.push_back(word);
   } while (ss);
 
-  return ret;
-}
-
-/**
- * @brief     Parsing Configuration Token
- * @param[in] ll string to be parsed
- * @param[in] t  Token type
- * @retval    int enumerated type
- */
-unsigned int parseType(std::string ll, InputType t) {
-  int ret;
-  unsigned int i;
-  /**
-   * @brief     Optimizer String from configure file
-   *            "sgd"  : Stochestic Gradient Descent
-   *            "adam" : Adaptive Moment Estimation
-   */
-  std::array<std::string, 3> optimizer_string = {"sgd", "adam", "unknown"};
-
-  /**
-   * @brief     Cost Function String from configure file
-   *            "msr"  : Mean Squared Roots
-   *            "caterogical" : Categorical Cross Entropy
-   */
-  std::array<std::string, 3> cost_string = {"msr", "cross", "unknown"};
-
-  /**
-   * @brief     Network Type String from configure file
-   *            "knn"  : K Neearest Neighbor
-   *            "regression" : Logistic Regression
-   *            "neuralnet" : Neural Network
-   */
-  std::array<std::string, 4> network_type_string = {"knn", "regression",
-                                                    "neuralnet", "unknown"};
-
-  /**
-   * @brief     Activation Type String from configure file
-   *            "tanh"  : tanh
-   *            "sigmoid" : sigmoid
-   *            "relu" : relu
-   *            "softmax" : softmax
-   */
-  std::array<std::string, 5> activation_string = {"tanh", "sigmoid", "relu",
-                                                  "softmax", "unknown"};
-
-  /**
-   * @brief     Layer Type String from configure file
-   *            "input"  : Input Layer Object
-   *            "fully_conntected" : Fully Connected Layer Object
-   *            "batch_normalization" : Batch Normalization Layer Object
-   *            "unknown" : Batch Normalization Layer Object
-   */
-  std::array<std::string, 4> layer_string = {"input", "fully_connected",
-                                             "batch_normalization", "unknown"};
-
-  /**
-   * @brief     Weight Initialization Type String from configure file
-   *            "lecun_normal"  : LeCun Normal Initialization
-   *            "lecun_uniform"  : LeCun Uniform Initialization
-   *            "xavier_normal"  : Xavier Normal Initialization
-   *            "xavier_uniform"  : Xavier Uniform Initialization
-   *            "he_normal"  : He Normal Initialization
-   *            "he_uniform"  : He Uniform Initialization
-   */
-  std::array<std::string, 7> weight_ini_string = {
-    "lecun_normal", "lecun_uniform", "xavier_normal", "xavier_uniform",
-    "he_normal",    "he_uniform",    "unknown"};
-
-  /**
-   * @brief     Weight Decay String from configure file
-   *            "L2Norm"  : squared norm regularization
-   *            "Regression" : Regression
-   */
-  std::array<std::string, 3> weight_decay_string = {"l2norm", "regression",
-                                                    "unknown"};
-
-  switch (t) {
-  case TOKEN_OPT:
-    for (i = 0; i < optimizer_string.size(); i++) {
-      if (caseInSensitiveCompare(optimizer_string[i], ll)) {
-        return (i);
-      }
-    }
-    ret = i - 1;
-    break;
-  case TOKEN_COST:
-    for (i = 0; i < cost_string.size(); i++) {
-      if (caseInSensitiveCompare(cost_string[i], ll)) {
-        return (i);
-      }
-    }
-    ret = i - 1;
-    break;
-  case TOKEN_NET:
-    for (i = 0; i < network_type_string.size(); i++) {
-      if (caseInSensitiveCompare(network_type_string[i], ll)) {
-        return (i);
-      }
-    }
-    ret = i - 1;
-    break;
-  case TOKEN_ACTI:
-    for (i = 0; i < activation_string.size(); i++) {
-      if (caseInSensitiveCompare(activation_string[i], ll)) {
-        return (i);
-      }
-    }
-    ret = i - 1;
-    break;
-  case TOKEN_LAYER:
-    for (i = 0; i < layer_string.size(); i++) {
-      if (caseInSensitiveCompare(layer_string[i], ll)) {
-        return (i);
-      }
-    }
-    ret = i - 1;
-    break;
-  case TOKEN_WEIGHTINI:
-    for (i = 0; i < weight_ini_string.size(); i++) {
-      if (caseInSensitiveCompare(weight_ini_string[i], ll)) {
-        return (i);
-      }
-    }
-    ret = i - 1;
-    break;
-  case TOKEN_WEIGHT_DECAY:
-    for (i = 0; i < weight_decay_string.size(); i++) {
-      if (caseInSensitiveCompare(weight_decay_string[i], ll)) {
-        return (i);
-      }
-    }
-    ret = i - 1;
-    break;
-  case TOKEN_UNKNOWN:
-  default:
-    ret = 3;
-    break;
-  }
   return ret;
 }
 

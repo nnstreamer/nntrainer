@@ -44,28 +44,6 @@ namespace nntrainer {
 typedef enum { NET_KNN, NET_REG, NET_NEU, NET_UNKNOWN } NetType;
 
 /**
- * @brief     Enumeration for input configuration file parsing
- *            0. OPT     ( Optimizer Token )
- *            1. COST    ( Cost Function Token )
- *            2. NET     ( Network Token )
- *            3. ACTI    ( Activation Token )
- *            4. LAYER   ( Layer Token )
- *            5. WEIGHTINI  ( Weight Initialization Token )
- *            7. WEIGHT_DECAY  ( Weight Decay Token )
- *            8. UNKNOWN
- */
-typedef enum {
-  TOKEN_OPT,
-  TOKEN_COST,
-  TOKEN_NET,
-  TOKEN_ACTI,
-  TOKEN_LAYER,
-  TOKEN_WEIGHTINI,
-  TOKEN_WEIGHT_DECAY,
-  TOKEN_UNKNOWN
-} InputType;
-
-/**
  * @class   NeuralNetwork Class
  * @brief   NeuralNetwork Class which has Network Configuration & Layers
  */

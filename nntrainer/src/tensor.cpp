@@ -50,6 +50,10 @@ int TensorDim::setTensorDim(std::string input_shape) {
   int cn = 0;
   for (std::sregex_iterator i = words_begin; i != words_end; ++i) {
     dim[MAXDIM - cur_dim + cn] = std::stoi((*i).str());
+    if (dim[MAXDIM - cur_dim + cn] <= 0) {
+      ml_loge("Tensor Dimension should be greater than 0");
+      return ML_ERROR_INVALID_PARAMETER;
+    }
     cn++;
   }
   return status;

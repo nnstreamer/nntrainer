@@ -185,6 +185,7 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %{_includedir}/nntrainer/nntrainer_logger.h
 %{_includedir}/nntrainer/optimizer.h
 %{_includedir}/nntrainer/util_func.h
+%{_includedir}/nntrainer/parse_util.h
 %{_libdir}/*.a
 %{_libdir}/pkgconfig/nntrainer.pc
 
