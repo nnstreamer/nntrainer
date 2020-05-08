@@ -142,13 +142,44 @@ TEST(nntrainer_capi_nnmodel, train_01_p) {
 }
 
 /**
+ * @brief Neural Network Model Add Layer Test
+ */
+TEST(nntrainer_capi_nnmodel, addLayer_01_p) {
+  int status = ML_ERROR_NONE;
+
+  ml_nnmodel_h model;
+  ml_nnlayer_h layer;
+
+  status = ml_nnmodel_construct(&model);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_nnlayer_create(&layer, ML_LAYER_TYPE_INPUT);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_nnlayer_set_property(layer, "input_shape", "32:1:1:6270");
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_nnlayer_set_property(layer, "normalization", "true");
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_nnmodel_add_layer(model, layer);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_nnlayer_delete(layer);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_nnmodel_destruct(model);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
  * @brief Main gtest
  */
 int main(int argc, char **argv) {
   int result = -1;
 
   try {
-    testing::InitGoogleTest (&argc, argv);
+    testing::InitGoogleTest(&argc, argv);
   } catch (...) {
     ml_loge("Failed to init gtest\n");
   }
