@@ -183,7 +183,7 @@ public:
    * @brief     Copy Layer
    * @param[in] l Layer to be copied
    */
-  virtual void copy(Layer *l) = 0;
+  virtual void copy(std::shared_ptr<Layer> l) = 0;
 
   void setBNfallow(bool ok) { this->bn_fallow = ok; }
 
@@ -321,7 +321,7 @@ public:
    * @brief     Copy Layer
    * @param[in] l layer to copy
    */
-  void copy(Layer *l);
+  void copy(std::shared_ptr<Layer> l);
 
   /**
    * @brief     set normalization
@@ -420,7 +420,7 @@ public:
    * @brief     copy layer
    * @param[in] l layer to copy
    */
-  void copy(Layer *l);
+  void copy(std::shared_ptr<Layer> l);
 
   /**
    * @brief     initialize layer
@@ -539,7 +539,7 @@ public:
    * @brief     copy layer
    * @param[in] l layer to copy
    */
-  void copy(Layer *l);
+  void copy(std::shared_ptr<Layer> l);
 
   /**
    * @brief     initialize layer

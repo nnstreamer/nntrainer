@@ -41,7 +41,7 @@ static int nn_object(ml_nnmodel_h *model) {
   *model = nnmodel;
 
   try {
-    nnmodel->network = new nntrainer::NeuralNetwork();
+    nnmodel->network = std::make_shared<nntrainer::NeuralNetwork>();
   } catch (const char *e) {
     ml_loge("Error: heap exception: %s", e);
     status = ML_ERROR_CANNOT_ASSIGN_ADDRESS;
@@ -73,7 +73,7 @@ int ml_nnmodel_construct_with_conf(const char *model_conf,
 
   nnmodel = (ml_nnmodel *)(*model);
 
-  nntrainer::NeuralNetwork *nn = (nnmodel)->network;
+  std::shared_ptr<nntrainer::NeuralNetwork> nn = (nnmodel)->network;
 
   nn->setConfig(model_conf);
   return status;
@@ -84,7 +84,7 @@ int ml_nnmodel_compile(ml_nnmodel_h model) {
   ml_nnmodel *nnmodel;
 
   ML_NNTRAINER_CHECK_MODEL_VALIDATION(nnmodel, model);
-  nntrainer::NeuralNetwork *NN;
+  std::shared_ptr<nntrainer::NeuralNetwork> NN;
   NN = nnmodel->network;
   status = NN->checkValidation();
   if (status != ML_ERROR_NONE)
@@ -98,7 +98,7 @@ int ml_nnmodel_train(ml_nnmodel_h model) {
   ml_nnmodel *nnmodel;
 
   ML_NNTRAINER_CHECK_MODEL_VALIDATION(nnmodel, model);
-  nntrainer::NeuralNetwork *NN;
+  std::shared_ptr<nntrainer::NeuralNetwork> NN;
   NN = nnmodel->network;
   status = NN->train();
   return status;
@@ -110,10 +110,9 @@ int ml_nnmodel_destruct(ml_nnmodel_h model) {
 
   ML_NNTRAINER_CHECK_MODEL_VALIDATION(nnmodel, model);
 
-  nntrainer::NeuralNetwork *NN;
+  std::shared_ptr<nntrainer::NeuralNetwork> NN;
   NN = nnmodel->network;
   NN->finalize();
-  delete NN;
   delete nnmodel;
 
   return status;
@@ -126,8 +125,8 @@ int ml_nnmodel_add_layer(ml_nnmodel_h model, ml_nnlayer_h layer) {
   ML_NNTRAINER_CHECK_MODEL_VALIDATION(nnmodel, model);
   ML_NNTRAINER_CHECK_LAYER_VALIDATION(nnlayer, layer);
 
-  nntrainer::NeuralNetwork *NN;
-  nntrainer::Layer *NL;
+  std::shared_ptr<nntrainer::NeuralNetwork> NN;
+  std::shared_ptr<nntrainer::Layer> NL;
 
   NN = nnmodel->network;
   NL = nnlayer->layer;
@@ -145,11 +144,11 @@ int ml_nnlayer_create(ml_nnlayer_h *layer, ml_layer_type_e type) {
   try {
     switch (type) {
     case ML_LAYER_TYPE_INPUT:
-      nnlayer->layer = new nntrainer::InputLayer();
+      nnlayer->layer = std::make_shared<nntrainer::InputLayer>();
       nnlayer->layer->setType(nntrainer::LAYER_IN);
       break;
     case ML_LAYER_TYPE_FC:
-      nnlayer->layer = new nntrainer::FullyConnectedLayer();
+      nnlayer->layer = std::make_shared<nntrainer::FullyConnectedLayer>();
       nnlayer->layer->setType(nntrainer::LAYER_FC);
       break;
     default:
@@ -173,10 +172,9 @@ int ml_nnlayer_delete(ml_nnlayer_h layer) {
 
   ML_NNTRAINER_CHECK_LAYER_VALIDATION(nnlayer, layer);
 
-  nntrainer::Layer *NL;
+  std::shared_ptr<nntrainer::Layer> NL;
   NL = nnlayer->layer;
 
-  delete NL;
   delete nnlayer;
 
   return status;
@@ -188,7 +186,7 @@ int ml_nnlayer_set_property(ml_nnlayer_h layer, const char *key,
   ml_nnlayer *nnlayer;
   ML_NNTRAINER_CHECK_LAYER_VALIDATION(nnlayer, layer);
 
-  nntrainer::Layer *NL;
+  std::shared_ptr<nntrainer::Layer> NL;
   NL = nnlayer->layer;
 
   status = NL->setProperty(key, value);
