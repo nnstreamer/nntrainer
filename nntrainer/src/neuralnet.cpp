@@ -271,7 +271,8 @@ int NeuralNetwork::init() {
 
     switch (t) {
     case LAYER_IN: {
-      InputLayer *input_layer = new (InputLayer);
+      std::shared_ptr<InputLayer> input_layer = std::make_shared<InputLayer>();
+
       input_layer->setType(t);
       status = input_layer->initialize(batch_size, 1, hidden_size[i], last,
                                        b_zero, weight_ini);
@@ -292,7 +293,8 @@ int NeuralNetwork::init() {
       layers.push_back(input_layer);
     } break;
     case LAYER_FC: {
-      FullyConnectedLayer *fc_layer = new (FullyConnectedLayer);
+      std::shared_ptr<FullyConnectedLayer> fc_layer =
+        std::make_shared<FullyConnectedLayer>();
       fc_layer->setType(t);
       status = fc_layer->setCost(cost);
       NN_RETURN_STATUS();
@@ -314,7 +316,8 @@ int NeuralNetwork::init() {
       layers.push_back(fc_layer);
     } break;
     case LAYER_BN: {
-      BatchNormalizationLayer *bn_layer = new (BatchNormalizationLayer);
+      std::shared_ptr<BatchNormalizationLayer> bn_layer =
+        std::make_shared<BatchNormalizationLayer>();
       bn_layer->setType(t);
       status = bn_layer->setOptimizer(opt);
       NN_RETURN_STATUS();
@@ -357,7 +360,7 @@ int NeuralNetwork::init() {
  */
 void NeuralNetwork::finalize() {
   for (unsigned int i = 0; i < layers.size(); i++) {
-    delete layers[i];
+    layers.erase(layers.begin() + i);
   }
 
   if (data_buffer) {
@@ -408,8 +411,8 @@ int NeuralNetwork::backwarding(Tensor input, Tensor expected_output,
 }
 
 float NeuralNetwork::getLoss() {
-  FullyConnectedLayer *out =
-    static_cast<FullyConnectedLayer *>((layers[layers.size() - 1]));
+  std::shared_ptr<FullyConnectedLayer> out =
+    std::static_pointer_cast<FullyConnectedLayer>((layers[layers.size() - 1]));
   return out->getLoss();
 }
 
@@ -574,7 +577,8 @@ int NeuralNetwork::checkValidation() {
   if (layers.size()) {
     return ML_ERROR_INVALID_PARAMETER;
   } else {
-    for (std::vector<nntrainer::Layer *>::iterator layer = layers.begin();
+    for (std::vector<std::shared_ptr<nntrainer::Layer>>::iterator layer =
+           layers.begin();
          layer != layers.end(); ++layer) {
       if (!(*layer)->checkValidation())
         return ML_ERROR_INVALID_PARAMETER;
@@ -584,7 +588,7 @@ int NeuralNetwork::checkValidation() {
   return status;
 }
 
-int NeuralNetwork::addLayer(Layer *layer) {
+int NeuralNetwork::addLayer(std::shared_ptr<Layer> layer) {
   int status = ML_ERROR_NONE;
 
   LayerType type = layer->getType();

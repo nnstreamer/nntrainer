@@ -34,12 +34,12 @@ extern "C" {
 
 typedef struct {
   uint magic;
-  nntrainer::NeuralNetwork *network;
+  std::shared_ptr<nntrainer::NeuralNetwork> network;
 } ml_nnmodel;
 
 typedef struct {
   uint magic;
-  nntrainer::Layer *layer;
+  std::shared_ptr<nntrainer::Layer> layer;
 } ml_nnlayer;
 
 #define ML_NNTRAINER_CHECK_MODEL_VALIDATION(nnmodel, model)      \
@@ -71,5 +71,5 @@ typedef struct {
 #ifdef __cplusplus
 }
 
-#endif /* __cplusplus */  
+#endif /* __cplusplus */
 #endif

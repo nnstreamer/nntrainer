@@ -172,7 +172,7 @@ int InputLayer::setOptimizer(Optimizer &opt) {
   return this->opt.initialize(dim.height(), dim.width(), false);
 }
 
-int InputLayer::setProperty(const char* key, const char *value) {
+int InputLayer::setProperty(const char *key, const char *value) {
   int status = ML_ERROR_NONE;
   unsigned int type = parseLayerProperty(key);
 
@@ -198,8 +198,8 @@ int InputLayer::setProperty(const char* key, const char *value) {
   return status;
 }
 
-void InputLayer::copy(Layer *l) {
-  InputLayer *from = static_cast<InputLayer *>(l);
+void InputLayer::copy(std::shared_ptr<Layer> l) {
+  std::shared_ptr<InputLayer> from = std::static_pointer_cast<InputLayer>(l);
   this->opt = from->opt;
   this->last_layer = from->last_layer;
   this->dim = from->dim;
@@ -270,7 +270,7 @@ int FullyConnectedLayer::setCost(CostType c) {
   return status;
 }
 
-int FullyConnectedLayer::setProperty(const char* key, const char *value) {
+int FullyConnectedLayer::setProperty(const char *key, const char *value) {
   int status = ML_ERROR_NONE;
   unsigned int type = parseLayerProperty(key);
 
@@ -381,8 +381,9 @@ void FullyConnectedLayer::save(std::ofstream &file) {
   bias.save(file);
 }
 
-void FullyConnectedLayer::copy(Layer *l) {
-  FullyConnectedLayer *from = static_cast<FullyConnectedLayer *>(l);
+void FullyConnectedLayer::copy(std::shared_ptr<Layer> l) {
+  std::shared_ptr<FullyConnectedLayer> from =
+    std::static_pointer_cast<FullyConnectedLayer>(l);
   this->opt = from->opt;
   this->last_layer = from->last_layer;
   this->dim = from->dim;
@@ -506,7 +507,7 @@ int BatchNormalizationLayer::setOptimizer(Optimizer &opt) {
   return this->opt.initialize(dim.height(), dim.width(), false);
 }
 
-int BatchNormalizationLayer::setProperty(const char* key, const char *value) {
+int BatchNormalizationLayer::setProperty(const char *key, const char *value) {
   int status = ML_ERROR_NONE;
   unsigned int type = parseLayerProperty(key);
 
@@ -599,8 +600,9 @@ void BatchNormalizationLayer::save(std::ofstream &file) {
   beta.save(file);
 }
 
-void BatchNormalizationLayer::copy(Layer *l) {
-  BatchNormalizationLayer *from = static_cast<BatchNormalizationLayer *>(l);
+void BatchNormalizationLayer::copy(std::shared_ptr<Layer> l) {
+  std::shared_ptr<BatchNormalizationLayer> from =
+    std::static_pointer_cast<BatchNormalizationLayer>(l);
   this->opt = from->opt;
   this->last_layer = from->last_layer;
   this->dim = from->dim;
