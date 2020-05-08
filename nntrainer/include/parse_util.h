@@ -52,20 +52,11 @@ typedef enum {
 } InputType;
 
 /**
- * @brief     compare character to remove case sensitivity
- * @param[in] c1 characer #1
- * @param[in] c2 characer #2
- * @retval    boolean true if they are same
+ * @brief     Parsing Layer Property
+ * @param[in] property string to be parsed
+ * @retval    int enumerated type
  */
-bool compareChar(char &c1, char &c2);
-
-/**
- * @brief     compare string with case insensitive
- * @param[in] str1 string #1
- * @param[in] str2 string #2
- * @retval    boolean true if they are same
- */
-bool caseInSensitiveCompare(std::string &str1, std::string &str2);
+unsigned int parseLayerProperty(std::string property);
 
 /**
  * @brief     Parsing Configuration Token

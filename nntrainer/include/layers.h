@@ -149,7 +149,7 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  virtual int setProperty(unsigned int key, const char* value) = 0;
+  virtual int setProperty(const char *key, const char *value) = 0;
 
   /**
    * @brief     Optimizer Setter
@@ -342,7 +342,7 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int setProperty(unsigned int key, const char* value);
+  int setProperty(const char *key, const char *value);
 
   /**
    * @brief     Property Enumeration
@@ -455,7 +455,7 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int setProperty(unsigned key, const char* value);
+  int setProperty(const char *key, const char *value);
 
   /**
    * @brief     Property Enumeration
@@ -463,11 +463,7 @@ public:
    *            1. bias zero : bool
    *            2. activation : bool
    */
-  enum class PropertyType {
-    input_shape = 0,
-    bias_zero = 1,
-    activation = 4
-  };
+  enum class PropertyType { input_shape = 0, bias_zero = 1, activation = 4 };
 
 private:
   Tensor weight;
@@ -566,7 +562,7 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int setProperty(unsigned int key, const char* value);
+  int setProperty(const char *key, const char *value);
 
   /**
    * @brief     Property Enumeration

@@ -167,4 +167,36 @@ unsigned int parseType(std::string ll, InputType t) {
   return ret;
 }
 
+unsigned int parseLayerProperty(std::string property) {
+  int ret;
+  unsigned int i;
+
+  /**
+   * @brief     Layer Properties
+   * input_shape = 0,
+   * bias_zero = 1,
+   * normalization = 2,
+   * standardization = 3,
+   * activation = 4,
+   * epsilon = 5
+   *
+   * InputLayer has 0, 1, 2, 3 properties.
+   * FullyConnectedLayer has 0, 1, 4 properties.
+   * BatchNormalizationLayer has 0, 1, 5 properties.
+   */
+  std::array<std::string, 7> property_string = {
+    "input_shape", "bias_zero", "normalization", "standardization",
+    "activation",  "epsilon",   "unknown"};
+
+  for (i = 0; i < property_string.size(); i++) {
+    if (!strncasecmp(property_string[i].c_str(), property.c_str(),
+                     property_string[i].size())) {
+      return (i);
+    }
+  }
+  ret = i - 1;
+
+  return ret;
+}
+
 } /* namespace nntrainer */

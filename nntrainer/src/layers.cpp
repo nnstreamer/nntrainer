@@ -172,10 +172,11 @@ int InputLayer::setOptimizer(Optimizer &opt) {
   return this->opt.initialize(dim.height(), dim.width(), false);
 }
 
-int InputLayer::setProperty(unsigned int key, const char *value) {
+int InputLayer::setProperty(const char* key, const char *value) {
   int status = ML_ERROR_NONE;
+  unsigned int type = parseLayerProperty(key);
 
-  switch (static_cast<PropertyType>(key)) {
+  switch (static_cast<PropertyType>(type)) {
   case PropertyType::input_shape:
     status = dim.setTensorDim(value);
     break;
@@ -269,9 +270,11 @@ int FullyConnectedLayer::setCost(CostType c) {
   return status;
 }
 
-int FullyConnectedLayer::setProperty(unsigned int key, const char *value) {
+int FullyConnectedLayer::setProperty(const char* key, const char *value) {
   int status = ML_ERROR_NONE;
-  switch (static_cast<PropertyType>(key)) {
+  unsigned int type = parseLayerProperty(key);
+
+  switch (static_cast<PropertyType>(type)) {
   case PropertyType::input_shape:
     status = dim.setTensorDim(value);
     break;
@@ -503,10 +506,11 @@ int BatchNormalizationLayer::setOptimizer(Optimizer &opt) {
   return this->opt.initialize(dim.height(), dim.width(), false);
 }
 
-int BatchNormalizationLayer::setProperty(unsigned int key, const char *value) {
+int BatchNormalizationLayer::setProperty(const char* key, const char *value) {
   int status = ML_ERROR_NONE;
+  unsigned int type = parseLayerProperty(key);
 
-  switch (static_cast<PropertyType>(key)) {
+  switch (static_cast<PropertyType>(type)) {
   case PropertyType::input_shape:
     status = dim.setTensorDim(value);
     break;
