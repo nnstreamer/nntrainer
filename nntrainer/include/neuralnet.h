@@ -177,7 +177,19 @@ public:
             std::function<bool(vec_3d &, vec_3d &, int &)> function_val,
             std::function<bool(vec_3d &, vec_3d &, int &)> function_test);
 
+  /**
+   * @brief     check neural network whether the hyper-parameters are set.
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
   int checkValidation();
+
+  /**
+   * @brief     add layer into neural network model
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  int addLayer(Layer *layer);
 
 private:
   /**
