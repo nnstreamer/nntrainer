@@ -134,6 +134,18 @@ int ml_nnmodel_train(ml_nnmodel_h model);
 int ml_nnmodel_destruct(ml_nnmodel_h model);
 
 /**
+ * @brief add layer into the neural network model
+ * @details Use this function to add layer
+ * @since_tizen 6.x
+ * @param[out] model The NNTrainer model handler from the given description.
+ * @param[int] layer The NNTrainer layer handler
+ * @return @c 0 on success. Otherwise a negative error value.
+ * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter.
+ */
+int ml_nnmodel_add_layer(ml_nnmodel_h model, ml_nnlayer_h layer);
+
+/**
  * @brief Create the neural network layer.
  * @details Use this function to create Neural Netowrk Layer.
  * @since_tizen 6.x

@@ -119,6 +119,24 @@ int ml_nnmodel_destruct(ml_nnmodel_h model) {
   return status;
 }
 
+int ml_nnmodel_add_layer(ml_nnmodel_h model, ml_nnlayer_h layer) {
+  int status = ML_ERROR_NONE;
+  ml_nnmodel *nnmodel;
+  ml_nnlayer *nnlayer;
+  ML_NNTRAINER_CHECK_MODEL_VALIDATION(nnmodel, model);
+  ML_NNTRAINER_CHECK_LAYER_VALIDATION(nnlayer, layer);
+
+  nntrainer::NeuralNetwork *NN;
+  nntrainer::Layer *NL;
+
+  NN = nnmodel->network;
+  NL = nnlayer->layer;
+
+  status = NN->addLayer(NL);
+
+  return status;
+}
+
 int ml_nnlayer_create(ml_nnlayer_h *layer, ml_layer_type_e type) {
   int status = ML_ERROR_NONE;
   ml_nnlayer *nnlayer = new ml_nnlayer;

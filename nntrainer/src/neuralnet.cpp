@@ -45,7 +45,6 @@
 
 namespace nntrainer {
 
-
 /**
  * @brief     Check Existance of File
  * @param[in] filename file path to check
@@ -361,7 +360,7 @@ void NeuralNetwork::finalize() {
     delete layers[i];
   }
 
-  if (data_buffer){
+  if (data_buffer) {
     data_buffer->clear();
     delete data_buffer;
   }
@@ -582,6 +581,16 @@ int NeuralNetwork::checkValidation() {
     }
   }
 
+  return status;
+}
+
+int NeuralNetwork::addLayer(Layer *layer) {
+  int status = ML_ERROR_NONE;
+
+  LayerType type = layer->getType();
+  if (type == LAYER_UNKNOWN)
+    return ML_ERROR_INVALID_PARAMETER;
+  layers.push_back(layer);
   return status;
 }
 
