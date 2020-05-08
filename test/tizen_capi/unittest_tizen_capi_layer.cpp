@@ -23,7 +23,7 @@
 #include <nntrainer.h>
 
 /**
- * @brief Neural Network Layer Create / Delete Test (possitive test )
+ * @brief Neural Network Layer Create / Delete Test (possitive test)
  */
 TEST(nntrainer_capi_nnlayer, create_delete_01_p) {
   ml_nnlayer_h handle;
@@ -35,7 +35,7 @@ TEST(nntrainer_capi_nnlayer, create_delete_01_p) {
 }
 
 /**
- * @brief Neural Network Layer Create / Delete Test (possitive test )
+ * @brief Neural Network Layer Create / Delete Test (possitive test)
  */
 TEST(nntrainer_capi_nnlayer, create_delete_02_p) {
   ml_nnlayer_h handle;
@@ -47,7 +47,7 @@ TEST(nntrainer_capi_nnlayer, create_delete_02_p) {
 }
 
 /**
- * @brief Neural Network Layer Create / Delete Test (negative test )
+ * @brief Neural Network Layer Create / Delete Test (negative test)
  */
 TEST(nntrainer_capi_nnlayer, create_delete_03_n) {
   ml_nnlayer_h handle;
@@ -57,7 +57,7 @@ TEST(nntrainer_capi_nnlayer, create_delete_03_n) {
 }
 
 /**
- * @brief Neural Network Layer Create / Delete Test (negative test )
+ * @brief Neural Network Layer Set Property Test (positive test)
  */
 TEST(nntrainer_capi_nnlayer, setproperty_01_p) {
   ml_nnlayer_h handle;
@@ -77,7 +77,7 @@ TEST(nntrainer_capi_nnlayer, setproperty_01_p) {
 }
 
 /**
- * @brief Neural Network Layer Create / Delete Test (negative test )
+ * @brief Neural Network Layer Set Property Test (positive test)
  */
 TEST(nntrainer_capi_nnlayer, setproperty_02_p) {
   ml_nnlayer_h handle;
@@ -97,7 +97,7 @@ TEST(nntrainer_capi_nnlayer, setproperty_02_p) {
 }
 
 /**
- * @brief Neural Network Layer Create / Delete Test (negative test )
+ * @brief Neural Network Layer Set Property Test (negative test)
  */
 TEST(nntrainer_capi_nnlayer, setproperty_03_n) {
   ml_nnlayer_h handle;
@@ -111,7 +111,7 @@ TEST(nntrainer_capi_nnlayer, setproperty_03_n) {
 }
 
 /**
- * @brief Neural Network Layer Create / Delete Test (negative test )
+ * @brief Neural Network Layer Set Property Test (negative test)
  */
 TEST(nntrainer_capi_nnlayer, setproperty_04_n) {
   ml_nnlayer_h handle;
@@ -125,7 +125,7 @@ TEST(nntrainer_capi_nnlayer, setproperty_04_n) {
 }
 
 /**
- * @brief Neural Network Layer Create / Delete Test (negative test )
+ * @brief Neural Network Layer Set Property Test (negative test)
  */
 TEST(nntrainer_capi_nnlayer, setproperty_05_n) {
   ml_nnlayer_h handle;
@@ -139,7 +139,7 @@ TEST(nntrainer_capi_nnlayer, setproperty_05_n) {
 }
 
 /**
- * @brief Neural Network Layer Create / Delete Test (negative test )
+ * @brief Neural Network Layer Set Property Test (negative test)
  */
 TEST(nntrainer_capi_nnlayer, setproperty_06_n) {
   ml_nnlayer_h handle;
@@ -153,7 +153,7 @@ TEST(nntrainer_capi_nnlayer, setproperty_06_n) {
 }
 
 /**
- * @brief Neural Network Layer Create / Delete Test (negative test )
+ * @brief Neural Network Set Property Test (negative test)
  */
 TEST(nntrainer_capi_nnlayer, setproperty_07_n) {
   ml_nnlayer_h handle;
