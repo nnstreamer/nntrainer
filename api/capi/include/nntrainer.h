@@ -75,21 +75,6 @@ typedef enum {
   ML_LAYER_TYPE_UNKNOWN    /**< Unknown Lyaer */
 } ml_layer_type_e;
 
-/**
- * @brief Enumeration for the neural network layer property
- *        InputLayer has 0, 1, 2, 3 properties.
- *        FullyConnectedLayer has 0, 1, 4 properties.
- *        BatchNormalizationLayer has 0, 1, 5 properties.
- * @since_tizen 6.x
- */
-typedef enum {
-  ML_INPUT_SHAPE = 0,     /**< Input Shaep */
-  ML_BIAS_ZERO = 1,       /**< Fill Bias with Zero  */
-  ML_NORMALIZATION = 2,   /**< Noramlization Flag  */
-  ML_STANDARDIZATION = 3, /**< Standardization Flag  */
-  ML_ACTIVATION = 4,      /**< Actication for Layer  */
-  ML_EPSILON = 5          /**< Epsilon for Batch Normalization  */
-} ml_layer_property_e;
 
 /**
  * @brief Constructs the neural network model.
@@ -183,7 +168,7 @@ int ml_nnlayer_delete(ml_nnlayer_h layer);
  * @retval #ML_ERROR_NONE Successful.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
  */
-int ml_nnlayer_set_property(ml_nnlayer_h layer, ml_layer_property_e key,
+int ml_nnlayer_set_property(ml_nnlayer_h layer, const char* key,
                             const char *value);
 
 /**

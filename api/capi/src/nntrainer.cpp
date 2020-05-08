@@ -164,7 +164,7 @@ int ml_nnlayer_delete(ml_nnlayer_h layer) {
   return status;
 }
 
-int ml_nnlayer_set_property(ml_nnlayer_h layer, ml_layer_property_e key,
+int ml_nnlayer_set_property(ml_nnlayer_h layer, const char *key,
                             const char *value) {
   int status = ML_ERROR_NONE;
   ml_nnlayer *nnlayer;

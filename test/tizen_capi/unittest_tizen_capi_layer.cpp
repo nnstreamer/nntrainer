@@ -64,13 +64,13 @@ TEST(nntrainer_capi_nnlayer, setproperty_01_p) {
   int status;
   status = ml_nnlayer_create(&handle, ML_LAYER_TYPE_INPUT);
   EXPECT_EQ(status, ML_ERROR_NONE);
-  status = ml_nnlayer_set_property(handle, ML_INPUT_SHAPE, "32:1:1:6270");
+  status = ml_nnlayer_set_property(handle, "input_shape", "32:1:1:6270");
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_nnlayer_set_property(handle, ML_NORMALIZATION, "true");
+  status = ml_nnlayer_set_property(handle, "normalization", "true");
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_nnlayer_set_property(handle, ML_STANDARDIZATION, "true");
+  status = ml_nnlayer_set_property(handle, "standardization", "true");
   EXPECT_EQ(status, ML_ERROR_NONE);
   status = ml_nnlayer_delete(handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -84,13 +84,13 @@ TEST(nntrainer_capi_nnlayer, setproperty_02_p) {
   int status;
   status = ml_nnlayer_create(&handle, ML_LAYER_TYPE_FC);
   EXPECT_EQ(status, ML_ERROR_NONE);
-  status = ml_nnlayer_set_property(handle, ML_INPUT_SHAPE, "32:1:1:6270");
+  status = ml_nnlayer_set_property(handle, "input_shape", "32:1:1:6270");
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_nnlayer_set_property(handle, ML_BIAS_ZERO, "true");
+  status = ml_nnlayer_set_property(handle, "bias_zero", "true");
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_nnlayer_set_property(handle, ML_ACTIVATION, "sigmoid");
+  status = ml_nnlayer_set_property(handle, "activation", "sigmoid");
   EXPECT_EQ(status, ML_ERROR_NONE);
   status = ml_nnlayer_delete(handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -104,7 +104,7 @@ TEST(nntrainer_capi_nnlayer, setproperty_03_n) {
   int status;
   status = ml_nnlayer_create(&handle, ML_LAYER_TYPE_INPUT);
   EXPECT_EQ(status, ML_ERROR_NONE);
-  status = ml_nnlayer_set_property(handle, ML_ACTIVATION, "sigmoid");
+  status = ml_nnlayer_set_property(handle, "activation", "sigmoid");
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
   status = ml_nnlayer_delete(handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -118,7 +118,7 @@ TEST(nntrainer_capi_nnlayer, setproperty_04_n) {
   int status;
   status = ml_nnlayer_create(&handle, ML_LAYER_TYPE_INPUT);
   EXPECT_EQ(status, ML_ERROR_NONE);
-  status = ml_nnlayer_set_property(handle, ML_INPUT_SHAPE, "0:0:0:1");
+  status = ml_nnlayer_set_property(handle, "input_shape", "0:0:0:1");
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
   status = ml_nnlayer_delete(handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -132,7 +132,7 @@ TEST(nntrainer_capi_nnlayer, setproperty_05_n) {
   int status;
   status = ml_nnlayer_create(&handle, ML_LAYER_TYPE_INPUT);
   EXPECT_EQ(status, ML_ERROR_NONE);
-  status = ml_nnlayer_set_property(handle, ML_EPSILON, "0.0001");
+  status = ml_nnlayer_set_property(handle, "epsilon", "0.0001");
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
   status = ml_nnlayer_delete(handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -146,7 +146,7 @@ TEST(nntrainer_capi_nnlayer, setproperty_06_n) {
   int status;
   status = ml_nnlayer_create(&handle, ML_LAYER_TYPE_FC);
   EXPECT_EQ(status, ML_ERROR_NONE);
-  status = ml_nnlayer_set_property(handle, ML_EPSILON, "0.0001");
+  status = ml_nnlayer_set_property(handle, "epsilon", "0.0001");
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
   status = ml_nnlayer_delete(handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -160,7 +160,7 @@ TEST(nntrainer_capi_nnlayer, setproperty_07_n) {
   int status;
   status = ml_nnlayer_create(&handle, ML_LAYER_TYPE_FC);
   EXPECT_EQ(status, ML_ERROR_NONE);
-  status = ml_nnlayer_set_property(handle, ML_ACTIVATION, "0.0001");
+  status = ml_nnlayer_set_property(handle, "activation", "0.0001");
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
   status = ml_nnlayer_delete(handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
