@@ -55,6 +55,22 @@ static bool is_file_exist(std::string file_name) {
   return infile.good();
 }
 
+static int setWeightDecay(dictionary *ini, std::string layer_name,
+                          WeightDecayParam &weight_decay) {
+  char unknown[] = "Unknown";
+  int status = ML_ERROR_NONE;
+  weight_decay.type = (WeightDecayType)parseType(
+    iniparser_getstring(ini, (layer_name + ":Weight_Decay").c_str(), unknown),
+    TOKEN_WEIGHT_DECAY);
+
+  weight_decay.lambda = 0.0;
+  if (weight_decay.type == WeightDecayType::l2norm) {
+    weight_decay.lambda = iniparser_getdouble(
+      ini, (layer_name + ":Weight_Decay_Lambda").c_str(), 0.0);
+  }
+  return status;
+}
+
 /**
  * @brief     Parsing Layer Name
  * @param[in] string layer name
@@ -163,16 +179,6 @@ int NeuralNetwork::init() {
                              TOKEN_COST);
   weight_ini = (WeightIniType)parseType(
     iniparser_getstring(ini, "Network:WeightIni", unknown), TOKEN_WEIGHTINI);
-
-  popt.weight_decay.type = (WeightDecayType)parseType(
-    iniparser_getstring(ini, "Network:Weight_Decay", unknown),
-    TOKEN_WEIGHT_DECAY);
-
-  popt.weight_decay.lambda = 0.0;
-  if (popt.weight_decay.type == WeightDecayType::l2norm) {
-    popt.weight_decay.lambda =
-      iniparser_getdouble(ini, "Network:Weight_Decay_Lambda", 0.0);
-  }
 
   model = iniparser_getstring(ini, "Network:Model", model_name);
   batch_size = iniparser_getint(ini, "Network:Minibatch", 1);
@@ -293,6 +299,7 @@ int NeuralNetwork::init() {
       layers.push_back(input_layer);
     } break;
     case LAYER_FC: {
+      WeightDecayParam weight_decay;
       std::shared_ptr<FullyConnectedLayer> fc_layer =
         std::make_shared<FullyConnectedLayer>();
       fc_layer->setType(t);
@@ -313,9 +320,15 @@ int NeuralNetwork::init() {
                             unknown),
         TOKEN_ACTI));
       NN_RETURN_STATUS();
+
+      status = setWeightDecay(ini, layers_name[i], weight_decay);
+      NN_RETURN_STATUS();
+
+      fc_layer->setWeightDecay(weight_decay);
       layers.push_back(fc_layer);
     } break;
     case LAYER_BN: {
+      WeightDecayParam weight_decay;
       std::shared_ptr<BatchNormalizationLayer> bn_layer =
         std::make_shared<BatchNormalizationLayer>();
       bn_layer->setType(t);
@@ -335,6 +348,9 @@ int NeuralNetwork::init() {
                             unknown),
         TOKEN_ACTI));
       NN_RETURN_STATUS();
+      status = setWeightDecay(ini, layers_name[i], weight_decay);
+      NN_RETURN_STATUS();
+      bn_layer->setWeightDecay(weight_decay);
     } break;
     case LAYER_UNKNOWN:
       ml_loge("Error: Unknown layer type");

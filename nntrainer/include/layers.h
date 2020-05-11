@@ -189,6 +189,8 @@ public:
 
   int checkValidation();
 
+  void setWeightDecay(WeightDecayParam w) { weight_decay = w; }
+
 protected:
   /**
    * @brief     Input Tensor
@@ -239,6 +241,8 @@ protected:
   ActiType activation_type;
 
   bool bn_fallow;
+
+  WeightDecayParam weight_decay;
 };
 
 /**
@@ -461,9 +465,15 @@ public:
    * @brief     Property Enumeration
    *            0. input shape : string
    *            1. bias zero : bool
-   *            2. activation : bool
+   *            4. activation : bool
+   *            6. weight_decay : string (type), float
    */
-  enum class PropertyType { input_shape = 0, bias_zero = 1, activation = 4 };
+  enum class PropertyType {
+    input_shape = 0,
+    bias_zero = 1,
+    activation = 4,
+    weight_decay = 6
+  };
 
 private:
   Tensor weight;
@@ -568,7 +578,7 @@ public:
    * @brief     Property Enumeration
    *            0. input shape : string
    *            1. bias zero : bool
-   *            2. epsilon : float
+   *            5. epsilon : float
    */
   enum class PropertyType {
     input_shape = 0,

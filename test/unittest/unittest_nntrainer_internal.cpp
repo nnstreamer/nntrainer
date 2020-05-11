@@ -258,8 +258,6 @@ TEST(nntrainer_Optimizer, setOptParam_01_p) {
   p.beta1 = 0.9;
   p.beta2 = 0.9999;
   p.epsilon = 1e-7;
-  p.weight_decay.type = nntrainer::WeightDecayType::l2norm;
-  p.weight_decay.lambda = 0.001;
   status = op.setOptParam(p);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
@@ -303,8 +301,6 @@ TEST(nntrainer_InputLayer, setOptimizer_01_p) {
   p.beta1 = 0.9;
   p.beta2 = 0.9999;
   p.epsilon = 1e-7;
-  p.weight_decay.type = nntrainer::WeightDecayType::l2norm;
-  p.weight_decay.lambda = 0.001;
   status = op.setOptParam(p);
   EXPECT_EQ(status, ML_ERROR_NONE);
   status = layer.setOptimizer(op);
@@ -412,8 +408,6 @@ TEST(nntrainer_FullyConnectedLayer, setOptimizer_01_p) {
   p.beta1 = 0.9;
   p.beta2 = 0.9999;
   p.epsilon = 1e-7;
-  p.weight_decay.type = nntrainer::WeightDecayType::l2norm;
-  p.weight_decay.lambda = 0.001;
   status = op.setOptParam(p);
   EXPECT_EQ(status, ML_ERROR_NONE);
   status = layer.setOptimizer(op);
@@ -437,8 +431,6 @@ TEST(nntrainer_FullyConnectedLayer, setOptimizer_02_p) {
   p.beta1 = 0.9;
   p.beta2 = 0.9999;
   p.epsilon = 1e-7;
-  p.weight_decay.type = nntrainer::WeightDecayType::l2norm;
-  p.weight_decay.lambda = 0.001;
   status = op.setOptParam(p);
   EXPECT_EQ(status, ML_ERROR_NONE);
   status = layer.setOptimizer(op);
@@ -523,8 +515,6 @@ TEST(nntrainer_BatchNormalizationLayer, setOptimizer_01_p) {
   p.beta1 = 0.9;
   p.beta2 = 0.9999;
   p.epsilon = 1e-7;
-  p.weight_decay.type = nntrainer::WeightDecayType::l2norm;
-  p.weight_decay.lambda = 0.001;
   status = op.setOptParam(p);
   EXPECT_EQ(status, ML_ERROR_NONE);
   status = layer.setOptimizer(op);

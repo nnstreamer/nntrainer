@@ -112,6 +112,8 @@ Layer::Layer() {
   activation = NULL;
   activation_prime = NULL;
   bn_fallow = false;
+  weight_decay.type = WeightDecayType::unknown;
+  weight_decay.lambda = 0.0;
 }
 
 int Layer::setActivation(ActiType acti) {
@@ -270,7 +272,8 @@ int FullyConnectedLayer::setCost(CostType c) {
   return status;
 }
 
-int FullyConnectedLayer::setProperty(const char *key, std::vector<std::string> values) {
+int FullyConnectedLayer::setProperty(const char *key,
+                                     std::vector<std::string> values) {
   int status = ML_ERROR_NONE;
   unsigned int type = parseLayerProperty(key);
 
@@ -285,6 +288,16 @@ int FullyConnectedLayer::setProperty(const char *key, std::vector<std::string> v
   case PropertyType::activation:
     status = setActivation((ActiType)parseType(values[0].c_str(), TOKEN_ACTI));
     break;
+  case PropertyType::weight_decay: {
+    weight_decay.type =
+      (WeightDecayType)parseType(values[0].c_str(), TOKEN_WEIGHT_DECAY);
+    if (weight_decay.type == WeightDecayType::l2norm) {
+      weight_decay.lambda = std::stof(values[1].c_str());
+    } else {
+      ml_loge("Error: Unknown Weight Decay Type");
+      return ML_ERROR_INVALID_PARAMETER;
+    }
+  } break;
   default:
     ml_loge("Error: Unknown Layer Property Key");
     status = ML_ERROR_INVALID_PARAMETER;
@@ -359,8 +372,8 @@ Tensor FullyConnectedLayer::forwarding(Tensor in, Tensor output, int &status) {
     }
     loss = loss_sum / (float)l.getBatch();
 
-    if (opt.getWeightDecayType() == WeightDecayType::l2norm) {
-      loss += opt.getWeightDecayLambda() * 0.5 * (weight.l2norm());
+    if (weight_decay.type == WeightDecayType::l2norm) {
+      loss += weight_decay.lambda * 0.5 * (weight.l2norm());
     }
 
   } break;
@@ -422,8 +435,8 @@ Tensor FullyConnectedLayer::backwarding(Tensor derivative, int iteration) {
       }
 
       loss = loss_sum / (float)l.getBatch();
-      if (opt.getWeightDecayType() == WeightDecayType::l2norm) {
-        loss += opt.getWeightDecayLambda() * 0.5 * (weight.l2norm());
+      if (weight_decay.type == WeightDecayType::l2norm) {
+        loss += weight_decay.lambda * 0.5 * (weight.l2norm());
       }
       if (activation_type == ACT_SOFTMAX) {
         djdb = y.subtract(y2).multiply(y.apply(softmaxPrime));
@@ -457,8 +470,8 @@ Tensor FullyConnectedLayer::backwarding(Tensor derivative, int iteration) {
       }
       loss = loss_sum / (float)l.getBatch();
 
-      if (opt.getWeightDecayType() == WeightDecayType::l2norm) {
-        loss += opt.getWeightDecayLambda() * 0.5 * (weight.l2norm());
+      if (weight_decay.type == WeightDecayType::l2norm) {
+        loss += weight_decay.lambda * 0.5 * (weight.l2norm());
       }
 
     } break;
@@ -472,7 +485,8 @@ Tensor FullyConnectedLayer::backwarding(Tensor derivative, int iteration) {
 
   Tensor djdw = input.transpose().dot(djdb);
 
-  opt.calculate(djdw, djdb, weight, bias, iteration, this->init_zero);
+  opt.calculate(djdw, djdb, weight, bias, iteration, this->init_zero,
+                weight_decay);
 
   return ret;
 }
@@ -507,7 +521,8 @@ int BatchNormalizationLayer::setOptimizer(Optimizer &opt) {
   return this->opt.initialize(dim.height(), dim.width(), false);
 }
 
-int BatchNormalizationLayer::setProperty(const char *key, std::vector<std::string> values) {
+int BatchNormalizationLayer::setProperty(const char *key,
+                                         std::vector<std::string> values) {
   int status = ML_ERROR_NONE;
   unsigned int type = parseLayerProperty(key);
 

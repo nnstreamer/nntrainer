@@ -167,6 +167,35 @@ TEST(nntrainer_capi_nnlayer, setproperty_07_n) {
 }
 
 /**
+ * @brief Neural Network Layer Set Property Test (positive test )
+ */
+TEST(nntrainer_capi_nnlayer, setproperty_08_p) {
+  ml_nnlayer_h handle;
+  int status;
+  status = ml_nnlayer_create(&handle, ML_LAYER_TYPE_FC);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = ml_nnlayer_set_property(handle, "weight_decay", "l2norm", "0.0001", NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = ml_nnlayer_delete(handle);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Neural Network Layer Set Property Test (negitive test )
+ */
+TEST(nntrainer_capi_nnlayer, setproperty_09_n) {
+  ml_nnlayer_h handle;
+  int status;
+  status = ml_nnlayer_create(&handle, ML_LAYER_TYPE_FC);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = ml_nnlayer_set_property(handle, "weight_decay", "unknown", "0.0001", NULL);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+  status = ml_nnlayer_delete(handle);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+
+/**
  * @brief Main gtest
  */
 int main(int argc, char **argv) {
