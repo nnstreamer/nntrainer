@@ -36,8 +36,6 @@ Optimizer::Optimizer() {
   popt.epsilon = 0.0;
   popt.decay_rate = 0.0;
   popt.decay_steps = 0.0;
-  popt.weight_decay.type = WeightDecayType::unknown;
-  popt.weight_decay.lambda = 0.0;
 };
 
 int Optimizer::setType(OptType t) {
@@ -61,12 +59,6 @@ int Optimizer::setOptParam(OptParam p) {
   if (p.decay_steps == -1 && p.beta1 && p.beta2 && p.epsilon) {
     ml_logw("Although you set the learning rate decay param, you didn't "
             "set decay_steps");
-  }
-
-  if (p.weight_decay.type == WeightDecayType::unknown &&
-      p.weight_decay.lambda) {
-    ml_logw("Even though you set the weight decay lambda, you didn't set "
-            "weight decay type");
   }
 
   popt = p;
@@ -94,9 +86,10 @@ int Optimizer::initialize(unsigned int height, unsigned int width,
 }
 
 void Optimizer::calculate(Tensor &djdw, Tensor &djdb, Tensor &weight,
-                          Tensor &bias, int iteration, bool init_zero) {
-  if (popt.weight_decay.type == WeightDecayType::l2norm) {
-    djdw = djdw.add(weight.multiply(popt.weight_decay.lambda));
+                          Tensor &bias, int iteration, bool init_zero,
+                          WeightDecayParam weight_decay) {
+  if (weight_decay.type == WeightDecayType::l2norm) {
+    djdw = djdw.add(weight.multiply(weight_decay.lambda));
   }
 
   float ll = popt.learning_rate;

@@ -179,14 +179,15 @@ unsigned int parseLayerProperty(std::string property) {
    * standardization = 3,
    * activation = 4,
    * epsilon = 5
+   * weight_decay = 6
    *
    * InputLayer has 0, 1, 2, 3 properties.
-   * FullyConnectedLayer has 0, 1, 4 properties.
-   * BatchNormalizationLayer has 0, 1, 5 properties.
+   * FullyConnectedLayer has 0, 1, 4, 6 properties.
+   * BatchNormalizationLayer has 0, 1, 5, 6 properties.
    */
-  std::array<std::string, 7> property_string = {
+  std::array<std::string, 8> property_string = {
     "input_shape", "bias_zero", "normalization", "standardization",
-    "activation",  "epsilon",   "unknown"};
+    "activation",  "epsilon",   "weight_decay",  "unknown"};
 
   for (i = 0; i < property_string.size(); i++) {
     if (!strncasecmp(property_string[i].c_str(), property.c_str(),

@@ -62,7 +62,6 @@ typedef struct {
   double epsilon;
   float decay_rate;
   float decay_steps;
-  WeightDecayParam weight_decay;
 } OptParam;
 
 class Optimizer {
@@ -124,18 +123,6 @@ public:
   OptParam getOptParam() { return popt; };
 
   /**
-   * @brief     get Weight Decay Type
-   * @retval    Weight Decay Type
-   */
-  WeightDecayType getWeightDecayType() { return popt.weight_decay.type; };
-
-  /**
-   * @brief     get Weight Decay Lambda
-   * @retval    Weight Decay Lambda
-   */
-  float getWeightDecayLambda() { return popt.weight_decay.lambda; };
-
-  /**
    * @brief     initialize optimizer. Initialize Weight if it is adam
    * @param[in] height height of Weight
    * @param[in] width width of Weight
@@ -155,9 +142,10 @@ public:
    * @param[in] Bias Bais Tensor
    * @param[in] iteration nth epoch number
    * @param[in] init_zero bool it is true if bias sets zero.
+   * @param[in] weight_decay weight decay type & lambda
    */
   void calculate(Tensor &djdw, Tensor &djdb, Tensor &weight, Tensor &bias,
-                 int iteration, bool init_zero);
+                 int iteration, bool init_zero, WeightDecayParam weight_decay);
 
 private:
   /**
