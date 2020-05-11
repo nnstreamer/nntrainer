@@ -174,14 +174,12 @@ int ml_nnlayer_delete(ml_nnlayer_h layer);
  * @details Use this function to set Neural Netowrk Layer Property.
  * @since_tizen 6.x
  * @param[in] layer The NNTrainer Layer handler from the given description.
- * @param[in]  key Property key to set
- * @param[in]  value Property value
+ * @param[in]  ... Property values with NULL for termination.
  * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
  */
-int ml_nnlayer_set_property(ml_nnlayer_h layer, const char* key,
-                            const char *value);
+int ml_nnlayer_set_property(ml_nnlayer_h layer, const char *key,...);
 
 /**
  * @}

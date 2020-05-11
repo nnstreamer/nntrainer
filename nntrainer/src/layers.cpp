@@ -172,22 +172,22 @@ int InputLayer::setOptimizer(Optimizer &opt) {
   return this->opt.initialize(dim.height(), dim.width(), false);
 }
 
-int InputLayer::setProperty(const char *key, const char *value) {
+int InputLayer::setProperty(const char *key, std::vector<std::string> values) {
   int status = ML_ERROR_NONE;
   unsigned int type = parseLayerProperty(key);
 
   switch (static_cast<PropertyType>(type)) {
   case PropertyType::input_shape:
-    status = dim.setTensorDim(value);
+    status = dim.setTensorDim(values[0].c_str());
     break;
   case PropertyType::bias_zero:
-    init_zero = (strcasecmp("true", value) == 0);
+    init_zero = (strcasecmp("true", values[0].c_str()) == 0);
     break;
   case PropertyType::normalization:
-    normalization = (strcasecmp("true", value) == 0);
+    normalization = (strcasecmp("true", values[0].c_str()) == 0);
     break;
   case PropertyType::standardization:
-    standardization = (strcasecmp("true", value) == 0);
+    standardization = (strcasecmp("true", values[0].c_str()) == 0);
     break;
   default:
     ml_loge("Error: Unknown Layer Property Key");
@@ -270,20 +270,20 @@ int FullyConnectedLayer::setCost(CostType c) {
   return status;
 }
 
-int FullyConnectedLayer::setProperty(const char *key, const char *value) {
+int FullyConnectedLayer::setProperty(const char *key, std::vector<std::string> values) {
   int status = ML_ERROR_NONE;
   unsigned int type = parseLayerProperty(key);
 
   switch (static_cast<PropertyType>(type)) {
   case PropertyType::input_shape:
-    status = dim.setTensorDim(value);
+    status = dim.setTensorDim(values[0].c_str());
     break;
   case PropertyType::bias_zero: {
-    bool isTrue = (strcasecmp("true", value) == 0);
+    bool isTrue = (strcasecmp("true", values[0].c_str()) == 0);
     init_zero = isTrue;
   } break;
   case PropertyType::activation:
-    status = setActivation((ActiType)parseType(value, TOKEN_ACTI));
+    status = setActivation((ActiType)parseType(values[0].c_str(), TOKEN_ACTI));
     break;
   default:
     ml_loge("Error: Unknown Layer Property Key");
@@ -507,20 +507,20 @@ int BatchNormalizationLayer::setOptimizer(Optimizer &opt) {
   return this->opt.initialize(dim.height(), dim.width(), false);
 }
 
-int BatchNormalizationLayer::setProperty(const char *key, const char *value) {
+int BatchNormalizationLayer::setProperty(const char *key, std::vector<std::string> values) {
   int status = ML_ERROR_NONE;
   unsigned int type = parseLayerProperty(key);
 
   switch (static_cast<PropertyType>(type)) {
   case PropertyType::input_shape:
-    status = dim.setTensorDim(value);
+    status = dim.setTensorDim(values[0].c_str());
     break;
   case PropertyType::bias_zero: {
-    bool isTrue = (strcasecmp("true", value) == 0);
+    bool isTrue = (strcasecmp("true", values[0].c_str()) == 0);
     init_zero = isTrue;
   } break;
   case PropertyType::epsilon:
-    epsilon = std::stof(value);
+    epsilon = std::stof(values[0].c_str());
     break;
   default:
     ml_loge("Error: Unknown Layer Property Key");

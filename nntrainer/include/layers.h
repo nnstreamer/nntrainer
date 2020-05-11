@@ -145,11 +145,11 @@ public:
   /**
    * @brief     set Property of layer
    * @param[in] key key of property
-   * @param[in] value value of property
+   * @param[in] values values of property
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  virtual int setProperty(const char *key, const char *value) = 0;
+  virtual int setProperty(const char *key, std::vector<std::string> values) = 0;
 
   /**
    * @brief     Optimizer Setter
@@ -338,11 +338,11 @@ public:
   /**
    * @brief     set Property of layer
    * @param[in] key key of property
-   * @param[in] value value of property
+   * @param[in] values values of property
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int setProperty(const char *key, const char *value);
+  int setProperty(const char *key, std::vector<std::string> values);
 
   /**
    * @brief     Property Enumeration
@@ -451,11 +451,11 @@ public:
   /**
    * @brief     set Property of layer
    * @param[in] key key of property
-   * @param[in] value value of property
+   * @param[in] values values of property
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int setProperty(const char *key, const char *value);
+  int setProperty(const char *key, std::vector<std::string> values);
 
   /**
    * @brief     Property Enumeration
@@ -558,11 +558,11 @@ public:
   /**
    * @brief     set Property of layer
    * @param[in] key key of property
-   * @param[in] value value of property
+   * @param[in] values values of property
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int setProperty(const char *key, const char *value);
+  int setProperty(const char *key, std::vector<std::string> values);
 
   /**
    * @brief     Property Enumeration
