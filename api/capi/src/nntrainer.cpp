@@ -24,6 +24,8 @@
 #include "neuralnet.h"
 #include "nntrainer_internal.h"
 #include "nntrainer_log.h"
+#include "parse_util.h"
+#include <stdarg.h>
 #include <string.h>
 
 #ifdef __cplusplus
@@ -180,16 +182,27 @@ int ml_nnlayer_delete(ml_nnlayer_h layer) {
   return status;
 }
 
-int ml_nnlayer_set_property(ml_nnlayer_h layer, const char *key,
-                            const char *value) {
+int ml_nnlayer_set_property(ml_nnlayer_h layer, const char *key, ...) {
   int status = ML_ERROR_NONE;
   ml_nnlayer *nnlayer;
+  const char *data;
+
   ML_NNTRAINER_CHECK_LAYER_VALIDATION(nnlayer, layer);
+
+  std::vector<std::string> arg_list;
+  va_list arguments;
+  va_start(arguments, key);
+
+  while ((data = va_arg(arguments, const char *))) {
+    arg_list.push_back(data);
+  }
+
+  va_end(arguments);
 
   std::shared_ptr<nntrainer::Layer> NL;
   NL = nnlayer->layer;
 
-  status = NL->setProperty(key, value);
+  status = NL->setProperty(key, arg_list);
 
   return status;
 }
