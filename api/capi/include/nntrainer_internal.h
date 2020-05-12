@@ -42,6 +42,11 @@ typedef struct {
   std::shared_ptr<nntrainer::Layer> layer;
 } ml_nnlayer;
 
+typedef struct {
+  uint magic;
+  std::shared_ptr<nntrainer::Optimizer> optimizer;
+} ml_nnopt;
+
 #define ML_NNTRAINER_CHECK_MODEL_VALIDATION(nnmodel, model)      \
   do {                                                           \
     if (!model) {                                                \
@@ -66,6 +71,19 @@ typedef struct {
       ml_loge("Error: Invalid Parameter : nnlayer is invalid."); \
       return ML_ERROR_INVALID_PARAMETER;                         \
     }                                                            \
+  } while (0)
+
+#define ML_NNTRAINER_CHECK_OPT_VALIDATION(nnopt, opt)                \
+  do {                                                               \
+    if (!opt) {                                                      \
+      ml_loge("Error: Invalid Parameter : optimizer is empty.");     \
+      return ML_ERROR_INVALID_PARAMETER;                             \
+    }                                                                \
+    nnopt = (ml_nnopt *)opt;                                         \
+    if (nnopt->magic != ML_NNTRAINER_MAGIC) {                        \
+      ml_loge("Error: Invalid Parameter : nnoptimizer is invalid."); \
+      return ML_ERROR_INVALID_PARAMETER;                             \
+    }                                                                \
   } while (0)
 
 #ifdef __cplusplus
