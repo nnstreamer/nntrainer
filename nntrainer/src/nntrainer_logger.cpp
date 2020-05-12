@@ -21,10 +21,10 @@
  * @bug No known bugs except for NYI items
  */
 
-#include "nntrainer_logger.h"
 #include <cstring>
 #include <ctime>
 #include <iomanip>
+#include <nntrainer_logger.h>
 #include <sstream>
 #include <stdarg.h>
 #include <stdexcept>

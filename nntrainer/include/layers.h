@@ -23,10 +23,10 @@
 #define __LAYERS_H__
 #ifdef __cplusplus
 
-#include "optimizer.h"
-#include "tensor.h"
 #include <fstream>
 #include <iostream>
+#include <optimizer.h>
+#include <tensor.h>
 #include <vector>
 
 namespace nntrainer {

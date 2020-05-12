@@ -21,11 +21,11 @@
  *
  */
 
-#include "optimizer.h"
-#include "nntrainer_error.h"
-#include "parse_util.h"
-#include "util_func.h"
+#include <nntrainer_error.h>
 #include <nntrainer_log.h>
+#include <optimizer.h>
+#include <parse_util.h>
+#include <util_func.h>
 
 #define NN_RETURN_STATUS()         \
   do {                             \
