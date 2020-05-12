@@ -117,6 +117,14 @@ public:
   int setOptParam(OptParam p);
 
   /**
+   * @brief     set Optimizer Parameters
+   * @param[in] values Optimizer Parameter list
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  int setProperty(std::vector<std::string> values);
+
+  /**
    * @brief     get Optimizer Parameters
    * @retval OptParam
    */
@@ -146,6 +154,24 @@ public:
    */
   void calculate(Tensor &djdw, Tensor &djdb, Tensor &weight, Tensor &bias,
                  int iteration, bool init_zero, WeightDecayParam weight_decay);
+
+  /**
+   * @brief     Property Enumeration
+   * learning_rate : float ,
+   * decay_rate : float,
+   * decay_steps : float,
+   * beta1 : float,
+   * beta2 : float,
+   * epsilon : float,
+   */
+  enum class PropertyType {
+    learning_rate = 0,
+    decay_rate = 1,
+    decay_steps = 2,
+    beta1 = 3,
+    beta2 = 4,
+    epsilon = 5,
+  };
 
 private:
   /**
