@@ -50,6 +50,12 @@ typedef void *ml_nnmodel_h;
 typedef void *ml_nnlayer_h;
 
 /**
+ * @brief A handle of an NNTrainer optimizer.
+ * @since_tizen 6.x
+ */
+typedef void *ml_nnopt_h;
+
+/**
  * @brief Enumeration for the error codes of NNTrainer.
  * @since_tizen 6.x
  */
@@ -180,6 +186,30 @@ int ml_nnlayer_delete(ml_nnlayer_h layer);
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
  */
 int ml_nnlayer_set_property(ml_nnlayer_h layer, const char *key,...);
+
+/**
+ * @brief Create the neural network optimizer.
+ * @details Use this function to create Neural Netowrk Optimizer.
+ * @since_tizen 6.x
+ * @param[out] layer The NNTrainer Optimizer handler from the given description.
+ * @param[in]  type The NNTrainer Optimizer type
+ * @return @c 0 on success. Otherwise a negative error value.
+ * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
+ */
+int ml_nnoptimizer_create(ml_nnopt_h *opt, const char *type);
+
+/**
+ * @brief Delete the neural network optimizer.
+ * @details Use this function to delete Neural Netowrk Optimizer.
+ * @since_tizen 6.x
+ * @param[in] layer The NNTrainer optimizer handler from the given description.
+ * @return @c 0 on success. Otherwise a negative error value.
+ * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter.
+ */
+int ml_nnoptimizer_delete(ml_nnopt_h opt);
+  
 
 /**
  * @}

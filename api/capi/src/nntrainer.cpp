@@ -174,9 +174,6 @@ int ml_nnlayer_delete(ml_nnlayer_h layer) {
 
   ML_NNTRAINER_CHECK_LAYER_VALIDATION(nnlayer, layer);
 
-  std::shared_ptr<nntrainer::Layer> NL;
-  NL = nnlayer->layer;
-
   delete nnlayer;
 
   return status;
@@ -204,6 +201,33 @@ int ml_nnlayer_set_property(ml_nnlayer_h layer, const char *key, ...) {
 
   status = NL->setProperty(key, arg_list);
 
+  return status;
+}
+
+int ml_nnoptimizer_create(ml_nnopt_h *opt, const char *type) {
+  int status = ML_ERROR_NONE;
+  ml_nnopt *nnopt = new ml_nnopt;
+  nnopt->magic = ML_NNTRAINER_MAGIC;
+  nnopt->optimizer = std::make_shared<nntrainer::Optimizer>();
+  *opt = nnopt;
+
+  status = nnopt->optimizer->setType(
+    (nntrainer::OptType)parseType(type, nntrainer::TOKEN_OPT));
+
+  if (status != ML_ERROR_NONE) {
+    delete nnopt;
+  }
+
+  return status;
+}
+
+int ml_nnoptimizer_delete(ml_nnopt_h opt) {
+  int status = ML_ERROR_NONE;
+  ml_nnopt *nnopt;
+
+  ML_NNTRAINER_CHECK_OPT_VALIDATION(nnopt, opt);
+
+  delete nnopt;
   return status;
 }
 
