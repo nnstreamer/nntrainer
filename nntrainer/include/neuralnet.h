@@ -24,12 +24,12 @@
 #define __NEURALNET_H__
 #ifdef __cplusplus
 
-#include "databuffer.h"
-#include "layers.h"
-#include "optimizer.h"
-#include "tensor.h"
+#include <databuffer.h>
 #include <fstream>
 #include <iostream>
+#include <layers.h>
+#include <optimizer.h>
+#include <tensor.h>
 #include <vector>
 
 namespace nntrainer {

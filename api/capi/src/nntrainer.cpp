@@ -21,10 +21,10 @@
  * @bug No known bugs except for NYI items
  */
 
-#include "neuralnet.h"
-#include "nntrainer_internal.h"
-#include "nntrainer_log.h"
-#include "parse_util.h"
+#include <neuralnet.h>
+#include <nntrainer_internal.h>
+#include <nntrainer_log.h>
+#include <parse_util.h>
 #include <stdarg.h>
 #include <string.h>
 

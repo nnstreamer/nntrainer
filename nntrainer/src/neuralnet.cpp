@@ -21,17 +21,17 @@
  *
  */
 
-#include "neuralnet.h"
-#include "databuffer_file.h"
-#include "databuffer_func.h"
-#include "iniparser.h"
-#include "nntrainer_error.h"
-#include "parse_util.h"
 #include <array>
 #include <assert.h>
 #include <cmath>
+#include <databuffer_file.h>
+#include <databuffer_func.h>
 #include <fstream>
+#include <iniparser.h>
+#include <neuralnet.h>
+#include <nntrainer_error.h>
 #include <nntrainer_log.h>
+#include <parse_util.h>
 #include <sstream>
 #include <stdio.h>
 

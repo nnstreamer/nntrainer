@@ -25,8 +25,8 @@
 #define __DATABUFFER_FUNC_H__
 #ifdef __cplusplus
 
-#include "databuffer.h"
 #include <atomic>
+#include <databuffer.h>
 #include <fstream>
 #include <functional>
 #include <iostream>

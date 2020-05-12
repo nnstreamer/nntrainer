@@ -23,8 +23,8 @@
 #define __OPTIMIZER_H__
 #ifdef __cplusplus
 
-#include "tensor.h"
 #include <iostream>
+#include <tensor.h>
 
 namespace nntrainer {
 

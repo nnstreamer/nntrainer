@@ -20,10 +20,10 @@
  *
  */
 
-#include "util_func.h"
-#include "math.h"
-#include "tensor.h"
 #include <assert.h>
+#include <math.h>
+#include <tensor.h>
+#include <util_func.h>
 
 namespace nntrainer {
 

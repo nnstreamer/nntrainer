@@ -21,15 +21,15 @@
  *
  */
 
-#include "databuffer.h"
-#include "nntrainer_error.h"
 #include <assert.h>
 #include <climits>
 #include <condition_variable>
 #include <cstring>
+#include <databuffer.h>
 #include <functional>
 #include <iomanip>
 #include <mutex>
+#include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <sstream>
 #include <stdexcept>
