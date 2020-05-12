@@ -231,6 +231,34 @@ int ml_nnoptimizer_delete(ml_nnopt_h opt) {
   return status;
 }
 
+int ml_nnoptimizer_set_property(ml_nnopt_h opt, ...) {
+  int status = ML_ERROR_NONE;
+  ml_nnopt *nnopt;
+  const char *data;
+  int count = 0;
+  nnopt = (ml_nnopt *)opt;
+  ML_NNTRAINER_CHECK_OPT_VALIDATION(nnopt, opt);
+
+  std::vector<std::string> arg_list;
+
+  va_list arguments;
+  va_start(arguments, opt);
+
+  while ((data = va_arg(arguments, const char *))) {
+    arg_list.push_back(data);
+    count++;
+  }
+
+  va_end(arguments);
+
+  std::shared_ptr<nntrainer::Optimizer> Opt;
+  Opt = nnopt->optimizer;
+
+  status = Opt->setProperty(arg_list);
+
+  return status;
+}
+
 #ifdef __cplusplus
 }
 #endif

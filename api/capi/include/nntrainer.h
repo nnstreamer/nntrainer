@@ -212,6 +212,18 @@ int ml_nnoptimizer_delete(ml_nnopt_h opt);
   
 
 /**
+ * @brief Set the neural network optimizer property.
+ * @details Use this function to set Neural Netowrk Optimizer Property.
+ * @since_tizen 6.x
+ * @param[in] layer The NNTrainer Optimizer handler from the given description.
+ * @param[in]  ... Property values with NULL at the end.
+ * @return @c 0 on success. Otherwise a negative error value.
+ * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
+ */
+int ml_nnoptimizer_set_property(ml_nnopt_h opt,...);
+
+ /**
  * @}
  */
 #ifdef __cplusplus

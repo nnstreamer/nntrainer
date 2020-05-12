@@ -21,6 +21,8 @@
  */
 
 #include "parse_util.h"
+#include "nntrainer_error.h"
+#include "nntrainer_log.h"
 #include <array>
 #include <assert.h>
 #include <string.h>
@@ -198,6 +200,73 @@ unsigned int parseLayerProperty(std::string property) {
   ret = i - 1;
 
   return ret;
+}
+
+unsigned int parseOptProperty(std::string property) {
+  int ret;
+  unsigned int i;
+
+  /**
+   * @brief     Layer Properties
+   * learning_rate = 0,
+   * decay_rate = 1,
+   * decay_steps = 2
+   * beta1 = 3,
+   * beta2 = 4,
+   * epsilon = 5,
+   */
+  std::array<std::string, 7> property_string = {
+    "learning_rate", "decay_rate", "decay_steps", "beta1",
+    "beta2",         "epsilon",    "unknown"};
+
+  for (i = 0; i < property_string.size(); i++) {
+    if (!strncasecmp(property_string[i].c_str(), property.c_str(),
+                     property_string[i].size())) {
+      return (i);
+    }
+  }
+  ret = i - 1;
+
+  return ret;
+}
+
+int setFloat(float &val, std::string str) {
+  int status = ML_ERROR_NONE;
+  try {
+    val = std::stof(str.c_str());
+  } catch (...) {
+    ml_loge("Error: Wrong Type. Must be float");
+    status = ML_ERROR_INVALID_PARAMETER;
+  }
+  return status;
+}
+
+int setDouble(double &val, std::string str) {
+  int status = ML_ERROR_NONE;
+  try {
+    val = std::stod(str.c_str());
+  } catch (...) {
+    ml_loge("Error: Wrong Type. Must be double");
+    status = ML_ERROR_INVALID_PARAMETER;
+  }
+
+  return status;
+}
+
+int setBoolean(bool &val, std::string str) {
+  int status = ML_ERROR_NONE;
+  std::string t = "true";
+  std::string f = "false";
+
+  if (!strncasecmp(str.c_str(), t.c_str(), t.size())) {
+    val = true;
+  } else if (!strncasecmp(str.c_str(), f.c_str(), f.size())) {
+    val = false;
+  } else {
+    status = ML_ERROR_INVALID_PARAMETER;
+  }
+
+  return status;
 }
 
 } /* namespace nntrainer */

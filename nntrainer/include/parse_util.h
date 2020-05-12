@@ -66,6 +66,40 @@ unsigned int parseLayerProperty(std::string property);
  */
 unsigned int parseType(std::string ll, InputType t);
 
+/**
+ * @brief     Parsing Optimizer Property
+ * @param[in] property string to be parsed
+ * @retval    int enumerated type
+ */
+unsigned int parseOptProperty(std::string property);
+
+/**
+ * @brief     check str to be float and assign
+ * @param[out] val assign variable
+ * @param[in] str input string
+ * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+ */
+int setFloat(float &val, std::string str);
+
+/**
+ * @brief     check str to be double and assign
+ * @param[out] val assign variable
+ * @param[in] str input string
+ * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+ */
+int setDouble(double &val, std::string str);
+
+/**
+ * @brief     check str to be bool and assign
+ * @param[out] val assign variable
+ * @param[in] str input string
+ * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+ */
+int setBoolean(bool &val, std::string str);
+
 } /* namespace nntrainer */
 
 #endif /* __cplusplus */
