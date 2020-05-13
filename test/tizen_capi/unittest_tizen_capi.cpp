@@ -156,10 +156,10 @@ TEST(nntrainer_capi_nnmodel, addLayer_01_p) {
   status = ml_nnlayer_create(&layer, ML_LAYER_TYPE_INPUT);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_nnlayer_set_property(layer, "input_shape", "32:1:1:6270", NULL);
+  status = ml_nnlayer_set_property(layer, "input_shape= 32:1:1:6270", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_nnlayer_set_property(layer, "normalization", "true", NULL);
+  status = ml_nnlayer_set_property(layer, "normalization = true", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_nnmodel_add_layer(model, layer);

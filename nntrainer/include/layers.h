@@ -144,12 +144,11 @@ public:
 
   /**
    * @brief     set Property of layer
-   * @param[in] key key of property
    * @param[in] values values of property
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  virtual int setProperty(const char *key, std::vector<std::string> values) = 0;
+  virtual int setProperty(std::vector<std::string> values) = 0;
 
   /**
    * @brief     Optimizer Setter
@@ -341,12 +340,11 @@ public:
 
   /**
    * @brief     set Property of layer
-   * @param[in] key key of property
    * @param[in] values values of property
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int setProperty(const char *key, std::vector<std::string> values);
+  int setProperty(std::vector<std::string> values);
 
   /**
    * @brief     Property Enumeration
@@ -454,25 +452,26 @@ public:
 
   /**
    * @brief     set Property of layer
-   * @param[in] key key of property
    * @param[in] values values of property
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int setProperty(const char *key, std::vector<std::string> values);
+  int setProperty(std::vector<std::string> values);
 
   /**
    * @brief     Property Enumeration
    *            0. input shape : string
    *            1. bias zero : bool
    *            4. activation : bool
-   *            6. weight_decay : string (type), float
+   *            6. weight_decay : string (type)
+   *            7. weight_decay_lambda : float
    */
   enum class PropertyType {
     input_shape = 0,
     bias_zero = 1,
     activation = 4,
-    weight_decay = 6
+    weight_decay = 6,
+    weight_decay_lambda = 7,
   };
 
 private:
@@ -573,12 +572,11 @@ public:
 
   /**
    * @brief     set Property of layer
-   * @param[in] key key of property
    * @param[in] values values of property
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int setProperty(const char *key, std::vector<std::string> values);
+  int setProperty(std::vector<std::string> values);
 
   /**
    * @brief     Property Enumeration

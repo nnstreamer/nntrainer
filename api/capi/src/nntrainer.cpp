@@ -179,7 +179,7 @@ int ml_nnlayer_delete(ml_nnlayer_h layer) {
   return status;
 }
 
-int ml_nnlayer_set_property(ml_nnlayer_h layer, const char *key, ...) {
+int ml_nnlayer_set_property(ml_nnlayer_h layer, ...) {
   int status = ML_ERROR_NONE;
   ml_nnlayer *nnlayer;
   const char *data;
@@ -188,7 +188,7 @@ int ml_nnlayer_set_property(ml_nnlayer_h layer, const char *key, ...) {
 
   std::vector<std::string> arg_list;
   va_list arguments;
-  va_start(arguments, key);
+  va_start(arguments, layer);
 
   while ((data = va_arg(arguments, const char *))) {
     arg_list.push_back(data);
@@ -199,7 +199,7 @@ int ml_nnlayer_set_property(ml_nnlayer_h layer, const char *key, ...) {
   std::shared_ptr<nntrainer::Layer> NL;
   NL = nnlayer->layer;
 
-  status = NL->setProperty(key, arg_list);
+  status = NL->setProperty(arg_list);
 
   return status;
 }
@@ -235,7 +235,6 @@ int ml_nnoptimizer_set_property(ml_nnopt_h opt, ...) {
   int status = ML_ERROR_NONE;
   ml_nnopt *nnopt;
   const char *data;
-  int count = 0;
   nnopt = (ml_nnopt *)opt;
   ML_NNTRAINER_CHECK_OPT_VALIDATION(nnopt, opt);
 
@@ -246,7 +245,6 @@ int ml_nnoptimizer_set_property(ml_nnopt_h opt, ...) {
 
   while ((data = va_arg(arguments, const char *))) {
     arg_list.push_back(data);
-    count++;
   }
 
   va_end(arguments);

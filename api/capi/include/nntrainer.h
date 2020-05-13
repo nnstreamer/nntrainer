@@ -185,7 +185,7 @@ int ml_nnlayer_delete(ml_nnlayer_h layer);
  * @retval #ML_ERROR_NONE Successful.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
  */
-int ml_nnlayer_set_property(ml_nnlayer_h layer, const char *key,...);
+int ml_nnlayer_set_property(ml_nnlayer_h layer, ...);
 
 /**
  * @brief Create the neural network optimizer.

@@ -27,13 +27,6 @@
 #include <parse_util.h>
 #include <util_func.h>
 
-#define NN_RETURN_STATUS()         \
-  do {                             \
-    if (status != ML_ERROR_NONE) { \
-      return status;               \
-    }                              \
-  } while (0)
-
 namespace nntrainer {
 
 Optimizer::Optimizer() {
@@ -140,40 +133,38 @@ void Optimizer::calculate(Tensor &djdw, Tensor &djdb, Tensor &weight,
 
 int Optimizer::setProperty(std::vector<std::string> values) {
   int status = ML_ERROR_NONE;
-  if (values.size() % 2 != 0) {
-    ml_loge("Error: Input values must be key:value pair!");
-    return ML_ERROR_INVALID_PARAMETER;
-  }
 
-  for (unsigned int i = 0; i < values.size(); i += 2) {
-    unsigned int key = i;
-    unsigned int value = key + 1;
-    unsigned int type = parseOptProperty(values[key].c_str());
+  for (unsigned int i = 0; i < values.size(); ++i) {
+    std::string key;
+    std::string value;
+    status = getKeyValue(values[i], key, value);
+
+    unsigned int type = parseOptProperty(key.c_str());
 
     switch (static_cast<PropertyType>(type)) {
     case PropertyType::learning_rate:
-      status = setFloat(popt.learning_rate, values[value]);
+      status = setFloat(popt.learning_rate, value);
       NN_RETURN_STATUS();
       break;
     case PropertyType::decay_steps:
-      status = setFloat(popt.decay_steps, values[value]);
+      status = setFloat(popt.decay_steps, value);
       NN_RETURN_STATUS();
       break;
     case PropertyType::decay_rate:
-      status = setFloat(popt.decay_rate, values[value]);
+      status = setFloat(popt.decay_rate, value);
       NN_RETURN_STATUS();
       break;
     case PropertyType::beta1:
-      status = setDouble(popt.beta1, values[value]);
+      status = setDouble(popt.beta1, value);
       NN_RETURN_STATUS();
 
       break;
     case PropertyType::beta2:
-      status = setDouble(popt.beta2, values[value]);
+      status = setDouble(popt.beta2, value);
       NN_RETURN_STATUS();
       break;
     case PropertyType::epsilon:
-      status = setDouble(popt.epsilon, values[value]);
+      status = setDouble(popt.epsilon, value);
       NN_RETURN_STATUS();
       break;
     default:
