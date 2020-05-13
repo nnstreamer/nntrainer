@@ -122,12 +122,10 @@ static int rangeRandom(int min, int max) {
 void getFeature(const string filename, vector<float> &feature_input) {
   int input_size;
   int output_size;
-  int *output_idx_list;
-  int *input_idx_list;
+  std::vector<int> output_idx_list;
+  std::vector<int> input_idx_list;
   int input_dim[4];
   int output_dim[4];
-  int input_idx_list_len = 0;
-  int output_idx_list_len = 0;
   std::string model_path = "../../res/mobilenetv2.tflite";
   std::unique_ptr<tflite::FlatBufferModel> model =
     tflite::FlatBufferModel::BuildFromFile(model_path.c_str());
@@ -140,22 +138,21 @@ void getFeature(const string filename, vector<float> &feature_input) {
   input_size = interpreter->inputs().size();
   output_size = interpreter->outputs().size();
 
-  input_idx_list = new int[input_size];
-  output_idx_list = new int[output_size];
-
   int t_size = interpreter->tensors_size();
+
   for (int i = 0; i < t_size; i++) {
     for (int j = 0; j < input_size; j++) {
       if (strncmp(interpreter->tensor(i)->name, interpreter->GetInputName(j),
                   sizeof(interpreter->tensor(i)->name)) == 0)
-        input_idx_list[input_idx_list_len++] = i;
+        input_idx_list.push_back(i);
     }
     for (int j = 0; j < output_size; j++) {
       if (strncmp(interpreter->tensor(i)->name, interpreter->GetOutputName(j),
                   sizeof(interpreter->tensor(i)->name)) == 0)
-        output_idx_list[output_idx_list_len++] = i;
+        output_idx_list.push_back(i);
     }
   }
+
   for (int i = 0; i < 4; i++) {
     input_dim[i] = 1;
     output_dim[i] = 1;
@@ -180,10 +177,10 @@ void getFeature(const string filename, vector<float> &feature_input) {
 
   int _input = interpreter->inputs()[0];
 
-  uint8_t *in;
   float *output;
-  in = tflite::label_image::read_bmp(filename, &wanted_width, &wanted_height,
-                                     &wanted_channels);
+  uint8_t *in = tflite::label_image::read_bmp(filename, &wanted_width,
+                                              &wanted_height, &wanted_channels);
+
   if (interpreter->AllocateTensors() != kTfLiteOk) {
     std::cout << "Failed to allocate tensors!" << std::endl;
     exit(0);
@@ -210,8 +207,6 @@ void getFeature(const string filename, vector<float> &feature_input) {
   }
 
   delete[] in;
-  delete[] input_idx_list;
-  delete[] output_idx_list;
 }
 
 /**
