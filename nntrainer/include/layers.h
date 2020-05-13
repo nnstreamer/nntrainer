@@ -476,6 +476,12 @@ public:
   };
 
 private:
+  /**
+   * @brief     update loss
+   * @param[in] l Tensor data to calculate
+   */
+  void updateLoss(Tensor l);
+
   Tensor weight;
   Tensor bias;
   float loss;
