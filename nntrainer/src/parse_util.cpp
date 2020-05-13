@@ -25,9 +25,32 @@
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <parse_util.h>
+#include <regex>
 #include <string.h>
 
 namespace nntrainer {
+
+int getKeyValue(std::string input_str, std::string &key, std::string &value) {
+  int status = ML_ERROR_NONE;
+  std::vector<std::string> list;
+  std::regex words_regex("[^\\s=]+");
+  auto words_begin =
+    std::sregex_iterator(input_str.begin(), input_str.end(), words_regex);
+  auto words_end = std::sregex_iterator();
+  int nwords = std::distance(words_begin, words_end);
+  if (nwords != 2) {
+    ml_loge("Error: input string must be 'key = value' format");
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
+  for (std::sregex_iterator i = words_begin; i != words_end; ++i) {
+    list.push_back((*i).str());
+  }
+
+  key = list[0];
+  value = list[1];
+  return status;
+}
 
 unsigned int parseType(std::string ll, InputType t) {
   int ret;
@@ -182,18 +205,23 @@ unsigned int parseLayerProperty(std::string property) {
    * activation = 4,
    * epsilon = 5
    * weight_decay = 6
+   * weight_decay_lambda = 7
    *
    * InputLayer has 0, 1, 2, 3 properties.
-   * FullyConnectedLayer has 0, 1, 4, 6 properties.
-   * BatchNormalizationLayer has 0, 1, 5, 6 properties.
+   * FullyConnectedLayer has 0, 1, 4, 6, 7 properties.
+   * BatchNormalizationLayer has 0, 1, 5, 6, 7 properties.
    */
-  std::array<std::string, 8> property_string = {
-    "input_shape", "bias_zero", "normalization", "standardization",
-    "activation",  "epsilon",   "weight_decay",  "unknown"};
+  std::array<std::string, 9> property_string = {
+    "input_shape",     "bias_zero",           "normalization",
+    "standardization", "activation",          "epsilon",
+    "weight_decay",    "weight_decay_lambda", "unknown"};
 
   for (i = 0; i < property_string.size(); i++) {
-    if (!strncasecmp(property_string[i].c_str(), property.c_str(),
-                     property_string[i].size())) {
+    unsigned int size = (property_string[i].size() > property.size())
+                          ? property_string[i].size()
+                          : property.size();
+
+    if (!strncasecmp(property_string[i].c_str(), property.c_str(), size)) {
       return (i);
     }
   }
@@ -220,8 +248,11 @@ unsigned int parseOptProperty(std::string property) {
     "beta2",         "epsilon",    "unknown"};
 
   for (i = 0; i < property_string.size(); i++) {
-    if (!strncasecmp(property_string[i].c_str(), property.c_str(),
-                     property_string[i].size())) {
+    unsigned int size = (property_string[i].size() > property.size())
+                          ? property_string[i].size()
+                          : property.size();
+
+    if (!strncasecmp(property_string[i].c_str(), property.c_str(), size)) {
       return (i);
     }
   }

@@ -29,6 +29,13 @@
 
 namespace nntrainer {
 
+#define NN_RETURN_STATUS()         \
+  do {                             \
+    if (status != ML_ERROR_NONE) { \
+      return status;               \
+    }                              \
+  } while (0)
+
 /**
  * @brief     Enumeration for input configuration file parsing
  *            0. OPT     ( Optimizer Token )
@@ -99,6 +106,16 @@ int setDouble(double &val, std::string str);
  * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
  */
 int setBoolean(bool &val, std::string str);
+
+/**
+ * @brief     parse string and return key & value
+ * @param[in] input_str input string to split with '='
+ * @param[out] key key
+ * @param[out] value value
+ * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+ */
+int getKeyValue(std::string input_str, std::string &key, std::string &value);
 
 } /* namespace nntrainer */
 

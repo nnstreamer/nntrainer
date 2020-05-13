@@ -76,8 +76,8 @@ TEST(nntrainer_capi_nnopt, setOptimizer_01_p) {
   int status;
   status = ml_nnoptimizer_create(&handle, "adam");
   EXPECT_EQ(status, ML_ERROR_NONE);
-  status = ml_nnoptimizer_set_property(handle, "beta1", "0.002", "beta2",
-                                      "0.001", NULL);
+  status =
+    ml_nnoptimizer_set_property(handle, "beta1=0.002", "beta2=0.001", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
   status = ml_nnlayer_delete(handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -91,14 +91,12 @@ TEST(nntrainer_capi_nnopt, setOptimizer_02_n) {
   int status;
   status = ml_nnoptimizer_create(&handle, "adam");
   EXPECT_EQ(status, ML_ERROR_NONE);
-  status = ml_nnoptimizer_set_property(handle, "beta1", "true", "beta2",
-                                      "0.001", NULL);
+  status =
+    ml_nnoptimizer_set_property(handle, "beta1=true", "beta2=0.001", NULL);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
   status = ml_nnlayer_delete(handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
-
-
 
 /**
  * @brief Main gtest

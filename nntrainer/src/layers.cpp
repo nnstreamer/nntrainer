@@ -174,29 +174,40 @@ int InputLayer::setOptimizer(Optimizer &opt) {
   return this->opt.initialize(dim.height(), dim.width(), false);
 }
 
-int InputLayer::setProperty(const char *key, std::vector<std::string> values) {
+int InputLayer::setProperty(std::vector<std::string> values) {
   int status = ML_ERROR_NONE;
-  unsigned int type = parseLayerProperty(key);
+  for (unsigned int i = 0; i < values.size(); ++i) {
+    std::string key;
+    std::string value;
 
-  switch (static_cast<PropertyType>(type)) {
-  case PropertyType::input_shape:
-    status = dim.setTensorDim(values[0].c_str());
-    break;
-  case PropertyType::bias_zero:
-    init_zero = (strcasecmp("true", values[0].c_str()) == 0);
-    break;
-  case PropertyType::normalization:
-    normalization = (strcasecmp("true", values[0].c_str()) == 0);
-    break;
-  case PropertyType::standardization:
-    standardization = (strcasecmp("true", values[0].c_str()) == 0);
-    break;
-  default:
-    ml_loge("Error: Unknown Layer Property Key");
-    status = ML_ERROR_INVALID_PARAMETER;
-    break;
+    status = getKeyValue(values[i], key, value);
+    NN_RETURN_STATUS();
+
+    unsigned int type = parseLayerProperty(key.c_str());
+
+    switch (static_cast<PropertyType>(type)) {
+    case PropertyType::input_shape:
+      status = dim.setTensorDim(value.c_str());
+      NN_RETURN_STATUS();
+      break;
+    case PropertyType::bias_zero:
+      status = setBoolean(init_zero, value);
+      NN_RETURN_STATUS();
+      break;
+    case PropertyType::normalization:
+      status = setBoolean(normalization, value);
+      NN_RETURN_STATUS();
+      break;
+    case PropertyType::standardization:
+      status = setBoolean(standardization, value);
+      NN_RETURN_STATUS();
+      break;
+    default:
+      ml_loge("Error: Unknown Layer Property Key");
+      status = ML_ERROR_INVALID_PARAMETER;
+      break;
+    }
   }
-
   return status;
 }
 
@@ -272,36 +283,46 @@ int FullyConnectedLayer::setCost(CostType c) {
   return status;
 }
 
-int FullyConnectedLayer::setProperty(const char *key,
-                                     std::vector<std::string> values) {
+int FullyConnectedLayer::setProperty(std::vector<std::string> values) {
   int status = ML_ERROR_NONE;
-  unsigned int type = parseLayerProperty(key);
 
-  switch (static_cast<PropertyType>(type)) {
-  case PropertyType::input_shape:
-    status = dim.setTensorDim(values[0].c_str());
-    break;
-  case PropertyType::bias_zero: {
-    bool isTrue = (strcasecmp("true", values[0].c_str()) == 0);
-    init_zero = isTrue;
-  } break;
-  case PropertyType::activation:
-    status = setActivation((ActiType)parseType(values[0].c_str(), TOKEN_ACTI));
-    break;
-  case PropertyType::weight_decay: {
-    weight_decay.type =
-      (WeightDecayType)parseType(values[0].c_str(), TOKEN_WEIGHT_DECAY);
-    if (weight_decay.type == WeightDecayType::l2norm) {
-      weight_decay.lambda = std::stof(values[1].c_str());
-    } else {
-      ml_loge("Error: Unknown Weight Decay Type");
-      return ML_ERROR_INVALID_PARAMETER;
+  for (unsigned int i = 0; i < values.size(); ++i) {
+    std::string key;
+    std::string value;
+
+    status = getKeyValue(values[i], key, value);
+    NN_RETURN_STATUS();
+
+    unsigned int type = parseLayerProperty(key);
+
+    switch (static_cast<PropertyType>(type)) {
+    case PropertyType::input_shape:
+      status = dim.setTensorDim(value);
+      break;
+    case PropertyType::bias_zero: {
+      status = setBoolean(init_zero, value);
+      NN_RETURN_STATUS();
+    } break;
+    case PropertyType::activation:
+      status = setActivation((ActiType)parseType(value, TOKEN_ACTI));
+      NN_RETURN_STATUS();
+      break;
+    case PropertyType::weight_decay:
+      weight_decay.type = (WeightDecayType)parseType(value, TOKEN_WEIGHT_DECAY);
+      if (weight_decay.type == WeightDecayType::unknown) {
+        ml_loge("Error: Unknown Weight Decay");
+        return ML_ERROR_INVALID_PARAMETER;
+      }
+      break;
+    case PropertyType::weight_decay_lambda:
+      status = setFloat(weight_decay.lambda, value);
+      NN_RETURN_STATUS();
+      break;
+    default:
+      ml_loge("Error: Unknown Layer Property Key");
+      status = ML_ERROR_INVALID_PARAMETER;
+      break;
     }
-  } break;
-  default:
-    ml_loge("Error: Unknown Layer Property Key");
-    status = ML_ERROR_INVALID_PARAMETER;
-    break;
   }
   return status;
 }
@@ -502,28 +523,35 @@ int BatchNormalizationLayer::setOptimizer(Optimizer &opt) {
   return this->opt.initialize(dim.height(), dim.width(), false);
 }
 
-int BatchNormalizationLayer::setProperty(const char *key,
-                                         std::vector<std::string> values) {
+int BatchNormalizationLayer::setProperty(std::vector<std::string> values) {
   int status = ML_ERROR_NONE;
-  unsigned int type = parseLayerProperty(key);
 
-  switch (static_cast<PropertyType>(type)) {
-  case PropertyType::input_shape:
-    status = dim.setTensorDim(values[0].c_str());
-    break;
-  case PropertyType::bias_zero: {
-    bool isTrue = (strcasecmp("true", values[0].c_str()) == 0);
-    init_zero = isTrue;
-  } break;
-  case PropertyType::epsilon:
-    epsilon = std::stof(values[0].c_str());
-    break;
-  default:
-    ml_loge("Error: Unknown Layer Property Key");
-    status = ML_ERROR_INVALID_PARAMETER;
-    break;
+  for (unsigned int i = 0; i < values.size(); ++i) {
+    std::string key;
+    std::string value;
+    status = getKeyValue(values[i], key, value);
+    NN_RETURN_STATUS();
+
+    unsigned int type = parseLayerProperty(key);
+
+    switch (static_cast<PropertyType>(type)) {
+    case PropertyType::input_shape:
+      status = dim.setTensorDim(values[0].c_str());
+      break;
+    case PropertyType::bias_zero: {
+      status = setBoolean(init_zero, value);
+      NN_RETURN_STATUS();
+    } break;
+    case PropertyType::epsilon:
+      status = setFloat(epsilon, value);
+      NN_RETURN_STATUS();
+      break;
+    default:
+      ml_loge("Error: Unknown Layer Property Key");
+      status = ML_ERROR_INVALID_PARAMETER;
+      break;
+    }
   }
-
   return status;
 }
 

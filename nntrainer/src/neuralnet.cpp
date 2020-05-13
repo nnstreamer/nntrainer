@@ -35,7 +35,7 @@
 #include <sstream>
 #include <stdio.h>
 
-#define NN_RETURN_STATUS()         \
+#define NN_INI_RETURN_STATUS()     \
   do {                             \
     if (status != ML_ERROR_NONE) { \
       iniparser_freedict(ini);     \
@@ -173,7 +173,7 @@ int NeuralNetwork::init() {
   epoch = iniparser_getint(ini, "Network:Epoch", 100);
   status = opt.setType((OptType)parseType(
     iniparser_getstring(ini, "Network:Optimizer", unknown), TOKEN_OPT));
-  NN_RETURN_STATUS();
+  NN_INI_RETURN_STATUS();
 
   cost = (CostType)parseType(iniparser_getstring(ini, "Network:Cost", unknown),
                              TOKEN_COST);
@@ -188,7 +188,7 @@ int NeuralNetwork::init() {
   popt.epsilon = iniparser_getdouble(ini, "Network:epsilon", 0.0);
 
   status = opt.setOptParam(popt);
-  NN_RETURN_STATUS();
+  NN_INI_RETURN_STATUS();
 
   for (unsigned int i = 0; i < layers_name.size(); i++)
     ml_logi("%s", layers_name[i].c_str());
@@ -235,16 +235,16 @@ int NeuralNetwork::init() {
       static_cast<DataBufferFromDataFile *>(data_buffer);
     status = dbuffer->setDataFile(
       iniparser_getstring(ini, "DataSet:TrainData", ""), DATA_TRAIN);
-    NN_RETURN_STATUS();
+    NN_INI_RETURN_STATUS();
     status = dbuffer->setDataFile(
       iniparser_getstring(ini, "DataSet:ValidData", ""), DATA_VAL);
-    NN_RETURN_STATUS();
+    NN_INI_RETURN_STATUS();
     status = dbuffer->setDataFile(
       iniparser_getstring(ini, "DataSet:TestData", ""), DATA_TEST);
-    NN_RETURN_STATUS();
+    NN_INI_RETURN_STATUS();
     status = dbuffer->setDataFile(
       iniparser_getstring(ini, "DataSet:LabelData", ""), DATA_LABEL);
-    NN_RETURN_STATUS();
+    NN_INI_RETURN_STATUS();
 
   } else if (iniparser_find_entry(ini, "DataSet:Tflite")) {
     ml_loge("Error: Not yet implemented!");
@@ -254,10 +254,10 @@ int NeuralNetwork::init() {
   }
 
   status = data_buffer->setMiniBatch(batch_size);
-  NN_RETURN_STATUS();
+  NN_INI_RETURN_STATUS();
 
   status = data_buffer->setClassNum(hidden_size[layers_name.size() - 1]);
-  NN_RETURN_STATUS();
+  NN_INI_RETURN_STATUS();
 
   status = data_buffer->setBufSize(
     iniparser_getint(ini, "DataSet:BufferSize", batch_size));
@@ -282,10 +282,10 @@ int NeuralNetwork::init() {
       input_layer->setType(t);
       status = input_layer->initialize(batch_size, 1, hidden_size[i], last,
                                        b_zero, weight_ini);
-      NN_RETURN_STATUS();
+      NN_INI_RETURN_STATUS();
 
       status = input_layer->setOptimizer(opt);
-      NN_RETURN_STATUS();
+      NN_INI_RETURN_STATUS();
 
       input_layer->setNormalization(iniparser_getboolean(
         ini, (layers_name[i] + ":Normalization").c_str(), false));
@@ -295,7 +295,7 @@ int NeuralNetwork::init() {
         iniparser_getstring(ini, (layers_name[i] + ":Activation").c_str(),
                             unknown),
         TOKEN_ACTI));
-      NN_RETURN_STATUS();
+      NN_INI_RETURN_STATUS();
       layers.push_back(input_layer);
     } break;
     case LAYER_FC: {
@@ -304,7 +304,7 @@ int NeuralNetwork::init() {
         std::make_shared<FullyConnectedLayer>();
       fc_layer->setType(t);
       status = fc_layer->setCost(cost);
-      NN_RETURN_STATUS();
+      NN_INI_RETURN_STATUS();
       if (i == 0) {
         ml_loge("Error: Fully Connected Layer should be after "
                 "InputLayer.");
@@ -312,17 +312,17 @@ int NeuralNetwork::init() {
       }
       status = fc_layer->initialize(batch_size, hidden_size[i - 1],
                                     hidden_size[i], last, b_zero, weight_ini);
-      NN_RETURN_STATUS();
+      NN_INI_RETURN_STATUS();
       status = fc_layer->setOptimizer(opt);
-      NN_RETURN_STATUS();
+      NN_INI_RETURN_STATUS();
       status = fc_layer->setActivation((ActiType)parseType(
         iniparser_getstring(ini, (layers_name[i] + ":Activation").c_str(),
                             unknown),
         TOKEN_ACTI));
-      NN_RETURN_STATUS();
+      NN_INI_RETURN_STATUS();
 
       status = setWeightDecay(ini, layers_name[i], weight_decay);
-      NN_RETURN_STATUS();
+      NN_INI_RETURN_STATUS();
 
       fc_layer->setWeightDecay(weight_decay);
       layers.push_back(fc_layer);
@@ -333,10 +333,10 @@ int NeuralNetwork::init() {
         std::make_shared<BatchNormalizationLayer>();
       bn_layer->setType(t);
       status = bn_layer->setOptimizer(opt);
-      NN_RETURN_STATUS();
+      NN_INI_RETURN_STATUS();
       status = bn_layer->initialize(batch_size, 1, hidden_size[i], last, b_zero,
                                     weight_ini);
-      NN_RETURN_STATUS();
+      NN_INI_RETURN_STATUS();
       layers.push_back(bn_layer);
       if (i == 0) {
         ml_loge("Error: BN layer shouldn't be first layer of network");
@@ -347,9 +347,9 @@ int NeuralNetwork::init() {
         iniparser_getstring(ini, (layers_name[i] + ":Activation").c_str(),
                             unknown),
         TOKEN_ACTI));
-      NN_RETURN_STATUS();
+      NN_INI_RETURN_STATUS();
       status = setWeightDecay(ini, layers_name[i], weight_decay);
-      NN_RETURN_STATUS();
+      NN_INI_RETURN_STATUS();
       bn_layer->setWeightDecay(weight_decay);
     } break;
     case LAYER_UNKNOWN:
@@ -362,10 +362,10 @@ int NeuralNetwork::init() {
   }
 
   status = data_buffer->setFeatureSize(hidden_size[0]);
-  NN_RETURN_STATUS();
+  NN_INI_RETURN_STATUS();
 
   status = data_buffer->init();
-  NN_RETURN_STATUS();
+  NN_INI_RETURN_STATUS();
 
   iniparser_freedict(ini);
   return status;
