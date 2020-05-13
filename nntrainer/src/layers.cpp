@@ -336,18 +336,12 @@ Tensor FullyConnectedLayer::forwarding(Tensor in, Tensor output, int &status) {
     y = y.apply(activation);
   }
 
-  float loss_sum = 0.0;
-
   switch (cost) {
   case COST_MSR: {
     Tensor sub = y2.subtract(y);
     Tensor l = (sub.multiply(sub)).sum().multiply(0.5);
-    std::vector<float> t = l.mat2vec();
-    for (int i = 0; i < l.getBatch(); i++) {
-      loss_sum += t[i];
-    }
 
-    loss = loss_sum / (float)l.getBatch();
+    updateLoss(l);
   } break;
   case COST_ENTROPY: {
     Tensor l;
@@ -365,23 +359,27 @@ Tensor FullyConnectedLayer::forwarding(Tensor in, Tensor output, int &status) {
       exit(0);
     }
 
-    std::vector<float> t = l.mat2vec();
-
-    for (int i = 0; i < l.getBatch(); i++) {
-      loss_sum += t[i];
-    }
-    loss = loss_sum / (float)l.getBatch();
-
-    if (weight_decay.type == WeightDecayType::l2norm) {
-      loss += weight_decay.lambda * 0.5 * (weight.l2norm());
-    }
-
+    updateLoss(l);
   } break;
   case COST_UNKNOWN:
   default:
     break;
   }
   return y;
+}
+
+void FullyConnectedLayer::updateLoss(Tensor l) {
+  float loss_sum = 0.0;
+  std::vector<float> t = l.mat2vec();
+
+  for (int i = 0; i < l.getBatch(); i++) {
+    loss_sum += t[i];
+  }
+  loss = loss_sum / (float)l.getBatch();
+
+  if (weight_decay.type == WeightDecayType::l2norm) {
+    loss += weight_decay.lambda * 0.5 * (weight.l2norm());
+  }
 }
 
 void FullyConnectedLayer::read(std::ifstream &file) {
@@ -409,7 +407,6 @@ void FullyConnectedLayer::copy(std::shared_ptr<Layer> l) {
 
 Tensor FullyConnectedLayer::backwarding(Tensor derivative, int iteration) {
   Tensor djdb;
-  float loss_sum = 0.0;
   Tensor y2 = derivative;
   Tensor y;
 
@@ -429,15 +426,9 @@ Tensor FullyConnectedLayer::backwarding(Tensor derivative, int iteration) {
     case COST_MSR: {
       Tensor sub = y2.subtract(y);
       Tensor l = (sub.multiply(sub)).sum().multiply(0.5);
-      std::vector<float> t = l.mat2vec();
-      for (int i = 0; i < l.getBatch(); i++) {
-        loss_sum += t[i];
-      }
 
-      loss = loss_sum / (float)l.getBatch();
-      if (weight_decay.type == WeightDecayType::l2norm) {
-        loss += weight_decay.lambda * 0.5 * (weight.l2norm());
-      }
+      updateLoss(l);
+
       if (activation_type == ACT_SOFTMAX) {
         djdb = y.subtract(y2).multiply(y.apply(softmaxPrime));
       } else {
@@ -463,17 +454,7 @@ Tensor FullyConnectedLayer::backwarding(Tensor derivative, int iteration) {
         exit(0);
       }
 
-      std::vector<float> t = l.mat2vec();
-
-      for (int i = 0; i < l.getBatch(); i++) {
-        loss_sum += t[i];
-      }
-      loss = loss_sum / (float)l.getBatch();
-
-      if (weight_decay.type == WeightDecayType::l2norm) {
-        loss += weight_decay.lambda * 0.5 * (weight.l2norm());
-      }
-
+      updateLoss(l);
     } break;
     case COST_UNKNOWN:
     default:
