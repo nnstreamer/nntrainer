@@ -16,7 +16,10 @@ endif
 nntrainer_sources = [
   'src/neuralnet.cpp',
   'src/tensor.cpp',
-  'src/layers.cpp',
+  'src/layer.cpp',
+  'src/input_layer.cpp',
+  'src/fc_layer.cpp',
+  'src/bn_layer.cpp',
   'src/databuffer.cpp',
   'src/databuffer_file.cpp',
   'src/databuffer_func.cpp',
@@ -29,7 +32,10 @@ nntrainer_sources = [
 nntrainer_headers = [
   'include/neuralnet.h',
   'include/tensor.h',
-  'include/layers.h',
+  'include/layer.h',
+  'include/input_layer.h',
+  'include/fc_layer.h',
+  'include/bn_layer.h',
   'include/databuffer.h',
   'include/databuffer_file.h',
   'include/databuffer_func.h',

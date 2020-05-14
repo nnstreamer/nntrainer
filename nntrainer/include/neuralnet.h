@@ -27,7 +27,10 @@
 #include <databuffer.h>
 #include <fstream>
 #include <iostream>
-#include <layers.h>
+#include <layer.h>
+#include <input_layer.h>
+#include <fc_layer.h>
+#include <bn_layer.h>
 #include <optimizer.h>
 #include <tensor.h>
 #include <vector>

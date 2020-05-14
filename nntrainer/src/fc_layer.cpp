@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2019 Samsung Electronics Co., Ltd. All Rights Reserved.
+ * Copyright (C) 2020 Samsung Electronics Co., Ltd. All Rights Reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -12,23 +12,22 @@
  * limitations under the License.
  *
  *
- * @file	layers.cpp
- * @date	04 December 2019
- * @brief	This is Layers Classes for Neural Network
+ * @file	fc_layer.cpp
+ * @date	14 May 2020
+ * @brief	This is Fully Connected Layer Class for Neural Network
  * @see		https://github.com/nnstreamer/nntrainer
  * @author	Jijoong Moon <jijoong.moon@samsung.com>
  * @bug		No known bugs except for NYI items
  *
  */
 
-#include <assert.h>
-#include <cstring>
-#include <layers.h>
+#include <layer.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <parse_util.h>
 #include <random>
 #include <util_func.h>
+#include <fc_layer.h>
 
 namespace nntrainer {
 
@@ -98,149 +97,6 @@ static Tensor weightInitialization(unsigned int width, unsigned int height,
     break;
   }
   return w;
-}
-
-Layer::Layer() {
-  type = LAYER_UNKNOWN;
-  activation_type = ACT_UNKNOWN;
-  last_layer = false;
-  dim.batch(0);
-  dim.channel(0);
-  dim.width(0);
-  dim.height(0);
-  init_zero = false;
-  activation = NULL;
-  activation_prime = NULL;
-  bn_fallow = false;
-  weight_decay.type = WeightDecayType::unknown;
-  weight_decay.lambda = 0.0;
-}
-
-int Layer::setActivation(ActiType acti) {
-  int status = ML_ERROR_NONE;
-  if (acti == ACT_UNKNOWN) {
-    ml_loge("Error:have to specify activation function");
-    return ML_ERROR_INVALID_PARAMETER;
-  }
-  activation_type = acti;
-  switch (acti) {
-  case ACT_TANH:
-    activation = tanhFloat;
-    activation_prime = tanhPrime;
-    break;
-  case ACT_SIGMOID:
-    activation = sigmoid;
-    activation_prime = sigmoidePrime;
-    break;
-  case ACT_RELU:
-    activation = relu;
-    activation_prime = reluPrime;
-    break;
-  default:
-    break;
-  }
-  return status;
-}
-
-int Layer::setOptimizer(Optimizer &opt) {
-  this->opt.setType(opt.getType());
-  this->opt.setOptParam(opt.getOptParam());
-
-  return this->opt.initialize(dim.height(), dim.width(), true);
-}
-
-int Layer::checkValidation() {
-  int status = ML_ERROR_NONE;
-  if (type == LAYER_UNKNOWN) {
-    ml_loge("Error: Layer type is unknown");
-    return ML_ERROR_INVALID_PARAMETER;
-  }
-
-  if (activation_type == ACT_UNKNOWN) {
-    ml_loge("Error: Have to set activation for this layer");
-    return ML_ERROR_INVALID_PARAMETER;
-  }
-  if (dim.batch() == 0 || dim.width() == 0 || dim.height() == 0) {
-    ml_loge("Error: Tensor Dimension must be set before initialization");
-    return ML_ERROR_INVALID_PARAMETER;
-  }
-  return status;
-}
-
-int InputLayer::setOptimizer(Optimizer &opt) {
-  this->opt.setType(opt.getType());
-  this->opt.setOptParam(opt.getOptParam());
-
-  return this->opt.initialize(dim.height(), dim.width(), false);
-}
-
-int InputLayer::setProperty(std::vector<std::string> values) {
-  int status = ML_ERROR_NONE;
-  for (unsigned int i = 0; i < values.size(); ++i) {
-    std::string key;
-    std::string value;
-
-    status = getKeyValue(values[i], key, value);
-    NN_RETURN_STATUS();
-
-    unsigned int type = parseLayerProperty(key.c_str());
-
-    switch (static_cast<PropertyType>(type)) {
-    case PropertyType::input_shape:
-      status = dim.setTensorDim(value.c_str());
-      NN_RETURN_STATUS();
-      break;
-    case PropertyType::bias_zero:
-      status = setBoolean(init_zero, value);
-      NN_RETURN_STATUS();
-      break;
-    case PropertyType::normalization:
-      status = setBoolean(normalization, value);
-      NN_RETURN_STATUS();
-      break;
-    case PropertyType::standardization:
-      status = setBoolean(standardization, value);
-      NN_RETURN_STATUS();
-      break;
-    default:
-      ml_loge("Error: Unknown Layer Property Key");
-      status = ML_ERROR_INVALID_PARAMETER;
-      break;
-    }
-  }
-  return status;
-}
-
-void InputLayer::copy(std::shared_ptr<Layer> l) {
-  std::shared_ptr<InputLayer> from = std::static_pointer_cast<InputLayer>(l);
-  this->opt = from->opt;
-  this->last_layer = from->last_layer;
-  this->dim = from->dim;
-  this->input.copy(from->input);
-  this->hidden.copy(from->hidden);
-}
-
-Tensor InputLayer::forwarding(Tensor in, int &status) {
-  input = in;
-  if (normalization)
-    input = input.normalization();
-  return input;
-}
-
-int InputLayer::initialize(int b, int h, int w, bool last, bool init_zero,
-                           WeightIniType wini) {
-  int status = ML_ERROR_NONE;
-  if (b <= 0 || h <= 0 || w <= 0) {
-    ml_loge("Error: Dimension must be greater than 0");
-    return ML_ERROR_INVALID_PARAMETER;
-  }
-
-  this->dim.batch(b);
-  this->dim.width(w);
-  this->dim.height(h);
-  this->last_layer = last;
-  this->bn_fallow = false;
-  return status;
 }
 
 int FullyConnectedLayer::initialize(int b, int h, int w, bool last,
@@ -495,152 +351,4 @@ Tensor FullyConnectedLayer::backwarding(Tensor derivative, int iteration) {
 
   return ret;
 }
-
-int BatchNormalizationLayer::initialize(int b, int h, int w, bool last,
-                                        bool init_zero, WeightIniType wini) {
-  int status = ML_ERROR_NONE;
-  if (b <= 0 || h <= 0 || w <= 0) {
-    ml_loge("Error: Dimension must be greater than 0");
-    return ML_ERROR_INVALID_PARAMETER;
-  }
-
-  this->dim.batch(b);
-  this->dim.width(w);
-  this->dim.height(h);
-
-  this->last_layer = last;
-  this->init_zero = init_zero;
-
-  this->gamma = Tensor(b, w);
-  this->beta = Tensor(b, w);
-  beta.setZero();
-  gamma.setZero();
-  return status;
-}
-
-int BatchNormalizationLayer::setOptimizer(Optimizer &opt) {
-  this->opt.setType(opt.getType());
-  this->opt.setOptParam(opt.getOptParam());
-
-  this->epsilon = 0.0;
-  return this->opt.initialize(dim.height(), dim.width(), false);
-}
-
-int BatchNormalizationLayer::setProperty(std::vector<std::string> values) {
-  int status = ML_ERROR_NONE;
-
-  for (unsigned int i = 0; i < values.size(); ++i) {
-    std::string key;
-    std::string value;
-    status = getKeyValue(values[i], key, value);
-    NN_RETURN_STATUS();
-
-    unsigned int type = parseLayerProperty(key);
-
-    switch (static_cast<PropertyType>(type)) {
-    case PropertyType::input_shape:
-      status = dim.setTensorDim(values[0].c_str());
-      break;
-    case PropertyType::bias_zero: {
-      status = setBoolean(init_zero, value);
-      NN_RETURN_STATUS();
-    } break;
-    case PropertyType::epsilon:
-      status = setFloat(epsilon, value);
-      NN_RETURN_STATUS();
-      break;
-    default:
-      ml_loge("Error: Unknown Layer Property Key");
-      status = ML_ERROR_INVALID_PARAMETER;
-      break;
-    }
-  }
-  return status;
-}
-
-Tensor BatchNormalizationLayer::forwarding(Tensor in, int &status) {
-  Tensor temp;
-  assert(dim.batch() > 0);
-  hidden = in;
-
-  mu = in.sum(0).multiply(1.0 / dim.batch());
-
-  temp = in.subtract(mu);
-
-  var = temp.multiply(temp).sum(0).multiply(1.0 / dim.batch());
-
-  Tensor hath = temp.divide(var.add(0.001).apply(sqrtFloat));
-
-  hidden = hath;
-
-  Tensor ret = hath.multiply(gamma).add(beta).apply(activation);
-
-  return ret;
-}
-
-Tensor BatchNormalizationLayer::backwarding(Tensor derivative, int iteration) {
-  Tensor dbeta;
-  Tensor dgamma;
-  assert(dim.batch() > 0);
-
-  Tensor hath = hidden;
-  Tensor dy =
-    derivative.multiply(hath.multiply(gamma).add(beta).apply(activation_prime));
-
-  dbeta = dy.sum(0);
-  dgamma = (input.subtract(mu)
-              .divide(var.add(0.001).apply(sqrtFloat))
-              .multiply(dy)
-              .sum(0));
-
-  Tensor Temp =
-    (dy.multiply(dim.batch()).subtract(dy.sum(0)))
-      .subtract(input.subtract(mu)
-                  .divide(var.add(0.001))
-                  .multiply(dy.multiply(input.subtract(mu)).sum(0)));
-  Tensor dh = Temp.multiply(1.0 / dim.batch())
-                .multiply(var.add(0.001).apply(sqrtFloat))
-                .multiply(gamma);
-
-  float ll = opt.getLearningRate();
-  if (opt.getDecaySteps() != -1) {
-    ll = ll * pow(opt.getDecayRate(), (iteration / opt.getDecaySteps()));
-  }
-
-  gamma = gamma.subtract(dgamma.multiply(ll));
-  beta = beta.subtract(dbeta.multiply(ll));
-
-  return dh;
-}
-
-void BatchNormalizationLayer::read(std::ifstream &file) {
-  file.read((char *)&mu, sizeof(float));
-  file.read((char *)&var, sizeof(float));
-  gamma.read(file);
-  beta.read(file);
-}
-
-void BatchNormalizationLayer::save(std::ofstream &file) {
-  file.write((char *)&mu, sizeof(float));
-  file.write((char *)&var, sizeof(float));
-  gamma.save(file);
-  beta.save(file);
-}
-
-void BatchNormalizationLayer::copy(std::shared_ptr<Layer> l) {
-  std::shared_ptr<BatchNormalizationLayer> from =
-    std::static_pointer_cast<BatchNormalizationLayer>(l);
-  this->opt = from->opt;
-  this->last_layer = from->last_layer;
-  this->dim = from->dim;
-  this->input.copy(from->input);
-  this->hidden.copy(from->hidden);
-  this->weight.copy(from->weight);
-  this->bias.copy(from->bias);
-  this->mu = from->mu;
-  this->var = from->var;
-  this->gamma.copy(from->gamma);
-  this->beta.copy(from->beta);
-}
-
 } /* namespace nntrainer */

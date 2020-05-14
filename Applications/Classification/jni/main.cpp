@@ -39,7 +39,7 @@
 #include <stdlib.h>
 #include <time.h>
 
-#include "layers.h"
+#include "layer.h"
 #include "neuralnet.h"
 #include "tensor.h"
 
