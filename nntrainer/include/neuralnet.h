@@ -75,10 +75,10 @@ public:
   float getLoss();
 
   /**
-   * @brief     Get Optimizer
+   * @brief     Set Optimizer
    * @retval    Optimizer
    */
-  Optimizer getOptimizer() { return opt; };
+  void setOptimizer(Optimizer optimizer) { opt = optimizer; };
 
   /**
    * @brief     Get Learning rate
@@ -93,11 +93,31 @@ public:
   void setLoss(float l);
 
   /**
-   * @brief     Initialize Network
+   * @brief     Initialize Network. This should be called after set all hyper
+   * parmeters.
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
   int init();
+
+  /**
+   * @brief     set Property of Network
+   * @param[in] values values of property
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  int setProperty(std::vector<std::string> values);
+
+  /**
+   * @brief     Initialize Network
+   * @param[in] opimizer optimizer instance
+   * @param[in] arg_list argument list
+   *            "loss = cross | msr"
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  int init(std::shared_ptr<Optimizer> optimizer,
+              std::vector<std::string> arg_list);
 
   /**
    * @brief     forward propagation
@@ -193,6 +213,11 @@ public:
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
   int addLayer(std::shared_ptr<Layer> layer);
+
+  enum class PropertyType {
+    loss = 0,
+    cost = 1,
+  };
 
 private:
   /**

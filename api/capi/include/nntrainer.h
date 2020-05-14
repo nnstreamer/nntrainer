@@ -107,7 +107,7 @@ int ml_nnmodel_construct(ml_nnmodel_h *model);
 int ml_nnmodel_construct_with_conf(const char *model_conf, ml_nnmodel_h *model);
 
 /**
- * @brief initialize the neural network model.
+ * @brief initialize the neural network model with configuration file.
  * @details Use this function to initialize neural network model
  * @since_tizen 6.x
  * @param[in] model The NNTrainer model handler from the given description.
@@ -115,7 +115,20 @@ int ml_nnmodel_construct_with_conf(const char *model_conf, ml_nnmodel_h *model);
  * @retval #ML_ERROR_NONE Successful.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter.
  */
-int ml_nnmodel_compile(ml_nnmodel_h model);
+int ml_nnmodel_compile_with_conf(ml_nnmodel_h model);
+
+/**
+ * @brief initialize the neural network model.
+ * @details Use this function to initialize neural network model
+ * @since_tizen 6.x
+ * @param[in] model The NNTrainer model handler from the given description.
+ * @param[in] optimizer The NNTrainer optimizer handler from the given description.
+ * @param[in] ... hyper parmeter for compile model
+ * @return @c 0 on success. Otherwise a negative error value.
+ * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter.
+ */
+int ml_nnmodel_compile(ml_nnmodel_h model, ml_nnopt_h optimizer, ...);
 
 /**
  * @brief train the neural network model.

@@ -81,7 +81,7 @@ int ml_nnmodel_construct_with_conf(const char *model_conf,
   return status;
 }
 
-int ml_nnmodel_compile(ml_nnmodel_h model) {
+int ml_nnmodel_compile_with_conf(ml_nnmodel_h model) {
   int status = ML_ERROR_NONE;
   ml_nnmodel *nnmodel;
 
@@ -92,6 +92,37 @@ int ml_nnmodel_compile(ml_nnmodel_h model) {
   if (status != ML_ERROR_NONE)
     return status;
   status = NN->init();
+  return status;
+}
+
+int ml_nnmodel_compile(ml_nnmodel_h model, ml_nnopt_h optimizer, ...) {
+  int status = ML_ERROR_NONE;
+  const char *data;
+  ml_nnmodel *nnmodel;
+  ml_nnopt *nnopt;
+
+  std::shared_ptr<nntrainer::NeuralNetwork> NN;
+  std::shared_ptr<nntrainer::Optimizer> opti;
+
+  ML_NNTRAINER_CHECK_MODEL_VALIDATION(nnmodel, model);
+
+  ML_NNTRAINER_CHECK_OPT_VALIDATION(nnopt, optimizer);
+
+  std::vector<std::string> arg_list;
+
+  va_list arguments;
+  va_start(arguments, optimizer);
+
+  while ((data = va_arg(arguments, const char *))) {
+    arg_list.push_back(data);
+  }
+  va_end(arguments);
+
+  NN = nnmodel->network;
+  opti = nnopt->optimizer;
+
+  status = NN->init(opti, arg_list);
+
   return status;
 }
 

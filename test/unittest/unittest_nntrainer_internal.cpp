@@ -268,8 +268,7 @@ TEST(nntrainer_Optimizer, setOptParam_01_p) {
 TEST(nntrainer_InputLayer, initialize_01_p) {
   int status = ML_ERROR_NONE;
   nntrainer::InputLayer layer;
-  status =
-    layer.initialize(1, 1, 1, false, true, nntrainer::WEIGHT_XAVIER_NORMAL);
+  status = layer.initialize(1, 1, 1, false, true);
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
@@ -279,8 +278,7 @@ TEST(nntrainer_InputLayer, initialize_01_p) {
 TEST(nntrainer_InputLayer, initialize_02_n) {
   int status = ML_ERROR_NONE;
   nntrainer::InputLayer layer;
-  status =
-    layer.initialize(1, 0, 1, false, true, nntrainer::WEIGHT_XAVIER_NORMAL);
+  status = layer.initialize(1, 0, 1, false, true);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
@@ -290,8 +288,7 @@ TEST(nntrainer_InputLayer, initialize_02_n) {
 TEST(nntrainer_InputLayer, setOptimizer_01_p) {
   int status = ML_ERROR_NONE;
   nntrainer::InputLayer layer;
-  status =
-    layer.initialize(1, 1, 1, false, true, nntrainer::WEIGHT_XAVIER_NORMAL);
+  status = layer.initialize(1, 1, 1, false, true);
   nntrainer::Optimizer op;
   nntrainer::OptType t = nntrainer::OptType::adam;
   nntrainer::OptParam p;
@@ -333,8 +330,7 @@ TEST(nntrainer_InputLayer, setActivation_02_n) {
 TEST(nntrainer_FullyConnectedLayer, initialize_01_p) {
   int status = ML_ERROR_NONE;
   nntrainer::FullyConnectedLayer layer;
-  status =
-    layer.initialize(1, 1, 1, false, true, nntrainer::WEIGHT_XAVIER_NORMAL);
+  status = layer.initialize(1, 1, 1, false, true);
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
@@ -344,8 +340,7 @@ TEST(nntrainer_FullyConnectedLayer, initialize_01_p) {
 TEST(nntrainer_FullyConnectedLayer, initialize_02_n) {
   int status = ML_ERROR_NONE;
   nntrainer::FullyConnectedLayer layer;
-  status =
-    layer.initialize(1, 0, 1, false, true, nntrainer::WEIGHT_XAVIER_NORMAL);
+  status = layer.initialize(1, 0, 1, false, true);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
@@ -355,7 +350,7 @@ TEST(nntrainer_FullyConnectedLayer, initialize_02_n) {
 TEST(nntrainer_FullyConnectedLayer, initialize_03_n) {
   int status = ML_ERROR_NONE;
   nntrainer::FullyConnectedLayer layer;
-  status = layer.initialize(1, 1, 1, false, true, nntrainer::WEIGHT_UNKNOWN);
+  status = layer.initialize(1, 1, 1, false, true);
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
@@ -365,8 +360,7 @@ TEST(nntrainer_FullyConnectedLayer, initialize_03_n) {
 TEST(nntrainer_FullyConnectedLayer, initialize_04_p) {
   int status = ML_ERROR_NONE;
   nntrainer::FullyConnectedLayer layer;
-  status =
-    layer.initialize(1, 1, 1, true, true, nntrainer::WEIGHT_XAVIER_NORMAL);
+  status = layer.initialize(1, 1, 1, true, true);
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
@@ -376,18 +370,17 @@ TEST(nntrainer_FullyConnectedLayer, initialize_04_p) {
 TEST(nntrainer_FullyConnectedLayer, initialize_05_n) {
   int status = ML_ERROR_NONE;
   nntrainer::FullyConnectedLayer layer;
-  status =
-    layer.initialize(1, 0, 1, true, true, nntrainer::WEIGHT_XAVIER_NORMAL);
+  status = layer.initialize(1, 0, 1, true, true);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
 /**
  * @brief FullyConnected Layer
  */
-TEST(nntrainer_FullyConnectedLayer, initialize_06_n) {
+TEST(nntrainer_FullyConnectedLayer, initialize_06_p) {
   int status = ML_ERROR_NONE;
   nntrainer::FullyConnectedLayer layer;
-  status = layer.initialize(1, 1, 1, true, true, nntrainer::WEIGHT_UNKNOWN);
+  status = layer.initialize(1, 1, 1, true, true);
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
@@ -397,8 +390,7 @@ TEST(nntrainer_FullyConnectedLayer, initialize_06_n) {
 TEST(nntrainer_FullyConnectedLayer, setOptimizer_01_p) {
   int status = ML_ERROR_NONE;
   nntrainer::FullyConnectedLayer layer;
-  status =
-    layer.initialize(1, 1, 1, false, true, nntrainer::WEIGHT_XAVIER_NORMAL);
+  status = layer.initialize(1, 1, 1, false, true);
   nntrainer::Optimizer op;
   nntrainer::OptType t = nntrainer::OptType::adam;
   nntrainer::OptParam p;
@@ -420,8 +412,7 @@ TEST(nntrainer_FullyConnectedLayer, setOptimizer_01_p) {
 TEST(nntrainer_FullyConnectedLayer, setOptimizer_02_p) {
   int status = ML_ERROR_NONE;
   nntrainer::FullyConnectedLayer layer;
-  status =
-    layer.initialize(1, 1, 1, true, true, nntrainer::WEIGHT_XAVIER_NORMAL);
+  status = layer.initialize(1, 1, 1, true, true);
   nntrainer::Optimizer op;
   nntrainer::OptType t = nntrainer::OptType::adam;
   nntrainer::OptParam p;
@@ -483,8 +474,7 @@ TEST(nntrainer_FullyConnectedLayer, setCost_02_n) {
 TEST(nntrainer_BatchNormalizationLayer, initialize_01_p) {
   int status = ML_ERROR_NONE;
   nntrainer::BatchNormalizationLayer layer;
-  status =
-    layer.initialize(1, 1, 1, false, true, nntrainer::WEIGHT_XAVIER_NORMAL);
+  status = layer.initialize(1, 1, 1, false, true);
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
@@ -494,8 +484,7 @@ TEST(nntrainer_BatchNormalizationLayer, initialize_01_p) {
 TEST(nntrainer_BatchNormalizationLayer, initialize_02_n) {
   int status = ML_ERROR_NONE;
   nntrainer::BatchNormalizationLayer layer;
-  status =
-    layer.initialize(1, 0, 1, false, true, nntrainer::WEIGHT_XAVIER_NORMAL);
+  status = layer.initialize(1, 0, 1, false, true);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
@@ -505,7 +494,7 @@ TEST(nntrainer_BatchNormalizationLayer, initialize_02_n) {
 TEST(nntrainer_BatchNormalizationLayer, setOptimizer_01_p) {
   int status = ML_ERROR_NONE;
   nntrainer::BatchNormalizationLayer layer;
-  status = layer.initialize(1, 1, 1, 0, true, nntrainer::WEIGHT_XAVIER_NORMAL);
+  status = layer.initialize(1, 1, 1, 0, true);
   nntrainer::Optimizer op;
   nntrainer::OptType t = nntrainer::OptType::adam;
   nntrainer::OptParam p;

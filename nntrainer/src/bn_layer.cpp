@@ -22,8 +22,8 @@
  */
 
 #include <assert.h>
-#include <layer.h>
 #include <bn_layer.h>
+#include <layer.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <parse_util.h>
@@ -31,25 +31,33 @@
 
 namespace nntrainer {
 
-int BatchNormalizationLayer::initialize(int b, int h, int w, bool last,
-                                        bool init_zero, WeightIniType wini) {
+int BatchNormalizationLayer::initialize(bool last) {
   int status = ML_ERROR_NONE;
-  if (b <= 0 || h <= 0 || w <= 0) {
+  if (dim.batch() <= 0 || dim.height() <= 0 || dim.width() <= 0) {
     ml_loge("Error: Dimension must be greater than 0");
     return ML_ERROR_INVALID_PARAMETER;
   }
+
+  this->gamma = Tensor(dim.batch(), dim.width());
+  this->beta = Tensor(dim.batch(), dim.width());
+  beta.setZero();
+  gamma.setZero();
+
+  return status;
+}
+
+int BatchNormalizationLayer::initialize(int b, int h, int w, bool last,
+                                        bool init_zero) {
+  int status = ML_ERROR_NONE;
 
   this->dim.batch(b);
   this->dim.width(w);
   this->dim.height(h);
 
-  this->last_layer = last;
   this->init_zero = init_zero;
 
-  this->gamma = Tensor(b, w);
-  this->beta = Tensor(b, w);
-  beta.setZero();
-  gamma.setZero();
+  status = initialize(last);
+
   return status;
 }
 

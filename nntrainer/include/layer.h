@@ -119,17 +119,24 @@ public:
   /**
    * @brief     Initialize the layer
    *            - Weight(Height, Width), Bias(1, Width)
+   * @param[in] last last layer
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  virtual int initialize(bool last) = 0;
+
+  /**
+   * @brief     Initialize the layer
+   *            - Weight(Height, Width), Bias(1, Width)
    * @param[in] b batch
    * @param[in] h Height
    * @param[in] w Width
    * @param[in] last last layer
    * @param[in] init_zero Bias initialization with zero
-   * @param[in] wini Weight Initialization Scheme
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  virtual int initialize(int b, int h, int w, bool last, bool init_zero,
-                         WeightIniType wini) = 0;
+  virtual int initialize(int b, int h, int w, bool last, bool init_zero) = 0;
 
   /**
    * @brief     read layer Weight & Bias data from file
@@ -191,6 +198,12 @@ public:
 
   void setWeightDecay(WeightDecayParam w) { weight_decay = w; }
 
+  TensorDim &getTensorDim() { return dim; }
+
+  void setLast(bool last) { last_layer = last; }
+
+  void setWeightInit(WeightIniType wini) { weight_ini_type = wini; }
+
 protected:
   /**
    * @brief     Input Tensor
@@ -243,6 +256,8 @@ protected:
   bool bn_fallow;
 
   WeightDecayParam weight_decay;
+
+  WeightIniType weight_ini_type;
 };
 } // namespace nntrainer
 
