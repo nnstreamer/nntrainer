@@ -296,9 +296,12 @@ int FullyConnectedLayer::setProperty(std::vector<std::string> values) {
     unsigned int type = parseLayerProperty(key);
 
     switch (static_cast<PropertyType>(type)) {
-    case PropertyType::input_shape:
-      status = dim.setTensorDim(value);
-      break;
+    case PropertyType::unit: {
+      int width;
+      status = setInt(width, value);
+      NN_RETURN_STATUS();
+      dim.width(width);
+    } break;
     case PropertyType::bias_zero: {
       status = setBoolean(init_zero, value);
       NN_RETURN_STATUS();

@@ -206,15 +206,16 @@ unsigned int parseLayerProperty(std::string property) {
    * epsilon = 5
    * weight_decay = 6
    * weight_decay_lambda = 7
+   * unit = 8
    *
    * InputLayer has 0, 1, 2, 3 properties.
-   * FullyConnectedLayer has 0, 1, 4, 6, 7 properties.
+   * FullyConnectedLayer has 1, 4, 6, 7, 8 properties.
    * BatchNormalizationLayer has 0, 1, 5, 6, 7 properties.
    */
-  std::array<std::string, 9> property_string = {
-    "input_shape",     "bias_zero",           "normalization",
-    "standardization", "activation",          "epsilon",
-    "weight_decay",    "weight_decay_lambda", "unknown"};
+  std::array<std::string, 10> property_string = {
+    "input_shape", "bias_zero", "normalization", "standardization",
+    "activation",  "epsilon",   "weight_decay",  "weight_decay_lambda",
+    "unit",        "unknown"};
 
   for (i = 0; i < property_string.size(); i++) {
     unsigned int size = (property_string[i].size() > property.size())
@@ -259,6 +260,18 @@ unsigned int parseOptProperty(std::string property) {
   ret = i - 1;
 
   return ret;
+}
+
+int setInt(int &val, std::string str) {
+  int status = ML_ERROR_NONE;
+  try {
+    val = std::stoi(str.c_str());
+  } catch (...) {
+    ml_loge("Error: Wrong Type. Must be int");
+    status = ML_ERROR_INVALID_PARAMETER;
+  }
+
+  return status;
 }
 
 int setFloat(float &val, std::string str) {

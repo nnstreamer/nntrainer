@@ -84,7 +84,7 @@ TEST(nntrainer_capi_nnlayer, setproperty_02_p) {
   int status;
   status = ml_nnlayer_create(&handle, ML_LAYER_TYPE_FC);
   EXPECT_EQ(status, ML_ERROR_NONE);
-  status = ml_nnlayer_set_property(handle, "input_shape=32:1:1:6270", NULL);
+  status = ml_nnlayer_set_property(handle, "unit=10", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_nnlayer_set_property(handle, "bias_zero=true", NULL);
