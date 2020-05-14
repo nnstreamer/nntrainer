@@ -173,6 +173,104 @@ TEST(nntrainer_capi_nnmodel, addLayer_01_p) {
 }
 
 /**
+ * @brief Neural Network Model Add Layer Test
+ */
+TEST(nntrainer_capi_nnmodel, addLayer_02_p) {
+  int status = ML_ERROR_NONE;
+
+  ml_nnmodel_h model;
+  ml_nnlayer_h layer;
+
+  status = ml_nnmodel_construct(&model);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_nnlayer_create(&layer, ML_LAYER_TYPE_INPUT);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_nnlayer_set_property(layer, "input_shape= 32:1:1:6270",
+                                   "normalization=true", NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_nnmodel_add_layer(model, layer);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_nnlayer_delete(layer);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_nnmodel_destruct(model);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Neural Network Model Add Layer Test
+ */
+TEST(nntrainer_capi_nnmodel, addLayer_03_n) {
+  int status = ML_ERROR_NONE;
+
+  ml_nnmodel_h model;
+  ml_nnlayer_h layer;
+
+  status = ml_nnmodel_construct(&model);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_nnlayer_create(&layer, ML_LAYER_TYPE_INPUT);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_nnlayer_set_property(layer, "input_shape= 32:1:1:6270",
+                                   "activation=sigmoid", NULL);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+
+  status = ml_nnlayer_delete(layer);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_nnmodel_destruct(model);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Neural Network Model Add Layer Test
+ */
+TEST(nntrainer_capi_nnmodel, addLayer_04_p) {
+  int status = ML_ERROR_NONE;
+
+  ml_nnmodel_h model;
+  ml_nnlayer_h layers[2];
+
+  status = ml_nnmodel_construct(&model);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_nnlayer_create(&layers[0], ML_LAYER_TYPE_INPUT);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status =
+    ml_nnlayer_set_property(layers[0], "input_shape= 32:1:1:6270",
+                            "normalization=true", "bias_zero=true", NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_nnmodel_add_layer(model, layers[0]);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_nnlayer_create(&layers[1], ML_LAYER_TYPE_FC);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_nnlayer_set_property(layers[1], "unit= 10", "activation=softmax",
+                                   "bias_zero=true", "weight_decay=l2norm",
+                                   "weight_decay_lambda=0.005", NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_nnmodel_add_layer(model, layers[1]);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_nnlayer_delete(layers[0]);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = ml_nnlayer_delete(layers[1]);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_nnmodel_destruct(model);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
  * @brief Main gtest
  */
 int main(int argc, char **argv) {
