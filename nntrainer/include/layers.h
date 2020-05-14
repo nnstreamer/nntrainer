@@ -467,11 +467,11 @@ public:
    *            7. weight_decay_lambda : float
    */
   enum class PropertyType {
-    input_shape = 0,
     bias_zero = 1,
     activation = 4,
     weight_decay = 6,
     weight_decay_lambda = 7,
+    unit = 8,
   };
 
 private:

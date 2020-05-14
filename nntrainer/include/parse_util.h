@@ -81,6 +81,15 @@ unsigned int parseType(std::string ll, InputType t);
 unsigned int parseOptProperty(std::string property);
 
 /**
+ * @brief     check str to be int and assign
+ * @param[out] val assign variable
+ * @param[in] str input string
+ * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+ */
+int setInt(int &val, std::string str);
+
+/**
  * @brief     check str to be float and assign
  * @param[out] val assign variable
  * @param[in] str input string
