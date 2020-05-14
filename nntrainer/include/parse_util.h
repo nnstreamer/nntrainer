@@ -81,6 +81,13 @@ unsigned int parseType(std::string ll, InputType t);
 unsigned int parseOptProperty(std::string property);
 
 /**
+ * @brief     Parsing Network Property
+ * @param[in] property string to be parsed
+ * @retval    int enumerated type
+ */
+unsigned int parseNetProperty(std::string property);
+
+/**
  * @brief     check str to be int and assign
  * @param[out] val assign variable
  * @param[in] str input string

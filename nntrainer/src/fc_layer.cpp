@@ -21,13 +21,13 @@
  *
  */
 
+#include <fc_layer.h>
 #include <layer.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <parse_util.h>
 #include <random>
 #include <util_func.h>
-#include <fc_layer.h>
 
 namespace nntrainer {
 
@@ -99,33 +99,40 @@ static Tensor weightInitialization(unsigned int width, unsigned int height,
   return w;
 }
 
-int FullyConnectedLayer::initialize(int b, int h, int w, bool last,
-                                    bool init_zero, WeightIniType wini) {
+int FullyConnectedLayer::initialize(bool last) {
   int status = ML_ERROR_NONE;
-  if (b <= 0 || h <= 0 || w <= 0) {
+  if (dim.batch() <= 0 || dim.height() <= 0 || dim.width() <= 0) {
     ml_loge("Error: Dimension must be greater than 0");
     return ML_ERROR_INVALID_PARAMETER;
   }
 
-  this->dim.batch(b);
-  this->dim.width(w);
-  this->dim.height(h);
-
   this->last_layer = last;
-  this->init_zero = init_zero;
-  this->bn_fallow = false;
 
-  bias = Tensor(1, w);
-  weight = weightInitialization(w, h, wini, status);
-
-  if (status != ML_ERROR_NONE)
-    return status;
+  bias = Tensor(1, dim.width());
+  weight =
+    weightInitialization(dim.width(), dim.height(), weight_ini_type, status);
+  NN_RETURN_STATUS();
 
   if (init_zero) {
     bias.setZero();
   } else {
     bias = bias.apply(random);
   }
+  return status;
+}
+
+int FullyConnectedLayer::initialize(int b, int h, int w, bool last,
+                                    bool init_zero) {
+  int status = ML_ERROR_NONE;
+
+  this->dim.batch(b);
+  this->dim.width(w);
+  this->dim.height(h);
+
+  this->init_zero = init_zero;
+
+  status = initialize(last);
+
   return status;
 }
 
@@ -176,6 +183,9 @@ int FullyConnectedLayer::setProperty(std::vector<std::string> values) {
     case PropertyType::weight_decay_lambda:
       status = setFloat(weight_decay.lambda, value);
       NN_RETURN_STATUS();
+      break;
+    case PropertyType::weight_init:
+      weight_ini_type = (WeightIniType)parseType(value, TOKEN_WEIGHTINI);
       break;
     default:
       ml_loge("Error: Unknown Layer Property Key");

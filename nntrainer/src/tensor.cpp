@@ -59,6 +59,12 @@ int TensorDim::setTensorDim(std::string input_shape) {
   return status;
 }
 
+void TensorDim::operator=(const TensorDim &from){
+  for (int i=0; i< 4; ++i){
+    this->dim[i] = from.dim[i];
+  }
+};
+
 Tensor::Tensor(int height, int width) {
   this->height = height;
   this->width = width;

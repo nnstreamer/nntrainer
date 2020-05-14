@@ -33,16 +33,13 @@ Layer::Layer() {
   type = LAYER_UNKNOWN;
   activation_type = ACT_UNKNOWN;
   last_layer = false;
-  dim.batch(0);
-  dim.channel(0);
-  dim.width(0);
-  dim.height(0);
   init_zero = false;
   activation = NULL;
   activation_prime = NULL;
   bn_fallow = false;
   weight_decay.type = WeightDecayType::unknown;
   weight_decay.lambda = 0.0;
+  weight_ini_type = WEIGHT_UNKNOWN;
 }
 
 int Layer::setActivation(ActiType acti) {

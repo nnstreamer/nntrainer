@@ -21,10 +21,10 @@
  *
  */
 
+#include <input_layer.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <parse_util.h>
-#include <input_layer.h>
 
 namespace nntrainer {
 
@@ -88,19 +88,25 @@ Tensor InputLayer::forwarding(Tensor in, int &status) {
   return input;
 }
 
-int InputLayer::initialize(int b, int h, int w, bool last, bool init_zero,
-                           WeightIniType wini) {
+int InputLayer::initialize(bool last) {
   int status = ML_ERROR_NONE;
-  if (b <= 0 || h <= 0 || w <= 0) {
+  if (dim.batch() <= 0 || dim.height() <= 0 || dim.width() <= 0) {
     ml_loge("Error: Dimension must be greater than 0");
     return ML_ERROR_INVALID_PARAMETER;
   }
 
+  return status;
+}
+
+int InputLayer::initialize(int b, int h, int w, bool last, bool init_zero) {
+  int status = ML_ERROR_NONE;
+
   this->dim.batch(b);
   this->dim.width(w);
   this->dim.height(h);
-  this->last_layer = last;
-  this->bn_fallow = false;
+
+  status = initialize(last);
+
   return status;
 }
 } /* namespace nntrainer */

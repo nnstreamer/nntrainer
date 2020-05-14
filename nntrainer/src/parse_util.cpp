@@ -262,6 +262,30 @@ unsigned int parseOptProperty(std::string property) {
   return ret;
 }
 
+unsigned int parseNetProperty(std::string property) {
+  int ret;
+  unsigned int i;
+
+  /**
+   * @brief     Network Properties
+   * loss = 0,
+   */
+  std::array<std::string, 2> property_string = {"loss", "unknown"};
+
+  for (i = 0; i < property_string.size(); i++) {
+    unsigned int size = (property_string[i].size() > property.size())
+                          ? property_string[i].size()
+                          : property.size();
+
+    if (!strncasecmp(property_string[i].c_str(), property.c_str(), size)) {
+      return (i);
+    }
+  }
+  ret = i - 1;
+
+  return ret;
+}
+
 int setInt(int &val, std::string str) {
   int status = ML_ERROR_NONE;
   try {

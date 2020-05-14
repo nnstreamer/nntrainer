@@ -34,7 +34,7 @@ main (int argc, char *argv[])
   status = ml_nnmodel_construct_with_conf (config_file, &handle);
   if (status != ML_ERROR_NONE)
     return status;
-  status = ml_nnmodel_compile (handle);
+  status = ml_nnmodel_compile_with_conf (handle);
   if (status != ML_ERROR_NONE)
     return status;
   status = ml_nnmodel_train (handle);

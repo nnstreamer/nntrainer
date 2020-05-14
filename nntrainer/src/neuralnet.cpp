@@ -177,9 +177,6 @@ int NeuralNetwork::init() {
 
   cost = (CostType)parseType(iniparser_getstring(ini, "Network:Cost", unknown),
                              TOKEN_COST);
-  weight_ini = (WeightIniType)parseType(
-    iniparser_getstring(ini, "Network:WeightIni", unknown), TOKEN_WEIGHTINI);
-
   model = iniparser_getstring(ini, "Network:Model", model_name);
   batch_size = iniparser_getint(ini, "Network:Minibatch", 1);
 
@@ -280,8 +277,8 @@ int NeuralNetwork::init() {
       std::shared_ptr<InputLayer> input_layer = std::make_shared<InputLayer>();
 
       input_layer->setType(t);
-      status = input_layer->initialize(batch_size, 1, hidden_size[i], last,
-                                       b_zero, weight_ini);
+      status =
+        input_layer->initialize(batch_size, 1, hidden_size[i], last, b_zero);
       NN_INI_RETURN_STATUS();
 
       status = input_layer->setOptimizer(opt);
@@ -310,8 +307,14 @@ int NeuralNetwork::init() {
                 "InputLayer.");
         return ML_ERROR_INVALID_PARAMETER;
       }
+
+      fc_layer->setWeightInit((WeightIniType)parseType(
+        iniparser_getstring(ini, (layers_name[i] + ":WeightIni").c_str(),
+                            unknown),
+        TOKEN_WEIGHTINI));
+
       status = fc_layer->initialize(batch_size, hidden_size[i - 1],
-                                    hidden_size[i], last, b_zero, weight_ini);
+                                    hidden_size[i], last, b_zero);
       NN_INI_RETURN_STATUS();
       status = fc_layer->setOptimizer(opt);
       NN_INI_RETURN_STATUS();
@@ -334,8 +337,8 @@ int NeuralNetwork::init() {
       bn_layer->setType(t);
       status = bn_layer->setOptimizer(opt);
       NN_INI_RETURN_STATUS();
-      status = bn_layer->initialize(batch_size, 1, hidden_size[i], last, b_zero,
-                                    weight_ini);
+      status =
+        bn_layer->initialize(batch_size, 1, hidden_size[i], last, b_zero);
       NN_INI_RETURN_STATUS();
       layers.push_back(bn_layer);
       if (i == 0) {
@@ -368,6 +371,82 @@ int NeuralNetwork::init() {
   NN_INI_RETURN_STATUS();
 
   iniparser_freedict(ini);
+  return status;
+}
+
+int NeuralNetwork::setProperty(std::vector<std::string> values) {
+  int status = ML_ERROR_NONE;
+  for (unsigned int i = 0; i < values.size(); ++i) {
+    std::string key;
+    std::string value;
+    status = getKeyValue(values[i], key, value);
+    NN_RETURN_STATUS();
+
+    unsigned int type = parseNetProperty(key);
+    switch (static_cast<PropertyType>(type)) {
+    case PropertyType::cost:
+    case PropertyType::loss: {
+      cost = (CostType)parseType(value, TOKEN_COST);
+    } break;
+    default:
+      ml_loge("Error: Unknown Network Property Key");
+      status = ML_ERROR_INVALID_PARAMETER;
+      break;
+    }
+  }
+
+  return status;
+}
+
+int NeuralNetwork::init(std::shared_ptr<Optimizer> optimizer,
+                        std::vector<std::string> arg_list) {
+  int status = ML_ERROR_NONE;
+  bool last = false;
+  opt = *optimizer.get();
+  status = setProperty(arg_list);
+  NN_RETURN_STATUS();
+
+  loss = 10000.0;
+
+  TensorDim previous_dim = layers[0]->getTensorDim();
+  status = layers[0]->setOptimizer(opt);
+  NN_RETURN_STATUS();
+  layers[0]->initialize(last);
+
+  for (unsigned int i = 1; i < layers.size(); ++i) {
+    if (i == layers.size() - 1)
+      last = true;
+    switch (layers[i]->getType()) {
+    case LAYER_FC:
+      layers[i]->getTensorDim().height(previous_dim.width());
+      layers[i]->getTensorDim().batch(previous_dim.batch());
+      status =
+        std::static_pointer_cast<FullyConnectedLayer>(layers[i])->setCost(cost);
+      NN_RETURN_STATUS();
+      status = layers[i]->setOptimizer(opt);
+      NN_RETURN_STATUS();
+      layers[i]->initialize(last);
+      break;
+    case LAYER_BN:
+      if (last) {
+        ml_loge("Error: Batch Normalization Layer should not be last layer of "
+                "network");
+        return ML_ERROR_INVALID_PARAMETER;
+      }
+      layers[i]->getTensorDim() = previous_dim;
+      status = layers[i]->setOptimizer(opt);
+      NN_RETURN_STATUS();
+      status = layers[i]->initialize(last);
+      NN_RETURN_STATUS();
+      layers[i - 1]->setBNfallow(true);
+      break;
+    default:
+      break;
+    }
+
+    previous_dim = layers[i]->getTensorDim();
+  }
+
   return status;
 }
 

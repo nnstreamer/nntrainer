@@ -26,10 +26,10 @@
 
 #include <fstream>
 #include <iostream>
+#include <layer.h>
 #include <optimizer.h>
 #include <tensor.h>
 #include <vector>
-#include <layer.h>
 
 namespace nntrainer {
 
@@ -94,6 +94,14 @@ public:
 
   /**
    * @brief     initialize layer
+   * @param[in] last last layer
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  int initialize(bool last);
+
+  /**
+   * @brief     initialize layer
    * @param[in] b batch size
    * @param[in] h height
    * @param[in] w width
@@ -103,8 +111,7 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int initialize(int b, int h, int w, bool last, bool init_zero,
-                 WeightIniType wini);
+  int initialize(int b, int h, int w, bool last, bool init_zero);
   /**
    * @brief     get Loss value
    */
@@ -140,6 +147,7 @@ public:
     weight_decay = 6,
     weight_decay_lambda = 7,
     unit = 8,
+    weight_init = 9,
   };
 
 private:

@@ -64,6 +64,8 @@ public:
 
   int setTensorDim(std::string input_shape);
 
+  void operator=(const TensorDim & from);
+
 private:
   unsigned int dim[4];
 };
