@@ -177,7 +177,10 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %{_includedir}/nntrainer/databuffer.h
 %{_includedir}/nntrainer/databuffer_file.h
 %{_includedir}/nntrainer/databuffer_func.h
-%{_includedir}/nntrainer/layers.h
+%{_includedir}/nntrainer/layer.h
+%{_includedir}/nntrainer/input_layer.h
+%{_includedir}/nntrainer/fc_layer.h
+%{_includedir}/nntrainer/bn_layer.h
 %{_includedir}/nntrainer/neuralnet.h
 %{_includedir}/nntrainer/tensor.h
 %{_includedir}/nntrainer/nntrainer.h

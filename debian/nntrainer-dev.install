@@ -1,5 +1,8 @@
 /usr/include/nntrainer/databuffer.h
-/usr/include/nntrainer/layers.h
+/usr/include/nntrainer/layer.h
+/usr/include/nntrainer/input_layer.h
+/usr/include/nntrainer/fc_layer.h
+/usr/include/nntrainer/bn_layer.h
 /usr/include/nntrainer/neuralnet.h
 /usr/include/nntrainer/tensor.h
 /usr/include/nntrainer/nntrainer.h
