@@ -135,11 +135,12 @@ int ml_nnmodel_compile(ml_nnmodel_h model, ml_nnopt_h optimizer, ...);
  * @details Use this function to train neural network model
  * @since_tizen 6.x
  * @param[in] model The NNTrainer model handler from the given description.
+ * @param[in] ...  hyper parmeter for train model
  * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter.
  */
-int ml_nnmodel_train(ml_nnmodel_h model);
+int ml_nnmodel_train_with_file(ml_nnmodel_h model, ...);
 
 /**
  * @brief Destructs the neural network model.

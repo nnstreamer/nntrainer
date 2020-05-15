@@ -116,7 +116,7 @@ public:
   DataBuffer()
     : train_running(), val_running(), test_running(), train_thread(),
       val_thread(), test_thread() {
-    SET_VALIDATION(true);
+    SET_VALIDATION(false);
     input_size = 0;
     class_num = 0;
     cur_train_bufsize = 0;

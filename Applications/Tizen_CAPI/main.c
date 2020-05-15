@@ -37,7 +37,7 @@ main (int argc, char *argv[])
   status = ml_nnmodel_compile_with_conf (handle);
   if (status != ML_ERROR_NONE)
     return status;
-  status = ml_nnmodel_train (handle);
+  status = ml_nnmodel_train_with_file (handle);
   if (status != ML_ERROR_NONE)
     return status;
   status = ml_nnmodel_destruct (handle);

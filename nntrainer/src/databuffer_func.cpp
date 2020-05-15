@@ -102,18 +102,18 @@ int DataBufferFromCallback::setFunc(
   switch (type) {
   case BUF_TRAIN:
     callback_train = func;
-    if (func == NULL)
-      validation[0] = false;
+    if (func)
+      validation[0] = true;
     break;
   case BUF_VAL:
     callback_val = func;
-    if (func == NULL)
-      validation[1] = false;
+    if (func)
+      validation[1] = true;
     break;
   case BUF_TEST:
     callback_test = func;
-    if (func == NULL)
-      validation[2] = false;
+    if (func)
+      validation[2] = true;
     break;
   default:
     status = ML_ERROR_INVALID_PARAMETER;

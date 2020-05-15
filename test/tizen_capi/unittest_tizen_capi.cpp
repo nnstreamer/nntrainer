@@ -135,7 +135,7 @@ TEST(nntrainer_capi_nnmodel, train_01_p) {
   EXPECT_EQ(status, ML_ERROR_NONE);
   status = ml_nnmodel_compile_with_conf(handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
-  status = ml_nnmodel_train(handle);
+  status = ml_nnmodel_train_with_file(handle, NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
   status = ml_nnmodel_destruct(handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -353,7 +353,8 @@ TEST(nntrainer_capi_nnmodel, compile_04_p) {
 
   status = ml_nnlayer_set_property(layers[1], "unit= 10", "activation=softmax",
                                    "bias_zero=true", "weight_decay=l2norm",
-                                   "weight_decay_lambda=0.005", NULL);
+                                   "weight_decay_lambda=0.005",
+                                   "weight_ini=xavier_uniform", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_nnmodel_add_layer(model, layers[1]);
@@ -381,6 +382,69 @@ TEST(nntrainer_capi_nnmodel, compile_04_p) {
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
+/**
+ * @brief Neural Network Model Optimizer Test
+ */
+TEST(nntrainer_capi_nnmodel, train_with_file_01_p) {
+  int status = ML_ERROR_NONE;
+
+  ml_nnmodel_h model;
+  ml_nnlayer_h layers[2];
+  ml_nnopt_h optimizer;
+
+  status = ml_nnmodel_construct(&model);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_nnlayer_create(&layers[0], ML_LAYER_TYPE_INPUT);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status =
+    ml_nnlayer_set_property(layers[0], "input_shape= 16:1:1:62720",
+                            "normalization=true", "bias_zero=true", NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_nnmodel_add_layer(model, layers[0]);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_nnlayer_create(&layers[1], ML_LAYER_TYPE_FC);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_nnlayer_set_property(layers[1], "unit= 10", "activation=softmax",
+                                   "bias_zero=true", "weight_decay=l2norm",
+                                   "weight_decay_lambda=0.005",
+                                   "weight_ini=xavier_uniform", NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_nnmodel_add_layer(model, layers[1]);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_nnoptimizer_create(&optimizer, "adam");
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_nnoptimizer_set_property(
+    optimizer, "learning_rate=0.0001", "decay_rate=0.96", "decay_steps=1000",
+    "beta1=0.002", "beta2=0.001", "epsilon=1e-7", NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_nnmodel_compile(model, optimizer, "loss=cross", NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_nnmodel_train_with_file(
+    model, "epochs=1", "batch_size=16", "train_data=trainingSet.dat",
+    "val_data=valSet.dat", "label_data=label.dat", "buffer_size=16",
+    "model_file=model.bin", NULL);
+
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = ml_nnlayer_delete(layers[0]);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = ml_nnlayer_delete(layers[1]);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = ml_nnoptimizer_delete(optimizer);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_nnmodel_destruct(model);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
 
 /**
  * @brief Main gtest
