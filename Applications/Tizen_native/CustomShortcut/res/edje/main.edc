@@ -7,23 +7,22 @@
  * @bug No known bugs except for NYI items
  */
 
- collections{
+ collections {
   group {
     name: "main" ;
-      
     parts {
       part {
         name: "main/title"; 
         type: TEXT;
-        scale: 1;
         description {
           state: "default" 0.0;
           color: 255 0 0 255;
           text {
             text: "HELLO EDC!";
-            font: "Sans";
+            font: "Tizen:style=regular";
+            size: 20;
             align: 0.5 0.5;
-         }
+          }
         }
       }
     }

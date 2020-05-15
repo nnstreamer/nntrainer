@@ -29,18 +29,24 @@ static int widget_instance_create(widget_context_h context, bundle *content,
   widget_app_context_set_tag(context, wid);
 
   /* Window */
-  status = view_create(context, w, h);
+  status = view_init(context, w, h);
   if (status != WIDGET_ERROR_NONE) {
     dlog_print(DLOG_ERROR, LOG_TAG, "failed to get window. err = %d", status);
     return WIDGET_ERROR_FAULT;
   }
 
-  /* Label*/
-  wid->label = elm_label_add(wid->conform);
-  evas_object_resize(wid->label, w, h / 3);
-  evas_object_move(wid->label, w / 4, h / 3);
-  evas_object_show(wid->label);
-  elm_object_text_set(wid->label, "Hello widget!");
+  char *res_path = app_get_resource_path();
+  if (res_path == NULL) {
+    status = WIDGET_ERROR_OUT_OF_MEMORY;
+    dlog_print(DLOG_ERROR, LOG_TAG, "failed to get resource. err = %d", status);
+    return status;
+  }
+  
+  snprintf(wid->edj_path, sizeof(wid->edj_path), "%s%s", res_path, EDJ_PATH);
+  free(res_path);
+  dlog_print(DLOG_INFO, LOG_TAG, "file path: %s", wid->edj_path);
+
+  status = view_create(context);
 
   return WIDGET_ERROR_NONE;
 }

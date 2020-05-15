@@ -16,13 +16,6 @@
 #include <widget_app_efl.h>
 #include "data.h"
 
-#ifdef LOG_TAG
-#undef LOG_TAG
-#endif
-#define LOG_TAG "nntrainer-example-custom-shortcut"
-
-#define EDJ_PATH "edje/main.edj"
-
 #if !defined(PACKAGE)
 #define PACKAGE "org.example.nntrainer-example-custom-shortcut"
 #endif
