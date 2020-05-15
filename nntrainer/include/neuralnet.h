@@ -183,7 +183,22 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
+  int train_run();
+
+  /**
+   * @brief     Run NeuralNetwork train
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
   int train();
+
+  /**
+   * @brief     Run NeuralNetwork train
+   * @param[in] values hyper parmeters
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  int train(std::vector<std::string> values);
 
   /**
    * @brief     Run NeuralNetwork train with callback function by user
@@ -217,6 +232,14 @@ public:
   enum class PropertyType {
     loss = 0,
     cost = 1,
+    train_data = 2,
+    val_data = 3,
+    test_data = 4,
+    label_data = 5,
+    buffer_size = 6,
+    batch_size = 7,
+    epochs = 8,
+    model_file = 9,
   };
 
 private:
@@ -288,7 +311,7 @@ private:
   /**
    * @brief     Data Buffer to get Input
    */
-  DataBuffer *data_buffer;
+  std::shared_ptr<DataBuffer>data_buffer;
 };
 
 } /* namespace nntrainer */

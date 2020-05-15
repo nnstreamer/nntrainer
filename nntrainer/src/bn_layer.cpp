@@ -93,7 +93,7 @@ int BatchNormalizationLayer::setProperty(std::vector<std::string> values) {
       NN_RETURN_STATUS();
       break;
     default:
-      ml_loge("Error: Unknown Layer Property Key");
+      ml_loge("Error: Unknown Layer Property Key: %s", key.c_str());
       status = ML_ERROR_INVALID_PARAMETER;
       break;
     }

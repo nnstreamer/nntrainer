@@ -226,10 +226,11 @@ int NeuralNetwork::init() {
   }
 
   if (iniparser_find_entry(ini, "DataSet:TrainData")) {
-    data_buffer = new DataBufferFromDataFile();
+    data_buffer = std::make_shared<DataBufferFromDataFile>();
 
-    DataBufferFromDataFile *dbuffer =
-      static_cast<DataBufferFromDataFile *>(data_buffer);
+    std::shared_ptr<DataBufferFromDataFile> dbuffer =
+      std::static_pointer_cast<DataBufferFromDataFile>(data_buffer);
+
     status = dbuffer->setDataFile(
       iniparser_getstring(ini, "DataSet:TrainData", ""), DATA_TRAIN);
     NN_INI_RETURN_STATUS();
@@ -247,7 +248,7 @@ int NeuralNetwork::init() {
     ml_loge("Error: Not yet implemented!");
     return ML_ERROR_INVALID_PARAMETER;
   } else {
-    data_buffer = new DataBufferFromCallback();
+    data_buffer = std::make_shared<DataBufferFromCallback>();
   }
 
   status = data_buffer->setMiniBatch(batch_size);
@@ -364,18 +365,13 @@ int NeuralNetwork::init() {
     }
   }
 
-  status = data_buffer->setFeatureSize(hidden_size[0]);
-  NN_INI_RETURN_STATUS();
-
-  status = data_buffer->init();
-  NN_INI_RETURN_STATUS();
-
   iniparser_freedict(ini);
   return status;
 }
 
 int NeuralNetwork::setProperty(std::vector<std::string> values) {
   int status = ML_ERROR_NONE;
+
   for (unsigned int i = 0; i < values.size(); ++i) {
     std::string key;
     std::string value;
@@ -383,10 +379,60 @@ int NeuralNetwork::setProperty(std::vector<std::string> values) {
     NN_RETURN_STATUS();
 
     unsigned int type = parseNetProperty(key);
+
     switch (static_cast<PropertyType>(type)) {
     case PropertyType::cost:
     case PropertyType::loss: {
       cost = (CostType)parseType(value, TOKEN_COST);
+    } break;
+    case PropertyType::batch_size: {
+      status = setInt(batch_size, value);
+      NN_RETURN_STATUS();
+      for (unsigned int i = 0; i < layers.size(); ++i) {
+        if (layers[i]->getTensorDim().batch() !=
+            static_cast<unsigned int>(batch_size)) {
+          ml_logw("Worning: Batch Size is changing!! : %d -> %d",
+                  layers[i]->getTensorDim().batch(), batch_size);
+          layers[i]->getTensorDim().batch(batch_size);
+        }
+      }
+    } break;
+    case PropertyType::epochs: {
+      int e;
+      status = setInt(e, value);
+      epoch = e;
+      NN_RETURN_STATUS();
+    } break;
+    case PropertyType::train_data: {
+      status = std::static_pointer_cast<DataBufferFromDataFile>(data_buffer)
+                 ->setDataFile(value, DATA_TRAIN);
+      NN_RETURN_STATUS();
+    } break;
+    case PropertyType::val_data: {
+      status = std::static_pointer_cast<DataBufferFromDataFile>(data_buffer)
+                 ->setDataFile(value, DATA_VAL);
+      NN_RETURN_STATUS();
+    } break;
+    case PropertyType::test_data: {
+      status = std::static_pointer_cast<DataBufferFromDataFile>(data_buffer)
+                 ->setDataFile(value, DATA_TEST);
+      NN_RETURN_STATUS();
+    } break;
+    case PropertyType::label_data: {
+      status = std::static_pointer_cast<DataBufferFromDataFile>(data_buffer)
+                 ->setDataFile(value, DATA_LABEL);
+      NN_RETURN_STATUS();
+    } break;
+
+    case PropertyType::buffer_size: {
+      int size;
+      status = setInt(size, value);
+      NN_RETURN_STATUS();
+      status = data_buffer->setBufSize(size);
+      NN_RETURN_STATUS();
+    } break;
+    case PropertyType::model_file: {
+      model = value;
     } break;
     default:
       ml_loge("Error: Unknown Network Property Key");
@@ -460,7 +506,6 @@ void NeuralNetwork::finalize() {
 
   if (data_buffer) {
     data_buffer->clear();
-    delete data_buffer;
   }
 }
 
@@ -551,6 +596,40 @@ void NeuralNetwork::readModel() {
   ml_logi("read modelfile: %s", model.c_str());
 }
 
+int NeuralNetwork::train() {
+  std::vector<std::string> values;
+
+  return train(values);
+}
+
+int NeuralNetwork::train(std::vector<std::string> values) {
+  int status = ML_ERROR_NONE;
+
+  if (data_buffer == nullptr) {
+    data_buffer = std::make_shared<DataBufferFromDataFile>();
+  }
+
+  if (values.size() != 0) {
+    status = data_buffer->setMiniBatch(layers[0]->getTensorDim().batch());
+    NN_RETURN_STATUS();
+
+    status = data_buffer->setClassNum(
+      layers[layers.size() - 1]->getTensorDim().width());
+    NN_RETURN_STATUS();
+
+    status = setProperty(values);
+    NN_RETURN_STATUS();
+  }
+
+  status = data_buffer->setFeatureSize(layers[0]->getTensorDim().width());
+  NN_RETURN_STATUS();
+
+  status = data_buffer->init();
+  NN_RETURN_STATUS();
+
+  return train_run();
+}
+
 /**
  * @brief     Run NeuralNetwork train
  */
@@ -561,8 +640,18 @@ int NeuralNetwork::train(
 
   int status = ML_ERROR_NONE;
 
-  DataBufferFromCallback *callback_buffer =
-    static_cast<DataBufferFromCallback *>(data_buffer);
+  if (data_buffer == nullptr) {
+    data_buffer = std::make_shared<DataBufferFromCallback>();
+  }
+
+  status = data_buffer->setFeatureSize(layers[0]->getTensorDim().width());
+  NN_RETURN_STATUS();
+
+  status = data_buffer->init();
+  NN_RETURN_STATUS();
+
+  std::shared_ptr<DataBufferFromCallback> callback_buffer =
+    std::static_pointer_cast<DataBufferFromCallback>(data_buffer);
 
   status = callback_buffer->setFunc(nntrainer::BUF_TRAIN, (train_func));
   if (status != ML_ERROR_NONE)
@@ -576,13 +665,13 @@ int NeuralNetwork::train(
   if (status != ML_ERROR_NONE)
     return status;
 
-  return train();
+  return train_run();
 };
 
 /**
  * @brief     Run NeuralNetwork train with callback function by user
  */
-int NeuralNetwork::train() {
+int NeuralNetwork::train_run() {
   int status = ML_ERROR_NONE;
   status = data_buffer->run(nntrainer::BUF_TRAIN);
   if (status != ML_ERROR_NONE) {

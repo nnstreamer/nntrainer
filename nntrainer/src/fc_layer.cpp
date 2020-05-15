@@ -188,7 +188,7 @@ int FullyConnectedLayer::setProperty(std::vector<std::string> values) {
       weight_ini_type = (WeightIniType)parseType(value, TOKEN_WEIGHTINI);
       break;
     default:
-      ml_loge("Error: Unknown Layer Property Key");
+      ml_loge("Error: Unknown Layer Property Key : %s", key.c_str());
       status = ML_ERROR_INVALID_PARAMETER;
       break;
     }

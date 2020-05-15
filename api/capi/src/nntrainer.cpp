@@ -126,14 +126,25 @@ int ml_nnmodel_compile(ml_nnmodel_h model, ml_nnopt_h optimizer, ...) {
   return status;
 }
 
-int ml_nnmodel_train(ml_nnmodel_h model) {
+int ml_nnmodel_train_with_file(ml_nnmodel_h model, ...) {
   int status = ML_ERROR_NONE;
   ml_nnmodel *nnmodel;
+  const char *data;
+
+  std::vector<std::string> arg_list;
+  va_list arguments;
+  va_start(arguments, model);
+  while ((data = va_arg(arguments, const char *))) {
+    arg_list.push_back(data);
+  }
+
+  va_end(arguments);
 
   ML_NNTRAINER_CHECK_MODEL_VALIDATION(nnmodel, model);
   std::shared_ptr<nntrainer::NeuralNetwork> NN;
   NN = nnmodel->network;
-  status = NN->train();
+
+  status = NN->train(arg_list);
   return status;
 }
 
