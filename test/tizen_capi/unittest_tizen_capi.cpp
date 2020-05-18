@@ -431,7 +431,7 @@ TEST(nntrainer_capi_nnmodel, train_with_file_01_p) {
 
   status = ml_nnmodel_train_with_file(
     model, "epochs=1", "batch_size=16", "train_data=trainingSet.dat",
-    "val_data=valSet.dat", "label_data=label.dat", "buffer_size=16",
+    "val_data=valSet.dat", "label_data=label.dat", "buffer_size=100",
     "model_file=model.bin", NULL);
 
   EXPECT_EQ(status, ML_ERROR_NONE);
