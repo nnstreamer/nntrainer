@@ -135,7 +135,7 @@ void DataBufferFromCallback::updateData(BufferType type, int &status) {
 
   switch (type) {
   case BUF_TRAIN: {
-    buf_size = bufsize;
+    buf_size = train_bufsize;
     cur_size = &cur_train_bufsize;
     running = &train_running;
     data = &train_data;
@@ -143,7 +143,7 @@ void DataBufferFromCallback::updateData(BufferType type, int &status) {
     callback = callback_train;
   } break;
   case BUF_VAL: {
-    buf_size = bufsize;
+    buf_size = val_bufsize;
     cur_size = &cur_val_bufsize;
     running = &val_running;
     data = &val_data;
@@ -151,7 +151,7 @@ void DataBufferFromCallback::updateData(BufferType type, int &status) {
     callback = callback_val;
   } break;
   case BUF_TEST: {
-    buf_size = bufsize;
+    buf_size = test_bufsize;
     cur_size = &cur_test_bufsize;
     running = &test_running;
     data = &test_data;

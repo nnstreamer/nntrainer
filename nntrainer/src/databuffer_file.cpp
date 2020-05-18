@@ -87,6 +87,19 @@ int DataBufferFromDataFile::init() {
     SET_VALIDATION(false);
     return ML_ERROR_INVALID_PARAMETER;
   }
+
+  if (validation[DATA_TRAIN] && max_train < mini_batch) {
+    max_train = mini_batch;
+  }
+
+  if (validation[DATA_VAL] && max_val < mini_batch) {
+    max_val = mini_batch;
+  }
+
+  if (validation[DATA_TEST] && max_test < mini_batch) {
+    max_test = mini_batch;
+  }
+
   this->rest_train = max_train;
   this->rest_val = max_val;
   this->rest_test = max_test;
@@ -98,6 +111,26 @@ int DataBufferFromDataFile::init() {
   trainReadyFlag = DATA_NOT_READY;
   valReadyFlag = DATA_NOT_READY;
   testReadyFlag = DATA_NOT_READY;
+
+  if (validation[DATA_TRAIN] && max_train < train_bufsize) {
+    ml_logw("Warning: Total number of train is less than train buffer size. "
+            "Train buffer size is set as total number of train");
+    train_bufsize = max_train;
+  }
+
+  if (validation[DATA_VAL] && max_val < val_bufsize) {
+    ml_logw(
+      "Warning: Total number of validation is less than validation buffer "
+      "size. Validation buffer size is set as total number of validation");
+    val_bufsize = max_val;
+  }
+
+  if (validation[DATA_TEST] && max_test < test_bufsize) {
+    ml_logw("Warning: Total number of test is less than test buffer size. Test "
+            "buffer size is set as total number of test");
+    test_bufsize = max_test;
+  }
+
   return status;
 }
 
@@ -113,7 +146,7 @@ void DataBufferFromDataFile::updateData(BufferType type, int &status) {
   switch (type) {
   case BUF_TRAIN: {
     max_size = max_train;
-    buf_size = bufsize;
+    buf_size = train_bufsize;
     rest_size = &rest_train;
     cur_size = &cur_train_bufsize;
     running = &train_running;
@@ -125,7 +158,7 @@ void DataBufferFromDataFile::updateData(BufferType type, int &status) {
   } break;
   case BUF_VAL: {
     max_size = max_val;
-    buf_size = bufsize;
+    buf_size = val_bufsize;
     rest_size = &rest_val;
     cur_size = &cur_val_bufsize;
     running = &val_running;
@@ -137,7 +170,7 @@ void DataBufferFromDataFile::updateData(BufferType type, int &status) {
   } break;
   case BUF_TEST: {
     max_size = max_test;
-    buf_size = bufsize;
+    buf_size = test_bufsize;
     rest_size = &rest_test;
     cur_size = &cur_test_bufsize;
     running = &test_running;

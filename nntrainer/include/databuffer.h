@@ -122,7 +122,9 @@ public:
     cur_train_bufsize = 0;
     cur_val_bufsize = 0;
     cur_test_bufsize = 0;
-    bufsize = 0;
+    train_bufsize = 0;
+    val_bufsize = 0;
+    test_bufsize = 0;
     max_train = 0;
     max_val = 0;
     max_test = 0;
@@ -294,7 +296,9 @@ protected:
   /**
    * @brief     queue size for each data set
    */
-  unsigned int bufsize;
+  unsigned int train_bufsize;
+  unsigned int val_bufsize;
+  unsigned int test_bufsize;
 
   unsigned int max_train;
   unsigned int max_val;

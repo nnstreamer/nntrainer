@@ -391,7 +391,7 @@ int NeuralNetwork::setProperty(std::vector<std::string> values) {
       for (unsigned int i = 0; i < layers.size(); ++i) {
         if (layers[i]->getTensorDim().batch() !=
             static_cast<unsigned int>(batch_size)) {
-          ml_logw("Worning: Batch Size is changing!! : %d -> %d",
+          ml_logw("Warning: Batch Size is changing!! : %d -> %d",
                   layers[i]->getTensorDim().batch(), batch_size);
           layers[i]->getTensorDim().batch(batch_size);
         }

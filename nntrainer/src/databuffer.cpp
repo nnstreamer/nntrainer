@@ -359,7 +359,9 @@ int DataBuffer::setBufSize(unsigned int size) {
     SET_VALIDATION(false);
     return ML_ERROR_INVALID_PARAMETER;
   }
-  bufsize = size;
+  train_bufsize = size;
+  val_bufsize = size;
+  test_bufsize = size;
   return status;
 }
 
