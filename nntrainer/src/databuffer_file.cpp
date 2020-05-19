@@ -115,20 +115,20 @@ int DataBufferFromDataFile::init() {
   if (validation[DATA_TRAIN] && max_train < train_bufsize) {
     ml_logw("Warning: Total number of train is less than train buffer size. "
             "Train buffer size is set as total number of train");
-    train_bufsize = max_train;
+    train_bufsize = mini_batch;
   }
 
   if (validation[DATA_VAL] && max_val < val_bufsize) {
     ml_logw(
       "Warning: Total number of validation is less than validation buffer "
       "size. Validation buffer size is set as total number of validation");
-    val_bufsize = max_val;
+    val_bufsize = mini_batch;
   }
 
   if (validation[DATA_TEST] && max_test < test_bufsize) {
     ml_logw("Warning: Total number of test is less than test buffer size. Test "
             "buffer size is set as total number of test");
-    test_bufsize = max_test;
+    test_bufsize = mini_batch;
   }
 
   return status;
@@ -201,7 +201,15 @@ void DataBufferFromDataFile::updateData(BufferType type, int &status) {
   for (unsigned int i = 0; i < max_size; ++i) {
     mark[i] = i;
   }
-  while ((*running) && mark.size() != 0) {
+
+  while ((*running)) {
+    if (mark.size() == 0) {
+      NN_EXCEPTION_NOTI(DATA_END);
+      break;
+    }
+    trainReadyFlag = DATA_NOT_READY;
+    valReadyFlag = DATA_NOT_READY;
+    testReadyFlag = DATA_NOT_READY;
     if (buf_size - (*cur_size) > 0 && (*rest_size) > 0) {
       std::vector<float> vec;
       std::vector<float> veclabel;
@@ -259,11 +267,11 @@ void DataBufferFromDataFile::updateData(BufferType type, int &status) {
       (*cur_size)++;
       data_lock.unlock();
     }
-
     if (buf_size == (*cur_size)) {
       NN_EXCEPTION_NOTI(DATA_READY);
     }
   }
+
   file.close();
 }
 

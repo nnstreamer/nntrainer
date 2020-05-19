@@ -73,7 +73,8 @@ typedef std::vector<std::vector<std::vector<float>>> vec_3d;
 typedef enum {
   DATA_NOT_READY = 0,
   DATA_READY = 1,
-  DATA_ERROR = 2,
+  DATA_END = 2,
+  DATA_ERROR = 3,
 } DataStatus;
 
 namespace nntrainer {
@@ -180,14 +181,6 @@ public:
   virtual int clear();
 
   /**
-   * @brief     get Status of Buffer. if number of rest data
-   *            is samller than minibatch, the return false
-   * @param[in] BufferType training, validation, test
-   * @retval    DataStatus
-   */
-  DataStatus getStatus(BufferType type);
-
-  /**
    * @brief     get Data from Data Buffer using databuffer param
    * @param[in] BufferType training, validation, test
    * @param[in] outVec feature data ( minibatch size )
@@ -264,6 +257,13 @@ public:
    */
   bool *getValidation() { return validation; }
 
+  /**
+   * @brief     status of thread
+   */
+  DataStatus trainReadyFlag;
+  DataStatus valReadyFlag;
+  DataStatus testReadyFlag;
+
 protected:
   /**
    * @brief     Data Queues for each data set
@@ -278,7 +278,6 @@ protected:
   /**
    * @brief     feature size
    */
-  /* unsigned int input_size; */
   TensorDim input_dim;
 
   /**

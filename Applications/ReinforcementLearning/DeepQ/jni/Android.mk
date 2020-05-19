@@ -8,7 +8,7 @@ $(error ANDROID_NDK is not defined!)
 endif
 
 ifndef NNTRAINER_ROOT
-NNTRAINER_ROOT := $(LOCAL_PATH)/../../../../jni/libs/arm64-v8a
+NNTRAINER_ROOT := $(LOCAL_PATH)/../../../../libs/arm64-v8a
 NNTRAINER_INCLUDES := $(LOCAL_PATH)/../../../../nntrainer/include
 endif
 

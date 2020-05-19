@@ -84,6 +84,18 @@ int DataBufferFromCallback::init() {
     return ML_ERROR_INVALID_PARAMETER;
   }
 
+  if (train_bufsize > mini_batch) {
+    train_bufsize = mini_batch;
+  }
+
+  if (val_bufsize > mini_batch) {
+    val_bufsize = mini_batch;
+  }
+
+  if (test_bufsize > mini_batch) {
+    test_bufsize = mini_batch;
+  }
+
   this->train_running = true;
   this->val_running = true;
   this->test_running = true;
@@ -171,6 +183,7 @@ void DataBufferFromCallback::updateData(BufferType type, int &status) {
     NN_EXCEPTION_NOTI(DATA_ERROR);
     return;
   }
+  bool endflag = false;
 
   float *vec =
     (float *)malloc(sizeof(float) * input_dim.batch() * input_dim.channel() *
@@ -179,54 +192,84 @@ void DataBufferFromCallback::updateData(BufferType type, int &status) {
     (float *)malloc(sizeof(float) * input_dim.batch() * class_num);
 
   while ((*running)) {
+    trainReadyFlag = DATA_NOT_READY;
+    valReadyFlag = DATA_NOT_READY;
+    testReadyFlag = DATA_NOT_READY;
     if (buf_size - (*cur_size) > 0) {
-      bool endflag = callback(vec, veclabel, &status);
-      if (!endflag)
-        break;
+      endflag = callback(vec, veclabel, &status);
 
-      for (unsigned int i = 0; i < input_dim.batch(); ++i) {
-        std::vector<float> v;
-        std::vector<float> vl;
-        unsigned int I =
-          i * input_dim.channel() * input_dim.height() * input_dim.width();
-        for (unsigned int j = 0; j < input_dim.channel(); ++j) {
-          unsigned int J = j * input_dim.height() * input_dim.width();
-          for (unsigned int k = 0; k < input_dim.height() * input_dim.width();
-               ++k) {
-            unsigned int K = I + J + k;
-            v.push_back(vec[K]);
+      if (endflag) {
+        for (unsigned int i = 0; i < input_dim.batch(); ++i) {
+          std::vector<float> v;
+          std::vector<float> vl;
+          unsigned int I =
+            i * input_dim.channel() * input_dim.height() * input_dim.width();
+          for (unsigned int j = 0; j < input_dim.channel(); ++j) {
+            unsigned int J = j * input_dim.height() * input_dim.width();
+            for (unsigned int k = 0; k < input_dim.height() * input_dim.width();
+                 ++k) {
+              unsigned int K = I + J + k;
+              v.push_back(vec[K]);
+            }
           }
-        }
 
-        I = i * class_num;
-        for (unsigned int j = 0; j < class_num; ++j) {
-          vl.push_back(veclabel[I + j]);
-        }
+          I = i * class_num;
+          for (unsigned int j = 0; j < class_num; ++j) {
+            vl.push_back(veclabel[I + j]);
+          }
 
-        data_lock.lock();
-        data->push_back(v);
-        datalabel->push_back(vl);
-        (*cur_size)++;
-        data_lock.unlock();
+          data_lock.lock();
+          data->push_back(v);
+          datalabel->push_back(vl);
+          (*cur_size)++;
+          data_lock.unlock();
+        }
       }
     }
 
-    if (buf_size == (*cur_size)) {
+    if (buf_size == (*cur_size) || !endflag) {
       switch (type) {
       case BUF_TRAIN: {
         std::lock_guard<std::mutex> lgtrain(readyTrainData);
-        trainReadyFlag = DATA_READY;
-        cv_train.notify_all();
+        if (!endflag) {
+          trainReadyFlag = DATA_END;
+          cv_train.notify_all();
+          free(vec);
+          free(veclabel);
+          return;
+        } else {
+          trainReadyFlag = DATA_READY;
+          cv_train.notify_all();
+        }
+
       } break;
       case BUF_VAL: {
         std::lock_guard<std::mutex> lgval(readyValData);
-        valReadyFlag = DATA_READY;
-        cv_val.notify_all();
+        if (!endflag) {
+          valReadyFlag = DATA_END;
+          cv_train.notify_all();
+          free(vec);
+          free(veclabel);
+          return;
+        } else {
+          valReadyFlag = DATA_READY;
+          cv_val.notify_all();
+        }
+
       } break;
       case BUF_TEST: {
         std::lock_guard<std::mutex> lgtest(readyTestData);
-        testReadyFlag = DATA_READY;
-        cv_test.notify_all();
+        if (!endflag) {
+          testReadyFlag = DATA_END;
+          cv_test.notify_all();
+          free(vec);
+          free(veclabel);
+          return;
+        } else {
+          testReadyFlag = DATA_READY;
+          cv_test.notify_all();
+        }
+
       } break;
       default:
         break;

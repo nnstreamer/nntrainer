@@ -51,10 +51,6 @@ std::condition_variable cv_train;
 std::condition_variable cv_val;
 std::condition_variable cv_test;
 
-DataStatus trainReadyFlag;
-DataStatus valReadyFlag;
-DataStatus testReadyFlag;
-
 int DataBuffer::rangeRandom(int min, int max) {
   int n = max - min + 1;
   int remainder = RAND_MAX % n;
@@ -188,32 +184,6 @@ int DataBuffer::clear() {
   return status;
 }
 
-DataStatus DataBuffer::getStatus(BufferType type) {
-  DataStatus ret = DATA_READY;
-  if (globalExceptionPtr)
-    ret = DATA_ERROR;
-
-  switch (type) {
-  case BUF_TRAIN:
-    if ((train_data.size() < mini_batch) && trainReadyFlag)
-      ret = DATA_NOT_READY;
-    break;
-  case BUF_VAL:
-    if ((val_data.size() < mini_batch) && valReadyFlag)
-      ret = DATA_NOT_READY;
-    break;
-  case BUF_TEST:
-    if ((test_data.size() < mini_batch) && testReadyFlag)
-      ret = DATA_NOT_READY;
-    break;
-  default:
-    ml_loge("Error: Not Supported Data Type");
-    ret = DATA_ERROR;
-    break;
-  }
-  return ret;
-}
-
 bool DataBuffer::getDataFromBuffer(BufferType type, vec_3d &outVec,
                                    vec_3d &outLabel) {
   int nomI;
@@ -224,22 +194,15 @@ bool DataBuffer::getDataFromBuffer(BufferType type, vec_3d &outVec,
   switch (type) {
   case BUF_TRAIN: {
     std::vector<int> list;
+    std::unique_lock<std::mutex> ultrain(readyTrainData);
+    cv_train.wait(ultrain, [this]() -> int { return trainReadyFlag; });
 
-    if (getStatus(BUF_TRAIN) != DATA_READY)
-      return false;
-
-    {
-      std::unique_lock<std::mutex> ultrain(readyTrainData);
-      cv_train.wait(ultrain, []() -> int { return trainReadyFlag; });
-    }
-
-    if (trainReadyFlag == DATA_ERROR) {
+    if (trainReadyFlag == DATA_ERROR || trainReadyFlag == DATA_END) {
       return false;
     }
 
-    data_lock.lock();
     for (k = 0; k < mini_batch; ++k) {
-      nomI = rangeRandom(0, train_data.size() - 1);
+      nomI = rangeRandom(0, train_bufsize - 1);
       std::vector<std::vector<float>> v_height;
       for (j = 0; j < height; ++j) {
         J = j * width;
@@ -254,6 +217,9 @@ bool DataBuffer::getDataFromBuffer(BufferType type, vec_3d &outVec,
       outVec.push_back(v_height);
       outLabel.push_back({train_data_label[nomI]});
     }
+
+    data_lock.lock();
+
     for (i = 0; i < mini_batch; ++i) {
       train_data.erase(train_data.begin() + list[i]);
       train_data_label.erase(train_data_label.begin() + list[i]);
@@ -262,17 +228,14 @@ bool DataBuffer::getDataFromBuffer(BufferType type, vec_3d &outVec,
   } break;
   case BUF_VAL: {
     std::vector<int> list;
-    if (getStatus(BUF_VAL) != DATA_READY)
+    std::unique_lock<std::mutex> ulval(readyValData);
+    cv_val.wait(ulval, [this]() -> bool { return valReadyFlag; });
+    if (valReadyFlag == DATA_ERROR || valReadyFlag == DATA_END) {
       return false;
-
-    {
-      std::unique_lock<std::mutex> ulval(readyValData);
-      cv_val.wait(ulval, []() -> bool { return valReadyFlag; });
     }
 
-    data_lock.lock();
     for (k = 0; k < mini_batch; ++k) {
-      nomI = rangeRandom(0, val_data.size() - 1);
+      nomI = rangeRandom(0, val_bufsize - 1);
       std::vector<std::vector<float>> v_height;
       for (j = 0; j < height; ++j) {
         J = j * width;
@@ -287,25 +250,27 @@ bool DataBuffer::getDataFromBuffer(BufferType type, vec_3d &outVec,
       outVec.push_back(v_height);
       outLabel.push_back({val_data_label[nomI]});
     }
+
+    data_lock.lock();
+
     for (i = 0; i < mini_batch; ++i) {
       val_data.erase(val_data.begin() + list[i]);
       val_data_label.erase(val_data_label.begin() + list[i]);
       cur_val_bufsize--;
     }
+
   } break;
   case BUF_TEST: {
     std::vector<int> list;
-    if (getStatus(BUF_TEST) != DATA_READY)
-      return false;
+    std::unique_lock<std::mutex> ultest(readyTestData);
+    cv_test.wait(ultest, [this]() -> bool { return testReadyFlag; });
 
-    {
-      std::unique_lock<std::mutex> ultest(readyTestData);
-      cv_test.wait(ultest, []() -> bool { return testReadyFlag; });
+    if (testReadyFlag == DATA_ERROR || testReadyFlag == DATA_END) {
+      return false;
     }
 
-    data_lock.lock();
     for (k = 0; k < mini_batch; ++k) {
-      nomI = rangeRandom(0, test_data.size() - 1);
+      nomI = rangeRandom(0, test_bufsize - 1);
       std::vector<std::vector<float>> v_height;
       for (j = 0; j < height; ++j) {
         J = j * width;
@@ -320,6 +285,8 @@ bool DataBuffer::getDataFromBuffer(BufferType type, vec_3d &outVec,
       outVec.push_back(v_height);
       outLabel.push_back({test_data_label[nomI]});
     }
+
+    data_lock.lock();
     for (i = 0; i < mini_batch; ++i) {
       test_data.erase(test_data.begin() + list[i]);
       test_data_label.erase(test_data_label.begin() + list[i]);

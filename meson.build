@@ -30,7 +30,8 @@ warning_flags = [
   '-Waddress',
   '-Wno-multichar',
   '-Wvla',
-  '-Wpointer-arith'
+  '-Wpointer-arith',
+  '-Wno-error=varargs'
 ]
 
 warning_c_flags = [
@@ -40,7 +41,8 @@ warning_c_flags = [
   '-Wnested-externs',
   '-Waggregate-return',
   '-Wold-style-definition',
-  '-Wdeclaration-after-statement'
+  '-Wdeclaration-after-statement',
+  '-Wno-error=varargs'  
 ]
 
 foreach extra_arg : warning_flags

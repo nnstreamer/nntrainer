@@ -148,6 +148,32 @@ int ml_nnmodel_train_with_file(ml_nnmodel_h model, ...) {
   return status;
 }
 
+int ml_nnmodel_train_with_generator(ml_nnmodel_h model,
+                                    bool (*train_func)(float *, float *, int *),
+                                    bool (*val_func)(float *, float *, int *),
+                                    bool (*test_func)(float *, float *, int *),
+                                    ...) {
+  int status = ML_ERROR_NONE;
+  ml_nnmodel *nnmodel;
+  const char *data;
+
+  std::vector<std::string> arg_list;
+  va_list arguments;
+  va_start(arguments, (test_func));
+  while ((data = va_arg(arguments, const char *))) {
+    arg_list.push_back(data);
+  }
+
+  va_end(arguments);
+
+  ML_NNTRAINER_CHECK_MODEL_VALIDATION(nnmodel, model);
+  std::shared_ptr<nntrainer::NeuralNetwork> NN;
+  NN = nnmodel->network;
+
+  status = NN->train((train_func), (val_func), (test_func), arg_list);
+  return status;
+}
+
 int ml_nnmodel_destruct(ml_nnmodel_h model) {
   int status = ML_ERROR_NONE;
   ml_nnmodel *nnmodel;
@@ -157,6 +183,7 @@ int ml_nnmodel_destruct(ml_nnmodel_h model) {
   std::shared_ptr<nntrainer::NeuralNetwork> NN;
   NN = nnmodel->network;
   NN->finalize();
+
   delete nnmodel;
 
   return status;
