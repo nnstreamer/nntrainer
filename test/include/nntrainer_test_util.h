@@ -142,5 +142,24 @@ const std::string config_str = "[Network]"
  */
 void replaceString(const std::string &from, const std::string &to,
                    const std::string n);
+
+/**
+ * @brief      get data which size is mini batch for train
+ * @param[out] outVec
+ * @param[out] outLabel
+ * @param[out] status for error handling
+ * @retval true/false
+ */
+bool getMiniBatch_train(float *outVec, float *outLabel, int *status);
+
+/**
+ * @brief      get data which size is mini batch for val
+ * @param[out] outVec
+ * @param[out] outLabel
+ * @param[out] status for error handling
+ * @retval true/false
+ */
+bool getMiniBatch_val(float *outVec, float *outLabel, int *status);
+
 #endif /* __cplusplus */
 #endif /* __NNTRAINER_TEST_UTIL_H__ */

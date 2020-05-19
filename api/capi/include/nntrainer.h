@@ -143,6 +143,25 @@ int ml_nnmodel_compile(ml_nnmodel_h model, ml_nnopt_h optimizer, ...);
 int ml_nnmodel_train_with_file(ml_nnmodel_h model, ...);
 
 /**
+ * @brief train the neural network model.
+ * @details Use this function to train neural network model
+ * @since_tizen 6.x
+ * @param[in] model The NNTrainer model handler from the given description.
+ * @param[in] train_func function pointer for train
+ * @param[in] val_func function pointer for val
+ * @param[in] test_func function pointer for test
+ * @param[in] ...  hyper parmeter for train model
+ * @return @c 0 on success. Otherwise a negative error value.
+ * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter.
+ */
+int ml_nnmodel_train_with_generator(ml_nnmodel_h model,
+                                    bool (*train_func)(float *, float *, int *),
+                                    bool (*val_func)(float *, float *, int *),
+                                    bool (*test_func)(float *, float *, int *),
+                                    ...);
+
+/**
  * @brief Destructs the neural network model.
  * @details Use this function to delete Neural Netowrk Model.
  * @since_tizen 6.x

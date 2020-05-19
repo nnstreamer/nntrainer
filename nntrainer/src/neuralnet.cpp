@@ -698,14 +698,6 @@ int NeuralNetwork::train(
 int NeuralNetwork::train_run() {
   int status = ML_ERROR_NONE;
 
-  if (data_buffer->getValidation()[2]) {
-    status = data_buffer->run(nntrainer::BUF_TEST);
-    if (status != ML_ERROR_NONE) {
-      data_buffer->clear(BUF_TEST);
-      return status;
-    }
-  }
-
   float training_loss = 0.0;
   for (unsigned int i = 0; i < epoch; ++i) {
     int count = 0;
@@ -714,6 +706,14 @@ int NeuralNetwork::train_run() {
     if (status != ML_ERROR_NONE) {
       data_buffer->clear(BUF_TRAIN);
       return status;
+    }
+
+    if (data_buffer->getValidation()[nntrainer::BUF_TEST]) {
+      status = data_buffer->run(nntrainer::BUF_TEST);
+      if (status != ML_ERROR_NONE) {
+        data_buffer->clear(BUF_TEST);
+        return status;
+      }
     }
 
     while (true) {
@@ -733,7 +733,7 @@ int NeuralNetwork::train_run() {
     std::cout << "#" << i + 1 << "/" << epoch
               << " - Training Loss: " << training_loss;
 
-    if (data_buffer->getValidation()[1]) {
+    if (data_buffer->getValidation()[nntrainer::BUF_VAL]) {
       int right = 0;
       float valloss = 0.0;
       int tcases = 0;
