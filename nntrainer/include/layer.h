@@ -58,7 +58,8 @@ typedef enum {
  * @brief     Enumeration of layer type
  *            0. Input Layer type
  *            1. Fully Connected Layer type
- *            2. Unknown
+ *            2. Batch Normalization Layer type
+ *            3. Unknown
  */
 typedef enum { LAYER_IN, LAYER_FC, LAYER_BN, LAYER_UNKNOWN } LayerType;
 

@@ -42,7 +42,7 @@ public:
   /**
    * @brief     Constructor of Fully Connected Layer
    */
-  FullyConnectedLayer() : loss(0.0), cost(COST_UNKNOWN){};
+  FullyConnectedLayer() : loss(0.0), cost(COST_UNKNOWN){ setType (LAYER_FC); };
 
   /**
    * @brief     Destructor of Fully Connected Layer
