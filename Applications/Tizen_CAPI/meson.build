@@ -8,3 +8,11 @@ executable('nntrainer_tizen_capi_file',
   install: get_option('install-app'),
   install_dir: application_install_dir
 )
+
+executable('nntrainer_classification_capi',
+  'c_api.c',
+  dependencies: [nntrainer_capi_dep, nntrainer_dep],
+  include_directories: include_directories('.'),
+  install: get_option('install-app'),
+  install_dir: application_install_dir
+)
