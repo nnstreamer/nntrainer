@@ -42,7 +42,7 @@ public:
   /**
    * @brief     Constructor of Batch Noramlization Layer
    */
-  BatchNormalizationLayer() : epsilon(0.0){};
+  BatchNormalizationLayer() : epsilon(0.0){ setType (LAYER_BN); };
 
   /**
    * @brief     Destructor of BatchNormalizationLayer
