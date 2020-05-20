@@ -135,33 +135,33 @@ int DataBuffer::clear(BufferType type) {
   switch (type) {
   case BUF_TRAIN: {
     train_running = false;
+    if (validation[DATA_TRAIN] && true == train_thread.joinable())
+      train_thread.join();
     this->train_data.clear();
     this->train_data_label.clear();
     this->cur_train_bufsize = 0;
     this->rest_train = max_train;
     trainReadyFlag = DATA_NOT_READY;
-    if (validation[DATA_TRAIN] && true == train_thread.joinable())
-      train_thread.join();
   } break;
   case BUF_VAL: {
     val_running = false;
+    if (validation[DATA_VAL] && true == val_thread.joinable())
+      val_thread.join();
     this->val_data.clear();
     this->val_data_label.clear();
     this->cur_val_bufsize = 0;
     this->rest_val = max_val;
     valReadyFlag = DATA_NOT_READY;
-    if (validation[DATA_VAL] && true == val_thread.joinable())
-      val_thread.join();
   } break;
   case BUF_TEST: {
     test_running = false;
+    if (validation[DATA_TEST] && true == test_thread.joinable())
+      test_thread.join();
     this->test_data.clear();
     this->test_data_label.clear();
     this->cur_test_bufsize = 0;
     this->rest_test = max_test;
     testReadyFlag = DATA_NOT_READY;
-    if (validation[DATA_TEST] && true == test_thread.joinable())
-      test_thread.join();
   } break;
   default:
     ml_loge("Error: Not Supported Data Type");
