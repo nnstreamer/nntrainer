@@ -30,6 +30,7 @@
 #include <functional>
 #include <iostream>
 #include <memory>
+#include <tensor_dim.h>
 #include <thread>
 #include <vector>
 
@@ -45,7 +46,6 @@ typedef std::vector<std::vector<std::vector<float>>> vec_3d;
     for (DataType i = DATA_TRAIN; i < DATA_UNKNOWN; i = DataType(i + 1)) \
       validation[i] = val;                                               \
   } while (0)
-
 
 #define NN_EXCEPTION_NOTI(val)                             \
   do {                                                     \
@@ -117,7 +117,6 @@ public:
     : train_running(), val_running(), test_running(), train_thread(),
       val_thread(), test_thread() {
     SET_VALIDATION(false);
-    input_size = 0;
     class_num = 0;
     cur_train_bufsize = 0;
     cur_val_bufsize = 0;
@@ -180,7 +179,6 @@ public:
    */
   virtual int clear();
 
-
   /**
    * @brief     get Status of Buffer. if number of rest data
    *            is samller than minibatch, the return false
@@ -231,7 +229,8 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  virtual int setFeatureSize(unsigned int n);
+  /* virtual int setFeatureSize(unsigned int n); */
+  virtual int setFeatureSize(TensorDim indim);
 
   /**
    * @brief     set feature size
@@ -279,7 +278,8 @@ protected:
   /**
    * @brief     feature size
    */
-  unsigned int input_size;
+  /* unsigned int input_size; */
+  TensorDim input_dim;
 
   /**
    * @brief     number of class

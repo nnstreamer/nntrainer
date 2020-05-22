@@ -73,7 +73,7 @@ int DataBufferFromDataFile::init() {
     SET_VALIDATION(false);
     return ML_ERROR_INVALID_PARAMETER;
   }
-  if (!this->input_size) {
+  if (!this->input_dim.width()) {
     ml_loge("Error: featuer size must be set");
     SET_VALIDATION(false);
     return ML_ERROR_INVALID_PARAMETER;
@@ -224,7 +224,8 @@ void DataBufferFromDataFile::updateData(BufferType type, int &status) {
 
       mark.erase(mark.begin() + id);
 
-      uint64_t position = (I * input_size + I * class_num) * sizeof(float);
+      uint64_t position =
+        (I * input_dim.getFeatureLen() + I * class_num) * sizeof(float);
       try {
         if (position > file_length || position > ULLONG_MAX) {
           ml_loge("Error: Cannot exceed max file size");
@@ -239,7 +240,7 @@ void DataBufferFromDataFile::updateData(BufferType type, int &status) {
 
       file.seekg(position, std::ios::beg);
 
-      for (unsigned int j = 0; j < input_size; ++j) {
+      for (unsigned int j = 0; j < input_dim.getFeatureLen(); ++j) {
         float d;
         file.read((char *)&d, sizeof(float));
         vec.push_back(d);
@@ -329,18 +330,19 @@ int DataBufferFromDataFile::setDataFile(std::string path, DataType type) {
   return status;
 }
 
-int DataBufferFromDataFile::setFeatureSize(unsigned int size) {
+int DataBufferFromDataFile::setFeatureSize(TensorDim tdim) {
   int status = ML_ERROR_NONE;
   long file_size = 0;
 
-  status = DataBuffer::setFeatureSize(size);
+  status = DataBuffer::setFeatureSize(tdim);
   if (status != ML_ERROR_NONE)
     return status;
 
   if (validation[DATA_TRAIN]) {
     file_size = getFileSize(train_name);
     max_train = static_cast<unsigned int>(
-      file_size / (class_num * sizeof(int) + input_size * sizeof(float)));
+      file_size /
+      (class_num * sizeof(int) + input_dim.getFeatureLen() * sizeof(float)));
     if (max_train < mini_batch) {
       ml_logw(
         "Warning: number of training data is smaller than mini batch size");
@@ -352,7 +354,8 @@ int DataBufferFromDataFile::setFeatureSize(unsigned int size) {
   if (validation[DATA_VAL]) {
     file_size = getFileSize(val_name);
     max_val = static_cast<unsigned int>(
-      file_size / (class_num * sizeof(int) + input_size * sizeof(float)));
+      file_size /
+      (class_num * sizeof(int) + input_dim.getFeatureLen() * sizeof(float)));
     if (max_val < mini_batch) {
       ml_logw("Warning: number of val data is smaller than mini batch size");
     }
@@ -363,7 +366,8 @@ int DataBufferFromDataFile::setFeatureSize(unsigned int size) {
   if (validation[DATA_TEST]) {
     file_size = getFileSize(test_name);
     max_test = static_cast<unsigned int>(
-      file_size / (class_num * sizeof(int) + input_size * sizeof(float)));
+      file_size /
+      (class_num * sizeof(int) + input_dim.getFeatureLen() * sizeof(float)));
     if (max_test < mini_batch) {
       ml_logw("Warning: number of test data is smaller than mini batch size");
     }

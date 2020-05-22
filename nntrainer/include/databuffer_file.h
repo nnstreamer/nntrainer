@@ -78,11 +78,11 @@ public:
 
   /**
    * @brief     set feature size
-   * @param[in] feature batch size. It is equal to input layer's hidden size
+   * @param[in] Input Tensor Dimension.
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int setFeatureSize(unsigned int n);
+  int setFeatureSize(TensorDim indim);
 
 private:
   /**

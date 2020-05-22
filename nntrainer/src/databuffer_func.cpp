@@ -64,7 +64,7 @@ int DataBufferFromCallback::init() {
     return ML_ERROR_INVALID_PARAMETER;
   }
 
-  if (!this->input_size) {
+  if (!this->input_dim.getFeatureLen()) {
     ml_loge("Error: featuer size must be set");
     SET_VALIDATION(false);
     return ML_ERROR_INVALID_PARAMETER;

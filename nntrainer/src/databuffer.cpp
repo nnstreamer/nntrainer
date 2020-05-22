@@ -218,8 +218,8 @@ bool DataBuffer::getDataFromBuffer(BufferType type, vec_3d &outVec,
                                    vec_3d &outLabel) {
   int nomI;
   unsigned int J, i, j, k;
-  unsigned int width = input_size;
-  unsigned int height = 1;
+  unsigned int width = input_dim.width();
+  unsigned int height = input_dim.height();
 
   switch (type) {
   case BUF_TRAIN: {
@@ -376,15 +376,15 @@ int DataBuffer::setMiniBatch(unsigned int size) {
   return status;
 }
 
-int DataBuffer::setFeatureSize(unsigned int size) {
+int DataBuffer::setFeatureSize(TensorDim indim) {
   int status = ML_ERROR_NONE;
-  if (size == 0) {
+  if (indim.getFeatureLen() == 0) {
     ml_loge("Error: batch size must be greater than 0");
     SET_VALIDATION(false);
     return ML_ERROR_INVALID_PARAMETER;
   }
 
-  input_size = size;
+  input_dim = indim;
   return status;
 }
 
