@@ -140,9 +140,7 @@ bool getData(std::ifstream &F, std::vector<float> &outVec,
  * @param[out] status for error handling
  * @retval true/false
  */
-bool getMiniBatch_train(std::vector<std::vector<std::vector<float>>> &outVec,
-                        std::vector<std::vector<std::vector<float>>> &outLabel,
-                        int &status) {
+bool getMiniBatch_train(float *outVec, float *outLabel, int *status) {
   std::vector<int> memI;
   std::vector<int> memJ;
   unsigned int count = 0;
@@ -174,8 +172,6 @@ bool getMiniBatch_train(std::vector<std::vector<std::vector<float>>> &outVec,
   }
 
   for (unsigned int i = 0; i < count; i++) {
-    std::vector<std::vector<float>> out;
-    std::vector<std::vector<float>> outL;
     std::vector<float> o;
     std::vector<float> l;
 
@@ -184,11 +180,10 @@ bool getMiniBatch_train(std::vector<std::vector<std::vector<float>>> &outVec,
 
     getData(F, o, l, memI[i]);
 
-    out.push_back(o);
-    outL.push_back(l);
-
-    outVec.push_back(out);
-    outLabel.push_back(outL);
+    for (unsigned int j = 0; j < feature_size; ++j)
+      outVec[i * feature_size + j] = o[j];
+    for (unsigned int j = 0; j < total_label_size; ++j)
+      outLabel[i * total_label_size + j] = l[j];
   }
 
   F.close();
@@ -202,9 +197,8 @@ bool getMiniBatch_train(std::vector<std::vector<std::vector<float>>> &outVec,
  * @param[out] status for error handling
  * @retval true/false false : end of data
  */
-bool getMiniBatch_val(std::vector<std::vector<std::vector<float>>> &outVec,
-                      std::vector<std::vector<std::vector<float>>> &outLabel,
-                      int &status) {
+bool getMiniBatch_val(float *outVec, float *outLabel, int *status) {
+
   std::vector<int> memI;
   std::vector<int> memJ;
   unsigned int count = 0;
@@ -236,8 +230,6 @@ bool getMiniBatch_val(std::vector<std::vector<std::vector<float>>> &outVec,
   }
 
   for (unsigned int i = 0; i < count; i++) {
-    std::vector<std::vector<float>> out;
-    std::vector<std::vector<float>> outL;
     std::vector<float> o;
     std::vector<float> l;
 
@@ -246,11 +238,10 @@ bool getMiniBatch_val(std::vector<std::vector<std::vector<float>>> &outVec,
 
     getData(F, o, l, memI[i]);
 
-    out.push_back(o);
-    outL.push_back(l);
-
-    outVec.push_back(out);
-    outLabel.push_back(outL);
+    for (unsigned int j = 0; j < feature_size; ++j)
+      outVec[i * feature_size + j] = o[j];
+    for (unsigned int j = 0; j < total_label_size; ++j)
+      outLabel[i * total_label_size + j] = l[j];
   }
 
   F.close();
