@@ -27,6 +27,7 @@
 #include <iostream>
 #include <optimizer.h>
 #include <tensor.h>
+#include <tensor_dim.h>
 #include <vector>
 
 namespace nntrainer {

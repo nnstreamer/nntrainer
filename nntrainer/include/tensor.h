@@ -40,36 +40,6 @@ extern "C" {
 
 namespace nntrainer {
 
-#define MAXDIM 4
-
-class TensorDim {
-public:
-  TensorDim() {
-    for (int i = 0; i < MAXDIM; ++i) {
-      dim[i] = 1;
-    }
-  }
-  ~TensorDim(){};
-  unsigned int batch() { return dim[0]; };
-  unsigned int channel() { return dim[1]; };
-  unsigned int height() { return dim[2]; };
-  unsigned int width() { return dim[3]; };
-
-  void batch(unsigned int b) { dim[0] = b; };
-  void channel(unsigned int c) { dim[1] = c; };
-  void height(unsigned int h) { dim[2] = h; };
-  void width(unsigned int w) { dim[3] = w; };
-
-  unsigned int *getDim() { return dim; }
-
-  int setTensorDim(std::string input_shape);
-
-  void operator=(const TensorDim & from);
-
-private:
-  unsigned int dim[4];
-};
-
 /**
  * @class   Tensor Class for Calculation
  * @brief   Tensor Class for Calculation
