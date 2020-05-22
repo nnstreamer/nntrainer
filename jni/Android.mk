@@ -33,6 +33,7 @@ NNTRAINER_SRCS := $(NNTRAINER_ROOT)/nntrainer/src/neuralnet.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/src/util_func.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/src/optimizer.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/src/parse_util.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/src/tensor_dim.cpp \
 
 NNTRAINER_INCLUDES := $(NNTRAINER_ROOT)/nntrainer/include
 

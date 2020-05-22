@@ -26,7 +26,8 @@ nntrainer_sources = [
   'src/nntrainer_logger.cpp',
   'src/optimizer.cpp',
   'src/util_func.cpp',
-  'src/parse_util.cpp'
+  'src/parse_util.cpp',
+  'src/tensor_dim.cpp'
 ]
 
 nntrainer_headers = [
@@ -43,7 +44,8 @@ nntrainer_headers = [
   'include/nntrainer_logger.h',
   'include/optimizer.h',
   'include/util_func.h',
-  'include/parse_util.h'
+  'include/parse_util.h',
+  'include/tensor_dim.h'
 ]
 
 
