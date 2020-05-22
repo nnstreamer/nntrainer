@@ -37,6 +37,7 @@ public:
   unsigned int channel() { return dim[1]; };
   unsigned int height() { return dim[2]; };
   unsigned int width() { return dim[3]; };
+  unsigned int getFeatureLen() { return dim[1] * dim[2] * dim[3]; };
 
   void batch(unsigned int b) { dim[0] = b; };
   void channel(unsigned int c) { dim[1] = c; };

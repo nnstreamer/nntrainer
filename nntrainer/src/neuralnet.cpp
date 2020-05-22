@@ -621,7 +621,7 @@ int NeuralNetwork::train(std::vector<std::string> values) {
     NN_RETURN_STATUS();
   }
 
-  status = data_buffer->setFeatureSize(layers[0]->getTensorDim().width());
+  status = data_buffer->setFeatureSize(layers[0]->getTensorDim());
   NN_RETURN_STATUS();
 
   status = data_buffer->init();
@@ -644,7 +644,7 @@ int NeuralNetwork::train(
     data_buffer = std::make_shared<DataBufferFromCallback>();
   }
 
-  status = data_buffer->setFeatureSize(layers[0]->getTensorDim().width());
+  status = data_buffer->setFeatureSize(layers[0]->getTensorDim());
   NN_RETURN_STATUS();
 
   status = data_buffer->init();
