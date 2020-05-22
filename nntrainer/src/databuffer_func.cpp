@@ -96,7 +96,7 @@ int DataBufferFromCallback::init() {
 }
 
 int DataBufferFromCallback::setFunc(
-  BufferType type, std::function<bool(vec_3d &, vec_3d &, int &)> func) {
+  BufferType type, std::function<bool(float *, float *, int *)> func) {
 
   int status = ML_ERROR_NONE;
   switch (type) {
@@ -131,7 +131,7 @@ void DataBufferFromCallback::updateData(BufferType type, int &status) {
   bool *running = NULL;
   std::vector<std::vector<float>> *data = NULL;
   std::vector<std::vector<float>> *datalabel = NULL;
-  std::function<bool(vec_3d &, vec_3d &, int &)> callback;
+  std::function<bool(float *, float *, int *)> callback;
 
   switch (type) {
   case BUF_TRAIN: {
@@ -172,31 +172,35 @@ void DataBufferFromCallback::updateData(BufferType type, int &status) {
     return;
   }
 
+  float *vec =
+    (float *)malloc(sizeof(float) * input_dim.batch() * input_dim.channel() *
+                    input_dim.height() * input_dim.width());
+  float *veclabel =
+    (float *)malloc(sizeof(float) * input_dim.batch() * class_num);
+
   while ((*running)) {
     if (buf_size - (*cur_size) > 0) {
-      vec_3d vec;
-      vec_3d veclabel;
-
-      bool endflag = callback(vec, veclabel, status);
+      bool endflag = callback(vec, veclabel, &status);
       if (!endflag)
         break;
 
-      if (vec.size() != veclabel.size()) {
-        status = ML_ERROR_INVALID_PARAMETER;
-      }
-
-      for (unsigned int i = 0; i < vec.size(); ++i) {
+      for (unsigned int i = 0; i < input_dim.batch(); ++i) {
         std::vector<float> v;
         std::vector<float> vl;
-        for (unsigned int j = 0; j < vec[i].size(); ++j) {
-          for (unsigned int k = 0; k < vec[i][j].size(); ++k) {
-            v.push_back(vec[i][j][k]);
+        unsigned int I =
+          i * input_dim.channel() * input_dim.height() * input_dim.width();
+        for (unsigned int j = 0; j < input_dim.channel(); ++j) {
+          unsigned int J = j * input_dim.height() * input_dim.width();
+          for (unsigned int k = 0; k < input_dim.height() * input_dim.width();
+               ++k) {
+            unsigned int K = I + J + k;
+            v.push_back(vec[K]);
           }
         }
-        for (unsigned int j = 0; j < veclabel[i].size(); ++j) {
-          for (unsigned int k = 0; k < veclabel[i][j].size(); ++k) {
-            vl.push_back(veclabel[i][j][k]);
-          }
+
+        I = i * class_num;
+        for (unsigned int j = 0; j < class_num; ++j) {
+          vl.push_back(veclabel[I + j]);
         }
 
         data_lock.lock();
@@ -229,6 +233,8 @@ void DataBufferFromCallback::updateData(BufferType type, int &status) {
       }
     }
   }
+  free(vec);
+  free(veclabel);
 }
 
 } /* namespace nntrainer */

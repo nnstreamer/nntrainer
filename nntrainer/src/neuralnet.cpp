@@ -634,9 +634,9 @@ int NeuralNetwork::train(std::vector<std::string> values) {
  * @brief     Run NeuralNetwork train
  */
 int NeuralNetwork::train(
-  std::function<bool(vec_3d &, vec_3d &, int &)> train_func,
-  std::function<bool(vec_3d &, vec_3d &, int &)> val_func,
-  std::function<bool(vec_3d &, vec_3d &, int &)> test_func) {
+  std::function<bool(float *, float *, int *)> train_func,
+  std::function<bool(float *, float *, int *)> val_func,
+  std::function<bool(float *, float *, int *)> test_func) {
 
   int status = ML_ERROR_NONE;
 

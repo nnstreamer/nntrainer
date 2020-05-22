@@ -67,7 +67,7 @@ public:
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
   int setFunc(BufferType type,
-              std::function<bool(vec_3d &, vec_3d &, int &)> func);
+              std::function<bool(float *, float *, int *)> func);
 
   /**
    * @brief     Update Data Buffer ( it is for child thread )
@@ -86,9 +86,9 @@ private:
    * @retval true / false generate all data for this epoch
    *
    */
-  std::function<bool(vec_3d &, vec_3d &, int &)> callback_train;
-  std::function<bool(vec_3d &, vec_3d &, int &)> callback_val;
-  std::function<bool(vec_3d &, vec_3d &, int &)> callback_test;
+  std::function<bool(float *, float *, int *)> callback_train;
+  std::function<bool(float *, float *, int *)> callback_val;
+  std::function<bool(float *, float *, int *)> callback_test;
 };
 } // namespace nntrainer
 #endif /* __cplusplus */

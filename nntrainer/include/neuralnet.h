@@ -211,9 +211,9 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int train(std::function<bool(vec_3d &, vec_3d &, int &)> function_train,
-            std::function<bool(vec_3d &, vec_3d &, int &)> function_val,
-            std::function<bool(vec_3d &, vec_3d &, int &)> function_test);
+  int train(std::function<bool(float *, float *, int *)> function_train,
+            std::function<bool(float *, float *, int *)> function_val,
+            std::function<bool(float *, float *, int *)> function_test);
 
   /**
    * @brief     check neural network whether the hyper-parameters are set.
