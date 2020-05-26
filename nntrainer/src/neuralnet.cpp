@@ -638,10 +638,34 @@ int NeuralNetwork::train(
   std::function<bool(float *, float *, int *)> val_func,
   std::function<bool(float *, float *, int *)> test_func) {
 
+  std::vector<std::string> values;
+
+  return train(train_func, val_func, test_func, values);
+}
+
+/**
+ * @brief     Run NeuralNetwork train
+ */
+int NeuralNetwork::train(
+  std::function<bool(float *, float *, int *)> train_func,
+  std::function<bool(float *, float *, int *)> val_func,
+  std::function<bool(float *, float *, int *)> test_func,
+  std::vector<std::string> values) {
+
   int status = ML_ERROR_NONE;
 
   if (data_buffer == nullptr) {
     data_buffer = std::make_shared<DataBufferFromCallback>();
+
+    status = data_buffer->setMiniBatch(layers[0]->getTensorDim().batch());
+    NN_RETURN_STATUS();
+
+    status = data_buffer->setClassNum(
+      layers[layers.size() - 1]->getTensorDim().width());
+    NN_RETURN_STATUS();
+
+    status = setProperty(values);
+    NN_RETURN_STATUS();
   }
 
   status = data_buffer->setFeatureSize(layers[0]->getTensorDim());
@@ -673,27 +697,25 @@ int NeuralNetwork::train(
  */
 int NeuralNetwork::train_run() {
   int status = ML_ERROR_NONE;
-  status = data_buffer->run(nntrainer::BUF_TRAIN);
-  if (status != ML_ERROR_NONE) {
-    data_buffer->clear(BUF_TRAIN);
-    return status;
-  }
 
-  status = data_buffer->run(nntrainer::BUF_VAL);
-  if (status != ML_ERROR_NONE) {
-    data_buffer->clear(BUF_VAL);
-    return status;
-  }
-
-  status = data_buffer->run(nntrainer::BUF_TEST);
-  if (status != ML_ERROR_NONE) {
-    data_buffer->clear(BUF_TEST);
-    return status;
+  if (data_buffer->getValidation()[2]) {
+    status = data_buffer->run(nntrainer::BUF_TEST);
+    if (status != ML_ERROR_NONE) {
+      data_buffer->clear(BUF_TEST);
+      return status;
+    }
   }
 
   float training_loss = 0.0;
   for (unsigned int i = 0; i < epoch; ++i) {
     int count = 0;
+
+    status = data_buffer->run(nntrainer::BUF_TRAIN);
+    if (status != ML_ERROR_NONE) {
+      data_buffer->clear(BUF_TRAIN);
+      return status;
+    }
+
     while (true) {
       vec_3d in, label;
       if (data_buffer->getDataFromBuffer(nntrainer::BUF_TRAIN, in, label)) {
@@ -703,11 +725,6 @@ int NeuralNetwork::train_run() {
         data_buffer->displayProgress(count, nntrainer::BUF_TRAIN, getLoss());
       } else {
         data_buffer->clear(nntrainer::BUF_TRAIN);
-        status = data_buffer->run(nntrainer::BUF_TRAIN);
-        if (status != ML_ERROR_NONE) {
-          data_buffer->clear(BUF_TRAIN);
-          return status;
-        }
         break;
       }
     }
@@ -720,6 +737,13 @@ int NeuralNetwork::train_run() {
       int right = 0;
       float valloss = 0.0;
       int tcases = 0;
+
+      status = data_buffer->run(nntrainer::BUF_VAL);
+      if (status != ML_ERROR_NONE) {
+        data_buffer->clear(BUF_VAL);
+        return status;
+      }
+
       while (true) {
         vec_3d in, label;
         if (data_buffer->getDataFromBuffer(nntrainer::BUF_VAL, in, label)) {
@@ -734,11 +758,6 @@ int NeuralNetwork::train_run() {
           }
         } else {
           data_buffer->clear(nntrainer::BUF_VAL);
-          status = data_buffer->run(nntrainer::BUF_VAL);
-          if (status != ML_ERROR_NONE) {
-            data_buffer->clear(BUF_VAL);
-            return status;
-          }
           break;
         }
       }
