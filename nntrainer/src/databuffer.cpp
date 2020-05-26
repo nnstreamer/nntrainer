@@ -229,8 +229,8 @@ bool DataBuffer::getDataFromBuffer(BufferType type, vec_3d &outVec,
       return false;
 
     {
-      std::unique_lock<std::mutex> ultest(readyTrainData);
-      cv_train.wait(ultest, []() -> int { return trainReadyFlag; });
+      std::unique_lock<std::mutex> ultrain(readyTrainData);
+      cv_train.wait(ultrain, []() -> int { return trainReadyFlag; });
     }
 
     if (trainReadyFlag == DATA_ERROR) {

@@ -216,6 +216,23 @@ public:
             std::function<bool(float *, float *, int *)> function_test);
 
   /**
+   * @brief     Run NeuralNetwork train with callback function by user
+   * @param[in] train_func callback function to get train data. This provides
+   * mini batch size data per every call.
+   * @param[in] val_func callback function to get validation data. This provides
+   * mini batch size data per every call.
+   * @param[in] test_func callback function to get test data. This provides
+   * mini batch size data per every call.
+   * @param[in] values hyper-parameter list
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  int train(std::function<bool(float *, float *, int *)> function_train,
+            std::function<bool(float *, float *, int *)> function_val,
+            std::function<bool(float *, float *, int *)> function_test,
+            std::vector<std::string> values);
+  
+  /**
    * @brief     check neural network whether the hyper-parameters are set.
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
