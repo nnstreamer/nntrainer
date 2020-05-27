@@ -7,24 +7,128 @@
  * @bug No known bugs except for NYI items
  */
 
- collections {
+#define PART_BUTTON(button_name, label, x1, y1, x2, y2) \
+  part { \
+    name: button_name"/bg"; \
+    type: RECT; \
+    description { \
+      state: "default" 0.0; \
+      rel1.relative: x1 y1; \
+      rel2.relative: x2 y2; \
+      color: 255 255 0 255; \
+      visible: 1; \
+    } \
+    description { \
+      state: "focused" 0.0; \
+      inherit: "default"; \
+      color: 255 255 0 120; \
+    } \
+  } \
+  part { \
+    name: button_name"/label"; \
+    type: TEXT; \
+    description { \
+      state: "default" 0.0; \
+      color: 0 0 0 255; \
+      rel1 { \
+        relative: 0.3 0.3; \
+        to: button_name"/bg"; \
+      } \
+      rel2 { \
+        relative: 0.7 0.7; \
+        to: button_name"/bg"; \
+      } \
+      text { \
+        text: label ; \
+        size: 24; \
+        align: 0.5 0.5; \
+      } \
+    } \
+  }
+
+#define PART_TITLE(title_name, label) \
+  part { \
+    name: title_name; \
+    type: TEXT; \
+    description { \
+      state: "default" 0.0; \
+      color: 255 255 255 255; \
+      text { \
+        text: label; \
+        font: "Tizen:style=regular"; \
+        size: 20; \
+        align: 0.5 0.1; \
+      } \
+    } \
+  }
+
+#define PROGRAM_BUTTON(target, on_click_sig, on_click_sig_source) \
+  program { \
+    name: target"/press"; \
+    signal: "mouse,down,*"; \
+    source: target"/*"; \
+    transition: LINEAR 0.5; \
+    script { \
+      set_state(PART:target"/bg", "focused", 0.0); \
+    } \
+  } \
+  program { \
+    name: target"/release"; \
+    signal: "mouse,up,*"; \
+    source: target"/*"; \
+    transition: LINEAR 0.5; \
+    script { \
+      set_state(PART:target"/bg", "default", 0.0); \
+    } \
+  } \
+  program { \
+    name: target"/click"; \
+    signal: "mouse,clicked,*"; \
+    source: target"/*"; \
+    script { \
+      emit(on_click_sig, on_click_sig_source); \
+    } \
+  }
+
+collections {
   group {
-    name: "main" ;
+    name: "home";
     parts {
-      part {
-        name: "main/title"; 
-        type: TEXT;
-        description {
-          state: "default" 0.0;
-          color: 255 0 0 255;
-          text {
-            text: "HELLO EDC!";
-            font: "Tizen:style=regular";
-            size: 20;
-            align: 0.5 0.5;
-          }
-        }
-      }
+      PART_TITLE("home/title", "Select actions...")
+      PART_BUTTON("home/to_train", "train", 0.55, 0.3, 0.9, 0.7)
+      PART_BUTTON("home/to_test", "test", 0.1, 0.3, 0.45, 0.7)
+    }
+    programs {
+      PROGRAM_BUTTON("home/to_train", "routes/to", "select")
+      PROGRAM_BUTTON("home/to_test", "routes/to", "draw")
     }
   }
- }
+  group {
+    name: "select";
+    parts {
+      PART_TITLE("select/title", "Select target emoji...")
+    }
+  }
+  // this group is meant to be used for train / test, if it is not applicable, this group is reserved for training part
+  group {
+    name: "draw";
+    parts {
+      PART_TITLE("draw/title", "draw your symbol")
+    }
+  }
+  group {
+    name: "train_result";
+    parts {
+      PART_TITLE("train_result/title", "train successfully done")
+      PART_BUTTON("train_result/go_back", "go back", 0.1, 0.3, 0.9, 0.7)
+    }
+  }
+  group {
+    name: "test_result";
+    parts {
+      PART_TITLE("test_result/title", "test is successfully done")
+      PART_BUTTON("test_result/go_back", "go back", 0.1, 0.3, 0.9, 0.7)
+      // reserve a text area to show the guess from the model
+    }
+  }
+}
