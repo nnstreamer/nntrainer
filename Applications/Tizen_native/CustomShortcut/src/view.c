@@ -84,7 +84,7 @@ int view_create(widget_context_h context) {
 
   widget_app_context_get_tag(context, (void **)&wid);
   wid->layout =
-    _create_layout(wid->naviframe, wid->edj_path, "main", NULL, NULL);
+    _create_layout(wid->naviframe, wid->edj_path, "home", NULL, NULL);
 
   if (wid->layout == NULL) {
     dlog_print(DLOG_ERROR, LOG_TAG, "failed to create a layout of no alarm.");
