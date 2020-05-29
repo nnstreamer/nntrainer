@@ -1,11 +1,10 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns="http://tizen.org/ns/packages" api-version="5.5" package="org.example.nntrainer-custom-shortcut" version="0.0.1">
-    <author email="jhoon.it.lee@samsung.com">jihoon lee</author>
-    <description>An example app that trains based on user drawn shortcut.</description>
-    <profile name="wearable"/>
-    <widget-application appid="org.example.nntrainer-custom-shortcut" exec="main" main="true" update-period="0">
-        <label>nntrainer-example-custom-shortcut</label>
-        <icon>icon.png</icon>
-        <support-size preview="preview.png">2x2</support-size>
-    </widget-application>
+	<author email="jhoon.it.lee@samsung.com">jihoon lee</author>
+	<description>An example app that trains based on user drawn shortcut.</description>
+	<profile name="wearable" />
+	<ui-application appid="org.example.nntrainer-custom-shortcut" exec="nntrainer-custom-shortcut" type="capp" multiple="false" taskmanage="true" nodisplay="false">
+		<icon>icon.png</icon>
+		<label>sticker-training</label>
+	</ui-application>
 </manifest>

@@ -10,11 +10,10 @@
 #define __nntrainer_example_custom_shortcut_data_H__
 
 #include <Elementary.h>
+#include <app.h>
 #include <dlog.h>
-#include <tizen.h>
-#include <widget_app.h>
-#include <widget_app_efl.h>
 #include <efl_extension.h>
+#include <tizen.h>
 
 #ifdef LOG_TAG
 #undef LOG_TAG
@@ -23,7 +22,7 @@
 
 #define EDJ_PATH "edje/main.edj"
 
-typedef struct widget_instance_data {
+typedef struct appdata {
   Evas_Object *win;
   Evas_Object *conform;
   Evas_Object *label;
@@ -31,6 +30,10 @@ typedef struct widget_instance_data {
   Eext_Circle_Surface *circle_nf;
   Evas_Object *layout;
   char edj_path[PATH_MAX];
-} widget_instance_data_s;
+} appdata_s;
+
+#if !defined(PACKAGE)
+#define PACKAGE "org.example.nntrainer-example-custom-shortcut"
+#endif
 
 #endif /* __nntrainer_example_custom_shortcut_data_H__ */

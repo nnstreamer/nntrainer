@@ -9,12 +9,10 @@
 #ifndef __nntrainer_example_custom_shortcut_H__
 #define __nntrainer_example_custom_shortcut_H__
 
+#include "data.h"
 #include <Elementary.h>
 #include <dlog.h>
 #include <tizen.h>
-#include <widget_app.h>
-#include <widget_app_efl.h>
-#include "data.h"
 
 #if !defined(PACKAGE)
 #define PACKAGE "org.example.nntrainer-example-custom-shortcut"
