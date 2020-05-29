@@ -16,17 +16,18 @@
 
 /**
  * @brief initiate window and conformant.
- * @param[in] context context of widget instance
+ * @param[in] ad appdata of the app
  * @param[in] w width
  * @param[in] h height
- * @retval #WIDGET_ERROR_*
+ * @retval #APP_ERROR_*
  */
-int view_init(widget_context_h context, int w, int h);
+int view_init(appdata_s *ad);
 
 /**
  * @brief creates layout from edj
- * @param[in] context context of widget instance
+ * @param[in] ad appdata of the app
+ * @param[in] group_name name of the layout to be pushed to main naviframe.
  */
-int view_create(widget_context_h context);
+int view_routes_to(appdata_s *ad, const char *group_name);
 
 #endif /* __nntrainer_example_custom_shortcut_view_H__ */
