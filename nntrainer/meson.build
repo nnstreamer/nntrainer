@@ -27,7 +27,8 @@ nntrainer_sources = [
   'src/optimizer.cpp',
   'src/util_func.cpp',
   'src/parse_util.cpp',
-  'src/tensor_dim.cpp'
+  'src/tensor_dim.cpp',
+  'src/conv2d_layer.cpp'
 ]
 
 nntrainer_headers = [
@@ -45,7 +46,8 @@ nntrainer_headers = [
   'include/optimizer.h',
   'include/util_func.h',
   'include/parse_util.h',
-  'include/tensor_dim.h'
+  'include/tensor_dim.h',
+  'include/conv2d_layer.h'
 ]
 
 

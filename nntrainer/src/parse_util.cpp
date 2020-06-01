@@ -93,10 +93,11 @@ unsigned int parseType(std::string ll, InputType t) {
    *            "input"  : Input Layer Object
    *            "fully_conntected" : Fully Connected Layer Object
    *            "batch_normalization" : Batch Normalization Layer Object
+   *            "conv2d" : Convolution 2D Layer Object
    *            "unknown" : Batch Normalization Layer Object
    */
-  std::array<std::string, 4> layer_string = {"input", "fully_connected",
-                                             "batch_normalization", "unknown"};
+  std::array<std::string, 5> layer_string = {
+    "input", "fully_connected", "batch_normalization", "conv2d", "unknown"};
 
   /**
    * @brief     Weight Initialization Type String from configure file
@@ -207,15 +208,22 @@ unsigned int parseLayerProperty(std::string property) {
    * weight_decay = 6
    * weight_decay_lambda = 7
    * unit = 8
+   * weight_ini = 9
+   * filter_size = 10
+   * kernel_size = 11
+   * stride = 12
+   * padding = 13
    *
    * InputLayer has 0, 1, 2, 3 properties.
-   * FullyConnectedLayer has 1, 4, 6, 7, 8 properties.
+   * FullyConnectedLayer has 1, 4, 6, 7, 8, 9 properties.
+   * Conv2DLayer has 0, 1, 4, 6, 7, 9, 10, 11, 12, 13 properties.
    * BatchNormalizationLayer has 0, 1, 5, 6, 7 properties.
    */
-  std::array<std::string, 10> property_string = {
-    "input_shape", "bias_zero", "normalization", "standardization",
-    "activation",  "epsilon",   "weight_decay",  "weight_decay_lambda",
-    "unit",        "unknown"};
+  std::array<std::string, 15> property_string = {
+    "input_shape", "bias_zero",  "normalization", "standardization",
+    "activation",  "epsilon",    "weight_decay",  "weight_decay_lambda",
+    "unit",        "weight_ini", "filter_size",   "kernel_size",
+    "stride",      "padding",    "unknown"};
 
   for (i = 0; i < property_string.size(); i++) {
     unsigned int size = (property_string[i].size() > property.size())
