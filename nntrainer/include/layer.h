@@ -60,9 +60,10 @@ typedef enum {
  *            0. Input Layer type
  *            1. Fully Connected Layer type
  *            2. Batch Normalization Layer type
- *            3. Unknown
+ *            3. Convolution 2D Layer type
+ *            4. Unknown
  */
-typedef enum { LAYER_IN, LAYER_FC, LAYER_BN, LAYER_UNKNOWN } LayerType;
+ typedef enum { LAYER_IN, LAYER_FC, LAYER_BN, LAYER_CONV2D, LAYER_UNKNOWN } LayerType;
 
 /**
  * @brief     Enumeration of Weight Initialization Type

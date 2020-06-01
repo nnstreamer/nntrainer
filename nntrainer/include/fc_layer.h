@@ -135,11 +135,12 @@ public:
 
   /**
    * @brief     Property Enumeration
-   *            0. input shape : string
    *            1. bias zero : bool
    *            4. activation : bool
    *            6. weight_decay : string (type)
    *            7. weight_decay_lambda : float
+   *            8. unit : int
+   *            9. weight_init,
    */
   enum class PropertyType {
     bias_zero = 1,
