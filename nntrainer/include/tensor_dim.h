@@ -31,27 +31,33 @@ public:
     for (int i = 0; i < MAXDIM; ++i) {
       dim[i] = 1;
     }
+    len = 1;
+    feature_len = 1;
   }
   ~TensorDim(){};
-  unsigned int batch() { return dim[0]; };
-  unsigned int channel() { return dim[1]; };
-  unsigned int height() { return dim[2]; };
-  unsigned int width() { return dim[3]; };
-  unsigned int getFeatureLen() { return dim[1] * dim[2] * dim[3]; };
+  unsigned int batch() const { return dim[0]; };
+  unsigned int channel() const { return dim[1]; };
+  unsigned int height() const { return dim[2]; };
+  unsigned int width() const { return dim[3]; };
+  unsigned int getDataLen() const { return len; };
+  unsigned int getFeatureLen() const { return feature_len; };
 
-  void batch(unsigned int b) { dim[0] = b; };
-  void channel(unsigned int c) { dim[1] = c; };
-  void height(unsigned int h) { dim[2] = h; };
-  void width(unsigned int w) { dim[3] = w; };
+  void resetLen();
+  void batch(unsigned int b);
+  void channel(unsigned int c);
+  void height(unsigned int h);
+  void width(unsigned int w);
 
   unsigned int *getDim() { return dim; }
 
   int setTensorDim(std::string input_shape);
 
-  void operator=(const TensorDim & from);
+  void operator=(const TensorDim &from);
 
 private:
   unsigned int dim[4];
+  unsigned int len;
+  unsigned int feature_len;
 };
 
 } /* namespace nntrainer */

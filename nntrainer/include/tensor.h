@@ -36,6 +36,7 @@ extern "C" {
 #include <iostream>
 #include <memory>
 #include <regex>
+#include <tensor_dim.h>
 #include <vector>
 
 namespace nntrainer {
@@ -49,7 +50,13 @@ public:
   /**
    * @brief     Constructor of Tensor
    */
-  Tensor() : height(0), width(0), batch(0), ndim(0), len(0){};
+  Tensor() : dim(){};
+
+  /**
+   * @brief     Constructor of Tensor with batch size one
+   * @param[in] dim TensorDim
+   */
+  Tensor(TensorDim dim);
 
   /**
    * @brief     Constructor of Tensor with batch size one
@@ -84,7 +91,7 @@ public:
    * @param[in] h height location
    * @param[in] w width location
    */
-  float getValue(int batch, int h, int w);
+  float getValue(unsigned int batch, unsigned int h, unsigned int w);
 
   /**
    * @brief     Multiply value element by element
@@ -233,19 +240,19 @@ public:
    * @brief     Get Width of Tensor
    * @retval    int Width
    */
-  int getWidth() { return width; };
+  int getWidth() const { return dim.width(); };
 
   /**
    * @brief     Get Height of Tensor
    * @retval    int Height
    */
-  int getHeight() { return height; };
+  int getHeight() const { return dim.height(); };
 
   /**
    * @brief     Get Batch of Tensor
    * @retval    int Batch
    */
-  int getBatch() { return batch; };
+  int getBatch() const { return dim.batch(); };
 
   /**
    * @brief     Set the elelemnt value
@@ -254,7 +261,8 @@ public:
    * @param[in] j width location
    * @param[in] value value to be stored
    */
-  void setValue(int batch, int i, int j, float value);
+  void setValue(unsigned int batch, unsigned int i, unsigned int j,
+                float value);
 
   /**
    * @brief     Copy the Tensor
@@ -290,11 +298,7 @@ public:
 private:
   /**< handle the data as a std::vector type */
   std::vector<float> data;
-  int height;
-  int width;
-  int batch;
-  int ndim;
-  int len;
+  TensorDim dim;
 };
 
 /**
