@@ -84,15 +84,15 @@ int DataBufferFromCallback::init() {
     return ML_ERROR_INVALID_PARAMETER;
   }
 
-  if (train_bufsize > mini_batch) {
+  if (train_bufsize > mini_batch || train_bufsize == 0) {
     train_bufsize = mini_batch;
   }
 
-  if (val_bufsize > mini_batch) {
+  if (val_bufsize > mini_batch || val_bufsize == 0) {
     val_bufsize = mini_batch;
   }
 
-  if (test_bufsize > mini_batch) {
+  if (test_bufsize > mini_batch || test_bufsize == 0) {
     test_bufsize = mini_batch;
   }
 

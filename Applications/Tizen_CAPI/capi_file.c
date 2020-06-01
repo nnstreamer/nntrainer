@@ -12,7 +12,7 @@
  * limitations under the License.
  *
  *
- * @file	c_api.c
+ * @file	capi_file.c
  * @date	19 May 2020
  * @see		https://github.com/nnstreamer/nntrainer
  * @author	Jijoong Moon <jijoong.moon@samsung.com>
