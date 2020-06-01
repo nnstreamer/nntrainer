@@ -22,6 +22,27 @@
 
 namespace nntrainer {
 
+void TensorDim::resetLen() {
+  feature_len = dim[1] * dim[2] * dim[3];
+  len = dim[0] * feature_len;
+}
+void TensorDim::batch(unsigned int b) {
+  dim[0] = b;
+  resetLen();
+};
+void TensorDim::channel(unsigned int c) {
+  dim[1] = c;
+  resetLen();
+};
+void TensorDim::height(unsigned int h) {
+  dim[2] = h;
+  resetLen();
+};
+void TensorDim::width(unsigned int w) {
+  dim[3] = w;
+  resetLen();
+};
+
 int TensorDim::setTensorDim(std::string input_shape) {
   int status = ML_ERROR_NONE;
   std::regex words_regex("[^\\s.,:;!?]+");
@@ -42,6 +63,8 @@ int TensorDim::setTensorDim(std::string input_shape) {
     }
     cn++;
   }
+  feature_len = dim[1] * dim[2] * dim[3];
+  len = dim[0] * feature_len;
   return status;
 }
 
@@ -49,6 +72,8 @@ void TensorDim::operator=(const TensorDim &from) {
   for (int i = 0; i < 4; ++i) {
     this->dim[i] = from.dim[i];
   }
+  len = from.len;
+  feature_len = from.feature_len;
 };
 
 } /* namespace nntrainer */
