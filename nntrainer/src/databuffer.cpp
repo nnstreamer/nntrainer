@@ -186,7 +186,6 @@ int DataBuffer::clear() {
 
 bool DataBuffer::getDataFromBuffer(BufferType type, vec_3d &outVec,
                                    vec_3d &outLabel) {
-  int nomI;
   unsigned int J, i, j, k;
   unsigned int width = input_dim.width();
   unsigned int height = input_dim.height();
@@ -202,27 +201,25 @@ bool DataBuffer::getDataFromBuffer(BufferType type, vec_3d &outVec,
     }
 
     for (k = 0; k < mini_batch; ++k) {
-      nomI = rangeRandom(0, train_bufsize - 1);
       std::vector<std::vector<float>> v_height;
       for (j = 0; j < height; ++j) {
         J = j * width;
         std::vector<float> v_width;
         for (i = 0; i < width; ++i) {
-          v_width.push_back(train_data[nomI][J + i]);
+          v_width.push_back(train_data[k][J + i]);
         }
         v_height.push_back(v_width);
       }
 
-      list.push_back(nomI);
       outVec.push_back(v_height);
-      outLabel.push_back({train_data_label[nomI]});
+      outLabel.push_back({train_data_label[k]});
     }
 
     data_lock.lock();
 
     for (i = 0; i < mini_batch; ++i) {
-      train_data.erase(train_data.begin() + list[i]);
-      train_data_label.erase(train_data_label.begin() + list[i]);
+      train_data.erase(train_data.begin() + i);
+      train_data_label.erase(train_data_label.begin() + i);
       cur_train_bufsize--;
     }
   } break;
@@ -235,27 +232,25 @@ bool DataBuffer::getDataFromBuffer(BufferType type, vec_3d &outVec,
     }
 
     for (k = 0; k < mini_batch; ++k) {
-      nomI = rangeRandom(0, val_bufsize - 1);
       std::vector<std::vector<float>> v_height;
       for (j = 0; j < height; ++j) {
         J = j * width;
         std::vector<float> v_width;
         for (i = 0; i < width; ++i) {
-          v_width.push_back(val_data[nomI][J + i]);
+          v_width.push_back(val_data[k][J + i]);
         }
         v_height.push_back(v_width);
       }
 
-      list.push_back(nomI);
       outVec.push_back(v_height);
-      outLabel.push_back({val_data_label[nomI]});
+      outLabel.push_back({val_data_label[k]});
     }
 
     data_lock.lock();
 
     for (i = 0; i < mini_batch; ++i) {
-      val_data.erase(val_data.begin() + list[i]);
-      val_data_label.erase(val_data_label.begin() + list[i]);
+      val_data.erase(val_data.begin() + i);
+      val_data_label.erase(val_data_label.begin() + i);
       cur_val_bufsize--;
     }
 
@@ -270,26 +265,24 @@ bool DataBuffer::getDataFromBuffer(BufferType type, vec_3d &outVec,
     }
 
     for (k = 0; k < mini_batch; ++k) {
-      nomI = rangeRandom(0, test_bufsize - 1);
       std::vector<std::vector<float>> v_height;
       for (j = 0; j < height; ++j) {
         J = j * width;
         std::vector<float> v_width;
         for (i = 0; i < width; ++i) {
-          v_width.push_back(test_data[nomI][J + i]);
+          v_width.push_back(test_data[k][J + i]);
         }
         v_height.push_back(v_width);
       }
 
-      list.push_back(nomI);
       outVec.push_back(v_height);
-      outLabel.push_back({test_data_label[nomI]});
+      outLabel.push_back({test_data_label[k]});
     }
 
     data_lock.lock();
     for (i = 0; i < mini_batch; ++i) {
-      test_data.erase(test_data.begin() + list[i]);
-      test_data_label.erase(test_data_label.begin() + list[i]);
+      test_data.erase(test_data.begin() + i);
+      test_data_label.erase(test_data_label.begin() + i);
       cur_test_bufsize--;
     }
   } break;
