@@ -194,17 +194,53 @@ public:
    */
   virtual void copy(std::shared_ptr<Layer> l) = 0;
 
-  void setBNfallow(bool ok) { this->bn_fallow = ok; }
+  /**
+   * @brief     set Batch Normalization Layer followed
+   * @param[in] ok true/false
+   */
+  void setBNfollow(bool ok) { this->bn_follow = ok; }
 
+  /**
+   * @brief     check hyper parameter for the layer
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
   int checkValidation();
 
+  /**
+   * @brief     set weight decay parameters
+   * @param[in] w struct for weight decay
+   */
   void setWeightDecay(WeightDecayParam w) { weight_decay = w; }
 
+  /**
+   * @brief  get Tensor Dimension
+   * @retval TensorDim Tensor Dimension
+   */
   TensorDim &getTensorDim() { return dim; }
 
+  /**
+   * @brief  set if this is last layer of Network
+   * @param[in] last true/false
+   */
   void setLast(bool last) { last_layer = last; }
 
+  /**
+   * @brief  set Weight Initialization Type
+   * @param[in] wini WeightIniType
+   */
   void setWeightInit(WeightIniType wini) { weight_ini_type = wini; }
+
+  /**
+   * @brief  initialize Weight
+   * @param[in] width width of Tensor
+   * @param[in] height height of Tensor
+   * @param[in] init_type Weight Initialization Type
+   * @param[out] status Status
+   * @retval Tensor Initialized Tensor
+   */
+  Tensor initializeWeight(unsigned int width, unsigned int height,
+                          WeightIniType init_type, int &status);
 
 protected:
   /**
@@ -255,7 +291,7 @@ protected:
 
   ActiType activation_type;
 
-  bool bn_fallow;
+  bool bn_follow;
 
   WeightDecayParam weight_decay;
 

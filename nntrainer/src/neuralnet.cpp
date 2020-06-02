@@ -346,7 +346,7 @@ int NeuralNetwork::init() {
         ml_loge("Error: BN layer shouldn't be first layer of network");
         return ML_ERROR_INVALID_PARAMETER;
       }
-      layers[i - 1]->setBNfallow(true);
+      layers[i - 1]->setBNfollow(true);
       status = bn_layer->setActivation((ActiType)parseType(
         iniparser_getstring(ini, (layers_name[i] + ":Activation").c_str(),
                             unknown),
@@ -484,7 +484,7 @@ int NeuralNetwork::init(std::shared_ptr<Optimizer> optimizer,
       NN_RETURN_STATUS();
       status = layers[i]->initialize(last);
       NN_RETURN_STATUS();
-      layers[i - 1]->setBNfallow(true);
+      layers[i - 1]->setBNfollow(true);
       break;
     default:
       break;
