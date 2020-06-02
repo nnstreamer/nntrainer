@@ -25,9 +25,41 @@
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <parse_util.h>
+#include <random>
 #include <util_func.h>
 
 namespace nntrainer {
+
+static auto rng = [] {
+  std::mt19937 rng;
+  rng.seed(std::random_device()());
+  return rng;
+}();
+
+template <typename... Args> static void RandNormal(Tensor &w, Args &&... args) {
+  std::normal_distribution<float> dist(std::forward<Args>(args)...);
+  unsigned int width = w.getWidth();
+  unsigned int height = w.getHeight();
+
+  for (unsigned int i = 0; i < width; ++i) {
+    for (unsigned int j = 0; j < height; ++j) {
+      w.setValue(0, j, i, dist(rng));
+    }
+  }
+}
+
+template <typename... Args>
+static void RandUniform(Tensor &w, Args &&... args) {
+  std::uniform_real_distribution<float> dist(std::forward<Args>(args)...);
+  unsigned int width = w.getWidth();
+  unsigned int height = w.getHeight();
+
+  for (unsigned int i = 0; i < width; ++i) {
+    for (unsigned int j = 0; j < height; ++j) {
+      w.setValue(0, j, i, dist(rng));
+    }
+  }
+}
 
 Layer::Layer() {
   type = LAYER_UNKNOWN;
@@ -36,7 +68,7 @@ Layer::Layer() {
   init_zero = false;
   activation = NULL;
   activation_prime = NULL;
-  bn_fallow = false;
+  bn_follow = false;
   weight_decay.type = WeightDecayType::unknown;
   weight_decay.lambda = 0.0;
   weight_ini_type = WEIGHT_UNKNOWN;
@@ -92,4 +124,42 @@ int Layer::checkValidation() {
   }
   return status;
 }
+
+Tensor Layer::initializeWeight(unsigned int width, unsigned int height,
+                               WeightIniType init_type, int &status) {
+
+  Tensor w = Tensor(height, width);
+
+  if (init_type == WEIGHT_UNKNOWN) {
+    ml_logw("Warning: Weight Initalization Type is not set. "
+            "WEIGHT_XAVIER_NORMAL is used by default");
+    init_type = WEIGHT_XAVIER_NORMAL;
+  }
+
+  switch (init_type) {
+  case WEIGHT_LECUN_NORMAL:
+    RandNormal(w, 0, sqrt(1.0 / height));
+    break;
+  case WEIGHT_XAVIER_NORMAL:
+    RandNormal(w, 0, sqrt(2.0 / (width + height)));
+    break;
+  case WEIGHT_HE_NORMAL:
+    RandNormal(w, 0, sqrt(2.0 / (height)));
+    break;
+  case WEIGHT_LECUN_UNIFORM:
+    RandUniform(w, -1.0 * sqrt(1.0 / height), sqrt(1.0 / height));
+    break;
+  case WEIGHT_XAVIER_UNIFORM:
+    RandUniform(w, -1.0 * sqrt(6.0 / (height + width)),
+                sqrt(6.0 / (height + width)));
+    break;
+  case WEIGHT_HE_UNIFORM:
+    RandUniform(w, -1.0 * sqrt(6.0 / (height)), sqrt(6.0 / (height)));
+    break;
+  default:
+    break;
+  }
+  return w;
+}
+
 } /* namespace nntrainer */
