@@ -1,6 +1,6 @@
 # NNtrainer
 
-[![Code Coverage](http://ec2-54-180-96-14.ap-northeast-2.compute.amazonaws.com/nntrainer/ci/badge/codecoverage.svg)](http://ec2-54-180-96-14.ap-northeast-2.compute.amazonaws.com/nntrainer/ci/gcov_html/index.html)
+[![Code Coverage](http://nnsuite.mooo.com/nntrainer/ci/badge/codecoverage.svg)](http://nnsuite.mooo.com/nntrainer/ci/gcov_html/index.html)
 ![GitHub repo size](https://img.shields.io/github/repo-size/nnstreamer/nntrainer)
 ![GitHub issues](https://img.shields.io/github/issues/nnstreamer/nntrainer)
 ![GitHub pull requests](https://img.shields.io/github/issues-pr/nnstreamer/nntrainer)
