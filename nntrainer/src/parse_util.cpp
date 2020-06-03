@@ -34,6 +34,8 @@ int getKeyValue(std::string input_str, std::string &key, std::string &value) {
   int status = ML_ERROR_NONE;
   std::vector<std::string> list;
   std::regex words_regex("[^\\s=]+");
+  input_str.erase(std::remove(input_str.begin(), input_str.end(), ' '),
+                  input_str.end());
   auto words_begin =
     std::sregex_iterator(input_str.begin(), input_str.end(), words_regex);
   auto words_end = std::sregex_iterator();
@@ -120,6 +122,14 @@ unsigned int parseType(std::string ll, InputType t) {
   std::array<std::string, 3> weight_decay_string = {"l2norm", "regression",
                                                     "unknown"};
 
+  /**
+   * @brief     Weight Decay String from configure file
+   *            "L2Norm"  : squared norm regularization
+   *            "Regression" : Regression
+   */
+  std::array<std::string, 4> padding_string = {"full", "same", "valid",
+                                               "unknown"};
+
   switch (t) {
   case TOKEN_OPT:
     for (i = 0; i < optimizer_string.size(); i++) {
@@ -185,6 +195,16 @@ unsigned int parseType(std::string ll, InputType t) {
     }
     ret = i - 1;
     break;
+  case TOKEN_PADDING:
+    for (i = 0; i < padding_string.size(); i++) {
+      if (!strncasecmp(padding_string[i].c_str(), ll.c_str(),
+                       padding_string[i].size())) {
+        return (i);
+      }
+    }
+    ret = i - 1;
+    break;
+
   case TOKEN_UNKNOWN:
   default:
     ret = 3;
@@ -209,7 +229,7 @@ unsigned int parseLayerProperty(std::string property) {
    * weight_decay_lambda = 7
    * unit = 8
    * weight_ini = 9
-   * filter_size = 10
+   * filter = 10
    * kernel_size = 11
    * stride = 12
    * padding = 13
@@ -222,7 +242,7 @@ unsigned int parseLayerProperty(std::string property) {
   std::array<std::string, 15> property_string = {
     "input_shape", "bias_zero",  "normalization", "standardization",
     "activation",  "epsilon",    "weight_decay",  "weight_decay_lambda",
-    "unit",        "weight_ini", "filter_size",   "kernel_size",
+    "unit",        "weight_ini", "filter",        "kernel_size",
     "stride",      "padding",    "unknown"};
 
   for (i = 0; i < property_string.size(); i++) {
@@ -354,6 +374,26 @@ int setBoolean(bool &val, std::string str) {
     status = ML_ERROR_INVALID_PARAMETER;
   }
 
+  return status;
+}
+
+int getValues(int n_str, std::string str, int *value) {
+  int status = ML_ERROR_NONE;
+  std::regex words_regex("[^\\s.,:;!?]+");
+  str.erase(std::remove(str.begin(), str.end(), ' '), str.end());
+  auto words_begin = std::sregex_iterator(str.begin(), str.end(), words_regex);
+  auto words_end = std::sregex_iterator();
+
+  int num = std::distance(words_begin, words_end);
+  if (num != n_str) {
+    ml_loge("Number of Data is not match");
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+  int cn = 0;
+  for (std::sregex_iterator i = words_begin; i != words_end; ++i) {
+    value[cn] = std::stoi((*i).str());
+    cn++;
+  }
   return status;
 }
 

@@ -42,7 +42,7 @@ public:
    * @brief     Destructor of Conv 2D Layer
    */
   ~Conv2DLayer(){};
-  
+
   /**
    * @brief     initialize layer
    * @param[in] last last layer
@@ -50,6 +50,18 @@ public:
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
   int initialize(bool last);
+
+  /**
+   * @brief     Initializer of Input Layer
+   * @param[in] b batch size
+   * @param[in] h height
+   * @param[in] w width
+   * @param[in] last last layer
+   * @param[in] init_zero boolean to set Bias zero
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  int initialize(int b, int h, int w, bool last, bool init_zero);
 
   /**
    * @brief     Read Weight & Bias Data from file
@@ -70,6 +82,15 @@ public:
    * @retval    Activation(W x input + B)
    */
   Tensor forwarding(Tensor in, int &status);
+
+  /**
+   * @brief     foward propagation : return Input Tensor
+   *            It return Input as it is.
+   * @param[in] in input Tensor from lower layer.
+   * @param[in] output label Tensor.
+   * @retval    return Input Tensor
+   */
+  Tensor forwarding(Tensor in, Tensor output, int &status);
 
   /**
    * @brief     back propagation
@@ -98,7 +119,7 @@ public:
    * @brief     Property Enumeration
    *            0. input shape : string
    *            1. bias zero : bool
-   *            4. activation : bool
+   *            4. activation : string (type)
    *            6. weight_decay : string (type)
    *            7. weight_decay_lambda : float
    *            8. weight_ini : string (type)
@@ -109,22 +130,30 @@ public:
    *
    */
   enum class PropertyType {
+    input_shape = 0,
     bias_zero = 1,
     activation = 4,
     weight_decay = 6,
     weight_decay_lambda = 7,
     weight_ini = 9,
-    filter_size = 10,
+    filter = 10,
     kernel_size = 11,
     stride = 12,
     padding = 13,
+  };
+
+  enum class PaddingType {
+    full = 0,
+    same = 1,
+    valid = 2,
+    unknown = 3,
   };
 
 private:
   unsigned int filter_size;
   unsigned int kernel_size[CONV2D_DIM];
   unsigned int stride[CONV2D_DIM];
-  std::string padding;
+  PaddingType padding;
   std::vector<Tensor> filters;
   std::vector<Tensor> bias;
 };

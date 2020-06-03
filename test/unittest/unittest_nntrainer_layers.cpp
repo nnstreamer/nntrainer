@@ -15,6 +15,7 @@
 #include <input_layer.h>
 #include <fc_layer.h>
 #include <bn_layer.h>
+#include <conv2d_layer.h>
 #include <fstream>
 #include <optimizer.h>
 #include <nntrainer_error.h>
@@ -324,6 +325,29 @@ TEST(nntrainer_BatchNormalizationLayer, checkValidation_01_p) {
   layer.setActivation(nntrainer::ACT_RELU);
 
   status = layer.checkValidation();
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Convolution 2D Layer
+ */
+TEST(nntrainer_Conv2DLayer, initialize_01_p){
+  int status = ML_ERROR_NONE;
+  nntrainer::Conv2DLayer layer;
+  std::vector<std::string> input_str;
+
+  input_str.push_back("input_shape=32:3:244:244");
+  input_str.push_back("bias_zero=true");
+  input_str.push_back("activation=sigmoid");
+  input_str.push_back("weight_decay=l2norm");
+  input_str.push_back("weight_decay_lambda = 0.005");
+  input_str.push_back("weight_ini=xavier_uniform");
+  input_str.push_back("filter=12");
+  input_str.push_back("kernel_size= 3,3");
+  input_str.push_back("stride=3, 3");
+  input_str.push_back("padding=full");
+
+  status = layer.setProperty(input_str);
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
