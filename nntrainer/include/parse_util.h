@@ -45,7 +45,8 @@ namespace nntrainer {
  *            4. LAYER   ( Layer Token )
  *            5. WEIGHTINI  ( Weight Initialization Token )
  *            7. WEIGHT_DECAY  ( Weight Decay Token )
- *            8. UNKNOWN
+ *            8. PADDING  ( Padding Token )
+ *            9. UNKNOWN
  */
 typedef enum {
   TOKEN_OPT,
@@ -55,6 +56,7 @@ typedef enum {
   TOKEN_LAYER,
   TOKEN_WEIGHTINI,
   TOKEN_WEIGHT_DECAY,
+  TOKEN_PADDING,
   TOKEN_UNKNOWN
 } InputType;
 
@@ -132,6 +134,8 @@ int setBoolean(bool &val, std::string str);
  * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
  */
 int getKeyValue(std::string input_str, std::string &key, std::string &value);
+
+int getValues(int n_str, std::string str, int *value);
 
 } /* namespace nntrainer */
 
