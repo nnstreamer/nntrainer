@@ -28,6 +28,7 @@ typedef struct appdata {
   Evas_Object *label;
   Evas_Object *naviframe;
   Eext_Circle_Surface *circle_nf;
+  Elm_Object_Item *home;
   Evas_Object *layout;
   char edj_path[PATH_MAX];
 } appdata_s;
