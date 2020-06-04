@@ -430,7 +430,7 @@ TEST(nntrainer_capi_nnmodel, train_with_file_01_p) {
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_nnmodel_train_with_file(
-    model, "epochs=1", "batch_size=16", "train_data=trainingSet.dat",
+    model, "epochs=2", "batch_size=16", "train_data=trainingSet.dat",
     "val_data=valSet.dat", "label_data=label.dat", "buffer_size=100",
     "model_file=model.bin", NULL);
 
@@ -492,7 +492,7 @@ TEST(nntrainer_capi_nnmodel, train_with_generator_01_p) {
   status = ml_nnmodel_compile(model, optimizer, "loss=cross", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
   status = ml_nnmodel_train_with_generator(
-    model, getMiniBatch_train, getMiniBatch_val, NULL, "epochs=1",
+    model, getMiniBatch_train, getMiniBatch_val, NULL, "epochs=2",
     "batch_size=16", "buffer_size=100", "model_file=model.bin", NULL);
 
   EXPECT_EQ(status, ML_ERROR_NONE);

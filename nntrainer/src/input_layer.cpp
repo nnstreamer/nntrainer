@@ -32,7 +32,7 @@ int InputLayer::setOptimizer(Optimizer &opt) {
   this->opt.setType(opt.getType());
   this->opt.setOptParam(opt.getOptParam());
 
-  return this->opt.initialize(dim.height(), dim.width(), false);
+  return this->opt.initialize(dim, false);
 }
 
 int InputLayer::setProperty(std::vector<std::string> values) {
@@ -90,7 +90,8 @@ Tensor InputLayer::forwarding(Tensor in, int &status) {
 
 int InputLayer::initialize(bool last) {
   int status = ML_ERROR_NONE;
-  if (dim.batch() <= 0 || dim.height() <= 0 || dim.width() <= 0) {
+  if (dim.batch() <= 0 || dim.channel() <= 0 || dim.height() <= 0 ||
+      dim.width() <= 0) {
     ml_loge("Error: Dimension must be greater than 0");
     return ML_ERROR_INVALID_PARAMETER;
   }
@@ -98,10 +99,12 @@ int InputLayer::initialize(bool last) {
   return status;
 }
 
-int InputLayer::initialize(int b, int h, int w, bool last, bool init_zero) {
+int InputLayer::initialize(int b, int c, int h, int w, bool last,
+                           bool init_zero) {
   int status = ML_ERROR_NONE;
 
   this->dim.batch(b);
+  this->dim.channel(c);
   this->dim.width(w);
   this->dim.height(h);
 

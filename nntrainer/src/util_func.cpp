@@ -29,29 +29,33 @@ namespace nntrainer {
 
 Tensor softmaxPrime(Tensor x) {
   int batch = x.getBatch();
+  int channel = x.getChannel();
   int width = x.getWidth();
   int height = x.getHeight();
   assert(height == 1);
 
-  Tensor PI = Tensor(batch, height, width);
+  Tensor PI = Tensor(x.getDim());
 
   float *xp = x.getData();
   float *pp = PI.getData();
 
   for (int k = 0; k < batch; ++k) {
-    int K = k * height * width;
-    for (int i = 0; i < height; ++i) {
-      int I = K + i * width;
-      for (int j = 0; j < width; ++j) {
-        float sum = 0.0;
-        for (int l = 0; l < width; ++l) {
-          if (j == l) {
-            sum += xp[I + l] * (1.0 - xp[I + j]);
-          } else {
-            sum += xp[I + l] * xp[I + j] * -1.0;
+    int K = k * channel * height * width;
+    for (int c = 0; c < channel; ++c) {
+      int C = K + c * height * width;
+      for (int i = 0; i < height; ++i) {
+        int I = C + i * width;
+        for (int j = 0; j < width; ++j) {
+          float sum = 0.0;
+          for (int l = 0; l < width; ++l) {
+            if (j == l) {
+              sum += xp[I + l] * (1.0 - xp[I + j]);
+            } else {
+              sum += xp[I + l] * xp[I + j] * -1.0;
+            }
           }
+          pp[I + j] = sum;
         }
-        pp[I + j] = sum;
       }
     }
   }
@@ -60,14 +64,15 @@ Tensor softmaxPrime(Tensor x) {
 
 Tensor softmax(Tensor t) {
   int batch = t.getBatch();
+  int channel = t.getChannel();
   int height = t.getHeight();
   int width = t.getWidth();
   float *dp;
   float *rp;
   float *tp;
 
-  Tensor result(batch, height, width);
-  Tensor divisor(batch, height, width);
+  Tensor result(t.getDim());
+  Tensor divisor(t.getDim());
 
   dp = divisor.getData();
   rp = result.getData();
@@ -76,33 +81,35 @@ Tensor softmax(Tensor t) {
   divisor.setZero();
 
   for (int k = 0; k < batch; k++) {
-    int index = k * height * width;
-    float m = std::numeric_limits<float>::lowest();
-    // find max
-    for (int i = 0; i < height; i++) {
-      for (int j = 0; j < width; j++) {
-        if (tp[index + i * width + j] > m)
-          m = tp[index + i * width + j];
+    int index = k * channel * height * width;
+    for (int c = 0; c < channel; c++) {
+      index = index + c * height * width;
+      float m = std::numeric_limits<float>::lowest();
+      // find max
+      for (int i = 0; i < height; i++) {
+        for (int j = 0; j < width; j++) {
+          if (tp[index + i * width + j] > m)
+            m = tp[index + i * width + j];
+        }
       }
-    }
 
-    // shiftx
-    float sum = 0.0;
-    for (int i = 0; i < height; i++) {
-      for (int j = 0; j < width; j++) {
-        dp[index + width * i + j] = exp(tp[index + i * width + j] - m);
-        sum += dp[index + width * i + j];
+      // shiftx
+      float sum = 0.0;
+      for (int i = 0; i < height; i++) {
+        for (int j = 0; j < width; j++) {
+          dp[index + width * i + j] = exp(tp[index + i * width + j] - m);
+          sum += dp[index + width * i + j];
+        }
       }
-    }
 
-    assert(sum > 0);
-    for (int i = 0; i < height; i++) {
-      for (int j = 0; j < width; j++) {
-        rp[index + width * i + j] = dp[index + width * i + j] / sum;
+      assert(sum > 0);
+      for (int i = 0; i < height; i++) {
+        for (int j = 0; j < width; j++) {
+          rp[index + width * i + j] = dp[index + width * i + j] / sum;
+        }
       }
     }
   }
-
   return result;
 }
 

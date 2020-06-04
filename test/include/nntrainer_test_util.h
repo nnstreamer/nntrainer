@@ -96,16 +96,18 @@ const std::string config_str = "[Network]"
                                "Activation = softmax"
                                "\n";
 
-#define GEN_TEST_INPUT(input, eqation_i_j_k) \
-  do {                                       \
-    for (int i = 0; i < batch; ++i) {        \
-      for (int j = 0; j < height; ++j) {     \
-        for (int k = 0; k < width; ++k) {    \
-          float val = eqation_i_j_k;         \
-          input.setValue(i, j, k, val);      \
-        }                                    \
-      }                                      \
-    }                                        \
+#define GEN_TEST_INPUT(input, eqation_i_j_k_l) \
+  do {                                         \
+    for (int i = 0; i < batch; ++i) {          \
+      for (int j = 0; j < channel; ++j) {      \
+        for (int k = 0; k < height; ++k) {     \
+          for (int l = 0; l < width; ++l) {    \
+            float val = eqation_i_j_k_l;       \
+            input.setValue(i, j, k, l, val);   \
+          }                                    \
+        }                                      \
+      }                                        \
+    }                                          \
   } while (0)
 
 #define ASSERT_EXCEPTION(TRY_BLOCK, EXCEPTION_TYPE, MESSAGE)                  \

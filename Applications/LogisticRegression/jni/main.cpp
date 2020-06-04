@@ -141,7 +141,7 @@ int main(int argc, char *argv[]) {
       label.push_back(outputVector[j]);
       if (NN.forwarding(nntrainer::Tensor(in), status)
             .apply(stepFunction)
-            .getValue(0, 0, 0) == label[0][0])
+            .getValue(0, 0, 0, 0) == label[0][0])
         cn++;
     }
     std::cout << "[ Accuracy ] : " << ((float)(cn) / inputVector.size()) * 100.0

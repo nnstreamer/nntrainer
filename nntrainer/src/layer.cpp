@@ -36,27 +36,35 @@ static auto rng = [] {
   return rng;
 }();
 
-template <typename... Args> static void RandNormal(Tensor &w, Args &&... args) {
+template <typename... Args>
+static void RandNormal(unsigned int b_n, Tensor &w, Args &&... args) {
   std::normal_distribution<float> dist(std::forward<Args>(args)...);
+  unsigned int channel = w.getChannel();
   unsigned int width = w.getWidth();
   unsigned int height = w.getHeight();
 
-  for (unsigned int i = 0; i < width; ++i) {
-    for (unsigned int j = 0; j < height; ++j) {
-      w.setValue(0, j, i, dist(rng));
+  for (unsigned int k = 0; k < channel; ++k) {
+    for (unsigned int i = 0; i < width; ++i) {
+      for (unsigned int j = 0; j < height; ++j) {
+        w.setValue(b_n, k, j, i, dist(rng));
+      }
     }
   }
 }
 
 template <typename... Args>
-static void RandUniform(Tensor &w, Args &&... args) {
+static void RandUniform(unsigned int b_n, Tensor &w, Args &&... args) {
   std::uniform_real_distribution<float> dist(std::forward<Args>(args)...);
+
+  unsigned int channel = w.getChannel();
   unsigned int width = w.getWidth();
   unsigned int height = w.getHeight();
 
-  for (unsigned int i = 0; i < width; ++i) {
-    for (unsigned int j = 0; j < height; ++j) {
-      w.setValue(0, j, i, dist(rng));
+  for (unsigned int k = 0; k < channel; ++k) {
+    for (unsigned int i = 0; i < width; ++i) {
+      for (unsigned int j = 0; j < height; ++j) {
+        w.setValue(b_n, k, j, i, dist(rng));
+      }
     }
   }
 }
@@ -104,7 +112,7 @@ int Layer::setOptimizer(Optimizer &opt) {
   this->opt.setType(opt.getType());
   this->opt.setOptParam(opt.getOptParam());
 
-  return this->opt.initialize(dim.height(), dim.width(), true);
+  return this->opt.initialize(dim, true);
 }
 
 int Layer::checkValidation() {
@@ -118,17 +126,18 @@ int Layer::checkValidation() {
     ml_loge("Error: Have to set activation for this layer");
     return ML_ERROR_INVALID_PARAMETER;
   }
-  if (dim.batch() == 0 || dim.width() == 0 || dim.height() == 0) {
+  if (dim.batch() == 0 || dim.width() == 0 || dim.height() == 0 ||
+      dim.channel() == 0) {
     ml_loge("Error: Tensor Dimension must be set before initialization");
     return ML_ERROR_INVALID_PARAMETER;
   }
   return status;
 }
 
-Tensor Layer::initializeWeight(unsigned int width, unsigned int height,
-                               WeightIniType init_type, int &status) {
+Tensor Layer::initializeWeight(TensorDim w_dim, WeightIniType init_type,
+                               int &status) {
 
-  Tensor w = Tensor(height, width);
+  Tensor w = Tensor(w_dim);
 
   if (init_type == WEIGHT_UNKNOWN) {
     ml_logw("Warning: Weight Initalization Type is not set. "
@@ -136,28 +145,32 @@ Tensor Layer::initializeWeight(unsigned int width, unsigned int height,
     init_type = WEIGHT_XAVIER_NORMAL;
   }
 
-  switch (init_type) {
-  case WEIGHT_LECUN_NORMAL:
-    RandNormal(w, 0, sqrt(1.0 / height));
-    break;
-  case WEIGHT_XAVIER_NORMAL:
-    RandNormal(w, 0, sqrt(2.0 / (width + height)));
-    break;
-  case WEIGHT_HE_NORMAL:
-    RandNormal(w, 0, sqrt(2.0 / (height)));
-    break;
-  case WEIGHT_LECUN_UNIFORM:
-    RandUniform(w, -1.0 * sqrt(1.0 / height), sqrt(1.0 / height));
-    break;
-  case WEIGHT_XAVIER_UNIFORM:
-    RandUniform(w, -1.0 * sqrt(6.0 / (height + width)),
-                sqrt(6.0 / (height + width)));
-    break;
-  case WEIGHT_HE_UNIFORM:
-    RandUniform(w, -1.0 * sqrt(6.0 / (height)), sqrt(6.0 / (height)));
-    break;
-  default:
-    break;
+  for (unsigned int i = 0; i < w_dim.batch(); ++i) {
+    switch (init_type) {
+    case WEIGHT_LECUN_NORMAL:
+      RandNormal(i, w, 0, sqrt(1.0 / dim.height()));
+      break;
+    case WEIGHT_XAVIER_NORMAL:
+      RandNormal(i, w, 0, sqrt(2.0 / (dim.width() + dim.height())));
+      break;
+    case WEIGHT_HE_NORMAL:
+      RandNormal(i, w, 0, sqrt(2.0 / (dim.height())));
+      break;
+    case WEIGHT_LECUN_UNIFORM:
+      RandUniform(i, w, -1.0 * sqrt(1.0 / dim.height()),
+                  sqrt(1.0 / dim.height()));
+      break;
+    case WEIGHT_XAVIER_UNIFORM:
+      RandUniform(i, w, -1.0 * sqrt(6.0 / (dim.height() + dim.width())),
+                  sqrt(6.0 / (dim.height() + dim.width())));
+      break;
+    case WEIGHT_HE_UNIFORM:
+      RandUniform(i, w, -1.0 * sqrt(6.0 / (dim.height())),
+                  sqrt(6.0 / (dim.height())));
+      break;
+    default:
+      break;
+    }
   }
   return w;
 }

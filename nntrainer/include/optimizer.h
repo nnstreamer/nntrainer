@@ -132,15 +132,14 @@ public:
 
   /**
    * @brief     initialize optimizer. Initialize Weight if it is adam
-   * @param[in] height height of Weight
-   * @param[in] width width of Weight
+   * @param[in] d TensorDim
    * @param[in] setTensor true if the layer need wieght update.
    *            Input Layer and Batch Noramlization layer won't need it.
    *            Therefore, it sets false.
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int initialize(unsigned int height, unsigned int width, bool setTensor);
+  int initialize(TensorDim d, bool setTensor);
 
   /**
    * @brief     calculate optimizer and Update Weight & Bais

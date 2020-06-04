@@ -28,7 +28,8 @@ int Conv2DLayer::initialize(bool last) {
   return status;
 }
 
-int Conv2DLayer::initialize(int b, int h, int w, bool last, bool init_zero) {
+int Conv2DLayer::initialize(int b, int c, int h, int w, bool last,
+                            bool init_zero) {
   int status = ML_ERROR_NONE;
 
   return status;

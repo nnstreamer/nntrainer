@@ -67,11 +67,20 @@ public:
 
   /**
    * @brief     Constructor of Tensor
-   * @param[in] batch Batch of Tensor
+   * @param[in] channel Channel of Tensor
    * @param[in] heihgt Height of Tensor
    * @param[in] width Width of Tensor
    */
-  Tensor(int batch, int height, int width);
+  Tensor(int channel, int height, int width);
+
+  /**
+   * @brief     Constructor of Tensor
+   * @param[in] batch Batch of Tensor
+   * @param[in] channel Channel of Tensor
+   * @param[in] heihgt Height of Tensor
+   * @param[in] width Width of Tensor
+   */
+  Tensor(int batch, int channel, int height, int width);
 
   /**
    * @brief   Constructor of Tensor
@@ -86,12 +95,20 @@ public:
   Tensor(std::vector<std::vector<std::vector<float>>> const &d);
 
   /**
+   * @brief     Constructor of Tensor
+   * @param[in] d data for the Tensor
+   */
+  Tensor(std::vector<std::vector<std::vector<std::vector<float>>>> const &d);
+
+  /**
    * @brief     return value at specific location
    * @param[in] batch batch location
+   * @param[in] c channel location
    * @param[in] h height location
    * @param[in] w width location
    */
-  float getValue(unsigned int batch, unsigned int h, unsigned int w);
+  float getValue(unsigned int batch, unsigned int c, unsigned int h,
+                 unsigned int w);
 
   /**
    * @brief     Multiply value element by element
@@ -158,9 +175,10 @@ public:
 
   /**
    * @brief     Transpose Tensor
+   * @param[in] direction to transpose ex) 0:2:1
    * @retval    Calculated Tensor
    */
-  Tensor transpose() const;
+  Tensor transpose(std::string direction) const;
 
   /**
    * @brief     sum all the Tensor elements according to the batch
@@ -170,6 +188,10 @@ public:
 
   /**
    * @brief     sum all the Tensor elements according to the axis
+   *            0 : batch direction
+   *            1 : channel direction
+   *            2 : channel direction
+   *            3 : channel direction
    * @retval    Calculated Tensor
    */
   Tensor sum(int axis) const;
@@ -243,6 +265,12 @@ public:
   int getWidth() const { return dim.width(); };
 
   /**
+   * @brief     Get Channel of Tensor
+   * @retval    int Channel
+   */
+  int getChannel() const { return dim.channel(); };
+
+  /**
    * @brief     Get Height of Tensor
    * @retval    int Height
    */
@@ -257,12 +285,13 @@ public:
   /**
    * @brief     Set the elelemnt value
    * @param[in] batch batch location
+   * @param[in] c channel location
    * @param[in] i height location
    * @param[in] j width location
    * @param[in] value value to be stored
    */
-  void setValue(unsigned int batch, unsigned int i, unsigned int j,
-                float value);
+  void setValue(unsigned int batch, unsigned int c, unsigned int i,
+                unsigned int j, float value);
 
   /**
    * @brief     Copy the Tensor
@@ -288,6 +317,12 @@ public:
    * @retval    int argument index
    */
   int argmax();
+
+  /**
+   * @brief     return Tensor Dim
+   * @retval    TensorDim
+   */
+  TensorDim getDim() { return dim; }
 
   /**
    * @brief     return Data pointer of Tensor

@@ -33,22 +33,26 @@ namespace nntrainer {
 
 int BatchNormalizationLayer::initialize(bool last) {
   int status = ML_ERROR_NONE;
-  if (dim.batch() <= 0 || dim.height() <= 0 || dim.width() <= 0) {
+  if (dim.batch() <= 0 || dim.height() <= 0 || dim.width() <= 0 ||
+      dim.channel() <= 0) {
     ml_loge("Error: Dimension must be greater than 0");
     return ML_ERROR_INVALID_PARAMETER;
   }
 
-  this->gamma = Tensor(dim.batch(), dim.width());
-  this->beta = Tensor(dim.batch(), dim.width());
+  this->gamma = Tensor(dim.channel(), dim.batch(), dim.width());
+  this->beta = Tensor(dim.channel(), dim.batch(), dim.width());
+  beta.setZero();
+  gamma.setZero();
 
   return status;
 }
 
-int BatchNormalizationLayer::initialize(int b, int h, int w, bool last,
+int BatchNormalizationLayer::initialize(int b, int c, int h, int w, bool last,
                                         bool init_zero) {
   int status = ML_ERROR_NONE;
 
   this->dim.batch(b);
+  this->dim.channel(c);
   this->dim.width(w);
   this->dim.height(h);
 
@@ -64,7 +68,7 @@ int BatchNormalizationLayer::setOptimizer(Optimizer &opt) {
   this->opt.setOptParam(opt.getOptParam());
 
   this->epsilon = 0.0;
-  return this->opt.initialize(dim.height(), dim.width(), false);
+  return this->opt.initialize(dim, false);
 }
 
 int BatchNormalizationLayer::setProperty(std::vector<std::string> values) {

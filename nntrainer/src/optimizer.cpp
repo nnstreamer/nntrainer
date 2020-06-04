@@ -66,18 +66,21 @@ int Optimizer::setOptParam(OptParam p) {
   return status;
 }
 
-int Optimizer::initialize(unsigned int height, unsigned int width,
-                          bool set_tensor) {
+int Optimizer::initialize(TensorDim d, bool set_tensor) {
   int status = ML_ERROR_NONE;
-  if (height == 0 || width == 0) {
+  if (d.height() == 0 || d.width() == 0 || d.channel() == 0) {
     ml_loge("Error: Tensor Dimension must be greater than 0");
     return ML_ERROR_INVALID_PARAMETER;
   }
   if (type == OptType::adam && set_tensor) {
-    wm = Tensor(height, width);
-    wv = Tensor(height, width);
-    bm = Tensor(1, width);
-    bv = Tensor(1, width);
+    wm = Tensor(d.channel(), d.height(), d.width());
+    wv = Tensor(d.channel(), d.height(), d.width());
+    wm.setZero();
+    wv.setZero();
+    bm = Tensor(1, 1, d.width());
+    bv = Tensor(1, 1, d.width());
+    bm.setZero();
+    bv.setZero();
   }
   return status;
 }
