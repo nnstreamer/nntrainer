@@ -16,6 +16,27 @@ static void _on_win_delete(void *data, Evas_Object *obj, void *event_info) {
   ui_app_exit();
 }
 
+static void _on_back_pressed(void *data, Evas_Object *obj, void *event_info) {
+  appdata_s *ad = data;
+  Elm_Widget_Item *nf_it = elm_naviframe_top_item_get(obj);
+
+  if (!nf_it) {
+    /* app should not reach hear */
+    dlog_print(DLOG_ERROR, LOG_TAG, "naviframe is empty.");
+    ui_app_exit();
+    return;
+  }
+
+  if (nf_it == ad->home) {
+    dlog_print(DLOG_DEBUG, LOG_TAG, "navi empty");
+    elm_win_lower(ad->win);
+    return;
+  }
+
+  dlog_print(DLOG_DEBUG, LOG_TAG, "item popped");
+  elm_naviframe_item_pop(obj);
+}
+
 static void _on_routes_to(void *data, Evas_Object *obj, const char *emission,
                           const char *source);
 
@@ -68,8 +89,7 @@ int view_init(appdata_s *ad) {
   }
 
   elm_object_part_content_set(conform, "elm.swallow.content", nf);
-  eext_object_event_callback_add(nf, EEXT_CALLBACK_BACK, eext_naviframe_back_cb,
-                                 NULL);
+  eext_object_event_callback_add(nf, EEXT_CALLBACK_BACK, _on_back_pressed, ad);
   eext_object_event_callback_add(nf, EEXT_CALLBACK_MORE, eext_naviframe_more_cb,
                                  NULL);
 
@@ -87,8 +107,11 @@ int view_init(appdata_s *ad) {
  * @brief creates layout from edj
  * @param[in] ad app data of the add
  * @param[in] group_name name of the layout to be pushed to main naviframe.
+ * @param[out] data naviframe_item that is pushed.
  */
-int view_routes_to(appdata_s *ad, const char *group_name) {
+int view_routes_to(appdata_s *ad, const char *group_name,
+                   Elm_Object_Item **data) {
+  Elm_Object_Item *nf_it;
   ad->layout =
     _create_layout(ad->naviframe, ad->edj_path, group_name, NULL, NULL);
 
@@ -101,16 +124,20 @@ int view_routes_to(appdata_s *ad, const char *group_name) {
   elm_layout_signal_callback_add(ad->layout, "routes/to", "*", _on_routes_to,
                                  ad);
 
-  if (!elm_naviframe_item_push(ad->naviframe, NULL, NULL, NULL, ad->layout,
-                               "empty"))
+  nf_it = elm_naviframe_item_push(ad->naviframe, NULL, NULL, NULL, ad->layout,
+                              "empty");
+  if (nf_it == NULL)
     return APP_ERROR_INVALID_PARAMETER;
+
+  if(data != NULL)
+    *data = nf_it;
 
   return APP_ERROR_NONE;
 }
 
 static void _on_routes_to(void *data, Evas_Object *obj, const char *emission,
                           const char *source) {
-  view_routes_to((appdata_s *)data, source);
+  view_routes_to((appdata_s *)data, source, NULL);
 }
 /**
  * @brief creates a layout for parent object with EDJ file
