@@ -10,15 +10,15 @@
  * @author      Jijoong Moon <jijoong.moon@samsung.com>
  * @bug         No known bugs
  */
-#include <nntrainer_test_util.h>
-#include <util_func.h>
-#include <input_layer.h>
-#include <fc_layer.h>
 #include <bn_layer.h>
 #include <conv2d_layer.h>
+#include <fc_layer.h>
 #include <fstream>
-#include <optimizer.h>
+#include <input_layer.h>
 #include <nntrainer_error.h>
+#include <nntrainer_test_util.h>
+#include <optimizer.h>
+#include <util_func.h>
 
 /**
  * @brief Input Layer
@@ -26,7 +26,7 @@
 TEST(nntrainer_InputLayer, initialize_01_p) {
   int status = ML_ERROR_NONE;
   nntrainer::InputLayer layer;
-  status = layer.initialize(1, 1, 1, false, true);
+  status = layer.initialize(1, 1, 1, 1, false, true);
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
@@ -36,7 +36,7 @@ TEST(nntrainer_InputLayer, initialize_01_p) {
 TEST(nntrainer_InputLayer, initialize_02_n) {
   int status = ML_ERROR_NONE;
   nntrainer::InputLayer layer;
-  status = layer.initialize(1, 0, 1, false, true);
+  status = layer.initialize(1, 1, 0, 1, false, true);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
@@ -46,7 +46,7 @@ TEST(nntrainer_InputLayer, initialize_02_n) {
 TEST(nntrainer_InputLayer, setOptimizer_01_p) {
   int status = ML_ERROR_NONE;
   nntrainer::InputLayer layer;
-  status = layer.initialize(1, 1, 1, false, true);
+  status = layer.initialize(1, 1, 1, 1, false, true);
   nntrainer::Optimizer op;
   nntrainer::OptType t = nntrainer::OptType::adam;
   nntrainer::OptParam p;
@@ -88,7 +88,7 @@ TEST(nntrainer_InputLayer, setActivation_02_n) {
 TEST(nntrainer_InputLayer, checkValidation_01_p) {
   int status = ML_ERROR_NONE;
   nntrainer::InputLayer layer;
-  layer.initialize(1, 1, 1, false, true);
+  layer.initialize(1, 1, 1, 1, false, true);
   layer.setActivation(nntrainer::ACT_TANH);
 
   status = layer.checkValidation();
@@ -101,7 +101,7 @@ TEST(nntrainer_InputLayer, checkValidation_01_p) {
 TEST(nntrainer_FullyConnectedLayer, initialize_01_p) {
   int status = ML_ERROR_NONE;
   nntrainer::FullyConnectedLayer layer;
-  status = layer.initialize(1, 1, 1, false, true);
+  status = layer.initialize(1, 1, 1, 1, false, true);
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
@@ -111,7 +111,7 @@ TEST(nntrainer_FullyConnectedLayer, initialize_01_p) {
 TEST(nntrainer_FullyConnectedLayer, initialize_02_n) {
   int status = ML_ERROR_NONE;
   nntrainer::FullyConnectedLayer layer;
-  status = layer.initialize(1, 0, 1, false, true);
+  status = layer.initialize(1, 1, 0, 1, false, true);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
@@ -121,7 +121,7 @@ TEST(nntrainer_FullyConnectedLayer, initialize_02_n) {
 TEST(nntrainer_FullyConnectedLayer, initialize_03_n) {
   int status = ML_ERROR_NONE;
   nntrainer::FullyConnectedLayer layer;
-  status = layer.initialize(1, 1, 1, false, true);
+  status = layer.initialize(1, 1, 1, 1, false, true);
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
@@ -131,7 +131,7 @@ TEST(nntrainer_FullyConnectedLayer, initialize_03_n) {
 TEST(nntrainer_FullyConnectedLayer, initialize_04_p) {
   int status = ML_ERROR_NONE;
   nntrainer::FullyConnectedLayer layer;
-  status = layer.initialize(1, 1, 1, true, true);
+  status = layer.initialize(1, 1, 1, 1, true, true);
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
@@ -141,7 +141,7 @@ TEST(nntrainer_FullyConnectedLayer, initialize_04_p) {
 TEST(nntrainer_FullyConnectedLayer, initialize_05_n) {
   int status = ML_ERROR_NONE;
   nntrainer::FullyConnectedLayer layer;
-  status = layer.initialize(1, 0, 1, true, true);
+  status = layer.initialize(1, 1, 0, 1, true, true);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
@@ -151,7 +151,7 @@ TEST(nntrainer_FullyConnectedLayer, initialize_05_n) {
 TEST(nntrainer_FullyConnectedLayer, initialize_06_p) {
   int status = ML_ERROR_NONE;
   nntrainer::FullyConnectedLayer layer;
-  status = layer.initialize(1, 1, 1, true, true);
+  status = layer.initialize(1, 1, 1, 1, true, true);
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
@@ -161,7 +161,7 @@ TEST(nntrainer_FullyConnectedLayer, initialize_06_p) {
 TEST(nntrainer_FullyConnectedLayer, setOptimizer_01_p) {
   int status = ML_ERROR_NONE;
   nntrainer::FullyConnectedLayer layer;
-  status = layer.initialize(1, 1, 1, false, true);
+  status = layer.initialize(1, 1, 1, 1, false, true);
   nntrainer::Optimizer op;
   nntrainer::OptType t = nntrainer::OptType::adam;
   nntrainer::OptParam p;
@@ -183,7 +183,7 @@ TEST(nntrainer_FullyConnectedLayer, setOptimizer_01_p) {
 TEST(nntrainer_FullyConnectedLayer, setOptimizer_02_p) {
   int status = ML_ERROR_NONE;
   nntrainer::FullyConnectedLayer layer;
-  status = layer.initialize(1, 1, 1, true, true);
+  status = layer.initialize(1, 1, 1, 1, true, true);
   nntrainer::Optimizer op;
   nntrainer::OptType t = nntrainer::OptType::adam;
   nntrainer::OptParam p;
@@ -246,7 +246,7 @@ TEST(nntrainer_FullyConnectedLayer, checkValidation_01_p) {
   int status = ML_ERROR_NONE;
   nntrainer::FullyConnectedLayer layer;
 
-  layer.initialize(1, 1, 1, false, true);
+  layer.initialize(1, 1, 1, 1, false, true);
   layer.setActivation(nntrainer::ACT_RELU);
 
   status = layer.checkValidation();
@@ -259,7 +259,7 @@ TEST(nntrainer_FullyConnectedLayer, checkValidation_01_p) {
 TEST(nntrainer_BatchNormalizationLayer, initialize_01_p) {
   int status = ML_ERROR_NONE;
   nntrainer::BatchNormalizationLayer layer;
-  status = layer.initialize(1, 1, 1, false, true);
+  status = layer.initialize(1, 1, 1, 1, false, true);
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
@@ -269,7 +269,7 @@ TEST(nntrainer_BatchNormalizationLayer, initialize_01_p) {
 TEST(nntrainer_BatchNormalizationLayer, initialize_02_n) {
   int status = ML_ERROR_NONE;
   nntrainer::BatchNormalizationLayer layer;
-  status = layer.initialize(1, 0, 1, false, true);
+  status = layer.initialize(1, 1, 0, 1, false, true);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
@@ -279,7 +279,7 @@ TEST(nntrainer_BatchNormalizationLayer, initialize_02_n) {
 TEST(nntrainer_BatchNormalizationLayer, setOptimizer_01_p) {
   int status = ML_ERROR_NONE;
   nntrainer::BatchNormalizationLayer layer;
-  status = layer.initialize(1, 1, 1, 0, true);
+  status = layer.initialize(1, 1, 1, 1, 0, true);
   nntrainer::Optimizer op;
   nntrainer::OptType t = nntrainer::OptType::adam;
   nntrainer::OptParam p;
@@ -321,7 +321,7 @@ TEST(nntrainer_BatchNormalizationLayer, setActivation_02_n) {
 TEST(nntrainer_BatchNormalizationLayer, checkValidation_01_p) {
   int status = ML_ERROR_NONE;
   nntrainer::BatchNormalizationLayer layer;
-  layer.initialize(1, 1, 1, false, true);
+  layer.initialize(1, 1, 1, 1, false, true);
   layer.setActivation(nntrainer::ACT_RELU);
 
   status = layer.checkValidation();
@@ -331,7 +331,7 @@ TEST(nntrainer_BatchNormalizationLayer, checkValidation_01_p) {
 /**
  * @brief Convolution 2D Layer
  */
-TEST(nntrainer_Conv2DLayer, initialize_01_p){
+TEST(nntrainer_Conv2DLayer, initialize_01_p) {
   int status = ML_ERROR_NONE;
   nntrainer::Conv2DLayer layer;
   std::vector<std::string> input_str;

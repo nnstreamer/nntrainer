@@ -39,7 +39,7 @@
  */
 #define NBUFTYPE 4
 
-typedef std::vector<std::vector<std::vector<float>>> vec_3d;
+typedef std::vector<std::vector<std::vector<std::vector<float>>>> vec_4d;
 
 #define SET_VALIDATION(val)                                              \
   do {                                                                   \
@@ -187,10 +187,10 @@ public:
    * @param[in] outLabel label data ( minibatch size )
    * @retval    true/false
    */
-  virtual bool
-  getDataFromBuffer(BufferType type,
-                    std::vector<std::vector<std::vector<float>>> &out_vec,
-                    std::vector<std::vector<std::vector<float>>> &out_label);
+  virtual bool getDataFromBuffer(
+    BufferType type,
+    std::vector<std::vector<std::vector<std::vector<float>>>> &out_vec,
+    std::vector<std::vector<std::vector<std::vector<float>>>> &out_label);
 
   /**
    * @brief     set number of class

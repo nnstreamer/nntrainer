@@ -279,7 +279,7 @@ int NeuralNetwork::init() {
 
       input_layer->setType(t);
       status =
-        input_layer->initialize(batch_size, 1, hidden_size[i], last, b_zero);
+        input_layer->initialize(batch_size, 1, 1, hidden_size[i], last, b_zero);
       NN_INI_RETURN_STATUS();
 
       status = input_layer->setOptimizer(opt);
@@ -314,7 +314,7 @@ int NeuralNetwork::init() {
                             unknown),
         TOKEN_WEIGHTINI));
 
-      status = fc_layer->initialize(batch_size, hidden_size[i - 1],
+      status = fc_layer->initialize(batch_size, 1, hidden_size[i - 1],
                                     hidden_size[i], last, b_zero);
       NN_INI_RETURN_STATUS();
       status = fc_layer->setOptimizer(opt);
@@ -339,7 +339,7 @@ int NeuralNetwork::init() {
       status = bn_layer->setOptimizer(opt);
       NN_INI_RETURN_STATUS();
       status =
-        bn_layer->initialize(batch_size, 1, hidden_size[i], last, b_zero);
+        bn_layer->initialize(batch_size, 1, 1, hidden_size[i], last, b_zero);
       NN_INI_RETURN_STATUS();
       layers.push_back(bn_layer);
       if (i == 0) {
@@ -464,6 +464,7 @@ int NeuralNetwork::init(std::shared_ptr<Optimizer> optimizer,
       last = true;
     switch (layers[i]->getType()) {
     case LAYER_FC:
+      layers[i]->getTensorDim().height(previous_dim.channel());
       layers[i]->getTensorDim().height(previous_dim.width());
       layers[i]->getTensorDim().batch(previous_dim.batch());
       status =
@@ -717,7 +718,7 @@ int NeuralNetwork::train_run() {
     }
 
     while (true) {
-      vec_3d in, label;
+      vec_4d in, label;
       if (data_buffer->getDataFromBuffer(nntrainer::BUF_TRAIN, in, label)) {
         backwarding(nntrainer::Tensor(in), nntrainer::Tensor(label), i);
         count++;
@@ -745,7 +746,7 @@ int NeuralNetwork::train_run() {
       }
 
       while (true) {
-        vec_3d in, label;
+        vec_4d in, label;
         if (data_buffer->getDataFromBuffer(nntrainer::BUF_VAL, in, label)) {
           for (int i = 0; i < batch_size; ++i) {
             nntrainer::Tensor X = nntrainer::Tensor({in[i]});

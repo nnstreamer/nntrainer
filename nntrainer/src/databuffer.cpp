@@ -184,11 +184,12 @@ int DataBuffer::clear() {
   return status;
 }
 
-bool DataBuffer::getDataFromBuffer(BufferType type, vec_3d &outVec,
-                                   vec_3d &outLabel) {
-  unsigned int J, i, j, k;
+bool DataBuffer::getDataFromBuffer(BufferType type, vec_4d &outVec,
+                                   vec_4d &outLabel) {
+  unsigned int J, i, j, k, L, l;
   unsigned int width = input_dim.width();
   unsigned int height = input_dim.height();
+  unsigned int channel = input_dim.channel();
 
   switch (type) {
   case BUF_TRAIN: {
@@ -201,18 +202,22 @@ bool DataBuffer::getDataFromBuffer(BufferType type, vec_3d &outVec,
     }
 
     for (k = 0; k < mini_batch; ++k) {
-      std::vector<std::vector<float>> v_height;
-      for (j = 0; j < height; ++j) {
-        J = j * width;
-        std::vector<float> v_width;
-        for (i = 0; i < width; ++i) {
-          v_width.push_back(train_data[k][J + i]);
+      std::vector<std::vector<std::vector<float>>> v_channel;
+      for (l = 0; l < channel; ++l) {
+        L = l * width * height;
+        std::vector<std::vector<float>> v_height;
+        for (j = 0; j < height; ++j) {
+          J = L + j * width;
+          std::vector<float> v_width;
+          for (i = 0; i < width; ++i) {
+            v_width.push_back(train_data[k][J + i]);
+          }
+          v_height.push_back(v_width);
         }
-        v_height.push_back(v_width);
+        v_channel.push_back(v_height);
       }
-
-      outVec.push_back(v_height);
-      outLabel.push_back({train_data_label[k]});
+      outVec.push_back(v_channel);
+      outLabel.push_back({{train_data_label[k]}});
     }
 
     data_lock.lock();
@@ -232,18 +237,22 @@ bool DataBuffer::getDataFromBuffer(BufferType type, vec_3d &outVec,
     }
 
     for (k = 0; k < mini_batch; ++k) {
-      std::vector<std::vector<float>> v_height;
-      for (j = 0; j < height; ++j) {
-        J = j * width;
-        std::vector<float> v_width;
-        for (i = 0; i < width; ++i) {
-          v_width.push_back(val_data[k][J + i]);
+      std::vector<std::vector<std::vector<float>>> v_channel;
+      for (l = 0; l < channel; ++l) {
+        L = l * width * height;
+        std::vector<std::vector<float>> v_height;
+        for (j = 0; j < height; ++j) {
+          J = L + j * width;
+          std::vector<float> v_width;
+          for (i = 0; i < width; ++i) {
+            v_width.push_back(val_data[k][J + i]);
+          }
+          v_height.push_back(v_width);
         }
-        v_height.push_back(v_width);
+        v_channel.push_back(v_height);
       }
-
-      outVec.push_back(v_height);
-      outLabel.push_back({val_data_label[k]});
+      outVec.push_back(v_channel);
+      outLabel.push_back({{val_data_label[k]}});
     }
 
     data_lock.lock();
@@ -265,18 +274,22 @@ bool DataBuffer::getDataFromBuffer(BufferType type, vec_3d &outVec,
     }
 
     for (k = 0; k < mini_batch; ++k) {
-      std::vector<std::vector<float>> v_height;
-      for (j = 0; j < height; ++j) {
-        J = j * width;
-        std::vector<float> v_width;
-        for (i = 0; i < width; ++i) {
-          v_width.push_back(test_data[k][J + i]);
+      std::vector<std::vector<std::vector<float>>> v_channel;
+      for (l = 0; l < channel; ++l) {
+        L = l * width * height;
+        std::vector<std::vector<float>> v_height;
+        for (j = 0; j < height; ++j) {
+          J = L + j * width;
+          std::vector<float> v_width;
+          for (i = 0; i < width; ++i) {
+            v_width.push_back(test_data[k][J + i]);
+          }
+          v_height.push_back(v_width);
         }
-        v_height.push_back(v_width);
+        v_channel.push_back(v_height);
       }
-
-      outVec.push_back(v_height);
-      outLabel.push_back({test_data_label[k]});
+      outVec.push_back(v_channel);
+      outLabel.push_back({{test_data_label[k]}});
     }
 
     data_lock.lock();

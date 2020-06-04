@@ -32,7 +32,8 @@ namespace nntrainer {
 
 int FullyConnectedLayer::initialize(bool last) {
   int status = ML_ERROR_NONE;
-  if (dim.batch() <= 0 || dim.height() <= 0 || dim.width() <= 0) {
+  if (dim.batch() <= 0 || dim.height() <= 0 || dim.width() <= 0 ||
+      dim.channel() <= 0) {
     ml_loge("Error: Dimension must be greater than 0");
     return ML_ERROR_INVALID_PARAMETER;
   }
@@ -40,7 +41,7 @@ int FullyConnectedLayer::initialize(bool last) {
   this->last_layer = last;
 
   bias = Tensor(1, dim.width());
-  weight = initializeWeight(dim.width(), dim.height(), weight_ini_type, status);
+  weight = initializeWeight(dim, weight_ini_type, status);
   NN_RETURN_STATUS();
 
   if (init_zero) {
@@ -51,11 +52,12 @@ int FullyConnectedLayer::initialize(bool last) {
   return status;
 }
 
-int FullyConnectedLayer::initialize(int b, int h, int w, bool last,
+int FullyConnectedLayer::initialize(int b, int c, int h, int w, bool last,
                                     bool init_zero) {
   int status = ML_ERROR_NONE;
 
   this->dim.batch(b);
+  this->dim.channel(c);
   this->dim.width(w);
   this->dim.height(h);
 
@@ -282,9 +284,9 @@ Tensor FullyConnectedLayer::backwarding(Tensor derivative, int iteration) {
     }
   }
 
-  Tensor ret = djdb.dot(weight.transpose());
+  Tensor ret = djdb.dot(weight.transpose("0:2:1"));
 
-  Tensor djdw = input.transpose().dot(djdb);
+  Tensor djdw = input.transpose("0:2:1").dot(djdb);
 
   opt.calculate(djdw, djdb, weight, bias, iteration, this->init_zero,
                 weight_decay);

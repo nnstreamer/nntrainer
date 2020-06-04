@@ -63,7 +63,13 @@ typedef enum {
  *            3. Convolution 2D Layer type
  *            4. Unknown
  */
- typedef enum { LAYER_IN, LAYER_FC, LAYER_BN, LAYER_CONV2D, LAYER_UNKNOWN } LayerType;
+typedef enum {
+  LAYER_IN,
+  LAYER_FC,
+  LAYER_BN,
+  LAYER_CONV2D,
+  LAYER_UNKNOWN
+} LayerType;
 
 /**
  * @brief     Enumeration of Weight Initialization Type
@@ -130,8 +136,9 @@ public:
 
   /**
    * @brief     Initialize the layer
-   *            - Weight(Height, Width), Bias(1, Width)
+   *            - Weight(Channel, Height, Width), Bias(1, 1, Width)
    * @param[in] b batch
+   * @param[in] c channel
    * @param[in] h Height
    * @param[in] w Width
    * @param[in] last last layer
@@ -139,7 +146,8 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  virtual int initialize(int b, int h, int w, bool last, bool init_zero) = 0;
+  virtual int initialize(int b, int c, int h, int w, bool last,
+                         bool init_zero) = 0;
 
   /**
    * @brief     read layer Weight & Bias data from file
@@ -234,14 +242,13 @@ public:
 
   /**
    * @brief  initialize Weight
-   * @param[in] width width of Tensor
-   * @param[in] height height of Tensor
+   * @param[in] w_dim TensorDim
    * @param[in] init_type Weight Initialization Type
    * @param[out] status Status
    * @retval Tensor Initialized Tensor
    */
-  Tensor initializeWeight(unsigned int width, unsigned int height,
-                          WeightIniType init_type, int &status);
+  Tensor initializeWeight(TensorDim w_dim, WeightIniType init_type,
+                          int &status);
 
 protected:
   /**

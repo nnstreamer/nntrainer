@@ -393,8 +393,8 @@ int main(int argc, char **argv) {
          * @brief     Get Minibatch size of Experience
          */
         std::vector<Experience> in_Exp = getMiniBatch(expQ);
-        std::vector<std::vector<std::vector<float>>> inbatch;
-        std::vector<std::vector<std::vector<float>>> next_inbatch;
+        std::vector<std::vector<std::vector<std::vector<float>>>> inbatch;
+        std::vector<std::vector<std::vector<std::vector<float>>>> next_inbatch;
 
         /**
          * @brief     Generate Lable with next state
@@ -404,11 +404,11 @@ int main(int argc, char **argv) {
           STATE next_state = in_Exp[i].next_state;
           std::vector<float> in(state.observation.begin(),
                                 state.observation.end());
-          inbatch.push_back({in});
+          inbatch.push_back({{in}});
 
           std::vector<float> next_in(next_state.observation.begin(),
                                      next_state.observation.end());
-          next_inbatch.push_back({next_in});
+          next_inbatch.push_back({{next_in}});
         }
 
         /**
@@ -429,12 +429,13 @@ int main(int argc, char **argv) {
          */
         for (unsigned int i = 0; i < in_Exp.size(); i++) {
           if (in_Exp[i].done) {
-            Q.setValue(i, 0, (int)in_Exp[i].action[0], (float)in_Exp[i].reward);
+            Q.setValue(i, 0, 0, (int)in_Exp[i].action[0],
+                       (float)in_Exp[i].reward);
           } else {
             float next = (nqa[i * NQ.getWidth()] > nqa[i * NQ.getWidth() + 1])
                            ? nqa[i * NQ.getWidth()]
                            : nqa[i * NQ.getWidth() + 1];
-            Q.setValue(i, 0, (int)in_Exp[i].action[0],
+            Q.setValue(i, 0, 0, (int)in_Exp[i].action[0],
                        (float)in_Exp[i].reward + DISCOUNT * next);
           }
         }

@@ -42,7 +42,7 @@ public:
   /**
    * @brief     Constructor of Fully Connected Layer
    */
-  FullyConnectedLayer() : loss(0.0), cost(COST_UNKNOWN){ setType (LAYER_FC); };
+  FullyConnectedLayer() : loss(0.0), cost(COST_UNKNOWN) { setType(LAYER_FC); };
 
   /**
    * @brief     Destructor of Fully Connected Layer
@@ -103,6 +103,7 @@ public:
   /**
    * @brief     initialize layer
    * @param[in] b batch size
+   * @param[in] c channel
    * @param[in] h height
    * @param[in] w width
    * @param[in] last last layer
@@ -111,7 +112,7 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int initialize(int b, int h, int w, bool last, bool init_zero);
+  int initialize(int b, int c, int h, int w, bool last, bool init_zero);
   /**
    * @brief     get Loss value
    */
