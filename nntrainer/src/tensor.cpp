@@ -611,19 +611,19 @@ void Tensor::read(std::ifstream &file) {
  * That is the why it has (1, dim.height(), dim.width()) dimension.
  */
 Tensor Tensor::average() const {
+  unsigned int I;
   if (dim.batch() == 1)
     return *this;
 
   Tensor result(1, dim.height(), dim.width());
   for (unsigned int i = 0; i < dim.height(); i++) {
+    I = i * dim.width();
     for (unsigned int j = 0; j < dim.width(); j++) {
-      result.data[i * dim.width() + j] = 0.0;
+      result.data[I + j] = 0.0;
       for (unsigned int k = 0; k < dim.batch(); k++) {
-        result.data[i * dim.width() + j] +=
-          data[k * dim.width() * dim.height() + i * dim.width() + j];
+        result.data[I + j] += data[k * dim.width() * dim.height() + I + j];
       }
-      result.data[i * dim.width() + j] =
-        result.data[i * dim.width() + j] / (float)dim.batch();
+      result.data[I + j] = result.data[I + j] / (float)dim.batch();
     }
   }
   return result;
@@ -647,8 +647,12 @@ int Tensor::argmax() {
 
 float Tensor::l2norm() const {
   float sum = 0.0;
-  for (unsigned int i = 0; i < dim.getDataLen(); i++) {
-    sum += this->data[i] * this->data[i];
+  float tmp;
+  unsigned int len = dim.getDataLen();
+
+  for (unsigned int i = 0; i < len; i++) {
+    tmp = this->data[i];
+    sum += tmp * tmp;
   }
 
   return sqrt(sum);
