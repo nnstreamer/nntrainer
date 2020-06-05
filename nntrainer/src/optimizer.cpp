@@ -76,12 +76,8 @@ int Optimizer::initialize(unsigned int height, unsigned int width,
   if (type == OptType::adam && set_tensor) {
     wm = Tensor(height, width);
     wv = Tensor(height, width);
-    wm.setZero();
-    wv.setZero();
     bm = Tensor(1, width);
     bv = Tensor(1, width);
-    bm.setZero();
-    bv.setZero();
   }
   return status;
 }
@@ -89,6 +85,7 @@ int Optimizer::initialize(unsigned int height, unsigned int width,
 void Optimizer::calculate(Tensor &djdw, Tensor &djdb, Tensor &weight,
                           Tensor &bias, int iteration, bool init_zero,
                           WeightDecayParam weight_decay) {
+  Tensor djdwAvg, djdbAvg;
   if (weight_decay.type == WeightDecayType::l2norm) {
     djdw = djdw.add(weight.multiply(weight_decay.lambda));
   }
@@ -98,25 +95,24 @@ void Optimizer::calculate(Tensor &djdw, Tensor &djdb, Tensor &weight,
     ll = ll * pow(popt.decay_rate, (iteration / popt.decay_steps));
   }
 
+  djdwAvg = djdw.average();
+  djdbAvg = djdb.average();
+
   switch (type) {
   case OptType::sgd:
-    weight = weight.subtract(djdw.average().multiply(ll));
+    weight = weight.subtract(djdwAvg.multiply(ll));
     break;
   case OptType::adam:
-    wm = wm.multiply(popt.beta1).add(djdw.average().multiply(1 - popt.beta1));
-    wv =
-      wv.multiply(popt.beta2)
-        .add(
-          (djdw.average().multiply(djdw.average())).multiply(1 - popt.beta2));
+    wm = wm.multiply(popt.beta1).add(djdwAvg.multiply(1 - popt.beta1));
+    wv = wv.multiply(popt.beta2)
+           .add((djdwAvg.multiply(djdwAvg)).multiply(1 - popt.beta2));
     wm.divide(1 - pow(popt.beta1, iteration + 1));
     wv.divide(1 - pow(popt.beta2, iteration + 1));
     weight = weight.subtract(
       (wm.divide(wv.apply(sqrtFloat).add(popt.epsilon))).multiply(ll));
-    bm = bm.multiply(popt.beta1).add(djdb.average().multiply(1 - popt.beta1));
-    bv =
-      bv.multiply(popt.beta2)
-        .add(
-          (djdb.average().multiply(djdb.average())).multiply(1 - popt.beta2));
+    bm = bm.multiply(popt.beta1).add(djdbAvg.multiply(1 - popt.beta1));
+    bv = bv.multiply(popt.beta2)
+           .add((djdbAvg.multiply(djdbAvg)).multiply(1 - popt.beta2));
     bm.divide(1 - pow(popt.beta1, iteration + 1));
     bv.divide(1 - pow(popt.beta2, iteration + 1));
     bias = bias.subtract(
@@ -127,7 +123,7 @@ void Optimizer::calculate(Tensor &djdw, Tensor &djdb, Tensor &weight,
   }
 
   if (init_zero) {
-    bias = bias.subtract(djdb.average().multiply(ll));
+    bias = bias.subtract(djdbAvg.multiply(ll));
   }
 }
 
@@ -157,7 +153,6 @@ int Optimizer::setProperty(std::vector<std::string> values) {
     case PropertyType::beta1:
       status = setDouble(popt.beta1, value);
       NN_RETURN_STATUS();
-
       break;
     case PropertyType::beta2:
       status = setDouble(popt.beta2, value);

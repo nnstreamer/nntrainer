@@ -40,8 +40,6 @@ int BatchNormalizationLayer::initialize(bool last) {
 
   this->gamma = Tensor(dim.batch(), dim.width());
   this->beta = Tensor(dim.batch(), dim.width());
-  beta.setZero();
-  gamma.setZero();
 
   return status;
 }
