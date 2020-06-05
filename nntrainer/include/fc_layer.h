@@ -126,6 +126,8 @@ public:
    */
   int setCost(CostType c);
 
+  void setUnit(unsigned int u) { unit = u; };
+
   /**
    * @brief     set Property of layer
    * @param[in] values values of property
@@ -158,7 +160,7 @@ private:
    * @param[in] l Tensor data to calculate
    */
   void updateLoss(Tensor l);
-
+  unsigned int unit;
   Tensor weight;
   Tensor bias;
   float loss;

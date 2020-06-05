@@ -32,17 +32,23 @@ namespace nntrainer {
 
 int FullyConnectedLayer::initialize(bool last) {
   int status = ML_ERROR_NONE;
-  if (dim.batch() <= 0 || dim.height() <= 0 || dim.width() <= 0 ||
-      dim.channel() <= 0) {
+  if (input_dim.batch() <= 0 || input_dim.height() <= 0 ||
+      input_dim.width() <= 0 || input_dim.channel() <= 0) {
     ml_loge("Error: Dimension must be greater than 0");
     return ML_ERROR_INVALID_PARAMETER;
   }
 
   this->last_layer = last;
 
-  bias = Tensor(1, dim.width());
+  bias = Tensor(1, unit);
+  dim = input_dim;
+  dim.width(unit);
+  dim.height(input_dim.width());
   weight = initializeWeight(dim, weight_ini_type, status);
   NN_RETURN_STATUS();
+
+  output_dim.batch(input_dim.batch());
+  output_dim.width(unit);
 
   if (init_zero) {
     bias.setZero();
@@ -56,10 +62,10 @@ int FullyConnectedLayer::initialize(int b, int c, int h, int w, bool last,
                                     bool init_zero) {
   int status = ML_ERROR_NONE;
 
-  this->dim.batch(b);
-  this->dim.channel(c);
-  this->dim.width(w);
-  this->dim.height(h);
+  this->input_dim.batch(b);
+  this->input_dim.channel(c);
+  this->input_dim.width(w);
+  this->input_dim.height(h);
 
   this->init_zero = init_zero;
 
@@ -95,7 +101,8 @@ int FullyConnectedLayer::setProperty(std::vector<std::string> values) {
       int width;
       status = setInt(width, value);
       NN_RETURN_STATUS();
-      dim.width(width);
+      unit = width;
+      output_dim.width(unit);
     } break;
     case PropertyType::bias_zero: {
       status = setBoolean(init_zero, value);
@@ -220,6 +227,9 @@ void FullyConnectedLayer::copy(std::shared_ptr<Layer> l) {
   this->opt = from->opt;
   this->last_layer = from->last_layer;
   this->dim = from->dim;
+  this->unit = from->unit;
+  this->input_dim = from->input_dim;
+  this->output_dim = from->output_dim;
   this->input.copy(from->input);
   this->hidden.copy(from->hidden);
   this->weight.copy(from->weight);

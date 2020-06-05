@@ -235,6 +235,12 @@ public:
   void setLast(bool last) { last_layer = last; }
 
   /**
+   * @brief  set bias initialize with zero
+   * @param[in] zero true/false
+   */
+  void setBiasZero(bool zero) { init_zero = zero; }
+
+  /**
    * @brief  set Weight Initialization Type
    * @param[in] wini WeightIniType
    */
@@ -249,6 +255,12 @@ public:
    */
   Tensor initializeWeight(TensorDim w_dim, WeightIniType init_type,
                           int &status);
+
+  void setInputDimension(TensorDim d) { input_dim = d; }
+
+  TensorDim getOutputDimension() { return output_dim; }
+
+  TensorDim getInputDimension() { return input_dim; }
 
 protected:
   /**
@@ -271,6 +283,16 @@ protected:
    * @brief     Dimension of this layer
    */
   TensorDim dim;
+
+  /**
+   * @brief     Dimension of input activation
+   */
+  TensorDim input_dim;
+
+  /**
+   * @brief     Dimension of output activation
+   */
+  TensorDim output_dim;
 
   /**
    * @brief     Optimizer for this layer

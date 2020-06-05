@@ -111,7 +111,8 @@ TEST(nntrainer_capi_nnmodel, compile_03_n) {
   int status = ML_ERROR_NONE;
   std::string config_file = "./test_compile_03_n.ini";
   RESET_CONFIG(config_file.c_str());
-  replaceString("HiddenSize = 62720", "HiddenSize=0", config_file);
+  replaceString("Input_Shape = 32:1:1:62720", "Input_Shape= 32:1:1:0",
+                config_file);
   status = ml_nnmodel_construct_with_conf(config_file.c_str(), &handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
   status = ml_nnmodel_compile_with_conf(handle);
@@ -128,7 +129,8 @@ TEST(nntrainer_capi_nnmodel, train_01_p) {
   int status = ML_ERROR_NONE;
   std::string config_file = "./test_train_01_p.ini";
   RESET_CONFIG(config_file.c_str());
-  replaceString("HiddenSize = 62720", "HiddenSize=62720", config_file);
+  replaceString("Input_Shape = 32:1:1:62720", "Input_Shape=32:1:1:62720",
+                config_file);
   replaceString("minibatch = 32", "minibatch = 16", config_file);
   replaceString("BufferSize=100", "", config_file);
   status = ml_nnmodel_construct_with_conf(config_file.c_str(), &handle);
