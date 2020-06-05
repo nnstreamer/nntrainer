@@ -161,6 +161,7 @@ TEST(nntrainer_FullyConnectedLayer, initialize_06_p) {
 TEST(nntrainer_FullyConnectedLayer, setOptimizer_01_p) {
   int status = ML_ERROR_NONE;
   nntrainer::FullyConnectedLayer layer;
+  layer.setUnit(1);
   status = layer.initialize(1, 1, 1, 1, false, true);
   nntrainer::Optimizer op;
   nntrainer::OptType t = nntrainer::OptType::adam;
@@ -183,6 +184,7 @@ TEST(nntrainer_FullyConnectedLayer, setOptimizer_01_p) {
 TEST(nntrainer_FullyConnectedLayer, setOptimizer_02_p) {
   int status = ML_ERROR_NONE;
   nntrainer::FullyConnectedLayer layer;
+  layer.setUnit(1);
   status = layer.initialize(1, 1, 1, 1, true, true);
   nntrainer::Optimizer op;
   nntrainer::OptType t = nntrainer::OptType::adam;
@@ -245,7 +247,7 @@ TEST(nntrainer_FullyConnectedLayer, setCost_02_n) {
 TEST(nntrainer_FullyConnectedLayer, checkValidation_01_p) {
   int status = ML_ERROR_NONE;
   nntrainer::FullyConnectedLayer layer;
-
+  layer.setUnit(1);
   layer.initialize(1, 1, 1, 1, false, true);
   layer.setActivation(nntrainer::ACT_RELU);
 

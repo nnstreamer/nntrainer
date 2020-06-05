@@ -103,7 +103,8 @@ TEST(nntrainer_NeuralNetwork, init_03_n) {
 TEST(nntrainer_NeuralNetwork, init_04_n) {
   int status = ML_ERROR_NONE;
   RESET_CONFIG("./test.ini");
-  replaceString("HiddenSize = 62720", "HiddenSize = 0", "./test.ini");
+  replaceString("Input_Shape = 32:1:1:62720", "Input_Shape = 32:1:1:0",
+                "./test.ini");
   nntrainer::NeuralNetwork NN;
   status = NN.setConfig("./test.ini");
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -117,7 +118,7 @@ TEST(nntrainer_NeuralNetwork, init_04_n) {
 TEST(nntrainer_NeuralNetwork, init_05_n) {
   int status = ML_ERROR_NONE;
   RESET_CONFIG("./test.ini");
-  replaceString("HiddenSize = 62720", "", "./test.ini");
+  replaceString("Input_Shape = 32:1:1:62720", "", "./test.ini");
   nntrainer::NeuralNetwork NN;
   status = NN.setConfig("./test.ini");
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -174,20 +175,6 @@ TEST(nntrainer_NeuralNetwork, init_08_n) {
 TEST(nntrainer_NeuralNetwork, init_09_n) {
   int status = ML_ERROR_NONE;
   RESET_CONFIG("./test.ini");
-  replaceString("HiddenSize = 10", "HiddenSize = 9", "./test.ini");
-  nntrainer::NeuralNetwork NN;
-  status = NN.setConfig("./test.ini");
-  EXPECT_EQ(status, ML_ERROR_NONE);
-  status = NN.init();
-  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
-}
-
-/**
- * @brief Neural Network Model initialization
- */
-TEST(nntrainer_NeuralNetwork, init_10_n) {
-  int status = ML_ERROR_NONE;
-  RESET_CONFIG("./test.ini");
   replaceString("LabelData = label.dat", "", "./test.ini");
   nntrainer::NeuralNetwork NN;
   status = NN.setConfig("./test.ini");
@@ -199,7 +186,7 @@ TEST(nntrainer_NeuralNetwork, init_10_n) {
 /**
  * @brief Neural Network Model initialization
  */
-TEST(nntrainer_NeuralNetwork, init_011_p) {
+TEST(nntrainer_NeuralNetwork, init_10_p) {
   int status = ML_ERROR_NONE;
   std::string config_file = "./test.ini";
   RESET_CONFIG(config_file.c_str());

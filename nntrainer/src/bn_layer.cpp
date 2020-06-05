@@ -33,11 +33,14 @@ namespace nntrainer {
 
 int BatchNormalizationLayer::initialize(bool last) {
   int status = ML_ERROR_NONE;
-  if (dim.batch() <= 0 || dim.height() <= 0 || dim.width() <= 0 ||
-      dim.channel() <= 0) {
+  if (input_dim.batch() <= 0 || input_dim.height() <= 0 ||
+      input_dim.width() <= 0 || input_dim.channel() <= 0) {
     ml_loge("Error: Dimension must be greater than 0");
     return ML_ERROR_INVALID_PARAMETER;
   }
+
+  dim = input_dim;
+  output_dim = dim;
 
   this->gamma = Tensor(dim.channel(), dim.batch(), dim.width());
   this->beta = Tensor(dim.channel(), dim.batch(), dim.width());
@@ -51,10 +54,10 @@ int BatchNormalizationLayer::initialize(int b, int c, int h, int w, bool last,
                                         bool init_zero) {
   int status = ML_ERROR_NONE;
 
-  this->dim.batch(b);
-  this->dim.channel(c);
-  this->dim.width(w);
-  this->dim.height(h);
+  this->input_dim.batch(b);
+  this->input_dim.channel(c);
+  this->input_dim.width(w);
+  this->input_dim.height(h);
 
   this->init_zero = init_zero;
 
@@ -178,6 +181,8 @@ void BatchNormalizationLayer::copy(std::shared_ptr<Layer> l) {
   this->opt = from->opt;
   this->last_layer = from->last_layer;
   this->dim = from->dim;
+  this->input_dim = from->input_dim;
+  this->output_dim = from->output_dim;
   this->input.copy(from->input);
   this->hidden.copy(from->hidden);
   this->weight.copy(from->weight);
