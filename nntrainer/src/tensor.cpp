@@ -285,20 +285,17 @@ Tensor Tensor::subtract(Tensor const &m) const {
   return result;
 }
 
+int Tensor::subtract_i(float const &value) {
+  return this->add_i(-value);
+}
+
 Tensor Tensor::subtract(float const &value) {
   Tensor result(dim);
-#ifdef USE_BLAS
-  cblas_scopy(dim.getDataLen(), this->data.data(), 1, result.data.data(), 1);
-  Tensor tmp(dim);
-  for (unsigned int i = 0; i < tmp.dim.getDataLen(); ++i)
-    tmp.data[i] = -1.0;
-  cblas_saxpy(dim.getDataLen(), value, tmp.data.data(), 1, result.data.data(),
-              1);
-#else
-  for (unsigned int k = 0; k < dim.getDataLen(); ++k) {
-    result.data[k] = data[k] - value;
+
+  result.copy(*this);
+  if (result.subtract_i(value) != ML_ERROR_NONE){
+    throw std::runtime_error("Error: there was an error on subtraction");
   }
-#endif
 
   return result;
 }
