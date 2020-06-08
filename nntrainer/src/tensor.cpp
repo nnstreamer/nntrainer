@@ -181,23 +181,26 @@ Tensor Tensor::add(float const &value) {
   return result;
 }
 
-Tensor Tensor::add(Tensor const &m) const {
+/**
+ * @brief Add Tensor Element by Element without mem copy
+ * @param[in] m Tensor to be added
+ * #retval #ML_ERROR_NONE  Successful
+ * #retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter
+ */
+int Tensor::add_i(Tensor const &m) {
   if ((dim.height() != m.dim.height()) || (dim.width() != m.dim.width())) {
-    throw std::runtime_error("Error: Dimension must be equal each other");
+    return ML_ERROR_INVALID_PARAMETER;
   }
 
-  Tensor result(dim);
 #ifdef USE_BLAS
-  cblas_scopy(dim.getDataLen(), this->data.data(), 1, result.data.data(), 1);
-  unsigned int size = dim.channel() * dim.width() * dim.height();
-
+  unsigned int size = dim.width() * dim.height() * dim.channel();
   if (m.dim.batch() == 1) {
     for (unsigned int k = 0; k < dim.batch(); ++k) {
-      cblas_saxpy(size, 1.0, m.data.data(), 1, &(result.data.data()[k * size]),
+      cblas_saxpy(size, 1.0, m.data.data(), 1, &(this->data.data()[k * size]),
                   1);
     }
   } else {
-    cblas_saxpy(dim.getDataLen(), 1.0, m.data.data(), 1, result.data.data(), 1);
+    cblas_saxpy(dim.getDataLen(), 1.0, m.data.data(), 1, this->data.data(), 1);
   }
 #else
   unsigned int i, j, k;
@@ -205,15 +208,27 @@ Tensor Tensor::add(Tensor const &m) const {
     for (k = 0; k < dim.batch(); ++k) {
       for (i = 0; i < m.dim.getFeatureLen(); ++i) {
         j = k * m.dim.getFeatureLen();
-        result.data[j + i] = data[j + i] + m.data[i];
+        this->data[j + i] += m.data[i];
       }
     }
   } else {
     for (k = 0; k < dim.getDataLen(); ++k) {
-      result.data[k] = data[k] + m.data[k];
+      this->data[k] = this->data[k] + m.data[k];
     }
   }
 #endif
+
+  return ML_ERROR_NONE;
+}
+
+Tensor Tensor::add(Tensor const &m) const {
+  if ((dim.height() != m.dim.height()) || (dim.width() != m.dim.width())) {
+    throw std::runtime_error("Error: Dimension must be equal each other");
+  }
+
+  Tensor result(dim);
+  result.copy(*this);
+  result.add_i(m);
 
   return result;
 }
@@ -698,6 +713,9 @@ Tensor &Tensor::copy(const Tensor &from) {
     dim.height(from.dim.height());
     dim.width(from.dim.width());
     dim.batch(from.dim.batch());
+    if (this->data.empty()) {
+      this->data.resize(from.data.size());
+    }
 #ifdef USE_BLAS
     cblas_scopy(dim.getDataLen(), from.data.data(), 1, this->data.data(), 1);
 #else
