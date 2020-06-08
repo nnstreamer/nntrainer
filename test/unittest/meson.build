@@ -51,3 +51,12 @@ unittest_databuffer_file = executable('unittest_databuffer_file',
   install_dir: application_install_dir
 )
 test('unittest_databuffer_file', unittest_databuffer_file)
+
+unittest_nntrainer_lazy_tensor = executable('unittest_nntrainer_lazy_tensor',
+  ['../nntrainer_test_util.cpp', 'unittest_nntrainer_lazy_tensor.cpp'],
+  dependencies: [unittest_nntrainer_deps],
+  include_directories: nntrainer_test_inc,
+  install: get_option('enable-test'),
+  install_dir: application_install_dir
+)
+test('unittest_nntrainer_lazy_tensor', unittest_nntrainer_lazy_tensor)

@@ -30,6 +30,8 @@
 #include <stdio.h>
 #include <tensor.h>
 
+#include <lazy_tensor.h>
+
 #ifdef USE_CUBLAS
 #include <helper_cuda.h>
 #include <helper_functions.h>
@@ -163,20 +165,26 @@ Tensor Tensor::divide(float const &value) {
   return result;
 }
 
-Tensor Tensor::add(float const &value) {
-  Tensor result(dim);
+int Tensor::add_i(float const &value) {
 #ifdef USE_BLAS
-  cblas_scopy(dim.getDataLen(), this->data.data(), 1, result.data.data(), 1);
   Tensor tmp(dim);
   for (unsigned int i = 0; i < tmp.dim.getDataLen(); ++i)
     tmp.data[i] = 1.0;
-  cblas_saxpy(dim.getDataLen(), value, tmp.data.data(), 1, result.data.data(),
-              1);
+  cblas_saxpy(dim.getDataLen(), value, tmp.data.data(), 1, this->data.data(), 1);
 #else
   for (unsigned int k = 0; k < dim.getDataLen(); ++k) {
-    result.data[k] = data[k] + value;
+    this->data[k] = this->data[k] + value;
   }
 #endif
+
+  return ML_ERROR_NONE;
+}
+
+Tensor Tensor::add(float const &value) {
+  Tensor result(dim);
+
+  result.copy(*this);
+  result.add_i(value);
 
   return result;
 }
@@ -829,6 +837,10 @@ Tensor Tensor::normalization() const {
     }
   }
   return results;
+}
+
+LazyTensor Tensor::chain() const{
+  return LazyTensor(*this);
 }
 
 Tensor Tensor::standardization() const {

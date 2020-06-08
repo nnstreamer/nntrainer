@@ -28,7 +28,8 @@ nntrainer_sources = [
   'src/util_func.cpp',
   'src/parse_util.cpp',
   'src/tensor_dim.cpp',
-  'src/conv2d_layer.cpp'
+  'src/conv2d_layer.cpp',
+  'src/lazy_tensor.cpp'
 ]
 
 nntrainer_headers = [
@@ -47,7 +48,8 @@ nntrainer_headers = [
   'include/util_func.h',
   'include/parse_util.h',
   'include/tensor_dim.h',
-  'include/conv2d_layer.h'
+  'include/conv2d_layer.h',
+  'include/lazy_tensor.h'
 ]
 
 
