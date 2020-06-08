@@ -64,7 +64,7 @@ TEST(nntrainer_capi_nnmodel, construct_destruct_04_p) {
   std::string config_file = "./test_construct_destruct_04_p.ini";
   RESET_CONFIG(config_file.c_str());
   replaceString("Layers = inputlayer outputlayer",
-                "Layers = inputlayer outputlayer", config_file);
+                "Layers = inputlayer outputlayer", config_file, config_str);
   status = ml_nnmodel_construct_with_conf(config_file.c_str(), &handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
   status = ml_nnmodel_destruct(handle);
@@ -80,7 +80,7 @@ TEST(nntrainer_capi_nnmodel, compile_01_p) {
   std::string config_file = "./test_compile_01_p.ini";
   RESET_CONFIG(config_file.c_str());
   replaceString("Layers = inputlayer outputlayer",
-                "Layers = inputlayer outputlayer", config_file);
+                "Layers = inputlayer outputlayer", config_file, config_str);
   status = ml_nnmodel_construct_with_conf(config_file.c_str(), &handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
   status = ml_nnmodel_compile_with_conf(handle);
@@ -112,7 +112,7 @@ TEST(nntrainer_capi_nnmodel, compile_03_n) {
   std::string config_file = "./test_compile_03_n.ini";
   RESET_CONFIG(config_file.c_str());
   replaceString("Input_Shape = 32:1:1:62720", "Input_Shape= 32:1:1:0",
-                config_file);
+                config_file, config_str);
   status = ml_nnmodel_construct_with_conf(config_file.c_str(), &handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
   status = ml_nnmodel_compile_with_conf(handle);
@@ -130,9 +130,9 @@ TEST(nntrainer_capi_nnmodel, train_01_p) {
   std::string config_file = "./test_train_01_p.ini";
   RESET_CONFIG(config_file.c_str());
   replaceString("Input_Shape = 32:1:1:62720", "Input_Shape=32:1:1:62720",
-                config_file);
-  replaceString("minibatch = 32", "minibatch = 16", config_file);
-  replaceString("BufferSize=100", "", config_file);
+                config_file, config_str);
+  replaceString("minibatch = 32", "minibatch = 16", config_file, config_str);
+  replaceString("BufferSize=100", "", config_file, config_str);
   status = ml_nnmodel_construct_with_conf(config_file.c_str(), &handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
   status = ml_nnmodel_compile_with_conf(handle);

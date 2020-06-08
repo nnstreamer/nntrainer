@@ -43,6 +43,8 @@
     }                              \
   } while (0)
 
+#define CONV2D_DIM 2
+
 namespace nntrainer {
 
 /**
@@ -251,9 +253,6 @@ int NeuralNetwork::init() {
       NN_INI_RETURN_STATUS();
       input_layer->setBiasZero(b_zero);
 
-      status = input_layer->setOptimizer(opt);
-      NN_INI_RETURN_STATUS();
-
       input_layer->setNormalization(iniparser_getboolean(
         ini, (layers_name[i] + ":Normalization").c_str(), false));
       input_layer->setStandardization(iniparser_getboolean(
@@ -264,6 +263,76 @@ int NeuralNetwork::init() {
         TOKEN_ACTI));
       NN_INI_RETURN_STATUS();
       layers.push_back(input_layer);
+    } break;
+    case LAYER_CONV2D: {
+      int size[CONV2D_DIM];
+      WeightDecayParam weight_decay;
+      std::shared_ptr<Conv2DLayer> conv2d_layer =
+        std::make_shared<Conv2DLayer>();
+
+      std::string previous_input_string = iniparser_getstring(
+        ini, (layers_name[i] + ":Input_Shape").c_str(), unknown);
+
+      if (previous_input_string.compare("Unknown") != 0) {
+        TensorDim d;
+        d.setTensorDim(previous_input_string);
+        previous_dim = d;
+      }
+
+      conv2d_layer->setInputDimension(previous_dim);
+      NN_INI_RETURN_STATUS();
+
+      conv2d_layer->setBiasZero(b_zero);
+      status = conv2d_layer->setActivation((ActiType)parseType(
+        iniparser_getstring(ini, (layers_name[i] + ":Activation").c_str(),
+                            unknown),
+        TOKEN_ACTI));
+      NN_INI_RETURN_STATUS();
+      conv2d_layer->setWeightInit((WeightIniType)parseType(
+        iniparser_getstring(ini, (layers_name[i] + ":WeightIni").c_str(),
+                            unknown),
+        TOKEN_WEIGHTINI));
+
+      status = setWeightDecay(ini, layers_name[i], weight_decay);
+      NN_INI_RETURN_STATUS();
+
+      conv2d_layer->setWeightDecay(weight_decay);
+
+      status =
+        getValues(CONV2D_DIM,
+                  iniparser_getstring(
+                    ini, (layers_name[i] + ":kernel_size").c_str(), unknown),
+                  (int *)size);
+      NN_INI_RETURN_STATUS();
+      status = conv2d_layer->setSize(
+        size, nntrainer::Conv2DLayer::PropertyType::kernel_size);
+      NN_INI_RETURN_STATUS();
+
+      status = getValues(
+        CONV2D_DIM,
+        iniparser_getstring(ini, (layers_name[i] + ":stride").c_str(), unknown),
+        (int *)size);
+      NN_INI_RETURN_STATUS();
+      status = conv2d_layer->setSize(
+        size, nntrainer::Conv2DLayer::PropertyType::stride);
+      NN_INI_RETURN_STATUS();
+
+      status = getValues(CONV2D_DIM,
+                         iniparser_getstring(
+                           ini, (layers_name[i] + ":padding").c_str(), unknown),
+                         (int *)size);
+      NN_INI_RETURN_STATUS();
+      status = conv2d_layer->setSize(
+        size, nntrainer::Conv2DLayer::PropertyType::padding);
+      NN_INI_RETURN_STATUS();
+
+      status = conv2d_layer->setFilter(
+        iniparser_getint(ini, (layers_name[i] + ":filter").c_str(), 0));
+      NN_INI_RETURN_STATUS();
+
+      status = conv2d_layer->initialize(last);
+      NN_INI_RETURN_STATUS();
+      layers.push_back(conv2d_layer);
     } break;
     case LAYER_FC: {
       WeightDecayParam weight_decay;
@@ -434,21 +503,29 @@ int NeuralNetwork::init(std::shared_ptr<Optimizer> optimizer,
                         std::vector<std::string> arg_list) {
   int status = ML_ERROR_NONE;
   bool last = false;
+  TensorDim previous_dim;
   opt = *optimizer.get();
   status = setProperty(arg_list);
   NN_RETURN_STATUS();
 
   loss = 10000.0;
 
-  layers[0]->initialize(last);
-  TensorDim previous_dim = layers[0]->getOutputDimension();
-  status = layers[0]->setOptimizer(opt);
-  NN_RETURN_STATUS();
-
-  for (unsigned int i = 1; i < layers.size(); ++i) {
+  for (unsigned int i = 0; i < layers.size(); ++i) {
     if (i == layers.size() - 1)
       last = true;
     switch (layers[i]->getType()) {
+    case LAYER_IN:
+      layers[0]->initialize(last);
+      previous_dim = layers[0]->getOutputDimension();
+      NN_RETURN_STATUS();
+      break;
+    case LAYER_CONV2D:
+      if (i != 0) {
+        layers[i]->setInputDimension(previous_dim);
+      }
+      status = layers[i]->initialize(last);
+      NN_RETURN_STATUS();
+      break;
     case LAYER_FC:
       layers[i]->setInputDimension(previous_dim);
       status =

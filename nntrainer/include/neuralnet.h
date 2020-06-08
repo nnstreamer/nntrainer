@@ -24,13 +24,14 @@
 #define __NEURALNET_H__
 #ifdef __cplusplus
 
+#include <bn_layer.h>
+#include <conv2d_layer.h>
 #include <databuffer.h>
+#include <fc_layer.h>
 #include <fstream>
+#include <input_layer.h>
 #include <iostream>
 #include <layer.h>
-#include <input_layer.h>
-#include <fc_layer.h>
-#include <bn_layer.h>
 #include <optimizer.h>
 #include <tensor.h>
 #include <vector>
@@ -117,7 +118,7 @@ public:
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
   int init(std::shared_ptr<Optimizer> optimizer,
-              std::vector<std::string> arg_list);
+           std::vector<std::string> arg_list);
 
   /**
    * @brief     forward propagation
@@ -231,7 +232,7 @@ public:
             std::function<bool(float *, float *, int *)> function_val,
             std::function<bool(float *, float *, int *)> function_test,
             std::vector<std::string> values);
-  
+
   /**
    * @brief     check neural network whether the hyper-parameters are set.
    * @retval #ML_ERROR_NONE Successful.
@@ -328,7 +329,7 @@ private:
   /**
    * @brief     Data Buffer to get Input
    */
-  std::shared_ptr<DataBuffer>data_buffer;
+  std::shared_ptr<DataBuffer> data_buffer;
 };
 
 } /* namespace nntrainer */
