@@ -143,8 +143,8 @@ public:
   /**
    * @brief Add Tensor Element immediately to target tensor without mem copy
    * @param[in] value value to be added
-   * #retval #ML_ERROR_NONE  Successful
-   * #retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter
+   * @retval #ML_ERROR_NONE  Successful
+   * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter
    */
   int add_i(float const &value);
 
@@ -157,14 +157,22 @@ public:
 
   /**
    * @brief     Substract Tensor Element by Element
-   * @param[in] m Tensor to be added
+   * @param[in] m Tensor to be subtracted
    * @retval    Calculated Tensor
    */
   Tensor subtract(Tensor const &m) const;
 
   /**
+   * @brief     memcpyless version of subtract
+   * @param[in] value value to subtract
+   * @retval #ML_ERROR_NONE  Successful
+   * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter
+   */
+  int subtract_i(float const &value);
+
+  /**
    * @brief     subtract value Element by Element
-   * @param[in] value value to be added
+   * @param[in] value value to be subtracted
    * @retval    Calculated Tensor
    */
   Tensor subtract(float const &value);

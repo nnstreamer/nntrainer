@@ -213,7 +213,7 @@ TEST(nntrainer_Tensor, add_i_01_p) {
   ASSERT_NE(nullptr, data);
 
   for (int i = 0; i < batch * height * width; ++i) {
-    EXPECT_FLOAT_EQ(data[i], previous[i] + 2.1);
+    EXPECT_FLOAT_EQ(data[i], previous[i] + (float)2.1);
   }
 }
 
@@ -280,7 +280,7 @@ TEST(nntrainer_Tensor, add_01_p) {
   ASSERT_NE(nullptr, indata);
 
   for (int i = 0; i < batch * height * width; ++i) {
-    if (data[i] != indata[i] + 1.0) {
+    if (data[i] != indata[i] + (float)1.0) {
       status = ML_ERROR_RESULT_OUT_OF_RANGE;
       break;
     }
@@ -329,6 +329,32 @@ TEST(nntrainer_Tensor, add_03_n) {
 
   ASSERT_EXCEPTION({ input.add(test); }, std::runtime_error,
                    "Error: Dimension must be equal each other");
+}
+
+TEST(nntrainer_Tensor, subtract_i_01_p) {
+  int status = ML_ERROR_NONE;
+  int batch = 3;
+  int height = 3;
+  int width = 10;
+  int channel = 1;
+
+  nntrainer::Tensor target(batch, channel, height, width);
+  GEN_TEST_INPUT(target, i * (batch * height) + j * (width) + k + 1 + channel);
+
+  nntrainer::Tensor original(batch, height, width);
+  original.copy(target);
+
+  status = target.subtract_i(2.1);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  float *previous = original.getData();
+  ASSERT_NE(nullptr, previous);
+  float *data = target.getData();
+  ASSERT_NE(nullptr, data);
+
+  for (int i = 0; i < batch * height * width; ++i) {
+    EXPECT_FLOAT_EQ(data[i], previous[i] - (float)2.1);
+  }
 }
 
 TEST(nntrainer_Tensor, subtract_01_p) {
