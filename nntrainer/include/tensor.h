@@ -41,6 +41,7 @@ extern "C" {
 
 namespace nntrainer {
 
+class LazyTensor;
 /**
  * @class   Tensor Class for Calculation
  * @brief   Tensor Class for Calculation
@@ -140,6 +141,14 @@ public:
   Tensor add(Tensor const &m) const;
 
   /**
+   * @brief Add Tensor Element immediately to target tensor without mem copy
+   * @param[in] value value to be added
+   * #retval #ML_ERROR_NONE  Successful
+   * #retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter
+   */
+  int add_i(float const &value);
+
+  /**
    * @brief     Add value Element by Element
    * @param[in] value value to be added
    * @retval    Calculated Tensor
@@ -209,6 +218,12 @@ public:
    * @retval    Calculated Tensor(1, height, width)
    */
   Tensor average() const;
+
+  /**
+   * @brief     Anchor a starting point to defer following evaluation
+   * @retval    LazyTensor class that can be used with run();
+   */
+  LazyTensor chain() const;
 
   /**
    * @brief     Softmax the Tensor elements
