@@ -333,23 +333,52 @@ TEST(nntrainer_BatchNormalizationLayer, checkValidation_01_p) {
 /**
  * @brief Convolution 2D Layer
  */
-TEST(nntrainer_Conv2DLayer, initialize_01_p) {
+TEST(nntrainer_Conv2DLayer, setProperty_01_p) {
   int status = ML_ERROR_NONE;
   nntrainer::Conv2DLayer layer;
   std::vector<std::string> input_str;
 
-  input_str.push_back("input_shape=32:3:244:244");
+  input_str.push_back("input_shape=32:3:28:28");
   input_str.push_back("bias_zero=true");
   input_str.push_back("activation=sigmoid");
   input_str.push_back("weight_decay=l2norm");
   input_str.push_back("weight_decay_lambda = 0.005");
   input_str.push_back("weight_ini=xavier_uniform");
   input_str.push_back("filter=12");
-  input_str.push_back("kernel_size= 3,3");
+  input_str.push_back("kernel_size= 5,5");
   input_str.push_back("stride=3, 3");
-  input_str.push_back("padding=full");
+  input_str.push_back("padding=1,1");
 
   status = layer.setProperty(input_str);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Convolution 2D Layer
+ */
+TEST(nntrainer_Conv2DLayer, initialize_01_p) {
+  int status = ML_ERROR_NONE;
+  nntrainer::Conv2DLayer layer;
+  std::vector<std::string> input_str;
+  nntrainer::TensorDim previous_dim;
+  previous_dim.setTensorDim("32:3:28:28");
+
+  input_str.push_back("input_shape=32:3:28:28");
+  input_str.push_back("bias_zero=true");
+  input_str.push_back("activation=sigmoid");
+  input_str.push_back("weight_decay=l2norm");
+  input_str.push_back("weight_decay_lambda = 0.005");
+  input_str.push_back("weight_ini=xavier_uniform");
+  input_str.push_back("filter=6");
+  input_str.push_back("kernel_size= 5,5");
+  input_str.push_back("stride=1, 1");
+  input_str.push_back("padding=0,0");
+
+  status = layer.setProperty(input_str);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  layer.setInputDimension(previous_dim);
+
+  status = layer.initialize(true);
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 

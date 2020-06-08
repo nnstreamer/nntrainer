@@ -38,7 +38,7 @@ static bool alloc_val = false;
  * @brief replace string and save it in file
  */
 void replaceString(const std::string &from, const std::string &to,
-                   const std::string n) {
+                   const std::string n, std::string str) {
   size_t start_pos = 0;
   std::string s;
   std::ifstream file_stream(n.c_str(), std::ifstream::in);
@@ -47,7 +47,7 @@ void replaceString(const std::string &from, const std::string &to,
              std::istreambuf_iterator<char>());
     file_stream.close();
   } else {
-    s = config_str;
+    s = str;
   }
   while ((start_pos = s.find(from, start_pos)) != std::string::npos) {
     s.replace(start_pos, from.length(), to);

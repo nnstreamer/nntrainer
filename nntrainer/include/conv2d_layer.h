@@ -34,9 +34,45 @@ namespace nntrainer {
 class Conv2DLayer : public Layer {
 public:
   /**
+   * @brief     Property Enumeration
+   *            0. input shape : string
+   *            1. bias zero : bool
+   *            4. activation : string (type)
+   *            6. weight_decay : string (type)
+   *            7. weight_decay_lambda : float
+   *            8. weight_ini : string (type)
+   *            9. filter_size : int
+   *            10. kernel_size : ( n , m )
+   *            11. stride : ( n, m )
+   *            12, padding : valid | same
+   *
+   */
+
+  enum class PropertyType {
+    input_shape = 0,
+    bias_zero = 1,
+    activation = 4,
+    weight_decay = 6,
+    weight_decay_lambda = 7,
+    weight_ini = 9,
+    filter = 10,
+    kernel_size = 11,
+    stride = 12,
+    padding = 13,
+  };
+
+  /**
    * @brief     Constructor of Conv 2D Layer
    */
-  Conv2DLayer() { setType(LAYER_CONV2D); };
+  Conv2DLayer() {
+    stride[0] = 1;
+    stride[1] = 1;
+    padding[0] = 0;
+    padding[1] = 0;
+    kernel_size[0] = 0;
+    kernel_size[1] = 0;
+    setType(LAYER_CONV2D);
+  };
 
   /**
    * @brief     Destructor of Conv 2D Layer
@@ -109,6 +145,23 @@ public:
   void copy(std::shared_ptr<Layer> l);
 
   /**
+   * @brief     set Parameter Size
+   * @param[in] * size : size arrary
+   * @param[in] type : Property type
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  int setSize(int *size, PropertyType type);
+
+  /**
+   * @brief     set Parameter Size
+   * @param[in] f filter size
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  int setFilter(int f);
+
+  /**
    * @brief     set Property of layer
    * @param[in] values values of property
    * @retval #ML_ERROR_NONE Successful.
@@ -116,45 +169,19 @@ public:
    */
   int setProperty(std::vector<std::string> values);
 
-  /**
-   * @brief     Property Enumeration
-   *            0. input shape : string
-   *            1. bias zero : bool
-   *            4. activation : string (type)
-   *            6. weight_decay : string (type)
-   *            7. weight_decay_lambda : float
-   *            8. weight_ini : string (type)
-   *            9. filter_size : int
-   *            10. kernel_size : ( n , m )
-   *            11. stride : ( n, m )
-   *            12, padding : valid | same
-   *
-   */
-  enum class PropertyType {
-    input_shape = 0,
-    bias_zero = 1,
-    activation = 4,
-    weight_decay = 6,
-    weight_decay_lambda = 7,
-    weight_ini = 9,
-    filter = 10,
-    kernel_size = 11,
-    stride = 12,
-    padding = 13,
-  };
-
-  enum class PaddingType {
-    full = 0,
-    same = 1,
-    valid = 2,
-    unknown = 3,
-  };
+  /* TO DO : support keras type of padding */
+  /* enum class PaddingType { */
+  /*   full = 0, */
+  /*   same = 1, */
+  /*   valid = 2, */
+  /*   unknown = 3, */
+  /* }; */
 
 private:
   unsigned int filter_size;
   unsigned int kernel_size[CONV2D_DIM];
   unsigned int stride[CONV2D_DIM];
-  PaddingType padding;
+  unsigned int padding[CONV2D_DIM];
   std::vector<Tensor> filters;
   std::vector<Tensor> bias;
 };
