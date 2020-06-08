@@ -191,6 +191,51 @@ TEST(nntrainer_Tensor, divide_03_n) {
                    "Error: Dimension must be equal each other");
 }
 
+TEST(nntrainer_Tensor, add_i_02_p) {
+  int status = ML_ERROR_NONE;
+  int batch = 3;
+  int height = 3;
+  int width = 10;
+  int channel = 1;
+
+  nntrainer::Tensor target(batch, channel, height, width);
+  GEN_TEST_INPUT(target, i * (batch * height) + j * (width) + k + 1);
+
+  nntrainer::Tensor original(batch, height, width);
+  original.copy(target);
+
+  status = target.add_i(target);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  float *previous = original.getData();
+  ASSERT_NE(nullptr, previous);
+  float *data = target.getData();
+  ASSERT_NE(nullptr, data);
+
+  for (int i = 0; i < batch * height * width; ++i) {
+    EXPECT_FLOAT_EQ(data[i], previous[i] + previous[i]);
+  }
+}
+
+/**
+ * @brief operand dimension is not right
+ */
+TEST(nntrainer_Tensor, add_i_01_n) {
+  int status = ML_ERROR_NONE;
+  int batch = 3;
+  int height = 3;
+  int width = 10;
+  int channel = 1;
+
+  nntrainer::Tensor target(batch, channel, height, width);
+  GEN_TEST_INPUT(target, i * (batch * height) + j * (width) + k + 1);
+
+  nntrainer::Tensor target2(batch, height - 2, width - 3);
+
+  status = target.add_i(target2);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+}
+
 TEST(nntrainer_Tensor, add_01_p) {
   int status = ML_ERROR_NONE;
   int batch = 3;

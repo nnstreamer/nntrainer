@@ -125,6 +125,14 @@ public:
   Tensor divide(float const &value);
 
   /**
+   * @brief Add Tensor Element by Element without mem copy
+   * @param[in] m Tensor to be added
+   * #retval #ML_ERROR_NONE  Successful
+   * #retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter
+   */
+  int add_i(Tensor const &m);
+
+  /**
    * @brief     Add Tensor Element by Element
    * @param[in] m Tensor to be added
    * @retval    Calculated Tensor
