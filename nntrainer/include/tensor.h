@@ -172,6 +172,14 @@ public:
   Tensor add(float const &value);
 
   /**
+   * @brief     memcpyless version of subtract
+   * @param[in] m Tensor to be subtracted
+   * @retval #ML_ERROR_NONE  Successful
+   * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter
+   */
+  int subtract_i(Tensor const &m);
+
+  /**
    * @brief     Substract Tensor Element by Element
    * @param[in] m Tensor to be subtracted
    * @retval    Calculated Tensor

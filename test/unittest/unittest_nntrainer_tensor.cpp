@@ -429,6 +429,43 @@ TEST(nntrainer_Tensor, subtract_i_01_p) {
   }
 }
 
+TEST(nntrainer_Tensor, subtract_i_02_p) {
+  int status = ML_ERROR_NONE;
+  int batch = 3;
+  int height = 3;
+  int width = 10;
+  int channel = 1;
+
+  nntrainer::Tensor target(batch, channel, height, width);
+  GEN_TEST_INPUT(target, i * (batch * height) + j * (width) + k + 1 + channel);
+
+  status = target.subtract_i(target);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  float *data = target.getData();
+  ASSERT_NE(nullptr, data);
+
+  for (int i = 0; i < batch * height * width; ++i) {
+    EXPECT_FLOAT_EQ(data[i], 0);
+  }
+}
+
+TEST(nntrainer_Tensor, subtract_i_03_n) {
+  int status = ML_ERROR_NONE;
+  int batch = 3;
+  int height = 3;
+  int width = 10;
+  int channel = 1;
+
+  nntrainer::Tensor target(batch, channel, height, width);
+  GEN_TEST_INPUT(target, i * (batch * height) + j * (width) + k + 1 + channel);
+
+  nntrainer::Tensor target2(batch, channel, height - 1, width - 3);
+
+  status = target.subtract_i(target2);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+}
+
 TEST(nntrainer_Tensor, subtract_01_p) {
   int status = ML_ERROR_NONE;
   int batch = 3;

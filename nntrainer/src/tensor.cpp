@@ -251,6 +251,51 @@ Tensor Tensor::add(Tensor const &m) const {
   return result;
 }
 
+int Tensor::subtract_i(Tensor const &m) {
+  if (dim.channel() != m.dim.channel() || dim.height() != m.dim.height() ||
+      dim.width() != m.dim.width()) {
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
+  if (dim.batch() != m.dim.batch() && m.dim.batch() != 1) {
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
+#ifdef USE_BLAS
+  unsigned int size =
+    this->dim.channel() * this->dim.width() * this->dim.height();
+  float alpha = -1.0;
+
+  if (m.dim.batch() == 1) {
+    for (unsigned int k = 0; k < dim.batch(); ++k) {
+      cblas_saxpy(size, alpha, m.data.data(), 1, &(this->data.data()[k * size]),
+                  1);
+    }
+  } else {
+    cblas_saxpy(dim.getDataLen(), alpha, m.data.data(), 1, this->data.data(),
+                1);
+  }
+#else
+  unsigned int i, j, k, len, dlen;
+  if (m.dim.batch() == 1) {
+    len = m.dim.getFeatureLen();
+    for (k = 0; k < dim.batch(); ++k) {
+      for (i = 0; i < len; ++i) {
+        j = k * len;
+        this->data[j + i] = this->data[j + i] - m.data[i];
+      }
+    }
+  } else {
+    dlen = m.dim.getDataLen();
+    for (k = 0; k < dlen; ++k) {
+      this->data[k] = data[k] - m.data[k];
+    }
+  }
+#endif
+
+  return ML_ERROR_NONE;
+}
+
 Tensor Tensor::subtract(Tensor const &m) const {
   if (dim.channel() != m.dim.channel() || dim.height() != m.dim.height() ||
       dim.width() != m.dim.width()) {
@@ -258,40 +303,9 @@ Tensor Tensor::subtract(Tensor const &m) const {
   }
 
   Tensor result(dim);
+  result.copy(*this);
+  result.subtract_i(m);
 
-#ifdef USE_BLAS
-  cblas_scopy(dim.getDataLen(), this->data.data(), 1, result.data.data(), 1);
-
-  unsigned int size =
-    this->dim.channel() * this->dim.width() * this->dim.height();
-  float alpha = -1.0;
-
-  if (m.dim.batch() == 1) {
-    for (unsigned int k = 0; k < dim.batch(); ++k) {
-      cblas_saxpy(size, alpha, m.data.data(), 1,
-                  &(result.data.data()[k * size]), 1);
-    }
-  } else {
-    assert(dim.batch() == m.dim.batch());
-    cblas_saxpy(dim.getDataLen(), alpha, m.data.data(), 1, result.data.data(),
-                1);
-  }
-#else
-  unsigned int i, j, k, len;
-  len = m.dim.getFeatureLen();
-  if (m.dim.batch() == 1) {
-    for (k = 0; k < dim.batch(); ++k) {
-      for (i = 0; i < len; ++i) {
-        j = k * len;
-        result.data[j + i] = data[j + i] - m.data[i];
-      }
-    }
-  } else {
-    for (k = 0; k < m.dim.getDataLen(); ++k) {
-      result.data[k] = data[k] - m.data[k];
-    }
-  }
-#endif
   return result;
 }
 
