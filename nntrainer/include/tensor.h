@@ -112,11 +112,27 @@ public:
                  unsigned int w);
 
   /**
+   * @brief     Multiply value element by element immediately 
+   * @param[in] value multiplier
+   * @retval    #ML_ERROR_INVALID_PARAMETER Tensor dimension is not right
+   * @retval    #ML_ERROR_NONE Successful
+   */
+  int multiply_i(float const &value);
+
+  /**
    * @brief     Multiply value element by element
    * @param[in] value multiplier
    * @retval    Calculated Tensor
    */
   Tensor multiply(float const &value);
+
+  /**
+   * @brief     Divide value element by element immediately 
+   * @param[in] value divisor
+   * @retval    #ML_ERROR_INVALID_PARAMETER Tensor dimension is not right
+   * @retval    #ML_ERROR_NONE Successful
+   */
+  int divide_i(float const &value);
 
   /**
    * @brief     Divide value element by element

@@ -89,6 +89,33 @@ TEST(nntrainer_Tensor, Tensor_03_p) {
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
+TEST(nntrainer_Tensor, multiply_i_01_p) {
+  int status = ML_ERROR_NONE;
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::Tensor input(batch, channel, height, width);
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k);
+
+  nntrainer::Tensor original;
+  original.copy(input);
+
+  status = input.multiply_i(2.0);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  float *data = original.getData();
+  ASSERT_NE(nullptr, data);
+  float *indata = input.getData();
+  ASSERT_NE(nullptr, indata);
+
+  for (int i = 0; i < batch * height * width * channel; ++i) {
+    EXPECT_FLOAT_EQ(data[i] + data[i], indata[i]);
+  }
+
+}
+
 TEST(nntrainer_Tensor, multiply_01_p) {
   int status = ML_ERROR_NONE;
   int batch = 3;
@@ -147,8 +174,47 @@ TEST(nntrainer_Tensor, multiply_03_n) {
                    "Error: Dimension must be equal each other");
 }
 
-TEST(nntrainer_Tensor, divide_01_p) {
+TEST(nntrainer_Tensor, divide_i_01_p) {
   int status = ML_ERROR_NONE;
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::Tensor input(batch, channel, height, width);
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k);
+
+  nntrainer::Tensor original;
+  original.copy(input);
+
+  status = input.divide_i((float)2.0);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  float *data = original.getData();
+  ASSERT_NE(nullptr, data);
+  float *indata = input.getData();
+  ASSERT_NE(nullptr, indata);
+
+  for (int i = 0; i < batch * height * width * channel; ++i) {
+    EXPECT_FLOAT_EQ(data[i], indata[i] + indata[i]);
+  }
+}
+
+TEST(nntrainer_Tensor, divide_i_01_n) {
+  int status = ML_ERROR_NONE;
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::Tensor input(batch, channel, height, width);
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k);
+
+  status = input.divide_i((float)0);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+}
+
+TEST(nntrainer_Tensor, divide_01_p) {
   int batch = 3;
   int channel = 1;
   int height = 3;
@@ -158,9 +224,15 @@ TEST(nntrainer_Tensor, divide_01_p) {
   GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k + 1);
 
   nntrainer::Tensor result = input.divide(1.0);
-  if (result.getValue(0, 0, 1, 1) != input.getValue(0, 0, 1, 1))
-    status = ML_ERROR_RESULT_OUT_OF_RANGE;
-  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  float *previous = input.getData();
+  ASSERT_NE(nullptr, previous);
+  float *data = result.getData();
+  ASSERT_NE(nullptr, data);
+
+  for (int i = 0; i < batch * height * width * channel; ++i) {
+    EXPECT_FLOAT_EQ(data[i], previous[i]);
+  }
 }
 
 TEST(nntrainer_Tensor, divide_02_n) {
@@ -201,7 +273,7 @@ TEST(nntrainer_Tensor, add_i_01_p) {
   nntrainer::Tensor target(batch, channel, height, width);
   GEN_TEST_INPUT(target, i * (batch * height) + j * (width) + k + 1 + channel);
 
-  nntrainer::Tensor original(batch, height, width);
+  nntrainer::Tensor original(batch, channel, height, width);
   original.copy(target);
 
   status = target.add_i(2.1);
