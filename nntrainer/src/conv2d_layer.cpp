@@ -66,11 +66,15 @@ int Conv2DLayer::initialize(bool last) {
 }
 
 void Conv2DLayer::read(std::ifstream &file) {
-  // NYI
+  std::for_each(filters.begin(), filters.end(),
+                [&](Tensor &i) { i.read(file); });
+  std::for_each(bias.begin(), bias.end(), [&](Tensor &i) { i.read(file); });
 }
 
 void Conv2DLayer::save(std::ofstream &file) {
-  // NYI
+  std::for_each(filters.begin(), filters.end(),
+                [&](Tensor i) { i.save(file); });
+  std::for_each(bias.begin(), bias.end(), [&](Tensor i) { i.save(file); });
 }
 
 Tensor Conv2DLayer::forwarding(Tensor in, int &status) {
