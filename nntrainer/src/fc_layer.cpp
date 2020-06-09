@@ -58,22 +58,6 @@ int FullyConnectedLayer::initialize(bool last) {
   return status;
 }
 
-int FullyConnectedLayer::initialize(int b, int c, int h, int w, bool last,
-                                    bool init_zero) {
-  int status = ML_ERROR_NONE;
-
-  this->input_dim.batch(b);
-  this->input_dim.channel(c);
-  this->input_dim.width(w);
-  this->input_dim.height(h);
-
-  this->init_zero = init_zero;
-
-  status = initialize(last);
-
-  return status;
-}
-
 int FullyConnectedLayer::setCost(CostType c) {
   int status = ML_ERROR_NONE;
   if (c == COST_UNKNOWN) {

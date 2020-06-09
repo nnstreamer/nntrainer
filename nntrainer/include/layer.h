@@ -135,21 +135,6 @@ public:
   virtual int initialize(bool last) = 0;
 
   /**
-   * @brief     Initialize the layer
-   *            - Weight(Channel, Height, Width), Bias(1, 1, Width)
-   * @param[in] b batch
-   * @param[in] c channel
-   * @param[in] h Height
-   * @param[in] w Width
-   * @param[in] last last layer
-   * @param[in] init_zero Bias initialization with zero
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   */
-  virtual int initialize(int b, int c, int h, int w, bool last,
-                         bool init_zero) = 0;
-
-  /**
    * @brief     read layer Weight & Bias data from file
    * @param[in] file input file stream
    */

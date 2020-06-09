@@ -26,7 +26,7 @@ int Conv2DLayer::initialize(bool last) {
   int status = ML_ERROR_NONE;
 
   if (input_dim.getDataLen() == 1) {
-    ml_logw("Warnning: the length of previous layer dimension is one");
+    ml_logw("Warning: the length of previous layer dimension is one");
   }
 
   if (input_dim.batch() <= 0 || input_dim.height() <= 0 ||
@@ -61,21 +61,6 @@ int Conv2DLayer::initialize(bool last) {
     (input_dim.height() - kernel_size[0] + 2 * padding[0]) / stride[0] + 1);
   output_dim.width(
     (input_dim.width() - kernel_size[1] + 2 * padding[1]) / stride[1] + 1);
-
-  return status;
-}
-
-int Conv2DLayer::initialize(int b, int c, int h, int w, bool last,
-                            bool init_zero) {
-  int status = ML_ERROR_NONE;
-
-  this->input_dim.batch(b);
-  this->input_dim.channel(c);
-  this->input_dim.width(w);
-  this->input_dim.height(h);
-
-  this->init_zero = init_zero;
-  status = this->initialize(last);
 
   return status;
 }
