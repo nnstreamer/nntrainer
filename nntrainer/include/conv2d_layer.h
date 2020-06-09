@@ -88,19 +88,6 @@ public:
   int initialize(bool last);
 
   /**
-   * @brief     Initializer of Input Layer
-   * @param[in] b batch size
-   * @param[in] c channel
-   * @param[in] h height
-   * @param[in] w width
-   * @param[in] last last layer
-   * @param[in] init_zero boolean to set Bias zero
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   */
-  int initialize(int b, int c, int h, int w, bool last, bool init_zero);
-
-  /**
    * @brief     Read Weight & Bias Data from file
    * @param[in] file input stream file
    */

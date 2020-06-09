@@ -50,22 +50,6 @@ int BatchNormalizationLayer::initialize(bool last) {
   return status;
 }
 
-int BatchNormalizationLayer::initialize(int b, int c, int h, int w, bool last,
-                                        bool init_zero) {
-  int status = ML_ERROR_NONE;
-
-  this->input_dim.batch(b);
-  this->input_dim.channel(c);
-  this->input_dim.width(w);
-  this->input_dim.height(h);
-
-  this->init_zero = init_zero;
-
-  status = initialize(last);
-
-  return status;
-}
-
 int BatchNormalizationLayer::setOptimizer(Optimizer &opt) {
   this->opt.setType(opt.getType());
   this->opt.setOptParam(opt.getOptParam());

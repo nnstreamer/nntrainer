@@ -26,7 +26,10 @@
 TEST(nntrainer_InputLayer, initialize_01_p) {
   int status = ML_ERROR_NONE;
   nntrainer::InputLayer layer;
-  status = layer.initialize(1, 1, 1, 1, false, true);
+  nntrainer::TensorDim d;
+  d.setTensorDim("32:3:28:28");
+  layer.setInputDimension(d);
+  status = layer.initialize(false);
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
@@ -36,7 +39,10 @@ TEST(nntrainer_InputLayer, initialize_01_p) {
 TEST(nntrainer_InputLayer, initialize_02_n) {
   int status = ML_ERROR_NONE;
   nntrainer::InputLayer layer;
-  status = layer.initialize(1, 1, 0, 1, false, true);
+  nntrainer::TensorDim d;
+  d.setTensorDim("32:0:28:28");
+  layer.setInputDimension(d);
+  status = layer.initialize(false);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
@@ -46,7 +52,10 @@ TEST(nntrainer_InputLayer, initialize_02_n) {
 TEST(nntrainer_InputLayer, setOptimizer_01_p) {
   int status = ML_ERROR_NONE;
   nntrainer::InputLayer layer;
-  status = layer.initialize(1, 1, 1, 1, false, true);
+  nntrainer::TensorDim d;
+  d.setTensorDim("32:1:28:28");
+  layer.setInputDimension(d);
+  status = layer.initialize(false);
   nntrainer::Optimizer op;
   nntrainer::OptType t = nntrainer::OptType::adam;
   nntrainer::OptParam p;
@@ -88,7 +97,10 @@ TEST(nntrainer_InputLayer, setActivation_02_n) {
 TEST(nntrainer_InputLayer, checkValidation_01_p) {
   int status = ML_ERROR_NONE;
   nntrainer::InputLayer layer;
-  layer.initialize(1, 1, 1, 1, false, true);
+  nntrainer::TensorDim d;
+  d.setTensorDim("32:1:28:28");
+  layer.setInputDimension(d);
+  status = layer.initialize(false);
   layer.setActivation(nntrainer::ACT_TANH);
 
   status = layer.checkValidation();
@@ -101,7 +113,10 @@ TEST(nntrainer_InputLayer, checkValidation_01_p) {
 TEST(nntrainer_FullyConnectedLayer, initialize_01_p) {
   int status = ML_ERROR_NONE;
   nntrainer::FullyConnectedLayer layer;
-  status = layer.initialize(1, 1, 1, 1, false, true);
+  nntrainer::TensorDim d;
+  d.setTensorDim("32:1:28:28");
+  layer.setInputDimension(d);
+  status = layer.initialize(false);
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
@@ -111,7 +126,10 @@ TEST(nntrainer_FullyConnectedLayer, initialize_01_p) {
 TEST(nntrainer_FullyConnectedLayer, initialize_02_n) {
   int status = ML_ERROR_NONE;
   nntrainer::FullyConnectedLayer layer;
-  status = layer.initialize(1, 1, 0, 1, false, true);
+  nntrainer::TensorDim d;
+  d.setTensorDim("32:0:28:28");
+  layer.setInputDimension(d);
+  status = layer.initialize(false);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
@@ -121,7 +139,10 @@ TEST(nntrainer_FullyConnectedLayer, initialize_02_n) {
 TEST(nntrainer_FullyConnectedLayer, initialize_03_n) {
   int status = ML_ERROR_NONE;
   nntrainer::FullyConnectedLayer layer;
-  status = layer.initialize(1, 1, 1, 1, false, true);
+  nntrainer::TensorDim d;
+  d.setTensorDim("32:1:28:28");
+  layer.setInputDimension(d);
+  status = layer.initialize(false);
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
@@ -131,7 +152,10 @@ TEST(nntrainer_FullyConnectedLayer, initialize_03_n) {
 TEST(nntrainer_FullyConnectedLayer, initialize_04_p) {
   int status = ML_ERROR_NONE;
   nntrainer::FullyConnectedLayer layer;
-  status = layer.initialize(1, 1, 1, 1, true, true);
+  nntrainer::TensorDim d;
+  d.setTensorDim("32:1:28:28");
+  layer.setInputDimension(d);
+  status = layer.initialize(false);
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
@@ -141,7 +165,10 @@ TEST(nntrainer_FullyConnectedLayer, initialize_04_p) {
 TEST(nntrainer_FullyConnectedLayer, initialize_05_n) {
   int status = ML_ERROR_NONE;
   nntrainer::FullyConnectedLayer layer;
-  status = layer.initialize(1, 1, 0, 1, true, true);
+  nntrainer::TensorDim d;
+  d.setTensorDim("32:1:0:28");
+  layer.setInputDimension(d);
+  status = layer.initialize(false);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
@@ -151,7 +178,10 @@ TEST(nntrainer_FullyConnectedLayer, initialize_05_n) {
 TEST(nntrainer_FullyConnectedLayer, initialize_06_p) {
   int status = ML_ERROR_NONE;
   nntrainer::FullyConnectedLayer layer;
-  status = layer.initialize(1, 1, 1, 1, true, true);
+  nntrainer::TensorDim d;
+  d.setTensorDim("32:1:1:28");
+  layer.setInputDimension(d);
+  status = layer.initialize(false);
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
@@ -162,7 +192,10 @@ TEST(nntrainer_FullyConnectedLayer, setOptimizer_01_p) {
   int status = ML_ERROR_NONE;
   nntrainer::FullyConnectedLayer layer;
   layer.setUnit(1);
-  status = layer.initialize(1, 1, 1, 1, false, true);
+  nntrainer::TensorDim d;
+  d.setTensorDim("32:1:1:28");
+  layer.setInputDimension(d);
+  status = layer.initialize(false);
   nntrainer::Optimizer op;
   nntrainer::OptType t = nntrainer::OptType::adam;
   nntrainer::OptParam p;
@@ -185,7 +218,10 @@ TEST(nntrainer_FullyConnectedLayer, setOptimizer_02_p) {
   int status = ML_ERROR_NONE;
   nntrainer::FullyConnectedLayer layer;
   layer.setUnit(1);
-  status = layer.initialize(1, 1, 1, 1, true, true);
+  nntrainer::TensorDim d;
+  d.setTensorDim("32:1:1:28");
+  layer.setInputDimension(d);
+  status = layer.initialize(true);
   nntrainer::Optimizer op;
   nntrainer::OptType t = nntrainer::OptType::adam;
   nntrainer::OptParam p;
@@ -248,7 +284,11 @@ TEST(nntrainer_FullyConnectedLayer, checkValidation_01_p) {
   int status = ML_ERROR_NONE;
   nntrainer::FullyConnectedLayer layer;
   layer.setUnit(1);
-  layer.initialize(1, 1, 1, 1, false, true);
+  nntrainer::TensorDim d;
+  d.setTensorDim("32:1:1:28");
+  layer.setInputDimension(d);
+  status = layer.initialize(false);
+
   layer.setActivation(nntrainer::ACT_RELU);
 
   status = layer.checkValidation();
@@ -261,7 +301,11 @@ TEST(nntrainer_FullyConnectedLayer, checkValidation_01_p) {
 TEST(nntrainer_BatchNormalizationLayer, initialize_01_p) {
   int status = ML_ERROR_NONE;
   nntrainer::BatchNormalizationLayer layer;
-  status = layer.initialize(1, 1, 1, 1, false, true);
+  nntrainer::TensorDim d;
+  d.setTensorDim("32:1:1:28");
+  layer.setInputDimension(d);
+  status = layer.initialize(false);
+
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
@@ -271,7 +315,10 @@ TEST(nntrainer_BatchNormalizationLayer, initialize_01_p) {
 TEST(nntrainer_BatchNormalizationLayer, initialize_02_n) {
   int status = ML_ERROR_NONE;
   nntrainer::BatchNormalizationLayer layer;
-  status = layer.initialize(1, 1, 0, 1, false, true);
+  nntrainer::TensorDim d;
+  d.setTensorDim("32:0:1:28");
+  layer.setInputDimension(d);
+  status = layer.initialize(false);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
@@ -281,7 +328,11 @@ TEST(nntrainer_BatchNormalizationLayer, initialize_02_n) {
 TEST(nntrainer_BatchNormalizationLayer, setOptimizer_01_p) {
   int status = ML_ERROR_NONE;
   nntrainer::BatchNormalizationLayer layer;
-  status = layer.initialize(1, 1, 1, 1, 0, true);
+  nntrainer::TensorDim d;
+  d.setTensorDim("32:0:1:28");
+  layer.setInputDimension(d);
+  status = layer.initialize(false);
+
   nntrainer::Optimizer op;
   nntrainer::OptType t = nntrainer::OptType::adam;
   nntrainer::OptParam p;
@@ -323,7 +374,10 @@ TEST(nntrainer_BatchNormalizationLayer, setActivation_02_n) {
 TEST(nntrainer_BatchNormalizationLayer, checkValidation_01_p) {
   int status = ML_ERROR_NONE;
   nntrainer::BatchNormalizationLayer layer;
-  layer.initialize(1, 1, 1, 1, false, true);
+  nntrainer::TensorDim d;
+  d.setTensorDim("32:1:1:28");
+  layer.setInputDimension(d);
+  status = layer.initialize(false);
   layer.setActivation(nntrainer::ACT_RELU);
 
   status = layer.checkValidation();
