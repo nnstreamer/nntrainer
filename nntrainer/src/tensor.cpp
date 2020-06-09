@@ -136,8 +136,8 @@ Tensor::Tensor(
 
 int Tensor::multiply_i(float const &value) {
 #ifdef USE_BLAS
-  cblas_saxpy(dim.getDataLen(), value - 1, this->data.data(), 1, this->data.data(),
-              1);
+  cblas_saxpy(dim.getDataLen(), value - 1, this->data.data(), 1,
+              this->data.data(), 1);
 #else
   for (unsigned int k = 0; k < dim.getDataLen(); ++k) {
     this->data[k] *= value;
@@ -309,19 +309,52 @@ Tensor Tensor::subtract(Tensor const &m) const {
   return result;
 }
 
-int Tensor::subtract_i(float const &value) {
-  return this->add_i(-value);
-}
+int Tensor::subtract_i(float const &value) { return this->add_i(-value); }
 
 Tensor Tensor::subtract(float const &value) {
   Tensor result(dim);
 
   result.copy(*this);
-  if (result.subtract_i(value) != ML_ERROR_NONE){
+  if (result.subtract_i(value) != ML_ERROR_NONE) {
     throw std::runtime_error("Error: there was an error on subtraction");
   }
 
   return result;
+}
+
+int Tensor::multiply_i(Tensor const &m) {
+  if (dim.channel() != m.dim.channel() || dim.height() != m.dim.height() ||
+      dim.width() != m.dim.width()) {
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
+  int end = dim.getDataLen() / 4;
+  int e = dim.getFeatureLen() / 4;
+  int i;
+  if (m.dim.batch() == 1) {
+    for (unsigned int k = 0; k < dim.batch(); ++k) {
+      int b = k * dim.getFeatureLen();
+      for (i = 0; i < e * 4; i += 4) {
+        this->data[b + i + 0] *= m.data[i + 0];
+        this->data[b + i + 1] *= m.data[i + 1];
+        this->data[b + i + 2] *= m.data[i + 2];
+        this->data[b + i + 3] *= m.data[i + 3];
+      }
+      for (unsigned int j = i; j < dim.getFeatureLen(); j++)
+        this->data[b + j] = this->data[b + j] * m.data[j];
+    }
+  } else {
+    for (i = 0; i < end * 4; i += 4) {
+      this->data[i + 0] *= m.data[i + 0];
+      this->data[i + 1] *= m.data[i + 1];
+      this->data[i + 2] *= m.data[i + 2];
+      this->data[i + 3] *= m.data[i + 3];
+    }
+    for (unsigned int j = i; j < dim.getDataLen(); ++j)
+      this->data[j] = this->data[j] * m.data[j];
+  }
+
+  return ML_ERROR_NONE;
 }
 
 Tensor Tensor::multiply(Tensor const &m) const {
@@ -331,34 +364,47 @@ Tensor Tensor::multiply(Tensor const &m) const {
   }
 
   Tensor result(dim);
+  result.copy(*this);
+  result.multiply_i(m);
 
-  int end = dim.getDataLen() / 4;
-  int e = dim.getFeatureLen() / 4;
-  int i;
+  return result;
+}
+
+int Tensor::divide_i(Tensor const &m) {
+  if (dim.channel() != m.dim.channel() || dim.height() != m.dim.height() ||
+      dim.width() != m.dim.width()) {
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
+  unsigned int end = dim.getDataLen() / 4;
+  unsigned int e = dim.getFeatureLen() / 4;
+  unsigned int i, j, k;
+
+  // todo: effectively check if m.data[index] is 0
   if (m.dim.batch() == 1) {
-    for (unsigned int k = 0; k < dim.batch(); ++k) {
-      int b = k * dim.getFeatureLen();
+    for (k = 0; k < dim.batch(); ++k) {
+      unsigned int b = k * dim.getFeatureLen();
       for (i = 0; i < e * 4; i += 4) {
-        result.data[b + i + 0] = this->data[b + i + 0] * m.data[i + 0];
-        result.data[b + i + 1] = this->data[b + i + 1] * m.data[i + 1];
-        result.data[b + i + 2] = this->data[b + i + 2] * m.data[i + 2];
-        result.data[b + i + 3] = this->data[b + i + 3] * m.data[i + 3];
+        this->data[b + i + 0] /= m.data[i + 0];
+        this->data[b + i + 1] /= m.data[i + 1];
+        this->data[b + i + 2] /= m.data[i + 2];
+        this->data[b + i + 3] /= m.data[i + 3];
       }
-      for (unsigned int j = i; j < dim.getFeatureLen(); j++)
-        result.data[b + j] = this->data[b + j] * m.data[j];
+      for (unsigned int j = i; j < dim.getFeatureLen(); ++j)
+        this->data[b + j] /= m.data[j];
     }
   } else {
     for (i = 0; i < end * 4; i += 4) {
-      result.data[i + 0] = this->data[i + 0] * m.data[i + 0];
-      result.data[i + 1] = this->data[i + 1] * m.data[i + 1];
-      result.data[i + 2] = this->data[i + 2] * m.data[i + 2];
-      result.data[i + 3] = this->data[i + 3] * m.data[i + 3];
+      this->data[i + 0] /= m.data[i + 0];
+      this->data[i + 1] /= m.data[i + 1];
+      this->data[i + 2] /= m.data[i + 2];
+      this->data[i + 3] /= m.data[i + 3];
     }
-    for (unsigned int j = i; j < dim.getDataLen(); ++j)
-      result.data[j] = this->data[j] * m.data[j];
+    for (j = i; j < dim.getDataLen(); ++j)
+      this->data[j] /= m.data[j];
   }
 
-  return result;
+  return ML_ERROR_NONE;
 }
 
 Tensor Tensor::divide(Tensor const &m) const {
@@ -369,32 +415,8 @@ Tensor Tensor::divide(Tensor const &m) const {
 
   Tensor result(dim.batch(), dim.channel(), dim.height(), dim.width());
 
-  unsigned int end = dim.getDataLen() / 4;
-  unsigned int e = dim.getFeatureLen() / 4;
-  unsigned int i, j, k;
-
-  if (m.dim.batch() == 1) {
-    for (k = 0; k < dim.batch(); ++k) {
-      unsigned int b = k * dim.getFeatureLen();
-      for (i = 0; i < e * 4; i += 4) {
-        result.data[b + i + 0] = this->data[b + i + 0] / m.data[i + 0];
-        result.data[b + i + 1] = this->data[b + i + 1] / m.data[i + 1];
-        result.data[b + i + 2] = this->data[b + i + 2] / m.data[i + 2];
-        result.data[b + i + 3] = this->data[b + i + 3] / m.data[i + 3];
-      }
-      for (unsigned int j = i; j < dim.getFeatureLen(); ++j)
-        result.data[b + j] = this->data[b + j] / m.data[j];
-    }
-  } else {
-    for (i = 0; i < end * 4; i += 4) {
-      result.data[i + 0] = this->data[i + 0] / m.data[i + 0];
-      result.data[i + 1] = this->data[i + 1] / m.data[i + 1];
-      result.data[i + 2] = this->data[i + 2] / m.data[i + 2];
-      result.data[i + 3] = this->data[i + 3] / m.data[i + 3];
-    }
-    for (j = i; j < dim.getDataLen(); ++j)
-      result.data[j] = this->data[j] / m.data[j];
-  }
+  result.copy(*this);
+  result.divide_i(m);
 
   return result;
 }
@@ -789,7 +811,7 @@ Tensor Tensor::average() const {
   Tensor result(1, dim.channel(), dim.height(), dim.width());
 
   result = this->sum(0);
-  result.divide(dim.batch());
+  result.divide_i(dim.batch());
 
   return result;
 }
@@ -860,9 +882,7 @@ Tensor Tensor::normalization() const {
   return results;
 }
 
-LazyTensor Tensor::chain() const{
-  return LazyTensor(*this);
-}
+LazyTensor Tensor::chain() const { return LazyTensor(*this); }
 
 Tensor Tensor::standardization() const {
   Tensor result(dim);
