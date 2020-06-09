@@ -202,11 +202,26 @@ public:
   Tensor subtract(float const &value);
 
   /**
+   * @brief     Multiply Tensor Elementwise
+   * @param[in] m Tensor to be multiplied
+   * @retval    #ML_ERROR_NONE successful
+   */
+  int multiply_i(Tensor const &m);
+
+  /**
    * @brief     Multiply Tensor Element by Element ( Not the MxM )
    * @param[in] m Tensor to be multiplied
    * @retval    Calculated Tensor
    */
   Tensor multiply(Tensor const &m) const;
+
+
+  /**
+   * @brief     divide Tensor Elementwise
+   * @param[in] m Tensor to be multiplied
+   * @retval    #ML_ERROR_NONE successful
+   */
+  int divide_i(Tensor const &m);
 
   /**
    * @brief     Divide Tensor Element by Element

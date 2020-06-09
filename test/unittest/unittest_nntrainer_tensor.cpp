@@ -113,7 +113,48 @@ TEST(nntrainer_Tensor, multiply_i_01_p) {
   for (int i = 0; i < batch * height * width * channel; ++i) {
     EXPECT_FLOAT_EQ(data[i] + data[i], indata[i]);
   }
+}
 
+TEST(nntrainer_Tensor, multiply_i_02_p) {
+  int status = ML_ERROR_NONE;
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::Tensor input(batch, channel, height, width);
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k);
+
+  nntrainer::Tensor original;
+  original.copy(input);
+
+  status = input.multiply_i(input);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  float *data = original.getData();
+  ASSERT_NE(nullptr, data);
+  float *indata = input.getData();
+  ASSERT_NE(nullptr, indata);
+
+  for (int i = 0; i < batch * height * width * channel; ++i) {
+    EXPECT_FLOAT_EQ(data[i] * data[i], indata[i]);
+  }
+}
+
+TEST(nntrainer_Tensor, multiply_i_01_n) {
+  int status = ML_ERROR_NONE;
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::Tensor input(batch, channel, height, width);
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k);
+
+  nntrainer::Tensor target2(batch, channel, height - 2, width - 1);
+  status = input.multiply_i(target2);
+
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
 TEST(nntrainer_Tensor, multiply_01_p) {
@@ -200,6 +241,26 @@ TEST(nntrainer_Tensor, divide_i_01_p) {
   }
 }
 
+TEST(nntrainer_Tensor, divide_i_02_p) {
+  int status = ML_ERROR_NONE;
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::Tensor input(batch, channel, height, width);
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k + 1);
+
+  status = input.divide_i(input);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  float *indata = input.getData();
+  ASSERT_NE(nullptr, indata);
+
+  for (int i = 0; i < batch * height * width * channel; ++i) {
+    EXPECT_FLOAT_EQ(indata[i], float(1.0));
+  }
+}
+
 TEST(nntrainer_Tensor, divide_i_01_n) {
   int status = ML_ERROR_NONE;
   int batch = 3;
@@ -211,6 +272,22 @@ TEST(nntrainer_Tensor, divide_i_01_n) {
   GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k);
 
   status = input.divide_i((float)0);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+}
+
+TEST(nntrainer_Tensor, divide_i_02_n) {
+  int status = ML_ERROR_NONE;
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::Tensor input(batch, channel, height, width);
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k);
+
+  nntrainer::Tensor original(batch, channel, height - 2, width - 1);
+
+  status = input.divide_i(original);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
