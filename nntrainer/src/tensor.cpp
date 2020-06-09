@@ -134,18 +134,32 @@ Tensor::Tensor(
           this->setValue(i, j, k, l, d[i][j][k][l]);
 }
 
-Tensor Tensor::multiply(float const &value) {
-  Tensor result(dim);
+int Tensor::multiply_i(float const &value) {
 #ifdef USE_BLAS
-  memset(result.data.data(), 0, sizeof(float) * result.dim.getDataLen());
-  cblas_saxpy(dim.getDataLen(), value, this->data.data(), 1, result.data.data(),
+  cblas_saxpy(dim.getDataLen(), value - 1, this->data.data(), 1, this->data.data(),
               1);
 #else
   for (unsigned int k = 0; k < dim.getDataLen(); ++k) {
-    result.data[k] = data[k] * value;
+    this->data[k] *= value;
   }
 #endif
+  return ML_ERROR_NONE;
+}
+
+Tensor Tensor::multiply(float const &value) {
+  Tensor result(dim);
+  result.copy(*this);
+  result.multiply_i(value);
+
   return result;
+}
+
+int Tensor::divide_i(float const &value) {
+  if (value == 0.0) {
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
+  return this->multiply_i(1.0f / value);
 }
 
 Tensor Tensor::divide(float const &value) {
@@ -153,15 +167,10 @@ Tensor Tensor::divide(float const &value) {
   if (value == 0.0) {
     throw std::runtime_error("Error: Divide by zero");
   }
-#ifdef USE_BLAS
-  memset(result.data.data(), 0, sizeof(float) * result.dim.getDataLen());
-  cblas_saxpy(dim.getDataLen(), 1.0 / value, this->data.data(), 1,
-              result.data.data(), 1);
-#else
-  for (unsigned int k = 0; k < dim.getDataLen(); ++k) {
-    result.data[k] = data[k] / value;
-  }
-#endif
+
+  result.copy(*this);
+  result.divide_i(value);
+
   return result;
 }
 
@@ -170,7 +179,8 @@ int Tensor::add_i(float const &value) {
   Tensor tmp(dim);
   for (unsigned int i = 0; i < tmp.dim.getDataLen(); ++i)
     tmp.data[i] = 1.0;
-  cblas_saxpy(dim.getDataLen(), value, tmp.data.data(), 1, this->data.data(), 1);
+  cblas_saxpy(dim.getDataLen(), value, tmp.data.data(), 1, this->data.data(),
+              1);
 #else
   for (unsigned int k = 0; k < dim.getDataLen(); ++k) {
     this->data[k] = this->data[k] + value;
