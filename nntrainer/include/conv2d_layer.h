@@ -37,6 +37,8 @@ public:
    * @brief     Property Enumeration
    *            0. input shape : string
    *            1. bias zero : bool
+   *            2. normalization : bool
+   *            3. standardization : bool
    *            4. activation : string (type)
    *            6. weight_decay : string (type)
    *            7. weight_decay_lambda : float
@@ -51,6 +53,8 @@ public:
   enum class PropertyType {
     input_shape = 0,
     bias_zero = 1,
+    normalization = 2,
+    standardization = 3,
     activation = 4,
     weight_decay = 6,
     weight_decay_lambda = 7,
@@ -71,6 +75,8 @@ public:
     padding[1] = 0;
     kernel_size[0] = 0;
     kernel_size[1] = 0;
+    normalization = false;
+    standardization = false;
     setType(LAYER_CONV2D);
   };
 
@@ -149,12 +155,44 @@ public:
   int setFilter(int f);
 
   /**
+   * @brief     set normalization
+   * @param[in] enable boolean
+   */
+  void setNormalization(bool enable) { this->normalization = enable; };
+
+  /**
+   * @brief     set standardization
+   * @param[in] enable boolean
+   */
+  void setStandardization(bool enable) { this->standardization = enable; };
+
+  /**
    * @brief     set Property of layer
    * @param[in] values values of property
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
   int setProperty(std::vector<std::string> values);
+
+  /**
+   * @brief     zero padding
+   * @param[in] batch batch order 
+   * @param[in] in input tensor
+   * @param[in] padding padding value
+   * @retval tensor padded tensor
+   */
+  Tensor zero_pad(int batch, Tensor in, unsigned int const *padding);
+
+  /**
+   * @brief     calculation convolution
+   * @param[in] in input tensor
+   * @param[in] kernel convolution kernel
+   * @param[in] stride stride value : x, y direction
+   * @param[out] status output of status
+   * @retval Tensor outoput tensor
+   */
+  Tensor conv2d(Tensor in, Tensor kernel, unsigned int const *stride,
+                int &status);
 
   /* TO DO : support keras type of padding */
   /* enum class PaddingType { */
@@ -170,7 +208,9 @@ private:
   unsigned int stride[CONV2D_DIM];
   unsigned int padding[CONV2D_DIM];
   std::vector<Tensor> filters;
-  std::vector<Tensor> bias;
+  std::vector<float> bias;
+  bool normalization;
+  bool standardization;
 };
 
 } // namespace nntrainer

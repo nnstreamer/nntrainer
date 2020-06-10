@@ -60,6 +60,8 @@ private:
   unsigned int feature_len;
 };
 
+std::ostream &operator<<(std::ostream &out, TensorDim const &d);
+
 } /* namespace nntrainer */
 
 #endif /* __cplusplus */

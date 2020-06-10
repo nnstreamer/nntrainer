@@ -46,11 +46,11 @@ int Conv2DLayer::initialize(bool last) {
     NN_RETURN_STATUS();
     filters.push_back(Knl);
 
-    Tensor B = Tensor(1, 1);
+    float B;
     if (init_zero) {
-      B.setZero();
+      B = 0.0;
     } else {
-      B = B.apply(random);
+      B = random(B);
     }
     bias.push_back(B);
   }
@@ -62,28 +62,53 @@ int Conv2DLayer::initialize(bool last) {
   output_dim.width(
     (input_dim.width() - kernel_size[1] + 2 * padding[1]) / stride[1] + 1);
 
+  hidden = Tensor(output_dim);
+
   return status;
 }
 
 void Conv2DLayer::read(std::ifstream &file) {
   std::for_each(filters.begin(), filters.end(),
                 [&](Tensor &i) { i.read(file); });
-  std::for_each(bias.begin(), bias.end(), [&](Tensor &i) { i.read(file); });
+  std::for_each(bias.begin(), bias.end(),
+                [&](float &i) { file.read((char *)&i, sizeof(float)); });
 }
 
 void Conv2DLayer::save(std::ofstream &file) {
   std::for_each(filters.begin(), filters.end(),
                 [&](Tensor i) { i.save(file); });
-  std::for_each(bias.begin(), bias.end(), [&](Tensor i) { i.save(file); });
+  std::for_each(bias.begin(), bias.end(),
+                [&](float &i) { file.write((char *)&i, sizeof(float)); });
 }
 
 Tensor Conv2DLayer::forwarding(Tensor in, int &status) {
-  // NYI
-  return in;
+  if (normalization) {
+    input = in.normalization();
+  } else {
+    input = in;
+  }
+
+  if (standardization) {
+    input = input.standardization();
+  }
+
+  for (unsigned int b = 0; b < in.getDim().batch(); ++b) {
+    Tensor in_padded = zero_pad(b, input, padding);
+    for (unsigned int i = 0; i < filter_size; ++i) {
+      Tensor result =
+        conv2d(in_padded, filters[i], stride, status).add(bias[i]);
+      memcpy(hidden.getAddress(b * hidden.getDim().getFeatureLen() +
+                               i * hidden.getDim().height() *
+                                 hidden.getDim().width()),
+             result.getData(), result.getDim().getDataLen() * sizeof(float));
+    }
+  }
+
+  return hidden.apply(activation);
 };
 
 Tensor Conv2DLayer::forwarding(Tensor in, Tensor output, int &status) {
-  return in;
+  return forwarding(in, status);
 }
 
 Tensor Conv2DLayer::backwarding(Tensor in, int iteration) {
@@ -207,6 +232,14 @@ int Conv2DLayer::setProperty(std::vector<std::string> values) {
       status = getValues(CONV2D_DIM, value, (int *)(padding));
       NN_RETURN_STATUS();
       break;
+    case PropertyType::normalization:
+      status = setBoolean(normalization, value);
+      NN_RETURN_STATUS();
+      break;
+    case PropertyType::standardization:
+      status = setBoolean(standardization, value);
+      NN_RETURN_STATUS();
+      break;
     default:
       ml_loge("Error: Unknown Layer Property Key : %s", key.c_str());
       status = ML_ERROR_INVALID_PARAMETER;
@@ -214,6 +247,90 @@ int Conv2DLayer::setProperty(std::vector<std::string> values) {
     }
   }
   return status;
+}
+
+Tensor Conv2DLayer::zero_pad(int batch, Tensor in,
+                             unsigned int const *padding) {
+  unsigned int c = in.getDim().channel();
+  unsigned int h = in.getDim().height();
+  unsigned int w = in.getDim().width();
+
+  unsigned int height_p = h + padding[0] * 2;
+  unsigned int width_p = w + padding[1] * 2;
+
+  unsigned int height_p_h = h + padding[0];
+  unsigned int width_p_h = w + padding[1];
+
+  Tensor output(1, c, height_p, width_p);
+
+  if (padding[0] != 0 || padding[1] != 0) {
+    for (unsigned int j = 0; j < c; ++j) {
+      for (unsigned int k = 0; k < padding[0]; ++k) {
+        for (unsigned int l = 0; l < width_p; ++l) {
+          output.setValue(0, j, k, l, 0.0);
+          output.setValue(0, j, k + height_p_h, l, 0.0);
+        }
+      }
+
+      for (unsigned int l = 0; l < padding[1]; ++l) {
+        for (unsigned int k = padding[0]; k < h; ++k) {
+          output.setValue(0, j, k, l, 0.0);
+          output.setValue(0, j, k, l + width_p_h, 0.0);
+        }
+      }
+    }
+  }
+
+  for (unsigned int j = 0; j < c; ++j) {
+    for (unsigned int k = 0; k < h; ++k) {
+      for (unsigned int l = 0; l < w; ++l) {
+        output.setValue(0, j, k + padding[0], l + padding[1],
+                        in.getValue(batch, j, k, l));
+      }
+    }
+  }
+
+  return output;
+}
+Tensor Conv2DLayer::conv2d(Tensor in, Tensor kernel, unsigned int const *stride,
+                           int &status) {
+
+  unsigned int channel = in.getDim().channel();
+  unsigned int height = in.getDim().height();
+  unsigned int width = in.getDim().width();
+  unsigned int k_width = kernel.getDim().width();
+  unsigned int k_height = kernel.getDim().height();
+
+  Tensor output(output_dim.height(), output_dim.width());
+
+  if (in.getDim().channel() != kernel.getDim().channel()) {
+    ml_loge("Error: Input and Kenel Dimension is not match!");
+    status = ML_ERROR_INVALID_PARAMETER;
+    return output;
+  }
+
+  // Optimizer This routine : There are lots of dulicated calculations
+  unsigned int I = 0;
+  unsigned int J = 0;
+  for (unsigned int j = 0; j <= height - k_height; j += stride[0]) {
+    J = 0;
+    for (unsigned int k = 0; k <= width - k_width; k += stride[1]) {
+      float sum = 0.0;
+      for (unsigned int i = 0; i < channel; ++i) {
+        for (unsigned int ki = 0; ki < k_height; ++ki) {
+          for (unsigned int kj = 0; kj < k_width; ++kj) {
+            sum +=
+              kernel.getValue(0, i, ki, kj) * in.getValue(0, i, j + ki, k + kj);
+          }
+        }
+      }
+      output.setValue(0, 0, I, J, sum);
+      J++;
+    }
+    I++;
+  }
+
+  return output;
 }
 
 } /* namespace nntrainer */
