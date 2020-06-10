@@ -36,6 +36,7 @@ override_dh_auto_test:
 	tar xzf ./packaging/valset.tar.gz -C build
 	tar xzf ./packaging/testset.tar.gz -C build
 	cp ./packaging/label.dat build
+	python3 ./test/input_gen/genInput.py conv2dLayer.in 2 3 28 28
 	./packaging/run_unittests.sh ./test
 
 override_dh_auto_install:

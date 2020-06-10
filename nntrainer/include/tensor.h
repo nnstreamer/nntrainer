@@ -400,7 +400,15 @@ public:
    */
   float *getData() { return data.data(); }
 
+
   const float *getData() const { return data.data(); }
+
+  /**
+   * @brief     i data index
+   * @retval    address of ith data
+   */
+  float *getAddress(unsigned int i);
+
 
 private:
   /**< handle the data as a std::vector type */

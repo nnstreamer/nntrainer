@@ -758,6 +758,14 @@ std::ostream &operator<<(std::ostream &out, Tensor const &m) {
   return out;
 }
 
+float *Tensor::getAddress(unsigned int i) {
+  if (i > this->dim.getDataLen()) {
+    ml_loge("Error: Index out of bounds");
+    return nullptr;
+  }
+  return &data[i];
+}
+
 Tensor &Tensor::copy(const Tensor &from) {
   if (this != &from && from.dim.getDataLen() != 0) {
     dim.channel(from.dim.channel());
@@ -865,6 +873,7 @@ Tensor Tensor::normalization() const {
       }
     }
   }
+
   float dif = Max - Min;
 
   for (unsigned int k = 0; k < dim.batch(); ++k) {

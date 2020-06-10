@@ -76,4 +76,10 @@ void TensorDim::operator=(const TensorDim &from) {
   feature_len = from.feature_len;
 };
 
+std::ostream &operator<<(std::ostream &out, TensorDim const &d) {
+  out << "Shape : " << d.batch() << ":" << d.channel() << ":" << d.height()
+      << ":" << d.width() << std::endl;
+  return out;
+}
+
 } /* namespace nntrainer */

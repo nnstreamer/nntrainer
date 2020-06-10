@@ -3,6 +3,7 @@
 %define         use_gym 0
 %define		nntrainerapplicationdir	%{_libdir}/nntrainer/bin
 %define         test_script $(pwd)/packaging/run_unittests.sh
+%define         gen_input $(pwd)/test/input_gen/genInput.py
 %bcond_with tizen
 
 Name:		nntrainer
@@ -22,6 +23,8 @@ BuildRequires:	meson >= 0.50.0
 BuildRequires:	openblas-devel
 BuildRequires:	iniparser-devel
 BuildRequires:	gtest-devel
+BuildRequires:	python3
+BuildRequires:	python3-numpy
 
 # OpenAI interface
 
@@ -69,7 +72,6 @@ NNTraier Exmaples for test purpose.
 %if 0%{?testcoverage}
 %package unittest-coverage
 Summary:	NNTrainer UnitTest Coverage Analysis Result
-BuildRequires:	python
 
 %description unittest-coverage
 HTML pages of lcov results of NNTrainer generated during rpmbuild
@@ -108,6 +110,7 @@ tar xzf trainset.tar.gz -C build
 tar xzf valset.tar.gz -C build
 tar xzf testset.tar.gz -C build
 cp label.dat build
+python3 %{gen_input} conv2dLayer.in 2 3 28 28
 bash %{test_script} ./test
 %endif
 
