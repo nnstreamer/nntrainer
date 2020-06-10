@@ -437,6 +437,55 @@ TEST(nntrainer_Conv2DLayer, initialize_01_p) {
 }
 
 /**
+ * @brief Convolution 2D Layer
+ */
+TEST(nntrainer_Conv2DLayer, save_read_01_p) {
+  int status = ML_ERROR_NONE;
+  nntrainer::Conv2DLayer layer;
+  std::vector<std::string> input_str;
+  nntrainer::TensorDim previous_dim;
+  previous_dim.setTensorDim("32:3:28:28");
+
+  input_str.push_back("input_shape=32:3:28:28");
+  input_str.push_back("bias_zero=true");
+  input_str.push_back("activation=sigmoid");
+  input_str.push_back("weight_decay=l2norm");
+  input_str.push_back("weight_decay_lambda = 0.005");
+  input_str.push_back("weight_ini=xavier_uniform");
+  input_str.push_back("filter=6");
+  input_str.push_back("kernel_size= 5,5");
+  input_str.push_back("stride=1, 1");
+  input_str.push_back("padding=0,0");
+
+  status = layer.setProperty(input_str);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  layer.setInputDimension(previous_dim);
+
+  status = layer.initialize(true);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  std::ofstream save_file("save.bin", std::ios::out | std::ios::binary);
+  layer.save(save_file);
+  save_file.close();
+
+  std::ifstream read_file("save.bin");
+  layer.read(read_file);
+  read_file.seekg(0, std::ios::beg);
+
+  std::ofstream save_file2("save1.bin", std::ios::out | std::ios::binary);
+  layer.save(save_file2);
+  save_file2.close();
+
+  std::ifstream read_file2("save1.bin");
+  float d1, d2;
+
+  for (int i = 0; i < (5 * 5 * 3 * 6) + 6; ++i) {
+    read_file.read((char *)&d1, sizeof(float));
+    read_file2.read((char *)&d2, sizeof(float));
+    EXPECT_EQ(d1, d2);
+  }
+}
+
+/**
  * @brief Main gtest
  */
 int main(int argc, char **argv) {
