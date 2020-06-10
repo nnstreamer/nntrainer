@@ -146,7 +146,7 @@ private:
    * @brief     update loss
    * @param[in] l Tensor data to calculate
    */
-  void updateLoss(Tensor l);
+  void updateLoss(Tensor const &l);
   unsigned int unit;
   Tensor weight;
   Tensor bias;

@@ -23,6 +23,7 @@
 
 #include <fc_layer.h>
 #include <layer.h>
+#include <lazy_tensor.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <parse_util.h>
@@ -121,7 +122,7 @@ int FullyConnectedLayer::setProperty(std::vector<std::string> values) {
 
 Tensor FullyConnectedLayer::forwarding(Tensor in, int &status) {
   input = in;
-  hidden = input.dot(weight).add(bias);
+  hidden = input.chain().dot(weight).add_i(bias).run();
 
   if (this->bn_follow)
     return hidden;
@@ -139,7 +140,10 @@ Tensor FullyConnectedLayer::forwarding(Tensor in, Tensor output, int &status) {
     status = ML_ERROR_INVALID_PARAMETER;
   }
   input = in;
-  hidden = input.dot(weight).add(bias);
+
+  // memcopy happens twice at chain() and .dot()
+  hidden = input.chain().dot(weight).add_i(bias).run();
+  
   Tensor y2 = output;
   Tensor y = hidden;
 
@@ -149,49 +153,61 @@ Tensor FullyConnectedLayer::forwarding(Tensor in, Tensor output, int &status) {
     y = y.apply(activation);
   }
 
+  Tensor l;
+
   switch (cost) {
   case COST_MSR: {
-    Tensor sub = y2.subtract(y);
-    Tensor l = (sub.multiply(sub)).sum().multiply(0.5);
+    // y2 <- y2 - y;
+    y2.subtract_i(y);
 
-    updateLoss(l);
+    l = y2.chain().multiply_i(y2).sum().multiply_i(0.5).run();
+
   } break;
   case COST_ENTROPY: {
-    Tensor l;
     if (activation_type == ACT_SIGMOID) {
-      l = (y2.multiply(y.apply(logFloat))
-             .add((y2.multiply(-1.0).add(1.0))
-                    .multiply((y.multiply(-1.0).add(1.0)).apply(logFloat))))
-            .multiply(-1.0 / (y2.getWidth()))
+      // todo: change this to apply_i
+      Tensor k = y.chain().multiply_i(-1.0).add_i(1.0).run().apply(logFloat);
+
+      // (1 - y2) * log( 1 - y )
+      k = y2.chain().multiply_i(-1.0).add_i(1.0).multiply_i(k).run();
+
+      l = y2.chain()
+            .multiply_i(y.apply(logFloat))
+            .add_i(k)
+            .multiply_i(-1.0 / y2.getWidth())
+            .run()
             .sum();
     } else if (activation_type == ACT_SOFTMAX) {
-      l =
-        (y2.multiply(y.apply(logFloat))).multiply(-1.0 / (y2.getWidth())).sum();
+      l = y2.chain()
+            .multiply_i(y.apply(logFloat))
+            .multiply_i(-1.0 / y2.getWidth())
+            .run()
+            .sum();
     } else {
       ml_loge("Only support sigmoid & softmax for cross entropy loss");
       exit(0);
     }
 
-    updateLoss(l);
   } break;
   case COST_UNKNOWN:
   default:
     break;
   }
+  updateLoss(l);
   return y;
 }
 
-void FullyConnectedLayer::updateLoss(Tensor l) {
+void FullyConnectedLayer::updateLoss(const Tensor& l) {
   float loss_sum = 0.0;
-  std::vector<float> t = l.mat2vec();
+  const float *data = l.getData();
 
   for (int i = 0; i < l.getBatch(); i++) {
-    loss_sum += t[i];
+    loss_sum += data[i];
   }
   loss = loss_sum / (float)l.getBatch();
 
   if (weight_decay.type == WeightDecayType::l2norm) {
-    loss += weight_decay.lambda * 0.5 * (weight.l2norm());
+    loss += weight_decay.lambda * 0.5f * (weight.l2norm());
   }
 }
 
