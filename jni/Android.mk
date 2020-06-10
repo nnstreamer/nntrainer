@@ -23,6 +23,7 @@ endif
 
 NNTRAINER_SRCS := $(NNTRAINER_ROOT)/nntrainer/src/neuralnet.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/src/tensor.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/src/lazy_tensor.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/src/layer.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/src/input_layer.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/src/fc_layer.cpp \
