@@ -33,16 +33,102 @@ public:
   LazyTensor(const Tensor &from) { target.copy(from); };
 
   /**
-   * @brief Wrapper method of add_i
+   * @brief     Wrapper method of add_i. see tensor.h for more detail
+   * @param[in] value to be added
+   * @retval    LazyTensor *this
+   */
+  LazyTensor &add_i(float const &value);
+
+  /**
+   * @brief     Wrapper method of add_i. see tensor.h for more detail
+   * @param[in] m Tensor to be added
+   * @retval    LazyTensor *this
+   */
+  LazyTensor &add_i(Tensor const &m);
+
+  /**
+   * @brief     Wrapper method of subtract_i. see tensor.h for more detail
+   * @param[in] m Tensor to subtract
+   * @retval    LazyTensor *this
+   */
+  LazyTensor &subtract_i(Tensor const &m);
+
+  /**
+   * @brief     Wrapper method of subtract_i. see tensor.h for more detail
+   * @param[in] value value to subtract
+   * @retval    LazyTensor *this
+   */
+  LazyTensor &subtract_i(float const &value);
+
+  /**
+   * @brief Wrapper method of multiply_i. see tensor.h for more detail
+   * @param[in] value to be added
    * @retval LazyTensor *this
    */
-  LazyTensor add_i(float const &value);
+  LazyTensor &multiply_i(float const &value);
+
+  /**
+   * @brief     Wrapper method of multiply_i. see tensor.h for more detail
+   * @param[in] m Tensor to be multiplied
+   * @retval    LazyTensor *this
+   */
+  LazyTensor &multiply_i(Tensor const &m);
+
+  /**
+   * @brief     Wrapper method of divide_i. see tensor.h for more detail
+   * @param[in] value divisor
+   * @retval    LazyTensor *this
+   */
+  LazyTensor &divide_i(float const &value);
+
+ /**
+   * @brief     Wrapper method of divide_i. see tensor.h for more detail
+   * @param[in] m Tensor to for division
+   * @retval    LazyTensor *this
+   */
+  LazyTensor &divide_i(Tensor const &m);
+
+  /**
+   * @brief     Wrapper method of dot. see tensor.h for more detail (memcopy happens)
+   * @param[in] m Tensor
+   * @retval    LazyTensor *this
+   */
+  LazyTensor &dot(Tensor const &m);
+
+  /**
+   * @brief     Wrapper method of transpose. see tensor.h for more detail (memcopy happens)
+   * @param[in] direction to transpose ex) 0:2:1
+   * @retval    LazyTensor *this
+   */
+  LazyTensor &transpose(std::string direction) ;
+
+  /**
+   * @brief     Wrapper method of sum. see tensor.h for more detail (memcopy happens)
+   * @retval    LazyTensor *this
+   */
+  LazyTensor &sum();
+
+  /**
+   * @brief     Wrapper method of sum. see tensor.h for more detail (memcopy happens)
+   *            0 : batch direction
+   *            1 : channel direction
+   *            2 : channel direction
+   *            3 : channel direction
+   * @retval    LazyTensor *this
+   */
+  LazyTensor &sum(int axis);
+
+  /**
+   * @brief     Wrapper method of average. see tensor.h for more detail (memcopy happens)
+   * @retval    LazyTensor *this
+   */
+  LazyTensor &average();
 
   /**
    * @brief execute the call_chain to get the tensor
    * @retval calculated tensor
    */
-  Tensor &run();
+  Tensor run();
 
 private:
   /**< handle the data as a std::vector type */

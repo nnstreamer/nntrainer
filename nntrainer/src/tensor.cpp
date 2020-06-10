@@ -720,18 +720,18 @@ Tensor Tensor::transpose(std::string direction) const {
   return result;
 }
 
-Tensor Tensor::apply(float (*function)(float)) const {
+Tensor Tensor::apply(std::function<float(float)> f) const {
   Tensor result(dim.batch(), dim.channel(), dim.height(), dim.width());
   unsigned int i;
 
   for (i = 0; i < dim.getDataLen(); ++i)
-    result.data[i] = (*function)(data[i]);
+    result.data[i] = f(data[i]);
 
   return result;
 }
 
-Tensor Tensor::apply(Tensor (*function)(Tensor)) const {
-  return (*function)(*this);
+Tensor Tensor::apply(std::function<Tensor(Tensor)> f) const {
+  return f(*this);
 }
 
 void Tensor::print(std::ostream &out) const {
