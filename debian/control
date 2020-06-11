@@ -6,7 +6,8 @@ Build-Depends: gcc-9 | gcc-8 | gcc-7 | gcc-6 | gcc-5 (>=5.4),
  pkg-config, cmake, ninja-build, meson (>=0.50), debhelper (>=9), libboost-dev,
  libopenblas-dev, libiniparser-dev, tensorflow-lite-dev, libjsoncpp-dev,
  libcurl3-gnutls-dev | libcurl4-gnutls-dev | libcurl3-openssl-dev |
- libcurl4-openssl-dev | libcurl3-nns-dev | libcurl4-nns-dev, libgtest-dev
+ libcurl4-openssl-dev | libcurl3-nns-dev | libcurl4-nns-dev, libgtest-dev,
+ libflatbuffers-dev
 Standards-Version: 3.9.6
 Homepage: https://github.com/nnstreamer/nntrainer
 
