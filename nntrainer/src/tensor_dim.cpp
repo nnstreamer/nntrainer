@@ -26,22 +26,11 @@ void TensorDim::resetLen() {
   feature_len = dim[1] * dim[2] * dim[3];
   len = dim[0] * feature_len;
 }
-void TensorDim::batch(unsigned int b) {
-  dim[0] = b;
+
+void TensorDim::setTensorDim(unsigned int idx, unsigned int value) {
+  dim[idx] = value;
   resetLen();
-};
-void TensorDim::channel(unsigned int c) {
-  dim[1] = c;
-  resetLen();
-};
-void TensorDim::height(unsigned int h) {
-  dim[2] = h;
-  resetLen();
-};
-void TensorDim::width(unsigned int w) {
-  dim[3] = w;
-  resetLen();
-};
+}
 
 int TensorDim::setTensorDim(std::string input_shape) {
   int status = ML_ERROR_NONE;
@@ -50,7 +39,7 @@ int TensorDim::setTensorDim(std::string input_shape) {
     std::sregex_iterator(input_shape.begin(), input_shape.end(), words_regex);
   auto words_end = std::sregex_iterator();
   int cur_dim = std::distance(words_begin, words_end);
-  if (cur_dim > 4) {
+  if (cur_dim > MAXDIM) {
     ml_loge("Tensor Dimension should be less than 4");
     return ML_ERROR_INVALID_PARAMETER;
   }
@@ -69,7 +58,7 @@ int TensorDim::setTensorDim(std::string input_shape) {
 }
 
 void TensorDim::operator=(const TensorDim &from) {
-  for (int i = 0; i < 4; ++i) {
+  for (int i = 0; i < MAXDIM; ++i) {
     this->dim[i] = from.dim[i];
   }
   len = from.len;

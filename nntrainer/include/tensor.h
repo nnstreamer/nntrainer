@@ -57,7 +57,7 @@ public:
    * @brief     Constructor of Tensor with batch size one
    * @param[in] dim TensorDim
    */
-  Tensor(TensorDim dim);
+  Tensor(const TensorDim dim);
 
   /**
    * @brief     Constructor of Tensor with batch size one
@@ -112,7 +112,7 @@ public:
                  unsigned int w);
 
   /**
-   * @brief     Multiply value element by element immediately 
+   * @brief     Multiply value element by element immediately
    * @param[in] value multiplier
    * @retval    #ML_ERROR_INVALID_PARAMETER Tensor dimension is not right
    * @retval    #ML_ERROR_NONE Successful
@@ -127,7 +127,7 @@ public:
   Tensor multiply(float const &value);
 
   /**
-   * @brief     Divide value element by element immediately 
+   * @brief     Divide value element by element immediately
    * @param[in] value divisor
    * @retval    #ML_ERROR_INVALID_PARAMETER Tensor dimension is not right
    * @retval    #ML_ERROR_NONE Successful
@@ -215,7 +215,6 @@ public:
    */
   Tensor multiply(Tensor const &m) const;
 
-
   /**
    * @brief     divide Tensor Elementwise
    * @param[in] m Tensor to be multiplied
@@ -246,25 +245,29 @@ public:
 
   /**
    * @brief     sum all the Tensor elements according to the batch
-   * @retval    Calculated Tensor(batch, 1, 1)
+   * @retval    Calculated Tensor(batch, 1, 1, 1)
    */
-  Tensor sum() const;
+  Tensor sum_by_batch() const;
 
   /**
    * @brief     sum all the Tensor elements according to the axis
    *            0 : batch direction
    *            1 : channel direction
-   *            2 : channel direction
-   *            3 : channel direction
+   *            2 : height direction
+   *            3 : width direction
    * @retval    Calculated Tensor
    */
-  Tensor sum(int axis) const;
+  Tensor sum(int axis=0) const;
 
   /**
-   * @brief     Averaging the Tensor elements according to the batch
-   * @retval    Calculated Tensor(1, height, width)
+   * @brief     Averaging the Tensor elements according to the axis
+   *            0 : batch direction
+   *            1 : channel direction
+   *            2 : height direction
+   *            3 : width direction
+   * @retval    Calculated Tensor
    */
-  Tensor average() const;
+  Tensor average(int axis=0) const;
 
   /**
    * @brief     Anchor a starting point to defer following evaluation

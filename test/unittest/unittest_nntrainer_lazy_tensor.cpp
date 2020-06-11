@@ -166,7 +166,7 @@ TEST_F(nntrainer_LazyTensorOpsTest, LazyTensorOps_07_n) {
 TEST_F(nntrainer_LazyTensorOpsTest, LazyTensorOps_08_p) {
   target = constant(1.0, 4, 4, 4, 4);
   expected = constant(64.0, 4, 1, 1, 1);
-  test_eq(target.chain().sum().run(), expected);
+  test_eq(target.chain().sum_by_batch().run(), expected);
 
   expected = constant(4.0, 1, 4, 4, 4);
   test_eq(target.chain().sum(0).run(), expected);

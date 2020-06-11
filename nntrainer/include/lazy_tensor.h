@@ -103,26 +103,30 @@ public:
   LazyTensor &transpose(std::string direction) ;
 
   /**
-   * @brief     Wrapper method of sum. see tensor.h for more detail (memcopy happens)
+   * @brief     Wrapper method of sum_by_batch. see tensor.h for more detail (memcopy happens)
    * @retval    LazyTensor *this
    */
-  LazyTensor &sum();
+  LazyTensor &sum_by_batch();
 
   /**
    * @brief     Wrapper method of sum. see tensor.h for more detail (memcopy happens)
    *            0 : batch direction
    *            1 : channel direction
-   *            2 : channel direction
-   *            3 : channel direction
+   *            2 : height direction
+   *            3 : width direction
    * @retval    LazyTensor *this
    */
-  LazyTensor &sum(int axis);
+  LazyTensor &sum(int axis=0);
 
   /**
    * @brief     Wrapper method of average. see tensor.h for more detail (memcopy happens)
+   *            0 : batch direction
+   *            1 : channel direction
+   *            2 : height direction
+   *            3 : width direction
    * @retval    LazyTensor *this
    */
-  LazyTensor &average();
+  LazyTensor &average(int axis=0);
 
   /**
    * @brief execute the call_chain to get the tensor
