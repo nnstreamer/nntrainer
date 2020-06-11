@@ -435,11 +435,10 @@ Tensor Tensor::sum() const {
 #else
   unsigned int i;
   for (k = 0; k < dim.batch(); ++k) {
-
     unsigned int id = k * dim.getFeatureLen();
-    ret.data[id] = 0.0;
+    ret.data[k] = 0.0;
     for (i = 0; i < dim.getFeatureLen(); ++i) {
-      ret.data[id] += data[id + i];
+      ret.data[k] += data[id + i];
     }
   }
 #endif
@@ -770,7 +769,7 @@ Tensor &Tensor::copy(const Tensor &from) {
 #ifdef USE_BLAS
     cblas_scopy(dim.getDataLen(), from.data.data(), 1, this->data.data(), 1);
 #else
-    for (int i = 0; i < dim.getDataLen(); ++i)
+    for (unsigned int i = 0; i < dim.getDataLen(); ++i)
       data[i] = from.data[i];
 #endif
   }
@@ -837,8 +836,9 @@ float Tensor::l2norm() const {
   float tmp;
   unsigned int len = dim.getDataLen();
 
+  #pragma omp parallel for private(tmp) reduction(+:sum)
   for (unsigned int i = 0; i < len; i++) {
-    tmp = this->data[i];
+    tmp = data[i];
     sum += tmp * tmp;
   }
 

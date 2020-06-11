@@ -77,6 +77,10 @@ nntrainer_conf.set('EXEC_PREFIX', nntrainer_bindir)
 nntrainer_conf.set('LIB_INSTALL_DIR', nntrainer_libdir)
 nntrainer_conf.set('INCLUDE_INSTALL_DIR', nntrainer_includedir)
 
+dummy_dep = dependency('', required: false)
+openmp_dep = dependency('openmp')
+
+blas_dep = dummy_dep
 # Dependencies
 if get_option('enable-blas')
   add_project_arguments('-DUSE_BLAS=1', language:['c','cpp'])
