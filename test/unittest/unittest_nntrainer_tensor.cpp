@@ -731,7 +731,7 @@ TEST(nntrainer_Tensor, sum_03_p) {
   GEN_TEST_INPUT(input, i * (batch * height * channel) + j * (height * width) +
                           k * width + l + 1);
 
-  nntrainer::Tensor result = input.sum();
+  nntrainer::Tensor result = input.sum_by_batch();
   if (result.getValue(0, 0, 0, 0) != 820 ||
       result.getValue(1, 0, 0, 0) != 1300 ||
       result.getValue(2, 0, 0, 0) != 1780)

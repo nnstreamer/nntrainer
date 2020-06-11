@@ -143,7 +143,7 @@ Tensor FullyConnectedLayer::forwarding(Tensor in, Tensor output, int &status) {
 
   // memcopy happens twice at chain() and .dot()
   hidden = input.chain().dot(weight).add_i(bias).run();
-  
+
   Tensor y2 = output;
   Tensor y = hidden;
 
@@ -160,7 +160,7 @@ Tensor FullyConnectedLayer::forwarding(Tensor in, Tensor output, int &status) {
     // y2 <- y2 - y;
     y2.subtract_i(y);
 
-    l = y2.chain().multiply_i(y2).sum().multiply_i(0.5).run();
+    l = y2.chain().multiply_i(y2).sum_by_batch().multiply_i(0.5).run();
 
   } break;
   case COST_ENTROPY: {
@@ -176,13 +176,13 @@ Tensor FullyConnectedLayer::forwarding(Tensor in, Tensor output, int &status) {
             .add_i(k)
             .multiply_i(-1.0 / y2.getWidth())
             .run()
-            .sum();
+            .sum_by_batch();
     } else if (activation_type == ACT_SOFTMAX) {
       l = y2.chain()
             .multiply_i(y.apply(logFloat))
             .multiply_i(-1.0 / y2.getWidth())
             .run()
-            .sum();
+            .sum_by_batch();
     } else {
       ml_loge("Only support sigmoid & softmax for cross entropy loss");
       exit(0);
@@ -257,7 +257,7 @@ Tensor FullyConnectedLayer::backwarding(Tensor derivative, int iteration) {
     switch (cost) {
     case COST_MSR: {
       Tensor sub = y2.subtract(y);
-      Tensor l = (sub.multiply(sub)).sum().multiply(0.5);
+      Tensor l = (sub.multiply(sub)).sum_by_batch().multiply(0.5);
 
       updateLoss(l);
 
@@ -275,12 +275,12 @@ Tensor FullyConnectedLayer::backwarding(Tensor derivative, int iteration) {
                .add((y2.multiply(-1.0).add(1.0))
                       .multiply((y.multiply(-1.0).add(1.0)).apply(logFloat))))
               .multiply(-1.0 / (y2.getWidth()))
-              .sum();
+              .sum_by_batch();
       } else if (activation_type == ACT_SOFTMAX) {
         djdb = y.subtract(y2).multiply(1.0 / y.getWidth());
         l = (y2.multiply(y.apply(logFloat)))
               .multiply(-1.0 / (y2.getWidth()))
-              .sum();
+              .sum_by_batch();
       } else {
         ml_loge("Only support sigmoid & softmax for cross entropy loss");
         exit(0);

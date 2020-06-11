@@ -43,19 +43,20 @@ public:
   unsigned int getFeatureLen() const { return feature_len; };
 
   void resetLen();
-  void batch(unsigned int b);
-  void channel(unsigned int c);
-  void height(unsigned int h);
-  void width(unsigned int w);
+  void batch(unsigned int b) { setTensorDim(0, b); }
+  void channel(unsigned int c) { setTensorDim(1, c); }
+  void height(unsigned int h) { setTensorDim(2, h); }
+  void width(unsigned int w) { setTensorDim(3, w); }
 
-  unsigned int *getDim() { return dim; }
+  const unsigned int *getDim() const { return dim; }
 
+  void setTensorDim(unsigned int idx, unsigned int value);
   int setTensorDim(std::string input_shape);
 
   void operator=(const TensorDim &from);
 
 private:
-  unsigned int dim[4];
+  unsigned int dim[MAXDIM];
   unsigned int len;
   unsigned int feature_len;
 };

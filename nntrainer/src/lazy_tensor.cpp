@@ -149,10 +149,10 @@ LazyTensor &LazyTensor::transpose(std::string direction) {
  * @param[in] direction to transpose ex) 0:2:1
  * @retval    LazyTensor *this
  */
-LazyTensor &LazyTensor::sum() {
+LazyTensor &LazyTensor::sum_by_batch() {
   auto f = [](Tensor &t) mutable -> int {
     try {
-      t = t.sum();
+      t = t.sum_by_batch();
       return ML_ERROR_NONE;
     } catch (std::runtime_error &e) {
       return ML_ERROR_INVALID_PARAMETER;
@@ -188,10 +188,10 @@ LazyTensor &LazyTensor::sum(int axis) {
  * happens)
  * @retval    LazyTensor *this
  */
-LazyTensor &LazyTensor::average() {
-  auto f = [](Tensor &t) mutable -> int {
+LazyTensor &LazyTensor::average(int axis) {
+  auto f = [axis](Tensor &t) mutable -> int {
     try {
-      t = t.average();
+      t = t.average(axis);
       return ML_ERROR_NONE;
     } catch (std::runtime_error &e) {
       return ML_ERROR_INVALID_PARAMETER;

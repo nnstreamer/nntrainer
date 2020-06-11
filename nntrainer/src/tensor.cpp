@@ -53,7 +53,7 @@
 
 namespace nntrainer {
 
-Tensor::Tensor(TensorDim d) {
+Tensor::Tensor(const TensorDim d) {
   dim = d;
   this->data = std::vector<float>(dim.getDataLen());
   setZero();
@@ -425,7 +425,7 @@ Tensor Tensor::divide(Tensor const &m) const {
  * This is to sum the Tensor data according to the dim.batch().
  * Therefore the result has M(dim.batch(), 1, 1) dimension.
  */
-Tensor Tensor::sum() const {
+Tensor Tensor::sum_by_batch() const {
   unsigned int k;
   Tensor ret(dim.batch(), 1, 1, 1);
 #ifdef USE_BLAS
@@ -446,6 +446,9 @@ Tensor Tensor::sum() const {
   return ret;
 }
 
+/**
+ * @brief Calculate sum according to the axis.
+ */
 Tensor Tensor::sum(int axis) const {
   Tensor ret;
   switch (axis) {
@@ -808,16 +811,18 @@ void Tensor::read(std::ifstream &file) {
 }
 
 /**
- * This calculates average value according to the dim.batch() direction.
- * That is the why it has (1, dim.height(), dim.width()) dimension.
+ * @brief Calculate average value according to the axis.
  */
-Tensor Tensor::average() const {
-  if (dim.batch() == 1)
+Tensor Tensor::average(int axis) const {
+  const unsigned int *dim_arr = dim.getDim();
+  if (axis >= MAXDIM || dim_arr[axis] == 1)
     return *this;
 
-  Tensor result(1, dim.channel(), dim.height(), dim.width());
+  TensorDim out_dim = dim;
+  out_dim.setTensorDim(axis, 1);
 
-  result = this->sum(0);
+  Tensor result(out_dim);
+  result = this->sum(axis);
   result.divide_i(dim.batch());
 
   return result;
