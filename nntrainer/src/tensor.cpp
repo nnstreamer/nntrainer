@@ -832,7 +832,7 @@ void Tensor::setZero() {
 
 int Tensor::argmax() {
   int index = 0;
-  float maximum = 0.0;
+  float maximum = min_limits;
   for (unsigned int i = 0; i < dim.getDataLen(); i++) {
     if (this->data[i] > maximum) {
       maximum = this->data[i];
@@ -861,9 +861,9 @@ float Tensor::l2norm() const {
 }
 
 Tensor Tensor::normalization() const {
-  Tensor results(dim);
-  float Min = 1000000.0;
-  float Max = 0.0;
+  Tensor results;
+  float Min = max_limits;
+  float Max = min_limits;
 
   for (unsigned int k = 0; k < dim.batch(); ++k) {
     for (unsigned int l = 0; l < dim.channel(); ++l) {
@@ -883,18 +883,8 @@ Tensor Tensor::normalization() const {
 
   float dif = Max - Min;
 
-  for (unsigned int k = 0; k < dim.batch(); ++k) {
-    for (unsigned int l = 0; l < dim.channel(); ++l) {
-      for (unsigned int i = 0; i < dim.height(); ++i) {
-        for (unsigned int j = 0; j < dim.width(); ++j) {
-          unsigned int id = k * dim.getFeatureLen() +
-                            l * dim.height() * dim.width() + i * dim.width() +
-                            j;
-          results.data[id] = (this->data[id] - Min) / dif;
-        }
-      }
-    }
-  }
+  results = this->chain().subtract_i(Min).divide_i(dif).run();
+  
   return results;
 }
 
