@@ -494,19 +494,18 @@ TEST(nntrainer_Conv2DLayer, forwarding_01_p) {
   nntrainer::Conv2DLayer layer;
   std::vector<std::string> input_str;
   nntrainer::TensorDim previous_dim;
-  previous_dim.setTensorDim("2:3:28:28");
+  previous_dim.setTensorDim("1:3:7:7");
 
-  input_str.push_back("input_shape=2:3:28:28");
+  input_str.push_back("input_shape=1:3:7:7");
   input_str.push_back("bias_zero=true");
   input_str.push_back("activation=sigmoid");
   input_str.push_back("weight_decay=l2norm");
   input_str.push_back("weight_decay_lambda = 0.005");
   input_str.push_back("weight_ini=xavier_uniform");
-  input_str.push_back("filter=6");
-  input_str.push_back("kernel_size= 5,5");
+  input_str.push_back("filter=2");
+  input_str.push_back("kernel_size= 3,3");
   input_str.push_back("stride=1, 1");
   input_str.push_back("padding=0,0");
-  input_str.push_back("normalization=true");
 
   status = layer.setProperty(input_str);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -515,13 +514,27 @@ TEST(nntrainer_Conv2DLayer, forwarding_01_p) {
   status = layer.initialize(true);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  nntrainer::Tensor in(2, 3, 28, 28);
+  nntrainer::Tensor in(1, 3, 7, 7);
+  nntrainer::Tensor result(1, 2, 5, 5);
   nntrainer::Tensor out;
+  float *out_ptr, *golden;
   std::ifstream file("conv2dLayer.in");
   in.read(file);
-
+  file.close();
+  std::ifstream kfile("conv2dKernel.in");
+  layer.read(kfile);
+  kfile.close();
+  std::ifstream rfile("goldenConv2DResult.out");
+  result.read(rfile);
+  rfile.close();
   out = layer.forwarding(in, status);
-  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  golden = result.getData();
+  out_ptr = out.getData();
+
+  for (int i = 0; i < 1 * 2 * 5 * 5; ++i) {
+    EXPECT_FLOAT_EQ(out_ptr[i], golden[i]);
+  }
 }
 
 /**
