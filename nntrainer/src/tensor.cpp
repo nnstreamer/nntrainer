@@ -732,9 +732,7 @@ Tensor Tensor::apply(std::function<float(float)> f) const {
   return result;
 }
 
-Tensor Tensor::apply(std::function<Tensor(Tensor)> f) const {
-  return f(*this);
-}
+Tensor Tensor::apply(std::function<Tensor(Tensor)> f) const { return f(*this); }
 
 void Tensor::print(std::ostream &out) const {
   unsigned int i, j, k, l;
@@ -845,17 +843,21 @@ int Tensor::argmax() {
 }
 
 float Tensor::l2norm() const {
-  float sum = 0.0;
-  float tmp;
   unsigned int len = dim.getDataLen();
 
-  #pragma omp parallel for private(tmp) reduction(+:sum)
+#ifdef USE_BLAS
+  return cblas_snrm2(len, this->getData(), 1);
+#else
+// fix me: to the version that does not allow overflow
+  float sum = 0.0;
+  float tmp;
+#pragma omp parallel for private(tmp) reduction(+ : sum)
   for (unsigned int i = 0; i < len; i++) {
     tmp = data[i];
     sum += tmp * tmp;
   }
-
   return sqrt(sum);
+#endif
 }
 
 Tensor Tensor::normalization() const {
