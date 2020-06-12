@@ -87,6 +87,8 @@ Tensor InputLayer::forwarding(Tensor in, int &status) {
   input = in;
   if (normalization)
     input = input.normalization();
+
+  status = ML_ERROR_NONE;
   return input;
 }
 
