@@ -582,6 +582,8 @@ Tensor NeuralNetwork::forwarding(Tensor input, int &status) {
   Tensor X = input;
   for (unsigned int i = 0; i < layers.size(); i++) {
     X = layers[i]->forwarding(X, status);
+    if (status != ML_ERROR_NONE)
+      break;
   }
   return X;
 }
@@ -594,6 +596,8 @@ Tensor NeuralNetwork::forwarding(Tensor input, Tensor output, int &status) {
   Tensor Y2 = output;
   for (unsigned int i = 0; i < layers.size(); i++) {
     X = layers[i]->forwarding(X, Y2, status);
+    if (status != ML_ERROR_NONE)
+      break;
   }
   return X;
 }
@@ -609,6 +613,8 @@ int NeuralNetwork::backwarding(Tensor input, Tensor expected_output,
   Tensor Y2 = expected_output;
   Tensor X = input;
   Tensor Y = forwarding(X, status);
+  if (status != ML_ERROR_NONE)
+    return status;
 
   for (unsigned int i = layers.size() - 1; i > 0; i--) {
     Y2 = layers[i]->backwarding(Y2, iteration);
@@ -790,7 +796,13 @@ int NeuralNetwork::train_run() {
     while (true) {
       vec_4d in, label;
       if (data_buffer->getDataFromBuffer(nntrainer::BUF_TRAIN, in, label)) {
-        backwarding(nntrainer::Tensor(in), nntrainer::Tensor(label), i);
+        status =
+          backwarding(nntrainer::Tensor(in), nntrainer::Tensor(label), i);
+        if (status != ML_ERROR_NONE) {
+          data_buffer->clear(nntrainer::BUF_TRAIN);
+          ml_loge ("Error: training error in #%d/%d.", i+1, epoch);
+          return status;
+        }
         count++;
         std::cout << "#" << i + 1 << "/" << epoch;
         data_buffer->displayProgress(count, nntrainer::BUF_TRAIN, getLoss());
@@ -799,6 +811,8 @@ int NeuralNetwork::train_run() {
         break;
       }
     }
+
+    saveModel();
     training_loss = getLoss();
 
     std::cout << "#" << i + 1 << "/" << epoch
@@ -822,6 +836,11 @@ int NeuralNetwork::train_run() {
             nntrainer::Tensor X = nntrainer::Tensor({in[i]});
             nntrainer::Tensor Y2 = nntrainer::Tensor({label[i]});
             nntrainer::Tensor Y = forwarding(X, Y2, status);
+            if (status != ML_ERROR_NONE) {
+              ml_loge ("Error: forwarding the network resulted in error.");
+              return status;
+            }
+
             if (Y.argmax() == Y2.argmax())
               right++;
             valloss += getLoss();
@@ -838,7 +857,6 @@ int NeuralNetwork::train_run() {
                 << "% - Validation Loss : " << valloss << " ] ";
     }
     std::cout << std::endl;
-    saveModel();
   }
 
   return status;
