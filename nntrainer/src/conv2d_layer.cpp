@@ -113,7 +113,6 @@ Tensor Conv2DLayer::forwarding(Tensor in, Tensor output, int &status) {
 }
 
 Tensor Conv2DLayer::backwarding(Tensor in, int iteration) {
-  // NYI
   return in;
 }
 
