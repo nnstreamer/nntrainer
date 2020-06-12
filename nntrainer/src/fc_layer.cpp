@@ -132,6 +132,10 @@ Tensor FullyConnectedLayer::forwarding(Tensor in, int &status) {
   } else {
     return hidden.apply(activation);
   }
+
+  if (weight_decay.type == WeightDecayType::l2norm) {
+    loss = weight_decay.lambda * 0.5f * (weight.l2norm());
+  }
 }
 
 Tensor FullyConnectedLayer::forwarding(Tensor in, Tensor output, int &status) {

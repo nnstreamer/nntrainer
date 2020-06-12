@@ -617,9 +617,14 @@ int NeuralNetwork::backwarding(Tensor input, Tensor expected_output,
 }
 
 float NeuralNetwork::getLoss() {
-  std::shared_ptr<FullyConnectedLayer> out =
-    std::static_pointer_cast<FullyConnectedLayer>((layers[layers.size() - 1]));
-  return out->getLoss();
+  loss = 0.0;
+  for (unsigned int i=0; i < layers.size(); i++) {
+    std::shared_ptr<FullyConnectedLayer> out =
+      std::static_pointer_cast<FullyConnectedLayer>((layers[layers.size() - 1]));
+    loss += out->getLoss();
+  }
+
+  return loss;
 }
 
 void NeuralNetwork::setLoss(float l) { loss = l; }
