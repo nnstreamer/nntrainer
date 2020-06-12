@@ -96,10 +96,12 @@ unsigned int parseType(std::string ll, InputType t) {
    *            "fully_conntected" : Fully Connected Layer Object
    *            "batch_normalization" : Batch Normalization Layer Object
    *            "conv2d" : Convolution 2D Layer Object
-   *            "unknown" : Batch Normalization Layer Object
+   *            "pooling2d" : Pooling 2D Layer Object
+   *            "unknown" :
    */
-  std::array<std::string, 5> layer_string = {
-    "input", "fully_connected", "batch_normalization", "conv2d", "unknown"};
+  std::array<std::string, 6> layer_string = {
+    "input",  "fully_connected", "batch_normalization",
+    "conv2d", "pooling2d",       "unknown"};
 
   /**
    * @brief     Weight Initialization Type String from configure file
@@ -129,6 +131,16 @@ unsigned int parseType(std::string ll, InputType t) {
    */
   std::array<std::string, 4> padding_string = {"full", "same", "valid",
                                                "unknown"};
+
+  /**
+   * @brief     Pooling String from configure file
+   *            "max"  : Max Pooling
+   *            "average" : Average Pooling
+   *            "global_max" : Global Max Pooling
+   *            "global_average" : Global Average Pooling
+   */
+  std::array<std::string, 5> pooling_string = {"max", "average", "global_max",
+                                               "global_average", "unknown"};
 
   switch (t) {
   case TOKEN_OPT:
@@ -204,7 +216,15 @@ unsigned int parseType(std::string ll, InputType t) {
     }
     ret = i - 1;
     break;
-
+  case TOKEN_POOLING:
+    for (i = 0; i < pooling_string.size(); i++) {
+      if (!strncasecmp(pooling_string[i].c_str(), ll.c_str(),
+                       pooling_string[i].size())) {
+        return (i);
+      }
+    }
+    ret = i - 1;
+    break;
   case TOKEN_UNKNOWN:
   default:
     ret = 3;
@@ -233,17 +253,21 @@ unsigned int parseLayerProperty(std::string property) {
    * kernel_size = 11
    * stride = 12
    * padding = 13
+   * pooling_size = 14
+   * pooling = 15
    *
    * InputLayer has 0, 1, 2, 3 properties.
    * FullyConnectedLayer has 1, 4, 6, 7, 8, 9 properties.
    * Conv2DLayer has 0, 1, 4, 6, 7, 9, 10, 11, 12, 13 properties.
+   * Pooling2DLayer has 12, 13, 14, 15 properties.
    * BatchNormalizationLayer has 0, 1, 5, 6, 7 properties.
    */
-  std::array<std::string, 15> property_string = {
+  std::array<std::string, 17> property_string = {
     "input_shape", "bias_zero",  "normalization", "standardization",
     "activation",  "epsilon",    "weight_decay",  "weight_decay_lambda",
     "unit",        "weight_ini", "filter",        "kernel_size",
-    "stride",      "padding",    "unknown"};
+    "stride",      "padding",    "pooling_size",  "pooling",
+    "unknown"};
 
   for (i = 0; i < property_string.size(); i++) {
     unsigned int size = (property_string[i].size() > property.size())

@@ -30,7 +30,8 @@ nntrainer_sources = [
   'src/parse_util.cpp',
   'src/tensor_dim.cpp',
   'src/conv2d_layer.cpp',
-  'src/lazy_tensor.cpp'
+  'src/lazy_tensor.cpp',
+  'src/pooling2d_layer.cpp'
 ]
 
 nntrainer_headers = [
@@ -50,7 +51,8 @@ nntrainer_headers = [
   'include/parse_util.h',
   'include/tensor_dim.h',
   'include/conv2d_layer.h',
-  'include/lazy_tensor.h'
+  'include/lazy_tensor.h',
+  'include/pooling2d_layer.h'
 ]
 
 
