@@ -32,7 +32,7 @@ LazyTensor &LazyTensor::add_i(float const &value) {
  * @retval    LazyTensor *this
  */
 LazyTensor &LazyTensor::add_i(Tensor const &m) {
-  auto f = [m](Tensor &t) mutable -> int { return t.add_i(m); };
+  auto f = [&m](Tensor &t) mutable -> int { return t.add_i(m); };
   call_chain.push_back(f);
   return *this;
 }
@@ -43,7 +43,7 @@ LazyTensor &LazyTensor::add_i(Tensor const &m) {
  * @retval    LazyTensor *this
  */
 LazyTensor &LazyTensor::subtract_i(Tensor const &m) {
-  auto f = [m](Tensor &t) mutable -> int { return t.subtract_i(m); };
+  auto f = [&m](Tensor &t) mutable -> int { return t.subtract_i(m); };
   call_chain.push_back(f);
   return *this;
 }
@@ -76,7 +76,7 @@ LazyTensor &LazyTensor::multiply_i(float const &value) {
  * @retval    LazyTensor *this
  */
 LazyTensor &LazyTensor::multiply_i(Tensor const &m) {
-  auto f = [m](Tensor &t) mutable -> int { return t.multiply_i(m); };
+  auto f = [&m](Tensor &t) mutable -> int { return t.multiply_i(m); };
   call_chain.push_back(f);
   return *this;
 }
@@ -98,7 +98,7 @@ LazyTensor &LazyTensor::divide_i(float const &value) {
  * @retval    LazyTensor *this
  */
 LazyTensor &LazyTensor::divide_i(Tensor const &m) {
-  auto f = [m](Tensor &t) mutable -> int { return t.divide_i(m); };
+  auto f = [&m](Tensor &t) mutable -> int { return t.divide_i(m); };
   call_chain.push_back(f);
   return *this;
 }
@@ -110,7 +110,7 @@ LazyTensor &LazyTensor::divide_i(Tensor const &m) {
  * @retval    LazyTensor *this
  */
 LazyTensor &LazyTensor::dot(Tensor const &m) {
-  auto f = [m](Tensor &t) mutable -> int {
+  auto f = [&m](Tensor &t) mutable -> int {
     try {
       t = t.dot(m);
       return ML_ERROR_NONE;
