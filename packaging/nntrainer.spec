@@ -18,6 +18,7 @@ Source2001:	trainset.tar.gz
 Source2002:	valset.tar.gz
 Source2003:	testset.tar.gz
 Source2004:	label.dat
+Source2005:	conv2d_unittest.tar.gz
 
 BuildRequires:	meson >= 0.50.0
 BuildRequires:	openblas-devel
@@ -89,6 +90,7 @@ cp %{SOURCE2001} .
 cp %{SOURCE2002} .
 cp %{SOURCE2003} .
 cp %{SOURCE2004} .
+cp %{SOURCE2005} .
 
 %build
 CXXFLAGS=`echo $CXXFLAGS | sed -e "s|-std=gnu++11||"`
@@ -110,7 +112,7 @@ tar xzf trainset.tar.gz -C build
 tar xzf valset.tar.gz -C build
 tar xzf testset.tar.gz -C build
 cp label.dat build
-python3 %{gen_input} conv2dLayer.in 2 3 28 28
+tar xzf conv2d_unittest.tar.gz -C build
 bash %{test_script} ./test
 %endif
 
