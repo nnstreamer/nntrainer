@@ -107,6 +107,7 @@ Tensor BatchNormalizationLayer::forwarding(Tensor in, int &status) {
 
   Tensor ret = hath.multiply(gamma).add(beta).apply(activation);
 
+  status = ML_ERROR_NONE;
   return ret;
 }
 

@@ -104,6 +104,7 @@ Tensor Conv2DLayer::forwarding(Tensor in, int &status) {
     }
   }
 
+  status = ML_ERROR_NONE;
   return hidden.apply(activation);
 };
 

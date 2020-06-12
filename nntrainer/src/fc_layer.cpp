@@ -123,6 +123,7 @@ int FullyConnectedLayer::setProperty(std::vector<std::string> values) {
 Tensor FullyConnectedLayer::forwarding(Tensor in, int &status) {
   input = in;
   hidden = input.chain().dot(weight).add_i(bias).run();
+  status = ML_ERROR_NONE;
 
   if (this->bn_follow)
     return hidden;
@@ -142,6 +143,7 @@ Tensor FullyConnectedLayer::forwarding(Tensor in, Tensor output, int &status) {
   if (!this->last_layer) {
     ml_loge("Error: Cannot update cost. This is not last layer of network");
     status = ML_ERROR_INVALID_PARAMETER;
+    return in;
   }
   input = in;
 
@@ -197,7 +199,9 @@ Tensor FullyConnectedLayer::forwarding(Tensor in, Tensor output, int &status) {
   default:
     break;
   }
+
   updateLoss(l);
+  status = ML_ERROR_NONE;
   return y;
 }
 
