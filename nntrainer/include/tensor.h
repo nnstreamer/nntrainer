@@ -417,6 +417,9 @@ private:
   /**< handle the data as a std::vector type */
   std::vector<float> data;
   TensorDim dim;
+
+  static constexpr float min_limits = std::numeric_limits<float>::min();
+  static constexpr float max_limits = std::numeric_limits<float>::max();
 };
 
 /**
