@@ -65,6 +65,7 @@ public:
     padding[1] = 0;
     pooling_size[0] = 0;
     pooling_size[1] = 0;
+    pooling_type = PoolingType::average;
     setType(LAYER_POOLING2D);
   };
 

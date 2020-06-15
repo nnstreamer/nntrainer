@@ -3,7 +3,7 @@
  *
  * SPDX-License-Identifier: Apache-2.0-only
  *
- * @file	pooling2d_layer.h
+ * @file	pooling2d_layer.cpp
  * @date	12 June 2020
  * @see		https://github.com/nnstreamer/nntrainer
  * @author	Jijoong Moon <jijoong.moon@samsung.com>
@@ -54,7 +54,52 @@ int Pooling2DLayer::setSize(int *size,
 
 int Pooling2DLayer::setProperty(std::vector<std::string> values) {
   int status = ML_ERROR_NONE;
-  // NYI
+
+  for (unsigned int i = 0; i < values.size(); ++i) {
+    std::string key;
+    std::string value;
+
+    status = getKeyValue(values[i], key, value);
+    NN_RETURN_STATUS();
+    unsigned int t = parseLayerProperty(key);
+    switch (static_cast<PropertyType>(t)) {
+    case PropertyType::pooling:
+      pooling_type = (PoolingType)parseType(value, TOKEN_POOLING);
+      if (pooling_type == PoolingType::unknown) {
+        ml_loge("Error: Unknown pooling type");
+        return ML_ERROR_INVALID_PARAMETER;
+      }
+      break;
+    case PropertyType::pooling_size:
+      status = getValues(POOLING2D_DIM, value, (int *)(pooling_size));
+      NN_RETURN_STATUS();      
+      if (pooling_size[0] == 0 || pooling_size[1] == 0) {
+        ml_loge("Error: pooling_size must be greater than 0");
+        return ML_ERROR_INVALID_PARAMETER;
+      }
+      break;
+    case PropertyType::stride:
+      status = getValues(POOLING2D_DIM, value, (int *)(stride));
+      NN_RETURN_STATUS();      
+      if (stride[0] == 0 || stride[1] == 0) {
+        ml_loge("Error: stride must be greater than 0");
+        return ML_ERROR_INVALID_PARAMETER;
+      }
+      break;
+    case PropertyType::padding:
+      status = getValues(POOLING2D_DIM, value, (int *)(padding));
+      NN_RETURN_STATUS();      
+      if (padding[0] < 0 || padding[1] < 0) {
+        ml_loge("Error: padding must be greater than 0");
+        return ML_ERROR_INVALID_PARAMETER;
+      }
+      break;
+    default:
+      ml_loge("Error: Unknown Layer Property Key : %s", key.c_str());
+      status = ML_ERROR_INVALID_PARAMETER;
+      break;
+    }
+  }
   return status;
 }
 
