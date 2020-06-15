@@ -20,7 +20,6 @@ $(info $(shell ($(LOCAL_PATH)/prepare_iniparser.sh )))
 endif
 endif
 
-
 NNTRAINER_SRCS := $(NNTRAINER_ROOT)/nntrainer/src/neuralnet.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/src/tensor.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/src/lazy_tensor.cpp \
@@ -28,6 +27,7 @@ NNTRAINER_SRCS := $(NNTRAINER_ROOT)/nntrainer/src/neuralnet.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/src/input_layer.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/src/fc_layer.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/src/bn_layer.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/src/loss_layer.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/src/databuffer.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/src/databuffer_func.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/src/databuffer_file.cpp \

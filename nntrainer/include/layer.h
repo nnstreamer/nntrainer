@@ -63,7 +63,8 @@ typedef enum {
  *            3. Convolution 2D Layer type
  *            4. Pooling 2D Layer type
  *            5. Flatten Layer type
- *            6. Unknown
+ *            6. Loss Layer type
+ *            7. Unknown
  */
 typedef enum {
   LAYER_IN,
@@ -71,7 +72,8 @@ typedef enum {
   LAYER_BN,
   LAYER_CONV2D,
   LAYER_POOLING2D,
-  LAYER_FLATTEN,  
+  LAYER_FLATTEN,
+  LAYER_LOSS,
   LAYER_UNKNOWN
 } LayerType;
 
@@ -106,6 +108,8 @@ public:
     type(LAYER_UNKNOWN),
     activation(NULL),
     activation_prime(NULL),
+    loss(0.0),
+    cost(COST_UNKNOWN),
     activation_type(ACT_UNKNOWN),
     bn_follow(false),
     weight_decay(),
@@ -122,14 +126,6 @@ public:
    * @retval    Output Tensor
    */
   virtual Tensor forwarding(Tensor in, int &status) = 0;
-
-  /**
-   * @brief     Forward Propation of neural Network
-   * @param[in] in Input Tensor taken by upper layer
-   * @param[in] output label Tensor
-   * @retval    Output Tensor
-   */
-  virtual Tensor forwarding(Tensor in, Tensor output, int &status) = 0;
 
   /**
    * @brief     Back Propation of neural Network
@@ -183,6 +179,12 @@ public:
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
   int setActivation(ActiType activation);
+
+  /**
+   * @brief     Activation Type Getter
+   * @retval    Activation Type.
+   */
+  ActiType getActivationType() { return this->activation_type; }
 
   /**
    * @brief     Layer type Setter
@@ -261,6 +263,20 @@ public:
 
   TensorDim getInputDimension() { return input_dim; }
 
+  /**
+   * @brief  get the loss value added by this layer
+   * @retval loss value
+   */
+  float getLoss() { return loss; }
+
+  /**
+   * @brief     set cost function
+   * @param[in] c cost function type
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  int setCost(CostType c);
+
 protected:
   /**
    * @brief     Input Tensor
@@ -317,6 +333,16 @@ protected:
    * @brief     Activation Derivative function pointer
    */
   float (*activation_prime)(float);
+
+  /**
+   * @brief     Loss value added by this layer
+   */
+  float loss;
+
+  /**
+   * @brief     Cost type for this network consisting of this layer
+   */
+  CostType cost;
 
   ActiType activation_type;
 

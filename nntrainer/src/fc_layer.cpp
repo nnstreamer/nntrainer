@@ -59,16 +59,6 @@ int FullyConnectedLayer::initialize(bool last) {
   return status;
 }
 
-int FullyConnectedLayer::setCost(CostType c) {
-  int status = ML_ERROR_NONE;
-  if (c == COST_UNKNOWN) {
-    ml_loge("Error: Unknown cost fucntion");
-    return ML_ERROR_INVALID_PARAMETER;
-  }
-  cost = c;
-  return status;
-}
-
 int FullyConnectedLayer::setProperty(std::vector<std::string> values) {
   int status = ML_ERROR_NONE;
 
@@ -125,6 +115,10 @@ Tensor FullyConnectedLayer::forwarding(Tensor in, int &status) {
   hidden = input.chain().dot(weight).add_i(bias).run();
   status = ML_ERROR_NONE;
 
+  if (weight_decay.type == WeightDecayType::l2norm) {
+    loss = weight_decay.lambda * 0.5f * (weight.l2norm());
+  }
+
   if (this->bn_follow)
     return hidden;
 
@@ -132,90 +126,6 @@ Tensor FullyConnectedLayer::forwarding(Tensor in, int &status) {
     return hidden.apply(softmax);
   } else {
     return hidden.apply(activation);
-  }
-
-  if (weight_decay.type == WeightDecayType::l2norm) {
-    loss = weight_decay.lambda * 0.5f * (weight.l2norm());
-  }
-}
-
-Tensor FullyConnectedLayer::forwarding(Tensor in, Tensor output, int &status) {
-  if (!this->last_layer) {
-    ml_loge("Error: Cannot update cost. This is not last layer of network");
-    status = ML_ERROR_INVALID_PARAMETER;
-    return in;
-  }
-  input = in;
-
-  // memcopy happens twice at chain() and .dot()
-  hidden = input.chain().dot(weight).add_i(bias).run();
-
-  Tensor y2 = output;
-  Tensor y = hidden;
-
-  if (activation_type == ACT_SOFTMAX) {
-    y = y.apply(softmax);
-  } else {
-    y = y.apply(activation);
-  }
-
-  Tensor l;
-
-  switch (cost) {
-  case COST_MSR: {
-    // y2 <- y2 - y;
-    y2.subtract_i(y);
-
-    l = y2.chain().multiply_i(y2).sum_by_batch().multiply_i(0.5).run();
-
-  } break;
-  case COST_ENTROPY: {
-    if (activation_type == ACT_SIGMOID) {
-      // todo: change this to apply_i
-      Tensor k = y.chain().multiply_i(-1.0).add_i(1.0).run().apply(logFloat);
-
-      // (1 - y2) * log( 1 - y )
-      k = y2.chain().multiply_i(-1.0).add_i(1.0).multiply_i(k).run();
-
-      l = y2.chain()
-            .multiply_i(y.apply(logFloat))
-            .add_i(k)
-            .multiply_i(-1.0 / y2.getWidth())
-            .run()
-            .sum_by_batch();
-    } else if (activation_type == ACT_SOFTMAX) {
-      l = y2.chain()
-            .multiply_i(y.apply(logFloat))
-            .multiply_i(-1.0 / y2.getWidth())
-            .run()
-            .sum_by_batch();
-    } else {
-      ml_loge("Only support sigmoid & softmax for cross entropy loss");
-      exit(0);
-    }
-
-  } break;
-  case COST_UNKNOWN:
-  default:
-    break;
-  }
-
-  updateLoss(l);
-  status = ML_ERROR_NONE;
-  return y;
-}
-
-void FullyConnectedLayer::updateLoss(const Tensor& l) {
-  float loss_sum = 0.0;
-  const float *data = l.getData();
-
-  for (int i = 0; i < l.getBatch(); i++) {
-    loss_sum += data[i];
-  }
-  loss = loss_sum / (float)l.getBatch();
-
-  if (weight_decay.type == WeightDecayType::l2norm) {
-    loss += weight_decay.lambda * 0.5f * (weight.l2norm());
   }
 }
 
@@ -243,6 +153,7 @@ void FullyConnectedLayer::copy(std::shared_ptr<Layer> l) {
   this->weight.copy(from->weight);
   this->bias.copy(from->bias);
   this->loss = from->loss;
+  this->cost = from->cost;
 }
 
 Tensor FullyConnectedLayer::backwarding(Tensor derivative, int iteration) {
@@ -253,57 +164,28 @@ Tensor FullyConnectedLayer::backwarding(Tensor derivative, int iteration) {
   if (!last_layer) {
     djdb = derivative.multiply(hidden.apply(activation_prime));
   } else {
-    if (activation_type == ACT_SOFTMAX)
-      y = hidden.apply(softmax);
-    else
-      y = hidden.apply(activation);
-    float ll = opt.getLearningRate();
-    if (opt.getDecaySteps() != -1) {
-      ll = ll * pow(opt.getDecayRate(), (iteration / opt.getDecaySteps()));
-    }
-
     switch (cost) {
-    case COST_MSR: {
-      Tensor sub = y2.subtract(y);
-      Tensor l = (sub.multiply(sub)).sum_by_batch().multiply(0.5);
-
-      updateLoss(l);
-
+    case COST_MSR:
       if (activation_type == ACT_SOFTMAX) {
-        djdb = y.subtract(y2).multiply(y.apply(softmaxPrime));
+        y = hidden.apply(softmax);
+        djdb = derivative.multiply(hidden.apply(softmaxPrime));
       } else {
-        djdb = y.subtract(y2).multiply(hidden.apply(activation_prime));
+        djdb = derivative.multiply(hidden.apply(activation_prime));
       }
-    } break;
-    case COST_ENTROPY: {
-      Tensor l;
-      if (activation_type == ACT_SIGMOID) {
-        djdb = y.subtract(y2).multiply(1.0 / y.getWidth());
-        l = (y2.multiply(y.apply(logFloat))
-               .add((y2.multiply(-1.0).add(1.0))
-                      .multiply((y.multiply(-1.0).add(1.0)).apply(logFloat))))
-              .multiply(-1.0 / (y2.getWidth()))
-              .sum_by_batch();
-      } else if (activation_type == ACT_SOFTMAX) {
-        djdb = y.subtract(y2).multiply(1.0 / y.getWidth());
-        l = (y2.multiply(y.apply(logFloat)))
-              .multiply(-1.0 / (y2.getWidth()))
-              .sum_by_batch();
-      } else {
-        ml_loge("Only support sigmoid & softmax for cross entropy loss");
-        exit(0);
-      }
+      break;
 
-      updateLoss(l);
-    } break;
+    case COST_ENTROPY:
+      djdb = derivative;
+      break;
+
     case COST_UNKNOWN:
+      /** Intended */
     default:
       break;
     }
   }
 
   Tensor ret = djdb.dot(weight.transpose("0:2:1"));
-
   Tensor djdw = input.transpose("0:2:1").dot(djdb);
 
   opt.calculate(djdw, djdb, weight, bias, iteration, this->init_zero,

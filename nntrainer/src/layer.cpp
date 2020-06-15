@@ -162,4 +162,14 @@ Tensor Layer::initializeWeight(TensorDim w_dim, WeightIniType init_type,
   return w;
 }
 
+int Layer::setCost(CostType c) {
+  int status = ML_ERROR_NONE;
+  if (c == COST_UNKNOWN) {
+    ml_loge("Error: Unknown cost fucntion");
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+  cost = c;
+  return status;
+}
+
 } /* namespace nntrainer */

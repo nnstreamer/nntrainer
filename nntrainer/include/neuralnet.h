@@ -32,6 +32,7 @@
 #include <input_layer.h>
 #include <iostream>
 #include <layer.h>
+#include <loss_layer.h>
 #include <optimizer.h>
 #include <tensor.h>
 #include <vector>

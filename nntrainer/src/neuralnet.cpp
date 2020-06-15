@@ -215,7 +215,7 @@ int NeuralNetwork::init() {
     l_type =
       iniparser_getstring(ini, (layers_name[i] + ":Type").c_str(), unknown);
     t = (LayerType)parseType(l_type, TOKEN_LAYER);
-    if (i == (layers_name.size() - 1)) {
+    if (i == layers_name.size() - 1) {
       last = true;
     }
     b_zero =
@@ -264,6 +264,9 @@ int NeuralNetwork::init() {
       }
 
       conv2d_layer->setInputDimension(previous_dim);
+      NN_INI_RETURN_STATUS();
+
+      status = conv2d_layer->setCost(cost);
       NN_INI_RETURN_STATUS();
 
       conv2d_layer->setBiasZero(b_zero);
@@ -398,6 +401,17 @@ int NeuralNetwork::init() {
     previous_dim = layers[i]->getOutputDimension();
   }
 
+  /** Add the last layer as loss layer */
+  std::shared_ptr<LossLayer> loss_layer = std::make_shared<LossLayer>();
+  loss_layer->setInputDimension(previous_dim);
+  status = loss_layer->initialize(true);
+  NN_INI_RETURN_STATUS();
+  status = loss_layer->setCost(cost);
+  NN_INI_RETURN_STATUS();
+  status = loss_layer->setActivation(layers[layers.size() - 1]->getActivationType());
+  NN_INI_RETURN_STATUS();
+  layers.push_back(loss_layer);
+
   status = data_buffer->setMiniBatch(batch_size);
   NN_INI_RETURN_STATUS();
 
@@ -493,7 +507,6 @@ int NeuralNetwork::init(std::shared_ptr<Optimizer> optimizer,
   NN_RETURN_STATUS();
 
   loss = 10000.0;
-
   for (unsigned int i = 0; i < layers.size(); ++i) {
     if (i == layers.size() - 1)
       last = true;
@@ -509,11 +522,13 @@ int NeuralNetwork::init(std::shared_ptr<Optimizer> optimizer,
       }
       status = layers[i]->initialize(last);
       NN_RETURN_STATUS();
+
+      status = layers[i]->setCost(cost);
+      NN_RETURN_STATUS();
       break;
     case LAYER_FC:
       layers[i]->setInputDimension(previous_dim);
-      status =
-        std::static_pointer_cast<FullyConnectedLayer>(layers[i])->setCost(cost);
+      status = layers[i]->setCost(cost);
       NN_RETURN_STATUS();
 
       status = layers[i]->initialize(last);
@@ -524,12 +539,6 @@ int NeuralNetwork::init(std::shared_ptr<Optimizer> optimizer,
 
       break;
     case LAYER_BN:
-      if (last) {
-        ml_loge("Error: Batch Normalization Layer should not be last layer of "
-                "network");
-        return ML_ERROR_INVALID_PARAMETER;
-      }
-
       layers[i]->setInputDimension(previous_dim);
       status = layers[i]->initialize(last);
       NN_RETURN_STATUS();
@@ -542,6 +551,18 @@ int NeuralNetwork::init(std::shared_ptr<Optimizer> optimizer,
     }
     previous_dim = layers[i]->getOutputDimension();
   }
+
+  /** Add the last layer as loss layer */
+  std::shared_ptr<LossLayer> loss_layer = std::make_shared<LossLayer>();
+  status = loss_layer->setActivation(layers[layers.size() - 1]->getActivationType());
+  NN_RETURN_STATUS();
+  layers.push_back(loss_layer);
+
+  loss_layer->setInputDimension(previous_dim);
+  status = loss_layer->initialize(true);
+  NN_RETURN_STATUS();
+  status = loss_layer->setCost(cost);
+  NN_RETURN_STATUS();
 
   return status;
 }
@@ -564,7 +585,8 @@ void NeuralNetwork::finalize() {
  */
 Tensor NeuralNetwork::forwarding(Tensor input, int &status) {
   Tensor X = input;
-  for (unsigned int i = 0; i < layers.size(); i++) {
+  /** Do not forward the loss layer, as label is not available */
+  for (unsigned int i = 0; i < layers.size() - 1; i++) {
     X = layers[i]->forwarding(X, status);
     if (status != ML_ERROR_NONE)
       break;
@@ -578,11 +600,13 @@ Tensor NeuralNetwork::forwarding(Tensor input, int &status) {
 Tensor NeuralNetwork::forwarding(Tensor input, Tensor output, int &status) {
   Tensor X = input;
   Tensor Y2 = output;
-  for (unsigned int i = 0; i < layers.size(); i++) {
-    X = layers[i]->forwarding(X, Y2, status);
-    if (status != ML_ERROR_NONE)
-      break;
-  }
+
+  X = forwarding (input, status);
+  if (status != ML_ERROR_NONE)
+    return X;
+
+  X = std::static_pointer_cast<LossLayer>(layers[layers.size() - 1])
+      ->forwarding(X, Y2, status);
   return X;
 }
 
@@ -596,7 +620,7 @@ int NeuralNetwork::backwarding(Tensor input, Tensor expected_output,
   int status = ML_ERROR_NONE;
   Tensor Y2 = expected_output;
   Tensor X = input;
-  Tensor Y = forwarding(X, status);
+  Tensor Y = forwarding(X, Y2, status);
   if (status != ML_ERROR_NONE)
     return status;
 
@@ -609,9 +633,7 @@ int NeuralNetwork::backwarding(Tensor input, Tensor expected_output,
 float NeuralNetwork::getLoss() {
   loss = 0.0;
   for (unsigned int i=0; i < layers.size(); i++) {
-    std::shared_ptr<FullyConnectedLayer> out =
-      std::static_pointer_cast<FullyConnectedLayer>((layers[layers.size() - 1]));
-    loss += out->getLoss();
+    loss += layers[i]->getLoss();
   }
 
   return loss;
