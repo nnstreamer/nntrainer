@@ -112,9 +112,7 @@ Tensor Conv2DLayer::forwarding(Tensor in, Tensor output, int &status) {
   return forwarding(in, status);
 }
 
-Tensor Conv2DLayer::backwarding(Tensor in, int iteration) {
-  return in;
-}
+Tensor Conv2DLayer::backwarding(Tensor in, int iteration) { return in; }
 
 void Conv2DLayer::copy(std::shared_ptr<Layer> l) {
   std::shared_ptr<Conv2DLayer> from = std::static_pointer_cast<Conv2DLayer>(l);
@@ -214,7 +212,7 @@ int Conv2DLayer::setProperty(std::vector<std::string> values) {
     } break;
     case PropertyType::kernel_size:
       status = getValues(CONV2D_DIM, value, (int *)(kernel_size));
-      NN_RETURN_STATUS();      
+      NN_RETURN_STATUS();
       if (kernel_size[0] == 0 || kernel_size[1] == 0) {
         ml_loge("Error: kernel_size must be greater than 0");
         return ML_ERROR_INVALID_PARAMETER;
@@ -222,7 +220,7 @@ int Conv2DLayer::setProperty(std::vector<std::string> values) {
       break;
     case PropertyType::stride:
       status = getValues(CONV2D_DIM, value, (int *)(stride));
-      NN_RETURN_STATUS();      
+      NN_RETURN_STATUS();
       if (stride[0] == 0 || stride[1] == 0) {
         ml_loge("Error: stride must be greater than 0");
         return ML_ERROR_INVALID_PARAMETER;
@@ -249,50 +247,6 @@ int Conv2DLayer::setProperty(std::vector<std::string> values) {
   return status;
 }
 
-Tensor Conv2DLayer::zero_pad(int batch, Tensor in,
-                             unsigned int const *padding) {
-  unsigned int c = in.getDim().channel();
-  unsigned int h = in.getDim().height();
-  unsigned int w = in.getDim().width();
-
-  unsigned int height_p = h + padding[0] * 2;
-  unsigned int width_p = w + padding[1] * 2;
-
-  unsigned int height_p_h = h + padding[0];
-  unsigned int width_p_h = w + padding[1];
-
-  Tensor output(1, c, height_p, width_p);
-
-  if (padding[0] != 0 || padding[1] != 0) {
-    for (unsigned int j = 0; j < c; ++j) {
-      for (unsigned int k = 0; k < padding[0]; ++k) {
-        for (unsigned int l = 0; l < width_p; ++l) {
-          output.setValue(0, j, k, l, 0.0);
-          output.setValue(0, j, k + height_p_h, l, 0.0);
-        }
-      }
-
-      for (unsigned int l = 0; l < padding[1]; ++l) {
-        for (unsigned int k = padding[0]; k < h; ++k) {
-          output.setValue(0, j, k, l, 0.0);
-          output.setValue(0, j, k, l + width_p_h, 0.0);
-        }
-      }
-    }
-  }
-
-  for (unsigned int j = 0; j < c; ++j) {
-    for (unsigned int k = 0; k < h; ++k) {
-      for (unsigned int l = 0; l < w; ++l) {
-        output.setValue(0, j, k + padding[0], l + padding[1],
-                        in.getValue(batch, j, k, l));
-      }
-    }
-  }
-
-  return output;
-}
-  
 Tensor Conv2DLayer::conv2d(Tensor in, Tensor kernel, unsigned int const *stride,
                            int &status) {
 

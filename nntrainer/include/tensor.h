@@ -109,7 +109,7 @@ public:
    * @param[in] w width location
    */
   float getValue(unsigned int batch, unsigned int c, unsigned int h,
-                 unsigned int w);
+                 unsigned int w) const;
 
   /**
    * @brief     Multiply value element by element immediately

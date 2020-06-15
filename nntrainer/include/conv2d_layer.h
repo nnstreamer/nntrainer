@@ -175,15 +175,6 @@ public:
   int setProperty(std::vector<std::string> values);
 
   /**
-   * @brief     zero padding
-   * @param[in] batch batch order 
-   * @param[in] in input tensor
-   * @param[in] padding padding value
-   * @retval tensor padded tensor
-   */
-  Tensor zero_pad(int batch, Tensor in, unsigned int const *padding);
-
-  /**
    * @brief     calculation convolution
    * @param[in] in input tensor
    * @param[in] kernel convolution kernel

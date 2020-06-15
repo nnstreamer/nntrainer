@@ -76,10 +76,11 @@ def conv2d_tensorflow(x, kernel, batch, width, height, channel, k_width, k_heigh
             tf_z = tf.nn.conv2d(
                 tf_x, kernel, strides=[1, stride, stride, 1], padding=pad) + bias
             tf_h = act(tf_z)
+            tf_p = tf.nn.max_pool(tf_h, ksize = [1,2,2,1], strides=[1,1,1,1], padding='VALID');
             sess.run(tf.global_variables_initializer())
-            tf_o = sess.run(tf_h)
-            print (tf_o.shape)
-    return tf_o
+            tf_c = sess.run(tf_h)
+            tf_o = sess.run(tf_p)
+    return tf_c, tf_o
 
 if __name__ == "__main__":
     target = int(sys.argv[1])
@@ -112,5 +113,6 @@ if __name__ == "__main__":
         bias=[0.0,0.0]
         with open("conv2dKernel.in", 'ab') as outfile:
             np.array(bias, dtype=np.float32).tofile(outfile)
-        golden=conv2d_tensorflow(x, kernel, i_b, i_h, i_w, i_c, k_h, k_w, k_c, stride, padding, bias)
-        save("goldenConv2DResult.out", np.transpose(golden,(0,3,2,1)))
+        golden_conv, golden_pool=conv2d_tensorflow(x, kernel, i_b, i_h, i_w, i_c, k_h, k_w, k_c, stride, padding, bias)
+        save("goldenConv2DResult.out", np.transpose(golden_conv,(0,3,2,1)))
+        save("goldenPooling2DResult.out", np.transpose(golden_pool,(0,3,2,1)))
