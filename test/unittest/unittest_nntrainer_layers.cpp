@@ -547,6 +547,7 @@ TEST(nntrainer_Pooling2D, setProperty_01_p) {
   std::vector<std::string> input_str;
   nntrainer::TensorDim previous_dim;
   previous_dim.setTensorDim("1:2:5:5");
+  layer.setInputDimension(previous_dim);
 
   input_str.push_back("pooling_size= 2,2");
   input_str.push_back("stride=1, 1");
@@ -554,6 +555,28 @@ TEST(nntrainer_Pooling2D, setProperty_01_p) {
   input_str.push_back("pooling = average");
 
   status = layer.setProperty(input_str);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Pooling 2D Layer
+ */
+TEST(nntrainer_Pooling2D, initialize_01_p) {
+  int status = ML_ERROR_NONE;
+  nntrainer::Pooling2DLayer layer;
+  std::vector<std::string> input_str;
+  nntrainer::TensorDim previous_dim;
+  previous_dim.setTensorDim("1:2:5:5");
+  layer.setInputDimension(previous_dim);
+
+  input_str.push_back("pooling_size= 2,2");
+  input_str.push_back("stride=1, 1");
+  input_str.push_back("padding=0,0");
+  input_str.push_back("pooling = average");
+
+  status = layer.setProperty(input_str);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = layer.initialize(false);
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
