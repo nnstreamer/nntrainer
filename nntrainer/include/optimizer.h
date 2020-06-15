@@ -47,9 +47,11 @@ enum class WeightDecayType { l2norm = 0, regression = 1, unknown = 2 };
 /**
  * @brief     type for the Weight Decay hyper-parameter
  */
-typedef struct {
+typedef struct WeightDecayParam_ {
   WeightDecayType type;
   float lambda;
+
+  WeightDecayParam_() : type(WeightDecayType::unknown), lambda(0.0) {}
 } WeightDecayParam;
 
 /**
