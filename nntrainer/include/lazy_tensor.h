@@ -44,7 +44,7 @@ public:
    * @param[in] m Tensor to be added
    * @retval    LazyTensor *this
    */
-  LazyTensor &add_i(Tensor const &m);
+  LazyTensor &add_i(Tensor const &m, float const alpha = 1);
 
   /**
    * @brief     Wrapper method of subtract_i. see tensor.h for more detail
@@ -81,7 +81,7 @@ public:
    */
   LazyTensor &divide_i(float const &value);
 
- /**
+  /**
    * @brief     Wrapper method of divide_i. see tensor.h for more detail
    * @param[in] m Tensor to for division
    * @retval    LazyTensor *this
@@ -89,44 +89,43 @@ public:
   LazyTensor &divide_i(Tensor const &m);
 
   /**
-   * @brief     Wrapper method of dot. see tensor.h for more detail (memcopy happens)
+   * @brief     Wrapper method of dot. see tensor.h for more detail (memcopy
+   * happens)
    * @param[in] m Tensor
    * @retval    LazyTensor *this
    */
   LazyTensor &dot(Tensor const &m);
 
   /**
-   * @brief     Wrapper method of transpose. see tensor.h for more detail (memcopy happens)
+   * @brief     Wrapper method of transpose. see tensor.h for more detail
+   * (memcopy happens)
    * @param[in] direction to transpose ex) 0:2:1
    * @retval    LazyTensor *this
    */
-  LazyTensor &transpose(std::string direction) ;
+  LazyTensor &transpose(std::string direction);
 
   /**
-   * @brief     Wrapper method of sum_by_batch. see tensor.h for more detail (memcopy happens)
+   * @brief     Wrapper method of sum_by_batch. see tensor.h for more detail
+   * (memcopy happens)
    * @retval    LazyTensor *this
    */
   LazyTensor &sum_by_batch();
 
   /**
-   * @brief     Wrapper method of sum. see tensor.h for more detail (memcopy happens)
-   *            0 : batch direction
-   *            1 : channel direction
-   *            2 : height direction
-   *            3 : width direction
+   * @brief     Wrapper method of sum. see tensor.h for more detail (memcopy
+   * happens) 0 : batch direction 1 : channel direction 2 : height direction 3 :
+   * width direction
    * @retval    LazyTensor *this
    */
-  LazyTensor &sum(int axis=0);
+  LazyTensor &sum(int axis = 0);
 
   /**
-   * @brief     Wrapper method of average. see tensor.h for more detail (memcopy happens)
-   *            0 : batch direction
-   *            1 : channel direction
-   *            2 : height direction
-   *            3 : width direction
+   * @brief     Wrapper method of average. see tensor.h for more detail (memcopy
+   * happens) 0 : batch direction 1 : channel direction 2 : height direction 3 :
+   * width direction
    * @retval    LazyTensor *this
    */
-  LazyTensor &average(int axis=0);
+  LazyTensor &average(int axis = 0);
 
   /**
    * @brief execute the call_chain to get the tensor

@@ -379,7 +379,7 @@ TEST(nntrainer_Tensor, add_i_02_p) {
   nntrainer::Tensor original(batch, height, width);
   original.copy(target);
 
-  status = target.add_i(target);
+  status = target.add_i(target, 3.0);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   float *previous = original.getData();
@@ -388,7 +388,7 @@ TEST(nntrainer_Tensor, add_i_02_p) {
   ASSERT_NE(nullptr, data);
 
   for (int i = 0; i < batch * height * width; ++i) {
-    EXPECT_FLOAT_EQ(data[i], previous[i] + previous[i]);
+    EXPECT_FLOAT_EQ(data[i], previous[i] * 4.0);
   }
 }
 

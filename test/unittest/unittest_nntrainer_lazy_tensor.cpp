@@ -125,8 +125,8 @@ TEST_F(nntrainer_LazyTensorOpsTest, LazyTensorOps_04_p) {
 
 // chain and add_i(float) add_i(Tensor)
 TEST_F(nntrainer_LazyTensorOpsTest, LazyTensorOps_05_p) {
-  expected = original.add(4.1);
-  test_eq(target.chain().add_i(2.1).add_i(constant(2.0)).run(), expected);
+  expected = original.add(6.1);
+  test_eq(target.chain().add_i(2.1).add_i(constant(2.0), 2).run(), expected);
 }
 
 // chain and add_i(float) subtract(float)
