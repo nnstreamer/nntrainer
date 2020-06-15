@@ -96,7 +96,17 @@ typedef enum {
  */
 class Layer {
 public:
-  Layer();
+  Layer() :
+    last_layer(false),
+    init_zero(false),
+    type(LAYER_UNKNOWN),
+    activation(NULL),
+    activation_prime(NULL),
+    activation_type(ACT_UNKNOWN),
+    bn_follow(false),
+    weight_decay(),
+    weight_ini_type(WEIGHT_UNKNOWN) {}
+
   /**
    * @brief     Destructor of Layer Class
    */

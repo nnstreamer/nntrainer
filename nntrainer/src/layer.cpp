@@ -69,19 +69,6 @@ static void RandUniform(unsigned int b_n, Tensor &w, Args &&... args) {
   }
 }
 
-Layer::Layer() {
-  type = LAYER_UNKNOWN;
-  activation_type = ACT_UNKNOWN;
-  last_layer = false;
-  init_zero = false;
-  activation = NULL;
-  activation_prime = NULL;
-  bn_follow = false;
-  weight_decay.type = WeightDecayType::unknown;
-  weight_decay.lambda = 0.0;
-  weight_ini_type = WEIGHT_UNKNOWN;
-}
-
 int Layer::setActivation(ActiType acti) {
   int status = ML_ERROR_NONE;
   if (acti == ACT_UNKNOWN) {
