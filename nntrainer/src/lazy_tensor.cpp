@@ -31,8 +31,8 @@ LazyTensor &LazyTensor::add_i(float const &value) {
  * @param[in] m Tensor to be added
  * @retval    LazyTensor *this
  */
-LazyTensor &LazyTensor::add_i(Tensor const &m) {
-  auto f = [&m](Tensor &t) mutable -> int { return t.add_i(m); };
+LazyTensor &LazyTensor::add_i(Tensor const &m, float const alpha) {
+  auto f = [&m, alpha](Tensor &t) mutable -> int { return t.add_i(m, alpha); };
   call_chain.push_back(f);
   return *this;
 }

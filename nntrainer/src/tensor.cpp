@@ -136,8 +136,7 @@ Tensor::Tensor(
 
 int Tensor::multiply_i(float const &value) {
 #ifdef USE_BLAS
-  cblas_saxpy(dim.getDataLen(), value - 1, this->data.data(), 1,
-              this->data.data(), 1);
+  cblas_sscal(dim.getDataLen(), value, this->data.data(), 1);
 #else
   for (unsigned int k = 0; k < dim.getDataLen(); ++k) {
     this->data[k] *= value;
@@ -205,7 +204,7 @@ Tensor Tensor::add(float const &value) {
  * #retval #ML_ERROR_NONE  Successful
  * #retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter
  */
-int Tensor::add_i(Tensor const &m) {
+int Tensor::add_i(Tensor const &m, float const alpha) {
   if ((dim.height() != m.dim.height()) || (dim.width() != m.dim.width())) {
     return ML_ERROR_INVALID_PARAMETER;
   }
@@ -214,11 +213,12 @@ int Tensor::add_i(Tensor const &m) {
   unsigned int size = dim.width() * dim.height() * dim.channel();
   if (m.dim.batch() == 1) {
     for (unsigned int k = 0; k < dim.batch(); ++k) {
-      cblas_saxpy(size, 1.0, m.data.data(), 1, &(this->data.data()[k * size]),
+      cblas_saxpy(size, alpha, m.data.data(), 1, &(this->data.data()[k * size]),
                   1);
     }
   } else {
-    cblas_saxpy(dim.getDataLen(), 1.0, m.data.data(), 1, this->data.data(), 1);
+    cblas_saxpy(dim.getDataLen(), alpha, m.data.data(), 1, this->data.data(),
+                1);
   }
 #else
   unsigned int i, j, k;
@@ -226,12 +226,12 @@ int Tensor::add_i(Tensor const &m) {
     for (k = 0; k < dim.batch(); ++k) {
       for (i = 0; i < m.dim.getFeatureLen(); ++i) {
         j = k * m.dim.getFeatureLen();
-        this->data[j + i] += m.data[i];
+        this->data[j + i] += alpha * m.data[i];
       }
     }
   } else {
     for (k = 0; k < dim.getDataLen(); ++k) {
-      this->data[k] = this->data[k] + m.data[k];
+      this->data[k] += alpha * m.data[k];
     }
   }
 #endif
@@ -239,14 +239,14 @@ int Tensor::add_i(Tensor const &m) {
   return ML_ERROR_NONE;
 }
 
-Tensor Tensor::add(Tensor const &m) const {
+Tensor Tensor::add(Tensor const &m, float const alpha) const {
   if ((dim.height() != m.dim.height()) || (dim.width() != m.dim.width())) {
     throw std::runtime_error("Error: Dimension must be equal each other");
   }
 
   Tensor result(dim);
   result.copy(*this);
-  result.add_i(m);
+  result.add_i(m, alpha);
 
   return result;
 }
@@ -836,7 +836,7 @@ float Tensor::l2norm() const {
 #ifdef USE_BLAS
   return cblas_snrm2(len, this->getData(), 1);
 #else
-// fix me: to the version that does not allow overflow
+  // fix me: to the version that does not allow overflow
   float sum = 0.0;
   float tmp;
 #pragma omp parallel for private(tmp) reduction(+ : sum)
@@ -872,7 +872,7 @@ Tensor Tensor::normalization() const {
   float dif = Max - Min;
 
   results = this->chain().subtract_i(Min).divide_i(dif).run();
-  
+
   return results;
 }
 

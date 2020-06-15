@@ -144,17 +144,18 @@ public:
   /**
    * @brief Add Tensor Element by Element without mem copy
    * @param[in] m Tensor to be added
-   * #retval #ML_ERROR_NONE  Successful
-   * #retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter
+   * @param[out] alpha Values to be scaled
+   * @retval #ML_ERROR_NONE  Successful
+   * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter
    */
-  int add_i(Tensor const &m);
+  int add_i(Tensor const &m, float const alpha = 1);
 
   /**
    * @brief     Add Tensor Element by Element
    * @param[in] m Tensor to be added
    * @retval    Calculated Tensor
    */
-  Tensor add(Tensor const &m) const;
+  Tensor add(Tensor const &m, float const alpha = 1) const;
 
   /**
    * @brief Add Tensor Element immediately to target tensor without mem copy
