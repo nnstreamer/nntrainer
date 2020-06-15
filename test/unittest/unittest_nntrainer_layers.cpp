@@ -15,6 +15,7 @@
 #include <fc_layer.h>
 #include <fstream>
 #include <input_layer.h>
+#include <loss_layer.h>
 #include <nntrainer_error.h>
 #include <nntrainer_test_util.h>
 #include <optimizer.h>
@@ -255,26 +256,6 @@ TEST(nntrainer_FullyConnectedLayer, setActivation_02_n) {
   int status = ML_ERROR_NONE;
   nntrainer::FullyConnectedLayer layer;
   status = layer.setActivation(nntrainer::ACT_UNKNOWN);
-  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
-}
-
-/**
- * @brief FullyConnected Layer
- */
-TEST(nntrainer_FullyConnectedLayer, setCost_01_p) {
-  int status = ML_ERROR_NONE;
-  nntrainer::FullyConnectedLayer layer;
-  status = layer.setCost(nntrainer::COST_ENTROPY);
-  EXPECT_EQ(status, ML_ERROR_NONE);
-}
-
-/**
- * @brief FullyConnected Layer
- */
-TEST(nntrainer_FullyConnectedLayer, setCost_02_n) {
-  int status = ML_ERROR_NONE;
-  nntrainer::FullyConnectedLayer layer;
-  status = layer.setCost(nntrainer::COST_UNKNOWN);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
@@ -618,6 +599,26 @@ TEST(nntrainer_Pooling2D, forwarding_01_p) {
   for (int i = 0; i < 1 * 2 * 4 * 4; ++i) {
     EXPECT_FLOAT_EQ(out_ptr[i], golden[i]);
   }
+}
+
+/**
+ * @brief Loss Layer
+ */
+TEST(nntrainer_LossLayer, setCost_01_p) {
+  int status = ML_ERROR_NONE;
+  nntrainer::LossLayer layer;
+  status = layer.setCost(nntrainer::COST_ENTROPY);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Loss Layer
+ */
+TEST(nntrainer_LossLayer, setCost_02_n) {
+  int status = ML_ERROR_NONE;
+  nntrainer::LossLayer layer;
+  status = layer.setCost(nntrainer::COST_UNKNOWN);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
 /**

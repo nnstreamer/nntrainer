@@ -21,6 +21,7 @@ nntrainer_sources = [
   'src/input_layer.cpp',
   'src/fc_layer.cpp',
   'src/bn_layer.cpp',
+  'src/loss_layer.cpp',
   'src/databuffer.cpp',
   'src/databuffer_file.cpp',
   'src/databuffer_func.cpp',
@@ -42,6 +43,7 @@ nntrainer_headers = [
   'include/input_layer.h',
   'include/fc_layer.h',
   'include/bn_layer.h',
+  'include/loss_layer.h',
   'include/databuffer.h',
   'include/databuffer_file.h',
   'include/databuffer_func.h',
@@ -56,7 +58,6 @@ nntrainer_headers = [
   'include/pooling2d_layer.h',
   'include/flatten_layer.h'
 ]
-
 
 # Build libraries
 nntrainer_shared = shared_library('nntrainer',

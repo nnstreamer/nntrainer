@@ -1,15 +1,7 @@
 /**
- * Copyright (C) 2020 Samsung Electronics Co., Ltd. All Rights Reserved.
+ * Copyright (C) 2020 Parichay Kapoor <pk.kapoor@samsung.com>
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *   http://www.apache.org/licenses/LICENSE-2.0
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * SPDX-License-Identifier: Apache-2.0-only
  *
  * @file	fc_layer.h
  * @date	14 May 2020
@@ -42,7 +34,7 @@ public:
   /**
    * @brief     Constructor of Fully Connected Layer
    */
-  FullyConnectedLayer() : loss(0.0), cost(COST_UNKNOWN) { setType(LAYER_FC); };
+  FullyConnectedLayer() { setType(LAYER_FC); };
 
   /**
    * @brief     Destructor of Fully Connected Layer
@@ -69,15 +61,6 @@ public:
   Tensor forwarding(Tensor in, int &status);
 
   /**
-   * @brief     foward propagation : return Input Tensor
-   *            It return Input as it is.
-   * @param[in] input input Tensor from lower layer.
-   * @param[in] output label Tensor.
-   * @retval    Activation(W x input + B)
-   */
-  Tensor forwarding(Tensor in, Tensor output, int &status);
-
-  /**
    * @brief     back propagation
    *            Calculate dJdB & dJdW & Update W & B
    * @param[in] input Input Tensor from lower layer
@@ -99,19 +82,6 @@ public:
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
   int initialize(bool last);
-
-  /**
-   * @brief     get Loss value
-   */
-  float getLoss() { return loss; }
-
-  /**
-   * @brief     set cost function
-   * @param[in] c cost function type
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   */
-  int setCost(CostType c);
 
   void setUnit(unsigned int u) { unit = u; };
 
@@ -142,16 +112,9 @@ public:
   };
 
 private:
-  /**
-   * @brief     update loss
-   * @param[in] l Tensor data to calculate
-   */
-  void updateLoss(Tensor const &l);
   unsigned int unit;
   Tensor weight;
   Tensor bias;
-  float loss;
-  CostType cost;
 };
 } // namespace nntrainer
 
