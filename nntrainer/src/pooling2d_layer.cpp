@@ -23,7 +23,25 @@ namespace nntrainer {
 
 int Pooling2DLayer::initialize(bool last) {
   int status = ML_ERROR_NONE;
-  // NYI
+  if (input_dim.getDataLen() == 1) {
+    ml_logw("Warning: the length of previous layer dimension is one");
+  }
+  if (input_dim.batch() <= 0 || input_dim.height() <= 0 ||
+      input_dim.width() <= 0 || input_dim.channel() <= 0) {
+    ml_loge("Error: Dimension must be greater than 0");
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
+  this->last_layer = last;
+  output_dim.batch(input_dim.batch());
+  output_dim.channel(input_dim.channel());
+  output_dim.height(
+    (input_dim.height() - pooling_size[0] + 2 * padding[0]) / stride[0] + 1);
+  output_dim.width(
+    (input_dim.width() - pooling_size[1] + 2 * padding[1]) / stride[1] + 1);
+
+  hidden = Tensor(output_dim);
+
   return status;
 }
 
