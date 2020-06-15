@@ -34,7 +34,7 @@ public:
   /**
    * @brief     Constructor of Fully Connected Layer
    */
-  FullyConnectedLayer() { setType(LAYER_FC); };
+  FullyConnectedLayer() : unit(0) { setType(LAYER_FC); };
 
   /**
    * @brief     Destructor of Fully Connected Layer
