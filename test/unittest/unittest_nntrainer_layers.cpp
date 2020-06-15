@@ -18,6 +18,7 @@
 #include <nntrainer_error.h>
 #include <nntrainer_test_util.h>
 #include <optimizer.h>
+#include <pooling2d_layer.h>
 #include <util_func.h>
 
 /**
@@ -535,6 +536,25 @@ TEST(nntrainer_Conv2DLayer, forwarding_01_p) {
   for (int i = 0; i < 1 * 2 * 5 * 5; ++i) {
     EXPECT_FLOAT_EQ(out_ptr[i], golden[i]);
   }
+}
+
+/**
+ * @brief Pooling 2D Layer
+ */
+TEST(nntrainer_Pooling2D, setProperty_01_p) {
+  int status = ML_ERROR_NONE;
+  nntrainer::Pooling2DLayer layer;
+  std::vector<std::string> input_str;
+  nntrainer::TensorDim previous_dim;
+  previous_dim.setTensorDim("1:2:5:5");
+
+  input_str.push_back("pooling_size= 2,2");
+  input_str.push_back("stride=1, 1");
+  input_str.push_back("padding=0,0");
+  input_str.push_back("pooling = average");
+
+  status = layer.setProperty(input_str);
+  EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
 /**

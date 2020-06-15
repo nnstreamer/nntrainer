@@ -214,19 +214,19 @@ int Conv2DLayer::setProperty(std::vector<std::string> values) {
     } break;
     case PropertyType::kernel_size:
       status = getValues(CONV2D_DIM, value, (int *)(kernel_size));
+      NN_RETURN_STATUS();      
       if (kernel_size[0] == 0 || kernel_size[1] == 0) {
-        ml_loge("Error: stride must be greater than 0");
+        ml_loge("Error: kernel_size must be greater than 0");
         return ML_ERROR_INVALID_PARAMETER;
       }
-      NN_RETURN_STATUS();
       break;
     case PropertyType::stride:
       status = getValues(CONV2D_DIM, value, (int *)(stride));
+      NN_RETURN_STATUS();      
       if (stride[0] == 0 || stride[1] == 0) {
         ml_loge("Error: stride must be greater than 0");
         return ML_ERROR_INVALID_PARAMETER;
       }
-      NN_RETURN_STATUS();
       break;
     case PropertyType::padding:
       status = getValues(CONV2D_DIM, value, (int *)(padding));
@@ -292,6 +292,7 @@ Tensor Conv2DLayer::zero_pad(int batch, Tensor in,
 
   return output;
 }
+  
 Tensor Conv2DLayer::conv2d(Tensor in, Tensor kernel, unsigned int const *stride,
                            int &status) {
 
