@@ -786,18 +786,6 @@ Tensor &Tensor::copy(const Tensor &from) {
   return *this;
 }
 
-/**
- * This generate one dimension vector has the every element in Tensor
- */
-std::vector<float> Tensor::mat2vec() {
-  std::vector<float> ret;
-
-  for (unsigned int i = 0; i < dim.getDataLen(); i++)
-    ret.push_back(data[i]);
-
-  return ret;
-}
-
 void Tensor::save(std::ofstream &file) {
   for (unsigned int i = 0; i < dim.getDataLen(); i++)
     file.write((char *)&data[i], sizeof(float));
