@@ -96,6 +96,15 @@ float relu(float x);
  */
 float reluPrime(float x);
 
+/**
+ * @brief     apply padding
+ * @param[in] batch batch index
+ * @param[in] x input
+ * @param[in] padding 2D padding size
+ * @retVal Tensor output tensor with batch size is 1 for batch index
+ */
+Tensor zero_pad(int batch, Tensor const &in, unsigned int const *padding);
+
 } /* namespace nntrainer */
 
 #endif /* __cplusplus */

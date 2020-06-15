@@ -46,8 +46,13 @@ int Pooling2DLayer::initialize(bool last) {
 }
 
 Tensor Pooling2DLayer::forwarding(Tensor in, int &status) {
-  // NYI
-  return in;
+  for (unsigned int b = 0; b < in.getDim().batch(); ++b) {
+    Tensor in_padded = zero_pad(b, in, padding);
+    Tensor result = pooling2d(in_padded, status);
+    memcpy(hidden.getAddress(b * hidden.getDim().getFeatureLen()),
+           result.getData(), result.getDim().getDataLen() * sizeof(float));
+  }
+  return hidden;
 }
 
 Tensor Pooling2DLayer::forwarding(Tensor in, Tensor output, int &status) {
@@ -121,14 +126,69 @@ int Pooling2DLayer::setProperty(std::vector<std::string> values) {
   return status;
 }
 
-Tensor Pooling2DLayer::zero_pad(int batch, Tensor in,
-                                unsigned int const *padding) { // NYI
-  return in;
-}
-
 Tensor Pooling2DLayer::pooling2d(Tensor in, int &status) {
-  // NYI
-  return in;
+  unsigned int channel = in.getDim().channel();
+  unsigned int height = in.getDim().height();
+  unsigned int width = in.getDim().width();
+  unsigned int p_height = pooling_size[0];
+  unsigned int p_width = pooling_size[1];
+
+  Tensor output(output_dim.channel(), output_dim.height(), output_dim.width());
+
+  unsigned int I, J;
+  switch (pooling_type) {
+  case PoolingType::max: {
+    for (unsigned int i = 0; i < channel; ++i) {
+      I = 0;
+      for (unsigned int j = 0; j <= height - p_height; j += stride[0]) {
+        J = 0;
+        for (unsigned int k = 0; k <= width - p_width; k += stride[1]) {
+          float max = std::numeric_limits<float>::min();
+          for (unsigned int pi = 0; pi < p_height; ++pi) {
+            for (unsigned int pj = 0; pj < p_width; ++pj) {
+              float val = in.getValue(0, i, j + pi, k + pj);
+              if (max < val)
+                max = val;
+            }
+          }
+          output.setValue(0, i, I, J, max);
+          J++;
+        }
+        I++;
+      }
+    }
+  } break;
+  case PoolingType::average: {
+    for (unsigned int i = 0; i < channel; ++i) {
+      I = 0;
+      for (unsigned int j = 0; j <= height - p_height; j += stride[0]) {
+        J = 0;
+        for (unsigned int k = 0; k <= width - p_width; k += stride[1]) {
+          float sum = 0.0;
+          for (unsigned int pi = 0; pi < p_height; ++pi) {
+            for (unsigned int pj = 0; pj < p_width; ++pj) {
+              sum += in.getValue(0, i, j + pi, k + pj);
+	    }
+	  }
+	  sum = sum / (p_height + p_width);
+          output.setValue(0, i, I, J, sum);
+          J++;
+        }
+        I++;
+      }
+    }
+  } break;
+  case PoolingType::global_max: {
+  } break;
+  case PoolingType::global_average: {
+  } break;
+  default:
+    ml_loge("Error: Unknown Pooling Type");
+    status = ML_ERROR_INVALID_PARAMETER;
+    break;
+  }
+
+  return output;
 }
 
 } /* namespace nntrainer */

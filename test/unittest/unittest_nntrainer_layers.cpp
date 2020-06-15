@@ -581,6 +581,46 @@ TEST(nntrainer_Pooling2D, initialize_01_p) {
 }
 
 /**
+ * @brief Pooling 2D Layer
+ */
+TEST(nntrainer_Pooling2D, forwarding_01_p) {
+  int status = ML_ERROR_NONE;
+  nntrainer::Pooling2DLayer layer;
+  std::vector<std::string> input_str;
+  nntrainer::TensorDim previous_dim;
+  previous_dim.setTensorDim("1:2:5:5");
+  layer.setInputDimension(previous_dim);
+
+  input_str.push_back("pooling_size= 2,2");
+  input_str.push_back("stride=1, 1");
+  input_str.push_back("padding=0,0");
+  input_str.push_back("pooling = max");
+
+  status = layer.setProperty(input_str);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = layer.initialize(false);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  nntrainer::Tensor in(1, 2, 5, 5);
+  nntrainer::Tensor out, result(1, 2, 4, 4);
+  std::ifstream file("goldenConv2DResult.out");
+  in.read(file);
+  file.close();
+  out = layer.forwarding(in, status);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  std::ifstream rfile("goldenPooling2DResult.out");
+  result.read(rfile);
+  rfile.close();
+  float *out_ptr, *golden;
+
+  golden = result.getData();
+  out_ptr = out.getData();
+
+  for (int i = 0; i < 1 * 2 * 4 * 4; ++i) {
+    EXPECT_FLOAT_EQ(out_ptr[i], golden[i]);
+  }
+}
+
+/**
  * @brief Main gtest
  */
 int main(int argc, char **argv) {

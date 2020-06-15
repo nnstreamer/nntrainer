@@ -84,7 +84,7 @@ Tensor::Tensor(int batch, int channel, int height, int width) {
 }
 
 float Tensor::getValue(unsigned int batch, unsigned int c, unsigned int h,
-                       unsigned int w) {
+                       unsigned int w) const {
   return this->data[batch * dim.channel() * dim.height() * dim.width() +
                     c * dim.height() * dim.width() + h * dim.width() + w];
 }

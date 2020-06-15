@@ -148,4 +148,47 @@ float reluPrime(float x) {
     return 1.0;
   }
 }
+
+// This is 2D zero pad
+// TODO : Optimize for multi dimention padding
+Tensor zero_pad(int batch, Tensor const &in, unsigned int const *padding) {
+  unsigned int c = in.getDim().channel();
+  unsigned int h = in.getDim().height();
+  unsigned int w = in.getDim().width();
+
+  unsigned int height_p = h + padding[0] * 2;
+  unsigned int width_p = w + padding[1] * 2;
+
+  unsigned int height_p_h = h + padding[0];
+  unsigned int width_p_h = w + padding[1];
+
+  Tensor output(1, c, height_p, width_p);
+
+  for (unsigned int j = 0; j < c; ++j) {
+    for (unsigned int k = 0; k < padding[0]; ++k) {
+      for (unsigned int l = 0; l < width_p; ++l) {
+	output.setValue(0, j, k, l, 0.0);
+	output.setValue(0, j, k + height_p_h, l, 0.0);
+      }
+    }
+
+    for (unsigned int l = 0; l < padding[1]; ++l) {
+      for (unsigned int k = padding[0]; k < h; ++k) {
+	output.setValue(0, j, k, l, 0.0);
+	output.setValue(0, j, k, l + width_p_h, 0.0);
+      }
+    }
+  }
+
+  for (unsigned int j = 0; j < c; ++j) {
+    for (unsigned int k = 0; k < h; ++k) {
+      for (unsigned int l = 0; l < w; ++l) {
+        output.setValue(0, j, k + padding[0], l + padding[1],
+                        in.getValue(batch, j, k, l));
+      }
+    }
+  }
+
+  return output;
+}
 } /* namespace nntrainer */
