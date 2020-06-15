@@ -305,12 +305,6 @@ public:
   void setZero();
 
   /**
-   * @brief     Reduce Rank ( Tensor to Vector )
-   * @retval    Saved vector
-   */
-  std::vector<float> mat2vec();
-
-  /**
    * @brief     Apply function element by element
    * @param[in] *function function pointer applied
    * @retval    Tensor
