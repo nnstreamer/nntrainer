@@ -257,11 +257,6 @@ int NeuralNetwork::init() {
         ini, (layers_name[i] + ":Normalization").c_str(), false));
       input_layer->setStandardization(iniparser_getboolean(
         ini, (layers_name[i] + ":Standardization").c_str(), false));
-      status = input_layer->setActivation((ActiType)parseType(
-        iniparser_getstring(ini, (layers_name[i] + ":Activation").c_str(),
-                            unknown),
-        TOKEN_ACTI));
-      NN_INI_RETURN_STATUS();
       layers.push_back(input_layer);
     } break;
     case LAYER_CONV2D: {
