@@ -30,8 +30,10 @@
 #include <functional>
 #include <iostream>
 #include <memory>
+#include <random>
 #include <tensor_dim.h>
 #include <thread>
+#include <util_func.h>
 #include <vector>
 
 /*
@@ -135,6 +137,7 @@ public:
     train_running = false;
     val_running = false;
     test_running = false;
+    rng.seed(getSeed());
   };
 
   /**
@@ -346,6 +349,8 @@ protected:
    * @retval    int return value
    */
   int rangeRandom(int min, int max);
+
+  std::mt19937 rng;
 };
 
 } // namespace nntrainer

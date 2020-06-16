@@ -24,6 +24,7 @@
 #include "nntrainer_test_util.h"
 #include <climits>
 #include <iostream>
+#include <random>
 
 #define num_class 10
 #define mini_batch 16
@@ -33,6 +34,7 @@ static bool *duplicate;
 static bool *valduplicate;
 static bool alloc_train = false;
 static bool alloc_val = false;
+static std::mt19937 rng(0);
 
 /**
  * @brief replace string and save it in file
@@ -66,13 +68,8 @@ void replaceString(const std::string &from, const std::string &to,
  * @retval    min < random value < max
  */
 static int rangeRandom(int min, int max) {
-  int n = max - min + 1;
-  int remainder = RAND_MAX % n;
-  int x;
-  do {
-    x = rand();
-  } while (x >= RAND_MAX - remainder);
-  return min + x % n;
+  std::uniform_int_distribution<int> dist(min, max);
+  return dist(rng);
 }
 
 /**
