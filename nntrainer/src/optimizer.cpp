@@ -23,6 +23,7 @@
 
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
+#include <lazy_tensor.h>
 #include <optimizer.h>
 #include <parse_util.h>
 #include <util_func.h>
@@ -98,35 +99,49 @@ void Optimizer::calculate(Tensor &djdw, Tensor &djdb, Tensor &weight,
     ll = ll * pow(popt.decay_rate, (iteration / popt.decay_steps));
   }
 
-  djdwAvg = djdw.average();
+  bool isL2norm = weight_decay.type == WeightDecayType::l2norm;
+
+  djdwAvg = djdw.chain()
+                .applyIf(isL2norm, _LIFT(add_i), weight, weight_decay.lambda)
+                .average()
+                .run();
+
   djdbAvg = djdb.average();
 
   switch (type) {
   case OptType::sgd:
-    weight = weight.subtract(djdwAvg.multiply(ll));
+    weight.add_i(djdwAvg, -ll);
     break;
-  case OptType::adam:
-    wm = wm.multiply(popt.beta1).add(djdwAvg.multiply(1 - popt.beta1));
-    wv = wv.multiply(popt.beta2)
-           .add((djdwAvg.multiply(djdwAvg)).multiply(1 - popt.beta2));
-    wm.divide(1 - pow(popt.beta1, iteration + 1));
-    wv.divide(1 - pow(popt.beta2, iteration + 1));
-    weight = weight.subtract(
-      (wm.divide(wv.apply(sqrtFloat).add(popt.epsilon))).multiply(ll));
-    bm = bm.multiply(popt.beta1).add(djdbAvg.multiply(1 - popt.beta1));
-    bv = bv.multiply(popt.beta2)
-           .add((djdbAvg.multiply(djdbAvg)).multiply(1 - popt.beta2));
-    bm.divide(1 - pow(popt.beta1, iteration + 1));
-    bv.divide(1 - pow(popt.beta2, iteration + 1));
-    bias = bias.subtract(
-      (bm.divide(bv.apply(sqrtFloat).add(popt.epsilon))).multiply(ll));
+  case OptType::adam:{
+    std::function<float(float)> sqrtEps = [&](float f){ return sqrtFloat(f) + this->popt.epsilon; };
+    std::function<float(float)> biasCorrection = [&](float f){ return 1 - pow(f, iteration + 1); };
+
+    ll *= sqrt(biasCorrection(popt.beta2)) / biasCorrection(popt.beta1);
+
+    wm.multiply_i(popt.beta1);
+    wm.add_i(djdwAvg, 1 - popt.beta1);
+
+    wv.multiply_i(popt.beta2);
+    wv.add_i(djdwAvg.multiply(djdwAvg), 1 - popt.beta2);
+
+    weight.add_i(wm.divide(wv.apply(sqrtEps)), -ll);
+
+    bm.multiply_i(popt.beta1);
+    bm.add_i(djdbAvg, 1 - popt.beta1);
+
+    bv.multiply_i(popt.beta2);
+    bv.add_i(djdbAvg.multiply(djdbAvg), 1 - popt.beta2);
+
+    bias.add_i(bm.divide(bv.apply(sqrtEps)), -ll);
     break;
+  }
+  case OptType::unknown:
   default:
     break;
   }
 
   if (init_zero) {
-    bias = bias.subtract(djdbAvg.multiply(ll));
+    bias.add_i(djdbAvg, -ll);
   }
 }
 
