@@ -25,49 +25,9 @@
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <parse_util.h>
-#include <random>
 #include <util_func.h>
 
 namespace nntrainer {
-
-static auto rng = [] {
-  std::mt19937 rng;
-  rng.seed(std::random_device()());
-  return rng;
-}();
-
-template <typename... Args>
-static void RandNormal(unsigned int b_n, Tensor &w, Args &&... args) {
-  std::normal_distribution<float> dist(std::forward<Args>(args)...);
-  unsigned int channel = w.getChannel();
-  unsigned int width = w.getWidth();
-  unsigned int height = w.getHeight();
-
-  for (unsigned int k = 0; k < channel; ++k) {
-    for (unsigned int i = 0; i < width; ++i) {
-      for (unsigned int j = 0; j < height; ++j) {
-        w.setValue(b_n, k, j, i, dist(rng));
-      }
-    }
-  }
-}
-
-template <typename... Args>
-static void RandUniform(unsigned int b_n, Tensor &w, Args &&... args) {
-  std::uniform_real_distribution<float> dist(std::forward<Args>(args)...);
-
-  unsigned int channel = w.getChannel();
-  unsigned int width = w.getWidth();
-  unsigned int height = w.getHeight();
-
-  for (unsigned int k = 0; k < channel; ++k) {
-    for (unsigned int i = 0; i < width; ++i) {
-      for (unsigned int j = 0; j < height; ++j) {
-        w.setValue(b_n, k, j, i, dist(rng));
-      }
-    }
-  }
-}
 
 int Layer::setActivation(ActiType acti) {
   int status = ML_ERROR_NONE;
@@ -132,32 +92,30 @@ Tensor Layer::initializeWeight(TensorDim w_dim, WeightIniType init_type,
     init_type = WEIGHT_XAVIER_NORMAL;
   }
 
-  for (unsigned int i = 0; i < w_dim.batch(); ++i) {
-    switch (init_type) {
-    case WEIGHT_LECUN_NORMAL:
-      RandNormal(i, w, 0, sqrt(1.0 / dim.height()));
-      break;
-    case WEIGHT_XAVIER_NORMAL:
-      RandNormal(i, w, 0, sqrt(2.0 / (dim.width() + dim.height())));
-      break;
-    case WEIGHT_HE_NORMAL:
-      RandNormal(i, w, 0, sqrt(2.0 / (dim.height())));
-      break;
-    case WEIGHT_LECUN_UNIFORM:
-      RandUniform(i, w, -1.0 * sqrt(1.0 / dim.height()),
-                  sqrt(1.0 / dim.height()));
-      break;
-    case WEIGHT_XAVIER_UNIFORM:
-      RandUniform(i, w, -1.0 * sqrt(6.0 / (dim.height() + dim.width())),
-                  sqrt(6.0 / (dim.height() + dim.width())));
-      break;
-    case WEIGHT_HE_UNIFORM:
-      RandUniform(i, w, -1.0 * sqrt(6.0 / (dim.height())),
-                  sqrt(6.0 / (dim.height())));
-      break;
-    default:
-      break;
-    }
+  switch (init_type) {
+  case WEIGHT_LECUN_NORMAL:
+    w.setRandNormal(0, sqrt(1.0 / dim.height()));
+    break;
+  case WEIGHT_XAVIER_NORMAL:
+    w.setRandNormal(0, sqrt(2.0 / (dim.width() + dim.height())));
+    break;
+  case WEIGHT_HE_NORMAL:
+    w.setRandNormal(0, sqrt(2.0 / (dim.height())));
+    break;
+  case WEIGHT_LECUN_UNIFORM:
+    w.setRandUniform(-1.0 * sqrt(1.0 / dim.height()),
+        sqrt(1.0 / dim.height()));
+    break;
+  case WEIGHT_XAVIER_UNIFORM:
+    w.setRandUniform(-1.0 * sqrt(6.0 / (dim.height() + dim.width())),
+        sqrt(6.0 / (dim.height() + dim.width())));
+    break;
+  case WEIGHT_HE_UNIFORM:
+    w.setRandUniform(-1.0 * sqrt(6.0 / (dim.height())),
+        sqrt(6.0 / (dim.height())));
+    break;
+  default:
+    break;
   }
   return w;
 }

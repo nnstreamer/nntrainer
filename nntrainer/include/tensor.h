@@ -351,7 +351,7 @@ public:
   int getBatch() const { return dim.batch(); };
 
   /**
-   * @brief     Set the elelemnt value
+   * @brief     Set the element value
    * @param[in] batch batch location
    * @param[in] c channel location
    * @param[in] i height location
@@ -360,6 +360,26 @@ public:
    */
   void setValue(unsigned int batch, unsigned int c, unsigned int i,
                 unsigned int j, float value);
+
+  /**
+   * @brief     Fill the Tensor elements with value
+   * @param[in] value value to be stored
+   */
+  void setValue(float value);
+
+  /**
+   * @brief     Set the tensor with random normal distribution
+   * @param[in] mean mean of the distribution
+   * @param[in] std standard deviation of the distribution
+   */
+  void setRandNormal(float mean = 0.0, float std = 0.05);
+
+  /**
+   * @brief     Set the tensor with random uniform distribution
+   * @param[in] min minimum value for the distribution
+   * @param[in] max maximum value for the distribution
+   */
+  void setRandUniform(float min = -0.05, float max = 0.05);
 
   /**
    * @brief     Copy the Tensor
@@ -398,7 +418,6 @@ public:
    */
   float *getData() { return data.data(); }
 
-
   const float *getData() const { return data.data(); }
 
   /**
@@ -407,7 +426,6 @@ public:
    */
   float *getAddress(unsigned int i);
 
-
 private:
   /**< handle the data as a std::vector type */
   std::vector<float> data;
@@ -415,6 +433,8 @@ private:
 
   static constexpr float min_limits = std::numeric_limits<float>::min();
   static constexpr float max_limits = std::numeric_limits<float>::max();
+  template<typename T>
+    void setDist(T dist);
 };
 
 /**

@@ -54,7 +54,7 @@ int FullyConnectedLayer::initialize(bool last) {
   if (init_zero) {
     bias.setZero();
   } else {
-    bias = bias.apply(random);
+    bias.setRandUniform(-0.5, 0.5);
   }
   return status;
 }

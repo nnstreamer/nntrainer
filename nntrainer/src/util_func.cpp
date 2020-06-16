@@ -22,10 +22,20 @@
 
 #include <assert.h>
 #include <math.h>
+#include <random>
 #include <tensor.h>
 #include <util_func.h>
 
 namespace nntrainer {
+
+static auto rng = [] {
+  std::mt19937 rng;
+  rng.seed(getSeed());
+  return rng;
+}();
+static std::uniform_real_distribution<float> dist(-0.5, 0.5);
+
+unsigned int getSeed() { return 0; }
 
 Tensor softmaxPrime(Tensor x) {
   int batch = x.getBatch();
@@ -113,7 +123,7 @@ Tensor softmax(Tensor t) {
   return result;
 }
 
-float random(float x) { return (float)(rand() % 10000 + 1) / 10000 - 0.5; }
+float random() { return dist(rng); }
 
 float sqrtFloat(float x) { return (float)(sqrt(x)); };
 

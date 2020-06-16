@@ -17,7 +17,6 @@
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <parse_util.h>
-#include <random>
 #include <util_func.h>
 
 namespace nntrainer {
@@ -50,7 +49,7 @@ int Conv2DLayer::initialize(bool last) {
     if (init_zero) {
       B = 0.0;
     } else {
-      B = random(B);
+      B = random();
     }
     bias.push_back(B);
   }

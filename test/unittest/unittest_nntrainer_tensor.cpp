@@ -799,6 +799,17 @@ end_transpose_01_p:
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
+TEST(nntrainer_Tensor, set_01_p) {
+  nntrainer::Tensor tensor = nntrainer::Tensor(1, 1, 1, 1);
+
+  tensor.setZero();
+  EXPECT_EQ(tensor.getValue(0, 0, 0, 0), 0.0);
+
+  tensor.setRandUniform(-0.5, 0);
+  float val = tensor.getValue(0, 0, 0, 0);
+  EXPECT_TRUE(val >= -0.5 && val < 0);
+}
+
 /**
  * @brief Main gtest
  */

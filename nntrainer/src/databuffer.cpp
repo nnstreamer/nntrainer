@@ -52,13 +52,8 @@ std::condition_variable cv_val;
 std::condition_variable cv_test;
 
 int DataBuffer::rangeRandom(int min, int max) {
-  int n = max - min + 1;
-  int remainder = RAND_MAX % n;
-  int x;
-  do {
-    x = rand();
-  } while (x >= RAND_MAX - remainder);
-  return min + x % n;
+  std::uniform_int_distribution<int> dist(min, max);
+  return dist(rng);
 }
 
 int DataBuffer::run(BufferType type) {

@@ -95,15 +95,6 @@ TEST(nntrainer_util_func, softmax_prime_01_p) {
   }
 }
 
-TEST(nntrainer_util_func, random_01_p) {
-  int status = ML_ERROR_INVALID_PARAMETER;
-  srand(time(NULL));
-  float x = nntrainer::random(0.0);
-  if (-1.0 < x && x < 1.0)
-    status = ML_ERROR_NONE;
-  EXPECT_EQ(status, ML_ERROR_NONE);
-}
-
 TEST(nntrainer_util_func, sqrtFloat_01_p) {
   int status = ML_ERROR_INVALID_PARAMETER;
 

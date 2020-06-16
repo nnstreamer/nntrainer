@@ -29,6 +29,12 @@
 namespace nntrainer {
 
 /**
+ * @brief     get the seed
+ * @retVal    seed
+ */
+unsigned int getSeed();
+
+/**
  * @brief     derivative softmax function for Tensor Type
  * @param[in] x Tensor
  * @retVal    Tensor
@@ -44,9 +50,8 @@ Tensor softmax(Tensor t);
 
 /**
  * @brief     random function
- * @param[in] x float
  */
-float random(float x);
+float random();
 
 /**
  * @brief     sqrt function for float type
