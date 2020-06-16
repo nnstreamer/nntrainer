@@ -127,6 +127,12 @@ void Conv2DLayer::copy(std::shared_ptr<Layer> l) {
     this->filters.push_back(from->filters[i]);
     this->bias.push_back(from->bias[i]);
   }
+  this->input.copy(from->input);
+  this->hidden.copy(from->hidden);
+  this->dim = from->dim;
+  this->input_dim = from->input_dim;
+  this->output_dim = from->output_dim;
+  this->last_layer = from->last_layer;
 }
 
 int Conv2DLayer::setSize(int *size, nntrainer::Conv2DLayer::PropertyType type) {

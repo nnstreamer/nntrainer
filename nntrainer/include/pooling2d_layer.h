@@ -127,15 +127,6 @@ public:
   void copy(std::shared_ptr<Layer> l);
 
   /**
-   * @brief     set Parameter Size
-   * @param[in] * size : size arrary
-   * @param[in] type : Property type
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   */
-  int setSize(int *size, PropertyType type);
-
-  /**
    * @brief     set Property of layer
    * @param[in] values values of property
    * @retval #ML_ERROR_NONE Successful.
