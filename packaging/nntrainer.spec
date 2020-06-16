@@ -188,6 +188,7 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %{_includedir}/nntrainer/bn_layer.h
 %{_includedir}/nntrainer/conv2d_layer.h
 %{_includedir}/nntrainer/pooling2d_layer.h
+%{_includedir}/nntrainer/flatten_layer.h
 %{_includedir}/nntrainer/neuralnet.h
 %{_includedir}/nntrainer/tensor.h
 %{_includedir}/nntrainer/lazy_tensor.h

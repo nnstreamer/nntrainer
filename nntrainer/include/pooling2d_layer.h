@@ -12,8 +12,8 @@
  *
  */
 
-#ifndef __POOLING2D_LAYER_H_
-#define __POOLING2D_LAYER_H_
+#ifndef __POOLING2D_LAYER_H__
+#define __POOLING2D_LAYER_H__
 #ifdef __cplusplus
 
 #include <fstream>
