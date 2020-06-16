@@ -14,8 +14,17 @@
 #define __LAZY_TENSOR_H__
 #ifdef __cplusplus
 
+#include <nntrainer_error.h>
 #include <tensor.h>
 #include <vector>
+
+#define FWD(...) std::forward<decltype(__VA_ARGS__)>(__VA_ARGS__)
+
+#define _LIFT(X)                                                  \
+  [](nntrainer::Tensor &t, auto &&... args) noexcept(             \
+    noexcept(t.X(FWD(args)...))) -> decltype(t.X(FWD(args)...)) { \
+    return t.X(FWD(args)...);                                     \
+  }
 
 namespace nntrainer {
 
@@ -126,6 +135,30 @@ public:
    * @retval    LazyTensor *this
    */
   LazyTensor &average(int axis = 0);
+
+  /**
+   * @brief     apply A tensor function when predicate is true
+   * @param[in] bool predicate predicate to check to determine application
+   * @param[in] _Callable&& fn function to be applied 
+   *            (Must be wrapped with _LIFT(X) macro to resolve overload set)
+   * @param[in] _Args&&... args args for fn
+   * @retval    LazyTensor *this
+   */
+  template <typename _Callable, typename... _Args>
+  LazyTensor &applyIf(bool predicate, _Callable &&fn, _Args &&... args) {
+    if (predicate) {
+      auto f = [&](Tensor &t) mutable -> int {
+        try {
+          return fn(t, std::forward<_Args>(args)...);
+        } catch (std::runtime_error &e) {
+          return ML_ERROR_INVALID_PARAMETER;
+        }
+      };
+      call_chain.push_back(f);
+    }
+
+    return *this;
+  }
 
   /**
    * @brief execute the call_chain to get the tensor

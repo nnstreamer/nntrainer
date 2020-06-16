@@ -12,7 +12,6 @@
  */
 
 #include <lazy_tensor.h>
-#include <nntrainer_error.h>
 #include <tensor.h>
 
 namespace nntrainer {
