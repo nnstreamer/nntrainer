@@ -91,19 +91,7 @@ std::vector<std::string> parseLayerName(std::string ll) {
   return ret;
 }
 
-NeuralNetwork::NeuralNetwork() {
-  batch_size = 0;
-  learning_rate = 0.0;
-  decay_rate = 0.0;
-  decay_steps = 0.0;
-  epoch = 0;
-  loss = 0.0;
-  cost = COST_UNKNOWN;
-  weight_ini = WEIGHT_UNKNOWN;
-  net_type = NET_UNKNOWN;
-  data_buffer = NULL;
-  config = "";
-}
+NeuralNetwork::NeuralNetwork() : NeuralNetwork("") {}
 
 NeuralNetwork::NeuralNetwork(std::string config) {
   batch_size = 0;
@@ -116,6 +104,7 @@ NeuralNetwork::NeuralNetwork(std::string config) {
   weight_ini = WEIGHT_UNKNOWN;
   net_type = NET_UNKNOWN;
   data_buffer = NULL;
+  iter = 0;
   this->setConfig(config);
 }
 
@@ -772,7 +761,6 @@ int NeuralNetwork::train_run() {
 
   float training_loss = 0.0;
   for (unsigned int i = 0; i < epoch; ++i) {
-    int count = 0;
 
     status = data_buffer->run(nntrainer::BUF_TRAIN);
     if (status != ML_ERROR_NONE) {
@@ -792,15 +780,14 @@ int NeuralNetwork::train_run() {
       vec_4d in, label;
       if (data_buffer->getDataFromBuffer(nntrainer::BUF_TRAIN, in, label)) {
         status =
-          backwarding(nntrainer::Tensor(in), nntrainer::Tensor(label), i);
+          backwarding(nntrainer::Tensor(in), nntrainer::Tensor(label), iter++);
         if (status != ML_ERROR_NONE) {
           data_buffer->clear(nntrainer::BUF_TRAIN);
           ml_loge ("Error: training error in #%d/%d.", i+1, epoch);
           return status;
         }
-        count++;
         std::cout << "#" << i + 1 << "/" << epoch;
-        data_buffer->displayProgress(count, nntrainer::BUF_TRAIN, getLoss());
+        data_buffer->displayProgress(iter, nntrainer::BUF_TRAIN, getLoss());
       } else {
         data_buffer->clear(nntrainer::BUF_TRAIN);
         break;
