@@ -330,6 +330,11 @@ private:
    * @brief     Data Buffer to get Input
    */
   std::shared_ptr<DataBuffer> data_buffer;
+
+  /**
+   * @brief     Number of iterations trained
+   */
+  int iter;
 };
 
 } /* namespace nntrainer */
