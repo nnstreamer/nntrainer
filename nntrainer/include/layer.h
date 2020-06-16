@@ -62,7 +62,8 @@ typedef enum {
  *            2. Batch Normalization Layer type
  *            3. Convolution 2D Layer type
  *            4. Pooling 2D Layer type
- *            5. Unknown
+ *            5. Flatten Layer type
+ *            6. Unknown
  */
 typedef enum {
   LAYER_IN,
@@ -70,6 +71,7 @@ typedef enum {
   LAYER_BN,
   LAYER_CONV2D,
   LAYER_POOLING2D,
+  LAYER_FLATTEN,  
   LAYER_UNKNOWN
 } LayerType;
 

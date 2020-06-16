@@ -97,11 +97,12 @@ unsigned int parseType(std::string ll, InputType t) {
    *            "batch_normalization" : Batch Normalization Layer Object
    *            "conv2d" : Convolution 2D Layer Object
    *            "pooling2d" : Pooling 2D Layer Object
+   *            "flatten" : Flatten Layer Object
    *            "unknown" :
    */
-  std::array<std::string, 6> layer_string = {
-    "input",  "fully_connected", "batch_normalization",
-    "conv2d", "pooling2d",       "unknown"};
+  std::array<std::string, 7> layer_string = {
+    "input",   "fully_connected", "batch_normalization", "conv2d", "pooling2d",
+    "flatten", "unknown"};
 
   /**
    * @brief     Weight Initialization Type String from configure file
