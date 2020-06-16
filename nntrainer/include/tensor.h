@@ -351,6 +351,14 @@ public:
   int getBatch() const { return dim.batch(); };
 
   /**
+   * @brief     Get size of the data
+   * @retval    size_t Size in bytes
+   */
+  size_t getSize() const {
+    return dim.getDataLen() * sizeof(decltype(data)::value_type);
+  }
+
+  /**
    * @brief     Set the element value
    * @param[in] batch batch location
    * @param[in] c channel location

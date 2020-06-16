@@ -105,6 +105,7 @@ NeuralNetwork::NeuralNetwork(std::string config) {
   net_type = NET_UNKNOWN;
   data_buffer = NULL;
   iter = 0;
+  continue_train = false;
   this->setConfig(config);
 }
 
@@ -453,8 +454,8 @@ int NeuralNetwork::setProperty(std::vector<std::string> values) {
     case PropertyType::epochs: {
       int e;
       status = setInt(e, value);
-      epoch = e;
       NN_RETURN_STATUS();
+      epoch = e;
     } break;
     case PropertyType::train_data: {
       status = std::static_pointer_cast<DataBufferFromDataFile>(data_buffer)
@@ -486,6 +487,13 @@ int NeuralNetwork::setProperty(std::vector<std::string> values) {
     } break;
     case PropertyType::model_file: {
       model = value;
+    } break;
+    case PropertyType::continue_train: {
+      bool cont_train;
+      status = setBoolean(cont_train, value);
+      NN_RETURN_STATUS();
+      continue_train = cont_train;
+      opt.setProperty({values[i]});
     } break;
     default:
       ml_loge("Error: Unknown Network Property Key");
@@ -526,18 +534,21 @@ int NeuralNetwork::init(std::shared_ptr<Optimizer> optimizer,
       status = layers[i]->setCost(cost);
       NN_RETURN_STATUS();
       break;
-    case LAYER_FC:
+    case LAYER_FC: {
+      std::shared_ptr<FullyConnectedLayer> fc_layer =
+        std::static_pointer_cast<FullyConnectedLayer>(layers[i]);
       layers[i]->setInputDimension(previous_dim);
+
       status = layers[i]->setCost(cost);
       NN_RETURN_STATUS();
 
       status = layers[i]->initialize(last);
       NN_RETURN_STATUS();
 
-      status = layers[i]->setOptimizer(opt);
+      status = fc_layer->setOptimizer(opt);
       NN_RETURN_STATUS();
 
-      break;
+    }  break;
     case LAYER_BN:
       layers[i]->setInputDimension(previous_dim);
       status = layers[i]->initialize(last);
@@ -657,17 +668,20 @@ NeuralNetwork &NeuralNetwork::copy(NeuralNetwork &from) {
 /**
  * @brief     save model
  *            save Weight & Bias Data into file by calling save from layer
+ *            save training parameters from the optimizer
  */
 void NeuralNetwork::saveModel() {
   std::ofstream model_file(model, std::ios::out | std::ios::binary);
   for (unsigned int i = 0; i < layers.size(); i++)
     layers[i]->save(model_file);
+  model_file.write((char *)&iter, sizeof(iter));
   model_file.close();
 }
 
 /**
  * @brief     read model
  *            read Weight & Bias Data into file by calling save from layer
+ *            read training parameters from the optimizer if continuing train
  */
 void NeuralNetwork::readModel() {
   if (!is_file_exist(model))
@@ -675,6 +689,9 @@ void NeuralNetwork::readModel() {
   std::ifstream model_file(model, std::ios::in | std::ios::binary);
   for (unsigned int i = 0; i < layers.size(); i++)
     layers[i]->read(model_file);
+  if (continue_train) {
+    model_file.read((char *)&iter, sizeof(iter));
+  }
   model_file.close();
   ml_logi("read modelfile: %s", model.c_str());
 }

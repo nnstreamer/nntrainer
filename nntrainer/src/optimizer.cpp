@@ -21,6 +21,7 @@
  *
  */
 
+#include <iostream>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <lazy_tensor.h>
@@ -29,16 +30,6 @@
 #include <util_func.h>
 
 namespace nntrainer {
-
-Optimizer::Optimizer() {
-  type = OptType::unknown;
-  popt.learning_rate = 0.0;
-  popt.beta1 = 0.0;
-  popt.beta2 = 0.0;
-  popt.epsilon = 0.0;
-  popt.decay_rate = 0.0;
-  popt.decay_steps = 0.0;
-};
 
 int Optimizer::setType(OptType t) {
   int status = ML_ERROR_NONE;
@@ -180,6 +171,10 @@ int Optimizer::setProperty(std::vector<std::string> values) {
       status = setDouble(popt.epsilon, value);
       NN_RETURN_STATUS();
       break;
+    case PropertyType::continue_train:
+      status = setBoolean(popt.continue_train, value);
+      NN_RETURN_STATUS();
+      break;
     default:
       ml_loge("Error: Unknown Optimizer Property Key");
       status = ML_ERROR_INVALID_PARAMETER;
@@ -188,5 +183,31 @@ int Optimizer::setProperty(std::vector<std::string> values) {
   }
 
   return status;
+}
+
+void Optimizer::read(std::ifstream &file) {
+  OptType loaded_type;
+  file.read((char *)&loaded_type, sizeof(OptType));
+  if (type == OptType::adam and loaded_type == type) {
+    if (popt.continue_train) {
+      wm.read(file);
+      bm.read(file);
+      wv.read(file);
+      bv.read(file);
+    } else {
+      size_t total_size = wm.getSize() + bm.getSize() + wv.getSize() + bv.getSize();
+      file.seekg(total_size, std::ifstream::cur);
+    }
+  }
+}
+
+void Optimizer::save(std::ofstream &file) {
+  file.write((char *)&type, sizeof(OptType));
+  if (type == OptType::adam) {
+    wm.save(file);
+    bm.save(file);
+    wv.save(file);
+    bv.save(file);
+  }
 }
 } // namespace nntrainer

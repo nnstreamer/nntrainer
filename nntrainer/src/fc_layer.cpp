@@ -110,6 +110,14 @@ int FullyConnectedLayer::setProperty(std::vector<std::string> values) {
   return status;
 }
 
+int FullyConnectedLayer::setOptimizer(Optimizer &opt) {
+  int status = Layer::setOptimizer(opt);
+  if (status != ML_ERROR_NONE)
+    return status;
+
+  return this->opt.initialize(dim, true);
+}
+
 Tensor FullyConnectedLayer::forwarding(Tensor in, int &status) {
   input = in;
   hidden = input.chain().dot(weight).add_i(bias).run();
@@ -132,11 +140,13 @@ Tensor FullyConnectedLayer::forwarding(Tensor in, int &status) {
 void FullyConnectedLayer::read(std::ifstream &file) {
   weight.read(file);
   bias.read(file);
+  opt.read(file);
 }
 
 void FullyConnectedLayer::save(std::ofstream &file) {
   weight.save(file);
   bias.save(file);
+  opt.save(file);
 }
 
 void FullyConnectedLayer::copy(std::shared_ptr<Layer> l) {

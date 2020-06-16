@@ -296,10 +296,11 @@ unsigned int parseOptProperty(std::string property) {
    * beta1 = 3,
    * beta2 = 4,
    * epsilon = 5,
+   * continue_train = 6,
    */
-  std::array<std::string, 7> property_string = {
-    "learning_rate", "decay_rate", "decay_steps", "beta1",
-    "beta2",         "epsilon",    "unknown"};
+  std::array<std::string, 8> property_string = {
+    "learning_rate", "decay_rate", "decay_steps", "beta1", "beta2", "epsilon",
+    "continue_train", "unknown"};
 
   for (i = 0; i < property_string.size(); i++) {
     unsigned int size = (property_string[i].size() > property.size())
