@@ -65,14 +65,23 @@ Tensor Pooling2DLayer::backwarding(Tensor in, int iteration) {
 }
 
 void Pooling2DLayer::copy(std::shared_ptr<Layer> l) {
-  // NYI
-}
+  std::shared_ptr<Pooling2DLayer> from =
+    std::static_pointer_cast<Pooling2DLayer>(l);
 
-int Pooling2DLayer::setSize(int *size,
-                            nntrainer::Pooling2DLayer::PropertyType type) {
-  int status = ML_ERROR_NONE;
-  // NYI
-  return status;
+  this->pooling_type = from->pooling_type;
+
+  for (unsigned int i = 0; i < POOLING2D_DIM; ++i) {
+    this->pooling_size[i] = from->pooling_size[i];
+    this->stride[i] = from->stride[i];
+    this->padding[i] = from->padding[i];
+  }
+
+  this->input.copy(from->input);
+  this->hidden.copy(from->hidden);
+  this->dim = from->dim;
+  this->input_dim = from->input_dim;
+  this->output_dim = from->output_dim;
+  this->last_layer = from->last_layer;
 }
 
 int Pooling2DLayer::setProperty(std::vector<std::string> values) {
