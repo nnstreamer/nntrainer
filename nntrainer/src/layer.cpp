@@ -59,7 +59,7 @@ int Layer::setOptimizer(Optimizer &opt) {
   this->opt.setType(opt.getType());
   this->opt.setOptParam(opt.getOptParam());
 
-  return this->opt.initialize(dim, true);
+  return this->opt.initialize(dim, false);
 }
 
 int Layer::checkValidation() {

@@ -57,13 +57,17 @@ typedef struct WeightDecayParam_ {
 /**
  * @brief     type for the Optimizor to save hyper-parameter
  */
-typedef struct {
+typedef struct _OptParam {
   float learning_rate;
   double beta1;
   double beta2;
   double epsilon;
   float decay_rate;
   float decay_steps;
+  bool continue_train;  /** Continue training with previous tensors for adam */
+
+  _OptParam() : learning_rate(0.0), beta1(0.0), beta2(0.0), epsilon(0.0),
+    decay_rate(0.0), decay_steps(0.0), continue_train(false) {}
 } OptParam;
 
 class Optimizer {
@@ -71,12 +75,12 @@ public:
   /**
    * @brief     Constructor of Optimizer Class
    */
-  Optimizer();
+  Optimizer() : type(OptType::unknown), popt() {}
 
   /**
    * @brief     Destructor of Optimizer Class
    */
-  ~Optimizer(){};
+  ~Optimizer() {}
 
   /**
    * @brief     set Optimizer Type
@@ -135,8 +139,8 @@ public:
   /**
    * @brief     initialize optimizer. Initialize Weight if it is adam
    * @param[in] d TensorDim
-   * @param[in] setTensor true if the layer need wieght update.
-   *            Input Layer and Batch Noramlization layer won't need it.
+   * @param[in] setTensor true if the layer need weight update.
+   *            Input Layer and Batch Normalization layer won't need it.
    *            Therefore, it sets false.
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
@@ -172,7 +176,20 @@ public:
     beta1 = 3,
     beta2 = 4,
     epsilon = 5,
+    continue_train = 6,
   };
+
+  /**
+   * @brief     Read Training optimizer paramters from file
+   * @param[in] file input stream file
+   */
+  void read(std::ifstream &file);
+
+  /**
+   * @brief     Save Training optimizer paramters from file
+   * @param[in] file output stream file
+   */
+  void save(std::ofstream &file);
 
 private:
   /**

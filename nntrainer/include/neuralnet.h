@@ -145,12 +145,12 @@ public:
   int backwarding(Tensor input, Tensor expected_output, int iteration);
 
   /**
-   * @brief     save W & B into file
+   * @brief     save model and training parameters into file
    */
   void saveModel();
 
   /**
-   * @brief     read W & B from file
+   * @brief     read model and training parameters from file
    */
   void readModel();
 
@@ -259,6 +259,7 @@ public:
     batch_size = 7,
     epochs = 8,
     model_file = 9,
+    continue_train = 10,
   };
 
 private:
@@ -314,6 +315,7 @@ private:
 
   /**
    * @brief     Optimizer
+   * @note      This gets copied into each layer, do not use this directly
    */
   Optimizer opt;
 
@@ -333,9 +335,14 @@ private:
   std::shared_ptr<DataBuffer> data_buffer;
 
   /**
+   * @brief    Continue train from the previous state of optimizer and iterations
+   */
+  bool continue_train;
+
+  /**
    * @brief     Number of iterations trained
    */
-  int iter;
+  uint64_t iter;
 };
 
 } /* namespace nntrainer */

@@ -94,6 +94,14 @@ public:
   int setProperty(std::vector<std::string> values);
 
   /**
+   * @brief     Optimizer Setter
+   * @param[in] opt Optimizer
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  int setOptimizer(Optimizer &opt);
+
+  /**
    * @brief     Property Enumeration
    *            1. bias zero : bool
    *            4. activation : bool
