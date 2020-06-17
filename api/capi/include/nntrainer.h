@@ -81,7 +81,6 @@ typedef enum {
   ML_LAYER_TYPE_UNKNOWN    /**< Unknown Lyaer */
 } ml_layer_type_e;
 
-
 /**
  * @brief Constructs the neural network model.
  * @details Use this function to create Neural Netowrk Model.
@@ -94,28 +93,16 @@ typedef enum {
 int ml_nnmodel_construct(ml_nnmodel_h *model);
 
 /**
- * @brief Constructs the neural network model with configuration file.
- * @details Use this function to create Neural Netowrk Model.
- * @since_tizen 6.x
- * @param[in] model_conf The location of nntrainer model configuration file.
- * @param[out] model The NNTrainer Model handler from the given description.
- * @return @c 0 on success. Otherwise a negative error value.
- * @retval #ML_ERROR_NONE Successful.
- * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
- * @retval #ML_ERROR_CANNOT_ASSIGN_ADDRESS Cannot assign object.
- */
-int ml_nnmodel_construct_with_conf(const char *model_conf, ml_nnmodel_h *model);
-
-/**
- * @brief initialize the neural network model with configuration file.
+ * @brief Initialize the neural network model with the given configuration file.
  * @details Use this function to initialize neural network model
  * @since_tizen 6.x
+ * @param[in] model_conf The location of nntrainer model configuration file.
  * @param[in] model The NNTrainer model handler from the given description.
  * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter.
  */
-int ml_nnmodel_compile_with_conf(ml_nnmodel_h model);
+int ml_nnmodel_compile_with_conf(const char *model_conf, ml_nnmodel_h model);
 
 /**
  * @brief initialize the neural network model.
@@ -242,7 +229,6 @@ int ml_nnoptimizer_create(ml_nnopt_h *opt, const char *type);
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter.
  */
 int ml_nnoptimizer_delete(ml_nnopt_h opt);
-  
 
 /**
  * @brief Set the neural network optimizer property.
