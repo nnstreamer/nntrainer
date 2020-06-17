@@ -119,13 +119,6 @@ public:
    */
   int setProperty(std::vector<std::string> values);
 
-  /**
-   * @brief     calculation convolution
-   * @param[in] in input tensor
-   * @param[out] status output of status
-   * @retval Tensor outoput tensor
-   */
-  Tensor pooling2d(Tensor in, int &status);
 
   /* TO DO : support keras type of padding */
   enum class PaddingType {
@@ -139,7 +132,18 @@ private:
   unsigned int pooling_size[POOLING2D_DIM];
   unsigned int stride[POOLING2D_DIM];
   unsigned int padding[POOLING2D_DIM];
+  std::vector<unsigned int> max_idx;
   PoolingType pooling_type;
+
+  /**
+   * @brief     calculation convolution
+   * @param[in] batch batch index
+   * @param[in] in input tensor
+   * @param[out] status output of status
+   * @retval Tensor outoput tensor
+   */
+  Tensor pooling2d(unsigned int batch, Tensor in, int &status);
+  
 };
 
 } // namespace nntrainer
