@@ -35,7 +35,7 @@ override_dh_auto_test:
 	tar xzf ./packaging/trainset.tar.gz -C build
 	tar xzf ./packaging/valset.tar.gz -C build
 	tar xzf ./packaging/testset.tar.gz -C build
-	tar xzf ./packaging/conv2d_unittest.tar.gz -C build
+	tar xzf ./packaging/unittest_layers.tar.gz -C build
 	cp ./packaging/label.dat build
 	./packaging/run_unittests.sh ./test
 

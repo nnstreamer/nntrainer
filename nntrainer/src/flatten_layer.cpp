@@ -56,8 +56,9 @@ Tensor FlattenLayer::forwarding(Tensor in, Tensor output, int &status) {
 }
 
 Tensor FlattenLayer::backwarding(Tensor in, int iteration) {
-  // NYI
-  return in;
+  Tensor ret = in;
+  ret.setDim(input_dim);
+  return ret;
 }
 
 void FlattenLayer::copy(std::shared_ptr<Layer> l) {

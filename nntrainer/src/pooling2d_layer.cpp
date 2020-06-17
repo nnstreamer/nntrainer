@@ -46,7 +46,7 @@ int Pooling2DLayer::initialize(bool last) {
 }
 
 Tensor Pooling2DLayer::forwarding(Tensor in, int &status) {
-  for (unsigned int b = 0; b < in.getDim().batch(); ++b) {
+  for (unsigned int b = 0; b < in.batch(); ++b) {
     Tensor in_padded = zero_pad(b, in, padding);
     Tensor result = pooling2d(in_padded, status);
     memcpy(hidden.getAddress(b * hidden.getDim().getFeatureLen()),
@@ -136,9 +136,9 @@ int Pooling2DLayer::setProperty(std::vector<std::string> values) {
 }
 
 Tensor Pooling2DLayer::pooling2d(Tensor in, int &status) {
-  unsigned int channel = in.getDim().channel();
-  unsigned int height = in.getDim().height();
-  unsigned int width = in.getDim().width();
+  unsigned int channel = in.channel();
+  unsigned int height = in.height();
+  unsigned int width = in.width();
   unsigned int p_height = pooling_size[0];
   unsigned int p_width = pooling_size[1];
 
