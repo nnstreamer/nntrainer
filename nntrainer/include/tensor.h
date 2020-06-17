@@ -258,7 +258,7 @@ public:
    *            3 : width direction
    * @retval    Calculated Tensor
    */
-  Tensor sum(int axis=0) const;
+  Tensor sum(int axis = 0) const;
 
   /**
    * @brief     Averaging the Tensor elements according to the axis
@@ -268,7 +268,7 @@ public:
    *            3 : width direction
    * @retval    Calculated Tensor
    */
-  Tensor average(int axis=0) const;
+  Tensor average(int axis = 0) const;
 
   /**
    * @brief     Anchor a starting point to defer following evaluation
@@ -413,6 +413,30 @@ public:
   TensorDim getDim() const { return dim; }
 
   /**
+   * @brief     return Tensor batch size
+   * @retval    batch size
+   */
+  unsigned int batch() const { return dim.batch(); }
+
+  /**
+   * @brief     return Tensor batch size
+   * @retval    batch size
+   */
+  unsigned int channel() const { return dim.channel(); }
+
+  /**
+   * @brief     return Tensor height size
+   * @retval    height size
+   */
+  unsigned int height() const { return dim.height(); }
+
+  /**
+   * @brief     return Tensor batch size
+   * @retval    width size
+   */
+  unsigned int width() const { return dim.width(); }
+
+  /**
    * @brief     return Data pointer of Tensor
    * @retval    float pointer
    */
@@ -426,6 +450,14 @@ public:
    */
   float *getAddress(unsigned int i);
 
+  /**
+   * @brief     set Tensor Dim
+   * @param[in] d TensorDim
+   * @retval    #ML_ERROR_NONE successful
+   * @retval    #ML_ERROR_INVALID_PARAMETER fail
+   */
+  int setDim(TensorDim d);
+
 private:
   /**< handle the data as a std::vector type */
   std::vector<float> data;
@@ -433,8 +465,7 @@ private:
 
   static constexpr float min_limits = std::numeric_limits<float>::min();
   static constexpr float max_limits = std::numeric_limits<float>::max();
-  template<typename T>
-    void setDist(T dist);
+  template <typename T> void setDist(T dist);
 };
 
 /**

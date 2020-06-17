@@ -91,14 +91,13 @@ Tensor Conv2DLayer::forwarding(Tensor in, int &status) {
     input = input.standardization();
   }
 
-  for (unsigned int b = 0; b < in.getDim().batch(); ++b) {
+  for (unsigned int b = 0; b < in.batch(); ++b) {
     Tensor in_padded = zero_pad(b, input, padding);
     for (unsigned int i = 0; i < filter_size; ++i) {
       Tensor result =
         conv2d(in_padded, filters[i], stride, status).add(bias[i]);
       memcpy(hidden.getAddress(b * hidden.getDim().getFeatureLen() +
-                               i * hidden.getDim().height() *
-                                 hidden.getDim().width()),
+                               i * hidden.height() * hidden.width()),
              result.getData(), result.getDim().getDataLen() * sizeof(float));
     }
   }
@@ -255,15 +254,15 @@ int Conv2DLayer::setProperty(std::vector<std::string> values) {
 Tensor Conv2DLayer::conv2d(Tensor in, Tensor kernel, unsigned int const *stride,
                            int &status) {
 
-  unsigned int channel = in.getDim().channel();
-  unsigned int height = in.getDim().height();
-  unsigned int width = in.getDim().width();
-  unsigned int k_width = kernel.getDim().width();
-  unsigned int k_height = kernel.getDim().height();
+  unsigned int channel = in.channel();
+  unsigned int height = in.height();
+  unsigned int width = in.width();
+  unsigned int k_width = kernel.width();
+  unsigned int k_height = kernel.height();
 
   Tensor output(output_dim.height(), output_dim.width());
 
-  if (in.getDim().channel() != kernel.getDim().channel()) {
+  if (in.channel() != kernel.channel()) {
     ml_loge("Error: Input and Kenel Dimension is not match!");
     status = ML_ERROR_INVALID_PARAMETER;
     return output;

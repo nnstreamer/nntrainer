@@ -18,7 +18,7 @@ Source2001:	trainset.tar.gz
 Source2002:	valset.tar.gz
 Source2003:	testset.tar.gz
 Source2004:	label.dat
-Source2005:	conv2d_unittest.tar.gz
+Source2005:	unittest_layers.tar.gz
 
 BuildRequires:	meson >= 0.50.0
 BuildRequires:	openblas-devel
@@ -112,7 +112,7 @@ tar xzf trainset.tar.gz -C build
 tar xzf valset.tar.gz -C build
 tar xzf testset.tar.gz -C build
 cp label.dat build
-tar xzf conv2d_unittest.tar.gz -C build
+tar xzf unittest_layers.tar.gz -C build
 bash %{test_script} ./test
 %endif
 

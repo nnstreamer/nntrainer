@@ -811,6 +811,16 @@ Tensor &Tensor::copy(const Tensor &from) {
   return *this;
 }
 
+int Tensor::setDim(TensorDim d) {
+  int status = ML_ERROR_NONE;
+  if (d.getDataLen() != dim.getDataLen()) {
+    ml_loge("Error: Data size is not eqaul to copy tensor dim");
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+  dim = d;
+  return status;
+}
+
 void Tensor::save(std::ofstream &file) {
   for (unsigned int i = 0; i < dim.getDataLen(); i++)
     file.write((char *)&data[i], sizeof(float));

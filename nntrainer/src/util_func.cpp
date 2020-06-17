@@ -162,9 +162,9 @@ float reluPrime(float x) {
 // This is 2D zero pad
 // TODO : Optimize for multi dimention padding
 Tensor zero_pad(int batch, Tensor const &in, unsigned int const *padding) {
-  unsigned int c = in.getDim().channel();
-  unsigned int h = in.getDim().height();
-  unsigned int w = in.getDim().width();
+  unsigned int c = in.channel();
+  unsigned int h = in.height();
+  unsigned int w = in.width();
 
   unsigned int height_p = h + padding[0] * 2;
   unsigned int width_p = w + padding[1] * 2;

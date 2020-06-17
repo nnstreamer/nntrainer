@@ -82,6 +82,15 @@ def conv2d_tensorflow(x, kernel, batch, width, height, channel, k_width, k_heigh
             tf_o = sess.run(tf_p)
     return tf_c, tf_o
 
+def gen_test_case(i_b, i_c, i_h, i_w, k_c, k_h, k_w, padding, stride, bias, base_name):
+    x=gen_input(base_name+"conv2DLayer.in", i_b, i_c, i_h, i_w)
+    kernel=gen_input(base_name+"conv2DKernel.in", k_c, i_c, k_h, k_w)
+    with open(base_name+"conv2DKernel.in", 'ab') as outfile:
+        np.array(bias, dtype=np.float32).tofile(outfile)
+    golden_conv, golden_pool=conv2d_tensorflow(x, kernel, i_b, i_h, i_w, i_c, k_h, k_w, k_c, stride, padding, bias)
+    save(base_name+"goldenConv2DResult.out", np.transpose(golden_conv,(0,3,2,1)))
+    save(base_name+"goldenPooling2DResult.out", np.transpose(golden_pool,(0,3,2,1)))
+
 if __name__ == "__main__":
     target = int(sys.argv[1])
 
@@ -93,26 +102,23 @@ if __name__ == "__main__":
         gen_input(sys.argv[2], int(sys.argv[3]), int(sys.argv[4]), int(sys.argv[5]), int(sys.argv[6]))
 
 # Convolution Test Case : Generate input & kernel & golden data
+# first unit test case : 1, 3, 7, 7, 2, 3, 3, VALID, 1 test_1_
 #  : Input Dimension (1, 3, 7, 7)
 #  : Kernel (2, 3, 3, 3)
 #  : output (1,2,5,5)
 #  : stride 1, 1
 #  : padding 0, 0 (VALID)
     if target == 2:
-        i_b = 1
-        i_c = 3
-        i_h = 7
-        i_w = 7
-        k_c = 2
-        k_h = 3
-        k_w = 3
-        padding = 'VALID'
-        stride = 1
-        x=gen_input("conv2dLayer.in", i_b, i_c, i_h, i_w)
-        kernel=gen_input("conv2dKernel.in", k_c, i_c, k_h, k_w)
-        bias=[0.0,0.0]
-        with open("conv2dKernel.in", 'ab') as outfile:
-            np.array(bias, dtype=np.float32).tofile(outfile)
-        golden_conv, golden_pool=conv2d_tensorflow(x, kernel, i_b, i_h, i_w, i_c, k_h, k_w, k_c, stride, padding, bias)
-        save("goldenConv2DResult.out", np.transpose(golden_conv,(0,3,2,1)))
-        save("goldenPooling2DResult.out", np.transpose(golden_pool,(0,3,2,1)))
+        bias1 = [0.0, 0.0]
+        gen_test_case(1, 3, 7, 7, 2, 3, 3, "VALID", 1, bias1, "test_1_")
+
+# second unit test case : 2, 3, 7, 7, 3, 3, 3, VALID, 1 test_2_
+#  : Input Dimension (2, 3, 7, 7)
+#  : Kernel (3, 3, 3, 3)
+#  : output (1,3,5,5)
+#  : stride 1, 1
+#  : padding 0, 0 (VALID)
+    if target == 3:
+        bias2 = [0.0, 0.0, 0.0]
+        gen_test_case(2, 3, 7, 7, 3, 3, 3, "VALID", 1, bias2, "test_2_")
+

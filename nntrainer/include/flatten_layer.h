@@ -19,6 +19,7 @@
 #include <fstream>
 #include <iostream>
 #include <layer.h>
+#include <nntrainer_error.h>
 #include <tensor.h>
 #include <vector>
 
@@ -85,6 +86,15 @@ public:
    * @retval    Splited derivatives
    */
   Tensor backwarding(Tensor in, int iteration);
+
+  /**
+   * @brief     set Property of layer
+   * @param[in] values values of property
+   * @retval #ML_ERROR_NOT_SUPPORTED Successful.
+   */
+  int setProperty(std::vector<std::string> values) {
+    return ML_ERROR_NOT_SUPPORTED;
+  };
 
   /**
    * @brief     copy layer
