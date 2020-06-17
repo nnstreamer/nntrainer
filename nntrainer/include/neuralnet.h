@@ -343,6 +343,11 @@ private:
    * @brief     Number of iterations trained
    */
   uint64_t iter;
+
+  /**
+   * @brief     Network is initialized
+   */
+  bool initialized;
 };
 
 } /* namespace nntrainer */

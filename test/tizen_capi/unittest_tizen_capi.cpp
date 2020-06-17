@@ -275,6 +275,44 @@ TEST(nntrainer_capi_nnmodel, addLayer_04_p) {
 }
 
 /**
+ * @brief Neural Network Model add layer test
+ */
+TEST(nntrainer_capi_nnmodel, addLayer_05_n) {
+  int status = ML_ERROR_NONE;
+
+  ml_nnmodel_h model = NULL;
+  ml_nnlayer_h layer = NULL;
+
+  std::string config_file = "./test_compile_01_p.ini";
+  RESET_CONFIG(config_file.c_str());
+  replaceString("Layers = inputlayer outputlayer",
+                "Layers = inputlayer outputlayer", config_file, config_str);
+
+  status = ml_nnmodel_construct_with_conf(config_file.c_str(), &model);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_nnmodel_compile_with_conf(model);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_nnlayer_create(&layer, ML_LAYER_TYPE_FC);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_nnlayer_set_property(layer, "unit= 10", "activation=softmax",
+                                   "bias_zero=true", "weight_decay=l2norm",
+                                   "weight_decay_lambda=0.005", NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_nnmodel_add_layer(model, layer);
+  EXPECT_EQ(status, ML_ERROR_NOT_SUPPORTED);
+
+  status = ml_nnlayer_delete(layer);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_nnmodel_destruct(model);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
  * @brief Neural Network Model Optimizer Test
  */
 TEST(nntrainer_capi_nnmodel, create_optimizer_05_p) {

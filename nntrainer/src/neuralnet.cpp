@@ -93,19 +93,19 @@ std::vector<std::string> parseLayerName(std::string ll) {
 
 NeuralNetwork::NeuralNetwork() : NeuralNetwork("") {}
 
-NeuralNetwork::NeuralNetwork(std::string config) {
-  batch_size = 0;
-  learning_rate = 0.0;
-  decay_rate = 0.0;
-  decay_steps = 0.0;
-  epoch = 0;
-  loss = 0.0;
-  cost = COST_UNKNOWN;
-  weight_ini = WEIGHT_UNKNOWN;
-  net_type = NET_UNKNOWN;
-  data_buffer = NULL;
-  iter = 0;
-  continue_train = false;
+NeuralNetwork::NeuralNetwork(std::string config) : batch_size(0),
+  learning_rate(0.0),
+  decay_rate(0.0),
+  decay_steps(0.0),
+  epoch(0),
+  loss(0.0),
+  cost(COST_UNKNOWN),
+  weight_ini(WEIGHT_UNKNOWN),
+  net_type(NET_UNKNOWN),
+  data_buffer(NULL),
+  continue_train(false),
+  iter(0),
+  initialized(false) {
   this->setConfig(config);
 }
 
@@ -419,6 +419,7 @@ int NeuralNetwork::init() {
   status = data_buffer->setBufSize(
     iniparser_getint(ini, "DataSet:BufferSize", batch_size));
 
+  initialized = true;
   iniparser_freedict(ini);
   return status;
 }
@@ -575,6 +576,7 @@ int NeuralNetwork::init(std::shared_ptr<Optimizer> optimizer,
   status = loss_layer->setCost(cost);
   NN_RETURN_STATUS();
 
+  initialized = true;
   return status;
 }
 
@@ -907,7 +909,13 @@ int NeuralNetwork::addLayer(std::shared_ptr<Layer> layer) {
   LayerType type = layer->getType();
   if (type == LAYER_UNKNOWN)
     return ML_ERROR_INVALID_PARAMETER;
-  layers.push_back(layer);
+
+  if (initialized) {
+    return ML_ERROR_NOT_SUPPORTED;
+  } else {
+    layers.push_back(layer);
+  }
+
   return status;
 }
 
