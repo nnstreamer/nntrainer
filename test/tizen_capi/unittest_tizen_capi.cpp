@@ -45,30 +45,12 @@ TEST(nntrainer_capi_nnmodel, construct_destruct_02_n) {
 }
 
 /**
- * @brief Neural Network Model Construct wit Configuration File Test
+ * @brief Neural Network Model Construct (negative test)
  */
 TEST(nntrainer_capi_nnmodel, construct_destruct_03_n) {
-  ml_nnmodel_h handle;
-  const char *model_conf = "/test/cannot_find.ini";
   int status;
-  status = ml_nnmodel_construct_with_conf(model_conf, &handle);
+  status = ml_nnmodel_construct(NULL);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
-}
-
-/**
- * @brief Neural Network Model Construct wit Configuration File Test
- */
-TEST(nntrainer_capi_nnmodel, construct_destruct_04_p) {
-  ml_nnmodel_h handle = NULL;
-  int status = ML_ERROR_NONE;
-  std::string config_file = "./test_construct_destruct_04_p.ini";
-  RESET_CONFIG(config_file.c_str());
-  replaceString("Layers = inputlayer outputlayer",
-                "Layers = inputlayer outputlayer", config_file, config_str);
-  status = ml_nnmodel_construct_with_conf(config_file.c_str(), &handle);
-  EXPECT_EQ(status, ML_ERROR_NONE);
-  status = ml_nnmodel_destruct(handle);
-  EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
 /**
@@ -81,9 +63,9 @@ TEST(nntrainer_capi_nnmodel, compile_01_p) {
   RESET_CONFIG(config_file.c_str());
   replaceString("Layers = inputlayer outputlayer",
                 "Layers = inputlayer outputlayer", config_file, config_str);
-  status = ml_nnmodel_construct_with_conf(config_file.c_str(), &handle);
+  status = ml_nnmodel_construct(&handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
-  status = ml_nnmodel_compile_with_conf(handle);
+  status = ml_nnmodel_compile_with_conf(config_file.c_str(), handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
   status = ml_nnmodel_destruct(handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -95,9 +77,10 @@ TEST(nntrainer_capi_nnmodel, compile_01_p) {
 TEST(nntrainer_capi_nnmodel, compile_02_n) {
   ml_nnmodel_h handle = NULL;
   int status = ML_ERROR_NONE;
+  std::string config_file = "/test/cannot_find.ini";
   status = ml_nnmodel_construct(&handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
-  status = ml_nnmodel_compile_with_conf(handle);
+  status = ml_nnmodel_compile_with_conf(config_file.c_str(), handle);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
   status = ml_nnmodel_destruct(handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -113,9 +96,9 @@ TEST(nntrainer_capi_nnmodel, compile_03_n) {
   RESET_CONFIG(config_file.c_str());
   replaceString("Input_Shape = 32:1:1:62720", "Input_Shape= 32:1:1:0",
                 config_file, config_str);
-  status = ml_nnmodel_construct_with_conf(config_file.c_str(), &handle);
+  status = ml_nnmodel_construct(&handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
-  status = ml_nnmodel_compile_with_conf(handle);
+  status = ml_nnmodel_compile_with_conf(config_file.c_str(), handle);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
   status = ml_nnmodel_destruct(handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -123,6 +106,16 @@ TEST(nntrainer_capi_nnmodel, compile_03_n) {
 
 /**
  * @brief Neural Network Model Compile Test
+ */
+TEST(nntrainer_capi_nnmodel, compile_04_n) {
+  int status = ML_ERROR_NONE;
+  std::string config_file = "./test_compile_03_n.ini";
+  status = ml_nnmodel_compile_with_conf(config_file.c_str(), NULL);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+}
+
+/**
+ * @brief Neural Network Model Train Test
  */
 TEST(nntrainer_capi_nnmodel, train_01_p) {
   ml_nnmodel_h handle = NULL;
@@ -133,14 +126,23 @@ TEST(nntrainer_capi_nnmodel, train_01_p) {
                 config_file, config_str);
   replaceString("minibatch = 32", "minibatch = 16", config_file, config_str);
   replaceString("BufferSize=100", "", config_file, config_str);
-  status = ml_nnmodel_construct_with_conf(config_file.c_str(), &handle);
+  status = ml_nnmodel_construct(&handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
-  status = ml_nnmodel_compile_with_conf(handle);
+  status = ml_nnmodel_compile_with_conf(config_file.c_str(), handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
   status = ml_nnmodel_train_with_file(handle, NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
   status = ml_nnmodel_destruct(handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Neural Network Model Train Test
+ */
+TEST(nntrainer_capi_nnmodel, train_02_n) {
+  int status = ML_ERROR_NONE;
+  status = ml_nnmodel_train_with_file(NULL, NULL);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
 /**

@@ -37,6 +37,10 @@ extern "C" {
  */
 static int nn_object(ml_nnmodel_h *model) {
   int status = ML_ERROR_NONE;
+
+  if (model == NULL)
+    return ML_ERROR_INVALID_PARAMETER;
+
   ml_nnmodel *nnmodel = new ml_nnmodel;
   nnmodel->magic = ML_NNTRAINER_MAGIC;
 
@@ -60,10 +64,10 @@ int ml_nnmodel_construct(ml_nnmodel_h *model) {
   return status;
 }
 
-int ml_nnmodel_construct_with_conf(const char *model_conf,
-                                   ml_nnmodel_h *model) {
+int ml_nnmodel_compile_with_conf(const char *model_conf, ml_nnmodel_h model) {
   int status = ML_ERROR_NONE;
   ml_nnmodel *nnmodel;
+  std::shared_ptr<nntrainer::NeuralNetwork> nn;
 
   std::ifstream conf_file(model_conf);
   if (!conf_file.good()) {
@@ -71,27 +75,15 @@ int ml_nnmodel_construct_with_conf(const char *model_conf,
     return ML_ERROR_INVALID_PARAMETER;
   }
 
-  status = ml_nnmodel_construct(model);
-
-  nnmodel = (ml_nnmodel *)(*model);
-
-  std::shared_ptr<nntrainer::NeuralNetwork> nn = (nnmodel)->network;
-
-  nn->setConfig(model_conf);
-  return status;
-}
-
-int ml_nnmodel_compile_with_conf(ml_nnmodel_h model) {
-  int status = ML_ERROR_NONE;
-  ml_nnmodel *nnmodel;
-
   ML_NNTRAINER_CHECK_MODEL_VALIDATION(nnmodel, model);
-  std::shared_ptr<nntrainer::NeuralNetwork> NN;
-  NN = nnmodel->network;
-  status = NN->checkValidation();
+  nn = nnmodel->network;
+  nn->setConfig(model_conf);
+
+  status = nn->checkValidation();
   if (status != ML_ERROR_NONE)
     return status;
-  status = NN->init();
+
+  status = nn->init();
   return status;
 }
 
