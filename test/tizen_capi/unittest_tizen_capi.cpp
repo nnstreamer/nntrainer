@@ -288,10 +288,10 @@ TEST(nntrainer_capi_nnmodel, addLayer_05_n) {
   replaceString("Layers = inputlayer outputlayer",
                 "Layers = inputlayer outputlayer", config_file, config_str);
 
-  status = ml_nnmodel_construct_with_conf(config_file.c_str(), &model);
+  status = ml_nnmodel_construct(&model);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_nnmodel_compile_with_conf(model);
+  status = ml_nnmodel_compile_with_conf(config_file.c_str(), model);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_nnlayer_create(&layer, ML_LAYER_TYPE_FC);
