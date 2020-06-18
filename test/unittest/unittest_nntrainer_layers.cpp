@@ -10,6 +10,7 @@
  * @author      Jijoong Moon <jijoong.moon@samsung.com>
  * @bug         No known bugs
  */
+#include <activation_layer.h>
 #include <bn_layer.h>
 #include <conv2d_layer.h>
 #include <fc_layer.h>
@@ -857,6 +858,51 @@ TEST(nntrainer_LossLayer, setCost_02_n) {
   nntrainer::LossLayer layer;
   status = layer.setCost(nntrainer::COST_UNKNOWN);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+}
+
+TEST(nntrainer_ActivationLayer, init_01_1) {
+  int status = ML_ERROR_NONE;
+  nntrainer::ActivationLayer layer;
+  status = layer.initialize(false);
+
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+TEST(nntrainer_ActivationLayer, setType_01_p) {
+  nntrainer::ActivationLayer layer;
+  EXPECT_NO_THROW(layer.setActivation(nntrainer::ACT_RELU));
+  EXPECT_NO_THROW(layer.setActivation(nntrainer::ACT_SOFTMAX));
+  EXPECT_NO_THROW(layer.setActivation(nntrainer::ACT_SIGMOID));
+  EXPECT_NO_THROW(layer.setActivation(nntrainer::ACT_TANH));
+}
+
+TEST(nntrainer_ActivationLayer, setType_02_n) {
+  nntrainer::ActivationLayer layer;
+  EXPECT_THROW(layer.setActivation(nntrainer::ACT_UNKNOWN), std::runtime_error);
+}
+
+TEST(nntrainer_ActivationLayer, forward_backward_01_p) {
+  int status = ML_ERROR_NONE;
+  int batch = 3;
+  int channel = 1;
+  int height = 1;
+  int width = 10;
+  
+  nntrainer::ActivationLayer layer;
+  layer.setActivation(nntrainer::ACT_RELU);
+
+  nntrainer::Tensor input(batch, channel, height, width);
+  GEN_TEST_INPUT(input, (l - 4) * 0.1 * (i + 1));
+  nntrainer::Tensor expected(batch, channel, height, width);
+  GEN_TEST_INPUT(expected, nntrainer::relu((l - 4) * 0.1 * (i + 1)));
+  nntrainer::Tensor result = layer.forwarding(input, status);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  test_tensor_eq(result, expected);
+
+  expected.copy(input);
+  result = layer.backwarding(constant(1.0, 3, 1, 1, 10), 1);
+  GEN_TEST_INPUT(expected, nntrainer::reluPrime(nntrainer::relu((l - 4) * 0.1 * (i + 1))));;
+  test_tensor_eq(result, expected);
 }
 
 /**
