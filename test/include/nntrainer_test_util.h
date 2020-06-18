@@ -26,6 +26,7 @@
 #ifdef __cplusplus
 
 #include "nntrainer_log.h"
+#include <tensor.h>
 #include <fstream>
 #include <gtest/gtest.h>
 
@@ -211,6 +212,20 @@ const std::string config_str2 = "[Network]"
         ml_logi("Info: deleteing file: %s", conf_name);      \
     }                                                        \
   } while (0)
+
+
+/**
+ * @brief test tensor is equal
+ * @param[in] Tensor A, tensor to be compared
+ * @param[in] Tensor B, tensor to be compared
+ */
+void test_tensor_eq(nntrainer::Tensor const &A, nntrainer::Tensor const &B);
+
+/**
+ * @brief return a tensor filled with contant value with dimension
+ */
+nntrainer::Tensor constant(float value, unsigned int batch, unsigned channel,
+                           unsigned height, unsigned width) ;
 
 /**
  * @brief replace string and save in file
