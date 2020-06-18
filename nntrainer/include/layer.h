@@ -38,7 +38,11 @@ namespace nntrainer {
  *            1. ENTROPY ( Cross Entropy )
  *            2. Unknown
  */
-typedef enum { COST_MSR, COST_ENTROPY, COST_UNKNOWN } CostType;
+typedef enum {
+  COST_MSR,
+  COST_ENTROPY,
+  COST_UNKNOWN }
+CostType;
 
 /**
  * @brief     Enumeration of activation function type
@@ -276,6 +280,45 @@ public:
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
   int setCost(CostType c);
+
+  /**
+   * @brief     Property Enumeration
+   *            0. input shape : string
+   *            1. bias zero : bool
+   *            2. normalization : bool
+   *            3. standardization : bool
+   *            4. activation : string (type)
+   *            5. epsilon : float
+   *            6. weight_decay : string (type)
+   *            7. weight_decay_lambda : float
+   *            8. unit : int
+   *            9. weight_ini : string (type)
+   *            10. filter_size : int
+   *            11. kernel_size : ( n , m )
+   *            12. stride : ( n, m )
+   *            13. padding : ( n, m )
+   *            14, pooling_size : ( n,m )
+   *            15, pooling : max, average, global_max, global_average
+   */
+  enum class PropertyType {
+    input_shape = 0,
+    bias_zero = 1,
+    normalization = 2,
+    standardization = 3,
+    activation = 4,
+    epsilon = 5,
+    weight_decay = 6,
+    weight_decay_lambda = 7,
+    unit = 8,
+    weight_ini = 9,
+    filter = 10,
+    kernel_size = 11,
+    stride = 12,
+    padding = 13,
+    pooling_size = 14,
+    pooling = 15,
+    unknown = 16
+  };
 
 protected:
   /**

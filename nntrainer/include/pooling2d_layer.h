@@ -32,21 +32,6 @@ namespace nntrainer {
  */
 class Pooling2DLayer : public Layer {
 public:
-  /**
-   * @brief     Property Enumeration
-   *            12. stride : ( n, m )
-   *            13, padding : ( n, m )
-   *            14, pooling_size : ( n,m )
-   *            15, pooling : max, average, global_max, global_average
-   */
-
-  enum class PropertyType {
-    stride = 12,
-    padding = 13,
-    pooling_size = 14,
-    pooling = 15
-  };
-
   enum class PoolingType {
     max = 0,
     average = 1,
@@ -143,12 +128,12 @@ public:
   Tensor pooling2d(Tensor in, int &status);
 
   /* TO DO : support keras type of padding */
-  /* enum class PaddingType { */
-  /*   full = 0, */
-  /*   same = 1, */
-  /*   valid = 2, */
-  /*   unknown = 3, */
-  /* }; */
+  enum class PaddingType {
+    full = 0,
+    same = 1,
+    valid = 2,
+    unknown = 3,
+  };
 
 private:
   unsigned int pooling_size[POOLING2D_DIM];

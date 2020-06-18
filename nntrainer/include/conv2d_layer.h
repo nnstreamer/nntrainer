@@ -34,38 +34,6 @@ namespace nntrainer {
 class Conv2DLayer : public Layer {
 public:
   /**
-   * @brief     Property Enumeration
-   *            0. input shape : string
-   *            1. bias zero : bool
-   *            2. normalization : bool
-   *            3. standardization : bool
-   *            4. activation : string (type)
-   *            6. weight_decay : string (type)
-   *            7. weight_decay_lambda : float
-   *            8. weight_ini : string (type)
-   *            9. filter_size : int
-   *            10. kernel_size : ( n , m )
-   *            11. stride : ( n, m )
-   *            12, padding : valid | same
-   *
-   */
-
-  enum class PropertyType {
-    input_shape = 0,
-    bias_zero = 1,
-    normalization = 2,
-    standardization = 3,
-    activation = 4,
-    weight_decay = 6,
-    weight_decay_lambda = 7,
-    weight_ini = 9,
-    filter = 10,
-    kernel_size = 11,
-    stride = 12,
-    padding = 13,
-  };
-
-  /**
    * @brief     Constructor of Conv 2D Layer
    */
   Conv2DLayer() {

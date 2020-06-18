@@ -131,20 +131,6 @@ public:
    */
   int setProperty(std::vector<std::string> values);
 
-  /**
-   * @brief     Property Enumeration
-   *            0. input shape : string
-   *            1. bias zero : bool
-   *            2. normalization : bool
-   *            3. normalization : bool
-   */
-  enum class PropertyType {
-    input_shape = 0,
-    bias_zero = 1,
-    normalization = 2,
-    standardization = 3
-  };
-
 private:
   bool normalization;
   bool standardization;
