@@ -35,10 +35,19 @@ namespace nntrainer {
 /**
  * @brief     Enumeration of cost(loss) function type
  *            0. MSR ( Mean Squared Roots )
- *            1. ENTROPY ( Cross Entropy )
- *            2. Unknown
+ *            1. ENTROPY ( auto select by last layer activation type
+ *                        ,fallback to entropy_with_softmax )
+ *            2. ENTROPY_WITH_SIGMOID ( Cross Entropy with sigmoid )
+ *            3. ENTROPY_WITH_SOFTMAX ( Cross Entropy with softmax )
+ *            4. Unknown
  */
-typedef enum { COST_MSR, COST_ENTROPY, COST_UNKNOWN } CostType;
+typedef enum {
+  COST_MSR,
+  COST_ENTROPY,
+  COST_ENTROPY_WITH_SIGMOID,
+  COST_ENTROPY_WITH_SOFTMAX,
+  COST_UNKNOWN
+} CostType;
 
 /**
  * @brief     Enumeration of activation function type
@@ -105,18 +114,11 @@ typedef enum {
  */
 class Layer {
 public:
-  Layer() :
-    last_layer(false),
-    init_zero(false),
-    type(LAYER_UNKNOWN),
-    activation(NULL),
-    activation_prime(NULL),
-    loss(0.0),
-    cost(COST_UNKNOWN),
-    activation_type(ACT_UNKNOWN),
-    bn_follow(false),
-    weight_decay(),
-    weight_ini_type(WEIGHT_UNKNOWN) {}
+  Layer()
+    : last_layer(false), init_zero(false), type(LAYER_UNKNOWN),
+      activation(NULL), activation_prime(NULL), loss(0.0), cost(COST_UNKNOWN),
+      activation_type(ACT_UNKNOWN), bn_follow(false), weight_decay(),
+      weight_ini_type(WEIGHT_UNKNOWN) {}
 
   /**
    * @brief     Destructor of Layer Class

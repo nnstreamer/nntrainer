@@ -62,8 +62,7 @@ Tensor LossLayer::forwarding(Tensor output, Tensor label, int &status) {
 
     l = y2.chain().multiply_i(y2).sum_by_batch().multiply_i(0.5).run();
   } break;
-  case COST_ENTROPY: {
-    if (activation_type == ACT_SIGMOID) {
+  case COST_ENTROPY_WITH_SIGMOID: {
       // todo: change this to apply_i
       Tensor k = y.chain().multiply_i(-1.0).add_i(1.0).run().apply(logFloat);
 
@@ -76,17 +75,14 @@ Tensor LossLayer::forwarding(Tensor output, Tensor label, int &status) {
             .multiply_i(-1.0 / y2.getWidth())
             .run()
             .sum_by_batch();
-    } else if (activation_type == ACT_SOFTMAX) {
+  } break;
+  case COST_ENTROPY:
+  case COST_ENTROPY_WITH_SOFTMAX: {
       l = y2.chain()
             .multiply_i(y.apply(logFloat))
             .multiply_i(-1.0 / y2.getWidth())
             .run()
             .sum_by_batch();
-    } else {
-      ml_loge("Only support sigmoid & softmax for cross entropy loss");
-      exit(0);
-    }
-
   } break;
   case COST_UNKNOWN:
     /** intended */

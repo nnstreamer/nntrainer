@@ -67,9 +67,11 @@ unsigned int parseType(std::string ll, InputType t) {
   /**
    * @brief     Cost Function String from configure file
    *            "msr"  : Mean Squared Roots
-   *            "caterogical" : Categorical Cross Entropy
+   *            "cross" : Categorical Cross Entropy, alias for cross_softmax
+   *            "cross_logit " : Cross Entropy with sigmoid
+   *            "cross_softmax " : Cross Entropy with softmax
    */
-  std::array<std::string, 3> cost_string = {"msr", "cross", "unknown"};
+  std::array<std::string, 5> cost_string = {"msr", "cross", "cross_logit", "cross_softmax", "unknown"};
 
   /**
    * @brief     Network Type String from configure file

@@ -468,7 +468,7 @@ TEST(nntrainer_capi_nnmodel, train_with_file_01_p) {
     "beta1=0.002", "beta2=0.001", "epsilon=1e-7", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_nnmodel_compile(model, optimizer, "loss=cross", NULL);
+  status = ml_nnmodel_compile(model, optimizer, "loss=cross_logit", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_nnmodel_train_with_file(
@@ -531,7 +531,7 @@ TEST(nntrainer_capi_nnmodel, train_with_generator_01_p) {
     "beta1=0.002", "beta2=0.001", "epsilon=1e-7", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_nnmodel_compile(model, optimizer, "loss=cross", NULL);
+  status = ml_nnmodel_compile(model, optimizer, "loss=cross_softmax", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
   status = ml_nnmodel_train_with_generator(
     model, getMiniBatch_train, getMiniBatch_val, NULL, "epochs=2",

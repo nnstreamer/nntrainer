@@ -185,6 +185,8 @@ Tensor FullyConnectedLayer::backwarding(Tensor derivative, int iteration) {
       break;
 
     case COST_ENTROPY:
+    case COST_ENTROPY_WITH_SIGMOID:
+    case COST_ENTROPY_WITH_SOFTMAX:
       djdb = derivative;
       break;
 
