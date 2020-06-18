@@ -403,15 +403,8 @@ int NeuralNetwork::init() {
   }
 
   /** Add the last layer as loss layer */
-  std::shared_ptr<LossLayer> loss_layer = std::make_shared<LossLayer>();
-  loss_layer->setInputDimension(previous_dim);
-  status = loss_layer->initialize(true);
+  status = initLossLayer();
   NN_INI_RETURN_STATUS();
-  status = loss_layer->setCost(cost);
-  NN_INI_RETURN_STATUS();
-  status = loss_layer->setActivation(layers[layers.size() - 1]->getActivationType());
-  NN_INI_RETURN_STATUS();
-  layers.push_back(loss_layer);
 
   status = data_buffer->setMiniBatch(batch_size);
   NN_INI_RETURN_STATUS();
@@ -421,6 +414,34 @@ int NeuralNetwork::init() {
 
   initialized = true;
   iniparser_freedict(ini);
+  return status;
+}
+
+int NeuralNetwork::initLossLayer() {
+  int status = ML_ERROR_NONE;
+
+  std::shared_ptr<LossLayer> loss_layer = std::make_shared<LossLayer>();
+
+  loss_layer->setInputDimension(layers.back()->getOutputDimension());
+  status = loss_layer->initialize(true);
+  NN_RETURN_STATUS();
+
+  ActiType act = layers.back()->getActivationType();
+  if (cost == COST_ENTROPY && act == ACT_SIGMOID) {
+    status = loss_layer->setCost(COST_ENTROPY_SIGMOID);
+    NN_RETURN_STATUS();
+
+    act = ACT_NONE;
+    status = layers.back()->setActivation(act);
+    NN_RETURN_STATUS();
+  } else {
+    status = loss_layer->setCost(cost);
+    NN_RETURN_STATUS();
+  }
+  status = loss_layer->setActivation(act);
+  NN_RETURN_STATUS();
+
+  layers.push_back(loss_layer);
   return status;
 }
 

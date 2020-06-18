@@ -159,6 +159,8 @@ float reluPrime(float x) {
   }
 }
 
+float no_op(float x) { return x; }
+
 // This is 2D zero pad
 // TODO : Optimize for multi dimention padding
 Tensor zero_pad(int batch, Tensor const &in, unsigned int const *padding) {
@@ -201,4 +203,5 @@ Tensor zero_pad(int batch, Tensor const &in, unsigned int const *padding) {
 
   return output;
 }
+
 } /* namespace nntrainer */

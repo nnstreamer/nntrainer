@@ -36,13 +36,15 @@ namespace nntrainer {
  * @brief     Enumeration of cost(loss) function type
  *            0. MSR ( Mean Squared Roots )
  *            1. ENTROPY ( Cross Entropy )
+ *            2. ENTROPY_SIGMOID (Cross Entropy amalgamated with sigmoid for stability)
  *            2. Unknown
  */
 typedef enum {
   COST_MSR,
   COST_ENTROPY,
-  COST_UNKNOWN }
-CostType;
+  COST_ENTROPY_SIGMOID,
+  COST_UNKNOWN
+} CostType;
 
 /**
  * @brief     Enumeration of activation function type
@@ -50,13 +52,15 @@ CostType;
  *            1. sigmoid
  *            2. relu
  *            3. softmax
- *            4. Unknown
+ *            4. none
+ *            5. Unknown
  */
 typedef enum {
   ACT_TANH,
   ACT_SIGMOID,
   ACT_RELU,
   ACT_SOFTMAX,
+  ACT_NONE,
   ACT_UNKNOWN
 } ActiType;
 

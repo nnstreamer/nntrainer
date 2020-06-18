@@ -62,29 +62,33 @@ Tensor LossLayer::forwarding(Tensor output, Tensor label, int &status) {
 
     l = y2.chain().multiply_i(y2).sum_by_batch().multiply_i(0.5).run();
   } break;
+  case COST_ENTROPY_SIGMOID: {
+    // @todo: change this to apply_i
+    // @note: the output should be logit before applying sigmoid
+    // log(1 + exp(-abs(y))) + max(y, 0)
+    Tensor mid_term = y.apply(static_cast<float (*)(float)>(&std::fabs))
+      .multiply(-1.0).apply(static_cast<float (*)(float)>(&std::exp))
+      .add(1.0).apply(logFloat);
+    mid_term = mid_term.add(mid_term.apply(relu));
+
+    // loss = y * y2 - (log(1 + exp(-abs(y))) + max(y, 0))
+    l = y2.chain().multiply_i(y)
+          .add_i(mid_term)
+          .multiply_i(-1.0 / y2.getWidth())
+          .run()
+          .sum_by_batch();
+  } break;
   case COST_ENTROPY: {
-    if (activation_type == ACT_SIGMOID) {
-      // todo: change this to apply_i
-      Tensor k = y.chain().multiply_i(-1.0).add_i(1.0).run().apply(logFloat);
-
-      // (1 - y2) * log( 1 - y )
-      k = y2.chain().multiply_i(-1.0).add_i(1.0).multiply_i(k).run();
-
-      l = y2.chain()
-            .multiply_i(y.apply(logFloat))
-            .add_i(k)
-            .multiply_i(-1.0 / y2.getWidth())
-            .run()
-            .sum_by_batch();
-    } else if (activation_type == ACT_SOFTMAX) {
+    if (activation_type == ACT_SOFTMAX) {
       l = y2.chain()
             .multiply_i(y.apply(logFloat))
             .multiply_i(-1.0 / y2.getWidth())
             .run()
             .sum_by_batch();
     } else {
-      ml_loge("Only support sigmoid & softmax for cross entropy loss");
-      exit(0);
+      status = ML_ERROR_NOT_SUPPORTED;
+      ml_loge("Only support softmax for cross entropy loss");
+      return y;
     }
 
   } break;
@@ -126,6 +130,10 @@ Tensor LossLayer::backwarding(Tensor derivative, int iteration) {
   switch (cost) {
   case COST_MSR: {
     ret_derivative = y.subtract(y2);
+  } break;
+  case COST_ENTROPY_SIGMOID: {
+    y = y.apply(sigmoid);
+    ret_derivative = y.subtract(y2).multiply(1.0 / y.getWidth());
   } break;
   case COST_ENTROPY: {
     ret_derivative = y.subtract(y2).multiply(1.0 / y.getWidth());
