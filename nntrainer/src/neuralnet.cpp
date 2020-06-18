@@ -267,8 +267,10 @@ int NeuralNetwork::init() {
       conv2d_layer->setInputDimension(previous_dim);
       NN_INI_RETURN_STATUS();
 
-      status = conv2d_layer->setCost(cost);
-      NN_INI_RETURN_STATUS();
+      if (last) {
+        status = conv2d_layer->setCost(cost);
+        NN_INI_RETURN_STATUS();
+      }
 
       conv2d_layer->setBiasZero(b_zero);
       status = conv2d_layer->setActivation((ActiType)parseType(
@@ -332,8 +334,11 @@ int NeuralNetwork::init() {
       fc_layer->setUnit(static_cast<unsigned int>(
         iniparser_getint(ini, (layers_name[i] + ":Unit").c_str(), 0)));
 
-      status = fc_layer->setCost(cost);
-      NN_INI_RETURN_STATUS();
+      if (last) {
+        status = fc_layer->setCost(cost);
+        NN_INI_RETURN_STATUS();
+      }
+
       if (i == 0) {
         ml_loge("Error: Fully Connected Layer should be after "
                 "InputLayer.");
@@ -419,25 +424,36 @@ int NeuralNetwork::init() {
 
 int NeuralNetwork::initLossLayer() {
   int status = ML_ERROR_NONE;
+  CostType updated_cost = cost;
+  ActiType act = layers.back()->getActivationType();
 
   std::shared_ptr<LossLayer> loss_layer = std::make_shared<LossLayer>();
-
   loss_layer->setInputDimension(layers.back()->getOutputDimension());
   status = loss_layer->initialize(true);
   NN_RETURN_STATUS();
 
-  ActiType act = layers.back()->getActivationType();
-  if (cost == COST_ENTROPY && act == ACT_SIGMOID) {
-    status = loss_layer->setCost(COST_ENTROPY_SIGMOID);
-    NN_RETURN_STATUS();
+  if (updated_cost == COST_ENTROPY) {
+    switch (act) {
+    case ACT_SIGMOID:
+      updated_cost = COST_ENTROPY_SIGMOID;
+      break;
+    case ACT_SOFTMAX:
+      updated_cost = COST_ENTROPY_SOFTMAX;
+      break;
+    default:
+      ml_loge("Error: Cross Entropy not supported without softmax or sigmoid.");
+      return ML_ERROR_NOT_SUPPORTED;
+    }
 
     act = ACT_NONE;
     status = layers.back()->setActivation(act);
     NN_RETURN_STATUS();
-  } else {
-    status = loss_layer->setCost(cost);
+    status = layers.back()->setCost(updated_cost);
     NN_RETURN_STATUS();
   }
+
+  status = loss_layer->setCost(updated_cost);
+  NN_RETURN_STATUS();
   status = loss_layer->setActivation(act);
   NN_RETURN_STATUS();
 
@@ -586,15 +602,7 @@ int NeuralNetwork::init(std::shared_ptr<Optimizer> optimizer,
   }
 
   /** Add the last layer as loss layer */
-  std::shared_ptr<LossLayer> loss_layer = std::make_shared<LossLayer>();
-  status = loss_layer->setActivation(layers[layers.size() - 1]->getActivationType());
-  NN_RETURN_STATUS();
-  layers.push_back(loss_layer);
-
-  loss_layer->setInputDimension(previous_dim);
-  status = loss_layer->initialize(true);
-  NN_RETURN_STATUS();
-  status = loss_layer->setCost(cost);
+  status = initLossLayer();
   NN_RETURN_STATUS();
 
   initialized = true;

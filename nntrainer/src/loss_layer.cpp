@@ -78,24 +78,27 @@ Tensor LossLayer::forwarding(Tensor output, Tensor label, int &status) {
           .run()
           .sum_by_batch();
   } break;
-  case COST_ENTROPY: {
-    if (activation_type == ACT_SOFTMAX) {
-      l = y2.chain()
-            .multiply_i(y.apply(logFloat))
-            .multiply_i(-1.0 / y2.getWidth())
-            .run()
-            .sum_by_batch();
-    } else {
-      status = ML_ERROR_NOT_SUPPORTED;
-      ml_loge("Only support softmax for cross entropy loss");
-      return y;
-    }
+  case COST_ENTROPY_SOFTMAX: {
+    y = y.apply(softmax);
+    l = y2.chain()
+          .multiply_i(y.apply(logFloat))
+          .multiply_i(-1.0 / y2.getWidth())
+          .run()
+          .sum_by_batch();
 
   } break;
+  case COST_ENTROPY: {
+    status = ML_ERROR_NOT_SUPPORTED;
+    ml_loge("Error: Cross Entropy not supported without softmax or sigmoid.");
+    return y;
+  }
   case COST_UNKNOWN:
     /** intended */
-  default:
-    break;
+  default: {
+    status = ML_ERROR_NOT_SUPPORTED;
+    ml_loge("Error: Unknown cost.");
+    return y;
+  }
   }
 
   updateLoss(l);
@@ -128,19 +131,24 @@ Tensor LossLayer::backwarding(Tensor derivative, int iteration) {
   Tensor y = input;
 
   switch (cost) {
-  case COST_MSR: {
+  case COST_MSR:
     ret_derivative = y.subtract(y2);
-  } break;
-  case COST_ENTROPY_SIGMOID: {
+    break;
+  case COST_ENTROPY_SIGMOID:
     y = y.apply(sigmoid);
     ret_derivative = y.subtract(y2).multiply(1.0 / y.getWidth());
-  } break;
-  case COST_ENTROPY: {
-    ret_derivative = y.subtract(y2).multiply(1.0 / y.getWidth());
-  } break;
-  case COST_UNKNOWN:
-  default:
     break;
+  case COST_ENTROPY_SOFTMAX:
+    y = y.apply(softmax);
+    ret_derivative = y.subtract(y2).multiply(1.0 / y.getWidth());
+    break;
+  case COST_ENTROPY:
+    throw std::runtime_error(
+        "Error: Cross Entropy not supported without softmax or sigmoid.");
+  case COST_UNKNOWN:
+    /** intended */
+  default:
+    throw std::runtime_error("Unknown cost.");
   }
 
   return ret_derivative;
