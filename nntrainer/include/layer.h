@@ -37,12 +37,14 @@ namespace nntrainer {
  *            0. MSR ( Mean Squared Roots )
  *            1. ENTROPY ( Cross Entropy )
  *            2. ENTROPY_SIGMOID (Cross Entropy amalgamated with sigmoid for stability)
+ *            2. ENTROPY_SOFTMAX (Cross Entropy amalgamated with softmax for stability)
  *            2. Unknown
  */
 typedef enum {
   COST_MSR,
   COST_ENTROPY,
   COST_ENTROPY_SIGMOID,
+  COST_ENTROPY_SOFTMAX,
   COST_UNKNOWN
 } CostType;
 
