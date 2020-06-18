@@ -110,6 +110,12 @@ float reluPrime(float x);
  */
 Tensor zero_pad(int batch, Tensor const &in, unsigned int const *padding);
 
+/**
+ * @brief     no_op function
+ * @param[in] x input
+ */
+float no_op(float x);
+
 } /* namespace nntrainer */
 
 #endif /* __cplusplus */

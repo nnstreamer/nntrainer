@@ -349,6 +349,11 @@ private:
    * @brief     Network is initialized
    */
   bool initialized;
+
+  /**
+   * @brief     Sets up and initialize the loss layer
+   */
+  int initLossLayer();
 };
 
 } /* namespace nntrainer */

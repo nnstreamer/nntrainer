@@ -184,6 +184,8 @@ Tensor FullyConnectedLayer::backwarding(Tensor derivative, int iteration) {
       }
       break;
 
+    case COST_ENTROPY_SIGMOID:
+      /** intended */
     case COST_ENTROPY:
       djdb = derivative;
       break;
@@ -191,7 +193,7 @@ Tensor FullyConnectedLayer::backwarding(Tensor derivative, int iteration) {
     case COST_UNKNOWN:
       /** Intended */
     default:
-      break;
+      throw std::runtime_error("Error: Unsupported Loss.");
     }
   }
 

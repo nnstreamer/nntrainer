@@ -49,6 +49,10 @@ int Layer::setActivation(ActiType acti) {
     activation = relu;
     activation_prime = reluPrime;
     break;
+  case ACT_NONE:
+    activation = no_op;
+    activation_prime = no_op;
+    break;
   default:
     break;
   }
