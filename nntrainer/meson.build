@@ -33,7 +33,8 @@ nntrainer_sources = [
   'src/conv2d_layer.cpp',
   'src/lazy_tensor.cpp',
   'src/pooling2d_layer.cpp',
-  'src/flatten_layer.cpp'
+  'src/flatten_layer.cpp',
+  'src/activation_layer.cpp'
 ]
 
 nntrainer_headers = [
@@ -56,7 +57,8 @@ nntrainer_headers = [
   'include/conv2d_layer.h',
   'include/lazy_tensor.h',
   'include/pooling2d_layer.h',
-  'include/flatten_layer.h'
+  'include/flatten_layer.h',
+  'include/activation_layer.h'
 ]
 
 # Build libraries

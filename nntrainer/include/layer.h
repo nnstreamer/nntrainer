@@ -45,7 +45,8 @@ typedef enum { COST_MSR, COST_ENTROPY, COST_UNKNOWN } CostType;
  *            0. tanh
  *            1. sigmoid
  *            2. relu
- *            3. Unknown
+ *            3. softmax
+ *            4. Unknown
  */
 typedef enum {
   ACT_TANH,
@@ -64,7 +65,8 @@ typedef enum {
  *            4. Pooling 2D Layer type
  *            5. Flatten Layer type
  *            6. Loss Layer type
- *            7. Unknown
+ *            7. Activation Layer type
+ *            8. Unknown
  */
 typedef enum {
   LAYER_IN,
@@ -74,6 +76,7 @@ typedef enum {
   LAYER_POOLING2D,
   LAYER_FLATTEN,
   LAYER_LOSS,
+  LAYER_ACTIVATION,
   LAYER_UNKNOWN
 } LayerType;
 
