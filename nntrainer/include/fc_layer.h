@@ -101,24 +101,6 @@ public:
    */
   int setOptimizer(Optimizer &opt);
 
-  /**
-   * @brief     Property Enumeration
-   *            1. bias zero : bool
-   *            4. activation : bool
-   *            6. weight_decay : string (type)
-   *            7. weight_decay_lambda : float
-   *            8. unit : int
-   *            9. weight_init,
-   */
-  enum class PropertyType {
-    bias_zero = 1,
-    activation = 4,
-    weight_decay = 6,
-    weight_decay_lambda = 7,
-    unit = 8,
-    weight_init = 9,
-  };
-
 private:
   unsigned int unit;
   Tensor weight;

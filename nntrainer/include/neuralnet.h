@@ -260,6 +260,7 @@ public:
     epochs = 8,
     model_file = 9,
     continue_train = 10,
+    unknown = 11,
   };
 
 private:

@@ -293,7 +293,7 @@ int NeuralNetwork::init() {
                   (int *)size);
       NN_INI_RETURN_STATUS();
       status = conv2d_layer->setSize(
-        size, nntrainer::Conv2DLayer::PropertyType::kernel_size);
+        size, Layer::PropertyType::kernel_size);
       NN_INI_RETURN_STATUS();
 
       status = getValues(
@@ -302,7 +302,7 @@ int NeuralNetwork::init() {
         (int *)size);
       NN_INI_RETURN_STATUS();
       status = conv2d_layer->setSize(
-        size, nntrainer::Conv2DLayer::PropertyType::stride);
+        size, Layer::PropertyType::stride);
       NN_INI_RETURN_STATUS();
 
       status = getValues(CONV2D_DIM,
@@ -311,7 +311,7 @@ int NeuralNetwork::init() {
                          (int *)size);
       NN_INI_RETURN_STATUS();
       status = conv2d_layer->setSize(
-        size, nntrainer::Conv2DLayer::PropertyType::padding);
+        size, Layer::PropertyType::padding);
       NN_INI_RETURN_STATUS();
 
       status = conv2d_layer->setFilter(

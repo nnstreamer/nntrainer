@@ -177,6 +177,7 @@ public:
     beta2 = 4,
     epsilon = 5,
     continue_train = 6,
+    unknown = 7,
   };
 
   /**

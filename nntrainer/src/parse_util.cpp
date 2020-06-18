@@ -22,9 +22,13 @@
 
 #include <array>
 #include <assert.h>
+#include <layer.h>
+#include <neuralnet.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
+#include <optimizer.h>
 #include <parse_util.h>
+#include <pooling2d_layer.h>
 #include <regex>
 #include <string.h>
 
@@ -55,21 +59,21 @@ int getKeyValue(std::string input_str, std::string &key, std::string &value) {
 }
 
 unsigned int parseType(std::string ll, InputType t) {
-  int ret;
+  unsigned int ret;
   unsigned int i;
   /**
    * @brief     Optimizer String from configure file
    *            "sgd"  : Stochestic Gradient Descent
    *            "adam" : Adaptive Moment Estimation
    */
-  std::array<std::string, 3> optimizer_string = {"sgd", "adam", "unknown"};
+  std::array<std::string, 2> optimizer_string = {"sgd", "adam"};
 
   /**
    * @brief     Cost Function String from configure file
    *            "msr"  : Mean Squared Roots
    *            "caterogical" : Categorical Cross Entropy
    */
-  std::array<std::string, 3> cost_string = {"msr", "cross", "unknown"};
+  std::array<std::string, 2> cost_string = {"msr", "cross"};
 
   /**
    * @brief     Network Type String from configure file
@@ -77,8 +81,8 @@ unsigned int parseType(std::string ll, InputType t) {
    *            "regression" : Logistic Regression
    *            "neuralnet" : Neural Network
    */
-  std::array<std::string, 4> network_type_string = {"knn", "regression",
-                                                    "neuralnet", "unknown"};
+  std::array<std::string, 3> network_type_string = {"knn", "regression",
+                                                    "neuralnet"};
 
   /**
    * @brief     Activation Type String from configure file
@@ -87,8 +91,8 @@ unsigned int parseType(std::string ll, InputType t) {
    *            "relu" : relu
    *            "softmax" : softmax
    */
-  std::array<std::string, 5> activation_string = {"tanh", "sigmoid", "relu",
-                                                  "softmax", "unknown"};
+  std::array<std::string, 4> activation_string = {"tanh", "sigmoid", "relu",
+                                                  "softmax"};
 
   /**
    * @brief     Layer Type String from configure file
@@ -100,9 +104,9 @@ unsigned int parseType(std::string ll, InputType t) {
    *            "flatten" : Flatten Layer Object
    *            "unknown" :
    */
-  std::array<std::string, 7> layer_string = {
-    "input",   "fully_connected", "batch_normalization", "conv2d", "pooling2d",
-    "flatten", "unknown"};
+  std::array<std::string, 6> layer_string = {
+    "input", "fully_connected", "batch_normalization", "conv2d", "pooling2d",
+    "flatten"};
 
   /**
    * @brief     Weight Initialization Type String from configure file
@@ -113,25 +117,23 @@ unsigned int parseType(std::string ll, InputType t) {
    *            "he_normal"  : He Normal Initialization
    *            "he_uniform"  : He Uniform Initialization
    */
-  std::array<std::string, 7> weight_ini_string = {
+  std::array<std::string, 6> weight_ini_string = {
     "lecun_normal", "lecun_uniform", "xavier_normal", "xavier_uniform",
-    "he_normal",    "he_uniform",    "unknown"};
+    "he_normal", "he_uniform"};
 
   /**
    * @brief     Weight Decay String from configure file
    *            "L2Norm"  : squared norm regularization
    *            "Regression" : Regression
    */
-  std::array<std::string, 3> weight_decay_string = {"l2norm", "regression",
-                                                    "unknown"};
+  std::array<std::string, 2> weight_decay_string = {"l2norm", "regression"};
 
   /**
    * @brief     Weight Decay String from configure file
    *            "L2Norm"  : squared norm regularization
    *            "Regression" : Regression
    */
-  std::array<std::string, 4> padding_string = {"full", "same", "valid",
-                                               "unknown"};
+  std::array<std::string, 3> padding_string = {"full", "same", "valid"};
 
   /**
    * @brief     Pooling String from configure file
@@ -140,8 +142,8 @@ unsigned int parseType(std::string ll, InputType t) {
    *            "global_max" : Global Max Pooling
    *            "global_average" : Global Average Pooling
    */
-  std::array<std::string, 5> pooling_string = {"max", "average", "global_max",
-                                               "global_average", "unknown"};
+  std::array<std::string, 4> pooling_string = {"max", "average", "global_max",
+                                               "global_average"};
 
   switch (t) {
   case TOKEN_OPT:
@@ -151,7 +153,7 @@ unsigned int parseType(std::string ll, InputType t) {
         return (i);
       }
     }
-    ret = i - 1;
+    ret = (unsigned int) OptType::unknown;
     break;
   case TOKEN_COST:
     for (i = 0; i < cost_string.size(); i++) {
@@ -160,7 +162,7 @@ unsigned int parseType(std::string ll, InputType t) {
         return (i);
       }
     }
-    ret = i - 1;
+    ret = (unsigned int) CostType::COST_UNKNOWN;
     break;
   case TOKEN_NET:
     for (i = 0; i < network_type_string.size(); i++) {
@@ -169,7 +171,7 @@ unsigned int parseType(std::string ll, InputType t) {
         return (i);
       }
     }
-    ret = i - 1;
+    ret = NetType::NET_UNKNOWN;
     break;
   case TOKEN_ACTI:
     for (i = 0; i < activation_string.size(); i++) {
@@ -179,7 +181,7 @@ unsigned int parseType(std::string ll, InputType t) {
         return (i);
       }
     }
-    ret = i - 1;
+    ret = (unsigned int) ActiType::ACT_UNKNOWN;
     break;
   case TOKEN_LAYER:
     for (i = 0; i < layer_string.size(); i++) {
@@ -188,7 +190,7 @@ unsigned int parseType(std::string ll, InputType t) {
         return (i);
       }
     }
-    ret = i - 1;
+    ret = (unsigned int) LayerType::LAYER_UNKNOWN;
     break;
   case TOKEN_WEIGHTINI:
     for (i = 0; i < weight_ini_string.size(); i++) {
@@ -197,7 +199,7 @@ unsigned int parseType(std::string ll, InputType t) {
         return (i);
       }
     }
-    ret = i - 1;
+    ret = (unsigned int) WeightIniType::WEIGHT_UNKNOWN;
     break;
   case TOKEN_WEIGHT_DECAY:
     for (i = 0; i < weight_decay_string.size(); i++) {
@@ -206,7 +208,7 @@ unsigned int parseType(std::string ll, InputType t) {
         return (i);
       }
     }
-    ret = i - 1;
+    ret = (unsigned int) WeightDecayType::unknown;
     break;
   case TOKEN_PADDING:
     for (i = 0; i < padding_string.size(); i++) {
@@ -215,7 +217,7 @@ unsigned int parseType(std::string ll, InputType t) {
         return (i);
       }
     }
-    ret = i - 1;
+    ret = (unsigned int) Pooling2DLayer::PaddingType::unknown;
     break;
   case TOKEN_POOLING:
     for (i = 0; i < pooling_string.size(); i++) {
@@ -224,18 +226,18 @@ unsigned int parseType(std::string ll, InputType t) {
         return (i);
       }
     }
-    ret = i - 1;
+    ret = (unsigned int) Pooling2DLayer::PoolingType::unknown;
     break;
   case TOKEN_UNKNOWN:
   default:
-    ret = 3;
+    ml_loge("Error: unknown token cannot be parsed.");
+    ret = 0;
     break;
   }
   return ret;
 }
 
 unsigned int parseLayerProperty(std::string property) {
-  int ret;
   unsigned int i;
 
   /**
@@ -279,13 +281,11 @@ unsigned int parseLayerProperty(std::string property) {
       return (i);
     }
   }
-  ret = i - 1;
 
-  return ret;
+  return (unsigned int) Layer::PropertyType::unknown;
 }
 
 unsigned int parseOptProperty(std::string property) {
-  int ret;
   unsigned int i;
 
   /**
@@ -298,9 +298,9 @@ unsigned int parseOptProperty(std::string property) {
    * epsilon = 5,
    * continue_train = 6,
    */
-  std::array<std::string, 8> property_string = {
+  std::array<std::string, 7> property_string = {
     "learning_rate", "decay_rate", "decay_steps", "beta1", "beta2", "epsilon",
-    "continue_train", "unknown"};
+    "continue_train"};
 
   for (i = 0; i < property_string.size(); i++) {
     unsigned int size = (property_string[i].size() > property.size())
@@ -311,13 +311,11 @@ unsigned int parseOptProperty(std::string property) {
       return (i);
     }
   }
-  ret = i - 1;
 
-  return ret;
+  return (unsigned int) Optimizer::PropertyType::unknown;
 }
 
 unsigned int parseNetProperty(std::string property) {
-  int ret;
   unsigned int i;
 
   /**
@@ -333,10 +331,10 @@ unsigned int parseNetProperty(std::string property) {
    * epochs = 8,
    * model_file = 9
    */
-  std::array<std::string, 11> property_string = {
+  std::array<std::string, 10> property_string = {
     "loss",      "cost",       "train_data",  "val_data",
     "test_data", "label_data", "buffer_size", "batch_size",
-    "epochs",    "model_file", "unknown"};
+    "epochs",    "model_file"};
 
   for (i = 0; i < property_string.size(); i++) {
     unsigned int size = (property_string[i].size() > property.size())
@@ -347,9 +345,8 @@ unsigned int parseNetProperty(std::string property) {
       return (i);
     }
   }
-  ret = i - 1;
 
-  return ret;
+  return (unsigned int) NeuralNetwork::PropertyType::unknown;
 }
 
 int setInt(int &val, std::string str) {

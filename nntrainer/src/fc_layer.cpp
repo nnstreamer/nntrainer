@@ -98,7 +98,7 @@ int FullyConnectedLayer::setProperty(std::vector<std::string> values) {
       status = setFloat(weight_decay.lambda, value);
       NN_RETURN_STATUS();
       break;
-    case PropertyType::weight_init:
+    case PropertyType::weight_ini:
       weight_ini_type = (WeightIniType)parseType(value, TOKEN_WEIGHTINI);
       break;
     default:

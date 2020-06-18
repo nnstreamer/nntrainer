@@ -118,18 +118,6 @@ public:
    */
   int setProperty(std::vector<std::string> values);
 
-  /**
-   * @brief     Property Enumeration
-   *            0. input shape : string
-   *            1. bias zero : bool
-   *            5. epsilon : float
-   */
-  enum class PropertyType {
-    input_shape = 0,
-    bias_zero = 1,
-    epsilon = 5,
-  };
-
 private:
   Tensor weight;
   Tensor bias;

@@ -134,7 +134,7 @@ void Conv2DLayer::copy(std::shared_ptr<Layer> l) {
   this->last_layer = from->last_layer;
 }
 
-int Conv2DLayer::setSize(int *size, nntrainer::Conv2DLayer::PropertyType type) {
+int Conv2DLayer::setSize(int *size, PropertyType type) {
   int status = ML_ERROR_NONE;
   switch (type) {
   case PropertyType::kernel_size:
