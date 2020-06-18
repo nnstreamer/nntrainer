@@ -104,7 +104,7 @@ int Pooling2DLayer::setProperty(std::vector<std::string> values) {
       break;
     case PropertyType::pooling_size:
       status = getValues(POOLING2D_DIM, value, (int *)(pooling_size));
-      NN_RETURN_STATUS();      
+      NN_RETURN_STATUS();
       if (pooling_size[0] == 0 || pooling_size[1] == 0) {
         ml_loge("Error: pooling_size must be greater than 0");
         return ML_ERROR_INVALID_PARAMETER;
@@ -112,7 +112,7 @@ int Pooling2DLayer::setProperty(std::vector<std::string> values) {
       break;
     case PropertyType::stride:
       status = getValues(POOLING2D_DIM, value, (int *)(stride));
-      NN_RETURN_STATUS();      
+      NN_RETURN_STATUS();
       if (stride[0] == 0 || stride[1] == 0) {
         ml_loge("Error: stride must be greater than 0");
         return ML_ERROR_INVALID_PARAMETER;
@@ -120,8 +120,8 @@ int Pooling2DLayer::setProperty(std::vector<std::string> values) {
       break;
     case PropertyType::padding:
       status = getValues(POOLING2D_DIM, value, (int *)(padding));
-      NN_RETURN_STATUS();      
-      if (padding[0] < 0 || padding[1] < 0) {
+      NN_RETURN_STATUS();
+      if ((int) padding[0] < 0 || (int) padding[1] < 0) {
         ml_loge("Error: padding must be greater than 0");
         return ML_ERROR_INVALID_PARAMETER;
       }
