@@ -75,10 +75,9 @@ def conv2d_tensorflow(x, kernel, batch, width, height, channel, k_width, k_heigh
                 initializer=tf.constant_initializer(bias, dtype=dtypes.float32))
             tf_z = tf.nn.conv2d(
                 tf_x, kernel, strides=[1, stride, stride, 1], padding=pad) + bias
-            tf_h = act(tf_z)
-            tf_p = tf.nn.max_pool(tf_h, ksize = [1,2,2,1], strides=[1,1,1,1], padding='VALID');
+            tf_p = tf.nn.max_pool(tf_z, ksize = [1,2,2,1], strides=[1,1,1,1], padding='VALID');
             sess.run(tf.global_variables_initializer())
-            tf_c = sess.run(tf_h)
+            tf_c = sess.run(tf_z)
             tf_o = sess.run(tf_p)
     return tf_c, tf_o
 

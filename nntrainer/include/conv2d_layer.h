@@ -144,14 +144,18 @@ public:
 
   /**
    * @brief     calculation convolution
-   * @param[in] in input tensor
-   * @param[in] kernel convolution kernel
+   * @param[in] in input tensor data
+   * @param[in] indim input tensor dimension
+   * @param[in] kernel convolution kernel data
+   * @param[in] kdim convolution kernel dimension
+   * @param[in] out output
    * @param[in] stride stride value : x, y direction
-   * @param[out] status output of status
-   * @retval Tensor outoput tensor
+   * @param[in] bias bias data
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  Tensor conv2d(Tensor in, Tensor kernel, unsigned int const *stride,
-                int &status);
+  int conv2d(float *in, TensorDim indim, float *kernel, TensorDim kdim,
+             float *out, unsigned int const *stride, float bias);
 
   /* TO DO : support keras type of padding */
   /* enum class PaddingType { */
@@ -167,7 +171,9 @@ private:
   unsigned int stride[CONV2D_DIM];
   unsigned int padding[CONV2D_DIM];
   std::vector<Tensor> filters;
-  std::vector<float> bias;
+  std::vector<Tensor> delK;
+  std::vector<Tensor> bias;
+  std::vector<Tensor> delBias;
   bool normalization;
   bool standardization;
 };

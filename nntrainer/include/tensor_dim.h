@@ -34,6 +34,16 @@ public:
     len = 1;
     feature_len = 1;
   }
+
+  TensorDim(unsigned int b, unsigned int c, unsigned int h, unsigned int w) {
+    dim[0] = b;
+    dim[1] = c;
+    dim[2] = h;
+    dim[3] = w;
+    feature_len = c * h * w;
+    len = b * feature_len;
+  }
+
   ~TensorDim(){};
   unsigned int batch() const { return dim[0]; };
   unsigned int channel() const { return dim[1]; };

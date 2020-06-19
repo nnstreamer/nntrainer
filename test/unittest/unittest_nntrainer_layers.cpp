@@ -482,7 +482,6 @@ TEST(nntrainer_Conv2DLayer, forwarding_01_p) {
 
   input_str.push_back("input_shape=1:3:7:7");
   input_str.push_back("bias_zero=true");
-  input_str.push_back("activation=sigmoid");
   input_str.push_back("weight_decay=l2norm");
   input_str.push_back("weight_decay_lambda = 0.005");
   input_str.push_back("weight_ini=xavier_uniform");
@@ -494,9 +493,6 @@ TEST(nntrainer_Conv2DLayer, forwarding_01_p) {
   status = layer.setProperty(input_str);
   EXPECT_EQ(status, ML_ERROR_NONE);
   layer.setInputDimension(previous_dim);
-
-  nntrainer::ActivationLayer actLayer;
-  actLayer.setActivation(nntrainer::ACT_SIGMOID);
 
   status = layer.initialize(true);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -514,10 +510,9 @@ TEST(nntrainer_Conv2DLayer, forwarding_01_p) {
   std::ifstream rfile("test_1_goldenConv2DResult.out");
   result.read(rfile);
   rfile.close();
-  in = layer.forwarding(in, status);
-  EXPECT_EQ(status, ML_ERROR_NONE);
-  
-  out = actLayer.forwarding(in, status);
+
+  out = layer.forwarding(in, status);
+
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   golden = result.getData();
@@ -553,9 +548,6 @@ TEST(nntrainer_Conv2DLayer, forwarding_02_p) {
   EXPECT_EQ(status, ML_ERROR_NONE);
   layer.setInputDimension(previous_dim);
 
-  nntrainer::ActivationLayer actLayer;
-  actLayer.setActivation(nntrainer::ACT_SIGMOID);
-
   status = layer.initialize(true);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
@@ -572,18 +564,65 @@ TEST(nntrainer_Conv2DLayer, forwarding_02_p) {
   std::ifstream rfile("test_2_goldenConv2DResult.out");
   result.read(rfile);
   rfile.close();
-  in = layer.forwarding(in, status);
+
+  out = layer.forwarding(in, status);
   EXPECT_EQ(status, ML_ERROR_NONE);
-  
-  out = actLayer.forwarding(in, status);
-  EXPECT_EQ(status, ML_ERROR_NONE);
-  
+
   golden = result.getData();
   out_ptr = out.getData();
 
   for (int i = 0; i < 2 * 3 * 5 * 5; ++i) {
     EXPECT_FLOAT_EQ(out_ptr[i], golden[i]);
   }
+}
+
+/**
+ * @brief Convolution 2D Layer
+ */
+TEST(nntrainer_Conv2D, backwarding_01_p) {
+  int status = ML_ERROR_NONE;
+  nntrainer::Conv2DLayer layer;
+  std::vector<std::string> input_str;
+  nntrainer::TensorDim previous_dim;
+  previous_dim.setTensorDim("1:3:7:7");
+
+  input_str.push_back("input_shape=1:3:7:7");
+  input_str.push_back("bias_zero=true");
+  input_str.push_back("activation=sigmoid");
+  input_str.push_back("weight_decay=l2norm");
+  input_str.push_back("weight_decay_lambda = 0.005");
+  input_str.push_back("weight_ini=xavier_uniform");
+  input_str.push_back("filter=2");
+  input_str.push_back("kernel_size= 3,3");
+  input_str.push_back("stride=1, 1");
+  input_str.push_back("padding=0,0");
+
+  status = layer.setProperty(input_str);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  layer.setInputDimension(previous_dim);
+
+  status = layer.initialize(true);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  nntrainer::Tensor in(1, 3, 7, 7);
+  nntrainer::Tensor out;
+  nntrainer::Tensor derivatives(1, 2, 5, 5);
+
+  float sample_derivative[50] = {
+    0.25, 0.5, 0.5, 0.5,  0.25, 0.5, 1.0,  1.0,  1.0, 0.5, 0.5, 1.0,  1.0,
+    1.0,  0.5, 0.5, 1.0,  1.0,  1.0, 0.5,  0.25, 0.5, 0.5, 0.5, 0.25, 0.25,
+    0.5,  0.5, 0.5, 0.25, 0.5,  1.0, 1.0,  1.0,  0.5, 0.5, 1.0, 1.0,  1.0,
+    0.5,  0.5, 1.0, 1.0,  1.0,  0.5, 0.25, 0.5,  0.5, 0.5, 0.25};
+
+  std::ifstream file("test_1_conv2DLayer.in");
+  in.read(file);
+  out = layer.forwarding(in, status);
+
+  for (unsigned int i = 0; i < derivatives.getDim().getDataLen(); ++i) {
+    derivatives.getData()[i] = sample_derivative[i];
+  }
+
+  nntrainer::Tensor result = layer.backwarding(derivatives, 1);
 }
 
 /**
@@ -743,9 +782,9 @@ TEST(nntrainer_Pooling2D, backwarding_01_p) {
 
   out = layer.backwarding(in, 0);
 
-  float golden[50] = {0, 0, 0, 1, 0, 0, 1, 2, 0, 1, 0, 1, 4, 0, 0, 0, 1,
-                      2, 2, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 4, 0,
-                      1, 0, 3, 1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 2, 1, 0};
+  float golden[50] = {0, 0, 0, 0, 0, 0, 2, 1, 0, 1, 2, 1, 0, 1, 2, 1, 0,
+                      4, 1, 0, 0, 0, 0, 0, 0, 0, 2, 1, 0, 1, 0, 0, 1, 0,
+                      0, 0, 4, 0, 0, 1, 0, 2, 0, 4, 0, 0, 0, 0, 0, 0};
 
   float *out_ptr = out.getData();
 
@@ -1008,7 +1047,9 @@ TEST(nntrainer_ActivationLayer, forward_backward_01_p) {
 
   expected.copy(input);
   result = layer.backwarding(constant(1.0, 3, 1, 1, 10), 1);
-  GEN_TEST_INPUT(expected, nntrainer::reluPrime(nntrainer::relu((l - 4) * 0.1 * (i + 1))));;
+  GEN_TEST_INPUT(
+    expected, nntrainer::reluPrime(nntrainer::relu((l - 4) * 0.1 * (i + 1))));
+  ;
   EXPECT_TRUE(result == expected);
 }
 

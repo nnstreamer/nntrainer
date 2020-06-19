@@ -51,6 +51,7 @@ Tensor softmax(Tensor t);
 /**
  * @brief     random function
  */
+
 float random();
 
 /**
@@ -115,6 +116,14 @@ Tensor zero_pad(int batch, Tensor const &in, unsigned int const *padding);
  * @param[in] x input
  */
 float no_op(float x);
+
+/**
+ * @brief     strip padding
+ * @param[in] x input
+ * @param[in] padding 2D padding size
+ * @retVal Tensor output tensor without padding
+ */
+Tensor strip_pad(Tensor const &in, unsigned int const *padding);
 
 } /* namespace nntrainer */
 
