@@ -139,7 +139,7 @@ public:
   /**
    * @brief     apply A tensor function when predicate is true
    * @param[in] bool predicate predicate to check to determine application
-   * @param[in] _Callable&& fn function to be applied 
+   * @param[in] _Callable&& fn function to be applied
    *            (Must be wrapped with _LIFT(X) macro to resolve overload set)
    * @param[in] _Args&&... args args for fn
    * @retval    LazyTensor *this

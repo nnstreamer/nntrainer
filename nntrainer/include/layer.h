@@ -109,18 +109,18 @@ typedef enum {
  */
 class Layer {
 public:
-  Layer() :
-    last_layer(false),
-    init_zero(false),
-    type(LAYER_UNKNOWN),
-    activation(NULL),
-    activation_prime(NULL),
-    loss(0.0),
-    cost(COST_UNKNOWN),
-    activation_type(ACT_UNKNOWN),
-    bn_follow(false),
-    weight_decay(),
-    weight_ini_type(WEIGHT_UNKNOWN) {}
+  Layer()
+    : last_layer(false),
+      init_zero(false),
+      type(LAYER_UNKNOWN),
+      activation(NULL),
+      activation_prime(NULL),
+      loss(0.0),
+      cost(COST_UNKNOWN),
+      activation_type(ACT_UNKNOWN),
+      bn_follow(false),
+      weight_decay(),
+      weight_ini_type(WEIGHT_UNKNOWN) {}
 
   /**
    * @brief     Destructor of Layer Class

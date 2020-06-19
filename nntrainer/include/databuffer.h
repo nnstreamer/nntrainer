@@ -117,8 +117,12 @@ public:
    * @retval    DataBuffer
    */
   DataBuffer()
-    : train_running(), val_running(), test_running(), train_thread(),
-      val_thread(), test_thread() {
+    : train_running(),
+      val_running(),
+      test_running(),
+      train_thread(),
+      val_thread(),
+      test_thread() {
     SET_VALIDATION(false);
     class_num = 0;
     cur_train_bufsize = 0;
