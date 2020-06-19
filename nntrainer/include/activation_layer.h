@@ -19,7 +19,6 @@
 #include <fstream>
 #include <iostream>
 #include <layer.h>
-#include <nntrainer_error.h>
 #include <optimizer.h>
 #include <tensor.h>
 #include <vector>
@@ -36,7 +35,7 @@ public:
   /**
    * @brief     Constructor of Activation Layer
    */
-  ActivationLayer() : Layer() { this->type = LAYER_ACTIVATION; };
+  ActivationLayer() : Layer() { setType(LAYER_ACTIVATION); };
 
   /**
    * @brief     Destructor of Activation Layer
@@ -129,7 +128,6 @@ public:
 
 private:
   static constexpr unsigned int ACTIVATION_PROPERTY = 4;
-
   std::function<Tensor(Tensor const &)> _act_fn;
   std::function<Tensor(Tensor const &)> _act_prime_fn;
 };

@@ -24,6 +24,7 @@
 #define __NEURALNET_H__
 #ifdef __cplusplus
 
+#include <activation_layer.h>
 #include <bn_layer.h>
 #include <conv2d_layer.h>
 #include <databuffer.h>
@@ -355,6 +356,25 @@ private:
    * @brief     Sets up and initialize the loss layer
    */
   int initLossLayer();
+
+  /**
+   * @brief     Add activation layer to layers
+   *
+   * @param[in] ActiType act Activation Type
+   * @param[in/out] int Position position to insert activation layer.
+   *                position++ when activation layer is inserted.
+   */
+  int initActivationLayer(std::shared_ptr<Layer> layer, unsigned int &position);
+
+  /**
+   * @brief     Add activation layer to layers
+   *
+   * @param[in] ActiType act Activation Type, layer is inserted at the back of
+   * layers
+   */
+  int initActivationLayer(std::shared_ptr<Layer> layer);
+
+  std::shared_ptr<Layer> _make_act_layer(std::shared_ptr<Layer> layer);
 };
 
 } /* namespace nntrainer */

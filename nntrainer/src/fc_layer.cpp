@@ -127,14 +127,7 @@ Tensor FullyConnectedLayer::forwarding(Tensor in, int &status) {
     loss = weight_decay.lambda * 0.5f * (weight.l2norm());
   }
 
-  if (this->bn_follow)
-    return hidden;
-
-  if (activation_type == ACT_SOFTMAX) {
-    return hidden.apply(softmax);
-  } else {
-    return hidden.apply(activation);
-  }
+  return hidden;
 }
 
 void FullyConnectedLayer::read(std::ifstream &file) {
@@ -167,43 +160,10 @@ void FullyConnectedLayer::copy(std::shared_ptr<Layer> l) {
 }
 
 Tensor FullyConnectedLayer::backwarding(Tensor derivative, int iteration) {
-  Tensor djdb;
-  Tensor y2 = derivative;
-  Tensor y;
+  Tensor ret = derivative.dot(weight.transpose("0:2:1"));
+  Tensor djdw = input.transpose("0:2:1").dot(derivative);
 
-  if (!last_layer) {
-    djdb = derivative.multiply(hidden.apply(activation_prime));
-  } else {
-    switch (cost) {
-    case COST_MSR:
-      if (activation_type == ACT_SOFTMAX) {
-        y = hidden.apply(softmax);
-        djdb = derivative.multiply(hidden.apply(softmaxPrime));
-      } else {
-        djdb = derivative.multiply(hidden.apply(activation_prime));
-      }
-      break;
-
-    case COST_ENTROPY_SIGMOID:
-      /** intended */
-    case COST_ENTROPY_SOFTMAX:
-      djdb = derivative;
-      break;
-
-    case COST_ENTROPY:
-      throw std::runtime_error(
-        "Error: Cross Entropy not supported without softmax or sigmoid.");
-    case COST_UNKNOWN:
-      /** Intended */
-    default:
-      throw std::runtime_error("Error: unknown cost.");
-    }
-  }
-
-  Tensor ret = djdb.dot(weight.transpose("0:2:1"));
-  Tensor djdw = input.transpose("0:2:1").dot(djdb);
-
-  opt.calculate(djdw, djdb, weight, bias, iteration, this->init_zero,
+  opt.calculate(djdw, derivative, weight, bias, iteration, this->init_zero,
                 weight_decay);
 
   return ret;

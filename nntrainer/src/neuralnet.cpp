@@ -274,11 +274,7 @@ int NeuralNetwork::init() {
       }
 
       conv2d_layer->setBiasZero(b_zero);
-      status = conv2d_layer->setActivation((ActiType)parseType(
-        iniparser_getstring(ini, (layers_name[i] + ":Activation").c_str(),
-                            unknown),
-        TOKEN_ACTI));
-      NN_INI_RETURN_STATUS();
+
       conv2d_layer->setWeightInit((WeightIniType)parseType(
         iniparser_getstring(ini, (layers_name[i] + ":WeightIni").c_str(),
                             unknown),
@@ -355,12 +351,6 @@ int NeuralNetwork::init() {
       status = fc_layer->setOptimizer(opt);
       NN_INI_RETURN_STATUS();
 
-      status = fc_layer->setActivation((ActiType)parseType(
-        iniparser_getstring(ini, (layers_name[i] + ":Activation").c_str(),
-                            unknown),
-        TOKEN_ACTI));
-      NN_INI_RETURN_STATUS();
-
       status = setWeightDecay(ini, layers_name[i], weight_decay);
       NN_INI_RETURN_STATUS();
 
@@ -385,11 +375,8 @@ int NeuralNetwork::init() {
         ml_loge("Error: BN layer shouldn't be first layer of network");
         return ML_ERROR_INVALID_PARAMETER;
       }
+      // fixme: deprecate this.
       layers[i - 1]->setBNfollow(true);
-      status = bn_layer->setActivation((ActiType)parseType(
-        iniparser_getstring(ini, (layers_name[i] + ":Activation").c_str(),
-                            unknown),
-        TOKEN_ACTI));
       NN_INI_RETURN_STATUS();
       status = setWeightDecay(ini, layers_name[i], weight_decay);
       NN_INI_RETURN_STATUS();
@@ -402,7 +389,16 @@ int NeuralNetwork::init() {
     default:
       break;
     }
-    previous_dim = layers[i]->getOutputDimension();
+    previous_dim = layers.back()->getOutputDimension();
+
+    const char *acti_str = iniparser_getstring(
+      ini, (layers_name[i] + ":Activation").c_str(), unknown);
+    ActiType act = (ActiType)parseType(acti_str, TOKEN_ACTI);
+
+    layers.back()->setActivation(act);
+
+    status = initActivationLayer(layers.back());
+    NN_INI_RETURN_STATUS();
   }
 
   /** Add the last layer as loss layer */
@@ -423,15 +419,20 @@ int NeuralNetwork::init() {
 int NeuralNetwork::initLossLayer() {
   int status = ML_ERROR_NONE;
   CostType updated_cost = cost;
-  ActiType act = layers.back()->getActivationType();
-
-  std::shared_ptr<LossLayer> loss_layer = std::make_shared<LossLayer>();
-  loss_layer->setInputDimension(layers.back()->getOutputDimension());
-  status = loss_layer->initialize(true);
-  NN_RETURN_STATUS();
 
   if (updated_cost == COST_ENTROPY) {
-    switch (act) {
+    if (layers.back()->getType() != LAYER_ACTIVATION) {
+      ml_loge("Error: Cross Entropy need last layer to have softmax or sigmoid "
+              "activation.");
+      return ML_ERROR_NOT_SUPPORTED;
+    }
+
+    std::shared_ptr<ActivationLayer> act_layer =
+      std::static_pointer_cast<ActivationLayer>(layers.back());
+
+    layers.pop_back();
+
+    switch (act_layer->getActivationType()) {
     case ACT_SIGMOID:
       updated_cost = COST_ENTROPY_SIGMOID;
       break;
@@ -442,17 +443,16 @@ int NeuralNetwork::initLossLayer() {
       ml_loge("Error: Cross Entropy not supported without softmax or sigmoid.");
       return ML_ERROR_NOT_SUPPORTED;
     }
-
-    act = ACT_NONE;
-    status = layers.back()->setActivation(act);
-    NN_RETURN_STATUS();
-    status = layers.back()->setCost(updated_cost);
-    NN_RETURN_STATUS();
   }
 
-  status = loss_layer->setCost(updated_cost);
+  std::shared_ptr<LossLayer> loss_layer = std::make_shared<LossLayer>();
+  loss_layer->setInputDimension(layers.back()->getOutputDimension());
+  status = loss_layer->initialize(true);
   NN_RETURN_STATUS();
-  status = loss_layer->setActivation(act);
+
+  status = layers.back()->setCost(updated_cost);
+  NN_RETURN_STATUS();
+  status = loss_layer->setCost(updated_cost);
   NN_RETURN_STATUS();
 
   layers.push_back(loss_layer);
@@ -597,6 +597,8 @@ int NeuralNetwork::init(std::shared_ptr<Optimizer> optimizer,
       break;
     }
     previous_dim = layers[i]->getOutputDimension();
+    status = initActivationLayer(layers[i], i);
+    NN_RETURN_STATUS();
   }
 
   /** Add the last layer as loss layer */
@@ -944,6 +946,46 @@ int NeuralNetwork::addLayer(std::shared_ptr<Layer> layer) {
   }
 
   return status;
+}
+
+std::shared_ptr<Layer>
+NeuralNetwork::_make_act_layer(std::shared_ptr<Layer> layer) {
+  ActiType act = layer->getActivationType();
+  if (act != ACT_UNKNOWN) {
+    if (layers.back()->getType() == LAYER_ACTIVATION) {
+      /* possible throw here? */
+      ml_logw("Activation defined right after activation");
+    }
+
+    std::shared_ptr<ActivationLayer> act_layer =
+      std::make_shared<ActivationLayer>();
+
+    act_layer->setActivation(act);
+
+    return act_layer;
+  }
+
+  return nullptr;
+}
+
+int NeuralNetwork::initActivationLayer(std::shared_ptr<Layer> layer) {
+  std::shared_ptr<Layer> l = _make_act_layer(layer);
+  if (l != nullptr) {
+    layers.push_back(l);
+  }
+
+  return ML_ERROR_NONE;
+}
+
+int NeuralNetwork::initActivationLayer(std::shared_ptr<Layer> layer,
+                                       unsigned int &position) {
+  std::shared_ptr<Layer> l = _make_act_layer(layer);
+  if (l != nullptr) {
+    layers.insert(layers.begin() + position + 1, l);
+    position++;
+  }
+
+  return ML_ERROR_NONE;
 }
 
 } /* namespace nntrainer */

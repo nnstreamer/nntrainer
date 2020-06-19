@@ -112,6 +112,9 @@ void ActivationLayer::setActivation(ActiType acti_type) {
   case ActiType::ACT_RELU:
     this->setActivation(relu, reluPrime);
     break;
+  case ActiType::ACT_NONE:
+    this->setActivation(no_op, no_op);
+    break;
   case ActiType::ACT_UNKNOWN:
   default:
     throw std::runtime_error("Error: Not Supported Activation Type");

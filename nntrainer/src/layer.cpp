@@ -36,26 +36,7 @@ int Layer::setActivation(ActiType acti) {
     return ML_ERROR_INVALID_PARAMETER;
   }
   activation_type = acti;
-  switch (acti) {
-  case ACT_TANH:
-    activation = tanhFloat;
-    activation_prime = tanhPrime;
-    break;
-  case ACT_SIGMOID:
-    activation = sigmoid;
-    activation_prime = sigmoidePrime;
-    break;
-  case ACT_RELU:
-    activation = relu;
-    activation_prime = reluPrime;
-    break;
-  case ACT_NONE:
-    activation = no_op;
-    activation_prime = no_op;
-    break;
-  default:
-    break;
-  }
+
   return status;
 }
 

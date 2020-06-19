@@ -38,9 +38,9 @@ namespace nntrainer {
  *            1. ENTROPY ( Cross Entropy )
  *            2. ENTROPY_SIGMOID (Cross Entropy amalgamated with sigmoid for
  * stability)
- *            2. ENTROPY_SOFTMAX (Cross Entropy amalgamated with softmax for
+ *            3. ENTROPY_SOFTMAX (Cross Entropy amalgamated with softmax for
  * stability)
- *            2. Unknown
+ *            4. Unknown
  */
 typedef enum {
   COST_MSR,
@@ -117,18 +117,16 @@ typedef enum {
  */
 class Layer {
 public:
-  Layer() :
-    last_layer(false),
-    init_zero(false),
-    type(LAYER_UNKNOWN),
-    activation(NULL),
-    activation_prime(NULL),
-    loss(0.0),
-    cost(COST_UNKNOWN),
-    activation_type(ACT_UNKNOWN),
-    bn_follow(false),
-    weight_decay(),
-    weight_ini_type(WEIGHT_UNKNOWN) {}
+  Layer()
+    : last_layer(false),
+      init_zero(false),
+      type(LAYER_UNKNOWN),
+      loss(0.0),
+      cost(COST_UNKNOWN),
+      activation_type(ACT_UNKNOWN),
+      bn_follow(false),
+      weight_decay(),
+      weight_ini_type(WEIGHT_UNKNOWN) {}
 
   /**
    * @brief     Destructor of Layer Class
@@ -377,16 +375,6 @@ protected:
    * @brief     Layer type
    */
   LayerType type;
-
-  /**
-   * @brief     Activation function pointer
-   */
-  float (*activation)(float);
-
-  /**
-   * @brief     Activation Derivative function pointer
-   */
-  float (*activation_prime)(float);
 
   /**
    * @brief     Loss value added by this layer

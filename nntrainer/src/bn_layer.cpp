@@ -105,7 +105,7 @@ Tensor BatchNormalizationLayer::forwarding(Tensor in, int &status) {
 
   hidden = hath;
 
-  Tensor ret = hath.multiply(gamma).add(beta).apply(activation);
+  Tensor ret = hath.multiply(gamma).add(beta);
 
   status = ML_ERROR_NONE;
   return ret;
@@ -118,7 +118,7 @@ Tensor BatchNormalizationLayer::backwarding(Tensor derivative, int iteration) {
 
   Tensor hath = hidden;
   Tensor dy =
-    derivative.multiply(hath.multiply(gamma).add(beta).apply(activation_prime));
+    derivative.multiply(hath.multiply(gamma).add(beta));
 
   dbeta = dy.sum(0);
   dgamma = (input.subtract(mu)

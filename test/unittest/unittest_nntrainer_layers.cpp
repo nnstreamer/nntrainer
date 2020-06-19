@@ -495,6 +495,9 @@ TEST(nntrainer_Conv2DLayer, forwarding_01_p) {
   EXPECT_EQ(status, ML_ERROR_NONE);
   layer.setInputDimension(previous_dim);
 
+  nntrainer::ActivationLayer actLayer;
+  actLayer.setActivation(nntrainer::ACT_SIGMOID);
+
   status = layer.initialize(true);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
@@ -511,7 +514,11 @@ TEST(nntrainer_Conv2DLayer, forwarding_01_p) {
   std::ifstream rfile("test_1_goldenConv2DResult.out");
   result.read(rfile);
   rfile.close();
-  out = layer.forwarding(in, status);
+  in = layer.forwarding(in, status);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  
+  out = actLayer.forwarding(in, status);
+  EXPECT_EQ(status, ML_ERROR_NONE);
 
   golden = result.getData();
   out_ptr = out.getData();
@@ -546,6 +553,9 @@ TEST(nntrainer_Conv2DLayer, forwarding_02_p) {
   EXPECT_EQ(status, ML_ERROR_NONE);
   layer.setInputDimension(previous_dim);
 
+  nntrainer::ActivationLayer actLayer;
+  actLayer.setActivation(nntrainer::ACT_SIGMOID);
+
   status = layer.initialize(true);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
@@ -562,8 +572,12 @@ TEST(nntrainer_Conv2DLayer, forwarding_02_p) {
   std::ifstream rfile("test_2_goldenConv2DResult.out");
   result.read(rfile);
   rfile.close();
-  out = layer.forwarding(in, status);
-
+  in = layer.forwarding(in, status);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  
+  out = actLayer.forwarding(in, status);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  
   golden = result.getData();
   out_ptr = out.getData();
 
