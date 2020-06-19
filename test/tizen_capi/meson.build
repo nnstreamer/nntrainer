@@ -26,6 +26,8 @@ unittest_tizen_capi_optimizer = executable('unittest_tizen_capi_optimizer',
   install_dir: application_install_dir
 )
 
+test('unittest_tizen_capi', unittest_tizen_capi)
+test('unittest_tizen_capi_layer', unittest_tizen_capi_layer)
 test('unittest_tizen_capi_optimizer', unittest_tizen_capi_optimizer)
 
 
