@@ -850,7 +850,7 @@ Tensor Tensor::average(int axis) const {
 }
 
 void Tensor::setValue(float val) {
-  memset(this->data.data(), val, sizeof(float) * dim.getDataLen());
+  std::fill(data.begin(), data.end(), val);
 }
 
 void Tensor::setZero() {
