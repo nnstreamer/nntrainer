@@ -204,4 +204,21 @@ Tensor zero_pad(int batch, Tensor const &in, unsigned int const *padding) {
   return output;
 }
 
+// This is strip pad and return original tensor
+Tensor strip_pad(Tensor const &in, unsigned int const *padding) {
+  Tensor output(in.batch(), in.channel(), in.width() - padding[0] * 2,
+                in.width() - padding[1] * 2);
+  for (unsigned int i = 0; i < in.batch(); ++i) {
+    for (unsigned int j = 0; j < in.channel(); ++j) {
+      for (unsigned int k = 0; k < output.height(); ++k) {
+        for (unsigned int l = 0; l < output.width(); ++l) {
+          output.setValue(i, j, k, l,
+                          in.getValue(i, j, k + padding[0], l + padding[1]));
+        }
+      }
+    }
+  }
+  return output;
+}
+
 } /* namespace nntrainer */
