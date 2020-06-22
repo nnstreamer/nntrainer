@@ -1,26 +1,28 @@
 #!/usr/bin/env bash
-#currently we are using tensorflow 1.9.0
-VERSION="1.9.0"
+VERSION=$1
+TARGET=$2
+
+echo "PREPARING TENSORFLOW ${VERSION} at ${TARGET}"
+
+pushd ${TARGET}
 
 #Get tensorflow
-cd $1
-
 if [ ! -d "tensorflow-${VERSION}" ]; then
-    if [ ! -f "v${VERSION}.tar.gz" ]; then
-	echo "[TENSORFLOW-LITE] Download tensorflow-${VERSION}\n"
-	wget "https://github.com/tensorflow/tensorflow/archive/v${VERSION}.tar.gz"
-	echo "[TENSORFLOW-LITE] Finish Downloading tensorflow-${VERSION}\n"
-	echo "[TENSORFLOW-LITE] untar tensorflow-${VERSION}\n"
+    if [ ! -f "tensorflow-lite-${VERSION}.tar.xz" ]; then
+      echo "[TENSORFLOW-LITE] Download tensorflow-${VERSION}"
+      URL="https://github.com/nnstreamer/nnstreamer-android-resource/raw/master/external/tensorflow-lite-${VERSION}.tar.xz"
+      if ! wget ${URL} ; then
+        echo "[TENSORFLOW-LITE] There was an error while downloading tflite, check if you have specified right version"
+        exit $?
+      fi
+      echo "[TENSORFLOW-LITE] Finish downloading tensorflow-${VERSION}"
+      echo "[TENSORFLOW-LITE] untar tensorflow-${VERSION}"
     fi
-    tar xf "v${VERSION}.tar.gz"
-    rm "v${VERSION}.tar.gz"
+    mkdir -p tensorflow-${VERSION}
+    tar -xf tensorflow-lite-${VERSION}.tar.xz -C tensorflow-${VERSION}
+    rm "tensorflow-lite-${VERSION}.tar.xz"
+else
+  echo "[TENSORFLOW-LITE] folder already exist, exiting without downloading"
 fi
 
-if [ ! -d "tensorflow-${VERSION}/tensorflow/contrib/lite/downloads" ]; then
-#Download Dependencys
-    pushd "tensorflow-${VERSION}"
-    echo "[TENSORFLOW-LITE] Download external libraries of tensorflow-${VERSION}\n"
-    sed -i "s|flatbuffers/archive/master.zip|flatbuffers/archive/v1.8.0.zip|g" tensorflow/contrib/lite/download_dependencies.sh
-    ./tensorflow/contrib/lite/download_dependencies.sh
-    popd
-fi
+popd
