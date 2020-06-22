@@ -16,66 +16,25 @@ NNTRAINER_APPLICATION := $(LOCAL_PATH)/../../
 
 include $(CLEAR_VARS)
 
+TENSORFLOW_VERSION := 1.13.1
+
 ifndef TENSORFLOW_ROOT
 ifneq ($(MAKECMDGOALS),clean)
 $(warning TENSORFLOW_ROOT is not defined!)
 $(warning TENSORFLOW SRC is going to be downloaded!)
 
-# Currently we are using tensorflow 1.9.0
-$(info $(shell ($(LOCAL_PATH)/../../prepare_tflite.sh $(NNTRAINER_APPLICATION))))
+$(info $(shell ($(NNTRAINER_APPLICATION)/prepare_tflite.sh $(TENSORFLOW_VERSION) $(NNTRAINER_APPLICATION))))
 
-TENSORFLOW_ROOT := $(LOCAL_PATH)/../../tensorflow-1.9.0
+TENSORFLOW_ROOT := $(LOCAL_PATH)/../../tensorflow-$(TENSORFLOW_VERSION)/tensorflow-lite
 
 endif
 endif
-
-TF_LITE_DIR=$(TENSORFLOW_ROOT)/tensorflow/contrib/lite
 
 LOCAL_MODULE := tensorflow-lite
-TFLITE_SRCS := \
-    $(wildcard $(TF_LITE_DIR)/*.cc) \
-    $(wildcard $(TF_LITE_DIR)/kernels/*.cc) \
-    $(wildcard $(TF_LITE_DIR)/kernels/internal/*.cc) \
-    $(wildcard $(TF_LITE_DIR)/kernels/internal/optimized/*.cc) \
-    $(wildcard $(TF_LITE_DIR)/kernels/internal/reference/*.cc) \
-    $(wildcard $(TF_LITE_DIR)/*.c) \
-    $(wildcard $(TF_LITE_DIR)/kernels/*.c) \
-    $(wildcard $(TF_LITE_DIR)/kernels/internal/*.c) \
-    $(wildcard $(TF_LITE_DIR)/kernels/internal/optimized/*.c) \
-    $(wildcard $(TF_LITE_DIR)/kernels/internal/reference/*.c) \
-    $(wildcard $(TF_LITE_DIR)/downloads/farmhash/src/farmhash.cc) \
-    $(wildcard $(TF_LITE_DIR)/downloads/fft2d/fftsg.c)
+LOCAL_SRC_FILES := $(TENSORFLOW_ROOT)/lib/arm64/libtensorflow-lite.a
+LOCAL_EXPORT_C_INCLUDES := $(TENSORFLOW_ROOT)/include
 
-TFLITE_SRCS := $(sort $(TFLITE_SRCS))
-
-TFLITE_EXCLUDE_SRCS := \
-    $(wildcard $(TF_LITE_DIR)/*test.cc) \
-    $(wildcard $(TF_LITE_DIR)/*/*test.cc) \
-    $(wildcard $(TF_LITE_DIR)/*/*/*test.cc) \
-    $(wildcard $(TF_LITE_DIR)/*/*/*/*test.cc) \
-    $(wildcard $(TF_LITE_DIR)/kernels/test_util.cc) \
-    $(wildcard $(TF_LITE_DIR)/examples/minimal/minimal.cc)
-
-TFLITE_SRCS := $(filter-out $(TFLITE_EXCLUDE_SRCS), $(TFLITE_SRCS))
-# ANDROID_NDK env should be set before build
-TFLITE_INCLUDES := \
-    $(ANDROID_NDK)/../ \
-    $(TENSORFLOW_ROOT) \
-    $(TF_LITE_DIR)/downloads \
-    $(TF_LITE_DIR)/downloads/eigen \
-    $(TF_LITE_DIR)/downloads/gemmlowp \
-    $(TF_LITE_DIR)/downloads/neon_2_sse \
-    $(TF_LITE_DIR)/downloads/farmhash/src \
-    $(TF_LITE_DIR)/downloads/flatbuffers/include
-
-
-LOCAL_SRC_FILES := $(TFLITE_SRCS)
-LOCAL_C_INCLUDES := $(TFLITE_INCLUDES)
-
-LOCAL_CFLAGS += -O3 -DNDEBUG
-LOCAL_CXXFLAGS += -std=c++11 -frtti -fexceptions -O3 -DNDEBUG 
-
-include $(BUILD_STATIC_LIBRARY)
+include $(PREBUILT_STATIC_LIBRARY)
 
 include $(CLEAR_VARS)
 
