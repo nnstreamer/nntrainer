@@ -105,8 +105,8 @@ unsigned int parseType(std::string ll, InputType t) {
    *            "unknown" :
    */
   std::array<std::string, 6> layer_string = {
-    "input", "fully_connected", "batch_normalization", "conv2d", "pooling2d",
-    "flatten"};
+    "input",  "fully_connected", "batch_normalization",
+    "conv2d", "pooling2d",       "flatten"};
 
   /**
    * @brief     Weight Initialization Type String from configure file
@@ -118,8 +118,8 @@ unsigned int parseType(std::string ll, InputType t) {
    *            "he_uniform"  : He Uniform Initialization
    */
   std::array<std::string, 6> weight_ini_string = {
-    "lecun_normal", "lecun_uniform", "xavier_normal", "xavier_uniform",
-    "he_normal", "he_uniform"};
+    "lecun_normal",   "lecun_uniform", "xavier_normal",
+    "xavier_uniform", "he_normal",     "he_uniform"};
 
   /**
    * @brief     Weight Decay String from configure file
@@ -153,7 +153,7 @@ unsigned int parseType(std::string ll, InputType t) {
         return (i);
       }
     }
-    ret = (unsigned int) OptType::unknown;
+    ret = (unsigned int)OptType::unknown;
     break;
   case TOKEN_COST:
     for (i = 0; i < cost_string.size(); i++) {
@@ -162,7 +162,7 @@ unsigned int parseType(std::string ll, InputType t) {
         return (i);
       }
     }
-    ret = (unsigned int) CostType::COST_UNKNOWN;
+    ret = (unsigned int)CostType::COST_UNKNOWN;
     break;
   case TOKEN_NET:
     for (i = 0; i < network_type_string.size(); i++) {
@@ -181,7 +181,7 @@ unsigned int parseType(std::string ll, InputType t) {
         return (i);
       }
     }
-    ret = (unsigned int) ActiType::ACT_UNKNOWN;
+    ret = (unsigned int)ActiType::ACT_UNKNOWN;
     break;
   case TOKEN_LAYER:
     for (i = 0; i < layer_string.size(); i++) {
@@ -190,7 +190,7 @@ unsigned int parseType(std::string ll, InputType t) {
         return (i);
       }
     }
-    ret = (unsigned int) LayerType::LAYER_UNKNOWN;
+    ret = (unsigned int)LayerType::LAYER_UNKNOWN;
     break;
   case TOKEN_WEIGHTINI:
     for (i = 0; i < weight_ini_string.size(); i++) {
@@ -199,7 +199,7 @@ unsigned int parseType(std::string ll, InputType t) {
         return (i);
       }
     }
-    ret = (unsigned int) WeightIniType::WEIGHT_UNKNOWN;
+    ret = (unsigned int)WeightIniType::WEIGHT_UNKNOWN;
     break;
   case TOKEN_WEIGHT_DECAY:
     for (i = 0; i < weight_decay_string.size(); i++) {
@@ -208,7 +208,7 @@ unsigned int parseType(std::string ll, InputType t) {
         return (i);
       }
     }
-    ret = (unsigned int) WeightDecayType::unknown;
+    ret = (unsigned int)WeightDecayType::unknown;
     break;
   case TOKEN_PADDING:
     for (i = 0; i < padding_string.size(); i++) {
@@ -217,7 +217,7 @@ unsigned int parseType(std::string ll, InputType t) {
         return (i);
       }
     }
-    ret = (unsigned int) Pooling2DLayer::PaddingType::unknown;
+    ret = (unsigned int)Pooling2DLayer::PaddingType::unknown;
     break;
   case TOKEN_POOLING:
     for (i = 0; i < pooling_string.size(); i++) {
@@ -226,7 +226,7 @@ unsigned int parseType(std::string ll, InputType t) {
         return (i);
       }
     }
-    ret = (unsigned int) Pooling2DLayer::PoolingType::unknown;
+    ret = (unsigned int)Pooling2DLayer::PoolingType::unknown;
     break;
   case TOKEN_UNKNOWN:
   default:
@@ -282,7 +282,7 @@ unsigned int parseLayerProperty(std::string property) {
     }
   }
 
-  return (unsigned int) Layer::PropertyType::unknown;
+  return (unsigned int)Layer::PropertyType::unknown;
 }
 
 unsigned int parseOptProperty(std::string property) {
@@ -299,8 +299,8 @@ unsigned int parseOptProperty(std::string property) {
    * continue_train = 6,
    */
   std::array<std::string, 7> property_string = {
-    "learning_rate", "decay_rate", "decay_steps", "beta1", "beta2", "epsilon",
-    "continue_train"};
+    "learning_rate", "decay_rate", "decay_steps",   "beta1",
+    "beta2",         "epsilon",    "continue_train"};
 
   for (i = 0; i < property_string.size(); i++) {
     unsigned int size = (property_string[i].size() > property.size())
@@ -312,7 +312,7 @@ unsigned int parseOptProperty(std::string property) {
     }
   }
 
-  return (unsigned int) Optimizer::PropertyType::unknown;
+  return (unsigned int)Optimizer::PropertyType::unknown;
 }
 
 unsigned int parseNetProperty(std::string property) {
@@ -332,9 +332,8 @@ unsigned int parseNetProperty(std::string property) {
    * model_file = 9
    */
   std::array<std::string, 10> property_string = {
-    "loss",      "cost",       "train_data",  "val_data",
-    "test_data", "label_data", "buffer_size", "batch_size",
-    "epochs",    "model_file"};
+    "loss",       "cost",        "train_data", "val_data", "test_data",
+    "label_data", "buffer_size", "batch_size", "epochs",   "model_file"};
 
   for (i = 0; i < property_string.size(); i++) {
     unsigned int size = (property_string[i].size() > property.size())
@@ -346,7 +345,7 @@ unsigned int parseNetProperty(std::string property) {
     }
   }
 
-  return (unsigned int) NeuralNetwork::PropertyType::unknown;
+  return (unsigned int)NeuralNetwork::PropertyType::unknown;
 }
 
 int setInt(int &val, std::string str) {

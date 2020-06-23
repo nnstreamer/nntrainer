@@ -20,10 +20,11 @@
 
 #define FWD(...) std::forward<decltype(__VA_ARGS__)>(__VA_ARGS__)
 
-#define _LIFT(X)                                                  \
-  [](nntrainer::Tensor &t, auto &&... args) noexcept(             \
-    noexcept(t.X(FWD(args)...))) -> decltype(t.X(FWD(args)...)) { \
-    return t.X(FWD(args)...);                                     \
+#define _LIFT(X)                                            \
+  [](nntrainer::Tensor & t,                                 \
+     auto &&... args) noexcept(noexcept(t.X(FWD(args)...))) \
+    ->decltype(t.X(FWD(args)...)) {                         \
+    return t.X(FWD(args)...);                               \
   }
 
 namespace nntrainer {

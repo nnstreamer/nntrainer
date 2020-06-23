@@ -64,10 +64,16 @@ typedef struct _OptParam {
   double epsilon;
   float decay_rate;
   float decay_steps;
-  bool continue_train;  /** Continue training with previous tensors for adam */
+  bool continue_train; /** Continue training with previous tensors for adam */
 
-  _OptParam() : learning_rate(0.0), beta1(0.0), beta2(0.0), epsilon(0.0),
-    decay_rate(0.0), decay_steps(0.0), continue_train(false) {}
+  _OptParam() :
+    learning_rate(0.0),
+    beta1(0.0),
+    beta2(0.0),
+    epsilon(0.0),
+    decay_rate(0.0),
+    decay_steps(0.0),
+    continue_train(false) {}
 } OptParam;
 
 class Optimizer {

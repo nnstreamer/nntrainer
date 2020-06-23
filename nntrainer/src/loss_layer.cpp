@@ -21,9 +21,9 @@
  *
  */
 
-#include <loss_layer.h>
 #include <layer.h>
 #include <lazy_tensor.h>
+#include <loss_layer.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <parse_util.h>
@@ -67,12 +67,15 @@ Tensor LossLayer::forwarding(Tensor output, Tensor label, int &status) {
     // @note: the output should be logit before applying sigmoid
     // log(1 + exp(-abs(y))) + max(y, 0)
     Tensor mid_term = y.apply(static_cast<float (*)(float)>(&std::fabs))
-      .multiply(-1.0).apply(static_cast<float (*)(float)>(&std::exp))
-      .add(1.0).apply(logFloat);
+                        .multiply(-1.0)
+                        .apply(static_cast<float (*)(float)>(&std::exp))
+                        .add(1.0)
+                        .apply(logFloat);
     mid_term = mid_term.add(mid_term.apply(relu));
 
     // loss = y * y2 - (log(1 + exp(-abs(y))) + max(y, 0))
-    l = y2.chain().multiply_i(y)
+    l = y2.chain()
+          .multiply_i(y)
           .add_i(mid_term)
           .multiply_i(-1.0 / y2.getWidth())
           .run()
@@ -106,7 +109,7 @@ Tensor LossLayer::forwarding(Tensor output, Tensor label, int &status) {
   return y;
 }
 
-void LossLayer::updateLoss(const Tensor& l) {
+void LossLayer::updateLoss(const Tensor &l) {
   float loss_sum = 0.0;
   const float *data = l.getData();
 
@@ -117,8 +120,7 @@ void LossLayer::updateLoss(const Tensor& l) {
 }
 
 void LossLayer::copy(std::shared_ptr<Layer> l) {
-  std::shared_ptr<LossLayer> from =
-    std::static_pointer_cast<LossLayer>(l);
+  std::shared_ptr<LossLayer> from = std::static_pointer_cast<LossLayer>(l);
   this->last_layer = from->last_layer;
   this->input.copy(from->input);
   this->cost = from->cost;
@@ -144,7 +146,7 @@ Tensor LossLayer::backwarding(Tensor derivative, int iteration) {
     break;
   case COST_ENTROPY:
     throw std::runtime_error(
-        "Error: Cross Entropy not supported without softmax or sigmoid.");
+      "Error: Cross Entropy not supported without softmax or sigmoid.");
   case COST_UNKNOWN:
     /** intended */
   default:

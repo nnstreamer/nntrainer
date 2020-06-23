@@ -104,7 +104,7 @@ private:
    * @brief     update loss
    * @param[in] l Tensor data to calculate
    */
-  void updateLoss(const Tensor& l);
+  void updateLoss(const Tensor &l);
 };
 } // namespace nntrainer
 

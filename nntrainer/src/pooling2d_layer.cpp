@@ -168,7 +168,7 @@ int Pooling2DLayer::setProperty(std::vector<std::string> values) {
     case PropertyType::padding:
       status = getValues(POOLING2D_DIM, value, (int *)(padding));
       NN_RETURN_STATUS();
-      if ((int) padding[0] < 0 || (int) padding[1] < 0) {
+      if ((int)padding[0] < 0 || (int)padding[1] < 0) {
         ml_loge("Error: padding must be greater than 0");
         return ML_ERROR_INVALID_PARAMETER;
       }
@@ -222,7 +222,7 @@ Tensor Pooling2DLayer::pooling2d(unsigned int batch, Tensor in, int &status) {
     }
   } break;
   case PoolingType::average: {
-    unsigned int p_size = p_height*p_width;
+    unsigned int p_size = p_height * p_width;
     for (unsigned int i = 0; i < channel; ++i) {
       J = 0;
       for (unsigned int j = 0; j <= height - p_height; j += stride[0]) {

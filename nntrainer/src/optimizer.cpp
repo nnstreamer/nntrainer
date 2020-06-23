@@ -22,9 +22,9 @@
  */
 
 #include <iostream>
+#include <lazy_tensor.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
-#include <lazy_tensor.h>
 #include <optimizer.h>
 #include <parse_util.h>
 #include <util_func.h>
@@ -93,9 +93,9 @@ void Optimizer::calculate(Tensor &djdw, Tensor &djdb, Tensor &weight,
   bool isL2norm = weight_decay.type == WeightDecayType::l2norm;
 
   djdwAvg = djdw.chain()
-                .applyIf(isL2norm, _LIFT(add_i), weight, weight_decay.lambda)
-                .average()
-                .run();
+              .applyIf(isL2norm, _LIFT(add_i), weight, weight_decay.lambda)
+              .average()
+              .run();
 
   djdbAvg = djdb.average();
 
@@ -103,9 +103,13 @@ void Optimizer::calculate(Tensor &djdw, Tensor &djdb, Tensor &weight,
   case OptType::sgd:
     weight.add_i(djdwAvg, -ll);
     break;
-  case OptType::adam:{
-    std::function<float(float)> sqrtEps = [&](float f){ return sqrtFloat(f) + this->popt.epsilon; };
-    std::function<float(float)> biasCorrection = [&](float f){ return 1 - pow(f, iteration + 1); };
+  case OptType::adam: {
+    std::function<float(float)> sqrtEps = [&](float f) {
+      return sqrtFloat(f) + this->popt.epsilon;
+    };
+    std::function<float(float)> biasCorrection = [&](float f) {
+      return 1 - pow(f, iteration + 1);
+    };
 
     ll *= sqrt(biasCorrection(popt.beta2)) / biasCorrection(popt.beta1);
 
@@ -195,7 +199,8 @@ void Optimizer::read(std::ifstream &file) {
       wv.read(file);
       bv.read(file);
     } else {
-      size_t total_size = wm.getSize() + bm.getSize() + wv.getSize() + bv.getSize();
+      size_t total_size =
+        wm.getSize() + bm.getSize() + wv.getSize() + bv.getSize();
       file.seekg(total_size, std::ifstream::cur);
     }
   }

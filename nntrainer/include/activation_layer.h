@@ -25,7 +25,6 @@
 #include <vector>
 
 namespace nntrainer {
-  
 
 /**
  * @class   Activation Layer
@@ -37,7 +36,7 @@ public:
   /**
    * @brief     Constructor of Activation Layer
    */
-  ActivationLayer() : Layer(){ this->type = LAYER_ACTIVATION; };
+  ActivationLayer() : Layer() { this->type = LAYER_ACTIVATION; };
 
   /**
    * @brief     Destructor of Activation Layer
@@ -57,13 +56,13 @@ public:
    * @brief     Read Activation layer params. This is essentially noops for now.
    * @param[in] file input stream file
    */
-  void read(std::ifstream &file) { /* noop */ };
+  void read(std::ifstream &file){/* noop */};
 
   /**
    * @brief     Save Activation layer params. This is essentially noops for now.
    * @param[in] file output stream file
    */
-  void save(std::ofstream &file) {  /* noop */ };
+  void save(std::ofstream &file){/* noop */};
 
   /**
    * @brief     forward propagation with input
@@ -109,9 +108,9 @@ public:
    *            activation_prime_function to be used
    * @retval #ML_ERROR_NONE when successful
    */
-  int
-  setActivation(std::function<float(float const)> const &activation_fn,
-                std::function<float(float const)> const &activation_prime_fn);
+  int setActivation(
+    std::function<float(float const)> const &activation_fn,
+    std::function<float(float const)> const &activation_prime_fn);
 
   /**
    * @brief setActivation by preset actiType

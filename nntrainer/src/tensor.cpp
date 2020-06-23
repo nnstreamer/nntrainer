@@ -103,8 +103,7 @@ void Tensor::setValue(unsigned int batch, unsigned int c, unsigned int h,
              c * dim.height() * dim.width() + h * dim.width() + w] = value;
 }
 
-template<typename T>
-void Tensor::setDist(T dist) {
+template <typename T> void Tensor::setDist(T dist) {
   for (unsigned int i = 0; i < dim.getDataLen(); ++i) {
     data[i] = dist(rng);
   }
@@ -112,12 +111,12 @@ void Tensor::setDist(T dist) {
 
 void Tensor::setRandNormal(float mean, float std) {
   setDist<std::normal_distribution<float>>(
-      std::normal_distribution<float> (mean, std));
+    std::normal_distribution<float>(mean, std));
 }
 
 void Tensor::setRandUniform(float min, float max) {
   setDist<std::uniform_real_distribution<float>>(
-      std::uniform_real_distribution<float> (min, max));
+    std::uniform_real_distribution<float>(min, max));
 }
 
 Tensor::Tensor(std::vector<std::vector<float>> const &d) {
@@ -849,13 +848,9 @@ Tensor Tensor::average(int axis) const {
   return result;
 }
 
-void Tensor::setValue(float val) {
-  std::fill(data.begin(), data.end(), val);
-}
+void Tensor::setValue(float val) { std::fill(data.begin(), data.end(), val); }
 
-void Tensor::setZero() {
-  setValue(0);
-}
+void Tensor::setZero() { setValue(0); }
 
 int Tensor::argmax() {
   int index = 0;

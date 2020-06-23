@@ -179,15 +179,15 @@ Tensor zero_pad(int batch, Tensor const &in, unsigned int const *padding) {
   for (unsigned int j = 0; j < c; ++j) {
     for (unsigned int k = 0; k < padding[0]; ++k) {
       for (unsigned int l = 0; l < width_p; ++l) {
-	output.setValue(0, j, k, l, 0.0);
-	output.setValue(0, j, k + height_p_h, l, 0.0);
+        output.setValue(0, j, k, l, 0.0);
+        output.setValue(0, j, k + height_p_h, l, 0.0);
       }
     }
 
     for (unsigned int l = 0; l < padding[1]; ++l) {
       for (unsigned int k = padding[0]; k < h; ++k) {
-	output.setValue(0, j, k, l, 0.0);
-	output.setValue(0, j, k, l + width_p_h, 0.0);
+        output.setValue(0, j, k, l, 0.0);
+        output.setValue(0, j, k, l + width_p_h, 0.0);
       }
     }
   }
