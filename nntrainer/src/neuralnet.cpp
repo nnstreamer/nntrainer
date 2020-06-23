@@ -93,7 +93,8 @@ std::vector<std::string> parseLayerName(std::string ll) {
 
 NeuralNetwork::NeuralNetwork() : NeuralNetwork("") {}
 
-NeuralNetwork::NeuralNetwork(std::string config) : batch_size(0),
+NeuralNetwork::NeuralNetwork(std::string config) :
+  batch_size(0),
   learning_rate(0.0),
   decay_rate(0.0),
   decay_steps(0.0),
@@ -294,8 +295,7 @@ int NeuralNetwork::init() {
                     ini, (layers_name[i] + ":kernel_size").c_str(), unknown),
                   (int *)size);
       NN_INI_RETURN_STATUS();
-      status = conv2d_layer->setSize(
-        size, Layer::PropertyType::kernel_size);
+      status = conv2d_layer->setSize(size, Layer::PropertyType::kernel_size);
       NN_INI_RETURN_STATUS();
 
       status = getValues(
@@ -303,8 +303,7 @@ int NeuralNetwork::init() {
         iniparser_getstring(ini, (layers_name[i] + ":stride").c_str(), unknown),
         (int *)size);
       NN_INI_RETURN_STATUS();
-      status = conv2d_layer->setSize(
-        size, Layer::PropertyType::stride);
+      status = conv2d_layer->setSize(size, Layer::PropertyType::stride);
       NN_INI_RETURN_STATUS();
 
       status = getValues(CONV2D_DIM,
@@ -312,8 +311,7 @@ int NeuralNetwork::init() {
                            ini, (layers_name[i] + ":padding").c_str(), unknown),
                          (int *)size);
       NN_INI_RETURN_STATUS();
-      status = conv2d_layer->setSize(
-        size, Layer::PropertyType::padding);
+      status = conv2d_layer->setSize(size, Layer::PropertyType::padding);
       NN_INI_RETURN_STATUS();
 
       status = conv2d_layer->setFilter(
@@ -586,7 +584,7 @@ int NeuralNetwork::init(std::shared_ptr<Optimizer> optimizer,
       status = fc_layer->setOptimizer(opt);
       NN_RETURN_STATUS();
 
-    }  break;
+    } break;
     case LAYER_BN:
       layers[i]->setInputDimension(previous_dim);
       status = layers[i]->initialize(last);
@@ -643,12 +641,12 @@ Tensor NeuralNetwork::forwarding(Tensor input, Tensor output, int &status) {
   Tensor X = input;
   Tensor Y2 = output;
 
-  X = forwarding (input, status);
+  X = forwarding(input, status);
   if (status != ML_ERROR_NONE)
     return X;
 
   X = std::static_pointer_cast<LossLayer>(layers[layers.size() - 1])
-      ->forwarding(X, Y2, status);
+        ->forwarding(X, Y2, status);
   return X;
 }
 
@@ -674,7 +672,7 @@ int NeuralNetwork::backwarding(Tensor input, Tensor expected_output,
 
 float NeuralNetwork::getLoss() {
   loss = 0.0;
-  for (unsigned int i=0; i < layers.size(); i++) {
+  for (unsigned int i = 0; i < layers.size(); i++) {
     loss += layers[i]->getLoss();
   }
 
@@ -853,7 +851,7 @@ int NeuralNetwork::train_run() {
           backwarding(nntrainer::Tensor(in), nntrainer::Tensor(label), iter++);
         if (status != ML_ERROR_NONE) {
           data_buffer->clear(nntrainer::BUF_TRAIN);
-          ml_loge ("Error: training error in #%d/%d.", i+1, epoch);
+          ml_loge("Error: training error in #%d/%d.", i + 1, epoch);
           return status;
         }
         std::cout << "#" << i + 1 << "/" << epoch;
@@ -889,7 +887,7 @@ int NeuralNetwork::train_run() {
             nntrainer::Tensor Y2 = nntrainer::Tensor({label[i]});
             nntrainer::Tensor Y = forwarding(X, Y2, status);
             if (status != ML_ERROR_NONE) {
-              ml_loge ("Error: forwarding the network resulted in error.");
+              ml_loge("Error: forwarding the network resulted in error.");
               return status;
             }
 

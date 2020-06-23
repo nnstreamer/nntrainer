@@ -192,12 +192,11 @@ Tensor FullyConnectedLayer::backwarding(Tensor derivative, int iteration) {
 
     case COST_ENTROPY:
       throw std::runtime_error(
-          "Error: Cross Entropy not supported without softmax or sigmoid.");
+        "Error: Cross Entropy not supported without softmax or sigmoid.");
     case COST_UNKNOWN:
       /** Intended */
     default:
-      throw std::runtime_error(
-          "Error: unknown cost.");
+      throw std::runtime_error("Error: unknown cost.");
     }
   }
 

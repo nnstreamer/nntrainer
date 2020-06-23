@@ -107,16 +107,15 @@ Tensor Layer::initializeWeight(TensorDim w_dim, WeightIniType init_type,
     w.setRandNormal(0, sqrt(2.0 / (dim.height())));
     break;
   case WEIGHT_LECUN_UNIFORM:
-    w.setRandUniform(-1.0 * sqrt(1.0 / dim.height()),
-        sqrt(1.0 / dim.height()));
+    w.setRandUniform(-1.0 * sqrt(1.0 / dim.height()), sqrt(1.0 / dim.height()));
     break;
   case WEIGHT_XAVIER_UNIFORM:
     w.setRandUniform(-1.0 * sqrt(6.0 / (dim.height() + dim.width())),
-        sqrt(6.0 / (dim.height() + dim.width())));
+                     sqrt(6.0 / (dim.height() + dim.width())));
     break;
   case WEIGHT_HE_UNIFORM:
     w.setRandUniform(-1.0 * sqrt(6.0 / (dim.height())),
-        sqrt(6.0 / (dim.height())));
+                     sqrt(6.0 / (dim.height())));
     break;
   default:
     break;

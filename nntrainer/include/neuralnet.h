@@ -336,7 +336,8 @@ private:
   std::shared_ptr<DataBuffer> data_buffer;
 
   /**
-   * @brief    Continue train from the previous state of optimizer and iterations
+   * @brief    Continue train from the previous state of optimizer and
+   * iterations
    */
   bool continue_train;
 

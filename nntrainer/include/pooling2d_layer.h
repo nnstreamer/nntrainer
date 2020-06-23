@@ -119,7 +119,6 @@ public:
    */
   int setProperty(std::vector<std::string> values);
 
-
   /* TO DO : support keras type of padding */
   enum class PaddingType {
     full = 0,
@@ -143,7 +142,6 @@ private:
    * @retval Tensor outoput tensor
    */
   Tensor pooling2d(unsigned int batch, Tensor in, int &status);
-  
 };
 
 } // namespace nntrainer
