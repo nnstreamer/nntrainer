@@ -54,6 +54,8 @@ public:
   int setTensorDim(std::string input_shape);
 
   void operator=(const TensorDim &from);
+  bool operator==(const TensorDim &rhs) const;
+  bool operator!=(const TensorDim &rhs) const { return !(*this == rhs); }
 
 private:
   unsigned int dim[MAXDIM];

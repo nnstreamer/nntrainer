@@ -91,6 +91,22 @@ Tensor::Tensor(int batch, int channel, int height, int width) {
   setZero();
 }
 
+bool Tensor::operator== (const Tensor &rhs) const {
+  if (this->dim != rhs.dim)
+    return false;
+
+  if (data.size() != rhs.data.size())
+    return false;
+
+  for (size_t i = 0; i < data.size(); ++i) {
+    if (std::isnan(data[i]) || std::isnan(rhs.data[i]) ||
+        std::fabs(data[i] - rhs.data[i]) > epsilon)
+      return false;
+  }
+
+  return true;
+}
+
 float Tensor::getValue(unsigned int batch, unsigned int c, unsigned int h,
                        unsigned int w) const {
   return this->data[batch * dim.channel() * dim.height() * dim.width() +

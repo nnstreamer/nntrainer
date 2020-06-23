@@ -252,24 +252,6 @@ nntrainer::Tensor constant(float value, unsigned int batch, unsigned channel,
                            unsigned height, unsigned width) {
   nntrainer::Tensor t(batch, channel, height, width);
   t.setValue(value);
-  
+
   return t;
-}
-
-
-void test_tensor_eq(nntrainer::Tensor const &A, nntrainer::Tensor const &B) {
-  EXPECT_EQ(A.getBatch(), B.getBatch());
-  EXPECT_EQ(A.getChannel(), B.getChannel());
-  EXPECT_EQ(A.getHeight(), B.getHeight());
-  EXPECT_EQ(A.getWidth(), B.getWidth());
-
-  int len = A.getDim().getDataLen();
-  const float *aData = A.getData();
-  ASSERT_NE(aData, (float *)NULL);
-  const float *bData = B.getData();
-  ASSERT_NE(bData, (float *)NULL);
-
-  for (int i = 0; i < len; ++i) {
-    EXPECT_FLOAT_EQ(aData[i], bData[i]);
-  }
 }
