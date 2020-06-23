@@ -213,14 +213,6 @@ const std::string config_str2 = "[Network]"
     }                                                        \
   } while (0)
 
-
-/**
- * @brief test tensor is equal
- * @param[in] Tensor A, tensor to be compared
- * @param[in] Tensor B, tensor to be compared
- */
-void test_tensor_eq(nntrainer::Tensor const &A, nntrainer::Tensor const &B);
-
 /**
  * @brief return a tensor filled with contant value with dimension
  */

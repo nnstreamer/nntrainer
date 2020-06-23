@@ -63,7 +63,17 @@ void TensorDim::operator=(const TensorDim &from) {
   }
   len = from.len;
   feature_len = from.feature_len;
-};
+}
+
+bool TensorDim::operator==(const TensorDim &rhs) const {
+  for (int i = 0; i < MAXDIM; ++i) {
+    if (this->dim[i] != rhs.dim[i]) {
+      return false;
+    }
+  }
+
+  return true;
+}
 
 std::ostream &operator<<(std::ostream &out, TensorDim const &d) {
   out << "Shape : " << d.batch() << ":" << d.channel() << ":" << d.height()

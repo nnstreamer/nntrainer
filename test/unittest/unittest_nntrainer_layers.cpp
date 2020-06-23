@@ -994,7 +994,7 @@ TEST(nntrainer_ActivationLayer, forward_backward_01_p) {
   int channel = 1;
   int height = 1;
   int width = 10;
-  
+
   nntrainer::ActivationLayer layer;
   layer.setActivation(nntrainer::ACT_RELU);
 
@@ -1004,12 +1004,12 @@ TEST(nntrainer_ActivationLayer, forward_backward_01_p) {
   GEN_TEST_INPUT(expected, nntrainer::relu((l - 4) * 0.1 * (i + 1)));
   nntrainer::Tensor result = layer.forwarding(input, status);
   EXPECT_EQ(status, ML_ERROR_NONE);
-  test_tensor_eq(result, expected);
+  EXPECT_TRUE(result == expected);
 
   expected.copy(input);
   result = layer.backwarding(constant(1.0, 3, 1, 1, 10), 1);
   GEN_TEST_INPUT(expected, nntrainer::reluPrime(nntrainer::relu((l - 4) * 0.1 * (i + 1))));;
-  test_tensor_eq(result, expected);
+  EXPECT_TRUE(result == expected);
 }
 
 /**

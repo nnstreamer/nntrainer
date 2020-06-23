@@ -102,6 +102,18 @@ public:
   Tensor(std::vector<std::vector<std::vector<std::vector<float>>>> const &d);
 
   /**
+   * @brief     Comparison operator overload
+   * @param[in] rhs Tensor to be compared with
+   */
+  bool operator== (const Tensor &rhs) const;
+
+  /**
+   * @brief     Comparison operator overload
+   * @param[in] rhs Tensor to be compared with
+   */
+  bool operator!= (const Tensor &rhs) const { return !(*this == rhs); }
+
+  /**
    * @brief     return value at specific location
    * @param[in] batch batch location
    * @param[in] c channel location
@@ -474,6 +486,7 @@ private:
   static constexpr float min_limits = std::numeric_limits<float>::min();
   static constexpr float max_limits = std::numeric_limits<float>::max();
   template <typename T> void setDist(T dist);
+  static constexpr float epsilon = 1e-5;
 };
 
 /**

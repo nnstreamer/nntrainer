@@ -76,49 +76,49 @@ TEST(nntrainer_LazyTensor, LazyTensor_01_p) {
 
 // Simple chain and run
 TEST_F(nntrainer_LazyTensorOpsTest, LazyTensorOps_01_p) {
-  test_tensor_eq(target.chain().run(), original);
+  EXPECT_TRUE(target.chain().run() == original);
 }
 
 // Simple chain and add_i(float)
 TEST_F(nntrainer_LazyTensorOpsTest, LazyTensorOps_02_p) {
   expected = original.add(2.1);
-  test_tensor_eq(target.chain().add_i(2.1).run(), expected);
+  EXPECT_TRUE(target.chain().add_i(2.1).run() == expected);
 }
 
 // chain and add_i(float) add_i(float)
 TEST_F(nntrainer_LazyTensorOpsTest, LazyTensorOps_03_p) {
   expected = original.add(4.2);
-  test_tensor_eq(target.chain().add_i(2.1).add_i(2.1).run(), expected);
+  EXPECT_TRUE(target.chain().add_i(2.1).add_i(2.1).run() == expected);
 }
 
 // chain and add_i(float) add_i(float)
 TEST_F(nntrainer_LazyTensorOpsTest, LazyTensorOps_04_p) {
   expected = original.add(4.2);
-  test_tensor_eq(target.chain().add_i(2.1).add_i(2.1).run(), expected);
+  EXPECT_TRUE(target.chain().add_i(2.1).add_i(2.1).run() == expected);
 }
 
 // chain and add_i(float) add_i(Tensor)
 TEST_F(nntrainer_LazyTensorOpsTest, LazyTensorOps_05_p) {
   expected = original.add(6.1);
-  test_tensor_eq(target.chain().add_i(2.1).add_i(constant_(2.0), 2).run(), expected);
+  EXPECT_TRUE(target.chain().add_i(2.1).add_i(constant_(2.0), 2).run() == expected);
 }
 
 // chain and add_i(float) subtract(float)
 TEST_F(nntrainer_LazyTensorOpsTest, LazyTensorOps_06_p) {
-  test_tensor_eq(target.chain().add_i(2.1).subtract_i(2.1).run(), original);
+  EXPECT_TRUE(target.chain().add_i(2.1).subtract_i(2.1).run() == original);
 }
 
 // other basic operations (positive)...
 TEST_F(nntrainer_LazyTensorOpsTest, LazyTensorOps_07_p) {
   target = constant_(1.0);
   expected = constant_(2.0);
-  test_tensor_eq(target.chain().multiply_i(2.0).run(), expected);
-  test_tensor_eq(target.chain().multiply_i(constant_(2.0)).run(), expected);
+  EXPECT_TRUE(target.chain().multiply_i(2.0).run() == expected);
+  EXPECT_TRUE(target.chain().multiply_i(constant_(2.0)).run() == expected);
 
   target = constant_(1.0);
   expected = constant_(0.5);
-  test_tensor_eq(target.chain().divide_i(2.0).run(), expected);
-  test_tensor_eq(target.chain().divide_i(constant_(2.0)).run(), expected);
+  EXPECT_TRUE(target.chain().divide_i(2.0).run() == expected);
+  EXPECT_TRUE(target.chain().divide_i(constant_(2.0)).run() == expected);
 }
 
 // other basic operations (negative)...
@@ -140,32 +140,32 @@ TEST_F(nntrainer_LazyTensorOpsTest, LazyTensorOps_07_n) {
 TEST_F(nntrainer_LazyTensorOpsTest, LazyTensorOps_08_p) {
   target = constant(1.0, 4, 4, 4, 4);
   expected = constant(64.0, 4, 1, 1, 1);
-  test_tensor_eq(target.chain().sum_by_batch().run(), expected);
+  EXPECT_TRUE(target.chain().sum_by_batch().run() == expected);
 
   expected = constant(4.0, 1, 4, 4, 4);
-  test_tensor_eq(target.chain().sum(0).run(), expected);
+  EXPECT_TRUE(target.chain().sum(0).run() == expected);
 
   expected = constant(4.0, 4, 1, 4, 4);
-  test_tensor_eq(target.chain().sum(1).run(), expected);
+  EXPECT_TRUE(target.chain().sum(1).run() == expected);
 
   expected = constant(4.0, 4, 4, 1, 4);
-  test_tensor_eq(target.chain().sum(2).run(), expected);
+  EXPECT_TRUE(target.chain().sum(2).run() == expected);
 
   expected = constant(4.0, 4, 4, 4, 1);
-  test_tensor_eq(target.chain().sum(3).run(), expected);
+  EXPECT_TRUE(target.chain().sum(3).run() == expected);
 }
 
 TEST_F(nntrainer_LazyTensorOpsTest, ApplyIf_01_p) {
 
-  test_tensor_eq(target.chain().applyIf(true, _LIFT(add_i), constant_(4.0), 0.5).run(),
+  EXPECT_TRUE(target.chain().applyIf(true, _LIFT(add_i), constant_(4.0), 0.5).run() ==
           original.add(2.0));
 
-  test_tensor_eq(target.chain().applyIf(true, _LIFT(add_i), 2.0f).run(),
+  EXPECT_TRUE(target.chain().applyIf(true, _LIFT(add_i), 2.0f).run() ==
           original.add(2.0));
 
-  test_tensor_eq(target.chain().applyIf(true, _LIFT(add_i), 2.0).run(),
+  EXPECT_TRUE(target.chain().applyIf(true, _LIFT(add_i), 2.0).run() ==
           original.add(2.0));
-          
+
 }
 
 TEST_F(nntrainer_LazyTensorOpsTest, ApplyIf_01_n) {
