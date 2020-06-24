@@ -78,8 +78,7 @@ int Optimizer::initialize(TensorDim d, bool set_tensor) {
 }
 
 void Optimizer::calculate(const Tensor &djdw, const Tensor &djdb,
-                          Tensor &weight, Tensor &bias, int iteration,
-                          bool init_zero) {
+    Tensor &weight, Tensor &bias, int iteration) {
   Tensor djdwAvg, djdbAvg;
   float ll = popt.learning_rate;
   if (popt.decay_steps != -1) {
@@ -92,6 +91,7 @@ void Optimizer::calculate(const Tensor &djdw, const Tensor &djdb,
   switch (type) {
   case OptType::sgd:
     weight.add_i(djdwAvg, -ll);
+    bias.add_i(djdbAvg, -ll);
     break;
   case OptType::adam: {
     std::function<float(float)> sqrtEps = [&](float f) {
@@ -123,10 +123,6 @@ void Optimizer::calculate(const Tensor &djdw, const Tensor &djdb,
   case OptType::unknown:
   default:
     break;
-  }
-
-  if (init_zero) {
-    bias.add_i(djdbAvg, -ll);
   }
 }
 
