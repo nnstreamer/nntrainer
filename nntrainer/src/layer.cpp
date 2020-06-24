@@ -114,4 +114,12 @@ int Layer::setCost(CostType c) {
   return status;
 }
 
+std::shared_ptr<std::vector<Tensor>> Layer::getGradients() {
+  std::vector<Tensor> grad;
+  for (auto iter = gradients.begin(); iter != gradients.end(); ++iter)
+    grad.push_back(*iter);
+
+  return std::make_shared<std::vector<Tensor>>(std::move(grad));
+}
+
 } /* namespace nntrainer */
