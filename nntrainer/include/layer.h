@@ -290,6 +290,13 @@ public:
    */
   int setCost(CostType c);
 
+
+  /**
+   * @brief     get gradients
+   * @retval    shared ptr of vector of all tensors
+   */
+  std::shared_ptr<std::vector<Tensor>> getGradients();
+
   /**
    * @brief     Property Enumeration
    *            0. input shape : string
@@ -342,7 +349,6 @@ protected:
    * @brief     Input Tensor
    */
   Tensor input;
-
 
   /**
    * @brief     Hidden Layer Tensor which store the
@@ -402,6 +408,11 @@ protected:
   WeightDecayParam weight_decay;
 
   WeightIniType weight_ini_type;
+
+  /**
+   * @brief     Gradient for the weights in this layer
+   */
+  std::vector<std::reference_wrapper<Tensor>> gradients;
 };
 } // namespace nntrainer
 
