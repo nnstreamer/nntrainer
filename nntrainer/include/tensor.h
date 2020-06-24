@@ -331,8 +331,6 @@ public:
    */
   Tensor apply(std::function<Tensor(Tensor)> f) const;
 
-  Tensor apply_i(std::function<int(const Tensor &)> f) const;
-
   /**
    * @brief     Print element
    * @param[in] out out stream
@@ -369,7 +367,7 @@ public:
    * @retval    size_t Size in bytes
    */
   size_t getSize() const {
-    return dim.getDataLen() * sizeof(decltype(data)::value_type);
+    return dim.getDataLen() * sizeof(float);
   }
 
   /**
@@ -462,9 +460,9 @@ public:
    * @brief     return Data pointer of Tensor
    * @retval    float pointer
    */
-  float *getData() { return data.data(); }
+  float *getData() { return _data->data(); }
 
-  const float *getData() const { return data.data(); }
+  const float *getData() const { return _data->data(); }
 
   /**
    * @brief     i data index
@@ -495,7 +493,7 @@ public:
 
 private:
   /**< handle the data as a std::vector type */
-  std::vector<float> data;
+  std::shared_ptr<std::vector<float>> _data;
   int _strides[MAXDIM];
   bool _is_contiguous;
   TensorDim dim;

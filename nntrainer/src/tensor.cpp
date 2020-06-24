@@ -63,7 +63,7 @@ static auto rng = [] {
 
 Tensor::Tensor(const TensorDim d) {
   dim = d;
-  this->data = std::vector<float>(dim.getDataLen());
+  this->_data = std::make_shared<std::vector<float>>(dim.getDataLen());
   _is_contiguous = true;
   setZero();
 }
@@ -71,7 +71,7 @@ Tensor::Tensor(const TensorDim d) {
 Tensor::Tensor(int height, int width) {
   dim.height(height);
   dim.width(width);
-  this->data = std::vector<float>(dim.getDataLen());
+  this->_data = std::make_shared<std::vector<float>>(dim.getDataLen());
   _is_contiguous = true;
   setZero();
 }
@@ -80,7 +80,7 @@ Tensor::Tensor(int channel, int height, int width) {
   dim.height(height);
   dim.width(width);
   dim.batch(channel);
-  this->data = std::vector<float>(dim.getDataLen());
+  this->_data = std::make_shared<std::vector<float>>(dim.getDataLen());
   _is_contiguous = true;
   setZero();
 }
@@ -90,21 +90,21 @@ Tensor::Tensor(int batch, int channel, int height, int width) {
   dim.width(width);
   dim.batch(batch);
   dim.channel(channel);
-  this->data = std::vector<float>(dim.getDataLen());
+  this->_data = std::make_shared<std::vector<float>>(dim.getDataLen());
   _is_contiguous = true;
   setZero();
 }
 
-bool Tensor::operator== (const Tensor &rhs) const {
+bool Tensor::operator==(const Tensor &rhs) const {
   if (this->dim != rhs.dim)
     return false;
 
-  if (data.size() != rhs.data.size())
+  if (_data->size() != rhs._data->size())
     return false;
 
-  for (size_t i = 0; i < data.size(); ++i) {
-    if (std::isnan(data[i]) || std::isnan(rhs.data[i]) ||
-        std::fabs(data[i] - rhs.data[i]) > epsilon)
+  for (size_t i = 0; i < _data->size(); ++i) {
+    if (std::isnan(_data->at(i)) || std::isnan(rhs._data->at(i)) ||
+        std::fabs(_data->at(i) - rhs._data->at(i)) > epsilon)
       return false;
   }
 
@@ -113,23 +113,23 @@ bool Tensor::operator== (const Tensor &rhs) const {
 
 float Tensor::getValue(unsigned int batch, unsigned int c, unsigned int h,
                        unsigned int w) const {
-  return this->data[batch * dim.channel() * dim.height() * dim.width() +
-                    c * dim.height() * dim.width() + h * dim.width() + w];
+  return _data->at(batch * dim.channel() * dim.height() * dim.width() +
+                   c * dim.height() * dim.width() + h * dim.width() + w);
 }
 
 void Tensor::setValue(unsigned int batch, unsigned int c, unsigned int h,
                       unsigned int w, float value) {
-  if(!_is_contiguous) {
+  if (!_is_contiguous) {
     throw std::runtime_error("cannot set value of non-contiguous tensor");
   }
 
-  this->data[batch * dim.channel() * dim.height() * dim.width() +
-             c * dim.height() * dim.width() + h * dim.width() + w] = value;
+  _data->at(batch * dim.channel() * dim.height() * dim.width() +
+            c * dim.height() * dim.width() + h * dim.width() + w) = value;
 }
 
 template <typename T> void Tensor::setDist(T dist) {
   for (unsigned int i = 0; i < dim.getDataLen(); ++i) {
-    data[i] = dist(rng);
+    _data->at(i) = dist(rng);
   }
 }
 
@@ -146,7 +146,7 @@ void Tensor::setRandUniform(float min, float max) {
 Tensor::Tensor(std::vector<std::vector<float>> const &d) {
   dim.height(d.size());
   dim.width(d[0].size());
-  this->data = std::vector<float>(dim.getDataLen());
+  _data = std::make_shared<std::vector<float>>(dim.getDataLen());
   _is_contiguous = true;
 
   for (unsigned int j = 0; j < dim.height(); ++j)
@@ -158,7 +158,7 @@ Tensor::Tensor(std::vector<std::vector<std::vector<float>>> const &d) {
   dim.channel(d.size());
   dim.height(d[0].size());
   dim.width(d[0][0].size());
-  this->data = std::vector<float>(dim.getDataLen());
+  _data = std::make_shared<std::vector<float>>(dim.getDataLen());
   _is_contiguous = true;
 
   for (unsigned int j = 0; j < dim.channel(); ++j)
@@ -174,7 +174,7 @@ Tensor::Tensor(
   dim.channel(d[0].size());
   dim.height(d[0][0].size());
   dim.width(d[0][0][0].size());
-  this->data = std::vector<float>(dim.getDataLen());
+  _data = std::make_shared<std::vector<float>>(dim.getDataLen());
   _is_contiguous = true;
 
   for (unsigned int i = 0; i < dim.batch(); ++i)
@@ -186,10 +186,10 @@ Tensor::Tensor(
 
 int Tensor::multiply_i(float const &value) {
 #ifdef USE_BLAS
-  cblas_sscal(dim.getDataLen(), value, this->data.data(), 1);
+  cblas_sscal(dim.getDataLen(), value, _data->data(), 1);
 #else
   for (unsigned int k = 0; k < dim.getDataLen(); ++k) {
-    this->data[k] *= value;
+    _data->at(k) *= value;
   }
 #endif
   return ML_ERROR_NONE;
@@ -226,13 +226,11 @@ Tensor Tensor::divide(float const &value) {
 int Tensor::add_i(float const &value) {
 #ifdef USE_BLAS
   Tensor tmp(dim);
-  for (unsigned int i = 0; i < tmp.dim.getDataLen(); ++i)
-    tmp.data[i] = 1.0;
-  cblas_saxpy(dim.getDataLen(), value, tmp.data.data(), 1, this->data.data(),
-              1);
+  tmp.setValue(1.0);
+  cblas_saxpy(dim.getDataLen(), value, tmp.getData(), 1, _data->data(), 1);
 #else
   for (unsigned int k = 0; k < dim.getDataLen(); ++k) {
-    this->data[k] = this->data[k] + value;
+    _data->at(k) += value;
   }
 #endif
 
@@ -263,12 +261,10 @@ int Tensor::add_i(Tensor const &m, float const alpha) {
   unsigned int size = dim.width() * dim.height() * dim.channel();
   if (m.dim.batch() == 1) {
     for (unsigned int k = 0; k < dim.batch(); ++k) {
-      cblas_saxpy(size, alpha, m.data.data(), 1, &(this->data.data()[k * size]),
-                  1);
+      cblas_saxpy(size, alpha, m.getData(), 1, &(_data->data()[k * size]), 1);
     }
   } else {
-    cblas_saxpy(dim.getDataLen(), alpha, m.data.data(), 1, this->data.data(),
-                1);
+    cblas_saxpy(dim.getDataLen(), alpha, m.getData(), 1, _data->data(), 1);
   }
 #else
   unsigned int i, j, k;
@@ -276,12 +272,12 @@ int Tensor::add_i(Tensor const &m, float const alpha) {
     for (k = 0; k < dim.batch(); ++k) {
       for (i = 0; i < m.dim.getFeatureLen(); ++i) {
         j = k * m.dim.getFeatureLen();
-        this->data[j + i] += alpha * m.data[i];
+        this->_data->at(j + i) += alpha * m.getData()[i];
       }
     }
   } else {
     for (k = 0; k < dim.getDataLen(); ++k) {
-      this->data[k] += alpha * m.data[k];
+      this->_data->at(k) += alpha * m.getData()[k];
     }
   }
 #endif
@@ -318,12 +314,10 @@ int Tensor::subtract_i(Tensor const &m) {
 
   if (m.dim.batch() == 1) {
     for (unsigned int k = 0; k < dim.batch(); ++k) {
-      cblas_saxpy(size, alpha, m.data.data(), 1, &(this->data.data()[k * size]),
-                  1);
+      cblas_saxpy(size, alpha, m.getData(), 1, &(_data->data()[k * size]), 1);
     }
   } else {
-    cblas_saxpy(dim.getDataLen(), alpha, m.data.data(), 1, this->data.data(),
-                1);
+    cblas_saxpy(dim.getDataLen(), alpha, m.getData(), 1, _data->data(), 1);
   }
 #else
   unsigned int i, j, k, len, dlen;
@@ -332,13 +326,13 @@ int Tensor::subtract_i(Tensor const &m) {
     for (k = 0; k < dim.batch(); ++k) {
       for (i = 0; i < len; ++i) {
         j = k * len;
-        this->data[j + i] = this->data[j + i] - m.data[i];
+        _data->at(j + i) -= m.getData()[i];
       }
     }
   } else {
     dlen = m.dim.getDataLen();
     for (k = 0; k < dlen; ++k) {
-      this->data[k] = data[k] - m.data[k];
+      _data->at(k) -= m.getData()[k];
     }
   }
 #endif
@@ -380,28 +374,30 @@ int Tensor::multiply_i(Tensor const &m) {
 
   int end = dim.getDataLen() / 4;
   int e = dim.getFeatureLen() / 4;
+
+  const float *mdata = m.getData();
   int i;
   if (m.dim.batch() == 1) {
     for (unsigned int k = 0; k < dim.batch(); ++k) {
       int b = k * dim.getFeatureLen();
       for (i = 0; i < e * 4; i += 4) {
-        this->data[b + i + 0] *= m.data[i + 0];
-        this->data[b + i + 1] *= m.data[i + 1];
-        this->data[b + i + 2] *= m.data[i + 2];
-        this->data[b + i + 3] *= m.data[i + 3];
+        _data->at(b + i + 0) *= mdata[i + 0];
+        _data->at(b + i + 1) *= mdata[i + 1];
+        _data->at(b + i + 2) *= mdata[i + 2];
+        _data->at(b + i + 3) *= mdata[i + 3];
       }
       for (unsigned int j = i; j < dim.getFeatureLen(); j++)
-        this->data[b + j] = this->data[b + j] * m.data[j];
+        _data->at(b + j) = _data->at(b + j) * mdata[j];
     }
   } else {
     for (i = 0; i < end * 4; i += 4) {
-      this->data[i + 0] *= m.data[i + 0];
-      this->data[i + 1] *= m.data[i + 1];
-      this->data[i + 2] *= m.data[i + 2];
-      this->data[i + 3] *= m.data[i + 3];
+      _data->at(i + 0) *= mdata[i + 0];
+      _data->at(i + 1) *= mdata[i + 1];
+      _data->at(i + 2) *= mdata[i + 2];
+      _data->at(i + 3) *= mdata[i + 3];
     }
     for (unsigned int j = i; j < dim.getDataLen(); ++j)
-      this->data[j] = this->data[j] * m.data[j];
+      _data->at(j) *= mdata[j];
   }
 
   return ML_ERROR_NONE;
@@ -430,28 +426,30 @@ int Tensor::divide_i(Tensor const &m) {
   unsigned int e = dim.getFeatureLen() / 4;
   unsigned int i, j, k;
 
+  const float *mdata = m.getData();
+
   // todo: effectively check if m.data[index] is 0
   if (m.dim.batch() == 1) {
     for (k = 0; k < dim.batch(); ++k) {
       unsigned int b = k * dim.getFeatureLen();
       for (i = 0; i < e * 4; i += 4) {
-        this->data[b + i + 0] /= m.data[i + 0];
-        this->data[b + i + 1] /= m.data[i + 1];
-        this->data[b + i + 2] /= m.data[i + 2];
-        this->data[b + i + 3] /= m.data[i + 3];
+        _data->at(b + i + 0) /= mdata[i + 0];
+        _data->at(b + i + 1) /= mdata[i + 1];
+        _data->at(b + i + 2) /= mdata[i + 2];
+        _data->at(b + i + 3) /= mdata[i + 3];
       }
       for (unsigned int j = i; j < dim.getFeatureLen(); ++j)
-        this->data[b + j] /= m.data[j];
+        _data->at(b + j) /= mdata[j];
     }
   } else {
     for (i = 0; i < end * 4; i += 4) {
-      this->data[i + 0] /= m.data[i + 0];
-      this->data[i + 1] /= m.data[i + 1];
-      this->data[i + 2] /= m.data[i + 2];
-      this->data[i + 3] /= m.data[i + 3];
+      _data->at(i + 0) /= mdata[i + 0];
+      _data->at(i + 1) /= mdata[i + 1];
+      _data->at(i + 2) /= mdata[i + 2];
+      _data->at(i + 3) /= mdata[i + 3];
     }
     for (j = i; j < dim.getDataLen(); ++j)
-      this->data[j] /= m.data[j];
+      _data->at(j) /= mdata[j];
   }
 
   return ML_ERROR_NONE;
@@ -478,17 +476,18 @@ Tensor Tensor::divide(Tensor const &m) const {
 Tensor Tensor::sum_by_batch() const {
   unsigned int k;
   Tensor ret(dim.batch(), 1, 1, 1);
+  float *ret_data = ret.getData();
 #ifdef USE_BLAS
   for (k = 0; k < dim.batch(); ++k)
-    ret.data[k] = cblas_sasum(dim.getFeatureLen(),
-                              &(data.data()[k * dim.getFeatureLen()]), 1);
+    ret_data[k] = cblas_sasum(dim.getFeatureLen(),
+                              &(_data->data()[k * dim.getFeatureLen()]), 1);
 #else
   unsigned int i;
   for (k = 0; k < dim.batch(); ++k) {
     unsigned int id = k * dim.getFeatureLen();
-    ret.data[k] = 0.0;
+    ret_data[k] = 0.0;
     for (i = 0; i < dim.getFeatureLen(); ++i) {
-      ret.data[k] += data[id + i];
+      ret_data[k] += _data->at(id + i);
     }
   }
 #endif
@@ -501,10 +500,14 @@ Tensor Tensor::sum_by_batch() const {
  */
 Tensor Tensor::sum(int axis) const {
   Tensor ret;
+  float *ret_data;
+
+  float *data = _data->data();
+
   switch (axis) {
   case 0: {
-
     ret = Tensor(1, dim.channel(), dim.height(), dim.width());
+    ret_data = ret.getData();
     for (unsigned int l = 0; l < dim.channel(); ++l) {
       unsigned int L = l * dim.width() * dim.height();
       for (unsigned int i = 0; i < dim.height(); ++i) {
@@ -512,7 +515,7 @@ Tensor Tensor::sum(int axis) const {
         for (unsigned int j = 0; j < dim.width(); ++j) {
           for (unsigned int k = 0; k < dim.batch(); ++k) {
             unsigned int K = k * dim.getFeatureLen();
-            ret.data[L + I + j] += data[K + L + I + j];
+            ret_data[L + I + j] += data[K + L + I + j];
           }
         }
       }
@@ -520,6 +523,7 @@ Tensor Tensor::sum(int axis) const {
   } break;
   case 1: {
     ret = Tensor(dim.batch(), 1, dim.height(), dim.width());
+    ret_data = ret.getData();
     for (unsigned int l = 0; l < dim.batch(); ++l) {
       unsigned int L = dim.width() * dim.height() * l;
       unsigned int LL = l * dim.getFeatureLen();
@@ -528,7 +532,7 @@ Tensor Tensor::sum(int axis) const {
         for (unsigned int i = 0; i < dim.width(); ++i) {
           for (unsigned int k = 0; k < dim.channel(); ++k) {
             unsigned int K = k * dim.width() * dim.height();
-            ret.data[(L + J + i)] += data[LL + K + J + i];
+            ret_data[(L + J + i)] += data[LL + K + J + i];
           }
         }
       }
@@ -536,6 +540,7 @@ Tensor Tensor::sum(int axis) const {
   } break;
   case 2: {
     ret = Tensor(dim.batch(), dim.channel(), 1, dim.width());
+    ret_data = ret.getData();
     for (unsigned int k = 0; k < dim.batch(); ++k) {
       unsigned int K = k * dim.channel() * dim.width();
       unsigned int KK = k * dim.getFeatureLen();
@@ -545,7 +550,7 @@ Tensor Tensor::sum(int axis) const {
         for (unsigned int j = 0; j < dim.width(); ++j) {
           for (unsigned int i = 0; i < dim.height(); ++i) {
             unsigned int I = i * dim.width();
-            ret.data[K + L + j] += data[KK + LL + j + I];
+            ret_data[K + L + j] += data[KK + LL + j + I];
           }
         }
       }
@@ -553,6 +558,7 @@ Tensor Tensor::sum(int axis) const {
   } break;
   case 3: {
     ret = Tensor(dim.batch(), dim.channel(), dim.height(), 1);
+    ret_data = ret.getData();
     for (unsigned int k = 0; k < dim.batch(); ++k) {
       unsigned int K = k * dim.channel() * dim.height();
       unsigned int KK = k * dim.getFeatureLen();
@@ -562,7 +568,7 @@ Tensor Tensor::sum(int axis) const {
         for (unsigned int i = 0; i < dim.height(); ++i) {
           unsigned int II = i * dim.width();
           for (unsigned int j = 0; j < dim.width(); ++j) {
-            ret.data[K + L + i] += data[KK + LL + II + j];
+            ret_data[K + L + i] += data[KK + LL + II + j];
           }
         }
       }
@@ -600,9 +606,9 @@ Tensor Tensor::dot(Tensor const &m) const {
       unsigned int i = k * dim.width() * dim.height();
       unsigned int ii = k * dim.height() * m.dim.width();
       cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, dim.height(),
-                  m.dim.width(), dim.width(), alpha_dgemm, &(data.data()[i]),
-                  dim.width(), m.data.data(), m.dim.width(), beta_dgemm,
-                  &(result.data.data()[ii]), m.dim.width());
+                  m.dim.width(), dim.width(), alpha_dgemm, &(_data->data()[i]),
+                  dim.width(), m.getData(), m.dim.width(), beta_dgemm,
+                  &(result.getData()[ii]), m.dim.width());
     }
   } else {
     for (unsigned int k = 0; k < dim.batch(); k++) {
@@ -611,9 +617,9 @@ Tensor Tensor::dot(Tensor const &m) const {
       unsigned int ii = k * dim.height() * m.dim.width();
 
       cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, dim.height(),
-                  m.dim.width(), dim.width(), alpha_dgemm, &(data.data()[i]),
-                  dim.width(), &(m.data.data()[j]), m.dim.width(), beta_dgemm,
-                  &(result.data.data()[ii]), m.dim.width());
+                  m.dim.width(), dim.width(), alpha_dgemm, &(_data->data()[i]),
+                  dim.width(), &(m.getData()[j]), m.dim.width(), beta_dgemm,
+                  &(result.getData()[ii]), m.dim.width());
     }
   }
 #elif USE_CUBLAS
@@ -634,8 +640,8 @@ Tensor Tensor::dot(Tensor const &m) const {
 
       cudaMalloc((void **)&d_A, size_A);
       cudaMalloc((void **)&d_B, size_B);
-      cudaMemcpy(d_A, &data.data()[i], size_A, cudaMemcpyHostToDevice);
-      cudaMemcpy(d_B, m.data.data(), size_B, cudaMemcpyHostToDevice);
+      cudaMemcpy(d_A, &_data->data()[i], size_A, cudaMemcpyHostToDevice);
+      cudaMemcpy(d_B, m.getData(), size_B, cudaMemcpyHostToDevice);
       cudaMalloc((void **)&d_C, size_C);
 
       {
@@ -649,7 +655,7 @@ Tensor Tensor::dot(Tensor const &m) const {
                      dim.height(), dim.width(), &alpha, d_B, m.dim.width(), d_A,
                      dim.width(), &beta, d_C, m.dim.width()));
 
-        (cudaMemcpy(&result.data.data()[ii], d_C, size_C,
+        (cudaMemcpy(&result.getData()[ii], d_C, size_C,
                     cudaMemcpyDeviceToHost));
         (cublasDestroy(handle));
       }
@@ -662,8 +668,8 @@ Tensor Tensor::dot(Tensor const &m) const {
 
       (cudaMalloc((void **)&d_A, size_A));
       (cudaMalloc((void **)&d_B, size_B));
-      (cudaMemcpy(d_A, &data.data()[i], size_A, cudaMemcpyHostToDevice));
-      (cudaMemcpy(d_B, &m.data.data()[j], size_B, cudaMemcpyHostToDevice));
+      (cudaMemcpy(d_A, &_data->data()[i], size_A, cudaMemcpyHostToDevice));
+      (cudaMemcpy(d_B, &m.getData()[j], size_B, cudaMemcpyHostToDevice));
       (cudaMalloc((void **)&d_C, size_C));
 
       {
@@ -677,7 +683,7 @@ Tensor Tensor::dot(Tensor const &m) const {
                      dim.height(), dim.width(), &alpha, d_B, m.dim.width(), d_A,
                      dim.width(), &beta, d_C, m.dim.width()));
 
-        (cudaMemcpy(&result.data.data()[ii], d_C, size_C,
+        (cudaMemcpy(&result.getData()[ii], d_C, size_C,
                     cudaMemcpyDeviceToHost));
         (cublasDestroy(handle));
       }
@@ -691,11 +697,12 @@ Tensor Tensor::dot(Tensor const &m) const {
       for (i = 0; i < dim.height(); ++i) {
         for (j = 0; j < m.dim.width(); ++j) {
           for (h = 0; h < dim.width(); ++h) {
-            w += data[k * dim.height() * dim.width() + i * dim.width() + h] *
-                 m.data[h * m.dim.width() + j];
+            w +=
+              _data->at(k * dim.height() * dim.width() + i * dim.width() + h) *
+              m.getData()[h * m.dim.width() + j];
           }
-          result
-            .data[k * dim.height() * m.dim.width() + i * m.dim.width() + j] = w;
+          result.getData()[k * dim.height() * m.dim.width() +
+                           i * m.dim.width() + j] = w;
           w = 0.0;
         }
       }
@@ -706,11 +713,10 @@ Tensor Tensor::dot(Tensor const &m) const {
         for (j = 0; j < m.dim.width(); j++) {
           for (h = 0; h < dim.width(); h++) {
             w +=
-              data[k * dim.height() * dim.width() + i * dim.width() + h] *
-              m.data[k * dim.width() * m.dim.width() + h * m.dim.width() + j];
+              _data->at(k * dim.height() * dim.width() + i * dim.width() + h) *
+              m._data->at(k * dim.width() * m.dim.width() + h * m.dim.width() + j);
           }
-          result
-            .data[k * dim.height() * m.dim.width() + i * m.dim.width() + j] = w;
+          result._data->at(k * dim.height() * m.dim.width() + i * m.dim.width() + j) = w;
           w = 0.0;
         }
       }
@@ -742,7 +748,7 @@ Tensor Tensor::transpose(std::string direction) const {
 
   SL = fromDim[0], SI = fromDim[1], SJ = fromDim[2], SK = fromDim[3];
 
-  inptr = data.data();
+  inptr = _data->data();
   outptr = result.getData();
 
   switch (indexI) {
@@ -777,7 +783,7 @@ Tensor Tensor::apply(std::function<float(float)> f) const {
   unsigned int i;
 
   for (i = 0; i < dim.getDataLen(); ++i)
-    result.data[i] = f(data[i]);
+    result.getData()[i] = f(_data->at(i));
 
   return result;
 }
@@ -791,8 +797,8 @@ void Tensor::print(std::ostream &out) const {
     for (l = 0; l < dim.channel(); l++) {
       for (i = 0; i < dim.height(); i++) {
         for (j = 0; j < dim.width(); j++) {
-          out << data[k * dim.getFeatureLen() + l * dim.width() * dim.height() +
-                      i * dim.width() + j]
+          out << _data->at(k * dim.getFeatureLen() +
+                           l * dim.width() * dim.height() + i * dim.width() + j)
               << " ";
         }
         out << std::endl;
@@ -813,12 +819,12 @@ float *Tensor::getAddress(unsigned int i) {
     ml_loge("Error: Index out of bounds");
     return nullptr;
   }
-  return &data[i];
+  return &_data->at(i);
 }
 
 Tensor &Tensor::copy(const Tensor &from) {
   // todo: enable copy to non-contiguous tensor
-  if(!_is_contiguous) {
+  if (!_is_contiguous) {
     throw std::runtime_error("Cannot copy non-contiguous tensor");
   }
 
@@ -827,14 +833,12 @@ Tensor &Tensor::copy(const Tensor &from) {
     dim.height(from.dim.height());
     dim.width(from.dim.width());
     dim.batch(from.dim.batch());
-    if (this->data.empty()) {
-      this->data.resize(from.data.size());
-    }
+    _data = std::make_shared<std::vector<float>>(from.dim.getDataLen());
 #ifdef USE_BLAS
-    cblas_scopy(dim.getDataLen(), from.data.data(), 1, this->data.data(), 1);
+    cblas_scopy(dim.getDataLen(), from.getData(), 1, getData(), 1);
 #else
     for (unsigned int i = 0; i < dim.getDataLen(); ++i)
-      data[i] = from.data[i];
+      _data->at(i) = from.getData()[i];
 #endif
   }
 
@@ -852,13 +856,11 @@ int Tensor::setDim(TensorDim d) {
 }
 
 void Tensor::save(std::ofstream &file) {
-  for (unsigned int i = 0; i < dim.getDataLen(); i++)
-    file.write((char *)&data[i], sizeof(float));
+  file.write((char *)_data->data(), getSize());
 }
 
 void Tensor::read(std::ifstream &file) {
-  for (unsigned int i = 0; i < dim.getDataLen(); i++)
-    file.read((char *)&data[i], sizeof(float));
+  file.read((char *)_data->data(), getSize());
 }
 
 /**
@@ -879,7 +881,9 @@ Tensor Tensor::average(int axis) const {
   return result;
 }
 
-void Tensor::setValue(float val) { std::fill(data.begin(), data.end(), val); }
+void Tensor::setValue(float val) {
+  std::fill(_data->begin(), _data->end(), val);
+}
 
 void Tensor::setZero() { setValue(0); }
 
@@ -887,8 +891,8 @@ int Tensor::argmax() {
   int index = 0;
   float maximum = min_limits;
   for (unsigned int i = 0; i < dim.getDataLen(); i++) {
-    if (this->data[i] > maximum) {
-      maximum = this->data[i];
+    if (this->_data->at(i) > maximum) {
+      maximum = this->_data->at(i);
       index = i;
     }
   }
@@ -906,7 +910,7 @@ float Tensor::l2norm() const {
   float tmp;
 #pragma omp parallel for private(tmp) reduction(+ : sum)
   for (unsigned int i = 0; i < len; i++) {
-    tmp = data[i];
+    tmp = _data->at(i);
     sum += tmp * tmp;
   }
   return sqrt(sum);
@@ -918,20 +922,11 @@ Tensor Tensor::normalization() const {
   float Min = max_limits;
   float Max = min_limits;
 
-  for (unsigned int k = 0; k < dim.batch(); ++k) {
-    for (unsigned int l = 0; l < dim.channel(); ++l) {
-      for (unsigned int i = 0; i < dim.height(); ++i) {
-        for (unsigned int j = 0; j < dim.width(); ++j) {
-          unsigned int id = k * dim.getFeatureLen() +
-                            l * dim.height() * dim.width() + i * dim.width() +
-                            j;
-          if (this->data[id] < Min)
-            Min = this->data[id];
-          if (this->data[id] > Max)
-            Max = this->data[id];
-        }
-      }
-    }
+  for (auto i : *_data) {
+    if (i < Min)
+      Min = i;
+    if (Max < i)
+      Max = i;
   }
 
   float dif = Max - Min;
@@ -959,20 +954,21 @@ Tensor Tensor::standardization() const {
         unsigned int I = L + i * dim.width();
         for (unsigned int j = 0; j < dim.width(); ++j) {
           unsigned int J = I + j;
-          mean_tmp += this->data[J];
+          mean_tmp += this->_data->at(J);
         }
       }
     }
 
     mean = mean_tmp / (this->dim.getFeatureLen());
-
+    float res;
     for (unsigned int l = 0; l < dim.channel(); ++l) {
       unsigned int L = K + l * dim.height() * dim.width();
       for (unsigned int i = 0; i < dim.height(); ++i) {
         unsigned int I = L + i * dim.width();
         for (unsigned int j = 0; j < dim.width(); ++j) {
           unsigned int J = I + j;
-          std_tmp += (this->data[J] - mean) * (this->data[J] - mean);
+          res = (this->_data->at(J) - mean);
+          std_tmp += res * res;
         }
       }
     }
@@ -984,7 +980,7 @@ Tensor Tensor::standardization() const {
         unsigned int I = L + i * dim.width();
         for (unsigned int j = 0; j < dim.width(); ++j) {
           unsigned int J = I + j;
-          result.data[J] = (this->data[J] - mean) / std_dev;
+          result._data->at(J) = (this->_data->at(J) - mean) / std_dev;
         }
       }
     }
