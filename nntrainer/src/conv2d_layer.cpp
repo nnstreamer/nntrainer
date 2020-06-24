@@ -112,10 +112,6 @@ Tensor Conv2DLayer::forwarding(Tensor in, int &status) {
   return hidden;
 };
 
-Tensor Conv2DLayer::forwarding(Tensor in, Tensor output, int &status) {
-  return forwarding(in, status);
-}
-
 Tensor Conv2DLayer::backwarding(Tensor derivative, int iteration) {
 
   // Calculate delK : [batch, channel, height, width ] * filter_size
@@ -188,17 +184,24 @@ Tensor Conv2DLayer::backwarding(Tensor derivative, int iteration) {
     }
   }
 
+  std::vector<std::reference_wrapper<Tensor>> gradients;
+  std::vector<std::reference_wrapper<Tensor>> weights;
+
   //  Update K / bias
   for (unsigned int i = 0; i < filter_size; ++i) {
-
     Tensor djdw = delK[i]
                     .chain()
                     .applyIf(this->isWeightDecayL2Norm(), _LIFT(add_i),
                              filters[i], weight_decay.lambda)
                     .run();
 
-    opt.calculate(djdw, delBias[i], filters[i], bias[i], iteration);
+    weights.push_back(filters[i]);
+    weights.push_back(bias[i]);
+
+    gradients.push_back(djdw);
+    gradients.push_back(delBias[i]);
   }
+  opt.apply_gradients(weights, gradients, iteration);
 
   return strip_pad(ret, padding);
 }

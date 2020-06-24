@@ -154,15 +154,13 @@ public:
   int initialize(TensorDim d, bool setTensor);
 
   /**
-   * @brief     calculate optimizer and Update Weight & Bais
-   * @param[in] dJdW Weight derivative
-   * @param[in] dJdB Bias derivative
-   * @param[in/out] Weight Weight Tensor
-   * @param[in/out] Bias Bias Tensor
+   * @brief     apply gradient to weights
+   * @param[in] weights vector of weights
+   * @param[in] gradients vector of corresponding gradients
    * @param[in] iteration nth epoch number
    */
-  void calculate(const Tensor &djdw, const Tensor &djdb, Tensor &weight,
-                 Tensor &bias, int iteration);
+  void apply_gradients(std::vector<std::reference_wrapper<Tensor>> &weights,
+      std::vector<std::reference_wrapper<Tensor>> &gradients, int iteration);
 
   /**
    * @brief     Property Enumeration
@@ -210,10 +208,7 @@ private:
   /**
    * @brief Internal Tesnors for adam Optimizer
    */
-  Tensor wm;
-  Tensor bm;
-  Tensor wv;
-  Tensor bv;
+  std::vector<std::pair<Tensor, Tensor>> weight_mv;
 };
 } /* namespace nntrainer */
 

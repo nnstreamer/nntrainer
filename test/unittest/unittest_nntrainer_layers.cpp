@@ -583,6 +583,9 @@ TEST(nntrainer_Conv2D, backwarding_01_p) {
   int status = ML_ERROR_NONE;
   nntrainer::Conv2DLayer layer;
   std::vector<std::string> input_str;
+  nntrainer::Optimizer op;
+  nntrainer::OptType t = nntrainer::OptType::sgd;
+  nntrainer::OptParam p;
   nntrainer::TensorDim previous_dim;
   previous_dim.setTensorDim("1:3:7:7");
 
@@ -601,7 +604,15 @@ TEST(nntrainer_Conv2D, backwarding_01_p) {
   EXPECT_EQ(status, ML_ERROR_NONE);
   layer.setInputDimension(previous_dim);
 
+  status = op.setType(t);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  p.learning_rate = 0.001;
+  status = op.setOptParam(p);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
   status = layer.initialize(true);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = layer.setOptimizer(op);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   nntrainer::Tensor in(1, 3, 7, 7);
