@@ -65,64 +65,77 @@ int Optimizer::initialize(TensorDim d, bool set_tensor) {
     return ML_ERROR_INVALID_PARAMETER;
   }
   if (type == OptType::adam && set_tensor) {
-    wm = Tensor(d.channel(), d.height(), d.width());
-    wv = Tensor(d.channel(), d.height(), d.width());
+    Tensor wm = Tensor(d.channel(), d.height(), d.width());
+    Tensor wv = Tensor(d.channel(), d.height(), d.width());
     wm.setZero();
     wv.setZero();
-    bm = Tensor(1, 1, d.width());
-    bv = Tensor(1, 1, d.width());
+    weight_mv.push_back(std::pair<Tensor, Tensor>(wm, wv));
+
+    Tensor bm = Tensor(1, 1, d.width());
+    Tensor bv = Tensor(1, 1, d.width());
     bm.setZero();
     bv.setZero();
+    weight_mv.push_back(std::pair<Tensor, Tensor>(bm, bv));
   }
   return status;
 }
 
-void Optimizer::calculate(const Tensor &djdw, const Tensor &djdb,
-    Tensor &weight, Tensor &bias, int iteration) {
-  Tensor djdwAvg, djdbAvg;
+void Optimizer::apply_gradients(
+    std::vector<std::reference_wrapper<Tensor>> &weights,
+    std::vector<std::reference_wrapper<Tensor>> &gradients, int iteration) {
+  if (weights.size() != gradients.size())
+    throw std::runtime_error("Number of gradients and weights should match.");
+
   float ll = popt.learning_rate;
   if (popt.decay_steps != -1) {
     ll = ll * pow(popt.decay_rate, (iteration / popt.decay_steps));
   }
 
-  djdwAvg = djdw.average();
-  djdbAvg = djdb.average();
-
-  switch (type) {
-  case OptType::sgd:
-    weight.add_i(djdwAvg, -ll);
-    bias.add_i(djdbAvg, -ll);
-    break;
-  case OptType::adam: {
-    std::function<float(float)> sqrtEps = [&](float f) {
-      return sqrtFloat(f) + this->popt.epsilon;
-    };
+  if (type == OptType::adam) {
     std::function<float(float)> biasCorrection = [&](float f) {
       return 1 - pow(f, iteration + 1);
     };
 
     ll *= sqrt(biasCorrection(popt.beta2)) / biasCorrection(popt.beta1);
-
-    wm.multiply_i(popt.beta1);
-    wm.add_i(djdwAvg, 1 - popt.beta1);
-
-    wv.multiply_i(popt.beta2);
-    wv.add_i(djdwAvg.multiply(djdwAvg), 1 - popt.beta2);
-
-    weight.add_i(wm.divide(wv.apply(sqrtEps)), -ll);
-
-    bm.multiply_i(popt.beta1);
-    bm.add_i(djdbAvg, 1 - popt.beta1);
-
-    bv.multiply_i(popt.beta2);
-    bv.add_i(djdbAvg.multiply(djdbAvg), 1 - popt.beta2);
-
-    bias.add_i(bm.divide(bv.apply(sqrtEps)), -ll);
-    break;
   }
-  case OptType::unknown:
-  default:
-    break;
+
+  int idx = 0;
+  std::vector<std::reference_wrapper<Tensor>>::iterator w_iter, g_iter;
+  for (w_iter = weights.begin(), g_iter = gradients.begin();
+      w_iter != weights.end(); ++w_iter, ++g_iter) {
+    Tensor x = *w_iter;
+    Tensor x_grad = *g_iter;
+
+    x_grad = x_grad.average();
+
+    switch (type) {
+    case OptType::sgd:
+      x.add_i(x_grad, -ll);
+      break;
+    case OptType::adam: {
+      std::function<float(float)> sqrtEps = [&](float f) {
+        return sqrtFloat(f) + this->popt.epsilon;
+      };
+
+      Tensor wm = weight_mv[idx].first;
+      Tensor wv = weight_mv[idx].second;
+
+      wm.multiply_i(popt.beta1);
+      wm.add_i(x_grad, 1 - popt.beta1);
+
+      wv.multiply_i(popt.beta2);
+      wv.add_i(x_grad.multiply(x_grad), 1 - popt.beta2);
+
+      x.add_i(wm.divide(wv.apply(sqrtEps)), -ll);
+      break;
+    }
+    case OptType::unknown:
+    default:
+      throw std::runtime_error("Unknown optimizer.");
+      break;
+    }
+
+    idx += 1;
   }
 }
 
@@ -180,13 +193,15 @@ void Optimizer::read(std::ifstream &file) {
   file.read((char *)&loaded_type, sizeof(OptType));
   if (type == OptType::adam and loaded_type == type) {
     if (popt.continue_train) {
-      wm.read(file);
-      bm.read(file);
-      wv.read(file);
-      bv.read(file);
+      for (auto iter = weight_mv.begin(); iter != weight_mv.end(); iter++) {
+        (*iter).first.read(file);
+        (*iter).second.read(file);
+      }
     } else {
-      size_t total_size =
-        wm.getSize() + bm.getSize() + wv.getSize() + bv.getSize();
+      size_t total_size = 0;
+      for (auto iter = weight_mv.begin(); iter != weight_mv.end(); iter++)
+        total_size += (*iter).first.getSize() + (*iter).second.getSize();
+
       file.seekg(total_size, std::ifstream::cur);
     }
   }
@@ -195,10 +210,10 @@ void Optimizer::read(std::ifstream &file) {
 void Optimizer::save(std::ofstream &file) {
   file.write((char *)&type, sizeof(OptType));
   if (type == OptType::adam) {
-    wm.save(file);
-    bm.save(file);
-    wv.save(file);
-    bv.save(file);
+    for (auto iter = weight_mv.begin(); iter != weight_mv.end(); iter++) {
+      (*iter).first.save(file);
+      (*iter).second.save(file);
+    }
   }
 }
 } // namespace nntrainer

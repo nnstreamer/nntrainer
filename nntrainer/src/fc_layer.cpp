@@ -168,7 +168,10 @@ Tensor FullyConnectedLayer::backwarding(Tensor derivative, int iteration) {
                   .applyIf(this->isWeightDecayL2Norm(), _LIFT(add_i), weight, weight_decay.lambda)
                   .run();
 
-  opt.calculate(djdw, djdb, weight, bias, iteration);
+  std::vector<std::reference_wrapper<Tensor>> gradients = {djdw, djdb};
+  std::vector<std::reference_wrapper<Tensor>> weights = {weight, bias};
+
+  opt.apply_gradients(weights, gradients, iteration);
 
   return ret;
 }
