@@ -33,18 +33,22 @@ np.random.seed(SEED)
 ##
 # @brief save data into file with filename
 # @param[in] data The data to be saved
-def save(filename, data):
+def save(filename, *data):
     if os.path.isfile(filename):
         os.remove(filename)
 
     with open(filename, 'ab') as outfile:
-        np.array(data, dtype=np.float32).tofile(outfile)
-    print(data.shape, " data is generated")
+        for item in data:
+          np.array(item, dtype=np.float32).tofile(outfile)
+          try:
+            print(item.shape, " data is generated")
+          except:
+            pass
 
 ##
 # @brief generate random tensor
-def gen_tensor(shape, dtype=None):
-  return np.random.random_sample(input_shape)
+def gen_tensor(shape, dtype=dtypes.float32):
+  return np.random.random_sample(shape)
 
 ##
 # @brief generate random data and save
@@ -198,41 +202,52 @@ def fc_tf(x, kernel, label, bias, activation, train=False, loss='mse', opt='sgd'
 # tested with tf 1.14.0
 # @param[in] x input
 # @param[in] trainable
-# @return bn output, [updated_gamma, updated_beta], grad_result (0. dx / 1. gamma / 2. beta / 3. mean / 4. variance)
+# @return input_variables, bn output, output_variables, grad_result (0. dx / 1. gamma / 2. beta / 3. mean / 4. variance)
 # for updated_gamma, updated_beta, x <- x - grad is used for easier calculation
-def bn_tf(x, trainable=False):
+def bn_tf(x, *, trainable=True, init_beta=gen_tensor, init_gamma=gen_tensor, axis=[1, 2, 3]):
     tf.compat.v1.reset_default_graph()
     tf_input = tf.compat.v1.placeholder(
         dtype=dtypes.float32, shape=x.shape, name='input')
 
     bnlayer = tf.keras.layers.BatchNormalization(
-        axis=0,
+        axis=axis,
         trainable=trainable,
+        momentum=1.0,
         gamma_initializer=gen_tensor,
         beta_initializer=gen_tensor)(tf_input)
 
-    bn_variables = tf.compat.v1.get_collection(tf.GraphKeys.GLOBAL_VARIABLES,
+    bn_variables = tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.GLOBAL_VARIABLES,
                                                scope='batch_normalization')
+
     input_variables = [tf_input] + bn_variables
 
     grad = tf.gradients(bnlayer, input_variables)
 
+    f_dict = {tf_input: x, tf.keras.backend.learning_phase(): trainable}
+
     with tf.compat.v1.Session() as sess:
+      with tf.compat.v1.variable_scope('bn'):
         sess.run(tf.compat.v1.global_variables_initializer())
-        bn_result = sess.run(bnlayer, feed_dict={tf_input: x})
-        grad_result = sess.run(grad, feed_dict={tf_input: x})
+
+        old_var = sess.run(input_variables, feed_dict=f_dict)
+        bn_result = sess.run(bnlayer, feed_dict=f_dict)
+        grad_result = sess.run(grad, feed_dict=f_dict)
+
         updated_gamma = sess.run(input_variables[1] - grad_result[1])
-        updated_beta = sess.run(input_variables[1] - grad_result[2])
+        updated_beta = sess.run(input_variables[2] - grad_result[2])
+
+        output_variables = [bn_result, updated_gamma, updated_beta]
 
     if DEBUG:
-        print(x[0], bn_result[0])
-        print("updated_gamma: %s" % updated_gamma)
-        print("updated_beta: %s" % updated_beta)
-        for item, input_variable in zip(grad_result, input_variables):
-            print(input_variable.name)
-            print(item[0])
+        print("======================================")
+        print("Input:\n %s\n Output:\n %s"  % (x[0], bn_result[0]))
+        print("dx: %s" % grad_result[0][0][0])
+        print("gradient of gamma: %s" % grad_result[1][0][0], grad_result[1].shape)
+        print("gradient of beta: %s" % grad_result[2][0][0], grad_result[2].shape)
+        print("======================================")
 
-    return bn_result, [updated_gamma, updated_beta], grad_result
+    return old_var, output_variables, grad_result
+
 
 def gen_test_case_conv(i_b, i_c, i_h, i_w, k_c, k_h, k_w, padding, stride, bias, base_name):
     x=gen_input(base_name+"conv2DLayer.in", [i_b, i_c, i_h, i_w])
@@ -265,8 +280,18 @@ def gen_test_case_fc(input_shape, kernel_shape, base_name):
     golden_fc = fc_tf(input_data, kernel, None, bias, activation=tf.nn.softmax)
     save(base_name + "goldenFCResultSoftmax.out", golden_fc[0])
 
-def get_test_case_bn(input_shape, training=False):
-    pass
+def gen_test_case_bn(input_shape, base_name, training=True):
+    input_data = gen_input(base_name + "BNLayerInput.in", input_shape)
+
+    input_variables, output_variables, grad = bn_tf(input_data)
+
+    # mu / var / gamma / beta
+    save(base_name + "BNLayerWeights.in", input_variables[3], input_variables[4], input_variables[1], input_variables[2])
+    save(base_name + "goldenBNResultForward.out", output_variables[0])
+    # todo: change 0 to initial moving avg / std in case of training
+    save(base_name + "goldenBNLayerAfterUpdate.out", 0, 0, output_variables[1], output_variables[2])
+    save(base_name + "goldenBNLayerBackwardDx.out", grad[0])
+
 
 if __name__ == "__main__":
     target = int(sys.argv[1])
@@ -304,3 +329,7 @@ if __name__ == "__main__":
         gen_test_case_fc(input_shape = [3, 1, 1, 12],
                 kernel_shape = [12, 15],
                 base_name = "test_1_")
+
+# Bn layer unit test case:
+    if target == 5:
+        gen_test_case_bn(input_shape = [3, 1, 4, 5], base_name = "test_5_")

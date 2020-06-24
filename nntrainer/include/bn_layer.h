@@ -121,10 +121,19 @@ public:
 private:
   Tensor weight;
   Tensor bias;
-  Tensor mu;
-  Tensor var;
+
+  Tensor mu;  /**< moving mu used for inferencing.
+                   momentum * mu + (1 - momenutm) * mu
+                   of current batch is used */
+  Tensor var; /**< moving var used for inferencing.
+                   momentum * var + (1 - momenutm) * var
+                   of current batch is used */
+
+  Tensor cvar; /**< training varaince saved in bn_layer::forwarding and used in
+                    bn_layer::backwarding */
   Tensor gamma;
   Tensor beta;
+  Tensor x_normalized;
   float epsilon;
 };
 } // namespace nntrainer
