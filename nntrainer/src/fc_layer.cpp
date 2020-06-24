@@ -161,10 +161,11 @@ void FullyConnectedLayer::copy(std::shared_ptr<Layer> l) {
 
 Tensor FullyConnectedLayer::backwarding(Tensor derivative, int iteration) {
   Tensor ret = derivative.dot(weight.transpose("0:2:1"));
-  Tensor djdw = input.transpose("0:2:1").dot(derivative);
-
-  opt.calculate(djdw, derivative, weight, bias, iteration, this->init_zero,
-                weight_decay);
+  Tensor djdw = input.chain()
+                  .transpose("0:2:1")
+                  .dot(derivative)
+                  .applyIf(this->isWeightDecayL2Norm(), _LIFT(add_i), weight, weight_decay.lambda)
+                  .run();
 
   return ret;
 }

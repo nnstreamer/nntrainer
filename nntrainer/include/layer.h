@@ -330,10 +330,19 @@ public:
   };
 
 protected:
+
+/**
+ * @brief        check if current layer's weight decay type is l2norm
+ * @return       bool is weightdecay type is L2 Norm
+ */
+  bool isWeightDecayL2Norm() {
+    return weight_decay.type == WeightDecayType::l2norm;
+  }
   /**
    * @brief     Input Tensor
    */
   Tensor input;
+
 
   /**
    * @brief     Hidden Layer Tensor which store the
