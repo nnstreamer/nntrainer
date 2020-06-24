@@ -51,7 +51,7 @@ public:
   /**
    * @brief     Constructor of Tensor
    */
-  Tensor() : dim(){};
+  Tensor() : _is_contiguous(true), dim(){};
 
   /**
    * @brief     Constructor of Tensor with batch size one
@@ -331,6 +331,8 @@ public:
    */
   Tensor apply(std::function<Tensor(Tensor)> f) const;
 
+  Tensor apply_i(std::function<int(const Tensor &)> f) const;
+
   /**
    * @brief     Print element
    * @param[in] out out stream
@@ -478,9 +480,24 @@ public:
    */
   int setDim(TensorDim d);
 
+  /**
+   * @brief     return if current tensor is contiguous, if not, you can't write
+   *            on this tensor
+   * @retval    bool is contigous
+   */
+  const bool isContiguous() const noexcept { return _is_contiguous; }
+
+  /**
+   * @brief     return current stride of tensor.
+   * @retval    int[MAXDIM] strides
+   */
+  const int *strides() const noexcept { return _strides; }
+
 private:
   /**< handle the data as a std::vector type */
   std::vector<float> data;
+  int _strides[MAXDIM];
+  bool _is_contiguous;
   TensorDim dim;
 
   static constexpr float min_limits = std::numeric_limits<float>::min();
