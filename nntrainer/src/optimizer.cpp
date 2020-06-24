@@ -77,26 +77,16 @@ int Optimizer::initialize(TensorDim d, bool set_tensor) {
   return status;
 }
 
-void Optimizer::calculate(Tensor &djdw, Tensor &djdb, Tensor &weight,
-                          Tensor &bias, int iteration, bool init_zero,
-                          WeightDecayParam weight_decay) {
+void Optimizer::calculate(const Tensor &djdw, const Tensor &djdb,
+                          Tensor &weight, Tensor &bias, int iteration,
+                          bool init_zero) {
   Tensor djdwAvg, djdbAvg;
-  if (weight_decay.type == WeightDecayType::l2norm) {
-    djdw = djdw.add(weight.multiply(weight_decay.lambda));
-  }
-
   float ll = popt.learning_rate;
   if (popt.decay_steps != -1) {
     ll = ll * pow(popt.decay_rate, (iteration / popt.decay_steps));
   }
 
-  bool isL2norm = weight_decay.type == WeightDecayType::l2norm;
-
-  djdwAvg = djdw.chain()
-              .applyIf(isL2norm, _LIFT(add_i), weight, weight_decay.lambda)
-              .average()
-              .run();
-
+  djdwAvg = djdw.average();
   djdbAvg = djdb.average();
 
   switch (type) {

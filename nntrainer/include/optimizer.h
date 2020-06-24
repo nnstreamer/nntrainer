@@ -157,14 +157,13 @@ public:
    * @brief     calculate optimizer and Update Weight & Bais
    * @param[in] dJdW Weight derivative
    * @param[in] dJdB Bias derivative
-   * @param[in] Weight Weight Tensor
-   * @param[in] Bias Bais Tensor
+   * @param[in/out] Weight Weight Tensor
+   * @param[in/out] Bias Bias Tensor
    * @param[in] iteration nth epoch number
    * @param[in] init_zero bool it is true if bias sets zero.
-   * @param[in] weight_decay weight decay type & lambda
    */
-  void calculate(Tensor &djdw, Tensor &djdb, Tensor &weight, Tensor &bias,
-                 int iteration, bool init_zero, WeightDecayParam weight_decay);
+  void calculate(const Tensor &djdw, const Tensor &djdb, Tensor &weight,
+                 Tensor &bias, int iteration, bool init_zero);
 
   /**
    * @brief     Property Enumeration
