@@ -197,8 +197,7 @@ Tensor Conv2DLayer::backwarding(Tensor derivative, int iteration) {
                              filters[i], weight_decay.lambda)
                     .run();
 
-    opt.calculate(djdw, delBias[i], filters[i], bias[i], iteration,
-                  this->init_zero);
+    opt.calculate(djdw, delBias[i], filters[i], bias[i], iteration);
   }
 
   return strip_pad(ret, padding);
