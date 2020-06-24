@@ -168,7 +168,7 @@ Tensor FullyConnectedLayer::backwarding(Tensor derivative, int iteration) {
                   .applyIf(this->isWeightDecayL2Norm(), _LIFT(add_i), weight, weight_decay.lambda)
                   .run();
 
-  opt.calculate(djdw, djdb, weight, bias, iteration, init_zero);
+  opt.calculate(djdw, djdb, weight, bias, iteration);
 
   return ret;
 }
