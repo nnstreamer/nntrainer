@@ -578,7 +578,7 @@ Tensor Tensor::sum(int axis) const {
 /**
  * If the dim.batch() size of m is one, the it is reused for
  * every calculation along with dim.batch().
- * Currently dot function only supports the case which dim.channel() == 1.
+ * TODO: support dim.channel() > 1.
  */
 Tensor Tensor::dot(Tensor const &m) const {
   if (dim.width() != m.dim.height()) {

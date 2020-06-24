@@ -27,7 +27,7 @@
 #include <nntrainer_log.h>
 #include <util_func.h>
 
-#define tolerance 10e-5
+#define tolerance 10e-6
 
 #define GEN_TEST_INPUT(input, eqation_i_j_k_l) \
   do {                                         \

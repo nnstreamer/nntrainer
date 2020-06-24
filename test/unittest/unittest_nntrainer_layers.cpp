@@ -279,6 +279,110 @@ TEST(nntrainer_FullyConnectedLayer, checkValidation_01_p) {
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
+class nntrainer_FullyConnectedLayer_TFmatch : public ::testing::Test {
+protected:
+  nntrainer_FullyConnectedLayer_TFmatch() {}
+
+  virtual void SetUp() {
+    std::vector<std::string> input_str;
+    nntrainer::TensorDim previous_dim;
+    previous_dim.setTensorDim("3:1:1:12");
+    input_str.push_back("input_shape=3:1:1:12");
+    input_str.push_back("unit=15");
+
+    status = layer.setProperty(input_str);
+    EXPECT_EQ(status, ML_ERROR_NONE);
+    layer.setInputDimension(previous_dim);
+
+    status = layer.initialize(true);
+    EXPECT_EQ(status, ML_ERROR_NONE);
+
+    in = nntrainer::Tensor(3, 1, 1, 12);
+    result = nntrainer::Tensor(3, 1, 1, 15);
+
+    loadFile("test_1_FCLayer.in", in);
+    loadFile("test_1_FCKernel.in", layer);
+  }
+
+  void loadGoldenOutput(const char *filename) {
+    loadFile(filename, result);
+  }
+
+  void matchOutput() {
+    float *out_ptr, *golden;
+
+    golden = result.getData();
+    out_ptr = out.getData();
+
+    for (size_t i = 0; i < out.getDim().getDataLen(); ++i) {
+      EXPECT_NEAR(out_ptr[i], golden[i], tolerance);
+    }
+  }
+
+  int status;
+  nntrainer::FullyConnectedLayer layer;
+  nntrainer::Tensor in;
+  nntrainer::Tensor result;
+  nntrainer::Tensor out;
+
+private:
+
+  template <typename T>
+  void loadFile(const char *filename, T &t) {
+    std::ifstream file(filename);
+    t.read(file);
+    file.close();
+  }
+};
+
+/**
+ * @brief Fully Connected Layer
+ */
+TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_01_p) {
+  loadGoldenOutput("test_1_goldenFCResultActNone.out");
+
+  out = layer.forwarding(in, status);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  matchOutput();
+}
+
+/**
+ * @brief Fully Connected Layer
+ */
+TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_02_p) {
+  loadGoldenOutput("test_1_goldenFCResultSigmoid.out");
+
+  nntrainer::ActivationLayer actLayer;
+  actLayer.setActivation(nntrainer::ACT_SIGMOID);
+
+  in = layer.forwarding(in, status);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  out = actLayer.forwarding(in, status);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  matchOutput();
+}
+
+/**
+ * @brief Fully Connected Layer
+ */
+TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_03_p) {
+  loadGoldenOutput("test_1_goldenFCResultSoftmax.out");
+
+  nntrainer::ActivationLayer actLayer;
+  actLayer.setActivation(nntrainer::ACT_SOFTMAX);
+
+  in = layer.forwarding(in, status);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  out = actLayer.forwarding(in, status);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  matchOutput();
+}
+
 /**
  * @brief Batch Normalization Layer
  */
@@ -535,7 +639,6 @@ TEST(nntrainer_Conv2DLayer, forwarding_02_p) {
 
   input_str.push_back("input_shape=2:3:7:7");
   input_str.push_back("bias_zero=true");
-  input_str.push_back("activation=sigmoid");
   input_str.push_back("weight_decay=l2norm");
   input_str.push_back("weight_decay_lambda = 0.005");
   input_str.push_back("weight_ini=xavier_uniform");
@@ -591,7 +694,6 @@ TEST(nntrainer_Conv2D, backwarding_01_p) {
 
   input_str.push_back("input_shape=1:3:7:7");
   input_str.push_back("bias_zero=true");
-  input_str.push_back("activation=sigmoid");
   input_str.push_back("weight_decay=l2norm");
   input_str.push_back("weight_decay_lambda = 0.005");
   input_str.push_back("weight_ini=xavier_uniform");

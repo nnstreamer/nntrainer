@@ -12,6 +12,9 @@
 
 import sys
 import os
+
+os.environ['TF_CUDNN_DETERMINISTIC'] = '1'
+
 import numpy as np
 import tensorflow as tf
 from tensorflow.python.framework import dtypes
@@ -23,17 +26,6 @@ DEBUG = True
 # Fix the seeds across frameworks
 SEED = 1234
 tf.compat.v1.reset_default_graph()
-os.environ['TF_CUDNN_DETERMINISTIC'] = '1'
-os.environ['PYTHONHASSEED'] = str(SEED)
-random.seed(SEED)
-tf.compat.v1.set_random_seed(SEED)
-np.random.seed(SEED)
-
-# Fix the seeds across frameworks
-SEED = 1234
-tf.compat.v1.reset_default_graph()
-os.environ['TF_CUDNN_DETERMINISTIC'] = '1'
-os.environ['PYTHONHASSEED'] = str(SEED)
 random.seed(SEED)
 tf.compat.v1.set_random_seed(SEED)
 np.random.seed(SEED)
@@ -151,11 +143,6 @@ def fc_tf(x, kernel, label, bias, activation, train=False, loss='mse', opt='sgd'
                     optimizer = tf.keras.optimizers.Adam()
                 else:
                     raise 'unknown optimizer'
-
-                def make_loss_callable(loss):
-                    def loss_callable():
-                        return loss
-                    return loss_callable
 
                 trainable_variables = tf.compat.v1.trainable_variables()
                 if DEBUG:
