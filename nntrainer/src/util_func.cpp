@@ -112,7 +112,6 @@ Tensor softmax(Tensor t) {
         }
       }
 
-      assert(sum > 0);
       for (int i = 0; i < height; i++) {
         for (int j = 0; j < width; j++) {
           rp[index + width * i + j] = dp[index + width * i + j] / sum;

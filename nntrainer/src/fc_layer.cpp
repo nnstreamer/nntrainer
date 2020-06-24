@@ -45,10 +45,11 @@ int FullyConnectedLayer::initialize(bool last) {
   dim = input_dim;
   dim.width(unit);
   dim.height(input_dim.width());
+  dim.batch(1);
   weight = initializeWeight(dim, weight_ini_type, status);
   NN_RETURN_STATUS();
 
-  output_dim.batch(input_dim.batch());
+  output_dim = input_dim;
   output_dim.width(unit);
 
   if (init_zero) {
