@@ -24,6 +24,7 @@
 #include <assert.h>
 #include <bn_layer.h>
 #include <layer.h>
+#include <lazy_tensor.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <parse_util.h>
@@ -31,16 +32,28 @@
 
 namespace nntrainer {
 
+/// @todo add channel wise bn for convolutional layer.
 int BatchNormalizationLayer::initialize(bool last) {
   int status = ML_ERROR_NONE;
 
   dim = input_dim;
-  output_dim = dim;
+  dim = input_dim;
+  dim.batch(1);
+  output_dim = input_dim;
 
-  this->gamma = Tensor(dim.channel(), dim.batch(), dim.width());
-  this->beta = Tensor(dim.channel(), dim.batch(), dim.width());
-  beta.setZero();
+  this->mu = Tensor(dim);
+  this->var = Tensor(dim);
+  this->gamma = Tensor(dim);
+  this->beta = Tensor(dim);
+
+  mu.setZero();
+  var.setValue(1);
   gamma.setZero();
+  beta.setZero();
+
+  weights.clear();
+  weights.push_back(gamma);
+  weights.push_back(beta);
 
   return status;
 }
@@ -48,8 +61,7 @@ int BatchNormalizationLayer::initialize(bool last) {
 int BatchNormalizationLayer::setOptimizer(Optimizer &opt) {
   this->opt.setType(opt.getType());
   this->opt.setOptParam(opt.getOptParam());
-
-  this->epsilon = 0.0;
+  this->epsilon = epsilon;
   return this->opt.initialize(dim, false);
 }
 
@@ -63,7 +75,6 @@ int BatchNormalizationLayer::setProperty(std::vector<std::string> values) {
     NN_RETURN_STATUS();
 
     unsigned int type = parseLayerProperty(key);
-
     switch (static_cast<PropertyType>(type)) {
     case PropertyType::epsilon:
       status = setFloat(epsilon, value);
@@ -79,70 +90,86 @@ int BatchNormalizationLayer::setProperty(std::vector<std::string> values) {
 }
 
 Tensor BatchNormalizationLayer::forwarding(Tensor in, int &status) {
-  Tensor temp;
-  assert(dim.batch() > 0);
-  hidden = in;
 
-  mu = in.sum(0).multiply(1.0 / dim.batch());
+  if (trainable) {
+    Tensor deviation;
+    this->input = in;
 
-  temp = in.subtract(mu);
+    ///< current mu / var */
+    Tensor cmu;
 
-  var = temp.multiply(temp).sum(0).multiply(1.0 / dim.batch());
+    cmu = in.average(0);
 
-  Tensor hath = temp.divide(var.add(0.001).apply(sqrtFloat));
+    deviation = in.subtract(cmu);
 
-  hidden = hath;
+    this->cvar = deviation.chain()
+                   .multiply_i(deviation)
+                   .sum(0)
+                   .multiply_i(1.0 / input_dim.batch())
+                   .add_i(epsilon)
+                   .run();
 
-  Tensor ret = hath.multiply(gamma).add(beta);
+    /// @todo replace momentum paramter
+    float momentum = 0.9;
+    this->mu.multiply_i(momentum);
+    this->mu.add_i(cmu, 1 - momentum);
+    this->var.multiply_i(momentum);
+    this->var.add_i(cvar, 1 - momentum);
 
-  status = ML_ERROR_NONE;
-  return ret;
+    this->x_normalized = deviation.divide(cvar.apply(sqrtFloat));
+
+    this->hidden = x_normalized.chain().multiply_i(gamma).add_i(beta).run();
+
+    status = ML_ERROR_NONE;
+  } else {
+    /// NYI
+    status = ML_ERROR_NOT_SUPPORTED;
+    throw std::runtime_error("not_yet_implemented");
+  }
+  return hidden;
 }
 
-Tensor BatchNormalizationLayer::backwarding(Tensor derivative, int iteration) {
+Tensor BatchNormalizationLayer::backwarding(Tensor dy, int iteration) {
   Tensor dbeta;
   Tensor dgamma;
-  assert(dim.batch() > 0);
+  Tensor dx_normalized;
 
-  Tensor hath = hidden;
-  Tensor dy = derivative.multiply(hath.multiply(gamma).add(beta));
+  Tensor dx;
 
+  int batch = dy.batch();
+
+  dgamma = x_normalized.multiply(dy).sum(0);
   dbeta = dy.sum(0);
-  dgamma = (input.subtract(mu)
-              .divide(var.add(0.001).apply(sqrtFloat))
-              .multiply(dy)
-              .sum(0));
 
-  Tensor Temp =
-    (dy.multiply(dim.batch()).subtract(dy.sum(0)))
-      .subtract(input.subtract(mu)
-                  .divide(var.add(0.001))
-                  .multiply(dy.multiply(input.subtract(mu)).sum(0)));
-  Tensor dh = Temp.multiply(1.0 / dim.batch())
-                .multiply(var.add(0.001).apply(sqrtFloat))
-                .multiply(gamma);
+  dx_normalized = dy.multiply(gamma);
 
-  float ll = opt.getLearningRate();
-  if (opt.getDecaySteps() != -1) {
-    ll = ll * pow(opt.getDecayRate(), (iteration / opt.getDecaySteps()));
-  }
+  dx = dx_normalized.chain()
+         .multiply_i(batch)
+         .subtract_i(dx_normalized.sum(0))
+         .subtract_i(
+           x_normalized.multiply(dx_normalized.multiply(x_normalized).sum(0)))
+         .divide_i(cvar.multiply(batch))
+         .run();
 
-  gamma = gamma.subtract(dgamma.multiply(ll));
-  beta = beta.subtract(dbeta.multiply(ll));
+  gradients.clear();
+  gradients.push_back(dgamma);
+  gradients.push_back(dbeta);
 
-  return dh;
+  opt.apply_gradients(weights, gradients, iteration);
+
+  return dx;
 }
 
 void BatchNormalizationLayer::read(std::ifstream &file) {
-  file.read((char *)&mu, sizeof(float));
-  file.read((char *)&var, sizeof(float));
+  mu.read(file);
+  var.read(file);
   gamma.read(file);
   beta.read(file);
 }
 
 void BatchNormalizationLayer::save(std::ofstream &file) {
-  file.write((char *)&mu, sizeof(float));
-  file.write((char *)&var, sizeof(float));
+  mu.save(file);
+  var.save(file);
   gamma.save(file);
   beta.save(file);
 }
@@ -159,8 +186,9 @@ void BatchNormalizationLayer::copy(std::shared_ptr<Layer> l) {
   this->hidden.copy(from->hidden);
   this->weight.copy(from->weight);
   this->bias.copy(from->bias);
-  this->mu = from->mu;
-  this->var = from->var;
+  this->mu.copy(from->mu);
+  this->var.copy(from->var);
+  this->cvar.copy(from->cvar);
   this->gamma.copy(from->gamma);
   this->beta.copy(from->beta);
 }

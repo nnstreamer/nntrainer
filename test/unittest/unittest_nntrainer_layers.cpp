@@ -429,6 +429,84 @@ TEST(nntrainer_BatchNormalizationLayer, checkValidation_01_p) {
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
+class nntrainer_batchNormalizationLayer_TFmatch : public ::testing::Test {
+protected:
+  nntrainer_batchNormalizationLayer_TFmatch() {}
+
+  virtual void SetUp() {
+    std::vector<std::string> input_str;
+    input_str.push_back("input_shape=3:1:4:5");
+    input_str.push_back("epsilon=0.001");
+
+    nntrainer::Optimizer opt;
+    nntrainer::OptParam p;
+    p.learning_rate = 1;
+
+    status = opt.setType(nntrainer::OptType::sgd);
+    ASSERT_EQ(status, ML_ERROR_NONE);
+
+    status = opt.setOptParam(p);
+    ASSERT_EQ(status, ML_ERROR_NONE);
+
+    status = layer.setOptimizer(opt);
+    ASSERT_EQ(status, ML_ERROR_NONE);
+
+    status = layer.setProperty(input_str);
+    ASSERT_EQ(status, ML_ERROR_NONE);
+
+    status = layer.initialize(false);
+    ASSERT_EQ(status, ML_ERROR_NONE);
+
+    in = nntrainer::Tensor(3, 1, 4, 5);
+    expected = nntrainer::Tensor(3, 1, 4, 5);
+
+    loadFile("test_5_BNLayerInput.in", in);
+    loadFile("test_5_BNLayerWeights.in", layer);
+  }
+
+  void matchOutput(const nntrainer::Tensor &result, const char *path) {
+    loadFile(path, expected);
+    const float *out_ptr, *golden;
+
+    golden = expected.getData();
+    out_ptr = result.getData();
+
+    for (size_t i = 0; i < result.length(); ++i) {
+      EXPECT_NEAR(out_ptr[i], golden[i], tolerance);
+    }
+  }
+
+  int status;
+  nntrainer::BatchNormalizationLayer layer;
+  nntrainer::Tensor expected;
+  nntrainer::Tensor in;
+
+private:
+  template <typename T> void loadFile(const char *filename, T &t) {
+    std::ifstream file(filename);
+    if (!file.good()) {
+      throw std::runtime_error("filename is wrong");
+    }
+    t.read(file);
+    file.close();
+  }
+};
+
+TEST_F(nntrainer_batchNormalizationLayer_TFmatch,
+       forward_backward_training_01_p) {
+  int status = ML_ERROR_NONE;
+  layer.setTrainable(true);
+  nntrainer::Tensor forward_result = layer.forwarding(in, status);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  matchOutput(forward_result, "test_5_goldenBNResultForward.out");
+
+  nntrainer::Tensor backward_result =
+    layer.backwarding(constant(1.0, 3, 1, 4, 5), 1);
+
+  matchOutput(backward_result, "test_5_goldenBNLayerBackwardDx.out");
+}
+
 /**
  * @brief Convolution 2D Layer
  */
