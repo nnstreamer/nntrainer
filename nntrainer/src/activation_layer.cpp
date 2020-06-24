@@ -58,7 +58,10 @@ Tensor ActivationLayer::forwarding(Tensor in, int &status) {
 }
 
 Tensor ActivationLayer::backwarding(Tensor derivative, int iteration) {
-  return derivative.multiply(_act_prime_fn(hidden));
+  if (activation_type == ActiType::ACT_SOFTMAX)
+    return derivative.multiply(_act_prime_fn(hidden));
+  else
+    return derivative.multiply(_act_prime_fn(input));
 }
 
 /**
