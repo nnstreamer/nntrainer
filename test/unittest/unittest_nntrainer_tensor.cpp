@@ -33,6 +33,29 @@ TEST(nntrainer_TensorDim, setTensorDim_02_n) {
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
+TEST(nntrainer_TensorDim, setTensorDim_03_n) {
+  nntrainer::TensorDim d;
+
+  EXPECT_THROW(d.setTensorDim(0, 0), std::invalid_argument);
+  EXPECT_THROW(d.setTensorDim(1, 0), std::invalid_argument);
+  EXPECT_THROW(d.setTensorDim(2, 0), std::invalid_argument);
+  EXPECT_THROW(d.setTensorDim(3, 0), std::invalid_argument);
+}
+
+TEST(nntrainer_TensorDim, setTensorDim_04_p) {
+  nntrainer::TensorDim d;
+
+  d.setTensorDim(0, 4);
+  d.setTensorDim(1, 5);
+  d.setTensorDim(2, 6);
+  d.setTensorDim(3, 7);
+
+  EXPECT_EQ(d.batch(), 4);
+  EXPECT_EQ(d.channel(), 5);
+  EXPECT_EQ(d.height(), 6);
+  EXPECT_EQ(d.width(), 7);
+}
+
 TEST(nntrainer_Tensor, Tensor_01_p) {
   int status = ML_ERROR_NONE;
   nntrainer::Tensor tensor = nntrainer::Tensor(1, 2, 3);

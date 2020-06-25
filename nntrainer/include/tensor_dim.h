@@ -36,10 +36,10 @@ public:
   }
 
   TensorDim(unsigned int b, unsigned int c, unsigned int h, unsigned int w) {
-    dim[0] = b;
-    dim[1] = c;
-    dim[2] = h;
-    dim[3] = w;
+    setTensorDim(0, b);
+    setTensorDim(1, c);
+    setTensorDim(2, h);
+    setTensorDim(3, w);
     feature_len = c * h * w;
     len = b * feature_len;
   }
