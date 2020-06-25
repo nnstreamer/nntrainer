@@ -114,12 +114,12 @@ int Layer::setCost(CostType c) {
   return status;
 }
 
-std::shared_ptr<std::vector<Tensor>> Layer::getGradients() {
-  std::vector<Tensor> grad;
-  for (auto iter = gradients.begin(); iter != gradients.end(); ++iter)
-    grad.push_back(*iter);
+std::shared_ptr<std::vector<Tensor>> Layer::getObjFromRef(std::vector<std::reference_wrapper<Tensor>> &elements) {
+  std::vector<Tensor> ele;
+  for (auto iter = elements.begin(); iter != elements.end(); ++iter)
+    ele.push_back(*iter);
 
-  return std::make_shared<std::vector<Tensor>>(std::move(grad));
+  return std::make_shared<std::vector<Tensor>>(std::move(ele));
 }
 
 } /* namespace nntrainer */

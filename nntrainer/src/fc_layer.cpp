@@ -172,7 +172,9 @@ Tensor FullyConnectedLayer::backwarding(Tensor derivative, int iteration) {
   gradients.push_back(djdw);
   gradients.push_back(djdb);
 
-  std::vector<std::reference_wrapper<Tensor>> weights = {weight, bias};
+  weights.clear();
+  weights.push_back(weight);
+  weights.push_back(bias);
 
   opt.apply_gradients(weights, gradients, iteration);
 
