@@ -810,6 +810,58 @@ TEST(nntrainer_Tensor, set_01_p) {
   EXPECT_TRUE(val >= -0.5 && val < 0);
 }
 
+TEST(nntrainer_Tensor, save_read_01_p) {
+  int batch = 3;
+  int channel = 4;
+  int height = 5;
+  int width = 6;
+  nntrainer::Tensor target(3, 4, 5, 6);
+  nntrainer::Tensor readed(3, 4, 5, 6);
+
+  GEN_TEST_INPUT(target, i * (channel * width * height) + j * (height * width) +
+                           k * (width) + l + 1);
+
+  std::ofstream save_file("save.bin", std::ios::out | std::ios::binary);
+  target.save(save_file);
+  save_file.close();
+
+  std::ifstream read_file("save.bin");
+  readed.read(read_file);
+  read_file.close();
+
+  EXPECT_EQ(target, readed);
+
+  int status = std::remove("save.bin");
+
+  ASSERT_EQ(status, 0);
+}
+
+TEST(nntrainer_Tensor, save_read_01_n) {
+  int batch = 3;
+  int channel = 4;
+  int height = 5;
+  int width = 6;
+  nntrainer::Tensor target(3, 4, 5, 6);
+  nntrainer::Tensor readed(3, 4, 1, 1);
+
+  GEN_TEST_INPUT(target, i * (channel * width * height) + j * (height * width) +
+                           k * (width) + l + 1);
+
+  std::ofstream save_file("save.bin", std::ios::out | std::ios::binary);
+  target.save(save_file);
+  save_file.close();
+
+  std::ifstream read_file("save.bin");
+  readed.read(read_file);
+  read_file.close();
+
+  EXPECT_NE(target, readed);
+
+  int status = std::remove("save.bin");
+
+  ASSERT_EQ(status, 0);
+}
+
 /**
  * @brief Main gtest
  */
