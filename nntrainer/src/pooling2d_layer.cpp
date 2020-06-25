@@ -13,6 +13,7 @@
  */
 
 #include <layer.h>
+#include <lazy_tensor.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <parse_util.h>
@@ -33,16 +34,22 @@ int Pooling2DLayer::initialize(bool last) {
   }
 
   this->last_layer = last;
+
   output_dim.batch(input_dim.batch());
   output_dim.channel(input_dim.channel());
-  output_dim.height(
-    (input_dim.height() - pooling_size[0] + 2 * padding[0]) / stride[0] + 1);
-  output_dim.width(
-    (input_dim.width() - pooling_size[1] + 2 * padding[1]) / stride[1] + 1);
+
+  if (pooling_type == PoolingType::max ||
+      pooling_type == PoolingType::average) {
+    output_dim.height(
+      (input_dim.height() - pooling_size[0] + 2 * padding[0]) / stride[0] + 1);
+    output_dim.width(
+      (input_dim.width() - pooling_size[1] + 2 * padding[1]) / stride[1] + 1);
+  }
 
   hidden = Tensor(output_dim);
 
-  if (pooling_type == PoolingType::max) {
+  if (pooling_type == PoolingType::max ||
+      pooling_type == PoolingType::global_max) {
     max_idx.resize(output_dim.getDataLen());
   }
 
@@ -102,8 +109,25 @@ Tensor Pooling2DLayer::backwarding(Tensor derivative, int iteration) {
       }
     }
   } break;
-  case PoolingType::global_max:
-  case PoolingType::global_average:
+  case PoolingType::global_max: {
+    for (unsigned int i = 0; i < derivative.getDim().getDataLen(); ++i) {
+      out[max_idx[i]] += derivative.getData()[i];
+    }
+  } break;
+  case PoolingType::global_average: {
+    unsigned int p_size = width * height;
+    for (unsigned int b = 0; b < batch; ++b) {
+      for (unsigned int i = 0; i < channel; ++i) {
+        float del = derivative.getValue(b, i, 0, 0) / (p_size);
+        for (unsigned int j = 0; j < height; ++j) {
+          for (unsigned int k = 0; k < width; ++k) {
+            result.setValue(b, i, j, k, del);
+          }
+        }
+      }
+    }
+
+  } break;
   default:
     ml_loge("Error: Unknown Pooling Type");
     break;
@@ -243,8 +267,27 @@ Tensor Pooling2DLayer::pooling2d(unsigned int batch, Tensor in, int &status) {
     }
   } break;
   case PoolingType::global_max: {
+    for (unsigned int i = 0; i < channel; ++i) {
+      unsigned int idx = batch * input_dim.getFeatureLen() + i * height * width;
+      float max = std::numeric_limits<float>::min();
+      for (unsigned int j = 0; j < height; ++j) {
+        for (unsigned int k = 0; k < width; ++k) {
+          float val = in.getValue(0, i, j, k);
+          if (max < val) {
+            max_idx[base_idx + i] = idx + j * width + k;
+            max = val;
+          }
+        }
+      }
+      output.setValue(0, i, 0, 0, max);
+    }
   } break;
   case PoolingType::global_average: {
+    Tensor sum_wh = in.chain().sum(3).sum(2).run();
+    for (unsigned int i = 0; i < channel; ++i) {
+      output.setValue(0, i, 0, 0,
+                      sum_wh.getValue(0, i, 0, 0) / (in.width() * in.height()));
+    }
   } break;
   default:
     ml_loge("Error: Unknown Pooling Type");
