@@ -295,7 +295,13 @@ public:
    * @brief     get gradients
    * @retval    shared ptr of vector of all tensors
    */
-  std::shared_ptr<std::vector<Tensor>> getGradients();
+  std::shared_ptr<std::vector<Tensor>> getGradients() { return getObjFromRef(gradients); }
+
+  /**
+   * @brief     get weights
+   * @retval    shared ptr of vector of all tensors
+   */
+  std::shared_ptr<std::vector<Tensor>> getWeights() { return getObjFromRef(weights); }
 
   /**
    * @brief     Property Enumeration
@@ -413,6 +419,18 @@ protected:
    * @brief     Gradient for the weights in this layer
    */
   std::vector<std::reference_wrapper<Tensor>> gradients;
+
+  /**
+   * @brief     weights in this layer
+   */
+  std::vector<std::reference_wrapper<Tensor>> weights;
+
+private:
+  /**
+   * @brief     Convert vector of reference to vector of objects
+   */
+  std::shared_ptr<std::vector<Tensor>> getObjFromRef(
+      std::vector<std::reference_wrapper<Tensor>> &elements);
 };
 } // namespace nntrainer
 

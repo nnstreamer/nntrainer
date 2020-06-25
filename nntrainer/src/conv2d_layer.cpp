@@ -185,7 +185,7 @@ Tensor Conv2DLayer::backwarding(Tensor derivative, int iteration) {
   }
 
   gradients.clear();
-  std::vector<std::reference_wrapper<Tensor>> weights;
+  weights.clear();
 
   //  Update K / bias
   for (unsigned int i = 0; i < filter_size; ++i) {
