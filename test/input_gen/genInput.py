@@ -15,6 +15,15 @@ import tensorflow as tf
 from tensorflow.python.framework import dtypes
 import struct
 
+# Fix the seeds across frameworks
+SEED = 1234
+tf.compat.v1.reset_default_graph()
+os.environ['TF_CUDNN_DETERMINISTIC'] = '1'
+os.environ['PYTHONHASSEED'] = str(SEED)
+random.seed(SEED)
+tf.compat.v1.set_random_seed(SEED)
+np.random.seed(SEED)
+
 ##
 # @brief save data into file with filename
 # @param[in] data The data to be saved
