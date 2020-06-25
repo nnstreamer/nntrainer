@@ -63,6 +63,10 @@ TEST(nntrainer_Tensor, Tensor_01_p) {
   if (tensor.getValue(0, 0, 0, 0) != 0.0)
     status = ML_ERROR_INVALID_PARAMETER;
   EXPECT_EQ(status, ML_ERROR_NONE);
+  EXPECT_EQ(tensor.getSize(), 6 * sizeof(float));
+
+  nntrainer::Tensor tensor2(3, 5);
+  EXPECT_EQ(tensor2.getSize(), 15 * sizeof(float));
 }
 
 TEST(nntrainer_Tensor, Tensor_02_p) {

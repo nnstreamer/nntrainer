@@ -61,41 +61,7 @@ static auto rng = [] {
   return rng;
 }();
 
-Tensor::Tensor(const TensorDim d) {
-  dim = d;
-  this->data = std::vector<float>(dim.getDataLen());
-  _is_contiguous = true;
-  setZero();
-}
-
-Tensor::Tensor(int height, int width) {
-  dim.height(height);
-  dim.width(width);
-  this->data = std::vector<float>(dim.getDataLen());
-  _is_contiguous = true;
-  setZero();
-}
-
-Tensor::Tensor(int channel, int height, int width) {
-  dim.height(height);
-  dim.width(width);
-  dim.batch(channel);
-  this->data = std::vector<float>(dim.getDataLen());
-  _is_contiguous = true;
-  setZero();
-}
-
-Tensor::Tensor(int batch, int channel, int height, int width) {
-  dim.height(height);
-  dim.width(width);
-  dim.batch(batch);
-  dim.channel(channel);
-  this->data = std::vector<float>(dim.getDataLen());
-  _is_contiguous = true;
-  setZero();
-}
-
-bool Tensor::operator== (const Tensor &rhs) const {
+bool Tensor::operator==(const Tensor &rhs) const {
   if (this->dim != rhs.dim)
     return false;
 
@@ -119,7 +85,7 @@ float Tensor::getValue(unsigned int batch, unsigned int c, unsigned int h,
 
 void Tensor::setValue(unsigned int batch, unsigned int c, unsigned int h,
                       unsigned int w, float value) {
-  if(!_is_contiguous) {
+  if (!_is_contiguous) {
     throw std::runtime_error("cannot set value of non-contiguous tensor");
   }
 
@@ -128,6 +94,7 @@ void Tensor::setValue(unsigned int batch, unsigned int c, unsigned int h,
 }
 
 template <typename T> void Tensor::setDist(T dist) {
+  std::cerr<< "data size: " << dim.getDataLen() << "actual size: " << data.size() << std::endl;
   for (unsigned int i = 0; i < dim.getDataLen(); ++i) {
     data[i] = dist(rng);
   }
@@ -141,30 +108,6 @@ void Tensor::setRandNormal(float mean, float std) {
 void Tensor::setRandUniform(float min, float max) {
   setDist<std::uniform_real_distribution<float>>(
     std::uniform_real_distribution<float>(min, max));
-}
-
-Tensor::Tensor(std::vector<std::vector<float>> const &d) {
-  dim.height(d.size());
-  dim.width(d[0].size());
-  this->data = std::vector<float>(dim.getDataLen());
-  _is_contiguous = true;
-
-  for (unsigned int j = 0; j < dim.height(); ++j)
-    for (unsigned int k = 0; k < dim.width(); ++k)
-      this->setValue(0, 0, j, k, d[j][k]);
-}
-
-Tensor::Tensor(std::vector<std::vector<std::vector<float>>> const &d) {
-  dim.channel(d.size());
-  dim.height(d[0].size());
-  dim.width(d[0][0].size());
-  this->data = std::vector<float>(dim.getDataLen());
-  _is_contiguous = true;
-
-  for (unsigned int j = 0; j < dim.channel(); ++j)
-    for (unsigned int k = 0; k < dim.height(); ++k)
-      for (unsigned int l = 0; l < dim.width(); ++l)
-        this->setValue(0, j, k, l, d[j][k][l]);
 }
 
 Tensor::Tensor(
@@ -818,18 +761,13 @@ float *Tensor::getAddress(unsigned int i) {
 
 Tensor &Tensor::copy(const Tensor &from) {
   // todo: enable copy to non-contiguous tensor
-  if(!_is_contiguous) {
+  if (!_is_contiguous) {
     throw std::runtime_error("Cannot copy non-contiguous tensor");
   }
 
   if (this != &from && from.dim.getDataLen() != 0) {
-    dim.channel(from.dim.channel());
-    dim.height(from.dim.height());
-    dim.width(from.dim.width());
-    dim.batch(from.dim.batch());
-    if (this->data.empty()) {
-      this->data.resize(from.data.size());
-    }
+    dim = from.dim;
+    this->data.resize(dim.getDataLen());
 #ifdef USE_BLAS
     cblas_scopy(dim.getDataLen(), from.data.data(), 1, this->data.data(), 1);
 #else
@@ -848,6 +786,7 @@ int Tensor::setDim(TensorDim d) {
     return ML_ERROR_INVALID_PARAMETER;
   }
   dim = d;
+  
   return status;
 }
 

@@ -57,22 +57,12 @@ public:
    * @brief     Constructor of Tensor with batch size one
    * @param[in] dim TensorDim
    */
-  Tensor(const TensorDim dim);
-
-  /**
-   * @brief     Constructor of Tensor with batch size one
-   * @param[in] heihgt Height of Tensor
-   * @param[in] width Width of Tensor
-   */
-  Tensor(int height, int width);
-
-  /**
-   * @brief     Constructor of Tensor
-   * @param[in] channel Channel of Tensor
-   * @param[in] heihgt Height of Tensor
-   * @param[in] width Width of Tensor
-   */
-  Tensor(int channel, int height, int width);
+  Tensor(const TensorDim d) : Tensor() {
+    dim = d;
+    this->data = std::vector<float>(dim.getDataLen());
+    _is_contiguous = true;
+    setZero();
+  };
 
   /**
    * @brief     Constructor of Tensor
@@ -81,19 +71,23 @@ public:
    * @param[in] heihgt Height of Tensor
    * @param[in] width Width of Tensor
    */
-  Tensor(int batch, int channel, int height, int width);
-
+  Tensor(int batch, int channel, int height, int width) :
+    Tensor(TensorDim(batch, channel, height, width)){};
   /**
-   * @brief   Constructor of Tensor
-   * @param[in] d data for the Tensor with batch size one
+   * @brief     Constructor of Tensor with batch size one
+   * @param[in] heihgt Height of Tensor
+   * @param[in] width Width of Tensor
    */
-  Tensor(std::vector<std::vector<float>> const &d);
+  Tensor(int height, int width) : Tensor(1, 1, height, width){};
 
   /**
    * @brief     Constructor of Tensor
-   * @param[in] d data for the Tensor
+   * @param[in] channel Channel of Tensor
+   * @param[in] heihgt Height of Tensor
+   * @param[in] width Width of Tensor
    */
-  Tensor(std::vector<std::vector<std::vector<float>>> const &d);
+  Tensor(int channel, int height, int width) :
+    Tensor(1, channel, height, width){};
 
   /**
    * @brief     Constructor of Tensor
@@ -102,16 +96,30 @@ public:
   Tensor(std::vector<std::vector<std::vector<std::vector<float>>>> const &d);
 
   /**
-   * @brief     Comparison operator overload
-   * @param[in] rhs Tensor to be compared with
+   * @brief     Constructor of Tensor
+   * @param[in] d data for the Tensor
    */
-  bool operator== (const Tensor &rhs) const;
+  Tensor(std::vector<std::vector<std::vector<float>>> const &d) :
+    Tensor(std::vector<std::decay<decltype(d)>::type>{d}){};
+
+  /**
+   * @brief   Constructor of Tensor
+   * @param[in] d data for the Tensor with batch size one
+   */
+  Tensor(std::vector<std::vector<float>> const &d) :
+    Tensor(std::vector<std::decay<decltype(d)>::type>{d}){};
 
   /**
    * @brief     Comparison operator overload
    * @param[in] rhs Tensor to be compared with
    */
-  bool operator!= (const Tensor &rhs) const { return !(*this == rhs); }
+  bool operator==(const Tensor &rhs) const;
+
+  /**
+   * @brief     Comparison operator overload
+   * @param[in] rhs Tensor to be compared with
+   */
+  bool operator!=(const Tensor &rhs) const { return !(*this == rhs); }
 
   /**
    * @brief     return value at specific location
@@ -369,6 +377,10 @@ public:
    * @retval    size_t Size in bytes
    */
   size_t getSize() const {
+    if (dim.getDataLen() != data.size()) {
+      throw std::runtime_error(
+        "[Tensor] dimension info and real data size does not match!");
+    }
     return dim.getDataLen() * sizeof(decltype(data)::value_type);
   }
 
