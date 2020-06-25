@@ -28,9 +28,41 @@
 #include <stdarg.h>
 #include <string.h>
 
+/**
+ * @brief     function to wrap an exception to predefined error value
+ * @param[in] func must be wrapped inside lambda []() -> int otherwise compile
+ * error will be raised
+ * @retval    errorno
+ */
+template <typename F> static int nntrainer_exception_boundary(F &&func) {
+  try {
+    return func();
+  } catch (std::invalid_argument &e) {
+    ml_loge("%s %s", typeid(e).name(), e.what());
+    return ML_ERROR_INVALID_PARAMETER;
+  } catch (std::range_error &e) {
+    ml_loge("%s %s", typeid(e).name(), e.what());
+    return ML_ERROR_INVALID_PARAMETER;
+  } catch (std::out_of_range &e) {
+    ml_loge("%s %s", typeid(e).name(), e.what());
+    return ML_ERROR_INVALID_PARAMETER;
+  } catch (std::bad_alloc &e) {
+    ml_loge("%s %s", typeid(e).name(), e.what());
+    return ML_ERROR_OUT_OF_MEMORY;
+  } catch (std::exception &e) {
+    ml_loge("%s %s", typeid(e).name(), e.what());
+    return ML_ERROR_UNKNOWN;
+  } catch (...) {
+    ml_loge("unknown error type thrown");
+    return ML_ERROR_UNKNOWN;
+  }
+}
+
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+typedef std::function<int()> returnable;
 
 /**
  * @brief Function to create Network::NeuralNetwork object.
@@ -48,8 +80,8 @@ static int nn_object(ml_nnmodel_h *model) {
 
   try {
     nnmodel->network = std::make_shared<nntrainer::NeuralNetwork>();
-  } catch (const char *e) {
-    ml_loge("Error: heap exception: %s", e);
+  } catch (std::bad_alloc &e) {
+    ml_loge("Error: heap exception: %s", e.what());
     status = ML_ERROR_OUT_OF_MEMORY;
     delete nnmodel;
   }
@@ -59,8 +91,9 @@ static int nn_object(ml_nnmodel_h *model) {
 
 int ml_nnmodel_construct(ml_nnmodel_h *model) {
   int status = ML_ERROR_NONE;
+  returnable f = [&]() { return nn_object(model); };
 
-  status = nn_object(model);
+  status = nntrainer_exception_boundary(f);
   return status;
 }
 
@@ -77,13 +110,22 @@ int ml_nnmodel_compile_with_conf(const char *model_conf, ml_nnmodel_h model) {
 
   ML_NNTRAINER_CHECK_MODEL_VALIDATION(nnmodel, model);
   nn = nnmodel->network;
-  nn->setConfig(model_conf);
 
-  status = nn->checkValidation();
+  returnable f = [&]() { return nn->setConfig(model_conf); };
+
+  status = nntrainer_exception_boundary(f);
   if (status != ML_ERROR_NONE)
     return status;
 
-  status = nn->init();
+  f = [&]() { return nn->checkValidation(); };
+
+  status = nntrainer_exception_boundary(f);
+  if (status != ML_ERROR_NONE)
+    return status;
+
+  f = [&]() { return nn->init(); };
+
+  status = nntrainer_exception_boundary(f);
   return status;
 }
 
@@ -113,7 +155,9 @@ int ml_nnmodel_compile(ml_nnmodel_h model, ml_nnopt_h optimizer, ...) {
   NN = nnmodel->network;
   opti = nnopt->optimizer;
 
-  status = NN->init(opti, arg_list);
+  returnable f = [&]() { return NN->init(opti, arg_list); };
+
+  status = nntrainer_exception_boundary(f);
 
   return status;
 }
@@ -136,7 +180,9 @@ int ml_nnmodel_train_with_file(ml_nnmodel_h model, ...) {
   std::shared_ptr<nntrainer::NeuralNetwork> NN;
   NN = nnmodel->network;
 
-  status = NN->train(arg_list);
+  returnable f = [&]() { return NN->train(arg_list); };
+
+  status = nntrainer_exception_boundary(f);
   return status;
 }
 
@@ -162,7 +208,12 @@ int ml_nnmodel_train_with_generator(ml_nnmodel_h model,
   std::shared_ptr<nntrainer::NeuralNetwork> NN;
   NN = nnmodel->network;
 
-  status = NN->train((train_func), (val_func), (test_func), arg_list);
+  returnable f = [&]() {
+    return NN->train((train_func), (val_func), (test_func), arg_list);
+  };
+
+  status = nntrainer_exception_boundary(f);
+
   return status;
 }
 
@@ -174,7 +225,13 @@ int ml_nnmodel_destruct(ml_nnmodel_h model) {
 
   std::shared_ptr<nntrainer::NeuralNetwork> NN;
   NN = nnmodel->network;
-  NN->finalize();
+
+  returnable f = [&]() {
+    NN->finalize();
+    return ML_ERROR_NONE;
+  };
+
+  status = nntrainer_exception_boundary(f);
 
   delete nnmodel;
 
@@ -194,25 +251,27 @@ int ml_nnmodel_add_layer(ml_nnmodel_h model, ml_nnlayer_h layer) {
   NN = nnmodel->network;
   NL = nnlayer->layer;
 
-  status = NN->addLayer(NL);
+  returnable f = [&]() { return NN->addLayer(NL); };
+
+  status = nntrainer_exception_boundary(f);
 
   return status;
 }
 
 int ml_nnlayer_create(ml_nnlayer_h *layer, ml_layer_type_e type) {
   int status = ML_ERROR_NONE;
+  returnable f;
   ml_nnlayer *nnlayer = new ml_nnlayer;
   nnlayer->magic = ML_NNTRAINER_MAGIC;
   *layer = nnlayer;
+
   try {
     switch (type) {
     case ML_LAYER_TYPE_INPUT:
       nnlayer->layer = std::make_shared<nntrainer::InputLayer>();
-      nnlayer->layer->setType(nntrainer::LAYER_IN);
       break;
     case ML_LAYER_TYPE_FC:
       nnlayer->layer = std::make_shared<nntrainer::FullyConnectedLayer>();
-      nnlayer->layer->setType(nntrainer::LAYER_FC);
       break;
     default:
       delete nnlayer;
@@ -220,8 +279,8 @@ int ml_nnlayer_create(ml_nnlayer_h *layer, ml_layer_type_e type) {
       status = ML_ERROR_INVALID_PARAMETER;
       break;
     }
-  } catch (const char *e) {
-    ml_loge("Error: heap exception: %s", e);
+  } catch (std::bad_alloc &e) {
+    ml_loge("Error: heap exception: %s", e.what());
     status = ML_ERROR_OUT_OF_MEMORY;
     delete nnlayer;
   }
@@ -260,7 +319,9 @@ int ml_nnlayer_set_property(ml_nnlayer_h layer, ...) {
   std::shared_ptr<nntrainer::Layer> NL;
   NL = nnlayer->layer;
 
-  status = NL->setProperty(arg_list);
+  returnable f = [&]() { return NL->setProperty(arg_list); };
+
+  status = nntrainer_exception_boundary(f);
 
   return status;
 }
@@ -272,8 +333,11 @@ int ml_nnoptimizer_create(ml_nnopt_h *opt, const char *type) {
   nnopt->optimizer = std::make_shared<nntrainer::Optimizer>();
   *opt = nnopt;
 
-  status = nnopt->optimizer->setType(
-    (nntrainer::OptType)parseType(type, nntrainer::TOKEN_OPT));
+  returnable f = [&]() {
+    return nnopt->optimizer->setType(
+      (nntrainer::OptType)parseType(type, nntrainer::TOKEN_OPT));
+  };
+  status = nntrainer_exception_boundary(f);
 
   if (status != ML_ERROR_NONE) {
     delete nnopt;
@@ -312,8 +376,12 @@ int ml_nnoptimizer_set_property(ml_nnopt_h opt, ...) {
 
   std::shared_ptr<nntrainer::Optimizer> Opt;
   Opt = nnopt->optimizer;
+  
+  returnable f = [&]() {
+    return Opt->setProperty(arg_list);
+  };
 
-  status = Opt->setProperty(arg_list);
+  status = nntrainer_exception_boundary(f);
 
   return status;
 }
