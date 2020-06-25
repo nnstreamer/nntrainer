@@ -44,24 +44,6 @@ TEST(nntrainer_DataBuffer, setFeatureSize_01_p) {
 /**
  * @brief Data Buffer
  */
-TEST(nntrainer_DataBuffer, setFeatureSize_02_n) {
-  int status = ML_ERROR_NONE;
-  nntrainer::DataBufferFromDataFile data_buffer;
-  nntrainer::TensorDim dim;
-  status = dim.setTensorDim("32:1:1:62720");
-  status = data_buffer.setClassNum(10);
-  EXPECT_EQ(status, ML_ERROR_NONE);
-  status = data_buffer.setDataFile("./trainingSet.dat", nntrainer::DATA_TRAIN);
-  EXPECT_EQ(status, ML_ERROR_NONE);
-  dim.width(0);
-  std::cout << dim.width() << std::endl;
-  status = data_buffer.setFeatureSize(dim);
-  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
-}
-
-/**
- * @brief Data Buffer
- */
 TEST(nntrainer_DataBuffer, setMiniBatch_01_p) {
   int status = ML_ERROR_NONE;
   nntrainer::DataBufferFromDataFile data_buffer;

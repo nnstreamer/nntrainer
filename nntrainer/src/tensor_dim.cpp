@@ -28,6 +28,11 @@ void TensorDim::resetLen() {
 }
 
 void TensorDim::setTensorDim(unsigned int idx, unsigned int value) {
+  if (value == 0) {
+    throw std::invalid_argument(
+      "[TensorDim] Trying to assign value of 0 to tensor dim");
+  }
+
   dim[idx] = value;
   resetLen();
 }
@@ -45,7 +50,7 @@ int TensorDim::setTensorDim(std::string input_shape) {
   }
   int cn = 0;
   for (std::sregex_iterator i = words_begin; i != words_end; ++i) {
-    dim[MAXDIM - cur_dim + cn] = std::stoi((*i).str());
+    setTensorDim(MAXDIM - cur_dim + cn, std::stoi((*i).str()));
     if (dim[MAXDIM - cur_dim + cn] <= 0) {
       ml_loge("Tensor Dimension should be greater than 0");
       return ML_ERROR_INVALID_PARAMETER;

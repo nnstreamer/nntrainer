@@ -34,11 +34,6 @@ namespace nntrainer {
  * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
  */
 int ActivationLayer::initialize(bool last) {
-  if (input_dim.batch() <= 0 || input_dim.height() <= 0 ||
-      input_dim.width() <= 0 || input_dim.channel() <= 0) {
-    ml_loge("Error: Dimension must be greater than 0");
-    return ML_ERROR_INVALID_PARAMETER;
-  }
 
   this->last_layer = last;
 

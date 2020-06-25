@@ -33,11 +33,6 @@ namespace nntrainer {
 
 int LossLayer::initialize(bool last) {
   int status = ML_ERROR_NONE;
-  if (input_dim.batch() <= 0 || input_dim.height() <= 0 ||
-      input_dim.width() <= 0 || input_dim.channel() <= 0) {
-    ml_loge("Error: Dimension must be greater than 0.");
-    return ML_ERROR_INVALID_PARAMETER;
-  }
 
   if (!last) {
     ml_loge("Error: Loss layer, if exists, must be the layer.");

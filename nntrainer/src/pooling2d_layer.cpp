@@ -26,11 +26,6 @@ int Pooling2DLayer::initialize(bool last) {
   if (input_dim.getDataLen() == 1) {
     ml_logw("Warning: the length of previous layer dimension is one");
   }
-  if (input_dim.batch() <= 0 || input_dim.height() <= 0 ||
-      input_dim.width() <= 0 || input_dim.channel() <= 0) {
-    ml_loge("Error: Dimension must be greater than 0");
-    return ML_ERROR_INVALID_PARAMETER;
-  }
 
   this->last_layer = last;
   output_dim.batch(input_dim.batch());
