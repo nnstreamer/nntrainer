@@ -108,8 +108,7 @@ TEST(nntrainer_NeuralNetwork, init_04_n) {
   nntrainer::NeuralNetwork NN;
   status = NN.setConfig("./test.ini");
   EXPECT_EQ(status, ML_ERROR_NONE);
-  status = NN.init();
-  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+  EXPECT_THROW(NN.init(), std::invalid_argument);
 }
 
 /**

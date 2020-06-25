@@ -58,11 +58,7 @@ int Layer::checkValidation() {
     ml_loge("Error: Have to set activation for this layer");
     return ML_ERROR_INVALID_PARAMETER;
   }
-  if (dim.batch() == 0 || dim.width() == 0 || dim.height() == 0 ||
-      dim.channel() == 0) {
-    ml_loge("Error: Tensor Dimension must be set before initialization");
-    return ML_ERROR_INVALID_PARAMETER;
-  }
+
   return status;
 }
 

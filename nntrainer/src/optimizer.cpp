@@ -60,10 +60,7 @@ int Optimizer::setOptParam(OptParam p) {
 
 int Optimizer::initialize(TensorDim d, bool set_tensor) {
   int status = ML_ERROR_NONE;
-  if (d.height() == 0 || d.width() == 0 || d.channel() == 0) {
-    ml_loge("Error: Tensor Dimension must be greater than 0");
-    return ML_ERROR_INVALID_PARAMETER;
-  }
+
   if (type == OptType::adam && set_tensor) {
     Tensor wm = Tensor(d.channel(), d.height(), d.width());
     Tensor wv = Tensor(d.channel(), d.height(), d.width());
@@ -81,8 +78,8 @@ int Optimizer::initialize(TensorDim d, bool set_tensor) {
 }
 
 void Optimizer::apply_gradients(
-    std::vector<std::reference_wrapper<Tensor>> &weights,
-    std::vector<std::reference_wrapper<Tensor>> &gradients, int iteration) {
+  std::vector<std::reference_wrapper<Tensor>> &weights,
+  std::vector<std::reference_wrapper<Tensor>> &gradients, int iteration) {
   if (weights.size() != gradients.size())
     throw std::runtime_error("Number of gradients and weights should match.");
 

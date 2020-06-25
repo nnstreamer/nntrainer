@@ -346,12 +346,6 @@ int DataBuffer::setMiniBatch(unsigned int size) {
 
 int DataBuffer::setFeatureSize(TensorDim indim) {
   int status = ML_ERROR_NONE;
-  if (indim.getFeatureLen() == 0) {
-    ml_loge("Error: batch size must be greater than 0");
-    SET_VALIDATION(false);
-    return ML_ERROR_INVALID_PARAMETER;
-  }
-
   input_dim = indim;
   return status;
 }

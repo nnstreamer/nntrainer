@@ -33,11 +33,6 @@ namespace nntrainer {
 
 int FullyConnectedLayer::initialize(bool last) {
   int status = ML_ERROR_NONE;
-  if (input_dim.batch() <= 0 || input_dim.height() <= 0 ||
-      input_dim.width() <= 0 || input_dim.channel() <= 0) {
-    ml_loge("Error: Dimension must be greater than 0");
-    return ML_ERROR_INVALID_PARAMETER;
-  }
 
   this->last_layer = last;
 
@@ -170,7 +165,8 @@ Tensor FullyConnectedLayer::backwarding(Tensor derivative, int iteration) {
   Tensor djdw = input.chain()
                   .transpose("0:2:1")
                   .dot(derivative)
-                  .applyIf(this->isWeightDecayL2Norm(), _LIFT(add_i), weight, weight_decay.lambda)
+                  .applyIf(this->isWeightDecayL2Norm(), _LIFT(add_i), weight,
+                           weight_decay.lambda)
                   .run();
 
   gradients.clear();
