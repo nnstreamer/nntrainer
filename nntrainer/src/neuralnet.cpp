@@ -57,7 +57,7 @@ static bool is_file_exist(std::string file_name) {
   return infile.good();
 }
 
-static int setWeightDecay(dictionary *ini, std::string layer_name,
+static int parseWeightDecay(dictionary *ini, std::string layer_name,
                           WeightDecayParam &weight_decay) {
   char unknown[] = "Unknown";
   int status = ML_ERROR_NONE;
@@ -94,11 +94,11 @@ std::vector<std::string> parseLayerName(std::string ll) {
 NeuralNetwork::NeuralNetwork() : NeuralNetwork("") {}
 
 NeuralNetwork::NeuralNetwork(std::string config) :
-  batch_size(0),
-  learning_rate(0.0),
+  batch_size(1),
+  learning_rate(0.01),
   decay_rate(0.0),
   decay_steps(0.0),
-  epoch(0),
+  epoch(1),
   loss(0.0),
   cost(COST_UNKNOWN),
   weight_ini(WEIGHT_UNKNOWN),
@@ -124,55 +124,74 @@ int NeuralNetwork::setConfig(std::string config) {
 
 int NeuralNetwork::init() {
   int status = ML_ERROR_NONE;
-  bool b_zero;
-  std::string l_type;
-  LayerType t;
   std::string ini_file = config;
+  int num_ini_sec = 0;
+  char unknown[] = "Unknown";
+  char model_name[] = "model.bin";
+  OptParam popt;
+  dictionary *ini;
+  std::vector<std::string> section_names;
+  std::vector<std::string>::iterator section_names_iter;
 
   if (ini_file.empty()) {
     ml_loge("Error: Configuration File is not defined");
     return ML_ERROR_INVALID_PARAMETER;
   }
 
-  dictionary *ini = iniparser_load(ini_file.c_str());
-  std::vector<int> hidden_size;
-  OptParam popt;
-
-  char unknown[] = "Unknown";
-  char model_name[] = "model.bin";
-
+  /** Parse ini file */
+  ini = iniparser_load(ini_file.c_str());
   if (ini == NULL) {
     ml_loge("Error: cannot parse file: %s\n", ini_file.c_str());
     return ML_ERROR_INVALID_PARAMETER;
   }
 
-  net_type = (nntrainer::NetType)parseType(
-    iniparser_getstring(ini, "Network:Type", unknown), TOKEN_NET);
-  std::vector<std::string> layers_name =
-    parseLayerName(iniparser_getstring(ini, "Network:Layers", ""));
-  if (!layers_name.size()) {
-    ml_loge("Error: There is no layer");
-    iniparser_freedict(ini);
+  /** Get number of sections in the file */
+  num_ini_sec = iniparser_getnsec(ini);
+  if (num_ini_sec < 0) {
+    ml_loge("Error: invalid number of sections.");
     return ML_ERROR_INVALID_PARAMETER;
   }
 
+  /** Get all the section names */
+  for (int idx = 0; idx < num_ini_sec; ++idx) {
+    const char *sec_name = iniparser_getsecname(ini, idx);
+    if (!sec_name) {
+      ml_loge("Error: Unable to retrieve section names from ini.");
+      return ML_ERROR_INVALID_PARAMETER;
+    }
+    std::string sec_name_lower(sec_name);
+    std::transform(sec_name_lower.begin(), sec_name_lower.end(), sec_name_lower.begin(),
+      [](unsigned char c){ return std::tolower(c); });
+    section_names.push_back(sec_name_lower);
+  }
+
+  /** Parse the Network section and its properties */
+  section_names_iter =
+    std::find(section_names.begin(), section_names.end(), "network");
+  if (section_names_iter == section_names.end()) {
+    ml_loge("Error: Network section not found in the .");
+    return ML_ERROR_INVALID_PARAMETER;
+  } else {
+    section_names.erase(section_names_iter);
+  }
+
+  net_type = (nntrainer::NetType)parseType(
+    iniparser_getstring(ini, "Network:Type", unknown), TOKEN_NET);
   learning_rate = iniparser_getdouble(ini, "Network:Learning_rate", 0.0);
   decay_rate = iniparser_getdouble(ini, "Network:Decay_rate", 0.0);
   decay_steps = iniparser_getint(ini, "Network:Decay_steps", -1);
-
-  popt.learning_rate = learning_rate;
-  popt.decay_steps = decay_steps;
-  popt.decay_rate = decay_rate;
   epoch = iniparser_getint(ini, "Network:Epoch", 100);
-  status = opt.setType((OptType)parseType(
-    iniparser_getstring(ini, "Network:Optimizer", unknown), TOKEN_OPT));
-  NN_INI_RETURN_STATUS();
-
   cost = (CostType)parseType(iniparser_getstring(ini, "Network:Cost", unknown),
                              TOKEN_COST);
   model = iniparser_getstring(ini, "Network:Model", model_name);
   batch_size = iniparser_getint(ini, "Network:Minibatch", 1);
 
+  status = opt.setType((OptType)parseType(
+    iniparser_getstring(ini, "Network:Optimizer", unknown), TOKEN_OPT));
+  NN_INI_RETURN_STATUS();
+  popt.learning_rate = learning_rate;
+  popt.decay_steps = decay_steps;
+  popt.decay_rate = decay_rate;
   popt.beta1 = iniparser_getdouble(ini, "Network:beta1", 0.0);
   popt.beta2 = iniparser_getdouble(ini, "Network:beta2", 0.0);
   popt.epsilon = iniparser_getdouble(ini, "Network:epsilon", 0.0);
@@ -180,62 +199,67 @@ int NeuralNetwork::init() {
   status = opt.setOptParam(popt);
   NN_INI_RETURN_STATUS();
 
-  for (unsigned int i = 0; i < layers_name.size(); i++)
-    ml_logi("%s", layers_name[i].c_str());
+  /** Parse the DataSet section */
+  section_names_iter =
+    std::find(section_names.begin(), section_names.end(), "dataset");
+  if (section_names_iter != section_names.end()) {
+    section_names.erase(section_names_iter);
 
-  loss = 100000.0;
+    if (iniparser_find_entry(ini, "DataSet:Tflite")) {
+      ml_loge("Error: Tflite dataset is not yet implemented!");
+      return ML_ERROR_INVALID_PARAMETER;
+    } else {
+      data_buffer = std::make_shared<DataBufferFromDataFile>();
+      std::shared_ptr<DataBufferFromDataFile> dbuffer =
+        std::static_pointer_cast<DataBufferFromDataFile>(data_buffer);
 
-  if (iniparser_find_entry(ini, "DataSet:TrainData")) {
-    data_buffer = std::make_shared<DataBufferFromDataFile>();
-
-    std::shared_ptr<DataBufferFromDataFile> dbuffer =
-      std::static_pointer_cast<DataBufferFromDataFile>(data_buffer);
-
-    status = dbuffer->setDataFile(
-      iniparser_getstring(ini, "DataSet:TrainData", ""), DATA_TRAIN);
-    NN_INI_RETURN_STATUS();
-    status = dbuffer->setDataFile(
-      iniparser_getstring(ini, "DataSet:ValidData", ""), DATA_VAL);
-    NN_INI_RETURN_STATUS();
-    status = dbuffer->setDataFile(
-      iniparser_getstring(ini, "DataSet:TestData", ""), DATA_TEST);
-    NN_INI_RETURN_STATUS();
-    status = dbuffer->setDataFile(
-      iniparser_getstring(ini, "DataSet:LabelData", ""), DATA_LABEL);
-    NN_INI_RETURN_STATUS();
-
-  } else if (iniparser_find_entry(ini, "DataSet:Tflite")) {
-    ml_loge("Error: Not yet implemented!");
-    return ML_ERROR_INVALID_PARAMETER;
+      status = dbuffer->setDataFile(
+          iniparser_getstring(ini, "DataSet:TrainData", ""), DATA_TRAIN);
+      NN_INI_RETURN_STATUS();
+      status = dbuffer->setDataFile(
+          iniparser_getstring(ini, "DataSet:ValidData", ""), DATA_VAL);
+      NN_INI_RETURN_STATUS();
+      status = dbuffer->setDataFile(
+          iniparser_getstring(ini, "DataSet:TestData", ""), DATA_TEST);
+      NN_INI_RETURN_STATUS();
+      status = dbuffer->setDataFile(
+          iniparser_getstring(ini, "DataSet:LabelData", ""), DATA_LABEL);
+      NN_INI_RETURN_STATUS();
+      status = data_buffer->setBufSize(
+          iniparser_getint(ini, "DataSet:BufferSize", batch_size));
+      NN_INI_RETURN_STATUS();
+    }
   } else {
     data_buffer = std::make_shared<DataBufferFromCallback>();
   }
 
+  /** Parse all the layers defined as sections in order */
   TensorDim previous_dim;
-  for (unsigned int i = 0; i < layers_name.size(); i++) {
+  for (section_names_iter = section_names.begin();
+      section_names_iter != section_names.end(); ++section_names_iter) {
     bool last = false;
-    l_type =
-      iniparser_getstring(ini, (layers_name[i] + ":Type").c_str(), unknown);
-    t = (LayerType)parseType(l_type, TOKEN_LAYER);
-    if (i == layers_name.size() - 1) {
-      last = true;
-    }
-    b_zero =
-      iniparser_getboolean(ini, (layers_name[i] + ":Bias_zero").c_str(), true);
+    std::string layer_name = *section_names_iter;
+    std::string layer_type_str =
+      iniparser_getstring(ini, (layer_name + ":Type").c_str(), unknown);
+    LayerType layer_type = (LayerType) parseType(layer_type_str, TOKEN_LAYER);
+    bool b_zero =
+      iniparser_getboolean(ini, (layer_name + ":Bias_zero").c_str(), true);
 
-    switch (t) {
+    last = (section_names_iter + 1) == section_names.end();
+
+    switch (layer_type) {
     case LAYER_IN: {
       std::shared_ptr<InputLayer> input_layer = std::make_shared<InputLayer>();
 
-      std::string previous_input_string = iniparser_getstring(
-        ini, (layers_name[i] + ":Input_Shape").c_str(), unknown);
+      std::string input_shape_str = iniparser_getstring(
+        ini, (layer_name + ":Input_Shape").c_str(), unknown);
 
-      if (previous_input_string == "Unknown") {
+      if (input_shape_str.compare("Unknown") == 0) {
         status = ML_ERROR_INVALID_PARAMETER;
         NN_INI_RETURN_STATUS();
       }
 
-      status = previous_dim.setTensorDim(previous_input_string);
+      status = previous_dim.setTensorDim(input_shape_str);
       NN_INI_RETURN_STATUS();
 
       input_layer->setInputDimension(previous_dim);
@@ -245,9 +269,9 @@ int NeuralNetwork::init() {
       input_layer->setBiasZero(b_zero);
 
       input_layer->setNormalization(iniparser_getboolean(
-        ini, (layers_name[i] + ":Normalization").c_str(), false));
+        ini, (layer_name + ":Normalization").c_str(), false));
       input_layer->setStandardization(iniparser_getboolean(
-        ini, (layers_name[i] + ":Standardization").c_str(), false));
+        ini, (layer_name + ":Standardization").c_str(), false));
       layers.push_back(input_layer);
     } break;
     case LAYER_CONV2D: {
@@ -256,39 +280,35 @@ int NeuralNetwork::init() {
       std::shared_ptr<Conv2DLayer> conv2d_layer =
         std::make_shared<Conv2DLayer>();
 
-      std::string previous_input_string = iniparser_getstring(
-        ini, (layers_name[i] + ":Input_Shape").c_str(), unknown);
+      std::string input_shape_str = iniparser_getstring(
+        ini, (layer_name + ":Input_Shape").c_str(), unknown);
 
-      if (previous_input_string.compare("Unknown") != 0) {
+      if (input_shape_str.compare("Unknown") != 0) {
         TensorDim d;
-        d.setTensorDim(previous_input_string);
-        previous_dim = d;
+        d.setTensorDim(input_shape_str);
+        conv2d_layer->setInputDimension(d);
+        if (section_names_iter != section_names.begin() && previous_dim != d) {
+          ml_loge("Error: %s layer input shape error.", layer_name.c_str());
+          status = ML_ERROR_INVALID_PARAMETER;
+          NN_INI_RETURN_STATUS();
+        }
+      } else if (section_names_iter == section_names.begin()) {
+        ml_loge("Error: %s layer input shape not specified.", layer_name.c_str());
+        status = ML_ERROR_INVALID_PARAMETER;
+        NN_INI_RETURN_STATUS();
+      } else {
+        conv2d_layer->setInputDimension(previous_dim);
       }
-
-      conv2d_layer->setInputDimension(previous_dim);
-      NN_INI_RETURN_STATUS();
 
       if (last) {
         status = conv2d_layer->setCost(cost);
         NN_INI_RETURN_STATUS();
       }
 
-      conv2d_layer->setBiasZero(b_zero);
-
-      conv2d_layer->setWeightInit((WeightIniType)parseType(
-        iniparser_getstring(ini, (layers_name[i] + ":WeightIni").c_str(),
-                            unknown),
-        TOKEN_WEIGHTINI));
-
-      status = setWeightDecay(ini, layers_name[i], weight_decay);
-      NN_INI_RETURN_STATUS();
-
-      conv2d_layer->setWeightDecay(weight_decay);
-
       status =
         getValues(CONV2D_DIM,
                   iniparser_getstring(
-                    ini, (layers_name[i] + ":kernel_size").c_str(), unknown),
+                    ini, (layer_name + ":kernel_size").c_str(), unknown),
                   (int *)size);
       NN_INI_RETURN_STATUS();
       status = conv2d_layer->setSize(size, Layer::PropertyType::kernel_size);
@@ -296,7 +316,7 @@ int NeuralNetwork::init() {
 
       status = getValues(
         CONV2D_DIM,
-        iniparser_getstring(ini, (layers_name[i] + ":stride").c_str(), unknown),
+        iniparser_getstring(ini, (layer_name + ":stride").c_str(), unknown),
         (int *)size);
       NN_INI_RETURN_STATUS();
       status = conv2d_layer->setSize(size, Layer::PropertyType::stride);
@@ -304,14 +324,29 @@ int NeuralNetwork::init() {
 
       status = getValues(CONV2D_DIM,
                          iniparser_getstring(
-                           ini, (layers_name[i] + ":padding").c_str(), unknown),
+                           ini, (layer_name + ":padding").c_str(), unknown),
                          (int *)size);
       NN_INI_RETURN_STATUS();
       status = conv2d_layer->setSize(size, Layer::PropertyType::padding);
       NN_INI_RETURN_STATUS();
 
       status = conv2d_layer->setFilter(
-        iniparser_getint(ini, (layers_name[i] + ":filter").c_str(), 0));
+        iniparser_getint(ini, (layer_name + ":filter").c_str(), 0));
+      NN_INI_RETURN_STATUS();
+
+      conv2d_layer->setBiasZero(b_zero);
+      conv2d_layer->setWeightInit((WeightIniType)parseType(
+        iniparser_getstring(ini, (layer_name + ":WeightIni").c_str(),
+                            unknown),
+        TOKEN_WEIGHTINI));
+
+      status = parseWeightDecay(ini, layer_name, weight_decay);
+      NN_INI_RETURN_STATUS();
+
+      conv2d_layer->setWeightDecay(weight_decay);
+      NN_INI_RETURN_STATUS();
+
+      status = conv2d_layer->setOptimizer(opt);
       NN_INI_RETURN_STATUS();
 
       status = conv2d_layer->initialize(last);
@@ -323,42 +358,53 @@ int NeuralNetwork::init() {
       std::shared_ptr<FullyConnectedLayer> fc_layer =
         std::make_shared<FullyConnectedLayer>();
 
-      fc_layer->setInputDimension(previous_dim);
+      std::string input_shape_str = iniparser_getstring(
+        ini, (layer_name + ":Input_Shape").c_str(), unknown);
 
-      fc_layer->setUnit(static_cast<unsigned int>(
-        iniparser_getint(ini, (layers_name[i] + ":Unit").c_str(), 0)));
+      if (input_shape_str.compare("Unknown") != 0) {
+        TensorDim d;
+        d.setTensorDim(input_shape_str);
+        fc_layer->setInputDimension(d);
+        if (section_names_iter != section_names.begin() && previous_dim != d) {
+          ml_loge("Error: %s layer input shape error.", layer_name.c_str());
+          status = ML_ERROR_INVALID_PARAMETER;
+          NN_INI_RETURN_STATUS();
+        }
+      } else if (section_names_iter == section_names.begin()) {
+        ml_loge("Error: %s layer input shape not specified.", layer_name.c_str());
+        status = ML_ERROR_INVALID_PARAMETER;
+        NN_INI_RETURN_STATUS();
+      } else {
+        fc_layer->setInputDimension(previous_dim);
+      }
 
       if (last) {
         status = fc_layer->setCost(cost);
         NN_INI_RETURN_STATUS();
       }
 
-      if (i == 0) {
-        ml_loge("Error: Fully Connected Layer should be after "
-                "InputLayer.");
-        return ML_ERROR_INVALID_PARAMETER;
-      }
+      fc_layer->setUnit(static_cast<unsigned int>(
+        iniparser_getint(ini, (layer_name + ":Unit").c_str(), 0)));
 
+      fc_layer->setBiasZero(b_zero);
       fc_layer->setWeightInit((WeightIniType)parseType(
-        iniparser_getstring(ini, (layers_name[i] + ":WeightIni").c_str(),
+        iniparser_getstring(ini, (layer_name + ":WeightIni").c_str(),
                             unknown),
         TOKEN_WEIGHTINI));
 
       status = fc_layer->initialize(last);
       NN_INI_RETURN_STATUS();
-      fc_layer->setBiasZero(b_zero);
 
-      status = fc_layer->setOptimizer(opt);
-      NN_INI_RETURN_STATUS();
-
-      status = setWeightDecay(ini, layers_name[i], weight_decay);
+      status = parseWeightDecay(ini, layer_name, weight_decay);
       NN_INI_RETURN_STATUS();
 
       fc_layer->setWeightDecay(weight_decay);
+
+      status = fc_layer->setOptimizer(opt);
+      NN_INI_RETURN_STATUS();
       layers.push_back(fc_layer);
     } break;
     case LAYER_BN: {
-      WeightDecayParam weight_decay;
       std::shared_ptr<BatchNormalizationLayer> bn_layer =
         std::make_shared<BatchNormalizationLayer>();
 
@@ -366,38 +412,33 @@ int NeuralNetwork::init() {
 
       status = bn_layer->initialize(last);
       NN_INI_RETURN_STATUS();
+
       bn_layer->setBiasZero(b_zero);
 
       status = bn_layer->setOptimizer(opt);
       NN_INI_RETURN_STATUS();
-      layers.push_back(bn_layer);
-      if (i == 0) {
-        ml_loge("Error: BN layer shouldn't be first layer of network");
-        return ML_ERROR_INVALID_PARAMETER;
-      }
+
       // fixme: deprecate this.
-      layers[i - 1]->setBNfollow(true);
+      layers.back()->setBNfollow(true);
+
+      layers.push_back(bn_layer);
       NN_INI_RETURN_STATUS();
-      status = setWeightDecay(ini, layers_name[i], weight_decay);
-      NN_INI_RETURN_STATUS();
-      bn_layer->setWeightDecay(weight_decay);
     } break;
     case LAYER_UNKNOWN:
+    default:
       ml_loge("Error: Unknown layer type");
       status = ML_ERROR_INVALID_PARAMETER;
-      break;
-    default:
+      NN_INI_RETURN_STATUS();
       break;
     }
     previous_dim = layers.back()->getOutputDimension();
 
     const char *acti_str = iniparser_getstring(
-      ini, (layers_name[i] + ":Activation").c_str(), unknown);
+      ini, (layer_name + ":Activation").c_str(), unknown);
     ActiType act = (ActiType)parseType(acti_str, TOKEN_ACTI);
 
     layers.back()->setActivation(act);
-
-    status = initActivationLayer(layers.back());
+    status = initActivationLayer(act);
     NN_INI_RETURN_STATUS();
   }
 
@@ -407,9 +448,6 @@ int NeuralNetwork::init() {
 
   status = data_buffer->setMiniBatch(batch_size);
   NN_INI_RETURN_STATUS();
-
-  status = data_buffer->setBufSize(
-    iniparser_getint(ini, "DataSet:BufferSize", batch_size));
 
   initialized = true;
   iniparser_freedict(ini);
@@ -429,7 +467,6 @@ int NeuralNetwork::initLossLayer() {
 
     std::shared_ptr<ActivationLayer> act_layer =
       std::static_pointer_cast<ActivationLayer>(layers.back());
-
     layers.pop_back();
 
     switch (act_layer->getActivationType()) {
@@ -550,30 +587,51 @@ int NeuralNetwork::init(std::shared_ptr<Optimizer> optimizer,
   status = setProperty(arg_list);
   NN_RETURN_STATUS();
 
-  loss = 10000.0;
+  /** Note: number of entries in layers will change. */
   for (unsigned int i = 0; i < layers.size(); ++i) {
     if (i == layers.size() - 1)
       last = true;
     switch (layers[i]->getType()) {
     case LAYER_IN:
-      layers[0]->initialize(last);
-      previous_dim = layers[0]->getOutputDimension();
-      NN_RETURN_STATUS();
+      layers[i]->initialize(last);
       break;
-    case LAYER_CONV2D:
+    case LAYER_CONV2D: {
+      std::shared_ptr<Conv2DLayer> conv2d_layer =
+        std::static_pointer_cast<Conv2DLayer>(layers[i]);
       if (i != 0) {
-        layers[i]->setInputDimension(previous_dim);
+        TensorDim def_init_dim;
+        if (def_init_dim == layers[i]->getInputDimension()) {
+          layers[i]->setInputDimension(previous_dim);
+        } else if (previous_dim != layers[i]->getInputDimension()) {
+          status = ML_ERROR_INVALID_PARAMETER;
+          ml_loge("Dimension mismatch between layers.");
+          NN_RETURN_STATUS();
+        }
       }
-      status = layers[i]->initialize(last);
-      NN_RETURN_STATUS();
 
       status = layers[i]->setCost(cost);
       NN_RETURN_STATUS();
-      break;
+
+      status = layers[i]->initialize(last);
+      NN_RETURN_STATUS();
+
+      status = conv2d_layer->setOptimizer(opt);
+      NN_RETURN_STATUS();
+
+    } break;
     case LAYER_FC: {
       std::shared_ptr<FullyConnectedLayer> fc_layer =
         std::static_pointer_cast<FullyConnectedLayer>(layers[i]);
-      layers[i]->setInputDimension(previous_dim);
+      if (i != 0) {
+        TensorDim def_init_dim;
+        if (def_init_dim == layers[i]->getInputDimension()) {
+          layers[i]->setInputDimension(previous_dim);
+        } else if (previous_dim != layers[i]->getInputDimension()) {
+          status = ML_ERROR_INVALID_PARAMETER;
+          ml_loge("Dimension mismatch between layers.");
+          NN_RETURN_STATUS();
+        }
+      }
 
       status = layers[i]->setCost(cost);
       NN_RETURN_STATUS();
@@ -587,17 +645,20 @@ int NeuralNetwork::init(std::shared_ptr<Optimizer> optimizer,
     } break;
     case LAYER_BN:
       layers[i]->setInputDimension(previous_dim);
+
       status = layers[i]->initialize(last);
       NN_RETURN_STATUS();
+
       status = layers[i]->setOptimizer(opt);
       NN_RETURN_STATUS();
+
       layers[i - 1]->setBNfollow(true);
       break;
     default:
       break;
     }
     previous_dim = layers[i]->getOutputDimension();
-    status = initActivationLayer(layers[i], i);
+    status = initActivationLayer(layers[i]->getActivationType(), i);
     NN_RETURN_STATUS();
   }
 
@@ -948,44 +1009,43 @@ int NeuralNetwork::addLayer(std::shared_ptr<Layer> layer) {
   return status;
 }
 
-std::shared_ptr<Layer>
-NeuralNetwork::_make_act_layer(std::shared_ptr<Layer> layer) {
-  ActiType act = layer->getActivationType();
-  if (act != ACT_UNKNOWN) {
-    if (layers.back()->getType() == LAYER_ACTIVATION) {
-      /* possible throw here? */
-      ml_logw("Activation defined right after activation");
-    }
+std::shared_ptr<Layer> NeuralNetwork::_make_act_layer(ActiType act) {
+  if (layers.back()->getType() == LAYER_ACTIVATION) {
+    /** User defined activation layer. Do not add another activation layer after this */
+    ml_loge("Error: double activation layers.");
+    return nullptr;
+  }
 
+  if (act != ACT_UNKNOWN) {
     std::shared_ptr<ActivationLayer> act_layer =
       std::make_shared<ActivationLayer>();
 
     act_layer->setActivation(act);
-
     return act_layer;
   }
 
   return nullptr;
 }
 
-int NeuralNetwork::initActivationLayer(std::shared_ptr<Layer> layer) {
-  std::shared_ptr<Layer> l = _make_act_layer(layer);
+int NeuralNetwork::initActivationLayer(ActiType act) {
+  std::shared_ptr<Layer> l = _make_act_layer(act);
   if (l != nullptr) {
     layers.push_back(l);
+    return ML_ERROR_NONE;
   }
 
-  return ML_ERROR_NONE;
+  return ML_ERROR_INVALID_PARAMETER;
 }
 
-int NeuralNetwork::initActivationLayer(std::shared_ptr<Layer> layer,
-                                       unsigned int &position) {
-  std::shared_ptr<Layer> l = _make_act_layer(layer);
+int NeuralNetwork::initActivationLayer(ActiType act, unsigned int &position) {
+  std::shared_ptr<Layer> l = _make_act_layer(act);
   if (l != nullptr) {
     layers.insert(layers.begin() + position + 1, l);
     position++;
+    return ML_ERROR_NONE;
   }
 
-  return ML_ERROR_NONE;
+  return ML_ERROR_INVALID_PARAMETER;
 }
 
 } /* namespace nntrainer */

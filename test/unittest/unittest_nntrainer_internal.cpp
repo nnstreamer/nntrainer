@@ -75,8 +75,7 @@ TEST(nntrainer_NeuralNetwork, init_01_p) {
 TEST(nntrainer_NeuralNetwork, init_02_n) {
   int status = ML_ERROR_NONE;
   RESET_CONFIG("./test.ini");
-  replaceString("Layers = inputlayer outputlayer", "", "./test.ini",
-                config_str);
+  replaceString("[Network]", "", "./test.ini", config_str);
   nntrainer::NeuralNetwork NN;
   status = NN.setConfig("./test.ini");
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -153,7 +152,7 @@ TEST(nntrainer_NeuralNetwork, init_07_p) {
   status = NN.setConfig("./test.ini");
   EXPECT_EQ(status, ML_ERROR_NONE);
   status = NN.init();
-  EXPECT_EQ(status, ML_ERROR_NONE);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
 /**
