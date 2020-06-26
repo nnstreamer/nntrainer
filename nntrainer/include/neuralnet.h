@@ -69,7 +69,10 @@ public:
   /**
    * @brief     Destructor of NeuralNetwork Class
    */
-  ~NeuralNetwork(){};
+  ~NeuralNetwork(){
+    iter = 0;
+    continue_train = false;
+  };
 
   /**
    * @brief     Get Loss
@@ -359,22 +362,27 @@ private:
 
   /**
    * @brief     Add activation layer to layers
-   *
    * @param[in] ActiType act Activation Type
    * @param[in/out] int Position position to insert activation layer.
    *                position++ when activation layer is inserted.
+   * @note layer is inserted at the back of layers
    */
-  int initActivationLayer(std::shared_ptr<Layer> layer, unsigned int &position);
+  int initActivationLayer(ActiType act, unsigned int &position);
+
+  /**
+   * @brief     Add activation layer to layers
+   * @param[in] ActiType act Activation Type
+   * @note layer is inserted at the back of layers
+   */
+  int initActivationLayer(ActiType act);
 
   /**
    * @brief     Add activation layer to layers
    *
-   * @param[in] ActiType act Activation Type, layer is inserted at the back of
-   * layers
+   * @param[in] ActiType act Activation Type
+   * @returns   Create activation layer
    */
-  int initActivationLayer(std::shared_ptr<Layer> layer);
-
-  std::shared_ptr<Layer> _make_act_layer(std::shared_ptr<Layer> layer);
+  std::shared_ptr<Layer> _make_act_layer(ActiType act);
 };
 
 } /* namespace nntrainer */

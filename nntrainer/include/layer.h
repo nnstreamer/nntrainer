@@ -123,7 +123,7 @@ public:
       type(LAYER_UNKNOWN),
       loss(0.0),
       cost(COST_UNKNOWN),
-      activation_type(ACT_UNKNOWN),
+      activation_type(ACT_NONE),
       bn_follow(false),
       weight_decay(),
       weight_ini_type(WEIGHT_UNKNOWN) {}

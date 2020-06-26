@@ -39,25 +39,29 @@ static std::mt19937 rng(0);
 
 /**
  * @brief replace string and save it in file
+ * @param[in] from string to be replaced
+ * @param[in] to string to be replaced to
+ * @param[in] file file to perform the action on
+ * @param[in] init_config file contents to be initialized with if file not found
  */
 void replaceString(const std::string &from, const std::string &to,
-                   const std::string n, std::string str) {
+                   const std::string file, std::string init_config) {
   size_t start_pos = 0;
   std::string s;
-  std::ifstream file_stream(n.c_str(), std::ifstream::in);
+  std::ifstream file_stream(file.c_str(), std::ifstream::in);
   if (file_stream.good()) {
     s.assign((std::istreambuf_iterator<char>(file_stream)),
              std::istreambuf_iterator<char>());
     file_stream.close();
   } else {
-    s = str;
+    s = init_config;
   }
   while ((start_pos = s.find(from, start_pos)) != std::string::npos) {
     s.replace(start_pos, from.length(), to);
     start_pos += to.length();
   }
 
-  std::ofstream data_file(n.c_str());
+  std::ofstream data_file(file.c_str());
   data_file << s;
   data_file.close();
 }
