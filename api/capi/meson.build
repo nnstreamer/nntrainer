@@ -1,7 +1,10 @@
 capi_inc = []
 capi_inc += include_directories('include')
 
-if not get_option('enable-tizen')
+# pc file is not present for 'ml-api-common' yet
+if cxx.has_header('nnstreamer/ml-api-common.h', required: false)
+  capi_inc += include_directories ('/usr/include/nnstreamer')
+else
   capi_inc += include_directories ('include/platform')
 endif
 

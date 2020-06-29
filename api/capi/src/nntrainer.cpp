@@ -20,7 +20,7 @@
  * @author Jijoong Moon <jijoong.moon@samsung.com>
  * @bug No known bugs except for NYI items
  */
-
+#include <ml-api-common.h>
 #include <neuralnet.h>
 #include <nntrainer_internal.h>
 #include <nntrainer_log.h>
@@ -50,7 +50,7 @@ static int nn_object(ml_nnmodel_h *model) {
     nnmodel->network = std::make_shared<nntrainer::NeuralNetwork>();
   } catch (const char *e) {
     ml_loge("Error: heap exception: %s", e);
-    status = ML_ERROR_CANNOT_ASSIGN_ADDRESS;
+    status = ML_ERROR_OUT_OF_MEMORY;
     delete nnmodel;
   }
 
@@ -222,7 +222,7 @@ int ml_nnlayer_create(ml_nnlayer_h *layer, ml_layer_type_e type) {
     }
   } catch (const char *e) {
     ml_loge("Error: heap exception: %s", e);
-    status = ML_ERROR_CANNOT_ASSIGN_ADDRESS;
+    status = ML_ERROR_OUT_OF_MEMORY;
     delete nnlayer;
   }
 
