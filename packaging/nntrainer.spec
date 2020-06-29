@@ -26,6 +26,7 @@ BuildRequires:	iniparser-devel
 BuildRequires:	gtest-devel
 BuildRequires:	python3
 BuildRequires:	python3-numpy
+BuildRequires:	capi-ml-common-devel
 
 # OpenAI interface
 

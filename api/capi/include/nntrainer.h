@@ -27,7 +27,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#include <tizen_error.h>
+#include <ml-api-common.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -54,22 +54,6 @@ typedef void *ml_nnlayer_h;
  * @since_tizen 6.x
  */
 typedef void *ml_nnopt_h;
-
-/**
- * @brief Enumeration for the error codes of NNTrainer.
- * @since_tizen 6.x
- */
-typedef enum {
-  ML_ERROR_NONE = TIZEN_ERROR_NONE,                                   /**< Success! */
-  ML_ERROR_INVALID_PARAMETER = TIZEN_ERROR_INVALID_PARAMETER,         /**< Invalid parameter */
-  ML_ERROR_UNKNOWN = TIZEN_ERROR_UNKNOWN,                             /**< Unknown error */
-  ML_ERROR_TIMED_OUT = TIZEN_ERROR_TIMED_OUT,                         /**< Time out */
-  ML_ERROR_NOT_SUPPORTED = TIZEN_ERROR_NOT_SUPPORTED,                 /**< The feature is not supported */
-  ML_ERROR_PERMISSION_DENIED = TIZEN_ERROR_PERMISSION_DENIED,         /**< Permission denied */
-  ML_ERROR_OUT_OF_MEMORY = TIZEN_ERROR_OUT_OF_MEMORY,                 /**< Out of memory (Since 6.0) */
-  ML_ERROR_CANNOT_ASSIGN_ADDRESS = TIZEN_ERROR_CANNOT_ASSIGN_ADDRESS, /**< Cannot assign requested address */
-  ML_ERROR_BAD_ADDRESS = TIZEN_ERROR_BAD_ADDRESS,                     /**< Bad Address */
-} ml_error_e;
 
 /**
  * @brief Enumeration for the neural network layer type of NNTrainer.
