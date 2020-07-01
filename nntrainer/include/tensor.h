@@ -31,13 +31,13 @@ extern "C" {
 }
 #endif
 
+#include <array>
 #include <cmath>
 #include <fstream>
 #include <iostream>
 #include <memory>
 #include <regex>
 #include <tensor_dim.h>
-#include <vector>
 
 namespace nntrainer {
 
@@ -48,31 +48,33 @@ class LazyTensor;
  */
 class Tensor {
 public:
-  /**
-   * @brief     Constructor of Tensor
-   */
-  Tensor() : _is_contiguous(true), dim(){};
+  Tensor(const TensorDim &d, float *buf = nullptr) :
+    dim(d),
+    strides{{1, 2, 3}},
+    is_contiguous(true),
+    data(new float[d.getDataLen()], std::default_delete<float[]>())
+    {
+    // todo: initialize appropriate strides
+    if (buf == nullptr) {
+      setZero();
+    } else {
+      float *data = getData();
+      unsigned int len = length();
+
+#ifdef USE_BLAS
+      cblas_scopy(len, buf, 1, data, 1);
+#else
+      for (unsigned int i = 0; i < len; ++i) {
+        data[i] = buf[i];
+      }
+#endif
+    }
+  }
 
   /**
-   * @brief     Constructor of Tensor with batch size one
-   * @param[in] dim TensorDim
+   * @brief     Basic Constructor of Tensor
    */
-  Tensor(const TensorDim dim);
-
-  /**
-   * @brief     Constructor of Tensor with batch size one
-   * @param[in] heihgt Height of Tensor
-   * @param[in] width Width of Tensor
-   */
-  Tensor(int height, int width);
-
-  /**
-   * @brief     Constructor of Tensor
-   * @param[in] channel Channel of Tensor
-   * @param[in] heihgt Height of Tensor
-   * @param[in] width Width of Tensor
-   */
-  Tensor(int channel, int height, int width);
+  Tensor() : Tensor(TensorDim()){};
 
   /**
    * @brief     Constructor of Tensor
@@ -81,19 +83,24 @@ public:
    * @param[in] heihgt Height of Tensor
    * @param[in] width Width of Tensor
    */
-  Tensor(int batch, int channel, int height, int width);
-
-  /**
-   * @brief   Constructor of Tensor
-   * @param[in] d data for the Tensor with batch size one
-   */
-  Tensor(std::vector<std::vector<float>> const &d);
+  Tensor(int batch, int channel, int height, int width) :
+    Tensor(TensorDim(batch, channel, height, width)){};
 
   /**
    * @brief     Constructor of Tensor
-   * @param[in] d data for the Tensor
+   * @param[in] channel Channel of Tensor
+   * @param[in] heihgt Height of Tensor
+   * @param[in] width Width of Tensor
    */
-  Tensor(std::vector<std::vector<std::vector<float>>> const &d);
+  Tensor(int channel, int height, int width) :
+    Tensor(1, channel, height, width){};
+
+  /**
+   * @brief     Constructor of Tensor with batch size one
+   * @param[in] heihgt Height of Tensor
+   * @param[in] width Width of Tensor
+   */
+  Tensor(int height, int width) : Tensor(1, 1, height, width){};
 
   /**
    * @brief     Constructor of Tensor
@@ -102,16 +109,62 @@ public:
   Tensor(std::vector<std::vector<std::vector<std::vector<float>>>> const &d);
 
   /**
-   * @brief     Comparison operator overload
-   * @param[in] rhs Tensor to be compared with
+   * @brief     Constructor of Tensor
+   * @note      This constructor copies vector again. needs refactoring
+   * @param[in] d data for the Tensor
    */
-  bool operator== (const Tensor &rhs) const;
+  Tensor(std::vector<std::vector<std::vector<float>>> const &d) :
+    Tensor(std::vector<std::decay<decltype(d)>::type>{d}){};
+
+  /**
+   * @brief     Constructor of Tensor
+   * @note      This constructor copies vector again. needs refactoring
+   * @param[in] d data for the Tensor with batch size one
+   */
+  Tensor(std::vector<std::vector<float>> const &d) :
+    Tensor(std::vector<std::decay<decltype(d)>::type>{d}){};
+
+  /**
+   *  @brief  Copy constructor of Tensor.
+   *  @note This can be safely reverted to default
+   *        after checking using _data as a pointer is safe for functions using
+   * Tensor.
+   *  @param[in] Tensor &
+   */
+  Tensor(const Tensor &rhs) : Tensor(rhs.dim, rhs.data.get()){};
+
+  /**
+   *  @brief  Move constructor of Tensor.
+   *  @param[in] Tensor &&
+   */
+  Tensor(Tensor &&rhs) noexcept = default;
+
+  /**
+   * @brief  Copy assignment operator.
+   * @param[in] rhs Tensor to be copied.
+   */
+  // todo: refactor operator= to consider allocated size for the data
+  Tensor &operator=(const Tensor &rhs);
+
+  /**
+   * @brief  Move assignment operator.
+   * @parma[in] rhs Tensor to be moved.
+   */
+  Tensor &operator=(Tensor &&rhs) noexcept;
+
+  void swap(Tensor &lhs, Tensor &rhs) noexcept;
 
   /**
    * @brief     Comparison operator overload
    * @param[in] rhs Tensor to be compared with
    */
-  bool operator!= (const Tensor &rhs) const { return !(*this == rhs); }
+  bool operator==(const Tensor &rhs) const;
+
+  /**
+   * @brief     Comparison operator overload
+   * @param[in] rhs Tensor to be compared with
+   */
+  bool operator!=(const Tensor &rhs) const { return !(*this == rhs); }
 
   /**
    * @brief     return value at specific location
@@ -365,12 +418,16 @@ public:
   int getBatch() const { return dim.batch(); };
 
   /**
+   * @brief     Get length of current _data
+   * @retval    unsigned int length of the current _data
+   */
+  unsigned int length() const { return dim.getDataLen(); }
+
+  /**
    * @brief     Get size of the data
    * @retval    size_t Size in bytes
    */
-  size_t getSize() const {
-    return dim.getDataLen() * sizeof(decltype(data)::value_type);
-  }
+  size_t getSize() const { return length() * sizeof(float); }
 
   /**
    * @brief     Set the element value
@@ -408,7 +465,7 @@ public:
    * @param[in] from Tensor to be Copyed
    * @retval    Matix
    */
-  Tensor &copy(Tensor const &from);
+  Tensor &copy(Tensor &from);
 
   /**
    * @brief     Save the Tensor into file
@@ -462,9 +519,9 @@ public:
    * @brief     return Data pointer of Tensor
    * @retval    float pointer
    */
-  float *getData() { return data.data(); }
+  float *getData() { return data.get(); }
 
-  const float *getData() const { return data.data(); }
+  const float *getData() const { return data.get(); }
 
   /**
    * @brief     i data index
@@ -485,20 +542,20 @@ public:
    *            on this tensor
    * @retval    bool is contigous
    */
-  const bool isContiguous() const noexcept { return _is_contiguous; }
+  const bool isContiguous() const noexcept { return is_contiguous; }
 
   /**
    * @brief     return current stride of tensor.
    * @retval    int[MAXDIM] strides
    */
-  const int *strides() const noexcept { return _strides; }
+  const std::array<int, MAXDIM> getStrides() const noexcept { return strides; }
 
 private:
-  /**< handle the data as a std::vector type */
-  std::vector<float> data;
-  int _strides[MAXDIM];
-  bool _is_contiguous;
+  /**< handle the data as a std::shared_ptr<float> type */
   TensorDim dim;
+  std::array<int, MAXDIM> strides;
+  bool is_contiguous;
+  std::shared_ptr<float> data;
 
   static constexpr float min_limits = std::numeric_limits<float>::min();
   static constexpr float max_limits = std::numeric_limits<float>::max();
