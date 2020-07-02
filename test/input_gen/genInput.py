@@ -42,6 +42,11 @@ def save(filename, data):
     print(data.shape, " data is generated")
 
 ##
+# @brief generate random tensor
+def gen_tensor(shape, dtype=None):
+  return np.random.random_sample(input_shape)
+
+##
 # @brief generate random data and save
 # @param[in] outfile_name outfile_name
 # @param[in] batch batch size
@@ -51,7 +56,7 @@ def save(filename, data):
 # @return data generted data
 
 def gen_input(outfile_name, input_shape, savefile=True):
-    x=np.random.random_sample(input_shape)
+    x=gen_tensor(input_shape)
     if savefile:
         save(outfile_name, x)
     return x
@@ -188,6 +193,46 @@ def fc_tf(x, kernel, label, bias, activation, train=False, loss='mse', opt='sgd'
                     print(tf_outs[1][1])
 
     return tf_outs
+  
+##
+# tested with tf 1.14.0
+# @param[in] x input
+# @param[in] trainable
+# @return bn output, [updated_gamma, updated_beta], grad_result (0. dx / 1. gamma / 2. beta / 3. mean / 4. variance)
+# for updated_gamma, updated_beta, x <- x - grad is used for easier calculation
+def bn_tf(x, trainable=False):
+    tf.compat.v1.reset_default_graph()
+    tf_input = tf.compat.v1.placeholder(
+        dtype=dtypes.float32, shape=x.shape, name='input')
+
+    bnlayer = tf.keras.layers.BatchNormalization(
+        axis=0,
+        trainable=trainable,
+        gamma_initializer=gen_tensor,
+        beta_initializer=gen_tensor)(tf_input)
+
+    bn_variables = tf.compat.v1.get_collection(tf.GraphKeys.GLOBAL_VARIABLES,
+                                               scope='batch_normalization')
+    input_variables = [tf_input] + bn_variables
+
+    grad = tf.gradients(bnlayer, input_variables)
+
+    with tf.compat.v1.Session() as sess:
+        sess.run(tf.compat.v1.global_variables_initializer())
+        bn_result = sess.run(bnlayer, feed_dict={tf_input: x})
+        grad_result = sess.run(grad, feed_dict={tf_input: x})
+        updated_gamma = sess.run(input_variables[1] - grad_result[1])
+        updated_beta = sess.run(input_variables[1] - grad_result[2])
+
+    if DEBUG:
+        print(x[0], bn_result[0])
+        print("updated_gamma: %s" % updated_gamma)
+        print("updated_beta: %s" % updated_beta)
+        for item, input_variable in zip(grad_result, input_variables):
+            print(input_variable.name)
+            print(item[0])
+
+    return bn_result, [updated_gamma, updated_beta], grad_result
 
 def gen_test_case_conv(i_b, i_c, i_h, i_w, k_c, k_h, k_w, padding, stride, bias, base_name):
     x=gen_input(base_name+"conv2DLayer.in", [i_b, i_c, i_h, i_w])
@@ -219,6 +264,9 @@ def gen_test_case_fc(input_shape, kernel_shape, base_name):
 
     golden_fc = fc_tf(input_data, kernel, None, bias, activation=tf.nn.softmax)
     save(base_name + "goldenFCResultSoftmax.out", golden_fc[0])
+
+def get_test_case_bn(input_shape, training=False):
+    pass
 
 if __name__ == "__main__":
     target = int(sys.argv[1])
