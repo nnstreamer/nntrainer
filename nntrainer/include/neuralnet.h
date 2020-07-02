@@ -36,6 +36,7 @@
 #include <layer.h>
 #include <loss_layer.h>
 #include <optimizer.h>
+#include <pooling2d_layer.h>
 #include <tensor.h>
 #include <vector>
 
@@ -70,7 +71,7 @@ public:
   /**
    * @brief     Destructor of NeuralNetwork Class
    */
-  ~NeuralNetwork(){
+  ~NeuralNetwork() {
     iter = 0;
     continue_train = false;
   };

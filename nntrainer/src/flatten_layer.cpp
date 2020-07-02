@@ -34,12 +34,11 @@ int FlattenLayer::initialize(bool last) {
   output_dim.height(1);
   output_dim.width(input_dim.getFeatureLen());
 
-  hidden = Tensor(output_dim);
-
   return status;
 }
 
 Tensor FlattenLayer::forwarding(Tensor in, int &status) {
+  hidden = Tensor(output_dim);
   memcpy(hidden.getData(), in.getData(),
          in.getDim().getDataLen() * sizeof(float));
 
@@ -56,6 +55,10 @@ Tensor FlattenLayer::backwarding(Tensor in, int iteration) {
   return ret;
 }
 
+int FlattenLayer::setProperty(std::vector<std::string> values) {
+  return ML_ERROR_NOT_SUPPORTED;
+};
+
 void FlattenLayer::copy(std::shared_ptr<Layer> l) {
   std::shared_ptr<FlattenLayer> from =
     std::static_pointer_cast<FlattenLayer>(l);
@@ -65,10 +68,6 @@ void FlattenLayer::copy(std::shared_ptr<Layer> l) {
   this->input_dim = from->input_dim;
   this->output_dim = from->output_dim;
   this->last_layer = from->last_layer;
-}
-
-int FlattenLayer::setProperty(std::vector<std::string> values) {
-  return ML_ERROR_NOT_SUPPORTED;
 }
 
 } /* namespace nntrainer */

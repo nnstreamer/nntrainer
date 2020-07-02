@@ -117,7 +117,17 @@ int Conv2DLayer::setOptimizer(Optimizer &opt) {
   if (status != ML_ERROR_NONE)
     return status;
 
-  return this->opt.initialize(dim, true);
+  std::vector<Tensor> list_d;
+  for (unsigned int i = 0; i < filter_size; ++i) {
+    for (unsigned int j = 0; j < 2; ++j) {
+      list_d.push_back(Tensor(dim));
+    }
+    for (unsigned int j = 0; j < 2; ++j) {
+      list_d.push_back(Tensor(1, 1, 1));
+    }
+  }
+
+  return this->opt.initialize(list_d, true);
 }
 
 Tensor Conv2DLayer::backwarding(Tensor derivative, int iteration) {

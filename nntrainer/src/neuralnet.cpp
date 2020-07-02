@@ -58,7 +58,7 @@ static bool is_file_exist(std::string file_name) {
 }
 
 static int parseWeightDecay(dictionary *ini, std::string layer_name,
-                          WeightDecayParam &weight_decay) {
+                            WeightDecayParam &weight_decay) {
   char unknown[] = "Unknown";
   int status = ML_ERROR_NONE;
   weight_decay.type = (WeightDecayType)parseType(
@@ -113,7 +113,6 @@ int NeuralNetwork::setConfig(std::string config) {
     ml_loge("Error: Cannot open model configuration file");
     return ML_ERROR_INVALID_PARAMETER;
   }
-
   this->config = config;
 
   return status;
@@ -156,8 +155,9 @@ int NeuralNetwork::init() {
       return ML_ERROR_INVALID_PARAMETER;
     }
     std::string sec_name_lower(sec_name);
-    std::transform(sec_name_lower.begin(), sec_name_lower.end(), sec_name_lower.begin(),
-      [](unsigned char c){ return std::tolower(c); });
+    std::transform(sec_name_lower.begin(), sec_name_lower.end(),
+                   sec_name_lower.begin(),
+                   [](unsigned char c) { return std::tolower(c); });
     section_names.push_back(sec_name_lower);
   }
 
@@ -214,19 +214,19 @@ int NeuralNetwork::init() {
         std::static_pointer_cast<DataBufferFromDataFile>(data_buffer);
 
       status = dbuffer->setDataFile(
-          iniparser_getstring(ini, "DataSet:TrainData", ""), DATA_TRAIN);
+        iniparser_getstring(ini, "DataSet:TrainData", ""), DATA_TRAIN);
       NN_INI_RETURN_STATUS();
       status = dbuffer->setDataFile(
-          iniparser_getstring(ini, "DataSet:ValidData", ""), DATA_VAL);
+        iniparser_getstring(ini, "DataSet:ValidData", ""), DATA_VAL);
       NN_INI_RETURN_STATUS();
       status = dbuffer->setDataFile(
-          iniparser_getstring(ini, "DataSet:TestData", ""), DATA_TEST);
+        iniparser_getstring(ini, "DataSet:TestData", ""), DATA_TEST);
       NN_INI_RETURN_STATUS();
       status = dbuffer->setDataFile(
-          iniparser_getstring(ini, "DataSet:LabelData", ""), DATA_LABEL);
+        iniparser_getstring(ini, "DataSet:LabelData", ""), DATA_LABEL);
       NN_INI_RETURN_STATUS();
       status = data_buffer->setBufSize(
-          iniparser_getint(ini, "DataSet:BufferSize", batch_size));
+        iniparser_getint(ini, "DataSet:BufferSize", batch_size));
       NN_INI_RETURN_STATUS();
     }
   } else {
@@ -236,12 +236,12 @@ int NeuralNetwork::init() {
   /** Parse all the layers defined as sections in order */
   TensorDim previous_dim;
   for (section_names_iter = section_names.begin();
-      section_names_iter != section_names.end(); ++section_names_iter) {
+       section_names_iter != section_names.end(); ++section_names_iter) {
     bool last = false;
     std::string layer_name = *section_names_iter;
     std::string layer_type_str =
       iniparser_getstring(ini, (layer_name + ":Type").c_str(), unknown);
-    LayerType layer_type = (LayerType) parseType(layer_type_str, TOKEN_LAYER);
+    LayerType layer_type = (LayerType)parseType(layer_type_str, TOKEN_LAYER);
     bool b_zero =
       iniparser_getboolean(ini, (layer_name + ":bias_init_zero").c_str(), true);
 
@@ -293,7 +293,8 @@ int NeuralNetwork::init() {
           NN_INI_RETURN_STATUS();
         }
       } else if (section_names_iter == section_names.begin()) {
-        ml_loge("Error: %s layer input shape not specified.", layer_name.c_str());
+        ml_loge("Error: %s layer input shape not specified.",
+                layer_name.c_str());
         status = ML_ERROR_INVALID_PARAMETER;
         NN_INI_RETURN_STATUS();
       } else {
@@ -326,6 +327,7 @@ int NeuralNetwork::init() {
           iniparser_getstring(
             ini, (layer_name + ":padding").c_str(), getValues({0,0})),
           (int *)size);
+      
       NN_INI_RETURN_STATUS();
       status = conv2d_layer->setSize(size, Layer::PropertyType::padding);
       NN_INI_RETURN_STATUS();
@@ -346,13 +348,72 @@ int NeuralNetwork::init() {
       conv2d_layer->setWeightDecay(weight_decay);
       NN_INI_RETURN_STATUS();
 
+      status = conv2d_layer->initialize(last);
+      NN_INI_RETURN_STATUS();
+
       status = conv2d_layer->setOptimizer(opt);
       NN_INI_RETURN_STATUS();
 
-      status = conv2d_layer->initialize(last);
-      NN_INI_RETURN_STATUS();
       layers.push_back(conv2d_layer);
     } break;
+
+    case LAYER_POOLING2D: {
+      int size[POOLING2D_DIM];
+      std::shared_ptr<Pooling2DLayer> pooling2d_layer =
+        std::make_shared<Pooling2DLayer>();
+
+      pooling2d_layer->setInputDimension(previous_dim);
+
+      status = getValues(
+        POOLING2D_DIM,
+        iniparser_getstring(ini, (layer_name + ":pooling_size").c_str(),
+                            getValues({1, 1})),
+        (int *)size);
+
+      NN_INI_RETURN_STATUS();
+      status =
+        pooling2d_layer->setSize(size, Layer::PropertyType::pooling_size);
+
+      NN_INI_RETURN_STATUS();
+      status =
+        getValues(POOLING2D_DIM,
+                  iniparser_getstring(ini, (layer_name + ":stride").c_str(),
+                                      getValues({1, 1})),
+                  (int *)size);
+      NN_INI_RETURN_STATUS();
+      status = pooling2d_layer->setSize(size, Layer::PropertyType::stride);
+      NN_INI_RETURN_STATUS();
+      status =
+        getValues(POOLING2D_DIM,
+                  iniparser_getstring(ini, (layer_name + ":padding").c_str(),
+                                      getValues({0, 0})),
+                  (int *)size);
+      NN_INI_RETURN_STATUS();
+      status = pooling2d_layer->setSize(size, Layer::PropertyType::padding);
+      NN_INI_RETURN_STATUS();
+
+      pooling2d_layer->setPoolingType(
+        (nntrainer::Pooling2DLayer::PoolingType)parseType(
+          iniparser_getstring(ini, (layer_name + ":pooling").c_str(),
+                              "average"),
+          TOKEN_POOLING));
+
+      status = pooling2d_layer->initialize(last);
+      NN_INI_RETURN_STATUS();
+      layers.push_back(pooling2d_layer);
+    } break;
+
+    case LAYER_FLATTEN: {
+      std::shared_ptr<FlattenLayer> flatten_layer =
+        std::make_shared<FlattenLayer>();
+
+      flatten_layer->setInputDimension(previous_dim);
+
+      status = flatten_layer->initialize(last);
+      NN_INI_RETURN_STATUS();
+      layers.push_back(flatten_layer);
+    } break;
+
     case LAYER_FC: {
       WeightDecayParam weight_decay;
       std::shared_ptr<FullyConnectedLayer> fc_layer =
@@ -371,7 +432,8 @@ int NeuralNetwork::init() {
           NN_INI_RETURN_STATUS();
         }
       } else if (section_names_iter == section_names.begin()) {
-        ml_loge("Error: %s layer input shape not specified.", layer_name.c_str());
+        ml_loge("Error: %s layer input shape not specified.",
+                layer_name.c_str());
         status = ML_ERROR_INVALID_PARAMETER;
         NN_INI_RETURN_STATUS();
       } else {
@@ -433,8 +495,8 @@ int NeuralNetwork::init() {
     }
 
     /** Add activation layer */
-    const char *acti_str = iniparser_getstring(
-      ini, (layer_name + ":Activation").c_str(), unknown);
+    const char *acti_str =
+      iniparser_getstring(ini, (layer_name + ":Activation").c_str(), unknown);
     ActiType act = (ActiType)parseType(acti_str, TOKEN_ACTI);
 
     layers.back()->setActivation(act);
@@ -628,6 +690,44 @@ int NeuralNetwork::init(std::shared_ptr<Optimizer> optimizer,
       NN_RETURN_STATUS();
 
     } break;
+
+    case LAYER_POOLING2D: {
+      std::shared_ptr<Pooling2DLayer> pooling2d_layer =
+        std::static_pointer_cast<Pooling2DLayer>(layers[i]);
+      if (i != 0) {
+        TensorDim def_init_dim;
+        if (def_init_dim == layers[i]->getInputDimension()) {
+          layers[i]->setInputDimension(previous_dim);
+        } else if (previous_dim != layers[i]->getInputDimension()) {
+          status = ML_ERROR_INVALID_PARAMETER;
+          ml_loge("Dimension mismatch between layers.");
+          NN_RETURN_STATUS();
+        }
+      }
+
+      status = layers[i]->initialize(last);
+      NN_RETURN_STATUS();
+
+    } break;
+
+    case LAYER_FLATTEN: {
+      std::shared_ptr<FlattenLayer> flatten_layer =
+        std::static_pointer_cast<FlattenLayer>(layers[i]);
+      if (i != 0) {
+        TensorDim def_init_dim;
+        if (def_init_dim == layers[i]->getInputDimension()) {
+          layers[i]->setInputDimension(previous_dim);
+        } else if (previous_dim != layers[i]->getInputDimension()) {
+          status = ML_ERROR_INVALID_PARAMETER;
+          ml_loge("Dimension mismatch between layers.");
+          NN_RETURN_STATUS();
+        }
+      }
+
+      status = layers[i]->initialize(last);
+      NN_RETURN_STATUS();
+    } break;
+
     case LAYER_FC: {
       std::shared_ptr<FullyConnectedLayer> fc_layer =
         std::static_pointer_cast<FullyConnectedLayer>(layers[i]);
@@ -920,6 +1020,8 @@ int NeuralNetwork::train_run() {
       }
     }
 
+    int count = 0;
+
     while (true) {
       vec_4d in, label;
       if (data_buffer->getDataFromBuffer(nntrainer::BUF_TRAIN, in, label)) {
@@ -931,7 +1033,7 @@ int NeuralNetwork::train_run() {
           return status;
         }
         std::cout << "#" << i + 1 << "/" << epoch;
-        data_buffer->displayProgress(iter, nntrainer::BUF_TRAIN, getLoss());
+        data_buffer->displayProgress(count++, nntrainer::BUF_TRAIN, getLoss());
       } else {
         data_buffer->clear(nntrainer::BUF_TRAIN);
         break;
@@ -1022,10 +1124,11 @@ int NeuralNetwork::addLayer(std::shared_ptr<Layer> layer) {
   return status;
 }
 
-std::shared_ptr<Layer> NeuralNetwork::_make_act_layer(ActiType act,
-    std::shared_ptr<Layer> prev) {
+std::shared_ptr<Layer>
+NeuralNetwork::_make_act_layer(ActiType act, std::shared_ptr<Layer> prev) {
   if (layers.back()->getType() == LAYER_ACTIVATION) {
-    /** User defined activation layer. Do not add another activation layer after this */
+    /** User defined activation layer. Do not add another activation layer after
+     * this */
     ml_loge("Error: double activation layers.");
     return nullptr;
   }

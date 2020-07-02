@@ -158,6 +158,17 @@ public:
   int initialize(TensorDim d, bool setTensor);
 
   /**
+   * @brief     initialize optimizer. Initialize Weight if it is adam
+   * @param[in] list_d TensorDim list (in an order of W0, B0, W1, B1, etc.)
+   * @param[in] setTensor true if the layer need weight update.
+   *            Input Layer and Batch Normalization layer won't need it.
+   *            Therefore, it sets false.
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  int initialize(std::vector<Tensor> list_d, bool setTensor);
+
+  /**
    * @brief     apply gradient to weights
    * @param[in] weights vector of weights
    * @param[in] gradients vector of corresponding gradients
