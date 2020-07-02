@@ -47,7 +47,7 @@ int FullyConnectedLayer::initialize(bool last) {
   output_dim = input_dim;
   output_dim.width(unit);
 
-  if (init_zero) {
+  if (bias_init_zero) {
     bias.setZero();
   } else {
     bias.setRandUniform(-0.5, 0.5);
@@ -79,12 +79,16 @@ int FullyConnectedLayer::setProperty(std::vector<std::string> values) {
       unit = width;
       output_dim.width(unit);
     } break;
-    case PropertyType::bias_zero: {
-      status = setBoolean(init_zero, value);
+    case PropertyType::bias_init_zero: {
+      status = setBoolean(this->bias_init_zero, value);
       NN_RETURN_STATUS();
     } break;
     case PropertyType::activation:
       status = setActivation((ActiType)parseType(value, TOKEN_ACTI));
+      NN_RETURN_STATUS();
+      break;
+    case PropertyType::flatten:
+      status = setBoolean(flatten, value);
       NN_RETURN_STATUS();
       break;
     case PropertyType::weight_decay:

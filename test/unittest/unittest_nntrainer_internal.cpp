@@ -264,6 +264,21 @@ TEST(nntrainer_Conv2DLayer, initialize_01_p) {
 }
 
 /**
+ * @brief Flatten Layer
+ */
+TEST(nntrainer_Conv2DLayer, initialize_02_p) {
+  int status = ML_ERROR_NONE;
+  std::string config_file = "./test.ini";
+  RESET_CONFIG(config_file.c_str());
+  replaceString("flatten = false", "flatten = true", config_file, config_str2);
+  nntrainer::NeuralNetwork NN;
+  status = NN.setConfig(config_file);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = NN.init();
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
  * @brief Main gtest
  */
 int main(int argc, char **argv) {

@@ -438,7 +438,7 @@ TEST(nntrainer_Conv2DLayer, setProperty_01_p) {
   std::vector<std::string> input_str;
 
   input_str.push_back("input_shape=32:3:28:28");
-  input_str.push_back("bias_zero=true");
+  input_str.push_back("bias_init_zero=true");
   input_str.push_back("activation=sigmoid");
   input_str.push_back("weight_decay=l2norm");
   input_str.push_back("weight_decay_lambda = 0.005");
@@ -464,7 +464,7 @@ TEST(nntrainer_Conv2DLayer, initialize_01_p) {
   previous_dim.setTensorDim("32:3:28:28");
 
   input_str.push_back("input_shape=32:3:28:28");
-  input_str.push_back("bias_zero=true");
+  input_str.push_back("bias_init_zero=true");
   input_str.push_back("activation=sigmoid");
   input_str.push_back("weight_decay=l2norm");
   input_str.push_back("weight_decay_lambda = 0.005");
@@ -493,7 +493,7 @@ TEST(nntrainer_Conv2DLayer, save_read_01_p) {
   previous_dim.setTensorDim("32:3:28:28");
 
   input_str.push_back("input_shape=32:3:28:28");
-  input_str.push_back("bias_zero=true");
+  input_str.push_back("bias_init_zero=true");
   input_str.push_back("activation=sigmoid");
   input_str.push_back("weight_decay=l2norm");
   input_str.push_back("weight_decay_lambda = 0.005");
@@ -542,7 +542,7 @@ TEST(nntrainer_Conv2DLayer, forwarding_01_p) {
   previous_dim.setTensorDim("1:3:7:7");
 
   input_str.push_back("input_shape=1:3:7:7");
-  input_str.push_back("bias_zero=true");
+  input_str.push_back("bias_init_zero=true");
   input_str.push_back("weight_decay=l2norm");
   input_str.push_back("weight_decay_lambda = 0.005");
   input_str.push_back("weight_ini=xavier_uniform");
@@ -595,7 +595,7 @@ TEST(nntrainer_Conv2DLayer, forwarding_02_p) {
   previous_dim.setTensorDim("2:3:7:7");
 
   input_str.push_back("input_shape=2:3:7:7");
-  input_str.push_back("bias_zero=true");
+  input_str.push_back("bias_init_zero=true");
   input_str.push_back("weight_decay=l2norm");
   input_str.push_back("weight_decay_lambda = 0.005");
   input_str.push_back("weight_ini=xavier_uniform");
@@ -650,7 +650,7 @@ TEST(nntrainer_Conv2D, backwarding_01_p) {
   previous_dim.setTensorDim("1:3:7:7");
 
   input_str.push_back("input_shape=1:3:7:7");
-  input_str.push_back("bias_zero=true");
+  input_str.push_back("bias_init_zero=true");
   input_str.push_back("weight_decay=l2norm");
   input_str.push_back("weight_decay_lambda = 0.005");
   input_str.push_back("weight_ini=xavier_uniform");

@@ -46,6 +46,7 @@ namespace nntrainer {
  *            5. WEIGHTINI  ( Weight Initialization Token )
  *            7. WEIGHT_DECAY  ( Weight Decay Token )
  *            8. PADDING  ( Padding Token )
+ *            9. POOLING  ( Pooling Token )
  *            9. UNKNOWN
  */
 typedef enum {

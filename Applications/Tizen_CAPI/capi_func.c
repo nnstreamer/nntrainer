@@ -291,7 +291,7 @@ main (int argc, char *argv[])
   /* set property for input layer */
   status =
       ml_nnlayer_set_property (layers[0], "input_shape= 32:1:1:62720",
-      "normalization=true", "bias_zero=true", NULL);
+      "normalization=true", "bias_init_zero=true", NULL);
   NN_RETURN_STATUS ();
 
   /* add input layer into model */
@@ -304,7 +304,7 @@ main (int argc, char *argv[])
 
   /* set property for fc layer */
   status = ml_nnlayer_set_property (layers[1], "unit= 10", "activation=softmax",
-      "bias_zero=true", "weight_decay=l2norm",
+      "bias_init_zero=true", "weight_decay=l2norm",
       "weight_decay_lambda=0.005", "weight_ini=xavier_uniform", NULL);
   NN_RETURN_STATUS ();
 

@@ -51,8 +51,8 @@ int InputLayer::setProperty(std::vector<std::string> values) {
       status = input_dim.setTensorDim(value.c_str());
       NN_RETURN_STATUS();
       break;
-    case PropertyType::bias_zero:
-      status = setBoolean(init_zero, value);
+    case PropertyType::bias_init_zero:
+      status = setBoolean(bias_init_zero, value);
       NN_RETURN_STATUS();
       break;
     case PropertyType::normalization:
