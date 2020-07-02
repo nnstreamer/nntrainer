@@ -87,7 +87,7 @@ TEST(nntrainer_capi_nnlayer, setproperty_02_p) {
   status = ml_nnlayer_set_property(handle, "unit=10", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_nnlayer_set_property(handle, "bias_zero=true", NULL);
+  status = ml_nnlayer_set_property(handle, "bias_init_zero=true", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_nnlayer_set_property(handle, "activation =sigmoid", NULL);

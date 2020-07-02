@@ -45,7 +45,7 @@ int Conv2DLayer::initialize(bool last) {
     filters.push_back(Knl);
 
     Tensor B(input_dim.batch(), 1, 1, 1);
-    if (!init_zero) {
+    if (!bias_init_zero) {
       B.apply([&](float x) { return random(); });
     }
     bias.push_back(B);
@@ -282,12 +282,16 @@ int Conv2DLayer::setProperty(std::vector<std::string> values) {
       status = input_dim.setTensorDim(value.c_str());
       NN_RETURN_STATUS();
       break;
-    case PropertyType::bias_zero:
-      status = setBoolean(init_zero, value);
+    case PropertyType::bias_init_zero:
+      status = setBoolean(bias_init_zero, value);
       NN_RETURN_STATUS();
       break;
     case PropertyType::activation:
       status = setActivation((ActiType)parseType(value, TOKEN_ACTI));
+      NN_RETURN_STATUS();
+      break;
+    case PropertyType::flatten:
+      status = setBoolean(flatten, value);
       NN_RETURN_STATUS();
       break;
     case PropertyType::weight_decay:

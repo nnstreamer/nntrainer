@@ -119,14 +119,15 @@ class Layer {
 public:
   Layer()
     : last_layer(false),
-      init_zero(false),
+      bias_init_zero(false),
       type(LAYER_UNKNOWN),
       loss(0.0),
       cost(COST_UNKNOWN),
       activation_type(ACT_NONE),
       bn_follow(false),
       weight_decay(),
-      weight_ini_type(WEIGHT_UNKNOWN) {}
+      weight_ini_type(WEIGHT_UNKNOWN),
+      flatten(false) {}
 
   /**
    * @brief     Destructor of Layer Class
@@ -258,7 +259,7 @@ public:
    * @brief  set bias initialize with zero
    * @param[in] zero true/false
    */
-  void setBiasZero(bool zero) { init_zero = zero; }
+  void setBiasZero(bool zero) { bias_init_zero = zero; }
 
   /**
    * @brief  set Weight Initialization Type
@@ -310,6 +311,12 @@ public:
   std::shared_ptr<std::vector<Tensor>> getWeights() { return getObjFromRef(weights); }
 
   /**
+   * @brief     get if the output of this layer must be flatten
+   * @retval    flatten value
+   */
+  bool getFlatten() { return flatten; }
+
+  /**
    * @brief     Property Enumeration
    *            0. input shape : string
    *            1. bias zero : bool
@@ -330,7 +337,7 @@ public:
    */
   enum class PropertyType {
     input_shape = 0,
-    bias_zero = 1,
+    bias_init_zero = 1,
     normalization = 2,
     standardization = 3,
     activation = 4,
@@ -345,7 +352,8 @@ public:
     padding = 13,
     pooling_size = 14,
     pooling = 15,
-    unknown = 16
+    flatten = 16,
+    unknown = 17
   };
 
 protected:
@@ -396,7 +404,7 @@ protected:
   /**
    * @brief     Boolean for the Bias to set zero
    */
-  bool init_zero;
+  bool bias_init_zero;
 
   /**
    * @brief     Layer type
@@ -420,6 +428,11 @@ protected:
   WeightDecayParam weight_decay;
 
   WeightIniType weight_ini_type;
+
+  /**
+   * @brief   Output of this layer should be flattened
+   */
+  bool flatten;
 
   /**
    * @brief     Gradient for the weights in this layer

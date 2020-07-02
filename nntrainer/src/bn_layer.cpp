@@ -68,8 +68,8 @@ int BatchNormalizationLayer::setProperty(std::vector<std::string> values) {
     case PropertyType::input_shape:
       status = dim.setTensorDim(values[0].c_str());
       break;
-    case PropertyType::bias_zero: {
-      status = setBoolean(init_zero, value);
+    case PropertyType::bias_init_zero: {
+      status = setBoolean(bias_init_zero, value);
       NN_RETURN_STATUS();
     } break;
     case PropertyType::epsilon:

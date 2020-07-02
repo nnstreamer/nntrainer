@@ -67,4 +67,8 @@ void FlattenLayer::copy(std::shared_ptr<Layer> l) {
   this->last_layer = from->last_layer;
 }
 
+int FlattenLayer::setProperty(std::vector<std::string> values) {
+  return ML_ERROR_NOT_SUPPORTED;
+}
+
 } /* namespace nntrainer */

@@ -29,6 +29,7 @@
 #include <conv2d_layer.h>
 #include <databuffer.h>
 #include <fc_layer.h>
+#include <flatten_layer.h>
 #include <fstream>
 #include <input_layer.h>
 #include <iostream>
@@ -384,6 +385,20 @@ private:
    * @returns   Create activation layer
    */
   std::shared_ptr<Layer> _make_act_layer(ActiType act, std::shared_ptr<Layer>);
+
+  /**
+   * @brief     Add flatten layer to layers
+   * @param[in/out] int Position position to insert the layer.
+   *                position++ when layer is inserted.
+   * @note layer is inserted at the back of layers
+   */
+  int initFlattenLayer(unsigned int &position);
+
+  /**
+   * @brief     Add flatten layer to layers
+   * @note layer is inserted at the back of layers
+   */
+  int initFlattenLayer();
 };
 
 } /* namespace nntrainer */

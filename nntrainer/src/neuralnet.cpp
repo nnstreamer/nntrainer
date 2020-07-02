@@ -243,7 +243,7 @@ int NeuralNetwork::init() {
       iniparser_getstring(ini, (layer_name + ":Type").c_str(), unknown);
     LayerType layer_type = (LayerType) parseType(layer_type_str, TOKEN_LAYER);
     bool b_zero =
-      iniparser_getboolean(ini, (layer_name + ":Bias_zero").c_str(), true);
+      iniparser_getboolean(ini, (layer_name + ":bias_init_zero").c_str(), true);
 
     last = (section_names_iter + 1) == section_names.end();
 
@@ -281,7 +281,7 @@ int NeuralNetwork::init() {
         std::make_shared<Conv2DLayer>();
 
       std::string input_shape_str = iniparser_getstring(
-        ini, (layer_name + ":Input_Shape").c_str(), unknown);
+          ini, (layer_name + ":Input_Shape").c_str(), unknown);
 
       if (input_shape_str.compare("Unknown") != 0) {
         TensorDim d;
@@ -307,38 +307,38 @@ int NeuralNetwork::init() {
 
       status =
         getValues(CONV2D_DIM,
-                  iniparser_getstring(
-                    ini, (layer_name + ":kernel_size").c_str(), unknown),
-                  (int *)size);
+            iniparser_getstring(
+              ini, (layer_name + ":kernel_size").c_str(), unknown),
+            (int *)size);
       NN_INI_RETURN_STATUS();
       status = conv2d_layer->setSize(size, Layer::PropertyType::kernel_size);
       NN_INI_RETURN_STATUS();
 
       status = getValues(
-        CONV2D_DIM,
-        iniparser_getstring(ini, (layer_name + ":stride").c_str(), unknown),
-        (int *)size);
+          CONV2D_DIM,
+          iniparser_getstring(ini, (layer_name + ":stride").c_str(), unknown),
+          (int *)size);
       NN_INI_RETURN_STATUS();
       status = conv2d_layer->setSize(size, Layer::PropertyType::stride);
       NN_INI_RETURN_STATUS();
 
       status = getValues(CONV2D_DIM,
-                         iniparser_getstring(
-                           ini, (layer_name + ":padding").c_str(), unknown),
-                         (int *)size);
+          iniparser_getstring(
+            ini, (layer_name + ":padding").c_str(), unknown),
+          (int *)size);
       NN_INI_RETURN_STATUS();
       status = conv2d_layer->setSize(size, Layer::PropertyType::padding);
       NN_INI_RETURN_STATUS();
 
       status = conv2d_layer->setFilter(
-        iniparser_getint(ini, (layer_name + ":filter").c_str(), 0));
+          iniparser_getint(ini, (layer_name + ":filter").c_str(), 0));
       NN_INI_RETURN_STATUS();
 
       conv2d_layer->setBiasZero(b_zero);
       conv2d_layer->setWeightInit((WeightIniType)parseType(
-        iniparser_getstring(ini, (layer_name + ":WeightIni").c_str(),
-                            unknown),
-        TOKEN_WEIGHTINI));
+            iniparser_getstring(ini, (layer_name + ":WeightIni").c_str(),
+              unknown),
+            TOKEN_WEIGHTINI));
 
       status = parseWeightDecay(ini, layer_name, weight_decay);
       NN_INI_RETURN_STATUS();
@@ -431,6 +431,8 @@ int NeuralNetwork::init() {
       NN_INI_RETURN_STATUS();
       break;
     }
+
+    /** Add activation layer */
     const char *acti_str = iniparser_getstring(
       ini, (layer_name + ":Activation").c_str(), unknown);
     ActiType act = (ActiType)parseType(acti_str, TOKEN_ACTI);
@@ -439,6 +441,13 @@ int NeuralNetwork::init() {
     status = initActivationLayer(act);
     NN_INI_RETURN_STATUS();
 
+    /** Add flatten layer */
+    bool flatten =
+      iniparser_getboolean(ini, (layer_name + ":Flatten").c_str(), false);
+    if (flatten) {
+      status = initFlattenLayer();
+      NN_INI_RETURN_STATUS();
+    }
     previous_dim = layers.back()->getOutputDimension();
   }
 
@@ -657,8 +666,13 @@ int NeuralNetwork::init(std::shared_ptr<Optimizer> optimizer,
     default:
       break;
     }
-    status = initActivationLayer(layers[i]->getActivationType(), i);
+    std::shared_ptr<Layer> last_layer = layers[i];
+    status = initActivationLayer(last_layer->getActivationType(), i);
     NN_RETURN_STATUS();
+    if (last_layer->getFlatten()) {
+      status = initFlattenLayer(i);
+      NN_RETURN_STATUS();
+    }
     previous_dim = layers[i]->getOutputDimension();
   }
 
@@ -1044,6 +1058,22 @@ int NeuralNetwork::initActivationLayer(ActiType act, unsigned int &position) {
   }
 
   return ML_ERROR_INVALID_PARAMETER;
+}
+
+int NeuralNetwork::initFlattenLayer(unsigned int &position) {
+  std::shared_ptr<FlattenLayer> flatten_layer =
+    std::make_shared<FlattenLayer>();
+
+  flatten_layer->setInputDimension(layers[position]->getOutputDimension());
+  flatten_layer->initialize(layers[position]->getLast());
+  layers.insert(layers.begin() + position + 1, flatten_layer);
+  position++;
+  return ML_ERROR_NONE;
+}
+
+int NeuralNetwork::initFlattenLayer() {
+  unsigned int position = layers.end() - layers.begin() - 1;
+  return initFlattenLayer(position);
 }
 
 } /* namespace nntrainer */

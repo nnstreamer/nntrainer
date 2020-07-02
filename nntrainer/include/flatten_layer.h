@@ -19,7 +19,6 @@
 #include <fstream>
 #include <iostream>
 #include <layer.h>
-#include <nntrainer_error.h>
 #include <tensor.h>
 #include <vector>
 
@@ -92,9 +91,7 @@ public:
    * @param[in] values values of property
    * @retval #ML_ERROR_NOT_SUPPORTED Successful.
    */
-  int setProperty(std::vector<std::string> values) {
-    return ML_ERROR_NOT_SUPPORTED;
-  };
+  int setProperty(std::vector<std::string> values);
 
   /**
    * @brief     copy layer
