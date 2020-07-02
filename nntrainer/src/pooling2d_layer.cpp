@@ -41,8 +41,6 @@ int Pooling2DLayer::initialize(bool last) {
       (input_dim.width() - pooling_size[1] + 2 * padding[1]) / stride[1] + 1);
   }
 
-  hidden = Tensor(output_dim);
-
   if (pooling_type == PoolingType::max ||
       pooling_type == PoolingType::global_max) {
     max_idx.resize(output_dim.getDataLen());
@@ -52,6 +50,7 @@ int Pooling2DLayer::initialize(bool last) {
 }
 
 Tensor Pooling2DLayer::forwarding(Tensor in, int &status) {
+  hidden = Tensor(output_dim);
   for (unsigned int b = 0; b < in.batch(); ++b) {
     Tensor in_padded = zero_pad(b, in, padding);
     Tensor result = pooling2d(b, in_padded, status);
@@ -128,6 +127,32 @@ Tensor Pooling2DLayer::backwarding(Tensor derivative, int iteration) {
     break;
   }
   return result;
+}
+
+int Pooling2DLayer::setSize(int *size, PropertyType type) {
+  int status = ML_ERROR_NONE;
+  switch (type) {
+  case PropertyType::pooling_size:
+    for (int i = 0; i < POOLING2D_DIM; ++i) {
+      pooling_size[i] = size[i];
+    }
+    break;
+  case PropertyType::stride:
+    for (int i = 0; i < POOLING2D_DIM; ++i) {
+      stride[i] = size[i];
+    }
+    break;
+  case PropertyType::padding:
+    for (int i = 0; i < POOLING2D_DIM; ++i) {
+      padding[i] = size[i];
+    }
+    break;
+  default:
+    ml_loge("Error: Unknown Layer Property type");
+    status = ML_ERROR_INVALID_PARAMETER;
+    break;
+  }
+  return status;
 }
 
 void Pooling2DLayer::copy(std::shared_ptr<Layer> l) {

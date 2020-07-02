@@ -116,6 +116,21 @@ public:
    */
   int setProperty(std::vector<std::string> values);
 
+  /**
+   * @brief     set Pooling Type
+   * @param[in] t pooling type
+   */
+  void setPoolingType(PoolingType t) { pooling_type = t; };
+
+  /**
+   * @brief     set Parameter Size
+   * @param[in] * size : size arrary
+   * @param[in] type : Property type
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  int setSize(int *size, PropertyType type);
+
   /* TO DO : support keras type of padding */
   enum class PaddingType {
     full = 0,

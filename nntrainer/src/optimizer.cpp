@@ -58,6 +58,18 @@ int Optimizer::setOptParam(OptParam p) {
   return status;
 }
 
+int Optimizer::initialize(std::vector<Tensor> tensors, bool set_tensor) {
+  int status = ML_ERROR_NONE;
+
+  std::vector<Tensor>::iterator iter;
+
+  for (unsigned int i = 0; i < tensors.size(); i += 2) {
+    weight_mv.push_back(std::pair<Tensor, Tensor>(tensors[i], tensors[i + 1]));
+  }
+
+  return status;
+}
+
 int Optimizer::initialize(TensorDim d, bool set_tensor) {
   int status = ML_ERROR_NONE;
 
@@ -74,6 +86,7 @@ int Optimizer::initialize(TensorDim d, bool set_tensor) {
     bv.setZero();
     weight_mv.push_back(std::pair<Tensor, Tensor>(bm, bv));
   }
+
   return status;
 }
 
