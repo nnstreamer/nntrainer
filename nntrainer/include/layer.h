@@ -249,6 +249,12 @@ public:
   void setLast(bool last) { last_layer = last; }
 
   /**
+   * @brief  get if this is last layer of Network
+   * @retval last true/false
+   */
+  bool getLast() { return last_layer; }
+
+  /**
    * @brief  set bias initialize with zero
    * @param[in] zero true/false
    */
