@@ -431,8 +431,6 @@ int NeuralNetwork::init() {
       NN_INI_RETURN_STATUS();
       break;
     }
-    previous_dim = layers.back()->getOutputDimension();
-
     const char *acti_str = iniparser_getstring(
       ini, (layer_name + ":Activation").c_str(), unknown);
     ActiType act = (ActiType)parseType(acti_str, TOKEN_ACTI);
@@ -440,6 +438,8 @@ int NeuralNetwork::init() {
     layers.back()->setActivation(act);
     status = initActivationLayer(act);
     NN_INI_RETURN_STATUS();
+
+    previous_dim = layers.back()->getOutputDimension();
   }
 
   /** Add the last layer as loss layer */
@@ -657,9 +657,9 @@ int NeuralNetwork::init(std::shared_ptr<Optimizer> optimizer,
     default:
       break;
     }
-    previous_dim = layers[i]->getOutputDimension();
     status = initActivationLayer(layers[i]->getActivationType(), i);
     NN_RETURN_STATUS();
+    previous_dim = layers[i]->getOutputDimension();
   }
 
   /** Add the last layer as loss layer */
@@ -1009,7 +1009,8 @@ int NeuralNetwork::addLayer(std::shared_ptr<Layer> layer) {
   return status;
 }
 
-std::shared_ptr<Layer> NeuralNetwork::_make_act_layer(ActiType act) {
+std::shared_ptr<Layer> NeuralNetwork::_make_act_layer(ActiType act,
+    std::shared_ptr<Layer> prev) {
   if (layers.back()->getType() == LAYER_ACTIVATION) {
     /** User defined activation layer. Do not add another activation layer after this */
     ml_loge("Error: double activation layers.");
@@ -1021,6 +1022,8 @@ std::shared_ptr<Layer> NeuralNetwork::_make_act_layer(ActiType act) {
       std::make_shared<ActivationLayer>();
 
     act_layer->setActivation(act);
+    act_layer->setInputDimension(prev->getOutputDimension());
+    act_layer->initialize(prev->getLast());
     return act_layer;
   }
 
@@ -1028,17 +1031,12 @@ std::shared_ptr<Layer> NeuralNetwork::_make_act_layer(ActiType act) {
 }
 
 int NeuralNetwork::initActivationLayer(ActiType act) {
-  std::shared_ptr<Layer> l = _make_act_layer(act);
-  if (l != nullptr) {
-    layers.push_back(l);
-    return ML_ERROR_NONE;
-  }
-
-  return ML_ERROR_INVALID_PARAMETER;
+  unsigned int position = layers.end() - layers.begin() - 1;
+  return initActivationLayer(act, position);
 }
 
 int NeuralNetwork::initActivationLayer(ActiType act, unsigned int &position) {
-  std::shared_ptr<Layer> l = _make_act_layer(act);
+  std::shared_ptr<Layer> l = _make_act_layer(act, layers[position]);
   if (l != nullptr) {
     layers.insert(layers.begin() + position + 1, l);
     position++;

@@ -380,9 +380,10 @@ private:
    * @brief     Add activation layer to layers
    *
    * @param[in] ActiType act Activation Type
+   * @param[in] prev previous layer
    * @returns   Create activation layer
    */
-  std::shared_ptr<Layer> _make_act_layer(ActiType act);
+  std::shared_ptr<Layer> _make_act_layer(ActiType act, std::shared_ptr<Layer>);
 };
 
 } /* namespace nntrainer */
