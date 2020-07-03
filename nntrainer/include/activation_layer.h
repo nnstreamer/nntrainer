@@ -35,7 +35,7 @@ public:
   /**
    * @brief     Constructor of Activation Layer
    */
-  ActivationLayer() : Layer() { setType(LAYER_ACTIVATION); };
+  ActivationLayer();
 
   /**
    * @brief     Destructor of Activation Layer
@@ -127,7 +127,6 @@ public:
   int setProperty(std::vector<std::string> values);
 
 private:
-  static constexpr unsigned int ACTIVATION_PROPERTY = 4;
   std::function<Tensor(Tensor const &)> _act_fn;
   std::function<Tensor(Tensor const &)> _act_prime_fn;
 };

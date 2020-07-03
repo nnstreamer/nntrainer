@@ -95,9 +95,6 @@ NeuralNetwork::NeuralNetwork() : NeuralNetwork("") {}
 
 NeuralNetwork::NeuralNetwork(std::string config) :
   batch_size(1),
-  learning_rate(0.01),
-  decay_rate(0.0),
-  decay_steps(0.0),
   epoch(1),
   loss(0.0),
   cost(COST_UNKNOWN),
@@ -128,7 +125,6 @@ int NeuralNetwork::init() {
   int num_ini_sec = 0;
   char unknown[] = "Unknown";
   char model_name[] = "model.bin";
-  OptParam popt;
   dictionary *ini;
   std::vector<std::string> section_names;
   std::vector<std::string>::iterator section_names_iter;
@@ -175,26 +171,30 @@ int NeuralNetwork::init() {
     section_names.erase(section_names_iter);
   }
 
+  /** Default to neural network model type */
   net_type = (nntrainer::NetType)parseType(
     iniparser_getstring(ini, "Network:Type", unknown), TOKEN_NET);
-  learning_rate = iniparser_getdouble(ini, "Network:Learning_rate", 0.0);
-  decay_rate = iniparser_getdouble(ini, "Network:Decay_rate", 0.0);
-  decay_steps = iniparser_getint(ini, "Network:Decay_steps", -1);
-  epoch = iniparser_getint(ini, "Network:Epoch", 100);
+  epoch = iniparser_getint(ini, "Network:Epoch", epoch);
   cost = (CostType)parseType(iniparser_getstring(ini, "Network:Cost", unknown),
                              TOKEN_COST);
   model = iniparser_getstring(ini, "Network:Model", model_name);
-  batch_size = iniparser_getint(ini, "Network:Minibatch", 1);
+  batch_size = iniparser_getint(ini, "Network:Minibatch", batch_size);
 
+  /** Default to adam optimizer */
   status = opt.setType((OptType)parseType(
     iniparser_getstring(ini, "Network:Optimizer", unknown), TOKEN_OPT));
   NN_INI_RETURN_STATUS();
-  popt.learning_rate = learning_rate;
-  popt.decay_steps = decay_steps;
-  popt.decay_rate = decay_rate;
-  popt.beta1 = iniparser_getdouble(ini, "Network:beta1", 0.0);
-  popt.beta2 = iniparser_getdouble(ini, "Network:beta2", 0.0);
-  popt.epsilon = iniparser_getdouble(ini, "Network:epsilon", 0.0);
+
+  OptParam popt(opt.getType());
+  popt.learning_rate = iniparser_getdouble(ini, "Network:Learning_rate",
+      popt.learning_rate);
+  popt.decay_steps = iniparser_getint(ini, "Network:Decay_steps",
+      popt.decay_steps);
+  popt.decay_rate = iniparser_getdouble(ini, "Network:Decay_rate",
+      popt.decay_rate);
+  popt.beta1 = iniparser_getdouble(ini, "Network:beta1", popt.beta1);
+  popt.beta2 = iniparser_getdouble(ini, "Network:beta2", popt.beta2);
+  popt.epsilon = iniparser_getdouble(ini, "Network:epsilon", popt.epsilon);
 
   status = opt.setOptParam(popt);
   NN_INI_RETURN_STATUS();
@@ -316,7 +316,7 @@ int NeuralNetwork::init() {
 
       status = getValues(
           CONV2D_DIM,
-          iniparser_getstring(ini, (layer_name + ":stride").c_str(), unknown),
+          iniparser_getstring(ini, (layer_name + ":stride").c_str(), getValues({1,1})),
           (int *)size);
       NN_INI_RETURN_STATUS();
       status = conv2d_layer->setSize(size, Layer::PropertyType::stride);
@@ -324,7 +324,7 @@ int NeuralNetwork::init() {
 
       status = getValues(CONV2D_DIM,
           iniparser_getstring(
-            ini, (layer_name + ":padding").c_str(), unknown),
+            ini, (layer_name + ":padding").c_str(), getValues({0,0})),
           (int *)size);
       NN_INI_RETURN_STATUS();
       status = conv2d_layer->setSize(size, Layer::PropertyType::padding);
@@ -337,7 +337,7 @@ int NeuralNetwork::init() {
       conv2d_layer->setBiasZero(b_zero);
       conv2d_layer->setWeightInit((WeightIniType)parseType(
             iniparser_getstring(ini, (layer_name + ":WeightIni").c_str(),
-              unknown),
+              "xavier_uniform"),
             TOKEN_WEIGHTINI));
 
       status = parseWeightDecay(ini, layer_name, weight_decay);
@@ -389,7 +389,7 @@ int NeuralNetwork::init() {
       fc_layer->setBiasZero(b_zero);
       fc_layer->setWeightInit((WeightIniType)parseType(
         iniparser_getstring(ini, (layer_name + ":WeightIni").c_str(),
-                            unknown),
+                            "xavier_uniform"),
         TOKEN_WEIGHTINI));
 
       status = fc_layer->initialize(last);
@@ -761,7 +761,6 @@ void NeuralNetwork::setLoss(float l) { loss = l; }
 NeuralNetwork &NeuralNetwork::copy(NeuralNetwork &from) {
   if (this != &from) {
     batch_size = from.batch_size;
-    learning_rate = from.learning_rate;
     loss = from.loss;
     opt = from.opt;
 

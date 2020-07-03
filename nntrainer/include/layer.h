@@ -126,7 +126,7 @@ public:
       activation_type(ACT_NONE),
       bn_follow(false),
       weight_decay(),
-      weight_ini_type(WEIGHT_UNKNOWN),
+      weight_ini_type(WEIGHT_XAVIER_UNIFORM),
       flatten(false),
       trainable(true) {}
 

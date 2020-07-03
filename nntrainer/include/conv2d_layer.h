@@ -36,17 +36,13 @@ public:
   /**
    * @brief     Constructor of Conv 2D Layer
    */
-  Conv2DLayer() {
-    stride[0] = 1;
-    stride[1] = 1;
-    padding[0] = 0;
-    padding[1] = 0;
-    kernel_size[0] = 0;
-    kernel_size[1] = 0;
-    normalization = false;
-    standardization = false;
-    setType(LAYER_CONV2D);
-  };
+  Conv2DLayer() :
+    filter_size(0),
+    kernel_size{0, 0},
+    stride{1, 1},
+    padding{0, 0},
+    normalization(false),
+    standardization(false) { setType(LAYER_CONV2D); };
 
   /**
    * @brief     Destructor of Conv 2D Layer

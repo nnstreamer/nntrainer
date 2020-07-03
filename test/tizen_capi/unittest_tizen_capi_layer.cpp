@@ -153,15 +153,16 @@ TEST(nntrainer_capi_nnlayer, setproperty_06_n) {
 }
 
 /**
- * @brief Neural Network Set Property Test (negative test)
+ * @brief Neural Network Set Property Test (positive test)
  */
-TEST(nntrainer_capi_nnlayer, setproperty_07_n) {
+TEST(nntrainer_capi_nnlayer, setproperty_07_p) {
   ml_nnlayer_h handle;
   int status;
   status = ml_nnlayer_create(&handle, ML_LAYER_TYPE_FC);
   EXPECT_EQ(status, ML_ERROR_NONE);
+  /** Default to none activation in case wrong activation given */
   status = ml_nnlayer_set_property(handle, "activation=0.0001", NULL);
-  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+  EXPECT_EQ(status, ML_ERROR_NONE);
   status = ml_nnlayer_delete(handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
 }

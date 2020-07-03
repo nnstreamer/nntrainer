@@ -34,6 +34,7 @@ int Conv2DLayer::initialize(bool last) {
   Kdim.channel(input_dim.channel());
   Kdim.height(kernel_size[0]);
   Kdim.width(kernel_size[1]);
+  dim = Kdim;
 
   weights.clear();
   for (unsigned int i = 0; i < filter_size; ++i) {
@@ -42,7 +43,7 @@ int Conv2DLayer::initialize(bool last) {
 
     delK.push_back(
       Tensor(input_dim.batch(), Kdim.channel(), Kdim.height(), Kdim.width()));
-    delBias.push_back(Tensor(input_dim.batch(), 1, 1, 1));
+    delBias.push_back(Tensor(1, 1, 1, 1));
     filters.push_back(Knl);
     weights.push_back(Knl);
 
@@ -61,7 +62,6 @@ int Conv2DLayer::initialize(bool last) {
   output_dim.width(
     (input_dim.width() - kernel_size[1] + 2 * padding[1]) / stride[1] + 1);
 
-  hidden = Tensor(output_dim);
   return status;
 }
 
@@ -87,6 +87,9 @@ Tensor Conv2DLayer::forwarding(Tensor in, int &status) {
   if (standardization) {
     input = input.standardization();
   }
+
+  hidden = Tensor(in.batch(), output_dim.channel(), output_dim.height(),
+                  output_dim.width());
 
   std::vector<float> output;
 
@@ -121,7 +124,9 @@ Tensor Conv2DLayer::backwarding(Tensor derivative, int iteration) {
 
   // Calculate delK : [batch, channel, height, width ] * filter_size
   std::vector<float> output;
+  unsigned int same_pad[CONV2D_DIM];
   unsigned int o_size = kernel_size[0] * kernel_size[1];
+
   output.resize(o_size);
 
   TensorDim in_dim(1, 1, derivative.height(), derivative.width());
@@ -150,7 +155,7 @@ Tensor Conv2DLayer::backwarding(Tensor derivative, int iteration) {
           sum += derivative.getValue(b, i, j, k);
         }
       }
-      delBias[i].setValue(b, 0, 0, 0, sum);
+      delBias[i].setValue(0, 0, 0, 0, sum);
     }
   }
 
@@ -160,9 +165,9 @@ Tensor Conv2DLayer::backwarding(Tensor derivative, int iteration) {
              input_dim.height() + padding[0] * 2,
              input_dim.width() + padding[1] * 2);
 
-  unsigned int same_pad[CONV2D_DIM];
-  same_pad[0] = ceil((float)derivative.height() / (float)kernel_size[0]);
-  same_pad[1] = ceil((float)derivative.width() / (float)kernel_size[1]);
+  same_pad[0] = kernel_size[0] - 1;
+  same_pad[1] = kernel_size[1] - 1;
+
   TensorDim kdim(1, 1, kernel_size[0], kernel_size[1]);
 
   output.clear();
@@ -177,8 +182,7 @@ Tensor Conv2DLayer::backwarding(Tensor derivative, int iteration) {
 
         conv2d(in_padded.getAddress(i * in_padded.height() * in_padded.width()),
                p_dim,
-               filters[i].getAddress(b * filters[i].getDim().getFeatureLen() +
-                                     in_c * kernel_size[0] * kernel_size[1]),
+               filters[i].getAddress(in_c * kernel_size[0] * kernel_size[1]),
                kdim, output.data(), stride, 0.0);
         float *ret_vec = ret.getAddress(b * ret.getDim().getFeatureLen() +
                                         in_c * ret.height() * ret.width());

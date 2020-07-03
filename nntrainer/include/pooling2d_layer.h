@@ -43,14 +43,11 @@ public:
   /**
    * @brief     Constructor of Pooling 2D Layer
    */
-  Pooling2DLayer() {
-    stride[0] = 1;
-    stride[1] = 1;
-    padding[0] = 0;
-    padding[1] = 0;
-    pooling_size[0] = 0;
-    pooling_size[1] = 0;
-    pooling_type = PoolingType::average;
+  Pooling2DLayer() :
+    pooling_size{0, 0},
+    stride{1, 1},
+    padding{0, 0},
+    pooling_type(PoolingType::average) {
     setType(LAYER_POOLING2D);
   };
 

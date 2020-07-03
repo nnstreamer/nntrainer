@@ -27,6 +27,14 @@
 namespace nntrainer {
 
 /**
+ * @brief     Constructor of Activation Layer
+ */
+ActivationLayer::ActivationLayer() : Layer() {
+  setType(LAYER_ACTIVATION);
+  setActivation(ACT_NONE);
+}
+
+/**
  * @brief     Initialize the layer
  *
  * @param[in] last last layer
@@ -139,7 +147,8 @@ int ActivationLayer::setProperty(std::vector<std::string> values) {
   status = getKeyValue(values[0], key, value);
   NN_RETURN_STATUS();
 
-  if (parseLayerProperty(key) != ACTIVATION_PROPERTY) {
+  if (static_cast<PropertyType>(parseLayerProperty(key))
+		  != PropertyType::activation) {
     return ML_ERROR_INVALID_PARAMETER;
   }
 

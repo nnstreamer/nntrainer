@@ -40,7 +40,7 @@ enum class OptType { sgd = 0, adam = 1, unknown = 2 };
  * @brief     Enumeration of Weight Decay type
  *            0. L2Norm
  *            1. Regression
- *            2. Unknown
+ *            2. Unknown (equivalent to none)
  */
 enum class WeightDecayType { l2norm = 0, regression = 1, unknown = 2 };
 
@@ -66,14 +66,18 @@ typedef struct _OptParam {
   float decay_steps;
   bool continue_train; /** Continue training with previous tensors for adam */
 
-  _OptParam() :
-    learning_rate(0.0),
-    beta1(0.0),
-    beta2(0.0),
-    epsilon(0.0),
-    decay_rate(0.0),
-    decay_steps(0.0),
-    continue_train(false) {}
+  _OptParam(OptType type = OptType::adam) :
+    learning_rate(0.001),
+    beta1(0.9),
+    beta2(0.999),
+    epsilon(1e-8),
+    decay_rate(1.0),
+    decay_steps(1.0),
+    continue_train(false) {
+      if (type == OptType::sgd) {
+        learning_rate = 0.01;
+      }
+    }
 } OptParam;
 
 class Optimizer {
