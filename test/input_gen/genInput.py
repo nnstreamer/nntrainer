@@ -124,7 +124,7 @@ def pooling2d_tf(x, pool_size, stride, padding, pooling):
         pooling2d_layer=tf.keras.layers.GlobalMaxPooling2D()(tf_input)
     elif (pooling == "global_average"):
         pooling2d_layer=tf.keras.layers.GlobalAveragePooling2D()(tf_input)
-    
+
     pooling2d_variables = tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.GLOBAL_VARIABLES)
     input_variables = [tf_input] + pooling2d_variables
     grad = tf.gradients(pooling2d_layer, input_variables)
@@ -149,10 +149,11 @@ def pooling2d_tf(x, pool_size, stride, padding, pooling):
 # @param[in] train train a few steps
 # @return tf_o calculated result
 def fc_tf(x, kernel, label, bias, activation, train=False, loss='mse', opt='sgd'):
+    lr = 100
     tf.compat.v1.reset_default_graph()
     tf_input = tf.placeholder(dtype = dtypes.float32, shape=x.shape)
 
-    if (train and loss == 'cross'):
+    if (loss == 'cross'):
         stored_act = activation
         activation = None
 
@@ -166,26 +167,27 @@ def fc_tf(x, kernel, label, bias, activation, train=False, loss='mse', opt='sgd'
                     input_shape=tf_input.shape)])
             tf_logit = model(tf_input, training=train)
 
-            if train:
-                tf_label = tf.placeholder(dtype = dtypes.float32, shape=label.shape)
-                if loss == 'mse':
-                    tf_loss = tf.reduce_mean(tf.keras.losses.MSE(tf_label, tf_logit))
-                elif loss == 'cross':
-                    if stored_act == tf.nn.sigmoid:
-                        tf_loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(
-                            labels=tf_label, logits=tf_logit))
-                    elif stored_act == tf.nn.softmax:
-                        tf_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(
-                            labels=tf_label, logits=tf_logit))
-                    else:
-                        raise 'unknown activation with cross entropy'
+            tf_label = tf.placeholder(dtype = dtypes.float32, shape=label.shape)
+            if loss == 'mse':
+                tf_loss = tf.reduce_mean(tf.keras.losses.MSE(tf_label, tf_logit))
+            elif loss == 'cross':
+                if stored_act == tf.nn.sigmoid:
+                    tf_loss = tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(
+                        labels=tf_label, logits=tf_logit))
+                elif stored_act == tf.nn.softmax:
+                    tf_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(
+                        labels=tf_label, logits=tf_logit))
                 else:
-                    raise 'unknown loss'
+                    raise 'unknown activation with cross entropy'
+                tf_logit = stored_act(tf_logit)
+            else:
+                raise 'unknown loss'
 
+            if train:
                 if opt == 'sgd':
-                    optimizer = tf.keras.optimizers.SGD()
+                    optimizer = tf.keras.optimizers.SGD(learning_rate=lr)
                 elif opt == 'adam':
-                    optimizer = tf.keras.optimizers.Adam()
+                    optimizer = tf.keras.optimizers.Adam(learning_rate=lr)
                 else:
                     raise 'unknown optimizer'
 
@@ -196,11 +198,11 @@ def fc_tf(x, kernel, label, bias, activation, train=False, loss='mse', opt='sgd'
                 tf_grad = optimizer.get_gradients(tf_loss, params=trainable_variables)
                 train_op = optimizer.apply_gradients(list(zip(tf_grad, trainable_variables)))
 
-                var_to_run = [tf_logit, tf_grad, train_op]
+                var_to_run = [tf_logit, tf_loss, tf_grad, train_op]
                 feed_dict = {tf_input: x, tf_label: label}
             else:
-                var_to_run = [tf_logit]
-                feed_dict = {tf_input: x}
+                var_to_run = [tf_logit, tf_loss]
+                feed_dict = {tf_input: x, tf_label: label}
 
             sess.run(tf.compat.v1.global_variables_initializer())
             if DEBUG:
@@ -212,28 +214,31 @@ def fc_tf(x, kernel, label, bias, activation, train=False, loss='mse', opt='sgd'
                 new_w = sess.run(tf.compat.v1.trainable_variables())
 
             if (train):
+                # Replace the train_op value with updated weights
                 tf_outs = tf_outs[:-1]
                 tf_outs.append(sess.run(tf.compat.v1.trainable_variables()))
                 # tf outs contain :
                 # 1. forward output numpy array
-                # 2. gradient for weights in list form
-                # 3. updated weights in list form
+                # 2. final loss value
+                # 3. gradient for weights in list form
+                # 4. updated weights in list form
                 if DEBUG:
                     print(tf_outs[0].shape)
-                    print(tf_outs[1][0].shape)
-                    print(tf_outs[1][1].shape)
+                    print(tf_outs[1].shape)
                     print(tf_outs[2][0].shape)
                     print(tf_outs[2][1].shape)
+                    print(tf_outs[3][0].shape)
+                    print(tf_outs[3][1].shape)
 
                 if DEBUG:
                     if opt == 'sgd':
-                        assert(np.isclose(new_w[1].all(), (old_w[1] - (tf_outs[1][1] * 0.1)).all()))
+                        assert(np.isclose(new_w[1].all(), (old_w[1] - (tf_outs[2][1] * 0.1)).all()))
                     print(old_w[1])
                     print(new_w[1])
-                    print(tf_outs[1][1])
+                    print(tf_outs[2][1])
 
     return tf_outs
-  
+
 ##
 # tested with tf 1.14.0
 # @param[in] x input
@@ -309,7 +314,7 @@ def gen_test_case_pooling(input_shape, pooling_size, stride, padding, pooling, b
         save(base_name+"_goldenPooling2D"+pooling+".out", golden_pooling)
     else:
         save(base_name+"_goldenPooling2D"+pooling+".out", np.transpose(golden_pooling,(0,3,1,2)))
-    save(base_name+"_goldenPooling2D"+pooling+"Grad.out", np.transpose(golden_grad_input,(0,3,1,2)))    
+    save(base_name+"_goldenPooling2D"+pooling+"Grad.out", np.transpose(golden_grad_input,(0,3,1,2)))
 
 ##
 # @brief generate fc test case data for forward and backward pass
@@ -322,15 +327,28 @@ def gen_test_case_fc(input_shape, kernel_shape, base_name):
     with open(base_name+"_FCKernel.in", 'ab') as outfile:
         np.array(bias, dtype=np.float32).tofile(outfile)
 
-
-    golden_fc = fc_tf(input_data, kernel, None, bias, activation=None)
+    golden_fc = fc_tf(input_data, kernel, label, bias, activation=None)
     save(base_name + "_goldenFCResultActNone.out", golden_fc[0])
 
-    golden_fc = fc_tf(input_data, kernel, None, bias, activation=tf.nn.sigmoid)
-    save(base_name + "_goldenFCResultSigmoid.out", golden_fc[0])
+    golden_fc = fc_tf(input_data, kernel, label, bias, activation=tf.nn.sigmoid, loss='mse')
+    save(base_name + "_goldenFCResultSigmoidMse.out", golden_fc[0])
+    save(base_name + "_goldenFCLossSigmoidMse.out", golden_fc[1])
 
-    golden_fc = fc_tf(input_data, kernel, None, bias, activation=tf.nn.softmax)
-    save(base_name + "_goldenFCResultSoftmax.out", golden_fc[0])
+    golden_fc = fc_tf(input_data, kernel, label, bias, activation=tf.nn.softmax, loss='mse')
+    save(base_name + "_goldenFCResultSoftmaxMse.out", golden_fc[0])
+    save(base_name + "_goldenFCLossSoftmaxMse.out", golden_fc[1])
+
+    golden_fc = fc_tf(input_data, kernel, label, bias, activation=tf.nn.sigmoid, loss='cross')
+    save(base_name + "_goldenFCResultSigmoidCross.out", golden_fc[0])
+    save(base_name + "_goldenFCLossSigmoidCross.out", golden_fc[1])
+
+    golden_fc = fc_tf(input_data, kernel, label, bias, activation=tf.nn.softmax, loss='cross')
+    save(base_name + "_goldenFCResultSoftmaxCross.out", golden_fc[0])
+    save(base_name + "_goldenFCLossSoftmaxCross.out", golden_fc[1])
+
+    # golden_fc = fc_tf(input_data, kernel, label, bias, activation=tf.nn.sigmoid, loss='mse')
+    # save(base_name + "_goldenFCResultSigmoidMseSgd.out", golden_fc[0])
+    # save(base_name + "_goldenFCLossSigmoidTrainMseSgd.out", golden_fc[1])
 
 def gen_test_case_bn(input_shape, base_name, training=True):
     input_data = gen_input(base_name + "_BNLayerInput.in", input_shape)
@@ -343,7 +361,6 @@ def gen_test_case_bn(input_shape, base_name, training=True):
     # todo: change 0 to initial moving avg / std in case of training
     save(base_name + "_goldenBNLayerAfterUpdate.out", 0, 0, output_variables[1], output_variables[2])
     save(base_name + "_goldenBNLayerBackwardDx.out", grad[0])
-
 
 if __name__ == "__main__":
     target = sys.argv[1]
@@ -381,7 +398,7 @@ if __name__ == "__main__":
         gen_test_case_fc(input_shape = [3, 1, 1, 12],
                 kernel_shape = [12, 15],
                 base_name = "tc_fc_1")
-        
+
 # Bn layer unit test case:
     if target == "bn_1":
         gen_test_case_bn(input_shape = [3, 1, 4, 5], base_name = "tc_bn_1")

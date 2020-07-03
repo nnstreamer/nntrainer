@@ -17,6 +17,7 @@
 #include <flatten_layer.h>
 #include <fstream>
 #include <input_layer.h>
+#include <layer.h>
 #include <loss_layer.h>
 #include <nntrainer_error.h>
 #include <nntrainer_test_util.h>
@@ -321,16 +322,42 @@ protected:
 
   virtual int reinitialize(bool _last_layer = false) {
     int status = super::reinitialize(_last_layer);
+    label = nntrainer::Tensor(layer.getOutputDimension());
+    loss = nntrainer::Tensor();
+
     loadFile("tc_fc_1_FCLayer.in", in);
     loadFile("tc_fc_1_FCKernel.in", layer);
+    loadFile("tc_fc_1_FCLabel.in", label);
     return status;
   }
+
+  void addActivation(nntrainer::ActivationLayer &act_layer,
+                     nntrainer::ActiType type) {
+    act_layer.setActivation(type);
+    act_layer.setInputDimension(layer.getOutputDimension());
+    status = act_layer.initialize(false);
+    EXPECT_EQ(status, ML_ERROR_NONE);
+  }
+
+  void addLoss(nntrainer::LossLayer &loss_layer, nntrainer::CostType type) {
+    loss_layer.setInputDimension(layer.getOutputDimension());
+    status = loss_layer.initialize(true);
+    EXPECT_EQ(status, ML_ERROR_NONE);
+    status = loss_layer.setCost(type);
+    EXPECT_EQ(status, ML_ERROR_NONE);
+  }
+
+  void loadLoss(const char *file) { loadFile(file, loss); }
 
   virtual void prepareLayer() {
     setInputDim("3:1:1:12");
     setProperty("unit=15");
     last_layer = true;
   }
+
+  nntrainer::Tensor loss_out;
+  nntrainer::Tensor label;
+  nntrainer::Tensor loss;
 };
 
 /**
@@ -343,35 +370,89 @@ TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_01_p) {
 }
 
 /**
- * @brief Fully Connected Layer
+ * @brief Fully Connected Layer forward with MSE loss
  */
 TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_02_p) {
-  nntrainer::ActivationLayer actLayer;
-  actLayer.setActivation(nntrainer::ACT_SIGMOID);
+  nntrainer::ActivationLayer act_layer;
+  addActivation(act_layer, nntrainer::ACT_SIGMOID);
+
+  nntrainer::LossLayer loss_layer;
+  addLoss(loss_layer, nntrainer::COST_MSR);
 
   in = layer.forwarding(in, status);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  out = actLayer.forwarding(in, status);
+  out = act_layer.forwarding(in, status);
   EXPECT_EQ(status, ML_ERROR_NONE);
+  matchOutput(out, "tc_fc_1_goldenFCResultSigmoidMse.out");
 
-  matchOutput(out, "tc_fc_1_goldenFCResultSigmoid.out");
+  loss_out = loss_layer.forwarding(out, label, status);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  matchOutput(loss_out, "tc_fc_1_goldenFCResultSigmoidMse.out");
+
+  loadLoss("tc_fc_1_goldenFCLossSigmoidMse.out");
+  EXPECT_NEAR(loss_layer.getLoss(), *(loss.getData()), tolerance);
 }
 
 /**
- * @brief Fully Connected Layer
+ * @brief Fully Connected Layer forward with MSE loss
  */
 TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_03_p) {
-  nntrainer::ActivationLayer actLayer;
-  actLayer.setActivation(nntrainer::ACT_SOFTMAX);
+  nntrainer::ActivationLayer act_layer;
+  addActivation(act_layer, nntrainer::ACT_SOFTMAX);
+
+  nntrainer::LossLayer loss_layer;
+  addLoss(loss_layer, nntrainer::COST_MSR);
 
   in = layer.forwarding(in, status);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  out = actLayer.forwarding(in, status);
+  out = act_layer.forwarding(in, status);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  matchOutput(out, "tc_fc_1_goldenFCResultSoftmaxMse.out");
+
+  loss_out = loss_layer.forwarding(out, label, status);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  matchOutput(loss_out, "tc_fc_1_goldenFCResultSoftmaxMse.out");
+
+  loadLoss("tc_fc_1_goldenFCLossSoftmaxMse.out");
+  EXPECT_NEAR(loss_layer.getLoss(), *(loss.getData()), tolerance);
+}
+
+/**
+ * @brief Fully Connected Layer forward with Cross Entropy loss
+ */
+TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_04_p) {
+  nntrainer::LossLayer loss_layer;
+  addLoss(loss_layer, nntrainer::COST_ENTROPY_SIGMOID);
+
+  out = layer.forwarding(in, status);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  matchOutput(out, "tc_fc_1_goldenFCResultSoftmax.out");
+  loss_out = loss_layer.forwarding(out, label, status);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  matchOutput(loss_out, "tc_fc_1_goldenFCResultSigmoidCross.out");
+
+  loadLoss("tc_fc_1_goldenFCLossSigmoidCross.out");
+  EXPECT_NEAR(loss_layer.getLoss(), *(loss.getData()), tolerance);
+}
+
+/**
+ * @brief Fully Connected Layer forward with Cross Entropy loss
+ */
+TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_05_p) {
+  nntrainer::LossLayer loss_layer;
+  addLoss(loss_layer, nntrainer::COST_ENTROPY_SOFTMAX);
+
+  out = layer.forwarding(in, status);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  loss_out = loss_layer.forwarding(out, label, status);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  matchOutput(loss_out, "tc_fc_1_goldenFCResultSoftmaxCross.out");
+
+  loadLoss("tc_fc_1_goldenFCLossSoftmaxCross.out");
+  EXPECT_NEAR(loss_layer.getLoss(), *(loss.getData()), tolerance);
 }
 
 class nntrainer_BatchNormalizationLayer
