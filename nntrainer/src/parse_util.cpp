@@ -22,6 +22,8 @@
 
 #include <array>
 #include <assert.h>
+#include <cstring>
+#include <iostream>
 #include <layer.h>
 #include <neuralnet.h>
 #include <nntrainer_error.h>
@@ -30,7 +32,8 @@
 #include <parse_util.h>
 #include <pooling2d_layer.h>
 #include <regex>
-#include <string.h>
+#include <sstream>
+#include <string>
 
 namespace nntrainer {
 
@@ -90,9 +93,10 @@ unsigned int parseType(std::string ll, InputType t) {
    *            "sigmoid" : sigmoid
    *            "relu" : relu
    *            "softmax" : softmax
+   *            "none" : none
    */
-  std::array<std::string, 4> activation_string = {"tanh", "sigmoid", "relu",
-                                                  "softmax"};
+  std::array<std::string, 5> activation_string = {"tanh", "sigmoid", "relu",
+                                                  "softmax", "none"};
 
   /**
    * @brief     Layer Type String from configure file
@@ -181,7 +185,9 @@ unsigned int parseType(std::string ll, InputType t) {
         return (i);
       }
     }
-    ret = (unsigned int)ActiType::ACT_UNKNOWN;
+    ml_logw("Input activation %s cannot be identified. "
+        "Moved to NO activation layer by default.", ll.c_str());
+    ret = (unsigned int)ActiType::ACT_NONE;
     break;
   case TOKEN_LAYER:
     for (i = 0; i < layer_string.size(); i++) {
@@ -418,6 +424,19 @@ int getValues(int n_str, std::string str, int *value) {
     cn++;
   }
   return status;
+}
+
+const char* getValues(std::vector<int> values, const char* delimiter) {
+  std::stringstream vec_str;
+
+  if (values.empty())
+    return "unknown";
+
+  std::copy(values.begin(), values.end() - 1,
+      std::ostream_iterator<int>(vec_str, delimiter));
+  vec_str << values.back();
+
+  return std::move(vec_str.str().c_str());
 }
 
 } /* namespace nntrainer */

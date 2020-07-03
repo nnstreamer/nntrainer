@@ -26,6 +26,7 @@
 
 #include <iostream>
 #include <string>
+#include <vector>
 
 namespace nntrainer {
 
@@ -136,6 +137,14 @@ int setBoolean(bool &val, std::string str);
  * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
  */
 int getKeyValue(std::string input_str, std::string &key, std::string &value);
+
+/**
+ * @brief     join vector of int to string with delimiter ","
+ * @param[in] values vector of int
+ * @param[in] delimiter delimiter for the string
+ * @retval    output string
+ */
+const char* getValues(std::vector<int> values, const char* delimiter = ",");
 
 int getValues(int n_str, std::string str, int *value);
 
