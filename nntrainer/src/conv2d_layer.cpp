@@ -191,18 +191,20 @@ Tensor Conv2DLayer::backwarding(Tensor derivative, int iteration) {
 
   gradients.clear();
 
-  //  Update K / bias
-  for (unsigned int i = 0; i < filter_size; ++i) {
-    Tensor djdw = delK[i]
-                    .chain()
-                    .applyIf(this->isWeightDecayL2Norm(), _LIFT(add_i),
-                             filters[i], weight_decay.lambda)
-                    .run();
+  if (trainable) {
+    //  Update K / bias
+    for (unsigned int i = 0; i < filter_size; ++i) {
+      Tensor djdw = delK[i]
+        .chain()
+        .applyIf(this->isWeightDecayL2Norm(), _LIFT(add_i),
+            filters[i], weight_decay.lambda)
+        .run();
 
-    gradients.push_back(djdw);
-    gradients.push_back(delBias[i]);
+      gradients.push_back(djdw);
+      gradients.push_back(delBias[i]);
+    }
+    opt.apply_gradients(weights, gradients, iteration);
   }
-  opt.apply_gradients(weights, gradients, iteration);
 
   return strip_pad(ret, padding);
 }

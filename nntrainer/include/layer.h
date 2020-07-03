@@ -127,7 +127,8 @@ public:
       bn_follow(false),
       weight_decay(),
       weight_ini_type(WEIGHT_UNKNOWN),
-      flatten(false) {}
+      flatten(false),
+      trainable(true) {}
 
   /**
    * @brief     Destructor of Layer Class
@@ -297,6 +298,11 @@ public:
    */
   int setCost(CostType c);
 
+  /**
+   * @brief     set trainable for this layer
+   * @param[in] train to enable/disable train
+   */
+  void setTrainable(bool train) { trainable = train; }
 
   /**
    * @brief     get gradients
@@ -433,6 +439,11 @@ protected:
    * @brief   Output of this layer should be flattened
    */
   bool flatten;
+
+  /*
+   * @brief     making this false will skip updating this layer variables
+   */
+  bool trainable;
 
   /**
    * @brief     Gradient for the weights in this layer

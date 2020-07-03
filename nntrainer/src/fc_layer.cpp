@@ -178,11 +178,13 @@ Tensor FullyConnectedLayer::backwarding(Tensor derivative, int iteration) {
                            weight_decay.lambda)
                   .run();
 
-  gradients.clear();
-  gradients.push_back(djdw);
-  gradients.push_back(djdb);
+  if (trainable) {
+    gradients.clear();
+    gradients.push_back(djdw);
+    gradients.push_back(djdb);
 
-  opt.apply_gradients(weights, gradients, iteration);
+    opt.apply_gradients(weights, gradients, iteration);
+  }
 
   return ret;
 }
