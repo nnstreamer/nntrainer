@@ -423,11 +423,15 @@ protected:
 
   /**
    * @brief     Gradient for the weights in this layer
+   * @note      The order of gradients should match the order in weights
    */
   std::vector<std::reference_wrapper<Tensor>> gradients;
 
   /**
    * @brief     weights in this layer
+   * @note      The weights are combined with their corresponding bias
+   *            For example- with W0, W1, B0 and B1, weights would be of format
+   *            {W0, B0, W1, B1}.
    */
   std::vector<std::reference_wrapper<Tensor>> weights;
 
