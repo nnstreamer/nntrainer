@@ -52,6 +52,11 @@ int FullyConnectedLayer::initialize(bool last) {
   } else {
     bias.setRandUniform(-0.5, 0.5);
   }
+
+  weights.clear();
+  weights.push_back(weight);
+  weights.push_back(bias);
+
   return status;
 }
 
@@ -176,10 +181,6 @@ Tensor FullyConnectedLayer::backwarding(Tensor derivative, int iteration) {
   gradients.clear();
   gradients.push_back(djdw);
   gradients.push_back(djdb);
-
-  weights.clear();
-  weights.push_back(weight);
-  weights.push_back(bias);
 
   opt.apply_gradients(weights, gradients, iteration);
 

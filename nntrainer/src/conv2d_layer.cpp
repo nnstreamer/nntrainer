@@ -35,6 +35,7 @@ int Conv2DLayer::initialize(bool last) {
   Kdim.height(kernel_size[0]);
   Kdim.width(kernel_size[1]);
 
+  weights.clear();
   for (unsigned int i = 0; i < filter_size; ++i) {
     Tensor Knl = initializeWeight(Kdim, weight_ini_type, status);
     NN_RETURN_STATUS();
@@ -43,12 +44,14 @@ int Conv2DLayer::initialize(bool last) {
       Tensor(input_dim.batch(), Kdim.channel(), Kdim.height(), Kdim.width()));
     delBias.push_back(Tensor(input_dim.batch(), 1, 1, 1));
     filters.push_back(Knl);
+    weights.push_back(Knl);
 
     Tensor B(input_dim.batch(), 1, 1, 1);
     if (!bias_init_zero) {
       B.apply([&](float x) { return random(); });
     }
     bias.push_back(B);
+    weights.push_back(B);
   }
   // this output_dim should be the same with dimension of hidden
   output_dim.batch(input_dim.batch());
@@ -187,7 +190,6 @@ Tensor Conv2DLayer::backwarding(Tensor derivative, int iteration) {
   }
 
   gradients.clear();
-  weights.clear();
 
   //  Update K / bias
   for (unsigned int i = 0; i < filter_size; ++i) {
@@ -196,9 +198,6 @@ Tensor Conv2DLayer::backwarding(Tensor derivative, int iteration) {
                     .applyIf(this->isWeightDecayL2Norm(), _LIFT(add_i),
                              filters[i], weight_decay.lambda)
                     .run();
-
-    weights.push_back(filters[i]);
-    weights.push_back(bias[i]);
 
     gradients.push_back(djdw);
     gradients.push_back(delBias[i]);
