@@ -59,6 +59,7 @@ TEST(nntrainer_TensorDim, setTensorDim_04_p) {
 TEST(nntrainer_Tensor, Tensor_01_p) {
   int status = ML_ERROR_NONE;
   nntrainer::Tensor tensor = nntrainer::Tensor(1, 2, 3);
+  tensor.setZero();
   ASSERT_NE(nullptr, tensor.getData());
   if (tensor.getValue(0, 0, 0, 0) != 0.0)
     status = ML_ERROR_INVALID_PARAMETER;

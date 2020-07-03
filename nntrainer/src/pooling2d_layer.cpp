@@ -78,6 +78,7 @@ Tensor Pooling2DLayer::backwarding(Tensor derivative, int iteration) {
 
   unsigned int J, K;
   Tensor result = Tensor(input_dim);
+  result.setZero();
   float *out = result.getData();
   switch (pooling_type) {
   case PoolingType::max: {
@@ -290,6 +291,7 @@ Tensor Pooling2DLayer::pooling2d(unsigned int batch, Tensor in, int &status) {
     }
   } break;
   case PoolingType::global_max: {
+    output.setZero();
     for (unsigned int i = 0; i < channel; ++i) {
       unsigned int idx = batch * input_dim.getFeatureLen() + i * height * width;
       float max = std::numeric_limits<float>::min();
@@ -306,6 +308,7 @@ Tensor Pooling2DLayer::pooling2d(unsigned int batch, Tensor in, int &status) {
     }
   } break;
   case PoolingType::global_average: {
+    output.setZero();
     Tensor sum_wh = in.chain().sum(3).sum(2).run();
     for (unsigned int i = 0; i < channel; ++i) {
       output.setValue(0, i, 0, 0,

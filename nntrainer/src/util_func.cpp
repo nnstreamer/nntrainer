@@ -174,6 +174,7 @@ Tensor zero_pad(int batch, Tensor const &in, unsigned int const *padding) {
   unsigned int width_p_h = w + padding[1];
 
   Tensor output(1, c, height_p, width_p);
+  output.setZero();
 
   for (unsigned int j = 0; j < c; ++j) {
     for (unsigned int k = 0; k < padding[0]; ++k) {
@@ -207,6 +208,8 @@ Tensor zero_pad(int batch, Tensor const &in, unsigned int const *padding) {
 Tensor strip_pad(Tensor const &in, unsigned int const *padding) {
   Tensor output(in.batch(), in.channel(), in.width() - padding[0] * 2,
                 in.width() - padding[1] * 2);
+  output.setZero();
+
   for (unsigned int i = 0; i < in.batch(); ++i) {
     for (unsigned int j = 0; j < in.channel(); ++j) {
       for (unsigned int k = 0; k < output.height(); ++k) {

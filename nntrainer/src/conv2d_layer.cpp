@@ -43,11 +43,11 @@ int Conv2DLayer::initialize(bool last) {
 
     delK.push_back(
       Tensor(input_dim.batch(), Kdim.channel(), Kdim.height(), Kdim.width()));
-    delBias.push_back(Tensor(1, 1, 1, 1));
+    delBias.push_back(Tensor(input_dim.batch(), 1, 1, 1));
     filters.push_back(Knl);
     weights.push_back(Knl);
 
-    Tensor B(input_dim.batch(), 1, 1, 1);
+    Tensor B(1, 1, 1, 1);
     if (!bias_init_zero) {
       B.apply([&](float x) { return random(); });
     }
@@ -78,6 +78,11 @@ void Conv2DLayer::save(std::ofstream &file) {
 }
 
 Tensor Conv2DLayer::forwarding(Tensor in, int &status) {
+  if (in.getDim() != input_dim) {
+    status = ML_ERROR_INVALID_PARAMETER;
+    return in;
+  }
+
   if (normalization) {
     input = in.normalization();
   } else {
@@ -88,8 +93,7 @@ Tensor Conv2DLayer::forwarding(Tensor in, int &status) {
     input = input.standardization();
   }
 
-  hidden = Tensor(in.batch(), output_dim.channel(), output_dim.height(),
-                  output_dim.width());
+  hidden = Tensor(output_dim);
 
   std::vector<float> output;
 
