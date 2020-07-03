@@ -48,27 +48,7 @@ class LazyTensor;
  */
 class Tensor {
 public:
-  Tensor(const TensorDim &d, float *buf = nullptr) :
-    dim(d),
-    strides{{1, 2, 3}},
-    is_contiguous(true),
-    data(new float[d.getDataLen()], std::default_delete<float[]>()) {
-    // todo: initialize appropriate strides
-    if (buf == nullptr) {
-      setZero();
-    } else {
-      float *data = getData();
-      unsigned int len = length();
-
-#ifdef USE_BLAS
-      cblas_scopy(len, buf, 1, data, 1);
-#else
-      for (unsigned int i = 0; i < len; ++i) {
-        data[i] = buf[i];
-      }
-#endif
-    }
-  }
+  Tensor(const TensorDim &d, float *buf = nullptr);
 
   /**
    * @brief     Basic Constructor of Tensor

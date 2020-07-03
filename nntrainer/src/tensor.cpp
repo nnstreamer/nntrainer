@@ -61,22 +61,34 @@ static auto rng = [] {
   return rng;
 }();
 
-Tensor &Tensor::operator=(const Tensor &rhs) {
-  using std::swap;
+Tensor::Tensor(const TensorDim &d, float *buf) :
+  dim(d),
+  strides{{1, 2, 3}},
+  is_contiguous(true),
+  data(new float[d.getDataLen()], std::default_delete<float[]>()) {
+  // todo: initialize appropriate strides
+  if (buf != nullptr) {
+    float *data = getData();
+    unsigned int len = length();
 
+#ifdef USE_BLAS
+    cblas_scopy(len, buf, 1, data, 1);
+#else
+    for (unsigned int i = 0; i < len; ++i) {
+      data[i] = buf[i];
+    }
+#endif
+  }
+}
+
+Tensor &Tensor::operator=(const Tensor &rhs) {
   Tensor tmp(rhs);
-  swap(*this, tmp);
+  this->swap(*this, tmp);
   return *this;
 }
 
 Tensor &Tensor::operator=(Tensor &&rhs) noexcept {
-  using std::swap;
-
-  std::swap(dim, rhs.dim);
-  std::swap(data, rhs.data);
-  std::swap(strides, rhs.strides);
-  std::swap(is_contiguous, rhs.is_contiguous);
-
+  this->swap(*this, rhs);
   return *this;
 }
 
@@ -210,8 +222,8 @@ int Tensor::add_i(float const &value) {
   unsigned int len = length();
 #ifdef USE_BLAS
   Tensor tmp(dim);
-  tmp.setValue(1.0);
-  cblas_saxpy(len, value, tmp.getData(), 1, data, 1);
+  tmp.setValue(value);
+  cblas_saxpy(len, 1, tmp.getData(), 1, data, 1);
 #else
   for (unsigned int k = 0; k < len; ++k) {
     data[k] += value;
@@ -244,12 +256,15 @@ int Tensor::add_i(Tensor const &m, float const alpha) {
   unsigned int len = length();
 
 #ifdef USE_BLAS
-  unsigned int size = dim.width() * dim.height() * dim.channel();
+  unsigned int size = dim.getFeatureLen();
   if (m.dim.batch() == 1) {
     for (unsigned int k = 0; k < dim.batch(); ++k) {
       cblas_saxpy(size, alpha, mdata, 1, &(data[k * size]), 1);
     }
   } else {
+    if (dim.batch() != m.dim.batch()) {
+      return ML_ERROR_INVALID_PARAMETER;
+    }
     cblas_saxpy(len, alpha, mdata, 1, data, 1);
   }
 #else
@@ -262,6 +277,9 @@ int Tensor::add_i(Tensor const &m, float const alpha) {
       }
     }
   } else {
+    if (dim.batch() != m.dim.batch()) {
+      return ML_ERROR_INVALID_PARAMETER;
+    }
     for (k = 0; k < len; ++k) {
       data[k] += alpha * mdata[k];
     }
@@ -272,12 +290,9 @@ int Tensor::add_i(Tensor const &m, float const alpha) {
 }
 
 Tensor Tensor::add(Tensor const &m, float const alpha) const {
-  if ((dim.height() != m.dim.height()) || (dim.width() != m.dim.width())) {
-    throw std::runtime_error("Error: Dimension must be equal each other");
-  }
-
   Tensor result(*this);
-  result.add_i(m, alpha);
+  if (result.add_i(m, alpha) != ML_ERROR_NONE)
+    throw std::runtime_error("Error: Dimension must be equal each other");
 
   return result;
 }
@@ -496,6 +511,7 @@ Tensor Tensor::sum(int axis) const {
   switch (axis) {
   case 0: {
     ret = Tensor(1, dim.channel(), dim.height(), dim.width());
+    ret.setZero();
     float *rdata = ret.getData();
     for (unsigned int l = 0; l < dim.channel(); ++l) {
       unsigned int L = l * dim.width() * dim.height();
@@ -512,6 +528,7 @@ Tensor Tensor::sum(int axis) const {
   } break;
   case 1: {
     ret = Tensor(dim.batch(), 1, dim.height(), dim.width());
+    ret.setZero();
     float *rdata = ret.getData();
     for (unsigned int l = 0; l < dim.batch(); ++l) {
       unsigned int L = dim.width() * dim.height() * l;
@@ -529,6 +546,7 @@ Tensor Tensor::sum(int axis) const {
   } break;
   case 2: {
     ret = Tensor(dim.batch(), dim.channel(), 1, dim.width());
+    ret.setZero();
     float *rdata = ret.getData();
     for (unsigned int k = 0; k < dim.batch(); ++k) {
       unsigned int K = k * dim.channel() * dim.width();
@@ -547,6 +565,7 @@ Tensor Tensor::sum(int axis) const {
   } break;
   case 3: {
     ret = Tensor(dim.batch(), dim.channel(), dim.height(), 1);
+    ret.setZero();
     float *rdata = ret.getData();
     for (unsigned int k = 0; k < dim.batch(); ++k) {
       unsigned int K = k * dim.channel() * dim.height();
@@ -593,7 +612,7 @@ Tensor Tensor::dot(Tensor const &m) const {
 
 #ifdef USE_BLAS
   float alpha_dgemm = 1.0;
-  float beta_dgemm = 1.0;
+  float beta_dgemm = 0.0;
   if (m.dim.batch() == 1) {
     for (unsigned int k = 0; k < dim.batch(); k++) {
       unsigned int i = k * dim.width() * dim.height();
