@@ -12,7 +12,10 @@
 *.h~
 *.c~
 *.cc~
-*.swp
+*.sw?
+
+# vscode settings
+/.vscode
 
 # binary files
 *.out
