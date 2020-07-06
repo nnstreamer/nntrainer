@@ -118,6 +118,12 @@ public:
    */
   int setProperty(std::vector<std::string> values);
 
+  /**
+   * @brief     get the base name for the layer
+   * @retval    base name of the layer
+   */
+  std::string getBaseName() { return "BatchNormalization"; };
+
 private:
   Tensor weight;
   Tensor bias;

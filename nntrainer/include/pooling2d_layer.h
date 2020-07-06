@@ -139,6 +139,12 @@ public:
     unknown = 3,
   };
 
+  /**
+   * @brief     get the base name for the layer
+   * @retval    base name of the layer
+   */
+  std::string getBaseName() { return "Pooling2D"; };
+
 private:
   unsigned int pooling_size[POOLING2D_DIM];
   unsigned int stride[POOLING2D_DIM];

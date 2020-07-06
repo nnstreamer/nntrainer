@@ -24,6 +24,7 @@
 #define __UTIL_FUNC_H__
 #ifdef __cplusplus
 
+#include <layer.h>
 #include <tensor.h>
 
 namespace nntrainer {

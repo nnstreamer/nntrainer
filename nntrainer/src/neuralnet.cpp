@@ -272,7 +272,7 @@ int NeuralNetwork::init() {
         ini, (layer_name + ":Normalization").c_str(), false));
       input_layer->setStandardization(iniparser_getboolean(
         ini, (layer_name + ":Standardization").c_str(), false));
-      layers.push_back(input_layer);
+      addLayer(input_layer);
     } break;
     case LAYER_CONV2D: {
       int size[CONV2D_DIM];
@@ -355,7 +355,7 @@ int NeuralNetwork::init() {
       status = conv2d_layer->setOptimizer(opt);
       NN_INI_RETURN_STATUS();
 
-      layers.push_back(conv2d_layer);
+      addLayer(conv2d_layer);
     } break;
 
     case LAYER_POOLING2D: {
@@ -401,7 +401,7 @@ int NeuralNetwork::init() {
 
       status = pooling2d_layer->initialize(last);
       NN_INI_RETURN_STATUS();
-      layers.push_back(pooling2d_layer);
+      addLayer(pooling2d_layer);
     } break;
 
     case LAYER_FLATTEN: {
@@ -412,7 +412,7 @@ int NeuralNetwork::init() {
 
       status = flatten_layer->initialize(last);
       NN_INI_RETURN_STATUS();
-      layers.push_back(flatten_layer);
+      addLayer(flatten_layer);
     } break;
 
     case LAYER_FC: {
@@ -465,7 +465,7 @@ int NeuralNetwork::init() {
 
       status = fc_layer->setOptimizer(opt);
       NN_INI_RETURN_STATUS();
-      layers.push_back(fc_layer);
+      addLayer(fc_layer);
     } break;
     case LAYER_BN: {
       std::shared_ptr<BatchNormalizationLayer> bn_layer =
@@ -484,7 +484,7 @@ int NeuralNetwork::init() {
       // fixme: deprecate this.
       layers.back()->setBNfollow(true);
 
-      layers.push_back(bn_layer);
+      addLayer(bn_layer);
       NN_INI_RETURN_STATUS();
     } break;
     case LAYER_UNKNOWN:
@@ -564,7 +564,7 @@ int NeuralNetwork::initLossLayer() {
   status = loss_layer->setCost(updated_cost);
   NN_RETURN_STATUS();
 
-  layers.push_back(loss_layer);
+  addLayer(loss_layer);
   return status;
 }
 
@@ -1118,9 +1118,18 @@ int NeuralNetwork::addLayer(std::shared_ptr<Layer> layer) {
 
   if (initialized) {
     return ML_ERROR_NOT_SUPPORTED;
-  } else {
-    layers.push_back(layer);
   }
+
+  /** @todo This might be redundant. Remove this after testing */
+  for (auto iter = layers.begin(); iter != layers.end(); ++iter) {
+    if ((*iter)->getName() == layer->getName()) {
+      ml_loge("Layer with name %s already exists in the model.",
+              layer->getName().c_str());
+      return ML_ERROR_INVALID_PARAMETER;
+    }
+  }
+
+  layers.push_back(layer);
 
   return status;
 }

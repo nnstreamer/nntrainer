@@ -126,6 +126,12 @@ public:
    */
   int setProperty(std::vector<std::string> values);
 
+  /**
+   * @brief     get the base name for the layer
+   * @retval    base name of the layer
+   */
+  std::string getBaseName() { return "Activation"; };
+
 private:
   std::function<Tensor(Tensor const &)> _act_fn;
   std::function<Tensor(Tensor const &)> _act_prime_fn;

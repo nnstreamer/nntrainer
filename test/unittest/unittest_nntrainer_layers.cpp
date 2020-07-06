@@ -142,11 +142,53 @@ TEST(nntrainer_FullyConnectedLayer, initialize_04_p) {
   int status = ML_ERROR_NONE;
   nntrainer::FullyConnectedLayer layer;
   nntrainer::TensorDim d;
+  std::string layer_name;
+
   d.setTensorDim("32:1:28:28");
   layer.setProperty({"unit=1"});
   layer.setInputDimension(d);
+
+  /** Layer name can be set */
+  layer_name = "FCLayer0";
+  status = layer.setName(layer_name);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  EXPECT_EQ(layer.getName(), layer_name);
+
   status = layer.initialize(false);
   EXPECT_EQ(status, ML_ERROR_NONE);
+
+  /** Layer name can be updated */
+  layer_name = "FCLayer1";
+  status = layer.setName(layer_name);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  EXPECT_EQ(layer.getName(), layer_name);
+}
+
+/**
+ * @brief FullyConnected Layer
+ */
+TEST(nntrainer_FullyConnectedLayer, initialize_05_n) {
+  int status = ML_ERROR_NONE;
+  nntrainer::FullyConnectedLayer layer0, layer1;
+  nntrainer::TensorDim d;
+  std::string layer_name;
+
+  /** Default name is set */
+  layer_name = layer0.getName();
+  EXPECT_GT(layer_name.length(), 0);
+
+  /** Set same name again */
+  status = layer0.setName(layer_name);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  EXPECT_EQ(layer0.getName(), layer_name);
+
+  /** Do not set the name already allocated */
+  status = layer1.setName(layer_name);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+
+  /** Default name is set even after error */
+  layer_name = layer1.getName();
+  EXPECT_GT(layer_name.length(), 0);
 }
 
 /**
