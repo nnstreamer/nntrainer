@@ -97,15 +97,15 @@ TEST(nntrainer_capi_nnlayer, setproperty_02_p) {
 }
 
 /**
- * @brief Neural Network Layer Set Property Test (negative test)
+ * @brief Neural Network Layer Set Property Test (positive test)
  */
-TEST(nntrainer_capi_nnlayer, setproperty_03_n) {
+TEST(nntrainer_capi_nnlayer, setproperty_03_p) {
   ml_nnlayer_h handle;
   int status;
   status = ml_nnlayer_create(&handle, ML_LAYER_TYPE_INPUT);
   EXPECT_EQ(status, ML_ERROR_NONE);
   status = ml_nnlayer_set_property(handle, "activation= sigmoid", NULL);
-  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+  EXPECT_EQ(status, ML_ERROR_NONE);
   status = ml_nnlayer_delete(handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
 }

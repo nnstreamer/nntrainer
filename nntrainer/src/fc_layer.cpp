@@ -73,10 +73,6 @@ int FullyConnectedLayer::setProperty(std::vector<std::string> values) {
     unsigned int type = parseLayerProperty(key);
 
     switch (static_cast<PropertyType>(type)) {
-    case PropertyType::input_shape:
-      status = input_dim.setTensorDim(value.c_str());
-      NN_RETURN_STATUS();
-      break;
     case PropertyType::unit: {
       int width;
       status = setInt(width, value);
@@ -84,35 +80,9 @@ int FullyConnectedLayer::setProperty(std::vector<std::string> values) {
       unit = width;
       output_dim.width(unit);
     } break;
-    case PropertyType::bias_init_zero: {
-      status = setBoolean(this->bias_init_zero, value);
-      NN_RETURN_STATUS();
-    } break;
-    case PropertyType::activation:
-      status = setActivation((ActiType)parseType(value, TOKEN_ACTI));
-      NN_RETURN_STATUS();
-      break;
-    case PropertyType::flatten:
-      status = setBoolean(flatten, value);
-      NN_RETURN_STATUS();
-      break;
-    case PropertyType::weight_decay:
-      weight_decay.type = (WeightDecayType)parseType(value, TOKEN_WEIGHT_DECAY);
-      if (weight_decay.type == WeightDecayType::unknown) {
-        ml_loge("Error: Unknown Weight Decay");
-        return ML_ERROR_INVALID_PARAMETER;
-      }
-      break;
-    case PropertyType::weight_decay_lambda:
-      status = setFloat(weight_decay.lambda, value);
-      NN_RETURN_STATUS();
-      break;
-    case PropertyType::weight_ini:
-      weight_ini_type = (WeightIniType)parseType(value, TOKEN_WEIGHTINI);
-      break;
     default:
-      ml_loge("Error: Unknown Layer Property Key : %s", key.c_str());
-      status = ML_ERROR_INVALID_PARAMETER;
+      status = Layer::setProperty({values[i]});
+      NN_RETURN_STATUS();
       break;
     }
   }

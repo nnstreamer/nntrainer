@@ -65,20 +65,13 @@ int BatchNormalizationLayer::setProperty(std::vector<std::string> values) {
     unsigned int type = parseLayerProperty(key);
 
     switch (static_cast<PropertyType>(type)) {
-    case PropertyType::input_shape:
-      status = dim.setTensorDim(values[0].c_str());
-      break;
-    case PropertyType::bias_init_zero: {
-      status = setBoolean(bias_init_zero, value);
-      NN_RETURN_STATUS();
-    } break;
     case PropertyType::epsilon:
       status = setFloat(epsilon, value);
       NN_RETURN_STATUS();
       break;
     default:
-      ml_loge("Error: Unknown Layer Property Key: %s", key.c_str());
-      status = ML_ERROR_INVALID_PARAMETER;
+      status = Layer::setProperty({values[i]});
+      NN_RETURN_STATUS();
       break;
     }
   }
