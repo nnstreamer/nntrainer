@@ -29,9 +29,6 @@
 
 namespace nntrainer {
 
-int Layer::def_name_count = 0;
-std::set<std::string> Layer::layer_names;
-
 int Layer::setActivation(ActiType acti) {
   int status = ML_ERROR_NONE;
   if (acti == ACT_UNKNOWN) {
@@ -179,40 +176,11 @@ int Layer::setProperty(std::vector<std::string> values) {
 }
 
 int Layer::setName(std::string name) {
-  int status = ML_ERROR_NONE;
-  std::pair<std::set<std::string>::iterator, bool> ret;
-
   if (name.empty())
-    status = ML_ERROR_INVALID_PARAMETER;
+    return ML_ERROR_INVALID_PARAMETER;
 
-  if (name == this->name)
-    return status;
-
-  ret = layer_names.insert(name);
-  if (ret.second == false)
-    status = ML_ERROR_INVALID_PARAMETER;
-  else
-    this->name = name;
-
-  return status;
-}
-
-std::string Layer::getName() {
-  ensureName();
-  return name;
-}
-
-void Layer::ensureName() {
-  if (name.empty()) {
-    std::set<std::string>::iterator iter;
-
-    do {
-      name = getBaseName() + std::to_string(def_name_count++);
-      iter = layer_names.find(name);
-    } while (iter != layer_names.end());
-
-    layer_names.insert(name);
-  }
+  this->name = name;
+  return ML_ERROR_NONE;
 }
 
 } /* namespace nntrainer */

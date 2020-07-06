@@ -21,6 +21,7 @@
  */
 #include "nntrainer_test_util.h"
 #include <nntrainer.h>
+#include <nntrainer_internal.h>
 
 /**
  * @brief Neural Network Model Contruct / Destruct Test (possitive test )
@@ -114,6 +115,7 @@ TEST(nntrainer_capi_nnmodel, compile_05_p) {
 
   ml_nnmodel_h model;
   ml_nnlayer_h layers[2];
+  ml_nnlayer_h get_layer;
   ml_nnopt_h optimizer;
 
   status = ml_nnmodel_construct(&model);
@@ -130,17 +132,27 @@ TEST(nntrainer_capi_nnmodel, compile_05_p) {
   status = ml_nnmodel_add_layer(model, layers[0]);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
+  /** Find layer based on default name */
+  status = ml_nnmodel_get_layer(model, "Input0", &get_layer);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  EXPECT_EQ(get_layer, layers[0]);
+
   status = ml_nnlayer_create(&layers[1], ML_LAYER_TYPE_FC);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_nnlayer_set_property(layers[1], "unit= 10", "activation=softmax",
-                                   "bias_init_zero=true", "weight_decay=l2norm",
-                                   "weight_decay_lambda=0.005",
-                                   "weight_ini=xavier_uniform", NULL);
+  status = ml_nnlayer_set_property(
+    layers[1], "unit= 10", "activation=softmax", "bias_init_zero=true",
+    "weight_decay=l2norm", "weight_decay_lambda=0.005",
+    "weight_ini=xavier_uniform", "name=fc100", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_nnmodel_add_layer(model, layers[1]);
   EXPECT_EQ(status, ML_ERROR_NONE);
+
+  /** Find layer based on set name */
+  status = ml_nnmodel_get_layer(model, "fc100", &get_layer);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  EXPECT_EQ(get_layer, layers[1]);
 
   status = ml_nnoptimizer_create(&optimizer, "adam");
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -154,6 +166,85 @@ TEST(nntrainer_capi_nnmodel, compile_05_p) {
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_nnmodel_compile(model, "loss=cross", NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_nnmodel_destruct(model);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Neural Network Model Optimizer Test
+ */
+TEST(nntrainer_capi_nnmodel, compile_06_n) {
+  int status = ML_ERROR_NONE;
+
+  ml_nnmodel_h model;
+  ml_nnlayer_h layers[3];
+  ml_nnlayer_h get_layer;
+
+  status = ml_nnmodel_construct(&model);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_nnlayer_create(&layers[0], ML_LAYER_TYPE_INPUT);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status =
+    ml_nnlayer_set_property(layers[0], "input_shape= 32:1:1:62720",
+                            "normalization=true", "bias_init_zero=true", NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  /** Find layer before adding */
+  status = ml_nnmodel_get_layer(model, "Input0", &get_layer);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+
+  status = ml_nnmodel_add_layer(model, layers[0]);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  /** Find layer based on default name */
+  status = ml_nnmodel_get_layer(model, "Input0", &get_layer);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_nnlayer_create(&layers[1], ML_LAYER_TYPE_FC);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  /** Create another layer with same name, different type */
+  status = ml_nnlayer_set_property(layers[1], "name=Input0", NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  /** Not add layer with existing name */
+  status = ml_nnmodel_add_layer(model, layers[1]);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+
+  status = ml_nnlayer_set_property(layers[1], "name=fc0", NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  /** add layer with different name, different layer type */
+  status = ml_nnmodel_add_layer(model, layers[1]);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  /** Find layer based on default name */
+  status = ml_nnmodel_get_layer(model, "fc0", &get_layer);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_nnlayer_create(&layers[2], ML_LAYER_TYPE_FC);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  /** Create another layer with same name, same type */
+  status = ml_nnlayer_set_property(layers[2], "name=fc0", NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  /** add layer with different name, different layer type */
+  status = ml_nnmodel_add_layer(model, layers[2]);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+
+  status = ml_nnlayer_set_property(layers[2], "name=fc1", NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  /** add layer with different name, different layer type */
+  status = ml_nnmodel_add_layer(model, layers[2]);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_nnmodel_get_layer(model, "fc1", &get_layer);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_nnmodel_destruct(model);

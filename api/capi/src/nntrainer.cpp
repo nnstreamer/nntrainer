@@ -243,9 +243,9 @@ int ml_nnmodel_destruct(ml_nnmodel_h model) {
 
   if (nnmodel->optimizer)
     delete nnmodel->optimizer;
-  for (auto iter = nnmodel->layers.begin(); iter != nnmodel->layers.end();
-       ++iter)
-    delete (*iter);
+  for (auto &x : nnmodel->layers_map)
+    delete (x.second);
+  nnmodel->layers_map.clear();
   delete nnmodel;
 
   return status;
@@ -270,7 +270,7 @@ int ml_nnmodel_add_layer(ml_nnmodel_h model, ml_nnlayer_h layer) {
   status = nntrainer_exception_boundary(f);
   if (status == ML_ERROR_NONE) {
     nnlayer->in_use = true;
-    nnmodel->layers.push_back(nnlayer);
+    nnmodel->layers_map.insert({NL->getName(), nnlayer});
   }
 
   return status;
@@ -303,12 +303,48 @@ int ml_nnmodel_set_optimizer(ml_nnmodel_h model, ml_nnopt_h optimizer) {
   return status;
 }
 
+int ml_nnmodel_get_layer(ml_nnmodel_h model, const char *layer_name,
+                         ml_nnlayer_h *layer) {
+  int status = ML_ERROR_NONE;
+  ml_nnmodel *nnmodel;
+  ML_NNTRAINER_CHECK_MODEL_VALIDATION(nnmodel, model);
+
+  std::shared_ptr<nntrainer::NeuralNetwork> NN;
+  std::shared_ptr<nntrainer::Layer> NL;
+
+  std::unordered_map<std::string, ml_nnlayer *>::iterator layer_iter =
+    nnmodel->layers_map.find(std::string(layer_name));
+  if (layer_iter != nnmodel->layers_map.end()) {
+    *layer = layer_iter->second;
+    return status;
+  }
+
+  NN = nnmodel->network;
+  returnable f = [&]() { return NN->getLayer(layer_name, &NL); };
+  status = nntrainer_exception_boundary(f);
+
+  if (status != ML_ERROR_NONE)
+    return status;
+
+  ml_nnlayer *nnlayer = new ml_nnlayer;
+  nnlayer->magic = ML_NNTRAINER_MAGIC;
+  nnlayer->layer = NL;
+  *layer = nnlayer;
+
+  status = ml_nnmodel_add_layer(model, *layer);
+  if (status != ML_ERROR_NONE) {
+    delete nnlayer;
+    *layer = nullptr;
+  }
+
+  return status;
+}
+
 int ml_nnlayer_create(ml_nnlayer_h *layer, ml_layer_type_e type) {
   int status = ML_ERROR_NONE;
   returnable f;
   ml_nnlayer *nnlayer = new ml_nnlayer;
   nnlayer->magic = ML_NNTRAINER_MAGIC;
-  *layer = nnlayer;
 
   try {
     switch (type) {
@@ -331,6 +367,7 @@ int ml_nnlayer_create(ml_nnlayer_h *layer, ml_layer_type_e type) {
   }
 
   nnlayer->in_use = false;
+  *layer = nnlayer;
   return status;
 }
 

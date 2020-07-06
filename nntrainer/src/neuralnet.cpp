@@ -116,7 +116,8 @@ NeuralNetwork::NeuralNetwork(std::string config) :
   data_buffer(NULL),
   continue_train(false),
   iter(0),
-  initialized(false) {
+  initialized(false),
+  def_name_count(0) {
   this->setConfig(config);
 }
 
@@ -260,6 +261,10 @@ int NeuralNetwork::loadFromConfig() {
     case LAYER_IN: {
       std::shared_ptr<InputLayer> input_layer = std::make_shared<InputLayer>();
 
+      status = input_layer->setName(layer_name);
+      if (status != ML_ERROR_NONE)
+        return status;
+
       std::string input_shape_str = iniparser_getstring(
         ini, (layer_name + ":Input_Shape").c_str(), unknown);
 
@@ -284,6 +289,9 @@ int NeuralNetwork::loadFromConfig() {
       WeightDecayParam weight_decay;
       std::shared_ptr<Conv2DLayer> conv2d_layer =
         std::make_shared<Conv2DLayer>();
+
+      status = conv2d_layer->setName(layer_name);
+      NN_INI_RETURN_STATUS();
 
       std::string input_shape_str = iniparser_getstring(
         ini, (layer_name + ":Input_Shape").c_str(), unknown);
@@ -350,6 +358,9 @@ int NeuralNetwork::loadFromConfig() {
       std::shared_ptr<Pooling2DLayer> pooling2d_layer =
         std::make_shared<Pooling2DLayer>();
 
+      status = pooling2d_layer->setName(layer_name);
+      NN_INI_RETURN_STATUS();
+
       status = getValues(
         POOLING2D_DIM,
         iniparser_getstring(ini, (layer_name + ":pooling_size").c_str(),
@@ -391,6 +402,9 @@ int NeuralNetwork::loadFromConfig() {
       std::shared_ptr<FlattenLayer> flatten_layer =
         std::make_shared<FlattenLayer>();
 
+      status = flatten_layer->setName(layer_name);
+      NN_INI_RETURN_STATUS();
+
       addLayer(flatten_layer);
     } break;
 
@@ -398,6 +412,9 @@ int NeuralNetwork::loadFromConfig() {
       WeightDecayParam weight_decay;
       std::shared_ptr<FullyConnectedLayer> fc_layer =
         std::make_shared<FullyConnectedLayer>();
+
+      status = fc_layer->setName(layer_name);
+      NN_INI_RETURN_STATUS();
 
       std::string input_shape_str = iniparser_getstring(
         ini, (layer_name + ":Input_Shape").c_str(), unknown);
@@ -432,6 +449,9 @@ int NeuralNetwork::loadFromConfig() {
     case LAYER_BN: {
       std::shared_ptr<BatchNormalizationLayer> bn_layer =
         std::make_shared<BatchNormalizationLayer>();
+
+      status = bn_layer->setName(layer_name);
+      NN_INI_RETURN_STATUS();
 
       // fixme: deprecate this.
       layers.back()->setBNfollow(true);
@@ -495,6 +515,8 @@ int NeuralNetwork::initLossLayer() {
   }
 
   std::shared_ptr<LossLayer> loss_layer = std::make_shared<LossLayer>();
+  ensureName(loss_layer);
+
   loss_layer->setInputDimension(layers.back()->getOutputDimension());
   status = loss_layer->initialize(true);
   NN_RETURN_STATUS();
@@ -1038,6 +1060,8 @@ int NeuralNetwork::addLayer(std::shared_ptr<Layer> layer) {
     return ML_ERROR_NOT_SUPPORTED;
   }
 
+  ensureName(layer);
+
   /** @todo This might be redundant. Remove this after testing */
   for (auto iter = layers.begin(); iter != layers.end(); ++iter) {
     if ((*iter)->getName() == layer->getName()) {
@@ -1066,6 +1090,36 @@ int NeuralNetwork::setOptimizer(std::shared_ptr<Optimizer> optimizer) {
   return ML_ERROR_NONE;
 }
 
+void NeuralNetwork::ensureName(std::shared_ptr<Layer> layer,
+                               std::string prefix) {
+  if (layer->getName().empty()) {
+    std::set<std::string>::iterator iter;
+    std::string name;
+
+    do {
+      name = prefix + layer->getBaseName() + std::to_string(def_name_count++);
+      iter = layer_names.find(name);
+    } while (iter != layer_names.end());
+
+    layer_names.insert(name);
+    layer->setName(name);
+  }
+}
+
+int NeuralNetwork::getLayer(const char *name, std::shared_ptr<Layer> *layer) {
+  int status = ML_ERROR_INVALID_PARAMETER;
+  std::string name_str(name);
+
+  for (auto iter = layers.begin(); iter != layers.end(); ++iter) {
+    if ((*iter)->getName() == name_str) {
+      *layer = *iter;
+      return ML_ERROR_NONE;
+    }
+  }
+
+  return status;
+}
+
 std::shared_ptr<Layer>
 NeuralNetwork::_make_act_layer(ActiType act, std::shared_ptr<Layer> prev) {
   if (layers.back()->getType() == LAYER_ACTIVATION) {
@@ -1079,6 +1133,7 @@ NeuralNetwork::_make_act_layer(ActiType act, std::shared_ptr<Layer> prev) {
     std::shared_ptr<ActivationLayer> act_layer =
       std::make_shared<ActivationLayer>();
 
+    ensureName(act_layer, prev->getName());
     act_layer->setActivation(act);
     act_layer->setInputDimension(prev->getOutputDimension());
     act_layer->initialize(prev->getLast());
@@ -1108,6 +1163,7 @@ int NeuralNetwork::initFlattenLayer(unsigned int &position) {
   std::shared_ptr<FlattenLayer> flatten_layer =
     std::make_shared<FlattenLayer>();
 
+  ensureName(flatten_layer, layers[position]->getName());
   flatten_layer->setInputDimension(layers[position]->getOutputDimension());
   flatten_layer->initialize(layers[position]->getLast());
   layers.insert(layers.begin() + position + 1, flatten_layer);
