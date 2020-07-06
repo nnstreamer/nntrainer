@@ -126,6 +126,13 @@ float no_op(float x);
  */
 Tensor strip_pad(Tensor const &in, unsigned int const *padding);
 
+/**
+ * @brief     rotate 180 dgree
+ * @param[in] in input Tensor
+ * @retVal Tensor rotated tensor (180 degree)
+ */
+Tensor rotate_180(Tensor in);
+
 } /* namespace nntrainer */
 
 #endif /* __cplusplus */

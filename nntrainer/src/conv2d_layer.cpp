@@ -190,8 +190,8 @@ Tensor Conv2DLayer::backwarding(Tensor derivative, int iteration) {
   for (unsigned int b = 0; b < derivative.batch(); ++b) {
     Tensor in_padded = zero_pad(b, derivative, same_pad);
     TensorDim p_dim(1, 1, in_padded.height(), in_padded.width());
-    for (unsigned int in_c = 0; in_c < input_dim.channel(); ++in_c) {
 
+    for (unsigned int in_c = 0; in_c < input_dim.channel(); ++in_c) {
       for (unsigned int i = 0; i < derivative.channel(); ++i) {
 
         conv2d(in_padded.getAddress(i * in_padded.height() * in_padded.width()),
@@ -224,7 +224,7 @@ Tensor Conv2DLayer::backwarding(Tensor derivative, int iteration) {
     opt.apply_gradients(weights, gradients, iteration);
   }
 
-  return strip_pad(ret, padding);
+  return rotate_180(strip_pad(ret, padding));
 }
 
 void Conv2DLayer::copy(std::shared_ptr<Layer> l) {

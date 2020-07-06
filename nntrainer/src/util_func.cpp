@@ -206,7 +206,7 @@ Tensor zero_pad(int batch, Tensor const &in, unsigned int const *padding) {
 
 // This is strip pad and return original tensor
 Tensor strip_pad(Tensor const &in, unsigned int const *padding) {
-  Tensor output(in.batch(), in.channel(), in.width() - padding[0] * 2,
+  Tensor output(in.batch(), in.channel(), in.height() - padding[0] * 2,
                 in.width() - padding[1] * 2);
   output.setZero();
 
@@ -223,4 +223,20 @@ Tensor strip_pad(Tensor const &in, unsigned int const *padding) {
   return output;
 }
 
-} /* namespace nntrainer */
+Tensor rotate_180(Tensor in) {
+  Tensor output(in.getDim());
+  for (unsigned int i = 0; i < in.batch(); ++i) {
+    for (unsigned int j = 0; j < in.channel(); ++j) {
+      for (unsigned int k = 0; k < in.height(); ++k) {
+        for (unsigned int l = 0; l < in.width(); ++l) {
+          output.setValue(
+            i, j, k, l,
+            in.getValue(i, j, (in.height() - k - 1), (in.width() - l - 1)));
+        }
+      }
+    }
+  }
+  return output;
+}
+
+} // namespace nntrainer
