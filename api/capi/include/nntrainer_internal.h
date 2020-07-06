@@ -24,8 +24,12 @@
 #ifndef __NNTRAINER_INTERNAL_H__
 #define __NNTRAINER_INTERNAL_H__
 
+#include <layer.h>
+#include <neuralnet.h>
 #include <nntrainer.h>
-#include <vector>
+#include <optimizer.h>
+#include <string>
+#include <unordered_map>
 
 #define ML_NNTRAINER_MAGIC 0x777F888F
 
@@ -48,7 +52,7 @@ typedef struct {
 typedef struct {
   uint magic;
   std::shared_ptr<nntrainer::NeuralNetwork> network;
-  std::vector<ml_nnlayer *> layers;
+  std::unordered_map<std::string, ml_nnlayer *> layers_map;
   ml_nnopt *optimizer;
 } ml_nnmodel;
 
@@ -90,6 +94,22 @@ typedef struct {
       return ML_ERROR_INVALID_PARAMETER;                             \
     }                                                                \
   } while (0)
+
+/**
+ * @brief Get neural network layer from the model with the given name.
+ * @details Use this function to get already created Neural Network Layer. The
+ * returned layer must not be deleted as it is owned by the model.
+ * @since_tizen 6.x
+ * @param[in] model The NNTrainer model handler from the given description.
+ * @param[in] layer_name Name of the already created layer.
+ * @param[out] layer The NNTrainer Layer handler from the given description.
+ * @return @c 0 on success. Otherwise a negative error value.
+ * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
+ * @retval #ML_ERROR_CANNOT_ASSIGN_ADDRESS Cannot assign object.
+ */
+int ml_nnmodel_get_layer(ml_nnmodel_h model, const char *layer_name,
+                         ml_nnlayer_h *layer);
 
 #ifdef __cplusplus
 }

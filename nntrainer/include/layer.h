@@ -119,6 +119,7 @@ typedef enum {
 class Layer {
 public:
   Layer() :
+    name(std::string()),
     last_layer(false),
     bias_init_zero(false),
     type(LAYER_UNKNOWN),
@@ -339,12 +340,12 @@ public:
   int setName(std::string name);
 
   /**
-   * @brief     Set name of the layer
+   * @brief     Get name of the layer
    */
-  std::string getName();
+  std::string getName() { return name; }
 
   /**
-   * @brief   Get base name of the layer
+   * @brief     Get base name of the layer
    */
   virtual std::string getBaseName() = 0;
 
@@ -493,21 +494,6 @@ protected:
   std::vector<std::reference_wrapper<Tensor>> weights;
 
 private:
-  /**
-   * @brief     Set containing all the names of layers
-   */
-  static std::set<std::string> layer_names;
-
-  /**
-   * @brief     Count assigned to layer names declared by default
-   */
-  static int def_name_count;
-
-  /**
-   * @brief     Ensure that layer has a name
-   */
-  void ensureName();
-
   /**
    * @brief     Convert vector of reference to vector of objects
    */

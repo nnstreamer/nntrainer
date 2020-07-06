@@ -136,7 +136,7 @@ int ml_nnmodel_train_with_generator(ml_nnmodel_h model,
 
 /**
  * @brief Destructs the neural network model.
- * @details Use this function to delete Neural Netowrk Model.
+ * @details Use this function to delete Neural Network Model.
  * @since_tizen 6.x
  * @param[in] model The NNTrainer model handler from the given description.
  * @return @c 0 on success. Otherwise a negative error value.

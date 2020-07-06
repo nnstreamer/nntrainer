@@ -266,6 +266,15 @@ public:
    */
   int setOptimizer(std::shared_ptr<Optimizer> optimizer);
 
+  /*
+   * @brief     get layer by name from neural network model
+   * @param[in] name name of the layer to get
+   * @param[out] layer shared_ptr to hold the layer to get
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  int getLayer(const char *name, std::shared_ptr<Layer> *layer);
+
   enum class PropertyType {
     loss = 0,
     cost = 1,
@@ -355,6 +364,16 @@ private:
   bool initialized;
 
   /**
+   * @brief     Set containing all the names of layers in the model
+   */
+  std::set<std::string> layer_names;
+
+  /**
+   * @brief     Count assigned to layer names declared by default
+   */
+  int def_name_count;
+
+  /**
    * @brief     Sets up and initialize the loss layer
    */
   int initLossLayer();
@@ -397,6 +416,11 @@ private:
    * @note layer is inserted at the back of layers
    */
   int initFlattenLayer();
+
+  /**
+   * @brief     Ensure that layer has a name
+   */
+  void ensureName(std::shared_ptr<Layer> layer, std::string prefix = "");
 };
 
 } /* namespace nntrainer */
