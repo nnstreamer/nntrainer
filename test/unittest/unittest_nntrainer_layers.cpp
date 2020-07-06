@@ -330,8 +330,8 @@ protected:
 
   virtual int reinitialize(bool _last_layer = false) {
     int status = super::reinitialize(_last_layer);
-    loadFile("test_1_FCLayer.in", in);
-    loadFile("test_1_FCKernel.in", layer);
+    loadFile("tc_fc_1_FCLayer.in", in);
+    loadFile("tc_fc_1_FCKernel.in", layer);
     return status;
   }
 
@@ -348,7 +348,7 @@ protected:
 TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_01_p) {
   out = layer.forwarding(in, status);
   EXPECT_EQ(status, ML_ERROR_NONE);
-  matchOutput(out, "test_1_goldenFCResultActNone.out");
+  matchOutput(out, "tc_fc_1_goldenFCResultActNone.out");
 }
 
 /**
@@ -364,7 +364,7 @@ TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_02_p) {
   out = actLayer.forwarding(in, status);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  matchOutput(out, "test_1_goldenFCResultSigmoid.out");
+  matchOutput(out, "tc_fc_1_goldenFCResultSigmoid.out");
 }
 
 /**
@@ -380,7 +380,7 @@ TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_03_p) {
   out = actLayer.forwarding(in, status);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  matchOutput(out, "test_1_goldenFCResultSoftmax.out");
+  matchOutput(out, "tc_fc_1_goldenFCResultSoftmax.out");
 }
 
 class nntrainer_BatchNormalizationLayer
@@ -388,10 +388,8 @@ class nntrainer_BatchNormalizationLayer
 protected:
   typedef nntrainer_abstractLayer<nntrainer::BatchNormalizationLayer> super;
 
-  virtual int reinitialize(bool _last_layer = false) {
-    int status = super::reinitialize(_last_layer);
-    // loadFile("test_5_BNLayerInput.in", in);
-    // loadFile("test_5_BNLayerWeights.in", layer);
+  virtual int reinitialize(bool last_layer = false) {
+    int status = super::reinitialize(last_layer);
     return status;
   }
 
@@ -477,8 +475,8 @@ protected:
     in = nntrainer::Tensor(3, 1, 4, 5);
     expected = nntrainer::Tensor(3, 1, 4, 5);
 
-    loadFile("test_5_BNLayerInput.in", in);
-    loadFile("test_5_BNLayerWeights.in", layer);
+    loadFile("tc_bn_1_BNLayerInput.in", in);
+    loadFile("tc_bn_1_BNLayerWeights.in", layer);
   }
 
   void matchOutput(const nntrainer::Tensor &result, const char *path) {
@@ -516,12 +514,12 @@ TEST_F(nntrainer_batchNormalizationLayer_TFmatch,
   nntrainer::Tensor forward_result = layer.forwarding(in, status);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  matchOutput(forward_result, "test_5_goldenBNResultForward.out");
+  matchOutput(forward_result, "tc_bn_1_goldenBNResultForward.out");
 
   nntrainer::Tensor backward_result =
     layer.backwarding(constant(1.0, 3, 1, 4, 5), 1);
 
-  matchOutput(backward_result, "test_5_goldenBNLayerBackwardDx.out");
+  matchOutput(backward_result, "tc_bn_1_goldenBNLayerBackwardDx.out");
 }
 
 class nntrainer_Conv2DLayer
@@ -587,8 +585,6 @@ TEST_F(nntrainer_Conv2DLayer, save_read_01_p) {
 TEST_F(nntrainer_Conv2DLayer, forwarding_01_p) {
   reinitialize("input_shape=1:3:7:7 |"
                "bias_init_zero = true |"
-               "weight_decay=l2norm |"
-               "weight_decay_lambda=0.005 |"
                "weight_ini=xavier_uniform |"
                "filter=2 | kernel_size=3,3 | stride=1, 1 | padding=0,0",
                true);
@@ -596,22 +592,21 @@ TEST_F(nntrainer_Conv2DLayer, forwarding_01_p) {
   ASSERT_EQ(in.getDim(), nntrainer::TensorDim(1, 3, 7, 7));
   ASSERT_EQ(out.getDim(), nntrainer::TensorDim(1, 2, 5, 5));
 
-  loadFile("test_1_conv2DLayer.in", in);
-  loadFile("test_1_conv2DKernel.in", layer);
+  loadFile("tc_conv2d_1_conv2DLayer.in", in);
+  loadFile("tc_conv2d_1_conv2DKernel.in", layer);
 
   out = layer.forwarding(in, status);
   EXPECT_EQ(status, ML_ERROR_NONE);
-  matchOutput(out, "test_1_goldenConv2DResult.out");
+  matchOutput(out, "tc_conv2d_1_goldenConv2DResult.out");
 }
 
 /**
  * @brief Convolution 2D Layer
  */
+
 TEST_F(nntrainer_Conv2DLayer, forwarding_02_p) {
   reinitialize("input_shape=2:3:7:7 |"
                "bias_init_zero = true |"
-               "weight_decay=l2norm |"
-               "weight_decay_lambda=0.005 |"
                "weight_ini=xavier_uniform |"
                "filter=3 | kernel_size=3,3 | stride=1, 1 | padding=0,0",
                true);
@@ -619,12 +614,12 @@ TEST_F(nntrainer_Conv2DLayer, forwarding_02_p) {
   ASSERT_EQ(in.getDim(), nntrainer::TensorDim(2, 3, 7, 7));
   ASSERT_EQ(out.getDim(), nntrainer::TensorDim(2, 3, 5, 5));
 
-  loadFile("test_2_conv2DLayer.in", in);
-  loadFile("test_2_conv2DKernel.in", layer);
+  loadFile("tc_conv2d_2_conv2DLayer.in", in);
+  loadFile("tc_conv2d_2_conv2DKernel.in", layer);
 
   out = layer.forwarding(in, status);
   EXPECT_EQ(status, ML_ERROR_NONE);
-  matchOutput(out, "test_2_goldenConv2DResult.out");
+  matchOutput(out, "tc_conv2d_2_goldenConv2DResult.out");
 }
 
 /**
@@ -643,8 +638,6 @@ TEST(nntrainer_Conv2D, backwarding_01_p) {
 
   input_str.push_back("input_shape=1:3:7:7");
   input_str.push_back("bias_init_zero=true");
-  input_str.push_back("weight_decay=l2norm");
-  input_str.push_back("weight_decay_lambda = 0.005");
   input_str.push_back("weight_ini=xavier_uniform");
   input_str.push_back("filter=2");
   input_str.push_back("kernel_size= 3,3");
@@ -670,23 +663,104 @@ TEST(nntrainer_Conv2D, backwarding_01_p) {
   nntrainer::Tensor out;
   nntrainer::Tensor derivatives(1, 2, 5, 5);
 
-  float sample_derivative[50] = {
-    0.25, 0.5, 0.5, 0.5,  0.25, 0.5, 1.0,  1.0,  1.0, 0.5, 0.5, 1.0,  1.0,
-    1.0,  0.5, 0.5, 1.0,  1.0,  1.0, 0.5,  0.25, 0.5, 0.5, 0.5, 0.25, 0.25,
-    0.5,  0.5, 0.5, 0.25, 0.5,  1.0, 1.0,  1.0,  0.5, 0.5, 1.0, 1.0,  1.0,
-    0.5,  0.5, 1.0, 1.0,  1.0,  0.5, 0.25, 0.5,  0.5, 0.5, 0.25};
-
-  std::ifstream file("test_1_conv2DLayer.in");
+  std::ifstream file("tc_conv2d_1_conv2DLayer.in");
   in.read(file);
+
+  std::ifstream kfile("tc_conv2d_1_conv2DKernel.in");
+  layer.read(kfile);
+  kfile.close();
+
   out = layer.forwarding(in, status);
 
   for (unsigned int i = 0; i < derivatives.getDim().getDataLen(); ++i) {
-    derivatives.getData()[i] = sample_derivative[i];
+    derivatives.getData()[i] = 1.0;
   }
 
   nntrainer::Tensor result = layer.backwarding(derivatives, 1);
-  // todo: add golden test for this.
-  // matchOutput(out, "test_1_conv2dLayer.in")
+
+  nntrainer::Tensor grad_w;
+  std::ifstream wfile("tc_conv2d_1_goldenKernelGrad.out");
+  grad_w.read(wfile);
+  wfile.close();
+  nntrainer::Tensor grad_s;
+  std::ifstream sfile("tc_conv2d_1_goldenInputGrad.out");
+  grad_s.read(sfile);
+  sfile.close();
+  nntrainer::Tensor grad_b;
+  std::ifstream bfile("tc_conv2d_1_goldenBiasGrad.out");
+  grad_b.read(bfile);
+  bfile.close();
+}
+
+/**
+ * @brief Convolution 2D Layer
+ */
+TEST(nntrainer_Conv2D, backwarding_02_p) {
+  int status = ML_ERROR_NONE;
+  nntrainer::Conv2DLayer layer;
+  std::vector<std::string> input_str;
+  nntrainer::Optimizer op;
+  nntrainer::OptType t = nntrainer::OptType::sgd;
+  nntrainer::OptParam p;
+  nntrainer::TensorDim previous_dim;
+  previous_dim.setTensorDim("2:3:7:7");
+
+  input_str.push_back("input_shape=2:3:7:7");
+  input_str.push_back("bias_init_zero=true");
+  input_str.push_back("weight_ini=xavier_uniform");
+  input_str.push_back("filter=2");
+  input_str.push_back("kernel_size= 3,3");
+  input_str.push_back("stride=1, 1");
+  input_str.push_back("padding=0,0");
+
+  status = layer.setProperty(input_str);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  layer.setInputDimension(previous_dim);
+
+  status = op.setType(t);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  p.learning_rate = 0.001;
+  status = op.setOptParam(p);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = layer.initialize(true);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = layer.setOptimizer(op);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  nntrainer::Tensor in(2, 3, 7, 7);
+  nntrainer::Tensor out;
+  nntrainer::Tensor derivatives(2, 2, 5, 5);
+
+  std::ifstream file("tc_conv2d_2_conv2DLayer.in");
+  in.read(file);
+
+  std::ifstream kfile("tc_conv2d_2_conv2DKernel.in");
+  layer.read(kfile);
+  kfile.close();
+
+  out = layer.forwarding(in, status);
+
+  for (unsigned int i = 0; i < derivatives.getDim().getDataLen(); ++i) {
+    derivatives.getData()[i] = 1.0;
+  }
+
+  nntrainer::Tensor result = layer.backwarding(derivatives, 1);
+
+  nntrainer::Tensor grad_w;
+  std::ifstream wfile("tc_conv2d_2_goldenKernelGrad.out");
+  grad_w.read(wfile);
+  wfile.close();
+  nntrainer::Tensor grad_s;
+  std::ifstream sfile("tc_conv2d_2_goldenInputGrad.out");
+  grad_s.read(sfile);
+  sfile.close();
+  nntrainer::Tensor grad_b;
+  std::ifstream bfile("tc_conv2d_2_goldenBiasGrad.out");
+  grad_b.read(bfile);
+  bfile.close();
+
+  // @TODO Compare with golden data after getGradient function is implemented.
 }
 
 class nntrainer_Pooling2DLayer
@@ -713,13 +787,31 @@ TEST_F(nntrainer_Pooling2DLayer, initialize_01_p) { reinitialize(); }
 TEST_F(nntrainer_Pooling2DLayer, forwarding_01_p) {
   setInputDim("1:2:5:5");
   setProperty("pooling_size=2,2 | stride=1,1 | padding=0,0 | pooling=max");
+
   reinitialize();
 
-  loadFile("test_1_goldenConv2DResult.out", in);
+  loadFile("tc_pooling2d_1.in", in);
+
   out = layer.forwarding(in, status);
+
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  matchOutput(out, "test_1_goldenPooling2DResult.out");
+  matchOutput(out, "tc_pooling2d_1_goldenPooling2Dmax.out");
+}
+
+TEST_F(nntrainer_Pooling2DLayer, forwarding_02_p) {
+  setInputDim("1:2:5:5");
+  setProperty("pooling_size=2,2 | stride=1,1 | padding=0,0 | pooling=average");
+
+  reinitialize();
+
+  loadFile("tc_pooling2d_1.in", in);
+
+  out = layer.forwarding(in, status);
+
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  matchOutput(out, "tc_pooling2d_1_goldenPooling2Daverage.out");
 }
 
 TEST_F(nntrainer_Pooling2DLayer, forwarding_03_p) {
@@ -728,14 +820,12 @@ TEST_F(nntrainer_Pooling2DLayer, forwarding_03_p) {
   setProperty("pooling=global_max");
   reinitialize();
 
-  loadFile("test_1_goldenConv2DResult.out", in);
-  out = layer.forwarding(in, status);
+  loadFile("tc_pooling2d_1.in", in);
 
+  out = layer.forwarding(in, status);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  float golden[2] = {7.8846731, 8.81525};
-
-  matchData(golden);
+  matchOutput(out, "tc_pooling2d_1_goldenPooling2Dglobal_max.out");
 }
 
 TEST_F(nntrainer_Pooling2DLayer, forwarding_04_p) {
@@ -744,56 +834,46 @@ TEST_F(nntrainer_Pooling2DLayer, forwarding_04_p) {
   setProperty("pooling=global_average");
   reinitialize();
 
-  loadFile("test_1_goldenConv2DResult.out", in);
+  loadFile("tc_pooling2d_1.in", in);
 
   out = layer.forwarding(in, status);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  float golden[2] = {6.6994767, 7.1483521};
-
-  matchData(golden);
+  matchOutput(out, "tc_pooling2d_1_goldenPooling2Dglobal_average.out");
 }
 
 TEST_F(nntrainer_Pooling2DLayer, forwarding_05_p) {
   resetLayer();
-  setInputDim("2:3:5:5");
+  setInputDim("2:2:5:5");
   setProperty("pooling=global_max");
   reinitialize();
 
-  loadFile("test_2_goldenConv2DResult.out", in);
-
+  loadFile("tc_pooling2d_2.in", in);
   out = layer.forwarding(in, status);
   EXPECT_EQ(status, ML_ERROR_NONE);
-
-  float golden[6] = {9.60282, 8.78552, 9.1152, 9.29397, 8.580175, 8.74109};
-
-  matchData(golden);
+  matchOutput(out, "tc_pooling2d_2_goldenPooling2Dglobal_max.out");
 }
 
 TEST_F(nntrainer_Pooling2DLayer, forwarding_06_p) {
   resetLayer();
-  setInputDim("2:3:5:5");
+  setInputDim("2:2:5:5");
   setProperty("pooling=global_average");
   reinitialize();
 
-  loadFile("test_2_goldenConv2DResult.out", in);
+  loadFile("tc_pooling2d_2.in", in);
 
   out = layer.forwarding(in, status);
   EXPECT_EQ(status, ML_ERROR_NONE);
-
-  float golden[6] = {8.3259277, 7.2941909, 7.7225585,
-                     8.2644157, 7.0253778, 7.4998989};
-
-  matchData(golden);
+  matchOutput(out, "tc_pooling2d_2_goldenPooling2Dglobal_average.out");
 }
 
 TEST_F(nntrainer_Pooling2DLayer, backwarding_01_p) {
   resetLayer();
   setInputDim("1:2:5:5");
   setProperty("pooling_size=2,2 | stride=1,1 | padding=0,0 | pooling=max");
-  reinitialize();
 
-  loadFile("test_1_goldenConv2DResult.out", in);
+  reinitialize();
+  loadFile("tc_pooling2d_1.in", in);
 
   out = layer.forwarding(in, status);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -804,13 +884,9 @@ TEST_F(nntrainer_Pooling2DLayer, backwarding_01_p) {
     grad.getData()[i] = 1.0;
   }
 
-  out = layer.backwarding(grad, 0);
+  in = layer.backwarding(grad, 0);
 
-  float golden[50] = {0, 0, 0, 0, 0, 0, 2, 1, 0, 1, 2, 1, 0, 1, 2, 1, 0,
-                      4, 1, 0, 0, 0, 0, 0, 0, 0, 2, 1, 0, 1, 0, 0, 1, 0,
-                      0, 0, 4, 0, 0, 1, 0, 2, 0, 4, 0, 0, 0, 0, 0, 0};
-
-  matchData(golden);
+  matchOutput(in, "tc_pooling2d_1_goldenPooling2DmaxGrad.out");
 }
 
 TEST_F(nntrainer_Pooling2DLayer, backwarding_02_p) {
@@ -818,8 +894,7 @@ TEST_F(nntrainer_Pooling2DLayer, backwarding_02_p) {
   setInputDim("1:2:5:5");
   setProperty("pooling_size=2,2 | stride=1,1 | padding=0,0 | pooling=average");
   reinitialize();
-
-  loadFile("test_1_goldenConv2DResult.out", in);
+  loadFile("tc_pooling2d_1.in", in);
 
   out = layer.forwarding(in, status);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -830,15 +905,9 @@ TEST_F(nntrainer_Pooling2DLayer, backwarding_02_p) {
     grad.getData()[i] = 1.0;
   }
 
-  out = layer.backwarding(grad, 0);
+  in = layer.backwarding(grad, 0);
 
-  float golden[50] = {0.25, 0.5, 0.5, 0.5, 0.25, 0.5,  1.0, 1.0, 1.0, 0.5,
-                      0.5,  1.0, 1.0, 1.0, 0.5,  0.5,  1.0, 1.0, 1.0, 0.5,
-                      0.25, 0.5, 0.5, 0.5, 0.25, 0.25, 0.5, 0.5, 0.5, 0.25,
-                      0.5,  1.0, 1.0, 1.0, 0.5,  0.5,  1.0, 1.0, 1.0, 0.5,
-                      0.5,  1.0, 1.0, 1.0, 0.5,  0.25, 0.5, 0.5, 0.5, 0.25};
-
-  matchData(golden);
+  matchOutput(in, "tc_pooling2d_1_goldenPooling2DaverageGrad.out");
 }
 
 TEST_F(nntrainer_Pooling2DLayer, backwarding_03_p) {
@@ -848,7 +917,7 @@ TEST_F(nntrainer_Pooling2DLayer, backwarding_03_p) {
     "pooling_size=2,2 | stride=1,1 | padding=0,0 | pooling=global_max");
   reinitialize();
 
-  loadFile("test_1_goldenConv2DResult.out", in);
+  loadFile("tc_pooling2d_1.in", in);
 
   out = layer.forwarding(in, status);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -859,13 +928,9 @@ TEST_F(nntrainer_Pooling2DLayer, backwarding_03_p) {
     grad.getData()[i] = 1.0;
   }
 
-  out = layer.backwarding(grad, 0);
+  in = layer.backwarding(grad, 0);
 
-  float golden[50] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0,
-                      0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                      0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-
-  matchData(golden);
+  matchOutput(in, "tc_pooling2d_1_goldenPooling2Dglobal_maxGrad.out");
 }
 
 TEST_F(nntrainer_Pooling2DLayer, backwarding_04_p) {
@@ -873,8 +938,7 @@ TEST_F(nntrainer_Pooling2DLayer, backwarding_04_p) {
   setProperty(
     "pooling_size=2,2 | stride=1,1 | padding=0,0 | pooling=global_average");
   reinitialize();
-
-  loadFile("test_1_goldenConv2DResult.out", in);
+  loadFile("tc_pooling2d_1.in", in);
 
   out = layer.forwarding(in, status);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -885,16 +949,9 @@ TEST_F(nntrainer_Pooling2DLayer, backwarding_04_p) {
     grad.getData()[i] = 1.0;
   }
 
-  out = layer.backwarding(grad, 0);
+  in = layer.backwarding(grad, 0);
 
-  float golden[50] = {0.04, 0.04, 0.04, 0.04, 0.04, 0.04, 0.04, 0.04, 0.04,
-                      0.04, 0.04, 0.04, 0.04, 0.04, 0.04, 0.04, 0.04, 0.04,
-                      0.04, 0.04, 0.04, 0.04, 0.04, 0.04, 0.04, 0.04, 0.04,
-                      0.04, 0.04, 0.04, 0.04, 0.04, 0.04, 0.04, 0.04, 0.04,
-                      0.04, 0.04, 0.04, 0.04, 0.04, 0.04, 0.04, 0.04, 0.04,
-                      0.04, 0.04, 0.04, 0.04, 0.04};
-
-  matchData(golden);
+  matchOutput(in, "tc_pooling2d_1_goldenPooling2Dglobal_averageGrad.out");
 }
 
 class nntrainer_FlattenLayer
@@ -909,27 +966,27 @@ TEST_F(nntrainer_FlattenLayer, forwarding_01_p) {
 
   EXPECT_EQ(out.getDim(), nntrainer::TensorDim(1, 1, 1, 32));
 
-  loadFile("test_1_goldenPooling2DResult.out", in);
+  loadFile("tc_pooling2d_1_goldenPooling2Dmax.out", in);
 
   out = layer.forwarding(in, status);
 
-  matchOutput(out, "test_1_goldenPooling2DResult.out");
+  matchOutput(out, "tc_pooling2d_1_goldenPooling2Dmax.out");
 }
 
 /**
  * @brief Flatten Layer
  */
 TEST_F(nntrainer_FlattenLayer, forwarding_02_p) {
-  setInputDim("2:3:4:4");
+  setInputDim("2:2:4:4");
   reinitialize(false);
 
-  EXPECT_EQ(out.getDim(), nntrainer::TensorDim(2, 1, 1, 48));
+  EXPECT_EQ(out.getDim(), nntrainer::TensorDim(2, 1, 1, 32));
 
-  loadFile("test_2_goldenPooling2DResult.out", in);
+  loadFile("tc_pooling2d_2_goldenPooling2Dmax.out", in);
 
   out = layer.forwarding(in, status);
 
-  matchOutput(out, "test_2_goldenPooling2DResult.out");
+  matchOutput(out, "tc_pooling2d_2_goldenPooling2Dmax.out");
 }
 
 /**
@@ -941,29 +998,29 @@ TEST_F(nntrainer_FlattenLayer, backwarding_01_p) {
 
   EXPECT_EQ(out.getDim(), nntrainer::TensorDim(1, 1, 1, 32));
 
-  loadFile("test_1_goldenPooling2DResult.out", out);
+  loadFile("tc_pooling2d_1_goldenPooling2Dmax.out", out);
 
   in = layer.backwarding(out, 0);
   EXPECT_EQ(in.getDim(), nntrainer::TensorDim(1, 2, 4, 4));
 
-  matchOutput(in, "test_1_goldenPooling2DResult.out");
+  matchOutput(in, "tc_pooling2d_1_goldenPooling2Dmax.out");
 }
 
 /**
  * @brief Flatten Layer
  */
 TEST_F(nntrainer_FlattenLayer, backwarding_02_p) {
-  setInputDim("2:3:4:4");
+  setInputDim("2:2:4:4");
   reinitialize(false);
 
-  EXPECT_EQ(out.getDim(), nntrainer::TensorDim(2, 1, 1, 48));
+  EXPECT_EQ(out.getDim(), nntrainer::TensorDim(2, 1, 1, 32));
 
-  loadFile("test_2_goldenPooling2DResult.out", out);
+  loadFile("tc_pooling2d_2_goldenPooling2Dmax.out", out);
 
   in = layer.backwarding(out, 0);
-  EXPECT_EQ(in.getDim(), nntrainer::TensorDim(2, 3, 4, 4));
+  EXPECT_EQ(in.getDim(), nntrainer::TensorDim(2, 2, 4, 4));
 
-  matchOutput(in, "test_2_goldenPooling2DResult.out");
+  matchOutput(in, "tc_pooling2d_2_goldenPooling2Dmax.out");
 }
 
 /**
@@ -1029,7 +1086,6 @@ TEST(nntrainer_ActivationLayer, forward_backward_01_p) {
   result = layer.backwarding(constant(1.0, 3, 1, 1, 10), 1);
   GEN_TEST_INPUT(
     expected, nntrainer::reluPrime(nntrainer::relu((l - 4) * 0.1 * (i + 1))));
-  ;
   EXPECT_TRUE(result == expected);
 }
 

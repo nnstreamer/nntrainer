@@ -42,8 +42,10 @@ def save(filename, *data):
           np.array(item, dtype=np.float32).tofile(outfile)
           try:
             print(item.shape, " data is generated")
+            print(item)
           except:
             pass
+
 
 ##
 # @brief generate random tensor
@@ -81,27 +83,61 @@ def gen_input(outfile_name, input_shape, savefile=True):
 # @param[in] bias bias data
 # @return tf_o calculated result
 def conv2d_tf(x, kernel, batch, width, height, channel, k_width, k_height, k_num, stride, pad, bias):
-    x_trans = np.transpose(x,[0,2,3,1])
+    x = np.transpose(x,[0,2,3,1])
     kernel = np.transpose(kernel, [2,3,1,0])
-    tf_x = tf.constant(x_trans, dtype=dtypes.float32)
+    tf.compat.v1.reset_default_graph()
+    input_shape = (batch, height, width, channel)
 
-    scope = "conv_in_numpy"
-    act = tf.nn.sigmoid
+    tf_input = tf.compat.v1.placeholder(
+        dtype=dtypes.float32, shape=input_shape, name='input')
+    kernel_w = tf.constant_initializer(kernel)
+    conv2d_layer = tf.keras.layers.Conv2D(k_num, k_width, strides = stride, padding=pad, kernel_initializer=kernel_w)(tf_input)
 
-    with tf.Session() as sess:
-        with tf.variable_scope(scope):
-            nin = tf_x.get_shape()[3].value
-            tf_w = tf.get_variable("w", [k_width, k_height, nin, k_num], initializer=tf.constant_initializer(kernel))
-            tf_b = tf.get_variable(
-                "b", [k_num],
-                initializer=tf.constant_initializer(bias, dtype=dtypes.float32))
-            tf_z = tf.nn.conv2d(
-                tf_x, kernel, strides=[1, stride, stride, 1], padding=pad) + bias
-            tf_p = tf.nn.max_pool(tf_z, ksize = [1,2,2,1], strides=[1,1,1,1], padding='VALID');
-            sess.run(tf.global_variables_initializer())
-            tf_c = sess.run(tf_z)
-            tf_o = sess.run(tf_p)
-    return tf_c, tf_o
+    conv2d_variables = tf.compat.v1.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)
+
+    input_variables = [tf_input] + conv2d_variables
+
+    grad = tf.gradients(conv2d_layer, input_variables)
+
+    with tf.compat.v1.Session() as sess:
+        sess.run(tf.global_variables_initializer())
+        conv2d_result = sess.run(conv2d_layer, feed_dict={tf_input: x})
+        grad_result = sess.run(grad, feed_dict={tf_input:x})
+    if DEBUG:
+        for item, input_variable in zip(grad_result, input_variables):
+            print(input_variable.name)
+            print(item)
+
+    return conv2d_result, grad_result[0], grad_result[1], grad_result[2]
+
+def pooling2d_tf(x, pool_size, stride, padding, pooling):
+    x = np.transpose(x, [0,2,3,1])
+    tf.compat.v1.reset_default_graph()
+    input_shape = x.shape
+    tf_input=tf.compat.v1.placeholder(dtype=dtypes.float32, shape=input_shape, name='input')
+
+    if (pooling == "max"):
+        pooling2d_layer=tf.keras.layers.MaxPooling2D(pool_size=pool_size, strides =stride, padding = "valid")(tf_input)
+    elif (pooling == "average"):
+        pooling2d_layer=tf.keras.layers.AveragePooling2D(pool_size=pool_size, strides =stride, padding = "valid")(tf_input)
+    elif (pooling == "global_max"):
+        pooling2d_layer=tf.keras.layers.GlobalMaxPooling2D()(tf_input)
+    elif (pooling == "global_average"):
+        pooling2d_layer=tf.keras.layers.GlobalAveragePooling2D()(tf_input)
+    
+    pooling2d_variables = tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.GLOBAL_VARIABLES)
+    input_variables = [tf_input] + pooling2d_variables
+    grad = tf.gradients(pooling2d_layer, input_variables)
+
+    with tf.compat.v1.Session() as sess:
+        sess.run(tf.global_variables_initializer())
+        pooling2d_result = sess.run(pooling2d_layer, feed_dict={tf_input:x})
+        grad_result = sess.run(grad, feed_dict={tf_input:x})
+    if DEBUG:
+        for item, input_variable in zip(grad_result, input_variables):
+            print(input_variable.name)
+            print(item)
+    return pooling2d_result, grad_result[0]
 
 ##
 # Tested with tensorflow 1.x (1.14.0 and above)
@@ -250,54 +286,70 @@ def bn_tf(x, *, trainable=True, init_beta=gen_tensor, init_gamma=gen_tensor, axi
 
 
 def gen_test_case_conv(i_b, i_c, i_h, i_w, k_c, k_h, k_w, padding, stride, bias, base_name):
-    x=gen_input(base_name+"conv2DLayer.in", [i_b, i_c, i_h, i_w])
-    kernel=gen_input(base_name+"conv2DKernel.in", [k_c, i_c, k_h, k_w])
-    with open(base_name+"conv2DKernel.in", 'ab') as outfile:
+    x=gen_input(base_name+"_conv2DLayer.in", [i_b, i_c, i_h, i_w])
+    kernel=gen_input(base_name+"_conv2DKernel.in", [k_c, i_c, k_h, k_w])
+    with open(base_name+"_conv2DKernel.in", 'ab') as outfile:
         np.array(bias, dtype=np.float32).tofile(outfile)
 
-    golden_conv, golden_pool=conv2d_tf(x, kernel, i_b, i_h, i_w, i_c, k_h, k_w, k_c, stride, padding, bias)
-    save(base_name+"goldenConv2DResult.out", np.transpose(golden_conv,(0,3,2,1)))
-    save(base_name+"goldenPooling2DResult.out", np.transpose(golden_pool,(0,3,2,1)))
+    golden_conv, golden_grad_input, golden_grad_kernel, golden_grad_bias=conv2d_tf(x, kernel, i_b, i_h, i_w, i_c, k_h, k_w, k_c, stride, padding, bias)
+    save(base_name+"_goldenConv2DResult.out", np.transpose(golden_conv,(0,3,1,2)))
+    save(base_name+"_goldenInputGrad.out", np.transpose(golden_grad_input,(0,3,1,2)))
+    save(base_name+"_goldenKernelGrad.out", np.transpose(golden_grad_kernel,(3,2,0,1)))
+    save(base_name+"_goldenBiasGrad.out", golden_grad_bias)
+
+def gen_test_case_pooling(input_shape, pooling_size, stride, padding, pooling, base_name, gen_in):
+    if gen_in:
+        input_data = gen_input(base_name + ".in", input_shape)
+    else:
+        with open(base_name+".in", 'rb') as f:
+            input_data = np.fromfile(f, dtype=np.float32)
+            input_data=np.reshape(input_data, input_shape)
+    golden_pooling, golden_grad_input = pooling2d_tf(input_data, pooling_size, stride, padding, pooling)
+    if (pooling == "global_average" or pooling == "global_max"):
+        save(base_name+"_goldenPooling2D"+pooling+".out", golden_pooling)
+    else:
+        save(base_name+"_goldenPooling2D"+pooling+".out", np.transpose(golden_pooling,(0,3,1,2)))
+    save(base_name+"_goldenPooling2D"+pooling+"Grad.out", np.transpose(golden_grad_input,(0,3,1,2)))    
 
 ##
 # @brief generate fc test case data for forward and backward pass
 def gen_test_case_fc(input_shape, kernel_shape, base_name):
-    input_data = gen_input(base_name + "FCLayer.in", input_shape)
-    label = gen_input(base_name + "FCLabel.in", input_shape[:-1] + [kernel_shape[-1]])
+    input_data = gen_input(base_name + "_FCLayer.in", input_shape)
+    label = gen_input(base_name + "_FCLabel.in", input_shape[:-1] + [kernel_shape[-1]])
 
-    kernel = gen_input(base_name + "FCKernel.in", kernel_shape)
-    bias = gen_input(base_name + "FCKernel.in", kernel_shape[-1:], savefile=False)
-    with open(base_name+"FCKernel.in", 'ab') as outfile:
+    kernel = gen_input(base_name + "_FCKernel.in", kernel_shape)
+    bias = gen_input(base_name + "_FCKernel.in", kernel_shape[-1:], savefile=False)
+    with open(base_name+"_FCKernel.in", 'ab') as outfile:
         np.array(bias, dtype=np.float32).tofile(outfile)
 
 
     golden_fc = fc_tf(input_data, kernel, None, bias, activation=None)
-    save(base_name + "goldenFCResultActNone.out", golden_fc[0])
+    save(base_name + "_goldenFCResultActNone.out", golden_fc[0])
 
     golden_fc = fc_tf(input_data, kernel, None, bias, activation=tf.nn.sigmoid)
-    save(base_name + "goldenFCResultSigmoid.out", golden_fc[0])
+    save(base_name + "_goldenFCResultSigmoid.out", golden_fc[0])
 
     golden_fc = fc_tf(input_data, kernel, None, bias, activation=tf.nn.softmax)
-    save(base_name + "goldenFCResultSoftmax.out", golden_fc[0])
+    save(base_name + "_goldenFCResultSoftmax.out", golden_fc[0])
 
 def gen_test_case_bn(input_shape, base_name, training=True):
-    input_data = gen_input(base_name + "BNLayerInput.in", input_shape)
+    input_data = gen_input(base_name + "_BNLayerInput.in", input_shape)
 
     input_variables, output_variables, grad = bn_tf(input_data)
 
     # mu / var / gamma / beta
-    save(base_name + "BNLayerWeights.in", input_variables[3], input_variables[4], input_variables[1], input_variables[2])
-    save(base_name + "goldenBNResultForward.out", output_variables[0])
+    save(base_name + "_BNLayerWeights.in", input_variables[3], input_variables[4], input_variables[1], input_variables[2])
+    save(base_name + "_goldenBNResultForward.out", output_variables[0])
     # todo: change 0 to initial moving avg / std in case of training
-    save(base_name + "goldenBNLayerAfterUpdate.out", 0, 0, output_variables[1], output_variables[2])
-    save(base_name + "goldenBNLayerBackwardDx.out", grad[0])
+    save(base_name + "_goldenBNLayerAfterUpdate.out", 0, 0, output_variables[1], output_variables[2])
+    save(base_name + "_goldenBNLayerBackwardDx.out", grad[0])
 
 
 if __name__ == "__main__":
-    target = int(sys.argv[1])
+    target = sys.argv[1]
 
 # Input File Generation with given info
-    if target == 1:
+    if target == "gen_tensor":
         if len(sys.argv) != 7 :
             print('wrong argument : 1 filename, batch, channel, height, width')
             exit()
@@ -310,9 +362,9 @@ if __name__ == "__main__":
 #  : output (1,2,5,5)
 #  : stride 1, 1
 #  : padding 0, 0 (VALID)
-    if target == 2:
+    if target == "conv2d_1":
         bias1 = [0.0, 0.0]
-        gen_test_case_conv(1, 3, 7, 7, 2, 3, 3, "VALID", 1, bias1, "test_1_")
+        gen_test_case_conv(1, 3, 7, 7, 2, 3, 3, "VALID", 1, bias1, "tc_conv2d_1")
 
 # second unit test case : 2, 3, 7, 7, 3, 3, 3, VALID, 1 test_2_
 #  : Input Dimension (2, 3, 7, 7)
@@ -320,16 +372,28 @@ if __name__ == "__main__":
 #  : output (1,3,5,5)
 #  : stride 1, 1
 #  : padding 0, 0 (VALID)
-    if target == 3:
+    if target == "conv2d_2":
         bias2 = [0.0, 0.0, 0.0]
-        gen_test_case_conv(2, 3, 7, 7, 3, 3, 3, "VALID", 1, bias2, "test_2_")
+        gen_test_case_conv(2, 3, 7, 7, 3, 3, 3, "VALID", 1, bias2, "tc_conv2d_2")
 
 # FC layer unit test case:
-    if target == 4:
+    if target == "fc_1":
         gen_test_case_fc(input_shape = [3, 1, 1, 12],
                 kernel_shape = [12, 15],
-                base_name = "test_1_")
-
+                base_name = "tc_fc_1")
+        
 # Bn layer unit test case:
-    if target == 5:
-        gen_test_case_bn(input_shape = [3, 1, 4, 5], base_name = "test_5_")
+    if target == "bn_1":
+        gen_test_case_bn(input_shape = [3, 1, 4, 5], base_name = "tc_bn_1")
+
+    if target == "pooling2d_1":
+        gen_test_case_pooling(input_shape = [1,2,5,5], pooling_size=[2,2], stride=[1,1], padding=[0,0], pooling="max", base_name="tc_pooling2d_1", gen_in=True)
+        gen_test_case_pooling(input_shape = [1,2,5,5], pooling_size=[2,2], stride=[1,1], padding=[0,0], pooling="average", base_name="tc_pooling2d_1", gen_in=False)
+        gen_test_case_pooling(input_shape = [1,2,5,5], pooling_size=[2,2], stride=[1,1], padding=[0,0], pooling="global_max", base_name="tc_pooling2d_1", gen_in=False)
+        gen_test_case_pooling(input_shape = [1,2,5,5], pooling_size=[2,2], stride=[1,1], padding=[0,0], pooling="global_average", base_name="tc_pooling2d_1", gen_in=False)
+
+    if target == "pooling2d_2":
+        gen_test_case_pooling(input_shape = [2,2,5,5], pooling_size=[2,2], stride=[1,1], padding=[0,0], pooling="max", base_name="tc_pooling2d_2", gen_in=True)
+        gen_test_case_pooling(input_shape = [2,2,5,5], pooling_size=[2,2], stride=[1,1], padding=[0,0], pooling="average", base_name="tc_pooling2d_2", gen_in=False)
+        gen_test_case_pooling(input_shape = [2,2,5,5], pooling_size=[2,2], stride=[1,1], padding=[0,0], pooling="global_max", base_name="tc_pooling2d_2", gen_in=False)
+        gen_test_case_pooling(input_shape = [2,2,5,5], pooling_size=[2,2], stride=[1,1], padding=[0,0], pooling="global_average", base_name="tc_pooling2d_2", gen_in=False)
