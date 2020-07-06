@@ -118,4 +118,56 @@ std::shared_ptr<std::vector<Tensor>> Layer::getObjFromRef(std::vector<std::refer
   return std::make_shared<std::vector<Tensor>>(std::move(ele));
 }
 
+int Layer::setProperty(std::vector<std::string> values) {
+  int status = ML_ERROR_NONE;
+
+  for (unsigned int i = 0; i < values.size(); ++i) {
+    std::string key;
+    std::string value;
+
+    status = getKeyValue(values[i], key, value);
+    NN_RETURN_STATUS();
+
+    unsigned int type = parseLayerProperty(key);
+
+    switch (static_cast<PropertyType>(type)) {
+    case PropertyType::input_shape:
+      status = input_dim.setTensorDim(value.c_str());
+      NN_RETURN_STATUS();
+      break;
+    case PropertyType::bias_init_zero:
+      status = setBoolean(this->bias_init_zero, value);
+      NN_RETURN_STATUS();
+      break;
+    case PropertyType::activation:
+      status = setActivation((ActiType)parseType(value, TOKEN_ACTI));
+      NN_RETURN_STATUS();
+      break;
+    case PropertyType::flatten:
+      status = setBoolean(flatten, value);
+      NN_RETURN_STATUS();
+      break;
+    case PropertyType::weight_decay:
+      weight_decay.type = (WeightDecayType)parseType(value, TOKEN_WEIGHT_DECAY);
+      if (weight_decay.type == WeightDecayType::unknown) {
+        ml_loge("Error: Unknown Weight Decay");
+        return ML_ERROR_INVALID_PARAMETER;
+      }
+      break;
+    case PropertyType::weight_decay_lambda:
+      status = setFloat(weight_decay.lambda, value);
+      NN_RETURN_STATUS();
+      break;
+    case PropertyType::weight_ini:
+      weight_ini_type = (WeightIniType)parseType(value, TOKEN_WEIGHTINI);
+      break;
+    default:
+      ml_loge("Error: Unknown Layer Property Key : %s", key.c_str());
+      status = ML_ERROR_INVALID_PARAMETER;
+      break;
+    }
+  }
+  return status;
+}
+
 } /* namespace nntrainer */

@@ -266,7 +266,7 @@ TEST(nntrainer_capi_nnmodel, addLayer_02_p) {
 /**
  * @brief Neural Network Model Add Layer Test
  */
-TEST(nntrainer_capi_nnmodel, addLayer_03_n) {
+TEST(nntrainer_capi_nnmodel, addLayer_03_p) {
   int status = ML_ERROR_NONE;
 
   ml_nnmodel_h model;
@@ -280,7 +280,7 @@ TEST(nntrainer_capi_nnmodel, addLayer_03_n) {
 
   status = ml_nnlayer_set_property(layer, "input_shape= 32:1:1:62720",
                                    "activation=sigmoid", NULL);
-  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+  EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_nnlayer_delete(layer);
   EXPECT_EQ(status, ML_ERROR_NONE);

@@ -135,30 +135,7 @@ void ActivationLayer::setActivation(ActiType acti_type) {
  * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
  */
 int ActivationLayer::setProperty(std::vector<std::string> values) {
-  int status = ML_ERROR_NONE;
-
-  if (values.size() != 1) {
-    return ML_ERROR_INVALID_PARAMETER;
-  }
-
-  std::string key;
-  std::string value;
-
-  status = getKeyValue(values[0], key, value);
-  NN_RETURN_STATUS();
-
-  if (static_cast<PropertyType>(parseLayerProperty(key))
-		  != PropertyType::activation) {
-    return ML_ERROR_INVALID_PARAMETER;
-  }
-
-  try {
-    this->setActivation((ActiType)parseType(value, TOKEN_ACTI));
-  } catch (const std::exception &ex) {
-    ml_loge("Error: Not supported Data");
-    return ML_ERROR_INVALID_PARAMETER;
-  }
-  return ML_ERROR_NONE;
+  return Layer::setProperty(values);
 }
 
 }; // namespace nntrainer

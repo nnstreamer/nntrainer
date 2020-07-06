@@ -177,7 +177,7 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  virtual int setProperty(std::vector<std::string> values) = 0;
+  virtual int setProperty(std::vector<std::string> values);
 
   /**
    * @brief     Optimizer Setter
@@ -338,8 +338,9 @@ public:
    *            11. kernel_size : ( n , m )
    *            12. stride : ( n, m )
    *            13. padding : ( n, m )
-   *            14, pooling_size : ( n,m )
-   *            15, pooling : max, average, global_max, global_average
+   *            14. pooling_size : ( n,m )
+   *            15. pooling : max, average, global_max, global_average
+   *            16. flatten : bool
    */
   enum class PropertyType {
     input_shape = 0,
@@ -364,10 +365,10 @@ public:
 
 protected:
 
-/**
- * @brief        check if current layer's weight decay type is l2norm
- * @return       bool is weightdecay type is L2 Norm
- */
+  /**
+   * @brief     check if current layer's weight decay type is l2norm
+   * @return    bool is weightdecay type is L2 Norm
+   */
   bool isWeightDecayL2Norm() {
     return weight_decay.type == WeightDecayType::l2norm;
   }
