@@ -210,6 +210,12 @@ public:
    */
   void save(std::ofstream &file);
 
+  /**
+   * @brief     get the base name for the layer
+   * @retval    base name of the layer
+   */
+  std::string getBaseName() { return "Optimizer"; };
+
 private:
   /**
    * @brief Optimizer Type

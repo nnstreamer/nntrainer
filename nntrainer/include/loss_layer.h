@@ -99,6 +99,12 @@ public:
    */
   int initialize(bool last);
 
+  /**
+   * @brief     get the base name for the layer
+   * @retval    base name of the layer
+   */
+  std::string getBaseName() { return "Loss"; };
+
 private:
   /**
    * @brief     update loss

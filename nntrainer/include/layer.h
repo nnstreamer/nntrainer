@@ -26,6 +26,7 @@
 #include <fstream>
 #include <iostream>
 #include <optimizer.h>
+#include <set>
 #include <tensor.h>
 #include <tensor_dim.h>
 #include <vector>
@@ -327,6 +328,21 @@ public:
   bool getFlatten() { return flatten; }
 
   /**
+   * @brief     Set name of the layer
+   */
+  int setName(std::string name);
+
+  /**
+   * @brief     Set name of the layer
+   */
+  std::string getName();
+
+  /**
+   * @brief   Get base name of the layer
+   */
+  virtual std::string getBaseName() = 0;
+
+  /**
    * @brief     Property Enumeration
    *            0. input shape : string
    *            1. bias zero : bool
@@ -345,6 +361,7 @@ public:
    *            14. pooling_size : ( n,m )
    *            15. pooling : max, average, global_max, global_average
    *            16. flatten : bool
+   *            17. name : string (type)
    */
   enum class PropertyType {
     input_shape = 0,
@@ -364,10 +381,16 @@ public:
     pooling_size = 14,
     pooling = 15,
     flatten = 16,
-    unknown = 17
+    name = 17,
+    unknown = 18
   };
 
 protected:
+  /**
+   * @brief     Name of the layer (works as the identifier)
+   */
+  std::string name;
+
   /**
    * @brief     check if current layer's weight decay type is l2norm
    * @return    bool is weightdecay type is L2 Norm
@@ -464,6 +487,21 @@ protected:
   std::vector<std::reference_wrapper<Tensor>> weights;
 
 private:
+  /**
+   * @brief     Set containing all the names of layers
+   */
+  static std::set<std::string> layer_names;
+
+  /**
+   * @brief     Count assigned to layer names declared by default
+   */
+  static int def_name_count;
+
+  /**
+   * @brief     Ensure that layer has a name
+   */
+  void ensureName();
+
   /**
    * @brief     Convert vector of reference to vector of objects
    */
