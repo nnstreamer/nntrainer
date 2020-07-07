@@ -39,6 +39,9 @@ int Pooling2DLayer::initialize(bool last) {
       (input_dim.height() - pooling_size[0] + 2 * padding[0]) / stride[0] + 1);
     output_dim.width(
       (input_dim.width() - pooling_size[1] + 2 * padding[1]) / stride[1] + 1);
+  } else {
+    output_dim.height(1);
+    output_dim.width(1);
   }
 
   hidden = Tensor(output_dim);
