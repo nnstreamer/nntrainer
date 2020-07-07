@@ -278,7 +278,9 @@ int main(int argc, char **argv) {
   /**
    * @brief     initialize mainNet & Target Net
    */
+  mainNet.loadFromConfig();
   mainNet.init();
+  targetNet.loadFromConfig();
   targetNet.init();
 
   /**

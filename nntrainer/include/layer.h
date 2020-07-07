@@ -325,6 +325,12 @@ public:
    * @brief     get if the output of this layer must be flatten
    * @retval    flatten value
    */
+  void setFlatten(bool flatten) { this->flatten = flatten; }
+
+  /**
+   * @brief     get if the output of this layer must be flatten
+   * @retval    flatten value
+   */
   bool getFlatten() { return flatten; }
 
   /**

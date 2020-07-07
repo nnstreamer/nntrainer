@@ -81,6 +81,7 @@ int main(int argc, char *argv[]) {
   /**
    * @brief     Initialize NN
    */
+  NN.loadFromConfig();
   NN.init();
   if (!training)
     NN.readModel();

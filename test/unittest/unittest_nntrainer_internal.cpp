@@ -65,6 +65,8 @@ TEST(nntrainer_NeuralNetwork, init_01_p) {
   nntrainer::NeuralNetwork NN;
   status = NN.setConfig(config_file);
   EXPECT_EQ(status, ML_ERROR_NONE);
+  status = NN.loadFromConfig();
+  EXPECT_EQ(status, ML_ERROR_NONE);
   status = NN.init();
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
@@ -72,35 +74,35 @@ TEST(nntrainer_NeuralNetwork, init_01_p) {
 /**
  * @brief Neural Network Model initialization
  */
-TEST(nntrainer_NeuralNetwork, init_02_n) {
+TEST(nntrainer_NeuralNetwork, load_config_01_n) {
   int status = ML_ERROR_NONE;
   RESET_CONFIG("./test.ini");
   replaceString("[Network]", "", "./test.ini", config_str);
   nntrainer::NeuralNetwork NN;
   status = NN.setConfig("./test.ini");
   EXPECT_EQ(status, ML_ERROR_NONE);
-  status = NN.init();
+  status = NN.loadFromConfig();
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
 /**
  * @brief Neural Network Model initialization
  */
-TEST(nntrainer_NeuralNetwork, init_03_n) {
+TEST(nntrainer_NeuralNetwork, load_config_02_n) {
   int status = ML_ERROR_NONE;
   RESET_CONFIG("./test.ini");
   replaceString("adam", "aaaadam", "./test.ini", config_str);
   nntrainer::NeuralNetwork NN;
   status = NN.setConfig("./test.ini");
   EXPECT_EQ(status, ML_ERROR_NONE);
-  status = NN.init();
+  status = NN.loadFromConfig();
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
 /**
  * @brief Neural Network Model initialization
  */
-TEST(nntrainer_NeuralNetwork, init_04_n) {
+TEST(nntrainer_NeuralNetwork, load_config_03_n) {
   int status = ML_ERROR_NONE;
   RESET_CONFIG("./test.ini");
   replaceString("Input_Shape = 32:1:1:62720", "Input_Shape = 32:1:1:0",
@@ -108,27 +110,27 @@ TEST(nntrainer_NeuralNetwork, init_04_n) {
   nntrainer::NeuralNetwork NN;
   status = NN.setConfig("./test.ini");
   EXPECT_EQ(status, ML_ERROR_NONE);
-  EXPECT_THROW(NN.init(), std::invalid_argument);
+  EXPECT_THROW(NN.loadFromConfig(), std::invalid_argument);
 }
 
 /**
  * @brief Neural Network Model initialization
  */
-TEST(nntrainer_NeuralNetwork, init_05_n) {
+TEST(nntrainer_NeuralNetwork, load_config_04_n) {
   int status = ML_ERROR_NONE;
   RESET_CONFIG("./test.ini");
   replaceString("Input_Shape = 32:1:1:62720", "", "./test.ini", config_str);
   nntrainer::NeuralNetwork NN;
   status = NN.setConfig("./test.ini");
   EXPECT_EQ(status, ML_ERROR_NONE);
-  status = NN.init();
+  status = NN.loadFromConfig();
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
 /**
  * @brief Neural Network Model initialization
  */
-TEST(nntrainer_NeuralNetwork, init_06_n) {
+TEST(nntrainer_NeuralNetwork, load_config_05_n) {
   int status = ML_ERROR_NONE;
   RESET_CONFIG("./test.ini");
   replaceString("Learning_rate = 0.0001", "Learning_rate = -0.0001",
@@ -136,34 +138,36 @@ TEST(nntrainer_NeuralNetwork, init_06_n) {
   nntrainer::NeuralNetwork NN;
   status = NN.setConfig("./test.ini");
   EXPECT_EQ(status, ML_ERROR_NONE);
-  status = NN.init();
+  status = NN.loadFromConfig();
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
 /**
  * @brief Neural Network Model initialization
  */
-TEST(nntrainer_NeuralNetwork, init_07_p) {
+TEST(nntrainer_NeuralNetwork, load_config_06_p) {
   int status = ML_ERROR_NONE;
   RESET_CONFIG("./test.ini");
   replaceString("TrainData = trainingSet.dat", "", "./test.ini", config_str);
   nntrainer::NeuralNetwork NN;
   status = NN.setConfig("./test.ini");
   EXPECT_EQ(status, ML_ERROR_NONE);
-  status = NN.init();
+  status = NN.loadFromConfig();
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
 /**
  * @brief Neural Network Model initialization
  */
-TEST(nntrainer_NeuralNetwork, init_08_n) {
+TEST(nntrainer_NeuralNetwork, init_02_p) {
   int status = ML_ERROR_NONE;
   RESET_CONFIG("./test.ini");
   replaceString("TestData = testSet.dat", "", "./test.ini", config_str);
   nntrainer::NeuralNetwork NN;
   status = NN.setConfig("./test.ini");
   EXPECT_EQ(status, ML_ERROR_NONE);
+  status = NN.loadFromConfig();
+  EXPECT_EQ(status, ML_ERROR_NONE);
   status = NN.init();
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
@@ -171,27 +175,29 @@ TEST(nntrainer_NeuralNetwork, init_08_n) {
 /**
  * @brief Neural Network Model initialization
  */
-TEST(nntrainer_NeuralNetwork, init_09_n) {
+TEST(nntrainer_NeuralNetwork, load_config_07_n) {
   int status = ML_ERROR_NONE;
   RESET_CONFIG("./test.ini");
   replaceString("LabelData = label.dat", "", "./test.ini", config_str);
   nntrainer::NeuralNetwork NN;
   status = NN.setConfig("./test.ini");
   EXPECT_EQ(status, ML_ERROR_NONE);
-  status = NN.init();
+  status = NN.loadFromConfig();
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
 /**
  * @brief Neural Network Model initialization
  */
-TEST(nntrainer_NeuralNetwork, init_10_p) {
+TEST(nntrainer_NeuralNetwork, init_03_p) {
   int status = ML_ERROR_NONE;
   std::string config_file = "./test.ini";
   RESET_CONFIG(config_file.c_str());
   replaceString("ValidData = valSet.dat", "", config_file, config_str);
   nntrainer::NeuralNetwork NN;
   status = NN.setConfig(config_file);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = NN.loadFromConfig();
   EXPECT_EQ(status, ML_ERROR_NONE);
   status = NN.init();
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -259,6 +265,8 @@ TEST(nntrainer_Conv2DLayer, initialize_01_p) {
   nntrainer::NeuralNetwork NN;
   status = NN.setConfig(config_file);
   EXPECT_EQ(status, ML_ERROR_NONE);
+  status = NN.loadFromConfig();
+  EXPECT_EQ(status, ML_ERROR_NONE);
   status = NN.init();
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
@@ -274,6 +282,8 @@ TEST(nntrainer_Conv2DLayer, initialize_02_p) {
   nntrainer::NeuralNetwork NN;
   status = NN.setConfig(config_file);
   EXPECT_EQ(status, ML_ERROR_NONE);
+  status = NN.loadFromConfig();
+  EXPECT_EQ(status, ML_ERROR_NONE);
   status = NN.init();
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
@@ -288,6 +298,8 @@ TEST(nntrainer_Layer, initialize_03_p) {
   replaceString("flatten = false", "flatten = true", config_file, config_str2);
   nntrainer::NeuralNetwork NN;
   status = NN.setConfig(config_file);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = NN.loadFromConfig();
   EXPECT_EQ(status, ML_ERROR_NONE);
   status = NN.init();
   EXPECT_EQ(status, ML_ERROR_NONE);

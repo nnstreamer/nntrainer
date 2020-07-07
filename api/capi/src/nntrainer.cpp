@@ -97,10 +97,11 @@ int ml_nnmodel_construct(ml_nnmodel_h *model) {
   return status;
 }
 
-int ml_nnmodel_compile_with_conf(const char *model_conf, ml_nnmodel_h model) {
+int ml_nnmodel_construct_with_conf(const char *model_conf, ml_nnmodel_h *model) {
   int status = ML_ERROR_NONE;
   ml_nnmodel *nnmodel;
-  std::shared_ptr<nntrainer::NeuralNetwork> nn;
+  std::shared_ptr<nntrainer::NeuralNetwork> NN;
+  returnable f;
 
   std::ifstream conf_file(model_conf);
   if (!conf_file.good()) {
@@ -108,55 +109,60 @@ int ml_nnmodel_compile_with_conf(const char *model_conf, ml_nnmodel_h model) {
     return ML_ERROR_INVALID_PARAMETER;
   }
 
-  ML_NNTRAINER_CHECK_MODEL_VALIDATION(nnmodel, model);
-  nn = nnmodel->network;
-
-  returnable f = [&]() { return nn->setConfig(model_conf); };
-
-  status = nntrainer_exception_boundary(f);
+  status = ml_nnmodel_construct(model);
   if (status != ML_ERROR_NONE)
     return status;
 
-  f = [&]() { return nn->checkValidation(); };
+  nnmodel = (ml_nnmodel *)(*model);
+  NN = nnmodel->network;
 
+  f = [&]() { return NN->setConfig(model_conf); };
   status = nntrainer_exception_boundary(f);
-  if (status != ML_ERROR_NONE)
+  if (status != ML_ERROR_NONE) {
+    ml_nnmodel_destruct(*model);
     return status;
+  }
 
-  f = [&]() { return nn->init(); };
-
+  f = [&]() { return NN->loadFromConfig(); };
   status = nntrainer_exception_boundary(f);
+  if (status != ML_ERROR_NONE) {
+    ml_nnmodel_destruct(*model);
+  }
+
   return status;
 }
 
-int ml_nnmodel_compile(ml_nnmodel_h model, ml_nnopt_h optimizer, ...) {
+int ml_nnmodel_compile(ml_nnmodel_h model, ...) {
   int status = ML_ERROR_NONE;
   const char *data;
   ml_nnmodel *nnmodel;
-  ml_nnopt *nnopt;
-
-  std::shared_ptr<nntrainer::NeuralNetwork> NN;
-  std::shared_ptr<nntrainer::Optimizer> opti;
+  returnable f;
 
   ML_NNTRAINER_CHECK_MODEL_VALIDATION(nnmodel, model);
 
-  ML_NNTRAINER_CHECK_OPT_VALIDATION(nnopt, optimizer);
-
   std::vector<std::string> arg_list;
-
   va_list arguments;
-  va_start(arguments, optimizer);
+  va_start(arguments, model);
 
   while ((data = va_arg(arguments, const char *))) {
     arg_list.push_back(data);
   }
   va_end(arguments);
 
+  std::shared_ptr<nntrainer::NeuralNetwork> NN;
   NN = nnmodel->network;
-  opti = nnopt->optimizer;
 
-  returnable f = [&]() { return NN->init(opti, arg_list); };
+  f = [&]() { return NN->setProperty(arg_list); };
+  status = nntrainer_exception_boundary(f);
+  if (status != ML_ERROR_NONE)
+    return status;
 
+  f = [&]() { return NN->init(); };
+  status = nntrainer_exception_boundary(f);
+  if (status != ML_ERROR_NONE)
+    return status;
+
+  f = [&]() { return NN->checkValidation(); };
   status = nntrainer_exception_boundary(f);
 
   return status;
@@ -242,6 +248,7 @@ int ml_nnmodel_add_layer(ml_nnmodel_h model, ml_nnlayer_h layer) {
   int status = ML_ERROR_NONE;
   ml_nnmodel *nnmodel;
   ml_nnlayer *nnlayer;
+
   ML_NNTRAINER_CHECK_MODEL_VALIDATION(nnmodel, model);
   ML_NNTRAINER_CHECK_LAYER_VALIDATION(nnlayer, layer);
 
@@ -252,6 +259,27 @@ int ml_nnmodel_add_layer(ml_nnmodel_h model, ml_nnlayer_h layer) {
   NL = nnlayer->layer;
 
   returnable f = [&]() { return NN->addLayer(NL); };
+
+  status = nntrainer_exception_boundary(f);
+
+  return status;
+}
+
+int ml_nnmodel_set_optimizer(ml_nnmodel_h model, ml_nnopt_h optimizer) {
+  int status = ML_ERROR_NONE;
+  ml_nnmodel *nnmodel;
+  ml_nnopt *nnopt;
+
+  ML_NNTRAINER_CHECK_MODEL_VALIDATION(nnmodel, model);
+  ML_NNTRAINER_CHECK_OPT_VALIDATION(nnopt, optimizer);
+
+  std::shared_ptr<nntrainer::NeuralNetwork> NN;
+  std::shared_ptr<nntrainer::Optimizer> opt;
+
+  NN = nnmodel->network;
+  opt = nnopt->optimizer;
+
+  returnable f = [&]() { return NN->setOptimizer(opt); };
 
   status = nntrainer_exception_boundary(f);
 
@@ -320,18 +348,17 @@ int ml_nnlayer_set_property(ml_nnlayer_h layer, ...) {
   NL = nnlayer->layer;
 
   returnable f = [&]() { return NL->setProperty(arg_list); };
-
   status = nntrainer_exception_boundary(f);
 
   return status;
 }
 
-int ml_nnoptimizer_create(ml_nnopt_h *opt, const char *type) {
+int ml_nnoptimizer_create(ml_nnopt_h *optimizer, const char *type) {
   int status = ML_ERROR_NONE;
   ml_nnopt *nnopt = new ml_nnopt;
   nnopt->magic = ML_NNTRAINER_MAGIC;
   nnopt->optimizer = std::make_shared<nntrainer::Optimizer>();
-  *opt = nnopt;
+  *optimizer = nnopt;
 
   returnable f = [&]() {
     return nnopt->optimizer->setType(
@@ -346,27 +373,27 @@ int ml_nnoptimizer_create(ml_nnopt_h *opt, const char *type) {
   return status;
 }
 
-int ml_nnoptimizer_delete(ml_nnopt_h opt) {
+int ml_nnoptimizer_delete(ml_nnopt_h optimizer) {
   int status = ML_ERROR_NONE;
   ml_nnopt *nnopt;
 
-  ML_NNTRAINER_CHECK_OPT_VALIDATION(nnopt, opt);
+  ML_NNTRAINER_CHECK_OPT_VALIDATION(nnopt, optimizer);
 
   delete nnopt;
   return status;
 }
 
-int ml_nnoptimizer_set_property(ml_nnopt_h opt, ...) {
+int ml_nnoptimizer_set_property(ml_nnopt_h optimizer, ...) {
   int status = ML_ERROR_NONE;
   ml_nnopt *nnopt;
   const char *data;
-  nnopt = (ml_nnopt *)opt;
-  ML_NNTRAINER_CHECK_OPT_VALIDATION(nnopt, opt);
+  nnopt = (ml_nnopt *)optimizer;
+  ML_NNTRAINER_CHECK_OPT_VALIDATION(nnopt, optimizer);
 
   std::vector<std::string> arg_list;
 
   va_list arguments;
-  va_start(arguments, opt);
+  va_start(arguments, optimizer);
 
   while ((data = va_arg(arguments, const char *))) {
     arg_list.push_back(data);
@@ -374,10 +401,10 @@ int ml_nnoptimizer_set_property(ml_nnopt_h opt, ...) {
 
   va_end(arguments);
 
-  std::shared_ptr<nntrainer::Optimizer> Opt;
-  Opt = nnopt->optimizer;
+  std::shared_ptr<nntrainer::Optimizer> opt;
+  opt = nnopt->optimizer;
 
-  returnable f = [&]() { return Opt->setProperty(arg_list); };
+  returnable f = [&]() { return opt->setProperty(arg_list); };
 
   status = nntrainer_exception_boundary(f);
 
