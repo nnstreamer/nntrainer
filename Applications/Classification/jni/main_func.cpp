@@ -281,6 +281,7 @@ int main(int argc, char *argv[]) {
    */
   nntrainer::NeuralNetwork NN;
   NN.setConfig(config);
+  NN.loadFromConfig();
   NN.init();
   NN.readModel();
 

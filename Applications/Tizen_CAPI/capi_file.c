@@ -85,9 +85,13 @@ int main(int argc, char *argv[]) {
     "beta1=0.9", "beta2=0.9999", "epsilon=1e-7", NULL);
   NN_RETURN_STATUS();
 
+  /* set optimizer */
+  status = ml_nnmodel_set_optimizer (model, optimizer);
+  NN_RETURN_STATUS ();
+
   /* compile model with cross entropy loss function */
-  status = ml_nnmodel_compile(model, optimizer, "loss=cross", NULL);
-  NN_RETURN_STATUS();
+  status = ml_nnmodel_compile (model, "loss=cross", NULL);
+  NN_RETURN_STATUS ();
 
   /* train model with data files : epochs = 10 and store model file named
    * "model.bin" */

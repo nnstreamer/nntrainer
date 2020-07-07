@@ -77,30 +77,28 @@ typedef enum {
 int ml_nnmodel_construct(ml_nnmodel_h *model);
 
 /**
- * @brief Initialize the neural network model with the given configuration file.
- * @details Use this function to initialize neural network model
+ * @brief Construct the neural network model with the given configuration file.
+ * @details Use this function to create neural network model with the given configuration file.
  * @since_tizen 6.x
  * @param[in] model_conf The location of nntrainer model configuration file.
- * @param[in] model The NNTrainer model handler from the given description.
+ * @param[out] model The NNTrainer model handler from the given description.
  * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter.
  */
-int ml_nnmodel_compile_with_conf(const char *model_conf, ml_nnmodel_h model);
+int ml_nnmodel_construct_with_conf(const char *model_conf, ml_nnmodel_h *model);
 
 /**
  * @brief initialize the neural network model.
- * @details Use this function to initialize neural network model
+ * @details Use this function to initialize neural network model. Once compiled, addition of new layers is not permitted. Further, updating the properties of added layers is restricted.
  * @since_tizen 6.x
  * @param[in] model The NNTrainer model handler from the given description.
- * @param[in] optimizer The NNTrainer optimizer handler from the given
- * description.
  * @param[in] ... hyper parmeter for compile model
  * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter.
  */
-int ml_nnmodel_compile(ml_nnmodel_h model, ml_nnopt_h optimizer, ...);
+int ml_nnmodel_compile(ml_nnmodel_h model, ...);
 
 /**
  * @brief train the neural network model.
@@ -145,16 +143,28 @@ int ml_nnmodel_train_with_generator(ml_nnmodel_h model,
 int ml_nnmodel_destruct(ml_nnmodel_h model);
 
 /**
- * @brief add layer into the neural network model
- * @details Use this function to add layer
+ * @brief Add layer at the last of the existing layers in neural network model.
+ * @details Use this function to add a layer to the model.
  * @since_tizen 6.x
- * @param[out] model The NNTrainer model handler from the given description.
- * @param[int] layer The NNTrainer layer handler
+ * @param[in] model The NNTrainer model handler from the given description.
+ * @param[in] layer The NNTrainer layer handler
  * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter.
  */
 int ml_nnmodel_add_layer(ml_nnmodel_h model, ml_nnlayer_h layer);
+
+/**
+ * @brief Set the neural network optimizer.
+ * @details Use this function to set Neural Network Optimizer.
+ * @since_tizen 6.x
+ * @param[in] model The NNTrainer model handler from the given description.
+ * @param[in] optimizer The NNTrainer Optimizer handler
+ * @return @c 0 on success. Otherwise a negative error value.
+ * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter.
+ */
+int ml_nnmodel_set_optimizer(ml_nnmodel_h model, ml_nnopt_h optimizer);
 
 /**
  * @brief Create the neural network layer.
@@ -196,36 +206,36 @@ int ml_nnlayer_set_property(ml_nnlayer_h layer, ...);
  * @brief Create the neural network optimizer.
  * @details Use this function to create Neural Netowrk Optimizer.
  * @since_tizen 6.x
- * @param[out] layer The NNTrainer Optimizer handler from the given description.
- * @param[in]  type The NNTrainer Optimizer type
+ * @param[out] optimizer The NNTrainer Optimizer handler
+ * @param[in] type The NNTrainer Optimizer type
  * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
- * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
+ * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter.
  */
-int ml_nnoptimizer_create(ml_nnopt_h *opt, const char *type);
+int ml_nnoptimizer_create(ml_nnopt_h *optimizer, const char *type);
 
 /**
  * @brief Delete the neural network optimizer.
  * @details Use this function to delete Neural Netowrk Optimizer.
  * @since_tizen 6.x
- * @param[in] layer The NNTrainer optimizer handler from the given description.
+ * @param[in] optimizer The NNTrainer optimizer handler from the given description.
  * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter.
  */
-int ml_nnoptimizer_delete(ml_nnopt_h opt);
+int ml_nnoptimizer_delete(ml_nnopt_h optimizer);
 
 /**
  * @brief Set the neural network optimizer property.
  * @details Use this function to set Neural Netowrk Optimizer Property.
  * @since_tizen 6.x
- * @param[in] layer The NNTrainer Optimizer handler from the given description.
+ * @param[in] optimizer The NNTrainer Optimizer handler from the given description.
  * @param[in]  ... Property values with NULL at the end.
  * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
  */
-int ml_nnoptimizer_set_property(ml_nnopt_h opt, ...);
+int ml_nnoptimizer_set_property(ml_nnopt_h optimizer, ...);
 
 /**
  * @}

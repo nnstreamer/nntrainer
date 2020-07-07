@@ -101,12 +101,11 @@ public:
   void setLoss(float l);
 
   /**
-   * @brief     Initialize Network. This should be called after set all hyper
-   * parmeters.
+   * @brief     Create and load the Network with configuration file.
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int init();
+  int loadFromConfig();
 
   /**
    * @brief     set Property of Network
@@ -117,15 +116,12 @@ public:
   int setProperty(std::vector<std::string> values);
 
   /**
-   * @brief     Initialize Network
-   * @param[in] opimizer optimizer instance
-   * @param[in] arg_list argument list
-   *            "loss = cross | msr"
+   * @brief     Initialize Network. This should be called after set all
+   * hyperparameters.
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int init(std::shared_ptr<Optimizer> optimizer,
-           std::vector<std::string> arg_list);
+  int init();
 
   /**
    * @brief     forward propagation
@@ -253,6 +249,13 @@ public:
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
   int addLayer(std::shared_ptr<Layer> layer);
+
+  /**
+   * @brief     set optimizer for the neural network model
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  int setOptimizer(std::shared_ptr<Optimizer> optimizer);
 
   enum class PropertyType {
     loss = 0,

@@ -63,9 +63,9 @@ TEST(nntrainer_capi_nnmodel, compile_01_p) {
   RESET_CONFIG(config_file.c_str());
   replaceString("Layers = inputlayer outputlayer",
                 "Layers = inputlayer outputlayer", config_file, config_str);
-  status = ml_nnmodel_construct(&handle);
+  status = ml_nnmodel_construct_with_conf(config_file.c_str(), &handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
-  status = ml_nnmodel_compile_with_conf(config_file.c_str(), handle);
+  status = ml_nnmodel_compile(handle, NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
   status = ml_nnmodel_destruct(handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -74,43 +74,35 @@ TEST(nntrainer_capi_nnmodel, compile_01_p) {
 /**
  * @brief Neural Network Model Compile Test
  */
-TEST(nntrainer_capi_nnmodel, compile_02_n) {
+TEST(nntrainer_capi_nnmodel, construct_conf_01_n) {
   ml_nnmodel_h handle = NULL;
   int status = ML_ERROR_NONE;
   std::string config_file = "/test/cannot_find.ini";
-  status = ml_nnmodel_construct(&handle);
-  EXPECT_EQ(status, ML_ERROR_NONE);
-  status = ml_nnmodel_compile_with_conf(config_file.c_str(), handle);
+  status = ml_nnmodel_construct_with_conf(config_file.c_str(), &handle);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
-  status = ml_nnmodel_destruct(handle);
-  EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
 /**
  * @brief Neural Network Model Compile Test
  */
-TEST(nntrainer_capi_nnmodel, compile_03_n) {
+TEST(nntrainer_capi_nnmodel, construct_conf_02_n) {
   ml_nnmodel_h handle = NULL;
   int status = ML_ERROR_NONE;
   std::string config_file = "./test_compile_03_n.ini";
   RESET_CONFIG(config_file.c_str());
   replaceString("Input_Shape = 32:1:1:62720", "Input_Shape= 32:1:1:0",
                 config_file, config_str);
-  status = ml_nnmodel_construct(&handle);
-  EXPECT_EQ(status, ML_ERROR_NONE);
-  status = ml_nnmodel_compile_with_conf(config_file.c_str(), handle);
+  status = ml_nnmodel_construct_with_conf(config_file.c_str(), &handle);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
-  status = ml_nnmodel_destruct(handle);
-  EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
 /**
  * @brief Neural Network Model Compile Test
  */
-TEST(nntrainer_capi_nnmodel, compile_04_n) {
+TEST(nntrainer_capi_nnmodel, compile_02_n) {
   int status = ML_ERROR_NONE;
   std::string config_file = "./test_compile_03_n.ini";
-  status = ml_nnmodel_compile_with_conf(config_file.c_str(), NULL);
+  status = ml_nnmodel_compile(NULL);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
@@ -158,7 +150,10 @@ TEST(nntrainer_capi_nnmodel, compile_05_p) {
     "beta1=0.002", "beta2=0.001", "epsilon=1e-7", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_nnmodel_compile(model, optimizer, "loss=cross", NULL);
+  status = ml_nnmodel_set_optimizer(model, optimizer);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_nnmodel_compile(model, "loss=cross", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_nnlayer_delete(layers[0]);
@@ -184,9 +179,9 @@ TEST(nntrainer_capi_nnmodel, train_01_p) {
                 config_file, config_str);
   replaceString("minibatch = 32", "minibatch = 16", config_file, config_str);
   replaceString("BufferSize=100", "", config_file, config_str);
-  status = ml_nnmodel_construct(&handle);
+  status = ml_nnmodel_construct_with_conf(config_file.c_str(), &handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
-  status = ml_nnmodel_compile_with_conf(config_file.c_str(), handle);
+  status = ml_nnmodel_compile(handle, NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
   status = ml_nnmodel_train_with_file(handle, NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -346,10 +341,10 @@ TEST(nntrainer_capi_nnmodel, addLayer_05_n) {
   replaceString("Layers = inputlayer outputlayer",
                 "Layers = inputlayer outputlayer", config_file, config_str);
 
-  status = ml_nnmodel_construct(&model);
+  status = ml_nnmodel_construct_with_conf(config_file.c_str(), &model);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_nnmodel_compile_with_conf(config_file.c_str(), model);
+  status = ml_nnmodel_compile(model, NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_nnlayer_create(&layer, ML_LAYER_TYPE_FC);
@@ -468,7 +463,10 @@ TEST(nntrainer_capi_nnmodel, train_with_file_01_p) {
     "beta1=0.002", "beta2=0.001", "epsilon=1e-7", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_nnmodel_compile(model, optimizer, "loss=cross", NULL);
+  status = ml_nnmodel_set_optimizer(model, optimizer);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_nnmodel_compile(model, "loss=cross", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_nnmodel_train_with_file(
@@ -531,8 +529,12 @@ TEST(nntrainer_capi_nnmodel, train_with_generator_01_p) {
     "beta1=0.002", "beta2=0.001", "epsilon=1e-7", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_nnmodel_compile(model, optimizer, "loss=cross", NULL);
+  status = ml_nnmodel_set_optimizer(model, optimizer);
   EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_nnmodel_compile(model, "loss=cross", NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
   status = ml_nnmodel_train_with_generator(
     model, getMiniBatch_train, getMiniBatch_val, NULL, "epochs=2",
     "batch_size=16", "buffer_size=100", "model_file=model.bin", NULL);

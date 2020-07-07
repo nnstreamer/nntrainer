@@ -29,13 +29,13 @@ int main(int argc, char *argv[]) {
   int status = ML_ERROR_NONE;
   ml_nnmodel_h handle = NULL;
   const char *config_file = "./Tizen_CAPI_config.ini";
-  status = ml_nnmodel_construct(&handle);
+  status = ml_nnmodel_construct_with_conf (config_file, &handle);
   if (status != ML_ERROR_NONE)
     return status;
-  status = ml_nnmodel_compile_with_conf(config_file, handle);
+  status = ml_nnmodel_compile (handle, NULL);
   if (status != ML_ERROR_NONE)
     return status;
-  status = ml_nnmodel_train_with_file(handle);
+  status = ml_nnmodel_train_with_file (handle, NULL);
   if (status != ML_ERROR_NONE)
     return status;
   status = ml_nnmodel_destruct(handle);
