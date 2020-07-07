@@ -25,6 +25,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <memory>
 #include <optimizer.h>
 #include <set>
 #include <tensor.h>
@@ -130,7 +131,8 @@ public:
     weight_decay(),
     weight_ini_type(WEIGHT_XAVIER_UNIFORM),
     flatten(false),
-    trainable(true) {}
+    trainable(true),
+    param_size(0) {}
 
   /**
    * @brief     Destructor of Layer Class
@@ -163,15 +165,17 @@ public:
 
   /**
    * @brief     read layer Weight & Bias data from file
+   * @note      derived class can call this to get/save updatableParams
    * @param[in] file input file stream
    */
-  virtual void read(std::ifstream &file) = 0;
+  virtual void read(std::ifstream &file);
 
   /**
    * @brief     save layer Weight & Bias data from file
+   * @note      derived class can call this to get/save updatableParams
    * @param[in] file output file stream
    */
-  virtual void save(std::ofstream &file) = 0;
+  virtual void save(std::ofstream &file);
 
   /**
    * @brief     set Property of layer
@@ -219,7 +223,7 @@ public:
    * @brief     Copy Layer
    * @param[in] l Layer to be copied
    */
-  virtual void copy(std::shared_ptr<Layer> l) = 0;
+  virtual void copy(std::shared_ptr<Layer> l);
 
   /**
    * @brief     set Batch Normalization Layer followed
@@ -307,20 +311,10 @@ public:
   void setTrainable(bool train) { trainable = train; }
 
   /**
-   * @brief     get gradients
-   * @retval    shared ptr of vector of all tensors
+   * @brief     get updatable params of all
+   * @retval    vector of all params
    */
-  std::shared_ptr<std::vector<Tensor>> getGradients() {
-    return getObjFromRef(gradients);
-  }
-
-  /**
-   * @brief     get weights
-   * @retval    shared ptr of vector of all tensors
-   */
-  std::shared_ptr<std::vector<Tensor>> getWeights() {
-    return getObjFromRef(weights);
-  }
+  std::shared_ptr<UpdatableParam> getParams() { return params; }
 
   /**
    * @brief     get if the output of this layer must be flatten
@@ -480,25 +474,61 @@ protected:
   bool trainable;
 
   /**
-   * @brief     Gradient for the weights in this layer
-   * @note      The order of gradients should match the order in weights
+   * @brief     reserve memory for @a params and set @a param_size
+   * @exception std::invalid_argument when param_size is already set and
+   * shouldn't be changed again.
    */
-  std::vector<std::reference_wrapper<Tensor>> gradients;
+  void setParamSize(unsigned int psize) {
+
+    // @note Need opinion about this
+    // if (param_size > 0) {
+    //   throw std::invalid_argument("param size can't be set once it is set");
+    // }
+
+    param_size = psize;
+    params = std::shared_ptr<UpdatableParam>(
+      new UpdatableParam[psize], std::default_delete<UpdatableParam[]>());
+  }
 
   /**
-   * @brief     weights in this layer
-   * @note      The weights are combined with their corresponding bias
-   *            For example- with W0, W1, B0 and B1, weights would be of format
-   *            {W0, B0, W1, B1}.
+   * @brief     get data alias at param position.
+   * @exception std::out_of_range for index out of range
    */
-  std::vector<std::reference_wrapper<Tensor>> weights;
+  UpdatableParam &paramsAt(const unsigned int position) {
+    if (position >= param_size) {
+      throw std::out_of_range("index out of range");
+    }
+
+    return params.get()[position];
+  }
+
+  /**
+   * @brief     updatable params in this layer. This contains params of layers.
+   * @note      UpdatableParam has weights and gradients paired.
+   */
+  std::shared_ptr<UpdatableParam> params;
+
+  unsigned int param_size; /**< length of UpdatableParam * params.
+                                This shouldn't be changed
+                                after initiation
+                                use setParamSize() to avoid
+                                setting parameters twice */
 
 private:
   /**
-   * @brief     Convert vector of reference to vector of objects
+   * @brief     Set containing all the names of layers
    */
-  std::shared_ptr<std::vector<Tensor>>
-  getObjFromRef(std::vector<std::reference_wrapper<Tensor>> &elements);
+  static std::set<std::string> layer_names;
+
+  /**
+   * @brief     Count assigned to layer names declared by default
+   */
+  static int def_name_count;
+
+  /**
+   * @brief     Ensure that layer has a name
+   */
+  void ensureName();
 };
 } // namespace nntrainer
 

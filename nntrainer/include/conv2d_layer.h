@@ -173,10 +173,7 @@ private:
   unsigned int kernel_size[CONV2D_DIM];
   unsigned int stride[CONV2D_DIM];
   unsigned int padding[CONV2D_DIM];
-  std::vector<Tensor> filters;
-  std::vector<Tensor> delK;
-  std::vector<Tensor> bias;
-  std::vector<Tensor> delBias;
+
   bool normalization;
   bool standardization;
 };

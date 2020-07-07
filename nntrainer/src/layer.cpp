@@ -62,6 +62,25 @@ int Layer::checkValidation() {
   return status;
 }
 
+void Layer::copy(std::shared_ptr<Layer> l) {
+  setParamSize(l->param_size);
+  for (unsigned int i = 0; i < l->param_size; ++i) {
+    paramsAt(i) = l->paramsAt(i);
+  }
+}
+
+void Layer::read(std::ifstream &file) {
+  for (unsigned int i = 0; i < param_size; ++i) {
+    paramsAt(i).weight.read(file);
+  }
+}
+
+void Layer::save(std::ofstream &file) {
+  for (unsigned int i = 0; i < param_size; ++i) {
+    paramsAt(i).weight.save(file);
+  }
+}
+
 Tensor Layer::initializeWeight(TensorDim w_dim, WeightIniType init_type,
                                int &status) {
 
@@ -108,15 +127,6 @@ int Layer::setCost(CostType c) {
   }
   cost = c;
   return status;
-}
-
-std::shared_ptr<std::vector<Tensor>>
-Layer::getObjFromRef(std::vector<std::reference_wrapper<Tensor>> &elements) {
-  std::vector<Tensor> ele;
-  for (auto iter = elements.begin(); iter != elements.end(); ++iter)
-    ele.push_back(*iter);
-
-  return std::make_shared<std::vector<Tensor>>(std::move(ele));
 }
 
 int Layer::setProperty(std::vector<std::string> values) {

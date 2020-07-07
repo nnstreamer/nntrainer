@@ -90,11 +90,10 @@ int Optimizer::initialize(TensorDim d, bool set_tensor) {
   return status;
 }
 
-void Optimizer::apply_gradients(
-  std::vector<std::reference_wrapper<Tensor>> &weights,
-  std::vector<std::reference_wrapper<Tensor>> &gradients, int iteration) {
-  if (weights.size() != gradients.size())
-    throw std::runtime_error("Number of gradients and weights should match.");
+void Optimizer::apply_gradients(std::shared_ptr<UpdatableParam> params,
+                                unsigned int param_size, int iteration) {
+
+  UpdatableParam *param_data = params.get();
 
   float ll = popt.learning_rate;
   if (popt.decay_steps != -1) {
@@ -110,14 +109,15 @@ void Optimizer::apply_gradients(
   }
 
   int idx = 0;
-  std::vector<std::reference_wrapper<Tensor>>::iterator w_iter, g_iter;
-  for (w_iter = weights.begin(), g_iter = gradients.begin();
-       w_iter != weights.end(); ++w_iter, ++g_iter) {
-    Tensor &x = *w_iter;
-    Tensor x_grad = *g_iter;
+  for (unsigned int i = 0; i < param_size; ++i) {
+    UpdatableParam &param = param_data[i];
 
+    Tensor &x = param.weight;
+    /// @fixme: #280 and use const Tensor &x_grad once fixed.
+    /// @note: that current implementation does not update grad since updating
+    /// grad changes it's dimension
+    Tensor x_grad = param.grad;
     x_grad = x_grad.average();
-
     switch (type) {
     case OptType::sgd:
       x.add_i(x_grad, -ll);

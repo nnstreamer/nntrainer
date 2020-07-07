@@ -31,17 +31,19 @@
 
 namespace nntrainer {
 
+enum class FCParams { weight, bias };
+
 int FullyConnectedLayer::initialize(bool last) {
   int status = ML_ERROR_NONE;
 
   this->last_layer = last;
 
-  bias = Tensor(1, unit);
+  Tensor bias = Tensor(1, unit);
   dim = input_dim;
   dim.width(unit);
   dim.height(input_dim.width());
   dim.batch(1);
-  weight = initializeWeight(dim, weight_ini_type, status);
+  Tensor weight = initializeWeight(dim, weight_ini_type, status);
   NN_RETURN_STATUS();
 
   output_dim = input_dim;
@@ -53,9 +55,9 @@ int FullyConnectedLayer::initialize(bool last) {
     bias.setRandUniform(-0.5, 0.5);
   }
 
-  weights.clear();
-  weights.push_back(weight);
-  weights.push_back(bias);
+  setParamSize(2);
+  paramsAt(0) = {std::move(weight), Tensor(dim), "FC:weight"};
+  paramsAt(1) = {std::move(bias), Tensor(1, unit), "FC:bias"};
 
   return status;
 }
@@ -98,6 +100,9 @@ int FullyConnectedLayer::setOptimizer(Optimizer &opt) {
 }
 
 Tensor FullyConnectedLayer::forwarding(Tensor in, int &status) {
+  Tensor &weight = paramsAt(static_cast<int>(FCParams::weight)).weight;
+  Tensor &bias = paramsAt(static_cast<int>(FCParams::bias)).weight;
+
   input = in;
   hidden = input.chain().dot(weight).add_i(bias).run();
   status = ML_ERROR_NONE;
@@ -110,18 +115,18 @@ Tensor FullyConnectedLayer::forwarding(Tensor in, int &status) {
 }
 
 void FullyConnectedLayer::read(std::ifstream &file) {
-  weight.read(file);
-  bias.read(file);
+  Layer::read(file);
   opt.read(file);
 }
 
 void FullyConnectedLayer::save(std::ofstream &file) {
-  weight.save(file);
-  bias.save(file);
+  Layer::save(file);
   opt.save(file);
 }
 
 void FullyConnectedLayer::copy(std::shared_ptr<Layer> l) {
+  Layer::copy(l);
+
   std::shared_ptr<FullyConnectedLayer> from =
     std::static_pointer_cast<FullyConnectedLayer>(l);
   this->opt = from->opt;
@@ -132,28 +137,28 @@ void FullyConnectedLayer::copy(std::shared_ptr<Layer> l) {
   this->output_dim = from->output_dim;
   this->input.copy(from->input);
   this->hidden.copy(from->hidden);
-  this->weight.copy(from->weight);
-  this->bias.copy(from->bias);
   this->loss = from->loss;
   this->cost = from->cost;
 }
 
 Tensor FullyConnectedLayer::backwarding(Tensor derivative, int iteration) {
+  unsigned int weight_idx = static_cast<int>(FCParams::weight);
+  unsigned int bias_idx = static_cast<int>(FCParams::bias);
+  Tensor &weight = paramsAt(weight_idx).weight;
+  Tensor &djdw = paramsAt(weight_idx).grad;
+  Tensor &djdb = paramsAt(bias_idx).grad;
+
   Tensor ret = derivative.dot(weight.transpose("0:2:1"));
-  Tensor djdb = derivative;
-  Tensor djdw = input.chain()
-                  .transpose("0:2:1")
-                  .dot(derivative)
-                  .applyIf(this->isWeightDecayL2Norm(), _LIFT(add_i), weight,
-                           weight_decay.lambda)
-                  .run();
+  djdb = derivative;
+  djdw = input.chain()
+           .transpose("0:2:1")
+           .dot(derivative)
+           .applyIf(this->isWeightDecayL2Norm(), _LIFT(add_i), weight,
+                    weight_decay.lambda)
+           .run();
 
   if (trainable) {
-    gradients.clear();
-    gradients.push_back(djdw);
-    gradients.push_back(djdb);
-
-    opt.apply_gradients(weights, gradients, iteration);
+    opt.apply_gradients(params, param_size, iteration);
   }
 
   return ret;
