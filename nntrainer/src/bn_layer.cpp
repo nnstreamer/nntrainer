@@ -32,28 +32,31 @@
 
 namespace nntrainer {
 
+enum class BNParams { mu, var, gamma, beta };
+
 /// @todo add channel wise bn for convolutional layer.
 int BatchNormalizationLayer::initialize(bool last) {
   int status = ML_ERROR_NONE;
 
   dim = input_dim;
-  dim = input_dim;
   dim.batch(1);
   output_dim = input_dim;
 
-  this->mu = Tensor(dim);
-  this->var = Tensor(dim);
-  this->gamma = Tensor(dim);
-  this->beta = Tensor(dim);
+  Tensor mu = Tensor(dim);
+  Tensor var = Tensor(dim);
+  Tensor gamma = Tensor(dim);
+  Tensor beta = Tensor(dim);
 
   mu.setZero();
   var.setValue(1);
   gamma.setZero();
   beta.setZero();
 
-  weights.clear();
-  weights.push_back(gamma);
-  weights.push_back(beta);
+  setParamSize(4);
+  paramsAt(0) = {std::move(mu), Tensor(dim), "BN:moving_average"};
+  paramsAt(1) = {std::move(var), Tensor(dim), "BN:moving_variance"};
+  paramsAt(2) = {std::move(gamma), Tensor(dim), "BN:gamma"};
+  paramsAt(3) = {std::move(beta), Tensor(dim), "BN:beta"};
 
   return status;
 }
@@ -90,12 +93,16 @@ int BatchNormalizationLayer::setProperty(std::vector<std::string> values) {
 }
 
 Tensor BatchNormalizationLayer::forwarding(Tensor in, int &status) {
+  Tensor &mu = paramsAt(static_cast<int>(BNParams::mu)).weight;
+  Tensor &var = paramsAt(static_cast<int>(BNParams::var)).weight;
+  Tensor &gamma = paramsAt(static_cast<int>(BNParams::gamma)).weight;
+  Tensor &beta = paramsAt(static_cast<int>(BNParams::beta)).weight;
 
   if (trainable) {
     Tensor deviation;
     this->input = in;
 
-    ///< current mu / var */
+    ///< current mu */
     Tensor cmu;
 
     cmu = in.average(0);
@@ -111,10 +118,10 @@ Tensor BatchNormalizationLayer::forwarding(Tensor in, int &status) {
 
     /// @todo replace momentum paramter
     float momentum = 0.9;
-    this->mu.multiply_i(momentum);
-    this->mu.add_i(cmu, 1 - momentum);
-    this->var.multiply_i(momentum);
-    this->var.add_i(cvar, 1 - momentum);
+    mu.multiply_i(momentum);
+    mu.add_i(cmu, 1 - momentum);
+    var.multiply_i(momentum);
+    var.add_i(cvar, 1 - momentum);
 
     this->x_normalized = deviation.divide(cvar.apply(sqrtFloat));
 
@@ -130,8 +137,9 @@ Tensor BatchNormalizationLayer::forwarding(Tensor in, int &status) {
 }
 
 Tensor BatchNormalizationLayer::backwarding(Tensor dy, int iteration) {
-  Tensor dbeta;
-  Tensor dgamma;
+  Tensor &gamma = paramsAt(static_cast<int>(BNParams::gamma)).weight;
+  Tensor &dbeta = paramsAt(static_cast<int>(BNParams::beta)).grad;
+  Tensor &dgamma = paramsAt(static_cast<int>(BNParams::beta)).grad;
   Tensor dx_normalized;
 
   Tensor dx;
@@ -151,30 +159,16 @@ Tensor BatchNormalizationLayer::backwarding(Tensor dy, int iteration) {
          .divide_i(cvar.multiply(batch))
          .run();
 
-  gradients.clear();
-  gradients.push_back(dgamma);
-  gradients.push_back(dbeta);
+  std::shared_ptr<UpdatableParam> grad_params(params, params.get() + 2);
 
-  opt.apply_gradients(weights, gradients, iteration);
+  opt.apply_gradients(grad_params, param_size - 2, iteration);
 
   return dx;
 }
 
-void BatchNormalizationLayer::read(std::ifstream &file) {
-  mu.read(file);
-  var.read(file);
-  gamma.read(file);
-  beta.read(file);
-}
-
-void BatchNormalizationLayer::save(std::ofstream &file) {
-  mu.save(file);
-  var.save(file);
-  gamma.save(file);
-  beta.save(file);
-}
-
 void BatchNormalizationLayer::copy(std::shared_ptr<Layer> l) {
+  Layer::copy(l);
+
   std::shared_ptr<BatchNormalizationLayer> from =
     std::static_pointer_cast<BatchNormalizationLayer>(l);
   this->opt = from->opt;
@@ -184,12 +178,6 @@ void BatchNormalizationLayer::copy(std::shared_ptr<Layer> l) {
   this->output_dim = from->output_dim;
   this->input.copy(from->input);
   this->hidden.copy(from->hidden);
-  this->weight.copy(from->weight);
-  this->bias.copy(from->bias);
-  this->mu.copy(from->mu);
-  this->var.copy(from->var);
   this->cvar.copy(from->cvar);
-  this->gamma.copy(from->gamma);
-  this->beta.copy(from->beta);
 }
 } /* namespace nntrainer */

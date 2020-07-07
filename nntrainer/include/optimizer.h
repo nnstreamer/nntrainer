@@ -24,9 +24,19 @@
 #ifdef __cplusplus
 
 #include <iostream>
+#include <memory>
 #include <tensor.h>
 
 namespace nntrainer {
+
+/**
+ * @brief UpdatableParam that could be updated thorugh optimizer
+ */
+struct UpdatableParam {
+  Tensor weight;    /**<  weight to be updated and used */
+  Tensor grad;      /**<  gradient for the weight */
+  std::string name; /**< name of the parameter */
+};
 
 /**
  * @brief     Enumeration of Optimizer
@@ -170,13 +180,12 @@ public:
 
   /**
    * @brief     apply gradient to weights
-   * @param[in] weights vector of weights
-   * @param[in] gradients vector of corresponding gradients
+   * @param[in] params array of updatable params.
+   * @param[in] param_size size of the array
    * @param[in] iteration nth epoch number
    */
-  void apply_gradients(std::vector<std::reference_wrapper<Tensor>> &weights,
-                       std::vector<std::reference_wrapper<Tensor>> &gradients,
-                       int iteration);
+  void apply_gradients(std::shared_ptr<UpdatableParam> params,
+                       unsigned int param_size, int iteration);
 
   /**
    * @brief     Property Enumeration

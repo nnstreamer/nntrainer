@@ -18,6 +18,7 @@
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <parse_util.h>
+#include <string>
 #include <util_func.h>
 
 namespace nntrainer {
@@ -30,38 +31,43 @@ int Conv2DLayer::initialize(bool last) {
   }
 
   this->last_layer = last;
-  TensorDim Kdim;
-  Kdim.channel(input_dim.channel());
-  Kdim.height(kernel_size[0]);
-  Kdim.width(kernel_size[1]);
-  dim = Kdim;
+  dim = TensorDim(1, input_dim.channel(), kernel_size[0], kernel_size[1]);
 
-  weights.clear();
+  std::string kernelPrefix = "Conv2d:filter";
+  std::string biasPrefix = "Conv2d:bias";
+  setParamSize(filter_size * 2);
+
+  // fixme: #280
+  TensorDim gradDim(input_dim.batch(), dim.channel(), dim.height(),
+                    dim.width());
+  TensorDim gradBiasDim(input_dim.batch(), 1, 1, 1);
+
   for (unsigned int i = 0; i < filter_size; ++i) {
-    Tensor Knl = initializeWeight(Kdim, weight_ini_type, status);
+    Tensor Knl = initializeWeight(dim, weight_ini_type, status);
     NN_RETURN_STATUS();
 
-    delK.push_back(
-      Tensor(input_dim.batch(), Kdim.channel(), Kdim.height(), Kdim.width()));
-    delBias.push_back(Tensor(input_dim.batch(), 1, 1, 1));
+    Tensor bias = Tensor(1, 1);
 
-    std::vector<Tensor>::iterator iter;
-    for (iter = delK.begin(); iter != delK.end(); ++iter)
-      (*iter).setZero();
-    for (iter = delBias.begin(); iter != delBias.end(); ++iter)
-      (*iter).setZero();
-
-    filters.push_back(Knl);
-    weights.push_back(Knl);
-
-    Tensor B(1, 1, 1, 1);
-    B.setZero();
     if (!bias_init_zero) {
-      B.apply([&](float x) { return random(); });
+      bias.apply([&](float x) { return random(); });
+    } else {
+      bias.setZero();
     }
-    bias.push_back(B);
-    weights.push_back(B);
+    Tensor delK(gradDim);
+    delK.setZero();
+
+    Tensor delBias(gradBiasDim);
+    delBias.setZero();
+
+    /*< @note: order of weight and bias are:
+               w0 w1 w2 ... w3
+    */
+    paramsAt(i) = {std::move(Knl), std::move(delK),
+                   kernelPrefix + std::to_string(i)};
+    paramsAt(i + filter_size) = {std::move(bias), std::move(delBias),
+                                 biasPrefix + std::to_string(i)};
   }
+
   // this output_dim should be the same with dimension of hidden
   output_dim.batch(input_dim.batch());
   output_dim.channel(filter_size);
@@ -73,17 +79,9 @@ int Conv2DLayer::initialize(bool last) {
   return status;
 }
 
-void Conv2DLayer::read(std::ifstream &file) {
-  std::for_each(filters.begin(), filters.end(),
-                [&](Tensor &i) { i.read(file); });
-  std::for_each(bias.begin(), bias.end(), [&](Tensor &i) { i.read(file); });
-}
+void Conv2DLayer::read(std::ifstream &file) { Layer::read(file); }
 
-void Conv2DLayer::save(std::ofstream &file) {
-  std::for_each(filters.begin(), filters.end(),
-                [&](Tensor i) { i.save(file); });
-  std::for_each(bias.begin(), bias.end(), [&](Tensor i) { i.save(file); });
-}
+void Conv2DLayer::save(std::ofstream &file) { Layer::save(file); }
 
 Tensor Conv2DLayer::forwarding(Tensor in, int &status) {
   if (normalization) {
@@ -100,20 +98,21 @@ Tensor Conv2DLayer::forwarding(Tensor in, int &status) {
                   output_dim.width());
   hidden.setZero();
 
-  std::vector<float> output;
+  std::vector<float> output(output_dim.width() * output_dim.height());
 
-  unsigned int o_size = output_dim.width() * output_dim.height();
-  output.resize(o_size);
   for (unsigned int b = 0; b < in.batch(); ++b) {
     Tensor in_padded = zero_pad(b, input, padding);
+
     for (unsigned int i = 0; i < filter_size; ++i) {
-      status = conv2d(in_padded.getData(), in_padded.getDim(),
-                      filters[i].getData(), filters[i].getDim(), output.data(),
-                      stride, bias[i].getValue(0, 0, 0, 0));
+      Tensor &filter = paramsAt(i).weight;
+      Tensor &bias = paramsAt(i + filter_size).weight;
+      status = conv2d(in_padded.getData(), in_padded.getDim(), filter.getData(),
+                      filter.getDim(), output.data(), stride,
+                      bias.getValue(0, 0, 0, 0));
 
       memcpy(hidden.getAddress(b * hidden.getDim().getFeatureLen() +
                                i * hidden.height() * hidden.width()),
-             output.data(), o_size * sizeof(float));
+             output.data(), output.size() * sizeof(float));
     }
   }
 
@@ -145,18 +144,19 @@ int Conv2DLayer::setOptimizer(Optimizer &opt) {
 Tensor Conv2DLayer::backwarding(Tensor derivative, int iteration) {
 
   // Calculate delK : [batch, channel, height, width ] * filter_size
-  std::vector<float> output;
   unsigned int same_pad[CONV2D_DIM];
   unsigned int o_size = kernel_size[0] * kernel_size[1];
-
-  output.resize(o_size);
+  std::vector<float> output(o_size);
 
   TensorDim in_dim(1, 1, derivative.height(), derivative.width());
   for (unsigned int b = 0; b < input_dim.batch(); ++b) {
     Tensor in_padded = zero_pad(b, input, padding);
     TensorDim p_dim(1, 1, in_padded.height(), in_padded.width());
 
+    /// @fixme: #280
     for (unsigned int i = 0; i < filter_size; i++) {
+      Tensor &delK = paramsAt(i).grad;
+      Tensor &delBias = paramsAt(i + filter_size).grad;
       for (unsigned int j = 0; j < in_padded.channel(); ++j) {
         conv2d(
           in_padded.getAddress(j * in_padded.height() * in_padded.width()),
@@ -164,9 +164,8 @@ Tensor Conv2DLayer::backwarding(Tensor derivative, int iteration) {
           derivative.getAddress(b * derivative.getDim().getFeatureLen() +
                                 i * derivative.height() * derivative.width()),
           in_dim, output.data(), stride, 0.0);
-        memcpy(
-          delK[i].getAddress(b * delK[i].getDim().getFeatureLen() + j * o_size),
-          output.data(), o_size * sizeof(float));
+        memcpy(delK.getAddress(b * delK.getDim().getFeatureLen() + j * o_size),
+               output.data(), o_size * sizeof(float));
       }
 
       // Calculate delBias [ batch , 1, 1, filter_size]
@@ -177,7 +176,7 @@ Tensor Conv2DLayer::backwarding(Tensor derivative, int iteration) {
           sum += derivative.getValue(b, i, j, k);
         }
       }
-      delBias[i].setValue(b, 0, 0, 0, sum);
+      delBias.setValue(b, 0, 0, 0, sum);
     }
   }
 
@@ -202,10 +201,10 @@ Tensor Conv2DLayer::backwarding(Tensor derivative, int iteration) {
 
     for (unsigned int in_c = 0; in_c < input_dim.channel(); ++in_c) {
       for (unsigned int i = 0; i < derivative.channel(); ++i) {
+        Tensor &filter = paramsAt(i).weight;
 
         conv2d(in_padded.getAddress(i * in_padded.height() * in_padded.width()),
-               p_dim,
-               filters[i].getAddress(in_c * kernel_size[0] * kernel_size[1]),
+               p_dim, filter.getAddress(in_c * kernel_size[0] * kernel_size[1]),
                kdim, output.data(), stride, 0.0);
         float *ret_vec = ret.getAddress(b * ret.getDim().getFeatureLen() +
                                         in_c * ret.height() * ret.width());
@@ -216,27 +215,26 @@ Tensor Conv2DLayer::backwarding(Tensor derivative, int iteration) {
     }
   }
 
-  gradients.clear();
-
   if (trainable) {
     //  Update K / bias
     for (unsigned int i = 0; i < filter_size; ++i) {
-      Tensor djdw = delK[i]
-                      .chain()
-                      .applyIf(this->isWeightDecayL2Norm(), _LIFT(add_i),
-                               filters[i], weight_decay.lambda)
-                      .run();
+      Tensor &delK = paramsAt(i).grad;
+      Tensor &filter = paramsAt(i).weight;
 
-      gradients.push_back(djdw);
-      gradients.push_back(delBias[i]);
+      delK = delK.chain()
+               .applyIf(this->isWeightDecayL2Norm(), _LIFT(add_i), filter,
+                        weight_decay.lambda)
+               .run();
     }
-    opt.apply_gradients(weights, gradients, iteration);
+
+    opt.apply_gradients(params, param_size, iteration);
   }
 
   return rotate_180(strip_pad(ret, padding));
 }
 
 void Conv2DLayer::copy(std::shared_ptr<Layer> l) {
+  Layer::copy(l);
   std::shared_ptr<Conv2DLayer> from = std::static_pointer_cast<Conv2DLayer>(l);
   this->filter_size = from->filter_size;
   for (unsigned int i = 0; i < CONV2D_DIM; ++i) {
@@ -245,10 +243,6 @@ void Conv2DLayer::copy(std::shared_ptr<Layer> l) {
     this->padding[i] = from->padding[i];
   }
 
-  for (int i = 0; from->filters.size(); ++i) {
-    this->filters.push_back(from->filters[i]);
-    this->bias.push_back(from->bias[i]);
-  }
   this->input.copy(from->input);
   this->hidden.copy(from->hidden);
   this->dim = from->dim;

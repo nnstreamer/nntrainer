@@ -50,18 +50,6 @@ public:
   ~BatchNormalizationLayer(){};
 
   /**
-   * @brief     Read Weight & Bias Data from file
-   * @param[in] file input stream file
-   */
-  void read(std::ifstream &file);
-
-  /**
-   * @brief     Save Weight & Bias Data to file
-   * @param[in] file output stream file
-   */
-  void save(std::ofstream &file);
-
-  /**
    * @brief     forward propagation with input
    * @param[in] in Input Tensor from upper layer
    * @retval    normalized input tensor using scaling factor
@@ -125,20 +113,9 @@ public:
   std::string getBaseName() { return "BatchNormalization"; };
 
 private:
-  Tensor weight;
-  Tensor bias;
-
-  Tensor mu;  /**< moving mu used for inferencing.
-                   momentum * mu + (1 - momenutm) * mu
-                   of current batch is used */
-  Tensor var; /**< moving var used for inferencing.
-                   momentum * var + (1 - momenutm) * var
-                   of current batch is used */
-
   Tensor cvar; /**< training varaince saved in bn_layer::forwarding and used in
                     bn_layer::backwarding */
-  Tensor gamma;
-  Tensor beta;
+
   Tensor x_normalized;
   float epsilon;
 };

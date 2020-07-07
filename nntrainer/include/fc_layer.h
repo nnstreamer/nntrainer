@@ -109,8 +109,6 @@ public:
 
 private:
   unsigned int unit;
-  Tensor weight;
-  Tensor bias;
 };
 } // namespace nntrainer
 
