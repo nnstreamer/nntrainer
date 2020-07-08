@@ -147,7 +147,9 @@ int ml_nnmodel_destruct(ml_nnmodel_h model);
 
 /**
  * @brief Add layer at the last of the existing layers in neural network model.
- * @details Use this function to add a layer to the model.
+ * @details Use this function to add a layer to the model. This transfers the
+ * ownership of the layer to the network. No need to delete the layer if it
+ * belongs to a model.
  * @since_tizen 6.x
  * @param[in] model The NNTrainer model handler from the given description.
  * @param[in] layer The NNTrainer layer handler
@@ -159,7 +161,9 @@ int ml_nnmodel_add_layer(ml_nnmodel_h model, ml_nnlayer_h layer);
 
 /**
  * @brief Set the neural network optimizer.
- * @details Use this function to set Neural Network Optimizer.
+ * @details Use this function to set Neural Network Optimizer. Unsets the
+ * previous optimizer if any. This transfers the ownership of the optimizer to
+ * the network. No need to delete the optimizer if it is to a model.
  * @since_tizen 6.x
  * @param[in] model The NNTrainer model handler from the given description.
  * @param[in] optimizer The NNTrainer Optimizer handler
@@ -184,7 +188,8 @@ int ml_nnlayer_create(ml_nnlayer_h *layer, ml_layer_type_e type);
 
 /**
  * @brief Delete the neural network layer.
- * @details Use this function to delete Neural Netowrk Layer.
+ * @details Use this function to delete Neural Network Layer. Fails if layer is
+ * owned by a model.
  * @since_tizen 6.x
  * @param[in] layer The NNTrainer layer handler from the given description.
  * @return @c 0 on success. Otherwise a negative error value.
@@ -219,7 +224,8 @@ int ml_nnoptimizer_create(ml_nnopt_h *optimizer, const char *type);
 
 /**
  * @brief Delete the neural network optimizer.
- * @details Use this function to delete Neural Netowrk Optimizer.
+ * @details Use this function to delete Neural Netowrk Optimizer. Fails if
+ * optimizer is owned by a model.
  * @since_tizen 6.x
  * @param[in] optimizer The NNTrainer optimizer handler from the given
  * description.

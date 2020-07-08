@@ -75,6 +75,7 @@ static int nn_object(ml_nnmodel_h *model) {
 
   ml_nnmodel *nnmodel = new ml_nnmodel;
   nnmodel->magic = ML_NNTRAINER_MAGIC;
+  nnmodel->optimizer = NULL;
 
   *model = nnmodel;
 
@@ -240,6 +241,11 @@ int ml_nnmodel_destruct(ml_nnmodel_h model) {
 
   status = nntrainer_exception_boundary(f);
 
+  if (nnmodel->optimizer)
+    delete nnmodel->optimizer;
+  for (auto iter = nnmodel->layers.begin(); iter != nnmodel->layers.end();
+       ++iter)
+    delete (*iter);
   delete nnmodel;
 
   return status;
@@ -262,6 +268,10 @@ int ml_nnmodel_add_layer(ml_nnmodel_h model, ml_nnlayer_h layer) {
   returnable f = [&]() { return NN->addLayer(NL); };
 
   status = nntrainer_exception_boundary(f);
+  if (status == ML_ERROR_NONE) {
+    nnlayer->in_use = true;
+    nnmodel->layers.push_back(nnlayer);
+  }
 
   return status;
 }
@@ -283,6 +293,12 @@ int ml_nnmodel_set_optimizer(ml_nnmodel_h model, ml_nnopt_h optimizer) {
   returnable f = [&]() { return NN->setOptimizer(opt); };
 
   status = nntrainer_exception_boundary(f);
+  if (status == ML_ERROR_NONE) {
+    nnopt->in_use = true;
+    if (nnmodel->optimizer)
+      nnmodel->optimizer->in_use = false;
+    nnmodel->optimizer = nnopt;
+  }
 
   return status;
 }
@@ -314,6 +330,7 @@ int ml_nnlayer_create(ml_nnlayer_h *layer, ml_layer_type_e type) {
     delete nnlayer;
   }
 
+  nnlayer->in_use = false;
   return status;
 }
 
@@ -322,6 +339,12 @@ int ml_nnlayer_delete(ml_nnlayer_h layer) {
   ml_nnlayer *nnlayer;
 
   ML_NNTRAINER_CHECK_LAYER_VALIDATION(nnlayer, layer);
+
+  if (nnlayer->in_use) {
+    ml_loge("Cannot delete layer already added in a model."
+            "Delete model will delete this layer.");
+    return ML_ERROR_INVALID_PARAMETER;
+  }
 
   delete nnlayer;
 
@@ -356,9 +379,12 @@ int ml_nnlayer_set_property(ml_nnlayer_h layer, ...) {
 
 int ml_nnoptimizer_create(ml_nnopt_h *optimizer, const char *type) {
   int status = ML_ERROR_NONE;
+
   ml_nnopt *nnopt = new ml_nnopt;
   nnopt->magic = ML_NNTRAINER_MAGIC;
   nnopt->optimizer = std::make_shared<nntrainer::Optimizer>();
+  nnopt->in_use = false;
+
   *optimizer = nnopt;
 
   returnable f = [&]() {
@@ -379,6 +405,12 @@ int ml_nnoptimizer_delete(ml_nnopt_h optimizer) {
   ml_nnopt *nnopt;
 
   ML_NNTRAINER_CHECK_OPT_VALIDATION(nnopt, optimizer);
+
+  if (nnopt->in_use) {
+    ml_loge("Cannot delete optimizer already set to a model."
+            "Delete model will delete this optimizer.");
+    return ML_ERROR_INVALID_PARAMETER;
+  }
 
   delete nnopt;
   return status;

@@ -25,6 +25,7 @@
 #define __NNTRAINER_INTERNAL_H__
 
 #include <nntrainer.h>
+#include <vector>
 
 #define ML_NNTRAINER_MAGIC 0x777F888F
 
@@ -34,18 +35,22 @@ extern "C" {
 
 typedef struct {
   uint magic;
-  std::shared_ptr<nntrainer::NeuralNetwork> network;
-} ml_nnmodel;
-
-typedef struct {
-  uint magic;
   std::shared_ptr<nntrainer::Layer> layer;
+  bool in_use;
 } ml_nnlayer;
 
 typedef struct {
   uint magic;
   std::shared_ptr<nntrainer::Optimizer> optimizer;
+  bool in_use;
 } ml_nnopt;
+
+typedef struct {
+  uint magic;
+  std::shared_ptr<nntrainer::NeuralNetwork> network;
+  std::vector<ml_nnlayer *> layers;
+  ml_nnopt *optimizer;
+} ml_nnmodel;
 
 #define ML_NNTRAINER_CHECK_MODEL_VALIDATION(nnmodel, model)      \
   do {                                                           \
