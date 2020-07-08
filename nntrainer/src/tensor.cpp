@@ -783,17 +783,25 @@ Tensor Tensor::apply(std::function<float(float)> f) const {
 Tensor Tensor::apply(std::function<Tensor(Tensor)> f) const { return f(*this); }
 
 void Tensor::print(std::ostream &out) const {
-  unsigned int i, j, k, l;
-  std::stringstream ss;
-
+  out << "<Tensor Object at " << this << ">" << std::endl;
   const float *data = getData();
-  for (k = 0; k < dim.batch(); k++) {
-    for (l = 0; l < dim.channel(); l++) {
-      for (i = 0; i < dim.height(); i++) {
-        for (j = 0; j < dim.width(); j++) {
-          out << data[k * dim.getFeatureLen() + l * dim.width() * dim.height() +
-                      i * dim.width() + j]
-              << " ";
+
+  unsigned int len = length();
+
+  out << dim;
+
+  if (len > 100) {
+    out << '[' << data[0] << ' ' << data[1] << ' ' << data[2] << " ... "
+        << data[len - 3] << ' ' << data[len - 2] << ' ' << data[len - 1] << ']'
+        << std::endl;
+    return;
+  }
+
+  for (unsigned int k = 0; k < dim.batch(); k++) {
+    for (unsigned int l = 0; l < dim.channel(); l++) {
+      for (unsigned int i = 0; i < dim.height(); i++) {
+        for (unsigned int j = 0; j < dim.width(); j++) {
+          out << this->getValue(k, l, i, j) << " ";
         }
         out << std::endl;
       }

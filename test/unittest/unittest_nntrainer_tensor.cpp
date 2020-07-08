@@ -885,6 +885,42 @@ TEST(nntrainer_Tensor, save_read_01_n) {
   ASSERT_EQ(status, 0);
 }
 
+TEST(nntrainer_Tensor, print_small_size) {
+  nntrainer::Tensor target = constant(1.0, 3, 1, 2, 3);
+
+  std::stringstream ss, expected;
+  ss << target;
+  expected << "<Tensor Object at " << &target << ">\n"
+           << "Shape: 3:1:2:3\n"
+              "1 1 1 \n"
+              "1 1 1 \n"
+              "\n"
+              "-------\n"
+              "1 1 1 \n"
+              "1 1 1 \n"
+              "\n"
+              "-------\n"
+              "1 1 1 \n"
+              "1 1 1 \n"
+              "\n"
+              "-------\n";
+
+  EXPECT_EQ(ss.str(), expected.str());
+}
+
+TEST(nntrainer_Tensor, print_large_size) {
+  nntrainer::Tensor target = constant(1.2, 3, 10, 10, 10);
+
+  std::stringstream ss, expected;
+
+  expected << "<Tensor Object at " << &target << ">\n"
+           << "Shape: 3:10:10:10\n"
+           << "[1.2 1.2 1.2 ... 1.2 1.2 1.2]\n";
+  ss << target;
+
+  EXPECT_EQ(ss.str(), expected.str());
+}
+
 /**
  * @brief Main gtest
  */
