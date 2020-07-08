@@ -13,12 +13,17 @@
  */
 /**
  * @file nntrainer.h
- * @date 02 April 2020
+ * @date 08 July 2020
  * @brief NNTrainer C-API Header.
- *        This allows to construct and control NNTrainer Model.
+ *        This allows to construct, control and train a neural network model in
+ * Tizen devices with nntrainer.
  * @see	https://github.com/nnstreamer/nntrainer
  * @author Jijoong Moon <jijoong.moon@samsung.com>
+ * @author Parichay Kapoor <pk.kapoor@samsung.com>
  * @bug No known bugs except for NYI items
+ *
+ * @note This API is not stable and still experimental.
+ * @todo Make this API thread safe.
  */
 
 #ifndef __TIZEN_MACHINELEARNING_NNTRAINER_H__
@@ -34,7 +39,7 @@
 extern "C" {
 #endif /* __cplusplus */
 /**
- * @addtogroup CAPI_ML_NNTRAINER_MODULE
+ * @addtogroup CAPI_ML_NNTRAINER_TRAIN_MODULE
  * @{
  */
 
@@ -107,7 +112,7 @@ typedef enum {
  * @param[out] input Container to hold all the input data.
  * @param[out] label Container to hold corresponding label data.
  * @param[out] last Container to notify if data is finished. Set true if no more
- * data to provide, else set false.
+ * data to provide/this is the last piece, else set false.
  * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter.
@@ -116,7 +121,7 @@ typedef int (*ml_train_datagen_cb)(float **input, float **label, bool *last);
 
 /**
  * @brief Constructs the neural network model.
- * @details Use this function to create Neural Netowrk Model.
+ * @details Use this function to create Neural Network Model.
  * @since_tizen 6.x
  * @param[out] model The NNTrainer Model handler from the given description.
  * @return @c 0 on success. Otherwise a negative error value.
@@ -130,7 +135,7 @@ int ml_train_model_construct(ml_train_model_h *model);
  * @details Use this function to create neural network model with the given
  * configuration file.
  * @since_tizen 6.x
- * @param[in] model_conf The location of nntrainer model configuration file.
+ * @param[in] model_conf The nntrainer model configuration file.
  * @param[out] model The NNTrainer model handler from the given description.
  * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
@@ -140,14 +145,16 @@ int ml_train_model_construct_with_conf(const char *model_conf,
                                        ml_train_model_h *model);
 
 /**
- * @brief initialize the neural network model.
- * @details Use this function to initialize neural network model. Once compiled,
- * addition of new layers is not permitted. Further, updating the properties of
- * added layers is restricted.
+ * @brief Compile and finalize the neural network model with the given loss.
+ * @details Use this function to initialize neural network model. Various
+ * hyper parameter before compile the model can be set. Once compiled,
+ * any modification to the properties of model or layers/dataset/optimizer in
+ * the model will be restricted. Further, addition of layers or changing the
+ * optimizer/dataset of the model will not be permitted.
  * @since_tizen 6.x
- * @param[in] model The NNTrainer model handler from the given description.
  * @param[in] type The NNTrainer loss type.
- * @param[in] ... hyper parmeter for compile model
+ * @param[in] ... hyper parmeter for compiling the model
+ * @param[in] model The NNTrainer model handler.
  * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter.
@@ -160,8 +167,8 @@ int ml_train_model_compile(ml_train_model_h model, ...);
  * the passed training hyperparameters. This function will return once the
  * training along with requested validation and testing is completed.
  * @since_tizen 6.x
- * @param[in] model The NNTrainer model handler from the given description.
- * @param[in] ...  hyper parmeter for train model
+ * @param[in] model The NNTrainer model handler.
+ * @param[in] ...  Hyperparmeter for train model.
  * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter.
@@ -198,13 +205,14 @@ int ml_train_nnmodel_get_summary(ml_train_model_h model,
                                  char **summary);
 
 /**
- * @brief Add layer at the last of the existing layers in neural network model.
- * @details Use this function to add a layer to the model. This transfers the
- * ownership of the layer to the network. No need to destroy the layer if it
- * belongs to a model.
+ * @brief Add layer in neural network model.
+ * @details Use this function to add a layer to the model. The layer is added to
+ * the end of the existing layers in the model. This transfers the
+ * ownership of the layer to the network. No need to delete the layer once it
+ * is added to a model.
  * @since_tizen 6.x
- * @param[in] model The NNTrainer model handler from the given description.
- * @param[in] layer The NNTrainer layer handler
+ * @param[in] model The NNTrainer model handler.
+ * @param[in] layer The NNTrainer layer handler.
  * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter.
@@ -212,13 +220,13 @@ int ml_train_nnmodel_get_summary(ml_train_model_h model,
 int ml_train_model_add_layer(ml_train_model_h model, ml_train_layer_h layer);
 
 /**
- * @brief Set the neural network optimizer.
+ * @brief Set the optimizer for the neural network model.
  * @details Use this function to set Neural Network Optimizer. Unsets the
  * previous optimizer if any. This transfers the ownership of the optimizer to
  * the network. No need to destroy the optimizer if it is to a model.
  * @since_tizen 6.x
- * @param[in] model The NNTrainer model handler from the given description.
- * @param[in] optimizer The NNTrainer Optimizer handler
+ * @param[in] model The NNTrainer model handler.
+ * @param[in] dataset The NNTrainer dataset handler.
  * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter.
@@ -243,11 +251,11 @@ int ml_train_model_set_dataset(ml_train_model_h model,
                                ml_train_dataset_h dataset);
 
 /**
- * @brief Create the neural network layer.
- * @details Use this function to create Neural Netowrk Layer.
+ * @brief Create a neural network layer.
+ * @details Use this function to create Neural Network Layer.
  * @since_tizen 6.x
- * @param[out] layer The NNTrainer Layer handler from the given description.
- * @param[in]  type The NNTrainer Layer type
+ * @param[out] layer The NNTrainer layer handler from the given description.
+ * @param[in]  type The NNTrainer layer type
  * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
@@ -260,7 +268,7 @@ int ml_train_layer_create(ml_train_layer_h *layer, ml_train_layer_type_e type);
  * @details Use this function to destroy Neural Network Layer. Fails if layer is
  * owned by a model.
  * @since_tizen 6.x
- * @param[in] layer The NNTrainer layer handler from the given description.
+ * @param[in] layer The NNTrainer layer handler.
  * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter.
@@ -269,9 +277,9 @@ int ml_train_layer_destroy(ml_train_layer_h layer);
 
 /**
  * @brief Set the neural network layer Property.
- * @details Use this function to set Neural Netowrk Layer Property.
+ * @details Use this function to set Neural Network Layer Property.
  * @since_tizen 6.x
- * @param[in] layer The NNTrainer Layer handler from the given description.
+ * @param[in] layer The NNTrainer layer handler.
  * @param[in]  ... Property values with NULL for termination.
  * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
@@ -280,11 +288,11 @@ int ml_train_layer_destroy(ml_train_layer_h layer);
 int ml_train_layer_set_property(ml_train_layer_h layer, ...);
 
 /**
- * @brief Create the neural network optimizer.
- * @details Use this function to create Neural Netowrk Optimizer.
+ * @brief Create a neural network optimizer.
+ * @details Use this function to create Neural Network optimizer.
  * @since_tizen 6.x
- * @param[out] optimizer The NNTrainer Optimizer handler
- * @param[in] type The NNTrainer Optimizer type
+ * @param[out] optimizer The NNTrainer optimizer handler.
+ * @param[in] type The NNTrainer optimizer type.
  * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter.
@@ -297,8 +305,7 @@ int ml_train_optimizer_create(ml_train_optimizer_h *optimizer,
  * @details Use this function to destroy Neural Netowrk Optimizer. Fails if
  * optimizer is owned by a model.
  * @since_tizen 6.x
- * @param[in] optimizer The NNTrainer optimizer handler from the given
- * description.
+ * @param[in] optimizer The NNTrainer optimizer handler.
  * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter.
@@ -307,10 +314,9 @@ int ml_train_optimizer_destroy(ml_train_optimizer_h optimizer);
 
 /**
  * @brief Set the neural network optimizer property.
- * @details Use this function to set Neural Netowrk Optimizer Property.
+ * @details Use this function to set Neural Network optimizer Property.
  * @since_tizen 6.x
- * @param[in] optimizer The NNTrainer Optimizer handler from the given
- * description.
+ * @param[in] optimizer The NNTrainer optimizer handler.
  * @param[in]  ... Property values with NULL at the end.
  * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
