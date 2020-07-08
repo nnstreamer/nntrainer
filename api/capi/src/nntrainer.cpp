@@ -97,7 +97,8 @@ int ml_nnmodel_construct(ml_nnmodel_h *model) {
   return status;
 }
 
-int ml_nnmodel_construct_with_conf(const char *model_conf, ml_nnmodel_h *model) {
+int ml_nnmodel_construct_with_conf(const char *model_conf,
+                                   ml_nnmodel_h *model) {
   int status = ML_ERROR_NONE;
   ml_nnmodel *nnmodel;
   std::shared_ptr<nntrainer::NeuralNetwork> NN;

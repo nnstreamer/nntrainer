@@ -43,6 +43,19 @@
     }                              \
   } while (0)
 
+#define VERIFY_SET_DIMENSION()                                     \
+  do {                                                             \
+    if (i != 0) {                                                  \
+      if (def_init_dim == layers[i]->getInputDimension()) {        \
+        layers[i]->setInputDimension(previous_dim);                \
+      } else if (previous_dim != layers[i]->getInputDimension()) { \
+        status = ML_ERROR_INVALID_PARAMETER;                       \
+        ml_loge("Dimension mismatch between layers.");             \
+        NN_RETURN_STATUS();                                        \
+      }                                                            \
+    }                                                              \
+  } while (0)
+
 #define CONV2D_DIM 2
 
 namespace nntrainer {
@@ -234,9 +247,8 @@ int NeuralNetwork::loadFromConfig() {
   }
 
   /** Parse all the layers defined as sections in order */
-  TensorDim previous_dim;
   for (section_names_iter = section_names.begin();
-      section_names_iter != section_names.end(); ++section_names_iter) {
+       section_names_iter != section_names.end(); ++section_names_iter) {
     std::string layer_name = *section_names_iter;
     std::string layer_type_str =
       iniparser_getstring(ini, (layer_name + ":Type").c_str(), unknown);
@@ -256,10 +268,10 @@ int NeuralNetwork::loadFromConfig() {
         NN_INI_RETURN_STATUS();
       }
 
-      status = previous_dim.setTensorDim(input_shape_str);
+      TensorDim d;
+      status = d.setTensorDim(input_shape_str);
       NN_INI_RETURN_STATUS();
-
-      input_layer->setInputDimension(previous_dim);
+      input_layer->setInputDimension(d);
 
       input_layer->setNormalization(iniparser_getboolean(
         ini, (layer_name + ":Normalization").c_str(), false));
@@ -280,11 +292,6 @@ int NeuralNetwork::loadFromConfig() {
         TensorDim d;
         d.setTensorDim(input_shape_str);
         conv2d_layer->setInputDimension(d);
-        if (section_names_iter != section_names.begin() && previous_dim != d) {
-          ml_loge("Error: %s layer input shape error.", layer_name.c_str());
-          status = ML_ERROR_INVALID_PARAMETER;
-          NN_INI_RETURN_STATUS();
-        }
       } else if (section_names_iter == section_names.begin()) {
         ml_loge("Error: %s layer input shape not specified.",
                 layer_name.c_str());
@@ -399,11 +406,6 @@ int NeuralNetwork::loadFromConfig() {
         TensorDim d;
         d.setTensorDim(input_shape_str);
         fc_layer->setInputDimension(d);
-        if (section_names_iter != section_names.begin() && previous_dim != d) {
-          ml_loge("Error: %s layer input shape error.", layer_name.c_str());
-          status = ML_ERROR_INVALID_PARAMETER;
-          NN_INI_RETURN_STATUS();
-        }
       } else if (section_names_iter == section_names.begin()) {
         ml_loge("Error: %s layer input shape not specified.",
                 layer_name.c_str());
@@ -455,8 +457,6 @@ int NeuralNetwork::loadFromConfig() {
     bool flatten =
       iniparser_getboolean(ini, (layer_name + ":Flatten").c_str(), false);
     layers.back()->setFlatten(flatten);
-
-    previous_dim = layers.back()->getOutputDimension();
   }
 
   status = data_buffer->setMiniBatch(batch_size);
@@ -524,6 +524,28 @@ int NeuralNetwork::setProperty(std::vector<std::string> values) {
     case PropertyType::loss: {
       cost = (CostType)parseType(value, TOKEN_COST);
     } break;
+    default:
+      status = setTrainConfig({values[i]});
+      NN_RETURN_STATUS();
+      break;
+    }
+  }
+
+  return status;
+}
+
+int NeuralNetwork::setTrainConfig(std::vector<std::string> values) {
+  int status = ML_ERROR_NONE;
+
+  for (unsigned int i = 0; i < values.size(); ++i) {
+    std::string key;
+    std::string value;
+    status = getKeyValue(values[i], key, value);
+    NN_RETURN_STATUS();
+
+    unsigned int type = parseNetProperty(key);
+
+    switch (static_cast<PropertyType>(type)) {
     case PropertyType::batch_size: {
       status = setInt(batch_size, value);
       NN_RETURN_STATUS();
@@ -593,12 +615,15 @@ int NeuralNetwork::setProperty(std::vector<std::string> values) {
 int NeuralNetwork::init() {
   int status = ML_ERROR_NONE;
   bool last = false;
-  TensorDim previous_dim;
+  TensorDim previous_dim, def_init_dim;
 
   /** Note: number of entries in layers will change. */
   for (unsigned int i = 0; i < layers.size(); ++i) {
     if (i == layers.size() - 1)
       last = true;
+
+    VERIFY_SET_DIMENSION();
+
     switch (layers[i]->getType()) {
     case LAYER_IN:
       layers[i]->initialize(last);
@@ -606,16 +631,6 @@ int NeuralNetwork::init() {
     case LAYER_CONV2D: {
       std::shared_ptr<Conv2DLayer> conv2d_layer =
         std::static_pointer_cast<Conv2DLayer>(layers[i]);
-      if (i != 0) {
-        TensorDim def_init_dim;
-        if (def_init_dim == layers[i]->getInputDimension()) {
-          layers[i]->setInputDimension(previous_dim);
-        } else if (previous_dim != layers[i]->getInputDimension()) {
-          status = ML_ERROR_INVALID_PARAMETER;
-          ml_loge("Dimension mismatch between layers.");
-          NN_RETURN_STATUS();
-        }
-      }
 
       status = layers[i]->setCost(cost);
       NN_RETURN_STATUS();
@@ -631,16 +646,6 @@ int NeuralNetwork::init() {
     case LAYER_POOLING2D: {
       std::shared_ptr<Pooling2DLayer> pooling2d_layer =
         std::static_pointer_cast<Pooling2DLayer>(layers[i]);
-      if (i != 0) {
-        TensorDim def_init_dim;
-        if (def_init_dim == layers[i]->getInputDimension()) {
-          layers[i]->setInputDimension(previous_dim);
-        } else if (previous_dim != layers[i]->getInputDimension()) {
-          status = ML_ERROR_INVALID_PARAMETER;
-          ml_loge("Dimension mismatch between layers.");
-          NN_RETURN_STATUS();
-        }
-      }
 
       status = layers[i]->initialize(last);
       NN_RETURN_STATUS();
@@ -650,16 +655,6 @@ int NeuralNetwork::init() {
     case LAYER_FLATTEN: {
       std::shared_ptr<FlattenLayer> flatten_layer =
         std::static_pointer_cast<FlattenLayer>(layers[i]);
-      if (i != 0) {
-        TensorDim def_init_dim;
-        if (def_init_dim == layers[i]->getInputDimension()) {
-          layers[i]->setInputDimension(previous_dim);
-        } else if (previous_dim != layers[i]->getInputDimension()) {
-          status = ML_ERROR_INVALID_PARAMETER;
-          ml_loge("Dimension mismatch between layers.");
-          NN_RETURN_STATUS();
-        }
-      }
 
       status = layers[i]->initialize(last);
       NN_RETURN_STATUS();
@@ -668,16 +663,6 @@ int NeuralNetwork::init() {
     case LAYER_FC: {
       std::shared_ptr<FullyConnectedLayer> fc_layer =
         std::static_pointer_cast<FullyConnectedLayer>(layers[i]);
-      if (i != 0) {
-        TensorDim def_init_dim;
-        if (def_init_dim == layers[i]->getInputDimension()) {
-          layers[i]->setInputDimension(previous_dim);
-        } else if (previous_dim != layers[i]->getInputDimension()) {
-          status = ML_ERROR_INVALID_PARAMETER;
-          ml_loge("Dimension mismatch between layers.");
-          NN_RETURN_STATUS();
-        }
-      }
 
       status = layers[i]->setCost(cost);
       NN_RETURN_STATUS();
@@ -690,8 +675,6 @@ int NeuralNetwork::init() {
 
     } break;
     case LAYER_BN:
-      layers[i]->setInputDimension(previous_dim);
-
       status = layers[i]->initialize(last);
       NN_RETURN_STATUS();
 
@@ -855,7 +838,7 @@ int NeuralNetwork::train(std::vector<std::string> values) {
     status = data_buffer->setMiniBatch(layers[0]->getInputDimension().batch());
     NN_RETURN_STATUS();
 
-    status = setProperty(values);
+    status = setTrainConfig(values);
     NN_RETURN_STATUS();
   }
 
@@ -902,7 +885,7 @@ int NeuralNetwork::train(
     status = data_buffer->setMiniBatch(layers[0]->getInputDimension().batch());
     NN_RETURN_STATUS();
 
-    status = setProperty(values);
+    status = setTrainConfig(values);
     NN_RETURN_STATUS();
   }
 
