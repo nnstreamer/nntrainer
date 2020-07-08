@@ -310,12 +310,12 @@ int main(int argc, char *argv[]) {
   NN_RETURN_STATUS();
 
   /* set optimizer */
-  status = ml_nnmodel_set_optimizer (model, optimizer);
-  NN_RETURN_STATUS ();
+  status = ml_nnmodel_set_optimizer(model, optimizer);
+  NN_RETURN_STATUS();
 
   /* compile model with cross entropy loss function */
-  status = ml_nnmodel_compile (model, "loss=cross", NULL);
-  NN_RETURN_STATUS ();
+  status = ml_nnmodel_compile(model, "loss=cross", NULL);
+  NN_RETURN_STATUS();
 
   /* train model with data files : epochs = 10 and store model file named
    * "model.bin" */

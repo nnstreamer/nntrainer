@@ -199,6 +199,28 @@ TEST(nntrainer_capi_nnmodel, train_02_n) {
 }
 
 /**
+ * @brief Neural Network Model Train Test
+ */
+TEST(nntrainer_capi_nnmodel, train_03_n) {
+  ml_nnmodel_h handle = NULL;
+  int status = ML_ERROR_NONE;
+  std::string config_file = "./test_train_01_p.ini";
+  RESET_CONFIG(config_file.c_str());
+  replaceString("Input_Shape = 32:1:1:62720", "Input_Shape=32:1:1:62720",
+                config_file, config_str);
+  replaceString("minibatch = 32", "minibatch = 16", config_file, config_str);
+  replaceString("BufferSize=100", "", config_file, config_str);
+  status = ml_nnmodel_construct_with_conf(config_file.c_str(), &handle);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = ml_nnmodel_compile(handle, NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = ml_nnmodel_train_with_file(handle, "loss=cross", NULL);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+  status = ml_nnmodel_destruct(handle);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
  * @brief Neural Network Model Add Layer Test
  */
 TEST(nntrainer_capi_nnmodel, addLayer_01_p) {
@@ -473,8 +495,8 @@ TEST(nntrainer_capi_nnmodel, train_with_file_01_p) {
     model, "epochs=2", "batch_size=16", "train_data=trainingSet.dat",
     "val_data=valSet.dat", "label_data=label.dat", "buffer_size=100",
     "model_file=model.bin", NULL);
-
   EXPECT_EQ(status, ML_ERROR_NONE);
+
   status = ml_nnlayer_delete(layers[0]);
   EXPECT_EQ(status, ML_ERROR_NONE);
   status = ml_nnlayer_delete(layers[1]);

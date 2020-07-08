@@ -116,6 +116,15 @@ public:
   int setProperty(std::vector<std::string> values);
 
   /**
+   * @brief     set Property/Configuration of Network for training after the
+   * network has been initialized
+   * @param[in] values values of property
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  int setTrainConfig(std::vector<std::string> values);
+
+  /**
    * @brief     Initialize Network. This should be called after set all
    * hyperparameters.
    * @retval #ML_ERROR_NONE Successful.
