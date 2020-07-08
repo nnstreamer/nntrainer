@@ -125,11 +125,11 @@ int view_routes_to(appdata_s *ad, const char *group_name,
                                  ad);
 
   nf_it = elm_naviframe_item_push(ad->naviframe, NULL, NULL, NULL, ad->layout,
-                              "empty");
+                                  "empty");
   if (nf_it == NULL)
     return APP_ERROR_INVALID_PARAMETER;
 
-  if(data != NULL)
+  if (data != NULL)
     *data = nf_it;
 
   return APP_ERROR_NONE;

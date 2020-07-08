@@ -42,9 +42,9 @@ public:
   /**
    * @brief     Constructor of InputLayer
    */
-  InputLayer() :
-    normalization(false),
-    standardization(false) { setType(LAYER_IN); };
+  InputLayer() : normalization(false), standardization(false) {
+    setType(LAYER_IN);
+  };
 
   /**
    * @brief     Destructor of InputLayer

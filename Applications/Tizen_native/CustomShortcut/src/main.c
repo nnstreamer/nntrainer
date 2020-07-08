@@ -26,7 +26,7 @@ static bool app_create(void *data) {
 
   snprintf(ad->edj_path, sizeof(ad->edj_path), "%s%s", res_path, EDJ_PATH);
   free(res_path);
-  
+
   view_init(ad);
 
   if (view_routes_to(ad, "home", &ad->home))
@@ -47,7 +47,8 @@ static void app_resume(void *data) {
   /* Take necessary actions when application becomes visible. */
 }
 
-static void app_terminate(void *data) { /* Release all resources. */ }
+static void app_terminate(void *data) { /* Release all resources. */
+}
 
 static void ui_app_lang_changed(app_event_info_h event_info, void *user_data) {
   /*APP_EVENT_LANGUAGE_CHANGED*/

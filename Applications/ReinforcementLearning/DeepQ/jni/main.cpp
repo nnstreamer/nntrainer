@@ -325,7 +325,7 @@ int main(int argc, char **argv) {
          */
         nntrainer::Tensor test =
           mainNet.forwarding(nntrainer::Tensor({input}), status);
-        float* data = test.getData();
+        float *data = test.getData();
         unsigned int len = test.getDim().getDataLen();
         std::vector<float> temp(data, data + len);
         action.push_back(argmax(temp));
@@ -424,7 +424,7 @@ int main(int argc, char **argv) {
          */
         nntrainer::Tensor NQ =
           targetNet.forwarding(nntrainer::Tensor(next_inbatch), status);
-        float* nqa = NQ.getData();
+        float *nqa = NQ.getData();
 
         /**
          * @brief     Update Q values & udpate mainNetwork

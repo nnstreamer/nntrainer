@@ -117,18 +117,18 @@ typedef enum {
  */
 class Layer {
 public:
-  Layer()
-    : last_layer(false),
-      bias_init_zero(false),
-      type(LAYER_UNKNOWN),
-      loss(0.0),
-      cost(COST_UNKNOWN),
-      activation_type(ACT_NONE),
-      bn_follow(false),
-      weight_decay(),
-      weight_ini_type(WEIGHT_XAVIER_UNIFORM),
-      flatten(false),
-      trainable(true) {}
+  Layer() :
+    last_layer(false),
+    bias_init_zero(false),
+    type(LAYER_UNKNOWN),
+    loss(0.0),
+    cost(COST_UNKNOWN),
+    activation_type(ACT_NONE),
+    bn_follow(false),
+    weight_decay(),
+    weight_ini_type(WEIGHT_XAVIER_UNIFORM),
+    flatten(false),
+    trainable(true) {}
 
   /**
    * @brief     Destructor of Layer Class
@@ -308,13 +308,17 @@ public:
    * @brief     get gradients
    * @retval    shared ptr of vector of all tensors
    */
-  std::shared_ptr<std::vector<Tensor>> getGradients() { return getObjFromRef(gradients); }
+  std::shared_ptr<std::vector<Tensor>> getGradients() {
+    return getObjFromRef(gradients);
+  }
 
   /**
    * @brief     get weights
    * @retval    shared ptr of vector of all tensors
    */
-  std::shared_ptr<std::vector<Tensor>> getWeights() { return getObjFromRef(weights); }
+  std::shared_ptr<std::vector<Tensor>> getWeights() {
+    return getObjFromRef(weights);
+  }
 
   /**
    * @brief     get if the output of this layer must be flatten
@@ -364,7 +368,6 @@ public:
   };
 
 protected:
-
   /**
    * @brief     check if current layer's weight decay type is l2norm
    * @return    bool is weightdecay type is L2 Norm
@@ -464,8 +467,8 @@ private:
   /**
    * @brief     Convert vector of reference to vector of objects
    */
-  std::shared_ptr<std::vector<Tensor>> getObjFromRef(
-      std::vector<std::reference_wrapper<Tensor>> &elements);
+  std::shared_ptr<std::vector<Tensor>>
+  getObjFromRef(std::vector<std::reference_wrapper<Tensor>> &elements);
 };
 } // namespace nntrainer
 

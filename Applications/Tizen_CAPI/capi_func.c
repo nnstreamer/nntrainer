@@ -31,15 +31,13 @@ static bool *valduplicate;
 static bool alloc_train = false;
 static bool alloc_val = false;
 
-bool gen_data_train (float *outVec, float *outLabel, int *status);
-bool gen_data_val (float *outVec, float *outLabel, int *status);
-bool file_exists (const char *filename);
+bool gen_data_train(float *outVec, float *outLabel, int *status);
+bool gen_data_val(float *outVec, float *outLabel, int *status);
+bool file_exists(const char *filename);
 
-bool
-file_exists (const char *filename)
-{
+bool file_exists(const char *filename) {
   struct stat buffer;
-  return (stat (filename, &buffer) == 0);
+  return (stat(filename, &buffer) == 0);
 }
 
 #define NN_RETURN_STATUS()         \
@@ -55,14 +53,12 @@ file_exists (const char *filename)
  * @param[in] max : maximum value
  * @retval    min < random value < max
  */
-static int
-range_random (int min, int max)
-{
+static int range_random(int min, int max) {
   int n = max - min + 1;
   int remainder = RAND_MAX % n;
   int x;
   do {
-    x = rand ();
+    x = rand();
   } while (x >= RAND_MAX - remainder);
   return min + x % n;
 }
@@ -75,10 +71,8 @@ range_random (int min, int max)
  * @param[in] id th data to get
  * @retval true/false false : end of data
  */
-static bool
-get_data (const char *file_name, float *outVec, float *outLabel,
-    int id, int file_length)
-{
+static bool get_data(const char *file_name, float *outVec, float *outLabel,
+                     int id, int file_length) {
   uint64_t position;
   FILE *F;
   unsigned int i;
@@ -87,34 +81,34 @@ get_data (const char *file_name, float *outVec, float *outLabel,
   if (id < 0)
     return false;
 
-  position = (feature_size + num_class) * id * sizeof (float);
+  position = (feature_size + num_class) * id * sizeof(float);
   if (position > file_length || position > ULLONG_MAX) {
     return false;
   }
 
-  F = fopen (file_name, "rb");
+  F = fopen(file_name, "rb");
   if (F == NULL) {
-    printf ("Cannot open %s\n", file_name);
+    printf("Cannot open %s\n", file_name);
     return false;
   }
-  fseek (F, position, SEEK_SET);
+  fseek(F, position, SEEK_SET);
 
   for (i = 0; i < feature_size; i++) {
     float f;
-    ret = fread ((void *) (&f), sizeof (float), 1, F);
+    ret = fread((void *)(&f), sizeof(float), 1, F);
     if (!ret)
       return false;
     outVec[i] = f;
   }
   for (i = 0; i < num_class; i++) {
     float f;
-    ret = fread ((void *) (&f), sizeof (float), 1, F);
+    ret = fread((void *)(&f), sizeof(float), 1, F);
     if (!ret)
       return false;
     outLabel[i] = f;
   }
 
-  fclose (F);
+  fclose(F);
 
   return true;
 }
@@ -126,9 +120,7 @@ get_data (const char *file_name, float *outVec, float *outLabel,
  * @param[out] status for error handling
  * @retval true/false
  */
-bool
-gen_data_train (float *outVec, float *outLabel, int *status)
-{
+bool gen_data_train(float *outVec, float *outLabel, int *status) {
   int memI[mini_batch];
   long file_size;
   unsigned int count = 0;
@@ -138,21 +130,20 @@ gen_data_train (float *outVec, float *outLabel, int *status)
 
   const char *file_name = "trainingSet.dat";
 
-  if (!file_exists (file_name)) {
-    printf ("%s does not exists\n", file_name);
+  if (!file_exists(file_name)) {
+    printf("%s does not exists\n", file_name);
     return false;
   }
 
-  file = fopen (file_name, "r");
-  fseek (file, 0, SEEK_END);
-  file_size = ftell (file);
-  fclose (file);
+  file = fopen(file_name, "r");
+  fseek(file, 0, SEEK_END);
+  file_size = ftell(file);
+  fclose(file);
   data_size =
-      (unsigned int) (file_size / ((num_class +
-              feature_size) * sizeof (float)));
+    (unsigned int)(file_size / ((num_class + feature_size) * sizeof(float)));
 
   if (!alloc_train) {
-    duplicate = (bool *) malloc (sizeof (bool) * data_size);
+    duplicate = (bool *)malloc(sizeof(bool) * data_size);
     for (i = 0; i < data_size; ++i) {
       duplicate[i] = false;
     }
@@ -166,17 +157,17 @@ gen_data_train (float *outVec, float *outLabel, int *status)
 
   if (count < mini_batch) {
     if (duplicate == NULL) {
-      printf ("Error: memory allocation.\n");
+      printf("Error: memory allocation.\n");
       return false;
     }
-    free (duplicate);
+    free(duplicate);
     alloc_train = false;
     return false;
   }
 
   count = 0;
   while (count < mini_batch) {
-    int nomI = range_random (0, data_size - 1);
+    int nomI = range_random(0, data_size - 1);
     if (!duplicate[nomI]) {
       memI[count] = nomI;
       duplicate[nomI] = true;
@@ -188,7 +179,7 @@ gen_data_train (float *outVec, float *outLabel, int *status)
     float o[feature_size];
     float l[num_class];
 
-    get_data (file_name, o, l, memI[i], file_size);
+    get_data(file_name, o, l, memI[i], file_size);
 
     for (j = 0; j < feature_size; ++j)
       outVec[i * feature_size + j] = o[j];
@@ -206,9 +197,7 @@ gen_data_train (float *outVec, float *outLabel, int *status)
  * @param[out] status for error handling
  * @retval true/false false : end of data
  */
-bool
-gen_data_val (float *outVec, float *outLabel, int *status)
-{
+bool gen_data_val(float *outVec, float *outLabel, int *status) {
 
   int memI[mini_batch];
   unsigned int i, j;
@@ -218,16 +207,15 @@ gen_data_val (float *outVec, float *outLabel, int *status)
 
   const char *file_name = "trainingSet.dat";
 
-  FILE *file = fopen (file_name, "r");
-  fseek (file, 0, SEEK_END);
-  file_size = ftell (file);
-  fclose (file);
+  FILE *file = fopen(file_name, "r");
+  fseek(file, 0, SEEK_END);
+  file_size = ftell(file);
+  fclose(file);
   data_size =
-      (unsigned int) (file_size / ((num_class +
-              feature_size) * sizeof (float)));
+    (unsigned int)(file_size / ((num_class + feature_size) * sizeof(float)));
 
   if (!alloc_val) {
-    valduplicate = (bool *) malloc (sizeof (bool) * data_size);
+    valduplicate = (bool *)malloc(sizeof(bool) * data_size);
     for (i = 0; i < data_size; ++i) {
       valduplicate[i] = false;
     }
@@ -240,14 +228,14 @@ gen_data_val (float *outVec, float *outLabel, int *status)
   }
 
   if (count < mini_batch) {
-    free (valduplicate);
+    free(valduplicate);
     alloc_val = false;
     return false;
   }
 
   count = 0;
   while (count < mini_batch) {
-    int nomI = range_random (0, data_size - 1);
+    int nomI = range_random(0, data_size - 1);
     if (!valduplicate[nomI]) {
       memI[count] = nomI;
       valduplicate[nomI] = true;
@@ -259,7 +247,7 @@ gen_data_val (float *outVec, float *outLabel, int *status)
     float o[feature_size];
     float l[num_class];
 
-    get_data (file_name, o, l, memI[i], file_size);
+    get_data(file_name, o, l, memI[i], file_size);
 
     for (j = 0; j < feature_size; ++j)
       outVec[i * feature_size + j] = o[j];
@@ -270,9 +258,7 @@ gen_data_val (float *outVec, float *outLabel, int *status)
   return true;
 }
 
-int
-main (int argc, char *argv[])
-{
+int main(int argc, char *argv[]) {
 
   int status = ML_ERROR_NONE;
 
@@ -282,72 +268,71 @@ main (int argc, char *argv[])
   ml_nnopt_h optimizer;
 
   /* model create */
-  status = ml_nnmodel_construct (&model);
-  NN_RETURN_STATUS ();
+  status = ml_nnmodel_construct(&model);
+  NN_RETURN_STATUS();
   /* input layer create */
-  status = ml_nnlayer_create (&layers[0], ML_LAYER_TYPE_INPUT);
-  NN_RETURN_STATUS ();
+  status = ml_nnlayer_create(&layers[0], ML_LAYER_TYPE_INPUT);
+  NN_RETURN_STATUS();
 
   /* set property for input layer */
   status =
-      ml_nnlayer_set_property (layers[0], "input_shape= 32:1:1:62720",
-      "normalization=true", "bias_init_zero=true", NULL);
-  NN_RETURN_STATUS ();
+    ml_nnlayer_set_property(layers[0], "input_shape= 32:1:1:62720",
+                            "normalization=true", "bias_init_zero=true", NULL);
+  NN_RETURN_STATUS();
 
   /* add input layer into model */
-  status = ml_nnmodel_add_layer (model, layers[0]);
-  NN_RETURN_STATUS ();
+  status = ml_nnmodel_add_layer(model, layers[0]);
+  NN_RETURN_STATUS();
 
   /* create fully connected layer */
-  status = ml_nnlayer_create (&layers[1], ML_LAYER_TYPE_FC);
-  NN_RETURN_STATUS ();
+  status = ml_nnlayer_create(&layers[1], ML_LAYER_TYPE_FC);
+  NN_RETURN_STATUS();
 
   /* set property for fc layer */
-  status = ml_nnlayer_set_property (layers[1], "unit= 10", "activation=softmax",
-      "bias_init_zero=true", "weight_decay=l2norm",
-      "weight_decay_lambda=0.005", "weight_ini=xavier_uniform", NULL);
-  NN_RETURN_STATUS ();
+  status = ml_nnlayer_set_property(layers[1], "unit= 10", "activation=softmax",
+                                   "bias_init_zero=true", "weight_decay=l2norm",
+                                   "weight_decay_lambda=0.005",
+                                   "weight_ini=xavier_uniform", NULL);
+  NN_RETURN_STATUS();
 
   /* add fc layer into model */
-  status = ml_nnmodel_add_layer (model, layers[1]);
-  NN_RETURN_STATUS ();
+  status = ml_nnmodel_add_layer(model, layers[1]);
+  NN_RETURN_STATUS();
 
   /* create optimizer */
-  status = ml_nnoptimizer_create (&optimizer, "adam");
-  NN_RETURN_STATUS ();
+  status = ml_nnoptimizer_create(&optimizer, "adam");
+  NN_RETURN_STATUS();
 
   /* set property for optimizer */
-  status =
-      ml_nnoptimizer_set_property (optimizer, "learning_rate=0.0001",
-      "decay_rate=0.96", "decay_steps=1000", "beta1=0.9", "beta2=0.9999",
-      "epsilon=1e-7", NULL);
-  NN_RETURN_STATUS ();
+  status = ml_nnoptimizer_set_property(
+    optimizer, "learning_rate=0.0001", "decay_rate=0.96", "decay_steps=1000",
+    "beta1=0.9", "beta2=0.9999", "epsilon=1e-7", NULL);
+  NN_RETURN_STATUS();
 
   /* compile model with cross entropy loss function */
-  status = ml_nnmodel_compile (model, optimizer, "loss=cross", NULL);
-  NN_RETURN_STATUS ();
+  status = ml_nnmodel_compile(model, optimizer, "loss=cross", NULL);
+  NN_RETURN_STATUS();
 
   /* train model with data files : epochs = 10 and store model file named
    * "model.bin" */
-  status =
-      ml_nnmodel_train_with_generator (model, gen_data_train, gen_data_val,
-      NULL, "epochs=10", "batch_size=32", "model_file=model.bin",
-      "buffer_size = 32", NULL);
-  NN_RETURN_STATUS ();
+  status = ml_nnmodel_train_with_generator(
+    model, gen_data_train, gen_data_val, NULL, "epochs=10", "batch_size=32",
+    "model_file=model.bin", "buffer_size = 32", NULL);
+  NN_RETURN_STATUS();
 
   /* delete layers */
-  status = ml_nnlayer_delete (layers[0]);
-  NN_RETURN_STATUS ();
+  status = ml_nnlayer_delete(layers[0]);
+  NN_RETURN_STATUS();
 
-  status = ml_nnlayer_delete (layers[1]);
-  NN_RETURN_STATUS ();
+  status = ml_nnlayer_delete(layers[1]);
+  NN_RETURN_STATUS();
 
   /* delete optimizer */
-  status = ml_nnoptimizer_delete (optimizer);
-  NN_RETURN_STATUS ();
+  status = ml_nnoptimizer_delete(optimizer);
+  NN_RETURN_STATUS();
 
   /* delete model */
-  status = ml_nnmodel_destruct (model);
-  NN_RETURN_STATUS ();
+  status = ml_nnmodel_destruct(model);
+  NN_RETURN_STATUS();
   return 0;
 }

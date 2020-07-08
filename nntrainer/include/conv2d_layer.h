@@ -42,7 +42,9 @@ public:
     stride{1, 1},
     padding{0, 0},
     normalization(false),
-    standardization(false) { setType(LAYER_CONV2D); };
+    standardization(false) {
+    setType(LAYER_CONV2D);
+  };
 
   /**
    * @brief     Destructor of Conv 2D Layer

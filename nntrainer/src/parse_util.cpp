@@ -186,7 +186,8 @@ unsigned int parseType(std::string ll, InputType t) {
       }
     }
     ml_logw("Input activation %s cannot be identified. "
-        "Moved to NO activation layer by default.", ll.c_str());
+            "Moved to NO activation layer by default.",
+            ll.c_str());
     ret = (unsigned int)ActiType::ACT_NONE;
     break;
   case TOKEN_LAYER:
@@ -273,10 +274,10 @@ unsigned int parseLayerProperty(std::string property) {
    * BatchNormalizationLayer has 0, 1, 5, 6, 7 properties.
    */
   std::array<std::string, 18> property_string = {
-    "input_shape", "bias_init_zero",  "normalization", "standardization",
-    "activation",  "epsilon",    "weight_decay",  "weight_decay_lambda",
-    "unit",        "weight_ini", "filter",        "kernel_size",
-    "stride",      "padding",    "pooling_size",  "pooling",
+    "input_shape", "bias_init_zero", "normalization", "standardization",
+    "activation",  "epsilon",        "weight_decay",  "weight_decay_lambda",
+    "unit",        "weight_ini",     "filter",        "kernel_size",
+    "stride",      "padding",        "pooling_size",  "pooling",
     "flatten",     "unknown"};
 
   for (i = 0; i < property_string.size(); i++) {
@@ -426,14 +427,14 @@ int getValues(int n_str, std::string str, int *value) {
   return status;
 }
 
-const char* getValues(std::vector<int> values, const char* delimiter) {
+const char *getValues(std::vector<int> values, const char *delimiter) {
   std::stringstream vec_str;
 
   if (values.empty())
     return "unknown";
 
   std::copy(values.begin(), values.end() - 1,
-      std::ostream_iterator<int>(vec_str, delimiter));
+            std::ostream_iterator<int>(vec_str, delimiter));
   vec_str << values.back();
 
   return std::move(vec_str.str().c_str());

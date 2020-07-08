@@ -112,7 +112,7 @@ void Optimizer::apply_gradients(
   int idx = 0;
   std::vector<std::reference_wrapper<Tensor>>::iterator w_iter, g_iter;
   for (w_iter = weights.begin(), g_iter = gradients.begin();
-      w_iter != weights.end(); ++w_iter, ++g_iter) {
+       w_iter != weights.end(); ++w_iter, ++g_iter) {
     Tensor &x = *w_iter;
     Tensor x_grad = *g_iter;
 
