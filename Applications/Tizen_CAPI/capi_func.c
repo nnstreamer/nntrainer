@@ -324,17 +324,6 @@ int main(int argc, char *argv[]) {
     "model_file=model.bin", "buffer_size = 32", NULL);
   NN_RETURN_STATUS();
 
-  /* delete layers */
-  status = ml_nnlayer_delete(layers[0]);
-  NN_RETURN_STATUS();
-
-  status = ml_nnlayer_delete(layers[1]);
-  NN_RETURN_STATUS();
-
-  /* delete optimizer */
-  status = ml_nnoptimizer_delete(optimizer);
-  NN_RETURN_STATUS();
-
   /* delete model */
   status = ml_nnmodel_destruct(model);
   NN_RETURN_STATUS();
