@@ -144,7 +144,7 @@ int getKeyValue(std::string input_str, std::string &key, std::string &value);
  * @param[in] delimiter delimiter for the string
  * @retval    output string
  */
-const char* getValues(std::vector<int> values, const char* delimiter = ",");
+const char *getValues(std::vector<int> values, const char *delimiter = ",");
 
 int getValues(int n_str, std::string str, int *value);
 

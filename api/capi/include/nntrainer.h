@@ -93,7 +93,8 @@ int ml_nnmodel_compile_with_conf(const char *model_conf, ml_nnmodel_h model);
  * @details Use this function to initialize neural network model
  * @since_tizen 6.x
  * @param[in] model The NNTrainer model handler from the given description.
- * @param[in] optimizer The NNTrainer optimizer handler from the given description.
+ * @param[in] optimizer The NNTrainer optimizer handler from the given
+ * description.
  * @param[in] ... hyper parmeter for compile model
  * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
@@ -224,9 +225,9 @@ int ml_nnoptimizer_delete(ml_nnopt_h opt);
  * @retval #ML_ERROR_NONE Successful.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
  */
-int ml_nnoptimizer_set_property(ml_nnopt_h opt,...);
+int ml_nnoptimizer_set_property(ml_nnopt_h opt, ...);
 
- /**
+/**
  * @}
  */
 #ifdef __cplusplus

@@ -377,9 +377,7 @@ int ml_nnoptimizer_set_property(ml_nnopt_h opt, ...) {
   std::shared_ptr<nntrainer::Optimizer> Opt;
   Opt = nnopt->optimizer;
 
-  returnable f = [&]() {
-    return Opt->setProperty(arg_list);
-  };
+  returnable f = [&]() { return Opt->setProperty(arg_list); };
 
   status = nntrainer_exception_boundary(f);
 

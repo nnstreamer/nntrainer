@@ -26,9 +26,9 @@
 #ifdef __cplusplus
 
 #include "nntrainer_log.h"
-#include <tensor.h>
 #include <fstream>
 #include <gtest/gtest.h>
+#include <tensor.h>
 
 #define tolerance 10e-5
 
@@ -215,7 +215,7 @@ const std::string config_str2 = "[Network]"
  * @brief return a tensor filled with contant value with dimension
  */
 nntrainer::Tensor constant(float value, unsigned int batch, unsigned channel,
-                           unsigned height, unsigned width) ;
+                           unsigned height, unsigned width);
 
 /**
  * @brief replace string and save in file

@@ -110,7 +110,8 @@ int Layer::setCost(CostType c) {
   return status;
 }
 
-std::shared_ptr<std::vector<Tensor>> Layer::getObjFromRef(std::vector<std::reference_wrapper<Tensor>> &elements) {
+std::shared_ptr<std::vector<Tensor>>
+Layer::getObjFromRef(std::vector<std::reference_wrapper<Tensor>> &elements) {
   std::vector<Tensor> ele;
   for (auto iter = elements.begin(); iter != elements.end(); ++iter)
     ele.push_back(*iter);

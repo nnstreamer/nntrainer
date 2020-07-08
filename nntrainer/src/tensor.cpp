@@ -63,7 +63,7 @@ static auto rng = [] {
 
 Tensor &Tensor::operator=(const Tensor &rhs) {
   using std::swap;
-  
+
   Tensor tmp(rhs);
   swap(*this, tmp);
   return *this;
@@ -120,8 +120,8 @@ void Tensor::setValue(unsigned int batch, unsigned int c, unsigned int h,
     throw std::runtime_error("cannot set value of non-contiguous tensor");
   }
 
-  getData()[batch * dim.getFeatureLen() +
-            c * dim.height() * dim.width() + h * dim.width() + w] = value;
+  getData()[batch * dim.getFeatureLen() + c * dim.height() * dim.width() +
+            h * dim.width() + w] = value;
 }
 
 template <typename T> void Tensor::setDist(T dist) {
@@ -155,7 +155,7 @@ Tensor::Tensor(
   dim.height(d[0][0].size());
   dim.width(d[0][0][0].size());
   data = std::shared_ptr<float>(new float[dim.getDataLen()],
-                                 std::default_delete<float[]>());
+                                std::default_delete<float[]>());
   is_contiguous = true;
 
   for (unsigned int i = 0; i < dim.batch(); ++i)

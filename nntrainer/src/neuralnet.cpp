@@ -186,12 +186,12 @@ int NeuralNetwork::init() {
   NN_INI_RETURN_STATUS();
 
   OptParam popt(opt.getType());
-  popt.learning_rate = iniparser_getdouble(ini, "Network:Learning_rate",
-      popt.learning_rate);
-  popt.decay_steps = iniparser_getint(ini, "Network:Decay_steps",
-      popt.decay_steps);
-  popt.decay_rate = iniparser_getdouble(ini, "Network:Decay_rate",
-      popt.decay_rate);
+  popt.learning_rate =
+    iniparser_getdouble(ini, "Network:Learning_rate", popt.learning_rate);
+  popt.decay_steps =
+    iniparser_getint(ini, "Network:Decay_steps", popt.decay_steps);
+  popt.decay_rate =
+    iniparser_getdouble(ini, "Network:Decay_rate", popt.decay_rate);
   popt.beta1 = iniparser_getdouble(ini, "Network:beta1", popt.beta1);
   popt.beta2 = iniparser_getdouble(ini, "Network:beta2", popt.beta2);
   popt.epsilon = iniparser_getdouble(ini, "Network:epsilon", popt.epsilon);
@@ -281,7 +281,7 @@ int NeuralNetwork::init() {
         std::make_shared<Conv2DLayer>();
 
       std::string input_shape_str = iniparser_getstring(
-          ini, (layer_name + ":Input_Shape").c_str(), unknown);
+        ini, (layer_name + ":Input_Shape").c_str(), unknown);
 
       if (input_shape_str.compare("Unknown") != 0) {
         TensorDim d;
@@ -306,41 +306,42 @@ int NeuralNetwork::init() {
         NN_INI_RETURN_STATUS();
       }
 
-      status =
-        getValues(CONV2D_DIM,
-            iniparser_getstring(
-              ini, (layer_name + ":kernel_size").c_str(), unknown),
-            (int *)size);
+      status = getValues(CONV2D_DIM,
+                         iniparser_getstring(
+                           ini, (layer_name + ":kernel_size").c_str(), unknown),
+                         (int *)size);
       NN_INI_RETURN_STATUS();
       status = conv2d_layer->setSize(size, Layer::PropertyType::kernel_size);
       NN_INI_RETURN_STATUS();
 
-      status = getValues(
-          CONV2D_DIM,
-          iniparser_getstring(ini, (layer_name + ":stride").c_str(), getValues({1,1})),
-          (int *)size);
+      status =
+        getValues(CONV2D_DIM,
+                  iniparser_getstring(ini, (layer_name + ":stride").c_str(),
+                                      getValues({1, 1})),
+                  (int *)size);
       NN_INI_RETURN_STATUS();
       status = conv2d_layer->setSize(size, Layer::PropertyType::stride);
       NN_INI_RETURN_STATUS();
 
-      status = getValues(CONV2D_DIM,
-          iniparser_getstring(
-            ini, (layer_name + ":padding").c_str(), getValues({0,0})),
-          (int *)size);
-      
+      status =
+        getValues(CONV2D_DIM,
+                  iniparser_getstring(ini, (layer_name + ":padding").c_str(),
+                                      getValues({0, 0})),
+                  (int *)size);
+
       NN_INI_RETURN_STATUS();
       status = conv2d_layer->setSize(size, Layer::PropertyType::padding);
       NN_INI_RETURN_STATUS();
 
       status = conv2d_layer->setFilter(
-          iniparser_getint(ini, (layer_name + ":filter").c_str(), 0));
+        iniparser_getint(ini, (layer_name + ":filter").c_str(), 0));
       NN_INI_RETURN_STATUS();
 
       conv2d_layer->setBiasZero(b_zero);
       conv2d_layer->setWeightInit((WeightIniType)parseType(
-            iniparser_getstring(ini, (layer_name + ":WeightIni").c_str(),
-              "xavier_uniform"),
-            TOKEN_WEIGHTINI));
+        iniparser_getstring(ini, (layer_name + ":WeightIni").c_str(),
+                            "xavier_uniform"),
+        TOKEN_WEIGHTINI));
 
       status = parseWeightDecay(ini, layer_name, weight_decay);
       NN_INI_RETURN_STATUS();

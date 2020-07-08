@@ -74,10 +74,10 @@ typedef struct _OptParam {
     decay_rate(1.0),
     decay_steps(1.0),
     continue_train(false) {
-      if (type == OptType::sgd) {
-        learning_rate = 0.01;
-      }
+    if (type == OptType::sgd) {
+      learning_rate = 0.01;
     }
+  }
 } OptParam;
 
 class Optimizer {
@@ -175,7 +175,8 @@ public:
    * @param[in] iteration nth epoch number
    */
   void apply_gradients(std::vector<std::reference_wrapper<Tensor>> &weights,
-      std::vector<std::reference_wrapper<Tensor>> &gradients, int iteration);
+                       std::vector<std::reference_wrapper<Tensor>> &gradients,
+                       int iteration);
 
   /**
    * @brief     Property Enumeration

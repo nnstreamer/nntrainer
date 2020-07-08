@@ -52,8 +52,7 @@ public:
     dim(d),
     strides{{1, 2, 3}},
     is_contiguous(true),
-    data(new float[d.getDataLen()], std::default_delete<float[]>())
-    {
+    data(new float[d.getDataLen()], std::default_delete<float[]>()) {
     // todo: initialize appropriate strides
     if (buf == nullptr) {
       setZero();
