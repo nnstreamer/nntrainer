@@ -81,7 +81,7 @@ bool TensorDim::operator==(const TensorDim &rhs) const {
 }
 
 std::ostream &operator<<(std::ostream &out, TensorDim const &d) {
-  out << "Shape : " << d.batch() << ":" << d.channel() << ":" << d.height()
+  out << "Shape: " << d.batch() << ":" << d.channel() << ":" << d.height()
       << ":" << d.width() << std::endl;
   return out;
 }
