@@ -25,6 +25,7 @@
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <parse_util.h>
+#include <typeinfo>
 #include <util_func.h>
 
 namespace nntrainer {
@@ -213,6 +214,22 @@ void Layer::ensureName() {
 
     layer_names.insert(name);
   }
+}
+
+void Layer::print(std::ostream &out) const {
+  /// @todo change type enum to actual string value
+  out << '<' << typeid(*this).name() << "Object at" << this << '>' << std::endl
+      << "Layer Type: " << type << std::endl
+      << "bias_initiate_to_zero: " << bias_init_zero << std::endl
+      << "Weight Decay: " << static_cast<int>(weight_decay.type) << " | "
+      << weight_decay.lambda << std::endl
+      << "Weight Initiation Type: " << weight_ini_type << std::endl
+      << "Loss: " << loss << std::endl
+      << "Cost: " << cost << std::endl
+      << "last layer: " << last_layer << std::endl
+      << "activation type after: " << activation_type << std::endl
+      << "flatten layer after: " << flatten << std::endl
+      << "Trainable: " << trainable << std::endl;
 }
 
 } /* namespace nntrainer */

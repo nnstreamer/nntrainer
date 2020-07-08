@@ -210,6 +210,14 @@ TEST_F(nntrainer_FullyConnectedLayer, initialize_01_p) {
 }
 
 /**
+ * @brief Fully Connected Layer Print test (Wait 4 #274)
+ */
+// TEST_F(nntrainer_FullyConnectedLayer, print_01_p) {
+//   std::stringstream ss;
+//   std::cerr << layer;
+// }
+
+/**
  * @brief Fully Connected Layer without setting any parameter
  */
 TEST(nntrainer_FullyConnectedLayer_n, initialize_02_n) {

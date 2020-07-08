@@ -158,4 +158,13 @@ Tensor FullyConnectedLayer::backwarding(Tensor derivative, int iteration) {
 
   return ret;
 }
+
+void FullyConnectedLayer::print(std::ostream &out) const {
+  Layer::print(out);
+
+  out << "unit: " << unit << std::endl << "= weight info =" << std::endl;
+
+  weight.print(out);
+  bias.print(out);
+}
 } /* namespace nntrainer */

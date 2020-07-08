@@ -107,6 +107,13 @@ public:
    */
   std::string getBaseName() { return "FullyConnected"; };
 
+  /*
+   * @brief     print the summary of the layer
+   * @param[in] out out stream to print
+   * @note      NYI
+   */
+  void print(std::ostream &out) const;
+
 private:
   unsigned int unit;
   Tensor weight;

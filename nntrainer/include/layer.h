@@ -391,6 +391,12 @@ public:
     unknown = 18
   };
 
+  /**
+   * @brief     Print information of Layer.
+   * @param[in] out out stream
+   */
+  virtual void print(std::ostream &out) const;
+
 protected:
   /**
    * @brief     Name of the layer (works as the identifier)
@@ -514,6 +520,17 @@ private:
   std::shared_ptr<std::vector<Tensor>>
   getObjFromRef(std::vector<std::reference_wrapper<Tensor>> &elements);
 };
+
+/**
+ * @brief   Overriding output stream for layers and it's derived class
+ */
+template <typename T, typename std::enable_if<std::is_base_of<Layer, T>::value,
+                                              T>::type * = nullptr>
+std::ostream &operator<<(std::ostream &out, T const &l) {
+  l.print(out);
+  return out;
+}
+
 } // namespace nntrainer
 
 #endif /* __cplusplus */
