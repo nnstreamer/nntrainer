@@ -76,6 +76,18 @@ typedef enum {
 } ml_train_optimizer_type_e;
 
 /**
+ * @brief Enumeration for the neural network summary verbosity of NNTrainer
+ * @since_tizen 6.x
+ */
+typedef enum {
+  ML_TRAIN_SUMMARY_MODEL = 0, /**< Overview of model
+                                   summary with one-line layer information*/
+  ML_TRAIN_SUMMARY_LAYER, /**< Detailed model summary with layer properties */
+  ML_TRAIN_SUMMARY_TENSOR /**< Model summary layer's including weight
+                             information */
+} ml_train_summary_type_e;
+
+/**
  * @brief Constructs the neural network model.
  * @details Use this function to create Neural Netowrk Model.
  * @since_tizen 6.x
@@ -156,6 +168,24 @@ int ml_nnmodel_train_with_generator(ml_train_model_h model,
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter.
  */
 int ml_train_model_destroy(ml_train_model_h model);
+
+/**
+ * @brief Get the summary of the neural network model.
+ * @details Use this function to get the summary of the neural network model.
+ * @since_tizen 6.x
+ * @remarks If the function succeeds, @a summary should be released using
+ * free().
+ * @param[in] model The NNTrainer model handler to get summary.
+ * @param[in] verbosity Verbose level of the summary
+ * @param[out] summary The summary of the current model. Avoid logic to parse
+ * and exploit @a summary if possible.
+ * @return @c 0 on success. Otherwise a negative error value.
+ * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter.
+ */
+int ml_train_nnmodel_get_summary(ml_train_model_h model,
+                                 ml_train_summary_type_e verbosity,
+                                 char **summary);
 
 /**
  * @brief Add layer at the last of the existing layers in neural network model.
