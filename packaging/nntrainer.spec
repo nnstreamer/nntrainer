@@ -44,7 +44,7 @@ BuildRequires: lcov
 %endif
 
 Requires:	iniparser
-Requires:	libopenblas
+Requires:	libopenblas_pthreads0
 
 %description
 NNtrainer is Software Framework for Training Nerual Network Models on Devices.
