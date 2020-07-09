@@ -53,7 +53,9 @@ int Pooling2DLayer::initialize(bool last) {
 }
 
 Tensor Pooling2DLayer::forwarding(Tensor in, int &status) {
-  hidden = Tensor(output_dim);
+  hidden = Tensor(in.batch(), output_dim.channel(), output_dim.height(),
+                  output_dim.width());
+  hidden.setZero();
   for (unsigned int b = 0; b < in.batch(); ++b) {
     Tensor in_padded = zero_pad(b, in, padding);
     Tensor result = pooling2d(b, in_padded, status);
