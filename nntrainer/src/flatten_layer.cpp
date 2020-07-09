@@ -38,7 +38,9 @@ int FlattenLayer::initialize(bool last) {
 }
 
 Tensor FlattenLayer::forwarding(Tensor in, int &status) {
-  hidden = Tensor(output_dim);
+  hidden = Tensor(in.batch(), output_dim.channel(), output_dim.height(),
+                  output_dim.width());
+  hidden.setZero();
   memcpy(hidden.getData(), in.getData(),
          in.getDim().getDataLen() * sizeof(float));
 

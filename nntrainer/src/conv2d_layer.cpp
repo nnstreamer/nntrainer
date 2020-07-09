@@ -44,10 +44,18 @@ int Conv2DLayer::initialize(bool last) {
     delK.push_back(
       Tensor(input_dim.batch(), Kdim.channel(), Kdim.height(), Kdim.width()));
     delBias.push_back(Tensor(input_dim.batch(), 1, 1, 1));
+
+    std::vector<Tensor>::iterator iter;
+    for (iter = delK.begin(); iter != delK.end(); ++iter)
+      (*iter).setZero();
+    for (iter = delBias.begin(); iter != delBias.end(); ++iter)
+      (*iter).setZero();
+
     filters.push_back(Knl);
     weights.push_back(Knl);
 
     Tensor B(1, 1, 1, 1);
+    B.setZero();
     if (!bias_init_zero) {
       B.apply([&](float x) { return random(); });
     }
@@ -78,11 +86,6 @@ void Conv2DLayer::save(std::ofstream &file) {
 }
 
 Tensor Conv2DLayer::forwarding(Tensor in, int &status) {
-  if (in.getDim() != input_dim) {
-    status = ML_ERROR_INVALID_PARAMETER;
-    return in;
-  }
-
   if (normalization) {
     input = in.normalization();
   } else {
@@ -93,7 +96,9 @@ Tensor Conv2DLayer::forwarding(Tensor in, int &status) {
     input = input.standardization();
   }
 
-  hidden = Tensor(output_dim);
+  hidden = Tensor(in.batch(), output_dim.channel(), output_dim.height(),
+                  output_dim.width());
+  hidden.setZero();
 
   std::vector<float> output;
 
@@ -104,7 +109,7 @@ Tensor Conv2DLayer::forwarding(Tensor in, int &status) {
     for (unsigned int i = 0; i < filter_size; ++i) {
       status = conv2d(in_padded.getData(), in_padded.getDim(),
                       filters[i].getData(), filters[i].getDim(), output.data(),
-                      stride, bias[i].getValue(b, 0, 0, 0));
+                      stride, bias[i].getValue(0, 0, 0, 0));
 
       memcpy(hidden.getAddress(b * hidden.getDim().getFeatureLen() +
                                i * hidden.height() * hidden.width()),
@@ -130,7 +135,10 @@ int Conv2DLayer::setOptimizer(Optimizer &opt) {
       list_d.push_back(Tensor(1, 1, 1));
     }
   }
-
+  std::vector<Tensor>::iterator iter;
+  for (iter = list_d.begin(); iter != list_d.end(); ++iter) {
+    (*iter).setZero();
+  }
   return this->opt.initialize(list_d, true);
 }
 
@@ -169,7 +177,7 @@ Tensor Conv2DLayer::backwarding(Tensor derivative, int iteration) {
           sum += derivative.getValue(b, i, j, k);
         }
       }
-      delBias[i].setValue(0, 0, 0, 0, sum);
+      delBias[i].setValue(b, 0, 0, 0, sum);
     }
   }
 
@@ -178,6 +186,7 @@ Tensor Conv2DLayer::backwarding(Tensor derivative, int iteration) {
   Tensor ret(input_dim.batch(), input_dim.channel(),
              input_dim.height() + padding[0] * 2,
              input_dim.width() + padding[1] * 2);
+  ret.setZero();
 
   same_pad[0] = kernel_size[0] - 1;
   same_pad[1] = kernel_size[1] - 1;

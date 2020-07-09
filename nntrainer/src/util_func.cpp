@@ -225,6 +225,7 @@ Tensor strip_pad(Tensor const &in, unsigned int const *padding) {
 
 Tensor rotate_180(Tensor in) {
   Tensor output(in.getDim());
+  output.setZero();
   for (unsigned int i = 0; i < in.batch(); ++i) {
     for (unsigned int j = 0; j < in.channel(); ++j) {
       for (unsigned int k = 0; k < in.height(); ++k) {
