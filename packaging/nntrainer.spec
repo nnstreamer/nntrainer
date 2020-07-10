@@ -14,6 +14,9 @@ Packager:	Jijoong Moon <jijoong.moon@sansumg.com>
 License:	Apache-2.0
 Source0:	nntrainer-%{version}.tar.gz
 Source1001:	nntrainer.manifest
+%if %{with tizen}
+Source1002:     capi-nntrainer.manifest
+%endif
 Source2001:	trainset.tar.gz
 Source2002:	valset.tar.gz
 Source2003:	testset.tar.gz
@@ -59,6 +62,12 @@ Requires:	openblas-devel
 Development pacage for custom nntrainer developers.
 This contains corresponding header files and .pc pkgconfig file.
 
+%package devel-static
+Summary:        Static library for nntrainer-devel package
+Requires:       devel = %{version}-%{release}
+%description devel-static
+Static library package of nntrainer-devel
+
 %package applications
 Summary:	NNTrainer Examples
 Requires:	nntrainer = %{version}-%{release}
@@ -71,6 +80,8 @@ BuildRequires:	pkgconfig(dlog)
 %description applications
 NNTraier Exmaples for test purpose.
 
+
+
 %if 0%{?testcoverage}
 %package unittest-coverage
 Summary:	NNTrainer UnitTest Coverage Analysis Result
@@ -78,6 +89,35 @@ Summary:	NNTrainer UnitTest Coverage Analysis Result
 %description unittest-coverage
 HTML pages of lcov results of NNTrainer generated during rpmbuild
 %endif
+
+%if %{with tizen}
+%package -n capi-nntrainer
+Summary:         Tizen Native API for NNTrainer
+Group:           Multimedia/Framework
+Requires:        %{name}=%{version}-%{release}
+%description -n capi-nntrainer
+Tizen Native API wrapper for NNTrainer.
+You can train neural networks efficiently.
+
+%post -n capi-nntrainer -p /sbin/ldconfig
+%postrun -n capi-nntrainer -p /sbin/ldconfig
+
+%package -n capi-nntrainer-devel
+Summary:         Tizen Native API Devel Kit for NNTrainer
+Group:           Multimedia/Framework
+Requires:        capi-nntrainer = %{version}-%{release}
+Requires:        capi-ml-common-devel
+%description -n capi-nntrainer-devel
+Developmental kit for Tizen Native NNTrainer API.
+
+%package -n capi-nntrainer-devel-static
+Summary:         Static library for Tizen Native API
+Group:           Multimedia/Framework
+Requires:        capi-nntrainer-devel = %{version}-%{release}
+%description -n capi-nntrainer-devel-static
+Static library of capi-nntrainer-devel package.
+
+%endif #tizen
 
 # Using cblas for Matrix calculation
 %if 0%{?enable_cblas}
@@ -92,6 +132,10 @@ cp %{SOURCE2002} .
 cp %{SOURCE2003} .
 cp %{SOURCE2004} .
 cp %{SOURCE2005} .
+
+%if %{with tizen}
+cp %{SOURCE1002} .
+%endif
 
 %build
 CXXFLAGS=`echo $CXXFLAGS | sed -e "s|-std=gnu++11||"`
@@ -177,7 +221,7 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %manifest nntrainer.manifest
 %defattr(-,root,root,-)
 %license LICENSE
-%{_libdir}/*.so
+%{_libdir}/libnntrainer.so
 
 %files devel
 %{_includedir}/nntrainer/databuffer.h
@@ -196,14 +240,31 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %{_includedir}/nntrainer/tensor.h
 %{_includedir}/nntrainer/lazy_tensor.h
 %{_includedir}/nntrainer/tensor_dim.h
-%{_includedir}/nntrainer/nntrainer.h
 %{_includedir}/nntrainer/nntrainer_log.h
 %{_includedir}/nntrainer/nntrainer_logger.h
 %{_includedir}/nntrainer/optimizer.h
 %{_includedir}/nntrainer/util_func.h
 %{_includedir}/nntrainer/parse_util.h
-%{_libdir}/*.a
 %{_libdir}/pkgconfig/nntrainer.pc
+
+%files devel-static
+%{_libdir}/*.a
+%exclude %{_libdir}/libcapi*.a
+
+%if %{with tizen}
+%files -n capi-nntrainer
+%manifest capi-nntrainer.manifest
+%license LICENSE
+%{_libdir}/libcapi-nntrainer.so
+
+%files -n capi-nntrainer-devel
+%{_includedir}/nntrainer/nntrainer.h
+%{_libdir}/pkgconfig/capi-nntrainer.pc
+
+%files -n capi-nntrainer-devel-static
+%{_libdir}/libcapi-nntrainer.a
+
+%endif #tizen
 
 %files applications
 %manifest nntrainer.manifest

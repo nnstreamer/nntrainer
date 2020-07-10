@@ -39,6 +39,11 @@ nntrainer_capi_dep = declare_dependency(link_with: nntrainer_capi_lib,
   include_directories: capi_inc,
 )
 
+configure_file(input: 'capi-nntrainer.pc.in', output: 'capi-nntrainer.pc',
+  install_dir: join_paths(nntrainer_libdir, 'pkgconfig'),
+  configuration: nntrainer_conf
+)
+
 install_headers( capi_headers,
   subdir: 'nntrainer'
 )
