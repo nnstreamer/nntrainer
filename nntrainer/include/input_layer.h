@@ -124,20 +124,24 @@ public:
   void setStandardization(bool enable) { this->standardization = enable; };
 
   /**
-   * @brief     set Property of layer
-   * @param[in] values values of property
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   */
-  int setProperty(std::vector<std::string> values);
-
-  /**
    * @brief     get the base name for the layer
    * @retval    base name of the layer
    */
   std::string getBaseName() { return "Input"; };
 
+  using Layer::setProperty;
+
 private:
+  /**
+   * @brief setProperty by PropertyType
+   * @note By passing empty string, this can validate if @a type is valid
+   * @param[in] type property type to be passed
+   * @param[in] value value to be passed, if empty string is passed, do nothing
+   * but throws error when @a type is invalid
+   * @exception std::invalid_argument invalid argument
+   */
+  void setProperty(const PropertyType type, const std::string &value = "");
+
   bool normalization;
   bool standardization;
 };

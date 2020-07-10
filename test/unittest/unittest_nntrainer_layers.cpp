@@ -706,9 +706,15 @@ protected:
   }
 };
 
-TEST_F(nntrainer_Pooling2DLayer, setPeoperty_01_p) {
+TEST_F(nntrainer_Pooling2DLayer, setProperty_01_p) {
   setInputDim("2:3:5:5");
   setProperty("pooling_size=2,2 | stride=1,1 | padding=0,0 | pooling=average");
+}
+
+TEST_F(nntrainer_Pooling2DLayer, setProperty_02_n) {
+  setInputDim("2:3:5:5");
+  int status = layer.setProperty({"pooling_size="});
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
 TEST_F(nntrainer_Pooling2DLayer, initialize_01_p) { reinitialize(); }
@@ -969,6 +975,16 @@ TEST(nntrainer_LossLayer, setCost_02_n) {
   int status = ML_ERROR_NONE;
   nntrainer::LossLayer layer;
   status = layer.setCost(nntrainer::COST_UNKNOWN);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+}
+
+/**
+ * @brief Loss Layer
+ */
+TEST(nntrainer_LossLayer, setProperty_01_n) {
+  int status = ML_ERROR_NONE;
+  nntrainer::LossLayer layer;
+  status = layer.setProperty({"loss=cross"});
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 

@@ -68,28 +68,20 @@ int BatchNormalizationLayer::setOptimizer(Optimizer &opt) {
   return this->opt.initialize(dim, false);
 }
 
-int BatchNormalizationLayer::setProperty(std::vector<std::string> values) {
+void BatchNormalizationLayer::setProperty(const PropertyType type,
+                                          const std::string &value) {
   int status = ML_ERROR_NONE;
-
-  for (unsigned int i = 0; i < values.size(); ++i) {
-    std::string key;
-    std::string value;
-    status = getKeyValue(values[i], key, value);
-    NN_RETURN_STATUS();
-
-    unsigned int type = parseLayerProperty(key);
-    switch (static_cast<PropertyType>(type)) {
-    case PropertyType::epsilon:
+  switch (type) {
+  case PropertyType::epsilon:
+    if (!value.empty()) {
       status = setFloat(epsilon, value);
-      NN_RETURN_STATUS();
-      break;
-    default:
-      status = Layer::setProperty({values[i]});
-      NN_RETURN_STATUS();
-      break;
+      throw_status(status);
     }
+    break;
+  default:
+    Layer::setProperty(type, value);
+    break;
   }
-  return status;
 }
 
 Tensor BatchNormalizationLayer::forwarding(Tensor in, int &status) {
@@ -180,4 +172,5 @@ void BatchNormalizationLayer::copy(std::shared_ptr<Layer> l) {
   this->hidden.copy(from->hidden);
   this->cvar.copy(from->cvar);
 }
+
 } /* namespace nntrainer */

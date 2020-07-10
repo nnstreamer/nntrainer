@@ -287,60 +287,60 @@ int Conv2DLayer::setFilter(int f) {
   return status;
 }
 
-int Conv2DLayer::setProperty(std::vector<std::string> values) {
+void Conv2DLayer::setProperty(const PropertyType type,
+                              const std::string &value) {
   int status = ML_ERROR_NONE;
 
-  for (unsigned int i = 0; i < values.size(); ++i) {
-    std::string key;
-    std::string value;
-
-    status = getKeyValue(values[i], key, value);
-    NN_RETURN_STATUS();
-
-    unsigned int t = parseLayerProperty(key);
-
-    switch (static_cast<PropertyType>(t)) {
-    case PropertyType::filter: {
+  switch (type) {
+  case PropertyType::filter: {
+    if (!value.empty()) {
       int size;
       status = setInt(size, value);
-      NN_RETURN_STATUS();
+      throw_status(status);
       filter_size = size;
-    } break;
-    case PropertyType::kernel_size:
-      status = getValues(CONV2D_DIM, value, (int *)(kernel_size));
-      NN_RETURN_STATUS();
-      if (kernel_size[0] == 0 || kernel_size[1] == 0) {
-        ml_loge("Error: kernel_size must be greater than 0");
-        return ML_ERROR_INVALID_PARAMETER;
-      }
-      break;
-    case PropertyType::stride:
-      status = getValues(CONV2D_DIM, value, (int *)(stride));
-      NN_RETURN_STATUS();
-      if (stride[0] == 0 || stride[1] == 0) {
-        ml_loge("Error: stride must be greater than 0");
-        return ML_ERROR_INVALID_PARAMETER;
-      }
-      break;
-    case PropertyType::padding:
-      status = getValues(CONV2D_DIM, value, (int *)(padding));
-      NN_RETURN_STATUS();
-      break;
-    case PropertyType::normalization:
-      status = setBoolean(normalization, value);
-      NN_RETURN_STATUS();
-      break;
-    case PropertyType::standardization:
-      status = setBoolean(standardization, value);
-      NN_RETURN_STATUS();
-      break;
-    default:
-      status = Layer::setProperty({values[i]});
-      NN_RETURN_STATUS();
-      break;
     }
+  } break;
+  case PropertyType::kernel_size:
+    if (!value.empty()) {
+      status = getValues(CONV2D_DIM, value, (int *)(kernel_size));
+      throw_status(status);
+      if (kernel_size[0] == 0 || kernel_size[1] == 0) {
+        throw std::out_of_range(
+          "[Conv2DLayer] kernel_size must be greater than 0");
+      }
+    }
+    break;
+  case PropertyType::stride:
+    if (!value.empty()) {
+      status = getValues(CONV2D_DIM, value, (int *)(stride));
+      throw_status(status);
+      if (stride[0] == 0 || stride[1] == 0) {
+        throw std::out_of_range("[Conv2DLayer] stride must be greater than 0");
+      }
+    }
+    break;
+  case PropertyType::padding:
+    if (!value.empty()) {
+      status = getValues(CONV2D_DIM, value, (int *)(padding));
+      throw_status(status);
+    }
+    break;
+  case PropertyType::normalization:
+    if (!value.empty()) {
+      status = setBoolean(normalization, value);
+      throw_status(status);
+    }
+    break;
+  case PropertyType::standardization:
+    if (!value.empty()) {
+      status = setBoolean(standardization, value);
+      throw_status(status);
+    }
+    break;
+  default:
+    Layer::setProperty(type, value);
+    break;
   }
-  return status;
 }
 
 int Conv2DLayer::conv2d(float *in, TensorDim indim, float *kernel,

@@ -119,14 +119,6 @@ public:
   void setActivation(ActiType acti_type);
 
   /**
-   * @brief     set Property of layer
-   * @param[in] values values of property
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   */
-  int setProperty(std::vector<std::string> values);
-
-  /**
    * @brief     get the base name for the layer
    * @retval    base name of the layer
    */

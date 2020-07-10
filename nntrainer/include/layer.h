@@ -183,7 +183,7 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  virtual int setProperty(std::vector<std::string> values);
+  int setProperty(std::vector<std::string> values);
 
   /**
    * @brief     Optimizer Setter
@@ -513,6 +513,17 @@ protected:
                                 after initiation
                                 use setParamSize() to avoid
                                 setting parameters twice */
+
+  /**
+   * @brief setProperty by PropertyType
+   * @note By passing empty string, this can validate if @a type is valid
+   * @param[in] type property type to be passed
+   * @param[in] value value to be passed, if empty string is passed, do nothing
+   * but throws error when @a type is invalid
+   * @exception std::invalid_argument invalid argument
+   */
+  virtual void setProperty(const PropertyType type,
+                           const std::string &value = "");
 
 private:
   /**

@@ -124,14 +124,6 @@ public:
   void setStandardization(bool enable) { this->standardization = enable; };
 
   /**
-   * @brief     set Property of layer
-   * @param[in] values values of property
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   */
-  int setProperty(std::vector<std::string> values);
-
-  /**
    * @brief     Optimizer Setter
    * @param[in] opt Optimizer
    * @retval #ML_ERROR_NONE Successful.
@@ -168,7 +160,19 @@ public:
    */
   std::string getBaseName() { return "Convolution2D"; };
 
+  using Layer::setProperty;
+
 private:
+  /**
+   * @brief setProperty by PropertyType
+   * @note By passing empty string, this can validate if @a type is valid
+   * @param[in] type property type to be passed
+   * @param[in] value value to be passed, if empty string is passed, do nothing
+   * but throws error when @a type is invalid
+   * @exception std::invalid_argument invalid argument
+   */
+  void setProperty(const PropertyType type, const std::string &value = "");
+
   unsigned int filter_size;
   unsigned int kernel_size[CONV2D_DIM];
   unsigned int stride[CONV2D_DIM];
