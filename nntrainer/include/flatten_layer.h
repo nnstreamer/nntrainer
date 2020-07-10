@@ -87,13 +87,6 @@ public:
   Tensor backwarding(Tensor in, int iteration);
 
   /**
-   * @brief     set Property of layer
-   * @param[in] values values of property
-   * @retval #ML_ERROR_NOT_SUPPORTED Successful.
-   */
-  int setProperty(std::vector<std::string> values);
-
-  /**
    * @brief     copy layer
    * @param[in] l layer to copy
    */
@@ -104,6 +97,19 @@ public:
    * @retval    base name of the layer
    */
   std::string getBaseName() { return "Flatten"; };
+
+  using Layer::setProperty;
+
+private:
+  /**
+   * @brief setProperty by PropertyType
+   * @note By passing empty string, this can validate if @a type is valid
+   * @param[in] type property type to be passed
+   * @param[in] value value to be passed, if empty string is passed, do nothing
+   * but throws error when @a type is invalid
+   * @exception std::invalid_argument invalid argument
+   */
+  void setProperty(const PropertyType type, const std::string &value = "");
 };
 
 } // namespace nntrainer

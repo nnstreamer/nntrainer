@@ -128,14 +128,4 @@ void ActivationLayer::setActivation(ActiType acti_type) {
   this->activation_type = acti_type;
 }
 
-/**
- * @brief     set Property of layer
- * @param[in] values values of property
- * @retval #ML_ERROR_NONE Successful.
- * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
- */
-int ActivationLayer::setProperty(std::vector<std::string> values) {
-  return Layer::setProperty(values);
-}
-
 }; // namespace nntrainer

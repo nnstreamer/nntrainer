@@ -35,33 +35,27 @@ int InputLayer::setOptimizer(Optimizer &opt) {
   return this->opt.initialize(dim, false);
 }
 
-int InputLayer::setProperty(std::vector<std::string> values) {
+void InputLayer::setProperty(const PropertyType type,
+                             const std::string &value) {
   int status = ML_ERROR_NONE;
-  for (unsigned int i = 0; i < values.size(); ++i) {
-    std::string key;
-    std::string value;
 
-    status = getKeyValue(values[i], key, value);
-    NN_RETURN_STATUS();
-
-    unsigned int type = parseLayerProperty(key.c_str());
-
-    switch (static_cast<PropertyType>(type)) {
-    case PropertyType::normalization:
+  switch (type) {
+  case PropertyType::normalization:
+    if (!value.empty()) {
       status = setBoolean(normalization, value);
-      NN_RETURN_STATUS();
-      break;
-    case PropertyType::standardization:
-      status = setBoolean(standardization, value);
-      NN_RETURN_STATUS();
-      break;
-    default:
-      status = Layer::setProperty({values[i]});
-      NN_RETURN_STATUS();
-      break;
+      throw_status(status);
     }
+    break;
+  case PropertyType::standardization:
+    if (!value.empty()) {
+      status = setBoolean(standardization, value);
+      throw_status(status);
+    }
+    break;
+  default:
+    Layer::setProperty(type, value);
+    break;
   }
-  return status;
 }
 
 void InputLayer::copy(std::shared_ptr<Layer> l) {

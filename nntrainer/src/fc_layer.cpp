@@ -62,33 +62,23 @@ int FullyConnectedLayer::initialize(bool last) {
   return status;
 }
 
-int FullyConnectedLayer::setProperty(std::vector<std::string> values) {
+void FullyConnectedLayer::setProperty(const PropertyType type,
+                                      const std::string &value) {
   int status = ML_ERROR_NONE;
-
-  for (unsigned int i = 0; i < values.size(); ++i) {
-    std::string key;
-    std::string value;
-
-    status = getKeyValue(values[i], key, value);
-    NN_RETURN_STATUS();
-
-    unsigned int type = parseLayerProperty(key);
-
-    switch (static_cast<PropertyType>(type)) {
-    case PropertyType::unit: {
+  switch (type) {
+  case PropertyType::unit: {
+    if (!value.empty()) {
       int width;
       status = setInt(width, value);
-      NN_RETURN_STATUS();
+      throw_status(status);
       unit = width;
       output_dim.width(unit);
-    } break;
-    default:
-      status = Layer::setProperty({values[i]});
-      NN_RETURN_STATUS();
-      break;
     }
+  } break;
+  default:
+    Layer::setProperty(type, value);
+    break;
   }
-  return status;
 }
 
 int FullyConnectedLayer::setOptimizer(Optimizer &opt) {

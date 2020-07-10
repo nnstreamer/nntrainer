@@ -57,9 +57,10 @@ Tensor FlattenLayer::backwarding(Tensor in, int iteration) {
   return ret;
 }
 
-int FlattenLayer::setProperty(std::vector<std::string> values) {
-  return ML_ERROR_NOT_SUPPORTED;
-};
+void FlattenLayer::setProperty(const PropertyType type,
+                               const std::string &value) {
+  throw std::invalid_argument("[Flatten Layer] setProperty not supported");
+}
 
 void FlattenLayer::copy(std::shared_ptr<Layer> l) {
   std::shared_ptr<FlattenLayer> from =

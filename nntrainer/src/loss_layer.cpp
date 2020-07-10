@@ -156,7 +156,8 @@ Tensor LossLayer::forwarding(Tensor in, int &status) {
   return in;
 }
 
-int LossLayer::setProperty(std::vector<std::string> values) {
-  return ML_ERROR_NOT_SUPPORTED;
+void LossLayer::setProperty(const PropertyType type, const std::string &value) {
+  throw std::invalid_argument("[Loss Layer] setProperty not supported");
 }
+
 } /* namespace nntrainer */

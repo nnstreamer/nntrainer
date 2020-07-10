@@ -109,14 +109,6 @@ public:
   void copy(std::shared_ptr<Layer> l);
 
   /**
-   * @brief     set Property of layer
-   * @param[in] values values of property
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   */
-  int setProperty(std::vector<std::string> values);
-
-  /**
    * @brief     set Pooling Type
    * @param[in] t pooling type
    */
@@ -145,7 +137,19 @@ public:
    */
   std::string getBaseName() { return "Pooling2D"; };
 
+  using Layer::setProperty;
+
 private:
+  /**
+   * @brief setProperty by PropertyType
+   * @note By passing empty string, this can validate if @a type is valid
+   * @param[in] type property type to be passed
+   * @param[in] value value to be passed, if empty string is passed, do nothing
+   * but throws error when @a type is invalid
+   * @exception std::invalid_argument invalid argument
+   */
+  void setProperty(const PropertyType type, const std::string &value);
+
   unsigned int pooling_size[POOLING2D_DIM];
   unsigned int stride[POOLING2D_DIM];
   unsigned int padding[POOLING2D_DIM];

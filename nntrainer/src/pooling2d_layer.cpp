@@ -181,55 +181,53 @@ void Pooling2DLayer::copy(std::shared_ptr<Layer> l) {
   this->last_layer = from->last_layer;
 }
 
-int Pooling2DLayer::setProperty(std::vector<std::string> values) {
+void Pooling2DLayer::setProperty(const PropertyType type,
+                                 const std::string &value) {
   int status = ML_ERROR_NONE;
 
-  for (unsigned int i = 0; i < values.size(); ++i) {
-    std::string key;
-    std::string value;
-
-    status = getKeyValue(values[i], key, value);
-    NN_RETURN_STATUS();
-    unsigned int t = parseLayerProperty(key);
-    switch (static_cast<PropertyType>(t)) {
-    case PropertyType::pooling:
+  switch (type) {
+  case PropertyType::pooling:
+    if (!value.empty()) {
       pooling_type = (PoolingType)parseType(value, TOKEN_POOLING);
       if (pooling_type == PoolingType::unknown) {
-        ml_loge("Error: Unknown pooling type");
-        return ML_ERROR_INVALID_PARAMETER;
+        throw std::invalid_argument("[Pooling2d_layer]: Unknown pooling type");
       }
-      break;
-    case PropertyType::pooling_size:
-      status = getValues(POOLING2D_DIM, value, (int *)(pooling_size));
-      NN_RETURN_STATUS();
-      if (pooling_size[0] == 0 || pooling_size[1] == 0) {
-        ml_loge("Error: pooling_size must be greater than 0");
-        return ML_ERROR_INVALID_PARAMETER;
-      }
-      break;
-    case PropertyType::stride:
-      status = getValues(POOLING2D_DIM, value, (int *)(stride));
-      NN_RETURN_STATUS();
-      if (stride[0] == 0 || stride[1] == 0) {
-        ml_loge("Error: stride must be greater than 0");
-        return ML_ERROR_INVALID_PARAMETER;
-      }
-      break;
-    case PropertyType::padding:
-      status = getValues(POOLING2D_DIM, value, (int *)(padding));
-      NN_RETURN_STATUS();
-      if ((int)padding[0] < 0 || (int)padding[1] < 0) {
-        ml_loge("Error: padding must be greater than 0");
-        return ML_ERROR_INVALID_PARAMETER;
-      }
-      break;
-    default:
-      ml_loge("Error: Unknown Layer Property Key : %s", key.c_str());
-      status = ML_ERROR_INVALID_PARAMETER;
       break;
     }
+  case PropertyType::pooling_size:
+    if (!value.empty()) {
+      status = getValues(POOLING2D_DIM, value, (int *)(pooling_size));
+      throw_status(status);
+      if (pooling_size[0] == 0 || pooling_size[1] == 0) {
+        throw std::invalid_argument(
+          "[Pooling2d_layer] pooling_size must be greater than 0");
+      }
+    }
+    break;
+  case PropertyType::stride:
+    if (!value.empty()) {
+      status = getValues(POOLING2D_DIM, value, (int *)(stride));
+      throw_status(status);
+      if (stride[0] == 0 || stride[1] == 0) {
+        throw std::invalid_argument(
+          "[Pooling2d_layer] stride must be greater than 0");
+      }
+    }
+    break;
+  case PropertyType::padding:
+    if (!value.empty()) {
+      status = getValues(POOLING2D_DIM, value, (int *)(padding));
+      throw_status(status);
+      if ((int)padding[0] < 0 || (int)padding[1] < 0) {
+        throw std::invalid_argument(
+          "[Pooling2d_layer] padding must be greater than 0");
+      }
+    }
+    break;
+  default:
+    Layer::setProperty(type, value);
+    break;
   }
-  return status;
 }
 
 Tensor Pooling2DLayer::pooling2d(unsigned int batch, Tensor in, int &status) {

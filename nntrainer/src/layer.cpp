@@ -141,48 +141,78 @@ int Layer::setProperty(std::vector<std::string> values) {
 
     unsigned int type = parseLayerProperty(key);
 
-    switch (static_cast<PropertyType>(type)) {
-    case PropertyType::name:
-      status = setName(value);
-      NN_RETURN_STATUS();
-      break;
-    case PropertyType::input_shape:
-      status = input_dim.setTensorDim(value.c_str());
-      NN_RETURN_STATUS();
-      break;
-    case PropertyType::bias_init_zero:
-      status = setBoolean(this->bias_init_zero, value);
-      NN_RETURN_STATUS();
-      break;
-    case PropertyType::activation:
-      status = setActivation((ActiType)parseType(value, TOKEN_ACTI));
-      NN_RETURN_STATUS();
-      break;
-    case PropertyType::flatten:
-      status = setBoolean(flatten, value);
-      NN_RETURN_STATUS();
-      break;
-    case PropertyType::weight_decay:
-      weight_decay.type = (WeightDecayType)parseType(value, TOKEN_WEIGHT_DECAY);
-      if (weight_decay.type == WeightDecayType::unknown) {
-        ml_loge("Error: Unknown Weight Decay");
-        return ML_ERROR_INVALID_PARAMETER;
-      }
-      break;
-    case PropertyType::weight_decay_lambda:
-      status = setFloat(weight_decay.lambda, value);
-      NN_RETURN_STATUS();
-      break;
-    case PropertyType::weight_ini:
-      weight_ini_type = (WeightIniType)parseType(value, TOKEN_WEIGHTINI);
-      break;
-    default:
-      ml_loge("Error: Unknown Layer Property Key : %s", key.c_str());
-      status = ML_ERROR_INVALID_PARAMETER;
-      break;
+    if (value.empty()) {
+      return ML_ERROR_INVALID_PARAMETER;
+    }
+
+    try {
+      /// @note this calls derived setProperty if available
+      setProperty(static_cast<PropertyType>(type), value);
+    } catch (...) {
+      return ML_ERROR_INVALID_PARAMETER;
     }
   }
   return status;
+}
+
+void Layer::setProperty(const PropertyType type, const std::string &value) {
+  int status = ML_ERROR_NONE;
+
+  switch (type) {
+  case PropertyType::name:
+    if (!value.empty()) {
+      status = setName(value);
+    }
+    throw_status(status);
+    break;
+  case PropertyType::input_shape:
+    if (!value.empty()) {
+      status = input_dim.setTensorDim(value.c_str());
+    }
+    throw_status(status);
+    break;
+  case PropertyType::bias_init_zero:
+    if (!value.empty()) {
+      status = setBoolean(this->bias_init_zero, value);
+    }
+    throw_status(status);
+    break;
+  case PropertyType::activation:
+    if (!value.empty()) {
+      status = setActivation((ActiType)parseType(value, TOKEN_ACTI));
+    }
+    throw_status(status);
+    break;
+  case PropertyType::flatten:
+    if (!value.empty()) {
+      status = setBoolean(flatten, value);
+    }
+    throw_status(status);
+    break;
+  case PropertyType::weight_decay:
+    if (!value.empty()) {
+      weight_decay.type = (WeightDecayType)parseType(value, TOKEN_WEIGHT_DECAY);
+      if (weight_decay.type == WeightDecayType::unknown) {
+        throw std::invalid_argument("[Layer] Unknown Weight decay");
+      }
+    }
+    break;
+  case PropertyType::weight_decay_lambda:
+    if (!value.empty()) {
+      status = setFloat(weight_decay.lambda, value);
+      throw_status(status);
+    }
+    break;
+  case PropertyType::weight_ini:
+    if (!value.empty()) {
+      weight_ini_type = (WeightIniType)parseType(value, TOKEN_WEIGHTINI);
+    }
+    break;
+  default:
+    std::string msg =
+      "[Layer] Unknown Layer Property Key for value" + std::string(value);
+    throw std::invalid_argument(msg);
+  }
 }
 
 int Layer::setName(std::string name) {
