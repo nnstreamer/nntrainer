@@ -88,6 +88,13 @@ inline void throw_status(int status) {
 unsigned int parseLayerProperty(std::string property);
 
 /**
+ * @brief     Unparse Layer property to string
+ * @param[in] type property type
+ * @retval    string representation of the type
+ */
+std::string propToStr(const unsigned int type);
+
+/**
  * @brief     Parsing Configuration Token
  * @param[in] ll string to be parsed
  * @param[in] t  Token type
@@ -164,6 +171,17 @@ int getKeyValue(std::string input_str, std::string &key, std::string &value);
 const char *getValues(std::vector<int> values, const char *delimiter = ",");
 
 int getValues(int n_str, std::string str, int *value);
+
+/**
+ * @brief     print instance info. as <Type at (address)>
+ * @param[in] std::ostream &out, T&& t
+ * @param[in] t pointer to the instance
+ */
+template <typename T,
+          typename std::enable_if_t<std::is_pointer<T>::value, T> * = nullptr>
+void printInstance(std::ostream &out, const T &t) {
+  out << '<' << typeid(*t).name() << " at " << t << '>' << std::endl;
+}
 
 } /* namespace nntrainer */
 

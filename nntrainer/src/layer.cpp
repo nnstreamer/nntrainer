@@ -223,4 +223,77 @@ int Layer::setName(std::string name) {
   return ML_ERROR_NONE;
 }
 
+template <typename T>
+void Layer::printIfValid(std::ostream &out, const PropertyType type,
+                         const T target) {
+  try {
+    setProperty(type);
+  } catch (std::invalid_argument &e) {
+    return;
+  }
+
+  out << propToStr(static_cast<unsigned int>(type)) << ": " << target
+      << std::endl;
+}
+
+void Layer::printShapeInfo(std::ostream &out) {
+  out << "input " << input_dim << "inner " << dim << "output " << output_dim;
+}
+
+void Layer::printPropertiesMeta(std::ostream &out) {
+  printIfValid(out, PropertyType::activation, activation_type);
+  printIfValid(out, PropertyType::flatten, flatten);
+}
+
+void Layer::printProperties(std::ostream &out) {
+  out << "Trainable: " << trainable << std::endl;
+  printIfValid(out, PropertyType::bias_init_zero, bias_init_zero);
+  printIfValid(out, PropertyType::weight_decay,
+               static_cast<int>(weight_decay.type));
+  printIfValid(out, PropertyType::weight_decay_lambda, weight_decay.lambda);
+}
+
+void Layer::printMetric(std::ostream &out) {
+  if (loss > 0) {
+    out << "Weight regularization loss: " << loss;
+  }
+}
+
+void Layer::print(std::ostream &out, unsigned int flags) {
+  if (flags & PRINT_INST_INFO) {
+    std::cout << "======instance info: " << std::endl;
+    printInstance(out, this);
+
+    out << "Layer Type: " << type << std::endl;
+  }
+
+  if (flags & PRINT_SHAPE_INFO) {
+    std::cout << "======shape information: " << std::endl;
+    printShapeInfo(out);
+  }
+
+  if (flags & PRINT_PROP_META) {
+    std::cout << "======meta properties: " << std::endl;
+    printPropertiesMeta(out);
+  }
+
+  if (flags & PRINT_PROP) {
+    std::cout << "======properties: " << std::endl;
+    printProperties(out);
+  }
+
+  if (flags & PRINT_WEIGHTS) {
+    std::cout << "======weights: " << std::endl;
+    for (unsigned int i = 0; i < param_size; ++i) {
+      out << '[' << paramsAt(i).name << ']' << std::endl;
+      out << paramsAt(i).weight;
+    }
+  }
+
+  if (flags & PRINT_METRIC) {
+    std::cout << "======metrics: " << std::endl;
+    printMetric(out);
+  }
+};
+
 } /* namespace nntrainer */

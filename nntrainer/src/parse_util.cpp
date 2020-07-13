@@ -244,42 +244,42 @@ unsigned int parseType(std::string ll, InputType t) {
   return ret;
 }
 
+/**
+ * @brief     Layer Properties
+ * input_shape = 0,
+ * bias_init_zero = 1,
+ * normalization = 2,
+ * standardization = 3,
+ * activation = 4,
+ * epsilon = 5
+ * weight_decay = 6
+ * weight_decay_lambda = 7
+ * unit = 8
+ * weight_ini = 9
+ * filter = 10
+ * kernel_size = 11
+ * stride = 12
+ * padding = 13
+ * pooling_size = 14
+ * pooling = 15
+ * flatten = 16
+ * name = 17
+ *
+ * InputLayer has 0, 1, 2, 3 properties.
+ * FullyConnectedLayer has 1, 4, 6, 7, 8, 9 properties.
+ * Conv2DLayer has 0, 1, 4, 6, 7, 9, 10, 11, 12, 13 properties.
+ * Pooling2DLayer has 12, 13, 14, 15 properties.
+ * BatchNormalizationLayer has 0, 1, 5, 6, 7 properties.
+ */
+static std::array<std::string, 19> property_string = {
+  "input_shape", "bias_init_zero", "normalization", "standardization",
+  "activation",  "epsilon",        "weight_decay",  "weight_decay_lambda",
+  "unit",        "weight_ini",     "filter",        "kernel_size",
+  "stride",      "padding",        "pooling_size",  "pooling",
+  "flatten",     "name",           "unknown"};
+
 unsigned int parseLayerProperty(std::string property) {
   unsigned int i;
-
-  /**
-   * @brief     Layer Properties
-   * input_shape = 0,
-   * bias_init_zero = 1,
-   * normalization = 2,
-   * standardization = 3,
-   * activation = 4,
-   * epsilon = 5
-   * weight_decay = 6
-   * weight_decay_lambda = 7
-   * unit = 8
-   * weight_ini = 9
-   * filter = 10
-   * kernel_size = 11
-   * stride = 12
-   * padding = 13
-   * pooling_size = 14
-   * pooling = 15
-   * flatten = 16
-   * name = 17
-   *
-   * InputLayer has 0, 1, 2, 3 properties.
-   * FullyConnectedLayer has 1, 4, 6, 7, 8, 9 properties.
-   * Conv2DLayer has 0, 1, 4, 6, 7, 9, 10, 11, 12, 13 properties.
-   * Pooling2DLayer has 12, 13, 14, 15 properties.
-   * BatchNormalizationLayer has 0, 1, 5, 6, 7 properties.
-   */
-  std::array<std::string, 19> property_string = {
-    "input_shape", "bias_init_zero", "normalization", "standardization",
-    "activation",  "epsilon",        "weight_decay",  "weight_decay_lambda",
-    "unit",        "weight_ini",     "filter",        "kernel_size",
-    "stride",      "padding",        "pooling_size",  "pooling",
-    "flatten",     "name",           "unknown"};
 
   for (i = 0; i < property_string.size(); i++) {
     unsigned int size = (property_string[i].size() > property.size())
@@ -293,6 +293,8 @@ unsigned int parseLayerProperty(std::string property) {
 
   return (unsigned int)Layer::PropertyType::unknown;
 }
+
+std::string propToStr(unsigned int type) { return property_string[type]; }
 
 unsigned int parseOptProperty(std::string property) {
   unsigned int i;

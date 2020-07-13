@@ -114,6 +114,21 @@ typedef enum {
 } WeightIniType;
 
 /**
+ * @brief   Print Options when printing layer info
+ */
+typedef enum {
+  // clang-format off
+  PRINT_INST_INFO  = (1 << 0), /**< Option to print type & instance address info */
+  PRINT_SHAPE_INFO = (1 << 1), /**< Option to print shape information, invalid before initiation*/
+  PRINT_PROP       = (1 << 2), /**< Option to print properties */
+  PRINT_PROP_META  = (1 << 3), /**< Option to print properties that describe meta info
+                                    e.g) layer activation type for non-activation layer. */
+  PRINT_WEIGHTS    = (1 << 4), /**< Option to print weights */
+  PRINT_METRIC     = (1 << 5)  /**< Option to print metrics (currently loss only) */
+  // clang-format on
+} LayerPrintOption;
+
+/**
  * @class   Layer Base class for layers
  * @brief   Base class for all layers
  */
@@ -386,6 +401,8 @@ public:
     unknown = 18
   };
 
+  virtual void print(std::ostream &out, unsigned int flags = 0);
+
 protected:
   /**
    * @brief     Name of the layer (works as the identifier)
@@ -540,7 +557,51 @@ private:
    * @brief     Ensure that layer has a name
    */
   void ensureName();
+
+  /**
+   * @brief check if @a type is valid and print if prop is valid to @a out
+   */
+  template <typename T>
+  void printIfValid(std::ostream &out, const PropertyType type, T target);
+
+  /**
+   * @brief anchor point to override if PRINT_SHAPE_INFO is enabled for
+   * Layer::print()
+   */
+  virtual void printShapeInfo(std::ostream &out);
+
+  /**
+   * @brief anchor point to override if PRINT_PROP_META is enabled for
+   * Layer::print()
+   */
+  virtual void printPropertiesMeta(std::ostream &out);
+
+  /**
+   * @brief anchor point to override if PRINT_PROP is enabled for Layer::print()
+   */
+  virtual void printProperties(std::ostream &out);
+
+  /**
+   * @brief anchor point to override if PRINT_METRIC is enabled for
+   * Layer::print()
+   */
+  virtual void printMetric(std::ostream &out);
 };
+
+/**
+ * @brief   Overriding output stream for layers and it's derived class
+ */
+template <typename T, typename std::enable_if_t<
+                        std::is_base_of<Layer, T>::value, T> * = nullptr>
+std::ostream &operator<<(std::ostream &out, T const &l) {
+  unsigned int option = nntrainer::LayerPrintOption::PRINT_INST_INFO |
+                        nntrainer::LayerPrintOption::PRINT_SHAPE_INFO |
+                        nntrainer::LayerPrintOption::PRINT_PROP |
+                        nntrainer::LayerPrintOption::PRINT_PROP_META;
+  l.print(out, option);
+  return out;
+}
+
 } // namespace nntrainer
 
 #endif /* __cplusplus */
