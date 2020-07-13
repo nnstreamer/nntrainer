@@ -314,11 +314,16 @@ int ml_nnmodel_get_layer(ml_nnmodel_h model, const char *layer_name,
 
   std::unordered_map<std::string, ml_nnlayer *>::iterator layer_iter =
     nnmodel->layers_map.find(std::string(layer_name));
+  /** if layer found in layers_map, return layer */
   if (layer_iter != nnmodel->layers_map.end()) {
     *layer = layer_iter->second;
     return status;
   }
 
+  /**
+   * if layer not found in layers_map, get layer from NeuralNetwork,
+   * wrap it in struct nnlayer, add new entry in layer_map and then return
+   */
   NN = nnmodel->network;
   returnable f = [&]() { return NN->getLayer(layer_name, &NL); };
   status = nntrainer_exception_boundary(f);
@@ -329,14 +334,10 @@ int ml_nnmodel_get_layer(ml_nnmodel_h model, const char *layer_name,
   ml_nnlayer *nnlayer = new ml_nnlayer;
   nnlayer->magic = ML_NNTRAINER_MAGIC;
   nnlayer->layer = NL;
+  nnlayer->in_use = true;
+  nnmodel->layers_map.insert({NL->getName(), nnlayer});
+
   *layer = nnlayer;
-
-  status = ml_nnmodel_add_layer(model, *layer);
-  if (status != ML_ERROR_NONE) {
-    delete nnlayer;
-    *layer = nullptr;
-  }
-
   return status;
 }
 
