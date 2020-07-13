@@ -275,6 +275,14 @@ public:
    */
   int getLayer(const char *name, std::shared_ptr<Layer> *layer);
 
+  /**
+   * @brief     Set cost type for the neural network.
+   * @param[in] cost Type of the cost.
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  int setCost(CostType cost);
+
   enum class PropertyType {
     loss = 0,
     cost = 1,

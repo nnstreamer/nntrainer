@@ -27,6 +27,7 @@
 #include <layer.h>
 #include <neuralnet.h>
 #include <nntrainer.h>
+#include <nntrainer_log.h>
 #include <optimizer.h>
 #include <string>
 #include <unordered_map>
@@ -108,11 +109,19 @@ typedef struct {
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
  * @retval #ML_ERROR_CANNOT_ASSIGN_ADDRESS Cannot assign object.
  */
-int ml_nnmodel_get_layer(ml_nnmodel_h model, const char *layer_name,
-                         ml_nnlayer_h *layer);
+int ml_train_model_get_layer(ml_train_model_h model, const char *layer_name,
+                             ml_train_layer_h *layer);
 
 #ifdef __cplusplus
 }
-
 #endif /* __cplusplus */
+
+/**
+ * @brief Convert nntrainer API optimizer type to neural network optimizer type
+ * @param[in] type Optimizer type API enum
+ * @return nntrainer::OptType optimizer type
+ */
+nntrainer::OptType
+ml_optimizer_to_nntrainer_type(ml_train_optimizer_type_e type);
+
 #endif

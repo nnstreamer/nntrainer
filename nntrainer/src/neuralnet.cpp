@@ -1174,4 +1174,15 @@ int NeuralNetwork::initFlattenLayer() {
   return initFlattenLayer(position);
 }
 
+/**
+ * @brief     Set cost type for the neural network.
+ */
+int NeuralNetwork::setCost(CostType cost) {
+  if (cost == COST_UNKNOWN)
+    return ML_ERROR_INVALID_PARAMETER;
+
+  this->cost = cost;
+  return ML_ERROR_NONE;
+}
+
 } /* namespace nntrainer */

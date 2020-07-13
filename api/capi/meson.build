@@ -10,6 +10,7 @@ endif
 
 capi_src = []
 capi_src += join_paths(meson.current_source_dir(), 'src','nntrainer.cpp')
+capi_src += join_paths(meson.current_source_dir(), 'src','nntrainer_util.cpp')
 
 capi_headers = []
 capi_headers += join_paths(meson.current_source_dir(), 'include', 'nntrainer.h')

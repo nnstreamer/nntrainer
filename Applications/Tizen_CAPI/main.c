@@ -27,18 +27,18 @@
 
 int main(int argc, char *argv[]) {
   int status = ML_ERROR_NONE;
-  ml_nnmodel_h handle = NULL;
+  ml_train_model_h handle = NULL;
   const char *config_file = "./Tizen_CAPI_config.ini";
-  status = ml_nnmodel_construct_with_conf(config_file, &handle);
+  status = ml_train_model_construct_with_conf(config_file, &handle);
   if (status != ML_ERROR_NONE)
     return status;
-  status = ml_nnmodel_compile(handle, NULL);
+  status = ml_train_model_compile(handle, NULL);
   if (status != ML_ERROR_NONE)
     return status;
   status = ml_nnmodel_train_with_file(handle, NULL);
   if (status != ML_ERROR_NONE)
     return status;
-  status = ml_nnmodel_destruct(handle);
+  status = ml_train_model_destroy(handle);
   if (status != ML_ERROR_NONE)
     return status;
   return status;
