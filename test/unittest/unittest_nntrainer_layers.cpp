@@ -472,6 +472,18 @@ protected:
   }
 };
 
+TEST_F(nntrainer_Conv2DLayer, print_01_p) {
+  setProperty("filter=3");
+  reinitialize();
+  unsigned int option = nntrainer::LayerPrintOption::PRINT_INST_INFO |
+                        nntrainer::LayerPrintOption::PRINT_SHAPE_INFO |
+                        nntrainer::LayerPrintOption::PRINT_PROP |
+                        nntrainer::LayerPrintOption::PRINT_PROP_META |
+                        nntrainer::LayerPrintOption::PRINT_WEIGHTS |
+                        nntrainer::LayerPrintOption::PRINT_METRIC;
+  layer.print(std::cerr, option);
+}
+
 /**
  * @brief Convolution 2D Layer
  */

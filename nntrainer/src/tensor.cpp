@@ -23,6 +23,7 @@
 
 #include <assert.h>
 #include <cstring>
+#include <iomanip>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <parse_util.h>
@@ -802,7 +803,7 @@ Tensor Tensor::apply(std::function<float(float)> f) const {
 Tensor Tensor::apply(std::function<Tensor(Tensor)> f) const { return f(*this); }
 
 void Tensor::print(std::ostream &out) const {
-  out << "<Tensor Object at " << this << ">" << std::endl;
+  printInstance(out, this);
   const float *data = getData();
 
   unsigned int len = length();
@@ -820,7 +821,7 @@ void Tensor::print(std::ostream &out) const {
     for (unsigned int l = 0; l < dim.channel(); l++) {
       for (unsigned int i = 0; i < dim.height(); i++) {
         for (unsigned int j = 0; j < dim.width(); j++) {
-          out << this->getValue(k, l, i, j) << " ";
+          out << std::setw(10) << this->getValue(k, l, i, j) << " ";
         }
         out << std::endl;
       }
