@@ -26,11 +26,11 @@
  * @brief Neural Network Layer Create / Delete Test (possitive test)
  */
 TEST(nntrainer_capi_nnlayer, create_delete_01_p) {
-  ml_nnlayer_h handle;
+  ml_train_layer_h handle;
   int status;
-  status = ml_nnlayer_create(&handle, ML_LAYER_TYPE_INPUT);
+  status = ml_train_layer_create(&handle, ML_TRAIN_LAYER_TYPE_INPUT);
   EXPECT_EQ(status, ML_ERROR_NONE);
-  status = ml_nnlayer_delete(handle);
+  status = ml_train_layer_destroy(handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
@@ -38,11 +38,11 @@ TEST(nntrainer_capi_nnlayer, create_delete_01_p) {
  * @brief Neural Network Layer Create / Delete Test (possitive test)
  */
 TEST(nntrainer_capi_nnlayer, create_delete_02_p) {
-  ml_nnlayer_h handle;
+  ml_train_layer_h handle;
   int status;
-  status = ml_nnlayer_create(&handle, ML_LAYER_TYPE_FC);
+  status = ml_train_layer_create(&handle, ML_TRAIN_LAYER_TYPE_FC);
   EXPECT_EQ(status, ML_ERROR_NONE);
-  status = ml_nnlayer_delete(handle);
+  status = ml_train_layer_destroy(handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
@@ -50,9 +50,9 @@ TEST(nntrainer_capi_nnlayer, create_delete_02_p) {
  * @brief Neural Network Layer Create / Delete Test (negative test)
  */
 TEST(nntrainer_capi_nnlayer, create_delete_03_n) {
-  ml_nnlayer_h handle;
+  ml_train_layer_h handle;
   int status;
-  status = ml_nnlayer_create(&handle, ML_LAYER_TYPE_UNKNOWN);
+  status = ml_train_layer_create(&handle, ML_TRAIN_LAYER_TYPE_UNKNOWN);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
@@ -60,19 +60,19 @@ TEST(nntrainer_capi_nnlayer, create_delete_03_n) {
  * @brief Neural Network Layer Set Property Test (positive test)
  */
 TEST(nntrainer_capi_nnlayer, setproperty_01_p) {
-  ml_nnlayer_h handle;
+  ml_train_layer_h handle;
   int status;
-  status = ml_nnlayer_create(&handle, ML_LAYER_TYPE_INPUT);
+  status = ml_train_layer_create(&handle, ML_TRAIN_LAYER_TYPE_INPUT);
   EXPECT_EQ(status, ML_ERROR_NONE);
-  status = ml_nnlayer_set_property(handle, "input_shape=32:1:1:6270", NULL);
-  EXPECT_EQ(status, ML_ERROR_NONE);
-
-  status = ml_nnlayer_set_property(handle, "normalization=true", NULL);
+  status = ml_train_layer_set_property(handle, "input_shape=32:1:1:6270", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_nnlayer_set_property(handle, "standardization=true", NULL);
+  status = ml_train_layer_set_property(handle, "normalization=true", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
-  status = ml_nnlayer_delete(handle);
+
+  status = ml_train_layer_set_property(handle, "standardization=true", NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = ml_train_layer_destroy(handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
@@ -80,19 +80,19 @@ TEST(nntrainer_capi_nnlayer, setproperty_01_p) {
  * @brief Neural Network Layer Set Property Test (positive test)
  */
 TEST(nntrainer_capi_nnlayer, setproperty_02_p) {
-  ml_nnlayer_h handle;
+  ml_train_layer_h handle;
   int status;
-  status = ml_nnlayer_create(&handle, ML_LAYER_TYPE_FC);
+  status = ml_train_layer_create(&handle, ML_TRAIN_LAYER_TYPE_FC);
   EXPECT_EQ(status, ML_ERROR_NONE);
-  status = ml_nnlayer_set_property(handle, "unit=10", NULL);
-  EXPECT_EQ(status, ML_ERROR_NONE);
-
-  status = ml_nnlayer_set_property(handle, "bias_init_zero=true", NULL);
+  status = ml_train_layer_set_property(handle, "unit=10", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_nnlayer_set_property(handle, "activation =sigmoid", NULL);
+  status = ml_train_layer_set_property(handle, "bias_init_zero=true", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
-  status = ml_nnlayer_delete(handle);
+
+  status = ml_train_layer_set_property(handle, "activation =sigmoid", NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = ml_train_layer_destroy(handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
@@ -100,13 +100,13 @@ TEST(nntrainer_capi_nnlayer, setproperty_02_p) {
  * @brief Neural Network Layer Set Property Test (positive test)
  */
 TEST(nntrainer_capi_nnlayer, setproperty_03_p) {
-  ml_nnlayer_h handle;
+  ml_train_layer_h handle;
   int status;
-  status = ml_nnlayer_create(&handle, ML_LAYER_TYPE_INPUT);
+  status = ml_train_layer_create(&handle, ML_TRAIN_LAYER_TYPE_INPUT);
   EXPECT_EQ(status, ML_ERROR_NONE);
-  status = ml_nnlayer_set_property(handle, "activation= sigmoid", NULL);
+  status = ml_train_layer_set_property(handle, "activation= sigmoid", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
-  status = ml_nnlayer_delete(handle);
+  status = ml_train_layer_destroy(handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
@@ -114,13 +114,13 @@ TEST(nntrainer_capi_nnlayer, setproperty_03_p) {
  * @brief Neural Network Layer Set Property Test (negative test)
  */
 TEST(nntrainer_capi_nnlayer, setproperty_04_n) {
-  ml_nnlayer_h handle;
+  ml_train_layer_h handle;
   int status;
-  status = ml_nnlayer_create(&handle, ML_LAYER_TYPE_INPUT);
+  status = ml_train_layer_create(&handle, ML_TRAIN_LAYER_TYPE_INPUT);
   EXPECT_EQ(status, ML_ERROR_NONE);
-  status = ml_nnlayer_set_property(handle, "input_shape=0:0:0:1", NULL);
+  status = ml_train_layer_set_property(handle, "input_shape=0:0:0:1", NULL);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
-  status = ml_nnlayer_delete(handle);
+  status = ml_train_layer_destroy(handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
@@ -128,13 +128,13 @@ TEST(nntrainer_capi_nnlayer, setproperty_04_n) {
  * @brief Neural Network Layer Set Property Test (negative test)
  */
 TEST(nntrainer_capi_nnlayer, setproperty_05_n) {
-  ml_nnlayer_h handle;
+  ml_train_layer_h handle;
   int status;
-  status = ml_nnlayer_create(&handle, ML_LAYER_TYPE_INPUT);
+  status = ml_train_layer_create(&handle, ML_TRAIN_LAYER_TYPE_INPUT);
   EXPECT_EQ(status, ML_ERROR_NONE);
-  status = ml_nnlayer_set_property(handle, "epsilon =0.0001", NULL);
+  status = ml_train_layer_set_property(handle, "epsilon =0.0001", NULL);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
-  status = ml_nnlayer_delete(handle);
+  status = ml_train_layer_destroy(handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
@@ -142,13 +142,13 @@ TEST(nntrainer_capi_nnlayer, setproperty_05_n) {
  * @brief Neural Network Layer Set Property Test (negative test)
  */
 TEST(nntrainer_capi_nnlayer, setproperty_06_n) {
-  ml_nnlayer_h handle;
+  ml_train_layer_h handle;
   int status;
-  status = ml_nnlayer_create(&handle, ML_LAYER_TYPE_FC);
+  status = ml_train_layer_create(&handle, ML_TRAIN_LAYER_TYPE_FC);
   EXPECT_EQ(status, ML_ERROR_NONE);
-  status = ml_nnlayer_set_property(handle, "epsilon =0.0001", NULL);
+  status = ml_train_layer_set_property(handle, "epsilon =0.0001", NULL);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
-  status = ml_nnlayer_delete(handle);
+  status = ml_train_layer_destroy(handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
@@ -156,14 +156,14 @@ TEST(nntrainer_capi_nnlayer, setproperty_06_n) {
  * @brief Neural Network Set Property Test (positive test)
  */
 TEST(nntrainer_capi_nnlayer, setproperty_07_p) {
-  ml_nnlayer_h handle;
+  ml_train_layer_h handle;
   int status;
-  status = ml_nnlayer_create(&handle, ML_LAYER_TYPE_FC);
+  status = ml_train_layer_create(&handle, ML_TRAIN_LAYER_TYPE_FC);
   EXPECT_EQ(status, ML_ERROR_NONE);
   /** Default to none activation in case wrong activation given */
-  status = ml_nnlayer_set_property(handle, "activation=0.0001", NULL);
+  status = ml_train_layer_set_property(handle, "activation=0.0001", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
-  status = ml_nnlayer_delete(handle);
+  status = ml_train_layer_destroy(handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
@@ -171,14 +171,14 @@ TEST(nntrainer_capi_nnlayer, setproperty_07_p) {
  * @brief Neural Network Layer Set Property Test (positive test )
  */
 TEST(nntrainer_capi_nnlayer, setproperty_08_p) {
-  ml_nnlayer_h handle;
+  ml_train_layer_h handle;
   int status;
-  status = ml_nnlayer_create(&handle, ML_LAYER_TYPE_FC);
+  status = ml_train_layer_create(&handle, ML_TRAIN_LAYER_TYPE_FC);
   EXPECT_EQ(status, ML_ERROR_NONE);
-  status = ml_nnlayer_set_property(handle, "weight_decay=l2norm",
-                                   "weight_decay_lambda=0.0001", NULL);
+  status = ml_train_layer_set_property(handle, "weight_decay=l2norm",
+                                       "weight_decay_lambda=0.0001", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
-  status = ml_nnlayer_delete(handle);
+  status = ml_train_layer_destroy(handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
@@ -186,14 +186,14 @@ TEST(nntrainer_capi_nnlayer, setproperty_08_p) {
  * @brief Neural Network Layer Set Property Test (negitive test )
  */
 TEST(nntrainer_capi_nnlayer, setproperty_09_n) {
-  ml_nnlayer_h handle;
+  ml_train_layer_h handle;
   int status;
-  status = ml_nnlayer_create(&handle, ML_LAYER_TYPE_FC);
+  status = ml_train_layer_create(&handle, ML_TRAIN_LAYER_TYPE_FC);
   EXPECT_EQ(status, ML_ERROR_NONE);
-  status = ml_nnlayer_set_property(handle, "weight_decay=asdfasd",
-                                   "weight_decay_lambda=0.0001", NULL);
+  status = ml_train_layer_set_property(handle, "weight_decay=asdfasd",
+                                       "weight_decay_lambda=0.0001", NULL);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
-  status = ml_nnlayer_delete(handle);
+  status = ml_train_layer_destroy(handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 

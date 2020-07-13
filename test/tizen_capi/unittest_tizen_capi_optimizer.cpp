@@ -23,79 +23,77 @@
 #include <nntrainer.h>
 
 /**
- * @brief Neural Network Optimizer Create / Delete Test (possitive test)
+ * @brief Neural Network Optimizer Create / Delete Test (positive test)
  */
 TEST(nntrainer_capi_nnopt, create_delete_01_p) {
-  ml_nnopt_h handle;
+  ml_train_optimizer_h handle;
   int status;
-  status = ml_nnoptimizer_create(&handle, "sgd");
+  status = ml_train_optimizer_create(&handle, ML_TRAIN_OPTIMIZER_TYPE_SGD);
   EXPECT_EQ(status, ML_ERROR_NONE);
-  status = ml_nnoptimizer_delete(handle);
+  status = ml_train_optimizer_destroy(handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
 /**
- * @brief Neural Network Optimizer Create / Delete Test (possitive test )
+ * @brief Neural Network Optimizer Create / Delete Test (positive test )
  */
 TEST(nntrainer_capi_nnopt, create_delete_02_p) {
-  ml_nnopt_h handle;
+  ml_train_optimizer_h handle;
   int status;
-  status = ml_nnoptimizer_create(&handle, "adam");
+  status = ml_train_optimizer_create(&handle, ML_TRAIN_OPTIMIZER_TYPE_ADAM);
   EXPECT_EQ(status, ML_ERROR_NONE);
-  status = ml_nnoptimizer_delete(handle);
+  status = ml_train_optimizer_destroy(handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
 /**
- * @brief Neural Network Optimizer Create / Delete Test (possitive test )
+ * @brief Neural Network Optimizer Create / Delete Test (negative test )
  */
 TEST(nntrainer_capi_nnopt, create_delete_03_n) {
-  ml_nnopt_h handle = NULL;
+  ml_train_optimizer_h handle = NULL;
   int status;
-  status = ml_nnoptimizer_delete(handle);
+  status = ml_train_optimizer_destroy(handle);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
 /**
- * @brief Neural Network Optimizer Create / Delete Test (possitive test)
+ * @brief Neural Network Optimizer Create / Delete Test (positive test )
  */
 TEST(nntrainer_capi_nnopt, create_delete_04_n) {
-  ml_nnopt_h handle;
+  ml_train_optimizer_h handle;
   int status;
-  status = ml_nnoptimizer_create(&handle, "adaam");
-  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
-  status = ml_nnoptimizer_delete(handle);
+  status = ml_train_optimizer_create(&handle, ML_TRAIN_OPTIMIZER_TYPE_UNKNOWN);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
 /**
- * @brief Neural Network Optimizer set Property Test (possitive test )
+ * @brief Neural Network Optimizer set Property Test (positive test )
  */
 TEST(nntrainer_capi_nnopt, setOptimizer_01_p) {
-  ml_nnopt_h handle;
+  ml_train_optimizer_h handle;
   int status;
-  status = ml_nnoptimizer_create(&handle, "adam");
+  status = ml_train_optimizer_create(&handle, ML_TRAIN_OPTIMIZER_TYPE_ADAM);
   EXPECT_EQ(status, ML_ERROR_NONE);
   status =
-    ml_nnoptimizer_set_property(handle, "beta1=0.002", "beta2=0.001", NULL);
+    ml_train_optimizer_set_property(handle, "beta1=0.002", "beta2=0.001", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
-  status = ml_nnoptimizer_delete(handle);
+  status = ml_train_optimizer_destroy(handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
 /**
- * @brief Neural Network Optimizer Set Property Test (possitive test )
+ * @brief Neural Network Optimizer Set Property Test (positive test )
  */
 TEST(nntrainer_capi_nnopt, setOptimizer_02_p) {
-  ml_nnopt_h handle;
+  ml_train_optimizer_h handle;
   int status;
-  status = ml_nnoptimizer_create(&handle, "adam");
+  status = ml_train_optimizer_create(&handle, ML_TRAIN_OPTIMIZER_TYPE_ADAM);
   EXPECT_EQ(status, ML_ERROR_NONE);
-  status = ml_nnoptimizer_set_property(
+  status = ml_train_optimizer_set_property(
     handle, "learning_rate=0.0001", "decay_rate=0.96", "decay_steps=1000",
     "beta1=0.002", "beta2=0.001", "epsilon=1e-7", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
-  status = ml_nnoptimizer_delete(handle);
+  status = ml_train_optimizer_destroy(handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
@@ -103,14 +101,14 @@ TEST(nntrainer_capi_nnopt, setOptimizer_02_p) {
  * @brief Neural Network Optimizer Set Property Test (negative test )
  */
 TEST(nntrainer_capi_nnopt, setOptimizer_03_n) {
-  ml_nnopt_h handle;
+  ml_train_optimizer_h handle;
   int status;
-  status = ml_nnoptimizer_create(&handle, "adam");
+  status = ml_train_optimizer_create(&handle, ML_TRAIN_OPTIMIZER_TYPE_ADAM);
   EXPECT_EQ(status, ML_ERROR_NONE);
   status =
-    ml_nnoptimizer_set_property(handle, "beta1=true", "beta2=0.001", NULL);
+    ml_train_optimizer_set_property(handle, "beta1=true", "beta2=0.001", NULL);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
-  status = ml_nnoptimizer_delete(handle);
+  status = ml_train_optimizer_destroy(handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 

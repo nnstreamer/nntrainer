@@ -67,7 +67,7 @@ typedef std::function<int()> returnable;
 /**
  * @brief Function to create Network::NeuralNetwork object.
  */
-static int nn_object(ml_nnmodel_h *model) {
+static int nn_object(ml_train_model_h *model) {
   int status = ML_ERROR_NONE;
 
   if (model == NULL)
@@ -90,7 +90,7 @@ static int nn_object(ml_nnmodel_h *model) {
   return status;
 }
 
-int ml_nnmodel_construct(ml_nnmodel_h *model) {
+int ml_train_model_construct(ml_train_model_h *model) {
   int status = ML_ERROR_NONE;
   returnable f = [&]() { return nn_object(model); };
 
@@ -98,8 +98,8 @@ int ml_nnmodel_construct(ml_nnmodel_h *model) {
   return status;
 }
 
-int ml_nnmodel_construct_with_conf(const char *model_conf,
-                                   ml_nnmodel_h *model) {
+int ml_train_model_construct_with_conf(const char *model_conf,
+                                       ml_train_model_h *model) {
   int status = ML_ERROR_NONE;
   ml_nnmodel *nnmodel;
   std::shared_ptr<nntrainer::NeuralNetwork> NN;
@@ -111,7 +111,7 @@ int ml_nnmodel_construct_with_conf(const char *model_conf,
     return ML_ERROR_INVALID_PARAMETER;
   }
 
-  status = ml_nnmodel_construct(model);
+  status = ml_train_model_construct(model);
   if (status != ML_ERROR_NONE)
     return status;
 
@@ -121,20 +121,20 @@ int ml_nnmodel_construct_with_conf(const char *model_conf,
   f = [&]() { return NN->setConfig(model_conf); };
   status = nntrainer_exception_boundary(f);
   if (status != ML_ERROR_NONE) {
-    ml_nnmodel_destruct(*model);
+    ml_train_model_destroy(*model);
     return status;
   }
 
   f = [&]() { return NN->loadFromConfig(); };
   status = nntrainer_exception_boundary(f);
   if (status != ML_ERROR_NONE) {
-    ml_nnmodel_destruct(*model);
+    ml_train_model_destroy(*model);
   }
 
   return status;
 }
 
-int ml_nnmodel_compile(ml_nnmodel_h model, ...) {
+int ml_train_model_compile(ml_train_model_h model, ...) {
   int status = ML_ERROR_NONE;
   const char *data;
   ml_nnmodel *nnmodel;
@@ -170,7 +170,7 @@ int ml_nnmodel_compile(ml_nnmodel_h model, ...) {
   return status;
 }
 
-int ml_nnmodel_train_with_file(ml_nnmodel_h model, ...) {
+int ml_nnmodel_train_with_file(ml_train_model_h model, ...) {
   int status = ML_ERROR_NONE;
   ml_nnmodel *nnmodel;
   const char *data;
@@ -194,7 +194,7 @@ int ml_nnmodel_train_with_file(ml_nnmodel_h model, ...) {
   return status;
 }
 
-int ml_nnmodel_train_with_generator(ml_nnmodel_h model,
+int ml_nnmodel_train_with_generator(ml_train_model_h model,
                                     bool (*train_func)(float *, float *, int *),
                                     bool (*val_func)(float *, float *, int *),
                                     bool (*test_func)(float *, float *, int *),
@@ -225,7 +225,7 @@ int ml_nnmodel_train_with_generator(ml_nnmodel_h model,
   return status;
 }
 
-int ml_nnmodel_destruct(ml_nnmodel_h model) {
+int ml_train_model_destroy(ml_train_model_h model) {
   int status = ML_ERROR_NONE;
   ml_nnmodel *nnmodel;
 
@@ -251,7 +251,7 @@ int ml_nnmodel_destruct(ml_nnmodel_h model) {
   return status;
 }
 
-int ml_nnmodel_add_layer(ml_nnmodel_h model, ml_nnlayer_h layer) {
+int ml_train_model_add_layer(ml_train_model_h model, ml_train_layer_h layer) {
   int status = ML_ERROR_NONE;
   ml_nnmodel *nnmodel;
   ml_nnlayer *nnlayer;
@@ -276,7 +276,8 @@ int ml_nnmodel_add_layer(ml_nnmodel_h model, ml_nnlayer_h layer) {
   return status;
 }
 
-int ml_nnmodel_set_optimizer(ml_nnmodel_h model, ml_nnopt_h optimizer) {
+int ml_train_model_set_optimizer(ml_train_model_h model,
+                                 ml_train_optimizer_h optimizer) {
   int status = ML_ERROR_NONE;
   ml_nnmodel *nnmodel;
   ml_nnopt *nnopt;
@@ -303,8 +304,8 @@ int ml_nnmodel_set_optimizer(ml_nnmodel_h model, ml_nnopt_h optimizer) {
   return status;
 }
 
-int ml_nnmodel_get_layer(ml_nnmodel_h model, const char *layer_name,
-                         ml_nnlayer_h *layer) {
+int ml_train_model_get_layer(ml_train_model_h model, const char *layer_name,
+                             ml_train_layer_h *layer) {
   int status = ML_ERROR_NONE;
   ml_nnmodel *nnmodel;
   ML_NNTRAINER_CHECK_MODEL_VALIDATION(nnmodel, model);
@@ -341,7 +342,7 @@ int ml_nnmodel_get_layer(ml_nnmodel_h model, const char *layer_name,
   return status;
 }
 
-int ml_nnlayer_create(ml_nnlayer_h *layer, ml_layer_type_e type) {
+int ml_train_layer_create(ml_train_layer_h *layer, ml_train_layer_type_e type) {
   int status = ML_ERROR_NONE;
   returnable f;
   ml_nnlayer *nnlayer = new ml_nnlayer;
@@ -349,10 +350,10 @@ int ml_nnlayer_create(ml_nnlayer_h *layer, ml_layer_type_e type) {
 
   try {
     switch (type) {
-    case ML_LAYER_TYPE_INPUT:
+    case ML_TRAIN_LAYER_TYPE_INPUT:
       nnlayer->layer = std::make_shared<nntrainer::InputLayer>();
       break;
-    case ML_LAYER_TYPE_FC:
+    case ML_TRAIN_LAYER_TYPE_FC:
       nnlayer->layer = std::make_shared<nntrainer::FullyConnectedLayer>();
       break;
     default:
@@ -372,7 +373,7 @@ int ml_nnlayer_create(ml_nnlayer_h *layer, ml_layer_type_e type) {
   return status;
 }
 
-int ml_nnlayer_delete(ml_nnlayer_h layer) {
+int ml_train_layer_destroy(ml_train_layer_h layer) {
   int status = ML_ERROR_NONE;
   ml_nnlayer *nnlayer;
 
@@ -389,7 +390,7 @@ int ml_nnlayer_delete(ml_nnlayer_h layer) {
   return status;
 }
 
-int ml_nnlayer_set_property(ml_nnlayer_h layer, ...) {
+int ml_train_layer_set_property(ml_train_layer_h layer, ...) {
   int status = ML_ERROR_NONE;
   ml_nnlayer *nnlayer;
   const char *data;
@@ -415,7 +416,8 @@ int ml_nnlayer_set_property(ml_nnlayer_h layer, ...) {
   return status;
 }
 
-int ml_nnoptimizer_create(ml_nnopt_h *optimizer, const char *type) {
+int ml_train_optimizer_create(ml_train_optimizer_h *optimizer,
+                              ml_train_optimizer_type_e type) {
   int status = ML_ERROR_NONE;
 
   ml_nnopt *nnopt = new ml_nnopt;
@@ -426,8 +428,7 @@ int ml_nnoptimizer_create(ml_nnopt_h *optimizer, const char *type) {
   *optimizer = nnopt;
 
   returnable f = [&]() {
-    return nnopt->optimizer->setType(
-      (nntrainer::OptType)parseType(type, nntrainer::TOKEN_OPT));
+    return nnopt->optimizer->setType(ml_optimizer_to_nntrainer_type(type));
   };
   status = nntrainer_exception_boundary(f);
 
@@ -438,7 +439,7 @@ int ml_nnoptimizer_create(ml_nnopt_h *optimizer, const char *type) {
   return status;
 }
 
-int ml_nnoptimizer_delete(ml_nnopt_h optimizer) {
+int ml_train_optimizer_destroy(ml_train_optimizer_h optimizer) {
   int status = ML_ERROR_NONE;
   ml_nnopt *nnopt;
 
@@ -454,7 +455,7 @@ int ml_nnoptimizer_delete(ml_nnopt_h optimizer) {
   return status;
 }
 
-int ml_nnoptimizer_set_property(ml_nnopt_h optimizer, ...) {
+int ml_train_optimizer_set_property(ml_train_optimizer_h optimizer, ...) {
   int status = ML_ERROR_NONE;
   ml_nnopt *nnopt;
   const char *data;

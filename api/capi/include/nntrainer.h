@@ -41,29 +41,39 @@ extern "C" {
  * @brief A handle of an NNTrainer model.
  * @since_tizen 6.x
  */
-typedef void *ml_nnmodel_h;
+typedef void *ml_train_model_h;
 
 /**
  * @brief A handle of an NNTrainer layer.
  * @since_tizen 6.x
  */
-typedef void *ml_nnlayer_h;
+typedef void *ml_train_layer_h;
 
 /**
  * @brief A handle of an NNTrainer optimizer.
  * @since_tizen 6.x
  */
-typedef void *ml_nnopt_h;
+typedef void *ml_train_optimizer_h;
 
 /**
  * @brief Enumeration for the neural network layer type of NNTrainer.
  * @since_tizen 6.x
  */
 typedef enum {
-  ML_LAYER_TYPE_INPUT = 0, /**< Input Layer */
-  ML_LAYER_TYPE_FC,        /**< Fully Connected Layer */
-  ML_LAYER_TYPE_UNKNOWN    /**< Unknown Lyaer */
-} ml_layer_type_e;
+  ML_TRAIN_LAYER_TYPE_INPUT = 0,    /**< Input Layer */
+  ML_TRAIN_LAYER_TYPE_FC,           /**< Fully Connected Layer */
+  ML_TRAIN_LAYER_TYPE_UNKNOWN = 999 /**< Unknown Layer */
+} ml_train_layer_type_e;
+
+/**
+ * @brief Enumeration for the neural network optimizer type of NNTrainer.
+ * @since_tizen 6.x
+ */
+typedef enum {
+  ML_TRAIN_OPTIMIZER_TYPE_ADAM = 0, /**< Adam Optimizer */
+  ML_TRAIN_OPTIMIZER_TYPE_SGD, /**< Stochastic Gradient Descent Optimizer */
+  ML_TRAIN_OPTIMIZER_TYPE_UNKNOWN = 999 /**< Unknown Optimizer */
+} ml_train_optimizer_type_e;
 
 /**
  * @brief Constructs the neural network model.
@@ -74,7 +84,7 @@ typedef enum {
  * @retval #ML_ERROR_NONE Successful.
  * @retval #ML_ERROR_CANNOT_ASSIGN_ADDRESS Cannot assign object.
  */
-int ml_nnmodel_construct(ml_nnmodel_h *model);
+int ml_train_model_construct(ml_train_model_h *model);
 
 /**
  * @brief Construct the neural network model with the given configuration file.
@@ -87,7 +97,8 @@ int ml_nnmodel_construct(ml_nnmodel_h *model);
  * @retval #ML_ERROR_NONE Successful.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter.
  */
-int ml_nnmodel_construct_with_conf(const char *model_conf, ml_nnmodel_h *model);
+int ml_train_model_construct_with_conf(const char *model_conf,
+                                       ml_train_model_h *model);
 
 /**
  * @brief initialize the neural network model.
@@ -96,12 +107,13 @@ int ml_nnmodel_construct_with_conf(const char *model_conf, ml_nnmodel_h *model);
  * added layers is restricted.
  * @since_tizen 6.x
  * @param[in] model The NNTrainer model handler from the given description.
+ * @param[in] type The NNTrainer loss type.
  * @param[in] ... hyper parmeter for compile model
  * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter.
  */
-int ml_nnmodel_compile(ml_nnmodel_h model, ...);
+int ml_train_model_compile(ml_train_model_h model, ...);
 
 /**
  * @brief train the neural network model.
@@ -113,7 +125,7 @@ int ml_nnmodel_compile(ml_nnmodel_h model, ...);
  * @retval #ML_ERROR_NONE Successful.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter.
  */
-int ml_nnmodel_train_with_file(ml_nnmodel_h model, ...);
+int ml_nnmodel_train_with_file(ml_train_model_h model, ...);
 
 /**
  * @brief train the neural network model.
@@ -128,7 +140,7 @@ int ml_nnmodel_train_with_file(ml_nnmodel_h model, ...);
  * @retval #ML_ERROR_NONE Successful.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter.
  */
-int ml_nnmodel_train_with_generator(ml_nnmodel_h model,
+int ml_nnmodel_train_with_generator(ml_train_model_h model,
                                     bool (*train_func)(float *, float *, int *),
                                     bool (*val_func)(float *, float *, int *),
                                     bool (*test_func)(float *, float *, int *),
@@ -136,19 +148,19 @@ int ml_nnmodel_train_with_generator(ml_nnmodel_h model,
 
 /**
  * @brief Destructs the neural network model.
- * @details Use this function to delete Neural Network Model.
+ * @details Use this function to destroy Neural Network Model.
  * @since_tizen 6.x
  * @param[in] model The NNTrainer model handler from the given description.
  * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter.
  */
-int ml_nnmodel_destruct(ml_nnmodel_h model);
+int ml_train_model_destroy(ml_train_model_h model);
 
 /**
  * @brief Add layer at the last of the existing layers in neural network model.
  * @details Use this function to add a layer to the model. This transfers the
- * ownership of the layer to the network. No need to delete the layer if it
+ * ownership of the layer to the network. No need to destroy the layer if it
  * belongs to a model.
  * @since_tizen 6.x
  * @param[in] model The NNTrainer model handler from the given description.
@@ -157,13 +169,13 @@ int ml_nnmodel_destruct(ml_nnmodel_h model);
  * @retval #ML_ERROR_NONE Successful.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter.
  */
-int ml_nnmodel_add_layer(ml_nnmodel_h model, ml_nnlayer_h layer);
+int ml_train_model_add_layer(ml_train_model_h model, ml_train_layer_h layer);
 
 /**
  * @brief Set the neural network optimizer.
  * @details Use this function to set Neural Network Optimizer. Unsets the
  * previous optimizer if any. This transfers the ownership of the optimizer to
- * the network. No need to delete the optimizer if it is to a model.
+ * the network. No need to destroy the optimizer if it is to a model.
  * @since_tizen 6.x
  * @param[in] model The NNTrainer model handler from the given description.
  * @param[in] optimizer The NNTrainer Optimizer handler
@@ -171,7 +183,8 @@ int ml_nnmodel_add_layer(ml_nnmodel_h model, ml_nnlayer_h layer);
  * @retval #ML_ERROR_NONE Successful.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter.
  */
-int ml_nnmodel_set_optimizer(ml_nnmodel_h model, ml_nnopt_h optimizer);
+int ml_train_model_set_optimizer(ml_train_model_h model,
+                                 ml_train_optimizer_h optimizer);
 
 /**
  * @brief Create the neural network layer.
@@ -184,11 +197,11 @@ int ml_nnmodel_set_optimizer(ml_nnmodel_h model, ml_nnopt_h optimizer);
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
  * @retval #ML_ERROR_CANNOT_ASSIGN_ADDRESS Cannot assign object.
  */
-int ml_nnlayer_create(ml_nnlayer_h *layer, ml_layer_type_e type);
+int ml_train_layer_create(ml_train_layer_h *layer, ml_train_layer_type_e type);
 
 /**
- * @brief Delete the neural network layer.
- * @details Use this function to delete Neural Network Layer. Fails if layer is
+ * @brief destroy the neural network layer.
+ * @details Use this function to destroy Neural Network Layer. Fails if layer is
  * owned by a model.
  * @since_tizen 6.x
  * @param[in] layer The NNTrainer layer handler from the given description.
@@ -196,7 +209,7 @@ int ml_nnlayer_create(ml_nnlayer_h *layer, ml_layer_type_e type);
  * @retval #ML_ERROR_NONE Successful.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter.
  */
-int ml_nnlayer_delete(ml_nnlayer_h layer);
+int ml_train_layer_destroy(ml_train_layer_h layer);
 
 /**
  * @brief Set the neural network layer Property.
@@ -208,7 +221,7 @@ int ml_nnlayer_delete(ml_nnlayer_h layer);
  * @retval #ML_ERROR_NONE Successful.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
  */
-int ml_nnlayer_set_property(ml_nnlayer_h layer, ...);
+int ml_train_layer_set_property(ml_train_layer_h layer, ...);
 
 /**
  * @brief Create the neural network optimizer.
@@ -220,11 +233,12 @@ int ml_nnlayer_set_property(ml_nnlayer_h layer, ...);
  * @retval #ML_ERROR_NONE Successful.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter.
  */
-int ml_nnoptimizer_create(ml_nnopt_h *optimizer, const char *type);
+int ml_train_optimizer_create(ml_train_optimizer_h *optimizer,
+                              ml_train_optimizer_type_e type);
 
 /**
- * @brief Delete the neural network optimizer.
- * @details Use this function to delete Neural Netowrk Optimizer. Fails if
+ * @brief destroy the neural network optimizer.
+ * @details Use this function to destroy Neural Netowrk Optimizer. Fails if
  * optimizer is owned by a model.
  * @since_tizen 6.x
  * @param[in] optimizer The NNTrainer optimizer handler from the given
@@ -233,7 +247,7 @@ int ml_nnoptimizer_create(ml_nnopt_h *optimizer, const char *type);
  * @retval #ML_ERROR_NONE Successful.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter.
  */
-int ml_nnoptimizer_delete(ml_nnopt_h optimizer);
+int ml_train_optimizer_destroy(ml_train_optimizer_h optimizer);
 
 /**
  * @brief Set the neural network optimizer property.
@@ -246,7 +260,7 @@ int ml_nnoptimizer_delete(ml_nnopt_h optimizer);
  * @retval #ML_ERROR_NONE Successful.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
  */
-int ml_nnoptimizer_set_property(ml_nnopt_h optimizer, ...);
+int ml_train_optimizer_set_property(ml_train_optimizer_h optimizer, ...);
 
 /**
  * @}
