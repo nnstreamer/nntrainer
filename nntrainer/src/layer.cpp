@@ -162,32 +162,32 @@ void Layer::setProperty(const PropertyType type, const std::string &value) {
   case PropertyType::name:
     if (!value.empty()) {
       status = setName(value);
+      throw_status(status);
     }
-    throw_status(status);
     break;
   case PropertyType::input_shape:
     if (!value.empty()) {
       status = input_dim.setTensorDim(value.c_str());
+      throw_status(status);
     }
-    throw_status(status);
     break;
   case PropertyType::bias_init_zero:
     if (!value.empty()) {
       status = setBoolean(this->bias_init_zero, value);
+      throw_status(status);
     }
-    throw_status(status);
     break;
   case PropertyType::activation:
     if (!value.empty()) {
       status = setActivation((ActiType)parseType(value, TOKEN_ACTI));
+      throw_status(status);
     }
-    throw_status(status);
     break;
   case PropertyType::flatten:
     if (!value.empty()) {
       status = setBoolean(flatten, value);
+      throw_status(status);
     }
-    throw_status(status);
     break;
   case PropertyType::weight_decay:
     if (!value.empty()) {
@@ -211,7 +211,7 @@ void Layer::setProperty(const PropertyType type, const std::string &value) {
   default:
     std::string msg =
       "[Layer] Unknown Layer Property Key for value" + std::string(value);
-    throw std::invalid_argument(msg);
+    throw std::out_of_range(msg);
   }
 }
 
@@ -228,7 +228,7 @@ void Layer::printIfValid(std::ostream &out, const PropertyType type,
                          const T target) {
   try {
     setProperty(type);
-  } catch (std::invalid_argument &e) {
+  } catch (std::out_of_range &e) {
     return;
   }
 

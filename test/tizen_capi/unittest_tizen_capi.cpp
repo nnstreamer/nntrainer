@@ -290,7 +290,7 @@ TEST(nntrainer_capi_nnmodel, train_03_n) {
   int status = ML_ERROR_NONE;
   std::string config_file = "./test_train_01_p.ini";
   RESET_CONFIG(config_file.c_str());
-  replaceString("Input_Shape = 32:1:1:62720", "Input_Shape=32:1:1:62720",
+  replaceString("Input_Shape = 32:1:1:62720", "input_shape=32:1:1:62720",
                 config_file, config_str);
   replaceString("minibatch = 32", "minibatch = 16", config_file, config_str);
   replaceString("BufferSize=100", "", config_file, config_str);

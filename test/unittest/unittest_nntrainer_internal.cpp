@@ -114,9 +114,10 @@ TEST(nntrainer_NeuralNetwork, load_config_03_n) {
 }
 
 /**
- * @brief Neural Network Model initialization
+ * @brief Neural Network Model initialization, there is warning when no
+ * input_shape is provided
  */
-TEST(nntrainer_NeuralNetwork, load_config_04_n) {
+TEST(nntrainer_NeuralNetwork, load_config_04_p) {
   int status = ML_ERROR_NONE;
   RESET_CONFIG("./test.ini");
   replaceString("Input_Shape = 32:1:1:62720", "", "./test.ini", config_str);
@@ -124,7 +125,7 @@ TEST(nntrainer_NeuralNetwork, load_config_04_n) {
   status = NN.setConfig("./test.ini");
   EXPECT_EQ(status, ML_ERROR_NONE);
   status = NN.loadFromConfig();
-  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+  EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
 /**
@@ -154,6 +155,21 @@ TEST(nntrainer_NeuralNetwork, load_config_06_p) {
   EXPECT_EQ(status, ML_ERROR_NONE);
   status = NN.loadFromConfig();
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+}
+
+/*
+ * @brief Neural Network Model initialization
+ */
+TEST(nntrainer_NeuralNetwork, load_config_07_p) {
+  int status = ML_ERROR_NONE;
+  RESET_CONFIG("./test.ini");
+  replaceString("bias_init_zero = true", "Bias_Init_Zero = false", "./test.ini",
+                config_str);
+  nntrainer::NeuralNetwork NN;
+  status = NN.setConfig("./test.ini");
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = NN.loadFromConfig();
+  EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
 /**

@@ -406,6 +406,18 @@ private:
    * @brief     Ensure that layer has a name
    */
   void ensureName(std::shared_ptr<Layer> layer, std::string prefix = "");
+
+  /**
+   * @brief     load dataset config from ini
+   * @param[in] ini will be casted to iniparser::dictionary *
+   */
+  int loadDatasetConfig(void *ini);
+
+  /**
+   * @brief     load network config from ini
+   * @param[in] ini will be casted to iniparser::dictionary *
+   */
+  int loadNetworkConfig(void *ini);
 };
 
 } /* namespace nntrainer */
