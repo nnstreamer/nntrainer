@@ -273,6 +273,9 @@ int NeuralNetwork::loadFromConfig() {
     case LAYER_BN:
       layer = std::make_shared<BatchNormalizationLayer>();
       break;
+    case LAYER_ACTIVATION:
+      layer = std::make_shared<ActivationLayer>();
+      break;
     case LAYER_UNKNOWN:
     default:
       ml_loge("Error: Unknown layer type");
