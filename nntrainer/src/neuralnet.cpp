@@ -730,9 +730,7 @@ int NeuralNetwork::init() {
  * @brief     free layers
  */
 void NeuralNetwork::finalize() {
-  for (unsigned int i = 0; i < layers.size(); i++) {
-    layers.erase(layers.begin() + i);
-  }
+  layers.erase(layers.begin(), layers.end());
 
   if (data_buffer) {
     data_buffer->clear();
