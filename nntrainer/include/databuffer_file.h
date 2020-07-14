@@ -65,7 +65,7 @@ public:
    * @param[in] BufferType training, validation, test
    * @retval    void
    */
-  void updateData(BufferType type, int &status);
+  void updateData(BufferType type);
 
   /**
    * @brief     set train data file name

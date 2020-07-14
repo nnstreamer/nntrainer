@@ -65,8 +65,7 @@ int DataBuffer::run(BufferType type) {
 
     if (validation[DATA_TRAIN]) {
       this->train_running = true;
-      this->train_thread =
-        std::thread(&DataBuffer::updateData, this, type, std::ref(status));
+      this->train_thread = std::thread(&DataBuffer::updateData, this, type);
       if (globalExceptionPtr) {
         try {
           std::rethrow_exception(globalExceptionPtr);
@@ -82,8 +81,7 @@ int DataBuffer::run(BufferType type) {
       return ML_ERROR_INVALID_PARAMETER;
     if (validation[DATA_VAL]) {
       this->val_running = true;
-      this->val_thread =
-        std::thread(&DataBuffer::updateData, this, type, std::ref(status));
+      this->val_thread = std::thread(&DataBuffer::updateData, this, type);
       if (globalExceptionPtr) {
         try {
           std::rethrow_exception(globalExceptionPtr);
@@ -100,8 +98,7 @@ int DataBuffer::run(BufferType type) {
 
     if (validation[DATA_TEST]) {
       this->test_running = true;
-      this->test_thread =
-        std::thread(&DataBuffer::updateData, this, type, std::ref(status));
+      this->test_thread = std::thread(&DataBuffer::updateData, this, type);
       if (globalExceptionPtr) {
         try {
           std::rethrow_exception(globalExceptionPtr);
