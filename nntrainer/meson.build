@@ -1,4 +1,13 @@
-nntrainer_inc = include_directories('./include')
+nntrainer_inc = [
+  include_directories('./include')
+]
+
+# pc file is not present for 'ml-api-common' yet
+if cxx.has_header('nnstreamer/ml-api-common.h', required: false)
+  nntrainer_inc += include_directories ('/usr/include/nnstreamer')
+else
+  nntrainer_inc += include_directories ('../api/capi/include/platform')
+endif
 
 # Dependencies
 nntrainer_base_deps=[
