@@ -107,8 +107,7 @@ int DataBufferFromCallback::init() {
   return status;
 }
 
-int DataBufferFromCallback::setFunc(
-  BufferType type, std::function<bool(float *, float *, int *)> func) {
+int DataBufferFromCallback::setFunc(BufferType type, datagen_cb func) {
 
   int status = ML_ERROR_NONE;
   switch (type) {
@@ -143,7 +142,7 @@ void DataBufferFromCallback::updateData(BufferType type) {
   bool *running = NULL;
   std::vector<std::vector<float>> *data = NULL;
   std::vector<std::vector<float>> *datalabel = NULL;
-  std::function<bool(float *, float *, int *)> callback;
+  datagen_cb callback;
 
   switch (type) {
   case BUF_TRAIN: {
@@ -185,20 +184,27 @@ void DataBufferFromCallback::updateData(BufferType type) {
   }
   bool endflag = false;
 
+  float **vec_arr = (float **)malloc(sizeof(float *) * 1);
+  float **veclabel_arr = (float **)malloc(sizeof(float *) * 1);
+
   float *vec =
     (float *)malloc(sizeof(float) * input_dim.batch() * input_dim.channel() *
                     input_dim.height() * input_dim.width());
   float *veclabel =
     (float *)malloc(sizeof(float) * input_dim.batch() * class_num);
 
+  vec_arr[0] = vec;
+  veclabel_arr[0] = veclabel;
+
   while ((*running)) {
     trainReadyFlag = DATA_NOT_READY;
     valReadyFlag = DATA_NOT_READY;
     testReadyFlag = DATA_NOT_READY;
     if (buf_size - (*cur_size) > 0) {
-      endflag = callback(vec, veclabel, &status);
+      /** @todo Update to support multiple inputs later */
+      status = callback(vec_arr, veclabel_arr, &endflag);
 
-      if (endflag) {
+      if (status == ML_ERROR_NONE && !endflag) {
         for (unsigned int i = 0; i < input_dim.batch(); ++i) {
           std::vector<float> v;
           std::vector<float> vl;
@@ -227,15 +233,25 @@ void DataBufferFromCallback::updateData(BufferType type) {
       }
     }
 
-    if (buf_size == (*cur_size) || !endflag) {
+    if (buf_size == (*cur_size) || endflag) {
       switch (type) {
       case BUF_TRAIN: {
         std::lock_guard<std::mutex> lgtrain(readyTrainData);
-        if (!endflag) {
+        if (status != ML_ERROR_NONE) {
+          trainReadyFlag = DATA_ERROR;
+          cv_train.notify_all();
+          free(vec);
+          free(veclabel);
+          free(vec_arr);
+          free(veclabel_arr);
+          return;
+        } else if (endflag) {
           trainReadyFlag = DATA_END;
           cv_train.notify_all();
           free(vec);
           free(veclabel);
+          free(vec_arr);
+          free(veclabel_arr);
           return;
         } else {
           trainReadyFlag = DATA_READY;
@@ -245,11 +261,21 @@ void DataBufferFromCallback::updateData(BufferType type) {
       } break;
       case BUF_VAL: {
         std::lock_guard<std::mutex> lgval(readyValData);
-        if (!endflag) {
-          valReadyFlag = DATA_END;
-          cv_train.notify_all();
+        if (status != ML_ERROR_NONE) {
+          valReadyFlag = DATA_ERROR;
+          cv_val.notify_all();
           free(vec);
           free(veclabel);
+          free(vec_arr);
+          free(veclabel_arr);
+          return;
+        } else if (endflag) {
+          valReadyFlag = DATA_END;
+          cv_val.notify_all();
+          free(vec);
+          free(veclabel);
+          free(vec_arr);
+          free(veclabel_arr);
           return;
         } else {
           valReadyFlag = DATA_READY;
@@ -259,11 +285,21 @@ void DataBufferFromCallback::updateData(BufferType type) {
       } break;
       case BUF_TEST: {
         std::lock_guard<std::mutex> lgtest(readyTestData);
-        if (!endflag) {
+        if (status != ML_ERROR_NONE) {
+          testReadyFlag = DATA_ERROR;
+          cv_test.notify_all();
+          free(vec);
+          free(veclabel);
+          free(vec_arr);
+          free(veclabel_arr);
+          return;
+        } else if (endflag) {
           testReadyFlag = DATA_END;
           cv_test.notify_all();
           free(vec);
           free(veclabel);
+          free(vec_arr);
+          free(veclabel_arr);
           return;
         } else {
           testReadyFlag = DATA_READY;
@@ -278,6 +314,11 @@ void DataBufferFromCallback::updateData(BufferType type) {
   }
   free(vec);
   free(veclabel);
+}
+
+int DataBufferFromCallback::setProperty(const PropertyType type,
+                                        std::string &value) {
+  return DataBuffer::setProperty(type, value);
 }
 
 } /* namespace nntrainer */

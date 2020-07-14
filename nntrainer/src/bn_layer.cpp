@@ -64,7 +64,6 @@ int BatchNormalizationLayer::initialize(bool last) {
 int BatchNormalizationLayer::setOptimizer(Optimizer &opt) {
   this->opt.setType(opt.getType());
   this->opt.setOptParam(opt.getOptParam());
-  this->epsilon = epsilon;
   return this->opt.initialize(dim, false);
 }
 

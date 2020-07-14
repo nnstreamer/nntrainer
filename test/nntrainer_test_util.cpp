@@ -24,6 +24,7 @@
 #include "nntrainer_test_util.h"
 #include <climits>
 #include <iostream>
+#include <nntrainer_error.h>
 #include <random>
 #include <tensor.h>
 
@@ -110,14 +111,15 @@ static bool getData(std::ifstream &F, std::vector<float> &outVec,
  * @brief      get data which size is mini batch for train
  * @param[out] outVec
  * @param[out] outLabel
- * @param[out] status for error handling
- * @retval true/false
+ * @param[out] last if the data is finished
+ * @retval status for handling error
  */
-bool getMiniBatch_train(float *outVec, float *outLabel, int *status) {
+int getMiniBatch_train(float **outVec, float **outLabel, bool *last) {
   std::vector<int> memI;
   std::vector<int> memJ;
   unsigned int count = 0;
   unsigned int data_size = 0;
+  *last = true;
 
   std::string filename = "trainingSet.dat";
   std::ifstream F(filename, std::ios::in | std::ios::binary);
@@ -145,7 +147,8 @@ bool getMiniBatch_train(float *outVec, float *outLabel, int *status) {
   if (count < mini_batch) {
     free(duplicate);
     alloc_train = false;
-    return false;
+    *last = true;
+    return ML_ERROR_NONE;
   }
 
   count = 0;
@@ -168,28 +171,30 @@ bool getMiniBatch_train(float *outVec, float *outLabel, int *status) {
     getData(F, o, l, memI[i]);
 
     for (unsigned int j = 0; j < feature_size; ++j)
-      outVec[i * feature_size + j] = o[j];
+      outVec[0][i * feature_size + j] = o[j];
     for (unsigned int j = 0; j < num_class; ++j)
-      outLabel[i * num_class + j] = l[j];
+      outLabel[0][i * num_class + j] = l[j];
   }
 
   F.close();
-  return true;
+  *last = false;
+  return ML_ERROR_NONE;
 }
 
 /**
  * @brief      get data which size is mini batch for validation
  * @param[out] outVec
  * @param[out] outLabel
- * @param[out] status for error handling
- * @retval true/false false : end of data
+ * @param[out] last if the data is finished
+ * @retval status for handling error
  */
-bool getMiniBatch_val(float *outVec, float *outLabel, int *status) {
+int getMiniBatch_val(float **outVec, float **outLabel, bool *last) {
 
   std::vector<int> memI;
   std::vector<int> memJ;
   unsigned int count = 0;
   unsigned int data_size = 0;
+  *last = true;
 
   std::string filename = "trainingSet.dat";
   std::ifstream F(filename, std::ios::in | std::ios::binary);
@@ -217,7 +222,8 @@ bool getMiniBatch_val(float *outVec, float *outLabel, int *status) {
   if (count < mini_batch) {
     free(valduplicate);
     alloc_val = false;
-    return false;
+    *last = true;
+    return ML_ERROR_NONE;
   }
 
   count = 0;
@@ -240,13 +246,14 @@ bool getMiniBatch_val(float *outVec, float *outLabel, int *status) {
     getData(F, o, l, memI[i]);
 
     for (unsigned int j = 0; j < feature_size; ++j)
-      outVec[i * feature_size + j] = o[j];
+      outVec[0][i * feature_size + j] = o[j];
     for (unsigned int j = 0; j < num_class; ++j)
-      outLabel[i * num_class + j] = l[j];
+      outLabel[0][i * num_class + j] = l[j];
   }
 
   F.close();
-  return true;
+  *last = false;
+  return ML_ERROR_NONE;
 }
 
 /**

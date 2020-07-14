@@ -35,7 +35,7 @@ int main(int argc, char *argv[]) {
   status = ml_train_model_compile(handle, NULL);
   if (status != ML_ERROR_NONE)
     return status;
-  status = ml_nnmodel_train_with_file(handle, NULL);
+  status = ml_train_model_run(handle, NULL);
   if (status != ML_ERROR_NONE)
     return status;
   status = ml_train_model_destroy(handle);

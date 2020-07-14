@@ -31,7 +31,10 @@
 #include <stdlib.h>
 #include <time.h>
 
+#include "databuffer.h"
+#include "databuffer_func.h"
 #include "neuralnet.h"
+#include "nntrainer_error.h"
 #include "tensor.h"
 
 #define TRAINING true
@@ -132,10 +135,10 @@ bool getData(std::ifstream &F, std::vector<float> &outVec,
  * @brief      get data which size is mini batch for train
  * @param[out] outVec
  * @param[out] outLabel
- * @param[out] status for error handling
- * @retval true/false
+ * @param[out] last if the data is finished
+ * @retval status for handling error
  */
-bool getMiniBatch_train(float *outVec, float *outLabel, int *status) {
+int getMiniBatch_train(float **outVec, float **outLabel, bool *last) {
   std::vector<int> memI;
   std::vector<int> memJ;
   unsigned int count = 0;
@@ -153,7 +156,8 @@ bool getMiniBatch_train(float *outVec, float *outLabel, int *status) {
     for (unsigned int i = 0; i < total_label_size * data_size; ++i) {
       duplicate[i] = false;
     }
-    return false;
+    *last = true;
+    return ML_ERROR_NONE;
   }
 
   count = 0;
@@ -176,23 +180,24 @@ bool getMiniBatch_train(float *outVec, float *outLabel, int *status) {
     getData(F, o, l, memI[i]);
 
     for (unsigned int j = 0; j < feature_size; ++j)
-      outVec[i * feature_size + j] = o[j];
+      outVec[0][i * feature_size + j] = o[j];
     for (unsigned int j = 0; j < total_label_size; ++j)
-      outLabel[i * total_label_size + j] = l[j];
+      outLabel[0][i * total_label_size + j] = l[j];
   }
 
   F.close();
-  return true;
+  *last = false;
+  return ML_ERROR_NONE;
 }
 
 /**
  * @brief      get data which size is mini batch for validation
  * @param[out] outVec
  * @param[out] outLabel
- * @param[out] status for error handling
- * @retval true/false false : end of data
+ * @param[out] last if the data is finished
+ * @retval status for handling error
  */
-bool getMiniBatch_val(float *outVec, float *outLabel, int *status) {
+int getMiniBatch_val(float **outVec, float **outLabel, bool *last) {
 
   std::vector<int> memI;
   std::vector<int> memJ;
@@ -211,7 +216,8 @@ bool getMiniBatch_val(float *outVec, float *outLabel, int *status) {
     for (unsigned int i = 0; i < total_label_size * data_size; ++i) {
       valduplicate[i] = false;
     }
-    return false;
+    *last = true;
+    return ML_ERROR_NONE;
   }
 
   count = 0;
@@ -234,13 +240,14 @@ bool getMiniBatch_val(float *outVec, float *outLabel, int *status) {
     getData(F, o, l, memI[i]);
 
     for (unsigned int j = 0; j < feature_size; ++j)
-      outVec[i * feature_size + j] = o[j];
+      outVec[0][i * feature_size + j] = o[j];
     for (unsigned int j = 0; j < total_label_size; ++j)
-      outLabel[i * total_label_size + j] = l[j];
+      outLabel[0][i * total_label_size + j] = l[j];
   }
 
   F.close();
-  return true;
+  *last = false;
+  return ML_ERROR_NONE;
 }
 
 /**
@@ -272,17 +279,27 @@ int main(int argc, char *argv[]) {
   }
 
   /**
+   * @brief     Data buffer Create & Initialization
+   */
+  std::shared_ptr<nntrainer::DataBufferFromCallback> DB =
+    std::make_shared<nntrainer::DataBufferFromCallback>();
+  DB->setFunc(nntrainer::BUF_TRAIN, getMiniBatch_train);
+  DB->setFunc(nntrainer::BUF_VAL, getMiniBatch_val);
+
+  /**
    * @brief     Neural Network Create & Initialization
    */
-  nntrainer::NeuralNetwork NN(config);
+  nntrainer::NeuralNetwork NN;
+  NN.setConfig(config);
   NN.loadFromConfig();
   NN.init();
   NN.readModel();
+  NN.setDataBuffer((DB));
 
   /**
    * @brief     Neural Network Train & validation
    */
-  NN.train(getMiniBatch_train, getMiniBatch_val, nullptr);
+  NN.train();
 
   /**
    * @brief     Finalize NN

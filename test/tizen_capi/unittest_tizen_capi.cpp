@@ -259,7 +259,7 @@ TEST(nntrainer_capi_nnmodel, train_01_p) {
   int status = ML_ERROR_NONE;
   std::string config_file = "./test_train_01_p.ini";
   RESET_CONFIG(config_file.c_str());
-  replaceString("Input_Shape = 32:1:1:62720", "Input_Shape=32:1:1:62720",
+  replaceString("Input_Shape = 32:1:1:62720", "Input_Shape=16:1:1:62720",
                 config_file, config_str);
   replaceString("minibatch = 32", "minibatch = 16", config_file, config_str);
   replaceString("BufferSize=100", "", config_file, config_str);
@@ -267,7 +267,7 @@ TEST(nntrainer_capi_nnmodel, train_01_p) {
   EXPECT_EQ(status, ML_ERROR_NONE);
   status = ml_train_model_compile(handle, NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
-  status = ml_nnmodel_train_with_file(handle, NULL);
+  status = ml_train_model_run(handle, NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
   status = ml_train_model_destroy(handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -278,7 +278,7 @@ TEST(nntrainer_capi_nnmodel, train_01_p) {
  */
 TEST(nntrainer_capi_nnmodel, train_02_n) {
   int status = ML_ERROR_NONE;
-  status = ml_nnmodel_train_with_file(NULL, NULL);
+  status = ml_train_model_run(NULL, NULL);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
@@ -298,7 +298,7 @@ TEST(nntrainer_capi_nnmodel, train_03_n) {
   EXPECT_EQ(status, ML_ERROR_NONE);
   status = ml_train_model_compile(handle, NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
-  status = ml_nnmodel_train_with_file(handle, "loss=cross", NULL);
+  status = ml_train_model_run(handle, "loss=cross", NULL);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
   status = ml_train_model_destroy(handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -608,6 +608,7 @@ TEST(nntrainer_capi_nnmodel, train_with_file_01_p) {
   ml_train_model_h model;
   ml_train_layer_h layers[2];
   ml_train_optimizer_h optimizer;
+  ml_train_dataset_h dataset;
 
   status = ml_train_model_construct(&model);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -646,13 +647,22 @@ TEST(nntrainer_capi_nnmodel, train_with_file_01_p) {
   status = ml_train_model_set_optimizer(model, optimizer);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
+  status = ml_train_dataset_create_with_file(&dataset, "trainingSet.dat",
+                                             "valSet.dat", NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_dataset_set_property(dataset, "label_data=label.dat",
+                                         "buffer_size=100", NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_model_set_dataset(model, dataset);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
   status = ml_train_model_compile(model, "loss=cross", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_nnmodel_train_with_file(
-    model, "epochs=2", "batch_size=16", "train_data=trainingSet.dat",
-    "val_data=valSet.dat", "label_data=label.dat", "buffer_size=100",
-    "model_file=model.bin", NULL);
+  status = ml_train_model_run(model, "epochs=2", "batch_size=16",
+                              "model_file=model.bin", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_train_model_destroy(model);
@@ -668,6 +678,7 @@ TEST(nntrainer_capi_nnmodel, train_with_generator_01_p) {
   ml_train_model_h model;
   ml_train_layer_h layers[2];
   ml_train_optimizer_h optimizer;
+  ml_train_dataset_h dataset;
 
   status = ml_train_model_construct(&model);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -706,12 +717,21 @@ TEST(nntrainer_capi_nnmodel, train_with_generator_01_p) {
   status = ml_train_model_set_optimizer(model, optimizer);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
+  status = ml_train_dataset_create_with_generator(&dataset, getMiniBatch_train,
+                                                  getMiniBatch_val, NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_dataset_set_property(dataset, "buffer_size=100", NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_model_set_dataset(model, dataset);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
   status = ml_train_model_compile(model, "loss=cross", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_nnmodel_train_with_generator(
-    model, getMiniBatch_train, getMiniBatch_val, NULL, "epochs=2",
-    "batch_size=16", "buffer_size=100", "model_file=model.bin", NULL);
+  status = ml_train_model_run(model, "epochs=2", "batch_size=16",
+                              "model_file=model.bin", NULL);
 
   status = ml_train_model_destroy(model);
   EXPECT_EQ(status, ML_ERROR_NONE);

@@ -38,10 +38,11 @@ int main(int argc, char *argv[]) {
 
   int status = ML_ERROR_NONE;
 
-  /* handlers for model, layers & optimizer */
+  /* handlers for model, layers, optimizer and dataset */
   ml_train_model_h model;
   ml_train_layer_h layers[2];
   ml_train_optimizer_h optimizer;
+  ml_train_dataset_h dataset;
 
   /* model create */
   status = ml_train_model_construct(&model);
@@ -93,12 +94,24 @@ int main(int argc, char *argv[]) {
   status = ml_train_model_compile(model, "loss=cross", NULL);
   NN_RETURN_STATUS();
 
+  /* create dataset */
+  status = ml_train_dataset_create_with_file(&dataset, "trainingSet.dat",
+                                             "valSet.dat", NULL);
+  NN_RETURN_STATUS();
+
+  /* set property for dataset */
+  status = ml_train_dataset_set_property(dataset, "label_data=label.dat",
+                                         "buffer_size=100", NULL);
+  NN_RETURN_STATUS();
+
+  /* set dataset */
+  status = ml_train_model_set_dataset(model, dataset);
+  NN_RETURN_STATUS();
+
   /* train model with data files : epochs = 10 and store model file named
    * "model.bin" */
-  status = ml_nnmodel_train_with_file(
-    model, "epochs=10", "batch_size=32", "train_data=trainingSet.dat",
-    "val_data=trainingSet.dat", "label_data=label.dat", "buffer_size=100",
-    "model_file=model.bin", NULL);
+  status = ml_train_model_run(model, "epochs=10", "batch_size=32",
+                              "model_file=model.bin", NULL);
   NN_RETURN_STATUS();
 
   /* delete model */

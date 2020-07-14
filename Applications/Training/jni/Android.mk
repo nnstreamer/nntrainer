@@ -60,7 +60,7 @@ LOCAL_SRC_FILES := main.cpp bitmap_helpers.cpp
 
 LOCAL_SHARED_LIBRARIES := nntrainer
 
-LOCAL_STATIC_LIBRARIES := tensorflow-lite 
+LOCAL_STATIC_LIBRARIES := tensorflow-lite
 
 LOCAL_C_INCLUDES += $(TFLITE_INCLUDES) $(NNTRAINER_INCLUDES)
 

@@ -1,5 +1,6 @@
 nntrainer_inc = [
-  include_directories('./include')
+  include_directories('./include'),
+  include_directories('../api/capi/include')
 ]
 
 # pc file is not present for 'ml-api-common' yet

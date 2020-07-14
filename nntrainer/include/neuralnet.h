@@ -221,29 +221,11 @@ public:
    * mini batch size data per every call.
    * @param[in] test_func callback function to get test data. This provides
    * mini batch size data per every call.
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   */
-  int train(std::function<bool(float *, float *, int *)> function_train,
-            std::function<bool(float *, float *, int *)> function_val,
-            std::function<bool(float *, float *, int *)> function_test);
-
-  /**
-   * @brief     Run NeuralNetwork train with callback function by user
-   * @param[in] train_func callback function to get train data. This provides
-   * mini batch size data per every call.
-   * @param[in] val_func callback function to get validation data. This provides
-   * mini batch size data per every call.
-   * @param[in] test_func callback function to get test data. This provides
-   * mini batch size data per every call.
    * @param[in] values hyper-parameter list
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int train(std::function<bool(float *, float *, int *)> function_train,
-            std::function<bool(float *, float *, int *)> function_val,
-            std::function<bool(float *, float *, int *)> function_test,
-            std::vector<std::string> values);
+  int setDataBuffer(std::shared_ptr<DataBuffer> data_buffer);
 
   /**
    * @brief     check neural network whether the hyper-parameters are set.
@@ -286,16 +268,11 @@ public:
   enum class PropertyType {
     loss = 0,
     cost = 1,
-    train_data = 2,
-    val_data = 3,
-    test_data = 4,
-    label_data = 5,
-    buffer_size = 6,
-    batch_size = 7,
-    epochs = 8,
-    model_file = 9,
-    continue_train = 10,
-    unknown = 11,
+    batch_size = 2,
+    epochs = 3,
+    model_file = 4,
+    continue_train = 5,
+    unknown = 6
   };
 
 private:
