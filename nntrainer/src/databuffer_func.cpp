@@ -112,6 +112,8 @@ int DataBufferFromCallback::setFunc(BufferType type, datagen_cb func) {
   int status = ML_ERROR_NONE;
   switch (type) {
   case BUF_TRAIN:
+    if (!func)
+      return ML_ERROR_INVALID_PARAMETER;
     callback_train = func;
     if (func)
       validation[0] = true;
