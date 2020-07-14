@@ -31,10 +31,17 @@
 #include <functional>
 #include <iostream>
 #include <memory>
+#include <nntrainer.h>
 #include <thread>
 #include <vector>
 
 namespace nntrainer {
+
+/**
+ * @brief   Dataset generator callback type declaration
+ */
+typedef std::function<std::remove_pointer<ml_train_datagen_cb>::type>
+  datagen_cb;
 
 /**
  * @class   DataBufferFromCallback Data Buffer from callback given by user
@@ -45,7 +52,8 @@ public:
   /**
    * @brief     Constructor
    */
-  DataBufferFromCallback(){};
+  DataBufferFromCallback() :
+    DataBuffer(DataBufferType::DATA_BUFFER_GENERATOR){};
 
   /**
    * @brief     Destructor
@@ -66,8 +74,7 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int setFunc(BufferType type,
-              std::function<bool(float *, float *, int *)> func);
+  int setFunc(BufferType type, datagen_cb func);
 
   /**
    * @brief     Update Data Buffer ( it is for child thread )
@@ -75,6 +82,15 @@ public:
    * @retval    void
    */
   void updateData(BufferType type);
+
+  /**
+   * @brief     set property
+   * @param[in] type type of property
+   * @param[in] value string value of property
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  int setProperty(const PropertyType type, std::string &value);
 
 private:
   /**
@@ -86,9 +102,9 @@ private:
    * @retval true / false generate all data for this epoch
    *
    */
-  std::function<bool(float *, float *, int *)> callback_train;
-  std::function<bool(float *, float *, int *)> callback_val;
-  std::function<bool(float *, float *, int *)> callback_test;
+  datagen_cb callback_train;
+  datagen_cb callback_val;
+  datagen_cb callback_test;
 };
 } // namespace nntrainer
 #endif /* __cplusplus */

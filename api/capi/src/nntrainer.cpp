@@ -20,6 +20,9 @@
  * @author Jijoong Moon <jijoong.moon@samsung.com>
  * @bug No known bugs except for NYI items
  */
+#include <databuffer.h>
+#include <databuffer_file.h>
+#include <databuffer_func.h>
 #include <ml-api-common.h>
 #include <neuralnet.h>
 #include <nntrainer_internal.h>
@@ -73,9 +76,10 @@ static int nn_object(ml_train_model_h *model) {
   if (model == NULL)
     return ML_ERROR_INVALID_PARAMETER;
 
-  ml_nnmodel *nnmodel = new ml_nnmodel;
+  ml_train_model *nnmodel = new ml_train_model;
   nnmodel->magic = ML_NNTRAINER_MAGIC;
   nnmodel->optimizer = NULL;
+  nnmodel->dataset = NULL;
 
   *model = nnmodel;
 
@@ -101,7 +105,7 @@ int ml_train_model_construct(ml_train_model_h *model) {
 int ml_train_model_construct_with_conf(const char *model_conf,
                                        ml_train_model_h *model) {
   int status = ML_ERROR_NONE;
-  ml_nnmodel *nnmodel;
+  ml_train_model *nnmodel;
   std::shared_ptr<nntrainer::NeuralNetwork> NN;
   returnable f;
 
@@ -115,7 +119,7 @@ int ml_train_model_construct_with_conf(const char *model_conf,
   if (status != ML_ERROR_NONE)
     return status;
 
-  nnmodel = (ml_nnmodel *)(*model);
+  nnmodel = (ml_train_model *)(*model);
   NN = nnmodel->network;
 
   f = [&]() { return NN->setConfig(model_conf); };
@@ -137,7 +141,7 @@ int ml_train_model_construct_with_conf(const char *model_conf,
 int ml_train_model_compile(ml_train_model_h model, ...) {
   int status = ML_ERROR_NONE;
   const char *data;
-  ml_nnmodel *nnmodel;
+  ml_train_model *nnmodel;
   returnable f;
 
   ML_NNTRAINER_CHECK_MODEL_VALIDATION(nnmodel, model);
@@ -170,9 +174,9 @@ int ml_train_model_compile(ml_train_model_h model, ...) {
   return status;
 }
 
-int ml_nnmodel_train_with_file(ml_train_model_h model, ...) {
+int ml_train_model_run(ml_train_model_h model, ...) {
   int status = ML_ERROR_NONE;
-  ml_nnmodel *nnmodel;
+  ml_train_model *nnmodel;
   const char *data;
 
   std::vector<std::string> arg_list;
@@ -194,40 +198,9 @@ int ml_nnmodel_train_with_file(ml_train_model_h model, ...) {
   return status;
 }
 
-int ml_nnmodel_train_with_generator(ml_train_model_h model,
-                                    bool (*train_func)(float *, float *, int *),
-                                    bool (*val_func)(float *, float *, int *),
-                                    bool (*test_func)(float *, float *, int *),
-                                    ...) {
-  int status = ML_ERROR_NONE;
-  ml_nnmodel *nnmodel;
-  const char *data;
-
-  std::vector<std::string> arg_list;
-  va_list arguments;
-  va_start(arguments, (test_func));
-  while ((data = va_arg(arguments, const char *))) {
-    arg_list.push_back(data);
-  }
-
-  va_end(arguments);
-
-  ML_NNTRAINER_CHECK_MODEL_VALIDATION(nnmodel, model);
-  std::shared_ptr<nntrainer::NeuralNetwork> NN;
-  NN = nnmodel->network;
-
-  returnable f = [&]() {
-    return NN->train((train_func), (val_func), (test_func), arg_list);
-  };
-
-  status = nntrainer_exception_boundary(f);
-
-  return status;
-}
-
 int ml_train_model_destroy(ml_train_model_h model) {
   int status = ML_ERROR_NONE;
-  ml_nnmodel *nnmodel;
+  ml_train_model *nnmodel;
 
   ML_NNTRAINER_CHECK_MODEL_VALIDATION(nnmodel, model);
 
@@ -243,6 +216,8 @@ int ml_train_model_destroy(ml_train_model_h model) {
 
   if (nnmodel->optimizer)
     delete nnmodel->optimizer;
+  if (nnmodel->dataset)
+    delete nnmodel->dataset;
   for (auto &x : nnmodel->layers_map)
     delete (x.second);
   nnmodel->layers_map.clear();
@@ -253,11 +228,16 @@ int ml_train_model_destroy(ml_train_model_h model) {
 
 int ml_train_model_add_layer(ml_train_model_h model, ml_train_layer_h layer) {
   int status = ML_ERROR_NONE;
-  ml_nnmodel *nnmodel;
-  ml_nnlayer *nnlayer;
+  ml_train_model *nnmodel;
+  ml_train_layer *nnlayer;
 
   ML_NNTRAINER_CHECK_MODEL_VALIDATION(nnmodel, model);
   ML_NNTRAINER_CHECK_LAYER_VALIDATION(nnlayer, layer);
+
+  if (nnlayer->in_use) {
+    ml_loge("Layer already in use.");
+    return ML_ERROR_INVALID_PARAMETER;
+  }
 
   std::shared_ptr<nntrainer::NeuralNetwork> NN;
   std::shared_ptr<nntrainer::Layer> NL;
@@ -279,11 +259,16 @@ int ml_train_model_add_layer(ml_train_model_h model, ml_train_layer_h layer) {
 int ml_train_model_set_optimizer(ml_train_model_h model,
                                  ml_train_optimizer_h optimizer) {
   int status = ML_ERROR_NONE;
-  ml_nnmodel *nnmodel;
-  ml_nnopt *nnopt;
+  ml_train_model *nnmodel;
+  ml_train_optimizer *nnopt;
 
   ML_NNTRAINER_CHECK_MODEL_VALIDATION(nnmodel, model);
   ML_NNTRAINER_CHECK_OPT_VALIDATION(nnopt, optimizer);
+
+  if (nnopt->in_use) {
+    ml_loge("Optimizer already in use.");
+    return ML_ERROR_INVALID_PARAMETER;
+  }
 
   std::shared_ptr<nntrainer::NeuralNetwork> NN;
   std::shared_ptr<nntrainer::Optimizer> opt;
@@ -304,16 +289,49 @@ int ml_train_model_set_optimizer(ml_train_model_h model,
   return status;
 }
 
+int ml_train_model_set_dataset(ml_train_model_h model,
+                               ml_train_dataset_h dataset) {
+  int status = ML_ERROR_NONE;
+  ml_train_model *nnmodel;
+  ml_train_dataset *nndataset;
+
+  ML_NNTRAINER_CHECK_MODEL_VALIDATION(nnmodel, model);
+  ML_NNTRAINER_CHECK_DATASET_VALIDATION(nndataset, dataset);
+
+  if (nndataset->in_use) {
+    ml_loge("Dataset already in use.");
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
+  std::shared_ptr<nntrainer::NeuralNetwork> NN;
+  std::shared_ptr<nntrainer::DataBuffer> data;
+
+  NN = nnmodel->network;
+  data = nndataset->data_buffer;
+
+  returnable f = [&]() { return NN->setDataBuffer(data); };
+
+  status = nntrainer_exception_boundary(f);
+  if (status == ML_ERROR_NONE) {
+    nndataset->in_use = true;
+    if (nnmodel->dataset)
+      nnmodel->dataset->in_use = false;
+    nnmodel->dataset = nndataset;
+  }
+
+  return status;
+}
+
 int ml_train_model_get_layer(ml_train_model_h model, const char *layer_name,
                              ml_train_layer_h *layer) {
   int status = ML_ERROR_NONE;
-  ml_nnmodel *nnmodel;
+  ml_train_model *nnmodel;
   ML_NNTRAINER_CHECK_MODEL_VALIDATION(nnmodel, model);
 
   std::shared_ptr<nntrainer::NeuralNetwork> NN;
   std::shared_ptr<nntrainer::Layer> NL;
 
-  std::unordered_map<std::string, ml_nnlayer *>::iterator layer_iter =
+  std::unordered_map<std::string, ml_train_layer *>::iterator layer_iter =
     nnmodel->layers_map.find(std::string(layer_name));
   /** if layer found in layers_map, return layer */
   if (layer_iter != nnmodel->layers_map.end()) {
@@ -332,7 +350,7 @@ int ml_train_model_get_layer(ml_train_model_h model, const char *layer_name,
   if (status != ML_ERROR_NONE)
     return status;
 
-  ml_nnlayer *nnlayer = new ml_nnlayer;
+  ml_train_layer *nnlayer = new ml_train_layer;
   nnlayer->magic = ML_NNTRAINER_MAGIC;
   nnlayer->layer = NL;
   nnlayer->in_use = true;
@@ -345,7 +363,7 @@ int ml_train_model_get_layer(ml_train_model_h model, const char *layer_name,
 int ml_train_layer_create(ml_train_layer_h *layer, ml_train_layer_type_e type) {
   int status = ML_ERROR_NONE;
   returnable f;
-  ml_nnlayer *nnlayer = new ml_nnlayer;
+  ml_train_layer *nnlayer = new ml_train_layer;
   nnlayer->magic = ML_NNTRAINER_MAGIC;
 
   try {
@@ -375,7 +393,7 @@ int ml_train_layer_create(ml_train_layer_h *layer, ml_train_layer_type_e type) {
 
 int ml_train_layer_destroy(ml_train_layer_h layer) {
   int status = ML_ERROR_NONE;
-  ml_nnlayer *nnlayer;
+  ml_train_layer *nnlayer;
 
   ML_NNTRAINER_CHECK_LAYER_VALIDATION(nnlayer, layer);
 
@@ -392,7 +410,7 @@ int ml_train_layer_destroy(ml_train_layer_h layer) {
 
 int ml_train_layer_set_property(ml_train_layer_h layer, ...) {
   int status = ML_ERROR_NONE;
-  ml_nnlayer *nnlayer;
+  ml_train_layer *nnlayer;
   const char *data;
 
   ML_NNTRAINER_CHECK_LAYER_VALIDATION(nnlayer, layer);
@@ -420,7 +438,7 @@ int ml_train_optimizer_create(ml_train_optimizer_h *optimizer,
                               ml_train_optimizer_type_e type) {
   int status = ML_ERROR_NONE;
 
-  ml_nnopt *nnopt = new ml_nnopt;
+  ml_train_optimizer *nnopt = new ml_train_optimizer;
   nnopt->magic = ML_NNTRAINER_MAGIC;
   nnopt->optimizer = std::make_shared<nntrainer::Optimizer>();
   nnopt->in_use = false;
@@ -441,7 +459,7 @@ int ml_train_optimizer_create(ml_train_optimizer_h *optimizer,
 
 int ml_train_optimizer_destroy(ml_train_optimizer_h optimizer) {
   int status = ML_ERROR_NONE;
-  ml_nnopt *nnopt;
+  ml_train_optimizer *nnopt;
 
   ML_NNTRAINER_CHECK_OPT_VALIDATION(nnopt, optimizer);
 
@@ -457,9 +475,9 @@ int ml_train_optimizer_destroy(ml_train_optimizer_h optimizer) {
 
 int ml_train_optimizer_set_property(ml_train_optimizer_h optimizer, ...) {
   int status = ML_ERROR_NONE;
-  ml_nnopt *nnopt;
+  ml_train_optimizer *nnopt;
   const char *data;
-  nnopt = (ml_nnopt *)optimizer;
+  nnopt = (ml_train_optimizer *)optimizer;
   ML_NNTRAINER_CHECK_OPT_VALIDATION(nnopt, optimizer);
 
   std::vector<std::string> arg_list;
@@ -480,6 +498,122 @@ int ml_train_optimizer_set_property(ml_train_optimizer_h optimizer, ...) {
 
   status = nntrainer_exception_boundary(f);
 
+  return status;
+}
+
+int ml_train_dataset_create_with_generator(ml_train_dataset_h *dataset,
+                                           ml_train_datagen_cb train_cb,
+                                           ml_train_datagen_cb valid_cb,
+                                           ml_train_datagen_cb test_cb) {
+  int status = ML_ERROR_NONE;
+
+  std::shared_ptr<nntrainer::DataBufferFromCallback> data_buffer =
+    std::make_shared<nntrainer::DataBufferFromCallback>();
+
+  status = data_buffer->setFunc(nntrainer::BUF_TRAIN, train_cb);
+  if (status != ML_ERROR_NONE) {
+    return status;
+  }
+
+  status = data_buffer->setFunc(nntrainer::BUF_VAL, valid_cb);
+  if (status != ML_ERROR_NONE) {
+    return status;
+  }
+
+  status = data_buffer->setFunc(nntrainer::BUF_TEST, test_cb);
+  if (status != ML_ERROR_NONE) {
+    return status;
+  }
+
+  ml_train_dataset *nndataset = new ml_train_dataset;
+  nndataset->magic = ML_NNTRAINER_MAGIC;
+  nndataset->data_buffer = data_buffer;
+  nndataset->in_use = false;
+
+  *dataset = nndataset;
+  return status;
+}
+
+int ml_train_dataset_create_with_file(ml_train_dataset_h *dataset,
+                                      const char *train_file,
+                                      const char *valid_file,
+                                      const char *test_file) {
+  int status = ML_ERROR_NONE;
+
+  std::shared_ptr<nntrainer::DataBufferFromDataFile> data_buffer =
+    std::make_shared<nntrainer::DataBufferFromDataFile>();
+
+  if (train_file) {
+    status = data_buffer->setDataFile(train_file, nntrainer::DATA_TRAIN);
+    if (status != ML_ERROR_NONE) {
+      return status;
+    }
+  } else {
+    ml_loge("Train data file must be valid.");
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
+  if (valid_file) {
+    status = data_buffer->setDataFile(valid_file, nntrainer::DATA_VAL);
+    if (status != ML_ERROR_NONE) {
+      return status;
+    }
+  }
+
+  if (test_file) {
+    status = data_buffer->setDataFile(test_file, nntrainer::DATA_TEST);
+    if (status != ML_ERROR_NONE) {
+      return status;
+    }
+  }
+
+  ml_train_dataset *nndataset = new ml_train_dataset;
+  nndataset->magic = ML_NNTRAINER_MAGIC;
+  nndataset->data_buffer = data_buffer;
+  nndataset->in_use = false;
+
+  *dataset = nndataset;
+  return status;
+}
+
+int ml_train_dataset_set_property(ml_train_dataset_h dataset, ...) {
+  int status = ML_ERROR_NONE;
+  ml_train_dataset *nndataset;
+  const char *data;
+
+  ML_NNTRAINER_CHECK_DATASET_VALIDATION(nndataset, dataset);
+
+  std::vector<std::string> arg_list;
+  va_list arguments;
+  va_start(arguments, dataset);
+
+  while ((data = va_arg(arguments, const char *))) {
+    arg_list.push_back(data);
+  }
+
+  va_end(arguments);
+
+  returnable f = [&]() {
+    return nndataset->data_buffer->setProperty(arg_list);
+  };
+  status = nntrainer_exception_boundary(f);
+
+  return status;
+}
+
+int ml_train_dataset_destroy(ml_train_dataset_h dataset) {
+  int status = ML_ERROR_NONE;
+  ml_train_dataset *nndataset;
+
+  ML_NNTRAINER_CHECK_DATASET_VALIDATION(nndataset, dataset);
+
+  if (nndataset->in_use) {
+    ml_loge("Cannot delete dataset already set to a model."
+            "Delete model will delete this dataset.");
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
+  delete nndataset;
   return status;
 }
 

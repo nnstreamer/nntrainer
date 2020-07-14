@@ -56,6 +56,12 @@ typedef void *ml_train_layer_h;
 typedef void *ml_train_optimizer_h;
 
 /**
+ * @brief A handle of an NNTrainer dataset.
+ * @since_tizen 6.x
+ */
+typedef void *ml_train_dataset_h;
+
+/**
  * @brief Enumeration for the neural network layer type of NNTrainer.
  * @since_tizen 6.x
  */
@@ -86,6 +92,26 @@ typedef enum {
   ML_TRAIN_SUMMARY_TENSOR /**< Model summary layer's including weight
                              information */
 } ml_train_summary_type_e;
+
+/**
+ * @brief Dataset generator callback function for train/valid/test data.
+ * @details The Containers passed will already be allocated with sufficient
+ * space to contain the data by the caller. This function should return a batch
+ * of input and label of data in the passed containers. The callback should fill
+ * the data row-wise in the containers obliging to the input shape set for the
+ * model. The order of the inputs in case of multiple input layers will be
+ * determined based on the sequence of addition of the input layers to the
+ * model.
+ * @note This function can be called multiple times in parallel.
+ * @param[out] input Container to hold all the input data.
+ * @param[out] label Container to hold corresponding label data.
+ * @param[out] last Container to notify if data is finished. Set true if no more
+ * data to provide, else set false.
+ * @return @c 0 on success. Otherwise a negative error value.
+ * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter.
+ */
+typedef int (*ml_train_datagen_cb)(float **input, float **label, bool *last);
 
 /**
  * @brief Constructs the neural network model.
@@ -128,8 +154,10 @@ int ml_train_model_construct_with_conf(const char *model_conf,
 int ml_train_model_compile(ml_train_model_h model, ...);
 
 /**
- * @brief train the neural network model.
- * @details Use this function to train neural network model
+ * @brief Train the neural network model.
+ * @details Use this function to train the compiled neural network model with
+ * the passed training hyperparameters. This function will return once the
+ * training along with requested validation and testing is completed.
  * @since_tizen 6.x
  * @param[in] model The NNTrainer model handler from the given description.
  * @param[in] ...  hyper parmeter for train model
@@ -137,26 +165,7 @@ int ml_train_model_compile(ml_train_model_h model, ...);
  * @retval #ML_ERROR_NONE Successful.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter.
  */
-int ml_nnmodel_train_with_file(ml_train_model_h model, ...);
-
-/**
- * @brief train the neural network model.
- * @details Use this function to train neural network model
- * @since_tizen 6.x
- * @param[in] model The NNTrainer model handler from the given description.
- * @param[in] train_func function pointer for train
- * @param[in] val_func function pointer for val
- * @param[in] test_func function pointer for test
- * @param[in] ...  hyper parmeter for train model
- * @return @c 0 on success. Otherwise a negative error value.
- * @retval #ML_ERROR_NONE Successful.
- * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter.
- */
-int ml_nnmodel_train_with_generator(ml_train_model_h model,
-                                    bool (*train_func)(float *, float *, int *),
-                                    bool (*val_func)(float *, float *, int *),
-                                    bool (*test_func)(float *, float *, int *),
-                                    ...);
+int ml_train_model_run(ml_train_model_h model, ...);
 
 /**
  * @brief Destructs the neural network model.
@@ -215,6 +224,22 @@ int ml_train_model_add_layer(ml_train_model_h model, ml_train_layer_h layer);
  */
 int ml_train_model_set_optimizer(ml_train_model_h model,
                                  ml_train_optimizer_h optimizer);
+
+/**
+ * @brief Set the dataset (data provider) for the neural network model.
+ * @details Use this function to set dataset for running the model. The dataset
+ * will provide training, validation and test data for the model. Unsets the
+ * previous dataset if any. This transfers the ownership of the dataset to
+ * the network. No need to delete the dataset once it is set to a model.
+ * @since_tizen 6.x
+ * @param[in] model The NNTrainer model handler.
+ * @param[in] dataset The NNTrainer dataset handler.
+ * @return @c 0 on success. Otherwise a negative error value.
+ * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter.
+ */
+int ml_train_model_set_dataset(ml_train_model_h model,
+                               ml_train_dataset_h dataset);
 
 /**
  * @brief Create the neural network layer.
@@ -291,6 +316,68 @@ int ml_train_optimizer_destroy(ml_train_optimizer_h optimizer);
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
  */
 int ml_train_optimizer_set_property(ml_train_optimizer_h optimizer, ...);
+
+/**
+ * @brief Create a dataset with generators to feed to a neural network.
+ * @details Use this function to create a Neural Network Dataset using
+ * generators. The generators will provide data representing a single input
+ * batch. When setting this dataset to a model, the data generated by the
+ * generators should match the input and the label shape for the model.
+ * @since_tizen 6.x
+ * @param[out] dataset The NNTrainer Dataset handler from the given description.
+ * @param[in] train_cb The dataset generator for training.
+ * @param[in] valid_cb The dataset generator for validating. Can be null.
+ * @param[in] test_cb The dataset generator for testing. Can be null.
+ * @return @c 0 on success. Otherwise a negative error value.
+ * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter.
+ */
+int ml_train_dataset_create_with_generator(ml_train_dataset_h *dataset,
+                                           ml_train_datagen_cb train_cb,
+                                           ml_train_datagen_cb valid_cb,
+                                           ml_train_datagen_cb test_cb);
+
+/**
+ * @brief Create a dataset with files to feed to a neural network.
+ * @details Use this function to create a Neural Network Dataset using
+ * files.
+ * @since_tizen 6.x
+ * @param[out] dataset The NNTrainer Dataset handler from the given description.
+ * @param[in] train_fle The dataset file for training.
+ * @param[in] valid_file The dataset file for validating. Can be null.
+ * @param[in] test_file The dataset file for testing. Can be null.
+ * @return @c 0 on success. Otherwise a negative error value.
+ * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter.
+ */
+int ml_train_dataset_create_with_file(ml_train_dataset_h *dataset,
+                                      const char *train_file,
+                                      const char *valid_file,
+                                      const char *test_file);
+
+/**
+ * @brief Destroy the neural network dataset.
+ * @details Use this function to destroy dataset. Fails if dataset is owned by a
+ * model.
+ * @since_tizen 6.x
+ * @param[in] dataset The NNTrainer dataset handler.
+ * @return @c 0 on success. Otherwise a negative error value.
+ * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter.
+ */
+int ml_train_dataset_destroy(ml_train_dataset_h dataset);
+
+/**
+ * @brief Set the neural network dataset Property.
+ * @details Use this function to set dataset Property.
+ * @since_tizen 6.x
+ * @param[in] dataset The NNTrainer dataset handler.
+ * @param[in]  ... Property values with NULL for termination.
+ * @return @c 0 on success. Otherwise a negative error value.
+ * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
+ */
+int ml_train_dataset_set_property(ml_train_dataset_h dataset, ...);
 
 /**
  * @}

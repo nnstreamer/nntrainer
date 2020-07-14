@@ -31,6 +31,7 @@
 #include <mutex>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
+#include <parse_util.h>
 #include <sstream>
 #include <stdexcept>
 #include <stdio.h>
@@ -399,6 +400,46 @@ void DataBuffer::displayProgress(const int count, BufferType type, float loss) {
   }
 
   std::cout.flush();
+}
+
+int DataBuffer::setProperty(std::vector<std::string> values) {
+  int status = ML_ERROR_NONE;
+
+  for (unsigned int i = 0; i < values.size(); ++i) {
+    std::string key;
+    std::string value;
+    status = getKeyValue(values[i], key, value);
+    NN_RETURN_STATUS();
+
+    unsigned int type = parseDataProperty(key);
+    if (value.empty())
+      return ML_ERROR_INVALID_PARAMETER;
+
+    status = setProperty(static_cast<PropertyType>(type), value);
+    NN_RETURN_STATUS();
+  }
+
+  return status;
+}
+
+int DataBuffer::setProperty(const PropertyType type, std::string &value) {
+  int status = ML_ERROR_NONE;
+
+  switch (type) {
+  case PropertyType::buffer_size:
+    int size;
+    status = setInt(size, value);
+    NN_RETURN_STATUS();
+    status = this->setBufSize(size);
+    NN_RETURN_STATUS();
+    break;
+  default:
+    ml_loge("Error: Unknown Data Buffer Property Key");
+    status = ML_ERROR_INVALID_PARAMETER;
+    break;
+  }
+
+  return status;
 }
 
 } /* namespace nntrainer */

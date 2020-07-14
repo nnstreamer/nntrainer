@@ -9,7 +9,9 @@ endif
 
 ifndef NNTRAINER_ROOT
 NNTRAINER_ROOT := $(LOCAL_PATH)/../../../libs/arm64-v8a
-NNTRAINER_INCLUDES := $(LOCAL_PATH)/../../../nntrainer/include
+NNTRAINER_INCLUDES := $(LOCAL_PATH)/../../../nntrainer/include \
+	$(LOCAL_PATH)/../../../api/capi/include \
+	$(LOCAL_PATH)/../../../api/capi/include/platform
 endif
 
 NNTRAINER_APPLICATION := $(LOCAL_PATH)/../..
@@ -45,7 +47,7 @@ include $(PREBUILT_SHARED_LIBRARY)
 
 include $(CLEAR_VARS)
 LOCAL_ARM_NEON := true
-LOCAL_CFLAGS += -std=c++14 -Ofast -mcpu=cortex-a53 -Ilz4-nougat/lib 
+LOCAL_CFLAGS += -std=c++14 -Ofast -mcpu=cortex-a53 -Ilz4-nougat/lib
 LOCAL_LDFLAGS += -Llz4-nougat/lib/obj/local/arm64-v8a/
 LOCAL_CXXFLAGS += -std=c++14
 LOCAL_CFLAGS += -pthread -fopenmp -fexceptions

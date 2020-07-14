@@ -36,7 +36,7 @@
 #include <util_func.h>
 #include <vector>
 
-/*
+/**
  * @brief Number of Data Set
  */
 #define NBUFTYPE 4
@@ -107,6 +107,18 @@ typedef enum {
 } DataType;
 
 /**
+ * @brief     Enumeration for data buffer type
+ *            0. DATA_BUFFER_GENERATOR
+ *            1. DATA_BUFFER_FILE
+ *            2. DATA_BUFFER_UNKNOWN
+ */
+typedef enum {
+  DATA_BUFFER_GENERATOR,
+  DATA_BUFFER_FILE,
+  DATA_BUFFER_UNKNOWN
+} DataBufferType;
+
+/**
  * @class   DataBuffer Data Buffers
  * @brief   Data Buffer for read and manage data
  */
@@ -116,13 +128,14 @@ public:
    * @brief     Create Buffer
    * @retval    DataBuffer
    */
-  DataBuffer() :
+  DataBuffer(DataBufferType type) :
     train_running(),
     val_running(),
     test_running(),
     train_thread(),
     val_thread(),
-    test_thread() {
+    test_thread(),
+    data_buffer_type(type) {
     SET_VALIDATION(false);
     class_num = 0;
     cur_train_bufsize = 0;
@@ -264,11 +277,28 @@ public:
   bool *getValidation() { return validation; }
 
   /**
+   * @brief     set property
+   * @param[in] values values of property
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  int setProperty(std::vector<std::string> values);
+
+  /**
    * @brief     status of thread
    */
   DataStatus trainReadyFlag;
   DataStatus valReadyFlag;
   DataStatus testReadyFlag;
+
+  enum class PropertyType {
+    train_data = 0,
+    val_data = 1,
+    test_data = 2,
+    label_data = 3,
+    buffer_size = 4,
+    unknown = 5
+  };
 
 protected:
   /**
@@ -354,6 +384,21 @@ protected:
   int rangeRandom(int min, int max);
 
   std::mt19937 rng;
+
+  /**
+   * @brief     The type of data buffer
+   */
+  DataBufferType data_buffer_type;
+
+  /**
+   * @brief     set property
+   * @param[in] type type of property
+   * @param[in] value string value of property
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  virtual int setProperty(const DataBuffer::PropertyType type,
+                          std::string &value);
 };
 
 } // namespace nntrainer

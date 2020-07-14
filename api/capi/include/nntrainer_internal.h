@@ -13,11 +13,12 @@
  */
 /**
  * @file nntrainer_internal.h
- * @date 02 April 2020
+ * @date 13 April 2020
  * @brief NNTrainer C-API Internal Header.
  *        This allows to construct and control NNTrainer Model.
  * @see	https://github.com/nnstreamer/nntrainer
  * @author Jijoong Moon <jijoong.moon@samsung.com>
+ * @author Parichay Kapoor <pk.kapoor@samsung.com>
  * @bug No known bugs except for NYI items
  */
 
@@ -38,63 +39,71 @@
 extern "C" {
 #endif /* __cplusplus */
 
+/**
+ * @brief Struct to wrap neural network layer for the API
+ */
 typedef struct {
   uint magic;
   std::shared_ptr<nntrainer::Layer> layer;
   bool in_use;
-} ml_nnlayer;
+} ml_train_layer;
 
+/**
+ * @brief Struct to wrap neural network optimizer for the API
+ */
 typedef struct {
   uint magic;
   std::shared_ptr<nntrainer::Optimizer> optimizer;
   bool in_use;
-} ml_nnopt;
+} ml_train_optimizer;
 
+/**
+ * @brief Struct to wrap data buffer for the API
+ */
+typedef struct {
+  uint magic;
+  std::shared_ptr<nntrainer::DataBuffer> data_buffer;
+  bool in_use;
+} ml_train_dataset;
+
+/**
+ * @brief Struct to wrap neural network model for the API
+ */
 typedef struct {
   uint magic;
   std::shared_ptr<nntrainer::NeuralNetwork> network;
-  std::unordered_map<std::string, ml_nnlayer *> layers_map;
-  ml_nnopt *optimizer;
-} ml_nnmodel;
+  std::unordered_map<std::string, ml_train_layer *> layers_map;
+  ml_train_optimizer *optimizer;
+  ml_train_dataset *dataset;
+} ml_train_model;
 
-#define ML_NNTRAINER_CHECK_MODEL_VALIDATION(nnmodel, model)      \
-  do {                                                           \
-    if (!model) {                                                \
-      ml_loge("Error: Invalid Parameter : model is empty.");     \
-      return ML_ERROR_INVALID_PARAMETER;                         \
-    }                                                            \
-    nnmodel = (ml_nnmodel *)model;                               \
-    if (nnmodel->magic != ML_NNTRAINER_MAGIC) {                  \
-      ml_loge("Error: Invalid Parameter : nnmodel is invalid."); \
-      return ML_ERROR_INVALID_PARAMETER;                         \
-    }                                                            \
+/**
+ * @brief     Check validity of the user passed arguments
+ */
+#define ML_NNTRAINER_CHECK_VALIDATION(obj, obj_h, obj_type, obj_name) \
+  do {                                                                \
+    if (!obj_h) {                                                     \
+      ml_loge("Error: Invalid Parameter : %s is empty.", obj_name);   \
+      return ML_ERROR_INVALID_PARAMETER;                              \
+    }                                                                 \
+    obj = (obj_type *)obj_h;                                          \
+    if (obj->magic != ML_NNTRAINER_MAGIC) {                           \
+      ml_loge("Error: Invalid Parameter : %s is invalid.", obj_name); \
+      return ML_ERROR_INVALID_PARAMETER;                              \
+    }                                                                 \
   } while (0)
 
-#define ML_NNTRAINER_CHECK_LAYER_VALIDATION(nnlayer, layer)      \
-  do {                                                           \
-    if (!layer) {                                                \
-      ml_loge("Error: Invalid Parameter : layer is empty.");     \
-      return ML_ERROR_INVALID_PARAMETER;                         \
-    }                                                            \
-    nnlayer = (ml_nnlayer *)layer;                               \
-    if (nnlayer->magic != ML_NNTRAINER_MAGIC) {                  \
-      ml_loge("Error: Invalid Parameter : nnlayer is invalid."); \
-      return ML_ERROR_INVALID_PARAMETER;                         \
-    }                                                            \
-  } while (0)
+#define ML_NNTRAINER_CHECK_MODEL_VALIDATION(nnmodel, model) \
+  ML_NNTRAINER_CHECK_VALIDATION(nnmodel, model, ml_train_model, "model")
 
-#define ML_NNTRAINER_CHECK_OPT_VALIDATION(nnopt, opt)                \
-  do {                                                               \
-    if (!opt) {                                                      \
-      ml_loge("Error: Invalid Parameter : optimizer is empty.");     \
-      return ML_ERROR_INVALID_PARAMETER;                             \
-    }                                                                \
-    nnopt = (ml_nnopt *)opt;                                         \
-    if (nnopt->magic != ML_NNTRAINER_MAGIC) {                        \
-      ml_loge("Error: Invalid Parameter : nnoptimizer is invalid."); \
-      return ML_ERROR_INVALID_PARAMETER;                             \
-    }                                                                \
-  } while (0)
+#define ML_NNTRAINER_CHECK_LAYER_VALIDATION(nnlayer, layer) \
+  ML_NNTRAINER_CHECK_VALIDATION(nnlayer, layer, ml_train_layer, "layer")
+
+#define ML_NNTRAINER_CHECK_OPT_VALIDATION(nnopt, opt) \
+  ML_NNTRAINER_CHECK_VALIDATION(nnopt, opt, ml_train_optimizer, "optimizer")
+
+#define ML_NNTRAINER_CHECK_DATASET_VALIDATION(nndataset, dataset) \
+  ML_NNTRAINER_CHECK_VALIDATION(nndataset, dataset, ml_train_dataset, "dataset")
 
 /**
  * @brief Get neural network layer from the model with the given name.

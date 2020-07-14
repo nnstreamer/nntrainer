@@ -31,8 +31,8 @@ static bool *valduplicate;
 static bool alloc_train = false;
 static bool alloc_val = false;
 
-bool gen_data_train(float *outVec, float *outLabel, int *status);
-bool gen_data_val(float *outVec, float *outLabel, int *status);
+int gen_data_train(float **outVec, float **outLabel, bool *last);
+int gen_data_val(float **outVec, float **outLabel, bool *last);
 bool file_exists(const char *filename);
 
 bool file_exists(const char *filename) {
@@ -120,7 +120,7 @@ static bool get_data(const char *file_name, float *outVec, float *outLabel,
  * @param[out] status for error handling
  * @retval true/false
  */
-bool gen_data_train(float *outVec, float *outLabel, int *status) {
+int gen_data_train(float **outVec, float **outLabel, bool *last) {
   int memI[mini_batch];
   long file_size;
   unsigned int count = 0;
@@ -132,7 +132,7 @@ bool gen_data_train(float *outVec, float *outLabel, int *status) {
 
   if (!file_exists(file_name)) {
     printf("%s does not exists\n", file_name);
-    return false;
+    return ML_ERROR_INVALID_PARAMETER;
   }
 
   file = fopen(file_name, "r");
@@ -162,7 +162,8 @@ bool gen_data_train(float *outVec, float *outLabel, int *status) {
     }
     free(duplicate);
     alloc_train = false;
-    return false;
+    *last = true;
+    return ML_ERROR_NONE;
   }
 
   count = 0;
@@ -182,22 +183,23 @@ bool gen_data_train(float *outVec, float *outLabel, int *status) {
     get_data(file_name, o, l, memI[i], file_size);
 
     for (j = 0; j < feature_size; ++j)
-      outVec[i * feature_size + j] = o[j];
+      outVec[0][i * feature_size + j] = o[j];
     for (j = 0; j < num_class; ++j)
-      outLabel[i * num_class + j] = l[j];
+      outLabel[0][i * num_class + j] = l[j];
   }
 
-  return true;
+  *last = false;
+  return ML_ERROR_NONE;
 }
 
 /**
  * @brief      get data which size is mini batch for validation
  * @param[out] outVec
  * @param[out] outLabel
- * @param[out] status for error handling
- * @retval true/false false : end of data
+ * @param[out] last if the data is finished
+ * @retval status for handling error
  */
-bool gen_data_val(float *outVec, float *outLabel, int *status) {
+int gen_data_val(float **outVec, float **outLabel, bool *last) {
 
   int memI[mini_batch];
   unsigned int i, j;
@@ -230,7 +232,8 @@ bool gen_data_val(float *outVec, float *outLabel, int *status) {
   if (count < mini_batch) {
     free(valduplicate);
     alloc_val = false;
-    return false;
+    *last = true;
+    return ML_ERROR_NONE;
   }
 
   count = 0;
@@ -250,22 +253,24 @@ bool gen_data_val(float *outVec, float *outLabel, int *status) {
     get_data(file_name, o, l, memI[i], file_size);
 
     for (j = 0; j < feature_size; ++j)
-      outVec[i * feature_size + j] = o[j];
+      outVec[0][i * feature_size + j] = o[j];
     for (j = 0; j < num_class; ++j)
-      outLabel[i * num_class + j] = l[j];
+      outLabel[0][i * num_class + j] = l[j];
   }
 
-  return true;
+  *last = false;
+  return ML_ERROR_NONE;
 }
 
 int main(int argc, char *argv[]) {
 
   int status = ML_ERROR_NONE;
 
-  /* handlers for model, layers & optimizer */
+  /* handlers for model, layers, optimizer and dataset */
   ml_train_model_h model;
   ml_train_layer_h layers[2];
   ml_train_optimizer_h optimizer;
+  ml_train_dataset_h dataset;
 
   /* model create */
   status = ml_train_model_construct(&model);
@@ -317,11 +322,23 @@ int main(int argc, char *argv[]) {
   status = ml_train_model_compile(model, "loss=cross", NULL);
   NN_RETURN_STATUS();
 
+  /* create dataset */
+  status = ml_train_dataset_create_with_generator(&dataset, gen_data_train,
+                                                  gen_data_val, NULL);
+  NN_RETURN_STATUS();
+
+  /* set property for dataset */
+  status = ml_train_dataset_set_property(dataset, "buffer_size=32", NULL);
+  NN_RETURN_STATUS();
+
+  /* set dataset */
+  status = ml_train_model_set_dataset(model, dataset);
+  NN_RETURN_STATUS();
+
   /* train model with data files : epochs = 10 and store model file named
    * "model.bin" */
-  status = ml_nnmodel_train_with_generator(
-    model, gen_data_train, gen_data_val, NULL, "epochs=10", "batch_size=32",
-    "model_file=model.bin", "buffer_size = 32", NULL);
+  status = ml_train_model_run(model, "epochs=10", "batch_size=32",
+                              "model_file=model.bin", NULL);
   NN_RETURN_STATUS();
 
   /* delete model */

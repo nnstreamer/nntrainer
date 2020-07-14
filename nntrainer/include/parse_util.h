@@ -117,6 +117,13 @@ unsigned int parseOptProperty(std::string property);
 unsigned int parseNetProperty(std::string property);
 
 /**
+ * @brief     Parsing Data Buffer Property
+ * @param[in] property string to be parsed
+ * @retval    int enumerated type
+ */
+unsigned int parseDataProperty(std::string property);
+
+/**
  * @brief     check str to be int and assign
  * @param[out] val assign variable
  * @param[in] str input string

@@ -46,7 +46,7 @@ public:
   /**
    * @brief     Constructor
    */
-  DataBufferFromDataFile(){};
+  DataBufferFromDataFile() : DataBuffer(DataBufferType::DATA_BUFFER_FILE){};
 
   /**
    * @brief     Destructor
@@ -83,6 +83,15 @@ public:
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
   int setFeatureSize(TensorDim indim);
+
+  /**
+   * @brief     set property
+   * @param[in] type type of property
+   * @param[in] value string value of property
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  int setProperty(const PropertyType type, std::string &value);
 
 private:
   /**

@@ -381,4 +381,32 @@ int DataBufferFromDataFile::setFeatureSize(TensorDim tdim) {
   return status;
 }
 
+int DataBufferFromDataFile::setProperty(const PropertyType type,
+                                        std::string &value) {
+  int status = ML_ERROR_NONE;
+
+  if (data_buffer_type != DATA_BUFFER_FILE)
+    return ML_ERROR_INVALID_PARAMETER;
+
+  switch (type) {
+  case PropertyType::train_data:
+    status = this->setDataFile(value, DATA_TRAIN);
+    break;
+  case PropertyType::val_data:
+    status = this->setDataFile(value, DATA_VAL);
+    break;
+  case PropertyType::test_data:
+    status = this->setDataFile(value, DATA_TEST);
+    break;
+  case PropertyType::label_data:
+    status = this->setDataFile(value, DATA_LABEL);
+    break;
+  default:
+    status = DataBuffer::setProperty(type, value);
+    break;
+  }
+
+  return status;
+}
+
 } /* namespace nntrainer */

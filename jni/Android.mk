@@ -41,7 +41,8 @@ NNTRAINER_SRCS := $(NNTRAINER_ROOT)/nntrainer/src/neuralnet.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/src/flatten_layer.cpp
 
 NNTRAINER_INCLUDES := $(NNTRAINER_ROOT)/nntrainer/include \
-                  $(NNTRAINER_ROOT)/api/capi/include/platform
+                      $(NNTRAINER_ROOT)/api/capi/include \
+                      $(NNTRAINER_ROOT)/api/capi/include/platform
 
 INIPARSER_SRCS := $(INIPARSER_ROOT)/src/iniparser.c \
                   $(INIPARSER_ROOT)/src/dictionary.c

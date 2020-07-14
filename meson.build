@@ -42,7 +42,7 @@ warning_c_flags = [
   '-Waggregate-return',
   '-Wold-style-definition',
   '-Wdeclaration-after-statement',
-  '-Wno-error=varargs'  
+  '-Wno-error=varargs'
 ]
 
 foreach extra_arg : warning_flags

@@ -231,19 +231,19 @@ void replaceString(const std::string &from, const std::string &to,
  * @brief      get data which size is mini batch for train
  * @param[out] outVec
  * @param[out] outLabel
- * @param[out] status for error handling
- * @retval true/false
+ * @param[out] last if the data is finished
+ * @retval status for handling error
  */
-bool getMiniBatch_train(float *outVec, float *outLabel, int *status);
+int getMiniBatch_train(float **outVec, float **outLabel, bool *last);
 
 /**
  * @brief      get data which size is mini batch for val
  * @param[out] outVec
  * @param[out] outLabel
- * @param[out] status for error handling
- * @retval true/false
+ * @param[out] last if the data is finished
+ * @retval status for handling error
  */
-bool getMiniBatch_val(float *outVec, float *outLabel, int *status);
+int getMiniBatch_val(float **outVec, float **outLabel, bool *last);
 
 #endif /* __cplusplus */
 #endif /* __NNTRAINER_TEST_UTIL_H__ */

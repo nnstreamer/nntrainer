@@ -567,6 +567,7 @@ int NeuralNetwork::setTrainConfig(std::vector<std::string> values) {
 
     unsigned int type = parseNetProperty(key);
 
+    /** TODO: disable this batch size  */
     switch (static_cast<PropertyType>(type)) {
     case PropertyType::batch_size: {
       status = setInt(batch_size, value);
@@ -585,34 +586,6 @@ int NeuralNetwork::setTrainConfig(std::vector<std::string> values) {
       status = setInt(e, value);
       NN_RETURN_STATUS();
       epoch = e;
-    } break;
-    case PropertyType::train_data: {
-      status = std::static_pointer_cast<DataBufferFromDataFile>(data_buffer)
-                 ->setDataFile(value, DATA_TRAIN);
-      NN_RETURN_STATUS();
-    } break;
-    case PropertyType::val_data: {
-      status = std::static_pointer_cast<DataBufferFromDataFile>(data_buffer)
-                 ->setDataFile(value, DATA_VAL);
-      NN_RETURN_STATUS();
-    } break;
-    case PropertyType::test_data: {
-      status = std::static_pointer_cast<DataBufferFromDataFile>(data_buffer)
-                 ->setDataFile(value, DATA_TEST);
-      NN_RETURN_STATUS();
-    } break;
-    case PropertyType::label_data: {
-      status = std::static_pointer_cast<DataBufferFromDataFile>(data_buffer)
-                 ->setDataFile(value, DATA_LABEL);
-      NN_RETURN_STATUS();
-    } break;
-
-    case PropertyType::buffer_size: {
-      int size;
-      status = setInt(size, value);
-      NN_RETURN_STATUS();
-      status = data_buffer->setBufSize(size);
-      NN_RETURN_STATUS();
     } break;
     case PropertyType::model_file: {
       model = value;
@@ -851,16 +824,12 @@ int NeuralNetwork::train(std::vector<std::string> values) {
   int status = ML_ERROR_NONE;
 
   if (data_buffer == nullptr) {
-    data_buffer = std::make_shared<DataBufferFromDataFile>();
+    ml_loge("Cannot initialize the model without the data buffer.");
+    return ML_ERROR_INVALID_PARAMETER;
   }
 
-  if (values.size() != 0) {
-    status = data_buffer->setMiniBatch(layers[0]->getInputDimension().batch());
-    NN_RETURN_STATUS();
-
-    status = setTrainConfig(values);
-    NN_RETURN_STATUS();
-  }
+  status = data_buffer->setMiniBatch(layers[0]->getInputDimension().batch());
+  NN_RETURN_STATUS();
 
   status = data_buffer->setClassNum(
     layers[layers.size() - 1]->getOutputDimension().width());
@@ -872,70 +841,11 @@ int NeuralNetwork::train(std::vector<std::string> values) {
   status = data_buffer->init();
   NN_RETURN_STATUS();
 
+  status = setTrainConfig(values);
+  NN_RETURN_STATUS();
+
   return train_run();
 }
-
-/**
- * @brief     Run NeuralNetwork train
- */
-int NeuralNetwork::train(
-  std::function<bool(float *, float *, int *)> train_func,
-  std::function<bool(float *, float *, int *)> val_func,
-  std::function<bool(float *, float *, int *)> test_func) {
-
-  std::vector<std::string> values;
-
-  return train(train_func, val_func, test_func, values);
-}
-
-/**
- * @brief     Run NeuralNetwork train
- */
-int NeuralNetwork::train(
-  std::function<bool(float *, float *, int *)> train_func,
-  std::function<bool(float *, float *, int *)> val_func,
-  std::function<bool(float *, float *, int *)> test_func,
-  std::vector<std::string> values) {
-
-  int status = ML_ERROR_NONE;
-
-  if (data_buffer == nullptr) {
-    data_buffer = std::make_shared<DataBufferFromCallback>();
-
-    status = data_buffer->setMiniBatch(layers[0]->getInputDimension().batch());
-    NN_RETURN_STATUS();
-
-    status = setTrainConfig(values);
-    NN_RETURN_STATUS();
-  }
-
-  status = data_buffer->setClassNum(
-    layers[layers.size() - 1]->getOutputDimension().width());
-  NN_RETURN_STATUS();
-
-  status = data_buffer->setFeatureSize(layers[0]->getInputDimension());
-  NN_RETURN_STATUS();
-
-  status = data_buffer->init();
-  NN_RETURN_STATUS();
-
-  std::shared_ptr<DataBufferFromCallback> callback_buffer =
-    std::static_pointer_cast<DataBufferFromCallback>(data_buffer);
-
-  status = callback_buffer->setFunc(nntrainer::BUF_TRAIN, (train_func));
-  if (status != ML_ERROR_NONE)
-    return status;
-
-  status = callback_buffer->setFunc(nntrainer::BUF_VAL, (val_func));
-  if (status != ML_ERROR_NONE)
-    return status;
-
-  status = callback_buffer->setFunc(nntrainer::BUF_TEST, (test_func));
-  if (status != ML_ERROR_NONE)
-    return status;
-
-  return train_run();
-};
 
 /**
  * @brief     Run NeuralNetwork train with callback function by user
@@ -1084,6 +994,12 @@ int NeuralNetwork::setOptimizer(std::shared_ptr<Optimizer> optimizer) {
   }
 
   opt = *optimizer.get();
+
+  return ML_ERROR_NONE;
+}
+
+int NeuralNetwork::setDataBuffer(std::shared_ptr<DataBuffer> data_buffer) {
+  this->data_buffer = data_buffer;
 
   return ML_ERROR_NONE;
 }
