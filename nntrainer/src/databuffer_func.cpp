@@ -135,8 +135,8 @@ int DataBufferFromCallback::setFunc(
   return status;
 }
 
-void DataBufferFromCallback::updateData(BufferType type, int &status) {
-  status = ML_ERROR_NONE;
+void DataBufferFromCallback::updateData(BufferType type) {
+  int status = ML_ERROR_NONE;
 
   unsigned int buf_size = 0;
   unsigned int *cur_size = NULL;

@@ -159,10 +159,9 @@ public:
   /**
    * @brief     Update Data Buffer ( it is for child thread )
    * @param[in] BufferType training, validation, test
-   * @param[in] file input file stream
    * @retval    void
    */
-  virtual void updateData(BufferType type, int &status) = 0;
+  virtual void updateData(BufferType type) = 0;
 
   /**
    * @brief     function for thread ( training, validation, test )

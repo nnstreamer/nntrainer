@@ -134,7 +134,7 @@ int DataBufferFromDataFile::init() {
   return status;
 }
 
-void DataBufferFromDataFile::updateData(BufferType type, int &status) {
+void DataBufferFromDataFile::updateData(BufferType type) {
   unsigned int max_size = 0;
   unsigned int buf_size = 0;
   unsigned int *rest_size = NULL;
@@ -219,8 +219,6 @@ void DataBufferFromDataFile::updateData(BufferType type, int &status) {
 
       try {
         if (I > max_size) {
-          ml_loge("Error: Test case id cannot exceed maximum number of test");
-          status = ML_ERROR_INVALID_PARAMETER;
           throw std::runtime_error(
             "Error: Test case id cannot exceed maximum number of test");
         }
@@ -236,8 +234,6 @@ void DataBufferFromDataFile::updateData(BufferType type, int &status) {
         (I * input_dim.getFeatureLen() + I * class_num) * sizeof(float);
       try {
         if (position > file_length || position > ULLONG_MAX) {
-          ml_loge("Error: Cannot exceed max file size");
-          status = ML_ERROR_INVALID_PARAMETER;
           throw std::runtime_error("Error: Cannot exceed max file size");
         }
       } catch (...) {
