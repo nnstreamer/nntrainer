@@ -3,32 +3,19 @@ unittest_tizen_deps = [
   nntrainer_test_deps,
 ]
 
-unittest_tizen_capi = executable('unittest_tizen_capi',
-  'unittest_tizen_capi.cpp',
-  dependencies: unittest_tizen_deps,
-  install: get_option('enable-test'),
-  install_dir: application_install_dir
-)
+unittest_name_list = ['', '_layer', '_optimizer', '_dataset']
+unittest_prefix = 'unittest_tizen_capi'
 
-unittest_tizen_capi_layer = executable('unittest_tizen_capi_layer',
-  'unittest_tizen_capi_layer.cpp',
-  dependencies: [unittest_tizen_deps],
-  include_directories: nntrainer_test_inc,
-  install: get_option('enable-test'),
-  install_dir: application_install_dir
-)
+foreach test_name : unittest_name_list
+  unittest_name = unittest_prefix + test_name
 
-unittest_tizen_capi_optimizer = executable('unittest_tizen_capi_optimizer',
-  'unittest_tizen_capi_optimizer.cpp',
-  dependencies: [unittest_tizen_deps],
-  include_directories: nntrainer_test_inc,
-  install: get_option('enable-test'),
-  install_dir: application_install_dir
-)
+  exec = executable(
+    unittest_name,
+    unittest_name + '.cpp',
+    dependencies: unittest_tizen_deps,
+    install: get_option('enable-test'),
+    install_dir: application_install_dir
+  )
 
-test('unittest_tizen_capi', unittest_tizen_capi)
-test('unittest_tizen_capi_layer', unittest_tizen_capi_layer)
-test('unittest_tizen_capi_optimizer', unittest_tizen_capi_optimizer)
-
-
-
+  test(unittest_name, exec)
+endforeach
