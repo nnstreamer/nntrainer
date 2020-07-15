@@ -887,7 +887,7 @@ Tensor Tensor::average(int axis) const {
 
   Tensor result;
   result = std::move(this->sum(axis));
-  result.divide_i(dim.batch());
+  result.divide_i(dim.getDim()[axis]);
 
   return result;
 }
