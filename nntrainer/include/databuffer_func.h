@@ -31,7 +31,7 @@
 #include <functional>
 #include <iostream>
 #include <memory>
-#include <nntrainer.h>
+#include <nntrainer-api-common.h>
 #include <thread>
 #include <vector>
 

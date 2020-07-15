@@ -1,6 +1,6 @@
 nntrainer_inc = [
   include_directories('./include'),
-  include_directories('../api/capi/include')
+  include_directories('../api')
 ]
 
 # pc file is not present for 'ml-api-common' yet
@@ -68,7 +68,8 @@ nntrainer_headers = [
   'include/pooling2d_layer.h',
   'include/tensor.h',
   'include/tensor_dim.h',
-  'include/util_func.h'
+  'include/util_func.h',
+  '../api/nntrainer-api-common.h'
 ]
 
 # Build libraries

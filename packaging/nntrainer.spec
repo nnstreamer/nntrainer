@@ -245,6 +245,7 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %{_includedir}/nntrainer/optimizer.h
 %{_includedir}/nntrainer/util_func.h
 %{_includedir}/nntrainer/parse_util.h
+%{_includedir}/nntrainer/nntrainer-api-common.h
 %{_libdir}/pkgconfig/nntrainer.pc
 
 %files devel-static
@@ -259,6 +260,7 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 
 %files -n capi-nntrainer-devel
 %{_includedir}/nntrainer/nntrainer.h
+%{_includedir}/nntrainer/nntrainer-api-common.h
 %{_libdir}/pkgconfig/capi-nntrainer.pc
 
 %files -n capi-nntrainer-devel-static
