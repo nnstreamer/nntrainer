@@ -120,6 +120,77 @@ typedef struct {
  */
 int ml_train_model_get_layer(ml_train_model_h model, const char *layer_name,
                              ml_train_layer_h *layer);
+/**
+ * @brief Get all neural network layer names from the model.
+ * @details Use this function to get already created Neural Network Layer names.
+ * This can be used to obtain layers when model is defined with ini file.
+ * @note The caller must free the list of the layer names.
+ * @since_tizen 6.x
+ * @param[in] model The NNTrainer model handler from the given description.
+ * @param[out] layers_name List of names of layers in the model ended with NULL.
+ * @return @c 0 on success. Otherwise a negative error value.
+ * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
+ * @retval #ML_ERROR_CANNOT_ASSIGN_ADDRESS Cannot assign object.
+ */
+int ml_train_model_get_all_layer_names(ml_train_model_h model,
+                                       const char **layers_name[]);
+
+/**
+ * @brief Callback function to notify completion of training of the model.
+ * @param[in] model The NNTrainer model handler.
+ * @param[in] data Internal data to be given to the callback, cb.
+ */
+typedef void (*ml_train_run_cb)(ml_train_model_h model, void *data);
+
+/**
+ * @brief train the neural network model.
+ * @details Use this function to train neural network model
+ * @brief Train the neural network model asynchronously.
+ * @details Use this function to train the compiler neural network model with
+ * the passed training hyperparameters. The callback will be called once the
+ * requested training, validation and testing is completed.
+ * @since_tizen 6.x
+ * @param[in] model The NNTrainer model handler.
+ * @param[in] cb The callback handler to be called after training finishes.
+ * @param[in] data Internal data to be given to the callback, cb.
+ * @param[in] ...  Hyperparmeter for train model
+ * @return @c 0 on success. Otherwise a negative error value.
+ * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter.
+ */
+int ml_train_model_run_async(ml_train_model_h model, ml_train_run_cb cb,
+                             void *data, ...);
+
+/**
+ * @brief Insert layer at the specific location of the existing layers in neural
+ * network model.
+ * @details Use this function to insert a layer to the model.
+ * @since_tizen 6.x
+ * @param[in] model The NNTrainer model handler from the given description.
+ * @param[in] layer The NNTrainer layer handler
+ * @param[in] input_layer_names List of layers ended with NULL, which will
+ * provide input to the layer being inserted.
+ * @param[in] output_layer_names List of layers ended with NULL, which will
+ * receive input to the layer being inserted.
+ * @return @c 0 on success. Otherwise a negative error value.
+ * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter.
+ * @details If length of @a input_layer_names is more than 1, the layer to be
+ * inserted should support multiple inputs. Otherwise
+ * #ML_ERROR_INVALID_PARAMETER is returned. If the layer in @a
+ * output_layer_names already have input connection, then they should support
+ * multiple inputs. Otherwise #ML_ERROR_INVALID_PARAMETER is returned. If length
+ * of @a output_layer_names is 0, then this layer will be treated as one of the
+ * output layers, and a loss will be attached to this based on network
+ * configuration. If both @a input_layer_names and @a output_layer_names are
+ * empty, then this layer is attached at the end of the output layer of the
+ * network. In case of multiple output layers, this layer is attached next to
+ * the last created output layer.
+ */
+int ml_train_model_insert_layer(ml_train_model_h model, ml_train_layer_h layer,
+                                const char *input_layer_names[],
+                                const char *output_layer_names[]);
 
 #ifdef __cplusplus
 }
