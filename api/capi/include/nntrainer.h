@@ -28,6 +28,7 @@
 #include <stddef.h>
 
 #include <ml-api-common.h>
+#include <nntrainer-api-common.h>
 
 #ifdef __cplusplus
 extern "C" {

@@ -1,5 +1,6 @@
 capi_inc = []
 capi_inc += include_directories('include')
+capi_inc += include_directories('..')
 
 # pc file is not present for 'ml-api-common' yet
 if cxx.has_header('nnstreamer/ml-api-common.h', required: false)
@@ -14,6 +15,7 @@ capi_src += join_paths(meson.current_source_dir(), 'src','nntrainer_util.cpp')
 
 capi_headers = []
 capi_headers += join_paths(meson.current_source_dir(), 'include', 'nntrainer.h')
+capi_headers += join_paths(meson.current_source_dir(), '..', 'nntrainer-api-common.h')
 
 capi_deps = [
   nntrainer_dep
