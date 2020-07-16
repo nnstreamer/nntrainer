@@ -302,7 +302,7 @@ public:
    *            3 : width direction
    * @retval    Calculated Tensor
    */
-  Tensor sum(int axis = 0) const;
+  Tensor sum(int axis) const;
 
   /**
    * @brief     Averaging the Tensor elements according to the axis
@@ -312,7 +312,13 @@ public:
    *            3 : width direction
    * @retval    Calculated Tensor
    */
-  Tensor average(int axis = 0) const;
+  Tensor average(int axis) const;
+
+  /**
+   * @brief     Averaging the Tensor elements by all axis
+   * @retval    Calculated Tensor
+   */
+  Tensor average() const;
 
   /**
    * @brief     Anchor a starting point to defer following evaluation

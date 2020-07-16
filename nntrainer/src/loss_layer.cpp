@@ -55,7 +55,7 @@ Tensor LossLayer::forwarding(Tensor output, Tensor label, int &status) {
     // y2 <- y2 - y;
     y2.subtract_i(y);
 
-    l = y2.chain().multiply_i(y2).sum_by_batch().multiply_i(0.5).run();
+    l = y2.chain().multiply_i(y2).average().run();
   } break;
   case COST_ENTROPY_SIGMOID: {
     // @todo: change this to apply_i
@@ -66,23 +66,18 @@ Tensor LossLayer::forwarding(Tensor output, Tensor label, int &status) {
                         .apply(static_cast<float (*)(float)>(&std::exp))
                         .add(1.0)
                         .apply(logFloat);
-    mid_term = mid_term.add(mid_term.apply(relu));
+    mid_term = mid_term.add(y.apply(relu));
 
-    // loss = y * y2 - (log(1 + exp(-abs(y))) + max(y, 0))
-    l = y2.chain()
-          .multiply_i(y)
-          .add_i(mid_term)
-          .multiply_i(-1.0 / y2.getWidth())
-          .run()
-          .sum_by_batch();
+    // y * y2
+    Tensor end_term = y2.chain().multiply_i(y).run();
+
+    // loss = log(1 + exp(-abs(y))) + max(y, 0) - (y * y2)
+    l = mid_term.subtract(end_term).average();
+    y = y.apply(sigmoid);
   } break;
   case COST_ENTROPY_SOFTMAX: {
     y = y.apply(softmax);
-    l = y2.chain()
-          .multiply_i(y.apply(logFloat))
-          .multiply_i(-1.0 / y2.getWidth())
-          .run()
-          .sum_by_batch();
+    l = y2.chain().multiply_i(y.apply(logFloat)).run().sum_by_batch();
 
   } break;
   case COST_ENTROPY: {

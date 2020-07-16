@@ -127,7 +127,7 @@ public:
    * width direction
    * @retval    LazyTensor *this
    */
-  LazyTensor &sum(int axis = 0);
+  LazyTensor &sum(int axis);
 
   /**
    * @brief     Wrapper method of average. see tensor.h for more detail (memcopy
@@ -135,7 +135,14 @@ public:
    * width direction
    * @retval    LazyTensor *this
    */
-  LazyTensor &average(int axis = 0);
+  LazyTensor &average(int axis);
+
+  /**
+   * @brief     Wrapper method of average. see tensor.h for more detail (memcopy
+   * happens)
+   * @retval    LazyTensor *this
+   */
+  LazyTensor &average();
 
   /**
    * @brief     apply A tensor function when predicate is true
