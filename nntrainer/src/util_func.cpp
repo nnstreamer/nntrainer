@@ -73,6 +73,10 @@ Tensor softmaxPrime(Tensor x) {
 }
 
 Tensor softmax(Tensor t) {
+  /**
+   * shiftx_logit = logit - max_batch(logit)
+   * softmax = exp(shiftx_logit) / (sum(exp(shiftx_logit)))
+   */
   int batch = t.getBatch();
   int channel = t.getChannel();
   int height = t.getHeight();
@@ -92,29 +96,33 @@ Tensor softmax(Tensor t) {
 
   for (int k = 0; k < batch; k++) {
     int index = k * channel * height * width;
+    float m = std::numeric_limits<float>::lowest();
+    // find max
     for (int c = 0; c < channel; c++) {
-      index = index + c * height * width;
-      float m = std::numeric_limits<float>::lowest();
-      // find max
       for (int i = 0; i < height; i++) {
         for (int j = 0; j < width; j++) {
           if (tp[index + i * width + j] > m)
-            m = tp[index + i * width + j];
+            m = tp[index + c * height * width + i * width + j];
         }
       }
+    }
 
-      // shiftx
-      float sum = 0.0;
+    // shiftx
+    float sum = 0.0;
+    for (int c = 0; c < channel; c++) {
       for (int i = 0; i < height; i++) {
         for (int j = 0; j < width; j++) {
           dp[index + width * i + j] = exp(tp[index + i * width + j] - m);
-          sum += dp[index + width * i + j];
+          sum += dp[index + c * height * width + width * i + j];
         }
       }
+    }
 
+    for (int c = 0; c < channel; c++) {
       for (int i = 0; i < height; i++) {
         for (int j = 0; j < width; j++) {
-          rp[index + width * i + j] = dp[index + width * i + j] / sum;
+          rp[index + c * height * width + width * i + j] =
+            dp[index + c * height * width + width * i + j] / sum;
         }
       }
     }
