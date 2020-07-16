@@ -146,8 +146,6 @@ int ml_train_model_get_all_layer_names(ml_train_model_h model,
 typedef void (*ml_train_run_cb)(ml_train_model_h model, void *data);
 
 /**
- * @brief train the neural network model.
- * @details Use this function to train neural network model
  * @brief Train the neural network model asynchronously.
  * @details Use this function to train the compiler neural network model with
  * the passed training hyperparameters. The callback will be called once the
@@ -193,30 +191,6 @@ int ml_train_model_run_async(ml_train_model_h model, ml_train_run_cb cb,
 int ml_train_model_insert_layer(ml_train_model_h model, ml_train_layer_h layer,
                                 const char *input_layer_names[],
                                 const char *output_layer_names[]);
-
-/**
- * @brief Callback function to notify completion of training of the model.
- * @param[in] model The NNTrainer model handler.
- * @param[in] data Internal data to be given to the callback, cb.
- */
-typedef void (*ml_train_run_cb)(ml_train_model_h model, void *data);
-
-/**
- * @brief Train the neural network model asynchronously.
- * @details Use this function to train the compiler neural network model with
- * the passed training hyperparameters. The callback will be called once the
- * requested training, validation and testing is completed.
- * @since_tizen 6.x
- * @param[in] model The NNTrainer model handler.
- * @param[in] cb The callback handler to be called after training finishes.
- * @param[in] data Internal data to be given to the callback, cb.
- * @param[in] ...  Hyperparmeter for train model
- * @return @c 0 on success. Otherwise a negative error value.
- * @retval #ML_ERROR_NONE Successful.
- * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter.
- */
-int ml_train_model_run_async(ml_train_model_h model, ml_train_run_cb cb,
-                             void *data, ...);
 
 #ifdef __cplusplus
 }
