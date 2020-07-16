@@ -113,11 +113,7 @@ void Optimizer::apply_gradients(std::shared_ptr<UpdatableParam> params,
     UpdatableParam &param = param_data[i];
 
     Tensor &x = param.weight;
-    /// @fixme: #280 and use const Tensor &x_grad once fixed.
-    /// @note: that current implementation does not update grad since updating
-    /// grad changes it's dimension
-    Tensor x_grad = param.grad;
-    x_grad = x_grad.average(0);
+    const Tensor &x_grad = param.grad;
     switch (type) {
     case OptType::sgd:
       x.add_i(x_grad, -ll);
