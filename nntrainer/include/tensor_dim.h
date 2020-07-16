@@ -59,6 +59,7 @@ public:
   void width(unsigned int w) { setTensorDim(3, w); }
 
   const unsigned int *getDim() const { return dim; }
+  const unsigned int getNumDim() const { return MAXDIM; }
 
   void setTensorDim(unsigned int idx, unsigned int value);
   int setTensorDim(std::string input_shape);

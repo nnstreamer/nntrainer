@@ -202,6 +202,25 @@ LazyTensor &LazyTensor::average(int axis) {
 }
 
 /**
+ * @brief     Wrapper method of average. see tensor.h for more detail (memcopy
+ * happens)
+ * @retval    LazyTensor *this
+ */
+LazyTensor &LazyTensor::average() {
+  auto f = [](Tensor &t) mutable -> int {
+    try {
+      t = t.average();
+      return ML_ERROR_NONE;
+    } catch (std::runtime_error &e) {
+      return ML_ERROR_INVALID_PARAMETER;
+    }
+  };
+
+  call_chain.push_back(f);
+  return *this;
+}
+
+/**
  * @brief execute the call_chain to evaluate
  * @retval calculated tensor
  */

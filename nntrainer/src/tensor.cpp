@@ -892,6 +892,18 @@ Tensor Tensor::average(int axis) const {
   return result;
 }
 
+/**
+ * @brief Calculate average value according to the axis.
+ */
+Tensor Tensor::average() const {
+  LazyTensor lazy_result = this->chain();
+
+  for (unsigned int axis = 0; axis < dim.getNumDim(); ++axis)
+    lazy_result = lazy_result.average(axis);
+
+  return lazy_result.run();
+}
+
 void Tensor::setValue(float val) {
   float *data = getData();
   std::fill(data, data + length(), val);
