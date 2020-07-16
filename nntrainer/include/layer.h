@@ -201,6 +201,62 @@ public:
   int setProperty(std::vector<std::string> values);
 
   /**
+   * @brief     Property Enumeration
+   *            0. input shape : string
+   *            1. bias zero : bool
+   *            2. normalization : bool
+   *            3. standardization : bool
+   *            4. activation : string (type)
+   *            5. epsilon : float
+   *            6. weight_decay : string (type)
+   *            7. weight_decay_lambda : float
+   *            8. unit : int
+   *            9. weight_ini : string (type)
+   *            10. filter_size : int
+   *            11. kernel_size : ( n , m )
+   *            12. stride : ( n, m )
+   *            13. padding : ( n, m )
+   *            14. pooling_size : ( n,m )
+   *            15. pooling : max, average, global_max, global_average
+   *            16. flatten : bool
+   *            17. name : string (type)
+   */
+  enum class PropertyType {
+    input_shape = 0,
+    bias_init_zero = 1,
+    normalization = 2,
+    standardization = 3,
+    activation = 4,
+    epsilon = 5,
+    weight_decay = 6,
+    weight_decay_lambda = 7,
+    unit = 8,
+    weight_ini = 9,
+    filter = 10,
+    kernel_size = 11,
+    stride = 12,
+    padding = 13,
+    pooling_size = 14,
+    pooling = 15,
+    flatten = 16,
+    name = 17,
+    unknown = 18
+  };
+
+  /**
+   * @brief setProperty by PropertyType
+   * @note By passing empty string, this can validate if @a type is valid
+   * @param[in] type property type to be passed
+   * @param[in] value value to be passed, if empty string is passed, do nothing
+   * but throws error when @a type is invalid
+   * @exception std::out_of_range     when property type is not valid for the
+   * particular layer
+   * @exception exception::invalid_property invalid argument
+   */
+  virtual void setProperty(const PropertyType type,
+                           const std::string &value = "");
+
+  /**
    * @brief     Optimizer Setter
    * @param[in] opt Optimizer
    * @retval #ML_ERROR_NONE Successful.
@@ -358,49 +414,6 @@ public:
    */
   virtual std::string getBaseName() = 0;
 
-  /**
-   * @brief     Property Enumeration
-   *            0. input shape : string
-   *            1. bias zero : bool
-   *            2. normalization : bool
-   *            3. standardization : bool
-   *            4. activation : string (type)
-   *            5. epsilon : float
-   *            6. weight_decay : string (type)
-   *            7. weight_decay_lambda : float
-   *            8. unit : int
-   *            9. weight_ini : string (type)
-   *            10. filter_size : int
-   *            11. kernel_size : ( n , m )
-   *            12. stride : ( n, m )
-   *            13. padding : ( n, m )
-   *            14. pooling_size : ( n,m )
-   *            15. pooling : max, average, global_max, global_average
-   *            16. flatten : bool
-   *            17. name : string (type)
-   */
-  enum class PropertyType {
-    input_shape = 0,
-    bias_init_zero = 1,
-    normalization = 2,
-    standardization = 3,
-    activation = 4,
-    epsilon = 5,
-    weight_decay = 6,
-    weight_decay_lambda = 7,
-    unit = 8,
-    weight_ini = 9,
-    filter = 10,
-    kernel_size = 11,
-    stride = 12,
-    padding = 13,
-    pooling_size = 14,
-    pooling = 15,
-    flatten = 16,
-    name = 17,
-    unknown = 18
-  };
-
   virtual void print(std::ostream &out, unsigned int flags = 0);
 
 protected:
@@ -497,7 +510,7 @@ protected:
    */
   void setParamSize(unsigned int psize) {
 
-    // @note Need opinion about this
+    /// @todo uncomment this after fixing layer test. #293
     // if (param_size > 0) {
     //   throw std::invalid_argument("param size can't be set once it is set");
     // }
@@ -530,22 +543,6 @@ protected:
                                 after initiation
                                 use setParamSize() to avoid
                                 setting parameters twice */
-
-  /**
-   * @brief setProperty by PropertyType
-   * @note By passing empty string, this can validate if @a type is valid
-   * @param[in] type property type to be passed
-   * @param[in] value value to be passed, if empty string is passed, do nothing
-   * but throws error when @a type is invalid
-   * @exception std::out_of_range     when property type is not valid for the
-   * particular layer
-   * @exception std::invalid_argument invalid argument
-   */
-  virtual void setProperty(const PropertyType type,
-                           const std::string &value = "");
-
-  /// @todo move virtual void setProperty to public and remove this
-  friend class NeuralNetwork;
 
 private:
   /**

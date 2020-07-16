@@ -211,7 +211,7 @@ void Layer::setProperty(const PropertyType type, const std::string &value) {
   default:
     std::string msg =
       "[Layer] Unknown Layer Property Key for value" + std::string(value);
-    throw std::out_of_range(msg);
+    throw exception::invalid_property(msg);
   }
 }
 
@@ -228,7 +228,7 @@ void Layer::printIfValid(std::ostream &out, const PropertyType type,
                          const T target) {
   try {
     setProperty(type);
-  } catch (std::out_of_range &e) {
+  } catch (exception::invalid_property &e) {
     return;
   }
 
