@@ -53,10 +53,10 @@ int BatchNormalizationLayer::initialize(bool last) {
   beta.setZero();
 
   setParamSize(4);
-  paramsAt(0) = {std::move(mu), Tensor(dim), "BN:moving_average"};
-  paramsAt(1) = {std::move(var), Tensor(dim), "BN:moving_variance"};
-  paramsAt(2) = {std::move(gamma), Tensor(dim), "BN:gamma"};
-  paramsAt(3) = {std::move(beta), Tensor(dim), "BN:beta"};
+  paramsAt(0) = {std::move(mu), Tensor(mu.getDim()), "BN:moving_average"};
+  paramsAt(1) = {std::move(var), Tensor(var.getDim()), "BN:moving_variance"};
+  paramsAt(2) = {std::move(gamma), Tensor(gamma.getDim()), "BN:gamma"};
+  paramsAt(3) = {std::move(beta), Tensor(beta.getDim()), "BN:beta"};
 
   return status;
 }
