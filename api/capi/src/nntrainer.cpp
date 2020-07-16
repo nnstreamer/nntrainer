@@ -23,8 +23,8 @@
 #include <databuffer.h>
 #include <databuffer_file.h>
 #include <databuffer_func.h>
-#include <ml-api-common.h>
 #include <neuralnet.h>
+#include <nntrainer_error.h>
 #include <nntrainer_internal.h>
 #include <nntrainer_log.h>
 #include <parse_util.h>
@@ -38,8 +38,16 @@
  * @retval    errorno
  */
 template <typename F> static int nntrainer_exception_boundary(F &&func) {
+  int status = ML_ERROR_NONE;
+
+  /**< Exception boundary for cpp exceptions */
+  /// @note aware that some exception are inheritance of others so should be
+  /// caught before than some
   try {
-    return func();
+    status = func();
+  } catch (nntrainer::exception::invalid_property &e) {
+    ml_loge("%s %s", typeid(e).name(), e.what());
+    return ML_ERROR_INVALID_PARAMETER;
   } catch (std::invalid_argument &e) {
     ml_loge("%s %s", typeid(e).name(), e.what());
     return ML_ERROR_INVALID_PARAMETER;
@@ -58,6 +66,18 @@ template <typename F> static int nntrainer_exception_boundary(F &&func) {
   } catch (...) {
     ml_loge("unknown error type thrown");
     return ML_ERROR_UNKNOWN;
+  }
+
+  /**< Exception boundary for specialized error code */
+  /// @todo deprecate this with #233
+  switch (status) {
+  case ML_ERROR_CANNOT_ASSIGN_ADDRESS:
+  case ML_ERROR_BAD_ADDRESS:
+    return ML_ERROR_OUT_OF_MEMORY;
+  case ML_ERROR_RESULT_OUT_OF_RANGE:
+    return ML_ERROR_INVALID_PARAMETER;
+  default:
+    return status;
   }
 }
 

@@ -36,4 +36,22 @@
 #define ML_ERROR_RESULT_OUT_OF_RANGE (-ERANGE)
 #endif
 
+#include <stdexcept>
+namespace nntrainer {
+
+/// @note underscore_case is used for ::exception to keep in accordance with
+/// std::exception
+namespace exception {
+
+/**
+ * @brief derived class of invalid argument to represent property is invalid
+ */
+struct invalid_property : public std::invalid_argument {
+  using invalid_argument::invalid_argument;
+};
+
+} // namespace exception
+
+} // namespace nntrainer
+
 #endif /* __NNTRAINER_ERROR_H__ */

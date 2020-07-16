@@ -139,17 +139,13 @@ public:
 
   using Layer::setProperty;
 
-private:
   /**
-   * @brief setProperty by PropertyType
-   * @note By passing empty string, this can validate if @a type is valid
-   * @param[in] type property type to be passed
-   * @param[in] value value to be passed, if empty string is passed, do nothing
-   * but throws error when @a type is invalid
-   * @exception std::invalid_argument invalid argument
+   * @copydoc Layer::setProperty(const PropertyType type, const std::string
+   * &value)
    */
-  void setProperty(const PropertyType type, const std::string &value);
+  void setProperty(const PropertyType type, const std::string &value = "");
 
+private:
   unsigned int pooling_size[POOLING2D_DIM];
   unsigned int stride[POOLING2D_DIM];
   unsigned int padding[POOLING2D_DIM];

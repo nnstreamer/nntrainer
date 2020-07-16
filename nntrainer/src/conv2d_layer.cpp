@@ -305,7 +305,7 @@ void Conv2DLayer::setProperty(const PropertyType type,
       status = getValues(CONV2D_DIM, value, (int *)(kernel_size));
       throw_status(status);
       if (kernel_size[0] == 0 || kernel_size[1] == 0) {
-        throw std::out_of_range(
+        throw std::invalid_argument(
           "[Conv2DLayer] kernel_size must be greater than 0");
       }
     }
@@ -315,7 +315,8 @@ void Conv2DLayer::setProperty(const PropertyType type,
       status = getValues(CONV2D_DIM, value, (int *)(stride));
       throw_status(status);
       if (stride[0] == 0 || stride[1] == 0) {
-        throw std::out_of_range("[Conv2DLayer] stride must be greater than 0");
+        throw std::invalid_argument(
+          "[Conv2DLayer] stride must be greater than 0");
       }
     }
     break;

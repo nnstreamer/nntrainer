@@ -292,7 +292,7 @@ int NeuralNetwork::loadFromConfig() {
       try {
         /// if problem setting property, it will throw std::invalid_argument
         layer->setProperty(static_cast<Layer::PropertyType>(i), value);
-      } catch (std::out_of_range &e) {
+      } catch (exception::invalid_property &e) {
         /// intended
       }
     }
