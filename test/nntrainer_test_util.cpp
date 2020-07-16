@@ -266,3 +266,33 @@ nntrainer::Tensor constant(float value, unsigned int batch, unsigned channel,
 
   return t;
 }
+
+void IniSection::setEntry(const std::string &entry_str) {
+  // setting property separated by "|"
+  std::regex words_regex("[^|]+");
+
+  auto words_begin =
+    std::sregex_iterator(entry_str.begin(), entry_str.end(), words_regex);
+  auto words_end = std::sregex_iterator();
+
+  std::string key, value;
+  for (std::sregex_iterator i = words_begin; i != words_end; ++i) {
+    const std::string &cur = (*i).str();
+    if (cur[0] == '-') {
+      key.erase(0, 1);
+      entry.erase(key);
+      continue;
+    }
+    int status = nntrainer::getKeyValue(cur, key, value);
+    ASSERT_EQ(status, ML_ERROR_NONE);
+    entry[key] = value;
+  }
+}
+
+/**
+ * @brief make ini test case from given parameter
+ */
+std::tuple<const char *, const std::vector<IniSection>, int>
+mkIniTc(const char *name, const std::vector<IniSection> vec, int flag) {
+  return std::make_tuple(name, vec, flag);
+}

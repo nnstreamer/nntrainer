@@ -20,6 +20,7 @@ test_target = [
   'unittest_nntrainer_lazy_tensor',
   'unittest_util_func',
   'unittest_databuffer_file',
+  'unittest_nntrainer_modelfile'
 ]
 
 foreach target: test_target

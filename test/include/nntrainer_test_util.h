@@ -28,10 +28,148 @@
 #include "nntrainer_log.h"
 #include <fstream>
 #include <gtest/gtest.h>
+#include <neuralnet.h>
+#include <nntrainer_error.h>
+#include <parse_util.h>
 #include <tensor.h>
+#include <unordered_map>
 
 #define tolerance 10e-5
 
+class IniSection {
+public:
+  IniSection(const std::string &section_name, const std::string &entry_str) :
+    section_name(section_name) {
+    setEntry(entry_str);
+  }
+
+  /**
+   * @brief copy entry from @a from and overwrite entry and section_name
+   */
+  IniSection(IniSection &from, const std::string &section_name,
+             const std::string &entry_str) :
+    IniSection(from) {
+    if (!section_name.empty()) {
+      this->section_name = section_name;
+    }
+    if (!entry_str.empty()) {
+      setEntry(entry_str);
+    }
+  }
+
+  IniSection(IniSection &from, const std::string &entry_str) :
+    IniSection(from, "", entry_str) {}
+
+  IniSection() = default;
+  ~IniSection() = default;
+
+  void print(std::ostream &out) {
+    out << '[' << section_name << ']' << std::endl;
+    for (auto &it : entry)
+      out << it.first << " = " << it.second << std::endl;
+  }
+
+  IniSection &operator+=(const IniSection &rhs) {
+    setEntry(rhs.entry);
+    return *this;
+  }
+
+  IniSection operator+(const IniSection &rhs) const {
+    return IniSection(*this) += rhs;
+  }
+
+  IniSection &operator+=(const std::string &s) {
+    setEntry(s);
+    return *this;
+  }
+
+  IniSection operator+(const std::string &s) { return IniSection(*this) += s; }
+
+private:
+  void setEntry(const std::unordered_map<std::string, std::string> &_entry) {
+    for (auto &it : _entry) {
+      this->entry[it.first] = it.second;
+    }
+  }
+
+  /**
+   * @brief setEntry as "Type = neuralnetwork | decayrate = 0.96 | -epoch = 1"
+   * will delete epoch, and overwrite type and decayrate
+   */
+  void setEntry(const std::string &entry_str);
+
+  std::string section_name;
+  std::unordered_map<std::string, std::string> entry;
+
+  friend std::ostream &operator<<(std::ostream &os, const IniSection &section) {
+    return os << section.section_name;
+  }
+};
+
+namespace initest {
+typedef enum {
+  LOAD = 1 << 0, /**< should fail at load */
+  INIT = 1 << 1, /**< should fail at init */
+} IniFailAt;
+};
+
+class nntrainerIniTest
+  : public ::testing::TestWithParam<
+      std::tuple<const char *, const std::vector<IniSection>, int>> {
+protected:
+  virtual void SetUp() {
+    name = std::string(std::get<0>(GetParam()));
+    sections = std::get<1>(GetParam());
+    failAt = std::get<2>(GetParam());
+    save_ini();
+
+    NN.setConfig(getIniName());
+  }
+
+  virtual void TearDown() { erase_ini(); }
+
+  bool failAtLoad() { return failAt & initest::IniFailAt::LOAD; }
+
+  bool failAtInit() { return failAt & initest::IniFailAt::INIT; }
+
+  std::string getIniName() { return name + ".ini"; }
+
+  std::ofstream getIni() {
+    std::ofstream out(getIniName().c_str());
+    if (!out.good()) {
+      throw std::runtime_error("cannot open ini");
+    }
+    return out;
+  }
+
+  virtual void save_ini() {
+    std::ofstream out = getIni();
+    for (auto &it : sections) {
+      it.print(std::cout);
+      std::cout << std::endl;
+      it.print(out);
+      out << std::endl;
+    }
+
+    out.close();
+  }
+
+  nntrainer::NeuralNetwork NN;
+
+private:
+  void erase_ini() { std::remove(getIniName().c_str()); }
+  int failAt;
+  std::string name;
+  std::vector<IniSection> sections;
+};
+
+/**
+ * @brief make ini test case from given parameter
+ */
+std::tuple<const char *, const std::vector<IniSection>, int>
+mkIniTc(const char *name, const std::vector<IniSection> vec, int flag);
+
+/// @todo: migrate this to datafile unittest
 const std::string config_str = "[Network]"
                                "\n"
                                "Type = NeuralNetwork"
