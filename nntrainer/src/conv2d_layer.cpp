@@ -224,11 +224,12 @@ Tensor Conv2DLayer::backwarding(Tensor derivative, int iteration) {
       delK = delK.chain()
                .applyIf(this->isWeightDecayL2Norm(), _LIFT(add_i), filter,
                         weight_decay.lambda)
-               .run().average(0);
+               .run()
+               .sum(0);
     }
     for (unsigned int i = filter_size; i < 2 * filter_size; ++i) {
       Tensor &delBias = paramsAt(i).grad;
-      delBias = delBias.average(0);
+      delBias = delBias.sum(0);
     }
 
     opt.apply_gradients(params, param_size, iteration);

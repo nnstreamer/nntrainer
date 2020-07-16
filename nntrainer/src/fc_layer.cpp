@@ -139,13 +139,14 @@ Tensor FullyConnectedLayer::backwarding(Tensor derivative, int iteration) {
   Tensor &djdb = paramsAt(bias_idx).grad;
 
   Tensor ret = derivative.dot(weight.transpose("0:2:1"));
-  djdb = derivative.average(0);
+  djdb = derivative.sum(0);
   djdw = input.chain()
            .transpose("0:2:1")
            .dot(derivative)
            .applyIf(this->isWeightDecayL2Norm(), _LIFT(add_i), weight,
                     weight_decay.lambda)
-           .run().average(0);
+           .run()
+           .sum(0);
 
   if (trainable) {
     opt.apply_gradients(params, param_size, iteration);
