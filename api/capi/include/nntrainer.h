@@ -200,9 +200,9 @@ int ml_train_model_destroy(ml_train_model_h model);
  * @retval #ML_ERROR_NONE Successful.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter.
  */
-int ml_train_nnmodel_get_summary(ml_train_model_h model,
-                                 ml_train_summary_type_e verbosity,
-                                 char **summary);
+int ml_train_model_get_summary(ml_train_model_h model,
+                               ml_train_summary_type_e verbosity,
+                               char **summary);
 
 /**
  * @brief Add layer in neural network model.
