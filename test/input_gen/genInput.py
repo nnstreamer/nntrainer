@@ -146,6 +146,53 @@ def pooling2d_tf(x, pool_size, stride, padding, pooling):
 # @param[in] kernel weight data
 # @param[in] bias bias data
 # @param[in] activation activation after the operation
+# @return tf_o calculated result
+def fc_tf_simplified_backward(x, kernel, label, bias, activation):
+    tf.compat.v1.reset_default_graph()
+    tf_input = tf.placeholder(dtype = dtypes.float32, shape=x.shape)
+
+    fc_out = tf.keras.layers.Dense(kernel.shape[-1],
+                    activation=activation,
+                    use_bias=True,
+                    kernel_initializer=tf.constant_initializer(kernel),
+                    bias_initializer=tf.constant_initializer(bias),
+                    input_shape=tf_input.shape)(tf_input)
+
+    trainable_variables = tf.compat.v1.trainable_variables()
+    all_variables = [tf_input] + trainable_variables
+    optimizer = tf.keras.optimizers.SGD(learning_rate = 1)
+
+    tf_grad = tf.gradients(fc_out, all_variables)
+    train_op = optimizer.apply_gradients(list(zip(tf_grad[1:], trainable_variables)))
+
+    with tf.compat.v1.Session() as sess:
+      with tf.compat.v1.variable_scope('fc'):
+        sess.run(tf.compat.v1.global_variables_initializer())
+
+        old_w = sess.run(trainable_variables)
+        tf_outs = sess.run([fc_out, tf_grad, train_op], feed_dict={tf_input: x})
+        new_w = sess.run(trainable_variables)
+
+        tf_outs = tf_outs[:-1] + [new_w]
+
+    if DEBUG:
+        print("FC simplified backward with activation.")
+        print(tf_outs[0].shape)
+        print(tf_outs[1][0].shape)
+        print(tf_outs[1][1].shape)
+        print(tf_outs[1][2].shape)
+        print(tf_outs[2][0].shape)
+        print(tf_outs[2][1].shape)
+
+    return tf_outs
+
+##
+# Tested with tensorflow 1.x (1.14.0 and above)
+# @brief fc layer forwarding and training with tensorflow
+# @param[in] x input data
+# @param[in] kernel weight data
+# @param[in] bias bias data
+# @param[in] activation activation after the operation
 # @param[in] train train a few steps
 # @return tf_o calculated result
 def fc_tf(x, kernel, label, bias, activation, train=False, loss='mse', opt='sgd'):
@@ -317,7 +364,7 @@ def gen_test_case_pooling(input_shape, pooling_size, stride, padding, pooling, b
     save(base_name+"_goldenPooling2D"+pooling+"Grad.out", np.transpose(golden_grad_input,(0,3,1,2)))
 
 ##
-# @brief generate fc test case data for forward and backward pass
+# @brief generate fc test case data for forward and backward pass with loss
 def gen_test_case_fc(input_shape, kernel_shape, base_name):
     input_data = gen_input(base_name + "_FCLayer.in", input_shape)
     label = gen_input(base_name + "_FCLabel.in", input_shape[:-1] + [kernel_shape[-1]])
@@ -329,26 +376,37 @@ def gen_test_case_fc(input_shape, kernel_shape, base_name):
 
     golden_fc = fc_tf(input_data, kernel, label, bias, activation=None)
     save(base_name + "_goldenFCResultActNone.out", golden_fc[0])
+    golden_fc_simplified = fc_tf_simplified_backward(input_data, kernel, label, bias, activation=None)
+    assert(golden_fc_simplified[0].all() == golden_fc[0].all())
+    save(base_name + "_goldenFCGradientDxActNone.out", golden_fc_simplified[1][0])
+    save(base_name + "_goldenFCGradientsActNone.out", golden_fc_simplified[1][1], golden_fc_simplified[1][2])
+    save(base_name + "_goldenFCUpdatedWeightsActNone.out", golden_fc_simplified[2][0], golden_fc_simplified[2][1])
 
     golden_fc = fc_tf(input_data, kernel, label, bias, activation=tf.nn.sigmoid, loss='mse')
     save(base_name + "_goldenFCResultSigmoidMse.out", golden_fc[0])
     save(base_name + "_goldenFCLossSigmoidMse.out", golden_fc[1])
+    golden_fc_simplified = fc_tf_simplified_backward(input_data, kernel, label, bias, activation=tf.nn.sigmoid)
+    assert(golden_fc_simplified[0].all() == golden_fc[0].all())
+    save(base_name + "_goldenFCGradientDxSigmoid.out", golden_fc_simplified[1][0])
+    save(base_name + "_goldenFCGradientsSigmoid.out", golden_fc_simplified[1][1], golden_fc_simplified[1][2])
+    save(base_name + "_goldenFCUpdatedWeightsSigmoid.out", golden_fc_simplified[2][0], golden_fc_simplified[2][1])
 
     golden_fc = fc_tf(input_data, kernel, label, bias, activation=tf.nn.softmax, loss='mse')
     save(base_name + "_goldenFCResultSoftmaxMse.out", golden_fc[0])
     save(base_name + "_goldenFCLossSoftmaxMse.out", golden_fc[1])
+    golden_fc_simplified = fc_tf_simplified_backward(input_data, kernel, label, bias, activation=tf.nn.softmax)
+    assert(golden_fc_simplified[0].all() == golden_fc[0].all())
+    save(base_name + "_goldenFCGradientDxSoftmax.out", golden_fc_simplified[1][0])
+    save(base_name + "_goldenFCGradientsSoftmax.out", golden_fc_simplified[1][1], golden_fc_simplified[1][2])
+    save(base_name + "_goldenFCUpdatedWeightsSoftmax.out", golden_fc_simplified[2][0], golden_fc_simplified[2][1])
 
-    golden_fc = fc_tf(input_data, kernel, label, bias, activation=tf.nn.sigmoid, loss='cross')
-    save(base_name + "_goldenFCResultSigmoidCross.out", golden_fc[0])
-    save(base_name + "_goldenFCLossSigmoidCross.out", golden_fc[1])
+    # golden_fc = fc_tf(input_data, kernel, label, bias, activation=tf.nn.sigmoid, loss='cross')
+    # save(base_name + "_goldenFCResultSigmoidCross.out", golden_fc[0])
+    # save(base_name + "_goldenFCLossSigmoidCross.out", golden_fc[1])
 
-    golden_fc = fc_tf(input_data, kernel, label, bias, activation=tf.nn.softmax, loss='cross')
-    save(base_name + "_goldenFCResultSoftmaxCross.out", golden_fc[0])
-    save(base_name + "_goldenFCLossSoftmaxCross.out", golden_fc[1])
-
-    # golden_fc = fc_tf(input_data, kernel, label, bias, activation=tf.nn.sigmoid, loss='mse')
-    # save(base_name + "_goldenFCResultSigmoidMseSgd.out", golden_fc[0])
-    # save(base_name + "_goldenFCLossSigmoidTrainMseSgd.out", golden_fc[1])
+    # golden_fc = fc_tf(input_data, kernel, label, bias, activation=tf.nn.softmax, loss='cross')
+    # save(base_name + "_goldenFCResultSoftmaxCross.out", golden_fc[0])
+    # save(base_name + "_goldenFCLossSoftmaxCross.out", golden_fc[1])
 
 def gen_test_case_bn(input_shape, base_name, training=True):
     input_data = gen_input(base_name + "_BNLayerInput.in", input_shape)
