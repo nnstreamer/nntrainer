@@ -9,7 +9,9 @@ endif
 
 ifndef NNTRAINER_ROOT
 NNTRAINER_ROOT := $(LOCAL_PATH)/../../../libs/arm64-v8a
-NNTRAINER_INCLUDE := $(LOCAL_PATH)/../../../nntrainer/include
+NNTRAINER_INCLUDES := $(LOCAL_PATH)/../../../nntrainer/include \
+	$(LOCAL_PATH)/../../../api \
+	$(LOCAL_PATH)/../../../api/capi/include/platform
 endif
 
 LOCAL_MODULE := nntrainer
@@ -34,6 +36,6 @@ LOCAL_SRC_FILES := main.cpp
 
 LOCAL_SHARED_LIBRARIES := nntrainer
 
-LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDE)
+LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
 
 include $(BUILD_EXECUTABLE)
