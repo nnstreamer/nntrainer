@@ -88,18 +88,6 @@ typedef enum {
 } ml_train_optimizer_type_e;
 
 /**
- * @brief Enumeration for the neural network summary verbosity of NNTrainer
- * @since_tizen 6.x
- */
-typedef enum {
-  ML_TRAIN_SUMMARY_MODEL = 0, /**< Overview of model
-                                   summary with one-line layer information*/
-  ML_TRAIN_SUMMARY_LAYER, /**< Detailed model summary with layer properties */
-  ML_TRAIN_SUMMARY_TENSOR /**< Model summary layer's including weight
-                             information */
-} ml_train_summary_type_e;
-
-/**
  * @brief Constructs the neural network model.
  * @details Use this function to create Neural Network Model.
  * @since_tizen 6.x

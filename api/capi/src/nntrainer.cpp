@@ -246,6 +246,48 @@ int ml_train_model_destroy(ml_train_model_h model) {
   return status;
 }
 
+int ml_train_model_get_summary(ml_train_model_h model,
+                               ml_train_summary_type_e verbosity,
+                               char **summary) {
+  if (summary == nullptr) {
+    ml_loge("summary pointer is null");
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
+  int status = ML_ERROR_NONE;
+  ml_train_model *nnmodel;
+
+  ML_NNTRAINER_CHECK_MODEL_VALIDATION(nnmodel, model);
+
+  std::shared_ptr<nntrainer::NeuralNetwork> NN;
+  NN = nnmodel->network;
+
+  std::stringstream ss;
+
+  returnable f = [&]() {
+    NN->print(ss, verbosity);
+    return ML_ERROR_NONE;
+  };
+
+  status = nntrainer_exception_boundary(f);
+  if (status != ML_ERROR_NONE) {
+    ml_loge("failed make a summary: %d", status);
+    return status;
+  }
+
+  std::string str = ss.str();
+  const std::string::size_type size = str.size();
+
+  if (size == 0) {
+    ml_logw("summary is empty for the model!");
+  }
+
+  *summary = new char[size + 1];
+  memcpy(*summary, str.c_str(), size + 1);
+
+  return status;
+}
+
 int ml_train_model_add_layer(ml_train_model_h model, ml_train_layer_h layer) {
   int status = ML_ERROR_NONE;
   ml_train_model *nnmodel;

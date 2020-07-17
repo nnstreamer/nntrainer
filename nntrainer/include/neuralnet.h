@@ -35,6 +35,7 @@
 #include <iostream>
 #include <layer.h>
 #include <loss_layer.h>
+#include <ml-api-common.h>
 #include <optimizer.h>
 #include <pooling2d_layer.h>
 #include <tensor.h>
@@ -274,6 +275,17 @@ public:
     continue_train = 5,
     unknown = 6
   };
+
+  /**
+   * @brief print function for neuralnet
+   * @param[in] out outstream
+   * @param[in] flags verbosity from ml_train_summary_type_e
+   */
+  /// @todo: change print to use NeuralNetPrintOption and add way to print out
+  /// metrics. Current implementation use summary level directly. and lack of
+  /// printing out metrics. It might be fine for now but later should add way to
+  /// control like layer::print
+  void print(std::ostream &out, unsigned int flags = 0);
 
 private:
   /**

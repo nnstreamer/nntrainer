@@ -939,4 +939,54 @@ int NeuralNetwork::setCost(CostType cost) {
   return ML_ERROR_NONE;
 }
 
+static unsigned int getLayerFlag(ml_train_summary_type_e verbosity,
+                                 bool initialized = false) {
+  unsigned int flag = 0;
+
+  switch (flag) {
+  case ML_TRAIN_SUMMARY_MODEL:
+    flag =
+      LayerPrintOption::PRINT_INST_INFO | LayerPrintOption::PRINT_SHAPE_INFO;
+    /// no break intended
+
+  case ML_TRAIN_SUMMARY_LAYER:
+    if (!initialized)
+      flag |= LayerPrintOption::PRINT_PROP_META;
+    else
+      flag |= LayerPrintOption::PRINT_METRIC;
+    flag |= LayerPrintOption::PRINT_PROP;
+    /// no break intended
+
+  case ML_TRAIN_SUMMARY_TENSOR:
+    flag |= LayerPrintOption::PRINT_WEIGHTS;
+    break;
+
+  default:
+    throw std::invalid_argument("given verbosity is invalid");
+  }
+
+  return flag;
+}
+
+void NeuralNetwork::print(std::ostream &out, unsigned int flags) {
+  /// @todo print neuralnet property
+  /// @todo print optimizer (with print optimizer prop)
+  /// @todo print loss function when it is not initialized. (if it is
+  /// initialized, loss layer will be printed)
+
+  if (layers.empty()) {
+    out << "model is empty!" << std::endl;
+    return;
+  }
+  unsigned int layerFlag =
+    getLayerFlag((ml_train_summary_type_e)flags, initialized);
+
+  for (auto &layer : layers) {
+    layer->print(out, layerFlag);
+  }
+
+  /// @todo Add status to check neuralnet has been run. #290
+  /// @todo print neuralnet metric after it is run
+}
+
 } /* namespace nntrainer */
