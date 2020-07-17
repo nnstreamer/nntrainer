@@ -196,6 +196,8 @@ int NeuralNetwork::loadFromConfig() {
   unsigned int network_len = strlen(network_str);
   const char dataset_str[] = "dataset";
   unsigned int dataset_len = strlen(dataset_str);
+  const char unknown[] = "Unknown";
+  unsigned int unknown_len = strlen(unknown);
 
   if (ini_file.empty()) {
     ml_loge("Error: Configuration File is not defined");
@@ -222,9 +224,10 @@ int NeuralNetwork::loadFromConfig() {
   }
 
   /** Get all the section names */
-  ml_logi(
-    "parsing ini... invalid properties does not cause error, rather be ignored "
-    "only invalid value for valid property will abort the process");
+  ml_logi("==========================parsing ini... \n"
+          "invalid properties does not cause error, rather be ignored \n"
+          "not-allowed property for the layer throws error \n"
+          "valid property with invalid value throws error as well");
   for (int idx = 0; idx < num_ini_sec; ++idx) {
     const char *sec_name = iniparser_getsecname(ini, idx);
 
@@ -249,7 +252,7 @@ int NeuralNetwork::loadFromConfig() {
     std::string layer_name(sec_name);
 
     std::string layer_type_str =
-      iniparser_getstring(ini, (layer_name + ":Type").c_str(), "Unknown");
+      iniparser_getstring(ini, (layer_name + ":Type").c_str(), unknown);
     LayerType layer_type = (LayerType)parseType(layer_type_str, TOKEN_LAYER);
 
     std::shared_ptr<Layer> layer;
@@ -290,14 +293,24 @@ int NeuralNetwork::loadFromConfig() {
     for (unsigned int i = 0; i < property_end; ++i) {
       std::string prop = propToStr(i);
       std::string value =
-        iniparser_getstring(ini, (layer_name + ":" + prop).c_str(), "");
+        iniparser_getstring(ini, (layer_name + ":" + prop).c_str(), unknown);
 
-      try {
-        /// if problem setting property, it will throw std::invalid_argument
-        layer->setProperty(static_cast<Layer::PropertyType>(i), value);
-      } catch (exception::invalid_property &e) {
-        /// intended
+      /**! @todo: add following negative tc after #319
+       * 1. layer has empty prop -> throw std::invalid_argument
+       * 2. layer has not allowed property -> throw exception::invalid_property
+       * 3. property value parse error -> throw std::invalid_argument
+       */
+      if (!strncmp(value.c_str(), unknown, unknown_len)) {
+        continue;
       }
+
+      if (value == "") {
+        std::stringstream ss;
+        ss << "property key " << prop << " has empty value. It is not allowed";
+        throw std::invalid_argument(ss.str());
+      }
+
+      layer->setProperty(static_cast<Layer::PropertyType>(i), value);
     }
 
     status = layer->setName(layer_name);
