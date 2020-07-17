@@ -9,7 +9,9 @@ endif
 
 ifndef NNTRAINER_ROOT
 NNTRAINER_ROOT := $(LOCAL_PATH)/../../../libs/arm64-v8a
-NNTRAINER_INCLUDES := $(LOCAL_PATH)/../../../nntrainer/include
+NNTRAINER_INCLUDES := $(LOCAL_PATH)/../../../nntrainer/include \
+	$(LOCAL_PATH)/../../../api \
+	$(LOCAL_PATH)/../../../api/capi/include/platform
 endif
 
 include $(CLEAR_VARS)
