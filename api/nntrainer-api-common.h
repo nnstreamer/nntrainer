@@ -10,6 +10,9 @@
  * @bug No known bugs except for NYI items
  */
 
+#ifndef __NNTRAINER_API_COMMON_H__
+#define __NNTRAINER_API_COMMON_H__
+
 /**
  * @brief Dataset generator callback function for train/valid/test data.
  * @details The Containers passed will already be allocated with sufficient
@@ -29,3 +32,5 @@
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter.
  */
 typedef int (*ml_train_datagen_cb)(float **input, float **label, bool *last);
+
+#endif
