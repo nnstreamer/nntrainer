@@ -738,6 +738,53 @@ TEST(nntrainer_capi_nnmodel, train_with_generator_01_p) {
 }
 
 /**
+ * @brief Neural Network Model Summary Test summary verbosity of tensor
+ */
+TEST(nntrainer_capi_summary, summary_01_p) {
+  ml_train_model_h handle = NULL;
+  int status = ML_ERROR_NONE;
+  std::string config_file = "./test_compile_01_p.ini";
+  RESET_CONFIG(config_file.c_str());
+  replaceString("Layers = inputlayer outputlayer",
+                "Layers = inputlayer outputlayer", config_file, config_str);
+  status = ml_train_model_construct_with_conf(config_file.c_str(), &handle);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = ml_train_model_compile(handle, NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  char *sum = NULL;
+  status = ml_train_model_get_summary(handle, ML_TRAIN_SUMMARY_TENSOR, &sum);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  EXPECT_GT(strlen(sum), 100);
+
+  status = ml_train_model_destroy(handle);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Neural Network Model Summary Test summary with tensor
+ */
+TEST(nntrainer_capi_summary, summary_02_n) {
+  ml_train_model_h handle = NULL;
+  int status = ML_ERROR_NONE;
+  std::string config_file = "./test_compile_01_p.ini";
+  RESET_CONFIG(config_file.c_str());
+  replaceString("Layers = inputlayer outputlayer",
+                "Layers = inputlayer outputlayer", config_file, config_str);
+  status = ml_train_model_construct_with_conf(config_file.c_str(), &handle);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = ml_train_model_compile(handle, NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_model_get_summary(handle, ML_TRAIN_SUMMARY_TENSOR, NULL);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+
+  status = ml_train_model_destroy(handle);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
  * @brief Main gtest
  */
 int main(int argc, char **argv) {

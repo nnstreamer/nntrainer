@@ -261,29 +261,29 @@ void Layer::printMetric(std::ostream &out) {
 
 void Layer::print(std::ostream &out, unsigned int flags) {
   if (flags & PRINT_INST_INFO) {
-    std::cout << "======instance info: " << std::endl;
+    out << "===================";
     printInstance(out, this);
 
     out << "Layer Type: " << type << std::endl;
   }
 
   if (flags & PRINT_SHAPE_INFO) {
-    std::cout << "======shape information: " << std::endl;
+    out << "======shape information: " << std::endl;
     printShapeInfo(out);
   }
 
   if (flags & PRINT_PROP_META) {
-    std::cout << "======meta properties: " << std::endl;
+    out << "======meta properties: " << std::endl;
     printPropertiesMeta(out);
   }
 
   if (flags & PRINT_PROP) {
-    std::cout << "======properties: " << std::endl;
+    out << "======properties: " << std::endl;
     printProperties(out);
   }
 
   if (flags & PRINT_WEIGHTS) {
-    std::cout << "======weights: " << std::endl;
+    out << "======weights: " << std::endl;
     for (unsigned int i = 0; i < param_size; ++i) {
       out << '[' << paramsAt(i).name << ']' << std::endl;
       out << paramsAt(i).weight;
@@ -291,7 +291,7 @@ void Layer::print(std::ostream &out, unsigned int flags) {
   }
 
   if (flags & PRINT_METRIC) {
-    std::cout << "======metrics: " << std::endl;
+    out << "======metrics: " << std::endl;
     printMetric(out);
   }
 };

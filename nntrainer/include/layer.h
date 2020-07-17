@@ -414,6 +414,13 @@ public:
    */
   virtual std::string getBaseName() = 0;
 
+  /**
+   * @brief     Print layer related information. Do not override without clear
+   * reason. It is recommended to override printShapeInfo, printPropertiesMeta,
+   * printProperties, printMetric instead
+   * @param[in] out outstream
+   * @param[in] flags combination of LayerPrintOption
+   */
   virtual void print(std::ostream &out, unsigned int flags = 0);
 
   /**
@@ -595,7 +602,7 @@ private:
  */
 template <typename T, typename std::enable_if_t<
                         std::is_base_of<Layer, T>::value, T> * = nullptr>
-std::ostream &operator<<(std::ostream &out, T const &l) {
+std::ostream &operator<<(std::ostream &out, T &l) {
   unsigned int option = nntrainer::LayerPrintOption::PRINT_INST_INFO |
                         nntrainer::LayerPrintOption::PRINT_SHAPE_INFO |
                         nntrainer::LayerPrintOption::PRINT_PROP |

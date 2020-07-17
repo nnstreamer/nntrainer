@@ -33,4 +33,16 @@
  */
 typedef int (*ml_train_datagen_cb)(float **input, float **label, bool *last);
 
+/**
+ * @brief Enumeration for the neural network summary verbosity of NNTrainer
+ * @since_tizen 6.x
+ */
+typedef enum {
+  ML_TRAIN_SUMMARY_MODEL = 0, /**< Overview of model
+                                   summary with one-line layer information */
+  ML_TRAIN_SUMMARY_LAYER, /**< Detailed model summary with layer properties */
+  ML_TRAIN_SUMMARY_TENSOR /**< Model summary layer's including weight
+                             information */
+} ml_train_summary_type_e;
+
 #endif
