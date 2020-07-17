@@ -63,18 +63,22 @@ protected:
     layer.setInputDimension(dim);
   }
 
-  void matchOutput(const nntrainer::Tensor &result, const char *expected) {
-    nntrainer::Tensor golden(result.getDim());
-    loadFile(expected, golden);
-
+  void matchOutput(const nntrainer::Tensor &result,
+                   const nntrainer::Tensor &golden) {
     const float *out_ptr, *golden_ptr;
 
     out_ptr = result.getData();
     golden_ptr = golden.getData();
 
-    for (size_t i = 0; i < out.length(); ++i) {
+    for (size_t i = 0; i < result.length(); ++i) {
       EXPECT_NEAR(out_ptr[i], golden_ptr[i], tolerance);
     }
+  }
+
+  void matchOutput(const nntrainer::Tensor &result, const char *expected) {
+    nntrainer::Tensor golden(result.getDim());
+    loadFile(expected, golden);
+    matchOutput(result, golden);
   }
 
   // setting property separated by "|"
@@ -130,6 +134,17 @@ protected:
       throw std::runtime_error("could not read, check filename");
     }
     t.read(file);
+    file.close();
+  }
+
+  template <typename T>
+  void loadFile(const char *filename, std::vector<T> &ts) {
+    std::ifstream file(filename);
+    if (!file.good()) {
+      throw std::runtime_error("could not read, check filename");
+    }
+    for (auto &t : ts)
+      t.read(file);
     file.close();
   }
 
@@ -328,6 +343,8 @@ protected:
     loadFile("tc_fc_1_FCLayer.in", in);
     loadFile("tc_fc_1_FCKernel.in", layer);
     loadFile("tc_fc_1_FCLabel.in", label);
+    def_derivative = constant(1.0, 3, 1, 1, 15);
+
     return status;
   }
 
@@ -347,6 +364,16 @@ protected:
     EXPECT_EQ(status, ML_ERROR_NONE);
   }
 
+  void loadUpdatedWeightsGradients(const char *file_uw, const char *file_g) {
+    for (int idx = 0; idx < 2; ++idx) {
+      new_w.push_back(nntrainer::Tensor(layer.paramsAt(idx).weight.getDim()));
+      grad.push_back(nntrainer::Tensor(layer.paramsAt(idx).grad.getDim()));
+    }
+
+    loadFile(file_uw, new_w);
+    loadFile(file_g, grad);
+  }
+
   void loadLoss(const char *file) { loadFile(file, loss); }
 
   virtual void prepareLayer() {
@@ -355,24 +382,51 @@ protected:
     last_layer = true;
   }
 
-  nntrainer::Tensor loss_out;
+  void matchUpdatedWeightsGradients(const char *file_uw, const char *file_g) {
+    loadUpdatedWeightsGradients(file_uw, file_g);
+    std::shared_ptr<nntrainer::UpdatableParam> params = layer.getParams();
+
+    /** Match gradients and updated weights */
+    for (int idx = 0; idx < 2; ++idx) {
+      matchOutput(params.get()[idx].grad, grad[idx]);
+      matchOutput(params.get()[idx].weight, new_w[idx]);
+    }
+  }
+
+  nntrainer::Tensor loss_out, loss;
   nntrainer::Tensor label;
-  nntrainer::Tensor loss;
+  nntrainer::Tensor def_derivative, back_out;
+  std::vector<nntrainer::Tensor> new_w;
+  std::vector<nntrainer::Tensor> grad;
 };
 
 /**
  * @brief Fully Connected Layer
  */
-TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_01_p) {
+TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_backwarding_01_p) {
+  status = reinitialize();
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
   out = layer.forwarding(in, status);
   EXPECT_EQ(status, ML_ERROR_NONE);
   matchOutput(out, "tc_fc_1_goldenFCResultActNone.out");
+
+  setOptimizer(nntrainer::OptType::sgd, "learning_rate=1.0");
+
+  back_out = layer.backwarding(def_derivative, 1);
+  matchOutput(back_out, "tc_fc_1_goldenFCGradientDxActNone.out");
+
+  matchUpdatedWeightsGradients("tc_fc_1_goldenFCUpdatedWeightsActNone.out",
+                               "tc_fc_1_goldenFCGradientsActNone.out");
 }
 
 /**
  * @brief Fully Connected Layer forward with MSE loss
  */
-TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_02_p) {
+TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_backwarding_02_p) {
+  status = reinitialize();
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
   nntrainer::ActivationLayer act_layer;
   addActivation(act_layer, nntrainer::ACT_SIGMOID);
 
@@ -392,12 +446,22 @@ TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_02_p) {
 
   loadLoss("tc_fc_1_goldenFCLossSigmoidMse.out");
   EXPECT_NEAR(loss_layer.getLoss(), *(loss.getData()), tolerance);
+
+  setOptimizer(nntrainer::OptType::sgd, "learning_rate=1.0");
+
+  /** Verify backwarding without loss */
+  back_out = act_layer.backwarding(def_derivative, 1);
+  back_out = layer.backwarding(back_out, 1);
+  matchOutput(back_out, "tc_fc_1_goldenFCGradientDxSigmoid.out");
+
+  matchUpdatedWeightsGradients("tc_fc_1_goldenFCUpdatedWeightsSigmoid.out",
+                               "tc_fc_1_goldenFCGradientsSigmoid.out");
 }
 
 /**
  * @brief Fully Connected Layer forward with MSE loss
  */
-TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_03_p) {
+TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_backwarding_03_p) {
   nntrainer::ActivationLayer act_layer;
   addActivation(act_layer, nntrainer::ACT_SOFTMAX);
 
@@ -417,6 +481,16 @@ TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_03_p) {
 
   loadLoss("tc_fc_1_goldenFCLossSoftmaxMse.out");
   EXPECT_NEAR(loss_layer.getLoss(), *(loss.getData()), tolerance);
+
+  setOptimizer(nntrainer::OptType::sgd, "learning_rate=1.0");
+
+  /** Verify backwarding without loss */
+  back_out = act_layer.backwarding(def_derivative, 1);
+  back_out = layer.backwarding(back_out, 1);
+  matchOutput(back_out, "tc_fc_1_goldenFCGradientDxSoftmax.out");
+
+  matchUpdatedWeightsGradients("tc_fc_1_goldenFCUpdatedWeightsSoftmax.out",
+                               "tc_fc_1_goldenFCGradientsSoftmax.out");
 }
 
 /**

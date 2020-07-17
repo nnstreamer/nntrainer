@@ -416,6 +416,18 @@ public:
 
   virtual void print(std::ostream &out, unsigned int flags = 0);
 
+  /**
+   * @brief     get data alias at param position.
+   * @exception std::out_of_range for index out of range
+   */
+  UpdatableParam &paramsAt(const unsigned int position) {
+    if (position >= param_size) {
+      throw std::out_of_range("index out of range");
+    }
+
+    return params.get()[position];
+  }
+
 protected:
   /**
    * @brief     Name of the layer (works as the identifier)
@@ -518,18 +530,6 @@ protected:
     param_size = psize;
     params = std::shared_ptr<UpdatableParam>(
       new UpdatableParam[psize], std::default_delete<UpdatableParam[]>());
-  }
-
-  /**
-   * @brief     get data alias at param position.
-   * @exception std::out_of_range for index out of range
-   */
-  UpdatableParam &paramsAt(const unsigned int position) {
-    if (position >= param_size) {
-      throw std::out_of_range("index out of range");
-    }
-
-    return params.get()[position];
   }
 
   /**
