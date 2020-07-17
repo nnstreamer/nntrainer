@@ -58,15 +58,27 @@ int Optimizer::setOptParam(OptParam p) {
   return status;
 }
 
-int Optimizer::initialize(std::vector<Tensor> tensors, bool set_tensor) {
+int Optimizer::initialize(std::shared_ptr<UpdatableParam> params,
+                          unsigned int param_size, bool set_tensor) {
   int status = ML_ERROR_NONE;
 
-  std::vector<Tensor>::iterator iter;
+  if (type == OptType::adam && set_tensor) {
+    UpdatableParam *param_data = params.get();
 
-  for (unsigned int i = 0; i < tensors.size(); i += 2) {
-    weight_mv.push_back(std::pair<Tensor, Tensor>(tensors[i], tensors[i + 1]));
+    for (unsigned int i = 0; i < param_size; ++i) {
+      UpdatableParam &param = param_data[i];
+
+      Tensor &weight = param.weight;
+      Tensor &grad = param.grad;
+      Tensor w = Tensor(weight.getDim());
+      w.setZero();
+      Tensor g = Tensor(grad.getDim());
+      g.setZero();
+      std::pair<Tensor, Tensor> p =
+        std::pair<Tensor, Tensor>(std::move(w), std::move(g));
+      weight_mv.push_back(std::move(p));
+    }
   }
-
   return status;
 }
 

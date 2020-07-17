@@ -32,31 +32,27 @@ int Conv2DLayer::initialize(bool last) {
 
   this->last_layer = last;
   dim = TensorDim(1, input_dim.channel(), kernel_size[0], kernel_size[1]);
+  TensorDim bias_dim = TensorDim(1, 1, 1, 1);
 
   std::string kernelPrefix = "Conv2d:filter";
   std::string biasPrefix = "Conv2d:bias";
   setParamSize(filter_size * 2);
 
-  // fixme: #280
-  TensorDim gradDim(input_dim.batch(), dim.channel(), dim.height(),
-                    dim.width());
-  TensorDim gradBiasDim(input_dim.batch(), 1, 1, 1);
-
   for (unsigned int i = 0; i < filter_size; ++i) {
     Tensor Knl = initializeWeight(dim, weight_ini_type, status);
     NN_RETURN_STATUS();
 
-    Tensor bias = Tensor(1, 1);
+    Tensor bias = Tensor(bias_dim);
 
     if (!bias_init_zero) {
       bias.apply([&](float x) { return random(); });
     } else {
       bias.setZero();
     }
-    Tensor delK(gradDim);
+    Tensor delK(dim);
     delK.setZero();
 
-    Tensor delBias(gradBiasDim);
+    Tensor delBias(bias_dim);
     delBias.setZero();
 
     /*< @note: order of weight and bias are:
@@ -125,20 +121,7 @@ int Conv2DLayer::setOptimizer(Optimizer &opt) {
   if (status != ML_ERROR_NONE)
     return status;
 
-  std::vector<Tensor> list_d;
-  for (unsigned int i = 0; i < filter_size; ++i) {
-    for (unsigned int j = 0; j < 2; ++j) {
-      list_d.push_back(Tensor(dim));
-    }
-    for (unsigned int j = 0; j < 2; ++j) {
-      list_d.push_back(Tensor(1, 1, 1));
-    }
-  }
-  std::vector<Tensor>::iterator iter;
-  for (iter = list_d.begin(); iter != list_d.end(); ++iter) {
-    (*iter).setZero();
-  }
-  return this->opt.initialize(list_d, true);
+  return this->opt.initialize(getParams(), param_size, true);
 }
 
 Tensor Conv2DLayer::backwarding(Tensor derivative, int iteration) {
@@ -148,13 +131,21 @@ Tensor Conv2DLayer::backwarding(Tensor derivative, int iteration) {
   unsigned int o_size = kernel_size[0] * kernel_size[1];
   std::vector<float> output(o_size);
 
+  for (unsigned int i = 0; i < filter_size; ++i) {
+    Tensor &delK = paramsAt(i).grad;
+    Tensor &delBias = paramsAt(i + filter_size).grad;
+    delK.setZero();
+    delBias.setZero();
+  }
+
   TensorDim in_dim(1, 1, derivative.height(), derivative.width());
+
   for (unsigned int b = 0; b < input_dim.batch(); ++b) {
     Tensor in_padded = zero_pad(b, input, padding);
     TensorDim p_dim(1, 1, in_padded.height(), in_padded.width());
 
-    /// @fixme: #280
     for (unsigned int i = 0; i < filter_size; i++) {
+      float sum = 0.0;
       Tensor &delK = paramsAt(i).grad;
       Tensor &delBias = paramsAt(i + filter_size).grad;
       for (unsigned int j = 0; j < in_padded.channel(); ++j) {
@@ -164,19 +155,19 @@ Tensor Conv2DLayer::backwarding(Tensor derivative, int iteration) {
           derivative.getAddress(b * derivative.getDim().getFeatureLen() +
                                 i * derivative.height() * derivative.width()),
           in_dim, output.data(), stride, 0.0);
-        memcpy(delK.getAddress(b * delK.getDim().getFeatureLen() + j * o_size),
-               output.data(), o_size * sizeof(float));
+        float *del = delK.getAddress(j * o_size);
+        for (unsigned k = 0; k < o_size; ++k) {
+          del[i] += output[i];
+        }
       }
 
-      // Calculate delBias [ batch , 1, 1, filter_size]
-
-      float sum = 0.0;
+      // Calculate delBias [ 1, 1, 1, filter_size]
       for (unsigned int j = 0; j < derivative.height(); ++j) {
         for (unsigned int k = 0; k < derivative.width(); ++k) {
           sum += derivative.getValue(b, i, j, k);
         }
       }
-      delBias.setValue(b, 0, 0, 0, sum);
+      delBias.setValue(0, 0, 0, 0, sum + delBias.getValue(0, 0, 0, 0));
     }
   }
 
@@ -224,12 +215,7 @@ Tensor Conv2DLayer::backwarding(Tensor derivative, int iteration) {
       delK = delK.chain()
                .applyIf(this->isWeightDecayL2Norm(), _LIFT(add_i), filter,
                         weight_decay.lambda)
-               .run()
-               .sum(0);
-    }
-    for (unsigned int i = filter_size; i < 2 * filter_size; ++i) {
-      Tensor &delBias = paramsAt(i).grad;
-      delBias = delBias.sum(0);
+               .run();
     }
 
     opt.apply_gradients(params, param_size, iteration);
