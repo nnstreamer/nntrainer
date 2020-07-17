@@ -1,0 +1,131 @@
+#!/usr/bin/env python3
+##
+# Copyright (C) 2020 Jihoon Lee <jhoon.it.lee@samsung.com>
+#
+# SPDX-License-Identifier: Apache-2.0-only
+#
+# @file recorder.py
+# @brief Generate tc from given keras model
+# @author Jihoon lee <jhoon.it.lee@samsung.com>
+
+from functools import wraps
+import sys
+import os
+import warnings
+import random
+
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore", category=FutureWarning)
+    import numpy as np
+    import tensorflow as tf
+    from tensorflow.python import keras as K
+
+tf.compat.v1.enable_eager_execution()
+# Fix the seeds across frameworks
+SEED = 1234
+random.seed(SEED)
+tf.compat.v1.set_random_seed(SEED)
+np.random.seed(SEED)
+
+
+class ModelRecorder:
+    def __init__(
+        self,
+        file_name,
+        inputs,
+        outputs,
+        input_shape,
+        label_shape,
+        loss_fn=None,
+        optimizer=tf.keras.optimizers.SGD(lr=1.0),
+    ):
+        self.inputs = inputs
+        self.outputs = outputs
+        self.model = K.Model(inputs=inputs, outputs=outputs)
+        self.loss_fn = loss_fn
+        self.optimizer = optimizer
+        self.file = open(file_name, "wb")
+        self.generate_data(input_shape, label_shape)
+
+    def __del__(self):
+        self.file.close()
+
+    def _rand_like(self, tensorOrShape, scale=10):
+        try:
+            return tf.random.uniform(tensorOrShape.shape, dtype=tf.float32) * scale
+        except AttributeError:
+            return tf.random.uniform(tensorOrShape, dtype=tf.float32) * scale
+
+    def generate_data(self, input_shape, label_shape):
+        """This part loads data, should be changed if you are gonna load real data"""
+        self.initial_input = self._rand_like(input_shape)
+        self.label = tf.one_hot(indices=[1] * label_shape[0], depth=label_shape[1])
+
+        self.initial_input.numpy().tofile(self.file)
+        self.label.numpy().tofile(self.file)
+
+    def _write_items(self, *items):
+        for item in items:
+            print(item)
+            try:
+                item.numpy().tofile(self.file)
+            except AttributeError:
+                pass
+            try:
+                print(item.shape, " data is generated")
+            except:
+                pass
+
+    def step(self):
+        self.model.summary()
+
+        with tf.GradientTape(persistent=True) as tape:
+            tape.watch(self.initial_input)
+            outputs = self.model(self.initial_input)
+
+            if self.loss_fn:
+                loss = self.loss_fn(self.label, outputs[-1])
+                outputs.append(loss)
+                print("loss is %s" % loss)
+
+        results = [self.initial_input] + outputs
+
+        for idx, layer in enumerate(self.model.layers):
+            print("generating for %s" % layer.name)
+
+            weights = layer.trainable_weights.copy()
+            gradients = tape.gradient(results[-1], layer.trainable_weights)
+            dweights = tape.gradient(results[-1], results[idx])
+
+            # input, weights, gradients, output, dx
+            # you should take weight order to account (eg. I think conv2d has different order)
+            self._write_items(
+                *[results[idx], *weights, *gradients, results[idx + 1], dweights]
+            )
+
+            self.optimizer.apply_gradients(zip(gradients, layer.trainable_weights))
+
+        self._write_items(results[-1])
+
+    def run(self, epoch):
+        for _ in range(epoch):
+            self.step()
+
+
+if __name__ == "__main__":
+    inp = K.Input(shape=(3, 3))
+    a = K.layers.Dense(5)(inp)
+    b = K.layers.Dense(5)(a)
+    c = K.layers.Dense(10)(b)
+    d = K.layers.Activation("softmax")(c)
+
+    recorder = ModelRecorder(
+        file_name="a.info",
+        inputs=inp,
+        outputs=[inp, a, b, c, d],
+        input_shape=(3, 3),
+        label_shape=(3, 10),
+        loss_fn=tf.keras.losses.CategoricalCrossentropy(),
+    )
+
+    recorder.run(2)

@@ -110,8 +110,12 @@ bool Tensor::operator==(const Tensor &rhs) const {
 
   for (size_t i = 0; i < len; ++i) {
     if (std::isnan(data[i]) || std::isnan(rdata[i]) ||
-        std::fabs(data[i] - rdata[i]) > epsilon)
+        std::fabs(data[i] - rdata[i]) > epsilon) {
+      std::cerr.precision(10);
+      std::cerr << "diff happend at " << i << std::endl;
+      std::cerr << "data: " << data[i] << " rdata: " << rdata[i] << std::endl;
       return false;
+    }
   }
 
   return true;

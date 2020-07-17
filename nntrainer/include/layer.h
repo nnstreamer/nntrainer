@@ -457,6 +457,10 @@ public:
     return params.get()[position];
   }
 
+  Optimizer getOptimizer() { return opt; }
+
+  int getParamsize() { return param_size; }
+
 protected:
   /**
    * @brief     Name of the layer (works as the identifier)

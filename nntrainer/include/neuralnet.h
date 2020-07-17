@@ -266,6 +266,12 @@ public:
   int addLayer(std::shared_ptr<Layer> layer);
 
   /**
+   * @brief  get raw graph of the neural network model
+   * @return graph of current layer
+   */
+  std::vector<std::shared_ptr<Layer>> getGraph() { return layers; }
+
+  /**
    * @brief     set optimizer for the neural network model
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.

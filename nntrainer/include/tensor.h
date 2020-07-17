@@ -543,6 +543,8 @@ public:
    */
   const std::array<int, MAXDIM> getStrides() const noexcept { return strides; }
 
+  static constexpr float epsilon = 1e-5;
+
 private:
   /**< handle the data as a std::shared_ptr<float> type */
   TensorDim dim;
@@ -553,7 +555,6 @@ private:
   static constexpr float min_limits = std::numeric_limits<float>::min();
   static constexpr float max_limits = std::numeric_limits<float>::max();
   template <typename T> void setDist(T dist);
-  static constexpr float epsilon = 1e-5;
 };
 
 /**
