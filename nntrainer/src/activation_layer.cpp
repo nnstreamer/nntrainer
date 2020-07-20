@@ -61,9 +61,45 @@ Tensor ActivationLayer::forwarding(Tensor in, int &status) {
 }
 
 Tensor ActivationLayer::backwarding(Tensor derivative, int iteration) {
-  if (activation_type == ActiType::ACT_SOFTMAX)
-    return derivative.multiply(_act_prime_fn(hidden));
-  else
+  if (activation_type == ActiType::ACT_SOFTMAX) {
+    /**
+     * This is a hotfix for now
+     * @todo Update activationLayer semantics usages to take another argument
+     */
+    Tensor x = hidden;
+    int batch = x.getBatch();
+    int channel = x.getChannel();
+    int width = x.getWidth();
+    int height = x.getHeight();
+
+    Tensor PI = Tensor(x.getDim());
+
+    float *xp = x.getData();
+    float *pp = PI.getData();
+    float *d = derivative.getData();
+
+    for (int k = 0; k < batch; ++k) {
+      int K = k * channel * height * width;
+      for (int c = 0; c < channel; ++c) {
+        int C = K + c * height * width;
+        for (int i = 0; i < height; ++i) {
+          int I = C + i * width;
+          for (int j = 0; j < width; ++j) {
+            float sum = 0.0;
+            for (int l = 0; l < width; ++l) {
+              if (j == l) {
+                sum += d[I + l] * xp[I + l] * (1.0 - xp[I + j]);
+              } else {
+                sum -= d[I + l] * xp[I + l] * xp[I + j];
+              }
+            }
+            pp[I + j] = sum;
+          }
+        }
+      }
+    }
+    return PI;
+  } else
     return derivative.multiply(_act_prime_fn(input));
 }
 

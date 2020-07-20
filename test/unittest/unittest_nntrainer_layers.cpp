@@ -338,30 +338,91 @@ protected:
   virtual int reinitialize(bool _last_layer = false) {
     int status = super::reinitialize(_last_layer);
     label = nntrainer::Tensor(layer.getOutputDimension());
-    loss = nntrainer::Tensor();
 
     loadFile("tc_fc_1_FCLayer.in", in);
     loadFile("tc_fc_1_FCKernel.in", layer);
     loadFile("tc_fc_1_FCLabel.in", label);
-    def_derivative = constant(1.0, 3, 1, 1, 15);
+    layers.clear();
 
     return status;
   }
 
-  void addActivation(nntrainer::ActivationLayer &act_layer,
-                     nntrainer::ActiType type) {
-    act_layer.setActivation(type);
-    act_layer.setInputDimension(layer.getOutputDimension());
-    status = act_layer.initialize(false);
+  void addActivation(nntrainer::ActiType type) {
+    std::shared_ptr<nntrainer::ActivationLayer> act_layer =
+      std::make_shared<nntrainer::ActivationLayer>();
+    act_layer->setActivation(type);
+    act_layer->setInputDimension(layer.getOutputDimension());
+    status = act_layer->initialize(false);
     EXPECT_EQ(status, ML_ERROR_NONE);
+    layers.push_back(act_layer);
   }
 
-  void addLoss(nntrainer::LossLayer &loss_layer, nntrainer::CostType type) {
-    loss_layer.setInputDimension(layer.getOutputDimension());
-    status = loss_layer.initialize(true);
+  void addLoss(nntrainer::CostType type) {
+    std::shared_ptr<nntrainer::LossLayer> loss_layer =
+      std::make_shared<nntrainer::LossLayer>();
+    loss_layer->setInputDimension(layer.getOutputDimension());
+    status = loss_layer->initialize(true);
     EXPECT_EQ(status, ML_ERROR_NONE);
-    status = loss_layer.setCost(type);
+    status = loss_layer->setCost(type);
     EXPECT_EQ(status, ML_ERROR_NONE);
+    layers.push_back(loss_layer);
+  }
+
+  void matchForwarding(const char *file) {
+    nntrainer::Tensor out;
+    out = layer.forwarding(in, status);
+    EXPECT_EQ(status, ML_ERROR_NONE);
+
+    if (layers.size() > 0) {
+      for (unsigned int idx = 0; idx < layers.size() - 1; idx++) {
+        out = layers[idx]->forwarding(out, status);
+        EXPECT_EQ(status, ML_ERROR_NONE);
+      }
+
+      if (layers.back()->getType() == nntrainer::LAYER_LOSS) {
+        std::shared_ptr<nntrainer::LossLayer> loss_layer =
+          std::static_pointer_cast<nntrainer::LossLayer>(layers.back());
+        out = loss_layer->forwarding(out, label, status);
+      } else {
+        out = layers.back()->forwarding(out, status);
+      }
+      EXPECT_EQ(status, ML_ERROR_NONE);
+    }
+    matchOutput(out, file);
+  }
+
+  void matchLoss(const char *file) {
+    nntrainer::Tensor loss;
+    loadFile(file, loss);
+    EXPECT_NEAR(layers.back()->getLoss(), *(loss.getData()), tolerance);
+  }
+
+  void matchBackwarding(const char *file_dx, const char *file_uw,
+                        const char *file_g, const bool with_loss = false) {
+
+    int idx = layers.size() - 1;
+    nntrainer::Tensor def_derivative = constant(1.0, 3, 1, 1, 15);
+    nntrainer::Tensor back_out;
+
+    if (layers.size() && layers.back()->getType() == nntrainer::LAYER_LOSS) {
+      if (with_loss) {
+        back_out = layers.back()->backwarding(label, 1);
+      } else {
+        back_out = def_derivative;
+      }
+      idx -= 1;
+    } else {
+      back_out = def_derivative;
+    }
+
+    for (; idx >= 0; --idx)
+      back_out = layers[idx]->backwarding(back_out, 1);
+
+    back_out = layer.backwarding(back_out, 1);
+    matchOutput(back_out, file_dx);
+
+    loadUpdatedWeightsGradients(file_uw, file_g);
+    matchUpdatedWeightsGradients();
   }
 
   void loadUpdatedWeightsGradients(const char *file_uw, const char *file_g) {
@@ -374,16 +435,13 @@ protected:
     loadFile(file_g, grad);
   }
 
-  void loadLoss(const char *file) { loadFile(file, loss); }
-
   virtual void prepareLayer() {
     setInputDim("3:1:1:12");
     setProperty("unit=15");
     last_layer = true;
   }
 
-  void matchUpdatedWeightsGradients(const char *file_uw, const char *file_g) {
-    loadUpdatedWeightsGradients(file_uw, file_g);
+  void matchUpdatedWeightsGradients() {
     std::shared_ptr<nntrainer::UpdatableParam> params = layer.getParams();
 
     /** Match gradients and updated weights */
@@ -393,140 +451,172 @@ protected:
     }
   }
 
-  nntrainer::Tensor loss_out, loss;
   nntrainer::Tensor label;
-  nntrainer::Tensor def_derivative, back_out;
   std::vector<nntrainer::Tensor> new_w;
   std::vector<nntrainer::Tensor> grad;
+  std::vector<std::shared_ptr<nntrainer::Layer>> layers;
 };
 
 /**
  * @brief Fully Connected Layer
  */
 TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_backwarding_01_p) {
-  status = reinitialize();
-  EXPECT_EQ(status, ML_ERROR_NONE);
-
-  out = layer.forwarding(in, status);
-  EXPECT_EQ(status, ML_ERROR_NONE);
-  matchOutput(out, "tc_fc_1_goldenFCResultActNone.out");
 
   setOptimizer(nntrainer::OptType::sgd, "learning_rate=1.0");
 
-  back_out = layer.backwarding(def_derivative, 1);
-  matchOutput(back_out, "tc_fc_1_goldenFCGradientDxActNone.out");
+  /** Verify forwarding and backwarding without loss */
+  matchForwarding("tc_fc_1_goldenFCResultActNone.out");
 
-  matchUpdatedWeightsGradients("tc_fc_1_goldenFCUpdatedWeightsActNone.out",
-                               "tc_fc_1_goldenFCGradientsActNone.out");
+  /** Verify backwarding without loss */
+  matchBackwarding("tc_fc_1_goldenFCGradientDxActNone.out",
+                   "tc_fc_1_goldenFCUpdatedWeightsActNone.out",
+                   "tc_fc_1_goldenFCGradientsActNone.out");
 }
 
 /**
  * @brief Fully Connected Layer forward with MSE loss
  */
 TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_backwarding_02_p) {
-  status = reinitialize();
-  EXPECT_EQ(status, ML_ERROR_NONE);
 
-  nntrainer::ActivationLayer act_layer;
-  addActivation(act_layer, nntrainer::ACT_SIGMOID);
-
-  nntrainer::LossLayer loss_layer;
-  addLoss(loss_layer, nntrainer::COST_MSR);
-
-  in = layer.forwarding(in, status);
-  EXPECT_EQ(status, ML_ERROR_NONE);
-
-  out = act_layer.forwarding(in, status);
-  EXPECT_EQ(status, ML_ERROR_NONE);
-  matchOutput(out, "tc_fc_1_goldenFCResultSigmoidMse.out");
-
-  loss_out = loss_layer.forwarding(out, label, status);
-  EXPECT_EQ(status, ML_ERROR_NONE);
-  matchOutput(loss_out, "tc_fc_1_goldenFCResultSigmoidMse.out");
-
-  loadLoss("tc_fc_1_goldenFCLossSigmoidMse.out");
-  EXPECT_NEAR(loss_layer.getLoss(), *(loss.getData()), tolerance);
-
+  addActivation(nntrainer::ACT_SIGMOID);
+  addLoss(nntrainer::COST_MSR);
   setOptimizer(nntrainer::OptType::sgd, "learning_rate=1.0");
 
-  /** Verify backwarding without loss */
-  back_out = act_layer.backwarding(def_derivative, 1);
-  back_out = layer.backwarding(back_out, 1);
-  matchOutput(back_out, "tc_fc_1_goldenFCGradientDxSigmoid.out");
+  /** Verify forwarding value */
+  matchForwarding("tc_fc_1_goldenFCResultSigmoidMse.out");
 
-  matchUpdatedWeightsGradients("tc_fc_1_goldenFCUpdatedWeightsSigmoid.out",
-                               "tc_fc_1_goldenFCGradientsSigmoid.out");
+  /** Verify loss value */
+  matchLoss("tc_fc_1_goldenFCLossSigmoidMse.out");
+
+  /** Verify backwarding without loss */
+  matchBackwarding("tc_fc_1_goldenFCGradientDxSigmoid.out",
+                   "tc_fc_1_goldenFCUpdatedWeightsSigmoid.out",
+                   "tc_fc_1_goldenFCGradientsSigmoid.out");
 }
 
 /**
  * @brief Fully Connected Layer forward with MSE loss
  */
 TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_backwarding_03_p) {
-  nntrainer::ActivationLayer act_layer;
-  addActivation(act_layer, nntrainer::ACT_SOFTMAX);
 
-  nntrainer::LossLayer loss_layer;
-  addLoss(loss_layer, nntrainer::COST_MSR);
-
-  in = layer.forwarding(in, status);
-  EXPECT_EQ(status, ML_ERROR_NONE);
-
-  out = act_layer.forwarding(in, status);
-  EXPECT_EQ(status, ML_ERROR_NONE);
-  matchOutput(out, "tc_fc_1_goldenFCResultSoftmaxMse.out");
-
-  loss_out = loss_layer.forwarding(out, label, status);
-  EXPECT_EQ(status, ML_ERROR_NONE);
-  matchOutput(loss_out, "tc_fc_1_goldenFCResultSoftmaxMse.out");
-
-  loadLoss("tc_fc_1_goldenFCLossSoftmaxMse.out");
-  EXPECT_NEAR(loss_layer.getLoss(), *(loss.getData()), tolerance);
-
+  addActivation(nntrainer::ACT_SOFTMAX);
+  addLoss(nntrainer::COST_MSR);
   setOptimizer(nntrainer::OptType::sgd, "learning_rate=1.0");
 
+  /** Verify forwarding value */
+  matchForwarding("tc_fc_1_goldenFCResultSoftmaxMse.out");
+
+  /** Verify loss value */
+  matchLoss("tc_fc_1_goldenFCLossSoftmaxMse.out");
+
   /** Verify backwarding without loss */
-  back_out = act_layer.backwarding(def_derivative, 1);
-  back_out = layer.backwarding(back_out, 1);
-  matchOutput(back_out, "tc_fc_1_goldenFCGradientDxSoftmax.out");
+  matchBackwarding("tc_fc_1_goldenFCGradientDxSoftmax.out",
+                   "tc_fc_1_goldenFCUpdatedWeightsSoftmax.out",
+                   "tc_fc_1_goldenFCGradientsSoftmax.out");
+}
 
-  matchUpdatedWeightsGradients("tc_fc_1_goldenFCUpdatedWeightsSoftmax.out",
-                               "tc_fc_1_goldenFCGradientsSoftmax.out");
+/**
+ * @brief Fully Connected Layer
+ */
+TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_backwarding_04_p) {
+
+  addLoss(nntrainer::COST_MSR);
+  setOptimizer(nntrainer::OptType::sgd, "learning_rate=1.0");
+
+  /** Verify forwarding value */
+  matchForwarding("tc_fc_1_goldenFCResultActNone.out");
+
+  /** Verify loss value */
+  matchLoss("tc_fc_1_goldenFCLossActNoneMse.out");
+
+  /** Verify backwarding without loss */
+  matchBackwarding("tc_fc_1_goldenFCGradientDxActNoneMse.out",
+                   "tc_fc_1_goldenFCUpdatedWeightsActNoneMse.out",
+                   "tc_fc_1_goldenFCGradientsActNoneMse.out", true);
+}
+
+/**
+ * @brief Fully Connected Layer
+ */
+TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_backwarding_05_p) {
+
+  addActivation(nntrainer::ACT_SIGMOID);
+  addLoss(nntrainer::COST_MSR);
+  setOptimizer(nntrainer::OptType::sgd, "learning_rate=1.0");
+
+  /** Verify forwarding value */
+  matchForwarding("tc_fc_1_goldenFCResultSigmoidMse.out");
+
+  /** Verify loss value */
+  matchLoss("tc_fc_1_goldenFCLossSigmoidMse.out");
+
+  /** Verify backwarding without loss */
+  matchBackwarding("tc_fc_1_goldenFCGradientDxSigmoidMse.out",
+                   "tc_fc_1_goldenFCUpdatedWeightsSigmoidMse.out",
+                   "tc_fc_1_goldenFCGradientsSigmoidMse.out", true);
+}
+
+/**
+ * @brief Fully Connected Layer
+ */
+TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_backwarding_06_p) {
+
+  addActivation(nntrainer::ACT_SOFTMAX);
+  addLoss(nntrainer::COST_MSR);
+  setOptimizer(nntrainer::OptType::sgd, "learning_rate=1.0");
+
+  /** Verify forwarding value */
+  matchForwarding("tc_fc_1_goldenFCResultSoftmaxMse.out");
+
+  /** Verify loss value */
+  matchLoss("tc_fc_1_goldenFCLossSoftmaxMse.out");
+
+  /** Verify backwarding without loss */
+  matchBackwarding("tc_fc_1_goldenFCGradientDxSoftmaxMse.out",
+                   "tc_fc_1_goldenFCUpdatedWeightsSoftmaxMse.out",
+                   "tc_fc_1_goldenFCGradientsSoftmaxMse.out", true);
 }
 
 /**
  * @brief Fully Connected Layer forward with Cross Entropy loss
+ * @todo Upgrade this to adam to verify adam
  */
-TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_04_p) {
-  nntrainer::LossLayer loss_layer;
-  addLoss(loss_layer, nntrainer::COST_ENTROPY_SIGMOID);
+TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_backwarding_07_p) {
 
-  out = layer.forwarding(in, status);
-  EXPECT_EQ(status, ML_ERROR_NONE);
+  addLoss(nntrainer::COST_ENTROPY_SIGMOID);
+  setOptimizer(nntrainer::OptType::sgd, "learning_rate=1.0");
 
-  loss_out = loss_layer.forwarding(out, label, status);
-  EXPECT_EQ(status, ML_ERROR_NONE);
-  matchOutput(loss_out, "tc_fc_1_goldenFCResultSigmoidCross.out");
+  /** Verify forwarding value */
+  matchForwarding("tc_fc_1_goldenFCResultSigmoidCross.out");
 
-  loadLoss("tc_fc_1_goldenFCLossSigmoidCross.out");
-  EXPECT_NEAR(loss_layer.getLoss(), *(loss.getData()), tolerance);
+  /** Verify loss value */
+  matchLoss("tc_fc_1_goldenFCLossSigmoidCross.out");
+
+  /** Verify backwarding without loss */
+  matchBackwarding("tc_fc_1_goldenFCGradientDxSigmoidCross.out",
+                   "tc_fc_1_goldenFCUpdatedWeightsSigmoidCross.out",
+                   "tc_fc_1_goldenFCGradientsSigmoidCross.out", true);
 }
 
 /**
  * @brief Fully Connected Layer forward with Cross Entropy loss
+ * @todo Upgrade this to adam to verify adam
  */
-TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_05_p) {
-  nntrainer::LossLayer loss_layer;
-  addLoss(loss_layer, nntrainer::COST_ENTROPY_SOFTMAX);
+TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_backwarding_08_p) {
 
-  out = layer.forwarding(in, status);
-  EXPECT_EQ(status, ML_ERROR_NONE);
+  addLoss(nntrainer::COST_ENTROPY_SOFTMAX);
+  setOptimizer(nntrainer::OptType::sgd, "learning_rate=1.0");
 
-  loss_out = loss_layer.forwarding(out, label, status);
-  EXPECT_EQ(status, ML_ERROR_NONE);
-  matchOutput(loss_out, "tc_fc_1_goldenFCResultSoftmaxCross.out");
+  /** Verify forwarding value */
+  matchForwarding("tc_fc_1_goldenFCResultSoftmaxCross.out");
 
-  loadLoss("tc_fc_1_goldenFCLossSoftmaxCross.out");
-  EXPECT_NEAR(loss_layer.getLoss(), *(loss.getData()), tolerance);
+  /** Verify loss value */
+  matchLoss("tc_fc_1_goldenFCLossSoftmaxCross.out");
+
+  /** Verify backwarding without loss */
+  matchBackwarding("tc_fc_1_goldenFCGradientDxSoftmaxCross.out",
+                   "tc_fc_1_goldenFCUpdatedWeightsSoftmaxCross.out",
+                   "tc_fc_1_goldenFCGradientsSoftmaxCross.out", true);
 }
 
 class nntrainer_BatchNormalizationLayer

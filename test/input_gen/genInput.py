@@ -196,7 +196,7 @@ def fc_tf_simplified_backward(x, kernel, label, bias, activation):
 # @param[in] train train a few steps
 # @return tf_o calculated result
 def fc_tf(x, kernel, label, bias, activation, train=False, loss='mse', opt='sgd'):
-    lr = 100
+    lr = 1
     tf.compat.v1.reset_default_graph()
     tf_input = tf.placeholder(dtype = dtypes.float32, shape=x.shape)
 
@@ -242,8 +242,8 @@ def fc_tf(x, kernel, label, bias, activation, train=False, loss='mse', opt='sgd'
                 if DEBUG:
                     print([x.name for x in trainable_variables])
 
-                tf_grad = optimizer.get_gradients(tf_loss, params=trainable_variables)
-                train_op = optimizer.apply_gradients(list(zip(tf_grad, trainable_variables)))
+                tf_grad = optimizer.get_gradients(tf_loss, params=[tf_input] + trainable_variables)
+                train_op = optimizer.apply_gradients(list(zip(tf_grad[1:], trainable_variables)))
 
                 var_to_run = [tf_logit, tf_loss, tf_grad, train_op]
                 feed_dict = {tf_input: x, tf_label: label}
@@ -374,39 +374,55 @@ def gen_test_case_fc(input_shape, kernel_shape, base_name):
     with open(base_name+"_FCKernel.in", 'ab') as outfile:
         np.array(bias, dtype=np.float32).tofile(outfile)
 
-    golden_fc = fc_tf(input_data, kernel, label, bias, activation=None)
+    golden_fc = fc_tf(input_data, kernel, label, bias, activation=None, train=True, loss='mse', opt='sgd')
     save(base_name + "_goldenFCResultActNone.out", golden_fc[0])
+    save(base_name + "_goldenFCLossActNoneMse.out", golden_fc[1])
+    save(base_name + "_goldenFCGradientDxActNoneMse.out", golden_fc[2][0])
+    save(base_name + "_goldenFCGradientsActNoneMse.out", golden_fc[2][1], golden_fc[2][2])
+    save(base_name + "_goldenFCUpdatedWeightsActNoneMse.out", golden_fc[3][0], golden_fc[3][1])
     golden_fc_simplified = fc_tf_simplified_backward(input_data, kernel, label, bias, activation=None)
     assert(golden_fc_simplified[0].all() == golden_fc[0].all())
     save(base_name + "_goldenFCGradientDxActNone.out", golden_fc_simplified[1][0])
     save(base_name + "_goldenFCGradientsActNone.out", golden_fc_simplified[1][1], golden_fc_simplified[1][2])
     save(base_name + "_goldenFCUpdatedWeightsActNone.out", golden_fc_simplified[2][0], golden_fc_simplified[2][1])
 
-    golden_fc = fc_tf(input_data, kernel, label, bias, activation=tf.nn.sigmoid, loss='mse')
-    save(base_name + "_goldenFCResultSigmoidMse.out", golden_fc[0])
+    golden_fc = fc_tf(input_data, kernel, label, bias, activation=tf.nn.sigmoid, train=True, loss='mse', opt='sgd')
+    save(base_name + "_goldenFCResultSigmoid.out", golden_fc[0])
     save(base_name + "_goldenFCLossSigmoidMse.out", golden_fc[1])
+    save(base_name + "_goldenFCGradientDxSigmoidMse.out", golden_fc[2][0])
+    save(base_name + "_goldenFCGradientsSigmoidMse.out", golden_fc[2][1], golden_fc[2][2])
+    save(base_name + "_goldenFCUpdatedWeightsSigmoidMse.out", golden_fc[3][0], golden_fc[3][1])
     golden_fc_simplified = fc_tf_simplified_backward(input_data, kernel, label, bias, activation=tf.nn.sigmoid)
     assert(golden_fc_simplified[0].all() == golden_fc[0].all())
     save(base_name + "_goldenFCGradientDxSigmoid.out", golden_fc_simplified[1][0])
     save(base_name + "_goldenFCGradientsSigmoid.out", golden_fc_simplified[1][1], golden_fc_simplified[1][2])
     save(base_name + "_goldenFCUpdatedWeightsSigmoid.out", golden_fc_simplified[2][0], golden_fc_simplified[2][1])
 
-    golden_fc = fc_tf(input_data, kernel, label, bias, activation=tf.nn.softmax, loss='mse')
-    save(base_name + "_goldenFCResultSoftmaxMse.out", golden_fc[0])
+    golden_fc = fc_tf(input_data, kernel, label, bias, activation=tf.nn.softmax, train=True, loss='mse', opt='sgd')
+    save(base_name + "_goldenFCResultSoftmax.out", golden_fc[0])
     save(base_name + "_goldenFCLossSoftmaxMse.out", golden_fc[1])
+    save(base_name + "_goldenFCGradientDxSoftmaxMse.out", golden_fc[2][0])
+    save(base_name + "_goldenFCGradientsSoftmaxMse.out", golden_fc[2][1], golden_fc[2][2])
+    save(base_name + "_goldenFCUpdatedWeightsSoftmaxMse.out", golden_fc[3][0], golden_fc[3][1])
     golden_fc_simplified = fc_tf_simplified_backward(input_data, kernel, label, bias, activation=tf.nn.softmax)
     assert(golden_fc_simplified[0].all() == golden_fc[0].all())
     save(base_name + "_goldenFCGradientDxSoftmax.out", golden_fc_simplified[1][0])
     save(base_name + "_goldenFCGradientsSoftmax.out", golden_fc_simplified[1][1], golden_fc_simplified[1][2])
     save(base_name + "_goldenFCUpdatedWeightsSoftmax.out", golden_fc_simplified[2][0], golden_fc_simplified[2][1])
 
-    # golden_fc = fc_tf(input_data, kernel, label, bias, activation=tf.nn.sigmoid, loss='cross')
-    # save(base_name + "_goldenFCResultSigmoidCross.out", golden_fc[0])
-    # save(base_name + "_goldenFCLossSigmoidCross.out", golden_fc[1])
+    golden_fc = fc_tf(input_data, kernel, label, bias, activation=tf.nn.sigmoid, train=True, loss='cross', opt='sgd')
+    save(base_name + "_goldenFCResultSigmoidCross.out", golden_fc[0])
+    save(base_name + "_goldenFCLossSigmoidCross.out", golden_fc[1])
+    save(base_name + "_goldenFCGradientDxSigmoidCross.out", golden_fc[2][0])
+    save(base_name + "_goldenFCGradientsSigmoidCross.out", golden_fc[2][1], golden_fc[2][2])
+    save(base_name + "_goldenFCUpdatedWeightsSigmoidCross.out", golden_fc[3][0], golden_fc[3][1])
 
-    # golden_fc = fc_tf(input_data, kernel, label, bias, activation=tf.nn.softmax, loss='cross')
-    # save(base_name + "_goldenFCResultSoftmaxCross.out", golden_fc[0])
-    # save(base_name + "_goldenFCLossSoftmaxCross.out", golden_fc[1])
+    golden_fc = fc_tf(input_data, kernel, label, bias, activation=tf.nn.softmax, train=True, loss='cross', opt='sgd')
+    save(base_name + "_goldenFCResultSoftmaxCross.out", golden_fc[0])
+    save(base_name + "_goldenFCLossSoftmaxCross.out", golden_fc[1])
+    save(base_name + "_goldenFCGradientDxSoftmaxCross.out", golden_fc[2][0])
+    save(base_name + "_goldenFCGradientsSoftmaxCross.out", golden_fc[2][1], golden_fc[2][2])
+    save(base_name + "_goldenFCUpdatedWeightsSoftmaxCross.out", golden_fc[3][0], golden_fc[3][1])
 
 def gen_test_case_bn(input_shape, base_name, training=True):
     input_data = gen_input(base_name + "_BNLayerInput.in", input_shape)
