@@ -40,14 +40,14 @@ unsigned int getSeed();
  * @param[in] x Tensor
  * @retVal    Tensor
  */
-Tensor softmaxPrime(Tensor x);
+Tensor softmaxPrime(Tensor const &x);
 
 /**
  * @brief       Calculate softmax for Tensor Type
  * @param[in] t Tensor
  * @retval      Tensor
  */
-Tensor softmax(Tensor t);
+Tensor softmax(Tensor const &t);
 
 /**
  * @brief     random function
