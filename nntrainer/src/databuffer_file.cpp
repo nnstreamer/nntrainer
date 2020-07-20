@@ -230,10 +230,10 @@ void DataBufferFromDataFile::updateData(BufferType type) {
 
       mark.erase(mark.begin() + id);
 
-      uint64_t position =
-        (I * input_dim.getFeatureLen() + I * class_num) * sizeof(float);
+      uint64_t position = (uint64_t)(
+        (I * input_dim.getFeatureLen() + I * class_num) * sizeof(float));
       try {
-        if (position > file_length || position > ULLONG_MAX) {
+        if (position > file_length) {
           throw std::runtime_error("Error: Cannot exceed max file size");
         }
       } catch (...) {

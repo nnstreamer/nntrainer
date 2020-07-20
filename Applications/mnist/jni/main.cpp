@@ -116,9 +116,10 @@ bool getData(std::ifstream &F, std::vector<float> &outVec,
   F.clear();
   F.seekg(0, std::ios_base::end);
   uint64_t file_length = F.tellg();
-  uint64_t position = (feature_size + total_label_size) * id * sizeof(float);
+  uint64_t position =
+    (uint64_t)((feature_size + total_label_size) * id * sizeof(float));
 
-  if (position > file_length || position > ULLONG_MAX) {
+  if (position > file_length) {
     return false;
   }
   F.seekg(position, std::ios::beg);
@@ -291,14 +292,26 @@ int main(int argc, char *argv[]) {
   nntrainer::NeuralNetwork NN;
   NN.setConfig(config);
   NN.loadFromConfig();
-  NN.init();
+  try {
+    NN.init();
+  } catch (...) {
+    std::cerr << "Error during init" << std::endl;
+    return 0;
+  }
+
   NN.readModel();
   NN.setDataBuffer((DB));
 
   /**
    * @brief     Neural Network Train & validation
    */
-  NN.train();
+  try {
+    NN.train();
+  } catch (...) {
+    std::cerr << "Error during train" << std::endl;
+    NN.finalize();
+    return 0;
+  }
 
   /**
    * @brief     Finalize NN

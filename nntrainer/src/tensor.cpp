@@ -156,7 +156,8 @@ void Tensor::setRandUniform(float min, float max) {
 }
 
 Tensor::Tensor(
-  std::vector<std::vector<std::vector<std::vector<float>>>> const &d) {
+  std::vector<std::vector<std::vector<std::vector<float>>>> const &d) :
+  strides{{1, 2, 3}} {
 
   if (d.empty() || d[0].empty() || d[0][0].empty() || d[0][0][0].empty()) {
     throw std::out_of_range(

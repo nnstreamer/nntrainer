@@ -427,12 +427,25 @@ int main(int argc, char *argv[]) {
   nntrainer::NeuralNetwork NN;
   NN.setConfig(config);
   NN.loadFromConfig();
-  NN.init();
+  try {
+    NN.init();
+  } catch (...) {
+    std::cerr << "Error during init" << std::endl;
+    NN.finalize();
+    return 0;
+  }
   NN.readModel();
 
-  int status = NN.train();
+  try {
+    NN.train();
+  } catch (...) {
+    std::cerr << "Error during train" << std::endl;
+    NN.finalize();
+    return 0;
+  }
 
   if (!TRAINING) {
+    int status;
     std::string img = data_path;
     std::vector<float> featureVector, resultVector;
     featureVector.resize(feature_size);
@@ -444,5 +457,5 @@ int main(int argc, char *argv[]) {
    * @brief     Finalize NN
    */
   NN.finalize();
-  return status;
+  return 0;
 }

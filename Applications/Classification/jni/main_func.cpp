@@ -297,14 +297,25 @@ int main(int argc, char *argv[]) {
   nntrainer::NeuralNetwork NN;
   NN.setConfig(config);
   NN.loadFromConfig();
-  NN.init();
+  try {
+    NN.init();
+  } catch (...) {
+    std::cerr << "Error during init" << std::endl;
+    return 0;
+  }
   NN.readModel();
   NN.setDataBuffer((DB));
 
   /**
    * @brief     Neural Network Train & validation
    */
-  NN.train();
+  try {
+    NN.train();
+  } catch (...) {
+    std::cerr << "Error during train" << std::endl;
+    NN.finalize();
+    return 0;
+  }
 
   /**
    * @brief     Finalize NN

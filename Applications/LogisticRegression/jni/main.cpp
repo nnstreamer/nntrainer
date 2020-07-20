@@ -124,7 +124,28 @@ int main(int argc, char *argv[]) {
         std::vector<std::vector<float>> in, label;
         in.push_back(inputVector[j]);
         label.push_back(outputVector[j]);
-        NN.backwarding(nntrainer::Tensor(in), nntrainer::Tensor(label), i);
+        nntrainer::Tensor d, y;
+        try {
+          d = nntrainer::Tensor(in);
+        } catch (...) {
+          std::cerr << "Error during tensor construct" << std::endl;
+          NN.finalize();
+          return 0;
+        }
+        try {
+          y = nntrainer::Tensor(label);
+        } catch (...) {
+          std::cerr << "Error during tensor construct" << std::endl;
+          NN.finalize();
+          return 0;
+        }
+        try {
+          NN.backwarding(d, y, i);
+        } catch (...) {
+          std::cerr << "Error during backwarding" << std::endl;
+          NN.finalize();
+          return 0;
+        }
       }
       std::cout << "#" << i + 1 << "/" << NN.getEpoch()
                 << " - Loss : " << NN.getLoss() << std::endl;

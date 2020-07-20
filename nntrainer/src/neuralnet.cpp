@@ -527,6 +527,11 @@ int NeuralNetwork::init() {
       status = layers[i]->setOptimizer(opt);
       NN_RETURN_STATUS();
 
+      if (i == 0) {
+        ml_loge("Batch normalization layer cannot be first layer of network");
+        status = ML_ERROR_INVALID_PARAMETER;
+        NN_RETURN_STATUS();
+      }
       layers[i - 1]->setBNfollow(true);
       break;
     default:
