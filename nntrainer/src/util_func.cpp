@@ -38,6 +38,7 @@ static std::uniform_real_distribution<float> dist(-0.5, 0.5);
 unsigned int getSeed() { return 0; }
 
 Tensor softmaxPrime(Tensor x) {
+  /** @todo Fix this to use derivative */
   int batch = x.getBatch();
   int channel = x.getChannel();
   int width = x.getWidth();
@@ -59,9 +60,9 @@ Tensor softmaxPrime(Tensor x) {
           float sum = 0.0;
           for (int l = 0; l < width; ++l) {
             if (j == l) {
-              sum += xp[I + l] * (1.0 - xp[I + j]);
+              sum += xp[I + j] * (1.0 - xp[I + j]);
             } else {
-              sum += xp[I + l] * xp[I + j] * -1.0;
+              sum -= xp[I + l] * xp[I + j];
             }
           }
           pp[I + j] = sum;

@@ -124,15 +124,15 @@ Tensor LossLayer::backwarding(Tensor derivative, int iteration) {
 
   switch (cost) {
   case COST_MSR:
-    ret_derivative = y.subtract(y2);
+    ret_derivative = y.subtract(y2).multiply(2).divide(y.getDim().getDataLen());
     break;
   case COST_ENTROPY_SIGMOID:
     y = y.apply(sigmoid);
-    ret_derivative = y.subtract(y2).multiply(1.0 / y.getWidth());
+    ret_derivative = y.subtract(y2).divide(y.getDim().getDataLen());
     break;
   case COST_ENTROPY_SOFTMAX:
     y = y.apply(softmax);
-    ret_derivative = y.subtract(y2).multiply(1.0 / y.getWidth());
+    ret_derivative = y.subtract(y2).divide(y.getDim().batch());
     break;
   case COST_ENTROPY:
     throw std::runtime_error(
