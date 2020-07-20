@@ -21,6 +21,7 @@
  *
  */
 
+#include <activation_layer.h>
 #include <layer.h>
 #include <lazy_tensor.h>
 #include <loss_layer.h>
@@ -66,17 +67,17 @@ Tensor LossLayer::forwarding(Tensor output, Tensor label, int &status) {
                         .apply(static_cast<float (*)(float)>(&std::exp))
                         .add(1.0)
                         .apply(logFloat);
-    mid_term = mid_term.add(y.apply(relu));
+    mid_term = mid_term.add(y.apply(ActivationLayer::relu));
 
     // y * y2
     Tensor end_term = y2.chain().multiply_i(y).run();
 
     // loss = log(1 + exp(-abs(y))) + max(y, 0) - (y * y2)
     l = mid_term.subtract(end_term).average();
-    y = y.apply(sigmoid);
+    y = y.apply(ActivationLayer::sigmoid);
   } break;
   case COST_ENTROPY_SOFTMAX: {
-    y = y.apply(softmax);
+    y = y.apply(ActivationLayer::softmax);
     l = y2.chain().multiply_i(y.apply(logFloat)).run().sum_by_batch();
 
   } break;
@@ -127,11 +128,11 @@ Tensor LossLayer::backwarding(Tensor derivative, int iteration) {
     ret_derivative = y.subtract(y2).multiply(2).divide(y.getDim().getDataLen());
     break;
   case COST_ENTROPY_SIGMOID:
-    y = y.apply(sigmoid);
+    y = y.apply(ActivationLayer::sigmoid);
     ret_derivative = y.subtract(y2).divide(y.getDim().getDataLen());
     break;
   case COST_ENTROPY_SOFTMAX:
-    y = y.apply(softmax);
+    y = y.apply(ActivationLayer::softmax);
     ret_derivative = y.subtract(y2).divide(y.getDim().batch());
     break;
   case COST_ENTROPY:
