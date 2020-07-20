@@ -73,10 +73,10 @@ unsigned int parseType(std::string ll, InputType t) {
 
   /**
    * @brief     Cost Function String from configure file
-   *            "msr"  : Mean Squared Roots
+   *            "mse"  : Mean Squared Error
    *            "caterogical" : Categorical Cross Entropy
    */
-  std::array<std::string, 2> cost_string = {"msr", "cross"};
+  std::array<std::string, 2> cost_string = {"mse", "cross"};
 
   /**
    * @brief     Network Type String from configure file

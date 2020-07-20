@@ -479,7 +479,7 @@ TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_backwarding_01_p) {
 TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_backwarding_02_p) {
 
   addActivation(nntrainer::ACT_SIGMOID);
-  addLoss(nntrainer::COST_MSR);
+  addLoss(nntrainer::COST_MSE);
   setOptimizer(nntrainer::OptType::sgd, "learning_rate=1.0");
 
   /** Verify forwarding value */
@@ -500,7 +500,7 @@ TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_backwarding_02_p) {
 TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_backwarding_03_p) {
 
   addActivation(nntrainer::ACT_SOFTMAX);
-  addLoss(nntrainer::COST_MSR);
+  addLoss(nntrainer::COST_MSE);
   setOptimizer(nntrainer::OptType::sgd, "learning_rate=1.0");
 
   /** Verify forwarding value */
@@ -520,7 +520,7 @@ TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_backwarding_03_p) {
  */
 TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_backwarding_04_p) {
 
-  addLoss(nntrainer::COST_MSR);
+  addLoss(nntrainer::COST_MSE);
   setOptimizer(nntrainer::OptType::sgd, "learning_rate=1.0");
 
   /** Verify forwarding value */
@@ -541,7 +541,7 @@ TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_backwarding_04_p) {
 TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_backwarding_05_p) {
 
   addActivation(nntrainer::ACT_SIGMOID);
-  addLoss(nntrainer::COST_MSR);
+  addLoss(nntrainer::COST_MSE);
   setOptimizer(nntrainer::OptType::sgd, "learning_rate=1.0");
 
   /** Verify forwarding value */
@@ -562,7 +562,7 @@ TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_backwarding_05_p) {
 TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_backwarding_06_p) {
 
   addActivation(nntrainer::ACT_SOFTMAX);
-  addLoss(nntrainer::COST_MSR);
+  addLoss(nntrainer::COST_MSE);
   setOptimizer(nntrainer::OptType::sgd, "learning_rate=1.0");
 
   /** Verify forwarding value */

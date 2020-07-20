@@ -51,7 +51,7 @@ Tensor LossLayer::forwarding(Tensor output, Tensor label, int &status) {
   Tensor l;
 
   switch (cost) {
-  case COST_MSR: {
+  case COST_MSE: {
     // y2 <- y2 - y;
     y2.subtract_i(y);
 
@@ -123,7 +123,7 @@ Tensor LossLayer::backwarding(Tensor derivative, int iteration) {
   Tensor y = input;
 
   switch (cost) {
-  case COST_MSR:
+  case COST_MSE:
     ret_derivative = y.subtract(y2).multiply(2).divide(y.getDim().getDataLen());
     break;
   case COST_ENTROPY_SIGMOID:
