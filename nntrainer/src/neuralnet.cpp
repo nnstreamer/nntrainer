@@ -284,7 +284,6 @@ int NeuralNetwork::loadFromConfig() {
       ml_loge("Error: Unknown layer type");
       status = ML_ERROR_INVALID_PARAMETER;
       NN_INI_RETURN_STATUS();
-      break;
     }
 
     unsigned int property_end =
@@ -471,9 +470,10 @@ int NeuralNetwork::init() {
     VERIFY_SET_DIMENSION();
 
     switch (layers[i]->getType()) {
-    case LAYER_IN:
-      layers[i]->initialize(last);
-      break;
+    case LAYER_IN: {
+      status = layers[i]->initialize(last);
+      NN_RETURN_STATUS();
+    } break;
     case LAYER_CONV2D: {
       std::shared_ptr<Conv2DLayer> conv2d_layer =
         std::static_pointer_cast<Conv2DLayer>(layers[i]);
@@ -755,7 +755,7 @@ int NeuralNetwork::train_run() {
     if (data_buffer->getValidation()[nntrainer::BUF_VAL]) {
       int right = 0;
       float valloss = 0.0;
-      int tcases = 0;
+      unsigned int tcases = 0;
 
       status = data_buffer->run(nntrainer::BUF_VAL);
       if (status != ML_ERROR_NONE) {
@@ -786,6 +786,11 @@ int NeuralNetwork::train_run() {
         }
       }
 
+      if (tcases == 0) {
+        ml_loge("Error : 0 test cases");
+        status = ML_ERROR_INVALID_PARAMETER;
+        return status;
+      }
       valloss = valloss / (float)(tcases);
       std::cout << " >> [ Accuracy: " << right / (float)(tcases)*100.0
                 << "% - Validation Loss : " << valloss << " ] ";
