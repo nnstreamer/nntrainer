@@ -122,7 +122,7 @@ public:
    * @brief     derivative sigmoid function
    * @param[in] x input
    */
-  static float sigmoidePrime(float x);
+  static float sigmoidPrime(float x);
 
   /**
    * @brief     tanh function for float type

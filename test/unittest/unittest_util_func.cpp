@@ -181,7 +181,7 @@ TEST(nntrainer_util_func, sigmoidPrime_01_p) {
   ASSERT_NE(nullptr, data);
 
   nntrainer::Tensor prime_result =
-    sigmoid_result.apply(nntrainer::ActivationLayer::sigmoidePrime);
+    sigmoid_result.apply(nntrainer::ActivationLayer::sigmoidPrime);
   data = prime_result.getData();
   ASSERT_NE(nullptr, data);
 
