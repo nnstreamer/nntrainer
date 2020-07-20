@@ -146,7 +146,7 @@ void ActivationLayer::setActivation(ActiType acti_type) {
     this->setActivation(tanhFloat, tanhPrime);
     break;
   case ActiType::ACT_SIGMOID:
-    this->setActivation(sigmoid, sigmoidePrime);
+    this->setActivation(sigmoid, sigmoidPrime);
     break;
   case ActiType::ACT_SOFTMAX:
     this->setActivation(softmax, softmaxPrime);
@@ -259,7 +259,7 @@ Tensor ActivationLayer::softmax(Tensor const &t) {
 
 float ActivationLayer::sigmoid(float x) { return 1 / (1 + exp(-x)); }
 
-float ActivationLayer::sigmoidePrime(float x) {
+float ActivationLayer::sigmoidPrime(float x) {
   float sprime = sigmoid(x);
   return sprime * (1 - sprime);
 }
