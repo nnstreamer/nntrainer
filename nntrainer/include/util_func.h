@@ -36,23 +36,8 @@ namespace nntrainer {
 unsigned int getSeed();
 
 /**
- * @brief     derivative softmax function for Tensor Type
- * @param[in] x Tensor
- * @retVal    Tensor
- */
-Tensor softmaxPrime(Tensor const &x);
-
-/**
- * @brief       Calculate softmax for Tensor Type
- * @param[in] t Tensor
- * @retval      Tensor
- */
-Tensor softmax(Tensor const &t);
-
-/**
  * @brief     random function
  */
-
 float random();
 
 /**
@@ -68,42 +53,6 @@ float sqrtFloat(float x);
 float logFloat(float x);
 
 /**
- * @brief     sigmoid activation function
- * @param[in] x input
- */
-float sigmoid(float x);
-
-/**
- * @brief     derivative sigmoid function
- * @param[in] x input
- */
-float sigmoidePrime(float x);
-
-/**
- * @brief     tanh function for float type
- * @param[in] x input
- */
-float tanhFloat(float x);
-
-/**
- * @brief     derivative tanh function
- * @param[in] x input
- */
-float tanhPrime(float x);
-
-/**
- * @brief     relu activation function
- * @param[in] x input
- */
-float relu(float x);
-
-/**
- * @brief     derivative relu function
- * @param[in] x input
- */
-float reluPrime(float x);
-
-/**
  * @brief     apply padding
  * @param[in] batch batch index
  * @param[in] x input
@@ -111,12 +60,6 @@ float reluPrime(float x);
  * @retVal Tensor output tensor with batch size is 1 for batch index
  */
 Tensor zero_pad(int batch, Tensor const &in, unsigned int const *padding);
-
-/**
- * @brief     no_op function
- * @param[in] x input
- */
-float no_op(float x);
 
 /**
  * @brief     strip padding

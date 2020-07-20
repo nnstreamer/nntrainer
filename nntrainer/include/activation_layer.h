@@ -86,6 +86,79 @@ public:
   void copy(std::shared_ptr<Layer> l);
 
   /**
+   * @brief setActivation by preset actiType
+   *
+   * @param[in] ActiType actiType actiType to be set
+   */
+  void setActivation(ActiType acti_type);
+
+  /**
+   * @brief     get the base name for the layer
+   * @retval    base name of the layer
+   */
+  std::string getBaseName() { return "Activation"; };
+
+  /**
+   * @brief     derivative softmax function for Tensor Type
+   * @param[in] x Tensor
+   * @retVal    Tensor
+   */
+  static Tensor softmaxPrime(Tensor const &x);
+
+  /**
+   * @brief       Calculate softmax for Tensor Type
+   * @param[in] t Tensor
+   * @retval      Tensor
+   */
+  static Tensor softmax(Tensor const &t);
+
+  /**
+   * @brief     sigmoid activation function
+   * @param[in] x input
+   */
+  static float sigmoid(float x);
+
+  /**
+   * @brief     derivative sigmoid function
+   * @param[in] x input
+   */
+  static float sigmoidePrime(float x);
+
+  /**
+   * @brief     tanh function for float type
+   * @param[in] x input
+   */
+  static float tanhFloat(float x);
+
+  /**
+   * @brief     derivative tanh function
+   * @param[in] x input
+   */
+  static float tanhPrime(float x);
+
+  /**
+   * @brief     relu activation function
+   * @param[in] x input
+   */
+  static float relu(float x);
+
+  /**
+   * @brief     derivative relu function
+   * @param[in] x input
+   */
+  static float reluPrime(float x);
+
+  /**
+   * @brief     no_op function
+   * @param[in] x input
+   */
+  static float no_op(float x);
+
+private:
+  std::function<Tensor(Tensor const &)> _act_fn;
+  std::function<Tensor(Tensor const &)> _act_prime_fn;
+
+  /**
    * @brief setActivation by custom activation function
    *
    * @param[in] std::function<Tensor(Tensor const &)> activation_fn activation
@@ -110,23 +183,6 @@ public:
   int setActivation(
     std::function<float(float const)> const &activation_fn,
     std::function<float(float const)> const &activation_prime_fn);
-
-  /**
-   * @brief setActivation by preset actiType
-   *
-   * @param[in] ActiType actiType actiType to be set
-   */
-  void setActivation(ActiType acti_type);
-
-  /**
-   * @brief     get the base name for the layer
-   * @retval    base name of the layer
-   */
-  std::string getBaseName() { return "Activation"; };
-
-private:
-  std::function<Tensor(Tensor const &)> _act_fn;
-  std::function<Tensor(Tensor const &)> _act_prime_fn;
 };
 
 } // namespace nntrainer

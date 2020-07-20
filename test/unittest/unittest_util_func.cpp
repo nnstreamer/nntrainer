@@ -21,6 +21,7 @@
  * @bug         No known bugs
  */
 
+#include <activation_layer.h>
 #include <gtest/gtest.h>
 #include <neuralnet.h>
 #include <nntrainer_error.h>
@@ -61,7 +62,7 @@ TEST(nntrainer_util_func, softmax_01_p) {
 
   GEN_TEST_INPUT(T, (i * (width) + l + 1));
 
-  Results = T.apply(nntrainer::softmax);
+  Results = T.apply(nntrainer::ActivationLayer::softmax);
   float *data = Results.getData();
   ASSERT_NE(nullptr, data);
 
@@ -80,13 +81,14 @@ TEST(nntrainer_util_func, softmax_prime_01_p) {
   nntrainer::Tensor input(batch, channel, height, width);
   GEN_TEST_INPUT(input, (i * (width) + k + 1));
 
-  nntrainer::Tensor softmax_result = input.apply(nntrainer::softmax);
+  nntrainer::Tensor softmax_result =
+    input.apply(nntrainer::ActivationLayer::softmax);
 
   float *data = softmax_result.getData();
   ASSERT_NE(nullptr, data);
 
   nntrainer::Tensor softmax_prime_result =
-    softmax_result.apply(nntrainer::softmaxPrime);
+    softmax_result.apply(nntrainer::ActivationLayer::softmaxPrime);
   data = softmax_prime_result.getData();
   ASSERT_NE(nullptr, data);
 
@@ -143,7 +145,7 @@ TEST(nntrainer_util_func, sigmoid_01_p) {
   nntrainer::Tensor input(batch, channel, height, width);
   GEN_TEST_INPUT(input, (l - 4) * 0.1 * (i + 1));
 
-  nntrainer::Tensor Results = input.apply(nntrainer::sigmoid);
+  nntrainer::Tensor Results = input.apply(nntrainer::ActivationLayer::sigmoid);
 
   float *data = Results.getData();
   ASSERT_NE(nullptr, data);
@@ -173,12 +175,13 @@ TEST(nntrainer_util_func, sigmoidPrime_01_p) {
   nntrainer::Tensor input(batch, channel, height, width);
   GEN_TEST_INPUT(input, (l - 4) * 0.1 * (i + 1));
 
-  nntrainer::Tensor sigmoid_result = input.apply(nntrainer::sigmoid);
+  nntrainer::Tensor sigmoid_result =
+    input.apply(nntrainer::ActivationLayer::sigmoid);
   float *data = sigmoid_result.getData();
   ASSERT_NE(nullptr, data);
 
   nntrainer::Tensor prime_result =
-    sigmoid_result.apply(nntrainer::sigmoidePrime);
+    sigmoid_result.apply(nntrainer::ActivationLayer::sigmoidePrime);
   data = prime_result.getData();
   ASSERT_NE(nullptr, data);
 
@@ -205,7 +208,8 @@ TEST(nntrainer_util_func, tanhFloat_01_p) {
   nntrainer::Tensor input(batch, channel, height, width);
   GEN_TEST_INPUT(input, (l - 4) * 0.1 * (i + 1));
 
-  nntrainer::Tensor Results = input.apply(nntrainer::tanhFloat);
+  nntrainer::Tensor Results =
+    input.apply(nntrainer::ActivationLayer::tanhFloat);
 
   float *data = Results.getData();
   ASSERT_NE(nullptr, data);
@@ -232,11 +236,13 @@ TEST(nntrainer_util_func, tanhFloatPrime_01_p) {
   nntrainer::Tensor input(batch, channel, height, width);
   GEN_TEST_INPUT(input, (l - 4) * 0.1 * (i + 1));
 
-  nntrainer::Tensor tanh_result = input.apply(nntrainer::tanhFloat);
+  nntrainer::Tensor tanh_result =
+    input.apply(nntrainer::ActivationLayer::tanhFloat);
   float *data = tanh_result.getData();
   ASSERT_NE(nullptr, data);
 
-  nntrainer::Tensor prime_result = tanh_result.apply(nntrainer::tanhPrime);
+  nntrainer::Tensor prime_result =
+    tanh_result.apply(nntrainer::ActivationLayer::tanhPrime);
   data = prime_result.getData();
   ASSERT_NE(nullptr, data);
 
@@ -257,7 +263,7 @@ TEST(nntrainer_util_func, relu_01_p) {
   nntrainer::Tensor input(batch, channel, height, width);
   GEN_TEST_INPUT(input, (l - 4) * 0.1 * (i + 1));
 
-  nntrainer::Tensor Results = input.apply(nntrainer::relu);
+  nntrainer::Tensor Results = input.apply(nntrainer::ActivationLayer::relu);
 
   float *data = Results.getData();
   ASSERT_NE(nullptr, data);
@@ -280,11 +286,12 @@ TEST(nntrainer_util_func, reluPrime_01_p) {
   nntrainer::Tensor input(batch, channel, height, width);
   GEN_TEST_INPUT(input, (l - 4) * 0.1 * (i + 1));
 
-  nntrainer::Tensor relu_result = input.apply(nntrainer::relu);
+  nntrainer::Tensor relu_result = input.apply(nntrainer::ActivationLayer::relu);
   float *data = relu_result.getData();
   ASSERT_NE(nullptr, data);
 
-  nntrainer::Tensor prime_result = relu_result.apply(nntrainer::reluPrime);
+  nntrainer::Tensor prime_result =
+    relu_result.apply(nntrainer::ActivationLayer::reluPrime);
   data = prime_result.getData();
   ASSERT_NE(nullptr, data);
 
