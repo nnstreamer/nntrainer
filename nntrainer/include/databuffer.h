@@ -154,6 +154,9 @@ public:
     train_running = false;
     val_running = false;
     test_running = false;
+    trainReadyFlag = DATA_NOT_READY;
+    valReadyFlag = DATA_NOT_READY;
+    testReadyFlag = DATA_NOT_READY;
     rng.seed(getSeed());
   };
 

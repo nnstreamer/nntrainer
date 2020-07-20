@@ -256,8 +256,22 @@ int main(int argc, char *argv[]) {
    */
   for (int i = 0; i < ITERATION; i++) {
     for (unsigned int j = 0; j < inputVector.size(); j++) {
-      nntrainer::Tensor in = nntrainer::Tensor({inputVector[j]});
-      nntrainer::Tensor out = nntrainer::Tensor({outputVector[j]});
+      nntrainer::Tensor in, out;
+      try {
+        in = nntrainer::Tensor({inputVector[j]});
+      } catch (...) {
+        std::cerr << "Error during tensor initialization" << std::endl;
+        NN.finalize();
+        return 0;
+      }
+      try {
+        out = nntrainer::Tensor({outputVector[j]});
+      } catch (...) {
+        std::cerr << "Error during tensor initialization" << std::endl;
+        NN.finalize();
+        return 0;
+      }
+
       NN.backwarding(in, out, i);
     }
     cout << "#" << i + 1 << "/" << ITERATION << " - Loss : " << NN.getLoss()

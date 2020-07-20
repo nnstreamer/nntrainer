@@ -93,9 +93,10 @@ static bool getData(std::ifstream &F, std::vector<float> &outVec,
   uint64_t file_length = F.tellg();
   if (id < 0)
     return false;
-  uint64_t position = (feature_size + num_class) * id * sizeof(float);
+  uint64_t position =
+    (uint64_t)((feature_size + num_class) * id * sizeof(float));
 
-  if (position > file_length || position > ULLONG_MAX) {
+  if (position > file_length) {
     return false;
   }
   F.seekg(position, std::ios::beg);
