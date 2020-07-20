@@ -44,7 +44,7 @@ The most important role of this component is to activate forward / backward prop
 - **_Optimizer:_** Optimizer for the Network Model - sgd, adam
 - **_Activation:_** Activation Function - sigmoid , tanh
 - **_Cost:_** Cost Function -
-      msr(mean square root error), categorical (for logistic regression), cross (cross entropy)
+      mse(mean squared error), cross (cross entropy)
 - **_Model:_** Name of Model. Weight Data is saved in the name of this.
 - **_minibach:_** mini batch size
 - **_beta1,beta2,epsilon:_** hyper parameters for the adam optimizer
@@ -86,7 +86,7 @@ The following dependencies are needed to compile / build / run.
 
 You can use [docker image](https://hub.docker.com/r/lunapocket/nntrainer-build-env) to easily set up and try building.
 
-To run the docker 
+To run the docker
 
 ```bash
 $ docker pull lunapocket/nntrainer-build-env:ubuntu-18.04
