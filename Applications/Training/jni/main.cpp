@@ -293,7 +293,14 @@ int main(int argc, char *argv[]) {
     std::vector<float> featureVector, resultVector;
     featureVector.resize(128);
     getFeature(img, featureVector);
-    nntrainer::Tensor X = nntrainer::Tensor({featureVector});
+    nntrainer::Tensor X;
+    try {
+      X = nntrainer::Tensor({featureVector});
+    } catch (...) {
+      std::cerr << "Error during tensor initialization" << std::endl;
+      NN.finalize();
+      return 0;
+    }
     cout << NN.forwarding(X, status).apply(stepFunction) << endl;
   }
 

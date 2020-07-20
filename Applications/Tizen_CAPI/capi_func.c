@@ -91,20 +91,29 @@ static bool get_data(const char *file_name, float *outVec, float *outLabel,
     printf("Cannot open %s\n", file_name);
     return false;
   }
-  fseek(F, position, SEEK_SET);
+
+  if (fseek(F, position, SEEK_SET)) {
+    printf("file seek error");
+    fclose(F);
+    return false;
+  }
 
   for (i = 0; i < feature_size; i++) {
     float f;
     ret = fread((void *)(&f), sizeof(float), 1, F);
-    if (!ret)
+    if (!ret) {
+      fclose(F);
       return false;
+    }
     outVec[i] = f;
   }
   for (i = 0; i < num_class; i++) {
     float f;
     ret = fread((void *)(&f), sizeof(float), 1, F);
-    if (!ret)
+    if (!ret) {
+      fclose(F);
       return false;
+    }
     outLabel[i] = f;
   }
 

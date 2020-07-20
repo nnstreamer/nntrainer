@@ -254,7 +254,10 @@ int main(int argc, char **argv) {
   std::string filepath = "debug.txt";
   std::ofstream writeFile(filepath.data());
 
-  writeFile.is_open();
+  if (!writeFile.is_open()) {
+    std::cout << "Error opening file" << std::endl;
+    return 0;
+  };
 
   srand(time(NULL));
   std::deque<Experience> expQ;
@@ -302,7 +305,8 @@ int main(int argc, char **argv) {
     int step_count = 0;
     STATE s;
     STATE next_s;
-
+    s.done = false;
+    next_s.done = false;
     env->reset(&s);
 
     /**
@@ -325,8 +329,16 @@ int main(int argc, char **argv) {
         /**
          * @brief     get action with input State with mainNet
          */
-        nntrainer::Tensor test =
-          mainNet.forwarding(nntrainer::Tensor({input}), status);
+        nntrainer::Tensor in_tensor;
+        try {
+          in_tensor = nntrainer::Tensor({input});
+        } catch (...) {
+          std::cerr << "Error while construct tensor" << std::endl;
+          mainNet.finalize();
+          targetNet.finalize();
+          return 0;
+        }
+        nntrainer::Tensor test = mainNet.forwarding(in_tensor, status);
         float *data = test.getData();
         unsigned int len = test.getDim().getDataLen();
         std::vector<float> temp(data, data + len);
@@ -439,11 +451,29 @@ int main(int argc, char **argv) {
             float next = (nqa[i * NQ.getWidth()] > nqa[i * NQ.getWidth() + 1])
                            ? nqa[i * NQ.getWidth()]
                            : nqa[i * NQ.getWidth() + 1];
-            Q.setValue(i, 0, 0, (int)in_Exp[i].action[0],
-                       (float)in_Exp[i].reward + DISCOUNT * next);
+            try {
+              Q.setValue(i, 0, 0, (int)in_Exp[i].action[0],
+                         (float)in_Exp[i].reward + DISCOUNT * next);
+            } catch (...) {
+              std::cerr << "Error durint set value" << std::endl;
+              mainNet.finalize();
+              targetNet.finalize();
+              return 0;
+            }
           }
         }
-        mainNet.backwarding(nntrainer::Tensor(inbatch), Q, iter);
+        nntrainer::Tensor in_tensor;
+        try {
+          in_tensor = nntrainer::Tensor(inbatch);
+        } catch (...) {
+          std::cerr << "Error during tensor initialization" << std::endl;
+          mainNet.finalize();
+          targetNet.finalize();
+
+          return 0;
+        }
+
+        mainNet.backwarding(in_tensor, Q, iter);
       }
 
       writeFile << "mainNet Loss : " << mainNet.getLoss()

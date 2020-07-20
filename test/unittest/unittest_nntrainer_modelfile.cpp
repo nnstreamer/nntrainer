@@ -118,9 +118,18 @@ INSTANTIATE_TEST_CASE_P(
 int main(int argc, char **argv) {
   int result = -1;
 
-  testing::InitGoogleTest(&argc, argv);
+  try {
+    testing::InitGoogleTest(&argc, argv);
+  } catch (...) {
+    std::cerr << "Error duing IniGoogleTest" << std::endl;
+    return 0;
+  }
 
-  result = RUN_ALL_TESTS();
+  try {
+    result = RUN_ALL_TESTS();
+  } catch (...) {
+    std::cerr << "Error duing RUN_ALL_TSETS()" << std::endl;
+  }
 
   return result;
 }
