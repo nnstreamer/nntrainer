@@ -956,10 +956,9 @@ static unsigned int getLayerFlag(ml_train_summary_type_e verbosity,
                                  bool initialized = false) {
   unsigned int flag = 0;
 
-  switch (flag) {
-  case ML_TRAIN_SUMMARY_MODEL:
-    flag =
-      LayerPrintOption::PRINT_INST_INFO | LayerPrintOption::PRINT_SHAPE_INFO;
+  switch (verbosity) {
+  case ML_TRAIN_SUMMARY_TENSOR:
+    flag |= LayerPrintOption::PRINT_WEIGHTS;
     /// no break intended
 
   case ML_TRAIN_SUMMARY_LAYER:
@@ -970,8 +969,9 @@ static unsigned int getLayerFlag(ml_train_summary_type_e verbosity,
     flag |= LayerPrintOption::PRINT_PROP;
     /// no break intended
 
-  case ML_TRAIN_SUMMARY_TENSOR:
-    flag |= LayerPrintOption::PRINT_WEIGHTS;
+  case ML_TRAIN_SUMMARY_MODEL:
+    flag =
+      LayerPrintOption::PRINT_INST_INFO | LayerPrintOption::PRINT_SHAPE_INFO;
     break;
 
   default:
