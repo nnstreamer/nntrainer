@@ -61,46 +61,10 @@ Tensor ActivationLayer::forwarding(Tensor in, int &status) {
 }
 
 Tensor ActivationLayer::backwarding(Tensor derivative, int iteration) {
-  if (activation_type == ActiType::ACT_SOFTMAX) {
-    /**
-     * This is a hotfix for now
-     * @todo Update activationLayer semantics usages to take another argument
-     */
-    Tensor x = hidden;
-    int batch = x.getBatch();
-    int channel = x.getChannel();
-    int width = x.getWidth();
-    int height = x.getHeight();
-
-    Tensor PI = Tensor(x.getDim());
-
-    float *xp = x.getData();
-    float *pp = PI.getData();
-    float *d = derivative.getData();
-
-    for (int k = 0; k < batch; ++k) {
-      int K = k * channel * height * width;
-      for (int c = 0; c < channel; ++c) {
-        int C = K + c * height * width;
-        for (int i = 0; i < height; ++i) {
-          int I = C + i * width;
-          for (int j = 0; j < width; ++j) {
-            float sum = 0.0;
-            for (int l = 0; l < width; ++l) {
-              if (j == l) {
-                sum += d[I + l] * xp[I + l] * (1.0 - xp[I + j]);
-              } else {
-                sum -= d[I + l] * xp[I + l] * xp[I + j];
-              }
-            }
-            pp[I + j] = sum;
-          }
-        }
-      }
-    }
-    return PI;
-  } else
-    return derivative.multiply(_act_prime_fn(input));
+  if (activation_type == ActiType::ACT_SOFTMAX)
+    return _act_prime_fn(hidden, derivative);
+  else
+    return _act_prime_fn(input, derivative);
 }
 
 /**
@@ -117,7 +81,8 @@ void ActivationLayer::copy(std::shared_ptr<Layer> l) {
 
 int ActivationLayer::setActivation(
   std::function<Tensor(Tensor const &)> const &activation_fn,
-  std::function<Tensor(Tensor const &)> const &activation_prime_fn) {
+  std::function<Tensor(Tensor const &, Tensor const &)> const
+    &activation_prime_fn) {
   _act_fn = activation_fn;
   _act_prime_fn = activation_prime_fn;
 
@@ -125,11 +90,24 @@ int ActivationLayer::setActivation(
 }
 
 int ActivationLayer::setActivation(
+  std::function<Tensor(Tensor const &)> const &activation_fn,
+  std::function<Tensor(Tensor const &)> const &activation_prime_fn) {
+  _act_fn = activation_fn;
+  _act_prime_fn = [activation_prime_fn](Tensor const &x,
+                                        Tensor const &derivative) {
+    return derivative.multiply(activation_prime_fn(x));
+  };
+
+  return ML_ERROR_NONE;
+}
+
+int ActivationLayer::setActivation(
   std::function<float(float const)> const &activation_fn,
   std::function<float(float const)> const &activation_prime_fn) {
-  _act_fn = [activation_fn](Tensor const &t) { return t.apply(activation_fn); };
-  _act_prime_fn = [activation_prime_fn](Tensor const &t) {
-    return t.apply(activation_prime_fn);
+  _act_fn = [activation_fn](Tensor const &x) { return x.apply(activation_fn); };
+  _act_prime_fn = [activation_prime_fn](Tensor const &x,
+                                        Tensor const &derivative) {
+    return derivative.multiply(x.apply(activation_prime_fn));
   };
 
   return ML_ERROR_NONE;
@@ -162,41 +140,6 @@ void ActivationLayer::setActivation(ActiType acti_type) {
     throw std::runtime_error("Error: Not Supported Activation Type");
   }
   this->activation_type = acti_type;
-}
-
-Tensor ActivationLayer::softmaxPrime(Tensor const &x) {
-  /** @todo Fix this to use derivative */
-  int batch = x.getBatch();
-  int channel = x.getChannel();
-  int width = x.getWidth();
-  int height = x.getHeight();
-
-  Tensor PI = Tensor(x.getDim());
-
-  const float *xp = x.getData();
-  float *pp = PI.getData();
-
-  for (int k = 0; k < batch; ++k) {
-    int K = k * channel * height * width;
-    for (int c = 0; c < channel; ++c) {
-      int C = K + c * height * width;
-      for (int i = 0; i < height; ++i) {
-        int I = C + i * width;
-        for (int j = 0; j < width; ++j) {
-          float sum = 0.0;
-          for (int l = 0; l < width; ++l) {
-            if (j == l) {
-              sum += xp[I + l] * (1.0 - xp[I + j]);
-            } else {
-              sum += xp[I + l] * xp[I + j] * -1.0;
-            }
-          }
-          pp[I + j] = sum;
-        }
-      }
-    }
-  }
-  return PI;
 }
 
 Tensor ActivationLayer::softmax(Tensor const &t) {
@@ -255,6 +198,52 @@ Tensor ActivationLayer::softmax(Tensor const &t) {
     }
   }
   return result;
+}
+
+Tensor ActivationLayer::softmaxPrime(Tensor const &x,
+                                     Tensor const &derivative) {
+  int batch = x.getBatch();
+  int channel = x.getChannel();
+  int width = x.getWidth();
+  int height = x.getHeight();
+  bool is_derivative = true;
+
+  Tensor PI = Tensor(x.getDim());
+
+  const float *xp = x.getData();
+  const float *d = derivative.getData();
+  float *pp = PI.getData();
+
+  /** @todo update default tensorDim to be 0 and not 1 */
+  if (derivative.getDim() == TensorDim()) {
+    is_derivative = false;
+  }
+
+  for (int k = 0; k < batch; ++k) {
+    int K = k * channel * height * width;
+    for (int c = 0; c < channel; ++c) {
+      int C = K + c * height * width;
+      for (int i = 0; i < height; ++i) {
+        int I = C + i * width;
+        for (int j = 0; j < width; ++j) {
+          float sum = 0.0;
+          for (int l = 0; l < width; ++l) {
+            float val;
+            if (j == l) {
+              val = xp[I + l] * (1.0 - xp[I + j]);
+            } else {
+              val = -xp[I + l] * xp[I + j];
+            }
+            if (is_derivative)
+              val *= d[I + l];
+            sum += val;
+          }
+          pp[I + j] = sum;
+        }
+      }
+    }
+  }
+  return PI;
 }
 
 float ActivationLayer::sigmoid(float x) { return 1 / (1 + exp(-x)); }

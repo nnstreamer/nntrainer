@@ -99,18 +99,19 @@ public:
   std::string getBaseName() { return "Activation"; };
 
   /**
-   * @brief     derivative softmax function for Tensor Type
-   * @param[in] x Tensor
-   * @retVal    Tensor
-   */
-  static Tensor softmaxPrime(Tensor const &x);
-
-  /**
    * @brief       Calculate softmax for Tensor Type
    * @param[in] t Tensor
    * @retval      Tensor
    */
-  static Tensor softmax(Tensor const &t);
+  static Tensor softmax(Tensor const &x);
+
+  /**
+   * @brief     derivative softmax function for Tensor Type
+   * @param[in] x Tensor
+   * @retVal    Tensor
+   */
+  static Tensor softmaxPrime(Tensor const &x,
+                             Tensor const &derivative = Tensor());
 
   /**
    * @brief     sigmoid activation function
@@ -156,11 +157,12 @@ public:
 
 private:
   std::function<Tensor(Tensor const &)> _act_fn;
-  std::function<Tensor(Tensor const &)> _act_prime_fn;
+  std::function<Tensor(Tensor const &, Tensor const &)> _act_prime_fn;
 
   /**
    * @brief setActivation by custom activation function
-   *
+   * @note  apply derivative as this activation_prime_fn does not utilize
+   * derivative
    * @param[in] std::function<Tensor(Tensor const &)> activation_fn activation
    *            function to be used
    * @param[in] std::function<Tensor(Tensor const &)> activation_prime_fn
@@ -173,7 +175,22 @@ private:
 
   /**
    * @brief setActivation by custom activation function
-   *
+   * @note  derivative not applied here as this activation_prime_fn applies
+   * derivative itself
+   * @param[in] std::function<Tensor(Tensor const &)> activation_fn activation
+   *            function to be used
+   * @param[in] std::function<Tensor(Tensor const &, Tensor const &)>
+   * activation_prime_fn activation_prime_function to be used
+   * @retval #ML_ERROR_NONE when successful
+   */
+  int setActivation(std::function<Tensor(Tensor const &)> const &activation_fn,
+                    std::function<Tensor(Tensor const &, Tensor const &)> const
+                      &activation_prime_fn);
+
+  /**
+   * @brief setActivation by custom activation function
+   * @note  apply derivative as this activation_prime_fn does not utilize
+   * derivative
    * @param[in] std::function<float(float const &)> activation_fn activation
    *            function to be used
    * @param[in] std::function<float(float const &)> activation_prime_fn
