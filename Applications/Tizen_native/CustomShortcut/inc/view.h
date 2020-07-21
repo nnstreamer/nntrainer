@@ -11,6 +11,7 @@
 
 #include "data.h"
 #include <Elementary.h>
+#include <Evas_GL.h>
 #include <dlog.h>
 #include <efl_extension.h>
 
@@ -25,11 +26,9 @@ int view_init(appdata_s *ad);
 
 /**
  * @brief creates layout from edj
- * @param[in] ad appdata of the app
+ * @param[in/out] ad appdata of the app
  * @param[in] group_name name of the layout to be pushed to main naviframe.
- * @param[out] data naviframe_item that is pushed.
  */
-int view_routes_to(appdata_s *ad, const char *group_name,
-                   Elm_Object_Item **data);
+int view_routes_to(appdata_s *ad, const char *group_name);
 
 #endif /* __nntrainer_example_custom_shortcut_view_H__ */

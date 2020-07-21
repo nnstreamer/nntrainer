@@ -100,13 +100,19 @@ collections {
     }
     programs {
       PROGRAM_BUTTON("home/to_train", "routes/to", "select")
-      PROGRAM_BUTTON("home/to_test", "routes/to", "draw")
+      PROGRAM_BUTTON("home/to_test", "routes/to", "draw:inference")
     }
   }
   group {
     name: "select";
     parts {
       PART_TITLE("select/title", "Select target emoji...")
+      PART_BUTTON("select/sad", "😢", 0.1, 0.3, 0.45, 0.7)
+      PART_BUTTON("select/smile", "😊", 0.55, 0.3, 0.9, 0.7)
+    }
+    programs {
+      PROGRAM_BUTTON("select/smile", "routes/to", "draw:smile")
+      PROGRAM_BUTTON("select/sad", "routes/to", "draw:sad")
     }
   }
   // this group is meant to be used for train / test, if it is not applicable, this group is reserved for training part
@@ -114,6 +120,20 @@ collections {
     name: "draw";
     parts {
       PART_TITLE("draw/title", "draw your symbol")
+      part {
+        name: "draw/canvas";
+        type: SWALLOW;
+        description { state: "default" 0.0;
+          rel1.relative: 0.0 0.2;
+          rel2.relative: 1.0 0.8;
+        }
+      }
+      PART_BUTTON("draw/reset", "↩️", 0.2, 0.8, 0.45, 0.9)
+      PART_BUTTON("draw/proceed", "▶️", 0.55, 0.8, 0.8, 0.9)
+    }
+    programs {
+      PROGRAM_BUTTON("draw/reset", "draw/reset", "")
+      PROGRAM_BUTTON("draw/proceed", "draw/proceed", "")
     }
   }
   group {
