@@ -392,6 +392,18 @@ int NeuralNetwork::setProperty(std::vector<std::string> values) {
     unsigned int type = parseNetProperty(key);
 
     switch (static_cast<PropertyType>(type)) {
+    case PropertyType::batch_size: {
+      status = setInt(batch_size, value);
+      NN_RETURN_STATUS();
+      for (unsigned int i = 0; i < layers.size(); ++i) {
+        if (layers[i]->getTensorDim().batch() !=
+            static_cast<unsigned int>(batch_size)) {
+          ml_logw("Warning: Batch Size is changing!! : %d -> %d",
+                  layers[i]->getTensorDim().batch(), batch_size);
+          layers[i]->getTensorDim().batch(batch_size);
+        }
+      }
+    } break;
     case PropertyType::cost:
     case PropertyType::loss: {
       cost = (CostType)parseType(value, TOKEN_COST);
@@ -417,20 +429,7 @@ int NeuralNetwork::setTrainConfig(std::vector<std::string> values) {
 
     unsigned int type = parseNetProperty(key);
 
-    /** TODO: disable this batch size  */
     switch (static_cast<PropertyType>(type)) {
-    case PropertyType::batch_size: {
-      status = setInt(batch_size, value);
-      NN_RETURN_STATUS();
-      for (unsigned int i = 0; i < layers.size(); ++i) {
-        if (layers[i]->getTensorDim().batch() !=
-            static_cast<unsigned int>(batch_size)) {
-          ml_logw("Warning: Batch Size is changing!! : %d -> %d",
-                  layers[i]->getTensorDim().batch(), batch_size);
-          layers[i]->getTensorDim().batch(batch_size);
-        }
-      }
-    } break;
     case PropertyType::epochs: {
       int e;
       status = setInt(e, value);
@@ -450,7 +449,7 @@ int NeuralNetwork::setTrainConfig(std::vector<std::string> values) {
     default:
       ml_loge("Error: Unknown Network Property Key");
       status = ML_ERROR_INVALID_PARAMETER;
-      break;
+      return status;
     }
   }
 
