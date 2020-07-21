@@ -682,7 +682,8 @@ TEST_F(nntrainer_BatchNormalizationLayer, checkValidation_01_p) {
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
-TEST_F(nntrainer_BatchNormalizationLayer, forward_backward_training_01_p) {
+TEST_F(nntrainer_BatchNormalizationLayer,
+       DISABLED_forward_backward_training_01_p) {
   int status = ML_ERROR_NONE;
   layer.setTrainable(true);
   nntrainer::Tensor forward_result = layer.forwarding(in, status);
