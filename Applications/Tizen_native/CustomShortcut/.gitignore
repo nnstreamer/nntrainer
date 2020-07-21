@@ -8,3 +8,4 @@ build_def.prop
 mts.sh
 /workspace/
 .package-stamp
+/crash-info
