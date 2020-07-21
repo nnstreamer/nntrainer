@@ -450,7 +450,7 @@ int NeuralNetwork::setTrainConfig(std::vector<std::string> values) {
     default:
       ml_loge("Error: Unknown Network Property Key");
       status = ML_ERROR_INVALID_PARAMETER;
-      break;
+      return status;
     }
   }
 
