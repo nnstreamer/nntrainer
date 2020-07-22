@@ -94,7 +94,7 @@ HTML pages of lcov results of NNTrainer generated during rpmbuild
 %package -n capi-nntrainer
 Summary:         Tizen Native API for NNTrainer
 Group:           Multimedia/Framework
-Requires:        %{name}=%{version}-%{release}
+Requires:        %{name} = %{version}-%{release}
 %description -n capi-nntrainer
 Tizen Native API wrapper for NNTrainer.
 You can train neural networks efficiently.
