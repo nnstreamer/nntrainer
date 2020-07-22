@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-	<name>nntrainer-example-custom-shortcut</name>
+	<name>nntrainer-custom-shortcut</name>
 	<comment></comment>
 	<projects>
 	</projects>
@@ -25,7 +25,7 @@
 	</natures>
 	<filteredResources>
 		<filter>
-			<id>1590731141315</id>
+			<id>1595317743739</id>
 			<name></name>
 			<type>26</type>
 			<matcher>
@@ -34,7 +34,7 @@
 			</matcher>
 		</filter>
 		<filter>
-			<id>1590731141316</id>
+			<id>1595317743739</id>
 			<name></name>
 			<type>6</type>
 			<matcher>

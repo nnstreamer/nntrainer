@@ -15,6 +15,7 @@
 #include <cairo/cairo-evas-gl.h>
 #include <dlog.h>
 #include <efl_extension.h>
+#include <nntrainer.h>
 #include <tizen.h>
 
 #ifdef LOG_TAG
@@ -24,13 +25,13 @@
 
 #define EDJ_PATH "edje/main.edj"
 
+#define MAX_TRIES 5
+
 typedef enum _DRAW_MODE {
   INFER = 0,
   TRAIN_SMILE,
   TRAIN_SAD,
 } DRAW_MODE;
-
-int MAX_TRIES = 5;
 typedef struct appdata {
   Evas_Object *win;
   Evas_Object *conform;
@@ -69,6 +70,12 @@ typedef struct appdata {
  * @retval 0 if no error
  */
 int parse_route(const char *source, char **route, char **data);
+
+/**
+ * @brief nntrainer sanity test. contructing model and destroy. This will be
+ * removed.
+ */
+void nntrainer_test();
 
 #if !defined(PACKAGE)
 #define PACKAGE "org.example.nntrainer-example-custom-shortcut"

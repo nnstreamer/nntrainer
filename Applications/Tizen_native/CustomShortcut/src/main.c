@@ -8,6 +8,7 @@
  */
 
 #include "main.h"
+#include "data.h"
 #include "view.h"
 #include <tizen.h>
 
@@ -29,9 +30,11 @@ static bool app_create(void *data) {
 
   view_init(ad);
 
-  if (view_routes_to(ad, "home", &ad->home))
+  nntrainer_test();
+  if (view_routes_to(ad, "home"))
     return false;
 
+  ad->home = ad->nf_it;
   return true;
 }
 
