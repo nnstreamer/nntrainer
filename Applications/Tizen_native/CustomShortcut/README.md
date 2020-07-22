@@ -12,6 +12,26 @@ You can use `tizen studio gui` to build and run.
 
 If you want to do in CLI, you first need to [convert the project to CLI](https://developer.tizen.org/ko/development/tizen-studio/native-tools/cli/converting-projects-cli) and do as follows.
 
+for the time being, you have to install and prepare nntrainer, capi-nntrainer to run this program
+
+```bash
+$ gbs build --arch armv7l
+$ sdb devices
+List of devices attached
+#device list
+$ sdb root on
+$ pushd ${gbs repo directory}
+$ sdb push nntrainer.0.0.1-0.armv7l.rpm /usr
+$ sdb push capi-nntrainer.0.0.1-0.armv7l.rpm /usr
+$ popd
+$ sdb shell
+sh-3.2# mount -o remount,rw /
+sh-3.2# cd /usr
+sh-3.2# rpm -e nntrainer
+sh-3.2# rpm -i nntrainer.0.0.1.-0.armv7l.rpm
+sh-3.2# rpm -i capi-nntrainer.0.0.1.-0.armv7l.rpm
+```
+
 ```bash
 $ echo $(pwd)
 /data/nntrainer/Applications/Tizen_native/CustomShortcut/

@@ -42,3 +42,10 @@ int parse_route(const char *source, char **route, char **data) {
 
   return APP_ERROR_NONE;
 }
+
+void nntrainer_test() {
+  ml_train_model_h model = NULL;
+
+  ml_train_model_construct(model);
+  ml_train_model_destroy(model);
+}
