@@ -28,6 +28,7 @@
 #define __NNTRAINER_INTERNAL_H__
 
 #include <layer.h>
+#include <mutex>
 #include <neuralnet.h>
 #include <nntrainer.h>
 #include <nntrainer_log.h>
@@ -43,29 +44,36 @@ extern "C" {
 
 /**
  * @brief Struct to wrap neural network layer for the API
+ * @note model mutex must be locked before layer lock, if model lock is needed
  */
 typedef struct {
   uint magic;
   std::shared_ptr<nntrainer::Layer> layer;
   bool in_use;
+  std::mutex m;
 } ml_train_layer;
 
 /**
  * @brief Struct to wrap neural network optimizer for the API
+ * @note model mutex must be locked before optimizer lock, if model lock is
+ * needed
  */
 typedef struct {
   uint magic;
   std::shared_ptr<nntrainer::Optimizer> optimizer;
   bool in_use;
+  std::mutex m;
 } ml_train_optimizer;
 
 /**
  * @brief Struct to wrap data buffer for the API
+ * @note model mutex must be locked before dataset lock, if model lock is needed
  */
 typedef struct {
   uint magic;
   std::shared_ptr<nntrainer::DataBuffer> data_buffer;
   bool in_use;
+  std::mutex m;
 } ml_train_dataset;
 
 /**
@@ -77,17 +85,25 @@ typedef struct {
   std::unordered_map<std::string, ml_train_layer *> layers_map;
   ml_train_optimizer *optimizer;
   ml_train_dataset *dataset;
+  std::mutex m;
 } ml_train_model;
 
 /**
- * @brief     Check validity of the user passed arguments
+ * @brief     Check validity of handle to be not NULL
  */
-#define ML_NNTRAINER_CHECK_VALIDATION(obj, obj_h, obj_type, obj_name) \
+#define ML_TRAIN_VERIFY_VALID_HANDLE(obj_h)                     \
+  do {                                                          \
+    if (!obj_h) {                                               \
+      ml_loge("Error: Invalid Parameter : argument is empty."); \
+      return ML_ERROR_INVALID_PARAMETER;                        \
+    }                                                           \
+  } while (0)
+
+/**
+ * @brief     Check validity of the user passed arguments and lock the object
+ */
+#define ML_TRAIN_GET_VALID_HANDLE(obj, obj_h, obj_type, obj_name)     \
   do {                                                                \
-    if (!obj_h) {                                                     \
-      ml_loge("Error: Invalid Parameter : %s is empty.", obj_name);   \
-      return ML_ERROR_INVALID_PARAMETER;                              \
-    }                                                                 \
     obj = (obj_type *)obj_h;                                          \
     if (obj->magic != ML_NNTRAINER_MAGIC) {                           \
       ml_loge("Error: Invalid Parameter : %s is invalid.", obj_name); \
@@ -95,17 +111,97 @@ typedef struct {
     }                                                                 \
   } while (0)
 
-#define ML_NNTRAINER_CHECK_MODEL_VALIDATION(nnmodel, model) \
-  ML_NNTRAINER_CHECK_VALIDATION(nnmodel, model, ml_train_model, "model")
+/**
+ * @brief     Check validity of the user passed arguments and lock the object
+ */
+#define ML_TRAIN_GET_VALID_HANDLE_LOCKED(obj, obj_h, obj_type, obj_name) \
+  do {                                                                   \
+    ML_TRAIN_VERIFY_VALID_HANDLE(obj_h);                                 \
+    std::lock_guard<std::mutex> ml_train_lock(GLOCK);                    \
+    ML_TRAIN_GET_VALID_HANDLE(obj, obj_h, obj_type, obj_name);           \
+    obj->m.lock();                                                       \
+  } while (0)
 
-#define ML_NNTRAINER_CHECK_LAYER_VALIDATION(nnlayer, layer) \
-  ML_NNTRAINER_CHECK_VALIDATION(nnlayer, layer, ml_train_layer, "layer")
+/**
+ * @brief     Check validity of the user passed arguments and lock the object
+ */
+#define ML_TRAIN_GET_VALID_HANDLE_LOCKED_RESET(obj, obj_h, obj_type, obj_name) \
+  do {                                                                         \
+    ML_TRAIN_VERIFY_VALID_HANDLE(obj_h);                                       \
+    std::lock_guard<std::mutex> ml_train_lock(GLOCK);                          \
+    ML_TRAIN_GET_VALID_HANDLE(obj, obj_h, obj_type, obj_name);                 \
+    if (!obj->in_use)                                                          \
+      obj->magic = 0;                                                          \
+    obj->m.lock();                                                             \
+  } while (0)
 
-#define ML_NNTRAINER_CHECK_OPT_VALIDATION(nnopt, opt) \
-  ML_NNTRAINER_CHECK_VALIDATION(nnopt, opt, ml_train_optimizer, "optimizer")
+/**
+ * @brief     Check validity of the user passed arguments and lock the object
+ */
+#define ML_TRAIN_RESET_VALIDATED_HANDLE(obj)          \
+  do {                                                \
+    std::lock_guard<std::mutex> ml_train_lock(GLOCK); \
+    obj->magic = 0;                                   \
+  } while (0)
 
-#define ML_NNTRAINER_CHECK_DATASET_VALIDATION(nndataset, dataset) \
-  ML_NNTRAINER_CHECK_VALIDATION(nndataset, dataset, ml_train_dataset, "dataset")
+/**
+ * @brief     Check validity of passed model and lock the object
+ */
+#define ML_TRAIN_GET_VALID_MODEL_LOCKED(nnmodel, model) \
+  ML_TRAIN_GET_VALID_HANDLE_LOCKED(nnmodel, model, ml_train_model, "model")
+
+/**
+ * @brief     Check validity of passed model, reset magic and lock the object
+ */
+#define ML_TRAIN_GET_VALID_MODEL_LOCKED_RESET(nnmodel, model)           \
+  do {                                                                  \
+    ML_TRAIN_VERIFY_VALID_HANDLE(model);                                \
+    std::lock_guard<std::mutex> ml_train_lock(GLOCK);                   \
+    ML_TRAIN_GET_VALID_HANDLE(nnmodel, model, ml_train_model, "model"); \
+    nnmodel->magic = 0;                                                 \
+    nnmodel->m.lock();                                                  \
+  } while (0)
+
+/**
+ * @brief     Check validity of passed layer and lock the object
+ */
+#define ML_TRAIN_GET_VALID_LAYER_LOCKED(nnlayer, layer) \
+  ML_TRAIN_GET_VALID_HANDLE_LOCKED(nnlayer, layer, ml_train_layer, "layer")
+
+/**
+ * @brief     Check validity of passed layer, reset magic and lock the object
+ */
+#define ML_TRAIN_GET_VALID_LAYER_LOCKED_RESET(nnlayer, layer)            \
+  ML_TRAIN_GET_VALID_HANDLE_LOCKED_RESET(nnlayer, layer, ml_train_layer, \
+                                         "layer")
+
+/**
+ * @brief     Check validity of passed optimizer and lock the object
+ */
+#define ML_TRAIN_GET_VALID_OPT_LOCKED(nnopt, opt) \
+  ML_TRAIN_GET_VALID_HANDLE_LOCKED(nnopt, opt, ml_train_optimizer, "optimizer")
+
+/**
+ * @brief     Check validity of passed optimizer, reset magic and lock the
+ * object
+ */
+#define ML_TRAIN_GET_VALID_OPT_LOCKED_RESET(nnopt, opt)                  \
+  ML_TRAIN_GET_VALID_HANDLE_LOCKED_RESET(nnopt, opt, ml_train_optimizer, \
+                                         "optimizer")
+
+/**
+ * @brief     Check validity of passed dataset and lock the object
+ */
+#define ML_TRAIN_GET_VALID_DATASET_LOCKED(nndataset, dataset)            \
+  ML_TRAIN_GET_VALID_HANDLE_LOCKED(nndataset, dataset, ml_train_dataset, \
+                                   "dataset")
+
+/**
+ * @brief     Check validity of passed dataset, reset magic and lock the object
+ */
+#define ML_TRAIN_GET_VALID_DATASET_LOCKED_RESET(nndataset, dataset)            \
+  ML_TRAIN_GET_VALID_HANDLE_LOCKED_RESET(nndataset, dataset, ml_train_dataset, \
+                                         "dataset")
 
 /**
  * @brief Get neural network layer from the model with the given name.

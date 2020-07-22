@@ -18,6 +18,7 @@
  *        This allows to construct and control NNTrainer Model.
  * @see	https://github.com/nnstreamer/nntrainer
  * @author Jijoong Moon <jijoong.moon@samsung.com>
+ * @author Parichay Kapoor <pk.kapoor@samsung.com>
  * @bug No known bugs except for NYI items
  */
 #include <databuffer.h>
@@ -30,6 +31,21 @@
 #include <parse_util.h>
 #include <stdarg.h>
 #include <string.h>
+
+/**
+ * @brief   Global lock for nntrainer C-API
+ * @details This lock ensures that ml_train_model_destroy is thread safe. All
+ *          other API functions use the mutex from their object handle. However
+ *          for destroy, object mutex cannot be used as their handles are
+ *          destroyed at destroy.
+ */
+std::mutex GLOCK;
+
+/**
+ * @brief   Adopt the lock to the current scope for the object
+ */
+#define ML_TRAIN_ADOPT_LOCK(obj, obj_lock) \
+  std::lock_guard<std::mutex> obj_lock(obj->m, std::adopt_lock)
 
 /**
  * @brief     function to wrap an exception to predefined error value
@@ -163,8 +179,9 @@ int ml_train_model_compile(ml_train_model_h model, ...) {
   const char *data;
   ml_train_model *nnmodel;
   returnable f;
+  std::shared_ptr<nntrainer::NeuralNetwork> NN;
 
-  ML_NNTRAINER_CHECK_MODEL_VALIDATION(nnmodel, model);
+  ML_TRAIN_VERIFY_VALID_HANDLE(model);
 
   std::vector<std::string> arg_list;
   va_list arguments;
@@ -175,8 +192,11 @@ int ml_train_model_compile(ml_train_model_h model, ...) {
   }
   va_end(arguments);
 
-  std::shared_ptr<nntrainer::NeuralNetwork> NN;
-  NN = nnmodel->network;
+  {
+    ML_TRAIN_GET_VALID_MODEL_LOCKED(nnmodel, model);
+    ML_TRAIN_ADOPT_LOCK(nnmodel, model_lock);
+    NN = nnmodel->network;
+  }
 
   f = [&]() { return NN->setProperty(arg_list); };
   status = nntrainer_exception_boundary(f);
@@ -198,23 +218,29 @@ int ml_train_model_run(ml_train_model_h model, ...) {
   int status = ML_ERROR_NONE;
   ml_train_model *nnmodel;
   const char *data;
+  std::shared_ptr<nntrainer::NeuralNetwork> NN;
+
+  ML_TRAIN_VERIFY_VALID_HANDLE(model);
 
   std::vector<std::string> arg_list;
   va_list arguments;
   va_start(arguments, model);
+
   while ((data = va_arg(arguments, const char *))) {
     arg_list.push_back(data);
   }
 
   va_end(arguments);
 
-  ML_NNTRAINER_CHECK_MODEL_VALIDATION(nnmodel, model);
-  std::shared_ptr<nntrainer::NeuralNetwork> NN;
-  NN = nnmodel->network;
+  {
+    ML_TRAIN_GET_VALID_MODEL_LOCKED(nnmodel, model);
+    ML_TRAIN_ADOPT_LOCK(nnmodel, model_lock);
+    NN = nnmodel->network;
+  }
 
   returnable f = [&]() { return NN->train(arg_list); };
-
   status = nntrainer_exception_boundary(f);
+
   return status;
 }
 
@@ -222,7 +248,10 @@ int ml_train_model_destroy(ml_train_model_h model) {
   int status = ML_ERROR_NONE;
   ml_train_model *nnmodel;
 
-  ML_NNTRAINER_CHECK_MODEL_VALIDATION(nnmodel, model);
+  {
+    ML_TRAIN_GET_VALID_MODEL_LOCKED_RESET(nnmodel, model);
+    ML_TRAIN_ADOPT_LOCK(nnmodel, model_lock);
+  }
 
   std::shared_ptr<nntrainer::NeuralNetwork> NN;
   NN = nnmodel->network;
@@ -231,18 +260,49 @@ int ml_train_model_destroy(ml_train_model_h model) {
     NN->finalize();
     return ML_ERROR_NONE;
   };
-
   status = nntrainer_exception_boundary(f);
 
-  if (nnmodel->optimizer)
+  if (nnmodel->optimizer) {
+    ML_TRAIN_RESET_VALIDATED_HANDLE(nnmodel->optimizer);
     delete nnmodel->optimizer;
-  if (nnmodel->dataset)
+  }
+
+  if (nnmodel->dataset) {
+    ML_TRAIN_RESET_VALIDATED_HANDLE(nnmodel->dataset);
     delete nnmodel->dataset;
-  for (auto &x : nnmodel->layers_map)
+  }
+
+  for (auto &x : nnmodel->layers_map) {
+    ML_TRAIN_RESET_VALIDATED_HANDLE(x.second);
     delete (x.second);
+  }
   nnmodel->layers_map.clear();
+
   delete nnmodel;
 
+  return status;
+}
+
+static int ml_train_model_get_summary_util(ml_train_model_h model,
+                                           ml_train_summary_type_e verbosity,
+                                           std::stringstream &ss) {
+  int status = ML_ERROR_NONE;
+  ml_train_model *nnmodel;
+  std::shared_ptr<nntrainer::NeuralNetwork> NN;
+
+  {
+    ML_TRAIN_GET_VALID_MODEL_LOCKED(nnmodel, model);
+    ML_TRAIN_ADOPT_LOCK(nnmodel, model_lock);
+
+    NN = nnmodel->network;
+  }
+
+  returnable f = [&]() {
+    NN->print(ss, verbosity);
+    return ML_ERROR_NONE;
+  };
+
+  status = nntrainer_exception_boundary(f);
   return status;
 }
 
@@ -255,21 +315,9 @@ int ml_train_model_get_summary(ml_train_model_h model,
   }
 
   int status = ML_ERROR_NONE;
-  ml_train_model *nnmodel;
-
-  ML_NNTRAINER_CHECK_MODEL_VALIDATION(nnmodel, model);
-
-  std::shared_ptr<nntrainer::NeuralNetwork> NN;
-  NN = nnmodel->network;
-
   std::stringstream ss;
 
-  returnable f = [&]() {
-    NN->print(ss, verbosity);
-    return ML_ERROR_NONE;
-  };
-
-  status = nntrainer_exception_boundary(f);
+  status = ml_train_model_get_summary_util(model, verbosity, ss);
   if (status != ML_ERROR_NONE) {
     ml_loge("failed make a summary: %d", status);
     return status;
@@ -293,8 +341,10 @@ int ml_train_model_add_layer(ml_train_model_h model, ml_train_layer_h layer) {
   ml_train_model *nnmodel;
   ml_train_layer *nnlayer;
 
-  ML_NNTRAINER_CHECK_MODEL_VALIDATION(nnmodel, model);
-  ML_NNTRAINER_CHECK_LAYER_VALIDATION(nnlayer, layer);
+  ML_TRAIN_GET_VALID_MODEL_LOCKED(nnmodel, model);
+  ML_TRAIN_ADOPT_LOCK(nnmodel, model_lock);
+  ML_TRAIN_GET_VALID_LAYER_LOCKED(nnlayer, layer);
+  ML_TRAIN_ADOPT_LOCK(nnlayer, layer_lock);
 
   if (nnlayer->in_use) {
     ml_loge("Layer already in use.");
@@ -324,8 +374,10 @@ int ml_train_model_set_optimizer(ml_train_model_h model,
   ml_train_model *nnmodel;
   ml_train_optimizer *nnopt;
 
-  ML_NNTRAINER_CHECK_MODEL_VALIDATION(nnmodel, model);
-  ML_NNTRAINER_CHECK_OPT_VALIDATION(nnopt, optimizer);
+  ML_TRAIN_GET_VALID_MODEL_LOCKED(nnmodel, model);
+  ML_TRAIN_ADOPT_LOCK(nnmodel, model_lock);
+  ML_TRAIN_GET_VALID_OPT_LOCKED(nnopt, optimizer);
+  ML_TRAIN_ADOPT_LOCK(nnopt, opt_lock);
 
   if (nnopt->in_use) {
     ml_loge("Optimizer already in use.");
@@ -357,8 +409,10 @@ int ml_train_model_set_dataset(ml_train_model_h model,
   ml_train_model *nnmodel;
   ml_train_dataset *nndataset;
 
-  ML_NNTRAINER_CHECK_MODEL_VALIDATION(nnmodel, model);
-  ML_NNTRAINER_CHECK_DATASET_VALIDATION(nndataset, dataset);
+  ML_TRAIN_GET_VALID_MODEL_LOCKED(nnmodel, model);
+  ML_TRAIN_ADOPT_LOCK(nnmodel, model_lock);
+  ML_TRAIN_GET_VALID_DATASET_LOCKED(nndataset, dataset);
+  ML_TRAIN_ADOPT_LOCK(nndataset, dataset_lock);
 
   if (nndataset->in_use) {
     ml_loge("Dataset already in use.");
@@ -388,10 +442,9 @@ int ml_train_model_get_layer(ml_train_model_h model, const char *layer_name,
                              ml_train_layer_h *layer) {
   int status = ML_ERROR_NONE;
   ml_train_model *nnmodel;
-  ML_NNTRAINER_CHECK_MODEL_VALIDATION(nnmodel, model);
 
-  std::shared_ptr<nntrainer::NeuralNetwork> NN;
-  std::shared_ptr<nntrainer::Layer> NL;
+  ML_TRAIN_GET_VALID_MODEL_LOCKED(nnmodel, model);
+  ML_TRAIN_ADOPT_LOCK(nnmodel, model_lock);
 
   std::unordered_map<std::string, ml_train_layer *>::iterator layer_iter =
     nnmodel->layers_map.find(std::string(layer_name));
@@ -405,6 +458,9 @@ int ml_train_model_get_layer(ml_train_model_h model, const char *layer_name,
    * if layer not found in layers_map, get layer from NeuralNetwork,
    * wrap it in struct nnlayer, add new entry in layer_map and then return
    */
+  std::shared_ptr<nntrainer::NeuralNetwork> NN;
+  std::shared_ptr<nntrainer::Layer> NL;
+
   NN = nnmodel->network;
   returnable f = [&]() { return NN->getLayer(layer_name, &NL); };
   status = nntrainer_exception_boundary(f);
@@ -457,12 +513,15 @@ int ml_train_layer_destroy(ml_train_layer_h layer) {
   int status = ML_ERROR_NONE;
   ml_train_layer *nnlayer;
 
-  ML_NNTRAINER_CHECK_LAYER_VALIDATION(nnlayer, layer);
+  {
+    ML_TRAIN_GET_VALID_LAYER_LOCKED_RESET(nnlayer, layer);
+    ML_TRAIN_ADOPT_LOCK(nnlayer, layer_lock);
 
-  if (nnlayer->in_use) {
-    ml_loge("Cannot delete layer already added in a model."
-            "Delete model will delete this layer.");
-    return ML_ERROR_INVALID_PARAMETER;
+    if (nnlayer->in_use) {
+      ml_loge("Cannot delete layer already added in a model."
+              "Delete model will delete this layer.");
+      return ML_ERROR_INVALID_PARAMETER;
+    }
   }
 
   delete nnlayer;
@@ -474,8 +533,9 @@ int ml_train_layer_set_property(ml_train_layer_h layer, ...) {
   int status = ML_ERROR_NONE;
   ml_train_layer *nnlayer;
   const char *data;
+  std::shared_ptr<nntrainer::Layer> NL;
 
-  ML_NNTRAINER_CHECK_LAYER_VALIDATION(nnlayer, layer);
+  ML_TRAIN_VERIFY_VALID_HANDLE(layer);
 
   std::vector<std::string> arg_list;
   va_list arguments;
@@ -487,8 +547,12 @@ int ml_train_layer_set_property(ml_train_layer_h layer, ...) {
 
   va_end(arguments);
 
-  std::shared_ptr<nntrainer::Layer> NL;
-  NL = nnlayer->layer;
+  {
+    ML_TRAIN_GET_VALID_LAYER_LOCKED(nnlayer, layer);
+    ML_TRAIN_ADOPT_LOCK(nnlayer, layer_lock);
+
+    NL = nnlayer->layer;
+  }
 
   returnable f = [&]() { return NL->setProperty(arg_list); };
   status = nntrainer_exception_boundary(f);
@@ -523,12 +587,15 @@ int ml_train_optimizer_destroy(ml_train_optimizer_h optimizer) {
   int status = ML_ERROR_NONE;
   ml_train_optimizer *nnopt;
 
-  ML_NNTRAINER_CHECK_OPT_VALIDATION(nnopt, optimizer);
+  {
+    ML_TRAIN_GET_VALID_OPT_LOCKED_RESET(nnopt, optimizer);
+    ML_TRAIN_ADOPT_LOCK(nnopt, optimizer_lock);
 
-  if (nnopt->in_use) {
-    ml_loge("Cannot delete optimizer already set to a model."
-            "Delete model will delete this optimizer.");
-    return ML_ERROR_INVALID_PARAMETER;
+    if (nnopt->in_use) {
+      ml_loge("Cannot delete optimizer already set to a model."
+              "Delete model will delete this optimizer.");
+      return ML_ERROR_INVALID_PARAMETER;
+    }
   }
 
   delete nnopt;
@@ -539,11 +606,11 @@ int ml_train_optimizer_set_property(ml_train_optimizer_h optimizer, ...) {
   int status = ML_ERROR_NONE;
   ml_train_optimizer *nnopt;
   const char *data;
-  nnopt = (ml_train_optimizer *)optimizer;
-  ML_NNTRAINER_CHECK_OPT_VALIDATION(nnopt, optimizer);
+  std::shared_ptr<nntrainer::Optimizer> opt;
+
+  ML_TRAIN_VERIFY_VALID_HANDLE(optimizer);
 
   std::vector<std::string> arg_list;
-
   va_list arguments;
   va_start(arguments, optimizer);
 
@@ -553,8 +620,12 @@ int ml_train_optimizer_set_property(ml_train_optimizer_h optimizer, ...) {
 
   va_end(arguments);
 
-  std::shared_ptr<nntrainer::Optimizer> opt;
-  opt = nnopt->optimizer;
+  {
+    ML_TRAIN_GET_VALID_OPT_LOCKED(nnopt, optimizer);
+    ML_TRAIN_ADOPT_LOCK(nnopt, optimizer_lock);
+
+    opt = nnopt->optimizer;
+  }
 
   returnable f = [&]() { return opt->setProperty(arg_list); };
 
@@ -642,8 +713,9 @@ int ml_train_dataset_set_property(ml_train_dataset_h dataset, ...) {
   int status = ML_ERROR_NONE;
   ml_train_dataset *nndataset;
   const char *data;
+  std::shared_ptr<nntrainer::DataBuffer> data_buffer;
 
-  ML_NNTRAINER_CHECK_DATASET_VALIDATION(nndataset, dataset);
+  ML_TRAIN_VERIFY_VALID_HANDLE(dataset);
 
   std::vector<std::string> arg_list;
   va_list arguments;
@@ -655,9 +727,14 @@ int ml_train_dataset_set_property(ml_train_dataset_h dataset, ...) {
 
   va_end(arguments);
 
-  returnable f = [&]() {
-    return nndataset->data_buffer->setProperty(arg_list);
-  };
+  {
+    ML_TRAIN_GET_VALID_DATASET_LOCKED(nndataset, dataset);
+    ML_TRAIN_ADOPT_LOCK(nndataset, dataset_lock);
+
+    data_buffer = nndataset->data_buffer;
+  }
+
+  returnable f = [&]() { return data_buffer->setProperty(arg_list); };
   status = nntrainer_exception_boundary(f);
 
   return status;
@@ -667,12 +744,15 @@ int ml_train_dataset_destroy(ml_train_dataset_h dataset) {
   int status = ML_ERROR_NONE;
   ml_train_dataset *nndataset;
 
-  ML_NNTRAINER_CHECK_DATASET_VALIDATION(nndataset, dataset);
+  {
+    ML_TRAIN_GET_VALID_DATASET_LOCKED_RESET(nndataset, dataset);
+    ML_TRAIN_ADOPT_LOCK(nndataset, dataset_lock);
 
-  if (nndataset->in_use) {
-    ml_loge("Cannot delete dataset already set to a model."
-            "Delete model will delete this dataset.");
-    return ML_ERROR_INVALID_PARAMETER;
+    if (nndataset->in_use) {
+      ml_loge("Cannot delete dataset already set to a model."
+              "Delete model will delete this dataset.");
+      return ML_ERROR_INVALID_PARAMETER;
+    }
   }
 
   delete nndataset;
