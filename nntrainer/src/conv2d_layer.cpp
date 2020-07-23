@@ -157,7 +157,7 @@ Tensor Conv2DLayer::backwarding(Tensor derivative, int iteration) {
           in_dim, output.data(), stride, 0.0);
         float *del = delK.getAddress(j * o_size);
         for (unsigned k = 0; k < o_size; ++k) {
-          del[i] += output[i];
+          del[k] += output[k];
         }
       }
 
