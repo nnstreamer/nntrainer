@@ -370,18 +370,22 @@ void replaceString(const std::string &from, const std::string &to,
  * @param[out] outVec
  * @param[out] outLabel
  * @param[out] last if the data is finished
+ * @param[in] user_data private data for the callback
  * @retval status for handling error
  */
-int getMiniBatch_train(float **outVec, float **outLabel, bool *last);
+int getMiniBatch_train(float **outVec, float **outLabel, bool *last,
+                       void *user_data);
 
 /**
  * @brief      get data which size is mini batch for val
  * @param[out] outVec
  * @param[out] outLabel
  * @param[out] last if the data is finished
+ * @param[in] user_data private data for the callback
  * @retval status for handling error
  */
-int getMiniBatch_val(float **outVec, float **outLabel, bool *last);
+int getMiniBatch_val(float **outVec, float **outLabel, bool *last,
+                     void *user_data);
 
 #endif /* __cplusplus */
 #endif /* __NNTRAINER_TEST_UTIL_H__ */

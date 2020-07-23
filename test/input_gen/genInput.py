@@ -167,7 +167,7 @@ def fc_tf_simplified_backward(x, kernel, label, bias, activation, opt):
         optimizer = tf.keras.optimizers.Adam(learning_rate = 1,beta_1=0.9, beta_2=0.999, epsilon=1.0e-7)
     else:
         raise 'unknown optimizer'
-    
+
     tf_grad = tf.gradients(fc_out, all_variables)
     train_op = optimizer.apply_gradients(list(zip(tf_grad[1:], trainable_variables)))
 
@@ -193,7 +193,7 @@ def fc_tf_simplified_backward(x, kernel, label, bias, activation, opt):
         print(tf_outs[0])
         print(tf_outs[2][0])
         print(tf_outs[2][1])
-        print("-------------------")        
+        print("-------------------")
 
     return tf_outs
 
@@ -384,7 +384,7 @@ def gen_test_case_fc(input_shape, kernel_shape, base_name):
     bias = gen_input(base_name + "_FCKernel.in", kernel_shape[-1:], savefile=False)
     with open(base_name+"_FCKernel.in", 'ab') as outfile:
         np.array(bias, dtype=np.float32).tofile(outfile)
-        
+
     golden_fc_simplified = fc_tf_simplified_backward(input_data, kernel, label, bias, activation=None, opt='adam')
     save(base_name + "_goldenFCGradientAdam.out", golden_fc_simplified[1][0])
     save(base_name + "_goldenFCUpdatedWeightAdam.out", golden_fc_simplified[2][0])

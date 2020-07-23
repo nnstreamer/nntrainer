@@ -22,7 +22,7 @@
  * @section CAPI_ML_NNTRAINER_TRAIN_HEADER Required Header
  *   \#include <nntrainer/nntrainer.h>\n
  * @section CAPI_ML_NNTRAINER_TRAIN_OVERVIEW Overview
- * The NNTrainer function provides interfaces to create and train Machine
+ * The NNTrainer API provides interfaces to create and train Machine
  * Learning models on the device locally.
  *
  *  This function allows the following operations with NNTrainer:

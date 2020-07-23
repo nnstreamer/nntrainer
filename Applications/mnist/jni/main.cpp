@@ -115,9 +115,11 @@ bool getData(std::ifstream &F, std::vector<float> &outVec,
  * @param[out] outVec
  * @param[out] outLabel
  * @param[out] last if the data is finished
+ * @param[in] user_data private data for the callback
  * @retval status for handling error
  */
-int getMiniBatch_train(float **outVec, float **outLabel, bool *last) {
+int getMiniBatch_train(float **outVec, float **outLabel, bool *last,
+                       void *user_data) {
   std::vector<int> memI;
   std::vector<int> memJ;
   unsigned int count = 0;
@@ -160,9 +162,11 @@ int getMiniBatch_train(float **outVec, float **outLabel, bool *last) {
  * @param[out] outVec
  * @param[out] outLabel
  * @param[out] last if the data is finished
+ * @param[in] user_data private data for the callback
  * @retval status for handling error
  */
-int getMiniBatch_val(float **outVec, float **outLabel, bool *last) {
+int getMiniBatch_val(float **outVec, float **outLabel, bool *last,
+                     void *user_data) {
 
   std::vector<int> memI;
   std::vector<int> memJ;
