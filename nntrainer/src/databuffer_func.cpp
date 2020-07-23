@@ -204,7 +204,7 @@ void DataBufferFromCallback::updateData(BufferType type) {
     testReadyFlag = DATA_NOT_READY;
     if (buf_size - (*cur_size) > 0) {
       /** @todo Update to support multiple inputs later */
-      status = callback(vec_arr, veclabel_arr, &endflag);
+      status = callback(vec_arr, veclabel_arr, &endflag, NULL);
 
       if (status == ML_ERROR_NONE && !endflag) {
         for (unsigned int i = 0; i < input_dim.batch(); ++i) {

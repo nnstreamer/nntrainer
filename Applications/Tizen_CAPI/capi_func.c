@@ -34,8 +34,9 @@ static bool alloc_val = false;
 
 unsigned int seed;
 
-int gen_data_train(float **outVec, float **outLabel, bool *last);
-int gen_data_val(float **outVec, float **outLabel, bool *last);
+int gen_data_train(float **outVec, float **outLabel, bool *last,
+                   void *user_data);
+int gen_data_val(float **outVec, float **outLabel, bool *last, void *user_data);
 bool file_exists(const char *filename);
 
 bool file_exists(const char *filename) {
@@ -131,9 +132,11 @@ static bool get_data(const char *file_name, float *outVec, float *outLabel,
  * @param[out] outVec
  * @param[out] outLabel
  * @param[out] status for error handling
+ * @param[in] user_data private data for the callback
  * @retval true/false
  */
-int gen_data_train(float **outVec, float **outLabel, bool *last) {
+int gen_data_train(float **outVec, float **outLabel, bool *last,
+                   void *user_data) {
   int memI[mini_batch];
   long file_size;
   unsigned int count = 0;
@@ -213,9 +216,11 @@ int gen_data_train(float **outVec, float **outLabel, bool *last) {
  * @param[out] outVec
  * @param[out] outLabel
  * @param[out] last if the data is finished
+ * @param[in] user_data private data for the callback
  * @retval status for handling error
  */
-int gen_data_val(float **outVec, float **outLabel, bool *last) {
+int gen_data_val(float **outVec, float **outLabel, bool *last,
+                 void *user_data) {
 
   int memI[mini_batch];
   unsigned int i, j;
