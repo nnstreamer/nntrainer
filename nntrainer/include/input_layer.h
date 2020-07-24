@@ -52,6 +52,18 @@ public:
   ~InputLayer(){};
 
   /**
+   *  @brief  Move constructor of Pooling 2D Layer.
+   *  @param[in] Input &&
+   */
+  InputLayer(InputLayer &&rhs) = default;
+
+  /**
+   * @brief  Move assignment operator.
+   * @parma[in] rhs InputLayer to be moved.
+   */
+  InputLayer &operator=(InputLayer &&rhs) = default;
+
+  /**
    * @brief     No Weight data for this Input Layer
    */
   void read(std::ifstream &file){};

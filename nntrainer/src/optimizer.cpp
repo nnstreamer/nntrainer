@@ -31,6 +31,11 @@
 
 namespace nntrainer {
 
+Optimizer::Optimizer(const OptType t, const OptParam p) {
+  type = t;
+  popt = p;
+}
+
 int Optimizer::setType(OptType t) {
   int status = ML_ERROR_NONE;
   if (t == OptType::unknown) {

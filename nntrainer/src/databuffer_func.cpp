@@ -316,6 +316,8 @@ void DataBufferFromCallback::updateData(BufferType type) {
   }
   free(vec);
   free(veclabel);
+  free(vec_arr);
+  free(veclabel_arr);
 }
 
 int DataBufferFromCallback::setProperty(const PropertyType type,

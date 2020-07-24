@@ -291,11 +291,19 @@ int main(int argc, char *argv[]) {
    */
   nntrainer::NeuralNetwork NN;
   NN.setConfig(config);
-  NN.loadFromConfig();
+  try {
+    NN.loadFromConfig();
+  } catch (...) {
+    std::cerr << "Error during loadFromConfig" << std::endl;
+    NN.finalize();
+    return 0;
+  }
+
   try {
     NN.init();
   } catch (...) {
     std::cerr << "Error during init" << std::endl;
+    NN.finalize();
     return 0;
   }
 

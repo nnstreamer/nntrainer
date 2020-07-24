@@ -87,7 +87,7 @@ static int rangeRandom(int min, int max) {
  * @retval true/false false : end of data
  */
 static bool getData(std::ifstream &F, std::vector<float> &outVec,
-                    std::vector<float> &outLabel, int id) {
+                    std::vector<float> &outLabel, uint64_t id) {
   F.clear();
   F.seekg(0, std::ios_base::end);
   uint64_t file_length = F.tellg();

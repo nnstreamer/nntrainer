@@ -22,6 +22,23 @@
 
 namespace nntrainer {
 
+TensorDim &TensorDim::operator=(const TensorDim &rhs) {
+  TensorDim tmp(rhs.batch(), rhs.channel(), rhs.height(), rhs.width());
+  this->swap(*this, tmp);
+  return *this;
+}
+
+TensorDim &TensorDim::operator=(TensorDim &&rhs) noexcept {
+  this->swap(*this, rhs);
+  return *this;
+}
+
+void TensorDim::swap(TensorDim &lhs, TensorDim &rhs) noexcept {
+  std::swap(lhs.dim, rhs.dim);
+  std::swap(lhs.len, rhs.len);
+  std::swap(lhs.feature_len, rhs.feature_len);
+}
+
 void TensorDim::resetLen() {
   feature_len = dim[1] * dim[2] * dim[3];
   len = dim[0] * feature_len;
@@ -64,14 +81,6 @@ int TensorDim::setTensorDim(std::string input_shape) {
   feature_len = dim[1] * dim[2] * dim[3];
   len = dim[0] * feature_len;
   return status;
-}
-
-void TensorDim::operator=(const TensorDim &from) {
-  for (int i = 0; i < MAXDIM; ++i) {
-    this->dim[i] = from.dim[i];
-  }
-  len = from.len;
-  feature_len = from.feature_len;
 }
 
 bool TensorDim::operator==(const TensorDim &rhs) const {

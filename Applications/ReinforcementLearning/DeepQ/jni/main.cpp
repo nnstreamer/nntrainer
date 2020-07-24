@@ -281,10 +281,34 @@ int main(int argc, char **argv) {
   /**
    * @brief     initialize mainNet & Target Net
    */
-  mainNet.loadFromConfig();
-  mainNet.init();
-  targetNet.loadFromConfig();
-  targetNet.init();
+  try {
+    mainNet.loadFromConfig();
+  } catch (...) {
+    std::cerr << "Error during loadFromConfig" << std::endl;
+    mainNet.finalize();
+    return 0;
+  }
+  try {
+    mainNet.init();
+  } catch (...) {
+    std::cerr << "Error during init" << std::endl;
+    mainNet.finalize();
+    return 0;
+  }
+  try {
+    targetNet.loadFromConfig();
+  } catch (...) {
+    std::cerr << "Error during loadFromConfig" << std::endl;
+    targetNet.finalize();
+    return 0;
+  }
+  try {
+    targetNet.init();
+  } catch (...) {
+    std::cerr << "Error during init" << std::endl;
+    targetNet.finalize();
+    return 0;
+  }
 
   /**
    * @brief     Read Model Data if any

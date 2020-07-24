@@ -496,12 +496,13 @@ int ml_train_layer_create(ml_train_layer_h *layer, ml_train_layer_type_e type) {
       delete nnlayer;
       ml_loge("Error: Unknown layer type");
       status = ML_ERROR_INVALID_PARAMETER;
-      break;
+      return status;
     }
   } catch (std::bad_alloc &e) {
     ml_loge("Error: heap exception: %s", e.what());
     status = ML_ERROR_OUT_OF_MEMORY;
     delete nnlayer;
+    return status;
   }
 
   nnlayer->in_use = false;

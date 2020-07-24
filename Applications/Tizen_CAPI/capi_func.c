@@ -72,7 +72,7 @@ static int range_random(int min, int max) {
  * @retval true/false false : end of data
  */
 static bool get_data(const char *file_name, float *outVec, float *outLabel,
-                     int id, int file_length) {
+                     uint64_t id, int file_length) {
   uint64_t position;
   FILE *F;
   unsigned int i;
@@ -136,6 +136,7 @@ int gen_data_train(float **outVec, float **outLabel, bool *last) {
   unsigned int data_size = 0;
   unsigned int i, j;
   FILE *file;
+  float *o, *l;
 
   const char *file_name = "trainingSet.dat";
 
@@ -185,10 +186,10 @@ int gen_data_train(float **outVec, float **outLabel, bool *last) {
     }
   }
 
-  for (i = 0; i < count; i++) {
-    float o[feature_size];
-    float l[num_class];
+  o = malloc(sizeof(float) * feature_size);
+  l = malloc(sizeof(float) * num_class);
 
+  for (i = 0; i < count; i++) {
     get_data(file_name, o, l, memI[i], file_size);
 
     for (j = 0; j < feature_size; ++j)
@@ -197,6 +198,8 @@ int gen_data_train(float **outVec, float **outLabel, bool *last) {
       outLabel[0][i * num_class + j] = l[j];
   }
 
+  free(o);
+  free(l);
   *last = false;
   return ML_ERROR_NONE;
 }
@@ -215,6 +218,7 @@ int gen_data_val(float **outVec, float **outLabel, bool *last) {
   unsigned int count = 0;
   unsigned int data_size = 0;
   long file_size;
+  float *o, *l;
 
   const char *file_name = "trainingSet.dat";
 
@@ -255,10 +259,10 @@ int gen_data_val(float **outVec, float **outLabel, bool *last) {
     }
   }
 
-  for (i = 0; i < count; i++) {
-    float o[feature_size];
-    float l[num_class];
+  o = malloc(feature_size * sizeof(float));
+  l = malloc(num_class * sizeof(float));
 
+  for (i = 0; i < count; i++) {
     get_data(file_name, o, l, memI[i], file_size);
 
     for (j = 0; j < feature_size; ++j)
@@ -268,6 +272,10 @@ int gen_data_val(float **outVec, float **outLabel, bool *last) {
   }
 
   *last = false;
+
+  free(o);
+  free(l);
+
   return ML_ERROR_NONE;
 }
 
@@ -328,7 +336,7 @@ int main(int argc, char *argv[]) {
   NN_RETURN_STATUS();
 
   /* compile model with cross entropy loss function */
-  status = ml_train_model_compile(model, "loss=cross", NULL);
+  status = ml_train_model_compile(model, "loss=cross", "batch_size=32", NULL);
   NN_RETURN_STATUS();
 
   /* create dataset */
@@ -346,12 +354,12 @@ int main(int argc, char *argv[]) {
 
   /* train model with data files : epochs = 10 and store model file named
    * "model.bin" */
-  status = ml_train_model_run(model, "epochs=10", "batch_size=32",
-                              "model_file=model.bin", NULL);
+  status = ml_train_model_run(model, "epochs=10", "model_file=model.bin", NULL);
   NN_RETURN_STATUS();
 
   /* delete model */
   status = ml_train_model_destroy(model);
   NN_RETURN_STATUS();
+
   return 0;
 }

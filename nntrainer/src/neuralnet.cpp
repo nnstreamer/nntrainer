@@ -233,7 +233,8 @@ int NeuralNetwork::loadFromConfig() {
 
     if (!sec_name) {
       ml_loge("Error: Unable to retrieve section names from ini.");
-      return ML_ERROR_INVALID_PARAMETER;
+      status = ML_ERROR_INVALID_PARAMETER;
+      NN_RETURN_STATUS();
     }
 
     if (strncasecmp(network_str, sec_name, network_len) == 0) {
@@ -979,7 +980,7 @@ static unsigned int getLayerFlag(ml_train_summary_type_e verbosity,
     /// no break intended
 
   case ML_TRAIN_SUMMARY_MODEL:
-    flag =
+    flag |=
       LayerPrintOption::PRINT_INST_INFO | LayerPrintOption::PRINT_SHAPE_INFO;
     break;
 
