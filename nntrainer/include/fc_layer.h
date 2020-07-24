@@ -42,6 +42,18 @@ public:
   ~FullyConnectedLayer(){};
 
   /**
+   *  @brief  Move constructor of Pooling 2D Layer.
+   *  @param[in] FullyConnected &&
+   */
+  FullyConnectedLayer(FullyConnectedLayer &&rhs) = default;
+
+  /**
+   * @brief  Move assignment operator.
+   * @parma[in] rhs FullyConnectedLayer to be moved.
+   */
+  FullyConnectedLayer &operator=(FullyConnectedLayer &&rhs) = default;
+
+  /**
    * @brief     Read Weight & Bias Data from file
    * @param[in] file input stream file
    */

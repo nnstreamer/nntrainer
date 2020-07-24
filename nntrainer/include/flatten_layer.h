@@ -41,6 +41,18 @@ public:
   ~FlattenLayer(){};
 
   /**
+   *  @brief  Move constructor of FlattenLayer.
+   *  @param[in] FlattenLayer &&
+   */
+  FlattenLayer(FlattenLayer &&rhs) = default;
+
+  /**
+   * @brief  Move assignment operator.
+   * @parma[in] rhs FlattenLayer to be moved.
+   */
+  FlattenLayer &operator=(FlattenLayer &&rhs) = default;
+
+  /**
    * @brief     initialize layer
    * @param[in] last last layer
    * @retval #ML_ERROR_NONE Successful.

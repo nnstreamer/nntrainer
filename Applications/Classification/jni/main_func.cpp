@@ -118,13 +118,14 @@ static int rangeRandom(int min, int max) {
  * @retval true/false false : end of data
  */
 bool getData(std::ifstream &F, std::vector<float> &outVec,
-             std::vector<float> &outLabel, int id) {
+             std::vector<float> &outLabel, uint64_t id) {
   F.clear();
   F.seekg(0, std::ios_base::end);
   uint64_t file_length = F.tellg();
-  uint64_t position = (feature_size + total_label_size) * id * sizeof(float);
+  uint64_t position =
+    (uint64_t)((feature_size + total_label_size) * id * sizeof(float));
 
-  if (position > file_length || position > ULLONG_MAX) {
+  if (position > file_length) {
     return false;
   }
   F.seekg(position, std::ios::beg);
@@ -296,11 +297,18 @@ int main(int argc, char *argv[]) {
    */
   nntrainer::NeuralNetwork NN;
   NN.setConfig(config);
-  NN.loadFromConfig();
+  try {
+    NN.loadFromConfig();
+  } catch (...) {
+    std::cerr << "Error during loadFromConfig" << std::endl;
+    NN.finalize();
+    return 0;
+  }
   try {
     NN.init();
   } catch (...) {
     std::cerr << "Error during init" << std::endl;
+    NN.finalize();
     return 0;
   }
   NN.readModel();

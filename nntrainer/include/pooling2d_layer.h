@@ -57,6 +57,18 @@ public:
   ~Pooling2DLayer(){};
 
   /**
+   *  @brief  Move constructor of Pooling 2D Layer.
+   *  @param[in] Pooling2D &&
+   */
+  Pooling2DLayer(Pooling2DLayer &&rhs) = default;
+
+  /**
+   * @brief  Move assignment operator.
+   * @parma[in] rhs Pooling2DLayer to be moved.
+   */
+  Pooling2DLayer &operator=(Pooling2DLayer &&rhs) = default;
+
+  /**
    * @brief     initialize layer
    * @param[in] last last layer
    * @retval #ML_ERROR_NONE Successful.

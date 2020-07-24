@@ -35,6 +35,9 @@ TEST(nntrainer_capi_dataset, create_destroy_02_n) {
   status =
     ml_train_dataset_create_with_file(&dataset, "nofile.txt", NULL, NULL);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+
+  status = ml_train_dataset_destroy(dataset);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
 /**
@@ -78,6 +81,7 @@ TEST(nntrainer_capi_dataset, create_destroy_05_p) {
   status =
     ml_train_dataset_create_with_file(&dataset, "trainingSet.dat", NULL, NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
+
   status = ml_train_dataset_destroy(dataset);
   EXPECT_EQ(status, ML_ERROR_NONE);
 

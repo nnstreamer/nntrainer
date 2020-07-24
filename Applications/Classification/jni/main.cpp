@@ -119,10 +119,6 @@ static int rangeRandom(int min, int max) {
  * @param[out] feature_input save output of tflite
  */
 void getFeature(const string filename, vector<float> &feature_input) {
-  int input_size;
-  int output_size;
-  std::vector<int> output_idx_list;
-  std::vector<int> input_idx_list;
   int input_dim[4];
   int output_dim[4];
   std::string model_path = "../../res/mobilenetv2.tflite";
@@ -134,23 +130,8 @@ void getFeature(const string filename, vector<float> &feature_input) {
   std::unique_ptr<tflite::Interpreter> interpreter;
   tflite::InterpreterBuilder(*model.get(), resolver)(&interpreter);
 
-  input_size = interpreter->inputs().size();
-  output_size = interpreter->outputs().size();
-
-  int t_size = interpreter->tensors_size();
-
-  for (int i = 0; i < t_size; i++) {
-    for (int j = 0; j < input_size; j++) {
-      if (strncmp(interpreter->tensor(i)->name, interpreter->GetInputName(j),
-                  sizeof(interpreter->tensor(i)->name)) == 0)
-        input_idx_list.push_back(i);
-    }
-    for (int j = 0; j < output_size; j++) {
-      if (strncmp(interpreter->tensor(i)->name, interpreter->GetOutputName(j),
-                  sizeof(interpreter->tensor(i)->name)) == 0)
-        output_idx_list.push_back(i);
-    }
-  }
+  const std::vector<int> &input_idx_list = interpreter->inputs();
+  const std::vector<int> &output_idx_list = interpreter->outputs();
 
   for (int i = 0; i < 4; i++) {
     input_dim[i] = 1;
@@ -450,7 +431,15 @@ int main(int argc, char *argv[]) {
     std::vector<float> featureVector, resultVector;
     featureVector.resize(feature_size);
     getFeature(img, featureVector);
-    nntrainer::Tensor X = nntrainer::Tensor({featureVector});
+
+    nntrainer::Tensor X;
+    try {
+      X = nntrainer::Tensor({featureVector});
+    } catch (...) {
+      std::cerr << "Error while construct tensor" << std::endl;
+      NN.finalize();
+      return 0;
+    }
     cout << NN.forwarding(X, status).apply(stepFunction) << endl;
   }
   /**

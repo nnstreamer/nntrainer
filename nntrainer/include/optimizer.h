@@ -97,10 +97,30 @@ public:
    */
   Optimizer() : type(OptType::unknown), popt() {}
 
+  Optimizer(const OptType type, OptParam popt);
+
   /**
    * @brief     Destructor of Optimizer Class
    */
   ~Optimizer() {}
+
+  /**
+   * @brief  copy assignment operator
+   * @parma[in] rhs Optimizer to be copied
+   */
+  Optimizer &operator=(const Optimizer &rhs) = default;
+
+  /**
+   *  @brief  Move constructor of Conv 2D Layer.
+   *  @param[in] Conv2dLayer &&
+   */
+  Optimizer(Optimizer &&rhs) = default;
+
+  /**
+   * @brief  Move assignment operator.
+   * @parma[in] rhs Optimizer to be moved.
+   */
+  Optimizer &operator=(Optimizer &&rhs) = default;
 
   /**
    * @brief     set Optimizer Type

@@ -523,13 +523,6 @@ public:
   int setDim(TensorDim d);
 
   /**
-   * @brief     return if current tensor is contiguous, if not, you can't write
-   *            on this tensor
-   * @retval    bool is contigous
-   */
-  const bool isContiguous() const noexcept { return is_contiguous; }
-
-  /**
    * @brief     return current stride of tensor.
    * @retval    int[MAXDIM] strides
    */

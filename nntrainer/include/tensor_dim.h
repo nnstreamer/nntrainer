@@ -44,7 +44,30 @@ public:
     len = b * feature_len;
   }
 
+  TensorDim(const TensorDim &rhs) :
+    TensorDim(rhs.batch(), rhs.channel(), rhs.height(), rhs.width()){};
+
   ~TensorDim(){};
+
+  /**
+   *  @brief  Move constructor of Conv 2D Layer.
+   *  @param[in] Conv2dLayer &&
+   */
+  TensorDim(TensorDim &&rhs) noexcept = default;
+
+  /**
+   * @brief  Move assignment operator.
+   * @parma[in] rhs Optimizer to be moved.
+   */
+  TensorDim &operator=(TensorDim &&rhs) noexcept;
+
+  /**
+   * @brief  swap variable of Conv2D Layer
+   * @parma[out] lhs Optimizer
+   * @parma[in] rhs Optimizer
+   */
+  void swap(TensorDim &lhs, TensorDim &rhs) noexcept;
+
   unsigned int batch() const { return dim[0]; };
   unsigned int channel() const { return dim[1]; };
   unsigned int height() const { return dim[2]; };
@@ -59,12 +82,12 @@ public:
   void width(unsigned int w) { setTensorDim(3, w); }
 
   const unsigned int *getDim() const { return dim; }
-  const unsigned int getNumDim() const { return MAXDIM; }
+  unsigned int getNumDim() const { return MAXDIM; }
 
   void setTensorDim(unsigned int idx, unsigned int value);
   int setTensorDim(std::string input_shape);
 
-  void operator=(const TensorDim &from);
+  TensorDim &operator=(const TensorDim &rhs);
   bool operator==(const TensorDim &rhs) const;
   bool operator!=(const TensorDim &rhs) const { return !(*this == rhs); }
 

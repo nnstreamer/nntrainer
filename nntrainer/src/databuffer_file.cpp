@@ -191,7 +191,7 @@ void DataBufferFromDataFile::updateData(BufferType type) {
     break;
   }
 
-  unsigned int I;
+  uint64_t I;
   std::vector<unsigned int> mark;
   mark.resize(max_size);
   file.clear();

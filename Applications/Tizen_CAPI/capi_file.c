@@ -91,7 +91,7 @@ int main(int argc, char *argv[]) {
   NN_RETURN_STATUS();
 
   /* compile model with cross entropy loss function */
-  status = ml_train_model_compile(model, "loss=cross", NULL);
+  status = ml_train_model_compile(model, "loss=cross", "batch_size=32", NULL);
   NN_RETURN_STATUS();
 
   /* create dataset */
@@ -110,8 +110,7 @@ int main(int argc, char *argv[]) {
 
   /* train model with data files : epochs = 10 and store model file named
    * "model.bin" */
-  status = ml_train_model_run(model, "epochs=10", "batch_size=32",
-                              "model_file=model.bin", NULL);
+  status = ml_train_model_run(model, "epochs=10", "model_file=model.bin", NULL);
   NN_RETURN_STATUS();
 
   /* delete model */

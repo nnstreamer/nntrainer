@@ -52,6 +52,18 @@ public:
   ~Conv2DLayer(){};
 
   /**
+   *  @brief  Move constructor of Conv 2D Layer.
+   *  @param[in] Conv2dLayer &&
+   */
+  Conv2DLayer(Conv2DLayer &&rhs) = default;
+
+  /**
+   * @brief  Move assignment operator.
+   * @parma[in] rhs Conv2DLayer to be moved.
+   */
+  Conv2DLayer &operator=(Conv2DLayer &&rhs) = default;
+
+  /**
    * @brief     initialize layer
    * @param[in] last last layer
    * @retval #ML_ERROR_NONE Successful.

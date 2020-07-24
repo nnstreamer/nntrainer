@@ -50,6 +50,18 @@ public:
   ~BatchNormalizationLayer(){};
 
   /**
+   *  @brief  Move constructor of Pooling 2D Layer.
+   *  @param[in] BatchNormalization &&
+   */
+  BatchNormalizationLayer(BatchNormalizationLayer &&rhs) = default;
+
+  /**
+   * @brief  Move assignment operator.
+   * @parma[in] rhs BatchNormalizationLayer to be moved.
+   */
+  BatchNormalizationLayer &operator=(BatchNormalizationLayer &&rhs) = default;
+
+  /**
    * @brief     forward propagation with input
    * @param[in] in Input Tensor from upper layer
    * @retval    normalized input tensor using scaling factor

@@ -155,6 +155,18 @@ public:
   virtual ~Layer(){};
 
   /**
+   *  @brief  Move constructor of Layer.
+   *  @param[in] Layer &&
+   */
+  Layer(Layer &&rhs) noexcept = default;
+
+  /**
+   * @brief  Move assignment operator.
+   * @parma[in] rhs Layer to be moved.
+   */
+  virtual Layer &operator=(Layer &&rhs) = default;
+
+  /**
    * @brief     Forward Propation of neural Network
    * @param[in] in Input Tensor taken by upper layer
    * @retval    Output Tensor
