@@ -190,7 +190,8 @@ bool DataBuffer::getDataFromBuffer(BufferType type, vec_4d &outVec,
     std::unique_lock<std::mutex> ultrain(readyTrainData);
     cv_train.wait(ultrain, [this]() -> int { return trainReadyFlag; });
 
-    if (trainReadyFlag == DATA_ERROR || trainReadyFlag == DATA_END) {
+    if (train_data.size() < mini_batch || trainReadyFlag == DATA_ERROR ||
+        trainReadyFlag == DATA_END) {
       return false;
     }
 
@@ -225,7 +226,8 @@ bool DataBuffer::getDataFromBuffer(BufferType type, vec_4d &outVec,
     std::vector<int> list;
     std::unique_lock<std::mutex> ulval(readyValData);
     cv_val.wait(ulval, [this]() -> bool { return valReadyFlag; });
-    if (valReadyFlag == DATA_ERROR || valReadyFlag == DATA_END) {
+    if (val_data.size() < mini_batch || valReadyFlag == DATA_ERROR ||
+        valReadyFlag == DATA_END) {
       return false;
     }
 
@@ -262,7 +264,8 @@ bool DataBuffer::getDataFromBuffer(BufferType type, vec_4d &outVec,
     std::unique_lock<std::mutex> ultest(readyTestData);
     cv_test.wait(ultest, [this]() -> bool { return testReadyFlag; });
 
-    if (testReadyFlag == DATA_ERROR || testReadyFlag == DATA_END) {
+    if (val_data.size() < mini_batch || testReadyFlag == DATA_ERROR ||
+        testReadyFlag == DATA_END) {
       return false;
     }
 
@@ -297,6 +300,7 @@ bool DataBuffer::getDataFromBuffer(BufferType type, vec_4d &outVec,
     return false;
     break;
   }
+
   data_lock.unlock();
 
   return true;

@@ -447,6 +447,7 @@ protected:
   virtual void prepareLayer() {
     setInputDim("3:1:1:12");
     setProperty("unit=15");
+    setProperty("bias_init_zero=true");
     last_layer = true;
   }
 
@@ -465,6 +466,50 @@ protected:
   std::vector<nntrainer::Tensor> grad;
   std::vector<std::shared_ptr<nntrainer::Layer>> layers;
 };
+
+/**
+ * @brief Fully Connected Layer
+ */
+TEST_F(nntrainer_FullyConnectedLayer_TFmatch,
+       DISABLED_forwarding_backwarding_00_p) {
+  std::vector<float> weight_data;
+  std::vector<float> bias_data;
+
+  setOptimizer(nntrainer::OptType::adam, "learning_rate=1.0");
+
+  nntrainer::Tensor out = layer.forwarding(in, status);
+
+  nntrainer::Tensor derivatives(3, 1, 1, 15);
+
+  for (unsigned int i = 0; i < derivatives.getDim().getDataLen(); ++i) {
+    derivatives.getData()[i] = 1.0;
+  }
+
+  nntrainer::Tensor result = layer.backwarding(derivatives, 1);
+
+  matchOutput(result, "tc_fc_1_goldenFCGradientAdam.out");
+
+  nntrainer::UpdatableParam *param_data = layer.getParams().get();
+
+  for (unsigned int i = 0; i < 2; ++i) {
+    nntrainer::UpdatableParam &param = param_data[i];
+    nntrainer::Tensor &weight = param.weight;
+    const float *wdata = weight.getData();
+    if (i == 0) {
+      for (unsigned int j = 0; j < weight.length(); ++j) {
+        weight_data.push_back(wdata[j]);
+      }
+    } else {
+      for (unsigned int j = 0; j < weight.length(); ++j) {
+        bias_data.push_back(wdata[j]);
+      }
+    }
+  }
+
+  matchOutput(weight_data, "tc_fc_1_goldenFCUpdatedWeightAdam.out");
+
+  matchOutput(bias_data, "tc_fc_1_goldenFCUpdatedBiasAdam.out");
+}
 
 /**
  * @brief Fully Connected Layer

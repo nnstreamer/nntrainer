@@ -93,7 +93,7 @@ NeuralNetwork::NeuralNetwork() : NeuralNetwork("") {}
 NeuralNetwork::NeuralNetwork(std::string config) :
   batch_size(1),
   epoch(1),
-  loss(0.0),
+  loss(0.0f),
   cost(COST_UNKNOWN),
   weight_ini(WEIGHT_UNKNOWN),
   net_type(NET_UNKNOWN),
@@ -617,7 +617,7 @@ int NeuralNetwork::backwarding(Tensor input, Tensor expected_output,
 }
 
 float NeuralNetwork::getLoss() {
-  loss = 0.0;
+  loss = 0.0f;
   for (unsigned int i = 0; i < layers.size(); i++) {
     loss += layers[i]->getLoss();
   }
@@ -709,7 +709,7 @@ int NeuralNetwork::train(std::vector<std::string> values) {
 int NeuralNetwork::train_run() {
   int status = ML_ERROR_NONE;
 
-  float training_loss = 0.0;
+  float training_loss = 0.0f;
   for (unsigned int i = 0; i < epoch; ++i) {
 
     status = data_buffer->run(nntrainer::BUF_TRAIN);
@@ -754,7 +754,7 @@ int NeuralNetwork::train_run() {
 
     if (data_buffer->getValidation()[nntrainer::BUF_VAL]) {
       int right = 0;
-      float valloss = 0.0;
+      float valloss = 0.0f;
       unsigned int tcases = 0;
 
       status = data_buffer->run(nntrainer::BUF_VAL);
@@ -792,7 +792,7 @@ int NeuralNetwork::train_run() {
         return status;
       }
       valloss = valloss / (float)(tcases);
-      std::cout << " >> [ Accuracy: " << right / (float)(tcases)*100.0
+      std::cout << " >> [ Accuracy: " << right / (float)(tcases)*100.0f
                 << "% - Validation Loss : " << valloss << " ] ";
     }
     std::cout << std::endl;

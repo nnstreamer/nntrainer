@@ -94,23 +94,24 @@ Tensor Layer::initializeWeight(TensorDim w_dim, WeightIniType init_type,
 
   switch (init_type) {
   case WEIGHT_LECUN_NORMAL:
-    w.setRandNormal(0, sqrt(1.0 / dim.height()));
+    w.setRandNormal(0.0f, sqrt(1.0f / dim.height()));
     break;
   case WEIGHT_XAVIER_NORMAL:
-    w.setRandNormal(0, sqrt(2.0 / (dim.width() + dim.height())));
+    w.setRandNormal(0.0f, sqrt(2.0f / (dim.width() + dim.height())));
     break;
   case WEIGHT_HE_NORMAL:
-    w.setRandNormal(0, sqrt(2.0 / (dim.height())));
+    w.setRandNormal(0.0f, sqrt(2.0f / (dim.height())));
     break;
   case WEIGHT_LECUN_UNIFORM:
-    w.setRandUniform(-1.0 * sqrt(1.0 / dim.height()), sqrt(1.0 / dim.height()));
+    w.setRandUniform(-1.0f * sqrt(1.0f / dim.height()),
+                     sqrt(1.0f / dim.height()));
     break;
   case WEIGHT_XAVIER_UNIFORM:
-    w.setRandUniform(-1.0 * sqrt(6.0 / (dim.height() + dim.width())),
+    w.setRandUniform(-1.0f * sqrt(6.0f / (dim.height() + dim.width())),
                      sqrt(6.0 / (dim.height() + dim.width())));
     break;
   case WEIGHT_HE_UNIFORM:
-    w.setRandUniform(-1.0 * sqrt(6.0 / (dim.height())),
+    w.setRandUniform(-1.0f * sqrt(6.0f / (dim.height())),
                      sqrt(6.0 / (dim.height())));
     break;
   default:

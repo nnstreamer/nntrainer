@@ -101,7 +101,7 @@ Tensor LossLayer::forwarding(Tensor output, Tensor label, int &status) {
 }
 
 void LossLayer::updateLoss(const Tensor &l) {
-  float loss_sum = 0.0;
+  float loss_sum = 0.0f;
   const float *data = l.getData();
 
   for (int i = 0; i < l.getBatch(); i++) {

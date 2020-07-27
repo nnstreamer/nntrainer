@@ -145,7 +145,7 @@ Tensor Conv2DLayer::backwarding(Tensor derivative, int iteration) {
     TensorDim p_dim(1, 1, in_padded.height(), in_padded.width());
 
     for (unsigned int i = 0; i < filter_size; i++) {
-      float sum = 0.0;
+      float sum = 0.0f;
       Tensor &delK = paramsAt(i).grad;
       Tensor &delBias = paramsAt(i + filter_size).grad;
       for (unsigned int j = 0; j < in_padded.channel(); ++j) {
@@ -154,7 +154,7 @@ Tensor Conv2DLayer::backwarding(Tensor derivative, int iteration) {
           p_dim,
           derivative.getAddress(b * derivative.getDim().getFeatureLen() +
                                 i * derivative.height() * derivative.width()),
-          in_dim, output.data(), stride, 0.0);
+          in_dim, output.data(), stride, 0.0f);
         float *del = delK.getAddress(j * o_size);
         for (unsigned k = 0; k < o_size; ++k) {
           del[k] += output[k];
@@ -196,7 +196,7 @@ Tensor Conv2DLayer::backwarding(Tensor derivative, int iteration) {
 
         conv2d(in_padded.getAddress(i * in_padded.height() * in_padded.width()),
                p_dim, filter.getAddress(in_c * kernel_size[0] * kernel_size[1]),
-               kdim, output.data(), stride, 0.0);
+               kdim, output.data(), stride, 0.0f);
         float *ret_vec = ret.getAddress(b * ret.getDim().getFeatureLen() +
                                         in_c * ret.height() * ret.width());
         for (unsigned int j = 0; j < ret.height() * ret.width(); ++j) {
@@ -358,7 +358,7 @@ int Conv2DLayer::conv2d(float *in, TensorDim indim, float *kernel,
   for (unsigned int j = 0; j <= height - k_height; j += stride[0]) {
     J = 0;
     for (unsigned int k = 0; k <= width - k_width; k += stride[1]) {
-      float sum = 0.0;
+      float sum = 0.0f;
       for (unsigned int i = 0; i < channel; ++i) {
         for (unsigned int ki = 0; ki < k_height; ++ki) {
           for (unsigned int kj = 0; kj < k_width; ++kj) {
