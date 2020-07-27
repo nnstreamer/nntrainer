@@ -436,14 +436,14 @@ public:
    * @param[in] mean mean of the distribution
    * @param[in] std standard deviation of the distribution
    */
-  void setRandNormal(float mean = 0.0, float std = 0.05);
+  void setRandNormal(float mean = 0.0f, float std = 0.05f);
 
   /**
    * @brief     Set the tensor with random uniform distribution
    * @param[in] min minimum value for the distribution
    * @param[in] max maximum value for the distribution
    */
-  void setRandUniform(float min = -0.05, float max = 0.05);
+  void setRandUniform(float min = -0.05f, float max = 0.05f);
 
   /**
    * @brief     Copy the Tensor

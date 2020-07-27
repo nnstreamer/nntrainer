@@ -178,7 +178,7 @@ Tensor ActivationLayer::softmax(Tensor const &t) {
     }
 
     // shiftx
-    float sum = 0.0;
+    float sum = 0.0f;
     for (int c = 0; c < channel; c++) {
       for (int i = 0; i < height; i++) {
         for (int j = 0; j < width; j++) {
@@ -226,11 +226,11 @@ Tensor ActivationLayer::softmaxPrime(Tensor const &x,
       for (int i = 0; i < height; ++i) {
         int I = C + i * width;
         for (int j = 0; j < width; ++j) {
-          float sum = 0.0;
+          float sum = 0.0f;
           for (int l = 0; l < width; ++l) {
             float val;
             if (j == l) {
-              val = xp[I + l] * (1.0 - xp[I + j]);
+              val = xp[I + l] * (1.0f - xp[I + j]);
             } else {
               val = -xp[I + l] * xp[I + j];
             }
@@ -246,33 +246,33 @@ Tensor ActivationLayer::softmaxPrime(Tensor const &x,
   return PI;
 }
 
-float ActivationLayer::sigmoid(float x) { return 1 / (1 + exp(-x)); }
+float ActivationLayer::sigmoid(float x) { return 1.0f / (1.0f + exp(-x)); }
 
 float ActivationLayer::sigmoidPrime(float x) {
   float sprime = sigmoid(x);
-  return sprime * (1 - sprime);
+  return sprime * (1.0f - sprime);
 }
 
 float ActivationLayer::tanhFloat(float x) { return (float)tanh(x); }
 
 float ActivationLayer::tanhPrime(float x) {
   float th = (float)tanh(x);
-  return 1.0 - th * th;
+  return 1.0f - th * th;
 }
 
 float ActivationLayer::relu(float x) {
-  if (x <= 0.0) {
-    return 0.0;
+  if (x <= 0.0f) {
+    return 0.0f;
   } else {
     return x;
   }
 }
 
 float ActivationLayer::reluPrime(float x) {
-  if (x <= 0.0) {
-    return 0.0;
+  if (x <= 0.0f) {
+    return 0.0f;
   } else {
-    return 1.0;
+    return 1.0f;
   }
 }
 

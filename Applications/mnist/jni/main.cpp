@@ -54,10 +54,8 @@ const unsigned int buffer_size = 100;
  */
 const unsigned int total_label_size = 10;
 
-/**
- * @brief     Max Epoch
- */
-const unsigned int iteration = 300;
+unsigned int train_count = 0;
+unsigned int val_count = 0;
 
 const unsigned int mini_batch = 32;
 
@@ -66,9 +64,6 @@ const unsigned int feature_size = 784;
 const float tolerance = 0.1;
 
 std::string data_path;
-
-bool duplicate[total_label_size * total_train_data_size];
-bool valduplicate[total_label_size * total_val_data_size];
 
 /**
  * @brief     step function
@@ -85,22 +80,6 @@ float stepFunction(float x) {
   }
 
   return x;
-}
-
-/**
- * @brief     Generate Random integer value between min to max
- * @param[in] min : minimum value
- * @param[in] max : maximum value
- * @retval    min < random value < max
- */
-static int rangeRandom(int min, int max) {
-  int n = max - min + 1;
-  int remainder = RAND_MAX % n;
-  int x;
-  do {
-    x = rand();
-  } while (x >= RAND_MAX - remainder);
-  return min + x % n;
 }
 
 /**
@@ -147,46 +126,32 @@ int getMiniBatch_train(float **outVec, float **outLabel, bool *last) {
   std::string filename = "mnist_trainingSet.dat";
   std::ifstream F(filename, std::ios::in | std::ios::binary);
 
-  for (unsigned int i = 0; i < total_label_size * data_size; i++) {
-    if (!duplicate[i])
-      count++;
-  }
-
-  if (count < mini_batch) {
-    for (unsigned int i = 0; i < total_label_size * data_size; ++i) {
-      duplicate[i] = false;
-    }
+  if (data_size * total_label_size - train_count < mini_batch) {
     *last = true;
+    train_count = 0;
     return ML_ERROR_NONE;
   }
 
   count = 0;
-  while (count < mini_batch) {
-    int nomI = rangeRandom(0, total_label_size * data_size - 1);
-    if (!duplicate[nomI]) {
-      memI.push_back(nomI);
-      duplicate[nomI] = true;
-      count++;
-    }
-  }
-
-  for (unsigned int i = 0; i < count; i++) {
+  for (unsigned int i = train_count; i < train_count + mini_batch; i++) {
     std::vector<float> o;
     std::vector<float> l;
 
     o.resize(feature_size);
     l.resize(total_label_size);
 
-    getData(F, o, l, memI[i]);
+    getData(F, o, l, i);
 
     for (unsigned int j = 0; j < feature_size; ++j)
-      outVec[0][i * feature_size + j] = o[j];
+      outVec[0][count * feature_size + j] = o[j];
     for (unsigned int j = 0; j < total_label_size; ++j)
-      outLabel[0][i * total_label_size + j] = l[j];
+      outLabel[0][count * total_label_size + j] = l[j];
+    count++;
   }
 
   F.close();
   *last = false;
+  train_count += mini_batch;
   return ML_ERROR_NONE;
 }
 
@@ -207,46 +172,32 @@ int getMiniBatch_val(float **outVec, float **outLabel, bool *last) {
   std::string filename = "mnist_trainingSet.dat";
   std::ifstream F(filename, std::ios::in | std::ios::binary);
 
-  for (unsigned int i = 0; i < total_label_size * data_size; i++) {
-    if (!valduplicate[i])
-      count++;
-  }
-
-  if (count < mini_batch) {
-    for (unsigned int i = 0; i < total_label_size * data_size; ++i) {
-      valduplicate[i] = false;
-    }
+  if (data_size * total_label_size - val_count < mini_batch) {
     *last = true;
+    val_count = 0;
     return ML_ERROR_NONE;
   }
 
   count = 0;
-  while (count < mini_batch) {
-    int nomI = rangeRandom(0, total_label_size * data_size - 1);
-    if (!valduplicate[nomI]) {
-      memI.push_back(nomI);
-      valduplicate[nomI] = true;
-      count++;
-    }
-  }
-
-  for (unsigned int i = 0; i < count; i++) {
+  for (unsigned int i = val_count; i < val_count + mini_batch; i++) {
     std::vector<float> o;
     std::vector<float> l;
 
     o.resize(feature_size);
     l.resize(total_label_size);
 
-    getData(F, o, l, memI[i]);
+    getData(F, o, l, i);
 
     for (unsigned int j = 0; j < feature_size; ++j)
-      outVec[0][i * feature_size + j] = o[j];
+      outVec[0][count * feature_size + j] = o[j];
     for (unsigned int j = 0; j < total_label_size; ++j)
-      outLabel[0][i * total_label_size + j] = l[j];
+      outLabel[0][count * total_label_size + j] = l[j];
+    count++;
   }
 
   F.close();
   *last = false;
+  val_count += mini_batch;
   return ML_ERROR_NONE;
 }
 
@@ -268,15 +219,6 @@ int main(int argc, char *argv[]) {
   std::vector<std::vector<float>> inputVector, outputVector;
   std::vector<std::vector<float>> inputValVector, outputValVector;
   std::vector<std::vector<float>> inputTestVector, outputTestVector;
-
-  // This is to check duplication of data
-  for (unsigned int i = 0; i < total_label_size * total_train_data_size; ++i) {
-    duplicate[i] = false;
-  }
-
-  for (unsigned int i = 0; i < total_label_size * total_val_data_size; ++i) {
-    valduplicate[i] = false;
-  }
 
   /**
    * @brief     Data buffer Create & Initialization

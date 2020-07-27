@@ -61,7 +61,7 @@ typedef struct WeightDecayParam_ {
   WeightDecayType type;
   float lambda;
 
-  WeightDecayParam_() : type(WeightDecayType::unknown), lambda(0.0) {}
+  WeightDecayParam_() : type(WeightDecayType::unknown), lambda(0.0f) {}
 } WeightDecayParam;
 
 /**
@@ -77,15 +77,15 @@ typedef struct _OptParam {
   bool continue_train; /** Continue training with previous tensors for adam */
 
   _OptParam(OptType type = OptType::adam) :
-    learning_rate(0.001),
-    beta1(0.9),
-    beta2(0.999),
-    epsilon(1e-8),
-    decay_rate(1.0),
-    decay_steps(1.0),
+    learning_rate(0.001f),
+    beta1(0.9f),
+    beta2(0.999f),
+    epsilon(1e-7f),
+    decay_rate(1.0f),
+    decay_steps(-1.0f),
     continue_train(false) {
     if (type == OptType::sgd) {
-      learning_rate = 0.01;
+      learning_rate = 0.01f;
     }
   }
 } OptParam;

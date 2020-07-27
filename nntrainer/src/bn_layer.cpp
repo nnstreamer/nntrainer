@@ -103,7 +103,7 @@ Tensor BatchNormalizationLayer::forwarding(Tensor in, int &status) {
     this->cvar = deviation.chain()
                    .multiply_i(deviation)
                    .sum(0)
-                   .multiply_i(1.0 / input_dim.batch())
+                   .multiply_i(1.0f / input_dim.batch())
                    .add_i(epsilon)
                    .run();
 

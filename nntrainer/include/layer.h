@@ -139,7 +139,7 @@ public:
     last_layer(false),
     bias_init_zero(false),
     type(LAYER_UNKNOWN),
-    loss(0.0),
+    loss(0.0f),
     cost(COST_UNKNOWN),
     activation_type(ACT_NONE),
     bn_follow(false),

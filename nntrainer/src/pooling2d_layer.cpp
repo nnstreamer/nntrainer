@@ -276,7 +276,7 @@ Tensor Pooling2DLayer::pooling2d(unsigned int batch, Tensor in, int &status) {
       for (unsigned int j = 0; j <= height - p_height; j += stride[0]) {
         K = 0;
         for (unsigned int k = 0; k <= width - p_width; k += stride[1]) {
-          float sum = 0.0;
+          float sum = 0.0f;
           for (unsigned int pi = 0; pi < p_height; ++pi) {
             for (unsigned int pj = 0; pj < p_width; ++pj) {
               sum += in.getValue(0, i, j + pi, k + pj);

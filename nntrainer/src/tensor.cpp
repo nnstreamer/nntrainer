@@ -202,7 +202,7 @@ Tensor Tensor::multiply(float const &value) {
 }
 
 int Tensor::divide_i(float const &value) {
-  if (value == 0.0) {
+  if (value == 0.0f) {
     return ML_ERROR_INVALID_PARAMETER;
   }
 
@@ -210,7 +210,7 @@ int Tensor::divide_i(float const &value) {
 }
 
 Tensor Tensor::divide(float const &value) {
-  if (value == 0.0) {
+  if (value == 0.0f) {
     throw std::runtime_error("Error: Divide by zero");
   }
   Tensor result(*this);
@@ -316,7 +316,7 @@ int Tensor::subtract_i(Tensor const &m) {
 #ifdef USE_BLAS
   unsigned int size =
     this->dim.channel() * this->dim.width() * this->dim.height();
-  float alpha = -1.0;
+  float alpha = -1.0f;
 
   if (m.dim.batch() == 1) {
     for (unsigned int k = 0; k < dim.batch(); ++k) {
@@ -492,7 +492,7 @@ Tensor Tensor::sum_by_batch() const {
   unsigned int i;
   for (k = 0; k < dim.batch(); ++k) {
     unsigned int id = k * dim.getFeatureLen();
-    rdata[k] = 0.0;
+    rdata[k] = 0.0f;
     for (i = 0; i < dim.getFeatureLen(); ++i) {
       rdata[k] += data[id + i];
     }
@@ -613,8 +613,8 @@ Tensor Tensor::dot(Tensor const &m) const {
   float *rdata = result.getData();
 
 #ifdef USE_BLAS
-  float alpha_dgemm = 1.0;
-  float beta_dgemm = 0.0;
+  float alpha_dgemm = 1.0f;
+  float beta_dgemm = 0.0f;
   if (m.dim.batch() == 1) {
     for (unsigned int k = 0; k < dim.batch(); k++) {
       unsigned int i = k * dim.width() * dim.height();
@@ -702,7 +702,7 @@ Tensor Tensor::dot(Tensor const &m) const {
     }
   }
 #else
-  float w = 0.0;
+  float w = 0.0f;
   unsigned int i, j, k, h;
   if (m.dim.batch() == 1) {
     for (k = 0; k < dim.batch(); ++k) {
@@ -713,7 +713,7 @@ Tensor Tensor::dot(Tensor const &m) const {
                  mdata[h * m.dim.width() + j];
           }
           rdata[k * dim.height() * m.dim.width() + i * m.dim.width() + j] = w;
-          w = 0.0;
+          w = 0.0f;
         }
       }
     }
@@ -726,7 +726,7 @@ Tensor Tensor::dot(Tensor const &m) const {
                  mdata[k * dim.width() * m.dim.width() + h * m.dim.width() + j];
           }
           rdata[k * dim.height() * m.dim.width() + i * m.dim.width() + j] = w;
-          w = 0.0;
+          w = 0.0f;
         }
       }
     }
@@ -822,7 +822,8 @@ void Tensor::print(std::ostream &out) const {
     for (unsigned int l = 0; l < dim.channel(); l++) {
       for (unsigned int i = 0; i < dim.height(); i++) {
         for (unsigned int j = 0; j < dim.width(); j++) {
-          out << std::setw(10) << this->getValue(k, l, i, j) << " ";
+          out << std::setw(10) << std::setprecision(10)
+              << this->getValue(k, l, i, j) << " ";
         }
         out << std::endl;
       }
@@ -935,7 +936,7 @@ float Tensor::l2norm() const {
   return cblas_snrm2(len, data, 1);
 #else
   // fix me: to the version that does not allow overflow
-  float sum = 0.0;
+  float sum = 0.0f;
   float tmp;
 #pragma omp parallel for private(tmp) reduction(+ : sum)
   for (unsigned int i = 0; i < len; i++) {
@@ -987,9 +988,9 @@ Tensor Tensor::standardization() const {
   for (unsigned int k = 0; k < dim.batch(); ++k) {
     int K = k * dim.getFeatureLen();
     float mean;
-    float mean_tmp = 0.0;
-    float std_tmp = 0.0;
-    float std_dev = 0.0;
+    float mean_tmp = 0.0f;
+    float std_tmp = 0.0f;
+    float std_dev = 0.0f;
 
     for (unsigned int l = 0; l < dim.channel(); ++l) {
       unsigned int L = K + l * dim.height() * dim.width();
