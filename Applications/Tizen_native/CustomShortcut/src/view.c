@@ -262,34 +262,54 @@ static void _on_draw_proceed(void *data, Evas_Object *obj, const char *emission,
                              const char *source) {
   appdata_s *ad = (appdata_s *)data;
   int status = APP_ERROR_NONE;
-  LOG_D("draw proceed");
 
   char buf[256];
   ad->tries++;
-  if (ad->tries >= MAX_TRIES) {
-    ad->tries = 0;
-    elm_naviframe_item_pop(ad->naviframe);
-    view_routes_to(ad, "train_result");
-    return;
-  }
 
-  sprintf(buf, "draw your symbol [%d/%d]", ad->tries, MAX_TRIES);
-  elm_object_part_text_set(obj, "draw/title", buf);
-  LOG_D("starting extraction");
-  status = data_extract_feature(ad, "trainingSet.dat", true);
+  if (ad->mode != INFER) {
+    LOG_D("labeling proceed");
+    if (ad->tries >= MAX_TRIES) {
+      ad->tries = 0;
+      elm_naviframe_item_pop(ad->naviframe);
+      data_train_model();
+      view_routes_to(ad, "train_result");
+      return;
+    }
 
-  if (status != APP_ERROR_NONE) {
-    LOG_E("feature extraction failed");
+    sprintf(buf, "draw your symbol [%d/%d]", ad->tries, MAX_TRIES);
+    elm_object_part_text_set(obj, "draw/title", buf);
+    LOG_D("starting extraction");
+
+    status = data_extract_feature(ad, TRAIN_SET_PATH, true);
+    if (status != APP_ERROR_NONE) {
+      LOG_E("feature extraction failed");
+    }
+  } else {
+    LOG_D("infer proceed");
+    status = data_extract_feature(ad, "test.dat", true);
+    if (status != APP_ERROR_NONE) {
+      LOG_E("feature extraction failed");
+    }
+
+    view_routes_to(ad, "test_result");
   }
 
   _canvas_erase_all(ad);
 }
 
 static int _create_canvas(appdata_s *ad, const char *draw_mode) {
-  LOG_D("init canvas");
+  LOG_D("init canvas, %s", draw_mode);
   Eina_Bool status;
 
   Evas_Object *frame = elm_layout_add(ad->layout);
+
+  if (!strcmp(draw_mode, "inference")) {
+    ad->mode = INFER;
+  } else if (!strcmp(draw_mode, "smile")) {
+    ad->mode = TRAIN_SMILE;
+  } else if (!strcmp(draw_mode, "sad")) {
+    ad->mode = TRAIN_SAD;
+  }
 
   status = elm_layout_content_set(ad->layout, "draw/canvas", frame);
   if (status == EINA_FALSE) {

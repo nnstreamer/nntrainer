@@ -29,6 +29,7 @@
 #define LOG_TAG "nntrainer-example-custom-shortcut"
 
 #define EDJ_PATH "edje/main.edj"
+#define TRAIN_SET_PATH "trainingSet.dat"
 
 #define MAX_TRIES 5
 
@@ -105,10 +106,9 @@ int data_get_resource_path(const char *file, char *full_path, bool shared);
 int data_extract_feature(appdata_s *ad, const char *dst, bool append);
 
 /**
- * @brief nntrainer sanity test. contructing model and destroy. This will be
- * removed.
+ * @brief nntrainer training model
  */
-void nntrainer_test();
+void data_train_model();
 
 #if !defined(PACKAGE)
 #define PACKAGE "org.example.nntrainer-example-custom-shortcut"
@@ -132,7 +132,7 @@ void nntrainer_test();
 
 #if !defined(_E)
 #define LOG_E(fmt, arg...)                                                 \
-  dlog_print(DLOG_DEBUG, LOG_TAG, "[%s:%d] " fmt "\n", __func__, __LINE__, \
+  dlog_print(DLOG_ERROR, LOG_TAG, "[%s:%d] " fmt "\n", __func__, __LINE__, \
              ##arg)
 #endif
 

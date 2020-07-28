@@ -20,15 +20,22 @@ static bool app_create(void *data) {
      If this function returns true, the main loop of application starts
      If this function returns false, the application is terminated */
   appdata_s *ad = data;
+  char *data_path = app_get_data_path();
 
   pthread_mutex_init(&ad->pipe_lock, NULL);
   pthread_cond_init(&ad->pipe_cond, NULL);
 
   data_get_resource_path(EDJ_PATH, ad->edj_path, false);
 
+  if (chdir(data_path) < 0) {
+    LOG_E("change root directory failed");
+    free(data_path);
+    return false;
+  };
+  free(data_path);
+
   view_init(ad);
 
-  nntrainer_test();
   if (view_routes_to(ad, "home"))
     return false;
 

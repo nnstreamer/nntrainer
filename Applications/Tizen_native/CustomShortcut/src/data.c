@@ -99,6 +99,7 @@ static void _on_data_receive(ml_tensors_data_h data,
   void *raw_data;
   size_t data_size, write_result;
   FILE *file;
+  float label;
 
   pthread_mutex_lock(&ad->pipe_lock);
 
@@ -123,6 +124,14 @@ static void _on_data_receive(ml_tensors_data_h data,
 
   if (write_result < data_size) {
     LOG_E("data was not fully written to file");
+  }
+
+  if (ad->mode != INFER) {
+    LOG_D("writing label");
+    label = ad->mode == TRAIN_SMILE ? 1 : 0;
+    if (fwrite(&label, sizeof(float), 1, file) < 0) {
+      LOG_E("write error happend");
+    };
   }
 
   if (fclose(file) < 0) {
@@ -234,9 +243,57 @@ int data_extract_feature(appdata_s *ad, const char *dst, bool append) {
   return status;
 }
 
-void nntrainer_test() {
-  ml_train_model_h model = NULL;
+void data_train_model() {
+  ml_train_model_h model;
+  char model_conf_path[PATH_MAX];
+  char label_path[PATH_MAX];
+  int status = ML_ERROR_NONE;
+  FILE *file;
 
-  ml_train_model_construct(model);
-  ml_train_model_destroy(model);
+  data_get_resource_path("model.ini", model_conf_path, false);
+  data_get_data_path("label.dat", label_path);
+
+  file = fopen(label_path, "w");
+  if (file == NULL) {
+    LOG_E("Error opening file");
+    return;
+  }
+
+  if (fputs("sad\nsmile\n\n", file) < 0) {
+    LOG_E("error writing");
+    fclose(file);
+    return;
+  }
+
+  if (fclose(file) < 0) {
+    LOG_E("Error closing file");
+    return;
+  }
+
+  LOG_D("model conf path: %s", model_conf_path);
+
+  status = ml_train_model_construct_with_conf(model_conf_path, &model);
+  if (status != ML_ERROR_NONE) {
+    LOG_E("constructing trainer model failed %d", status);
+    return;
+  }
+
+  status = ml_train_model_compile(model, NULL);
+  if (status != ML_ERROR_NONE) {
+    LOG_E("compile model failed %d", status);
+    goto CLEAN_UP;
+  }
+
+  status = ml_train_model_run(model, NULL);
+  if (status != ML_ERROR_NONE) {
+    LOG_E("run model failed %d", status);
+    goto CLEAN_UP;
+  }
+
+CLEAN_UP:
+  status = ml_train_model_destroy(model);
+  if (status != ML_ERROR_NONE) {
+    LOG_E("Destryoing model failed %d", status);
+  }
+  return;
 }
