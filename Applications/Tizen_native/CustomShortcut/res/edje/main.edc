@@ -128,8 +128,8 @@ collections {
           rel2.relative: 1.0 0.8;
         }
       }
-      PART_BUTTON("draw/reset", "↩️", 0.2, 0.8, 0.45, 0.9)
-      PART_BUTTON("draw/proceed", "▶️", 0.55, 0.8, 0.8, 0.9)
+      PART_BUTTON("draw/reset", "↩️", 0.2, 0.83, 0.45, 0.9)
+      PART_BUTTON("draw/proceed", "▶️", 0.55, 0.83, 0.81, 0.9)
     }
     programs {
       PROGRAM_BUTTON("draw/reset", "draw/reset", "")

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0-only
 /**
  * @file main.c
  * @date 14 May 2020
@@ -10,6 +11,7 @@
 #include "main.h"
 #include "data.h"
 #include "view.h"
+#include <pthread.h>
 #include <tizen.h>
 
 static bool app_create(void *data) {
@@ -19,14 +21,10 @@ static bool app_create(void *data) {
      If this function returns false, the application is terminated */
   appdata_s *ad = data;
 
-  char *res_path = app_get_resource_path();
-  if (res_path == NULL) {
-    dlog_print(DLOG_ERROR, LOG_TAG, "failed to get resource.");
-    return false;
-  }
+  pthread_mutex_init(&ad->pipe_lock, NULL);
+  pthread_cond_init(&ad->pipe_cond, NULL);
 
-  snprintf(ad->edj_path, sizeof(ad->edj_path), "%s%s", res_path, EDJ_PATH);
-  free(res_path);
+  data_get_resource_path(EDJ_PATH, ad->edj_path, false);
 
   view_init(ad);
 
@@ -51,6 +49,10 @@ static void app_resume(void *data) {
 }
 
 static void app_terminate(void *data) { /* Release all resources. */
+  appdata_s *ad = data;
+
+  pthread_mutex_destroy(&ad->pipe_lock);
+  pthread_cond_destroy(&ad->pipe_cond);
 }
 
 static void ui_app_lang_changed(app_event_info_h event_info, void *user_data) {
@@ -61,8 +63,7 @@ static void ui_app_lang_changed(app_event_info_h event_info, void *user_data) {
 
   ret = app_event_get_language(event_info, &language);
   if (ret != APP_ERROR_NONE) {
-    dlog_print(DLOG_ERROR, LOG_TAG,
-               "app_event_get_language() failed. Err = %d.", ret);
+    LOG_E("app_event_get_language() failed. Err = %d.", ret);
     return;
   }
 
