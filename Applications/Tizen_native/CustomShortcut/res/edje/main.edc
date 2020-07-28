@@ -147,7 +147,7 @@ collections {
     name: "test_result";
     parts {
       PART_TITLE("test_result/title", "test is successfully done")
-      PART_BUTTON("test_result/go_back", "go back", 0.1, 0.3, 0.9, 0.7)
+      PART_BUTTON("test_result/go_back", "test result: 😊", 0.1, 0.3, 0.9, 0.7)
       // reserve a text area to show the guess from the model
     }
   }
