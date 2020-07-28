@@ -232,8 +232,8 @@ int main(int argc, char *argv[]) {
    * @brief     Neural Network Create & Initialization
    */
   nntrainer::NeuralNetwork NN;
-  NN.setConfig(config);
   try {
+    NN.setConfig(config);
     NN.loadFromConfig();
   } catch (...) {
     std::cerr << "Error during loadFromConfig" << std::endl;

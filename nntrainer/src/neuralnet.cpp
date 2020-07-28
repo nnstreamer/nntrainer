@@ -70,27 +70,7 @@ static bool is_file_exist(std::string file_name) {
   return infile.good();
 }
 
-/**
- * @brief     Parsing Layer Name
- * @param[in] string layer name
- * @retval    vector stored layer name
- */
-std::vector<std::string> parseLayerName(std::string ll) {
-  std::vector<std::string> ret;
-  std::istringstream ss(ll);
-  do {
-    std::string word;
-    ss >> word;
-    if (word.compare("") != 0)
-      ret.push_back(word);
-  } while (ss);
-
-  return ret;
-}
-
-NeuralNetwork::NeuralNetwork() : NeuralNetwork("") {}
-
-NeuralNetwork::NeuralNetwork(std::string config) :
+NeuralNetwork::NeuralNetwork() :
   batch_size(1),
   epoch(1),
   loss(0.0f),
@@ -101,20 +81,19 @@ NeuralNetwork::NeuralNetwork(std::string config) :
   continue_train(false),
   iter(0),
   initialized(false),
-  def_name_count(0) {
+  def_name_count(0) {}
+
+NeuralNetwork::NeuralNetwork(std::string config) : NeuralNetwork() {
   this->setConfig(config);
 }
 
-int NeuralNetwork::setConfig(std::string config) {
-  int status = ML_ERROR_NONE;
-
+void NeuralNetwork::setConfig(std::string config) {
   if (!is_file_exist(config)) {
-    ml_loge("Error: Cannot open model configuration file");
-    return ML_ERROR_INVALID_PARAMETER;
+    std::stringstream ss;
+    ss << "Cannot open model configuration file, filename : " << config;
+    throw std::invalid_argument(ss.str().c_str());
   }
   this->config = config;
-
-  return status;
 }
 
 int NeuralNetwork::loadNetworkConfig(void *_ini) {
