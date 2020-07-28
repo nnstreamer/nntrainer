@@ -247,9 +247,16 @@ int main(int argc, char *argv[]) {
    * @brief     Neural Network Create & Initialization
    */
   nntrainer::NeuralNetwork NN;
-  NN.setConfig(config);
-  NN.loadFromConfig();
-  NN.init();
+
+  try {
+    NN.setConfig(config);
+    NN.loadFromConfig();
+    NN.init();
+  } catch (...) {
+    std::cerr << "Error during initiation" << std::endl;
+    NN.finalize();
+    return -1;
+  }
 
   /**
    * @brief     back propagation
