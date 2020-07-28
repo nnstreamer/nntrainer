@@ -4,7 +4,9 @@
 
 For example, user can draw `^^` few times to train a model to label the drawing as 😊.
 
-Built and tested at `tizen studio 3.7` with `wearable-5.5 profile`
+Built and tested at `tizen studio 3.7` with `wearable-6.0 profile`
+
+tested on `SM-R800` (it should run in other wearable but it is not guaranteed)
 
 ## How to Build and Run
 

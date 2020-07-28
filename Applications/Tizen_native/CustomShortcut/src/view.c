@@ -23,15 +23,18 @@ static void _on_back_pressed(void *data, Evas_Object *obj, void *event_info) {
   appdata_s *ad = data;
   Elm_Widget_Item *nf_it = elm_naviframe_top_item_get(obj);
 
+  ad->tries = 0;
+
   if (!nf_it) {
     /* app should not reach hear */
-    dlog_print(DLOG_ERROR, LOG_TAG, "naviframe is empty.");
+    LOG_E("naviframe is null");
+    dlog_print(DLOG_ERROR, LOG_TAG, "naviframe is e.");
     ui_app_exit();
     return;
   }
 
   if (nf_it == ad->home) {
-    dlog_print(DLOG_DEBUG, LOG_TAG, "navi empty");
+    LOG_D("naviframe is empty");
     elm_win_lower(ad->win);
     return;
   }
@@ -55,8 +58,7 @@ int view_init(appdata_s *ad) {
   win = elm_win_util_standard_add(PACKAGE, PACKAGE);
 
   if (win == NULL) {
-    dlog_print(DLOG_ERROR, LOG_TAG, "failed to get create window err = %d",
-               status);
+    LOG_E("failed to create window err = %d", status);
     return status;
   }
   elm_win_conformant_set(win, EINA_TRUE);
@@ -73,7 +75,7 @@ int view_init(appdata_s *ad) {
   // Adding conformant
   conform = elm_conformant_add(win);
   if (conform == NULL) {
-    dlog_print(DLOG_ERROR, LOG_TAG, "failed to create conformant object");
+    LOG_E("failed to create conformant object");
     evas_object_del(win);
     return APP_ERROR_INVALID_CONTEXT;
   }
@@ -87,7 +89,7 @@ int view_init(appdata_s *ad) {
   // Adding naviframe
   nf = elm_naviframe_add(conform);
   if (nf == NULL) {
-    dlog_print(DLOG_ERROR, LOG_TAG, "failed to create naviframe object");
+    LOG_E("failed to create naviframe object");
     evas_object_del(win);
     return APP_ERROR_INVALID_CONTEXT;
   }
@@ -116,18 +118,18 @@ int view_routes_to(appdata_s *ad, const char *group_name) {
   char *path, *path_data;
   int status;
 
-  status = parse_route(group_name, &path, &path_data);
+  status = data_parse_route(group_name, &path, &path_data);
   if (status) {
-    _E("something wrong with parsing %s", group_name);
+    LOG_E("something wrong with parsing %s", group_name);
     return status;
   }
 
-  _D("%s %s", path, path_data);
+  LOG_D("%s %s", path, path_data);
 
   ad->layout = _create_layout(ad->naviframe, ad->edj_path, path, NULL, NULL);
 
   if (ad->layout == NULL) {
-    _E("failed to create layout");
+    LOG_E("failed to create layout");
     status = APP_ERROR_INVALID_CONTEXT;
     evas_object_del(ad->win);
     goto CLEAN_UP;
@@ -137,6 +139,7 @@ int view_routes_to(appdata_s *ad, const char *group_name) {
                                       ad->layout, "empty");
 
   if (ad->nf_it == NULL) {
+    LOG_E("naviframe_item_push failed");
     status = APP_ERROR_INVALID_PARAMETER;
     goto CLEAN_UP;
   }
@@ -172,7 +175,7 @@ static Evas_Object *_create_layout(Evas_Object *parent, const char *edj_path,
   Evas_Object *layout = NULL;
 
   if (parent == NULL) {
-    dlog_print(DLOG_ERROR, LOG_TAG, "parent cannot be NULL");
+    LOG_E("parent cannot be NULL");
     return NULL;
   }
 
@@ -180,7 +183,7 @@ static Evas_Object *_create_layout(Evas_Object *parent, const char *edj_path,
   elm_layout_file_set(layout, edj_path, group_name);
 
   if (layout == NULL) {
-    dlog_print(DLOG_ERROR, LOG_TAG, "There was error making layout");
+    LOG_E("There was error making layout");
     evas_object_del(layout);
     return NULL;
   }
@@ -198,7 +201,7 @@ static void _on_draw_start(void *data, Evas *e, Evas_Object *obj,
                            void *event_info) {
   appdata_s *ad = (appdata_s *)data;
   Evas_Event_Mouse_Down *eemd = (Evas_Event_Mouse_Down *)event_info;
-  _D("x: %d, y: %d", eemd->canvas.x, eemd->canvas.y);
+  LOG_D("x: %d, y: %d", eemd->canvas.x, eemd->canvas.y);
 
   cairo_set_source_rgba(ad->cr, 1, 1, 1, 1);
   cairo_move_to(ad->cr, eemd->canvas.x - ad->x_offset,
@@ -210,7 +213,7 @@ static void _on_draw_move(void *data, Evas *e, Evas_Object *obj,
   appdata_s *ad = (appdata_s *)data;
   Evas_Event_Mouse_Move *eemm = (Evas_Event_Mouse_Move *)event_info;
 
-  _D("x: %d, y: %d", eemm->cur.canvas.x, eemm->cur.canvas.y);
+  LOG_D("x: %d, y: %d", eemm->cur.canvas.x, eemm->cur.canvas.y);
   cairo_line_to(ad->cr, eemm->cur.canvas.x - ad->x_offset,
                 eemm->cur.canvas.y - ad->y_offset);
 }
@@ -218,47 +221,94 @@ static void _on_draw_move(void *data, Evas *e, Evas_Object *obj,
 static void _on_draw_end(void *data, Evas *e, Evas_Object *obj,
                          void *event_info) {
   appdata_s *ad = (appdata_s *)data;
-  _D("draw end");
+  LOG_D("draw end");
   cairo_stroke(ad->cr);
   cairo_surface_flush(ad->cr_surface);
   evas_object_image_data_update_add(ad->canvas, 0, 0, ad->width, ad->height);
 }
 
-static Eina_Bool _on_canvas_exit(void *data, Elm_Object_Item *it) {
-  _D("exiting canvas");
+static void _on_canvas_exit(void *data, Evas *e, Evas_Object *obj,
+                            void *event_info) {
+  LOG_D("deleting canvas");
   appdata_s *ad = (appdata_s *)data;
-  /// @todo save file to loadable data format
 
   evas_object_del(ad->canvas);
-  cairo_surface_destroy(ad->cr_surface);
   cairo_destroy(ad->cr);
-  return EINA_TRUE;
+  if (cairo_status(ad->cr) != CAIRO_STATUS_SUCCESS) {
+    LOG_E("delete cairo failed");
+  }
+  cairo_surface_destroy(ad->cr_surface);
+  if (cairo_surface_status(ad->cr_surface) != CAIRO_STATUS_SUCCESS) {
+    LOG_E("delete cr_surface failed");
+  }
+}
+
+static void _canvas_erase_all(appdata_s *ad) {
+  cairo_set_source_rgba(ad->cr, 0.5, 0.5, 0.5, 0.5);
+  cairo_set_operator(ad->cr, CAIRO_OPERATOR_SOURCE);
+  cairo_paint(ad->cr);
+  cairo_surface_flush(ad->cr_surface);
+  evas_object_image_data_update_add(ad->canvas, 0, 0, ad->width, ad->height);
+}
+
+static void _on_draw_reset(void *data, Evas_Object *obj, const char *emission,
+                           const char *source) {
+  appdata_s *ad = (appdata_s *)data;
+  LOG_D("draw reset");
+  _canvas_erase_all(ad);
+}
+
+static void _on_draw_proceed(void *data, Evas_Object *obj, const char *emission,
+                             const char *source) {
+  appdata_s *ad = (appdata_s *)data;
+  int status = APP_ERROR_NONE;
+  LOG_D("draw proceed");
+
+  char buf[256];
+  ad->tries++;
+  if (ad->tries >= MAX_TRIES) {
+    ad->tries = 0;
+    elm_naviframe_item_pop(ad->naviframe);
+    view_routes_to(ad, "train_result");
+    return;
+  }
+
+  sprintf(buf, "draw your symbol [%d/%d]", ad->tries, MAX_TRIES);
+  elm_object_part_text_set(obj, "draw/title", buf);
+  LOG_D("starting extraction");
+  status = data_extract_feature(ad, "trainingSet.dat", true);
+
+  if (status != APP_ERROR_NONE) {
+    LOG_E("feature extraction failed");
+  }
+
+  _canvas_erase_all(ad);
 }
 
 static int _create_canvas(appdata_s *ad, const char *draw_mode) {
-  _D("init canvas");
+  LOG_D("init canvas");
   Eina_Bool status;
 
   Evas_Object *frame = elm_layout_add(ad->layout);
 
   status = elm_layout_content_set(ad->layout, "draw/canvas", frame);
   if (status == EINA_FALSE) {
-    _E("failed to get canvas object");
+    LOG_E("failed to get canvas object");
     return APP_ERROR_INVALID_PARAMETER;
   }
 
-  evas_object_move(frame, 72, 72);
-  evas_object_resize(frame, 216, 216);
+  evas_object_move(frame, 70, 70);
+  evas_object_resize(frame, 224, 224);
   evas_object_show(frame);
   Evas_Coord width, height, x, y;
 
   evas_object_geometry_get(frame, &x, &y, &width, &height);
-  _D("frame info, %d %d width: %d height: %d", x, y, width, height);
+  LOG_D("frame info, %d %d width: %d height: %d", x, y, width, height);
 
   Evas_Object *canvas =
     evas_object_image_filled_add(evas_object_evas_get(frame));
   if (canvas == NULL) {
-    _E("failed to initiate canvas");
+    LOG_E("failed to initiate canvas");
     return APP_ERROR_INVALID_PARAMETER;
   }
 
@@ -272,14 +322,14 @@ static int _create_canvas(appdata_s *ad, const char *draw_mode) {
 
   ad->pixels = (unsigned char *)evas_object_image_data_get(canvas, 1);
   if (ad->pixels == NULL) {
-    _E("cannot fetch pixels from image");
+    LOG_E("cannot fetch pixels from image");
     return APP_ERROR_INVALID_PARAMETER;
   }
 
   cairo_surface_t *cairo_surface = cairo_image_surface_create_for_data(
     ad->pixels, CAIRO_FORMAT_ARGB32, width, height, width * 4);
   if (cairo_surface_status(cairo_surface) != CAIRO_STATUS_SUCCESS) {
-    _E("cannot make cairo surface");
+    LOG_E("cannot make cairo surface");
     evas_object_del(canvas);
     cairo_surface_destroy(cairo_surface);
     return APP_ERROR_INVALID_PARAMETER;
@@ -287,7 +337,7 @@ static int _create_canvas(appdata_s *ad, const char *draw_mode) {
 
   cairo_t *cr = cairo_create(cairo_surface);
   if (cairo_status(cr) != CAIRO_STATUS_SUCCESS) {
-    _E("Cannot initiate cairo surface");
+    LOG_E("Cannot initiate cairo surface");
     evas_object_del(canvas);
     cairo_surface_destroy(cairo_surface);
     cairo_destroy(cr);
@@ -310,8 +360,16 @@ static int _create_canvas(appdata_s *ad, const char *draw_mode) {
   evas_object_event_callback_add(canvas, EVAS_CALLBACK_MOUSE_MOVE,
                                  _on_draw_move, (void *)ad);
 
-  elm_naviframe_item_pop_cb_set(ad->nf_it, _on_canvas_exit, ad);
+  evas_object_event_callback_add(ad->layout, EVAS_CALLBACK_DEL, _on_canvas_exit,
+                                 (void *)ad);
 
+  elm_layout_signal_callback_add(ad->layout, "draw/reset", "", _on_draw_reset,
+                                 ad);
+
+  elm_layout_signal_callback_add(ad->layout, "draw/proceed", "",
+                                 _on_draw_proceed, ad);
+
+  ad->tries = 0;
   ad->canvas = canvas;
   ad->cr_surface = cairo_surface;
   ad->cr = cr;
