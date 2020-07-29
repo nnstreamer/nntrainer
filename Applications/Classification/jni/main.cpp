@@ -343,6 +343,7 @@ bool read(std::vector<std::vector<float>> &inVec,
           std::vector<std::vector<float>> &inLabel, std::string type) {
   std::string file = type + "Set.dat";
 
+  file = data_path + file;
   std::ifstream TrainingSet(file, std::ios::in | std::ios::binary);
 
   if (!TrainingSet.good())
@@ -359,7 +360,7 @@ bool read(std::vector<std::vector<float>> &inVec,
  */
 int main(int argc, char *argv[]) {
   if (argc < 3) {
-    std::cout << "./TransferLearning Config.ini resources\n";
+    std::cout << "./nntrainer_classification Config.ini resources\n";
     exit(0);
   }
   const vector<string> args(argv + 1, argv + argc);
@@ -367,7 +368,7 @@ int main(int argc, char *argv[]) {
   data_path = args[1];
 
   srand(time(NULL));
-  std::string ini_file = data_path + "ini.bin";
+
   std::vector<std::vector<float>> inputVector, outputVector;
   std::vector<std::vector<float>> inputValVector, outputValVector;
   std::vector<std::vector<float>> inputTestVector, outputTestVector;

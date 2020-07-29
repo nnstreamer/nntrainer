@@ -86,7 +86,7 @@
 /**
  * @brief     Maximum episodes to run
  */
-#define MAX_EPISODES 50000
+#define MAX_EPISODES 300
 
 /**
  * @brief     boolean to reder (only works for openAI/Gym)

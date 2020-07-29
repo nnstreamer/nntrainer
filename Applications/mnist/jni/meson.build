@@ -9,3 +9,5 @@ executable('nntrainer_mnist',
   install: get_option('install-app'),
   install_dir: application_install_dir
 )
+
+## @todo Add test after #376
