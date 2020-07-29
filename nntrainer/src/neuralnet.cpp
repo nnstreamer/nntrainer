@@ -276,7 +276,7 @@ int NeuralNetwork::loadFromConfig() {
 
       /**! @todo: add following negative tc after #319
        * 1. layer has empty prop -> throw std::invalid_argument
-       * 2. layer has not allowed property -> throw exception::invalid_property
+       * 2. layer has not allowed property -> throw exception::not_supported
        * 3. property value parse error -> throw std::invalid_argument
        */
       if (!strncmp(value.c_str(), unknown, unknown_len)) {

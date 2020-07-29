@@ -44,9 +44,11 @@ namespace nntrainer {
 namespace exception {
 
 /**
- * @brief derived class of invalid argument to represent property is invalid
+ * @brief derived class of invalid argument to represent specific functionality
+ * not supported
+ * @note this could be either intended or not yet implemented
  */
-struct invalid_property : public std::invalid_argument {
+struct not_supported : public std::invalid_argument {
   using invalid_argument::invalid_argument;
 };
 
