@@ -28,13 +28,6 @@
 
 namespace nntrainer {
 
-int InputLayer::setOptimizer(Optimizer &opt) {
-  this->opt.setType(opt.getType());
-  this->opt.setOptParam(opt.getOptParam());
-
-  return this->opt.initialize(dim, false);
-}
-
 void InputLayer::setProperty(const PropertyType type,
                              const std::string &value) {
   int status = ML_ERROR_NONE;

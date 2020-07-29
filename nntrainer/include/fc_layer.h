@@ -98,14 +98,6 @@ public:
   void setUnit(unsigned int u) { unit = u; };
 
   /**
-   * @brief     Optimizer Setter
-   * @param[in] opt Optimizer
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   */
-  int setOptimizer(Optimizer &opt);
-
-  /**
    * @brief     get the base name for the layer
    * @retval    base name of the layer
    */

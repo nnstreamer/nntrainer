@@ -136,14 +136,6 @@ public:
   void setStandardization(bool enable) { this->standardization = enable; };
 
   /**
-   * @brief     Optimizer Setter
-   * @param[in] opt Optimizer
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   */
-  int setOptimizer(Optimizer &opt);
-
-  /**
    * @brief     calculation convolution
    * @param[in] in input tensor data
    * @param[in] indim input tensor dimension

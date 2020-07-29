@@ -178,17 +178,6 @@ public:
 
   /**
    * @brief     initialize optimizer. Initialize Weight if it is adam
-   * @param[in] d TensorDim
-   * @param[in] setTensor true if the layer need weight update.
-   *            Input Layer and Batch Normalization layer won't need it.
-   *            Therefore, it sets false.
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   */
-  int initialize(TensorDim d, bool setTensor);
-
-  /**
-   * @brief     initialize optimizer. Initialize Weight if it is adam
    * @param[in] params UpdatableParam list
    * @param[in] param_size size of the array
    * @param[in] setTensor true if the layer need weight update.

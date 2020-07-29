@@ -89,14 +89,6 @@ public:
   Tensor backwarding(Tensor in, int iteration);
 
   /**
-   * @brief     set optimizer
-   * @param[in] opt Optimizer
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   */
-  int setOptimizer(Optimizer &opt);
-
-  /**
    * @brief     copy layer
    * @param[in] l layer to copy
    */

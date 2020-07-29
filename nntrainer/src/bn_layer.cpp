@@ -61,12 +61,6 @@ int BatchNormalizationLayer::initialize(bool last) {
   return status;
 }
 
-int BatchNormalizationLayer::setOptimizer(Optimizer &opt) {
-  this->opt.setType(opt.getType());
-  this->opt.setOptParam(opt.getOptParam());
-  return this->opt.initialize(dim, false);
-}
-
 void BatchNormalizationLayer::setProperty(const PropertyType type,
                                           const std::string &value) {
   int status = ML_ERROR_NONE;
