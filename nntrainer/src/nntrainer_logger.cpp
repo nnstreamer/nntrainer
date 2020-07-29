@@ -131,11 +131,11 @@ void __nntrainer_log_print(nntrainer_loglevel loglevel,
   }
 
   std::string ss = std::string(formatted.get());
-  Logger::instance().log(ss, loglevel);
 
 #if defined(__LOGGING__)
   Logger::instance().log(ss, loglevel);
 #else
+
   switch (loglevel) {
   case NNTRAINER_LOG_ERROR:
     std::cerr << ss << std::endl;
