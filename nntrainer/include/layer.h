@@ -261,9 +261,9 @@ public:
    * @param[in] type property type to be passed
    * @param[in] value value to be passed, if empty string is passed, do nothing
    * but throws error when @a type is invalid
-   * @exception std::out_of_range     when property type is not valid for the
-   * particular layer
-   * @exception exception::invalid_property invalid argument
+   * @exception exception::not_supported     when property type is not valid for
+   * the particular layer
+   * @exception std::invalid_argument invalid argument
    */
   virtual void setProperty(const PropertyType type,
                            const std::string &value = "");

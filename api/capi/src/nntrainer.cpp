@@ -61,7 +61,7 @@ template <typename F> static int nntrainer_exception_boundary(F &&func) {
   /// caught before than some
   try {
     status = func();
-  } catch (nntrainer::exception::invalid_property &e) {
+  } catch (nntrainer::exception::not_supported &e) {
     ml_loge("%s %s", typeid(e).name(), e.what());
     return ML_ERROR_INVALID_PARAMETER;
   } catch (std::invalid_argument &e) {
