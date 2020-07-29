@@ -119,7 +119,6 @@ void FullyConnectedLayer::copy(std::shared_ptr<Layer> l) {
   this->input.copy(from->input);
   this->hidden.copy(from->hidden);
   this->loss = from->loss;
-  this->cost = from->cost;
 }
 
 sharedTensor FullyConnectedLayer::backwarding(sharedTensor derivative,
