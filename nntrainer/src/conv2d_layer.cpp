@@ -116,14 +116,6 @@ Tensor Conv2DLayer::forwarding(Tensor in, int &status) {
   return hidden;
 };
 
-int Conv2DLayer::setOptimizer(Optimizer &opt) {
-  int status = Layer::setOptimizer(opt);
-  if (status != ML_ERROR_NONE)
-    return status;
-
-  return this->opt.initialize(getParams(), param_size, true);
-}
-
 Tensor Conv2DLayer::backwarding(Tensor derivative, int iteration) {
 
   // Calculate delK : [batch, channel, height, width ] * filter_size

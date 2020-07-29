@@ -102,14 +102,6 @@ public:
   };
 
   /**
-   * @brief     Set Optimizer
-   * @param[in] opt optimizer
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   */
-  int setOptimizer(Optimizer &opt);
-
-  /**
    * @brief     Initializer of Input Layer
    * @param[in] last last layer
    * @retval #ML_ERROR_NONE Successful.

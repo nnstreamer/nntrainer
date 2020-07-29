@@ -87,26 +87,6 @@ int Optimizer::initialize(std::shared_ptr<UpdatableParam> params,
   return status;
 }
 
-int Optimizer::initialize(TensorDim d, bool set_tensor) {
-  int status = ML_ERROR_NONE;
-
-  if (type == OptType::adam && set_tensor) {
-    Tensor wm = Tensor(d.channel(), d.height(), d.width());
-    Tensor wv = Tensor(d.channel(), d.height(), d.width());
-    wm.setZero();
-    wv.setZero();
-    weight_mv.push_back(std::pair<Tensor, Tensor>(wm, wv));
-
-    Tensor bm = Tensor(1, 1, d.width());
-    Tensor bv = Tensor(1, 1, d.width());
-    bm.setZero();
-    bv.setZero();
-    weight_mv.push_back(std::pair<Tensor, Tensor>(bm, bv));
-  }
-
-  return status;
-}
-
 void Optimizer::apply_gradients(std::shared_ptr<UpdatableParam> params,
                                 unsigned int param_size, int iteration) {
 

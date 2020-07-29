@@ -81,14 +81,6 @@ void FullyConnectedLayer::setProperty(const PropertyType type,
   }
 }
 
-int FullyConnectedLayer::setOptimizer(Optimizer &opt) {
-  int status = Layer::setOptimizer(opt);
-  if (status != ML_ERROR_NONE)
-    return status;
-
-  return this->opt.initialize(dim, true);
-}
-
 Tensor FullyConnectedLayer::forwarding(Tensor in, int &status) {
   Tensor &weight = paramsAt(static_cast<int>(FCParams::weight)).weight;
   Tensor &bias = paramsAt(static_cast<int>(FCParams::bias)).weight;

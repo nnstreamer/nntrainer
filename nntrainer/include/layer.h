@@ -274,7 +274,7 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  virtual int setOptimizer(Optimizer &opt);
+  int setOptimizer(Optimizer &opt);
 
   /**
    * @brief     Activation Setter
