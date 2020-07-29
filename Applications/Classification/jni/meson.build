@@ -1,9 +1,12 @@
+build_root = meson.build_root()
+res_path = join_paths(meson.current_source_dir(), '..', 'res')
+
 classification_sources = [
   'main.cpp',
   'bitmap_helpers.cpp'
 ]
 
-executable('nntrainer_classification',
+e = executable('nntrainer_classification',
   classification_sources,
   dependencies: [iniparser_dep, nntrainer_dep, tflite_dep],
   include_directories: include_directories('.'),
@@ -11,14 +14,32 @@ executable('nntrainer_classification',
   install_dir: application_install_dir
 )
 
+ini_in_path = join_paths(res_path, 'Classification.ini')
+ini_out_path = join_paths(build_root, 'classification.ini')
+
+# change epoch to 5
+run_command('cp', ini_in_path, ini_out_path)
+run_command(['sed', '-i', 's/Epoch\ \=\ 30000/Epoch\ \=\ 1/', ini_out_path])
+
+test('app_classification', e, args: [ini_out_path, build_root + '/'])
+
 classification_func_sources = [
   'main_func.cpp'
 ]
 
-executable('nntrainer_classification_func',
+e = executable('nntrainer_classification_func',
   classification_func_sources,
   dependencies: [iniparser_dep, nntrainer_dep],
   include_directories: include_directories('.'),
   install: get_option('install-app'),
   install_dir: application_install_dir
 )
+
+ini_in_path = join_paths(res_path, 'Classification_func.ini')
+ini_out_path = join_paths(build_root, 'classification_func.ini')
+
+# change epoch to 5
+run_command('cp', ini_in_path, ini_out_path)
+run_command(['sed', '-i', 's/Epoch\ \=\ 30000/Epoch\ \=\ 1/', ini_out_path])
+
+test('app_classification_func', e, args: [ini_out_path], timeout: 60)
