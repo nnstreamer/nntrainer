@@ -18,7 +18,9 @@
  * @brief check given ini is failing/suceeding at load
  */
 TEST_P(nntrainerIniTest, load_config) {
+  std::cout << std::get<0>(GetParam()) << std::endl;
   int status = NN.loadFromConfig();
+  // int status = ML_ERROR_NONE;
 
   if (failAtLoad()) {
     EXPECT_NE(status, ML_ERROR_NONE);
@@ -31,12 +33,13 @@ TEST_P(nntrainerIniTest, load_config) {
  * @brief check given ini is failing/succeeding at init
  */
 TEST_P(nntrainerIniTest, init) {
+  std::cout << std::get<0>(GetParam()) << std::endl;
   int status = NN.loadFromConfig();
 
   if (failAtLoad()) {
-    ASSERT_NE(status, ML_ERROR_NONE);
+    EXPECT_NE(status, ML_ERROR_NONE);
   } else {
-    ASSERT_EQ(status, ML_ERROR_NONE);
+    EXPECT_EQ(status, ML_ERROR_NONE);
   }
   status = NN.init();
 
@@ -91,25 +94,37 @@ static int INITFAIL = initest::INIT;
 static int ALLFAIL = LOADFAIL | INITFAIL;
 
 using I = IniSection;
+
+/// @note each line contains 3 test, so this should be counted * 3
 // clang-format off
 INSTANTIATE_TEST_CASE_P(
   nntrainerIniAutoTests, nntrainerIniTest, ::testing::Values(
+  /**< positive: basic valid scenarios */
     mkIniTc("basic_p", {nw_adam, input, out}, SUCCESS),
     mkIniTc("basic_dataset_p", {nw_adam, dataset, input, out}, SUCCESS),
-    /**< @note After #316 resolve, following TC should pass
-    mkIniTc("no_net_sec_name_n", {I(nw_adam, "-", "")}, ALLFAIL),
-    mkIniTc("no_network_sec_n", {input, out}, ALLFAIL),
-    mkIniTc("empty_n", {}, ALLFAIL),
-    mkIniTc("wrong_opt_type_n", {nw_adam + "Optimizer = wrong_opt", input, out),
-    mkIniTc("adam_neg_lr_n", {nw_adam + "learning_rate = -0.1", input, out}, ALLFAIL),
-    mkIniTc("no_cost_n", {nw_adam + "-cost", input, out}, ALLFAIL)
-    */
-    mkIniTc("no_trainingSet_p", {nw_adam, dataset + "-TrainData", input, out}, SUCCESS),
+    mkIniTc("basic_conv2d_p", {nw_adam, conv2d + "input_shape = 32:1:1:62720"}, SUCCESS),
     mkIniTc("no_testSet_p", {nw_adam, dataset + "-TestData", input, out}, SUCCESS),
     mkIniTc("no_validSet_p", {nw_adam, dataset + "-ValidData", input, out}, SUCCESS),
-    mkIniTc("no_labelSet_p", {nw_adam, dataset + "-LabelData", input, out}, SUCCESS),
-    mkIniTc("basic_conv2d_p", {nw_adam, conv2d + "input_shape = 32:1:1:62720"}, SUCCESS)
+    mkIniTc("no_bufferSize_p", {nw_adam, dataset + "-BufferSize", input, out}, SUCCESS),
+
+  /**< negative: basic invalid scenarios */
+    mkIniTc("no_network_sec_name_n", {I(nw_adam, "-", "")}, ALLFAIL),
+    mkIniTc("no_network_sec_n", {input, out}, ALLFAIL),
+    mkIniTc("empty_n", {}, ALLFAIL),
+    mkIniTc("wrong_opt_type_n", {nw_adam + "Optimizer = wrong_opt", input, out}, ALLFAIL),
+    mkIniTc("adam_minus_lr_n", {nw_adam + "Learning_rate = -0.1", input, out}, ALLFAIL),
+    mkIniTc("no_cost_n", {nw_adam + "-cost", input, out}, INITFAIL),
+
+  /**< negative: dataset is not complete */
+    mkIniTc("no_trainingSet_n", {nw_adam, dataset + "-TrainData", input, out}, ALLFAIL),
+    mkIniTc("no_labelSet_n", {nw_adam, dataset + "-LabelData", input, out}, ALLFAIL)
+/// #if gtest_version <= 1.7.0
 ));
+/// #else gtest_version > 1.8.0
+// [](const testing::TestParamInfo<nntrainerIniTest::ParamType>& info){
+//  return std::get<0>(info.param);
+// });
+/// #end if */
 // clang-format on
 
 /**

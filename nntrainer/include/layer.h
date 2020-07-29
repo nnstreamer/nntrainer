@@ -140,9 +140,7 @@ public:
     bias_init_zero(false),
     type(LAYER_UNKNOWN),
     loss(0.0f),
-    cost(COST_UNKNOWN),
     activation_type(ACT_NONE),
-    bn_follow(false),
     weight_decay(),
     weight_ini_type(WEIGHT_XAVIER_UNIFORM),
     flatten(false),
@@ -315,12 +313,6 @@ public:
   virtual void copy(std::shared_ptr<Layer> l);
 
   /**
-   * @brief     set Batch Normalization Layer followed
-   * @param[in] ok true/false
-   */
-  void setBNfollow(bool ok) { this->bn_follow = ok; }
-
-  /**
    * @brief     check hyper parameter for the layer
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
@@ -384,14 +376,6 @@ public:
    * @retval loss value
    */
   float getLoss() { return loss; }
-
-  /**
-   * @brief     set cost function
-   * @param[in] c cost function type
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   */
-  int setCost(CostType c);
 
   /**
    * @brief     set trainable for this layer
@@ -517,14 +501,7 @@ protected:
    */
   float loss;
 
-  /**
-   * @brief     Cost type for this network consisting of this layer
-   */
-  CostType cost;
-
   ActiType activation_type;
-
-  bool bn_follow;
 
   WeightDecayParam weight_decay;
 

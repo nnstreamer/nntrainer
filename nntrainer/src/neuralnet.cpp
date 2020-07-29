@@ -43,21 +43,6 @@
     }                              \
   } while (0)
 
-#define VERIFY_SET_DIMENSION()                                     \
-  do {                                                             \
-    if (i != 0) {                                                  \
-      if (def_init_dim == layers[i]->getInputDimension()) {        \
-        layers[i]->setInputDimension(previous_dim);                \
-      } else if (previous_dim != layers[i]->getInputDimension()) { \
-        status = ML_ERROR_INVALID_PARAMETER;                       \
-        ml_loge("Dimension mismatch between layers.");             \
-        NN_RETURN_STATUS();                                        \
-      }                                                            \
-    }                                                              \
-  } while (0)
-
-#define CONV2D_DIM 2
-
 namespace nntrainer {
 
 /**
@@ -65,7 +50,7 @@ namespace nntrainer {
  * @param[in] filename file path to check
  * @retval    boolean true if exists
  */
-static bool is_file_exist(std::string file_name) {
+static bool isFileExist(std::string file_name) {
   std::ifstream infile(file_name);
   return infile.good();
 }
@@ -88,7 +73,7 @@ NeuralNetwork::NeuralNetwork(std::string config) : NeuralNetwork() {
 }
 
 void NeuralNetwork::setConfig(std::string config) {
-  if (!is_file_exist(config)) {
+  if (!isFileExist(config)) {
     std::stringstream ss;
     ss << "Cannot open model configuration file, filename : " << config;
     throw std::invalid_argument(ss.str().c_str());
@@ -329,6 +314,10 @@ int NeuralNetwork::initLossLayer() {
   int status = ML_ERROR_NONE;
   CostType updated_cost = cost;
 
+  if (layers.empty()) {
+    status = ML_ERROR_INVALID_PARAMETER;
+  }
+
   if (updated_cost == COST_ENTROPY) {
     if (layers.back()->getType() != LAYER_ACTIVATION) {
       ml_loge("Error: Cross Entropy need last layer to have softmax or sigmoid "
@@ -336,8 +325,7 @@ int NeuralNetwork::initLossLayer() {
       return ML_ERROR_NOT_SUPPORTED;
     }
 
-    std::shared_ptr<ActivationLayer> act_layer =
-      std::static_pointer_cast<ActivationLayer>(layers.back());
+    std::shared_ptr<Layer> act_layer = layers.back();
     layers.pop_back();
 
     switch (act_layer->getActivationType()) {
@@ -360,8 +348,6 @@ int NeuralNetwork::initLossLayer() {
   status = loss_layer->initialize(true);
   NN_RETURN_STATUS();
 
-  status = layers.back()->setCost(updated_cost);
-  NN_RETURN_STATUS();
   status = loss_layer->setCost(updated_cost);
   NN_RETURN_STATUS();
 
@@ -447,92 +433,55 @@ int NeuralNetwork::setTrainConfig(std::vector<std::string> values) {
 
 int NeuralNetwork::init() {
   int status = ML_ERROR_NONE;
-  bool last = false;
   TensorDim previous_dim, def_init_dim;
+
+  status = checkValidation();
+  NN_RETURN_STATUS();
 
   /** Note: number of entries in layers will change. */
   for (unsigned int i = 0; i < layers.size(); ++i) {
-    if (i == layers.size() - 1)
-      last = true;
+    bool last = i == layers.size() - 1;
+    bool first = i == 0;
+    Layer &l = *layers[i];
 
-    VERIFY_SET_DIMENSION();
+    if (!first) {
+      /// @fixme 359
+      if (def_init_dim == l.getInputDimension()) {
+        l.setInputDimension(previous_dim);
+      } else if (previous_dim != l.getInputDimension()) {
+        ml_loge("Dimension mismatch between layers.");
+        return ML_ERROR_INVALID_PARAMETER;
+      }
+    }
 
-    switch (layers[i]->getType()) {
-    case LAYER_IN: {
-      status = layers[i]->initialize(last);
-      NN_RETURN_STATUS();
-    } break;
-    case LAYER_CONV2D: {
-      std::shared_ptr<Conv2DLayer> conv2d_layer =
-        std::static_pointer_cast<Conv2DLayer>(layers[i]);
+    status = layers[i]->initialize(last);
 
-      status = layers[i]->setCost(cost);
-      NN_RETURN_STATUS();
-
-      status = layers[i]->initialize(last);
-      NN_RETURN_STATUS();
-
-      status = conv2d_layer->setOptimizer(opt);
-      NN_RETURN_STATUS();
-
-    } break;
-
-    case LAYER_POOLING2D: {
-      std::shared_ptr<Pooling2DLayer> pooling2d_layer =
-        std::static_pointer_cast<Pooling2DLayer>(layers[i]);
-
-      status = layers[i]->initialize(last);
-      NN_RETURN_STATUS();
-
-    } break;
-
-    case LAYER_FLATTEN: {
-      std::shared_ptr<FlattenLayer> flatten_layer =
-        std::static_pointer_cast<FlattenLayer>(layers[i]);
-
-      status = layers[i]->initialize(last);
-      NN_RETURN_STATUS();
-    } break;
-
-    case LAYER_FC: {
-      std::shared_ptr<FullyConnectedLayer> fc_layer =
-        std::static_pointer_cast<FullyConnectedLayer>(layers[i]);
-
-      status = layers[i]->setCost(cost);
-      NN_RETURN_STATUS();
-
-      status = layers[i]->initialize(last);
-      NN_RETURN_STATUS();
-
-      status = fc_layer->setOptimizer(opt);
-      NN_RETURN_STATUS();
-
-    } break;
+    switch (l.getType()) {
     case LAYER_BN:
-      status = layers[i]->initialize(last);
-      NN_RETURN_STATUS();
-
-      status = layers[i]->setOptimizer(opt);
-      NN_RETURN_STATUS();
-
-      if (i == 0) {
+      if (first) {
         ml_loge("Batch normalization layer cannot be first layer of network");
         status = ML_ERROR_INVALID_PARAMETER;
         NN_RETURN_STATUS();
       }
-      layers[i - 1]->setBNfollow(true);
+      /// no break intended
+    case LAYER_CONV2D:
+      /// fallthrough intended
+    case LAYER_FC:
+      status = l.setOptimizer(opt);
+      NN_RETURN_STATUS();
       break;
     default:
       break;
     }
-    std::shared_ptr<Layer> last_layer = layers[i];
-    status = initActivationLayer(last_layer->getActivationType(), i);
+
+    status = initActivationLayer(l.getActivationType(), i);
     NN_RETURN_STATUS();
-    if (last_layer->getFlatten()) {
+    if (l.getFlatten()) {
       status = initFlattenLayer(i);
       NN_RETURN_STATUS();
     }
-    previous_dim = layers[i]->getOutputDimension();
+
+    previous_dim = l.getOutputDimension();
   }
 
   /** Add the last layer as loss layer */
@@ -636,7 +585,7 @@ void NeuralNetwork::saveModel() {
  *            read training parameters from the optimizer if continuing train
  */
 void NeuralNetwork::readModel() {
-  if (!is_file_exist(model))
+  if (!isFileExist(model))
     return;
   std::ifstream model_file(model, std::ios::in | std::ios::binary);
   for (unsigned int i = 0; i < layers.size(); i++)
@@ -903,6 +852,10 @@ int NeuralNetwork::initActivationLayer(ActiType act) {
 }
 
 int NeuralNetwork::initActivationLayer(ActiType act, unsigned int &position) {
+  if (layers.empty()) {
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
   std::shared_ptr<Layer> l = _make_act_layer(act, layers[position]);
   if (l != nullptr) {
     layers.insert(layers.begin() + position + 1, l);

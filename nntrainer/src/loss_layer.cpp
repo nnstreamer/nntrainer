@@ -141,6 +141,16 @@ sharedTensor LossLayer::backwarding(sharedTensor derivative, int iteration) {
   return MAKE_SHARED_TENSOR(std::move(ret_derivative));
 }
 
+int LossLayer::setCost(CostType c) {
+  int status = ML_ERROR_NONE;
+  if (c == COST_UNKNOWN) {
+    ml_loge("Error: Unknown cost fucntion");
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+  cost = c;
+  return status;
+}
+
 sharedTensor LossLayer::forwarding(sharedTensor in) {
   throw std::runtime_error("Not supported.");
 }

@@ -283,11 +283,12 @@ void IniSection::setEntry(const std::string &entry_str) {
   std::string key, value;
   for (std::sregex_iterator i = words_begin; i != words_end; ++i) {
     const std::string &cur = (*i).str();
+
     if (cur[0] == '-') {
-      key.erase(0, 1);
-      entry.erase(key);
+      entry.erase(cur.substr(1));
       continue;
     }
+
     int status = nntrainer::getKeyValue(cur, key, value);
     ASSERT_EQ(status, ML_ERROR_NONE);
     entry[key] = value;

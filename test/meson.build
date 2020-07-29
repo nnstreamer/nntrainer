@@ -9,8 +9,8 @@ nntrainer_test_deps = [
 # build test util when gtest is found
 if gtest_dep.found()
   nntrainer_testutil_lib = static_library(
-    'nntrainer_test_util', 
-    'nntrainer_test_util.cpp', 
+    'nntrainer_test_util',
+    'nntrainer_test_util.cpp',
     dependencies: [nntrainer_test_deps, gtest_dep],
     include_directories: nntrainer_test_inc
   )
