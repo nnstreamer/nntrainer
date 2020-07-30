@@ -17,10 +17,9 @@
 /**
  * @brief check given ini is failing/suceeding at load
  */
-TEST_P(nntrainerIniTest, load_config) {
+TEST_P(nntrainerIniTest, loadConfig) {
   std::cout << std::get<0>(GetParam()) << std::endl;
   int status = NN.loadFromConfig();
-  // int status = ML_ERROR_NONE;
 
   if (failAtLoad()) {
     EXPECT_NE(status, ML_ERROR_NONE);
@@ -36,11 +35,6 @@ TEST_P(nntrainerIniTest, init) {
   std::cout << std::get<0>(GetParam()) << std::endl;
   int status = NN.loadFromConfig();
 
-  if (failAtLoad()) {
-    EXPECT_NE(status, ML_ERROR_NONE);
-  } else {
-    EXPECT_EQ(status, ML_ERROR_NONE);
-  }
   status = NN.init();
 
   if (failAtInit()) {
@@ -48,6 +42,19 @@ TEST_P(nntrainerIniTest, init) {
   } else {
     EXPECT_EQ(status, ML_ERROR_NONE);
   }
+}
+
+/**
+ * @brief check given ini is failing/succeeding when init happens twice.
+ * this should fail at all time.
+ */
+TEST_P(nntrainerIniTest, initTwice_n) {
+  std::cout << std::get<0>(GetParam()) << std::endl;
+  int status = NN.loadFromConfig();
+  status = NN.init();
+  status = NN.init();
+
+  EXPECT_NE(status, ML_ERROR_NONE);
 }
 
 /// @todo add run test could be added with iniTest flag to control skip
@@ -61,7 +68,12 @@ static IniSection adam("adam", "Optimizer = adam |"
                                "Decay_rate = 0.96 |"
                                "Decay_steps = 1000");
 
+static IniSection nw_sgd = nw_base + "Optimizer = sgd |"
+                                     "Learning_rate = 1";
+
 static IniSection nw_adam = nw_base + adam;
+
+static IniSection nw_adam_n = nw_base + "Learning_rate = -1";
 
 static IniSection dataset("DataSet", "BufferSize = 100 |"
                                      "TrainData = trainingSet.dat | "
@@ -69,11 +81,19 @@ static IniSection dataset("DataSet", "BufferSize = 100 |"
                                      "ValidData = valSet.dat |"
                                      "LabelData = label.dat");
 
+static IniSection batch_normal("bn", "Type = batch_normalization | "
+                                     "Activation = relu");
+
+static IniSection flatten("flat", "Type = flatten");
+
 static IniSection input("inputlayer", "Type = input |"
                                       "Input_Shape = 32:1:1:62720 |"
                                       "bias_init_zero = true |"
                                       "Normalization = true |"
                                       "Activation = sigmoid");
+
+static IniSection act_relu("activation_relu", "Type = activation | "
+                                              "Activation = relu");
 
 static IniSection out("fclayer", "Type = fully_connected |"
                                  "Unit = 10 |"
@@ -95,13 +115,23 @@ static int ALLFAIL = LOADFAIL | INITFAIL;
 
 using I = IniSection;
 
-/// @note each line contains 3 test, so this should be counted * 3
+/// @note each line contains 2 (positive or negative test) + 1 negative test.
+/// if, there are 6 positive tests and 9 negative tests
+/// which sums up to 6 * 2 = 12 positive tests and 9 * 2 + 6 + 9 = 33 negative
+/// tests
 // clang-format off
 INSTANTIATE_TEST_CASE_P(
   nntrainerIniAutoTests, nntrainerIniTest, ::testing::Values(
   /**< positive: basic valid scenarios */
     mkIniTc("basic_p", {nw_adam, input, out}, SUCCESS),
+    mkIniTc("basic2_p", {nw_sgd, input, out}, SUCCESS),
+    mkIniTc("basic_act_p", {nw_sgd, input + "-Activation", act_relu, out }, SUCCESS),
+    mkIniTc("basic_bn_p", {nw_sgd, input + "-Activation", batch_normal, act_relu, out }, SUCCESS),
+    // #390
+    // mkIniTc("basic_bn2_p", {nw_sgd, input, act_relu, batch_normal, out }, SUCCESS),
     mkIniTc("basic_dataset_p", {nw_adam, dataset, input, out}, SUCCESS),
+    mkIniTc("basic_dataset2_p", {nw_sgd, input, out, dataset}, SUCCESS),
+    mkIniTc("basic_dataset3_p", {dataset, nw_sgd, input, out}, SUCCESS),
     mkIniTc("basic_conv2d_p", {nw_adam, conv2d + "input_shape = 32:1:1:62720"}, SUCCESS),
     mkIniTc("no_testSet_p", {nw_adam, dataset + "-TestData", input, out}, SUCCESS),
     mkIniTc("no_validSet_p", {nw_adam, dataset + "-ValidData", input, out}, SUCCESS),
@@ -111,9 +141,33 @@ INSTANTIATE_TEST_CASE_P(
     mkIniTc("no_network_sec_name_n", {I(nw_adam, "-", "")}, ALLFAIL),
     mkIniTc("no_network_sec_n", {input, out}, ALLFAIL),
     mkIniTc("empty_n", {}, ALLFAIL),
+    mkIniTc("no_layers_n", {nw_adam}, ALLFAIL),
+    /// #391
+    // mkIniTc("ini_has_empty_value_n", {nw_adam + "epsilon = _", input, out}, ALLFAIL),
+
+  /**< negative: property validation */
     mkIniTc("wrong_opt_type_n", {nw_adam + "Optimizer = wrong_opt", input, out}, ALLFAIL),
     mkIniTc("adam_minus_lr_n", {nw_adam + "Learning_rate = -0.1", input, out}, ALLFAIL),
+    mkIniTc("sgd_minus_lr_n", {nw_sgd + "Learning_rate = -0.1", input, out}, ALLFAIL),
     mkIniTc("no_cost_n", {nw_adam + "-cost", input, out}, INITFAIL),
+    mkIniTc("unknown_cost_n", {nw_adam + "cost = unknown", input, out}, INITFAIL),
+    // #389
+    // mkIniTc("buffer_size_smaller_than_minibatch_n", {nw_adam, dataset + "BufferSize=26", input, out}, ALLFAIL),
+    mkIniTc("unknown_layer_type_n", {nw_adam, input + "Type = asdf", out}, ALLFAIL),
+    // #389
+    // mkIniTc("unknown_layer_type2_n", {nw_adam, input, out + "Type = asdf", I(out, "outlayer", "")}, ALLFAIL),
+    // #390
+    // mkIniTc("act_after_act_layer_n", {nw_sgd, act_relu, input, out}, ALLFAIL),
+    // mkIniTc("act_after_act_layer2_n", {nw_sgd, input, act_relu, out}, ALLFAIL),
+    // mkIniTc("last_act_layer_relu_n", {nw_sgd, input, out, act_relu }, ALLFAIL),
+    // mkIniTc("last_act_layer_relu2_n", {nw_sgd, input, out + "-Activation", act_relu }, ALLFAIL),
+
+  /**< negative: little bit of tweeks to check determinancy */
+    // #382, #389
+    // mkIniTc("wrong_nw_dataset_n", {nw_adam, input, out, dataset + "-LabelData"}, ALLFAIL),
+    // mkIniTc("buffer_size_smaller_than_minibatch2_n", {nw_adam, input, out, dataset + "BufferSize=26"}, ALLFAIL),
+    // #389
+    // mkIniTc("wrong_nw_dataset2_n", {nw_adam, dataset + "-LabelData", input, out}, ALLFAIL),
 
   /**< negative: dataset is not complete */
     mkIniTc("no_trainingSet_n", {nw_adam, dataset + "-TrainData", input, out}, ALLFAIL),
@@ -121,7 +175,7 @@ INSTANTIATE_TEST_CASE_P(
 /// #if gtest_version <= 1.7.0
 ));
 /// #else gtest_version > 1.8.0
-// [](const testing::TestParamInfo<nntrainerIniTest::ParamType>& info){
+// ), [](const testing::TestParamInfo<nntrainerIniTest::ParamType>& info){
 //  return std::get<0>(info.param);
 // });
 /// #end if */

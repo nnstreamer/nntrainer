@@ -119,6 +119,8 @@ class nntrainerIniTest
 protected:
   virtual void SetUp() {
     name = std::string(std::get<0>(GetParam()));
+    std::cout << "starting test case : " << name << std::endl << std::endl;
+
     sections = std::get<1>(GetParam());
     failAt = std::get<2>(GetParam());
     save_ini();

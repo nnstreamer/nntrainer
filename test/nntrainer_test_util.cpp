@@ -290,7 +290,7 @@ void IniSection::setEntry(const std::string &entry_str) {
     }
 
     int status = nntrainer::getKeyValue(cur, key, value);
-    ASSERT_EQ(status, ML_ERROR_NONE);
+    EXPECT_EQ(status, ML_ERROR_NONE);
     entry[key] = value;
   }
 }

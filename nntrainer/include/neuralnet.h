@@ -207,7 +207,7 @@ public:
 
   /**
    * @brief     Run NeuralNetwork train
-   * @param[in] values hyper parmeters
+   * @param[in] values hyper parameters
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */

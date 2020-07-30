@@ -119,6 +119,7 @@ int NeuralNetwork::loadNetworkConfig(void *_ini) {
 
 /// @fixme: 370
 int NeuralNetwork::loadDatasetConfig(void *_ini) {
+  ml_logd("start parsing dataset config");
   int status = ML_ERROR_NONE;
 
   dictionary *ini = static_cast<dictionary *>(_ini);
@@ -152,11 +153,13 @@ int NeuralNetwork::loadDatasetConfig(void *_ini) {
   status = parse_and_set("Dataset:LabelData", DATA_LABEL, true);
   NN_INI_RETURN_STATUS();
 
-  /// fixme: #299
-  status = data_buffer->setBufSize(
-    iniparser_getint(ini, "DataSet:BufferSize", batch_size));
+  /// fixme: #299, #389
+  int bufsize = iniparser_getint(ini, "DataSet:BufferSize", batch_size);
+  ml_logd("buf size: %d", bufsize);
+  status = data_buffer->setBufSize(bufsize);
   NN_INI_RETURN_STATUS();
 
+  ml_logd("parsing dataset done");
   return status;
 }
 
@@ -196,6 +199,7 @@ int NeuralNetwork::loadFromConfig() {
     return ML_ERROR_INVALID_PARAMETER;
   }
 
+  ml_logd("parsing ini started");
   /** Get all the section names */
   ml_logi("==========================parsing ini...");
   ml_logi("invalid properties does not cause error, rather be ignored");
@@ -203,6 +207,7 @@ int NeuralNetwork::loadFromConfig() {
   ml_logi("valid property with invalid value throws error as well");
   for (int idx = 0; idx < num_ini_sec; ++idx) {
     const char *sec_name = iniparser_getsecname(ini, idx);
+    ml_logd("probing section name: %s", sec_name);
 
     if (!sec_name) {
       ml_loge("Error: Unable to retrieve section names from ini.");
@@ -255,7 +260,8 @@ int NeuralNetwork::loadFromConfig() {
       break;
     case LAYER_UNKNOWN:
     default:
-      ml_loge("Error: Unknown layer type");
+      ml_loge("Error: Unknown layer type from %s, parsed to %d",
+              layer_type_str.c_str(), layer_type);
       status = ML_ERROR_INVALID_PARAMETER;
       NN_INI_RETURN_STATUS();
     }
@@ -292,6 +298,7 @@ int NeuralNetwork::loadFromConfig() {
     status = addLayer(layer);
     NN_INI_RETURN_STATUS();
   }
+  ml_logd("parsing ini finished");
 
   /**< Additional validation and handling for the neural network */
   if (!data_buffer) {
@@ -438,11 +445,14 @@ int NeuralNetwork::init() {
   status = checkValidation();
   NN_RETURN_STATUS();
 
+  ml_logd("initiating neural network, layer size: %d",
+          (unsigned int)layers.size());
   /** Note: number of entries in layers will change. */
   for (unsigned int i = 0; i < layers.size(); ++i) {
     bool last = i == layers.size() - 1;
     bool first = i == 0;
     Layer &l = *layers[i];
+    ml_logd("layer name: %s", l.getName().c_str());
 
     if (!first) {
       /// @fixme 359
@@ -487,6 +497,11 @@ int NeuralNetwork::init() {
   /** Add the last layer as loss layer */
   status = initLossLayer();
   NN_RETURN_STATUS();
+
+  ml_logd("initialize successful, with layer size: %d", (int)layers.size());
+
+  for (auto l : layers)
+    ml_logd("layer name: %s", l->getName().c_str());
 
   initialized = true;
   return status;
