@@ -132,6 +132,7 @@ int NeuralNetwork::loadNetworkConfig(void *_ini) {
   return status;
 }
 
+/// @fixme: 370
 int NeuralNetwork::loadDatasetConfig(void *_ini) {
   int status = ML_ERROR_NONE;
 
@@ -140,28 +141,36 @@ int NeuralNetwork::loadDatasetConfig(void *_ini) {
   if (iniparser_find_entry(ini, "DataSet:Tflite")) {
     ml_loge("Error: Tflite dataset is not yet implemented!");
     return ML_ERROR_INVALID_PARAMETER;
-  } else {
-    data_buffer = std::make_shared<DataBufferFromDataFile>();
-    std::shared_ptr<DataBufferFromDataFile> dbuffer =
-      std::static_pointer_cast<DataBufferFromDataFile>(data_buffer);
-
-    status = dbuffer->setDataFile(
-      iniparser_getstring(ini, "DataSet:TrainData", ""), DATA_TRAIN);
-    NN_INI_RETURN_STATUS();
-    status = dbuffer->setDataFile(
-      iniparser_getstring(ini, "DataSet:ValidData", ""), DATA_VAL);
-    NN_INI_RETURN_STATUS();
-    status = dbuffer->setDataFile(
-      iniparser_getstring(ini, "DataSet:TestData", ""), DATA_TEST);
-    NN_INI_RETURN_STATUS();
-    status = dbuffer->setDataFile(
-      iniparser_getstring(ini, "DataSet:LabelData", ""), DATA_LABEL);
-    NN_INI_RETURN_STATUS();
-    /// fixme: #299
-    status = data_buffer->setBufSize(
-      iniparser_getint(ini, "DataSet:BufferSize", batch_size));
-    NN_INI_RETURN_STATUS();
   }
+
+  data_buffer = std::make_shared<DataBufferFromDataFile>();
+  std::shared_ptr<DataBufferFromDataFile> dbuffer =
+    std::static_pointer_cast<DataBufferFromDataFile>(data_buffer);
+
+  std::function<int(const char *, DataType, bool)> parse_and_set =
+    [&](const char *key, DataType dt, bool required) -> int {
+    const char *path = iniparser_getstring(ini, key, NULL);
+
+    if (path == NULL) {
+      return required ? ML_ERROR_INVALID_PARAMETER : ML_ERROR_NONE;
+    }
+
+    return dbuffer->setDataFile(path, dt);
+  };
+
+  status = parse_and_set("DataSet:TrainData", DATA_TRAIN, true);
+  NN_INI_RETURN_STATUS();
+  status = parse_and_set("DataSet:ValidData", DATA_VAL, false);
+  NN_INI_RETURN_STATUS();
+  status = parse_and_set("DataSet:TestData", DATA_TEST, false);
+  NN_INI_RETURN_STATUS();
+  status = parse_and_set("Dataset:LabelData", DATA_LABEL, true);
+  NN_INI_RETURN_STATUS();
+
+  /// fixme: #299
+  status = data_buffer->setBufSize(
+    iniparser_getint(ini, "DataSet:BufferSize", batch_size));
+  NN_INI_RETURN_STATUS();
 
   return status;
 }
