@@ -290,20 +290,19 @@ int DataBufferFromDataFile::setDataFile(std::string path, DataType type) {
   case DATA_VAL: {
     validation[type] = true;
     if (!data_file.good()) {
-      ml_logw("Warning: Cannot open validation data file. Cannot validate "
+      ml_loge("Error: Cannot open validation data file. Cannot validate "
               "training result");
       validation[type] = false;
-      break;
+      return ML_ERROR_INVALID_PARAMETER;
     }
     val_name = path;
   } break;
   case DATA_TEST: {
     validation[type] = true;
     if (!data_file.good()) {
-      ml_logw(
-        "Warning: Cannot open test data file. Cannot test training result");
+      ml_loge("Error: Cannot open test data file. Cannot test training result");
       validation[type] = false;
-      break;
+      return ML_ERROR_INVALID_PARAMETER;
     }
     test_name = path;
   } break;
