@@ -124,6 +124,8 @@ typedef struct {
   bool done;
 } Experience;
 
+unsigned int seed;
+
 /**
  * @brief     Generate Random double value between min to max
  * @param[in] min : minimum value
@@ -131,7 +133,7 @@ typedef struct {
  * @retval    min < random value < max
  */
 static float RandomFloat(float Min, float Max) {
-  float r = Min + static_cast<float>(rand()) /
+  float r = Min + static_cast<float>(rand_r(&seed)) /
                     (static_cast<float>(RAND_MAX) / (Max - Min));
   return r;
 }
@@ -147,7 +149,7 @@ static int rangeRandom(int Min, int Max) {
   int remainder = RAND_MAX % n;
   int x;
   do {
-    x = rand();
+    x = rand_r(&seed);
   } while (x >= RAND_MAX - remainder);
   return Min + x % n;
 }
@@ -258,8 +260,8 @@ int main(int argc, char **argv) {
     std::cout << "Error opening file" << std::endl;
     return 0;
   };
-
-  srand(time(NULL));
+  seed = time(NULL);
+  srand(seed);
   std::deque<Experience> expQ;
 
   PTR env;

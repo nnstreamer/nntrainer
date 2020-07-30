@@ -21,6 +21,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
+#include <time.h>
 
 #define num_class 10
 #define mini_batch 32
@@ -30,6 +31,8 @@ static bool *duplicate;
 static bool *valduplicate;
 static bool alloc_train = false;
 static bool alloc_val = false;
+
+unsigned int seed;
 
 int gen_data_train(float **outVec, float **outLabel, bool *last);
 int gen_data_val(float **outVec, float **outLabel, bool *last);
@@ -58,7 +61,7 @@ static int range_random(int min, int max) {
   int remainder = RAND_MAX % n;
   int x;
   do {
-    x = rand();
+    x = rand_r(&seed);
   } while (x >= RAND_MAX - remainder);
   return min + x % n;
 }
@@ -72,7 +75,7 @@ static int range_random(int min, int max) {
  * @retval true/false false : end of data
  */
 static bool get_data(const char *file_name, float *outVec, float *outLabel,
-                     uint64_t id, int file_length) {
+                     unsigned int id, int file_length) {
   uint64_t position;
   FILE *F;
   unsigned int i;
@@ -81,7 +84,8 @@ static bool get_data(const char *file_name, float *outVec, float *outLabel,
   if (id < 0)
     return false;
 
-  position = (uint64_t)((feature_size + num_class) * id * sizeof(float));
+  position =
+    (uint64_t)((feature_size + num_class) * (uint64_t)id * sizeof(float));
   if (position > file_length) {
     return false;
   }
@@ -288,6 +292,8 @@ int main(int argc, char *argv[]) {
   ml_train_layer_h layers[2];
   ml_train_optimizer_h optimizer;
   ml_train_dataset_h dataset;
+
+  seed = time(NULL);
 
   /* model create */
   status = ml_train_model_construct(&model);

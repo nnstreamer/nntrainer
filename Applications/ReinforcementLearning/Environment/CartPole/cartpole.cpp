@@ -29,8 +29,8 @@
  * @brief     Generate Random Float value between min to max
  * @retval    random value
  */
-static float RandomFloat(float min, float max) {
-  float r = min + static_cast<float>(rand()) /
+static float RandomFloat(float min, float max, unsigned int seed) {
+  float r = min + static_cast<float>(rand_r(&seed)) /
                     (static_cast<float>(RAND_MAX) / (max - min));
   return r;
 }
@@ -39,7 +39,7 @@ static float RandomFloat(float min, float max) {
  * @brief     Generate Random integer 0 or 1
  * @retval    random value
  */
-static int random0to1() { return rand() % 2; }
+static int random0to1(unsigned int seed) { return rand_r(&seed) % 2; }
 
 namespace Env {
 CartPole::CartPole() {
@@ -119,9 +119,10 @@ void CartPole::step(const std::vector<float> &action, bool rendering,
 }
 
 void CartPole::reset(State *initial_s) {
+  unsigned int seed = time(NULL);
   initial_s->observation.clear();
   for (int i = 0; i < 4; i++) {
-    S.observation[i] = RandomFloat(-0.05, 0.05);
+    S.observation[i] = RandomFloat(-0.05, 0.05, seed);
     initial_s->observation.push_back(S.observation[i]);
   }
   steps_beyond_done = -1;
@@ -136,7 +137,8 @@ int CartPole::getOutputSize() { return action_dim; }
 
 std::vector<float> CartPole::sample() {
   std::vector<float> action;
-  action.push_back((float)random0to1());
+  unsigned int rand_seed = time(NULL);
+  action.push_back((float)random0to1(rand_seed));
   return action;
 }
 } // namespace Env
