@@ -65,10 +65,6 @@ Tensor Pooling2DLayer::forwarding(Tensor in, int &status) {
   return hidden;
 }
 
-Tensor Pooling2DLayer::forwarding(Tensor in, Tensor output, int &status) {
-  return forwarding(in, status);
-}
-
 Tensor Pooling2DLayer::backwarding(Tensor derivative, int iteration) {
   unsigned int batch = input_dim.batch();
   unsigned int channel = input_dim.channel();

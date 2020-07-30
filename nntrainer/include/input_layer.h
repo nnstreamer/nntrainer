@@ -91,17 +91,6 @@ public:
   Tensor forwarding(Tensor in, int &status);
 
   /**
-   * @brief     foward propagation : return Input Tensor
-   *            It return Input as it is.
-   * @param[in] in input Tensor from lower layer.
-   * @param[in] output label Tensor.
-   * @retval    return Input Tensor
-   */
-  Tensor forwarding(Tensor in, Tensor output, int &status) {
-    return forwarding(in, status);
-  };
-
-  /**
    * @brief     Initializer of Input Layer
    * @param[in] last last layer
    * @retval #ML_ERROR_NONE Successful.

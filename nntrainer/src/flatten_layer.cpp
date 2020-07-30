@@ -47,10 +47,6 @@ Tensor FlattenLayer::forwarding(Tensor in, int &status) {
   return hidden;
 }
 
-Tensor FlattenLayer::forwarding(Tensor in, Tensor output, int &status) {
-  return forwarding(in, status);
-}
-
 Tensor FlattenLayer::backwarding(Tensor in, int iteration) {
   Tensor ret = in;
   ret.setDim(input_dim);
