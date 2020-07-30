@@ -191,7 +191,7 @@ void DataBufferFromDataFile::updateData(BufferType type) {
     break;
   }
 
-  uint64_t I;
+  unsigned int I;
   std::vector<unsigned int> mark;
   mark.resize(max_size);
   file.clear();
@@ -230,8 +230,9 @@ void DataBufferFromDataFile::updateData(BufferType type) {
 
       mark.erase(mark.begin() + id);
 
-      uint64_t position = (uint64_t)(
-        (I * input_dim.getFeatureLen() + I * class_num) * sizeof(float));
+      uint64_t position =
+        (uint64_t)((I * input_dim.getFeatureLen() + (uint64_t)I * class_num) *
+                   sizeof(float));
       try {
         if (position > file_length) {
           throw std::runtime_error("Error: Cannot exceed max file size");

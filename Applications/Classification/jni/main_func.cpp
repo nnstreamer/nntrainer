@@ -66,6 +66,8 @@ const unsigned int mini_batch = 32;
 
 const unsigned int feature_size = 62720;
 
+unsigned int seed;
+
 using namespace std;
 
 /**
@@ -104,7 +106,7 @@ static int rangeRandom(int min, int max) {
   int remainder = RAND_MAX % n;
   int x;
   do {
-    x = rand();
+    x = rand_r(&seed);
   } while (x >= RAND_MAX - remainder);
   return min + x % n;
 }
@@ -118,12 +120,12 @@ static int rangeRandom(int min, int max) {
  * @retval true/false false : end of data
  */
 bool getData(std::ifstream &F, std::vector<float> &outVec,
-             std::vector<float> &outLabel, uint64_t id) {
+             std::vector<float> &outLabel, unsigned int id) {
   F.clear();
   F.seekg(0, std::ios_base::end);
   uint64_t file_length = F.tellg();
-  uint64_t position =
-    (uint64_t)((feature_size + total_label_size) * id * sizeof(float));
+  uint64_t position = (uint64_t)((feature_size + total_label_size) *
+                                 (uint64_t)id * sizeof(float));
 
   if (position > file_length) {
     return false;
@@ -270,7 +272,8 @@ int main(int argc, char *argv[]) {
   const vector<string> args(argv + 1, argv + argc);
   std::string config = args[0];
 
-  srand(time(NULL));
+  seed = time(NULL);
+  srand(seed);
   std::vector<std::vector<float>> inputVector, outputVector;
   std::vector<std::vector<float>> inputValVector, outputValVector;
   std::vector<std::vector<float>> inputTestVector, outputTestVector;

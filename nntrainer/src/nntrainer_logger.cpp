@@ -64,8 +64,9 @@ Logger::Cleanup::~Cleanup() {
 Logger::~Logger() { outputstream.close(); }
 
 Logger::Logger() {
+  struct tm lt;
   time_t t = time(0);
-  struct tm *now = localtime(&t);
+  struct tm *now = localtime_r(&t, &lt);
   std::stringstream ss;
   ss << logfile_name << std::dec << (now->tm_year + 1900) << std::setfill('0')
      << std::setw(2) << (now->tm_mon + 1) << std::setfill('0') << std::setw(2)
@@ -82,7 +83,8 @@ void Logger::log(const std::string &message,
                  const nntrainer_loglevel loglevel) {
   std::lock_guard<std::mutex> guard(smutex);
   time_t t = time(0);
-  struct tm *now = localtime(&t);
+  struct tm lt;
+  struct tm *now = localtime_r(&t, &lt);
   std::stringstream ss;
   switch (loglevel) {
   case NNTRAINER_LOG_INFO:
