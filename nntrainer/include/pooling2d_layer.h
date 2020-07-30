@@ -97,15 +97,6 @@ public:
   Tensor forwarding(Tensor in, int &status);
 
   /**
-   * @brief     foward propagation : return Pooling
-   * @param[in] in input Tensor from lower layer.
-   * @param[in] output dummy variable
-   * @param[out] status status
-   * @retval    return Pooling Result
-   */
-  Tensor forwarding(Tensor in, Tensor output, int &status);
-
-  /**
    * @brief     back propagation
    *            Calculate Delivatives
    * @param[in] input Input Tensor from lower layer

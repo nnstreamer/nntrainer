@@ -69,17 +69,6 @@ public:
   Tensor forwarding(Tensor in, int &status);
 
   /**
-   * @brief     foward propagation : return Input Tensor
-   *            It return Input as it is.
-   * @param[in] input input Tensor from lower layer.
-   * @param[in] output label Tensor.
-   * @retval    normalized input tensor using scaling factor
-   */
-  Tensor forwarding(Tensor in, Tensor output, int &status) {
-    return forwarding(in, status);
-  };
-
-  /**
    * @brief     back propagation
    *            Calculate dJdB & dJdW & Update W & B
    * @param[in] in Input Tensor from lower layer
