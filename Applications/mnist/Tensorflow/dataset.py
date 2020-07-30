@@ -22,24 +22,39 @@ TOTAL_LABEL_SIZE=10
 TOTAL_VAL_DATA_SIZE=100
 FEATURE_SIZE=784
 
-def get_data_info():
-    return TOTAL_TRAIN_DATA_SIZE, TOTAL_VAL_DATA_SIZE, TOTAL_LABEL_SIZE, FEATURE_SIZE
+def get_data_info(target):
+    if target == "validation":
+        t_data_size = 2
+        v_data_size = 2
+    else:
+        t_data_size = TOTAL_TRAIN_DATA_SIZE
+        v_data_size = TOTAL_VAL_DATA_SIZE
+    return t_data_size, v_data_size, TOTAL_LABEL_SIZE, FEATURE_SIZE
 
 ##
 # @brief load input data from file
 # @return (InputVector, InputLabel, Validation Vector, ValidationLabel)
-def load_data():
-    data_size = TOTAL_TRAIN_DATA_SIZE;
-    InputVector = np.zeros((TOTAL_LABEL_SIZE*data_size, FEATURE_SIZE),dtype=np.float32)
-    InputLabel = np.zeros((TOTAL_LABEL_SIZE*data_size, TOTAL_LABEL_SIZE),dtype=np.float32)
+def load_data(target):
+    # data_size = TOTAL_TRAIN_DATA_SIZE;
+    d_size = get_data_info(target)
+    
+    if target == "validation":
+        t_buf_size = d_size[0]
+        v_buf_size = d_size[1]
+    else:
+        t_buf_size = d_size[0]*TOTAL_LABEL_SIZE
+        v_buf_size = d_size[1]*TOTAL_LABEL_SIZE
+    
+    InputVector = np.zeros((t_buf_size, FEATURE_SIZE),dtype=np.float32)
+    InputLabel = np.zeros((t_buf_size, TOTAL_LABEL_SIZE),dtype=np.float32)
 
-    ValVector = np.zeros((TOTAL_LABEL_SIZE*TOTAL_VAL_DATA_SIZE,FEATURE_SIZE),dtype=np.float32)
-    ValLabel = np.zeros((TOTAL_LABEL_SIZE*TOTAL_VAL_DATA_SIZE, TOTAL_LABEL_SIZE),dtype=np.float32)
+    ValVector = np.zeros((v_buf_size,FEATURE_SIZE),dtype=np.float32)
+    ValLabel = np.zeros((v_buf_size, TOTAL_LABEL_SIZE),dtype=np.float32)
 
     #read Input & Label    
 
     fin = open('mnist_trainingSet.dat','rb')
-    for i in range(TOTAL_LABEL_SIZE*TOTAL_VAL_DATA_SIZE):
+    for i in range(v_buf_size):
         for j in range(FEATURE_SIZE):
             data_str = fin.read(4)
             ValVector[i,j] = struct.unpack('f',data_str)[0]
@@ -50,7 +65,7 @@ def load_data():
     
     # we are using same training data for validation to check how internal implementation is working
     fin=open('mnist_trainingSet.dat','rb')
-    for i in range(TOTAL_LABEL_SIZE*data_size):
+    for i in range(t_buf_size):
         for j in range(FEATURE_SIZE):
             data_str = fin.read(4)
             InputVector[i,j] = struct.unpack('f',data_str)[0]

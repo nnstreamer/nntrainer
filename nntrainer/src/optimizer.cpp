@@ -108,8 +108,8 @@ void Optimizer::apply_gradients(std::shared_ptr<UpdatableParam> params,
       break;
     case OptType::adam: {
 
-      Tensor wm = weight_mv[idx].first;
-      Tensor wv = weight_mv[idx].second;
+      Tensor &wm = weight_mv[idx].first;
+      Tensor &wv = weight_mv[idx].second;
 
       wm.multiply_i(popt.beta1);
       wm.add_i(x_grad, 1.0f - popt.beta1);
@@ -121,7 +121,6 @@ void Optimizer::apply_gradients(std::shared_ptr<UpdatableParam> params,
                        .divide(sqrtFloat(biasCorrection2))
                        .add(popt.epsilon);
       x.add_i(wm.divide(denom), -ll / biasCorrection1);
-
       break;
     }
     case OptType::unknown:

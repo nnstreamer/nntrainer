@@ -167,7 +167,6 @@ def fc_tf_simplified_backward(x, kernel, label, bias, activation, opt):
         optimizer = tf.keras.optimizers.Adam(learning_rate = 1,beta_1=0.9, beta_2=0.999, epsilon=1.0e-7)
     else:
         raise 'unknown optimizer'
-
     tf_grad = tf.gradients(fc_out, all_variables)
     train_op = optimizer.apply_gradients(list(zip(tf_grad[1:], trainable_variables)))
 
@@ -191,6 +190,9 @@ def fc_tf_simplified_backward(x, kernel, label, bias, activation, opt):
         print(tf_outs[2][1].shape)
         print("-------------------")
         print(tf_outs[0])
+        print(tf_outs[1][0])
+        print(tf_outs[1][1])
+        print(tf_outs[1][2])
         print(tf_outs[2][0])
         print(tf_outs[2][1])
         print("-------------------")
@@ -386,6 +388,7 @@ def gen_test_case_fc(input_shape, kernel_shape, base_name):
         np.array(bias, dtype=np.float32).tofile(outfile)
 
     golden_fc_simplified = fc_tf_simplified_backward(input_data, kernel, label, bias, activation=None, opt='adam')
+    save(base_name + "_goldenFCAdam.out", golden_fc_simplified[0])
     save(base_name + "_goldenFCGradientAdam.out", golden_fc_simplified[1][0])
     save(base_name + "_goldenFCUpdatedWeightAdam.out", golden_fc_simplified[2][0])
     save(base_name + "_goldenFCUpdatedBiasAdam.out", golden_fc_simplified[2][1])
@@ -440,6 +443,13 @@ def gen_test_case_fc(input_shape, kernel_shape, base_name):
     save(base_name + "_goldenFCGradientsSoftmaxCross.out", golden_fc[2][1], golden_fc[2][2])
     save(base_name + "_goldenFCUpdatedWeightsSoftmaxCross.out", golden_fc[3][0], golden_fc[3][1])
 
+    golden_fc = fc_tf(input_data, kernel, label, bias, activation=tf.nn.softmax, train=True, loss='cross', opt='adam')
+    save(base_name + "_goldenFCResultSoftmaxCrossAdam.out", golden_fc[0])
+    save(base_name + "_goldenFCLossSoftmaxCrossAdam.out", golden_fc[1])
+    save(base_name + "_goldenFCGradientDxSoftmaxCrossAdam.out", golden_fc[2][0])
+    save(base_name + "_goldenFCGradientsSoftmaxCrossAdam.out", golden_fc[2][1], golden_fc[2][2])
+    save(base_name + "_goldenFCUpdatedWeightsSoftmaxCrossAdam.out", golden_fc[3][0], golden_fc[3][1])
+    
 def gen_test_case_bn(input_shape, base_name, training=True):
     input_data = gen_input(base_name + "_BNLayerInput.in", input_shape)
 

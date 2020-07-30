@@ -496,24 +496,31 @@ TEST_F(nntrainer_FullyConnectedLayer_TFmatch,
 
   nntrainer::UpdatableParam *param_data = layer.getParams().get();
 
-  for (unsigned int i = 0; i < 2; ++i) {
-    nntrainer::UpdatableParam &param = param_data[i];
-    nntrainer::Tensor &weight = param.weight;
-    const float *wdata = weight.getData();
-    if (i == 0) {
-      for (unsigned int j = 0; j < weight.length(); ++j) {
-        weight_data.push_back(wdata[j]);
-      }
-    } else {
-      for (unsigned int j = 0; j < weight.length(); ++j) {
-        bias_data.push_back(wdata[j]);
-      }
-    }
-  }
+  nntrainer::UpdatableParam &param = param_data[0];
+  nntrainer::Tensor &weight = param.weight;
+  matchOutput(weight, "tc_fc_1_goldenFCUpdatedWeightAdam.out");
 
-  matchOutput(weight_data, "tc_fc_1_goldenFCUpdatedWeightAdam.out");
+  nntrainer::UpdatableParam &bias_param = param_data[1];
+  nntrainer::Tensor &bias = bias_param.weight;
+  matchOutput(bias, "tc_fc_1_goldenFCUpdatedBiasAdam.out");
+}
 
-  matchOutput(bias_data, "tc_fc_1_goldenFCUpdatedBiasAdam.out");
+/**
+ * @brief Fully Connected Layer
+ */
+TEST_F(nntrainer_FullyConnectedLayer_TFmatch,
+       forwarding_backwarding_loss_00_p) {
+  std::vector<float> weight_data;
+  std::vector<float> bias_data;
+
+  setOptimizer(nntrainer::OptType::adam, "learning_rate=0.0001");
+  addLoss(nntrainer::COST_ENTROPY_SOFTMAX);
+
+  matchForwarding("tc_fc_1_goldenFCResultSoftmaxCrossAdam.out");
+
+  matchBackwarding("tc_fc_1_goldenFCGradientDxSoftmaxCrossAdam.out",
+                   "tc_fc_1_goldenFCUpdatedWeightsSoftmaxCrossAdam.out",
+                   "tc_fc_1_goldenFCGradientsSoftmaxCrossAdam.out", true);
 }
 
 /**
