@@ -80,7 +80,7 @@ typedef struct _OptParam {
     learning_rate(0.001f),
     beta1(0.9f),
     beta2(0.999f),
-    epsilon(1e-7f),
+    epsilon(1.0e-7f),
     decay_rate(1.0f),
     decay_steps(-1.0f),
     continue_train(false) {

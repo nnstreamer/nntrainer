@@ -38,9 +38,24 @@
 
 #define TRAINING true
 
+#define VALIDATION false
+
+#if VALIDATION
 /**
  * @brief     Data size for each category
  */
+const unsigned int total_train_data_size = 2;
+
+const unsigned int total_val_data_size = 2;
+
+const unsigned int total_test_data_size = 2;
+
+const unsigned int buffer_size = 2;
+
+const unsigned int mini_batch = 2;
+
+#else
+
 const unsigned int total_train_data_size = 100;
 
 const unsigned int total_val_data_size = 100;
@@ -49,6 +64,10 @@ const unsigned int total_test_data_size = 100;
 
 const unsigned int buffer_size = 100;
 
+const unsigned int mini_batch = 32;
+
+#endif
+
 /**
  * @brief     Number of category : Three
  */
@@ -56,8 +75,6 @@ const unsigned int total_label_size = 10;
 
 unsigned int train_count = 0;
 unsigned int val_count = 0;
-
-const unsigned int mini_batch = 32;
 
 const unsigned int feature_size = 784;
 
@@ -128,7 +145,11 @@ int getMiniBatch_train(float **outVec, float **outLabel, bool *last,
   std::string filename = "mnist_trainingSet.dat";
   std::ifstream F(filename, std::ios::in | std::ios::binary);
 
+#if VALIDATION
+  if (data_size - train_count < mini_batch) {
+#else
   if (data_size * total_label_size - train_count < mini_batch) {
+#endif
     *last = true;
     train_count = 0;
     return ML_ERROR_NONE;
@@ -176,7 +197,11 @@ int getMiniBatch_val(float **outVec, float **outLabel, bool *last,
   std::string filename = "mnist_trainingSet.dat";
   std::ifstream F(filename, std::ios::in | std::ios::binary);
 
+#if VALIDATION
+  if (data_size - val_count < mini_batch) {
+#else
   if (data_size * total_label_size - val_count < mini_batch) {
+#endif
     *last = true;
     val_count = 0;
     return ML_ERROR_NONE;
@@ -216,6 +241,7 @@ int main(int argc, char *argv[]) {
     std::cout << "./nntrainer_mnist mnist.ini\n";
     exit(0);
   }
+
   const std::vector<std::string> args(argv + 1, argv + argc);
   std::string config = args[0];
 

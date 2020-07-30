@@ -326,7 +326,7 @@ int Tensor::subtract_i(Tensor const &m) {
     cblas_saxpy(len, alpha, mdata, 1, data, 1);
   }
 #else
-  unsigned int i, j, k, dlen;
+  unsigned int i, j, k;
   if (m.dim.batch() == 1) {
     len = m.dim.getFeatureLen();
     for (k = 0; k < dim.batch(); ++k) {
