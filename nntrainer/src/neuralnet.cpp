@@ -212,10 +212,10 @@ int NeuralNetwork::loadFromConfig() {
   }
 
   /** Get all the section names */
-  ml_logi("==========================parsing ini... \n"
-          "invalid properties does not cause error, rather be ignored \n"
-          "not-allowed property for the layer throws error \n"
-          "valid property with invalid value throws error as well");
+  ml_logi("==========================parsing ini...");
+  ml_logi("invalid properties does not cause error, rather be ignored");
+  ml_logi("not-allowed property for the layer throws error");
+  ml_logi("valid property with invalid value throws error as well");
   for (int idx = 0; idx < num_ini_sec; ++idx) {
     const char *sec_name = iniparser_getsecname(ini, idx);
 
