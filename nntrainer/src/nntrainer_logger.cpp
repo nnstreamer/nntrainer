@@ -91,7 +91,7 @@ void Logger::log(const std::string &message,
     ss << "[NNTRAINER INFO  ";
     break;
   case NNTRAINER_LOG_WARN:
-    ss << "[NNTRAINER WARNING ";
+    ss << "[NNTRAINER WARN  ";
     break;
   case NNTRAINER_LOG_ERROR:
     ss << "[NNTRAINER ERROR ";
@@ -105,9 +105,9 @@ void Logger::log(const std::string &message,
 
   ss << std::dec << (now->tm_year + 1900) << '-' << std::setfill('0')
      << std::setw(2) << (now->tm_mon + 1) << '-' << std::setfill('0')
-     << std::setw(2) << now->tm_mday << '-' << std::setfill('0') << std::setw(2)
-     << now->tm_hour << std::setfill('0') << std::setw(2) << now->tm_min
-     << std::setfill('0') << std::setw(2) << now->tm_sec << ']';
+     << std::setw(2) << now->tm_mday << ' ' << std::setfill('0') << std::setw(2)
+     << now->tm_hour << ':' << std::setfill('0') << std::setw(2) << now->tm_min
+     << ':' << std::setfill('0') << std::setw(2) << now->tm_sec << ']';
 
   outputstream << ss.str() << " " << message << std::endl;
 }

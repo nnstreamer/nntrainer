@@ -55,13 +55,30 @@
 #else /* Linux distro */
 #include <nntrainer_logger.h>
 
-#define ml_logi(...) __nntrainer_log_print(NNTRAINER_LOG_INFO, __VA_ARGS__)
+#if !defined(ml_logi)
+#define ml_logi(format, args...)                                            \
+  __nntrainer_log_print(NNTRAINER_LOG_INFO, "(%s:%s:%d) " format, __FILE__, \
+                        __func__, __LINE__, ##args)
+#endif
 
-#define ml_logw(...) __nntrainer_log_print(NNTRAINER_LOG_WARN, __VA_ARGS__)
+#if !defined(ml_logw)
+#define ml_logw(format, args...)                                            \
+  __nntrainer_log_print(NNTRAINER_LOG_WARN, "(%s:%s:%d) " format, __FILE__, \
+                        __func__, __LINE__, ##args)
+#endif
 
-#define ml_loge(...) __nntrainer_log_print(NNTRAINER_LOG_ERROR, __VA_ARGS__)
+#if !defined(ml_loge)
+#define ml_loge(format, args...)                                             \
+  __nntrainer_log_print(NNTRAINER_LOG_ERROR, "(%s:%s:%d) " format, __FILE__, \
+                        __func__, __LINE__, ##args)
+#endif
 
-#define ml_logd(...) __nntrainer_log_print(NNTRAINER_LOG_DEBUG, __VA_ARGS__)
+#if !defined(ml_logd)
+#define ml_logd(format, args...)                                             \
+  __nntrainer_log_print(NNTRAINER_LOG_DEBUG, "(%s:%s:%d) " format, __FILE__, \
+                        __func__, __LINE__, ##args)
 #endif
 
 #endif
+
+#endif /* __NNTRAINER_LOG_H__ */
