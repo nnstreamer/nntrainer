@@ -81,19 +81,18 @@ void FullyConnectedLayer::setProperty(const PropertyType type,
   }
 }
 
-Tensor FullyConnectedLayer::forwarding(Tensor in, int &status) {
+sharedTensor FullyConnectedLayer::forwarding(sharedTensor in) {
   Tensor &weight = paramsAt(static_cast<int>(FCParams::weight)).weight;
   Tensor &bias = paramsAt(static_cast<int>(FCParams::bias)).weight;
 
-  input = in;
+  input = *in;
   hidden = input.chain().dot(weight).add_i(bias).run();
-  status = ML_ERROR_NONE;
 
   if (weight_decay.type == WeightDecayType::l2norm) {
     loss = weight_decay.lambda * 0.5f * (weight.l2norm());
   }
 
-  return hidden;
+  return MAKE_SHARED_TENSOR(hidden);
 }
 
 void FullyConnectedLayer::read(std::ifstream &file) {
@@ -123,18 +122,19 @@ void FullyConnectedLayer::copy(std::shared_ptr<Layer> l) {
   this->cost = from->cost;
 }
 
-Tensor FullyConnectedLayer::backwarding(Tensor derivative, int iteration) {
+sharedTensor FullyConnectedLayer::backwarding(sharedTensor derivative,
+                                              int iteration) {
   unsigned int weight_idx = static_cast<int>(FCParams::weight);
   unsigned int bias_idx = static_cast<int>(FCParams::bias);
   Tensor &weight = paramsAt(weight_idx).weight;
   Tensor &djdw = paramsAt(weight_idx).grad;
   Tensor &djdb = paramsAt(bias_idx).grad;
 
-  Tensor ret = derivative.dot(weight.transpose("0:2:1"));
-  djdb = derivative.sum(0);
+  Tensor ret = derivative->dot(weight.transpose("0:2:1"));
+  djdb = derivative->sum(0);
   djdw = input.chain()
            .transpose("0:2:1")
-           .dot(derivative)
+           .dot(*derivative)
            .applyIf(this->isWeightDecayL2Norm(), _LIFT(add_i), weight,
                     weight_decay.lambda)
            .run()
@@ -144,6 +144,6 @@ Tensor FullyConnectedLayer::backwarding(Tensor derivative, int iteration) {
     opt.apply_gradients(params, param_size, iteration);
   }
 
-  return ret;
+  return MAKE_SHARED_TENSOR(std::move(ret));
 }
 } /* namespace nntrainer */

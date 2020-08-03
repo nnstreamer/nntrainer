@@ -427,7 +427,6 @@ int main(int argc, char *argv[]) {
   }
 
   if (!TRAINING) {
-    int status;
     std::string img = data_path;
     std::vector<float> featureVector, resultVector;
     featureVector.resize(feature_size);
@@ -436,12 +435,12 @@ int main(int argc, char *argv[]) {
     nntrainer::Tensor X;
     try {
       X = nntrainer::Tensor({featureVector});
+      NN.forwarding(MAKE_SHARED_TENSOR(X))->apply(stepFunction);
     } catch (...) {
-      std::cerr << "Error while construct tensor" << std::endl;
+      std::cerr << "Error while forwarding the model" << std::endl;
       NN.finalize();
       return 0;
     }
-    cout << NN.forwarding(X, status).apply(stepFunction) << endl;
   }
   /**
    * @brief     Finalize NN

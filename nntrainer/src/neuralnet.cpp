@@ -557,30 +557,25 @@ void NeuralNetwork::finalize() {
 /**
  * @brief     forward propagation using layers object which has layer
  */
-Tensor NeuralNetwork::forwarding(Tensor input, int &status) {
-  Tensor X = input;
+sharedTensor NeuralNetwork::forwarding(sharedTensor input) {
+  sharedTensor X = input;
   /** Do not forward the loss layer, as label is not available */
-  for (unsigned int i = 0; i < layers.size() - 1; i++) {
-    X = layers[i]->forwarding(X, status);
-    if (status != ML_ERROR_NONE)
-      break;
-  }
+  for (unsigned int i = 0; i < layers.size() - 1; i++)
+    X = layers[i]->forwarding(X);
+
   return X;
 }
 
 /**
  * @brief     forward propagation using layers object which has layer
  */
-Tensor NeuralNetwork::forwarding(Tensor input, Tensor output, int &status) {
-  Tensor X = input;
-  Tensor Y2 = output;
+sharedTensor NeuralNetwork::forwarding(sharedTensor input, sharedTensor label) {
+  sharedTensor X;
 
-  X = forwarding(input, status);
-  if (status != ML_ERROR_NONE)
-    return X;
-
+  X = forwarding(input);
   X = std::static_pointer_cast<LossLayer>(layers[layers.size() - 1])
-        ->forwarding(X, Y2, status);
+        ->forwarding(X, label);
+
   return X;
 }
 
@@ -589,19 +584,14 @@ Tensor NeuralNetwork::forwarding(Tensor input, Tensor output, int &status) {
  *            Call backwarding function of layer in reverse order
  *            No need to call at first Input Layer (No data to be updated)
  */
-int NeuralNetwork::backwarding(Tensor input, Tensor expected_output,
-                               int iteration) {
-  int status = ML_ERROR_NONE;
-  Tensor Y2 = expected_output;
-  Tensor X = input;
-  Tensor Y = forwarding(X, Y2, status);
-  if (status != ML_ERROR_NONE)
-    return status;
+void NeuralNetwork::backwarding(sharedTensor input, sharedTensor label,
+                                int iteration) {
 
-  for (unsigned int i = layers.size() - 1; i > 0; i--) {
-    Y2 = layers[i]->backwarding(Y2, iteration);
-  }
-  return status;
+  forwarding(input, label);
+
+  sharedTensor output = label;
+  for (unsigned int i = layers.size() - 1; i > 0; i--)
+    output = layers[i]->backwarding(output, iteration);
 }
 
 float NeuralNetwork::getLoss() {
@@ -719,12 +709,13 @@ int NeuralNetwork::train_run() {
     while (true) {
       vec_4d in, label;
       if (data_buffer->getDataFromBuffer(nntrainer::BUF_TRAIN, in, label)) {
-        status =
-          backwarding(nntrainer::Tensor(in), nntrainer::Tensor(label), iter++);
-        if (status != ML_ERROR_NONE) {
+        try {
+          backwarding(MAKE_SHARED_TENSOR(in), MAKE_SHARED_TENSOR(label),
+                      iter++);
+        } catch (...) {
           data_buffer->clear(nntrainer::BUF_TRAIN);
           ml_loge("Error: training error in #%d/%d.", i + 1, epoch);
-          return status;
+          std::rethrow_exception(std::current_exception());
         }
         std::cout << "#" << i + 1 << "/" << epoch;
         data_buffer->displayProgress(count++, nntrainer::BUF_TRAIN, getLoss());
@@ -755,15 +746,15 @@ int NeuralNetwork::train_run() {
         vec_4d in, label;
         if (data_buffer->getDataFromBuffer(nntrainer::BUF_VAL, in, label)) {
           for (int i = 0; i < batch_size; ++i) {
-            nntrainer::Tensor X = nntrainer::Tensor({in[i]});
-            nntrainer::Tensor Y2 = nntrainer::Tensor({label[i]});
-            nntrainer::Tensor Y = forwarding(X, Y2, status);
+            sharedTensor X = MAKE_SHARED_TENSOR(Tensor({in[i]}));
+            sharedTensor Y2 = MAKE_SHARED_TENSOR(Tensor({label[i]}));
+            sharedTensor Y = forwarding(X, Y2);
             if (status != ML_ERROR_NONE) {
               ml_loge("Error: forwarding the network resulted in error.");
               return status;
             }
 
-            if (Y.argmax() == Y2.argmax())
+            if (Y->argmax() == Y2->argmax())
               right++;
             valloss += getLoss();
             tcases++;

@@ -134,27 +134,27 @@ public:
   int init();
 
   /**
-   * @brief     forward propagation
-   * @param[in] input Input Tensor X
-   * @retval    Output Tensor Y
+   * @brief     Forward Propagation of the neural network
+   * @param[in] input List of Input Tensors taken by the neural network
+   * @retval    List of Output Tensors
    */
-  Tensor forwarding(Tensor input, int &status);
+  sharedTensor forwarding(sharedTensor input);
 
   /**
-   * @brief     forward propagation
-   * @param[in] input Input Tensor X
-   * @param[in] label Input Tensor Y2
-   * @retval    Output Tensor Y
+   * @brief     Forward Propagation of the neural network
+   * @param[in] input List of Input Tensors taken by the neural network
+   * @param[in] label List of Label Tensors for the model
+   * @retval    List of Output Tensors
    */
-  Tensor forwarding(Tensor input, Tensor output, int &status);
+  sharedTensor forwarding(sharedTensor input, sharedTensor label);
 
   /**
-   * @brief     back propagation to update W & B
-   * @param[in] input Input Tensor X
-   * @param[in] expectedOutput Lable Tensor Y
-   * @param[in] iteration Epoch Number for ADAM
+   * @brief     Forward Propagation of the neural network
+   * @param[in] input List of Input Tensors taken by the neural network
+   * @param[in] label List of Label Tensors for the model
+   * @param[in] iteration Iteration Number for the optimizer
    */
-  int backwarding(Tensor input, Tensor expected_output, int iteration);
+  void backwarding(sharedTensor input, sharedTensor label, int iteration);
 
   /**
    * @brief     save model and training parameters into file

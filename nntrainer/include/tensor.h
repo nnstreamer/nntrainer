@@ -39,6 +39,8 @@ extern "C" {
 #include <regex>
 #include <tensor_dim.h>
 
+#define MAKE_SHARED_TENSOR(x) std::make_shared<nntrainer::Tensor>(x)
+
 namespace nntrainer {
 
 class LazyTensor;
@@ -545,6 +547,8 @@ private:
  * @brief   Overriding output stream
  */
 std::ostream &operator<<(std::ostream &out, Tensor const &m);
+
+typedef std::shared_ptr<Tensor> sharedTensor;
 
 } /* namespace nntrainer */
 

@@ -79,24 +79,25 @@ void Conv2DLayer::read(std::ifstream &file) { Layer::read(file); }
 
 void Conv2DLayer::save(std::ofstream &file) { Layer::save(file); }
 
-Tensor Conv2DLayer::forwarding(Tensor in, int &status) {
+sharedTensor Conv2DLayer::forwarding(sharedTensor in) {
+  int status = ML_ERROR_NONE;
+  input = *in;
+
   if (normalization) {
-    input = in.normalization();
-  } else {
-    input = in;
+    input = input.normalization();
   }
 
   if (standardization) {
     input = input.standardization();
   }
 
-  hidden = Tensor(in.batch(), output_dim.channel(), output_dim.height(),
+  hidden = Tensor(input.batch(), output_dim.channel(), output_dim.height(),
                   output_dim.width());
   hidden.setZero();
 
   std::vector<float> output(output_dim.width() * output_dim.height());
 
-  for (unsigned int b = 0; b < in.batch(); ++b) {
+  for (unsigned int b = 0; b < input.batch(); ++b) {
     Tensor in_padded = zero_pad(b, input, padding);
 
     for (unsigned int i = 0; i < filter_size; ++i) {
@@ -105,6 +106,8 @@ Tensor Conv2DLayer::forwarding(Tensor in, int &status) {
       status = conv2d(in_padded.getData(), in_padded.getDim(), filter.getData(),
                       filter.getDim(), output.data(), stride,
                       bias.getValue(0, 0, 0, 0));
+      if (status != ML_ERROR_NONE)
+        throw std::runtime_error("Forwarding Convolution failed.");
 
       memcpy(hidden.getAddress(b * hidden.getDim().getFeatureLen() +
                                i * hidden.height() * hidden.width()),
@@ -112,11 +115,10 @@ Tensor Conv2DLayer::forwarding(Tensor in, int &status) {
     }
   }
 
-  status = ML_ERROR_NONE;
-  return hidden;
+  return MAKE_SHARED_TENSOR(hidden);
 };
 
-Tensor Conv2DLayer::backwarding(Tensor derivative, int iteration) {
+sharedTensor Conv2DLayer::backwarding(sharedTensor derivative, int iteration) {
 
   // Calculate delK : [batch, channel, height, width ] * filter_size
   unsigned int same_pad[CONV2D_DIM];
@@ -130,7 +132,7 @@ Tensor Conv2DLayer::backwarding(Tensor derivative, int iteration) {
     delBias.setZero();
   }
 
-  TensorDim in_dim(1, 1, derivative.height(), derivative.width());
+  TensorDim in_dim(1, 1, derivative->height(), derivative->width());
 
   for (unsigned int b = 0; b < input_dim.batch(); ++b) {
     Tensor in_padded = zero_pad(b, input, padding);
@@ -141,12 +143,12 @@ Tensor Conv2DLayer::backwarding(Tensor derivative, int iteration) {
       Tensor &delK = paramsAt(i).grad;
       Tensor &delBias = paramsAt(i + filter_size).grad;
       for (unsigned int j = 0; j < in_padded.channel(); ++j) {
-        conv2d(
-          in_padded.getAddress(j * in_padded.height() * in_padded.width()),
-          p_dim,
-          derivative.getAddress(b * derivative.getDim().getFeatureLen() +
-                                i * derivative.height() * derivative.width()),
-          in_dim, output.data(), stride, 0.0f);
+        conv2d(in_padded.getAddress(j * in_padded.height() * in_padded.width()),
+               p_dim,
+               derivative->getAddress(b * derivative->getDim().getFeatureLen() +
+                                      i * derivative->height() *
+                                        derivative->width()),
+               in_dim, output.data(), stride, 0.0f);
         float *del = delK.getAddress(j * o_size);
         for (unsigned k = 0; k < o_size; ++k) {
           del[k] += output[k];
@@ -154,9 +156,9 @@ Tensor Conv2DLayer::backwarding(Tensor derivative, int iteration) {
       }
 
       // Calculate delBias [ 1, 1, 1, filter_size]
-      for (unsigned int j = 0; j < derivative.height(); ++j) {
-        for (unsigned int k = 0; k < derivative.width(); ++k) {
-          sum += derivative.getValue(b, i, j, k);
+      for (unsigned int j = 0; j < derivative->height(); ++j) {
+        for (unsigned int k = 0; k < derivative->width(); ++k) {
+          sum += derivative->getValue(b, i, j, k);
         }
       }
       delBias.setValue(0, 0, 0, 0, sum + delBias.getValue(0, 0, 0, 0));
@@ -178,12 +180,12 @@ Tensor Conv2DLayer::backwarding(Tensor derivative, int iteration) {
   output.clear();
   output.resize(ret.height() * ret.width());
 
-  for (unsigned int b = 0; b < derivative.batch(); ++b) {
-    Tensor in_padded = zero_pad(b, derivative, same_pad);
+  for (unsigned int b = 0; b < derivative->batch(); ++b) {
+    Tensor in_padded = zero_pad(b, *derivative, same_pad);
     TensorDim p_dim(1, 1, in_padded.height(), in_padded.width());
 
     for (unsigned int in_c = 0; in_c < input_dim.channel(); ++in_c) {
-      for (unsigned int i = 0; i < derivative.channel(); ++i) {
+      for (unsigned int i = 0; i < derivative->channel(); ++i) {
         Tensor &filter = paramsAt(i).weight;
 
         conv2d(in_padded.getAddress(i * in_padded.height() * in_padded.width()),
@@ -213,7 +215,8 @@ Tensor Conv2DLayer::backwarding(Tensor derivative, int iteration) {
     opt.apply_gradients(params, param_size, iteration);
   }
 
-  return rotate_180(strip_pad(ret, padding));
+  ret = rotate_180(strip_pad(ret, padding));
+  return MAKE_SHARED_TENSOR(std::move(ret));
 }
 
 void Conv2DLayer::copy(std::shared_ptr<Layer> l) {

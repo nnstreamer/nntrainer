@@ -265,7 +265,6 @@ int main(int argc, char **argv) {
   std::deque<Experience> expQ;
 
   PTR env;
-  int status = 0;
 
   /**
    * @brief     Initialize Environment
@@ -356,6 +355,7 @@ int main(int argc, char **argv) {
          * @brief     get action with input State with mainNet
          */
         nntrainer::Tensor in_tensor;
+        nntrainer::sharedTensor test;
         try {
           in_tensor = nntrainer::Tensor({input});
         } catch (...) {
@@ -364,9 +364,16 @@ int main(int argc, char **argv) {
           targetNet.finalize();
           return 0;
         }
-        nntrainer::Tensor test = mainNet.forwarding(in_tensor, status);
-        float *data = test.getData();
-        unsigned int len = test.getDim().getDataLen();
+        try {
+          test = mainNet.forwarding(MAKE_SHARED_TENSOR(in_tensor));
+        } catch (...) {
+          std::cerr << "Error while forwarding the network" << std::endl;
+          mainNet.finalize();
+          targetNet.finalize();
+          return 0;
+        }
+        float *data = test->getData();
+        unsigned int len = test->getDim().getDataLen();
         std::vector<float> temp(data, data + len);
         action.push_back(argmax(temp));
 
@@ -467,30 +474,46 @@ int main(int argc, char **argv) {
         /**
          * @brief     run forward propagation with mainNet
          */
-        nntrainer::Tensor Q = mainNet.forwarding(q_in, status);
+        nntrainer::sharedTensor Q;
+        try {
+          Q = mainNet.forwarding(MAKE_SHARED_TENSOR(q_in));
+        } catch (...) {
+          std::cerr << "Error during forwarding main network" << std::endl;
+          mainNet.finalize();
+          targetNet.finalize();
+          return -1;
+        }
 
         /**
          * @brief     run forward propagation with targetNet
          */
-        nntrainer::Tensor NQ = targetNet.forwarding(nq_in, status);
-        float *nqa = NQ.getData();
+        nntrainer::sharedTensor NQ;
+        try {
+          NQ = targetNet.forwarding(MAKE_SHARED_TENSOR(nq_in));
+        } catch (...) {
+          std::cerr << "Error during forwarding target network" << std::endl;
+          mainNet.finalize();
+          targetNet.finalize();
+          return -1;
+        }
+        float *nqa = NQ->getData();
 
         /**
          * @brief     Update Q values & udpate mainNetwork
          */
         for (unsigned int i = 0; i < in_Exp.size(); i++) {
           if (in_Exp[i].done) {
-            Q.setValue(i, 0, 0, (int)in_Exp[i].action[0],
-                       (float)in_Exp[i].reward);
+            Q->setValue(i, 0, 0, (int)in_Exp[i].action[0],
+                        (float)in_Exp[i].reward);
           } else {
-            float next = (nqa[i * NQ.getWidth()] > nqa[i * NQ.getWidth() + 1])
-                           ? nqa[i * NQ.getWidth()]
-                           : nqa[i * NQ.getWidth() + 1];
+            float next = (nqa[i * NQ->getWidth()] > nqa[i * NQ->getWidth() + 1])
+                           ? nqa[i * NQ->getWidth()]
+                           : nqa[i * NQ->getWidth() + 1];
             try {
-              Q.setValue(i, 0, 0, (int)in_Exp[i].action[0],
-                         (float)in_Exp[i].reward + DISCOUNT * next);
+              Q->setValue(i, 0, 0, (int)in_Exp[i].action[0],
+                          (float)in_Exp[i].reward + DISCOUNT * next);
             } catch (...) {
-              std::cerr << "Error durint set value" << std::endl;
+              std::cerr << "Error during set value" << std::endl;
               mainNet.finalize();
               targetNet.finalize();
               return 0;
@@ -500,15 +523,14 @@ int main(int argc, char **argv) {
         nntrainer::Tensor in_tensor;
         try {
           in_tensor = nntrainer::Tensor(inbatch);
+          mainNet.backwarding(MAKE_SHARED_TENSOR(in_tensor), Q, iter);
         } catch (...) {
-          std::cerr << "Error during tensor initialization" << std::endl;
+          std::cerr << "Error during backwarding the network" << std::endl;
           mainNet.finalize();
           targetNet.finalize();
 
           return 0;
         }
-
-        mainNet.backwarding(in_tensor, Q, iter);
       }
 
       writeFile << "mainNet Loss : " << mainNet.getLoss()

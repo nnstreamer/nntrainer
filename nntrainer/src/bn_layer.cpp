@@ -77,7 +77,7 @@ void BatchNormalizationLayer::setProperty(const PropertyType type,
   }
 }
 
-Tensor BatchNormalizationLayer::forwarding(Tensor in, int &status) {
+sharedTensor BatchNormalizationLayer::forwarding(sharedTensor in) {
   Tensor &mu = paramsAt(static_cast<int>(BNParams::mu)).weight;
   Tensor &var = paramsAt(static_cast<int>(BNParams::var)).weight;
   Tensor &gamma = paramsAt(static_cast<int>(BNParams::gamma)).weight;
@@ -85,14 +85,14 @@ Tensor BatchNormalizationLayer::forwarding(Tensor in, int &status) {
 
   if (trainable) {
     Tensor deviation;
-    this->input = in;
+    input = *in;
 
     ///< current mu */
     Tensor cmu;
 
-    cmu = in.average(0);
+    cmu = input.average(0);
 
-    deviation = in.subtract(cmu);
+    deviation = input.subtract(cmu);
 
     this->cvar = deviation.chain()
                    .multiply_i(deviation)
@@ -111,30 +111,30 @@ Tensor BatchNormalizationLayer::forwarding(Tensor in, int &status) {
     this->x_normalized = deviation.divide(cvar.apply(sqrtFloat));
 
     this->hidden = x_normalized.chain().multiply_i(gamma).add_i(beta).run();
-
-    status = ML_ERROR_NONE;
   } else {
     /// NYI
-    status = ML_ERROR_NOT_SUPPORTED;
     throw std::runtime_error("not_yet_implemented");
   }
-  return hidden;
+
+  return MAKE_SHARED_TENSOR(hidden);
 }
 
-Tensor BatchNormalizationLayer::backwarding(Tensor dy, int iteration) {
+sharedTensor BatchNormalizationLayer::backwarding(sharedTensor derivative,
+                                                  int iteration) {
   Tensor &gamma = paramsAt(static_cast<int>(BNParams::gamma)).weight;
   Tensor &dbeta = paramsAt(static_cast<int>(BNParams::beta)).grad;
   Tensor &dgamma = paramsAt(static_cast<int>(BNParams::beta)).grad;
   Tensor dx_normalized;
 
   Tensor dx;
+  Tensor deriv = *derivative;
 
-  int batch = dy.batch();
+  int batch = deriv.batch();
 
-  dgamma = x_normalized.multiply(dy).sum(0);
-  dbeta = dy.sum(0);
+  dgamma = x_normalized.multiply(deriv).sum(0);
+  dbeta = deriv.sum(0);
 
-  dx_normalized = dy.multiply(gamma);
+  dx_normalized = deriv.multiply(gamma);
 
   dx = dx_normalized.chain()
          .multiply_i(batch)
@@ -148,7 +148,7 @@ Tensor BatchNormalizationLayer::backwarding(Tensor dy, int iteration) {
 
   opt.apply_gradients(grad_params, param_size - 2, iteration);
 
-  return dx;
+  return MAKE_SHARED_TENSOR(std::move(dx));
 }
 
 void BatchNormalizationLayer::copy(std::shared_ptr<Layer> l) {

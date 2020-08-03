@@ -237,7 +237,6 @@ int main(int argc, char *argv[]) {
   srand(time(NULL));
   std::string ini_file = data_path + "ini.bin";
   std::vector<std::vector<float>> inputVector, outputVector;
-  int status = 0;
   /**
    * @brief     Extract Feature
    */
@@ -269,17 +268,23 @@ int main(int argc, char *argv[]) {
       } catch (...) {
         std::cerr << "Error during tensor initialization" << std::endl;
         NN.finalize();
-        return 0;
+        return -1;
       }
       try {
         out = nntrainer::Tensor({outputVector[j]});
       } catch (...) {
         std::cerr << "Error during tensor initialization" << std::endl;
         NN.finalize();
-        return 0;
+        return -1;
       }
 
-      NN.backwarding(in, out, i);
+      try {
+        NN.backwarding(MAKE_SHARED_TENSOR(in), MAKE_SHARED_TENSOR(out), i);
+      } catch (...) {
+        std::cerr << "Error during backwarding the model" << std::endl;
+        NN.finalize();
+        return -1;
+      }
     }
     cout << "#" << i + 1 << "/" << ITERATION << " - Loss : " << NN.getLoss()
          << endl;
@@ -303,12 +308,12 @@ int main(int argc, char *argv[]) {
     nntrainer::Tensor X;
     try {
       X = nntrainer::Tensor({featureVector});
+      NN.forwarding(MAKE_SHARED_TENSOR(X))->apply(stepFunction);
     } catch (...) {
-      std::cerr << "Error during tensor initialization" << std::endl;
+      std::cerr << "Error during forwaring the model" << std::endl;
       NN.finalize();
-      return 0;
+      return -1;
     }
-    cout << NN.forwarding(X, status).apply(stepFunction) << endl;
   }
 
   /**
