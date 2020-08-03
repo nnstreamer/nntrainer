@@ -112,7 +112,7 @@ uint8_t *read_bmp(const std::string &input_bmp_name, int *width, int *height,
   decode_bmp(bmp_pixels, row_size, output, *width, abs(*height), *channels,
              top_down);
 
-  delete (img_bytes);
+  delete[] img_bytes;
 
   return output;
 }
