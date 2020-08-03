@@ -73,6 +73,7 @@ nntrainer_headers = [
   'include/tensor.h',
   'include/tensor_dim.h',
   'include/util_func.h',
+  'include/properties.h',
   '../api/nntrainer-api-common.h'
 ]
 
