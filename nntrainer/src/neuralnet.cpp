@@ -309,7 +309,7 @@ int NeuralNetwork::loadFromConfig() {
 
   if (layers.empty()) {
     ml_loge("there is no layer section in the ini file");
-    return ML_ERROR_INVALID_PARAMETER;
+    status = ML_ERROR_INVALID_PARAMETER;
   }
 
   iniparser_freedict(ini);

@@ -760,7 +760,7 @@ TEST(nntrainer_capi_summary, summary_01_p) {
   status = ml_train_model_destroy(handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  free(sum);
+  delete[] sum;
 }
 
 /**

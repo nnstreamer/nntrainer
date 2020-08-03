@@ -91,12 +91,12 @@ float stepFunction(float x) {
  * @retval true/false false : end of data
  */
 bool getData(std::ifstream &F, std::vector<float> &outVec,
-             std::vector<float> &outLabel, int id) {
+             std::vector<float> &outLabel, unsigned int id) {
   F.clear();
   F.seekg(0, std::ios_base::end);
   uint64_t file_length = F.tellg();
-  uint64_t position =
-    (uint64_t)((feature_size + total_label_size) * id * sizeof(float));
+  uint64_t position = (uint64_t)((feature_size + total_label_size) *
+                                 (uint64_t)id * sizeof(float));
 
   if (position > file_length) {
     return false;

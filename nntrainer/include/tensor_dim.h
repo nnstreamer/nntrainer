@@ -44,8 +44,7 @@ public:
     len = b * feature_len;
   }
 
-  TensorDim(const TensorDim &rhs) :
-    TensorDim(rhs.batch(), rhs.channel(), rhs.height(), rhs.width()){};
+  TensorDim(const TensorDim &rhs) = default;
 
   ~TensorDim(){};
 

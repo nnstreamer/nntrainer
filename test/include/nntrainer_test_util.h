@@ -157,7 +157,7 @@ protected:
   nntrainer::NeuralNetwork NN;
 
 private:
-  void erase_ini() { std::remove((char *)(getIniName().c_str())); }
+  void erase_ini() { name.clear(); }
   int failAt;
   std::string name;
   std::vector<IniSection> sections;

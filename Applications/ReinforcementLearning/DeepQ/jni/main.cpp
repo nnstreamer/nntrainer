@@ -453,17 +453,26 @@ int main(int argc, char **argv) {
           next_inbatch.push_back({{next_in}});
         }
 
+        nntrainer::Tensor q_in, nq_in;
+        try {
+          q_in = nntrainer::Tensor(inbatch);
+          nq_in = nntrainer::Tensor(next_inbatch);
+        } catch (...) {
+          std::cerr << "Error during tensor constructino" << std::endl;
+          mainNet.finalize();
+          targetNet.finalize();
+          return 0;
+        }
+
         /**
          * @brief     run forward propagation with mainNet
          */
-        nntrainer::Tensor Q =
-          mainNet.forwarding(nntrainer::Tensor(inbatch), status);
+        nntrainer::Tensor Q = mainNet.forwarding(q_in, status);
 
         /**
          * @brief     run forward propagation with targetNet
          */
-        nntrainer::Tensor NQ =
-          targetNet.forwarding(nntrainer::Tensor(next_inbatch), status);
+        nntrainer::Tensor NQ = targetNet.forwarding(nq_in, status);
         float *nqa = NQ.getData();
 
         /**
