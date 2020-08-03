@@ -107,10 +107,11 @@ unsigned int parseType(std::string ll, InputType t) {
    *            "pooling2d" : Pooling 2D Layer Object
    *            "flatten" : Flatten Layer Object
    *            "activation" : Activation Layer Object
+   *            "addition" : Addition Layer Object
    */
-  std::array<std::string, 7> layer_string = {
+  std::array<std::string, 8> layer_string = {
     "input",     "fully_connected", "batch_normalization", "conv2d",
-    "pooling2d", "flatten",         "activation"};
+    "pooling2d", "flatten",         "activation",          "addition"};
 
   /**
    * @brief     Weight Initialization Type String from configure file

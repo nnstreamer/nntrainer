@@ -80,7 +80,8 @@ typedef enum {
  *            5. Flatten Layer type
  *            6. Loss Layer type
  *            7. Activation Layer type
- *            8. Unknown
+ *            8. Addition Layer type
+ *            9. Unknown
  */
 typedef enum {
   LAYER_IN,
@@ -90,6 +91,7 @@ typedef enum {
   LAYER_POOLING2D,
   LAYER_FLATTEN,
   LAYER_ACTIVATION,
+  LAYER_ADDITION,
   LAYER_LOSS,
   LAYER_UNKNOWN
 } LayerType;

@@ -10,6 +10,7 @@
  * @bug         No known bugs
  */
 #include <activation_layer.h>
+#include <addition_layer.h>
 #include <bn_layer.h>
 #include <conv2d_layer.h>
 #include <fc_layer.h>
@@ -1475,6 +1476,83 @@ TEST(nntrainer_ActivationLayer, forward_backward_01_p) {
                  nntrainer::ActivationLayer::reluPrime(
                    nntrainer::ActivationLayer::relu((l - 4) * 0.1 * (i + 1))));
   EXPECT_TRUE(result == expected);
+}
+
+/**
+ * @brief Addition Layer
+ */
+class nntrainer_AdditionLayer
+  : public nntrainer_abstractLayer<nntrainer::AdditionLayer> {
+protected:
+  virtual void prepareLayer() {
+    setInputDim("32:3:28:28");
+    setProperty("num_inputs=1");
+  }
+};
+
+TEST_F(nntrainer_AdditionLayer, initialize_01_p) {
+  status = reinitialize();
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+TEST_F(nntrainer_AdditionLayer, initialize_02_n) {
+  nntrainer::AdditionLayer layer;
+  layer.setProperty({"input_shape=1:1:1:1"});
+  status = layer.initialize();
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+}
+
+TEST_F(nntrainer_AdditionLayer, checkValidation_01_p) {
+  status = layer.checkValidation();
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+TEST_F(nntrainer_AdditionLayer, setProperty_01_p) {
+  setProperty("num_inputs=10");
+  status = layer.initialize();
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+TEST_F(nntrainer_AdditionLayer, setProperty_02_n) {
+  status = layer.setProperty({"num_inputs=0"});
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+}
+
+TEST_F(nntrainer_AdditionLayer, forwarding_01_n) {
+  setProperty("num_inputs=1");
+
+  sharedTensor input = std::shared_ptr<nntrainer::Tensor>(
+    new nntrainer::Tensor[1], std::default_delete<nntrainer::Tensor[]>());
+  nntrainer::Tensor &in = input.get()[0];
+
+  in = nntrainer::Tensor();
+
+  EXPECT_THROW(layer.forwarding(input), std::logic_error);
+}
+
+TEST_F(nntrainer_AdditionLayer, forwarding_02_n) {
+  setProperty("num_inputs=2");
+
+  sharedTensor input = std::shared_ptr<nntrainer::Tensor>(
+    new nntrainer::Tensor[1], std::default_delete<nntrainer::Tensor[]>());
+  nntrainer::Tensor &in = input.get()[0];
+
+  in = nntrainer::Tensor(layer.getInputDimension());
+
+  EXPECT_THROW(layer.forwarding(input), std::runtime_error);
+}
+
+TEST_F(nntrainer_AdditionLayer, forwarding_03_p) {
+  setProperty("num_inputs=2");
+
+  sharedTensor input = std::shared_ptr<nntrainer::Tensor>(
+    new nntrainer::Tensor[2], std::default_delete<nntrainer::Tensor[]>());
+  nntrainer::Tensor &in = input.get()[0];
+  in = nntrainer::Tensor(layer.getInputDimension());
+
+  input.get()[1] = input.get()[0];
+
+  EXPECT_NO_THROW(layer.forwarding(input));
 }
 
 /**
