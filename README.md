@@ -71,7 +71,7 @@ Tensor is responsible for the calculation of Layer. It executes the addition, di
 
 The following dependencies are needed to compile / build / run.
 
-*   gcc/g++ (>= 4.9, std=c++14 is used)
+*   gcc/g++ (>= 4.9, std=c++17 is used)
 *   meson (>= 0.50.0)
 *   blas library (CBLAS) (for CPU Acceleration, libopenblas is used for now)
 *   cuda, cudart, cublas (should match the version) (GPU Acceleration on PC)

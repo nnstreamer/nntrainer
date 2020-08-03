@@ -51,7 +51,7 @@ INIPARSER_INCLUDES := $(INIPARSER_ROOT)/src
 
 LOCAL_ARM_NEON      := true
 LOCAL_CFLAGS        += -pthread -fopenmp -fexceptions
-LOCAL_CXXFLAGS      += -std=c++14 -frtti -fexceptions
+LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions
 LOCAL_LDFLAGS       += -fuse-ld=bfd -fopenmp
 LOCAL_MODULE_TAGS   := optional
 
