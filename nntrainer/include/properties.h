@@ -33,18 +33,22 @@ template <typename T> struct prop_traits {
    * @brief validation logic for type T
    * @param[in] value Target to have registration
    */
-  static bool is_valid(value_type value) {  throw std::runtime_error("no trait type can be validated"); }
+  static bool is_valid(value_type value) {
+    throw exception::not_supported("no trait type can be validated");
+  }
 
   /**
    * @brief get string key of current property
    */
-  static std::string getKey() {  throw std::runtime_error("no trait type have a key"); }
+  static std::string getKey() {
+    throw exception::not_supported("no trait type have a key");
+  }
 
   /**
    * @brief get default value of current type
    */
   static value_type getDefault() {
-    throw std::runtime_error("no trait type does not have default");
+    throw exception::not_supported("no trait type does not have default");
   }
 
   /**
@@ -52,17 +56,17 @@ template <typename T> struct prop_traits {
    * @param[in] target Target to be converted to string
    */
   static std::string serialize(value_type target) {
-    throw std::runtime_error("Only property type can be serialized");
+    throw exception::not_supported("Only property type can be serialized");
   }
 
   /**
    * @brief deserialization for type T
    * @param[in] str string to be converted to actual type T
-   * @throw std::runtime_error if T is not property
+   * @throw exception::not_supported if T is not property
    * @throw std::invalid_argument if @a str is not deserializable.
    */
   static value_type deserialize(std::string &str) {
-    throw std::runtime_error("Only property type can be deserialized");
+    throw exception::not_supported("Only property type can be deserialized");
   }
 };
 
@@ -163,26 +167,38 @@ public:
   typedef T prop_type;
 
   /**
+   * @brief Construct a new propertyholder object
+   *
+   */
+  _PropertyHolder() : data(prop_traits<T>::getDefault()) {}
+
+  /**
    * @brief property holder destructor
    */
   ~_PropertyHolder() {}
 
-  _PropertyHolder() {}
-
+  /**
+   * @brief get the actual value it is holding.
+   *
+   * @return value_type data
+   */
   value_type get() { return data; }
 
-  void set(value_type _data) {
-    if (prop_traits<T>::is_valid(_data) == false) {
+  /**
+   * @brief set values according to value type
+   *
+   * @param data data to set
+   * @throw if prop_type is not defined, it throws exception::not_supported
+   * @throw if @a data is not valid, it throws exception::not_supported
+   */
+  void set(value_type data) {
+    if (prop_traits<T>::is_valid(data) == false) {
       std::stringstream ss;
-      ss << "current value is not valid: " << prop_traits<T>::serialize(_data);
-
+      ss << "current value is not valid: " << prop_traits<T>::serialize(data)
+         << "type" << prop_traits<T>::getKey();
       throw std::invalid_argument(ss.str().c_str());
     }
-    force_set(_data);
-  }
-
-  void force_set(value_type _data) {
-    data = _data;
+    this->data = data;
   }
 
   /**
@@ -218,9 +234,10 @@ template <typename... _PropTypes> struct Properties {
   /**
    * @brief Property getter that uses type directly. It is recommened to use
    * this instead of string verion of getter
-   * @code LayerType foo = std::get<LayerType>();
+   * @code LayerType foo = props.template get<LayerType>();
    */
-  template <typename _PropType> _PropType get() {
+  template <typename _PropType>
+  typename prop_traits<_PropType>::value_type get() {
     return std::get<_PropertyHolder<_PropType>>(items).get();
   }
 
@@ -228,26 +245,26 @@ template <typename... _PropTypes> struct Properties {
    * @brief Property setter that uses type directly. It is recommened to use
    * this instead of string verion of setter
    * @throw exception::not_supported if property is not supported.
-   * @code std::set<Beta1>(1.0);
+   * @code props.tepmlate set<LayerType>(LAYER_FC);
    */
   template <typename _PropType>
-  void set(typename prop_traits<_PropType>::value_type &&value) {
+  void set(const typename prop_traits<_PropType>::value_type &value) {
     std::get<_PropertyHolder<_PropType>>(items).set(
-      std::forward<prop_traits<_PropType>>(value));
+      std::forward<const typename prop_traits<_PropType>::value_type>(value));
   }
 
   /**
    * @brief String version of property getter
    * @param[in] key key to find. from prop_traits<Type>::getKey()
-   * @throw exception::not_supported if there are no key in the type_map
+   * @throw std::runtime_error if there are no key in the type_map
    */
   std::string get(const std::string &key) {
     MapType::iterator lb = type_map.find(key);
 
-    if (lb != type_map.end()) {
+    if (lb == type_map.end()) {
       std::stringstream ss;
       ss << "key is not valid for current property type: " << key;
-      throw exception::not_supported(ss.str());
+      throw std::runtime_error(ss.str());
     }
 
     return lb->second->getProp();
@@ -261,7 +278,7 @@ template <typename... _PropTypes> struct Properties {
    * @throw exception::not_supported if key is not valid.
    */
   void set(const std::string &key, const std::string &val) {
-    MapType::iterator lb = type_map.lower_bound(key);
+    MapType::iterator lb = type_map.find(key);
 
     if (lb == type_map.end()) {
       std::stringstream ss;
@@ -328,10 +345,7 @@ private:
     using PropType = typename PropHolderType::prop_type;
 
     std::string key = prop_traits<PropType>::getKey();
-    PropertyHolder* item = &std::get<I>(t);
-
-    /// setting default value, this bypasses validation on purpose.
-    std::get<I>(t).force_set(prop_traits<PropType>::getDefault());
+    PropertyHolder *item = &std::get<I>(t);
 
     auto ret = type_map.insert(MapType::value_type(key, item));
 
