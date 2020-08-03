@@ -52,20 +52,25 @@ int Pooling2DLayer::initialize(bool last) {
   return status;
 }
 
-Tensor Pooling2DLayer::forwarding(Tensor in, int &status) {
-  hidden = Tensor(in.batch(), output_dim.channel(), output_dim.height(),
+sharedTensor Pooling2DLayer::forwarding(sharedTensor in) {
+  input = *in;
+
+  hidden = Tensor(input.batch(), output_dim.channel(), output_dim.height(),
                   output_dim.width());
   hidden.setZero();
-  for (unsigned int b = 0; b < in.batch(); ++b) {
-    Tensor in_padded = zero_pad(b, in, padding);
-    Tensor result = pooling2d(b, in_padded, status);
+
+  for (unsigned int b = 0; b < input.batch(); ++b) {
+    Tensor in_padded = zero_pad(b, input, padding);
+    Tensor result = pooling2d(b, in_padded);
     memcpy(hidden.getAddress(b * hidden.getDim().getFeatureLen()),
            result.getData(), result.getDim().getDataLen() * sizeof(float));
   }
-  return hidden;
+
+  return MAKE_SHARED_TENSOR(hidden);
 }
 
-Tensor Pooling2DLayer::backwarding(Tensor derivative, int iteration) {
+sharedTensor Pooling2DLayer::backwarding(sharedTensor derivative,
+                                         int iteration) {
   unsigned int batch = input_dim.batch();
   unsigned int channel = input_dim.channel();
   unsigned int height = input_dim.height();
@@ -80,8 +85,8 @@ Tensor Pooling2DLayer::backwarding(Tensor derivative, int iteration) {
   float *out = result.getData();
   switch (pooling_type) {
   case PoolingType::max: {
-    for (unsigned int i = 0; i < derivative.getDim().getDataLen(); ++i) {
-      out[max_idx[i]] += derivative.getData()[i];
+    for (unsigned int i = 0; i < derivative->getDim().getDataLen(); ++i) {
+      out[max_idx[i]] += derivative->getData()[i];
     }
   } break;
   case PoolingType::average: {
@@ -91,7 +96,7 @@ Tensor Pooling2DLayer::backwarding(Tensor derivative, int iteration) {
         for (unsigned int j = 0; j <= height - p_height; j += stride[0]) {
           K = 0;
           for (unsigned int k = 0; k <= width - p_width; k += stride[1]) {
-            float del = derivative.getValue(b, i, J, K) / (p_size);
+            float del = derivative->getValue(b, i, J, K) / (p_size);
             for (unsigned int pi = 0; pi < p_height; ++pi) {
               for (unsigned int pj = 0; pj < p_width; ++pj) {
                 result.setValue(b, i, j + pi, k + pj,
@@ -106,15 +111,15 @@ Tensor Pooling2DLayer::backwarding(Tensor derivative, int iteration) {
     }
   } break;
   case PoolingType::global_max: {
-    for (unsigned int i = 0; i < derivative.getDim().getDataLen(); ++i) {
-      out[max_idx[i]] += derivative.getData()[i];
+    for (unsigned int i = 0; i < derivative->getDim().getDataLen(); ++i) {
+      out[max_idx[i]] += derivative->getData()[i];
     }
   } break;
   case PoolingType::global_average: {
     unsigned int p_size = width * height;
     for (unsigned int b = 0; b < batch; ++b) {
       for (unsigned int i = 0; i < channel; ++i) {
-        float del = derivative.getValue(b, i, 0, 0) / (p_size);
+        float del = derivative->getValue(b, i, 0, 0) / (p_size);
         for (unsigned int j = 0; j < height; ++j) {
           for (unsigned int k = 0; k < width; ++k) {
             result.setValue(b, i, j, k, del);
@@ -125,10 +130,9 @@ Tensor Pooling2DLayer::backwarding(Tensor derivative, int iteration) {
 
   } break;
   default:
-    ml_loge("Error: Unknown Pooling Type");
-    break;
+    throw std::runtime_error("Error: Unknown Pooling Type");
   }
-  return result;
+  return MAKE_SHARED_TENSOR(std::move(result));
 }
 
 int Pooling2DLayer::setSize(int *size, PropertyType type) {
@@ -226,7 +230,7 @@ void Pooling2DLayer::setProperty(const PropertyType type,
   }
 }
 
-Tensor Pooling2DLayer::pooling2d(unsigned int batch, Tensor in, int &status) {
+Tensor Pooling2DLayer::pooling2d(unsigned int batch, Tensor &in) {
   unsigned int channel = in.channel();
   unsigned int height = in.height();
   unsigned int width = in.width();
@@ -313,7 +317,7 @@ Tensor Pooling2DLayer::pooling2d(unsigned int batch, Tensor in, int &status) {
   } break;
   default:
     ml_loge("Error: Unknown Pooling Type");
-    status = ML_ERROR_INVALID_PARAMETER;
+    throw std::runtime_error("Error: Unknown Pooling Type");
     break;
   }
 

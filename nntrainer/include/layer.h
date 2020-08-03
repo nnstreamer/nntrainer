@@ -147,7 +147,9 @@ public:
     weight_ini_type(WEIGHT_XAVIER_UNIFORM),
     flatten(false),
     trainable(true),
-    param_size(0) {}
+    param_size(0),
+    num_inputs(1),
+    num_outputs(1) {}
 
   /**
    * @brief     Destructor of Layer Class
@@ -167,19 +169,19 @@ public:
   virtual Layer &operator=(Layer &&rhs) = default;
 
   /**
-   * @brief     Forward Propation of neural Network
-   * @param[in] in Input Tensor taken by upper layer
-   * @retval    Output Tensor
+   * @brief     Forward Propagation of a layer
+   * @param[in] in List of Input Tensors taken by this layer
+   * @retval    List of Output Tensors
    */
-  virtual Tensor forwarding(Tensor in, int &status) = 0;
+  virtual sharedTensor forwarding(sharedTensor in) = 0;
 
   /**
-   * @brief     Back Propation of neural Network
-   * @param[in] in Input Tensor taken by lower layer
-   * @param[in] iteration Epoch value for the ADAM Optimizer
-   * @retval    Output Tensor
+   * @brief     Back Propagation of a layer
+   * @param[in] in List of Derivative Tensor from the next layer
+   * @param[in] iteration Iteration value for the Optimizer
+   * @retval    Derivative List of Tensor for the previous layer
    */
-  virtual Tensor backwarding(Tensor in, int iteration) = 0;
+  virtual sharedTensor backwarding(sharedTensor in, int iteration) = 0;
 
   /**
    * @brief     Initialize the layer
@@ -232,6 +234,8 @@ public:
    *            15. pooling : max, average, global_max, global_average
    *            16. flatten : bool
    *            17. name : string (type)
+   *            18. num_inputs : unsigned int (minimum 1)
+   *            19. num_outputs : unsigned int (minimum 1)
    */
   enum class PropertyType {
     input_shape = 0,
@@ -252,7 +256,9 @@ public:
     pooling = 15,
     flatten = 16,
     name = 17,
-    unknown = 18
+    num_inputs = 18,
+    num_outputs = 19,
+    unknown = 20
   };
 
   /**
@@ -562,6 +568,16 @@ protected:
                                 after initiation
                                 use setParamSize() to avoid
                                 setting parameters twice */
+
+  /**
+   * @brief   Number of inputs this layer will requries/will operate on
+   */
+  unsigned int num_inputs;
+
+  /**
+   * @brief   Numer of outputs this layer will produce
+   */
+  unsigned int num_outputs;
 
 private:
   /**

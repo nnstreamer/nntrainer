@@ -130,21 +130,21 @@ int main(int argc, char *argv[]) {
         } catch (...) {
           std::cerr << "Error during tensor construct" << std::endl;
           NN.finalize();
-          return 0;
+          return -1;
         }
         try {
           y = nntrainer::Tensor(label);
         } catch (...) {
           std::cerr << "Error during tensor construct" << std::endl;
           NN.finalize();
-          return 0;
+          return -1;
         }
         try {
-          NN.backwarding(d, y, i);
+          NN.backwarding(MAKE_SHARED_TENSOR(d), MAKE_SHARED_TENSOR(y), i);
         } catch (...) {
-          std::cerr << "Error during backwarding" << std::endl;
+          std::cerr << "Error during backwarding the model" << std::endl;
           NN.finalize();
-          return 0;
+          return -1;
         }
       }
       std::cout << "#" << i + 1 << "/" << NN.getEpoch()
@@ -156,15 +156,19 @@ int main(int argc, char *argv[]) {
      * @brief     forward propagation
      */
     int cn = 0;
-    int status = 0;
     for (unsigned int j = 0; j < inputVector.size(); ++j) {
       std::vector<std::vector<float>> in, label;
       in.push_back(inputVector[j]);
       label.push_back(outputVector[j]);
-      if (NN.forwarding(nntrainer::Tensor(in), status)
-            .apply(stepFunction)
-            .getValue(0, 0, 0, 0) == label[0][0])
-        cn++;
+      try {
+        cn += NN.forwarding(MAKE_SHARED_TENSOR(in))
+                ->apply(stepFunction)
+                .getValue(0, 0, 0, 0) == label[0][0];
+      } catch (...) {
+        std::cerr << "Error during forwarding the model" << std::endl;
+        NN.finalize();
+        return -1;
+      }
     }
     std::cout << "[ Accuracy ] : " << ((float)(cn) / inputVector.size()) * 100.0
               << "%" << std::endl;

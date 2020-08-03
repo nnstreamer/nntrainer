@@ -42,28 +42,22 @@ public:
   ~LossLayer(){};
 
   /**
-   * @brief     Forward Propation of neural Network
-   * @param[in] in Input Tensor taken by upper layer
-   * @retval    Output Tensor
+   * @copydoc Layer::forwarding(sharedTensor in)
    */
-  Tensor forwarding(Tensor in, int &status);
+  sharedTensor forwarding(sharedTensor in);
 
   /**
-   * @brief     foward propagation : return Input Tensor
-   *            It return Input as it is.
-   * @param[in] output input Tensor from lower layer.
-   * @param[in] label label Tensor.
-   * @retval    loss (cost)
+   * @brief     Forward Propagation of a layer
+   * @param[in] in List of Input Tensors taken by this layer
+   * @param[in] label List of Label Tensors for the model
+   * @retval    List of Input Tensors as it is.
    */
-  Tensor forwarding(Tensor output, Tensor label, int &status);
+  sharedTensor forwarding(sharedTensor in, sharedTensor label);
 
   /**
-   * @brief     back propagation
-   * @param[in] input Input Tensor from lower layer
-   * @param[in] iteration Number of Epoch for ADAM
-   * @retval    loss diff Tensor
+   * @copydoc Layer::backwarding(sharedTensor in, int iteration)
    */
-  Tensor backwarding(Tensor in, int iteration);
+  sharedTensor backwarding(sharedTensor in, int iteration);
 
   /**
    * @brief     read layer Weight & Bias data from file

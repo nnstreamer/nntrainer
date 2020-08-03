@@ -62,13 +62,18 @@ void InputLayer::copy(std::shared_ptr<Layer> l) {
   this->hidden.copy(from->hidden);
 }
 
-Tensor InputLayer::forwarding(Tensor in, int &status) {
-  input = in;
+sharedTensor InputLayer::forwarding(sharedTensor in) {
+  input = *in;
   if (normalization)
     input = input.normalization();
+  if (standardization)
+    input = input.standardization();
 
-  status = ML_ERROR_NONE;
-  return input;
+  return MAKE_SHARED_TENSOR(input);
+}
+
+sharedTensor InputLayer::backwarding(sharedTensor in, int iteration) {
+  return in;
 }
 
 int InputLayer::initialize(bool last) {

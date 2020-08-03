@@ -89,21 +89,14 @@ public:
   void save(std::ofstream &file){};
 
   /**
-   * @brief     forward propagation with input
-   * @param[in] in Input Tensor from upper layer
-   * @param[out] status Error Status of this function
-   * @retval     return Pooling Result
+   * @copydoc Layer::forwarding(sharedTensor in)
    */
-  Tensor forwarding(Tensor in, int &status);
+  sharedTensor forwarding(sharedTensor in);
 
   /**
-   * @brief     back propagation
-   *            Calculate Delivatives
-   * @param[in] input Input Tensor from lower layer
-   * @param[in] iteration Number of Epoch
-   * @retval    dJdB x W Tensor
+   * @copydoc Layer::backwarding(sharedTensor in, int iteration)
    */
-  Tensor backwarding(Tensor in, int iteration);
+  sharedTensor backwarding(sharedTensor in, int iteration);
 
   /**
    * @brief     copy layer
@@ -159,10 +152,9 @@ private:
    * @brief     calculation convolution
    * @param[in] batch batch index
    * @param[in] in input tensor
-   * @param[out] status output of status
    * @retval Tensor outoput tensor
    */
-  Tensor pooling2d(unsigned int batch, Tensor in, int &status);
+  Tensor pooling2d(unsigned int batch, Tensor &in);
 };
 
 } // namespace nntrainer

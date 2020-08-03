@@ -64,20 +64,14 @@ public:
   void save(std::ofstream &file){/* noop */};
 
   /**
-   * @brief     forward propagation with input
-   * @param[in] in Input Tensor from upper layer
-   * @param[out] status Error Status of this function
-   * @retval    Activation(f(x))
+   * @copydoc Layer::forwarding(sharedTensor in)
    */
-  Tensor forwarding(Tensor in, int &status);
+  sharedTensor forwarding(sharedTensor in);
 
   /**
-   * @brief     back propagation calculate activation prime.
-   * @param[in] input Input Tensor from lower layer
-   * @param[in] iteration Numberof Epoch for ADAM
-   * @retval    Tensor
+   * @copydoc Layer::backwarding(sharedTensor in, int iteration)
    */
-  Tensor backwarding(Tensor in, int iteration);
+  sharedTensor backwarding(sharedTensor in, int iteration);
 
   /**
    * @brief     copy layer

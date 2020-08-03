@@ -45,10 +45,10 @@ int LossLayer::initialize(bool last) {
   return status;
 }
 
-Tensor LossLayer::forwarding(Tensor output, Tensor label, int &status) {
-  input = output;
-  Tensor y2 = label;
-  Tensor y = output;
+sharedTensor LossLayer::forwarding(sharedTensor in, sharedTensor label) {
+  input = *in;
+  Tensor y2 = *label;
+  Tensor y = input;
   Tensor l;
 
   switch (cost) {
@@ -82,22 +82,16 @@ Tensor LossLayer::forwarding(Tensor output, Tensor label, int &status) {
 
   } break;
   case COST_ENTROPY: {
-    status = ML_ERROR_NOT_SUPPORTED;
-    ml_loge("Error: Cross Entropy not supported without softmax or sigmoid.");
-    return y;
+    throw std::runtime_error(
+      "Error: Cross Entropy not supported without softmax or sigmoid.");
   }
   case COST_UNKNOWN:
     /** intended */
-  default: {
-    status = ML_ERROR_NOT_SUPPORTED;
-    ml_loge("Error: Unknown cost.");
-    return y;
-  }
+  default: { throw std::runtime_error("Error: Unknown cost."); }
   }
 
   updateLoss(l);
-  status = ML_ERROR_NONE;
-  return y;
+  return MAKE_SHARED_TENSOR(std::move(y));
 }
 
 void LossLayer::updateLoss(const Tensor &l) {
@@ -118,9 +112,9 @@ void LossLayer::copy(std::shared_ptr<Layer> l) {
   this->loss = from->loss;
 }
 
-Tensor LossLayer::backwarding(Tensor derivative, int iteration) {
+sharedTensor LossLayer::backwarding(sharedTensor derivative, int iteration) {
   Tensor ret_derivative;
-  Tensor y2 = derivative;
+  Tensor y2 = *derivative;
   Tensor y = input;
 
   switch (cost) {
@@ -144,12 +138,11 @@ Tensor LossLayer::backwarding(Tensor derivative, int iteration) {
     throw std::runtime_error("Unknown cost.");
   }
 
-  return ret_derivative;
+  return MAKE_SHARED_TENSOR(std::move(ret_derivative));
 }
 
-Tensor LossLayer::forwarding(Tensor in, int &status) {
-  status = ML_ERROR_NOT_SUPPORTED;
-  return in;
+sharedTensor LossLayer::forwarding(sharedTensor in) {
+  throw std::runtime_error("Not supported.");
 }
 
 void LossLayer::setProperty(const PropertyType type, const std::string &value) {

@@ -74,21 +74,14 @@ public:
   void save(std::ofstream &file){};
 
   /**
-   * @brief     It is back propagation of input layer.
-   *            It return Input as it is.
-   * @param[in] input input Tensor from lower layer.
-   * @param[in] iteration Epoch Number for ADAM
-   * @retval
+   * @copydoc Layer::forwarding(sharedTensor in)
    */
-  Tensor backwarding(Tensor in, int iteration) { return input; };
+  sharedTensor forwarding(sharedTensor in);
 
   /**
-   * @brief     foward propagation : return Input Tensor
-   *            It return Input as it is.
-   * @param[in] in input Tensor from lower layer.
-   * @retval    return Input Tensor
+   * @copydoc Layer::backwarding(sharedTensor in, int iteration)
    */
-  Tensor forwarding(Tensor in, int &status);
+  sharedTensor backwarding(sharedTensor in, int iteration);
 
   /**
    * @brief     Initializer of Input Layer
