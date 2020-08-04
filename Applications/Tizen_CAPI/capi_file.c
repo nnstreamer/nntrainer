@@ -96,7 +96,7 @@ int main(int argc, char *argv[]) {
 
   /* create dataset */
   status = ml_train_dataset_create_with_file(&dataset, "trainingSet.dat",
-                                             "valSet.dat", NULL);
+                                             "trainingSet.dat", NULL);
   NN_RETURN_STATUS();
 
   /* set property for dataset */
