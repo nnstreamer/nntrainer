@@ -355,7 +355,7 @@ int main(int argc, char **argv) {
          * @brief     get action with input State with mainNet
          */
         nntrainer::Tensor in_tensor;
-        nntrainer::sharedTensor test;
+        nntrainer::sharedConstTensor test;
         try {
           in_tensor = nntrainer::Tensor({input});
         } catch (...) {
@@ -372,7 +372,7 @@ int main(int argc, char **argv) {
           targetNet.finalize();
           return 0;
         }
-        float *data = test->getData();
+        const float *data = test->getData();
         unsigned int len = test->getDim().getDataLen();
         std::vector<float> temp(data, data + len);
         action.push_back(argmax(temp));
@@ -474,7 +474,7 @@ int main(int argc, char **argv) {
         /**
          * @brief     run forward propagation with mainNet
          */
-        nntrainer::sharedTensor Q;
+        nntrainer::sharedConstTensor Q;
         try {
           Q = mainNet.forwarding(MAKE_SHARED_TENSOR(q_in));
         } catch (...) {
@@ -487,7 +487,7 @@ int main(int argc, char **argv) {
         /**
          * @brief     run forward propagation with targetNet
          */
-        nntrainer::sharedTensor NQ;
+        nntrainer::sharedConstTensor NQ;
         try {
           NQ = targetNet.forwarding(MAKE_SHARED_TENSOR(nq_in));
         } catch (...) {
@@ -496,22 +496,23 @@ int main(int argc, char **argv) {
           targetNet.finalize();
           return -1;
         }
-        float *nqa = NQ->getData();
+        const float *nqa = NQ->getData();
 
         /**
          * @brief     Update Q values & udpate mainNetwork
          */
+        nntrainer::Tensor tempQ = *Q;
         for (unsigned int i = 0; i < in_Exp.size(); i++) {
           if (in_Exp[i].done) {
-            Q->setValue(i, 0, 0, (int)in_Exp[i].action[0],
-                        (float)in_Exp[i].reward);
+            tempQ.setValue(i, 0, 0, (int)in_Exp[i].action[0],
+                           (float)in_Exp[i].reward);
           } else {
             float next = (nqa[i * NQ->getWidth()] > nqa[i * NQ->getWidth() + 1])
                            ? nqa[i * NQ->getWidth()]
                            : nqa[i * NQ->getWidth() + 1];
             try {
-              Q->setValue(i, 0, 0, (int)in_Exp[i].action[0],
-                          (float)in_Exp[i].reward + DISCOUNT * next);
+              tempQ.setValue(i, 0, 0, (int)in_Exp[i].action[0],
+                             (float)in_Exp[i].reward + DISCOUNT * next);
             } catch (...) {
               std::cerr << "Error during set value" << std::endl;
               mainNet.finalize();

@@ -248,7 +248,7 @@ private:
   OptParam popt;
 
   /**
-   * @brief Internal Tesnors for adam Optimizer
+   * @brief Internal Tensors for adam Optimizer
    */
   std::vector<std::pair<Tensor, Tensor>> weight_mv;
 };

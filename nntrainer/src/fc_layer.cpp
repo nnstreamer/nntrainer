@@ -81,7 +81,7 @@ void FullyConnectedLayer::setProperty(const PropertyType type,
   }
 }
 
-sharedTensor FullyConnectedLayer::forwarding(sharedTensor in) {
+sharedConstTensor FullyConnectedLayer::forwarding(sharedConstTensor in) {
   Tensor &weight = paramsAt(static_cast<int>(FCParams::weight)).weight;
   Tensor &bias = paramsAt(static_cast<int>(FCParams::bias)).weight;
 
@@ -121,8 +121,8 @@ void FullyConnectedLayer::copy(std::shared_ptr<Layer> l) {
   this->loss = from->loss;
 }
 
-sharedTensor FullyConnectedLayer::backwarding(sharedTensor derivative,
-                                              int iteration) {
+sharedConstTensor FullyConnectedLayer::backwarding(sharedConstTensor derivative,
+                                                   int iteration) {
   unsigned int weight_idx = static_cast<int>(FCParams::weight);
   unsigned int bias_idx = static_cast<int>(FCParams::bias);
   Tensor &weight = paramsAt(weight_idx).weight;

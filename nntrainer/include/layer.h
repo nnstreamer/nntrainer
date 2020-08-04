@@ -171,7 +171,7 @@ public:
    * @param[in] in List of Input Tensors taken by this layer
    * @retval    List of Output Tensors
    */
-  virtual sharedTensor forwarding(sharedTensor in) = 0;
+  virtual sharedConstTensor forwarding(sharedConstTensor in) = 0;
 
   /**
    * @brief     Back Propagation of a layer
@@ -179,7 +179,8 @@ public:
    * @param[in] iteration Iteration value for the Optimizer
    * @retval    Derivative List of Tensor for the previous layer
    */
-  virtual sharedTensor backwarding(sharedTensor in, int iteration) = 0;
+  virtual sharedConstTensor backwarding(sharedConstTensor in,
+                                        int iteration) = 0;
 
   /**
    * @brief     Initialize the layer

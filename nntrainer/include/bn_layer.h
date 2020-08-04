@@ -62,14 +62,14 @@ public:
   BatchNormalizationLayer &operator=(BatchNormalizationLayer &&rhs) = default;
 
   /**
-   * @copydoc Layer::forwarding(sharedTensor in)
+   * @copydoc Layer::forwarding(sharedConstTensor in)
    */
-  sharedTensor forwarding(sharedTensor in);
+  sharedConstTensor forwarding(sharedConstTensor in);
 
   /**
-   * @copydoc Layer::backwarding(sharedTensor in, int iteration)
+   * @copydoc Layer::backwarding(sharedConstTensor in, int iteration)
    */
-  sharedTensor backwarding(sharedTensor in, int iteration);
+  sharedConstTensor backwarding(sharedConstTensor in, int iteration);
 
   /**
    * @brief     copy layer

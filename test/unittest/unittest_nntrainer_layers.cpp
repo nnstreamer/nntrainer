@@ -25,6 +25,7 @@
 #include <pooling2d_layer.h>
 #include <util_func.h>
 
+using nntrainer::sharedConstTensor;
 using nntrainer::sharedTensor;
 
 template <typename LayerType>
@@ -380,7 +381,7 @@ protected:
   }
 
   void matchForwarding(const char *file) {
-    sharedTensor out;
+    sharedConstTensor out;
     EXPECT_NO_THROW(out = layer.forwarding(MAKE_SHARED_TENSOR(in)));
 
     if (layers.size() > 0) {
@@ -412,7 +413,7 @@ protected:
     int idx = layers.size() - 1;
     sharedTensor def_derivative =
       MAKE_SHARED_TENSOR(constant(1.0, 3, 1, 1, 15));
-    sharedTensor back_out;
+    sharedConstTensor back_out;
 
     if (layers.size() && layers.back()->getType() == nntrainer::LAYER_LOSS) {
       if (with_loss) {
@@ -478,7 +479,7 @@ TEST_F(nntrainer_FullyConnectedLayer_TFmatch,
 
   setOptimizer(nntrainer::OptType::adam, "learning_rate=1.0");
 
-  sharedTensor out;
+  sharedConstTensor out;
 
   EXPECT_NO_THROW(out = layer.forwarding(MAKE_SHARED_TENSOR(in)));
 
@@ -751,11 +752,11 @@ TEST_F(nntrainer_BatchNormalizationLayer, checkValidation_01_p) {
 TEST_F(nntrainer_BatchNormalizationLayer,
        DISABLED_forward_backward_training_01_p) {
   layer.setTrainable(true);
-  sharedTensor forward_result;
+  sharedConstTensor forward_result;
 
   EXPECT_NO_THROW(forward_result = layer.forwarding(MAKE_SHARED_TENSOR(in)));
 
-  matchOutput(forward_result.get()[0], "tc_bn_1_goldenBNResultForward.out");
+  matchOutput(*forward_result, "tc_bn_1_goldenBNResultForward.out");
 
   nntrainer::Tensor backward_result;
   EXPECT_NO_THROW(
