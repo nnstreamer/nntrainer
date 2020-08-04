@@ -50,7 +50,7 @@ class LazyTensor;
  */
 class Tensor {
 public:
-  Tensor(const TensorDim &d, float *buf = nullptr);
+  Tensor(const TensorDim &d, const float *buf = nullptr);
 
   /**
    * @brief     Basic Constructor of Tensor
@@ -107,12 +107,9 @@ public:
 
   /**
    *  @brief  Copy constructor of Tensor.
-   *  @note This can be safely reverted to default
-   *        after checking using _data as a pointer is safe for functions using
-   * Tensor.
    *  @param[in] Tensor &
    */
-  Tensor(const Tensor &rhs) : Tensor(rhs.dim, rhs.data.get()){};
+  Tensor(const Tensor &rhs) = default;
 
   /**
    *  @brief  Move constructor of Tensor.
@@ -124,14 +121,13 @@ public:
    * @brief  Copy assignment operator.
    * @param[in] rhs Tensor to be copied.
    */
-  // todo: refactor operator= to consider allocated size for the data
-  Tensor &operator=(const Tensor &rhs);
+  Tensor &operator=(const Tensor &rhs) = default;
 
   /**
    * @brief  Move assignment operator.
    * @parma[in] rhs Tensor to be moved.
    */
-  Tensor &operator=(Tensor &&rhs) noexcept;
+  Tensor &operator=(Tensor &&rhs) noexcept = default;
 
   void swap(Tensor &lhs, Tensor &rhs) noexcept;
 
@@ -449,10 +445,15 @@ public:
 
   /**
    * @brief     Copy the Tensor
-   * @param[in] from Tensor to be Copyed
-   * @retval    Matix
+   * @param[in] from Tensor to be copied
    */
-  Tensor &copy(Tensor &from);
+  void copy(const Tensor &from);
+
+  /**
+   * @brief     Convient wrapper for inplace copy of @a this.
+   * @retval    Copied version of this
+   */
+  Tensor clone() const;
 
   /**
    * @brief     Save the Tensor into file
@@ -470,7 +471,7 @@ public:
    * @brief     return argument index which value is max
    * @retval    int argument index
    */
-  int argmax();
+  int argmax() const;
 
   /**
    * @brief     return Tensor Dim
@@ -517,6 +518,12 @@ public:
   float *getAddress(unsigned int i);
 
   /**
+   * @brief     i data index
+   * @retval    address of ith data
+   */
+  const float *getAddress(unsigned int i) const;
+
+  /**
    * @brief     set Tensor Dim
    * @param[in] d TensorDim
    * @retval    #ML_ERROR_NONE successful
@@ -549,6 +556,8 @@ private:
 std::ostream &operator<<(std::ostream &out, Tensor const &m);
 
 typedef std::shared_ptr<Tensor> sharedTensor;
+
+typedef std::shared_ptr<const Tensor> sharedConstTensor;
 
 } /* namespace nntrainer */
 

@@ -79,7 +79,7 @@ void Conv2DLayer::read(std::ifstream &file) { Layer::read(file); }
 
 void Conv2DLayer::save(std::ofstream &file) { Layer::save(file); }
 
-sharedTensor Conv2DLayer::forwarding(sharedTensor in) {
+sharedConstTensor Conv2DLayer::forwarding(sharedConstTensor in) {
   int status = ML_ERROR_NONE;
   input = *in;
 
@@ -118,7 +118,8 @@ sharedTensor Conv2DLayer::forwarding(sharedTensor in) {
   return MAKE_SHARED_TENSOR(hidden);
 };
 
-sharedTensor Conv2DLayer::backwarding(sharedTensor derivative, int iteration) {
+sharedConstTensor Conv2DLayer::backwarding(sharedConstTensor derivative,
+                                           int iteration) {
 
   // Calculate delK : [batch, channel, height, width ] * filter_size
   unsigned int same_pad[CONV2D_DIM];
@@ -330,7 +331,7 @@ void Conv2DLayer::setProperty(const PropertyType type,
   }
 }
 
-int Conv2DLayer::conv2d(float *in, TensorDim indim, float *kernel,
+int Conv2DLayer::conv2d(float *in, TensorDim indim, const float *kernel,
                         TensorDim kdim, float *out, unsigned int const *stride,
                         float bias) {
 

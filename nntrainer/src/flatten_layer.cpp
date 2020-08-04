@@ -37,22 +37,22 @@ int FlattenLayer::initialize(bool last) {
   return status;
 }
 
-sharedTensor FlattenLayer::forwarding(sharedTensor in) {
-  input = *in;
+sharedConstTensor FlattenLayer::forwarding(sharedConstTensor in) {
+  Tensor ret = *in;
 
-  hidden = Tensor(input.batch(), output_dim.channel(), output_dim.height(),
-                  output_dim.width());
-  hidden.setZero();
+  /// @note in->batch can be different from input_dim.batch();
+  ret.setDim({in->batch(), output_dim.channel(), output_dim.height(),
+              output_dim.width()});
 
-  memcpy(hidden.getData(), input.getData(),
-         input.getDim().getDataLen() * sizeof(float));
-
-  return MAKE_SHARED_TENSOR(hidden);
+  return MAKE_SHARED_TENSOR(std::move(ret));
 }
 
-sharedTensor FlattenLayer::backwarding(sharedTensor in, int iteration) {
-  in->setDim(input_dim);
-  return in;
+sharedConstTensor FlattenLayer::backwarding(sharedConstTensor in,
+                                            int iteration) {
+  Tensor temp = *in;
+  temp.setDim(input_dim);
+
+  return MAKE_SHARED_TENSOR(std::move(temp));
 }
 
 void FlattenLayer::setProperty(const PropertyType type,

@@ -239,6 +239,23 @@ TEST(nntrainer_Tensor, multiply_03_n) {
                    "Error: Dimension must be equal each other");
 }
 
+TEST(nntrainer_Tensor, multiply_float_01_p) {
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::Tensor input(batch, channel, height, width);
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k + 1);
+
+  nntrainer::Tensor expected(batch, channel, height, width);
+  GEN_TEST_INPUT(expected, (i * (batch * height) + j * (width) + k + 1) * 2);
+
+  nntrainer::Tensor result = input.multiply(2.0);
+
+  EXPECT_EQ(result, expected);
+}
+
 TEST(nntrainer_Tensor, divide_i_01_p) {
   int status = ML_ERROR_NONE;
   int batch = 3;
@@ -636,6 +653,23 @@ TEST(nntrainer_Tensor, subtract_03_n) {
                    "Error: Dimension must be equal each other");
 }
 
+TEST(nntrainer_Tensor, subtract_float_01_p) {
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::Tensor input(batch, channel, height, width);
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k + 1);
+
+  nntrainer::Tensor expected(batch, channel, height, width);
+  GEN_TEST_INPUT(expected, i * (batch * height) + j * (width) + k);
+
+  nntrainer::Tensor result = input.subtract(1.0);
+
+  EXPECT_EQ(result, expected);
+}
+
 TEST(nntrainer_Tensor, sum_01_n) {
   int batch = 3;
   int channel = 1;
@@ -884,6 +918,51 @@ TEST(nntrainer_Tensor, save_read_01_n) {
   int status = std::remove("save.bin");
 
   ASSERT_EQ(status, 0);
+}
+
+TEST(nntrainer_Tensor, copy_and_shares_variable_p) {
+  nntrainer::Tensor A = constant(1.0f, 3, 4, 5, 6);
+  nntrainer::Tensor B = A.clone();
+  nntrainer::Tensor C = A;
+
+  C.setValue(1, 1, 1, 1, 2.0f);
+
+  EXPECT_EQ(A, C);
+  EXPECT_NE(B, C);
+
+  C.setDim(nntrainer::TensorDim(3, 4, 6, 5));
+  EXPECT_EQ(A.getDim(), B.getDim());
+  EXPECT_NE(A.getDim(), C.getDim());
+}
+
+/// #412
+TEST(nntrainer_Tensor, copy_and_resize_n) {
+  nntrainer::Tensor A = constant(1.0f, 3, 4, 5, 6);
+  nntrainer::Tensor B = A;
+  nntrainer::Tensor C = A.clone();
+
+  /// this is undefined behavior
+  B.setDim(nntrainer::TensorDim(9, 9, 9, 9));
+
+  /// @todo add appropriate test.
+}
+
+/// @note this test case demonstrates it is dangeruous to use sharedConstTensor
+/// to const correct the inner data.
+TEST(nntrainer_Tensor, constructor_from_shared_const_ptr_shares_variable_n) {
+  nntrainer::sharedConstTensor A =
+    MAKE_SHARED_TENSOR(constant(1.0f, 3, 4, 5, 6));
+
+  nntrainer::Tensor B = *A;
+  nntrainer::Tensor C = A->clone();
+
+  B.setValue(3, 4, 5, 6, 2.0f);
+  EXPECT_EQ(*A, B);
+  EXPECT_NE(*A, C);
+
+  C.setDim(nntrainer::TensorDim(3, 4, 6, 5));
+  EXPECT_EQ(A->getDim(), B.getDim());
+  EXPECT_NE(A->getDim(), C.getDim());
 }
 
 TEST(nntrainer_Tensor, print_small_size) {

@@ -62,7 +62,7 @@ static auto rng = [] {
   return rng;
 }();
 
-Tensor::Tensor(const TensorDim &d, float *buf) :
+Tensor::Tensor(const TensorDim &d, const float *buf) :
   dim(d),
   strides{{1, 2, 3}},
   is_contiguous(true),
@@ -80,17 +80,6 @@ Tensor::Tensor(const TensorDim &d, float *buf) :
     }
 #endif
   }
-}
-
-Tensor &Tensor::operator=(const Tensor &rhs) {
-  Tensor tmp(rhs);
-  this->swap(*this, tmp);
-  return *this;
-}
-
-Tensor &Tensor::operator=(Tensor &&rhs) noexcept {
-  this->swap(*this, rhs);
-  return *this;
 }
 
 void Tensor::swap(Tensor &lhs, Tensor &rhs) noexcept {
@@ -195,7 +184,7 @@ int Tensor::multiply_i(float const &value) {
 }
 
 Tensor Tensor::multiply(float const &value) {
-  Tensor result(*this);
+  Tensor result = this->clone();
   result.multiply_i(value);
 
   return result;
@@ -213,7 +202,8 @@ Tensor Tensor::divide(float const &value) {
   if (value == 0.0f) {
     throw std::runtime_error("Error: Divide by zero");
   }
-  Tensor result(*this);
+  Tensor result;
+  result.copy(*this);
   result.divide_i(value);
 
   return result;
@@ -236,7 +226,7 @@ int Tensor::add_i(float const &value) {
 }
 
 Tensor Tensor::add(float const &value) {
-  Tensor result(*this);
+  Tensor result = this->clone();
   result.add_i(value);
 
   return result;
@@ -292,7 +282,10 @@ int Tensor::add_i(Tensor const &m, float const alpha) {
 }
 
 Tensor Tensor::add(Tensor const &m, float const alpha) const {
-  Tensor result(*this);
+  Tensor result;
+
+  result.copy(*this);
+
   if (result.add_i(m, alpha) != ML_ERROR_NONE)
     throw std::runtime_error("Error: Dimension must be equal each other");
 
@@ -351,7 +344,7 @@ Tensor Tensor::subtract(Tensor const &m) const {
     throw std::runtime_error("Error: Dimension must be equal each other");
   }
 
-  Tensor result(*this);
+  Tensor result = this->clone();
   result.subtract_i(m);
 
   return result;
@@ -360,7 +353,7 @@ Tensor Tensor::subtract(Tensor const &m) const {
 int Tensor::subtract_i(float const &value) { return this->add_i(-value); }
 
 Tensor Tensor::subtract(float const &value) {
-  Tensor result(*this);
+  Tensor result = this->clone();
 
   if (result.subtract_i(value) != ML_ERROR_NONE) {
     throw std::runtime_error("Error: there was an error on subtraction");
@@ -414,7 +407,8 @@ Tensor Tensor::multiply(Tensor const &m) const {
     throw std::runtime_error("Error: Dimension must be equal each other");
   }
 
-  Tensor result(*this);
+  Tensor result;
+  result.copy(*this);
   result.multiply_i(m);
 
   return result;
@@ -467,7 +461,7 @@ Tensor Tensor::divide(Tensor const &m) const {
     throw std::runtime_error("Error: Dimension must be equal each other");
   }
 
-  Tensor result(*this);
+  Tensor result = this->clone();
   result.divide_i(m);
 
   return result;
@@ -847,15 +841,29 @@ float *Tensor::getAddress(unsigned int i) {
   return &getData()[i];
 }
 
-Tensor &Tensor::copy(Tensor &from) {
+const float *Tensor::getAddress(unsigned int i) const {
+  if (i > this->dim.getDataLen()) {
+    ml_loge("Error: Index out of bounds");
+    return nullptr;
+  }
+
+  return &getData()[i];
+}
+
+void Tensor::copy(const Tensor &from) {
   // todo: enable copy to non-contiguous tensor
   if (!is_contiguous) {
     throw std::runtime_error("Cannot copy non-contiguous tensor");
   }
 
-  *this = from;
+  Tensor t = Tensor(from.getDim(), from.getData());
+  swap(t, *this);
+}
 
-  return *this;
+Tensor Tensor::clone() const {
+  Tensor t;
+  t.copy(*this);
+  return t;
 }
 
 int Tensor::setDim(TensorDim d) {
@@ -913,10 +921,10 @@ void Tensor::setValue(float val) {
 
 void Tensor::setZero() { setValue(0); }
 
-int Tensor::argmax() {
+int Tensor::argmax() const {
   int index = 0;
   float maximum = min_limits;
-  float *data = getData();
+  const float *data = getData();
   unsigned int len = length();
 
   for (unsigned int i = 0; i < len; i++) {

@@ -42,9 +42,9 @@ public:
   ~LossLayer(){};
 
   /**
-   * @copydoc Layer::forwarding(sharedTensor in)
+   * @copydoc Layer::forwarding(sharedConstTensor in)
    */
-  sharedTensor forwarding(sharedTensor in);
+  sharedConstTensor forwarding(sharedConstTensor in);
 
   /**
    * @brief     Forward Propagation of a layer
@@ -52,12 +52,12 @@ public:
    * @param[in] label List of Label Tensors for the model
    * @retval    List of Input Tensors as it is.
    */
-  sharedTensor forwarding(sharedTensor in, sharedTensor label);
+  sharedConstTensor forwarding(sharedConstTensor in, sharedConstTensor label);
 
   /**
-   * @copydoc Layer::backwarding(sharedTensor in, int iteration)
+   * @copydoc Layer::backwarding(sharedConstTensor in, int iteration)
    */
-  sharedTensor backwarding(sharedTensor in, int iteration);
+  sharedConstTensor backwarding(sharedConstTensor in, int iteration);
 
   /**
    * @brief     read layer Weight & Bias data from file

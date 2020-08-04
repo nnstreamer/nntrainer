@@ -52,7 +52,7 @@ int Pooling2DLayer::initialize(bool last) {
   return status;
 }
 
-sharedTensor Pooling2DLayer::forwarding(sharedTensor in) {
+sharedConstTensor Pooling2DLayer::forwarding(sharedConstTensor in) {
   input = *in;
 
   hidden = Tensor(input.batch(), output_dim.channel(), output_dim.height(),
@@ -69,8 +69,8 @@ sharedTensor Pooling2DLayer::forwarding(sharedTensor in) {
   return MAKE_SHARED_TENSOR(hidden);
 }
 
-sharedTensor Pooling2DLayer::backwarding(sharedTensor derivative,
-                                         int iteration) {
+sharedConstTensor Pooling2DLayer::backwarding(sharedConstTensor derivative,
+                                              int iteration) {
   unsigned int batch = input_dim.batch();
   unsigned int channel = input_dim.channel();
   unsigned int height = input_dim.height();

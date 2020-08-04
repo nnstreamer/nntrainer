@@ -521,8 +521,8 @@ void NeuralNetwork::finalize() {
 /**
  * @brief     forward propagation using layers object which has layer
  */
-sharedTensor NeuralNetwork::forwarding(sharedTensor input) {
-  sharedTensor X = input;
+sharedConstTensor NeuralNetwork::forwarding(sharedConstTensor input) {
+  sharedConstTensor X = input;
   /** Do not forward the loss layer, as label is not available */
   for (unsigned int i = 0; i < layers.size() - 1; i++)
     X = layers[i]->forwarding(X);
@@ -533,8 +533,9 @@ sharedTensor NeuralNetwork::forwarding(sharedTensor input) {
 /**
  * @brief     forward propagation using layers object which has layer
  */
-sharedTensor NeuralNetwork::forwarding(sharedTensor input, sharedTensor label) {
-  sharedTensor X;
+sharedConstTensor NeuralNetwork::forwarding(sharedConstTensor input,
+                                            sharedConstTensor label) {
+  sharedConstTensor X;
 
   X = forwarding(input);
   X = std::static_pointer_cast<LossLayer>(layers[layers.size() - 1])
@@ -548,12 +549,16 @@ sharedTensor NeuralNetwork::forwarding(sharedTensor input, sharedTensor label) {
  *            Call backwarding function of layer in reverse order
  *            No need to call at first Input Layer (No data to be updated)
  */
-void NeuralNetwork::backwarding(sharedTensor input, sharedTensor label,
-                                int iteration) {
+void NeuralNetwork::backwarding(sharedConstTensor input,
+                                sharedConstTensor label, int iteration) {
+
+  if (layers.empty() || layers.back()->getType() != LAYER_LOSS) {
+    throw std::invalid_argument("last layer is not loss layer");
+  }
 
   forwarding(input, label);
 
-  sharedTensor output = label;
+  sharedConstTensor output = label;
   for (unsigned int i = layers.size() - 1; i > 0; i--)
     output = layers[i]->backwarding(output, iteration);
 }
@@ -712,7 +717,7 @@ int NeuralNetwork::train_run() {
           for (int i = 0; i < batch_size; ++i) {
             sharedTensor X = MAKE_SHARED_TENSOR(Tensor({in[i]}));
             sharedTensor Y2 = MAKE_SHARED_TENSOR(Tensor({label[i]}));
-            sharedTensor Y = forwarding(X, Y2);
+            sharedConstTensor Y = forwarding(X, Y2);
             if (status != ML_ERROR_NONE) {
               ml_loge("Error: forwarding the network resulted in error.");
               return status;

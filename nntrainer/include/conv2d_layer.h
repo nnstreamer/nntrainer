@@ -84,14 +84,14 @@ public:
   void save(std::ofstream &file);
 
   /**
-   * @copydoc Layer::forwarding(sharedTensor in)
+   * @copydoc Layer::forwarding(sharedConstTensor in)
    */
-  sharedTensor forwarding(sharedTensor in);
+  sharedConstTensor forwarding(sharedConstTensor in);
 
   /**
-   * @copydoc Layer::backwarding(sharedTensor in, int iteration)
+   * @copydoc Layer::backwarding(sharedConstTensor in, int iteration)
    */
-  sharedTensor backwarding(sharedTensor in, int iteration);
+  sharedConstTensor backwarding(sharedConstTensor in, int iteration);
 
   /**
    * @brief     copy layer
@@ -140,7 +140,7 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int conv2d(float *in, TensorDim indim, float *kernel, TensorDim kdim,
+  int conv2d(float *in, TensorDim indim, const float *kernel, TensorDim kdim,
              float *out, unsigned int const *stride, float bias);
 
   /* TO DO : support keras type of padding */

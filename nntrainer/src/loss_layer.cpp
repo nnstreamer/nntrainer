@@ -45,7 +45,8 @@ int LossLayer::initialize(bool last) {
   return status;
 }
 
-sharedTensor LossLayer::forwarding(sharedTensor in, sharedTensor label) {
+sharedConstTensor LossLayer::forwarding(sharedConstTensor in,
+                                        sharedConstTensor label) {
   input = *in;
   Tensor y2 = *label;
   Tensor y = input;
@@ -54,9 +55,9 @@ sharedTensor LossLayer::forwarding(sharedTensor in, sharedTensor label) {
   switch (cost) {
   case COST_MSE: {
     // y2 <- y2 - y;
-    y2.subtract_i(y);
+    Tensor residual = y2.subtract(y);
 
-    l = y2.chain().multiply_i(y2).average().run();
+    l = residual.chain().multiply_i(residual).average().run();
   } break;
   case COST_ENTROPY_SIGMOID: {
     // @todo: change this to apply_i
@@ -112,7 +113,8 @@ void LossLayer::copy(std::shared_ptr<Layer> l) {
   this->loss = from->loss;
 }
 
-sharedTensor LossLayer::backwarding(sharedTensor derivative, int iteration) {
+sharedConstTensor LossLayer::backwarding(sharedConstTensor derivative,
+                                         int iteration) {
   Tensor ret_derivative;
   Tensor y2 = *derivative;
   Tensor y = input;
@@ -151,7 +153,7 @@ int LossLayer::setCost(CostType c) {
   return status;
 }
 
-sharedTensor LossLayer::forwarding(sharedTensor in) {
+sharedConstTensor LossLayer::forwarding(sharedConstTensor in) {
   throw std::runtime_error("Not supported.");
 }
 

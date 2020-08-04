@@ -40,7 +40,7 @@ public:
    * @brief Constructor of Lazy Tensor, Tensor is copied to gaurantee
    * immutability
    */
-  LazyTensor(const Tensor &from) { target = Tensor(from); };
+  LazyTensor(const Tensor &from) { target.copy(from); };
 
   /**
    * @brief     Wrapper method of add_i. see tensor.h for more detail
