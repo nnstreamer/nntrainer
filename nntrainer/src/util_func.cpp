@@ -41,7 +41,9 @@ float random() { return dist(rng); }
 
 float sqrtFloat(float x) { return sqrt(x); };
 
-float logFloat(float x) { return log(x); }
+double sqrtDouble(double x) { return sqrt(x); };
+
+float logFloat(float x) { return log(x + 1.0e-20); }
 
 // This is 2D zero pad
 // TODO : Optimize for multi dimention padding

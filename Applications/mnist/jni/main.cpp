@@ -44,15 +44,15 @@
 /**
  * @brief     Data size for each category
  */
-const unsigned int total_train_data_size = 2;
+const unsigned int total_train_data_size = 32;
 
-const unsigned int total_val_data_size = 2;
+const unsigned int total_val_data_size = 32;
 
-const unsigned int total_test_data_size = 2;
+const unsigned int total_test_data_size = 32;
 
-const unsigned int buffer_size = 2;
+const unsigned int buffer_size = 32;
 
-const unsigned int mini_batch = 2;
+const unsigned int mini_batch = 32;
 
 #else
 

@@ -24,8 +24,8 @@ FEATURE_SIZE=784
 
 def get_data_info(target):
     if target == "validation":
-        t_data_size = 2
-        v_data_size = 2
+        t_data_size = 32
+        v_data_size = 32
     else:
         t_data_size = TOTAL_TRAIN_DATA_SIZE
         v_data_size = TOTAL_VAL_DATA_SIZE

@@ -227,8 +227,7 @@ sharedConstTensor Conv2DLayer::backwarding(sharedConstTensor derivative,
     opt.apply_gradients(params, param_size, iteration);
   }
 
-  ret = rotate_180(strip_pad(ret, padding));
-  return MAKE_SHARED_TENSOR(std::move(ret));
+  return MAKE_SHARED_TENSOR(std::move(strip_pad(ret, padding)));
 }
 
 void Conv2DLayer::copy(std::shared_ptr<Layer> l) {
