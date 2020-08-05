@@ -19,7 +19,7 @@
  */
 TEST_P(nntrainerIniTest, loadConfig) {
   std::cout << std::get<0>(GetParam()) << std::endl;
-  int status = NN.loadFromConfig();
+  int status = NN.loadFromConfig(getIniName());
 
   if (failAtLoad()) {
     EXPECT_NE(status, ML_ERROR_NONE);
@@ -33,8 +33,8 @@ TEST_P(nntrainerIniTest, loadConfig) {
  */
 TEST_P(nntrainerIniTest, loadConfigTwice_n) {
   std::cout << std::get<0>(GetParam()) << std::endl;
-  NN.loadFromConfig();
-  int status = NN.loadFromConfig();
+  NN.loadFromConfig(getIniName());
+  int status = NN.loadFromConfig(getIniName());
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
@@ -43,7 +43,7 @@ TEST_P(nntrainerIniTest, loadConfigTwice_n) {
  */
 TEST_P(nntrainerIniTest, init) {
   std::cout << std::get<0>(GetParam()) << std::endl;
-  int status = NN.loadFromConfig();
+  int status = NN.loadFromConfig(getIniName());
 
   status = NN.init();
 
@@ -60,7 +60,7 @@ TEST_P(nntrainerIniTest, init) {
  */
 TEST_P(nntrainerIniTest, initTwice_n) {
   std::cout << std::get<0>(GetParam()) << std::endl;
-  int status = NN.loadFromConfig();
+  int status = NN.loadFromConfig(getIniName());
   status = NN.init();
   status = NN.init();
 
@@ -73,7 +73,7 @@ TEST_P(nntrainerIniTest, initTwice_n) {
  */
 TEST_P(nntrainerIniTest, initThreetime_n) {
   std::cout << std::get<0>(GetParam()) << std::endl;
-  int status = NN.loadFromConfig();
+  int status = NN.loadFromConfig(getIniName());
   status = NN.init();
   status = NN.init();
   status = NN.init();

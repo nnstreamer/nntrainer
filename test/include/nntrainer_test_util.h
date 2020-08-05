@@ -124,8 +124,6 @@ protected:
     sections = std::get<1>(GetParam());
     failAt = std::get<2>(GetParam());
     save_ini();
-
-    NN.setConfig(getIniName());
   }
 
   virtual void TearDown() { erase_ini(); }

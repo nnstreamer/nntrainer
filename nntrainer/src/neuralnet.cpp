@@ -21,40 +21,21 @@
  *
  */
 
-#include <array>
-#include <assert.h>
 #include <cmath>
+#include <fstream>
+#include <sstream>
+
 #include <databuffer_file.h>
 #include <databuffer_func.h>
-#include <fstream>
-#include <iniparser.h>
+#include <model_loader.h>
 #include <neuralnet.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <parse_util.h>
-#include <sstream>
-#include <stdio.h>
 #include <unordered_set>
-
-#define NN_INI_RETURN_STATUS()     \
-  do {                             \
-    if (status != ML_ERROR_NONE) { \
-      iniparser_freedict(ini);     \
-      return status;               \
-    }                              \
-  } while (0)
+#include <util_func.h>
 
 namespace nntrainer {
-
-/**
- * @brief     Check Existance of File
- * @param[in] filename file path to check
- * @retval    boolean true if exists
- */
-static bool isFileExist(std::string file_name) {
-  std::ifstream infile(file_name);
-  return infile.good();
-}
 
 NeuralNetwork::NeuralNetwork() :
   batch_size(1),
@@ -70,267 +51,23 @@ NeuralNetwork::NeuralNetwork() :
   def_name_count(0),
   loadedFromConfig(false) {}
 
-NeuralNetwork::NeuralNetwork(std::string config) : NeuralNetwork() {
-  this->setConfig(config);
-}
-
-void NeuralNetwork::setConfig(std::string config) {
-  if (!isFileExist(config)) {
-    std::stringstream ss;
-    ss << "Cannot open model configuration file, filename : " << config;
-    throw std::invalid_argument(ss.str().c_str());
-  }
-  this->config = config;
-}
-
-int NeuralNetwork::loadNetworkConfig(void *_ini) {
-  dictionary *ini = static_cast<dictionary *>(_ini);
-  char unknown[] = "Unknown";
-  int status = ML_ERROR_NONE;
-
-  /** Default to neural network model type */
-  net_type = (nntrainer::NetType)parseType(
-    iniparser_getstring(ini, "Network:Type", unknown), TOKEN_NET);
-  epoch = iniparser_getint(ini, "Network:Epoch", epoch);
-  cost = (CostType)parseType(iniparser_getstring(ini, "Network:Cost", unknown),
-                             TOKEN_COST);
-  model = iniparser_getstring(ini, "Network:Model", "model.bin");
-  batch_size = iniparser_getint(ini, "Network:Minibatch", batch_size);
-
-  /** Default to adam optimizer */
-  status = opt.setType((OptType)parseType(
-    iniparser_getstring(ini, "Network:Optimizer", "adam"), TOKEN_OPT));
-  NN_INI_RETURN_STATUS();
-
-  OptParam popt(opt.getType());
-  popt.learning_rate =
-    iniparser_getdouble(ini, "Network:Learning_rate", popt.learning_rate);
-  popt.decay_steps =
-    iniparser_getint(ini, "Network:Decay_steps", popt.decay_steps);
-  popt.decay_rate =
-    iniparser_getdouble(ini, "Network:Decay_rate", popt.decay_rate);
-  popt.beta1 = iniparser_getdouble(ini, "Network:beta1", popt.beta1);
-  popt.beta2 = iniparser_getdouble(ini, "Network:beta2", popt.beta2);
-  popt.epsilon = iniparser_getdouble(ini, "Network:epsilon", popt.epsilon);
-
-  status = opt.setOptParam(popt);
-  NN_INI_RETURN_STATUS();
-
-  return status;
-}
-
-/// @fixme: 370
-int NeuralNetwork::loadDatasetConfig(void *_ini) {
-  ml_logd("start parsing dataset config");
-  int status = ML_ERROR_NONE;
-
-  dictionary *ini = static_cast<dictionary *>(_ini);
-
-  if (iniparser_find_entry(ini, "DataSet:Tflite")) {
-    ml_loge("Error: Tflite dataset is not yet implemented!");
-    return ML_ERROR_INVALID_PARAMETER;
-  }
-
-  data_buffer = std::make_shared<DataBufferFromDataFile>();
-  std::shared_ptr<DataBufferFromDataFile> dbuffer =
-    std::static_pointer_cast<DataBufferFromDataFile>(data_buffer);
-
-  std::function<int(const char *, DataType, bool)> parse_and_set =
-    [&](const char *key, DataType dt, bool required) -> int {
-    const char *path = iniparser_getstring(ini, key, NULL);
-
-    if (path == NULL) {
-      return required ? ML_ERROR_INVALID_PARAMETER : ML_ERROR_NONE;
-    }
-
-    return dbuffer->setDataFile(path, dt);
-  };
-
-  status = parse_and_set("DataSet:TrainData", DATA_TRAIN, true);
-  NN_INI_RETURN_STATUS();
-  status = parse_and_set("DataSet:ValidData", DATA_VAL, false);
-  NN_INI_RETURN_STATUS();
-  status = parse_and_set("DataSet:TestData", DATA_TEST, false);
-  NN_INI_RETURN_STATUS();
-  status = parse_and_set("Dataset:LabelData", DATA_LABEL, true);
-  NN_INI_RETURN_STATUS();
-
-  /// fixme: #299, #389
-  int bufsize = iniparser_getint(ini, "DataSet:BufferSize", batch_size);
-  ml_logd("buf size: %d", bufsize);
-  status = data_buffer->setBufSize(bufsize);
-  NN_INI_RETURN_STATUS();
-
-  status = data_buffer->setMiniBatch(batch_size);
-  NN_INI_RETURN_STATUS();
-
-  ml_logd("parsing dataset done");
-  return status;
-}
-
-int NeuralNetwork::loadFromConfig() {
+int NeuralNetwork::loadFromConfig(std::string config) {
   if (loadedFromConfig == true) {
     ml_loge("cannnot do loadFromConfig twice");
     return ML_ERROR_INVALID_PARAMETER;
   }
 
+  ModelLoader loader;
   NeuralNetwork tempNet(*this);
-
-  int status = ML_ERROR_NONE;
-  std::string ini_file = config;
-  int num_ini_sec = 0;
-  dictionary *ini;
-  const char network_str[] = "network";
-  unsigned int network_len = strlen(network_str);
-  const char dataset_str[] = "dataset";
-  unsigned int dataset_len = strlen(dataset_str);
-  const char unknown[] = "Unknown";
-  unsigned int unknown_len = strlen(unknown);
-
-  if (ini_file.empty()) {
-    ml_loge("Error: Configuration File is not defined");
-    return ML_ERROR_INVALID_PARAMETER;
+  int status = loader.loadFromConfig(config, tempNet);
+  if (status != ML_ERROR_NONE) {
+    return status;
   }
-
-  /** Parse ini file */
-  ini = iniparser_load(ini_file.c_str());
-  if (ini == NULL) {
-    ml_loge("Error: cannot parse file: %s\n", ini_file.c_str());
-    return ML_ERROR_INVALID_PARAMETER;
-  }
-
-  /** Get number of sections in the file */
-  num_ini_sec = iniparser_getnsec(ini);
-  if (num_ini_sec < 0) {
-    ml_loge("Error: invalid number of sections.");
-    return ML_ERROR_INVALID_PARAMETER;
-  }
-
-  if (iniparser_find_entry(ini, "network") == 0) {
-    ml_loge("there is no [network] section in given ini file");
-    return ML_ERROR_INVALID_PARAMETER;
-  }
-
-  ml_logd("parsing ini started");
-  /** Get all the section names */
-  ml_logi("==========================parsing ini...");
-  ml_logi("invalid properties does not cause error, rather be ignored");
-  ml_logi("not-allowed property for the layer throws error");
-  ml_logi("valid property with invalid value throws error as well");
-  for (int idx = 0; idx < num_ini_sec; ++idx) {
-    const char *sec_name = iniparser_getsecname(ini, idx);
-    ml_logd("probing section name: %s", sec_name);
-
-    if (!sec_name) {
-      ml_loge("Error: Unable to retrieve section names from ini.");
-      status = ML_ERROR_INVALID_PARAMETER;
-      NN_RETURN_STATUS();
-    }
-
-    if (strncasecmp(network_str, sec_name, network_len) == 0) {
-      status = tempNet.loadNetworkConfig((void *)ini);
-      NN_RETURN_STATUS();
-      continue;
-    }
-
-    if (strncasecmp(dataset_str, sec_name, dataset_len) == 0) {
-      status = tempNet.loadDatasetConfig((void *)ini);
-      NN_RETURN_STATUS();
-      continue;
-    }
-
-    /** Parse all the layers defined as sections in order */
-    std::string layer_name(sec_name);
-
-    std::string layer_type_str =
-      iniparser_getstring(ini, (layer_name + ":Type").c_str(), unknown);
-    LayerType layer_type = (LayerType)parseType(layer_type_str, TOKEN_LAYER);
-
-    std::shared_ptr<Layer> layer;
-
-    switch (layer_type) {
-    case LAYER_IN:
-      layer = std::make_shared<InputLayer>();
-      break;
-    case LAYER_CONV2D:
-      layer = std::make_shared<Conv2DLayer>();
-      break;
-    case LAYER_POOLING2D:
-      layer = std::make_shared<Pooling2DLayer>();
-      break;
-    case LAYER_FLATTEN:
-      layer = std::make_shared<FlattenLayer>();
-      break;
-    case LAYER_FC:
-      layer = std::make_shared<FullyConnectedLayer>();
-      break;
-    case LAYER_BN:
-      layer = std::make_shared<BatchNormalizationLayer>();
-      break;
-    case LAYER_ACTIVATION:
-      layer = std::make_shared<ActivationLayer>();
-      break;
-    case LAYER_UNKNOWN:
-    default:
-      ml_loge("Error: Unknown layer type from %s, parsed to %d",
-              layer_type_str.c_str(), layer_type);
-      status = ML_ERROR_INVALID_PARAMETER;
-      NN_INI_RETURN_STATUS();
-    }
-
-    unsigned int property_end =
-      static_cast<unsigned int>(Layer::PropertyType::unknown);
-
-    for (unsigned int i = 0; i < property_end; ++i) {
-      std::string prop = propToStr(i);
-      std::string value =
-        iniparser_getstring(ini, (layer_name + ":" + prop).c_str(), unknown);
-
-      /**! @todo: add following negative tc after #319
-       * 1. layer has empty prop -> throw std::invalid_argument
-       * 2. layer has not allowed property -> throw exception::not_supported
-       * 3. property value parse error -> throw std::invalid_argument
-       */
-      if (!strncmp(value.c_str(), unknown, unknown_len)) {
-        continue;
-      }
-
-      if (value == "") {
-        std::stringstream ss;
-        ss << "property key " << prop << " has empty value. It is not allowed";
-        throw std::invalid_argument(ss.str());
-      }
-
-      layer->setProperty(static_cast<Layer::PropertyType>(i), value);
-    }
-
-    status = layer->setName(layer_name);
-    NN_INI_RETURN_STATUS();
-
-    status = tempNet.addLayer(layer);
-    NN_INI_RETURN_STATUS();
-  }
-  ml_logd("parsing ini finished");
-
-  /**< Additional validation and handling for the neural network */
-  if (!tempNet.data_buffer) {
-    tempNet.data_buffer = std::make_shared<DataBufferFromCallback>();
-  }
-
-  status = tempNet.data_buffer->setMiniBatch(batch_size);
-  NN_INI_RETURN_STATUS();
-
-  if (tempNet.layers.empty()) {
-    ml_loge("there is no layer section in the ini file");
-    status = ML_ERROR_INVALID_PARAMETER;
-  }
-
-  iniparser_freedict(ini);
 
   tempNet.loadedFromConfig = true;
   swap(tempNet, *this);
 
-  return status;
+  return ML_ERROR_NONE;
 }
 
 int NeuralNetwork::initLossLayer() {

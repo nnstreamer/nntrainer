@@ -57,6 +57,8 @@ typedef enum { NET_KNN, NET_REG, NET_NEU, NET_UNKNOWN } NetType;
  * @brief   NeuralNetwork Class which has Network Configuration & Layers
  */
 class NeuralNetwork {
+  friend class ModelLoader;
+
 public:
   /**
    * @brief     Constructor of NeuralNetwork Class
@@ -64,18 +66,9 @@ public:
   NeuralNetwork();
 
   /**
-   * @brief     Constructor of NeuralNetwork Class with Configuration file
-   * path
-   */
-  NeuralNetwork(std::string config_path);
-
-  /**
    * @brief     Destructor of NeuralNetwork Class
    */
-  ~NeuralNetwork() {
-    iter = 0;
-    continue_train = false;
-  };
+  ~NeuralNetwork() {}
 
   friend void swap(NeuralNetwork &lhs, NeuralNetwork &rhs) {
     using std::swap;
@@ -86,7 +79,6 @@ public:
     swap(lhs.cost, rhs.cost);
     swap(lhs.weight_ini, rhs.weight_ini);
     swap(lhs.model, rhs.model);
-    swap(lhs.config, rhs.config);
     swap(lhs.opt, rhs.opt);
     swap(lhs.net_type, rhs.net_type);
     swap(lhs.layers, rhs.layers);
@@ -124,11 +116,11 @@ public:
   void setLoss(float l);
 
   /**
-   * @brief     Create and load the Network with configuration file.
+   * @brief     Create and load the Network with ini configuration file.
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int loadFromConfig();
+  int loadFromConfig(std::string config);
 
   /**
    * @brief     set Property of Network
@@ -189,13 +181,6 @@ public:
    * @brief     read model and training parameters from file
    */
   void readModel();
-
-  /**
-   * @brief     set configuration file
-   * @param[in] config_path configuration file path
-   * @throw std::invalid_argument when file path is not usuable.
-   */
-  void setConfig(std::string config_path);
 
   /**
    * @brief     get Epoch
@@ -323,8 +308,6 @@ private:
 
   std::string model; /**< Model path to save / read */
 
-  std::string config; /**< Configuration file path */
-
   Optimizer opt; /**< Optimizer, This gets copied into each layer, do not use
                     this directly */
 
@@ -385,18 +368,6 @@ private:
    * @brief     Ensure that layer has a name
    */
   void ensureName(std::shared_ptr<Layer> layer, std::string prefix = "");
-
-  /**
-   * @brief     load dataset config from ini
-   * @param[in] ini will be casted to iniparser::dictionary *
-   */
-  int loadDatasetConfig(void *ini);
-
-  /**
-   * @brief     load network config from ini
-   * @param[in] ini will be casted to iniparser::dictionary *
-   */
-  int loadNetworkConfig(void *ini);
 };
 
 } /* namespace nntrainer */

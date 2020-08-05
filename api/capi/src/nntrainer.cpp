@@ -163,17 +163,7 @@ int ml_train_model_construct_with_conf(const char *model_conf,
   nnmodel = (ml_train_model *)(*model);
   NN = nnmodel->network;
 
-  f = [&]() {
-    NN->setConfig(model_conf);
-    return ML_ERROR_NONE;
-  };
-  status = nntrainer_exception_boundary(f);
-  if (status != ML_ERROR_NONE) {
-    ml_train_model_destroy(*model);
-    return status;
-  }
-
-  f = [&]() { return NN->loadFromConfig(); };
+  f = [&]() { return NN->loadFromConfig(model_conf); };
   status = nntrainer_exception_boundary(f);
   if (status != ML_ERROR_NONE) {
     ml_train_model_destroy(*model);

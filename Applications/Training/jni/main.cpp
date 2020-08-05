@@ -248,8 +248,7 @@ int main(int argc, char *argv[]) {
   nntrainer::NeuralNetwork NN;
 
   try {
-    NN.setConfig(config);
-    NN.loadFromConfig();
+    NN.loadFromConfig(config);
     NN.init();
   } catch (...) {
     std::cerr << "Error during initiation" << std::endl;
