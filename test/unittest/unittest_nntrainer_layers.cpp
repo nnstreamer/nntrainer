@@ -402,7 +402,7 @@ protected:
   }
 
   void matchLoss(const char *file) {
-    nntrainer::Tensor loss;
+    nntrainer::Tensor loss(1, 1, 1, 1);
     loadFile(file, loss);
     EXPECT_NEAR(layers.back()->getLoss(), *(loss.getData()), tolerance);
   }
@@ -1000,15 +1000,15 @@ protected:
       EXPECT_NEAR(out_ptr[i], golden[i], tolerance);
     }
   }
+
+  virtual void prepareLayer() { setInputDim("2:3:5:5"); }
 };
 
 TEST_F(nntrainer_Pooling2DLayer, setProperty_01_p) {
-  setInputDim("2:3:5:5");
   setProperty("pooling_size=2,2 | stride=1,1 | padding=0,0 | pooling=average");
 }
 
 TEST_F(nntrainer_Pooling2DLayer, setProperty_02_n) {
-  setInputDim("2:3:5:5");
   int status = layer.setProperty({"pooling_size="});
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
@@ -1174,13 +1174,15 @@ TEST_F(nntrainer_Pooling2DLayer, backwarding_04_p) {
 }
 
 class nntrainer_FlattenLayer
-  : public nntrainer_abstractLayer<nntrainer::FlattenLayer> {};
+  : public nntrainer_abstractLayer<nntrainer::FlattenLayer> {
+protected:
+  virtual void prepareLayer() { setInputDim("1:2:4:4"); }
+};
 
 /**
  * @brief Flatten Layer
  */
 TEST_F(nntrainer_FlattenLayer, forwarding_01_p) {
-  setInputDim("1:2:4:4");
   reinitialize(false);
 
   EXPECT_EQ(out.getDim(), nntrainer::TensorDim(1, 1, 1, 32));
@@ -1212,7 +1214,6 @@ TEST_F(nntrainer_FlattenLayer, forwarding_02_p) {
  * @brief Flatten Layer
  */
 TEST_F(nntrainer_FlattenLayer, backwarding_01_p) {
-  setInputDim("1:2:4:4");
   reinitialize(false);
 
   EXPECT_EQ(out.getDim(), nntrainer::TensorDim(1, 1, 1, 32));
@@ -1272,11 +1273,17 @@ TEST(nntrainer_LossLayer, setProperty_01_n) {
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
-TEST(nntrainer_ActivationLayer, init_01_1) {
+TEST(nntrainer_ActivationLayer, init_01_n) {
+  nntrainer::ActivationLayer layer;
+  EXPECT_THROW(layer.initialize(false), std::invalid_argument);
+}
+
+TEST(nntrainer_ActivationLayer, init_02_p) {
   int status = ML_ERROR_NONE;
   nntrainer::ActivationLayer layer;
-  status = layer.initialize(false);
 
+  layer.setInputDimension({1, 1, 1, 1});
+  status = layer.initialize(false);
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 

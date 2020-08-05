@@ -66,7 +66,18 @@ Tensor::Tensor(const TensorDim &d, const float *buf) :
   dim(d),
   strides{{1, 2, 3}},
   is_contiguous(true),
-  data(new float[d.getDataLen()], std::default_delete<float[]>()) {
+  data(d.getDataLen() == 0
+         ? nullptr
+         : std::shared_ptr<float>(new float[d.getDataLen()],
+                                  std::default_delete<float[]>())) {
+  if (d.getDataLen() == 0) {
+    if (buf != nullptr) {
+      throw std::runtime_error(
+        "Tensor dimension and source buffer size mismatch");
+    }
+    return;
+  }
+
   // todo: initialize appropriate strides
   if (buf != nullptr) {
     float *data = getData();

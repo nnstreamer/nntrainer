@@ -29,13 +29,14 @@ class TensorDim {
 public:
   TensorDim() {
     for (int i = 0; i < MAXDIM; ++i) {
-      dim[i] = 1;
+      dim[i] = 0;
     }
-    len = 1;
-    feature_len = 1;
+    len = 0;
+    feature_len = 0;
   }
 
-  TensorDim(unsigned int b, unsigned int c, unsigned int h, unsigned int w) {
+  TensorDim(unsigned int b, unsigned int c, unsigned int h, unsigned int w) :
+    TensorDim() {
     setTensorDim(0, b);
     setTensorDim(1, c);
     setTensorDim(2, h);
