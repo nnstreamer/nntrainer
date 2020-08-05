@@ -31,39 +31,112 @@ Even though it trains part of the neural network models, NNtrainer requires quit
 
 ## Components
 
-### NeuralNetwork
+### Supported Layers
 
-This is the component which controls neural network layers. Read the configuration file ([Iniparser](https://github.com/ndevilla/iniparser) is used to parse the configuration file.) and constructs Layers including Input and Output Layer, according to configured information by the user.
-The most important role of this component is to activate forward / backward propagation. It activates inferencing and training of each layer while handling the data properly among them. There are properties to describe network model as below:
+This component defines Layers which consist of Neural Network Model. Layers has own properties to be set.
 
-- **_Type:_** Network Type - Regression, k-NN, NeuralNetwork
-- **_Layers:_** Name of Layers of Network Model
-- **_Learning\_rate:_** Learning rate which is used for all Layers
-- **_Decay\_rate:_** Rate for Exponentially Decayed Learning Rate
-- **_Epoch:_** Max Number of Training Iteration.
-- **_Optimizer:_** Optimizer for the Network Model - sgd, adam
-- **_Activation:_** Activation Function - sigmoid , tanh
-- **_Cost:_** Cost Function -
-      mse(mean squared error), cross (cross entropy)
-- **_Model:_** Name of Model. Weight Data is saved in the name of this.
-- **_minibach:_** mini batch size
-- **_beta1,beta2,epsilon:_** hyper parameters for the adam optimizer
+ | Keyword | Layer Name | Description |
+ |:-------:|:---:|:---|
+ |  conv2d | Convolution 2D |Convolution 2-Dimentional Layer |
+ |  pooling2d | Pooling 2D |Pooling 2-Dimentional Layer. Support average / max / global average / global max pooing |
+ | flatten | Flatten | Flatten Layer |
+ | fully_connected | Fully Connected | Fully Connected Layer |
+ | input | Input | Input Layer.  This is not always requied. |
+ | batch_normalization | Batch Normalization Layer | Batch Normalization Layer. |
+ | loss layer | loss layer | hidden from users |
+ | activation | activaiton layer | set by layer property | 
 
+### Supported Optimizers
 
-### Layers
+NNTrainer Provides
 
-This component defines Layers which consist of Neural Network Model. Every neural network model must have one Input & Output Layer and other layers such as Fully Connected or Convolution can be added between them. (For now, supports Input & Output Layer, Fully Connected Layer.)
+ | Keyward | Optimizer Name | Description |
+ |:-------:|:---:|:---:|
+ | sgd | Stochastic Gradient Decent | - |
+ | adam | Adaptive Moment Estimation | - |
 
-- **_Type:_** InputLayer, OutputLayer, FullyConnectedLayer
-- **_Id:_** Index of Layer
-- **_Height:_** Height of Weight Data (Input Dimension)
-- **_Width:_** Width of Weight Data ( Hidden Layer Dimension)
-- **_Bias\_zero:_** Boolean for Enable/Disable Bias
+### Supported Loss
 
+NNTrainer provides
+
+ | Keyward | Loss Name | Description |
+ |:-------:|:---:|:---:|
+ | mse | Mean squared Error | - |
+ | cross | Cross Entropy - sigmoid | if activation last layer is sigmoid |
+ | cross | Cross Entropy - softmax | if activation last layer is softmax |
+
+### Supported Activations
+
+NNTrainer provides
+
+ | Keyward | Loss Name | Description |
+ |:-------:|:---:|:---|
+ | tanh | tanh function | set as layer property |
+ | sigmoid | sigmoid function | set as layer property |
+ | relu | relu function | set as layer propery |
+ | softmax | softmax function | set as layer propery |
+ | weight_ini | Weight Initialization | Xavier(Normal/Uniform), LeCun(Normal/Uniform),  HE(Normal/Unifor) |
+ | weight_decay | weight decay ( L2Norm only ) | needs set weight_decay_param & type |
+ | learnig_rate_decay | learning rate decay | need to set step | 
 
 ### Tensor
 
 Tensor is responsible for the calculation of Layer. It executes the addition, division, multiplication, dot production, averaging of Data and so on. In order to accelerate the calculation speed, CBLAS (C-Basic Linear Algebra: CPU) and CUBLAS (CUDA: Basic Linear Algebra) for PC (Especially NVIDIA GPU)  for some of the operation. Later, these calculations will be optimized.
+Currently we supports lazy calculation mode to reduce copy of tensors during calcuation.
+
+ | Keyward | Description |
+ |:-------:|:---:|
+ | 4D Tensor | B, C, H, W|
+ | Add/sub/mul/div | - |
+ | sum, average, argmax | - |
+ | Dot, Transpose | - |
+ | normalization, standardization | - |
+ | save, read | - |
+
+### Others
+
+NNTrainer provides
+
+ | Keyward | Loss Name | Description |
+ |:-------:|:---:|:---|
+ | weight_ini | Weight Initialization | Xavier(Normal/Uniform), LeCun(Normal/Uniform),  HE(Normal/Unifor) |
+ | weight_decay | weight decay ( L2Norm only ) | needs set weight_decay_param & type |
+ | learnig_rate_decay | learning rate decay | need to set step | 
+
+### APIs
+Currently we privde [C APIs](https://github.com/nnstreamer/nntrainer/blob/master/api/capi/include/nntrainer.h) for Tizen. C++ API also provides soon.
+
+
+### Examples for NNTrainer
+
+#### [Custom Shortcut Application](https://github.com/nnstreamer/nntrainer/tree/master/Applications/Tizen_native/CustomShortcut)
+
+
+This is demo application which enable user defined custom shortcut on galaxy watch.
+
+#### [MNIST Example](https://github.com/nnstreamer/nntrainer/tree/master/Applications/mnist)
+
+This is example to train mnist dataset. It consists two convolution 2d layer, 2 pooling 2d layer, flatten layer and fully connected layer.
+
+#### [Reinforcement Learning Example](https://github.com/nnstreamer/nntrainer/tree/master/Applications/ReinforcementLearning/DeepQ)
+
+This is reinforcement learning example with cartpole game. It is using deepq alogrightm.
+
+#### [Classification for cifar 10]( https://github.com/nnstreamer/nntrainer/tree/master/Applications/Classification )
+
+This is Transfer learning example with cifar 10 data set. TFlite is used for feature extractor and modify last layer (fully connected layer) of network.
+
+#### [Tizen CAPI Example](https://github.com/nnstreamer/nntrainer/tree/master/Applications/Tizen_CAPI)
+
+This is for demonstrate c api for tizen. It is same transfer learing but written with tizen c api.
+
+#### [KNN Example](https://github.com/nnstreamer/nntrainer/tree/master/Applications/KNN)
+
+This is Transfer learning example with cifar 10 data set. TFlite is used for feature extractor and compared with KNN
+
+#### [Logistic Regression Example](https://github.com/nnstreamer/nntrainer/tree/master/Applications/LogisticRegression)
+
+This is simple logistic regression example using nntrainer.
 
 ## Getting Started
 
