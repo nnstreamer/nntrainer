@@ -532,8 +532,9 @@ void NeuralNetwork::finalize() {
 sharedConstTensor NeuralNetwork::forwarding(sharedConstTensor input) {
   sharedConstTensor X = input;
   /** Do not forward the loss layer, as label is not available */
-  for (unsigned int i = 0; i < layers.size() - 1; i++)
+  for (unsigned int i = 0; i < layers.size() - 1; i++) {
     X = layers[i]->forwarding(X);
+  }
 
   return X;
 }
@@ -696,7 +697,7 @@ int NeuralNetwork::train_run() {
           ml_loge("Error: training error in #%d/%d.", i + 1, epoch);
           std::rethrow_exception(std::current_exception());
         }
-        std::cout << "#" << i + 1 << "/" << epoch;
+        std::cout << "#" << i << "/" << epoch;
         data_buffer->displayProgress(count++, nntrainer::BUF_TRAIN, getLoss());
         training_loss += getLoss();
       } else {
@@ -706,6 +707,7 @@ int NeuralNetwork::train_run() {
     }
 
     saveModel();
+
     std::cout << "#" << i << "/" << epoch
               << " - Training Loss: " << training_loss / count;
 

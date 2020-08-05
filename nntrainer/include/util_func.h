@@ -46,6 +46,8 @@ float random();
  */
 float sqrtFloat(float x);
 
+double sqrtDouble(double x);
+
 /**
  * @brief     log function for float type
  * @param[in] x float

@@ -1006,7 +1006,7 @@ TEST_F(nntrainer_Conv2DLayer, backwarding_01_p) {
 
   matchOutput(grad_data, "tc_conv2d_1_goldenKernelGrad.out");
 
-  matchOutput(result, "tc_conv2d_1_goldenInputGrad.out");
+  matchOutput(rotate_180(result), "tc_conv2d_1_goldenInputGrad.out");
 
   matchOutput(bias_grad, "tc_conv2d_1_goldenBiasGrad.out");
 }
@@ -1060,7 +1060,7 @@ TEST_F(nntrainer_Conv2DLayer, backwarding_02_p) {
 
   matchOutput(grad_data, "tc_conv2d_2_goldenKernelGrad.out");
 
-  matchOutput(result, "tc_conv2d_2_goldenInputGrad.out");
+  matchOutput(rotate_180(result), "tc_conv2d_2_goldenInputGrad.out");
 
   matchOutput(bias_grad, "tc_conv2d_2_goldenBiasGrad.out");
 }

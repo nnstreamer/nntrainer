@@ -87,14 +87,19 @@ void Optimizer::apply_gradients(std::shared_ptr<UpdatableParam> params,
 
   UpdatableParam *param_data = params.get();
 
-  float ll = popt.learning_rate;
+  double ll = popt.learning_rate;
 
   if (popt.decay_steps != -1) {
     ll = ll * pow(popt.decay_rate, (iteration / popt.decay_steps));
   }
 
-  float biasCorrection1 = 1 - pow(popt.beta1, iteration + 1);
-  float biasCorrection2 = 1 - pow(popt.beta2, iteration + 1);
+  if (type == OptType::adam) {
+    std::function<float(double)> biasCorrection = [&](float f) {
+      return 1.0f - pow(f, iteration + 1);
+    };
+
+    ll *= sqrt(biasCorrection(popt.beta2)) / biasCorrection(popt.beta1);
+  }
 
   int idx = 0;
   for (unsigned int i = 0; i < param_size; ++i) {
@@ -108,6 +113,28 @@ void Optimizer::apply_gradients(std::shared_ptr<UpdatableParam> params,
       break;
     case OptType::adam: {
 
+      // This is implementation of adam from original paper.
+      // This is not deleted intentionally.
+      // float biasCorrection1 = 1 - pow(popt.beta1, iteration + 1);
+      // float biasCorrection2 = 1 - pow(popt.beta2, iteration + 1);
+      // Tensor &wm = weight_mv[idx].first;
+      // Tensor &wv = weight_mv[idx].second;
+
+      // wm.multiply_i(popt.beta1);
+      // wm.add_i(x_grad, 1.0f - popt.beta1);
+
+      // wv.multiply_i(popt.beta2);
+      // wv.add_i(x_grad.multiply(x_grad), 1.0f - popt.beta2);
+
+      // Tensor denom = wv.apply(sqrtFloat)
+      //                  .divide(sqrtFloat(biasCorrection2))
+      //                  .add(popt.epsilon);
+      // x.add_i(wm.divide(denom), -ll / biasCorrection1);
+
+      std::function<double(double)> sqrtEps = [&](double f) {
+        return sqrtDouble(f) + this->popt.epsilon;
+      };
+
       Tensor &wm = weight_mv[idx].first;
       Tensor &wv = weight_mv[idx].second;
 
@@ -117,10 +144,8 @@ void Optimizer::apply_gradients(std::shared_ptr<UpdatableParam> params,
       wv.multiply_i(popt.beta2);
       wv.add_i(x_grad.multiply(x_grad), 1.0f - popt.beta2);
 
-      Tensor denom = wv.apply(sqrtFloat)
-                       .divide(sqrtFloat(biasCorrection2))
-                       .add(popt.epsilon);
-      x.add_i(wm.divide(denom), -ll / biasCorrection1);
+      x.add_i(wm.divide(wv.apply(sqrtEps)), -ll);
+
       break;
     }
     case OptType::unknown:

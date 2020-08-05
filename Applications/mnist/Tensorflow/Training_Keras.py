@@ -29,9 +29,11 @@ from tensorflow.keras.layers import Input, Dense, Conv2D, Flatten, AveragePoolin
 from tensorflow.keras import models, layers, optimizers
 from tensorflow.keras.callbacks import Callback
 from tensorflow.keras import initializers
-# from tensorflow.keras.callback import EarlyStopping, LambdaCallback
+from tensorflow.keras.models import load_model
+
 np.set_printoptions(threshold=sys.maxsize)
 SEED=1
+
 tf.compat.v1.reset_default_graph()
 random.seed(SEED)
 tf.compat.v1.set_random_seed(SEED)
@@ -41,7 +43,7 @@ batch_size =32
 Learning = True
 Test = False
 num_epoch = 1500
-DEBUG = False
+DEBUG = True
 
 def save(filename, *data):
     if os.path.isfile(filename):
@@ -55,23 +57,6 @@ def save(filename, *data):
             print(item)
           except:
             pass
-
-##
-# @brief Callback to get the data from model during trining
-# @param[in] Callback Keras Callback object
-class History_LAW(Callback):
-    def on_train_begin(self, logs={}):
-        self.epoch=[]
-        self.weights =[]
-        self.history ={}
-        if DEBUG:
-            self.weights.append(self.model.layers[0].get_weights())
-
-    def on_epoch_end(self, epoch, logs={}):
-        if DEBUG:
-            print(self.model.layers[1].get_weights()[0])
-            print(self.model.layers[1].get_weights()[1])
-            self.weights.append(self.model.layers[0].get_weights())
 
 ##
 # @brief input data generater with batch_size
@@ -88,8 +73,17 @@ def datagen( x_data, y_data, batch_size):
             x_batch=np.reshape(x_batch, (batch_size, 1, 28,28))
             x_batch=np.transpose(x_batch, [0,2,3,1])
             y_batch = y_data[i*batch_size: (i+1)*batch_size]
-
             yield x_batch, y_batch
+
+def create_model():
+    model = models.Sequential()
+    model.add(Conv2D(6, (5,5), padding='valid', activation='sigmoid', input_shape=(28,28,1), kernel_initializer=initializers.Zeros(), bias_initializer=initializers.Zeros()))
+    model.add(AveragePooling2D(pool_size=(2,2)))
+    model.add(Conv2D(12, (5,5), padding='valid', activation='sigmoid', kernel_initializer=initializers.Zeros(), bias_initializer=initializers.Zeros()))
+    model.add(AveragePooling2D(pool_size=(2,2)))
+    model.add(Flatten())
+    model.add(layers.Dense(10,kernel_initializer=initializers.Zeros(), bias_initializer=initializers.Zeros()))
+    return model
             
 ##
 # @brief training loop
@@ -99,67 +93,71 @@ def datagen( x_data, y_data, batch_size):
 #        - loss : cross entropy
 #
 def train_nntrainer(target):
-    print(target)
     train_data_size, val_data_size, label_size, feature_size = dataset.get_data_info(target)
-    print(train_data_size, val_data_size, label_size, feature_size)
     InVec, InLabel, ValVec, ValLabel = dataset.load_data(target)
 
-    print('reading is done')
-    inputs = tf.placeholder(tf.float32, [None, feature_size], name="input_X")
-    labels = tf.placeholder(tf.float32,[None, label_size], name = "label")
+    inputs = tf.placeholder(tf.float32, [None, 28,28,1], name="input_X")
+    labels = tf.placeholder(tf.float32,[None, 10], name = "label")
+    sess=tf.compat.v1.Session()
 
-    model = models.Sequential()
-    model.add(Conv2D(6, (5,5), padding='valid', activation='sigmoid', input_shape=(28,28,1), kernel_initializer=initializers.Zeros(), bias_initializer=initializers.Zeros()))
-    model.add(AveragePooling2D(pool_size=(2,2)))
-    model.add(Conv2D(12, (5,5), padding='valid', activation='sigmoid', kernel_initializer=initializers.Zeros(), bias_initializer=initializers.Zeros()))
-    model.add(AveragePooling2D(pool_size=(2,2)))
-    model.add(Flatten())
-    model.add(layers.Dense(10,kernel_initializer=initializers.Zeros(), bias_initializer=initializers.Zeros()))
+    model=create_model()
 
-    model.compile(optimizer = optimizers.Adam(lr=1e-4),
-                  loss=tf.keras.losses.CategoricalCrossentropy(from_logits=True),
-                  metrics=['accuracy'])
     model.summary()
 
-    model_Hist = History_LAW()
-
-    history = model.fit(datagen(InVec, InLabel, batch_size), epochs=num_epoch, steps_per_epoch=len(InVec)//batch_size, validation_data=datagen(ValVec, ValLabel, batch_size), validation_steps=len(ValVec)//batch_size, callbacks=[model_Hist])
-
-    count =0
+    tf_logit = model(inputs, training=True)
     
+    tf_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(
+        labels=labels, logits=tf_logit))
+
+    optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate=1.0e-4, epsilon=1.0e-7, beta1=0.9, beta2=0.999)
+
+    trainable_variables = tf.compat.v1.trainable_variables()
+    
+    tf_grad = optimizer.compute_gradients(tf_loss, var_list = trainable_variables)
+    
+    global_step =tf.compat.v1.train.get_or_create_global_step()
+
+    train_op = optimizer.apply_gradients(tf_grad, global_step=global_step)
+
+    var_to_run = [tf_logit, tf_loss, tf_grad, train_op, global_step ]
+    
+    infer_to_run = [tf.reduce_sum(tf.cast(tf.equal(tf.math.argmax(tf.nn.softmax(tf_logit), axis=1), tf.math.argmax(labels, axis=1)), tf.float32))/batch_size, tf_loss]
+
     if not os.path.exists('./nntrainer_tfmodel'):
-        os.mkdir('./nntrainer_tfmodel')
-        model.save('./nntrainer_tfmodel/nntrainer_keras.h5')
+        sess.run(tf.compat.v1.global_variables_initializer())
+    else:
+        model=load_model('./nntrainer_tfmodel/nntrainer_keras.h5')
 
-    if target !="validation":
-        ValVec = np.reshape(ValVec, (label_size*val_data_size, 1,28,28))
-        ValVec = np.transpose(ValVec, [0,2,3,1])
-        score = model.evaluate(ValVec, ValLabel, verbose=1)
-        print("%s: %.5f%%" % (model.metrics_names[1], score[1]*100))
+    for i in range(0, num_epoch):
+        count = 0
+        loss = 0;
+        for x, y in datagen(InVec, InLabel, batch_size):
+            feed_dict = {inputs: x, labels: y}
+            tf_out = sess.run(var_to_run, feed_dict = feed_dict)
+            loss += tf_out[1]
+            count = count + 1
 
-##
-# @brief validation loop
-def validation():
-    train_data_size, val_data_size, label_size, feature_size = dataset.get_data_info(target)    
-    ValVector = np.zeros((label_size*val_data_size,feature_size),dtype=np.float)
-    ValLabel = np.zeros((label_size*val_data_size, label_size),dtype=np.float)
+            if count == len(InVec) // batch_size:
+                break;
 
-    fin = open('mnist_trainingSet.dat','rb')
-    for i in range(label_size*val_data_size):
-        for j in range(feature_size):
-            data_str = fin.read(4)
-            ValVector[i,j] = struct.unpack('f',data_str)[0]
-        for j in range(label_size):
-            data_str = fin.read(4)
-            ValLabel[i,j] = struct.unpack('f',data_str)[0]
-    fin.close()
-    
-    saved_model = tf.keras.models.load_model('./nntrainer_tfmodel/nntrainer_keras.h5')
-    saved_model.summary()
-    
-    score = saved_model.evaluate(ValVector, ValLabel, verbose=0)
-    print("%s: %.5f%%" % (saved_model.metrics_names[1], score[1]*100))
-    
+        training_loss = loss/count
+
+        count =0
+        accuracy = 0;
+        loss = 0;
+        for x, y in datagen(InVec, InLabel, batch_size):
+            feed_dict = {inputs: x, labels: y}
+            infer_out = sess.run(infer_to_run, feed_dict = feed_dict)
+            accuracy += infer_out[0]
+            loss += infer_out[1]
+            count = count + 1
+            if count == len(InVec) // batch_size:
+                break;
+        accuracy = (accuracy / count) * 100.0
+        loss = loss / count
+
+        print('#{}/{} - Training Loss: {:10.6f} >> [ Accuracy: {:10.6f}% - Valiadtion Loss : {:10.6f} ]'. format(i,num_epoch, training_loss, accuracy, loss))
+
 ##
 # @brief main loop
             
@@ -168,18 +166,10 @@ if __name__ == "__main__":
     target1 = sys.argv[2] if len(sys.argv) > 2 else "train"
     
     if target == "validation":
-        batch_size = 2
-        num_epoch = 2
+        batch_size = 32
+        num_epoch = 1
         
     if target1 == "train":
         Learning = True
-        Test = False
-    if target1 == "val":
-        Learning = False
-        Test = True
-        
-    if Learning:
         train_nntrainer(target)
-    if Test:
-        validation()
         

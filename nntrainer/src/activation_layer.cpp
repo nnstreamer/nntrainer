@@ -134,7 +134,7 @@ void ActivationLayer::setActivation(ActiType acti_type) {
     this->setActivation(relu, reluPrime);
     break;
   case ActiType::ACT_NONE:
-    this->setActivation(no_op, no_op);
+    this->setActivation(no_op, no_op_prime);
     break;
   case ActiType::ACT_UNKNOWN:
   default:
@@ -271,4 +271,6 @@ float ActivationLayer::reluPrime(float x) {
 }
 
 float ActivationLayer::no_op(float x) { return x; }
+
+float ActivationLayer::no_op_prime(float x) { return 1.0f; }
 }; // namespace nntrainer

@@ -95,7 +95,8 @@ sharedConstTensor Pooling2DLayer::backwarding(sharedConstTensor derivative,
         for (unsigned int j = 0; j <= height - p_height; j += stride[0]) {
           K = 0;
           for (unsigned int k = 0; k <= width - p_width; k += stride[1]) {
-            float del = derivative->getValue(b, i, J, K) / (p_size);
+            float del =
+              derivative->getValue(b, i, J, K) / static_cast<float>(p_size);
             for (unsigned int pi = 0; pi < p_height; ++pi) {
               for (unsigned int pj = 0; pj < p_width; ++pj) {
                 result.setValue(b, i, j + pi, k + pj,
@@ -279,7 +280,7 @@ Tensor Pooling2DLayer::pooling2d(unsigned int batch, Tensor &in) {
               sum += in.getValue(0, i, j + pi, k + pj);
             }
           }
-          sum = sum / (p_size);
+          sum = sum / static_cast<float>(p_size);
           output.setValue(0, i, J, K, sum);
           K++;
         }

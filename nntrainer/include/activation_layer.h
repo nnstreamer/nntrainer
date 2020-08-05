@@ -148,6 +148,12 @@ public:
    */
   static float no_op(float x);
 
+  /**
+   * @brief     no_op function
+   * @param[in] x input
+   */
+  static float no_op_prime(float x);
+
 private:
   std::function<Tensor(Tensor const &)> _act_fn;
   std::function<Tensor(Tensor const &, Tensor const &)> _act_prime_fn;
