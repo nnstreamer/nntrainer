@@ -251,6 +251,7 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %{_includedir}/nntrainer/loss_layer.h
 %{_includedir}/nntrainer/activation_layer.h
 %{_includedir}/nntrainer/neuralnet.h
+%{_includedir}/nntrainer/model_loader.h
 %{_includedir}/nntrainer/tensor.h
 %{_includedir}/nntrainer/lazy_tensor.h
 %{_includedir}/nntrainer/tensor_dim.h

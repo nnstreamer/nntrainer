@@ -78,6 +78,13 @@ Tensor strip_pad(Tensor const &in, unsigned int const *padding);
  */
 Tensor rotate_180(Tensor in);
 
+/**
+ * @brief     Check Existance of File
+ * @param[in] file path of the file to be checked
+ * @returns   true if file exists, else false
+ */
+bool isFileExist(std::string file);
+
 } /* namespace nntrainer */
 
 #endif /* __cplusplus */

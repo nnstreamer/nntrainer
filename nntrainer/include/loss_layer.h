@@ -1,7 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0-only
 /**
  * Copyright (C) 2020 Parichay Kapoor <pk.kapoor@samsung.com>
- *
- * SPDX-License-Identifier: Apache-2.0-only
  *
  * @file	loss_layer.h
  * @date	12 June 2020

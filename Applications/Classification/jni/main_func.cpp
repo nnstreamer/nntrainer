@@ -300,8 +300,7 @@ int main(int argc, char *argv[]) {
   nntrainer::NeuralNetwork NN;
 
   try {
-    NN.setConfig(config);
-    NN.loadFromConfig();
+    NN.loadFromConfig(config);
   } catch (...) {
     std::cerr << "Error during loadFromConfig" << std::endl;
     NN.finalize();

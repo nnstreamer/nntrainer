@@ -125,4 +125,9 @@ Tensor rotate_180(Tensor in) {
   return output;
 }
 
+bool isFileExist(std::string file_name) {
+  std::ifstream infile(file_name);
+  return infile.good();
+}
+
 } // namespace nntrainer

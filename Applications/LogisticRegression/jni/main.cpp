@@ -73,15 +73,15 @@ int main(int argc, char *argv[]) {
   srand(time(NULL));
 
   /**
-   * @brief     Create NN with configuration file path
+   * @brief     Create NN
    */
   std::vector<std::vector<float>> inputVector, outputVector;
-  nntrainer::NeuralNetwork NN(config);
+  nntrainer::NeuralNetwork NN;
 
   /**
-   * @brief     Initialize NN
+   * @brief     Initialize NN with configuration file path
    */
-  NN.loadFromConfig();
+  NN.loadFromConfig(config);
   NN.init();
   if (!training)
     NN.readModel();
