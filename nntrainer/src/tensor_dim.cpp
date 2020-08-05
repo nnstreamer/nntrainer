@@ -34,7 +34,8 @@ TensorDim &TensorDim::operator=(TensorDim &&rhs) noexcept {
 }
 
 void TensorDim::swap(TensorDim &lhs, TensorDim &rhs) noexcept {
-  std::swap(lhs.dim, rhs.dim);
+  std::swap_ranges(std::begin(lhs.dim), std::begin(lhs.dim) + MAXDIM,
+                   std::begin(rhs.dim));
   std::swap(lhs.len, rhs.len);
   std::swap(lhs.feature_len, rhs.feature_len);
 }
@@ -48,6 +49,12 @@ void TensorDim::setTensorDim(unsigned int idx, unsigned int value) {
   if (value == 0) {
     throw std::invalid_argument(
       "[TensorDim] Trying to assign value of 0 to tensor dim");
+  }
+
+  if (len == 0) {
+    for (int i = 0; i < MAXDIM; ++i) {
+      dim[i] = 1;
+    }
   }
 
   dim[idx] = value;
