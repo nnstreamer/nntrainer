@@ -66,7 +66,8 @@ NeuralNetwork::NeuralNetwork() :
   continue_train(false),
   iter(0),
   initialized(false),
-  def_name_count(0) {}
+  def_name_count(0),
+  loadedFromConfig(false) {}
 
 NeuralNetwork::NeuralNetwork(std::string config) : NeuralNetwork() {
   this->setConfig(config);
@@ -164,6 +165,11 @@ int NeuralNetwork::loadDatasetConfig(void *_ini) {
 }
 
 int NeuralNetwork::loadFromConfig() {
+  if (loadedFromConfig == true) {
+    ml_loge("cannnot do loadFromConfig twice");
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
   int status = ML_ERROR_NONE;
   std::string ini_file = config;
   int num_ini_sec = 0;
@@ -198,6 +204,9 @@ int NeuralNetwork::loadFromConfig() {
     ml_loge("there is no [network] section in given ini file");
     return ML_ERROR_INVALID_PARAMETER;
   }
+
+  /// @fixme: move this to end of function after resolving #382
+  loadedFromConfig = true;
 
   ml_logd("parsing ini started");
   /** Get all the section names */

@@ -29,6 +29,16 @@ TEST_P(nntrainerIniTest, loadConfig) {
 }
 
 /**
+ * @brief Negative test given ini is failing at loadingTwice
+ */
+TEST_P(nntrainerIniTest, loadConfigTwice) {
+  std::cout << std::get<0>(GetParam()) << std::endl;
+  NN.loadFromConfig();
+  int status = NN.loadFromConfig();
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+}
+
+/**
  * @brief check given ini is failing/succeeding at init
  */
 TEST_P(nntrainerIniTest, init) {
@@ -51,6 +61,20 @@ TEST_P(nntrainerIniTest, init) {
 TEST_P(nntrainerIniTest, initTwice_n) {
   std::cout << std::get<0>(GetParam()) << std::endl;
   int status = NN.loadFromConfig();
+  status = NN.init();
+  status = NN.init();
+
+  EXPECT_NE(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief check given ini is failing/succeeding when init happens three times.
+ * this should fail at all time.
+ */
+TEST_P(nntrainerIniTest, initThreetime_n) {
+  std::cout << std::get<0>(GetParam()) << std::endl;
+  int status = NN.loadFromConfig();
+  status = NN.init();
   status = NN.init();
   status = NN.init();
 
