@@ -431,6 +431,8 @@ private:
    * @param[in] ini will be casted to iniparser::dictionary *
    */
   int loadNetworkConfig(void *ini);
+
+  bool loadedFromConfig; /**< Check if config is loaded to prevent load twice */
 };
 
 } /* namespace nntrainer */
