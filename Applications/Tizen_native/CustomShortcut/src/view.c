@@ -264,36 +264,29 @@ static void _on_draw_proceed(void *data, Evas_Object *obj, const char *emission,
   int status = APP_ERROR_NONE;
 
   char buf[256];
-  ad->tries++;
 
-  if (ad->mode != INFER) {
-    LOG_D("labeling proceed");
-    if (ad->tries >= MAX_TRIES) {
-      ad->tries = 0;
-      elm_naviframe_item_pop(ad->naviframe);
-      data_train_model();
-      view_routes_to(ad, "train_result");
-      return;
-    }
-
-    sprintf(buf, "draw your symbol [%d/%d]", ad->tries, MAX_TRIES);
-    elm_object_part_text_set(obj, "draw/title", buf);
-    LOG_D("starting extraction");
-
-    status = data_extract_feature(ad, TRAIN_SET_PATH, true);
-    if (status != APP_ERROR_NONE) {
-      LOG_E("feature extraction failed");
-    }
-  } else {
-    LOG_D("infer proceed");
-    status = data_extract_feature(ad, "test.dat", true);
-    if (status != APP_ERROR_NONE) {
-      LOG_E("feature extraction failed");
-    }
-
-    view_routes_to(ad, "test_result");
+  LOG_D("labeling proceed");
+  status = data_extract_feature(
+    ad, ad->tries < MAX_TRAIN_TRIES ? TRAIN_SET_PATH : VALIDATION_SET_PATH,
+    true);
+  if (status != APP_ERROR_NONE) {
+    LOG_E("feature extraction failed");
   }
 
+  if (ad->tries == MAX_TRIES - 1) {
+    ad->tries = 0;
+    elm_naviframe_item_pop(ad->naviframe);
+    data_train_model();
+    view_routes_to(ad, "train_result");
+    return;
+  }
+
+  sprintf(buf, "draw for %s [%d/%d]", ad->tries % NUM_CLASS ? "😊" : "😢",
+          ad->tries + 2, MAX_TRIES);
+  elm_object_part_text_set(obj, "draw/title", buf);
+  LOG_D("starting extraction");
+
+  ad->tries++;
   _canvas_erase_all(ad);
 }
 
@@ -302,14 +295,6 @@ static int _create_canvas(appdata_s *ad, const char *draw_mode) {
   Eina_Bool status;
 
   Evas_Object *frame = elm_layout_add(ad->layout);
-
-  if (!strcmp(draw_mode, "inference")) {
-    ad->mode = INFER;
-  } else if (!strcmp(draw_mode, "smile")) {
-    ad->mode = TRAIN_SMILE;
-  } else if (!strcmp(draw_mode, "sad")) {
-    ad->mode = TRAIN_SAD;
-  }
 
   status = elm_layout_content_set(ad->layout, "draw/canvas", frame);
   if (status == EINA_FALSE) {

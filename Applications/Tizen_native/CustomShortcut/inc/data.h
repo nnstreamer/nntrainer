@@ -30,14 +30,13 @@
 
 #define EDJ_PATH "edje/main.edj"
 #define TRAIN_SET_PATH "trainingSet.dat"
+#define VALIDATION_SET_PATH "validationSet.dat"
 
-#define MAX_TRIES 5
+#define MAX_TRAIN_TRIES 5
+#define MAX_TRIES 10
 
-typedef enum _DRAW_MODE {
-  INFER = 0,
-  TRAIN_SMILE,
-  TRAIN_SAD,
-} DRAW_MODE;
+#define FEATURE_SIZE 62720
+#define NUM_CLASS 2
 typedef struct appdata {
   Evas_Object *win;
   Evas_Object *conform;
@@ -60,7 +59,6 @@ typedef struct appdata {
 
   cairo_surface_t *cr_surface; /**< cairo surface for the canvas */
   cairo_t *cr;                 /**< cairo engine for the canvas */
-  DRAW_MODE mode;              /**< drawing mode of current canvas */
   int tries;                   /**< tells how many data has been labeled */
 
   /**< ML related */
