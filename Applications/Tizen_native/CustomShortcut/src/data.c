@@ -111,28 +111,40 @@ static void _on_data_receive(ml_tensors_data_h data,
     goto CLEAN;
   }
 
-  file = fopen(ad->pipe_dst, ad->tries == 1 ? "wb" : "wb+");
+  LOG_I("current tries %d", ad->tries);
+
+  if (ad->tries == MAX_TRAIN_TRIES || ad->tries == 0)
+    file = fopen(ad->pipe_dst, "wb+");
+  else
+    file = fopen(ad->pipe_dst, "ab+");
 
   if (file == NULL) {
     LOG_E("cannot open file");
     goto CLEAN;
   }
 
-  if (write_result = fwrite(raw_data, data_size, 1, file) < 0) {
+  if ((write_result = fwrite(raw_data, 1, data_size, file)) < 0) {
     LOG_E("write error happend");
   }
 
   if (write_result < data_size) {
-    LOG_E("data was not fully written to file");
+    LOG_E("data was not fully written to file, result = %d, data_size = %d",
+          write_result, data_size);
   }
 
-  if (ad->mode != INFER) {
-    LOG_D("writing label");
-    label = ad->mode == TRAIN_SMILE ? 1 : 0;
-    if (fwrite(&label, sizeof(float), 1, file) < 0) {
-      LOG_E("write error happend");
-    };
-  }
+  bool target_label = ad->tries % 2;
+  LOG_D("writing one-hot encoded label");
+  label = target_label;
+  if (fwrite(&label, sizeof(float), 1, file) < 0) {
+    LOG_E("write error happend");
+  };
+
+  label = !target_label;
+  if (fwrite(&label, sizeof(float), 1, file) < 0) {
+    LOG_E("write error happend");
+  };
+
+  LOG_I("file dst: %s size: %ld", ad->pipe_dst, ftell(file));
 
   if (fclose(file) < 0) {
     LOG_E("there was error closing");
@@ -245,6 +257,7 @@ int data_extract_feature(appdata_s *ad, const char *dst, bool append) {
 
 void data_train_model() {
   ml_train_model_h model;
+
   char model_conf_path[PATH_MAX];
   char label_path[PATH_MAX];
   int status = ML_ERROR_NONE;
@@ -283,6 +296,8 @@ void data_train_model() {
     LOG_E("compile model failed %d", status);
     goto CLEAN_UP;
   }
+
+  freopen("out.txt", "a+", stdout);
 
   status = ml_train_model_run(model, NULL);
   if (status != ML_ERROR_NONE) {

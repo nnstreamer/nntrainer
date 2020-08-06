@@ -94,32 +94,17 @@ collections {
   group {
     name: "home";
     parts {
-      PART_TITLE("home/title", "Select actions...")
-      PART_BUTTON("home/to_train", "train", 0.55, 0.3, 0.9, 0.7)
-      PART_BUTTON("home/to_test", "test", 0.1, 0.3, 0.45, 0.7)
+      PART_TITLE("home/title", "NNTrainer Demo")
+      PART_BUTTON("home/proceed", "start draw", 0.1, 0.3, 0.9, 0.7)
     }
     programs {
-      PROGRAM_BUTTON("home/to_train", "routes/to", "select")
-      PROGRAM_BUTTON("home/to_test", "routes/to", "draw:inference")
+      PROGRAM_BUTTON("home/proceed", "routes/to", "draw")
     }
   }
-  group {
-    name: "select";
-    parts {
-      PART_TITLE("select/title", "Select target emoji...")
-      PART_BUTTON("select/sad", "😢", 0.1, 0.3, 0.45, 0.7)
-      PART_BUTTON("select/smile", "😊", 0.55, 0.3, 0.9, 0.7)
-    }
-    programs {
-      PROGRAM_BUTTON("select/smile", "routes/to", "draw:smile")
-      PROGRAM_BUTTON("select/sad", "routes/to", "draw:sad")
-    }
-  }
-  // this group is meant to be used for train / test, if it is not applicable, this group is reserved for training part
   group {
     name: "draw";
     parts {
-      PART_TITLE("draw/title", "draw your symbol")
+      PART_TITLE("draw/title", "draw for 😊")
       part {
         name: "draw/canvas";
         type: SWALLOW;
@@ -141,14 +126,6 @@ collections {
     parts {
       PART_TITLE("train_result/title", "train successfully done")
       PART_BUTTON("train_result/go_back", "go back", 0.1, 0.3, 0.9, 0.7)
-    }
-  }
-  group {
-    name: "test_result";
-    parts {
-      PART_TITLE("test_result/title", "test is successfully done")
-      PART_BUTTON("test_result/go_back", "test result: 😊", 0.1, 0.3, 0.9, 0.7)
-      // reserve a text area to show the guess from the model
     }
   }
 }
