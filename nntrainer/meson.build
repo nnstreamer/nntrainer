@@ -70,6 +70,7 @@ nntrainer_headers = [
   'include/databuffer_file.h',
   'include/databuffer_func.h',
   'include/databuffer_util.h',
+  'include/delegate.h',
   'include/fc_layer.h',
   'include/flatten_layer.h',
   'include/input_layer.h',
