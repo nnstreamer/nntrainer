@@ -73,6 +73,9 @@ template <typename F> static int nntrainer_exception_boundary(F &&func) {
   } catch (std::out_of_range &e) {
     ml_loge("%s %s", typeid(e).name(), e.what());
     return ML_ERROR_INVALID_PARAMETER;
+  } catch (std::logic_error &e) {
+    ml_loge("%s %s", typeid(e).name(), e.what());
+    return ML_ERROR_INVALID_PARAMETER;
   } catch (std::bad_alloc &e) {
     ml_loge("%s %s", typeid(e).name(), e.what());
     return ML_ERROR_OUT_OF_MEMORY;

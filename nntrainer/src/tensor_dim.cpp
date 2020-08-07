@@ -45,11 +45,21 @@ void TensorDim::resetLen() {
   len = dim[0] * feature_len;
 }
 
-void TensorDim::setTensorDim(unsigned int idx, unsigned int value) {
-  if (value == 0) {
+unsigned int TensorDim::getTensorDim(unsigned int idx) {
+  if (idx < 0 || idx > MAXDIM)
     throw std::invalid_argument(
-      "[TensorDim] Trying to assign value of 0 to tensor dim");
-  }
+      "[TensorDim] Tensor Dimension index should be between 0 and 4");
+
+  return dim[idx];
+}
+
+void TensorDim::setTensorDim(unsigned int idx, unsigned int value) {
+  if (idx < 0 || idx > MAXDIM)
+    throw std::out_of_range(
+      "[TensorDim] Tensor Dimension index should be between 0 and 4");
+  if (value <= 0)
+    throw std::invalid_argument(
+      "[TensorDim] Trying to assign value <=0 to tensor dim");
 
   if (len == 0) {
     for (int i = 0; i < MAXDIM; ++i) {
@@ -68,25 +78,15 @@ int TensorDim::setTensorDim(std::string input_shape) {
     std::sregex_iterator(input_shape.begin(), input_shape.end(), words_regex);
   auto words_end = std::sregex_iterator();
   int cur_dim = std::distance(words_begin, words_end);
-  if (cur_dim > MAXDIM) {
-    ml_loge("Tensor Dimension should be less than 4");
+  if (cur_dim <= 0 || cur_dim > MAXDIM) {
+    ml_loge("Tensor Dimension should be between 1 and 4");
     return ML_ERROR_INVALID_PARAMETER;
   }
   int cn = 0;
-  for (std::sregex_iterator i = words_begin; i != words_end; ++i) {
-    if ((MAXDIM - cur_dim + cn) > 3 || (MAXDIM - cur_dim + cn) < 0) {
-      ml_loge("Tensor Dimension Setting Error");
-      return ML_ERROR_INVALID_PARAMETER;
-    }
-    setTensorDim(MAXDIM - cur_dim + cn, std::stoi((*i).str()));
-    if (dim[MAXDIM - cur_dim + cn] <= 0) {
-      ml_loge("Tensor Dimension should be greater than 0");
-      return ML_ERROR_INVALID_PARAMETER;
-    }
-    cn++;
+  for (std::sregex_iterator i = words_begin; i != words_end; ++i, ++cn) {
+    setTensorDim(MAXDIM - cur_dim + cn, std::stoul((*i).str()));
   }
-  feature_len = dim[1] * dim[2] * dim[3];
-  len = dim[0] * feature_len;
+
   return status;
 }
 

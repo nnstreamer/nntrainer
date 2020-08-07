@@ -46,8 +46,7 @@ int ActivationLayer::initialize(bool last) {
 
   this->last_layer = last;
 
-  dim = input_dim;
-  output_dim = dim;
+  output_dim = input_dim;
 
   return ML_ERROR_NONE;
 }

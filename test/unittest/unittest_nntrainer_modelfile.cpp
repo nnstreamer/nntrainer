@@ -111,7 +111,7 @@ static IniSection batch_normal("bn", "Type = batch_normalization | "
 static IniSection flatten("flat", "Type = flatten");
 
 static IniSection input("inputlayer", "Type = input |"
-                                      "Input_Shape = 32:1:1:62720 |"
+                                      "Input_Shape = 1:1:62720 |"
                                       "bias_init_zero = true |"
                                       "Normalization = true |"
                                       "Activation = sigmoid");
@@ -156,7 +156,7 @@ INSTANTIATE_TEST_CASE_P(
     mkIniTc("basic_dataset_p", {nw_adam, dataset, input, out}, SUCCESS),
     mkIniTc("basic_dataset2_p", {nw_sgd, input, out, dataset}, SUCCESS),
     mkIniTc("basic_dataset3_p", {dataset, nw_sgd, input, out}, SUCCESS),
-    mkIniTc("basic_conv2d_p", {nw_adam, conv2d + "input_shape = 32:1:1:62720"}, SUCCESS),
+    mkIniTc("basic_conv2d_p", {nw_adam, conv2d + "input_shape = 1:1:62720"}, SUCCESS),
     mkIniTc("no_testSet_p", {nw_adam, dataset + "-TestData", input, out}, SUCCESS),
     mkIniTc("no_validSet_p", {nw_adam, dataset + "-ValidData", input, out}, SUCCESS),
     mkIniTc("no_bufferSize_p", {nw_adam, dataset + "-BufferSize", input, out}, SUCCESS),

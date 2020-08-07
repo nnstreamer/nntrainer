@@ -94,25 +94,25 @@ Tensor Layer::initializeWeight(TensorDim w_dim, WeightIniType init_type,
 
   switch (init_type) {
   case WEIGHT_LECUN_NORMAL:
-    w.setRandNormal(0.0f, sqrt(1.0f / dim.height()));
+    w.setRandNormal(0.0f, sqrt(1.0f / w_dim.height()));
     break;
   case WEIGHT_XAVIER_NORMAL:
-    w.setRandNormal(0.0f, sqrt(2.0f / (dim.width() + dim.height())));
+    w.setRandNormal(0.0f, sqrt(2.0f / (w_dim.width() + w_dim.height())));
     break;
   case WEIGHT_HE_NORMAL:
-    w.setRandNormal(0.0f, sqrt(2.0f / (dim.height())));
+    w.setRandNormal(0.0f, sqrt(2.0f / (w_dim.height())));
     break;
   case WEIGHT_LECUN_UNIFORM:
-    w.setRandUniform(-1.0f * sqrt(1.0f / dim.height()),
-                     sqrt(1.0f / dim.height()));
+    w.setRandUniform(-1.0f * sqrt(1.0f / w_dim.height()),
+                     sqrt(1.0f / w_dim.height()));
     break;
   case WEIGHT_XAVIER_UNIFORM:
-    w.setRandUniform(-1.0f * sqrt(6.0f / (dim.height() + dim.width())),
-                     sqrt(6.0 / (dim.height() + dim.width())));
+    w.setRandUniform(-1.0f * sqrt(6.0f / (w_dim.height() + w_dim.width())),
+                     sqrt(6.0 / (w_dim.height() + w_dim.width())));
     break;
   case WEIGHT_HE_UNIFORM:
-    w.setRandUniform(-1.0f * sqrt(6.0f / (dim.height())),
-                     sqrt(6.0 / (dim.height())));
+    w.setRandUniform(-1.0f * sqrt(6.0f / (w_dim.height())),
+                     sqrt(6.0 / (w_dim.height())));
     break;
   default:
     break;
@@ -158,8 +158,29 @@ void Layer::setProperty(const PropertyType type, const std::string &value) {
     break;
   case PropertyType::input_shape:
     if (!value.empty()) {
+      unsigned int cache_batch_size = 1;
+      /** cache original value of batch size */
+      if (input_dim.batch()) {
+        cache_batch_size = input_dim.batch();
+        input_dim.batch(1);
+      }
       status = input_dim.setTensorDim(value.c_str());
+      if (input_dim.batch() > 1) {
+        ml_logw("Batch size set with input dimension %d is ignored."
+                "Set batchsize property for the model to update batchsize.",
+                input_dim.batch());
+      }
+      /** set back to cache value of dimension */
+      input_dim.batch(cache_batch_size);
       throw_status(status);
+    }
+    break;
+  case PropertyType::batch_size:
+    if (!value.empty()) {
+      unsigned int batch_size;
+      status = setUint(batch_size, value);
+      throw_status(status);
+      input_dim.batch(batch_size);
     }
     break;
   case PropertyType::bias_init_zero:
@@ -228,7 +249,10 @@ void Layer::printIfValid(std::ostream &out, const PropertyType type,
 }
 
 void Layer::printShapeInfo(std::ostream &out) {
-  out << "input " << input_dim << "inner " << dim << "output " << output_dim;
+  out << "input " << input_dim;
+  for (unsigned int i = 0; i < param_size; i++)
+    out << "inner" << i << " " << paramsAt(i).weight.getDim();
+  out << "output " << output_dim;
 }
 
 void Layer::printPropertiesMeta(std::ostream &out) {

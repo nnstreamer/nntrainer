@@ -92,8 +92,8 @@ TEST(nntrainer_capi_nnmodel, construct_conf_02_n) {
   int status = ML_ERROR_NONE;
   std::string config_file = "./test_compile_03_n.ini";
   RESET_CONFIG(config_file.c_str());
-  replaceString("Input_Shape = 32:1:1:62720", "Input_Shape= 32:1:1:0",
-                config_file, config_str);
+  replaceString("Input_Shape = 1:1:62720", "Input_Shape=1:1:0", config_file,
+                config_str);
   status = ml_train_model_construct_with_conf(config_file.c_str(), &handle);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
@@ -125,7 +125,7 @@ TEST(nntrainer_capi_nnmodel, compile_05_p) {
   status = ml_train_layer_create(&layers[0], ML_TRAIN_LAYER_TYPE_INPUT);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_train_layer_set_property(layers[0], "input_shape= 32:1:1:62720",
+  status = ml_train_layer_set_property(layers[0], "input_shape=1:1:62720",
                                        "normalization=true",
                                        "bias_init_zero=true", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -166,7 +166,7 @@ TEST(nntrainer_capi_nnmodel, compile_05_p) {
   status = ml_train_model_set_optimizer(model, optimizer);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_train_model_compile(model, "loss=cross", NULL);
+  status = ml_train_model_compile(model, "loss=cross", "batch_size=32", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_train_model_destroy(model);
@@ -189,7 +189,7 @@ TEST(nntrainer_capi_nnmodel, compile_06_n) {
   status = ml_train_layer_create(&layers[0], ML_TRAIN_LAYER_TYPE_INPUT);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_train_layer_set_property(layers[0], "input_shape= 32:1:1:62720",
+  status = ml_train_layer_set_property(layers[0], "input_shape=1:1:62720",
                                        "normalization=true",
                                        "bias_init_zero=true", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -260,8 +260,8 @@ TEST(nntrainer_capi_nnmodel, train_01_p) {
   int status = ML_ERROR_NONE;
   std::string config_file = "./test_train_01_p.ini";
   RESET_CONFIG(config_file.c_str());
-  replaceString("Input_Shape = 32:1:1:62720", "Input_Shape=16:1:1:62720",
-                config_file, config_str);
+  replaceString("Input_Shape = 1:1:62720", "Input_Shape=1:1:62720", config_file,
+                config_str);
   replaceString("minibatch = 32", "minibatch = 16", config_file, config_str);
   replaceString("BufferSize=100", "", config_file, config_str);
   status = ml_train_model_construct_with_conf(config_file.c_str(), &handle);
@@ -291,8 +291,6 @@ TEST(nntrainer_capi_nnmodel, train_03_n) {
   int status = ML_ERROR_NONE;
   std::string config_file = "./test_train_01_p.ini";
   RESET_CONFIG(config_file.c_str());
-  replaceString("Input_Shape = 32:1:1:62720", "input_shape=32:1:1:62720",
-                config_file, config_str);
   replaceString("minibatch = 32", "minibatch = 16", config_file, config_str);
   replaceString("BufferSize=100", "", config_file, config_str);
   status = ml_train_model_construct_with_conf(config_file.c_str(), &handle);
@@ -320,7 +318,7 @@ TEST(nntrainer_capi_nnmodel, addLayer_01_p) {
   status = ml_train_layer_create(&layer, ML_TRAIN_LAYER_TYPE_INPUT);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_train_layer_set_property(layer, "input_shape= 32:1:1:6270", NULL);
+  status = ml_train_layer_set_property(layer, "input_shape=1:1:6270", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_train_layer_set_property(layer, "normalization = true", NULL);
@@ -351,7 +349,7 @@ TEST(nntrainer_capi_nnmodel, addLayer_02_p) {
   status = ml_train_layer_create(&layer, ML_TRAIN_LAYER_TYPE_INPUT);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_train_layer_set_property(layer, "input_shape= 32:1:1:6270",
+  status = ml_train_layer_set_property(layer, "input_shape=1:1:6270",
                                        "normalization=true", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
@@ -377,7 +375,7 @@ TEST(nntrainer_capi_nnmodel, addLayer_03_p) {
   status = ml_train_layer_create(&layer, ML_TRAIN_LAYER_TYPE_INPUT);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_train_layer_set_property(layer, "input_shape= 32:1:1:62720",
+  status = ml_train_layer_set_property(layer, "input_shape=1:1:62720",
                                        "activation=sigmoid", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
@@ -403,7 +401,7 @@ TEST(nntrainer_capi_nnmodel, addLayer_04_p) {
   status = ml_train_layer_create(&layers[0], ML_TRAIN_LAYER_TYPE_INPUT);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_train_layer_set_property(layers[0], "input_shape= 32:1:1:62720",
+  status = ml_train_layer_set_property(layers[0], "input_shape=1:1:62720",
                                        "normalization=true",
                                        "bias_init_zero=true", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -513,7 +511,7 @@ TEST(nntrainer_capi_nnmodel, create_optimizer_02_p) {
   status = ml_train_layer_create(&layers[0], ML_TRAIN_LAYER_TYPE_INPUT);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_train_layer_set_property(layers[0], "input_shape= 32:1:1:62720",
+  status = ml_train_layer_set_property(layers[0], "input_shape=1:1:62720",
                                        "normalization=true",
                                        "bias_init_zero=true", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -563,7 +561,7 @@ TEST(nntrainer_capi_nnmodel, create_optimizer_03_p) {
   status = ml_train_layer_create(&layers[0], ML_TRAIN_LAYER_TYPE_INPUT);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_train_layer_set_property(layers[0], "input_shape= 32:1:1:62720",
+  status = ml_train_layer_set_property(layers[0], "input_shape=1:1:62720",
                                        "normalization=true",
                                        "bias_init_zero=true", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -617,7 +615,7 @@ TEST(nntrainer_capi_nnmodel, train_with_file_01_p) {
   status = ml_train_layer_create(&layers[0], ML_TRAIN_LAYER_TYPE_INPUT);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_train_layer_set_property(layers[0], "input_shape= 16:1:1:62720",
+  status = ml_train_layer_set_property(layers[0], "input_shape=1:1:62720",
                                        "normalization=true",
                                        "bias_init_zero=true", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -686,7 +684,7 @@ TEST(nntrainer_capi_nnmodel, train_with_generator_01_p) {
   status = ml_train_layer_create(&layers[0], ML_TRAIN_LAYER_TYPE_INPUT);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_train_layer_set_property(layers[0], "input_shape= 16:1:1:62720",
+  status = ml_train_layer_set_property(layers[0], "input_shape=1:1:62720",
                                        "normalization=true",
                                        "bias_init_zero=true", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);

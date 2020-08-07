@@ -311,7 +311,7 @@ public:
   void print(std::ostream &out, unsigned int flags = 0);
 
 private:
-  int batch_size; /**< batch size */
+  unsigned int batch_size; /**< batch size */
 
   unsigned int epoch; /**< Maximum Epoch */
 

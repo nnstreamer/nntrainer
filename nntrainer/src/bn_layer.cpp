@@ -38,9 +38,9 @@ enum class BNParams { mu, var, gamma, beta };
 int BatchNormalizationLayer::initialize(bool last) {
   int status = ML_ERROR_NONE;
 
-  dim = input_dim;
-  dim.batch(1);
   output_dim = input_dim;
+  TensorDim dim = input_dim;
+  dim.batch(1);
 
   Tensor mu = Tensor(dim);
   Tensor var = Tensor(dim);
@@ -130,7 +130,7 @@ BatchNormalizationLayer::backwarding(sharedConstTensor derivative,
   Tensor dx;
   Tensor deriv = *derivative;
 
-  int batch = deriv.batch();
+  int batch = input_dim.batch();
 
   dgamma = x_normalized.multiply(deriv).sum(0);
   dbeta = deriv.sum(0);
@@ -159,7 +159,6 @@ void BatchNormalizationLayer::copy(std::shared_ptr<Layer> l) {
     std::static_pointer_cast<BatchNormalizationLayer>(l);
   this->opt = from->opt;
   this->last_layer = from->last_layer;
-  this->dim = from->dim;
   this->input_dim = from->input_dim;
   this->output_dim = from->output_dim;
   this->input.copy(from->input);

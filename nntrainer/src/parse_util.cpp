@@ -264,6 +264,9 @@ unsigned int parseType(std::string ll, InputType t) {
  * pooling = 15
  * flatten = 16
  * name = 17
+ * num_inputs = 18
+ * num_outputs = 19
+ * batch_size = 20
  *
  * InputLayer has 0, 1, 2, 3 properties.
  * FullyConnectedLayer has 1, 4, 6, 7, 8, 9 properties.
@@ -271,12 +274,13 @@ unsigned int parseType(std::string ll, InputType t) {
  * Pooling2DLayer has 12, 13, 14, 15 properties.
  * BatchNormalizationLayer has 0, 1, 5, 6, 7 properties.
  */
-static std::array<std::string, 19> property_string = {
+static std::array<std::string, 22> property_string = {
   "input_shape", "bias_init_zero", "normalization", "standardization",
   "activation",  "epsilon",        "weight_decay",  "weight_decay_lambda",
   "unit",        "weight_ini",     "filter",        "kernel_size",
   "stride",      "padding",        "pooling_size",  "pooling",
-  "flatten",     "name",           "unknown"};
+  "flatten",     "name",           "num_inputs",    "num_outputs",
+  "batch_size",  "unknown"};
 
 unsigned int parseLayerProperty(std::string property) {
   unsigned int i;
@@ -380,10 +384,10 @@ unsigned int parseDataProperty(std::string property) {
   return (unsigned int)DataBuffer::PropertyType::unknown;
 }
 
-int setInt(int &val, std::string str) {
+int setUint(unsigned int &val, const std::string &str) {
   int status = ML_ERROR_NONE;
   try {
-    val = std::stoi(str.c_str());
+    val = (unsigned int)std::stoul(str.c_str());
   } catch (...) {
     ml_loge("Error: Wrong Type. Must be int");
     status = ML_ERROR_INVALID_PARAMETER;

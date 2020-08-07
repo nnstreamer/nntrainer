@@ -52,7 +52,7 @@ int main(int argc, char *argv[]) {
   NN_RETURN_STATUS();
 
   /* set property for input layer */
-  status = ml_train_layer_set_property(layers[0], "input_shape= 32:1:1:62720",
+  status = ml_train_layer_set_property(layers[0], "input_shape=1:1:62720",
                                        "normalization=true",
                                        "bias_init_zero=true", NULL);
   NN_RETURN_STATUS();

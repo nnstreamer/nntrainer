@@ -100,8 +100,8 @@ TEST(nntrainer_NeuralNetwork, load_config_02_n) {
  */
 TEST(nntrainer_NeuralNetwork, load_config_03_n) {
   RESET_CONFIG("./test.ini");
-  replaceString("Input_Shape = 32:1:1:62720", "Input_Shape = 32:1:1:0",
-                "./test.ini", config_str);
+  replaceString("Input_Shape = 1:1:62720", "Input_Shape = 1:1:0", "./test.ini",
+                config_str);
   nntrainer::NeuralNetwork NN;
   NN.setConfig("./test.ini");
 
@@ -117,7 +117,7 @@ TEST(nntrainer_NeuralNetwork, load_config_03_n) {
 TEST(nntrainer_NeuralNetwork, load_config_04_p) {
   int status = ML_ERROR_NONE;
   RESET_CONFIG("./test.ini");
-  replaceString("Input_Shape = 32:1:1:62720", "", "./test.ini", config_str);
+  replaceString("Input_Shape = 1:1:62720", "", "./test.ini", config_str);
   nntrainer::NeuralNetwork NN;
   NN.setConfig("./test.ini");
 
