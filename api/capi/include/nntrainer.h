@@ -44,31 +44,31 @@ extern "C" {
 
 /**
  * @brief A handle of an NNTrainer model.
- * @since_tizen 6.x
+ * @since_tizen 6.0
  */
 typedef void *ml_train_model_h;
 
 /**
  * @brief A handle of an NNTrainer layer.
- * @since_tizen 6.x
+ * @since_tizen 6.0
  */
 typedef void *ml_train_layer_h;
 
 /**
  * @brief A handle of an NNTrainer optimizer.
- * @since_tizen 6.x
+ * @since_tizen 6.0
  */
 typedef void *ml_train_optimizer_h;
 
 /**
  * @brief A handle of an NNTrainer dataset.
- * @since_tizen 6.x
+ * @since_tizen 6.0
  */
 typedef void *ml_train_dataset_h;
 
 /**
  * @brief Enumeration for the neural network layer type of NNTrainer.
- * @since_tizen 6.x
+ * @since_tizen 6.0
  */
 typedef enum {
   ML_TRAIN_LAYER_TYPE_INPUT = 0,    /**< Input Layer */
@@ -78,7 +78,7 @@ typedef enum {
 
 /**
  * @brief Enumeration for the neural network optimizer type of NNTrainer.
- * @since_tizen 6.x
+ * @since_tizen 6.0
  */
 typedef enum {
   ML_TRAIN_OPTIMIZER_TYPE_ADAM = 0, /**< Adam Optimizer */
@@ -89,7 +89,7 @@ typedef enum {
 /**
  * @brief Constructs the neural network model.
  * @details Use this function to create neural network model.
- * @since_tizen 6.x
+ * @since_tizen 6.0
  * @remarks If the function succeeds, @a model must be released using
  * ml_train_model_destroy().
  * @param[out] model The NNTrainer model handle from the given description.
@@ -104,7 +104,7 @@ int ml_train_model_construct(ml_train_model_h *model);
  * @brief Constructs the neural network model with the given configuration file.
  * @details Use this function to create neural network model with the given
  * configuration file.
- * @since_tizen 6.x
+ * @since_tizen 6.0
  * @remarks If the function succeeds, @a model must be released using
  * ml_train_model_destroy().
  * @note This is experimental and not stable.
@@ -124,7 +124,7 @@ int ml_train_model_construct_with_conf(const char *model_conf,
  * any modification to the properties of model or layers/dataset/optimizer in
  * the model will be restricted. Further, addition of layers or changing the
  * optimizer/dataset of the model will not be permitted.
- * @since_tizen 6.x
+ * @since_tizen 6.0
  * @note This is experimental and not stable.
  * @param[in] model The NNTrainer model handle.
  * @param[in] ... hyperparmeters for compiling the model
@@ -139,7 +139,7 @@ int ml_train_model_compile(ml_train_model_h model, ...);
  * @details Use this function to train the compiled neural network model with
  * the passed training hyperparameters. This function will return once the
  * training, along with requested validation and testing, is completed.
- * @since_tizen 6.x
+ * @since_tizen 6.0
  * @note This is experimental and not stable.
  * @param[in] model The NNTrainer model handle.
  * @param[in] ...  Hyperparmeters for train model.
@@ -152,7 +152,7 @@ int ml_train_model_run(ml_train_model_h model, ...);
 /**
  * @brief Destructs the neural network model.
  * @details Use this function to destroy neural network model.
- * @since_tizen 6.x
+ * @since_tizen 6.0
  * @param[in] model The NNTrainer model handle from the given description.
  * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
@@ -163,7 +163,7 @@ int ml_train_model_destroy(ml_train_model_h model);
 /**
  * @brief Gets the summary of the neural network model.
  * @details Use this function to get the summary of the neural network model.
- * @since_tizen 6.x
+ * @since_tizen 6.0
  * @remarks If the function succeeds, @a summary should be released using
  * free().
  * @note This is experimental and not stable.
@@ -185,7 +185,7 @@ int ml_train_model_get_summary(ml_train_model_h model,
  * the end of the existing layers in the model. This transfers the
  * ownership of the layer to the network. No need to destroy the layer once it
  * is added to a model.
- * @since_tizen 6.x
+ * @since_tizen 6.0
  * @note This is experimental and not stable.
  * @param[in] model The NNTrainer model handle.
  * @param[in] layer The NNTrainer layer handle.
@@ -200,7 +200,7 @@ int ml_train_model_add_layer(ml_train_model_h model, ml_train_layer_h layer);
  * @details Use this function to set neural network optimizer. This transfers
  * the ownership of the optimizer to the network. No need to destroy the
  * optimizer if it is to a model.
- * @since_tizen 6.x
+ * @since_tizen 6.0
  * @remarks Unsets the previously set optimizer, if any. The previously set
  * optimizer must be freed using ml_train_optimizer_destroy().
  * @note This is experimental and not stable.
@@ -219,7 +219,7 @@ int ml_train_model_set_optimizer(ml_train_model_h model,
  * will provide training, validation and test data for the model. This transfers
  * the ownership of the dataset to the network. No need to destroy the dataset
  * once it is set to a model.
- * @since_tizen 6.x
+ * @since_tizen 6.0
  * @remarks Unsets the previously set dataset, if any. The previously set
  * dataset must be freed using ml_train_dataset_destroy().
  * @note This is experimental and not stable.
@@ -235,7 +235,7 @@ int ml_train_model_set_dataset(ml_train_model_h model,
 /**
  * @brief Creates a neural network layer.
  * @details Use this function to create neural network layer.
- * @since_tizen 6.x
+ * @since_tizen 6.0
  * @remarks If the function succeeds, @a layer must be released using
  * ml_train_layer_destroy(), if not added to a model. If added to a model, @a
  * layer is available until the model is released.
@@ -253,7 +253,7 @@ int ml_train_layer_create(ml_train_layer_h *layer, ml_train_layer_type_e type);
  * @brief Frees the neural network layer.
  * @details Use this function to destroy neural network layer. Fails if layer is
  * owned by a model.
- * @since_tizen 6.x
+ * @since_tizen 6.0
  * @note This is experimental and not stable.
  * @param[in] layer The NNTrainer layer handle.
  * @return @c 0 on success. Otherwise a negative error value.
@@ -265,7 +265,7 @@ int ml_train_layer_destroy(ml_train_layer_h layer);
 /**
  * @brief Sets the neural network layer Property.
  * @details Use this function to set neural network layer Property.
- * @since_tizen 6.x
+ * @since_tizen 6.0
  * @note This is experimental and not stable.
  * @param[in] layer The NNTrainer layer handle.
  * @param[in]  ... Property values with NULL for termination.
@@ -308,7 +308,7 @@ int ml_train_layer_set_property(ml_train_layer_h layer, ...);
  * @details Use this function to create neural network optimizer. If not set to
  * a model, @a optimizer should be released using ml_train_optimizer_destroy().
  * If set to a model, @a optimizer is available until model is released.
- * @since_tizen 6.x
+ * @since_tizen 6.0
  * @remarks If the function succeeds, @a optimizer must be released using
  * ml_train_optimizer_destroy(), if not set to a model. If set to a model, @a
  * optimizer is available until the model is released.
@@ -327,7 +327,7 @@ int ml_train_optimizer_create(ml_train_optimizer_h *optimizer,
  * @brief Frees the neural network optimizer.
  * @details Use this function to destroy neural network optimizer. Fails if
  * optimizer is owned by a model.
- * @since_tizen 6.x
+ * @since_tizen 6.0
  * @note This is experimental and not stable.
  * @param[in] optimizer The NNTrainer optimizer handle.
  * @return @c 0 on success. Otherwise a negative error value.
@@ -339,7 +339,7 @@ int ml_train_optimizer_destroy(ml_train_optimizer_h optimizer);
 /**
  * @brief Sets the neural network optimizer property.
  * @details Use this function to set neural network optimizer property.
- * @since_tizen 6.x
+ * @since_tizen 6.0
  * @note This is experimental and not stable.
  * @param[in] optimizer The NNTrainer optimizer handle.
  * @param[in]  ... Property values with NULL for termination.
@@ -355,7 +355,7 @@ int ml_train_optimizer_set_property(ml_train_optimizer_h optimizer, ...);
  * generators. The generators will provide data representing a single input
  * batch. When setting this dataset to a model, the data generated by the
  * generators should match the input and the label shape for the model.
- * @since_tizen 6.x
+ * @since_tizen 6.0
  * @remarks If the function succeeds, @a dataset must be released using
  * ml_train_dataset_destroy(), if not set to a model. If set to a model, @a
  * dataset is available until the model is released.
@@ -382,7 +382,7 @@ int ml_train_dataset_create_with_generator(ml_train_dataset_h *dataset,
  * @brief Creates a dataset with files to feed to a neural network.
  * @details Use this function to create a neural network dataset using
  * files.
- * @since_tizen 6.x
+ * @since_tizen 6.0
  * @note This is experimental and not stable.
  * @param[out] dataset The NNTrainer dataset handle from the given description.
  * If not set to a model, @a dataset should be released using
@@ -405,7 +405,7 @@ int ml_train_dataset_create_with_file(ml_train_dataset_h *dataset,
  * @brief Frees the neural network dataset.
  * @details Use this function to destroy dataset. Fails if dataset is owned by a
  * model.
- * @since_tizen 6.x
+ * @since_tizen 6.0
  * @note This is experimental and not stable.
  * @param[in] dataset The NNTrainer dataset handle.
  * @return @c 0 on success. Otherwise a negative error value.
@@ -417,7 +417,7 @@ int ml_train_dataset_destroy(ml_train_dataset_h dataset);
 /**
  * @brief Sets the neural network dataset property.
  * @details Use this function to set dataset property.
- * @since_tizen 6.x
+ * @since_tizen 6.0
  * @note This is experimental and not stable.
  * @param[in] dataset The NNTrainer dataset handle.
  * @param[in]  ... Property values with NULL for termination.
