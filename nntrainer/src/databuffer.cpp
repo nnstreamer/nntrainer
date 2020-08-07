@@ -428,11 +428,11 @@ int DataBuffer::setProperty(std::vector<std::string> values) {
 
 int DataBuffer::setProperty(const PropertyType type, std::string &value) {
   int status = ML_ERROR_NONE;
+  unsigned int size = 0;
 
   switch (type) {
   case PropertyType::buffer_size:
-    int size;
-    status = setInt(size, value);
+    status = setUint(size, value);
     NN_RETURN_STATUS();
     status = this->setBufSize(size);
     NN_RETURN_STATUS();

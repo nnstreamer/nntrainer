@@ -124,13 +124,13 @@ unsigned int parseNetProperty(std::string property);
 unsigned int parseDataProperty(std::string property);
 
 /**
- * @brief     check str to be int and assign
+ * @brief     check str to be unsigned int and assign to variable to type T
  * @param[out] val assign variable
  * @param[in] str input string
  * @retval #ML_ERROR_NONE Successful.
  * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
  */
-int setInt(int &val, std::string str);
+int setUint(unsigned int &val, const std::string &str);
 
 /**
  * @brief     check str to be float and assign

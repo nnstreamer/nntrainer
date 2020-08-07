@@ -38,16 +38,15 @@ int FullyConnectedLayer::initialize(bool last) {
 
   this->last_layer = last;
 
+  output_dim = input_dim;
+  output_dim.width(unit);
+
   Tensor bias = Tensor(1, unit);
-  dim = input_dim;
-  dim.width(unit);
+  TensorDim dim = output_dim;
   dim.height(input_dim.width());
   dim.batch(1);
   Tensor weight = initializeWeight(dim, weight_ini_type, status);
   NN_RETURN_STATUS();
-
-  output_dim = input_dim;
-  output_dim.width(unit);
 
   if (bias_init_zero) {
     bias.setZero();
@@ -68,10 +67,8 @@ void FullyConnectedLayer::setProperty(const PropertyType type,
   switch (type) {
   case PropertyType::unit: {
     if (!value.empty()) {
-      int width;
-      status = setInt(width, value);
+      status = setUint(unit, value);
       throw_status(status);
-      unit = width;
       output_dim.width(unit);
     }
   } break;
@@ -112,7 +109,6 @@ void FullyConnectedLayer::copy(std::shared_ptr<Layer> l) {
     std::static_pointer_cast<FullyConnectedLayer>(l);
   this->opt = from->opt;
   this->last_layer = from->last_layer;
-  this->dim = from->dim;
   this->unit = from->unit;
   this->input_dim = from->input_dim;
   this->output_dim = from->output_dim;

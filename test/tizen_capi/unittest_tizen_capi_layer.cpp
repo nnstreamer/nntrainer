@@ -66,7 +66,7 @@ TEST(nntrainer_capi_nnlayer, setproperty_01_p) {
   int status;
   status = ml_train_layer_create(&handle, ML_TRAIN_LAYER_TYPE_INPUT);
   EXPECT_EQ(status, ML_ERROR_NONE);
-  status = ml_train_layer_set_property(handle, "input_shape=32:1:1:6270", NULL);
+  status = ml_train_layer_set_property(handle, "input_shape=1:1:6270", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_train_layer_set_property(handle, "normalization=true", NULL);
@@ -120,7 +120,7 @@ TEST(nntrainer_capi_nnlayer, setproperty_04_n) {
   int status;
   status = ml_train_layer_create(&handle, ML_TRAIN_LAYER_TYPE_INPUT);
   EXPECT_EQ(status, ML_ERROR_NONE);
-  status = ml_train_layer_set_property(handle, "input_shape=0:0:0:1", NULL);
+  status = ml_train_layer_set_property(handle, "input_shape=0:0:1", NULL);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
   status = ml_train_layer_destroy(handle);
   EXPECT_EQ(status, ML_ERROR_NONE);

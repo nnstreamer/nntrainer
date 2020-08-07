@@ -235,6 +235,7 @@ public:
    *            17. name : string (type)
    *            18. num_inputs : unsigned int (minimum 1)
    *            19. num_outputs : unsigned int (minimum 1)
+   *            20. batch_size : unsigned int (minimum 1)
    */
   enum class PropertyType {
     input_shape = 0,
@@ -257,7 +258,8 @@ public:
     name = 17,
     num_inputs = 18,
     num_outputs = 19,
-    unknown = 20
+    batch_size = 20,
+    unknown = 21
   };
 
   /**
@@ -327,12 +329,6 @@ public:
   void setWeightDecay(WeightDecayParam w) { weight_decay = w; }
 
   /**
-   * @brief  get Tensor Dimension
-   * @retval TensorDim Tensor Dimension
-   */
-  TensorDim &getTensorDim() { return dim; }
-
-  /**
    * @brief  set if this is last layer of Network
    * @param[in] last true/false
    */
@@ -366,11 +362,34 @@ public:
   Tensor initializeWeight(TensorDim w_dim, WeightIniType init_type,
                           int &status);
 
+  /**
+   * @brief Set the input dimension
+   * @param[in] d dimension to be set
+   */
   void setInputDimension(TensorDim d) { input_dim = d; }
 
+  /**
+   * @brief Get the output dimension
+   * @return TensorDim dimension of the output
+   */
   TensorDim getOutputDimension() { return output_dim; }
 
+  /**
+   * @brief Get the input dimension
+   * @return TensorDim dimension of the input
+   */
   TensorDim getInputDimension() { return input_dim; }
+
+  /**
+   * @brief Set the batch for the layer
+   * @param batch Batch value to be set
+   * @note This denotes the maximum batch size of input. The actual batchsize
+   * of the data can be smaller in case of validation or testing
+   */
+  void setBatch(unsigned int batch) {
+    input_dim.setTensorDim(0, batch);
+    output_dim.setTensorDim(0, batch);
+  }
 
   /**
    * @brief  get the loss value added by this layer
@@ -466,11 +485,6 @@ protected:
    * @brief     last layer
    */
   bool last_layer;
-
-  /**
-   * @brief     Dimension of this layer
-   */
-  TensorDim dim;
 
   /**
    * @brief     Dimension of input activation

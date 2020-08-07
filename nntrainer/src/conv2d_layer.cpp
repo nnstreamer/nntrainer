@@ -31,7 +31,8 @@ int Conv2DLayer::initialize(bool last) {
   }
 
   this->last_layer = last;
-  dim = TensorDim(1, input_dim.channel(), kernel_size[0], kernel_size[1]);
+  TensorDim dim =
+    TensorDim(1, input_dim.channel(), kernel_size[0], kernel_size[1]);
   TensorDim bias_dim = TensorDim(1, 1, 1, 1);
 
   std::string kernelPrefix = "Conv2d:filter";
@@ -91,8 +92,9 @@ sharedConstTensor Conv2DLayer::forwarding(sharedConstTensor in) {
     input = input.standardization();
   }
 
-  hidden = Tensor(input.batch(), output_dim.channel(), output_dim.height(),
-                  output_dim.width());
+  TensorDim hidden_dim = output_dim;
+  hidden_dim.batch(in->batch());
+  hidden = Tensor(hidden_dim);
   hidden.setZero();
 
   std::vector<float> output(output_dim.width() * output_dim.height());
@@ -232,7 +234,6 @@ void Conv2DLayer::copy(std::shared_ptr<Layer> l) {
 
   this->input.copy(from->input);
   this->hidden.copy(from->hidden);
-  this->dim = from->dim;
   this->input_dim = from->input_dim;
   this->output_dim = from->output_dim;
   this->last_layer = from->last_layer;
@@ -281,10 +282,8 @@ void Conv2DLayer::setProperty(const PropertyType type,
   switch (type) {
   case PropertyType::filter: {
     if (!value.empty()) {
-      int size;
-      status = setInt(size, value);
+      status = setUint(filter_size, value);
       throw_status(status);
-      filter_size = size;
     }
   } break;
   case PropertyType::kernel_size:

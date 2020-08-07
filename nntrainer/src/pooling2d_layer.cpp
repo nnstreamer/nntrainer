@@ -55,8 +55,9 @@ int Pooling2DLayer::initialize(bool last) {
 sharedConstTensor Pooling2DLayer::forwarding(sharedConstTensor in) {
   input = *in;
 
-  hidden = Tensor(input.batch(), output_dim.channel(), output_dim.height(),
-                  output_dim.width());
+  TensorDim hidden_dim = output_dim;
+  hidden_dim.batch(in->batch());
+  hidden = Tensor(hidden_dim);
   hidden.setZero();
 
   for (unsigned int b = 0; b < input.batch(); ++b) {
@@ -175,7 +176,6 @@ void Pooling2DLayer::copy(std::shared_ptr<Layer> l) {
 
   this->input.copy(from->input);
   this->hidden.copy(from->hidden);
-  this->dim = from->dim;
   this->input_dim = from->input_dim;
   this->output_dim = from->output_dim;
   this->last_layer = from->last_layer;

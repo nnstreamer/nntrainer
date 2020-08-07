@@ -55,7 +55,6 @@ void InputLayer::copy(std::shared_ptr<Layer> l) {
   std::shared_ptr<InputLayer> from = std::static_pointer_cast<InputLayer>(l);
   this->opt = from->opt;
   this->last_layer = from->last_layer;
-  this->dim = from->dim;
   this->input_dim = from->input_dim;
   this->output_dim = from->output_dim;
   this->input.copy(from->input);
@@ -78,8 +77,7 @@ sharedConstTensor InputLayer::backwarding(sharedConstTensor in, int iteration) {
 
 int InputLayer::initialize(bool last) {
   int status = ML_ERROR_NONE;
-  dim = input_dim;
-  output_dim = dim;
+  output_dim = input_dim;
 
   return status;
 }

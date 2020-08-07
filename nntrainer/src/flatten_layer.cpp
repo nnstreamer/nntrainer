@@ -65,7 +65,6 @@ void FlattenLayer::copy(std::shared_ptr<Layer> l) {
     std::static_pointer_cast<FlattenLayer>(l);
   this->input.copy(from->input);
   this->hidden.copy(from->hidden);
-  this->dim = from->dim;
   this->input_dim = from->input_dim;
   this->output_dim = from->output_dim;
   this->last_layer = from->last_layer;

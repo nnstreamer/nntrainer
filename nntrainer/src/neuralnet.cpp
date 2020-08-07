@@ -160,6 +160,9 @@ int NeuralNetwork::loadDatasetConfig(void *_ini) {
   status = data_buffer->setBufSize(bufsize);
   NN_INI_RETURN_STATUS();
 
+  status = data_buffer->setMiniBatch(batch_size);
+  NN_INI_RETURN_STATUS();
+
   ml_logd("parsing dataset done");
   return status;
 }
@@ -387,16 +390,8 @@ int NeuralNetwork::setProperty(std::vector<std::string> values) {
 
     switch (static_cast<PropertyType>(type)) {
     case PropertyType::batch_size: {
-      status = setInt(batch_size, value);
+      status = setUint(batch_size, value);
       NN_RETURN_STATUS();
-      for (unsigned int i = 0; i < layers.size(); ++i) {
-        if (layers[i]->getTensorDim().batch() !=
-            static_cast<unsigned int>(batch_size)) {
-          ml_logw("Warning: Batch Size is changing!! : %d -> %d",
-                  layers[i]->getTensorDim().batch(), batch_size);
-          layers[i]->getTensorDim().batch(batch_size);
-        }
-      }
     } break;
     case PropertyType::cost:
     case PropertyType::loss: {
@@ -425,10 +420,8 @@ int NeuralNetwork::setTrainConfig(std::vector<std::string> values) {
 
     switch (static_cast<PropertyType>(type)) {
     case PropertyType::epochs: {
-      int e;
-      status = setInt(e, value);
+      status = setUint(epoch, value);
       NN_RETURN_STATUS();
-      epoch = e;
     } break;
     case PropertyType::model_file: {
       model = value;
@@ -476,6 +469,7 @@ int NeuralNetwork::init() {
       }
     }
 
+    layers[i]->setBatch(batch_size);
     status = layers[i]->initialize(last);
 
     switch (l.getType()) {
@@ -548,6 +542,9 @@ sharedConstTensor NeuralNetwork::forwarding(sharedConstTensor input) {
 sharedConstTensor NeuralNetwork::forwarding(sharedConstTensor input,
                                             sharedConstTensor label) {
   sharedConstTensor X;
+
+  if (input->getDim().batch() > batch_size)
+    throw std::logic_error("Error: mismatch in batchsize for data and model.");
 
   X = forwarding(input);
   X = std::static_pointer_cast<LossLayer>(layers[layers.size() - 1])
@@ -643,11 +640,12 @@ int NeuralNetwork::train(std::vector<std::string> values) {
     return ML_ERROR_INVALID_PARAMETER;
   }
 
-  status = data_buffer->setMiniBatch(layers[0]->getInputDimension().batch());
+  /** Setup data buffer properties */
+  status = data_buffer->setMiniBatch(batch_size);
   NN_RETURN_STATUS();
 
-  status = data_buffer->setClassNum(
-    layers[layers.size() - 1]->getOutputDimension().width());
+  status =
+    data_buffer->setClassNum(layers.back()->getOutputDimension().width());
   NN_RETURN_STATUS();
 
   status = data_buffer->setFeatureSize(layers[0]->getInputDimension());
@@ -726,7 +724,7 @@ int NeuralNetwork::train_run() {
       while (true) {
         vec_4d in, label;
         if (data_buffer->getDataFromBuffer(nntrainer::BUF_VAL, in, label)) {
-          for (int i = 0; i < batch_size; ++i) {
+          for (unsigned int i = 0; i < batch_size; ++i) {
             sharedTensor X = MAKE_SHARED_TENSOR(Tensor({in[i]}));
             sharedTensor Y2 = MAKE_SHARED_TENSOR(Tensor({label[i]}));
             sharedConstTensor Y = forwarding(X, Y2);

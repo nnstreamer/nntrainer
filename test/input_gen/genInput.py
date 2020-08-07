@@ -449,7 +449,7 @@ def gen_test_case_fc(input_shape, kernel_shape, base_name):
     save(base_name + "_goldenFCGradientDxSoftmaxCrossAdam.out", golden_fc[2][0])
     save(base_name + "_goldenFCGradientsSoftmaxCrossAdam.out", golden_fc[2][1], golden_fc[2][2])
     save(base_name + "_goldenFCUpdatedWeightsSoftmaxCrossAdam.out", golden_fc[3][0], golden_fc[3][1])
-    
+
 def gen_test_case_bn(input_shape, base_name, training=True):
     input_data = gen_input(base_name + "_BNLayerInput.in", input_shape)
 

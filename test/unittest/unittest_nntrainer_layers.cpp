@@ -23,6 +23,7 @@
 #include <nntrainer_test_util.h>
 #include <optimizer.h>
 #include <pooling2d_layer.h>
+#include <tensor_dim.h>
 #include <util_func.h>
 
 using nntrainer::sharedConstTensor;
@@ -170,7 +171,10 @@ protected:
 class nntrainer_InputLayer
   : public nntrainer_abstractLayer<nntrainer::InputLayer> {
 protected:
-  virtual void prepareLayer() { setInputDim("32:3:28:28"); }
+  virtual void prepareLayer() {
+    setInputDim("3:28:28");
+    setProperty("batch_size=1");
+  }
 };
 
 /**
@@ -179,6 +183,83 @@ protected:
 TEST_F(nntrainer_InputLayer, initialize_01_p) {
   int status = reinitialize();
   EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+TEST_F(nntrainer_InputLayer, set_property_01_n) {
+  EXPECT_THROW(
+    layer.setProperty(nntrainer::Layer::PropertyType::input_shape, "0:3:2:1"),
+    std::invalid_argument);
+}
+
+TEST_F(nntrainer_InputLayer, set_property_02_p) {
+  nntrainer::TensorDim dim;
+  int status = setProperty("input_shape=3:2:1");
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  dim = layer.getInputDimension();
+  EXPECT_EQ(dim.getTensorDim(0), 1);
+  EXPECT_EQ(dim.getTensorDim(1), 3);
+  EXPECT_EQ(dim.getTensorDim(2), 2);
+  EXPECT_EQ(dim.getTensorDim(3), 1);
+}
+
+TEST_F(nntrainer_InputLayer, set_property_03_p) {
+  nntrainer::TensorDim dim;
+  int status = setProperty("input_shape=1:3:2:1");
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  dim = layer.getInputDimension();
+  EXPECT_EQ(dim.getTensorDim(0), 1);
+  EXPECT_EQ(dim.getTensorDim(1), 3);
+  EXPECT_EQ(dim.getTensorDim(2), 2);
+  EXPECT_EQ(dim.getTensorDim(3), 1);
+}
+
+TEST_F(nntrainer_InputLayer, set_property_04_p) {
+  nntrainer::TensorDim dim;
+  int status = setProperty("input_shape=4:3:2:1");
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  /** Set input shape ignores batch size */
+  dim = layer.getInputDimension();
+  EXPECT_EQ(dim.getTensorDim(0), 1);
+  EXPECT_EQ(dim.getTensorDim(1), 3);
+  EXPECT_EQ(dim.getTensorDim(2), 2);
+  EXPECT_EQ(dim.getTensorDim(3), 1);
+}
+
+TEST_F(nntrainer_InputLayer, set_property_05_p) {
+  nntrainer::TensorDim dim;
+  int status = ML_ERROR_NONE;
+
+  status = setProperty("batch_size=5");
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  dim = layer.getInputDimension();
+  EXPECT_EQ(dim.getTensorDim(0), 5);
+  EXPECT_EQ(dim.getTensorDim(1), 3);
+  EXPECT_EQ(dim.getTensorDim(2), 28);
+  EXPECT_EQ(dim.getTensorDim(3), 28);
+
+  /** Original batch size is retained */
+  status = setProperty("input_shape=1:3:2:1");
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  dim = layer.getInputDimension();
+  EXPECT_EQ(dim.getTensorDim(0), 5);
+  EXPECT_EQ(dim.getTensorDim(1), 3);
+  EXPECT_EQ(dim.getTensorDim(2), 2);
+  EXPECT_EQ(dim.getTensorDim(3), 1);
+
+  /** Original batch size is retained */
+  status = setProperty("input_shape=4:3:2:1");
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  dim = layer.getInputDimension();
+  EXPECT_EQ(dim.getTensorDim(0), 5);
+  EXPECT_EQ(dim.getTensorDim(1), 3);
+  EXPECT_EQ(dim.getTensorDim(2), 2);
+  EXPECT_EQ(dim.getTensorDim(3), 1);
 }
 
 /**
@@ -224,7 +305,8 @@ class nntrainer_FullyConnectedLayer
   : public nntrainer_abstractLayer<nntrainer::FullyConnectedLayer> {
 protected:
   virtual void prepareLayer() {
-    setInputDim("32:1:28:28");
+    setInputDim("1:28:28");
+    setProperty("batch_size=32");
     setProperty("unit=1");
   }
 };
@@ -447,7 +529,8 @@ protected:
   }
 
   virtual void prepareLayer() {
-    setInputDim("3:1:1:12");
+    setInputDim("1:1:12");
+    setProperty("batch_size=3");
     setProperty("unit=15");
     setProperty("bias_init_zero=true");
     last_layer = true;
@@ -699,7 +782,7 @@ protected:
   }
 
   virtual void prepareLayer() {
-    setProperty("input_shape=3:1:4:5 | epsilon=0.001");
+    setProperty("input_shape=1:4:5 | epsilon=0.001");
     setOptimizer(nntrainer::OptType::sgd, "learning_rate=1");
   }
 };
@@ -775,7 +858,7 @@ protected:
 
   virtual void prepareLayer() {
     int status =
-      setProperty("input_shape=32:3:28:28 |"
+      setProperty("input_shape=3:28:28 | batch_size=32 |"
                   "bias_init_zero=true |"
                   "activation=sigmoid |"
                   "weight_decay=l2norm |"
@@ -842,7 +925,7 @@ TEST_F(nntrainer_Conv2DLayer, save_read_01_p) {
  * @brief Convolution 2D Layer
  */
 TEST_F(nntrainer_Conv2DLayer, forwarding_01_p) {
-  reinitialize("input_shape=1:3:7:7 |"
+  reinitialize("input_shape=3:7:7 | batch_size=1 |"
                "bias_init_zero = true |"
                "weight_ini=xavier_uniform |"
                "filter=2 | kernel_size=3,3 | stride=1, 1 | padding=0,0",
@@ -863,7 +946,7 @@ TEST_F(nntrainer_Conv2DLayer, forwarding_01_p) {
  */
 
 TEST_F(nntrainer_Conv2DLayer, forwarding_02_p) {
-  reinitialize("input_shape=2:3:7:7 |"
+  reinitialize("input_shape=3:7:7 | batch_size=2 |"
                "bias_init_zero = true |"
                "weight_ini=xavier_uniform |"
                "filter=3 | kernel_size=3,3 | stride=1, 1 | padding=0,0",
@@ -880,7 +963,7 @@ TEST_F(nntrainer_Conv2DLayer, forwarding_02_p) {
 }
 
 TEST_F(nntrainer_Conv2DLayer, backwarding_01_p) {
-  status = reinitialize("input_shape=1:3:7:7 |"
+  status = reinitialize("input_shape=3:7:7 | batch_size=1 |"
                         "bias_init_zero=true |"
                         "weight_ini=xavier_uniform |"
                         "filter=2 |"
@@ -934,7 +1017,7 @@ TEST_F(nntrainer_Conv2DLayer, backwarding_01_p) {
 }
 
 TEST_F(nntrainer_Conv2DLayer, backwarding_02_p) {
-  status = reinitialize("input_shape=2:3:7:7 |"
+  status = reinitialize("input_shape=3:7:7 | batch_size=2 |"
                         "bias_init_zero=true |"
                         "weight_ini=xavier_uniform |"
                         "filter=3 |"
@@ -1005,10 +1088,14 @@ protected:
 };
 
 TEST_F(nntrainer_Pooling2DLayer, setProperty_01_p) {
+  setInputDim("3:5:5");
+  setProperty("batch_size=2");
   setProperty("pooling_size=2,2 | stride=1,1 | padding=0,0 | pooling=average");
 }
 
 TEST_F(nntrainer_Pooling2DLayer, setProperty_02_n) {
+  setInputDim("3:5:5");
+  setProperty("batch_size=2");
   int status = layer.setProperty({"pooling_size="});
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
@@ -1016,7 +1103,7 @@ TEST_F(nntrainer_Pooling2DLayer, setProperty_02_n) {
 TEST_F(nntrainer_Pooling2DLayer, initialize_01_p) { reinitialize(); }
 
 TEST_F(nntrainer_Pooling2DLayer, forwarding_01_p) {
-  setInputDim("1:2:5:5");
+  setInputDim("2:5:5");
   setProperty("pooling_size=2,2 | stride=1,1 | padding=0,0 | pooling=max");
 
   reinitialize();
@@ -1029,7 +1116,7 @@ TEST_F(nntrainer_Pooling2DLayer, forwarding_01_p) {
 }
 
 TEST_F(nntrainer_Pooling2DLayer, forwarding_02_p) {
-  setInputDim("1:2:5:5");
+  setInputDim("2:5:5");
   setProperty("pooling_size=2,2 | stride=1,1 | padding=0,0 | pooling=average");
 
   reinitialize();
@@ -1043,7 +1130,7 @@ TEST_F(nntrainer_Pooling2DLayer, forwarding_02_p) {
 
 TEST_F(nntrainer_Pooling2DLayer, forwarding_03_p) {
   resetLayer();
-  setInputDim("1:2:5:5");
+  setInputDim("2:5:5");
   setProperty("pooling=global_max");
   reinitialize();
 
@@ -1056,7 +1143,7 @@ TEST_F(nntrainer_Pooling2DLayer, forwarding_03_p) {
 
 TEST_F(nntrainer_Pooling2DLayer, forwarding_04_p) {
   resetLayer();
-  setInputDim("1:2:5:5");
+  setInputDim("2:5:5");
   setProperty("pooling=global_average");
   reinitialize();
 
@@ -1069,7 +1156,8 @@ TEST_F(nntrainer_Pooling2DLayer, forwarding_04_p) {
 
 TEST_F(nntrainer_Pooling2DLayer, forwarding_05_p) {
   resetLayer();
-  setInputDim("2:2:5:5");
+  setInputDim("2:5:5");
+  setProperty("batch_size=2");
   setProperty("pooling=global_max");
   reinitialize();
 
@@ -1080,7 +1168,8 @@ TEST_F(nntrainer_Pooling2DLayer, forwarding_05_p) {
 
 TEST_F(nntrainer_Pooling2DLayer, forwarding_06_p) {
   resetLayer();
-  setInputDim("2:2:5:5");
+  setInputDim("2:5:5");
+  setProperty("batch_size=2");
   setProperty("pooling=global_average");
   reinitialize();
 
@@ -1092,7 +1181,7 @@ TEST_F(nntrainer_Pooling2DLayer, forwarding_06_p) {
 
 TEST_F(nntrainer_Pooling2DLayer, backwarding_01_p) {
   resetLayer();
-  setInputDim("1:2:5:5");
+  setInputDim("2:5:5");
   setProperty("pooling_size=2,2 | stride=1,1 | padding=0,0 | pooling=max");
 
   reinitialize();
@@ -1113,7 +1202,7 @@ TEST_F(nntrainer_Pooling2DLayer, backwarding_01_p) {
 
 TEST_F(nntrainer_Pooling2DLayer, backwarding_02_p) {
   resetLayer();
-  setInputDim("1:2:5:5");
+  setInputDim("2:5:5");
   setProperty("pooling_size=2,2 | stride=1,1 | padding=0,0 | pooling=average");
   reinitialize();
   loadFile("tc_pooling2d_1.in", in);
@@ -1133,7 +1222,7 @@ TEST_F(nntrainer_Pooling2DLayer, backwarding_02_p) {
 
 TEST_F(nntrainer_Pooling2DLayer, backwarding_03_p) {
   resetLayer();
-  setInputDim("1:2:5:5");
+  setInputDim("2:5:5");
   setProperty(
     "pooling_size=2,2 | stride=1,1 | padding=0,0 | pooling=global_max");
   reinitialize();
@@ -1154,7 +1243,7 @@ TEST_F(nntrainer_Pooling2DLayer, backwarding_03_p) {
 }
 
 TEST_F(nntrainer_Pooling2DLayer, backwarding_04_p) {
-  setInputDim("1:2:5:5");
+  setInputDim("2:5:5");
   setProperty(
     "pooling_size=2,2 | stride=1,1 | padding=0,0 | pooling=global_average");
   reinitialize();
@@ -1176,7 +1265,10 @@ TEST_F(nntrainer_Pooling2DLayer, backwarding_04_p) {
 class nntrainer_FlattenLayer
   : public nntrainer_abstractLayer<nntrainer::FlattenLayer> {
 protected:
-  virtual void prepareLayer() { setInputDim("1:2:4:4"); }
+  virtual void prepareLayer() {
+    setInputDim("2:4:4");
+    layer.setBatch(1);
+  }
 };
 
 /**
@@ -1198,7 +1290,8 @@ TEST_F(nntrainer_FlattenLayer, forwarding_01_p) {
  * @brief Flatten Layer
  */
 TEST_F(nntrainer_FlattenLayer, forwarding_02_p) {
-  setInputDim("2:2:4:4");
+  setInputDim("2:4:4");
+  layer.setBatch(2);
   reinitialize(false);
 
   EXPECT_EQ(out.getDim(), nntrainer::TensorDim(2, 1, 1, 32));
@@ -1230,7 +1323,8 @@ TEST_F(nntrainer_FlattenLayer, backwarding_01_p) {
  * @brief Flatten Layer
  */
 TEST_F(nntrainer_FlattenLayer, backwarding_02_p) {
-  setInputDim("2:2:4:4");
+  setInputDim("2:4:4");
+  layer.setBatch(2);
   reinitialize(false);
 
   EXPECT_EQ(out.getDim(), nntrainer::TensorDim(2, 1, 1, 32));
