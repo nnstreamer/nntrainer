@@ -95,6 +95,7 @@ typedef enum {
  * @param[out] model The NNTrainer model handle from the given description.
  * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_NOT_SUPPORTED Not supported.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
  * @retval #ML_ERROR_CANNOT_ASSIGN_ADDRESS Cannot assign object.
  */
@@ -111,6 +112,7 @@ int ml_train_model_construct(ml_train_model_h *model);
  * @param[out] model The NNTrainer model handle from the given description.
  * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_NOT_SUPPORTED Not supported.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
  */
 int ml_train_model_construct_with_conf(const char *model_conf,
@@ -128,6 +130,7 @@ int ml_train_model_construct_with_conf(const char *model_conf,
  * @param[in] ... hyperparmeters for compiling the model
  * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_NOT_SUPPORTED Not supported.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
  */
 int ml_train_model_compile(ml_train_model_h model, ...);
@@ -142,6 +145,7 @@ int ml_train_model_compile(ml_train_model_h model, ...);
  * @param[in] ...  Hyperparmeters for train model.
  * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_NOT_SUPPORTED Not supported.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
  */
 int ml_train_model_run(ml_train_model_h model, ...);
@@ -153,6 +157,7 @@ int ml_train_model_run(ml_train_model_h model, ...);
  * @param[in] model The NNTrainer model handle from the given description.
  * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_NOT_SUPPORTED Not supported.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
  */
 int ml_train_model_destroy(ml_train_model_h model);
@@ -169,6 +174,7 @@ int ml_train_model_destroy(ml_train_model_h model);
  * and exploit @a summary if possible.
  * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_NOT_SUPPORTED Not supported.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
  */
 int ml_train_model_get_summary(ml_train_model_h model,
@@ -186,6 +192,7 @@ int ml_train_model_get_summary(ml_train_model_h model,
  * @param[in] layer The NNTrainer layer handle.
  * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_NOT_SUPPORTED Not supported.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
  */
 int ml_train_model_add_layer(ml_train_model_h model, ml_train_layer_h layer);
@@ -202,6 +209,7 @@ int ml_train_model_add_layer(ml_train_model_h model, ml_train_layer_h layer);
  * @param[in] optimizer The NNTrainer optimizer handle.
  * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_NOT_SUPPORTED Not supported.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
  */
 int ml_train_model_set_optimizer(ml_train_model_h model,
@@ -220,6 +228,7 @@ int ml_train_model_set_optimizer(ml_train_model_h model,
  * @param[in] dataset The NNTrainer dataset handle.
  * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_NOT_SUPPORTED Not supported.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
  */
 int ml_train_model_set_dataset(ml_train_model_h model,
@@ -236,6 +245,7 @@ int ml_train_model_set_dataset(ml_train_model_h model,
  * @param[in]  type The NNTrainer layer type
  * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_NOT_SUPPORTED Not supported.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
  * @retval #ML_ERROR_CANNOT_ASSIGN_ADDRESS Cannot assign object.
  */
@@ -249,6 +259,7 @@ int ml_train_layer_create(ml_train_layer_h *layer, ml_train_layer_type_e type);
  * @param[in] layer The NNTrainer layer handle.
  * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_NOT_SUPPORTED Not supported.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
  */
 int ml_train_layer_destroy(ml_train_layer_h layer);
@@ -261,6 +272,7 @@ int ml_train_layer_destroy(ml_train_layer_h layer);
  * @param[in]  ... Property values with NULL for termination.
  * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_NOT_SUPPORTED Not supported.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
  *
  * Here is an example of the usage of this function:
@@ -306,6 +318,7 @@ int ml_train_layer_set_property(ml_train_layer_h layer, ...);
  * @param[in] type The NNTrainer optimizer type.
  * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_NOT_SUPPORTED Not supported.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
  * @retval #ML_ERROR_CANNOT_ASSIGN_ADDRESS Cannot assign object.
  */
@@ -320,6 +333,7 @@ int ml_train_optimizer_create(ml_train_optimizer_h *optimizer,
  * @param[in] optimizer The NNTrainer optimizer handle.
  * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_NOT_SUPPORTED Not supported.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
  */
 int ml_train_optimizer_destroy(ml_train_optimizer_h optimizer);
@@ -332,6 +346,7 @@ int ml_train_optimizer_destroy(ml_train_optimizer_h optimizer);
  * @param[in]  ... Property values with NULL for termination.
  * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_NOT_SUPPORTED Not supported.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
  */
 int ml_train_optimizer_set_property(ml_train_optimizer_h optimizer, ...);
@@ -355,6 +370,7 @@ int ml_train_optimizer_set_property(ml_train_optimizer_h optimizer, ...);
  * @param[in] test_cb The dataset generator for testing. Can be null.
  * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_NOT_SUPPORTED Not supported.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
  * @retval #ML_ERROR_CANNOT_ASSIGN_ADDRESS Cannot assign object.
  */
@@ -377,6 +393,7 @@ int ml_train_dataset_create_with_generator(ml_train_dataset_h *dataset,
  * @param[in] test_file The dataset file for testing. Can be null.
  * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_NOT_SUPPORTED Not supported.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
  * @retval #ML_ERROR_CANNOT_ASSIGN_ADDRESS Cannot assign object.
  */
@@ -393,6 +410,7 @@ int ml_train_dataset_create_with_file(ml_train_dataset_h *dataset,
  * @param[in] dataset The NNTrainer dataset handle.
  * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_NOT_SUPPORTED Not supported.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
  */
 int ml_train_dataset_destroy(ml_train_dataset_h dataset);
@@ -405,6 +423,7 @@ int ml_train_dataset_destroy(ml_train_dataset_h dataset);
  * @param[in]  ... Property values with NULL for termination.
  * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_NOT_SUPPORTED Not supported.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
  */
 int ml_train_dataset_set_property(ml_train_dataset_h dataset, ...);

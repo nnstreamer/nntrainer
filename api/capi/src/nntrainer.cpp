@@ -132,6 +132,9 @@ static int nn_object(ml_train_model_h *model) {
 
 int ml_train_model_construct(ml_train_model_h *model) {
   int status = ML_ERROR_NONE;
+
+  check_feature_state();
+
   returnable f = [&]() { return nn_object(model); };
 
   status = nntrainer_exception_boundary(f);
@@ -184,6 +187,8 @@ int ml_train_model_compile(ml_train_model_h model, ...) {
   returnable f;
   std::shared_ptr<nntrainer::NeuralNetwork> NN;
 
+  check_feature_state();
+
   ML_TRAIN_VERIFY_VALID_HANDLE(model);
 
   std::vector<std::string> arg_list;
@@ -223,6 +228,8 @@ int ml_train_model_run(ml_train_model_h model, ...) {
   const char *data;
   std::shared_ptr<nntrainer::NeuralNetwork> NN;
 
+  check_feature_state();
+
   ML_TRAIN_VERIFY_VALID_HANDLE(model);
 
   std::vector<std::string> arg_list;
@@ -250,6 +257,8 @@ int ml_train_model_run(ml_train_model_h model, ...) {
 int ml_train_model_destroy(ml_train_model_h model) {
   int status = ML_ERROR_NONE;
   ml_train_model *nnmodel;
+
+  check_feature_state();
 
   {
     ML_TRAIN_GET_VALID_MODEL_LOCKED_RESET(nnmodel, model);
@@ -312,13 +321,15 @@ static int ml_train_model_get_summary_util(ml_train_model_h model,
 int ml_train_model_get_summary(ml_train_model_h model,
                                ml_train_summary_type_e verbosity,
                                char **summary) {
+  int status = ML_ERROR_NONE;
+  std::stringstream ss;
+
+  check_feature_state();
+
   if (summary == nullptr) {
     ml_loge("summary pointer is null");
     return ML_ERROR_INVALID_PARAMETER;
   }
-
-  int status = ML_ERROR_NONE;
-  std::stringstream ss;
 
   status = ml_train_model_get_summary_util(model, verbosity, ss);
   if (status != ML_ERROR_NONE) {
@@ -343,6 +354,8 @@ int ml_train_model_add_layer(ml_train_model_h model, ml_train_layer_h layer) {
   int status = ML_ERROR_NONE;
   ml_train_model *nnmodel;
   ml_train_layer *nnlayer;
+
+  check_feature_state();
 
   ML_TRAIN_GET_VALID_MODEL_LOCKED(nnmodel, model);
   ML_TRAIN_ADOPT_LOCK(nnmodel, model_lock);
@@ -376,6 +389,8 @@ int ml_train_model_set_optimizer(ml_train_model_h model,
   int status = ML_ERROR_NONE;
   ml_train_model *nnmodel;
   ml_train_optimizer *nnopt;
+
+  check_feature_state();
 
   ML_TRAIN_GET_VALID_MODEL_LOCKED(nnmodel, model);
   ML_TRAIN_ADOPT_LOCK(nnmodel, model_lock);
@@ -412,6 +427,8 @@ int ml_train_model_set_dataset(ml_train_model_h model,
   ml_train_model *nnmodel;
   ml_train_dataset *nndataset;
 
+  check_feature_state();
+
   ML_TRAIN_GET_VALID_MODEL_LOCKED(nnmodel, model);
   ML_TRAIN_ADOPT_LOCK(nnmodel, model_lock);
   ML_TRAIN_GET_VALID_DATASET_LOCKED(nndataset, dataset);
@@ -445,6 +462,8 @@ int ml_train_model_get_layer(ml_train_model_h model, const char *layer_name,
                              ml_train_layer_h *layer) {
   int status = ML_ERROR_NONE;
   ml_train_model *nnmodel;
+
+  check_feature_state();
 
   ML_TRAIN_GET_VALID_MODEL_LOCKED(nnmodel, model);
   ML_TRAIN_ADOPT_LOCK(nnmodel, model_lock);
@@ -484,7 +503,11 @@ int ml_train_model_get_layer(ml_train_model_h model, const char *layer_name,
 int ml_train_layer_create(ml_train_layer_h *layer, ml_train_layer_type_e type) {
   int status = ML_ERROR_NONE;
   returnable f;
-  ml_train_layer *nnlayer = new ml_train_layer;
+  ml_train_layer *nnlayer;
+
+  check_feature_state();
+
+  nnlayer = new ml_train_layer;
   nnlayer->magic = ML_NNTRAINER_MAGIC;
 
   try {
@@ -517,6 +540,8 @@ int ml_train_layer_destroy(ml_train_layer_h layer) {
   int status = ML_ERROR_NONE;
   ml_train_layer *nnlayer;
 
+  check_feature_state();
+
   {
     ML_TRAIN_GET_VALID_LAYER_LOCKED_RESET(nnlayer, layer);
     ML_TRAIN_ADOPT_LOCK(nnlayer, layer_lock);
@@ -538,6 +563,8 @@ int ml_train_layer_set_property(ml_train_layer_h layer, ...) {
   ml_train_layer *nnlayer;
   const char *data;
   std::shared_ptr<nntrainer::Layer> NL;
+
+  check_feature_state();
 
   ML_TRAIN_VERIFY_VALID_HANDLE(layer);
 
@@ -568,6 +595,8 @@ int ml_train_optimizer_create(ml_train_optimizer_h *optimizer,
                               ml_train_optimizer_type_e type) {
   int status = ML_ERROR_NONE;
 
+  check_feature_state();
+
   ml_train_optimizer *nnopt = new ml_train_optimizer;
   nnopt->magic = ML_NNTRAINER_MAGIC;
   nnopt->optimizer = std::make_shared<nntrainer::Optimizer>();
@@ -591,6 +620,8 @@ int ml_train_optimizer_destroy(ml_train_optimizer_h optimizer) {
   int status = ML_ERROR_NONE;
   ml_train_optimizer *nnopt;
 
+  check_feature_state();
+
   {
     ML_TRAIN_GET_VALID_OPT_LOCKED_RESET(nnopt, optimizer);
     ML_TRAIN_ADOPT_LOCK(nnopt, optimizer_lock);
@@ -611,6 +642,8 @@ int ml_train_optimizer_set_property(ml_train_optimizer_h optimizer, ...) {
   ml_train_optimizer *nnopt;
   const char *data;
   std::shared_ptr<nntrainer::Optimizer> opt;
+
+  check_feature_state();
 
   ML_TRAIN_VERIFY_VALID_HANDLE(optimizer);
 
@@ -644,6 +677,8 @@ int ml_train_dataset_create_with_generator(ml_train_dataset_h *dataset,
                                            ml_train_datagen_cb test_cb) {
   int status = ML_ERROR_NONE;
 
+  check_feature_state();
+
   std::shared_ptr<nntrainer::DataBufferFromCallback> data_buffer =
     std::make_shared<nntrainer::DataBufferFromCallback>();
 
@@ -676,6 +711,8 @@ int ml_train_dataset_create_with_file(ml_train_dataset_h *dataset,
                                       const char *valid_file,
                                       const char *test_file) {
   int status = ML_ERROR_NONE;
+
+  check_feature_state();
 
   std::shared_ptr<nntrainer::DataBufferFromDataFile> data_buffer =
     std::make_shared<nntrainer::DataBufferFromDataFile>();
@@ -719,6 +756,8 @@ int ml_train_dataset_set_property(ml_train_dataset_h dataset, ...) {
   const char *data;
   std::shared_ptr<nntrainer::DataBuffer> data_buffer;
 
+  check_feature_state();
+
   ML_TRAIN_VERIFY_VALID_HANDLE(dataset);
 
   std::vector<std::string> arg_list;
@@ -747,6 +786,8 @@ int ml_train_dataset_set_property(ml_train_dataset_h dataset, ...) {
 int ml_train_dataset_destroy(ml_train_dataset_h dataset) {
   int status = ML_ERROR_NONE;
   ml_train_dataset *nndataset;
+
+  check_feature_state();
 
   {
     ML_TRAIN_GET_VALID_DATASET_LOCKED_RESET(nndataset, dataset);

@@ -6,4 +6,4 @@ option('use_gym', type: 'boolean', value: false)
 option('enable-capi', type: 'boolean', value: true)
 option('enable-test', type: 'boolean', value: true)
 option('enable-logging', type: 'boolean', value: true)
-
+option('enable-tizen-feature-check', type: 'boolean', value: true)

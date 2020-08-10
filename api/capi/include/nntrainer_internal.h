@@ -38,6 +38,34 @@
 
 #define ML_NNTRAINER_MAGIC 0x777F888F
 
+/* Tizen ML feature */
+#if defined(__TIZEN__)
+
+typedef enum {
+  NOT_CHECKED_YET = -1,
+  NOT_SUPPORTED = 0,
+  SUPPORTED = 1
+} feature_state_t;
+
+#if defined(__FEATURE_CHECK_SUPPORT__)
+#define check_feature_state()                         \
+  do {                                                \
+    int feature_ret = ml_tizen_get_feature_enabled(); \
+    if (ML_ERROR_NONE != feature_ret)                 \
+      return feature_ret;                             \
+  } while (0);
+
+#define set_feature_state(...) ml_tizen_set_feature_state(__VA_ARGS__)
+#else /* __FEATURE_CHECK_SUPPORT__ */
+#define check_feature_state()
+#define set_feature_state(...)
+#endif /* __FEATURE_CHECK_SUPPORT__ */
+
+#else /* __TIZEN__ */
+#define check_feature_state()
+#define set_feature_state(...)
+#endif /* __TIZEN__ */
+
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
@@ -287,6 +315,19 @@ int ml_train_model_run_async(ml_train_model_h model, ml_train_run_cb cb,
 int ml_train_model_insert_layer(ml_train_model_h model, ml_train_layer_h layer,
                                 const char *input_layer_names[],
                                 const char *output_layer_names[]);
+
+#if defined(__TIZEN__)
+/**
+ * @brief Checks whether machine_learning.training feature is enabled or not.
+ */
+int ml_tizen_get_feature_enabled(void);
+
+/**
+ * @brief Set the feature status of machine_learning.training.
+ * This is only used for Unit test.
+ */
+void ml_tizen_set_feature_state(feature_state_t state);
+#endif /* __TIZEN__ */
 
 #ifdef __cplusplus
 }

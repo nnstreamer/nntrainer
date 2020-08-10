@@ -19,9 +19,10 @@
  * @author      Jijoong Moon <jijoong.moon@samsung.com>
  * @bug         No known bugs
  */
-#include "nntrainer_test_util.h"
+
 #include <nntrainer.h>
 #include <nntrainer_internal.h>
+#include <nntrainer_test_util.h>
 
 /**
  * @brief Neural Network Model Contruct / Destruct Test (possitive test )
@@ -797,11 +798,17 @@ int main(int argc, char **argv) {
     ml_loge("Failed to init gtest\n");
   }
 
+  /** ignore tizen feature check while running the testcases */
+  set_feature_state(SUPPORTED);
+
   try {
     result = RUN_ALL_TESTS();
   } catch (...) {
     ml_loge("Failed to run test.\n");
   }
+
+  /** reset tizen feature check state */
+  set_feature_state(NOT_CHECKED_YET);
 
   return result;
 }
