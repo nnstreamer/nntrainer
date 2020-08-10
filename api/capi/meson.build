@@ -13,6 +13,10 @@ capi_src = []
 capi_src += join_paths(meson.current_source_dir(), 'src','nntrainer.cpp')
 capi_src += join_paths(meson.current_source_dir(), 'src','nntrainer_util.cpp')
 
+if get_option('enable-tizen') and get_option('enable-tizen-feature-check')
+  capi_src += join_paths(meson.current_source_dir(), 'src','nntrainer-capi-tizen-feature-check.cpp')
+endif
+
 capi_headers = []
 capi_headers += join_paths(meson.current_source_dir(), 'include', 'nntrainer.h')
 capi_headers += join_paths(meson.current_source_dir(), '..', 'nntrainer-api-common.h')
@@ -20,6 +24,18 @@ capi_headers += join_paths(meson.current_source_dir(), '..', 'nntrainer-api-comm
 capi_deps = [
   nntrainer_dep
 ]
+
+if get_option('enable-tizen')
+  message('CAPI is in Tizen mode')
+
+  tizen_deps = [
+    dependency('capi-base-common'),
+    dependency('capi-system-info'),
+    dependency('dlog')
+  ]
+
+  capi_deps += tizen_deps
+endif
 
 shared_library('capi-nntrainer',
   capi_src,
@@ -47,6 +63,6 @@ configure_file(input: 'capi-nntrainer.pc.in', output: 'capi-nntrainer.pc',
   configuration: nntrainer_conf
 )
 
-install_headers( capi_headers,
+install_headers(capi_headers,
   subdir: 'nntrainer'
 )

@@ -19,8 +19,10 @@
  * @author      Jijoong Moon <jijoong.moon@samsung.com>
  * @bug         No known bugs
  */
-#include "nntrainer_test_util.h"
+
 #include <nntrainer.h>
+#include <nntrainer_internal.h>
+#include <nntrainer_test_util.h>
 
 /**
  * @brief Neural Network Optimizer Create / Delete Test (positive test)
@@ -125,11 +127,17 @@ int main(int argc, char **argv) {
     return 0;
   }
 
+  /** ignore tizen feature check while running the testcases */
+  set_feature_state(SUPPORTED);
+
   try {
     result = RUN_ALL_TESTS();
   } catch (...) {
     std::cerr << "Error duing RUN_ALL_TSETS()" << std::endl;
   }
+
+  /** reset tizen feature check state */
+  set_feature_state(NOT_CHECKED_YET);
 
   return result;
 }

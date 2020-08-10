@@ -18,6 +18,10 @@ if get_option('enable-tizen')
   # Pass __TIZEN__ to the compiler
   build_platform = 'tizen'
   add_project_arguments('-D__TIZEN__=1', language:['c','cpp'])
+
+  if get_option('enable-tizen-feature-check')
+    add_project_arguments('-D__FEATURE_CHECK_SUPPORT__', language: ['c', 'cpp'])
+  endif
 endif
 
 warning_flags = [

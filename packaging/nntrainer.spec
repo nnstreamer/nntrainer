@@ -46,6 +46,12 @@ BuildRequires: lcov
 # BuildRequires:	taos-ci-unittest-coverage-assessment
 %endif
 
+%if %{with tizen}
+BuildRequires:	pkgconfig(capi-system-info)
+BuildRequires:	pkgconfig(capi-base-common)
+BuildRequires:	pkgconfig(dlog)
+%endif  # tizen
+
 Requires:	iniparser
 Requires:	libopenblas_pthreads0
 
@@ -119,6 +125,14 @@ Static library of capi-nntrainer-devel package.
 
 %endif #tizen
 
+## Define build options
+%define enable_tizen -Denable-tizen=false
+%define enable_tizen_feature_check -Denable-tizen-feature-check=true
+
+%if %{with tizen}
+%define enable_tizen -Denable-tizen=true
+%endif
+
 # Using cblas for Matrix calculation
 %if 0%{?enable_cblas}
 %define enable_cblas -DUSE_BLAS=ON
@@ -148,7 +162,7 @@ CFLAGS="${CFLAGS} -fprofile-arcs -ftest-coverage"
 mkdir -p build
 meson --buildtype=plain --prefix=%{_prefix} --sysconfdir=%{_sysconfdir} \
       --libdir=%{_libdir} --bindir=%{nntrainerapplicationdir} --includedir=%{_includedir}\
-      -Dinstall-app=true -Denable-tizen=true %{use_gym_option} build
+      -Dinstall-app=true %{enable_tizen} %{enable_tizen_feature_check} %{use_gym_option} build
 
 ninja -C build %{?_smp_mflags}
 
