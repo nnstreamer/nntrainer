@@ -1,11 +1,5 @@
-nntrainer (0.0.1-2) unstable; urgency=medium
-
-  * Refactoring Layers class
-
- -- Sangjung Woo <sangjung.woo@samsung.com>  Tue, 13 May 2020 20:10:36 +0900
-
-nntrainer (0.0.1-1) unstable; urgency=medium
+nntrainer (0.1.0.rc1) unstable; urgency=medium
 
   * Initial debian dist files added
 
- -- Jijoong Moon <jijoong.moon@samsung.com>  Mon, 30 Mar 2020 11:11:49 +0900
+ -- Jijoong Moon <jijoong.moon@samsung.com>  Mon, 10 Aug 2020 11:11:49 +0900
