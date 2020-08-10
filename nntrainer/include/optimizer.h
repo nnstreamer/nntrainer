@@ -105,8 +105,14 @@ public:
   ~Optimizer() {}
 
   /**
+   * @brief  copy constructor
+   * @param[in] rhs Optimizer to be copied
+   */
+  Optimizer(const Optimizer &rhs) = default;
+
+  /**
    * @brief  copy assignment operator
-   * @parma[in] rhs Optimizer to be copied
+   * @param[in] rhs Optimizer to be copied
    */
   Optimizer &operator=(const Optimizer &rhs) = default;
 

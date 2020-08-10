@@ -77,6 +77,28 @@ public:
     continue_train = false;
   };
 
+  friend void swap(NeuralNetwork &lhs, NeuralNetwork &rhs) {
+    using std::swap;
+
+    swap(lhs.batch_size, rhs.batch_size);
+    swap(lhs.epoch, rhs.epoch);
+    swap(lhs.loss, rhs.loss);
+    swap(lhs.cost, rhs.cost);
+    swap(lhs.weight_ini, rhs.weight_ini);
+    swap(lhs.model, rhs.model);
+    swap(lhs.config, rhs.config);
+    swap(lhs.opt, rhs.opt);
+    swap(lhs.net_type, rhs.net_type);
+    swap(lhs.layers, rhs.layers);
+    swap(lhs.data_buffer, rhs.data_buffer);
+    swap(lhs.continue_train, rhs.continue_train);
+    swap(lhs.iter, rhs.iter);
+    swap(lhs.initialized, rhs.initialized);
+    swap(lhs.layer_names, rhs.layer_names);
+    swap(lhs.def_name_count, rhs.def_name_count);
+    swap(lhs.loadedFromConfig, rhs.loadedFromConfig);
+  }
+
   /**
    * @brief     Get Loss
    * @retval    loss value
@@ -287,87 +309,43 @@ public:
   void print(std::ostream &out, unsigned int flags = 0);
 
 private:
-  /**
-   * @brief     batch size
-   */
-  int batch_size;
+  int batch_size; /**< batch size */
 
-  /**
-   * @brief     Maximum Epoch
-   */
-  unsigned int epoch;
+  unsigned int epoch; /**< Maximum Epoch */
 
-  /**
-   * @brief     loss
-   */
-  float loss;
+  float loss; /**< loss */
 
-  /**
-   * @brief     Cost Function type
-   */
-  CostType cost;
+  CostType cost; /**< Cost Function type */
 
-  /**
-   * @brief     Weight Initialization type
-   */
-  WeightIniType weight_ini;
+  WeightIniType weight_ini; /**< Weight Initialization type */
 
-  /**
-   * @brief     Model path to save or read
-   */
-  std::string model;
+  std::string model; /**< Model path to save / read */
 
-  /**
-   * @brief     Configuration file path
-   */
-  std::string config;
+  std::string config; /**< Configuration file path */
 
-  /**
-   * @brief     Optimizer
-   * @note      This gets copied into each layer, do not use this directly
-   */
-  Optimizer opt;
+  Optimizer opt; /**< Optimizer, This gets copied into each layer, do not use
+                    this directly */
 
-  /**
-   * @brief     Network Type
-   */
-  NetType net_type;
+  NetType net_type; /**< Network Type */
 
-  /**
-   * @brief     vector for store layer pointers.
-   */
-  std::vector<std::shared_ptr<Layer>> layers;
+  std::vector<std::shared_ptr<Layer>>
+    layers; /**< vector for store layer pointers */
 
-  /**
-   * @brief     Data Buffer to get Input
-   */
-  std::shared_ptr<DataBuffer> data_buffer;
+  std::shared_ptr<DataBuffer> data_buffer; /**< Data Buffer to get Input */
 
-  /**
-   * @brief    Continue train from the previous state of optimizer and
-   * iterations
-   */
-  bool continue_train;
+  bool continue_train; /**< Continue train from the previous state of optimizer
+   and iterations */
 
-  /**
-   * @brief     Number of iterations trained
-   */
-  uint64_t iter;
+  uint64_t iter; /**< Number of iterations trained */
 
-  /**
-   * @brief     Network is initialized
-   */
-  bool initialized;
+  bool initialized; /**< Network is initialized */
 
-  /**
-   * @brief     Set containing all the names of layers in the model
-   */
-  std::set<std::string> layer_names;
+  std::set<std::string>
+    layer_names; /**< Set containing all the names of layers in the model */
 
-  /**
-   * @brief     Count assigned to layer names declared by default
-   */
-  int def_name_count;
+  int def_name_count; /**< Count assigned to layer names declared by default */
+
+  bool loadedFromConfig; /**< Check if config is loaded to prevent load twice */
 
   /**
    * @brief     Sets up and initialize the loss layer
@@ -429,8 +407,6 @@ private:
    * @param[in] ini will be casted to iniparser::dictionary *
    */
   int loadNetworkConfig(void *ini);
-
-  bool loadedFromConfig; /**< Check if config is loaded to prevent load twice */
 };
 
 } /* namespace nntrainer */
