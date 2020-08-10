@@ -178,8 +178,7 @@ INSTANTIATE_TEST_CASE_P(
     // #389
     // mkIniTc("buffer_size_smaller_than_minibatch_n", {nw_adam, dataset + "BufferSize=26", input, out}, ALLFAIL),
     mkIniTc("unknown_layer_type_n", {nw_adam, input + "Type = asdf", out}, ALLFAIL),
-    // #389
-    // mkIniTc("unknown_layer_type2_n", {nw_adam, input, out + "Type = asdf", I(out, "outlayer", "")}, ALLFAIL),
+    mkIniTc("unknown_layer_type2_n", {nw_adam, input, out + "Type = asdf", I(out, "outlayer", "")}, ALLFAIL),
     // #390
     // mkIniTc("act_after_act_layer_n", {nw_sgd, act_relu, input, out}, ALLFAIL),
     // mkIniTc("act_after_act_layer2_n", {nw_sgd, input, act_relu, out}, ALLFAIL),
@@ -187,11 +186,10 @@ INSTANTIATE_TEST_CASE_P(
     // mkIniTc("last_act_layer_relu2_n", {nw_sgd, input, out + "-Activation", act_relu }, ALLFAIL),
 
   /**< negative: little bit of tweeks to check determinancy */
-    // #382, #389
-    // mkIniTc("wrong_nw_dataset_n", {nw_adam, input, out, dataset + "-LabelData"}, ALLFAIL),
-    // mkIniTc("buffer_size_smaller_than_minibatch2_n", {nw_adam, input, out, dataset + "BufferSize=26"}, ALLFAIL),
+    mkIniTc("wrong_nw_dataset_n", {nw_adam, input, out, dataset + "-LabelData"}, ALLFAIL),
+    mkIniTc("wrong_nw_dataset2_n", {nw_adam, dataset + "-LabelData", input, out}, ALLFAIL),
     // #389
-    // mkIniTc("wrong_nw_dataset2_n", {nw_adam, dataset + "-LabelData", input, out}, ALLFAIL),
+    // mkIniTc("buffer_size_smaller_than_minibatch2_n", {nw_adam, input, out, dataset + "BufferSize=26"}, ALLFAIL),
 
   /**< negative: dataset is not complete */
     mkIniTc("no_trainingSet_n", {nw_adam, dataset + "-TrainData", input, out}, ALLFAIL),

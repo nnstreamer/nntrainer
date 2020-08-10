@@ -170,6 +170,8 @@ int NeuralNetwork::loadFromConfig() {
     return ML_ERROR_INVALID_PARAMETER;
   }
 
+  NeuralNetwork tempNet(*this);
+
   int status = ML_ERROR_NONE;
   std::string ini_file = config;
   int num_ini_sec = 0;
@@ -205,9 +207,6 @@ int NeuralNetwork::loadFromConfig() {
     return ML_ERROR_INVALID_PARAMETER;
   }
 
-  /// @fixme: move this to end of function after resolving #382
-  loadedFromConfig = true;
-
   ml_logd("parsing ini started");
   /** Get all the section names */
   ml_logi("==========================parsing ini...");
@@ -225,13 +224,13 @@ int NeuralNetwork::loadFromConfig() {
     }
 
     if (strncasecmp(network_str, sec_name, network_len) == 0) {
-      status = loadNetworkConfig((void *)ini);
+      status = tempNet.loadNetworkConfig((void *)ini);
       NN_RETURN_STATUS();
       continue;
     }
 
     if (strncasecmp(dataset_str, sec_name, dataset_len) == 0) {
-      status = loadDatasetConfig((void *)ini);
+      status = tempNet.loadDatasetConfig((void *)ini);
       NN_RETURN_STATUS();
       continue;
     }
@@ -304,25 +303,29 @@ int NeuralNetwork::loadFromConfig() {
     status = layer->setName(layer_name);
     NN_INI_RETURN_STATUS();
 
-    status = addLayer(layer);
+    status = tempNet.addLayer(layer);
     NN_INI_RETURN_STATUS();
   }
   ml_logd("parsing ini finished");
 
   /**< Additional validation and handling for the neural network */
-  if (!data_buffer) {
-    data_buffer = std::make_shared<DataBufferFromCallback>();
+  if (!tempNet.data_buffer) {
+    tempNet.data_buffer = std::make_shared<DataBufferFromCallback>();
   }
 
-  status = data_buffer->setMiniBatch(batch_size);
+  status = tempNet.data_buffer->setMiniBatch(batch_size);
   NN_INI_RETURN_STATUS();
 
-  if (layers.empty()) {
+  if (tempNet.layers.empty()) {
     ml_loge("there is no layer section in the ini file");
     status = ML_ERROR_INVALID_PARAMETER;
   }
 
   iniparser_freedict(ini);
+
+  tempNet.loadedFromConfig = true;
+  swap(tempNet, *this);
+
   return status;
 }
 
