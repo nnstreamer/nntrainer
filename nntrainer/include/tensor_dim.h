@@ -90,6 +90,7 @@ public:
   TensorDim &operator=(const TensorDim &rhs);
   bool operator==(const TensorDim &rhs) const;
   bool operator!=(const TensorDim &rhs) const { return !(*this == rhs); }
+  bool isEmpty() const { return len == 0; }
 
 private:
   unsigned int dim[MAXDIM];

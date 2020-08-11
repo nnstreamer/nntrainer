@@ -71,7 +71,7 @@ TEST_P(nntrainerIniTest, initTwice_n) {
  * @brief check given ini is failing/succeeding when init happens three times.
  * this should fail at all time.
  */
-TEST_P(nntrainerIniTest, initThreetime_n) {
+TEST_P(nntrainerIniTest, initThreetime) {
   std::cout << std::get<0>(GetParam()) << std::endl;
   int status = NN.loadFromConfig();
   status = NN.init();
@@ -105,8 +105,7 @@ static IniSection dataset("DataSet", "BufferSize = 100 |"
                                      "ValidData = valSet.dat |"
                                      "LabelData = label.dat");
 
-static IniSection batch_normal("bn", "Type = batch_normalization | "
-                                     "Activation = relu");
+static IniSection batch_normal("bn", "Type = batch_normalization");
 
 static IniSection flatten("flat", "Type = flatten");
 
@@ -139,20 +138,19 @@ static int ALLFAIL = LOADFAIL | INITFAIL;
 
 using I = IniSection;
 
-/// @note each line contains 2 (positive or negative test) + 1 negative test.
+/// @note each line contains 2 (positive or negative test) + 3 negative test.
 /// if, there are 6 positive tests and 9 negative tests
-/// which sums up to 6 * 2 = 12 positive tests and 9 * 2 + 6 + 9 = 33 negative
-/// tests
+/// which sums up to 6 * 2 = 12 positive tests and 9 * 2 + (6 + 9) * 3 = 63
+/// negative tests
 // clang-format off
 INSTANTIATE_TEST_CASE_P(
   nntrainerIniAutoTests, nntrainerIniTest, ::testing::Values(
-  /**< positive: basic valid scenarios */
+  /**< positive: basic valid scenarios (2 positive and 3 negative cases) */
     mkIniTc("basic_p", {nw_adam, input, out}, SUCCESS),
     mkIniTc("basic2_p", {nw_sgd, input, out}, SUCCESS),
     mkIniTc("basic_act_p", {nw_sgd, input + "-Activation", act_relu, out }, SUCCESS),
     mkIniTc("basic_bn_p", {nw_sgd, input + "-Activation", batch_normal, act_relu, out }, SUCCESS),
-    // #390
-    // mkIniTc("basic_bn2_p", {nw_sgd, input, act_relu, batch_normal, out }, SUCCESS),
+    mkIniTc("basic_bn2_p", {nw_sgd, input + "-Activation", batch_normal + "Activation = relu", out }, SUCCESS),
     mkIniTc("basic_dataset_p", {nw_adam, dataset, input, out}, SUCCESS),
     mkIniTc("basic_dataset2_p", {nw_sgd, input, out, dataset}, SUCCESS),
     mkIniTc("basic_dataset3_p", {dataset, nw_sgd, input, out}, SUCCESS),
@@ -161,37 +159,42 @@ INSTANTIATE_TEST_CASE_P(
     mkIniTc("no_validSet_p", {nw_adam, dataset + "-ValidData", input, out}, SUCCESS),
     mkIniTc("no_bufferSize_p", {nw_adam, dataset + "-BufferSize", input, out}, SUCCESS),
 
-  /**< negative: basic invalid scenarios */
+
+  /**< half negative: init fail cases (1 positive and 4 negative cases) */
+    mkIniTc("unknown_cost_n", {nw_adam + "cost = unknown", input, out}, INITFAIL),
+    mkIniTc("activation_very_first_n", {nw_sgd, act_relu, input, out}, INITFAIL),
+    mkIniTc("bnlayer_very_first_n", {nw_sgd, batch_normal, input, out}, INITFAIL),
+    mkIniTc("act_layer_after_act_n", {nw_sgd, input, act_relu, out}, INITFAIL),
+    mkIniTc("act_layer_after_act_bn_n", {nw_sgd, input, act_relu, batch_normal, out }, INITFAIL),
+    mkIniTc("last_act_layer_relu_n", {nw_sgd, input, out, act_relu }, INITFAIL),
+    mkIniTc("last_act_layer_relu2_n", {nw_sgd, input, out + "-Activation", act_relu }, INITFAIL),
+
+  /**< negative: basic invalid scenarios (5 negative cases) */
     mkIniTc("no_network_sec_name_n", {I(nw_adam, "-", "")}, ALLFAIL),
     mkIniTc("no_network_sec_n", {input, out}, ALLFAIL),
     mkIniTc("empty_n", {}, ALLFAIL),
     mkIniTc("no_layers_n", {nw_adam}, ALLFAIL),
+    mkIniTc("no_layers_2_n", {nw_adam, dataset}, ALLFAIL),
     /// #391
     // mkIniTc("ini_has_empty_value_n", {nw_adam + "epsilon = _", input, out}, ALLFAIL),
 
-  /**< negative: property validation */
+  /**< negative: property(hyperparam) validation (5 negative cases) */
     mkIniTc("wrong_opt_type_n", {nw_adam + "Optimizer = wrong_opt", input, out}, ALLFAIL),
     mkIniTc("adam_minus_lr_n", {nw_adam + "Learning_rate = -0.1", input, out}, ALLFAIL),
     mkIniTc("sgd_minus_lr_n", {nw_sgd + "Learning_rate = -0.1", input, out}, ALLFAIL),
     mkIniTc("no_cost_n", {nw_adam + "-cost", input, out}, INITFAIL),
-    mkIniTc("unknown_cost_n", {nw_adam + "cost = unknown", input, out}, INITFAIL),
     // #389
     // mkIniTc("buffer_size_smaller_than_minibatch_n", {nw_adam, dataset + "BufferSize=26", input, out}, ALLFAIL),
     mkIniTc("unknown_layer_type_n", {nw_adam, input + "Type = asdf", out}, ALLFAIL),
     mkIniTc("unknown_layer_type2_n", {nw_adam, input, out + "Type = asdf", I(out, "outlayer", "")}, ALLFAIL),
-    // #390
-    // mkIniTc("act_after_act_layer_n", {nw_sgd, act_relu, input, out}, ALLFAIL),
-    // mkIniTc("act_after_act_layer2_n", {nw_sgd, input, act_relu, out}, ALLFAIL),
-    // mkIniTc("last_act_layer_relu_n", {nw_sgd, input, out, act_relu }, ALLFAIL),
-    // mkIniTc("last_act_layer_relu2_n", {nw_sgd, input, out + "-Activation", act_relu }, ALLFAIL),
 
-  /**< negative: little bit of tweeks to check determinancy */
+  /**< negative: little bit of tweeks to check determinancy (5 negative cases) */
     mkIniTc("wrong_nw_dataset_n", {nw_adam, input, out, dataset + "-LabelData"}, ALLFAIL),
     mkIniTc("wrong_nw_dataset2_n", {nw_adam, dataset + "-LabelData", input, out}, ALLFAIL),
     // #389
     // mkIniTc("buffer_size_smaller_than_minibatch2_n", {nw_adam, input, out, dataset + "BufferSize=26"}, ALLFAIL),
 
-  /**< negative: dataset is not complete */
+  /**< negative: dataset is not complete (5 negative cases) */
     mkIniTc("no_trainingSet_n", {nw_adam, dataset + "-TrainData", input, out}, ALLFAIL),
     mkIniTc("no_labelSet_n", {nw_adam, dataset + "-LabelData", input, out}, ALLFAIL)
 /// #if gtest_version <= 1.7.0

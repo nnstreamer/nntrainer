@@ -252,11 +252,11 @@ public:
   int setDataBuffer(std::shared_ptr<DataBuffer> data_buffer);
 
   /**
-   * @brief     check neural network whether the hyper-parameters are set.
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   * @brief     check neural network is ready to init.
+   * @retval #ML_ERROR_NONE neuralnetwork is ready to init
+   * @retval #ML_ERROR_INVALID_PARAMETER not ready to init.
    */
-  int checkValidation();
+  int isInitializable();
 
   /**
    * @brief     add layer into neural network model
@@ -355,43 +355,31 @@ private:
   int initLossLayer();
 
   /**
-   * @brief     Add activation layer to layers
+   * @brief     Realize act type to layer and insert it to layers
    * @param[in] ActiType act Activation Type
-   * @param[in/out] int Position position to insert activation layer.
-   *                position++ when activation layer is inserted.
-   * @note layer is inserted at the back of layers
+   * @param[in] int Position position to insert activation layer.
+   * @note layer is inserted at position
    */
-  int initActivationLayer(ActiType act, unsigned int &position);
+  int realizeActivationType(const ActiType act, const unsigned int position);
 
   /**
-   * @brief     Add activation layer to layers
-   * @param[in] ActiType act Activation Type
+   * @copydoc int realizeActivationType(ActiType act, unsigned int &position);
    * @note layer is inserted at the back of layers
    */
-  int initActivationLayer(ActiType act);
+  int realizeActivationType(const ActiType act);
 
   /**
-   * @brief     Add activation layer to layers
-   *
-   * @param[in] ActiType act Activation Type
-   * @param[in] prev previous layer
-   * @returns   Create activation layer
+   * @brief     Realize flatten type to layer and insert it to layers
+   * @param[in] int Position position to insert the layer.
+   * @note layer is inserted at position
    */
-  std::shared_ptr<Layer> _make_act_layer(ActiType act, std::shared_ptr<Layer>);
+  int realizeFlattenType(const unsigned int position);
 
   /**
-   * @brief     Add flatten layer to layers
-   * @param[in/out] int Position position to insert the layer.
-   *                position++ when layer is inserted.
+   * @copydoc int realizeActivationType(ActiType act, unsigned int &position);
    * @note layer is inserted at the back of layers
    */
-  int initFlattenLayer(unsigned int &position);
-
-  /**
-   * @brief     Add flatten layer to layers
-   * @note layer is inserted at the back of layers
-   */
-  int initFlattenLayer();
+  int realizeFlattenType();
 
   /**
    * @brief     Ensure that layer has a name
