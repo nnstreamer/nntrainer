@@ -61,7 +61,7 @@ public:
    * @brief     Constructor of Tensor
    * @param[in] batch Batch of Tensor
    * @param[in] channel Channel of Tensor
-   * @param[in] heihgt Height of Tensor
+   * @param[in] height Height of Tensor
    * @param[in] width Width of Tensor
    */
   Tensor(int batch, int channel, int height, int width) :
@@ -70,18 +70,24 @@ public:
   /**
    * @brief     Constructor of Tensor
    * @param[in] channel Channel of Tensor
-   * @param[in] heihgt Height of Tensor
+   * @param[in] height Height of Tensor
    * @param[in] width Width of Tensor
    */
   Tensor(int channel, int height, int width) :
     Tensor(1, channel, height, width){};
 
   /**
-   * @brief     Constructor of Tensor with batch size one
-   * @param[in] heihgt Height of Tensor
+   * @brief     Constructor of Tensor with batch size one and channel size one
+   * @param[in] height Height of Tensor
    * @param[in] width Width of Tensor
    */
   Tensor(int height, int width) : Tensor(1, 1, height, width){};
+
+  /**
+   * @brief     Constructor of Tensor with just width
+   * @param[in] width Width of Tensor
+   */
+  Tensor(int width) : Tensor(1, 1, 1, width){};
 
   /**
    * @brief     Constructor of Tensor

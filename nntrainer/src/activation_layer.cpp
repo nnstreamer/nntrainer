@@ -161,7 +161,7 @@ Tensor ActivationLayer::softmax(Tensor const &t) {
   const float *tp;
 
   Tensor result(t.getDim());
-  Tensor divisor(t.getDim());
+  Tensor divisor(t.getWidth());
 
   dp = divisor.getData();
   rp = result.getData();
@@ -170,35 +170,27 @@ Tensor ActivationLayer::softmax(Tensor const &t) {
   divisor.setZero();
 
   for (int k = 0; k < batch; k++) {
-    int index = k * channel * height * width;
-    float m = std::numeric_limits<float>::lowest();
-    // find max
     for (int c = 0; c < channel; c++) {
       for (int i = 0; i < height; i++) {
-        for (int j = 0; j < width; j++) {
-          if (tp[index + c * height * width + i * width + j] > m)
-            m = tp[index + c * height * width + i * width + j];
-        }
-      }
-    }
+        int index =
+          k * channel * height * width + c * height * width + i * width;
+        float m = std::numeric_limits<float>::lowest();
 
-    // shiftx
-    float sum = 0.0f;
-    for (int c = 0; c < channel; c++) {
-      for (int i = 0; i < height; i++) {
+        // find max
         for (int j = 0; j < width; j++) {
-          dp[index + c * height * width + width * i + j] =
-            exp(tp[index + c * height * width + i * width + j] - m);
-          sum += dp[index + c * height * width + width * i + j];
+          if (tp[index + j] > m)
+            m = tp[index + j];
         }
-      }
-    }
 
-    for (int c = 0; c < channel; c++) {
-      for (int i = 0; i < height; i++) {
+        // shiftx
+        float sum = 0.0f;
         for (int j = 0; j < width; j++) {
-          rp[index + c * height * width + width * i + j] =
-            dp[index + c * height * width + width * i + j] / sum;
+          dp[j] = exp(tp[index + j] - m);
+          sum += dp[j];
+        }
+
+        for (int j = 0; j < width; j++) {
+          rp[index + j] = dp[j] / sum;
         }
       }
     }
