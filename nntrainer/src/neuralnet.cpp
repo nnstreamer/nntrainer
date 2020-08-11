@@ -34,6 +34,7 @@
 #include <parse_util.h>
 #include <sstream>
 #include <stdio.h>
+#include <unordered_set>
 
 #define NN_INI_RETURN_STATUS()     \
   do {                             \
@@ -445,9 +446,9 @@ int NeuralNetwork::setTrainConfig(std::vector<std::string> values) {
 
 int NeuralNetwork::init() {
   int status = ML_ERROR_NONE;
-  TensorDim previous_dim, def_init_dim;
+  TensorDim previous_dim;
 
-  status = checkValidation();
+  status = isInitializable();
   NN_RETURN_STATUS();
 
   ml_logd("initiating neural network, layer size: %d",
@@ -460,8 +461,12 @@ int NeuralNetwork::init() {
     ml_logd("layer name: %s", l.getName().c_str());
 
     if (!first) {
-      /// @fixme 359
-      if (def_init_dim == l.getInputDimension()) {
+      if (layers[i - 1]->getType() == LAYER_ACTIVATION &&
+          l.getType() == LAYER_ACTIVATION) {
+        ml_loge("double activation is not allowed");
+        return ML_ERROR_INVALID_PARAMETER;
+      }
+      if (l.getInputDimension().isEmpty()) {
         l.setInputDimension(previous_dim);
       } else if (previous_dim != l.getInputDimension()) {
         ml_loge("Dimension mismatch between layers.");
@@ -474,12 +479,7 @@ int NeuralNetwork::init() {
 
     switch (l.getType()) {
     case LAYER_BN:
-      if (first) {
-        ml_loge("Batch normalization layer cannot be first layer of network");
-        status = ML_ERROR_INVALID_PARAMETER;
-        NN_RETURN_STATUS();
-      }
-      /// no break intended
+      /// fallthrough intended
     case LAYER_CONV2D:
       /// fallthrough intended
     case LAYER_FC:
@@ -490,10 +490,13 @@ int NeuralNetwork::init() {
       break;
     }
 
-    status = initActivationLayer(l.getActivationType(), i);
-    NN_RETURN_STATUS();
+    if (l.getType() != LAYER_ACTIVATION) {
+      status = realizeActivationType(l.getActivationType(), i);
+      NN_RETURN_STATUS();
+    }
+
     if (l.getFlatten()) {
-      status = initFlattenLayer(i);
+      status = realizeFlattenType(i);
       NN_RETURN_STATUS();
     }
 
@@ -759,18 +762,51 @@ int NeuralNetwork::train_run() {
   return status;
 }
 
-int NeuralNetwork::checkValidation() {
+int NeuralNetwork::isInitializable() {
   int status = ML_ERROR_NONE;
   if (layers.empty()) {
+    ml_loge("Layer is empty");
     return ML_ERROR_INVALID_PARAMETER;
-  } else {
-    for (std::vector<std::shared_ptr<nntrainer::Layer>>::iterator layer =
-           layers.begin();
-         layer != layers.end(); ++layer) {
-      status = (*layer)->checkValidation();
-      if (status != ML_ERROR_NONE)
-        return status;
+  }
+
+  Layer &l = *layers[0];
+
+  if (l.getInputDimension().isEmpty()) {
+    ml_loge("InputDimension of first layer is not set");
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
+  switch (l.getType()) {
+  case LAYER_ACTIVATION:
+    /// fallthrough intended
+  case LAYER_BN:
+    /// fallthrough intended
+  case LAYER_LOSS:
+    /// fallthrough intended
+    ml_loge("%s cannot be the first layer, type: %d", l.getName().c_str(),
+            l.getType());
+    return ML_ERROR_INVALID_PARAMETER;
+  default:
+    /// normal case
+    break;
+  }
+
+  std::unordered_set<std::string> layer_name_set;
+
+  for (auto layer : layers) {
+    const std::string &name = layer->getName();
+    status = layer->checkValidation();
+    if (status != ML_ERROR_NONE) {
+      ml_loge("layer(%s) is not initializable", name.c_str());
+      return status;
     }
+
+    if (layer_name_set.count(name)) {
+      ml_loge("layer(%s) name is duplicated", name.c_str());
+      return ML_ERROR_INVALID_PARAMETER;
+    }
+
+    layer_name_set.insert(name);
   }
 
   return status;
@@ -788,16 +824,6 @@ int NeuralNetwork::addLayer(std::shared_ptr<Layer> layer) {
   }
 
   ensureName(layer);
-
-  /** @todo This might be redundant. Remove this after testing */
-  for (auto iter = layers.begin(); iter != layers.end(); ++iter) {
-    if ((*iter)->getName() == layer->getName()) {
-      ml_loge("Layer with name %s already exists in the model.",
-              layer->getName().c_str());
-      return ML_ERROR_INVALID_PARAMETER;
-    }
-  }
-
   layers.push_back(layer);
 
   return status;
@@ -853,64 +879,68 @@ int NeuralNetwork::getLayer(const char *name, std::shared_ptr<Layer> *layer) {
   return status;
 }
 
-std::shared_ptr<Layer>
-NeuralNetwork::_make_act_layer(ActiType act, std::shared_ptr<Layer> prev) {
-  if (layers.back()->getType() == LAYER_ACTIVATION) {
-    /** User defined activation layer. Do not add another activation layer after
-     * this */
-    ml_loge("Error: double activation layers.");
-    return nullptr;
-  }
-
-  if (act != ACT_UNKNOWN) {
-    std::shared_ptr<ActivationLayer> act_layer =
-      std::make_shared<ActivationLayer>();
-
-    ensureName(act_layer, prev->getName());
-    act_layer->setActivation(act);
-    act_layer->setInputDimension(prev->getOutputDimension());
-    act_layer->initialize(prev->getLast());
-    return act_layer;
-  }
-
-  return nullptr;
-}
-
-int NeuralNetwork::initActivationLayer(ActiType act) {
+int NeuralNetwork::realizeActivationType(const ActiType act) {
   unsigned int position = layers.end() - layers.begin() - 1;
-  return initActivationLayer(act, position);
+  return realizeActivationType(act, position);
 }
 
-int NeuralNetwork::initActivationLayer(ActiType act, unsigned int &position) {
+int NeuralNetwork::realizeActivationType(const ActiType act,
+                                         const unsigned int position) {
+  if (act == ACT_NONE) {
+    /// ACT_NONE does not need realization
+    return ML_ERROR_NONE;
+  }
+
+  if (layers.empty()) {
+    ml_loge("layer is empty");
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
+  Layer &current = *layers[position];
+  if (current.getType() == LAYER_ACTIVATION) {
+    ml_loge("It is not allowed to realize ativation layer, possibly layer is "
+            "added right after activation");
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
+  if (act == ACT_UNKNOWN) {
+    ml_loge("cannot realize unknown activation type");
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
+  std::shared_ptr<ActivationLayer> act_layer =
+    std::make_shared<ActivationLayer>();
+  ensureName(act_layer, current.getName());
+  act_layer->setActivation(act);
+
+  layers.insert(layers.begin() + position + 1, act_layer);
+  return ML_ERROR_NONE;
+}
+
+int NeuralNetwork::realizeFlattenType(const unsigned int position) {
   if (layers.empty()) {
     return ML_ERROR_INVALID_PARAMETER;
   }
 
-  std::shared_ptr<Layer> l = _make_act_layer(act, layers[position]);
-  if (l != nullptr) {
-    layers.insert(layers.begin() + position + 1, l);
-    position++;
-    return ML_ERROR_NONE;
+  Layer &current = *layers[position];
+  if (current.getType() == LAYER_FLATTEN) {
+    ml_loge(
+      "It is not allowed to realize flatten layer, possibly flatten layer is "
+      "added right after flatten");
+    return ML_ERROR_INVALID_PARAMETER;
   }
 
-  return ML_ERROR_INVALID_PARAMETER;
-}
-
-int NeuralNetwork::initFlattenLayer(unsigned int &position) {
   std::shared_ptr<FlattenLayer> flatten_layer =
     std::make_shared<FlattenLayer>();
 
-  ensureName(flatten_layer, layers[position]->getName());
-  flatten_layer->setInputDimension(layers[position]->getOutputDimension());
-  flatten_layer->initialize(layers[position]->getLast());
+  ensureName(flatten_layer, current.getName());
   layers.insert(layers.begin() + position + 1, flatten_layer);
-  position++;
   return ML_ERROR_NONE;
 }
 
-int NeuralNetwork::initFlattenLayer() {
+int NeuralNetwork::realizeFlattenType() {
   unsigned int position = layers.end() - layers.begin() - 1;
-  return initFlattenLayer(position);
+  return realizeFlattenType(position);
 }
 
 /**

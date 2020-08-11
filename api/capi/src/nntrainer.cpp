@@ -219,7 +219,7 @@ int ml_train_model_compile(ml_train_model_h model, ...) {
   if (status != ML_ERROR_NONE)
     return status;
 
-  f = [&]() { return NN->checkValidation(); };
+  f = [&]() { return NN->isInitializable(); };
   status = nntrainer_exception_boundary(f);
 
   return status;
@@ -376,14 +376,20 @@ int ml_train_model_add_layer(ml_train_model_h model, ml_train_layer_h layer) {
   NN = nnmodel->network;
   NL = nnlayer->layer;
 
+  if (nnmodel->layers_map.count(NL->getName())) {
+    ml_loge("It is not allowed to add layer with same name: %s",
+            NL->getName().c_str());
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
   returnable f = [&]() { return NN->addLayer(NL); };
 
   status = nntrainer_exception_boundary(f);
-  if (status == ML_ERROR_NONE) {
-    nnlayer->in_use = true;
-    nnmodel->layers_map.insert({NL->getName(), nnlayer});
-  }
+  if (status != ML_ERROR_NONE)
+    return status;
 
+  nnmodel->layers_map.insert({NL->getName(), nnlayer});
+  nnlayer->in_use = true;
   return status;
 }
 
