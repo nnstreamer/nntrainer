@@ -4,6 +4,7 @@ subdir('LogisticRegression/jni')
 subdir('ReinforcementLearning/DeepQ/jni')
 subdir('Training/jni')
 subdir('mnist/jni')
+subdir('toy_classification')
 if get_option('enable-capi')
   subdir('Tizen_CAPI')
 endif
