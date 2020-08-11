@@ -176,7 +176,7 @@ Tensor ActivationLayer::softmax(Tensor const &t) {
     for (int c = 0; c < channel; c++) {
       for (int i = 0; i < height; i++) {
         for (int j = 0; j < width; j++) {
-          if (tp[index + i * width + j] > m)
+          if (tp[index + c * height * width + i * width + j] > m)
             m = tp[index + c * height * width + i * width + j];
         }
       }
@@ -187,7 +187,8 @@ Tensor ActivationLayer::softmax(Tensor const &t) {
     for (int c = 0; c < channel; c++) {
       for (int i = 0; i < height; i++) {
         for (int j = 0; j < width; j++) {
-          dp[index + width * i + j] = exp(tp[index + i * width + j] - m);
+          dp[index + c * height * width + width * i + j] =
+            exp(tp[index + c * height * width + i * width + j] - m);
           sum += dp[index + c * height * width + width * i + j];
         }
       }
