@@ -92,6 +92,10 @@ typedef enum {
  * @since_tizen 6.0
  * @remarks If the function succeeds, @a model must be released using
  * ml_train_model_destroy().
+ * @remarks http://tizen.org/privilege/mediastorage is needed if @a model is
+ * saved to media storage.
+ * @remarks http://tizen.org/privilege/externalstorage is needed if @a model is
+ * saved to external storage.
  * @param[out] model The NNTrainer model handle from the given description.
  * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
