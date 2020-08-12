@@ -731,11 +731,6 @@ int NeuralNetwork::train_run() {
             sharedTensor X = MAKE_SHARED_TENSOR(Tensor({in[i]}));
             sharedTensor Y2 = MAKE_SHARED_TENSOR(Tensor({label[i]}));
             sharedConstTensor Y = forwarding(X, Y2);
-            if (status != ML_ERROR_NONE) {
-              ml_loge("Error: forwarding the network resulted in error.");
-              return status;
-            }
-
             if (Y->argmax() == Y2->argmax())
               right++;
             valloss += getLoss();
