@@ -46,7 +46,7 @@ void TensorDim::resetLen() {
 }
 
 unsigned int TensorDim::getTensorDim(unsigned int idx) {
-  if (idx < 0 || idx > MAXDIM)
+  if (idx > MAXDIM)
     throw std::invalid_argument(
       "[TensorDim] Tensor Dimension index should be between 0 and 4");
 
@@ -54,7 +54,7 @@ unsigned int TensorDim::getTensorDim(unsigned int idx) {
 }
 
 void TensorDim::setTensorDim(unsigned int idx, unsigned int value) {
-  if (idx < 0 || idx > MAXDIM)
+  if (idx > MAXDIM)
     throw std::out_of_range(
       "[TensorDim] Tensor Dimension index should be between 0 and 4");
   if (value <= 0)

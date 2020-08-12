@@ -82,9 +82,6 @@ static bool get_data(const char *file_name, float *outVec, float *outLabel,
   unsigned int i;
   size_t ret;
 
-  if (id < 0)
-    return false;
-
   position =
     (uint64_t)((feature_size + num_class) * (uint64_t)id * sizeof(float));
   if (position > file_length) {
