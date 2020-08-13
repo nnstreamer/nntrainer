@@ -106,6 +106,20 @@ collections {
     parts {
       PART_TITLE("draw/title", "draw for 😊")
       part {
+        name: "draw/label";
+        type: TEXT;
+        description {
+          state: "default" 0.0;
+          rel1.relative: 0.0 0.2;
+          rel2.relative: 1.0 0.8;
+          text {
+            text: "😊";
+            size: 58;
+            align: 0.5 0.5;
+          }
+        }
+      }
+      part {
         name: "draw/canvas";
         type: SWALLOW;
         description { state: "default" 0.0;
@@ -113,7 +127,7 @@ collections {
           rel2.relative: 1.0 0.8;
         }
       }
-      PART_BUTTON("draw/reset", "↩️", 0.2, 0.83, 0.45, 0.9)
+      PART_BUTTON("draw/reset", "↩", 0.2, 0.83, 0.45, 0.9)
       PART_BUTTON("draw/proceed", "▶️", 0.55, 0.83, 0.81, 0.9)
     }
     programs {
@@ -124,8 +138,51 @@ collections {
   group {
     name: "train_result";
     parts {
-      PART_TITLE("train_result/title", "train successfully done")
-      PART_BUTTON("train_result/go_back", "go back", 0.1, 0.3, 0.9, 0.7)
+      part {
+        name: "train_result/epoch";
+        type: TEXT;
+        description {
+          state: "default" 0.0;
+          color: 255 255 255 255;
+          rel1.relative: 0.0 0.0;
+          rel2.relative: 1.0 0.3;
+          text {
+            text: "";
+            size: 58;
+            align: 0.5 0.5;
+          }
+        }
+      }
+      part {
+        name: "train_result/accuracy";
+        type: TEXT;
+        description {
+          state: "default" 0.0;
+          color: 255 255 255 255;
+          rel1.relative: 0.0 0.3;
+          rel2.relative: 1.0 0.6;
+          text {
+            text: "";
+            size: 78;
+            align: 0.5 0.5;
+          }
+        }
+      }
+      part {
+        name: "train_result/loss";
+        type: TEXT;
+        description {
+          state: "default" 0.0;
+          color: 255 255 255 255;
+          rel1.relative: 0.0 0.6;
+          rel2.relative: 1.0 0.9;
+          text {
+            text: "";
+            size: 58;
+            align: 0.5 0.5;
+          }
+        }
+      }
     }
   }
 }
