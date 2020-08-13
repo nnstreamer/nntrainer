@@ -117,6 +117,15 @@ sharedConstTensor Conv2DLayer::forwarding(sharedConstTensor in) {
     }
   }
 
+  loss = 0.0f;
+  if (weight_decay.type == WeightDecayType::l2norm) {
+    for (unsigned int i = 0; i < filter_size; ++i) {
+      Tensor &weight = paramsAt(i).weight;
+      loss += weight_decay.lambda * 0.5f * (weight.l2norm());
+    }
+    loss /= filter_size;
+  }
+
   return MAKE_SHARED_TENSOR(hidden);
 };
 
