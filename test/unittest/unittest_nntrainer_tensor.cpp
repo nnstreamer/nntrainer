@@ -235,8 +235,7 @@ TEST(nntrainer_Tensor, multiply_03_n) {
 
   nntrainer::Tensor test(batch - 1, height - 1, width - 1);
 
-  ASSERT_EXCEPTION({ input.multiply(test); }, std::runtime_error,
-                   "Error: Dimension must be equal each other");
+  EXPECT_THROW({ input.multiply(test); }, std::runtime_error);
 }
 
 TEST(nntrainer_Tensor, multiply_float_01_p) {
@@ -362,8 +361,7 @@ TEST(nntrainer_Tensor, divide_02_n) {
   nntrainer::Tensor input(batch, channel, height, width);
   GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k + 1);
 
-  ASSERT_EXCEPTION({ input.divide(0.0); }, std::runtime_error,
-                   "Error: Divide by zero");
+  EXPECT_THROW({ input.divide(0.0); }, std::runtime_error);
 }
 
 TEST(nntrainer_Tensor, divide_03_n) {
@@ -377,8 +375,7 @@ TEST(nntrainer_Tensor, divide_03_n) {
 
   nntrainer::Tensor test(batch - 1, channel, height - 1, width - 1);
 
-  ASSERT_EXCEPTION({ input.divide(test); }, std::runtime_error,
-                   "Error: Dimension must be equal each other");
+  EXPECT_THROW({ input.divide(test); }, std::runtime_error);
 }
 
 TEST(nntrainer_Tensor, add_i_01_p) {
@@ -517,8 +514,7 @@ TEST(nntrainer_Tensor, add_03_n) {
 
   nntrainer::Tensor test(batch - 1, channel, height - 1, width - 1);
 
-  ASSERT_EXCEPTION({ input.add(test); }, std::runtime_error,
-                   "Error: Dimension must be equal each other");
+  EXPECT_THROW({ input.add(test); }, std::runtime_error);
 }
 
 TEST(nntrainer_Tensor, subtract_i_01_p) {
@@ -649,8 +645,7 @@ TEST(nntrainer_Tensor, subtract_03_n) {
 
   nntrainer::Tensor test(batch - 1, channel, height - 1, width - 1);
 
-  ASSERT_EXCEPTION({ input.subtract(test); }, std::runtime_error,
-                   "Error: Dimension must be equal each other");
+  EXPECT_THROW({ input.subtract(test); }, std::runtime_error);
 }
 
 TEST(nntrainer_Tensor, subtract_float_01_p) {
@@ -679,8 +674,7 @@ TEST(nntrainer_Tensor, sum_01_n) {
   nntrainer::Tensor input(batch, channel, height, width);
   GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k);
 
-  ASSERT_EXCEPTION({ input.sum(4); }, std::out_of_range,
-                   "Error: Cannot exceede 3");
+  EXPECT_THROW({ input.sum(4); }, std::out_of_range);
 }
 
 TEST(nntrainer_Tensor, sum_02_p) {
@@ -936,7 +930,7 @@ TEST(nntrainer_Tensor, copy_and_shares_variable_p) {
 }
 
 /// #412
-TEST(nntrainer_Tensor, copy_and_resize_n) {
+TEST(nntrainer_Tensor, DISABLED_copy_and_resize_n) {
   nntrainer::Tensor A = constant(1.0f, 3, 4, 5, 6);
   nntrainer::Tensor B = A;
   nntrainer::Tensor C = A.clone();
@@ -944,7 +938,8 @@ TEST(nntrainer_Tensor, copy_and_resize_n) {
   /// this is undefined behavior
   B.setDim(nntrainer::TensorDim(9, 9, 9, 9));
 
-  /// @todo add appropriate test.
+  /// @todo replace this to appropriate test;
+  EXPECT_TRUE(true);
 }
 
 /// @note this test case demonstrates it is dangeruous to use sharedConstTensor
