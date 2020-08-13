@@ -30,9 +30,9 @@
 
 #define EDJ_PATH "edje/main.edj"
 #define TRAIN_SET_PATH "trainingSet.dat"
-#define VALIDATION_SET_PATH "validationSet.dat"
+#define VALIDATION_SET_PATH "trainingSet.dat"
 
-#define MAX_TRAIN_TRIES 5
+#define MAX_TRAIN_TRIES 10
 #define MAX_TRIES 10
 
 #define FEATURE_SIZE 62720
@@ -61,13 +61,27 @@ typedef struct appdata {
   cairo_t *cr;                 /**< cairo engine for the canvas */
   int tries;                   /**< tells how many data has been labeled */
 
-  /**< ML related */
+  /**< Feature extraction related */
   ml_pipeline_h pipeline;       /**< handle of feature extractor */
   ml_pipeline_sink_h pipe_sink; /**< sink of pipeline */
   char pipe_dst[PATH_MAX];      /**< destination path where to save */
   pthread_mutex_t pipe_lock; /**< ensures that only one pipe runs at a time */
   pthread_cond_t pipe_cond;  /**< pipe condition to block at a point */
+
+  /**< Training related */
+  pthread_t tid_writer;         /**< thread handler to run trainer */
+  pthread_t tid_reader;         /**< thread handler to read train result */
+  int pipe_fd[2];               /**< fd for pipe */
+  Ecore_Pipe *data_output_pipe; /**< pipe to write information to ui */
+  double best_accuracy;         /**< stores best accuracy */
 } appdata_s;
+
+typedef struct train_result {
+  int epoch;         /**< current epoch */
+  double accuracy;   /**< accuracy of validation result */
+  double train_loss; /**< train loss */
+  double valid_loss; /**< validation loss */
+} train_result_s;
 
 /**
  * @brief separate route path from route
@@ -104,9 +118,26 @@ int data_get_resource_path(const char *file, char *full_path, bool shared);
 int data_extract_feature(appdata_s *ad, const char *dst, bool append);
 
 /**
- * @brief nntrainer training model
+ * @brief nntrainer training model that is to run from pthread_create
+ * @param[in] data appdata.
+ * @return not used.
  */
-void data_train_model();
+void *data_run_model(void *ad);
+
+/**
+ * @brief parse result string
+ * @param[in] result result string to be parsed.
+ * @param[out] train_result structured data from result string
+ * @retval APP_ERROR_NONE if no error
+ * @retval APP_ERROR_INVALID_PARAMETER if string can't be parsed
+ *
+ * result string is like:
+ * #1/10 - Training Loss: 0.717496 >> [ Accuracy: 75% - Validation Loss :
+ 0.667001 ]
+ * #10/10 - Training Loss: 0.398767 >> [ Accuracy: 75% - Validation Loss :
+ 0.467543 ]
+ */
+int data_parse_result_string(const char *src, train_result_s *train_result);
 
 #if !defined(PACKAGE)
 #define PACKAGE "org.example.nntrainer-example-custom-shortcut"

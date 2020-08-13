@@ -14,6 +14,7 @@ static Evas_Object *_create_layout(Evas_Object *parent, const char *edj_path,
                                    Eext_Event_Cb back_cb, void *user_data);
 
 static int _create_canvas(appdata_s *ad, const char *draw_mode);
+static int train(appdata_s *ad);
 
 static void _on_win_delete(void *data, Evas_Object *obj, void *event_info) {
   ui_app_exit();
@@ -106,6 +107,8 @@ int view_init(appdata_s *ad) {
   ad->win = win;
   ad->conform = conform;
 
+  ecore_pipe_freeze(ad->data_output_pipe);
+
   return status;
 }
 
@@ -144,12 +147,16 @@ int view_routes_to(appdata_s *ad, const char *group_name) {
     goto CLEAN_UP;
   }
 
+  elm_layout_signal_callback_add(ad->layout, "routes/to", "*", _on_routes_to,
+                                 ad);
+
   if (!strcmp(path, "draw")) {
     status = _create_canvas(ad, path_data);
   }
 
-  elm_layout_signal_callback_add(ad->layout, "routes/to", "*", _on_routes_to,
-                                 ad);
+  if (!strcmp(path, "train_result")) {
+    status = train(ad);
+  }
 
 CLEAN_UP:
   free(path);
@@ -204,6 +211,7 @@ static void _on_draw_start(void *data, Evas *e, Evas_Object *obj,
   LOG_D("x: %d, y: %d", eemd->canvas.x, eemd->canvas.y);
 
   cairo_set_source_rgba(ad->cr, 1, 1, 1, 1);
+  cairo_set_line_width(ad->cr, 5);
   cairo_move_to(ad->cr, eemd->canvas.x - ad->x_offset,
                 eemd->canvas.y - ad->y_offset);
 }
@@ -233,18 +241,18 @@ static void _on_canvas_exit(void *data, Evas *e, Evas_Object *obj,
   appdata_s *ad = (appdata_s *)data;
 
   evas_object_del(ad->canvas);
-  cairo_destroy(ad->cr);
-  if (cairo_status(ad->cr) != CAIRO_STATUS_SUCCESS) {
-    LOG_E("delete cairo failed");
-  }
   cairo_surface_destroy(ad->cr_surface);
   if (cairo_surface_status(ad->cr_surface) != CAIRO_STATUS_SUCCESS) {
     LOG_E("delete cr_surface failed");
   }
+  cairo_destroy(ad->cr);
+  if (cairo_status(ad->cr) != CAIRO_STATUS_SUCCESS) {
+    LOG_E("delete cairo failed");
+  }
 }
 
 static void _canvas_erase_all(appdata_s *ad) {
-  cairo_set_source_rgba(ad->cr, 0.5, 0.5, 0.5, 0.5);
+  cairo_set_source_rgba(ad->cr, 0.3, 0.3, 0.3, 0.2);
   cairo_set_operator(ad->cr, CAIRO_OPERATOR_SOURCE);
   cairo_paint(ad->cr);
   cairo_surface_flush(ad->cr_surface);
@@ -276,14 +284,14 @@ static void _on_draw_proceed(void *data, Evas_Object *obj, const char *emission,
   if (ad->tries == MAX_TRIES - 1) {
     ad->tries = 0;
     elm_naviframe_item_pop(ad->naviframe);
-    data_train_model();
     view_routes_to(ad, "train_result");
     return;
   }
 
-  sprintf(buf, "draw for %s [%d/%d]", ad->tries % NUM_CLASS ? "😊" : "😢",
-          ad->tries + 2, MAX_TRIES);
+  const char *emoji = ad->tries % NUM_CLASS ? "😊" : "😢";
+  sprintf(buf, "draw for %s [%d/%d]", emoji, ad->tries + 2, MAX_TRIES);
   elm_object_part_text_set(obj, "draw/title", buf);
+  elm_object_part_text_set(obj, "draw/label", emoji);
   LOG_D("starting extraction");
 
   ad->tries++;
@@ -350,7 +358,7 @@ static int _create_canvas(appdata_s *ad, const char *draw_mode) {
   }
 
   cairo_rectangle(cr, 0, 0, width, height);
-  cairo_set_source_rgba(cr, 0.5, 0.5, 0.5, 0.5);
+  cairo_set_source_rgba(cr, 0.3, 0.3, 0.3, 0.2);
   cairo_fill(cr);
   cairo_surface_flush(cairo_surface);
 
@@ -384,4 +392,96 @@ static int _create_canvas(appdata_s *ad, const char *draw_mode) {
   ad->y_offset = y;
 
   return APP_ERROR_NONE;
+}
+
+static void *process_train_result(void *data) {
+  appdata_s *ad = (appdata_s *)data;
+
+  // run model in another thread
+  int read_fd = ad->pipe_fd[0];
+  FILE *fp;
+  char buf[255];
+
+  fp = fdopen(read_fd, "r");
+
+  LOG_D("start waiting to get result");
+
+  ecore_pipe_thaw(ad->data_output_pipe);
+
+  while (fgets(buf, 255, fp) != NULL) {
+    if (ecore_pipe_write(ad->data_output_pipe, buf, 255) == false) {
+      LOG_E("pipe write error");
+      return NULL;
+    };
+    usleep(150);
+  }
+
+  LOG_D("training finished");
+  fclose(fp);
+  close(read_fd);
+  sleep(1);
+  ecore_pipe_freeze(ad->data_output_pipe);
+
+  return NULL;
+}
+
+static int train(appdata_s *ad) {
+  int status = ML_ERROR_NONE;
+
+  status = pipe(ad->pipe_fd);
+  if (status < 0) {
+    LOG_E("opening pipe for training failed");
+  }
+
+  ad->best_accuracy = 0.0;
+
+  LOG_D("creating thread to run model");
+  status = pthread_create(&ad->tid_writer, NULL, data_run_model, (void *)ad);
+  if (status < 0) {
+    LOG_E("creating pthread failed %s", strerror(errno));
+    return status;
+  }
+  status = pthread_detach(ad->tid_writer);
+  if (status < 0) {
+    LOG_E("detaching writing thread failed %s", strerror(errno));
+    pthread_cancel(ad->tid_writer);
+  }
+
+  status =
+    pthread_create(&ad->tid_reader, NULL, process_train_result, (void *)ad);
+  if (status < 0) {
+    LOG_E("creating pthread failed %s", strerror(errno));
+    return status;
+  }
+  status = pthread_detach(ad->tid_reader);
+  if (status < 0) {
+    LOG_E("detaching reading thread failed %s", strerror(errno));
+    pthread_cancel(ad->tid_writer);
+  }
+
+  return status;
+}
+
+void view_update_result_cb(void *data, void *buffer, unsigned int nbytes) {
+  appdata_s *ad = (appdata_s *)data;
+
+  char tmp[255];
+
+  train_result_s result;
+  if (data_parse_result_string(buffer, &result) != 0) {
+    LOG_W("parse failed. current buffer is being ignored");
+    return;
+  }
+
+  if (result.accuracy > ad->best_accuracy) {
+    ad->best_accuracy = result.accuracy;
+    snprintf(tmp, 255, "%.0f%%", ad->best_accuracy);
+    elm_object_part_text_set(ad->layout, "train_result/accuracy", tmp);
+  }
+
+  snprintf(tmp, 255, "%d tries", result.epoch);
+  elm_object_part_text_set(ad->layout, "train_result/epoch", tmp);
+
+  snprintf(tmp, 255, "Loss: %.2f", result.train_loss);
+  elm_object_part_text_set(ad->layout, "train_result/loss", tmp);
 }

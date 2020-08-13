@@ -11,6 +11,7 @@
  *
  */
 #include "data.h"
+#include <regex.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -255,32 +256,57 @@ int data_extract_feature(appdata_s *ad, const char *dst, bool append) {
   return status;
 }
 
-void data_train_model() {
+void *data_run_model(void *data) {
+  appdata_s *ad = (appdata_s *)data;
+
+  int status = ML_ERROR_NONE;
+  int fd_stdout, fd_pipe;
+
   ml_train_model_h model;
 
   char model_conf_path[PATH_MAX];
   char label_path[PATH_MAX];
-  int status = ML_ERROR_NONE;
   FILE *file;
 
+  LOG_D("redirecting stdout");
+  fd_pipe = ad->pipe_fd[1];
+  fd_stdout = dup(1);
+  if (fd_stdout < 0) {
+    LOG_E("failed to duplicate stdout");
+    return NULL;
+  }
+
+  fflush(stdout);
+  if (dup2(fd_pipe, 1) < 0) {
+    LOG_E("failed to redirect fd pipe");
+    close(fd_stdout);
+    return NULL;
+  }
+
+  printf("test");
+
+  LOG_D("start running model");
   data_get_resource_path("model.ini", model_conf_path, false);
   data_get_data_path("label.dat", label_path);
 
+  LOG_D("opening file");
   file = fopen(label_path, "w");
   if (file == NULL) {
     LOG_E("Error opening file");
-    return;
+    return NULL;
   }
 
+  LOG_D("writing file");
   if (fputs("sad\nsmile\n\n", file) < 0) {
     LOG_E("error writing");
     fclose(file);
-    return;
+    return NULL;
   }
 
+  LOG_D("closing file");
   if (fclose(file) < 0) {
     LOG_E("Error closing file");
-    return;
+    return NULL;
   }
 
   LOG_D("model conf path: %s", model_conf_path);
@@ -288,7 +314,7 @@ void data_train_model() {
   status = ml_train_model_construct_with_conf(model_conf_path, &model);
   if (status != ML_ERROR_NONE) {
     LOG_E("constructing trainer model failed %d", status);
-    return;
+    return NULL;
   }
 
   status = ml_train_model_compile(model, NULL);
@@ -297,8 +323,6 @@ void data_train_model() {
     goto CLEAN_UP;
   }
 
-  freopen("out.txt", "a+", stdout);
-
   status = ml_train_model_run(model, NULL);
   if (status != ML_ERROR_NONE) {
     LOG_E("run model failed %d", status);
@@ -306,9 +330,101 @@ void data_train_model() {
   }
 
 CLEAN_UP:
+  // restore stdout
+  fflush(stdout);
+  dup2(fd_stdout, 1);
+  close(fd_pipe);
+
   status = ml_train_model_destroy(model);
   if (status != ML_ERROR_NONE) {
-    LOG_E("Destryoing model failed %d", status);
+    LOG_E("Destroying model failed %d", status);
   }
-  return;
+  return NULL;
+}
+
+int data_parse_result_string(const char *src, train_result_s *train_result) {
+  // clang-format off
+  // #10/10 - Training Loss: 0.398767 >> [ Accuracy: 75% - Validation Loss : 0.467543 ]
+  // clang-format on
+  int status = APP_ERROR_NONE;
+  int max_len = 512;
+  char buf[512];
+
+  regex_t pattern;
+  LOG_D(">>> %s", src);
+  char *pattern_string =
+    "#([0-9]+).*Training Loss: ([0-9]+\\.?[0-9]*)"
+    ".*Accuracy: ([0-9]+\\.?[0-9]*)%.*Validation Loss : ([0-9]+\\.?[0-9]*)";
+  unsigned int match_len = 5;
+  regmatch_t matches[5];
+
+  unsigned int i;
+
+  if (strlen(src) > max_len) {
+    LOG_E("source string too long");
+    return APP_ERROR_INVALID_PARAMETER;
+  }
+
+  status = regcomp(&pattern, pattern_string, REG_EXTENDED);
+  LOG_D(">>> %s", src);
+  if (status != 0) {
+    LOG_E("Could not compile regex string");
+    goto CLEAN;
+  }
+
+  status = regexec(&pattern, src, match_len, matches, 0);
+  switch (status) {
+  case 0:
+    break;
+  case REG_NOMATCH:
+    LOG_E("Nothing matches for given string");
+    goto CLEAN;
+  default:
+    LOG_E("Could not excuted regex, reason: %d", status);
+    goto CLEAN;
+  }
+
+  for (i = 1; i < match_len; ++i) {
+    if (matches[i].rm_so == -1) {
+      LOG_D("no information for idx: %d", i);
+      status = APP_ERROR_INVALID_PARAMETER;
+      goto CLEAN;
+    }
+
+    int len = matches[i].rm_eo - matches[i].rm_so;
+    if (len < 0) {
+      LOG_D("invalid length");
+      status = APP_ERROR_INVALID_PARAMETER;
+      goto CLEAN;
+    }
+
+    LOG_D("match start %d, match end: %d", matches[i].rm_so, matches[i].rm_eo);
+    memcpy(buf, src + matches[i].rm_so, len);
+    buf[len] = '\0';
+    LOG_D("Match %u: %s", i, buf);
+
+    switch (i) {
+    case 1:
+      train_result->epoch = atoi(buf);
+      break;
+    case 2:
+      train_result->train_loss = atof(buf);
+      break;
+    case 3:
+      train_result->accuracy = atof(buf);
+      break;
+    case 4:
+      train_result->valid_loss = atof(buf);
+      break;
+    default:
+      /// should not reach here
+      LOG_D("unknown index %d", i);
+      status = APP_ERROR_INVALID_PARAMETER;
+      goto CLEAN;
+    }
+  }
+CLEAN:
+  regfree(&pattern);
+
+  return status;
 }

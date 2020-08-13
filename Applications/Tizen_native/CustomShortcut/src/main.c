@@ -24,6 +24,12 @@ static bool app_create(void *data) {
 
   pthread_mutex_init(&ad->pipe_lock, NULL);
   pthread_cond_init(&ad->pipe_cond, NULL);
+  ad->data_output_pipe = ecore_pipe_add(view_update_result_cb, (void *)ad);
+  if (ad->data_output_pipe == NULL) {
+    LOG_E("making data out pipe failed");
+    free(data_path);
+    return false;
+  }
 
   data_get_resource_path(EDJ_PATH, ad->edj_path, false);
 
@@ -48,7 +54,8 @@ static void app_control(app_control_h app_control, void *data) {
 }
 
 static void app_pause(void *data) {
-  /* Take necessary actions when application becomes invisible. */
+  /* Take necessa
+  ry actions when application becomes invisible. */
 }
 
 static void app_resume(void *data) {
@@ -60,6 +67,7 @@ static void app_terminate(void *data) { /* Release all resources. */
 
   pthread_mutex_destroy(&ad->pipe_lock);
   pthread_cond_destroy(&ad->pipe_cond);
+  ecore_pipe_del(ad->data_output_pipe);
 }
 
 static void ui_app_lang_changed(app_event_info_h event_info, void *user_data) {

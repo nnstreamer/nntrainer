@@ -31,4 +31,12 @@ int view_init(appdata_s *ad);
  */
 int view_routes_to(appdata_s *ad, const char *group_name);
 
+/**
+ * @brief callback function to update training result
+ * @param[in] data user data
+ * @param[in] buffer arrays of null terminated characters
+ * @param[in] nbytes max length of the buffer
+ */
+void view_update_result_cb(void *data, void *buffer, unsigned int nbytes);
+
 #endif /* __nntrainer_example_custom_shortcut_view_H__ */
