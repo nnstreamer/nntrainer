@@ -1357,14 +1357,84 @@ TEST(nntrainer_LossLayer, setCost_02_n) {
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
+TEST(nntrainer_LossLayer, forward_nolabel_n) {
+  nntrainer::LossLayer layer;
+  nntrainer::Tensor a = constant(1.0, 1, 1, 1, 1);
+  EXPECT_THROW(layer.forwarding(MAKE_SHARED_TENSOR(a)), std::runtime_error);
+}
+
+TEST(nntrainer_LossLayer, forward_cost_unknown_n) {
+  nntrainer::LossLayer layer;
+  nntrainer::Tensor a = constant(1.0, 1, 1, 1, 1);
+  nntrainer::Tensor b = constant(1.0, 1, 1, 1, 1);
+  EXPECT_THROW(layer.forwarding(MAKE_SHARED_TENSOR(a), MAKE_SHARED_TENSOR(b)),
+               std::runtime_error);
+}
+
+TEST(nntrainer_LossLayer, backward_cost_unknown_n) {
+  nntrainer::LossLayer layer;
+  nntrainer::Tensor a = constant(1.0, 1, 1, 1, 1);
+  EXPECT_THROW(layer.backwarding(MAKE_SHARED_TENSOR(a), 1), std::runtime_error);
+}
+
+TEST(nntrainer_LossLayer, forward_cost_forward_entropy_n) {
+  nntrainer::LossLayer layer;
+  layer.setCost(nntrainer::COST_ENTROPY);
+  nntrainer::Tensor a = constant(1.0, 1, 1, 1, 1);
+  nntrainer::Tensor b = constant(1.0, 1, 1, 1, 1);
+  EXPECT_THROW(layer.forwarding(MAKE_SHARED_TENSOR(a), MAKE_SHARED_TENSOR(b)),
+               std::runtime_error);
+}
+
+TEST(nntrainer_LossLayer, backward_cost_backward_entropy_n) {
+  nntrainer::LossLayer layer;
+  layer.setCost(nntrainer::COST_ENTROPY);
+  nntrainer::Tensor a = constant(1.0, 1, 1, 1, 1);
+  EXPECT_THROW(layer.backwarding(MAKE_SHARED_TENSOR(a), 1), std::runtime_error);
+}
+
 /**
  * @brief Loss Layer
  */
-TEST(nntrainer_LossLayer, setProperty_01_n) {
+TEST(nntrainer_LossLayer, setProperty_through_vector_n) {
   int status = ML_ERROR_NONE;
   nntrainer::LossLayer layer;
   status = layer.setProperty({"loss=cross"});
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+}
+
+TEST(nntrainer_LossLayer, init_with_last_false_n) {
+  int status = ML_ERROR_NONE;
+  nntrainer::LossLayer layer;
+  status = layer.initialize(false);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+}
+
+TEST(nntrainer_LossLayer, setProperty_individual_n) {
+  nntrainer::LossLayer layer;
+  EXPECT_THROW(
+    layer.setProperty(nntrainer::Layer::PropertyType::input_shape, "1:2:3:4"),
+    nntrainer::exception::not_supported);
+}
+
+TEST(nntrainer_LossLayer, setProperty_individual2_n) {
+  nntrainer::LossLayer layer;
+  EXPECT_THROW(layer.setProperty(nntrainer::Layer::PropertyType::filter, "1:2"),
+               nntrainer::exception::not_supported);
+}
+
+TEST(nntrainer_LossLayer, setProperty_individual3_n) {
+  nntrainer::LossLayer layer;
+  EXPECT_THROW(layer.setProperty(nntrainer::Layer::PropertyType::input_shape,
+                                 "invalid_string"),
+               nntrainer::exception::not_supported);
+}
+
+TEST(nntrainer_LossLayer, setProperty_individual4_n) {
+  nntrainer::LossLayer layer;
+  EXPECT_THROW(
+    layer.setProperty(nntrainer::Layer::PropertyType::filter, "invalid_string"),
+    nntrainer::exception::not_supported);
 }
 
 TEST(nntrainer_ActivationLayer, init_01_n) {

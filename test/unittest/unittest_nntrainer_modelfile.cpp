@@ -31,7 +31,7 @@ TEST_P(nntrainerIniTest, loadConfig) {
 /**
  * @brief Negative test given ini is failing at loadingTwice
  */
-TEST_P(nntrainerIniTest, loadConfigTwice) {
+TEST_P(nntrainerIniTest, loadConfigTwice_n) {
   std::cout << std::get<0>(GetParam()) << std::endl;
   NN.loadFromConfig();
   int status = NN.loadFromConfig();
@@ -71,7 +71,7 @@ TEST_P(nntrainerIniTest, initTwice_n) {
  * @brief check given ini is failing/succeeding when init happens three times.
  * this should fail at all time.
  */
-TEST_P(nntrainerIniTest, initThreetime) {
+TEST_P(nntrainerIniTest, initThreetime_n) {
   std::cout << std::get<0>(GetParam()) << std::endl;
   int status = NN.loadFromConfig();
   status = NN.init();
@@ -82,7 +82,6 @@ TEST_P(nntrainerIniTest, initThreetime) {
 }
 
 /// @todo add run test could be added with iniTest flag to control skip
-
 static IniSection nw_base("network", "Type = NeuralNetwork | "
                                      "minibatch = 32 | "
                                      "epsilon = 1e-7 | "
