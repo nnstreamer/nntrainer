@@ -824,6 +824,24 @@ int NeuralNetwork::addLayer(std::shared_ptr<Layer> layer) {
   return status;
 }
 
+int NeuralNetwork::addLayer_ops(std::shared_ptr<Layer> layer) {
+  int status = ML_ERROR_NONE;
+
+  LayerType type = layer->getType();
+  if (type == LAYER_UNKNOWN)
+    return ML_ERROR_INVALID_PARAMETER;
+
+  if (initialized) {
+    return ML_ERROR_NOT_SUPPORTED;
+  }
+
+  ensureName(layer);
+  std::shared_ptr<TensorOp> op = std::dynamic_pointer_cast<TensorOp>(layer);
+  graph.registerTensorOp(*op);
+
+  return status;
+}
+
 int NeuralNetwork::setOptimizer(std::shared_ptr<Optimizer> optimizer) {
 
   if (optimizer->getType() == OptType::unknown)

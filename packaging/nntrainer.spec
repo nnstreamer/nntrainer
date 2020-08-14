@@ -260,6 +260,8 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %{_includedir}/nntrainer/util_func.h
 %{_includedir}/nntrainer/parse_util.h
 %{_includedir}/nntrainer/nntrainer-api-common.h
+%{_includedir}/nntrainer/tensor_op.h
+%{_includedir}/nntrainer/graph.h
 %{_libdir}/pkgconfig/nntrainer.pc
 
 %files devel-static

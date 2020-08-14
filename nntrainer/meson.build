@@ -32,6 +32,7 @@ nntrainer_sources = [
   'src/databuffer_file.cpp',
   'src/databuffer_func.cpp',
   'src/fc_layer.cpp',
+  'src/fc_layer_op.cpp',
   'src/flatten_layer.cpp',
   'src/input_layer.cpp',
   'src/layer.cpp',
@@ -56,6 +57,7 @@ nntrainer_headers = [
   'include/databuffer_func.h',
   'include/fc_layer.h',
   'include/flatten_layer.h',
+  'include/graph.h',
   'include/input_layer.h',
   'include/layer.h',
   'include/lazy_tensor.h',
@@ -68,6 +70,7 @@ nntrainer_headers = [
   'include/pooling2d_layer.h',
   'include/tensor.h',
   'include/tensor_dim.h',
+  'include/tensor_op.h',
   'include/util_func.h',
   '../api/nntrainer-api-common.h'
 ]

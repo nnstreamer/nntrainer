@@ -30,6 +30,7 @@
 #include <set>
 #include <tensor.h>
 #include <tensor_dim.h>
+#include <tensor_op.h>
 #include <vector>
 
 namespace nntrainer {
@@ -132,7 +133,7 @@ typedef enum {
  * @class   Layer Base class for layers
  * @brief   Base class for all layers
  */
-class Layer {
+class Layer : public TensorOp {
 public:
   Layer() :
     name(std::string()),

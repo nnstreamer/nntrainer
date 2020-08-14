@@ -518,6 +518,14 @@ public:
   const float *getData() const { return data.get(); }
 
   /**
+   * @brief     return Data pointer of Tensor
+   * @retval    float pointer
+   */
+  void setData(float *d) {
+    data = std::shared_ptr<float>(d, std::default_delete<float[]>());
+  }
+
+  /**
    * @brief     i data index
    * @retval    address of ith data
    */

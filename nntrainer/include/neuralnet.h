@@ -31,6 +31,7 @@
 #include <fc_layer.h>
 #include <flatten_layer.h>
 #include <fstream>
+#include <graph.h>
 #include <input_layer.h>
 #include <iostream>
 #include <layer.h>
@@ -155,6 +156,8 @@ public:
    */
   int init();
 
+  int init_ops();
+
   /**
    * @brief     Forward Propagation of the neural network
    * @param[in] input List of Input Tensors taken by the neural network
@@ -179,6 +182,15 @@ public:
    */
   void backwarding(sharedConstTensor input, sharedConstTensor label,
                    int iteration);
+
+  /**
+   * @brief     Backward Propagation of the neural network
+   * @param[in] input List of Input Tensors taken by the neural network
+   * @param[in] label List of Label Tensors for the model
+   * @param[in] iteration Iteration Number for the optimizer
+   */
+  void backwarding_ops(sharedConstTensor input, sharedConstTensor label,
+                       int iteration);
 
   /**
    * @brief     save model and training parameters into file
@@ -264,6 +276,7 @@ public:
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
   int addLayer(std::shared_ptr<Layer> layer);
+  int addLayer_ops(std::shared_ptr<Layer> layer);
 
   /**
    * @brief     set optimizer for the neural network model
@@ -397,6 +410,8 @@ private:
    * @param[in] ini will be casted to iniparser::dictionary *
    */
   int loadNetworkConfig(void *ini);
+
+  Graph graph;
 };
 
 } /* namespace nntrainer */

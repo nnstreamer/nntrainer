@@ -26,7 +26,7 @@
 namespace nntrainer {
 
 /**
- * @class   FullyConnecedLayer
+ * @class   FullyConnectedLayer
  * @brief   fully connected layer
  */
 class FullyConnectedLayer : public Layer {
@@ -88,6 +88,23 @@ public:
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
   int initialize(bool last);
+
+  int initialize(bool last, TensorParam input);
+
+  /**
+   * @brief     compute the tensor operation
+   */
+  virtual void computeOp(); /// = 0;
+
+  /**
+   * @brief     compute the gradient for tensor operation
+   */
+  virtual void computeGrad(); /// = 0;
+
+  /**
+   * @brief     apply the gradients to the weight
+   */
+  virtual void applyGrad(int iteration); /// = 0;
 
   void setUnit(unsigned int u) { unit = u; };
 
