@@ -121,7 +121,7 @@ static int rangeRandom(int min, int max) {
 void getFeature(const string filename, vector<float> &feature_input) {
   int input_dim[4];
   int output_dim[4];
-  std::string model_path = "../../res/mobilenetv2.tflite";
+  std::string model_path = data_path + "mobilenetv2.tflite";
   std::unique_ptr<tflite::FlatBufferModel> model =
     tflite::FlatBufferModel::BuildFromFile(model_path.c_str());
 
