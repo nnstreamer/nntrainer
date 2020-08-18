@@ -21,8 +21,6 @@
  * @author Jijoong Moon <jijoong.moon@samsung.com>
  * @author Parichay Kapoor <pk.kapoor@samsung.com>
  * @bug No known bugs except for NYI items
- *
- * @note This API is not stable and still experimental.
  */
 
 #ifndef __TIZEN_MACHINELEARNING_NNTRAINER_H__
@@ -92,16 +90,15 @@ typedef enum {
  * @since_tizen 6.0
  * @remarks If the function succeeds, @a model must be released using
  * ml_train_model_destroy().
- * @remarks http://tizen.org/privilege/mediastorage is needed if @a model is
+ * @remarks %http://tizen.org/privilege/mediastorage is needed if @a model is
  * saved to media storage.
- * @remarks http://tizen.org/privilege/externalstorage is needed if @a model is
+ * @remarks %http://tizen.org/privilege/externalstorage is needed if @a model is
  * saved to external storage.
  * @param[out] model The NNTrainer model handle from the given description.
  * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
  * @retval #ML_ERROR_NOT_SUPPORTED Not supported.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
- * @retval #ML_ERROR_CANNOT_ASSIGN_ADDRESS Cannot assign object.
  */
 int ml_train_model_construct(ml_train_model_h *model);
 
@@ -112,7 +109,6 @@ int ml_train_model_construct(ml_train_model_h *model);
  * @since_tizen 6.0
  * @remarks If the function succeeds, @a model must be released using
  * ml_train_model_destroy().
- * @note This is experimental and not stable.
  * @param[in] model_conf The nntrainer model configuration file.
  * @param[out] model The NNTrainer model handle from the given description.
  * @return @c 0 on success. Otherwise a negative error value.
@@ -131,7 +127,6 @@ int ml_train_model_construct_with_conf(const char *model_conf,
  * the model will be restricted. Further, addition of layers or changing the
  * optimizer/dataset of the model will not be permitted.
  * @since_tizen 6.0
- * @note This is experimental and not stable.
  * @param[in] model The NNTrainer model handle.
  * @param[in] ... hyperparmeters for compiling the model
  * @return @c 0 on success. Otherwise a negative error value.
@@ -147,7 +142,6 @@ int ml_train_model_compile(ml_train_model_h model, ...);
  * the passed training hyperparameters. This function will return once the
  * training, along with requested validation and testing, is completed.
  * @since_tizen 6.0
- * @note This is experimental and not stable.
  * @param[in] model The NNTrainer model handle.
  * @param[in] ...  Hyperparmeters for train model.
  * @return @c 0 on success. Otherwise a negative error value.
@@ -175,7 +169,6 @@ int ml_train_model_destroy(ml_train_model_h model);
  * @since_tizen 6.0
  * @remarks If the function succeeds, @a summary should be released using
  * free().
- * @note This is experimental and not stable.
  * @param[in] model The NNTrainer model handle to get summary.
  * @param[in] verbosity Verbose level of the summary
  * @param[out] summary The summary of the current model. Avoid logic to parse
@@ -196,7 +189,6 @@ int ml_train_model_get_summary(ml_train_model_h model,
  * ownership of the layer to the network. No need to destroy the layer once it
  * is added to a model.
  * @since_tizen 6.0
- * @note This is experimental and not stable.
  * @param[in] model The NNTrainer model handle.
  * @param[in] layer The NNTrainer layer handle.
  * @return @c 0 on success. Otherwise a negative error value.
@@ -214,7 +206,6 @@ int ml_train_model_add_layer(ml_train_model_h model, ml_train_layer_h layer);
  * @since_tizen 6.0
  * @remarks Unsets the previously set optimizer, if any. The previously set
  * optimizer must be freed using ml_train_optimizer_destroy().
- * @note This is experimental and not stable.
  * @param[in] model The NNTrainer model handle.
  * @param[in] optimizer The NNTrainer optimizer handle.
  * @return @c 0 on success. Otherwise a negative error value.
@@ -234,7 +225,6 @@ int ml_train_model_set_optimizer(ml_train_model_h model,
  * @since_tizen 6.0
  * @remarks Unsets the previously set dataset, if any. The previously set
  * dataset must be freed using ml_train_dataset_destroy().
- * @note This is experimental and not stable.
  * @param[in] model The NNTrainer model handle.
  * @param[in] dataset The NNTrainer dataset handle.
  * @return @c 0 on success. Otherwise a negative error value.
@@ -252,14 +242,12 @@ int ml_train_model_set_dataset(ml_train_model_h model,
  * @remarks If the function succeeds, @a layer must be released using
  * ml_train_layer_destroy(), if not added to a model. If added to a model, @a
  * layer is available until the model is released.
- * @note This is experimental and not stable.
  * @param[out] layer The NNTrainer layer handle from the given description.
  * @param[in]  type The NNTrainer layer type
  * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
  * @retval #ML_ERROR_NOT_SUPPORTED Not supported.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
- * @retval #ML_ERROR_CANNOT_ASSIGN_ADDRESS Cannot assign object.
  */
 int ml_train_layer_create(ml_train_layer_h *layer, ml_train_layer_type_e type);
 
@@ -268,7 +256,6 @@ int ml_train_layer_create(ml_train_layer_h *layer, ml_train_layer_type_e type);
  * @details Use this function to destroy neural network layer. Fails if layer is
  * owned by a model.
  * @since_tizen 6.0
- * @note This is experimental and not stable.
  * @param[in] layer The NNTrainer layer handle.
  * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
@@ -281,7 +268,6 @@ int ml_train_layer_destroy(ml_train_layer_h layer);
  * @brief Sets the neural network layer Property.
  * @details Use this function to set neural network layer Property.
  * @since_tizen 6.0
- * @note This is experimental and not stable.
  * @param[in] layer The NNTrainer layer handle.
  * @param[in]  ... Property values with NULL for termination.
  * @return @c 0 on success. Otherwise a negative error value.
@@ -328,14 +314,12 @@ int ml_train_layer_set_property(ml_train_layer_h layer, ...);
  * @remarks If the function succeeds, @a optimizer must be released using
  * ml_train_optimizer_destroy(), if not set to a model. If set to a model, @a
  * optimizer is available until the model is released.
- * @note This is experimental and not stable.
  * @param[out] optimizer The NNTrainer optimizer handle.
  * @param[in] type The NNTrainer optimizer type.
  * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
  * @retval #ML_ERROR_NOT_SUPPORTED Not supported.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
- * @retval #ML_ERROR_CANNOT_ASSIGN_ADDRESS Cannot assign object.
  */
 int ml_train_optimizer_create(ml_train_optimizer_h *optimizer,
                               ml_train_optimizer_type_e type);
@@ -345,7 +329,6 @@ int ml_train_optimizer_create(ml_train_optimizer_h *optimizer,
  * @details Use this function to destroy neural network optimizer. Fails if
  * optimizer is owned by a model.
  * @since_tizen 6.0
- * @note This is experimental and not stable.
  * @param[in] optimizer The NNTrainer optimizer handle.
  * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
@@ -358,7 +341,6 @@ int ml_train_optimizer_destroy(ml_train_optimizer_h optimizer);
  * @brief Sets the neural network optimizer property.
  * @details Use this function to set neural network optimizer property.
  * @since_tizen 6.0
- * @note This is experimental and not stable.
  * @param[in] optimizer The NNTrainer optimizer handle.
  * @param[in]  ... Property values with NULL for termination.
  * @return @c 0 on success. Otherwise a negative error value.
@@ -378,7 +360,6 @@ int ml_train_optimizer_set_property(ml_train_optimizer_h optimizer, ...);
  * @remarks If the function succeeds, @a dataset must be released using
  * ml_train_dataset_destroy(), if not set to a model. If set to a model, @a
  * dataset is available until the model is released.
- * @note This is experimental and not stable.
  *
  * @param[out] dataset The NNTrainer dataset handle from the given description.
  * If not set to a model, @a dataset should be released using
@@ -391,7 +372,6 @@ int ml_train_optimizer_set_property(ml_train_optimizer_h optimizer, ...);
  * @retval #ML_ERROR_NONE Successful.
  * @retval #ML_ERROR_NOT_SUPPORTED Not supported.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
- * @retval #ML_ERROR_CANNOT_ASSIGN_ADDRESS Cannot assign object.
  */
 int ml_train_dataset_create_with_generator(ml_train_dataset_h *dataset,
                                            ml_train_datagen_cb train_cb,
@@ -403,7 +383,6 @@ int ml_train_dataset_create_with_generator(ml_train_dataset_h *dataset,
  * @details Use this function to create a neural network dataset using
  * files.
  * @since_tizen 6.0
- * @note This is experimental and not stable.
  * @param[out] dataset The NNTrainer dataset handle from the given description.
  * If not set to a model, @a dataset should be released using
  * ml_train_dataset_destroy(). If set to a model, @a dataset is available until
@@ -415,7 +394,6 @@ int ml_train_dataset_create_with_generator(ml_train_dataset_h *dataset,
  * @retval #ML_ERROR_NONE Successful.
  * @retval #ML_ERROR_NOT_SUPPORTED Not supported.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
- * @retval #ML_ERROR_CANNOT_ASSIGN_ADDRESS Cannot assign object.
  */
 int ml_train_dataset_create_with_file(ml_train_dataset_h *dataset,
                                       const char *train_file,
@@ -427,7 +405,6 @@ int ml_train_dataset_create_with_file(ml_train_dataset_h *dataset,
  * @details Use this function to destroy dataset. Fails if dataset is owned by a
  * model.
  * @since_tizen 6.0
- * @note This is experimental and not stable.
  * @param[in] dataset The NNTrainer dataset handle.
  * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
@@ -440,7 +417,6 @@ int ml_train_dataset_destroy(ml_train_dataset_h dataset);
  * @brief Sets the neural network dataset property.
  * @details Use this function to set dataset property.
  * @since_tizen 6.0
- * @note This is experimental and not stable.
  * @param[in] dataset The NNTrainer dataset handle.
  * @param[in]  ... Property values with NULL for termination.
  * @return @c 0 on success. Otherwise a negative error value.

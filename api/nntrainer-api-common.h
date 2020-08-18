@@ -8,12 +8,15 @@
  * @see	https://github.com/nnstreamer/nntrainer
  * @author Parichay Kapoor <pk.kapoor@samsung.com>
  * @bug No known bugs except for NYI items
- *
- * @note This API is not stable and still experimental.
  */
 
 #ifndef __TIZEN_MACHINELEARNING_NNTRAINER_API_COMMON_H__
 #define __TIZEN_MACHINELEARNING_NNTRAINER_API_COMMON_H__
+
+/**
+ * @addtogroup CAPI_ML_NNTRAINER_TRAIN_MODULE
+ * @{
+ */
 
 /**
  * @brief Dataset generator callback function for train/valid/test data.
@@ -33,7 +36,7 @@
  * The order of the inputs/labels, in case of multiple of inputs/labels, will be
  * determined based on the sequence of addition of the input layers to the
  * model.
- * @since_tizen 6.x
+ * @since_tizen 6.0
  * @note This function can be called multiple times in parallel when total
  * number of samples are set as a property for this dataset. In this case, last
  * is only used for verification purposes. If total number of samples for the
@@ -118,7 +121,7 @@ typedef int (*ml_train_datagen_cb)(float **input, float **label, bool *last,
 
 /**
  * @brief Enumeration for the neural network summary verbosity of NNTrainer.
- * @since_tizen 6.x
+ * @since_tizen 6.0
  */
 typedef enum {
   ML_TRAIN_SUMMARY_MODEL = 0, /**< Overview of model
@@ -127,5 +130,9 @@ typedef enum {
   ML_TRAIN_SUMMARY_TENSOR /**< Model summary layer's including weight
                              information */
 } ml_train_summary_type_e;
+
+/**
+ * @}
+ */
 
 #endif /* __TIZEN_MACHINELEARNING_NNTRAINER_API_COMMON_H__ */

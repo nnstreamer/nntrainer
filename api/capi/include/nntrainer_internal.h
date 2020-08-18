@@ -20,8 +20,6 @@
  * @author Jijoong Moon <jijoong.moon@samsung.com>
  * @author Parichay Kapoor <pk.kapoor@samsung.com>
  * @bug No known bugs except for NYI items
- *
- * @note This API is not stable and still experimental.
  */
 
 #ifndef __NNTRAINER_INTERNAL_H__
@@ -242,7 +240,6 @@ typedef struct {
  * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
- * @retval #ML_ERROR_CANNOT_ASSIGN_ADDRESS Cannot assign object.
  */
 int ml_train_model_get_layer(ml_train_model_h model, const char *layer_name,
                              ml_train_layer_h *layer);
@@ -257,7 +254,6 @@ int ml_train_model_get_layer(ml_train_model_h model, const char *layer_name,
  * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
- * @retval #ML_ERROR_CANNOT_ASSIGN_ADDRESS Cannot assign object.
  */
 int ml_train_model_get_all_layer_names(ml_train_model_h model,
                                        const char **layers_name[]);
