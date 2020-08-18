@@ -90,7 +90,6 @@ template <typename F> static int nntrainer_exception_boundary(F &&func) {
   /**< Exception boundary for specialized error code */
   /// @todo deprecate this with #233
   switch (status) {
-  case ML_ERROR_CANNOT_ASSIGN_ADDRESS:
   case ML_ERROR_BAD_ADDRESS:
     return ML_ERROR_OUT_OF_MEMORY;
   case ML_ERROR_RESULT_OUT_OF_RANGE:
