@@ -70,11 +70,6 @@ unsigned int seed;
 
 using namespace std;
 
-/**
- * @brief     location of resources ( ../../res/ )
- */
-string data_path;
-
 bool duplicate[total_label_size * total_train_data_size];
 bool valduplicate[total_label_size * total_val_data_size];
 
