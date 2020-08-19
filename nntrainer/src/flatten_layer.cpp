@@ -38,13 +38,14 @@ int FlattenLayer::initialize(bool last) {
 }
 
 sharedConstTensor FlattenLayer::forwarding(sharedConstTensor in) {
-  Tensor ret = *in;
+  input = *in;
+  hidden = input;
 
   /// @note in->batch can be different from input_dim.batch();
-  ret.setDim({in->batch(), output_dim.channel(), output_dim.height(),
-              output_dim.width()});
+  hidden.setDim({in->batch(), output_dim.channel(), output_dim.height(),
+                 output_dim.width()});
 
-  return MAKE_SHARED_TENSOR(std::move(ret));
+  return MAKE_SHARED_TENSOR(hidden);
 }
 
 sharedConstTensor FlattenLayer::backwarding(sharedConstTensor in,
