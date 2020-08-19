@@ -35,7 +35,7 @@ namespace nntrainer {
 enum class BNParams { mu, var, gamma, beta };
 
 /// @todo add channel wise bn for convolutional layer.
-int BatchNormalizationLayer::initialize(bool last) {
+int BatchNormalizationLayer::initialize() {
   int status = ML_ERROR_NONE;
 
   output_dim = input_dim;
@@ -158,7 +158,6 @@ void BatchNormalizationLayer::copy(std::shared_ptr<Layer> l) {
   std::shared_ptr<BatchNormalizationLayer> from =
     std::static_pointer_cast<BatchNormalizationLayer>(l);
   this->opt = from->opt;
-  this->last_layer = from->last_layer;
   this->input_dim = from->input_dim;
   this->output_dim = from->output_dim;
   this->input.copy(from->input);

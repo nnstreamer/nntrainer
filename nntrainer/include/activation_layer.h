@@ -45,11 +45,10 @@ public:
   /**
    * @brief     Initialize the layer
    *
-   * @param[in] last last layer
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int initialize(bool last);
+  int initialize();
 
   /**
    * @brief     Read Activation layer params. This is essentially noops for now.

@@ -33,10 +33,8 @@ namespace nntrainer {
 
 enum class FCParams { weight, bias };
 
-int FullyConnectedLayer::initialize(bool last) {
+int FullyConnectedLayer::initialize() {
   int status = ML_ERROR_NONE;
-
-  this->last_layer = last;
 
   output_dim = input_dim;
   output_dim.width(unit);
@@ -108,7 +106,6 @@ void FullyConnectedLayer::copy(std::shared_ptr<Layer> l) {
   std::shared_ptr<FullyConnectedLayer> from =
     std::static_pointer_cast<FullyConnectedLayer>(l);
   this->opt = from->opt;
-  this->last_layer = from->last_layer;
   this->unit = from->unit;
   this->input_dim = from->input_dim;
   this->output_dim = from->output_dim;

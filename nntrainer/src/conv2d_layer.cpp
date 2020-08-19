@@ -23,14 +23,13 @@
 
 namespace nntrainer {
 
-int Conv2DLayer::initialize(bool last) {
+int Conv2DLayer::initialize() {
   int status = ML_ERROR_NONE;
 
   if (input_dim.getDataLen() == 1) {
     ml_logw("Warning: the length of previous layer dimension is one");
   }
 
-  this->last_layer = last;
   TensorDim dim =
     TensorDim(1, input_dim.channel(), kernel_size[0], kernel_size[1]);
   TensorDim bias_dim = TensorDim(1, 1, 1, 1);
@@ -245,7 +244,6 @@ void Conv2DLayer::copy(std::shared_ptr<Layer> l) {
   this->hidden.copy(from->hidden);
   this->input_dim = from->input_dim;
   this->output_dim = from->output_dim;
-  this->last_layer = from->last_layer;
 }
 
 int Conv2DLayer::setSize(int *size, PropertyType type) {

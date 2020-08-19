@@ -38,13 +38,10 @@ ActivationLayer::ActivationLayer() : Layer() {
 /**
  * @brief     Initialize the layer
  *
- * @param[in] last last layer
  * @retval #ML_ERROR_NONE Successful.
  * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
  */
-int ActivationLayer::initialize(bool last) {
-
-  this->last_layer = last;
+int ActivationLayer::initialize() {
 
   output_dim = input_dim;
 
