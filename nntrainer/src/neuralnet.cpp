@@ -668,7 +668,7 @@ int NeuralNetwork::train(std::vector<std::string> values) {
 int NeuralNetwork::train_run() {
   int status = ML_ERROR_NONE;
 
-  for (unsigned int i = 0; i < epoch; ++i) {
+  for (unsigned int epoch_idx = 1; epoch_idx <= epoch; ++epoch_idx) {
     float training_loss = 0.0f;
     status = data_buffer->run(nntrainer::BUF_TRAIN);
     if (status != ML_ERROR_NONE) {
@@ -694,10 +694,10 @@ int NeuralNetwork::train_run() {
                       iter++);
         } catch (...) {
           data_buffer->clear(nntrainer::BUF_TRAIN);
-          ml_loge("Error: training error in #%d/%d.", i + 1, epoch);
+          ml_loge("Error: training error in #%d/%d.", epoch_idx, epoch);
           std::rethrow_exception(std::current_exception());
         }
-        std::cout << "#" << i << "/" << epoch;
+        std::cout << "#" << epoch_idx << "/" << epoch;
         data_buffer->displayProgress(count++, nntrainer::BUF_TRAIN, getLoss());
         training_loss += getLoss();
       } else {
@@ -708,7 +708,7 @@ int NeuralNetwork::train_run() {
 
     saveModel();
 
-    std::cout << "#" << i << "/" << epoch
+    std::cout << "#" << epoch_idx << "/" << epoch
               << " - Training Loss: " << training_loss / count;
 
     if (data_buffer->getValidation()[nntrainer::BUF_VAL]) {
@@ -725,9 +725,9 @@ int NeuralNetwork::train_run() {
       while (true) {
         vec_4d in, label;
         if (data_buffer->getDataFromBuffer(nntrainer::BUF_VAL, in, label)) {
-          for (unsigned int i = 0; i < batch_size; ++i) {
-            sharedTensor X = MAKE_SHARED_TENSOR(Tensor({in[i]}));
-            sharedTensor Y2 = MAKE_SHARED_TENSOR(Tensor({label[i]}));
+          for (unsigned int b = 0; b < batch_size; ++b) {
+            sharedTensor X = MAKE_SHARED_TENSOR(Tensor({in[b]}));
+            sharedTensor Y2 = MAKE_SHARED_TENSOR(Tensor({label[b]}));
             sharedConstTensor Y = forwarding(X, Y2);
             if (Y->argmax() == Y2->argmax())
               right++;
