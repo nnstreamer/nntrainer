@@ -22,13 +22,11 @@
 
 namespace nntrainer {
 
-int Pooling2DLayer::initialize(bool last) {
+int Pooling2DLayer::initialize() {
   int status = ML_ERROR_NONE;
   if (input_dim.getDataLen() == 1) {
     ml_logw("Warning: the length of previous layer dimension is one");
   }
-
-  this->last_layer = last;
 
   output_dim.batch(input_dim.batch());
   output_dim.channel(input_dim.channel());
@@ -178,7 +176,6 @@ void Pooling2DLayer::copy(std::shared_ptr<Layer> l) {
   this->hidden.copy(from->hidden);
   this->input_dim = from->input_dim;
   this->output_dim = from->output_dim;
-  this->last_layer = from->last_layer;
 }
 
 void Pooling2DLayer::setProperty(const PropertyType type,

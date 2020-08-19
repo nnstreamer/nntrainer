@@ -32,15 +32,9 @@
 
 namespace nntrainer {
 
-int LossLayer::initialize(bool last) {
+int LossLayer::initialize() {
   int status = ML_ERROR_NONE;
 
-  if (!last) {
-    ml_loge("Error: Loss layer, if exists, must be the layer.");
-    return ML_ERROR_INVALID_PARAMETER;
-  }
-
-  this->last_layer = last;
   output_dim = input_dim;
   return status;
 }
@@ -107,7 +101,6 @@ void LossLayer::updateLoss(const Tensor &l) {
 
 void LossLayer::copy(std::shared_ptr<Layer> l) {
   std::shared_ptr<LossLayer> from = std::static_pointer_cast<LossLayer>(l);
-  this->last_layer = from->last_layer;
   this->input.copy(from->input);
   this->cost = from->cost;
   this->loss = from->loss;

@@ -85,11 +85,10 @@ public:
 
   /**
    * @brief     Initializer of Input Layer
-   * @param[in] last last layer
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int initialize(bool last);
+  int initialize();
 
   /**
    * @brief     Copy Layer

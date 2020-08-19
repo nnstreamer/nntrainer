@@ -136,7 +136,6 @@ class Layer {
 public:
   Layer() :
     name(std::string()),
-    last_layer(false),
     bias_init_zero(false),
     type(LAYER_UNKNOWN),
     loss(0.0f),
@@ -185,11 +184,10 @@ public:
   /**
    * @brief     Initialize the layer
    *            - Weight(Height, Width), Bias(1, Width)
-   * @param[in] last last layer
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  virtual int initialize(bool last) = 0;
+  virtual int initialize() = 0;
 
   /**
    * @brief     read layer Weight & Bias data from file
@@ -327,18 +325,6 @@ public:
    * @param[in] w struct for weight decay
    */
   void setWeightDecay(WeightDecayParam w) { weight_decay = w; }
-
-  /**
-   * @brief  set if this is last layer of Network
-   * @param[in] last true/false
-   */
-  void setLast(bool last) { last_layer = last; }
-
-  /**
-   * @brief  get if this is last layer of Network
-   * @retval last true/false
-   */
-  bool getLast() { return last_layer; }
 
   /**
    * @brief  set bias initialize with zero
@@ -480,11 +466,6 @@ protected:
    *            forwading result
    */
   Tensor hidden;
-
-  /**
-   * @brief     last layer
-   */
-  bool last_layer;
 
   /**
    * @brief     Dimension of input activation

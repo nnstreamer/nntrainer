@@ -368,7 +368,7 @@ int NeuralNetwork::initLossLayer() {
   ensureName(loss_layer);
 
   loss_layer->setInputDimension(layers.back()->getOutputDimension());
-  status = loss_layer->initialize(true);
+  status = loss_layer->initialize();
   NN_RETURN_STATUS();
 
   status = loss_layer->setCost(updated_cost);
@@ -455,7 +455,6 @@ int NeuralNetwork::init() {
           (unsigned int)layers.size());
   /** Note: number of entries in layers will change. */
   for (unsigned int i = 0; i < layers.size(); ++i) {
-    bool last = i == layers.size() - 1;
     bool first = i == 0;
     Layer &l = *layers[i];
     ml_logd("layer name: %s", l.getName().c_str());
@@ -475,7 +474,7 @@ int NeuralNetwork::init() {
     }
 
     layers[i]->setBatch(batch_size);
-    status = layers[i]->initialize(last);
+    status = layers[i]->initialize();
 
     switch (l.getType()) {
     case LAYER_BN:

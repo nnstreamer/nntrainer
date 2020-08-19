@@ -21,13 +21,11 @@
 
 namespace nntrainer {
 
-int FlattenLayer::initialize(bool last) {
+int FlattenLayer::initialize() {
   int status = ML_ERROR_NONE;
   if (input_dim.getDataLen() == 1) {
     ml_logw("Warning: the length of previous layer dimension is one");
   }
-
-  this->last_layer = last;
 
   output_dim.batch(input_dim.batch());
   output_dim.channel(1);
@@ -67,7 +65,6 @@ void FlattenLayer::copy(std::shared_ptr<Layer> l) {
   this->hidden.copy(from->hidden);
   this->input_dim = from->input_dim;
   this->output_dim = from->output_dim;
-  this->last_layer = from->last_layer;
 }
 
 } /* namespace nntrainer */

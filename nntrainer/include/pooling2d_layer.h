@@ -70,11 +70,10 @@ public:
 
   /**
    * @brief     initialize layer
-   * @param[in] last last layer
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int initialize(bool last);
+  int initialize();
 
   /**
    * @brief     Read Weight & Bias Data from file

@@ -35,22 +35,22 @@ protected:
   virtual void SetUp() {
     status = ML_ERROR_NONE;
     prepareLayer();
-    reinitialize(last_layer);
+    reinitialize();
   }
 
-  virtual int reinitialize(bool last_layer = false) {
-    int status = layer.initialize(last_layer);
+  virtual int reinitialize() {
+    int status = layer.initialize();
     EXPECT_EQ(status, ML_ERROR_NONE);
     in = nntrainer::Tensor(layer.getInputDimension());
     out = nntrainer::Tensor(layer.getOutputDimension());
     return status;
   }
 
-  virtual int reinitialize(const std::string str, bool last_layer = false) {
+  virtual int reinitialize(const std::string str) {
     resetLayer();
     int status = setProperty(str);
     EXPECT_EQ(status, ML_ERROR_NONE);
-    status = reinitialize(last_layer);
+    status = reinitialize();
     EXPECT_EQ(status, ML_ERROR_NONE);
     return status;
   }
@@ -163,7 +163,6 @@ protected:
 
   LayerType layer;
   int status;
-  bool last_layer = false;
   nntrainer::Tensor in;
   nntrainer::Tensor out;
 };
@@ -315,7 +314,7 @@ protected:
  * @brief Fully Connected Layer
  */
 TEST_F(nntrainer_FullyConnectedLayer, initialize_01_p) {
-  int status = reinitialize(false);
+  int status = reinitialize();
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
@@ -324,7 +323,7 @@ TEST_F(nntrainer_FullyConnectedLayer, initialize_01_p) {
  */
 TEST(nntrainer_FullyConnectedLayer_n, initialize_02_n) {
   nntrainer::FullyConnectedLayer layer;
-  EXPECT_THROW(layer.initialize(false), std::invalid_argument);
+  EXPECT_THROW(layer.initialize(), std::invalid_argument);
 }
 
 /**
@@ -336,7 +335,7 @@ TEST(nntrainer_FullyConnectedLayer_n, initialize_03_n) {
   d.setTensorDim("32:1:28:28");
   layer.setInputDimension(d);
 
-  EXPECT_THROW(layer.initialize(false), std::invalid_argument);
+  EXPECT_THROW(layer.initialize(), std::invalid_argument);
 }
 
 /**
@@ -351,7 +350,7 @@ TEST_F(nntrainer_FullyConnectedLayer, initialize_04_p) {
   EXPECT_EQ(status, ML_ERROR_NONE);
   EXPECT_EQ(layer.getName(), layer_name);
 
-  status = layer.initialize(false);
+  status = layer.initialize();
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   /** Layer name can be updated */
@@ -429,8 +428,8 @@ class nntrainer_FullyConnectedLayer_TFmatch
 protected:
   typedef nntrainer_abstractLayer<nntrainer::FullyConnectedLayer> super;
 
-  virtual int reinitialize(bool _last_layer = false) {
-    int status = super::reinitialize(_last_layer);
+  virtual int reinitialize() {
+    int status = super::reinitialize();
     label = MAKE_SHARED_TENSOR(nntrainer::Tensor(layer.getOutputDimension()));
 
     loadFile("tc_fc_1_FCLayer.in", in);
@@ -446,7 +445,7 @@ protected:
       std::make_shared<nntrainer::ActivationLayer>();
     act_layer->setActivation(type);
     act_layer->setInputDimension(layer.getOutputDimension());
-    status = act_layer->initialize(false);
+    status = act_layer->initialize();
     EXPECT_EQ(status, ML_ERROR_NONE);
     layers.push_back(act_layer);
   }
@@ -455,7 +454,7 @@ protected:
     std::shared_ptr<nntrainer::LossLayer> loss_layer =
       std::make_shared<nntrainer::LossLayer>();
     loss_layer->setInputDimension(layer.getOutputDimension());
-    status = loss_layer->initialize(true);
+    status = loss_layer->initialize();
     EXPECT_EQ(status, ML_ERROR_NONE);
     status = loss_layer->setCost(type);
     EXPECT_EQ(status, ML_ERROR_NONE);
@@ -533,7 +532,6 @@ protected:
     setProperty("batch_size=3");
     setProperty("unit=15");
     setProperty("bias_init_zero=true");
-    last_layer = true;
   }
 
   void matchUpdatedWeightsGradients() {
@@ -774,8 +772,8 @@ class nntrainer_BatchNormalizationLayer
 protected:
   typedef nntrainer_abstractLayer<nntrainer::BatchNormalizationLayer> super;
 
-  virtual int reinitialize(bool _last_layer = false) {
-    int status = super::reinitialize(_last_layer);
+  virtual int reinitialize() {
+    int status = super::reinitialize();
     loadFile("tc_bn_1_BNLayerInput.in", in);
     loadFile("tc_bn_1_BNLayerWeights.in", layer);
     return status;
@@ -889,7 +887,7 @@ TEST_F(nntrainer_Conv2DLayer, print_01_p) {
  * @brief Convolution 2D Layer
  */
 TEST_F(nntrainer_Conv2DLayer, initialize_01_p) {
-  status = reinitialize(true);
+  status = reinitialize();
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
@@ -928,8 +926,7 @@ TEST_F(nntrainer_Conv2DLayer, forwarding_01_p) {
   reinitialize("input_shape=3:7:7 | batch_size=1 |"
                "bias_init_zero = true |"
                "weight_ini=xavier_uniform |"
-               "filter=2 | kernel_size=3,3 | stride=1, 1 | padding=0,0",
-               true);
+               "filter=2 | kernel_size=3,3 | stride=1, 1 | padding=0,0");
 
   ASSERT_EQ(in.getDim(), nntrainer::TensorDim(1, 3, 7, 7));
   ASSERT_EQ(out.getDim(), nntrainer::TensorDim(1, 2, 5, 5));
@@ -949,8 +946,7 @@ TEST_F(nntrainer_Conv2DLayer, forwarding_02_p) {
   reinitialize("input_shape=3:7:7 | batch_size=2 |"
                "bias_init_zero = true |"
                "weight_ini=xavier_uniform |"
-               "filter=3 | kernel_size=3,3 | stride=1, 1 | padding=0,0",
-               true);
+               "filter=3 | kernel_size=3,3 | stride=1, 1 | padding=0,0");
 
   ASSERT_EQ(in.getDim(), nntrainer::TensorDim(2, 3, 7, 7));
   ASSERT_EQ(out.getDim(), nntrainer::TensorDim(2, 3, 5, 5));
@@ -969,8 +965,7 @@ TEST_F(nntrainer_Conv2DLayer, backwarding_01_p) {
                         "filter=2 |"
                         "kernel_size= 3,3 |"
                         "stride=1, 1 |"
-                        "padding=0,0",
-                        true);
+                        "padding=0,0");
 
   setOptimizer(nntrainer::OptType::sgd, "learning_rate=1.0");
   unsigned int filter_size = 2;
@@ -1023,8 +1018,7 @@ TEST_F(nntrainer_Conv2DLayer, backwarding_02_p) {
                         "filter=3 |"
                         "kernel_size= 3,3 |"
                         "stride=1, 1 |"
-                        "padding=0,0",
-                        true);
+                        "padding=0,0");
 
   setOptimizer(nntrainer::OptType::sgd, "learning_rate=1.0");
 
@@ -1275,7 +1269,7 @@ protected:
  * @brief Flatten Layer
  */
 TEST_F(nntrainer_FlattenLayer, forwarding_01_p) {
-  reinitialize(false);
+  reinitialize();
 
   EXPECT_EQ(out.getDim(), nntrainer::TensorDim(1, 1, 1, 32));
 
@@ -1292,7 +1286,7 @@ TEST_F(nntrainer_FlattenLayer, forwarding_01_p) {
 TEST_F(nntrainer_FlattenLayer, forwarding_02_p) {
   setInputDim("2:4:4");
   layer.setBatch(2);
-  reinitialize(false);
+  reinitialize();
 
   EXPECT_EQ(out.getDim(), nntrainer::TensorDim(2, 1, 1, 32));
 
@@ -1307,7 +1301,7 @@ TEST_F(nntrainer_FlattenLayer, forwarding_02_p) {
  * @brief Flatten Layer
  */
 TEST_F(nntrainer_FlattenLayer, backwarding_01_p) {
-  reinitialize(false);
+  reinitialize();
 
   EXPECT_EQ(out.getDim(), nntrainer::TensorDim(1, 1, 1, 32));
 
@@ -1325,7 +1319,7 @@ TEST_F(nntrainer_FlattenLayer, backwarding_01_p) {
 TEST_F(nntrainer_FlattenLayer, backwarding_02_p) {
   setInputDim("2:4:4");
   layer.setBatch(2);
-  reinitialize(false);
+  reinitialize();
 
   EXPECT_EQ(out.getDim(), nntrainer::TensorDim(2, 1, 1, 32));
 
@@ -1403,13 +1397,6 @@ TEST(nntrainer_LossLayer, setProperty_through_vector_n) {
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
-TEST(nntrainer_LossLayer, init_with_last_false_n) {
-  int status = ML_ERROR_NONE;
-  nntrainer::LossLayer layer;
-  status = layer.initialize(false);
-  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
-}
-
 TEST(nntrainer_LossLayer, setProperty_individual_n) {
   nntrainer::LossLayer layer;
   EXPECT_THROW(
@@ -1439,7 +1426,7 @@ TEST(nntrainer_LossLayer, setProperty_individual4_n) {
 
 TEST(nntrainer_ActivationLayer, init_01_n) {
   nntrainer::ActivationLayer layer;
-  EXPECT_THROW(layer.initialize(false), std::invalid_argument);
+  EXPECT_THROW(layer.initialize(), std::invalid_argument);
 }
 
 TEST(nntrainer_ActivationLayer, init_02_p) {
@@ -1447,7 +1434,7 @@ TEST(nntrainer_ActivationLayer, init_02_p) {
   nntrainer::ActivationLayer layer;
 
   layer.setInputDimension({1, 1, 1, 1});
-  status = layer.initialize(false);
+  status = layer.initialize();
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
