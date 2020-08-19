@@ -19,6 +19,7 @@
 #include <nntrainer_log.h>
 #include <parse_util.h>
 #include <string>
+#include <thread>
 #include <util_func.h>
 
 namespace nntrainer {
@@ -129,13 +130,10 @@ sharedConstTensor Conv2DLayer::forwarding(sharedConstTensor in) {
   return MAKE_SHARED_TENSOR(hidden);
 };
 
-sharedConstTensor Conv2DLayer::backwarding(sharedConstTensor derivative,
-                                           int iteration) {
+void Conv2DLayer::calculateDelK(sharedConstTensor derivative) {
 
-  // Calculate delK : [batch, channel, height, width ] * filter_size
-  unsigned int same_pad[CONV2D_DIM];
   unsigned int o_size = kernel_size[0] * kernel_size[1];
-  std::vector<float> output(o_size);
+  std::vector<float> o(o_size);
 
   for (unsigned int i = 0; i < filter_size; ++i) {
     Tensor &delK = paramsAt(i).grad;
@@ -160,10 +158,10 @@ sharedConstTensor Conv2DLayer::backwarding(sharedConstTensor derivative,
                derivative->getAddress(b * derivative->getDim().getFeatureLen() +
                                       i * derivative->height() *
                                         derivative->width()),
-               in_dim, output.data(), stride, 0.0f);
+               in_dim, o.data(), stride, 0.0f);
         float *del = delK.getAddress(j * o_size);
         for (unsigned k = 0; k < o_size; ++k) {
-          del[k] += output[k];
+          del[k] += o[k];
         }
       }
 
@@ -176,9 +174,17 @@ sharedConstTensor Conv2DLayer::backwarding(sharedConstTensor derivative,
       delBias.setValue(0, 0, 0, 0, sum + delBias.getValue(0, 0, 0, 0));
     }
   }
+  return;
+}
+
+sharedConstTensor Conv2DLayer::backwarding(sharedConstTensor derivative,
+                                           int iteration) {
+
+  // Calculate delK : [batch, channel, height, width ] * filter_size
+  std::thread delk_thread(&Conv2DLayer::calculateDelK, this, derivative);
 
   // Calculate delS : returns ( Full pad )
-
+  unsigned int same_pad[CONV2D_DIM];
   Tensor ret(input_dim.batch(), input_dim.channel(),
              input_dim.height() + padding[0] * 2,
              input_dim.width() + padding[1] * 2);
@@ -189,8 +195,7 @@ sharedConstTensor Conv2DLayer::backwarding(sharedConstTensor derivative,
 
   TensorDim kdim(1, 1, kernel_size[0], kernel_size[1]);
 
-  output.clear();
-  output.resize(ret.height() * ret.width());
+  std::vector<float> output(ret.height() * ret.width());
 
   for (unsigned int b = 0; b < derivative->batch(); ++b) {
     Tensor in_padded = zero_pad(b, *derivative, same_pad);
@@ -211,6 +216,8 @@ sharedConstTensor Conv2DLayer::backwarding(sharedConstTensor derivative,
       }
     }
   }
+
+  delk_thread.join();
 
   if (trainable) {
     //  Update K / bias

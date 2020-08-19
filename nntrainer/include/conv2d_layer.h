@@ -89,6 +89,12 @@ public:
   sharedConstTensor forwarding(sharedConstTensor in);
 
   /**
+   * @brief     Calculate DelK
+   * @param[in] derivative derivative data
+   */
+  void calculateDelK(sharedConstTensor derivative);
+
+  /**
    * @copydoc Layer::backwarding(sharedConstTensor in, int iteration)
    */
   sharedConstTensor backwarding(sharedConstTensor in, int iteration);
