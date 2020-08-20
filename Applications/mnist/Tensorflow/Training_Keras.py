@@ -43,6 +43,7 @@ Learning = True
 Test = False
 num_epoch = 1500
 DEBUG = True
+USE_FIT = False
 
 def save(filename, *data):
     if os.path.isfile(filename):
@@ -95,67 +96,70 @@ def train_nntrainer(target):
     train_data_size, val_data_size, label_size, feature_size = dataset.get_data_info(target)
     InVec, InLabel, ValVec, ValLabel = dataset.load_data(target)
 
-    inputs = tf.placeholder(tf.float32, [None, 28,28,1], name="input_X")
-    labels = tf.placeholder(tf.float32,[None, 10], name = "label")
-    sess=tf.compat.v1.Session()
-
     model=create_model()
-
     model.summary()
 
-    tf_logit = model(inputs, training=True)
+    if USE_FIT == False:
+        ## Method 1 : using tensorflow session (training and evaluating manually)
+        inputs = tf.placeholder(tf.float32, [None, 28,28,1], name="input_X")
+        labels = tf.placeholder(tf.float32,[None, 10], name = "label")
+        sess=tf.compat.v1.Session()
 
-    tf_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(
-        labels=labels, logits=tf_logit))
+        tf_logit = model(inputs, training=True)
+        tf_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(
+            labels=labels, logits=tf_logit))
+        optimizer = tf.keras.optimizers.Adam(learning_rate=1.0e-4, beta_1=0.9, beta_2=0.999, epsilon=1.0e-7)
 
-    optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate=1.0e-4, epsilon=1.0e-7, beta1=0.9, beta2=0.999)
+        trainable_variables = tf.compat.v1.trainable_variables()
+        tf_grad = optimizer.get_gradients(tf_loss, params = trainable_variables)
+        train_op = optimizer.apply_gradients(zip(tf_grad, trainable_variables))
 
-    trainable_variables = tf.compat.v1.trainable_variables()
+        var_to_run = [tf_logit, tf_loss, tf_grad, train_op]
+        infer_to_run = [tf.reduce_sum(tf.cast(tf.equal(tf.math.argmax(tf.nn.softmax(tf_logit), axis=1), tf.math.argmax(labels, axis=1)), tf.float32))/batch_size, tf_loss]
 
-    tf_grad = optimizer.compute_gradients(tf_loss, var_list = trainable_variables)
+        if not os.path.exists('./nntrainer_tfmodel'):
+            sess.run(tf.compat.v1.global_variables_initializer())
 
-    global_step =tf.compat.v1.train.get_or_create_global_step()
+        for i in range(0, num_epoch):
+            count = 0
+            loss = 0;
+            for x, y in datagen(InVec, InLabel, batch_size):
+                feed_dict = {inputs: x, labels: y}
+                tf_out = sess.run(var_to_run, feed_dict = feed_dict)
+                loss += tf_out[1]
+                count = count + 1
 
-    train_op = optimizer.apply_gradients(tf_grad, global_step=global_step)
+                if count == len(InVec) // batch_size:
+                    break;
 
-    var_to_run = [tf_logit, tf_loss, tf_grad, train_op, global_step ]
+            training_loss = loss/count
 
-    infer_to_run = [tf.reduce_sum(tf.cast(tf.equal(tf.math.argmax(tf.nn.softmax(tf_logit), axis=1), tf.math.argmax(labels, axis=1)), tf.float32))/batch_size, tf_loss]
+            count =0
+            accuracy = 0;
+            loss = 0;
+            for x, y in datagen(InVec, InLabel, batch_size):
+                feed_dict = {inputs: x, labels: y}
+                infer_out = sess.run(infer_to_run, feed_dict = feed_dict)
+                accuracy += infer_out[0]
+                loss += infer_out[1]
+                count = count + 1
+                if count == len(InVec) // batch_size:
+                    break;
+            accuracy = (accuracy / count) * 100.0
+            loss = loss / count
 
-    if not os.path.exists('./nntrainer_tfmodel'):
-        sess.run(tf.compat.v1.global_variables_initializer())
+            print('#{}/{} - Training Loss: {:10.6f} >> [ Accuracy: {:10.6f}% - Valiadtion Loss : {:10.6f} ]'. format(i,num_epoch, training_loss, accuracy, loss))
     else:
-        model=load_model('./nntrainer_tfmodel/nntrainer_keras.h5')
-
-    for i in range(0, num_epoch):
-        count = 0
-        loss = 0;
-        for x, y in datagen(InVec, InLabel, batch_size):
-            feed_dict = {inputs: x, labels: y}
-            tf_out = sess.run(var_to_run, feed_dict = feed_dict)
-            loss += tf_out[1]
-            count = count + 1
-
-            if count == len(InVec) // batch_size:
-                break;
-
-        training_loss = loss/count
-
-        count =0
-        accuracy = 0;
-        loss = 0;
-        for x, y in datagen(InVec, InLabel, batch_size):
-            feed_dict = {inputs: x, labels: y}
-            infer_out = sess.run(infer_to_run, feed_dict = feed_dict)
-            accuracy += infer_out[0]
-            loss += infer_out[1]
-            count = count + 1
-            if count == len(InVec) // batch_size:
-                break;
-        accuracy = (accuracy / count) * 100.0
-        loss = loss / count
-
-        print('#{}/{} - Training Loss: {:10.6f} >> [ Accuracy: {:10.6f}% - Valiadtion Loss : {:10.6f} ]'. format(i,num_epoch, training_loss, accuracy, loss))
+        ## Method 1 : using keras fit (training and evaluating manually)
+        optimizer = optimizers.Adam(learning_rate=1.0e-4, beta_1=0.9, beta_2=0.999, epsilon=1.0e-7)
+        model.compile(optimizer = optimizer,
+                      loss = tf.keras.losses.CategoricalCrossentropy(from_logits = True),
+                      metrics = ['accuracy'])
+        model.fit(datagen(InVec, InLabel, batch_size),
+                  epochs = num_epoch,
+                  steps_per_epoch = len(InVec) // batch_size,
+                  validation_data = datagen(ValVec, ValLabel, batch_size),
+                  validation_steps = len(ValVec) // batch_size)
 
 ##
 # @brief main loop
