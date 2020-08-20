@@ -873,14 +873,11 @@ Tensor Tensor::clone() const {
   return t;
 }
 
-int Tensor::setDim(TensorDim d) {
-  int status = ML_ERROR_NONE;
+void Tensor::reshape(TensorDim d) {
   if (d.getDataLen() != dim.getDataLen()) {
-    ml_loge("Error: Data size is not eqaul to copy tensor dim");
-    return ML_ERROR_INVALID_PARAMETER;
+    throw std::invalid_argument("Error: reshape cannot change the tensor size");
   }
   dim = d;
-  return status;
 }
 
 void Tensor::save(std::ofstream &file) {

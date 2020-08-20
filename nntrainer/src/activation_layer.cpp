@@ -148,16 +148,16 @@ Tensor ActivationLayer::softmax(Tensor const &t) {
    * shiftx_logit = logit - max_batch(logit)
    * softmax = exp(shiftx_logit) / (sum(exp(shiftx_logit)))
    */
-  int batch = t.getBatch();
-  int channel = t.getChannel();
-  int height = t.getHeight();
-  int width = t.getWidth();
+  unsigned int batch = t.batch();
+  unsigned int channel = t.channel();
+  unsigned int height = t.height();
+  unsigned int width = t.width();
   float *dp;
   float *rp;
   const float *tp;
 
   Tensor result(t.getDim());
-  Tensor divisor(t.getWidth());
+  Tensor divisor(t.width());
 
   dp = divisor.getData();
   rp = result.getData();
@@ -165,27 +165,27 @@ Tensor ActivationLayer::softmax(Tensor const &t) {
 
   divisor.setZero();
 
-  for (int k = 0; k < batch; k++) {
-    for (int c = 0; c < channel; c++) {
-      for (int i = 0; i < height; i++) {
+  for (unsigned int k = 0; k < batch; k++) {
+    for (unsigned int c = 0; c < channel; c++) {
+      for (unsigned int i = 0; i < height; i++) {
         int index =
           k * channel * height * width + c * height * width + i * width;
         float m = std::numeric_limits<float>::lowest();
 
         // find max
-        for (int j = 0; j < width; j++) {
+        for (unsigned int j = 0; j < width; j++) {
           if (tp[index + j] > m)
             m = tp[index + j];
         }
 
         // shiftx
         float sum = 0.0f;
-        for (int j = 0; j < width; j++) {
+        for (unsigned int j = 0; j < width; j++) {
           dp[j] = exp(tp[index + j] - m);
           sum += dp[j];
         }
 
-        for (int j = 0; j < width; j++) {
+        for (unsigned int j = 0; j < width; j++) {
           rp[index + j] = dp[j] / sum;
         }
       }
@@ -196,10 +196,10 @@ Tensor ActivationLayer::softmax(Tensor const &t) {
 
 Tensor ActivationLayer::softmaxPrime(Tensor const &x,
                                      Tensor const &derivative) {
-  int batch = x.getBatch();
-  int channel = x.getChannel();
-  int width = x.getWidth();
-  int height = x.getHeight();
+  unsigned int batch = x.batch();
+  unsigned int channel = x.channel();
+  unsigned int height = x.height();
+  unsigned int width = x.width();
   bool is_derivative = true;
 
   Tensor PI = Tensor(x.getDim());
@@ -213,15 +213,15 @@ Tensor ActivationLayer::softmaxPrime(Tensor const &x,
     is_derivative = false;
   }
 
-  for (int k = 0; k < batch; ++k) {
+  for (unsigned int k = 0; k < batch; ++k) {
     int K = k * channel * height * width;
-    for (int c = 0; c < channel; ++c) {
+    for (unsigned int c = 0; c < channel; ++c) {
       int C = K + c * height * width;
-      for (int i = 0; i < height; ++i) {
+      for (unsigned int i = 0; i < height; ++i) {
         int I = C + i * width;
-        for (int j = 0; j < width; ++j) {
+        for (unsigned int j = 0; j < width; ++j) {
           float sum = 0.0f;
-          for (int l = 0; l < width; ++l) {
+          for (unsigned int l = 0; l < width; ++l) {
             float val;
             if (j == l) {
               val = xp[I + l] * (1.0f - xp[I + j]);

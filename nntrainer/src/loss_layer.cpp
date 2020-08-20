@@ -93,10 +93,10 @@ void LossLayer::updateLoss(const Tensor &l) {
   float loss_sum = 0.0f;
   const float *data = l.getData();
 
-  for (int i = 0; i < l.getBatch(); i++) {
+  for (unsigned int i = 0; i < l.batch(); i++) {
     loss_sum += data[i];
   }
-  loss = loss_sum / (float)l.getBatch();
+  loss = loss_sum / (float)l.batch();
 }
 
 void LossLayer::copy(std::shared_ptr<Layer> l) {
@@ -122,7 +122,7 @@ sharedConstTensor LossLayer::backwarding(sharedConstTensor derivative,
     break;
   case COST_ENTROPY_SOFTMAX:
     y = y.apply(ActivationLayer::softmax);
-    ret_derivative = y.subtract(y2).divide(y.getDim().batch());
+    ret_derivative = y.subtract(y2).divide(y.batch());
     break;
   case COST_ENTROPY:
     throw std::runtime_error(

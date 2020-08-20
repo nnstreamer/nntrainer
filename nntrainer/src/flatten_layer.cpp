@@ -40,8 +40,8 @@ sharedConstTensor FlattenLayer::forwarding(sharedConstTensor in) {
   hidden = input;
 
   /// @note in->batch can be different from input_dim.batch();
-  hidden.setDim({in->batch(), output_dim.channel(), output_dim.height(),
-                 output_dim.width()});
+  hidden.reshape({in->batch(), output_dim.channel(), output_dim.height(),
+                  output_dim.width()});
 
   return MAKE_SHARED_TENSOR(hidden);
 }
@@ -49,7 +49,7 @@ sharedConstTensor FlattenLayer::forwarding(sharedConstTensor in) {
 sharedConstTensor FlattenLayer::backwarding(sharedConstTensor in,
                                             int iteration) {
   Tensor temp = *in;
-  temp.setDim(input_dim);
+  temp.reshape(input_dim);
 
   return MAKE_SHARED_TENSOR(std::move(temp));
 }
