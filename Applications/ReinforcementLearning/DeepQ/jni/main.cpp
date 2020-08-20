@@ -507,9 +507,9 @@ int main(int argc, char **argv) {
             tempQ.setValue(i, 0, 0, (int)in_Exp[i].action[0],
                            (float)in_Exp[i].reward);
           } else {
-            float next = (nqa[i * NQ->getWidth()] > nqa[i * NQ->getWidth() + 1])
-                           ? nqa[i * NQ->getWidth()]
-                           : nqa[i * NQ->getWidth() + 1];
+            float next = (nqa[i * NQ->width()] > nqa[i * NQ->width() + 1])
+                           ? nqa[i * NQ->width()]
+                           : nqa[i * NQ->width() + 1];
             try {
               tempQ.setValue(i, 0, 0, (int)in_Exp[i].action[0],
                              (float)in_Exp[i].reward + DISCOUNT * next);

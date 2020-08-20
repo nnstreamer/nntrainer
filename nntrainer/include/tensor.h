@@ -383,30 +383,6 @@ public:
   void print(std::ostream &out) const;
 
   /**
-   * @brief     Get Width of Tensor
-   * @retval    int Width
-   */
-  int getWidth() const { return dim.width(); };
-
-  /**
-   * @brief     Get Channel of Tensor
-   * @retval    int Channel
-   */
-  int getChannel() const { return dim.channel(); };
-
-  /**
-   * @brief     Get Height of Tensor
-   * @retval    int Height
-   */
-  int getHeight() const { return dim.height(); };
-
-  /**
-   * @brief     Get Batch of Tensor
-   * @retval    int Batch
-   */
-  int getBatch() const { return dim.batch(); };
-
-  /**
    * @brief     Get length of current _data
    * @retval    unsigned int length of the current _data
    */
@@ -480,10 +456,16 @@ public:
   int argmax() const;
 
   /**
-   * @brief     return Tensor Dim
+   * @brief     return a copy of the Tensor Dim
    * @retval    TensorDim
    */
-  TensorDim getDim() const { return dim; }
+  TensorDim getDim() const { return TensorDim(dim); }
+
+  /**
+   * @brief     return Tensor Dim for a given axis
+   * @retval    dimension
+   */
+  unsigned int getTensorDim(unsigned int axis);
 
   /**
    * @brief     return Tensor batch size
@@ -532,10 +514,9 @@ public:
   /**
    * @brief     set Tensor Dim
    * @param[in] d TensorDim
-   * @retval    #ML_ERROR_NONE successful
-   * @retval    #ML_ERROR_INVALID_PARAMETER fail
+   * @note      Throws std::invalid_argument if size mismatch
    */
-  int setDim(TensorDim d);
+  void reshape(TensorDim d);
 
   /**
    * @brief     return current stride of tensor.

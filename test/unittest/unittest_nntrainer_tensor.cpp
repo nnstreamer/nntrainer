@@ -716,10 +716,10 @@ TEST(nntrainer_Tensor, sum_02_p) {
   nntrainer::Tensor result2 = input.sum(2);
   nntrainer::Tensor result3 = input.sum(3);
 
-  for (int i = 0; i < result0.getBatch(); ++i) {
-    for (int l = 0; l < result0.getChannel(); ++l) {
-      for (int j = 0; j < result0.getHeight(); ++j) {
-        for (int k = 0; k < result0.getWidth(); ++k) {
+  for (unsigned int i = 0; i < result0.batch(); ++i) {
+    for (unsigned int l = 0; l < result0.channel(); ++l) {
+      for (unsigned int j = 0; j < result0.height(); ++j) {
+        for (unsigned int k = 0; k < result0.width(); ++k) {
           if (ans0[i][l][j][k] != result0.getValue(i, l, j, k)) {
             status = ML_ERROR_RESULT_OUT_OF_RANGE;
             goto end_test;
@@ -729,10 +729,10 @@ TEST(nntrainer_Tensor, sum_02_p) {
     }
   }
 
-  for (int i = 0; i < result1.getBatch(); ++i) {
-    for (int l = 0; l < result1.getChannel(); ++l) {
-      for (int j = 0; j < result1.getHeight(); ++j) {
-        for (int k = 0; k < result1.getWidth(); ++k) {
+  for (unsigned int i = 0; i < result1.batch(); ++i) {
+    for (unsigned int l = 0; l < result1.channel(); ++l) {
+      for (unsigned int j = 0; j < result1.height(); ++j) {
+        for (unsigned int k = 0; k < result1.width(); ++k) {
           if (ans1[i][l][j][k] != result1.getValue(i, l, j, k)) {
             status = ML_ERROR_RESULT_OUT_OF_RANGE;
             goto end_test;
@@ -742,10 +742,10 @@ TEST(nntrainer_Tensor, sum_02_p) {
     }
   }
 
-  for (int i = 0; i < result2.getBatch(); ++i) {
-    for (int l = 0; l < result2.getChannel(); ++l) {
-      for (int j = 0; j < result2.getHeight(); ++j) {
-        for (int k = 0; k < result2.getWidth(); ++k) {
+  for (unsigned int i = 0; i < result2.batch(); ++i) {
+    for (unsigned int l = 0; l < result2.channel(); ++l) {
+      for (unsigned int j = 0; j < result2.height(); ++j) {
+        for (unsigned int k = 0; k < result2.width(); ++k) {
           if (ans2[i][l][j][k] != result2.getValue(i, l, j, k)) {
             status = ML_ERROR_RESULT_OUT_OF_RANGE;
             goto end_test;
@@ -755,10 +755,10 @@ TEST(nntrainer_Tensor, sum_02_p) {
     }
   }
 
-  for (int i = 0; i < result3.getBatch(); ++i) {
-    for (int l = 0; l < result3.getChannel(); ++l) {
-      for (int j = 0; j < result3.getHeight(); ++j) {
-        for (int k = 0; k < result3.getWidth(); ++k) {
+  for (unsigned int i = 0; i < result3.batch(); ++i) {
+    for (unsigned int l = 0; l < result3.channel(); ++l) {
+      for (unsigned int j = 0; j < result3.height(); ++j) {
+        for (unsigned int k = 0; k < result3.width(); ++k) {
           if (ans3[i][l][j][k] != result3.getValue(i, l, j, k)) {
             status = ML_ERROR_RESULT_OUT_OF_RANGE;
             goto end_test;
@@ -809,9 +809,9 @@ TEST(nntrainer_Tensor, dot_01_p) {
 
   nntrainer::Tensor result = input.dot(input);
 
-  for (int i = 0; i < result.getBatch(); ++i) {
-    for (int j = 0; j < result.getHeight(); ++j) {
-      for (int k = 0; k < result.getWidth(); ++k) {
+  for (unsigned int i = 0; i < result.batch(); ++i) {
+    for (unsigned int j = 0; j < result.height(); ++j) {
+      for (unsigned int k = 0; k < result.width(); ++k) {
         if (ans[i][0][j][k] != result.getValue(i, 0, j, k)) {
           status = ML_ERROR_RESULT_OUT_OF_RANGE;
           goto end_dot_01_p;
@@ -837,9 +837,9 @@ TEST(nntrainer_Tensor, transpose_01_p) {
                           k * (width) + l + 1);
   nntrainer::Tensor result = input.transpose("0:2:1");
 
-  for (int i = 0; i < result.getBatch(); ++i) {
-    for (int j = 0; j < result.getHeight(); ++j) {
-      for (int k = 0; k < result.getWidth(); ++k) {
+  for (unsigned int i = 0; i < result.batch(); ++i) {
+    for (unsigned int j = 0; j < result.height(); ++j) {
+      for (unsigned int k = 0; k < result.width(); ++k) {
         if (ans[i][0][j][k] != result.getValue(i, 0, j, k)) {
           status = ML_ERROR_RESULT_OUT_OF_RANGE;
           goto end_transpose_01_p;
@@ -924,22 +924,37 @@ TEST(nntrainer_Tensor, copy_and_shares_variable_p) {
   EXPECT_EQ(A, C);
   EXPECT_NE(B, C);
 
-  C.setDim(nntrainer::TensorDim(3, 4, 6, 5));
+  C.reshape(nntrainer::TensorDim(3, 4, 6, 5));
   EXPECT_EQ(A.getDim(), B.getDim());
   EXPECT_NE(A.getDim(), C.getDim());
 }
 
-/// #412
-TEST(nntrainer_Tensor, DISABLED_copy_and_resize_n) {
+TEST(nntrainer_Tensor, reshape_n_01) {
+  nntrainer::Tensor A = constant(1.0f, 3, 4, 5, 6);
+
+  EXPECT_THROW(A.reshape(nntrainer::TensorDim(9, 9, 9, 9)),
+               std::invalid_argument);
+}
+
+TEST(nntrainer_Tensor, reshape_n_02) {
+  nntrainer::Tensor A = constant(1.0f, 3, 4, 5, 6);
+  nntrainer::TensorDim A_dim = A.getDim();
+
+  /** Changing the dim of a tensor only affects local copy of the dim */
+  A_dim.setTensorDim(1, 100);
+  EXPECT_EQ(A_dim.getTensorDim(1), 100);
+
+  nntrainer::TensorDim A_dim_2 = A.getDim();
+  EXPECT_EQ(A_dim_2.getTensorDim(1), 4);
+}
+
+TEST(nntrainer_Tensor, copy_and_reshape_n) {
   nntrainer::Tensor A = constant(1.0f, 3, 4, 5, 6);
   nntrainer::Tensor B = A;
   nntrainer::Tensor C = A.clone();
 
-  /// this is undefined behavior
-  B.setDim(nntrainer::TensorDim(9, 9, 9, 9));
-
-  /// @todo replace this to appropriate test;
-  EXPECT_TRUE(true);
+  EXPECT_THROW(B.reshape(nntrainer::TensorDim(9, 9, 9, 9)),
+               std::invalid_argument);
 }
 
 /// @note this test case demonstrates it is dangeruous to use sharedConstTensor
@@ -955,7 +970,7 @@ TEST(nntrainer_Tensor, constructor_from_shared_const_ptr_shares_variable_n) {
   EXPECT_EQ(*A, B);
   EXPECT_NE(*A, C);
 
-  C.setDim(nntrainer::TensorDim(3, 4, 6, 5));
+  C.reshape(nntrainer::TensorDim(3, 4, 6, 5));
   EXPECT_EQ(A->getDim(), B.getDim());
   EXPECT_NE(A->getDim(), C.getDim());
 }
