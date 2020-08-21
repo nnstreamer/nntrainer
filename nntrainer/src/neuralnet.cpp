@@ -162,7 +162,7 @@ int NeuralNetwork::setTrainConfig(std::vector<std::string> values) {
       NN_RETURN_STATUS();
     } break;
     case PropertyType::model_file: {
-      model = value;
+      save_path = value;
     } break;
     case PropertyType::continue_train: {
       bool cont_train;
@@ -335,12 +335,12 @@ NeuralNetwork &NeuralNetwork::copy(NeuralNetwork &from) {
 }
 
 /**
- * @brief     save model
+ * @brief     save model to file
  *            save Weight & Bias Data into file by calling save from layer
  *            save training parameters from the optimizer
  */
 void NeuralNetwork::saveModel() {
-  std::ofstream model_file(model, std::ios::out | std::ios::binary);
+  std::ofstream model_file(save_path, std::ios::out | std::ios::binary);
   for (unsigned int i = 0; i < layers.size(); i++)
     layers[i]->save(model_file);
   model_file.write((char *)&iter, sizeof(iter));
@@ -348,21 +348,21 @@ void NeuralNetwork::saveModel() {
 }
 
 /**
- * @brief     read model
+ * @brief     read model from file
  *            read Weight & Bias Data into file by calling save from layer
  *            read training parameters from the optimizer if continuing train
  */
 void NeuralNetwork::readModel() {
-  if (!isFileExist(model))
+  if (!isFileExist(save_path))
     return;
-  std::ifstream model_file(model, std::ios::in | std::ios::binary);
+  std::ifstream model_file(save_path, std::ios::in | std::ios::binary);
   for (unsigned int i = 0; i < layers.size(); i++)
     layers[i]->read(model_file);
   if (continue_train) {
     model_file.read((char *)&iter, sizeof(iter));
   }
   model_file.close();
-  ml_logi("read modelfile: %s", model.c_str());
+  ml_logi("read modelfile: %s", save_path.c_str());
 }
 
 int NeuralNetwork::train() {

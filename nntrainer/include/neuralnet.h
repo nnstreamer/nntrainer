@@ -78,7 +78,7 @@ public:
     swap(lhs.loss, rhs.loss);
     swap(lhs.cost, rhs.cost);
     swap(lhs.weight_ini, rhs.weight_ini);
-    swap(lhs.model, rhs.model);
+    swap(lhs.save_path, rhs.save_path);
     swap(lhs.opt, rhs.opt);
     swap(lhs.net_type, rhs.net_type);
     swap(lhs.layers, rhs.layers);
@@ -306,7 +306,7 @@ private:
 
   WeightIniType weight_ini; /**< Weight Initialization type */
 
-  std::string model; /**< Model path to save / read */
+  std::string save_path; /**< Model path to save / read */
 
   Optimizer opt; /**< Optimizer, This gets copied into each layer, do not use
                     this directly */
