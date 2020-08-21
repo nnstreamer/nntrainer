@@ -53,10 +53,10 @@ LOCAL_CFLAGS += -pthread -fopenmp -fexceptions
 LOCAL_LDFLAGS += -fopenmp -fexceptions
 LOCAL_MODULE_TAGS := optional
 LOCAL_ARM_MODE := arm
-LOCAL_MODULE := nntrainer_knn
+LOCAL_MODULE := knn_sample
 LOCAL_LDLIBS := -llog
 
-LOCAL_SRC_FILES := main.cpp bitmap_helpers.cpp
+LOCAL_SRC_FILES := main_sample.cpp bitmap_helpers.cpp
 
 LOCAL_SHARED_LIBRARIES := nntrainer
 
