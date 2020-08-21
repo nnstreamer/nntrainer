@@ -350,9 +350,6 @@ TEST_F(nntrainer_FullyConnectedLayer, initialize_04_p) {
   EXPECT_EQ(status, ML_ERROR_NONE);
   EXPECT_EQ(layer.getName(), layer_name);
 
-  status = layer.initialize();
-  EXPECT_EQ(status, ML_ERROR_NONE);
-
   /** Layer name can be updated */
   layer_name = "FCLayer1";
   status = layer.setName(layer_name);
@@ -872,8 +869,6 @@ protected:
 };
 
 TEST_F(nntrainer_Conv2DLayer, print_01_p) {
-  setProperty("filter=3");
-  reinitialize();
   unsigned int option = nntrainer::LayerPrintOption::PRINT_INST_INFO |
                         nntrainer::LayerPrintOption::PRINT_SHAPE_INFO |
                         nntrainer::LayerPrintOption::PRINT_PROP |
