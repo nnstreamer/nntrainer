@@ -51,7 +51,7 @@ TEST(nntrainer_NeuralNetwork, init_01_p) {
 TEST(nntrainer_NeuralNetwork, load_config_01_n) {
   int status = ML_ERROR_NONE;
   RESET_CONFIG("./test.ini");
-  replaceString("[Network]", "", "./test.ini", config_str);
+  replaceString("[Model]", "", "./test.ini", config_str);
   nntrainer::NeuralNetwork NN;
 
   status = NN.loadFromConfig("./test.ini");

@@ -82,10 +82,10 @@ TEST_P(nntrainerIniTest, initThreetime_n) {
 }
 
 /// @todo add run test could be added with iniTest flag to control skip
-static IniSection nw_base("network", "Type = NeuralNetwork | "
-                                     "minibatch = 32 | "
-                                     "epsilon = 1e-7 | "
-                                     "cost = cross");
+static IniSection nw_base("model", "Type = NeuralNetwork | "
+                                   "minibatch = 32 | "
+                                   "epsilon = 1e-7 | "
+                                   "cost = cross");
 static IniSection adam("adam", "Optimizer = adam |"
                                "Learning_rate = 0.00001 |"
                                "Decay_rate = 0.96 |"
@@ -169,8 +169,8 @@ INSTANTIATE_TEST_CASE_P(
     mkIniTc("last_act_layer_relu2_n", {nw_sgd, input, out + "-Activation", act_relu }, INITFAIL),
 
   /**< negative: basic invalid scenarios (5 negative cases) */
-    mkIniTc("no_network_sec_name_n", {I(nw_adam, "-", "")}, ALLFAIL),
-    mkIniTc("no_network_sec_n", {input, out}, ALLFAIL),
+    mkIniTc("no_model_sec_name_n", {I(nw_adam, "-", "")}, ALLFAIL),
+    mkIniTc("no_model_sec_n", {input, out}, ALLFAIL),
     mkIniTc("empty_n", {}, ALLFAIL),
     mkIniTc("no_layers_n", {nw_adam}, ALLFAIL),
     mkIniTc("no_layers_2_n", {nw_adam, dataset}, ALLFAIL),

@@ -38,7 +38,7 @@ you can find detail explanation about each keyword in
 https://github.com/nnstreamer/nntrainer/blob/master/docs/configuration-ini.md
 
 ```
-[Network]
+[Model]
 Type = NeuralNetwork
 Learning_rate = 0.0001
 Decay_rate = 0.96

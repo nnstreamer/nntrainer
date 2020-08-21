@@ -42,7 +42,7 @@ public:
    * @param[in] config config file path
    * @param[in/out] model model to be loaded
    */
-  int loadFromConfig(std::string config, NeuralNetwork &network);
+  int loadFromConfig(std::string config, NeuralNetwork &model);
 
 private:
   /**
@@ -50,21 +50,21 @@ private:
    * @param[in] config config file path
    * @param[in/out] model model to be loaded
    */
-  int loadFromIni(std::string ini_file, NeuralNetwork &network);
+  int loadFromIni(std::string ini_file, NeuralNetwork &model);
 
   /**
    * @brief     load dataset config from ini
    * @param[in] ini dictionary containing the config
    * @param[in] model model to be loaded
    */
-  int loadDatasetConfigIni(dictionary *ini, NeuralNetwork &network);
+  int loadDatasetConfigIni(dictionary *ini, NeuralNetwork &model);
 
   /**
-   * @brief     load network config from ini
+   * @brief     load model config from ini
    * @param[in] ini dictionary containing the config
    * @param[in/out] model model to be loaded
    */
-  int loadNetworkConfigIni(dictionary *ini, NeuralNetwork &network);
+  int loadModelConfigIni(dictionary *ini, NeuralNetwork &model);
 
   /**
    * @brief     load layer config from ini

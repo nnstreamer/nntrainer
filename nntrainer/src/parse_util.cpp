@@ -79,13 +79,13 @@ unsigned int parseType(std::string ll, InputType t) {
   std::array<std::string, 2> cost_string = {"mse", "cross"};
 
   /**
-   * @brief     Network Type String from configure file
+   * @brief     Model Type String from configure file
    *            "knn"  : K Neearest Neighbor
    *            "regression" : Logistic Regression
    *            "neuralnet" : Neural Network
    */
-  std::array<std::string, 3> network_type_string = {"knn", "regression",
-                                                    "neuralnet"};
+  std::array<std::string, 3> model_type_string = {"knn", "regression",
+                                                  "neuralnet"};
 
   /**
    * @brief     Activation Type String from configure file
@@ -168,10 +168,10 @@ unsigned int parseType(std::string ll, InputType t) {
     }
     ret = (unsigned int)CostType::COST_UNKNOWN;
     break;
-  case TOKEN_NET:
-    for (i = 0; i < network_type_string.size(); i++) {
-      if (!strncasecmp(network_type_string[i].c_str(), ll.c_str(),
-                       network_type_string[i].size())) {
+  case TOKEN_MODEL:
+    for (i = 0; i < model_type_string.size(); i++) {
+      if (!strncasecmp(model_type_string[i].c_str(), ll.c_str(),
+                       model_type_string[i].size())) {
         return (i);
       }
     }
