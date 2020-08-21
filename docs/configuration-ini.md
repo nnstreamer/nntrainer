@@ -15,7 +15,7 @@ Network section includes the hyper-parameters about Network such as mini batch s
 
 Start with "[Model]"
 
-1. ```type = <string>```
+1. ```type (mandatory) = <string>```
 
    Type of Network
      * regression : network for linear regression
@@ -43,7 +43,7 @@ Start with "[Model]"
      * cross : cross entropy
         Only allowed with sigmoid and softmax activation function
 
-6. ```model = <string>```
+6. ```save_path = <string>```
 
    Model file path to save updated weights
 
@@ -73,7 +73,7 @@ Learning_rate = 1e-4
 Epoch = 1500
 Optimizer = adam
 Cost = cross
-Model = "model.bin"
+Save_Path = "model.bin"
 minibatch = 32
 beta1 = 0.9
 beta2 = 0.999
@@ -268,7 +268,7 @@ learning_rate = 1e-4
 epoch = 1500
 optimizer = adam
 cost = cross
-model = "model.bin"
+Save_Path = "model.bin"
 minibatch = 32
 beta1 = 0.9
 beta2 = 0.999

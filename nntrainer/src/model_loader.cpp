@@ -44,7 +44,7 @@ int ModelLoader::loadModelConfigIni(dictionary *ini, NeuralNetwork &model) {
   model.epoch = iniparser_getint(ini, "Model:Epoch", model.epoch);
   model.cost = (CostType)parseType(
     iniparser_getstring(ini, "Model:Cost", unknown), TOKEN_COST);
-  model.model = iniparser_getstring(ini, "Model:Model", "model.bin");
+  model.save_path = iniparser_getstring(ini, "Model:Save_path", "./model.bin");
   model.batch_size = iniparser_getint(ini, "Model:Minibatch", model.batch_size);
 
   /** Default to adam optimizer */
