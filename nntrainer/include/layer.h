@@ -519,11 +519,12 @@ protected:
    * shouldn't be changed again.
    */
   void setParamSize(unsigned int psize) {
+    if (psize == param_size)
+      return;
 
-    /// @todo uncomment this after fixing layer test. #293
-    // if (param_size > 0) {
-    //   throw std::invalid_argument("param size can't be set once it is set");
-    // }
+    if (param_size > 0) {
+      throw std::invalid_argument("param size can't be set once it is set");
+    }
 
     param_size = psize;
     params = std::shared_ptr<UpdatableParam>(
