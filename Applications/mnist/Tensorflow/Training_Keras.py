@@ -41,7 +41,7 @@ np.random.seed(SEED)
 batch_size =32
 Learning = True
 Test = False
-num_epoch = 1500
+num_epoch = 50
 DEBUG = True
 USE_FIT = False
 
@@ -77,9 +77,10 @@ def datagen( x_data, y_data, batch_size):
 
 def create_model():
     model = models.Sequential()
-    model.add(Conv2D(6, (5,5), padding='valid', activation='sigmoid', input_shape=(28,28,1), kernel_initializer=initializers.Zeros(), bias_initializer=initializers.Zeros()))
+    model.add(tf.keras.Input(shape=(28, 28, 1)))
+    model.add(Conv2D(6, (5,5), padding='valid', activation='sigmoid', kernel_initializer=initializers.Zeros(), bias_initializer=initializers.Zeros()))
     model.add(AveragePooling2D(pool_size=(2,2)))
-    model.add(Conv2D(12, (5,5), padding='valid', activation='sigmoid', kernel_initializer=initializers.Zeros(), bias_initializer=initializers.Zeros()))
+    model.add(Conv2D(12, (1,1), padding='valid', activation='sigmoid', kernel_initializer=initializers.Zeros(), bias_initializer=initializers.Zeros()))
     model.add(AveragePooling2D(pool_size=(2,2)))
     model.add(Flatten())
     model.add(layers.Dense(10,kernel_initializer=initializers.Zeros(), bias_initializer=initializers.Zeros()))
@@ -96,7 +97,7 @@ def train_nntrainer(target):
     train_data_size, val_data_size, label_size, feature_size = dataset.get_data_info(target)
     InVec, InLabel, ValVec, ValLabel = dataset.load_data(target)
 
-    model=create_model()
+    model = create_model()
     model.summary()
 
     if USE_FIT == False:
@@ -108,17 +109,16 @@ def train_nntrainer(target):
         tf_logit = model(inputs, training=True)
         tf_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(
             labels=labels, logits=tf_logit))
-        optimizer = tf.keras.optimizers.Adam(learning_rate=1.0e-4, beta_1=0.9, beta_2=0.999, epsilon=1.0e-7)
+        optimizer = tf.keras.optimizers.Adam(learning_rate=1.0e-4, epsilon=1.0e-7, beta_1=0.9, beta_2=0.999)
 
         trainable_variables = tf.compat.v1.trainable_variables()
         tf_grad = optimizer.get_gradients(tf_loss, params = trainable_variables)
         train_op = optimizer.apply_gradients(zip(tf_grad, trainable_variables))
 
-        var_to_run = [tf_logit, tf_loss, tf_grad, train_op]
+        var_to_run = [train_op, tf_loss]
         infer_to_run = [tf.reduce_sum(tf.cast(tf.equal(tf.math.argmax(tf.nn.softmax(tf_logit), axis=1), tf.math.argmax(labels, axis=1)), tf.float32))/batch_size, tf_loss]
 
-        if not os.path.exists('./nntrainer_tfmodel'):
-            sess.run(tf.compat.v1.global_variables_initializer())
+        sess.run(tf.compat.v1.global_variables_initializer())
 
         for i in range(0, num_epoch):
             count = 0
@@ -137,7 +137,7 @@ def train_nntrainer(target):
             count =0
             accuracy = 0;
             loss = 0;
-            for x, y in datagen(InVec, InLabel, batch_size):
+            for x, y in datagen(ValVec, ValLabel, batch_size):
                 feed_dict = {inputs: x, labels: y}
                 infer_out = sess.run(infer_to_run, feed_dict = feed_dict)
                 accuracy += infer_out[0]
@@ -148,7 +148,7 @@ def train_nntrainer(target):
             accuracy = (accuracy / count) * 100.0
             loss = loss / count
 
-            print('#{}/{} - Training Loss: {:10.6f} >> [ Accuracy: {:10.6f}% - Valiadtion Loss : {:10.6f} ]'. format(i,num_epoch, training_loss, accuracy, loss))
+            print('#{}/{} - Training Loss: {:10.6f} >> [ Accuracy: {:10.6f}% - Valiadtion Loss : {:10.6f} ]'. format(i + 1, num_epoch, training_loss, accuracy, loss))
     else:
         ## Method 1 : using keras fit (training and evaluating manually)
         optimizer = optimizers.Adam(learning_rate=1.0e-4, beta_1=0.9, beta_2=0.999, epsilon=1.0e-7)
@@ -159,7 +159,8 @@ def train_nntrainer(target):
                   epochs = num_epoch,
                   steps_per_epoch = len(InVec) // batch_size,
                   validation_data = datagen(ValVec, ValLabel, batch_size),
-                  validation_steps = len(ValVec) // batch_size)
+                  validation_steps = len(ValVec) // batch_size,
+                  shuffle = False)
 
 ##
 # @brief main loop
@@ -168,11 +169,11 @@ if __name__ == "__main__":
     target = sys.argv[1] if len(sys.argv) > 1 else "train"
     target1 = sys.argv[2] if len(sys.argv) > 2 else "train"
 
-    if target == "validation":
-        batch_size = 32
-        num_epoch = 1
+    # if target == "validation":
+    #     batch_size = 32
+    #     num_epoch = 1
 
     if target1 == "train":
-        Learning = True
+    #     Learning = True
         train_nntrainer(target)
 
