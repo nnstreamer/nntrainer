@@ -41,7 +41,7 @@ namespace nntrainer {
  * @brief     Enumeration for input configuration file parsing
  *            0. OPT     ( Optimizer Token )
  *            1. COST    ( Cost Function Token )
- *            2. NET     ( Network Token )
+ *            2. MODEL   ( Model Token )
  *            3. ACTI    ( Activation Token )
  *            4. LAYER   ( Layer Token )
  *            5. WEIGHTINI  ( Weight Initialization Token )
@@ -53,7 +53,7 @@ namespace nntrainer {
 typedef enum {
   TOKEN_OPT,
   TOKEN_COST,
-  TOKEN_NET,
+  TOKEN_MODEL,
   TOKEN_ACTI,
   TOKEN_LAYER,
   TOKEN_WEIGHTINI,

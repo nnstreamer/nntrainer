@@ -33,38 +33,37 @@
 namespace nntrainer {
 
 /**
- * @brief     load network config from ini
+ * @brief     load model config from ini
  */
-int ModelLoader::loadNetworkConfigIni(dictionary *ini, NeuralNetwork &network) {
+int ModelLoader::loadModelConfigIni(dictionary *ini, NeuralNetwork &model) {
   int status = ML_ERROR_NONE;
 
   /** Default to neural network model type */
-  network.net_type = (nntrainer::NetType)parseType(
-    iniparser_getstring(ini, "Network:Type", unknown), TOKEN_NET);
-  network.epoch = iniparser_getint(ini, "Network:Epoch", network.epoch);
-  network.cost = (CostType)parseType(
-    iniparser_getstring(ini, "Network:Cost", unknown), TOKEN_COST);
-  network.model = iniparser_getstring(ini, "Network:Model", "model.bin");
-  network.batch_size =
-    iniparser_getint(ini, "Network:Minibatch", network.batch_size);
+  model.net_type = (nntrainer::NetType)parseType(
+    iniparser_getstring(ini, "Model:Type", unknown), TOKEN_MODEL);
+  model.epoch = iniparser_getint(ini, "Model:Epoch", model.epoch);
+  model.cost = (CostType)parseType(
+    iniparser_getstring(ini, "Model:Cost", unknown), TOKEN_COST);
+  model.model = iniparser_getstring(ini, "Model:Model", "model.bin");
+  model.batch_size = iniparser_getint(ini, "Model:Minibatch", model.batch_size);
 
   /** Default to adam optimizer */
-  status = network.opt.setType((OptType)parseType(
-    iniparser_getstring(ini, "Network:Optimizer", "adam"), TOKEN_OPT));
+  status = model.opt.setType((OptType)parseType(
+    iniparser_getstring(ini, "Model:Optimizer", "adam"), TOKEN_OPT));
   NN_RETURN_STATUS();
 
-  OptParam popt(network.opt.getType());
+  OptParam popt(model.opt.getType());
   popt.learning_rate =
-    iniparser_getdouble(ini, "Network:Learning_rate", popt.learning_rate);
+    iniparser_getdouble(ini, "Model:Learning_rate", popt.learning_rate);
   popt.decay_steps =
-    iniparser_getint(ini, "Network:Decay_steps", popt.decay_steps);
+    iniparser_getint(ini, "Model:Decay_steps", popt.decay_steps);
   popt.decay_rate =
-    iniparser_getdouble(ini, "Network:Decay_rate", popt.decay_rate);
-  popt.beta1 = iniparser_getdouble(ini, "Network:beta1", popt.beta1);
-  popt.beta2 = iniparser_getdouble(ini, "Network:beta2", popt.beta2);
-  popt.epsilon = iniparser_getdouble(ini, "Network:epsilon", popt.epsilon);
+    iniparser_getdouble(ini, "Model:Decay_rate", popt.decay_rate);
+  popt.beta1 = iniparser_getdouble(ini, "Model:beta1", popt.beta1);
+  popt.beta2 = iniparser_getdouble(ini, "Model:beta2", popt.beta2);
+  popt.epsilon = iniparser_getdouble(ini, "Model:epsilon", popt.epsilon);
 
-  status = network.opt.setOptParam(popt);
+  status = model.opt.setOptParam(popt);
   NN_RETURN_STATUS();
 
   return status;
@@ -73,7 +72,7 @@ int ModelLoader::loadNetworkConfigIni(dictionary *ini, NeuralNetwork &network) {
 /**
  * @brief     load dataset config from ini
  */
-int ModelLoader::loadDatasetConfigIni(dictionary *ini, NeuralNetwork &network) {
+int ModelLoader::loadDatasetConfigIni(dictionary *ini, NeuralNetwork &model) {
   /// @fixme: 370
   ml_logd("start parsing dataset config");
   int status = ML_ERROR_NONE;
@@ -83,9 +82,9 @@ int ModelLoader::loadDatasetConfigIni(dictionary *ini, NeuralNetwork &network) {
     return ML_ERROR_INVALID_PARAMETER;
   }
 
-  network.data_buffer = std::make_shared<DataBufferFromDataFile>();
+  model.data_buffer = std::make_shared<DataBufferFromDataFile>();
   std::shared_ptr<DataBufferFromDataFile> dbuffer =
-    std::static_pointer_cast<DataBufferFromDataFile>(network.data_buffer);
+    std::static_pointer_cast<DataBufferFromDataFile>(model.data_buffer);
 
   std::function<int(const char *, DataType, bool)> parse_and_set =
     [&](const char *key, DataType dt, bool required) -> int {
@@ -108,9 +107,9 @@ int ModelLoader::loadDatasetConfigIni(dictionary *ini, NeuralNetwork &network) {
   NN_RETURN_STATUS();
 
   /// fixme: #299, #389
-  int bufsize = iniparser_getint(ini, "DataSet:BufferSize", network.batch_size);
+  int bufsize = iniparser_getint(ini, "DataSet:BufferSize", model.batch_size);
   ml_logd("buf size: %d", bufsize);
-  status = network.data_buffer->setBufSize(bufsize);
+  status = model.data_buffer->setBufSize(bufsize);
   NN_RETURN_STATUS();
 
   ml_logd("parsing dataset done");
@@ -191,12 +190,12 @@ int ModelLoader::loadLayerConfigIni(dictionary *ini,
 /**
  * @brief     load all of model and dataset from ini
  */
-int ModelLoader::loadFromIni(std::string ini_file, NeuralNetwork &network) {
+int ModelLoader::loadFromIni(std::string ini_file, NeuralNetwork &model) {
   int status = ML_ERROR_NONE;
   int num_ini_sec = 0;
   dictionary *ini;
-  const char network_str[] = "network";
-  unsigned int network_len = strlen(network_str);
+  const char model_str[] = "model";
+  unsigned int model_len = strlen(model_str);
   const char dataset_str[] = "dataset";
   unsigned int dataset_len = strlen(dataset_str);
 
@@ -226,8 +225,8 @@ int ModelLoader::loadFromIni(std::string ini_file, NeuralNetwork &network) {
     NN_INI_RETURN_STATUS();
   }
 
-  if (iniparser_find_entry(ini, "network") == 0) {
-    ml_loge("there is no [network] section in given ini file");
+  if (iniparser_find_entry(ini, model_str) == 0) {
+    ml_loge("there is no [Model] section in given ini file");
     status = ML_ERROR_INVALID_PARAMETER;
     NN_INI_RETURN_STATUS();
   }
@@ -248,14 +247,14 @@ int ModelLoader::loadFromIni(std::string ini_file, NeuralNetwork &network) {
       NN_INI_RETURN_STATUS();
     }
 
-    if (strncasecmp(network_str, sec_name, network_len) == 0) {
-      status = loadNetworkConfigIni(ini, network);
+    if (strncasecmp(model_str, sec_name, model_len) == 0) {
+      status = loadModelConfigIni(ini, model);
       NN_INI_RETURN_STATUS();
       continue;
     }
 
     if (strncasecmp(dataset_str, sec_name, dataset_len) == 0) {
-      status = loadDatasetConfigIni(ini, network);
+      status = loadDatasetConfigIni(ini, model);
       NN_INI_RETURN_STATUS();
       continue;
     }
@@ -265,20 +264,20 @@ int ModelLoader::loadFromIni(std::string ini_file, NeuralNetwork &network) {
     status = loadLayerConfigIni(ini, layer, sec_name);
     NN_INI_RETURN_STATUS();
 
-    status = network.addLayer(layer);
+    status = model.addLayer(layer);
     NN_INI_RETURN_STATUS();
   }
   ml_logd("parsing ini finished");
 
-  /**< Additional validation and handling for the neural network */
-  if (!network.data_buffer) {
-    network.data_buffer = std::make_shared<DataBufferFromCallback>();
+  /**< Additional validation and handling for the model */
+  if (!model.data_buffer) {
+    model.data_buffer = std::make_shared<DataBufferFromCallback>();
   }
 
-  status = network.data_buffer->setMiniBatch(network.batch_size);
+  status = model.data_buffer->setMiniBatch(model.batch_size);
   NN_INI_RETURN_STATUS();
 
-  if (network.layers.empty()) {
+  if (model.layers.empty()) {
     ml_loge("there is no layer section in the ini file");
     status = ML_ERROR_INVALID_PARAMETER;
   }
@@ -290,13 +289,13 @@ int ModelLoader::loadFromIni(std::string ini_file, NeuralNetwork &network) {
 /**
  * @brief     load all of model and dataset from given config file
  */
-int ModelLoader::loadFromConfig(std::string config, NeuralNetwork &network) {
+int ModelLoader::loadFromConfig(std::string config, NeuralNetwork &model) {
   size_t position = config.find_last_of(".");
   if (position == std::string::npos)
     throw std::invalid_argument("Extension missing in config file");
 
   if (config.substr(position + 1) == "ini") {
-    return loadFromIni(config, network);
+    return loadFromIni(config, model);
   }
 
   return ML_ERROR_INVALID_PARAMETER;

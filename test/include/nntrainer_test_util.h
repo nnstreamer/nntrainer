@@ -170,7 +170,7 @@ std::tuple<const char *, const std::vector<IniSection>, int>
 mkIniTc(const char *name, const std::vector<IniSection> vec, int flag);
 
 /// @todo: migrate this to datafile unittest
-const std::string config_str = "[Network]"
+const std::string config_str = "[Model]"
                                "\n"
                                "Type = NeuralNetwork"
                                "\n"
@@ -233,7 +233,7 @@ const std::string config_str = "[Network]"
                                "Activation = softmax"
                                "\n";
 
-const std::string config_str2 = "[Network]"
+const std::string config_str2 = "[Model]"
                                 "\n"
                                 "Type = NeuralNetwork"
                                 "\n"

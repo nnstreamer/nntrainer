@@ -11,7 +11,7 @@ Configuration file consists of Two Sections, Network and Layer
 ### Network Section
 Network section includes the hyper-parameters about Network such as mini batch size, name of model file to save trained weight, epoch and etc.
 
-Start with "[Network]"
+Start with "[Model]"
 
 1. ```type = <string>```
 
@@ -19,65 +19,65 @@ Start with "[Network]"
      - regression : network for linear regression
      - knn : K-nearest neighbor
      - neuralnetwork : Deep Neural Network
-	 
-  
+
+
 2. ```learning_rate = <float>```
 
    Initial learning rate to decay
-   
+
 
 3. ```epoch = <unsigned int>```
 
    Number of epochs to train
-   
+
 
 4. ```optimizer = <string>```
 
    Optimizer to apply the gradients to weights.
      - adam : Adaptive Moment Estimation
      - sgd : stochastic gradient decent
-	 
-  
+
+
 5. ```cost = <string>```
 
-   Cost (Loss) function 
+   Cost (Loss) function
      - mse : mean squared error
      - cross : cross entropy
-        Only allowed with sigmoid and softmax activation function 
-		
-	 
+        Only allowed with sigmoid and softmax activation function
+
+
 6. ```model = <string>```
 
    Model file path to save updated weights
-   
-   
+
+
 7. ```minibatch = <unsigned int>```
 
    Mini batch size
-   
-   
+
+
 8. ```beta1 = <float>```
 
    beta1 parameter for adam optimizer. Only valid for adam.   0.9 is default.
-   
-   
+
+
 9. ```beta2 = <float>```
 
    beta2 parameter for adam optimizer. Only valid for adam.   0.999 is default.
-   
-   
+
+
 10. ```epsilon = <float>```
 
      Epsilon parameter for adam optimizer. Only valid for adam.   1.0e-7 is defalut.
-	 
-   
+
+
 
 **example**
 
 
 ```bash
 # Network Section : Network
-[Network]
+[Model]
 Type = NeuralNetwork
 Learning_rate = 1e-4
 Epoch = 1500
@@ -99,39 +99,39 @@ Start with "[ DataSet ]"
 1. ```buffersize = <unsigned int>```
 
     Define Buffer size. usually it is greater than mini batch size.
-	
+
 	Data buffer thread keep read the data from file and store into Data Buffer, and meanwhile
 	main thread get the training data from this Data Buffer and use them to train.
 	This keyword defines the size of Data Buffer.
-	
-	
+
+
 2. ```traindata = <string>```
 
     training data file path.   The data must be saved as following
-	
+
 	```feature data[i], label data[i], feature data[i+1], label data[i+1], ...```
-	
-	
+
+
 3. ```validdata = <string>```
 
     validation data file path.   The data must be saved as following
-	
+
 	```feature data[i], label data[i], feature data[i+1], label data[i+1], ...```
 
-	
+
 4. ```testdata = <string>```
 
     test data file path.   The data must be saved as following
-	
+
 	```feature data[i], label data[i], feature data[i+1], label data[i+1], ...```
-	
+
 
 5. ```labeldata = <string>```
 
     label data file path. The data must be saved as following
-	
-	```Class Name [i], Class name [i+1],...```	
-	
+
+	```Class Name [i], Class name [i+1],...```
+
 
 ### Layer Section
 Describe hyper-parameters for layer. Order of layers in the model follows the order of definition of layers here from top to bottom.
@@ -148,34 +148,34 @@ Start with "[ ${layer name} ]". This layer name must be unique throughout networ
      - fully_connected : fully connected layer
      - batch_normalization : batch normalization layer
      - activation : activation layer
-	 
-  
+
+
 2. ```kernel_size = <unsigned int>,<unsigned int>```
 
    Kernel size for convolution layer
-   
-  
+
+
 3. ```bias_init_zero = <bool>```
 
    token to initialize bias with zeros. Setting to False would initialize bias randomly.
-   
-  
+
+
 4. ```normalization = <bool>```
 
 	normalization on the input of this layer.
-   
-  
+
+
 5. ```standardization = <bool>```
 
    	standardization on the input of this layer.
-   
-  
+
+
 6. ```input_shape = <unsigned int>:<unsigned int>:<unsigned int>```
 
    shape of input
    it shouldn't be zero.
-   
-  
+
+
 7. ```activation = <string>```
 
    set activation layer <string>
@@ -183,55 +183,55 @@ Start with "[ ${layer name} ]". This layer name must be unique throughout networ
      - sigmoid : sigmoid function
      - relu : relu function
      - softmax : softmax function
-	 
-  
+
+
 8. ```weight_decay = <string>```
 
-   set weight decay 
+   set weight decay
      - l2norm : L2Norm
-	 
-  
+
+
 9. ```weight_decay_lambda = <float>```
 
    coefficient for weight decay
-   
-  
+
+
 10. ```unit = <unsigned int>```
 
-     set the output layer for fully connected layer 
-   
-  
+     set the output layer for fully connected layer
+
+
 11. ```weight_ini = <string>```
 
-     set weight initialization method 
+     set weight initialization method
        - lecun_normal : LeCun normal initialization
        - lecun_uniform : LeCun uniform initialization
        - xavier_normal : xavier normal iniitalization
        - xavier_uniform : xavier uniform initialization
        - he_normal : He normal initialization
        - he_uniform : He uniform initialization
-	 
-  
+
+
 12. ```filter = <unsigned int>```
 
      set filter size for convolution layer
-   
-  
+
+
 13. ```stride = <unsigned int>,<unsigned int>```
 
      set stride for convolution and pooling layer
-   
-  
-14. ```padding = <unsigned int>,<unsigned int>``` 
+
+
+14. ```padding = <unsigned int>,<unsigned int>```
 
      set padding for convolution and pooling layer
-   
-  
+
+
 15. ```pooling_size = <unsigned int>,<unsigned int>```
 
      set pooling size for pooling layer
-   
-  
+
+
 16. ```pooling = <string>```
 
      define type of pooling
@@ -239,17 +239,17 @@ Start with "[ ${layer name} ]". This layer name must be unique throughout networ
        - average : average pooling
        - global_max : global max pooling
        - global_average : global average pooling
-	 
-  
+
+
 17. ```flatten = <bool>```
 
 	flattens the output of this layer.
 	Enabling this option is equivalent to attaching a flatten layer after the current layer.
-	
+
 18. ```epsilon = <float>```
 
     Epsilon parameter for batch normalization layer. Default is 0.001.
-	
+
 
 ### Properties for layer
 
@@ -294,7 +294,7 @@ It takes 1 x 28 x 28 gray data (0~255) as an input. Adam optimizer is used to ap
 
 ```batch
 # Network Section : Network
-[Network]
+[Model]
 type = NeuralNetwork
 learning_rate = 1e-4
 epoch = 1500
