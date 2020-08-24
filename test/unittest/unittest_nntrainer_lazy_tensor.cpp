@@ -1,5 +1,5 @@
-/* SPDX-License-Identifier: Apache-2.0-only
- * Copyright (C) 2020 Jihoon Lee <jihoon.it.lee@samsung.com>
+// SPDX-License-Identifier: Apache-2.0-only
+/* Copyright (C) 2020 Jihoon Lee <jihoon.it.lee@samsung.com>
  *
  * @file	unittest_nntrainer_lazy_tensor.cpp
  * @date	05 Jun 2020
