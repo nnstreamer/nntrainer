@@ -42,8 +42,8 @@ int ModelLoader::loadModelConfigIni(dictionary *ini, NeuralNetwork &model) {
   model.net_type = (nntrainer::NetType)parseType(
     iniparser_getstring(ini, "Model:Type", unknown), TOKEN_MODEL);
   model.epochs = iniparser_getint(ini, "Model:Epochs", model.epochs);
-  model.cost = (CostType)parseType(
-    iniparser_getstring(ini, "Model:Cost", unknown), TOKEN_COST);
+  model.loss_type = (LossType)parseType(
+    iniparser_getstring(ini, "Model:Loss", unknown), TOKEN_LOSS);
   model.save_path = iniparser_getstring(ini, "Model:Save_path", "./model.bin");
   model.batch_size =
     iniparser_getint(ini, "Model:Batch_Size", model.batch_size);

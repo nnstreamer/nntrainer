@@ -72,11 +72,11 @@ unsigned int parseType(std::string ll, InputType t) {
   std::array<std::string, 2> optimizer_string = {"sgd", "adam"};
 
   /**
-   * @brief     Cost Function String from configure file
+   * @brief     Loss Function String from configure file
    *            "mse"  : Mean Squared Error
    *            "caterogical" : Categorical Cross Entropy
    */
-  std::array<std::string, 2> cost_string = {"mse", "cross"};
+  std::array<std::string, 2> loss_string = {"mse", "cross"};
 
   /**
    * @brief     Model Type String from configure file
@@ -160,14 +160,14 @@ unsigned int parseType(std::string ll, InputType t) {
     }
     ret = (unsigned int)OptType::unknown;
     break;
-  case TOKEN_COST:
-    for (i = 0; i < cost_string.size(); i++) {
-      if (!strncasecmp(cost_string[i].c_str(), ll.c_str(),
-                       cost_string[i].size())) {
+  case TOKEN_LOSS:
+    for (i = 0; i < loss_string.size(); i++) {
+      if (!strncasecmp(loss_string[i].c_str(), ll.c_str(),
+                       loss_string[i].size())) {
         return (i);
       }
     }
-    ret = (unsigned int)CostType::COST_UNKNOWN;
+    ret = (unsigned int)LossType::LOSS_UNKNOWN;
     break;
   case TOKEN_MODEL:
     for (i = 0; i < model_type_string.size(); i++) {
@@ -351,14 +351,14 @@ unsigned int parseNetProperty(std::string property) {
 
   /**
    * @brief     Network Properties
-   * loss = 0,
-   * cost = 1,
+   * loss_val = 0,
+   * loss = 1,
    * batch_size = 2,
    * epochs = 3,
    * model_file = 4
    */
-  std::array<std::string, 5> property_string = {"loss", "cost", "batch_size",
-                                                "epochs", "model_file"};
+  std::array<std::string, 5> property_string = {
+    "loss_val", "loss", "batch_size", "epochs", "model_file"};
 
   for (i = 0; i < property_string.size(); i++) {
     unsigned int size = (property_string[i].size() > property.size())

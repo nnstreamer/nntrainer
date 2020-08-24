@@ -36,9 +36,9 @@ Start with "[Model]"
      * adam : Adaptive Moment Estimation
      * sgd : stochastic gradient decent
 
-5. ```cost = <string>```
+5. ```loss = <string>```
 
-   Cost (Loss) function
+   Loss function
      * mse : mean squared error
      * cross : cross entropy
         Only allowed with sigmoid and softmax activation function
@@ -72,7 +72,7 @@ Type = NeuralNetwork
 Learning_rate = 1e-4
 Epochs = 1500
 Optimizer = adam
-Cost = cross
+Loss = cross
 Save_Path = "model.bin"
 batch_size = 32
 beta1 = 0.9
@@ -268,7 +268,7 @@ type = NeuralNetwork
 learning_rate = 1e-4
 epochs = 1500
 optimizer = adam
-cost = cross
+loss = cross
 Save_Path = "model.bin"
 batch_size = 32
 beta1 = 0.9

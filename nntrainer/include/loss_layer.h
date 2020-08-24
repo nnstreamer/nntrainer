@@ -33,7 +33,7 @@ public:
   /**
    * @brief     Constructor of Loss Layer
    */
-  LossLayer() : cost(COST_UNKNOWN) { setType(LAYER_LOSS); };
+  LossLayer() : loss_type(LossType::LOSS_UNKNOWN) { setType(LAYER_LOSS); };
 
   /**
    * @brief     Destructor of Loss Layer
@@ -98,15 +98,15 @@ public:
   void setProperty(const PropertyType type, const std::string &value = "");
 
   /**
-   * @brief     set cost function
-   * @param[in] c cost function type
+   * @brief     set loss function
+   * @param[in] l loss type
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int setCost(CostType c);
+  int setLoss(LossType l);
 
 private:
-  CostType cost; /**< cost type of loss layer */
+  LossType loss_type; /**< loss type of loss layer */
 
   /**
    * @brief     update loss

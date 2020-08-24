@@ -446,13 +446,13 @@ protected:
     layers.push_back(act_layer);
   }
 
-  void addLoss(nntrainer::CostType type) {
+  void addLoss(nntrainer::LossType type) {
     std::shared_ptr<nntrainer::LossLayer> loss_layer =
       std::make_shared<nntrainer::LossLayer>();
     loss_layer->setInputDimension(layer.getOutputDimension());
     status = loss_layer->initialize();
     EXPECT_EQ(status, ML_ERROR_NONE);
-    status = loss_layer->setCost(type);
+    status = loss_layer->setLoss(type);
     EXPECT_EQ(status, ML_ERROR_NONE);
     layers.push_back(loss_layer);
   }
@@ -592,7 +592,7 @@ TEST_F(nntrainer_FullyConnectedLayer_TFmatch,
   std::vector<float> bias_data;
 
   setOptimizer(nntrainer::OptType::adam, "learning_rate=0.0001");
-  addLoss(nntrainer::COST_ENTROPY_SOFTMAX);
+  addLoss(nntrainer::LossType::LOSS_ENTROPY_SOFTMAX);
 
   matchForwarding("tc_fc_1_goldenFCResultSoftmaxCrossAdam.out");
 
@@ -623,7 +623,7 @@ TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_backwarding_01_p) {
 TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_backwarding_02_p) {
 
   addActivation(nntrainer::ACT_SIGMOID);
-  addLoss(nntrainer::COST_MSE);
+  addLoss(nntrainer::LossType::LOSS_MSE);
   setOptimizer(nntrainer::OptType::sgd, "learning_rate=1.0");
 
   /** Verify forwarding value */
@@ -644,7 +644,7 @@ TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_backwarding_02_p) {
 TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_backwarding_03_p) {
 
   addActivation(nntrainer::ACT_SOFTMAX);
-  addLoss(nntrainer::COST_MSE);
+  addLoss(nntrainer::LossType::LOSS_MSE);
   setOptimizer(nntrainer::OptType::sgd, "learning_rate=1.0");
 
   /** Verify forwarding value */
@@ -664,7 +664,7 @@ TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_backwarding_03_p) {
  */
 TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_backwarding_04_p) {
 
-  addLoss(nntrainer::COST_MSE);
+  addLoss(nntrainer::LossType::LOSS_MSE);
   setOptimizer(nntrainer::OptType::sgd, "learning_rate=1.0");
 
   /** Verify forwarding value */
@@ -685,7 +685,7 @@ TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_backwarding_04_p) {
 TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_backwarding_05_p) {
 
   addActivation(nntrainer::ACT_SIGMOID);
-  addLoss(nntrainer::COST_MSE);
+  addLoss(nntrainer::LossType::LOSS_MSE);
   setOptimizer(nntrainer::OptType::sgd, "learning_rate=1.0");
 
   /** Verify forwarding value */
@@ -706,7 +706,7 @@ TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_backwarding_05_p) {
 TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_backwarding_06_p) {
 
   addActivation(nntrainer::ACT_SOFTMAX);
-  addLoss(nntrainer::COST_MSE);
+  addLoss(nntrainer::LossType::LOSS_MSE);
   setOptimizer(nntrainer::OptType::sgd, "learning_rate=1.0");
 
   /** Verify forwarding value */
@@ -727,7 +727,7 @@ TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_backwarding_06_p) {
  */
 TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_backwarding_07_p) {
 
-  addLoss(nntrainer::COST_ENTROPY_SIGMOID);
+  addLoss(nntrainer::LossType::LOSS_ENTROPY_SIGMOID);
   setOptimizer(nntrainer::OptType::sgd, "learning_rate=1.0");
 
   /** Verify forwarding value */
@@ -748,7 +748,7 @@ TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_backwarding_07_p) {
  */
 TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_backwarding_08_p) {
 
-  addLoss(nntrainer::COST_ENTROPY_SOFTMAX);
+  addLoss(nntrainer::LossType::LOSS_ENTROPY_SOFTMAX);
   setOptimizer(nntrainer::OptType::sgd, "learning_rate=1.0");
 
   /** Verify forwarding value */
@@ -1327,20 +1327,20 @@ TEST_F(nntrainer_FlattenLayer, backwarding_02_p) {
 /**
  * @brief Loss Layer
  */
-TEST(nntrainer_LossLayer, setCost_01_p) {
+TEST(nntrainer_LossLayer, setLoss_01_p) {
   int status = ML_ERROR_NONE;
   nntrainer::LossLayer layer;
-  status = layer.setCost(nntrainer::COST_ENTROPY);
+  status = layer.setLoss(nntrainer::LossType::LOSS_ENTROPY);
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
 /**
  * @brief Loss Layer
  */
-TEST(nntrainer_LossLayer, setCost_02_n) {
+TEST(nntrainer_LossLayer, setLoss_02_n) {
   int status = ML_ERROR_NONE;
   nntrainer::LossLayer layer;
-  status = layer.setCost(nntrainer::COST_UNKNOWN);
+  status = layer.setLoss(nntrainer::LossType::LOSS_UNKNOWN);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
@@ -1350,7 +1350,7 @@ TEST(nntrainer_LossLayer, forward_nolabel_n) {
   EXPECT_THROW(layer.forwarding(MAKE_SHARED_TENSOR(a)), std::runtime_error);
 }
 
-TEST(nntrainer_LossLayer, forward_cost_unknown_n) {
+TEST(nntrainer_LossLayer, forward_loss_unknown_n) {
   nntrainer::LossLayer layer;
   nntrainer::Tensor a = constant(1.0, 1, 1, 1, 1);
   nntrainer::Tensor b = constant(1.0, 1, 1, 1, 1);
@@ -1358,24 +1358,24 @@ TEST(nntrainer_LossLayer, forward_cost_unknown_n) {
                std::runtime_error);
 }
 
-TEST(nntrainer_LossLayer, backward_cost_unknown_n) {
+TEST(nntrainer_LossLayer, backward_loss_unknown_n) {
   nntrainer::LossLayer layer;
   nntrainer::Tensor a = constant(1.0, 1, 1, 1, 1);
   EXPECT_THROW(layer.backwarding(MAKE_SHARED_TENSOR(a), 1), std::runtime_error);
 }
 
-TEST(nntrainer_LossLayer, forward_cost_forward_entropy_n) {
+TEST(nntrainer_LossLayer, forward_loss_forward_entropy_n) {
   nntrainer::LossLayer layer;
-  layer.setCost(nntrainer::COST_ENTROPY);
+  layer.setLoss(nntrainer::LossType::LOSS_ENTROPY);
   nntrainer::Tensor a = constant(1.0, 1, 1, 1, 1);
   nntrainer::Tensor b = constant(1.0, 1, 1, 1, 1);
   EXPECT_THROW(layer.forwarding(MAKE_SHARED_TENSOR(a), MAKE_SHARED_TENSOR(b)),
                std::runtime_error);
 }
 
-TEST(nntrainer_LossLayer, backward_cost_backward_entropy_n) {
+TEST(nntrainer_LossLayer, backward_loss_backward_entropy_n) {
   nntrainer::LossLayer layer;
-  layer.setCost(nntrainer::COST_ENTROPY);
+  layer.setLoss(nntrainer::LossType::LOSS_ENTROPY);
   nntrainer::Tensor a = constant(1.0, 1, 1, 1, 1);
   EXPECT_THROW(layer.backwarding(MAKE_SHARED_TENSOR(a), 1), std::runtime_error);
 }

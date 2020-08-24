@@ -76,7 +76,7 @@ public:
     swap(lhs.batch_size, rhs.batch_size);
     swap(lhs.epochs, rhs.epochs);
     swap(lhs.loss, rhs.loss);
-    swap(lhs.cost, rhs.cost);
+    swap(lhs.loss_type, rhs.loss_type);
     swap(lhs.weight_initializer, rhs.weight_initializer);
     swap(lhs.save_path, rhs.save_path);
     swap(lhs.opt, rhs.opt);
@@ -267,16 +267,16 @@ public:
   int getLayer(const char *name, std::shared_ptr<Layer> *layer);
 
   /**
-   * @brief     Set cost type for the neural network.
-   * @param[in] cost Type of the cost.
+   * @brief     Set loss type for the neural network.
+   * @param[in] loss Type of the loss.
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int setCost(CostType cost);
+  int setLoss(LossType loss);
 
   enum class PropertyType {
     loss = 0,
-    cost = 1,
+    loss_type = 1,
     batch_size = 2,
     epochs = 3,
     model_file = 4,
@@ -302,7 +302,7 @@ private:
 
   float loss; /**< loss */
 
-  CostType cost; /**< Cost Function type */
+  LossType loss_type; /**< Loss Function type */
 
   WeightInitializer weight_initializer; /**< Weight Initialization type */
 
