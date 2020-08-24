@@ -819,6 +819,8 @@ void Tensor::print(std::ostream &out) const {
     return;
   }
 
+  std::ios init(NULL);
+  init.copyfmt(out);
   for (unsigned int k = 0; k < dim.batch(); k++) {
     for (unsigned int l = 0; l < dim.channel(); l++) {
       for (unsigned int i = 0; i < dim.height(); i++) {
@@ -832,6 +834,7 @@ void Tensor::print(std::ostream &out) const {
     }
     out << "-------" << std::endl;
   }
+  out.copyfmt(init);
 }
 
 std::ostream &operator<<(std::ostream &out, Tensor const &m) {

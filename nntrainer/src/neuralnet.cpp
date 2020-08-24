@@ -76,6 +76,7 @@ int NeuralNetwork::initLossLayer() {
 
   if (layers.empty()) {
     status = ML_ERROR_INVALID_PARAMETER;
+    NN_RETURN_STATUS();
   }
 
   if (updated_loss_type == LossType::LOSS_ENTROPY) {
