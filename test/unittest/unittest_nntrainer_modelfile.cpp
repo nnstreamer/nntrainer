@@ -85,7 +85,7 @@ TEST_P(nntrainerIniTest, initThreetime_n) {
 static IniSection nw_base("model", "Type = NeuralNetwork | "
                                    "batch_size = 32 | "
                                    "epsilon = 1e-7 | "
-                                   "cost = cross");
+                                   "loss = cross");
 static IniSection adam("adam", "Optimizer = adam |"
                                "Learning_rate = 0.00001 |"
                                "Decay_rate = 0.96 |"
@@ -160,7 +160,7 @@ INSTANTIATE_TEST_CASE_P(
 
 
   /**< half negative: init fail cases (1 positive and 4 negative cases) */
-    mkIniTc("unknown_cost_n", {nw_adam + "cost = unknown", input, out}, INITFAIL),
+    mkIniTc("unknown_loss_n", {nw_adam + "loss = unknown", input, out}, INITFAIL),
     mkIniTc("activation_very_first_n", {nw_sgd, act_relu, input, out}, INITFAIL),
     mkIniTc("bnlayer_very_first_n", {nw_sgd, batch_normal, input, out}, INITFAIL),
     mkIniTc("act_layer_after_act_n", {nw_sgd, input, act_relu, out}, INITFAIL),
@@ -181,7 +181,7 @@ INSTANTIATE_TEST_CASE_P(
     mkIniTc("wrong_opt_type_n", {nw_adam + "Optimizer = wrong_opt", input, out}, ALLFAIL),
     mkIniTc("adam_minus_lr_n", {nw_adam + "Learning_rate = -0.1", input, out}, ALLFAIL),
     mkIniTc("sgd_minus_lr_n", {nw_sgd + "Learning_rate = -0.1", input, out}, ALLFAIL),
-    mkIniTc("no_cost_n", {nw_adam + "-cost", input, out}, INITFAIL),
+    mkIniTc("no_loss_n", {nw_adam + "-loss", input, out}, INITFAIL),
     // #389
     // mkIniTc("buffer_size_smaller_than_batch_size_n", {nw_adam, dataset + "BufferSize=26", input, out}, ALLFAIL),
     mkIniTc("unknown_layer_type_n", {nw_adam, input + "Type = asdf", out}, ALLFAIL),

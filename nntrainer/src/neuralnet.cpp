@@ -41,7 +41,7 @@ NeuralNetwork::NeuralNetwork() :
   batch_size(1),
   epochs(1),
   loss(0.0f),
-  cost(COST_UNKNOWN),
+  loss_type(LossType::LOSS_UNKNOWN),
   weight_initializer(WEIGHT_UNKNOWN),
   net_type(NET_UNKNOWN),
   data_buffer(NULL),
@@ -72,13 +72,13 @@ int NeuralNetwork::loadFromConfig(std::string config) {
 
 int NeuralNetwork::initLossLayer() {
   int status = ML_ERROR_NONE;
-  CostType updated_cost = cost;
+  LossType updated_loss_type = loss_type;
 
   if (layers.empty()) {
     status = ML_ERROR_INVALID_PARAMETER;
   }
 
-  if (updated_cost == COST_ENTROPY) {
+  if (updated_loss_type == LossType::LOSS_ENTROPY) {
     if (layers.back()->getType() != LAYER_ACTIVATION) {
       ml_loge("Error: Cross Entropy need last layer to have softmax or sigmoid "
               "activation.");
@@ -90,10 +90,10 @@ int NeuralNetwork::initLossLayer() {
 
     switch (act_layer->getActivationType()) {
     case ACT_SIGMOID:
-      updated_cost = COST_ENTROPY_SIGMOID;
+      updated_loss_type = LossType::LOSS_ENTROPY_SIGMOID;
       break;
     case ACT_SOFTMAX:
-      updated_cost = COST_ENTROPY_SOFTMAX;
+      updated_loss_type = LossType::LOSS_ENTROPY_SOFTMAX;
       break;
     default:
       ml_loge("Error: Cross Entropy not supported without softmax or sigmoid.");
@@ -108,7 +108,7 @@ int NeuralNetwork::initLossLayer() {
   status = loss_layer->initialize();
   NN_RETURN_STATUS();
 
-  status = loss_layer->setCost(updated_cost);
+  status = loss_layer->setLoss(updated_loss_type);
   NN_RETURN_STATUS();
 
   addLayer(loss_layer);
@@ -131,9 +131,12 @@ int NeuralNetwork::setProperty(std::vector<std::string> values) {
       status = setUint(batch_size, value);
       NN_RETURN_STATUS();
     } break;
-    case PropertyType::cost:
     case PropertyType::loss: {
-      cost = (CostType)parseType(value, TOKEN_COST);
+      status = setFloat(loss, value);
+      NN_RETURN_STATUS();
+    } break;
+    case PropertyType::loss_type: {
+      loss_type = (LossType)parseType(value, TOKEN_LOSS);
     } break;
     default:
       status = setTrainConfig({values[i]});
@@ -674,13 +677,13 @@ int NeuralNetwork::realizeFlattenType() {
 }
 
 /**
- * @brief     Set cost type for the neural network.
+ * @brief     Set loss type for the neural network.
  */
-int NeuralNetwork::setCost(CostType cost) {
-  if (cost == COST_UNKNOWN)
+int NeuralNetwork::setLoss(LossType loss_type) {
+  if (loss_type == LossType::LOSS_UNKNOWN)
     return ML_ERROR_INVALID_PARAMETER;
 
-  this->cost = cost;
+  this->loss_type = loss_type;
   return ML_ERROR_NONE;
 }
 

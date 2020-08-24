@@ -145,15 +145,15 @@ def train_tensorflow():
         sess.run(init)
 
         for epochs in range(training_epoch):
-            avg_cost=0
+            avg_loss=0
             count = 0
             genTrainData=datagen(InVec, InLabel, batch_size)
             for x_batch, y_batch in genTrainData:
-                c,_=sess.run([loss, optimizer],feed_dict = {inputs:x_batch, labels:y_batch})
-                avg_cost+=c
+                l,_ = sess.run([loss, optimizer],feed_dict = {inputs:x_batch, labels:y_batch})
+                avg_loss+=l
                 count += 1
 
-            avg_cost = avg_cost/count
+            avg_loss = avg_loss/count
 
             saver.save(sess, 'saved_model/model.ckpt')
 
@@ -166,7 +166,7 @@ def train_tensorflow():
 
             total_acc = train_accuracy/count*100.0
 
-            print ('Epochs:', '%06d' % (epochs+1), 'loss =', '{:.9f}'.format(avg_cost), 'Accuracy:', '{:.9f}'.format(total_acc))
+            print ('Epochs:', '%06d' % (epochs+1), 'loss =', '{:.9f}'.format(avg_loss), 'Accuracy:', '{:.9f}'.format(total_acc))
 
 ##
 # @brief main loop

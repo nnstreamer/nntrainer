@@ -46,14 +46,14 @@ sharedConstTensor LossLayer::forwarding(sharedConstTensor in,
   Tensor y = input;
   Tensor l;
 
-  switch (cost) {
-  case COST_MSE: {
+  switch (loss_type) {
+  case LossType::LOSS_MSE: {
     // y2 <- y2 - y;
     Tensor residual = y2.subtract(y);
 
     l = residual.chain().multiply_i(residual).average().run();
   } break;
-  case COST_ENTROPY_SIGMOID: {
+  case LossType::LOSS_ENTROPY_SIGMOID: {
     // @todo: change this to apply_i
     // @note: the output should be logit before applying sigmoid
     // log(1 + exp(-abs(y))) + max(y, 0)
@@ -71,18 +71,18 @@ sharedConstTensor LossLayer::forwarding(sharedConstTensor in,
     l = mid_term.subtract(end_term).average();
     y = y.apply(ActivationLayer::sigmoid);
   } break;
-  case COST_ENTROPY_SOFTMAX: {
+  case LossType::LOSS_ENTROPY_SOFTMAX: {
     y = y.apply(ActivationLayer::softmax);
     l = y2.chain().multiply_i(y.apply(logFloat)).run().sum_by_batch();
 
   } break;
-  case COST_ENTROPY: {
+  case LossType::LOSS_ENTROPY: {
     throw std::runtime_error(
       "Error: Cross Entropy not supported without softmax or sigmoid.");
   }
-  case COST_UNKNOWN:
+  case LossType::LOSS_UNKNOWN:
     /** intended */
-  default: { throw std::runtime_error("Error: Unknown cost."); }
+  default: { throw std::runtime_error("Error: Unknown loss_type."); }
   }
 
   updateLoss(l);
@@ -102,7 +102,7 @@ void LossLayer::updateLoss(const Tensor &l) {
 void LossLayer::copy(std::shared_ptr<Layer> l) {
   std::shared_ptr<LossLayer> from = std::static_pointer_cast<LossLayer>(l);
   this->input.copy(from->input);
-  this->cost = from->cost;
+  this->loss_type = from->loss_type;
   this->loss = from->loss;
 }
 
@@ -112,37 +112,37 @@ sharedConstTensor LossLayer::backwarding(sharedConstTensor derivative,
   Tensor y2 = *derivative;
   Tensor y = input;
 
-  switch (cost) {
-  case COST_MSE:
+  switch (loss_type) {
+  case LossType::LOSS_MSE:
     ret_derivative = y.subtract(y2).multiply(2).divide(y.getDim().getDataLen());
     break;
-  case COST_ENTROPY_SIGMOID:
+  case LossType::LOSS_ENTROPY_SIGMOID:
     y = y.apply(ActivationLayer::sigmoid);
     ret_derivative = y.subtract(y2).divide(y.getDim().getDataLen());
     break;
-  case COST_ENTROPY_SOFTMAX:
+  case LossType::LOSS_ENTROPY_SOFTMAX:
     y = y.apply(ActivationLayer::softmax);
     ret_derivative = y.subtract(y2).divide(y.batch());
     break;
-  case COST_ENTROPY:
+  case LossType::LOSS_ENTROPY:
     throw std::runtime_error(
       "Error: Cross Entropy not supported without softmax or sigmoid.");
-  case COST_UNKNOWN:
+  case LossType::LOSS_UNKNOWN:
     /** intended */
   default:
-    throw std::runtime_error("Unknown cost.");
+    throw std::runtime_error("Unknown loss_type.");
   }
 
   return MAKE_SHARED_TENSOR(std::move(ret_derivative));
 }
 
-int LossLayer::setCost(CostType c) {
+int LossLayer::setLoss(LossType l) {
   int status = ML_ERROR_NONE;
-  if (c == COST_UNKNOWN) {
-    ml_loge("Error: Unknown cost fucntion");
+  if (l == LossType::LOSS_UNKNOWN) {
+    ml_loge("Error: Unknown loss type");
     return ML_ERROR_INVALID_PARAMETER;
   }
-  cost = c;
+  loss_type = l;
   return status;
 }
 

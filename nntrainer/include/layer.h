@@ -35,7 +35,7 @@
 namespace nntrainer {
 
 /**
- * @brief     Enumeration of cost(loss) function type
+ * @brief     Enumeration of loss function type
  *            0. MSE ( Mean Squared Error )
  *            1. ENTROPY ( Cross Entropy )
  *            2. ENTROPY_SIGMOID (Cross Entropy amalgamated with sigmoid for
@@ -44,13 +44,13 @@ namespace nntrainer {
  * stability)
  *            4. Unknown
  */
-typedef enum {
-  COST_MSE,
-  COST_ENTROPY,
-  COST_ENTROPY_SIGMOID,
-  COST_ENTROPY_SOFTMAX,
-  COST_UNKNOWN
-} CostType;
+enum class LossType {
+  LOSS_MSE,
+  LOSS_ENTROPY,
+  LOSS_ENTROPY_SIGMOID,
+  LOSS_ENTROPY_SOFTMAX,
+  LOSS_UNKNOWN
+};
 
 /**
  * @brief     Enumeration of activation function type

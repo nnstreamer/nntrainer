@@ -40,7 +40,7 @@ namespace nntrainer {
 /**
  * @brief     Enumeration for input configuration file parsing
  *            0. OPT     ( Optimizer Token )
- *            1. COST    ( Cost Function Token )
+ *            1. LOSS    ( Loss Function Token )
  *            2. MODEL   ( Model Token )
  *            3. ACTI    ( Activation Token )
  *            4. LAYER   ( Layer Token )
@@ -52,7 +52,7 @@ namespace nntrainer {
  */
 typedef enum {
   TOKEN_OPT,
-  TOKEN_COST,
+  TOKEN_LOSS,
   TOKEN_MODEL,
   TOKEN_ACTI,
   TOKEN_LAYER,
