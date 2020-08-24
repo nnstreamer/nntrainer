@@ -150,7 +150,7 @@ public:
     rest_train = 0;
     rest_val = 0;
     rest_test = 0;
-    mini_batch = 0;
+    batch_size = 0;
     train_running = false;
     val_running = false;
     test_running = false;
@@ -205,8 +205,8 @@ public:
   /**
    * @brief     get Data from Data Buffer using databuffer param
    * @param[in] BufferType training, validation, test
-   * @param[in] outVec feature data ( minibatch size )
-   * @param[in] outLabel label data ( minibatch size )
+   * @param[in] outVec feature data ( batch_size size )
+   * @param[in] outLabel label data ( batch_size size )
    * @retval    true/false
    */
   virtual bool getDataFromBuffer(
@@ -231,12 +231,12 @@ public:
   int setBufSize(unsigned int n);
 
   /**
-   * @brief     set mini batch size
-   * @param[in] mini batch size
+   * @brief     set batch size
+   * @param[in] n batch size
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int setMiniBatch(unsigned int n);
+  int setBatchSize(unsigned int n);
 
   /**
    * @brief     set feature size
@@ -267,7 +267,7 @@ public:
 
   /**
    * @brief     Display Progress
-   * @param[in] count calculated set ( mini_batch size )
+   * @param[in] count calculated set ( batch_size size )
    * @param[in] type buffer type ( BUF_TRAIN, BUF_VAL, BUF_TEST )
    * @retval void
    */
@@ -350,9 +350,9 @@ protected:
   unsigned int rest_test;
 
   /**
-   * @brief     mini batch size
+   * @brief     batch size
    */
-  unsigned int mini_batch;
+  unsigned int batch_size;
 
   /**
    * @brief     flags to check status

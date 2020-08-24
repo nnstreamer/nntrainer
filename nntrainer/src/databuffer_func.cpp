@@ -78,22 +78,22 @@ int DataBufferFromCallback::init() {
   this->max_val = 0;
   this->max_test = 0;
 
-  if (mini_batch == 0) {
-    ml_loge("Error: mini batch size must be greater than 0");
+  if (batch_size == 0) {
+    ml_loge("Error: batch size must be greater than 0");
     SET_VALIDATION(false);
     return ML_ERROR_INVALID_PARAMETER;
   }
 
-  if (train_bufsize > mini_batch || train_bufsize == 0) {
-    train_bufsize = mini_batch;
+  if (train_bufsize > batch_size || train_bufsize == 0) {
+    train_bufsize = batch_size;
   }
 
-  if (val_bufsize > mini_batch || val_bufsize == 0) {
-    val_bufsize = mini_batch;
+  if (val_bufsize > batch_size || val_bufsize == 0) {
+    val_bufsize = batch_size;
   }
 
-  if (test_bufsize > mini_batch || test_bufsize == 0) {
-    test_bufsize = mini_batch;
+  if (test_bufsize > batch_size || test_bufsize == 0) {
+    test_bufsize = batch_size;
   }
 
   this->train_running = true;

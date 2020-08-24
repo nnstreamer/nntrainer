@@ -362,14 +362,14 @@ def gen_test_case_conv(i_b, i_c, i_h, i_w, k_c, k_h, k_w, padding, stride, bias,
     save(base_name+"_goldenKernelGrad.out", np.transpose(golden_grad_kernel,(3,2,0,1)))
     save(base_name+"_goldenBiasGrad.out", golden_grad_bias)
 
-def gen_test_case_pooling(input_shape, pooling_size, stride, padding, pooling, base_name, gen_in):
+def gen_test_case_pooling(input_shape, pool_size, stride, padding, pooling, base_name, gen_in):
     if gen_in:
         input_data = gen_input(base_name + ".in", input_shape)
     else:
         with open(base_name+".in", 'rb') as f:
             input_data = np.fromfile(f, dtype=np.float32)
             input_data=np.reshape(input_data, input_shape)
-    golden_pooling, golden_grad_input = pooling2d_tf(input_data, pooling_size, stride, padding, pooling)
+    golden_pooling, golden_grad_input = pooling2d_tf(input_data, pool_size, stride, padding, pooling)
     if (pooling == "global_average" or pooling == "global_max"):
         save(base_name+"_goldenPooling2D"+pooling+".out", golden_pooling)
     else:
@@ -504,13 +504,13 @@ if __name__ == "__main__":
         gen_test_case_bn(input_shape = [3, 1, 4, 5], base_name = "tc_bn_1")
 
     if target == "pooling2d_1":
-        gen_test_case_pooling(input_shape = [1,2,5,5], pooling_size=[2,2], stride=[1,1], padding=[0,0], pooling="max", base_name="tc_pooling2d_1", gen_in=True)
-        gen_test_case_pooling(input_shape = [1,2,5,5], pooling_size=[2,2], stride=[1,1], padding=[0,0], pooling="average", base_name="tc_pooling2d_1", gen_in=False)
-        gen_test_case_pooling(input_shape = [1,2,5,5], pooling_size=[2,2], stride=[1,1], padding=[0,0], pooling="global_max", base_name="tc_pooling2d_1", gen_in=False)
-        gen_test_case_pooling(input_shape = [1,2,5,5], pooling_size=[2,2], stride=[1,1], padding=[0,0], pooling="global_average", base_name="tc_pooling2d_1", gen_in=False)
+        gen_test_case_pooling(input_shape = [1,2,5,5], pool_size=[2,2], stride=[1,1], padding=[0,0], pooling="max", base_name="tc_pooling2d_1", gen_in=True)
+        gen_test_case_pooling(input_shape = [1,2,5,5], pool_size=[2,2], stride=[1,1], padding=[0,0], pooling="average", base_name="tc_pooling2d_1", gen_in=False)
+        gen_test_case_pooling(input_shape = [1,2,5,5], pool_size=[2,2], stride=[1,1], padding=[0,0], pooling="global_max", base_name="tc_pooling2d_1", gen_in=False)
+        gen_test_case_pooling(input_shape = [1,2,5,5], pool_size=[2,2], stride=[1,1], padding=[0,0], pooling="global_average", base_name="tc_pooling2d_1", gen_in=False)
 
     if target == "pooling2d_2":
-        gen_test_case_pooling(input_shape = [2,2,5,5], pooling_size=[2,2], stride=[1,1], padding=[0,0], pooling="max", base_name="tc_pooling2d_2", gen_in=True)
-        gen_test_case_pooling(input_shape = [2,2,5,5], pooling_size=[2,2], stride=[1,1], padding=[0,0], pooling="average", base_name="tc_pooling2d_2", gen_in=False)
-        gen_test_case_pooling(input_shape = [2,2,5,5], pooling_size=[2,2], stride=[1,1], padding=[0,0], pooling="global_max", base_name="tc_pooling2d_2", gen_in=False)
-        gen_test_case_pooling(input_shape = [2,2,5,5], pooling_size=[2,2], stride=[1,1], padding=[0,0], pooling="global_average", base_name="tc_pooling2d_2", gen_in=False)
+        gen_test_case_pooling(input_shape = [2,2,5,5], pool_size=[2,2], stride=[1,1], padding=[0,0], pooling="max", base_name="tc_pooling2d_2", gen_in=True)
+        gen_test_case_pooling(input_shape = [2,2,5,5], pool_size=[2,2], stride=[1,1], padding=[0,0], pooling="average", base_name="tc_pooling2d_2", gen_in=False)
+        gen_test_case_pooling(input_shape = [2,2,5,5], pool_size=[2,2], stride=[1,1], padding=[0,0], pooling="global_max", base_name="tc_pooling2d_2", gen_in=False)
+        gen_test_case_pooling(input_shape = [2,2,5,5], pool_size=[2,2], stride=[1,1], padding=[0,0], pooling="global_average", base_name="tc_pooling2d_2", gen_in=False)

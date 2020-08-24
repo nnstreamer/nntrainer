@@ -84,10 +84,10 @@ def create_model():
     model.add(Flatten())
     model.add(layers.Dense(10,kernel_initializer=initializers.Zeros(), bias_initializer=initializers.Zeros()))
     return model
-            
+
 ##
 # @brief training loop
-#        - epoches : 1500
+#        - epochs : 1500
 #        - Optimizer : Adam
 #        - Activation : softmax
 #        - loss : cross entropy
@@ -105,22 +105,22 @@ def train_nntrainer(target):
     model.summary()
 
     tf_logit = model(inputs, training=True)
-    
+
     tf_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(
         labels=labels, logits=tf_logit))
 
     optimizer = tf.compat.v1.train.AdamOptimizer(learning_rate=1.0e-4, epsilon=1.0e-7, beta1=0.9, beta2=0.999)
 
     trainable_variables = tf.compat.v1.trainable_variables()
-    
+
     tf_grad = optimizer.compute_gradients(tf_loss, var_list = trainable_variables)
-    
+
     global_step =tf.compat.v1.train.get_or_create_global_step()
 
     train_op = optimizer.apply_gradients(tf_grad, global_step=global_step)
 
     var_to_run = [tf_logit, tf_loss, tf_grad, train_op, global_step ]
-    
+
     infer_to_run = [tf.reduce_sum(tf.cast(tf.equal(tf.math.argmax(tf.nn.softmax(tf_logit), axis=1), tf.math.argmax(labels, axis=1)), tf.float32))/batch_size, tf_loss]
 
     if not os.path.exists('./nntrainer_tfmodel'):
@@ -160,16 +160,16 @@ def train_nntrainer(target):
 
 ##
 # @brief main loop
-            
+
 if __name__ == "__main__":
     target = sys.argv[1] if len(sys.argv) > 1 else "train"
     target1 = sys.argv[2] if len(sys.argv) > 2 else "train"
-    
+
     if target == "validation":
         batch_size = 32
         num_epoch = 1
-        
+
     if target1 == "train":
         Learning = True
         train_nntrainer(target)
-        
+

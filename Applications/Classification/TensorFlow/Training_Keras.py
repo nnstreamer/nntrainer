@@ -57,12 +57,12 @@ num_epoch = 10
 # @param[in] Callback Keras Callback object
 class History_LAW(Callback):
     def on_train_begin(self, logs={}):
-        self.epoch=[]
+        self.epochs=[]
         self.weights =[]
         self.history ={}
         self.weights.append(self.model.layers[0].get_weights())
-    
-    def on_epoch_end(self, epoch, logs={}):
+
+    def on_epoch_end(self, epochs, logs={}):
         self.weights.append(self.model.layers[0].get_weights())
 
 ##
@@ -84,7 +84,7 @@ def datagen( x_data, y_data, batch_size):
             y_batch = y_data[i*batch_size: (i+1)*batch_size]
 
             yield x_batch, y_batch
-            
+
 ##
 # @brief load input data from file
 # @return (InputVector, InputLabel, Validation Vector, ValidationLabel)
@@ -98,7 +98,7 @@ def load_data():
     ValVector = np.zeros((TOTAL_LABEL_SIZE*TOTAL_VAL_DATA_SIZE,FEATURE_SIZE),dtype=np.float32)
     ValLabel = np.zeros((TOTAL_LABEL_SIZE*TOTAL_VAL_DATA_SIZE, TOTAL_LABEL_SIZE),dtype=np.float32)
 
-    #read Input & Label    
+    #read Input & Label
 
     fin = open('valSet.dat','rb')
     for i in range(TOTAL_LABEL_SIZE*TOTAL_VAL_DATA_SIZE):
@@ -109,13 +109,13 @@ def load_data():
             data_str = fin.read(4)
             ValLabel[i,j] = struct.unpack('f',data_str)[0]
     fin.close()
-            
+
     fin=open('trainingSet.dat','rb')
     for i in range(TOTAL_LABEL_SIZE*data_size):
         for j in range(FEATURE_SIZE):
             data_str = fin.read(4)
             InputVector[i,j] = struct.unpack('f',data_str)[0]
-            
+
         for j in range(TOTAL_LABEL_SIZE):
             data_str = fin.read(4)
             InputLabel[i,j] = struct.unpack('f',data_str)[0]
@@ -131,7 +131,7 @@ def load_data():
 #        - loss : cross entropy
 #
 def train_nntrainer():
-    InVec, InLabel, ValVec, ValLabel = load_data()    
+    InVec, InLabel, ValVec, ValLabel = load_data()
 
     print('reading is done')
     inputs = tf.placeholder(tf.float32, [None, FEATURE_SIZE], name="input_X")
@@ -139,7 +139,7 @@ def train_nntrainer():
 
     model = models.Sequential()
     model.add(Input(shape=(FEATURE_SIZE,)))
-    
+
     model.add(layers.Dense(10,activation='softmax',))
 
     model.compile(optimizer = optimizers.Adam(lr=1e-4),
@@ -151,9 +151,9 @@ def train_nntrainer():
     model_Hist = History_LAW()
 
     history = model.fit(datagen(InVec, InLabel, batch_size), epochs=10, steps_per_epoch=len(InVec)//batch_size, validation_data=datagen(ValVec, ValLabel, batch_size), validation_steps=len(ValVec)//batch_size, callbacks=[model_Hist])
-    
+
     count =0
-    
+
     if not os.path.exists('./nntrainer_tfmodel'):
         os.mkdir('./nntrainer_tfmodel')
         model.save('./nntrainer_tfmodel/nntrainer_keras.h5')
@@ -178,16 +178,16 @@ def validation():
     fin.close()
     saved_model = tf.keras.models.load_model('./nntrainer_tfmodel/nntrainer_keras.h5')
     saved_model.summary()
-    
+
     score = saved_model.evaluate(ValVector, ValLabel, verbose=0)
     print("%s: %.5f%%" % (saved_model.metrics_names[1], score[1]*100))
-    
+
 ##
 # @brief main loop
-            
+
 if __name__ == "__main__":
     if Learning:
         train_nntrainer()
     if Test:
         validation()
-        
+

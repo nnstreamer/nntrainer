@@ -11,7 +11,7 @@ Configuration file consists of Two Sections, Network and Layer
 
 ### Network Section
 
-Network section includes the hyper-parameters about Network such as mini batch size, name of model file to save trained weight, epoch and etc.
+Network section includes the hyper-parameters about Network such as batch size, name of model file to save trained weight, epochs and etc.
 
 Start with "[Model]"
 
@@ -26,7 +26,7 @@ Start with "[Model]"
 
    Initial learning rate to decay
 
-3. ```epoch = <unsigned int>```
+3. ```epochs = <unsigned int>```
 
    Number of epochs to train
 
@@ -47,7 +47,7 @@ Start with "[Model]"
 
    Model file path to save updated weights
 
-7. ```minibatch = <unsigned int>```
+7. ```batch_size = <unsigned int>```
 
    Mini batch size
 
@@ -70,11 +70,11 @@ Below is sample Network section.
 [Model]
 Type = NeuralNetwork
 Learning_rate = 1e-4
-Epoch = 1500
+Epochs = 1500
 Optimizer = adam
 Cost = cross
 Save_Path = "model.bin"
-minibatch = 32
+batch_size = 32
 beta1 = 0.9
 beta2 = 0.999
 epsilon = 1e-7
@@ -88,7 +88,7 @@ Start with "[ DataSet ]"
 
 1. ```buffersize = <unsigned int>```
 
-    Defines Buffer size. Usually it is greater than mini batch size.
+    Define Buffer size. usually it is greater than batch size.
 
     Data buffer thread keeps reading the data from the file and stores the data into the data buffer.
     Meanwhile main thread gets the training data from this data buffer and feeds it to the model.
@@ -187,9 +187,9 @@ Start with "[ ${layer name} ]". This layer name must be unique throughout networ
        * he_normal : He normal initialization
        * he_uniform : He uniform initialization
 
-12. ```filter = <unsigned int>```
+12. ```filters = <unsigned int>```
 
-     set filter size for convolution layer
+     set filters size for convolution layer
 
 13. ```stride = <unsigned int>,<unsigned int>```
 
@@ -199,7 +199,7 @@ Start with "[ ${layer name} ]". This layer name must be unique throughout networ
 
      set padding for convolution and pooling layer
 
-15. ```pooling_size = <unsigned int>,<unsigned int>```
+15. ```pool_size = <unsigned int>,<unsigned int>```
 
      set pooling size for pooling layer
 
@@ -227,8 +227,8 @@ Each layer requires different properties.
 
  | Layer | Properties |
  |:-------:|:---|
- | conv2d |<ul><li>filter</li><li>kernel_size</li><li>stride</li><li>padding</li><li>normalization</li><li>standardization</li><li>input_shape</li><li>bias_initializer</li><li>activation</li><li>flatten</li><li>weight_decay</li><li>weight_decay_lambda</li><li>weight_initializer</li></ul>|
- | pooling2d | <ul><li>pooling</li><li>pooling_size</li><li>stride</li><li>padding</li></ul> |
+ | conv2d |<ul><li>filters</li><li>kernel_size</li><li>stride</li><li>padding</li><li>normalization</li><li>standardization</li><li>input_shape</li><li>bias_init_zero</li><li>activation</li><li>flatten</li><li>weight_decay</li><li>weight_decay_lambda</li><li>weight_initializer</li></ul>|
+ | pooling2d | <ul><li>pooling</li><li>pool_size</li><li>stride</li><li>padding</li></ul> |
  | flatten | - |
  | fully_connected | <lu><li>unit</li><li>normalization</li><li>standardization</li><li>input_shape</li><li>bias_initializer</li><li>activation</li><li>flatten</li><li>weight_decay</li><li>weight_decay_lambda</li><li>weight_initializer</li></lu>|
  | input | <lu><li>normalization </li><li>standardization</li><li>input_shape</li><li>flatten</li></lu>|
@@ -243,7 +243,7 @@ kernel_size = 5,5
 bias_initializer=zeros
 Activation=sigmoid
 weight_initializer = xavier_uniform
-filter = 12
+filters = 12
 stride = 1,1
 padding = 0,0
 
@@ -266,11 +266,11 @@ It takes 1 x 28 x 28 gray data (0~255) as an input. Adam optimizer is used to ap
 [Model]
 type = NeuralNetwork
 learning_rate = 1e-4
-epoch = 1500
+epochs = 1500
 optimizer = adam
 cost = cross
 Save_Path = "model.bin"
-minibatch = 32
+batch_size = 32
 beta1 = 0.9
 beta2 = 0.999
 epsilon = 1e-7
@@ -286,13 +286,13 @@ kernel_size = 5,5
 bias_initializer=zeros
 activation=sigmoid
 weight_initializer = xavier_uniform
-filter = 6
+filters = 6
 stride = 1,1
 padding = 0,0
 
 [pooling2d_p1]
 type=pooling2d
-pooling_size = 2,2
+pool_size = 2,2
 stride =2,2
 padding = 0,0
 pooling = average
@@ -303,13 +303,13 @@ kernel_size = 5,5
 bias_initializer=zeros
 activation=sigmoid
 weight_initializer = xavier_uniform
-filter = 12
+filters = 12
 stride = 1,1
 padding = 0,0
 
 [pooling2d_p2]
 type=pooling2d
-pooling_size = 2,2
+pool_size = 2,2
 stride =2,2
 padding = 0,0
 pooling = average

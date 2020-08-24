@@ -119,7 +119,7 @@ int main(int argc, char *argv[]) {
    * @brief     training NN ( back propagation )
    */
   if (training) {
-    for (unsigned int i = 0; i < NN.getEpoch(); i++) {
+    for (unsigned int i = 0; i < NN.getEpochs(); i++) {
       for (unsigned int j = 0; j < inputVector.size(); ++j) {
         std::vector<std::vector<float>> in, label;
         in.push_back(inputVector[j]);
@@ -147,7 +147,7 @@ int main(int argc, char *argv[]) {
           return -1;
         }
       }
-      std::cout << "#" << i + 1 << "/" << NN.getEpoch()
+      std::cout << "#" << i + 1 << "/" << NN.getEpochs()
                 << " - Loss : " << NN.getLoss() << std::endl;
       NN.setLoss(0.0);
     }

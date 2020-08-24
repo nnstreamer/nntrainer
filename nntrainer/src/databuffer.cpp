@@ -190,12 +190,12 @@ bool DataBuffer::getDataFromBuffer(BufferType type, vec_4d &outVec,
     std::unique_lock<std::mutex> ultrain(readyTrainData);
     cv_train.wait(ultrain, [this]() -> int { return trainReadyFlag; });
 
-    if (train_data.size() < mini_batch || trainReadyFlag == DATA_ERROR ||
+    if (train_data.size() < batch_size || trainReadyFlag == DATA_ERROR ||
         trainReadyFlag == DATA_END) {
       return false;
     }
 
-    for (k = 0; k < mini_batch; ++k) {
+    for (k = 0; k < batch_size; ++k) {
       std::vector<std::vector<std::vector<float>>> v_channel;
       for (l = 0; l < channel; ++l) {
         L = l * width * height;
@@ -216,7 +216,7 @@ bool DataBuffer::getDataFromBuffer(BufferType type, vec_4d &outVec,
 
     data_lock.lock();
 
-    for (i = 0; i < mini_batch; ++i) {
+    for (i = 0; i < batch_size; ++i) {
       train_data.erase(train_data.begin() + i);
       train_data_label.erase(train_data_label.begin() + i);
       cur_train_bufsize--;
@@ -226,12 +226,12 @@ bool DataBuffer::getDataFromBuffer(BufferType type, vec_4d &outVec,
     std::vector<int> list;
     std::unique_lock<std::mutex> ulval(readyValData);
     cv_val.wait(ulval, [this]() -> bool { return valReadyFlag; });
-    if (val_data.size() < mini_batch || valReadyFlag == DATA_ERROR ||
+    if (val_data.size() < batch_size || valReadyFlag == DATA_ERROR ||
         valReadyFlag == DATA_END) {
       return false;
     }
 
-    for (k = 0; k < mini_batch; ++k) {
+    for (k = 0; k < batch_size; ++k) {
       std::vector<std::vector<std::vector<float>>> v_channel;
       for (l = 0; l < channel; ++l) {
         L = l * width * height;
@@ -252,7 +252,7 @@ bool DataBuffer::getDataFromBuffer(BufferType type, vec_4d &outVec,
 
     data_lock.lock();
 
-    for (i = 0; i < mini_batch; ++i) {
+    for (i = 0; i < batch_size; ++i) {
       val_data.erase(val_data.begin() + i);
       val_data_label.erase(val_data_label.begin() + i);
       cur_val_bufsize--;
@@ -264,12 +264,12 @@ bool DataBuffer::getDataFromBuffer(BufferType type, vec_4d &outVec,
     std::unique_lock<std::mutex> ultest(readyTestData);
     cv_test.wait(ultest, [this]() -> bool { return testReadyFlag; });
 
-    if (val_data.size() < mini_batch || testReadyFlag == DATA_ERROR ||
+    if (val_data.size() < batch_size || testReadyFlag == DATA_ERROR ||
         testReadyFlag == DATA_END) {
       return false;
     }
 
-    for (k = 0; k < mini_batch; ++k) {
+    for (k = 0; k < batch_size; ++k) {
       std::vector<std::vector<std::vector<float>>> v_channel;
       for (l = 0; l < channel; ++l) {
         L = l * width * height;
@@ -289,7 +289,7 @@ bool DataBuffer::getDataFromBuffer(BufferType type, vec_4d &outVec,
     }
 
     data_lock.lock();
-    for (i = 0; i < mini_batch; ++i) {
+    for (i = 0; i < batch_size; ++i) {
       test_data.erase(test_data.begin() + i);
       test_data_label.erase(test_data_label.begin() + i);
       cur_test_bufsize--;
@@ -324,7 +324,7 @@ int DataBuffer::setClassNum(unsigned int num) {
 
 int DataBuffer::setBufSize(unsigned int size) {
   int status = ML_ERROR_NONE;
-  if (size < mini_batch) {
+  if (size < batch_size) {
     ml_loge("Error: buffer size must be greater than batch size");
     SET_VALIDATION(false);
     return ML_ERROR_INVALID_PARAMETER;
@@ -335,14 +335,14 @@ int DataBuffer::setBufSize(unsigned int size) {
   return status;
 }
 
-int DataBuffer::setMiniBatch(unsigned int size) {
+int DataBuffer::setBatchSize(unsigned int size) {
   int status = ML_ERROR_NONE;
   if (size == 0) {
     ml_loge("Error: batch size must be greater than 0");
     SET_VALIDATION(false);
     return ML_ERROR_INVALID_PARAMETER;
   }
-  mini_batch = size;
+  batch_size = size;
   return status;
 }
 
@@ -370,7 +370,7 @@ void DataBuffer::displayProgress(const int count, BufferType type, float loss) {
     break;
   }
   std::stringstream ssInt;
-  ssInt << count * mini_batch;
+  ssInt << count * batch_size;
 
   std::string str = ssInt.str();
   int len = str.length();
@@ -386,10 +386,10 @@ void DataBuffer::displayProgress(const int count, BufferType type, float loss) {
               << " ( Training Loss: " << loss << " )\r";
   } else {
     float progress;
-    if (mini_batch > max_size)
+    if (batch_size > max_size)
       progress = 1.0;
     else
-      progress = (((float)(count * mini_batch)) / max_size);
+      progress = (((float)(count * batch_size)) / max_size);
 
     int pos = barWidth * progress;
     std::cout << " [ ";

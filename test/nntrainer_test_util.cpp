@@ -29,7 +29,7 @@
 #include <tensor.h>
 
 #define num_class 10
-#define mini_batch 16
+#define batch_size 16
 #define feature_size 62720
 
 static bool *duplicate;
@@ -108,15 +108,15 @@ static bool getData(std::ifstream &F, std::vector<float> &outVec,
 }
 
 /**
- * @brief      get data which size is mini batch for train
+ * @brief      get data which size is batch for train
  * @param[out] outVec
  * @param[out] outLabel
  * @param[out] last if the data is finished
  * @param[in] user_data private data for the callback
  * @retval status for handling error
  */
-int getMiniBatch_train(float **outVec, float **outLabel, bool *last,
-                       void *user_data) {
+int getBatch_train(float **outVec, float **outLabel, bool *last,
+                   void *user_data) {
   std::vector<int> memI;
   std::vector<int> memJ;
   unsigned int count = 0;
@@ -146,7 +146,7 @@ int getMiniBatch_train(float **outVec, float **outLabel, bool *last,
       count++;
   }
 
-  if (count < mini_batch) {
+  if (count < batch_size) {
     free(duplicate);
     alloc_train = false;
     *last = true;
@@ -154,7 +154,7 @@ int getMiniBatch_train(float **outVec, float **outLabel, bool *last,
   }
 
   count = 0;
-  while (count < mini_batch) {
+  while (count < batch_size) {
     int nomI = rangeRandom(0, data_size - 1);
     if (!duplicate[nomI]) {
       memI.push_back(nomI);
@@ -184,15 +184,15 @@ int getMiniBatch_train(float **outVec, float **outLabel, bool *last,
 }
 
 /**
- * @brief      get data which size is mini batch for validation
+ * @brief      get data which size is batch for validation
  * @param[out] outVec
  * @param[out] outLabel
  * @param[out] last if the data is finished
  * @param[in] user_data private data for the callback
  * @retval status for handling error
  */
-int getMiniBatch_val(float **outVec, float **outLabel, bool *last,
-                     void *user_data) {
+int getBatch_val(float **outVec, float **outLabel, bool *last,
+                 void *user_data) {
 
   std::vector<int> memI;
   std::vector<int> memJ;
@@ -223,7 +223,7 @@ int getMiniBatch_val(float **outVec, float **outLabel, bool *last,
       count++;
   }
 
-  if (count < mini_batch) {
+  if (count < batch_size) {
     free(valduplicate);
     alloc_val = false;
     *last = true;
@@ -231,7 +231,7 @@ int getMiniBatch_val(float **outVec, float **outLabel, bool *last,
   }
 
   count = 0;
-  while (count < mini_batch) {
+  while (count < batch_size) {
     int nomI = rangeRandom(0, data_size - 1);
     if (!valduplicate[nomI]) {
       memI.push_back(nomI);

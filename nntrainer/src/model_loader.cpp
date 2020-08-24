@@ -41,11 +41,12 @@ int ModelLoader::loadModelConfigIni(dictionary *ini, NeuralNetwork &model) {
   /** Default to neural network model type */
   model.net_type = (nntrainer::NetType)parseType(
     iniparser_getstring(ini, "Model:Type", unknown), TOKEN_MODEL);
-  model.epoch = iniparser_getint(ini, "Model:Epoch", model.epoch);
+  model.epochs = iniparser_getint(ini, "Model:Epochs", model.epochs);
   model.cost = (CostType)parseType(
     iniparser_getstring(ini, "Model:Cost", unknown), TOKEN_COST);
   model.save_path = iniparser_getstring(ini, "Model:Save_path", "./model.bin");
-  model.batch_size = iniparser_getint(ini, "Model:Minibatch", model.batch_size);
+  model.batch_size =
+    iniparser_getint(ini, "Model:Batch_Size", model.batch_size);
 
   /** Default to adam optimizer */
   status = model.opt.setType((OptType)parseType(
@@ -274,7 +275,7 @@ int ModelLoader::loadFromIni(std::string ini_file, NeuralNetwork &model) {
     model.data_buffer = std::make_shared<DataBufferFromCallback>();
   }
 
-  status = model.data_buffer->setMiniBatch(model.batch_size);
+  status = model.data_buffer->setBatchSize(model.batch_size);
   NN_INI_RETURN_STATUS();
 
   if (model.layers.empty()) {

@@ -24,7 +24,7 @@
 #include <time.h>
 
 #define num_class 10
-#define mini_batch 32
+#define batch_size 32
 #define feature_size 62720
 
 static bool *duplicate;
@@ -125,7 +125,7 @@ static bool get_data(const char *file_name, float *outVec, float *outLabel,
 }
 
 /**
- * @brief      get data which size is mini batch for train
+ * @brief      get data which size is batch for train
  * @param[out] outVec
  * @param[out] outLabel
  * @param[out] status for error handling
@@ -134,7 +134,7 @@ static bool get_data(const char *file_name, float *outVec, float *outLabel,
  */
 int gen_data_train(float **outVec, float **outLabel, bool *last,
                    void *user_data) {
-  int memI[mini_batch];
+  int memI[batch_size];
   long file_size;
   unsigned int count = 0;
   unsigned int data_size = 0;
@@ -169,7 +169,7 @@ int gen_data_train(float **outVec, float **outLabel, bool *last,
       count++;
   }
 
-  if (count < mini_batch) {
+  if (count < batch_size) {
     if (duplicate == NULL) {
       printf("Error: memory allocation.\n");
       return false;
@@ -181,7 +181,7 @@ int gen_data_train(float **outVec, float **outLabel, bool *last,
   }
 
   count = 0;
-  while (count < mini_batch) {
+  while (count < batch_size) {
     int nomI = range_random(0, data_size - 1);
     if (!duplicate[nomI]) {
       memI[count] = nomI;
@@ -209,7 +209,7 @@ int gen_data_train(float **outVec, float **outLabel, bool *last,
 }
 
 /**
- * @brief      get data which size is mini batch for validation
+ * @brief      get data which size is batch for validation
  * @param[out] outVec
  * @param[out] outLabel
  * @param[out] last if the data is finished
@@ -219,7 +219,7 @@ int gen_data_train(float **outVec, float **outLabel, bool *last,
 int gen_data_val(float **outVec, float **outLabel, bool *last,
                  void *user_data) {
 
-  int memI[mini_batch];
+  int memI[batch_size];
   unsigned int i, j;
   unsigned int count = 0;
   unsigned int data_size = 0;
@@ -248,7 +248,7 @@ int gen_data_val(float **outVec, float **outLabel, bool *last,
       count++;
   }
 
-  if (count < mini_batch) {
+  if (count < batch_size) {
     free(valduplicate);
     alloc_val = false;
     *last = true;
@@ -256,7 +256,7 @@ int gen_data_val(float **outVec, float **outLabel, bool *last,
   }
 
   count = 0;
-  while (count < mini_batch) {
+  while (count < batch_size) {
     int nomI = range_random(0, data_size - 1);
     if (!valduplicate[nomI]) {
       memI[count] = nomI;

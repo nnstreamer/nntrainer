@@ -257,11 +257,11 @@ unsigned int parseType(std::string ll, InputType t) {
  * unit = 7
  * weight_initializer = 8
  * bias_initializer = 9
- * filter = 10
+ * filters = 10
  * kernel_size = 11
  * stride = 12
  * padding = 13
- * pooling_size = 14
+ * pool_size = 14
  * pooling = 15
  * flatten = 16
  * name = 17
@@ -285,11 +285,11 @@ static std::array<std::string, 22> property_string = {"input_shape",
                                                       "unit",
                                                       "weight_initializer",
                                                       "bias_initializer",
-                                                      "filter",
+                                                      "filters",
                                                       "kernel_size",
                                                       "stride",
                                                       "padding",
-                                                      "pooling_size",
+                                                      "pool_size",
                                                       "pooling",
                                                       "flatten",
                                                       "name",

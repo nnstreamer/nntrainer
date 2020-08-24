@@ -61,11 +61,11 @@ const unsigned int buffer_size = 100;
 const unsigned int total_label_size = 10;
 
 /**
- * @brief     Max Epoch
+ * @brief     Max Epochs
  */
 const unsigned int iteration = 3000;
 
-const unsigned int mini_batch = 32;
+const unsigned int batch_size = 32;
 
 const unsigned int feature_size = 62720;
 
@@ -266,7 +266,7 @@ bool getData(std::ifstream &F, std::vector<float> &outVec,
   return true;
 }
 
-bool getMiniBatch(std::string type,
+bool getBatchSize(std::string type,
                   std::vector<std::vector<std::vector<float>>> &outVec,
                   std::vector<std::vector<std::vector<float>>> &outLabel) {
   std::vector<int> memI;
@@ -282,11 +282,11 @@ bool getMiniBatch(std::string type,
       count++;
   }
 
-  if (count < mini_batch)
+  if (count < batch_size)
     return false;
 
   count = 0;
-  while (count < mini_batch) {
+  while (count < batch_size) {
     int nomI = rangeRandom(0, total_label_size * data_size - 1);
     if (!duplicate[nomI]) {
       memI.push_back(nomI);

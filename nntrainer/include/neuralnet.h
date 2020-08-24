@@ -74,7 +74,7 @@ public:
     using std::swap;
 
     swap(lhs.batch_size, rhs.batch_size);
-    swap(lhs.epoch, rhs.epoch);
+    swap(lhs.epochs, rhs.epochs);
     swap(lhs.loss, rhs.loss);
     swap(lhs.cost, rhs.cost);
     swap(lhs.weight_initializer, rhs.weight_initializer);
@@ -183,10 +183,10 @@ public:
   void readModel();
 
   /**
-   * @brief     get Epoch
-   * @retval    epoch
+   * @brief     get Epochs
+   * @retval    epochs
    */
-  unsigned int getEpoch() { return epoch; };
+  unsigned int getEpochs() { return epochs; };
 
   /**
    * @brief     Copy Neural Network
@@ -225,11 +225,11 @@ public:
   /**
    * @brief     Run NeuralNetwork train with callback function by user
    * @param[in] train_func callback function to get train data. This provides
-   * mini batch size data per every call.
+   * batch size data per every call.
    * @param[in] val_func callback function to get validation data. This provides
-   * mini batch size data per every call.
+   * batch size data per every call.
    * @param[in] test_func callback function to get test data. This provides
-   * mini batch size data per every call.
+   * batch size data per every call.
    * @param[in] values hyper-parameter list
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
@@ -298,7 +298,7 @@ public:
 private:
   unsigned int batch_size; /**< batch size */
 
-  unsigned int epoch; /**< Maximum Epoch */
+  unsigned int epochs; /**< Maximum Epochs */
 
   float loss; /**< loss */
 

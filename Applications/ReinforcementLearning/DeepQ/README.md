@@ -9,7 +9,7 @@ In this toy example, Reinforcement Learning with DeepQ Learning is implemented w
 - Multi Layer Support ( Two FC Layer is used )
 - Gradient Descent Optimizer Support
 - ADAM Optimizer Support
-- Minibatch Support
+- batch_size Support
 - Softmax Support
 - sigmoid/tanh Support
 

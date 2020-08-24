@@ -82,22 +82,22 @@ int DataBufferFromDataFile::init() {
   this->cur_train_bufsize = 0;
   this->cur_val_bufsize = 0;
   this->cur_test_bufsize = 0;
-  if (mini_batch == 0) {
-    ml_loge("Error: mini batch size must be greater than 0");
+  if (batch_size == 0) {
+    ml_loge("Error: batch size must be greater than 0");
     SET_VALIDATION(false);
     return ML_ERROR_INVALID_PARAMETER;
   }
 
-  if (validation[DATA_TRAIN] && max_train < mini_batch) {
-    max_train = mini_batch;
+  if (validation[DATA_TRAIN] && max_train < batch_size) {
+    max_train = batch_size;
   }
 
-  if (validation[DATA_VAL] && max_val < mini_batch) {
-    max_val = mini_batch;
+  if (validation[DATA_VAL] && max_val < batch_size) {
+    max_val = batch_size;
   }
 
-  if (validation[DATA_TEST] && max_test < mini_batch) {
-    max_test = mini_batch;
+  if (validation[DATA_TEST] && max_test < batch_size) {
+    max_test = batch_size;
   }
 
   this->rest_train = max_train;
@@ -115,20 +115,20 @@ int DataBufferFromDataFile::init() {
   if (validation[DATA_TRAIN] && max_train < train_bufsize) {
     ml_logw("Warning: Total number of train is less than train buffer size. "
             "Train buffer size is set as total number of train");
-    train_bufsize = mini_batch;
+    train_bufsize = batch_size;
   }
 
   if (validation[DATA_VAL] && max_val < val_bufsize) {
     ml_logw(
       "Warning: Total number of validation is less than validation buffer "
       "size. Validation buffer size is set as total number of validation");
-    val_bufsize = mini_batch;
+    val_bufsize = batch_size;
   }
 
   if (validation[DATA_TEST] && max_test < test_bufsize) {
     ml_logw("Warning: Total number of test is less than test buffer size. Test "
             "buffer size is set as total number of test");
-    test_bufsize = mini_batch;
+    test_bufsize = batch_size;
   }
 
   return status;
@@ -347,9 +347,8 @@ int DataBufferFromDataFile::setFeatureSize(TensorDim tdim) {
     max_train = static_cast<unsigned int>(
       file_size /
       (class_num * sizeof(int) + input_dim.getFeatureLen() * sizeof(float)));
-    if (max_train < mini_batch) {
-      ml_logw(
-        "Warning: number of training data is smaller than mini batch size");
+    if (max_train < batch_size) {
+      ml_logw("Warning: number of training data is smaller than batch size");
     }
   } else {
     max_train = 0;
@@ -360,8 +359,8 @@ int DataBufferFromDataFile::setFeatureSize(TensorDim tdim) {
     max_val = static_cast<unsigned int>(
       file_size /
       (class_num * sizeof(int) + input_dim.getFeatureLen() * sizeof(float)));
-    if (max_val < mini_batch) {
-      ml_logw("Warning: number of val data is smaller than mini batch size");
+    if (max_val < batch_size) {
+      ml_logw("Warning: number of val data is smaller than batch size");
     }
   } else {
     max_val = 0;
@@ -372,8 +371,8 @@ int DataBufferFromDataFile::setFeatureSize(TensorDim tdim) {
     max_test = static_cast<unsigned int>(
       file_size /
       (class_num * sizeof(int) + input_dim.getFeatureLen() * sizeof(float)));
-    if (max_test < mini_batch) {
-      ml_logw("Warning: number of test data is smaller than mini batch size");
+    if (max_test < batch_size) {
+      ml_logw("Warning: number of test data is smaller than batch size");
     }
   } else {
     max_test = 0;

@@ -262,7 +262,7 @@ TEST(nntrainer_capi_nnmodel, train_01_p) {
   RESET_CONFIG(config_file.c_str());
   replaceString("Input_Shape = 1:1:62720", "Input_Shape=1:1:62720", config_file,
                 config_str);
-  replaceString("minibatch = 32", "minibatch = 16", config_file, config_str);
+  replaceString("batch_size = 32", "batch_size = 16", config_file, config_str);
   replaceString("BufferSize=100", "", config_file, config_str);
   status = ml_train_model_construct_with_conf(config_file.c_str(), &handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -291,7 +291,7 @@ TEST(nntrainer_capi_nnmodel, train_03_n) {
   int status = ML_ERROR_NONE;
   std::string config_file = "./test_train_01_p.ini";
   RESET_CONFIG(config_file.c_str());
-  replaceString("minibatch = 32", "minibatch = 16", config_file, config_str);
+  replaceString("batch_size = 32", "batch_size = 16", config_file, config_str);
   replaceString("BufferSize=100", "", config_file, config_str);
   status = ml_train_model_construct_with_conf(config_file.c_str(), &handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -715,8 +715,8 @@ TEST(nntrainer_capi_nnmodel, train_with_generator_01_p) {
   status = ml_train_model_set_optimizer(model, optimizer);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_train_dataset_create_with_generator(&dataset, getMiniBatch_train,
-                                                  getMiniBatch_val, NULL);
+  status = ml_train_dataset_create_with_generator(&dataset, getBatch_train,
+                                                  getBatch_val, NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_train_dataset_set_property(dataset, "buffer_size=100", NULL);

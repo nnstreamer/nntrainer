@@ -109,7 +109,7 @@ public:
 
   /**
    * @brief     set Parameter Size
-   * @param[in] f filter size
+   * @param[in] f number of filters
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */

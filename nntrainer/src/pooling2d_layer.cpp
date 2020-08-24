@@ -34,9 +34,9 @@ int Pooling2DLayer::initialize() {
   if (pooling_type == PoolingType::max ||
       pooling_type == PoolingType::average) {
     output_dim.height(
-      (input_dim.height() - pooling_size[0] + 2 * padding[0]) / stride[0] + 1);
+      (input_dim.height() - pool_size[0] + 2 * padding[0]) / stride[0] + 1);
     output_dim.width(
-      (input_dim.width() - pooling_size[1] + 2 * padding[1]) / stride[1] + 1);
+      (input_dim.width() - pool_size[1] + 2 * padding[1]) / stride[1] + 1);
   } else {
     output_dim.height(1);
     output_dim.width(1);
@@ -74,8 +74,8 @@ sharedConstTensor Pooling2DLayer::backwarding(sharedConstTensor derivative,
   unsigned int channel = input_dim.channel();
   unsigned int height = input_dim.height();
   unsigned int width = input_dim.width();
-  unsigned int p_height = pooling_size[0];
-  unsigned int p_width = pooling_size[1];
+  unsigned int p_height = pool_size[0];
+  unsigned int p_width = pool_size[1];
   unsigned int p_size = p_height * p_width;
 
   unsigned int J, K;
@@ -138,9 +138,9 @@ sharedConstTensor Pooling2DLayer::backwarding(sharedConstTensor derivative,
 int Pooling2DLayer::setSize(int *size, PropertyType type) {
   int status = ML_ERROR_NONE;
   switch (type) {
-  case PropertyType::pooling_size:
+  case PropertyType::pool_size:
     for (int i = 0; i < POOLING2D_DIM; ++i) {
-      pooling_size[i] = size[i];
+      pool_size[i] = size[i];
     }
     break;
   case PropertyType::stride:
@@ -168,7 +168,7 @@ void Pooling2DLayer::copy(std::shared_ptr<Layer> l) {
   this->pooling_type = from->pooling_type;
 
   for (unsigned int i = 0; i < POOLING2D_DIM; ++i) {
-    this->pooling_size[i] = from->pooling_size[i];
+    this->pool_size[i] = from->pool_size[i];
     this->stride[i] = from->stride[i];
     this->padding[i] = from->padding[i];
   }
@@ -192,13 +192,13 @@ void Pooling2DLayer::setProperty(const PropertyType type,
       }
       break;
     }
-  case PropertyType::pooling_size:
+  case PropertyType::pool_size:
     if (!value.empty()) {
-      status = getValues(POOLING2D_DIM, value, (int *)(pooling_size));
+      status = getValues(POOLING2D_DIM, value, (int *)(pool_size));
       throw_status(status);
-      if (pooling_size[0] == 0 || pooling_size[1] == 0) {
+      if (pool_size[0] == 0 || pool_size[1] == 0) {
         throw std::invalid_argument(
-          "[Pooling2d_layer] pooling_size must be greater than 0");
+          "[Pooling2d_layer] pool_size must be greater than 0");
       }
     }
     break;
@@ -232,8 +232,8 @@ Tensor Pooling2DLayer::pooling2d(unsigned int batch, Tensor &in) {
   unsigned int channel = in.channel();
   unsigned int height = in.height();
   unsigned int width = in.width();
-  unsigned int p_height = pooling_size[0];
-  unsigned int p_width = pooling_size[1];
+  unsigned int p_height = pool_size[0];
+  unsigned int p_width = pool_size[1];
   unsigned int base_idx = batch * output_dim.getFeatureLen();
 
   Tensor output(output_dim.channel(), output_dim.height(), output_dim.width());

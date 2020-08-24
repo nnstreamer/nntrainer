@@ -93,8 +93,8 @@ private:
   }
 
   /**
-   * @brief setEntry as "Type = neuralnetwork | decayrate = 0.96 | -epoch = 1"
-   * will delete epoch, and overwrite type and decayrate
+   * @brief setEntry as "Type = neuralnetwork | decayrate = 0.96 | -epochs = 1"
+   * will delete epochs, and overwrite type and decayrate
    */
   void setEntry(const std::string &entry_str);
 
@@ -180,7 +180,7 @@ const std::string config_str = "[Model]"
                                "\n"
                                "Decay_steps = 1000"
                                "\n"
-                               "Epoch = 1"
+                               "Epochs = 1"
                                "\n"
                                "Optimizer = adam"
                                "\n"
@@ -192,7 +192,7 @@ const std::string config_str = "[Model]"
                                "\n"
                                "Save_Path = 'model.bin'"
                                "\n"
-                               "minibatch = 32"
+                               "batch_size = 32"
                                "\n"
                                "beta1 = 0.9"
                                "\n"
@@ -243,7 +243,7 @@ const std::string config_str2 = "[Model]"
                                 "\n"
                                 "Decay_steps = 1000"
                                 "\n"
-                                "Epoch = 1"
+                                "Epochs = 1"
                                 "\n"
                                 "Optimizer = adam"
                                 "\n"
@@ -255,7 +255,7 @@ const std::string config_str2 = "[Model]"
                                 "\n"
                                 "Model = 'model.bin'"
                                 "\n"
-                                "minibatch = 32"
+                                "batch_size = 32"
                                 "\n"
                                 "beta1 = 0.9"
                                 "\n"
@@ -287,7 +287,7 @@ const std::string config_str2 = "[Model]"
                                 "\n"
                                 "weight_decay_lambda=0.005"
                                 "\n"
-                                "filter=6"
+                                "filters=6"
                                 "\n"
                                 "kernel_size=5,5"
                                 "\n"
@@ -366,26 +366,25 @@ void replaceString(const std::string &from, const std::string &to,
                    const std::string n, std::string str);
 
 /**
- * @brief      get data which size is mini batch for train
+ * @brief      get data which size is batch for train
  * @param[out] outVec
  * @param[out] outLabel
  * @param[out] last if the data is finished
  * @param[in] user_data private data for the callback
  * @retval status for handling error
  */
-int getMiniBatch_train(float **outVec, float **outLabel, bool *last,
-                       void *user_data);
+int getBatch_train(float **outVec, float **outLabel, bool *last,
+                   void *user_data);
 
 /**
- * @brief      get data which size is mini batch for val
+ * @brief      get data which size is batch for val
  * @param[out] outVec
  * @param[out] outLabel
  * @param[out] last if the data is finished
  * @param[in] user_data private data for the callback
  * @retval status for handling error
  */
-int getMiniBatch_val(float **outVec, float **outLabel, bool *last,
-                     void *user_data);
+int getBatch_val(float **outVec, float **outLabel, bool *last, void *user_data);
 
 #endif /* __cplusplus */
 #endif /* __NNTRAINER_TEST_UTIL_H__ */

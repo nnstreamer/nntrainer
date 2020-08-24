@@ -17,9 +17,9 @@ e = executable('nntrainer_classification',
 ini_in_path = join_paths(res_path, 'Classification.ini')
 ini_out_path = join_paths(build_root, 'classification.ini')
 
-# change epoch to 5
+# change epochs to 5
 run_command('cp', ini_in_path, ini_out_path)
-run_command(['sed', '-i', 's/Epoch\ \=\ 30000/Epoch\ \=\ 1/', ini_out_path])
+run_command(['sed', '-i', 's/Epochs\ \=\ 30000/Epochs\ \=\ 1/', ini_out_path])
 
 test('app_classification', e, args: [ini_out_path, build_root + '/'])
 
@@ -38,8 +38,8 @@ e = executable('nntrainer_classification_func',
 ini_in_path = join_paths(res_path, 'Classification_func.ini')
 ini_out_path = join_paths(build_root, 'classification_func.ini')
 
-# change epoch to 5
+# change epochs to 5
 run_command('cp', ini_in_path, ini_out_path)
-run_command(['sed', '-i', 's/Epoch\ \=\ 30000/Epoch\ \=\ 1/', ini_out_path])
+run_command(['sed', '-i', 's/Epochs\ \=\ 30000/Epochs\ \=\ 1/', ini_out_path])
 
 test('app_classification_func', e, args: [ini_out_path], timeout: 60)
