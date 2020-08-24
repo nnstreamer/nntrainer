@@ -81,8 +81,16 @@ int main(int argc, char *argv[]) {
   /**
    * @brief     Initialize NN with configuration file path
    */
-  NN.loadFromConfig(config);
-  NN.init();
+
+  try {
+    NN.loadFromConfig(config);
+    NN.init();
+  } catch (...) {
+    std::cerr << "Error during init" << std::endl;
+    NN.finalize();
+    return 0;
+  }
+
   if (!training)
     NN.readModel();
 

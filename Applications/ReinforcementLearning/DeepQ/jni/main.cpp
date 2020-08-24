@@ -279,34 +279,14 @@ int main(int argc, char **argv) {
   nntrainer::NeuralNetwork mainNet;
   nntrainer::NeuralNetwork targetNet;
 
-  /**
-   * @brief     initialize mainNet & Target Net
-   */
   try {
     mainNet.loadFromConfig(config);
-  } catch (...) {
-    std::cerr << "Error during loadFromConfig" << std::endl;
-    mainNet.finalize();
-    return 0;
-  }
-  try {
     mainNet.init();
-  } catch (...) {
-    std::cerr << "Error during init" << std::endl;
-    mainNet.finalize();
-    return 0;
-  }
-  try {
     targetNet.loadFromConfig(config);
-  } catch (...) {
-    std::cerr << "Error during loadFromConfig" << std::endl;
-    targetNet.finalize();
-    return 0;
-  }
-  try {
     targetNet.init();
   } catch (...) {
     std::cerr << "Error during init" << std::endl;
+    mainNet.finalize();
     targetNet.finalize();
     return 0;
   }

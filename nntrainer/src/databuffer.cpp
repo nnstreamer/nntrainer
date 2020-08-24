@@ -264,7 +264,7 @@ bool DataBuffer::getDataFromBuffer(BufferType type, vec_4d &outVec,
     std::unique_lock<std::mutex> ultest(readyTestData);
     cv_test.wait(ultest, [this]() -> bool { return testReadyFlag; });
 
-    if (val_data.size() < batch_size || testReadyFlag == DATA_ERROR ||
+    if (test_data.size() < batch_size || testReadyFlag == DATA_ERROR ||
         testReadyFlag == DATA_END) {
       return false;
     }
