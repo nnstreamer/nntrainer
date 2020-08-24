@@ -77,7 +77,7 @@ public:
     swap(lhs.epoch, rhs.epoch);
     swap(lhs.loss, rhs.loss);
     swap(lhs.cost, rhs.cost);
-    swap(lhs.weight_ini, rhs.weight_ini);
+    swap(lhs.weight_initializer, rhs.weight_initializer);
     swap(lhs.save_path, rhs.save_path);
     swap(lhs.opt, rhs.opt);
     swap(lhs.net_type, rhs.net_type);
@@ -304,7 +304,7 @@ private:
 
   CostType cost; /**< Cost Function type */
 
-  WeightIniType weight_ini; /**< Weight Initialization type */
+  WeightInitializer weight_initializer; /**< Weight Initialization type */
 
   std::string save_path; /**< Model path to save / read */
 

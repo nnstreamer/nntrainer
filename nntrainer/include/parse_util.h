@@ -44,7 +44,7 @@ namespace nntrainer {
  *            2. MODEL   ( Model Token )
  *            3. ACTI    ( Activation Token )
  *            4. LAYER   ( Layer Token )
- *            5. WEIGHTINI  ( Weight Initialization Token )
+ *            5. WEIGHT_INIT  ( Weight Initializer Token )
  *            7. WEIGHT_DECAY  ( Weight Decay Token )
  *            8. PADDING  ( Padding Token )
  *            9. POOLING  ( Pooling Token )
@@ -56,7 +56,7 @@ typedef enum {
   TOKEN_MODEL,
   TOKEN_ACTI,
   TOKEN_LAYER,
-  TOKEN_WEIGHTINI,
+  TOKEN_WEIGHT_INIT,
   TOKEN_WEIGHT_DECAY,
   TOKEN_PADDING,
   TOKEN_POOLING,

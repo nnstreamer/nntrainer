@@ -39,16 +39,12 @@ int Conv2DLayer::initialize() {
   setParamSize(filter_size * 2);
 
   for (unsigned int i = 0; i < filter_size; ++i) {
-    Tensor Knl = initializeWeight(dim, weight_ini_type, status);
+    Tensor Knl = initializeWeight(dim, weight_initializer, status);
     NN_RETURN_STATUS();
 
-    Tensor bias = Tensor(bias_dim);
+    Tensor bias = initializeWeight(bias_dim, bias_initializer, status);
+    NN_RETURN_STATUS();
 
-    if (!bias_init_zero) {
-      bias.apply([&](float x) { return random(); });
-    } else {
-      bias.setZero();
-    }
     Tensor delK(dim);
     delK.setZero();
 

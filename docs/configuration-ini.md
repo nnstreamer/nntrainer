@@ -176,9 +176,10 @@ Start with "[ ${layer name} ]". This layer name must be unique throughout networ
 
      set the output layer for fully connected layer
 
-11. ```weight_ini = <string>```
+11. ```weight_initializer = <string>```
 
      set weight initialization method
+       * zeros : Zero initialization
        * lecun_normal : LeCun normal initialization
        * lecun_uniform : LeCun uniform initialization
        * xavier_normal : xavier normal initialization
@@ -226,12 +227,12 @@ Each layer requires different properties.
 
  | Layer | Properties |
  |:-------:|:---|
- | conv2d |<lu>filter<br>kernel_size<br>stride<br>padding<br>normalization<br>standardization<br>input_shape<br>bias_init_zero<br>activation<br>flatten<br>weight_decay<br>weight_decay_lambda<br>weight_ini<br></lu>|
- | pooling2d | <lu>pooling<br>pooling_size<br>stride<br>padding<br></lu> |
+ | conv2d |<ul><li>filter</li><li>kernel_size</li><li>stride</li><li>padding</li><li>normalization</li><li>standardization</li><li>input_shape</li><li>bias_initializer</li><li>activation</li><li>flatten</li><li>weight_decay</li><li>weight_decay_lambda</li><li>weight_initializer</li></ul>|
+ | pooling2d | <ul><li>pooling</li><li>pooling_size</li><li>stride</li><li>padding</li></ul> |
  | flatten | - |
- | fully_connected | <lu>unit<br>normalization<br>standardization<br>input_shape<br>bias_init_zero<br>activation<br>flatten<br>weight_decay<br>weight_decay_lambda<br>weight_ini<br></lu>|
- | input | <lu>normalization <br>standardization<br>input_shape<br>flatten<br></lu>|
- | batch_normalization | <lu>epsilon<br>flatten<br></lu> |
+ | fully_connected | <lu><li>unit</li><li>normalization</li><li>standardization</li><li>input_shape</li><li>bias_initializer</li><li>activation</li><li>flatten</li><li>weight_decay</li><li>weight_decay_lambda</li><li>weight_initializer</li></lu>|
+ | input | <lu><li>normalization </li><li>standardization</li><li>input_shape</li><li>flatten</li></lu>|
+ | batch_normalization | <lu><li>epsilon</li><li>flatten</li></lu> |
 
 Below is sample for layers to define a model.
 
@@ -239,9 +240,9 @@ Below is sample for layers to define a model.
 [conv2d_c2_layer]
 Type = conv2d
 kernel_size = 5,5
-bias_init_zero=true
+bias_initializer=zeros
 Activation=sigmoid
-weight_ini = xavier_uniform
+weight_initializer = xavier_uniform
 filter = 12
 stride = 1,1
 padding = 0,0
@@ -249,8 +250,8 @@ padding = 0,0
 [outputlayer]
 Type = fully_connected
 Unit = 10
-weight_ini = xavier_uniform
-bias_init_zero = true
+weight_initializer = xavier_uniform
+bias_initializer = zeros
 Activation = softmax
 ```
 
@@ -282,9 +283,9 @@ input_shape = 1:28:28
 [conv2d_c1_layer]
 type = conv2d
 kernel_size = 5,5
-bias_init_zero=true
+bias_initializer=zeros
 activation=sigmoid
-weight_ini = xavier_uniform
+weight_initializer = xavier_uniform
 filter = 6
 stride = 1,1
 padding = 0,0
@@ -299,9 +300,9 @@ pooling = average
 [conv2d_c2_layer]
 type = conv2d
 kernel_size = 5,5
-bias_init_zero=true
+bias_initializer=zeros
 activation=sigmoid
-weight_ini = xavier_uniform
+weight_initializer = xavier_uniform
 filter = 12
 stride = 1,1
 padding = 0,0
@@ -319,7 +320,7 @@ type=flatten
 [outputlayer]
 type = fully_connected
 unit = 10
-weight_ini = xavier_uniform
-bias_init_zero = true
+weight_initializer = xavier_uniform
+bias_initializer = zeros
 activation = softmax
 ```
