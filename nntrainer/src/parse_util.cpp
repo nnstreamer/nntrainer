@@ -114,6 +114,7 @@ unsigned int parseType(std::string ll, InputType t) {
 
   /**
    * @brief     Weight Initialization Type String from configure file
+   *            "zeros" : Zero Initialization
    *            "lecun_normal"  : LeCun Normal Initialization
    *            "lecun_uniform"  : LeCun Uniform Initialization
    *            "xavier_normal"  : Xavier Normal Initialization
@@ -121,9 +122,9 @@ unsigned int parseType(std::string ll, InputType t) {
    *            "he_normal"  : He Normal Initialization
    *            "he_uniform"  : He Uniform Initialization
    */
-  std::array<std::string, 6> weight_ini_string = {
-    "lecun_normal",   "lecun_uniform", "xavier_normal",
-    "xavier_uniform", "he_normal",     "he_uniform"};
+  std::array<std::string, 7> weight_ini_string = {
+    "zeros",          "lecun_normal", "lecun_uniform", "xavier_normal",
+    "xavier_uniform", "he_normal",    "he_uniform"};
 
   /**
    * @brief     Weight Decay String from configure file
@@ -199,14 +200,14 @@ unsigned int parseType(std::string ll, InputType t) {
     }
     ret = (unsigned int)LayerType::LAYER_UNKNOWN;
     break;
-  case TOKEN_WEIGHTINI:
+  case TOKEN_WEIGHT_INIT:
     for (i = 0; i < weight_ini_string.size(); i++) {
       if (!strncasecmp(weight_ini_string[i].c_str(), ll.c_str(),
                        weight_ini_string[i].size())) {
         return (i);
       }
     }
-    ret = (unsigned int)WeightIniType::WEIGHT_UNKNOWN;
+    ret = (unsigned int)WeightInitializer::WEIGHT_UNKNOWN;
     break;
   case TOKEN_WEIGHT_DECAY:
     for (i = 0; i < weight_decay_string.size(); i++) {
@@ -246,16 +247,16 @@ unsigned int parseType(std::string ll, InputType t) {
 
 /**
  * @brief     Layer Properties
- * input_shape = 0,
- * bias_init_zero = 1,
- * normalization = 2,
- * standardization = 3,
- * activation = 4,
- * epsilon = 5
- * weight_decay = 6
- * weight_decay_lambda = 7
- * unit = 8
- * weight_ini = 9
+ * input_shape = 0
+ * normalization = 1
+ * standardization = 2
+ * activation = 3
+ * epsilon = 4
+ * weight_decay = 5
+ * weight_decay_lambda = 6
+ * unit = 7
+ * weight_initializer = 8
+ * bias_initializer = 9
  * filter = 10
  * kernel_size = 11
  * stride = 12
@@ -274,13 +275,28 @@ unsigned int parseType(std::string ll, InputType t) {
  * Pooling2DLayer has 12, 13, 14, 15 properties.
  * BatchNormalizationLayer has 0, 1, 5, 6, 7 properties.
  */
-static std::array<std::string, 22> property_string = {
-  "input_shape", "bias_init_zero", "normalization", "standardization",
-  "activation",  "epsilon",        "weight_decay",  "weight_decay_lambda",
-  "unit",        "weight_ini",     "filter",        "kernel_size",
-  "stride",      "padding",        "pooling_size",  "pooling",
-  "flatten",     "name",           "num_inputs",    "num_outputs",
-  "batch_size",  "unknown"};
+static std::array<std::string, 22> property_string = {"input_shape",
+                                                      "normalization",
+                                                      "standardization",
+                                                      "activation",
+                                                      "epsilon",
+                                                      "weight_decay",
+                                                      "weight_decay_lambda",
+                                                      "unit",
+                                                      "weight_initializer",
+                                                      "bias_initializer",
+                                                      "filter",
+                                                      "kernel_size",
+                                                      "stride",
+                                                      "padding",
+                                                      "pooling_size",
+                                                      "pooling",
+                                                      "flatten",
+                                                      "name",
+                                                      "num_inputs",
+                                                      "num_outputs",
+                                                      "batch_size",
+                                                      "unknown"};
 
 unsigned int parseLayerProperty(std::string property) {
   unsigned int i;

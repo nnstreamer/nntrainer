@@ -307,7 +307,7 @@ int main(int argc, char *argv[]) {
   /* set property for input layer */
   status = ml_train_layer_set_property(layers[0], "input_shape=1:1:62720",
                                        "normalization=true",
-                                       "bias_init_zero=true", NULL);
+                                       "bias_initializer=zeros", NULL);
   NN_RETURN_STATUS();
 
   /* add input layer into model */
@@ -320,9 +320,9 @@ int main(int argc, char *argv[]) {
 
   /* set property for fc layer */
   status = ml_train_layer_set_property(
-    layers[1], "unit= 10", "activation=softmax", "bias_init_zero=true",
+    layers[1], "unit= 10", "activation=softmax", "bias_initializer=zeros",
     "weight_decay=l2norm", "weight_decay_lambda=0.005",
-    "weight_ini=xavier_uniform", NULL);
+    "weight_initializer=xavier_uniform", NULL);
   NN_RETURN_STATUS();
 
   /* add fc layer into model */

@@ -110,7 +110,7 @@ static IniSection flatten("flat", "Type = flatten");
 
 static IniSection input("inputlayer", "Type = input |"
                                       "Input_Shape = 1:1:62720 |"
-                                      "bias_init_zero = true |"
+                                      "bias_initializer = zeros |"
                                       "Normalization = true |"
                                       "Activation = sigmoid");
 
@@ -119,11 +119,11 @@ static IniSection act_relu("activation_relu", "Type = activation | "
 
 static IniSection out("fclayer", "Type = fully_connected |"
                                  "Unit = 10 |"
-                                 "bias_init_zero = true |"
+                                 "bias_initializer = zeros |"
                                  "Activation = softmax");
 
 static IniSection conv2d("conv2d", "Type = conv2d |"
-                                   "bias_init_zero = true |"
+                                   "bias_initializer = zeros |"
                                    "Activation = sigmoid |"
                                    "filter = 6 |"
                                    "kernel_size = 5,5 |"

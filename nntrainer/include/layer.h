@@ -96,14 +96,16 @@ typedef enum {
 
 /**
  * @brief     Enumeration of Weight Initialization Type
- *            0. WEIGHT_LECUN_NORMAL ( LeCun normal initialization )
- *            1. WEIGHT_LECUN_UNIFORM (LeCun uniform initialization )
- *            2. WEIGHT_XAVIER_NORMAL ( Xavier normal initialization )
- *            3. WEIGHT_XAVIER_UNIFORM ( Xavier uniform initialization )
- *            4. WEIGHT_HE_NORMAL ( He normal initialization )
- *            5. WEIGHT_HE_UNIFORM ( He uniform initialization )
+ *            0. WEIGHT_ZEROS ( Zero initialization )
+ *            1. WEIGHT_LECUN_NORMAL ( LeCun normal initialization )
+ *            2. WEIGHT_LECUN_UNIFORM (LeCun uniform initialization )
+ *            3. WEIGHT_XAVIER_NORMAL ( Xavier normal initialization )
+ *            4. WEIGHT_XAVIER_UNIFORM ( Xavier uniform initialization )
+ *            5. WEIGHT_HE_NORMAL ( He normal initialization )
+ *            6. WEIGHT_HE_UNIFORM ( He uniform initialization )
  */
 typedef enum {
+  WEIGHT_ZEROS,
   WEIGHT_LECUN_NORMAL,
   WEIGHT_LECUN_UNIFORM,
   WEIGHT_XAVIER_NORMAL,
@@ -111,7 +113,7 @@ typedef enum {
   WEIGHT_HE_NORMAL,
   WEIGHT_HE_UNIFORM,
   WEIGHT_UNKNOWN
-} WeightIniType;
+} WeightInitializer;
 
 /**
  * @brief   Print Options when printing layer info
@@ -136,12 +138,12 @@ class Layer {
 public:
   Layer() :
     name(std::string()),
-    bias_init_zero(false),
     type(LAYER_UNKNOWN),
     loss(0.0f),
     activation_type(ACT_NONE),
     weight_decay(),
-    weight_ini_type(WEIGHT_XAVIER_UNIFORM),
+    weight_initializer(WEIGHT_XAVIER_UNIFORM),
+    bias_initializer(WEIGHT_ZEROS),
     flatten(false),
     trainable(true),
     param_size(0),
@@ -222,7 +224,7 @@ public:
    *            6. weight_decay : string (type)
    *            7. weight_decay_lambda : float
    *            8. unit : int
-   *            9. weight_ini : string (type)
+   *            9. weight_initializer : string (type)
    *            10. filter_size : int
    *            11. kernel_size : ( n , m )
    *            12. stride : ( n, m )
@@ -237,15 +239,15 @@ public:
    */
   enum class PropertyType {
     input_shape = 0,
-    bias_init_zero = 1,
-    normalization = 2,
-    standardization = 3,
-    activation = 4,
-    epsilon = 5,
-    weight_decay = 6,
-    weight_decay_lambda = 7,
-    unit = 8,
-    weight_ini = 9,
+    normalization = 1,
+    standardization = 2,
+    activation = 3,
+    epsilon = 4,
+    weight_decay = 5,
+    weight_decay_lambda = 6,
+    unit = 7,
+    weight_initializer = 8,
+    bias_initializer = 9,
     filter = 10,
     kernel_size = 11,
     stride = 12,
@@ -327,25 +329,19 @@ public:
   void setWeightDecay(WeightDecayParam w) { weight_decay = w; }
 
   /**
-   * @brief  set bias initialize with zero
-   * @param[in] zero true/false
-   */
-  void setBiasZero(bool zero) { bias_init_zero = zero; }
-
-  /**
    * @brief  set Weight Initialization Type
-   * @param[in] wini WeightIniType
+   * @param[in] wini WeightInitializer
    */
-  void setWeightInit(WeightIniType wini) { weight_ini_type = wini; }
+  void setWeightInit(WeightInitializer wini) { weight_initializer = wini; }
 
   /**
    * @brief  initialize Weight
    * @param[in] w_dim TensorDim
-   * @param[in] init_type Weight Initialization Type
+   * @param[in] initializer Weight Initializer
    * @param[out] status Status
    * @retval Tensor Initialized Tensor
    */
-  Tensor initializeWeight(TensorDim w_dim, WeightIniType init_type,
+  Tensor initializeWeight(TensorDim w_dim, WeightInitializer initializer,
                           int &status);
 
   /**
@@ -483,11 +479,6 @@ protected:
   Optimizer opt;
 
   /**
-   * @brief     Boolean for the Bias to set zero
-   */
-  bool bias_init_zero;
-
-  /**
    * @brief     Layer type
    */
   LayerType type;
@@ -501,7 +492,9 @@ protected:
 
   WeightDecayParam weight_decay;
 
-  WeightIniType weight_ini_type;
+  WeightInitializer weight_initializer; /** initializer for weights */
+
+  WeightInitializer bias_initializer; /** initializer for bias */
 
   /**
    * @brief   Output of this layer should be flattened

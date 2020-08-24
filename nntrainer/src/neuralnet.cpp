@@ -42,7 +42,7 @@ NeuralNetwork::NeuralNetwork() :
   epoch(1),
   loss(0.0f),
   cost(COST_UNKNOWN),
-  weight_ini(WEIGHT_UNKNOWN),
+  weight_initializer(WEIGHT_UNKNOWN),
   net_type(NET_UNKNOWN),
   data_buffer(NULL),
   continue_train(false),

@@ -132,8 +132,8 @@ TEST(nntrainer_NeuralNetwork, load_config_06_p) {
 TEST(nntrainer_NeuralNetwork, load_config_07_p) {
   int status = ML_ERROR_NONE;
   RESET_CONFIG("./test.ini");
-  replaceString("bias_init_zero = true", "Bias_Init_Zero = false", "./test.ini",
-                config_str);
+  replaceString("bias_initializer = zeros", "Bias_Initializer = he_normal",
+                "./test.ini", config_str);
   nntrainer::NeuralNetwork NN;
 
   status = NN.loadFromConfig("./test.ini");

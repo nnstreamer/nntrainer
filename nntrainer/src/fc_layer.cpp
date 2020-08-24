@@ -39,18 +39,17 @@ int FullyConnectedLayer::initialize() {
   output_dim = input_dim;
   output_dim.width(unit);
 
-  Tensor bias = Tensor(1, unit);
+  TensorDim bias_dim = TensorDim();
+  bias_dim.setTensorDim(3, unit);
+
   TensorDim dim = output_dim;
   dim.height(input_dim.width());
   dim.batch(1);
-  Tensor weight = initializeWeight(dim, weight_ini_type, status);
+  Tensor weight = initializeWeight(dim, weight_initializer, status);
   NN_RETURN_STATUS();
 
-  if (bias_init_zero) {
-    bias.setZero();
-  } else {
-    bias.setRandUniform(-0.5, 0.5);
-  }
+  Tensor bias = initializeWeight(bias_dim, bias_initializer, status);
+  NN_RETURN_STATUS();
 
   setParamSize(2);
   paramsAt(0) = {std::move(weight), Tensor(weight.getDim()), "FC:weight"};

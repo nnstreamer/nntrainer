@@ -81,18 +81,21 @@ void Layer::save(std::ofstream &file) {
   }
 }
 
-Tensor Layer::initializeWeight(TensorDim w_dim, WeightIniType init_type,
+Tensor Layer::initializeWeight(TensorDim w_dim, WeightInitializer initializer,
                                int &status) {
 
   Tensor w = Tensor(w_dim);
 
-  if (init_type == WEIGHT_UNKNOWN) {
+  if (initializer == WEIGHT_UNKNOWN) {
     ml_logw("Warning: Weight Initalization Type is not set. "
             "WEIGHT_XAVIER_NORMAL is used by default");
-    init_type = WEIGHT_XAVIER_NORMAL;
+    initializer = WEIGHT_XAVIER_NORMAL;
   }
 
-  switch (init_type) {
+  switch (initializer) {
+  case WEIGHT_ZEROS:
+    w.setZero();
+    break;
   case WEIGHT_LECUN_NORMAL:
     w.setRandNormal(0.0f, sqrt(1.0f / w_dim.height()));
     break;
@@ -183,12 +186,6 @@ void Layer::setProperty(const PropertyType type, const std::string &value) {
       input_dim.batch(batch_size);
     }
     break;
-  case PropertyType::bias_init_zero:
-    if (!value.empty()) {
-      status = setBoolean(this->bias_init_zero, value);
-      throw_status(status);
-    }
-    break;
   case PropertyType::activation:
     if (!value.empty()) {
       status = setActivation((ActiType)parseType(value, TOKEN_ACTI));
@@ -215,9 +212,15 @@ void Layer::setProperty(const PropertyType type, const std::string &value) {
       throw_status(status);
     }
     break;
-  case PropertyType::weight_ini:
+  case PropertyType::weight_initializer:
     if (!value.empty()) {
-      weight_ini_type = (WeightIniType)parseType(value, TOKEN_WEIGHTINI);
+      weight_initializer =
+        (WeightInitializer)parseType(value, TOKEN_WEIGHT_INIT);
+    }
+    break;
+  case PropertyType::bias_initializer:
+    if (!value.empty()) {
+      bias_initializer = (WeightInitializer)parseType(value, TOKEN_WEIGHT_INIT);
     }
     break;
   default:
@@ -262,7 +265,6 @@ void Layer::printPropertiesMeta(std::ostream &out) {
 
 void Layer::printProperties(std::ostream &out) {
   out << "Trainable: " << trainable << std::endl;
-  printIfValid(out, PropertyType::bias_init_zero, bias_init_zero);
   printIfValid(out, PropertyType::weight_decay,
                static_cast<int>(weight_decay.type));
   printIfValid(out, PropertyType::weight_decay_lambda, weight_decay.lambda);

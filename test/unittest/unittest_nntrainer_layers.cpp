@@ -527,7 +527,7 @@ protected:
     setInputDim("1:1:12");
     setProperty("batch_size=3");
     setProperty("unit=15");
-    setProperty("bias_init_zero=true");
+    setProperty("bias_initializer=zeros");
   }
 
   void matchUpdatedWeightsGradients() {
@@ -853,11 +853,11 @@ protected:
   virtual void prepareLayer() {
     int status =
       setProperty("input_shape=3:28:28 | batch_size=32 |"
-                  "bias_init_zero=true |"
+                  "bias_initializer=zeros |"
                   "activation=sigmoid |"
                   "weight_decay=l2norm |"
                   "weight_decay_lambda= 0.005 |"
-                  "weight_ini=xavier_uniform |"
+                  "weight_initializer=xavier_uniform |"
                   "normalization=true |"
                   "filter=12 | kernel_size= 5,5 | stride=3,3 | padding=1,1");
 
@@ -918,8 +918,8 @@ TEST_F(nntrainer_Conv2DLayer, save_read_01_p) {
  */
 TEST_F(nntrainer_Conv2DLayer, forwarding_01_p) {
   reinitialize("input_shape=3:7:7 | batch_size=1 |"
-               "bias_init_zero = true |"
-               "weight_ini=xavier_uniform |"
+               "bias_initializer = zeros |"
+               "weight_initializer=xavier_uniform |"
                "filter=2 | kernel_size=3,3 | stride=1, 1 | padding=0,0");
 
   ASSERT_EQ(in.getDim(), nntrainer::TensorDim(1, 3, 7, 7));
@@ -938,8 +938,8 @@ TEST_F(nntrainer_Conv2DLayer, forwarding_01_p) {
 
 TEST_F(nntrainer_Conv2DLayer, forwarding_02_p) {
   reinitialize("input_shape=3:7:7 | batch_size=2 |"
-               "bias_init_zero = true |"
-               "weight_ini=xavier_uniform |"
+               "bias_initializer = zeros |"
+               "weight_initializer=xavier_uniform |"
                "filter=3 | kernel_size=3,3 | stride=1, 1 | padding=0,0");
 
   ASSERT_EQ(in.getDim(), nntrainer::TensorDim(2, 3, 7, 7));
@@ -954,8 +954,8 @@ TEST_F(nntrainer_Conv2DLayer, forwarding_02_p) {
 
 TEST_F(nntrainer_Conv2DLayer, backwarding_01_p) {
   status = reinitialize("input_shape=3:7:7 | batch_size=1 |"
-                        "bias_init_zero=true |"
-                        "weight_ini=xavier_uniform |"
+                        "bias_initializer=zeros |"
+                        "weight_initializer=xavier_uniform |"
                         "filter=2 |"
                         "kernel_size= 3,3 |"
                         "stride=1, 1 |"
@@ -1007,8 +1007,8 @@ TEST_F(nntrainer_Conv2DLayer, backwarding_01_p) {
 
 TEST_F(nntrainer_Conv2DLayer, backwarding_02_p) {
   status = reinitialize("input_shape=3:7:7 | batch_size=2 |"
-                        "bias_init_zero=true |"
-                        "weight_ini=xavier_uniform |"
+                        "bias_initializer=zeros |"
+                        "weight_initializer=xavier_uniform |"
                         "filter=3 |"
                         "kernel_size= 3,3 |"
                         "stride=1, 1 |"

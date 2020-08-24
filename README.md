@@ -44,7 +44,7 @@ This component defines Layers which consist of Neural Network Model. Layers has 
  | input | Input | Input Layer.  This is not always requied. |
  | batch_normalization | Batch Normalization Layer | Batch Normalization Layer. |
  | loss layer | loss layer | hidden from users |
- | activation | activaiton layer | set by layer property | 
+ | activation | activaiton layer | set by layer property |
 
 ### Supported Optimizers
 
@@ -75,9 +75,9 @@ NNTrainer provides
  | sigmoid | sigmoid function | set as layer property |
  | relu | relu function | set as layer propery |
  | softmax | softmax function | set as layer propery |
- | weight_ini | Weight Initialization | Xavier(Normal/Uniform), LeCun(Normal/Uniform),  HE(Normal/Unifor) |
+ | weight_initializer | Weight Initialization | Xavier(Normal/Uniform), LeCun(Normal/Uniform),  HE(Normal/Unifor) |
  | weight_decay | weight decay ( L2Norm only ) | needs set weight_decay_param & type |
- | learnig_rate_decay | learning rate decay | need to set step | 
+ | learnig_rate_decay | learning rate decay | need to set step |
 
 ### Tensor
 
@@ -99,9 +99,9 @@ NNTrainer provides
 
  | Keyward | Loss Name | Description |
  |:-------:|:---:|:---|
- | weight_ini | Weight Initialization | Xavier(Normal/Uniform), LeCun(Normal/Uniform),  HE(Normal/Unifor) |
+ | weight_initializer | Weight Initialization | Xavier(Normal/Uniform), LeCun(Normal/Uniform),  HE(Normal/Unifor) |
  | weight_decay | weight decay ( L2Norm only ) | needs set weight_decay_param & type |
- | learnig_rate_decay | learning rate decay | need to set step | 
+ | learnig_rate_decay | learning rate decay | need to set step |
 
 ### APIs
 Currently we privde [C APIs](https://github.com/nnstreamer/nntrainer/blob/master/api/capi/include/nntrainer.h) for Tizen. C++ API also provides soon.

@@ -288,8 +288,8 @@ int ml_train_layer_destroy(ml_train_layer_h layer);
  *
  * // Many of these hyperparmeters are optional
  * status = ml_train_layer_set_property(handle, "input_shape=1:1:6270",
- *      "unit=10", "bias_init_zero=true", "activation=sigmoid",
- *      "weight_decay=l2_norm", "weight_ini=he_uniform", NULL);
+ *      "unit=10", "bias_initializer=zeros", "activation=sigmoid",
+ *      "weight_decay=l2_norm", "weight_initializer=he_uniform", NULL);
  * if (status != ML_ERROR_NONE) {
  *    // Handle error case
  *    ml_train_layer_destroy(handle);
