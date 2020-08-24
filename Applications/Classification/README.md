@@ -1,43 +1,51 @@
 # Classification
 
-This example demonstrate the transfer learning with mobilenetv2 which pre-trained for imagenet. "mobilenetv2.tflite" is used for feature extractor which is removed last fully connected layer manually.
+## Introduction
 
-After feature extraction, it is used for training fully connencted layer. To take the feature as an input, we add input layer as the first layer.
+This example demonstrates the transfer learning with MobileNetV2 which pre-trained for ImageNet. "mobilenetv2.tflite" is used for feature extractor which is removed last fully connected layer manually.
+
+After feature extraction, it is used for training fully connected layer. To take the feature as an input, we add input layer as the first layer.
 
 Total number of data for training is 10 (number of class) * 100 (number of image for each class)
 
-Classification.ini file (res directory) is input which has configuration and hyper-parameters of network for nntrainer.
+Classification.ini file (res directory) is input which has configuration and hyper-parameters of network for NNTrainer.
 
 This example has two options to train.
+
 ### 1. Train with training set files ( main.cpp )
-   - This option is activated if [ DataSet ] section is configured in configuration file.
-   - This assumes that training set saved as an file is available.
-     For the data file, the ith image feature data (62720 x sizeof(float)) + label (10 x sizeof(float)) must be at i x ((62720 x sizeof(float) + label(10 x sizeof(float)) byte position.
-   - The input image (bmp format : 32x32x3) is stored as in ExtractFeatures() at "data_path" directory defined as argv #1.
-   ```
-     string total_label[10] = {"airplane", "automobile", "bird", "cat", "deer",
-                            "dog", "frog", "horse", "ship", "truck"};
+
+- This option is activated if [ DataSet ] section is configured in configuration file.
+- This assumes that training set saved as an file is available.
+   For the data file, the ith image feature data (62720 x sizeof(float)) + label (10 x sizeof(float)) must be at i x ((62720 x sizeof(float) + label(10 x sizeof(float)) byte position.
+- The input image (bmp format : 32x32x3) is stored as in ExtractFeatures() at "data_path" directory defined as argv #1.
+
+```c++
+   string total_label[10] = {"airplane", "automobile", "bird", "cat", "deer",
+                           "dog", "frog", "horse", "ship", "truck"};
 ```
-   - Training dataset files are generated using 'ExtractFetures()' function in main.cpp.
-   - Once the dataset files are generated, NNTrainer start to read and feed the buffer to train.
+
+- Training dataset files are generated using 'ExtractFeatures()' function in main.cpp.
+- Once the dataset files are generated, NNTrainer start to read and feed the buffer to train.
 
 ### 2. Train with training data generator ( main_func.cpp )
-   - This option is activated if there is no [ DataSet ] section defined in the configuration file.
-   - Expect to get the generator function which defined by user.
-   - The sample implementation just loads the data from the training data set file (from option 1).
-   - training data set generator is getMiniBatch_train(),  getMiniBatch_val() for validation. test data set is not used.
+
+- This option is activated if there is no [ DataSet ] section defined in the configuration file.
+- Expect to get the generator function which defined by user.
+- The sample implementation just loads the data from the training data set file (from option 1).
+- training data set generator is getMiniBatch_train(),  getMiniBatch_val() for validation. test data set is not used.
 
 ## How to run examples
 
 ### Preparing NNTrainer
-* https://github.com/nnstreamer/nntrainer/blob/master/docs/getting-started.md
+
+<https://github.com/nnstreamer/nntrainer/blob/master/docs/getting-started.md>
 
 ### Write Configuration file
 
 you can find detail explanation about each keyword in
-https://github.com/nnstreamer/nntrainer/blob/master/docs/configuration-ini.md
+<https://github.com/nnstreamer/nntrainer/blob/master/docs/configuration-ini.md>
 
-```
+```ini
 [Model]
 Type = NeuralNetwork
 Learning_rate = 0.0001
@@ -76,14 +84,15 @@ weight_Decay_Lambda = 0.005
 If you want to use generator (option #2), then remove [DataSet] section, and provide dataset generator callbacks.
 
 ## How to execute
-With "-Denable-app=true" and "-Dinstall-app=true" set in meson_options, execution files are installed in build/Application/Classification/jni or $(NNTRAINER_ROOT}/bin directory.
+
+With `-Denable-app=true` and `-Dinstall-app=true` set in meson_options, execution files are installed in build/Application/Classification/jni or $(NNTRAINER_ROOT}/bin directory.
 
 The training data set images are stored in Application/Classification/res/${Class Name}
 
-```
+```bash
 $ mkdir Application/Classification/jni/test
-$ cp build/Application/Classification/jni/nntrainer_classication* Application/Classification/jni/test/
+$ cp build/Application/Classification/jni/nntrainer_classification* Application/Classification/jni/test/
 $ cd Application/Classification/jni/test/
-$ nntrainer_classification ../../res/Classification.ini ../../res/
+$ ./nntrainer_classification ../../res/Classification.ini ../../res/
 ```
 If there is no trainingSet.dat, then it will start generate it with data files in ${data_path}.

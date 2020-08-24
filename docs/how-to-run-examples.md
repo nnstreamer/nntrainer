@@ -1,22 +1,25 @@
 # How to run examples
 
-# Preparing nntrainer for execution.
-## Use PPA
+## Preparing NNTrainer for execution
 
-If you don't want to build build binaries, you can directly download from PPA with daily releases:
-* Download nntrainer :
-```
-$ sudo add-apt-repository ppa:nnstreamer/ppa
-$ sudo apt-get update
-$ sudo apt-get install nntrainer
+### Use PPA
+
+If you don't want to build build binaries, you can directly download from PPA with daily releases.
+
+```bash
+sudo add-apt-repository ppa:nnstreamer/ppa
+sudo apt-get update
+sudo apt-get install nntrainer
 ```
 
-Note that this may install tensorflow-lite packaged by us.
+Note that this may install Tensorflow-Lite packaged by us.
 
 ## Build examples (Ubuntu 18.04)
-* https://github.com/nnstreamer/nntrainer/blob/master/docs/getting-started.md
 
-- Install related packages before building nntrainer and examples.
+Refer <https://github.com/nnstreamer/nntrainer/blob/master/docs/getting-started.md> for more info.
+
+Install related packages before building nntrainer and examples.
+
 1. gcc/g++ >=4.9 ( std=c++14 is used )
 2. meson >= 0.50
 3. libopenblas-dev and base
@@ -26,7 +29,8 @@ Note that this may install tensorflow-lite packaged by us.
 7. libcurl3 >=7.47 ( if you wand to use open AI )
 8. libgtest ( for testing )
 
-- Build options (meson)
+Important build options (meson)
+
 1. enable-tizen : default false, add option for tizen build (-Denable-tizen=false)
 2. enable-blas : default true, add option to enable blas (-Denable-blas=true)
 3. enable-app : default true, add option to enable Applications (-Denable-app=true)
@@ -37,14 +41,15 @@ Note that this may install tensorflow-lite packaged by us.
 8. enable-logging : default true, add option to do logging (-Denable-logging=true)
 9. enable-tizen-feature-check : default true, add option to enable tizen feature check (-Denable-tizen-feature-check=true)
 
-
 For example, to build and install NNTrainer and C-API,
-```
-$ meson --prefix=${NNTRAINER_ROOT} --sysconfdir=${NNTRAINER_ROOT} --libdir=lib --bindir=bin --includedir=include -Denable-capi=true build
+
+```bash
+meson --prefix=${NNTRAINER_ROOT} --sysconfdir=${NNTRAINER_ROOT} --libdir=lib --bindir=bin --includedir=include -Denable-capi=true build
 ```
 
-- Build source code
-```
+Build source code
+
+```bash
 # Set your own path to install libraries and header files
 $ sudo vi ~/.bashrc
 
@@ -64,17 +69,3 @@ $ meson --prefix=${NNTRAINER_ROOT} --sysconfdir=${NNTRAINER_ROOT} --libdir=lib -
 $ ninja -C build install
 $ cd ..
 ```
-
-***
-# Preparing nntrainer for execution.
-## Use PPA
-
-If you don't mind building binaries, you can directly download from PPA with daily releases:
-* Download nntrainer :
-```
-$ sudo add-apt-repository ppa:nnstreamer/ppa
-$ sudo apt-get update
-$ sudo apt-get install nntrainer
-```
-***
-
