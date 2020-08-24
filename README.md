@@ -260,8 +260,93 @@ nntrainer_training
 
 In order to run such example binaries, Tensorflow-lite is a prerequisite. If you are trying to run on the Android, it will automatically download tensorflow (1.9.0) and compile as static library. Otherwise, you need to install it by yourself.
 
-### Running Examples
+### How to Test
 
+1. Unittest
+Meson build `enable-test` set to true
+
+```bash
+$ echo $(pwd)
+(project root)
+
+$ meson build -Denable-test=true
+The Meson build system
+Version: 0.54.3
+...
+Configuring capi-nntrainer.pc using configuration
+Run-time dependency GTest found: YES (building self)
+Build targets in project: 17
+
+Found ninja-1.10.0.git.kitware.jobserver-1 at /home/jlee/.local/bin/ninja
+
+$ ninja -C build test
+[79/79] Running all tests.
+ 1/12 unittest_tizen_capi            OK             8.86s
+ 2/12 unittest_tizen_capi_layer      OK             0.05s
+ 3/12 unittest_tizen_capi_optimizer  OK             0.01s
+ 4/12 unittest_tizen_capi_dataset    OK             0.03s
+ 5/12 unittest_nntrainer_activations OK             0.03s
+ 6/12 unittest_nntrainer_internal    OK             0.23s
+ 7/12 unittest_nntrainer_layers      OK             0.22s
+ 8/12 unittest_nntrainer_lazy_tensor OK             0.04s
+ 9/12 unittest_nntrainer_tensor      OK             0.04s
+10/12 unittest_util_func             OK             0.05s
+11/12 unittest_databuffer_file       OK             0.12s
+12/12 unittest_nntrainer_modelfile   OK             2.22s
+
+Ok:                 12
+Expected Fail:      0
+Fail:               0
+Unexpected Pass:    0
+Skipped:            0
+Timeout:            0
+```
+
+if you want to run particular test
+
+```bash
+$ meson -C build test $(test name)
+```
+
+2. Sample app test
+NNTrainer provides extensive sample app running test.
+
+Meson build with `enable-app` set to true
+```bash
+$ echo $(pwd)
+(project root)
+
+$ meson build -Denable-app=true
+The Meson build system
+Version: 0.54.3
+...
+Configuring capi-nntrainer.pc using configuration
+Run-time dependency GTest found: YES (building self)
+Build targets in project: 17
+
+Found ninja-1.10.0.git.kitware.jobserver-1 at /home/jlee/.local/bin/ninja
+
+$ ninja -C build test
+...
+ 1/21 app_classification             OK             3.59s
+ 2/21 app_classification_func        OK             42.77s
+ 3/21 app_knn                        OK             4.81s
+ 4/21 app_logistic                   OK             14.11s
+ 5/21 app_DeepQ                      OK             30.30s
+ 6/21 app_training                   OK             38.36s
+ 7/21 app_classification_capi_ini    OK             32.65s
+ 8/21 app_classification_capi_file   OK             32.04s
+ 9/21 app_classification_capi_func   OK             29.13s
+ ...
+```
+
+if you want to run particular example only
+
+```bash
+$ meson -C build test $(test name) #app_classification_capi_func
+```
+
+### Running Examples
 
 1. [Training](https://github.com/nnstreamer/nntrainer/blob/master/Applications/Training/README.md)
 
