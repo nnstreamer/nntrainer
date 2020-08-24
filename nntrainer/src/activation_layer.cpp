@@ -1,7 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0-only
 /**
  * Copyright (C) 2020 Jihoon Lee <jhoon.it.lee@samsung.com>
- *
- * SPDX-License-Identifier: Apache-2.0-only
  *
  * @file   activation_layer.cpp
  * @date   17 June 2020

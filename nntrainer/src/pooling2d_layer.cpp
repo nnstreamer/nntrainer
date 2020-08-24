@@ -1,7 +1,6 @@
+// SPDX-License-Identifier: Apache-2.0-only
 /**
  * Copyright (C) 2020 Jijoong Moon <jijoong.moon@samsung.com>
- *
- * SPDX-License-Identifier: Apache-2.0-only
  *
  * @file	pooling2d_layer.cpp
  * @date	12 June 2020
