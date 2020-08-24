@@ -83,7 +83,7 @@ TEST_P(nntrainerIniTest, initThreetime_n) {
 
 /// @todo add run test could be added with iniTest flag to control skip
 static IniSection nw_base("model", "Type = NeuralNetwork | "
-                                   "minibatch = 32 | "
+                                   "batch_size = 32 | "
                                    "epsilon = 1e-7 | "
                                    "cost = cross");
 static IniSection adam("adam", "Optimizer = adam |"
@@ -125,7 +125,7 @@ static IniSection out("fclayer", "Type = fully_connected |"
 static IniSection conv2d("conv2d", "Type = conv2d |"
                                    "bias_initializer = zeros |"
                                    "Activation = sigmoid |"
-                                   "filter = 6 |"
+                                   "filters = 6 |"
                                    "kernel_size = 5,5 |"
                                    "stride = 1,1 |"
                                    "padding = 0,0 |");
@@ -183,7 +183,7 @@ INSTANTIATE_TEST_CASE_P(
     mkIniTc("sgd_minus_lr_n", {nw_sgd + "Learning_rate = -0.1", input, out}, ALLFAIL),
     mkIniTc("no_cost_n", {nw_adam + "-cost", input, out}, INITFAIL),
     // #389
-    // mkIniTc("buffer_size_smaller_than_minibatch_n", {nw_adam, dataset + "BufferSize=26", input, out}, ALLFAIL),
+    // mkIniTc("buffer_size_smaller_than_batch_size_n", {nw_adam, dataset + "BufferSize=26", input, out}, ALLFAIL),
     mkIniTc("unknown_layer_type_n", {nw_adam, input + "Type = asdf", out}, ALLFAIL),
     mkIniTc("unknown_layer_type2_n", {nw_adam, input, out + "Type = asdf", I(out, "outlayer", "")}, ALLFAIL),
 
@@ -191,7 +191,7 @@ INSTANTIATE_TEST_CASE_P(
     mkIniTc("wrong_nw_dataset_n", {nw_adam, input, out, dataset + "-LabelData"}, ALLFAIL),
     mkIniTc("wrong_nw_dataset2_n", {nw_adam, dataset + "-LabelData", input, out}, ALLFAIL),
     // #389
-    // mkIniTc("buffer_size_smaller_than_minibatch2_n", {nw_adam, input, out, dataset + "BufferSize=26"}, ALLFAIL),
+    // mkIniTc("buffer_size_smaller_than_batch_size2_n", {nw_adam, input, out, dataset + "BufferSize=26"}, ALLFAIL),
 
   /**< negative: dataset is not complete (5 negative cases) */
     mkIniTc("no_trainingSet_n", {nw_adam, dataset + "-TrainData", input, out}, ALLFAIL),

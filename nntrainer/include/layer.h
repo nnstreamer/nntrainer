@@ -229,7 +229,7 @@ public:
    *            11. kernel_size : ( n , m )
    *            12. stride : ( n, m )
    *            13. padding : ( n, m )
-   *            14. pooling_size : ( n,m )
+   *            14. pool_size : ( n,m )
    *            15. pooling : max, average, global_max, global_average
    *            16. flatten : bool
    *            17. name : string (type)
@@ -248,11 +248,11 @@ public:
     unit = 7,
     weight_initializer = 8,
     bias_initializer = 9,
-    filter = 10,
+    filters = 10,
     kernel_size = 11,
     stride = 12,
     padding = 13,
-    pooling_size = 14,
+    pool_size = 14,
     pooling = 15,
     flatten = 16,
     name = 17,

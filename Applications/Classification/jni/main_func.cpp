@@ -58,11 +58,11 @@ const unsigned int buffer_size = 100;
 const unsigned int total_label_size = 10;
 
 /**
- * @brief     Max Epoch
+ * @brief     Max Epochs
  */
 const unsigned int iteration = 3000;
 
-const unsigned int mini_batch = 32;
+const unsigned int batch_size = 32;
 
 const unsigned int feature_size = 62720;
 
@@ -135,15 +135,15 @@ bool getData(std::ifstream &F, std::vector<float> &outVec,
 }
 
 /**
- * @brief      get data which size is mini batch for train
+ * @brief      get data which size is batch for train
  * @param[out] outVec
  * @param[out] outLabel
  * @param[out] last if the data is finished
  * @param[in] user_data private data for the callback
  * @retval status for handling error
  */
-int getMiniBatch_train(float **outVec, float **outLabel, bool *last,
-                       void *user_data) {
+int getBatch_train(float **outVec, float **outLabel, bool *last,
+                   void *user_data) {
   std::vector<int> memI;
   std::vector<int> memJ;
   unsigned int count = 0;
@@ -157,7 +157,7 @@ int getMiniBatch_train(float **outVec, float **outLabel, bool *last,
       count++;
   }
 
-  if (count < mini_batch) {
+  if (count < batch_size) {
     for (unsigned int i = 0; i < total_label_size * data_size; ++i) {
       duplicate[i] = false;
     }
@@ -166,7 +166,7 @@ int getMiniBatch_train(float **outVec, float **outLabel, bool *last,
   }
 
   count = 0;
-  while (count < mini_batch) {
+  while (count < batch_size) {
     int nomI = rangeRandom(0, total_label_size * data_size - 1);
     if (!duplicate[nomI]) {
       memI.push_back(nomI);
@@ -196,15 +196,15 @@ int getMiniBatch_train(float **outVec, float **outLabel, bool *last,
 }
 
 /**
- * @brief      get data which size is mini batch for validation
+ * @brief      get data which size is batch for validation
  * @param[out] outVec
  * @param[out] outLabel
  * @param[out] last if the data is finished
  * @param[in] user_data private data for the callback
  * @retval status for handling error
  */
-int getMiniBatch_val(float **outVec, float **outLabel, bool *last,
-                     void *user_data) {
+int getBatch_val(float **outVec, float **outLabel, bool *last,
+                 void *user_data) {
 
   std::vector<int> memI;
   std::vector<int> memJ;
@@ -219,7 +219,7 @@ int getMiniBatch_val(float **outVec, float **outLabel, bool *last,
       count++;
   }
 
-  if (count < mini_batch) {
+  if (count < batch_size) {
     for (unsigned int i = 0; i < total_label_size * data_size; ++i) {
       valduplicate[i] = false;
     }
@@ -228,7 +228,7 @@ int getMiniBatch_val(float **outVec, float **outLabel, bool *last,
   }
 
   count = 0;
-  while (count < mini_batch) {
+  while (count < batch_size) {
     int nomI = rangeRandom(0, total_label_size * data_size - 1);
     if (!valduplicate[nomI]) {
       memI.push_back(nomI);
@@ -291,8 +291,8 @@ int main(int argc, char *argv[]) {
    */
   std::shared_ptr<nntrainer::DataBufferFromCallback> DB =
     std::make_shared<nntrainer::DataBufferFromCallback>();
-  DB->setFunc(nntrainer::BUF_TRAIN, getMiniBatch_train);
-  DB->setFunc(nntrainer::BUF_VAL, getMiniBatch_val);
+  DB->setFunc(nntrainer::BUF_TRAIN, getBatch_train);
+  DB->setFunc(nntrainer::BUF_VAL, getBatch_val);
 
   /**
    * @brief     Neural Network Create & Initialization

@@ -97,14 +97,14 @@ TEST(nntrainer_capi_dataset, create_destroy_06_p) {
   ml_train_dataset_h dataset;
   int status;
 
-  status = ml_train_dataset_create_with_generator(&dataset, getMiniBatch_train,
+  status = ml_train_dataset_create_with_generator(&dataset, getBatch_train,
                                                   NULL, NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
   status = ml_train_dataset_destroy(dataset);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_train_dataset_create_with_generator(
-    &dataset, getMiniBatch_train, getMiniBatch_val, getMiniBatch_val);
+  status = ml_train_dataset_create_with_generator(&dataset, getBatch_train,
+                                                  getBatch_val, getBatch_val);
   EXPECT_EQ(status, ML_ERROR_NONE);
   status = ml_train_dataset_destroy(dataset);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -117,7 +117,7 @@ TEST(nntrainer_capi_dataset, set_dataset_property_01_p) {
   ml_train_dataset_h dataset;
   int status;
 
-  status = ml_train_dataset_create_with_generator(&dataset, getMiniBatch_train,
+  status = ml_train_dataset_create_with_generator(&dataset, getBatch_train,
                                                   NULL, NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 

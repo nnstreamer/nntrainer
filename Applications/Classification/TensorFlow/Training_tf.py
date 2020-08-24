@@ -46,7 +46,7 @@ TOTAL_LABEL_SIZE=10
 TOTAL_VAL_DATA_SIZE=10
 FEATURE_SIZE=62720
 
-training_epochs = 10
+training_epoch = 10
 batch_size = 32
 
 ##
@@ -62,7 +62,7 @@ def load_data():
     ValVector = np.zeros((TOTAL_LABEL_SIZE*TOTAL_VAL_DATA_SIZE,FEATURE_SIZE),dtype=np.float32)
     ValLabel = np.zeros((TOTAL_LABEL_SIZE*TOTAL_VAL_DATA_SIZE, TOTAL_LABEL_SIZE),dtype=np.float32)
 
-    #read Input & Label    
+    #read Input & Label
 
     fin = open('valSet.dat','rb')
     for i in range(TOTAL_LABEL_SIZE*TOTAL_VAL_DATA_SIZE):
@@ -79,7 +79,7 @@ def load_data():
         for j in range(FEATURE_SIZE):
             data_str = fin.read(4)
             InputVector[i,j] = struct.unpack('f',data_str)[0]
-            
+
         for j in range(TOTAL_LABEL_SIZE):
             data_str = fin.read(4)
             InputLabel[i,j] = struct.unpack('f',data_str)[0]
@@ -108,7 +108,7 @@ def datagen( x_data, y_data, batch_size):
 
 ##
 # @brief training loop
-#        - epoches : 10
+#        - epochs : 10
 #        - Optimizer : Adam
 #        - Activation : softmax
 #        - loss : cross entropy
@@ -117,15 +117,15 @@ def train_tensorflow():
 
 
     initializer = tf.contrib.layers.xavier_initializer()
-    
+
     inputs = tf.placeholder(tf.float32, [None, FEATURE_SIZE], name="input_X")
     labels = tf.placeholder(tf.float32,[None, TOTAL_LABEL_SIZE], name = "label")
-        
+
     W = tf.Variable(initializer([FEATURE_SIZE, TOTAL_LABEL_SIZE]), name="Weight")
     B = tf.Variable(tf.zeros([TOTAL_LABEL_SIZE]), name="Bias")
 
     logits = tf.matmul(inputs, W)+B
-    
+
     hypothesis = tf.nn.softmax(logits)
 
     loss_i = tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=labels)
@@ -137,14 +137,14 @@ def train_tensorflow():
     correct_prediction = tf.equal(prediction, tf.argmax(labels,1))
 
     accuracy=tf.reduce_mean(tf.cast(correct_prediction,tf.float32))
-        
+
     init = tf.global_variables_initializer()
     saver = tf.train.Saver()
 
     with tf.Session() as sess:
         sess.run(init)
 
-        for epoch in range(training_epochs):
+        for epochs in range(training_epoch):
             avg_cost=0
             count = 0
             genTrainData=datagen(InVec, InLabel, batch_size)
@@ -152,24 +152,24 @@ def train_tensorflow():
                 c,_=sess.run([loss, optimizer],feed_dict = {inputs:x_batch, labels:y_batch})
                 avg_cost+=c
                 count += 1
-            
+
             avg_cost = avg_cost/count
-            
+
             saver.save(sess, 'saved_model/model.ckpt')
-            
+
             count =0
             train_accuracy = 0.0
             genValidationData = datagen(ValVec, ValLabel, batch_size)
             for x_batch, y_batch in genValidationData:
                 train_accuracy+=accuracy.eval(feed_dict={inputs:x_batch, labels:y_batch})
                 count += 1
-                
+
             total_acc = train_accuracy/count*100.0
 
-            print ('Epoch:', '%06d' % (epoch+1), 'loss =', '{:.9f}'.format(avg_cost), 'Accuracy:', '{:.9f}'.format(total_acc))
-            
+            print ('Epochs:', '%06d' % (epochs+1), 'loss =', '{:.9f}'.format(avg_cost), 'Accuracy:', '{:.9f}'.format(total_acc))
+
 ##
 # @brief main loop
 if __name__ == "__main__":
     train_tensorflow()
-    
+

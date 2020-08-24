@@ -39,7 +39,7 @@ namespace nntrainer {
 
 NeuralNetwork::NeuralNetwork() :
   batch_size(1),
-  epoch(1),
+  epochs(1),
   loss(0.0f),
   cost(COST_UNKNOWN),
   weight_initializer(WEIGHT_UNKNOWN),
@@ -158,7 +158,7 @@ int NeuralNetwork::setTrainConfig(std::vector<std::string> values) {
 
     switch (static_cast<PropertyType>(type)) {
     case PropertyType::epochs: {
-      status = setUint(epoch, value);
+      status = setUint(epochs, value);
       NN_RETURN_STATUS();
     } break;
     case PropertyType::model_file: {
@@ -380,7 +380,7 @@ int NeuralNetwork::train(std::vector<std::string> values) {
   }
 
   /** Setup data buffer properties */
-  status = data_buffer->setMiniBatch(batch_size);
+  status = data_buffer->setBatchSize(batch_size);
   NN_RETURN_STATUS();
 
   status =
@@ -405,7 +405,7 @@ int NeuralNetwork::train(std::vector<std::string> values) {
 int NeuralNetwork::train_run() {
   int status = ML_ERROR_NONE;
 
-  for (unsigned int epoch_idx = 1; epoch_idx <= epoch; ++epoch_idx) {
+  for (unsigned int epoch_idx = 1; epoch_idx <= epochs; ++epoch_idx) {
     float training_loss = 0.0f;
     status = data_buffer->run(nntrainer::BUF_TRAIN);
     if (status != ML_ERROR_NONE) {
@@ -431,10 +431,10 @@ int NeuralNetwork::train_run() {
                       iter++);
         } catch (...) {
           data_buffer->clear(nntrainer::BUF_TRAIN);
-          ml_loge("Error: training error in #%d/%d.", epoch_idx, epoch);
+          ml_loge("Error: training error in #%d/%d.", epoch_idx, epochs);
           std::rethrow_exception(std::current_exception());
         }
-        std::cout << "#" << epoch_idx << "/" << epoch;
+        std::cout << "#" << epoch_idx << "/" << epochs;
         data_buffer->displayProgress(count++, nntrainer::BUF_TRAIN, getLoss());
         training_loss += getLoss();
       } else {
@@ -445,7 +445,7 @@ int NeuralNetwork::train_run() {
 
     saveModel();
 
-    std::cout << "#" << epoch_idx << "/" << epoch
+    std::cout << "#" << epoch_idx << "/" << epochs
               << " - Training Loss: " << training_loss / count;
 
     if (data_buffer->getValidation()[nntrainer::BUF_VAL]) {

@@ -86,7 +86,7 @@ def create_model():
 
 ##
 # @brief training loop
-#        - epoches : 1500
+#        - epochs : 1500
 #        - Optimizer : Adam
 #        - Activation : softmax
 #        - loss : cross entropy

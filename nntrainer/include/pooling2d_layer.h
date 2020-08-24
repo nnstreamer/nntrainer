@@ -43,7 +43,7 @@ public:
    * @brief     Constructor of Pooling 2D Layer
    */
   Pooling2DLayer() :
-    pooling_size{0, 0},
+    pool_size{0, 0},
     stride{1, 1},
     padding{0, 0},
     pooling_type(PoolingType::average) {
@@ -140,7 +140,7 @@ public:
   void setProperty(const PropertyType type, const std::string &value = "");
 
 private:
-  unsigned int pooling_size[POOLING2D_DIM];
+  unsigned int pool_size[POOLING2D_DIM];
   unsigned int stride[POOLING2D_DIM];
   unsigned int padding[POOLING2D_DIM];
   std::vector<unsigned int> max_idx;

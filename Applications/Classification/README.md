@@ -32,7 +32,7 @@ This example has two options to train.
 - This option is activated if there is no [ DataSet ] section defined in the configuration file.
 - Expect to get the generator function which defined by user.
 - The sample implementation just loads the data from the training data set file (from option 1).
-- training data set generator is getMiniBatch_train(),  getMiniBatch_val() for validation. test data set is not used.
+- training data set generator is getBatch_train(),  getBatch_val() for validation. test data set is not used.
 
 ## How to run examples
 
@@ -51,11 +51,11 @@ Type = NeuralNetwork
 Learning_rate = 0.0001
 Decay_rate = 0.96
 Decay_steps = 1000
-Epoch = 30000
+Epochs = 30000
 Optimizer = adam
 Cost = cross
 Save_Path = "model.bin"
-minibatch = 32
+batch_size = 32
 beta1 = 0.9
 beta2 = 0.9999
 epsilon = 1e-7

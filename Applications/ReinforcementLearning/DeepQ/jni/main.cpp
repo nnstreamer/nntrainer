@@ -51,7 +51,7 @@
  *        |                    |                         |          |
  *        |        +------------------------+            |          |
  *        |        |  Training Q Network    |            |          |
- *        |        |     with minibatch     |            |          |
+ *        |        |     with batch_size     |            |          |
  *        |        +------------------------+            |          |
  *        |                    |                         |          |
  *        |        +------------------------+            |          |
@@ -101,7 +101,7 @@
 /**
  * @brief     minibach size
  */
-#define MINI_BATCH 30
+#define BATCH_SIZE 30
 
 /**
  * @brief     discount factor
@@ -156,13 +156,13 @@ static int rangeRandom(int Min, int Max) {
 
 /**
  * @brief     Generate randomly selected Experience buffer from
- *            Experience Replay Queue which number is equal minibatch
+ *            Experience Replay Queue which number is equal batch_size
  * @param[in] Q Experience Replay Queue
  * @retval    Experience vector
  */
-static std::vector<Experience> getMiniBatch(std::deque<Experience> Q) {
-  int Max = (MINI_BATCH > Q.size()) ? MINI_BATCH : Q.size();
-  int Min = (MINI_BATCH < Q.size()) ? MINI_BATCH : Q.size();
+static std::vector<Experience> getBatchSizeData(std::deque<Experience> Q) {
+  int Max = (BATCH_SIZE > Q.size()) ? BATCH_SIZE : Q.size();
+  int Min = (BATCH_SIZE < Q.size()) ? BATCH_SIZE : Q.size();
 
   std::vector<bool> duplicate;
   std::vector<int> mem;
@@ -439,9 +439,9 @@ int main(int argc, char **argv) {
     if (episode % 10 == 1 && TRAINING) {
       for (int iter = 0; iter < 50; iter++) {
         /**
-         * @brief     Get Minibatch size of Experience
+         * @brief     Get batch size of Experience
          */
-        std::vector<Experience> in_Exp = getMiniBatch(expQ);
+        std::vector<Experience> in_Exp = getBatchSizeData(expQ);
         std::vector<std::vector<std::vector<std::vector<float>>>> inbatch;
         std::vector<std::vector<std::vector<std::vector<float>>>> next_inbatch;
 

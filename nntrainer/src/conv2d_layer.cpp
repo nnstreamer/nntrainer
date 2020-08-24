@@ -97,11 +97,11 @@ sharedConstTensor Conv2DLayer::forwarding(sharedConstTensor in) {
     Tensor in_padded = zero_pad(b, input, padding);
 
     for (unsigned int i = 0; i < filter_size; ++i) {
-      Tensor &filter = paramsAt(i).weight;
+      Tensor &filters = paramsAt(i).weight;
       Tensor &bias = paramsAt(i + filter_size).weight;
-      status = conv2d(in_padded.getData(), in_padded.getDim(), filter.getData(),
-                      filter.getDim(), output.data(), stride,
-                      bias.getValue(0, 0, 0, 0));
+      status = conv2d(in_padded.getData(), in_padded.getDim(),
+                      filters.getData(), filters.getDim(), output.data(),
+                      stride, bias.getValue(0, 0, 0, 0));
       if (status != ML_ERROR_NONE)
         throw std::runtime_error("Forwarding Convolution failed.");
 
@@ -192,11 +192,12 @@ sharedConstTensor Conv2DLayer::backwarding(sharedConstTensor derivative,
 
     for (unsigned int in_c = 0; in_c < input_dim.channel(); ++in_c) {
       for (unsigned int i = 0; i < derivative->channel(); ++i) {
-        Tensor &filter = paramsAt(i).weight;
+        Tensor &filters = paramsAt(i).weight;
 
         conv2d(in_padded.getAddress(i * in_padded.height() * in_padded.width()),
-               p_dim, filter.getAddress(in_c * kernel_size[0] * kernel_size[1]),
-               kdim, output.data(), stride, 0.0f);
+               p_dim,
+               filters.getAddress(in_c * kernel_size[0] * kernel_size[1]), kdim,
+               output.data(), stride, 0.0f);
         float *ret_vec = ret.getAddress(b * ret.getDim().getFeatureLen() +
                                         in_c * ret.height() * ret.width());
         for (unsigned int j = 0; j < ret.height() * ret.width(); ++j) {
@@ -210,10 +211,10 @@ sharedConstTensor Conv2DLayer::backwarding(sharedConstTensor derivative,
     //  Update K / bias
     for (unsigned int i = 0; i < filter_size; ++i) {
       Tensor &delK = paramsAt(i).grad;
-      Tensor &filter = paramsAt(i).weight;
+      Tensor &filters = paramsAt(i).weight;
 
       delK = delK.chain()
-               .applyIf(this->isWeightDecayL2Norm(), _LIFT(add_i), filter,
+               .applyIf(this->isWeightDecayL2Norm(), _LIFT(add_i), filters,
                         weight_decay.lambda)
                .run();
     }
@@ -269,7 +270,7 @@ int Conv2DLayer::setSize(int *size, PropertyType type) {
 int Conv2DLayer::setFilter(int f) {
   int status = ML_ERROR_NONE;
   if (f <= 0) {
-    ml_loge("Error: Filter size must be greater than 0");
+    ml_loge("Error: number of filters must be greater than 0");
     status = ML_ERROR_INVALID_PARAMETER;
   }
   filter_size = f;
@@ -281,7 +282,7 @@ void Conv2DLayer::setProperty(const PropertyType type,
   int status = ML_ERROR_NONE;
 
   switch (type) {
-  case PropertyType::filter: {
+  case PropertyType::filters: {
     if (!value.empty()) {
       status = setUint(filter_size, value);
       throw_status(status);

@@ -51,7 +51,7 @@ const unsigned int total_test_data_size = 32;
 
 const unsigned int buffer_size = 32;
 
-const unsigned int mini_batch = 32;
+const unsigned int batch_size = 32;
 
 #else
 
@@ -63,7 +63,7 @@ const unsigned int total_test_data_size = 100;
 
 const unsigned int buffer_size = 100;
 
-const unsigned int mini_batch = 32;
+const unsigned int batch_size = 32;
 
 #endif
 
@@ -127,15 +127,15 @@ bool getData(std::ifstream &F, std::vector<float> &outVec,
 }
 
 /**
- * @brief      get data which size is mini batch for train
+ * @brief      get data which size is batch for train
  * @param[out] outVec
  * @param[out] outLabel
  * @param[out] last if the data is finished
  * @param[in] user_data private data for the callback
  * @retval status for handling error
  */
-int getMiniBatch_train(float **outVec, float **outLabel, bool *last,
-                       void *user_data) {
+int getBatch_train(float **outVec, float **outLabel, bool *last,
+                   void *user_data) {
   std::vector<int> memI;
   std::vector<int> memJ;
   unsigned int count = 0;
@@ -145,9 +145,9 @@ int getMiniBatch_train(float **outVec, float **outLabel, bool *last,
   std::ifstream F(filename, std::ios::in | std::ios::binary);
 
 #if VALIDATION
-  if (data_size - train_count < mini_batch) {
+  if (data_size - train_count < batch_size) {
 #else
-  if (data_size * total_label_size - train_count < mini_batch) {
+  if (data_size * total_label_size - train_count < batch_size) {
 #endif
     *last = true;
     train_count = 0;
@@ -155,7 +155,7 @@ int getMiniBatch_train(float **outVec, float **outLabel, bool *last,
   }
 
   count = 0;
-  for (unsigned int i = train_count; i < train_count + mini_batch; i++) {
+  for (unsigned int i = train_count; i < train_count + batch_size; i++) {
     std::vector<float> o;
     std::vector<float> l;
 
@@ -173,20 +173,20 @@ int getMiniBatch_train(float **outVec, float **outLabel, bool *last,
 
   F.close();
   *last = false;
-  train_count += mini_batch;
+  train_count += batch_size;
   return ML_ERROR_NONE;
 }
 
 /**
- * @brief      get data which size is mini batch for validation
+ * @brief      get data which size is batch for validation
  * @param[out] outVec
  * @param[out] outLabel
  * @param[out] last if the data is finished
  * @param[in] user_data private data for the callback
  * @retval status for handling error
  */
-int getMiniBatch_val(float **outVec, float **outLabel, bool *last,
-                     void *user_data) {
+int getBatch_val(float **outVec, float **outLabel, bool *last,
+                 void *user_data) {
 
   std::vector<int> memI;
   std::vector<int> memJ;
@@ -197,9 +197,9 @@ int getMiniBatch_val(float **outVec, float **outLabel, bool *last,
   std::ifstream F(filename, std::ios::in | std::ios::binary);
 
 #if VALIDATION
-  if (data_size - val_count < mini_batch) {
+  if (data_size - val_count < batch_size) {
 #else
-  if (data_size * total_label_size - val_count < mini_batch) {
+  if (data_size * total_label_size - val_count < batch_size) {
 #endif
     *last = true;
     val_count = 0;
@@ -207,7 +207,7 @@ int getMiniBatch_val(float **outVec, float **outLabel, bool *last,
   }
 
   count = 0;
-  for (unsigned int i = val_count; i < val_count + mini_batch; i++) {
+  for (unsigned int i = val_count; i < val_count + batch_size; i++) {
     std::vector<float> o;
     std::vector<float> l;
 
@@ -225,7 +225,7 @@ int getMiniBatch_val(float **outVec, float **outLabel, bool *last,
 
   F.close();
   *last = false;
-  val_count += mini_batch;
+  val_count += batch_size;
   return ML_ERROR_NONE;
 }
 
@@ -254,8 +254,8 @@ int main(int argc, char *argv[]) {
    */
   std::shared_ptr<nntrainer::DataBufferFromCallback> DB =
     std::make_shared<nntrainer::DataBufferFromCallback>();
-  DB->setFunc(nntrainer::BUF_TRAIN, getMiniBatch_train);
-  DB->setFunc(nntrainer::BUF_VAL, getMiniBatch_val);
+  DB->setFunc(nntrainer::BUF_TRAIN, getBatch_train);
+  DB->setFunc(nntrainer::BUF_VAL, getBatch_val);
 
   /**
    * @brief     Neural Network Create & Initialization

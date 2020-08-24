@@ -44,20 +44,20 @@ TEST(nntrainer_DataBuffer, setFeatureSize_01_p) {
 /**
  * @brief Data Buffer
  */
-TEST(nntrainer_DataBuffer, setMiniBatch_01_p) {
+TEST(nntrainer_DataBuffer, setBatchSize_01_p) {
   int status = ML_ERROR_NONE;
   nntrainer::DataBufferFromDataFile data_buffer;
-  status = data_buffer.setMiniBatch(32);
+  status = data_buffer.setBatchSize(32);
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
 /**
  * @brief Data Buffer
  */
-TEST(nntrainer_DataBuffer, setMiniBatch_02_n) {
+TEST(nntrainer_DataBuffer, setBatchSize_02_n) {
   int status = ML_ERROR_NONE;
   nntrainer::DataBufferFromDataFile data_buffer;
-  status = data_buffer.setMiniBatch(0);
+  status = data_buffer.setBatchSize(0);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
@@ -69,7 +69,7 @@ TEST(nntrainer_DataBuffer, init_01_p) {
   nntrainer::DataBufferFromDataFile data_buffer;
   nntrainer::TensorDim dim;
   dim.setTensorDim("32:1:1:62720");
-  status = data_buffer.setMiniBatch(32);
+  status = data_buffer.setBatchSize(32);
   EXPECT_EQ(status, ML_ERROR_NONE);
   status = data_buffer.setClassNum(10);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -161,7 +161,7 @@ TEST(nntrainer_DataBuffer, clear_01_p) {
   nntrainer::DataBufferFromDataFile data_buffer;
   nntrainer::TensorDim dim;
   dim.setTensorDim("32:1:1:62720");
-  status = data_buffer.setMiniBatch(32);
+  status = data_buffer.setBatchSize(32);
   ASSERT_EQ(status, ML_ERROR_NONE);
   status = data_buffer.setClassNum(10);
   ASSERT_EQ(status, ML_ERROR_NONE);

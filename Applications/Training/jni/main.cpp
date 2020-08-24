@@ -58,7 +58,7 @@
 #define TOTAL_TEST_SIZE 8
 
 /**
- * @brief     Max Epoch
+ * @brief     Max Epochs
  */
 #define ITERATION 1000
 
