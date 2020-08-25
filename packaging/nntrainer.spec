@@ -106,7 +106,7 @@ Tizen Native API wrapper for NNTrainer.
 You can train neural networks efficiently.
 
 %post -n capi-nntrainer -p /sbin/ldconfig
-%postrun -n capi-nntrainer -p /sbin/ldconfig
+%postun -n capi-nntrainer -p /sbin/ldconfig
 
 %package -n capi-nntrainer-devel
 Summary:         Tizen Native API Devel Kit for NNTrainer
