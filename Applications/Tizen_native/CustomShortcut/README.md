@@ -1,6 +1,8 @@
-# CustomShortcut (tentative)
+# CustomShortcut
 
-`CustomShortcut` is a nntrainer demo app that maps user defined symbol to any custom character by on-device training.
+![DemoFootage](/docs/images/customshortcut.webp)
+
+`CustomShortcut` is a nntrainer demo app that maps user defined symbol to smily face or sad face.
 
 For example, user can draw `^^` few times to train a model to label the drawing as 😊.
 
@@ -16,23 +18,27 @@ If you want to do in CLI, you first need to [convert the project to CLI](https:/
 
 for the time being, you have to install and prepare nntrainer, capi-nntrainer to run this program
 
+### Prerequisite
+
+- [NNTrainer Prerequisite](https://github.com/nnstreamer/nntrainer#prerequisites)
+- tizen studio 3.7
+- wearable 6.0 rootstrap (built after Aug 25 2020)
+- appropriate wearable tizen device with tizen 6.0 installed (built after Aug 25 2020)
+
+### Install Newest nntrainer to the device
+
 ```bash
 $ gbs build --arch armv7l
 $ sdb devices
 List of devices attached
 #device list
 $ sdb root on
-$ pushd ${gbs repo directory}
-$ sdb push nntrainer.0.0.1-0.armv7l.rpm /usr
-$ sdb push capi-nntrainer.0.0.1-0.armv7l.rpm /usr
-$ popd
-$ sdb shell
-sh-3.2# mount -o remount,rw /
-sh-3.2# cd /usr
-sh-3.2# rpm -e nntrainer
-sh-3.2# rpm -i nntrainer.0.0.1.-0.armv7l.rpm
-sh-3.2# rpm -i capi-nntrainer.0.0.1.-0.armv7l.rpm
+$ sdb shell "mount -o remount,rw /"
+$ sdb push ${gbs repo directory} /tmp_repos/
+$ sdb shell rpm -Uvh --force --nodeps /tmp_repos/*.rpm
 ```
+
+### Build tpk of nntrainer
 
 ```bash
 $ echo $(pwd)
@@ -52,14 +58,14 @@ total bytes=94664, compressed=35729 -> 62% savings
 Zipping... OK
 Package File Location: /data/nntrainer/Applications/Tizen_native/CustomShortcut/Debug/org.example.nntrainer-custom-shortcut-0.0.1-x86.tpk
 # You need to prepare a device or emulator running before hand
-$ tizen install -n "./Debug/org.example.nntrainer-custom-shortcut-0.0.1-x86.tpk" -t "W-5.5-circle-x86"
+$ tizen install -n "./Debug/org.example.nntrainer-custom-shortcut-0.0.1-x86.tpk" -t "TW3"
 path is /home/owner/share/tmp/sdk_tools/tmp/org.example.nntrainer-custom-shortcut-0.0.1.tpk
 # ...
 spend time for pkgcmd is [343]ms
 
 Tizen application is successfully installed.
 Total time: 00:00:00.959
-$ tizen run -p "org.example.nntrainer-custom-shortcut" -t "W-5.5-circle-x86"
+$ tizen run -p "org.example.nntrainer-custom-shortcut" -t "TW3"
 result: App isnt running
 ... successfully launched pid = 24563 with debug 0
 Tizen application is successfully launched.
