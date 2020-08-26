@@ -713,14 +713,10 @@ Tensor Tensor::transpose(std::string direction) const {
 
 Tensor Tensor::apply(std::function<float(float)> f) const {
   Tensor result(dim.batch(), dim.channel(), dim.height(), dim.width());
-  unsigned int i;
-
   const float *data = getData();
   float *rdata = result.getData();
-  unsigned int len = length();
 
-  for (i = 0; i < len; ++i)
-    rdata[i] = f(data[i]);
+  std::transform(data, data + length(), rdata, f);
 
   return result;
 }
