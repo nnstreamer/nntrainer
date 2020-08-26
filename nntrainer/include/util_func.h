@@ -55,6 +55,12 @@ double sqrtDouble(double x);
 float logFloat(float x);
 
 /**
+ * @brief     exp function for float type
+ * @param[in] x float
+ */
+float exp_util(float x);
+
+/**
  * @brief     apply padding
  * @param[in] batch batch index
  * @param[in] x input
