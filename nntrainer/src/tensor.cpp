@@ -593,142 +593,127 @@ Tensor Tensor::sum(int axis) const {
 }
 
 /**
- * If the dim.batch() size of m is one, the it is reused for
- * every calculation along with dim.batch().
- * TODO: support dim.channel() > 1.
+ * @note: This dot product flattens the fist 3 axis for the purpose of
+ * computation. So, while performing, these matrices are behaving as 2-D
+ * matrices. The dimensions are restored while returning back the tensor.
  */
-Tensor Tensor::dot(Tensor const &m) const {
-  if (dim.width() != m.dim.height()) {
-    throw std::runtime_error("Error dim.width() != m.dim.height()");
+Tensor Tensor::dot(Tensor const &m, bool trans, bool trans_m) const {
+  if (m.dim.rank() > 2) {
+    throw exception::not_supported("Error: support only for rank of dot "
+                                   "matrix <= 2");
+  }
+  if (trans && dim.rank() > 2) {
+    throw exception::not_supported("Error: support only for rank of dot "
+                                   "matrix <= 2 with trans");
   }
 
-  if (dim.channel() != 1 || m.dim.channel() != 1) {
-    throw std::runtime_error("Error channel() != 1");
-  }
+  unsigned int dim1 = batch() * channel() * height();
+  unsigned int dim2 = width();
+  unsigned int mdim1 = m.batch() * m.channel() * m.height();
+  unsigned int mdim2 = m.width();
+  Tensor result;
 
-  int mwidth = m.dim.width();
-  Tensor result(dim.batch(), 1, dim.height(), mwidth);
+  unsigned int M, N, K, lda, ldb, ldc;
+
+  if (!trans && !trans_m) {
+    if (dim2 != mdim1)
+      throw std::runtime_error(
+        "Error: incompatible dimensions for dot product");
+    K = mdim1; /** == dim2 */
+    N = mdim2;
+    M = dim1;
+    lda = K;
+    ldb = N;
+    result = Tensor(batch(), channel(), height(), mdim2);
+  } else if (!trans && trans_m) {
+    if (dim2 != mdim2)
+      throw std::runtime_error(
+        "Error: incompatible dimensions for dot product");
+    K = mdim2; /** == dim2 */
+    N = mdim1;
+    M = dim1;
+    lda = K;
+    ldb = K;
+    result = Tensor(batch(), channel(), height(), mdim1);
+  } else if (trans && !trans_m) {
+    if (dim1 != mdim1)
+      throw std::runtime_error(
+        "Error: incompatible dimensions for dot product");
+    K = mdim1; /** == dim1 */
+    N = mdim2;
+    M = dim2;
+    lda = M;
+    ldb = N;
+    result = Tensor(1, 1, dim2, mdim2);
+  } else {
+    if (dim1 != mdim2)
+      throw std::runtime_error(
+        "Error: incompatible dimensions for dot product");
+    K = mdim2; /** == dim1 */
+    N = mdim1;
+    M = dim2;
+    lda = M;
+    ldb = K;
+    result = Tensor(1, 1, dim2, mdim1);
+  }
+  ldc = N;
 
   const float *data = getData();
   const float *mdata = m.getData();
   float *rdata = result.getData();
-
+  const float alpha = 1.0f;
+  const float beta = 0.0f;
 #ifdef USE_BLAS
-  float alpha_dgemm = 1.0f;
-  float beta_dgemm = 0.0f;
-  if (m.dim.batch() == 1) {
-    for (unsigned int k = 0; k < dim.batch(); k++) {
-      unsigned int i = k * dim.width() * dim.height();
-      unsigned int ii = k * dim.height() * m.dim.width();
-      cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, dim.height(),
-                  m.dim.width(), dim.width(), alpha_dgemm, &(data[i]),
-                  dim.width(), mdata, m.dim.width(), beta_dgemm, &(rdata[ii]),
-                  m.dim.width());
-    }
-  } else {
-    for (unsigned int k = 0; k < dim.batch(); k++) {
-      unsigned int i = k * dim.width() * dim.height();
-      unsigned int j = k * m.dim.width() * m.dim.height();
-      unsigned int ii = k * dim.height() * m.dim.width();
-
-      cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, dim.height(),
-                  m.dim.width(), dim.width(), alpha_dgemm, &(data[i]),
-                  dim.width(), &(mdata[j]), m.dim.width(), beta_dgemm,
-                  &(rdata[ii]), m.dim.width());
-    }
-  }
+  enum CBLAS_TRANSPOSE transA = trans ? CblasTrans : CblasNoTrans;
+  enum CBLAS_TRANSPOSE transB = trans_m ? CblasTrans : CblasNoTrans;
+  cblas_sgemm(CblasRowMajor, transA, transB, M, N, K, alpha, data, lda, mdata,
+              ldb, beta, rdata, ldc);
 #elif USE_CUBLAS
   int devID = 0;
   cudaDeviceProp deviceProp;
   cudaGetDeviceProperties(&deviceProp, devID);
   float *d_A, *d_B, *d_C;
 
-  unsigned int size_A = this->dim.width() * dim.height() * sizeof(float);
-  unsigned int size_B = m.dim.width() * m.dim.height() * sizeof(float);
-  unsigned int size_C =
-    result.dim.width() * result.dim.height() * sizeof(float);
+  unsigned int size_A = this->length() * sizeof(float);
+  unsigned int size_B = m.length() * sizeof(float);
+  unsigned int size_C = result.length() * sizeof(float);
 
-  if (m.dim.batch() == 1) {
-    for (unsigned int k = 0; k < dim.batch(); k++) {
-      unsigned int i = k * dim.width() * dim.height();
-      unsigned int ii = k * dim.height() * m.dim.width();
+  cudaMalloc((void **)&d_A, size_A);
+  cudaMalloc((void **)&d_B, size_B);
+  cudaMemcpy(d_A, data, size_A, cudaMemcpyHostToDevice);
+  cudaMemcpy(d_B, mdata, size_B, cudaMemcpyHostToDevice);
+  cudaMalloc((void **)&d_C, size_C);
 
-      cudaMalloc((void **)&d_A, size_A);
-      cudaMalloc((void **)&d_B, size_B);
-      cudaMemcpy(d_A, &data[i], size_A, cudaMemcpyHostToDevice);
-      cudaMemcpy(d_B, mdata, size_B, cudaMemcpyHostToDevice);
-      cudaMalloc((void **)&d_C, size_C);
+  cublasHandle_t handle;
+  cublasCreate(&handle);
 
-      {
-        const float alpha = 1.0f;
-        const float beta = 0.0f;
-        cublasHandle_t handle;
+  cublasOperation_t transA = trans ? CUBLAS_OP_T : CUBLAS_OP_N;
+  cublasOperation_t transB = trans_m ? CUBLAS_OP_T : CUBLAS_OP_N;
+  cublasSgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, N, M, K, &alpha, d_B, N, d_A, K,
+              &beta, d_C, N);
 
-        (cublasCreate(&handle));
-
-        (cublasSgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, m.dim.width(),
-                     dim.height(), dim.width(), &alpha, d_B, m.dim.width(), d_A,
-                     dim.width(), &beta, d_C, m.dim.width()));
-
-        (cudaMemcpy(&rdata[ii], d_C, size_C, cudaMemcpyDeviceToHost));
-        (cublasDestroy(handle));
-      }
-    }
-  } else {
-    for (unsigned int k = 0; k < dim.batch(); k++) {
-      unsigned int i = k * dim.width() * dim.height();
-      unsigned int j = k * m.dim.width() * m.dim.height();
-      unsigned int ii = k * dim.height() * m.dim.width();
-
-      (cudaMalloc((void **)&d_A, size_A));
-      (cudaMalloc((void **)&d_B, size_B));
-      (cudaMemcpy(d_A, &data[i], size_A, cudaMemcpyHostToDevice));
-      (cudaMemcpy(d_B, &mdata[j], size_B, cudaMemcpyHostToDevice));
-      (cudaMalloc((void **)&d_C, size_C));
-
-      {
-        const float alpha = 1.0f;
-        const float beta = 0.0f;
-        cublasHandle_t handle;
-
-        (cublasCreate(&handle));
-
-        (cublasSgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, m.dim.width(),
-                     dim.height(), dim.width(), &alpha, d_B, m.dim.width(), d_A,
-                     dim.width(), &beta, d_C, m.dim.width()));
-
-        (cudaMemcpy(&rdata[ii], d_C, size_C, cudaMemcpyDeviceToHost));
-        (cublasDestroy(handle));
-      }
-    }
-  }
+  cudaMemcpy(rdata, d_C, size_C, cudaMemcpyDeviceToHost);
+  cublasDestroy(handle);
 #else
   float w = 0.0f;
   unsigned int i, j, k, h;
-  if (m.dim.batch() == 1) {
-    for (k = 0; k < dim.batch(); ++k) {
-      for (i = 0; i < dim.height(); ++i) {
-        for (j = 0; j < m.dim.width(); ++j) {
-          for (h = 0; h < dim.width(); ++h) {
-            w += data[k * dim.height() * dim.width() + i * dim.width() + h] *
-                 mdata[h * m.dim.width() + j];
-          }
-          rdata[k * dim.height() * m.dim.width() + i * m.dim.width() + j] = w;
-          w = 0.0f;
-        }
-      }
-    }
-  } else {
-    for (k = 0; k < dim.batch(); k++) {
-      for (i = 0; i < dim.height(); i++) {
-        for (j = 0; j < m.dim.width(); j++) {
-          for (h = 0; h < dim.width(); h++) {
-            w += data[k * dim.height() * dim.width() + i * dim.width() + h] *
-                 mdata[k * dim.width() * m.dim.width() + h * m.dim.width() + j];
-          }
-          rdata[k * dim.height() * m.dim.width() + i * m.dim.width() + j] = w;
-          w = 0.0f;
-        }
+  Tensor this_t, m_t;
+
+  if (trans) {
+    this_t = this->transpose("0:2:1");
+    data = this_t.getData();
+  }
+
+  if (trans_m) {
+    m_t = this->transpose("0:2:1");
+    mdata = m_t.getData();
+  }
+
+  result.setZero();
+  for (unsigned int n = 0; n < N; n++) {
+    for (unsigned int m = 0; m < M; m++) {
+      for (unsigned int k = 0; k < K; k++) {
+        rdata[n * ldc + m] += data[m * lda + k] * mdata[k * ldb + n];
       }
     }
   }

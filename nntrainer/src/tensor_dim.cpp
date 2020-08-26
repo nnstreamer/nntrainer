@@ -100,6 +100,15 @@ bool TensorDim::operator==(const TensorDim &rhs) const {
   return true;
 }
 
+unsigned int TensorDim::rank() const {
+  unsigned int rank = 0;
+  for (unsigned int i = 0; i < MAXDIM; i++) {
+    if (dim[i] > 1)
+      rank += 1;
+  }
+  return rank;
+}
+
 std::ostream &operator<<(std::ostream &out, TensorDim const &d) {
   out << "Shape: " << d.batch() << ":" << d.channel() << ":" << d.height()
       << ":" << d.width() << std::endl;

@@ -795,12 +795,10 @@ TEST(nntrainer_Tensor, dot_01_p) {
   int status = ML_ERROR_NONE;
   int batch = 3;
   int channel = 1;
-  int height = 3;
+  int height = 1;
   int width = 3;
-  float ans[3][1][3][3] = {
-    {{{30, 36, 42}, {66, 81, 96}, {102, 126, 150}}},
-    {{{435, 468, 501}, {552, 594, 636}, {669, 720, 771}}},
-    {{{1326, 1386, 1446}, {1524, 1593, 1662}, {1722, 1800, 1878}}}};
+  float ans[3][1][1][3] = {
+    {{{30, 36, 42}}}, {{{66, 81, 96}}}, {{{102, 126, 150}}}};
 
   nntrainer::Tensor input(batch, channel, height, width);
   GEN_TEST_INPUT(input, i * (channel * width * height) + j * (height * width) +
