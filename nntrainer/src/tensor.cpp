@@ -54,6 +54,18 @@
           }                                                           \
   } while (0);
 
+/** do clone of this, perform the operation and return the output */
+#define CLONE_OP_I(op, ...)                        \
+  do {                                             \
+    Tensor clone = this->clone();                  \
+    if (clone.op(__VA_ARGS__) != ML_ERROR_NONE) {  \
+      std::stringstream ss;                        \
+      ss << "Error: op " << __func__ << " failed"; \
+      throw std::runtime_error(ss.str());          \
+    }                                              \
+    return clone;                                  \
+  } while (0);
+
 namespace nntrainer {
 
 static auto rng = [] {
@@ -190,12 +202,7 @@ int Tensor::multiply_i(float const &value) {
   return ML_ERROR_NONE;
 }
 
-Tensor Tensor::multiply(float const &value) {
-  Tensor result = this->clone();
-  result.multiply_i(value);
-
-  return result;
-}
+Tensor Tensor::multiply(float const &value) { CLONE_OP_I(multiply_i, value); }
 
 int Tensor::divide_i(float const &value) {
   if (value == 0.0f) {
@@ -209,11 +216,8 @@ Tensor Tensor::divide(float const &value) {
   if (value == 0.0f) {
     throw std::runtime_error("Error: Divide by zero");
   }
-  Tensor result;
-  result.copy(*this);
-  result.divide_i(value);
 
-  return result;
+  CLONE_OP_I(divide_i, value);
 }
 
 int Tensor::add_i(float const &value) {
@@ -232,12 +236,7 @@ int Tensor::add_i(float const &value) {
   return ML_ERROR_NONE;
 }
 
-Tensor Tensor::add(float const &value) {
-  Tensor result = this->clone();
-  result.add_i(value);
-
-  return result;
-}
+Tensor Tensor::add(float const &value) { CLONE_OP_I(add_i, value); }
 
 /**
  * @brief Add Tensor Element by Element without mem copy
@@ -289,85 +288,16 @@ int Tensor::add_i(Tensor const &m, float const alpha) {
 }
 
 Tensor Tensor::add(Tensor const &m, float const alpha) const {
-  Tensor result;
-
-  result.copy(*this);
-
-  if (result.add_i(m, alpha) != ML_ERROR_NONE)
-    throw std::runtime_error("Error: Dimension must be equal each other");
-
-  return result;
+  CLONE_OP_I(add_i, m, alpha);
 }
 
-int Tensor::subtract_i(Tensor const &m) {
-  if (dim.channel() != m.dim.channel() || dim.height() != m.dim.height() ||
-      dim.width() != m.dim.width()) {
-    return ML_ERROR_INVALID_PARAMETER;
-  }
+int Tensor::subtract_i(Tensor const &m) { return add_i(m, -1); }
 
-  if (dim.batch() != m.dim.batch() && m.dim.batch() != 1) {
-    return ML_ERROR_INVALID_PARAMETER;
-  }
-
-  float *data = getData();
-  const float *mdata = m.getData();
-  unsigned int len = length();
-
-#ifdef USE_BLAS
-  unsigned int size =
-    this->dim.channel() * this->dim.width() * this->dim.height();
-  float alpha = -1.0f;
-
-  if (m.dim.batch() == 1) {
-    for (unsigned int k = 0; k < dim.batch(); ++k) {
-      cblas_saxpy(size, alpha, mdata, 1, &(data[k * size]), 1);
-    }
-  } else {
-    cblas_saxpy(len, alpha, mdata, 1, data, 1);
-  }
-#else
-  unsigned int i, j, k;
-  if (m.dim.batch() == 1) {
-    len = m.dim.getFeatureLen();
-    for (k = 0; k < dim.batch(); ++k) {
-      for (i = 0; i < len; ++i) {
-        j = k * len;
-        data[j + i] -= mdata[i];
-      }
-    }
-  } else {
-    for (k = 0; k < len; ++k) {
-      data[k] -= mdata[k];
-    }
-  }
-#endif
-
-  return ML_ERROR_NONE;
-}
-
-Tensor Tensor::subtract(Tensor const &m) const {
-  if (dim.channel() != m.dim.channel() || dim.height() != m.dim.height() ||
-      dim.width() != m.dim.width()) {
-    throw std::runtime_error("Error: Dimension must be equal each other");
-  }
-
-  Tensor result = this->clone();
-  result.subtract_i(m);
-
-  return result;
-}
+Tensor Tensor::subtract(Tensor const &m) const { return add(m, -1); }
 
 int Tensor::subtract_i(float const &value) { return this->add_i(-value); }
 
-Tensor Tensor::subtract(float const &value) {
-  Tensor result = this->clone();
-
-  if (result.subtract_i(value) != ML_ERROR_NONE) {
-    throw std::runtime_error("Error: there was an error on subtraction");
-  }
-
-  return result;
-}
+Tensor Tensor::subtract(float const &value) { return this->add(-value); }
 
 int Tensor::multiply_i(Tensor const &m) {
   if (dim.channel() != m.dim.channel() || dim.height() != m.dim.height() ||
@@ -414,11 +344,7 @@ Tensor Tensor::multiply(Tensor const &m) const {
     throw std::runtime_error("Error: Dimension must be equal each other");
   }
 
-  Tensor result;
-  result.copy(*this);
-  result.multiply_i(m);
-
-  return result;
+  CLONE_OP_I(multiply_i, m);
 }
 
 int Tensor::divide_i(Tensor const &m) {
@@ -468,10 +394,7 @@ Tensor Tensor::divide(Tensor const &m) const {
     throw std::runtime_error("Error: Dimension must be equal each other");
   }
 
-  Tensor result = this->clone();
-  result.divide_i(m);
-
-  return result;
+  CLONE_OP_I(divide_i, m);
 }
 
 /**
