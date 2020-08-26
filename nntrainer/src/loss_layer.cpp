@@ -73,7 +73,11 @@ sharedConstTensor LossLayer::forwarding(sharedConstTensor in,
   } break;
   case LossType::LOSS_ENTROPY_SOFTMAX: {
     y = y.apply(ActivationLayer::softmax);
-    l = y2.chain().multiply_i(y.apply(logFloat)).run().sum_by_batch();
+    l = y2.chain()
+          .multiply_i(y.apply(logFloat))
+          .run()
+          .sum_by_batch()
+          .multiply(-1);
 
   } break;
   case LossType::LOSS_ENTROPY: {

@@ -24,6 +24,7 @@
 #include <assert.h>
 #include <cstring>
 #include <iomanip>
+#include <iterator>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <parse_util.h>
@@ -34,6 +35,12 @@
 #include <util_func.h>
 
 #include <lazy_tensor.h>
+
+#ifdef USE_BLAS
+extern "C" {
+#include <cblas.h>
+}
+#endif
 
 #ifdef USE_CUBLAS
 #include <helper_cuda.h>
@@ -131,8 +138,7 @@ bool Tensor::operator==(const Tensor &rhs) const {
 
 float Tensor::getValue(unsigned int batch, unsigned int c, unsigned int h,
                        unsigned int w) const {
-  return getData()[batch * dim.getFeatureLen() +
-                   c * dim.height() * dim.width() + h * dim.width() + w];
+  return getData()[getIndex(batch, c, h, w)];
 }
 
 void Tensor::setValue(unsigned int batch, unsigned int c, unsigned int h,
@@ -141,8 +147,7 @@ void Tensor::setValue(unsigned int batch, unsigned int c, unsigned int h,
     throw std::runtime_error("cannot set value of non-contiguous tensor");
   }
 
-  getData()[batch * dim.getFeatureLen() + c * dim.height() * dim.width() +
-            h * dim.width() + w] = value;
+  getData()[getIndex(batch, c, h, w)] = value;
 }
 
 template <typename T> void Tensor::setDist(T dist) {
@@ -257,6 +262,7 @@ void Tensor::saxpy(const unsigned int N, const float alpha, const float *X,
  * @param[in] m Tensor to be added
  * #retval #ML_ERROR_NONE  Successful
  * #retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter
+ * TODO: add axis rather doing add over the last two dimensions always
  */
 int Tensor::add_i(Tensor const &m, float const alpha) {
   if ((dim.height() != m.dim.height()) || (dim.width() != m.dim.width())) {
@@ -313,7 +319,8 @@ int Tensor::subtract_i(float const &value) { return this->add_i(-value); }
 
 Tensor Tensor::subtract(float const &value) { return this->add(-value); }
 
-int Tensor::multiply_i(Tensor const &m) {
+int Tensor::operator_i(Tensor const &m,
+                       std::function<float(float const, float const)> op) {
   if (dim.channel() != m.dim.channel() || dim.height() != m.dim.height() ||
       dim.width() != m.dim.width()) {
     return ML_ERROR_INVALID_PARAMETER;
@@ -322,34 +329,25 @@ int Tensor::multiply_i(Tensor const &m) {
   float *data = getData();
   const float *mdata = m.getData();
 
+  unsigned int feat_len = dim.getFeatureLen();
   unsigned int len = length();
-  unsigned int end = len / 4;
-  unsigned int e = dim.getFeatureLen() / 4;
-  unsigned int i;
   if (m.dim.batch() == 1) {
     for (unsigned int k = 0; k < dim.batch(); ++k) {
-      int b = k * dim.getFeatureLen();
-      for (i = 0; i < e * 4; i += 4) {
-        data[b + i + 0] *= mdata[i + 0];
-        data[b + i + 1] *= mdata[i + 1];
-        data[b + i + 2] *= mdata[i + 2];
-        data[b + i + 3] *= mdata[i + 3];
-      }
-      for (unsigned int j = i; j < dim.getFeatureLen(); j++)
-        data[b + j] *= mdata[j];
+      int b = k * feat_len;
+      std::transform(data + b, data + b + feat_len, mdata, data + b, op);
     }
   } else {
-    for (i = 0; i < end * 4; i += 4) {
-      data[i + 0] *= mdata[i + 0];
-      data[i + 1] *= mdata[i + 1];
-      data[i + 2] *= mdata[i + 2];
-      data[i + 3] *= mdata[i + 3];
+    if (batch() != m.batch()) {
+      return ML_ERROR_INVALID_PARAMETER;
     }
-    for (unsigned int j = i; j < len; ++j)
-      data[j] *= mdata[j];
+    std::transform(data, data + len, mdata, data, op);
   }
 
   return ML_ERROR_NONE;
+}
+
+int Tensor::multiply_i(Tensor const &m) {
+  return operator_i(m, std::multiplies<float>());
 }
 
 Tensor Tensor::multiply(Tensor const &m) const {
@@ -362,44 +360,7 @@ Tensor Tensor::multiply(Tensor const &m) const {
 }
 
 int Tensor::divide_i(Tensor const &m) {
-  if (dim.channel() != m.dim.channel() || dim.height() != m.dim.height() ||
-      dim.width() != m.dim.width()) {
-    return ML_ERROR_INVALID_PARAMETER;
-  }
-
-  float *data = getData();
-  const float *mdata = m.getData();
-
-  unsigned int len = length();
-  unsigned int end = len / 4;
-  unsigned int e = dim.getFeatureLen() / 4;
-  unsigned int i, j, k;
-
-  // todo: effectively check if m.data[index] is 0
-  if (m.dim.batch() == 1) {
-    for (k = 0; k < dim.batch(); ++k) {
-      unsigned int b = k * dim.getFeatureLen();
-      for (i = 0; i < e * 4; i += 4) {
-        data[b + i + 0] /= mdata[i + 0];
-        data[b + i + 1] /= mdata[i + 1];
-        data[b + i + 2] /= mdata[i + 2];
-        data[b + i + 3] /= mdata[i + 3];
-      }
-      for (unsigned int j = i; j < dim.getFeatureLen(); ++j)
-        data[b + j] /= mdata[j];
-    }
-  } else {
-    for (i = 0; i < end * 4; i += 4) {
-      data[i + 0] /= mdata[i + 0];
-      data[i + 1] /= mdata[i + 1];
-      data[i + 2] /= mdata[i + 2];
-      data[i + 3] /= mdata[i + 3];
-    }
-    for (j = i; j < len; ++j)
-      data[j] /= mdata[j];
-  }
-
-  return ML_ERROR_NONE;
+  return operator_i(m, std::divides<float>());
 }
 
 Tensor Tensor::divide(Tensor const &m) const {
@@ -413,25 +374,27 @@ Tensor Tensor::divide(Tensor const &m) const {
 
 /**
  * This is to sum the Tensor data according to the dim.batch().
- * Therefore the result has M(dim.batch(), 1, 1) dimension.
+ * Therefore the result has M(dim.batch(), 1, 1, 1) dimension.
  */
-Tensor Tensor::sum_by_batch() const {
-  unsigned int k;
+Tensor Tensor::sum_by_batch() {
   Tensor ret(dim.batch(), 1, 1, 1);
+  unsigned int feat_len = dim.getFeatureLen();
+  unsigned int batch = dim.batch();
 
   const float *data = getData();
   float *rdata = ret.getData();
 
 #ifdef USE_BLAS
-  for (k = 0; k < dim.batch(); ++k)
-    rdata[k] =
-      cblas_sasum(dim.getFeatureLen(), &(data[k * dim.getFeatureLen()]), 1);
+  Tensor ones(1, 1, 1, feat_len);
+  ones.setValue(1.0);
+  cblas_sgemv(CblasRowMajor, CblasNoTrans, batch, feat_len, 1, data, feat_len,
+              ones.getData(), 1, 0.0, rdata, 1);
 #else
-  unsigned int i;
-  for (k = 0; k < dim.batch(); ++k) {
-    unsigned int id = k * dim.getFeatureLen();
+  unsigned int i, k;
+  for (k = 0; k < batch; ++k) {
+    unsigned int id = k * feat_len;
     rdata[k] = 0.0f;
-    for (i = 0; i < dim.getFeatureLen(); ++i) {
+    for (i = 0; i < feat_len; ++i) {
       rdata[k] += data[id + i];
     }
   }
@@ -443,14 +406,25 @@ Tensor Tensor::sum_by_batch() const {
 /**
  * @brief Calculate sum according to the axis.
  */
-Tensor Tensor::sum(int axis) const {
+Tensor Tensor::sum(int axis, float alpha) const {
   Tensor ret;
 
   const float *data = getData();
 
+  if (dim.getDim()[axis] == 1 and alpha == 1.0)
+    return this->clone();
+
   switch (axis) {
   case 0: {
     ret = Tensor(1, dim.channel(), dim.height(), dim.width());
+#ifdef USE_BLAS
+    unsigned int feat_len = dim.getFeatureLen();
+    unsigned int batch = dim.batch();
+    Tensor ones(1, 1, 1, feat_len);
+    ones.setValue(alpha);
+    cblas_sgemv(CblasRowMajor, CblasTrans, batch, feat_len, 1, data, feat_len,
+                ones.getData(), 1, 0.0, ret.getData(), 1);
+#else
     ret.setZero();
     float *rdata = ret.getData();
     for (unsigned int l = 0; l < dim.channel(); ++l) {
@@ -465,9 +439,22 @@ Tensor Tensor::sum(int axis) const {
         }
       }
     }
+#endif
   } break;
   case 1: {
     ret = Tensor(dim.batch(), 1, dim.height(), dim.width());
+#ifdef USE_BLAS
+    unsigned int feat_len = dim.height() * dim.width();
+    unsigned int channel = dim.channel();
+    Tensor ones(1, 1, 1, channel);
+    ones.setValue(alpha);
+    float *rdata = ret.getData();
+    for (unsigned int k = 0; k < dim.batch(); ++k) {
+      cblas_sgemv(CblasRowMajor, CblasTrans, channel, feat_len, 1,
+                  &data[k * dim.getFeatureLen()], feat_len, ones.getData(), 1,
+                  0.0, &rdata[k * feat_len], 1);
+    }
+#else
     ret.setZero();
     float *rdata = ret.getData();
     for (unsigned int l = 0; l < dim.batch(); ++l) {
@@ -483,9 +470,26 @@ Tensor Tensor::sum(int axis) const {
         }
       }
     }
+#endif
   } break;
   case 2: {
     ret = Tensor(dim.batch(), dim.channel(), 1, dim.width());
+#ifdef USE_BLAS
+    unsigned int width = dim.width();
+    unsigned int height = dim.height();
+    Tensor ones(1, 1, 1, height);
+    ones.setValue(alpha);
+    float *rdata = ret.getData();
+    for (unsigned int k = 0; k < dim.batch(); ++k) {
+      for (unsigned int c = 0; c < dim.channel(); ++c) {
+        unsigned int idx =
+          k * dim.getFeatureLen() + c * dim.width() * dim.height();
+        unsigned int ridx = k * ret.dim.getFeatureLen() + c * dim.width();
+        cblas_sgemv(CblasRowMajor, CblasTrans, height, width, 1, &data[idx],
+                    width, ones.getData(), 1, 0.0, &rdata[ridx], 1);
+      }
+    }
+#else
     ret.setZero();
     float *rdata = ret.getData();
     for (unsigned int k = 0; k < dim.batch(); ++k) {
@@ -502,9 +506,18 @@ Tensor Tensor::sum(int axis) const {
         }
       }
     }
+#endif
   } break;
   case 3: {
     ret = Tensor(dim.batch(), dim.channel(), dim.height(), 1);
+#ifdef USE_BLAS
+    unsigned int m = ret.dim.getDataLen();
+    unsigned int n = dim.width();
+    Tensor ones(1, 1, 1, n);
+    ones.setValue(alpha);
+    cblas_sgemv(CblasRowMajor, CblasNoTrans, m, n, 1, data, n, ones.getData(),
+                1, 0.0, ret.getData(), 1);
+#else
     ret.setZero();
     float *rdata = ret.getData();
     for (unsigned int k = 0; k < dim.batch(); ++k) {
@@ -521,6 +534,7 @@ Tensor Tensor::sum(int axis) const {
         }
       }
     }
+#endif
   } break;
   default:
     throw std::out_of_range("Error: Cannot exceede 3");
@@ -828,30 +842,20 @@ void Tensor::read(std::ifstream &file) {
  * @brief Calculate average value according to the axis.
  */
 Tensor Tensor::average(int axis) const {
-  const unsigned int *dim_arr = dim.getDim();
-  if (axis >= MAXDIM || dim_arr[axis] == 1)
-    return *this;
+  unsigned int axis_size = dim.getDim()[axis];
+  if (axis_size == 1)
+    return this->clone();
 
-  TensorDim out_dim = dim;
-  out_dim.setTensorDim(axis, 1);
-
-  Tensor result;
-  result = std::move(this->sum(axis));
-  result.divide_i(dim.getDim()[axis]);
-
-  return result;
+  return this->sum(axis, 1.0 / ((float)axis_size));
 }
 
 /**
  * @brief Calculate average value according to the axis.
  */
 Tensor Tensor::average() const {
-  LazyTensor lazy_result = this->chain();
-
-  for (unsigned int axis = 0; axis < dim.getNumDim(); ++axis)
-    lazy_result = lazy_result.average(axis);
-
-  return lazy_result.run();
+  Tensor result = *this;
+  result.reshape({1, 1, 1, dim.getDataLen()});
+  return result.average(3);
 }
 
 void Tensor::setValue(float val) {
@@ -861,19 +865,10 @@ void Tensor::setValue(float val) {
 
 void Tensor::setZero() { setValue(0); }
 
-int Tensor::argmax() const {
-  int index = 0;
-  float maximum = min_limits;
+unsigned int Tensor::argmax() const {
   const float *data = getData();
-  unsigned int len = length();
-
-  for (unsigned int i = 0; i < len; i++) {
-    if (data[i] > maximum) {
-      maximum = data[i];
-      index = i;
-    }
-  }
-  return index;
+  auto max_iter = std::max_element(data, data + length());
+  return std::distance(data, max_iter);
 }
 
 float Tensor::l2norm() const {
@@ -896,33 +891,13 @@ float Tensor::l2norm() const {
 }
 
 Tensor Tensor::normalization() const {
-  Tensor results;
-  float Min = max_limits;
-  float Max = min_limits;
-
   const float *data = getData();
 
-  for (unsigned int k = 0; k < dim.batch(); ++k) {
-    for (unsigned int l = 0; l < dim.channel(); ++l) {
-      for (unsigned int i = 0; i < dim.height(); ++i) {
-        for (unsigned int j = 0; j < dim.width(); ++j) {
-          unsigned int id = k * dim.getFeatureLen() +
-                            l * dim.height() * dim.width() + i * dim.width() +
-                            j;
-          if (data[id] < Min)
-            Min = data[id];
-          if (data[id] > Max)
-            Max = data[id];
-        }
-      }
-    }
-  }
+  auto bounds = std::minmax_element(data, data + length());
+  const float min = *bounds.first;
+  const float max = *bounds.second;
 
-  float dif = Max - Min;
-
-  results = this->chain().subtract_i(Min).divide_i(dif).run();
-
-  return results;
+  return this->chain().subtract_i(min).divide_i(max - min).run();
 }
 
 LazyTensor Tensor::chain() const { return LazyTensor(*this); }

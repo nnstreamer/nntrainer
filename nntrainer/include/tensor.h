@@ -25,12 +25,6 @@
 #define __TENSOR_H__
 #ifdef __cplusplus
 
-#ifdef USE_BLAS
-extern "C" {
-#include <cblas.h>
-}
-#endif
-
 #include <array>
 #include <cmath>
 #include <fstream>
@@ -296,7 +290,7 @@ public:
    * @brief     sum all the Tensor elements according to the batch
    * @retval    Calculated Tensor(batch, 1, 1, 1)
    */
-  Tensor sum_by_batch() const;
+  Tensor sum_by_batch();
 
   /**
    * @brief     sum all the Tensor elements according to the axis
@@ -304,9 +298,11 @@ public:
    *            1 : channel direction
    *            2 : height direction
    *            3 : width direction
+   * @param[in] axis Axis to calculate sum along
+   * @param[in] alpha Scale the sum by this value
    * @retval    Calculated Tensor
    */
-  Tensor sum(int axis) const;
+  Tensor sum(int axis, float alpha = 1.0) const;
 
   /**
    * @brief     Averaging the Tensor elements according to the axis
@@ -451,9 +447,9 @@ public:
 
   /**
    * @brief     return argument index which value is max
-   * @retval    int argument index
+   * @retval    unsigned int argument index
    */
-  int argmax() const;
+  unsigned int argmax() const;
 
   /**
    * @brief     return a copy of the Tensor Dim
@@ -531,6 +527,25 @@ public:
                     const int incX, float *Y, const int incY);
 
 private:
+  /**
+   * @brief Get linear index given the n-d index
+   */
+  inline unsigned int getIndex(unsigned int b, unsigned int c, unsigned int h,
+                               unsigned int w) const {
+    return (b * dim.getFeatureLen() + c * dim.height() * dim.width() +
+            h * dim.width() + w);
+  }
+
+  /**
+   * @brief Applies the given operator to the tensor with the passed argument
+   * @param[in] m Tensor
+   * @param[in] op operation to apply
+   * @retval #ML_ERROR_NONE  Successful
+   * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter
+   */
+  int operator_i(Tensor const &m,
+                 std::function<float(float const, float const)> op);
+
   /**< handle the data as a std::shared_ptr<float> type */
   TensorDim dim;
   std::array<int, MAXDIM> strides;
