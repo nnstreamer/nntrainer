@@ -20,6 +20,12 @@
 #include <string>
 #include <util_func.h>
 
+#ifdef USE_BLAS
+extern "C" {
+#include <cblas.h>
+}
+#endif
+
 namespace nntrainer {
 
 int Conv2DLayer::initialize() {
@@ -91,6 +97,43 @@ sharedConstTensor Conv2DLayer::forwarding(sharedConstTensor in) {
   hidden = Tensor(hidden_dim);
   hidden.setZero();
 
+#ifdef USE_BLAS
+  TensorDim kdim(filter_size, input_dim.channel(), kernel_size[0],
+                 kernel_size[1]);
+
+  std::vector<float> imkernel(kdim.getFeatureLen() * filter_size);
+
+  for (unsigned int i = 0; i < filter_size; ++i) {
+    Tensor &filters = paramsAt(i).weight;
+    float *d = imkernel.data();
+    memcpy(&d[i * kdim.getFeatureLen()], filters.getData(),
+           kdim.getFeatureLen() * sizeof(float));
+  }
+
+  for (unsigned int b = 0; b < input.batch(); ++b) {
+    std::vector<float> out(output_dim.getFeatureLen());
+    Tensor inSub(TensorDim(1, input.channel(), input.height(), input.width()),
+                 input.getAddress(b * input.getDim().getFeatureLen()));
+
+    status = conv2d_gemm(imkernel.data(), kdim, inSub, output_dim, stride,
+                         padding, out.data(), out.size(), true);
+    if (status != ML_ERROR_NONE)
+      throw std::runtime_error("Forwarding Convolution failed.");
+    memcpy(hidden.getAddress(b * hidden.getDim().getFeatureLen()), out.data(),
+           out.size() * sizeof(float));
+
+    for (unsigned int i = 0; i < filter_size; i++) {
+      Tensor &bias = paramsAt(i + filter_size).weight;
+      Tensor tmp(1, 1, hidden.height(), hidden.width());
+      tmp.setValue(bias.getValue(0, 0, 0, 0));
+      cblas_saxpy(hidden.height() * hidden.width(), 1, tmp.getData(), 1,
+                  hidden.getAddress(b * hidden.getDim().getFeatureLen() +
+                                    i * hidden.height() * hidden.width()),
+                  1);
+    }
+  }
+
+#else
   std::vector<float> output(output_dim.width() * output_dim.height());
 
   for (unsigned int b = 0; b < input.batch(); ++b) {
@@ -110,6 +153,7 @@ sharedConstTensor Conv2DLayer::forwarding(sharedConstTensor in) {
              output.data(), output.size() * sizeof(float));
     }
   }
+#endif
 
   loss = 0.0f;
   if (weight_decay.type == WeightDecayType::l2norm) {
@@ -126,10 +170,10 @@ sharedConstTensor Conv2DLayer::forwarding(sharedConstTensor in) {
 sharedConstTensor Conv2DLayer::backwarding(sharedConstTensor derivative,
                                            int iteration) {
 
-  // Calculate delK : [batch, channel, height, width ] * filter_size
   unsigned int same_pad[CONV2D_DIM];
-  unsigned int o_size = kernel_size[0] * kernel_size[1];
-  std::vector<float> output(o_size);
+
+  same_pad[0] = kernel_size[0] - 1;
+  same_pad[1] = kernel_size[1] - 1;
 
   for (unsigned int i = 0; i < filter_size; ++i) {
     Tensor &delK = paramsAt(i).grad;
@@ -138,6 +182,91 @@ sharedConstTensor Conv2DLayer::backwarding(sharedConstTensor derivative,
     delBias.setZero();
   }
 
+  Tensor ret(input_dim.batch(), input_dim.channel(),
+             input_dim.height() + padding[0] * 2,
+             input_dim.width() + padding[1] * 2);
+  ret.setZero();
+
+#ifdef USE_BLAS
+  // Calculate DelK, DelBias
+  int status = ML_ERROR_NONE;
+  for (unsigned int b = 0; b < input_dim.batch(); ++b) {
+    std::vector<float> out(kernel_size[0] * kernel_size[1] *
+                           input_dim.channel() * filter_size);
+
+    Tensor inSub(
+      TensorDim(1, input_dim.channel(), input_dim.height(), input_dim.width()),
+      input.getAddress(b * input.getDim().getFeatureLen()));
+
+    status = conv2d_gemm(
+      derivative->getAddress(b * derivative->getDim().getFeatureLen()),
+      TensorDim(1, derivative->channel(), derivative->height(),
+                derivative->width()),
+      inSub,
+      TensorDim(1, 1, filter_size,
+                kernel_size[0] * kernel_size[1] * input_dim.channel()),
+      stride, padding, out.data(), out.size(), false);
+    if (status != ML_ERROR_NONE)
+      throw std::runtime_error("Backwarding Convolution failed.");
+
+    for (unsigned int i = 0; i < filter_size; ++i) {
+      Tensor &delK = paramsAt(i).grad;
+      Tensor &delBias = paramsAt(i + filter_size).grad;
+      float *del = delK.getData();
+      unsigned int s = kernel_size[0] * kernel_size[1] * input_dim.channel();
+
+      for (unsigned int k = 0; k < s; ++k) {
+        del[k] += out[i * s + k];
+      }
+
+      float sum = 0.0;
+      for (unsigned int j = 0; j < derivative->height(); ++j) {
+        for (unsigned int k = 0; k < derivative->width(); ++k) {
+          sum += derivative->getValue(b, i, j, k);
+        }
+      }
+      delBias.setValue(0, 0, 0, 0, sum + delBias.getValue(0, 0, 0, 0));
+    }
+  }
+
+  // Calculate Derivative to propagation
+  TensorDim kdim(ret.channel(), filter_size, kernel_size[0], kernel_size[1]);
+
+  std::vector<float> imkernel(kdim.getDataLen());
+
+  unsigned int count = 0;
+  float *d = imkernel.data();
+
+  for (unsigned int j = 0; j < ret.channel(); ++j) {
+    for (unsigned int i = 0; i < filter_size; ++i) {
+      Tensor &filters = paramsAt(i).weight;
+      for (unsigned int k = 0; k < kernel_size[0] * kernel_size[1]; ++k) {
+        d[count++] = filters.getData()[j * kernel_size[0] * kernel_size[1] + k];
+      }
+    }
+  }
+
+  TensorDim input_dim_padded(1, input_dim.channel(),
+                             input_dim.height() + padding[0] * 2,
+                             input_dim.width() + padding[1] * 2);
+
+  for (unsigned int b = 0; b < input_dim.batch(); ++b) {
+    Tensor inSub(
+      TensorDim(1, derivative->channel(), derivative->height(),
+                derivative->width()),
+      derivative->getAddress(b * derivative->getDim().getFeatureLen()));
+
+    status =
+      conv2d_gemm(imkernel.data(), kdim, inSub, input_dim_padded, stride,
+                  same_pad, ret.getAddress(b * ret.getDim().getFeatureLen()),
+                  input_dim_padded.getFeatureLen(), true);
+    if (status != ML_ERROR_NONE)
+      throw std::runtime_error("Backwarding Convolution failed.");
+  }
+
+#else
+  unsigned int osize = kernel_size[0] * kernel_size[1];
+  std::vector<float> output(osize);
   TensorDim in_dim(1, 1, derivative->height(), derivative->width());
 
   for (unsigned int b = 0; b < input_dim.batch(); ++b) {
@@ -155,8 +284,8 @@ sharedConstTensor Conv2DLayer::backwarding(sharedConstTensor derivative,
                                       i * derivative->height() *
                                         derivative->width()),
                in_dim, output.data(), stride, 0.0f);
-        float *del = delK.getAddress(j * o_size);
-        for (unsigned k = 0; k < o_size; ++k) {
+        float *del = delK.getAddress(j * osize);
+        for (unsigned k = 0; k < osize; ++k) {
           del[k] += output[k];
         }
       }
@@ -172,14 +301,6 @@ sharedConstTensor Conv2DLayer::backwarding(sharedConstTensor derivative,
   }
 
   // Calculate delS : returns ( Full pad )
-
-  Tensor ret(input_dim.batch(), input_dim.channel(),
-             input_dim.height() + padding[0] * 2,
-             input_dim.width() + padding[1] * 2);
-  ret.setZero();
-
-  same_pad[0] = kernel_size[0] - 1;
-  same_pad[1] = kernel_size[1] - 1;
 
   TensorDim kdim(1, 1, kernel_size[0], kernel_size[1]);
 
@@ -206,6 +327,8 @@ sharedConstTensor Conv2DLayer::backwarding(sharedConstTensor derivative,
       }
     }
   }
+
+#endif
 
   if (trainable) {
     //  Update K / bias
@@ -352,9 +475,9 @@ int Conv2DLayer::conv2d(float *in, TensorDim indim, const float *kernel,
   // Optimizer This routine : There are lots of dulicated calculations
   unsigned int I = 0;
   unsigned int J = 0;
-  for (unsigned int j = 0; j <= height - k_height; j += stride[0]) {
+  for (unsigned int j = 0; j < height - k_height + 1; j += stride[0]) {
     J = 0;
-    for (unsigned int k = 0; k <= width - k_width; k += stride[1]) {
+    for (unsigned int k = 0; k < width - k_width + 1; k += stride[1]) {
       float sum = 0.0f;
       for (unsigned int i = 0; i < channel; ++i) {
         for (unsigned int ki = 0; ki < k_height; ++ki) {
@@ -369,6 +492,109 @@ int Conv2DLayer::conv2d(float *in, TensorDim indim, const float *kernel,
       J++;
     }
     I++;
+  }
+  return status;
+}
+
+int Conv2DLayer::conv2d_gemm(const float *mkernel, TensorDim kdim,
+                             Tensor const &in, TensorDim outdim,
+                             unsigned int const *mstride,
+                             unsigned int const *pad, float *out,
+                             unsigned int osize, bool channel_mode) {
+  int status = ML_ERROR_NONE;
+  std::vector<float> in_col;
+
+  if (channel_mode) {
+    in_col.resize(kdim.getFeatureLen() * outdim.width() * outdim.height());
+  } else {
+    in_col.resize(kdim.width() * kdim.height() * outdim.width());
+  }
+
+  Tensor in_padded = zero_pad(0, in, pad);
+  status =
+    im2col(in_padded, kdim, in_col.data(), outdim, mstride, channel_mode);
+  if (status != ML_ERROR_NONE)
+    throw std::runtime_error("Forwarding Convolution failed.");
+
+  float alpha_dgemm = 1.0f;
+  float beta_dgemm = 0.0f;
+  const float *data = mkernel;
+  const float *mdata = in_col.data();
+  float *rdata = out;
+
+  unsigned int kh, kw, w;
+
+  if (channel_mode) {
+    kh = kdim.batch();
+    kw = kdim.getFeatureLen();
+    w = outdim.width() * outdim.height();
+  } else {
+    kh = outdim.height();
+    kw = kdim.width() * kdim.height();
+    w = outdim.width();
+  }
+
+#ifdef USE_BLAS
+  cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, kh, w, kw, alpha_dgemm,
+              data, kw, mdata, w, beta_dgemm, rdata, w);
+#else
+  throw std::runtime_error("Need to build with CBLAS library");
+#endif
+
+  return status;
+}
+
+int Conv2DLayer::im2col(Tensor in_padded, TensorDim kdim, float *in_col,
+                        TensorDim outdim, unsigned int const *mstride,
+                        bool channel_mode) {
+
+  int status = ML_ERROR_NONE;
+  unsigned int count;
+  unsigned int channel = in_padded.channel();
+  unsigned int height = in_padded.height();
+  unsigned int width = in_padded.width();
+  unsigned int k_width = kdim.width();
+  unsigned int k_height = kdim.height();
+
+  unsigned int J = 0;
+  if (channel_mode) {
+    for (unsigned int j = 0; j <= height - k_height; j += mstride[0]) {
+      for (unsigned int k = 0; k <= width - k_width; k += mstride[1]) {
+        count = 0;
+        for (unsigned int i = 0; i < channel; ++i) {
+          for (unsigned int ki = 0; ki < k_height; ++ki) {
+            for (unsigned int kj = 0; kj < k_width; ++kj) {
+              in_col[count * (outdim.width() * outdim.height()) + J] =
+                in_padded
+                  .getData()[i * height * width + (j + ki) * width + (k + kj)];
+              count++;
+            }
+          }
+        }
+        J++;
+      }
+    }
+    if (J != outdim.width() * outdim.height())
+      status = ML_ERROR_INVALID_PARAMETER;
+  } else {
+    for (unsigned int i = 0; i < channel; ++i) {
+      for (unsigned int j = 0; j <= height - k_height; j += mstride[0]) {
+        for (unsigned int k = 0; k <= width - k_width; k += mstride[1]) {
+          count = 0;
+          for (unsigned int ki = 0; ki < k_height; ++ki) {
+            for (unsigned int kj = 0; kj < k_width; ++kj) {
+              in_col[count * (outdim.width()) + J] =
+                in_padded
+                  .getData()[i * height * width + (j + ki) * width + (k + kj)];
+              count++;
+            }
+          }
+          J++;
+        }
+      }
+    }
+    if (J != outdim.width())
+      status = ML_ERROR_INVALID_PARAMETER;
   }
 
   return status;
