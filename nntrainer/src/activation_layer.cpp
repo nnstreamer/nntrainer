@@ -11,9 +11,12 @@
  *
  */
 
-#include <activation_layer.h>
 #include <fstream>
+#include <functional>
 #include <iostream>
+#include <vector>
+
+#include <activation_layer.h>
 #include <layer.h>
 #include <lazy_tensor.h>
 #include <nntrainer_error.h>
@@ -22,7 +25,6 @@
 #include <parse_util.h>
 #include <tensor.h>
 #include <util_func.h>
-#include <vector>
 
 namespace nntrainer {
 
@@ -148,48 +150,37 @@ Tensor ActivationLayer::softmax(Tensor const &t) {
    * softmax = exp(shiftx_logit) / (sum(exp(shiftx_logit)))
    */
   unsigned int batch = t.batch();
-  unsigned int channel = t.channel();
-  unsigned int height = t.height();
-  unsigned int width = t.width();
   float *dp;
   float *rp;
-  const float *tp;
 
-  Tensor result(t.getDim());
-  Tensor divisor(t.width());
+  Tensor divisor = t.clone();
 
   dp = divisor.getData();
-  rp = result.getData();
-  tp = t.getData();
-
-  divisor.setZero();
+  unsigned int feat_len = t.getDim().getFeatureLen();
 
   for (unsigned int k = 0; k < batch; k++) {
-    for (unsigned int c = 0; c < channel; c++) {
-      for (unsigned int i = 0; i < height; i++) {
-        int index =
-          k * channel * height * width + c * height * width + i * width;
-        float m = std::numeric_limits<float>::lowest();
+    int index = k * feat_len;
+    // find max and subtract it
+    float m = *std::max_element(dp + index, dp + index + feat_len);
 
-        // find max
-        for (unsigned int j = 0; j < width; j++) {
-          if (tp[index + j] > m)
-            m = tp[index + j];
-        }
-
-        // shiftx
-        float sum = 0.0f;
-        for (unsigned int j = 0; j < width; j++) {
-          dp[j] = exp(tp[index + j] - m);
-          sum += dp[j];
-        }
-
-        for (unsigned int j = 0; j < width; j++) {
-          rp[index + j] = dp[j] / sum;
-        }
-      }
-    }
+    Tensor tmp = Tensor(1, 1, 1, feat_len);
+    tmp.setValue(m);
+    Tensor::saxpy(feat_len, -1, tmp.getData(), 1, dp + index, 1);
   }
+
+  // take exp
+  Tensor result = divisor.apply(exp_util);
+  rp = result.getData();
+  // take sum over batch
+  Tensor sum = result.sum_by_batch();
+
+  for (unsigned int k = 0; k < batch; k++) {
+    int index = k * feat_len;
+    std::transform(rp + index, rp + index + feat_len, rp + index,
+                   std::bind(std::divides<float>(), std::placeholders::_1,
+                             sum.getValue(k, 0, 0, 0)));
+  }
+
   return result;
 }
 

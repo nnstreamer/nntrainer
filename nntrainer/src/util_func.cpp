@@ -45,6 +45,8 @@ double sqrtDouble(double x) { return sqrt(x); };
 
 float logFloat(float x) { return log(x + 1.0e-20); }
 
+float exp_util(float x) { return exp(x); }
+
 // This is 2D zero pad
 // TODO : Optimize for multi dimention padding
 Tensor zero_pad(int batch, Tensor const &in, unsigned int const *padding) {

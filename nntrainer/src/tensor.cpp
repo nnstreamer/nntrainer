@@ -238,6 +238,20 @@ int Tensor::add_i(float const &value) {
 
 Tensor Tensor::add(float const &value) { CLONE_OP_I(add_i, value); }
 
+void Tensor::saxpy(const unsigned int N, const float alpha, const float *X,
+                   const int incX, float *Y, const int incY) {
+#ifdef USE_BLAS
+  cblas_saxpy(N, alpha, X, incX, Y, incY);
+#else
+  unsigned int xi, yi;
+  if (incX <= 0 or incY <= 0)
+    throw std::invalid_argument(
+      "Error: negative inc not supported without cblas");
+  for (unsigned int i = 0; i < N; i++)
+    Y[i] = Y[i * incY] + X[i * incX] * alpha;
+#endif
+}
+
 /**
  * @brief Add Tensor Element by Element without mem copy
  * @param[in] m Tensor to be added

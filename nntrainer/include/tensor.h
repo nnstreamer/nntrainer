@@ -524,6 +524,12 @@ public:
    */
   const std::array<int, MAXDIM> getStrides() const noexcept { return strides; }
 
+  /**
+   * @brief     perform saxpy operation.
+   */
+  static void saxpy(const unsigned int N, const float alpha, const float *X,
+                    const int incX, float *Y, const int incY);
+
 private:
   /**< handle the data as a std::shared_ptr<float> type */
   TensorDim dim;
