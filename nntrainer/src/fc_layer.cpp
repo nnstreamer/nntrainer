@@ -80,7 +80,8 @@ sharedConstTensor FullyConnectedLayer::forwarding(sharedConstTensor in) {
   Tensor &bias = paramsAt(static_cast<int>(FCParams::bias)).weight;
 
   input = *in;
-  hidden = input.chain().dot(weight).add_i(bias).run();
+  hidden = input.dot(weight);
+  hidden.add_i(bias);
 
   if (weight_decay.type == WeightDecayType::l2norm) {
     loss = weight_decay.lambda * 0.5f * (weight.l2norm());
@@ -121,15 +122,13 @@ sharedConstTensor FullyConnectedLayer::backwarding(sharedConstTensor derivative,
   Tensor &djdw = paramsAt(weight_idx).grad;
   Tensor &djdb = paramsAt(bias_idx).grad;
 
-  Tensor ret = derivative->dot(weight.transpose("0:2:1"));
+  Tensor ret = derivative->dot(weight, false, true);
   djdb = derivative->sum(0);
-  djdw = input.chain()
-           .transpose("0:2:1")
-           .dot(*derivative)
-           .applyIf(this->isWeightDecayL2Norm(), _LIFT(add_i), weight,
-                    weight_decay.lambda)
-           .run()
-           .sum(0);
+
+  djdw = input.dot(*derivative, true, false);
+  if (isWeightDecayL2Norm())
+    djdw.add_i(weight, weight_decay.lambda);
+  djdw = djdw.sum(0);
 
   if (trainable) {
     opt.apply_gradients(params, param_size, iteration);

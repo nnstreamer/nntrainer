@@ -274,10 +274,14 @@ public:
 
   /**
    * @brief     Dot Product of Tensor ( equal MxM )
+   * @details   This applies dot of the last dimension of this and second-last
+   * dimension of passed tensor m.
    * @param[in] m Tensor
+   * @param[in] trans Transpose
+   * @param[in] trans_m Transpose m
    * @retval    Calculated Tensor
    */
-  Tensor dot(Tensor const &m) const;
+  Tensor dot(Tensor const &m, bool trans = false, bool trans_m = false) const;
 
   /**
    * @brief     Transpose Tensor
