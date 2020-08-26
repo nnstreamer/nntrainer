@@ -141,6 +141,25 @@ public:
   int conv2d(float *in, TensorDim indim, const float *kernel, TensorDim kdim,
              float *out, unsigned int const *stride, float bias);
 
+  /**
+   * @brief     calculation convolution with cblas_*gemm
+   * @param[in] mkernel kernel data
+   * @param[in] kdim kernel data demension
+   * @param[in] in input tensor
+   * @param[in] outdim output tensor dimension
+   * @param[in] stride stride value : x, y direction
+   * @param[in] padd pad value : x, y direction
+   * @param[out] out output data
+   * @param[in] osize output size
+   * @param[in] channel_mode loop with channel first
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  int conv2d_gemm(const float *mkernel, TensorDim kdim, Tensor const &in,
+                  TensorDim outdim, unsigned int const *mstride,
+                  unsigned int const *pad, float *out, unsigned int osize,
+                  bool channel_mode);
+
   /* TO DO : support keras type of padding */
   /* enum class PaddingType { */
   /*   full = 0, */
@@ -162,6 +181,20 @@ public:
    * &value)
    */
   void setProperty(const PropertyType type, const std::string &value = "");
+
+  /**
+   * @brief     reform the data to 2d matrix
+   * @param[in] in_padded padded input data
+   * @param[in] kdim kernel dimesion for define number of row
+   * @param[out] inCol reformed data
+   * @param[in] outdim output dimension
+   * @param[in] mstride stride value : x, y direction
+   * @param[in] channel_mode loop with channel first
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  int im2col(Tensor in_padded, TensorDim kdim, float *inCol, TensorDim outdim,
+             unsigned int const *mstride, bool channel_mode);
 
 private:
   unsigned int filter_size;
