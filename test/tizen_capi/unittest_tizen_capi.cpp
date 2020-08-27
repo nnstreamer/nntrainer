@@ -660,7 +660,7 @@ TEST(nntrainer_capi_nnmodel, train_with_file_01_p) {
   status = ml_train_model_compile(model, "loss=cross", "batch_size=16", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_train_model_run(model, "epochs=2", "model_file=model.bin", NULL);
+  status = ml_train_model_run(model, "epochs=2", "save_path=model.bin", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_train_model_destroy(model);
@@ -728,7 +728,7 @@ TEST(nntrainer_capi_nnmodel, train_with_generator_01_p) {
   status = ml_train_model_compile(model, "loss=cross", "batch_size=16", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_train_model_run(model, "epochs=2", "model_file=model.bin", NULL);
+  status = ml_train_model_run(model, "epochs=2", "save_path=model.bin", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_train_model_destroy(model);

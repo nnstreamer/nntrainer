@@ -165,7 +165,7 @@ int NeuralNetwork::setTrainConfig(std::vector<std::string> values) {
       status = setUint(epochs, value);
       NN_RETURN_STATUS();
     } break;
-    case PropertyType::model_file: {
+    case PropertyType::save_path: {
       save_path = value;
     } break;
     case PropertyType::continue_train: {

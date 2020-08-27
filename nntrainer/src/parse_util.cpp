@@ -355,10 +355,10 @@ unsigned int parseNetProperty(std::string property) {
    * loss = 1,
    * batch_size = 2,
    * epochs = 3,
-   * model_file = 4
+   * save_path = 4
    */
   std::array<std::string, 5> property_string = {
-    "loss_val", "loss", "batch_size", "epochs", "model_file"};
+    "loss_val", "loss", "batch_size", "epochs", "save_path"};
 
   for (i = 0; i < property_string.size(); i++) {
     unsigned int size = (property_string[i].size() > property.size())
@@ -377,7 +377,7 @@ unsigned int parseDataProperty(std::string property) {
   unsigned int i;
 
   /**
-   * @brief     Network Properties
+   * @brief     Data Properties
    * train_data = 0,
    * val_data = 1,
    * test_data = 2,
