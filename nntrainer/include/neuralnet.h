@@ -279,7 +279,7 @@ public:
     loss_type = 1,
     batch_size = 2,
     epochs = 3,
-    model_file = 4,
+    save_path = 4,
     continue_train = 5,
     unknown = 6
   };
