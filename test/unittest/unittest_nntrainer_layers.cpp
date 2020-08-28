@@ -1224,7 +1224,6 @@ TEST_F(nntrainer_Conv2DLayer, backwarding_03_p) {
 
   nntrainer::Tensor out1;
   EXPECT_NO_THROW(out1 = layer1.forwarding(MAKE_SHARED_TENSOR(in)).get()[0]);
-  // out1.print(std::cout);
 
   nntrainer::Tensor out2;
 

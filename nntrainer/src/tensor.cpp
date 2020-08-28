@@ -22,6 +22,7 @@
  */
 
 #include <assert.h>
+#include <blas_interface.h>
 #include <cstring>
 #include <iomanip>
 #include <iterator>
@@ -228,34 +229,15 @@ Tensor Tensor::divide(float const &value) {
 int Tensor::add_i(float const &value) {
   float *data = getData();
   unsigned int len = length();
-#ifdef USE_BLAS
+
   Tensor tmp(dim);
   tmp.setValue(value);
-  cblas_saxpy(len, 1, tmp.getData(), 1, data, 1);
-#else
-  for (unsigned int k = 0; k < len; ++k) {
-    data[k] += value;
-  }
-#endif
+  saxpy(len, 1, tmp.getData(), 1, data, 1);
 
   return ML_ERROR_NONE;
 }
 
 Tensor Tensor::add(float const &value) { CLONE_OP_I(add_i, value); }
-
-void Tensor::saxpy(const unsigned int N, const float alpha, const float *X,
-                   const int incX, float *Y, const int incY) {
-#ifdef USE_BLAS
-  cblas_saxpy(N, alpha, X, incX, Y, incY);
-#else
-  unsigned int xi, yi;
-  if (incX <= 0 or incY <= 0)
-    throw std::invalid_argument(
-      "Error: negative inc not supported without cblas");
-  for (unsigned int i = 0; i < N; i++)
-    Y[i] = Y[i * incY] + X[i * incX] * alpha;
-#endif
-}
 
 /**
  * @brief Add Tensor Element by Element without mem copy
@@ -273,36 +255,17 @@ int Tensor::add_i(Tensor const &m, float const alpha) {
   const float *mdata = m.getData();
   unsigned int len = length();
 
-#ifdef USE_BLAS
   unsigned int size = dim.getFeatureLen();
   if (m.dim.batch() == 1) {
     for (unsigned int k = 0; k < dim.batch(); ++k) {
-      cblas_saxpy(size, alpha, mdata, 1, &(data[k * size]), 1);
+      saxpy(size, alpha, mdata, 1, &(data[k * size]), 1);
     }
   } else {
     if (dim.batch() != m.dim.batch()) {
       return ML_ERROR_INVALID_PARAMETER;
     }
-    cblas_saxpy(len, alpha, mdata, 1, data, 1);
+    saxpy(len, alpha, mdata, 1, data, 1);
   }
-#else
-  unsigned int i, j, k;
-  if (m.dim.batch() == 1) {
-    for (k = 0; k < dim.batch(); ++k) {
-      for (i = 0; i < m.dim.getFeatureLen(); ++i) {
-        j = k * m.dim.getFeatureLen();
-        data[j + i] += alpha * mdata[i];
-      }
-    }
-  } else {
-    if (dim.batch() != m.dim.batch()) {
-      return ML_ERROR_INVALID_PARAMETER;
-    }
-    for (k = 0; k < len; ++k) {
-      data[k] += alpha * mdata[k];
-    }
-  }
-#endif
 
   return ML_ERROR_NONE;
 }

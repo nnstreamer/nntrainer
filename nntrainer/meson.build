@@ -46,7 +46,8 @@ nntrainer_sources = [
   'src/pooling2d_layer.cpp',
   'src/tensor.cpp',
   'src/tensor_dim.cpp',
-  'src/util_func.cpp'
+  'src/util_func.cpp',
+  'src/blas_interface.cpp'
 ]
 
 nntrainer_headers = [
@@ -73,6 +74,7 @@ nntrainer_headers = [
   'include/tensor.h',
   'include/tensor_dim.h',
   'include/util_func.h',
+  'include/blas_interface.h',
   '../api/nntrainer-api-common.h'
 ]
 

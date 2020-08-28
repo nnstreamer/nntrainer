@@ -261,6 +261,7 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %{_includedir}/nntrainer/parse_util.h
 %{_includedir}/nntrainer/addition_layer.h
 %{_includedir}/nntrainer/nntrainer-api-common.h
+%{_includedir}/nntrainer/blas_interface.h
 %{_libdir}/pkgconfig/nntrainer.pc
 
 %files devel-static

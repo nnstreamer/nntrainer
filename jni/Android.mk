@@ -40,7 +40,8 @@ NNTRAINER_SRCS := $(NNTRAINER_ROOT)/nntrainer/src/neuralnet.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/src/activation_layer.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/src/flatten_layer.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/src/model_loader.cpp \
-                  $(NNTRAINER_ROOT)/nntrainer/src/addition_layer.cpp
+                  $(NNTRAINER_ROOT)/nntrainer/src/addition_layer.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/src/blas_interface.cpp
 
 NNTRAINER_INCLUDES := $(NNTRAINER_ROOT)/nntrainer/include \
                       $(NNTRAINER_ROOT)/api \
