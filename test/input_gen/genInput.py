@@ -49,7 +49,7 @@ def save(filename, *data):
 ##
 # @brief generate random tensor
 def gen_tensor(shape, dtype=dtypes.float32):
-  return np.random.random_sample(shape)
+    return np.random.randint(1, 10, shape).astype(np.float32)
 
 ##
 # @brief generate random data and save
@@ -90,7 +90,8 @@ def conv2d_tf(x, kernel, batch, width, height, channel, k_width, k_height, k_num
     tf_input = tf.compat.v1.placeholder(
         dtype=dtypes.float32, shape=input_shape, name='input')
     kernel_w = tf.constant_initializer(kernel)
-    conv2d_layer = tf.keras.layers.Conv2D(k_num, k_width, strides = stride, padding=pad, kernel_initializer=kernel_w)(tf_input)
+    bias_w = tf.constant_initializer(bias)
+    conv2d_layer = tf.keras.layers.Conv2D(k_num, k_width, strides = stride, padding=pad, kernel_initializer=kernel_w, bias_initializer=bias_w)(tf_input)
 
     conv2d_variables = tf.compat.v1.get_collection(tf.GraphKeys.GLOBAL_VARIABLES)
 
@@ -405,7 +406,7 @@ def gen_test_case_fc(input_shape, kernel_shape, base_name):
     save(base_name + "_goldenFCUpdatedWeightsActNone.out", golden_fc_simplified[2][0], golden_fc_simplified[2][1])
 
     golden_fc = fc_tf(input_data, kernel, label, bias, activation=tf.nn.sigmoid, train=True, loss='mse', opt='sgd')
-    save(base_name + "_goldenFCResultSigmoid.out", golden_fc[0])
+    save(base_name + "_goldenFCResultSigmoidMse.out", golden_fc[0])
     save(base_name + "_goldenFCLossSigmoidMse.out", golden_fc[1])
     save(base_name + "_goldenFCGradientDxSigmoidMse.out", golden_fc[2][0])
     save(base_name + "_goldenFCGradientsSigmoidMse.out", golden_fc[2][1], golden_fc[2][2])
@@ -417,7 +418,7 @@ def gen_test_case_fc(input_shape, kernel_shape, base_name):
     save(base_name + "_goldenFCUpdatedWeightsSigmoid.out", golden_fc_simplified[2][0], golden_fc_simplified[2][1])
 
     golden_fc = fc_tf(input_data, kernel, label, bias, activation=tf.nn.softmax, train=True, loss='mse', opt='sgd')
-    save(base_name + "_goldenFCResultSoftmax.out", golden_fc[0])
+    save(base_name + "_goldenFCResultSoftmaxMse.out", golden_fc[0])
     save(base_name + "_goldenFCLossSoftmaxMse.out", golden_fc[1])
     save(base_name + "_goldenFCGradientDxSoftmaxMse.out", golden_fc[2][0])
     save(base_name + "_goldenFCGradientsSoftmaxMse.out", golden_fc[2][1], golden_fc[2][2])
@@ -479,7 +480,7 @@ if __name__ == "__main__":
 #  : stride 1, 1
 #  : padding 0, 0 (VALID)
     if target == "conv2d_1":
-        bias1 = [0.0, 0.0]
+        bias1 = [1.0, 1.0]
         gen_test_case_conv(1, 3, 7, 7, 2, 3, 3, "VALID", 1, bias1, "tc_conv2d_1")
 
 # second unit test case : 2, 3, 7, 7, 3, 3, 3, VALID, 1 test_2_
@@ -489,7 +490,7 @@ if __name__ == "__main__":
 #  : stride 1, 1
 #  : padding 0, 0 (VALID)
     if target == "conv2d_2":
-        bias2 = [0.0, 0.0, 0.0]
+        bias2 = [1.0, 1.0, 1.0]
         gen_test_case_conv(2, 3, 7, 7, 3, 3, 3, "VALID", 1, bias2, "tc_conv2d_2")
 
 # FC layer unit test case:

@@ -50,7 +50,6 @@ sharedConstTensor LossLayer::forwarding(sharedConstTensor in,
   case LossType::LOSS_MSE: {
     // y2 <- y2 - y;
     Tensor residual = y2.subtract(y);
-
     l = residual.chain().multiply_i(residual).average().run();
   } break;
   case LossType::LOSS_ENTROPY_SIGMOID: {
