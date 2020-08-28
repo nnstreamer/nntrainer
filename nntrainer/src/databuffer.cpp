@@ -324,6 +324,7 @@ int DataBuffer::setClassNum(unsigned int num) {
 
 int DataBuffer::setBufSize(unsigned int size) {
   int status = ML_ERROR_NONE;
+  /// TODO: move this to initialization than here.
   if (size < batch_size) {
     ml_loge("Error: buffer size must be greater than batch size");
     SET_VALIDATION(false);

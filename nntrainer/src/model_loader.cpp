@@ -38,6 +38,11 @@ namespace nntrainer {
 int ModelLoader::loadModelConfigIni(dictionary *ini, NeuralNetwork &model) {
   int status = ML_ERROR_NONE;
 
+  if (iniparser_find_entry(ini, "Model") == 0) {
+    ml_loge("there is no [Model] section in given ini file");
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
   /** Default to neural network model type */
   model.net_type = (nntrainer::NetType)parseType(
     iniparser_getstring(ini, "Model:Type", unknown), TOKEN_MODEL);
@@ -74,9 +79,14 @@ int ModelLoader::loadModelConfigIni(dictionary *ini, NeuralNetwork &model) {
  * @brief     load dataset config from ini
  */
 int ModelLoader::loadDatasetConfigIni(dictionary *ini, NeuralNetwork &model) {
-  /// @fixme: 370
   ml_logd("start parsing dataset config");
   int status = ML_ERROR_NONE;
+
+  if (iniparser_find_entry(ini, "Dataset") == 0) {
+    model.data_buffer = std::make_shared<DataBufferFromCallback>();
+    status = model.data_buffer->setBatchSize(model.batch_size);
+    return status;
+  }
 
   if (iniparser_find_entry(ini, "DataSet:Tflite")) {
     ml_loge("Error: Tflite dataset is not yet implemented!");
@@ -107,9 +117,16 @@ int ModelLoader::loadDatasetConfigIni(dictionary *ini, NeuralNetwork &model) {
   status = parse_and_set("Dataset:LabelData", DATA_LABEL, true);
   NN_RETURN_STATUS();
 
-  /// fixme: #299, #389
-  int bufsize = iniparser_getint(ini, "DataSet:BufferSize", model.batch_size);
+  status = model.data_buffer->setBatchSize(model.batch_size);
+  NN_RETURN_STATUS();
+
+  unsigned int bufsize =
+    iniparser_getint(ini, "DataSet:BufferSize", model.batch_size);
   ml_logd("buf size: %d", bufsize);
+  if (model.batch_size < bufsize) {
+    ml_logw("buffer size must be atleast the batch size. Reset to batch size.");
+    bufsize = model.batch_size;
+  }
   status = model.data_buffer->setBufSize(bufsize);
   NN_RETURN_STATUS();
 
@@ -226,11 +243,11 @@ int ModelLoader::loadFromIni(std::string ini_file, NeuralNetwork &model) {
     NN_INI_RETURN_STATUS();
   }
 
-  if (iniparser_find_entry(ini, model_str) == 0) {
-    ml_loge("there is no [Model] section in given ini file");
-    status = ML_ERROR_INVALID_PARAMETER;
-    NN_INI_RETURN_STATUS();
-  }
+  status = loadModelConfigIni(ini, model);
+  NN_INI_RETURN_STATUS();
+
+  status = loadDatasetConfigIni(ini, model);
+  NN_INI_RETURN_STATUS();
 
   ml_logd("parsing ini started");
   /** Get all the section names */
@@ -248,17 +265,11 @@ int ModelLoader::loadFromIni(std::string ini_file, NeuralNetwork &model) {
       NN_INI_RETURN_STATUS();
     }
 
-    if (strncasecmp(model_str, sec_name, model_len) == 0) {
-      status = loadModelConfigIni(ini, model);
-      NN_INI_RETURN_STATUS();
+    if (strncasecmp(model_str, sec_name, model_len) == 0)
       continue;
-    }
 
-    if (strncasecmp(dataset_str, sec_name, dataset_len) == 0) {
-      status = loadDatasetConfigIni(ini, model);
-      NN_INI_RETURN_STATUS();
+    if (strncasecmp(dataset_str, sec_name, dataset_len) == 0)
       continue;
-    }
 
     /** Parse all the layers defined as sections in order */
     std::shared_ptr<Layer> layer;
@@ -269,14 +280,6 @@ int ModelLoader::loadFromIni(std::string ini_file, NeuralNetwork &model) {
     NN_INI_RETURN_STATUS();
   }
   ml_logd("parsing ini finished");
-
-  /**< Additional validation and handling for the model */
-  if (!model.data_buffer) {
-    model.data_buffer = std::make_shared<DataBufferFromCallback>();
-  }
-
-  status = model.data_buffer->setBatchSize(model.batch_size);
-  NN_INI_RETURN_STATUS();
 
   if (model.layers.empty()) {
     ml_loge("there is no layer section in the ini file");
