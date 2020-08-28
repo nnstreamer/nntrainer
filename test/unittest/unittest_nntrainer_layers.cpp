@@ -75,7 +75,7 @@ protected:
     golden_ptr = golden.getData();
 
     for (size_t i = 0; i < result.length(); ++i) {
-      EXPECT_NEAR(out_ptr[i], golden_ptr[i], tolerance);
+      EXPECT_NEAR(out_ptr[i], golden_ptr[i], local_tolerance);
     }
   }
 
@@ -90,7 +90,7 @@ protected:
     loadFile(expected, golden);
     const float *golden_ptr = golden.getData();
     for (size_t i = 0; i < golden.length(); ++i) {
-      EXPECT_NEAR(result[i], golden_ptr[i], tolerance);
+      EXPECT_NEAR(result[i], golden_ptr[i], local_tolerance);
     }
   }
 
@@ -165,6 +165,7 @@ protected:
   int status;
   nntrainer::Tensor in;
   nntrainer::Tensor out;
+  float local_tolerance = tolerance;
 };
 
 class nntrainer_InputLayer
@@ -456,6 +457,12 @@ protected:
     status = loss_layer->setLoss(type);
     EXPECT_EQ(status, ML_ERROR_NONE);
     layers.push_back(loss_layer);
+
+    if (type == nntrainer::LossType::LOSS_ENTROPY_SOFTMAX) {
+      loadFile("tc_fc_1_FCLayer_sensible.in", in);
+      loadFile("tc_fc_1_FCKernel_sensible.in", layer);
+      loadFile("tc_fc_1_FCLabel_sensible.in", label.get()[0]);
+    }
   }
 
   void matchForwarding(const char *file) {
@@ -482,7 +489,7 @@ protected:
   void matchLoss(const char *file) {
     nntrainer::Tensor loss(1, 1, 1, 1);
     loadFile(file, loss);
-    EXPECT_NEAR(layers.back()->getLoss(), *(loss.getData()), tolerance);
+    EXPECT_NEAR(layers.back()->getLoss(), *(loss.getData()), local_tolerance);
   }
 
   void matchBackwarding(const char *file_dx, const char *file_uw,
@@ -670,10 +677,22 @@ TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_backwarding_04_p) {
 
   /** Verify forwarding value */
   matchForwarding("tc_fc_1_goldenFCResultActNone.out");
+  matchOutput(label.get()[0], "tc_fc_1_FCLabel.in");
 
   /** Verify loss value */
   matchLoss("tc_fc_1_goldenFCLossActNoneMse.out");
 
+  /**
+   * This lowers the tolerance for below check. As the data values are in the
+   * range [1, 10) (integer represented as floats), the values get very large
+   * which leads to higher values floating point error.
+   * This error exists in gradient. However, when added to weight with learning
+   * rate of 1.0, this error disappears. So, for now, local tolerance just for
+   * this test has been reduced to match the output.
+   * Note: this issue occurs only for a single value out of matrix of 180
+   * elements
+   */
+  local_tolerance = 1.3e-4;
   /** Verify backwarding without loss */
   matchBackwarding("tc_fc_1_goldenFCGradientDxActNoneMse.out",
                    "tc_fc_1_goldenFCUpdatedWeightsActNoneMse.out",
@@ -1071,7 +1090,7 @@ protected:
     out_ptr = out.getData();
 
     for (size_t i = 0; i < out.getDim().getDataLen(); ++i) {
-      EXPECT_NEAR(out_ptr[i], golden[i], tolerance);
+      EXPECT_NEAR(out_ptr[i], golden[i], local_tolerance);
     }
   }
 

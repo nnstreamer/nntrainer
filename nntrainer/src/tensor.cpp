@@ -537,7 +537,7 @@ Tensor Tensor::sum(int axis, float alpha) const {
 #endif
   } break;
   default:
-    throw std::out_of_range("Error: Cannot exceede 3");
+    throw std::out_of_range("Error: Dimension cannot exceed 3");
     break;
   }
   return ret;
@@ -823,7 +823,7 @@ Tensor Tensor::clone() const {
   return t;
 }
 
-void Tensor::reshape(TensorDim d) {
+void Tensor::reshape(const TensorDim &d) {
   if (d.getDataLen() != dim.getDataLen()) {
     throw std::invalid_argument("Error: reshape cannot change the tensor size");
   }

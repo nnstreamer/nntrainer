@@ -512,7 +512,7 @@ public:
    * @param[in] d TensorDim
    * @note      Throws std::invalid_argument if size mismatch
    */
-  void reshape(TensorDim d);
+  void reshape(const TensorDim &d);
 
   /**
    * @brief     return current stride of tensor.
