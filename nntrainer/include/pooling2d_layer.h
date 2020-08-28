@@ -144,6 +144,7 @@ private:
   unsigned int stride[POOLING2D_DIM];
   unsigned int padding[POOLING2D_DIM];
   std::vector<unsigned int> max_idx;
+  std::vector<std::vector<unsigned int>> max_idx_global;
   PoolingType pooling_type;
 
   /**

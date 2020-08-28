@@ -41,9 +41,12 @@ int Pooling2DLayer::initialize() {
     output_dim.width(1);
   }
 
-  if (pooling_type == PoolingType::max ||
-      pooling_type == PoolingType::global_max) {
+  if (pooling_type == PoolingType::max) {
     max_idx.resize(output_dim.getDataLen());
+  }
+
+  if (pooling_type == PoolingType::global_max) {
+    max_idx_global.resize(output_dim.getDataLen());
   }
 
   return status;
@@ -111,7 +114,10 @@ sharedConstTensor Pooling2DLayer::backwarding(sharedConstTensor derivative,
   } break;
   case PoolingType::global_max: {
     for (unsigned int i = 0; i < derivative->getDim().getDataLen(); ++i) {
-      out[max_idx[i]] += derivative->getData()[i];
+      float der = derivative->getData()[i] / max_idx_global[i].size();
+      for (unsigned int m = 0; m < max_idx_global[i].size(); m++) {
+        out[max_idx_global[i][m]] += der;
+      }
     }
   } break;
   case PoolingType::global_average: {
@@ -292,11 +298,14 @@ Tensor Pooling2DLayer::pooling2d(unsigned int batch, Tensor &in) {
     for (unsigned int i = 0; i < channel; ++i) {
       unsigned int idx = batch * input_dim.getFeatureLen() + i * height * width;
       float max = std::numeric_limits<float>::min();
+      max_idx_global[base_idx + i].clear();
       for (unsigned int j = 0; j < height; ++j) {
         for (unsigned int k = 0; k < width; ++k) {
           float val = in.getValue(0, i, j, k);
-          if (max < val) {
-            max_idx[base_idx + i] = idx + j * width + k;
+          if (max <= val) {
+            if (max < val)
+              max_idx_global[base_idx + i].clear();
+            max_idx_global[base_idx + i].push_back(idx + j * width + k);
             max = val;
           }
         }
