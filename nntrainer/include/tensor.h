@@ -524,12 +524,6 @@ public:
    */
   const std::array<int, MAXDIM> getStrides() const noexcept { return strides; }
 
-  /**
-   * @brief     perform saxpy operation.
-   */
-  static void saxpy(const unsigned int N, const float alpha, const float *X,
-                    const int incX, float *Y, const int incY);
-
 private:
   /**
    * @brief Get linear index given the n-d index

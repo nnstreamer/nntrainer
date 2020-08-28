@@ -17,6 +17,7 @@
 #include <vector>
 
 #include <activation_layer.h>
+#include <blas_interface.h>
 #include <layer.h>
 #include <lazy_tensor.h>
 #include <nntrainer_error.h>
@@ -165,7 +166,7 @@ Tensor ActivationLayer::softmax(Tensor const &t) {
 
     Tensor tmp = Tensor(1, 1, 1, feat_len);
     tmp.setValue(m);
-    Tensor::saxpy(feat_len, -1, tmp.getData(), 1, dp + index, 1);
+    saxpy(feat_len, -1, tmp.getData(), 1, dp + index, 1);
   }
 
   // take exp
