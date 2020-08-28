@@ -959,10 +959,11 @@ TEST_F(nntrainer_Conv2DLayer, forwarding_01_p) {
  */
 
 TEST_F(nntrainer_Conv2DLayer, forwarding_02_p) {
-  reinitialize("input_shape=3:7:7 | batch_size=2 |"
-               "bias_initializer = zeros |"
-               "weight_initializer=xavier_uniform |"
-               "filters=3 | kernel_size=3,3 | stride=1, 1 | padding=0,0");
+  status =
+    reinitialize("input_shape=3:7:7 | batch_size=2 |"
+                 "bias_initializer = zeros |"
+                 "weight_initializer=xavier_uniform |"
+                 "filters=3 | kernel_size=3,3 | stride=1, 1 | padding=0,0");
 
   ASSERT_EQ(in.getDim(), nntrainer::TensorDim(2, 3, 7, 7));
   ASSERT_EQ(out.getDim(), nntrainer::TensorDim(2, 3, 5, 5));
@@ -1027,6 +1028,59 @@ TEST_F(nntrainer_Conv2DLayer, backwarding_01_p) {
   matchOutput(bias_grad, "tc_conv2d_1_goldenBiasGrad.out");
 }
 
+TEST_F(nntrainer_Conv2DLayer, backwarding_04_p) {
+  status = reinitialize("input_shape=6:24:24 | batch_size=1 |"
+                        "bias_initializer=zeros |"
+                        "weight_initializer=xavier_uniform |"
+                        "filters=12 |"
+                        "kernel_size=5,5 |"
+                        "stride=1,1 |"
+                        "padding=0,0");
+
+  setOptimizer(nntrainer::OptType::sgd, "learning_rate=1.0");
+  unsigned int filter_size = 12;
+  std::vector<float> grad_data;
+  std::vector<float> weight_data;
+  std::vector<float> bias_grad;
+  std::vector<float> bias_weight;
+
+  nntrainer::Tensor derivatives(1, 12, 20, 20);
+
+  loadFile("tc_conv2d_3_conv2DLayer.in", in);
+  loadFile("tc_conv2d_3_conv2DKernel.in", layer);
+
+  EXPECT_NO_THROW(out = layer.forwarding(MAKE_SHARED_TENSOR(in)).get()[0]);
+
+  for (unsigned int i = 0; i < derivatives.getDim().getDataLen(); ++i) {
+    derivatives.getData()[i] = 1.0;
+  }
+  EXPECT_NO_THROW(
+    result = layer.backwarding(MAKE_SHARED_TENSOR(derivatives), 1).get()[0]);
+
+  nntrainer::UpdatableParam *param_data = layer.getParams().get();
+
+  for (unsigned int i = 0; i < filter_size * 2; ++i) {
+    nntrainer::UpdatableParam &param = param_data[i];
+    nntrainer::Tensor &grad = param.grad;
+    const float *gdata = grad.getData();
+    if (i < filter_size) {
+      for (unsigned int j = 0; j < grad.length(); ++j) {
+        grad_data.push_back(gdata[j]);
+      }
+    } else {
+      for (unsigned int j = 0; j < grad.length(); ++j) {
+        bias_grad.push_back(gdata[j]);
+      }
+    }
+  }
+
+  matchOutput(grad_data, "tc_conv2d_3_goldenKernelGrad.out");
+
+  matchOutput(rotate_180(result), "tc_conv2d_3_goldenInputGrad.out");
+
+  matchOutput(bias_grad, "tc_conv2d_3_goldenBiasGrad.out");
+}
+
 TEST_F(nntrainer_Conv2DLayer, backwarding_02_p) {
   status = reinitialize("input_shape=3:7:7 | batch_size=2 |"
                         "bias_initializer=zeros |"
@@ -1043,6 +1097,7 @@ TEST_F(nntrainer_Conv2DLayer, backwarding_02_p) {
   std::vector<float> weight_data;
   std::vector<float> bias_grad;
   std::vector<float> bias_weight;
+  nntrainer::UpdatableParam *param_data;
 
   nntrainer::Tensor derivatives(2, 3, 5, 5);
 
@@ -1056,7 +1111,7 @@ TEST_F(nntrainer_Conv2DLayer, backwarding_02_p) {
   }
   EXPECT_NO_THROW(
     result = layer.backwarding(MAKE_SHARED_TENSOR(derivatives), 1).get()[0]);
-  nntrainer::UpdatableParam *param_data = layer.getParams().get();
+  param_data = layer.getParams().get();
 
   for (unsigned int i = 0; i < filter_size * 2; ++i) {
     nntrainer::UpdatableParam &param = param_data[i];
@@ -1074,11 +1129,170 @@ TEST_F(nntrainer_Conv2DLayer, backwarding_02_p) {
     }
   }
 
+  matchOutput(out, "tc_conv2d_2_goldenConv2DResult.out");
   matchOutput(grad_data, "tc_conv2d_2_goldenKernelGrad.out");
-
   matchOutput(rotate_180(result), "tc_conv2d_2_goldenInputGrad.out");
-
   matchOutput(bias_grad, "tc_conv2d_2_goldenBiasGrad.out");
+
+  for (int i = 0; i < 4; i++) {
+    EXPECT_NO_THROW(out = layer.forwarding(MAKE_SHARED_TENSOR(in)).get()[0]);
+    EXPECT_NO_THROW(
+      result = layer.backwarding(MAKE_SHARED_TENSOR(derivatives), 1).get()[0]);
+  }
+
+  param_data = layer.getParams().get();
+
+  for (unsigned int i = 0; i < filter_size * 2; ++i) {
+    nntrainer::UpdatableParam &param = param_data[i];
+    nntrainer::Tensor &grad = param.grad;
+
+    const float *gdata = grad.getData();
+    if (i < filter_size) {
+      for (unsigned int j = 0; j < grad.length(); ++j) {
+        grad_data.push_back(gdata[j]);
+      }
+    } else {
+      for (unsigned int j = 0; j < grad.length(); ++j) {
+        bias_grad.push_back(gdata[j]);
+      }
+    }
+  }
+
+  matchOutput(out, "tc_conv2d_2_goldenConv2DResult2.out");
+  matchOutput(grad_data, "tc_conv2d_2_goldenKernelGrad2.out");
+  matchOutput(rotate_180(result), "tc_conv2d_2_goldenInputGrad2.out");
+  matchOutput(bias_grad, "tc_conv2d_2_goldenBiasGrad2.out");
+}
+
+TEST_F(nntrainer_Conv2DLayer, backwarding_03_p) {
+  status = reinitialize("input_shape=3:28:28 | batch_size=1 |"
+                        "bias_initializer=zeros |"
+                        "weight_initializer=zeros |"
+                        "filters=6 |"
+                        "kernel_size= 5,5 |"
+                        "stride=1, 1 |"
+                        "padding=0, 0");
+
+  nntrainer::Conv2DLayer layer1;
+  status = layer1.setProperty(
+    {"input_shape=3:28:28", "batch_size=1", "bias_initializer=zeros",
+     "weight_initializer=zeros", "filters=6", "kernel_size= 5,5", "stride=1, 1",
+     "padding=0, 0"});
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = layer1.initialize();
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  nntrainer::Conv2DLayer layer2;
+  status = layer2.setProperty(
+    {"batch_size=1", "bias_initializer=zeros", "weight_initializer=zeros",
+     "filters=12", "kernel_size= 1,1", "stride=1, 1", "padding=0, 0"});
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  layer2.setInputDimension(layer1.getOutputDimension());
+  status = layer2.initialize();
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  nntrainer::Optimizer op;
+  int status = op.setType(nntrainer::OptType::sgd);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = op.setProperty({"learning_rate=1.0"});
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = layer1.setOptimizer(op);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  nntrainer::Optimizer op2;
+  status = op2.setType(nntrainer::OptType::sgd);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = op2.setProperty({"learning_rate=1.0"});
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = layer2.setOptimizer(op2);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  setOptimizer(nntrainer::OptType::sgd, "learning_rate=1.0");
+
+  unsigned int filter_size;
+  std::vector<float> grad_data;
+  std::vector<float> weight_data;
+  std::vector<float> bias_grad;
+  std::vector<float> bias_weight;
+  nntrainer::UpdatableParam *param_data;
+
+  nntrainer::Tensor derivatives(1, 12, 24, 24);
+
+  loadFile("tc_conv2d_int_conv2DLayer.in", in);
+  loadFile("tc_conv2d_int_conv2DKernel.in", layer1);
+  loadFile("tc_conv2d_int_conv2DKernel2.in", layer2);
+
+  nntrainer::Tensor out1;
+  EXPECT_NO_THROW(out1 = layer1.forwarding(MAKE_SHARED_TENSOR(in)).get()[0]);
+  // out1.print(std::cout);
+
+  nntrainer::Tensor out2;
+
+  EXPECT_NO_THROW(out2 = layer2.forwarding(MAKE_SHARED_TENSOR(out1)).get()[0]);
+
+  matchOutput(out1, "tc_conv2d_int_goldenConv2DResult.out");
+  matchOutput(out2, "tc_conv2d_int_goldenConv2DResult2.out");
+
+  for (unsigned int i = 0; i < derivatives.getDim().getDataLen(); ++i) {
+    derivatives.getData()[i] = 1.0;
+  }
+
+  nntrainer::Tensor result2;
+  EXPECT_NO_THROW(
+    result2 = layer2.backwarding(MAKE_SHARED_TENSOR(derivatives), 1).get()[0]);
+
+  EXPECT_NO_THROW(
+    result = layer1.backwarding(MAKE_SHARED_TENSOR(result2), 1).get()[0]);
+
+  /** Compare second conv */
+  param_data = layer2.getParams().get();
+  filter_size = 12;
+  grad_data.clear();
+  bias_grad.clear();
+  for (unsigned int i = 0; i < filter_size * 2; ++i) {
+    nntrainer::UpdatableParam &param = param_data[i];
+    nntrainer::Tensor &grad = param.grad;
+
+    const float *gdata = grad.getData();
+    if (i < filter_size) {
+      for (unsigned int j = 0; j < grad.length(); ++j) {
+        grad_data.push_back(gdata[j]);
+      }
+    } else {
+      for (unsigned int j = 0; j < grad.length(); ++j) {
+        bias_grad.push_back(gdata[j]);
+      }
+    }
+  }
+
+  matchOutput(grad_data, "tc_conv2d_int_goldenKernel2Grad.out");
+  matchOutput(bias_grad, "tc_conv2d_int_goldenBias2Grad.out");
+
+  /** Compare first conv */
+  param_data = layer1.getParams().get();
+  filter_size = 6;
+  grad_data.clear();
+  bias_grad.clear();
+  for (unsigned int i = 0; i < filter_size * 2; ++i) {
+    nntrainer::UpdatableParam &param = param_data[i];
+    nntrainer::Tensor &grad = param.grad;
+
+    const float *gdata = grad.getData();
+    if (i < filter_size) {
+      for (unsigned int j = 0; j < grad.length(); ++j) {
+        grad_data.push_back(gdata[j]);
+      }
+    } else {
+      for (unsigned int j = 0; j < grad.length(); ++j) {
+        bias_grad.push_back(gdata[j]);
+      }
+    }
+  }
+
+  matchOutput(grad_data, "tc_conv2d_int_goldenKernelGrad.out");
+  matchOutput(bias_grad, "tc_conv2d_int_goldenBiasGrad.out");
+
+  matchOutput(rotate_180(result), "tc_conv2d_int_goldenInputGrad.out");
 }
 
 class nntrainer_Pooling2DLayer
