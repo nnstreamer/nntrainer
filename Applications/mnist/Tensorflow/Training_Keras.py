@@ -41,15 +41,12 @@ np.random.seed(SEED)
 batch_size =32
 Learning = True
 Test = False
-num_epoch = 50
+num_epoch = 1500
 DEBUG = True
 USE_FIT = False
 
 def save(filename, *data):
-    if os.path.isfile(filename):
-        os.remove(filename)
-
-    with open(filename, 'ab') as outfile:
+    with open(filename, 'ab+') as outfile:
         for item in data:
           np.array(item, dtype=np.float32).tofile(outfile)
           try:
@@ -78,12 +75,12 @@ def datagen( x_data, y_data, batch_size):
 def create_model():
     model = models.Sequential()
     model.add(tf.keras.Input(shape=(28, 28, 1)))
-    model.add(Conv2D(6, (5,5), padding='valid', activation='sigmoid', kernel_initializer=initializers.Zeros(), bias_initializer=initializers.Zeros()))
+    model.add(Conv2D(6, (5,5), padding='valid', activation='sigmoid', bias_initializer=initializers.Zeros()))
     model.add(AveragePooling2D(pool_size=(2,2)))
-    model.add(Conv2D(12, (1,1), padding='valid', activation='sigmoid', kernel_initializer=initializers.Zeros(), bias_initializer=initializers.Zeros()))
+    model.add(Conv2D(12, (5,5), padding='valid', activation='sigmoid', bias_initializer=initializers.Zeros()))
     model.add(AveragePooling2D(pool_size=(2,2)))
     model.add(Flatten())
-    model.add(layers.Dense(10,kernel_initializer=initializers.Zeros(), bias_initializer=initializers.Zeros()))
+    model.add(layers.Dense(10, bias_initializer=initializers.Zeros()))
     return model
 
 ##
@@ -119,6 +116,15 @@ def train_nntrainer(target):
         infer_to_run = [tf.reduce_sum(tf.cast(tf.equal(tf.math.argmax(tf.nn.softmax(tf_logit), axis=1), tf.math.argmax(labels, axis=1)), tf.float32))/batch_size, tf_loss]
 
         sess.run(tf.compat.v1.global_variables_initializer())
+
+        conv2_0 = np.transpose(model.get_weights()[0], [3,2,0,1])
+        conv2_1 = np.transpose(model.get_weights()[2], [3,2,0,1])
+        save("model.bin", conv2_0)
+        save("model.bin", model.get_weights()[1])
+        save("model.bin", conv2_1)
+        save("model.bin", model.get_weights()[3])
+        save("model.bin", model.get_weights()[4])
+        save("model.bin", model.get_weights()[5])
 
         for i in range(0, num_epoch):
             count = 0
