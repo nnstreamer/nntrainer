@@ -420,7 +420,7 @@ Tensor Tensor::sum(int axis, float alpha) const {
 #ifdef USE_BLAS
     unsigned int feat_len = dim.getFeatureLen();
     unsigned int batch = dim.batch();
-    Tensor ones(1, 1, 1, feat_len);
+    Tensor ones(1, 1, 1, batch);
     ones.setValue(alpha);
     cblas_sgemv(CblasRowMajor, CblasTrans, batch, feat_len, 1, data, feat_len,
                 ones.getData(), 1, 0.0, ret.getData(), 1);
