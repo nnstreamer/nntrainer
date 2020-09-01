@@ -411,6 +411,9 @@ Tensor Tensor::sum(int axis, float alpha) const {
 
   const float *data = getData();
 
+  if (axis >= 4)
+    throw std::out_of_range("Error: Dimension cannot exceed 3");
+
   if (dim.getDim()[axis] == 1 and alpha == 1.0)
     return this->clone();
 
@@ -538,7 +541,6 @@ Tensor Tensor::sum(int axis, float alpha) const {
   } break;
   default:
     throw std::out_of_range("Error: Dimension cannot exceed 3");
-    break;
   }
   return ret;
 }
