@@ -146,6 +146,9 @@ int ml_train_model_construct(ml_train_model_h *model) {
 int ml_train_model_construct_with_conf(const char *model_conf,
                                        ml_train_model_h *model) {
   int status = ML_ERROR_NONE;
+
+  check_feature_state();
+
   ml_train_model *nnmodel;
   std::shared_ptr<nntrainer::NeuralNetwork> NN;
   returnable f;
@@ -174,12 +177,13 @@ int ml_train_model_construct_with_conf(const char *model_conf,
 
 int ml_train_model_compile(ml_train_model_h model, ...) {
   int status = ML_ERROR_NONE;
+
+  check_feature_state();
+
   const char *data;
   ml_train_model *nnmodel;
   returnable f;
   std::shared_ptr<nntrainer::NeuralNetwork> NN;
-
-  check_feature_state();
 
   ML_TRAIN_VERIFY_VALID_HANDLE(model);
 
@@ -216,11 +220,12 @@ int ml_train_model_compile(ml_train_model_h model, ...) {
 
 int ml_train_model_run(ml_train_model_h model, ...) {
   int status = ML_ERROR_NONE;
+
+  check_feature_state();
+
   ml_train_model *nnmodel;
   const char *data;
   std::shared_ptr<nntrainer::NeuralNetwork> NN;
-
-  check_feature_state();
 
   ML_TRAIN_VERIFY_VALID_HANDLE(model);
 
@@ -558,11 +563,12 @@ int ml_train_layer_destroy(ml_train_layer_h layer) {
 
 int ml_train_layer_set_property(ml_train_layer_h layer, ...) {
   int status = ML_ERROR_NONE;
+
+  check_feature_state();
+
   ml_train_layer *nnlayer;
   const char *data;
   std::shared_ptr<nntrainer::Layer> NL;
-
-  check_feature_state();
 
   ML_TRAIN_VERIFY_VALID_HANDLE(layer);
 
@@ -637,11 +643,12 @@ int ml_train_optimizer_destroy(ml_train_optimizer_h optimizer) {
 
 int ml_train_optimizer_set_property(ml_train_optimizer_h optimizer, ...) {
   int status = ML_ERROR_NONE;
+
+  check_feature_state();
+
   ml_train_optimizer *nnopt;
   const char *data;
   std::shared_ptr<nntrainer::Optimizer> opt;
-
-  check_feature_state();
 
   ML_TRAIN_VERIFY_VALID_HANDLE(optimizer);
 
@@ -750,11 +757,12 @@ int ml_train_dataset_create_with_file(ml_train_dataset_h *dataset,
 
 int ml_train_dataset_set_property(ml_train_dataset_h dataset, ...) {
   int status = ML_ERROR_NONE;
+
+  check_feature_state();
+
   ml_train_dataset *nndataset;
   const char *data;
   std::shared_ptr<nntrainer::DataBuffer> data_buffer;
-
-  check_feature_state();
 
   ML_TRAIN_VERIFY_VALID_HANDLE(dataset);
 
