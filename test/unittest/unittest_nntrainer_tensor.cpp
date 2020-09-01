@@ -791,7 +791,86 @@ TEST(nntrainer_Tensor, sum_03_p) {
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
-TEST(nntrainer_Tensor, dot_01_p) {
+TEST(nntrainer_Tensor, dot_01_n) {
+  nntrainer::Tensor input(2, 3, 4, 5);
+  nntrainer::Tensor m(1, 3, 4, 5);
+  EXPECT_THROW(nntrainer::Tensor result = input.dot(m),
+               nntrainer::exception::not_supported);
+}
+
+TEST(nntrainer_Tensor, dot_02_n) {
+  nntrainer::Tensor input(2, 3, 4, 5);
+  nntrainer::Tensor m(1, 3, 4, 5);
+  EXPECT_THROW(nntrainer::Tensor result = input.dot(m, true),
+               nntrainer::exception::not_supported);
+}
+
+TEST(nntrainer_Tensor, dot_03_n) {
+  nntrainer::Tensor input(1, 3, 4, 5);
+  nntrainer::Tensor m(1, 3, 4, 5);
+  EXPECT_THROW(nntrainer::Tensor result = input.dot(m, true),
+               nntrainer::exception::not_supported);
+}
+
+TEST(nntrainer_Tensor, dot_04_n) {
+  nntrainer::Tensor input(2, 3, 4, 5);
+  nntrainer::Tensor m(1, 1, 4, 5);
+  EXPECT_THROW(nntrainer::Tensor result = input.dot(m), std::runtime_error);
+  EXPECT_NO_THROW(nntrainer::Tensor result = input.dot(m, false, true));
+}
+
+TEST(nntrainer_Tensor, dot_05_p) {
+  int status = ML_ERROR_NONE;
+  int batch = 2;
+  int channel = 3;
+  int height = 4;
+  int width = 5;
+  float ans[2][3][4][24] = {0};
+
+  nntrainer::Tensor input(batch, channel, height, width);
+  GEN_TEST_INPUT(input, i * (channel * width * height) + j * (height * width) +
+                          k * (width) + l + 1);
+  nntrainer::Tensor weight(batch, channel, height, width);
+  GEN_TEST_INPUT(weight, i * (channel * width * height) + j * (height * width) +
+                           k * (width) + l + 1);
+  weight.reshape({1, 1, 24, 5});
+
+  nntrainer::Tensor result = input.dot(weight, false, true);
+
+  for (int b = 0; b < batch; b++) {
+    for (int c = 0; c < channel; c++) {
+      for (int h = 0; h < height; h++) {
+        for (int k = 0; k < batch * channel * height; k++) {
+          ans[b][c][h][k] = 0;
+          for (int w = 0; w < width; w++) {
+            float val1 = input.getValue(b, c, h, w);
+            float val2 = weight.getValue(0, 0, k, w);
+            ans[b][c][h][k] += val1 * val2;
+          }
+        }
+      }
+    }
+  }
+
+  for (unsigned int i = 0; i < result.batch(); ++i) {
+    for (unsigned int c = 0; c < result.channel(); ++c) {
+      for (unsigned int j = 0; j < result.height(); ++j) {
+        for (unsigned int k = 0; k < result.width(); ++k) {
+          float val1 = ans[i][c][j][k];
+          float val2 = result.getValue(i, c, j, k);
+          if (val1 != val2) {
+            status = ML_ERROR_RESULT_OUT_OF_RANGE;
+            goto end_dot_01_p;
+          }
+        }
+      }
+    }
+  }
+end_dot_01_p:
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+TEST(nntrainer_Tensor, dot_06_p) {
   int status = ML_ERROR_NONE;
   int batch = 3;
   int channel = 1;
