@@ -66,27 +66,11 @@ static long getFileSize(std::string file_name) {
 }
 
 int DataBufferFromDataFile::init() {
-
   int status = ML_ERROR_NONE;
-  if (!class_num) {
-    ml_loge("Error: number of class must be set");
-    SET_VALIDATION(false);
-    return ML_ERROR_INVALID_PARAMETER;
-  }
-  if (!this->input_dim.width()) {
-    ml_loge("Error: featuer size must be set");
-    SET_VALIDATION(false);
-    return ML_ERROR_INVALID_PARAMETER;
-  }
 
-  this->cur_train_bufsize = 0;
-  this->cur_val_bufsize = 0;
-  this->cur_test_bufsize = 0;
-  if (batch_size == 0) {
-    ml_loge("Error: batch size must be greater than 0");
-    SET_VALIDATION(false);
-    return ML_ERROR_INVALID_PARAMETER;
-  }
+  status = DataBuffer::init();
+  if (status != ML_ERROR_NONE)
+    return status;
 
   if (validation[DATA_TRAIN] && max_train < batch_size) {
     max_train = batch_size;
@@ -108,10 +92,6 @@ int DataBufferFromDataFile::init() {
   this->val_running = true;
   this->test_running = true;
 
-  trainReadyFlag = DATA_NOT_READY;
-  valReadyFlag = DATA_NOT_READY;
-  testReadyFlag = DATA_NOT_READY;
-
   if (validation[DATA_TRAIN] && max_train < train_bufsize) {
     ml_logw("Warning: Total number of train is less than train buffer size. "
             "Train buffer size is set as total number of train");
@@ -131,7 +111,7 @@ int DataBufferFromDataFile::init() {
     test_bufsize = batch_size;
   }
 
-  return status;
+  return ML_ERROR_NONE;
 }
 
 void DataBufferFromDataFile::updateData(BufferType type) {

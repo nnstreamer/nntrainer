@@ -120,13 +120,7 @@ int ModelLoader::loadDatasetConfigIni(dictionary *ini, NeuralNetwork &model) {
   status = model.data_buffer->setBatchSize(model.batch_size);
   NN_RETURN_STATUS();
 
-  unsigned int bufsize =
-    iniparser_getint(ini, "DataSet:BufferSize", model.batch_size);
-  ml_logd("buf size: %d", bufsize);
-  if (model.batch_size < bufsize) {
-    ml_logw("buffer size must be atleast the batch size. Reset to batch size.");
-    bufsize = model.batch_size;
-  }
+  unsigned int bufsize = iniparser_getint(ini, "DataSet:BufferSize", 1);
   status = model.data_buffer->setBufSize(bufsize);
   NN_RETURN_STATUS();
 

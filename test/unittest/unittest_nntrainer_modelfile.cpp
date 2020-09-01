@@ -157,6 +157,8 @@ INSTANTIATE_TEST_CASE_P(
     mkIniTc("no_testSet_p", {nw_adam, dataset + "-TestData", input, out}, SUCCESS),
     mkIniTc("no_validSet_p", {nw_adam, dataset + "-ValidData", input, out}, SUCCESS),
     mkIniTc("no_bufferSize_p", {nw_adam, dataset + "-BufferSize", input, out}, SUCCESS),
+    mkIniTc("buffer_size_smaller_than_batch_size_p", {nw_adam, dataset + "BufferSize=26", input, out}, SUCCESS),
+    mkIniTc("buffer_size_smaller_than_batch_size2_p", {nw_adam, input, out, dataset + "BufferSize=26"}, SUCCESS),
 
 
   /**< half negative: init fail cases (1 positive and 4 negative cases) */
@@ -182,14 +184,12 @@ INSTANTIATE_TEST_CASE_P(
     mkIniTc("adam_minus_lr_n", {nw_adam + "Learning_rate = -0.1", input, out}, ALLFAIL),
     mkIniTc("sgd_minus_lr_n", {nw_sgd + "Learning_rate = -0.1", input, out}, ALLFAIL),
     mkIniTc("no_loss_n", {nw_adam + "-loss", input, out}, INITFAIL),
-    mkIniTc("buffer_size_smaller_than_batch_size_n", {nw_adam, dataset + "BufferSize=26", input, out}, ALLFAIL),
     mkIniTc("unknown_layer_type_n", {nw_adam, input + "Type = asdf", out}, ALLFAIL),
     mkIniTc("unknown_layer_type2_n", {nw_adam, input, out + "Type = asdf", I(out, "outlayer", "")}, ALLFAIL),
 
   /**< negative: little bit of tweeks to check determinancy (5 negative cases) */
     mkIniTc("wrong_nw_dataset_n", {nw_adam, input, out, dataset + "-LabelData"}, ALLFAIL),
     mkIniTc("wrong_nw_dataset2_n", {nw_adam, dataset + "-LabelData", input, out}, ALLFAIL),
-    mkIniTc("buffer_size_smaller_than_batch_size2_n", {nw_adam, input, out, dataset + "BufferSize=26"}, ALLFAIL),
 
   /**< negative: dataset is not complete (5 negative cases) */
     mkIniTc("no_trainingSet_n", {nw_adam, dataset + "-TrainData", input, out}, ALLFAIL),

@@ -170,7 +170,7 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  virtual int init() = 0;
+  virtual int init();
 
   /**
    * @brief     Update Data Buffer ( it is for child thread )

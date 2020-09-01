@@ -324,12 +324,6 @@ int DataBuffer::setClassNum(unsigned int num) {
 
 int DataBuffer::setBufSize(unsigned int size) {
   int status = ML_ERROR_NONE;
-  /// TODO: move this to initialization than here.
-  if (size < batch_size) {
-    ml_loge("Error: buffer size must be greater than batch size");
-    SET_VALIDATION(false);
-    return ML_ERROR_INVALID_PARAMETER;
-  }
   train_bufsize = size;
   val_bufsize = size;
   test_bufsize = size;
@@ -345,6 +339,46 @@ int DataBuffer::setBatchSize(unsigned int size) {
   }
   batch_size = size;
   return status;
+}
+
+int DataBuffer::init() {
+  if (batch_size == 0) {
+    ml_loge("Error: batch size must be greater than 0");
+    SET_VALIDATION(false);
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
+  /** for now, train_bufsize, val_bufsize and test_bufsize are same value */
+  if (train_bufsize < batch_size) {
+    if (train_bufsize > 1) {
+      ml_logw("Dataset buffer size reset to be at least batch size");
+    }
+    train_bufsize = batch_size;
+    val_bufsize = batch_size;
+    test_bufsize = batch_size;
+  }
+
+  if (!class_num) {
+    ml_loge("Error: number of class must be set");
+    SET_VALIDATION(false);
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
+  if (!this->input_dim.getFeatureLen()) {
+    ml_loge("Error: feature size must be set");
+    SET_VALIDATION(false);
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
+  this->cur_train_bufsize = 0;
+  this->cur_val_bufsize = 0;
+  this->cur_test_bufsize = 0;
+
+  trainReadyFlag = DATA_NOT_READY;
+  valReadyFlag = DATA_NOT_READY;
+  testReadyFlag = DATA_NOT_READY;
+
+  return ML_ERROR_NONE;
 }
 
 int DataBuffer::setFeatureSize(TensorDim indim) {

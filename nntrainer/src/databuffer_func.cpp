@@ -58,31 +58,13 @@ extern DataStatus testReadyFlag;
 int DataBufferFromCallback::init() {
   int status = ML_ERROR_NONE;
 
-  if (!class_num) {
-    ml_loge("Error: number of class must be set");
-    SET_VALIDATION(false);
-    return ML_ERROR_INVALID_PARAMETER;
-  }
-
-  if (!this->input_dim.getFeatureLen()) {
-    ml_loge("Error: featuer size must be set");
-    SET_VALIDATION(false);
-    return ML_ERROR_INVALID_PARAMETER;
-  }
-
-  this->cur_train_bufsize = 0;
-  this->cur_val_bufsize = 0;
-  this->cur_test_bufsize = 0;
+  status = DataBuffer::init();
+  if (status != ML_ERROR_NONE)
+    return status;
 
   this->max_train = 0;
   this->max_val = 0;
   this->max_test = 0;
-
-  if (batch_size == 0) {
-    ml_loge("Error: batch size must be greater than 0");
-    SET_VALIDATION(false);
-    return ML_ERROR_INVALID_PARAMETER;
-  }
 
   if (train_bufsize > batch_size || train_bufsize == 0) {
     train_bufsize = batch_size;
@@ -100,11 +82,7 @@ int DataBufferFromCallback::init() {
   this->val_running = true;
   this->test_running = true;
 
-  trainReadyFlag = DATA_NOT_READY;
-  valReadyFlag = DATA_NOT_READY;
-  testReadyFlag = DATA_NOT_READY;
-
-  return status;
+  return ML_ERROR_NONE;
 }
 
 int DataBufferFromCallback::setFunc(BufferType type, datagen_cb func) {
