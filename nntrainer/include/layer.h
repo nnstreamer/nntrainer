@@ -415,7 +415,7 @@ public:
   /**
    * @brief     Get name of the layer
    */
-  std::string getName() { return name; }
+  std::string getName() noexcept { return name; }
 
   /**
    * @brief     Get base name of the layer

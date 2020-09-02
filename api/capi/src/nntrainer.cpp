@@ -99,11 +99,31 @@ template <typename F> static int nntrainer_exception_boundary(F &&func) {
   }
 }
 
+typedef std::function<int()> returnable;
+
+/**
+ * @brief std::make_shared wrapped with exception boundary
+ *
+ * @tparam Tv value type.
+ * @tparam Tp pointer type.
+ * @tparam Types args used to construct
+ * @param target pointer
+ * @param args args
+ * @return int error value. ML_ERROR_OUT_OF_MEMORY if fail
+ */
+template <typename Tv, typename Tp, typename... Types>
+static int exception_bounded_make_shared(Tp &target, Types... args) {
+  returnable f = [&]() {
+    target = std::make_shared<Tv>(args...);
+    return ML_ERROR_NONE;
+  };
+
+  return nntrainer_exception_boundary(f);
+}
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-typedef std::function<int()> returnable;
 
 /**
  * @brief Function to create Network::NeuralNetwork object.
@@ -121,11 +141,10 @@ static int nn_object(ml_train_model_h *model) {
 
   *model = nnmodel;
 
-  try {
-    nnmodel->network = std::make_shared<nntrainer::NeuralNetwork>();
-  } catch (std::bad_alloc &e) {
-    ml_loge("Error: heap exception: %s", e.what());
-    status = ML_ERROR_OUT_OF_MEMORY;
+  status =
+    exception_bounded_make_shared<nntrainer::NeuralNetwork>(nnmodel->network);
+  if (status != ML_ERROR_NONE) {
+    ml_loge("Error: creating nn object failed");
     delete nnmodel;
   }
 
@@ -150,15 +169,16 @@ int ml_train_model_construct_with_conf(const char *model_conf,
   std::shared_ptr<nntrainer::NeuralNetwork> NN;
   returnable f;
 
-  std::ifstream conf_file(model_conf);
-  if (!conf_file.good()) {
-    ml_loge("Error: Cannot open model configuration file : %s", model_conf);
-    return ML_ERROR_INVALID_PARAMETER;
-  }
-
   status = ml_train_model_construct(model);
   if (status != ML_ERROR_NONE)
     return status;
+
+  std::ifstream conf_file(model_conf);
+  if (!conf_file.good()) {
+    ml_train_model_destroy(*model);
+    ml_loge("Error: Cannot open model configuration file : %s", model_conf);
+    return ML_ERROR_INVALID_PARAMETER;
+  }
 
   nnmodel = (ml_train_model *)(*model);
   NN = nnmodel->network;
@@ -508,24 +528,25 @@ int ml_train_layer_create(ml_train_layer_h *layer, ml_train_layer_type_e type) {
   nnlayer = new ml_train_layer;
   nnlayer->magic = ML_NNTRAINER_MAGIC;
 
-  try {
-    switch (type) {
-    case ML_TRAIN_LAYER_TYPE_INPUT:
-      nnlayer->layer = std::make_shared<nntrainer::InputLayer>();
-      break;
-    case ML_TRAIN_LAYER_TYPE_FC:
-      nnlayer->layer = std::make_shared<nntrainer::FullyConnectedLayer>();
-      break;
-    default:
-      delete nnlayer;
-      ml_loge("Error: Unknown layer type");
-      status = ML_ERROR_INVALID_PARAMETER;
-      return status;
-    }
-  } catch (std::bad_alloc &e) {
-    ml_loge("Error: heap exception: %s", e.what());
-    status = ML_ERROR_OUT_OF_MEMORY;
+  switch (type) {
+  case ML_TRAIN_LAYER_TYPE_INPUT:
+    status =
+      exception_bounded_make_shared<nntrainer::InputLayer>(nnlayer->layer);
+    break;
+  case ML_TRAIN_LAYER_TYPE_FC:
+    status = exception_bounded_make_shared<nntrainer::FullyConnectedLayer>(
+      nnlayer->layer);
+    break;
+  default:
     delete nnlayer;
+    ml_loge("Error: Unknown layer type");
+    status = ML_ERROR_INVALID_PARAMETER;
+    return status;
+  }
+
+  if (status != ML_ERROR_NONE) {
+    delete nnlayer;
+    ml_loge("Error: Create layer failed");
     return status;
   }
 
@@ -597,7 +618,15 @@ int ml_train_optimizer_create(ml_train_optimizer_h *optimizer,
 
   ml_train_optimizer *nnopt = new ml_train_optimizer;
   nnopt->magic = ML_NNTRAINER_MAGIC;
-  nnopt->optimizer = std::make_shared<nntrainer::Optimizer>();
+
+  status =
+    exception_bounded_make_shared<nntrainer::Optimizer>(nnopt->optimizer);
+  if (status != ML_ERROR_NONE) {
+    delete nnopt;
+    ml_loge("creating optimizer failed");
+    return status;
+  }
+
   nnopt->in_use = false;
 
   *optimizer = nnopt;
@@ -677,20 +706,34 @@ int ml_train_dataset_create_with_generator(ml_train_dataset_h *dataset,
 
   check_feature_state();
 
-  std::shared_ptr<nntrainer::DataBufferFromCallback> data_buffer =
-    std::make_shared<nntrainer::DataBufferFromCallback>();
+  std::shared_ptr<nntrainer::DataBufferFromCallback> data_buffer;
 
-  status = data_buffer->setFunc(nntrainer::BUF_TRAIN, train_cb);
+  status = exception_bounded_make_shared<nntrainer::DataBufferFromCallback>(
+    data_buffer);
+  if (status != ML_ERROR_NONE) {
+    ml_loge("Error: Create dataset failed");
+    return status;
+  }
+
+  returnable f = [&]() {
+    return data_buffer->setFunc(nntrainer::BUF_TRAIN, train_cb);
+  };
+
+  status = nntrainer_exception_boundary(f);
   if (status != ML_ERROR_NONE) {
     return status;
   }
 
-  status = data_buffer->setFunc(nntrainer::BUF_VAL, valid_cb);
+  f = [&]() { return data_buffer->setFunc(nntrainer::BUF_VAL, valid_cb); };
+
+  status = nntrainer_exception_boundary(f);
   if (status != ML_ERROR_NONE) {
     return status;
   }
 
-  status = data_buffer->setFunc(nntrainer::BUF_TEST, test_cb);
+  f = [&]() { return data_buffer->setFunc(nntrainer::BUF_TEST, test_cb); };
+
+  status = nntrainer_exception_boundary(f);
   if (status != ML_ERROR_NONE) {
     return status;
   }
@@ -712,8 +755,14 @@ int ml_train_dataset_create_with_file(ml_train_dataset_h *dataset,
 
   check_feature_state();
 
-  std::shared_ptr<nntrainer::DataBufferFromDataFile> data_buffer =
-    std::make_shared<nntrainer::DataBufferFromDataFile>();
+  std::shared_ptr<nntrainer::DataBufferFromDataFile> data_buffer;
+
+  status = exception_bounded_make_shared<nntrainer::DataBufferFromDataFile>(
+    data_buffer);
+  if (status != ML_ERROR_NONE) {
+    ml_loge("Error: Create dataset failed");
+    return status;
+  }
 
   if (train_file) {
     status = data_buffer->setDataFile(train_file, nntrainer::DATA_TRAIN);
