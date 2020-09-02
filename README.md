@@ -76,7 +76,7 @@ NNTrainer provides
  | relu | relu function | set as layer propery |
  | softmax | softmax function | set as layer propery |
  | weight_initializer | Weight Initialization | Xavier(Normal/Uniform), LeCun(Normal/Uniform),  HE(Normal/Unifor) |
- | weight_decay | weight decay ( L2Norm only ) | needs set weight_decay_param & type |
+ | weight_regularizer | weight decay ( L2Norm only ) | needs set weight_regularizer_param & type |
  | learnig_rate_decay | learning rate decay | need to set step |
 
 ### Tensor
@@ -100,7 +100,7 @@ NNTrainer provides
  | Keyward | Loss Name | Description |
  |:-------:|:---:|:---|
  | weight_initializer | Weight Initialization | Xavier(Normal/Uniform), LeCun(Normal/Uniform),  HE(Normal/Unifor) |
- | weight_decay | weight decay ( L2Norm only ) | needs set weight_decay_param & type |
+ | weight_regularizer | weight decay ( L2Norm only ) | needs set weight_regularizer_constant & type |
  | learnig_rate_decay | learning rate decay | need to set step |
 
 ### APIs

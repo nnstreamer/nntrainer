@@ -143,7 +143,7 @@ TEST(nntrainer_capi_nnmodel, compile_05_p) {
 
   status = ml_train_layer_set_property(
     layers[1], "unit= 10", "activation=softmax", "bias_initializer=zeros",
-    "weight_decay=l2norm", "weight_decay_lambda=0.005",
+    "weight_regularizer=l2norm", "weight_regularizer_constant=0.005",
     "weight_initializer=xavier_uniform", "name=fc100", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
@@ -414,7 +414,7 @@ TEST(nntrainer_capi_nnmodel, addLayer_04_p) {
 
   status = ml_train_layer_set_property(
     layers[1], "unit= 10", "activation=softmax", "bias_initializer=zeros",
-    "weight_decay=l2norm", "weight_decay_lambda=0.005", NULL);
+    "weight_regularizer=l2norm", "weight_regularizer_constant=0.005", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_train_model_add_layer(model, layers[1]);
@@ -455,7 +455,7 @@ TEST(nntrainer_capi_nnmodel, addLayer_05_n) {
 
   status = ml_train_layer_set_property(
     layer, "unit= 10", "activation=softmax", "bias_initializer=zeros",
-    "weight_decay=l2norm", "weight_decay_lambda=0.005", NULL);
+    "weight_regularizer=l2norm", "weight_regularizer_constant=0.005", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_train_model_add_layer(model, layer);
@@ -524,7 +524,7 @@ TEST(nntrainer_capi_nnmodel, create_optimizer_02_p) {
 
   status = ml_train_layer_set_property(
     layers[1], "unit= 10", "activation=softmax", "bias_initializer=zeros",
-    "weight_decay=l2norm", "weight_decay_lambda=0.005", NULL);
+    "weight_regularizer=l2norm", "weight_regularizer_constant=0.005", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_train_model_add_layer(model, layers[1]);
@@ -574,7 +574,7 @@ TEST(nntrainer_capi_nnmodel, create_optimizer_03_p) {
 
   status = ml_train_layer_set_property(
     layers[1], "unit= 10", "activation=softmax", "bias_initializer=zeros",
-    "weight_decay=l2norm", "weight_decay_lambda=0.005", NULL);
+    "weight_regularizer=l2norm", "weight_regularizer_constant=0.005", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_train_model_add_layer(model, layers[1]);
@@ -628,7 +628,7 @@ TEST(nntrainer_capi_nnmodel, train_with_file_01_p) {
 
   status = ml_train_layer_set_property(
     layers[1], "unit= 10", "activation=softmax", "bias_initializer=zeros",
-    "weight_decay=l2norm", "weight_decay_lambda=0.005",
+    "weight_regularizer=l2norm", "weight_regularizer_constant=0.005",
     "weight_initializer=xavier_uniform", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
@@ -697,7 +697,7 @@ TEST(nntrainer_capi_nnmodel, train_with_generator_01_p) {
 
   status = ml_train_layer_set_property(
     layers[1], "unit= 10", "activation=softmax", "bias_initializer=zeros",
-    "weight_decay=l2norm", "weight_decay_lambda=0.005",
+    "weight_regularizer=l2norm", "weight_regularizer_constant=0.005",
     "weight_initializer=xavier_uniform", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 

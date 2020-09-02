@@ -143,7 +143,7 @@ public:
     type(LAYER_UNKNOWN),
     loss(0.0f),
     activation_type(ACT_NONE),
-    weight_decay(),
+    weight_regularizer(),
     weight_initializer(WEIGHT_XAVIER_UNIFORM),
     bias_initializer(WEIGHT_ZEROS),
     flatten(false),
@@ -223,8 +223,8 @@ public:
    *            3. standardization : bool
    *            4. activation : string (type)
    *            5. epsilon : float
-   *            6. weight_decay : string (type)
-   *            7. weight_decay_lambda : float
+   *            6. weight_regularizer : string (type)
+   *            7. weight_regularizer_constant : float
    *            8. unit : int
    *            9. weight_initializer : string (type)
    *            10. filter_size : int
@@ -245,8 +245,8 @@ public:
     standardization = 2,
     activation = 3,
     epsilon = 4,
-    weight_decay = 5,
-    weight_decay_lambda = 6,
+    weight_regularizer = 5,
+    weight_regularizer_constant = 6,
     unit = 7,
     weight_initializer = 8,
     bias_initializer = 9,
@@ -328,7 +328,9 @@ public:
    * @brief     set weight decay parameters
    * @param[in] w struct for weight decay
    */
-  void setWeightDecay(WeightDecayParam w) { weight_decay = w; }
+  void setWeightRegularizer(WeightRegularizerParam w) {
+    weight_regularizer = w;
+  }
 
   /**
    * @brief  set Weight Initialization Type
@@ -451,8 +453,8 @@ protected:
    * @brief     check if current layer's weight decay type is l2norm
    * @return    bool is weightdecay type is L2 Norm
    */
-  bool isWeightDecayL2Norm() {
-    return weight_decay.type == WeightDecayType::l2norm;
+  bool isWeightRegularizerL2Norm() {
+    return weight_regularizer.type == WeightRegularizerType::l2norm;
   }
   /**
    * @brief     Input Tensor
@@ -492,7 +494,7 @@ protected:
 
   ActiType activation_type;
 
-  WeightDecayParam weight_decay;
+  WeightRegularizerParam weight_regularizer;
 
   WeightInitializer weight_initializer; /** initializer for weights */
 

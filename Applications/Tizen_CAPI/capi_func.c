@@ -321,7 +321,7 @@ int main(int argc, char *argv[]) {
   /* set property for fc layer */
   status = ml_train_layer_set_property(
     layers[1], "unit= 10", "activation=softmax", "bias_initializer=zeros",
-    "weight_decay=l2norm", "weight_decay_lambda=0.005",
+    "weight_regularizer=l2norm", "weight_regularizer_constant=0.005",
     "weight_initializer=xavier_uniform", NULL);
   NN_RETURN_STATUS();
 
