@@ -53,6 +53,16 @@ namespace nntrainer {
 typedef enum { NET_KNN, NET_REG, NET_NEU, NET_UNKNOWN } NetType;
 
 /**
+ * @brief     Statistics from running or training a model
+ */
+typedef struct RunStats_ {
+  float accuracy; /** accuracy of the model */
+  float loss;     /** loss of the model */
+
+  RunStats_() : accuracy(0), loss(0) {}
+} RunStats;
+
+/**
  * @class   NeuralNetwork Class
  * @brief   NeuralNetwork Class which has Network Configuration & Layers
  */
@@ -290,10 +300,14 @@ public:
    * @param[in] flags verbosity from ml_train_summary_type_e
    */
   /// @todo: change print to use NeuralNetPrintOption and add way to print out
-  /// metrics. Current implementation use summary level directly. and lack of
-  /// printing out metrics. It might be fine for now but later should add way to
-  /// control like layer::print
   void print(std::ostream &out, unsigned int flags = 0);
+
+  /**
+   * @brief print metrics function for neuralnet
+   * @param[in] out outstream
+   * @param[in] flags verbosity from ml_train_summary_type_e
+   */
+  void printMetrics(std::ostream &out, unsigned int flags = 0);
 
 private:
   unsigned int batch_size; /**< batch size */
@@ -331,6 +345,10 @@ private:
   int def_name_count; /**< Count assigned to layer names declared by default */
 
   bool loadedFromConfig; /**< Check if config is loaded to prevent load twice */
+
+  RunStats validation; /** validation statistics of the model */
+  RunStats training;   /** training statistics of the model */
+  RunStats testing;    /** testing statistics of the model */
 
   /**
    * @brief     Sets up and initialize the loss layer

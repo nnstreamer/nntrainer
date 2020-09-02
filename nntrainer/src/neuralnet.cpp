@@ -35,6 +35,13 @@
 #include <unordered_set>
 #include <util_func.h>
 
+/**
+ * @brief Internal enum values for nntrainer to summarize model accuracy & loss
+ */
+#define ML_TRAIN_SUMMARY_MODEL_TRAIN_LOSS 101
+#define ML_TRAIN_SUMMARY_MODEL_VALID_LOSS 102
+#define ML_TRAIN_SUMMARY_MODEL_VALID_ACCURACY 103
+
 namespace nntrainer {
 
 NeuralNetwork::NeuralNetwork() :
@@ -414,7 +421,7 @@ int NeuralNetwork::train_run() {
   int status = ML_ERROR_NONE;
 
   for (unsigned int epoch_idx = 1; epoch_idx <= epochs; ++epoch_idx) {
-    float training_loss = 0.0f;
+    training.loss = 0.0f;
     status = data_buffer->run(nntrainer::BUF_TRAIN);
     if (status != ML_ERROR_NONE) {
       data_buffer->clear(BUF_TRAIN);
@@ -444,21 +451,25 @@ int NeuralNetwork::train_run() {
         }
         std::cout << "#" << epoch_idx << "/" << epochs;
         data_buffer->displayProgress(count++, nntrainer::BUF_TRAIN, getLoss());
-        training_loss += getLoss();
+        training.loss += getLoss();
       } else {
         data_buffer->clear(nntrainer::BUF_TRAIN);
         break;
       }
     }
 
+    if (count == 0)
+      throw std::runtime_error("No training data");
+
+    training.loss /= count;
     saveModel();
 
     std::cout << "#" << epoch_idx << "/" << epochs
-              << " - Training Loss: " << training_loss / count;
+              << " - Training Loss: " << training.loss;
 
     if (data_buffer->getValidation()[nntrainer::BUF_VAL]) {
       int right = 0;
-      float valloss = 0.0f;
+      validation.loss = 0.0f;
       unsigned int tcases = 0;
 
       status = data_buffer->run(nntrainer::BUF_VAL);
@@ -476,7 +487,7 @@ int NeuralNetwork::train_run() {
             sharedConstTensor Y = forwarding(X, Y2);
             if (Y->argmax() == Y2->argmax())
               right++;
-            valloss += getLoss();
+            validation.loss += getLoss();
             tcases++;
           }
         } else {
@@ -490,9 +501,10 @@ int NeuralNetwork::train_run() {
         status = ML_ERROR_INVALID_PARAMETER;
         return status;
       }
-      valloss = valloss / (float)(tcases);
-      std::cout << " >> [ Accuracy: " << right / (float)(tcases)*100.0f
-                << "% - Validation Loss : " << valloss << " ] ";
+      validation.loss /= (float)(tcases);
+      validation.accuracy = right / (float)(tcases)*100.0f;
+      std::cout << " >> [ Accuracy: " << validation.accuracy
+                << "% - Validation Loss : " << validation.loss << " ] ";
     }
     std::cout << std::endl;
   }
@@ -721,12 +733,38 @@ static unsigned int getLayerFlag(ml_train_summary_type_e verbosity,
   return flag;
 }
 
+void NeuralNetwork::printMetrics(std::ostream &out, unsigned int flags) {
+
+  switch (flags) {
+  case ML_TRAIN_SUMMARY_MODEL_TRAIN_LOSS:
+    out << training.loss << std::endl;
+    break;
+
+  case ML_TRAIN_SUMMARY_MODEL_VALID_LOSS:
+    out << validation.loss << std::endl;
+    break;
+
+  case ML_TRAIN_SUMMARY_MODEL_VALID_ACCURACY:
+    out << validation.accuracy << std::endl;
+    break;
+
+  default:
+    break;
+  }
+}
+
 void NeuralNetwork::print(std::ostream &out, unsigned int flags) {
   /// @todo print neuralnet property
   /// @todo print optimizer (with print optimizer prop)
   /// @todo print loss function when it is not initialized. (if it is
   /// initialized, loss layer will be printed)
 
+  /** print neuralnet metrics */
+  printMetrics(out, flags);
+  if (flags > ML_TRAIN_SUMMARY_TENSOR)
+    return;
+
+  /** print layer properties */
   if (layers.empty()) {
     out << "model is empty!" << std::endl;
     return;
@@ -739,7 +777,6 @@ void NeuralNetwork::print(std::ostream &out, unsigned int flags) {
   }
 
   /// @todo Add status to check neuralnet has been run. #290
-  /// @todo print neuralnet metric after it is run
 }
 
 } /* namespace nntrainer */

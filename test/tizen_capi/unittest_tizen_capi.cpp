@@ -25,6 +25,42 @@
 #include <nntrainer_test_util.h>
 
 /**
+ * @brief Compare the training statistics
+ */
+static void nntrainer_capi_model_comp_metrics(ml_train_model_h model,
+                                              float train_loss,
+                                              float valid_loss,
+                                              float valid_accuracy) {
+  int status = ML_ERROR_NONE;
+  char *summary = nullptr;
+
+  /** Compare training statistics */
+  status = ml_train_model_get_summary(
+    model, (ml_train_summary_type_e)ML_TRAIN_SUMMARY_MODEL_TRAIN_LOSS,
+    &summary);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  EXPECT_FLOAT_EQ(std::strtof(summary, nullptr), train_loss);
+  free(summary);
+
+  status = ml_train_model_get_summary(
+    model, (ml_train_summary_type_e)ML_TRAIN_SUMMARY_MODEL_VALID_LOSS,
+    &summary);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  EXPECT_FLOAT_EQ(std::strtof(summary, nullptr), valid_loss);
+  free(summary);
+
+  status = ml_train_model_get_summary(
+    model, (ml_train_summary_type_e)ML_TRAIN_SUMMARY_MODEL_VALID_ACCURACY,
+    &summary);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  EXPECT_FLOAT_EQ(std::strtof(summary, nullptr), valid_accuracy);
+  free(summary);
+}
+
+/**
  * @brief Neural Network Model Contruct / Destruct Test (possitive test )
  */
 TEST(nntrainer_capi_nnmodel, construct_destruct_01_p) {
@@ -264,12 +300,19 @@ TEST(nntrainer_capi_nnmodel, train_01_p) {
                 config_str);
   replaceString("batch_size = 32", "batch_size = 16", config_file, config_str);
   replaceString("BufferSize=100", "", config_file, config_str);
+
   status = ml_train_model_construct_with_conf(config_file.c_str(), &handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
+
   status = ml_train_model_compile(handle, NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
+
   status = ml_train_model_run(handle, NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
+
+  /** Compare training statistics */
+  nntrainer_capi_model_comp_metrics(handle, 4.01373, 3.55134, 10.4167);
+
   status = ml_train_model_destroy(handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
@@ -663,6 +706,9 @@ TEST(nntrainer_capi_nnmodel, train_with_file_01_p) {
   status = ml_train_model_run(model, "epochs=2", "save_path=model.bin", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
+  /** Compare training statistics */
+  nntrainer_capi_model_comp_metrics(model, 2.13067, 2.19975, 20.8333);
+
   status = ml_train_model_destroy(model);
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
@@ -730,6 +776,9 @@ TEST(nntrainer_capi_nnmodel, train_with_generator_01_p) {
 
   status = ml_train_model_run(model, "epochs=2", "save_path=model.bin", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
+
+  /** Compare training statistics */
+  nntrainer_capi_model_comp_metrics(model, 2.17921, 1.96506, 60.4167);
 
   status = ml_train_model_destroy(model);
   EXPECT_EQ(status, ML_ERROR_NONE);
