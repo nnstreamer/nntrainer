@@ -36,6 +36,12 @@
 
 #define tolerance 10e-5
 
+/** Enum values to get model accuracy and loss. Sync with internal CAPI header
+ */
+#define ML_TRAIN_SUMMARY_MODEL_TRAIN_LOSS 101
+#define ML_TRAIN_SUMMARY_MODEL_VALID_LOSS 102
+#define ML_TRAIN_SUMMARY_MODEL_VALID_ACCURACY 103
+
 class IniSection {
 public:
   IniSection(const std::string &section_name, const std::string &entry_str) :
