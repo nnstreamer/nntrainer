@@ -177,8 +177,9 @@ TEST(nntrainer_capi_nnlayer, setproperty_08_p) {
   int status;
   status = ml_train_layer_create(&handle, ML_TRAIN_LAYER_TYPE_FC);
   EXPECT_EQ(status, ML_ERROR_NONE);
-  status = ml_train_layer_set_property(handle, "weight_decay=l2norm",
-                                       "weight_decay_lambda=0.0001", NULL);
+  status =
+    ml_train_layer_set_property(handle, "weight_regularizer=l2norm",
+                                "weight_regularizer_constant=0.0001", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
   status = ml_train_layer_destroy(handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -192,8 +193,9 @@ TEST(nntrainer_capi_nnlayer, setproperty_09_n) {
   int status;
   status = ml_train_layer_create(&handle, ML_TRAIN_LAYER_TYPE_FC);
   EXPECT_EQ(status, ML_ERROR_NONE);
-  status = ml_train_layer_set_property(handle, "weight_decay=asdfasd",
-                                       "weight_decay_lambda=0.0001", NULL);
+  status =
+    ml_train_layer_set_property(handle, "weight_regularizer=asdfasd",
+                                "weight_regularizer_constant=0.0001", NULL);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
   status = ml_train_layer_destroy(handle);
   EXPECT_EQ(status, ML_ERROR_NONE);

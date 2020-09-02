@@ -156,10 +156,10 @@ sharedConstTensor Conv2DLayer::forwarding(sharedConstTensor in) {
 #endif
 
   loss = 0.0f;
-  if (weight_decay.type == WeightDecayType::l2norm) {
+  if (weight_regularizer.type == WeightRegularizerType::l2norm) {
     for (unsigned int i = 0; i < filter_size; ++i) {
       Tensor &weight = paramsAt(i).weight;
-      loss += weight_decay.lambda * 0.5f * (weight.l2norm());
+      loss += weight_regularizer.constant * 0.5f * (weight.l2norm());
     }
     loss /= filter_size;
   }
@@ -337,8 +337,8 @@ sharedConstTensor Conv2DLayer::backwarding(sharedConstTensor derivative,
       Tensor &filters = paramsAt(i).weight;
 
       delK = delK.chain()
-               .applyIf(this->isWeightDecayL2Norm(), _LIFT(add_i), filters,
-                        weight_decay.lambda)
+               .applyIf(this->isWeightRegularizerL2Norm(), _LIFT(add_i),
+                        filters, weight_regularizer.constant)
                .run();
     }
 

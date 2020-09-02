@@ -198,17 +198,18 @@ void Layer::setProperty(const PropertyType type, const std::string &value) {
       throw_status(status);
     }
     break;
-  case PropertyType::weight_decay:
+  case PropertyType::weight_regularizer:
     if (!value.empty()) {
-      weight_decay.type = (WeightDecayType)parseType(value, TOKEN_WEIGHT_DECAY);
-      if (weight_decay.type == WeightDecayType::unknown) {
+      weight_regularizer.type =
+        (WeightRegularizerType)parseType(value, TOKEN_WEIGHT_REGULARIZER);
+      if (weight_regularizer.type == WeightRegularizerType::unknown) {
         throw std::invalid_argument("[Layer] Unknown Weight decay");
       }
     }
     break;
-  case PropertyType::weight_decay_lambda:
+  case PropertyType::weight_regularizer_constant:
     if (!value.empty()) {
-      status = setFloat(weight_decay.lambda, value);
+      status = setFloat(weight_regularizer.constant, value);
       throw_status(status);
     }
     break;
@@ -265,9 +266,10 @@ void Layer::printPropertiesMeta(std::ostream &out) {
 
 void Layer::printProperties(std::ostream &out) {
   out << "Trainable: " << trainable << std::endl;
-  printIfValid(out, PropertyType::weight_decay,
-               static_cast<int>(weight_decay.type));
-  printIfValid(out, PropertyType::weight_decay_lambda, weight_decay.lambda);
+  printIfValid(out, PropertyType::weight_regularizer,
+               static_cast<int>(weight_regularizer.type));
+  printIfValid(out, PropertyType::weight_regularizer_constant,
+               weight_regularizer.constant);
 }
 
 void Layer::printMetric(std::ostream &out) {

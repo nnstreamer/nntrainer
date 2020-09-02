@@ -83,8 +83,8 @@ sharedConstTensor FullyConnectedLayer::forwarding(sharedConstTensor in) {
   hidden = input.dot(weight);
   hidden.add_i(bias);
 
-  if (weight_decay.type == WeightDecayType::l2norm) {
-    loss = weight_decay.lambda * 0.5f * (weight.l2norm());
+  if (weight_regularizer.type == WeightRegularizerType::l2norm) {
+    loss = weight_regularizer.constant * 0.5f * (weight.l2norm());
   }
 
   return MAKE_SHARED_TENSOR(hidden);
@@ -126,8 +126,8 @@ sharedConstTensor FullyConnectedLayer::backwarding(sharedConstTensor derivative,
   djdb = derivative->sum(0);
 
   djdw = input.dot(*derivative, true, false);
-  if (isWeightDecayL2Norm())
-    djdw.add_i(weight, weight_decay.lambda);
+  if (isWeightRegularizerL2Norm())
+    djdw.add_i(weight, weight_regularizer.constant);
   djdw = djdw.sum(0);
 
   if (trainable) {

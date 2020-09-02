@@ -132,7 +132,8 @@ unsigned int parseType(std::string ll, InputType t) {
    *            "L2Norm"  : squared norm regularization
    *            "Regression" : Regression
    */
-  std::array<std::string, 2> weight_decay_string = {"l2norm", "regression"};
+  std::array<std::string, 2> weight_regularizer_string = {"l2norm",
+                                                          "regression"};
 
   /**
    * @brief     Weight Decay String from configure file
@@ -210,14 +211,14 @@ unsigned int parseType(std::string ll, InputType t) {
     }
     ret = (unsigned int)WeightInitializer::WEIGHT_UNKNOWN;
     break;
-  case TOKEN_WEIGHT_DECAY:
-    for (i = 0; i < weight_decay_string.size(); i++) {
-      if (!strncasecmp(weight_decay_string[i].c_str(), ll.c_str(),
-                       weight_decay_string[i].size())) {
+  case TOKEN_WEIGHT_REGULARIZER:
+    for (i = 0; i < weight_regularizer_string.size(); i++) {
+      if (!strncasecmp(weight_regularizer_string[i].c_str(), ll.c_str(),
+                       weight_regularizer_string[i].size())) {
         return (i);
       }
     }
-    ret = (unsigned int)WeightDecayType::unknown;
+    ret = (unsigned int)WeightRegularizerType::unknown;
     break;
   case TOKEN_PADDING:
     for (i = 0; i < padding_string.size(); i++) {
@@ -253,8 +254,8 @@ unsigned int parseType(std::string ll, InputType t) {
  * standardization = 2
  * activation = 3
  * epsilon = 4
- * weight_decay = 5
- * weight_decay_lambda = 6
+ * weight_regularizer = 5
+ * weight_regularizer_constant = 6
  * unit = 7
  * weight_initializer = 8
  * bias_initializer = 9
@@ -276,28 +277,29 @@ unsigned int parseType(std::string ll, InputType t) {
  * Pooling2DLayer has 12, 13, 14, 15 properties.
  * BatchNormalizationLayer has 0, 1, 5, 6, 7 properties.
  */
-static std::array<std::string, 22> property_string = {"input_shape",
-                                                      "normalization",
-                                                      "standardization",
-                                                      "activation",
-                                                      "epsilon",
-                                                      "weight_decay",
-                                                      "weight_decay_lambda",
-                                                      "unit",
-                                                      "weight_initializer",
-                                                      "bias_initializer",
-                                                      "filters",
-                                                      "kernel_size",
-                                                      "stride",
-                                                      "padding",
-                                                      "pool_size",
-                                                      "pooling",
-                                                      "flatten",
-                                                      "name",
-                                                      "num_inputs",
-                                                      "num_outputs",
-                                                      "batch_size",
-                                                      "unknown"};
+static std::array<std::string, 22> property_string = {
+  "input_shape",
+  "normalization",
+  "standardization",
+  "activation",
+  "epsilon",
+  "weight_regularizer",
+  "weight_regularizer_constant",
+  "unit",
+  "weight_initializer",
+  "bias_initializer",
+  "filters",
+  "kernel_size",
+  "stride",
+  "padding",
+  "pool_size",
+  "pooling",
+  "flatten",
+  "name",
+  "num_inputs",
+  "num_outputs",
+  "batch_size",
+  "unknown"};
 
 unsigned int parseLayerProperty(std::string property) {
   unsigned int i;

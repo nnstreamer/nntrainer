@@ -52,17 +52,19 @@ enum class OptType { sgd = 0, adam = 1, unknown = 2 };
  *            1. Regression
  *            2. Unknown (equivalent to none)
  */
-enum class WeightDecayType { l2norm = 0, regression = 1, unknown = 2 };
+enum class WeightRegularizerType { l2norm = 0, regression = 1, unknown = 2 };
 
 /**
  * @brief     type for the Weight Decay hyper-parameter
  */
-typedef struct WeightDecayParam_ {
-  WeightDecayType type;
-  float lambda;
+typedef struct WeightRegularizerParam_ {
+  WeightRegularizerType type;
+  float constant;
 
-  WeightDecayParam_() : type(WeightDecayType::unknown), lambda(0.0f) {}
-} WeightDecayParam;
+  WeightRegularizerParam_() :
+    type(WeightRegularizerType::unknown),
+    constant(0.0f) {}
+} WeightRegularizerParam;
 
 /**
  * @brief     type for the Optimizor to save hyper-parameter
