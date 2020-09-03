@@ -1164,6 +1164,7 @@ TEST_F(nntrainer_Conv2DLayer, backwarding_02_p) {
   matchOutput(bias_grad, "tc_conv2d_2_goldenBiasGrad2.out");
 }
 
+#ifdef USE_BLAS
 TEST_F(nntrainer_Conv2DLayer, backwarding_03_p) {
   status = reinitialize("input_shape=3:28:28 | batch_size=1 |"
                         "bias_initializer=zeros |"
@@ -1293,6 +1294,7 @@ TEST_F(nntrainer_Conv2DLayer, backwarding_03_p) {
 
   matchOutput(rotate_180(result), "tc_conv2d_int_goldenInputGrad.out");
 }
+#endif
 
 class nntrainer_Pooling2DLayer
   : public nntrainer_abstractLayer<nntrainer::Pooling2DLayer> {

@@ -17,6 +17,7 @@
 
 #include <assert.h>
 #include <iostream>
+#include <math.h>
 #include <stdio.h>
 
 #ifdef USE_BLAS
@@ -36,6 +37,13 @@ enum CBLAS_TRANSPOSE {
 namespace nntrainer {
 
 /* TODO : need to scopy, sscal, snrm2 */
+void sscal(const int N, const float alpha, float *X, const int incX);
+
+float snrm2(const int N, const float *X, const int incX);
+
+void scopy(const unsigned int N, const float *X, const int incX, float *Y,
+           const int intY);
+
 void saxpy(const unsigned int N, const float alpha, const float *X,
            const int incX, float *Y, const int incY);
 
@@ -44,6 +52,11 @@ void sgemm(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA, CBLAS_TRANSPOSE TransB,
            const float alpha, const float *A, const unsigned int lda,
            const float *B, const unsigned int ldb, const float beta, float *C,
            const unsigned int ldc);
+
+void sgemv(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA, const unsigned int M,
+           const unsigned int N, const float alpha, const float *A,
+           const unsigned int lda, const float *X, const int incX,
+           const float beta, float *Y, const int incY);
 
 } /* namespace nntrainer */
 #endif /* __cplusplus */
