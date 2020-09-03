@@ -37,12 +37,6 @@
 
 #include <lazy_tensor.h>
 
-#ifdef USE_BLAS
-extern "C" {
-#include <cblas.h>
-}
-#endif
-
 #ifdef USE_CUBLAS
 #include <helper_cuda.h>
 #include <helper_functions.h>
@@ -99,13 +93,7 @@ Tensor::Tensor(const TensorDim &d, const float *buf) :
     float *data = getData();
     unsigned int len = length();
 
-#ifdef USE_BLAS
-    cblas_scopy(len, buf, 1, data, 1);
-#else
-    for (unsigned int i = 0; i < len; ++i) {
-      data[i] = buf[i];
-    }
-#endif
+    scopy(len, buf, 1, data, 1);
   }
 }
 
@@ -198,13 +186,7 @@ int Tensor::multiply_i(float const &value) {
   float *data = getData();
   unsigned int len = length();
 
-#ifdef USE_BLAS
-  cblas_sscal(len, value, data, 1);
-#else
-  for (unsigned int k = 0; k < len; ++k) {
-    data[k] *= value;
-  }
-#endif
+  sscal(len, value, data, 1);
   return ML_ERROR_NONE;
 }
 
@@ -347,21 +329,10 @@ Tensor Tensor::sum_by_batch() {
   const float *data = getData();
   float *rdata = ret.getData();
 
-#ifdef USE_BLAS
   Tensor ones(1, 1, 1, feat_len);
   ones.setValue(1.0);
-  cblas_sgemv(CblasRowMajor, CblasNoTrans, batch, feat_len, 1, data, feat_len,
-              ones.getData(), 1, 0.0, rdata, 1);
-#else
-  unsigned int i, k;
-  for (k = 0; k < batch; ++k) {
-    unsigned int id = k * feat_len;
-    rdata[k] = 0.0f;
-    for (i = 0; i < feat_len; ++i) {
-      rdata[k] += data[id + i];
-    }
-  }
-#endif
+  sgemv(CblasRowMajor, CblasNoTrans, batch, feat_len, 1, data, feat_len,
+        ones.getData(), 1, 0.0, rdata, 1);
 
   return ret;
 }
@@ -383,64 +354,28 @@ Tensor Tensor::sum(int axis, float alpha) const {
   switch (axis) {
   case 0: {
     ret = Tensor(1, dim.channel(), dim.height(), dim.width());
-#ifdef USE_BLAS
     unsigned int feat_len = dim.getFeatureLen();
     unsigned int batch = dim.batch();
     Tensor ones(1, 1, 1, batch);
     ones.setValue(alpha);
-    cblas_sgemv(CblasRowMajor, CblasTrans, batch, feat_len, 1, data, feat_len,
-                ones.getData(), 1, 0.0, ret.getData(), 1);
-#else
-    ret.setZero();
-    float *rdata = ret.getData();
-    for (unsigned int l = 0; l < dim.channel(); ++l) {
-      unsigned int L = l * dim.width() * dim.height();
-      for (unsigned int i = 0; i < dim.height(); ++i) {
-        unsigned int I = i * dim.width();
-        for (unsigned int j = 0; j < dim.width(); ++j) {
-          for (unsigned int k = 0; k < dim.batch(); ++k) {
-            unsigned int K = k * dim.getFeatureLen();
-            rdata[L + I + j] += data[K + L + I + j];
-          }
-        }
-      }
-    }
-#endif
+    sgemv(CblasRowMajor, CblasTrans, batch, feat_len, 1, data, feat_len,
+          ones.getData(), 1, 0.0, ret.getData(), 1);
   } break;
   case 1: {
     ret = Tensor(dim.batch(), 1, dim.height(), dim.width());
-#ifdef USE_BLAS
     unsigned int feat_len = dim.height() * dim.width();
     unsigned int channel = dim.channel();
     Tensor ones(1, 1, 1, channel);
     ones.setValue(alpha);
     float *rdata = ret.getData();
     for (unsigned int k = 0; k < dim.batch(); ++k) {
-      cblas_sgemv(CblasRowMajor, CblasTrans, channel, feat_len, 1,
-                  &data[k * dim.getFeatureLen()], feat_len, ones.getData(), 1,
-                  0.0, &rdata[k * feat_len], 1);
+      sgemv(CblasRowMajor, CblasTrans, channel, feat_len, 1,
+            &data[k * dim.getFeatureLen()], feat_len, ones.getData(), 1, 0.0,
+            &rdata[k * feat_len], 1);
     }
-#else
-    ret.setZero();
-    float *rdata = ret.getData();
-    for (unsigned int l = 0; l < dim.batch(); ++l) {
-      unsigned int L = dim.width() * dim.height() * l;
-      unsigned int LL = l * dim.getFeatureLen();
-      for (unsigned int j = 0; j < dim.height(); ++j) {
-        unsigned int J = j * dim.width();
-        for (unsigned int i = 0; i < dim.width(); ++i) {
-          for (unsigned int k = 0; k < dim.channel(); ++k) {
-            unsigned int K = k * dim.width() * dim.height();
-            rdata[L + J + i] += data[LL + K + J + i];
-          }
-        }
-      }
-    }
-#endif
   } break;
   case 2: {
     ret = Tensor(dim.batch(), dim.channel(), 1, dim.width());
-#ifdef USE_BLAS
     unsigned int width = dim.width();
     unsigned int height = dim.height();
     Tensor ones(1, 1, 1, height);
@@ -451,56 +386,19 @@ Tensor Tensor::sum(int axis, float alpha) const {
         unsigned int idx =
           k * dim.getFeatureLen() + c * dim.width() * dim.height();
         unsigned int ridx = k * ret.dim.getFeatureLen() + c * dim.width();
-        cblas_sgemv(CblasRowMajor, CblasTrans, height, width, 1, &data[idx],
-                    width, ones.getData(), 1, 0.0, &rdata[ridx], 1);
+        sgemv(CblasRowMajor, CblasTrans, height, width, 1, &data[idx], width,
+              ones.getData(), 1, 0.0, &rdata[ridx], 1);
       }
     }
-#else
-    ret.setZero();
-    float *rdata = ret.getData();
-    for (unsigned int k = 0; k < dim.batch(); ++k) {
-      unsigned int K = k * dim.channel() * dim.width();
-      unsigned int KK = k * dim.getFeatureLen();
-      for (unsigned int l = 0; l < dim.channel(); ++l) {
-        unsigned int L = l * dim.width();
-        unsigned int LL = l * dim.width() * dim.height();
-        for (unsigned int j = 0; j < dim.width(); ++j) {
-          for (unsigned int i = 0; i < dim.height(); ++i) {
-            unsigned int I = i * dim.width();
-            rdata[K + L + j] += data[KK + LL + j + I];
-          }
-        }
-      }
-    }
-#endif
   } break;
   case 3: {
     ret = Tensor(dim.batch(), dim.channel(), dim.height(), 1);
-#ifdef USE_BLAS
     unsigned int m = ret.dim.getDataLen();
     unsigned int n = dim.width();
     Tensor ones(1, 1, 1, n);
     ones.setValue(alpha);
-    cblas_sgemv(CblasRowMajor, CblasNoTrans, m, n, 1, data, n, ones.getData(),
-                1, 0.0, ret.getData(), 1);
-#else
-    ret.setZero();
-    float *rdata = ret.getData();
-    for (unsigned int k = 0; k < dim.batch(); ++k) {
-      unsigned int K = k * dim.channel() * dim.height();
-      unsigned int KK = k * dim.getFeatureLen();
-      for (unsigned int l = 0; l < dim.channel(); ++l) {
-        unsigned int L = l * dim.height();
-        unsigned int LL = l * dim.height() * dim.width();
-        for (unsigned int i = 0; i < dim.height(); ++i) {
-          unsigned int II = i * dim.width();
-          for (unsigned int j = 0; j < dim.width(); ++j) {
-            rdata[K + L + i] += data[KK + LL + II + j];
-          }
-        }
-      }
-    }
-#endif
+    sgemv(CblasRowMajor, CblasNoTrans, m, n, 1, data, n, ones.getData(), 1, 0.0,
+          ret.getData(), 1);
   } break;
   default:
     throw std::out_of_range("Error: Dimension cannot exceed 3");
@@ -541,6 +439,12 @@ Tensor Tensor::dot(Tensor const &m, bool trans, bool trans_m) const {
     lda = K;
     ldb = N;
     result = Tensor(batch(), channel(), height(), mdim2);
+
+    // We are not set zero the result because of performnace reason.
+    // However, result is not initialized properly. There might include garbage
+    // like nan. When we have to use this value as in C = alpha*A*B + beta*C,
+    // then have to check gargabe data of C is not effect or not.
+
   } else if (!trans && trans_m) {
     if (dim2 != mdim2)
       throw std::runtime_error(
@@ -579,12 +483,8 @@ Tensor Tensor::dot(Tensor const &m, bool trans, bool trans_m) const {
   float *rdata = result.getData();
   const float alpha = 1.0f;
   const float beta = 0.0f;
-#ifdef USE_BLAS
-  enum CBLAS_TRANSPOSE transA = trans ? CblasTrans : CblasNoTrans;
-  enum CBLAS_TRANSPOSE transB = trans_m ? CblasTrans : CblasNoTrans;
-  cblas_sgemm(CblasRowMajor, transA, transB, M, N, K, alpha, data, lda, mdata,
-              ldb, beta, rdata, ldc);
-#elif USE_CUBLAS
+
+#ifdef USE_CUBLAS
   int devID = 0;
   cudaDeviceProp deviceProp;
   cudaGetDeviceProperties(&deviceProp, devID);
@@ -611,28 +511,10 @@ Tensor Tensor::dot(Tensor const &m, bool trans, bool trans_m) const {
   cudaMemcpy(rdata, d_C, size_C, cudaMemcpyDeviceToHost);
   cublasDestroy(handle);
 #else
-  float w = 0.0f;
-  unsigned int i, j, k, h;
-  Tensor this_t, m_t;
-
-  if (trans) {
-    this_t = this->transpose("0:2:1");
-    data = this_t.getData();
-  }
-
-  if (trans_m) {
-    m_t = this->transpose("0:2:1");
-    mdata = m_t.getData();
-  }
-
-  result.setZero();
-  for (unsigned int n = 0; n < N; n++) {
-    for (unsigned int m = 0; m < M; m++) {
-      for (unsigned int k = 0; k < K; k++) {
-        rdata[n * ldc + m] += data[m * lda + k] * mdata[k * ldb + n];
-      }
-    }
-  }
+  enum CBLAS_TRANSPOSE transA = trans ? CblasTrans : CblasNoTrans;
+  enum CBLAS_TRANSPOSE transB = trans_m ? CblasTrans : CblasNoTrans;
+  sgemm(CblasRowMajor, transA, transB, M, N, K, alpha, data, lda, mdata, ldb,
+        beta, rdata, ldc);
 #endif
 
   return result;
@@ -825,19 +707,7 @@ float Tensor::l2norm() const {
   unsigned int len = length();
   const float *data = getData();
 
-#ifdef USE_BLAS
-  return cblas_snrm2(len, data, 1);
-#else
-  // fix me: to the version that does not allow overflow
-  float sum = 0.0f;
-  float tmp;
-#pragma omp parallel for private(tmp) reduction(+ : sum)
-  for (unsigned int i = 0; i < len; i++) {
-    tmp = data[i];
-    sum += tmp * tmp;
-  }
-  return sqrt(sum);
-#endif
+  return snrm2(len, data, 1);
 }
 
 Tensor Tensor::normalization() const {
