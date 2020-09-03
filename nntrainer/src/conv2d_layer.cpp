@@ -92,6 +92,43 @@ sharedConstTensor Conv2DLayer::forwarding(sharedConstTensor in) {
   hidden = Tensor(hidden_dim);
   hidden.setZero();
 
+  /** Calculate Convolution 2D
+   *
+   * This is the 2D Matrix Shape [ height ] x [ width ]
+   *   . Height : filter_size
+   *   . Width  : Input Channel * Kernel_size[0] * Kernel_size[1]
+   *
+   *                              imKernel
+   *                        +------|------|------+
+   *                        |------|------|------|
+   * [filter_size (height)] |------|------|------|
+   *                        |------|------|------|
+   *                        +------|------|------+
+   *                     [Input Channel * Kernel_size[0]
+   *                       * Kernel_size[1] (width)]
+   *
+   *
+   * After im2Col with channel_mode true (in : input)
+   *
+   * This is the 2D Matrix Shape [ height ] x [ width ]
+   *   . Height : Input Channel * Kernel_size[0] * Kernel_size[1]
+   *   . Width  : output_dim.height * output_dim.width
+   *
+   *                      +-|-|-|-|      |-|-|-|-+
+   *   [Input Channel     | | | | |      | | | | |
+   *   * Kernel_size[0]   |_|_|_|_|      |_|_|_|_|
+   *  * Kenel_size[1]     | | | | | .... | | | | |
+   *    (height)]         |_|_|_|_|      |_|_|_|_|
+   *                      | | | | |      | | | | |
+   *                      +_|_|_|_|      |_|_|_|_+
+   *                     [ output_dim.height
+   *                      * output_dim.width (width) ]
+   *
+   * Output Dimention
+   *   -> [Channel ( = filter_size = output_dim.channel )]
+   *       x [output_dim.height x output_dim.width]
+   */
+
   TensorDim kdim(filter_size, input_dim.channel(), kernel_size[0],
                  kernel_size[1]);
 
@@ -159,6 +196,41 @@ sharedConstTensor Conv2DLayer::backwarding(sharedConstTensor derivative,
              input_dim.width() + padding[1] * 2);
   ret.setZero();
 
+  /** Calculate DelK
+   *
+   * This is the 2D Matrix Shape [ height ] x [ width ]
+   *   . Height : filter_size
+   *   . Width  : derivative.height * derivative.width
+   *
+   *                          derivative
+   *                        +------|------+
+   *                        |------|------|
+   *  [filter_size (height) |------|------|
+   * (=derivative->channel) |------|------|
+   *                        +------|------+
+   *                     [derivative->height
+   *                       * derivative->width (width)]
+   *
+   *
+   * After im2Col with channel_mode false ( in : input )
+   *
+   * This is the 2D Matrix Shape [ height ] x [ width ]
+   *   . Height : derivative.height * derivative.width
+   *   . Width  : input_dim.channel * Kernel_size[0] * Kernel_size[1]
+   *
+   *                      +-|-|-|-|      |-|-|-|-+
+   *                      | | | | |      | | | | |
+   *  [derivative->width  |_|_|_|_|      |_|_|_|_|
+   * * derivative->height | | | | | .... | | | | |
+   *   (height)]          +_|_|_|_|      |_|_|_|_+
+   *                     [ input_dim.channel * kernel_size[0]
+   *                      * kernel_size[1] (width) ]
+   *
+   * Output Dimension
+   *   -> [ derivative->channel = filter_size (height) ]
+   *       x [input_dim.channel * kernel_size[0] * kernel_size[1] (width) ]
+   */
+
   int status = ML_ERROR_NONE;
   for (unsigned int b = 0; b < input_dim.batch(); ++b) {
     std::vector<float> out(kernel_size[0] * kernel_size[1] *
@@ -199,7 +271,48 @@ sharedConstTensor Conv2DLayer::backwarding(sharedConstTensor derivative,
     }
   }
 
-  // Calculate Derivative to propagation
+  /** Calculate return derivative
+   *
+   * This is the 2D Matrix Shape [ height ] x [ width ]
+   *   . Height : filter.channel = input_dim.channel
+   *   . Width  : filter_size * kernel_size[0] * kernel_size[1]
+   *
+   *                                kernel
+   *                             f0      f1          fn
+   *                          +---|---|---|---|...|---|---+
+   *                          |---|---|---|---|...|---|---|
+   * [filter.channel(height)] |---|---|---|---|...|---|---|
+   *   (=input_dim.channel)   |---|---|---|---|...|---|---|
+   *                          +---|---|---|---|...|---|---+
+   *                                 [ filter_size
+   *                               * kernel_size[0]
+   *                            * kernel_size[1] (width) ]
+   *
+   *
+   * After im2Col with channel_mode true ( in : derivative with full padding )
+   *
+   * This is the 2D Matrix Shape [ height ] x [ width ]
+   *   . Height : filter_size * kernel_size[0] * kernel_size[1]
+   *   . Width  : (input_dim.height + padding[0]*2) x (input_dim.width +
+   * padding[1]*2)
+   *
+   *                      +-|-|-|-|      |-|-|-|-+
+   *                      | | | | |      | | | | |
+   *  [ filter_size       |_|_|_|_|      |_|_|_|_|
+   *  * kernel_size[0]    | | | | | .... | | | | |
+   *  * kernel_size[1]    |_|_|_|_|      |_|_|_|_|
+   *    (height) ]        | | | | |      | | | | |
+   *                      +_|_|_|_|      |_|_|_|_+
+   *                     [(input_dim.height() + padding[0] *2)
+   *                      * (input_dim.width() + padding[1] *2)]
+   *
+   * Output Dimension
+   *
+   *   -> [ input_dim.chennel (height) ]
+   *       x [(input_dim.height() + padding[0]*2)
+   *           *(input_dim.width() + padding[1]*2) (width)]
+   */
+
   TensorDim kdim(ret.channel(), filter_size, kernel_size[0], kernel_size[1]);
 
   std::vector<float> imkernel(kdim.getDataLen());
