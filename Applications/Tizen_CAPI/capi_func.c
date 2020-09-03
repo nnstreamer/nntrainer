@@ -44,11 +44,11 @@ bool file_exists(const char *filename) {
   return (stat(filename, &buffer) == 0);
 }
 
-#define NN_RETURN_STATUS()         \
-  do {                             \
-    if (status != ML_ERROR_NONE) { \
-      return status;               \
-    }                              \
+#define NN_DESTORY_MODEL_RETURN_STATUS() \
+  do {                                   \
+    printf("run unsuccessful \n");       \
+    ml_train_model_destroy(model);       \
+    return 1;                            \
   } while (0)
 
 /**
@@ -299,75 +299,116 @@ int main(int argc, char *argv[]) {
 
   /* model create */
   status = ml_train_model_construct(&model);
-  NN_RETURN_STATUS();
+  if (status != ML_ERROR_NONE) {
+    return 1;
+  }
+
   /* input layer create */
   status = ml_train_layer_create(&layers[0], ML_TRAIN_LAYER_TYPE_INPUT);
-  NN_RETURN_STATUS();
+  if (status != ML_ERROR_NONE) {
+    NN_DESTORY_MODEL_RETURN_STATUS();
+  }
 
   /* set property for input layer */
   status = ml_train_layer_set_property(layers[0], "input_shape=1:1:62720",
                                        "normalization=true",
                                        "bias_initializer=zeros", NULL);
-  NN_RETURN_STATUS();
+  if (status != ML_ERROR_NONE) {
+    ml_train_layer_destroy(layers[0]);
+    NN_DESTORY_MODEL_RETURN_STATUS();
+  }
 
   /* add input layer into model */
   status = ml_train_model_add_layer(model, layers[0]);
-  NN_RETURN_STATUS();
+  if (status != ML_ERROR_NONE) {
+    ml_train_layer_destroy(layers[0]);
+    NN_DESTORY_MODEL_RETURN_STATUS();
+  }
 
   /* create fully connected layer */
   status = ml_train_layer_create(&layers[1], ML_TRAIN_LAYER_TYPE_FC);
-  NN_RETURN_STATUS();
+  if (status != ML_ERROR_NONE) {
+    NN_DESTORY_MODEL_RETURN_STATUS();
+  }
 
   /* set property for fc layer */
   status = ml_train_layer_set_property(
     layers[1], "unit= 10", "activation=softmax", "bias_initializer=zeros",
     "weight_regularizer=l2norm", "weight_regularizer_constant=0.005",
     "weight_initializer=xavier_uniform", NULL);
-  NN_RETURN_STATUS();
+  if (status != ML_ERROR_NONE) {
+    ml_train_layer_destroy(layers[1]);
+    NN_DESTORY_MODEL_RETURN_STATUS();
+  }
 
   /* add fc layer into model */
   status = ml_train_model_add_layer(model, layers[1]);
-  NN_RETURN_STATUS();
+  if (status != ML_ERROR_NONE) {
+    ml_train_layer_destroy(layers[1]);
+    NN_DESTORY_MODEL_RETURN_STATUS();
+  }
 
   /* create optimizer */
   status = ml_train_optimizer_create(&optimizer, ML_TRAIN_OPTIMIZER_TYPE_ADAM);
-  NN_RETURN_STATUS();
+  if (status != ML_ERROR_NONE) {
+    NN_DESTORY_MODEL_RETURN_STATUS();
+  }
 
   /* set property for optimizer */
   status = ml_train_optimizer_set_property(
     optimizer, "learning_rate=0.0001", "decay_rate=0.96", "decay_steps=1000",
     "beta1=0.9", "beta2=0.9999", "epsilon=1e-7", NULL);
-  NN_RETURN_STATUS();
+  if (status != ML_ERROR_NONE) {
+    ml_train_optimizer_destroy(optimizer);
+    NN_DESTORY_MODEL_RETURN_STATUS();
+  }
 
   /* set optimizer */
   status = ml_train_model_set_optimizer(model, optimizer);
-  NN_RETURN_STATUS();
+  if (status != ML_ERROR_NONE) {
+    ml_train_optimizer_destroy(optimizer);
+    NN_DESTORY_MODEL_RETURN_STATUS();
+  }
 
   /* compile model with cross entropy loss function */
   status = ml_train_model_compile(model, "loss=cross", "batch_size=32", NULL);
-  NN_RETURN_STATUS();
+  if (status != ML_ERROR_NONE) {
+    NN_DESTORY_MODEL_RETURN_STATUS();
+  }
 
   /* create dataset */
   status = ml_train_dataset_create_with_generator(&dataset, gen_data_train,
                                                   gen_data_val, NULL);
-  NN_RETURN_STATUS();
+  if (status != ML_ERROR_NONE) {
+    NN_DESTORY_MODEL_RETURN_STATUS();
+  }
 
   /* set property for dataset */
   status = ml_train_dataset_set_property(dataset, "buffer_size=32", NULL);
-  NN_RETURN_STATUS();
+  if (status != ML_ERROR_NONE) {
+    ml_train_dataset_destroy(dataset);
+    NN_DESTORY_MODEL_RETURN_STATUS();
+  }
 
   /* set dataset */
   status = ml_train_model_set_dataset(model, dataset);
-  NN_RETURN_STATUS();
+  if (status != ML_ERROR_NONE) {
+    ml_train_dataset_destroy(dataset);
+    NN_DESTORY_MODEL_RETURN_STATUS();
+  }
 
   /* train model with data files : epochs = 10 and store model file named
    * "model.bin" */
-  status = ml_train_model_run(model, "epochs=10", "model_file=model.bin", NULL);
-  NN_RETURN_STATUS();
+  status = ml_train_model_run(model, "epochs=10", "save_path=model.bin", NULL);
+  if (status != ML_ERROR_NONE) {
+    NN_DESTORY_MODEL_RETURN_STATUS();
+  }
 
   /* delete model */
   status = ml_train_model_destroy(model);
-  NN_RETURN_STATUS();
+  if (status != ML_ERROR_NONE) {
+    NN_DESTORY_MODEL_RETURN_STATUS();
+  }
 
   return 0;
 }
