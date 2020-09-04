@@ -48,9 +48,11 @@ def save(filename, *data):
 
 ##
 # @brief generate random tensor
-def gen_tensor(shape):
+def gen_tensor(shape, dtype=np.float32):
   rand_t = np.random.randint(1, 10, size=shape)
-  return rand_t.astype(np.float32)
+  if dtype == tf.float32:
+    dtype = np.float32
+  return rand_t.astype(dtype)
 
 ##
 # @brief generate random data and save
@@ -351,7 +353,7 @@ def fc_tf(x, kernel, label, bias, activation, train=False, loss='mse', opt='sgd'
 # tested with tf 1.14.0
 # @param[in] x input
 # @param[in] trainable
-# @return input_variables, bn output, output_variables, grad_result (0. dx / 1. gamma / 2. beta / 3. mean / 4. variance)
+# @return input_variables, bn output, output_variables, grad_result (0. dx / 1. gamma / 2. beta)
 # for updated_gamma, updated_beta, x <- x - grad is used for easier calculation
 def bn_tf(x, *, trainable=True, init_beta=gen_tensor, init_gamma=gen_tensor, axis=[1, 2, 3]):
     tf.compat.v1.reset_default_graph()
@@ -361,16 +363,17 @@ def bn_tf(x, *, trainable=True, init_beta=gen_tensor, init_gamma=gen_tensor, axi
     bnlayer = tf.keras.layers.BatchNormalization(
         axis=axis,
         trainable=trainable,
-        momentum=1.0,
+        momentum=0.99,
         gamma_initializer=gen_tensor,
-        beta_initializer=gen_tensor)(tf_input)
+        beta_initializer=gen_tensor,
+        fused=False)(tf_input)
 
     bn_variables = tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.GLOBAL_VARIABLES,
                                                scope='batch_normalization')
 
     input_variables = [tf_input] + bn_variables
 
-    grad = tf.gradients(bnlayer, input_variables)
+    grad = tf.gradients(bnlayer, input_variables[:-2])
 
     f_dict = {tf_input: x, tf.keras.backend.learning_phase(): trainable}
 
@@ -391,8 +394,6 @@ def bn_tf(x, *, trainable=True, init_beta=gen_tensor, init_gamma=gen_tensor, axi
         print("======================================")
         print("Input:\n %s\n Output:\n %s"  % (x[0], bn_result[0]))
         print("dx: %s" % grad_result[0][0][0])
-        print("gradient of gamma: %s" % grad_result[1][0][0], grad_result[1].shape)
-        print("gradient of beta: %s" % grad_result[2][0][0], grad_result[2].shape)
         print("======================================")
 
     return old_var, output_variables, grad_result
@@ -524,10 +525,10 @@ def gen_test_case_fc(input_shape, kernel_shape, base_name):
     save(base_name + "_goldenFCGradientsSoftmaxCrossAdam.out", golden_fc[2][1], golden_fc[2][2])
     save(base_name + "_goldenFCUpdatedWeightsSoftmaxCrossAdam.out", golden_fc[3][0], golden_fc[3][1])
 
-def gen_test_case_bn(input_shape, base_name, training=True):
+def gen_test_case_bn(input_shape, base_name, axis, training=True):
     input_data = gen_input(base_name + "_BNLayerInput.in", input_shape)
 
-    input_variables, output_variables, grad = bn_tf(input_data)
+    input_variables, output_variables, grad = bn_tf(input_data, axis=axis)
 
     # mu / var / gamma / beta
     save(base_name + "_BNLayerWeights.in", input_variables[3], input_variables[4], input_variables[1], input_variables[2])
@@ -577,8 +578,11 @@ if __name__ == "__main__":
                 base_name = "tc_fc_1")
 
 # Bn layer unit test case:
-    if target == "bn_1":
-        gen_test_case_bn(input_shape = [3, 1, 4, 5], base_name = "tc_bn_1")
+    if target == "bn_fc_1":
+        gen_test_case_bn(input_shape = [3, 1, 1, 12], base_name = "tc_bn_fc_1", axis=-1)
+
+    if target == "bn_conv_2":
+        gen_test_case_bn(input_shape = [3, 2, 4, 5], base_name = "tc_bn_conv_2", axis=1)
 
     if target == "pooling2d_1":
         gen_test_case_pooling(input_shape = [1,2,5,5], pool_size=[2,2], stride=[1,1], padding=[0,0], pooling="max", base_name="tc_pooling2d_1", gen_in=True)

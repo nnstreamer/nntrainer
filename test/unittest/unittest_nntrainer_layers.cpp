@@ -9,13 +9,14 @@
  * @author      Jijoong Moon <jijoong.moon@samsung.com>
  * @bug         No known bugs
  */
+#include <fstream>
+
 #include <activation_layer.h>
 #include <addition_layer.h>
 #include <bn_layer.h>
 #include <conv2d_layer.h>
 #include <fc_layer.h>
 #include <flatten_layer.h>
-#include <fstream>
 #include <input_layer.h>
 #include <layer.h>
 #include <loss_layer.h>
@@ -790,13 +791,13 @@ protected:
 
   virtual int reinitialize() {
     int status = super::reinitialize();
-    loadFile("tc_bn_1_BNLayerInput.in", in);
-    loadFile("tc_bn_1_BNLayerWeights.in", layer);
+    loadFile("tc_bn_fc_1_BNLayerInput.in", in);
+    loadFile("tc_bn_fc_1_BNLayerWeights.in", layer);
     return status;
   }
 
   virtual void prepareLayer() {
-    setProperty("input_shape=1:4:5 | epsilon=0.001");
+    setProperty("input_shape=1:1:12 | epsilon=0.001 | batch_size=3");
     setOptimizer(nntrainer::OptType::sgd, "learning_rate=1");
   }
 };
@@ -846,22 +847,52 @@ TEST_F(nntrainer_BatchNormalizationLayer, checkValidation_01_p) {
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
-TEST_F(nntrainer_BatchNormalizationLayer,
-       DISABLED_forward_backward_training_01_p) {
+TEST_F(nntrainer_BatchNormalizationLayer, forward_backward_training_01_p) {
   layer.setTrainable(true);
   sharedConstTensor forward_result;
 
   EXPECT_NO_THROW(forward_result = layer.forwarding(MAKE_SHARED_TENSOR(in)));
 
-  matchOutput(*forward_result, "tc_bn_1_goldenBNResultForward.out");
+  matchOutput(*forward_result, "tc_bn_fc_1_goldenBNResultForward.out");
 
   nntrainer::Tensor backward_result;
-  EXPECT_NO_THROW(
-    backward_result =
-      layer.backwarding(MAKE_SHARED_TENSOR(constant(1.0, 3, 1, 4, 5)), 1)
-        .get()[0]);
+  EXPECT_NO_THROW(backward_result = *layer.backwarding(
+                    MAKE_SHARED_TENSOR(constant(1.0, 3, 1, 1, 12)), 1));
 
-  matchOutput(backward_result, "tc_bn_1_goldenBNLayerBackwardDx.out");
+  matchOutput(backward_result, "tc_bn_fc_1_goldenBNLayerBackwardDx.out");
+}
+
+class nntrainer_BatchNormalizationLayer_Conv
+  : public nntrainer_abstractLayer<nntrainer::BatchNormalizationLayer> {
+protected:
+  typedef nntrainer_abstractLayer<nntrainer::BatchNormalizationLayer> super;
+
+  virtual int reinitialize() {
+    int status = super::reinitialize();
+    loadFile("tc_bn_conv_2_BNLayerInput.in", in);
+    loadFile("tc_bn_conv_2_BNLayerWeights.in", layer);
+    return status;
+  }
+
+  virtual void prepareLayer() {
+    setProperty("input_shape=2:4:5 | epsilon=0.001 | batch_size=3");
+    setOptimizer(nntrainer::OptType::sgd, "learning_rate=1");
+  }
+};
+
+TEST_F(nntrainer_BatchNormalizationLayer_Conv,
+       DISABLED_forward_backward_training_01_p) {
+  layer.setTrainable(true);
+  sharedConstTensor forward_result;
+
+  forward_result = layer.forwarding(MAKE_SHARED_TENSOR(in));
+  matchOutput(*forward_result, "tc_bn_conv_2_goldenBNResultForward.out");
+
+  nntrainer::Tensor backward_result;
+  EXPECT_NO_THROW(backward_result = *layer.backwarding(
+                    MAKE_SHARED_TENSOR(constant(1.0, 3, 2, 4, 5)), 1));
+
+  matchOutput(backward_result, "tc_bn_conv_2_goldenBNLayerBackwardDx.out");
 }
 
 class nntrainer_Conv2DLayer
