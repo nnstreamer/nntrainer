@@ -306,7 +306,16 @@ public:
    * @param[in] alpha Scale the sum by this value
    * @retval    Calculated Tensor
    */
-  Tensor sum(int axis, float alpha = 1.0) const;
+  Tensor sum(unsigned int axis, float alpha = 1.0) const;
+
+  /**
+   * @brief sum all the Tensor by multiple axes
+   *
+   * @param axes axes to sum along
+   * @param alpha Scale the sum by this value
+   * @return Tensor
+   */
+  Tensor sum(const std::vector<unsigned int> &axes, float alpha = 1.0) const;
 
   /**
    * @brief     Averaging the Tensor elements according to the axis
@@ -316,7 +325,15 @@ public:
    *            3 : width direction
    * @retval    Calculated Tensor
    */
-  Tensor average(int axis) const;
+  Tensor average(unsigned int axis) const;
+
+  /**
+   * @brief average all the Tensor by multiple axes
+   *
+   * @param axes axes to sum along
+   * @return Tensor
+   */
+  Tensor average(const std::vector<unsigned int> &axes) const;
 
   /**
    * @brief     Averaging the Tensor elements by all axis

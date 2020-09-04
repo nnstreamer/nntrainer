@@ -340,13 +340,13 @@ Tensor Tensor::sum_by_batch() {
 /**
  * @brief Calculate sum according to the axis.
  */
-Tensor Tensor::sum(int axis, float alpha) const {
+Tensor Tensor::sum(unsigned int axis, float alpha) const {
   Tensor ret;
 
   const float *data = getData();
 
   if (axis >= 4)
-    throw std::out_of_range("Error: Dimension cannot exceed 3");
+    throw std::out_of_range("Error: axis is invalid");
 
   if (dim.getDim()[axis] == 1 and alpha == 1.0)
     return this->clone();
@@ -403,6 +403,18 @@ Tensor Tensor::sum(int axis, float alpha) const {
   default:
     throw std::out_of_range("Error: Dimension cannot exceed 3");
   }
+  return ret;
+}
+
+Tensor Tensor::sum(const std::vector<unsigned int> &axes, float alpha) const {
+  if (axes.empty())
+    throw std::invalid_argument("empty axes given");
+
+  Tensor ret = this->sum(axes[0], alpha);
+
+  for (unsigned int i = 1; i < axes.size(); ++i)
+    ret = ret.sum(axes[i]);
+
   return ret;
 }
 
@@ -673,12 +685,31 @@ void Tensor::read(std::ifstream &file) {
 /**
  * @brief Calculate average value according to the axis.
  */
-Tensor Tensor::average(int axis) const {
+Tensor Tensor::average(unsigned int axis) const {
+  if (axis >= MAXDIM)
+    throw std::out_of_range(
+      "negative axis or axis more then MAXDIM is invalid");
+
   unsigned int axis_size = dim.getDim()[axis];
   if (axis_size == 1)
     return this->clone();
 
   return this->sum(axis, 1.0 / ((float)axis_size));
+}
+
+Tensor Tensor::average(const std::vector<unsigned int> &axes) const {
+  if (axes.empty())
+    return this->average();
+
+  TensorDim ret_shape;
+  for (const auto &idx : axes) {
+    if (idx >= MAXDIM) {
+      throw std::out_of_range("axis more then MAXDIM is invalid");
+    }
+    ret_shape.setTensorDim(idx, dim.getTensorDim(idx));
+  }
+
+  return this->sum(axes, 1.0 / (float)ret_shape.getDataLen());
 }
 
 /**
