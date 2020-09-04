@@ -1,5 +1,6 @@
 option('enable-tizen', type: 'boolean', value: false)
 option('enable-blas', type: 'boolean', value: true)
+option('enable-cublas', type: 'boolean', value: false)
 option('enable-app', type: 'boolean', value: true)
 option('install-app', type: 'boolean', value: true)
 option('use_gym', type: 'boolean', value: false)

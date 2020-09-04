@@ -123,7 +123,33 @@ void sgemm(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA, CBLAS_TRANSPOSE TransB,
            const float *B, const unsigned int ldb, const float beta, float *C,
            const unsigned int ldc) {
 
-#ifdef USE_BLAS
+#ifdef USE_CUBLAS
+  int devID = 0;
+  cudaDeviceProp deviceProp;
+  cudaGetDeviceProperties(&deviceProp, devID);
+  float *d_A, *d_B, *d_C;
+
+  unsigned int size_A = M * K * sizeof(float);
+  unsigned int size_B = K * N * sizeof(float);
+  unsigned int size_C = M * N * sizeof(float);
+
+  cudaMalloc((void **)&d_A, size_A);
+  cudaMalloc((void **)&d_B, size_B);
+  cudaMemcpy(d_A, A, size_A, cudaMemcpyHostToDevice);
+  cudaMemcpy(d_B, B, size_B, cudaMemcpyHostToDevice);
+  cudaMalloc((void **)&d_C, size_C);
+
+  cublasHandle_t handle;
+  cublasCreate(&handle);
+
+  cublasOperation_t transA = (TransA == CblasTrans) ? CUBLAS_OP_T : CUBLAS_OP_N;
+  cublasOperation_t transB = (TransB == CblasTrans) ? CUBLAS_OP_T : CUBLAS_OP_N;
+  cublasSgemm(handle, transA, transB, N, M, K, &alpha, d_B, N, d_A, K, &beta,
+              d_C, N);
+
+  cudaMemcpy(C, d_C, size_C, cudaMemcpyDeviceToHost);
+  cublasDestroy(handle);
+#elif defined USE_BLAS
   cblas_sgemm(order, TransA, TransB, M, N, K, alpha, A, lda, B, ldb, beta, C,
               ldc);
 #else
