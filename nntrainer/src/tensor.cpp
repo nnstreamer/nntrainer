@@ -37,11 +37,6 @@
 
 #include <lazy_tensor.h>
 
-#ifdef USE_CUBLAS
-#include <helper_cuda.h>
-#include <helper_functions.h>
-#endif
-
 #define transposeloop(cl, ci, cj, ck, sl, si, sj, sk)                 \
   do {                                                                \
     unsigned int i, j, k, l;                                          \
@@ -484,38 +479,10 @@ Tensor Tensor::dot(Tensor const &m, bool trans, bool trans_m) const {
   const float alpha = 1.0f;
   const float beta = 0.0f;
 
-#ifdef USE_CUBLAS
-  int devID = 0;
-  cudaDeviceProp deviceProp;
-  cudaGetDeviceProperties(&deviceProp, devID);
-  float *d_A, *d_B, *d_C;
-
-  unsigned int size_A = this->length() * sizeof(float);
-  unsigned int size_B = m.length() * sizeof(float);
-  unsigned int size_C = result.length() * sizeof(float);
-
-  cudaMalloc((void **)&d_A, size_A);
-  cudaMalloc((void **)&d_B, size_B);
-  cudaMemcpy(d_A, data, size_A, cudaMemcpyHostToDevice);
-  cudaMemcpy(d_B, mdata, size_B, cudaMemcpyHostToDevice);
-  cudaMalloc((void **)&d_C, size_C);
-
-  cublasHandle_t handle;
-  cublasCreate(&handle);
-
-  cublasOperation_t transA = trans ? CUBLAS_OP_T : CUBLAS_OP_N;
-  cublasOperation_t transB = trans_m ? CUBLAS_OP_T : CUBLAS_OP_N;
-  cublasSgemm(handle, CUBLAS_OP_N, CUBLAS_OP_N, N, M, K, &alpha, d_B, N, d_A, K,
-              &beta, d_C, N);
-
-  cudaMemcpy(rdata, d_C, size_C, cudaMemcpyDeviceToHost);
-  cublasDestroy(handle);
-#else
   enum CBLAS_TRANSPOSE transA = trans ? CblasTrans : CblasNoTrans;
   enum CBLAS_TRANSPOSE transB = trans_m ? CblasTrans : CblasNoTrans;
   sgemm(CblasRowMajor, transA, transB, M, N, K, alpha, data, lda, mdata, ldb,
         beta, rdata, ldc);
-#endif
 
   return result;
 }

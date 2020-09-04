@@ -86,6 +86,10 @@ openmp_dep = dependency('openmp')
 
 blas_dep = dummy_dep
 # Dependencies
+if get_option('enable-cublas')
+   add_project_arguments('-DUSE_CUBLAS=1', language:['c','cpp'])
+endif
+
 if get_option('enable-blas')
   add_project_arguments('-DUSE_BLAS=1', language:['c','cpp'])
   if build_platform == 'tizen'

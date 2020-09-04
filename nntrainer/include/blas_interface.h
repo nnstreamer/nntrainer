@@ -34,6 +34,11 @@ enum CBLAS_TRANSPOSE {
 };
 #endif
 
+#ifdef USE_CUBLAS
+#include <helper_cuda.h>
+#include <helper_functions.h>
+#endif
+
 namespace nntrainer {
 
 /* TODO : need to scopy, sscal, snrm2 */
