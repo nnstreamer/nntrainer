@@ -57,6 +57,7 @@ void TensorDim::setTensorDim(unsigned int idx, unsigned int value) {
   if (idx >= MAXDIM)
     throw std::out_of_range(
       "[TensorDim] Tensor Dimension index should be between 0 and 4");
+
   if (value <= 0)
     throw std::invalid_argument(
       "[TensorDim] Trying to assign value <=0 to tensor dim");
