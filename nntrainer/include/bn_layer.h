@@ -42,7 +42,11 @@ public:
   /**
    * @brief     Constructor of Batch Noramlization Layer
    */
-  BatchNormalizationLayer() : epsilon(0.001) { setType(LAYER_BN); };
+  BatchNormalizationLayer(float eps = 0.001, int axis = -1) :
+    epsilon(eps),
+    axis(axis) {
+    setType(LAYER_BN);
+  };
 
   /**
    * @brief     Destructor of BatchNormalizationLayer
@@ -102,8 +106,10 @@ private:
   Tensor cvar; /**< training varaince saved in bn_layer::forwarding and used in
                     bn_layer::backwarding */
 
-  Tensor x_normalized;
-  float epsilon;
+  Tensor x_normalized; /**< normalized axis saved for backwarding */
+  float epsilon;       /**< epsilon */
+  int axis;            /**< Target axis, axis inferred at initialize when -1 */
+  std::vector<unsigned int> axes_to_reduce; /**< target axes to reduce */
 };
 
 } // namespace nntrainer
