@@ -45,7 +45,7 @@ void TensorDim::resetLen() {
   len = dim[0] * feature_len;
 }
 
-unsigned int TensorDim::getTensorDim(unsigned int idx) {
+const unsigned int TensorDim::getTensorDim(unsigned int idx) const {
   if (idx > MAXDIM)
     throw std::invalid_argument(
       "[TensorDim] Tensor Dimension index should be between 0 and 4");

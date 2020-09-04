@@ -84,7 +84,7 @@ public:
   const unsigned int *getDim() const { return dim; }
   unsigned int getNumDim() const { return MAXDIM; }
 
-  unsigned int getTensorDim(unsigned int idx);
+  const unsigned int getTensorDim(unsigned int idx) const;
   void setTensorDim(unsigned int idx, unsigned int value);
   int setTensorDim(std::string input_shape);
 

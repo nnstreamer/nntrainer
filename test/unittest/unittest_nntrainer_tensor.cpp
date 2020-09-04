@@ -676,6 +676,18 @@ TEST(nntrainer_Tensor, sum_01_n) {
   EXPECT_THROW({ input.sum(4); }, std::out_of_range);
 }
 
+TEST(nntrainer_Tensor, sum_02_n) {
+  int batch = 3;
+  int channel = 1;
+  int height = 3;
+  int width = 10;
+
+  nntrainer::Tensor input(batch, channel, height, width);
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k);
+
+  EXPECT_THROW({ input.sum(-1); }, std::out_of_range);
+}
+
 TEST(nntrainer_Tensor, sum_02_p) {
   int status = ML_ERROR_NONE;
   int batch = 3;
@@ -789,6 +801,115 @@ TEST(nntrainer_Tensor, sum_03_p) {
     status = ML_ERROR_RESULT_OUT_OF_RANGE;
 
   EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+TEST(nntrainer_Tensor, multiple_sum_invalid_args_01_n) {
+  nntrainer::Tensor t = constant(1.0, 1, 1, 1, 1);
+  EXPECT_THROW(t.sum(std::vector<unsigned int>()), std::invalid_argument);
+}
+
+TEST(nntrainer_Tensor, multiple_sum_out_of_range_n) {
+  nntrainer::Tensor t = constant(1.0, 1, 1, 1, 1);
+  EXPECT_THROW(t.sum({7}), std::out_of_range);
+}
+
+TEST(nntrainer_Tensor, multiple_sum_p) {
+  nntrainer::Tensor t = constant(1.0, 2, 3, 5, 7);
+  nntrainer::Tensor actual, expected;
+
+  actual = t.sum({0, 1});
+  expected = constant(2 * 3, 1, 1, 5, 7);
+  EXPECT_EQ(actual, expected);
+
+  actual = t.sum({1, 2, 3});
+  expected = constant(3 * 5 * 7, 2, 1, 1, 1);
+  EXPECT_EQ(actual, expected);
+
+  actual = t.sum({3, 1});
+  expected = constant(7 * 3, 2, 1, 5, 1);
+  EXPECT_EQ(actual, expected);
+
+  actual = t.sum({3, 1}, 0.5);
+  expected = constant(7 * 3 * 0.5, 2, 1, 5, 1);
+  EXPECT_EQ(actual, expected);
+}
+
+TEST(nntrainer_Tensor, average_p) {
+  nntrainer::Tensor t = constant(1.0, 2, 3, 5, 7);
+
+  nntrainer::Tensor actual, expected;
+
+  actual = t.average();
+  expected = constant(1.0, 1, 1, 1, 1);
+  EXPECT_EQ(actual, expected);
+
+  int idx = 0;
+  t = t.apply([&](float in) { return idx++ % 2; });
+
+  actual = t.average();
+  expected = constant(0.5, 1, 1, 1, 1);
+  EXPECT_EQ(actual, expected);
+}
+
+TEST(nntrainer_Tensor, average_axis_p) {
+  nntrainer::Tensor t = constant(1.0, 2, 2, 2, 2);
+  int idx = 0;
+  std::function<float(float)> f = [&](float in) { return idx++ % 2; };
+  t = t.apply(f);
+
+  nntrainer::Tensor actual, expected;
+
+  actual = t.average(0);
+  expected = constant(0, 1, 2, 2, 2).apply(f);
+  EXPECT_EQ(actual, expected);
+
+  actual = t.average(1);
+  expected = constant(0, 2, 1, 2, 2).apply(f);
+  EXPECT_EQ(actual, expected);
+
+  actual = t.average(2);
+  expected = constant(0, 2, 2, 1, 2).apply(f);
+  EXPECT_EQ(actual, expected);
+
+  actual = t.average(3);
+  expected = constant(0.5, 2, 2, 2, 1);
+  EXPECT_EQ(actual, expected);
+}
+
+TEST(nntrainer_Tensor, average_axis_out_of_range_01_n) {
+  nntrainer::Tensor t = constant(1.0, 2, 2, 2, 2);
+  EXPECT_THROW(t.average(-1), std::out_of_range);
+}
+
+TEST(nntrainer_Tensor, average_axis_out_of_range_02_n) {
+  nntrainer::Tensor t = constant(1.0, 2, 2, 2, 2);
+  EXPECT_THROW(t.average(7), std::out_of_range);
+}
+
+TEST(nntrainer_Tensor, average_multiple_axes_p) {
+  nntrainer::Tensor t = constant(1.0, 2, 3, 5, 7);
+  nntrainer::Tensor actual, expected;
+
+  actual = t.average({0, 1, 2});
+  expected = constant(1.0, 1, 1, 1, 7);
+  EXPECT_EQ(actual, expected);
+
+  actual = t.average({0, 1, 2, 3});
+  expected = constant(1.0, 1, 1, 1, 1);
+  EXPECT_EQ(actual, expected);
+
+  actual = t.average({3, 1});
+  expected = constant(1.0, 2, 1, 5, 1);
+  EXPECT_EQ(actual, expected);
+
+  actual = t.average({3, 1, 1, 1, 3});
+  expected = constant(1.0, 2, 1, 5, 1);
+  EXPECT_EQ(actual, expected);
+}
+
+TEST(nntrainer_Tensor, average_multiple_axes_01_n) {
+  nntrainer::Tensor t = constant(1.0, 2, 3, 5, 7);
+  EXPECT_THROW(t.average({5, 7}), std::out_of_range);
 }
 
 TEST(nntrainer_Tensor, dot_01_n) {
