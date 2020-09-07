@@ -121,6 +121,7 @@ int DataBuffer::run(BufferType type) {
 
 int DataBuffer::clear(BufferType type) {
   int status = ML_ERROR_NONE;
+  NN_EXCEPTION_NOTI(DATA_NOT_READY);
   switch (type) {
   case BUF_TRAIN: {
     train_running = false;
@@ -130,7 +131,6 @@ int DataBuffer::clear(BufferType type) {
     this->train_data_label.clear();
     this->cur_train_bufsize = 0;
     this->rest_train = max_train;
-    trainReadyFlag = DATA_NOT_READY;
   } break;
   case BUF_VAL: {
     val_running = false;
@@ -140,7 +140,6 @@ int DataBuffer::clear(BufferType type) {
     this->val_data_label.clear();
     this->cur_val_bufsize = 0;
     this->rest_val = max_val;
-    valReadyFlag = DATA_NOT_READY;
   } break;
   case BUF_TEST: {
     test_running = false;
@@ -150,7 +149,6 @@ int DataBuffer::clear(BufferType type) {
     this->test_data_label.clear();
     this->cur_test_bufsize = 0;
     this->rest_test = max_test;
-    testReadyFlag = DATA_NOT_READY;
   } break;
   default:
     ml_loge("Error: Not Supported Data Type");
@@ -187,12 +185,15 @@ bool DataBuffer::getDataFromBuffer(BufferType type, vec_4d &outVec,
   switch (type) {
   case BUF_TRAIN: {
     std::vector<int> list;
-    std::unique_lock<std::mutex> ultrain(readyTrainData);
-    cv_train.wait(ultrain, [this]() -> int { return trainReadyFlag; });
-
-    if (train_data.size() < batch_size || trainReadyFlag == DATA_ERROR ||
-        trainReadyFlag == DATA_END) {
-      return false;
+    while (true) {
+      std::unique_lock<std::mutex> ultrain(readyTrainData);
+      cv_train.wait(ultrain, [this]() -> bool { return trainReadyFlag; });
+      if (trainReadyFlag == DATA_ERROR || trainReadyFlag == DATA_END) {
+        return false;
+      }
+      if (trainReadyFlag == DATA_READY && train_data.size() != 0) {
+        break;
+      }
     }
 
     for (k = 0; k < batch_size; ++k) {
@@ -224,11 +225,15 @@ bool DataBuffer::getDataFromBuffer(BufferType type, vec_4d &outVec,
   } break;
   case BUF_VAL: {
     std::vector<int> list;
-    std::unique_lock<std::mutex> ulval(readyValData);
-    cv_val.wait(ulval, [this]() -> bool { return valReadyFlag; });
-    if (val_data.size() < batch_size || valReadyFlag == DATA_ERROR ||
-        valReadyFlag == DATA_END) {
-      return false;
+    while (true) {
+      std::unique_lock<std::mutex> ulval(readyValData);
+      cv_val.wait(ulval, [this]() -> bool { return valReadyFlag; });
+      if (valReadyFlag == DATA_ERROR || valReadyFlag == DATA_END) {
+        return false;
+      }
+      if (valReadyFlag == DATA_READY && val_data.size() != 0) {
+        break;
+      }
     }
 
     for (k = 0; k < batch_size; ++k) {
@@ -261,12 +266,17 @@ bool DataBuffer::getDataFromBuffer(BufferType type, vec_4d &outVec,
   } break;
   case BUF_TEST: {
     std::vector<int> list;
-    std::unique_lock<std::mutex> ultest(readyTestData);
-    cv_test.wait(ultest, [this]() -> bool { return testReadyFlag; });
+    while (true) {
+      std::unique_lock<std::mutex> ultest(readyTestData);
+      cv_test.wait(ultest, [this]() -> bool { return testReadyFlag; });
 
-    if (test_data.size() < batch_size || testReadyFlag == DATA_ERROR ||
-        testReadyFlag == DATA_END) {
-      return false;
+      if (testReadyFlag == DATA_ERROR || testReadyFlag == DATA_END) {
+        NN_EXCEPTION_NOTI(DATA_END);
+        return false;
+      }
+      if (testReadyFlag == DATA_READY && test_data.size() != 0) {
+        break;
+      }
     }
 
     for (k = 0; k < batch_size; ++k) {
@@ -300,7 +310,6 @@ bool DataBuffer::getDataFromBuffer(BufferType type, vec_4d &outVec,
     return false;
     break;
   }
-
   data_lock.unlock();
 
   return true;
@@ -374,10 +383,15 @@ int DataBuffer::init() {
   this->cur_val_bufsize = 0;
   this->cur_test_bufsize = 0;
 
+  readyTrainData.lock();
   trainReadyFlag = DATA_NOT_READY;
+  readyTrainData.unlock();
+  readyValData.lock();
   valReadyFlag = DATA_NOT_READY;
+  readyValData.unlock();
+  readyTestData.lock();
   testReadyFlag = DATA_NOT_READY;
-
+  readyTestData.unlock();
   return ML_ERROR_NONE;
 }
 

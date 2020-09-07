@@ -183,13 +183,22 @@ void DataBufferFromDataFile::updateData(BufferType type) {
   }
 
   while ((*running)) {
+
+    readyTrainData.lock();
+    trainReadyFlag = DATA_NOT_READY;
+    readyTrainData.unlock();
+    readyValData.lock();
+    valReadyFlag = DATA_NOT_READY;
+    readyValData.unlock();
+    readyTestData.lock();
+    testReadyFlag = DATA_NOT_READY;
+    readyTestData.unlock();
+
     if (mark.size() == 0) {
       NN_EXCEPTION_NOTI(DATA_END);
       break;
     }
-    trainReadyFlag = DATA_NOT_READY;
-    valReadyFlag = DATA_NOT_READY;
-    testReadyFlag = DATA_NOT_READY;
+
     if (buf_size - (*cur_size) > 0 && (*rest_size) > 0) {
       std::vector<float> vec;
       std::vector<float> veclabel;
