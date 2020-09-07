@@ -73,7 +73,20 @@ public:
   /**
    * @brief     Constructor of NeuralNetwork Class
    */
-  NeuralNetwork();
+  NeuralNetwork(bool istrain = true) :
+    is_train(istrain),
+    batch_size(1),
+    epochs(1),
+    loss(0.0f),
+    loss_type(LossType::LOSS_UNKNOWN),
+    weight_initializer(WEIGHT_UNKNOWN),
+    net_type(NET_UNKNOWN),
+    data_buffer(NULL),
+    continue_train(false),
+    iter(0),
+    initialized(false),
+    def_name_count(0),
+    loadedFromConfig(false) {}
 
   /**
    * @brief     Destructor of NeuralNetwork Class
@@ -99,6 +112,7 @@ public:
     swap(lhs.layer_names, rhs.layer_names);
     swap(lhs.def_name_count, rhs.def_name_count);
     swap(lhs.loadedFromConfig, rhs.loadedFromConfig);
+    swap(lhs.is_train, rhs.is_train);
   }
 
   /**
@@ -127,6 +141,7 @@ public:
 
   /**
    * @brief     Create and load the Network with ini configuration file.
+   * @param[in] config config file path
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
@@ -233,6 +248,13 @@ public:
   int train(std::vector<std::string> values);
 
   /**
+   * @brief     Run NeuralNetwork inference
+   * @param[in] X input tensor
+   * @retval shared_ptr<const Tensor>
+   */
+  sharedConstTensor inference(const Tensor X);
+
+  /**
    * @brief     Run NeuralNetwork train with callback function by user
    * @param[in] train_func callback function to get train data. This provides
    * batch size data per every call.
@@ -252,6 +274,18 @@ public:
    * @retval #ML_ERROR_INVALID_PARAMETER not ready to init.
    */
   int isInitializable();
+
+  /**
+   * @brief     check train or inference. Default is True (train)
+   * @retval bool True : training Mode. False : Inference Mode
+   */
+  bool isTrain() { return is_train; };
+
+  /**
+   * @param[in] train true for train mode. false for inference mode
+   * @brief     set Running Mode : Train or Inference
+   */
+  void setMode(bool train) { is_train = train; };
 
   /**
    * @brief     add layer into neural network model
@@ -275,6 +309,18 @@ public:
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
   int getLayer(const char *name, std::shared_ptr<Layer> *layer);
+
+  /*
+   * @brief     get input dimension of neural network
+   * @retval TensorDim input dimension
+   */
+  TensorDim getInputDimension() { return layers[0]->getInputDimension(); }
+
+  /*
+   * @brief     get output dimension of neural network
+   * @retval TensorDim output dimension
+   */
+  TensorDim getOutputDimension() { return layers.back()->getOutputDimension(); }
 
   /**
    * @brief     Set loss type for the neural network.
@@ -310,6 +356,8 @@ public:
   void printMetrics(std::ostream &out, unsigned int flags = 0);
 
 private:
+  bool is_train; /**< is train or inference */
+
   unsigned int batch_size; /**< batch size */
 
   unsigned int epochs; /**< Maximum Epochs */

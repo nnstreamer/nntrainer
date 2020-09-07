@@ -44,20 +44,6 @@
 
 namespace nntrainer {
 
-NeuralNetwork::NeuralNetwork() :
-  batch_size(1),
-  epochs(1),
-  loss(0.0f),
-  loss_type(LossType::LOSS_UNKNOWN),
-  weight_initializer(WEIGHT_UNKNOWN),
-  net_type(NET_UNKNOWN),
-  data_buffer(NULL),
-  continue_train(false),
-  iter(0),
-  initialized(false),
-  def_name_count(0),
-  loadedFromConfig(false) {}
-
 int NeuralNetwork::loadFromConfig(std::string config) {
   if (loadedFromConfig == true) {
     ml_loge("cannnot do loadFromConfig twice");
@@ -384,6 +370,18 @@ int NeuralNetwork::train() {
   std::vector<std::string> values;
 
   return train(values);
+}
+
+sharedConstTensor NeuralNetwork::inference(const Tensor X) {
+  sharedConstTensor out;
+  try {
+    out = forwarding(MAKE_SHARED_TENSOR(X));
+  } catch (...) {
+    ml_loge("Failed to inference Model");
+    finalize();
+    return nullptr;
+  }
+  return out;
 }
 
 int NeuralNetwork::train(std::vector<std::string> values) {

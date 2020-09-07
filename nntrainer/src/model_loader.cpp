@@ -50,8 +50,10 @@ int ModelLoader::loadModelConfigIni(dictionary *ini, NeuralNetwork &model) {
   model.loss_type = (LossType)parseType(
     iniparser_getstring(ini, "Model:Loss", unknown), TOKEN_LOSS);
   model.save_path = iniparser_getstring(ini, "Model:Save_path", "./model.bin");
-  model.batch_size =
-    iniparser_getint(ini, "Model:Batch_Size", model.batch_size);
+  if (model.isTrain()) {
+    model.batch_size =
+      iniparser_getint(ini, "Model:Batch_Size", model.batch_size);
+  }
 
   /** Default to adam optimizer */
   status = model.opt.setType((OptType)parseType(
@@ -240,8 +242,10 @@ int ModelLoader::loadFromIni(std::string ini_file, NeuralNetwork &model) {
   status = loadModelConfigIni(ini, model);
   NN_INI_RETURN_STATUS();
 
-  status = loadDatasetConfigIni(ini, model);
-  NN_INI_RETURN_STATUS();
+  if (model.isTrain()) {
+    status = loadDatasetConfigIni(ini, model);
+    NN_INI_RETURN_STATUS();
+  }
 
   ml_logd("parsing ini started");
   /** Get all the section names */
