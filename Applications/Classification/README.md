@@ -69,13 +69,13 @@ LabelData="label.dat"
 [inputlayer]
 Type = input
 Input_Shape = 1:1:62720
-bias_initializer = true
+bias_initializer = zeros
 Normalization = true
 
 [outputlayer]
 Type = fully_connected
 Unit = 10
-bias_initializer = true
+bias_initializer = zeros
 Activation = softmax
 Weight_Decay = l2norm
 weight_Decay_Lambda = 0.005
