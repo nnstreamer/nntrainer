@@ -44,12 +44,19 @@ class LazyTensor;
  */
 class Tensor {
 public:
-  Tensor(const TensorDim &d, const float *buf = nullptr);
-
   /**
    * @brief     Basic Constructor of Tensor
    */
-  Tensor() : Tensor(TensorDim()){};
+  Tensor() :
+    dim(TensorDim()),
+    strides{{1, 2, 3}},
+    is_contiguous(true),
+    data(nullptr) {}
+
+  /**
+   * @brief     Constructor of Tensor with dimension/buf
+   */
+  Tensor(const TensorDim &d, const float *buf = nullptr);
 
   /**
    * @brief     Constructor of Tensor
