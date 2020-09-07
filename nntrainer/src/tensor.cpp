@@ -717,6 +717,9 @@ Tensor Tensor::normalization() const {
   const float min = *bounds.first;
   const float max = *bounds.second;
 
+  if (max == min) {
+    return this->subtract(*this);
+  }
   return this->chain().subtract_i(min).divide_i(max - min).run();
 }
 
