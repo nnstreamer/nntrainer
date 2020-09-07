@@ -32,32 +32,32 @@ static void nntrainer_capi_model_comp_metrics(ml_train_model_h model,
                                               float valid_loss,
                                               float valid_accuracy) {
   int status = ML_ERROR_NONE;
-  char *summary = nullptr;
+  char *summary1, *summary2, *summary3 = nullptr;
 
   /** Compare training statistics */
   status = ml_train_model_get_summary(
     model, (ml_train_summary_type_e)ML_TRAIN_SUMMARY_MODEL_TRAIN_LOSS,
-    &summary);
+    &summary1);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  EXPECT_FLOAT_EQ(std::strtof(summary, nullptr), train_loss);
-  free(summary);
+  EXPECT_FLOAT_EQ(std::strtof(summary1, nullptr), train_loss);
+  free(summary1);
 
   status = ml_train_model_get_summary(
     model, (ml_train_summary_type_e)ML_TRAIN_SUMMARY_MODEL_VALID_LOSS,
-    &summary);
+    &summary2);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  EXPECT_FLOAT_EQ(std::strtof(summary, nullptr), valid_loss);
-  free(summary);
+  EXPECT_FLOAT_EQ(std::strtof(summary2, nullptr), valid_loss);
+  free(summary2);
 
   status = ml_train_model_get_summary(
     model, (ml_train_summary_type_e)ML_TRAIN_SUMMARY_MODEL_VALID_ACCURACY,
-    &summary);
+    &summary3);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  EXPECT_FLOAT_EQ(std::strtof(summary, nullptr), valid_accuracy);
-  free(summary);
+  EXPECT_FLOAT_EQ(std::strtof(summary3, nullptr), valid_accuracy);
+  free(summary3);
 }
 
 /**
