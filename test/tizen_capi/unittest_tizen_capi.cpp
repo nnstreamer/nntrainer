@@ -784,6 +784,102 @@ TEST(nntrainer_capi_nnmodel, train_with_generator_01_p) {
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
+static int constant_generator_cb(float **outVec, float **outLabel, bool *last,
+                                 void *user_data) {
+  static int count = 0;
+
+  unsigned int batch_size = 9;
+  unsigned int feature_size = 100;
+  unsigned int num_class = 10;
+  unsigned int data_size = batch_size * feature_size;
+
+  for (unsigned int i = 0; i < data_size; ++i) {
+    outVec[0][i] = 0.0f;
+  }
+
+  for (unsigned int i = 0; i < batch_size; ++i) {
+    outLabel[0][i * num_class] = 1.0f;
+    for (unsigned int j = 1; j < num_class; ++j) {
+      outLabel[0][i * num_class + j] = 0.0f;
+    }
+  }
+
+  if (count == 10) {
+    *last = true;
+    count = 0;
+  } else {
+    *last = false;
+    count++;
+  }
+
+  return ML_ERROR_NONE;
+}
+
+/**
+ * @brief Neural Network Model generator Test
+ */
+TEST(nntrainer_capi_nnmodel, train_with_generator_02_p) {
+  int status = ML_ERROR_NONE;
+
+  ml_train_model_h model;
+  ml_train_layer_h layers[2];
+  ml_train_optimizer_h optimizer;
+  ml_train_dataset_h dataset;
+
+  status = ml_train_model_construct(&model);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_layer_create(&layers[0], ML_TRAIN_LAYER_TYPE_INPUT);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_layer_set_property(layers[0], "input_shape=1:1:100",
+                                       "normalization=true",
+                                       "bias_initializer=true", NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_layer_create(&layers[1], ML_TRAIN_LAYER_TYPE_FC);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_layer_set_property(layers[1], "unit=10",
+                                       "activation=softmax", NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_dataset_create_with_generator(
+    &dataset, constant_generator_cb, NULL, NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_dataset_set_property(dataset, "buffer_size=9", NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_model_set_dataset(model, dataset);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_optimizer_create(&optimizer, ML_TRAIN_OPTIMIZER_TYPE_ADAM);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_optimizer_set_property(
+    optimizer, "learning_rate=0.0001", "decay_rate=0.96", "decay_steps=1000",
+    "beta1=0.9", "beta2=0.9999", "epsilon=1e-7", NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_model_set_optimizer(model, optimizer);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_model_add_layer(model, layers[0]);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_model_add_layer(model, layers[1]);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_model_compile(model, "loss=cross", "batch_size=9", NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_model_run(model, "epochs=1", NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_model_destroy(model);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
 /**
  * @brief Neural Network Model Summary Test summary verbosity of tensor
  */
