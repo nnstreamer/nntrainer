@@ -15,12 +15,14 @@
  * @todo TODO: Support label size to be 0 for inference based scenarios
  * @todo TODO: rename data buffer to dataset
  * @todo TODO: manage with just 1 buffer
+ * @todo TODO: change data structure for buffer when using shuffle
  */
 
 #ifndef __DATABUFFER_V2_H__
 #define __DATABUFFER_V2_H__
 #ifdef __cplusplus
 
+#include <condition_variable>
 #include <list>
 #include <memory>
 #include <mutex>
@@ -33,6 +35,20 @@
 #include <tensor.h>
 
 namespace nntrainer {
+
+/**
+ * @brief   States the collect thread running in the background
+ */
+enum class ThreadStates {
+  THREAD_NULL,            /**< not yet initialized */
+  THREAD_READY,           /**< initialized but not yet started */
+  THREAD_RUNNING,         /**< started and running */
+  THREAD_REQUEST_TO_STOP, /**< main thread has request to stop, background
+                             thread is in the process of being stopped */
+  THREAD_STOPPED, /**< background thread has stopped but not yet cleaned up */
+  THREAD_EPOCH_FINISHED, /**< background threads have finished the epoch */
+  THREAD_ERROR           /**< an error has occurred in background threads */
+};
 
 /**
  * @brief   Dataset generator callback type declaration
@@ -58,8 +74,9 @@ public:
     num_threads(1),
     generator(nullptr),
     gen_user_data(nullptr),
-    started(false) {
+    thread_state(ThreadStates::THREAD_NULL) {
     buffer.clear();
+    batched_buffer.clear();
     label_size.resize(1, 0);
     input_size.resize(1, 0);
   }
@@ -67,10 +84,7 @@ public:
   /**
    * @brief     Destructor
    */
-  ~DataBuffer_v2() {
-    // TODO: signal thread to exit and wait for it to join
-    buffer.clear();
-  }
+  ~DataBuffer_v2() { stop(); }
 
   /**
    * @brief     Initialize Buffer with set properties
@@ -96,8 +110,8 @@ public:
    * @param[in] inputs list of input tensors
    * @param[in] inputs list of label tensors
    */
-  void getData(std::vector<sharedTensor> &inputs,
-               std::vector<sharedTensor> &labels);
+  int getData(std::vector<sharedTensor> &inputs,
+              std::vector<sharedTensor> &labels);
 
   /**
    * @brief     set the number of inputs (defaults to 1)
@@ -227,11 +241,13 @@ public:
    * @param[in] path file path
    * @throws std::invalid_argument
    */
-  void setDataSource(const std::string file);
+  void setDataSource(const std::string file) {
+    throw std::runtime_error("NYI");
+  }
 
   /**
    * @brief Enumeration for the properties supported by data buffer
-   * TODO: update these
+   * TODO: update properties
    */
   enum class PropertyType { data = 0, buffer_len = 4, unknown = 5 };
 
@@ -247,18 +263,25 @@ private:
 
   DataBufferType type; /**< Type of the data buffer */
   /**
-   * @detail the memory of this buffer list is allocated by the main thread in
+   * @note the memory of this buffer list is allocated by the main thread in
    * bulk (batch size * element size each). However, from the perspective of
    * background thread, its just individual elements containers where data is
    * to be loaded.
-   * @note as list is used, shuffle gets a bit slow.
    * @note background threads have a small overhead of getting the next free
    * element where the data is loaded.
    */
   std::list<std::tuple<void **, void **>>
-    buffer; /**< Buffer where background thread stores the data */
+    buffer; /**< Buffer where background thread stores the data. The first
+               element in the tuple are the inputs, and the second element are
+               the labels */
   std::list<std::tuple<void **, void **, unsigned int>>
-    batched_buffer; /**< Buffer to capture the data */
+    batched_buffer; /**< Buffer with the same data but arranged in a batched
+                       fashion. Length of batched_buffer is
+                       buffer.size()/batch_size. The first two elements are the
+                       same as buffer (inputs and labels). The third element
+                       denotes how many inputs + labels have been filled in this
+                       batch. When the batch is fully loaded, the last element
+                       equals the batch size. */
 
   std::vector<size_t> label_size,
     input_size;      /**< size of all inputs and labels */
@@ -275,17 +298,82 @@ private:
   datagen_cb generator;     /**< generator callback for data production */
   void *gen_user_data;      /**< user's private data to be given to the data
                                generator      callback */
-  bool started;             /**< data collection thread has started */
 
-  std::thread collect_thread;            /**< data collection thread */
-  std::mutex buffer_m, batched_buffer_m; /**< mutex locks for buffers */
+  std::thread collect_thread;  /**< data collection thread */
+  std::mutex buffer_m;         /**< mutex lock to access buffer */
+  std::mutex batched_buffer_m; /**< mutex lock to access batched buffer */
+  std::mutex thread_m;         /**< mutex lock to access thread state */
+  std::condition_variable
+    buffer_cond_filled; /**< main thread waits on this for the buffer to be
+                           filled. Background thread notifies on this whenever
+                           it fills a data element. */
+  std::condition_variable
+    buffer_cond_hungry; /**< background thread waits on this for the buffer to
+                           have new holders. Main thread notifies on this
+                           whenever getData() reads data from the buffer and
+                           empty data holders are pushed onto the buffer. */
+  ThreadStates thread_state; /**< current state of the thread */
 
   /**
    * @brief     Runs in background thread(s) to collect data from callback
    * @throws std::runtime_error
    */
   void collectData();
+
+  void runDataCollectors() {
+    collect_thread = std::thread(&DataBuffer_v2::collectData, this);
+  }
+
+  void joinDataCollectors() {
+    if (collect_thread.joinable())
+      collect_thread.join();
+  }
+
+  /**
+   * @brief Get the nth buffer element
+   * @note This function must be called after acquiring the lock on the buffer
+   */
+  inline auto getNthBufferElement() {
+    auto it = buffer.begin();
+    std::advance(it, avail_buffer_idx);
+    return *it;
+  }
+
+  /**
+   * @brief Get the nth buffer batched element
+   * @note This function must be called after acquiring the lock on the buffer
+   * batched
+   */
+  inline auto getNthBatchedBufferElement() {
+    auto it = batched_buffer.begin();
+    std::advance(it, avail_buffer_idx / batch_size);
+    return *it;
+  }
+
+  /**
+   * @brief Push a batch of data holder onto the buffer
+   * @note This must NOT be called while holding the buffer/batched_buffer lock
+   * as this function acquires both the locks internally
+   */
+  void pushBatchedData();
 };
+
+/**
+ * @brief Increment the given pointer by bytes size
+ */
+void *incVoidPtr(void *ptr, size_t bytes);
+
+/**
+ * @brief Allocate memory for given list of data size
+ * @TODO: use an external allocator which can allocate memory for the buffers
+ */
+void **allocateBatchedDataHolder(const std::vector<size_t> &data_size,
+                                 const unsigned int batch_size);
+
+/**
+ * @brief Deallocate passed memory with the given data size
+ */
+void deallocateDataHolder(const std::vector<size_t> &data_size, void **data);
 
 } // namespace nntrainer
 #endif /* __cplusplus */

@@ -524,6 +524,15 @@ public:
    */
   const std::array<int, MAXDIM> getStrides() const noexcept { return strides; }
 
+  /**
+   * @brief     set the passed data as the tensors data
+   * @note the ownership of the passed dataptr is passed to this tensor
+   * @param[in] data_ The new data
+   */
+  void setData(float *data_) {
+    data = std::shared_ptr<float>(data_, std::default_delete<float[]>());
+  }
+
 private:
   /**
    * @brief Get linear index given the n-d index
