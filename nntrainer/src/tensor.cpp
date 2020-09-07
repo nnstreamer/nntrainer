@@ -71,24 +71,19 @@ static auto rng = [] {
   return rng;
 }();
 
-Tensor::Tensor(const TensorDim &d, const float *buf) :
-  dim(d),
-  strides{{1, 2, 3}},
-  is_contiguous(true),
-  data(d.getDataLen() == 0
-         ? nullptr
-         : std::shared_ptr<float>(new float[d.getDataLen()],
-                                  std::default_delete<float[]>())) {
-  if (d.getDataLen() == 0) {
-    return;
-  }
+Tensor::Tensor(const TensorDim &d, const float *buf) : Tensor() {
+  dim = d;
+  if (d.getDataLen() != 0) {
+    data = std::shared_ptr<float>(new float[d.getDataLen()],
+                                  std::default_delete<float[]>());
 
-  // todo: initialize appropriate strides
-  if (buf != nullptr) {
-    float *data = getData();
-    unsigned int len = length();
+    // todo: initialize appropriate strides
+    if (buf != nullptr) {
+      float *data = getData();
+      unsigned int len = length();
 
-    scopy(len, buf, 1, data, 1);
+      scopy(len, buf, 1, data, 1);
+    }
   }
 }
 
