@@ -407,7 +407,7 @@ int main(int argc, char *argv[]) {
   /* delete model */
   status = ml_train_model_destroy(model);
   if (status != ML_ERROR_NONE) {
-    NN_DESTORY_MODEL_RETURN_STATUS();
+    return 1;
   }
 
   return 0;

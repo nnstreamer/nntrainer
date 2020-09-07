@@ -79,6 +79,8 @@ string data_path;
 bool duplicate[total_label_size * total_train_data_size];
 bool valduplicate[total_label_size * total_val_data_size];
 
+unsigned int seed;
+
 /**
  * @brief     step function
  * @param[in] x value to be distinguished
@@ -107,7 +109,7 @@ static int rangeRandom(int min, int max) {
   int remainder = RAND_MAX % n;
   int x;
   do {
-    x = rand();
+    x = rand_r(&seed);
   } while (x >= RAND_MAX - remainder);
   return min + x % n;
 }
@@ -367,7 +369,8 @@ int main(int argc, char *argv[]) {
   std::string config = args[0];
   data_path = args[1];
 
-  srand(time(NULL));
+  seed = time(NULL);
+  srand(seed);
 
   std::vector<std::vector<float>> inputVector, outputVector;
   std::vector<std::vector<float>> inputValVector, outputValVector;

@@ -356,7 +356,7 @@ int ml_train_model_get_summary(ml_train_model_h model,
     ml_logw("summary is empty for the model!");
   }
 
-  *summary = new char[size + 1];
+  *summary = (char *)malloc((size + 1) * sizeof(char));
   memcpy(*summary, str.c_str(), size + 1);
 
   return status;
