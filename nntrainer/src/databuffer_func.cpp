@@ -177,121 +177,59 @@ void DataBufferFromCallback::updateData(BufferType type) {
   veclabel_arr[0] = veclabel;
 
   while ((*running)) {
-    trainReadyFlag = DATA_NOT_READY;
-    valReadyFlag = DATA_NOT_READY;
-    testReadyFlag = DATA_NOT_READY;
+    endflag = false;
+    NN_EXCEPTION_NOTI(DATA_NOT_READY);
     if (buf_size - (*cur_size) > 0) {
       /** @todo Update to support multiple inputs later */
       status = callback(vec_arr, veclabel_arr, &endflag, NULL);
+      if (endflag) {
+        NN_EXCEPTION_NOTI(DATA_END);
+        free(vec);
+        free(veclabel);
+        free(vec_arr);
+        free(veclabel_arr);
+        return;
+      }
+      if (status != ML_ERROR_NONE) {
+        NN_EXCEPTION_NOTI(DATA_ERROR);
+        free(vec);
+        free(veclabel);
+        free(vec_arr);
+        free(veclabel_arr);
+        return;
+      }
 
-      if (status == ML_ERROR_NONE && !endflag) {
-        for (unsigned int i = 0; i < input_dim.batch(); ++i) {
-          std::vector<float> v;
-          std::vector<float> vl;
-          unsigned int I =
-            i * input_dim.channel() * input_dim.height() * input_dim.width();
-          for (unsigned int j = 0; j < input_dim.channel(); ++j) {
-            unsigned int J = j * input_dim.height() * input_dim.width();
-            for (unsigned int k = 0; k < input_dim.height() * input_dim.width();
-                 ++k) {
-              unsigned int K = I + J + k;
-              v.push_back(vec[K]);
-            }
+      for (unsigned int i = 0; i < input_dim.batch(); ++i) {
+        std::vector<float> v;
+        std::vector<float> vl;
+        unsigned int I =
+          i * input_dim.channel() * input_dim.height() * input_dim.width();
+        for (unsigned int j = 0; j < input_dim.channel(); ++j) {
+          unsigned int J = j * input_dim.height() * input_dim.width();
+          for (unsigned int k = 0; k < input_dim.height() * input_dim.width();
+               ++k) {
+            unsigned int K = I + J + k;
+            v.push_back(vec[K]);
           }
-
-          I = i * class_num;
-          for (unsigned int j = 0; j < class_num; ++j) {
-            vl.push_back(veclabel[I + j]);
-          }
-
-          data_lock.lock();
-          data->push_back(v);
-          datalabel->push_back(vl);
-          (*cur_size)++;
-          data_lock.unlock();
         }
+
+        I = i * class_num;
+        for (unsigned int j = 0; j < class_num; ++j) {
+          vl.push_back(veclabel[I + j]);
+        }
+
+        data_lock.lock();
+        data->push_back(v);
+        datalabel->push_back(vl);
+        (*cur_size)++;
+        data_lock.unlock();
       }
     }
-
-    if (buf_size == (*cur_size) || endflag) {
-      switch (type) {
-      case BUF_TRAIN: {
-        std::lock_guard<std::mutex> lgtrain(readyTrainData);
-        if (status != ML_ERROR_NONE) {
-          trainReadyFlag = DATA_ERROR;
-          cv_train.notify_all();
-          free(vec);
-          free(veclabel);
-          free(vec_arr);
-          free(veclabel_arr);
-          return;
-        } else if (endflag) {
-          trainReadyFlag = DATA_END;
-          cv_train.notify_all();
-          free(vec);
-          free(veclabel);
-          free(vec_arr);
-          free(veclabel_arr);
-          return;
-        } else {
-          trainReadyFlag = DATA_READY;
-          cv_train.notify_all();
-        }
-
-      } break;
-      case BUF_VAL: {
-        std::lock_guard<std::mutex> lgval(readyValData);
-        if (status != ML_ERROR_NONE) {
-          valReadyFlag = DATA_ERROR;
-          cv_val.notify_all();
-          free(vec);
-          free(veclabel);
-          free(vec_arr);
-          free(veclabel_arr);
-          return;
-        } else if (endflag) {
-          valReadyFlag = DATA_END;
-          cv_val.notify_all();
-          free(vec);
-          free(veclabel);
-          free(vec_arr);
-          free(veclabel_arr);
-          return;
-        } else {
-          valReadyFlag = DATA_READY;
-          cv_val.notify_all();
-        }
-
-      } break;
-      case BUF_TEST: {
-        std::lock_guard<std::mutex> lgtest(readyTestData);
-        if (status != ML_ERROR_NONE) {
-          testReadyFlag = DATA_ERROR;
-          cv_test.notify_all();
-          free(vec);
-          free(veclabel);
-          free(vec_arr);
-          free(veclabel_arr);
-          return;
-        } else if (endflag) {
-          testReadyFlag = DATA_END;
-          cv_test.notify_all();
-          free(vec);
-          free(veclabel);
-          free(vec_arr);
-          free(veclabel_arr);
-          return;
-        } else {
-          testReadyFlag = DATA_READY;
-          cv_test.notify_all();
-        }
-
-      } break;
-      default:
-        break;
-      }
+    if (buf_size == (*cur_size)) {
+      NN_EXCEPTION_NOTI(DATA_READY);
     }
   }
+
   free(vec);
   free(veclabel);
   free(vec_arr);
