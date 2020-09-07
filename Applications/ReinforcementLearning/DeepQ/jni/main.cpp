@@ -484,8 +484,15 @@ int main(int argc, char **argv) {
         nntrainer::Tensor tempQ = *Q;
         for (unsigned int i = 0; i < in_Exp.size(); i++) {
           if (in_Exp[i].done) {
-            tempQ.setValue(i, 0, 0, (int)in_Exp[i].action[0],
-                           (float)in_Exp[i].reward);
+            try {
+              tempQ.setValue(i, 0, 0, (int)in_Exp[i].action[0],
+                             (float)in_Exp[i].reward);
+            } catch (...) {
+              std::cerr << "Error during set a value" << std::endl;
+              mainNet.finalize();
+              targetNet.finalize();
+              return -1;
+            }
           } else {
             float next = (nqa[i * NQ->width()] > nqa[i * NQ->width() + 1])
                            ? nqa[i * NQ->width()]
@@ -497,7 +504,7 @@ int main(int argc, char **argv) {
               std::cerr << "Error during set value" << std::endl;
               mainNet.finalize();
               targetNet.finalize();
-              return 0;
+              return -1;
             }
           }
         }

@@ -706,6 +706,9 @@ int ml_train_dataset_create_with_generator(ml_train_dataset_h *dataset,
 
   check_feature_state();
 
+  if (!train_cb)
+    return ML_ERROR_INVALID_PARAMETER;
+
   std::shared_ptr<nntrainer::DataBufferFromCallback> data_buffer;
 
   status = exception_bounded_make_shared<nntrainer::DataBufferFromCallback>(

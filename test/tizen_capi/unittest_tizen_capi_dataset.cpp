@@ -49,6 +49,9 @@ TEST(nntrainer_capi_dataset, create_destroy_03_n) {
   int status;
   status = ml_train_dataset_create_with_generator(&dataset, NULL, NULL, NULL);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+
+  status = ml_train_dataset_destroy(dataset);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
 /**

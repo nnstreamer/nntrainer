@@ -16,7 +16,6 @@
 #ifdef __cplusplus
 
 #include <iniparser.h>
-#include <model_loader.h>
 #include <neuralnet.h>
 
 namespace nntrainer {
