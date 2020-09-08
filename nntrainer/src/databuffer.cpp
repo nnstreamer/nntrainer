@@ -271,7 +271,6 @@ bool DataBuffer::getDataFromBuffer(BufferType type, vec_4d &outVec,
       cv_test.wait(ultest, [this]() -> bool { return testReadyFlag; });
 
       if (testReadyFlag == DATA_ERROR || testReadyFlag == DATA_END) {
-        NN_EXCEPTION_NOTI(DATA_END);
         return false;
       }
       if (testReadyFlag == DATA_READY && test_data.size() != 0) {
