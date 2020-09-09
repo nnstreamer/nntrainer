@@ -124,10 +124,10 @@ TEST_F(nntrainer_LazyTensorOpsTest, LazyTensorOps_07_p) {
 
 // other basic operations (negative)...
 TEST_F(nntrainer_LazyTensorOpsTest, LazyTensorOps_07_n) {
-  EXPECT_THROW(target.chain().add_i(constant(2.0, 1, 1, 1, 1)).run(),
+  EXPECT_THROW(target.chain().add_i(constant(2.0, 9, 9, 9, 9)).run(),
                std::runtime_error);
 
-  EXPECT_THROW(target.chain().subtract_i(constant(2.0, 1, 1, 1, 1)).run(),
+  EXPECT_THROW(target.chain().subtract_i(constant(2.0, 9, 9, 9, 9)).run(),
                std::runtime_error);
 
   EXPECT_THROW(target.chain().multiply_i(constant(2.0, 1, 1, 1, 1)).run(),
@@ -171,7 +171,7 @@ TEST_F(nntrainer_LazyTensorOpsTest, ApplyIf_01_p) {
 
 TEST_F(nntrainer_LazyTensorOpsTest, ApplyIf_01_n) {
   EXPECT_THROW(
-    target.chain().applyIf(true, _LIFT(add_i), constant(4.0, 1, 1, 1, 1)).run(),
+    target.chain().applyIf(true, _LIFT(add_i), constant(4.0, 9, 9, 9, 9)).run(),
     std::runtime_error);
 }
 

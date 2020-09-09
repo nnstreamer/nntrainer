@@ -448,6 +448,219 @@ TEST(nntrainer_Tensor, add_i_01_n) {
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
+TEST(nntrainer_Tensor, add_i_broadcast_01_p) {
+  nntrainer::TensorDim ref_dim{3, 2, 4, 5};
+  {
+    nntrainer::Tensor t = ranged(3, 2, 4, 5);
+    nntrainer::Tensor m = ranged(1, 2, 4, 5);
+    float answer_data[] = {
+      0,   2,   4,   6,   8,   10,  12,  14,  16,  18,  20,  22,  24,  26,
+      28,  30,  32,  34,  36,  38,  40,  42,  44,  46,  48,  50,  52,  54,
+      56,  58,  60,  62,  64,  66,  68,  70,  72,  74,  76,  78,  40,  42,
+      44,  46,  48,  50,  52,  54,  56,  58,  60,  62,  64,  66,  68,  70,
+      72,  74,  76,  78,  80,  82,  84,  86,  88,  90,  92,  94,  96,  98,
+      100, 102, 104, 106, 108, 110, 112, 114, 116, 118, 80,  82,  84,  86,
+      88,  90,  92,  94,  96,  98,  100, 102, 104, 106, 108, 110, 112, 114,
+      116, 118, 120, 122, 124, 126, 128, 130, 132, 134, 136, 138, 140, 142,
+      144, 146, 148, 150, 152, 154, 156, 158};
+    nntrainer::Tensor answer(ref_dim, answer_data);
+    int status = t.add_i(m);
+    EXPECT_EQ(status, ML_ERROR_NONE);
+    EXPECT_EQ(t, answer);
+  }
+  {
+    nntrainer::Tensor t = ranged(3, 2, 4, 5);
+    nntrainer::Tensor m = ranged(3, 1, 4, 5);
+    float answer_data[] = {
+      0,   2,   4,   6,   8,   10,  12,  14,  16,  18,  20,  22,  24,  26,
+      28,  30,  32,  34,  36,  38,  20,  22,  24,  26,  28,  30,  32,  34,
+      36,  38,  40,  42,  44,  46,  48,  50,  52,  54,  56,  58,  60,  62,
+      64,  66,  68,  70,  72,  74,  76,  78,  80,  82,  84,  86,  88,  90,
+      92,  94,  96,  98,  80,  82,  84,  86,  88,  90,  92,  94,  96,  98,
+      100, 102, 104, 106, 108, 110, 112, 114, 116, 118, 120, 122, 124, 126,
+      128, 130, 132, 134, 136, 138, 140, 142, 144, 146, 148, 150, 152, 154,
+      156, 158, 140, 142, 144, 146, 148, 150, 152, 154, 156, 158, 160, 162,
+      164, 166, 168, 170, 172, 174, 176, 178};
+    nntrainer::Tensor answer(ref_dim, answer_data);
+    int status = t.add_i(m);
+    EXPECT_EQ(status, ML_ERROR_NONE);
+    EXPECT_EQ(t, answer);
+  }
+  {
+    nntrainer::Tensor t = ranged(3, 2, 4, 5);
+    nntrainer::Tensor m = ranged(3, 2, 4, 1);
+    float answer_data[] = {
+      0,   1,   2,   3,   4,   6,   7,   8,   9,   10,  12,  13,  14,  15,
+      16,  18,  19,  20,  21,  22,  24,  25,  26,  27,  28,  30,  31,  32,
+      33,  34,  36,  37,  38,  39,  40,  42,  43,  44,  45,  46,  48,  49,
+      50,  51,  52,  54,  55,  56,  57,  58,  60,  61,  62,  63,  64,  66,
+      67,  68,  69,  70,  72,  73,  74,  75,  76,  78,  79,  80,  81,  82,
+      84,  85,  86,  87,  88,  90,  91,  92,  93,  94,  96,  97,  98,  99,
+      100, 102, 103, 104, 105, 106, 108, 109, 110, 111, 112, 114, 115, 116,
+      117, 118, 120, 121, 122, 123, 124, 126, 127, 128, 129, 130, 132, 133,
+      134, 135, 136, 138, 139, 140, 141, 142};
+    nntrainer::Tensor answer(ref_dim, answer_data);
+    int status = t.add_i(m);
+    EXPECT_EQ(status, ML_ERROR_NONE);
+    EXPECT_EQ(t, answer);
+  }
+  {
+    nntrainer::Tensor t = ranged(3, 2, 4, 5);
+    nntrainer::Tensor m = ranged(3, 1, 1, 5);
+    float answer_data[] = {
+      0,   2,   4,   6,   8,   5,   7,   9,   11,  13,  10,  12,  14,  16,
+      18,  15,  17,  19,  21,  23,  20,  22,  24,  26,  28,  25,  27,  29,
+      31,  33,  30,  32,  34,  36,  38,  35,  37,  39,  41,  43,  45,  47,
+      49,  51,  53,  50,  52,  54,  56,  58,  55,  57,  59,  61,  63,  60,
+      62,  64,  66,  68,  65,  67,  69,  71,  73,  70,  72,  74,  76,  78,
+      75,  77,  79,  81,  83,  80,  82,  84,  86,  88,  90,  92,  94,  96,
+      98,  95,  97,  99,  101, 103, 100, 102, 104, 106, 108, 105, 107, 109,
+      111, 113, 110, 112, 114, 116, 118, 115, 117, 119, 121, 123, 120, 122,
+      124, 126, 128, 125, 127, 129, 131, 133};
+    nntrainer::Tensor answer(ref_dim, answer_data);
+    int status = t.add_i(m);
+    EXPECT_EQ(status, ML_ERROR_NONE);
+    EXPECT_EQ(t, answer);
+  }
+  {
+    nntrainer::Tensor t = ranged(3, 2, 4, 5);
+    nntrainer::Tensor m = ranged(1, 2, 1, 5);
+    float answer_data[] = {
+      0,   2,   4,   6,   8,   5,   7,   9,   11,  13,  10,  12,  14,  16,
+      18,  15,  17,  19,  21,  23,  25,  27,  29,  31,  33,  30,  32,  34,
+      36,  38,  35,  37,  39,  41,  43,  40,  42,  44,  46,  48,  40,  42,
+      44,  46,  48,  45,  47,  49,  51,  53,  50,  52,  54,  56,  58,  55,
+      57,  59,  61,  63,  65,  67,  69,  71,  73,  70,  72,  74,  76,  78,
+      75,  77,  79,  81,  83,  80,  82,  84,  86,  88,  80,  82,  84,  86,
+      88,  85,  87,  89,  91,  93,  90,  92,  94,  96,  98,  95,  97,  99,
+      101, 103, 105, 107, 109, 111, 113, 110, 112, 114, 116, 118, 115, 117,
+      119, 121, 123, 120, 122, 124, 126, 128};
+    nntrainer::Tensor answer(ref_dim, answer_data);
+    int status = t.add_i(m);
+    EXPECT_EQ(status, ML_ERROR_NONE);
+    EXPECT_EQ(t, answer);
+  }
+  {
+    nntrainer::Tensor t = ranged(3, 2, 4, 5);
+    nntrainer::Tensor m = ranged(3, 1, 4, 1);
+    float answer_data[] = {
+      0,   1,   2,   3,   4,   6,   7,   8,   9,   10,  12,  13,  14,  15,
+      16,  18,  19,  20,  21,  22,  20,  21,  22,  23,  24,  26,  27,  28,
+      29,  30,  32,  33,  34,  35,  36,  38,  39,  40,  41,  42,  44,  45,
+      46,  47,  48,  50,  51,  52,  53,  54,  56,  57,  58,  59,  60,  62,
+      63,  64,  65,  66,  64,  65,  66,  67,  68,  70,  71,  72,  73,  74,
+      76,  77,  78,  79,  80,  82,  83,  84,  85,  86,  88,  89,  90,  91,
+      92,  94,  95,  96,  97,  98,  100, 101, 102, 103, 104, 106, 107, 108,
+      109, 110, 108, 109, 110, 111, 112, 114, 115, 116, 117, 118, 120, 121,
+      122, 123, 124, 126, 127, 128, 129, 130};
+    nntrainer::Tensor answer(ref_dim, answer_data);
+    int status = t.add_i(m);
+    EXPECT_EQ(status, ML_ERROR_NONE);
+    EXPECT_EQ(t, answer);
+  }
+  {
+    nntrainer::Tensor t = ranged(3, 2, 4, 5);
+    nntrainer::Tensor m = ranged(1, 1, 1, 5);
+    float answer_data[] = {
+      0,   2,   4,   6,   8,   5,   7,   9,   11,  13,  10,  12,  14,  16,
+      18,  15,  17,  19,  21,  23,  20,  22,  24,  26,  28,  25,  27,  29,
+      31,  33,  30,  32,  34,  36,  38,  35,  37,  39,  41,  43,  40,  42,
+      44,  46,  48,  45,  47,  49,  51,  53,  50,  52,  54,  56,  58,  55,
+      57,  59,  61,  63,  60,  62,  64,  66,  68,  65,  67,  69,  71,  73,
+      70,  72,  74,  76,  78,  75,  77,  79,  81,  83,  80,  82,  84,  86,
+      88,  85,  87,  89,  91,  93,  90,  92,  94,  96,  98,  95,  97,  99,
+      101, 103, 100, 102, 104, 106, 108, 105, 107, 109, 111, 113, 110, 112,
+      114, 116, 118, 115, 117, 119, 121, 123};
+    nntrainer::Tensor answer(ref_dim, answer_data);
+    int status = t.add_i(m);
+    EXPECT_EQ(status, ML_ERROR_NONE);
+    EXPECT_EQ(t, answer);
+  }
+  {
+    nntrainer::Tensor t = ranged(3, 2, 4, 5);
+    nntrainer::Tensor m = ranged(1, 2, 1, 1);
+    float answer_data[] = {
+      0,   1,   2,   3,   4,   5,   6,   7,   8,   9,   10,  11,  12,  13,
+      14,  15,  16,  17,  18,  19,  21,  22,  23,  24,  25,  26,  27,  28,
+      29,  30,  31,  32,  33,  34,  35,  36,  37,  38,  39,  40,  40,  41,
+      42,  43,  44,  45,  46,  47,  48,  49,  50,  51,  52,  53,  54,  55,
+      56,  57,  58,  59,  61,  62,  63,  64,  65,  66,  67,  68,  69,  70,
+      71,  72,  73,  74,  75,  76,  77,  78,  79,  80,  80,  81,  82,  83,
+      84,  85,  86,  87,  88,  89,  90,  91,  92,  93,  94,  95,  96,  97,
+      98,  99,  101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112,
+      113, 114, 115, 116, 117, 118, 119, 120};
+    nntrainer::Tensor answer(ref_dim, answer_data);
+    int status = t.add_i(m);
+    EXPECT_EQ(status, ML_ERROR_NONE);
+    EXPECT_EQ(t, answer);
+  }
+  {
+    nntrainer::Tensor t = ranged(3, 2, 4, 5);
+    nntrainer::Tensor m = ranged(3, 1, 1, 1);
+    float answer_data[] = {
+      0,   1,   2,   3,   4,   5,   6,   7,   8,   9,   10,  11,  12,  13,
+      14,  15,  16,  17,  18,  19,  20,  21,  22,  23,  24,  25,  26,  27,
+      28,  29,  30,  31,  32,  33,  34,  35,  36,  37,  38,  39,  41,  42,
+      43,  44,  45,  46,  47,  48,  49,  50,  51,  52,  53,  54,  55,  56,
+      57,  58,  59,  60,  61,  62,  63,  64,  65,  66,  67,  68,  69,  70,
+      71,  72,  73,  74,  75,  76,  77,  78,  79,  80,  82,  83,  84,  85,
+      86,  87,  88,  89,  90,  91,  92,  93,  94,  95,  96,  97,  98,  99,
+      100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113,
+      114, 115, 116, 117, 118, 119, 120, 121};
+    nntrainer::Tensor answer(ref_dim, answer_data);
+    int status = t.add_i(m);
+    EXPECT_EQ(status, ML_ERROR_NONE);
+    EXPECT_EQ(t, answer);
+  }
+  {
+    nntrainer::Tensor t = ranged(3, 2, 4, 5);
+    nntrainer::Tensor m = ranged(1, 1, 1, 1);
+    m.add_i(1.0);
+    float answer_data[] = {
+      1,   2,   3,   4,   5,   6,   7,   8,   9,   10,  11,  12,  13,  14,
+      15,  16,  17,  18,  19,  20,  21,  22,  23,  24,  25,  26,  27,  28,
+      29,  30,  31,  32,  33,  34,  35,  36,  37,  38,  39,  40,  41,  42,
+      43,  44,  45,  46,  47,  48,  49,  50,  51,  52,  53,  54,  55,  56,
+      57,  58,  59,  60,  61,  62,  63,  64,  65,  66,  67,  68,  69,  70,
+      71,  72,  73,  74,  75,  76,  77,  78,  79,  80,  81,  82,  83,  84,
+      85,  86,  87,  88,  89,  90,  91,  92,  93,  94,  95,  96,  97,  98,
+      99,  100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112,
+      113, 114, 115, 116, 117, 118, 119, 120};
+    nntrainer::Tensor answer(ref_dim, answer_data);
+    int status = t.add_i(m);
+    EXPECT_EQ(status, ML_ERROR_NONE);
+    EXPECT_EQ(t, answer);
+  }
+  {
+    nntrainer::TensorDim ref_dim(3, 5, 1, 4);
+    nntrainer::Tensor t = ranged(3, 5, 1, 4);
+    nntrainer::Tensor m = ranged(3, 1, 1, 4);
+    float answer_data[] = {0,  2,  4,  6,  4,  6,  8,  10, 8,  10, 12, 14,
+                           12, 14, 16, 18, 16, 18, 20, 22, 24, 26, 28, 30,
+                           28, 30, 32, 34, 32, 34, 36, 38, 36, 38, 40, 42,
+                           40, 42, 44, 46, 48, 50, 52, 54, 52, 54, 56, 58,
+                           56, 58, 60, 62, 60, 62, 64, 66, 64, 66, 68, 70};
+    nntrainer::Tensor answer(ref_dim, answer_data);
+    int status = t.add_i(m);
+    EXPECT_EQ(status, ML_ERROR_NONE);
+    EXPECT_EQ(t, answer);
+  }
+}
+
+TEST(nntrainer_Tensor, add_i_broadcast_not_supported_01_n) {
+  nntrainer::Tensor target(3, 1, 3, 1);
+  nntrainer::Tensor target2(3, 1, 3, 3);
+
+  EXPECT_EQ(target.add_i(target2), ML_ERROR_INVALID_PARAMETER);
+}
+
+TEST(nntrainer_Tensor, add_i_broadcast_not_broadcastable_02_n) {
+  nntrainer::Tensor target(3, 2, 4, 5);
+  nntrainer::Tensor target2(3, 2, 3, 1);
+
+  EXPECT_EQ(target.add_i(target2), ML_ERROR_INVALID_PARAMETER);
+}
+
 TEST(nntrainer_Tensor, add_01_p) {
   int status = ML_ERROR_NONE;
   int batch = 3;
@@ -1154,7 +1367,7 @@ TEST(nntrainer_Tensor, copy_and_reshape_n) {
                std::invalid_argument);
 }
 
-/// @note this test case demonstrates it is dangeruous to use sharedConstTensor
+/// @note this test case demonstrates it is dangerous to use sharedConstTensor
 /// to const correct the inner data.
 TEST(nntrainer_Tensor, constructor_from_shared_const_ptr_shares_variable_n) {
   nntrainer::sharedConstTensor A =
@@ -1163,7 +1376,7 @@ TEST(nntrainer_Tensor, constructor_from_shared_const_ptr_shares_variable_n) {
   nntrainer::Tensor B = *A;
   nntrainer::Tensor C = A->clone();
 
-  B.setValue(3, 4, 5, 6, 2.0f);
+  B.setValue(2, 3, 4, 5, 2.0f);
   EXPECT_EQ(*A, B);
   EXPECT_NE(*A, C);
 
@@ -1210,6 +1423,88 @@ TEST(nntrainer_Tensor, print_large_size) {
   EXPECT_EQ(ss.str(), expected.str());
 }
 
+TEST(nntrainer_Tensor, private_external_loop_n) {
+  nntrainer::Tensor t = ranged(3, 5, 1, 4);
+  nntrainer::Tensor b = ranged(1, 5, 1, 4);
+
+  auto vector_func = [](float *buf, int stride, int size) {
+    float *cur = buf;
+    std::cerr << "[ ";
+    for (int i = 0; i < size; ++i) {
+      std::cerr << *cur << ' ';
+      cur += stride;
+    }
+    std::cerr << "]\n";
+  };
+
+  nntrainer::ExternalLoopInfo e;
+  EXPECT_NO_THROW(e = t.computeExternalLoop(b));
+
+  float *buf = t.getData();
+  float *mbuf = b.getData();
+
+  auto &t_strides = t.getStrides();
+  unsigned int offset;
+  unsigned int m_offset;
+
+  if (e.buffer_axis == -1) {
+    vector_func(buf, t_strides[3], e.buffer_size);
+    vector_func(mbuf, e.strides[3], e.buffer_size);
+  } else {
+    for (unsigned int b = 0; b < t.batch(); ++b) {
+      if (e.buffer_axis == 0) {
+        offset = b * t_strides[0];
+        m_offset = b * e.strides[0];
+        std::cerr << "=====================\n";
+        vector_func(buf + offset, t_strides[3], e.buffer_size);
+        vector_func(mbuf + m_offset, e.strides[3], e.buffer_size);
+        continue;
+      }
+      for (unsigned int c = 0; c < t.channel(); ++c) {
+        if (e.buffer_axis == 1) {
+          offset = b * t_strides[0] + c * t_strides[1];
+          m_offset = b * e.strides[0] + c * e.strides[1];
+          std::cerr << "=====================\n";
+          vector_func(buf + offset, t_strides[3], e.buffer_size);
+          vector_func(mbuf + m_offset, e.strides[3], e.buffer_size);
+          continue;
+        }
+        for (unsigned int h = 0; h < t.height(); ++h) {
+          if (e.buffer_axis == 2) {
+            offset = b * t_strides[0] + c * t_strides[1] + h * t_strides[2];
+            m_offset = b * e.strides[0] + c * e.strides[1] + h * e.strides[2];
+            std::cerr << "=====================\n";
+            vector_func(buf + offset, t_strides[3], e.buffer_size);
+            vector_func(mbuf + m_offset, e.strides[3], e.buffer_size);
+            continue;
+          }
+          for (unsigned int w = 0; w < t.width(); ++w) {
+            offset = b * t_strides[0] + c * t_strides[1] + h * t_strides[2] +
+                     w * t_strides[3];
+            m_offset = b * e.strides[0] + c * e.strides[1] + h * e.strides[2] +
+                       w * e.strides[3];
+            std::cerr << "after width: " << offset << std::endl;
+            std::cerr << "=====================\n";
+            vector_func(buf + offset, t_strides[3], e.buffer_size);
+            vector_func(mbuf + m_offset, e.strides[3], e.buffer_size);
+          }
+        }
+      }
+    }
+  }
+  std::cerr << "buffer_axis: " << e.buffer_axis << std::endl;
+  std::cerr << "t strides: ";
+  for (auto i : t_strides)
+    std::cerr << i << ' ';
+  std::cerr << std::endl;
+  std::cerr << "strides: ";
+  for (auto i : e.strides)
+    std::cerr << i << ' ';
+  std::cerr << std::endl;
+  std::cerr << "buffer_size: " << e.buffer_size << std::endl;
+  std::cerr << "buffer_cnt: " << e.buffer_cnt << std::endl;
+}
+
 /**
  * @brief Main gtest
  */
@@ -1219,7 +1514,7 @@ int main(int argc, char **argv) {
   try {
     testing::InitGoogleTest(&argc, argv);
   } catch (...) {
-    std::cerr << "Error duing IniGoogleTest" << std::endl;
+    std::cerr << "Error duing InitGoogleTest" << std::endl;
     return 0;
   }
 
