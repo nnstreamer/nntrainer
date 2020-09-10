@@ -1,4 +1,4 @@
-# Learning with Feature Extractor (Fully Connected Layer)
+# Classification of hand-drawn images
 
 Unlike using kNN for the classifier at #55 , we could add new layer at the end of feature extractor.
 In this toy example, fully connected layer is added to classify as below. The size of the feature is also same with previous example and the training set and test set are also same. ( 3 classes, 5 training set and 2 test set of each )
