@@ -135,6 +135,10 @@ void DataBufferFromDataFile::updateData(BufferType type) {
 
     std::ifstream train_stream(train_name, std::ios::in | std::ios::binary);
     file.swap(train_stream);
+    readyTrainData.lock();
+    trainReadyFlag = DATA_NOT_READY;
+    readyTrainData.unlock();
+
   } break;
   case BUF_VAL: {
     max_size = max_val;
@@ -147,6 +151,10 @@ void DataBufferFromDataFile::updateData(BufferType type) {
 
     std::ifstream val_stream(val_name, std::ios::in | std::ios::binary);
     file.swap(val_stream);
+    readyValData.lock();
+    valReadyFlag = DATA_NOT_READY;
+    readyValData.unlock();
+
   } break;
   case BUF_TEST: {
     max_size = max_test;
@@ -159,6 +167,9 @@ void DataBufferFromDataFile::updateData(BufferType type) {
 
     std::ifstream test_stream(test_name, std::ios::in | std::ios::binary);
     file.swap(test_stream);
+    readyTestData.lock();
+    testReadyFlag = DATA_NOT_READY;
+    readyTestData.unlock();
   } break;
   default:
     try {
@@ -183,16 +194,6 @@ void DataBufferFromDataFile::updateData(BufferType type) {
   }
 
   while ((*running)) {
-
-    readyTrainData.lock();
-    trainReadyFlag = DATA_NOT_READY;
-    readyTrainData.unlock();
-    readyValData.lock();
-    valReadyFlag = DATA_NOT_READY;
-    readyValData.unlock();
-    readyTestData.lock();
-    testReadyFlag = DATA_NOT_READY;
-    readyTestData.unlock();
 
     if (mark.size() == 0) {
       NN_EXCEPTION_NOTI(DATA_END);
