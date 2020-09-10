@@ -8,7 +8,7 @@ training_sources = [
 
 e = executable('nntrainer_training',
   training_sources,
-  dependencies: [iniparser_dep, nntrainer_dep, tflite_dep],
+  dependencies: [iniparser_dep, nntrainer_capi_dep, tflite_dep],
   include_directories: include_directories('.'),
   install: get_option('install-app'),
   install_dir: application_install_dir
