@@ -1,4 +1,4 @@
-# Classification
+# CIFAR Classification
 
 ## Introduction
 
