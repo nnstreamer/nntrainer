@@ -144,3 +144,8 @@ endif
 if get_option('enable-test')
    subdir('test')
 endif
+
+if get_option('enable-nnstreamer-tensor-filter')
+   nnstreamer_dep = dependency('nnstreamer', required: true)
+   subdir('nnstreamer/tensor_filter')
+endif
