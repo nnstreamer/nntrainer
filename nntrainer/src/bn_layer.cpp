@@ -53,8 +53,8 @@ int BatchNormalizationLayer::initialize() {
   beta.setZero();
 
   setParamSize(4);
-  paramsAt(0) = {std::move(mu), Tensor(), "BN:moving_average"};
-  paramsAt(1) = {std::move(var), Tensor(), "BN:moving_variance"};
+  paramsAt(0) = {std::move(mu), Tensor(), "BN:moving_average", false};
+  paramsAt(1) = {std::move(var), Tensor(), "BN:moving_variance", false};
   paramsAt(2) = {std::move(gamma), Tensor(gamma.getDim()), "BN:gamma"};
   paramsAt(3) = {std::move(beta), Tensor(beta.getDim()), "BN:beta"};
 
@@ -145,9 +145,7 @@ BatchNormalizationLayer::backwarding(sharedConstTensor derivative,
          .divide_i(cvar.multiply(batch))
          .run();
 
-  std::shared_ptr<UpdatableParam> grad_params(params, params.get() + 2);
-
-  opt.apply_gradients(grad_params, param_size - 2, iteration);
+  opt.apply_gradients(params, param_size, iteration);
 
   return MAKE_SHARED_TENSOR(std::move(dx));
 }
