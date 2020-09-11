@@ -1,5 +1,6 @@
 # Execute gbs with --define "testcoverage 1" in case that you must get unittest coverage statistics
 %define         use_cblas 1
+%define         nnstreamer_filter 1
 %define         use_gym 0
 %define		nntrainerapplicationdir	%{_libdir}/nntrainer/bin
 %define         test_script $(pwd)/packaging/run_unittests.sh
@@ -31,6 +32,10 @@ BuildRequires:	python3
 BuildRequires:	python3-numpy
 BuildRequires:	capi-ml-common-devel
 
+%if 0%{?unit_test}
+BuildRequires:	ssat >= 1.1.0
+%endif
+
 # OpenAI interface
 %define enable_gym -Duse_gym=false
 %if 0%{?use_gym}
@@ -48,6 +53,10 @@ BuildRequires: lcov
 BuildRequires:	pkgconfig(capi-system-info)
 BuildRequires:	pkgconfig(capi-base-common)
 BuildRequires:	pkgconfig(dlog)
+%if  0%{?nnstreamer_filter}
+BuildRequires:	nnstreamer-devel
+%define enable_nnstreamer_tensor_filter -Denable-nnstreamer-tensor-filter=true
+%endif #nnstreamer_filter
 %endif  # tizen
 
 Requires:	iniparser
@@ -161,7 +170,7 @@ CFLAGS="${CFLAGS} -fprofile-arcs -ftest-coverage"
 mkdir -p build
 meson --buildtype=plain --prefix=%{_prefix} --sysconfdir=%{_sysconfdir} \
       --libdir=%{_libdir} --bindir=%{nntrainerapplicationdir} --includedir=%{_includedir}\
-      %{install_app} %{enable_tizen} %{enable_tizen_feature_check} %{enable_cblas} %{enable_gym} build
+      %{install_app} %{enable_tizen} %{enable_tizen_feature_check} %{enable_cblas} %{enable_gym} %{enable_nnstreamer_tensor_filter} build
 
 ninja -C build %{?_smp_mflags}
 
@@ -235,6 +244,7 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %defattr(-,root,root,-)
 %license LICENSE
 %{_libdir}/libnntrainer.so
+%{_libdir}/nnstreamer/filters/libnnstreamer_filter_nntrainer.so
 
 %files devel
 %{_includedir}/nntrainer/databuffer.h
@@ -281,6 +291,7 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 
 %files -n capi-nntrainer-devel-static
 %{_libdir}/libcapi-nntrainer.a
+%{_libdir}/libnnstreamer_filter_nntrainer.a
 
 %endif #tizen
 
