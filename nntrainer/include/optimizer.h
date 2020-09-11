@@ -33,9 +33,10 @@ namespace nntrainer {
  * @brief UpdatableParam that could be updated thorugh optimizer
  */
 struct UpdatableParam {
-  Tensor weight;    /**<  weight to be updated and used */
-  Tensor grad;      /**<  gradient for the weight */
-  std::string name; /**< name of the parameter */
+  Tensor weight;         /**< weight to be updated and used */
+  Tensor grad;           /**< gradient for the weight */
+  std::string name;      /**< name of the parameter */
+  bool updatable = true; /**< if this param is updatable */
 };
 
 /**
