@@ -161,6 +161,46 @@ TEST(nntrainer_capi_dataset, set_dataset_property_02_p) {
 }
 
 /**
+ * @brief Neural Network Dataset set Property Test (negative test )
+ */
+TEST(nntrainer_capi_dataset, set_dataset_property_03_n) {
+  ml_train_dataset_h dataset;
+  int status;
+
+  status = ml_train_dataset_create_with_generator(&dataset, getBatch_train,
+                                                  NULL, NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_dataset_set_property(dataset, "user_data=10", NULL);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+
+  status = ml_train_dataset_set_property(dataset, "user_data", NULL);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+
+  status = ml_train_dataset_destroy(dataset);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Neural Network Dataset set Property Test (positive test )
+ */
+TEST(nntrainer_capi_dataset, set_dataset_property_04_p) {
+  ml_train_dataset_h dataset;
+  int status = ML_ERROR_NONE;
+
+  status = ml_train_dataset_create_with_generator(&dataset, getBatch_train,
+                                                  NULL, NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status =
+    ml_train_dataset_set_property(dataset, "user_data", (void *)&status, NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_dataset_destroy(dataset);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
  * @brief Neural Network Dataset Create / Destroy Test (negative test )
  */
 TEST(nntrainer_capi_dataset, set_dataset_01_n) {

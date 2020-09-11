@@ -803,18 +803,18 @@ int ml_train_dataset_create_with_file(ml_train_dataset_h *dataset,
 int ml_train_dataset_set_property(ml_train_dataset_h dataset, ...) {
   int status = ML_ERROR_NONE;
   ml_train_dataset *nndataset;
-  const char *data;
+  void *data;
   std::shared_ptr<nntrainer::DataBuffer> data_buffer;
 
   check_feature_state();
 
   ML_TRAIN_VERIFY_VALID_HANDLE(dataset);
 
-  std::vector<std::string> arg_list;
+  std::vector<void *> arg_list;
   va_list arguments;
   va_start(arguments, dataset);
 
-  while ((data = va_arg(arguments, const char *))) {
+  while ((data = va_arg(arguments, void *))) {
     arg_list.push_back(data);
   }
 

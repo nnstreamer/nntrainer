@@ -42,6 +42,8 @@ std::exception_ptr globalExceptionPtr = nullptr;
 
 namespace nntrainer {
 
+constexpr char USER_DATA[] = "user_data";
+
 std::mutex data_lock;
 
 std::mutex readyTrainData;
@@ -461,6 +463,36 @@ void DataBuffer::displayProgress(const int count, BufferType type, float loss) {
   }
 
   std::cout.flush();
+}
+
+int DataBuffer::setProperty(std::vector<void *> values) {
+  int status = ML_ERROR_NONE;
+  std::vector<std::string> properties;
+
+  for (unsigned int i = 0; i < values.size(); ++i) {
+    char *key_ptr = (char *)values[i];
+    std::string key = key_ptr;
+    std::string value;
+
+    /** Handle the user_data as a special case */
+    if (key == USER_DATA) {
+      /** This ensures that a valid user_data element is passed by the user */
+      if (i + 1 >= values.size())
+        return ML_ERROR_INVALID_PARAMETER;
+
+      this->user_data = values[i + 1];
+
+      /** As values of i+1 is consumed, increase i by 1 */
+      i++;
+    } else {
+      properties.push_back(key);
+      continue;
+    }
+  }
+
+  status = setProperty(properties);
+
+  return status;
 }
 
 int DataBuffer::setProperty(std::vector<std::string> values) {

@@ -135,7 +135,8 @@ public:
     train_thread(),
     val_thread(),
     test_thread(),
-    data_buffer_type(type) {
+    data_buffer_type(type),
+    user_data(nullptr) {
     SET_VALIDATION(false);
     class_num = 0;
     cur_train_bufsize = 0;
@@ -288,6 +289,14 @@ public:
   int setProperty(std::vector<std::string> values);
 
   /**
+   * @brief     set property
+   * @param[in] values values of property
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  int setProperty(std::vector<void *> values);
+
+  /**
    * @brief     status of thread
    */
   DataStatus trainReadyFlag;
@@ -392,6 +401,9 @@ protected:
    * @brief     The type of data buffer
    */
   DataBufferType data_buffer_type;
+
+  /** The user_data to be used for the data generator callback */
+  void *user_data;
 
   /**
    * @brief     set property

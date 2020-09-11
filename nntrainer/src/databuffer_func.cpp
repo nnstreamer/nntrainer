@@ -181,7 +181,7 @@ void DataBufferFromCallback::updateData(BufferType type) {
     NN_EXCEPTION_NOTI(DATA_NOT_READY);
     if (buf_size - (*cur_size) > 0) {
       /** @todo Update to support multiple inputs later */
-      status = callback(vec_arr, veclabel_arr, &endflag, NULL);
+      status = callback(vec_arr, veclabel_arr, &endflag, user_data);
       if (endflag) {
         NN_EXCEPTION_NOTI(DATA_END);
         free(vec);
