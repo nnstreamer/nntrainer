@@ -68,6 +68,9 @@ int Optimizer::initialize(std::shared_ptr<UpdatableParam> params,
     for (unsigned int i = 0; i < param_size; ++i) {
       UpdatableParam &param = param_data[i];
 
+      if (!param.updatable)
+        continue;
+
       Tensor &weight = param.weight;
       Tensor &grad = param.grad;
       Tensor w = Tensor(weight.getDim());
@@ -104,6 +107,9 @@ void Optimizer::apply_gradients(std::shared_ptr<UpdatableParam> params,
   int idx = 0;
   for (unsigned int i = 0; i < param_size; ++i) {
     UpdatableParam &param = param_data[i];
+
+    if (!param.updatable)
+      continue;
 
     Tensor &x = param.weight;
     const Tensor &x_grad = param.grad;
