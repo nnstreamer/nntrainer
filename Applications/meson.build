@@ -1,4 +1,5 @@
 subdir('Classification/jni')
+subdir('Inference')
 subdir('KNN/jni')
 subdir('LogisticRegression/jni')
 subdir('ReinforcementLearning/DeepQ/jni')
