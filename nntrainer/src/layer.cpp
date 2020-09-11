@@ -44,7 +44,7 @@ int Layer::setOptimizer(Optimizer &opt) {
   this->opt.setType(opt.getType());
   this->opt.setOptParam(opt.getOptParam());
 
-  return this->opt.initialize(getParams(), param_size, true);
+  return this->opt.initialize(params, param_size, true);
 }
 
 int Layer::checkValidation() {
