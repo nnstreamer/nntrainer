@@ -186,6 +186,7 @@ int NNTrainer::loadModel() {
   } catch (...) {
     ml_loge("Cannot load model from config\n");
     model->finalize();
+    g_free(content);
     return -1;
   }
 
@@ -193,6 +194,7 @@ int NNTrainer::loadModel() {
   gint64 stop_time = g_get_real_time();
   g_message("Model is loaded: %" G_GINT64_FORMAT, (stop_time - start_time));
 #endif
+  g_free(content);
   return 0;
 }
 
