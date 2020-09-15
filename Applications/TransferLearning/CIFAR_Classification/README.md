@@ -85,14 +85,14 @@ If you want to use generator (option #2), then remove [DataSet] section, and pro
 
 ## How to execute
 
-With `-Denable-app=true` and `-Dinstall-app=true` set in meson_options, execution files are installed in build/Application/Classification/jni or $(NNTRAINER_ROOT}/bin directory.
+With `-Denable-app=true` and `-Dinstall-app=true` set in meson_options, execution files are installed in build/Applications/TransferLearning/CIFAR_Classification/jni or $(NNTRAINER_ROOT}/bin directory.
 
 The training data set images are stored in Application/Classification/res/${Class Name}
 
 ```bash
-$ mkdir Application/Classification/jni/test
-$ cp build/Application/Classification/jni/nntrainer_classification* Application/Classification/jni/test/
-$ cd Application/Classification/jni/test/
+$ mkdir Applications/TransferLearning/CIFAR_Classification/jni/test
+$ cp build/Applications/TransferLearning/CIFAR_Classification/jni/nntrainer_classification* Applications/TransferLearning/CIFAR_Classification/jni/test/
+$ cd Applications/TransferLearning/CIFAR_Classification/jni/test/
 $ ./nntrainer_classification ../../res/Classification.ini ../../res/
 ```
 If there is no trainingSet.dat, then it will start generate it with data files in ${data_path}.
