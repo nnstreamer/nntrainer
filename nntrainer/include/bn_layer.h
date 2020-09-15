@@ -24,12 +24,15 @@
 #define __BN_LAYER_H__
 #ifdef __cplusplus
 
+#include <array>
 #include <fstream>
+#include <functional>
 #include <iostream>
+#include <vector>
+
 #include <layer.h>
 #include <optimizer.h>
 #include <tensor.h>
-#include <vector>
 
 namespace nntrainer {
 
@@ -42,9 +45,12 @@ public:
   /**
    * @brief     Constructor of Batch Noramlization Layer
    */
-  BatchNormalizationLayer(float eps = 0.001, int axis = -1) :
-    epsilon(eps),
-    axis(axis) {
+  BatchNormalizationLayer(float epsilon = 0.001, float momentum = 0.99,
+                          int axis = -1) :
+    epsilon(epsilon),
+    momentum(momentum),
+    axis(axis),
+    initializers{WEIGHT_ZEROS, WEIGHT_ONES, WEIGHT_ZEROS, WEIGHT_ONES} {
     setType(LAYER_BN);
   };
 
@@ -103,13 +109,16 @@ public:
   void setProperty(const PropertyType type, const std::string &value = "");
 
 private:
-  Tensor cvar; /**< training varaince saved in bn_layer::forwarding and used in
+  Tensor cvar; /**< training variance saved in bn_layer::forwarding and used in
                     bn_layer::backwarding */
 
   Tensor x_normalized; /**< normalized axis saved for backwarding */
   float epsilon;       /**< epsilon */
+  float momentum;      /**< momentum */
   int axis;            /**< Target axis, axis inferred at initialize when -1 */
-  std::vector<unsigned int> axes_to_reduce; /**< target axes to reduce */
+
+  std::vector<unsigned int> axes_to_reduce;      /**< target axes to reduce */
+  std::array<WeightInitializer, 4> initializers; /**< weight initializers */
 };
 
 } // namespace nntrainer

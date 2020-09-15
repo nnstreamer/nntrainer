@@ -797,7 +797,8 @@ protected:
   }
 
   virtual void prepareLayer() {
-    setProperty("input_shape=1:1:12 | epsilon=0.001 | batch_size=3");
+    setProperty(
+      "input_shape=1:1:12 | epsilon=0.001 | batch_size=3 | momentum=0.90");
     setOptimizer(nntrainer::OptType::sgd, "learning_rate=1");
   }
 };

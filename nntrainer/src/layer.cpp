@@ -81,8 +81,8 @@ void Layer::save(std::ofstream &file) {
   }
 }
 
-Tensor Layer::initializeWeight(TensorDim w_dim, WeightInitializer initializer,
-                               int &status) {
+Tensor Layer::initializeWeight(const TensorDim &w_dim,
+                               WeightInitializer initializer, int &status) {
 
   Tensor w = Tensor(w_dim);
 
@@ -95,6 +95,9 @@ Tensor Layer::initializeWeight(TensorDim w_dim, WeightInitializer initializer,
   switch (initializer) {
   case WEIGHT_ZEROS:
     w.setZero();
+    break;
+  case WEIGHT_ONES:
+    w.setValue(1.0f);
     break;
   case WEIGHT_LECUN_NORMAL:
     w.setRandNormal(0.0f, sqrt(1.0f / w_dim.height()));
@@ -226,7 +229,7 @@ void Layer::setProperty(const PropertyType type, const std::string &value) {
     break;
   default:
     std::string msg =
-      "[Layer] Unknown Layer Property Key for value" + std::string(value);
+      "[Layer] Unknown Layer Property Key for value " + std::string(value);
     throw exception::not_supported(msg);
   }
 }
