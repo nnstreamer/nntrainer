@@ -116,6 +116,7 @@ unsigned int parseType(std::string ll, InputType t) {
   /**
    * @brief     Weight Initialization Type String from configure file
    *            "zeros" : Zero Initialization
+   *            "ones" : One Initialization
    *            "lecun_normal"  : LeCun Normal Initialization
    *            "lecun_uniform"  : LeCun Uniform Initialization
    *            "xavier_normal"  : Xavier Normal Initialization
@@ -123,9 +124,9 @@ unsigned int parseType(std::string ll, InputType t) {
    *            "he_normal"  : He Normal Initialization
    *            "he_uniform"  : He Uniform Initialization
    */
-  std::array<std::string, 7> weight_ini_string = {
-    "zeros",          "lecun_normal", "lecun_uniform", "xavier_normal",
-    "xavier_uniform", "he_normal",    "he_uniform"};
+  std::array<std::string, 8> weight_ini_string = {
+    "zeros",         "ones",           "lecun_normal", "lecun_uniform",
+    "xavier_normal", "xavier_uniform", "he_normal",    "he_uniform"};
 
   /**
    * @brief     Weight Decay String from configure file
@@ -270,6 +271,11 @@ unsigned int parseType(std::string ll, InputType t) {
  * num_inputs = 18
  * num_outputs = 19
  * batch_size = 20
+ * momentum = 21
+ * moving_mean_initializer = 22
+ * moving_variance_initializer = 23
+ * gamma_initializer = 24
+ * beta_initializer = 25
  *
  * InputLayer has 0, 1, 2, 3 properties.
  * FullyConnectedLayer has 1, 4, 6, 7, 8, 9 properties.
@@ -277,7 +283,7 @@ unsigned int parseType(std::string ll, InputType t) {
  * Pooling2DLayer has 12, 13, 14, 15 properties.
  * BatchNormalizationLayer has 0, 1, 5, 6, 7 properties.
  */
-static std::array<std::string, 22> property_string = {
+static std::array<std::string, 27> property_string = {
   "input_shape",
   "normalization",
   "standardization",
@@ -299,6 +305,11 @@ static std::array<std::string, 22> property_string = {
   "num_inputs",
   "num_outputs",
   "batch_size",
+  "momentum",
+  "moving_mean_initializer",
+  "moving_variance_initializer",
+  "gamma_initializer",
+  "beta_initializer",
   "unknown"};
 
 unsigned int parseLayerProperty(std::string property) {
@@ -323,7 +334,7 @@ unsigned int parseOptProperty(std::string property) {
   unsigned int i;
 
   /**
-   * @brief     Layer Properties
+   * @brief     Optimizer Properties
    * learning_rate = 0,
    * decay_rate = 1,
    * decay_steps = 2

@@ -52,20 +52,24 @@ int BatchNormalizationLayer::initialize() {
       axes_to_reduce.push_back(i);
   }
 
-  Tensor mu = Tensor(dim);
-  Tensor var = Tensor(dim);
-  Tensor gamma = Tensor(dim);
-  Tensor beta = Tensor(dim);
+  Tensor mu =
+    initializeWeight(dim, initializers[static_cast<int>(BNParams::mu)], status);
+  Tensor var = initializeWeight(
+    dim, initializers[static_cast<int>(BNParams::var)], status);
+  NN_RETURN_STATUS();
 
-  mu.setZero();
-  var.setValue(1);
-  beta.setZero();
-  gamma.setValue(1);
+  Tensor gamma = initializeWeight(
+    dim, initializers[static_cast<int>(BNParams::gamma)], status);
+  NN_RETURN_STATUS();
+
+  Tensor beta = initializeWeight(
+    dim, initializers[static_cast<int>(BNParams::beta)], status);
+  NN_RETURN_STATUS();
 
   setParamSize(4);
-  paramsAt(0) = {std::move(mu), Tensor(), "BN:moving_average"};
+  paramsAt(0) = {std::move(mu), Tensor(), "BN:moving_mean", false};
   ///@todo shift var to std to save computation
-  paramsAt(1) = {std::move(var), Tensor(), "BN:moving_variance"};
+  paramsAt(1) = {std::move(var), Tensor(), "BN:moving_variance", false};
   paramsAt(2) = {std::move(gamma), Tensor(gamma.getDim()), "BN:gamma"};
   paramsAt(3) = {std::move(beta), Tensor(beta.getDim()), "BN:beta"};
 
@@ -79,6 +83,36 @@ void BatchNormalizationLayer::setProperty(const PropertyType type,
   case PropertyType::epsilon:
     if (!value.empty()) {
       status = setFloat(epsilon, value);
+      throw_status(status);
+    }
+    break;
+  case PropertyType::moving_mean_initializer:
+    if (!value.empty()) {
+      initializers[static_cast<int>(BNParams::mu)] =
+        (WeightInitializer)parseType(value, TOKEN_WEIGHT_INIT);
+    }
+    break;
+  case PropertyType::moving_variance_initializer:
+    if (!value.empty()) {
+      initializers[static_cast<int>(BNParams::var)] =
+        (WeightInitializer)parseType(value, TOKEN_WEIGHT_INIT);
+    }
+    break;
+  case PropertyType::beta_initializer:
+    if (!value.empty()) {
+      initializers[static_cast<int>(BNParams::beta)] =
+        (WeightInitializer)parseType(value, TOKEN_WEIGHT_INIT);
+    }
+    break;
+  case PropertyType::gamma_initializer:
+    if (!value.empty()) {
+      initializers[static_cast<int>(BNParams::gamma)] =
+        (WeightInitializer)parseType(value, TOKEN_WEIGHT_INIT);
+    }
+    break;
+  case PropertyType::momentum:
+    if (!value.empty()) {
+      status = setFloat(momentum, value);
       throw_status(status);
     }
     break;
@@ -105,8 +139,6 @@ sharedConstTensor BatchNormalizationLayer::forwarding(sharedConstTensor in) {
     cvar = deviation.multiply(deviation).average(axes_to_reduce);
     cvar.add_i(epsilon);
 
-    /// @todo replace momentum parameter to prop
-    float momentum = 0.9;
     mu.multiply_i(momentum);
     mu.add_i(cmu, 1 - momentum);
     var.multiply_i(momentum);

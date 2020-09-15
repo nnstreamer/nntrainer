@@ -104,7 +104,12 @@ static IniSection dataset("DataSet", "BufferSize = 100 |"
                                      "ValidData = valSet.dat |"
                                      "LabelData = label.dat");
 
-static IniSection batch_normal("bn", "Type = batch_normalization");
+static IniSection batch_normal("bn", "Type = batch_normalization |"
+                                     "momentum = 1.2 |"
+                                     "moving_mean_initializer = zeros |"
+                                     "moving_variance_initializer = ones |"
+                                     "gamma_initializer = zeros |"
+                                     "beta_initializer = ones");
 
 static IniSection flatten("flat", "Type = flatten");
 

@@ -99,15 +99,17 @@ typedef enum {
 /**
  * @brief     Enumeration of Weight Initialization Type
  *            0. WEIGHT_ZEROS ( Zero initialization )
- *            1. WEIGHT_LECUN_NORMAL ( LeCun normal initialization )
- *            2. WEIGHT_LECUN_UNIFORM (LeCun uniform initialization )
- *            3. WEIGHT_XAVIER_NORMAL ( Xavier normal initialization )
- *            4. WEIGHT_XAVIER_UNIFORM ( Xavier uniform initialization )
- *            5. WEIGHT_HE_NORMAL ( He normal initialization )
- *            6. WEIGHT_HE_UNIFORM ( He uniform initialization )
+ *            1. WEIGHT_ONES ( One initialization )
+ *            2. WEIGHT_LECUN_NORMAL ( LeCun normal initialization )
+ *            3. WEIGHT_LECUN_UNIFORM (LeCun uniform initialization )
+ *            4. WEIGHT_XAVIER_NORMAL ( Xavier normal initialization )
+ *            5. WEIGHT_XAVIER_UNIFORM ( Xavier uniform initialization )
+ *            6. WEIGHT_HE_NORMAL ( He normal initialization )
+ *            7. WEIGHT_HE_UNIFORM ( He uniform initialization )
  */
 typedef enum {
   WEIGHT_ZEROS,
+  WEIGHT_ONES,
   WEIGHT_LECUN_NORMAL,
   WEIGHT_LECUN_UNIFORM,
   WEIGHT_XAVIER_NORMAL,
@@ -238,6 +240,11 @@ public:
    *            18. num_inputs : unsigned int (minimum 1)
    *            19. num_outputs : unsigned int (minimum 1)
    *            20. batch_size : unsigned int (minimum 1)
+   *            21. momentum : float,
+   *            22. moving_mean_initializer : string (type),
+   *            23. moving_variance_initializer : string (type),
+   *            24. gamma_initializer : string (type),
+   *            25. beta_initializer" : string (type)
    */
   enum class PropertyType {
     input_shape = 0,
@@ -261,7 +268,12 @@ public:
     num_inputs = 18,
     num_outputs = 19,
     batch_size = 20,
-    unknown = 21
+    momentum = 21,
+    moving_mean_initializer = 22,
+    moving_variance_initializer = 23,
+    gamma_initializer = 24,
+    beta_initializer = 25,
+    unknown
   };
 
   /**
@@ -345,7 +357,7 @@ public:
    * @param[out] status Status
    * @retval Tensor Initialized Tensor
    */
-  Tensor initializeWeight(TensorDim w_dim, WeightInitializer initializer,
+  Tensor initializeWeight(const TensorDim &w_dim, WeightInitializer initializer,
                           int &status);
 
   /**
