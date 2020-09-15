@@ -28,7 +28,7 @@ testInit $1
 PATH_TO_PLUGIN="../../build"
 
 if [[ -d $PATH_TO_PLUGIN ]]; then
-    ini_path="${PATH_TO_PLUGIN}/ext/nnstreamer/tensor_filter"
+    ini_path="${PATH_TO_PLUGIN}/nnstreamer/tensor_filter"
     if [[ -d ${ini_path} ]]; then
         check=$(ls ${ini_path} | grep nntrainer.${SO_EXT})
         if [[ ! $check ]]; then

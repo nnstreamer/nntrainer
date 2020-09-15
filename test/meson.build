@@ -26,3 +26,7 @@ if get_option('enable-capi')
   subdir('tizen_capi')
   subdir('unittest')
 endif
+
+if get_option('enable-nnstreamer-tensor-filter')
+  install_subdir('test_models', install_dir: application_install_dir)
+endif
