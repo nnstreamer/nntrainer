@@ -13,11 +13,11 @@ The configuration of the example is below,
 
 ### Resource Data
 
-This is in Applications/Training/res/Training.ini
+This is in Applications/TransferLearning/Draw_Classification/res/Training.ini
 
 ```bash
 $ pwd
-  ./Applications/Training/res
+  ./Applications/TransferLearning/Draw_Classification/res
 $ ls
 happy  sad  soso  ssd_mobilenet_v2_coco_feature.tflite  testset  Training.ini
 ```
@@ -54,7 +54,7 @@ Input_Shape = 1:1:128         # Input shape (without batch size)
 [fc1layer]                    # Layer Name
 Type = fully_connected        # Layer Type
 Unit = 20                     # output unit
-Bias_init_zero = true         # bias initialization 
+Bias_init_zero = true         # bias initialization
 Activation = sigmoid          # activation
 
 [outputlayer]                 # Layer Name
@@ -75,7 +75,7 @@ We can run this as below
 $ pwd
   build
 $ cd ..
-$ build/Applications/Training/jni/nntrainer_training Application/Training/res/Trainig.ini Application/Training/res/
+$ build/Applications/TransferLearning/Draw_Classification/jni/nntrainer_training Applications/TransferLearning/Draw_Classification/res/Trainig.ini Applications/TransferLearning/Draw_Classification/res/
 
 ```
 
