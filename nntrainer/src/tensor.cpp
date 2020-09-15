@@ -219,7 +219,7 @@ Tensor Tensor::add(float const &value) { CLONE_OP_I(add_i, value); }
  * TODO: add axis rather doing add over the last two dimensions always
  */
 int Tensor::add_i(Tensor const &m, float const alpha) {
-  auto f = [&](const ExternalLoopInfo &e, float *buf, const float *m_buf) {
+  auto f = [&](const BroadcastInfo &e, float *buf, const float *m_buf) {
     saxpy(e.buffer_size, alpha, m_buf, e.strides[3], buf, strides[3]);
   };
 
@@ -240,33 +240,40 @@ Tensor Tensor::subtract(float const &value) { return this->add(-value); }
 
 int Tensor::operator_i(
   Tensor const &m,
-  std::function<void(const ExternalLoopInfo &e, float *, const float *)> v_func,
-  int cur_axis, std::shared_ptr<ExternalLoopInfo> e, unsigned int offset,
-  unsigned int m_offset) {
+  std::function<void(const BroadcastInfo &e, float *, const float *)> v_func) {
 
-  if (e == nullptr) {
-    try {
-      e = std::make_shared<ExternalLoopInfo>(this->computeExternalLoop(m));
-    } catch (std::exception &e) {
-      ml_loge("%s %s", typeid(e).name(), e.what());
-      return ML_ERROR_INVALID_PARAMETER;
-    }
+  BroadcastInfo e;
+  try {
+    e = this->computeBroadcastInfo(m);
+  } catch (std::exception &err) {
+    ml_loge("%s %s", typeid(err).name(), err.what());
+    return ML_ERROR_INVALID_PARAMETER;
   }
+
+  return operator_i_util(m, v_func, e);
+}
+
+int Tensor::operator_i_util(
+  Tensor const &m,
+  std::function<void(const BroadcastInfo &e, float *, const float *)> v_func,
+  const BroadcastInfo &e, int cur_axis, unsigned int offset,
+  unsigned int m_offset) {
 
   float *buf = this->getData();
   const float *m_buf = m.getData();
   int status = ML_ERROR_NONE;
 
-  if (e->buffer_axis == cur_axis) {
-    v_func(*e, buf + offset, m_buf + m_offset);
+  if (e.buffer_axis == cur_axis) {
+    v_func(e, buf + offset, m_buf + m_offset);
     return ML_ERROR_NONE;
   }
 
   cur_axis++;
   for (unsigned int i = 0; i < dim.getTensorDim(cur_axis); ++i) {
     unsigned int next_offset = offset + i * strides[cur_axis];
-    unsigned int next_m_offset = m_offset + i * e->strides[cur_axis];
-    status = operator_i(m, v_func, cur_axis, e, next_offset, next_m_offset);
+    unsigned int next_m_offset = m_offset + i * e.strides[cur_axis];
+    status =
+      operator_i_util(m, v_func, e, cur_axis, next_offset, next_m_offset);
     if (status != ML_ERROR_NONE) {
       ml_loge("[operator_i] failed: %d", status);
       return status;
@@ -277,7 +284,7 @@ int Tensor::operator_i(
 }
 
 int Tensor::multiply_i(Tensor const &m) {
-  auto f = [&](const ExternalLoopInfo &e, float *buf, const float *m_buf) {
+  auto f = [&](const BroadcastInfo &e, float *buf, const float *m_buf) {
     for (unsigned int i = 0; i < e.buffer_size; ++i) {
       *buf *= *m_buf;
       buf += strides[3];
@@ -291,7 +298,7 @@ int Tensor::multiply_i(Tensor const &m) {
 Tensor Tensor::multiply(Tensor const &m) const { CLONE_OP_I(multiply_i, m); }
 
 int Tensor::divide_i(Tensor const &m) {
-  auto f = [&](const ExternalLoopInfo &e, float *buf, const float *m_buf) {
+  auto f = [&](const BroadcastInfo &e, float *buf, const float *m_buf) {
     for (unsigned int i = 0; i < e.buffer_size; ++i) {
       *buf /= *m_buf;
       buf += strides[3];
@@ -769,13 +776,13 @@ Tensor Tensor::standardization() const {
   return result;
 }
 
-ExternalLoopInfo Tensor::computeExternalLoop(const Tensor &m) {
+BroadcastInfo Tensor::computeBroadcastInfo(const Tensor &m) {
   if (m.length() > this->length())
     throw exception::not_supported("broadcasting *this is not supported");
 
   const TensorDim m_dim = m.getDim();
 
-  ExternalLoopInfo e;
+  BroadcastInfo e;
 
   for (unsigned int i = 0; i < MAXDIM; ++i) {
     if (m_dim.getTensorDim(i) == 1) {
@@ -788,7 +795,7 @@ ExternalLoopInfo Tensor::computeExternalLoop(const Tensor &m) {
     }
 
     std::stringstream ss;
-    ss << "[computeExternalLoop] broadcasting only allowed for"
+    ss << "[computeBroadcastInfo] broadcasting only allowed for"
           "dimension value of 1 \n"
        << "this: " << dim << "target: " << m_dim;
     throw std::invalid_argument(ss.str().c_str());
@@ -797,7 +804,7 @@ ExternalLoopInfo Tensor::computeExternalLoop(const Tensor &m) {
   /// calculate inner loop size
   unsigned int inner_loop_size = dim.getTensorDim(3);
 
-  bool first_dim_none = m_dim.getTensorDim(3) == 1;
+  bool first_dim_none = m_dim.getTensorDim(3) == 1 && dim.getTensorDim(3) != 1;
   e.buffer_axis = -1;
   for (int axis = 2; axis >= 0; --axis) {
     unsigned int cur_dim = m_dim.getTensorDim(axis);
@@ -818,7 +825,6 @@ ExternalLoopInfo Tensor::computeExternalLoop(const Tensor &m) {
   }
 
   e.buffer_size = inner_loop_size;
-  e.buffer_cnt = this->length() / inner_loop_size;
 
   return e;
 }
