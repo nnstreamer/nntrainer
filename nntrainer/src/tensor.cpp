@@ -72,8 +72,9 @@ static auto rng = [] {
 }();
 
 Tensor::Tensor(const TensorDim &d, const float *buf) : Tensor() {
-  dim = d;
+
   if (d.getDataLen() != 0) {
+    dim = d;
     data = std::shared_ptr<float>(new float[d.getDataLen()],
                                   std::default_delete<float[]>());
 
