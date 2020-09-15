@@ -16,6 +16,7 @@
 #define __TENSOR_DIM_H__
 #ifdef __cplusplus
 
+#include <array>
 #include <iostream>
 #include <memory>
 #include <regex>
@@ -93,6 +94,15 @@ public:
   bool operator!=(const TensorDim &rhs) const { return !(*this == rhs); }
   bool isEmpty() const { return len == 0; }
   unsigned int rank() const;
+
+  /**
+   * @brief Calculate standard strides
+   *
+   * @return std::array <int, MAXDIM>
+   */
+  std::array<unsigned int, MAXDIM> computeStrides() const {
+    return {dim[1] * dim[2] * dim[3], dim[2] * dim[3], dim[3], 1};
+  }
 
 private:
   unsigned int dim[MAXDIM];
