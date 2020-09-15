@@ -29,8 +29,8 @@ foreach target: test_target
     target,
     target + '.cpp',
     dependencies: unittest_nntrainer_deps,
-    install_dir: application_install_dir,
-    install: get_option('enable-test')
+    install: get_option('enable-test'),
+    install_dir: application_install_dir
   )
   test(target, exe)
 endforeach
