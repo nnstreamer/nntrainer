@@ -46,16 +46,15 @@ class LazyTensor;
  * @note This should better be implemented in iterator fashion before used
  * extensively.
  */
-struct ExternalLoopInfo {
+struct BroadcastInfo {
 
   /**
    * @brief Construct a new External Loop Info object
    *
    */
-  ExternalLoopInfo() : strides{0, 0, 0, 0} {}
+  BroadcastInfo() : strides{0, 0, 0, 0} {}
 
   unsigned int buffer_size; /**< virtual size of the buffer */
-  unsigned int buffer_cnt;  /**< total count of buffer */
   int buffer_axis;          /**< the smallest axis that should be looped.
                                  -1 means no loop needed*/
   std::array<unsigned int, MAXDIM>
@@ -578,9 +577,9 @@ public:
    * @brief compute Loop info for broadcasting and vectorization
    *
    * @param m target tensor to be calculated against.
-   * @return ExternalLoopInfo Loopinfo needed to run external loop
+   * @return BroadcastInfo Loopinfo needed to run external loop
    */
-  ExternalLoopInfo computeExternalLoop(const Tensor &m);
+  BroadcastInfo computeBroadcastInfo(const Tensor &m);
 
 private:
   /**
@@ -595,22 +594,30 @@ private:
    * @brief Applies the given operator to the tensor with the passed argument
    * @param[in] m Tensor
    * @param[in] v_func vectorized function to apply
-   * @param cur_axis current axis. This param is for recursion, pass default
-   * when calling outside.
-   * @param e external loop info. This param is for recursion, pass default
-   * value when
-   * @param offset offset for this. This param is for recursion.
-   * @param m_offset offset for m. This param is for recursion.
-   * calling outside
+   * @param e broadcast info.
+   * @param cur_axis current axis. pass default when calling outside.
+   * @param offset offset for this.  pass default when calling outside.
+   * @param m_offset offset for m.  pass default when calling outside.
+   * @retval #ML_ERROR_NONE Successful
+   * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter
+   */
+  int operator_i_util(
+    Tensor const &m,
+    std::function<void(const BroadcastInfo &e, float *, const float *)> v_func,
+    const BroadcastInfo &e, int cur_axis = -1, unsigned int offset = 0,
+    unsigned int m_offset = 0);
+
+  /**
+   * @brief Applies the given operator to the tensor with the passed argument
+   *
+   * @param[in] m Tensor
+   * @param[in] v_func vectorized function to apply
    * @retval #ML_ERROR_NONE Successful
    * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter
    */
   int operator_i(
     Tensor const &m,
-    std::function<void(const ExternalLoopInfo &e, float *, const float *)>
-      v_func,
-    int cur_axis = -1, std::shared_ptr<ExternalLoopInfo> e = nullptr,
-    unsigned int offset = 0, unsigned int m_offset = 0);
+    std::function<void(const BroadcastInfo &e, float *, const float *)> v_func);
 
   /**< handle the data as a std::shared_ptr<float> type */
   TensorDim dim;
