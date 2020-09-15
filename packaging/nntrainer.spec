@@ -53,9 +53,17 @@ BuildRequires: lcov
 BuildRequires:	pkgconfig(capi-system-info)
 BuildRequires:	pkgconfig(capi-base-common)
 BuildRequires:	pkgconfig(dlog)
+
+%define enable_nnstreamer_tensor_filter -Denable-nnstreamer-tensor-filter=false
 %if  0%{?nnstreamer_filter}
 BuildRequires:	nnstreamer-devel
 %define enable_nnstreamer_tensor_filter -Denable-nnstreamer-tensor-filter=true
+%if 0%{?unit_test}
+BuildRequires:	nnstreamer-protobuf
+BuildRequires:	nnstreamer-extra
+BuildRequires:	gst-plugins-good-extra
+BuildRequires:	python
+%endif #unit_test
 %endif #nnstreamer_filter
 %endif  # tizen
 
@@ -194,8 +202,19 @@ tar xzf valset.tar.gz -C build
 tar xzf testset.tar.gz -C build
 cp label.dat build
 tar xzf unittest_layers.tar.gz -C build
-bash %{test_script} ./test
-%endif
+
+# independent unittests of nntrainer
+# bash %{test_script} ./test
+
+# unittest for nntrainer plugin for nnstreamer
+%if  0%{?nnstreamer_filter}
+export NNSTREAMER_CONF=$(pwd)/test/nnstreamer_filter_nntrainer/nnstreamer-test.ini
+export NNSTREAMER_FILTERS=$(pwd)/build/nnstreamer/tensor_filter
+pushd test/nnstreamer_filter_nntrainer
+bash runTest.sh
+popd
+%endif #nnstreamer_filter
+%endif #unit_test
 
 %install
 DESTDIR=%{buildroot} ninja -C build %{?_smp_mflags} install
