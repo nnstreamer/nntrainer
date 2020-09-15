@@ -38,6 +38,30 @@
 namespace nntrainer {
 
 class LazyTensor;
+
+/**
+ * @struct External Loop Info for broadcasted info
+ * @brief External Loop Info for broadcasted iteration. Please refer to
+ * DISABLED_private_external_loop_n in unittest_nntrainer_tensor.
+ * @note This should better be implemented in iterator fashion before used
+ * extensively.
+ */
+struct ExternalLoopInfo {
+
+  /**
+   * @brief Construct a new External Loop Info object
+   *
+   */
+  ExternalLoopInfo() : strides{0, 0, 0, 0} {}
+
+  unsigned int buffer_size; /**< virtual size of the buffer */
+  unsigned int buffer_cnt;  /**< total count of buffer */
+  int buffer_axis;          /**< the smallest axis that should be looped.
+                                 -1 means no loop needed*/
+  std::array<unsigned int, MAXDIM>
+    strides; /**< modified strides for the loop */
+};
+
 /**
  * @class   Tensor Class for Calculation
  * @brief   Tensor Class for Calculation
@@ -49,7 +73,7 @@ public:
    */
   Tensor() :
     dim(TensorDim()),
-    strides{{1, 2, 3}},
+    strides{dim.computeStrides()},
     is_contiguous(true),
     data(nullptr) {}
 
@@ -546,7 +570,17 @@ public:
    * @brief     return current stride of tensor.
    * @retval    int[MAXDIM] strides
    */
-  const std::array<int, MAXDIM> getStrides() const noexcept { return strides; }
+  const std::array<unsigned int, MAXDIM> getStrides() const noexcept {
+    return strides;
+  }
+
+  /**
+   * @brief compute Loop info for broadcasting and vectorization
+   *
+   * @param m target tensor to be calculated against.
+   * @return ExternalLoopInfo Loopinfo needed to run external loop
+   */
+  ExternalLoopInfo computeExternalLoop(const Tensor &m);
 
 private:
   /**
@@ -554,23 +588,33 @@ private:
    */
   inline unsigned int getIndex(unsigned int b, unsigned int c, unsigned int h,
                                unsigned int w) const {
-    return (b * dim.getFeatureLen() + c * dim.height() * dim.width() +
-            h * dim.width() + w);
+    return (b * strides[0] + c * strides[1] + h * strides[2] + w * strides[3]);
   }
 
   /**
    * @brief Applies the given operator to the tensor with the passed argument
    * @param[in] m Tensor
-   * @param[in] op operation to apply
-   * @retval #ML_ERROR_NONE  Successful
+   * @param[in] v_func vectorized function to apply
+   * @param cur_axis current axis. This param is for recursion, pass default
+   * when calling outside.
+   * @param e external loop info. This param is for recursion, pass default
+   * value when
+   * @param offset offset for this. This param is for recursion.
+   * @param m_offset offset for m. This param is for recursion.
+   * calling outside
+   * @retval #ML_ERROR_NONE Successful
    * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter
    */
-  int operator_i(Tensor const &m,
-                 std::function<float(float const, float const)> op);
+  int operator_i(
+    Tensor const &m,
+    std::function<void(const ExternalLoopInfo &e, float *, const float *)>
+      v_func,
+    int cur_axis = -1, std::shared_ptr<ExternalLoopInfo> e = nullptr,
+    unsigned int offset = 0, unsigned int m_offset = 0);
 
   /**< handle the data as a std::shared_ptr<float> type */
   TensorDim dim;
-  std::array<int, MAXDIM> strides;
+  std::array<unsigned int, MAXDIM> strides;
   bool is_contiguous;
   std::shared_ptr<float> data;
 

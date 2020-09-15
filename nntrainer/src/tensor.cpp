@@ -72,13 +72,12 @@ static auto rng = [] {
 }();
 
 Tensor::Tensor(const TensorDim &d, const float *buf) : Tensor() {
-
   if (d.getDataLen() != 0) {
     dim = d;
+    strides = d.computeStrides();
     data = std::shared_ptr<float>(new float[d.getDataLen()],
                                   std::default_delete<float[]>());
 
-    // todo: initialize appropriate strides
     if (buf != nullptr) {
       float *data = getData();
       unsigned int len = length();
@@ -149,8 +148,7 @@ void Tensor::setRandUniform(float min, float max) {
 }
 
 Tensor::Tensor(
-  std::vector<std::vector<std::vector<std::vector<float>>>> const &d) :
-  strides{{1, 2, 3}} {
+  std::vector<std::vector<std::vector<std::vector<float>>>> const &d) {
 
   if (d.empty() || d[0].empty() || d[0][0].empty() || d[0][0][0].empty()) {
     throw std::out_of_range(
@@ -161,6 +159,7 @@ Tensor::Tensor(
   dim.channel(d[0].size());
   dim.height(d[0][0].size());
   dim.width(d[0][0][0].size());
+  strides = dim.computeStrides();
   data = std::shared_ptr<float>(new float[dim.getDataLen()],
                                 std::default_delete<float[]>());
   is_contiguous = true;
@@ -220,27 +219,11 @@ Tensor Tensor::add(float const &value) { CLONE_OP_I(add_i, value); }
  * TODO: add axis rather doing add over the last two dimensions always
  */
 int Tensor::add_i(Tensor const &m, float const alpha) {
-  if ((dim.height() != m.dim.height()) || (dim.width() != m.dim.width())) {
-    return ML_ERROR_INVALID_PARAMETER;
-  }
+  auto f = [&](const ExternalLoopInfo &e, float *buf, const float *m_buf) {
+    saxpy(e.buffer_size, alpha, m_buf, e.strides[3], buf, strides[3]);
+  };
 
-  float *data = getData();
-  const float *mdata = m.getData();
-  unsigned int len = length();
-
-  unsigned int size = dim.getFeatureLen();
-  if (m.dim.batch() == 1) {
-    for (unsigned int k = 0; k < dim.batch(); ++k) {
-      saxpy(size, alpha, mdata, 1, &(data[k * size]), 1);
-    }
-  } else {
-    if (dim.batch() != m.dim.batch()) {
-      return ML_ERROR_INVALID_PARAMETER;
-    }
-    saxpy(len, alpha, mdata, 1, data, 1);
-  }
-
-  return ML_ERROR_NONE;
+  return operator_i(m, f);
 }
 
 Tensor Tensor::add(Tensor const &m, float const alpha) const {
@@ -255,58 +238,71 @@ int Tensor::subtract_i(float const &value) { return this->add_i(-value); }
 
 Tensor Tensor::subtract(float const &value) { return this->add(-value); }
 
-int Tensor::operator_i(Tensor const &m,
-                       std::function<float(float const, float const)> op) {
-  if (dim.channel() != m.dim.channel() || dim.height() != m.dim.height() ||
-      dim.width() != m.dim.width()) {
-    return ML_ERROR_INVALID_PARAMETER;
-  }
+int Tensor::operator_i(
+  Tensor const &m,
+  std::function<void(const ExternalLoopInfo &e, float *, const float *)> v_func,
+  int cur_axis, std::shared_ptr<ExternalLoopInfo> e, unsigned int offset,
+  unsigned int m_offset) {
 
-  float *data = getData();
-  const float *mdata = m.getData();
-
-  unsigned int feat_len = dim.getFeatureLen();
-  unsigned int len = length();
-  if (m.dim.batch() == 1) {
-    for (unsigned int k = 0; k < dim.batch(); ++k) {
-      int b = k * feat_len;
-      std::transform(data + b, data + b + feat_len, mdata, data + b, op);
-    }
-  } else {
-    if (batch() != m.batch()) {
+  if (e == nullptr) {
+    try {
+      e = std::make_shared<ExternalLoopInfo>(this->computeExternalLoop(m));
+    } catch (std::exception &e) {
+      ml_loge("%s %s", typeid(e).name(), e.what());
       return ML_ERROR_INVALID_PARAMETER;
     }
-    std::transform(data, data + len, mdata, data, op);
   }
 
-  return ML_ERROR_NONE;
+  float *buf = this->getData();
+  const float *m_buf = m.getData();
+  int status = ML_ERROR_NONE;
+
+  if (e->buffer_axis == cur_axis) {
+    v_func(*e, buf + offset, m_buf + m_offset);
+    return ML_ERROR_NONE;
+  }
+
+  cur_axis++;
+  for (unsigned int i = 0; i < dim.getTensorDim(cur_axis); ++i) {
+    unsigned int next_offset = offset + i * strides[cur_axis];
+    unsigned int next_m_offset = m_offset + i * e->strides[cur_axis];
+    status = operator_i(m, v_func, cur_axis, e, next_offset, next_m_offset);
+    if (status != ML_ERROR_NONE) {
+      ml_loge("[operator_i] failed: %d", status);
+      return status;
+    }
+  }
+
+  return status;
 }
 
 int Tensor::multiply_i(Tensor const &m) {
-  return operator_i(m, std::multiplies<float>());
+  auto f = [&](const ExternalLoopInfo &e, float *buf, const float *m_buf) {
+    for (unsigned int i = 0; i < e.buffer_size; ++i) {
+      *buf *= *m_buf;
+      buf += strides[3];
+      m_buf += e.strides[3];
+    }
+  };
+
+  return operator_i(m, f);
 }
 
-Tensor Tensor::multiply(Tensor const &m) const {
-  if (dim.channel() != m.dim.channel() || dim.height() != m.dim.height() ||
-      dim.width() != m.dim.width()) {
-    throw std::runtime_error("Error: Dimension must be equal each other");
-  }
-
-  CLONE_OP_I(multiply_i, m);
-}
+Tensor Tensor::multiply(Tensor const &m) const { CLONE_OP_I(multiply_i, m); }
 
 int Tensor::divide_i(Tensor const &m) {
-  return operator_i(m, std::divides<float>());
+  auto f = [&](const ExternalLoopInfo &e, float *buf, const float *m_buf) {
+    for (unsigned int i = 0; i < e.buffer_size; ++i) {
+      *buf /= *m_buf;
+      buf += strides[3];
+      m_buf += e.strides[3];
+    }
+  };
+
+  return operator_i(m, f);
 }
 
-Tensor Tensor::divide(Tensor const &m) const {
-  if (dim.channel() != m.dim.channel() || dim.height() != m.dim.height() ||
-      dim.width() != m.dim.width()) {
-    throw std::runtime_error("Error: Dimension must be equal each other");
-  }
-
-  CLONE_OP_I(divide_i, m);
-}
+Tensor Tensor::divide(Tensor const &m) const { CLONE_OP_I(divide_i, m); }
 
 /**
  * This is to sum the Tensor data according to the dim.batch().
@@ -635,6 +631,7 @@ void Tensor::reshape(const TensorDim &d) {
     throw std::invalid_argument("Error: reshape cannot change the tensor size");
   }
   dim = d;
+  strides = d.computeStrides();
 }
 
 void Tensor::save(std::ofstream &file) {
@@ -770,5 +767,59 @@ Tensor Tensor::standardization() const {
   }
 
   return result;
+}
+
+ExternalLoopInfo Tensor::computeExternalLoop(const Tensor &m) {
+  if (m.length() > this->length())
+    throw exception::not_supported("broadcasting *this is not supported");
+
+  const TensorDim m_dim = m.getDim();
+
+  ExternalLoopInfo e;
+
+  for (unsigned int i = 0; i < MAXDIM; ++i) {
+    if (m_dim.getTensorDim(i) == 1) {
+      continue;
+    }
+
+    if (dim.getTensorDim(i) == m_dim.getTensorDim(i)) {
+      e.strides[i] = m.strides[i];
+      continue;
+    }
+
+    std::stringstream ss;
+    ss << "[computeExternalLoop] broadcasting only allowed for"
+          "dimension value of 1 \n"
+       << "this: " << dim << "target: " << m_dim;
+    throw std::invalid_argument(ss.str().c_str());
+  }
+
+  /// calculate inner loop size
+  unsigned int inner_loop_size = dim.getTensorDim(3);
+
+  bool first_dim_none = m_dim.getTensorDim(3) == 1;
+  e.buffer_axis = -1;
+  for (int axis = 2; axis >= 0; --axis) {
+    unsigned int cur_dim = m_dim.getTensorDim(axis);
+
+    if (first_dim_none) {
+      if (cur_dim != 1) {
+        e.buffer_axis = axis;
+        break;
+      }
+    } else {
+      if (cur_dim == 1 && dim.getTensorDim(axis) != m_dim.getTensorDim(axis)) {
+        e.buffer_axis = axis;
+        break;
+      }
+    }
+
+    inner_loop_size *= dim.getTensorDim(axis);
+  }
+
+  e.buffer_size = inner_loop_size;
+  e.buffer_cnt = this->length() / inner_loop_size;
+
+  return e;
 }
 } /* namespace nntrainer */
