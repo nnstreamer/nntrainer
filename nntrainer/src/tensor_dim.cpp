@@ -14,10 +14,11 @@
 
 #include <assert.h>
 #include <cstring>
-#include <nntrainer_error.h>
-#include <nntrainer_log.h>
 #include <sstream>
 #include <stdio.h>
+
+#include <nntrainer_error.h>
+#include <nntrainer_log.h>
 #include <tensor_dim.h>
 
 namespace nntrainer {
