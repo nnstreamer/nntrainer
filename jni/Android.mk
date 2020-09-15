@@ -65,3 +65,29 @@ LOCAL_SRC_FILES     := $(NNTRAINER_SRCS) $(INIPARSER_SRCS)
 LOCAL_C_INCLUDES    += $(NNTRAINER_INCLUDES) $(INIPARSER_INCLUDES)
 
 include $(BUILD_SHARED_LIBRARY)
+
+include $(CLEAR_VARS)
+
+CAPI_NNTRAINER_SRCS := $(NNTRAINER_ROOT)/api/capi/src/nntrainer.cpp \
+                  $(NNTRAINER_ROOT)/api/capi/src/nntrainer_util.cpp
+
+CAPI_NNTRAINER_INCLUDES := $(NNTRAINER_ROOT)/nntrainer/include \
+                      $(NNTRAINER_ROOT)/api \
+                      $(NNTRAINER_ROOT)/api/capi/include \
+                      $(NNTRAINER_ROOT)/api/capi/include/platform
+
+LOCAL_SHARED_LIBRARIES := nntrainer
+
+LOCAL_ARM_NEON      := true
+LOCAL_CFLAGS        += -pthread -fopenmp -fexceptions
+LOCAL_CXXFLAGS      += -std=c++14 -frtti -fexceptions
+LOCAL_LDFLAGS       += -fuse-ld=bfd -fopenmp
+LOCAL_MODULE_TAGS   := optional
+
+LOCAL_LDLIBS        := -llog
+
+LOCAL_MODULE        := capi-nntrainer
+LOCAL_SRC_FILES     := $(CAPI_NNTRAINER_SRCS)
+LOCAL_C_INCLUDES    += $(CAPI_NNTRAINER_INCLUDES)
+
+include $(BUILD_SHARED_LIBRARY)
