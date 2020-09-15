@@ -271,6 +271,13 @@ nntrainer::Tensor constant(float value, unsigned int batch, unsigned channel,
   return t;
 }
 
+nntrainer::Tensor ranged(unsigned int batch, unsigned channel, unsigned height,
+                         unsigned width) {
+  nntrainer::Tensor t(batch, channel, height, width);
+  unsigned int i = 0;
+  return t.apply([&](float in) { return i++; });
+}
+
 void IniSection::setEntry(const std::string &entry_str) {
   // setting property separated by "|"
   std::regex words_regex("[^|]+");

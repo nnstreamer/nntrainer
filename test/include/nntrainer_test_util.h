@@ -362,6 +362,12 @@ nntrainer::Tensor constant(float value, unsigned int batch, unsigned channel,
                            unsigned height, unsigned width);
 
 /**
+ * @brief return a tensor filled with ranged value with given dimension
+ */
+nntrainer::Tensor ranged(unsigned int batch, unsigned channel, unsigned height,
+                         unsigned width);
+
+/**
  * @brief replace string and save in file
  * @param[in] from string to be replaced
  * @param[in] to string to repalce with
