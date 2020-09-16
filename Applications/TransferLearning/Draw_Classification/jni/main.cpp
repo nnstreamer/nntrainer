@@ -27,7 +27,16 @@
  *
  */
 
-#include "bitmap_helpers.h"
+#include <limits.h>
+#include <stdlib.h>
+#include <time.h>
+#include <unistd.h>
+
+#if defined(__TIZEN__)
+#include <nnstreamer-single.h>
+#include <nnstreamer.h>
+#include <nntrainer_internal.h>
+#else
 #include "tensorflow/contrib/lite/interpreter.h"
 #include "tensorflow/contrib/lite/kernels/register.h"
 #include "tensorflow/contrib/lite/model.h"
@@ -36,13 +45,10 @@
 #include <cmath>
 #include <fstream>
 #include <iostream>
-#include <stdlib.h>
-#include <time.h>
-
-#include <nntrainer.h>
-#if defined(__TIZEN__)
-#include <nnstreamer.h>
 #endif
+
+#include "bitmap_helpers.h"
+#include <nntrainer.h>
 
 /** Number of dimensions for the input data */
 #define MAX_DIM 4
@@ -62,15 +68,122 @@
 /** Total number of data points in an epoch */
 #define EPOCH_SIZE LABEL_SIZE *NUM_DATA_PER_LABEL
 
-/** Max Epochs */
-#define EPOCHS 1000
-
 /** labels values */
-const std::string label_names[LABEL_SIZE] = {"happy", "sad", "soso"};
+const char *label_names[LABEL_SIZE] = {"happy", "sad", "soso"};
 
 /** Vectors containing the training data */
-std::vector<std::vector<float>> inputVector, labelVector;
+float inputVector[EPOCH_SIZE][INPUT_SIZE];
+float labelVector[EPOCH_SIZE][LABEL_SIZE];
 
+#if defined(__TIZEN__)
+int getInputFeature(ml_single_h single, const char *test_file_path,
+                    float *feature_input) {
+  int status = ML_ERROR_NONE;
+  ml_tensors_info_h in_res;
+  ml_tensors_data_h input = NULL, output;
+  void *raw_data;
+  size_t data_size;
+  int inputDim[MAX_DIM] = {1, 1, 1, 1};
+  uint8_t *in = NULL;
+
+  /* input tensor in filter */
+  status = ml_single_get_input_info(single, &in_res);
+  if (status != ML_ERROR_NONE)
+    return status;
+
+  /* generate dummy data */
+  status = ml_tensors_data_create(in_res, &input);
+  if (status != ML_ERROR_NONE)
+    goto fail_in_info;
+
+  status = ml_tensors_data_get_tensor_data(input, 0, &raw_data, &data_size);
+  if (status != ML_ERROR_NONE)
+    goto fail_in_data;
+
+  in = tflite::label_image::read_bmp(test_file_path, inputDim, inputDim + 1,
+                                     inputDim + 2);
+
+  for (size_t l = 0; l < data_size / sizeof(float); l++) {
+    ((float *)raw_data)[l] = ((float)(in[l]) - 127.5f) / 127.5f;
+  }
+  delete[] in;
+
+  status = ml_single_invoke(single, input, &output);
+  if (status != ML_ERROR_NONE)
+    goto fail_in_data;
+
+  status = ml_tensors_data_get_tensor_data(output, 0, &raw_data, &data_size);
+  if (status != ML_ERROR_NONE)
+    goto fail_out_data;
+
+  memcpy(feature_input, raw_data, INPUT_SIZE * sizeof(float));
+
+fail_out_data:
+  ml_tensors_data_destroy(output);
+
+fail_in_data:
+  ml_tensors_data_destroy(input);
+
+fail_in_info:
+  ml_tensors_info_destroy(in_res);
+
+  return status;
+}
+
+int setupSingleModel(const char *data_path, ml_single_h *single) {
+  int status;
+
+  char *test_model = NULL;
+  status = asprintf(&test_model, "%s/%s", data_path,
+                    "ssd_mobilenet_v2_coco_feature.tflite");
+  if (status < 0 || test_model == NULL)
+    return -errno;
+
+  status = ml_single_open(single, test_model, NULL, NULL,
+                          ML_NNFW_TYPE_TENSORFLOW_LITE, ML_NNFW_HW_ANY);
+  free(test_model);
+
+  return status;
+}
+
+int extractFeatures(const char *data_path, float input_data[][INPUT_SIZE],
+                    float label_data[][LABEL_SIZE]) {
+  ml_single_h single;
+  unsigned int count = 0;
+  int status;
+
+  status = setupSingleModel(data_path, &single);
+  if (status != ML_ERROR_NONE)
+    return status;
+
+  for (int i = 0; i < LABEL_SIZE; i++) {
+    for (int j = 0; j < NUM_DATA_PER_LABEL; j++) {
+
+      char *test_file_path = NULL;
+      status = asprintf(&test_file_path, "%s/%s/%s%d.bmp", data_path,
+                        label_names[i], label_names[i], j + 1);
+      if (status < 0 || test_file_path == NULL) {
+        status = -errno;
+        goto fail_exit;
+      }
+
+      count = i * NUM_DATA_PER_LABEL + j;
+      memset(label_data[count], 0, LABEL_SIZE * sizeof(float));
+      label_data[count][i] = 1;
+      status = getInputFeature(single, test_file_path, input_data[count]);
+      free(test_file_path);
+
+      if (status != ML_ERROR_NONE)
+        goto fail_exit;
+    }
+  }
+
+fail_exit:
+  status = ml_single_close(single);
+
+  return status;
+}
+#else
 /**
  * @brief Private data for Tensorflow lite object
  */
@@ -95,7 +208,8 @@ void setupTensorflowLiteModel(const std::string &data_path,
   int outputDim[MAX_DIM];
 
   tflite_data.data_path = data_path;
-  std::string model_path = data_path + "ssd_mobilenet_v2_coco_feature.tflite";
+  std::string model_path =
+    data_path + "/" + "ssd_mobilenet_v2_coco_feature.tflite";
   tflite_data.model =
     tflite::FlatBufferModel::BuildFromFile(model_path.c_str());
   if (tflite_data.model == NULL)
@@ -143,10 +257,10 @@ void setupTensorflowLiteModel(const std::string &data_path,
  * @param[out] feature_input save output of tflite
  */
 void getInputFeature(const TFLiteData &tflite_data, const std::string filename,
-                     std::vector<float> &feature_input) {
-  uint8_t *in;
+                     float *feature_input) {
+  uint8_t *in = NULL;
   int inputDim[MAX_DIM] = {1, 1, 1, 1};
-  in = tflite::label_image::read_bmp(filename, inputDim, inputDim + 1,
+  in = tflite::label_image::read_bmp(filename.c_str(), inputDim, inputDim + 1,
                                      inputDim + 2);
 
   int input_img_size = 1;
@@ -183,14 +297,8 @@ void getInputFeature(const TFLiteData &tflite_data, const std::string filename,
  * @param[out] label_data one hot label data
  */
 void extractFeatures(const TFLiteData &tflite_data,
-                     std::vector<std::vector<float>> &input_data,
-                     std::vector<std::vector<float>> &label_data) {
-  int trainingSize = LABEL_SIZE * NUM_DATA_PER_LABEL;
-
-  input_data.resize(trainingSize, std::vector<float>(INPUT_SIZE));
-  /** resize label data to size and initialize to 0 */
-  label_data.resize(trainingSize, std::vector<float>(LABEL_SIZE, 0));
-
+                     float input_data[][INPUT_SIZE],
+                     float label_data[][LABEL_SIZE]) {
   for (int i = 0; i < LABEL_SIZE; i++) {
     for (int j = 0; j < NUM_DATA_PER_LABEL; j++) {
       std::string label_file = label_names[i] + std::to_string(j + 1) + ".bmp";
@@ -199,10 +307,13 @@ void extractFeatures(const TFLiteData &tflite_data,
 
       int count = i * NUM_DATA_PER_LABEL + j;
       getInputFeature(tflite_data, img, input_data[count]);
+
+      memset(label_data[count], 0, LABEL_SIZE * sizeof(float));
       label_data[count][i] = 1;
     }
   }
 }
+#endif
 
 /**
  * Data generator callback
@@ -241,13 +352,11 @@ int trainModel(const char *config) {
 
   status = ml_train_model_construct_with_conf(config, &handle);
   if (status != ML_ERROR_NONE) {
-    std::cerr << "Failed to construct the model" << std::endl;
     return status;
   }
 
   status = ml_train_model_compile(handle, NULL);
   if (status != ML_ERROR_NONE) {
-    std::cerr << "Failed to compile the model" << std::endl;
     ml_train_model_destroy(handle);
     return status;
   }
@@ -256,14 +365,12 @@ int trainModel(const char *config) {
   status = ml_train_dataset_create_with_generator(&dataset, getBatch_train,
                                                   NULL, NULL);
   if (status != ML_ERROR_NONE) {
-    std::cerr << "Failed to create the dataset" << std::endl;
     ml_train_model_destroy(handle);
     return status;
   }
 
   status = ml_train_dataset_set_property(dataset, "buffer_size=100", NULL);
   if (status != ML_ERROR_NONE) {
-    std::cerr << "Failed to set property for the dataset" << std::endl;
     ml_train_dataset_destroy(dataset);
     ml_train_model_destroy(handle);
     return status;
@@ -271,20 +378,14 @@ int trainModel(const char *config) {
 
   status = ml_train_model_set_dataset(handle, dataset);
   if (status != ML_ERROR_NONE) {
-    std::cerr << "Failed to set dataset to the dataset" << std::endl;
     ml_train_dataset_destroy(dataset);
     ml_train_model_destroy(handle);
     return status;
   }
 
-  /**
-   * @brief     back propagation
-   */
-  std::stringstream epoch_string;
-  epoch_string << "epochs=" << EPOCHS << std::endl;
-  status = ml_train_model_run(handle, epoch_string.str().c_str(), NULL);
+  /** Do the training */
+  status = ml_train_model_run(handle, NULL);
   if (status != ML_ERROR_NONE) {
-    std::cerr << "Failed to train the model" << std::endl;
     ml_train_model_destroy(handle);
     return status;
   }
@@ -297,12 +398,11 @@ int trainModel(const char *config) {
 /**
  * @brief Test the model with the given config file path
  * @param[in] data_path Path of the test data
- * @param[in] tflite_data TFLite loaded configuration
  * @param[in] config Model config file path
  */
-int testModel(std::string data_path, const TFLiteData &tflite_data,
-              const char *model) {
+int testModel(const char *data_path, const char *model) {
 #if defined(__TIZEN__)
+  ml_single_h single;
   int status = ML_ERROR_NONE;
   ml_pipeline_h pipe;
   ml_pipeline_src_h src;
@@ -310,20 +410,25 @@ int testModel(std::string data_path, const TFLiteData &tflite_data,
   ml_tensors_data_h in_data;
   void *raw_data;
   size_t data_size;
-  ml_tensor_dimension in_dim = {1, 1, 1, INPUT_SIZE};
+  ml_tensor_dimension in_dim = {1, INPUT_SIZE, 1, 1};
 
-  char pipeline[1024];
-  snprintf(
-    pipeline, sizeof(pipeline),
-    "appsrc name=srcx | "
-    "other/"
-    "tensor,dimension=(string)1:1:1:%d,type=(string)float,framerate=(fraction)"
-    "0/1 | tensor_filter framework=nntrainer model=%s | tensor_sink",
-    INPUT_SIZE, model);
+  char pipeline[2048];
+  snprintf(pipeline, sizeof(pipeline),
+           "appsrc name=srcx ! "
+           "other/"
+           "tensor,dimension=(string)1:%d:1:1,type=(string)float32,framerate=("
+           "fraction)0/1 ! "
+           "tensor_filter framework=nntrainer model=\"%s\" input=1:%d:1:1 "
+           "inputtype=float32 output=1:%d:1:1 outputtype=float32 ! tensor_sink",
+           INPUT_SIZE, model, INPUT_SIZE, LABEL_SIZE);
+
+  status = setupSingleModel(data_path, &single);
+  if (status != ML_ERROR_NONE)
+    goto fail_exit;
 
   status = ml_pipeline_construct(pipeline, NULL, NULL, &pipe);
   if (status != ML_ERROR_NONE)
-    goto fail_exit;
+    goto fail_single_close;
 
   status = ml_pipeline_src_get_handle(pipe, "srcx", &src);
   if (status != ML_ERROR_NONE)
@@ -339,37 +444,40 @@ int testModel(std::string data_path, const TFLiteData &tflite_data,
   ml_tensors_info_set_tensor_dimension(in_info, 0, in_dim);
 
   for (int i = 0; i < TOTAL_TEST_SIZE; i++) {
-    std::string path = data_path;
-    path += "testset";
-    printf("\n[%s]\n", path.c_str());
-    std::string img = path + "/";
-    img += "test" + std::to_string(i + 1) + ".bmp";
-    printf("%s\n", img.c_str());
+    char *test_file_path;
+    status =
+      asprintf(&test_file_path, "%s/testset/test%d.bmp", data_path, i + 1);
+    if (status < 0) {
+      status = -errno;
+      goto fail_info_release;
+    }
 
-    std::vector<float> featureVector;
-    featureVector.resize(INPUT_SIZE);
-    getInputFeature(tflite_data, img, featureVector);
+    float featureVector[INPUT_SIZE];
+    status = getInputFeature(single, test_file_path, featureVector);
+    if (status != ML_ERROR_NONE)
+      goto fail_info_release;
 
     status = ml_tensors_data_create(in_info, &in_data);
     if (status != ML_ERROR_NONE)
       goto fail_info_release;
 
     status = ml_tensors_data_get_tensor_data(in_data, 0, &raw_data, &data_size);
-    if (status != ML_ERROR_NONE || data_size != INPUT_SIZE) {
+    if (status != ML_ERROR_NONE) {
       ml_tensors_data_destroy(&in_data);
       goto fail_info_release;
     }
 
-    for (size_t ds = 0; ds < data_size; ds++) {
-      ((float *)raw_data)[i] = featureVector[i];
-    }
+    for (size_t ds = 0; ds < data_size / sizeof(float); ds++)
+      ((float *)raw_data)[ds] = featureVector[ds];
 
     status = ml_pipeline_src_input_data(src, in_data,
                                         ML_PIPELINE_BUF_POLICY_AUTO_FREE);
-    if (status != ML_ERROR_NONE || data_size != INPUT_SIZE) {
+    if (status != ML_ERROR_NONE) {
       ml_tensors_data_destroy(&in_data);
       goto fail_info_release;
     }
+
+    /** No need to destroy data here, pipeline freed buffer automatically */
   }
 
 fail_info_release:
@@ -383,10 +491,13 @@ fail_src_release:
 fail_pipe_destroy:
   status = ml_pipeline_destroy(pipe);
 
+fail_single_close:
+  ml_single_close(single);
+
 fail_exit:
   return status;
 #else
-  std::cerr << "Testing of model only with TIZEN" << std::endl;
+  std::cout << "Testing of model only with TIZEN." << std::endl;
   return ML_ERROR_NONE;
 #endif
 }
@@ -400,9 +511,17 @@ fail_exit:
 int main(int argc, char *argv[]) {
   int status = ML_ERROR_NONE;
   if (argc < 3) {
-    std::cout << "./TransferLearning Config.ini resources\n";
-    exit(0);
+#if defined(__TIZEN__)
+    ml_loge("./TransferLearning Config.ini resources.");
+#else
+    std::cout << "./TransferLearning Config.ini resources." << std::endl;
+#endif
+    return 1;
   }
+
+#if defined(__TIZEN__)
+  set_feature_state(SUPPORTED);
+#endif
 
   const std::vector<std::string> args(argv + 1, argv + argc);
   std::string config = args[0];
@@ -412,21 +531,21 @@ int main(int argc, char *argv[]) {
 
   srand(time(NULL));
 
+  /** Extract features from the pre-trained model */
+#if defined(__TIZEN__)
+  status = extractFeatures(data_path.c_str(), inputVector, labelVector);
+  if (status != ML_ERROR_NONE)
+    return 1;
+#else
   TFLiteData tflite_data;
   try {
     setupTensorflowLiteModel(data_path, tflite_data);
-  } catch (...) {
-    std::cerr << "Setting up tflite model failed." << std::endl;
-    return 1;
-  }
-
-  /** Extract features from the pre-trained model */
-  try {
     extractFeatures(tflite_data, inputVector, labelVector);
   } catch (...) {
-    std::cerr << "Running tflite model failed." << std::endl;
+    std::cout << "Running tflite model failed." << std::endl;
     return 1;
   }
+#endif
 
   /** Do the training */
   status = trainModel(config.c_str());
@@ -434,9 +553,13 @@ int main(int argc, char *argv[]) {
     return 1;
 
   /** Test the trained model */
-  status = testModel(data_path, tflite_data, config.c_str());
+  status = testModel(data_path.c_str(), config.c_str());
   if (status != ML_ERROR_NONE)
     return 1;
+
+#if defined(__TIZEN__)
+  set_feature_state(NOT_CHECKED_YET);
+#endif
 
   return 0;
 }

@@ -71,7 +71,7 @@ uint8_t *decode_bmp(const uint8_t *input, int row_size, uint8_t *const output,
   return output;
 }
 
-uint8_t *read_bmp(const std::string &input_bmp_name, int *width, int *height,
+uint8_t *read_bmp(const char *input_bmp_name, int *width, int *height,
                   int *channels) {
   int begin, end;
 

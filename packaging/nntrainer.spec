@@ -94,6 +94,8 @@ Summary:	NNTrainer Examples
 Requires:	nntrainer = %{version}-%{release}
 Requires:	iniparser
 Requires:	capi-nnstreamer
+Requires:	nnstreamer-tensorflow-lite
+BuildRequires:	nnstreamer-tensorflow-lite
 BuildRequires:	tensorflow-lite-devel
 BuildRequires:	pkgconfig(jsoncpp)
 BuildRequires:	pkgconfig(libcurl)
@@ -193,6 +195,13 @@ tar xzf unittest_layers.tar.gz -C build
 
 # independent unittests of nntrainer
 bash %{test_script} ./test
+
+export NNSTREAMER_CONF=$(pwd)/test/nnstreamer_filter_nntrainer/nnstreamer-test.ini
+export NNSTREAMER_FILTERS=$(pwd)/build/nnstreamer/tensor_filter
+pushd build
+TF_APP=Applications/TransferLearning/Draw_Classification
+./${TF_APP}/jni/nntrainer_training ../${TF_APP}/res/Training.ini ../${TF_APP}/res
+popd
 
 # unittest for nntrainer plugin for nnstreamer
 %if  0%{?nnstreamer_filter}
