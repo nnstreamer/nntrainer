@@ -93,10 +93,12 @@ Static library package of nntrainer-devel
 Summary:	NNTrainer Examples
 Requires:	nntrainer = %{version}-%{release}
 Requires:	iniparser
+Requires:	capi-nnstreamer
 BuildRequires:	tensorflow-lite-devel
 BuildRequires:	pkgconfig(jsoncpp)
 BuildRequires:	pkgconfig(libcurl)
 BuildRequires:	pkgconfig(dlog)
+BuildRequires:	capi-nnstreamer-devel
 
 %description applications
 NNTraier Exmaples for test purpose.
