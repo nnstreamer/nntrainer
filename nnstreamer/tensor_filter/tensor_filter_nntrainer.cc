@@ -328,7 +328,6 @@ static int nntrainer_getOutputDim(const GstTensorFilterProperties *prop,
 
 static void nntrainer_destroyNotify(void **private_data, void *data) {
   NNTrainer *nntrainer = static_cast<NNTrainer *>(*private_data);
-  std::cout << "nnstrainer_dest" << std::endl;
   if (nntrainer) {
     nntrainer->freeOutputTensor(data);
   }
