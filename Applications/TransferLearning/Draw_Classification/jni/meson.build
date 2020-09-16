@@ -1,8 +1,5 @@
-gst_api_version = '1.0'
 build_root = meson.build_root()
 res_path = join_paths(meson.current_source_dir(), '..', 'res')
-glib_dep = dependency('glib-2.0')
-gst_dep = dependency('gstreamer-'+gst_api_version)
 
 training_sources = [
   'main.cpp',
