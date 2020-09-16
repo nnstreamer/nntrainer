@@ -40,6 +40,9 @@
 #include <time.h>
 
 #include <nntrainer.h>
+#if defined(__TIZEN__)
+#include <nnstreamer.h>
+#endif
 
 /** Number of dimensions for the input data */
 #define MAX_DIM 4
@@ -67,25 +70,10 @@ const std::string label_names[LABEL_SIZE] = {"happy", "sad", "soso"};
 
 /** Vectors containing the training data */
 std::vector<std::vector<float>> inputVector, labelVector;
-unsigned int iteration = 0;
 
 /**
- * @brief     step function
- * @param[in] x value to be distinguished
- * @retval 0.0 or 1.0
+ * @brief Private data for Tensorflow lite object
  */
-// float stepFunction(float x) {
-//   if (x > 0.9) {
-//     return 1.0;
-//   }
-//
-//   if (x < 0.1) {
-//     return 0.0;
-//   }
-//
-//   return x;
-// }
-
 struct TFLiteData {
   tflite::ops::builtin::BuiltinOpResolver resolver;
   std::unique_ptr<tflite::Interpreter> interpreter;
@@ -96,6 +84,9 @@ struct TFLiteData {
   int inputDimReq[MAX_DIM];
 };
 
+/**
+ * @brief Load the tensorflow lite model and its metadata
+ */
 void setupTensorflowLiteModel(const std::string &data_path,
                               TFLiteData &tflite_data) {
   int input_size;
@@ -187,7 +178,7 @@ void getInputFeature(const TFLiteData &tflite_data, const std::string filename,
 
 /**
  * @brief     Extract the features from pretrained model
- * @param[in] data_path data path
+ * @param[in] tflite_data private data for tflite model
  * @param[out] input_data output of tflite model (input for the nntrainer model)
  * @param[out] label_data one hot label data
  */
@@ -217,6 +208,7 @@ void extractFeatures(const TFLiteData &tflite_data,
  * Data generator callback
  */
 int getBatch_train(float **input, float **label, bool *last, void *user_data) {
+  static unsigned int iteration = 0;
   if (iteration >= EPOCH_SIZE) {
     *last = true;
     iteration = 0;
@@ -237,37 +229,17 @@ int getBatch_train(float **input, float **label, bool *last, void *user_data) {
 }
 
 /**
- * @brief     create NN
- *            Get Feature from tflite & run foword & back propatation
- * @param[in]  arg 1 : configuration file path
- * @param[in]  arg 2 : resource path
+ * @brief Train the model with the given config file path
+ * @param[in] config Model config file path
  */
-int main(int argc, char *argv[]) {
+int trainModel(const char *config) {
   int status = ML_ERROR_NONE;
-  if (argc < 3) {
-    std::cout << "./TransferLearning Config.ini resources\n";
-    exit(0);
-  }
-
-  const std::vector<std::string> args(argv + 1, argv + argc);
-  std::string config = args[0];
-
-  /** location of resources ( ../../res/ ) */
-  std::string data_path = args[1];
-
-  srand(time(NULL));
-
-  TFLiteData tflite_data;
-  setupTensorflowLiteModel(data_path, tflite_data);
-
-  /** Extract features from the already trained model */
-  extractFeatures(tflite_data, inputVector, labelVector);
 
   /** Neural Network Create & Initialization */
   ml_train_model_h handle = NULL;
   ml_train_dataset_h dataset = NULL;
 
-  status = ml_train_model_construct_with_conf(config.c_str(), &handle);
+  status = ml_train_model_construct_with_conf(config, &handle);
   if (status != ML_ERROR_NONE) {
     std::cerr << "Failed to construct the model" << std::endl;
     return status;
@@ -318,30 +290,153 @@ int main(int argc, char *argv[]) {
   }
 
   /** destroy the model */
-  ml_train_model_destroy(handle);
+  status = ml_train_model_destroy(handle);
+  return status;
+}
 
-  /**
-   * @brief     test
-   */
-  // for (int i = 0; i < TOTAL_TEST_SIZE; i++) {
-  //   std::string path = data_path;
-  //   path += "testset";
-  //   printf("\n[%s]\n", path.c_str());
-  //   std::string img = path + "/";
-  //   img += "test" + std::to_string(i + 1) + ".bmp";
-  //   printf("%s\n", img.c_str());
+/**
+ * @brief Test the model with the given config file path
+ * @param[in] data_path Path of the test data
+ * @param[in] tflite_data TFLite loaded configuration
+ * @param[in] config Model config file path
+ */
+int testModel(std::string data_path, const TFLiteData &tflite_data,
+              const char *model) {
+#if defined(__TIZEN__)
+  int status = ML_ERROR_NONE;
+  ml_pipeline_h pipe;
+  ml_pipeline_src_h src;
+  ml_tensors_info_h in_info;
+  ml_tensors_data_h in_data;
+  void *raw_data;
+  size_t data_size;
+  ml_tensor_dimension in_dim = {1, 1, 1, INPUT_SIZE};
 
-  //   std::vector<float> featureVector, resultVector;
-  //   featureVector.resize(128);
-  //   getFeature(img, featureVector);
-  //   nntrainer::Tensor X;
-  //   try {
-  //     X = nntrainer::Tensor({featureVector});
-  //     NN.forwarding(MAKE_SHARED_TENSOR(X))->apply(stepFunction);
-  //   } catch (...) {
-  //     std::cerr << "Error during forwaring the model" << std::endl;
-  //     NN.finalize();
-  //     return -1;
-  //   }
-  // }
+  char pipeline[1024];
+  snprintf(
+    pipeline, sizeof(pipeline),
+    "appsrc name=srcx | "
+    "other/"
+    "tensor,dimension=(string)1:1:1:%d,type=(string)float,framerate=(fraction)"
+    "0/1 | tensor_filter framework=nntrainer model=%s | tensor_sink",
+    INPUT_SIZE, model);
+
+  status = ml_pipeline_construct(pipeline, NULL, NULL, &pipe);
+  if (status != ML_ERROR_NONE)
+    goto fail_exit;
+
+  status = ml_pipeline_src_get_handle(pipe, "srcx", &src);
+  if (status != ML_ERROR_NONE)
+    goto fail_pipe_destroy;
+
+  status = ml_pipeline_start(pipe);
+  if (status != ML_ERROR_NONE)
+    goto fail_src_release;
+
+  ml_tensors_info_create(&in_info);
+  ml_tensors_info_set_count(in_info, 1);
+  ml_tensors_info_set_tensor_type(in_info, 0, ML_TENSOR_TYPE_FLOAT32);
+  ml_tensors_info_set_tensor_dimension(in_info, 0, in_dim);
+
+  for (int i = 0; i < TOTAL_TEST_SIZE; i++) {
+    std::string path = data_path;
+    path += "testset";
+    printf("\n[%s]\n", path.c_str());
+    std::string img = path + "/";
+    img += "test" + std::to_string(i + 1) + ".bmp";
+    printf("%s\n", img.c_str());
+
+    std::vector<float> featureVector;
+    featureVector.resize(INPUT_SIZE);
+    getInputFeature(tflite_data, img, featureVector);
+
+    status = ml_tensors_data_create(in_info, &in_data);
+    if (status != ML_ERROR_NONE)
+      goto fail_info_release;
+
+    status = ml_tensors_data_get_tensor_data(in_data, 0, &raw_data, &data_size);
+    if (status != ML_ERROR_NONE || data_size != INPUT_SIZE) {
+      ml_tensors_data_destroy(&in_data);
+      goto fail_info_release;
+    }
+
+    for (size_t ds = 0; ds < data_size; ds++) {
+      ((float *)raw_data)[i] = featureVector[i];
+    }
+
+    status = ml_pipeline_src_input_data(src, in_data,
+                                        ML_PIPELINE_BUF_POLICY_AUTO_FREE);
+    if (status != ML_ERROR_NONE || data_size != INPUT_SIZE) {
+      ml_tensors_data_destroy(&in_data);
+      goto fail_info_release;
+    }
+  }
+
+fail_info_release:
+  ml_tensors_info_destroy(in_info);
+
+  status = ml_pipeline_stop(pipe);
+
+fail_src_release:
+  status = ml_pipeline_src_release_handle(src);
+
+fail_pipe_destroy:
+  status = ml_pipeline_destroy(pipe);
+
+fail_exit:
+  return status;
+#else
+  std::cerr << "Testing of model only with TIZEN" << std::endl;
+  return ML_ERROR_NONE;
+#endif
+}
+
+/**
+ * @brief     create NN
+ *            Get Feature from tflite & run foword & back propatation
+ * @param[in]  arg 1 : configuration file path
+ * @param[in]  arg 2 : resource path
+ */
+int main(int argc, char *argv[]) {
+  int status = ML_ERROR_NONE;
+  if (argc < 3) {
+    std::cout << "./TransferLearning Config.ini resources\n";
+    exit(0);
+  }
+
+  const std::vector<std::string> args(argv + 1, argv + argc);
+  std::string config = args[0];
+
+  /** location of resources ( ../../res/ ) */
+  std::string data_path = args[1];
+
+  srand(time(NULL));
+
+  TFLiteData tflite_data;
+  try {
+    setupTensorflowLiteModel(data_path, tflite_data);
+  } catch (...) {
+    std::cerr << "Setting up tflite model failed." << std::endl;
+    return 1;
+  }
+
+  /** Extract features from the pre-trained model */
+  try {
+    extractFeatures(tflite_data, inputVector, labelVector);
+  } catch (...) {
+    std::cerr << "Running tflite model failed." << std::endl;
+    return 1;
+  }
+
+  /** Do the training */
+  status = trainModel(config.c_str());
+  if (status != ML_ERROR_NONE)
+    return 1;
+
+  /** Test the trained model */
+  status = testModel(data_path, tflite_data, config.c_str());
+  if (status != ML_ERROR_NONE)
+    return 1;
+
+  return 0;
 }

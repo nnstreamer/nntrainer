@@ -13,7 +13,8 @@ The configuration of the example is below,
 
 ### Resource Data
 
-This is in Applications/TransferLearning/Draw_Classification/res/Training.ini
+Training and test data for application is in ```Applications/TransferLearning/Draw_Classification/res`.
+Model configuration for the applicaiton is ```Applications/TransferLearning/Draw_Classification/res/Training.ini`.
 
 ```bash
 $ pwd
