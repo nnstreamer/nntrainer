@@ -190,7 +190,7 @@ cp label.dat build
 tar xzf unittest_layers.tar.gz -C build
 
 # independent unittests of nntrainer
-# bash %{test_script} ./test
+bash %{test_script} ./test
 
 # unittest for nntrainer plugin for nnstreamer
 %if  0%{?nnstreamer_filter}
