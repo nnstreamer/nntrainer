@@ -77,6 +77,9 @@ int DataBuffer::run(BufferType type) {
           return ML_ERROR_INVALID_PARAMETER;
         }
       }
+    } else {
+      ml_loge("Error: Training Data Set is not valid");
+      return ML_ERROR_INVALID_PARAMETER;
     }
     break;
   case BUF_VAL:
@@ -93,6 +96,9 @@ int DataBuffer::run(BufferType type) {
           return ML_ERROR_INVALID_PARAMETER;
         }
       }
+    } else {
+      ml_loge("Error: Validation Data Set is not valid");
+      return ML_ERROR_INVALID_PARAMETER;
     }
     break;
   case BUF_TEST:
@@ -110,6 +116,9 @@ int DataBuffer::run(BufferType type) {
           return ML_ERROR_INVALID_PARAMETER;
         }
       }
+    } else {
+      ml_loge("Error: Test Data Set is not valid");
+      return ML_ERROR_INVALID_PARAMETER;
     }
     break;
   default:
