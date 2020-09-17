@@ -1266,6 +1266,25 @@ TEST(nntrainer_Tensor, add_03_n) {
   EXPECT_THROW({ input.add(test); }, std::runtime_error);
 }
 
+TEST(nntrainer_Tensor, pow_01_p) {
+
+  nntrainer::Tensor input = constant(4.0, 3, 2, 4, 5);
+
+  nntrainer::Tensor actual, expected;
+
+  actual = input.pow(0.5f);
+  expected = constant(2.0, 3, 2, 4, 5);
+  EXPECT_EQ(actual, expected);
+
+  actual = input.pow(2.0f);
+  expected = constant(16.0, 3, 2, 4, 5);
+  EXPECT_EQ(actual, expected);
+
+  actual = input.pow(-0.5f);
+  expected = constant(0.5, 3, 2, 4, 5);
+  EXPECT_EQ(actual, expected);
+}
+
 TEST(nntrainer_Tensor, subtract_i_01_p) {
   int status = ML_ERROR_NONE;
   int batch = 3;

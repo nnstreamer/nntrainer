@@ -360,22 +360,29 @@ def bn_tf(x, *, trainable=True, init_beta=gen_tensor, init_gamma=gen_tensor, axi
     tf_input = tf.compat.v1.placeholder(
         dtype=dtypes.float32, shape=x.shape, name='input')
 
+    tf_backward_input = tf.compat.v1.placeholder(
+      dtype=dtypes.float32, shape=x.shape, name='output'
+    )
+
     bnlayer = tf.keras.layers.BatchNormalization(
         axis=axis,
         trainable=trainable,
-        momentum=0.99,
-        gamma_initializer=gen_tensor,
-        beta_initializer=gen_tensor,
+        momentum=0.90,
+        gamma_initializer=init_gamma,
+        beta_initializer=init_beta,
+        moving_mean_initializer=gen_tensor,
+        moving_variance_initializer=gen_tensor,
         fused=False)(tf_input)
 
     bn_variables = tf.compat.v1.get_collection(tf.compat.v1.GraphKeys.GLOBAL_VARIABLES,
                                                scope='batch_normalization')
 
     input_variables = [tf_input] + bn_variables
+    backward_input =  gen_tensor(x.shape)
 
-    grad = tf.gradients(bnlayer, input_variables[:-2])
+    grad = tf.gradients(bnlayer, input_variables[:-2], grad_ys=tf_backward_input)
 
-    f_dict = {tf_input: x, tf.keras.backend.learning_phase(): trainable}
+    f_dict = {tf_input: x, tf_backward_input: backward_input, tf.keras.backend.learning_phase(): trainable}
 
     with tf.compat.v1.Session() as sess:
       with tf.compat.v1.variable_scope('bn'):
@@ -393,10 +400,11 @@ def bn_tf(x, *, trainable=True, init_beta=gen_tensor, init_gamma=gen_tensor, axi
     if DEBUG:
         print("======================================")
         print("Input:\n %s\n Output:\n %s"  % (x[0], bn_result[0]))
-        print("dx: %s" % grad_result[0][0][0])
+        tf.print("params: %s \n" % (old_var))
+        print("dx: %s" % grad_result)
         print("======================================")
 
-    return old_var, output_variables, grad_result
+    return old_var, output_variables, grad_result, backward_input
 
 
 def gen_test_case_conv(i_b, i_c, i_h, i_w, k_c, k_h, k_w, padding, stride, bias, base_name, num_loop):
@@ -528,13 +536,16 @@ def gen_test_case_fc(input_shape, kernel_shape, base_name):
 def gen_test_case_bn(input_shape, base_name, axis, training=True):
     input_data = gen_input(base_name + "_BNLayerInput.in", input_shape)
 
-    input_variables, output_variables, grad = bn_tf(input_data, axis=axis)
+    gen_func = lambda shape, dtype=np.float32: gen_tensor(shape, dtype)
+
+    input_variables, output_variables, grad, backward_input = bn_tf(input_data, axis=axis, init_beta=gen_func, init_gamma=gen_func)
 
     # mu / var / gamma / beta
     save(base_name + "_BNLayerWeights.in", input_variables[3], input_variables[4], input_variables[1], input_variables[2])
     save(base_name + "_goldenBNResultForward.out", output_variables[0])
     # todo: change 0 to initial moving avg / std in case of training
     save(base_name + "_goldenBNLayerAfterUpdate.out", 0, 0, output_variables[1], output_variables[2])
+    save(base_name + "_goldenBNLayerBackwardDxIn.out", backward_input)
     save(base_name + "_goldenBNLayerBackwardDx.out", grad[0])
 
 if __name__ == "__main__":
@@ -581,8 +592,14 @@ if __name__ == "__main__":
     if target == "bn_fc_1":
         gen_test_case_bn(input_shape = [3, 1, 1, 12], base_name = "tc_bn_fc_1", axis=-1)
 
+    if target == "bn_conv_1":
+        gen_test_case_bn(input_shape = [3, 2, 4, 5], base_name = "tc_bn_conv_1", axis=1)
+
+    if target == "bn_fc_2":
+        gen_test_case_bn(input_shape = [1, 1, 1, 12], base_name = "tc_bn_fc_2", axis=-1)
+
     if target == "bn_conv_2":
-        gen_test_case_bn(input_shape = [3, 2, 4, 5], base_name = "tc_bn_conv_2", axis=1)
+        gen_test_case_bn(input_shape = [1, 2, 4, 5], base_name = "tc_bn_conv_2", axis=1)
 
     if target == "pooling2d_1":
         gen_test_case_pooling(input_shape = [1,2,5,5], pool_size=[2,2], stride=[1,1], padding=[0,0], pooling="max", base_name="tc_pooling2d_1", gen_in=True)
