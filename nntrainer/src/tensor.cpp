@@ -243,6 +243,17 @@ int Tensor::operator_i(
   std::function<void(const BroadcastInfo &e, float *, const float *)> v_func) {
 
   BroadcastInfo e;
+
+  /// shortcut to cover when dimension matches
+  /// note that buffer_size, the last stride is only used in v_func but it might
+  /// be changed
+  if (dim == m.dim) {
+    e.buffer_size = length();
+    e.strides[3] = 1;
+    v_func(e, getData(), m.getData());
+    return ML_ERROR_NONE;
+  }
+
   try {
     e = this->computeBroadcastInfo(m);
   } catch (std::exception &err) {
@@ -784,13 +795,17 @@ BroadcastInfo Tensor::computeBroadcastInfo(const Tensor &m) {
 
   BroadcastInfo e;
 
+  /// checking if given Tensor's can be broadcasted
   for (unsigned int i = 0; i < MAXDIM; ++i) {
-    if (m_dim.getTensorDim(i) == 1) {
+    if (dim.getTensorDim(i) == m_dim.getTensorDim(i)) {
+      e.strides[i] = m.strides[i];
       continue;
     }
 
-    if (dim.getTensorDim(i) == m_dim.getTensorDim(i)) {
-      e.strides[i] = m.strides[i];
+    /// If given dimension is 1, it could be reuesed, the stride remaining 0
+    /// Need to check if dim[i] == 1 && m_dim[i] == 1 first though
+    /// If so, strides should not change
+    if (m_dim.getTensorDim(i) == 1) {
       continue;
     }
 
@@ -802,29 +817,40 @@ BroadcastInfo Tensor::computeBroadcastInfo(const Tensor &m) {
   }
 
   /// calculate inner loop size
-  unsigned int inner_loop_size = dim.getTensorDim(3);
-
-  bool first_dim_none = m_dim.getTensorDim(3) == 1 && dim.getTensorDim(3) != 1;
+  e.buffer_size = 1;
   e.buffer_axis = -1;
-  for (int axis = 2; axis >= 0; --axis) {
-    unsigned int cur_dim = m_dim.getTensorDim(axis);
+  e.strides[3] = m.strides[3];
 
-    if (first_dim_none) {
-      if (cur_dim != 1) {
-        e.buffer_axis = axis;
-        break;
-      }
-    } else {
-      if (cur_dim == 1 && dim.getTensorDim(axis) != m_dim.getTensorDim(axis)) {
-        e.buffer_axis = axis;
-        break;
-      }
+  /// initiate buffer info with matching dimension strategy
+  for (int axis = 3; axis >= 0; --axis) {
+    if (dim.getTensorDim(axis) != m_dim.getTensorDim(axis)) {
+      e.buffer_axis = axis;
+      break;
     }
 
-    inner_loop_size *= dim.getTensorDim(axis);
+    e.buffer_size *= dim.getTensorDim(axis);
   }
 
-  e.buffer_size = inner_loop_size;
+  /// check strategy that uses consecutive ones
+  if (m_dim.getTensorDim(3) == 1) {
+    unsigned int inner_loop_size = 1;
+    int axis;
+    for (axis = 3; axis >= 0; --axis) {
+      if (m_dim.getTensorDim(axis) != 1) {
+        break;
+      }
+
+      inner_loop_size *= dim.getTensorDim(axis);
+    }
+
+    /// if consecutive-one strategy has bigger chunk size, replace the
+    /// information
+    if (inner_loop_size > e.buffer_size) {
+      e.buffer_axis = axis;
+      e.buffer_size = inner_loop_size;
+      e.strides[3] = 0;
+    }
+  }
 
   return e;
 }
