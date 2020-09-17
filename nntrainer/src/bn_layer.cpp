@@ -128,15 +128,13 @@ sharedConstTensor BatchNormalizationLayer::forwarding(sharedConstTensor in) {
   Tensor &gamma = paramsAt(static_cast<int>(BNParams::gamma)).weight;
   Tensor &beta = paramsAt(static_cast<int>(BNParams::beta)).weight;
 
-  Tensor deviation;
-
   input = *in;
   /// @todo change trainable #524
   if (trainable) {
     Tensor cmu = input.average(axes_to_reduce);
     deviation = input.subtract(cmu);
 
-    cvar = deviation.multiply(deviation).average(axes_to_reduce);
+    cvar = deviation.pow(2.0f).average(axes_to_reduce);
     cvar.add_i(epsilon);
 
     mu.multiply_i(momentum);
@@ -144,12 +142,13 @@ sharedConstTensor BatchNormalizationLayer::forwarding(sharedConstTensor in) {
     var.multiply_i(momentum);
     var.add_i(cvar, 1 - momentum);
 
-    this->x_normalized = deviation.divide(cvar.apply(sqrtFloat));
+    invstd = cvar.pow(-0.5f);
+    this->x_normalized = deviation.multiply(invstd);
     this->hidden = x_normalized.multiply(gamma);
     this->hidden.add_i(beta);
   } else {
     deviation = input.subtract(mu);
-    this->x_normalized = deviation.divide(var.apply(sqrtFloat));
+    this->x_normalized = deviation.divide(var.pow(0.5f));
     this->hidden = x_normalized.multiply(gamma);
     this->hidden.add(beta);
   }
@@ -161,27 +160,29 @@ sharedConstTensor
 BatchNormalizationLayer::backwarding(sharedConstTensor derivative,
                                      int iteration) {
   Tensor &gamma = paramsAt(static_cast<int>(BNParams::gamma)).weight;
+  Tensor &dgamma = paramsAt(static_cast<int>(BNParams::gamma)).grad;
   Tensor &dbeta = paramsAt(static_cast<int>(BNParams::beta)).grad;
-  Tensor &dgamma = paramsAt(static_cast<int>(BNParams::beta)).grad;
   Tensor dx_normalized;
 
-  Tensor dx;
   Tensor deriv = *derivative;
 
-  int batch = input_dim.batch();
+  int N = 1;
 
-  dgamma = x_normalized.multiply(deriv).sum(axes_to_reduce);
+  for (auto &axis : axes_to_reduce) {
+    N *= input_dim.getTensorDim(axis);
+  }
+
   dbeta = deriv.sum(axes_to_reduce);
+  dgamma = deviation.multiply(invstd).multiply(deriv).sum(axes_to_reduce);
 
-  dx_normalized = deriv.multiply(gamma);
+  Tensor dx_1 = gamma.multiply(invstd);
+  Tensor dx_2 = deriv.multiply(N);
+  dx_2.subtract_i(deriv.sum(axes_to_reduce));
+  dx_2.subtract_i(deviation.divide(cvar).multiply(
+    deviation.multiply(deriv).sum(axes_to_reduce)));
 
-  dx = dx_normalized.chain()
-         .multiply_i(batch)
-         .subtract_i(dx_normalized.sum(axes_to_reduce))
-         .subtract_i(
-           x_normalized.multiply(dx_normalized.multiply(x_normalized).sum(0)))
-         .divide_i(cvar.multiply(batch))
-         .run();
+  Tensor dx = dx_2.multiply(dx_1);
+  dx.divide_i(N);
 
   opt.apply_gradients(params, param_size, iteration);
 
