@@ -853,17 +853,53 @@ TEST_F(nntrainer_BatchNormalizationLayer, forward_backward_training_01_p) {
   sharedConstTensor forward_result;
 
   EXPECT_NO_THROW(forward_result = layer.forwarding(MAKE_SHARED_TENSOR(in)));
-
   matchOutput(*forward_result, "tc_bn_fc_1_goldenBNResultForward.out");
 
-  nntrainer::Tensor backward_result;
-  EXPECT_NO_THROW(backward_result = *layer.backwarding(
-                    MAKE_SHARED_TENSOR(constant(1.0, 3, 1, 1, 12)), 1));
+  nntrainer::Tensor backward_in(layer.getOutputDimension());
+  loadFile("tc_bn_fc_1_goldenBNLayerBackwardDxIn.out", backward_in);
+
+  nntrainer::Tensor backward_result =
+    *layer.backwarding(MAKE_SHARED_TENSOR(backward_in), 1);
 
   matchOutput(backward_result, "tc_bn_fc_1_goldenBNLayerBackwardDx.out");
 }
 
 class nntrainer_BatchNormalizationLayer_Conv
+  : public nntrainer_abstractLayer<nntrainer::BatchNormalizationLayer> {
+protected:
+  typedef nntrainer_abstractLayer<nntrainer::BatchNormalizationLayer> super;
+
+  virtual int reinitialize() {
+    int status = super::reinitialize();
+    loadFile("tc_bn_conv_1_BNLayerInput.in", in);
+    loadFile("tc_bn_conv_1_BNLayerWeights.in", layer);
+    return status;
+  }
+
+  virtual void prepareLayer() {
+    setProperty(
+      "input_shape=2:4:5 | epsilon=0.001 | batch_size=3 | momentum=0.90");
+    setOptimizer(nntrainer::OptType::sgd, "learning_rate=1");
+  }
+};
+
+TEST_F(nntrainer_BatchNormalizationLayer_Conv, forward_backward_training_01_p) {
+  layer.setTrainable(true);
+  sharedConstTensor forward_result;
+
+  forward_result = layer.forwarding(MAKE_SHARED_TENSOR(in));
+  matchOutput(*forward_result, "tc_bn_conv_1_goldenBNResultForward.out");
+
+  nntrainer::Tensor backward_in(layer.getOutputDimension());
+  loadFile("tc_bn_conv_1_goldenBNLayerBackwardDxIn.out", backward_in);
+
+  nntrainer::Tensor backward_result =
+    *layer.backwarding(MAKE_SHARED_TENSOR(backward_in), 1);
+
+  matchOutput(backward_result, "tc_bn_conv_1_goldenBNLayerBackwardDx.out");
+}
+
+class nntrainer_BatchNormalizationLayer_Conv2
   : public nntrainer_abstractLayer<nntrainer::BatchNormalizationLayer> {
 protected:
   typedef nntrainer_abstractLayer<nntrainer::BatchNormalizationLayer> super;
@@ -876,22 +912,25 @@ protected:
   }
 
   virtual void prepareLayer() {
-    setProperty("input_shape=2:4:5 | epsilon=0.001 | batch_size=3");
+    setProperty(
+      "input_shape=2:4:5 | epsilon=0.001 | batch_size=1 | momentum=0.90");
     setOptimizer(nntrainer::OptType::sgd, "learning_rate=1");
   }
 };
 
-TEST_F(nntrainer_BatchNormalizationLayer_Conv,
-       DISABLED_forward_backward_training_01_p) {
+TEST_F(nntrainer_BatchNormalizationLayer_Conv2,
+       forward_backward_training_01_p) {
   layer.setTrainable(true);
   sharedConstTensor forward_result;
 
   forward_result = layer.forwarding(MAKE_SHARED_TENSOR(in));
   matchOutput(*forward_result, "tc_bn_conv_2_goldenBNResultForward.out");
 
-  nntrainer::Tensor backward_result;
-  EXPECT_NO_THROW(backward_result = *layer.backwarding(
-                    MAKE_SHARED_TENSOR(constant(1.0, 3, 2, 4, 5)), 1));
+  nntrainer::Tensor backward_in(layer.getOutputDimension());
+  loadFile("tc_bn_conv_2_goldenBNLayerBackwardDxIn.out", backward_in);
+
+  nntrainer::Tensor backward_result =
+    *layer.backwarding(MAKE_SHARED_TENSOR(backward_in), 1);
 
   matchOutput(backward_result, "tc_bn_conv_2_goldenBNLayerBackwardDx.out");
 }

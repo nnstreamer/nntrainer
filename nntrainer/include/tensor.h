@@ -303,6 +303,13 @@ public:
   Tensor divide(Tensor const &m) const;
 
   /**
+   * @brief    Tensor power Element by Element
+   * @param[in] float Divisor Tensor
+   * @retval Calculated Tensor
+   */
+  Tensor pow(float m) const;
+
+  /**
    * @brief     Dot Product of Tensor ( equal MxM )
    * @details   This applies dot of the last dimension of this and second-last
    * dimension of passed tensor m.

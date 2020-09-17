@@ -111,6 +111,9 @@ public:
 private:
   Tensor cvar; /**< training variance saved in bn_layer::forwarding and used in
                     bn_layer::backwarding */
+  Tensor invstd; /**<  inversed training std for backward pass */
+
+  Tensor deviation; /**< (input - current_average) */
 
   Tensor x_normalized; /**< normalized axis saved for backwarding */
   float epsilon;       /**< epsilon */

@@ -26,6 +26,7 @@
 #include <cstring>
 #include <iomanip>
 #include <iterator>
+#include <math.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <parse_util.h>
@@ -237,6 +238,10 @@ Tensor Tensor::subtract(Tensor const &m) const { return add(m, -1); }
 int Tensor::subtract_i(float const &value) { return this->add_i(-value); }
 
 Tensor Tensor::subtract(float const &value) { return this->add(-value); }
+
+Tensor Tensor::pow(float exponent) const {
+  return apply([=](float in) { return powf(in, exponent); });
+}
 
 int Tensor::operator_i(
   Tensor const &m,
