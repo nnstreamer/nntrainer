@@ -263,19 +263,28 @@ int getBatch_val(float **outVec, float **outLabel, bool *last,
 /**
  * @brief return a tensor filled with contant value with dimension
  */
-nntrainer::Tensor constant(float value, unsigned int batch, unsigned channel,
-                           unsigned height, unsigned width) {
+nntrainer::Tensor constant(float value, unsigned int batch,
+                           unsigned int channel, unsigned int height,
+                           unsigned int width) {
   nntrainer::Tensor t(batch, channel, height, width);
   t.setValue(value);
 
   return t;
 }
 
-nntrainer::Tensor ranged(unsigned int batch, unsigned channel, unsigned height,
-                         unsigned width) {
+nntrainer::Tensor ranged(unsigned int batch, unsigned int channel,
+                         unsigned int height, unsigned int width) {
   nntrainer::Tensor t(batch, channel, height, width);
   unsigned int i = 0;
   return t.apply([&](float in) { return i++; });
+}
+
+nntrainer::Tensor randUniform(unsigned int batch, unsigned int channel,
+                              unsigned int height, unsigned int width,
+                              float min, float max) {
+  nntrainer::Tensor t(batch, channel, height, width);
+  t.setRandUniform(min, max);
+  return t;
 }
 
 void IniSection::setEntry(const std::string &entry_str) {

@@ -368,6 +368,13 @@ nntrainer::Tensor ranged(unsigned int batch, unsigned channel, unsigned height,
                          unsigned width);
 
 /**
+ * @brief return a tensor filled with random value with given dimension
+ */
+nntrainer::Tensor randUniform(unsigned int batch, unsigned channel,
+                              unsigned height, unsigned width, float min = -1,
+                              float max = 1);
+
+/**
  * @brief replace string and save in file
  * @param[in] from string to be replaced
  * @param[in] to string to repalce with

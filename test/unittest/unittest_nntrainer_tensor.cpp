@@ -1161,6 +1161,27 @@ TEST(nntrainer_Tensor, add_i_broadcast_01_p) {
     EXPECT_EQ(status, ML_ERROR_NONE);
     EXPECT_EQ(t, answer);
   }
+  {
+    nntrainer::TensorDim ref_dim(1, 1, 2, 1);
+    nntrainer::Tensor t = ranged(1, 1, 2, 1);
+    nntrainer::Tensor m = ranged(1, 1, 2, 1);
+    float answer_data[] = {0.0, 2.0};
+    nntrainer::Tensor answer(ref_dim, answer_data);
+    int status = t.add_i(m);
+    EXPECT_EQ(status, ML_ERROR_NONE);
+    EXPECT_EQ(t, answer);
+  }
+  {
+    nntrainer::TensorDim ref_dim(16, 1, 1, 1);
+    nntrainer::Tensor t = ranged(16, 1, 1, 1);
+    nntrainer::Tensor m = ranged(1, 1, 1, 1);
+    float answer_data[] = {0.0, 1.0, 2.0,  3.0,  4.0,  5.0,  6.0,  7.0,
+                           8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0};
+    nntrainer::Tensor answer(ref_dim, answer_data);
+    int status = t.add_i(m);
+    EXPECT_EQ(status, ML_ERROR_NONE);
+    EXPECT_EQ(t, answer);
+  }
 }
 
 TEST(nntrainer_Tensor, add_i_broadcast_not_supported_01_n) {
@@ -1940,8 +1961,8 @@ TEST(nntrainer_Tensor, print_large_size) {
 }
 
 TEST(nntrainer_Tensor, DISABLED_broadcast_info_n) {
-  nntrainer::Tensor t = ranged(3, 5, 1, 4);
-  nntrainer::Tensor b = ranged(1, 5, 1, 4);
+  nntrainer::Tensor t = ranged(1, 1, 2, 1);
+  nntrainer::Tensor b = ranged(1, 1, 2, 1);
 
   auto vector_func = [](float *buf, int stride, int size) {
     float *cur = buf;
@@ -2018,6 +2039,26 @@ TEST(nntrainer_Tensor, DISABLED_broadcast_info_n) {
     std::cerr << i << ' ';
   std::cerr << std::endl;
   std::cerr << "buffer_size: " << e.buffer_size << std::endl;
+}
+
+TEST(nntrainer_Tensor, DISABLED_equation_test_01_p) {
+  nntrainer::Tensor a, b, c;
+  nntrainer::Tensor ret1, ret2;
+
+  a = randUniform(4, 6, 7, 3, -100, 100);
+  b = randUniform(4, 6, 7, 3, -100, 100);
+  c = randUniform(4, 6, 7, 3, -100, 100);
+
+  ret1 = a.subtract(b).multiply(c);
+  ret2 = a.multiply(c).subtract(b.multiply(c));
+
+  float *data1 = ret1.getData();
+  float *data2 = ret2.getData();
+  EXPECT_EQ(ret1, ret2);
+
+  for (unsigned int i = 0; i < ret1.length(); ++i) {
+    EXPECT_FLOAT_EQ(data1[i], data2[i]);
+  }
 }
 
 /**
