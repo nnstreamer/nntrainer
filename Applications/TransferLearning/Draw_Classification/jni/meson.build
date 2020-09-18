@@ -22,4 +22,4 @@ e = executable('nntrainer_training',
   install_dir: application_install_dir
 )
 
-test('app_training', e, args: [join_paths(res_path, 'Training.ini'), res_path + '/'], timeout: 60)
+test('app_training', e, args: [join_paths(res_path, 'Training.ini'), res_path], timeout: 60)
