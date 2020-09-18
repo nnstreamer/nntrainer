@@ -31,11 +31,24 @@
 #include <stdlib.h>
 #include <time.h>
 
+#include "databuffer.h"
+#include "databuffer_func.h"
 #include "neuralnet.h"
 #include "tensor.h"
-#define training true
 
 std::string data_file;
+
+const unsigned int total_train_data_size = 90;
+
+unsigned int train_count = 0;
+
+const unsigned int batch_size = 16;
+
+const unsigned int feature_size = 2;
+
+const unsigned int total_val_data_size = 10;
+
+bool training = false;
 
 /**
  * @brief     step function
@@ -55,22 +68,111 @@ float stepFunction(float x) {
 }
 
 /**
+ * @brief     get idth Data
+ * @param[in] F file stream
+ * @param[out] outVec feature data
+ * @param[out] outLabel label data
+ * @param[in] id id th
+ * @retval boolean true if there is no error
+ */
+bool getData(std::ifstream &F, std::vector<float> &outVec,
+             std::vector<float> &outLabel, unsigned int id) {
+  std::string temp;
+  F.clear();
+  F.seekg(0, std::ios_base::beg);
+  char c;
+  unsigned int i = 0;
+  while (F.get(c) && i < id)
+    if (c == '\n')
+      ++i;
+
+  F.putback(c);
+
+  if (!std::getline(F, temp))
+    return false;
+
+  std::istringstream buffer(temp);
+  float x;
+  for (unsigned int j = 0; j < feature_size; ++j) {
+    buffer >> x;
+    outVec[j] = x;
+  }
+  buffer >> x;
+  outLabel[0] = x;
+
+  return true;
+}
+
+/**
+ * @brief     get Data as much as batch size
+ * @param[out] outVec feature data
+ * @param[out] outLabel label data
+ * @param[out] last end of data
+ * @param[in] user_data user data
+ * @retval int 0 if there is no error
+ */
+int getBatch_train(float **outVec, float **outLabel, bool *last,
+                   void *user_data) {
+  std::ifstream dataFile(data_file);
+  unsigned int data_size = total_train_data_size;
+  unsigned int count = 0;
+
+  if (data_size - train_count < batch_size) {
+    *last = true;
+    train_count = 0;
+    return 0;
+  }
+
+  for (unsigned int i = train_count; i < train_count + batch_size; ++i) {
+
+    std::vector<float> o;
+    std::vector<float> l;
+    o.resize(feature_size);
+    l.resize(1);
+
+    if (!getData(dataFile, o, l, i)) {
+      return -1;
+    };
+
+    for (unsigned int j = 0; j < feature_size; ++j)
+      outVec[0][count * feature_size + j] = o[j];
+    outLabel[0][count] = l[0];
+
+    count++;
+  }
+
+  dataFile.close();
+  *last = false;
+  train_count += batch_size;
+  return 0;
+}
+
+/**
  * @brief     create NN
  *            back propagation of NN
- * @param[in]  arg 1 : configuration file path
- * @param[in]  arg 2 : resource path (dataset.txt or testset.txt)
+ * @param[in]  arg 1 : train / inference
+ * @param[in]  arg 2 : configuration file path
+ * @param[in]  arg 3 : resource path (dataset.txt or testset.txt)
  */
 int main(int argc, char *argv[]) {
-  if (argc < 3) {
-    std::cout << "./LogisticRegression Config.ini data.txt\n";
-    exit(0);
+  if (argc < 4) {
+    std::cout
+      << "./LogisticRegression train (| inference) Config.ini data.txt\n";
+    exit(1);
   }
 
   const std::vector<std::string> args(argv + 1, argv + argc);
-  std::string config = args[0];
-  data_file = args[1];
+  std::string config = args[1];
+  data_file = args[2];
+
+  if (!args[0].compare("train"))
+    training = true;
 
   srand(time(NULL));
+
+  std::shared_ptr<nntrainer::DataBufferFromCallback> DB =
+    std::make_shared<nntrainer::DataBufferFromCallback>();
+  DB->setFunc(nntrainer::BUF_TRAIN, getBatch_train);
 
   /**
    * @brief     Create NN
@@ -91,104 +193,49 @@ int main(int argc, char *argv[]) {
     return 0;
   }
 
-  if (!training)
-    NN.readModel();
-
-  /**
-   * @brief     Generate Trainig Set
-   */
-  std::ifstream dataFile(data_file);
-  if (dataFile.is_open()) {
-    std::string temp;
-    int index = 0;
-    while (std::getline(dataFile, temp)) {
-      if (training && index % 10 == 1) {
-        std::cout << temp << std::endl;
-        index++;
-        continue;
-      }
-      std::istringstream buffer(temp);
-      std::vector<float> line;
-      std::vector<float> out;
-      float x;
-      for (int i = 0; i < 2; i++) {
-        buffer >> x;
-        line.push_back(x);
-      }
-      inputVector.push_back(line);
-      buffer >> x;
-      out.push_back(x);
-      outputVector.push_back(out);
-      index++;
-    }
-  }
-
-  /**
-   * @brief     training NN ( back propagation )
-   */
   if (training) {
-    for (unsigned int i = 0; i < NN.getEpochs(); i++) {
-      for (unsigned int j = 0; j < inputVector.size(); ++j) {
-        std::vector<std::vector<float>> in, label;
-        in.push_back(inputVector[j]);
-        label.push_back(outputVector[j]);
-        nntrainer::Tensor d, y;
-        try {
-          d = nntrainer::Tensor(in);
-        } catch (...) {
-          std::cerr << "Error during tensor construct" << std::endl;
-          NN.finalize();
-          return -1;
-        }
-        try {
-          y = nntrainer::Tensor(label);
-        } catch (...) {
-          std::cerr << "Error during tensor construct" << std::endl;
-          NN.finalize();
-          return -1;
-        }
-        try {
-          NN.backwarding(MAKE_SHARED_TENSOR(d), MAKE_SHARED_TENSOR(y), i);
-        } catch (...) {
-          std::cerr << "Error during backwarding the model" << std::endl;
-          NN.finalize();
-          return -1;
-        }
-      }
-      std::cout << "#" << i + 1 << "/" << NN.getEpochs()
-                << " - Loss : " << NN.getLoss() << std::endl;
-      NN.setLoss(0.0);
+    NN.setDataBuffer((DB));
+
+    try {
+      NN.train();
+    } catch (...) {
+      std::cerr << "Error during train" << std::endl;
+      NN.finalize();
+      return 0;
     }
   } else {
-    /**
-     * @brief     forward propagation
-     */
+    NN.readModel();
+    std::ifstream dataFile(data_file);
     int cn = 0;
-    for (unsigned int j = 0; j < inputVector.size(); ++j) {
-      std::vector<std::vector<float>> in, label;
-      in.push_back(inputVector[j]);
-      label.push_back(outputVector[j]);
+    for (unsigned int j = 0; j < total_val_data_size; ++j) {
+      nntrainer::Tensor d;
+      std::vector<float> o;
+      std::vector<float> l;
+      o.resize(feature_size);
+      l.resize(1);
+
+      getData(dataFile, o, l, j);
+
       try {
-        cn += NN.forwarding(MAKE_SHARED_TENSOR(in))
-                ->apply(stepFunction)
-                .getValue(0, 0, 0, 0) == label[0][0];
+        float answer = NN.forwarding(MAKE_SHARED_TENSOR(nntrainer::Tensor({o})))
+                         ->apply(stepFunction)
+                         .getValue(0, 0, 0, 0);
+        std::cout << answer << " : " << l[0] << std::endl;
+        cn += answer == l[0];
       } catch (...) {
         std::cerr << "Error during forwarding the model" << std::endl;
         NN.finalize();
         return -1;
       }
     }
-    std::cout << "[ Accuracy ] : " << ((float)(cn) / inputVector.size()) * 100.0
-              << "%" << std::endl;
+    std::cout << "[ Accuracy ] : "
+              << ((float)(cn) / total_val_data_size) * 100.0 << "%"
+              << std::endl;
   }
-
-  /**
-   * @brief     save Weight & Bias
-   */
-  NN.saveModel();
 
   /**
    * @brief     Finalize NN
    */
   NN.finalize();
+  return 0;
 }
