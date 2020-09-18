@@ -114,7 +114,7 @@ Currently we privde [C APIs](https://github.com/nnstreamer/nntrainer/blob/master
 
 This is demo application which enable user defined custom shortcut on galaxy watch.
 
-#### [MNIST Example](https://github.com/nnstreamer/nntrainer/tree/master/Applications/mnist)
+#### [MNIST Example](https://github.com/nnstreamer/nntrainer/tree/master/Applications/MNIST)
 
 This is example to train mnist dataset. It consists two convolution 2d layer, 2 pooling 2d layer, flatten layer and fully connected layer.
 
@@ -122,13 +122,14 @@ This is example to train mnist dataset. It consists two convolution 2d layer, 2 
 
 This is reinforcement learning example with cartpole game. It is using deepq alogrightm.
 
-#### [Classification for cifar 10]( https://github.com/nnstreamer/nntrainer/tree/master/Applications/Classification )
+#### [Classification for cifar 10](https://github.com/nnstreamer/nntrainer/tree/master/Applications/TransferLearning/CIFAR_Classification)
 
 This is Transfer learning example with cifar 10 data set. TFlite is used for feature extractor and modify last layer (fully connected layer) of network.
 
-#### [Tizen CAPI Example](https://github.com/nnstreamer/nntrainer/tree/master/Applications/Tizen_CAPI)
+#### ~Tizen CAPI Example~
 
-This is for demonstrate c api for tizen. It is same transfer learing but written with tizen c api.
+~This is for demonstrate c api for tizen. It is same transfer learing but written with tizen c api.~
+Deleted instead moved to a [test](https://github.com/nnstreamer/nntrainer/blob/master/test/tizen_capi/unittest_tizen_capi.cpp)
 
 #### [KNN Example](https://github.com/nnstreamer/nntrainer/tree/master/Applications/KNN)
 
