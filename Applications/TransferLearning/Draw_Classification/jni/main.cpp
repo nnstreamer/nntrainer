@@ -75,6 +75,13 @@ const char *label_names[LABEL_SIZE] = {"happy", "sad", "soso"};
 float inputVector[EPOCH_SIZE][INPUT_SIZE];
 float labelVector[EPOCH_SIZE][LABEL_SIZE];
 
+/** set float array to 0 */
+void array_set_zero(float *data, size_t num_elem) {
+  for (size_t idx = 0; idx < num_elem; idx++) {
+    data[idx] = 0.0;
+  }
+}
+
 #if defined(__TIZEN__)
 int getInputFeature(ml_single_h single, const char *test_file_path,
                     float *feature_input) {
@@ -168,7 +175,7 @@ int extractFeatures(const char *data_path, float input_data[][INPUT_SIZE],
       }
 
       count = i * NUM_DATA_PER_LABEL + j;
-      memset(label_data[count], 0, LABEL_SIZE * sizeof(float));
+      array_set_zero(label_data[count], LABEL_SIZE);
       label_data[count][i] = 1;
       status = getInputFeature(single, test_file_path, input_data[count]);
       free(test_file_path);
@@ -308,7 +315,7 @@ void extractFeatures(const TFLiteData &tflite_data,
       int count = i * NUM_DATA_PER_LABEL + j;
       getInputFeature(tflite_data, img, input_data[count]);
 
-      memset(label_data[count], 0, LABEL_SIZE * sizeof(float));
+      array_set_zero(label_data[count], LABEL_SIZE);
       label_data[count][i] = 1;
     }
   }
@@ -395,6 +402,37 @@ int trainModel(const char *config) {
   return status;
 }
 
+#if defined(__TIZEN__)
+void sink_cb(const ml_tensors_data_h data, const ml_tensors_info_h info,
+             void *user_data) {
+  static int test_file_idx = 0;
+  int status = ML_ERROR_NONE;
+  ml_tensor_dimension dim;
+  float *raw_data;
+  size_t data_size;
+  int max_idx = -1;
+  float max_val = 0; // last layer is softmax, so all values will be positive
+
+  ml_tensors_info_get_tensor_dimension(info, 0, dim);
+
+  status =
+    ml_tensors_data_get_tensor_data(data, 0, (void **)&raw_data, &data_size);
+  if (status != ML_ERROR_NONE)
+    return;
+
+  for (int i = 0; i < LABEL_SIZE; i++) {
+    if (raw_data[i] > max_val) {
+      max_val = raw_data[i];
+      max_idx = i;
+    }
+  }
+
+  std::cout << "Label for test file test" << test_file_idx
+            << ".bmp = " << label_names[max_idx] << std::endl;
+  test_file_idx += 1;
+}
+#endif
+
 /**
  * @brief Test the model with the given config file path
  * @param[in] data_path Path of the test data
@@ -406,6 +444,7 @@ int testModel(const char *data_path, const char *model) {
   int status = ML_ERROR_NONE;
   ml_pipeline_h pipe;
   ml_pipeline_src_h src;
+  ml_pipeline_sink_h sink;
   ml_tensors_info_h in_info;
   ml_tensors_data_h in_data;
   void *raw_data;
@@ -419,7 +458,8 @@ int testModel(const char *data_path, const char *model) {
            "tensor,dimension=(string)1:%d:1:1,type=(string)float32,framerate=("
            "fraction)0/1 ! "
            "tensor_filter framework=nntrainer model=\"%s\" input=1:%d:1:1 "
-           "inputtype=float32 output=1:%d:1:1 outputtype=float32 ! tensor_sink",
+           "inputtype=float32 output=1:%d:1:1 outputtype=float32 ! tensor_sink "
+           "name=sinkx",
            INPUT_SIZE, model, INPUT_SIZE, LABEL_SIZE);
 
   status = setupSingleModel(data_path, &single);
@@ -434,9 +474,13 @@ int testModel(const char *data_path, const char *model) {
   if (status != ML_ERROR_NONE)
     goto fail_pipe_destroy;
 
-  status = ml_pipeline_start(pipe);
+  status = ml_pipeline_sink_register(pipe, "sinkx", sink_cb, NULL, &sink);
   if (status != ML_ERROR_NONE)
     goto fail_src_release;
+
+  status = ml_pipeline_start(pipe);
+  if (status != ML_ERROR_NONE)
+    goto fail_sink_release;
 
   ml_tensors_info_create(&in_info);
   ml_tensors_info_set_count(in_info, 1);
@@ -480,10 +524,16 @@ int testModel(const char *data_path, const char *model) {
     /** No need to destroy data here, pipeline freed buffer automatically */
   }
 
+  /** Sleep for 1 second for all the data to be received by sink callback */
+  sleep(1);
+
 fail_info_release:
   ml_tensors_info_destroy(in_info);
 
   status = ml_pipeline_stop(pipe);
+
+fail_sink_release:
+  status = ml_pipeline_sink_unregister(sink);
 
 fail_src_release:
   status = ml_pipeline_src_release_handle(src);
