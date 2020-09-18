@@ -16,7 +16,6 @@ You can use `tizen studio gui` to build and run.
 
 If you want to do in CLI, you first need to [convert the project to CLI](https://developer.tizen.org/ko/development/tizen-studio/native-tools/cli/converting-projects-cli) and do as follows.
 
-for the time being, you have to install and prepare nntrainer, capi-nntrainer to run this program
 
 ### Prerequisite
 
@@ -24,6 +23,24 @@ for the time being, you have to install and prepare nntrainer, capi-nntrainer to
 - tizen studio 3.7
 - wearable 6.0 rootstrap (built after Aug 25 2020)
 - appropriate wearable tizen device with tizen 6.0 installed (built after Aug 25 2020)
+- gstreamer plugin png image decoder (https://gstreamer.freedesktop.org/documentation/png/pngdec.html?gi-language=c)
+
+### Install `pngdec`
+
+Currently, `pngdec` gstreamer element is required but it is not packaged by default in the released wearable OS.
+
+
+```bash
+# download newest version, checkout http://download.tizen.org/snapshots/tizen/unified/latest/repos/standard/packages/armv7l/
+$ wget http://download.tizen.org/snapshots/tizen/unified/latest/repos/standard/packages/armv7l/gst-plugins-good-extra-${version}.armv7l.rpm
+$ sdb devices
+List of devices attached
+#device list
+$ sdb root on
+$ sdb shell "mount -o remount,rw /"
+$ sdb push ${downloaded_rpm} /tmp_repos/
+$ sdb shell rpm -Uvh --force --nodeps /tmp_repos/${downloaded_rpm}
+```
 
 ### Install Newest nntrainer to the device
 
