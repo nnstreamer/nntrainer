@@ -6,4 +6,4 @@ e = executable('nntrainer_logistic',
   install_dir: application_install_dir
 )
 
-test('app_logistic', e, args: [join_paths(res_path, 'LogisticRegression.ini'), join_paths(res_path, 'dataset1.txt')])
+test('app_logistic', e, args: ['train', join_paths(res_path, 'LogisticRegression.ini'), join_paths(res_path, 'dataset1.txt')])
