@@ -93,7 +93,7 @@ int data_get_data_path(const char *file, char *full_path) {
   return APP_ERROR_NONE;
 }
 
-static void _on_data_receive(ml_tensors_data_h data,
+static void on_data_receive_(ml_tensors_data_h data,
                              const ml_tensors_info_h info, void *user_data) {
   appdata_s *ad = (appdata_s *)user_data;
 
@@ -159,7 +159,7 @@ CLEAN:
   pthread_mutex_unlock(&ad->pipe_lock);
 }
 
-static int _run_nnpipeline(appdata_s *ad, const char *src, bool append) {
+static int run_nnpipeline_(appdata_s *ad, const char *src, bool append) {
   char pipe_description[5000];
 
   char model_path[PATH_MAX];
@@ -196,7 +196,7 @@ static int _run_nnpipeline(appdata_s *ad, const char *src, bool append) {
     return status;
   }
 
-  status = ml_pipeline_sink_register(ad->pipeline, "sink", _on_data_receive,
+  status = ml_pipeline_sink_register(ad->pipeline, "sink", on_data_receive_,
                                      (void *)ad, &ad->pipe_sink);
   if (status != ML_ERROR_NONE) {
     LOG_E("sink register failed %d", status);
@@ -251,7 +251,7 @@ int data_extract_feature(appdata_s *ad, const char *dst, bool append) {
   data_get_data_path(dst, ad->pipe_dst);
 
   LOG_I("start inference to dataset: %s ", ad->pipe_dst);
-  status = _run_nnpipeline(ad, png_path, append);
+  status = run_nnpipeline_(ad, png_path, append);
 
   return status;
 }
