@@ -1,4 +1,7 @@
+// SPDX-License-Identifier: Apache-2.0-only
 /**
+ * Copyright (C) 2020 Jihoon Lee <jhoon.it.lee@samsung.com>
+ *
  * @file view.h
  * @date 15 May 2020
  * @brief TIZEN Native Example App view entry with NNTrainer/CAPI.

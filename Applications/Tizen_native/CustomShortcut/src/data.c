@@ -133,7 +133,10 @@ static void on_data_receive_(ml_tensors_data_h data,
           write_result, data_size);
   }
 
-  bool target_label = ad->tries % 2;
+  /// one-hot encoding.
+  /// SMILE: 0 1
+  /// FROWN: 1 0
+  bool target_label = ad->draw_target == TRAIN_SMILE ? 0 : 1;
   LOG_D("writing one-hot encoded label");
   label = target_label;
   if (fwrite(&label, sizeof(float), 1, file) < 0) {

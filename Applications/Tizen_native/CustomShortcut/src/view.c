@@ -1,4 +1,7 @@
+// SPDX-License-Identifier: Apache-2.0-only
 /**
+ * Copyright (C) 2020 Jihoon Lee <jhoon.it.lee@samsung.com>
+ *
  * @file view.c
  * @date 15 May 2020
  * @brief TIZEN Native Example App view entry with NNTrainer/CAPI.
@@ -266,17 +269,57 @@ static void on_draw_reset_(void *data, Evas_Object *obj, const char *emission,
   canvas_erase_all_(ad);
 }
 
-static void on_draw_proceed_(void *data, Evas_Object *obj, const char *emission,
-                             const char *source) {
+static void set_draw_texts_(appdata_s *ad) {
+  char buf[256];
+  char emoji[5];
+  switch (ad->draw_target) {
+  case INFER:
+    strcpy(emoji, "❓");
+    break;
+  case TRAIN_UNSET:
+    /// fall through intended
+  case TRAIN_SMILE:
+    strcpy(emoji, "😊");
+    break;
+  case TRAIN_FROWN:
+    strcpy(emoji, "😢");
+    break;
+  default:
+    LOG_E("unreachable code");
+    return;
+  }
+  sprintf(buf, "draw for %s [%d/%d]", emoji, ad->tries + 1, MAX_TRIES);
+  elm_object_part_text_set(ad->layout, "draw/title", buf);
+  elm_object_part_text_set(ad->layout, "draw/label", emoji);
+}
+
+static void on_draw_proceed_infer_(void *data, Evas_Object *obj,
+                                   const char *emission, const char *source) {
+  view_routes_to((appdata_s *)data, "test_result");
+}
+
+static void on_draw_proceed_train_(void *data, Evas_Object *obj,
+                                   const char *emission, const char *source) {
   appdata_s *ad = (appdata_s *)data;
   int status = APP_ERROR_NONE;
 
-  char buf[256];
+  switch (ad->tries % NUM_CLASS) {
+  case 0:
+    ad->draw_target = TRAIN_SMILE;
+    break;
+  case 1:
+    ad->draw_target = TRAIN_FROWN;
+    break;
+  default:
+    LOG_E("Given label is unknown");
+    return;
+  }
 
   LOG_D("labeling proceed");
   status = data_extract_feature(
     ad, ad->tries < MAX_TRAIN_TRIES ? TRAIN_SET_PATH : VALIDATION_SET_PATH,
     true);
+
   if (status != APP_ERROR_NONE) {
     LOG_E("feature extraction failed");
   }
@@ -288,13 +331,9 @@ static void on_draw_proceed_(void *data, Evas_Object *obj, const char *emission,
     return;
   }
 
-  const char *emoji = ad->tries % NUM_CLASS ? "😊" : "😢";
-  sprintf(buf, "draw for %s [%d/%d]", emoji, ad->tries + 2, MAX_TRIES);
-  elm_object_part_text_set(obj, "draw/title", buf);
-  elm_object_part_text_set(obj, "draw/label", emoji);
-  LOG_D("starting extraction");
-
+  /// prepare next canvas
   ad->tries++;
+  set_draw_texts_(ad);
   canvas_erase_all_(ad);
 }
 
@@ -379,9 +418,17 @@ static int create_canvas_(appdata_s *ad, const char *draw_mode) {
   elm_layout_signal_callback_add(ad->layout, "draw/reset", "", on_draw_reset_,
                                  ad);
 
-  elm_layout_signal_callback_add(ad->layout, "draw/proceed", "",
-                                 on_draw_proceed_, ad);
+  if (!strcmp(draw_mode, "inference")) {
+    ad->draw_target = INFER;
+    elm_layout_signal_callback_add(ad->layout, "draw/proceed", "",
+                                   on_draw_proceed_infer_, ad);
+  } else if (!strcmp(draw_mode, "train")) {
+    ad->draw_target = TRAIN_UNSET;
+    elm_layout_signal_callback_add(ad->layout, "draw/proceed", "",
+                                   on_draw_proceed_train_, ad);
+  }
 
+  set_draw_texts_(ad);
   ad->tries = 0;
   ad->canvas = canvas;
   ad->cr_surface = cairo_surface;
