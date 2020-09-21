@@ -63,7 +63,7 @@ public:
    *  @brief  Move constructor of Pooling 2D Layer.
    *  @param[in] BatchNormalization &&
    */
-  BatchNormalizationLayer(BatchNormalizationLayer &&rhs) = default;
+  BatchNormalizationLayer(BatchNormalizationLayer &&rhs) noexcept = default;
 
   /**
    * @brief  Move assignment operator.

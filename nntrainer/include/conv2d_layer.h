@@ -54,7 +54,7 @@ public:
    *  @brief  Move constructor of Conv 2D Layer.
    *  @param[in] Conv2dLayer &&
    */
-  Conv2DLayer(Conv2DLayer &&rhs) = default;
+  Conv2DLayer(Conv2DLayer &&rhs) noexcept = default;
 
   /**
    * @brief  Move assignment operator.

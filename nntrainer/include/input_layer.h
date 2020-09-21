@@ -55,7 +55,7 @@ public:
    *  @brief  Move constructor of Pooling 2D Layer.
    *  @param[in] Input &&
    */
-  InputLayer(InputLayer &&rhs) = default;
+  InputLayer(InputLayer &&rhs) noexcept = default;
 
   /**
    * @brief  Move assignment operator.

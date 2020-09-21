@@ -43,7 +43,7 @@ public:
    *  @brief  Move constructor of FlattenLayer.
    *  @param[in] FlattenLayer &&
    */
-  FlattenLayer(FlattenLayer &&rhs) = default;
+  FlattenLayer(FlattenLayer &&rhs) noexcept = default;
 
   /**
    * @brief  Move assignment operator.

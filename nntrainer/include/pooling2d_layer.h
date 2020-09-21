@@ -59,7 +59,7 @@ public:
    *  @brief  Move constructor of Pooling 2D Layer.
    *  @param[in] Pooling2D &&
    */
-  Pooling2DLayer(Pooling2DLayer &&rhs) = default;
+  Pooling2DLayer(Pooling2DLayer &&rhs) noexcept = default;
 
   /**
    * @brief  Move assignment operator.
