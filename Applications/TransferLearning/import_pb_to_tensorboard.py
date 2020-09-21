@@ -43,13 +43,13 @@ from tensorflow.python.summary import summary
 # pylint: enable=unused-import,g-import-not-at-top,wildcard-import
 
 def import_to_tensorboard(model_dir, log_dir):
-    """View an imported protobuf model (`.pb` file) as a graph in Tensorboard. 
-Args: 
-model_dir: The location of the protobuf (`pb`) model to visualize 
-log_dir: The location for the Tensorboard log to begin visualization from. 
+    """View an imported protobuf model (`.pb` file) as a graph in Tensorboard.
+Args:
+model_dir: The location of the protobuf (`pb`) model to visualize
+log_dir: The location for the Tensorboard log to begin visualization from.
 
-Usage: Call this function with your model location and desired log directory. 
-Launch Tensorboard by pointing it to the log directory. 
+Usage: Call this function with your model location and desired log directory.
+Launch Tensorboard by pointing it to the log directory.
 View your imported `.pb` model as a graph. """
 
     with session.Session(graph=ops.Graph()) as sess:
