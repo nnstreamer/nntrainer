@@ -48,6 +48,14 @@ include $(PREBUILT_SHARED_LIBRARY)
 
 include $(CLEAR_VARS)
 
+LOCAL_MODULE := app_utils
+LOCAL_SRC_FILES := $(NNTRAINER_ROOT)/Applications/utils/libs/$(TARGET_ARCH_ABI)/libapp_utils.so
+APP_UTILS_INCLUDES := $(NNTRAINER_ROOT)/Applications/utils/jni/includes
+
+include $(PREBUILT_SHARED_LIBRARY)
+
+include $(CLEAR_VARS)
+
 LOCAL_ARM_NEON := true
 LOCAL_CFLAGS += -std=c++14 -Ofast -mcpu=cortex-a53 -Ilz4-nougat/lib
 LOCAL_LDFLAGS += -Llz4-nougat/lib/obj/local/$(TARGET_ARCH_ABI)/
@@ -59,13 +67,13 @@ LOCAL_ARM_MODE := arm
 LOCAL_MODULE := nntrainer_classification
 LOCAL_LDLIBS := -llog
 
-LOCAL_SRC_FILES := main.cpp bitmap_helpers.cpp
+LOCAL_SRC_FILES := main.cpp
 
-LOCAL_SHARED_LIBRARIES := nntrainer
+LOCAL_SHARED_LIBRARIES := nntrainer app_utils
 
 LOCAL_STATIC_LIBRARIES := tensorflow-lite
 
-LOCAL_C_INCLUDES += $(TFLITE_INCLUDES) $(NNTRAINER_INCLUDES)
+LOCAL_C_INCLUDES += $(TFLITE_INCLUDES) $(NNTRAINER_INCLUDES) $(APP_UTILS_INCLUDES)
 
 include $(BUILD_EXECUTABLE)
 

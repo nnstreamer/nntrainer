@@ -2,13 +2,12 @@ build_root = meson.build_root()
 res_path = join_paths(meson.current_source_dir(), '..', 'res')
 
 classification_sources = [
-  'main.cpp',
-  'bitmap_helpers.cpp'
+  'main.cpp'
 ]
 
 e = executable('nntrainer_classification',
   classification_sources,
-  dependencies: [iniparser_dep, nntrainer_dep, tflite_dep],
+  dependencies: [app_utils_dep, iniparser_dep, nntrainer_dep, tflite_dep],
   include_directories: include_directories('.'),
   install: get_option('install-app'),
   install_dir: application_install_dir
