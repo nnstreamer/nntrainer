@@ -9,18 +9,18 @@
 #include "view.h"
 #include "data.h"
 
-static Evas_Object *_create_layout(Evas_Object *parent, const char *edj_path,
+static Evas_Object *create_layout_(Evas_Object *parent, const char *edj_path,
                                    const char *group_name,
                                    Eext_Event_Cb back_cb, void *user_data);
 
-static int _create_canvas(appdata_s *ad, const char *draw_mode);
+static int create_canvas_(appdata_s *ad, const char *draw_mode);
 static int train(appdata_s *ad);
 
-static void _on_win_delete(void *data, Evas_Object *obj, void *event_info) {
+static void on_win_delete_(void *data, Evas_Object *obj, void *event_info) {
   ui_app_exit();
 }
 
-static void _on_back_pressed(void *data, Evas_Object *obj, void *event_info) {
+static void on_back_pressed_(void *data, Evas_Object *obj, void *event_info) {
   appdata_s *ad = data;
   Elm_Widget_Item *nf_it = elm_naviframe_top_item_get(obj);
 
@@ -44,7 +44,7 @@ static void _on_back_pressed(void *data, Evas_Object *obj, void *event_info) {
   elm_naviframe_item_pop(obj);
 }
 
-static void _on_routes_to(void *data, Evas_Object *obj, const char *emission,
+static void on_routes_to_(void *data, Evas_Object *obj, const char *emission,
                           const char *source);
 
 /**
@@ -70,7 +70,7 @@ int view_init(appdata_s *ad) {
     elm_win_wm_rotation_available_rotations_set(win, (const int *)(&rots), 4);
   }
 
-  evas_object_smart_callback_add(win, "delete,request", _on_win_delete, NULL);
+  evas_object_smart_callback_add(win, "delete,request", on_win_delete_, NULL);
   evas_object_show(win);
 
   // Adding conformant
@@ -96,7 +96,7 @@ int view_init(appdata_s *ad) {
   }
 
   elm_object_part_content_set(conform, "elm.swallow.content", nf);
-  eext_object_event_callback_add(nf, EEXT_CALLBACK_BACK, _on_back_pressed, ad);
+  eext_object_event_callback_add(nf, EEXT_CALLBACK_BACK, on_back_pressed_, ad);
   eext_object_event_callback_add(nf, EEXT_CALLBACK_MORE, eext_naviframe_more_cb,
                                  NULL);
 
@@ -129,7 +129,7 @@ int view_routes_to(appdata_s *ad, const char *group_name) {
 
   LOG_D("%s %s", path, path_data);
 
-  ad->layout = _create_layout(ad->naviframe, ad->edj_path, path, NULL, NULL);
+  ad->layout = create_layout_(ad->naviframe, ad->edj_path, path, NULL, NULL);
 
   if (ad->layout == NULL) {
     LOG_E("failed to create layout");
@@ -147,11 +147,11 @@ int view_routes_to(appdata_s *ad, const char *group_name) {
     goto CLEAN_UP;
   }
 
-  elm_layout_signal_callback_add(ad->layout, "routes/to", "*", _on_routes_to,
+  elm_layout_signal_callback_add(ad->layout, "routes/to", "*", on_routes_to_,
                                  ad);
 
   if (!strcmp(path, "draw")) {
-    status = _create_canvas(ad, path_data);
+    status = create_canvas_(ad, path_data);
   }
 
   if (!strcmp(path, "train_result")) {
@@ -163,7 +163,7 @@ CLEAN_UP:
   return status;
 }
 
-static void _on_routes_to(void *data, Evas_Object *obj, const char *emission,
+static void on_routes_to_(void *data, Evas_Object *obj, const char *emission,
                           const char *source) {
   view_routes_to((appdata_s *)data, source);
 }
@@ -176,7 +176,7 @@ static void _on_routes_to(void *data, Evas_Object *obj, const char *emission,
  * @param[in] back_cb callback when back event fired.
  * @param[in] user_data data to pass to the callback
  */
-static Evas_Object *_create_layout(Evas_Object *parent, const char *edj_path,
+static Evas_Object *create_layout_(Evas_Object *parent, const char *edj_path,
                                    const char *group_name,
                                    Eext_Event_Cb back_cb, void *user_data) {
   Evas_Object *layout = NULL;
@@ -204,7 +204,7 @@ static Evas_Object *_create_layout(Evas_Object *parent, const char *edj_path,
   return layout;
 }
 
-static void _on_draw_start(void *data, Evas *e, Evas_Object *obj,
+static void on_draw_start_(void *data, Evas *e, Evas_Object *obj,
                            void *event_info) {
   appdata_s *ad = (appdata_s *)data;
   Evas_Event_Mouse_Down *eemd = (Evas_Event_Mouse_Down *)event_info;
@@ -216,7 +216,7 @@ static void _on_draw_start(void *data, Evas *e, Evas_Object *obj,
                 eemd->canvas.y - ad->y_offset);
 }
 
-static void _on_draw_move(void *data, Evas *e, Evas_Object *obj,
+static void on_draw_move_(void *data, Evas *e, Evas_Object *obj,
                           void *event_info) {
   appdata_s *ad = (appdata_s *)data;
   Evas_Event_Mouse_Move *eemm = (Evas_Event_Mouse_Move *)event_info;
@@ -226,7 +226,7 @@ static void _on_draw_move(void *data, Evas *e, Evas_Object *obj,
                 eemm->cur.canvas.y - ad->y_offset);
 }
 
-static void _on_draw_end(void *data, Evas *e, Evas_Object *obj,
+static void on_draw_end_(void *data, Evas *e, Evas_Object *obj,
                          void *event_info) {
   appdata_s *ad = (appdata_s *)data;
   LOG_D("draw end");
@@ -235,7 +235,7 @@ static void _on_draw_end(void *data, Evas *e, Evas_Object *obj,
   evas_object_image_data_update_add(ad->canvas, 0, 0, ad->width, ad->height);
 }
 
-static void _on_canvas_exit(void *data, Evas *e, Evas_Object *obj,
+static void on_canvas_exit_(void *data, Evas *e, Evas_Object *obj,
                             void *event_info) {
   LOG_D("deleting canvas");
   appdata_s *ad = (appdata_s *)data;
@@ -251,7 +251,7 @@ static void _on_canvas_exit(void *data, Evas *e, Evas_Object *obj,
   }
 }
 
-static void _canvas_erase_all(appdata_s *ad) {
+static void canvas_erase_all_(appdata_s *ad) {
   cairo_set_source_rgba(ad->cr, 0.3, 0.3, 0.3, 0.2);
   cairo_set_operator(ad->cr, CAIRO_OPERATOR_SOURCE);
   cairo_paint(ad->cr);
@@ -259,14 +259,14 @@ static void _canvas_erase_all(appdata_s *ad) {
   evas_object_image_data_update_add(ad->canvas, 0, 0, ad->width, ad->height);
 }
 
-static void _on_draw_reset(void *data, Evas_Object *obj, const char *emission,
+static void on_draw_reset_(void *data, Evas_Object *obj, const char *emission,
                            const char *source) {
   appdata_s *ad = (appdata_s *)data;
   LOG_D("draw reset");
-  _canvas_erase_all(ad);
+  canvas_erase_all_(ad);
 }
 
-static void _on_draw_proceed(void *data, Evas_Object *obj, const char *emission,
+static void on_draw_proceed_(void *data, Evas_Object *obj, const char *emission,
                              const char *source) {
   appdata_s *ad = (appdata_s *)data;
   int status = APP_ERROR_NONE;
@@ -295,10 +295,10 @@ static void _on_draw_proceed(void *data, Evas_Object *obj, const char *emission,
   LOG_D("starting extraction");
 
   ad->tries++;
-  _canvas_erase_all(ad);
+  canvas_erase_all_(ad);
 }
 
-static int _create_canvas(appdata_s *ad, const char *draw_mode) {
+static int create_canvas_(appdata_s *ad, const char *draw_mode) {
   LOG_D("init canvas, %s", draw_mode);
   Eina_Bool status;
 
@@ -365,22 +365,22 @@ static int _create_canvas(appdata_s *ad, const char *draw_mode) {
   evas_object_image_data_update_add(canvas, 0, 0, width, height);
 
   evas_object_event_callback_add(canvas, EVAS_CALLBACK_MOUSE_DOWN,
-                                 _on_draw_start, (void *)ad);
+                                 on_draw_start_, (void *)ad);
 
-  evas_object_event_callback_add(canvas, EVAS_CALLBACK_MOUSE_UP, _on_draw_end,
+  evas_object_event_callback_add(canvas, EVAS_CALLBACK_MOUSE_UP, on_draw_end_,
                                  (void *)ad);
 
   evas_object_event_callback_add(canvas, EVAS_CALLBACK_MOUSE_MOVE,
-                                 _on_draw_move, (void *)ad);
+                                 on_draw_move_, (void *)ad);
 
-  evas_object_event_callback_add(ad->layout, EVAS_CALLBACK_DEL, _on_canvas_exit,
+  evas_object_event_callback_add(ad->layout, EVAS_CALLBACK_DEL, on_canvas_exit_,
                                  (void *)ad);
 
-  elm_layout_signal_callback_add(ad->layout, "draw/reset", "", _on_draw_reset,
+  elm_layout_signal_callback_add(ad->layout, "draw/reset", "", on_draw_reset_,
                                  ad);
 
   elm_layout_signal_callback_add(ad->layout, "draw/proceed", "",
-                                 _on_draw_proceed, ad);
+                                 on_draw_proceed_, ad);
 
   ad->tries = 0;
   ad->canvas = canvas;
