@@ -1,3 +1,4 @@
+subdir('utils/jni')
 subdir('KNN/jni')
 subdir('LogisticRegression/jni')
 subdir('MNIST/jni')
