@@ -1,51 +1,65 @@
 # Classification of hand-drawn images
 
-Unlike using kNN for the classifier at #55 , we could add new layer at the end of feature extractor.
-In this toy example, fully connected layer is added to classify as below. The size of the feature is also same with previous example and the training set and test set are also same. ( 3 classes, 5 training set and 2 test set of each )
-Only fully connected layers are updatable and Mobilenet ssd v2 is used for feature extractor like previous example and all the testing and training is done on the Galaxy S8.
+Draw Classification example performs classification on the hand-drawn images and maps them to different emotions.
+The application uses a Mobilenet-V2 model pre-trained on ms-coco dataset.
+Transfer learning is used to take advantage of the pre-training model to learn the new information of the
+hand-drawn image dataset efficiently.
 
-The activation is softmax. Mean Squared Error loss function and Stochastic Gradient Decent is used for the loss function and optimizer. Two fully connected layers are added for the hidden layer and iterate 300 times to make is more simple.
+## Application Details
 
-### Neural Network Configuration
+Below are the steps to perform transfer learning in this application:
+
+1. The pre-trained model is converted from pb format (Tensorflow trained model file) to TFLite format (Tensorflow-Lite frozen model). The last layer of the model is removed in this conversion to allow transfer learning to be done.
+2. The training data is passed through the tflite model and the outputs are cached. As the transfer learning only trains the last few layers, the outputs from the non-trainable layers are cached to save computation. This is achieved using the single-shot C-API of NNStreamer for TIZEN. In case of non-tizen OS, Tensorflow-Lite framework c++ API are directly used.
+3. The cached outputs from the step above act as the inputs for the NNTrainer model. The NNTrainer model consists of 2 fully connected layers with Softmax along with training loss and optimizer. The training for this added layer is performed over the cached data for multiple epochs.
+
+Once the training has been performed, the TFLite model (with the last layer removed) and the NNTrainer model (with the newly trained last layer) combined forms the new trained model for the classification of the hand-drawn images.
+
+### NNTrainer Training Details
+
+Two fully connected layers are added to classify the features obtained from pre-trained Mobilenet-V2 model. The number of classes are reduced to 3 while the number of input features remains same with Mobilenet-V2. Training and test set contains 5 training images and 2 test images per class, totalling to 15 training images and 6 test images respectively.
+
+A Softmax activation is added to the fully connected layer. Mean Squared Error loss function and Stochastic Gradient Decent is used as the loss function and optimizer respectively. Training is performed for 1000 epochs with the training configuration described below.
+
+### NNTrainer Model Configuration
+
 The configuration of the example is below,
 <p align = "center">
 <img src="https://github.com/nnstreamer/nntrainer/blob/master/docs/images/02a7ee80-f0ce-11e9-97b8-bcc19b7eb222.png" width="400" height="250" > </p>
 
 ### Resource Data
 
-Training and test data for application is in ```Applications/TransferLearning/Draw_Classification/res`.
-Model configuration for the applicaiton is ```Applications/TransferLearning/Draw_Classification/res/Training.ini`.
+Training and test data for the application is located in `Applications/TransferLearning/Draw_Classification/res`.
 
 ```bash
 $ pwd
   ./Applications/TransferLearning/Draw_Classification/res
 $ ls
-happy  sad  soso  ssd_mobilenet_v2_coco_feature.tflite  testset  Training.ini
+happy  sad  soso  ssd_Mobilenet_v2_coco_feature.tflite  testset  Training.ini
 ```
 
-```happy, sad, soso``` is the images to train and ```ssd_mobile_v2_coco_feature.tflite``` is for feature extractor. The last layer of tflite file is removed and replaced layer which is in Trainging.ini. ```testset``` images are used to evaluate accuracy.
+```happy, sad, soso``` contains the images to train (5 for each class) and ```ssd_mobile_v2_coco_feature.tflite``` is for feature extractor. ```testset``` images are used to evaluate accuracy (2 images per class).
 
-
-Training set and test set are below
+Training and test dataset are as shown below:
 <p align = "center">
 <img src="https://github.com/nnstreamer/nntrainer/blob/master/docs/images/7944ec00-f0ce-11e9-87af-aea730bcd0f5.png" >
 </p>
 
-**Configuration File**
+### Configuration File
 
-Training.ini coniguration file is:
+Configuration for model of the application is described in `Applications/TransferLearning/Draw_Classification/res/Training.ini`.
 
 ```bash
-# Network Section : Network ignored line started with '#'
-[Network]                     # Network Configuration
+# Model Section : Model ignored line started with '#'
+[Model]                       # Model Configuration
 Type = NeuralNetwork          # Network type
 Learning_rate = 0.01          # Learning rate
-Epoch = 100                   # Epoch
+Epoch = 1000                  # Epoch
 Optimizer = sgd               # Optimizer to apply gradient
-Cost = cross                  # Cost function. last layer uses softmax as an activation.
+Loss = cross                  # Cost function. last layer uses softmax as an activation.
                               # So, it is Cross-Entropy with softmax
 save_path = "model.bin"       # Updated weights are stored in files named 'model.bin'
-batch_size = 1                # Mini batch size (used it throughout layers)
+batch_size = 1                # Batch size (used it throughout layers)
 
 # Layer Section : Name        # Layer Configuration
 [inputlayer]                  # Layer Name
@@ -55,40 +69,31 @@ Input_Shape = 1:1:128         # Input shape (without batch size)
 [fc1layer]                    # Layer Name
 Type = fully_connected        # Layer Type
 Unit = 20                     # output unit
-Bias_init_zero = true         # bias initialization
+Bias_initializer = zeros      # bias initialized to 0
 Activation = sigmoid          # activation
 
 [outputlayer]                 # Layer Name
 Type = fully_connected        # Layer Type
 Unit = 3                      # output unit
-Bias_init_zero = true         # bias initialization
+Bias_initializer = zeros      # bias initialized to 0
 Activation = softmax          # activation
 ```
 
 ### How to run
 
-It takes the input image and ```ssd_mobile_v2_coco_feature.tflite``` is used to extract features.
-Feature data is feeded into network described earlier, and it is uesd to train network.
-
-We can run this as below
+Once the application has been build with meson, use the instructions below to run:
 
 ```bash
 $ pwd
   build
-$ cd ..
-$ build/Applications/TransferLearning/Draw_Classification/jni/nntrainer_training Applications/TransferLearning/Draw_Classification/res/Trainig.ini Applications/TransferLearning/Draw_Classification/res/
+$ ./Applications/TransferLearning/Draw_Classification/jni/nntrainer_training ../Applications/TransferLearning/Draw_Classification/res/Training.ini ../Applications/TransferLearning/Draw_Classification/res/
 
 ```
 
 ### Results
 
-After Iterating 300 times, the change of L2 Norm of the Loss function is below.
-<p align = "center">
-<img src="https://github.com/nnstreamer/nntrainer/blob/master/docs/images/d42b1300-f0cf-11e9-9b6f-6db30def4684.png" width="500" height="300">
-</p>
-
-and the test results for the 8 test cases are below. Step function is used to make more clear.
-As you can see, the test result is ok.
+The training reduces the training loss starting from `1.08` to `0.0048`.
+The test results for the 8 test cases are below. Top-1 prediction is used to check the results.
 
 <p align ="center">
 <img src="https://github.com/nnstreamer/nntrainer/blob/master/docs/images/16555400-f0d2-11e9-959b-f61935fefd5a.png" width ="500" height="180">
