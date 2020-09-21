@@ -16,11 +16,9 @@ limitations under the License.
 
 ==============================================================================*/
 
-#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <fstream>
-#include <iostream>
 
 #include <unistd.h> // NOLINT(build/include_order)
 
@@ -108,10 +106,14 @@ uint8_t *read_bmp(const std::string &input_bmp_name, int *width, int *height,
 
   // Decode image, allocating tensor once the image size is known
   uint8_t *output = new uint8_t[abs(*height) * *width * *channels];
+
   const uint8_t *bmp_pixels = &img_bytes[header_size];
+
   decode_bmp(bmp_pixels, row_size, output, *width, abs(*height), *channels,
              top_down);
+
   delete[] img_bytes;
+
   return output;
 }
 
