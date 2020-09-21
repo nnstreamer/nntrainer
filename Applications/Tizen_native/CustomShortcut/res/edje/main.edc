@@ -1,4 +1,7 @@
+// SPDX-License-Identifier: Apache-2.0-only
 /**
+ * Copyright (C) 2020 Jihoon Lee <jhoon.it.lee@samsung.com>
+ *
  * @file main.edc
  * @date 15 May 2020
  * @brief TIZEN Native Example App main edc that describes view behavior
@@ -94,11 +97,13 @@ collections {
   group {
     name: "home";
     parts {
-      PART_TITLE("home/title", "NNTrainer Demo")
-      PART_BUTTON("home/proceed", "start draw", 0.1, 0.3, 0.9, 0.7)
+      PART_TITLE("home/title", "Select actions...")
+      PART_BUTTON("home/to_train", "train", 0.55, 0.3, 0.9, 0.7)
+      PART_BUTTON("home/to_test", "test", 0.1, 0.3, 0.45, 0.7)
     }
     programs {
-      PROGRAM_BUTTON("home/proceed", "routes/to", "draw")
+      PROGRAM_BUTTON("home/to_train", "routes/to", "draw:train")
+      PROGRAM_BUTTON("home/to_test", "routes/to", "draw:inference")
     }
   }
   group {
@@ -152,6 +157,10 @@ collections {
             align: 0.5 0.5;
           }
         }
+        description {
+          state: "done" 0.0;
+          inherit: "default" 0.0;
+        }
       }
       part {
         name: "train_result/accuracy";
@@ -183,6 +192,14 @@ collections {
           }
         }
       }
+    }
+  }
+  group {
+    name: "test_result";
+    parts {
+      PART_TITLE("test_result/title", "test is successfully done")
+      PART_BUTTON("test_result/go_back", "test result: 😊", 0.1, 0.3, 0.9, 0.7)
+      // reserve a text area to show the guess from the model
     }
   }
 }

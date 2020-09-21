@@ -37,6 +37,13 @@
 
 #define FEATURE_SIZE 62720
 #define NUM_CLASS 2
+
+typedef enum DRAW_TARGET_ {
+  INFER = 0,
+  TRAIN_UNSET,
+  TRAIN_SMILE,
+  TRAIN_FROWN
+} DRAW_TARGET;
 typedef struct appdata {
   Evas_Object *win;
   Evas_Object *conform;
@@ -59,6 +66,7 @@ typedef struct appdata {
 
   cairo_surface_t *cr_surface; /**< cairo surface for the canvas */
   cairo_t *cr;                 /**< cairo engine for the canvas */
+  DRAW_TARGET draw_target;     /**< draw target for the canvas */
   int tries;                   /**< tells how many data has been labeled */
 
   /**< Feature extraction related */
