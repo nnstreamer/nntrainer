@@ -46,7 +46,7 @@ public:
    *  @brief  Move constructor of AdditionLayer.
    *  @param[in] AdditionLayer &&
    */
-  AdditionLayer(AdditionLayer &&rhs) = default;
+  AdditionLayer(AdditionLayer &&rhs) noexcept = default;
 
   /**
    * @brief  Move assignment operator.

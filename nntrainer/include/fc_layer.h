@@ -44,7 +44,7 @@ public:
    *  @brief  Move constructor of Pooling 2D Layer.
    *  @param[in] FullyConnected &&
    */
-  FullyConnectedLayer(FullyConnectedLayer &&rhs) = default;
+  FullyConnectedLayer(FullyConnectedLayer &&rhs) noexcept = default;
 
   /**
    * @brief  Move assignment operator.

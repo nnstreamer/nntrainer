@@ -123,7 +123,7 @@ public:
    *  @brief  Move constructor of Conv 2D Layer.
    *  @param[in] Conv2dLayer &&
    */
-  Optimizer(Optimizer &&rhs) = default;
+  Optimizer(Optimizer &&rhs) noexcept = default;
 
   /**
    * @brief  Move assignment operator.
