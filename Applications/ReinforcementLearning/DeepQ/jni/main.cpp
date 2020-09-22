@@ -286,8 +286,6 @@ int main(int argc, char **argv) {
     targetNet.init();
   } catch (...) {
     std::cerr << "Error during init" << std::endl;
-    mainNet.finalize();
-    targetNet.finalize();
     return 0;
   }
 
@@ -340,16 +338,12 @@ int main(int argc, char **argv) {
           in_tensor = nntrainer::Tensor({input});
         } catch (...) {
           std::cerr << "Error while construct tensor" << std::endl;
-          mainNet.finalize();
-          targetNet.finalize();
           return 0;
         }
         try {
           test = mainNet.forwarding(MAKE_SHARED_TENSOR(in_tensor));
         } catch (...) {
           std::cerr << "Error while forwarding the network" << std::endl;
-          mainNet.finalize();
-          targetNet.finalize();
           return 0;
         }
         const float *data = test->getData();
@@ -446,8 +440,6 @@ int main(int argc, char **argv) {
           nq_in = nntrainer::Tensor(next_inbatch);
         } catch (...) {
           std::cerr << "Error during tensor constructino" << std::endl;
-          mainNet.finalize();
-          targetNet.finalize();
           return 0;
         }
 
@@ -459,8 +451,6 @@ int main(int argc, char **argv) {
           Q = mainNet.forwarding(MAKE_SHARED_TENSOR(q_in));
         } catch (...) {
           std::cerr << "Error during forwarding main network" << std::endl;
-          mainNet.finalize();
-          targetNet.finalize();
           return -1;
         }
 
@@ -472,8 +462,6 @@ int main(int argc, char **argv) {
           NQ = targetNet.forwarding(MAKE_SHARED_TENSOR(nq_in));
         } catch (...) {
           std::cerr << "Error during forwarding target network" << std::endl;
-          mainNet.finalize();
-          targetNet.finalize();
           return -1;
         }
         const float *nqa = NQ->getData();
@@ -489,8 +477,6 @@ int main(int argc, char **argv) {
                              (float)in_Exp[i].reward);
             } catch (...) {
               std::cerr << "Error during set a value" << std::endl;
-              mainNet.finalize();
-              targetNet.finalize();
               return -1;
             }
           } else {
@@ -502,8 +488,6 @@ int main(int argc, char **argv) {
                              (float)in_Exp[i].reward + DISCOUNT * next);
             } catch (...) {
               std::cerr << "Error during set value" << std::endl;
-              mainNet.finalize();
-              targetNet.finalize();
               return -1;
             }
           }
@@ -514,10 +498,7 @@ int main(int argc, char **argv) {
           mainNet.backwarding(MAKE_SHARED_TENSOR(in_tensor), Q, iter);
         } catch (...) {
           std::cerr << "Error during backwarding the network" << std::endl;
-          mainNet.finalize();
-          targetNet.finalize();
-
-          return 0;
+          return -1;
         }
       }
 
@@ -539,11 +520,6 @@ int main(int argc, char **argv) {
     }
   }
 
-  /**
-   * @brief     finalize networks
-   */
-  targetNet.finalize();
-  mainNet.finalize();
   writeFile.close();
   return 0;
 }

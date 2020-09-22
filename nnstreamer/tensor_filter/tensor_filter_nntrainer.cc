@@ -89,7 +89,6 @@ NNTrainer::NNTrainer(const char *model_config_) {
 
 NNTrainer::~NNTrainer() {
   if (model != nullptr) {
-    model->finalize();
     delete model;
   }
 
@@ -119,7 +118,6 @@ int NNTrainer::init(const GstTensorFilterProperties *prop) {
     model->readModel();
   } catch (...) {
     ml_loge("Failed to initialize model");
-    model->finalize();
     return -1;
   }
 
@@ -186,7 +184,6 @@ int NNTrainer::loadModel() {
     model->loadFromConfig(model_config);
   } catch (...) {
     ml_loge("Cannot load model from config\n");
-    model->finalize();
     g_free(content);
     return -1;
   }
@@ -224,7 +221,6 @@ int NNTrainer::run(const GstTensorMemory *input, GstTensorMemory *output) {
 
   o = model->inference(X);
   if (o == nullptr) {
-    model->finalize();
     return -1;
   }
 

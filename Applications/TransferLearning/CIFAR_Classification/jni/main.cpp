@@ -415,7 +415,6 @@ int main(int argc, char *argv[]) {
     NN.init();
   } catch (...) {
     std::cerr << "Error during init" << std::endl;
-    NN.finalize();
     return 0;
   }
   NN.readModel();
@@ -424,7 +423,6 @@ int main(int argc, char *argv[]) {
     NN.train();
   } catch (...) {
     std::cerr << "Error during train" << std::endl;
-    NN.finalize();
     return 0;
   }
 
@@ -440,13 +438,9 @@ int main(int argc, char *argv[]) {
       NN.forwarding(MAKE_SHARED_TENSOR(X))->apply(stepFunction);
     } catch (...) {
       std::cerr << "Error while forwarding the model" << std::endl;
-      NN.finalize();
       return 0;
     }
   }
-  /**
-   * @brief     Finalize NN
-   */
-  NN.finalize();
+
   return 0;
 }
