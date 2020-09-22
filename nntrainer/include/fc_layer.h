@@ -29,7 +29,7 @@ public:
   /**
    * @brief     Constructor of Fully Connected Layer
    */
-  FullyConnectedLayer() : unit(0) { setType(LAYER_FC); };
+  FullyConnectedLayer() : unit(0) { setType(LayerType::LAYER_FC); };
 
   /**
    * @brief     Destructor of Fully Connected Layer

@@ -179,7 +179,7 @@ unsigned int parseType(std::string ll, InputType t) {
         return (i);
       }
     }
-    ret = NetType::NET_UNKNOWN;
+    ret = (unsigned int)NetType::NET_UNKNOWN;
     break;
   case TOKEN_ACTI:
     for (i = 0; i < activation_string.size(); i++) {
@@ -192,7 +192,7 @@ unsigned int parseType(std::string ll, InputType t) {
     ml_logw("Input activation %s cannot be identified. "
             "Moved to NO activation layer by default.",
             ll.c_str());
-    ret = (unsigned int)ActiType::ACT_NONE;
+    ret = (unsigned int)ActivationType::ACT_NONE;
     break;
   case TOKEN_LAYER:
     for (i = 0; i < layer_string.size(); i++) {

@@ -35,8 +35,8 @@ namespace nntrainer {
  * @brief     Constructor of Activation Layer
  */
 ActivationLayer::ActivationLayer() : Layer() {
-  setType(LAYER_ACTIVATION);
-  setActivation(ACT_NONE);
+  setType(LayerType::LAYER_ACTIVATION);
+  setActivation(ActivationType::ACT_NONE);
 }
 
 /**
@@ -64,7 +64,7 @@ sharedConstTensor ActivationLayer::backwarding(sharedConstTensor derivative,
                                                int iteration) {
   Tensor deriv = *derivative;
   Tensor ret;
-  if (activation_type == ActiType::ACT_SOFTMAX)
+  if (activation_type == ActivationType::ACT_SOFTMAX)
     ret = _act_prime_fn(hidden, deriv);
   else
     ret = _act_prime_fn(input, deriv);
@@ -119,28 +119,28 @@ int ActivationLayer::setActivation(
 }
 
 /**
- * @brief setActivation by preset ActiType
+ * @brief setActivation by preset ActivationType
  *
- * @param[in] ActiType ActiType ActiType to be set
+ * @param[in] ActivationType ActivationType ActivationType to be set
  */
-void ActivationLayer::setActivation(ActiType acti_type) {
+void ActivationLayer::setActivation(ActivationType acti_type) {
   switch (acti_type) {
-  case ActiType::ACT_TANH:
+  case ActivationType::ACT_TANH:
     this->setActivation(tanhFloat, tanhPrime);
     break;
-  case ActiType::ACT_SIGMOID:
+  case ActivationType::ACT_SIGMOID:
     this->setActivation(sigmoid, sigmoidPrime);
     break;
-  case ActiType::ACT_SOFTMAX:
+  case ActivationType::ACT_SOFTMAX:
     this->setActivation(softmax, softmaxPrime);
     break;
-  case ActiType::ACT_RELU:
+  case ActivationType::ACT_RELU:
     this->setActivation(relu, reluPrime);
     break;
-  case ActiType::ACT_NONE:
+  case ActivationType::ACT_NONE:
     this->setActivation(no_op, no_op_prime);
     break;
-  case ActiType::ACT_UNKNOWN:
+  case ActivationType::ACT_UNKNOWN:
   default:
     throw std::runtime_error("Error: Not Supported Activation Type");
   }

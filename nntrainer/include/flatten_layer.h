@@ -29,7 +29,7 @@ public:
   /**
    * @brief     Constructor of Flatten Layer
    */
-  FlattenLayer() { setType(LAYER_FLATTEN); };
+  FlattenLayer() { setType(LayerType::LAYER_FLATTEN); };
 
   /**
    * @brief     Destructor of Flatten Layer

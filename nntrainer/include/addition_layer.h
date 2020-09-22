@@ -30,7 +30,7 @@ public:
    * @brief     Constructor of Addition Layer
    */
   AdditionLayer() {
-    setType(LAYER_ADDITION);
+    setType(LayerType::LAYER_ADDITION);
     num_inputs = 0;
   };
 

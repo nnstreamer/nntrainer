@@ -39,7 +39,7 @@ public:
    * @brief     Constructor of InputLayer
    */
   InputLayer() : normalization(false), standardization(false) {
-    setType(LAYER_IN);
+    setType(LayerType::LAYER_IN);
   };
 
   /**

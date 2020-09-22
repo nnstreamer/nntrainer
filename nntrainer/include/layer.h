@@ -35,70 +35,46 @@ namespace nntrainer {
 
 /**
  * @brief     Enumeration of activation function type
- *            0. tanh
- *            1. sigmoid
- *            2. relu
- *            3. softmax
- *            4. none
- *            5. Unknown
  */
-typedef enum {
-  ACT_TANH,
-  ACT_SIGMOID,
-  ACT_RELU,
-  ACT_SOFTMAX,
-  ACT_NONE,
-  ACT_UNKNOWN
-} ActiType;
+enum class ActivationType {
+  ACT_TANH,    /** tanh */
+  ACT_SIGMOID, /** sigmoid */
+  ACT_RELU,    /** ReLU */
+  ACT_SOFTMAX, /** softmax */
+  ACT_NONE,    /** no op */
+  ACT_UNKNOWN  /** unknown */
+};
 
 /**
  * @brief     Enumeration of layer type
- *            0. Input Layer type
- *            1. Fully Connected Layer type
- *            2. Batch Normalization Layer type
- *            3. Convolution 2D Layer type
- *            4. Pooling 2D Layer type
- *            5. Flatten Layer type
- *            6. Loss Layer type
- *            7. Activation Layer type
- *            8. Addition Layer type
- *            9. Unknown
  */
-typedef enum {
-  LAYER_IN,
-  LAYER_FC,
-  LAYER_BN,
-  LAYER_CONV2D,
-  LAYER_POOLING2D,
-  LAYER_FLATTEN,
-  LAYER_ACTIVATION,
-  LAYER_ADDITION,
-  LAYER_LOSS,
-  LAYER_UNKNOWN
-} LayerType;
+enum class LayerType {
+  LAYER_IN,         /** Input Layer type */
+  LAYER_FC,         /** Fully Connected Layer type */
+  LAYER_BN,         /** Batch Normalization Layer type */
+  LAYER_CONV2D,     /** Convolution 2D Layer type */
+  LAYER_POOLING2D,  /** Pooling 2D Layer type */
+  LAYER_FLATTEN,    /** Flatten Layer type */
+  LAYER_ACTIVATION, /** Loss Layer type */
+  LAYER_ADDITION,   /** Activation Layer type */
+  LAYER_LOSS,       /** Addition Layer type */
+  LAYER_UNKNOWN     /** Unknown */
+};
 
 /**
  * @brief     Enumeration of Weight Initialization Type
- *            0. WEIGHT_ZEROS ( Zero initialization )
- *            1. WEIGHT_ONES ( One initialization )
- *            2. WEIGHT_LECUN_NORMAL ( LeCun normal initialization )
- *            3. WEIGHT_LECUN_UNIFORM (LeCun uniform initialization )
- *            4. WEIGHT_XAVIER_NORMAL ( Xavier normal initialization )
- *            5. WEIGHT_XAVIER_UNIFORM ( Xavier uniform initialization )
- *            6. WEIGHT_HE_NORMAL ( He normal initialization )
- *            7. WEIGHT_HE_UNIFORM ( He uniform initialization )
  */
-typedef enum {
-  WEIGHT_ZEROS,
-  WEIGHT_ONES,
-  WEIGHT_LECUN_NORMAL,
-  WEIGHT_LECUN_UNIFORM,
-  WEIGHT_XAVIER_NORMAL,
-  WEIGHT_XAVIER_UNIFORM,
-  WEIGHT_HE_NORMAL,
-  WEIGHT_HE_UNIFORM,
-  WEIGHT_UNKNOWN
-} WeightInitializer;
+enum class WeightInitializer {
+  WEIGHT_ZEROS,          /** Zero initialization */
+  WEIGHT_ONES,           /** One initialization */
+  WEIGHT_LECUN_NORMAL,   /** LeCun normal initialization */
+  WEIGHT_LECUN_UNIFORM,  /** uniform initialization */
+  WEIGHT_XAVIER_NORMAL,  /** Xavier normal initialization */
+  WEIGHT_XAVIER_UNIFORM, /** Xavier uniform initialization */
+  WEIGHT_HE_NORMAL,      /** He normal initialization */
+  WEIGHT_HE_UNIFORM,     /** He uniform initialization */
+  WEIGHT_UNKNOWN         /** Unknown */
+};
 
 /**
  * @brief   Print Options when printing layer info
@@ -123,12 +99,12 @@ class Layer {
 public:
   Layer() :
     name(std::string()),
-    type(LAYER_UNKNOWN),
+    type(LayerType::LAYER_UNKNOWN),
     loss(0.0f),
-    activation_type(ACT_NONE),
+    activation_type(ActivationType::ACT_NONE),
     weight_regularizer(),
-    weight_initializer(WEIGHT_XAVIER_UNIFORM),
-    bias_initializer(WEIGHT_ZEROS),
+    weight_initializer(WeightInitializer::WEIGHT_XAVIER_UNIFORM),
+    bias_initializer(WeightInitializer::WEIGHT_ZEROS),
     flatten(false),
     trainable(true),
     param_size(0),
@@ -284,13 +260,13 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int setActivation(ActiType activation);
+  int setActivation(ActivationType activation);
 
   /**
    * @brief     Activation Type Getter
    * @retval    Activation Type.
    */
-  ActiType getActivationType() { return this->activation_type; }
+  ActivationType getActivationType() { return this->activation_type; }
 
   /**
    * @brief     Layer type Setter
@@ -321,9 +297,9 @@ public:
    * @brief     set weight decay parameters
    * @param[in] w struct for weight decay
    */
-  void setWeightRegularizer(WeightRegularizerParam w) {
-    weight_regularizer = w;
-  }
+  // void setWeightRegularizer(WeightRegularizerParam w) {
+  //   weight_regularizer = w;
+  // }
 
   /**
    * @brief  set Weight Initialization Type
@@ -475,7 +451,7 @@ protected:
    */
   float loss;
 
-  ActiType activation_type;
+  ActivationType activation_type;
 
   WeightRegularizerParam weight_regularizer;
 

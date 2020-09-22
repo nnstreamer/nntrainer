@@ -44,12 +44,13 @@ namespace nntrainer {
 
 /**
  * @brief     Enumeration of Network Type
- *            0. KNN ( k Nearest Neighbor )
- *            1. REG ( Logistic Regression )
- *            2. NEU ( Neural Network )
- *            3. Unknown
  */
-typedef enum { NET_KNN, NET_REG, NET_NEU, NET_UNKNOWN } NetType;
+enum class NetType {
+  NET_KNN,    /** k Nearest Neighbor */
+  NET_REG,    /** Logistic Regression */
+  NET_NEU,    /** Neural Network */
+  NET_UNKNOWN /** Unknown */
+};
 
 /**
  * @brief     Statistics from running or training a model
@@ -78,8 +79,8 @@ public:
     epochs(1),
     loss(0.0f),
     loss_type(LossType::LOSS_UNKNOWN),
-    weight_initializer(WEIGHT_UNKNOWN),
-    net_type(NET_UNKNOWN),
+    weight_initializer(WeightInitializer::WEIGHT_UNKNOWN),
+    net_type(NetType::NET_UNKNOWN),
     data_buffer(NULL),
     continue_train(false),
     iter(0),
@@ -404,17 +405,19 @@ private:
 
   /**
    * @brief     Realize act type to layer and insert it to layers
-   * @param[in] ActiType act Activation Type
+   * @param[in] ActivationType act Activation Type
    * @param[in] int Position position to insert activation layer.
    * @note layer is inserted at position
    */
-  int realizeActivationType(const ActiType act, const unsigned int position);
+  int realizeActivationType(const ActivationType act,
+                            const unsigned int position);
 
   /**
-   * @copydoc int realizeActivationType(ActiType act, unsigned int &position);
+   * @copydoc int realizeActivationType(ActivationType act, unsigned int
+   * &position);
    * @note layer is inserted at the back of layers
    */
-  int realizeActivationType(const ActiType act);
+  int realizeActivationType(const ActivationType act);
 
   /**
    * @brief     Realize flatten type to layer and insert it to layers
@@ -424,7 +427,8 @@ private:
   int realizeFlattenType(const unsigned int position);
 
   /**
-   * @copydoc int realizeActivationType(ActiType act, unsigned int &position);
+   * @copydoc int realizeActivationType(ActivationType act, unsigned int
+   * &position);
    * @note layer is inserted at the back of layers
    */
   int realizeFlattenType();

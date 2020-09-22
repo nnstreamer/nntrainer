@@ -53,6 +53,7 @@ enum class OptType { sgd = 0, adam = 1, unknown = 2 };
  *            1. Regression
  *            2. Unknown (equivalent to none)
  */
+// TODO: move this out of here
 enum class WeightRegularizerType { l2norm = 0, regression = 1, unknown = 2 };
 
 /**

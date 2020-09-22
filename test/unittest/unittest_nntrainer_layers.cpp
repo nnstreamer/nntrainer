@@ -280,7 +280,7 @@ TEST_F(nntrainer_InputLayer, setOptimizer_01_p) {
  * @brief Input Layer
  */
 TEST_F(nntrainer_InputLayer, setActivation_01_p) {
-  int status = layer.setActivation(nntrainer::ACT_TANH);
+  int status = layer.setActivation(nntrainer::ActivationType::ACT_TANH);
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
@@ -288,7 +288,7 @@ TEST_F(nntrainer_InputLayer, setActivation_01_p) {
  * @brief Input Layer
  */
 TEST_F(nntrainer_InputLayer, setActivation_02_n) {
-  int status = layer.setActivation(nntrainer::ACT_UNKNOWN);
+  int status = layer.setActivation(nntrainer::ActivationType::ACT_UNKNOWN);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
@@ -296,7 +296,7 @@ TEST_F(nntrainer_InputLayer, setActivation_02_n) {
  * @brief Input Layer
  */
 TEST_F(nntrainer_InputLayer, checkValidation_01_p) {
-  int status = layer.setActivation(nntrainer::ACT_TANH);
+  int status = layer.setActivation(nntrainer::ActivationType::ACT_TANH);
   ASSERT_EQ(status, ML_ERROR_NONE);
 
   status = layer.checkValidation();
@@ -401,7 +401,7 @@ TEST_F(nntrainer_FullyConnectedLayer, setOptimizer_02_p) {
  * @brief Fully Connected Layer
  */
 TEST_F(nntrainer_FullyConnectedLayer, setActivation_01_p) {
-  status = layer.setActivation(nntrainer::ACT_TANH);
+  status = layer.setActivation(nntrainer::ActivationType::ACT_TANH);
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
@@ -409,7 +409,7 @@ TEST_F(nntrainer_FullyConnectedLayer, setActivation_01_p) {
  * @brief Fully Connected Layer
  */
 TEST_F(nntrainer_FullyConnectedLayer, setActivation_02_n) {
-  status = layer.setActivation(nntrainer::ACT_UNKNOWN);
+  status = layer.setActivation(nntrainer::ActivationType::ACT_UNKNOWN);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
@@ -417,7 +417,7 @@ TEST_F(nntrainer_FullyConnectedLayer, setActivation_02_n) {
  * @brief FullyConnected Layer
  */
 TEST_F(nntrainer_FullyConnectedLayer, checkValidation_01_p) {
-  layer.setActivation(nntrainer::ACT_RELU);
+  layer.setActivation(nntrainer::ActivationType::ACT_RELU);
   status = layer.checkValidation();
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
@@ -440,7 +440,7 @@ protected:
     return status;
   }
 
-  void addActivation(nntrainer::ActiType type) {
+  void addActivation(nntrainer::ActivationType type) {
     std::shared_ptr<nntrainer::ActivationLayer> act_layer =
       std::make_shared<nntrainer::ActivationLayer>();
     act_layer->setActivation(type);
@@ -476,7 +476,7 @@ protected:
         EXPECT_NO_THROW(out = layers[idx]->forwarding(out));
       }
 
-      if (layers.back()->getType() == nntrainer::LAYER_LOSS) {
+      if (layers.back()->getType() == nntrainer::LayerType::LAYER_LOSS) {
         std::shared_ptr<nntrainer::LossLayer> loss_layer =
           std::static_pointer_cast<nntrainer::LossLayer>(layers.back());
         EXPECT_NO_THROW(out = loss_layer->forwarding(out, label));
@@ -502,7 +502,8 @@ protected:
       MAKE_SHARED_TENSOR(constant(1.0, 3, 1, 1, 15));
     sharedConstTensor back_out;
 
-    if (layers.size() && layers.back()->getType() == nntrainer::LAYER_LOSS) {
+    if (layers.size() &&
+        layers.back()->getType() == nntrainer::LayerType::LAYER_LOSS) {
       if (with_loss) {
         EXPECT_NO_THROW(back_out = layers.back()->backwarding(label, 1));
       } else {
@@ -632,7 +633,7 @@ TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_backwarding_01_p) {
  */
 TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_backwarding_02_p) {
 
-  addActivation(nntrainer::ACT_SIGMOID);
+  addActivation(nntrainer::ActivationType::ACT_SIGMOID);
   addLoss(nntrainer::LossType::LOSS_MSE);
   setOptimizer(nntrainer::OptType::sgd, "learning_rate=1.0");
 
@@ -653,7 +654,7 @@ TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_backwarding_02_p) {
  */
 TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_backwarding_03_p) {
 
-  addActivation(nntrainer::ACT_SOFTMAX);
+  addActivation(nntrainer::ActivationType::ACT_SOFTMAX);
   addLoss(nntrainer::LossType::LOSS_MSE);
   setOptimizer(nntrainer::OptType::sgd, "learning_rate=1.0");
 
@@ -706,7 +707,7 @@ TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_backwarding_04_p) {
  */
 TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_backwarding_05_p) {
 
-  addActivation(nntrainer::ACT_SIGMOID);
+  addActivation(nntrainer::ActivationType::ACT_SIGMOID);
   addLoss(nntrainer::LossType::LOSS_MSE);
   setOptimizer(nntrainer::OptType::sgd, "learning_rate=1.0");
 
@@ -727,7 +728,7 @@ TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_backwarding_05_p) {
  */
 TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_backwarding_06_p) {
 
-  addActivation(nntrainer::ACT_SOFTMAX);
+  addActivation(nntrainer::ActivationType::ACT_SOFTMAX);
   addLoss(nntrainer::LossType::LOSS_MSE);
   setOptimizer(nntrainer::OptType::sgd, "learning_rate=1.0");
 
@@ -826,7 +827,7 @@ TEST_F(nntrainer_BatchNormalizationLayer, setOptimizer_01_p) {
  * @brief Batch Normalization Layer
  */
 TEST_F(nntrainer_BatchNormalizationLayer, setActivation_01_p) {
-  status = layer.setActivation(nntrainer::ACT_SIGMOID);
+  status = layer.setActivation(nntrainer::ActivationType::ACT_SIGMOID);
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
@@ -834,7 +835,7 @@ TEST_F(nntrainer_BatchNormalizationLayer, setActivation_01_p) {
  * @brief Batch Normalization Layer
  */
 TEST_F(nntrainer_BatchNormalizationLayer, setActivation_02_n) {
-  status = layer.setActivation(nntrainer::ACT_UNKNOWN);
+  status = layer.setActivation(nntrainer::ActivationType::ACT_UNKNOWN);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
@@ -842,7 +843,7 @@ TEST_F(nntrainer_BatchNormalizationLayer, setActivation_02_n) {
  * @brief Batch Normalization Layer
  */
 TEST_F(nntrainer_BatchNormalizationLayer, checkValidation_01_p) {
-  status = layer.setActivation(nntrainer::ACT_RELU);
+  status = layer.setActivation(nntrainer::ActivationType::ACT_RELU);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = layer.checkValidation();
@@ -1743,15 +1744,16 @@ TEST(nntrainer_ActivationLayer, init_02_p) {
 
 TEST(nntrainer_ActivationLayer, setType_01_p) {
   nntrainer::ActivationLayer layer;
-  EXPECT_NO_THROW(layer.setActivation(nntrainer::ACT_RELU));
-  EXPECT_NO_THROW(layer.setActivation(nntrainer::ACT_SOFTMAX));
-  EXPECT_NO_THROW(layer.setActivation(nntrainer::ACT_SIGMOID));
-  EXPECT_NO_THROW(layer.setActivation(nntrainer::ACT_TANH));
+  EXPECT_NO_THROW(layer.setActivation(nntrainer::ActivationType::ACT_RELU));
+  EXPECT_NO_THROW(layer.setActivation(nntrainer::ActivationType::ACT_SOFTMAX));
+  EXPECT_NO_THROW(layer.setActivation(nntrainer::ActivationType::ACT_SIGMOID));
+  EXPECT_NO_THROW(layer.setActivation(nntrainer::ActivationType::ACT_TANH));
 }
 
 TEST(nntrainer_ActivationLayer, setType_02_n) {
   nntrainer::ActivationLayer layer;
-  EXPECT_THROW(layer.setActivation(nntrainer::ACT_UNKNOWN), std::runtime_error);
+  EXPECT_THROW(layer.setActivation(nntrainer::ActivationType::ACT_UNKNOWN),
+               std::runtime_error);
 }
 
 TEST(nntrainer_ActivationLayer, forward_backward_01_p) {
@@ -1761,7 +1763,7 @@ TEST(nntrainer_ActivationLayer, forward_backward_01_p) {
   int width = 10;
 
   nntrainer::ActivationLayer layer;
-  layer.setActivation(nntrainer::ACT_RELU);
+  layer.setActivation(nntrainer::ActivationType::ACT_RELU);
 
   nntrainer::Tensor input(batch, channel, height, width);
   GEN_TEST_INPUT(input, (l - 4) * 0.1 * (i + 1));
