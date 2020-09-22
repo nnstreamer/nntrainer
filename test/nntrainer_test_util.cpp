@@ -26,6 +26,7 @@
 #include <iostream>
 #include <nntrainer_error.h>
 #include <random>
+#include <regex>
 #include <tensor.h>
 
 #define num_class 10

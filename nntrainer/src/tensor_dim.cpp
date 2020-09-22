@@ -12,8 +12,8 @@
  *
  */
 
-#include <assert.h>
 #include <cstring>
+#include <regex>
 #include <sstream>
 #include <stdio.h>
 
@@ -64,7 +64,7 @@ void TensorDim::setTensorDim(unsigned int idx, unsigned int value) {
       "[TensorDim] Trying to assign value <=0 to tensor dim");
 
   if (len == 0) {
-    for (int i = 0; i < MAXDIM; ++i) {
+    for (size_t i = 0; i < MAXDIM; ++i) {
       dim[i] = 1;
     }
   }
@@ -80,7 +80,7 @@ int TensorDim::setTensorDim(std::string input_shape) {
     std::sregex_iterator(input_shape.begin(), input_shape.end(), words_regex);
   auto words_end = std::sregex_iterator();
   int cur_dim = std::distance(words_begin, words_end);
-  if (cur_dim <= 0 || cur_dim > MAXDIM) {
+  if (cur_dim <= 0 || (size_t)cur_dim > MAXDIM) {
     ml_loge("Tensor Dimension should be between 1 and 4");
     return ML_ERROR_INVALID_PARAMETER;
   }
@@ -93,7 +93,7 @@ int TensorDim::setTensorDim(std::string input_shape) {
 }
 
 bool TensorDim::operator==(const TensorDim &rhs) const {
-  for (int i = 0; i < MAXDIM; ++i) {
+  for (size_t i = 0; i < MAXDIM; ++i) {
     if (this->dim[i] != rhs.dim[i]) {
       return false;
     }

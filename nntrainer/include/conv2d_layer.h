@@ -15,16 +15,12 @@
 #define __CONV2D_LAYER_H_
 #ifdef __cplusplus
 
-#include <fstream>
-#include <iostream>
 #include <layer.h>
-#include <optimizer.h>
 #include <tensor.h>
-#include <vector>
-
-#define CONV2D_DIM 2
 
 namespace nntrainer {
+
+constexpr const unsigned int CONV2D_DIM = 2;
 
 /**
  * @class   Convolution 2D Layer

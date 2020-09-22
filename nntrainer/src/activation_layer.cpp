@@ -11,6 +11,8 @@
  *
  */
 
+#include <algorithm>
+#include <cmath>
 #include <fstream>
 #include <functional>
 #include <iostream>
@@ -117,9 +119,9 @@ int ActivationLayer::setActivation(
 }
 
 /**
- * @brief setActivation by preset actiType
+ * @brief setActivation by preset ActiType
  *
- * @param[in] ActiType actiType actiType to be set
+ * @param[in] ActiType ActiType ActiType to be set
  */
 void ActivationLayer::setActivation(ActiType acti_type) {
   switch (acti_type) {
@@ -231,7 +233,7 @@ Tensor ActivationLayer::softmaxPrime(Tensor const &x,
   return PI;
 }
 
-float ActivationLayer::sigmoid(float x) { return 1.0f / (1.0f + exp(-x)); }
+float ActivationLayer::sigmoid(float x) { return 1.0f / (1.0f + exp_util(-x)); }
 
 float ActivationLayer::sigmoidPrime(float x) {
   float sprime = sigmoid(x);

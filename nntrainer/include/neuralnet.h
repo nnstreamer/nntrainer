@@ -24,22 +24,21 @@
 #define __NEURALNET_H__
 #ifdef __cplusplus
 
+#include <vector>
+
 #include <activation_layer.h>
 #include <bn_layer.h>
 #include <conv2d_layer.h>
 #include <databuffer.h>
 #include <fc_layer.h>
 #include <flatten_layer.h>
-#include <fstream>
 #include <input_layer.h>
-#include <iostream>
 #include <layer.h>
 #include <loss_layer.h>
 #include <ml-api-common.h>
 #include <optimizer.h>
 #include <pooling2d_layer.h>
 #include <tensor.h>
-#include <vector>
 
 namespace nntrainer {
 

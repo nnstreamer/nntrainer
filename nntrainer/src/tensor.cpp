@@ -22,21 +22,23 @@
  */
 
 #include <assert.h>
-#include <blas_interface.h>
+#include <cmath>
 #include <cstring>
+#include <fstream>
 #include <iomanip>
 #include <iterator>
-#include <math.h>
+#include <random>
+#include <regex>
+#include <sstream>
+#include <stdio.h>
+
+#include <blas_interface.h>
+#include <lazy_tensor.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <parse_util.h>
-#include <random>
-#include <sstream>
-#include <stdio.h>
 #include <tensor.h>
 #include <util_func.h>
-
-#include <lazy_tensor.h>
 
 #define transposeloop(cl, ci, cj, ck, sl, si, sj, sk)                 \
   do {                                                                \

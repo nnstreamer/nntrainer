@@ -10,6 +10,8 @@
  * @brief	This is Convolution Layer Class for Neural Network
  *
  */
+#include <cstring>
+#include <string>
 
 #include <blas_interface.h>
 #include <conv2d_layer.h>
@@ -18,7 +20,6 @@
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <parse_util.h>
-#include <string>
 #include <util_func.h>
 
 namespace nntrainer {
@@ -39,10 +40,10 @@ int Conv2DLayer::initialize() {
   setParamSize(filter_size * 2);
 
   for (unsigned int i = 0; i < filter_size; ++i) {
-    Tensor Knl = initializeWeight(dim, weight_initializer, status);
+    Tensor Knl = getInitializedTensor(dim, weight_initializer);
     NN_RETURN_STATUS();
 
-    Tensor bias = initializeWeight(bias_dim, bias_initializer, status);
+    Tensor bias = getInitializedTensor(bias_dim, bias_initializer);
     NN_RETURN_STATUS();
 
     Tensor delK(dim);
@@ -353,10 +354,11 @@ sharedConstTensor Conv2DLayer::backwarding(sharedConstTensor derivative,
       Tensor &delK = paramsAt(i).grad;
       Tensor &filters = paramsAt(i).weight;
 
-      delK = delK.chain()
-               .applyIf(this->isWeightRegularizerL2Norm(), _LIFT(add_i),
-                        filters, weight_regularizer.constant)
-               .run();
+      if (isWeightRegularizerL2Norm()) {
+        status = delK.add_i(filters, weight_regularizer.constant);
+        if (status != ML_ERROR_NONE)
+          throw std::runtime_error("Weight regularization failed");
+      }
     }
 
     opt.apply_gradients(params, param_size, iteration);
@@ -385,17 +387,17 @@ int Conv2DLayer::setSize(int *size, PropertyType type) {
   int status = ML_ERROR_NONE;
   switch (type) {
   case PropertyType::kernel_size:
-    for (int i = 0; i < CONV2D_DIM; ++i) {
+    for (unsigned int i = 0; i < CONV2D_DIM; ++i) {
       kernel_size[i] = size[i];
     }
     break;
   case PropertyType::stride:
-    for (int i = 0; i < CONV2D_DIM; ++i) {
+    for (unsigned int i = 0; i < CONV2D_DIM; ++i) {
       stride[i] = size[i];
     }
     break;
   case PropertyType::padding:
-    for (int i = 0; i < CONV2D_DIM; ++i) {
+    for (unsigned int i = 0; i < CONV2D_DIM; ++i) {
       padding[i] = size[i];
     }
     break;

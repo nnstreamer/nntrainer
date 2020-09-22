@@ -23,7 +23,6 @@
 #define __OPTIMIZER_H__
 #ifdef __cplusplus
 
-#include <iostream>
 #include <memory>
 #include <tensor.h>
 
@@ -32,6 +31,7 @@ namespace nntrainer {
 /**
  * @brief UpdatableParam that could be updated thorugh optimizer
  */
+// TODO: move this out from here
 struct UpdatableParam {
   Tensor weight;         /**< weight to be updated and used */
   Tensor grad;           /**< gradient for the weight */

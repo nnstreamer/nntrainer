@@ -26,11 +26,10 @@
 #ifdef __cplusplus
 
 #include <array>
-#include <cmath>
-#include <fstream>
-#include <iostream>
+#include <functional>
 #include <memory>
-#include <regex>
+#include <vector>
+
 #include <tensor_dim.h>
 
 #define MAKE_SHARED_TENSOR(x) std::make_shared<nntrainer::Tensor>(x)
@@ -580,14 +579,6 @@ public:
     return strides;
   }
 
-  /**
-   * @brief compute Loop info for broadcasting and vectorization
-   *
-   * @param m target tensor to be calculated against.
-   * @return BroadcastInfo Loopinfo needed to run external loop
-   */
-  BroadcastInfo computeBroadcastInfo(const Tensor &m);
-
 private:
   /**
    * @brief Get linear index given the n-d index
@@ -626,14 +617,20 @@ private:
     Tensor const &m,
     std::function<void(const BroadcastInfo &e, float *, const float *)> v_func);
 
+  /**
+   * @brief compute Loop info for broadcasting and vectorization
+   *
+   * @param m target tensor to be calculated against.
+   * @return BroadcastInfo Loopinfo needed to run external loop
+   */
+  BroadcastInfo computeBroadcastInfo(const Tensor &m);
+
   /**< handle the data as a std::shared_ptr<float> type */
   TensorDim dim;
   std::array<unsigned int, MAXDIM> strides;
   bool is_contiguous;
   std::shared_ptr<float> data;
 
-  static constexpr float min_limits = std::numeric_limits<float>::min();
-  static constexpr float max_limits = std::numeric_limits<float>::max();
   template <typename T> void setDist(T dist);
   static constexpr float epsilon = 1e-5;
 };

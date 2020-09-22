@@ -156,25 +156,6 @@ TEST_F(nntrainer_LazyTensorOpsTest, LazyTensorOps_08_p) {
   EXPECT_TRUE(target.chain().sum(3).run() == expected);
 }
 
-TEST_F(nntrainer_LazyTensorOpsTest, ApplyIf_01_p) {
-
-  EXPECT_TRUE(
-    target.chain().applyIf(true, _LIFT(add_i), constant_(4.0), 0.5).run() ==
-    original.add(2.0));
-
-  EXPECT_TRUE(target.chain().applyIf(true, _LIFT(add_i), 2.0f).run() ==
-              original.add(2.0));
-
-  EXPECT_TRUE(target.chain().applyIf(true, _LIFT(add_i), 2.0).run() ==
-              original.add(2.0));
-}
-
-TEST_F(nntrainer_LazyTensorOpsTest, ApplyIf_01_n) {
-  EXPECT_THROW(
-    target.chain().applyIf(true, _LIFT(add_i), constant(4.0, 9, 9, 9, 9)).run(),
-    std::runtime_error);
-}
-
 /**
  * @brief Main gtest
  */

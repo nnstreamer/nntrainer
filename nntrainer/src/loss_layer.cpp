@@ -22,6 +22,7 @@
  */
 
 #include <activation_layer.h>
+#include <cmath>
 #include <layer.h>
 #include <lazy_tensor.h>
 #include <loss_layer.h>

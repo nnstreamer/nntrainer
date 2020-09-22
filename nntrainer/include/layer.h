@@ -23,34 +23,15 @@
 #define __LAYERS_H__
 #ifdef __cplusplus
 
-#include <fstream>
-#include <iostream>
 #include <memory>
-#include <optimizer.h>
 #include <set>
-#include <tensor.h>
-#include <tensor_dim.h>
 #include <vector>
 
-namespace nntrainer {
+#include <optimizer.h>
+#include <tensor.h>
+#include <tensor_dim.h>
 
-/**
- * @brief     Enumeration of loss function type
- *            0. MSE ( Mean Squared Error )
- *            1. ENTROPY ( Cross Entropy )
- *            2. ENTROPY_SIGMOID (Cross Entropy amalgamated with sigmoid for
- * stability)
- *            3. ENTROPY_SOFTMAX (Cross Entropy amalgamated with softmax for
- * stability)
- *            4. Unknown
- */
-enum class LossType {
-  LOSS_MSE,
-  LOSS_ENTROPY,
-  LOSS_ENTROPY_SIGMOID,
-  LOSS_ENTROPY_SOFTMAX,
-  LOSS_UNKNOWN
-};
+namespace nntrainer {
 
 /**
  * @brief     Enumeration of activation function type
@@ -351,16 +332,6 @@ public:
   void setWeightInit(WeightInitializer wini) { weight_initializer = wini; }
 
   /**
-   * @brief  initialize Weight
-   * @param[in] w_dim TensorDim
-   * @param[in] initializer Weight Initializer
-   * @param[out] status Status
-   * @retval Tensor Initialized Tensor
-   */
-  Tensor initializeWeight(const TensorDim &w_dim, WeightInitializer initializer,
-                          int &status);
-
-  /**
    * @brief Set the input dimension
    * @param[in] d dimension to be set
    */
@@ -621,6 +592,17 @@ std::ostream &operator<<(std::ostream &out, T &l) {
   l.print(out, option);
   return out;
 }
+
+/**
+ * @brief  initialize Weight
+ * @param[in] w_dim TensorDim
+ * @param[in] initializer Weight Initializer
+ * @param[out] status Status
+ * @retval Tensor Initialized Tensor
+ */
+// TODO: move out
+Tensor getInitializedTensor(const TensorDim &w_dim,
+                            WeightInitializer initializer);
 
 } // namespace nntrainer
 

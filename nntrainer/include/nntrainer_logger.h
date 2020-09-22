@@ -25,10 +25,8 @@
 #ifdef __cplusplus
 
 #include <fstream>
-#include <iostream>
 #include <mutex>
 #include <string>
-#include <vector>
 
 /**
  * @brief     Log Level of NNtrainer

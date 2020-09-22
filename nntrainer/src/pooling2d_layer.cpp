@@ -11,6 +11,9 @@
  *
  */
 
+#include <cstring>
+#include <limits>
+
 #include <layer.h>
 #include <lazy_tensor.h>
 #include <nntrainer_error.h>

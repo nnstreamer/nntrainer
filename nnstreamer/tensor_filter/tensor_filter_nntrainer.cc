@@ -17,7 +17,8 @@
  */
 
 #include <algorithm>
-#include <limits.h>
+#include <map>
+#include <limits>
 #include <unistd.h>
 
 #include <nnstreamer_plugin_api.h>

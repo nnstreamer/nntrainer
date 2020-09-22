@@ -12,6 +12,9 @@
  */
 
 #include <blas_interface.h>
+#include <nntrainer_error.h>
+
+#include <cmath>
 
 #define sgemv_loop(ci, cj, cM, cN)           \
   do {                                       \
