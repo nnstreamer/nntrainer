@@ -15,12 +15,8 @@
 #define __ACTIVATION_LAYER_H__
 #ifdef __cplusplus
 
-#include <fstream>
-#include <iostream>
 #include <layer.h>
-#include <optimizer.h>
 #include <tensor.h>
-#include <vector>
 
 namespace nntrainer {
 
@@ -78,9 +74,9 @@ public:
   void copy(std::shared_ptr<Layer> l);
 
   /**
-   * @brief setActivation by preset actiType
+   * @brief setActivation by preset ActiType
    *
-   * @param[in] ActiType actiType actiType to be set
+   * @param[in] ActiType ActiType ActiType to be set
    */
   void setActivation(ActiType acti_type);
 

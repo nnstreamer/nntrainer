@@ -25,13 +25,10 @@
 #ifdef __cplusplus
 
 #include <array>
-#include <fstream>
 #include <functional>
-#include <iostream>
 #include <vector>
 
 #include <layer.h>
-#include <optimizer.h>
 #include <tensor.h>
 
 namespace nntrainer {

@@ -53,18 +53,14 @@ int BatchNormalizationLayer::initialize() {
   }
 
   Tensor mu =
-    initializeWeight(dim, initializers[static_cast<int>(BNParams::mu)], status);
-  Tensor var = initializeWeight(
-    dim, initializers[static_cast<int>(BNParams::var)], status);
-  NN_RETURN_STATUS();
+    getInitializedTensor(dim, initializers[static_cast<int>(BNParams::mu)]);
+  Tensor var =
+    getInitializedTensor(dim, initializers[static_cast<int>(BNParams::var)]);
 
-  Tensor gamma = initializeWeight(
-    dim, initializers[static_cast<int>(BNParams::gamma)], status);
-  NN_RETURN_STATUS();
-
-  Tensor beta = initializeWeight(
-    dim, initializers[static_cast<int>(BNParams::beta)], status);
-  NN_RETURN_STATUS();
+  Tensor gamma =
+    getInitializedTensor(dim, initializers[static_cast<int>(BNParams::gamma)]);
+  Tensor beta =
+    getInitializedTensor(dim, initializers[static_cast<int>(BNParams::beta)]);
 
   setParamSize(4);
   paramsAt(0) = {std::move(mu), Tensor(), "BN:moving_mean", false};

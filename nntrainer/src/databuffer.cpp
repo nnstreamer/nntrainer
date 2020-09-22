@@ -37,6 +37,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <thread>
+#include <util_func.h>
 
 std::exception_ptr globalExceptionPtr = nullptr;
 
@@ -53,6 +54,39 @@ std::mutex readyTestData;
 std::condition_variable cv_train;
 std::condition_variable cv_val;
 std::condition_variable cv_test;
+
+DataBuffer::DataBuffer(DataBufferType type) :
+  train_running(),
+  val_running(),
+  test_running(),
+  train_thread(),
+  val_thread(),
+  test_thread(),
+  data_buffer_type(type),
+  user_data(nullptr) {
+  SET_VALIDATION(false);
+  class_num = 0;
+  cur_train_bufsize = 0;
+  cur_val_bufsize = 0;
+  cur_test_bufsize = 0;
+  train_bufsize = 0;
+  val_bufsize = 0;
+  test_bufsize = 0;
+  max_train = 0;
+  max_val = 0;
+  max_test = 0;
+  rest_train = 0;
+  rest_val = 0;
+  rest_test = 0;
+  batch_size = 0;
+  train_running = false;
+  val_running = false;
+  test_running = false;
+  trainReadyFlag = DATA_NOT_READY;
+  valReadyFlag = DATA_NOT_READY;
+  testReadyFlag = DATA_NOT_READY;
+  rng.seed(getSeed());
+};
 
 int DataBuffer::rangeRandom(int min, int max) {
   std::uniform_int_distribution<int> dist(min, max);

@@ -18,18 +18,15 @@
 
 #include <array>
 #include <iostream>
-#include <memory>
-#include <regex>
-#include <vector>
 
 namespace nntrainer {
 
-#define MAXDIM 4
+constexpr const size_t MAXDIM = 4;
 
 class TensorDim {
 public:
   TensorDim() {
-    for (int i = 0; i < MAXDIM; ++i) {
+    for (size_t i = 0; i < MAXDIM; ++i) {
       dim[i] = 0;
     }
     len = 0;

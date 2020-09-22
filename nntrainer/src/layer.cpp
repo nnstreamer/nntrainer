@@ -81,9 +81,8 @@ void Layer::save(std::ofstream &file) {
   }
 }
 
-Tensor Layer::initializeWeight(const TensorDim &w_dim,
-                               WeightInitializer initializer, int &status) {
-
+Tensor getInitializedTensor(const TensorDim &w_dim,
+                            WeightInitializer initializer) {
   Tensor w = Tensor(w_dim);
 
   if (initializer == WEIGHT_UNKNOWN) {
@@ -100,29 +99,30 @@ Tensor Layer::initializeWeight(const TensorDim &w_dim,
     w.setValue(1.0f);
     break;
   case WEIGHT_LECUN_NORMAL:
-    w.setRandNormal(0.0f, sqrt(1.0f / w_dim.height()));
+    w.setRandNormal(0.0f, sqrtFloat(1.0f / w_dim.height()));
     break;
   case WEIGHT_XAVIER_NORMAL:
-    w.setRandNormal(0.0f, sqrt(2.0f / (w_dim.width() + w_dim.height())));
+    w.setRandNormal(0.0f, sqrtFloat(2.0f / (w_dim.width() + w_dim.height())));
     break;
   case WEIGHT_HE_NORMAL:
-    w.setRandNormal(0.0f, sqrt(2.0f / (w_dim.height())));
+    w.setRandNormal(0.0f, sqrtFloat(2.0f / (w_dim.height())));
     break;
   case WEIGHT_LECUN_UNIFORM:
-    w.setRandUniform(-1.0f * sqrt(1.0f / w_dim.height()),
-                     sqrt(1.0f / w_dim.height()));
+    w.setRandUniform(-1.0f * sqrtFloat(1.0f / w_dim.height()),
+                     sqrtFloat(1.0f / w_dim.height()));
     break;
   case WEIGHT_XAVIER_UNIFORM:
-    w.setRandUniform(-1.0f * sqrt(6.0f / (w_dim.height() + w_dim.width())),
-                     sqrt(6.0 / (w_dim.height() + w_dim.width())));
+    w.setRandUniform(-1.0f * sqrtFloat(6.0f / (w_dim.height() + w_dim.width())),
+                     sqrtFloat(6.0 / (w_dim.height() + w_dim.width())));
     break;
   case WEIGHT_HE_UNIFORM:
-    w.setRandUniform(-1.0f * sqrt(6.0f / (w_dim.height())),
-                     sqrt(6.0 / (w_dim.height())));
+    w.setRandUniform(-1.0f * sqrtFloat(6.0f / (w_dim.height())),
+                     sqrtFloat(6.0 / (w_dim.height())));
     break;
   default:
     break;
   }
+
   return w;
 }
 

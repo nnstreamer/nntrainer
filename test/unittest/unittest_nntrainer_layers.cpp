@@ -10,6 +10,7 @@
  * @bug         No known bugs
  */
 #include <fstream>
+#include <regex>
 
 #include <activation_layer.h>
 #include <addition_layer.h>

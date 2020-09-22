@@ -24,6 +24,7 @@
 #include <cstring>
 #include <ctime>
 #include <iomanip>
+#include <mutex>
 #include <nntrainer_logger.h>
 #include <sstream>
 #include <stdarg.h>

@@ -21,7 +21,10 @@
  *
  */
 
+#include <cmath>
+#include <fstream>
 #include <iostream>
+
 #include <lazy_tensor.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>

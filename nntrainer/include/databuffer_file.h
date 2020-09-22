@@ -26,13 +26,14 @@
 #ifdef __cplusplus
 
 #include <atomic>
-#include <databuffer.h>
 #include <fstream>
 #include <functional>
 #include <iostream>
 #include <memory>
 #include <thread>
 #include <vector>
+
+#include <databuffer.h>
 
 namespace nntrainer {
 

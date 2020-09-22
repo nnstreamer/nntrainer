@@ -45,11 +45,9 @@ int FullyConnectedLayer::initialize() {
   TensorDim dim = output_dim;
   dim.height(input_dim.width());
   dim.batch(1);
-  Tensor weight = initializeWeight(dim, weight_initializer, status);
-  NN_RETURN_STATUS();
 
-  Tensor bias = initializeWeight(bias_dim, bias_initializer, status);
-  NN_RETURN_STATUS();
+  Tensor weight = getInitializedTensor(dim, weight_initializer);
+  Tensor bias = getInitializedTensor(bias_dim, bias_initializer);
 
   setParamSize(2);
   paramsAt(0) = {std::move(weight), Tensor(weight.getDim()), "FC:weight"};

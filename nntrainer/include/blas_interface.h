@@ -15,11 +15,6 @@
 #define __BLAS_INTERFACE_H_
 #ifdef __cplusplus
 
-#include <assert.h>
-#include <iostream>
-#include <math.h>
-#include <stdio.h>
-
 #ifdef USE_BLAS
 extern "C" {
 #include <cblas.h>

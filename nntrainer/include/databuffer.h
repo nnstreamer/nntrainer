@@ -31,17 +31,10 @@
 #include <iostream>
 #include <memory>
 #include <random>
-#include <tensor_dim.h>
 #include <thread>
-#include <util_func.h>
 #include <vector>
 
-/**
- * @brief Number of Data Set
- */
-#define NBUFTYPE 4
-
-typedef std::vector<std::vector<std::vector<std::vector<float>>>> vec_4d;
+#include <tensor_dim.h>
 
 #define SET_VALIDATION(val)                                              \
   do {                                                                   \
@@ -71,6 +64,13 @@ typedef std::vector<std::vector<std::vector<std::vector<float>>>> vec_4d;
       break;                                               \
     }                                                      \
   } while (0)
+
+/**
+ * @brief Number of Data Set
+ */
+constexpr const unsigned int NBUFTYPE = 4;
+
+typedef std::vector<std::vector<std::vector<std::vector<float>>>> vec_4d;
 
 typedef enum {
   DATA_NOT_READY = 0,
@@ -128,38 +128,7 @@ public:
    * @brief     Create Buffer
    * @retval    DataBuffer
    */
-  DataBuffer(DataBufferType type) :
-    train_running(),
-    val_running(),
-    test_running(),
-    train_thread(),
-    val_thread(),
-    test_thread(),
-    data_buffer_type(type),
-    user_data(nullptr) {
-    SET_VALIDATION(false);
-    class_num = 0;
-    cur_train_bufsize = 0;
-    cur_val_bufsize = 0;
-    cur_test_bufsize = 0;
-    train_bufsize = 0;
-    val_bufsize = 0;
-    test_bufsize = 0;
-    max_train = 0;
-    max_val = 0;
-    max_test = 0;
-    rest_train = 0;
-    rest_val = 0;
-    rest_test = 0;
-    batch_size = 0;
-    train_running = false;
-    val_running = false;
-    test_running = false;
-    trainReadyFlag = DATA_NOT_READY;
-    valReadyFlag = DATA_NOT_READY;
-    testReadyFlag = DATA_NOT_READY;
-    rng.seed(getSeed());
-  };
+  DataBuffer(DataBufferType type);
 
   /**
    * @brief     Destructor

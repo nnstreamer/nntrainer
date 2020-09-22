@@ -24,12 +24,8 @@
 #define __INPUT_LAYER_H__
 #ifdef __cplusplus
 
-#include <fstream>
-#include <iostream>
 #include <layer.h>
-#include <optimizer.h>
 #include <tensor.h>
-#include <vector>
 
 namespace nntrainer {
 
