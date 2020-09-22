@@ -74,11 +74,11 @@ public:
   void copy(std::shared_ptr<Layer> l);
 
   /**
-   * @brief setActivation by preset ActiType
+   * @brief setActivation by preset ActivationType
    *
-   * @param[in] ActiType ActiType ActiType to be set
+   * @param[in] ActivationTypeeActivationTypeeActivationTypeet
    */
-  void setActivation(ActiType acti_type);
+  void setActivation(ActivationType acti_type);
 
   /**
    * @brief     get the base name for the layer

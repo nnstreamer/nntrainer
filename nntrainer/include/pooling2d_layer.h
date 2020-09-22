@@ -45,7 +45,7 @@ public:
     stride{1, 1},
     padding{0, 0},
     pooling_type(PoolingType::average) {
-    setType(LAYER_POOLING2D);
+    setType(LayerType::LAYER_POOLING2D);
   };
 
   /**

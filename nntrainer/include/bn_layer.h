@@ -47,8 +47,10 @@ public:
     epsilon(epsilon),
     momentum(momentum),
     axis(axis),
-    initializers{WEIGHT_ZEROS, WEIGHT_ONES, WEIGHT_ZEROS, WEIGHT_ONES} {
-    setType(LAYER_BN);
+    initializers{
+      WeightInitializer::WEIGHT_ZEROS, WeightInitializer::WEIGHT_ONES,
+      WeightInitializer::WEIGHT_ZEROS, WeightInitializer::WEIGHT_ONES} {
+    setType(LayerType::LAYER_BN);
   };
 
   /**

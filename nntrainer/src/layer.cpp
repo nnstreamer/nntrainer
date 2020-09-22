@@ -29,9 +29,9 @@
 
 namespace nntrainer {
 
-int Layer::setActivation(ActiType acti) {
+int Layer::setActivation(ActivationType acti) {
   int status = ML_ERROR_NONE;
-  if (acti == ACT_UNKNOWN) {
+  if (acti == ActivationType::ACT_UNKNOWN) {
     ml_loge("Error:have to specify activation function");
     return ML_ERROR_INVALID_PARAMETER;
   }
@@ -49,12 +49,12 @@ int Layer::setOptimizer(Optimizer &opt) {
 
 int Layer::checkValidation() {
   int status = ML_ERROR_NONE;
-  if (type == LAYER_UNKNOWN) {
+  if (type == LayerType::LAYER_UNKNOWN) {
     ml_loge("Error: Layer type is unknown");
     return ML_ERROR_INVALID_PARAMETER;
   }
 
-  if (activation_type == ACT_UNKNOWN) {
+  if (activation_type == ActivationType::ACT_UNKNOWN) {
     ml_loge("Error: Have to set activation for this layer");
     return ML_ERROR_INVALID_PARAMETER;
   }
@@ -85,37 +85,37 @@ Tensor getInitializedTensor(const TensorDim &w_dim,
                             WeightInitializer initializer) {
   Tensor w = Tensor(w_dim);
 
-  if (initializer == WEIGHT_UNKNOWN) {
+  if (initializer == WeightInitializer::WEIGHT_UNKNOWN) {
     ml_logw("Warning: Weight Initalization Type is not set. "
             "WEIGHT_XAVIER_NORMAL is used by default");
-    initializer = WEIGHT_XAVIER_NORMAL;
+    initializer = WeightInitializer::WEIGHT_XAVIER_NORMAL;
   }
 
   switch (initializer) {
-  case WEIGHT_ZEROS:
+  case WeightInitializer::WEIGHT_ZEROS:
     w.setZero();
     break;
-  case WEIGHT_ONES:
+  case WeightInitializer::WEIGHT_ONES:
     w.setValue(1.0f);
     break;
-  case WEIGHT_LECUN_NORMAL:
+  case WeightInitializer::WEIGHT_LECUN_NORMAL:
     w.setRandNormal(0.0f, sqrtFloat(1.0f / w_dim.height()));
     break;
-  case WEIGHT_XAVIER_NORMAL:
+  case WeightInitializer::WEIGHT_XAVIER_NORMAL:
     w.setRandNormal(0.0f, sqrtFloat(2.0f / (w_dim.width() + w_dim.height())));
     break;
-  case WEIGHT_HE_NORMAL:
+  case WeightInitializer::WEIGHT_HE_NORMAL:
     w.setRandNormal(0.0f, sqrtFloat(2.0f / (w_dim.height())));
     break;
-  case WEIGHT_LECUN_UNIFORM:
+  case WeightInitializer::WEIGHT_LECUN_UNIFORM:
     w.setRandUniform(-1.0f * sqrtFloat(1.0f / w_dim.height()),
                      sqrtFloat(1.0f / w_dim.height()));
     break;
-  case WEIGHT_XAVIER_UNIFORM:
+  case WeightInitializer::WEIGHT_XAVIER_UNIFORM:
     w.setRandUniform(-1.0f * sqrtFloat(6.0f / (w_dim.height() + w_dim.width())),
                      sqrtFloat(6.0 / (w_dim.height() + w_dim.width())));
     break;
-  case WEIGHT_HE_UNIFORM:
+  case WeightInitializer::WEIGHT_HE_UNIFORM:
     w.setRandUniform(-1.0f * sqrtFloat(6.0f / (w_dim.height())),
                      sqrtFloat(6.0 / (w_dim.height())));
     break;
@@ -191,7 +191,7 @@ void Layer::setProperty(const PropertyType type, const std::string &value) {
     break;
   case PropertyType::activation:
     if (!value.empty()) {
-      status = setActivation((ActiType)parseType(value, TOKEN_ACTI));
+      status = setActivation((ActivationType)parseType(value, TOKEN_ACTI));
       throw_status(status);
     }
     break;
@@ -263,7 +263,9 @@ void Layer::printShapeInfo(std::ostream &out) {
 }
 
 void Layer::printPropertiesMeta(std::ostream &out) {
-  printIfValid(out, PropertyType::activation, activation_type);
+  printIfValid(
+    out, PropertyType::activation,
+    static_cast<std::underlying_type<ActivationType>::type>(activation_type));
   printIfValid(out, PropertyType::flatten, flatten);
 }
 
@@ -286,7 +288,9 @@ void Layer::print(std::ostream &out, unsigned int flags) {
     out << "===================";
     printInstance(out, this);
 
-    out << "Layer Type: " << type << std::endl;
+    out << "Layer Type: "
+        << static_cast<std::underlying_type<LayerType>::type>(type)
+        << std::endl;
   }
 
   if (flags & PRINT_SHAPE_INFO) {

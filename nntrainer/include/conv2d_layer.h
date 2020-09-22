@@ -38,7 +38,7 @@ public:
     padding{0, 0},
     normalization(false),
     standardization(false) {
-    setType(LAYER_CONV2D);
+    setType(LayerType::LAYER_CONV2D);
   };
 
   /**

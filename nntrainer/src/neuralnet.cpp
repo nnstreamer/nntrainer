@@ -73,7 +73,7 @@ int NeuralNetwork::initLossLayer() {
   }
 
   if (updated_loss_type == LossType::LOSS_ENTROPY) {
-    if (layers.back()->getType() != LAYER_ACTIVATION) {
+    if (layers.back()->getType() != LayerType::LAYER_ACTIVATION) {
       ml_loge("Error: Cross Entropy need last layer to have softmax or sigmoid "
               "activation.");
       return ML_ERROR_NOT_SUPPORTED;
@@ -83,10 +83,10 @@ int NeuralNetwork::initLossLayer() {
     layers.pop_back();
 
     switch (act_layer->getActivationType()) {
-    case ACT_SIGMOID:
+    case ActivationType::ACT_SIGMOID:
       updated_loss_type = LossType::LOSS_ENTROPY_SIGMOID;
       break;
-    case ACT_SOFTMAX:
+    case ActivationType::ACT_SOFTMAX:
       updated_loss_type = LossType::LOSS_ENTROPY_SOFTMAX;
       break;
     default:
@@ -198,8 +198,8 @@ int NeuralNetwork::init() {
     ml_logd("layer name: %s", l.getName().c_str());
 
     if (!first) {
-      if (layers[i - 1]->getType() == LAYER_ACTIVATION &&
-          l.getType() == LAYER_ACTIVATION) {
+      if (layers[i - 1]->getType() == LayerType::LAYER_ACTIVATION &&
+          l.getType() == LayerType::LAYER_ACTIVATION) {
         ml_loge("double activation is not allowed");
         return ML_ERROR_INVALID_PARAMETER;
       }
@@ -215,11 +215,11 @@ int NeuralNetwork::init() {
     status = layers[i]->initialize();
 
     switch (l.getType()) {
-    case LAYER_BN:
+    case LayerType::LAYER_BN:
       /// fallthrough intended
-    case LAYER_CONV2D:
+    case LayerType::LAYER_CONV2D:
       /// fallthrough intended
-    case LAYER_FC:
+    case LayerType::LAYER_FC:
       status = l.setOptimizer(opt);
       NN_RETURN_STATUS();
       break;
@@ -227,7 +227,7 @@ int NeuralNetwork::init() {
       break;
     }
 
-    if (l.getType() != LAYER_ACTIVATION) {
+    if (l.getType() != LayerType::LAYER_ACTIVATION) {
       status = realizeActivationType(l.getActivationType(), i);
       NN_RETURN_STATUS();
     }
@@ -302,7 +302,7 @@ sharedConstTensor NeuralNetwork::forwarding(sharedConstTensor input,
 void NeuralNetwork::backwarding(sharedConstTensor input,
                                 sharedConstTensor label, int iteration) {
 
-  if (layers.empty() || layers.back()->getType() != LAYER_LOSS) {
+  if (layers.empty() || layers.back()->getType() != LayerType::LAYER_LOSS) {
     throw std::invalid_argument("last layer is not loss layer");
   }
 
@@ -528,14 +528,14 @@ int NeuralNetwork::isInitializable() {
   }
 
   switch (l.getType()) {
-  case LAYER_ACTIVATION:
+  case LayerType::LAYER_ACTIVATION:
     /// fallthrough intended
-  case LAYER_BN:
+  case LayerType::LAYER_BN:
     /// fallthrough intended
-  case LAYER_LOSS:
+  case LayerType::LAYER_LOSS:
     /// fallthrough intended
     ml_loge("%s cannot be the first layer, type: %d", l.getName().c_str(),
-            l.getType());
+            static_cast<std::underlying_type<LayerType>::type>(l.getType()));
     return ML_ERROR_INVALID_PARAMETER;
   default:
     /// normal case
@@ -567,7 +567,7 @@ int NeuralNetwork::addLayer(std::shared_ptr<Layer> layer) {
   int status = ML_ERROR_NONE;
 
   LayerType type = layer->getType();
-  if (type == LAYER_UNKNOWN)
+  if (type == LayerType::LAYER_UNKNOWN)
     return ML_ERROR_INVALID_PARAMETER;
 
   if (initialized) {
@@ -630,15 +630,15 @@ int NeuralNetwork::getLayer(const char *name, std::shared_ptr<Layer> *layer) {
   return status;
 }
 
-int NeuralNetwork::realizeActivationType(const ActiType act) {
+int NeuralNetwork::realizeActivationType(const ActivationType act) {
   unsigned int position = layers.end() - layers.begin() - 1;
   return realizeActivationType(act, position);
 }
 
-int NeuralNetwork::realizeActivationType(const ActiType act,
+int NeuralNetwork::realizeActivationType(const ActivationType act,
                                          const unsigned int position) {
-  if (act == ACT_NONE) {
-    /// ACT_NONE does not need realization
+  if (act == ActivationType::ACT_NONE) {
+    /// ActivationType::ACT_NONE does not need realization
     return ML_ERROR_NONE;
   }
 
@@ -648,13 +648,13 @@ int NeuralNetwork::realizeActivationType(const ActiType act,
   }
 
   Layer &current = *layers[position];
-  if (current.getType() == LAYER_ACTIVATION) {
+  if (current.getType() == LayerType::LAYER_ACTIVATION) {
     ml_loge("It is not allowed to realize ativation layer, possibly layer is "
             "added right after activation");
     return ML_ERROR_INVALID_PARAMETER;
   }
 
-  if (act == ACT_UNKNOWN) {
+  if (act == ActivationType::ACT_UNKNOWN) {
     ml_loge("cannot realize unknown activation type");
     return ML_ERROR_INVALID_PARAMETER;
   }
@@ -674,7 +674,7 @@ int NeuralNetwork::realizeFlattenType(const unsigned int position) {
   }
 
   Layer &current = *layers[position];
-  if (current.getType() == LAYER_FLATTEN) {
+  if (current.getType() == LayerType::LAYER_FLATTEN) {
     ml_loge(
       "It is not allowed to realize flatten layer, possibly flatten layer is "
       "added right after flatten");

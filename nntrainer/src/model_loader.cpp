@@ -140,31 +140,32 @@ int ModelLoader::loadLayerConfigIni(dictionary *ini,
   LayerType layer_type = (LayerType)parseType(layer_type_str, TOKEN_LAYER);
 
   switch (layer_type) {
-  case LAYER_IN:
+  case LayerType::LAYER_IN:
     layer = std::make_shared<InputLayer>();
     break;
-  case LAYER_CONV2D:
+  case LayerType::LAYER_CONV2D:
     layer = std::make_shared<Conv2DLayer>();
     break;
-  case LAYER_POOLING2D:
+  case LayerType::LAYER_POOLING2D:
     layer = std::make_shared<Pooling2DLayer>();
     break;
-  case LAYER_FLATTEN:
+  case LayerType::LAYER_FLATTEN:
     layer = std::make_shared<FlattenLayer>();
     break;
-  case LAYER_FC:
+  case LayerType::LAYER_FC:
     layer = std::make_shared<FullyConnectedLayer>();
     break;
-  case LAYER_BN:
+  case LayerType::LAYER_BN:
     layer = std::make_shared<BatchNormalizationLayer>();
     break;
-  case LAYER_ACTIVATION:
+  case LayerType::LAYER_ACTIVATION:
     layer = std::make_shared<ActivationLayer>();
     break;
-  case LAYER_UNKNOWN:
+  case LayerType::LAYER_UNKNOWN:
   default:
     ml_loge("Error: Unknown layer type from %s, parsed to %d",
-            layer_type_str.c_str(), layer_type);
+            layer_type_str.c_str(),
+            static_cast<std::underlying_type<LayerType>::type>(layer_type));
     status = ML_ERROR_INVALID_PARAMETER;
     NN_RETURN_STATUS();
   }

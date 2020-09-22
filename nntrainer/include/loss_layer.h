@@ -42,7 +42,9 @@ public:
   /**
    * @brief     Constructor of Loss Layer
    */
-  LossLayer() : loss_type(LossType::LOSS_UNKNOWN) { setType(LAYER_LOSS); };
+  LossLayer() : loss_type(LossType::LOSS_UNKNOWN) {
+    setType(LayerType::LAYER_LOSS);
+  };
 
   /**
    * @brief     Destructor of Loss Layer
