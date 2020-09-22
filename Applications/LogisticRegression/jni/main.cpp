@@ -189,7 +189,6 @@ int main(int argc, char *argv[]) {
     NN.init();
   } catch (...) {
     std::cerr << "Error during init" << std::endl;
-    NN.finalize();
     return 0;
   }
 
@@ -200,7 +199,6 @@ int main(int argc, char *argv[]) {
       NN.train();
     } catch (...) {
       std::cerr << "Error during train" << std::endl;
-      NN.finalize();
       return 0;
     }
   } else {
@@ -224,7 +222,6 @@ int main(int argc, char *argv[]) {
         cn += answer == l[0];
       } catch (...) {
         std::cerr << "Error during forwarding the model" << std::endl;
-        NN.finalize();
         return -1;
       }
     }
@@ -236,6 +233,5 @@ int main(int argc, char *argv[]) {
   /**
    * @brief     Finalize NN
    */
-  NN.finalize();
   return 0;
 }

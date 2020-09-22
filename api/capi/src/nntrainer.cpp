@@ -229,9 +229,6 @@ int ml_train_model_compile(ml_train_model_h model, ...) {
   if (status != ML_ERROR_NONE)
     return status;
 
-  f = [&]() { return NN->isInitializable(); };
-  status = nntrainer_exception_boundary(f);
-
   return status;
 }
 
@@ -280,12 +277,6 @@ int ml_train_model_destroy(ml_train_model_h model) {
 
   std::shared_ptr<nntrainer::NeuralNetwork> NN;
   NN = nnmodel->network;
-
-  returnable f = [&]() {
-    NN->finalize();
-    return ML_ERROR_NONE;
-  };
-  status = nntrainer_exception_boundary(f);
 
   if (nnmodel->optimizer) {
     ML_TRAIN_RESET_VALIDATED_HANDLE(nnmodel->optimizer);

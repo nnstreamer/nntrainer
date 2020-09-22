@@ -256,7 +256,7 @@ int NeuralNetwork::init() {
 /**
  * @brief     free layers
  */
-void NeuralNetwork::finalize() {
+NeuralNetwork::~NeuralNetwork() {
   layers.erase(layers.begin(), layers.end());
 
   if (data_buffer) {
@@ -366,12 +366,6 @@ void NeuralNetwork::readModel() {
   ml_logi("read modelfile: %s", save_path.c_str());
 }
 
-int NeuralNetwork::train() {
-  std::vector<std::string> values;
-
-  return train(values);
-}
-
 sharedConstTensor NeuralNetwork::inference(const Tensor X) {
   sharedConstTensor out;
   try {
@@ -381,7 +375,6 @@ sharedConstTensor NeuralNetwork::inference(const Tensor X) {
             ->forwarding(out);
   } catch (...) {
     ml_loge("Failed to inference Model");
-    finalize();
     return nullptr;
   }
   return out;
@@ -514,7 +507,6 @@ int NeuralNetwork::train_run() {
 }
 
 int NeuralNetwork::isInitializable() {
-  int status = ML_ERROR_NONE;
   if (layers.empty()) {
     ml_loge("Layer is empty");
     return ML_ERROR_INVALID_PARAMETER;
@@ -522,11 +514,13 @@ int NeuralNetwork::isInitializable() {
 
   Layer &l = *layers[0];
 
+  /** Dimension of first layer must be known */
   if (l.getInputDimension().isEmpty()) {
     ml_loge("InputDimension of first layer is not set");
     return ML_ERROR_INVALID_PARAMETER;
   }
 
+  /** First layer cannot be activation, batch normalization or loss */
   switch (l.getType()) {
   case LayerType::LAYER_ACTIVATION:
     /// fallthrough intended
@@ -542,39 +536,34 @@ int NeuralNetwork::isInitializable() {
     break;
   }
 
-  std::unordered_set<std::string> layer_name_set;
-
-  for (auto layer : layers) {
-    const std::string &name = layer->getName();
-    status = layer->checkValidation();
-    if (status != ML_ERROR_NONE) {
-      ml_loge("layer(%s) is not initializable", name.c_str());
-      return status;
-    }
-
-    if (layer_name_set.count(name)) {
-      ml_loge("layer(%s) name is duplicated", name.c_str());
-      return ML_ERROR_INVALID_PARAMETER;
-    }
-
-    layer_name_set.insert(name);
-  }
-
-  return status;
+  return ML_ERROR_NONE;
 }
 
 int NeuralNetwork::addLayer(std::shared_ptr<Layer> layer) {
   int status = ML_ERROR_NONE;
-
-  LayerType type = layer->getType();
-  if (type == LayerType::LAYER_UNKNOWN)
-    return ML_ERROR_INVALID_PARAMETER;
 
   if (initialized) {
     return ML_ERROR_NOT_SUPPORTED;
   }
 
   ensureName(layer);
+
+  /** Validate the layer to be added */
+  status = layer->checkValidation();
+  if (status != ML_ERROR_NONE) {
+    ml_loge("layer(%s) validation failed.", layer->getName().c_str());
+    return status;
+  }
+
+  /** Ensure that the layer name is unique */
+  auto insert_result = layer_names.insert(layer->getName());
+  if (!insert_result.second) {
+    std::stringstream ss;
+    ss << "Layer with name " << layer->getName() << " already exists";
+    throw std::invalid_argument(ss.str());
+  }
+
+  /** Insert the layer to the graph */
   layers.push_back(layer);
 
   return status;
@@ -611,7 +600,6 @@ void NeuralNetwork::ensureName(std::shared_ptr<Layer> layer,
       iter = layer_names.find(name);
     } while (iter != layer_names.end());
 
-    layer_names.insert(name);
     layer->setName(name);
   }
 }
