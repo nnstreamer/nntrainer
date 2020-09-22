@@ -526,8 +526,10 @@ protected:
 
   void loadUpdatedWeightsGradients(const char *file_uw, const char *file_g) {
     for (int idx = 0; idx < 2; ++idx) {
-      new_w.push_back(nntrainer::Tensor(layer.paramsAt(idx).weight.getDim()));
-      grad.push_back(nntrainer::Tensor(layer.paramsAt(idx).grad.getDim()));
+      new_w.push_back(
+        nntrainer::Tensor(layer.weightAt(idx).getVariable().getDim()));
+      grad.push_back(
+        nntrainer::Tensor(layer.weightAt(idx).getGradient().getDim()));
     }
 
     loadFile(file_uw, new_w);
@@ -542,12 +544,12 @@ protected:
   }
 
   void matchUpdatedWeightsGradients() {
-    std::shared_ptr<nntrainer::UpdatableParam> params = layer.getParams();
+    std::shared_ptr<nntrainer::Weight> params = layer.getWeights();
 
     /** Match gradients and updated weights */
     for (int idx = 0; idx < 2; ++idx) {
-      matchOutput(params.get()[idx].grad, grad[idx]);
-      matchOutput(params.get()[idx].weight, new_w[idx]);
+      matchOutput(params.get()[idx].getGradient(), grad[idx]);
+      matchOutput(params.get()[idx].getVariable(), new_w[idx]);
     }
   }
 
@@ -583,14 +585,14 @@ TEST_F(nntrainer_FullyConnectedLayer_TFmatch,
 
   matchOutput(result, "tc_fc_1_goldenFCGradientAdam.out");
 
-  nntrainer::UpdatableParam *param_data = layer.getParams().get();
+  nntrainer::Weight *param_data = layer.getWeights().get();
 
-  nntrainer::UpdatableParam &param = param_data[0];
-  nntrainer::Tensor &weight = param.weight;
+  nntrainer::Weight &param = param_data[0];
+  nntrainer::Tensor weight = param.getVariable();
   matchOutput(weight, "tc_fc_1_goldenFCUpdatedWeightAdam.out");
 
-  nntrainer::UpdatableParam &bias_param = param_data[1];
-  nntrainer::Tensor &bias = bias_param.weight;
+  nntrainer::Weight &bias_param = param_data[1];
+  nntrainer::Tensor bias = bias_param.getVariable();
   matchOutput(bias, "tc_fc_1_goldenFCUpdatedBiasAdam.out");
 }
 
@@ -1077,11 +1079,11 @@ TEST_F(nntrainer_Conv2DLayer, backwarding_01_p) {
   EXPECT_NO_THROW(
     result = layer.backwarding(MAKE_SHARED_TENSOR(derivatives), 1).get()[0]);
 
-  nntrainer::UpdatableParam *param_data = layer.getParams().get();
+  nntrainer::Weight *param_data = layer.getWeights().get();
 
   for (unsigned int i = 0; i < filter_size * 2; ++i) {
-    nntrainer::UpdatableParam &param = param_data[i];
-    nntrainer::Tensor &grad = param.grad;
+    nntrainer::Weight &param = param_data[i];
+    nntrainer::Tensor grad = param.getGradient();
     const float *gdata = grad.getData();
     if (i < filter_size) {
       for (unsigned int j = 0; j < grad.length(); ++j) {
@@ -1130,11 +1132,11 @@ TEST_F(nntrainer_Conv2DLayer, backwarding_04_p) {
   EXPECT_NO_THROW(
     result = layer.backwarding(MAKE_SHARED_TENSOR(derivatives), 1).get()[0]);
 
-  nntrainer::UpdatableParam *param_data = layer.getParams().get();
+  nntrainer::Weight *param_data = layer.getWeights().get();
 
   for (unsigned int i = 0; i < filter_size * 2; ++i) {
-    nntrainer::UpdatableParam &param = param_data[i];
-    nntrainer::Tensor &grad = param.grad;
+    nntrainer::Weight &param = param_data[i];
+    nntrainer::Tensor grad = param.getGradient();
     const float *gdata = grad.getData();
     if (i < filter_size) {
       for (unsigned int j = 0; j < grad.length(); ++j) {
@@ -1170,7 +1172,7 @@ TEST_F(nntrainer_Conv2DLayer, backwarding_02_p) {
   std::vector<float> weight_data;
   std::vector<float> bias_grad;
   std::vector<float> bias_weight;
-  nntrainer::UpdatableParam *param_data;
+  nntrainer::Weight *param_data;
 
   nntrainer::Tensor derivatives(2, 3, 5, 5);
 
@@ -1184,11 +1186,11 @@ TEST_F(nntrainer_Conv2DLayer, backwarding_02_p) {
   }
   EXPECT_NO_THROW(
     result = layer.backwarding(MAKE_SHARED_TENSOR(derivatives), 1).get()[0]);
-  param_data = layer.getParams().get();
+  param_data = layer.getWeights().get();
 
   for (unsigned int i = 0; i < filter_size * 2; ++i) {
-    nntrainer::UpdatableParam &param = param_data[i];
-    nntrainer::Tensor &grad = param.grad;
+    nntrainer::Weight &param = param_data[i];
+    nntrainer::Tensor grad = param.getGradient();
 
     const float *gdata = grad.getData();
     if (i < filter_size) {
@@ -1213,11 +1215,11 @@ TEST_F(nntrainer_Conv2DLayer, backwarding_02_p) {
       result = layer.backwarding(MAKE_SHARED_TENSOR(derivatives), 1).get()[0]);
   }
 
-  param_data = layer.getParams().get();
+  param_data = layer.getWeights().get();
 
   for (unsigned int i = 0; i < filter_size * 2; ++i) {
-    nntrainer::UpdatableParam &param = param_data[i];
-    nntrainer::Tensor &grad = param.grad;
+    nntrainer::Weight &param = param_data[i];
+    nntrainer::Tensor grad = param.getGradient();
 
     const float *gdata = grad.getData();
     if (i < filter_size) {
@@ -1288,7 +1290,7 @@ TEST_F(nntrainer_Conv2DLayer, backwarding_03_p) {
   std::vector<float> weight_data;
   std::vector<float> bias_grad;
   std::vector<float> bias_weight;
-  nntrainer::UpdatableParam *param_data;
+  nntrainer::Weight *param_data;
 
   nntrainer::Tensor derivatives(1, 12, 24, 24);
 
@@ -1318,13 +1320,13 @@ TEST_F(nntrainer_Conv2DLayer, backwarding_03_p) {
     result = layer1.backwarding(MAKE_SHARED_TENSOR(result2), 1).get()[0]);
 
   /** Compare second conv */
-  param_data = layer2.getParams().get();
+  param_data = layer2.getWeights().get();
   filter_size = 12;
   grad_data.clear();
   bias_grad.clear();
   for (unsigned int i = 0; i < filter_size * 2; ++i) {
-    nntrainer::UpdatableParam &param = param_data[i];
-    nntrainer::Tensor &grad = param.grad;
+    nntrainer::Weight &param = param_data[i];
+    nntrainer::Tensor grad = param.getGradient();
 
     const float *gdata = grad.getData();
     if (i < filter_size) {
@@ -1342,13 +1344,13 @@ TEST_F(nntrainer_Conv2DLayer, backwarding_03_p) {
   matchOutput(bias_grad, "tc_conv2d_int_goldenBias2Grad.out");
 
   /** Compare first conv */
-  param_data = layer1.getParams().get();
+  param_data = layer1.getWeights().get();
   filter_size = 6;
   grad_data.clear();
   bias_grad.clear();
   for (unsigned int i = 0; i < filter_size * 2; ++i) {
-    nntrainer::UpdatableParam &param = param_data[i];
-    nntrainer::Tensor &grad = param.grad;
+    nntrainer::Weight &param = param_data[i];
+    nntrainer::Tensor grad = param.getGradient();
 
     const float *gdata = grad.getData();
     if (i < filter_size) {

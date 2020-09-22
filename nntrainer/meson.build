@@ -27,6 +27,7 @@ endif
 nntrainer_sources = [
   'src/activation_layer.cpp',
   'src/addition_layer.cpp',
+  'src/blas_interface.cpp',
   'src/bn_layer.cpp',
   'src/conv2d_layer.cpp',
   'src/databuffer.cpp',
@@ -47,12 +48,13 @@ nntrainer_sources = [
   'src/tensor.cpp',
   'src/tensor_dim.cpp',
   'src/util_func.cpp',
-  'src/blas_interface.cpp'
+  'src/weight.cpp'
 ]
 
 nntrainer_headers = [
   'include/activation_layer.h',
   'include/addition_layer.h',
+  'include/blas_interface.h',
   'include/bn_layer.h',
   'include/conv2d_layer.h',
   'include/databuffer.h',
@@ -74,7 +76,7 @@ nntrainer_headers = [
   'include/tensor.h',
   'include/tensor_dim.h',
   'include/util_func.h',
-  'include/blas_interface.h',
+  'include/weight.h',
   '../api/nntrainer-api-common.h'
 ]
 

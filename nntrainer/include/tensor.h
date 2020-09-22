@@ -158,7 +158,12 @@ public:
    */
   Tensor &operator=(Tensor &&rhs) noexcept = default;
 
-  void swap(Tensor &lhs, Tensor &rhs) noexcept;
+  friend void swap(Tensor &lhs, Tensor &rhs) noexcept {
+    std::swap(lhs.dim, rhs.dim);
+    std::swap(lhs.data, rhs.data);
+    std::swap(lhs.strides, rhs.strides);
+    std::swap(lhs.is_contiguous, rhs.is_contiguous);
+  }
 
   /**
    * @brief     Comparison operator overload

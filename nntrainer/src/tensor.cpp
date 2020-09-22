@@ -90,13 +90,6 @@ Tensor::Tensor(const TensorDim &d, const float *buf) : Tensor() {
   }
 }
 
-void Tensor::swap(Tensor &lhs, Tensor &rhs) noexcept {
-  std::swap(lhs.dim, rhs.dim);
-  std::swap(lhs.data, rhs.data);
-  std::swap(lhs.strides, rhs.strides);
-  std::swap(lhs.is_contiguous, rhs.is_contiguous);
-}
-
 bool Tensor::operator==(const Tensor &rhs) const {
   if (this->dim != rhs.dim)
     return false;

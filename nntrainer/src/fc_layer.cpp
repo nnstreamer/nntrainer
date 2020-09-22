@@ -46,12 +46,9 @@ int FullyConnectedLayer::initialize() {
   dim.height(input_dim.width());
   dim.batch(1);
 
-  Tensor weight = getInitializedTensor(dim, weight_initializer);
-  Tensor bias = getInitializedTensor(bias_dim, bias_initializer);
-
-  setParamSize(2);
-  paramsAt(0) = {std::move(weight), Tensor(weight.getDim()), "FC:weight"};
-  paramsAt(1) = {std::move(bias), Tensor(bias.getDim()), "FC:bias"};
+  setNumWeights(2);
+  weightAt(0) = std::move(Weight(dim, weight_initializer, true, "FC:weight"));
+  weightAt(1) = std::move(Weight(bias_dim, bias_initializer, true, "FC:bias"));
 
   return status;
 }
@@ -74,15 +71,16 @@ void FullyConnectedLayer::setProperty(const PropertyType type,
 }
 
 sharedConstTensor FullyConnectedLayer::forwarding(sharedConstTensor in) {
-  Tensor &weight = paramsAt(static_cast<int>(FCParams::weight)).weight;
-  Tensor &bias = paramsAt(static_cast<int>(FCParams::bias)).weight;
+  Tensor &weight =
+    weightAt(static_cast<int>(FCParams::weight)).getVariableRef();
+  Tensor &bias = weightAt(static_cast<int>(FCParams::bias)).getVariableRef();
 
   input = *in;
   hidden = input.dot(weight);
   hidden.add_i(bias);
 
-  if (weight_regularizer.type == WeightRegularizerType::l2norm) {
-    loss = weight_regularizer.constant * 0.5f * (weight.l2norm());
+  if (weight_regularizer == WeightRegularizerType::l2norm) {
+    loss = weight_regularizer_constant * 0.5f * (weight.l2norm());
   }
 
   return MAKE_SHARED_TENSOR(hidden);
@@ -116,20 +114,20 @@ sharedConstTensor FullyConnectedLayer::backwarding(sharedConstTensor derivative,
                                                    int iteration) {
   unsigned int weight_idx = static_cast<int>(FCParams::weight);
   unsigned int bias_idx = static_cast<int>(FCParams::bias);
-  Tensor &weight = paramsAt(weight_idx).weight;
-  Tensor &djdw = paramsAt(weight_idx).grad;
-  Tensor &djdb = paramsAt(bias_idx).grad;
+  Tensor &weight = weightAt(weight_idx).getVariableRef();
+  Tensor &djdw = weightAt(weight_idx).getGradientRef();
+  Tensor &djdb = weightAt(bias_idx).getGradientRef();
 
   Tensor ret = derivative->dot(weight, false, true);
   djdb = derivative->sum(0);
 
   djdw = input.dot(*derivative, true, false);
   if (isWeightRegularizerL2Norm())
-    djdw.add_i(weight, weight_regularizer.constant);
+    djdw.add_i(weight, weight_regularizer_constant);
   djdw = djdw.sum(0);
 
   if (trainable) {
-    opt.apply_gradients(params, param_size, iteration);
+    opt.apply_gradients(weight_list, num_weights, iteration);
   }
 
   return MAKE_SHARED_TENSOR(std::move(ret));

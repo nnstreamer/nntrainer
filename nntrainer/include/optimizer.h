@@ -25,19 +25,9 @@
 
 #include <memory>
 #include <tensor.h>
+#include <weight.h>
 
 namespace nntrainer {
-
-/**
- * @brief UpdatableParam that could be updated thorugh optimizer
- */
-// TODO: move this out from here
-struct UpdatableParam {
-  Tensor weight;         /**< weight to be updated and used */
-  Tensor grad;           /**< gradient for the weight */
-  std::string name;      /**< name of the parameter */
-  bool updatable = true; /**< if this param is updatable */
-};
 
 /**
  * @brief     Enumeration of Optimizer
@@ -46,27 +36,6 @@ struct UpdatableParam {
  *            2. Unknown
  */
 enum class OptType { sgd = 0, adam = 1, unknown = 2 };
-
-/**
- * @brief     Enumeration of Weight Decay type
- *            0. L2Norm
- *            1. Regression
- *            2. Unknown (equivalent to none)
- */
-// TODO: move this out of here
-enum class WeightRegularizerType { l2norm = 0, regression = 1, unknown = 2 };
-
-/**
- * @brief     type for the Weight Decay hyper-parameter
- */
-typedef struct WeightRegularizerParam_ {
-  WeightRegularizerType type;
-  float constant;
-
-  WeightRegularizerParam_() :
-    type(WeightRegularizerType::unknown),
-    constant(0.0f) {}
-} WeightRegularizerParam;
 
 /**
  * @brief     type for the Optimizor to save hyper-parameter
@@ -188,25 +157,25 @@ public:
 
   /**
    * @brief     initialize optimizer. Initialize Weight if it is adam
-   * @param[in] params UpdatableParam list
-   * @param[in] param_size size of the array
+   * @param[in] params Weight list
+   * @param[in] num_weights size of the array
    * @param[in] setTensor true if the layer need weight update.
    *            Input Layer and Batch Normalization layer won't need it.
    *            Therefore, it sets false.
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int initialize(std::shared_ptr<UpdatableParam> params,
-                 unsigned int param_size, bool setTensor);
+  int initialize(std::shared_ptr<Weight> params, unsigned int num_weights,
+                 bool setTensor);
 
   /**
-   * @brief     apply gradient to weights
-   * @param[in] params array of updatable params.
-   * @param[in] param_size size of the array
+   * @brief     apply gradient to weight_list
+   * @param[in] params Weight list
+   * @param[in] num_weights size of the array
    * @param[in] iteration nth epoch number
    */
-  void apply_gradients(std::shared_ptr<UpdatableParam> params,
-                       unsigned int param_size, int iteration);
+  void apply_gradients(std::shared_ptr<Weight> params, unsigned int num_weights,
+                       int iteration);
 
   /**
    * @brief     Property Enumeration
