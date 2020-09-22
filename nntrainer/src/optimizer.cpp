@@ -61,37 +61,32 @@ int Optimizer::setOptParam(OptParam p) {
   return status;
 }
 
-int Optimizer::initialize(std::shared_ptr<UpdatableParam> params,
-                          unsigned int param_size, bool set_tensor) {
+int Optimizer::initialize(std::shared_ptr<Weight> weight_list,
+                          unsigned int num_weights, bool set_tensor) {
   int status = ML_ERROR_NONE;
 
   if (type == OptType::adam && set_tensor) {
-    UpdatableParam *param_data = params.get();
+    for (unsigned int i = 0; i < num_weights; ++i) {
+      Weight &w = weight_list.get()[i];
 
-    for (unsigned int i = 0; i < param_size; ++i) {
-      UpdatableParam &param = param_data[i];
-
-      if (!param.updatable)
+      // TODO: only trainable weights must be sent to optimizer
+      if (!w.getTrainable())
         continue;
 
-      Tensor &weight = param.weight;
-      Tensor &grad = param.grad;
-      Tensor w = Tensor(weight.getDim());
-      w.setZero();
-      Tensor g = Tensor(grad.getDim());
-      g.setZero();
+      Tensor m = Tensor(w.getDim());
+      m.setZero();
+      Tensor v = Tensor(w.getDim());
+      v.setZero();
       std::pair<Tensor, Tensor> p =
-        std::pair<Tensor, Tensor>(std::move(w), std::move(g));
+        std::pair<Tensor, Tensor>(std::move(m), std::move(v));
       weight_mv.push_back(std::move(p));
     }
   }
   return status;
 }
 
-void Optimizer::apply_gradients(std::shared_ptr<UpdatableParam> params,
-                                unsigned int param_size, int iteration) {
-
-  UpdatableParam *param_data = params.get();
+void Optimizer::apply_gradients(std::shared_ptr<Weight> weight_list,
+                                unsigned int num_weights, int iteration) {
 
   double ll = popt.learning_rate;
 
@@ -108,14 +103,14 @@ void Optimizer::apply_gradients(std::shared_ptr<UpdatableParam> params,
   }
 
   int idx = 0;
-  for (unsigned int i = 0; i < param_size; ++i) {
-    UpdatableParam &param = param_data[i];
+  for (unsigned int i = 0; i < num_weights; ++i) {
+    Weight &weight = weight_list.get()[i];
 
-    if (!param.updatable)
+    if (!weight.getTrainable())
       continue;
 
-    Tensor &x = param.weight;
-    const Tensor &x_grad = param.grad;
+    Tensor &x = weight.getVariableRef();
+    const Tensor &x_grad = weight.getGradientRef();
     switch (type) {
     case OptType::sgd:
       x.add_i(x_grad, -ll);

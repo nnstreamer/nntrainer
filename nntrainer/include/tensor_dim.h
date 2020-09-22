@@ -64,7 +64,12 @@ public:
    * @parma[out] lhs Optimizer
    * @parma[in] rhs Optimizer
    */
-  void swap(TensorDim &lhs, TensorDim &rhs) noexcept;
+  friend void swap(TensorDim &lhs, TensorDim &rhs) noexcept {
+    std::swap_ranges(std::begin(lhs.dim), std::begin(lhs.dim) + MAXDIM,
+                     std::begin(rhs.dim));
+    std::swap(lhs.len, rhs.len);
+    std::swap(lhs.feature_len, rhs.feature_len);
+  }
 
   unsigned int batch() const { return dim[0]; };
   unsigned int channel() const { return dim[1]; };

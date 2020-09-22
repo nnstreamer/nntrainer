@@ -389,6 +389,9 @@ private:
    */
   void ensureName(std::shared_ptr<Layer> layer, std::string prefix = "");
 
+  /**
+   * @brief     Swap function for the class
+   */
   friend void swap(NeuralNetwork &lhs, NeuralNetwork &rhs) {
     using std::swap;
 

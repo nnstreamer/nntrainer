@@ -30,6 +30,7 @@
 #include <optimizer.h>
 #include <tensor.h>
 #include <tensor_dim.h>
+#include <weight.h>
 
 namespace nntrainer {
 
@@ -62,21 +63,6 @@ enum class LayerType {
 };
 
 /**
- * @brief     Enumeration of Weight Initialization Type
- */
-enum class WeightInitializer {
-  WEIGHT_ZEROS,          /** Zero initialization */
-  WEIGHT_ONES,           /** One initialization */
-  WEIGHT_LECUN_NORMAL,   /** LeCun normal initialization */
-  WEIGHT_LECUN_UNIFORM,  /** uniform initialization */
-  WEIGHT_XAVIER_NORMAL,  /** Xavier normal initialization */
-  WEIGHT_XAVIER_UNIFORM, /** Xavier uniform initialization */
-  WEIGHT_HE_NORMAL,      /** He normal initialization */
-  WEIGHT_HE_UNIFORM,     /** He uniform initialization */
-  WEIGHT_UNKNOWN         /** Unknown */
-};
-
-/**
  * @brief   Print Options when printing layer info
  */
 typedef enum {
@@ -102,12 +88,13 @@ public:
     type(LayerType::LAYER_UNKNOWN),
     loss(0.0f),
     activation_type(ActivationType::ACT_NONE),
-    weight_regularizer(),
+    weight_regularizer(WeightRegularizerType::unknown),
+    weight_regularizer_constant(0.0f),
     weight_initializer(WeightInitializer::WEIGHT_XAVIER_UNIFORM),
     bias_initializer(WeightInitializer::WEIGHT_ZEROS),
     flatten(false),
     trainable(true),
-    param_size(0),
+    num_weights(0),
     num_inputs(1),
     num_outputs(1) {}
 
@@ -154,14 +141,14 @@ public:
 
   /**
    * @brief     read layer Weight & Bias data from file
-   * @note      derived class can call this to get/save updatableParams
+   * @note      derived class can call this to get/save weights
    * @param[in] file input file stream
    */
   virtual void read(std::ifstream &file);
 
   /**
    * @brief     save layer Weight & Bias data from file
-   * @note      derived class can call this to get/save updatableParams
+   * @note      derived class can call this to get/save weights
    * @param[in] file output file stream
    */
   virtual void save(std::ofstream &file);
@@ -297,9 +284,9 @@ public:
    * @brief     set weight decay parameters
    * @param[in] w struct for weight decay
    */
-  // void setWeightRegularizer(WeightRegularizerParam w) {
-  //   weight_regularizer = w;
-  // }
+  void setWeightRegularizer(WeightRegularizerType type) {
+    weight_regularizer = type;
+  }
 
   /**
    * @brief  set Weight Initialization Type
@@ -349,10 +336,10 @@ public:
   void setTrainable(bool train) { trainable = train; }
 
   /**
-   * @brief     get updatable params of all
+   * @brief     get all weights of the layer
    * @retval    vector of all params
    */
-  std::shared_ptr<UpdatableParam> getParams() { return params; }
+  std::shared_ptr<Weight> getWeights() { return weight_list; }
 
   /**
    * @brief     get if the output of this layer must be flatten
@@ -394,12 +381,12 @@ public:
    * @brief     get data alias at param position.
    * @exception std::out_of_range for index out of range
    */
-  UpdatableParam &paramsAt(const unsigned int position) {
-    if (position >= param_size) {
+  Weight &weightAt(const unsigned int position) {
+    if (position >= num_weights) {
       throw std::out_of_range("index out of range");
     }
 
-    return params.get()[position];
+    return weight_list.get()[position];
   }
 
 protected:
@@ -413,7 +400,7 @@ protected:
    * @return    bool is weightdecay type is L2 Norm
    */
   bool isWeightRegularizerL2Norm() {
-    return weight_regularizer.type == WeightRegularizerType::l2norm;
+    return weight_regularizer == WeightRegularizerType::l2norm;
   }
   /**
    * @brief     Input Tensor
@@ -453,7 +440,9 @@ protected:
 
   ActivationType activation_type;
 
-  WeightRegularizerParam weight_regularizer;
+  WeightRegularizerType weight_regularizer;
+
+  float weight_regularizer_constant;
 
   WeightInitializer weight_initializer; /** initializer for weights */
 
@@ -470,33 +459,33 @@ protected:
   bool trainable;
 
   /**
-   * @brief     reserve memory for @a params and set @a param_size
-   * @exception std::invalid_argument when param_size is already set and
+   * @brief     reserve memory for @a weight_list and set @a num_weights
+   * @exception std::invalid_argument when num_weights is already set and
    * shouldn't be changed again.
    */
-  void setParamSize(unsigned int psize) {
-    if (psize == param_size)
+  void setNumWeights(unsigned int psize) {
+    if (psize == num_weights)
       return;
 
-    if (param_size > 0) {
+    if (num_weights > 0) {
       throw std::invalid_argument("param size can't be set once it is set");
     }
 
-    param_size = psize;
-    params = std::shared_ptr<UpdatableParam>(
-      new UpdatableParam[psize], std::default_delete<UpdatableParam[]>());
+    num_weights = psize;
+    weight_list = std::shared_ptr<Weight>(new Weight[num_weights],
+                                          std::default_delete<Weight[]>());
   }
 
   /**
-   * @brief     updatable params in this layer. This contains params of layers.
-   * @note      UpdatableParam has weights and gradients paired.
+   * @brief     weight_list in this layer. This contains trainable weights of
+   * layers.
    */
-  std::shared_ptr<UpdatableParam> params;
+  std::shared_ptr<Weight> weight_list;
 
-  unsigned int param_size; /**< length of UpdatableParam * params.
+  unsigned int num_weights; /**< length of weights.
                                 This shouldn't be changed
                                 after initiation
-                                use setParamSize() to avoid
+                                use setNumWeights() to avoid
                                 setting parameters twice */
 
   /**
@@ -568,17 +557,6 @@ std::ostream &operator<<(std::ostream &out, T &l) {
   l.print(out, option);
   return out;
 }
-
-/**
- * @brief  initialize Weight
- * @param[in] w_dim TensorDim
- * @param[in] initializer Weight Initializer
- * @param[out] status Status
- * @retval Tensor Initialized Tensor
- */
-// TODO: move out
-Tensor getInitializedTensor(const TensorDim &w_dim,
-                            WeightInitializer initializer);
 
 } // namespace nntrainer
 

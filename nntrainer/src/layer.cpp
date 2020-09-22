@@ -44,7 +44,7 @@ int Layer::setOptimizer(Optimizer &opt) {
   this->opt.setType(opt.getType());
   this->opt.setOptParam(opt.getOptParam());
 
-  return this->opt.initialize(params, param_size, true);
+  return this->opt.initialize(weight_list, num_weights, true);
 }
 
 int Layer::checkValidation() {
@@ -63,67 +63,22 @@ int Layer::checkValidation() {
 }
 
 void Layer::copy(std::shared_ptr<Layer> l) {
-  setParamSize(l->param_size);
-  for (unsigned int i = 0; i < l->param_size; ++i) {
-    paramsAt(i) = l->paramsAt(i);
+  setNumWeights(l->num_weights);
+  for (unsigned int i = 0; i < num_weights; ++i) {
+    weightAt(i) = l->weightAt(i);
   }
 }
 
 void Layer::read(std::ifstream &file) {
-  for (unsigned int i = 0; i < param_size; ++i) {
-    paramsAt(i).weight.read(file);
+  for (unsigned int i = 0; i < num_weights; ++i) {
+    weightAt(i).getVariableRef().read(file);
   }
 }
 
 void Layer::save(std::ofstream &file) {
-  for (unsigned int i = 0; i < param_size; ++i) {
-    paramsAt(i).weight.save(file);
+  for (unsigned int i = 0; i < num_weights; ++i) {
+    weightAt(i).getVariableRef().save(file);
   }
-}
-
-Tensor getInitializedTensor(const TensorDim &w_dim,
-                            WeightInitializer initializer) {
-  Tensor w = Tensor(w_dim);
-
-  if (initializer == WeightInitializer::WEIGHT_UNKNOWN) {
-    ml_logw("Warning: Weight Initalization Type is not set. "
-            "WEIGHT_XAVIER_NORMAL is used by default");
-    initializer = WeightInitializer::WEIGHT_XAVIER_NORMAL;
-  }
-
-  switch (initializer) {
-  case WeightInitializer::WEIGHT_ZEROS:
-    w.setZero();
-    break;
-  case WeightInitializer::WEIGHT_ONES:
-    w.setValue(1.0f);
-    break;
-  case WeightInitializer::WEIGHT_LECUN_NORMAL:
-    w.setRandNormal(0.0f, sqrtFloat(1.0f / w_dim.height()));
-    break;
-  case WeightInitializer::WEIGHT_XAVIER_NORMAL:
-    w.setRandNormal(0.0f, sqrtFloat(2.0f / (w_dim.width() + w_dim.height())));
-    break;
-  case WeightInitializer::WEIGHT_HE_NORMAL:
-    w.setRandNormal(0.0f, sqrtFloat(2.0f / (w_dim.height())));
-    break;
-  case WeightInitializer::WEIGHT_LECUN_UNIFORM:
-    w.setRandUniform(-1.0f * sqrtFloat(1.0f / w_dim.height()),
-                     sqrtFloat(1.0f / w_dim.height()));
-    break;
-  case WeightInitializer::WEIGHT_XAVIER_UNIFORM:
-    w.setRandUniform(-1.0f * sqrtFloat(6.0f / (w_dim.height() + w_dim.width())),
-                     sqrtFloat(6.0 / (w_dim.height() + w_dim.width())));
-    break;
-  case WeightInitializer::WEIGHT_HE_UNIFORM:
-    w.setRandUniform(-1.0f * sqrtFloat(6.0f / (w_dim.height())),
-                     sqrtFloat(6.0 / (w_dim.height())));
-    break;
-  default:
-    break;
-  }
-
-  return w;
 }
 
 int Layer::setProperty(std::vector<std::string> values) {
@@ -203,16 +158,16 @@ void Layer::setProperty(const PropertyType type, const std::string &value) {
     break;
   case PropertyType::weight_regularizer:
     if (!value.empty()) {
-      weight_regularizer.type =
+      weight_regularizer =
         (WeightRegularizerType)parseType(value, TOKEN_WEIGHT_REGULARIZER);
-      if (weight_regularizer.type == WeightRegularizerType::unknown) {
+      if (weight_regularizer == WeightRegularizerType::unknown) {
         throw std::invalid_argument("[Layer] Unknown Weight decay");
       }
     }
     break;
   case PropertyType::weight_regularizer_constant:
     if (!value.empty()) {
-      status = setFloat(weight_regularizer.constant, value);
+      status = setFloat(weight_regularizer_constant, value);
       throw_status(status);
     }
     break;
@@ -257,8 +212,8 @@ void Layer::printIfValid(std::ostream &out, const PropertyType type,
 
 void Layer::printShapeInfo(std::ostream &out) {
   out << "input " << input_dim;
-  for (unsigned int i = 0; i < param_size; i++)
-    out << "inner" << i << " " << paramsAt(i).weight.getDim();
+  for (unsigned int i = 0; i < num_weights; i++)
+    out << "inner" << i << " " << weightAt(i).var.getDim();
   out << "output " << output_dim;
 }
 
@@ -272,9 +227,9 @@ void Layer::printPropertiesMeta(std::ostream &out) {
 void Layer::printProperties(std::ostream &out) {
   out << "Trainable: " << trainable << std::endl;
   printIfValid(out, PropertyType::weight_regularizer,
-               static_cast<int>(weight_regularizer.type));
+               static_cast<int>(weight_regularizer));
   printIfValid(out, PropertyType::weight_regularizer_constant,
-               weight_regularizer.constant);
+               weight_regularizer_constant);
 }
 
 void Layer::printMetric(std::ostream &out) {
@@ -310,9 +265,9 @@ void Layer::print(std::ostream &out, unsigned int flags) {
 
   if (flags & PRINT_WEIGHTS) {
     out << "======weights: " << std::endl;
-    for (unsigned int i = 0; i < param_size; ++i) {
-      out << '[' << paramsAt(i).name << ']' << std::endl;
-      out << paramsAt(i).weight;
+    for (unsigned int i = 0; i < num_weights; ++i) {
+      out << '[' << weightAt(i).getName() << ']' << std::endl;
+      out << weightAt(i).var;
     }
   }
 

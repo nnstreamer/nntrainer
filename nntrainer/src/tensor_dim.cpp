@@ -24,21 +24,18 @@
 namespace nntrainer {
 
 TensorDim &TensorDim::operator=(const TensorDim &rhs) {
+  using std::swap;
+
   TensorDim tmp(rhs.batch(), rhs.channel(), rhs.height(), rhs.width());
-  this->swap(*this, tmp);
+  swap(*this, tmp);
   return *this;
 }
 
 TensorDim &TensorDim::operator=(TensorDim &&rhs) noexcept {
-  this->swap(*this, rhs);
-  return *this;
-}
+  using std::swap;
 
-void TensorDim::swap(TensorDim &lhs, TensorDim &rhs) noexcept {
-  std::swap_ranges(std::begin(lhs.dim), std::begin(lhs.dim) + MAXDIM,
-                   std::begin(rhs.dim));
-  std::swap(lhs.len, rhs.len);
-  std::swap(lhs.feature_len, rhs.feature_len);
+  swap(*this, rhs);
+  return *this;
 }
 
 void TensorDim::resetLen() {
