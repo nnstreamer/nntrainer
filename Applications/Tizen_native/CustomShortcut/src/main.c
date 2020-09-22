@@ -10,12 +10,153 @@
  * @bug No known bugs except for NYI items
  */
 
-#include "main.h"
-#include "data.h"
-#include "view.h"
 #include <pthread.h>
+
 #include <tizen.h>
 
+#include "data.h"
+#include "main.h"
+#include "view.h"
+
+static int routes_to_(appdata_s *ad, const char *source) {
+  int status = view_routes_to(ad, source);
+  if (status != 0) {
+    LOG_E("routing to a new view failed for %s", source);
+  }
+
+  elm_layout_signal_callback_add(ad->layout, "routes/to", "*",
+                                 &presenter_on_routes_request, ad);
+
+  return status;
+}
+
+static int train_(appdata_s *ad) {
+  int status = ML_ERROR_NONE;
+
+  status = pipe(ad->pipe_fd);
+  if (status < 0) {
+    LOG_E("opening pipe for training failed");
+  }
+
+  ad->best_accuracy = 0.0;
+
+  LOG_D("creating thread to run model");
+  status = pthread_create(&ad->tid_writer, NULL, data_run_model, (void *)ad);
+  if (status < 0) {
+    LOG_E("creating pthread failed %s", strerror(errno));
+    return status;
+  }
+  status = pthread_detach(ad->tid_writer);
+  if (status < 0) {
+    LOG_E("detaching writing thread failed %s", strerror(errno));
+    pthread_cancel(ad->tid_writer);
+  }
+
+  status =
+    pthread_create(&ad->tid_reader, NULL, data_update_train_result, (void *)ad);
+  if (status < 0) {
+    LOG_E("creating pthread failed %s", strerror(errno));
+    return status;
+  }
+  status = pthread_detach(ad->tid_reader);
+  if (status < 0) {
+    LOG_E("detaching reading thread failed %s", strerror(errno));
+    pthread_cancel(ad->tid_writer);
+  }
+
+  return status;
+}
+
+static int init_page_(appdata_s *ad, const char *path) {
+  int status = APP_ERROR_NONE;
+
+  if (!strcmp(path, "draw")) {
+    ad->tries = 0;
+
+    status = view_init_canvas(ad);
+    if (status != APP_ERROR_NONE) {
+      LOG_E("initiating canvas failed");
+      return status;
+    }
+
+    view_set_canvas_clean(ad);
+
+    if (ad->draw_target == INFER) {
+      elm_layout_signal_callback_add(ad->layout, "draw/proceed", "",
+                                     presenter_on_canvas_submit_inference, ad);
+    } else if (ad->draw_target == TRAIN_UNSET) {
+      elm_layout_signal_callback_add(ad->layout, "draw/proceed", "",
+                                     presenter_on_canvas_submit_training, ad);
+    } else {
+      LOG_E("undefined draw target in initiation");
+      return APP_ERROR_INVALID_CONTEXT;
+    }
+    return status;
+  }
+
+  return status;
+}
+
+void presenter_on_routes_request(void *data, Evas_Object *obj EINA_UNUSED,
+                                 const char *emission EINA_UNUSED,
+                                 const char *source) {
+  char *path, *path_data;
+  appdata_s *ad = (appdata_s *)data;
+
+  int status = util_parse_route(source, &path, &path_data);
+  if (status) {
+    LOG_E("something wrong with parsing %s", source);
+    return;
+  }
+
+  LOG_D("%s %s", path, path_data);
+  if (routes_to_(ad, path) != 0)
+    return;
+
+  /// check if path and path_data should be handled in special way,
+  data_handle_path_data(ad, path_data);
+  init_page_(ad, path);
+}
+
+void presenter_on_canvas_submit_inference(void *data, Evas_Object *obj,
+                                          const char *emission,
+                                          const char *source) {
+  /** appdata handling NYI */
+  if (routes_to_((appdata_s *)data, "test_result") != 0)
+    return;
+}
+
+void presenter_on_canvas_submit_training(void *data, Evas_Object *obj,
+                                         const char *emission,
+                                         const char *source) {
+  appdata_s *ad = (appdata_s *)data;
+  int status = APP_ERROR_NONE;
+
+  status = data_update_draw_target(ad);
+  if (status != APP_ERROR_NONE) {
+    LOG_E("setting draw target failed");
+    return;
+  }
+
+  status = data_extract_feature(ad);
+  if (status != APP_ERROR_NONE) {
+    LOG_E("feature extraction failed");
+    return;
+  }
+
+  if (ad->tries == MAX_TRIES - 1) {
+    ad->tries = 0;
+    elm_naviframe_item_pop(ad->naviframe);
+    routes_to_((appdata_s *)data, "train_result");
+    train_(ad);
+  }
+
+  /// prepare next canvas
+  ad->tries++;
+  view_set_canvas_clean(ad);
+}
+
+/********************* app related methods  **************************/
 static bool app_create(void *data) {
   /* Hook to take necessary actions before main event loop starts
      Initialize UI resources and application's data
@@ -33,7 +174,7 @@ static bool app_create(void *data) {
     return false;
   }
 
-  data_get_resource_path(EDJ_PATH, ad->edj_path, false);
+  util_get_resource_path(EDJ_PATH, ad->edj_path, false);
 
   if (chdir(data_path) < 0) {
     LOG_E("change root directory failed");
@@ -44,7 +185,7 @@ static bool app_create(void *data) {
 
   view_init(ad);
 
-  if (view_routes_to(ad, "home"))
+  if (routes_to_(ad, "home"))
     return false;
 
   ad->home = ad->nf_it;

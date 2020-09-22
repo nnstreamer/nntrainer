@@ -16,9 +16,6 @@ static Evas_Object *create_layout_(Evas_Object *parent, const char *edj_path,
                                    const char *group_name,
                                    Eext_Event_Cb back_cb, void *user_data);
 
-static int create_canvas_(appdata_s *ad, const char *draw_mode);
-static int train(appdata_s *ad);
-
 static void on_win_delete_(void *data, Evas_Object *obj, void *event_info) {
   ui_app_exit();
 }
@@ -46,9 +43,6 @@ static void on_back_pressed_(void *data, Evas_Object *obj, void *event_info) {
   dlog_print(DLOG_DEBUG, LOG_TAG, "item popped");
   elm_naviframe_item_pop(obj);
 }
-
-static void on_routes_to_(void *data, Evas_Object *obj, const char *emission,
-                          const char *source);
 
 /**
  * @brief initiate window and conformant.
@@ -118,27 +112,15 @@ int view_init(appdata_s *ad) {
 /**
  * @brief creates layout from edj
  * @param[in/out] ad app data of the add
- * @param[in] group_name name of the layout to be pushed to main naviframe.
+ * @param[in] path name of the layout to be pushed to main naviframe.
  */
-int view_routes_to(appdata_s *ad, const char *group_name) {
-  char *path, *path_data;
-  int status;
-
-  status = data_parse_route(group_name, &path, &path_data);
-  if (status) {
-    LOG_E("something wrong with parsing %s", group_name);
-    return status;
-  }
-
-  LOG_D("%s %s", path, path_data);
+int view_routes_to(appdata_s *ad, const char *path) {
 
   ad->layout = create_layout_(ad->naviframe, ad->edj_path, path, NULL, NULL);
-
   if (ad->layout == NULL) {
     LOG_E("failed to create layout");
-    status = APP_ERROR_INVALID_CONTEXT;
     evas_object_del(ad->win);
-    goto CLEAN_UP;
+    return APP_ERROR_INVALID_CONTEXT;
   }
 
   ad->nf_it = elm_naviframe_item_push(ad->naviframe, NULL, NULL, NULL,
@@ -146,29 +128,10 @@ int view_routes_to(appdata_s *ad, const char *group_name) {
 
   if (ad->nf_it == NULL) {
     LOG_E("naviframe_item_push failed");
-    status = APP_ERROR_INVALID_PARAMETER;
-    goto CLEAN_UP;
+    return APP_ERROR_INVALID_PARAMETER;
   }
 
-  elm_layout_signal_callback_add(ad->layout, "routes/to", "*", on_routes_to_,
-                                 ad);
-
-  if (!strcmp(path, "draw")) {
-    status = create_canvas_(ad, path_data);
-  }
-
-  if (!strcmp(path, "train_result")) {
-    status = train(ad);
-  }
-
-CLEAN_UP:
-  free(path);
-  return status;
-}
-
-static void on_routes_to_(void *data, Evas_Object *obj, const char *emission,
-                          const char *source) {
-  view_routes_to((appdata_s *)data, source);
+  return APP_ERROR_NONE;
 }
 
 /**
@@ -242,36 +205,33 @@ static void on_canvas_exit_(void *data, Evas *e, Evas_Object *obj,
                             void *event_info) {
   LOG_D("deleting canvas");
   appdata_s *ad = (appdata_s *)data;
+  cairo_status_t stat;
+
+  if (ad->cr_surface != NULL) {
+    cairo_surface_destroy(ad->cr_surface);
+    stat = cairo_surface_status(ad->cr_surface);
+    if (stat != CAIRO_STATUS_SUCCESS)
+      LOG_E("delete cr_surface failed reason: %s",
+            cairo_status_to_string(stat));
+    ad->cr_surface = NULL;
+  }
+
+  if (ad->cr != NULL) {
+    cairo_destroy(ad->cr);
+    stat = cairo_status(ad->cr);
+    if (stat != CAIRO_STATUS_NULL_POINTER)
+      LOG_E("delete cairo failed reason: %s", cairo_status_to_string(stat));
+    ad->cr = NULL;
+  }
 
   evas_object_del(ad->canvas);
-  cairo_surface_destroy(ad->cr_surface);
-  if (cairo_surface_status(ad->cr_surface) != CAIRO_STATUS_SUCCESS) {
-    LOG_E("delete cr_surface failed");
-  }
-  cairo_destroy(ad->cr);
-  if (cairo_status(ad->cr) != CAIRO_STATUS_SUCCESS) {
-    LOG_E("delete cairo failed");
-  }
 }
 
-static void canvas_erase_all_(appdata_s *ad) {
-  cairo_set_source_rgba(ad->cr, 0.3, 0.3, 0.3, 0.2);
-  cairo_set_operator(ad->cr, CAIRO_OPERATOR_SOURCE);
-  cairo_paint(ad->cr);
-  cairo_surface_flush(ad->cr_surface);
-  evas_object_image_data_update_add(ad->canvas, 0, 0, ad->width, ad->height);
-}
-
-static void on_draw_reset_(void *data, Evas_Object *obj, const char *emission,
-                           const char *source) {
-  appdata_s *ad = (appdata_s *)data;
-  LOG_D("draw reset");
-  canvas_erase_all_(ad);
-}
-
-static void set_draw_texts_(appdata_s *ad) {
+void view_set_canvas_clean(appdata_s *ad) {
   char buf[256];
   char emoji[5];
+
+  /// setting draw label and text
   switch (ad->draw_target) {
   case INFER:
     strcpy(emoji, "❓");
@@ -291,54 +251,23 @@ static void set_draw_texts_(appdata_s *ad) {
   sprintf(buf, "draw for %s [%d/%d]", emoji, ad->tries + 1, MAX_TRIES);
   elm_object_part_text_set(ad->layout, "draw/title", buf);
   elm_object_part_text_set(ad->layout, "draw/label", emoji);
+
+  /// clear cairo surface
+  cairo_set_source_rgba(ad->cr, 0.3, 0.3, 0.3, 0.2);
+  cairo_set_operator(ad->cr, CAIRO_OPERATOR_SOURCE);
+  cairo_paint(ad->cr);
+  cairo_surface_flush(ad->cr_surface);
+  evas_object_image_data_update_add(ad->canvas, 0, 0, ad->width, ad->height);
 }
 
-static void on_draw_proceed_infer_(void *data, Evas_Object *obj,
-                                   const char *emission, const char *source) {
-  view_routes_to((appdata_s *)data, "test_result");
-}
-
-static void on_draw_proceed_train_(void *data, Evas_Object *obj,
-                                   const char *emission, const char *source) {
+static void on_draw_reset_(void *data, Evas_Object *obj, const char *emission,
+                           const char *source) {
   appdata_s *ad = (appdata_s *)data;
-  int status = APP_ERROR_NONE;
-
-  switch (ad->tries % NUM_CLASS) {
-  case 0:
-    ad->draw_target = TRAIN_SMILE;
-    break;
-  case 1:
-    ad->draw_target = TRAIN_FROWN;
-    break;
-  default:
-    LOG_E("Given label is unknown");
-    return;
-  }
-
-  LOG_D("labeling proceed");
-  status = data_extract_feature(
-    ad, ad->tries < MAX_TRAIN_TRIES ? TRAIN_SET_PATH : VALIDATION_SET_PATH,
-    true);
-
-  if (status != APP_ERROR_NONE) {
-    LOG_E("feature extraction failed");
-  }
-
-  if (ad->tries == MAX_TRIES - 1) {
-    ad->tries = 0;
-    elm_naviframe_item_pop(ad->naviframe);
-    view_routes_to(ad, "train_result");
-    return;
-  }
-
-  /// prepare next canvas
-  ad->tries++;
-  set_draw_texts_(ad);
-  canvas_erase_all_(ad);
+  LOG_D("draw reset");
+  view_set_canvas_clean(ad);
 }
 
-static int create_canvas_(appdata_s *ad, const char *draw_mode) {
-  LOG_D("init canvas, %s", draw_mode);
+int view_init_canvas(appdata_s *ad) {
   Eina_Bool status;
 
   Evas_Object *frame = elm_layout_add(ad->layout);
@@ -418,18 +347,6 @@ static int create_canvas_(appdata_s *ad, const char *draw_mode) {
   elm_layout_signal_callback_add(ad->layout, "draw/reset", "", on_draw_reset_,
                                  ad);
 
-  if (!strcmp(draw_mode, "inference")) {
-    ad->draw_target = INFER;
-    elm_layout_signal_callback_add(ad->layout, "draw/proceed", "",
-                                   on_draw_proceed_infer_, ad);
-  } else if (!strcmp(draw_mode, "train")) {
-    ad->draw_target = TRAIN_UNSET;
-    elm_layout_signal_callback_add(ad->layout, "draw/proceed", "",
-                                   on_draw_proceed_train_, ad);
-  }
-
-  set_draw_texts_(ad);
-  ad->tries = 0;
   ad->canvas = canvas;
   ad->cr_surface = cairo_surface;
   ad->cr = cr;
@@ -439,74 +356,6 @@ static int create_canvas_(appdata_s *ad, const char *draw_mode) {
   ad->y_offset = y;
 
   return APP_ERROR_NONE;
-}
-
-static void *process_train_result(void *data) {
-  appdata_s *ad = (appdata_s *)data;
-
-  // run model in another thread
-  int read_fd = ad->pipe_fd[0];
-  FILE *fp;
-  char buf[255];
-
-  fp = fdopen(read_fd, "r");
-
-  LOG_D("start waiting to get result");
-
-  ecore_pipe_thaw(ad->data_output_pipe);
-
-  while (fgets(buf, 255, fp) != NULL) {
-    if (ecore_pipe_write(ad->data_output_pipe, buf, 255) == false) {
-      LOG_E("pipe write error");
-      return NULL;
-    };
-    usleep(150);
-  }
-
-  LOG_D("training finished");
-  fclose(fp);
-  close(read_fd);
-  sleep(1);
-  ecore_pipe_freeze(ad->data_output_pipe);
-
-  return NULL;
-}
-
-static int train(appdata_s *ad) {
-  int status = ML_ERROR_NONE;
-
-  status = pipe(ad->pipe_fd);
-  if (status < 0) {
-    LOG_E("opening pipe for training failed");
-  }
-
-  ad->best_accuracy = 0.0;
-
-  LOG_D("creating thread to run model");
-  status = pthread_create(&ad->tid_writer, NULL, data_run_model, (void *)ad);
-  if (status < 0) {
-    LOG_E("creating pthread failed %s", strerror(errno));
-    return status;
-  }
-  status = pthread_detach(ad->tid_writer);
-  if (status < 0) {
-    LOG_E("detaching writing thread failed %s", strerror(errno));
-    pthread_cancel(ad->tid_writer);
-  }
-
-  status =
-    pthread_create(&ad->tid_reader, NULL, process_train_result, (void *)ad);
-  if (status < 0) {
-    LOG_E("creating pthread failed %s", strerror(errno));
-    return status;
-  }
-  status = pthread_detach(ad->tid_reader);
-  if (status < 0) {
-    LOG_E("detaching reading thread failed %s", strerror(errno));
-    pthread_cancel(ad->tid_writer);
-  }
-
-  return status;
 }
 
 void view_update_result_cb(void *data, void *buffer, unsigned int nbytes) {

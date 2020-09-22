@@ -10,12 +10,13 @@
  * @bug No known bugs except for NYI items
  *
  */
-#include "data.h"
 #include <regex.h>
 #include <stdio.h>
 #include <string.h>
 
-int data_parse_route(const char *source, char **route, char **data) {
+#include "data.h"
+
+int util_parse_route(const char *source, char **route, char **data) {
   char *dst = strdup(source);
   const char sep = ':';
   char *i;
@@ -44,7 +45,7 @@ int data_parse_route(const char *source, char **route, char **data) {
   return APP_ERROR_NONE;
 }
 
-int data_get_resource_path(const char *file, char *full_path, bool shared) {
+int util_get_resource_path(const char *file, char *full_path, bool shared) {
   char *root_path;
   if (shared) {
     root_path = app_get_shared_resource_path();
@@ -70,7 +71,7 @@ int data_get_resource_path(const char *file, char *full_path, bool shared) {
   return APP_ERROR_NONE;
 }
 
-int data_get_data_path(const char *file, char *full_path) {
+int util_get_data_path(const char *file, char *full_path) {
   char *root_path;
 
   root_path = app_get_data_path();
@@ -162,14 +163,14 @@ CLEAN:
   pthread_mutex_unlock(&ad->pipe_lock);
 }
 
-static int run_nnpipeline_(appdata_s *ad, const char *src, bool append) {
+static int run_nnpipeline_(appdata_s *ad, const char *src) {
   char pipe_description[5000];
 
   char model_path[PATH_MAX];
 
   int status = ML_ERROR_NONE;
 
-  data_get_resource_path("mobilenetv2.tflite", model_path, false);
+  util_get_resource_path("mobilenetv2.tflite", model_path, false);
 
   status = pthread_mutex_lock(&ad->pipe_lock);
   if (status != 0) {
@@ -237,12 +238,37 @@ CLEAN:
   return status;
 }
 
-int data_extract_feature(appdata_s *ad, const char *dst, bool append) {
+void data_handle_path_data(appdata_s *ad, const char *data) {
+  /// handling path_data to check if it's for inference or path
+  if (!strcmp(data, "inference")) {
+    ad->draw_target = INFER;
+  } else if (!strcmp(data, "train")) {
+    ad->draw_target = TRAIN_UNSET;
+  }
+}
+
+int data_update_draw_target(appdata_s *ad) {
+  switch (ad->tries % NUM_CLASS) {
+  case 0:
+    ad->draw_target = TRAIN_SMILE;
+    return APP_ERROR_NONE;
+  case 1:
+    ad->draw_target = TRAIN_FROWN;
+    return APP_ERROR_NONE;
+  default:
+    LOG_E("Given label is unknown");
+    return APP_ERROR_NOT_SUPPORTED;
+  }
+}
+
+int data_extract_feature(appdata_s *ad) {
   char png_path[PATH_MAX];
+  const char *dst =
+    ad->tries < MAX_TRAIN_TRIES ? TRAIN_SET_PATH : VALIDATION_SET_PATH;
   cairo_status_t cr_stat = CAIRO_STATUS_SUCCESS;
   int status = APP_ERROR_NONE;
 
-  data_get_data_path("temp.png", png_path);
+  util_get_data_path("temp.png", png_path);
   LOG_D("start writing to png_path: %s ", png_path);
   cr_stat = cairo_surface_write_to_png(ad->cr_surface, png_path);
 
@@ -251,10 +277,10 @@ int data_extract_feature(appdata_s *ad, const char *dst, bool append) {
     return APP_ERROR_INVALID_PARAMETER;
   }
 
-  data_get_data_path(dst, ad->pipe_dst);
+  util_get_data_path(dst, ad->pipe_dst);
 
   LOG_I("start inference to dataset: %s ", ad->pipe_dst);
-  status = run_nnpipeline_(ad, png_path, append);
+  status = run_nnpipeline_(ad, png_path);
 
   return status;
 }
@@ -289,8 +315,8 @@ void *data_run_model(void *data) {
   printf("test");
 
   LOG_D("start running model");
-  data_get_resource_path("model.ini", model_conf_path, false);
-  data_get_data_path("label.dat", label_path);
+  util_get_resource_path("model.ini", model_conf_path, false);
+  util_get_data_path("label.dat", label_path);
 
   LOG_D("opening file");
   file = fopen(label_path, "w");
@@ -342,6 +368,37 @@ CLEAN_UP:
   if (status != ML_ERROR_NONE) {
     LOG_E("Destroying model failed %d", status);
   }
+  return NULL;
+}
+
+void *data_update_train_result(void *data) {
+  appdata_s *ad = (appdata_s *)data;
+
+  // run model in another thread
+  int read_fd = ad->pipe_fd[0];
+  FILE *fp;
+  char buf[255];
+
+  fp = fdopen(read_fd, "r");
+
+  LOG_D("start waiting to get result");
+
+  ecore_pipe_thaw(ad->data_output_pipe);
+
+  while (fgets(buf, 255, fp) != NULL) {
+    if (ecore_pipe_write(ad->data_output_pipe, buf, 255) == false) {
+      LOG_E("pipe write error");
+      return NULL;
+    };
+    usleep(150);
+  }
+
+  LOG_D("training finished");
+  fclose(fp);
+  close(read_fd);
+  sleep(1);
+  ecore_pipe_freeze(ad->data_output_pipe);
+
   return NULL;
 }
 
