@@ -21,18 +21,31 @@
 /**
  * @brief initiate window and conformant.
  * @param[in] ad appdata of the app
- * @param[in] w width
- * @param[in] h height
  * @retval #APP_ERROR_*
  */
 int view_init(appdata_s *ad);
 
 /**
- * @brief creates layout from edj
- * @param[in/out] ad appdata of the app
- * @param[in] group_name name of the layout to be pushed to main naviframe.
+ * @brief initiate canvas
+ *
+ * @param[in] ad appdata
+ * @return int APP_DATA_NONE when no error
  */
-int view_routes_to(appdata_s *ad, const char *group_name);
+int view_init_canvas(appdata_s *ad);
+
+/**
+ * @brief creates layout from edj and push it to the naviframe
+ * @param[in/out] ad appdata of the app
+ * @param[in] path name of the layout to be pushed to main naviframe.
+ */
+int view_routes_to(appdata_s *ad, const char *path);
+
+/**
+ * @brief set canvas clean and update related labels
+ *
+ * @param ad[in] appdata
+ */
+void view_set_canvas_clean(appdata_s *ad);
 
 /**
  * @brief callback function to update training result

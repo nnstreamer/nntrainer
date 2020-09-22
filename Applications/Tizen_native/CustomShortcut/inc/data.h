@@ -44,6 +44,7 @@ typedef enum DRAW_TARGET_ {
   TRAIN_SMILE,
   TRAIN_FROWN
 } DRAW_TARGET;
+
 typedef struct appdata {
   Evas_Object *win;
   Evas_Object *conform;
@@ -102,7 +103,7 @@ typedef struct train_result {
  * @param[out] length of data len
  * @retval 0 if no error
  */
-int data_parse_route(const char *source, char **route, char **data);
+int util_parse_route(const char *source, char **route, char **data);
 
 /**
  * @brief get full resource path for given file.
@@ -111,26 +112,49 @@ int data_parse_route(const char *source, char **route, char **data);
  * @param[in] shared true if resource is in shared/res
  * @retval APP_ERROR_NONE if no error
  */
-int data_get_resource_path(const char *file, char *full_path, bool shared);
+int util_get_resource_path(const char *file, char *full_path, bool shared);
+
+/**
+ * @brief handle given path_data. If data is invalid, it is essentially noop
+ *
+ * @param ad appdata
+ * @param data path_data to be handled
+ */
+void data_handle_path_data(appdata_s *ad, const char *data);
+
+/**
+ * @brief update draw target from the data. currently the label is depending on
+ * ad->tries only
+ *
+ * @param[in] ad appdata
+ * @return int APP_ERROR_NONE if success
+ */
+int data_update_draw_target(appdata_s *ad);
 
 /**
  * @brief extract data feature from given model.
  * @param[in] ad appdata
- * @param[in] dst state the name of the data set
- * @param[in] append decide whether to append to the exisiting file
  *
  * This function runs a mobilnetv2 last layer detached and saves an output
  * vector. input for this model is png file drawn to the canvas(stored in
  * appdata) output can be pased to nntrainer and used.
  */
-int data_extract_feature(appdata_s *ad, const char *dst, bool append);
+int data_extract_feature(appdata_s *ad);
 
 /**
  * @brief nntrainer training model that is to run from pthread_create
- * @param[in] data appdata.
+ * @param[in] ad appdata.
  * @return not used.
  */
 void *data_run_model(void *ad);
+
+/**
+ * @brief nntrainer update train result from data_run_model
+ *
+ * @param[in] ad appdata
+ * @return not used
+ */
+void *data_update_train_result(void *ad);
 
 /**
  * @brief parse result string
