@@ -4,6 +4,9 @@
 # ignore build directory
 /build
 
+# ignore iniparser downloaded by jni
+/jni/iniparser
+
 # CTag
 /tags
 /TAGS
@@ -23,6 +26,7 @@
 *.so
 *.o
 *.a
+*.o.d
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
