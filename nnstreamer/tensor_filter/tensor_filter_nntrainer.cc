@@ -212,7 +212,6 @@ int NNTrainer::run(const GstTensorMemory *input, GstTensorMemory *output) {
 #if (DBG)
   gint64 start_time = g_get_real_time();
 #endif
-  std::vector<std::shared_ptr<nntrainer::Tensor>> output_tensors;
   std::shared_ptr<nntrainer::Tensor> out;
 
   std::vector<std::int64_t> d = input_tensor_info[0].dims;
@@ -220,7 +219,6 @@ int NNTrainer::run(const GstTensorMemory *input, GstTensorMemory *output) {
     nntrainer::Tensor(nntrainer::TensorDim(d[3], d[0], d[2], d[1]),
                       static_cast<float *>(input[0].data));
 
-  output_tensors.push_back(out);
   std::shared_ptr<const nntrainer::Tensor> o;
 
   o = model->inference(X);
@@ -230,10 +228,9 @@ int NNTrainer::run(const GstTensorMemory *input, GstTensorMemory *output) {
   }
 
   out = std::const_pointer_cast<nntrainer::Tensor>(o);
-
   output[0].data = out->getData();
 
-  outputTensorMap.insert(std::make_pair(output[0].data, output_tensors[0]));
+  outputTensorMap.insert(std::make_pair(output[0].data, out));
 
 #if (DBG)
   gint64 stop_time = g_get_real_time();
