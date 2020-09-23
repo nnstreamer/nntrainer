@@ -24,6 +24,16 @@
 #endif
 
 /**
+ * @brief presenter to handle back press
+ *
+ * @param data appdata
+ * @param obj naviframe of the app
+ * @param event_info not used
+ */
+void presenter_on_back_button_press(void *data, Evas_Object *obj,
+                                    void *event_info EINA_UNUSED);
+
+/**
  * @brief presenter to handle routing to a page
  *
  * @param data appdata

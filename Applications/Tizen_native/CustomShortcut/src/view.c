@@ -13,14 +13,13 @@
 #include "data.h"
 
 static Evas_Object *create_layout_(Evas_Object *parent, const char *edj_path,
-                                   const char *group_name,
-                                   Eext_Event_Cb back_cb, void *user_data);
+                                   const char *group_name, void *user_data);
 
 static void on_win_delete_(void *data, Evas_Object *obj, void *event_info) {
   ui_app_exit();
 }
 
-static void on_back_pressed_(void *data, Evas_Object *obj, void *event_info) {
+void pop_object(void *data, Evas_Object *obj, void *event_info) {
   appdata_s *ad = data;
   Elm_Widget_Item *nf_it = elm_naviframe_top_item_get(obj);
 
@@ -29,7 +28,6 @@ static void on_back_pressed_(void *data, Evas_Object *obj, void *event_info) {
   if (!nf_it) {
     /* app should not reach hear */
     LOG_E("naviframe is null");
-    dlog_print(DLOG_ERROR, LOG_TAG, "naviframe is e.");
     ui_app_exit();
     return;
   }
@@ -40,7 +38,7 @@ static void on_back_pressed_(void *data, Evas_Object *obj, void *event_info) {
     return;
   }
 
-  dlog_print(DLOG_DEBUG, LOG_TAG, "item popped");
+  LOG_D("item popped");
   elm_naviframe_item_pop(obj);
 }
 
@@ -93,9 +91,6 @@ int view_init(appdata_s *ad) {
   }
 
   elm_object_part_content_set(conform, "elm.swallow.content", nf);
-  eext_object_event_callback_add(nf, EEXT_CALLBACK_BACK, on_back_pressed_, ad);
-  eext_object_event_callback_add(nf, EEXT_CALLBACK_MORE, eext_naviframe_more_cb,
-                                 NULL);
 
   evas_object_show(nf);
 
@@ -109,6 +104,25 @@ int view_init(appdata_s *ad) {
   return status;
 }
 
+void view_pop_naviframe(appdata_s *ad) {
+  Elm_Widget_Item *nf_it = elm_naviframe_top_item_get(ad->naviframe);
+
+  if (!nf_it) {
+    /* app should not reach hear */
+    LOG_E("naviframe is null");
+    ui_app_exit();
+    return;
+  }
+
+  if (nf_it == ad->home) {
+    LOG_D("naviframe is empty");
+    elm_win_lower(ad->win);
+  }
+
+  LOG_D("item popped");
+  elm_naviframe_item_pop(ad->naviframe);
+}
+
 /**
  * @brief creates layout from edj
  * @param[in/out] ad app data of the add
@@ -116,7 +130,7 @@ int view_init(appdata_s *ad) {
  */
 int view_routes_to(appdata_s *ad, const char *path) {
 
-  ad->layout = create_layout_(ad->naviframe, ad->edj_path, path, NULL, NULL);
+  ad->layout = create_layout_(ad->naviframe, ad->edj_path, path, NULL);
   if (ad->layout == NULL) {
     LOG_E("failed to create layout");
     evas_object_del(ad->win);
@@ -139,12 +153,10 @@ int view_routes_to(appdata_s *ad, const char *path) {
  * @param[in] parent Parent object to attach to
  * @param[in] file_path EDJ file path
  * @param[in] group_name group name from edj
- * @param[in] back_cb callback when back event fired.
  * @param[in] user_data data to pass to the callback
  */
 static Evas_Object *create_layout_(Evas_Object *parent, const char *edj_path,
-                                   const char *group_name,
-                                   Eext_Event_Cb back_cb, void *user_data) {
+                                   const char *group_name, void *user_data) {
   Evas_Object *layout = NULL;
 
   if (parent == NULL) {
@@ -160,10 +172,6 @@ static Evas_Object *create_layout_(Evas_Object *parent, const char *edj_path,
     evas_object_del(layout);
     return NULL;
   }
-
-  if (back_cb)
-    eext_object_event_callback_add(layout, EEXT_CALLBACK_BACK, back_cb,
-                                   user_data);
 
   evas_object_show(layout);
 
