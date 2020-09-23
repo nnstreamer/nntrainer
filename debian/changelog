@@ -1,3 +1,9 @@
+nntrainer (0.1.1) UNRELEASED; urgency=medium
+
+  * 0.1.1 released
+
+ -- jijoong Moon <jijoong.moon@samsung.com>  Wed, 23 Sep 2020 15:26:32 +0900
+
 nntrainer (0.1.0.rc1) unstable; urgency=medium
 
   * Initial debian dist files added
