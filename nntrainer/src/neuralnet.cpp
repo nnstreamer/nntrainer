@@ -376,6 +376,9 @@ sharedConstTensor NeuralNetwork::inference(const Tensor X) {
   sharedConstTensor out;
   try {
     out = forwarding(MAKE_SHARED_TENSOR(X));
+    /** Forward loss layer without label as well */
+    out = std::static_pointer_cast<LossLayer>(layers[layers.size() - 1])
+            ->forwarding(out);
   } catch (...) {
     ml_loge("Failed to inference Model");
     finalize();

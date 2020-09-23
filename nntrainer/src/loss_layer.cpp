@@ -92,6 +92,28 @@ sharedConstTensor LossLayer::forwarding(sharedConstTensor in,
   return MAKE_SHARED_TENSOR(std::move(y));
 }
 
+sharedConstTensor LossLayer::forwarding(sharedConstTensor in) {
+  Tensor ret;
+
+  switch (loss_type) {
+  case LossType::LOSS_MSE:
+    return in;
+  case LossType::LOSS_ENTROPY_SIGMOID:
+    ret = in->apply(ActivationLayer::sigmoid);
+    return MAKE_SHARED_TENSOR(std::move(ret));
+  case LossType::LOSS_ENTROPY_SOFTMAX:
+    ret = in->apply(ActivationLayer::softmax);
+    return MAKE_SHARED_TENSOR(std::move(ret));
+  case LossType::LOSS_ENTROPY:
+    throw std::runtime_error(
+      "Error: Cross Entropy not supported without softmax or sigmoid.");
+  case LossType::LOSS_UNKNOWN:
+    /** intended */
+  default:
+    throw std::runtime_error("Error: Unknown loss_type.");
+  }
+}
+
 void LossLayer::updateLoss(const Tensor &l) {
   float loss_sum = 0.0f;
   const float *data = l.getData();
@@ -147,10 +169,6 @@ int LossLayer::setLoss(LossType l) {
   }
   loss_type = l;
   return status;
-}
-
-sharedConstTensor LossLayer::forwarding(sharedConstTensor in) {
-  throw std::runtime_error("Not supported.");
 }
 
 void LossLayer::setProperty(const PropertyType type, const std::string &value) {
