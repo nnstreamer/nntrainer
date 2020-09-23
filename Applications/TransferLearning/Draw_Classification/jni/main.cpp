@@ -68,6 +68,9 @@
 /** Total number of data points in an epoch */
 #define EPOCH_SIZE LABEL_SIZE *NUM_DATA_PER_LABEL
 
+/** Minimum softmax value threshold to make a confident threshold */
+#define PREDICTION_THRESHOLD 0.7
+
 /** labels values */
 const char *label_names[LABEL_SIZE] = {"happy", "sad", "soso"};
 
@@ -405,7 +408,7 @@ int trainModel(const char *config) {
 #if defined(__TIZEN__)
 void sink_cb(const ml_tensors_data_h data, const ml_tensors_info_h info,
              void *user_data) {
-  static int test_file_idx = 0;
+  static int test_file_idx = 1;
   int status = ML_ERROR_NONE;
   ml_tensor_dimension dim;
   float *raw_data;
@@ -421,14 +424,19 @@ void sink_cb(const ml_tensors_data_h data, const ml_tensors_info_h info,
     return;
 
   for (int i = 0; i < LABEL_SIZE; i++) {
-    if (raw_data[i] > max_val) {
+    if (raw_data[i] > max_val && raw_data[i] > PREDICTION_THRESHOLD) {
       max_val = raw_data[i];
       max_idx = i;
     }
   }
 
-  std::cout << "Label for test file test" << test_file_idx
-            << ".bmp = " << label_names[max_idx] << std::endl;
+  std::cout << "Label for test file test" << test_file_idx << ".bmp = ";
+  if (max_idx >= 0)
+    std::cout << label_names[max_idx] << " with softmax value = " << max_val
+              << std::endl;
+  else
+    std::cout << "could not be predicted with enough confidence." << std::endl;
+
   test_file_idx += 1;
 }
 #endif
