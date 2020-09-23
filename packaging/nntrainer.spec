@@ -93,8 +93,6 @@ BuildRequires:	pkgconfig(dlog)
 %description applications
 NNTraier Exmaples for test purpose.
 
-
-
 %if 0%{?testcoverage}
 %package unittest-coverage
 Summary:	NNTrainer UnitTest Coverage Analysis Result
@@ -129,6 +127,22 @@ Group:           Multimedia/Framework
 Requires:        capi-nntrainer-devel = %{version}-%{release}
 %description -n capi-nntrainer-devel-static
 Static library of capi-nntrainer-devel package.
+
+%if 0%{?nnstreamer_filter}
+%package -n nnstreamer-nntrainer
+Summary: NNStreamer NNTrainer support
+Requires: %{name} = %{version}-%{release}
+Requires:	nnstreamer
+%description -n nnstreamer-nntrainer
+NNSteamer tensor filter for nntrainer to support inference.
+
+%package -n nnstreamer-nntrainer-devel-static
+Summary: NNStreamer NNTrainer support
+Requires: devel-static = %{version}-%{release}
+Requires:	nnstreamer-nntrainer
+%description -n nnstreamer-nntrainer-devel-static
+NNSteamer tensor filter static package for nntrainer to support inference.
+%endif #nnstreamer_filter
 
 %endif #tizen
 
@@ -244,7 +258,6 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %defattr(-,root,root,-)
 %license LICENSE
 %{_libdir}/libnntrainer.so
-%{_libdir}/nnstreamer/filters/libnnstreamer_filter_nntrainer.so
 
 %files devel
 %{_includedir}/nntrainer/databuffer.h
@@ -275,7 +288,7 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %{_libdir}/pkgconfig/nntrainer.pc
 
 %files devel-static
-%{_libdir}/*.a
+%{_libdir}/libnntrainer*.a
 %exclude %{_libdir}/libcapi*.a
 
 %if %{with tizen}
@@ -293,6 +306,20 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %{_libdir}/libcapi-nntrainer.a
 %{_libdir}/libnnstreamer_filter_nntrainer.a
 
+%if 0%{?nnstreamer_filter}
+%files -n nnstreamer-nntrainer
+%manifest nntrainer.manifest
+%defattr(-,root,root,-)
+%license LICENSE
+%{_libdir}/nnstreamer/filters/libnnstreamer_filter_nntrainer.so
+
+%files -n nnstreamer-nntrainer-devel-static
+%manifest nntrainer.manifest
+%defattr(-,root,root,-)
+%license LICENSE
+%{_libdir}/libnnstreamer_filter_nntrainer.a
+
+%endif #nnstreamer_filter
 %endif #tizen
 
 %files applications
