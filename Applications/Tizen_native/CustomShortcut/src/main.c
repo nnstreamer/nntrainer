@@ -30,12 +30,24 @@ static int routes_to_(appdata_s *ad, const char *source) {
   return status;
 }
 
-static int train_(appdata_s *ad) {
-  int status = ML_ERROR_NONE;
+/**
+ * @brief thread runner wrapper for adding back callback again
+ *
+ * @param data
+ */
+static void add_back_cb_(void *data) {
+  appdata_s *ad = (appdata_s *)data;
+  eext_object_event_callback_add(ad->naviframe, EEXT_CALLBACK_BACK,
+                                 presenter_on_back_button_press, ad);
+}
 
+static void *train_(void *data) {
+  int status = ML_ERROR_NONE;
+  appdata_s *ad = (appdata_s *)data;
   status = pipe(ad->pipe_fd);
   if (status < 0) {
     LOG_E("opening pipe for training failed");
+    goto RESTORE_CB;
   }
 
   ad->best_accuracy = 0.0;
@@ -44,27 +56,33 @@ static int train_(appdata_s *ad) {
   status = pthread_create(&ad->tid_writer, NULL, data_run_model, (void *)ad);
   if (status < 0) {
     LOG_E("creating pthread failed %s", strerror(errno));
-    return status;
-  }
-  status = pthread_detach(ad->tid_writer);
-  if (status < 0) {
-    LOG_E("detaching writing thread failed %s", strerror(errno));
-    pthread_cancel(ad->tid_writer);
+    goto RESTORE_CB;
   }
 
   status =
     pthread_create(&ad->tid_reader, NULL, data_update_train_result, (void *)ad);
   if (status < 0) {
     LOG_E("creating pthread failed %s", strerror(errno));
-    return status;
+    pthread_cancel(ad->tid_writer);
+    goto RESTORE_CB;
   }
-  status = pthread_detach(ad->tid_reader);
+
+  status = pthread_join(ad->tid_reader, NULL);
   if (status < 0) {
-    LOG_E("detaching reading thread failed %s", strerror(errno));
+    LOG_E("joining reader thread failed %s", strerror(errno));
+    pthread_cancel(ad->tid_reader);
+  }
+
+  status = pthread_join(ad->tid_writer, NULL);
+  if (status < 0) {
+    LOG_E("joining writing thread failed %s", strerror(errno));
     pthread_cancel(ad->tid_writer);
   }
 
-  return status;
+RESTORE_CB:
+  ecore_main_loop_thread_safe_call_async(&add_back_cb_, data);
+
+  return NULL;
 }
 
 static int init_page_(appdata_s *ad, const char *path) {
@@ -95,6 +113,14 @@ static int init_page_(appdata_s *ad, const char *path) {
   }
 
   return status;
+}
+
+void presenter_on_back_button_press(void *data, Evas_Object *obj,
+                                    void *event_info EINA_UNUSED) {
+  appdata_s *ad = data;
+
+  ad->tries = 0;
+  view_pop_naviframe(ad);
 }
 
 void presenter_on_routes_request(void *data, Evas_Object *obj EINA_UNUSED,
@@ -148,7 +174,19 @@ void presenter_on_canvas_submit_training(void *data, Evas_Object *obj,
     ad->tries = 0;
     elm_naviframe_item_pop(ad->naviframe);
     routes_to_((appdata_s *)data, "train_result");
-    train_(ad);
+    pthread_t train_thread;
+    eext_object_event_callback_del(ad->naviframe, EEXT_CALLBACK_BACK,
+                                   presenter_on_back_button_press);
+    status = pthread_create(&train_thread, NULL, train_, (void *)ad);
+    if (status < 0) {
+      LOG_E("creating pthread failed %s", strerror(errno));
+      return;
+    }
+    status = pthread_detach(train_thread);
+    if (status < 0) {
+      LOG_E("detaching reading thread failed %s", strerror(errno));
+      pthread_cancel(train_thread);
+    }
   }
 
   /// prepare next canvas
@@ -184,6 +222,10 @@ static bool app_create(void *data) {
   free(data_path);
 
   view_init(ad);
+  eext_object_event_callback_add(ad->naviframe, EEXT_CALLBACK_BACK,
+                                 presenter_on_back_button_press, ad);
+  eext_object_event_callback_add(ad->naviframe, EEXT_CALLBACK_MORE,
+                                 eext_naviframe_more_cb, NULL);
 
   if (routes_to_(ad, "home"))
     return false;

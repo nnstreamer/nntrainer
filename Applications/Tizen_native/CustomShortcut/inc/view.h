@@ -26,6 +26,13 @@
 int view_init(appdata_s *ad);
 
 /**
+ * @brief pop an item from the naviframe if empty, terminate the app
+ *
+ * @param ad appdata
+ */
+void view_pop_naviframe(appdata_s *ad);
+
+/**
  * @brief initiate canvas
  *
  * @param[in] ad appdata
