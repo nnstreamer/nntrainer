@@ -34,16 +34,16 @@
       state: "default" 0.0; \
       color: 0 0 0 255; \
       rel1 { \
-        relative: 0.3 0.3; \
+        relative: 0.2 0.2; \
         to: button_name"/bg"; \
       } \
       rel2 { \
-        relative: 0.7 0.7; \
+        relative: 0.8 0.8; \
         to: button_name"/bg"; \
       } \
       text { \
         text: label ; \
-        size: 24; \
+        size: 26; \
         align: 0.5 0.5; \
       } \
     } \
@@ -141,10 +141,10 @@ collections {
     }
   }
   group {
-    name: "train_result";
+    name: "train_progress";
     parts {
       part {
-        name: "train_result/epoch";
+        name: "train_progress/epoch";
         type: TEXT;
         description {
           state: "default" 0.0;
@@ -163,7 +163,7 @@ collections {
         }
       }
       part {
-        name: "train_result/accuracy";
+        name: "train_progress/accuracy";
         type: TEXT;
         description {
           state: "default" 0.0;
@@ -178,7 +178,7 @@ collections {
         }
       }
       part {
-        name: "train_result/loss";
+        name: "train_progress/loss";
         type: TEXT;
         description {
           state: "default" 0.0;
@@ -192,6 +192,16 @@ collections {
           }
         }
       }
+    }
+  }
+  group {
+    name: "train_result";
+    parts {
+      PART_TITLE("train_result/title", "train finished")
+      PART_BUTTON("train_result/go_back", "acc: ", 0.1, 0.3, 0.9, 0.7)
+    }
+    programs {
+      PROGRAM_BUTTON("train_result/go_back", "to_main", "")
     }
   }
   group {

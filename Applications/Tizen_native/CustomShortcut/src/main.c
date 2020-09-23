@@ -31,14 +31,33 @@ static int routes_to_(appdata_s *ad, const char *source) {
 }
 
 /**
- * @brief thread runner wrapper for adding back callback again
+ * @brief main thread runner wrapper for adding back callback again
  *
  * @param data
  */
-static void add_back_cb_(void *data) {
+static void notify_train_done(void *data) {
   appdata_s *ad = (appdata_s *)data;
+
+  char buf[256];
+
+  const char *source = "train_result";
+  /// Throttle the function to slow down to incorporate with user interaction
+  sleep(1);
+
   eext_object_event_callback_add(ad->naviframe, EEXT_CALLBACK_BACK,
                                  presenter_on_back_button_press, ad);
+
+  int status = view_routes_to(ad, source);
+  if (status != 0) {
+    LOG_E("routing to a new view failed for %s", source);
+    return;
+  }
+
+  elm_layout_signal_callback_add(ad->layout, "to_main", "",
+                                 &presenter_on_go_main_request, ad);
+
+  snprintf(buf, 255, "acc: %.0f%%", ad->best_accuracy);
+  elm_object_part_text_set(ad->layout, "train_result/go_back/label", buf);
 }
 
 static void *train_(void *data) {
@@ -80,7 +99,7 @@ static void *train_(void *data) {
   }
 
 RESTORE_CB:
-  ecore_main_loop_thread_safe_call_async(&add_back_cb_, data);
+  ecore_main_loop_thread_safe_call_async(&notify_train_done, data);
 
   return NULL;
 }
@@ -144,6 +163,13 @@ void presenter_on_routes_request(void *data, Evas_Object *obj EINA_UNUSED,
   init_page_(ad, path);
 }
 
+void presenter_on_go_main_request(void *data, Evas_Object *obj EINA_UNUSED,
+                                  const char *emission EINA_UNUSED,
+                                  const char *source) {
+  appdata_s *ad = (appdata_s *)data;
+  elm_naviframe_item_pop_to(ad->home);
+}
+
 void presenter_on_canvas_submit_inference(void *data, Evas_Object *obj,
                                           const char *emission,
                                           const char *source) {
@@ -173,7 +199,7 @@ void presenter_on_canvas_submit_training(void *data, Evas_Object *obj,
   if (ad->tries == MAX_TRIES - 1) {
     ad->tries = 0;
     elm_naviframe_item_pop(ad->naviframe);
-    routes_to_((appdata_s *)data, "train_result");
+    routes_to_((appdata_s *)data, "train_progress");
     pthread_t train_thread;
     eext_object_event_callback_del(ad->naviframe, EEXT_CALLBACK_BACK,
                                    presenter_on_back_button_press);

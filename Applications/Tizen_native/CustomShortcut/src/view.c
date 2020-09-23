@@ -380,12 +380,12 @@ void view_update_result_cb(void *data, void *buffer, unsigned int nbytes) {
   if (result.accuracy > ad->best_accuracy) {
     ad->best_accuracy = result.accuracy;
     snprintf(tmp, 255, "%.0f%%", ad->best_accuracy);
-    elm_object_part_text_set(ad->layout, "train_result/accuracy", tmp);
+    elm_object_part_text_set(ad->layout, "train_progress/accuracy", tmp);
   }
 
   snprintf(tmp, 255, "%d tries", result.epoch);
-  elm_object_part_text_set(ad->layout, "train_result/epoch", tmp);
+  elm_object_part_text_set(ad->layout, "train_progress/epoch", tmp);
 
   snprintf(tmp, 255, "Loss: %.2f", result.train_loss);
-  elm_object_part_text_set(ad->layout, "train_result/loss", tmp);
+  elm_object_part_text_set(ad->layout, "train_progress/loss", tmp);
 }
