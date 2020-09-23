@@ -46,6 +46,18 @@ void presenter_on_routes_request(void *data, Evas_Object *obj EINA_UNUSED,
                                  const char *source);
 
 /**
+ * @brief presenter to handle go home request
+ *
+ * @param data appdata
+ * @param obj not used
+ * @param emission not used
+ * @param source string information that has where to go.
+ */
+void presenter_on_go_main_request(void *data, Evas_Object *obj EINA_UNUSED,
+                                  const char *emission EINA_UNUSED,
+                                  const char *source);
+
+/**
  * @brief presenter to handle canvas submission in the inference
  *
  * @param data appdata
