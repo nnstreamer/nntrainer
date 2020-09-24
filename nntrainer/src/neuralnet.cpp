@@ -705,37 +705,7 @@ int NeuralNetwork::setLoss(LossType loss_type) {
   return ML_ERROR_NONE;
 }
 
-static unsigned int getLayerFlag(ml_train_summary_type_e verbosity,
-                                 bool initialized = false) {
-  unsigned int flag = 0;
-
-  switch (verbosity) {
-  case ML_TRAIN_SUMMARY_TENSOR:
-    flag |= LayerPrintOption::PRINT_WEIGHTS;
-    /// no break intended
-
-  case ML_TRAIN_SUMMARY_LAYER:
-    if (!initialized)
-      flag |= LayerPrintOption::PRINT_PROP_META;
-    else
-      flag |= LayerPrintOption::PRINT_METRIC;
-    flag |= LayerPrintOption::PRINT_PROP;
-    /// no break intended
-
-  case ML_TRAIN_SUMMARY_MODEL:
-    flag |=
-      LayerPrintOption::PRINT_INST_INFO | LayerPrintOption::PRINT_SHAPE_INFO;
-    break;
-
-  default:
-    throw std::invalid_argument("given verbosity is invalid");
-  }
-
-  return flag;
-}
-
 void NeuralNetwork::printMetrics(std::ostream &out, unsigned int flags) {
-
   switch (flags) {
   case ML_TRAIN_SUMMARY_MODEL_TRAIN_LOSS:
     out << training.loss << std::endl;
@@ -754,28 +724,70 @@ void NeuralNetwork::printMetrics(std::ostream &out, unsigned int flags) {
   }
 }
 
-void NeuralNetwork::print(std::ostream &out, unsigned int flags) {
-  /// @todo print neuralnet property
-  /// @todo print optimizer (with print optimizer prop)
-  /// @todo print loss function when it is not initialized. (if it is
-  /// initialized, loss layer will be printed)
-
+void NeuralNetwork::printPreset(std::ostream &out, unsigned int preset) {
   /** print neuralnet metrics */
-  printMetrics(out, flags);
-  if (flags > ML_TRAIN_SUMMARY_TENSOR)
+  printMetrics(out, preset);
+  if (preset > ML_TRAIN_SUMMARY_TENSOR)
     return;
 
-  /** print layer properties */
+  Layer::PrintPreset layer_preset = Layer::PrintPreset::PRINT_NONE;
+
+  ///@todo match flags with preset
+  unsigned int flags = PRINT_INST_INFO | PRINT_GRAPH_INFO | PRINT_PROP |
+                       PRINT_OPTIMIZER | PRINT_METRIC;
+
+  switch (preset) {
+  case ML_TRAIN_SUMMARY_TENSOR:
+    layer_preset = Layer::PrintPreset::PRINT_ALL;
+    break;
+  case ML_TRAIN_SUMMARY_LAYER:
+    layer_preset = initialized ? Layer::PrintPreset::PRINT_SUMMARY
+                               : Layer::PrintPreset::PRINT_SUMMARY_META;
+    break;
+  case ML_TRAIN_SUMMARY_MODEL:
+    break;
+  default:
+    throw std::invalid_argument("given verbosity is invalid");
+  }
+
+  print(out, flags, layer_preset);
+}
+
+void NeuralNetwork::print(std::ostream &out, unsigned int flags,
+                          Layer::PrintPreset layerPrintPreset) {
+  if (flags & PRINT_INST_INFO) {
+    out << "===================";
+    printInstance(out, this);
+  }
+
+  if (flags & PRINT_GRAPH_INFO) {
+    out << "graph contains " << layers.size() << " operation nodes\n";
+    /// @todo print graph info
+  }
+
+  if (flags & PRINT_PROP) {
+    /// @todo print neuralnet property
+    /// @todo print mode (if it is eval or training)
+  }
+
+  if (flags & PRINT_OPTIMIZER) {
+    /// @todo print optimizer (with print optimizer prop)
+  }
+
+  if (flags & PRINT_METRIC) {
+    /// @todo print metric (currently it is done at printPreset as a workaround)
+    /// @todo print loss function when it is not initialized. (if it is
+    /// initialized, loss layer will be printed)
+  }
+
   if (layers.empty()) {
     out << "model is empty!" << std::endl;
     return;
   }
-  unsigned int layerFlag =
-    getLayerFlag((ml_train_summary_type_e)flags, initialized);
 
-  for (auto &layer : layers) {
-    layer->print(out, layerFlag);
-  }
+  /** print layer properties */
+  for (auto &layer : layers)
+    layer->printPreset(out, layerPrintPreset);
 
   /// @todo Add status to check neuralnet has been run. #290
 }

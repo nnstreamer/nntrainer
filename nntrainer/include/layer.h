@@ -120,26 +120,19 @@ typedef enum {
 } WeightInitializer;
 
 /**
- * @brief   Print Options when printing layer info
- */
-typedef enum {
-  // clang-format off
-  PRINT_INST_INFO  = (1 << 0), /**< Option to print type & instance address info */
-  PRINT_SHAPE_INFO = (1 << 1), /**< Option to print shape information, invalid before initiation*/
-  PRINT_PROP       = (1 << 2), /**< Option to print properties */
-  PRINT_PROP_META  = (1 << 3), /**< Option to print properties that describe meta info
-                                    e.g) layer activation type for non-activation layer. */
-  PRINT_WEIGHTS    = (1 << 4), /**< Option to print weights */
-  PRINT_METRIC     = (1 << 5)  /**< Option to print metrics (currently loss only) */
-  // clang-format on
-} LayerPrintOption;
-
-/**
  * @class   Layer Base class for layers
  * @brief   Base class for all layers
  */
 class Layer {
 public:
+  enum class PrintPreset {
+    PRINT_NONE = 0,     /**< Print nothing */
+    PRINT_SUMMARY,      /**< Print preset including summary information */
+    PRINT_SUMMARY_META, /**< Print summary preset that includes meta information
+                         */
+    PRINT_ALL           /**< Print everything possible */
+  };
+
   Layer() :
     name(std::string()),
     type(LAYER_UNKNOWN),
@@ -435,6 +428,15 @@ public:
   virtual std::string getBaseName() = 0;
 
   /**
+   * @brief print using PrintPreset
+   *
+   * @param out oustream
+   * @param preset preset to be used
+   */
+  void printPreset(std::ostream &out,
+                   PrintPreset preset = PrintPreset::PRINT_SUMMARY);
+
+  /**
    * @brief     Print layer related information. Do not override without clear
    * reason. It is recommended to override printShapeInfo, printPropertiesMeta,
    * printProperties, printMetric instead
@@ -456,6 +458,21 @@ public:
   }
 
 protected:
+  /**
+   * @brief   Print Options when printing layer info
+   */
+  typedef enum {
+    // clang-format off
+  PRINT_INST_INFO  = (1 << 0), /**< Option to print type & instance address info */
+  PRINT_SHAPE_INFO = (1 << 1), /**< Option to print shape information, invalid before initiation*/
+  PRINT_PROP       = (1 << 2), /**< Option to print properties */
+  PRINT_PROP_META  = (1 << 3), /**< Option to print properties that describe meta info
+                                    e.g) layer activation type for non-activation layer. */
+  PRINT_WEIGHTS    = (1 << 4), /**< Option to print weights */
+  PRINT_METRIC     = (1 << 5)  /**< Option to print metrics (currently loss only) */
+    // clang-format on
+  } PrintOption;
+
   /**
    * @brief     Name of the layer (works as the identifier)
    */
@@ -614,11 +631,7 @@ private:
 template <typename T, typename std::enable_if_t<
                         std::is_base_of<Layer, T>::value, T> * = nullptr>
 std::ostream &operator<<(std::ostream &out, T &l) {
-  unsigned int option = nntrainer::LayerPrintOption::PRINT_INST_INFO |
-                        nntrainer::LayerPrintOption::PRINT_SHAPE_INFO |
-                        nntrainer::LayerPrintOption::PRINT_PROP |
-                        nntrainer::LayerPrintOption::PRINT_PROP_META;
-  l.print(out, option);
+  l.print(out, Layer::PrintPreset::PRINT_SUMMARY);
   return out;
 }
 

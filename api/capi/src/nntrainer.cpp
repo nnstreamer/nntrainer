@@ -323,7 +323,7 @@ static int ml_train_model_get_summary_util(ml_train_model_h model,
   }
 
   returnable f = [&]() {
-    NN->print(ss, verbosity);
+    NN->printPreset(ss, verbosity);
     return ML_ERROR_NONE;
   };
 
