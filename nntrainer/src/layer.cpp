@@ -230,6 +230,26 @@ void Layer::printMetric(std::ostream &out) {
   }
 }
 
+void Layer::printPreset(std::ostream &out, PrintPreset preset) {
+  unsigned int flags = 0;
+  switch (preset) {
+  case PrintPreset::PRINT_ALL:
+    flags = PRINT_WEIGHTS | PRINT_METRIC;
+    /// fall through intended
+  case PrintPreset::PRINT_SUMMARY_META:
+    flags |= PRINT_PROP_META;
+    /// fall through intended
+  case PrintPreset::PRINT_SUMMARY:
+    flags |= PRINT_INST_INFO | PRINT_SHAPE_INFO | PRINT_PROP | PRINT_PROP_META;
+    break;
+  case PrintPreset::PRINT_NONE:
+    return;
+  default:
+    throw ::std::invalid_argument("undefined preset given");
+  }
+  print(out, flags);
+}
+
 void Layer::print(std::ostream &out, unsigned int flags) {
   if (flags & PRINT_INST_INFO) {
     out << "===================";

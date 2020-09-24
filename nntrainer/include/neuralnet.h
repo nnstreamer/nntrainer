@@ -36,6 +36,7 @@
 #include <layer.h>
 #include <loss_layer.h>
 #include <ml-api-common.h>
+#include <nntrainer-api-common.h>
 #include <optimizer.h>
 #include <pooling2d_layer.h>
 #include <tensor.h>
@@ -272,12 +273,12 @@ public:
   };
 
   /**
-   * @brief print function for neuralnet
-   * @param[in] out outstream
-   * @param[in] flags verbosity from ml_train_summary_type_e
+   * @brief Print Option when printing model info. The function delegates to the
+   * `print`
+   * @param out std::ostream to print
+   * @param preset preset from `ml_train_summary_type_e`
    */
-  /// @todo: change print to use NeuralNetPrintOption and add way to print out
-  void print(std::ostream &out, unsigned int flags = 0);
+  void printPreset(std::ostream &out, unsigned int preset);
 
   /**
    * @brief print metrics function for neuralnet
@@ -287,6 +288,19 @@ public:
   void printMetrics(std::ostream &out, unsigned int flags = 0);
 
 private:
+  /**
+   * @brief   Print Options when printing layer info
+   */
+  typedef enum {
+    // clang-format off
+  PRINT_INST_INFO  = (1 << 0), /**< Option to print type & instance address info */
+  PRINT_GRAPH_INFO = (1 << 1), /**< Option to print graph topology info */
+  PRINT_PROP       = (1 << 2), /**< Option to print properties */
+  PRINT_OPTIMIZER  = (1 << 3), /**< Option to print optimizer */
+  PRINT_METRIC       = (1 << 4), /**< Option to print if current network is set to training */
+    // clang-format on
+  } PrintOption;
+
   bool is_train; /**< is train or inference */
 
   unsigned int batch_size; /**< batch size */
@@ -328,6 +342,16 @@ private:
   RunStats validation; /** validation statistics of the model */
   RunStats training;   /** training statistics of the model */
   RunStats testing;    /** testing statistics of the model */
+
+  /**
+   * @brief print function for neuralnet
+   * @param[in] out outstream
+   * @param[in] flags bit combination of Neuralnet::PrintOption
+   * @param[in] Layer::PrintPreset print preset when to print layer properties
+   */
+  void print(
+    std::ostream &out, unsigned int flags = 0,
+    Layer::PrintPreset layerPrintPreset = Layer::PrintPreset::PRINT_SUMMARY);
 
   /**
    * @brief     Sets up and initialize the loss layer

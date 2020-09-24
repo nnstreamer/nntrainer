@@ -968,13 +968,7 @@ protected:
 
 TEST_F(nntrainer_Conv2DLayer, print_01_p) {
   std::stringstream ss;
-  unsigned int option = nntrainer::LayerPrintOption::PRINT_INST_INFO |
-                        nntrainer::LayerPrintOption::PRINT_SHAPE_INFO |
-                        nntrainer::LayerPrintOption::PRINT_PROP |
-                        nntrainer::LayerPrintOption::PRINT_PROP_META |
-                        nntrainer::LayerPrintOption::PRINT_WEIGHTS |
-                        nntrainer::LayerPrintOption::PRINT_METRIC;
-  layer.print(ss, option);
+  layer.printPreset(ss, nntrainer::Layer::PrintPreset::PRINT_ALL);
   EXPECT_GT(ss.str().size(), 100);
 }
 
