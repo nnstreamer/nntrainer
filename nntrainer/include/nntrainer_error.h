@@ -1,5 +1,7 @@
-// SPDX-License-Identifier: Apache-2.0-only
+// SPDX-License-Identifier: Apache-2.0
 /**
+ * Copyright (C) 2020 Jijoong Moon <jijoong.moon@samsung.com>
+ *
  * @file nntrainer_error.h
  * @date 03 April 2020
  * @brief NNTrainer Error Codes

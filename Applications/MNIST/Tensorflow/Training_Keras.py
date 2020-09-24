@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# SPDX-License-Identifier: Apache-2.0-only
+# SPDX-License-Identifier: Apache-2.0
 #
 # Copyright (C) 2020 Jijoong Moon <jijoong.moon@samsung.com>
 #
