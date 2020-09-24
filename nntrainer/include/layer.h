@@ -183,12 +183,11 @@ public:
    *            17. name : string (type)
    *            18. num_inputs : unsigned int (minimum 1)
    *            19. num_outputs : unsigned int (minimum 1)
-   *            20. batch_size : unsigned int (minimum 1)
-   *            21. momentum : float,
-   *            22. moving_mean_initializer : string (type),
-   *            23. moving_variance_initializer : string (type),
-   *            24. gamma_initializer : string (type),
-   *            25. beta_initializer" : string (type)
+   *            20. momentum : float,
+   *            21. moving_mean_initializer : string (type),
+   *            22. moving_variance_initializer : string (type),
+   *            23. gamma_initializer : string (type),
+   *            24. beta_initializer" : string (type)
    */
   enum class PropertyType {
     input_shape = 0,
@@ -211,12 +210,11 @@ public:
     name = 17,
     num_inputs = 18,
     num_outputs = 19,
-    batch_size = 20,
-    momentum = 21,
-    moving_mean_initializer = 22,
-    moving_variance_initializer = 23,
-    gamma_initializer = 24,
-    beta_initializer = 25,
+    momentum = 20,
+    moving_mean_initializer = 21,
+    moving_variance_initializer = 22,
+    gamma_initializer = 23,
+    beta_initializer = 24,
     unknown
   };
 
@@ -315,8 +313,7 @@ public:
   /**
    * @brief Set the batch for the layer
    * @param batch Batch value to be set
-   * @note This denotes the maximum batch size of input. The actual batchsize
-   * of the data can be smaller in case of validation or testing
+   * @todo Make this private. Only model should be able to do this.
    */
   void setBatch(unsigned int batch) {
     input_dim.setTensorDim(0, batch);

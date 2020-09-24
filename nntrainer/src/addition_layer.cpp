@@ -38,8 +38,7 @@ int AdditionLayer::initialize() {
 }
 
 sharedConstTensor AdditionLayer::forwarding(sharedConstTensor in) {
-  hidden = Tensor(in->batch(), output_dim.channel(), output_dim.height(),
-                  output_dim.width());
+  hidden = Tensor(input_dim);
   hidden.setZero();
 
   for (unsigned int idx = 0; idx < num_inputs; ++idx) {

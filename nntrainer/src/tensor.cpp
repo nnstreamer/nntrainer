@@ -706,10 +706,21 @@ void Tensor::setValue(float val) {
 
 void Tensor::setZero() { setValue(0); }
 
-unsigned int Tensor::argmax() const {
+std::vector<unsigned int> Tensor::argmax() const {
   const float *data = getData();
-  auto max_iter = std::max_element(data, data + length());
-  return std::distance(data, max_iter);
+  std::vector<unsigned int> result;
+  unsigned int batch_size = batch();
+  unsigned int feature_len = dim.getFeatureLen();
+
+  result.reserve(batch_size);
+
+  for (unsigned int b = 0; b < batch_size; b++) {
+    auto max_iter =
+      std::max_element(data + b * feature_len, data + (b + 1) * feature_len);
+    result[b] = std::distance(data, max_iter);
+  }
+
+  return result;
 }
 
 float Tensor::l2norm() const {

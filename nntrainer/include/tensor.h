@@ -508,10 +508,10 @@ public:
   void read(std::ifstream &file);
 
   /**
-   * @brief     return argument index which value is max
+   * @brief     return argument index which value is max by batch
    * @retval    unsigned int argument index
    */
-  unsigned int argmax() const;
+  std::vector<unsigned int> argmax() const;
 
   /**
    * @brief     return a copy of the Tensor Dim
