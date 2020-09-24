@@ -270,12 +270,11 @@ unsigned int parseType(std::string ll, InputType t) {
  * name = 17
  * num_inputs = 18
  * num_outputs = 19
- * batch_size = 20
- * momentum = 21
- * moving_mean_initializer = 22
- * moving_variance_initializer = 23
- * gamma_initializer = 24
- * beta_initializer = 25
+ * momentum = 20
+ * moving_mean_initializer = 21
+ * moving_variance_initializer = 22
+ * gamma_initializer = 23
+ * beta_initializer = 24
  *
  * InputLayer has 0, 1, 2, 3 properties.
  * FullyConnectedLayer has 1, 4, 6, 7, 8, 9 properties.
@@ -283,7 +282,7 @@ unsigned int parseType(std::string ll, InputType t) {
  * Pooling2DLayer has 12, 13, 14, 15 properties.
  * BatchNormalizationLayer has 0, 1, 5, 6, 7 properties.
  */
-static std::array<std::string, 27> property_string = {
+static std::array<std::string, 26> property_string = {
   "input_shape",
   "normalization",
   "standardization",
@@ -304,7 +303,6 @@ static std::array<std::string, 27> property_string = {
   "name",
   "num_inputs",
   "num_outputs",
-  "batch_size",
   "momentum",
   "moving_mean_initializer",
   "moving_variance_initializer",

@@ -38,9 +38,7 @@ sharedConstTensor FlattenLayer::forwarding(sharedConstTensor in) {
   input = *in;
   hidden = input;
 
-  /// @note in->batch can be different from input_dim.batch();
-  hidden.reshape({in->batch(), output_dim.channel(), output_dim.height(),
-                  output_dim.width()});
+  hidden.reshape(output_dim);
 
   return MAKE_SHARED_TENSOR(hidden);
 }

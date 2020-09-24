@@ -121,14 +121,6 @@ int NeuralNetwork::setProperty(std::vector<std::string> values) {
     unsigned int type = parseNetProperty(key);
 
     switch (static_cast<PropertyType>(type)) {
-    case PropertyType::batch_size: {
-      status = setUint(batch_size, value);
-      NN_RETURN_STATUS();
-      /** TODO: increase buffer size if it is smaller than batch size.
-       * also if this is set with default batch size, then make it
-       * smaller/larger
-       */
-    } break;
     case PropertyType::loss: {
       status = setFloat(loss, value);
       NN_RETURN_STATUS();
@@ -172,6 +164,14 @@ int NeuralNetwork::setTrainConfig(std::vector<std::string> values) {
       continue_train = cont_train;
       opt.setProperty({values[i]});
     } break;
+    case PropertyType::batch_size: {
+      status = setUint(batch_size, value);
+      NN_RETURN_STATUS();
+      /** TODO: increase buffer size if it is smaller than batch size.
+       * also if this is set with default batch size, then make it
+       * smaller/larger
+       */
+    } break;
     default:
       ml_loge("Error: Unknown Network Property Key");
       status = ML_ERROR_INVALID_PARAMETER;
@@ -211,7 +211,6 @@ int NeuralNetwork::init() {
       }
     }
 
-    layers[i]->setBatch(batch_size);
     status = layers[i]->initialize();
 
     switch (l.getType()) {
@@ -366,7 +365,24 @@ void NeuralNetwork::readModel() {
   ml_logi("read modelfile: %s", save_path.c_str());
 }
 
+void NeuralNetwork::setBatchSize(unsigned int batch) {
+  batch_size = batch;
+  for (auto const &layer : layers)
+    layer->setBatch(batch_size);
+
+  if (data_buffer && data_buffer->setBatchSize(batch_size) != ML_ERROR_NONE)
+    throw std::invalid_argument("Error setting batchsize for the dataset");
+}
+
 sharedConstTensor NeuralNetwork::inference(const Tensor X) {
+  if (batch_size != X.batch()) {
+    /**
+     * Note that inference resets batch_size of the previous train configuration
+     * Next train must set its batch_size if inference is run with this model.
+     */
+    setBatchSize(X.batch());
+  }
+
   sharedConstTensor out;
   try {
     out = forwarding(MAKE_SHARED_TENSOR(X));
@@ -388,10 +404,13 @@ int NeuralNetwork::train(std::vector<std::string> values) {
     return ML_ERROR_INVALID_PARAMETER;
   }
 
-  /** Setup data buffer properties */
-  status = data_buffer->setBatchSize(batch_size);
+  status = setTrainConfig(values);
   NN_RETURN_STATUS();
 
+  /** set batch size just before training */
+  setBatchSize(batch_size);
+
+  /** Setup data buffer properties */
   status =
     data_buffer->setClassNum(layers.back()->getOutputDimension().width());
   NN_RETURN_STATUS();
@@ -400,9 +419,6 @@ int NeuralNetwork::train(std::vector<std::string> values) {
   NN_RETURN_STATUS();
 
   status = data_buffer->init();
-  NN_RETURN_STATUS();
-
-  status = setTrainConfig(values);
   NN_RETURN_STATUS();
 
   return train_run();
@@ -475,15 +491,17 @@ int NeuralNetwork::train_run() {
       while (true) {
         vec_4d in, label;
         if (data_buffer->getDataFromBuffer(nntrainer::BUF_VAL, in, label)) {
-          for (unsigned int b = 0; b < batch_size; ++b) {
-            sharedTensor X = MAKE_SHARED_TENSOR(Tensor({in[b]}));
-            sharedTensor Y2 = MAKE_SHARED_TENSOR(Tensor({label[b]}));
-            sharedConstTensor Y = forwarding(X, Y2);
-            if (Y->argmax() == Y2->argmax())
+          sharedTensor X = MAKE_SHARED_TENSOR(Tensor({in}));
+          sharedTensor Y2 = MAKE_SHARED_TENSOR(Tensor({label}));
+          sharedConstTensor Y = forwarding(X, Y2);
+          auto model_out = Y->argmax();
+          auto label_out = Y2->argmax();
+          for (unsigned int b = 0; b < batch_size; b++) {
+            if (model_out[b] == label_out[b])
               right++;
-            validation.loss += getLoss();
-            tcases++;
           }
+          validation.loss += getLoss();
+          tcases++;
         } else {
           data_buffer->clear(nntrainer::BUF_VAL);
           break;
@@ -496,7 +514,7 @@ int NeuralNetwork::train_run() {
         return status;
       }
       validation.loss /= (float)(tcases);
-      validation.accuracy = right / (float)(tcases)*100.0f;
+      validation.accuracy = right / (float)(tcases * batch_size) * 100.0f;
       std::cout << " >> [ Accuracy: " << validation.accuracy
                 << "% - Validation Loss : " << validation.loss << " ] ";
     }

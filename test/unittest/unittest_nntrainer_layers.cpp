@@ -48,10 +48,11 @@ protected:
     return status;
   }
 
-  virtual int reinitialize(const std::string str) {
+  virtual int reinitialize(const std::string str, int batch_size = 1) {
     resetLayer();
     int status = setProperty(str);
     EXPECT_EQ(status, ML_ERROR_NONE);
+    setBatch(batch_size);
     status = reinitialize();
     EXPECT_EQ(status, ML_ERROR_NONE);
     return status;
@@ -68,6 +69,8 @@ protected:
     ASSERT_EQ(status, ML_ERROR_NONE);
     layer.setInputDimension(dim);
   }
+
+  void setBatch(unsigned int batch) { layer.setBatch(batch); }
 
   void matchOutput(const nntrainer::Tensor &result,
                    const nntrainer::Tensor &golden) {
@@ -175,7 +178,7 @@ class nntrainer_InputLayer
 protected:
   virtual void prepareLayer() {
     setInputDim("3:28:28");
-    setProperty("batch_size=1");
+    setBatch(1);
   }
 };
 
@@ -234,7 +237,7 @@ TEST_F(nntrainer_InputLayer, set_property_05_p) {
   nntrainer::TensorDim dim;
   int status = ML_ERROR_NONE;
 
-  status = setProperty("batch_size=5");
+  setBatch(5);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   dim = layer.getInputDimension();
@@ -308,7 +311,7 @@ class nntrainer_FullyConnectedLayer
 protected:
   virtual void prepareLayer() {
     setInputDim("1:28:28");
-    setProperty("batch_size=32");
+    setBatch(5);
     setProperty("unit=1");
   }
 };
@@ -536,7 +539,7 @@ protected:
 
   virtual void prepareLayer() {
     setInputDim("1:1:12");
-    setProperty("batch_size=3");
+    setBatch(3);
     setProperty("unit=15");
     setProperty("bias_initializer=zeros");
   }
@@ -799,8 +802,8 @@ protected:
   }
 
   virtual void prepareLayer() {
-    setProperty(
-      "input_shape=1:1:12 | epsilon=0.001 | batch_size=3 | momentum=0.90");
+    setProperty("input_shape=1:1:12 | epsilon=0.001 | momentum=0.90");
+    setBatch(3);
     setOptimizer(nntrainer::OptType::sgd, "learning_rate=1");
   }
 };
@@ -879,8 +882,8 @@ protected:
   }
 
   virtual void prepareLayer() {
-    setProperty(
-      "input_shape=2:4:5 | epsilon=0.001 | batch_size=3 | momentum=0.90");
+    setProperty("input_shape=2:4:5 | epsilon=0.001 | momentum=0.90");
+    setBatch(3);
     setOptimizer(nntrainer::OptType::sgd, "learning_rate=1");
   }
 };
@@ -914,8 +917,8 @@ protected:
   }
 
   virtual void prepareLayer() {
-    setProperty(
-      "input_shape=2:4:5 | epsilon=0.001 | batch_size=1 | momentum=0.90");
+    setProperty("input_shape=2:4:5 | epsilon=0.001 | momentum=0.90");
+    setBatch(1);
     setOptimizer(nntrainer::OptType::sgd, "learning_rate=1");
   }
 };
@@ -945,7 +948,7 @@ protected:
 
   virtual void prepareLayer() {
     int status =
-      setProperty("input_shape=3:28:28 | batch_size=32 |"
+      setProperty("input_shape=3:28:28 |"
                   "bias_initializer=zeros |"
                   "activation=sigmoid |"
                   "weight_regularizer=l2norm |"
@@ -955,6 +958,7 @@ protected:
                   "filters=12 | kernel_size= 5,5 | stride=3,3 | padding=1,1");
 
     EXPECT_EQ(status, ML_ERROR_NONE);
+    setBatch(32);
   }
 
   nntrainer::Tensor result;
@@ -1012,7 +1016,7 @@ TEST_F(nntrainer_Conv2DLayer, save_read_01_p) {
  * @brief Convolution 2D Layer
  */
 TEST_F(nntrainer_Conv2DLayer, forwarding_01_p) {
-  reinitialize("input_shape=3:7:7 | batch_size=1 |"
+  reinitialize("input_shape=3:7:7 |"
                "bias_initializer = zeros |"
                "weight_initializer=xavier_uniform |"
                "filters=2 | kernel_size=3,3 | stride=1, 1 | padding=0,0");
@@ -1033,10 +1037,11 @@ TEST_F(nntrainer_Conv2DLayer, forwarding_01_p) {
 
 TEST_F(nntrainer_Conv2DLayer, forwarding_02_p) {
   status =
-    reinitialize("input_shape=3:7:7 | batch_size=2 |"
+    reinitialize("input_shape=3:7:7 |"
                  "bias_initializer = zeros |"
                  "weight_initializer=xavier_uniform |"
-                 "filters=3 | kernel_size=3,3 | stride=1, 1 | padding=0,0");
+                 "filters=3 | kernel_size=3,3 | stride=1, 1 | padding=0,0",
+                 2);
 
   ASSERT_EQ(in.getDim(), nntrainer::TensorDim(2, 3, 7, 7));
   ASSERT_EQ(out.getDim(), nntrainer::TensorDim(2, 3, 5, 5));
@@ -1049,7 +1054,7 @@ TEST_F(nntrainer_Conv2DLayer, forwarding_02_p) {
 }
 
 TEST_F(nntrainer_Conv2DLayer, backwarding_01_p) {
-  status = reinitialize("input_shape=3:7:7 | batch_size=1 |"
+  status = reinitialize("input_shape=3:7:7 |"
                         "bias_initializer=zeros |"
                         "weight_initializer=xavier_uniform |"
                         "filters=2 |"
@@ -1102,7 +1107,7 @@ TEST_F(nntrainer_Conv2DLayer, backwarding_01_p) {
 }
 
 TEST_F(nntrainer_Conv2DLayer, backwarding_04_p) {
-  status = reinitialize("input_shape=6:24:24 | batch_size=1 |"
+  status = reinitialize("input_shape=6:24:24 |"
                         "bias_initializer=zeros |"
                         "weight_initializer=xavier_uniform |"
                         "filters=12 |"
@@ -1155,13 +1160,14 @@ TEST_F(nntrainer_Conv2DLayer, backwarding_04_p) {
 }
 
 TEST_F(nntrainer_Conv2DLayer, backwarding_02_p) {
-  status = reinitialize("input_shape=3:7:7 | batch_size=2 |"
+  status = reinitialize("input_shape=3:7:7 |"
                         "bias_initializer=zeros |"
                         "weight_initializer=xavier_uniform |"
                         "filters=3 |"
                         "kernel_size= 3,3 |"
                         "stride=1, 1 |"
-                        "padding=0,0");
+                        "padding=0,0",
+                        2);
 
   setOptimizer(nntrainer::OptType::sgd, "learning_rate=1.0");
 
@@ -1239,7 +1245,7 @@ TEST_F(nntrainer_Conv2DLayer, backwarding_02_p) {
 
 #ifdef USE_BLAS
 TEST_F(nntrainer_Conv2DLayer, backwarding_03_p) {
-  status = reinitialize("input_shape=3:28:28 | batch_size=1 |"
+  status = reinitialize("input_shape=3:28:28 |"
                         "bias_initializer=zeros |"
                         "weight_initializer=zeros |"
                         "filters=6 |"
@@ -1248,19 +1254,21 @@ TEST_F(nntrainer_Conv2DLayer, backwarding_03_p) {
                         "padding=0, 0");
 
   nntrainer::Conv2DLayer layer1;
-  status = layer1.setProperty(
-    {"input_shape=3:28:28", "batch_size=1", "bias_initializer=zeros",
-     "weight_initializer=zeros", "filters=6", "kernel_size= 5,5", "stride=1, 1",
-     "padding=0, 0"});
+  status =
+    layer1.setProperty({"input_shape=3:28:28", "bias_initializer=zeros",
+                        "weight_initializer=zeros", "filters=6",
+                        "kernel_size= 5,5", "stride=1, 1", "padding=0, 0"});
   EXPECT_EQ(status, ML_ERROR_NONE);
+  layer1.setBatch(1);
   status = layer1.initialize();
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   nntrainer::Conv2DLayer layer2;
   status = layer2.setProperty(
-    {"batch_size=1", "bias_initializer=zeros", "weight_initializer=zeros",
-     "filters=12", "kernel_size= 1,1", "stride=1, 1", "padding=0, 0"});
+    {"bias_initializer=zeros", "weight_initializer=zeros", "filters=12",
+     "kernel_size= 1,1", "stride=1, 1", "padding=0, 0"});
   EXPECT_EQ(status, ML_ERROR_NONE);
+  layer2.setBatch(1);
   layer2.setInputDimension(layer1.getOutputDimension());
   status = layer2.initialize();
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -1387,13 +1395,13 @@ protected:
 
 TEST_F(nntrainer_Pooling2DLayer, setProperty_01_p) {
   setInputDim("3:5:5");
-  setProperty("batch_size=2");
+  setBatch(2);
   setProperty("pool_size=2,2 | stride=1,1 | padding=0,0 | pooling=average");
 }
 
 TEST_F(nntrainer_Pooling2DLayer, setProperty_02_n) {
   setInputDim("3:5:5");
-  setProperty("batch_size=2");
+  setBatch(2);
   int status = layer.setProperty({"pool_size="});
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
@@ -1455,7 +1463,7 @@ TEST_F(nntrainer_Pooling2DLayer, forwarding_04_p) {
 TEST_F(nntrainer_Pooling2DLayer, forwarding_05_p) {
   resetLayer();
   setInputDim("2:5:5");
-  setProperty("batch_size=2");
+  setBatch(2);
   setProperty("pooling=global_max");
   reinitialize();
 
@@ -1467,7 +1475,7 @@ TEST_F(nntrainer_Pooling2DLayer, forwarding_05_p) {
 TEST_F(nntrainer_Pooling2DLayer, forwarding_06_p) {
   resetLayer();
   setInputDim("2:5:5");
-  setProperty("batch_size=2");
+  setBatch(2);
   setProperty("pooling=global_average");
   reinitialize();
 
@@ -1564,7 +1572,7 @@ class nntrainer_FlattenLayer
 protected:
   virtual void prepareLayer() {
     setInputDim("2:4:4");
-    layer.setBatch(1);
+    setBatch(1);
   }
 };
 
@@ -1588,7 +1596,7 @@ TEST_F(nntrainer_FlattenLayer, forwarding_01_p) {
  */
 TEST_F(nntrainer_FlattenLayer, forwarding_02_p) {
   setInputDim("2:4:4");
-  layer.setBatch(2);
+  setBatch(2);
   reinitialize();
 
   EXPECT_EQ(out.getDim(), nntrainer::TensorDim(2, 1, 1, 32));
@@ -1621,7 +1629,7 @@ TEST_F(nntrainer_FlattenLayer, backwarding_01_p) {
  */
 TEST_F(nntrainer_FlattenLayer, backwarding_02_p) {
   setInputDim("2:4:4");
-  layer.setBatch(2);
+  setBatch(2);
   reinitialize();
 
   EXPECT_EQ(out.getDim(), nntrainer::TensorDim(2, 1, 1, 32));
@@ -1793,7 +1801,8 @@ class nntrainer_AdditionLayer
   : public nntrainer_abstractLayer<nntrainer::AdditionLayer> {
 protected:
   virtual void prepareLayer() {
-    setInputDim("32:3:28:28");
+    setInputDim("3:28:28");
+    setBatch(32);
     setProperty("num_inputs=1");
   }
 };
@@ -1835,7 +1844,7 @@ TEST_F(nntrainer_AdditionLayer, forwarding_01_n) {
 
   in = nntrainer::Tensor();
 
-  EXPECT_THROW(layer.forwarding(input), std::logic_error);
+  EXPECT_THROW(layer.forwarding(input), std::runtime_error);
 }
 
 TEST_F(nntrainer_AdditionLayer, forwarding_02_n) {

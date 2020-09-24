@@ -59,11 +59,10 @@ sharedConstTensor Pooling2DLayer::forwarding(sharedConstTensor in) {
   input = *in;
 
   TensorDim hidden_dim = output_dim;
-  hidden_dim.batch(in->batch());
   hidden = Tensor(hidden_dim);
   hidden.setZero();
 
-  for (unsigned int b = 0; b < input.batch(); ++b) {
+  for (unsigned int b = 0; b < input_dim.batch(); ++b) {
     Tensor in_padded = zero_pad(b, input, padding);
     Tensor result = pooling2d(b, in_padded);
     memcpy(hidden.getAddress(b * hidden.getDim().getFeatureLen()),

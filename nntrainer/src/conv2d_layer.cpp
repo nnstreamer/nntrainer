@@ -89,7 +89,6 @@ sharedConstTensor Conv2DLayer::forwarding(sharedConstTensor in) {
   }
 
   TensorDim hidden_dim = output_dim;
-  hidden_dim.batch(in->batch());
   hidden = Tensor(hidden_dim);
   hidden.setZero();
 
@@ -142,7 +141,7 @@ sharedConstTensor Conv2DLayer::forwarding(sharedConstTensor in) {
            kdim.getFeatureLen() * sizeof(float));
   }
 
-  for (unsigned int b = 0; b < input.batch(); ++b) {
+  for (unsigned int b = 0; b < input_dim.batch(); ++b) {
     std::vector<float> out(output_dim.getFeatureLen());
     Tensor inSub(TensorDim(1, input.channel(), input.height(), input.width()),
                  input.getAddress(b * input.getDim().getFeatureLen()));

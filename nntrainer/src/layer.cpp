@@ -181,14 +181,6 @@ void Layer::setProperty(const PropertyType type, const std::string &value) {
       throw_status(status);
     }
     break;
-  case PropertyType::batch_size:
-    if (!value.empty()) {
-      unsigned int batch_size;
-      status = setUint(batch_size, value);
-      throw_status(status);
-      input_dim.batch(batch_size);
-    }
-    break;
   case PropertyType::activation:
     if (!value.empty()) {
       status = setActivation((ActivationType)parseType(value, TOKEN_ACTI));
