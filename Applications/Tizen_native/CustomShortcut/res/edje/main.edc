@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: Apache-2.0-only
+// SPDX-License-Identifier: Apache-2.0
 /**
  * Copyright (C) 2020 Jihoon Lee <jhoon.it.lee@samsung.com>
  *
