@@ -74,8 +74,7 @@ public:
   /**
    * @brief     Constructor of NeuralNetwork Class
    */
-  NeuralNetwork(bool istrain = true) :
-    is_train(istrain),
+  NeuralNetwork() :
     batch_size(1),
     epochs(1),
     loss(0.0f),
@@ -220,18 +219,6 @@ public:
   int setDataBuffer(std::shared_ptr<DataBuffer> data_buffer);
 
   /**
-   * @brief     check train or inference. Default is True (train)
-   * @retval bool True : training Mode. False : Inference Mode
-   */
-  bool isTrain() { return is_train; };
-
-  /**
-   * @param[in] train true for train mode. false for inference mode
-   * @brief     set Running Mode : Train or Inference
-   */
-  void setMode(bool train) { is_train = train; };
-
-  /**
    * @brief     add layer into neural network model
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
@@ -312,8 +299,6 @@ private:
   PRINT_METRIC       = (1 << 4), /**< Option to print if current network is set to training */
     // clang-format on
   } PrintOption;
-
-  bool is_train; /**< is train or inference */
 
   unsigned int batch_size; /**< batch size */
 
@@ -447,7 +432,6 @@ private:
     swap(lhs.layer_names, rhs.layer_names);
     swap(lhs.def_name_count, rhs.def_name_count);
     swap(lhs.loadedFromConfig, rhs.loadedFromConfig);
-    swap(lhs.is_train, rhs.is_train);
   }
 
   /**
