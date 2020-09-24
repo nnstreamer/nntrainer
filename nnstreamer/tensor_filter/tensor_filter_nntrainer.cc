@@ -151,7 +151,7 @@ void NNTrainer::loadModel() {
   if (model_config == nullptr)
     throw std::invalid_argument("model config is null!");
 
-  model = new nntrainer::NeuralNetwork(false);
+  model = new nntrainer::NeuralNetwork();
   model->loadFromConfig(model_config);
 #if (DBG)
   gint64 stop_time = g_get_real_time();
