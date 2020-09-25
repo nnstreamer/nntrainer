@@ -33,6 +33,8 @@
 #include <unistd.h>
 
 #if defined(__TIZEN__)
+#include <gtest/gtest.h>
+
 #include <nnstreamer-single.h>
 #include <nnstreamer.h>
 #include <nntrainer_internal.h>
@@ -69,7 +71,7 @@
 #define EPOCH_SIZE LABEL_SIZE *NUM_DATA_PER_LABEL
 
 /** Minimum softmax value threshold to make a confident threshold */
-#define PREDICTION_THRESHOLD 0.7
+#define PREDICTION_THRESHOLD 0.9
 
 /** labels values */
 const char *label_names[LABEL_SIZE] = {"happy", "sad", "soso"};
@@ -77,6 +79,14 @@ const char *label_names[LABEL_SIZE] = {"happy", "sad", "soso"};
 /** Vectors containing the training data */
 float inputVector[EPOCH_SIZE][INPUT_SIZE];
 float labelVector[EPOCH_SIZE][LABEL_SIZE];
+
+/** Benchmark output values */
+const float test_output_benchmark[TOTAL_TEST_SIZE] = {
+  0.99669778, 0.96033746, 0.99192446, 0.98053128,
+  0.95911789, 0.99331927, 0.55696899, 0.46636438};
+
+/** Container to hold the output values when running */
+float test_output[TOTAL_TEST_SIZE];
 
 /** set float array to 0 */
 void array_set_zero(float *data, size_t num_elem) {
@@ -437,6 +447,11 @@ void sink_cb(const ml_tensors_data_h data, const ml_tensors_info_h info,
   else
     std::cout << "could not be predicted with enough confidence." << std::endl;
 
+  if (max_val > 0)
+    test_output[test_file_idx - 1] = max_val;
+  else
+    test_output[test_file_idx - 1] = raw_data[0];
+
   test_file_idx += 1;
 }
 #endif
@@ -560,6 +575,17 @@ fail_exit:
 #endif
 }
 
+#if defined(__TIZEN__)
+/**
+ * @brief  Test to verify that the draw classification app is successful
+ */
+TEST(DrawClassification, matchTestResult) {
+  for (int idx = 0; idx < TOTAL_TEST_SIZE; idx++) {
+    EXPECT_FLOAT_EQ(test_output_benchmark[idx], test_output[idx]);
+  }
+}
+#endif
+
 /**
  * @brief     create NN
  *            Get Feature from tflite & run foword & back propatation
@@ -619,5 +645,20 @@ int main(int argc, char *argv[]) {
   set_feature_state(NOT_CHECKED_YET);
 #endif
 
-  return 0;
+#if defined(__TIZEN__)
+  try {
+    testing::InitGoogleTest(&argc, argv);
+  } catch (...) {
+    std::cerr << "Error duing InitGoogleTest" << std::endl;
+    return 0;
+  }
+
+  try {
+    status = RUN_ALL_TESTS();
+  } catch (...) {
+    std::cerr << "Error duing RUN_ALL_TSETS()" << std::endl;
+  }
+#endif
+
+  return status;
 }
