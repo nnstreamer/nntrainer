@@ -312,8 +312,6 @@ void *data_run_model(void *data) {
     return NULL;
   }
 
-  printf("test");
-
   LOG_D("start running model");
   util_get_resource_path("model.ini", model_conf_path, false);
   util_get_data_path("label.dat", label_path);
