@@ -115,6 +115,15 @@ int util_parse_route(const char *source, char **route, char **data);
 int util_get_resource_path(const char *file, char *full_path, bool shared);
 
 /**
+ * @brief save cairo surface to a drawing.
+ * @todo currently saves to png, later change to other format
+ * @param cr_surface cairo surface to save
+ * @param dst destination name, it is save to the data path
+ * @return int APP_ERROR_NONE if success
+ */
+int util_save_drawing(cairo_surface_t *cr_surface, const char *dst);
+
+/**
  * @brief handle given path_data. If data is invalid, it is essentially noop
  *
  * @param ad appdata
@@ -170,6 +179,14 @@ void *data_update_train_result(void *ad);
  0.467543 ]
  */
 int data_parse_result_string(const char *src, train_result_s *train_result);
+
+/**
+ * @brief run inference with nnstreamer
+ *
+ * @param ad appdata
+ * @return int APP_ERROR_NONE if no error
+ */
+int data_run_inference(appdata_s *ad);
 
 #if !defined(PACKAGE)
 #define PACKAGE "org.example.nntrainer-example-custom-shortcut"

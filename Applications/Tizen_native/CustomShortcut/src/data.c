@@ -94,8 +94,23 @@ int util_get_data_path(const char *file, char *full_path) {
   return APP_ERROR_NONE;
 }
 
-static void on_data_receive_(ml_tensors_data_h data,
-                             const ml_tensors_info_h info, void *user_data) {
+int util_save_drawing(cairo_surface_t *cr_surface, const char *dst) {
+  cairo_status_t cr_stat = CAIRO_STATUS_SUCCESS;
+
+  LOG_D("start writing to png_path: %s ", dst);
+  /// @todo change to other format
+  cr_stat = cairo_surface_write_to_png(cr_surface, dst);
+
+  if (cr_stat != CAIRO_STATUS_SUCCESS) {
+    LOG_E("failed to write cairo surface as a file reason: %d", cr_stat);
+    return APP_ERROR_INVALID_PARAMETER;
+  }
+
+  return APP_ERROR_NONE;
+}
+
+static void on_feature_receive_(ml_tensors_data_h data,
+                                const ml_tensors_info_h info, void *user_data) {
   appdata_s *ad = (appdata_s *)user_data;
 
   void *raw_data;
@@ -163,20 +178,13 @@ CLEAN:
   pthread_mutex_unlock(&ad->pipe_lock);
 }
 
-static int run_nnpipeline_(appdata_s *ad, const char *src) {
+static int run_mobilnet_pipeline_(appdata_s *ad, const char *src) {
   char pipe_description[5000];
-
   char model_path[PATH_MAX];
 
   int status = ML_ERROR_NONE;
 
   util_get_resource_path("mobilenetv2.tflite", model_path, false);
-
-  status = pthread_mutex_lock(&ad->pipe_lock);
-  if (status != 0) {
-    LOG_E("acquiring lock failed status: %d", status);
-    return status;
-  }
 
   LOG_D("pipe ready, starting pipeline");
 
@@ -192,26 +200,29 @@ static int run_nnpipeline_(appdata_s *ad, const char *src) {
 
   LOG_D("setting inference \n pipe: %s", pipe_description);
   status = ml_pipeline_construct(pipe_description, NULL, NULL, &ad->pipeline);
-
   if (status != ML_ERROR_NONE) {
     LOG_E("something wrong constructing pipeline %d", status);
-    ml_pipeline_destroy(ad->pipeline);
-    pthread_mutex_unlock(&ad->pipe_lock);
     return status;
   }
 
-  status = ml_pipeline_sink_register(ad->pipeline, "sink", on_data_receive_,
+  status = ml_pipeline_sink_register(ad->pipeline, "sink", on_feature_receive_,
                                      (void *)ad, &ad->pipe_sink);
   if (status != ML_ERROR_NONE) {
     LOG_E("sink register failed %d", status);
-    goto CLEAN;
+    goto PIPE_DESTORY;
   }
 
   LOG_D("starting inference");
   status = ml_pipeline_start(ad->pipeline);
   if (status != ML_ERROR_NONE) {
     LOG_E("failed to start pipeline %d", status);
-    goto CLEAN;
+    goto SINK_UNREGISTER;
+  }
+
+  status = pthread_mutex_lock(&ad->pipe_lock);
+  if (status != 0) {
+    LOG_E("acquiring lock failed status: %d", status);
+    goto MUTEX_UNLOCK;
   }
 
   pthread_cond_wait(&ad->pipe_cond, &ad->pipe_lock);
@@ -220,21 +231,20 @@ static int run_nnpipeline_(appdata_s *ad, const char *src) {
   status = ml_pipeline_stop(ad->pipeline);
   if (status != ML_ERROR_NONE) {
     LOG_E("stopping pipeline failed");
-    goto CLEAN;
+    goto MUTEX_UNLOCK;
   }
 
-  LOG_D("unregister pipeline");
-  if (status != ML_ERROR_NONE) {
-    LOG_E("unregistering sink failed");
-  }
-
-CLEAN:
-  LOG_D("destroying pipeline");
-  ml_pipeline_sink_unregister(ad->pipe_sink);
-  ml_pipeline_destroy(ad->pipeline);
-  ad->pipe_sink = NULL;
-  ad->pipeline = NULL;
+MUTEX_UNLOCK:
   pthread_mutex_unlock(&ad->pipe_lock);
+
+SINK_UNREGISTER:
+  ml_pipeline_sink_unregister(ad->pipe_sink);
+  ad->pipe_sink = NULL;
+
+PIPE_DESTORY:
+  ml_pipeline_destroy(ad->pipeline);
+  ad->pipeline = NULL;
+
   return status;
 }
 
@@ -265,22 +275,24 @@ int data_extract_feature(appdata_s *ad) {
   char png_path[PATH_MAX];
   const char *dst =
     ad->tries < MAX_TRAIN_TRIES ? TRAIN_SET_PATH : VALIDATION_SET_PATH;
-  cairo_status_t cr_stat = CAIRO_STATUS_SUCCESS;
   int status = APP_ERROR_NONE;
 
-  util_get_data_path("temp.png", png_path);
-  LOG_D("start writing to png_path: %s ", png_path);
-  cr_stat = cairo_surface_write_to_png(ad->cr_surface, png_path);
+  status = util_get_data_path("test.png", png_path);
+  if (status != APP_ERROR_NONE) {
+    LOG_E("getting data path failed");
+    return status;
+  }
 
-  if (cr_stat != CAIRO_STATUS_SUCCESS) {
-    LOG_E("failed to write cairo surface as a file reason: %d", cr_stat);
-    return APP_ERROR_INVALID_PARAMETER;
+  status = util_save_drawing(ad->cr_surface, png_path);
+  if (status != APP_ERROR_NONE) {
+    LOG_E("failed to save drawing to a file");
+    return status;
   }
 
   util_get_data_path(dst, ad->pipe_dst);
 
   LOG_I("start inference to dataset: %s ", ad->pipe_dst);
-  status = run_nnpipeline_(ad, png_path);
+  status = run_mobilnet_pipeline_(ad, png_path);
 
   return status;
 }
@@ -388,7 +400,6 @@ void *data_update_train_result(void *data) {
       LOG_E("pipe write error");
       return NULL;
     };
-    usleep(150);
   }
 
   LOG_D("training finished");
@@ -483,6 +494,144 @@ int data_parse_result_string(const char *src, train_result_s *train_result) {
   }
 CLEAN:
   regfree(&pattern);
+
+  return status;
+}
+
+static void on_inference_end_(ml_tensors_data_h data,
+                              const ml_tensors_info_h info, void *user_data) {
+  appdata_s *ad = (appdata_s *)user_data;
+
+  float *raw_data;
+  size_t data_size;
+
+  int status = pthread_mutex_lock(&ad->pipe_lock);
+  if (status != 0) {
+    LOG_E("acquiring lock failed %d", status);
+    pthread_cond_signal(&ad->pipe_cond);
+    return;
+  }
+
+  status =
+    ml_tensors_data_get_tensor_data(data, 0, (void **)&raw_data, &data_size);
+  if (status != ML_ERROR_NONE) {
+    LOG_E("get tensor data failed: reason %s", strerror(status));
+    goto RESUME;
+  }
+
+  if (data_size != sizeof(float) * NUM_CLASS) {
+    LOG_E("output tensor size mismatch, %d", (int)data_size);
+    goto RESUME;
+  }
+
+  /// SMILE: 0 1
+  /// FROWN: 1 0
+  LOG_D("label: %lf %lf", raw_data[0], raw_data[1]);
+
+RESUME:
+  status = pthread_cond_signal(&ad->pipe_cond);
+  if (status != 0) {
+    LOG_E("cond signal failed %d", status);
+  }
+  pthread_mutex_unlock(&ad->pipe_lock);
+}
+
+int run_inference_pipeline_(appdata_s *ad, const char *filesrc) {
+  char pipe_description[9000];
+  char tf_model_path[PATH_MAX];
+  char trainer_model_path[PATH_MAX];
+
+  int status = APP_ERROR_NONE;
+
+  status = util_get_resource_path("mobilenetv2.tflite", tf_model_path, false);
+  if (status != APP_ERROR_NONE) {
+    LOG_E("error getting resource path, reason: %d", status);
+    return status;
+  }
+
+  status = util_get_resource_path("model.ini", trainer_model_path, false);
+  if (status != APP_ERROR_NONE) {
+    LOG_E("error getting data path, reason: %d", status);
+    return status;
+  }
+
+  sprintf(pipe_description,
+          "filesrc location=%s ! pngdec ! videoconvert ! "
+          "videoscale ! video/x-raw,width=224,height=224,format=RGB ! "
+          "tensor_converter ! "
+          "tensor_transform mode=arithmetic option=%s ! "
+          "tensor_filter framework=tensorflow-lite model=%s ! "
+          "tensor_filter framework=nntrainer model=%s input=1280:7:7:1 "
+          "inputtype=float32 output=1:%d:1:1 outputtype=float32 ! "
+          "tensor_sink name=sink",
+          filesrc, "typecast:float32,add:-127.5,div:127.5", tf_model_path,
+          trainer_model_path, NUM_CLASS);
+
+  LOG_D("pipe description: %s", pipe_description);
+  status = ml_pipeline_construct(pipe_description, NULL, NULL, &ad->pipeline);
+  if (status != ML_ERROR_NONE) {
+    LOG_E("constructing pipeline failed, reason: %d", status);
+    goto PIPE_UNLOCK;
+  }
+
+  status = ml_pipeline_sink_register(ad->pipeline, "sink", on_inference_end_,
+                                     (void *)ad, &ad->pipe_sink);
+  if (status != ML_ERROR_NONE) {
+    LOG_E("sink register failed, reason: %d", status);
+    goto DESTORY_PIPE;
+  }
+
+  status = ml_pipeline_start(ad->pipeline);
+  if (status != ML_ERROR_NONE) {
+    LOG_E("failed to start pipeline %d", status);
+    goto UNREGISTER_SINK;
+  }
+
+  status = pthread_mutex_lock(&ad->pipe_lock);
+  if (status != 0) {
+    LOG_E("acquiring lock failed status: %d", status);
+    goto UNREGISTER_SINK;
+  }
+
+  pthread_cond_wait(&ad->pipe_cond, &ad->pipe_lock);
+
+  status = ml_pipeline_stop(ad->pipeline);
+  if (status != ML_ERROR_NONE) {
+    LOG_E("stopping pipeline failed");
+  }
+
+PIPE_UNLOCK:
+  pthread_mutex_unlock(&ad->pipe_lock);
+
+UNREGISTER_SINK:
+  ml_pipeline_sink_unregister(ad->pipe_sink);
+  ad->pipe_sink = NULL;
+
+DESTORY_PIPE:
+  ml_pipeline_destroy(ad->pipeline);
+  ad->pipeline = NULL;
+
+  return status;
+}
+
+int data_run_inference(appdata_s *ad) {
+  char png_path[PATH_MAX];
+
+  int status = APP_ERROR_NONE;
+
+  status = util_get_data_path("test.png", png_path);
+  if (status != APP_ERROR_NONE) {
+    LOG_E("getting data path failed");
+    return status;
+  }
+
+  status = util_save_drawing(ad->cr_surface, png_path);
+  if (status != APP_ERROR_NONE) {
+    LOG_E("saving the cairo drawing failed");
+    return status;
+  }
+
+  status = run_inference_pipeline_(ad, png_path);
 
   return status;
 }
