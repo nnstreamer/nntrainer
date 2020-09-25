@@ -19,6 +19,10 @@
  *
  */
 
+#if defined(ENABLE_TEST)
+#define APP_VALIDATE
+#endif
+
 #include <climits>
 #include <cmath>
 #include <fstream>
@@ -29,7 +33,7 @@
 #include <stdlib.h>
 #include <time.h>
 
-#if defined(__TIZEN__)
+#if defined(APP_VALIDATE)
 #include <gtest/gtest.h>
 #endif
 
@@ -235,7 +239,7 @@ int getBatch_val(float **outVec, float **outLabel, bool *last,
   return ML_ERROR_NONE;
 }
 
-#if defined(__TIZEN__)
+#if defined(APP_VALIDATE)
 TEST(MNIST_training, verify_accuracy) {
   EXPECT_FLOAT_EQ(training_loss, 2.0374029);
 }
@@ -290,7 +294,7 @@ int main(int argc, char *argv[]) {
 
   NN.readModel();
   NN.setDataBuffer((DB));
-#if defined(__TIZEN__)
+#if defined(APP_VALIDATE)
   status = NN.setProperty({"epochs=5"});
   if (status != ML_ERROR_NONE) {
     std::cerr << "Error setting the number of epochs" << std::endl;
@@ -309,7 +313,7 @@ int main(int argc, char *argv[]) {
     return 0;
   }
 
-#if defined(__TIZEN__)
+#if defined(APP_VALIDATE)
   try {
     testing::InitGoogleTest(&argc, argv);
   } catch (...) {

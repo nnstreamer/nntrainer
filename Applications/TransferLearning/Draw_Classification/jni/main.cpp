@@ -27,14 +27,16 @@
  *
  */
 
+#if defined(__TIZEN__) && defined(ENABLE_TEST)
+#define APP_VALIDATE
+#endif
+
 #include <limits.h>
 #include <stdlib.h>
 #include <time.h>
 #include <unistd.h>
 
 #if defined(__TIZEN__)
-#include <gtest/gtest.h>
-
 #include <nnstreamer-single.h>
 #include <nnstreamer.h>
 #include <nntrainer_internal.h>
@@ -47,6 +49,10 @@
 #include <cmath>
 #include <fstream>
 #include <iostream>
+#endif
+
+#if defined(APP_VALIDATE)
+#include <gtest/gtest.h>
 #endif
 
 #include "bitmap_helpers.h"
@@ -80,10 +86,12 @@ const char *label_names[LABEL_SIZE] = {"happy", "sad", "soso"};
 float inputVector[EPOCH_SIZE][INPUT_SIZE];
 float labelVector[EPOCH_SIZE][LABEL_SIZE];
 
+#if defined(APP_VALIDATE)
 /** Benchmark output values */
 const float test_output_benchmark[TOTAL_TEST_SIZE] = {
   0.99669778, 0.96033746, 0.99192446, 0.98053128,
   0.95911789, 0.99331927, 0.55696899, 0.46636438};
+#endif
 
 /** Container to hold the output values when running */
 float test_output[TOTAL_TEST_SIZE];
@@ -575,7 +583,7 @@ fail_exit:
 #endif
 }
 
-#if defined(__TIZEN__)
+#if defined(APP_VALIDATE)
 /**
  * @brief  Test to verify that the draw classification app is successful
  */
@@ -645,7 +653,7 @@ int main(int argc, char *argv[]) {
   set_feature_state(NOT_CHECKED_YET);
 #endif
 
-#if defined(__TIZEN__)
+#if defined(APP_VALIDATE)
   try {
     testing::InitGoogleTest(&argc, argv);
   } catch (...) {
