@@ -123,6 +123,7 @@ endif
 
 jsoncpp_dep = dependency('jsoncpp') # jsoncpp
 libcurl_dep = dependency('libcurl')
+gtest_dep = dependency('gtest', required: false)
 
 # Install .pc
 configure_file(input: 'nntrainer.pc.in', output: 'nntrainer.pc',

@@ -7,6 +7,9 @@ gst_dep = dependency('gstreamer-'+gst_api_version)
 nnstreamer_capi_dep = dependency('', required: false)
 if build_platform == 'tizen'
   nnstreamer_capi_dep = dependency('capi-nnstreamer')
+  if not gtest_dep.found()
+    error('Gtest dependency not found for tizen')
+  endif
 endif
 
 training_sources = [
@@ -15,7 +18,7 @@ training_sources = [
 
 e = executable('nntrainer_training',
   training_sources,
-  dependencies: [app_utils_dep, iniparser_dep, nntrainer_capi_dep, nnstreamer_capi_dep, tflite_dep],
+  dependencies: [app_utils_dep, iniparser_dep, nntrainer_capi_dep, nnstreamer_capi_dep, tflite_dep, gtest_dep],
   include_directories: include_directories('.'),
   install: get_option('install-app'),
   install_dir: application_install_dir

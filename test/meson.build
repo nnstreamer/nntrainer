@@ -1,5 +1,3 @@
-gtest_dep = dependency('gtest', required: false)
-
 nntrainer_test_inc = include_directories('./include')
 
 nntrainer_test_deps = [
