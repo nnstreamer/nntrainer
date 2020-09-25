@@ -29,6 +29,10 @@
 #include <stdlib.h>
 #include <time.h>
 
+#if defined(__TIZEN__)
+#include <gtest/gtest.h>
+#endif
+
 #include "databuffer.h"
 #include "databuffer_func.h"
 #include "neuralnet.h"
@@ -80,6 +84,8 @@ const unsigned int feature_size = 784;
 const float tolerance = 0.1;
 
 std::string data_path;
+
+float training_loss = 0.0;
 
 /**
  * @brief     step function
@@ -229,6 +235,12 @@ int getBatch_val(float **outVec, float **outLabel, bool *last,
   return ML_ERROR_NONE;
 }
 
+#if defined(__TIZEN__)
+TEST(MNIST_training, verify_accuracy) {
+  EXPECT_FLOAT_EQ(training_loss, 2.0374029);
+}
+#endif
+
 /**
  * @brief     create NN
  *            Get Feature from tflite & run foword & back propatation
@@ -236,6 +248,7 @@ int getBatch_val(float **outVec, float **outLabel, bool *last,
  * @param[in]  arg 2 : resource path
  */
 int main(int argc, char *argv[]) {
+  int status = 0;
   if (argc < 2) {
     std::cout << "./nntrainer_mnist mnist.ini\n";
     exit(0);
@@ -277,19 +290,42 @@ int main(int argc, char *argv[]) {
 
   NN.readModel();
   NN.setDataBuffer((DB));
+#if defined(__TIZEN__)
+  status = NN.setProperty({"epochs=5"});
+  if (status != ML_ERROR_NONE) {
+    std::cerr << "Error setting the number of epochs" << std::endl;
+    return 0;
+  }
+#endif
 
   /**
    * @brief     Neural Network Train & validation
    */
   try {
     NN.train();
+    training_loss = NN.getLoss();
   } catch (...) {
     std::cerr << "Error during train" << std::endl;
     return 0;
   }
 
+#if defined(__TIZEN__)
+  try {
+    testing::InitGoogleTest(&argc, argv);
+  } catch (...) {
+    std::cerr << "Error duing InitGoogleTest" << std::endl;
+    return 0;
+  }
+
+  try {
+    status = RUN_ALL_TESTS();
+  } catch (...) {
+    std::cerr << "Error duing RUN_ALL_TSETS()" << std::endl;
+  }
+#endif
+
   /**
    * @brief     Finalize NN
    */
-  return 0;
+  return status;
 }

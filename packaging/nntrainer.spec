@@ -213,8 +213,15 @@ bash %{test_script} ./test
 export NNSTREAMER_CONF=$(pwd)/test/nnstreamer_filter_nntrainer/nnstreamer-test.ini
 export NNSTREAMER_FILTERS=$(pwd)/build/nnstreamer/tensor_filter
 pushd build
+rm -rf model.bin
 TF_APP=Applications/TransferLearning/Draw_Classification
 ./${TF_APP}/jni/nntrainer_training ../${TF_APP}/res/Training.ini ../${TF_APP}/res
+
+rm -rf model.bin
+cp ../Applications/MNIST/jni/mnist_trainingSet.dat .
+MNIST_APP=Applications/MNIST
+./${MNIST_APP}/jni/nntrainer_mnist ../${MNIST_APP}/res/mnist.ini
+
 popd
 
 # unittest for nntrainer plugin for nnstreamer
