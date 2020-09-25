@@ -221,7 +221,6 @@ rm -rf model.bin
 cp ../Applications/MNIST/jni/mnist_trainingSet.dat .
 MNIST_APP=Applications/MNIST
 ./${MNIST_APP}/jni/nntrainer_mnist ../${MNIST_APP}/res/mnist.ini
-
 popd
 
 # unittest for nntrainer plugin for nnstreamer
