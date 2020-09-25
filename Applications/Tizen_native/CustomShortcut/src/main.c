@@ -175,6 +175,7 @@ void presenter_on_canvas_submit_inference(void *data, Evas_Object *obj,
                                           const char *source) {
   appdata_s *ad = (appdata_s *)data;
   /** appdata handling NYI */
+  data_run_inference(ad);
 
   ad->tries = 0;
   elm_naviframe_item_pop(ad->naviframe);
