@@ -173,8 +173,12 @@ void presenter_on_go_main_request(void *data, Evas_Object *obj EINA_UNUSED,
 void presenter_on_canvas_submit_inference(void *data, Evas_Object *obj,
                                           const char *emission,
                                           const char *source) {
+  appdata_s *ad = (appdata_s *)data;
   /** appdata handling NYI */
-  if (routes_to_((appdata_s *)data, "test_result") != 0)
+
+  ad->tries = 0;
+  elm_naviframe_item_pop(ad->naviframe);
+  if (routes_to_(ad, "test_result") != 0)
     return;
 }
 
