@@ -17,8 +17,9 @@
  */
 
 #include <algorithm>
-#include <map>
 #include <limits>
+#include <map>
+#include <sstream>
 #include <unistd.h>
 
 #include <nnstreamer_plugin_api.h>
@@ -52,20 +53,20 @@ public:
   /**
    * member functions.
    */
-  NNTrainer(const char *model_config_);
+  NNTrainer(const char *model_config_, const GstTensorFilterProperties *prop);
   ~NNTrainer();
 
-  int init(const GstTensorFilterProperties *prop);
-  int loadModel();
   const char *getModelConfig();
 
   int getInputTensorDim(GstTensorsInfo *info);
   int getOutputTensorDim(GstTensorsInfo *info);
   int run(const GstTensorMemory *input, GstTensorMemory *output);
   void freeOutputTensor(void *data);
-  int validateTensor(const GstTensorsInfo *tensorInfo, bool is_input);
 
 private:
+  void loadModel();
+  void validateTensor(const GstTensorsInfo *tensorInfo, bool is_input);
+
   char *model_config;
   nntrainer::NeuralNetwork *model;
 
@@ -79,12 +80,22 @@ private:
 void init_filter_nntrainer(void) __attribute__((constructor));
 void fini_filter_nntrainer(void) __attribute__((destructor));
 
-NNTrainer::NNTrainer(const char *model_config_) {
-  g_assert(model_config_ != NULL);
-  model = nullptr;
-  model_config = g_strdup(model_config_);
+NNTrainer::NNTrainer(const char *model_config_,
+                     const GstTensorFilterProperties *prop) {
   gst_tensors_info_init(&inputTensorMeta);
   gst_tensors_info_init(&outputTensorMeta);
+
+  model_config = g_strdup(model_config_);
+  loadModel();
+
+  validateTensor(&prop->input_meta, true);
+  validateTensor(&prop->output_meta, false);
+
+  model->init();
+  model->readModel();
+
+  gst_tensors_info_copy(&inputTensorMeta, &prop->input_meta);
+  gst_tensors_info_copy(&outputTensorMeta, &prop->output_meta);
 }
 
 NNTrainer::~NNTrainer() {
@@ -97,39 +108,10 @@ NNTrainer::~NNTrainer() {
   g_free(model_config);
 }
 
-int NNTrainer::init(const GstTensorFilterProperties *prop) {
-  if (loadModel()) {
-    ml_loge("Failed to load model");
-    return -1;
-  }
-
-  if (validateTensor(&prop->input_meta, true)) {
-    ml_loge("Failed to validate input tensor");
-    return -2;
-  }
-
-  if (validateTensor(&prop->output_meta, false)) {
-    ml_loge("Failed to validate output tensor");
-    return -3;
-  }
-
-  try {
-    model->init();
-    model->readModel();
-  } catch (...) {
-    ml_loge("Failed to initialize model");
-    return -1;
-  }
-
-  gst_tensors_info_copy(&inputTensorMeta, &prop->input_meta);
-  gst_tensors_info_copy(&outputTensorMeta, &prop->output_meta);
-
-  return 0;
-}
-
 const char *NNTrainer::getModelConfig() { return model_config; }
 
-int NNTrainer::validateTensor(const GstTensorsInfo *tensorInfo, bool is_input) {
+void NNTrainer::validateTensor(const GstTensorsInfo *tensorInfo,
+                               bool is_input) {
 
   nntrainer::TensorDim dim;
   nntrainer_tensor_info_s info_s;
@@ -140,60 +122,41 @@ int NNTrainer::validateTensor(const GstTensorsInfo *tensorInfo, bool is_input) {
   else
     dim = model->getOutputDimension();
 
-  g_assert(tensorInfo->info[0].type == _NNS_FLOAT32);
+  if (tensorInfo->info[0].type != _NNS_FLOAT32)
+    throw std::invalid_argument(
+      "only float32 is supported for input and output");
+
   info_s.rank = NUM_DIM;
 
   for (unsigned int i = 0; i < NUM_DIM - 1; ++i) {
-    g_assert(tensorInfo->info[0].dimension[i] == dim.getDim()[order[i]]);
+    if (tensorInfo->info[0].dimension[i] != dim.getDim()[order[i]])
+      throw std::invalid_argument("Tensor dimension doesn't match");
+
     info_s.dims.push_back(dim.getDim()[order[i]]);
   }
 
-  g_assert(tensorInfo->info[0].dimension[NUM_DIM - 1] == dim.getDim()[0]);
+  if (tensorInfo->info[0].dimension[NUM_DIM - 1] != dim.getDim()[0])
+    throw std::invalid_argument("Tensor dimension doesn't match");
+
   info_s.dims.push_back(dim.getDim()[0]);
 
-  if (is_input) {
+  if (is_input)
     input_tensor_info.push_back(info_s);
-  }
-
-  return 0;
 }
 
-int NNTrainer::loadModel() {
+void NNTrainer::loadModel() {
 #if (DBG)
   gint64 start_time = g_get_real_time();
 #endif
-  gsize file_size;
-  gchar *content = nullptr;
-  GError *file_error = nullptr;
+  if (model_config == nullptr)
+    throw std::invalid_argument("model config is null!");
 
-  g_assert(model_config != nullptr);
-  if (!g_file_test(model_config, G_FILE_TEST_IS_REGULAR)) {
-    ml_loge("the file of model_config (%s) is not valid (not regular)\n",
-            model_config);
-    return -1;
-  }
-
-  if (!g_file_get_contents(model_config, &content, &file_size, &file_error)) {
-    ml_loge("Error reading model config!! - %s", file_error->message);
-    g_clear_error(&file_error);
-    return -2;
-  }
-
-  try {
-    model = new nntrainer::NeuralNetwork(false);
-    model->loadFromConfig(model_config);
-  } catch (...) {
-    ml_loge("Cannot load model from config\n");
-    g_free(content);
-    return -1;
-  }
-
+  model = new nntrainer::NeuralNetwork(false);
+  model->loadFromConfig(model_config);
 #if (DBG)
   gint64 stop_time = g_get_real_time();
   g_message("Model is loaded: %" G_GINT64_FORMAT, (stop_time - start_time));
 #endif
-  g_free(content);
-  return 0;
 }
 
 int NNTrainer::getInputTensorDim(GstTensorsInfo *info) {
@@ -219,7 +182,16 @@ int NNTrainer::run(const GstTensorMemory *input, GstTensorMemory *output) {
 
   std::shared_ptr<const nntrainer::Tensor> o;
 
-  o = model->inference(X);
+  try {
+    o = model->inference(X);
+  } catch (std::exception &e) {
+    ml_loge("%s %s", typeid(e).name(), e.what());
+    return -2;
+  } catch (...) {
+    ml_loge("unknown error type thrown");
+    return -3;
+  }
+
   if (o == nullptr) {
     return -1;
   }
@@ -258,14 +230,11 @@ static void nntrainer_close(const GstTensorFilterProperties *prop,
 
 static int nntrainer_loadModelFile(const GstTensorFilterProperties *prop,
                                    void **private_data) {
-  NNTrainer *nntrainer;
-  const gchar *model_file;
   if (prop->num_models != 1)
     return -1;
 
-  nntrainer = static_cast<NNTrainer *>(*private_data);
-  model_file = prop->model_files[0];
-
+  NNTrainer *nntrainer = static_cast<NNTrainer *>(*private_data);
+  const gchar *model_file = prop->model_files[0];
   if (nntrainer != NULL) {
     if (g_strcmp0(model_file, nntrainer->getModelConfig()) == 0)
       return 1; /* skipped */
@@ -273,21 +242,17 @@ static int nntrainer_loadModelFile(const GstTensorFilterProperties *prop,
     nntrainer_close(prop, private_data);
   }
 
-  nntrainer = new NNTrainer(model_file);
-  if (nntrainer == NULL) {
-    g_printerr("Failed to allocate memory for filter subplugin: nntrainer\n");
+  try {
+    nntrainer = new NNTrainer(model_file, prop);
+  } catch (std::exception &e) {
+    ml_loge("%s %s", typeid(e).name(), e.what());
     return -1;
+  } catch (...) {
+    ml_loge("unknown error type thrown");
+    return -3;
   }
-
-  if (nntrainer->init(prop) != 0) {
-    *private_data = NULL;
-    delete nntrainer;
-
-    g_printerr("failed to initailize the object: nntrainer\n");
-    return -2;
-  }
-
   *private_data = nntrainer;
+
   return 0;
 }
 
