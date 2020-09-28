@@ -116,12 +116,17 @@ static int init_page_(appdata_s *ad, const char *path) {
       return status;
     }
 
-    view_set_canvas_clean(ad);
+    status = data_update_label(ad);
+    if (status != APP_ERROR_NONE) {
+      LOG_E("setting draw label failed");
+      return status;
+    }
 
-    if (ad->draw_target == INFER) {
+    view_set_canvas_clean(ad);
+    if (ad->mode == MODE_INFER) {
       elm_layout_signal_callback_add(ad->layout, "draw/proceed", "",
                                      presenter_on_canvas_submit_inference, ad);
-    } else if (ad->draw_target == TRAIN_UNSET) {
+    } else if (ad->mode == MODE_TRAIN) {
       elm_layout_signal_callback_add(ad->layout, "draw/proceed", "",
                                      presenter_on_canvas_submit_training, ad);
     } else {
@@ -189,9 +194,9 @@ void presenter_on_canvas_submit_training(void *data, Evas_Object *obj,
   appdata_s *ad = (appdata_s *)data;
   int status = APP_ERROR_NONE;
 
-  status = data_update_draw_target(ad);
+  status = data_update_label(ad);
   if (status != APP_ERROR_NONE) {
-    LOG_E("setting draw target failed");
+    LOG_E("setting draw label failed");
     return;
   }
 
