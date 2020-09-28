@@ -100,6 +100,20 @@ static void *train_(void *data) {
 
 RESTORE_CB:
   ecore_main_loop_thread_safe_call_async(&notify_train_done, data);
+  return NULL;
+}
+
+static void *infer_(void *data) {
+  int status = ML_ERROR_NONE;
+  appdata_s *ad = (appdata_s *)data;
+
+  status = data_run_inference(ad);
+  if (status != ML_ERROR_NONE) {
+    LOG_E("inference process failed %d", status);
+    return NULL;
+  }
+
+  ecore_main_loop_thread_safe_call_async(view_update_guess, data);
 
   return NULL;
 }
@@ -179,13 +193,26 @@ void presenter_on_canvas_submit_inference(void *data, Evas_Object *obj,
                                           const char *emission,
                                           const char *source) {
   appdata_s *ad = (appdata_s *)data;
-  /** appdata handling NYI */
-  data_run_inference(ad);
+  pthread_t infer_thread;
+  int status = 0;
 
   ad->tries = 0;
   elm_naviframe_item_pop(ad->naviframe);
-  if (routes_to_(ad, "test_result") != 0)
+  if (routes_to_(ad, "test_result") != 0) {
+    LOG_E("routing to train thread failed");
     return;
+  }
+
+  status = pthread_create(&infer_thread, NULL, infer_, data);
+  if (status != 0) {
+    LOG_E("creating pthread failed %s", strerror(errno));
+    return;
+  }
+  status = pthread_detach(infer_thread);
+  if (status < 0) {
+    LOG_E("detaching reading thread failed %s", strerror(errno));
+    pthread_cancel(infer_thread);
+  }
 }
 
 void presenter_on_canvas_submit_training(void *data, Evas_Object *obj,
@@ -193,12 +220,6 @@ void presenter_on_canvas_submit_training(void *data, Evas_Object *obj,
                                          const char *source) {
   appdata_s *ad = (appdata_s *)data;
   int status = APP_ERROR_NONE;
-
-  status = data_update_label(ad);
-  if (status != APP_ERROR_NONE) {
-    LOG_E("setting draw label failed");
-    return;
-  }
 
   status = data_extract_feature(ad);
   if (status != APP_ERROR_NONE) {
@@ -227,6 +248,13 @@ void presenter_on_canvas_submit_training(void *data, Evas_Object *obj,
 
   /// prepare next canvas
   ad->tries++;
+
+  status = data_update_label(ad);
+  if (status != APP_ERROR_NONE) {
+    LOG_E("setting draw label failed");
+    return;
+  }
+
   view_set_canvas_clean(ad);
 }
 

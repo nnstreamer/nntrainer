@@ -237,26 +237,19 @@ static void on_canvas_exit_(void *data, Evas *e, Evas_Object *obj,
 
 void view_set_canvas_clean(appdata_s *ad) {
   char buf[256];
-  char emoji[5];
+  char *emoji;
 
-  /// setting draw label and text
-  switch (ad->label) {
-  case LABEL_UNSET:
-    strcpy(emoji, "❓");
-    break;
-  case LABEL_SMILE:
-    strcpy(emoji, "😊");
-    break;
-  case LABEL_FROWN:
-    strcpy(emoji, "😢");
-    break;
-  default:
-    LOG_E("unreachable code");
-    return;
+  int status = util_get_emoji(ad->label, &emoji);
+  if (status != APP_ERROR_NONE) {
+    LOG_E("getting emoji failed %d", status);
+    return status;
   }
+
   sprintf(buf, "draw for %s [%d/%d]", emoji, ad->tries + 1, MAX_TRIES);
   elm_object_part_text_set(ad->layout, "draw/title", buf);
   elm_object_part_text_set(ad->layout, "draw/label", emoji);
+
+  free(emoji);
 
   /// clear cairo surface
   cairo_set_source_rgba(ad->cr, 0.3, 0.3, 0.3, 0.2);
@@ -386,4 +379,22 @@ void view_update_result_cb(void *data, void *buffer, unsigned int nbytes) {
 
   snprintf(tmp, 255, "Loss: %.2f", result.train_loss);
   elm_object_part_text_set(ad->layout, "train_progress/loss", tmp);
+}
+
+void view_update_guess(void *data) {
+  appdata_s *ad = (appdata_s *)data;
+  char *emoji;
+  int status = util_get_emoji(ad->label, &emoji);
+  if (status != APP_ERROR_NONE) {
+    LOG_E("error getting emoji, reason: %d", status);
+    return status;
+  }
+
+  LOG_E("%s", emoji);
+  elm_object_part_text_set(ad->layout, "test_result/title",
+                           "guess successfully done");
+  elm_object_part_text_set(ad->layout, "test_result/label", emoji);
+  free(emoji);
+
+  return status;
 }

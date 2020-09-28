@@ -109,6 +109,29 @@ int util_save_drawing(cairo_surface_t *cr_surface, const char *dst) {
   return APP_ERROR_NONE;
 }
 
+int util_get_emoji(LABEL label, char **emoji_str) {
+  *emoji_str = (char *)malloc(sizeof(char) * 5);
+
+  /// setting draw label and text
+  switch (label) {
+  case LABEL_UNSET:
+    strcpy(*emoji_str, "❓");
+    return APP_ERROR_NONE;
+  case LABEL_SMILE:
+    strcpy(*emoji_str, "😊");
+    return APP_ERROR_NONE;
+  case LABEL_FROWN:
+    strcpy(*emoji_str, "😢");
+    return APP_ERROR_NONE;
+  default:
+    LOG_E("unreachable code");
+    return APP_ERROR_INVALID_CONTEXT;
+  }
+  return APP_ERROR_INVALID_CONTEXT;
+}
+
+/************** data releated methods **********************/
+
 static void on_feature_receive_(ml_tensors_data_h data,
                                 const ml_tensors_info_h info, void *user_data) {
   appdata_s *ad = (appdata_s *)user_data;
@@ -533,6 +556,7 @@ static void on_inference_end_(ml_tensors_data_h data,
   /// SMILE: 0 1
   /// FROWN: 1 0
   LOG_D("label: %lf %lf", raw_data[0], raw_data[1]);
+  ad->label = raw_data[0] < raw_data[1] ? LABEL_SMILE : LABEL_FROWN;
 
 RESUME:
   status = pthread_cond_signal(&ad->pipe_cond);

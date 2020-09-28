@@ -128,6 +128,15 @@ int util_get_resource_path(const char *file, char *full_path, bool shared);
 int util_save_drawing(cairo_surface_t *cr_surface, const char *dst);
 
 /**
+ * @brief get emoji string from LABEL enum
+ *
+ * @param[in] label label allocate outside.
+ * @param[out] emoji_str string emoticon from the enum. free after use
+ * @return int APP_ERROR_NONE if success;
+ */
+int util_get_emoji(LABEL label, char **emoji_str);
+
+/**
  * @brief handle given path_data. If data is invalid, it is essentially noop
  *
  * @param ad appdata
