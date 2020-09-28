@@ -38,17 +38,20 @@
 #define FEATURE_SIZE 62720
 #define NUM_CLASS 2
 
-typedef enum DRAW_TARGET_ {
-  INFER = 0,
-  TRAIN_UNSET,
-  TRAIN_SMILE,
-  TRAIN_FROWN
-} DRAW_TARGET;
+typedef enum MODE_ {
+  MODE_INFER = 0,
+  MODE_TRAIN,
+} MODE;
+
+typedef enum LABEL_ {
+  LABEL_SMILE = 0,
+  LABEL_FROWN,
+  LABEL_UNSET,
+} LABEL;
 
 typedef struct appdata {
   Evas_Object *win;
   Evas_Object *conform;
-  Evas_Object *label;
   Evas_Object *naviframe;
   Elm_Object_Item *nf_it;
   Eext_Circle_Surface *circle_nf;
@@ -67,8 +70,9 @@ typedef struct appdata {
 
   cairo_surface_t *cr_surface; /**< cairo surface for the canvas */
   cairo_t *cr;                 /**< cairo engine for the canvas */
-  DRAW_TARGET draw_target;     /**< draw target for the canvas */
-  int tries;                   /**< tells how many data has been labeled */
+  MODE mode;                   /**< draw mode for the canvas */
+  LABEL label; /**< target label, if infer mode, it is answer else label */
+  int tries;   /**< tells how many data has been labeled */
 
   /**< Feature extraction related */
   ml_pipeline_h pipeline;       /**< handle of feature extractor */
@@ -133,12 +137,12 @@ void data_handle_path_data(appdata_s *ad, const char *data);
 
 /**
  * @brief update draw target from the data. currently the label is depending on
- * ad->tries only
+ * ad->tries and ad->mode
  *
  * @param[in] ad appdata
  * @return int APP_ERROR_NONE if success
  */
-int data_update_draw_target(appdata_s *ad);
+int data_update_label(appdata_s *ad);
 
 /**
  * @brief extract data feature from given model.

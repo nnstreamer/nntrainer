@@ -240,16 +240,14 @@ void view_set_canvas_clean(appdata_s *ad) {
   char emoji[5];
 
   /// setting draw label and text
-  switch (ad->draw_target) {
-  case INFER:
+  switch (ad->label) {
+  case LABEL_UNSET:
     strcpy(emoji, "❓");
     break;
-  case TRAIN_UNSET:
-    /// fall through intended
-  case TRAIN_SMILE:
+  case LABEL_SMILE:
     strcpy(emoji, "😊");
     break;
-  case TRAIN_FROWN:
+  case LABEL_FROWN:
     strcpy(emoji, "😢");
     break;
   default:

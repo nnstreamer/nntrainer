@@ -152,7 +152,7 @@ static void on_feature_receive_(ml_tensors_data_h data,
   /// one-hot encoding.
   /// SMILE: 0 1
   /// FROWN: 1 0
-  bool target_label = ad->draw_target == TRAIN_SMILE ? 0 : 1;
+  bool target_label = ad->label == LABEL_SMILE ? 0 : 1;
   LOG_D("writing one-hot encoded label");
   label = target_label;
   if (fwrite(&label, sizeof(float), 1, file) < 0) {
@@ -251,19 +251,25 @@ PIPE_DESTORY:
 void data_handle_path_data(appdata_s *ad, const char *data) {
   /// handling path_data to check if it's for inference or path
   if (!strcmp(data, "inference")) {
-    ad->draw_target = INFER;
+    ad->mode = MODE_INFER;
   } else if (!strcmp(data, "train")) {
-    ad->draw_target = TRAIN_UNSET;
+    ad->mode = MODE_TRAIN;
   }
+  ad->label = LABEL_UNSET;
 }
 
-int data_update_draw_target(appdata_s *ad) {
+int data_update_label(appdata_s *ad) {
+  if (ad->mode == MODE_INFER) {
+    ad->label = LABEL_UNSET;
+    return APP_ERROR_NONE;
+  }
+
   switch (ad->tries % NUM_CLASS) {
   case 0:
-    ad->draw_target = TRAIN_SMILE;
+    ad->label = LABEL_SMILE;
     return APP_ERROR_NONE;
   case 1:
-    ad->draw_target = TRAIN_FROWN;
+    ad->label = LABEL_FROWN;
     return APP_ERROR_NONE;
   default:
     LOG_E("Given label is unknown");
