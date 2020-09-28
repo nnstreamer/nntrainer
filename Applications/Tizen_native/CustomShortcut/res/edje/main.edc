@@ -207,9 +207,20 @@ collections {
   group {
     name: "test_result";
     parts {
-      PART_TITLE("test_result/title", "eval successfully done")
-      PART_BUTTON("test_result/go_back", "😊", 0.1, 0.3, 0.9, 0.7)
-      // reserve a text area to show the guess from the model
+      PART_TITLE("test_result/title", "eval in progress")
+      part {
+        name: "test_result/label";
+        type: TEXT;
+        description {
+          state: "default" 0.0;
+          rel1.relative: 0.0 0.2;
+          rel2.relative: 1.0 0.8;
+          text {
+            text: "Guess...";
+            size: 100;
+            align: 0.5 0.5;
+          }
+        }
     }
   }
 }

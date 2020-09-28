@@ -62,4 +62,12 @@ void view_set_canvas_clean(appdata_s *ad);
  */
 void view_update_result_cb(void *data, void *buffer, unsigned int nbytes);
 
+/**
+ * @brief update guess from the inference result
+ *
+ * @param[in] ad appdata
+ * @return int APP_ERROR_NONE if success
+ */
+void view_update_guess(void *ad);
+
 #endif /* __nntrainer_example_custom_shortcut_view_H__ */
