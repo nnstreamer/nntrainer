@@ -67,10 +67,24 @@ BuildRequires:	python
 %endif #nnstreamer_filter
 %endif  # tizen
 
+Requires:	nntrainer-core = %{version}-%{release}
+
+%if  0%{?nnstreamer_filter}
+Requires:	nnstreamer-nntrainer = %{version}-%{release}
+%endif #nnstreamer_filter
+%if %{with tizen}
+Requires:	capi-nntrainer = %{version}-%{release}
+%endif #tizen
+
+%description
+NNtrainer Meta package for tizen
+
+%package core
+Summary:	Software framework for traning neural networks
 Requires:	iniparser
 Requires:	libopenblas_pthreads0
 
-%description
+%description core
 NNtrainer is Software Framework for Training Nerual Network Models on Devices.
 
 %package devel
@@ -290,6 +304,8 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %postun -p /sbin/ldconfig
 
 %files
+
+%files core
 %manifest nntrainer.manifest
 %defattr(-,root,root,-)
 %license LICENSE
