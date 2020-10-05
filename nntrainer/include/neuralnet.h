@@ -95,10 +95,22 @@ public:
   ~NeuralNetwork();
 
   /**
-   * @brief     Get Loss
+   * @brief     Get Loss from the previous ran batch of data
    * @retval    loss value
    */
   float getLoss();
+
+  /**
+   * @brief     Get Loss from the previous epoch of training data
+   * @retval    loss value
+   */
+  float getTrainingLoss() { return training.loss; }
+
+  /**
+   * @brief     Get Loss from the previous epoch of validation data
+   * @retval    loss value
+   */
+  float getValidationLoss() { return validation.loss; }
 
   /**
    * @brief     Get Learning rate
