@@ -90,6 +90,8 @@ const float tolerance = 0.1;
 std::string data_path;
 
 float training_loss = 0.0;
+float validation_loss = 0.0;
+float last_batch_loss = 0.0;
 
 /**
  * @brief     step function
@@ -241,7 +243,9 @@ int getBatch_val(float **outVec, float **outLabel, bool *last,
 
 #if defined(APP_VALIDATE)
 TEST(MNIST_training, verify_accuracy) {
-  EXPECT_FLOAT_EQ(training_loss, 2.0374029);
+  EXPECT_FLOAT_EQ(training_loss, 2.3255470);
+  EXPECT_FLOAT_EQ(validation_loss, 2.3074534);
+  EXPECT_FLOAT_EQ(last_batch_loss, 2.2916341);
 }
 #endif
 
@@ -307,7 +311,9 @@ int main(int argc, char *argv[]) {
    */
   try {
     NN.train();
-    training_loss = NN.getLoss();
+    training_loss = NN.getTrainingLoss();
+    validation_loss = NN.getValidationLoss();
+    last_batch_loss = NN.getLoss();
   } catch (...) {
     std::cerr << "Error during train" << std::endl;
     return 0;
