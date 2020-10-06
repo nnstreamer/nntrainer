@@ -448,12 +448,15 @@ int NeuralNetwork::train_run() {
 
     int count = 0;
 
+    sharedTensor in = MAKE_SHARED_TENSOR(getInputDimension());
+    sharedTensor label =
+      MAKE_SHARED_TENSOR(layers.back()->getOutputDimension());
+
     while (true) {
-      vec_4d in, label;
-      if (data_buffer->getDataFromBuffer(nntrainer::BUF_TRAIN, in, label)) {
+      if (data_buffer->getDataFromBuffer(nntrainer::BUF_TRAIN, in->getData(),
+                                         label->getData())) {
         try {
-          backwarding(MAKE_SHARED_TENSOR(in), MAKE_SHARED_TENSOR(label),
-                      iter++);
+          backwarding(in, label, iter++);
         } catch (...) {
           data_buffer->clear(nntrainer::BUF_TRAIN);
           ml_loge("Error: training error in #%d/%d.", epoch_idx, epochs);
@@ -489,13 +492,11 @@ int NeuralNetwork::train_run() {
       }
 
       while (true) {
-        vec_4d in, label;
-        if (data_buffer->getDataFromBuffer(nntrainer::BUF_VAL, in, label)) {
-          sharedTensor X = MAKE_SHARED_TENSOR(Tensor({in}));
-          sharedTensor Y2 = MAKE_SHARED_TENSOR(Tensor({label}));
-          sharedConstTensor Y = forwarding(X, Y2);
+        if (data_buffer->getDataFromBuffer(nntrainer::BUF_VAL, in->getData(),
+                                           label->getData())) {
+          sharedConstTensor Y = forwarding(in, label);
           auto model_out = Y->argmax();
-          auto label_out = Y2->argmax();
+          auto label_out = label->argmax();
           for (unsigned int b = 0; b < batch_size; b++) {
             if (model_out[b] == label_out[b])
               right++;

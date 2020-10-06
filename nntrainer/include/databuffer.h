@@ -70,8 +70,6 @@
  */
 constexpr const unsigned int NBUFTYPE = 4;
 
-typedef std::vector<std::vector<std::vector<std::vector<float>>>> vec_4d;
-
 typedef enum {
   DATA_NOT_READY = 0,
   DATA_READY = 1,
@@ -175,14 +173,13 @@ public:
   /**
    * @brief     get Data from Data Buffer using databuffer param
    * @param[in] BufferType training, validation, test
-   * @param[in] outVec feature data ( batch_size size )
-   * @param[in] outLabel label data ( batch_size size )
+   * @param[out] out feature data ( batch_size size ), a contiguous and
+   * allocated memory block should be passed
+   * @param[out] label label data ( batch_size size ), a contiguous and
+   * allocated memory block should be passed
    * @retval    true/false
    */
-  virtual bool getDataFromBuffer(
-    BufferType type,
-    std::vector<std::vector<std::vector<std::vector<float>>>> &out_vec,
-    std::vector<std::vector<std::vector<std::vector<float>>>> &out_label);
+  bool getDataFromBuffer(BufferType type, float *out, float *label);
 
   /**
    * @brief     set number of class
