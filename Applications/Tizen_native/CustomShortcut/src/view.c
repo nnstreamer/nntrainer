@@ -242,10 +242,14 @@ void view_set_canvas_clean(appdata_s *ad) {
   int status = util_get_emoji(ad->label, &emoji);
   if (status != APP_ERROR_NONE) {
     LOG_E("getting emoji failed %d", status);
-    return status;
+    return;
   }
 
-  sprintf(buf, "draw for %s [%d/%d]", emoji, ad->tries + 1, MAX_TRIES);
+  if (ad->mode == MODE_INFER) {
+    sprintf(buf, "draw for %s", emoji);
+  } else if (ad->mode == MODE_TRAIN) {
+    sprintf(buf, "draw for %s [%d/%d]", emoji, ad->tries + 1, MAX_TRIES);
+  }
   elm_object_part_text_set(ad->layout, "draw/title", buf);
   elm_object_part_text_set(ad->layout, "draw/label", emoji);
 
@@ -387,14 +391,14 @@ void view_update_guess(void *data) {
   int status = util_get_emoji(ad->label, &emoji);
   if (status != APP_ERROR_NONE) {
     LOG_E("error getting emoji, reason: %d", status);
-    return status;
+    return;
   }
 
-  LOG_E("%s", emoji);
+  LOG_I("\033[33m%s\033[36m", emoji);
   elm_object_part_text_set(ad->layout, "test_result/title",
                            "guess successfully done");
   elm_object_part_text_set(ad->layout, "test_result/label", emoji);
   free(emoji);
 
-  return status;
+  return;
 }
