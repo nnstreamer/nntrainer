@@ -10,6 +10,7 @@
  * @bug No known bugs except for NYI items
  *
  */
+#include <image_util.h>
 #include <regex.h>
 #include <stdio.h>
 #include <string.h>
@@ -95,18 +96,67 @@ int util_get_data_path(const char *file, char *full_path) {
 }
 
 int util_save_drawing(cairo_surface_t *cr_surface, const char *dst) {
+  static const image_util_colorspace_e colorspace =
+    IMAGE_UTIL_COLORSPACE_ARGB8888;
+  static const image_util_type_e imagetype = IMAGE_UTIL_JPEG;
+  image_util_decode_h decoder;
+  image_util_encode_h encoder;
+  image_util_image_h image;
+  int status = IMAGE_UTIL_ERROR_NONE;
+
   cairo_status_t cr_stat = CAIRO_STATUS_SUCCESS;
+  LOG_D("start writing to jpg_path: %s ", dst);
 
-  LOG_D("start writing to png_path: %s ", dst);
-  /// @todo change to other format
   cr_stat = cairo_surface_write_to_png(cr_surface, dst);
-
   if (cr_stat != CAIRO_STATUS_SUCCESS) {
     LOG_E("failed to write cairo surface as a file reason: %d", cr_stat);
     return APP_ERROR_INVALID_PARAMETER;
   }
 
-  return APP_ERROR_NONE;
+  status = image_util_decode_create(&decoder);
+  if (status != IMAGE_UTIL_ERROR_NONE) {
+    LOG_E("util decode create failed, reason: %d", status);
+    return status;
+  }
+
+  status = image_util_decode_set_input_path(decoder, dst);
+  if (status != IMAGE_UTIL_ERROR_NONE) {
+    LOG_E("setting input buffer for decoder failed, reason: %d", status);
+    goto DESTORY_DECODER;
+  }
+
+  status = image_util_decode_set_colorspace(decoder, colorspace);
+  if (status != IMAGE_UTIL_ERROR_NONE) {
+    LOG_E("setting colorspace for decoder failed, reason: %d", status);
+    goto DESTORY_DECODER;
+  }
+
+  status = image_util_decode_run2(decoder, &image);
+  if (status != IMAGE_UTIL_ERROR_NONE) {
+    LOG_E("decoding image failed, reason: %d", status);
+    goto DESTORY_DECODER;
+  }
+
+  status = image_util_encode_create(imagetype, &encoder);
+  if (status != IMAGE_UTIL_ERROR_NONE) {
+    LOG_E("creating encoder failed, reason: %d", status);
+    goto DESTROY_IMAGE;
+  }
+
+  status = image_util_encode_run_to_file(encoder, image, dst);
+  if (status != IMAGE_UTIL_ERROR_NONE) {
+    LOG_E("encoding file failed, reason: %d", status);
+  }
+
+  image_util_encode_destroy(encoder);
+
+DESTROY_IMAGE:
+  image_util_destroy_image(image);
+
+DESTORY_DECODER:
+  image_util_decode_destroy(decoder);
+
+  return status;
 }
 
 int util_get_emoji(LABEL label, char **emoji_str) {
@@ -212,7 +262,7 @@ static int run_mobilnet_pipeline_(appdata_s *ad, const char *src) {
   LOG_D("pipe ready, starting pipeline");
 
   sprintf(pipe_description,
-          "filesrc location=%s ! pngdec ! "
+          "filesrc location=%s ! jpegdec ! "
           "videoconvert ! videoscale ! "
           "video/x-raw,width=224,height=224,format=RGB ! "
           "tensor_converter ! "
@@ -301,18 +351,18 @@ int data_update_label(appdata_s *ad) {
 }
 
 int data_extract_feature(appdata_s *ad) {
-  char png_path[PATH_MAX];
+  char jpeg_path[PATH_MAX];
   const char *dst =
     ad->tries < MAX_TRAIN_TRIES ? TRAIN_SET_PATH : VALIDATION_SET_PATH;
   int status = APP_ERROR_NONE;
 
-  status = util_get_data_path("test.png", png_path);
+  status = util_get_data_path("test.jpg", jpeg_path);
   if (status != APP_ERROR_NONE) {
     LOG_E("getting data path failed");
     return status;
   }
 
-  status = util_save_drawing(ad->cr_surface, png_path);
+  status = util_save_drawing(ad->cr_surface, jpeg_path);
   if (status != APP_ERROR_NONE) {
     LOG_E("failed to save drawing to a file");
     return status;
@@ -321,7 +371,7 @@ int data_extract_feature(appdata_s *ad) {
   util_get_data_path(dst, ad->pipe_dst);
 
   LOG_I("start inference to dataset: %s ", ad->pipe_dst);
-  status = run_mobilnet_pipeline_(ad, png_path);
+  status = run_mobilnet_pipeline_(ad, jpeg_path);
 
   return status;
 }
@@ -586,7 +636,7 @@ int run_inference_pipeline_(appdata_s *ad, const char *filesrc) {
   }
 
   sprintf(pipe_description,
-          "filesrc location=%s ! pngdec ! videoconvert ! "
+          "filesrc location=%s ! jpegdec ! videoconvert ! "
           "videoscale ! video/x-raw,width=224,height=224,format=RGB ! "
           "tensor_converter ! "
           "tensor_transform mode=arithmetic option=%s ! "
@@ -645,23 +695,23 @@ DESTORY_PIPE:
 }
 
 int data_run_inference(appdata_s *ad) {
-  char png_path[PATH_MAX];
+  char jpeg_path[PATH_MAX];
 
   int status = APP_ERROR_NONE;
 
-  status = util_get_data_path("test.png", png_path);
+  status = util_get_data_path("test.jpg", jpeg_path);
   if (status != APP_ERROR_NONE) {
     LOG_E("getting data path failed");
     return status;
   }
 
-  status = util_save_drawing(ad->cr_surface, png_path);
+  status = util_save_drawing(ad->cr_surface, jpeg_path);
   if (status != APP_ERROR_NONE) {
     LOG_E("saving the cairo drawing failed");
     return status;
   }
 
-  status = run_inference_pipeline_(ad, png_path);
+  status = run_inference_pipeline_(ad, jpeg_path);
 
   return status;
 }
