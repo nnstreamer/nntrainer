@@ -39,28 +39,6 @@ namespace nntrainer {
 class LazyTensor;
 
 /**
- * @struct External Loop Info for broadcasted info
- * @brief External Loop Info for broadcasted iteration. Please refer to
- * DISABLED_private_external_loop_n in unittest_nntrainer_tensor.
- * @note This should better be implemented in iterator fashion before used
- * extensively.
- */
-struct BroadcastInfo {
-
-  /**
-   * @brief Construct a new External Loop Info object
-   *
-   */
-  BroadcastInfo() : strides{0, 0, 0, 0} {}
-
-  unsigned int buffer_size; /**< virtual size of the buffer */
-  int buffer_axis;          /**< the smallest axis that should be looped.
-                                 -1 means no loop needed*/
-  std::array<unsigned int, MAXDIM>
-    strides; /**< modified strides for the loop */
-};
-
-/**
  * @class   Tensor Class for Calculation
  * @brief   Tensor Class for Calculation
  */
@@ -592,6 +570,8 @@ private:
                                unsigned int w) const {
     return (b * strides[0] + c * strides[1] + h * strides[2] + w * strides[3]);
   }
+
+  struct BroadcastInfo;
 
   /**
    * @brief Applies the given operator to the tensor with the passed argument
