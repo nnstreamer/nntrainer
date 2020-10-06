@@ -555,7 +555,7 @@ static void on_inference_end_(ml_tensors_data_h data,
 
   /// SMILE: 0 1
   /// FROWN: 1 0
-  LOG_D("label: %lf %lf", raw_data[0], raw_data[1]);
+  LOG_D("\033[33mlabel: %lf %lf\033[36m", raw_data[0], raw_data[1]);
   ad->label = raw_data[0] < raw_data[1] ? LABEL_SMILE : LABEL_FROWN;
 
 RESUME:
