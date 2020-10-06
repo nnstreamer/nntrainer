@@ -208,6 +208,28 @@ int Tensor::add_i(float const &value) {
 Tensor Tensor::add(float const &value) { CLONE_OP_I(add_i, value); }
 
 /**
+ * @struct External Loop Info for broadcasted info
+ * @brief External Loop Info for broadcasted iteration. Please refer to
+ * DISABLED_private_external_loop_n in unittest_nntrainer_tensor.
+ * @note This should better be implemented in iterator fashion before used
+ * extensively.
+ */
+struct Tensor::BroadcastInfo {
+
+  /**
+   * @brief Construct a new External Loop Info object
+   *
+   */
+  BroadcastInfo() : strides{0, 0, 0, 0} {}
+
+  unsigned int buffer_size; /**< virtual size of the buffer */
+  int buffer_axis;          /**< the smallest axis that should be looped.
+                                 -1 means no loop needed*/
+  std::array<unsigned int, MAXDIM>
+    strides; /**< modified strides for the loop */
+};
+
+/**
  * @brief Add Tensor Element by Element without mem copy
  * @param[in] m Tensor to be added
  * #retval #ML_ERROR_NONE  Successful
@@ -798,7 +820,7 @@ Tensor Tensor::standardization() const {
   return result;
 }
 
-BroadcastInfo Tensor::computeBroadcastInfo(const Tensor &m) {
+Tensor::BroadcastInfo Tensor::computeBroadcastInfo(const Tensor &m) {
   if (m.length() > this->length())
     throw exception::not_supported("broadcasting *this is not supported");
 

@@ -292,13 +292,6 @@ public:
    */
   void printPreset(std::ostream &out, unsigned int preset);
 
-  /**
-   * @brief print metrics function for neuralnet
-   * @param[in] out outstream
-   * @param[in] flags verbosity from ml_train_summary_type_e
-   */
-  void printMetrics(std::ostream &out, unsigned int flags = 0);
-
 private:
   /**
    * @brief   Print Options when printing layer info
@@ -463,6 +456,13 @@ private:
    * @brief     Update batch size of the model as well as its layers/dataset
    */
   void setBatchSize(unsigned int batch_size);
+
+  /**
+   * @brief print metrics function for neuralnet
+   * @param[in] out outstream
+   * @param[in] flags verbosity from ml_train_summary_type_e
+   */
+  void printMetrics(std::ostream &out, unsigned int flags = 0);
 };
 
 } /* namespace nntrainer */
