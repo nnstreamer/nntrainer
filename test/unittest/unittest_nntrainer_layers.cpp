@@ -31,6 +31,17 @@
 using nntrainer::sharedConstTensor;
 using nntrainer::sharedTensor;
 
+static std::string getDimensionString(const nntrainer::TensorDim &dim) {
+  std::string dim_str;
+  for (unsigned int i = 0; i < nntrainer::MAXDIM; i++) {
+    dim_str += std::to_string(dim.getTensorDim(i));
+    dim_str += ":";
+  }
+  dim_str.pop_back();
+
+  return dim_str;
+}
+
 template <typename LayerType>
 class nntrainer_abstractLayer : public ::testing::Test {
 protected:
@@ -63,11 +74,8 @@ protected:
 
   virtual void resetLayer() { layer = LayerType(); }
 
-  virtual void setInputDim(const char *dimension) {
-    nntrainer::TensorDim dim;
-    int status = dim.setTensorDim(dimension);
-    ASSERT_EQ(status, ML_ERROR_NONE);
-    layer.setInputDimension(dim);
+  virtual void setInputDim(const std::string &dimension) {
+    ASSERT_EQ(layer.setProperty({"input_shape=" + dimension}), ML_ERROR_NONE);
   }
 
   void setBatch(unsigned int batch) { layer.setBatch(batch); }
@@ -283,7 +291,7 @@ TEST_F(nntrainer_InputLayer, setOptimizer_01_p) {
  * @brief Input Layer
  */
 TEST_F(nntrainer_InputLayer, setActivation_01_p) {
-  int status = layer.setActivation(nntrainer::ActivationType::ACT_TANH);
+  int status = layer.setProperty({"activation=tanh"});
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
@@ -291,7 +299,10 @@ TEST_F(nntrainer_InputLayer, setActivation_01_p) {
  * @brief Input Layer
  */
 TEST_F(nntrainer_InputLayer, setActivation_02_n) {
-  int status = layer.setActivation(nntrainer::ActivationType::ACT_UNKNOWN);
+  int status = layer.setProperty({"activation=unknown"});
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+
+  status = layer.setProperty({"activation=random"});
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
@@ -299,7 +310,7 @@ TEST_F(nntrainer_InputLayer, setActivation_02_n) {
  * @brief Input Layer
  */
 TEST_F(nntrainer_InputLayer, checkValidation_01_p) {
-  int status = layer.setActivation(nntrainer::ActivationType::ACT_TANH);
+  int status = layer.setProperty({"activation=tanh"});
   ASSERT_EQ(status, ML_ERROR_NONE);
 
   status = layer.checkValidation();
@@ -337,9 +348,7 @@ TEST(nntrainer_FullyConnectedLayer_n, initialize_02_n) {
  */
 TEST(nntrainer_FullyConnectedLayer_n, initialize_03_n) {
   nntrainer::FullyConnectedLayer layer;
-  nntrainer::TensorDim d;
-  d.setTensorDim("32:1:28:28");
-  layer.setInputDimension(d);
+  layer.setProperty({"input_shape=32:1:28:28"});
 
   EXPECT_THROW(layer.initialize(), std::invalid_argument);
 }
@@ -352,13 +361,13 @@ TEST_F(nntrainer_FullyConnectedLayer, initialize_04_p) {
 
   /** Layer name can be set */
   layer_name = "FCLayer0";
-  status = layer.setName(layer_name);
+  status = layer.setProperty({"name=" + layer_name});
   EXPECT_EQ(status, ML_ERROR_NONE);
   EXPECT_EQ(layer.getName(), layer_name);
 
-  /** Layer name can be updated */
+  /** Layer name cannot be updated once set */
   layer_name = "FCLayer1";
-  status = layer.setName(layer_name);
+  status = layer.setProperty({"name=" + layer_name});
   EXPECT_EQ(status, ML_ERROR_NONE);
   EXPECT_EQ(layer.getName(), layer_name);
 }
@@ -377,7 +386,7 @@ TEST(nntrainer_FullyConnectedLayer_init_name, initialize_05_n) {
   EXPECT_EQ(layer_name.length(), 0);
 
   /** Set empty name */
-  status = layer0.setName(std::string());
+  status = layer0.setProperty({"name="});
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
@@ -404,7 +413,7 @@ TEST_F(nntrainer_FullyConnectedLayer, setOptimizer_02_p) {
  * @brief Fully Connected Layer
  */
 TEST_F(nntrainer_FullyConnectedLayer, setActivation_01_p) {
-  status = layer.setActivation(nntrainer::ActivationType::ACT_TANH);
+  status = layer.setProperty({"activation=tanh"});
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
@@ -412,7 +421,7 @@ TEST_F(nntrainer_FullyConnectedLayer, setActivation_01_p) {
  * @brief Fully Connected Layer
  */
 TEST_F(nntrainer_FullyConnectedLayer, setActivation_02_n) {
-  status = layer.setActivation(nntrainer::ActivationType::ACT_UNKNOWN);
+  status = layer.setProperty({"activation=unknown"});
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
@@ -420,7 +429,8 @@ TEST_F(nntrainer_FullyConnectedLayer, setActivation_02_n) {
  * @brief FullyConnected Layer
  */
 TEST_F(nntrainer_FullyConnectedLayer, checkValidation_01_p) {
-  layer.setActivation(nntrainer::ActivationType::ACT_RELU);
+  status = layer.setProperty({"activation=ReLU"});
+  EXPECT_EQ(status, ML_ERROR_NONE);
   status = layer.checkValidation();
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
@@ -445,9 +455,12 @@ protected:
 
   void addActivation(nntrainer::ActivationType type) {
     std::shared_ptr<nntrainer::ActivationLayer> act_layer =
-      std::make_shared<nntrainer::ActivationLayer>();
-    act_layer->setActivation(type);
-    act_layer->setInputDimension(layer.getOutputDimension());
+      std::make_shared<nntrainer::ActivationLayer>(type);
+
+    status = act_layer->setProperty(
+      {"input_shape=" + getDimensionString(layer.getOutputDimension())});
+    EXPECT_EQ(status, ML_ERROR_NONE);
+
     status = act_layer->initialize();
     EXPECT_EQ(status, ML_ERROR_NONE);
     layers.push_back(act_layer);
@@ -456,7 +469,11 @@ protected:
   void addLoss(nntrainer::LossType type) {
     std::shared_ptr<nntrainer::LossLayer> loss_layer =
       std::make_shared<nntrainer::LossLayer>();
-    loss_layer->setInputDimension(layer.getOutputDimension());
+
+    status = loss_layer->setProperty(
+      {"input_shape=" + getDimensionString(layer.getOutputDimension())});
+    EXPECT_EQ(status, ML_ERROR_NONE);
+
     status = loss_layer->initialize();
     EXPECT_EQ(status, ML_ERROR_NONE);
     status = loss_layer->setLoss(type);
@@ -832,7 +849,7 @@ TEST_F(nntrainer_BatchNormalizationLayer, setOptimizer_01_p) {
  * @brief Batch Normalization Layer
  */
 TEST_F(nntrainer_BatchNormalizationLayer, setActivation_01_p) {
-  status = layer.setActivation(nntrainer::ActivationType::ACT_SIGMOID);
+  status = layer.setProperty({"activation=sigmoid"});
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
@@ -840,7 +857,7 @@ TEST_F(nntrainer_BatchNormalizationLayer, setActivation_01_p) {
  * @brief Batch Normalization Layer
  */
 TEST_F(nntrainer_BatchNormalizationLayer, setActivation_02_n) {
-  status = layer.setActivation(nntrainer::ActivationType::ACT_UNKNOWN);
+  status = layer.setProperty({"activation=unknown"});
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
@@ -848,7 +865,7 @@ TEST_F(nntrainer_BatchNormalizationLayer, setActivation_02_n) {
  * @brief Batch Normalization Layer
  */
 TEST_F(nntrainer_BatchNormalizationLayer, checkValidation_01_p) {
-  status = layer.setActivation(nntrainer::ActivationType::ACT_RELU);
+  status = layer.setProperty({"activation=relu"});
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = layer.checkValidation();
@@ -1265,7 +1282,9 @@ TEST_F(nntrainer_Conv2DLayer, backwarding_03_p) {
      "kernel_size= 1,1", "stride=1, 1", "padding=0, 0"});
   EXPECT_EQ(status, ML_ERROR_NONE);
   layer2.setBatch(1);
-  layer2.setInputDimension(layer1.getOutputDimension());
+  status = layer2.setProperty(
+    {"input_shape=" + getDimensionString(layer1.getOutputDimension())});
+  EXPECT_EQ(status, ML_ERROR_NONE);
   status = layer2.initialize();
   EXPECT_EQ(status, ML_ERROR_NONE);
 
@@ -1704,28 +1723,14 @@ TEST(nntrainer_LossLayer, setProperty_through_vector_n) {
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
-TEST(nntrainer_LossLayer, setProperty_individual_n) {
-  nntrainer::LossLayer layer;
-  EXPECT_THROW(
-    layer.setProperty(nntrainer::Layer::PropertyType::input_shape, "1:2:3:4"),
-    nntrainer::exception::not_supported);
-}
-
-TEST(nntrainer_LossLayer, setProperty_individual2_n) {
+TEST(nntrainer_LossLayer, setProperty_individual_01_n) {
   nntrainer::LossLayer layer;
   EXPECT_THROW(
     layer.setProperty(nntrainer::Layer::PropertyType::filters, "1:2"),
     nntrainer::exception::not_supported);
 }
 
-TEST(nntrainer_LossLayer, setProperty_individual3_n) {
-  nntrainer::LossLayer layer;
-  EXPECT_THROW(layer.setProperty(nntrainer::Layer::PropertyType::input_shape,
-                                 "invalid_string"),
-               nntrainer::exception::not_supported);
-}
-
-TEST(nntrainer_LossLayer, setProperty_individual4_n) {
+TEST(nntrainer_LossLayer, setProperty_individual_02_n) {
   nntrainer::LossLayer layer;
   EXPECT_THROW(layer.setProperty(nntrainer::Layer::PropertyType::filters,
                                  "invalid_string"),
@@ -1741,23 +1746,34 @@ TEST(nntrainer_ActivationLayer, init_02_p) {
   int status = ML_ERROR_NONE;
   nntrainer::ActivationLayer layer;
 
-  layer.setInputDimension({1, 1, 1, 1});
+  status = layer.setProperty({"input_shape=1:1:1:1"});
+  EXPECT_EQ(status, ML_ERROR_NONE);
   status = layer.initialize();
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
 TEST(nntrainer_ActivationLayer, setType_01_p) {
+  int status = ML_ERROR_NONE;
   nntrainer::ActivationLayer layer;
-  EXPECT_NO_THROW(layer.setActivation(nntrainer::ActivationType::ACT_RELU));
-  EXPECT_NO_THROW(layer.setActivation(nntrainer::ActivationType::ACT_SOFTMAX));
-  EXPECT_NO_THROW(layer.setActivation(nntrainer::ActivationType::ACT_SIGMOID));
-  EXPECT_NO_THROW(layer.setActivation(nntrainer::ActivationType::ACT_TANH));
+
+  status = layer.setProperty({"activation=relu"});
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = layer.setProperty({"activation=softmax"});
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = layer.setProperty({"activation=sigmoid"});
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = layer.setProperty({"activation=tanh"});
+  EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
 TEST(nntrainer_ActivationLayer, setType_02_n) {
+  int status = ML_ERROR_NONE;
   nntrainer::ActivationLayer layer;
-  EXPECT_THROW(layer.setActivation(nntrainer::ActivationType::ACT_UNKNOWN),
-               std::runtime_error);
+
+  status = layer.setProperty({"activation=random"});
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+  status = layer.setProperty({"activation=unknown"});
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
 TEST(nntrainer_ActivationLayer, forward_backward_01_p) {
@@ -1766,8 +1782,7 @@ TEST(nntrainer_ActivationLayer, forward_backward_01_p) {
   int height = 1;
   int width = 10;
 
-  nntrainer::ActivationLayer layer;
-  layer.setActivation(nntrainer::ActivationType::ACT_RELU);
+  nntrainer::ActivationLayer layer(nntrainer::ActivationType::ACT_RELU);
 
   nntrainer::Tensor input(batch, channel, height, width);
   GEN_TEST_INPUT(input, (l - 4) * 0.1 * (i + 1));

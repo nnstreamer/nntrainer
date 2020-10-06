@@ -93,18 +93,6 @@ public:
   void copy(std::shared_ptr<Layer> l);
 
   /**
-   * @brief     set normalization
-   * @param[in] enable boolean
-   */
-  void setNormalization(bool enable) { this->normalization = enable; };
-
-  /**
-   * @brief     set standardization
-   * @param[in] enable boolean
-   */
-  void setStandardization(bool enable) { this->standardization = enable; };
-
-  /**
    * @brief     get the base name for the layer
    * @retval    base name of the layer
    */
@@ -121,6 +109,18 @@ public:
 private:
   bool normalization;
   bool standardization;
+
+  /**
+   * @brief     set normalization
+   * @param[in] enable boolean
+   */
+  void setNormalization(bool enable) { this->normalization = enable; };
+
+  /**
+   * @brief     set standardization
+   * @param[in] enable boolean
+   */
+  void setStandardization(bool enable) { this->standardization = enable; };
 };
 } // namespace nntrainer
 

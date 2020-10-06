@@ -100,14 +100,6 @@ public:
    */
   std::string getBaseName() { return "Loss"; };
 
-  using Layer::setProperty;
-
-  /**
-   * @copydoc Layer::setProperty(const PropertyType type, const std::string
-   * &value)
-   */
-  void setProperty(const PropertyType type, const std::string &value = "");
-
   /**
    * @brief     set loss function
    * @param[in] l loss type

@@ -51,11 +51,6 @@ sharedConstTensor FlattenLayer::backwarding(sharedConstTensor in,
   return MAKE_SHARED_TENSOR(std::move(temp));
 }
 
-void FlattenLayer::setProperty(const PropertyType type,
-                               const std::string &value) {
-  throw exception::not_supported("[Flatten Layer] setProperty not supported");
-}
-
 void FlattenLayer::copy(std::shared_ptr<Layer> l) {
   std::shared_ptr<FlattenLayer> from =
     std::static_pointer_cast<FlattenLayer>(l);

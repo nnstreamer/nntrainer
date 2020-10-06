@@ -172,8 +172,4 @@ int LossLayer::setLoss(LossType l) {
   return status;
 }
 
-void LossLayer::setProperty(const PropertyType type, const std::string &value) {
-  throw exception::not_supported("[Loss Layer] setProperty not supported");
-}
-
 } /* namespace nntrainer */

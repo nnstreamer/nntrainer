@@ -67,6 +67,11 @@ enum class LayerType {
  * @brief   Base class for all layers
  */
 class Layer {
+
+  /** model classes can call private methods which arent exposed to public */
+  friend class NeuralNetwork;
+  friend class ModelLoader;
+
 public:
   enum class PrintPreset {
     PRINT_NONE = 0,     /**< Print nothing */
@@ -76,6 +81,9 @@ public:
     PRINT_ALL           /**< Print everything possible */
   };
 
+  /**
+   * @brief     Constructor of Layer Class
+   */
   Layer() :
     name(std::string()),
     type(LayerType::LAYER_UNKNOWN),
@@ -123,14 +131,6 @@ public:
    */
   virtual sharedConstTensor backwarding(sharedConstTensor in,
                                         int iteration) = 0;
-
-  /**
-   * @brief     Initialize the layer
-   *            - Weight(Height, Width), Bias(1, Width)
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   */
-  virtual int initialize() = 0;
 
   /**
    * @brief     read layer Weight & Bias data from file
@@ -233,24 +233,10 @@ public:
   int setOptimizer(Optimizer &opt);
 
   /**
-   * @brief     Activation Setter
-   * @param[in] activation activation type
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   */
-  int setActivation(ActivationType activation);
-
-  /**
    * @brief     Activation Type Getter
    * @retval    Activation Type.
    */
   ActivationType getActivationType() { return this->activation_type; }
-
-  /**
-   * @brief     Layer type Setter
-   * @param[in] type layer type
-   */
-  void setType(LayerType type) { this->type = type; }
 
   /**
    * @brief     Layer type Getter
@@ -272,26 +258,6 @@ public:
   int checkValidation();
 
   /**
-   * @brief     set weight decay parameters
-   * @param[in] w struct for weight decay
-   */
-  void setWeightRegularizer(WeightRegularizerType type) {
-    weight_regularizer = type;
-  }
-
-  /**
-   * @brief  set Weight Initialization Type
-   * @param[in] wini WeightInitializer
-   */
-  void setWeightInit(WeightInitializer wini) { weight_initializer = wini; }
-
-  /**
-   * @brief Set the input dimension
-   * @param[in] d dimension to be set
-   */
-  void setInputDimension(TensorDim d) { input_dim = d; }
-
-  /**
    * @brief Get the output dimension
    * @return TensorDim dimension of the output
    */
@@ -302,16 +268,6 @@ public:
    * @return TensorDim dimension of the input
    */
   TensorDim getInputDimension() { return input_dim; }
-
-  /**
-   * @brief Set the batch for the layer
-   * @param batch Batch value to be set
-   * @todo Make this private. Only model should be able to do this.
-   */
-  void setBatch(unsigned int batch) {
-    input_dim.setTensorDim(0, batch);
-    output_dim.setTensorDim(0, batch);
-  }
 
   /**
    * @brief  get the loss value added by this layer
@@ -335,12 +291,6 @@ public:
    * @brief     get if the output of this layer must be flatten
    * @retval    flatten value
    */
-  void setFlatten(bool flatten) { this->flatten = flatten; }
-
-  /**
-   * @brief     get if the output of this layer must be flatten
-   * @retval    flatten value
-   */
   bool getFlatten() { return flatten; }
 
   /**
@@ -354,11 +304,6 @@ public:
   std::string getName() noexcept { return name; }
 
   /**
-   * @brief     Get base name of the layer
-   */
-  virtual std::string getBaseName() = 0;
-
-  /**
    * @brief print using PrintPreset
    *
    * @param out oustream
@@ -366,15 +311,6 @@ public:
    */
   void printPreset(std::ostream &out,
                    PrintPreset preset = PrintPreset::PRINT_SUMMARY);
-
-  /**
-   * @brief     Print layer related information. Do not override without clear
-   * reason. It is recommended to override printShapeInfo, printPropertiesMeta,
-   * printProperties, printMetric instead
-   * @param[in] out outstream
-   * @param[in] flags combination of LayerPrintOption
-   */
-  virtual void print(std::ostream &out, unsigned int flags = 0);
 
   /**
    * @brief     get data alias at param position.
@@ -388,7 +324,31 @@ public:
     return weight_list.get()[position];
   }
 
+#if defined(ENABLE_TEST)
+  /**
+   * @brief Set the batch for the layer
+   * @param batch Batch value to be set
+   * @todo Make this private. Only model should be able to do this.
+   */
+  void setBatch(unsigned int batch) {
+    input_dim.setTensorDim(0, batch);
+    output_dim.setTensorDim(0, batch);
+  }
+
 protected:
+#else
+protected:
+  /**
+   * @brief Set the batch for the layer
+   * @param batch Batch value to be set
+   * @todo Make this private. Only model should be able to do this.
+   */
+  void setBatch(unsigned int batch) {
+    input_dim.setTensorDim(0, batch);
+    output_dim.setTensorDim(0, batch);
+  }
+#endif
+
   /**
    * @brief   Print Options when printing layer info
    */
@@ -512,6 +472,12 @@ protected:
    */
   unsigned int num_outputs;
 
+  /**
+   * @brief     Layer type Setter
+   * @param[in] type layer type
+   */
+  void setType(LayerType type) { this->type = type; }
+
 private:
   /**
    * @brief     Set containing all the names of layers
@@ -556,6 +522,62 @@ private:
    * Layer::print()
    */
   virtual void printMetric(std::ostream &out);
+
+  /**
+   * @brief     Activation Setter
+   * @param[in] activation activation type
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  int setActivation(ActivationType activation);
+
+  /**
+   * @brief     set weight decay parameters
+   * @param[in] w struct for weight decay
+   */
+  void setWeightRegularizer(WeightRegularizerType type) {
+    weight_regularizer = type;
+  }
+
+  /**
+   * @brief  set Weight Initialization Type
+   * @param[in] wini WeightInitializer
+   */
+  void setWeightInit(WeightInitializer wini) { weight_initializer = wini; }
+
+  /**
+   * @brief     get if the output of this layer must be flatten
+   * @retval    flatten value
+   */
+  void setFlatten(bool flatten) { this->flatten = flatten; }
+
+  /**
+   * @brief     Print layer related information. Do not override without clear
+   * reason. It is recommended to override printShapeInfo, printPropertiesMeta,
+   * printProperties, printMetric instead
+   * @param[in] out outstream
+   * @param[in] flags combination of LayerPrintOption
+   */
+  virtual void print(std::ostream &out, unsigned int flags = 0);
+
+  /**
+   * @brief     Get base name of the layer
+   */
+  virtual std::string getBaseName() = 0;
+
+  /**
+   * @brief     Initialize the layer
+   *            - Weight(Height, Width), Bias(1, Width)
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  virtual int initialize() = 0;
+
+  /**
+   * @brief Set the input dimension
+   * @param[in] d dimension to be set
+   */
+  void setInputDimension(TensorDim d) { input_dim = d; }
 };
 
 /**

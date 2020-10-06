@@ -88,14 +88,6 @@ public:
    * @retval    base name of the layer
    */
   std::string getBaseName() { return "Flatten"; };
-
-  using Layer::setProperty;
-
-  /**
-   * @copydoc Layer::setProperty(const PropertyType type, const std::string
-   * &value)
-   */
-  void setProperty(const PropertyType type, const std::string &value = "");
 };
 
 } // namespace nntrainer
