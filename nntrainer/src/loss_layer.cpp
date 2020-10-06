@@ -23,7 +23,7 @@
 
 #include <activation_layer.h>
 #include <cmath>
-#include <layer.h>
+#include <layer_internal.h>
 #include <lazy_tensor.h>
 #include <loss_layer.h>
 #include <nntrainer_error.h>

@@ -11,7 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * @file	optimizer.h
+ * @file	optimizer_internal.h
  * @date	08 April 2020
  * @brief	This is Optimizer classes of Neural Network
  * @see		https://github.com/nnstreamer/nntrainer
@@ -24,6 +24,7 @@
 #ifdef __cplusplus
 
 #include <memory>
+#include <optimizer.h>
 #include <tensor.h>
 #include <weight.h>
 
@@ -35,9 +36,13 @@ namespace nntrainer {
  *            1. ADAM
  *            2. Unknown
  */
-enum class OptType { sgd = 0, adam = 1, unknown = 2 };
+using OptType = ml::train::OptimizerType;
 
-class Optimizer {
+/**
+ * @class   Optimizer Base class for optimizers
+ * @brief   Base class for all optimizers
+ */
+class Optimizer : public ml::train::Optimizer {
 
   /** Allow layer to initialize optimizer with itself */
   friend class Layer;
@@ -55,11 +60,6 @@ public:
     continue_train(continue_train) {
     checkValidation();
   }
-
-  /**
-   * @brief     Destructor of Optimizer Class
-   */
-  virtual ~Optimizer() {}
 
   /**
    * @brief  copy constructor
@@ -125,26 +125,6 @@ public:
    */
   void apply_gradients(std::shared_ptr<Weight> params, unsigned int num_weights,
                        int iteration);
-
-  /**
-   * @brief     Property Enumeration
-   * learning_rate : float ,
-   * decay_rate : float,
-   * decay_steps : float,
-   * beta1 : float,
-   * beta2 : float,
-   * epsilon : float,
-   */
-  enum class PropertyType {
-    learning_rate = 0,
-    decay_rate = 1,
-    decay_steps = 2,
-    beta1 = 3,
-    beta2 = 4,
-    epsilon = 5,
-    continue_train = 6,
-    unknown = 7,
-  };
 
   /**
    * @brief     Read Training optimizer paramters from file

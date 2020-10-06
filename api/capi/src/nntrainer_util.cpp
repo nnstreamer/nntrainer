@@ -19,11 +19,11 @@ nntrainer::OptType
 ml_optimizer_to_nntrainer_type(ml_train_optimizer_type_e type) {
   switch (type) {
   case ML_TRAIN_OPTIMIZER_TYPE_ADAM:
-    return nntrainer::OptType::adam;
+    return nntrainer::OptType::ADAM;
   case ML_TRAIN_OPTIMIZER_TYPE_SGD:
-    return nntrainer::OptType::sgd;
+    return nntrainer::OptType::SGD;
   default:
-    return nntrainer::OptType::unknown;
+    return nntrainer::OptType::UNKNOWN;
   }
 }
 

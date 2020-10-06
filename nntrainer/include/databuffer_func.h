@@ -36,12 +36,6 @@
 namespace nntrainer {
 
 /**
- * @brief   Dataset generator callback type declaration
- */
-typedef std::function<std::remove_pointer<ml_train_datagen_cb>::type>
-  datagen_cb;
-
-/**
  * @class   DataBufferFromCallback Data Buffer from callback given by user
  * @brief   Data Buffer from callback function
  */
@@ -50,8 +44,7 @@ public:
   /**
    * @brief     Constructor
    */
-  DataBufferFromCallback() :
-    DataBuffer(DataBufferType::DATA_BUFFER_GENERATOR){};
+  DataBufferFromCallback() : DataBuffer(DataBufferType::GENERATOR){};
 
   /**
    * @brief     Destructor

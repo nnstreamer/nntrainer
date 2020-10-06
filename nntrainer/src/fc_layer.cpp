@@ -22,7 +22,7 @@
  */
 
 #include <fc_layer.h>
-#include <layer.h>
+#include <layer_internal.h>
 #include <lazy_tensor.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>

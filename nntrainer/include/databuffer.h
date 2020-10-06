@@ -30,18 +30,10 @@
 #include <thread>
 #include <vector>
 
+#include <dataset.h>
 #include <tensor_dim.h>
 
 namespace nntrainer {
-
-/**
- * @brief     Enumeration of buffer type
- *            0. BUF_TRAIN ( Buffer for training )
- *            1. BUF_VAL ( Buffer for validation )
- *            2. BUF_TEST ( Buffer for test )
- *            3. BUF_UNKNOWN
- */
-typedef enum { BUF_TRAIN, BUF_VAL, BUF_TEST, BUF_UNKNOWN } BufferType;
 
 /**
  * @brief     Enumeration of data type
@@ -60,33 +52,23 @@ typedef enum {
 } DataType;
 
 /**
- * @brief     Enumeration for data buffer type
- *            0. DATA_BUFFER_GENERATOR
- *            1. DATA_BUFFER_FILE
- *            2. DATA_BUFFER_UNKNOWN
+ * @brief     Aliasing from ccapi ml::train
  */
-typedef enum {
-  DATA_BUFFER_GENERATOR,
-  DATA_BUFFER_FILE,
-  DATA_BUFFER_UNKNOWN
-} DataBufferType;
+using DataBufferType = ml::train::DatasetType;
+using BufferType = ml::train::BufferType;
+using datagen_cb = ml::train::datagen_cb;
 
 /**
  * @class   DataBuffer Data Buffers
  * @brief   Data Buffer for read and manage data
  */
-class DataBuffer {
+class DataBuffer : public ml::train::Dataset {
 public:
   /**
    * @brief     Create Buffer
    * @retval    DataBuffer
    */
   DataBuffer(DataBufferType type);
-
-  /**
-   * @brief     Destructor
-   */
-  virtual ~DataBuffer(){};
 
   /**
    * @brief     Initialize Buffer with data buffer private variables
@@ -215,6 +197,15 @@ public:
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
   int setProperty(std::vector<void *> values);
+
+  /**
+   * @brief     set function pointer for each type
+   * @param[in] type Buffer Type
+   * @param[in] call back function pointer
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  virtual int setFunc(BufferType type, datagen_cb func);
 
   enum class PropertyType {
     train_data = 0,

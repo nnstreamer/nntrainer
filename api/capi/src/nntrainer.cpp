@@ -21,10 +21,9 @@
  * @author Parichay Kapoor <pk.kapoor@samsung.com>
  * @bug No known bugs except for NYI items
  */
-#include <databuffer.h>
-#include <databuffer_file.h>
-#include <databuffer_func.h>
+#include <databuffer_factory.h>
 #include <layer_factory.h>
+#include <layer_internal.h>
 #include <neuralnet.h>
 #include <nntrainer_error.h>
 #include <nntrainer_internal.h>
@@ -523,7 +522,7 @@ int ml_train_layer_create(ml_train_layer_h *layer, ml_train_layer_type_e type) {
   nnlayer->in_use = false;
 
   returnable f = [&]() {
-    nnlayer->layer = createLayer(ml_layer_to_nntrainer_type(type));
+    nnlayer->layer = nntrainer::createLayer(ml_layer_to_nntrainer_type(type));
     return ML_ERROR_NONE;
   };
 
@@ -604,7 +603,8 @@ int ml_train_optimizer_create(ml_train_optimizer_h *optimizer,
   nnopt->in_use = false;
 
   returnable f = [&]() {
-    nnopt->optimizer = createOptimizer(ml_optimizer_to_nntrainer_type(type));
+    nnopt->optimizer =
+      nntrainer::createOptimizer(ml_optimizer_to_nntrainer_type(type));
     return ML_ERROR_NONE;
   };
 
@@ -685,17 +685,22 @@ int ml_train_dataset_create_with_generator(ml_train_dataset_h *dataset,
   if (!train_cb)
     return ML_ERROR_INVALID_PARAMETER;
 
-  std::shared_ptr<nntrainer::DataBufferFromCallback> data_buffer;
+  std::shared_ptr<nntrainer::DataBuffer> data_buffer;
 
-  status = exception_bounded_make_shared<nntrainer::DataBufferFromCallback>(
-    data_buffer);
+  returnable f = [&]() {
+    data_buffer =
+      nntrainer::createDataBuffer(nntrainer::DataBufferType::GENERATOR);
+    return ML_ERROR_NONE;
+  };
+
+  status = nntrainer_exception_boundary(f);
   if (status != ML_ERROR_NONE) {
     ml_loge("Error: Create dataset failed");
     return status;
   }
 
-  returnable f = [&]() {
-    return data_buffer->setFunc(nntrainer::BUF_TRAIN, train_cb);
+  f = [&]() {
+    return data_buffer->setFunc(nntrainer::BufferType::BUF_TRAIN, train_cb);
   };
 
   status = nntrainer_exception_boundary(f);
@@ -703,14 +708,18 @@ int ml_train_dataset_create_with_generator(ml_train_dataset_h *dataset,
     return status;
   }
 
-  f = [&]() { return data_buffer->setFunc(nntrainer::BUF_VAL, valid_cb); };
+  f = [&]() {
+    return data_buffer->setFunc(nntrainer::BufferType::BUF_VAL, valid_cb);
+  };
 
   status = nntrainer_exception_boundary(f);
   if (status != ML_ERROR_NONE) {
     return status;
   }
 
-  f = [&]() { return data_buffer->setFunc(nntrainer::BUF_TEST, test_cb); };
+  f = [&]() {
+    return data_buffer->setFunc(nntrainer::BufferType::BUF_TEST, test_cb);
+  };
 
   status = nntrainer_exception_boundary(f);
   if (status != ML_ERROR_NONE) {
@@ -734,17 +743,25 @@ int ml_train_dataset_create_with_file(ml_train_dataset_h *dataset,
 
   check_feature_state();
 
-  std::shared_ptr<nntrainer::DataBufferFromDataFile> data_buffer;
+  std::shared_ptr<nntrainer::DataBuffer> data_buffer;
+  std::shared_ptr<nntrainer::DataBufferFromDataFile> data_buffer_file;
 
-  status = exception_bounded_make_shared<nntrainer::DataBufferFromDataFile>(
-    data_buffer);
+  returnable f = [&]() {
+    data_buffer = nntrainer::createDataBuffer(nntrainer::DataBufferType::FILE);
+    return ML_ERROR_NONE;
+  };
+
+  status = nntrainer_exception_boundary(f);
   if (status != ML_ERROR_NONE) {
     ml_loge("Error: Create dataset failed");
     return status;
   }
 
+  data_buffer_file =
+    std::static_pointer_cast<nntrainer::DataBufferFromDataFile>(data_buffer);
+
   if (train_file) {
-    status = data_buffer->setDataFile(train_file, nntrainer::DATA_TRAIN);
+    status = data_buffer_file->setDataFile(train_file, nntrainer::DATA_TRAIN);
     if (status != ML_ERROR_NONE) {
       return status;
     }
@@ -754,14 +771,14 @@ int ml_train_dataset_create_with_file(ml_train_dataset_h *dataset,
   }
 
   if (valid_file) {
-    status = data_buffer->setDataFile(valid_file, nntrainer::DATA_VAL);
+    status = data_buffer_file->setDataFile(valid_file, nntrainer::DATA_VAL);
     if (status != ML_ERROR_NONE) {
       return status;
     }
   }
 
   if (test_file) {
-    status = data_buffer->setDataFile(test_file, nntrainer::DATA_TEST);
+    status = data_buffer_file->setDataFile(test_file, nntrainer::DATA_TEST);
     if (status != ML_ERROR_NONE) {
       return status;
     }

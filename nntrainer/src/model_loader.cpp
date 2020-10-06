@@ -60,7 +60,7 @@ int ModelLoader::loadModelConfigIni(dictionary *ini, NeuralNetwork &model) {
     iniparser_getstring(ini, "Model:Optimizer", "adam"), TOKEN_OPT);
 
   try {
-    model.opt = createOptimizer(opt_type);
+    model.opt = nntrainer::createOptimizer(opt_type);
   } catch (std::exception &e) {
     ml_loge("%s %s", typeid(e).name(), e.what());
     return ML_ERROR_INVALID_PARAMETER;
@@ -85,7 +85,7 @@ int ModelLoader::loadModelConfigIni(dictionary *ini, NeuralNetwork &model) {
                        ini, "Model:Decay_rate",
                        std::to_string(model.opt->getDecayRate()).c_str()))});
 
-  if (model.opt->getType() == OptType::adam) {
+  if (model.opt->getType() == OptType::ADAM) {
     std::shared_ptr<Adam> opt_adam = std::static_pointer_cast<Adam>(model.opt);
 
     optimizer_prop.push_back(
@@ -171,7 +171,7 @@ int ModelLoader::loadLayerConfigIni(dictionary *ini,
   LayerType layer_type = (LayerType)parseType(layer_type_str, TOKEN_LAYER);
 
   try {
-    layer = createLayer(layer_type);
+    layer = nntrainer::createLayer(layer_type);
   } catch (const std::exception &e) {
     ml_loge("%s %s", typeid(e).name(), e.what());
     status = ML_ERROR_INVALID_PARAMETER;

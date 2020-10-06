@@ -2,6 +2,7 @@
 %define         use_cblas 1
 %define         nnstreamer_filter 1
 %define         use_gym 0
+%define         support_ccapi 1
 %define		nntrainerapplicationdir	%{_libdir}/nntrainer/bin
 %define         test_script $(pwd)/packaging/run_unittests.sh
 %define         gen_input $(pwd)/test/input_gen/genInput.py
@@ -154,6 +155,33 @@ Requires:        capi-nntrainer-devel = %{version}-%{release}
 %description -n capi-nntrainer-devel-static
 Static library of capi-nntrainer-devel package.
 
+%if 0%{?support_ccapi}
+%package -n ccapi-nntrainer
+Summary:         Tizen Native API for NNTrainer
+Group:           Multimedia/Framework
+Requires:        %{name} = %{version}-%{release}
+%description -n ccapi-nntrainer
+Tizen Native API wrapper for NNTrainer.
+You can train neural networks efficiently.
+
+%post -n ccapi-nntrainer -p /sbin/ldconfig
+%postun -n ccapi-nntrainer -p /sbin/ldconfig
+
+%package -n ccapi-nntrainer-devel
+Summary:         Tizen Native API Devel Kit for NNTrainer
+Group:           Multimedia/Framework
+Requires:        ccapi-nntrainer = %{version}-%{release}
+%description -n ccapi-nntrainer-devel
+Developmental kit for Tizen Native NNTrainer API.
+
+%package -n ccapi-nntrainer-devel-static
+Summary:         Static library for Tizen c++ API
+Group:           Multimedia/Framework
+Requires:        ccapi-nntrainer-devel = %{version}-%{release}
+%description -n ccapi-nntrainer-devel-static
+Static library of ccapi-nntrainer-devel package.
+%endif
+
 %if 0%{?nnstreamer_filter}
 %package -n nnstreamer-nntrainer
 Summary: NNStreamer NNTrainer support
@@ -176,10 +204,15 @@ NNSteamer tensor filter static package for nntrainer to support inference.
 %define enable_tizen -Denable-tizen=false
 %define enable_tizen_feature_check -Denable-tizen-feature-check=true
 %define install_app -Dinstall-app=true
+%define enable_ccapi -Denable-ccapi=false
 
 %if %{with tizen}
 %define enable_tizen -Denable-tizen=true
-%endif
+
+%if 0%{?support_ccapi}
+%define enable_ccapi -Denable-ccapi=true
+%endif # support_ccapi
+%endif # tizen
 
 # Using cblas for Matrix calculation
 %if 0%{?use_cblas}
@@ -209,8 +242,10 @@ CFLAGS="${CFLAGS} -fprofile-arcs -ftest-coverage"
 
 mkdir -p build
 meson --buildtype=plain --prefix=%{_prefix} --sysconfdir=%{_sysconfdir} \
-      --libdir=%{_libdir} --bindir=%{nntrainerapplicationdir} --includedir=%{_includedir}\
-      %{install_app} %{enable_tizen} %{enable_tizen_feature_check} %{enable_cblas} %{enable_gym} %{enable_nnstreamer_tensor_filter} build
+      --libdir=%{_libdir} --bindir=%{nntrainerapplicationdir} \
+      --includedir=%{_includedir} %{install_app} %{enable_tizen} \
+      %{enable_tizen_feature_check} %{enable_cblas} %{enable_ccapi} \
+      %{enable_gym} %{enable_nnstreamer_tensor_filter} build
 
 ninja -C build %{?_smp_mflags}
 
@@ -227,14 +262,18 @@ bash %{test_script} ./test
 export NNSTREAMER_CONF=$(pwd)/test/nnstreamer_filter_nntrainer/nnstreamer-test.ini
 export NNSTREAMER_FILTERS=$(pwd)/build/nnstreamer/tensor_filter
 pushd build
+
 rm -rf model.bin
 TF_APP=Applications/TransferLearning/Draw_Classification
 ./${TF_APP}/jni/nntrainer_training ../${TF_APP}/res/Training.ini ../${TF_APP}/res
 
+%if 0%{?support_ccapi}
 rm -rf model.bin
 cp ../Applications/MNIST/jni/mnist_trainingSet.dat .
 MNIST_APP=Applications/MNIST
 ./${MNIST_APP}/jni/nntrainer_mnist ../${MNIST_APP}/res/mnist.ini
+%endif # support_ccapi
+
 popd
 
 # unittest for nntrainer plugin for nnstreamer
@@ -313,10 +352,11 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 
 %files devel
 %{_includedir}/nntrainer/databuffer.h
+%{_includedir}/nntrainer/databuffer_factory.h
 %{_includedir}/nntrainer/databuffer_file.h
 %{_includedir}/nntrainer/databuffer_func.h
 %{_includedir}/nntrainer/databuffer_util.h
-%{_includedir}/nntrainer/layer.h
+%{_includedir}/nntrainer/layer_internal.h
 %{_includedir}/nntrainer/layer_factory.h
 %{_includedir}/nntrainer/input_layer.h
 %{_includedir}/nntrainer/fc_layer.h
@@ -333,7 +373,7 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %{_includedir}/nntrainer/tensor_dim.h
 %{_includedir}/nntrainer/nntrainer_log.h
 %{_includedir}/nntrainer/nntrainer_logger.h
-%{_includedir}/nntrainer/optimizer.h
+%{_includedir}/nntrainer/optimizer_internal.h
 %{_includedir}/nntrainer/util_func.h
 %{_includedir}/nntrainer/parse_util.h
 %{_includedir}/nntrainer/addition_layer.h
@@ -362,7 +402,23 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 
 %files -n capi-nntrainer-devel-static
 %{_libdir}/libcapi-nntrainer.a
-%{_libdir}/libnnstreamer_filter_nntrainer.a
+
+%if 0%{?support_ccapi}
+%files -n ccapi-nntrainer
+%manifest capi-nntrainer.manifest
+%license LICENSE
+%{_libdir}/libccapi-nntrainer.so
+
+%files -n ccapi-nntrainer-devel
+%{_includedir}/nntrainer/model.h
+%{_includedir}/nntrainer/layer.h
+%{_includedir}/nntrainer/optimizer.h
+%{_includedir}/nntrainer/dataset.h
+# %{_libdir}/pkgconfig/ccapi-nntrainer.pc
+
+%files -n ccapi-nntrainer-devel-static
+%{_libdir}/libccapi-nntrainer.a
+%endif # support_ccapi
 
 %if 0%{?nnstreamer_filter}
 %files -n nnstreamer-nntrainer

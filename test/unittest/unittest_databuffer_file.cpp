@@ -177,11 +177,11 @@ TEST(nntrainer_DataBuffer, clear_01_p) {
   ASSERT_EQ(status, ML_ERROR_NONE);
   status = data_buffer.init();
   ASSERT_EQ(status, ML_ERROR_NONE);
-  status = data_buffer.run(nntrainer::BUF_TRAIN);
+  status = data_buffer.run(nntrainer::BufferType::BUF_TRAIN);
   ASSERT_EQ(status, ML_ERROR_NONE);
-  status = data_buffer.run(nntrainer::BUF_TEST);
+  status = data_buffer.run(nntrainer::BufferType::BUF_TEST);
   ASSERT_EQ(status, ML_ERROR_NONE);
-  status = data_buffer.run(nntrainer::BUF_VAL);
+  status = data_buffer.run(nntrainer::BufferType::BUF_VAL);
   ASSERT_EQ(status, ML_ERROR_NONE);
   status = data_buffer.clear();
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -195,7 +195,7 @@ TEST(nntrainer_DataBuffer, clear_02_p) {
   nntrainer::DataBufferFromDataFile data_buffer;
   status = data_buffer.setDataFile("testSet.dat", nntrainer::DATA_TEST);
   ASSERT_EQ(status, ML_ERROR_NONE);
-  status = data_buffer.clear(nntrainer::BUF_TEST);
+  status = data_buffer.clear(nntrainer::BufferType::BUF_TEST);
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
@@ -207,7 +207,7 @@ TEST(nntrainer_DataBuffer, clear_03_p) {
   nntrainer::DataBufferFromDataFile data_buffer;
   status = data_buffer.setDataFile("testSet.dat", nntrainer::DATA_TEST);
   ASSERT_EQ(status, ML_ERROR_NONE);
-  status = data_buffer.clear(nntrainer::BUF_TEST);
+  status = data_buffer.clear(nntrainer::BufferType::BUF_TEST);
   EXPECT_EQ(status, ML_ERROR_NONE);
   status = data_buffer.clear();
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -221,19 +221,19 @@ TEST(nntrainer_DataBuffer, clear_04_p) {
   nntrainer::DataBufferFromDataFile data_buffer;
   status = data_buffer.setDataFile("testSet.dat", nntrainer::DATA_TEST);
   ASSERT_EQ(status, ML_ERROR_NONE);
-  status = data_buffer.clear(nntrainer::BUF_TEST);
+  status = data_buffer.clear(nntrainer::BufferType::BUF_TEST);
   EXPECT_EQ(status, ML_ERROR_NONE);
   status = data_buffer.clear();
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
 /**
- * @brief Data buffer clear BUF_UNKNOWN
+ * @brief Data buffer clear BufferType::BUF_UNKNOWN
  */
 TEST(nntrainer_DataBuffer, clear_05_n) {
   int status = ML_ERROR_NONE;
   nntrainer::DataBufferFromDataFile data_buffer;
-  status = data_buffer.clear(nntrainer::BUF_UNKNOWN);
+  status = data_buffer.clear(nntrainer::BufferType::BUF_UNKNOWN);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 

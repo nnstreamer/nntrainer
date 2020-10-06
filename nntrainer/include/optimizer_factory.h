@@ -15,7 +15,7 @@
 #ifdef __cplusplus
 
 #include <adam.h>
-#include <optimizer.h>
+#include <optimizer_internal.h>
 #include <sgd.h>
 
 namespace nntrainer {
@@ -31,11 +31,11 @@ std::unique_ptr<Optimizer> createOptimizer(OptType type, const Optimizer &opt);
 template <typename... Args>
 std::unique_ptr<Optimizer> createOptimizer(OptType type, Args... args) {
   switch (type) {
-  case OptType::sgd:
+  case OptType::SGD:
     return std::make_unique<SGD>(args...);
-  case OptType::adam:
+  case OptType::ADAM:
     return std::make_unique<Adam>(args...);
-  case OptType::unknown:
+  case OptType::UNKNOWN:
     /** fallthrough intended */
   default:
     throw std::invalid_argument("Unknown type for the optimizer");

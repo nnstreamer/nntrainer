@@ -21,17 +21,17 @@
 #define NN_EXCEPTION_NOTI(val)                             \
   do {                                                     \
     switch (type) {                                        \
-    case BUF_TRAIN: {                                      \
+    case BufferType::BUF_TRAIN: {                          \
       std::lock_guard<std::mutex> lgtrain(readyTrainData); \
       trainReadyFlag = val;                                \
       cv_train.notify_all();                               \
     } break;                                               \
-    case BUF_VAL: {                                        \
+    case BufferType::BUF_VAL: {                            \
       std::lock_guard<std::mutex> lgval(readyValData);     \
       valReadyFlag = val;                                  \
       cv_val.notify_all();                                 \
     } break;                                               \
-    case BUF_TEST: {                                       \
+    case BufferType::BUF_TEST: {                           \
       std::lock_guard<std::mutex> lgtest(readyTestData);   \
       testReadyFlag = val;                                 \
       cv_test.notify_all();                                \

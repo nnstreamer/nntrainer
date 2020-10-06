@@ -14,7 +14,7 @@
 #define __SGD_H__
 #ifdef __cplusplus
 
-#include <optimizer.h>
+#include <optimizer_internal.h>
 
 namespace nntrainer {
 
@@ -29,7 +29,7 @@ public:
    */
   template <typename... Args>
   SGD(float lr = 0.0001f, Args... args) :
-    Optimizer(OptType::sgd, lr, args...) {}
+    Optimizer(OptType::SGD, lr, args...) {}
 
   /**
    * @copydoc apply_gradient(Weight &weight, int tensor_idx, double updated_lr,

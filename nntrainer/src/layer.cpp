@@ -21,7 +21,7 @@
  *
  */
 
-#include <layer.h>
+#include <layer_internal.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <optimizer_factory.h>

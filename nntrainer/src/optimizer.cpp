@@ -28,7 +28,7 @@
 #include <lazy_tensor.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
-#include <optimizer.h>
+#include <optimizer_internal.h>
 #include <parse_util.h>
 #include <util_func.h>
 
@@ -132,12 +132,12 @@ void Optimizer::read(std::ifstream &file) {
   OptType loaded_type;
   file.read((char *)&loaded_type, sizeof(OptType));
 
-  if (loaded_type >= OptType::unknown)
+  if (loaded_type >= OptType::UNKNOWN)
     throw std::runtime_error("Saved file has unknown optimizer");
 }
 
 void Optimizer::save(std::ofstream &file) {
-  if (type >= OptType::unknown)
+  if (type >= OptType::UNKNOWN)
     throw std::runtime_error("Cannot save unknown optimizer");
 
   file.write((char *)&type, sizeof(OptType));

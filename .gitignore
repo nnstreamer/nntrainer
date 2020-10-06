@@ -4,8 +4,10 @@
 # ignore build directory
 /build
 
-# ignore iniparser downloaded by jni
+# jni build files
 /jni/iniparser
+libs/
+obj/
 
 # CTag
 /tags
