@@ -265,11 +265,10 @@ bool DataBuffer::getDataFromBuffer(BufferType type, vec_4d &outVec,
 
     data_lock.lock();
 
-    for (i = 0; i < batch_size; ++i) {
-      train_data.erase(train_data.begin() + i);
-      train_data_label.erase(train_data_label.begin() + i);
-      cur_train_bufsize--;
-    }
+    train_data.erase(train_data.begin(), train_data.begin() + batch_size);
+    train_data_label.erase(train_data_label.begin(),
+                           train_data_label.begin() + batch_size);
+    cur_train_bufsize -= batch_size;
   } break;
   case BUF_VAL: {
     std::vector<int> list;
@@ -308,11 +307,10 @@ bool DataBuffer::getDataFromBuffer(BufferType type, vec_4d &outVec,
 
     data_lock.lock();
 
-    for (i = 0; i < batch_size; ++i) {
-      val_data.erase(val_data.begin() + i);
-      val_data_label.erase(val_data_label.begin() + i);
-      cur_val_bufsize--;
-    }
+    val_data.erase(val_data.begin(), val_data.begin() + batch_size);
+    val_data_label.erase(val_data_label.begin(),
+                         val_data_label.begin() + batch_size);
+    cur_val_bufsize -= batch_size;
 
   } break;
   case BUF_TEST: {
@@ -352,11 +350,10 @@ bool DataBuffer::getDataFromBuffer(BufferType type, vec_4d &outVec,
     }
 
     data_lock.lock();
-    for (i = 0; i < batch_size; ++i) {
-      test_data.erase(test_data.begin() + i);
-      test_data_label.erase(test_data_label.begin() + i);
-      cur_test_bufsize--;
-    }
+    test_data.erase(test_data.begin(), test_data.begin() + batch_size);
+    test_data_label.erase(test_data_label.begin(),
+                          test_data_label.begin() + batch_size);
+    cur_test_bufsize -= batch_size;
   } break;
   default:
     ml_loge("Error: Not Supported Data Type");
