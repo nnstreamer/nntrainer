@@ -120,7 +120,6 @@ int util_get_resource_path(const char *file, char *full_path, bool shared);
 
 /**
  * @brief save cairo surface to a drawing.
- * @todo currently saves to png, later change to other format
  * @param cr_surface cairo surface to save
  * @param dst destination name, it is save to the data path
  * @return int APP_ERROR_NONE if success
