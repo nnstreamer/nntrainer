@@ -8,7 +8,7 @@
 %bcond_with tizen
 
 Name:		nntrainer
-Summary:	Software framework for traning neural networks
+Summary:	Software framework for training neural networks
 Version:	0.1.1
 Release:	0
 Packager:	Jijoong Moon <jijoong.moon@sansumg.com>
@@ -80,12 +80,12 @@ Requires:	capi-nntrainer = %{version}-%{release}
 NNtrainer Meta package for tizen
 
 %package core
-Summary:	Software framework for traning neural networks
+Summary:	Software framework for training neural networks
 Requires:	iniparser
 Requires:	libopenblas_pthreads0
 
 %description core
-NNtrainer is Software Framework for Training Nerual Network Models on Devices.
+NNtrainer is Software Framework for Training Neural Network Models on Devices.
 
 %package devel
 Summary:	Development package for custom nntrainer developers
@@ -94,7 +94,7 @@ Requires:	iniparser-devel
 Requires:	openblas-devel
 
 %description devel
-Development pacage for custom nntrainer developers.
+Development package for custom nntrainer developers.
 This contains corresponding header files and .pc pkgconfig file.
 
 %package devel-static
@@ -117,7 +117,7 @@ BuildRequires:	pkgconfig(dlog)
 BuildRequires:	capi-nnstreamer-devel
 
 %description applications
-NNTraier Exmaples for test purpose.
+NNTrainer Examples for test purpose.
 
 %if 0%{?testcoverage}
 %package unittest-coverage
