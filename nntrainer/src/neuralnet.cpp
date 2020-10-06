@@ -105,7 +105,7 @@ int NeuralNetwork::initLossLayer() {
   status = loss_layer->setLoss(updated_loss_type);
   NN_RETURN_STATUS();
 
-  addLayer(loss_layer);
+  addLayer(std::static_pointer_cast<Layer>(loss_layer));
   return status;
 }
 
@@ -432,16 +432,16 @@ int NeuralNetwork::train_run() {
 
   for (unsigned int epoch_idx = 1; epoch_idx <= epochs; ++epoch_idx) {
     training.loss = 0.0f;
-    status = data_buffer->run(nntrainer::BUF_TRAIN);
+    status = data_buffer->run(nntrainer::BufferType::BUF_TRAIN);
     if (status != ML_ERROR_NONE) {
-      data_buffer->clear(BUF_TRAIN);
+      data_buffer->clear(BufferType::BUF_TRAIN);
       return status;
     }
 
-    if (data_buffer->getValidation()[nntrainer::BUF_TEST]) {
-      status = data_buffer->run(nntrainer::BUF_TEST);
+    if (data_buffer->getValidation()[(int)nntrainer::BufferType::BUF_TEST]) {
+      status = data_buffer->run(nntrainer::BufferType::BUF_TEST);
       if (status != ML_ERROR_NONE) {
-        data_buffer->clear(BUF_TEST);
+        data_buffer->clear(BufferType::BUF_TEST);
         return status;
       }
     }
@@ -452,20 +452,21 @@ int NeuralNetwork::train_run() {
     sharedTensor label = MAKE_SHARED_TENSOR(getOutputDimension());
 
     while (true) {
-      if (data_buffer->getDataFromBuffer(nntrainer::BUF_TRAIN, in->getData(),
-                                         label->getData())) {
+      if (data_buffer->getDataFromBuffer(nntrainer::BufferType::BUF_TRAIN,
+                                         in->getData(), label->getData())) {
         try {
           backwarding(in, label, iter++);
         } catch (...) {
-          data_buffer->clear(nntrainer::BUF_TRAIN);
+          data_buffer->clear(nntrainer::BufferType::BUF_TRAIN);
           ml_loge("Error: training error in #%d/%d.", epoch_idx, epochs);
           std::rethrow_exception(std::current_exception());
         }
         std::cout << "#" << epoch_idx << "/" << epochs;
-        data_buffer->displayProgress(count++, nntrainer::BUF_TRAIN, getLoss());
+        data_buffer->displayProgress(count++, nntrainer::BufferType::BUF_TRAIN,
+                                     getLoss());
         training.loss += getLoss();
       } else {
-        data_buffer->clear(nntrainer::BUF_TRAIN);
+        data_buffer->clear(nntrainer::BufferType::BUF_TRAIN);
         break;
       }
     }
@@ -479,20 +480,20 @@ int NeuralNetwork::train_run() {
     std::cout << "#" << epoch_idx << "/" << epochs
               << " - Training Loss: " << training.loss;
 
-    if (data_buffer->getValidation()[nntrainer::BUF_VAL]) {
+    if (data_buffer->getValidation()[(int)nntrainer::BufferType::BUF_VAL]) {
       int right = 0;
       validation.loss = 0.0f;
       unsigned int tcases = 0;
 
-      status = data_buffer->run(nntrainer::BUF_VAL);
+      status = data_buffer->run(nntrainer::BufferType::BUF_VAL);
       if (status != ML_ERROR_NONE) {
-        data_buffer->clear(BUF_VAL);
+        data_buffer->clear(BufferType::BUF_VAL);
         return status;
       }
 
       while (true) {
-        if (data_buffer->getDataFromBuffer(nntrainer::BUF_VAL, in->getData(),
-                                           label->getData())) {
+        if (data_buffer->getDataFromBuffer(nntrainer::BufferType::BUF_VAL,
+                                           in->getData(), label->getData())) {
           sharedConstTensor Y = forwarding(in, label);
           auto model_out = Y->argmax();
           auto label_out = label->argmax();
@@ -503,7 +504,7 @@ int NeuralNetwork::train_run() {
           validation.loss += getLoss();
           tcases++;
         } else {
-          data_buffer->clear(nntrainer::BUF_VAL);
+          data_buffer->clear(nntrainer::BufferType::BUF_VAL);
           break;
         }
       }
@@ -587,16 +588,17 @@ int NeuralNetwork::addLayer(NodeType layer) {
   return status;
 }
 
-int NeuralNetwork::setOptimizer(std::shared_ptr<Optimizer> optimizer) {
+int NeuralNetwork::setOptimizer(
+  std::shared_ptr<ml::train::Optimizer> optimizer) {
 
-  if (optimizer->getType() == OptType::unknown)
+  if (optimizer->getType() == OptType::UNKNOWN)
     return ML_ERROR_INVALID_PARAMETER;
 
   if (initialized) {
     return ML_ERROR_NOT_SUPPORTED;
   }
 
-  opt = optimizer;
+  opt = std::static_pointer_cast<Optimizer>(optimizer);
 
   return ML_ERROR_NONE;
 }
@@ -619,6 +621,15 @@ void NeuralNetwork::ensureName(NodeType layer, const std::string &prefix) {
 
     layer->setName(name);
   }
+}
+
+int NeuralNetwork::getLayer(const char *name,
+                            std::shared_ptr<ml::train::Layer> *layer) {
+  std::shared_ptr<Layer> layer_;
+  int ret = getLayer(name, &layer_);
+  if (ret == ML_ERROR_NONE)
+    *layer = layer_;
+  return ret;
 }
 
 int NeuralNetwork::getLayer(const char *name, NodeType *layer) {

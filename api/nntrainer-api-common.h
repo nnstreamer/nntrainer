@@ -13,10 +13,34 @@
 #ifndef __TIZEN_MACHINELEARNING_NNTRAINER_API_COMMON_H__
 #define __TIZEN_MACHINELEARNING_NNTRAINER_API_COMMON_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif /* __cplusplus */
+
 /**
  * @addtogroup CAPI_ML_NNTRAINER_TRAIN_MODULE
  * @{
  */
+
+/**
+ * @brief Enumeration for the neural network layer type of NNTrainer.
+ * @since_tizen 6.0
+ */
+typedef enum {
+  ML_TRAIN_LAYER_TYPE_INPUT = 0,    /**< Input Layer */
+  ML_TRAIN_LAYER_TYPE_FC,           /**< Fully Connected Layer */
+  ML_TRAIN_LAYER_TYPE_UNKNOWN = 999 /**< Unknown Layer */
+} ml_train_layer_type_e;
+
+/**
+ * @brief Enumeration for the neural network optimizer type of NNTrainer.
+ * @since_tizen 6.0
+ */
+typedef enum {
+  ML_TRAIN_OPTIMIZER_TYPE_ADAM = 0, /**< Adam Optimizer */
+  ML_TRAIN_OPTIMIZER_TYPE_SGD, /**< Stochastic Gradient Descent Optimizer */
+  ML_TRAIN_OPTIMIZER_TYPE_UNKNOWN = 999 /**< Unknown Optimizer */
+} ml_train_optimizer_type_e;
 
 /**
  * @brief Dataset generator callback function for train/valid/test data.
@@ -134,5 +158,8 @@ typedef enum {
 /**
  * @}
  */
+#ifdef __cplusplus
+}
 
+#endif /* __cplusplus */
 #endif /* __TIZEN_MACHINELEARNING_NNTRAINER_API_COMMON_H__ */

@@ -2,7 +2,7 @@
 /**
  * Copyright (C) 2020 Parichay Kapoor <pk.kapoor@samsung.com>
  *
- * @file	optimizer_factory.h
+ * @file	layer_factory.h
  * @date	7 October 2020
  * @see		https://github.com/nnstreamer/nntrainer
  * @author	Parichay Kapoor <pk.kapoor@samsung.com>
@@ -21,17 +21,11 @@
 #include <fc_layer.h>
 #include <flatten_layer.h>
 #include <input_layer.h>
-#include <layer.h>
+#include <layer_internal.h>
 #include <loss_layer.h>
 #include <pooling2d_layer.h>
 
 namespace nntrainer {
-
-/**
- * @brief Factory creator with copy constructor
- */
-// std::unique_ptr<Optimizer> createOptimizer(OptType type, const Optimizer
-// &opt);
 
 /**
  * @brief Factory creator with constructor

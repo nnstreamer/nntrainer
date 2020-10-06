@@ -97,7 +97,7 @@ int DataBuffer::rangeRandom(int min, int max) {
 int DataBuffer::run(BufferType type) {
   int status = ML_ERROR_NONE;
   switch (type) {
-  case BUF_TRAIN:
+  case BufferType::BUF_TRAIN:
     if (trainReadyFlag == DATA_ERROR)
       return ML_ERROR_INVALID_PARAMETER;
 
@@ -117,7 +117,7 @@ int DataBuffer::run(BufferType type) {
       return ML_ERROR_INVALID_PARAMETER;
     }
     break;
-  case BUF_VAL:
+  case BufferType::BUF_VAL:
     if (valReadyFlag == DATA_ERROR)
       return ML_ERROR_INVALID_PARAMETER;
     if (validation[DATA_VAL]) {
@@ -136,7 +136,7 @@ int DataBuffer::run(BufferType type) {
       return ML_ERROR_INVALID_PARAMETER;
     }
     break;
-  case BUF_TEST:
+  case BufferType::BUF_TEST:
     if (testReadyFlag == DATA_ERROR)
       return ML_ERROR_INVALID_PARAMETER;
 
@@ -169,7 +169,7 @@ int DataBuffer::clear(BufferType type) {
   int status = ML_ERROR_NONE;
   NN_EXCEPTION_NOTI(DATA_NOT_READY);
   switch (type) {
-  case BUF_TRAIN: {
+  case BufferType::BUF_TRAIN: {
     train_running = false;
     if (validation[DATA_TRAIN] && true == train_thread.joinable())
       train_thread.join();
@@ -178,7 +178,7 @@ int DataBuffer::clear(BufferType type) {
     this->cur_train_bufsize = 0;
     this->rest_train = max_train;
   } break;
-  case BUF_VAL: {
+  case BufferType::BUF_VAL: {
     val_running = false;
     if (validation[DATA_VAL] && true == val_thread.joinable())
       val_thread.join();
@@ -187,7 +187,7 @@ int DataBuffer::clear(BufferType type) {
     this->cur_val_bufsize = 0;
     this->rest_val = max_val;
   } break;
-  case BUF_TEST: {
+  case BufferType::BUF_TEST: {
     test_running = false;
     if (validation[DATA_TEST] && true == test_thread.joinable())
       test_thread.join();
@@ -208,7 +208,7 @@ int DataBuffer::clear() {
   unsigned int i;
 
   int status = ML_ERROR_NONE;
-  for (i = BUF_TRAIN; i <= BUF_TEST; ++i) {
+  for (i = (int)BufferType::BUF_TRAIN; i <= (int)BufferType::BUF_TEST; ++i) {
     BufferType type = static_cast<BufferType>(i);
     status = this->clear(type);
 
@@ -256,7 +256,7 @@ bool DataBuffer::getDataFromBuffer(BufferType type, float *out, float *label) {
 
   /// facade that wait for the databuffer to be filled and pass it to outparam
   /// note that batch_size is passed as an argument because it can vary by
-  /// BUF_TYPE later...
+  /// BufferType::BUF_TYPE later...
   auto fill_out_params =
     [&](std::mutex &ready_mutex, std::condition_variable &cv, DataStatus &flag,
         QueueType &data_q, QueueType &label_q, const unsigned int batch_size,
@@ -275,17 +275,17 @@ bool DataBuffer::getDataFromBuffer(BufferType type, float *out, float *label) {
     };
 
   switch (type) {
-  case BUF_TRAIN:
+  case BufferType::BUF_TRAIN:
     if (!fill_out_params(readyTrainData, cv_train, trainReadyFlag, train_data,
                          train_data_label, batch_size, cur_train_bufsize))
       return false;
     break;
-  case BUF_VAL:
+  case BufferType::BUF_VAL:
     if (!fill_out_params(readyValData, cv_val, valReadyFlag, val_data,
                          val_data_label, batch_size, cur_val_bufsize))
       return false;
     break;
-  case BUF_TEST:
+  case BufferType::BUF_TEST:
     if (!fill_out_params(readyTestData, cv_test, testReadyFlag, test_data,
                          test_data_label, batch_size, cur_test_bufsize))
       return false;
@@ -389,13 +389,13 @@ void DataBuffer::displayProgress(const int count, BufferType type, float loss) {
   int barWidth = 20;
   float max_size = max_train;
   switch (type) {
-  case BUF_TRAIN:
+  case BufferType::BUF_TRAIN:
     max_size = max_train;
     break;
-  case BUF_VAL:
+  case BufferType::BUF_VAL:
     max_size = max_val;
     break;
-  case BUF_TEST:
+  case BufferType::BUF_TEST:
     max_size = max_test;
     break;
   default:
@@ -507,6 +507,10 @@ int DataBuffer::setProperty(const PropertyType type, std::string &value) {
   }
 
   return status;
+}
+
+int DataBuffer::setFunc(BufferType type, datagen_cb func) {
+  return ML_ERROR_NOT_SUPPORTED;
 }
 
 } /* namespace nntrainer */

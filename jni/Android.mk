@@ -49,6 +49,7 @@ NNTRAINER_SRCS := $(NNTRAINER_ROOT)/nntrainer/src/neuralnet.cpp \
 
 NNTRAINER_INCLUDES := $(NNTRAINER_ROOT)/nntrainer/include \
                       $(NNTRAINER_ROOT)/api \
+                      $(NNTRAINER_ROOT)/api/ccapi/include \
                       $(NNTRAINER_ROOT)/api/capi/include/platform
 
 INIPARSER_SRCS := $(INIPARSER_ROOT)/src/iniparser.c \
@@ -66,7 +67,7 @@ LOCAL_LDLIBS        := -llog
 
 LOCAL_MODULE        := nntrainer
 LOCAL_SRC_FILES     := $(NNTRAINER_SRCS) $(INIPARSER_SRCS)
-LOCAL_C_INCLUDES    += $(NNTRAINER_INCLUDES) $(INIPARSER_INCLUDES)
+LOCAL_C_INCLUDES    := $(NNTRAINER_INCLUDES) $(INIPARSER_INCLUDES)
 
 include $(BUILD_SHARED_LIBRARY)
 
@@ -77,6 +78,7 @@ CAPI_NNTRAINER_SRCS := $(NNTRAINER_ROOT)/api/capi/src/nntrainer.cpp \
 
 CAPI_NNTRAINER_INCLUDES := $(NNTRAINER_ROOT)/nntrainer/include \
                       $(NNTRAINER_ROOT)/api \
+                      $(NNTRAINER_ROOT)/api/ccapi/include \
                       $(NNTRAINER_ROOT)/api/capi/include \
                       $(NNTRAINER_ROOT)/api/capi/include/platform
 
@@ -92,6 +94,28 @@ LOCAL_LDLIBS        := -llog
 
 LOCAL_MODULE        := capi-nntrainer
 LOCAL_SRC_FILES     := $(CAPI_NNTRAINER_SRCS)
-LOCAL_C_INCLUDES    += $(CAPI_NNTRAINER_INCLUDES)
+LOCAL_C_INCLUDES    := $(CAPI_NNTRAINER_INCLUDES)
+
+include $(BUILD_SHARED_LIBRARY)
+
+include $(CLEAR_VARS)
+
+CCAPI_NNTRAINER_INCLUDES := $(NNTRAINER_ROOT)/nntrainer/include \
+                      $(NNTRAINER_ROOT)/api \
+                      $(NNTRAINER_ROOT)/api/ccapi/include
+
+LOCAL_SHARED_LIBRARIES := nntrainer
+
+LOCAL_ARM_NEON      := true
+LOCAL_CFLAGS        += -pthread -fopenmp -fexceptions
+LOCAL_CXXFLAGS      += -std=c++14 -frtti -fexceptions
+LOCAL_LDFLAGS       += -fuse-ld=bfd -fopenmp
+LOCAL_MODULE_TAGS   := optional
+
+LOCAL_LDLIBS        := -llog
+
+LOCAL_MODULE        := ccapi-nntrainer
+LOCAL_SRC_FILES     :=
+LOCAL_C_INCLUDES    := $(CCAPI_NNTRAINER_INCLUDES)
 
 include $(BUILD_SHARED_LIBRARY)

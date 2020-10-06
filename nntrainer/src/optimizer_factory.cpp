@@ -11,7 +11,7 @@
  */
 
 #include <adam.h>
-#include <optimizer.h>
+#include <optimizer_internal.h>
 #include <sgd.h>
 
 namespace nntrainer {
@@ -21,11 +21,11 @@ namespace nntrainer {
  */
 std::unique_ptr<Optimizer> createOptimizer(OptType type, const Optimizer &opt) {
   switch (type) {
-  case OptType::sgd:
+  case OptType::SGD:
     return std::make_unique<SGD>(static_cast<const SGD &>(opt));
-  case OptType::adam:
+  case OptType::ADAM:
     return std::make_unique<Adam>(static_cast<const Adam &>(opt));
-  case OptType::unknown:
+  case OptType::UNKNOWN:
     /** fallthrough intended */
   default:
     throw std::invalid_argument("Unknown type for the optimizer");

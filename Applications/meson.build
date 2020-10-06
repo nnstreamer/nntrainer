@@ -1,7 +1,9 @@
 subdir('utils/jni')
 subdir('KNN/jni')
 subdir('LogisticRegression/jni')
-subdir('MNIST/jni')
+if get_option('enable-ccapi')
+  subdir('MNIST/jni')
+endif
 subdir('VGG/jni')
 subdir('ReinforcementLearning/DeepQ/jni')
 subdir('TransferLearning/CIFAR_Classification/jni')

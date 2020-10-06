@@ -1,6 +1,7 @@
 nntrainer_inc = [
   include_directories('./include'),
-  include_directories('../api')
+  include_directories('../api'),
+  include_directories('../api/ccapi/include')
 ]
 
 # pc file is not present for 'ml-api-common' yet
@@ -61,13 +62,14 @@ nntrainer_headers = [
   'include/bn_layer.h',
   'include/conv2d_layer.h',
   'include/databuffer.h',
+  'include/databuffer_factory.h',
   'include/databuffer_file.h',
   'include/databuffer_func.h',
   'include/databuffer_util.h',
   'include/fc_layer.h',
   'include/flatten_layer.h',
   'include/input_layer.h',
-  'include/layer.h',
+  'include/layer_internal.h',
   'include/layer_factory.h',
   'include/lazy_tensor.h',
   'include/loss_layer.h',
@@ -75,7 +77,7 @@ nntrainer_headers = [
   'include/neuralnet.h',
   'include/nntrainer_log.h',
   'include/nntrainer_logger.h',
-  'include/optimizer.h',
+  'include/optimizer_internal.h',
   'include/parse_util.h',
   'include/pooling2d_layer.h',
   'include/sgd.h',
@@ -85,7 +87,6 @@ nntrainer_headers = [
   'include/util_func.h',
   'include/weight.h',
   'include/optimizer_factory.h',
-  '../api/nntrainer-api-common.h'
 ]
 
 # Build libraries

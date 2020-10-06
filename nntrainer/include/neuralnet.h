@@ -24,6 +24,7 @@
 #define __NEURALNET_H__
 #ifdef __cplusplus
 
+#include <memory>
 #include <vector>
 
 #include <activation_layer.h>
@@ -33,25 +34,22 @@
 #include <fc_layer.h>
 #include <flatten_layer.h>
 #include <input_layer.h>
-#include <layer.h>
+#include <layer_internal.h>
 #include <loss_layer.h>
 #include <ml-api-common.h>
-#include <nntrainer-api-common.h>
-#include <optimizer.h>
+#include <optimizer_internal.h>
 #include <pooling2d_layer.h>
 #include <tensor.h>
+
+#include <model.h>
+#include <nntrainer-api-common.h>
 
 namespace nntrainer {
 
 /**
  * @brief     Enumeration of Network Type
  */
-enum class NetType {
-  NET_KNN,    /** k Nearest Neighbor */
-  NET_REG,    /** Logistic Regression */
-  NET_NEU,    /** Neural Network */
-  NET_UNKNOWN /** Unknown */
-};
+using NetType = ml::train::ModelType;
 
 /**
  * @brief     Statistics from running or training a model
@@ -67,7 +65,7 @@ typedef struct RunStats_ {
  * @class   NeuralNetwork Class
  * @brief   NeuralNetwork Class which has Network Configuration & Layers
  */
-class NeuralNetwork {
+class NeuralNetwork : public ml::train::Model {
   friend class ModelLoader; /** access private members of ModelLoader */
 
 public:
@@ -85,8 +83,8 @@ public:
     loss(0.0f),
     loss_type(LossType::LOSS_UNKNOWN),
     weight_initializer(WeightInitializer::WEIGHT_UNKNOWN),
-    net_type(NetType::NET_UNKNOWN),
-    data_buffer(NULL),
+    net_type(NetType::UNKNOWN),
+    data_buffer(nullptr),
     continue_train(false),
     iter(0),
     initialized(false),
@@ -211,13 +209,17 @@ public:
 
   /**
    * @brief     Run NeuralNetwork train with callback function by user
-   * @param[in] train_func callback function to get train data. This provides
-   * batch size data per every call.
-   * @param[in] val_func callback function to get validation data. This provides
-   * batch size data per every call.
-   * @param[in] test_func callback function to get test data. This provides
-   * batch size data per every call.
-   * @param[in] values hyper-parameter list
+   * @param[in] dataset set the dataset
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  int setDataset(std::shared_ptr<ml::train::Dataset> dataset) {
+    return setDataBuffer(std::static_pointer_cast<DataBuffer>(dataset));
+  }
+
+  /**
+   * @brief     Run NeuralNetwork train with callback function by user
+   * @param[in] databuffer set the databuffer
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
@@ -229,6 +231,15 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
+  int addLayer(std::shared_ptr<ml::train::Layer> layer) {
+    return addLayer(std::static_pointer_cast<Layer>(layer));
+  }
+
+  /**
+   * @brief     add layer into neural network model
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
   int addLayer(NodeType layer);
 
   /**
@@ -236,7 +247,16 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int setOptimizer(std::shared_ptr<Optimizer> optimizer);
+  int setOptimizer(std::shared_ptr<ml::train::Optimizer> optimizer);
+
+  /*
+   * @brief     get layer by name from neural network model
+   * @param[in] name name of the layer to get
+   * @param[out] layer shared_ptr to hold the layer to get
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  int getLayer(const char *name, std::shared_ptr<ml::train::Layer> *layer);
 
   /*
    * @brief     get layer by name from neural network model
@@ -274,16 +294,6 @@ public:
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
   int setLoss(LossType loss);
-
-  enum class PropertyType {
-    loss = 0,
-    loss_type = 1,
-    batch_size = 2,
-    epochs = 3,
-    save_path = 4,
-    continue_train = 5,
-    unknown = 6
-  };
 
   /**
    * @brief Print Option when printing model info. The function delegates to the

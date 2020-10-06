@@ -9,6 +9,7 @@ project('nntrainer', 'c', 'cpp',
     'cpp_std=c++14'
   ]
 )
+add_project_arguments('-DMIN_CPP_VERSION=201402', language:['c','cpp'])
 
 cc = meson.get_compiler('c')
 cxx = meson.get_compiler('cpp')

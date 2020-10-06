@@ -15,7 +15,7 @@
 #define __CONV2D_LAYER_H_
 #ifdef __cplusplus
 
-#include <layer.h>
+#include <layer_internal.h>
 #include <tensor.h>
 
 namespace nntrainer {

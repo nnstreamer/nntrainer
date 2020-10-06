@@ -11,7 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * @file	layer.h
+ * @file	layer_internal.h
  * @date	04 December 2019
  * @brief	This is Layer classes of Neural Network
  * @see		https://github.com/nnstreamer/nntrainer
@@ -19,15 +19,16 @@
  * @bug		No known bugs except for NYI items
  *
  */
-#ifndef __LAYERS_H__
-#define __LAYERS_H__
+#ifndef __LAYER_H__
+#define __LAYER_H__
 #ifdef __cplusplus
 
 #include <memory>
 #include <set>
 #include <vector>
 
-#include <optimizer.h>
+#include <layer.h>
+#include <optimizer_internal.h>
 #include <tensor.h>
 #include <tensor_dim.h>
 #include <weight.h>
@@ -46,41 +47,19 @@ enum class ActivationType {
   ACT_UNKNOWN  /** unknown */
 };
 
-/**
- * @brief     Enumeration of layer type
- */
-enum class LayerType {
-  LAYER_IN,         /** Input Layer type */
-  LAYER_FC,         /** Fully Connected Layer type */
-  LAYER_BN,         /** Batch Normalization Layer type */
-  LAYER_CONV2D,     /** Convolution 2D Layer type */
-  LAYER_POOLING2D,  /** Pooling 2D Layer type */
-  LAYER_FLATTEN,    /** Flatten Layer type */
-  LAYER_ACTIVATION, /** Loss Layer type */
-  LAYER_ADDITION,   /** Activation Layer type */
-  LAYER_LOSS,       /** Addition Layer type */
-  LAYER_UNKNOWN     /** Unknown */
-};
+using LayerType = ml::train::LayerType;
 
 /**
  * @class   Layer Base class for layers
  * @brief   Base class for all layers
  */
-class Layer {
+class Layer : public ml::train::Layer {
 
   /** model classes can call private methods which arent exposed to public */
   friend class NeuralNetwork;
   friend class ModelLoader;
 
 public:
-  enum class PrintPreset {
-    PRINT_NONE = 0,     /**< Print nothing */
-    PRINT_SUMMARY,      /**< Print preset including summary information */
-    PRINT_SUMMARY_META, /**< Print summary preset that includes meta information
-                         */
-    PRINT_ALL           /**< Print everything possible */
-  };
-
   /**
    * @brief     Constructor of Layer Class
    */
@@ -105,11 +84,6 @@ public:
     num_weights(0),
     num_inputs(1),
     num_outputs(1) {}
-
-  /**
-   * @brief     Destructor of Layer Class
-   */
-  virtual ~Layer(){};
 
   /**
    *  @brief  Move constructor of Layer.
@@ -160,63 +134,6 @@ public:
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
   int setProperty(std::vector<std::string> values);
-
-  /**
-   * @brief     Property Enumeration
-   *            0. input shape : string
-   *            1. bias zero : bool
-   *            2. normalization : bool
-   *            3. standardization : bool
-   *            4. activation : string (type)
-   *            5. epsilon : float
-   *            6. weight_regularizer : string (type)
-   *            7. weight_regularizer_constant : float
-   *            8. unit : int
-   *            9. weight_initializer : string (type)
-   *            10. filter_size : int
-   *            11. kernel_size : ( n , m )
-   *            12. stride : ( n, m )
-   *            13. padding : ( n, m )
-   *            14. pool_size : ( n,m )
-   *            15. pooling : max, average, global_max, global_average
-   *            16. flatten : bool
-   *            17. name : string (type)
-   *            18. num_inputs : unsigned int (minimum 1)
-   *            19. num_outputs : unsigned int (minimum 1)
-   *            20. momentum : float,
-   *            21. moving_mean_initializer : string (type),
-   *            22. moving_variance_initializer : string (type),
-   *            23. gamma_initializer : string (type),
-   *            24. beta_initializer" : string (type)
-   */
-  enum class PropertyType {
-    input_shape = 0,
-    normalization = 1,
-    standardization = 2,
-    activation = 3,
-    epsilon = 4,
-    weight_regularizer = 5,
-    weight_regularizer_constant = 6,
-    unit = 7,
-    weight_initializer = 8,
-    bias_initializer = 9,
-    filters = 10,
-    kernel_size = 11,
-    stride = 12,
-    padding = 13,
-    pool_size = 14,
-    pooling = 15,
-    flatten = 16,
-    name = 17,
-    num_inputs = 18,
-    num_outputs = 19,
-    momentum = 20,
-    moving_mean_initializer = 21,
-    moving_variance_initializer = 22,
-    gamma_initializer = 23,
-    beta_initializer = 24,
-    unknown
-  };
 
   /**
    * @brief setProperty by PropertyType
@@ -345,7 +262,6 @@ public:
    */
   unsigned int getNumWeights() { return num_weights; }
 
-#if defined(ENABLE_TEST)
   /**
    * @brief Set the batch for the layer
    * @param batch Batch value to be set
@@ -354,16 +270,6 @@ public:
   virtual void setBatch(unsigned int batch);
 
 protected:
-#else
-protected:
-  /**
-   * @brief Set the batch for the layer
-   * @param batch Batch value to be set
-   * @todo Make this private. Only model should be able to do this.
-   */
-  virtual void setBatch(unsigned int batch);
-#endif
-
   /**
    * @brief   Print Options when printing layer info
    */
@@ -608,4 +514,4 @@ std::ostream &operator<<(std::ostream &out, T &l) {
 } // namespace nntrainer
 
 #endif /* __cplusplus */
-#endif /* __LAYERS_H__ */
+#endif /* __LAYER_H__ */

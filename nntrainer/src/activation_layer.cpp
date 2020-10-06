@@ -20,11 +20,11 @@
 
 #include <activation_layer.h>
 #include <blas_interface.h>
-#include <layer.h>
+#include <layer_internal.h>
 #include <lazy_tensor.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
-#include <optimizer.h>
+#include <optimizer_internal.h>
 #include <parse_util.h>
 #include <tensor.h>
 #include <util_func.h>

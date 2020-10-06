@@ -13,6 +13,7 @@ endif
 
 NNTRAINER_INCLUDES := $(NNTRAINER_ROOT)/nntrainer/include \
 	$(NNTRAINER_ROOT)/api \
+	$(NNTRAINER_ROOT)/api/ccapi/include \
 	$(NNTRAINER_ROOT)/api/capi/include/platform
 
 LOCAL_MODULE := nntrainer

@@ -203,7 +203,7 @@ TEST(nntrainer_NeuralNetwork, init_03_p) {
  */
 TEST(nntrainer_Optimizer, create_01_p) {
   std::shared_ptr<nntrainer::Optimizer> op;
-  EXPECT_NO_THROW(op = createOptimizer(nntrainer::OptType::adam));
+  EXPECT_NO_THROW(op = nntrainer::createOptimizer(nntrainer::OptType::ADAM));
 }
 
 /**
@@ -211,7 +211,7 @@ TEST(nntrainer_Optimizer, create_01_p) {
  */
 TEST(nntrainer_Optimizer, setType_02_p) {
   std::shared_ptr<nntrainer::Optimizer> op;
-  EXPECT_NO_THROW(op = createOptimizer(nntrainer::OptType::sgd));
+  EXPECT_NO_THROW(op = nntrainer::createOptimizer(nntrainer::OptType::SGD));
 }
 
 /**
@@ -219,7 +219,7 @@ TEST(nntrainer_Optimizer, setType_02_p) {
  */
 TEST(nntrainer_Optimizer, setType_03_n) {
   std::shared_ptr<nntrainer::Optimizer> op;
-  EXPECT_THROW(op = createOptimizer(nntrainer::OptType::unknown),
+  EXPECT_THROW(op = nntrainer::createOptimizer(nntrainer::OptType::UNKNOWN),
                std::invalid_argument);
 }
 

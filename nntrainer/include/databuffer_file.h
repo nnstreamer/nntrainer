@@ -44,12 +44,12 @@ public:
   /**
    * @brief     Constructor
    */
-  DataBufferFromDataFile() : DataBuffer(DataBufferType::DATA_BUFFER_FILE){};
+  DataBufferFromDataFile() : DataBuffer(DataBufferType::FILE) {}
 
   /**
    * @brief     Destructor
    */
-  ~DataBufferFromDataFile(){};
+  ~DataBufferFromDataFile() = default;
 
   /**
    * @brief     Initialize Buffer with data buffer private variables

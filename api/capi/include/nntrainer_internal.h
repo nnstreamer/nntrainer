@@ -25,12 +25,12 @@
 #ifndef __NNTRAINER_INTERNAL_H__
 #define __NNTRAINER_INTERNAL_H__
 
-#include <layer.h>
+#include <layer_internal.h>
 #include <mutex>
 #include <neuralnet.h>
 #include <nntrainer.h>
 #include <nntrainer_log.h>
-#include <optimizer.h>
+#include <optimizer_internal.h>
 #include <string>
 #include <unordered_map>
 

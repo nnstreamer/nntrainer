@@ -14,7 +14,7 @@
 #define __ADAM_H__
 #ifdef __cplusplus
 
-#include <optimizer.h>
+#include <optimizer_internal.h>
 
 namespace nntrainer {
 
@@ -30,7 +30,7 @@ public:
   template <typename... Args>
   Adam(float lr = 0.001f, double b1 = 0.9f, double b2 = 0.999f,
        double ep = 1.0e-7f, Args... args) :
-    Optimizer(OptType::adam, lr, args...),
+    Optimizer(OptType::ADAM, lr, args...),
     beta1(b1),
     beta2(b2),
     epsilon(ep) {}

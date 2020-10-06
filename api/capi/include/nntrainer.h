@@ -65,26 +65,6 @@ typedef void *ml_train_optimizer_h;
 typedef void *ml_train_dataset_h;
 
 /**
- * @brief Enumeration for the neural network layer type of NNTrainer.
- * @since_tizen 6.0
- */
-typedef enum {
-  ML_TRAIN_LAYER_TYPE_INPUT = 0,    /**< Input Layer */
-  ML_TRAIN_LAYER_TYPE_FC,           /**< Fully Connected Layer */
-  ML_TRAIN_LAYER_TYPE_UNKNOWN = 999 /**< Unknown Layer */
-} ml_train_layer_type_e;
-
-/**
- * @brief Enumeration for the neural network optimizer type of NNTrainer.
- * @since_tizen 6.0
- */
-typedef enum {
-  ML_TRAIN_OPTIMIZER_TYPE_ADAM = 0, /**< Adam Optimizer */
-  ML_TRAIN_OPTIMIZER_TYPE_SGD, /**< Stochastic Gradient Descent Optimizer */
-  ML_TRAIN_OPTIMIZER_TYPE_UNKNOWN = 999 /**< Unknown Optimizer */
-} ml_train_optimizer_type_e;
-
-/**
  * @brief Constructs the neural network model.
  * @details Use this function to create neural network model.
  * @since_tizen 6.0

@@ -121,7 +121,7 @@ void DataBufferFromDataFile::updateData(BufferType type) {
   std::vector<std::vector<float>> *datalabel = NULL;
   std::ifstream file;
   switch (type) {
-  case BUF_TRAIN: {
+  case BufferType::BUF_TRAIN: {
     max_size = max_train;
     buf_size = train_bufsize;
     rest_size = &rest_train;
@@ -137,7 +137,7 @@ void DataBufferFromDataFile::updateData(BufferType type) {
     readyTrainData.unlock();
 
   } break;
-  case BUF_VAL: {
+  case BufferType::BUF_VAL: {
     max_size = max_val;
     buf_size = val_bufsize;
     rest_size = &rest_val;
@@ -153,7 +153,7 @@ void DataBufferFromDataFile::updateData(BufferType type) {
     readyValData.unlock();
 
   } break;
-  case BUF_TEST: {
+  case BufferType::BUF_TEST: {
     max_size = max_test;
     buf_size = test_bufsize;
     rest_size = &rest_test;
@@ -371,7 +371,7 @@ int DataBufferFromDataFile::setProperty(const PropertyType type,
                                         std::string &value) {
   int status = ML_ERROR_NONE;
 
-  if (data_buffer_type != DATA_BUFFER_FILE)
+  if (data_buffer_type != DataBufferType::FILE)
     return ML_ERROR_INVALID_PARAMETER;
 
   switch (type) {

@@ -24,11 +24,11 @@
 #include <assert.h>
 #include <cstring>
 #include <iostream>
-#include <layer.h>
+#include <layer_internal.h>
 #include <neuralnet.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
-#include <optimizer.h>
+#include <optimizer_internal.h>
 #include <parse_util.h>
 #include <pooling2d_layer.h>
 #include <regex>
@@ -66,10 +66,10 @@ unsigned int parseType(std::string ll, InputType t) {
   unsigned int i;
   /**
    * @brief     Optimizer String from configure file
-   *            "sgd"  : Stochestic Gradient Descent
    *            "adam" : Adaptive Moment Estimation
+   *            "sgd"  : Stochestic Gradient Descent
    */
-  std::array<std::string, 2> optimizer_string = {"sgd", "adam"};
+  std::array<std::string, 2> optimizer_string = {"adam", "sgd"};
 
   /**
    * @brief     Loss Function String from configure file
@@ -162,7 +162,7 @@ unsigned int parseType(std::string ll, InputType t) {
         return (i);
       }
     }
-    ret = (unsigned int)OptType::unknown;
+    ret = (unsigned int)OptType::UNKNOWN;
     break;
   case TOKEN_LOSS:
     for (i = 0; i < loss_string.size(); i++) {
@@ -180,7 +180,7 @@ unsigned int parseType(std::string ll, InputType t) {
         return (i);
       }
     }
-    ret = (unsigned int)NetType::NET_UNKNOWN;
+    ret = (unsigned int)NetType::UNKNOWN;
     break;
   case TOKEN_ACTI:
     for (i = 0; i < activation_string.size(); i++) {

@@ -28,7 +28,7 @@
 #include <functional>
 #include <vector>
 
-#include <layer.h>
+#include <layer_internal.h>
 #include <tensor.h>
 
 namespace nntrainer {
