@@ -155,16 +155,16 @@ TEST(nntrainer_capi_nnlayer, setproperty_06_n) {
 }
 
 /**
- * @brief Neural Network Set Property Test (positive test)
+ * @brief Neural Network Set Property Test (negative test)
  */
-TEST(nntrainer_capi_nnlayer, setproperty_07_p) {
+TEST(nntrainer_capi_nnlayer, setproperty_07_n) {
   ml_train_layer_h handle;
   int status;
   status = ml_train_layer_create(&handle, ML_TRAIN_LAYER_TYPE_FC);
   EXPECT_EQ(status, ML_ERROR_NONE);
-  /** Default to none activation in case wrong activation given */
-  status = ml_train_layer_set_property(handle, "activation=0.0001", NULL);
-  EXPECT_EQ(status, ML_ERROR_NONE);
+  /** Setting empty property results in error */
+  status = ml_train_layer_set_property(handle, "activation=", NULL);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
   status = ml_train_layer_destroy(handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
@@ -196,6 +196,24 @@ TEST(nntrainer_capi_nnlayer, setproperty_09_n) {
   status =
     ml_train_layer_set_property(handle, "weight_regularizer=asdfasd",
                                 "weight_regularizer_constant=0.0001", NULL);
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+  status = ml_train_layer_destroy(handle);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Neural Network Set Property Test (negative test)
+ */
+TEST(nntrainer_capi_nnlayer, setproperty_10_n) {
+  ml_train_layer_h handle;
+  int status;
+  status = ml_train_layer_create(&handle, ML_TRAIN_LAYER_TYPE_FC);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  /**
+   * Default to none activation if no activation is set.
+   * If activation is set which isnt available, then error.
+   */
+  status = ml_train_layer_set_property(handle, "activation=0.0001", NULL);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
   status = ml_train_layer_destroy(handle);
   EXPECT_EQ(status, ML_ERROR_NONE);

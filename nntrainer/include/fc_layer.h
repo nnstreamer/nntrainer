@@ -83,8 +83,6 @@ public:
    */
   int initialize();
 
-  void setUnit(unsigned int u) { unit = u; };
-
   /**
    * @brief     get the base name for the layer
    * @retval    base name of the layer

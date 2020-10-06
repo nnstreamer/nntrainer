@@ -93,6 +93,37 @@ public:
    */
   void copy(std::shared_ptr<Layer> l);
 
+  /* TO DO : support keras type of padding */
+  /* enum class PaddingType { */
+  /*   full = 0, */
+  /*   same = 1, */
+  /*   valid = 2, */
+  /*   unknown = 3, */
+  /* }; */
+
+  /**
+   * @brief     get the base name for the layer
+   * @retval    base name of the layer
+   */
+  std::string getBaseName() { return "Convolution2D"; };
+
+  using Layer::setProperty;
+
+  /**
+   * @copydoc Layer::setProperty(const PropertyType type, const std::string
+   * &value)
+   */
+  void setProperty(const PropertyType type, const std::string &value = "");
+
+private:
+  unsigned int filter_size;
+  unsigned int kernel_size[CONV2D_DIM];
+  unsigned int stride[CONV2D_DIM];
+  unsigned int padding[CONV2D_DIM];
+
+  bool normalization;
+  bool standardization;
+
   /**
    * @brief     set Parameter Size
    * @param[in] * size : size arrary
@@ -156,28 +187,6 @@ public:
                   unsigned int const *pad, float *out, unsigned int osize,
                   bool channel_mode);
 
-  /* TO DO : support keras type of padding */
-  /* enum class PaddingType { */
-  /*   full = 0, */
-  /*   same = 1, */
-  /*   valid = 2, */
-  /*   unknown = 3, */
-  /* }; */
-
-  /**
-   * @brief     get the base name for the layer
-   * @retval    base name of the layer
-   */
-  std::string getBaseName() { return "Convolution2D"; };
-
-  using Layer::setProperty;
-
-  /**
-   * @copydoc Layer::setProperty(const PropertyType type, const std::string
-   * &value)
-   */
-  void setProperty(const PropertyType type, const std::string &value = "");
-
   /**
    * @brief     reform the data to 2d matrix
    * @param[in] in_padded padded input data
@@ -191,15 +200,6 @@ public:
    */
   int im2col(Tensor in_padded, TensorDim kdim, float *inCol, TensorDim outdim,
              unsigned int const *mstride, bool channel_mode);
-
-private:
-  unsigned int filter_size;
-  unsigned int kernel_size[CONV2D_DIM];
-  unsigned int stride[CONV2D_DIM];
-  unsigned int padding[CONV2D_DIM];
-
-  bool normalization;
-  bool standardization;
 };
 
 } // namespace nntrainer

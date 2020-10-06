@@ -181,11 +181,11 @@ void Layer::setProperty(const PropertyType type, const std::string &value) {
   }
 }
 
-int Layer::setName(std::string name) {
-  if (name.empty())
+int Layer::setName(std::string name_) {
+  if (name_.empty())
     return ML_ERROR_INVALID_PARAMETER;
 
-  this->name = name;
+  name = name_;
   return ML_ERROR_NONE;
 }
 

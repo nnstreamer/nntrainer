@@ -30,7 +30,7 @@ public:
   /**
    * @brief     Constructor of Activation Layer
    */
-  ActivationLayer();
+  ActivationLayer(ActivationType at = ActivationType::ACT_NONE);
 
   /**
    * @brief     Destructor of Activation Layer

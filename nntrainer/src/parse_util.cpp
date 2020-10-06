@@ -94,9 +94,10 @@ unsigned int parseType(std::string ll, InputType t) {
    *            "relu" : relu
    *            "softmax" : softmax
    *            "none" : none
+   *            "unknown" : unknown
    */
-  std::array<std::string, 5> activation_string = {"tanh", "sigmoid", "relu",
-                                                  "softmax", "none"};
+  std::array<std::string, 6> activation_string = {
+    "tanh", "sigmoid", "relu", "softmax", "none", "unknown"};
 
   /**
    * @brief     Layer Type String from configure file
@@ -192,7 +193,7 @@ unsigned int parseType(std::string ll, InputType t) {
     ml_logw("Input activation %s cannot be identified. "
             "Moved to NO activation layer by default.",
             ll.c_str());
-    ret = (unsigned int)ActivationType::ACT_NONE;
+    ret = (unsigned int)ActivationType::ACT_UNKNOWN;
     break;
   case TOKEN_LAYER:
     for (i = 0; i < layer_string.size(); i++) {

@@ -34,9 +34,9 @@ namespace nntrainer {
 /**
  * @brief     Constructor of Activation Layer
  */
-ActivationLayer::ActivationLayer() : Layer() {
+ActivationLayer::ActivationLayer(ActivationType at) : Layer() {
   setType(LayerType::LAYER_ACTIVATION);
-  setActivation(ActivationType::ACT_NONE);
+  setActivation(at);
 }
 
 /**
