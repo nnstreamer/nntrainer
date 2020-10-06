@@ -32,7 +32,7 @@
 
 #include <tensor_dim.h>
 
-#define MAKE_SHARED_TENSOR(x) std::make_shared<nntrainer::Tensor>(x)
+#define MAKE_SHARED_TENSOR(...) std::make_shared<nntrainer::Tensor>(__VA_ARGS__)
 
 namespace nntrainer {
 
