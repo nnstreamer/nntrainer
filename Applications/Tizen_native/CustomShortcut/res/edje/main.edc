@@ -18,13 +18,18 @@
       state: "default" 0.0; \
       rel1.relative: x1 y1; \
       rel2.relative: x2 y2; \
-      color: 255 255 0 255; \
+      color: 253 193 7 255; \
       visible: 1; \
     } \
     description { \
       state: "focused" 0.0; \
       inherit: "default"; \
-      color: 255 255 0 120; \
+      color: 224 168 0 127; \
+    } \
+    description { \
+      state: "disabled" 0.0; \
+      inherit: "default"; \
+      color: 108 117 125 127; \
     } \
   } \
   part { \
@@ -46,6 +51,11 @@
         size: 28; \
         align: 0.5 0.5; \
       } \
+    } \
+    description { \
+      state: "disabled" 0.0; \
+      inherit: "default"; \
+      color: 255 255 255 127; \
     } \
   }
 
@@ -70,6 +80,7 @@
     name: target"/press"; \
     signal: "mouse,down,*"; \
     source: target"/*"; \
+    filter: target"/label" "default"; \
     transition: LINEAR 0.5; \
     script { \
       set_state(PART:target"/bg", "focused", 0.0); \
@@ -79,6 +90,7 @@
     name: target"/release"; \
     signal: "mouse,up,*"; \
     source: target"/*"; \
+    filter: target"/label" "default"; \
     transition: LINEAR 0.5; \
     script { \
       set_state(PART:target"/bg", "default", 0.0); \
@@ -88,8 +100,27 @@
     name: target"/click"; \
     signal: "mouse,clicked,*"; \
     source: target"/*"; \
+    filter: target"/label" "default"; \
     script { \
       emit(on_click_sig, on_click_sig_source); \
+    } \
+  } \
+  program { \
+    name: target"/disable"; \
+    signal: target",disable"; \
+    source: ""; \
+    script { \
+      set_state(PART:target"/bg", "disabled", 0.0); \
+      set_state(PART:target"/label", "disabled", 0.0); \
+    } \
+  } \
+  program { \
+    name: target"/enable"; \
+    signal: target",enable"; \
+    source: ""; \
+    script { \
+      set_state(PART:target"/bg", "default", 0.0); \
+      set_state(PART:target"/label", "default", 0.0); \
     } \
   }
 
@@ -98,8 +129,8 @@ collections {
     name: "home";
     parts {
       PART_TITLE("home/title", "Select actions...")
-      PART_BUTTON("home/to_train", "train", 0.55, 0.3, 0.9, 0.7)
-      PART_BUTTON("home/to_eval", "eval", 0.1, 0.3, 0.45, 0.7)
+      PART_BUTTON("home/to_train", "train", 0.1, 0.3, 0.45, 0.7)
+      PART_BUTTON("home/to_eval", "eval", 0.55, 0.3, 0.9, 0.7)
     }
     programs {
       PROGRAM_BUTTON("home/to_train", "routes/to", "draw:train")
@@ -119,7 +150,7 @@ collections {
           rel2.relative: 1.0 0.8;
           text {
             text: "😊";
-            size: 100;
+            size: 150;
             align: 0.5 0.5;
           }
         }
@@ -219,6 +250,7 @@ collections {
             text: "Guess...";
             size: 100;
             align: 0.5 0.5;
+            text_class: "test_result/label/class";
           }
         }
     }

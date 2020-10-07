@@ -323,12 +323,17 @@ PIPE_DESTORY:
 
 void data_handle_path_data(appdata_s *ad, const char *data) {
   /// handling path_data to check if it's for inference or path
+  ad->label = LABEL_UNSET;
+
+  if (data == NULL) {
+    return;
+  }
+
   if (!strcmp(data, "inference")) {
     ad->mode = MODE_INFER;
   } else if (!strcmp(data, "train")) {
     ad->mode = MODE_TRAIN;
   }
-  ad->label = LABEL_UNSET;
 }
 
 int data_update_label(appdata_s *ad) {
@@ -605,7 +610,7 @@ static void on_inference_end_(ml_tensors_data_h data,
 
   /// SMILE: 0 1
   /// FROWN: 1 0
-  LOG_D("\033[33mlabel: %lf %lf\033[36m", raw_data[0], raw_data[1]);
+  LOG_D("\033[33mlabel: %lf %lf\033[0m", raw_data[0], raw_data[1]);
   ad->label = raw_data[0] < raw_data[1] ? LABEL_SMILE : LABEL_FROWN;
 
 RESUME:
