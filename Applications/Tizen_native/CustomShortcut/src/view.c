@@ -19,29 +19,6 @@ static void on_win_delete_(void *data, Evas_Object *obj, void *event_info) {
   ui_app_exit();
 }
 
-void pop_object(void *data, Evas_Object *obj, void *event_info) {
-  appdata_s *ad = data;
-  Elm_Widget_Item *nf_it = elm_naviframe_top_item_get(obj);
-
-  ad->tries = 0;
-
-  if (!nf_it) {
-    /* app should not reach hear */
-    LOG_E("naviframe is null");
-    ui_app_exit();
-    return;
-  }
-
-  if (nf_it == ad->home) {
-    LOG_D("naviframe is empty");
-    elm_win_lower(ad->win);
-    return;
-  }
-
-  LOG_D("item popped");
-  elm_naviframe_item_pop(obj);
-}
-
 /**
  * @brief initiate window and conformant.
  * @param[in] ad appdata of the app
@@ -104,23 +81,23 @@ int view_init(appdata_s *ad) {
   return status;
 }
 
-void view_pop_naviframe(appdata_s *ad) {
-  Elm_Widget_Item *nf_it = elm_naviframe_top_item_get(ad->naviframe);
-
-  if (!nf_it) {
-    /* app should not reach hear */
-    LOG_E("naviframe is null");
+void view_pop_naviframe(appdata_s *ad, const Elm_Object_Item *to) {
+  if (ad->nf_it == NULL || ad->nf_it == ad->home) {
+    LOG_E("naviframe is null or at home, shutdown app instead");
     ui_app_exit();
     return;
   }
 
-  if (nf_it == ad->home) {
-    LOG_D("naviframe is empty");
-    elm_win_lower(ad->win);
+  if (to != NULL) {
+    elm_naviframe_item_pop_to(to);
+  } else {
+    elm_naviframe_item_pop(ad->naviframe);
   }
 
-  LOG_D("item popped");
-  elm_naviframe_item_pop(ad->naviframe);
+  ad->nf_it = elm_naviframe_top_item_get(ad->naviframe);
+  ad->layout =
+    elm_object_item_part_content_get(ad->nf_it, "elm.swallow.content");
+  LOG_D("item popped layout: %x nf_it: %x", ad->layout, ad->nf_it);
 }
 
 /**
@@ -129,7 +106,6 @@ void view_pop_naviframe(appdata_s *ad) {
  * @param[in] path name of the layout to be pushed to main naviframe.
  */
 int view_routes_to(appdata_s *ad, const char *path) {
-
   ad->layout = create_layout_(ad->naviframe, ad->edj_path, path, NULL);
   if (ad->layout == NULL) {
     LOG_E("failed to create layout");
@@ -394,9 +370,12 @@ void view_update_guess(void *data) {
     return;
   }
 
-  LOG_I("\033[33m%s\033[36m", emoji);
+  LOG_I("\033[33m%s\033[0m", emoji);
   elm_object_part_text_set(ad->layout, "test_result/title",
                            "guess successfully done");
+  elm_config_font_overlay_set("test_result/label/class", "Tizen:style=Regular",
+                              -150);
+  elm_config_font_overlay_apply();
   elm_object_part_text_set(ad->layout, "test_result/label", emoji);
   free(emoji);
 
