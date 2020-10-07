@@ -9,10 +9,10 @@
  * @author Jihoon Lee <jhoon.it.lee@samsung.com>
  * @bug No known bugs except for NYI items
  */
+#include <tizen.h>
 
 #include <pthread.h>
-
-#include <tizen.h>
+#include <unistd.h>
 
 #include "data.h"
 #include "main.h"
@@ -121,6 +121,8 @@ static void *infer_(void *data) {
 static int init_page_(appdata_s *ad, const char *path) {
   int status = APP_ERROR_NONE;
 
+  LOG_D("moved to %s", path);
+
   if (!strcmp(path, "draw")) {
     ad->tries = 0;
 
@@ -150,6 +152,17 @@ static int init_page_(appdata_s *ad, const char *path) {
     return status;
   }
 
+  if (!strcmp(path, "home")) {
+    if (access("model.bin", F_OK) == 0) {
+      LOG_D("to_eval enable signal sent");
+      edje_object_signal_emit(ad->layout, "home/to_eval,enable", "");
+    } else {
+      LOG_D("to_eval disable signal sent");
+      edje_object_signal_emit(ad->layout, "home/to_eval,disable", "");
+    }
+    return status;
+  }
+
   return status;
 }
 
@@ -157,8 +170,7 @@ void presenter_on_back_button_press(void *data, Evas_Object *obj,
                                     void *event_info EINA_UNUSED) {
   appdata_s *ad = data;
 
-  ad->tries = 0;
-  view_pop_naviframe(ad);
+  view_pop_naviframe(ad, NULL);
 }
 
 void presenter_on_routes_request(void *data, Evas_Object *obj EINA_UNUSED,
@@ -174,8 +186,10 @@ void presenter_on_routes_request(void *data, Evas_Object *obj EINA_UNUSED,
   }
 
   LOG_D("%s %s", path, path_data);
-  if (routes_to_(ad, path) != 0)
+  if (routes_to_(ad, path) != 0) {
+    LOG_D("routing to %s failed", path);
     return;
+  }
 
   /// check if path and path_data should be handled in special way,
   data_handle_path_data(ad, path_data);
@@ -186,7 +200,10 @@ void presenter_on_go_main_request(void *data, Evas_Object *obj EINA_UNUSED,
                                   const char *emission EINA_UNUSED,
                                   const char *source) {
   appdata_s *ad = (appdata_s *)data;
-  elm_naviframe_item_pop_to(ad->home);
+  view_pop_naviframe(ad, ad->home);
+
+  data_handle_path_data(ad, NULL);
+  init_page_(ad, "home");
 }
 
 void presenter_on_canvas_submit_inference(void *data, Evas_Object *obj,
@@ -197,11 +214,14 @@ void presenter_on_canvas_submit_inference(void *data, Evas_Object *obj,
   int status = 0;
 
   ad->tries = 0;
-  elm_naviframe_item_pop(ad->naviframe);
+  view_pop_naviframe(ad, NULL);
   if (routes_to_(ad, "test_result") != 0) {
     LOG_E("routing to train thread failed");
     return;
   }
+
+  elm_config_font_overlay_unset("test_result/label/class");
+  elm_config_font_overlay_apply();
 
   status = pthread_create(&infer_thread, NULL, infer_, data);
   if (status != 0) {
@@ -228,8 +248,7 @@ void presenter_on_canvas_submit_training(void *data, Evas_Object *obj,
   }
 
   if (ad->tries == MAX_TRIES - 1) {
-    ad->tries = 0;
-    elm_naviframe_item_pop(ad->naviframe);
+    view_pop_naviframe(ad, NULL);
     routes_to_((appdata_s *)data, "train_progress");
     pthread_t train_thread;
     eext_object_event_callback_del(ad->naviframe, EEXT_CALLBACK_BACK,
@@ -278,6 +297,7 @@ static bool app_create(void *data) {
 
   util_get_resource_path(EDJ_PATH, ad->edj_path, false);
 
+  LOG_D("changing root directory to %s", data_path);
   if (chdir(data_path) < 0) {
     LOG_E("change root directory failed");
     free(data_path);
@@ -291,10 +311,11 @@ static bool app_create(void *data) {
   eext_object_event_callback_add(ad->naviframe, EEXT_CALLBACK_MORE,
                                  eext_naviframe_more_cb, NULL);
 
-  if (routes_to_(ad, "home"))
-    return false;
+  presenter_on_routes_request(data, NULL, NULL, "home");
 
+  LOG_D("layout: %x, nf_it: %x", ad->layout, ad->nf_it);
   ad->home = ad->nf_it;
+
   return true;
 }
 
@@ -303,8 +324,7 @@ static void app_control(app_control_h app_control, void *data) {
 }
 
 static void app_pause(void *data) {
-  /* Take necessa
-  ry actions when application becomes invisible. */
+  /* Take necessary actions when application becomes invisible. */
 }
 
 static void app_resume(void *data) {
@@ -313,6 +333,9 @@ static void app_resume(void *data) {
 
 static void app_terminate(void *data) { /* Release all resources. */
   appdata_s *ad = data;
+  if (access("model.bin", F_OK) == 0) {
+    remove("model.bin");
+  }
 
   pthread_mutex_destroy(&ad->pipe_lock);
   pthread_cond_destroy(&ad->pipe_cond);

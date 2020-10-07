@@ -28,9 +28,10 @@ int view_init(appdata_s *ad);
 /**
  * @brief pop an item from the naviframe if empty, terminate the app
  *
- * @param ad appdata
+ * @param[in] ad appdata
+ * @param[in] to pop until to is meet, if NULL pops only one time
  */
-void view_pop_naviframe(appdata_s *ad);
+void view_pop_naviframe(appdata_s *ad, const Elm_Object_Item *to);
 
 /**
  * @brief initiate canvas
