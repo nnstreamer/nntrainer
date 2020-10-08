@@ -1,6 +1,9 @@
 # CustomShortcut
 
-![DemoFootage](/docs/images/customshortcut.webp)
+Training | Inference
+---------|---------
+![DemoFootage_Training](/docs/images/customshortcut_training.webp) | ![DemoFootage_Inference](/docs/images/customshortcut_inference.webp)
+
 
 `CustomShortcut` is a nntrainer demo app that maps user defined symbol to smily face or sad face.
 
@@ -8,7 +11,7 @@ For example, user can draw `^^` few times to train a model to label the drawing 
 
 Built and tested at `tizen studio 3.7` with `wearable-6.0 profile`
 
-tested on `SM-R800` (it should run in other wearable but it is not guaranteed)
+tested on `SM-R800` (it should run on other wearable but it has not been verified)
 
 ## How to Build and Run
 
@@ -20,40 +23,9 @@ If you want to do in CLI, you first need to [convert the project to CLI](https:/
 ### Prerequisite
 
 - [NNTrainer Prerequisite](https://github.com/nnstreamer/nntrainer#prerequisites)
-- tizen studio 3.7
-- wearable 6.0 rootstrap (built after Aug 25 2020)
-- appropriate wearable tizen device with tizen 6.0 installed (built after Aug 25 2020)
-- gstreamer plugin png image decoder (https://gstreamer.freedesktop.org/documentation/png/pngdec.html?gi-language=c)
-
-### Install `pngdec`
-
-Currently, `pngdec` gstreamer element is required but it is not packaged by default in the released wearable OS.
-
-
-```bash
-# download newest version, checkout http://download.tizen.org/snapshots/tizen/unified/latest/repos/standard/packages/armv7l/
-$ wget http://download.tizen.org/snapshots/tizen/unified/latest/repos/standard/packages/armv7l/gst-plugins-good-extra-${version}.armv7l.rpm
-$ sdb devices
-List of devices attached
-#device list
-$ sdb root on
-$ sdb shell "mount -o remount,rw /"
-$ sdb push ${downloaded_rpm} /tmp_repos/
-$ sdb shell rpm -Uvh --force --nodeps /tmp_repos/${downloaded_rpm}
-```
-
-### Install Newest nntrainer to the device
-
-```bash
-$ gbs build --arch armv7l
-$ sdb devices
-List of devices attached
-#device list
-$ sdb root on
-$ sdb shell "mount -o remount,rw /"
-$ sdb push ${gbs repo directory} /tmp_repos/
-$ sdb shell rpm -Uvh --force --nodeps /tmp_repos/*.rpm
-```
+- tizen studio 3.7 with build environment set (eg. certificates)
+- wearable 6.0 rootstrap (built after Oct 08 2020)
+- appropriate wearable tizen device with tizen 6.0 installed (built after Oct 08 2020)
 
 ### Build tpk of nntrainer
 
