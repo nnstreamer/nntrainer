@@ -465,37 +465,25 @@ CLEAN_UP:
   return NULL;
 }
 
-void *data_update_train_result(void *data) {
-  appdata_s *ad = (appdata_s *)data;
+int data_update_train_progress(appdata_s *ad, const char *buf) {
+  train_result_s result;
 
-  // run model in another thread
-  int read_fd = ad->pipe_fd[0];
-  FILE *fp;
-  char buf[255];
-
-  fp = fdopen(read_fd, "r");
-
-  LOG_D("start waiting to get result");
-
-  ecore_pipe_thaw(ad->data_output_pipe);
-
-  while (fgets(buf, 255, fp) != NULL) {
-    if (ecore_pipe_write(ad->data_output_pipe, buf, 255) == false) {
-      LOG_E("pipe write error");
-      return NULL;
-    };
+  if (util_parse_result_string(buf, &result) != 0) {
+    LOG_W("parse failed. current buffer is being ignored");
+    return APP_ERROR_INVALID_PARAMETER;
   }
 
-  LOG_D("training finished");
-  fclose(fp);
-  close(read_fd);
-  sleep(1);
-  ecore_pipe_freeze(ad->data_output_pipe);
+  if (result.accuracy > ad->best_accuracy) {
+    ad->best_accuracy = result.accuracy;
+  }
 
-  return NULL;
+  ad->current_epoch = result.epoch;
+  ad->train_loss = result.train_loss;
+
+  return APP_ERROR_NONE;
 }
 
-int data_parse_result_string(const char *src, train_result_s *train_result) {
+int util_parse_result_string(const char *src, train_result_s *train_result) {
   // clang-format off
   // #10/10 - Training Loss: 0.398767 >> [ Accuracy: 75% - Validation Loss : 0.467543 ]
   // clang-format on

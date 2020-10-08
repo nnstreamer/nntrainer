@@ -31,7 +31,7 @@ int view_init(appdata_s *ad);
  * @param[in] ad appdata
  * @param[in] to pop until to is meet, if NULL pops only one time
  */
-void view_pop_naviframe(appdata_s *ad, const Elm_Object_Item *to);
+void view_pop_naviframe(appdata_s *ad, Elm_Object_Item *to);
 
 /**
  * @brief initiate canvas
@@ -57,17 +57,15 @@ void view_set_canvas_clean(appdata_s *ad);
 
 /**
  * @brief callback function to update training result
- * @param[in] data user data
- * @param[in] buffer arrays of null terminated characters
- * @param[in] nbytes max length of the buffer
+ * @param[in] data appdata
+ * @return Not used
  */
-void view_update_result_cb(void *data, void *buffer, unsigned int nbytes);
+void *view_update_train_progress(void *data);
 
 /**
  * @brief update guess from the inference result
  *
  * @param[in] ad appdata
- * @return int APP_ERROR_NONE if success
  */
 void view_update_guess(void *ad);
 

@@ -82,11 +82,12 @@ typedef struct appdata {
   pthread_cond_t pipe_cond;  /**< pipe condition to block at a point */
 
   /**< Training related */
-  pthread_t tid_writer;         /**< thread handler to run trainer */
-  pthread_t tid_reader;         /**< thread handler to read train result */
-  int pipe_fd[2];               /**< fd for pipe */
-  Ecore_Pipe *data_output_pipe; /**< pipe to write information to ui */
-  double best_accuracy;         /**< stores best accuracy */
+  pthread_t tid_writer;       /**< thread handler to run trainer */
+  pthread_t tid_reader;       /**< thread handler to read train result */
+  int pipe_fd[2];             /**< fd for pipe */
+  double best_accuracy;       /**< stores best accuracy */
+  unsigned int current_epoch; /**< current epoch */
+  double train_loss;          /**< current loss */
 } appdata_s;
 
 typedef struct train_result {
@@ -173,9 +174,10 @@ void *data_run_model(void *ad);
  * @brief nntrainer update train result from data_run_model
  *
  * @param[in] ad appdata
- * @return not used
+ * @param[in] buf buffer hooked from stdout
+ * @return APP_ERROR_NONE if suceess
  */
-void *data_update_train_result(void *ad);
+int data_update_train_progress(appdata_s *ad, const char *buf);
 
 /**
  * @brief parse result string
@@ -190,7 +192,7 @@ void *data_update_train_result(void *ad);
  * #10/10 - Training Loss: 0.398767 >> [ Accuracy: 75% - Validation Loss :
  0.467543 ]
  */
-int data_parse_result_string(const char *src, train_result_s *train_result);
+int util_parse_result_string(const char *src, train_result_s *train_result);
 
 /**
  * @brief run inference with nnstreamer
