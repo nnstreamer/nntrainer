@@ -30,7 +30,11 @@ public:
   /**
    * @brief     Constructor of Activation Layer
    */
-  ActivationLayer(ActivationType at = ActivationType::ACT_NONE);
+  template <typename... Args>
+  ActivationLayer(ActivationType at = ActivationType::ACT_NONE, Args... args) :
+    Layer(LayerType::LAYER_ACTIVATION, args...) {
+    setActivation(at);
+  }
 
   /**
    * @brief     Destructor of Activation Layer

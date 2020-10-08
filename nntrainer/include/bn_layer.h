@@ -42,21 +42,28 @@ public:
   /**
    * @brief     Constructor of Batch Noramlization Layer
    */
-  BatchNormalizationLayer(float epsilon = 0.001, float momentum = 0.99,
-                          int axis = -1) :
+  template <typename... Args>
+  BatchNormalizationLayer(
+    int axis = -1, float momentum = 0.99,
+
+    float epsilon = 0.001,
+    WeightInitializer moving_mean_initializer = WeightInitializer::WEIGHT_ZEROS,
+    WeightInitializer moving_variance_initializer =
+      WeightInitializer::WEIGHT_ZEROS,
+    WeightInitializer gamma_initializer = WeightInitializer::WEIGHT_ONES,
+    WeightInitializer beta_initializer = WeightInitializer::WEIGHT_ONES,
+    Args... args) :
+    Layer(LayerType::LAYER_BN, args...),
     epsilon(epsilon),
     momentum(momentum),
     axis(axis),
-    initializers{
-      WeightInitializer::WEIGHT_ZEROS, WeightInitializer::WEIGHT_ONES,
-      WeightInitializer::WEIGHT_ZEROS, WeightInitializer::WEIGHT_ONES} {
-    setType(LayerType::LAYER_BN);
-  };
+    initializers{moving_variance_initializer, moving_variance_initializer,
+                 gamma_initializer, beta_initializer} {}
 
   /**
    * @brief     Destructor of BatchNormalizationLayer
    */
-  ~BatchNormalizationLayer(){};
+  ~BatchNormalizationLayer() {}
 
   /**
    *  @brief  Move constructor of Pooling 2D Layer.

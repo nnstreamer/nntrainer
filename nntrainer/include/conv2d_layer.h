@@ -31,20 +31,25 @@ public:
   /**
    * @brief     Constructor of Conv 2D Layer
    */
-  Conv2DLayer() :
-    filter_size(0),
-    kernel_size{0, 0},
-    stride{1, 1},
-    padding{0, 0},
-    normalization(false),
-    standardization(false) {
-    setType(LayerType::LAYER_CONV2D);
-  };
+  template <typename... Args>
+  Conv2DLayer(unsigned int filter_size_ = 0,
+              const std::array<unsigned int, CONV2D_DIM> &kernel_size_ = {0, 0},
+              const std::array<unsigned int, CONV2D_DIM> &stride_ = {1, 1},
+              const std::array<unsigned int, CONV2D_DIM> &padding_ = {0, 0},
+              bool normalization_ = false, bool standardization_ = false,
+              Args... args) :
+    Layer(LayerType::LAYER_CONV2D, args...),
+    filter_size(filter_size_),
+    kernel_size(kernel_size_),
+    stride(stride_),
+    padding(padding_),
+    normalization(normalization_),
+    standardization(standardization_) {}
 
   /**
    * @brief     Destructor of Conv 2D Layer
    */
-  ~Conv2DLayer(){};
+  ~Conv2DLayer() {}
 
   /**
    *  @brief  Move constructor of Conv 2D Layer.
@@ -117,9 +122,9 @@ public:
 
 private:
   unsigned int filter_size;
-  unsigned int kernel_size[CONV2D_DIM];
-  unsigned int stride[CONV2D_DIM];
-  unsigned int padding[CONV2D_DIM];
+  std::array<unsigned int, CONV2D_DIM> kernel_size;
+  std::array<unsigned int, CONV2D_DIM> stride;
+  std::array<unsigned int, CONV2D_DIM> padding;
 
   bool normalization;
   bool standardization;
@@ -183,9 +188,10 @@ private:
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
   int conv2d_gemm(const float *mkernel, TensorDim kdim, Tensor const &in,
-                  TensorDim outdim, unsigned int const *mstride,
-                  unsigned int const *pad, float *out, unsigned int osize,
-                  bool channel_mode);
+                  TensorDim outdim,
+                  const std::array<unsigned int, CONV2D_DIM> &stride,
+                  const std::array<unsigned int, CONV2D_DIM> &pad, float *out,
+                  unsigned int osize, bool channel_mode);
 
   /**
    * @brief     reform the data to 2d matrix
@@ -199,7 +205,8 @@ private:
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
   int im2col(Tensor in_padded, TensorDim kdim, float *inCol, TensorDim outdim,
-             unsigned int const *mstride, bool channel_mode);
+             const std::array<unsigned int, CONV2D_DIM> &mstride,
+             bool channel_mode);
 };
 
 } // namespace nntrainer

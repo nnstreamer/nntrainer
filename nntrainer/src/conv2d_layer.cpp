@@ -167,7 +167,7 @@ sharedConstTensor Conv2DLayer::forwarding(sharedConstTensor in) {
 sharedConstTensor Conv2DLayer::backwarding(sharedConstTensor derivative,
                                            int iteration) {
 
-  unsigned int same_pad[CONV2D_DIM];
+  std::array<unsigned int, CONV2D_DIM> same_pad;
 
   same_pad[0] = kernel_size[0] - 1;
   same_pad[1] = kernel_size[1] - 1;
@@ -351,7 +351,7 @@ sharedConstTensor Conv2DLayer::backwarding(sharedConstTensor derivative,
     opt->apply_gradients(weight_list, num_weights, iteration);
   }
 
-  return MAKE_SHARED_TENSOR(std::move(strip_pad(ret, padding)));
+  return MAKE_SHARED_TENSOR(std::move(strip_pad(ret, padding.data())));
 }
 
 void Conv2DLayer::copy(std::shared_ptr<Layer> l) {
@@ -415,7 +415,7 @@ void Conv2DLayer::setProperty(const PropertyType type,
   } break;
   case PropertyType::kernel_size:
     if (!value.empty()) {
-      status = getValues(CONV2D_DIM, value, (int *)(kernel_size));
+      status = getValues(CONV2D_DIM, value, (int *)(kernel_size.data()));
       throw_status(status);
       if (kernel_size[0] == 0 || kernel_size[1] == 0) {
         throw std::invalid_argument(
@@ -425,7 +425,7 @@ void Conv2DLayer::setProperty(const PropertyType type,
     break;
   case PropertyType::stride:
     if (!value.empty()) {
-      status = getValues(CONV2D_DIM, value, (int *)(stride));
+      status = getValues(CONV2D_DIM, value, (int *)(stride.data()));
       throw_status(status);
       if (stride[0] == 0 || stride[1] == 0) {
         throw std::invalid_argument(
@@ -435,7 +435,7 @@ void Conv2DLayer::setProperty(const PropertyType type,
     break;
   case PropertyType::padding:
     if (!value.empty()) {
-      status = getValues(CONV2D_DIM, value, (int *)(padding));
+      status = getValues(CONV2D_DIM, value, (int *)(padding.data()));
       throw_status(status);
     }
     break;
@@ -498,11 +498,11 @@ int Conv2DLayer::conv2d(float *in, TensorDim indim, const float *kernel,
   return status;
 }
 
-int Conv2DLayer::conv2d_gemm(const float *mkernel, TensorDim kdim,
-                             Tensor const &in, TensorDim outdim,
-                             unsigned int const *mstride,
-                             unsigned int const *pad, float *out,
-                             unsigned int osize, bool channel_mode) {
+int Conv2DLayer::conv2d_gemm(
+  const float *mkernel, TensorDim kdim, Tensor const &in, TensorDim outdim,
+  const std::array<unsigned int, CONV2D_DIM> &mstride,
+  const std::array<unsigned int, CONV2D_DIM> &pad, float *out,
+  unsigned int osize, bool channel_mode) {
   int status = ML_ERROR_NONE;
   std::vector<float> in_col;
 
@@ -512,7 +512,7 @@ int Conv2DLayer::conv2d_gemm(const float *mkernel, TensorDim kdim,
     in_col.resize(kdim.width() * kdim.height() * outdim.width());
   }
 
-  Tensor in_padded = zero_pad(0, in, pad);
+  Tensor in_padded = zero_pad(0, in, pad.data());
   status =
     im2col(in_padded, kdim, in_col.data(), outdim, mstride, channel_mode);
   if (status != ML_ERROR_NONE)
@@ -543,7 +543,8 @@ int Conv2DLayer::conv2d_gemm(const float *mkernel, TensorDim kdim,
 }
 
 int Conv2DLayer::im2col(Tensor in_padded, TensorDim kdim, float *in_col,
-                        TensorDim outdim, unsigned int const *mstride,
+                        TensorDim outdim,
+                        const std::array<unsigned int, CONV2D_DIM> &mstride,
                         bool channel_mode) {
 
   int status = ML_ERROR_NONE;

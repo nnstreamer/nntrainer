@@ -29,7 +29,8 @@ public:
   /**
    * @brief     Constructor of Flatten Layer
    */
-  FlattenLayer() { setType(LayerType::LAYER_FLATTEN); };
+  template <typename... Args>
+  FlattenLayer(Args... args) : Layer(LayerType::LAYER_FLATTEN, args...) {}
 
   /**
    * @brief     Destructor of Flatten Layer

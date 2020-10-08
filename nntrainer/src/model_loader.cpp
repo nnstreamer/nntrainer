@@ -14,6 +14,7 @@
 
 #include <databuffer_file.h>
 #include <databuffer_func.h>
+#include <layer_factory.h>
 #include <model_loader.h>
 #include <neuralnet.h>
 #include <nntrainer_error.h>
@@ -169,36 +170,16 @@ int ModelLoader::loadLayerConfigIni(dictionary *ini,
     iniparser_getstring(ini, (layer_name + ":Type").c_str(), unknown);
   LayerType layer_type = (LayerType)parseType(layer_type_str, TOKEN_LAYER);
 
-  switch (layer_type) {
-  case LayerType::LAYER_IN:
-    layer = std::make_shared<InputLayer>();
-    break;
-  case LayerType::LAYER_CONV2D:
-    layer = std::make_shared<Conv2DLayer>();
-    break;
-  case LayerType::LAYER_POOLING2D:
-    layer = std::make_shared<Pooling2DLayer>();
-    break;
-  case LayerType::LAYER_FLATTEN:
-    layer = std::make_shared<FlattenLayer>();
-    break;
-  case LayerType::LAYER_FC:
-    layer = std::make_shared<FullyConnectedLayer>();
-    break;
-  case LayerType::LAYER_BN:
-    layer = std::make_shared<BatchNormalizationLayer>();
-    break;
-  case LayerType::LAYER_ACTIVATION:
-    layer = std::make_shared<ActivationLayer>();
-    break;
-  case LayerType::LAYER_UNKNOWN:
-  default:
-    ml_loge("Error: Unknown layer type from %s, parsed to %d",
-            layer_type_str.c_str(),
-            static_cast<std::underlying_type<LayerType>::type>(layer_type));
+  try {
+    layer = createLayer(layer_type);
+  } catch (const std::exception &e) {
+    ml_loge("%s %s", typeid(e).name(), e.what());
     status = ML_ERROR_INVALID_PARAMETER;
-    NN_RETURN_STATUS();
+  } catch (...) {
+    ml_loge("unknown error type thrown");
+    status = ML_ERROR_INVALID_PARAMETER;
   }
+  NN_RETURN_STATUS();
 
   unsigned int property_end =
     static_cast<unsigned int>(Layer::PropertyType::unknown);

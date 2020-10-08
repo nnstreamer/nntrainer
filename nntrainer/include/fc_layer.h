@@ -29,7 +29,10 @@ public:
   /**
    * @brief     Constructor of Fully Connected Layer
    */
-  FullyConnectedLayer() : unit(0) { setType(LayerType::LAYER_FC); };
+  template <typename... Args>
+  FullyConnectedLayer(unsigned int unit_ = 0, Args... args) :
+    Layer(LayerType::LAYER_FC, args...),
+    unit(unit_) {}
 
   /**
    * @brief     Destructor of Fully Connected Layer

@@ -84,17 +84,24 @@ public:
   /**
    * @brief     Constructor of Layer Class
    */
-  Layer() :
+  Layer(
+    LayerType type_, ActivationType activation_type_ = ActivationType::ACT_NONE,
+    WeightRegularizerType weight_regularizer_ = WeightRegularizerType::unknown,
+    const float weight_regularizer_constant_ = 1.0f,
+    WeightInitializer weight_initializer_ =
+      WeightInitializer::WEIGHT_XAVIER_UNIFORM,
+    WeightInitializer bias_initializer_ = WeightInitializer::WEIGHT_ZEROS,
+    bool trainable_ = true, bool flatten_ = false) :
     name(std::string()),
-    type(LayerType::LAYER_UNKNOWN),
+    type(type_),
     loss(0.0f),
-    activation_type(ActivationType::ACT_NONE),
-    weight_regularizer(WeightRegularizerType::unknown),
-    weight_regularizer_constant(0.0f),
-    weight_initializer(WeightInitializer::WEIGHT_XAVIER_UNIFORM),
-    bias_initializer(WeightInitializer::WEIGHT_ZEROS),
-    flatten(false),
-    trainable(true),
+    activation_type(activation_type_),
+    weight_regularizer(weight_regularizer_),
+    weight_regularizer_constant(weight_regularizer_constant_),
+    weight_initializer(weight_initializer_),
+    bias_initializer(bias_initializer_),
+    flatten(flatten_),
+    trainable(trainable_),
     num_weights(0),
     num_inputs(1),
     num_outputs(1) {}

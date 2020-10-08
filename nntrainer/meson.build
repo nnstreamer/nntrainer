@@ -67,6 +67,7 @@ nntrainer_headers = [
   'include/flatten_layer.h',
   'include/input_layer.h',
   'include/layer.h',
+  'include/layer_factory.h',
   'include/lazy_tensor.h',
   'include/loss_layer.h',
   'include/model_loader.h',
