@@ -76,12 +76,10 @@ int view_init(appdata_s *ad) {
   ad->win = win;
   ad->conform = conform;
 
-  ecore_pipe_freeze(ad->data_output_pipe);
-
   return status;
 }
 
-void view_pop_naviframe(appdata_s *ad, const Elm_Object_Item *to) {
+void view_pop_naviframe(appdata_s *ad, Elm_Object_Item *to) {
   if (ad->nf_it == NULL || ad->nf_it == ad->home) {
     LOG_E("naviframe is null or at home, shutdown app instead");
     ui_app_exit();
@@ -97,7 +95,6 @@ void view_pop_naviframe(appdata_s *ad, const Elm_Object_Item *to) {
   ad->nf_it = elm_naviframe_top_item_get(ad->naviframe);
   ad->layout =
     elm_object_item_part_content_get(ad->nf_it, "elm.swallow.content");
-  LOG_D("item popped layout: %x nf_it: %x", ad->layout, ad->nf_it);
 }
 
 /**
@@ -257,8 +254,8 @@ int view_init_canvas(appdata_s *ad) {
     return APP_ERROR_INVALID_PARAMETER;
   }
 
-  evas_object_move(frame, 70, 70);
-  evas_object_resize(frame, 224, 224);
+  evas_object_move(frame, 0, 70);
+  evas_object_resize(frame, 360, 224);
   evas_object_show(frame);
   Evas_Coord width, height, x, y;
 
@@ -337,28 +334,20 @@ int view_init_canvas(appdata_s *ad) {
   return APP_ERROR_NONE;
 }
 
-void view_update_result_cb(void *data, void *buffer, unsigned int nbytes) {
+void *view_update_train_progress(void *data) {
   appdata_s *ad = (appdata_s *)data;
-
   char tmp[255];
 
-  train_result_s result;
-  if (data_parse_result_string(buffer, &result) != 0) {
-    LOG_W("parse failed. current buffer is being ignored");
-    return;
-  }
+  snprintf(tmp, 255, "%.0f%%", ad->best_accuracy);
+  elm_object_part_text_set(ad->layout, "train_progress/accuracy", tmp);
 
-  if (result.accuracy > ad->best_accuracy) {
-    ad->best_accuracy = result.accuracy;
-    snprintf(tmp, 255, "%.0f%%", ad->best_accuracy);
-    elm_object_part_text_set(ad->layout, "train_progress/accuracy", tmp);
-  }
-
-  snprintf(tmp, 255, "%d tries", result.epoch);
+  snprintf(tmp, 255, "%d epoch", ad->current_epoch);
   elm_object_part_text_set(ad->layout, "train_progress/epoch", tmp);
 
-  snprintf(tmp, 255, "Loss: %.2f", result.train_loss);
+  snprintf(tmp, 255, "Loss: %.2f", ad->train_loss);
   elm_object_part_text_set(ad->layout, "train_progress/loss", tmp);
+
+  return NULL;
 }
 
 void view_update_guess(void *data) {

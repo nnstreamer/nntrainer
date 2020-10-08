@@ -63,13 +63,14 @@ static void notify_train_done(void *data) {
 static void *train_(void *data) {
   int status = ML_ERROR_NONE;
   appdata_s *ad = (appdata_s *)data;
+  FILE *fp;
+  char buf[255];
+
   status = pipe(ad->pipe_fd);
   if (status < 0) {
     LOG_E("opening pipe for training failed");
     goto RESTORE_CB;
   }
-
-  ad->best_accuracy = 0.0;
 
   LOG_D("creating thread to run model");
   status = pthread_create(&ad->tid_writer, NULL, data_run_model, (void *)ad);
@@ -78,18 +79,17 @@ static void *train_(void *data) {
     goto RESTORE_CB;
   }
 
-  status =
-    pthread_create(&ad->tid_reader, NULL, data_update_train_result, (void *)ad);
-  if (status < 0) {
-    LOG_E("creating pthread failed %s", strerror(errno));
-    pthread_cancel(ad->tid_writer);
-    goto RESTORE_CB;
-  }
+  LOG_D("prepare to update the progress");
+  ad->best_accuracy = 0.0;
+  fp = fdopen(ad->pipe_fd[0], "r");
 
-  status = pthread_join(ad->tid_reader, NULL);
-  if (status < 0) {
-    LOG_E("joining reader thread failed %s", strerror(errno));
-    pthread_cancel(ad->tid_reader);
+  while (fgets(buf, 255, fp) != NULL) {
+    status = data_update_train_progress(ad, buf);
+    if (status != APP_ERROR_NONE) {
+      LOG_W("updating training progress failed");
+      continue;
+    }
+    ecore_main_loop_thread_safe_call_sync(view_update_train_progress, data);
   }
 
   status = pthread_join(ad->tid_writer, NULL);
@@ -98,6 +98,8 @@ static void *train_(void *data) {
     pthread_cancel(ad->tid_writer);
   }
 
+  fclose(fp);
+  close(ad->pipe_fd[0]);
 RESTORE_CB:
   ecore_main_loop_thread_safe_call_async(&notify_train_done, data);
   return NULL;
@@ -288,13 +290,6 @@ static bool app_create(void *data) {
 
   pthread_mutex_init(&ad->pipe_lock, NULL);
   pthread_cond_init(&ad->pipe_cond, NULL);
-  ad->data_output_pipe = ecore_pipe_add(view_update_result_cb, (void *)ad);
-  if (ad->data_output_pipe == NULL) {
-    LOG_E("making data out pipe failed");
-    free(data_path);
-    return false;
-  }
-
   util_get_resource_path(EDJ_PATH, ad->edj_path, false);
 
   LOG_D("changing root directory to %s", data_path);
@@ -312,8 +307,6 @@ static bool app_create(void *data) {
                                  eext_naviframe_more_cb, NULL);
 
   presenter_on_routes_request(data, NULL, NULL, "home");
-
-  LOG_D("layout: %x, nf_it: %x", ad->layout, ad->nf_it);
   ad->home = ad->nf_it;
 
   return true;
@@ -339,7 +332,6 @@ static void app_terminate(void *data) { /* Release all resources. */
 
   pthread_mutex_destroy(&ad->pipe_lock);
   pthread_cond_destroy(&ad->pipe_cond);
-  ecore_pipe_del(ad->data_output_pipe);
 }
 
 static void ui_app_lang_changed(app_event_info_h event_info, void *user_data) {
