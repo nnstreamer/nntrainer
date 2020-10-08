@@ -32,14 +32,6 @@
 namespace nntrainer {
 
 /**
- * @brief     Constructor of Activation Layer
- */
-ActivationLayer::ActivationLayer(ActivationType at) : Layer() {
-  setType(LayerType::LAYER_ACTIVATION);
-  setActivation(at);
-}
-
-/**
  * @brief     Initialize the layer
  *
  * @retval #ML_ERROR_NONE Successful.

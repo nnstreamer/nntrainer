@@ -40,18 +40,23 @@ public:
   /**
    * @brief     Constructor of Pooling 2D Layer
    */
-  Pooling2DLayer() :
-    pool_size{0, 0},
-    stride{1, 1},
-    padding{0, 0},
-    pooling_type(PoolingType::average) {
-    setType(LayerType::LAYER_POOLING2D);
-  };
+  template <typename... Args>
+  Pooling2DLayer(
+    PoolingType pooling_type_ = PoolingType::average,
+    const std::array<unsigned int, POOLING2D_DIM> &pool_size_ = {0, 0},
+    const std::array<unsigned int, POOLING2D_DIM> &stride_ = {1, 1},
+    const std::array<unsigned int, POOLING2D_DIM> &padding_ = {0, 0},
+    Args... args) :
+    Layer(LayerType::LAYER_POOLING2D, args...),
+    pool_size(pool_size_),
+    stride(stride_),
+    padding(padding_),
+    pooling_type(pooling_type_) {}
 
   /**
    * @brief     Destructor of Pooling 2D Layer
    */
-  ~Pooling2DLayer(){};
+  ~Pooling2DLayer() {}
 
   /**
    *  @brief  Move constructor of Pooling 2D Layer.
@@ -128,9 +133,9 @@ public:
   void setProperty(const PropertyType type, const std::string &value = "");
 
 private:
-  unsigned int pool_size[POOLING2D_DIM];
-  unsigned int stride[POOLING2D_DIM];
-  unsigned int padding[POOLING2D_DIM];
+  std::array<unsigned int, POOLING2D_DIM> pool_size;
+  std::array<unsigned int, POOLING2D_DIM> stride;
+  std::array<unsigned int, POOLING2D_DIM> padding;
   std::vector<unsigned int> max_idx;
   std::vector<std::vector<unsigned int>> max_idx_global;
   PoolingType pooling_type;

@@ -26,3 +26,17 @@ ml_optimizer_to_nntrainer_type(ml_train_optimizer_type_e type) {
     return nntrainer::OptType::unknown;
   }
 }
+
+/**
+ * @brief Convert nntrainer API layer type to neural network layer type
+ */
+nntrainer::LayerType ml_layer_to_nntrainer_type(ml_train_layer_type_e type) {
+  switch (type) {
+  case ML_TRAIN_LAYER_TYPE_FC:
+    return nntrainer::LayerType::LAYER_FC;
+  case ML_TRAIN_LAYER_TYPE_INPUT:
+    return nntrainer::LayerType::LAYER_IN;
+  default:
+    return nntrainer::LayerType::LAYER_UNKNOWN;
+  }
+}

@@ -29,10 +29,11 @@ public:
   /**
    * @brief     Constructor of Addition Layer
    */
-  AdditionLayer() {
-    setType(LayerType::LAYER_ADDITION);
-    num_inputs = 0;
-  };
+  template <typename... Args>
+  AdditionLayer(unsigned int num_inputs_ = 0, Args... args) :
+    Layer(LayerType::LAYER_ADDITION, args...) {
+    num_inputs = num_inputs_;
+  }
 
   /**
    * @brief     Destructor of Addition Layer

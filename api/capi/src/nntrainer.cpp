@@ -24,6 +24,7 @@
 #include <databuffer.h>
 #include <databuffer_file.h>
 #include <databuffer_func.h>
+#include <layer_factory.h>
 #include <neuralnet.h>
 #include <nntrainer_error.h>
 #include <nntrainer_internal.h>
@@ -512,38 +513,27 @@ int ml_train_model_get_layer(ml_train_model_h model, const char *layer_name,
 
 int ml_train_layer_create(ml_train_layer_h *layer, ml_train_layer_type_e type) {
   int status = ML_ERROR_NONE;
-  returnable f;
   ml_train_layer *nnlayer;
 
   check_feature_state();
 
   nnlayer = new ml_train_layer;
   nnlayer->magic = ML_NNTRAINER_MAGIC;
+  nnlayer->in_use = false;
 
-  switch (type) {
-  case ML_TRAIN_LAYER_TYPE_INPUT:
-    status =
-      exception_bounded_make_shared<nntrainer::InputLayer>(nnlayer->layer);
-    break;
-  case ML_TRAIN_LAYER_TYPE_FC:
-    status = exception_bounded_make_shared<nntrainer::FullyConnectedLayer>(
-      nnlayer->layer);
-    break;
-  default:
-    delete nnlayer;
-    ml_loge("Error: Unknown layer type");
-    status = ML_ERROR_INVALID_PARAMETER;
-    return status;
-  }
+  returnable f = [&]() {
+    nnlayer->layer = createLayer(ml_layer_to_nntrainer_type(type));
+    return ML_ERROR_NONE;
+  };
 
+  status = nntrainer_exception_boundary(f);
   if (status != ML_ERROR_NONE) {
     delete nnlayer;
     ml_loge("Error: Create layer failed");
-    return status;
+  } else {
+    *layer = nnlayer;
   }
 
-  nnlayer->in_use = false;
-  *layer = nnlayer;
   return status;
 }
 

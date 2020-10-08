@@ -63,7 +63,7 @@ sharedConstTensor Pooling2DLayer::forwarding(sharedConstTensor in) {
   hidden.setZero();
 
   for (unsigned int b = 0; b < input_dim.batch(); ++b) {
-    Tensor in_padded = zero_pad(b, input, padding);
+    Tensor in_padded = zero_pad(b, input, padding.data());
     Tensor result = pooling2d(b, in_padded);
     memcpy(hidden.getAddress(b * hidden.getDim().getFeatureLen()),
            result.getData(), result.getDim().getDataLen() * sizeof(float));
@@ -211,7 +211,7 @@ void Pooling2DLayer::setProperty(const PropertyType type,
     }
   case PropertyType::pool_size:
     if (!value.empty()) {
-      status = getValues(POOLING2D_DIM, value, (int *)(pool_size));
+      status = getValues(POOLING2D_DIM, value, (int *)(pool_size.data()));
       throw_status(status);
       if (pool_size[0] == 0 || pool_size[1] == 0) {
         throw std::invalid_argument(
@@ -221,7 +221,7 @@ void Pooling2DLayer::setProperty(const PropertyType type,
     break;
   case PropertyType::stride:
     if (!value.empty()) {
-      status = getValues(POOLING2D_DIM, value, (int *)(stride));
+      status = getValues(POOLING2D_DIM, value, (int *)(stride.data()));
       throw_status(status);
       if (stride[0] == 0 || stride[1] == 0) {
         throw std::invalid_argument(
@@ -231,7 +231,7 @@ void Pooling2DLayer::setProperty(const PropertyType type,
     break;
   case PropertyType::padding:
     if (!value.empty()) {
-      status = getValues(POOLING2D_DIM, value, (int *)(padding));
+      status = getValues(POOLING2D_DIM, value, (int *)(padding.data()));
       throw_status(status);
       if ((int)padding[0] < 0 || (int)padding[1] < 0) {
         throw std::invalid_argument(

@@ -337,4 +337,11 @@ void ml_tizen_set_feature_state(feature_state_t state);
 nntrainer::OptType
 ml_optimizer_to_nntrainer_type(ml_train_optimizer_type_e type);
 
+/**
+ * @brief Convert nntrainer API layer type to neural network layer type
+ * @param[in] type Layer type API enum
+ * @return nntrainer::LayerType layer type
+ */
+nntrainer::LayerType ml_layer_to_nntrainer_type(ml_train_layer_type_e type);
+
 #endif

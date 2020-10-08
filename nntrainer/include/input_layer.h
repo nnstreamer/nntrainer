@@ -38,14 +38,17 @@ public:
   /**
    * @brief     Constructor of InputLayer
    */
-  InputLayer() : normalization(false), standardization(false) {
-    setType(LayerType::LAYER_IN);
-  };
+  template <typename... Args>
+  InputLayer(bool normalization = false, bool standardization = false,
+             Args... args) :
+    Layer(LayerType::LAYER_IN, args...),
+    normalization(false),
+    standardization(false) {}
 
   /**
    * @brief     Destructor of InputLayer
    */
-  ~InputLayer(){};
+  ~InputLayer() {}
 
   /**
    *  @brief  Move constructor of Pooling 2D Layer.
