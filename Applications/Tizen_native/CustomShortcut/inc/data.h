@@ -38,6 +38,12 @@
 #define FEATURE_SIZE 62720
 #define NUM_CLASS 2
 
+#define CUT_OFF_THRESHOLD 0.85
+
+#define EMOJI_SAD "😢"
+#define EMOJI_SMILE "😊"
+#define EMOJI_UNKNOWN "❓"
+
 typedef enum MODE_ {
   MODE_INFER = 0,
   MODE_TRAIN,
@@ -80,6 +86,7 @@ typedef struct appdata {
   char pipe_dst[PATH_MAX];      /**< destination path where to save */
   pthread_mutex_t pipe_lock; /**< ensures that only one pipe runs at a time */
   pthread_cond_t pipe_cond;  /**< pipe condition to block at a point */
+  float probability;         /**< softmax label result of the inference */
 
   /**< Training related */
   pthread_t tid_writer;       /**< thread handler to run trainer */

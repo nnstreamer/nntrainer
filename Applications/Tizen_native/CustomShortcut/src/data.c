@@ -165,13 +165,13 @@ int util_get_emoji(LABEL label, char **emoji_str) {
   /// setting draw label and text
   switch (label) {
   case LABEL_UNSET:
-    strcpy(*emoji_str, "❓");
+    strcpy(*emoji_str, EMOJI_UNKNOWN);
     return APP_ERROR_NONE;
   case LABEL_SMILE:
-    strcpy(*emoji_str, "😊");
+    strcpy(*emoji_str, EMOJI_SMILE);
     return APP_ERROR_NONE;
   case LABEL_FROWN:
-    strcpy(*emoji_str, "😢");
+    strcpy(*emoji_str, EMOJI_SAD);
     return APP_ERROR_NONE;
   default:
     LOG_E("unreachable code");
@@ -599,6 +599,8 @@ static void on_inference_end_(ml_tensors_data_h data,
   /// SMILE: 0 1
   /// FROWN: 1 0
   LOG_D("\033[33mlabel: %lf %lf\033[0m", raw_data[0], raw_data[1]);
+
+  ad->probability = raw_data[0] < raw_data[1] ? raw_data[1] : raw_data[0];
   ad->label = raw_data[0] < raw_data[1] ? LABEL_SMILE : LABEL_FROWN;
 
 RESUME:
