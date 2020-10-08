@@ -353,6 +353,8 @@ void *view_update_train_progress(void *data) {
 void view_update_guess(void *data) {
   appdata_s *ad = (appdata_s *)data;
   char *emoji;
+  char title[PATH_MAX];
+  char result[PATH_MAX];
   int status = util_get_emoji(ad->label, &emoji);
   if (status != APP_ERROR_NONE) {
     LOG_E("error getting emoji, reason: %d", status);
@@ -360,12 +362,16 @@ void view_update_guess(void *data) {
   }
 
   LOG_I("\033[33m%s\033[0m", emoji);
-  elm_object_part_text_set(ad->layout, "test_result/title",
-                           "guess successfully done");
+  snprintf(title, PATH_MAX, "acc: %lf", ad->probability);
+  elm_object_part_text_set(ad->layout, "test_result/title", title);
+
   elm_config_font_overlay_set("test_result/label/class", "Tizen:style=Regular",
                               -150);
   elm_config_font_overlay_apply();
-  elm_object_part_text_set(ad->layout, "test_result/label", emoji);
+
+  snprintf(result, PATH_MAX, "%s%s", emoji,
+           ad->probability < CUT_OFF_THRESHOLD ? "?" : "");
+  elm_object_part_text_set(ad->layout, "test_result/label", result);
   free(emoji);
 
   return;
