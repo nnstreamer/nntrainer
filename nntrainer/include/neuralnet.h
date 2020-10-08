@@ -115,7 +115,7 @@ public:
    * @brief     Get Learning rate
    * @retval    Learning rate
    */
-  float getLearningRate() { return opt.getLearningRate(); };
+  float getLearningRate() { return opt->getLearningRate(); };
 
   /**
    * @brief     Create and load the Network with ini configuration file.
@@ -305,8 +305,8 @@ private:
 
   std::string save_path; /**< Model path to save / read */
 
-  Optimizer opt; /**< Optimizer, This gets copied into each layer, do not use
-                    this directly */
+  std::shared_ptr<Optimizer> opt; /**< Optimizer; this gets copied into each
+                    layer, do not use this directly */
 
   NetType net_type; /**< Network Type */
 

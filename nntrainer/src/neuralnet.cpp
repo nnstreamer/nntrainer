@@ -162,7 +162,7 @@ int NeuralNetwork::setTrainConfig(std::vector<std::string> values) {
       status = setBoolean(cont_train, value);
       NN_RETURN_STATUS();
       continue_train = cont_train;
-      opt.setProperty({values[i]});
+      opt->setProperty({values[i]});
     } break;
     case PropertyType::batch_size: {
       status = setUint(batch_size, value);
@@ -597,7 +597,7 @@ int NeuralNetwork::setOptimizer(std::shared_ptr<Optimizer> optimizer) {
     return ML_ERROR_NOT_SUPPORTED;
   }
 
-  opt = *optimizer.get();
+  opt = optimizer;
 
   return ML_ERROR_NONE;
 }

@@ -37,45 +37,29 @@ namespace nntrainer {
  */
 enum class OptType { sgd = 0, adam = 1, unknown = 2 };
 
-/**
- * @brief     type for the Optimizor to save hyper-parameter
- */
-typedef struct _OptParam {
-  float learning_rate;
-  double beta1;
-  double beta2;
-  double epsilon;
-  float decay_rate;
-  float decay_steps;
-  bool continue_train; /** Continue training with previous tensors for adam */
-
-  _OptParam(OptType type = OptType::adam) :
-    learning_rate(0.001f),
-    beta1(0.9f),
-    beta2(0.999f),
-    epsilon(1.0e-7f),
-    decay_rate(1.0f),
-    decay_steps(-1.0f),
-    continue_train(false) {
-    if (type == OptType::sgd) {
-      learning_rate = 0.01f;
-    }
-  }
-} OptParam;
-
 class Optimizer {
+
+  /** Allow layer to initialize optimizer with itself */
+  friend class Layer;
+
 public:
   /**
-   * @brief     Constructor of Optimizer Class
+   * @brief     Default Constructor of Optimizer Class
    */
-  Optimizer() : type(OptType::unknown), popt() {}
-
-  Optimizer(const OptType type, OptParam popt);
+  Optimizer(const OptType t, float lr, float decay_rate = 1.0f,
+            float decay_steps = -1.0f, float continue_train = false) :
+    type(t),
+    learning_rate(lr),
+    decay_rate(decay_rate),
+    decay_steps(decay_steps),
+    continue_train(continue_train) {
+    checkValidation();
+  }
 
   /**
    * @brief     Destructor of Optimizer Class
    */
-  ~Optimizer() {}
+  virtual ~Optimizer() {}
 
   /**
    * @brief  copy constructor
@@ -102,14 +86,6 @@ public:
   Optimizer &operator=(Optimizer &&rhs) = default;
 
   /**
-   * @brief     set Optimizer Type
-   * @param[in] t Optimizer type
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   */
-  int setType(OptType t);
-
-  /**
    * @brief     get Optimizer Type
    * @retval    Optimizer type
    */
@@ -119,27 +95,19 @@ public:
    * @brief     get Learning Rate
    * @retval    Learning rate
    */
-  float getLearningRate() { return popt.learning_rate; };
+  float getLearningRate() { return learning_rate; };
 
   /**
    * @brief     get Decay Rate for learning rate decay
    * @retval    decay rate
    */
-  float getDecayRate() { return popt.decay_rate; };
+  float getDecayRate() { return decay_rate; };
 
   /**
    * @brief     get Decay Steps for learning rate decay
    * @retval    decay steps
    */
-  float getDecaySteps() { return popt.decay_steps; };
-
-  /**
-   * @brief     set Optimizer Parameters
-   * @param[in] p Optimizer Parameter : OptParam
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   */
-  int setOptParam(OptParam p);
+  float getDecaySteps() { return decay_steps; };
 
   /**
    * @brief     set Optimizer Parameters
@@ -148,25 +116,6 @@ public:
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
   int setProperty(std::vector<std::string> values);
-
-  /**
-   * @brief     get Optimizer Parameters
-   * @retval OptParam
-   */
-  OptParam getOptParam() { return popt; };
-
-  /**
-   * @brief     initialize optimizer. Initialize Weight if it is adam
-   * @param[in] params Weight list
-   * @param[in] num_weights size of the array
-   * @param[in] setTensor true if the layer need weight update.
-   *            Input Layer and Batch Normalization layer won't need it.
-   *            Therefore, it sets false.
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   */
-  int initialize(std::shared_ptr<Weight> params, unsigned int num_weights,
-                 bool setTensor);
 
   /**
    * @brief     apply gradient to weight_list
@@ -201,36 +150,82 @@ public:
    * @brief     Read Training optimizer paramters from file
    * @param[in] file input stream file
    */
-  void read(std::ifstream &file);
+  virtual void read(std::ifstream &file);
 
   /**
    * @brief     Save Training optimizer paramters from file
    * @param[in] file output stream file
    */
-  void save(std::ofstream &file);
+  virtual void save(std::ofstream &file);
 
   /**
-   * @brief     get the base name for the layer
-   * @retval    base name of the layer
+   * @brief setProperty by PropertyType
+   * @note By passing empty string, this can validate if @a type is valid
+   * @param[in] type property type to be passed
+   * @param[in] value value to be passed, if empty string is passed, do nothing
+   * but throws error when @a type is invalid
+   * @exception exception::not_supported     when property type is not valid for
+   * the particular layer
+   * @exception std::invalid_argument invalid argument
    */
-  std::string getBaseName() { return "Optimizer"; };
+  virtual void setProperty(const PropertyType type,
+                           const std::string &value = "");
 
-private:
+  /**
+   * @brief     get the base name for the optimizer
+   * @retval    base name of the optimizer
+   */
+  virtual std::string getBaseName() = 0;
+
+  /**
+   * @brief     validate the optimizer
+   */
+  virtual void checkValidation();
+
+protected:
   /**
    * @brief Optimizer Type
    */
   OptType type;
 
   /**
-   * @brief Optimizer Hyper Parmeters
+   * @brief     get Learning Rate for the given iteration
+   * @param[in] iteration Iteration for the learning rate
+   * @retval    Learning rate
    */
-  OptParam popt;
+  virtual double getLearningRate(int iteration);
+
+  float learning_rate; /** learning rate */
+  float decay_rate;    /** decay rate for learning rate */
+  float decay_steps;   /** decay steps for learning rate */
+  bool continue_train; /** Continue training with previous tensors for adam */
+
+private:
+  /**
+   * @brief     initialize optimizer. Initialize Weight if it is adam
+   * @param[in] params Weight list
+   * @param[in] num_weights size of the array
+   * @param[in] setTensor true if the layer need weight update.
+   *            Input Layer and Batch Normalization layer won't need it.
+   *            Therefore, it sets false.
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  virtual int initialize(std::shared_ptr<Weight> params,
+                         unsigned int num_weights, bool setTensor);
 
   /**
-   * @brief Internal Tensors for adam Optimizer
+   * @brief     apply gradient to the given weight
+   * @param[in] weight Weight and gradient set to be updated
+   * @param[in] tensor_idx Idx of this tensor in the tensors list
+   * @param[in] num_weights size of the array
+   * @param[in] iteration nth epoch number
+   * @note weight which is called upon can be assumed to be trainable
    */
-  std::vector<std::pair<Tensor, Tensor>> weight_mv;
+  virtual void apply_gradient(Weight &weight, int tensor_idx, double updated_lr,
+                              int iteration) = 0;
 };
+
 } /* namespace nntrainer */
 
 #endif /* __cplusplus */

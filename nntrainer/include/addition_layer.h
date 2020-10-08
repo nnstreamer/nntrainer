@@ -82,12 +82,6 @@ public:
   sharedConstTensor backwarding(sharedConstTensor in, int iteration);
 
   /**
-   * @brief     copy layer
-   * @param[in] l layer to copy
-   */
-  void copy(std::shared_ptr<Layer> l);
-
-  /**
    * @brief     get the base name for the layer
    * @retval    base name of the layer
    */

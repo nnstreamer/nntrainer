@@ -68,12 +68,6 @@ public:
   sharedConstTensor backwarding(sharedConstTensor in, int iteration);
 
   /**
-   * @brief     copy layer
-   * @param[in] l layer to copy
-   */
-  void copy(std::shared_ptr<Layer> l);
-
-  /**
    * @brief setActivation by preset ActivationType
    *
    * @param[in] ActivationTypeeActivationTypeeActivationTypeet

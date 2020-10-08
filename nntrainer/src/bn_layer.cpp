@@ -176,7 +176,7 @@ BatchNormalizationLayer::backwarding(sharedConstTensor derivative,
   Tensor dx = dx_2.multiply(dx_1);
   dx.divide_i(N);
 
-  opt.apply_gradients(weight_list, num_weights, iteration);
+  opt->apply_gradients(weight_list, num_weights, iteration);
 
   return MAKE_SHARED_TENSOR(std::move(dx));
 }
@@ -186,11 +186,6 @@ void BatchNormalizationLayer::copy(std::shared_ptr<Layer> l) {
 
   std::shared_ptr<BatchNormalizationLayer> from =
     std::static_pointer_cast<BatchNormalizationLayer>(l);
-  this->opt = from->opt;
-  this->input_dim = from->input_dim;
-  this->output_dim = from->output_dim;
-  this->input.copy(from->input);
-  this->hidden.copy(from->hidden);
   this->cvar.copy(from->cvar);
 }
 

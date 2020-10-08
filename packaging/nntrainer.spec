@@ -338,6 +338,9 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %{_includedir}/nntrainer/nntrainer-api-common.h
 %{_includedir}/nntrainer/blas_interface.h
 %{_includedir}/nntrainer/weight.h
+%{_includedir}/nntrainer/adam.h
+%{_includedir}/nntrainer/sgd.h
+%{_includedir}/nntrainer/optimizer_factory.h
 %{_libdir}/pkgconfig/nntrainer.pc
 
 %files devel-static

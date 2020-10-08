@@ -24,6 +24,7 @@
 #include <layer.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
+#include <optimizer_factory.h>
 #include <parse_util.h>
 #include <util_func.h>
 
@@ -40,11 +41,9 @@ int Layer::setActivation(ActivationType acti) {
   return status;
 }
 
-int Layer::setOptimizer(Optimizer &opt) {
-  this->opt.setType(opt.getType());
-  this->opt.setOptParam(opt.getOptParam());
-
-  return this->opt.initialize(weight_list, num_weights, true);
+int Layer::setOptimizer(std::shared_ptr<Optimizer> opt) {
+  this->opt = createOptimizer(opt->getType(), *opt.get());
+  return this->opt->initialize(weight_list, num_weights, true);
 }
 
 int Layer::checkValidation() {
@@ -72,6 +71,23 @@ void Layer::copy(std::shared_ptr<Layer> l) {
   for (unsigned int i = 0; i < num_weights; ++i) {
     weightAt(i) = l->weightAt(i);
   }
+
+  // TODO: fix this #630
+  this->opt = l->opt;
+  this->input_dim = l->input_dim;
+  this->output_dim = l->output_dim;
+  this->input.copy(l->input);
+  this->hidden.copy(l->hidden);
+  this->activation_type = l->activation_type;
+  this->loss = l->loss;
+  this->type = l->type;
+  this->weight_regularizer = l->weight_regularizer;
+  this->weight_regularizer_constant = l->weight_regularizer_constant;
+  this->weight_initializer = l->weight_initializer;
+  this->flatten = l->flatten;
+  this->trainable = l->trainable;
+  this->num_inputs = l->num_inputs;
+  this->num_outputs = l->num_outputs;
 }
 
 void Layer::read(std::ifstream &file) {

@@ -88,12 +88,14 @@ sharedConstTensor FullyConnectedLayer::forwarding(sharedConstTensor in) {
 
 void FullyConnectedLayer::read(std::ifstream &file) {
   Layer::read(file);
-  opt.read(file);
+  if (opt)
+    opt->read(file);
 }
 
 void FullyConnectedLayer::save(std::ofstream &file) {
   Layer::save(file);
-  opt.save(file);
+  if (opt)
+    opt->save(file);
 }
 
 void FullyConnectedLayer::copy(std::shared_ptr<Layer> l) {
@@ -101,13 +103,7 @@ void FullyConnectedLayer::copy(std::shared_ptr<Layer> l) {
 
   std::shared_ptr<FullyConnectedLayer> from =
     std::static_pointer_cast<FullyConnectedLayer>(l);
-  this->opt = from->opt;
   this->unit = from->unit;
-  this->input_dim = from->input_dim;
-  this->output_dim = from->output_dim;
-  this->input.copy(from->input);
-  this->hidden.copy(from->hidden);
-  this->loss = from->loss;
 }
 
 sharedConstTensor FullyConnectedLayer::backwarding(sharedConstTensor derivative,
@@ -127,7 +123,7 @@ sharedConstTensor FullyConnectedLayer::backwarding(sharedConstTensor derivative,
   djdw = djdw.sum(0);
 
   if (trainable) {
-    opt.apply_gradients(weight_list, num_weights, iteration);
+    opt->apply_gradients(weight_list, num_weights, iteration);
   }
 
   return MAKE_SHARED_TENSOR(std::move(ret));

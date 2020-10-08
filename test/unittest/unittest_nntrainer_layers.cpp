@@ -23,7 +23,7 @@
 #include <loss_layer.h>
 #include <nntrainer_error.h>
 #include <nntrainer_test_util.h>
-#include <optimizer.h>
+#include <optimizer_factory.h>
 #include <pooling2d_layer.h>
 #include <tensor_dim.h>
 #include <util_func.h>
@@ -134,10 +134,10 @@ protected:
       input_str.push_back((*i).str());
     }
 
-    nntrainer::Optimizer op;
-    int status = op.setType(type);
-    EXPECT_EQ(status, ML_ERROR_NONE);
-    status = op.setProperty(input_str);
+    std::shared_ptr<nntrainer::Optimizer> op;
+    EXPECT_NO_THROW(op = createOptimizer(type));
+
+    status = op->setProperty(input_str);
     EXPECT_EQ(status, ML_ERROR_NONE);
     status = layer.setOptimizer(op);
     EXPECT_EQ(status, ML_ERROR_NONE);
@@ -1288,18 +1288,16 @@ TEST_F(nntrainer_Conv2DLayer, backwarding_03_p) {
   status = layer2.initialize();
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  nntrainer::Optimizer op;
-  int status = op.setType(nntrainer::OptType::sgd);
-  EXPECT_EQ(status, ML_ERROR_NONE);
-  status = op.setProperty({"learning_rate=1.0"});
+  std::shared_ptr<nntrainer::Optimizer> op;
+  EXPECT_NO_THROW(op = createOptimizer(nntrainer::OptType::sgd));
+  status = op->setProperty({"learning_rate=1.0"});
   EXPECT_EQ(status, ML_ERROR_NONE);
   status = layer1.setOptimizer(op);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  nntrainer::Optimizer op2;
-  status = op2.setType(nntrainer::OptType::sgd);
-  EXPECT_EQ(status, ML_ERROR_NONE);
-  status = op2.setProperty({"learning_rate=1.0"});
+  std::shared_ptr<nntrainer::Optimizer> op2;
+  EXPECT_NO_THROW(op2 = createOptimizer(nntrainer::OptType::sgd));
+  status = op2->setProperty({"learning_rate=1.0"});
   EXPECT_EQ(status, ML_ERROR_NONE);
   status = layer2.setOptimizer(op2);
   EXPECT_EQ(status, ML_ERROR_NONE);

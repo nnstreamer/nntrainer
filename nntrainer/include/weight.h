@@ -55,6 +55,8 @@ class Weight {
 
   /** Declare opitmizer as friend to get variable/gradient reference */
   friend class Optimizer;
+  friend class SGD;
+  friend class Adam;
 
 public:
   /**

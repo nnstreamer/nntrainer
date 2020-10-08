@@ -20,13 +20,16 @@
  * @author      Jijoong Moon <jijoong.moon@samsung.com>
  * @bug         No known bugs
  */
-#include "databuffer_file.h"
-#include "databuffer_func.h"
-#include "neuralnet.h"
-#include "nntrainer_test_util.h"
-#include "util_func.h"
 #include <fstream>
+
+#include <databuffer_file.h>
+#include <databuffer_func.h>
+#include <neuralnet.h>
 #include <nntrainer_error.h>
+#include <optimizer_factory.h>
+#include <util_func.h>
+
+#include <nntrainer_test_util.h>
 
 /**
  * @brief Neural Network Model initialization
@@ -196,54 +199,28 @@ TEST(nntrainer_NeuralNetwork, init_03_p) {
 }
 
 /**
- * @brief Optimizer set type
+ * @brief Optimizer create
  */
-TEST(nntrainer_Optimizer, setType_01_p) {
-  int status = ML_ERROR_NONE;
-  nntrainer::Optimizer op;
-  nntrainer::OptType t = nntrainer::OptType::adam;
-  status = op.setType(t);
-  EXPECT_EQ(status, ML_ERROR_NONE);
+TEST(nntrainer_Optimizer, create_01_p) {
+  std::shared_ptr<nntrainer::Optimizer> op;
+  EXPECT_NO_THROW(op = createOptimizer(nntrainer::OptType::adam));
 }
 
 /**
- * @brief Optimizer set type
+ * @brief Optimizer create
  */
 TEST(nntrainer_Optimizer, setType_02_p) {
-  int status = ML_ERROR_NONE;
-  nntrainer::Optimizer op;
-  nntrainer::OptType t = nntrainer::OptType::sgd;
-  status = op.setType(t);
-  EXPECT_EQ(status, ML_ERROR_NONE);
+  std::shared_ptr<nntrainer::Optimizer> op;
+  EXPECT_NO_THROW(op = createOptimizer(nntrainer::OptType::sgd));
 }
 
 /**
- * @brief Optimizer set type
+ * @brief Optimizer create
  */
 TEST(nntrainer_Optimizer, setType_03_n) {
-  int status = ML_ERROR_NONE;
-  nntrainer::Optimizer op;
-  nntrainer::OptType t = nntrainer::OptType::unknown;
-  status = op.setType(t);
-  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
-}
-
-/**
- * @brief Optimizer set Opt Param
- */
-TEST(nntrainer_Optimizer, setOptParam_01_p) {
-  int status = ML_ERROR_NONE;
-  nntrainer::Optimizer op;
-  nntrainer::OptType t = nntrainer::OptType::adam;
-  nntrainer::OptParam p;
-  status = op.setType(t);
-  EXPECT_EQ(status, ML_ERROR_NONE);
-  p.learning_rate = -0.001;
-  p.beta1 = 0.9;
-  p.beta2 = 0.9999;
-  p.epsilon = 1e-7;
-  status = op.setOptParam(p);
-  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+  std::shared_ptr<nntrainer::Optimizer> op;
+  EXPECT_THROW(op = createOptimizer(nntrainer::OptType::unknown),
+               std::invalid_argument);
 }
 
 /**

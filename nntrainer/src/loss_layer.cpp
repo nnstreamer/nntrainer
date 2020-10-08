@@ -126,10 +126,10 @@ void LossLayer::updateLoss(const Tensor &l) {
 }
 
 void LossLayer::copy(std::shared_ptr<Layer> l) {
+  Layer::copy(l);
+
   std::shared_ptr<LossLayer> from = std::static_pointer_cast<LossLayer>(l);
-  this->input.copy(from->input);
   this->loss_type = from->loss_type;
-  this->loss = from->loss;
 }
 
 sharedConstTensor LossLayer::backwarding(sharedConstTensor derivative,

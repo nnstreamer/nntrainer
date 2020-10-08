@@ -43,8 +43,11 @@ nntrainer_sources = [
   'src/neuralnet.cpp',
   'src/nntrainer_logger.cpp',
   'src/optimizer.cpp',
+  'src/optimizer_factory.cpp',
   'src/parse_util.cpp',
   'src/pooling2d_layer.cpp',
+  'src/sgd.cpp',
+  'src/adam.cpp',
   'src/tensor.cpp',
   'src/tensor_dim.cpp',
   'src/util_func.cpp',
@@ -73,10 +76,13 @@ nntrainer_headers = [
   'include/optimizer.h',
   'include/parse_util.h',
   'include/pooling2d_layer.h',
+  'include/sgd.h',
+  'include/adam.h',
   'include/tensor.h',
   'include/tensor_dim.h',
   'include/util_func.h',
   'include/weight.h',
+  'include/optimizer_factory.h',
   '../api/nntrainer-api-common.h'
 ]
 
