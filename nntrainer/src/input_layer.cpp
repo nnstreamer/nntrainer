@@ -51,15 +51,6 @@ void InputLayer::setProperty(const PropertyType type,
   }
 }
 
-void InputLayer::copy(std::shared_ptr<Layer> l) {
-  std::shared_ptr<InputLayer> from = std::static_pointer_cast<InputLayer>(l);
-  this->opt = from->opt;
-  this->input_dim = from->input_dim;
-  this->output_dim = from->output_dim;
-  this->input.copy(from->input);
-  this->hidden.copy(from->hidden);
-}
-
 sharedConstTensor InputLayer::forwarding(sharedConstTensor in) {
   input = *in;
 

@@ -169,6 +169,8 @@ int Pooling2DLayer::setSize(int *size, PropertyType type) {
 }
 
 void Pooling2DLayer::copy(std::shared_ptr<Layer> l) {
+  Layer::copy(l);
+
   std::shared_ptr<Pooling2DLayer> from =
     std::static_pointer_cast<Pooling2DLayer>(l);
 
@@ -179,11 +181,6 @@ void Pooling2DLayer::copy(std::shared_ptr<Layer> l) {
     this->stride[i] = from->stride[i];
     this->padding[i] = from->padding[i];
   }
-
-  this->input.copy(from->input);
-  this->hidden.copy(from->hidden);
-  this->input_dim = from->input_dim;
-  this->output_dim = from->output_dim;
 }
 
 void Pooling2DLayer::setProperty(const PropertyType type,

@@ -83,13 +83,4 @@ void AdditionLayer::setProperty(const PropertyType type,
   }
 }
 
-void AdditionLayer::copy(std::shared_ptr<Layer> l) {
-  std::shared_ptr<AdditionLayer> from =
-    std::static_pointer_cast<AdditionLayer>(l);
-  this->input.copy(from->input);
-  this->hidden.copy(from->hidden);
-  this->input_dim = from->input_dim;
-  this->output_dim = from->output_dim;
-}
-
 } /* namespace nntrainer */

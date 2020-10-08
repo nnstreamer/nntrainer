@@ -28,6 +28,7 @@
 #include <nntrainer_error.h>
 #include <nntrainer_internal.h>
 #include <nntrainer_log.h>
+#include <optimizer_factory.h>
 #include <parse_util.h>
 #include <sstream>
 #include <stdarg.h>
@@ -610,26 +611,19 @@ int ml_train_optimizer_create(ml_train_optimizer_h *optimizer,
 
   ml_train_optimizer *nnopt = new ml_train_optimizer;
   nnopt->magic = ML_NNTRAINER_MAGIC;
+  nnopt->in_use = false;
 
-  status =
-    exception_bounded_make_shared<nntrainer::Optimizer>(nnopt->optimizer);
+  returnable f = [&]() {
+    nnopt->optimizer = createOptimizer(ml_optimizer_to_nntrainer_type(type));
+    return ML_ERROR_NONE;
+  };
+
+  status = nntrainer_exception_boundary(f);
   if (status != ML_ERROR_NONE) {
     delete nnopt;
     ml_loge("creating optimizer failed");
-    return status;
-  }
-
-  nnopt->in_use = false;
-
-  *optimizer = nnopt;
-
-  returnable f = [&]() {
-    return nnopt->optimizer->setType(ml_optimizer_to_nntrainer_type(type));
-  };
-  status = nntrainer_exception_boundary(f);
-
-  if (status != ML_ERROR_NONE) {
-    delete nnopt;
+  } else {
+    *optimizer = nnopt;
   }
 
   return status;

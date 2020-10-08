@@ -230,7 +230,7 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int setOptimizer(Optimizer &opt);
+  int setOptimizer(std::shared_ptr<Optimizer> opt);
 
   /**
    * @brief     Activation Type Getter
@@ -400,7 +400,8 @@ protected:
   /**
    * @brief     Optimizer for this layer
    */
-  Optimizer opt;
+  // TODO: fix with #630
+  std::shared_ptr<Optimizer> opt;
 
   /**
    * @brief     Layer type

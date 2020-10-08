@@ -18,6 +18,7 @@
 #include <neuralnet.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
+#include <optimizer_factory.h>
 #include <parse_util.h>
 #include <sstream>
 #include <util_func.h>
@@ -54,22 +55,53 @@ int ModelLoader::loadModelConfigIni(dictionary *ini, NeuralNetwork &model) {
     iniparser_getint(ini, "Model:Batch_Size", model.batch_size);
 
   /** Default to adam optimizer */
-  status = model.opt.setType((OptType)parseType(
-    iniparser_getstring(ini, "Model:Optimizer", "adam"), TOKEN_OPT));
-  NN_RETURN_STATUS();
+  OptType opt_type = (OptType)parseType(
+    iniparser_getstring(ini, "Model:Optimizer", "adam"), TOKEN_OPT);
 
-  OptParam popt(model.opt.getType());
-  popt.learning_rate =
-    iniparser_getdouble(ini, "Model:Learning_rate", popt.learning_rate);
-  popt.decay_steps =
-    iniparser_getint(ini, "Model:Decay_steps", popt.decay_steps);
-  popt.decay_rate =
-    iniparser_getdouble(ini, "Model:Decay_rate", popt.decay_rate);
-  popt.beta1 = iniparser_getdouble(ini, "Model:beta1", popt.beta1);
-  popt.beta2 = iniparser_getdouble(ini, "Model:beta2", popt.beta2);
-  popt.epsilon = iniparser_getdouble(ini, "Model:epsilon", popt.epsilon);
+  try {
+    model.opt = createOptimizer(opt_type);
+  } catch (std::exception &e) {
+    ml_loge("%s %s", typeid(e).name(), e.what());
+    return ML_ERROR_INVALID_PARAMETER;
+  } catch (...) {
+    ml_loge("Creating the optimizer failed");
+    return ML_ERROR_INVALID_PARAMETER;
+  }
 
-  status = model.opt.setOptParam(popt);
+  std::vector<std::string> optimizer_prop = {};
+  optimizer_prop.push_back(
+    {"learning_rate=" +
+     std::string(iniparser_getstring(
+       ini, "Model:Learning_rate",
+       std::to_string(model.opt->getLearningRate()).c_str()))});
+
+  optimizer_prop.push_back(
+    {"decay_steps=" + std::string(iniparser_getstring(
+                        ini, "Model:Decay_steps",
+                        std::to_string(model.opt->getDecaySteps()).c_str()))});
+  optimizer_prop.push_back(
+    {"decay_rate=" + std::string(iniparser_getstring(
+                       ini, "Model:Decay_rate",
+                       std::to_string(model.opt->getDecayRate()).c_str()))});
+
+  if (model.opt->getType() == OptType::adam) {
+    std::shared_ptr<Adam> opt_adam = std::static_pointer_cast<Adam>(model.opt);
+
+    optimizer_prop.push_back(
+      {"beta1=" +
+       std::string(iniparser_getstring(
+         ini, "Model:Beta1", std::to_string(opt_adam->getBeta1()).c_str()))});
+    optimizer_prop.push_back(
+      {"beta2=" +
+       std::string(iniparser_getstring(
+         ini, "Model:Beta2", std::to_string(opt_adam->getBeta2()).c_str()))});
+    optimizer_prop.push_back(
+      {"epsilon=" + std::string(iniparser_getstring(
+                      ini, "Model:Epsilon",
+                      std::to_string(opt_adam->getEpsilon()).c_str()))});
+  }
+
+  status = model.opt->setProperty(optimizer_prop);
   NN_RETURN_STATUS();
 
   return status;

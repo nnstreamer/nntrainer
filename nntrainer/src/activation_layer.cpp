@@ -72,18 +72,6 @@ sharedConstTensor ActivationLayer::backwarding(sharedConstTensor derivative,
   return MAKE_SHARED_TENSOR(std::move(ret));
 }
 
-/**
- * @brief     copy layer
- * @param[in] l layer to copy
- */
-void ActivationLayer::copy(std::shared_ptr<Layer> l) {
-  std::shared_ptr<ActivationLayer> from =
-    std::static_pointer_cast<ActivationLayer>(l);
-  this->input.copy(from->input);
-  this->hidden.copy(from->hidden);
-  this->activation_type = from->activation_type;
-};
-
 int ActivationLayer::setActivation(
   std::function<Tensor(Tensor const &)> const &activation_fn,
   std::function<Tensor(Tensor const &, Tensor const &)> const

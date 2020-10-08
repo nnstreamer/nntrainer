@@ -51,13 +51,4 @@ sharedConstTensor FlattenLayer::backwarding(sharedConstTensor in,
   return MAKE_SHARED_TENSOR(std::move(temp));
 }
 
-void FlattenLayer::copy(std::shared_ptr<Layer> l) {
-  std::shared_ptr<FlattenLayer> from =
-    std::static_pointer_cast<FlattenLayer>(l);
-  this->input.copy(from->input);
-  this->hidden.copy(from->hidden);
-  this->input_dim = from->input_dim;
-  this->output_dim = from->output_dim;
-}
-
 } /* namespace nntrainer */

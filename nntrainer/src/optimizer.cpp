@@ -34,73 +34,25 @@
 
 namespace nntrainer {
 
-Optimizer::Optimizer(const OptType t, const OptParam p) {
-  type = t;
-  popt = p;
-}
-
-int Optimizer::setType(OptType t) {
-  int status = ML_ERROR_NONE;
-  if (t == OptType::unknown) {
-    ml_loge("Error: Optimizer is unknown");
-    return ML_ERROR_INVALID_PARAMETER;
-  }
-  type = t;
-  return status;
-}
-
-int Optimizer::setOptParam(OptParam p) {
-  int status = ML_ERROR_NONE;
-  if (p.learning_rate <= 0) {
-    ml_loge("Error: learning_rate should be grater than 0 (%f)",
-            p.learning_rate);
-    return ML_ERROR_INVALID_PARAMETER;
-  }
-
-  popt = p;
-  return status;
-}
-
 int Optimizer::initialize(std::shared_ptr<Weight> weight_list,
                           unsigned int num_weights, bool set_tensor) {
-  int status = ML_ERROR_NONE;
+  return ML_ERROR_NONE;
+}
 
-  if (type == OptType::adam && set_tensor) {
-    for (unsigned int i = 0; i < num_weights; ++i) {
-      Weight &w = weight_list.get()[i];
+double Optimizer::getLearningRate(int iteration) {
+  double ll = learning_rate;
 
-      // TODO: only trainable weights must be sent to optimizer
-      if (!w.getTrainable())
-        continue;
-
-      Tensor m = Tensor(w.getDim());
-      m.setZero();
-      Tensor v = Tensor(w.getDim());
-      v.setZero();
-      std::pair<Tensor, Tensor> p =
-        std::pair<Tensor, Tensor>(std::move(m), std::move(v));
-      weight_mv.push_back(std::move(p));
-    }
+  if (decay_steps != -1) {
+    ll = ll * pow(decay_rate, (iteration / decay_steps));
   }
-  return status;
+
+  return ll;
 }
 
 void Optimizer::apply_gradients(std::shared_ptr<Weight> weight_list,
                                 unsigned int num_weights, int iteration) {
 
-  double ll = popt.learning_rate;
-
-  if (popt.decay_steps != -1) {
-    ll = ll * pow(popt.decay_rate, (iteration / popt.decay_steps));
-  }
-
-  if (type == OptType::adam) {
-    std::function<float(double)> biasCorrection = [&](float f) {
-      return 1.0f - pow(f, iteration + 1);
-    };
-
-    ll *= sqrt(biasCorrection(popt.beta2)) / biasCorrection(popt.beta1);
-  }
+  double ll = getLearningRate(iteration);
 
   int idx = 0;
   for (unsigned int i = 0; i < num_weights; ++i) {
@@ -109,55 +61,7 @@ void Optimizer::apply_gradients(std::shared_ptr<Weight> weight_list,
     if (!weight.getTrainable())
       continue;
 
-    Tensor &x = weight.getVariableRef();
-    const Tensor &x_grad = weight.getGradientRef();
-    switch (type) {
-    case OptType::sgd:
-      x.add_i(x_grad, -ll);
-      break;
-    case OptType::adam: {
-
-      // This is implementation of adam from original paper.
-      // This is not deleted intentionally.
-      // float biasCorrection1 = 1 - pow(popt.beta1, iteration + 1);
-      // float biasCorrection2 = 1 - pow(popt.beta2, iteration + 1);
-      // Tensor &wm = weight_mv[idx].first;
-      // Tensor &wv = weight_mv[idx].second;
-
-      // wm.multiply_i(popt.beta1);
-      // wm.add_i(x_grad, 1.0f - popt.beta1);
-
-      // wv.multiply_i(popt.beta2);
-      // wv.add_i(x_grad.multiply(x_grad), 1.0f - popt.beta2);
-
-      // Tensor denom = wv.apply(sqrtFloat)
-      //                  .divide(sqrtFloat(biasCorrection2))
-      //                  .add(popt.epsilon);
-      // x.add_i(wm.divide(denom), -ll / biasCorrection1);
-
-      std::function<double(double)> sqrtEps = [&](double f) {
-        return sqrtDouble(f) + this->popt.epsilon;
-      };
-
-      Tensor &wm = weight_mv[idx].first;
-      Tensor &wv = weight_mv[idx].second;
-
-      wm.multiply_i(popt.beta1);
-      wm.add_i(x_grad, 1.0f - popt.beta1);
-
-      wv.multiply_i(popt.beta2);
-      wv.add_i(x_grad.multiply(x_grad), 1.0f - popt.beta2);
-
-      x.add_i(wm.divide(wv.apply(sqrtEps)), -ll);
-
-      break;
-    }
-    case OptType::unknown:
-    default:
-      throw std::runtime_error("Unknown optimizer.");
-      break;
-    }
-
+    apply_gradient(weight, idx, ll, iteration);
     idx += 1;
   }
 }
@@ -168,75 +72,74 @@ int Optimizer::setProperty(std::vector<std::string> values) {
   for (unsigned int i = 0; i < values.size(); ++i) {
     std::string key;
     std::string value;
+
     status = getKeyValue(values[i], key, value);
+    NN_RETURN_STATUS();
 
-    unsigned int type = parseOptProperty(key.c_str());
+    unsigned int type = parseOptProperty(key);
 
-    switch (static_cast<PropertyType>(type)) {
-    case PropertyType::learning_rate:
-      status = setFloat(popt.learning_rate, value);
-      NN_RETURN_STATUS();
-      break;
-    case PropertyType::decay_steps:
-      status = setFloat(popt.decay_steps, value);
-      NN_RETURN_STATUS();
-      break;
-    case PropertyType::decay_rate:
-      status = setFloat(popt.decay_rate, value);
-      NN_RETURN_STATUS();
-      break;
-    case PropertyType::beta1:
-      status = setDouble(popt.beta1, value);
-      NN_RETURN_STATUS();
-      break;
-    case PropertyType::beta2:
-      status = setDouble(popt.beta2, value);
-      NN_RETURN_STATUS();
-      break;
-    case PropertyType::epsilon:
-      status = setDouble(popt.epsilon, value);
-      NN_RETURN_STATUS();
-      break;
-    case PropertyType::continue_train:
-      status = setBoolean(popt.continue_train, value);
-      NN_RETURN_STATUS();
-      break;
-    default:
-      ml_loge("Error: Unknown Optimizer Property Key");
-      status = ML_ERROR_INVALID_PARAMETER;
-      break;
+    if (value.empty()) {
+      return ML_ERROR_INVALID_PARAMETER;
+    }
+
+    try {
+      /// @note this calls derived setProperty if available
+      setProperty(static_cast<PropertyType>(type), value);
+    } catch (...) {
+      return ML_ERROR_INVALID_PARAMETER;
     }
   }
 
+  try {
+    checkValidation();
+  } catch (...) {
+    return ML_ERROR_INVALID_PARAMETER;
+  }
   return status;
+}
+
+void Optimizer::checkValidation() {
+  if (learning_rate <= 0.0f)
+    throw std::invalid_argument("Learning rate must be positive");
+}
+
+void Optimizer::setProperty(const PropertyType type, const std::string &value) {
+  int status = ML_ERROR_NONE;
+
+  switch (type) {
+  case PropertyType::learning_rate:
+    status = setFloat(learning_rate, value);
+    break;
+  case PropertyType::decay_steps:
+    status = setFloat(decay_steps, value);
+    break;
+  case PropertyType::decay_rate:
+    status = setFloat(decay_rate, value);
+    break;
+  case PropertyType::continue_train:
+    status = setBoolean(continue_train, value);
+    break;
+  default:
+    ml_loge("Error: Unknown Optimizer Property Key");
+    status = ML_ERROR_INVALID_PARAMETER;
+    break;
+  }
+
+  throw_status(status);
 }
 
 void Optimizer::read(std::ifstream &file) {
   OptType loaded_type;
   file.read((char *)&loaded_type, sizeof(OptType));
-  if (type == OptType::adam and loaded_type == type) {
-    if (popt.continue_train) {
-      for (auto iter = weight_mv.begin(); iter != weight_mv.end(); iter++) {
-        (*iter).first.read(file);
-        (*iter).second.read(file);
-      }
-    } else {
-      size_t total_size = 0;
-      for (auto iter = weight_mv.begin(); iter != weight_mv.end(); iter++)
-        total_size += (*iter).first.getSize() + (*iter).second.getSize();
 
-      file.seekg(total_size, std::ifstream::cur);
-    }
-  }
+  if (loaded_type >= OptType::unknown)
+    throw std::runtime_error("Saved file has unknown optimizer");
 }
 
 void Optimizer::save(std::ofstream &file) {
+  if (type >= OptType::unknown)
+    throw std::runtime_error("Cannot save unknown optimizer");
+
   file.write((char *)&type, sizeof(OptType));
-  if (type == OptType::adam) {
-    for (auto iter = weight_mv.begin(); iter != weight_mv.end(); iter++) {
-      (*iter).first.save(file);
-      (*iter).second.save(file);
-    }
-  }
 }
 } // namespace nntrainer
