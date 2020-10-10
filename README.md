@@ -5,13 +5,13 @@
 ![GitHub issues](https://img.shields.io/github/issues/nnstreamer/nntrainer)
 ![GitHub pull requests](https://img.shields.io/github/issues-pr/nnstreamer/nntrainer)
 
-NNtrainer is Software Framework for Training Neural Network Models on Devices.
+NNtrainer is a Software Framework for Training Neural Network Models on Devices.
 
 ## Overview
 
-NNtrainer is an Open Source Project. The aim of the NNtrainer is to develop Software Framework to train neural network model on embedded devices which has relatively limited resources. Rather than training the whole layers, NNtrainer trains only one or a few layers added after the feature extractor.
+NNtrainer is an Open Source Project. The aim of the NNtrainer is to develop a Software Framework to train neural network models on embedded devices which have relatively limited resources. Rather than training whole layers of a network, NNtrainer trains only one or a few layers of the layers added after a feature extractor.
 
-Even though it trains part of the neural network models, NNtrainer requires quite a lot of functionalities to train from common neural network frameworks. By implementing them, it is good enough to run several examples which can help to understand how it works. There are k-NN, Neural Network, Logistic Regression and Reinforcement Learning with CartPole in Applications directory and some of them use Mobilenet V2 with tensorflow-lite as a feature extractor. All of them tested on Galaxy S8 with Android and PC (Ubuntu 16.04).
+Even though NNTrainer can be used to train sub-models, it requires implementation of additional functionalities to train models obtained from other machine learning and deep learning libraries. In the current version, various machine learning algorithms such as k-Nearest Neighbor (k-NN), Neural Networks, Logistic Regression and Reinforcement Learning algorithms are implemented. We also provide examples for various tasks such as transfer learning of models. In some of these examples, deep learning models such as Mobilenet V2 trained with Tensorflow-lite, are used as feature extractors. All of these tested on Galaxy S8 with Android and PC (Ubuntu 16.04).
 
 ## Maintainer
 * [Jijoong Moon](https://github.com/jijoongmoon)
@@ -33,7 +33,7 @@ Even though it trains part of the neural network models, NNtrainer requires quit
 
 ### Supported Layers
 
-This component defines Layers which consist of Neural Network Model. Layers has own properties to be set.
+This component defines layers which consist of a neural network model. Layers have their own properties to be set.
 
  | Keyword | Layer Name | Description |
  |:-------:|:---:|:---|
@@ -55,7 +55,7 @@ NNTrainer Provides
  | sgd | Stochastic Gradient Decent | - |
  | adam | Adaptive Moment Estimation | - |
 
-### Supported Loss
+### Supported Loss Functions
 
 NNTrainer provides
 
@@ -81,7 +81,7 @@ NNTrainer provides
 
 ### Tensor
 
-Tensor is responsible for the calculation of Layer. It executes the addition, division, multiplication, dot production, averaging of Data and so on. In order to accelerate the calculation speed, CBLAS (C-Basic Linear Algebra: CPU) and CUBLAS (CUDA: Basic Linear Algebra) for PC (Especially NVIDIA GPU)  for some of the operation. Later, these calculations will be optimized.
+Tensor is responsible for calculation of a layer. It executes the addition, division, multiplication, dot production, averaging of Data and so on. In order to accelerate the calculation speed, CBLAS (C-Basic Linear Algebra: CPU) and CUBLAS (CUDA: Basic Linear Algebra) for PC (Especially NVIDIA GPU)  for some of the operation. Later, these calculations will be optimized.
 Currently we supports lazy calculation mode to reduce copy of tensors during calcuation.
 
  | Keyward | Description |
