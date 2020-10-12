@@ -263,7 +263,7 @@ Tensor Pooling2DLayer::pooling2d(unsigned int batch, Tensor &in) {
       for (unsigned int j = 0; j <= height - p_height; j += stride[0]) {
         K = 0;
         for (unsigned int k = 0; k <= width - p_width; k += stride[1]) {
-          float max = std::numeric_limits<float>::min();
+          float max = std::numeric_limits<float>::lowest();
           for (unsigned int pi = 0; pi < p_height; ++pi) {
             for (unsigned int pj = 0; pj < p_width; ++pj) {
               float val = in.getValue(0, i, j + pi, k + pj);
@@ -309,7 +309,7 @@ Tensor Pooling2DLayer::pooling2d(unsigned int batch, Tensor &in) {
     output.setZero();
     for (unsigned int i = 0; i < channel; ++i) {
       unsigned int idx = batch * input_dim.getFeatureLen() + i * height * width;
-      float max = std::numeric_limits<float>::min();
+      float max = std::numeric_limits<float>::lowest();
       max_idx_global[base_idx + i].clear();
       for (unsigned int j = 0; j < height; ++j) {
         for (unsigned int k = 0; k < width; ++k) {
