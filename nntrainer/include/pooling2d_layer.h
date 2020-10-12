@@ -95,6 +95,11 @@ public:
   sharedConstTensor backwarding(sharedConstTensor in, int iteration);
 
   /**
+   * @copydoc Layer::setBatch(unsigned int batch)
+   */
+  void setBatch(unsigned int batch);
+
+  /**
    * @brief     copy layer
    * @param[in] l layer to copy
    */
