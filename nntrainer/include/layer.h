@@ -330,10 +330,7 @@ public:
    * @param batch Batch value to be set
    * @todo Make this private. Only model should be able to do this.
    */
-  void setBatch(unsigned int batch) {
-    input_dim.setTensorDim(0, batch);
-    output_dim.setTensorDim(0, batch);
-  }
+  virtual void setBatch(unsigned int batch);
 
 protected:
 #else
@@ -343,10 +340,7 @@ protected:
    * @param batch Batch value to be set
    * @todo Make this private. Only model should be able to do this.
    */
-  void setBatch(unsigned int batch) {
-    input_dim.setTensorDim(0, batch);
-    output_dim.setTensorDim(0, batch);
-  }
+  virtual void setBatch(unsigned int batch);
 #endif
 
   /**
