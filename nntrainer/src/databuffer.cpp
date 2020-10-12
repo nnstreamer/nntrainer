@@ -21,11 +21,12 @@
  *
  */
 
-#include <assert.h>
+#include <cassert>
 #include <climits>
 #include <condition_variable>
 #include <cstring>
 #include <databuffer.h>
+#include <databuffer_util.h>
 #include <functional>
 #include <iomanip>
 #include <mutex>

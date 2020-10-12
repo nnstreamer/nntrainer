@@ -25,10 +25,7 @@
 #define __DATABUFFER_FILE_H__
 #ifdef __cplusplus
 
-#include <atomic>
 #include <fstream>
-#include <functional>
-#include <iostream>
 #include <memory>
 #include <thread>
 #include <vector>

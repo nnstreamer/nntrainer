@@ -26,6 +26,7 @@
 #include <condition_variable>
 #include <cstring>
 #include <databuffer_file.h>
+#include <databuffer_util.h>
 #include <functional>
 #include <iomanip>
 #include <mutex>
@@ -50,10 +51,6 @@ extern std::mutex readyTestData;
 extern std::condition_variable cv_train;
 extern std::condition_variable cv_val;
 extern std::condition_variable cv_test;
-
-extern DataStatus trainReadyFlag;
-extern DataStatus valReadyFlag;
-extern DataStatus testReadyFlag;
 
 static long getFileSize(std::string file_name) {
   std::ifstream file_stream(file_name.c_str(), std::ios::in | std::ios::binary);

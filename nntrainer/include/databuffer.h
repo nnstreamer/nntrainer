@@ -25,57 +25,12 @@
 #define __DATABUFFER_H__
 #ifdef __cplusplus
 
-#include <atomic>
-#include <fstream>
-#include <functional>
-#include <iostream>
 #include <memory>
 #include <random>
 #include <thread>
 #include <vector>
 
 #include <tensor_dim.h>
-
-#define SET_VALIDATION(val)                                              \
-  do {                                                                   \
-    for (DataType i = DATA_TRAIN; i < DATA_UNKNOWN; i = DataType(i + 1)) \
-      validation[i] = val;                                               \
-  } while (0)
-
-#define NN_EXCEPTION_NOTI(val)                             \
-  do {                                                     \
-    switch (type) {                                        \
-    case BUF_TRAIN: {                                      \
-      std::lock_guard<std::mutex> lgtrain(readyTrainData); \
-      trainReadyFlag = val;                                \
-      cv_train.notify_all();                               \
-    } break;                                               \
-    case BUF_VAL: {                                        \
-      std::lock_guard<std::mutex> lgval(readyValData);     \
-      valReadyFlag = val;                                  \
-      cv_val.notify_all();                                 \
-    } break;                                               \
-    case BUF_TEST: {                                       \
-      std::lock_guard<std::mutex> lgtest(readyTestData);   \
-      testReadyFlag = val;                                 \
-      cv_test.notify_all();                                \
-    } break;                                               \
-    default:                                               \
-      break;                                               \
-    }                                                      \
-  } while (0)
-
-/**
- * @brief Number of Data Set
- */
-constexpr const unsigned int NBUFTYPE = 4;
-
-typedef enum {
-  DATA_NOT_READY = 0,
-  DATA_READY = 1,
-  DATA_END = 2,
-  DATA_ERROR = 3,
-} DataStatus;
 
 namespace nntrainer {
 
@@ -211,7 +166,6 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  /* virtual int setFeatureSize(unsigned int n); */
   virtual int setFeatureSize(TensorDim indim);
 
   /**
@@ -255,19 +209,12 @@ public:
   int setProperty(std::vector<std::string> values);
 
   /**
-   * @brief     set property
+   * @brief     set property to allow setting user_data for cb
    * @param[in] values values of property
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
   int setProperty(std::vector<void *> values);
-
-  /**
-   * @brief     status of thread
-   */
-  DataStatus trainReadyFlag;
-  DataStatus valReadyFlag;
-  DataStatus testReadyFlag;
 
   enum class PropertyType {
     train_data = 0,
@@ -279,6 +226,28 @@ public:
   };
 
 protected:
+  /**
+   * @brief Number of Data Set
+   */
+  static constexpr const unsigned int NBUFTYPE = 4;
+
+  /**
+   * @brief state of the data buffer while getting the data
+   */
+  typedef enum {
+    DATA_NOT_READY = 0,
+    DATA_READY = 1,
+    DATA_END = 2,
+    DATA_ERROR = 3,
+  } DataStatus;
+
+  /**
+   * @brief     status of thread
+   */
+  DataStatus trainReadyFlag;
+  DataStatus valReadyFlag;
+  DataStatus testReadyFlag;
+
   /**
    * @brief     Data Queues for each data set
    */
