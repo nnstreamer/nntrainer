@@ -71,6 +71,11 @@ class NeuralNetwork {
   friend class ModelLoader; /** access private members of ModelLoader */
 
 public:
+  using NodeType = std::shared_ptr<Layer>; /** Type of a Node */
+  using GraphType = std::vector<NodeType>; /** actual graph type */
+  using FlatGraphType =
+    std::vector<NodeType>; /** topological sorted, iterable 1-D list of nodes */
+
   /**
    * @brief     Constructor of NeuralNetwork Class
    */
@@ -220,10 +225,11 @@ public:
 
   /**
    * @brief     add layer into neural network model
+   * @param[in] layer layer to add
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int addLayer(std::shared_ptr<Layer> layer);
+  int addLayer(NodeType layer);
 
   /**
    * @brief     set optimizer for the neural network model
@@ -239,7 +245,7 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int getLayer(const char *name, std::shared_ptr<Layer> *layer);
+  int getLayer(const char *name, NodeType *layer);
 
   /*
    * @brief     get input dimension of neural network
@@ -252,6 +258,14 @@ public:
    * @retval TensorDim output dimension
    */
   TensorDim getOutputDimension() { return layers.back()->getOutputDimension(); }
+
+  /**
+   * @brief get FlatGraph of current graph
+   * @note flat graph contains pointer to the actual nodes, which is not deeply
+   * copied.
+   * @retval flatGraph of the current graph
+   */
+  FlatGraphType getFlatGraph() { return layers; }
 
   /**
    * @brief     Set loss type for the neural network.
@@ -310,8 +324,7 @@ private:
 
   NetType net_type; /**< Network Type */
 
-  std::vector<std::shared_ptr<Layer>>
-    layers; /**< vector for store layer pointers */
+  GraphType layers; /**< vector for store layer pointers */
 
   std::shared_ptr<DataBuffer> data_buffer; /**< Data Buffer to get Input */
 
@@ -401,7 +414,7 @@ private:
   /**
    * @brief     Ensure that layer has a name
    */
-  void ensureName(std::shared_ptr<Layer> layer, std::string prefix = "");
+  void ensureName(NodeType layer, const std::string &prefix = "");
 
   /**
    * @brief     Swap function for the class

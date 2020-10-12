@@ -79,7 +79,7 @@ int NeuralNetwork::initLossLayer() {
       return ML_ERROR_NOT_SUPPORTED;
     }
 
-    std::shared_ptr<Layer> act_layer = layers.back();
+    NodeType act_layer = layers.back();
     layers.pop_back();
 
     switch (act_layer->getActivationType()) {
@@ -98,7 +98,7 @@ int NeuralNetwork::initLossLayer() {
   std::shared_ptr<LossLayer> loss_layer = std::make_shared<LossLayer>();
   ensureName(loss_layer);
 
-  loss_layer->setInputDimension(layers.back()->getOutputDimension());
+  loss_layer->setInputDimension(getOutputDimension());
   status = loss_layer->initialize();
   NN_RETURN_STATUS();
 
@@ -411,8 +411,7 @@ int NeuralNetwork::train(std::vector<std::string> values) {
   setBatchSize(batch_size);
 
   /** Setup data buffer properties */
-  status =
-    data_buffer->setClassNum(layers.back()->getOutputDimension().width());
+  status = data_buffer->setClassNum(getOutputDimension().width());
   NN_RETURN_STATUS();
 
   status = data_buffer->setFeatureSize(layers[0]->getInputDimension());
@@ -449,8 +448,7 @@ int NeuralNetwork::train_run() {
     int count = 0;
 
     sharedTensor in = MAKE_SHARED_TENSOR(getInputDimension());
-    sharedTensor label =
-      MAKE_SHARED_TENSOR(layers.back()->getOutputDimension());
+    sharedTensor label = MAKE_SHARED_TENSOR(getOutputDimension());
 
     while (true) {
       if (data_buffer->getDataFromBuffer(nntrainer::BUF_TRAIN, in->getData(),
@@ -558,7 +556,7 @@ int NeuralNetwork::isInitializable() {
   return ML_ERROR_NONE;
 }
 
-int NeuralNetwork::addLayer(std::shared_ptr<Layer> layer) {
+int NeuralNetwork::addLayer(NodeType layer) {
   int status = ML_ERROR_NONE;
 
   if (initialized) {
@@ -608,8 +606,7 @@ int NeuralNetwork::setDataBuffer(std::shared_ptr<DataBuffer> data_buffer) {
   return ML_ERROR_NONE;
 }
 
-void NeuralNetwork::ensureName(std::shared_ptr<Layer> layer,
-                               std::string prefix) {
+void NeuralNetwork::ensureName(NodeType layer, const std::string &prefix) {
   if (layer->getName().empty()) {
     std::set<std::string>::iterator iter;
     std::string name;
@@ -623,7 +620,7 @@ void NeuralNetwork::ensureName(std::shared_ptr<Layer> layer,
   }
 }
 
-int NeuralNetwork::getLayer(const char *name, std::shared_ptr<Layer> *layer) {
+int NeuralNetwork::getLayer(const char *name, NodeType *layer) {
   int status = ML_ERROR_INVALID_PARAMETER;
   std::string name_str(name);
 
