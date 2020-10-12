@@ -453,6 +453,13 @@ protected:
   }
 
   /**
+   * @brief Get the number of weights
+   *
+   * @return unsigned int number of weights
+   */
+  unsigned int getNumWeights() { return num_weights; }
+
+  /**
    * @brief     weight_list in this layer. This contains trainable weights of
    * layers.
    */
