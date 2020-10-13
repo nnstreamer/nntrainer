@@ -168,6 +168,16 @@ int Pooling2DLayer::setSize(int *size, PropertyType type) {
   return status;
 }
 
+void Pooling2DLayer::setBatch(unsigned int batch) {
+  Layer::setBatch(batch);
+
+  if (pooling_type == PoolingType::max) {
+    max_idx.resize(output_dim.getDataLen());
+  } else if (pooling_type == PoolingType::global_max) {
+    max_idx_global.resize(output_dim.getDataLen());
+  }
+}
+
 void Pooling2DLayer::copy(std::shared_ptr<Layer> l) {
   Layer::copy(l);
 

@@ -61,6 +61,11 @@ int Layer::checkValidation() {
   return status;
 }
 
+void Layer::setBatch(unsigned int batch) {
+  input_dim.setTensorDim(0, batch);
+  output_dim.setTensorDim(0, batch);
+}
+
 void Layer::copy(std::shared_ptr<Layer> l) {
   setNumWeights(l->num_weights);
   for (unsigned int i = 0; i < num_weights; ++i) {
