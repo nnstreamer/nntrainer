@@ -155,27 +155,6 @@ The following dependencies are needed to compile / build / run.
 *   libiniparser
 *   libgtest (for testing)
 
-
-### Give It a Go Build with Docker
-
-You can use [docker image](https://hub.docker.com/r/lunapocket/nntrainer-build-env) to easily set up and try building.
-
-To run the docker
-
-```bash
-$ docker pull lunapocket/nntrainer-build-env:ubuntu-18.04
-$ docker run --rm -it  lunapocket/nntrainer-build-env:ubuntu-18.04
-```
-
-Inside docker...
-
-```bash
-$ cd /root/nntrainer
-$ git pull # If you want to build with latest sources.
-```
-
-You can try build from now on without concerning about Prerequisites.
-
 ### How to Build
 
 Download the source file by cloning the github repository.
