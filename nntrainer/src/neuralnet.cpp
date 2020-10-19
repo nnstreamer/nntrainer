@@ -249,6 +249,7 @@ int NeuralNetwork::init() {
     ml_logd("layer name: %s", l->getName().c_str());
 
   initialized = true;
+  setBatchSize(batch_size);
   return status;
 }
 
