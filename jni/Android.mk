@@ -100,9 +100,12 @@ include $(BUILD_SHARED_LIBRARY)
 
 include $(CLEAR_VARS)
 
+CCAPI_NNTRAINER_SRCS := $(NNTRAINER_ROOT)/api/ccapi/src/factory.cpp
+
 CCAPI_NNTRAINER_INCLUDES := $(NNTRAINER_ROOT)/nntrainer/include \
                       $(NNTRAINER_ROOT)/api \
-                      $(NNTRAINER_ROOT)/api/ccapi/include
+                      $(NNTRAINER_ROOT)/api/ccapi/include \
+                      $(NNTRAINER_ROOT)/api/capi/include/platform
 
 LOCAL_SHARED_LIBRARIES := nntrainer
 
@@ -115,7 +118,7 @@ LOCAL_MODULE_TAGS   := optional
 LOCAL_LDLIBS        := -llog
 
 LOCAL_MODULE        := ccapi-nntrainer
-LOCAL_SRC_FILES     :=
+LOCAL_SRC_FILES     := $(CCAPI_NNTRAINER_SRCS)
 LOCAL_C_INCLUDES    := $(CCAPI_NNTRAINER_INCLUDES)
 
 include $(BUILD_SHARED_LIBRARY)
