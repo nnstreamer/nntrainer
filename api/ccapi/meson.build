@@ -2,6 +2,13 @@ ccapi_inc = []
 ccapi_inc += include_directories('include')
 ccapi_inc += include_directories('..')
 
+# pc file is not present for 'ml-api-common' yet
+if cxx.has_header('nnstreamer/ml-api-common.h', required: false)
+  ccapi_inc += include_directories ('/usr/include/nnstreamer')
+else
+  ccapi_inc += include_directories ('../capi/include/platform')
+endif
+
 ccapi_src = []
 ccapi_src += join_paths(meson.current_source_dir(), 'src', 'factory.cpp')
 

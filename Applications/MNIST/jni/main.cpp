@@ -37,11 +37,9 @@
 #include <gtest/gtest.h>
 #endif
 
-#include "databuffer.h"
-#include "databuffer_func.h"
-#include "neuralnet.h"
-#include "nntrainer_error.h"
-#include "tensor.h"
+#include <dataset.h>
+#include <ml-api-common.h>
+#include <model.h>
 
 #define TRAINING true
 
@@ -250,7 +248,7 @@ TEST(MNIST_training, verify_accuracy) {
 #endif
 
 /**
- * @brief     create NN
+ * @brief     create model
  *            Get Feature from tflite & run foword & back propatation
  * @param[in]  arg 1 : configuration file path
  * @param[in]  arg 2 : resource path
@@ -273,33 +271,34 @@ int main(int argc, char *argv[]) {
   /**
    * @brief     Data buffer Create & Initialization
    */
-  std::shared_ptr<nntrainer::DataBufferFromCallback> DB =
-    std::make_shared<nntrainer::DataBufferFromCallback>();
-  DB->setFunc(nntrainer::BufferType::BUF_TRAIN, getBatch_train);
-  DB->setFunc(nntrainer::BufferType::BUF_VAL, getBatch_val);
+  std::shared_ptr<ml::train::Dataset> dataset =
+    createDataset(ml::train::DatasetType::GENERATOR);
+  dataset->setFunc(ml::train::BufferType::BUF_TRAIN, getBatch_train);
+  dataset->setFunc(ml::train::BufferType::BUF_VAL, getBatch_val);
 
   /**
    * @brief     Neural Network Create & Initialization
    */
-  nntrainer::NeuralNetwork NN;
+  std::unique_ptr<ml::train::Model> model =
+    createModel(ml::train::ModelType::NEURAL_NET);
   try {
-    NN.loadFromConfig(config);
+    model->loadFromConfig(config);
   } catch (...) {
     std::cerr << "Error during loadFromConfig" << std::endl;
     return 0;
   }
 
   try {
-    NN.init();
+    model->init();
   } catch (...) {
     std::cerr << "Error during init" << std::endl;
     return 0;
   }
 
-  NN.readModel();
-  NN.setDataBuffer((DB));
+  model->readModel();
+  model->setDataset(dataset);
 #if defined(APP_VALIDATE)
-  status = NN.setProperty({"epochs=5"});
+  status = model->setProperty({"epochs=5"});
   if (status != ML_ERROR_NONE) {
     std::cerr << "Error setting the number of epochs" << std::endl;
     return 0;
@@ -310,10 +309,10 @@ int main(int argc, char *argv[]) {
    * @brief     Neural Network Train & validation
    */
   try {
-    NN.train();
-    training_loss = NN.getTrainingLoss();
-    validation_loss = NN.getValidationLoss();
-    last_batch_loss = NN.getLoss();
+    model->train();
+    training_loss = model->getTrainingLoss();
+    validation_loss = model->getValidationLoss();
+    last_batch_loss = model->getLoss();
   } catch (...) {
     std::cerr << "Error during train" << std::endl;
     return 0;
@@ -335,7 +334,7 @@ int main(int argc, char *argv[]) {
 #endif
 
   /**
-   * @brief     Finalize NN
+   * @brief     Finalize model
    */
   return status;
 }

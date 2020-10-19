@@ -13,10 +13,18 @@ endif
 
 NNTRAINER_INCLUDES := $(NNTRAINER_ROOT)/nntrainer/include \
 	$(NNTRAINER_ROOT)/api \
+	$(NNTRAINER_ROOT)/api/ccapi/include \
 	$(NNTRAINER_ROOT)/api/capi/include/platform
 
 LOCAL_MODULE := nntrainer
 LOCAL_SRC_FILES := $(NNTRAINER_ROOT)/libs/$(TARGET_ARCH_ABI)/libnntrainer.so
+
+include $(PREBUILT_SHARED_LIBRARY)
+
+include $(CLEAR_VARS)
+
+LOCAL_MODULE := ccapi-nntrainer
+LOCAL_SRC_FILES := $(NNTRAINER_ROOT)/libs/$(TARGET_ARCH_ABI)/libccapi-nntrainer.so
 
 include $(PREBUILT_SHARED_LIBRARY)
 
@@ -35,7 +43,7 @@ LOCAL_LDLIBS := -llog
 
 LOCAL_SRC_FILES := main.cpp
 
-LOCAL_SHARED_LIBRARIES := nntrainer
+LOCAL_SHARED_LIBRARIES := ccapi-nntrainer
 
 LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES)
 
