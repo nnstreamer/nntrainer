@@ -30,15 +30,11 @@
 
 namespace nntrainer {
 
-int Layer::setActivation(ActivationType acti) {
-  int status = ML_ERROR_NONE;
+void Layer::setActivation(ActivationType acti) {
   if (acti == ActivationType::ACT_UNKNOWN) {
-    ml_loge("Error:have to specify activation function");
-    return ML_ERROR_INVALID_PARAMETER;
+    throw std::invalid_argument("Error:have to specify activation function");
   }
   activation_type = acti;
-
-  return status;
 }
 
 int Layer::setOptimizer(std::shared_ptr<Optimizer> opt) {
@@ -159,8 +155,7 @@ void Layer::setProperty(const PropertyType type, const std::string &value) {
     break;
   case PropertyType::activation:
     if (!value.empty()) {
-      status = setActivation((ActivationType)parseType(value, TOKEN_ACTI));
-      throw_status(status);
+      setActivation((ActivationType)parseType(value, TOKEN_ACTI));
     }
     break;
   case PropertyType::flatten:

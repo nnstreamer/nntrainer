@@ -240,6 +240,13 @@ public:
   int setOptimizer(std::shared_ptr<Optimizer> opt);
 
   /**
+   * @brief Get the Optimizer object
+   *
+   * @return std::shared_ptr<Optimizer> optimizer
+   */
+  std::shared_ptr<Optimizer> getOptimizer() { return opt; }
+
+  /**
    * @brief     Activation Type Getter
    * @retval    Activation Type.
    */
@@ -330,6 +337,13 @@ public:
 
     return weight_list.get()[position];
   }
+
+  /**
+   * @brief Get the number of weights
+   *
+   * @return unsigned int number of weights
+   */
+  unsigned int getNumWeights() { return num_weights; }
 
 #if defined(ENABLE_TEST)
   /**
@@ -453,13 +467,6 @@ protected:
   }
 
   /**
-   * @brief Get the number of weights
-   *
-   * @return unsigned int number of weights
-   */
-  unsigned int getNumWeights() { return num_weights; }
-
-  /**
    * @brief     weight_list in this layer. This contains trainable weights of
    * layers.
    */
@@ -486,6 +493,13 @@ protected:
    * @param[in] type layer type
    */
   void setType(LayerType type) { this->type = type; }
+
+  /**
+   * @brief     Activation Setter
+   * @param[in] activation activation type
+   * @throw std::invalid_argument when ActivationType is unknown
+   */
+  virtual void setActivation(ActivationType activation);
 
 private:
   /**
@@ -531,14 +545,6 @@ private:
    * Layer::print()
    */
   virtual void printMetric(std::ostream &out);
-
-  /**
-   * @brief     Activation Setter
-   * @param[in] activation activation type
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   */
-  int setActivation(ActivationType activation);
 
   /**
    * @brief     set weight decay parameters
