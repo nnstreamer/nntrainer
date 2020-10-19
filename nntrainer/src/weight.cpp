@@ -16,6 +16,20 @@
 
 namespace nntrainer {
 
+Weight::Weight(const Weight &rhs) :
+  initializer(rhs.initializer),
+  trainable(rhs.trainable),
+  name(rhs.name) {
+  var = rhs.var.clone();
+  grad = rhs.grad.clone();
+}
+
+Weight &Weight::operator=(const Weight &rhs) {
+  Weight temp(rhs);
+  swap(temp, *this);
+  return *this;
+}
+
 Weight::Weight(const TensorDim &dim, const WeightInitializer init, bool train,
                std::string name) :
   initializer(init),

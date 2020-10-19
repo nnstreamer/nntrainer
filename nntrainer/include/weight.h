@@ -102,12 +102,26 @@ public:
   }
 
   /**
+   * @brief Copy constructor for weight
+   *
+   * @param rhs weight to construct from
+   */
+  Weight(const Weight &rhs);
+
+  /**
+   * @brief Move constructor for weight
+   *
+   * @param rhs weight to construct from
+   */
+  Weight(Weight &&rhs) = default;
+
+  /**
    * @brief copy assigment
    *
    * @param rhs copy from
    * @return Weight& Updated weight
    */
-  Weight &operator=(const Weight &rhs) = default;
+  Weight &operator=(const Weight &rhs);
 
   /**
    * @brief move assignment
