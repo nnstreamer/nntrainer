@@ -104,6 +104,8 @@ int ActivationLayer::setActivation(
  * @param[in] ActivationType ActivationType ActivationType to be set
  */
 void ActivationLayer::setActivation(ActivationType acti_type) {
+  Layer::setActivation(acti_type);
+
   switch (acti_type) {
   case ActivationType::ACT_TANH:
     this->setActivation(tanhFloat, tanhPrime);
@@ -124,7 +126,6 @@ void ActivationLayer::setActivation(ActivationType acti_type) {
   default:
     throw std::runtime_error("Error: Not Supported Activation Type");
   }
-  this->activation_type = acti_type;
 }
 
 Tensor ActivationLayer::softmax(Tensor const &t) {
