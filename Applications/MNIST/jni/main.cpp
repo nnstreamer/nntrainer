@@ -273,8 +273,9 @@ int main(int argc, char *argv[]) {
    */
   std::shared_ptr<ml::train::Dataset> dataset =
     createDataset(ml::train::DatasetType::GENERATOR);
-  dataset->setFunc(ml::train::BufferType::BUF_TRAIN, getBatch_train);
-  dataset->setFunc(ml::train::BufferType::BUF_VAL, getBatch_val);
+  dataset->setGeneratorFunc(ml::train::DatasetDataType::DATA_TRAIN,
+                            getBatch_train);
+  dataset->setGeneratorFunc(ml::train::DatasetDataType::DATA_VAL, getBatch_val);
 
   /**
    * @brief     Neural Network Create & Initialization

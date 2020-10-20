@@ -44,7 +44,7 @@ public:
   /**
    * @brief     Constructor
    */
-  DataBufferFromCallback() : DataBuffer(DataBufferType::GENERATOR){};
+  DataBufferFromCallback() : DataBuffer(DataBufferType::GENERATOR) {}
 
   /**
    * @brief     Destructor
@@ -65,7 +65,7 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int setFunc(BufferType type, datagen_cb func);
+  int setGeneratorFunc(BufferType type, datagen_cb func);
 
   /**
    * @brief     Update Data Buffer ( it is for child thread )

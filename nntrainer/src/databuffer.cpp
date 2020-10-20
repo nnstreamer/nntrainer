@@ -509,7 +509,11 @@ int DataBuffer::setProperty(const PropertyType type, std::string &value) {
   return status;
 }
 
-int DataBuffer::setFunc(BufferType type, datagen_cb func) {
+int DataBuffer::setGeneratorFunc(BufferType type, datagen_cb func) {
+  return ML_ERROR_NOT_SUPPORTED;
+}
+
+int DataBuffer::setDataFile(DataType type, std::string path) {
   return ML_ERROR_NOT_SUPPORTED;
 }
 

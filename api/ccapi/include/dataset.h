@@ -44,13 +44,14 @@ enum class DatasetType {
 };
 
 /**
- * @brief     Enumeration of buffer type
+ * @brief     Enumeration of data type
  */
-enum class BufferType {
-  BUF_TRAIN,  /** BUF_TRAIN ( Buffer for training ) */
-  BUF_VAL,    /** BUF_VAL ( Buffer for validation ) */
-  BUF_TEST,   /** BUF_TEST ( Buffer for test ) */
-  BUF_UNKNOWN /** BUF_UNKNOWN ( unknown ) */
+enum class DatasetDataType {
+  DATA_TRAIN,  /** data for training */
+  DATA_VAL,    /** data for validation */
+  DATA_TEST,   /** data for test */
+  DATA_LABEL,  /** label names */
+  DATA_UNKNOWN /** data not known */
 };
 
 /**
@@ -66,12 +67,21 @@ public:
 
   /**
    * @brief     set function pointer for each type
-   * @param[in] type Buffer Type
+   * @param[in] type data type : DATA_TRAIN, DATA_VAL, DATA_TEST
    * @param[in] call back function pointer
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  virtual int setFunc(BufferType type, datagen_cb func) = 0;
+  virtual int setGeneratorFunc(DatasetDataType type, datagen_cb func) = 0;
+
+  /**
+   * @brief     set train data file name
+   * @param[in] type data type : DATA_TRAIN, DATA_VAL, DATA_TEST
+   * @param[in] path file path
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  virtual int setDataFile(DatasetDataType type, std::string path) = 0;
 
   /**
    * @brief     set property
@@ -88,6 +98,20 @@ public:
 std::unique_ptr<Dataset>
 createDataset(DatasetType type,
               const std::vector<std::string> &properties = {});
+
+/**
+ * @brief Factory creator with constructor for dataset
+ */
+std::unique_ptr<Dataset> createDataset(DatasetType type, const char *train_file,
+                                       const char *valid_file = nullptr,
+                                       const char *test_file = nullptr);
+
+/**
+ * @brief Factory creator with constructor for dataset
+ */
+std::unique_ptr<Dataset> createDataset(DatasetType type, datagen_cb train,
+                                       datagen_cb valid = nullptr,
+                                       datagen_cb test = nullptr);
 
 } // namespace train
 } // namespace ml

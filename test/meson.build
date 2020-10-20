@@ -19,10 +19,13 @@ if gtest_dep.found()
   nntrainer_test_deps += nntrainer_testutil_dep
 endif
 
-
 if get_option('enable-capi')
   subdir('tizen_capi')
   subdir('unittest')
+endif
+
+if get_option('enable-ccapi')
+  subdir('ccapi')
 endif
 
 if get_option('enable-nnstreamer-tensor-filter')
