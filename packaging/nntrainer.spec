@@ -414,7 +414,7 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %{_includedir}/nntrainer/layer.h
 %{_includedir}/nntrainer/optimizer.h
 %{_includedir}/nntrainer/dataset.h
-# %{_libdir}/pkgconfig/ccapi-nntrainer.pc
+%{_libdir}/pkgconfig/ccapi-nntrainer.pc
 
 %files -n ccapi-nntrainer-devel-static
 %{_libdir}/libccapi-nntrainer.a
