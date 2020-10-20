@@ -36,27 +36,35 @@
 namespace nntrainer {
 
 /**
- * @brief     Enumeration of data type
- *            0. DATA_TRAIN ( Data for training )
- *            1. DATA_VAL ( Data for validation )
- *            2. DATA_TEST ( Data for test )
- *            3. DATA_LABEL ( Data for test )
- *            4. DATA_UNKNOWN
- */
-typedef enum {
-  DATA_TRAIN,
-  DATA_VAL,
-  DATA_TEST,
-  DATA_LABEL,
-  DATA_UNKNOWN
-} DataType;
-
-/**
  * @brief     Aliasing from ccapi ml::train
  */
 using DataBufferType = ml::train::DatasetType;
-using BufferType = ml::train::BufferType;
+using DatasetDataType = ml::train::DatasetDataType;
 using datagen_cb = ml::train::datagen_cb;
+
+/**
+ * @brief     Enumeration of data type
+ */
+typedef enum {
+  DATA_TRAIN =
+    (int)ml::train::DatasetDataType::DATA_TRAIN, /** data for training */
+  DATA_VAL =
+    (int)ml::train::DatasetDataType::DATA_VAL, /** data for validation */
+  DATA_TEST = (int)ml::train::DatasetDataType::DATA_TEST,   /** data for test */
+  DATA_LABEL = (int)ml::train::DatasetDataType::DATA_LABEL, /** label names */
+  DATA_UNKNOWN =
+    (int)ml::train::DatasetDataType::DATA_UNKNOWN /** data not known */
+} DataType;
+
+/**
+ * @brief     Enumeration of buffer type
+ */
+enum class BufferType {
+  BUF_TRAIN = DATA_TRAIN,    /** BUF_TRAIN ( Buffer for training ) */
+  BUF_VAL = DATA_VAL,        /** BUF_VAL ( Buffer for validation ) */
+  BUF_TEST = DATA_TEST,      /** BUF_TEST ( Buffer for test ) */
+  BUF_UNKNOWN = DATA_UNKNOWN /** BUF_UNKNOWN ( unknown ) */
+};
 
 /**
  * @class   DataBuffer Data Buffers
@@ -200,12 +208,43 @@ public:
 
   /**
    * @brief     set function pointer for each type
+   * @param[in] type data type : DATA_TRAIN, DATA_VAL, DATA_TEST
+   * @param[in] call back function pointer
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  virtual int setGeneratorFunc(DatasetDataType type, datagen_cb func) {
+    return setGeneratorFunc((BufferType)type, func);
+  }
+
+  /**
+   * @brief     set function pointer for each type
    * @param[in] type Buffer Type
    * @param[in] call back function pointer
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  virtual int setFunc(BufferType type, datagen_cb func);
+  virtual int setGeneratorFunc(BufferType type, datagen_cb func);
+
+  /**
+   * @brief     set train data file name
+   * @param[in] type data type : DATA_TRAIN, DATA_VAL, DATA_TEST
+   * @param[in] path file path
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  virtual int setDataFile(DatasetDataType type, std::string path) {
+    return setDataFile((DataType)type, path);
+  }
+
+  /**
+   * @brief     set train data file name
+   * @param[in] type data type : DATA_TRAIN, DATA_VAL, DATA_TEST
+   * @param[in] path file path
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  virtual int setDataFile(DataType type, std::string path);
 
   enum class PropertyType {
     train_data = 0,

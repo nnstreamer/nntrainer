@@ -700,7 +700,8 @@ int ml_train_dataset_create_with_generator(ml_train_dataset_h *dataset,
   }
 
   f = [&]() {
-    return data_buffer->setFunc(nntrainer::BufferType::BUF_TRAIN, train_cb);
+    return data_buffer->setGeneratorFunc(nntrainer::BufferType::BUF_TRAIN,
+                                         train_cb);
   };
 
   status = nntrainer_exception_boundary(f);
@@ -709,7 +710,8 @@ int ml_train_dataset_create_with_generator(ml_train_dataset_h *dataset,
   }
 
   f = [&]() {
-    return data_buffer->setFunc(nntrainer::BufferType::BUF_VAL, valid_cb);
+    return data_buffer->setGeneratorFunc(nntrainer::BufferType::BUF_VAL,
+                                         valid_cb);
   };
 
   status = nntrainer_exception_boundary(f);
@@ -718,7 +720,8 @@ int ml_train_dataset_create_with_generator(ml_train_dataset_h *dataset,
   }
 
   f = [&]() {
-    return data_buffer->setFunc(nntrainer::BufferType::BUF_TEST, test_cb);
+    return data_buffer->setGeneratorFunc(nntrainer::BufferType::BUF_TEST,
+                                         test_cb);
   };
 
   status = nntrainer_exception_boundary(f);
@@ -761,7 +764,7 @@ int ml_train_dataset_create_with_file(ml_train_dataset_h *dataset,
     std::static_pointer_cast<nntrainer::DataBufferFromDataFile>(data_buffer);
 
   if (train_file) {
-    status = data_buffer_file->setDataFile(train_file, nntrainer::DATA_TRAIN);
+    status = data_buffer_file->setDataFile(nntrainer::DATA_TRAIN, train_file);
     if (status != ML_ERROR_NONE) {
       return status;
     }
@@ -771,14 +774,14 @@ int ml_train_dataset_create_with_file(ml_train_dataset_h *dataset,
   }
 
   if (valid_file) {
-    status = data_buffer_file->setDataFile(valid_file, nntrainer::DATA_VAL);
+    status = data_buffer_file->setDataFile(nntrainer::DATA_VAL, valid_file);
     if (status != ML_ERROR_NONE) {
       return status;
     }
   }
 
   if (test_file) {
-    status = data_buffer_file->setDataFile(test_file, nntrainer::DATA_TEST);
+    status = data_buffer_file->setDataFile(nntrainer::DATA_TEST, test_file);
     if (status != ML_ERROR_NONE) {
       return status;
     }

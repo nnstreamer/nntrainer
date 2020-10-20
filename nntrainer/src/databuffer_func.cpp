@@ -59,6 +59,9 @@ int DataBufferFromCallback::init() {
   if (status != ML_ERROR_NONE)
     return status;
 
+  if (callback_train == nullptr)
+    return ML_ERROR_BAD_ADDRESS;
+
   this->max_train = 0;
   this->max_val = 0;
   this->max_test = 0;
@@ -82,7 +85,7 @@ int DataBufferFromCallback::init() {
   return ML_ERROR_NONE;
 }
 
-int DataBufferFromCallback::setFunc(BufferType type, datagen_cb func) {
+int DataBufferFromCallback::setGeneratorFunc(BufferType type, datagen_cb func) {
 
   int status = ML_ERROR_NONE;
   switch (type) {

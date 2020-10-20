@@ -12,6 +12,7 @@
  *
  */
 
+#include <databuffer_factory.h>
 #include <databuffer_file.h>
 #include <databuffer_func.h>
 #include <layer_factory.h>
@@ -116,7 +117,7 @@ int ModelLoader::loadDatasetConfigIni(dictionary *ini, NeuralNetwork &model) {
   int status = ML_ERROR_NONE;
 
   if (iniparser_find_entry(ini, "Dataset") == 0) {
-    model.data_buffer = std::make_shared<DataBufferFromCallback>();
+    model.data_buffer = nntrainer::createDataBuffer(DataBufferType::GENERATOR);
     status = model.data_buffer->setBatchSize(model.batch_size);
     return status;
   }
@@ -126,7 +127,7 @@ int ModelLoader::loadDatasetConfigIni(dictionary *ini, NeuralNetwork &model) {
     return ML_ERROR_INVALID_PARAMETER;
   }
 
-  model.data_buffer = std::make_shared<DataBufferFromDataFile>();
+  model.data_buffer = nntrainer::createDataBuffer(DataBufferType::FILE);
   std::shared_ptr<DataBufferFromDataFile> dbuffer =
     std::static_pointer_cast<DataBufferFromDataFile>(model.data_buffer);
 
@@ -138,7 +139,7 @@ int ModelLoader::loadDatasetConfigIni(dictionary *ini, NeuralNetwork &model) {
       return required ? ML_ERROR_INVALID_PARAMETER : ML_ERROR_NONE;
     }
 
-    return dbuffer->setDataFile(path, dt);
+    return dbuffer->setDataFile(dt, path);
   };
 
   status = parse_and_set("DataSet:TrainData", DATA_TRAIN, true);

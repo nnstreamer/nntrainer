@@ -259,7 +259,7 @@ void DataBufferFromDataFile::updateData(BufferType type) {
   file.close();
 }
 
-int DataBufferFromDataFile::setDataFile(std::string path, DataType type) {
+int DataBufferFromDataFile::setDataFile(DataType type, std::string path) {
   int status = ML_ERROR_NONE;
   std::ifstream data_file(path.c_str());
 
@@ -376,16 +376,16 @@ int DataBufferFromDataFile::setProperty(const PropertyType type,
 
   switch (type) {
   case PropertyType::train_data:
-    status = this->setDataFile(value, DATA_TRAIN);
+    status = this->setDataFile(DATA_TRAIN, value);
     break;
   case PropertyType::val_data:
-    status = this->setDataFile(value, DATA_VAL);
+    status = this->setDataFile(DATA_VAL, value);
     break;
   case PropertyType::test_data:
-    status = this->setDataFile(value, DATA_TEST);
+    status = this->setDataFile(DATA_TEST, value);
     break;
   case PropertyType::label_data:
-    status = this->setDataFile(value, DATA_LABEL);
+    status = this->setDataFile(DATA_LABEL, value);
     break;
   default:
     status = DataBuffer::setProperty(type, value);

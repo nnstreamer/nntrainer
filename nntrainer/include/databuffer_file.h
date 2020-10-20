@@ -67,12 +67,12 @@ public:
 
   /**
    * @brief     set train data file name
-   * @param[in] path file path
    * @param[in] type data type : DATA_TRAIN, DATA_VAL, DATA_TEST
+   * @param[in] path file path
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int setDataFile(std::string path, DataType type);
+  int setDataFile(DataType type, std::string path);
 
   /**
    * @brief     set feature size

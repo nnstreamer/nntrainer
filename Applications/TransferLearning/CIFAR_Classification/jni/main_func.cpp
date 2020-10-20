@@ -291,8 +291,8 @@ int main(int argc, char *argv[]) {
    */
   std::shared_ptr<nntrainer::DataBufferFromCallback> DB =
     std::make_shared<nntrainer::DataBufferFromCallback>();
-  DB->setFunc(nntrainer::BufferType::BUF_TRAIN, getBatch_train);
-  DB->setFunc(nntrainer::BufferType::BUF_VAL, getBatch_val);
+  DB->setGeneratorFunc(nntrainer::BufferType::BUF_TRAIN, getBatch_train);
+  DB->setGeneratorFunc(nntrainer::BufferType::BUF_VAL, getBatch_val);
 
   /**
    * @brief     Neural Network Create & Initialization

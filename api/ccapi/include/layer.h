@@ -35,9 +35,9 @@ enum class LayerType {
   LAYER_CONV2D,                         /** Convolution 2D Layer type */
   LAYER_POOLING2D,                      /** Pooling 2D Layer type */
   LAYER_FLATTEN,                        /** Flatten Layer type */
-  LAYER_ACTIVATION,                     /** Loss Layer type */
-  LAYER_ADDITION,                       /** Activation Layer type */
-  LAYER_LOSS,                           /** Addition Layer type */
+  LAYER_ACTIVATION,                     /** Activation Layer type */
+  LAYER_ADDITION,                       /** Addition Layer type */
+  LAYER_LOSS,                           /** Loss Layer type */
   LAYER_UNKNOWN = ML_TRAIN_LAYER_TYPE_UNKNOWN /** Unknown */
 };
 
