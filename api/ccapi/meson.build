@@ -44,10 +44,10 @@ nntrainer_ccapi_dep = declare_dependency(link_with: nntrainer_ccapi_lib,
   include_directories: ccapi_inc,
 )
 
-# configure_file(input: 'ccapi-nntrainer.pc.in', output: 'ccapi-nntrainer.pc',
-#   install_dir: join_paths(nntrainer_libdir, 'pkgconfig'),
-#   configuration: nntrainer_conf
-# )
+configure_file(input: 'ccapi-nntrainer.pc.in', output: 'ccapi-nntrainer.pc',
+  install_dir: join_paths(nntrainer_libdir, 'pkgconfig'),
+  configuration: nntrainer_conf
+)
 
 install_headers(ccapi_headers,
   subdir: 'nntrainer'
