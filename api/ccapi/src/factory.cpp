@@ -93,21 +93,7 @@ createDataset(DatasetType type, const std::vector<std::string> &properties) {
 std::unique_ptr<Dataset> createDataset(DatasetType type, const char *train_file,
                                        const char *valid_file,
                                        const char *test_file) {
-  std::unique_ptr<Dataset> dataset = createDataset(type);
-
-  if (train_file && dataset->setDataFile(DatasetDataType::DATA_TRAIN,
-                                         train_file) != ML_ERROR_NONE)
-    throw std::invalid_argument("Invalid train file");
-
-  if (valid_file && dataset->setDataFile(DatasetDataType::DATA_VAL,
-                                         valid_file) != ML_ERROR_NONE)
-    throw std::invalid_argument("Invalid valid file");
-
-  if (test_file && dataset->setDataFile(DatasetDataType::DATA_TEST,
-                                        test_file) != ML_ERROR_NONE)
-    throw std::invalid_argument("Invalid test file");
-
-  return dataset;
+  return nntrainer::createDataBuffer(type, train_file, valid_file, test_file);
 }
 
 /**
@@ -115,21 +101,7 @@ std::unique_ptr<Dataset> createDataset(DatasetType type, const char *train_file,
  */
 std::unique_ptr<Dataset> createDataset(DatasetType type, datagen_cb train,
                                        datagen_cb valid, datagen_cb test) {
-  std::unique_ptr<Dataset> dataset = createDataset(type);
-
-  if (train && dataset->setGeneratorFunc(DatasetDataType::DATA_TRAIN, train) !=
-                 ML_ERROR_NONE)
-    throw std::invalid_argument("Invalid train data generator");
-
-  if (valid && dataset->setGeneratorFunc(DatasetDataType::DATA_VAL, valid) !=
-                 ML_ERROR_NONE)
-    throw std::invalid_argument("Invalid valid data generator");
-
-  if (test && dataset->setGeneratorFunc(DatasetDataType::DATA_TEST, test) !=
-                ML_ERROR_NONE)
-    throw std::invalid_argument("Invalid test data generator");
-
-  return dataset;
+  return nntrainer::createDataBuffer(type, train, valid, test);
 }
 
 } // namespace train

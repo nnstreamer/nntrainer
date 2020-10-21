@@ -15,26 +15,29 @@
 #ifdef __cplusplus
 
 #include <databuffer.h>
-#include <databuffer_file.h>
-#include <databuffer_func.h>
 
 namespace nntrainer {
 
 /**
  * @brief Factory creator with constructor
  */
-std::unique_ptr<DataBuffer> createDataBuffer(DataBufferType type) {
-  switch (type) {
-  case DataBufferType::GENERATOR:
-    return std::make_unique<DataBufferFromCallback>();
-  case DataBufferType::FILE:
-    return std::make_unique<DataBufferFromDataFile>();
-  case DataBufferType::UNKNOWN:
-    /** fallthrough intended */
-  default:
-    throw std::invalid_argument("Unknown type for the dataset");
-  }
-}
+std::unique_ptr<DataBuffer> createDataBuffer(DataBufferType type);
+
+/**
+ * @brief Factory creator with constructor for databuffer with files
+ */
+std::unique_ptr<DataBuffer> createDataBuffer(DataBufferType type,
+                                             const char *train_file,
+                                             const char *valid_file = nullptr,
+                                             const char *test_file = nullptr);
+
+/**
+ * @brief Factory creator with constructor for databuffer with callbacks
+ */
+std::unique_ptr<DataBuffer> createDataBuffer(DataBufferType type,
+                                             datagen_cb train,
+                                             datagen_cb valid = nullptr,
+                                             datagen_cb test = nullptr);
 
 } /* namespace nntrainer */
 

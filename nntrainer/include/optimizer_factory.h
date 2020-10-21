@@ -14,9 +14,7 @@
 #define __OPTIMIZER_FACTORY_H__
 #ifdef __cplusplus
 
-#include <adam.h>
 #include <optimizer_internal.h>
-#include <sgd.h>
 
 namespace nntrainer {
 
@@ -28,19 +26,7 @@ std::unique_ptr<Optimizer> createOptimizer(OptType type, const Optimizer &opt);
 /**
  * @brief Factory creator with constructor
  */
-template <typename... Args>
-std::unique_ptr<Optimizer> createOptimizer(OptType type, Args... args) {
-  switch (type) {
-  case OptType::SGD:
-    return std::make_unique<SGD>(args...);
-  case OptType::ADAM:
-    return std::make_unique<Adam>(args...);
-  case OptType::UNKNOWN:
-    /** fallthrough intended */
-  default:
-    throw std::invalid_argument("Unknown type for the optimizer");
-  }
-}
+std::unique_ptr<Optimizer> createOptimizer(OptType type);
 
 } // namespace nntrainer
 
