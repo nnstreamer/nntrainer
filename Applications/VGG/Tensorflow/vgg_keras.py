@@ -67,8 +67,8 @@ def datagen( x_data, y_data, batch_size):
     while True:
         for i in range(size // batch_size):
             x_batch = x_data[i*batch_size: (i+1)*batch_size]
-            x_batch=np.reshape(x_batch, (batch_size, 3, 32,32))
-            x_batch=np.transpose(x_batch, [0,2,3,1])
+            x_batch = np.reshape(x_batch, (batch_size, 3, 32,32))
+            x_batch = np.transpose(x_batch, [0,2,3,1])
             y_batch = y_data[i*batch_size: (i+1)*batch_size]
             yield x_batch, y_batch
 
@@ -83,15 +83,15 @@ def create_model():
     model.add(MaxPooling2D(pool_size=(2,2)))
     model.add(Conv2D(64, (3,3), padding='same', activation='relu', bias_initializer=initializers.Zeros()))
     model.add(Conv2D(64, (3,3), padding='same', activation='relu', bias_initializer=initializers.Zeros()))
-    model.add(Conv2D(64, (3,3), padding='same', activation='relu', bias_initializer=initializers.Zeros()))    
+    model.add(Conv2D(64, (3,3), padding='same', activation='relu', bias_initializer=initializers.Zeros()))
     model.add(MaxPooling2D(pool_size=(2,2)))
     model.add(Conv2D(128, (3,3), padding='same', activation='relu', bias_initializer=initializers.Zeros()))
     model.add(Conv2D(128, (3,3), padding='same', activation='relu', bias_initializer=initializers.Zeros()))
-    model.add(Conv2D(128, (3,3), padding='same', activation='relu', bias_initializer=initializers.Zeros()))    
+    model.add(Conv2D(128, (3,3), padding='same', activation='relu', bias_initializer=initializers.Zeros()))
     model.add(MaxPooling2D(pool_size=(2,2)))
     model.add(Conv2D(128, (3,3), padding='same', activation='relu', bias_initializer=initializers.Zeros()))
     model.add(Conv2D(128, (3,3), padding='same', activation='relu', bias_initializer=initializers.Zeros()))
-    model.add(Conv2D(128, (3,3), padding='same', bias_initializer=initializers.Zeros()))    
+    model.add(Conv2D(128, (3,3), padding='same', bias_initializer=initializers.Zeros()))
     model.add(BatchNormalization())
     model.add(Activation('relu'))
     model.add(MaxPooling2D(pool_size=(2,2)))
@@ -102,7 +102,7 @@ def create_model():
     model.add(layers.Dense(128, bias_initializer=initializers.Zeros()))
     model.add(BatchNormalization())
     model.add(Activation('relu'))
-    model.add(layers.Dense(100, activation='softmax', bias_initializer=initializers.Zeros()))
+    model.add(layers.Dense(100, bias_initializer=initializers.Zeros()))
     return model
 
 ##
@@ -115,7 +115,7 @@ def create_model():
 def train_nntrainer(target):
     train_data_size, val_data_size, label_size, feature_size = dataset.get_data_info(target)
     InVec, InLabel, ValVec, ValLabel = dataset.load_data(target)
-    
+
     model = create_model()
     model.summary()
 
@@ -133,27 +133,33 @@ def train_nntrainer(target):
         trainable_variables = tf.compat.v1.trainable_variables()
         tf_grad = optimizer.get_gradients(tf_loss, params = trainable_variables)
         train_op = optimizer.apply_gradients(zip(tf_grad, trainable_variables))
+        var_to_run = [train_op, tf_loss, tf.reduce_sum(tf.cast(tf.equal(tf.math.argmax(tf.nn.softmax(tf_logit), axis=1), tf.math.argmax(labels, axis=1)), tf.float32))/batch_size]
 
-        var_to_run = [train_op, tf_loss]
-        infer_to_run = [tf.reduce_sum(tf.cast(tf.equal(tf.math.argmax(tf.nn.softmax(tf_logit), axis=1), tf.math.argmax(labels, axis=1)), tf.float32))/batch_size, tf_loss]
+        tf_logit_eval = model(inputs, training=False)
+        tf_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(labels=labels, logits=tf_logit_eval))
+        tf_logit_eval = tf.nn.softmax(tf_logit_eval)
+        tf_accuracy = tf.reduce_sum(tf.cast(tf.equal(tf.math.argmax(tf_logit_eval, axis=1), tf.math.argmax(labels, axis=1)), tf.float32))/batch_size
+        infer_to_run = [tf_accuracy, tf_loss]
 
         sess.run(tf.compat.v1.global_variables_initializer())
 
         for i in range(0, num_epoch):
             count = 0
-            loss = 0;
+            accuracy = 0;
+            loss = 0
             for x, y in datagen(InVec, InLabel, batch_size):
                 feed_dict = {inputs: x, labels: y}
                 tf_out = sess.run(var_to_run, feed_dict = feed_dict)
                 loss += tf_out[1]
+                accuracy += tf_out[2]
                 count = count + 1
-
                 if count == len(InVec) // batch_size:
                     break;
 
+            training_accuracy = (accuracy / count) * 100.0
             training_loss = loss/count
 
-            count =0
+            count = 0
             accuracy = 0;
             loss = 0;
             for x, y in datagen(ValVec, ValLabel, batch_size):
@@ -162,12 +168,12 @@ def train_nntrainer(target):
                 accuracy += infer_out[0]
                 loss += infer_out[1]
                 count = count + 1
-                if count == len(InVec) // batch_size:
+                if count == len(ValVec) // batch_size:
                     break;
+
             accuracy = (accuracy / count) * 100.0
             loss = loss / count
-
-            print('#{}/{} - Training Loss: {:10.6f} >> [ Accuracy: {:10.6f}% - Valiadtion Loss : {:10.6f} ]'. format(i + 1, num_epoch, training_loss, accuracy, loss))
+            print('#{}/{} - Training Loss: {:10.6f} - Training Accuracy: {:10.6f} >> [ Accuracy: {:10.6f}% - Validation Loss : {:10.6f} ]'. format(i + 1, num_epoch, training_loss, training_accuracy, accuracy, loss))
     else:
         ## Method 1 : using keras fit (training and evaluating manually)
         optimizer = optimizers.Adam(learning_rate=1.0e-4, beta_1=0.9, beta_2=0.999, epsilon=1.0e-7)
