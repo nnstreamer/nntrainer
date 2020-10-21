@@ -310,11 +310,3 @@ void IniSection::setEntry(const std::string &entry_str) {
     entry[key] = value;
   }
 }
-
-/**
- * @brief make ini test case from given parameter
- */
-std::tuple<const char *, const std::vector<IniSection>, int>
-mkIniTc(const char *name, const std::vector<IniSection> vec, int flag) {
-  return std::make_tuple(name, vec, flag);
-}

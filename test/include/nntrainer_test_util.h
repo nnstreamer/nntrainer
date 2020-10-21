@@ -44,8 +44,10 @@
 
 class IniSection {
 public:
+  IniSection(const std::string &name) : section_name(name) {}
+
   IniSection(const std::string &section_name, const std::string &entry_str) :
-    section_name(section_name) {
+    IniSection(section_name) {
     setEntry(entry_str);
   }
 
@@ -112,34 +114,42 @@ private:
   }
 };
 
-namespace initest {
-typedef enum {
-  LOAD = 1 << 0, /**< should fail at load */
-  INIT = 1 << 1, /**< should fail at init */
-} IniFailAt;
-};
+/**
+ * @brief IniTestWrapper using IniSection
+ *
+ */
+class IniTestWrapper {
+public:
+  using Sections = std::vector<IniSection>;
 
-class nntrainerIniTest
-  : public ::testing::TestWithParam<
-      std::tuple<const char *, const std::vector<IniSection>, int>> {
-protected:
-  virtual void SetUp() {
-    name = std::string(std::get<0>(GetParam()));
-    std::cout << "starting test case : " << name << std::endl << std::endl;
+  /**
+   * @brief Construct a new Ini Test Wrapper object
+   *
+   */
+  IniTestWrapper(){};
 
-    sections = std::get<1>(GetParam());
-    failAt = std::get<2>(GetParam());
-    save_ini();
-  }
+  /**
+   * @brief Construct a new Ini Test Wrapper object
+   *
+   * @param name_ name of the ini without `.ini` extension
+   * @param sections_ sections that should go into ini
+   */
+  IniTestWrapper(const std::string &name_, const Sections &sections_) :
+    name(name_),
+    sections(sections_){};
 
-  virtual void TearDown() { erase_ini(); }
-
-  bool failAtLoad() { return failAt & initest::IniFailAt::LOAD; }
-
-  bool failAtInit() { return failAt & initest::IniFailAt::INIT; }
-
+  /**
+   * @brief Get the Ini Name object
+   *
+   * @return std::string ini name with extension appended
+   */
   std::string getIniName() { return name + ".ini"; }
 
+  /**
+   * @brief Get the Ini object
+   *
+   * @return std::ofstream ini file stream
+   */
   std::ofstream getIni() {
     std::ofstream out(getIniName().c_str());
     if (!out.good()) {
@@ -148,7 +158,11 @@ protected:
     return out;
   }
 
-  virtual void save_ini() {
+  /**
+   * @brief save ini to a file
+   *
+   */
+  void save_ini() {
     std::ofstream out = getIni();
     for (auto &it : sections) {
       it.print(std::cout);
@@ -160,20 +174,16 @@ protected:
     out.close();
   }
 
-  nntrainer::NeuralNetwork NN;
+  /**
+   * @brief erase ini
+   *
+   */
+  void erase_ini() { remove(getIniName().c_str()); }
 
 private:
-  void erase_ini() { name.clear(); }
-  int failAt;
   std::string name;
-  std::vector<IniSection> sections;
+  Sections sections;
 };
-
-/**
- * @brief make ini test case from given parameter
- */
-std::tuple<const char *, const std::vector<IniSection>, int>
-mkIniTc(const char *name, const std::vector<IniSection> vec, int flag);
 
 /// @todo: migrate this to datafile unittest
 const std::string config_str = "[Model]"

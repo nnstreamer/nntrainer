@@ -10,9 +10,50 @@
  * @bug No known bugs except for NYI items
  */
 
-#include "nntrainer_test_util.h"
 #include <gtest/gtest.h>
 #include <neuralnet.h>
+
+#include "nntrainer_test_util.h"
+
+namespace initest {
+typedef enum {
+  LOAD = 1 << 0, /**< should fail at load */
+  INIT = 1 << 1, /**< should fail at init */
+} IniFailAt;
+};
+
+class nntrainerIniTest
+  : public ::testing::TestWithParam<
+      std::tuple<const char *, const IniTestWrapper::Sections, int>> {
+
+protected:
+  virtual void SetUp() {
+    name = std::string(std::get<0>(GetParam()));
+    std::cout << "starting test case : " << name << std::endl << std::endl;
+
+    auto sections = std::get<1>(GetParam());
+
+    ini = IniTestWrapper(name, sections);
+
+    failAt = std::get<2>(GetParam());
+    ini.save_ini();
+  }
+
+  virtual void TearDown() { ini.erase_ini(); }
+
+  std::string getIniName() { return ini.getIniName(); }
+
+  bool failAtLoad() { return failAt & initest::IniFailAt::LOAD; }
+
+  bool failAtInit() { return failAt & initest::IniFailAt::INIT; }
+
+  nntrainer::NeuralNetwork NN;
+
+private:
+  int failAt;
+  std::string name;
+  IniTestWrapper ini;
+};
 
 /**
  * @brief check given ini is failing/suceeding at load
@@ -141,6 +182,14 @@ static int INITFAIL = initest::INIT;
 static int ALLFAIL = LOADFAIL | INITFAIL;
 
 using I = IniSection;
+
+/**
+ * @brief make ini test case from given parameter
+ */
+std::tuple<const char *, const IniTestWrapper::Sections, int>
+mkIniTc(const char *name, const IniTestWrapper::Sections vec, int flag) {
+  return std::make_tuple(name, vec, flag);
+}
 
 /// @note each line contains 2 (positive or negative test) + 3 negative test.
 /// if, there are 6 positive tests and 9 negative tests
