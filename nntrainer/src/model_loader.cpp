@@ -12,6 +12,7 @@
  *
  */
 
+#include <adam.h>
 #include <databuffer_factory.h>
 #include <databuffer_file.h>
 #include <databuffer_func.h>
