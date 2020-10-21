@@ -51,7 +51,6 @@ def save(filename, *data):
           np.array(item, dtype=np.float32).tofile(outfile)
           try:
             print(item.shape, " data is generated")
-            print(item)
           except:
             pass
 
@@ -62,7 +61,7 @@ def save(filename, *data):
 # @param[in] y_data : total label data
 # @param[in] batch_size : batch_size
 # @return (x_batch, y_batch)
-def datagen( x_data, y_data, batch_size):
+def datagen(x_data, y_data, batch_size):
     size=len(x_data)
     while True:
         for i in range(size // batch_size):
@@ -128,7 +127,8 @@ def train_nntrainer(target):
         tf_logit = model(inputs, training=True)
         tf_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(
             labels=labels, logits=tf_logit))
-        optimizer = tf.keras.optimizers.Adam(learning_rate=1.0e-4, epsilon=1.0e-7, beta_1=0.9, beta_2=0.999)
+        lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(initial_learning_rate = 1e-2, decay_steps=10000, decay_rate=0.96)
+        optimizer = tf.keras.optimizers.Adam(learning_rate=lr_schedule, epsilon=1.0e-7, beta_1=0.9, beta_2=0.999)
 
         trainable_variables = tf.compat.v1.trainable_variables()
         tf_grad = optimizer.get_gradients(tf_loss, params = trainable_variables)
@@ -142,6 +142,90 @@ def train_nntrainer(target):
         infer_to_run = [tf_accuracy, tf_loss]
 
         sess.run(tf.compat.v1.global_variables_initializer())
+
+        conv2_0 = np.transpose(model.get_weights()[0], [3,2,0,1])
+        conv2_1 = np.transpose(model.get_weights()[2], [3,2,0,1])
+        conv2_2 = np.transpose(model.get_weights()[4], [3,2,0,1])
+        conv2_3 = np.transpose(model.get_weights()[6], [3,2,0,1])
+        conv2_4 = np.transpose(model.get_weights()[8], [3,2,0,1])
+        conv2_5 = np.transpose(model.get_weights()[10], [3,2,0,1])
+        conv2_6 = np.transpose(model.get_weights()[12], [3,2,0,1])
+        conv2_7 = np.transpose(model.get_weights()[14], [3,2,0,1])
+        conv2_8 = np.transpose(model.get_weights()[16], [3,2,0,1])
+        conv2_9 = np.transpose(model.get_weights()[18], [3,2,0,1])
+        conv2_10 = np.transpose(model.get_weights()[20], [3,2,0,1])
+        conv2_11 = np.transpose(model.get_weights()[22], [3,2,0,1])
+        conv2_12 = np.transpose(model.get_weights()[24], [3,2,0,1])
+
+        bn_1_0 = np.transpose(model.get_weights()[26])
+        bn_1_1 = np.transpose(model.get_weights()[27])
+        bn_1_2 = np.transpose(model.get_weights()[28])
+        bn_1_3 = np.transpose(model.get_weights()[29])
+
+        fc_0_0 = np.transpose(model.get_weights()[30])
+        fc_0_1 = np.transpose(model.get_weights()[31])
+
+        bn_2_0 = np.transpose(model.get_weights()[32])
+        bn_2_1 = np.transpose(model.get_weights()[33])
+        bn_2_2 = np.transpose(model.get_weights()[34])
+        bn_2_3 = np.transpose(model.get_weights()[35])
+
+        fc_1_0 = np.transpose(model.get_weights()[36])
+        fc_1_1 = np.transpose(model.get_weights()[37])
+
+        bn_3_0 = np.transpose(model.get_weights()[38])
+        bn_3_1 = np.transpose(model.get_weights()[39])
+        bn_3_2 = np.transpose(model.get_weights()[40])
+        bn_3_3 = np.transpose(model.get_weights()[41])
+
+        fc_2_0 = np.transpose(model.get_weights()[42])
+        fc_2_1 = np.transpose(model.get_weights()[43])
+
+        save("model.bin", conv2_0)
+        save("model.bin", model.get_weights()[1])
+        save("model.bin", conv2_1)
+        save("model.bin", model.get_weights()[3])
+        save("model.bin", conv2_2)
+        save("model.bin", model.get_weights()[5])
+        save("model.bin", conv2_3)
+        save("model.bin", model.get_weights()[7])
+        save("model.bin", conv2_4)
+        save("model.bin", model.get_weights()[9])
+        save("model.bin", conv2_5)
+        save("model.bin", model.get_weights()[11])
+        save("model.bin", conv2_6)
+        save("model.bin", model.get_weights()[13])
+        save("model.bin", conv2_7)
+        save("model.bin", model.get_weights()[15])
+        save("model.bin", conv2_8)
+        save("model.bin", model.get_weights()[17])
+        save("model.bin", conv2_9)
+        save("model.bin", model.get_weights()[19])
+        save("model.bin", conv2_10)
+        save("model.bin", model.get_weights()[21])
+        save("model.bin", conv2_11)
+        save("model.bin", model.get_weights()[23])
+        save("model.bin", conv2_12)
+        save("model.bin", model.get_weights()[25])
+
+        save("model.bin", bn_1_0)
+        save("model.bin", bn_1_1)
+        save("model.bin", bn_1_2)
+        save("model.bin", bn_1_3)
+        save("model.bin", fc_0_0)
+        save("model.bin", fc_0_1)
+        save("model.bin", bn_2_0)
+        save("model.bin", bn_2_1)
+        save("model.bin", bn_2_2)
+        save("model.bin", bn_2_3)
+        save("model.bin", fc_1_0)
+        save("model.bin", fc_1_1)
+        save("model.bin", bn_3_0)
+        save("model.bin", bn_3_1)
+        save("model.bin", bn_3_2)
+        save("model.bin", bn_3_3)
+        save("model.bin", fc_2_0)
+        save("model.bin", fc_2_1)
 
         for i in range(0, num_epoch):
             count = 0
@@ -176,7 +260,9 @@ def train_nntrainer(target):
             print('#{}/{} - Training Loss: {:10.6f} - Training Accuracy: {:10.6f} >> [ Accuracy: {:10.6f}% - Validation Loss : {:10.6f} ]'. format(i + 1, num_epoch, training_loss, training_accuracy, accuracy, loss))
     else:
         ## Method 1 : using keras fit (training and evaluating manually)
-        optimizer = optimizers.Adam(learning_rate=1.0e-4, beta_1=0.9, beta_2=0.999, epsilon=1.0e-7)
+        lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(initial_learning_rate = 1e-2, decay_steps=10000, decay_rate=0.96)
+        optimizer = tf.keras.optimizers.Adam(learning_rate=lr_schedule, epsilon=1.0e-7, beta_1=0.9, beta_2=0.999)
+
         model.compile(optimizer = optimizer,
                       loss = tf.keras.losses.CategoricalCrossentropy(from_logits = True),
                       metrics = ['accuracy'])
