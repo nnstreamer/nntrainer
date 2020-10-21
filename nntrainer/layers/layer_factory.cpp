@@ -40,6 +40,8 @@ const std::string layerGetStrType(const LayerType &type) {
   switch (type) {
   case LayerType::LAYER_IN:
     return InputLayer::type;
+  case LayerType::LAYER_OUT:
+    return OutputLayer::type;
   case LayerType::LAYER_FC:
     return FullyConnectedLayer::type;
   case LayerType::LAYER_BN:
@@ -54,6 +56,8 @@ const std::string layerGetStrType(const LayerType &type) {
     return ActivationLayer::type;
   case LayerType::LAYER_ADDITION:
     return AdditionLayer::type;
+  case LayerType::LAYER_CONCAT:
+    return ConcatLayer::type;
   case LayerType::LAYER_LOSS:
     /** TODO: move loss layer out of layer types for API */
     throw exception::not_supported(
