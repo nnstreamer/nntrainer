@@ -201,10 +201,11 @@ void Layer::setProperty(const PropertyType type, const std::string &value) {
     if (!value.empty()) {
       std::regex reg("\\,+");
       std::vector<std::string> concat_layers = split(value, reg);
-      // TODO set num_inputs properly
-      num_inputs = 1;
-      if (concat_layers.size() > 1)
-        num_inputs = concat_layers.size();
+
+      num_inputs = concat_layers.size();
+
+      for (unsigned int i = 0; i < num_inputs; ++i)
+        input_layers.push_back(concat_layers[i]);
     }
     break;
   case PropertyType::output_layers:

@@ -95,6 +95,8 @@ public:
    * &value)
    */
   void setProperty(const PropertyType type, const std::string &value = "");
+
+  static const std::string type;
 };
 
 } // namespace nntrainer

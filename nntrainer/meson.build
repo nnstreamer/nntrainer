@@ -34,6 +34,7 @@ nntrainer_elements = [
   'optimizers',
   'tensor',
   'utils',
+  'graph'
 ]
 
 foreach elem : nntrainer_elements

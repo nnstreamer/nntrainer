@@ -67,6 +67,14 @@ TEST_P(nntrainerGraphTest, loadConfig) {
   } else {
     EXPECT_EQ(status, ML_ERROR_NONE);
   }
+
+  status = NN.compile();
+
+  if (failAtLoad()) {
+    EXPECT_NE(status, ML_ERROR_NONE);
+  } else {
+    EXPECT_EQ(status, ML_ERROR_NONE);
+  }
 }
 
 static IniSection nw_base("model", "Type = NeuralNetwork | "
@@ -78,25 +86,29 @@ static IniSection nw_sgd = nw_base + "Optimizer = sgd |"
                                      "Learning_rate = 1";
 
 static IniSection input0("inputlayer0", "Type = input |"
-                                        "Input_Shape = 1:1:62720 |"
-                                        "bias_initializer = zeros |"
-                                        "Normalization = true |"
-                                        "Activation = sigmoid");
+                                        "Input_Layers = dataset1 |"
+                                        "Input_Shape = 1:1:62720 ");
 
 static IniSection input1("inputlayer1", "Type = input |"
-                                        "Input_Shape = 1:1:62720 |"
-                                        "bias_initializer = zeros |"
-                                        "Normalization = true |"
-                                        "Activation = sigmoid");
+                                        "Input_Layers = dataset2 |"
+                                        "Input_Shape = 1:1:62720 ");
 
 static IniSection conv2d("conv2d", "Type = conv2d |"
                                    "input_layers=inputlayer0, inputlayer1 |"
                                    "bias_initializer = zeros |"
-                                   "Activation = sigmoid |"
                                    "filters = 6 |"
                                    "kernel_size = 5,5 |"
                                    "stride = 1,1 |"
-                                   "padding = 0,0 |");
+                                   "padding = 0,0");
+
+static IniSection flatten("flat", "Type = flatten |"
+                                  "input_layers=conv2d");
+
+static IniSection out("fclayer", "Type = fully_connected |"
+                                 "Unit = 10 |"
+                                 "input_layers = flat, conv2d |"
+                                 "bias_initializer = zeros |"
+                                 "Activation = softmax");
 
 static int SUCCESS = 0;
 
@@ -110,10 +122,11 @@ mkIniTc(const char *name, const IniTestWrapper::Sections vec, int flag) {
   return std::make_tuple(name, vec, flag);
 }
 
-INSTANTIATE_TEST_CASE_P(
-  nntrainerIniAutoTests, nntrainerGraphTest,
-  ::testing::Values(mkIniTc("basic_p", {nw_sgd, input0, input1, conv2d},
-                            SUCCESS)));
+INSTANTIATE_TEST_CASE_P(nntrainerIniAutoTests, nntrainerGraphTest,
+                        ::testing::Values(mkIniTc("basic_p",
+                                                  {nw_sgd, input0, input1,
+                                                   conv2d, flatten, out},
+                                                  SUCCESS)));
 
 int main(int argc, char **argv) {
   int result = -1;

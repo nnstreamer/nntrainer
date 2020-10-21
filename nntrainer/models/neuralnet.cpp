@@ -184,6 +184,25 @@ int NeuralNetwork::setTrainConfig(std::vector<std::string> values) {
   return status;
 }
 
+int NeuralNetwork::compile() {
+  int status = ML_ERROR_NONE;
+
+  status = isInitializable();
+  NN_RETURN_STATUS();
+
+  ml_logd("Compile model");
+
+  status = model_graph.setGraphNode(layers, loss_type);
+  NN_RETURN_STATUS();
+
+  status = model_graph.setEdge();
+  NN_RETURN_STATUS();
+
+  model_graph.topologicalSort();
+
+  return status;
+}
+
 int NeuralNetwork::init() {
   int status = ML_ERROR_NONE;
   std::vector<TensorDim> previous_dim;

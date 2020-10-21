@@ -2,6 +2,7 @@ layer_sources = [
   'activation_layer.cpp',
   'addition_layer.cpp',
   'concat_layer.cpp',
+  'output_layer.cpp',
   'bn_layer.cpp',
   'conv2d_layer.cpp',
   'fc_layer.cpp',

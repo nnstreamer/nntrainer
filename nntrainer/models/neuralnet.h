@@ -38,6 +38,7 @@
 #include <layer_internal.h>
 #include <loss_layer.h>
 #include <ml-api-common.h>
+#include <network_graph.h>
 #include <optimizer_internal.h>
 #include <pooling2d_layer.h>
 #include <tensor.h>
@@ -130,6 +131,8 @@ public:
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
   int loadFromConfig(std::string config);
+
+  int compile();
 
   /**
    * @brief     set Property of Network
@@ -385,6 +388,8 @@ private:
   RunStats testing;    /** testing statistics of the model */
 
   AppContext app_context; /** Configurations bound to current app */
+  
+  NetworkGraph model_graph;
 
   /**
    * @brief print function for neuralnet

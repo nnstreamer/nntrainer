@@ -77,6 +77,7 @@ NNTRAINER_SRCS := $(NNTRAINER_ROOT)/nntrainer/models/neuralnet.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/flatten_layer.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/addition_layer.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/concat_layer.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/graph/network_graph.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/optimizers/optimizer.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/optimizers/adam.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/optimizers/sgd.cpp \
@@ -97,6 +98,7 @@ NNTRAINER_INCLUDES := $(NNTRAINER_ROOT)/nntrainer \
                       $(NNTRAINER_ROOT)/nntrainer/tensor \
                       $(NNTRAINER_ROOT)/nntrainer/optimizers \
                       $(NNTRAINER_ROOT)/nntrainer/utils \
+                      $(NNTRAINER_ROOT)/nntrainer/graph \
                       $(NNTRAINER_ROOT)/api \
                       $(NNTRAINER_ROOT)/api/ccapi/include \
                       $(NNTRAINER_ROOT)/api/capi/include/platform
