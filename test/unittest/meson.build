@@ -1,7 +1,13 @@
 unittest_nntrainer_deps = [nntrainer_test_deps] # if unittest-wide dep is added, this is the place to add
 
 # test material need to be unzipped from "(project_home)/packaging/"
-unzip_target = ['trainset.tar.gz', 'valset.tar.gz', 'testset.tar.gz', 'unittest_layers.tar.gz']
+unzip_target = [
+  'trainset.tar.gz',
+  'valset.tar.gz',
+  'testset.tar.gz',
+  'unittest_layers.tar.gz',
+  'unittest_models.tar.gz'
+]
 
 src_path = join_paths(meson.source_root(), 'packaging')
 dest_path = meson.build_root()

@@ -23,6 +23,12 @@
 
 namespace nntrainer {
 
+TensorDim::TensorDim(const std::string &shape) : TensorDim() {
+  if (setTensorDim(shape) != ML_ERROR_NONE) {
+    throw std::invalid_argument("[TensorDim] Setting TensorDim failed");
+  }
+}
+
 TensorDim &TensorDim::operator=(const TensorDim &rhs) {
   using std::swap;
 
@@ -70,7 +76,7 @@ void TensorDim::setTensorDim(unsigned int idx, unsigned int value) {
   resetLen();
 }
 
-int TensorDim::setTensorDim(std::string input_shape) {
+int TensorDim::setTensorDim(const std::string &input_shape) {
   int status = ML_ERROR_NONE;
   std::regex words_regex("[^\\s.,:;!?]+");
   auto words_begin =

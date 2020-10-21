@@ -45,6 +45,8 @@ public:
 
   TensorDim(const TensorDim &rhs) = default;
 
+  TensorDim(const std::string &shape);
+
   ~TensorDim(){};
 
   /**
@@ -89,7 +91,7 @@ public:
 
   const unsigned int getTensorDim(unsigned int idx) const;
   void setTensorDim(unsigned int idx, unsigned int value);
-  int setTensorDim(std::string input_shape);
+  int setTensorDim(const std::string &input_shape);
 
   TensorDim &operator=(const TensorDim &rhs);
   bool operator==(const TensorDim &rhs) const;

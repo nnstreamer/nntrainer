@@ -21,6 +21,12 @@
 #include <neuralnet.h>
 #include <weight.h>
 
+#include "nntrainer_test_util.h"
+
+/********************************************************
+ * Watcher Classes                                      *
+ ********************************************************/
+
 using NodeType = nntrainer::NeuralNetwork::NodeType;
 using FlatGraphType = nntrainer::NeuralNetwork::FlatGraphType;
 
@@ -269,7 +275,7 @@ GraphWatcher::GraphWatcher(const std::string &config) {
 
 void GraphWatcher::compareFor(const std::string &reference,
                               const nntrainer::TensorDim &label_shape,
-                              unsigned int iterations) {
+                              const unsigned int iterations) {
   std::ifstream ref(reference, std::ios_base::in | std::ios_base::binary);
 
   if (ref.bad()) {
@@ -298,15 +304,14 @@ void GraphWatcher::compareFor(const std::string &reference,
     nntrainer::sharedConstTensor label = MAKE_SHARED_TENSOR(lb.clone());
 
     readIteration(ref);
-
     iteration == 1 ? prepareInitialWeight() : matchWeightAfterUpdation();
 
     /// forward pass
     for (auto &i : nodes)
       input = i.forward(input, iteration);
-    loss_node.lossForward(input, label, iteration);
 
-    EXPECT_FLOAT_EQ(expected_loss, loss_node.getLoss());
+    loss_node.lossForward(input, label, iteration);
+    EXPECT_NEAR(expected_loss, loss_node.getLoss(), nntrainer::Tensor::epsilon);
 
     /// backward pass and update weights
     nntrainer::sharedConstTensor output =
@@ -326,6 +331,165 @@ void GraphWatcher::readIteration(std::ifstream &f) {
   f.read((char *)&expected_loss, sizeof(float));
 }
 
+/********************************************************
+ * Tester Classes                                       *
+ ********************************************************/
+
+/**
+ * @brief nntrainerModelTest fixture for parametrized test
+ *
+ * @param const char * name of the ini and test. the tester generates name.ini
+ * and try to read name.info
+ * @param IniTestWrapper::Sections ini data
+ * @param nntrainer::TensorDim label dimension
+ * @param int Iteration
+ */
+class nntrainerModelTest
+  : public ::testing::TestWithParam<
+      std::tuple<const char *, const IniTestWrapper::Sections,
+                 const nntrainer::TensorDim, const unsigned int>> {
+
+protected:
+  virtual void SetUp() {
+    auto param = GetParam();
+    name = std::string(std::get<0>(param));
+    std::cout << "starting test case : " << name << "\n\n";
+
+    auto sections = std::get<1>(param);
+    ini = IniTestWrapper(name, sections);
+
+    label_dim = std::get<2>(param);
+    iteration = std::get<3>(param);
+    ini.save_ini();
+  }
+
+  virtual void TearDown() { ini.erase_ini(); }
+
+  std::string getIniName() { return ini.getIniName(); }
+  std::string getGoldenName() { return name + ".info"; }
+  int getIteration() { return iteration; };
+  nntrainer::TensorDim getLabelDim() { return label_dim; }
+
+private:
+  nntrainer::TensorDim label_dim;
+  int iteration;
+  std::string name;
+  IniTestWrapper ini;
+};
+
+/**
+ * @brief check given ini is failing/suceeding at load
+ */
+TEST_P(nntrainerModelTest, model_test) {
+  GraphWatcher g(getIniName());
+
+  g.compareFor(getGoldenName(), getLabelDim(), getIteration());
+
+  /// add stub test for tcm
+  EXPECT_EQ(std::get<0>(GetParam()), std::get<0>(GetParam()));
+}
+
+/**
+ * @brief helper function to make model testcase
+ *
+ * @param const char * name of the ini and test. the tester generates name.ini
+ * and try to read name.info
+ * @param IniTestWrapper::Sections ini data
+ * @param nntrainer::TensorDim label dimension
+ * @param int Iteration
+ */
+auto mkModelTc(const char *name, const IniTestWrapper::Sections &vec,
+               const std::string &label_dim, const unsigned int iteration) {
+  return std::make_tuple(name, vec, nntrainer::TensorDim(label_dim), iteration);
+}
+
+/********************************************************
+ * Actual Test                                          *
+ ********************************************************/
+
+static IniSection nn_base("model", "Type = NeuralNetwork");
+static IniSection input_base("input", "Type = input");
+static IniSection fc_base("fc", "Type = Fully_connected");
+
+static IniSection act_base("activation", "Type = Activation");
+static IniSection softmax = act_base + "Activation = softmax";
+static IniSection sigmoid = act_base + "Activation = sigmoid";
+static IniSection relu = act_base + "Activation = relu";
+
+using I = IniSection;
+
+/**
+ * This is just a wrapper for an ini file with save / erase attached.
+ * for example, fc_softmax_mse contains following ini file representation as a
+ * series of IniSection
+ *
+ * [Model]
+ * Type = NeuralNetwork
+ * Learning_rate = 1
+ * Optimizer = sgd
+ * Loss = mse
+ * batch_Size = 3
+ *
+ * [input_1]
+ * Type = input
+ * Input_Shape = 1:1:3
+ *
+ * [dense]
+ * Type = fully_connected
+ * Unit = 10
+ *
+ * [dense_1]
+ * Type = fully_connected
+ * Unit = 10
+ *
+ * [dense_2]
+ * Type = fully_connected
+ * Unit = 10
+ *
+ * [activation]
+ * Type = Activation
+ * Activation = softmax
+ */
+IniTestWrapper::Sections fc_softmax_mse{
+  nn_base + "Learning_rate=1 | Optimizer=sgd | Loss=mse | batch_size = 3",
+  I("input") + input_base + "input_shape = 1:1:3",
+  I("dense") + fc_base + "unit = 5",
+  I("dense_1") + fc_base + "unit = 5",
+  I("dense_2") + fc_base + "unit = 10",
+  softmax};
+
+IniTestWrapper::Sections fc_sigmoid_mse{
+  nn_base + "Learning_rate=1 | Optimizer=sgd | Loss=mse | batch_size = 3",
+  I("input") + input_base + "input_shape = 1:1:3",
+  I("dense") + fc_base + "unit = 10",
+  I("dense_1") + fc_base + "unit = 10",
+  I("dense_2") + fc_base + "unit = 2",
+  sigmoid};
+
+IniTestWrapper::Sections fc_relu_mse{
+  nn_base + "Learning_rate=0.001 | Optimizer=sgd | Loss=mse | batch_size = 3",
+  I("input") + input_base + "input_shape = 1:1:3",
+  I("dense") + fc_base + "unit = 10",
+  I("act") + relu,
+  I("dense_1") + fc_base + "unit = 10",
+  I("act_1") + relu,
+  I("dense_2") + fc_base + "unit = 2",
+  I("act_2") + relu};
+
+// clang-format off
+INSTANTIATE_TEST_CASE_P(
+  nntrainerModelAutoTests, nntrainerModelTest, ::testing::Values(
+mkModelTc("fc_softmax_mse", fc_softmax_mse, "3:1:1:10", 10),
+mkModelTc("fc_relu_mse", fc_relu_mse, "3:1:1:2", 10)
+/// #if gtest_version <= 1.7.0
+));
+/// #else gtest_version > 1.8.0
+// ), [](const testing::TestParamInfo<nntrainerModelTest::ParamType>& info){
+//  return std::get<0>(info.param);
+// });
+/// #end if */
+// clang-format on
+
 /**
  * @brief Main gtest
  */
@@ -342,7 +506,7 @@ int main(int argc, char **argv) {
   try {
     result = RUN_ALL_TESTS();
   } catch (...) {
-    std::cerr << "Error duing RUN_ALL_TSETS()" << std::endl;
+    std::cerr << "Error duing RUN_ALL_TESTS()" << std::endl;
   }
 
   return result;

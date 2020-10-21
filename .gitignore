@@ -24,6 +24,8 @@ obj/
 
 # binary files
 *.out
+*.in
+*.info
 *.so
 *.o
 *.a

@@ -562,6 +562,8 @@ public:
     return strides;
   }
 
+  static constexpr float epsilon = 1e-5;
+
 private:
   /**
    * @brief Get linear index given the n-d index
@@ -617,7 +619,6 @@ private:
   std::shared_ptr<float> data;
 
   template <typename T> void setDist(T dist);
-  static constexpr float epsilon = 1e-5;
 };
 
 /**

@@ -61,9 +61,10 @@ class KerasRecorder:
 
     def _rand_like(self, tensorOrShape, scale=10):
         try:
-            return tf.random.uniform(tensorOrShape.shape, dtype=tf.float32) * scale
+            t =  np.random.randint(1, 10, size=tensorOrShape.shape).astype(dtype=np.float32)
         except AttributeError:
-            return tf.random.uniform(tensorOrShape, dtype=tf.float32) * scale
+            t = np.random.randint(1, 10, size=tensorOrShape).astype(dtype=np.float32)
+        return tf.convert_to_tensor(t)
 
     ##
     # @brief generate data using uniform data from a function and save to the file.
@@ -71,29 +72,25 @@ class KerasRecorder:
     def generate_data(self, input_shape, label_shape):
         """This part loads data, should be changed if you are gonna load real data"""
         self.initial_input = self._rand_like(input_shape)
-        self.label = tf.one_hot(indices=[1] * label_shape[0], depth=label_shape[1])
+        self.label = tf.one_hot(
+          indices=np.random.randint(0, label_shape[1] - 1, label_shape[0]),
+          depth=label_shape[1]
+        )
 
         self.initial_input.numpy().tofile(self.file)
         self.label.numpy().tofile(self.file)
 
     def _write_items(self, *items):
         for item in items:
-            print(item)
             try:
                 item.numpy().tofile(self.file)
             except AttributeError:
-                pass
-            try:
-                print(item.shape, " data is generated")
-            except:
                 pass
 
     ##
     # @brief model iteration wrapper that listen to the gradient and outputs of the model
     # each results are recorded.
     def step(self):
-        self.model.summary()
-
         with tf.GradientTape(persistent=True) as tape:
             tape.watch(self.initial_input)
             outputs = self.model(self.initial_input)
@@ -101,12 +98,11 @@ class KerasRecorder:
             if self.loss_fn:
                 loss = self.loss_fn(self.label, outputs[-1])
                 outputs.append(loss)
-                print("loss is %s" % loss)
 
         results = [self.initial_input] + outputs
 
         for idx, layer in enumerate(self.model.layers):
-            print("generating for %s" % layer.name)
+            # print("generating for %s" % layer.name)
 
             weights = layer.trainable_weights.copy()
             gradients = tape.gradient(results[-1], layer.trainable_weights)
@@ -121,10 +117,12 @@ class KerasRecorder:
             self.optimizer.apply_gradients(zip(gradients, layer.trainable_weights))
 
         self._write_items(results[-1])
+        print("loss is %s" % results[-1])
 
     ##
     # @brief run function
     # @param iteration number of iteration to run
     def run(self, iteration = 1):
+        print(self.model.summary())
         for _ in range(iteration):
             self.step()

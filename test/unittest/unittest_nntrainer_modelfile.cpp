@@ -214,7 +214,6 @@ INSTANTIATE_TEST_CASE_P(
     mkIniTc("buffer_size_smaller_than_batch_size_p", {nw_adam, dataset + "BufferSize=26", input, out}, SUCCESS),
     mkIniTc("buffer_size_smaller_than_batch_size2_p", {nw_adam, input, out, dataset + "BufferSize=26"}, SUCCESS),
 
-
   /**< half negative: init fail cases (1 positive and 4 negative cases) */
     mkIniTc("unknown_loss_n", {nw_adam + "loss = unknown", input, out}, INITFAIL),
     mkIniTc("activation_very_first_n", {nw_sgd, act_relu, input, out}, INITFAIL),
