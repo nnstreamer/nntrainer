@@ -102,7 +102,7 @@ public:
    * @param[in] in List of Input Tensors taken by this layer
    * @retval    List of Output Tensors
    */
-  virtual sharedConstTensor forwarding(sharedConstTensor in) = 0;
+  virtual sharedConstTensors forwarding(sharedConstTensors in) = 0;
 
   /**
    * @brief     Back Propagation of a layer
@@ -110,8 +110,8 @@ public:
    * @param[in] iteration Iteration value for the Optimizer
    * @retval    Derivative List of Tensor for the previous layer
    */
-  virtual sharedConstTensor backwarding(sharedConstTensor in,
-                                        int iteration) = 0;
+  virtual sharedConstTensors backwarding(sharedConstTensors in,
+                                         int iteration) = 0;
 
   /**
    * @brief     read layer Weight & Bias data from file

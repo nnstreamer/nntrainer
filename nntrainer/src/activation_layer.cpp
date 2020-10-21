@@ -44,24 +44,24 @@ int ActivationLayer::initialize() {
   return ML_ERROR_NONE;
 }
 
-sharedConstTensor ActivationLayer::forwarding(sharedConstTensor in) {
-  input = *in;
+sharedConstTensors ActivationLayer::forwarding(sharedConstTensors in) {
+  input = *in[0];
   /// @note @a _act_fn is expected to work out of place and not modify @a input
   hidden = _act_fn(input);
 
-  return MAKE_SHARED_TENSOR(hidden);
+  return {MAKE_SHARED_TENSOR(hidden)};
 }
 
-sharedConstTensor ActivationLayer::backwarding(sharedConstTensor derivative,
-                                               int iteration) {
-  Tensor deriv = *derivative;
+sharedConstTensors ActivationLayer::backwarding(sharedConstTensors derivative,
+                                                int iteration) {
+  Tensor deriv = *derivative[0];
   Tensor ret;
   if (activation_type == ActivationType::ACT_SOFTMAX)
     ret = _act_prime_fn(hidden, deriv);
   else
     ret = _act_prime_fn(input, deriv);
 
-  return MAKE_SHARED_TENSOR(std::move(ret));
+  return {MAKE_SHARED_TENSOR(std::move(ret))};
 }
 
 int ActivationLayer::setActivation(

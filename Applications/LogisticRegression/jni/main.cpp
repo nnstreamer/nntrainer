@@ -215,9 +215,10 @@ int main(int argc, char *argv[]) {
       getData(dataFile, o, l, j);
 
       try {
-        float answer = NN.forwarding(MAKE_SHARED_TENSOR(nntrainer::Tensor({o})))
-                         ->apply(stepFunction)
-                         .getValue(0, 0, 0, 0);
+        float answer =
+          NN.forwarding({MAKE_SHARED_TENSOR(nntrainer::Tensor({o}))})[0]
+            ->apply(stepFunction)
+            .getValue(0, 0, 0, 0);
         std::cout << answer << " : " << l[0] << std::endl;
         cn += answer == l[0];
       } catch (...) {

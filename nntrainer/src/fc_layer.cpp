@@ -70,12 +70,12 @@ void FullyConnectedLayer::setProperty(const PropertyType type,
   }
 }
 
-sharedConstTensor FullyConnectedLayer::forwarding(sharedConstTensor in) {
+sharedConstTensors FullyConnectedLayer::forwarding(sharedConstTensors in) {
   Tensor &weight =
     weightAt(static_cast<int>(FCParams::weight)).getVariableRef();
   Tensor &bias = weightAt(static_cast<int>(FCParams::bias)).getVariableRef();
 
-  input = *in;
+  input = *in[0];
   hidden = input.dot(weight);
   hidden.add_i(bias);
 
@@ -83,7 +83,7 @@ sharedConstTensor FullyConnectedLayer::forwarding(sharedConstTensor in) {
     loss = weight_regularizer_constant * 0.5f * (weight.l2norm());
   }
 
-  return MAKE_SHARED_TENSOR(hidden);
+  return {MAKE_SHARED_TENSOR(hidden)};
 }
 
 void FullyConnectedLayer::read(std::ifstream &file) {
@@ -106,18 +106,18 @@ void FullyConnectedLayer::copy(std::shared_ptr<Layer> l) {
   this->unit = from->unit;
 }
 
-sharedConstTensor FullyConnectedLayer::backwarding(sharedConstTensor derivative,
-                                                   int iteration) {
+sharedConstTensors
+FullyConnectedLayer::backwarding(sharedConstTensors derivative, int iteration) {
   unsigned int weight_idx = static_cast<int>(FCParams::weight);
   unsigned int bias_idx = static_cast<int>(FCParams::bias);
   Tensor &weight = weightAt(weight_idx).getVariableRef();
   Tensor &djdw = weightAt(weight_idx).getGradientRef();
   Tensor &djdb = weightAt(bias_idx).getGradientRef();
 
-  Tensor ret = derivative->dot(weight, false, true);
-  djdb = derivative->sum(0);
+  Tensor ret = derivative[0]->dot(weight, false, true);
+  djdb = derivative[0]->sum(0);
 
-  djdw = input.dot(*derivative, true, false);
+  djdw = input.dot(*derivative[0], true, false);
   if (isWeightRegularizerL2Norm())
     djdw.add_i(weight, weight_regularizer_constant);
   djdw = djdw.sum(0);
@@ -126,6 +126,6 @@ sharedConstTensor FullyConnectedLayer::backwarding(sharedConstTensor derivative,
     opt->apply_gradients(weight_list, num_weights, iteration);
   }
 
-  return MAKE_SHARED_TENSOR(std::move(ret));
+  return {MAKE_SHARED_TENSOR(std::move(ret))};
 }
 } /* namespace nntrainer */

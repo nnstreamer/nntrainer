@@ -64,9 +64,9 @@ void Conv2DLayer::read(std::ifstream &file) { Layer::read(file); }
 
 void Conv2DLayer::save(std::ofstream &file) { Layer::save(file); }
 
-sharedConstTensor Conv2DLayer::forwarding(sharedConstTensor in) {
+sharedConstTensors Conv2DLayer::forwarding(sharedConstTensors in) {
   int status = ML_ERROR_NONE;
-  input = *in;
+  input = *in[0];
 
   if (normalization) {
     input = input.normalization();
@@ -161,13 +161,14 @@ sharedConstTensor Conv2DLayer::forwarding(sharedConstTensor in) {
     loss /= filter_size;
   }
 
-  return MAKE_SHARED_TENSOR(hidden);
+  return {MAKE_SHARED_TENSOR(hidden)};
 };
 
-sharedConstTensor Conv2DLayer::backwarding(sharedConstTensor derivative,
-                                           int iteration) {
+sharedConstTensors Conv2DLayer::backwarding(sharedConstTensors derivatives,
+                                            int iteration) {
 
   std::array<unsigned int, CONV2D_DIM> same_pad;
+  sharedConstTensor derivative = derivatives[0];
 
   same_pad[0] = kernel_size[0] - 1;
   same_pad[1] = kernel_size[1] - 1;
@@ -351,7 +352,7 @@ sharedConstTensor Conv2DLayer::backwarding(sharedConstTensor derivative,
     opt->apply_gradients(weight_list, num_weights, iteration);
   }
 
-  return MAKE_SHARED_TENSOR(std::move(strip_pad(ret, padding.data())));
+  return {MAKE_SHARED_TENSOR(std::move(strip_pad(ret, padding.data())))};
 }
 
 void Conv2DLayer::copy(std::shared_ptr<Layer> l) {
