@@ -629,6 +629,10 @@ typedef std::shared_ptr<Tensor> sharedTensor;
 
 typedef std::shared_ptr<const Tensor> sharedConstTensor;
 
+typedef std::vector<sharedConstTensor> sharedConstTensors;
+
+typedef std::vector<sharedTensor> sharedTensors;
+
 } /* namespace nntrainer */
 
 #endif /* __cplusplus */

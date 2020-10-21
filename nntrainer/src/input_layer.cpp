@@ -51,8 +51,8 @@ void InputLayer::setProperty(const PropertyType type,
   }
 }
 
-sharedConstTensor InputLayer::forwarding(sharedConstTensor in) {
-  input = *in;
+sharedConstTensors InputLayer::forwarding(sharedConstTensors in) {
+  input = *in[0];
 
   hidden = input;
   if (normalization)
@@ -60,10 +60,11 @@ sharedConstTensor InputLayer::forwarding(sharedConstTensor in) {
   if (standardization)
     hidden = hidden.standardization();
 
-  return MAKE_SHARED_TENSOR(hidden);
+  return {MAKE_SHARED_TENSOR(hidden)};
 }
 
-sharedConstTensor InputLayer::backwarding(sharedConstTensor in, int iteration) {
+sharedConstTensors InputLayer::backwarding(sharedConstTensors in,
+                                           int iteration) {
   return in;
 }
 

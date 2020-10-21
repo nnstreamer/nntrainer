@@ -211,7 +211,7 @@ NodeWatcher::forward(nntrainer::sharedConstTensor in, int iteration) {
   std::string err_msg = ss.str();
 
   verify(*in, expected_input, err_msg + " at input ");
-  nntrainer::sharedConstTensor out = node->forwarding(in);
+  nntrainer::sharedConstTensor out = node->forwarding({in})[0];
   verify(*out, expected_output, err_msg + " at output ");
   return out;
 }
@@ -224,8 +224,8 @@ NodeWatcher::lossForward(nntrainer::sharedConstTensor pred,
   std::string err_msg = ss.str();
 
   nntrainer::sharedConstTensor out =
-    std::static_pointer_cast<nntrainer::LossLayer>(node)->forwarding(pred,
-                                                                     answer);
+    std::static_pointer_cast<nntrainer::LossLayer>(node)->forwarding(
+      {pred}, {answer})[0];
 
   return out;
 }
@@ -238,7 +238,7 @@ NodeWatcher::backward(nntrainer::sharedConstTensor deriv, int iteration,
      << iteration;
   std::string err_msg = ss.str();
 
-  nntrainer::sharedConstTensor out = node->backwarding(deriv, iteration);
+  nntrainer::sharedConstTensor out = node->backwarding({deriv}, iteration)[0];
 
   if (should_verify) {
     verify(*out, expected_dx, err_msg);

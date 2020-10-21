@@ -341,7 +341,7 @@ int main(int argc, char **argv) {
           return 0;
         }
         try {
-          test = mainNet.forwarding(MAKE_SHARED_TENSOR(in_tensor));
+          test = mainNet.forwarding({MAKE_SHARED_TENSOR(in_tensor)})[0];
         } catch (...) {
           std::cerr << "Error while forwarding the network" << std::endl;
           return 0;
@@ -448,7 +448,7 @@ int main(int argc, char **argv) {
          */
         nntrainer::sharedConstTensor Q;
         try {
-          Q = mainNet.forwarding(MAKE_SHARED_TENSOR(q_in));
+          Q = mainNet.forwarding({MAKE_SHARED_TENSOR(q_in)})[0];
         } catch (...) {
           std::cerr << "Error during forwarding main network" << std::endl;
           return -1;
@@ -459,7 +459,7 @@ int main(int argc, char **argv) {
          */
         nntrainer::sharedConstTensor NQ;
         try {
-          NQ = targetNet.forwarding(MAKE_SHARED_TENSOR(nq_in));
+          NQ = targetNet.forwarding({MAKE_SHARED_TENSOR(nq_in)})[0];
         } catch (...) {
           std::cerr << "Error during forwarding target network" << std::endl;
           return -1;
@@ -495,7 +495,7 @@ int main(int argc, char **argv) {
         nntrainer::Tensor in_tensor;
         try {
           in_tensor = nntrainer::Tensor(inbatch);
-          mainNet.backwarding(MAKE_SHARED_TENSOR(in_tensor), Q, iter);
+          mainNet.backwarding({MAKE_SHARED_TENSOR(in_tensor)}, {Q}, iter);
         } catch (...) {
           std::cerr << "Error during backwarding the network" << std::endl;
           return -1;

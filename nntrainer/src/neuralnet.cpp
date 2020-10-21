@@ -267,8 +267,8 @@ NeuralNetwork::~NeuralNetwork() {
 /**
  * @brief     forward propagation using layers object which has layer
  */
-sharedConstTensor NeuralNetwork::forwarding(sharedConstTensor input) {
-  sharedConstTensor X = input;
+sharedConstTensors NeuralNetwork::forwarding(sharedConstTensors input) {
+  sharedConstTensors X = input;
   /** Do not forward the loss layer, as label is not available */
   for (unsigned int i = 0; i < layers.size() - 1; i++) {
     X = layers[i]->forwarding(X);
@@ -280,11 +280,11 @@ sharedConstTensor NeuralNetwork::forwarding(sharedConstTensor input) {
 /**
  * @brief     forward propagation using layers object which has layer
  */
-sharedConstTensor NeuralNetwork::forwarding(sharedConstTensor input,
-                                            sharedConstTensor label) {
-  sharedConstTensor X;
+sharedConstTensors NeuralNetwork::forwarding(sharedConstTensors input,
+                                             sharedConstTensors label) {
+  sharedConstTensors X;
 
-  if (input->getDim().batch() > batch_size)
+  if (input[0]->getDim().batch() > batch_size)
     throw std::logic_error("Error: mismatch in batchsize for data and model.");
 
   X = forwarding(input);
@@ -299,8 +299,8 @@ sharedConstTensor NeuralNetwork::forwarding(sharedConstTensor input,
  *            Call backwarding function of layer in reverse order
  *            No need to call at first Input Layer (No data to be updated)
  */
-void NeuralNetwork::backwarding(sharedConstTensor input,
-                                sharedConstTensor label, int iteration) {
+void NeuralNetwork::backwarding(sharedConstTensors input,
+                                sharedConstTensors label, int iteration) {
 
   if (layers.empty() || layers.back()->getType() != LayerType::LAYER_LOSS) {
     throw std::invalid_argument("last layer is not loss layer");
@@ -308,7 +308,7 @@ void NeuralNetwork::backwarding(sharedConstTensor input,
 
   forwarding(input, label);
 
-  sharedConstTensor output = label;
+  sharedConstTensors output = label;
   for (unsigned int i = layers.size() - 1; i > 0; i--)
     output = layers[i]->backwarding(output, iteration);
 }
@@ -375,24 +375,24 @@ void NeuralNetwork::setBatchSize(unsigned int batch) {
     throw std::invalid_argument("Error setting batchsize for the dataset");
 }
 
-sharedConstTensor NeuralNetwork::inference(const Tensor X) {
-  if (batch_size != X.batch()) {
+sharedConstTensors NeuralNetwork::inference(sharedConstTensors X) {
+  if (batch_size != X[0]->batch()) {
     /**
      * Note that inference resets batch_size of the previous train configuration
      * Next train must set its batch_size if inference is run with this model.
      */
-    setBatchSize(X.batch());
+    setBatchSize(X[0]->batch());
   }
 
-  sharedConstTensor out;
+  sharedConstTensors out;
   try {
-    out = forwarding(MAKE_SHARED_TENSOR(X));
+    out = forwarding(X);
     /** Forward loss layer without label as well */
     out = std::static_pointer_cast<LossLayer>(layers[layers.size() - 1])
             ->forwarding(out);
   } catch (...) {
     ml_loge("Failed to inference Model");
-    return nullptr;
+    return out;
   }
   return out;
 }
@@ -455,7 +455,7 @@ int NeuralNetwork::train_run() {
       if (data_buffer->getDataFromBuffer(nntrainer::BufferType::BUF_TRAIN,
                                          in->getData(), label->getData())) {
         try {
-          backwarding(in, label, iter++);
+          backwarding({in}, {label}, iter++);
         } catch (...) {
           data_buffer->clear(nntrainer::BufferType::BUF_TRAIN);
           ml_loge("Error: training error in #%d/%d.", epoch_idx, epochs);
@@ -494,8 +494,8 @@ int NeuralNetwork::train_run() {
       while (true) {
         if (data_buffer->getDataFromBuffer(nntrainer::BufferType::BUF_VAL,
                                            in->getData(), label->getData())) {
-          sharedConstTensor Y = forwarding(in, label);
-          auto model_out = Y->argmax();
+          sharedConstTensors Y = forwarding({in}, {label});
+          auto model_out = Y[0]->argmax();
           auto label_out = label->argmax();
           for (unsigned int b = 0; b < batch_size; b++) {
             if (model_out[b] == label_out[b])

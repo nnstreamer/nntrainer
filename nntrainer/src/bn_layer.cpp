@@ -114,13 +114,13 @@ void BatchNormalizationLayer::setProperty(const PropertyType type,
   }
 }
 
-sharedConstTensor BatchNormalizationLayer::forwarding(sharedConstTensor in) {
+sharedConstTensors BatchNormalizationLayer::forwarding(sharedConstTensors in) {
   Tensor &mu = weightAt(static_cast<int>(BNParams::mu)).getVariableRef();
   Tensor &var = weightAt(static_cast<int>(BNParams::var)).getVariableRef();
   Tensor &gamma = weightAt(static_cast<int>(BNParams::gamma)).getVariableRef();
   Tensor &beta = weightAt(static_cast<int>(BNParams::beta)).getVariableRef();
 
-  input = *in;
+  input = *in[0];
   /// @todo change trainable #524
   if (trainable) {
     Tensor cmu = input.average(axes_to_reduce);
@@ -145,18 +145,18 @@ sharedConstTensor BatchNormalizationLayer::forwarding(sharedConstTensor in) {
     this->hidden.add(beta);
   }
 
-  return MAKE_SHARED_TENSOR(hidden);
+  return {MAKE_SHARED_TENSOR(hidden)};
 }
 
-sharedConstTensor
-BatchNormalizationLayer::backwarding(sharedConstTensor derivative,
+sharedConstTensors
+BatchNormalizationLayer::backwarding(sharedConstTensors derivative,
                                      int iteration) {
   Tensor &gamma = weightAt(static_cast<int>(BNParams::gamma)).getVariableRef();
   Tensor &dgamma = weightAt(static_cast<int>(BNParams::gamma)).getGradientRef();
   Tensor &dbeta = weightAt(static_cast<int>(BNParams::beta)).getGradientRef();
   Tensor dx_normalized;
 
-  Tensor deriv = *derivative;
+  Tensor deriv = *derivative[0];
 
   int N = 1;
 
@@ -178,7 +178,7 @@ BatchNormalizationLayer::backwarding(sharedConstTensor derivative,
 
   opt->apply_gradients(weight_list, num_weights, iteration);
 
-  return MAKE_SHARED_TENSOR(std::move(dx));
+  return {MAKE_SHARED_TENSOR(std::move(dx))};
 }
 
 void BatchNormalizationLayer::copy(std::shared_ptr<Layer> l) {
