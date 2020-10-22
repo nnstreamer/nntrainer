@@ -575,14 +575,6 @@ int NeuralNetwork::addLayer(NodeType layer) {
     return status;
   }
 
-  /** Ensure that the layer name is unique */
-  auto insert_result = layer_names.insert(layer->getName());
-  if (!insert_result.second) {
-    std::stringstream ss;
-    ss << "Layer with name " << layer->getName() << " already exists";
-    throw std::invalid_argument(ss.str());
-  }
-
   /** Insert the layer to the graph */
   layers.push_back(layer);
 
