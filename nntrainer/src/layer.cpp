@@ -68,8 +68,7 @@ void Layer::copy(std::shared_ptr<Layer> l) {
     weightAt(i) = l->weightAt(i);
   }
 
-  // TODO: fix this #630
-  this->opt = l->opt;
+  this->opt = createOptimizer(l->opt->getType(), *opt.get());
   this->input_dim = l->input_dim;
   this->output_dim = l->output_dim;
   this->input.copy(l->input);

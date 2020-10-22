@@ -321,8 +321,7 @@ protected:
   /**
    * @brief     Optimizer for this layer
    */
-  // TODO: fix with #630
-  std::shared_ptr<Optimizer> opt;
+  std::unique_ptr<Optimizer> opt;
 
   /**
    * @brief     Layer type
