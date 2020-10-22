@@ -165,7 +165,7 @@ int ModelLoader::loadDatasetConfigIni(dictionary *ini, NeuralNetwork &model) {
 
 int ModelLoader::loadLayerConfigIni(dictionary *ini,
                                     std::shared_ptr<Layer> &layer,
-                                    std::string layer_name) {
+                                    const std::string &layer_name) {
   int status = ML_ERROR_NONE;
 
   std::string layer_type_str =
@@ -215,10 +215,26 @@ int ModelLoader::loadLayerConfigIni(dictionary *ini,
   return ML_ERROR_NONE;
 }
 
+int ModelLoader::loadBackboneConfigIni(const std::string &backbone_config,
+                                       NeuralNetwork &model,
+                                       const std::string &backbone_name) {
+  int status = ML_ERROR_NONE;
+  NeuralNetwork backbone;
+
+  status = loadFromConfig(backbone_config, backbone, true);
+  NN_RETURN_STATUS();
+
+  status = model.extendGraph(backbone.getGraph(), backbone_name);
+  NN_RETURN_STATUS();
+
+  return ML_ERROR_NONE;
+}
+
 /**
  * @brief     load all of model and dataset from ini
  */
-int ModelLoader::loadFromIni(std::string ini_file, NeuralNetwork &model) {
+int ModelLoader::loadFromIni(std::string ini_file, NeuralNetwork &model,
+                             bool bare_layers) {
   int status = ML_ERROR_NONE;
   int num_ini_sec = 0;
   dictionary *ini;
@@ -253,11 +269,13 @@ int ModelLoader::loadFromIni(std::string ini_file, NeuralNetwork &model) {
     NN_INI_RETURN_STATUS();
   }
 
-  status = loadModelConfigIni(ini, model);
-  NN_INI_RETURN_STATUS();
+  if (!bare_layers) {
+    status = loadModelConfigIni(ini, model);
+    NN_INI_RETURN_STATUS();
 
-  status = loadDatasetConfigIni(ini, model);
-  NN_INI_RETURN_STATUS();
+    status = loadDatasetConfigIni(ini, model);
+    NN_INI_RETURN_STATUS();
+  }
 
   ml_logd("parsing ini started");
   /** Get all the section names */
@@ -266,20 +284,32 @@ int ModelLoader::loadFromIni(std::string ini_file, NeuralNetwork &model) {
   ml_logi("not-allowed property for the layer throws error");
   ml_logi("valid property with invalid value throws error as well");
   for (int idx = 0; idx < num_ini_sec; ++idx) {
-    const char *sec_name = iniparser_getsecname(ini, idx);
-    ml_logd("probing section name: %s", sec_name);
+    std::string sec_name = iniparser_getsecname(ini, idx);
+    ml_logd("probing section name: %s", sec_name.c_str());
 
-    if (!sec_name) {
+    if (sec_name.empty()) {
       ml_loge("Error: Unable to retrieve section names from ini.");
       status = ML_ERROR_INVALID_PARAMETER;
       NN_INI_RETURN_STATUS();
     }
 
-    if (strncasecmp(model_str, sec_name, model_len) == 0)
+    if (strncasecmp(model_str, sec_name.c_str(), model_len) == 0)
       continue;
 
-    if (strncasecmp(dataset_str, sec_name, dataset_len) == 0)
+    if (strncasecmp(dataset_str, sec_name.c_str(), dataset_len) == 0)
       continue;
+
+    /**
+     * If this section is a backbone, load backbone section from this
+     * @note The order of backbones in the ini file defines the order on the
+     * backbones in the model graph
+     */
+    const char *backbone =
+      iniparser_getstring(ini, (sec_name + ":Backbone").c_str(), nullptr);
+    if (backbone != nullptr) {
+      loadBackboneConfigIni(backbone, model, sec_name);
+      continue;
+    }
 
     /** Parse all the layers defined as sections in order */
     std::shared_ptr<Layer> layer;
@@ -304,12 +334,20 @@ int ModelLoader::loadFromIni(std::string ini_file, NeuralNetwork &model) {
  * @brief     load all of model and dataset from given config file
  */
 int ModelLoader::loadFromConfig(std::string config, NeuralNetwork &model) {
+  return loadFromConfig(config, model, false);
+}
+
+/**
+ * @brief     load all of model and dataset from given config file
+ */
+int ModelLoader::loadFromConfig(std::string config, NeuralNetwork &model,
+                                bool bare_layers) {
   size_t position = config.find_last_of(".");
   if (position == std::string::npos)
     throw std::invalid_argument("Extension missing in config file");
 
   if (config.substr(position + 1) == "ini") {
-    return loadFromIni(config, model);
+    return loadFromIni(config, model, bare_layers);
   }
 
   return ML_ERROR_INVALID_PARAMETER;

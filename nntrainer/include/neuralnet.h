@@ -243,6 +243,15 @@ public:
   int addLayer(NodeType layer);
 
   /**
+   * @brief     join passed graph into the existing graph model
+   * @param[in] graph graph to be added/to extend
+   * @note It is assumed that this model is valid by itself
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  int extendGraph(GraphType graph, std::string prefix = "");
+
+  /**
    * @brief     set optimizer for the neural network model
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
@@ -286,6 +295,14 @@ public:
    * @retval flatGraph of the current graph
    */
   FlatGraphType getFlatGraph() { return layers; }
+
+  /**
+   * @brief get current graph from the model
+   * @note graph contains pointer to the actual nodes, which is not deeply
+   * copied.
+   * @retval current graph
+   */
+  GraphType getGraph() { return layers; }
 
   /**
    * @brief     Set loss type for the neural network.
@@ -424,7 +441,8 @@ private:
   /**
    * @brief     Ensure that layer has a name
    */
-  void ensureName(NodeType layer, const std::string &prefix = "");
+  void ensureName(NodeType layer, const std::string &prefix = "",
+                  bool force_rename = false);
 
   /**
    * @brief     Swap function for the class

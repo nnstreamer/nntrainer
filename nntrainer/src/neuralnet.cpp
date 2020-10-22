@@ -565,6 +565,7 @@ int NeuralNetwork::addLayer(NodeType layer) {
     return ML_ERROR_NOT_SUPPORTED;
   }
 
+  /** Ensure that the layer has a name and is unique */
   ensureName(layer);
 
   /** Validate the layer to be added */
@@ -588,6 +589,25 @@ int NeuralNetwork::addLayer(NodeType layer) {
   return status;
 }
 
+int NeuralNetwork::extendGraph(GraphType graph, std::string prefix) {
+  if (initialized) {
+    return ML_ERROR_NOT_SUPPORTED;
+  }
+
+  /** Insert the layer to the graph */
+  for (auto layer : graph) {
+    /**
+     * Add prefix to the existing layer name,
+     * and ensure it is unique in this new graph
+     */
+    ensureName(layer, prefix, true);
+
+    layers.push_back(layer);
+  }
+
+  return ML_ERROR_NONE;
+}
+
 int NeuralNetwork::setOptimizer(
   std::shared_ptr<ml::train::Optimizer> optimizer) {
 
@@ -609,18 +629,35 @@ int NeuralNetwork::setDataBuffer(std::shared_ptr<DataBuffer> data_buffer) {
   return ML_ERROR_NONE;
 }
 
-void NeuralNetwork::ensureName(NodeType layer, const std::string &prefix) {
-  if (layer->getName().empty()) {
-    std::set<std::string>::iterator iter;
-    std::string name;
+void NeuralNetwork::ensureName(NodeType layer, const std::string &prefix,
+                               bool force_rename) {
+  std::string orig_name = layer->getName();
+  bool orig_name_empty = orig_name.empty();
+  if (!orig_name_empty && !force_rename &&
+      layer_names.end() == layer_names.find(orig_name))
+    return;
 
-    do {
-      name = prefix + layer->getBaseName() + std::to_string(def_name_count++);
-      iter = layer_names.find(name);
-    } while (iter != layer_names.end());
-
-    layer->setName(name);
+  /** If just prefix with layer name makes it unique - directly set the name */
+  if (!orig_name_empty) {
+    std::string direct_name = prefix + orig_name;
+    if (layer_names.find(direct_name) != layer_names.end()) {
+      layer->setName(direct_name);
+      return;
+    }
   }
+
+  std::set<std::string>::iterator iter;
+  std::string name;
+  if (orig_name_empty)
+    orig_name = layer->getBaseName();
+  std::string direct_name = prefix + orig_name;
+
+  do {
+    name = direct_name + std::to_string(def_name_count++);
+    iter = layer_names.find(name);
+  } while (iter != layer_names.end());
+
+  layer->setName(name);
 }
 
 int NeuralNetwork::getLayer(const char *name,

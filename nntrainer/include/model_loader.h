@@ -45,11 +45,20 @@ public:
 
 private:
   /**
+   * @brief     load all of model from given config file
+   * @param[in] config config file path
+   * @param[in/out] model model to be loaded
+   * @param[in] bare_layers load only the layers as backbone if enabled
+   */
+  int loadFromConfig(std::string config, NeuralNetwork &model,
+                     bool bare_layers);
+
+  /**
    * @brief     load all of model and dataset from ini
    * @param[in] config config file path
    * @param[in/out] model model to be loaded
    */
-  int loadFromIni(std::string ini_file, NeuralNetwork &model);
+  int loadFromIni(std::string ini_file, NeuralNetwork &model, bool bare_layers);
 
   /**
    * @brief     load dataset config from ini
@@ -72,7 +81,17 @@ private:
    * @param[in] layer_name name of the layer to be loaded
    */
   int loadLayerConfigIni(dictionary *ini, std::shared_ptr<Layer> &layer,
-                         std::string layer_name);
+                         const std::string &layer_name);
+
+  /**
+   * @brief     load backbone config from ini
+   * @param[in] backbone_config config file containing the backbone config
+   * @param[in/out] model model to be added the backbone to
+   * @param[in] backbone_name name of the backbone to be loaded
+   */
+  int loadBackboneConfigIni(const std::string &backbone_config,
+                            NeuralNetwork &model,
+                            const std::string &backbone_name);
 
   const char *unknown = "Unknown";
 };
