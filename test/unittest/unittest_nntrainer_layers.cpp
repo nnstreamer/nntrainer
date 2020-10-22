@@ -985,9 +985,11 @@ protected:
 };
 
 TEST_F(nntrainer_Conv2DLayer, print_01_p) {
-  std::stringstream ss;
+  std::stringstream ss, ss2;
   layer.printPreset(ss, nntrainer::Layer::PrintPreset::PRINT_ALL);
+  ss2 << layer;
   EXPECT_GT(ss.str().size(), 100);
+  EXPECT_GT(ss2.str().size(), 100);
 }
 
 /**

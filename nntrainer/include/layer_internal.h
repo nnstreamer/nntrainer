@@ -507,7 +507,7 @@ private:
 template <typename T, typename std::enable_if_t<
                         std::is_base_of<Layer, T>::value, T> * = nullptr>
 std::ostream &operator<<(std::ostream &out, T &l) {
-  l.print(out, Layer::PrintPreset::PRINT_SUMMARY);
+  l.printPreset(out, Layer::PrintPreset::PRINT_SUMMARY);
   return out;
 }
 
