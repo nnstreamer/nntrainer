@@ -632,7 +632,7 @@ void NeuralNetwork::ensureName(NodeType layer, const std::string &prefix,
   /** If just prefix with layer name makes it unique - directly set the name */
   if (!orig_name_empty) {
     std::string direct_name = prefix + orig_name;
-    if (layer_names.find(direct_name) != layer_names.end()) {
+    if (layer_names.find(direct_name) == layer_names.end()) {
       layer->setName(direct_name);
       return;
     }

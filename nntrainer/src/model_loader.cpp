@@ -305,8 +305,8 @@ int ModelLoader::loadFromIni(std::string ini_file, NeuralNetwork &model,
      * backbones in the model graph
      */
     const char *backbone =
-      iniparser_getstring(ini, (sec_name + ":Backbone").c_str(), nullptr);
-    if (backbone != nullptr) {
+      iniparser_getstring(ini, (sec_name + ":Backbone").c_str(), unknown);
+    if (backbone != unknown) {
       loadBackboneConfigIni(backbone, model, sec_name);
       continue;
     }
