@@ -215,14 +215,22 @@ int ModelLoader::loadLayerConfigIni(dictionary *ini,
   return ML_ERROR_NONE;
 }
 
-int ModelLoader::loadBackboneConfigIni(const std::string &backbone_config,
+int ModelLoader::loadBackboneConfigIni(dictionary *ini,
+                                       const std::string &backbone_config,
                                        NeuralNetwork &model,
                                        const std::string &backbone_name) {
   int status = ML_ERROR_NONE;
   NeuralNetwork backbone;
 
+  bool trainable =
+    iniparser_getboolean(ini, (backbone_name + ":trainable").c_str(), false);
+
   status = loadFromConfig(backbone_config, backbone, true);
   NN_RETURN_STATUS();
+
+  auto graph = backbone.getGraph();
+  for (auto &layer : graph)
+    layer->setTrainable(trainable);
 
   status = model.extendGraph(backbone.getGraph(), backbone_name);
   NN_RETURN_STATUS();
@@ -307,7 +315,7 @@ int ModelLoader::loadFromIni(std::string ini_file, NeuralNetwork &model,
     const char *backbone =
       iniparser_getstring(ini, (sec_name + ":Backbone").c_str(), unknown);
     if (backbone != unknown) {
-      loadBackboneConfigIni(backbone, model, sec_name);
+      loadBackboneConfigIni(ini, backbone, model, sec_name);
       continue;
     }
 

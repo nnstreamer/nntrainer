@@ -55,7 +55,7 @@ private:
 
   /**
    * @brief     load all of model and dataset from ini
-   * @param[in] config config file path
+   * @param[in] ini_file config file path
    * @param[in/out] model model to be loaded
    */
   int loadFromIni(std::string ini_file, NeuralNetwork &model, bool bare_layers);
@@ -85,11 +85,12 @@ private:
 
   /**
    * @brief     load backbone config from ini
+   * @param[in] ini dictionary containing the config
    * @param[in] backbone_config config file containing the backbone config
    * @param[in/out] model model to be added the backbone to
    * @param[in] backbone_name name of the backbone to be loaded
    */
-  int loadBackboneConfigIni(const std::string &backbone_config,
+  int loadBackboneConfigIni(dictionary *ini, const std::string &backbone_config,
                             NeuralNetwork &model,
                             const std::string &backbone_name);
 

@@ -213,7 +213,13 @@ public:
    * @brief     set trainable for this layer
    * @param[in] train to enable/disable train
    */
-  void setTrainable(bool train) { trainable = train; }
+  void setTrainable(bool train) noexcept { trainable = train; }
+
+  /**
+   * @brief     get trainable for this layer
+   * @retval train to enable/disable train
+   */
+  bool getTrainable() noexcept { return trainable; }
 
   /**
    * @brief     get all weights of the layer

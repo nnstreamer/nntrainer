@@ -191,6 +191,12 @@ static IniSection backbone_random("block1", "backbone = random.ini");
 
 static IniSection backbone_valid("block1", "backbone = base.ini");
 
+static IniSection backbone_notrain("blockNT", "backbone = base.ini |"
+                                              "trainable = false");
+
+static IniSection backbone_train("blockT", "backbone = base.ini |"
+                                           "trainable = true");
+
 static int SUCCESS = 0;
 static int LOADFAIL = initest::LOAD;
 static int INITFAIL = initest::INIT;
@@ -397,6 +403,41 @@ TEST(nntrainerIniTest, backbone_p_05) {
               flat_direct[idx]->getActivationType());
     EXPECT_EQ(flat_backbone[idx]->getName(), flat_direct[idx]->getName());
   }
+}
+
+/**
+ * @brief Ini file unittest matching model with and without trainable
+ */
+TEST(nntrainerIniTest, backbone_p_06) {
+  const char *ini_name = "backbone_p6.ini";
+  nntrainerIniTest::save_ini("base.ini", {flatten, conv2d});
+  nntrainerIniTest::save_ini(ini_name, {nw_base, backbone_valid});
+  nntrainer::NeuralNetwork NN;
+
+  EXPECT_EQ(NN.loadFromConfig(ini_name), ML_ERROR_NONE);
+
+  /** default trainable is false */
+  auto graph = NN.getFlatGraph();
+  for (auto &layer : graph)
+    EXPECT_EQ(layer->getTrainable(), false);
+}
+
+/**
+ * @brief Ini file unittest matching model with and without trainable
+ */
+TEST(nntrainerIniTest, backbone_p_07) {
+  const char *ini_name = "backbone_p7.ini";
+  nntrainerIniTest::save_ini("base.ini", {conv2d});
+  nntrainerIniTest::save_ini(ini_name,
+                             {nw_base, backbone_notrain, backbone_train});
+  nntrainer::NeuralNetwork NN;
+
+  EXPECT_EQ(NN.loadFromConfig(ini_name), ML_ERROR_NONE);
+
+  /** trainable is set to false */
+  auto graph = NN.getFlatGraph();
+  EXPECT_EQ(graph[0]->getTrainable(), false);
+  EXPECT_EQ(graph[1]->getTrainable(), true);
 }
 
 /**
