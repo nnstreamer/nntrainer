@@ -269,7 +269,10 @@ void Layer::printPreset(std::ostream &out, PrintPreset preset) {
 void Layer::print(std::ostream &out, unsigned int flags) {
   if (flags & PRINT_INST_INFO) {
     out << "===================";
-    printInstance(out, this);
+    if (getName().empty())
+      printInstance(out, this);
+    else
+      out << "<" << getName() << ">" << std::endl;
 
     out << "Layer Type: "
         << static_cast<std::underlying_type<LayerType>::type>(type)
