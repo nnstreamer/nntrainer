@@ -25,14 +25,15 @@
 #define __NNTRAINER_TEST_UTIL_H__
 #ifdef __cplusplus
 
-#include "nntrainer_log.h"
 #include <fstream>
 #include <gtest/gtest.h>
+#include <unordered_map>
+
 #include <neuralnet.h>
 #include <nntrainer_error.h>
+#include <nntrainer_log.h>
 #include <parse_util.h>
 #include <tensor.h>
-#include <unordered_map>
 
 #define tolerance 10e-5
 
@@ -93,6 +94,10 @@ public:
 
   IniSection operator+(const std::string &s) { return IniSection(*this) += s; }
 
+  void rename(const std::string &name) { section_name = name; }
+
+  std::string getName() { return section_name; }
+
 private:
   void setEntry(const std::unordered_map<std::string, std::string> &_entry) {
     for (auto &it : _entry) {
@@ -151,7 +156,17 @@ public:
    * @return std::ofstream ini file stream
    */
   std::ofstream getIni() {
-    std::ofstream out(getIniName().c_str());
+    return getIni(getIniName().c_str(), std::ios_base::out);
+  }
+
+  /**
+   * @brief Get the Ini object with given mode
+   *
+   * @return std::ofstream ini file stream
+   */
+  static std::ofstream getIni(const char *filename,
+                              std::ios_base::openmode mode) {
+    std::ofstream out(filename, mode);
     if (!out.good()) {
       throw std::runtime_error("cannot open ini");
     }
@@ -160,10 +175,11 @@ public:
 
   /**
    * @brief save ini to a file
-   *
    */
-  void save_ini() {
-    std::ofstream out = getIni();
+  static void save_ini(const char *filename, std::vector<IniSection> sections,
+                       std::ios_base::openmode mode = std::ios_base::out) {
+    std::ofstream out = IniTestWrapper::getIni(filename, mode);
+
     for (auto &it : sections) {
       it.print(std::cout);
       std::cout << std::endl;
@@ -173,6 +189,11 @@ public:
 
     out.close();
   }
+
+  /**
+   * @brief save ini to a file
+   */
+  void save_ini() { save_ini(getIniName().c_str(), sections); }
 
   /**
    * @brief erase ini

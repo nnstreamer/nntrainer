@@ -245,6 +245,7 @@ public:
   /**
    * @brief     join passed graph into the existing graph model
    * @param[in] graph graph to be added/to extend
+   * @param[in] prefix prefix added to names of layers from this graph
    * @note It is assumed that this model is valid by itself
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
