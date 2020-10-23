@@ -20,6 +20,8 @@ with warnings.catch_warnings():
     import tensorflow as tf
     from tensorflow.python import keras as K
 
+__all__ = ["record"]
+
 tf.compat.v1.enable_eager_execution()
 # Fix the seeds across frameworks
 SEED = 1234
@@ -27,102 +29,224 @@ random.seed(SEED)
 tf.compat.v1.set_random_seed(SEED)
 np.random.seed(SEED)
 
+LOSS_FN = {
+    "mse": lambda: tf.keras.losses.MeanSquaredError(),
+    "cross_sigmoid": lambda: tf.keras.losses.BinaryCrossentropy(from_logits=True),
+    "cross_softmax": lambda: tf.keras.losses.CategoricalCrossentropy(from_logits=True),
+}
 
-##
-# Keras Recorder
 
-##
-# @brief Record Keras model with some watchers attached
-# @note  The class might need to go through some rework for non-sequential model
-# in case of the order of graph traversal is diffrent from NNTrainer
-class KerasRecorder:
-    def __init__(
-        self,
-        file_name,
-        inputs,
-        outputs,
-        input_shape,
-        label_shape,
-        loss_fn=None,
-        optimizer=tf.keras.optimizers.SGD(lr=1.0),
-    ):
-        self.inputs = inputs
-        self.outputs = outputs
-        self.model = K.Model(inputs=inputs, outputs=outputs)
-        self.loss_fn = loss_fn
-        self.optimizer = optimizer
-        if os.path.isfile(file_name):
-          print("Warning: the file %s is being truncated and overwritten" % file_name)
-        self.file = open(file_name, "wb")
-        self.generate_data(input_shape, label_shape)
+def _get_loss_fn(loss_fn_representation):
+    try:
+        return LOSS_FN[loss_fn_representation]()
+    except KeyError:
+        raise ValueError("given loss fn representation is not available")
 
-    def __del__(self):
-        self.file.close()
 
-    def _rand_like(self, tensorOrShape, scale=10):
-        try:
-            t =  np.random.randint(1, 10, size=tensorOrShape.shape).astype(dtype=np.float32)
-        except AttributeError:
-            t = np.random.randint(1, 10, size=tensorOrShape).astype(dtype=np.float32)
-        return tf.convert_to_tensor(t)
-
-    ##
-    # @brief generate data using uniform data from a function and save to the file.
-    # @note one-hot label is supported for now, this could be extended if needed.
-    def generate_data(self, input_shape, label_shape):
-        """This part loads data, should be changed if you are gonna load real data"""
-        self.initial_input = self._rand_like(input_shape)
-        self.label = tf.one_hot(
-          indices=np.random.randint(0, label_shape[1] - 1, label_shape[0]),
-          depth=label_shape[1]
-        )
-
-        self.initial_input.numpy().tofile(self.file)
-        self.label.numpy().tofile(self.file)
-
-    def _write_items(self, *items):
+def _get_writer(file):
+    def write_fn(*items):
         for item in items:
             try:
-                item.numpy().tofile(self.file)
+                item.numpy().tofile(file)
             except AttributeError:
                 pass
+        return items
 
-    ##
-    # @brief model iteration wrapper that listen to the gradient and outputs of the model
-    # each results are recorded.
-    def step(self):
-        with tf.GradientTape(persistent=True) as tape:
-            tape.watch(self.initial_input)
-            outputs = self.model(self.initial_input)
+    return write_fn
 
-            if self.loss_fn:
-                loss = self.loss_fn(self.label, outputs[-1])
-                outputs.append(loss)
 
-        results = [self.initial_input] + outputs
+def _rand_like(tensorOrShape, scale=1):
+    try:
+        shape = tensorOrShape.shape
+    except AttributeError:
+        shape = tensorOrShape
 
-        for idx, layer in enumerate(self.model.layers):
-            # print("generating for %s" % layer.name)
+    t = np.random.randint(-10, 10, shape).astype(dtype=np.float32)
+    return tf.convert_to_tensor(t) * scale
 
-            weights = layer.trainable_weights.copy()
-            gradients = tape.gradient(results[-1], layer.trainable_weights)
-            dweights = tape.gradient(results[-1], results[idx])
 
-            # input, weights, gradients, output, dx
-            # you should take weight order to account (eg. I think conv2d has different order)
-            self._write_items(
-                *[results[idx], *weights, *gradients, results[idx + 1], dweights]
-            )
+##
+# For some layers, nntrainer has different layout
+# this function reorder lists from keras layout to nntrainer layout
+def _get_relayout_weight_fn(layer):
+    if isinstance(layer, K.layers.Conv2D):
+        raise NotImplementedError("Not implemented yet")
 
-            self.optimizer.apply_gradients(zip(gradients, layer.trainable_weights))
+    if isinstance(layer, K.layers.BatchNormalization):
+        raise NotImplementedError("Not implemented yet")
 
-        self._write_items(results[-1])
-        print("loss is %s" % results[-1])
+    return lambda x: x
 
-    ##
-    # @brief run function
-    # @param iteration number of iteration to run
-    def run(self, iteration = 1):
-        print(self.model.summary())
+
+_debug_default_formatter = lambda key, value: "key: {}\n {}".format(key, value)
+##
+# @brief Print debug information from the record
+# @param debug list or string that filters debug information from @a data
+# @param print_option print option for the print function
+# @param print_format print formatter. a callable that takes key and value should be passed
+# @param data data to passed to _debug_print
+def _debug_print(
+    debug=None,
+    print_option={"end": "\n"},
+    print_format=_debug_default_formatter,
+    **data
+):
+    if not debug:
+        return
+    elif isinstance(debug, str):
+        debug = [debug]
+
+    for target in debug:
+        try:
+            print(print_format(target, data[target]), **print_option)
+        except KeyError:
+            pass
+
+
+##
+# @brief generate data using uniform data from a function and save to the file.
+# @note one-hot label is supported for now, this could be extended if needed.
+def prepare_data(model, input_shape, label_shape, writer_fn, **kwargs):
+    initial_input = _rand_like(input_shape)
+    label = tf.one_hot(
+        indices=np.random.randint(0, label_shape[1] - 1, label_shape[0]),
+        depth=label_shape[1],
+    )
+
+    initial_weights = [
+        weight for l in model.layers for weight in l.trainable_weights.copy()
+    ]
+    writer_fn(initial_input, label, *initial_weights)
+    _debug_print(
+        initial_input=initial_input,
+        label=label,
+        initial_weights=initial_weights,
+        **kwargs
+    )
+
+    return initial_input, label
+
+
+##
+# @brief model iteration wrapper that listen to the gradient and outputs of the model
+# each results are recorded.
+def train_step(model, optimizer, loss_fn, initial_input, label, writer_fn, **kwargs):
+    with tf.GradientTape(persistent=True) as tape:
+        tape.watch(initial_input)
+        outputs = model(initial_input)
+
+        loss = loss_fn(label, outputs[-1])
+        outputs.append(loss)
+
+    layer_input = initial_input
+    for layer_output, layer in zip(outputs, model.layers):
+        # print("generating for %s" % layer.name)
+        to_nntr_layout = _get_relayout_weight_fn(layer)
+
+        gradients = tape.gradient(loss, layer.trainable_weights)
+        optimizer.apply_gradients(zip(gradients, layer.trainable_weights))
+
+        weights = layer.trainable_weights.copy()
+        dx = tape.gradient(loss, layer_input)
+
+        writer_fn(
+            layer_output,  # output of forward
+            dx,  # output of backward
+            *to_nntr_layout(gradients),  # weight gradient output from backward
+            *to_nntr_layout(weights)  # updated weight after optimization
+        )
+
+        _debug_print(
+            output=layer_output, dx=dx, weights=weights, gradients=gradients, **kwargs
+        )
+
+        layer_input = layer_output
+
+    writer_fn(loss)
+    _debug_print(loss=loss, **kwargs)
+
+
+##
+# @brief inference_step of the result
+def inference_step(loss_fn_str, initial_input, label, writer_fn):
+    # Not yet implemented
+    # because loss function with fromLogit is used, last layer fc layer should be added for the inference step
+    if loss_fn_str == "cross_sigmoid" or loss_fn_str == "cross_entropy":
+        # add last activation layer
+        pass
+    raise NotImplementedError("Not Implemented yet")
+
+value_only_formatter = lambda key, value: value
+
+##
+# @brief generate recordable model
+# @param loss_fn_str one of LOSS_FN string otherwise raise KeyError
+# @param model base model to record, if model is present @a inputs and @a outputs is ignored
+# @param inputs keras inputs to build a model
+# @param outputs keras outputs to build a model
+def generate_recordable_model(loss_fn_str, model=None, inputs=None, outputs=None, **kwargs):
+    if model is not None:
+        if isinstance(model, list):
+            model = K.Sequential(model)
+        inputs = model.input
+        outputs = [model.input] + [layer.output for layer in model.layers]
+
+    # omit last activation layer if cross softmax or corss_sigmoid
+    if loss_fn_str == "cross_softmax" or loss_fn_str == "cross_sigmoid":
+      if isinstance(model.layers[-1], K.layers.activation):
+        outputs = outputs[:-1]
+
+    model = K.Model(inputs=inputs, outputs=outputs)
+
+    model.summary(
+        print_fn=lambda x: _debug_print(summary=x, print_format=value_only_formatter, **kwargs)
+    )
+
+    return model
+
+##
+# @brief record function that records weights, gradients, inputs and outputs for @a iteration
+# @param loss_fn_str loss function representation
+# @param optimizer keras optimizer
+# @param file_name file name to save
+# @param input_shape input shape to put
+# @param label_shape label shape to put
+# @param iteration number of iteration to run
+# @param model base model to record, if model is present @a inputs and @a outputs is ignored
+# @param inputs keras inputs to build a model
+# @param outputs keras outputs to build a model
+def record(
+    loss_fn_str,
+    optimizer,
+    file_name,
+    input_shape,
+    label_shape,
+    iteration=1,
+    model=None,
+    inputs=None,
+    outputs=None,
+    **kwargs
+):
+    if os.path.isfile(file_name):
+        print("Warning: the file %s is being truncated and overwritten" % file_name)
+
+    loss_fn = _get_loss_fn(loss_fn_str)
+    model = generate_recordable_model(loss_fn_str, model, inputs, outputs, **kwargs)
+
+    with open(file_name, "wb") as f:
+        write = _get_writer(f)
+
+        initial_input, label = prepare_data(
+            model, input_shape, label_shape, write, **kwargs
+        )
+
         for _ in range(iteration):
-            self.step()
+            _debug_print(
+                iteration="[%d/%d]" % (_, iteration),
+                print_option={"end": " "},
+                print_format=value_only_formatter,
+                **kwargs
+            )
+            train_step(model, optimizer, loss_fn, initial_input, label, write, **kwargs)
+
+        # self.inference_step(initial_input, label, write)

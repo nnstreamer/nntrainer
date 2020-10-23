@@ -9,8 +9,9 @@
 # @author Jihoon lee <jhoon.it.lee@samsung.com>
 
 import warnings
+from functools import partial
 
-from recorder import KerasRecorder
+from recorder import record
 
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=FutureWarning)
@@ -18,36 +19,43 @@ with warnings.catch_warnings():
     import tensorflow as tf
     from tensorflow.python import keras as K
 
+
+opt = tf.keras.optimizers
+
 if __name__ == "__main__":
-    inp = K.Input(shape=(3, 3))
-    a = K.layers.Dense(5)(inp)
-    b = K.layers.Dense(5)(a)
-    c = K.layers.Dense(10)(b)
-    d = K.layers.Activation("softmax")(c)
+    fc_sigmoid = [
+        K.Input(shape=(3, 3)),
+        K.layers.Dense(5),
+        K.layers.Activation("sigmoid"),
+        K.layers.Dense(10),
+        K.layers.Activation("softmax"),
+    ]
 
-    KerasRecorder(
-        file_name="fc_softmax_mse.info",
-        inputs=inp,
-        outputs=[inp, a, b, c, d],
-        input_shape=(3, 3),
-        label_shape=(3, 10),
-        loss_fn=tf.keras.losses.MeanSquaredError(),
-    ).run(10)
+    fc_sigmoid_tc = partial(
+        record, model=fc_sigmoid, input_shape=(3, 3), label_shape=(3, 10), iteration=10
+    )
 
-    inp = K.Input(shape=(3, 3))
-    a = K.layers.Dense(10)(inp)
-    b = K.layers.Activation("relu")(a)
-    c = K.layers.Dense(10)(b)
-    d = K.layers.Activation("relu")(c)
-    e = K.layers.Dense(2)(d)
-    f = K.layers.Activation("relu")(e)
+    fc_sigmoid_tc(
+        file_name="fc_sigmoid_mse_sgd.info",
+        loss_fn_str="mse",
+        optimizer=opt.SGD(learning_rate=1.0),
+    )
 
-    KerasRecorder(
-        file_name="fc_relu_mse.info",
-        inputs=inp,
-        outputs=[inp, a, b, c, d, e, f],
-        input_shape=(3, 3),
-        label_shape=(3, 2),
-        loss_fn=tf.keras.losses.MeanSquaredError(),
-        optimizer=tf.keras.optimizers.SGD(lr=0.001)
-    ).run(10)
+    fc_relu = [
+        K.Input(shape=(3)),
+        K.layers.Dense(10),
+        K.layers.Activation("relu"),
+        K.layers.Dense(2),
+        K.layers.Activation("sigmoid"),
+    ]
+
+    fc_relu_tc = partial(
+        record, model=fc_relu, input_shape=(3, 3), label_shape=(3, 2), iteration=10
+    )
+
+    fc_relu_tc(
+        file_name="fc_relu_mse_sgd.info",
+        loss_fn_str="mse",
+        optimizer=opt.SGD(learning_rate=0.1),
+        debug="initial_input"
+    )
