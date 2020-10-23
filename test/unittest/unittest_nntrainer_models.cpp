@@ -69,8 +69,6 @@ public:
     unsigned int num_weights = node->getNumWeights();
     node->setTrainable(false);
 
-    expected_input = nntrainer::Tensor(node->getInputDimension()[0]);
-
     for (unsigned int i = 0; i < num_weights; ++i) {
       const nntrainer::Weight &w = node->weightAt(i);
       expected_weights.push_back(w);
@@ -84,9 +82,10 @@ public:
    * @brief clones from expected weights to node->weights
    *
    */
-  void cloneWeightsFromExpected() {
-    for (unsigned int i = 0; i < expected_weights.size(); ++i) {
-      node->weightAt(i) = expected_weights[i];
+  void readLayerWeight(std::ifstream &f) {
+    for (unsigned int i = 0; i < node->getNumWeights(); ++i) {
+      /// @note below is harrasing the fact the tensor shares same base memory
+      node->weightAt(i).getVariable().read(f);
     }
   }
 
@@ -97,8 +96,8 @@ public:
    * @param iteration iteration
    * @return nntrainer::sharedConstTensor
    */
-  nntrainer::sharedConstTensor forward(nntrainer::sharedConstTensor in,
-                                       int iteration);
+  nntrainer::sharedConstTensors forward(nntrainer::sharedConstTensors in,
+                                        int iteration);
 
   /**
    * @brief forward loss node with verifying inputs/weights/outputs
@@ -108,9 +107,9 @@ public:
    * @param iteration iteration
    * @return nntrainer::sharedConstTensor
    */
-  nntrainer::sharedConstTensor lossForward(nntrainer::sharedConstTensor pred,
-                                           nntrainer::sharedConstTensor answer,
-                                           int iteration);
+  nntrainer::sharedConstTensors
+  lossForward(nntrainer::sharedConstTensors pred,
+              nntrainer::sharedConstTensors answer, int iteration);
 
   /**
    * @brief backward pass of the node with verifying inputs/gradients/outputs
@@ -120,9 +119,9 @@ public:
    * @param should_verify should verify the inputs/gradients/outputs
    * @return nntrainer::sharedConstTensor
    */
-  nntrainer::sharedConstTensor backward(nntrainer::sharedConstTensor deriv,
-                                        int iteration,
-                                        bool should_verify = true);
+  nntrainer::sharedConstTensors backward(nntrainer::sharedConstTensors deriv,
+                                         int iteration,
+                                         bool should_verify = true);
 
   /**
    * @brief verify weights of the current node
@@ -154,7 +153,6 @@ public:
 
 private:
   NodeType node;
-  nntrainer::Tensor expected_input;
   nntrainer::Tensor expected_output;
   nntrainer::Tensor expected_dx;
   std::vector<nntrainer::Weight> expected_weights;
@@ -170,6 +168,9 @@ public:
                   unsigned int iterations);
 
 private:
+  std::array<nntrainer::Tensor, 2>
+  prepareData(std::ifstream &f, const nntrainer::TensorDim &label_dim);
+
   void readIteration(std::ifstream &f);
 
   nntrainer::NeuralNetwork nn;
@@ -179,81 +180,79 @@ private:
 };
 
 void NodeWatcher::read(std::ifstream &in) {
-  expected_input.read(in);
+  expected_output.read(in);
+  expected_dx.read(in);
 
   /// @note below is harrasing the fact the tensor shares same base memory
-  /// it should better be getVariableRef() or somewhat equivalent
-  for (auto &i : expected_weights) {
-    i.getVariable().read(in);
-  }
-
+  /// it should better be getGraidentRef() or somewhat equivalent
   for (auto &i : expected_weights) {
     i.getGradient().read(in);
   }
 
-  expected_output.read(in);
-  expected_dx.read(in);
+  for (auto &i : expected_weights) {
+    i.getVariable().read(in);
+  }
 }
 
 void NodeWatcher::verifyWeight(const std::string &error_msg) {
   for (unsigned int i = 0; i < expected_weights.size(); ++i) {
     verify(node->weightAt(i).getVariable(), expected_weights[i].getVariable(),
-           error_msg + " " + node->weightAt(i).getName() + "weight");
+           error_msg + " " + node->weightAt(i).getName() + " weight");
   }
 }
 
 void NodeWatcher::verifyGrad(const std::string &error_msg) {
   for (unsigned int i = 0; i < expected_weights.size(); ++i) {
     verify(node->weightAt(i).getGradient(), expected_weights[i].getGradient(),
-           error_msg + " " + node->weightAt(i).getName() + "grad");
+           error_msg + " " + node->weightAt(i).getName() + " grad");
   }
 }
 
-nntrainer::sharedConstTensor
-NodeWatcher::forward(nntrainer::sharedConstTensor in, int iteration) {
+nntrainer::sharedConstTensors
+NodeWatcher::forward(nntrainer::sharedConstTensors in, int iteration) {
   std::stringstream ss;
   ss << "forward failed at " << node->getName() << " at iteration "
      << iteration;
   std::string err_msg = ss.str();
 
-  verify(*in, expected_input, err_msg + " at input ");
-  nntrainer::sharedConstTensor out = node->forwarding({in})[0];
-  verify(*out, expected_output, err_msg + " at output ");
+  nntrainer::sharedConstTensors out = node->forwarding(in);
+  verify(*out[0], expected_output, err_msg + " at output");
   return out;
 }
 
-nntrainer::sharedConstTensor
-NodeWatcher::lossForward(nntrainer::sharedConstTensor pred,
-                         nntrainer::sharedConstTensor answer, int iteration) {
+nntrainer::sharedConstTensors
+NodeWatcher::lossForward(nntrainer::sharedConstTensors pred,
+                         nntrainer::sharedConstTensors answer, int iteration) {
   std::stringstream ss;
   ss << "loss failed at " << node->getName() << " at iteration " << iteration;
   std::string err_msg = ss.str();
 
-  nntrainer::sharedConstTensor out =
-    std::static_pointer_cast<nntrainer::LossLayer>(node)->forwarding(
-      {pred}, {answer})[0];
+  nntrainer::sharedConstTensors out =
+    std::static_pointer_cast<nntrainer::LossLayer>(node)->forwarding(pred,
+                                                                     answer);
 
   return out;
 }
 
-nntrainer::sharedConstTensor
-NodeWatcher::backward(nntrainer::sharedConstTensor deriv, int iteration,
+nntrainer::sharedConstTensors
+NodeWatcher::backward(nntrainer::sharedConstTensors deriv, int iteration,
                       bool should_verify) {
   std::stringstream ss;
   ss << "backward failed at " << node->getName() << " at iteration "
      << iteration;
   std::string err_msg = ss.str();
 
-  nntrainer::sharedConstTensor out = node->backwarding({deriv}, iteration)[0];
-
-  if (should_verify) {
-    verify(*out, expected_dx, err_msg);
-    verifyGrad(err_msg);
-  }
+  nntrainer::sharedConstTensors out = node->backwarding(deriv, iteration);
 
   auto opt = node->getOptimizer();
   if (opt) {
     opt->apply_gradients(node->getWeights(), node->getNumWeights(), iteration);
+  }
+
+  if (should_verify) {
+    verify(*out[0], expected_dx, err_msg);
+    verifyGrad(err_msg);
+    verifyWeight(err_msg);
   }
 
   return out;
@@ -278,33 +277,21 @@ void GraphWatcher::compareFor(const std::string &reference,
                               const unsigned int iterations) {
   std::ifstream ref(reference, std::ios_base::in | std::ios_base::binary);
 
-  if (ref.bad()) {
-    throw std::runtime_error("ref is bad!");
+  if (!ref.good()) {
+    std::stringstream ss;
+    ss << "ref is bad! ref path: " << reference;
+    throw std::runtime_error(ss.str().c_str());
   }
 
-  nntrainer::Tensor in(nn.getInputDimension()[0]);
-  nntrainer::Tensor lb(label_shape);
-
-  in.read(ref);
-  lb.read(ref);
-
-  auto prepareInitialWeight = [this]() {
-    std::for_each(nodes.begin(), nodes.end(),
-                  [](NodeWatcher &n) { n.cloneWeightsFromExpected(); });
-  };
-
-  auto matchWeightAfterUpdation = [this]() {
-    std::for_each(nodes.begin(), nodes.end(), [](NodeWatcher &n) {
-      n.verifyWeight("weight is diffrent after updation, check optimizer");
-    });
-  };
+  auto data = prepareData(ref, label_shape);
 
   for (unsigned int iteration = 1; iteration <= iterations; ++iteration) {
-    nntrainer::sharedConstTensor input = MAKE_SHARED_TENSOR(in.clone());
-    nntrainer::sharedConstTensor label = MAKE_SHARED_TENSOR(lb.clone());
+    nntrainer::sharedConstTensors input = {
+      MAKE_SHARED_TENSOR(std::get<0>(data).clone())};
+    nntrainer::sharedConstTensors label = {
+      MAKE_SHARED_TENSOR(std::get<1>(data).clone())};
 
     readIteration(ref);
-    iteration == 1 ? prepareInitialWeight() : matchWeightAfterUpdation();
 
     /// forward pass
     for (auto &i : nodes)
@@ -314,13 +301,27 @@ void GraphWatcher::compareFor(const std::string &reference,
     EXPECT_NEAR(expected_loss, loss_node.getLoss(), nntrainer::Tensor::epsilon);
 
     /// backward pass and update weights
-    nntrainer::sharedConstTensor output =
+    nntrainer::sharedConstTensors output =
       loss_node.backward(label, iteration, false);
     for (auto it = nodes.rbegin(); it != nodes.rend(); it++)
       output = it->backward(output, iteration);
   }
+}
 
-  /// note that last weight update is not checked up. this need to be fixed
+std::array<nntrainer::Tensor, 2>
+GraphWatcher::prepareData(std::ifstream &f,
+                          const nntrainer::TensorDim &label_dim) {
+  nntrainer::Tensor in(nn.getInputDimension()[0]);
+  nntrainer::Tensor lb(label_dim);
+
+  in.read(f);
+  lb.read(f);
+
+  for (auto &i : nodes) {
+    i.readLayerWeight(f);
+  }
+
+  return {in, lb};
 }
 
 void GraphWatcher::readIteration(std::ifstream &f) {
@@ -411,6 +412,9 @@ static IniSection nn_base("model", "Type = NeuralNetwork");
 static IniSection input_base("input", "Type = input");
 static IniSection fc_base("fc", "Type = Fully_connected");
 
+static IniSection adam("_", "Optimizer=adam | beta1 = 0.9 | beta2 = 0.999 | "
+                            "epsilon = 1e-7");
+
 static IniSection act_base("activation", "Type = Activation");
 static IniSection softmax = act_base + "Activation = softmax";
 static IniSection sigmoid = act_base + "Activation = sigmoid";
@@ -436,13 +440,13 @@ using I = IniSection;
  *
  * [dense]
  * Type = fully_connected
- * Unit = 10
+ * Unit = 5
  *
- * [dense_1]
- * Type = fully_connected
- * Unit = 10
+ * [activation]
+ * Type = Activation
+ * Activation = softmax
  *
- * [dense_2]
+ * [dense]
  * Type = fully_connected
  * Unit = 10
  *
@@ -450,37 +454,28 @@ using I = IniSection;
  * Type = Activation
  * Activation = softmax
  */
-IniTestWrapper::Sections fc_softmax_mse{
+IniTestWrapper::Sections fc_sigmoid_mse_sgd{
   nn_base + "Learning_rate=1 | Optimizer=sgd | Loss=mse | batch_size = 3",
   I("input") + input_base + "input_shape = 1:1:3",
   I("dense") + fc_base + "unit = 5",
-  I("dense_1") + fc_base + "unit = 5",
-  I("dense_2") + fc_base + "unit = 10",
-  softmax};
-
-IniTestWrapper::Sections fc_sigmoid_mse{
-  nn_base + "Learning_rate=1 | Optimizer=sgd | Loss=mse | batch_size = 3",
-  I("input") + input_base + "input_shape = 1:1:3",
-  I("dense") + fc_base + "unit = 10",
+  I("act") + sigmoid,
   I("dense_1") + fc_base + "unit = 10",
-  I("dense_2") + fc_base + "unit = 2",
-  sigmoid};
+  I("act_1") + softmax};
 
-IniTestWrapper::Sections fc_relu_mse{
-  nn_base + "Learning_rate=0.001 | Optimizer=sgd | Loss=mse | batch_size = 3",
+IniTestWrapper::Sections fc_relu_mse_sgd{
+  nn_base + "Learning_rate=0.1 | Optimizer=sgd | Loss=mse | batch_size = 3",
   I("input") + input_base + "input_shape = 1:1:3",
   I("dense") + fc_base + "unit = 10",
   I("act") + relu,
-  I("dense_1") + fc_base + "unit = 10",
-  I("act_1") + relu,
-  I("dense_2") + fc_base + "unit = 2",
-  I("act_2") + relu};
+  I("dense_1") + fc_base + "unit = 2",
+  I("act_1") + sigmoid};
 
 // clang-format off
 INSTANTIATE_TEST_CASE_P(
   nntrainerModelAutoTests, nntrainerModelTest, ::testing::Values(
-mkModelTc("fc_softmax_mse", fc_softmax_mse, "3:1:1:10", 10),
-mkModelTc("fc_relu_mse", fc_relu_mse, "3:1:1:2", 10)
+mkModelTc("fc_sigmoid_mse_sgd", fc_sigmoid_mse_sgd, "3:1:1:10", 10),
+mkModelTc("fc_relu_mse_sgd", fc_relu_mse_sgd, "3:1:1:2", 10)
+// mkModelTc("cifar_classification", cifar_classification, "10:1:1:10", 10)
 /// #if gtest_version <= 1.7.0
 ));
 /// #else gtest_version > 1.8.0
