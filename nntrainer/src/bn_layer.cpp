@@ -38,14 +38,19 @@ enum class BNParams { mu, var, gamma, beta };
 int BatchNormalizationLayer::initialize() {
   int status = ML_ERROR_NONE;
 
-  output_dim = input_dim;
+  if (num_inputs != 1) {
+    throw std::invalid_argument(
+      "Only one input is allowed for batch normalization layer");
+  }
+
+  output_dim[0] = input_dim[0];
   TensorDim dim;
 
   /// @note this logic cannot tell channel is actually 1 or it is just not used.
   if (axis == -1)
-    axis = input_dim.channel() > 1 ? 1 : 3;
+    axis = input_dim[0].channel() > 1 ? 1 : 3;
 
-  dim.setTensorDim(axis, input_dim.getTensorDim(axis));
+  dim.setTensorDim(axis, input_dim[0].getTensorDim(axis));
 
   for (int i = 0; i < 4; ++i) {
     if (axis != i)
@@ -161,7 +166,7 @@ BatchNormalizationLayer::backwarding(sharedConstTensors derivative,
   int N = 1;
 
   for (auto &axis : axes_to_reduce) {
-    N *= input_dim.getTensorDim(axis);
+    N *= input_dim[0].getTensorDim(axis);
   }
 
   dbeta = deriv.sum(axes_to_reduce);

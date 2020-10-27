@@ -27,25 +27,29 @@ int AdditionLayer::initialize() {
     return ML_ERROR_INVALID_PARAMETER;
   }
 
-  if (input_dim.getDataLen() == 1) {
-    ml_logw("Warning: the length of previous layer dimension is one");
+  for (unsigned int idx = 0; idx < num_inputs; ++idx) {
+    if (input_dim[idx].getDataLen() == 1) {
+      ml_logw("Warning: the length of previous layer dimension is one");
+    }
   }
 
   /** input dimension indicates the dimension for all the inputs to follow */
-  output_dim = input_dim;
+  output_dim[0] = input_dim[0];
 
   return status;
 }
 
 sharedConstTensors AdditionLayer::forwarding(sharedConstTensors in) {
-  hidden = Tensor(input_dim);
+  hidden = Tensor(input_dim[0]);
   hidden.setZero();
 
+  TensorDim &in_dim = input_dim[0];
+
   for (unsigned int idx = 0; idx < num_inputs; ++idx) {
-    if (input_dim != in[0].get()[idx].getDim())
+    if (in_dim != in[idx]->getDim())
       throw std::runtime_error("Error: addition layer requires same "
                                "shape from all input layers");
-    hidden.add_i(in[0].get()[idx]);
+    hidden.add_i(*in[idx]);
   }
 
   return {MAKE_SHARED_TENSOR(hidden)};
@@ -53,15 +57,16 @@ sharedConstTensors AdditionLayer::forwarding(sharedConstTensors in) {
 
 sharedConstTensors AdditionLayer::backwarding(sharedConstTensors derivative,
                                               int iteration) {
-  sharedTensor ret = std::shared_ptr<Tensor>(new Tensor[num_inputs],
-                                             std::default_delete<Tensor[]>());
 
-  for (unsigned int idx = 0; idx < num_inputs; ++idx) {
-    Tensor &t = ret.get()[idx];
-    t = *derivative[0];
+  sharedConstTensors ret;
+  for (unsigned int i = 0; i < num_inputs; ++i) {
+    sharedTensor t =
+      std::shared_ptr<Tensor>(new Tensor(), std::default_delete<Tensor[]>());
+    *t = *derivative[0];
+    ret.push_back(t);
   }
 
-  return {ret};
+  return ret;
 }
 
 void AdditionLayer::setProperty(const PropertyType type,

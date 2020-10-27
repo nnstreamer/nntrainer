@@ -83,7 +83,10 @@ public:
     trainable(trainable_),
     num_weights(0),
     num_inputs(1),
-    num_outputs(1) {}
+    num_outputs(1) {
+    input_dim.resize(1);
+    output_dim.resize(1);
+  }
 
   /**
    *  @brief  Move constructor of Layer.
@@ -192,13 +195,13 @@ public:
    * @brief Get the output dimension
    * @return TensorDim dimension of the output
    */
-  TensorDim getOutputDimension() { return output_dim; }
+  std::vector<TensorDim> getOutputDimension() { return output_dim; }
 
   /**
    * @brief Get the input dimension
    * @return TensorDim dimension of the input
    */
-  TensorDim getInputDimension() { return input_dim; }
+  std::vector<TensorDim> getInputDimension() { return input_dim; }
 
   /**
    * @brief  get the loss value added by this layer
@@ -311,12 +314,12 @@ protected:
   /**
    * @brief     Dimension of input activation
    */
-  TensorDim input_dim;
+  std::vector<TensorDim> input_dim;
 
   /**
    * @brief     Dimension of output activation
    */
-  TensorDim output_dim;
+  std::vector<TensorDim> output_dim;
 
   /**
    * @brief     Optimizer for this layer
@@ -498,7 +501,7 @@ private:
    * @brief Set the input dimension
    * @param[in] d dimension to be set
    */
-  void setInputDimension(TensorDim d) { input_dim = d; }
+  void setInputDimension(std::vector<TensorDim> d) { input_dim = d; }
 };
 
 /**

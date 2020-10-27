@@ -279,15 +279,19 @@ public:
 
   /*
    * @brief     get input dimension of neural network
-   * @retval TensorDim input dimension
+   * @retval std::vector<TensorDim> input dimension
    */
-  TensorDim getInputDimension() { return layers[0]->getInputDimension(); }
+  std::vector<TensorDim> getInputDimension() {
+    return layers[0]->getInputDimension();
+  }
 
   /*
    * @brief     get output dimension of neural network
-   * @retval TensorDim output dimension
+   * @retval std::vector<TensorDim> output dimension
    */
-  TensorDim getOutputDimension() { return layers.back()->getOutputDimension(); }
+  std::vector<TensorDim> getOutputDimension() {
+    return layers.back()->getOutputDimension();
+  }
 
   /**
    * @brief get FlatGraph of current graph

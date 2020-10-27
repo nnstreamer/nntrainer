@@ -114,6 +114,13 @@ unsigned int TensorDim::rank() const {
   return rank;
 }
 
+unsigned int &TensorDim::operator[](unsigned int index) {
+  if (index >= MAXDIM)
+    throw std::out_of_range(
+      "[TensorDim] Tensor Dimension index should be between 0 and 4");
+  return dim[index];
+}
+
 std::ostream &operator<<(std::ostream &out, TensorDim const &d) {
   out << "Shape: " << d.batch() << ":" << d.channel() << ":" << d.height()
       << ":" << d.width() << std::endl;

@@ -58,8 +58,11 @@ int Layer::checkValidation() {
 }
 
 void Layer::setBatch(unsigned int batch) {
-  input_dim.setTensorDim(0, batch);
-  output_dim.setTensorDim(0, batch);
+  for (unsigned int idx = 0; idx < num_inputs; ++idx)
+    input_dim[idx].setTensorDim(0, batch);
+
+  for (unsigned int idx = 0; idx < num_outputs; ++idx)
+    output_dim[idx].setTensorDim(0, batch);
 }
 
 void Layer::copy(std::shared_ptr<Layer> l) {
@@ -134,25 +137,30 @@ void Layer::setProperty(const PropertyType type, const std::string &value) {
       throw_status(status);
     }
     break;
-  case PropertyType::input_shape:
+  case PropertyType::input_shape: {
+    if (num_inputs != 1) {
+      throw std::invalid_argument("input_shape keyword is only for one input");
+    }
+
+    TensorDim &in_dim = input_dim[0];
     if (!value.empty()) {
       unsigned int cache_batch_size = 1;
       /** cache original value of batch size */
-      if (input_dim.batch()) {
-        cache_batch_size = input_dim.batch();
-        input_dim.batch(1);
+      if (in_dim.batch()) {
+        cache_batch_size = in_dim.batch();
+        in_dim.batch(1);
       }
-      status = input_dim.setTensorDim(value.c_str());
-      if (input_dim.batch() > 1) {
+      status = in_dim.setTensorDim(value.c_str());
+      if (in_dim.batch() > 1) {
         ml_logw("Batch size set with input dimension %d is ignored."
                 "Set batchsize property for the model to update batchsize.",
-                input_dim.batch());
+                in_dim.batch());
       }
       /** set back to cache value of dimension */
-      input_dim.batch(cache_batch_size);
+      in_dim.batch(cache_batch_size);
       throw_status(status);
     }
-    break;
+  } break;
   case PropertyType::activation:
     if (!value.empty()) {
       setActivation((ActivationType)parseType(value, TOKEN_ACTI));
@@ -219,10 +227,14 @@ void Layer::printIfValid(std::ostream &out, const PropertyType type,
 }
 
 void Layer::printShapeInfo(std::ostream &out) {
-  out << "input " << input_dim;
-  for (unsigned int i = 0; i < num_weights; i++)
-    out << "inner" << i << " " << weightAt(i).var.getDim();
-  out << "output " << output_dim;
+  for (unsigned int idx = 0; idx < num_inputs; ++idx) {
+    out << "input " << input_dim[idx];
+    for (unsigned int i = 0; i < num_weights; i++)
+      out << "inner" << i << " " << weightAt(i).var.getDim();
+  }
+  for (unsigned int idx = 0; idx < num_outputs; ++idx) {
+    out << "output " << output_dim[idx];
+  }
 }
 
 void Layer::printPropertiesMeta(std::ostream &out) {
