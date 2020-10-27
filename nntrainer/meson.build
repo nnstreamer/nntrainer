@@ -28,6 +28,7 @@ endif
 nntrainer_sources = [
   'src/activation_layer.cpp',
   'src/addition_layer.cpp',
+  'src/concat_layer.cpp',
   'src/blas_interface.cpp',
   'src/bn_layer.cpp',
   'src/conv2d_layer.cpp',
@@ -60,6 +61,7 @@ nntrainer_sources = [
 nntrainer_headers = [
   'include/activation_layer.h',
   'include/addition_layer.h',
+  'include/concat_layer.h',
   'include/blas_interface.h',
   'include/bn_layer.h',
   'include/conv2d_layer.h',

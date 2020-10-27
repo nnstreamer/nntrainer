@@ -43,6 +43,7 @@ NNTRAINER_SRCS := $(NNTRAINER_ROOT)/nntrainer/src/neuralnet.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/src/flatten_layer.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/src/model_loader.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/src/addition_layer.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/src/concat_layer.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/src/blas_interface.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/src/weight.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/src/adam.cpp \
