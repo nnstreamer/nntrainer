@@ -118,9 +118,9 @@ void NNTrainer::validateTensor(const GstTensorsInfo *tensorInfo,
   unsigned int order[3] = {1, 3, 2};
 
   if (is_input)
-    dim = model->getInputDimension();
+    dim = model->getInputDimension()[0];
   else
-    dim = model->getOutputDimension();
+    dim = model->getOutputDimension()[0];
 
   if (tensorInfo->info[0].type != _NNS_FLOAT32)
     throw std::invalid_argument(

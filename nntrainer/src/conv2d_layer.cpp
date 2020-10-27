@@ -27,12 +27,19 @@ namespace nntrainer {
 int Conv2DLayer::initialize() {
   int status = ML_ERROR_NONE;
 
-  if (input_dim.getDataLen() == 1) {
+  if (input_dim.size() != 1 || output_dim.size() != 1) {
+    throw std::invalid_argument("Convolution layer only takes one input");
+  }
+
+  TensorDim &in_dim = input_dim[0];
+  TensorDim &out_dim = output_dim[0];
+
+  if (in_dim.getDataLen() == 1) {
     ml_logw("Warning: the length of previous layer dimension is one");
   }
 
   TensorDim dim =
-    TensorDim(1, input_dim.channel(), kernel_size[0], kernel_size[1]);
+    TensorDim(1, in_dim.channel(), kernel_size[0], kernel_size[1]);
   TensorDim bias_dim = TensorDim(1, 1, 1, 1);
 
   std::string kernelPrefix = "Conv2d:filter";
@@ -50,12 +57,12 @@ int Conv2DLayer::initialize() {
   }
 
   // this output_dim should be the same with dimension of hidden
-  output_dim.batch(input_dim.batch());
-  output_dim.channel(filter_size);
-  output_dim.height(
-    (input_dim.height() - kernel_size[0] + 2 * padding[0]) / stride[0] + 1);
-  output_dim.width(
-    (input_dim.width() - kernel_size[1] + 2 * padding[1]) / stride[1] + 1);
+  out_dim.batch(in_dim.batch());
+  out_dim.channel(filter_size);
+  out_dim.height(
+    (in_dim.height() - kernel_size[0] + 2 * padding[0]) / stride[0] + 1);
+  out_dim.width((in_dim.width() - kernel_size[1] + 2 * padding[1]) / stride[1] +
+                1);
 
   return status;
 }
@@ -66,7 +73,14 @@ void Conv2DLayer::save(std::ofstream &file) { Layer::save(file); }
 
 sharedConstTensors Conv2DLayer::forwarding(sharedConstTensors in) {
   int status = ML_ERROR_NONE;
+
+  if (num_inputs != 1)
+    throw std::invalid_argument("Convolution layer only takes one input");
+
   input = *in[0];
+
+  TensorDim &in_dim = input_dim[0];
+  TensorDim &out_dim = output_dim[0];
 
   if (normalization) {
     input = input.normalization();
@@ -76,7 +90,7 @@ sharedConstTensors Conv2DLayer::forwarding(sharedConstTensors in) {
     input = input.standardization();
   }
 
-  TensorDim hidden_dim = output_dim;
+  TensorDim hidden_dim = output_dim[0];
   hidden = Tensor(hidden_dim);
   hidden.setZero();
 
@@ -117,8 +131,7 @@ sharedConstTensors Conv2DLayer::forwarding(sharedConstTensors in) {
    *       x [output_dim.height x output_dim.width]
    */
 
-  TensorDim kdim(filter_size, input_dim.channel(), kernel_size[0],
-                 kernel_size[1]);
+  TensorDim kdim(filter_size, in_dim.channel(), kernel_size[0], kernel_size[1]);
 
   std::vector<float> imkernel(kdim.getFeatureLen() * filter_size);
 
@@ -129,13 +142,13 @@ sharedConstTensors Conv2DLayer::forwarding(sharedConstTensors in) {
            kdim.getFeatureLen() * sizeof(float));
   }
 
-  for (unsigned int b = 0; b < input_dim.batch(); ++b) {
-    std::vector<float> out(output_dim.getFeatureLen());
+  for (unsigned int b = 0; b < in_dim.batch(); ++b) {
+    std::vector<float> out(out_dim.getFeatureLen());
     Tensor inSub(TensorDim(1, input.channel(), input.height(), input.width()),
                  input.getAddress(b * input.getDim().getFeatureLen()));
 
-    status = conv2d_gemm(imkernel.data(), kdim, inSub, output_dim, stride,
-                         padding, out.data(), out.size(), true);
+    status = conv2d_gemm(imkernel.data(), kdim, inSub, out_dim, stride, padding,
+                         out.data(), out.size(), true);
     if (status != ML_ERROR_NONE)
       throw std::runtime_error("Forwarding Convolution failed.");
     memcpy(hidden.getAddress(b * hidden.getDim().getFeatureLen()), out.data(),
@@ -167,6 +180,8 @@ sharedConstTensors Conv2DLayer::forwarding(sharedConstTensors in) {
 sharedConstTensors Conv2DLayer::backwarding(sharedConstTensors derivatives,
                                             int iteration) {
 
+  TensorDim &in_dim = input_dim[0];
+
   std::array<unsigned int, CONV2D_DIM> same_pad;
   sharedConstTensor derivative = derivatives[0];
 
@@ -180,9 +195,8 @@ sharedConstTensors Conv2DLayer::backwarding(sharedConstTensors derivatives,
     delBias.setZero();
   }
 
-  Tensor ret(input_dim.batch(), input_dim.channel(),
-             input_dim.height() + padding[0] * 2,
-             input_dim.width() + padding[1] * 2);
+  Tensor ret(in_dim.batch(), in_dim.channel(), in_dim.height() + padding[0] * 2,
+             in_dim.width() + padding[1] * 2);
   ret.setZero();
 
   /** Calculate DelK
@@ -221,12 +235,12 @@ sharedConstTensors Conv2DLayer::backwarding(sharedConstTensors derivatives,
    */
 
   int status = ML_ERROR_NONE;
-  for (unsigned int b = 0; b < input_dim.batch(); ++b) {
-    std::vector<float> out(kernel_size[0] * kernel_size[1] *
-                           input_dim.channel() * filter_size);
+  for (unsigned int b = 0; b < in_dim.batch(); ++b) {
+    std::vector<float> out(kernel_size[0] * kernel_size[1] * in_dim.channel() *
+                           filter_size);
 
     Tensor inSub(
-      TensorDim(1, input_dim.channel(), input_dim.height(), input_dim.width()),
+      TensorDim(1, in_dim.channel(), in_dim.height(), in_dim.width()),
       input.getAddress(b * input.getDim().getFeatureLen()));
 
     status = conv2d_gemm(
@@ -235,7 +249,7 @@ sharedConstTensors Conv2DLayer::backwarding(sharedConstTensors derivatives,
                 derivative->width()),
       inSub,
       TensorDim(1, 1, filter_size,
-                kernel_size[0] * kernel_size[1] * input_dim.channel()),
+                kernel_size[0] * kernel_size[1] * in_dim.channel()),
       stride, padding, out.data(), out.size(), false);
     if (status != ML_ERROR_NONE)
       throw std::runtime_error("Backwarding Convolution failed.");
@@ -244,7 +258,7 @@ sharedConstTensors Conv2DLayer::backwarding(sharedConstTensors derivatives,
       Tensor &delK = weightAt(i).getGradientRef();
       Tensor &delBias = weightAt(i + filter_size).getGradientRef();
       float *del = delK.getData();
-      unsigned int s = kernel_size[0] * kernel_size[1] * input_dim.channel();
+      unsigned int s = kernel_size[0] * kernel_size[1] * in_dim.channel();
 
       for (unsigned int k = 0; k < s; ++k) {
         del[k] += out[i * s + k];
@@ -318,11 +332,11 @@ sharedConstTensors Conv2DLayer::backwarding(sharedConstTensors derivatives,
     }
   }
 
-  TensorDim input_dim_padded(1, input_dim.channel(),
-                             input_dim.height() + padding[0] * 2,
-                             input_dim.width() + padding[1] * 2);
+  TensorDim input_dim_padded(1, in_dim.channel(),
+                             in_dim.height() + padding[0] * 2,
+                             in_dim.width() + padding[1] * 2);
 
-  for (unsigned int b = 0; b < input_dim.batch(); ++b) {
+  for (unsigned int b = 0; b < in_dim.batch(); ++b) {
     Tensor inSub(
       TensorDim(1, derivative->channel(), derivative->height(),
                 derivative->width()),

@@ -184,7 +184,7 @@ int NeuralNetwork::setTrainConfig(std::vector<std::string> values) {
 
 int NeuralNetwork::init() {
   int status = ML_ERROR_NONE;
-  TensorDim previous_dim;
+  std::vector<TensorDim> previous_dim;
 
   status = isInitializable();
   NN_RETURN_STATUS();
@@ -203,7 +203,7 @@ int NeuralNetwork::init() {
         ml_loge("double activation is not allowed");
         return ML_ERROR_INVALID_PARAMETER;
       }
-      if (l.getInputDimension().isEmpty()) {
+      if (l.getInputDimension().size()) {
         l.setInputDimension(previous_dim);
       } else if (previous_dim != l.getInputDimension()) {
         ml_loge("Dimension mismatch between layers.");
@@ -412,10 +412,10 @@ int NeuralNetwork::train(std::vector<std::string> values) {
   setBatchSize(batch_size);
 
   /** Setup data buffer properties */
-  status = data_buffer->setClassNum(getOutputDimension().width());
+  status = data_buffer->setClassNum(getOutputDimension()[0].width());
   NN_RETURN_STATUS();
 
-  status = data_buffer->setFeatureSize(layers[0]->getInputDimension());
+  status = data_buffer->setFeatureSize(layers[0]->getInputDimension()[0]);
   NN_RETURN_STATUS();
 
   status = data_buffer->init();
@@ -448,8 +448,8 @@ int NeuralNetwork::train_run() {
 
     int count = 0;
 
-    sharedTensor in = MAKE_SHARED_TENSOR(getInputDimension());
-    sharedTensor label = MAKE_SHARED_TENSOR(getOutputDimension());
+    sharedTensor in = MAKE_SHARED_TENSOR(getInputDimension()[0]);
+    sharedTensor label = MAKE_SHARED_TENSOR(getOutputDimension()[0]);
 
     while (true) {
       if (data_buffer->getDataFromBuffer(nntrainer::BufferType::BUF_TRAIN,
@@ -534,7 +534,7 @@ int NeuralNetwork::isInitializable() {
   Layer &l = *layers[0];
 
   /** Dimension of first layer must be known */
-  if (l.getInputDimension().isEmpty()) {
+  if (l.getInputDimension().size() == 0) {
     ml_loge("InputDimension of first layer is not set");
     return ML_ERROR_INVALID_PARAMETER;
   }

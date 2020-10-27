@@ -36,14 +36,18 @@ enum class FCParams { weight, bias };
 int FullyConnectedLayer::initialize() {
   int status = ML_ERROR_NONE;
 
-  output_dim = input_dim;
-  output_dim.width(unit);
+  if (num_inputs != 1) {
+    throw std::invalid_argument("Fully connected layer takes only one input");
+  }
+
+  output_dim[0] = input_dim[0];
+  output_dim[0].width(unit);
 
   TensorDim bias_dim = TensorDim();
   bias_dim.setTensorDim(3, unit);
 
-  TensorDim dim = output_dim;
-  dim.height(input_dim.width());
+  TensorDim dim = output_dim[0];
+  dim.height(input_dim[0].width());
   dim.batch(1);
 
   setNumWeights(2);
@@ -61,7 +65,7 @@ void FullyConnectedLayer::setProperty(const PropertyType type,
     if (!value.empty()) {
       status = setUint(unit, value);
       throw_status(status);
-      output_dim.width(unit);
+      output_dim[0].width(unit);
     }
   } break;
   default:

@@ -26,30 +26,38 @@ namespace nntrainer {
 
 int Pooling2DLayer::initialize() {
   int status = ML_ERROR_NONE;
-  if (input_dim.getDataLen() == 1) {
+
+  if (input_dim.size() != 1 || output_dim.size() != 1) {
+    throw std::invalid_argument("Convolution layer only takes one input");
+  }
+
+  TensorDim &in_dim = input_dim[0];
+  TensorDim &out_dim = output_dim[0];
+
+  if (in_dim.getDataLen() == 1) {
     ml_logw("Warning: the length of previous layer dimension is one");
   }
 
-  output_dim.batch(input_dim.batch());
-  output_dim.channel(input_dim.channel());
+  out_dim.batch(in_dim.batch());
+  out_dim.channel(in_dim.channel());
 
   if (pooling_type == PoolingType::max ||
       pooling_type == PoolingType::average) {
-    output_dim.height(
-      (input_dim.height() - pool_size[0] + 2 * padding[0]) / stride[0] + 1);
-    output_dim.width(
-      (input_dim.width() - pool_size[1] + 2 * padding[1]) / stride[1] + 1);
+    out_dim.height(
+      (in_dim.height() - pool_size[0] + 2 * padding[0]) / stride[0] + 1);
+    out_dim.width((in_dim.width() - pool_size[1] + 2 * padding[1]) / stride[1] +
+                  1);
   } else {
-    output_dim.height(1);
-    output_dim.width(1);
+    out_dim.height(1);
+    out_dim.width(1);
   }
 
   if (pooling_type == PoolingType::max) {
-    max_idx.resize(output_dim.getDataLen());
+    max_idx.resize(out_dim.getDataLen());
   }
 
   if (pooling_type == PoolingType::global_max) {
-    max_idx_global.resize(output_dim.getDataLen());
+    max_idx_global.resize(out_dim.getDataLen());
   }
 
   return status;
@@ -58,11 +66,13 @@ int Pooling2DLayer::initialize() {
 sharedConstTensors Pooling2DLayer::forwarding(sharedConstTensors in) {
   input = *in[0];
 
-  TensorDim hidden_dim = output_dim;
+  TensorDim hidden_dim = output_dim[0];
+  TensorDim &in_dim = input_dim[0];
+
   hidden = Tensor(hidden_dim);
   hidden.setZero();
 
-  for (unsigned int b = 0; b < input_dim.batch(); ++b) {
+  for (unsigned int b = 0; b < in_dim.batch(); ++b) {
     Tensor in_padded = zero_pad(b, input, padding.data());
     Tensor result = pooling2d(b, in_padded);
     memcpy(hidden.getAddress(b * hidden.getDim().getFeatureLen()),
@@ -74,16 +84,16 @@ sharedConstTensors Pooling2DLayer::forwarding(sharedConstTensors in) {
 
 sharedConstTensors Pooling2DLayer::backwarding(sharedConstTensors derivative,
                                                int iteration) {
-  unsigned int batch = input_dim.batch();
-  unsigned int channel = input_dim.channel();
-  unsigned int height = input_dim.height();
-  unsigned int width = input_dim.width();
+  unsigned int batch = input_dim[0].batch();
+  unsigned int channel = input_dim[0].channel();
+  unsigned int height = input_dim[0].height();
+  unsigned int width = input_dim[0].width();
   unsigned int p_height = pool_size[0];
   unsigned int p_width = pool_size[1];
   unsigned int p_size = p_height * p_width;
 
   unsigned int J, K;
-  Tensor result = Tensor(input_dim);
+  Tensor result = Tensor(input_dim[0]);
   result.setZero();
   float *out = result.getData();
   switch (pooling_type) {
@@ -172,9 +182,9 @@ void Pooling2DLayer::setBatch(unsigned int batch) {
   Layer::setBatch(batch);
 
   if (pooling_type == PoolingType::max) {
-    max_idx.resize(output_dim.getDataLen());
+    max_idx.resize(output_dim[0].getDataLen());
   } else if (pooling_type == PoolingType::global_max) {
-    max_idx_global.resize(output_dim.getDataLen());
+    max_idx_global.resize(output_dim[0].getDataLen());
   }
 }
 
@@ -248,9 +258,10 @@ Tensor Pooling2DLayer::pooling2d(unsigned int batch, Tensor &in) {
   unsigned int width = in.width();
   unsigned int p_height = pool_size[0];
   unsigned int p_width = pool_size[1];
-  unsigned int base_idx = batch * output_dim.getFeatureLen();
+  TensorDim &out_dim = output_dim[0];
+  unsigned int base_idx = batch * out_dim.getFeatureLen();
 
-  Tensor output(output_dim.channel(), output_dim.height(), output_dim.width());
+  Tensor output(out_dim.channel(), out_dim.height(), out_dim.width());
 
   unsigned int J, K;
   switch (pooling_type) {
@@ -265,10 +276,9 @@ Tensor Pooling2DLayer::pooling2d(unsigned int batch, Tensor &in) {
             for (unsigned int pj = 0; pj < p_width; ++pj) {
               float val = in.getValue(0, i, j + pi, k + pj);
               if (max < val) {
-                max_idx[base_idx +
-                        i * output_dim.height() * output_dim.width() +
-                        J * output_dim.width() + K] =
-                  batch * input_dim.getFeatureLen() + i * height * width +
+                max_idx[base_idx + i * out_dim.height() * out_dim.width() +
+                        J * out_dim.width() + K] =
+                  batch * input_dim[0].getFeatureLen() + i * height * width +
                   (j + pi) * width + (k + pj);
                 max = val;
               }
@@ -305,7 +315,8 @@ Tensor Pooling2DLayer::pooling2d(unsigned int batch, Tensor &in) {
   case PoolingType::global_max: {
     output.setZero();
     for (unsigned int i = 0; i < channel; ++i) {
-      unsigned int idx = batch * input_dim.getFeatureLen() + i * height * width;
+      unsigned int idx =
+        batch * input_dim[0].getFeatureLen() + i * height * width;
       float max = std::numeric_limits<float>::lowest();
       max_idx_global[base_idx + i].clear();
       for (unsigned int j = 0; j < height; ++j) {

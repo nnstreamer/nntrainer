@@ -69,15 +69,15 @@ public:
     unsigned int num_weights = node->getNumWeights();
     node->setTrainable(false);
 
-    expected_input = nntrainer::Tensor(node->getInputDimension());
+    expected_input = nntrainer::Tensor(node->getInputDimension()[0]);
 
     for (unsigned int i = 0; i < num_weights; ++i) {
       const nntrainer::Weight &w = node->weightAt(i);
       expected_weights.push_back(w);
     }
 
-    expected_output = nntrainer::Tensor(node->getOutputDimension());
-    expected_dx = nntrainer::Tensor(node->getInputDimension());
+    expected_output = nntrainer::Tensor(node->getOutputDimension()[0]);
+    expected_dx = nntrainer::Tensor(node->getInputDimension()[0]);
   }
 
   /**
@@ -282,7 +282,7 @@ void GraphWatcher::compareFor(const std::string &reference,
     throw std::runtime_error("ref is bad!");
   }
 
-  nntrainer::Tensor in(nn.getInputDimension());
+  nntrainer::Tensor in(nn.getInputDimension()[0]);
   nntrainer::Tensor lb(label_shape);
 
   in.read(ref);
