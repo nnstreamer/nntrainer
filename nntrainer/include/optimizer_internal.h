@@ -52,7 +52,7 @@ public:
    * @brief     Default Constructor of Optimizer Class
    */
   Optimizer(const OptType t, float lr, float decay_rate = 1.0f,
-            float decay_steps = -1.0f, float continue_train = false) :
+            unsigned int decay_steps = 0, float continue_train = false) :
     type(t),
     learning_rate(lr),
     decay_rate(decay_rate),
@@ -175,9 +175,9 @@ protected:
    */
   virtual double getLearningRate(int iteration);
 
-  float learning_rate; /** learning rate */
-  float decay_rate;    /** decay rate for learning rate */
-  float decay_steps;   /** decay steps for learning rate */
+  float learning_rate;      /** learning rate */
+  float decay_rate;         /** decay rate for learning rate */
+  unsigned int decay_steps; /** decay steps for learning rate */
   bool continue_train; /** Continue training with previous tensors for adam */
 
 private:
