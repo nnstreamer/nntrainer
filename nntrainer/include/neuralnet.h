@@ -80,13 +80,14 @@ public:
   NeuralNetwork() :
     batch_size(1),
     epochs(1),
+    epoch_idx(0),
+    iter(0),
     loss(0.0f),
     loss_type(LossType::LOSS_UNKNOWN),
     weight_initializer(WeightInitializer::WEIGHT_UNKNOWN),
     net_type(NetType::UNKNOWN),
     data_buffer(nullptr),
     continue_train(false),
-    iter(0),
     initialized(false),
     def_name_count(0),
     loadedFromConfig(false) {}
@@ -343,6 +344,10 @@ private:
 
   unsigned int epochs; /**< Maximum Epochs */
 
+  unsigned int epoch_idx; /**< Number of epoch_idx  */
+
+  unsigned int iter; /**< iterations trained */
+
   float loss; /**< loss */
 
   LossType loss_type; /**< Loss Function type */
@@ -362,8 +367,6 @@ private:
 
   bool continue_train; /**< Continue train from the previous state of optimizer
    and iterations */
-
-  uint64_t iter; /**< Number of iterations trained */
 
   bool initialized; /**< Network is initialized */
 
@@ -457,6 +460,8 @@ private:
 
     swap(lhs.batch_size, rhs.batch_size);
     swap(lhs.epochs, rhs.epochs);
+    swap(lhs.epoch_idx, rhs.epoch_idx);
+    swap(lhs.iter, rhs.iter);
     swap(lhs.loss, rhs.loss);
     swap(lhs.loss_type, rhs.loss_type);
     swap(lhs.weight_initializer, rhs.weight_initializer);
@@ -466,7 +471,6 @@ private:
     swap(lhs.layers, rhs.layers);
     swap(lhs.data_buffer, rhs.data_buffer);
     swap(lhs.continue_train, rhs.continue_train);
-    swap(lhs.iter, rhs.iter);
     swap(lhs.initialized, rhs.initialized);
     swap(lhs.layer_names, rhs.layer_names);
     swap(lhs.def_name_count, rhs.def_name_count);
