@@ -42,8 +42,8 @@ int Optimizer::initialize(std::shared_ptr<Weight> weight_list,
 double Optimizer::getLearningRate(int iteration) {
   double ll = learning_rate;
 
-  if (decay_steps != -1) {
-    ll = ll * pow(decay_rate, (iteration / decay_steps));
+  if (decay_steps != 0) {
+    ll = ll * pow(decay_rate, (iteration / (float)decay_steps));
   }
 
   return ll;
@@ -111,7 +111,7 @@ void Optimizer::setProperty(const PropertyType type, const std::string &value) {
     status = setFloat(learning_rate, value);
     break;
   case PropertyType::decay_steps:
-    status = setFloat(decay_steps, value);
+    status = setUint(decay_steps, value);
     break;
   case PropertyType::decay_rate:
     status = setFloat(decay_rate, value);
