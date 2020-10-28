@@ -132,12 +132,13 @@ sharedConstTensors BatchNormalizationLayer::forwarding(sharedConstTensors in) {
     deviation = input.subtract(cmu);
 
     cvar = deviation.pow(2.0f).average(axes_to_reduce);
-    cvar.add_i(epsilon);
 
     mu.multiply_i(momentum);
     mu.add_i(cmu, 1 - momentum);
     var.multiply_i(momentum);
     var.add_i(cvar, 1 - momentum);
+
+    cvar.add_i(epsilon);
 
     invstd = cvar.pow(-0.5f);
     this->x_normalized = deviation.multiply(invstd);
@@ -145,7 +146,7 @@ sharedConstTensors BatchNormalizationLayer::forwarding(sharedConstTensors in) {
     this->hidden.add_i(beta);
   } else {
     deviation = input.subtract(mu);
-    this->x_normalized = deviation.divide(var.pow(0.5f));
+    this->x_normalized = deviation.divide(var.add(epsilon).pow(0.5f));
     this->hidden = x_normalized.multiply(gamma);
     this->hidden.add(beta);
   }
