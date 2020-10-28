@@ -42,8 +42,14 @@ void verify(const nntrainer::Tensor &actual, const nntrainer::Tensor &expected,
   if (actual != expected) {
     std::cout
       << "============================================================\n";
-    std::cout << "current " << actual << "expected " << expected;
-    throw std::invalid_argument(error_msg.c_str());
+    std::cout << "\033[1;33mcurrent\033[0m  " << actual
+              << "\033[1;33mexpected\033[0m  " << expected;
+
+    std::cout << "\033[1;33mdifference\033[0m " << actual.subtract(expected);
+
+    std::stringstream ss;
+    ss << "\033[4;33m" << error_msg << "\033[0m";
+    throw std::invalid_argument(ss.str().c_str());
   }
 }
 
@@ -67,7 +73,7 @@ public:
    */
   NodeWatcher(const NodeType &node) : node(node) {
     unsigned int num_weights = node->getNumWeights();
-    node->setTrainable(false);
+    node->setTrainable(true);
 
     for (unsigned int i = 0; i < num_weights; ++i) {
       const nntrainer::Weight &w = node->weightAt(i);
@@ -186,7 +192,8 @@ void NodeWatcher::read(std::ifstream &in) {
   /// @note below is harrasing the fact the tensor shares same base memory
   /// it should better be getGraidentRef() or somewhat equivalent
   for (auto &i : expected_weights) {
-    i.getGradient().read(in);
+    if (i.getTrainable())
+      i.getGradient().read(in);
   }
 
   for (auto &i : expected_weights) {
@@ -203,8 +210,11 @@ void NodeWatcher::verifyWeight(const std::string &error_msg) {
 
 void NodeWatcher::verifyGrad(const std::string &error_msg) {
   for (unsigned int i = 0; i < expected_weights.size(); ++i) {
-    verify(node->weightAt(i).getGradient(), expected_weights[i].getGradient(),
-           error_msg + " " + node->weightAt(i).getName() + " grad");
+    auto weight = node->weightAt(i);
+    if (weight.getTrainable()) {
+      verify(weight.getGradient(), expected_weights[i].getGradient(),
+             error_msg + " " + weight.getName() + " grad");
+    }
   }
 }
 
@@ -243,12 +253,6 @@ NodeWatcher::backward(nntrainer::sharedConstTensors deriv, int iteration,
   std::string err_msg = ss.str();
 
   nntrainer::sharedConstTensors out = node->backwarding(deriv, iteration);
-
-  auto opt = node->getOptimizer();
-  if (opt) {
-    opt->apply_gradients(node->getWeights(), node->getNumWeights(), iteration);
-  }
-
   if (should_verify) {
     verify(*out[0], expected_dx, err_msg);
     verifyGrad(err_msg);
@@ -260,8 +264,13 @@ NodeWatcher::backward(nntrainer::sharedConstTensors deriv, int iteration,
 
 GraphWatcher::GraphWatcher(const std::string &config) {
   nn = nntrainer::NeuralNetwork();
-  nn.loadFromConfig(config);
-  nn.init();
+  if (nn.loadFromConfig(config)) {
+    throw std::invalid_argument("load from config failed!");
+  };
+
+  if (nn.init()) {
+    throw std::invalid_argument("initiation failed");
+  };
 
   FlatGraphType graph = nn.getFlatGraph();
 
@@ -339,28 +348,24 @@ void GraphWatcher::readIteration(std::ifstream &f) {
 /**
  * @brief nntrainerModelTest fixture for parametrized test
  *
- * @param const char * name of the ini and test. the tester generates name.ini
- * and try to read name.info
- * @param IniTestWrapper::Sections ini data
+ * @param IniTestWrapper ini data
  * @param nntrainer::TensorDim label dimension
  * @param int Iteration
  */
 class nntrainerModelTest
-  : public ::testing::TestWithParam<
-      std::tuple<const char *, const IniTestWrapper::Sections,
-                 const nntrainer::TensorDim, const unsigned int>> {
+  : public ::testing::TestWithParam<std::tuple<
+      const IniTestWrapper, const nntrainer::TensorDim, const unsigned int>> {
 
 protected:
   virtual void SetUp() {
     auto param = GetParam();
-    name = std::string(std::get<0>(param));
+
+    ini = std::get<0>(param);
+    name = ini.getName();
     std::cout << "starting test case : " << name << "\n\n";
 
-    auto sections = std::get<1>(param);
-    ini = IniTestWrapper(name, sections);
-
-    label_dim = std::get<2>(param);
-    iteration = std::get<3>(param);
+    label_dim = std::get<1>(param);
+    iteration = std::get<2>(param);
     ini.save_ini();
   }
 
@@ -399,35 +404,37 @@ TEST_P(nntrainerModelTest, model_test) {
  * @param nntrainer::TensorDim label dimension
  * @param int Iteration
  */
-auto mkModelTc(const char *name, const IniTestWrapper::Sections &vec,
-               const std::string &label_dim, const unsigned int iteration) {
-  return std::make_tuple(name, vec, nntrainer::TensorDim(label_dim), iteration);
+auto mkModelTc(const IniTestWrapper &ini, const std::string &label_dim,
+               const unsigned int iteration) {
+  return std::make_tuple(ini, nntrainer::TensorDim(label_dim), iteration);
 }
 
 /********************************************************
  * Actual Test                                          *
  ********************************************************/
 
-static IniSection nn_base("model", "Type = NeuralNetwork");
-static IniSection input_base("input", "Type = input");
-static IniSection fc_base("fc", "Type = Fully_connected");
+static IniSection nn_base("model", "type = NeuralNetwork");
+static std::string input_base = "type = input";
+static std::string fc_base = "type = Fully_connected";
 
-static IniSection adam("_", "Optimizer=adam | beta1 = 0.9 | beta2 = 0.999 | "
-                            "epsilon = 1e-7");
+static std::string adam_base = "optimizer=adam | beta1 = 0.9 | beta2 = 0.999 | "
+                               "epsilon = 1e-7";
 
 static IniSection act_base("activation", "Type = Activation");
 static IniSection softmax = act_base + "Activation = softmax";
 static IniSection sigmoid = act_base + "Activation = sigmoid";
 static IniSection relu = act_base + "Activation = relu";
+static IniSection bn_base("bn", "Type=batch_normalization");
 
 using I = IniSection;
+using INI = IniTestWrapper;
 
 /**
  * This is just a wrapper for an ini file with save / erase attached.
  * for example, fc_softmax_mse contains following ini file representation as a
  * series of IniSection
  *
- * [Model]
+ * [model]
  * Type = NeuralNetwork
  * Learning_rate = 1
  * Optimizer = sgd
@@ -454,33 +461,46 @@ using I = IniSection;
  * Type = Activation
  * Activation = softmax
  */
-IniTestWrapper::Sections fc_sigmoid_mse_sgd{
-  nn_base + "Learning_rate=1 | Optimizer=sgd | Loss=mse | batch_size = 3",
-  I("input") + input_base + "input_shape = 1:1:3",
-  I("dense") + fc_base + "unit = 5",
-  I("act") + sigmoid,
-  I("dense_1") + fc_base + "unit = 10",
-  I("act_1") + softmax};
+INI fc_sigmoid_mse(
+  "fc_sigmoid_mse",
+  {nn_base + "learning_rate=1 | optimizer=sgd | loss=mse | batch_size = 3",
+   I("input") + input_base + "input_shape = 1:1:3",
+   I("dense") + fc_base + "unit = 5", I("act") + sigmoid,
+   I("dense_1") + fc_base + "unit = 10", I("act_1") + softmax});
 
-IniTestWrapper::Sections fc_relu_mse_sgd{
-  nn_base + "Learning_rate=0.1 | Optimizer=sgd | Loss=mse | batch_size = 3",
-  I("input") + input_base + "input_shape = 1:1:3",
-  I("dense") + fc_base + "unit = 10",
-  I("act") + relu,
-  I("dense_1") + fc_base + "unit = 2",
-  I("act_1") + sigmoid};
+INI fc_sigmoid_cross =
+  INI("fc_sigmoid_cross") + fc_sigmoid_mse + "model/loss=cross";
+
+INI fc_relu_mse(
+  "fc_relu_mse",
+  {nn_base + "Learning_rate=0.1 | Optimizer=sgd | Loss=mse | batch_size = 3",
+   I("input") + input_base + "input_shape = 1:1:3",
+   I("dense") + fc_base + "unit = 10", I("act") + relu,
+   I("dense_1") + fc_base + "unit = 2", I("act_1") + sigmoid});
+
+INI fc_bn_sigmoid_cross(
+  "fc_bn_sigmoid_cross",
+  {nn_base + "learning_rate=1 | optimizer=sgd | loss=cross | batch_size = 3",
+   I("input") + input_base + "input_shape = 1:1:3",
+   I("dense") + fc_base + "unit = 10", I("bn") + bn_base, I("act") + sigmoid,
+   I("dense_2") + fc_base + "unit = 10", I("act_3") + softmax});
+
+INI fc_bn_sigmoid_mse =
+  INI("fc_bn_sigmoid_mse") + fc_bn_sigmoid_cross + "model/loss=mse";
 
 // clang-format off
 INSTANTIATE_TEST_CASE_P(
   nntrainerModelAutoTests, nntrainerModelTest, ::testing::Values(
-mkModelTc("fc_sigmoid_mse_sgd", fc_sigmoid_mse_sgd, "3:1:1:10", 10),
-mkModelTc("fc_relu_mse_sgd", fc_relu_mse_sgd, "3:1:1:2", 10)
-// mkModelTc("cifar_classification", cifar_classification, "10:1:1:10", 10)
-/// #if gtest_version <= 1.7.0
+mkModelTc(fc_sigmoid_mse, "3:1:1:10", 10),
+mkModelTc(fc_sigmoid_cross, "3:1:1:10", 10),
+mkModelTc(fc_relu_mse, "3:1:1:2", 10),
+mkModelTc(fc_bn_sigmoid_cross, "3:1:1:10", 10),
+mkModelTc(fc_bn_sigmoid_mse, "3:1:1:10", 10)
+// / #if gtest_version <= 1.7.0
 ));
 /// #else gtest_version > 1.8.0
 // ), [](const testing::TestParamInfo<nntrainerModelTest::ParamType>& info){
-//  return std::get<0>(info.param);
+//  return std::get<0>(info.param).getName();
 // });
 /// #end if */
 // clang-format on
