@@ -78,7 +78,7 @@ def _get_relayout_weight_fn(layer):
     return lambda x: x
 
 
-_debug_default_formatter = lambda key, value: "key: {}\n {}".format(key, value)
+_debug_default_formatter = lambda key, value: "\033[4;32mkey: {}\033[0m\n {}".format(key, value)
 ##
 # @brief Print debug information from the record
 # @param debug list or string that filters debug information from @a data
@@ -139,12 +139,20 @@ def train_step(model, optimizer, loss_fn, initial_input, label, writer_fn, **kwa
         outputs.append(loss)
 
     layer_input = initial_input
+
     for layer_output, layer in zip(outputs, model.layers):
         # print("generating for %s" % layer.name)
         to_nntr_layout = _get_relayout_weight_fn(layer)
 
         gradients = tape.gradient(loss, layer.trainable_weights)
         optimizer.apply_gradients(zip(gradients, layer.trainable_weights))
+
+        if isinstance(optimizer, tf.keras.optimizers.Adam):
+            wm = [optimizer.get_slot(var, 'm') for var in layer.trainable_weights]
+            wv = [optimizer.get_slot(var, 'v') for var in layer.trainable_weights]
+            _debug_print(wm=wm, wv=wv, **kwargs)
+
+        _debug_print(lr=optimizer.lr, **kwargs)
 
         weights = layer.trainable_weights.copy()
         dx = tape.gradient(loss, layer_input)
@@ -193,7 +201,7 @@ def generate_recordable_model(loss_fn_str, model=None, inputs=None, outputs=None
 
     # omit last activation layer if cross softmax or corss_sigmoid
     if loss_fn_str == "cross_softmax" or loss_fn_str == "cross_sigmoid":
-      if isinstance(model.layers[-1], K.layers.activation):
+      if isinstance(model.layers[-1], K.layers.Activation):
         outputs = outputs[:-1]
 
     model = K.Model(inputs=inputs, outputs=outputs)
@@ -242,8 +250,7 @@ def record(
 
         for _ in range(iteration):
             _debug_print(
-                iteration="[%d/%d]" % (_, iteration),
-                print_option={"end": " "},
+                iteration="\033[1;33m[%d/%d]\033[0m" % (_ + 1, iteration),
                 print_format=value_only_formatter,
                 **kwargs
             )
