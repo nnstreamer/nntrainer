@@ -285,7 +285,7 @@ void GraphWatcher::compareFor(const std::string &reference,
 
   auto data = prepareData(ref, label_shape);
 
-  for (unsigned int iteration = 1; iteration <= iterations; ++iteration) {
+  for (unsigned int iteration = 0; iteration < iterations; ++iteration) {
     nntrainer::sharedConstTensors input = {
       MAKE_SHARED_TENSOR(std::get<0>(data).clone())};
     nntrainer::sharedConstTensors label = {

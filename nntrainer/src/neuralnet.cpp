@@ -344,6 +344,7 @@ void NeuralNetwork::saveModel() {
   std::ofstream model_file(save_path, std::ios::out | std::ios::binary);
   for (unsigned int i = 0; i < layers.size(); i++)
     layers[i]->save(model_file);
+  model_file.write((char *)&epoch_idx, sizeof(epoch_idx));
   model_file.write((char *)&iter, sizeof(iter));
   model_file.close();
 }
@@ -360,6 +361,7 @@ void NeuralNetwork::readModel() {
   for (unsigned int i = 0; i < layers.size(); i++)
     layers[i]->read(model_file);
   if (continue_train) {
+    model_file.read((char *)&epoch_idx, sizeof(epoch_idx));
     model_file.read((char *)&iter, sizeof(iter));
   }
   model_file.close();
@@ -430,7 +432,7 @@ int NeuralNetwork::train(std::vector<std::string> values) {
 int NeuralNetwork::train_run() {
   int status = ML_ERROR_NONE;
 
-  for (unsigned int epoch_idx = 1; epoch_idx <= epochs; ++epoch_idx) {
+  for (epoch_idx = epoch_idx + 1; epoch_idx <= epochs; ++epoch_idx) {
     training.loss = 0.0f;
     status = data_buffer->run(nntrainer::BufferType::BUF_TRAIN);
     if (status != ML_ERROR_NONE) {
