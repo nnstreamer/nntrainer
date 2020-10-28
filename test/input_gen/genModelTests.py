@@ -3,9 +3,23 @@
 ##
 # Copyright (C) 2020 Jihoon Lee <jhoon.it.lee@samsung.com>
 #
-# @file getModelTests.py
+# @file genModelTests.py
 # @date 13 October 2020
-# @brief Generate tc using KerasRecorder
+# @brief Generate *.info file using KerasRecorder
+# *.info file is expected to contain following information **in order**
+# you can pass ("value") to debug to print out
+# *************************************************** #
+# 1. reference input ["initial_input"]
+# 2. reference label ["label"]
+# 3. initial weight data for each layer in order ["initial_weights"]
+# for each iteration...
+# 4. layer forward output for each layer in order["output"]
+# 5. layer backward output for each layer in order ["dx"]
+# 6. weight gradient for each layer(for trainable weights) ["gradients"]
+# 7. updated weights after optimization ["weights"]
+# after iteration...
+# 8. inference result (NYI)
+# *************************************************** #
 # @author Jihoon lee <jhoon.it.lee@samsung.com>
 
 import warnings
@@ -23,6 +37,7 @@ with warnings.catch_warnings():
 opt = tf.keras.optimizers
 
 if __name__ == "__main__":
+## please generate all test cases since golden data format can change anytime
     fc_sigmoid = [
         K.Input(shape=(3, 3)),
         K.layers.Dense(5),

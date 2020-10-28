@@ -44,6 +44,8 @@
 #define ML_TRAIN_SUMMARY_MODEL_VALID_ACCURACY 103
 
 class IniSection {
+  friend class IniTestWrapper;
+
 public:
   IniSection(const std::string &name) : section_name(name) {}
 
@@ -98,6 +100,12 @@ public:
 
   std::string getName() { return section_name; }
 
+  bool operator==(const IniSection &rhs) const {
+    return section_name == rhs.section_name && entry == rhs.entry;
+  }
+
+  bool operator!=(const IniSection &rhs) const { return !operator==(rhs); }
+
 private:
   void setEntry(const std::unordered_map<std::string, std::string> &_entry) {
     for (auto &it : _entry) {
@@ -139,7 +147,7 @@ public:
    * @param name_ name of the ini without `.ini` extension
    * @param sections_ sections that should go into ini
    */
-  IniTestWrapper(const std::string &name_, const Sections &sections_) :
+  IniTestWrapper(const std::string &name_, const Sections &sections_ = {}) :
     name(name_),
     sections(sections_){};
 
@@ -149,6 +157,13 @@ public:
    * @return std::string ini name with extension appended
    */
   std::string getIniName() { return name + ".ini"; }
+
+  /**
+   * @brief Get the Name
+   *
+   * @return std::string name
+   */
+  std::string getName() const { return name; }
 
   /**
    * @brief Get the Ini object
@@ -201,7 +216,77 @@ public:
    */
   void erase_ini() { remove(getIniName().c_str()); }
 
+  bool operator==(const IniTestWrapper &rhs) const {
+    return name == rhs.name && sections == rhs.sections;
+  }
+
+  bool operator!=(const IniTestWrapper &rhs) const { return !operator==(rhs); }
+
+  /**
+   * @brief update sections if section is empty, else update section by section
+   * by key
+   *
+   * @param[in] s IniTestWrapper
+   * @return IniTestWrapper& this
+   */
+  IniTestWrapper &operator+=(const IniTestWrapper &s) {
+    if (sections.empty()) {
+      sections = s.sections;
+    } else {
+      updateSections(s.sections);
+    }
+
+    return *this;
+  }
+
+  /**
+   * @brief update sections if section is empty, else update section by section
+   * by key
+   *
+   * @param[in] s IniTestWrapper
+   * @return IniTestWrapper& a new instance
+   */
+  IniTestWrapper operator+(const IniTestWrapper &rhs) const {
+    return IniTestWrapper(*this) += rhs;
+  }
+
+  IniTestWrapper &operator+=(const std::string &s) {
+    updateSection(s);
+    return *this;
+  }
+
+  IniTestWrapper operator+(const std::string &rhs) const {
+    return IniTestWrapper(*this) += rhs;
+  }
+
+  friend std::ostream &operator<<(std::ostream &os, const IniTestWrapper &ini) {
+    return os << ini.name;
+  }
+
 private:
+  /**
+   * @brief update a section from a formatted string, `sectionkey / propkey=val
+   * | propkey=val`
+   *
+   * @param s "model/optimizer=SGD | ..."
+   */
+  void updateSection(const std::string &s);
+
+  /**
+   * @brief update Section that matches section key of @a s
+   *
+   * @param s section
+   */
+  void updateSection(const IniSection &s);
+
+  /**
+   * @brief update sections with following rule
+   * if there is a section key, update entry of the section else throw
+   * std::invalid_argument
+   * @param sections sections to update
+   */
+  void updateSections(const Sections &sections_);
+
   std::string name;
   Sections sections;
 };

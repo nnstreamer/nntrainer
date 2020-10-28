@@ -310,3 +310,42 @@ void IniSection::setEntry(const std::string &entry_str) {
     entry[key] = value;
   }
 }
+
+void IniTestWrapper::updateSection(const std::string &s) {
+
+  auto seperator_pos = s.find('/');
+
+  if (seperator_pos == std::string::npos) {
+    throw std::invalid_argument("invalid string format is given, please "
+                                "include use sectionKey/properties format");
+  }
+
+  auto section_key = s.substr(0, seperator_pos);
+  auto properties = s.substr(seperator_pos + 1);
+
+  IniSection target(section_key, properties);
+
+  updateSection(target);
+}
+
+void IniTestWrapper::updateSection(const IniSection &s) {
+
+  auto section = std::find_if(sections.begin(), sections.end(),
+                              [&](const IniSection &section) {
+                                return section.section_name == s.section_name;
+                              });
+
+  if (section == sections.end()) {
+    std::stringstream ss;
+    ss << "section key is not found key: " << s.section_name;
+    throw std::invalid_argument(ss.str().c_str());
+  }
+
+  (*section) += s;
+}
+
+void IniTestWrapper::updateSections(const Sections &sections_) {
+  for (auto &section : sections_) {
+    updateSection(section);
+  }
+}
