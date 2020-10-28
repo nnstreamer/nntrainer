@@ -47,13 +47,18 @@ if __name__ == "__main__":
     ]
 
     fc_sigmoid_tc = partial(
-        record, model=fc_sigmoid, input_shape=(3, 3), label_shape=(3, 10), iteration=10
+        record,
+        model=fc_sigmoid,
+        input_shape=(3, 3),
+        label_shape=(3, 10),
+        iteration=10,
+        optimizer=opt.SGD(learning_rate=1.0),
     )
 
+    fc_sigmoid_tc(file_name="fc_sigmoid_mse.info", loss_fn_str="mse")
+
     fc_sigmoid_tc(
-        file_name="fc_sigmoid_mse_sgd.info",
-        loss_fn_str="mse",
-        optimizer=opt.SGD(learning_rate=1.0),
+        file_name="fc_sigmoid_cross.info", loss_fn_str="cross_softmax",
     )
 
     fc_relu = [
@@ -69,8 +74,35 @@ if __name__ == "__main__":
     )
 
     fc_relu_tc(
-        file_name="fc_relu_mse_sgd.info",
+        file_name="fc_relu_mse.info",
         loss_fn_str="mse",
         optimizer=opt.SGD(learning_rate=0.1),
-        debug="initial_input"
+    )
+
+    fc_bn_sigmoid = [
+        K.Input(shape=(3)),
+        K.layers.Dense(10),
+        K.layers.BatchNormalization(),
+        K.layers.Activation("sigmoid"),
+        K.layers.Dense(10),
+        K.layers.Activation("softmax"),
+    ]
+
+    fc_bn_sigmoid_tc = partial(
+        record,
+        model=fc_bn_sigmoid,
+        input_shape=(3, 3),
+        label_shape=(3, 10),
+        optimizer=opt.SGD(learning_rate=1),
+        iteration=10,
+    )
+
+    fc_bn_sigmoid_tc(
+        file_name="fc_bn_sigmoid_cross.info",
+        loss_fn_str="cross_softmax",
+        # debug=["summary", "iteration", "loss"],
+    )
+
+    fc_bn_sigmoid_tc(
+        file_name="fc_bn_sigmoid_mse.info", loss_fn_str="mse",
     )

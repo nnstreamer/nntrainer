@@ -73,12 +73,23 @@ def _get_relayout_weight_fn(layer):
         raise NotImplementedError("Not implemented yet")
 
     if isinstance(layer, K.layers.BatchNormalization):
-        raise NotImplementedError("Not implemented yet")
+        def reorder_bn(x):
+            # initial input layout
+            if len(x) == 4:
+                return [x[2], x[3], x[0], x[1]]
+            # trainable weight layout
+            if len(x) == 2:
+                return x
+            raise ValueError("BatchNormalization layer should have 4 or 2 weights.")
+
+        return reorder_bn
 
     return lambda x: x
 
 
-_debug_default_formatter = lambda key, value: "\033[4;32mkey: {}\033[0m\n {}".format(key, value)
+_debug_default_formatter = lambda key, value: "\033[4;32mkey: {}\033[0m\n {}".format(
+    key, value
+)
 ##
 # @brief Print debug information from the record
 # @param debug list or string that filters debug information from @a data
@@ -113,9 +124,11 @@ def prepare_data(model, input_shape, label_shape, writer_fn, **kwargs):
         depth=label_shape[1],
     )
 
-    initial_weights = [
-        weight for l in model.layers for weight in l.trainable_weights.copy()
-    ]
+    initial_weights = []
+    for layer in model.layers:
+        relayout = _get_relayout_weight_fn(layer)
+        initial_weights += relayout(layer.weights.copy())
+
     writer_fn(initial_input, label, *initial_weights)
     _debug_print(
         initial_input=initial_input,
@@ -133,7 +146,7 @@ def prepare_data(model, input_shape, label_shape, writer_fn, **kwargs):
 def train_step(model, optimizer, loss_fn, initial_input, label, writer_fn, **kwargs):
     with tf.GradientTape(persistent=True) as tape:
         tape.watch(initial_input)
-        outputs = model(initial_input)
+        outputs = model(initial_input, training=True)
 
         loss = loss_fn(label, outputs[-1])
         outputs.append(loss)
@@ -148,13 +161,13 @@ def train_step(model, optimizer, loss_fn, initial_input, label, writer_fn, **kwa
         optimizer.apply_gradients(zip(gradients, layer.trainable_weights))
 
         if isinstance(optimizer, tf.keras.optimizers.Adam):
-            wm = [optimizer.get_slot(var, 'm') for var in layer.trainable_weights]
-            wv = [optimizer.get_slot(var, 'v') for var in layer.trainable_weights]
+            wm = [optimizer.get_slot(var, "m") for var in layer.trainable_weights]
+            wv = [optimizer.get_slot(var, "v") for var in layer.trainable_weights]
             _debug_print(wm=wm, wv=wv, **kwargs)
 
         _debug_print(lr=optimizer.lr, **kwargs)
 
-        weights = layer.trainable_weights.copy()
+        weights = layer.weights.copy()
         dx = tape.gradient(loss, layer_input)
 
         writer_fn(
@@ -184,6 +197,7 @@ def inference_step(loss_fn_str, initial_input, label, writer_fn):
         pass
     raise NotImplementedError("Not Implemented yet")
 
+
 value_only_formatter = lambda key, value: value
 
 ##
@@ -192,7 +206,9 @@ value_only_formatter = lambda key, value: value
 # @param model base model to record, if model is present @a inputs and @a outputs is ignored
 # @param inputs keras inputs to build a model
 # @param outputs keras outputs to build a model
-def generate_recordable_model(loss_fn_str, model=None, inputs=None, outputs=None, **kwargs):
+def generate_recordable_model(
+    loss_fn_str, model=None, inputs=None, outputs=None, **kwargs
+):
     if model is not None:
         if isinstance(model, list):
             model = K.Sequential(model)
@@ -201,16 +217,19 @@ def generate_recordable_model(loss_fn_str, model=None, inputs=None, outputs=None
 
     # omit last activation layer if cross softmax or corss_sigmoid
     if loss_fn_str == "cross_softmax" or loss_fn_str == "cross_sigmoid":
-      if isinstance(model.layers[-1], K.layers.Activation):
-        outputs = outputs[:-1]
+        if isinstance(model.layers[-1], K.layers.Activation):
+            outputs = outputs[:-1]
 
     model = K.Model(inputs=inputs, outputs=outputs)
 
     model.summary(
-        print_fn=lambda x: _debug_print(summary=x, print_format=value_only_formatter, **kwargs)
+        print_fn=lambda x: _debug_print(
+            summary=x, print_format=value_only_formatter, **kwargs
+        )
     )
 
     return model
+
 
 ##
 # @brief record function that records weights, gradients, inputs and outputs for @a iteration
@@ -223,6 +242,9 @@ def generate_recordable_model(loss_fn_str, model=None, inputs=None, outputs=None
 # @param model base model to record, if model is present @a inputs and @a outputs is ignored
 # @param inputs keras inputs to build a model
 # @param outputs keras outputs to build a model
+# @param debug a single string key or list of keys to print out particular information,
+# checkout usage of _debug_print of which is printed. for example `_debug_print(loss=loss, **kwargs)`
+# catches debug="loss" or debug=["loss"] to print out loss
 def record(
     loss_fn_str,
     optimizer,

@@ -44,9 +44,7 @@ public:
    */
   template <typename... Args>
   BatchNormalizationLayer(
-    int axis = -1, float momentum = 0.99,
-
-    float epsilon = 0.001,
+    int axis = -1, float momentum = 0.99, float epsilon = 0.001,
     WeightInitializer moving_mean_initializer = WeightInitializer::WEIGHT_ZEROS,
     WeightInitializer moving_variance_initializer =
       WeightInitializer::WEIGHT_ZEROS,
