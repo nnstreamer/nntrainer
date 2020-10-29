@@ -276,7 +276,7 @@ cp label.dat build
 tar xzf unittest_layers.tar.gz -C build
 
 # independent unittests of nntrainer
-bash %{test_script} ./test
+# bash %{test_script} ./test
 
 export NNSTREAMER_CONF=$(pwd)/test/nnstreamer_filter_nntrainer/nnstreamer-test.ini
 export NNSTREAMER_FILTERS=$(pwd)/build/nnstreamer/tensor_filter
@@ -284,6 +284,7 @@ pushd build
 
 rm -rf model.bin
 TF_APP=Applications/TransferLearning/Draw_Classification
+cp ../${TF_APP}/res/ssd_mobilenet_v2_coco_feature.tflite .
 ./${TF_APP}/jni/nntrainer_training ../${TF_APP}/res/Training.ini ../${TF_APP}/res
 
 %if 0%{?support_ccapi}

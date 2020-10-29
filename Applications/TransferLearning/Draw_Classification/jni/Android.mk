@@ -13,32 +13,11 @@ endif
 
 NNTRAINER_INCLUDES := $(NNTRAINER_ROOT)/nntrainer/include \
 	$(NNTRAINER_ROOT)/api \
+	$(NNTRAINER_ROOT)/api/ccapi/include \
 	$(NNTRAINER_ROOT)/api/capi/include \
 	$(NNTRAINER_ROOT)/api/capi/include/platform
 
 NNTRAINER_APPLICATION := $(NNTRAINER_ROOT)/Applications
-
-include $(CLEAR_VARS)
-
-TENSORFLOW_VERSION := 1.13.1
-
-ifndef TENSORFLOW_ROOT
-ifneq ($(MAKECMDGOALS),clean)
-$(warning TENSORFLOW_ROOT is not defined!)
-$(warning TENSORFLOW SRC is going to be downloaded!)
-
-$(info $(shell ($(NNTRAINER_APPLICATION)/prepare_tflite.sh $(TENSORFLOW_VERSION) $(NNTRAINER_APPLICATION))))
-
-TENSORFLOW_ROOT := $(NNTRAINER_APPLICATION)/tensorflow-$(TENSORFLOW_VERSION)/tensorflow-lite
-
-endif
-endif
-
-LOCAL_MODULE := tensorflow-lite
-LOCAL_SRC_FILES := $(TENSORFLOW_ROOT)/lib/arm64/libtensorflow-lite.a
-LOCAL_EXPORT_C_INCLUDES := $(TENSORFLOW_ROOT)/include
-
-include $(PREBUILT_STATIC_LIBRARY)
 
 include $(CLEAR_VARS)
 
@@ -51,6 +30,7 @@ include $(CLEAR_VARS)
 
 LOCAL_MODULE := capi-nntrainer
 LOCAL_SRC_FILES := $(NNTRAINER_ROOT)/libs/$(TARGET_ARCH_ABI)/libcapi-nntrainer.so
+LOCAL_SHARED_LIBRARIES := nntrainer
 
 include $(PREBUILT_SHARED_LIBRARY)
 
@@ -78,8 +58,6 @@ LOCAL_LDLIBS := -llog
 LOCAL_SRC_FILES := main.cpp
 
 LOCAL_SHARED_LIBRARIES := capi-nntrainer app_utils
-
-LOCAL_STATIC_LIBRARIES := tensorflow-lite
 
 LOCAL_C_INCLUDES += $(TFLITE_INCLUDES) $(NNTRAINER_INCLUDES) $(APP_UTILS_INCLUDES)
 

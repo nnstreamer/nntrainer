@@ -9,10 +9,13 @@ endif
 
 ifndef NNTRAINER_ROOT
 NNTRAINER_ROOT := $(LOCAL_PATH)/../../../
+endif
+
 NNTRAINER_INCLUDES := $(NNTRAINER_ROOT)/nntrainer/include \
 	$(NNTRAINER_ROOT)/api \
 	$(NNTRAINER_ROOT)/api/capi/include/platform
-endif
+
+NNTRAINER_APPLICATION := $(NNTRAINER_ROOT)/Applications
 
 include $(CLEAR_VARS)
 
