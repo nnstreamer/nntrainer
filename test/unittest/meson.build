@@ -1,4 +1,7 @@
-unittest_nntrainer_deps = [nntrainer_test_deps] # if unittest-wide dep is added, this is the place to add
+unittest_nntrainer_deps = [
+  nntrainer_test_deps,
+  nntrainer_capi_dep, # so that feature_state can be overridden
+] # if unittest-wide dep is added, this is the place to add
 
 # test material need to be unzipped from "(project_home)/packaging/"
 unzip_target = [
