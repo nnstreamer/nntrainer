@@ -93,6 +93,12 @@ nntrainer_headers = [
   'include/optimizer_factory.h',
 ]
 
+if get_option('enable-nnstreamer-backbone')
+  nntrainer_base_deps += nnstreamer_capi_dep
+  nntrainer_headers += 'include/nnstreamer_layer.h'
+  nntrainer_sources += 'src/nnstreamer_layer.cpp'
+endif
+
 # Build libraries
 nntrainer_shared = shared_library('nntrainer',
   nntrainer_sources,

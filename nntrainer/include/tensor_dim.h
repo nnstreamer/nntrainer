@@ -111,6 +111,11 @@ public:
     return {dim[1] * dim[2] * dim[3], dim[2] * dim[3], dim[3], 1};
   }
 
+  /**
+   * @breif squeeze non-zero dimensions to inner dimensions in-place
+   */
+  void squeeze();
+
 private:
   unsigned int dim[MAXDIM];
   unsigned int len;

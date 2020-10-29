@@ -212,6 +212,7 @@ int NeuralNetwork::init() {
     }
 
     status = layers[i]->initialize();
+    NN_RETURN_STATUS();
 
     switch (l.getType()) {
     case LayerType::LAYER_BN:

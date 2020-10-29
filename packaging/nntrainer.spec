@@ -3,7 +3,8 @@
 %define         nnstreamer_filter 1
 %define         use_gym 0
 %define         support_ccapi 1
-%define		nntrainerapplicationdir	%{_libdir}/nntrainer/bin
+%define         support_nnstreamer_backbone 0
+%define         nntrainerapplicationdir %{_libdir}/nntrainer/bin
 %define         test_script $(pwd)/packaging/run_unittests.sh
 %define         gen_input $(pwd)/test/input_gen/genInput.py
 %bcond_with tizen
@@ -116,6 +117,8 @@ BuildRequires:	pkgconfig(jsoncpp)
 BuildRequires:	pkgconfig(libcurl)
 BuildRequires:	pkgconfig(dlog)
 BuildRequires:	capi-nnstreamer-devel
+BuildRequires:	glib2-devel
+BuildRequires:  gstreamer-devel
 
 %description applications
 NNTrainer Examples for test purpose.
@@ -205,6 +208,7 @@ NNSteamer tensor filter static package for nntrainer to support inference.
 %define enable_tizen_feature_check -Denable-tizen-feature-check=true
 %define install_app -Dinstall-app=true
 %define enable_ccapi -Denable-ccapi=false
+%define enable_nnstreamer_backbone -Denable-nnstreamer-backbone=false
 
 %if %{with tizen}
 %define enable_tizen -Denable-tizen=true
@@ -217,6 +221,10 @@ NNSteamer tensor filter static package for nntrainer to support inference.
 # Using cblas for Matrix calculation
 %if 0%{?use_cblas}
 %define enable_cblas -Denable-blas=true
+%endif
+
+%if 0%{?support_nnstreamer_backbone}
+%define enable_nnstreamer_backbone -Denable-nnstreamer-backbone=true
 %endif
 
 %prep
@@ -245,7 +253,8 @@ meson --buildtype=plain --prefix=%{_prefix} --sysconfdir=%{_sysconfdir} \
       --libdir=%{_libdir} --bindir=%{nntrainerapplicationdir} \
       --includedir=%{_includedir} %{install_app} %{enable_tizen} \
       %{enable_tizen_feature_check} %{enable_cblas} %{enable_ccapi} \
-      %{enable_gym} %{enable_nnstreamer_tensor_filter} build
+      %{enable_gym} %{enable_nnstreamer_tensor_filter} \
+      %{enable_nnstreamer_backbone} build
 
 ninja -C build %{?_smp_mflags}
 
@@ -384,6 +393,9 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %{_includedir}/nntrainer/adam.h
 %{_includedir}/nntrainer/sgd.h
 %{_includedir}/nntrainer/optimizer_factory.h
+%if 0%{?support_nnstreamer_backbone}
+%{_includedir}/nntrainer/nnstreamer_layer.h
+%endif
 %{_libdir}/pkgconfig/nntrainer.pc
 
 %files devel-static

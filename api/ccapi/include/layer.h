@@ -17,6 +17,7 @@
 
 #if __cplusplus >= MIN_CPP_VERSION
 
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -39,6 +40,7 @@ enum class LayerType {
   LAYER_ADDITION,                       /** Addition Layer type */
   LAYER_CONCAT,                         /** Concat Layer type */
   LAYER_LOSS,                           /** Loss Layer type */
+  LAYER_BACKBONE_NNSTREAMER,            /** Backbone using NNStreamer */
   LAYER_UNKNOWN = ML_TRAIN_LAYER_TYPE_UNKNOWN /** Unknown */
 };
 
@@ -115,6 +117,7 @@ public:
     moving_variance_initializer = 22,
     gamma_initializer = 23,
     beta_initializer = 24,
+    modelfile = 25, /** model file for loading config for backbone layer */
     unknown
   };
 

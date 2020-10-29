@@ -80,6 +80,10 @@ private:
    * @param[in/out] layer layer to be loaded
    * @param[in] layer_name name of the layer to be loaded
    */
+  int loadLayerConfigIniCommon(dictionary *ini, std::shared_ptr<Layer> &layer,
+                               const std::string &layer_name,
+                               LayerType layer_type);
+
   int loadLayerConfigIni(dictionary *ini, std::shared_ptr<Layer> &layer,
                          const std::string &layer_name);
 
@@ -93,6 +97,20 @@ private:
   int loadBackboneConfigIni(dictionary *ini, const std::string &backbone_config,
                             NeuralNetwork &model,
                             const std::string &backbone_name);
+
+  /**
+   * @brief     load backbone config from ini
+   * @param[in] ini dictionary containing the config
+   * @param[in] backbone_config config file containing the backbone config
+   * @param[in/out] model model to be added the backbone to
+   * @param[in] backbone_name name of the backbone to be loaded
+   */
+  int loadBackboneConfigExternal(dictionary *ini,
+                                 const std::string &backbone_config,
+                                 std::shared_ptr<Layer> &layer,
+                                 const std::string &backbone_name);
+
+  static bool fileIni(const std::string &filename);
 
   const char *unknown = "Unknown";
 };
