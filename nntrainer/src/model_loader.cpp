@@ -163,14 +163,11 @@ int ModelLoader::loadDatasetConfigIni(dictionary *ini, NeuralNetwork &model) {
   return status;
 }
 
-int ModelLoader::loadLayerConfigIni(dictionary *ini,
-                                    std::shared_ptr<Layer> &layer,
-                                    const std::string &layer_name) {
+int ModelLoader::loadLayerConfigIniCommon(dictionary *ini,
+                                          std::shared_ptr<Layer> &layer,
+                                          const std::string &layer_name,
+                                          LayerType layer_type) {
   int status = ML_ERROR_NONE;
-
-  std::string layer_type_str =
-    iniparser_getstring(ini, (layer_name + ":Type").c_str(), unknown);
-  LayerType layer_type = (LayerType)parseType(layer_type_str, TOKEN_LAYER);
 
   try {
     layer = nntrainer::createLayer(layer_type);
@@ -215,6 +212,16 @@ int ModelLoader::loadLayerConfigIni(dictionary *ini,
   return ML_ERROR_NONE;
 }
 
+int ModelLoader::loadLayerConfigIni(dictionary *ini,
+                                    std::shared_ptr<Layer> &layer,
+                                    const std::string &layer_name) {
+  std::string layer_type_str =
+    iniparser_getstring(ini, (layer_name + ":Type").c_str(), unknown);
+  LayerType layer_type = (LayerType)parseType(layer_type_str, TOKEN_LAYER);
+
+  return loadLayerConfigIniCommon(ini, layer, layer_name, layer_type);
+}
+
 int ModelLoader::loadBackboneConfigIni(dictionary *ini,
                                        const std::string &backbone_config,
                                        NeuralNetwork &model,
@@ -236,6 +243,23 @@ int ModelLoader::loadBackboneConfigIni(dictionary *ini,
   NN_RETURN_STATUS();
 
   return ML_ERROR_NONE;
+}
+
+int ModelLoader::loadBackboneConfigExternal(dictionary *ini,
+                                            const std::string &backbone_config,
+                                            std::shared_ptr<Layer> &layer,
+                                            const std::string &backbone_name) {
+#ifdef ENABLE_NNSTREAMER_BACKBONE
+  int status = ML_ERROR_NONE;
+  status = loadLayerConfigIniCommon(ini, layer, backbone_name,
+                                    LayerType::LAYER_BACKBONE_NNSTREAMER);
+  NN_RETURN_STATUS();
+
+  layer->setProperty(Layer::PropertyType::modelfile, backbone_config);
+  return status;
+#else
+  return ML_ERROR_NOT_SUPPORTED;
+#endif
 }
 
 /**
@@ -307,6 +331,9 @@ int ModelLoader::loadFromIni(std::string ini_file, NeuralNetwork &model,
     if (strncasecmp(dataset_str, sec_name.c_str(), dataset_len) == 0)
       continue;
 
+    /** Parse all the layers defined as sections in order */
+    std::shared_ptr<Layer> layer;
+
     /**
      * If this section is a backbone, load backbone section from this
      * @note The order of backbones in the ini file defines the order on the
@@ -314,15 +341,17 @@ int ModelLoader::loadFromIni(std::string ini_file, NeuralNetwork &model,
      */
     const char *backbone =
       iniparser_getstring(ini, (sec_name + ":Backbone").c_str(), unknown);
-    if (backbone != unknown) {
-      loadBackboneConfigIni(ini, backbone, model, sec_name);
+    if (backbone == unknown) {
+      status = loadLayerConfigIni(ini, layer, sec_name);
+      NN_INI_RETURN_STATUS();
+    } else if (fileIni(backbone)) {
+      status = loadBackboneConfigIni(ini, backbone, model, sec_name);
+      NN_INI_RETURN_STATUS();
       continue;
+    } else {
+      status = loadBackboneConfigExternal(ini, backbone, layer, sec_name);
+      NN_INI_RETURN_STATUS();
     }
-
-    /** Parse all the layers defined as sections in order */
-    std::shared_ptr<Layer> layer;
-    status = loadLayerConfigIni(ini, layer, sec_name);
-    NN_INI_RETURN_STATUS();
 
     status = model.addLayer(layer);
     NN_INI_RETURN_STATUS();
@@ -350,15 +379,23 @@ int ModelLoader::loadFromConfig(std::string config, NeuralNetwork &model) {
  */
 int ModelLoader::loadFromConfig(std::string config, NeuralNetwork &model,
                                 bool bare_layers) {
-  size_t position = config.find_last_of(".");
-  if (position == std::string::npos)
-    throw std::invalid_argument("Extension missing in config file");
-
-  if (config.substr(position + 1) == "ini") {
+  if (fileIni(config)) {
     return loadFromIni(config, model, bare_layers);
   }
 
   return ML_ERROR_INVALID_PARAMETER;
+}
+
+bool ModelLoader::fileIni(const std::string &filename) {
+  size_t position = filename.find_last_of(".");
+  if (position == std::string::npos)
+    return false;
+
+  if (filename.substr(position + 1) == "ini") {
+    return true;
+  }
+
+  return false;
 }
 
 } // namespace nntrainer

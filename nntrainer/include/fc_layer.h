@@ -40,7 +40,7 @@ public:
   ~FullyConnectedLayer(){};
 
   /**
-   *  @brief  Move constructor of Pooling 2D Layer.
+   *  @brief  Move constructor.
    *  @param[in] FullyConnected &&
    */
   FullyConnectedLayer(FullyConnectedLayer &&rhs) noexcept = default;

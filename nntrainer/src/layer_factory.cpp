@@ -20,7 +20,12 @@
 #include <flatten_layer.h>
 #include <input_layer.h>
 #include <loss_layer.h>
+#include <nntrainer_error.h>
 #include <pooling2d_layer.h>
+
+#ifdef ENABLE_NNSTREAMER_BACKBONE
+#include <nnstreamer_layer.h>
+#endif
 
 namespace nntrainer {
 
@@ -47,6 +52,12 @@ std::unique_ptr<Layer> createLayer(LayerType type) {
     return std::make_unique<AdditionLayer>();
   case LayerType::LAYER_LOSS:
     return std::make_unique<LossLayer>();
+  case LayerType::LAYER_BACKBONE_NNSTREAMER:
+#ifdef ENABLE_NNSTREAMER_BACKBONE
+    return std::make_unique<NNStreamerLayer>();
+#else
+    throw exception::not_supported("NNStreamer backbone layer not supported");
+#endif
   case LayerType::LAYER_UNKNOWN:
     /** fallthrough intended */
   default:

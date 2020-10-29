@@ -75,7 +75,6 @@ nntrainer_includedir = join_paths(nntrainer_prefix, get_option('includedir'))
 nntrainer_inidir = get_option('sysconfdir')
 application_install_dir = join_paths(nntrainer_bindir, 'applications')
 
-
 # Set default configuration
 nntrainer_conf = configuration_data()
 nntrainer_conf.set('VERSION', meson.project_version())
@@ -126,6 +125,11 @@ if not iniparser_dep.found()
     iniparser_dep = declare_dependency (dependencies : libiniparser_dep,
       compile_args : '-I/usr/include/iniparser')
   endif
+endif
+
+nnstreamer_capi_dep = dependency('capi-nnstreamer', required:false)
+if get_option('enable-nnstreamer-backbone')
+  add_project_arguments('-DENABLE_NNSTREAMER_BACKBONE=1', language:['c','cpp'])
 endif
 
 jsoncpp_dep = dependency('jsoncpp') # jsoncpp

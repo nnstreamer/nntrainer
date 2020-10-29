@@ -127,4 +127,16 @@ std::ostream &operator<<(std::ostream &out, TensorDim const &d) {
   return out;
 }
 
+void TensorDim::squeeze() {
+  TensorDim tmp(1, 1, 1, 1);
+
+  int rev_idx = MAXDIM - 1;
+  for (int i = MAXDIM - 1; i >= 0; --i) {
+    if (dim[i] > 1)
+      tmp.dim[rev_idx--] = dim[i];
+  }
+
+  *this = tmp;
+}
+
 } /* namespace nntrainer */

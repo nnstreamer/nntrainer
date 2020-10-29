@@ -213,7 +213,7 @@ public:
    * @brief     set trainable for this layer
    * @param[in] train to enable/disable train
    */
-  void setTrainable(bool train) noexcept { trainable = train; }
+  virtual void setTrainable(bool train) { trainable = train; }
 
   /**
    * @brief     get trainable for this layer
