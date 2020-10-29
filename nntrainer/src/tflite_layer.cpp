@@ -2,14 +2,12 @@
 /**
  * Copyright (C) 2020 Parichay Kapoor <pk.kapoor@samsung.com>
  *
- * @file	nnstreamer_layer.cpp
+ * @file	tflite_layer.cpp
  * @date	26 October 2020
- * @brief	This is class to encapsulate nnstreamer as a layer of Neural Network
+ * @brief	This is class to encapsulate tflite as a layer of Neural Network
  * @see		https://github.com/nnstreamer/nntrainer
  * @author	Parichay Kapoor <pk.kapoor@samsung.com>
  * @bug		No known bugs except for NYI items
- *
- * @todo: provide input/output dimensions to nnstreamer for certain frameworks
  */
 
 #include <nntrainer_error.h>
@@ -78,8 +76,7 @@ int TfLiteLayer::initialize() {
 
 void TfLiteLayer::setTrainable(bool train) {
   if (train)
-    throw exception::not_supported(
-      "NNStreamer layer does not support training");
+    throw exception::not_supported("TfLite layer does not support training");
 
   Layer::setTrainable(false);
 }
@@ -142,6 +139,6 @@ void TfLiteLayer::copy(std::shared_ptr<Layer> l) {
 sharedConstTensors TfLiteLayer::backwarding(sharedConstTensors derivative,
                                             int iteration) {
   throw exception::not_supported(
-    "Backwarding is not supported for nnstreamer layer");
+    "Backwarding is not supported for tflite layer");
 }
 } /* namespace nntrainer */

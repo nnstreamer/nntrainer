@@ -22,7 +22,10 @@
 #include <loss_layer.h>
 #include <nntrainer_error.h>
 #include <pooling2d_layer.h>
+
+#ifdef ENABLE_TFLITE_BACKBONE
 #include <tflite_layer.h>
+#endif
 
 #ifdef ENABLE_NNSTREAMER_BACKBONE
 #include <nnstreamer_layer.h>

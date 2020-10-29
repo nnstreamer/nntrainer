@@ -2,6 +2,8 @@
 LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
 
+ENABLE_TFLITE_BACKBONE := 0
+
 ifndef NNTRAINER_ROOT
 NNTRAINER_ROOT := $(LOCAL_PATH)/..
 endif
@@ -15,10 +17,41 @@ $(warning INIPARSER SRC is going to be downloaded!)
 
 INIPARSER_ROOT :=./iniparser
 
+endif
+endif
+
 $(info $(shell ($(LOCAL_PATH)/prepare_iniparser.sh )))
 
-endif
-endif
+include $(CLEAR_VARS)
+
+NNTRAINER_JNI_ROOT := $(NNTRAINER_ROOT)/jni
+
+# Build tflite if its backbone is enabled
+ifeq ($(ENABLE_TFLITE_BACKBONE),1)
+$(warning BUILDING TFLITE BACKBONE !)
+TENSORFLOW_VERSION := 1.13.1
+
+ifndef TENSORFLOW_ROOT
+ifneq ($(MAKECMDGOALS),clean)
+$(warning TENSORFLOW_ROOT is not defined!)
+$(warning TENSORFLOW SRC is going to be downloaded!)
+
+$(info $(shell ($(NNTRAINER_JNI_ROOT)/prepare_tflite.sh $(TENSORFLOW_VERSION) $(NNTRAINER_APPLICATION))))
+
+TENSORFLOW_ROOT := $(NNTRAINER_JNI_ROOT)/tensorflow-$(TENSORFLOW_VERSION)/tensorflow-lite
+
+endif #TENSORFLOW_ROOT
+endif #MAKECMDGOALS
+
+LOCAL_MODULE := tensorflow-lite
+LOCAL_SRC_FILES := $(TENSORFLOW_ROOT)/lib/arm64/libtensorflow-lite.a
+LOCAL_C_INCLUDES := $(TENSORFLOW_ROOT)/include
+TFLITE_INCLUDES := $(LOCAL_C_INCLUDES)
+
+include $(PREBUILT_STATIC_LIBRARY)
+
+include $(CLEAR_VARS)
+endif #ENABLE_TFLITE_BACKBONE
 
 NNTRAINER_SRCS := $(NNTRAINER_ROOT)/nntrainer/src/neuralnet.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/src/tensor.cpp \
@@ -50,6 +83,11 @@ NNTRAINER_SRCS := $(NNTRAINER_ROOT)/nntrainer/src/neuralnet.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/src/sgd.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/src/optimizer_factory.cpp
 
+# Add tflite backbone building
+ifeq ($(ENABLE_TFLITE_BACKBONE),1)
+NNTRAINER_SRCS += $(NNTRAINER_ROOT)/nntrainer/src/tflite_layer.cpp
+endif #ENABLE_TFLITE_BACKBONE
+
 NNTRAINER_INCLUDES := $(NNTRAINER_ROOT)/nntrainer/include \
                       $(NNTRAINER_ROOT)/api \
                       $(NNTRAINER_ROOT)/api/ccapi/include \
@@ -71,6 +109,13 @@ LOCAL_LDLIBS        := -llog
 LOCAL_MODULE        := nntrainer
 LOCAL_SRC_FILES     := $(NNTRAINER_SRCS) $(INIPARSER_SRCS)
 LOCAL_C_INCLUDES    := $(NNTRAINER_INCLUDES) $(INIPARSER_INCLUDES)
+
+# Add tflite backbone building
+ifeq ($(ENABLE_TFLITE_BACKBONE),1)
+LOCAL_STATIC_LIBRARIES := tensorflow-lite
+LOCAL_C_INCLUDES += $(TFLITE_INCLUDES)
+LOCAL_CFLAGS += -DENABLE_TFLITE_BACKBONE=1
+endif #ENABLE_TFLITE_BACKBONE
 
 include $(BUILD_SHARED_LIBRARY)
 
