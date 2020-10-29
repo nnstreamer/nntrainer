@@ -90,6 +90,8 @@ public:
    *            22. moving_variance_initializer : string (type),
    *            23. gamma_initializer : string (type),
    *            24. beta_initializer" : string (type)
+   *            25. modelfile : model file for loading config for backbone layer
+   *            26. input_layers" : string (type)
    */
   enum class PropertyType {
     input_shape = 0,
@@ -118,6 +120,7 @@ public:
     gamma_initializer = 23,
     beta_initializer = 24,
     modelfile = 25, /** model file for loading config for backbone layer */
+    input_layers = 26,
     unknown
   };
 

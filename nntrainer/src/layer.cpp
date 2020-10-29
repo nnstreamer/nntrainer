@@ -198,6 +198,16 @@ void Layer::setProperty(const PropertyType type, const std::string &value) {
       bias_initializer = (WeightInitializer)parseType(value, TOKEN_WEIGHT_INIT);
     }
     break;
+  case PropertyType::input_layers:
+    if (!value.empty()) {
+      std::regex reg("\\,+");
+      std::vector<std::string> concat_layers = split(value, reg);
+      // TODO set num_inputs properly
+      num_inputs = 1;
+      if (concat_layers.size() > 1)
+        num_inputs = concat_layers.size();
+    }
+    break;
   default:
     std::string msg =
       "[Layer] Unknown Layer Property Key for value " + std::string(value);
