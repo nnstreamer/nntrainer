@@ -5,9 +5,9 @@
  * @file	nnstreamer_layer.h
  * @date	26 October 2020
  * @brief	This is class to encapsulate nnstreamer as a layer of Neural Network
- * @see		https://github.com/nnstreamer/nntrainer
+ * @see	https://github.com/nnstreamer/nntrainer
  * @author	Parichay Kapoor <pk.kapoor@samsung.com>
- * @bug		No known bugs except for NYI items
+ * @bug	no known bugs except for NYI items
  *
  */
 

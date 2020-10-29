@@ -14,6 +14,7 @@
 
 #include <neuralnet.h>
 #include <nntrainer-api-common.h>
+#include <nntrainer_internal.h>
 
 #include <nntrainer_test_util.h>
 
@@ -135,6 +136,12 @@ static IniSection nw_base("model", "Type = NeuralNetwork | "
                                    "batch_size = 32 | "
                                    "epsilon = 1e-7 | "
                                    "loss = cross");
+
+static IniSection nw_base_mse("model", "Type = NeuralNetwork | "
+                                       "batch_size = 32 | "
+                                       "epsilon = 1e-7 | "
+                                       "loss = mse");
+
 static IniSection adam("adam", "Optimizer = adam |"
                                "Learning_rate = 0.00001 |"
                                "Decay_rate = 0.96 |"
@@ -196,6 +203,17 @@ static IniSection backbone_notrain("blockNT", "backbone = base.ini |"
 
 static IniSection backbone_train("blockT", "backbone = base.ini |"
                                            "trainable = true");
+
+static IniSection backbone_random_external("block1",
+                                           "backbone = random.tflite");
+
+static IniSection
+  backbone_valid_external("block1",
+                          "backbone = ../test/test_models/models/add.tflite | "
+                          "Input_Shape = 1:1:1");
+
+static IniSection backbone_valid_external_no_shape(
+  "block1", "backbone = ../test/test_models/models/add.tflite");
 
 static int SUCCESS = 0;
 static int LOADFAIL = initest::LOAD;
@@ -441,6 +459,55 @@ TEST(nntrainerIniTest, backbone_p_07) {
 }
 
 /**
+ * @brief Ini file unittest with backbone with normal backbone
+ */
+TEST(nntrainerIniTest, backbone_n_08) {
+  const char *ini_name = "backbone_n8.ini";
+  nntrainerIniTest::save_ini(ini_name, {nw_base, backbone_random_external});
+  nntrainer::NeuralNetwork NN;
+
+#ifdef ENABLE_NNSTREAMER_BACKBONE
+  EXPECT_EQ(NN.loadFromConfig(ini_name), ML_ERROR_NONE);
+  EXPECT_EQ(NN.init(), ML_ERROR_INVALID_PARAMETER);
+#else
+  EXPECT_EQ(NN.loadFromConfig(ini_name), ML_ERROR_NOT_SUPPORTED);
+#endif
+}
+
+/**
+ * @brief Ini file unittest with backbone with normal backbone
+ */
+TEST(nntrainerIniTest, backbone_p_09) {
+  const char *ini_name = "backbone_p9.ini";
+  nntrainerIniTest::save_ini(ini_name, {nw_base_mse, backbone_valid_external});
+  nntrainer::NeuralNetwork NN;
+
+#ifdef ENABLE_NNSTREAMER_BACKBONE
+  EXPECT_EQ(NN.loadFromConfig(ini_name), ML_ERROR_NONE);
+  EXPECT_EQ(NN.init(), ML_ERROR_NONE);
+#else
+  EXPECT_EQ(NN.loadFromConfig(ini_name), ML_ERROR_NOT_SUPPORTED);
+#endif
+}
+
+/**
+ * @brief Ini file unittest with backbone with normal backbone
+ */
+TEST(nntrainerIniTest, backbone_p_10) {
+  const char *ini_name = "backbone_p10.ini";
+  nntrainerIniTest::save_ini(ini_name,
+                             {nw_base_mse, backbone_valid_external_no_shape});
+  nntrainer::NeuralNetwork NN;
+
+#ifdef ENABLE_NNSTREAMER_BACKBONE
+  EXPECT_EQ(NN.loadFromConfig(ini_name), ML_ERROR_NONE);
+  EXPECT_EQ(NN.init(), ML_ERROR_NONE);
+#else
+  EXPECT_EQ(NN.loadFromConfig(ini_name), ML_ERROR_NOT_SUPPORTED);
+#endif
+}
+
+/**
  * @brief Main gtest
  */
 int main(int argc, char **argv) {
@@ -453,11 +520,21 @@ int main(int argc, char **argv) {
     return 0;
   }
 
+#if defined(__TIZEN__)
+  /** ignore tizen feature check while running the testcases */
+  set_feature_state(SUPPORTED);
+#endif
+
   try {
     result = RUN_ALL_TESTS();
   } catch (...) {
     std::cerr << "Error duing RUN_ALL_TSETS()" << std::endl;
   }
+
+#if defined(__TIZEN__)
+  /** reset tizen feature check state */
+  set_feature_state(NOT_CHECKED_YET);
+#endif
 
   return result;
 }

@@ -9,6 +9,9 @@
  * @author	Parichay Kapoor <pk.kapoor@samsung.com>
  * @bug		No known bugs except for NYI items
  *
+ * @todo: provide input/output dimensions to nnstreamer for certain frameworks
+ * @todo: support transposing the data to support NCHW nntrainer data to NHWC
+ * nnstreamer data
  */
 
 #include <lazy_tensor.h>
@@ -51,8 +54,8 @@ int NNStreamerLayer::nnst_info_to_tensor_dim(ml_tensors_info_h &out_res,
   for (size_t i = 0; i < MAXDIM; i++)
     dim.setTensorDim(i, dim_[i]);
 
-  // convert from NHWC to NCHW
-  dim.squeeze();
+  /* reverse the dimension as nnstreamer stores dimension in reverse way */
+  dim.reverse();
 
   return status;
 }
@@ -67,7 +70,7 @@ int NNStreamerLayer::finalizeError(int status) {
 
   if (out_res) {
     ml_tensors_info_destroy(out_res);
-    in_res = nullptr;
+    out_res = nullptr;
   }
 
   if (in_data_cont) {
@@ -93,7 +96,7 @@ int NNStreamerLayer::initialize() {
   TensorDim in_dim;
 
   status = ml_single_open(&single, modelfile.c_str(), NULL, NULL,
-                          ML_NNFW_TYPE_ANY, ML_NNFW_HW_ANY);
+                          ML_NNFW_TYPE_TENSORFLOW_LITE, ML_NNFW_HW_ANY);
   if (status != ML_ERROR_NONE)
     return finalizeError(status);
 

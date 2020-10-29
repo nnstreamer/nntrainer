@@ -121,22 +121,12 @@ unsigned int &TensorDim::operator[](unsigned int index) {
   return dim[index];
 }
 
+void TensorDim::reverse() { std::reverse(dim, dim + MAXDIM); }
+
 std::ostream &operator<<(std::ostream &out, TensorDim const &d) {
   out << "Shape: " << d.batch() << ":" << d.channel() << ":" << d.height()
       << ":" << d.width() << std::endl;
   return out;
-}
-
-void TensorDim::squeeze() {
-  TensorDim tmp(1, 1, 1, 1);
-
-  int rev_idx = MAXDIM - 1;
-  for (int i = MAXDIM - 1; i >= 0; --i) {
-    if (dim[i] > 1)
-      tmp.dim[rev_idx--] = dim[i];
-  }
-
-  *this = tmp;
 }
 
 } /* namespace nntrainer */

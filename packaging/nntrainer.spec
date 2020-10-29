@@ -3,7 +3,7 @@
 %define         nnstreamer_filter 1
 %define         use_gym 0
 %define         support_ccapi 1
-%define         support_nnstreamer_backbone 0
+%define         support_nnstreamer_backbone 1
 %define         nntrainerapplicationdir %{_libdir}/nntrainer/bin
 %define         test_script $(pwd)/packaging/run_unittests.sh
 %define         gen_input $(pwd)/test/input_gen/genInput.py
@@ -56,10 +56,20 @@ BuildRequires:	pkgconfig(capi-system-info)
 BuildRequires:	pkgconfig(capi-base-common)
 BuildRequires:	pkgconfig(dlog)
 
+%if 0%{?support_nnstreamer_backbone}
+BuildRequires: nnstreamer-tensorflow-lite
+BuildRequires: capi-nnstreamer-devel
+
+Requires:	nnstreamer-tensorflow-lite
+Requires:	capi-nnstreamer
+%endif # support_nnstreamer_backbone
+
 %define enable_nnstreamer_tensor_filter -Denable-nnstreamer-tensor-filter=false
+
 %if  0%{?nnstreamer_filter}
 BuildRequires:	nnstreamer-devel
 %define enable_nnstreamer_tensor_filter -Denable-nnstreamer-tensor-filter=true
+
 %if 0%{?unit_test}
 BuildRequires:	nnstreamer-protobuf
 BuildRequires:	nnstreamer-extra
@@ -286,7 +296,7 @@ MNIST_APP=Applications/MNIST
 popd
 
 # unittest for nntrainer plugin for nnstreamer
-%if  0%{?nnstreamer_filter}
+%if 0%{?nnstreamer_filter}
 export NNSTREAMER_CONF=$(pwd)/test/nnstreamer_filter_nntrainer/nnstreamer-test.ini
 export NNSTREAMER_FILTERS=$(pwd)/build/nnstreamer/tensor_filter
 pushd test/nnstreamer_filter_nntrainer

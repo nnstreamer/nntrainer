@@ -111,9 +111,9 @@ public:
   }
 
   /**
-   * @breif squeeze non-zero dimensions to inner dimensions in-place
+   * @brief reverse the dimensions inplace
    */
-  void squeeze();
+  void reverse();
 
 private:
   unsigned int dim[MAXDIM];

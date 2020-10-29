@@ -343,15 +343,14 @@ int ModelLoader::loadFromIni(std::string ini_file, NeuralNetwork &model,
       iniparser_getstring(ini, (sec_name + ":Backbone").c_str(), unknown);
     if (backbone == unknown) {
       status = loadLayerConfigIni(ini, layer, sec_name);
-      NN_INI_RETURN_STATUS();
     } else if (fileIni(backbone)) {
       status = loadBackboneConfigIni(ini, backbone, model, sec_name);
       NN_INI_RETURN_STATUS();
       continue;
     } else {
       status = loadBackboneConfigExternal(ini, backbone, layer, sec_name);
-      NN_INI_RETURN_STATUS();
     }
+    NN_INI_RETURN_STATUS();
 
     status = model.addLayer(layer);
     NN_INI_RETURN_STATUS();
