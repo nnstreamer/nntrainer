@@ -25,6 +25,7 @@
 #ifdef __cplusplus
 
 #include <iostream>
+#include <regex>
 #include <string>
 #include <vector>
 
@@ -178,6 +179,14 @@ int getKeyValue(std::string input_str, std::string &key, std::string &value);
 const char *getValues(std::vector<int> values, const char *delimiter = ",");
 
 int getValues(int n_str, std::string str, int *value);
+
+/**
+ * @brief     split string into vector with delimiter regex
+ * @param[in] str string
+ * @param[in] reg regular expression to use as delimiter
+ * @retval    output string vector
+ */
+std::vector<std::string> split(const std::string &s, std::regex &reg);
 
 /**
  * @brief     print instance info. as <Type at (address)>

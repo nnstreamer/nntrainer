@@ -31,9 +31,10 @@
 #include <optimizer_internal.h>
 #include <parse_util.h>
 #include <pooling2d_layer.h>
-#include <regex>
 #include <sstream>
 #include <string>
+
+#define NUM_SKIP_CHAR 3
 
 namespace nntrainer {
 
@@ -276,6 +277,7 @@ unsigned int parseType(std::string ll, InputType t) {
  * moving_variance_initializer = 22
  * gamma_initializer = 23
  * beta_initializer = 24
+ * input_layers = 25
  *
  * InputLayer has 0, 1, 2, 3 properties.
  * FullyConnectedLayer has 1, 4, 6, 7, 8, 9 properties.
@@ -283,7 +285,7 @@ unsigned int parseType(std::string ll, InputType t) {
  * Pooling2DLayer has 12, 13, 14, 15 properties.
  * BatchNormalizationLayer has 0, 1, 5, 6, 7 properties.
  */
-static std::array<std::string, 27> property_string = {
+static std::array<std::string, 28> property_string = {
   "input_shape",
   "normalization",
   "standardization",
@@ -310,6 +312,7 @@ static std::array<std::string, 27> property_string = {
   "gamma_initializer",
   "beta_initializer",
   "modelfile",
+  "input_layers",
   "unknown"};
 
 unsigned int parseLayerProperty(std::string property) {
@@ -496,6 +499,25 @@ const char *getValues(std::vector<int> values, const char *delimiter) {
   vec_str << values.back();
 
   return std::move(vec_str.str().c_str());
+}
+
+std::vector<std::string> split(const std::string &s, std::regex &reg) {
+  std::vector<std::string> out;
+  char char_to_remove[NUM_SKIP_CHAR] = {' ', '[', ']'};
+  std::string str = s;
+  for (unsigned int i = 0; i < NUM_SKIP_CHAR; ++i) {
+    str.erase(std::remove(str.begin(), str.end(), char_to_remove[i]),
+              str.end());
+  }
+  std::regex_token_iterator<std::string::iterator> end;
+  std::regex_token_iterator<std::string::iterator> iter(str.begin(), str.end(),
+                                                        reg, -1);
+
+  while (iter != end) {
+    out.push_back(*iter);
+    ++iter;
+  }
+  return out;
 }
 
 } /* namespace nntrainer */
