@@ -144,3 +144,33 @@ gbs build
 ```
 
 `gbs build` will execute unit testing as well unlike meson build.
+
+
+## Troubleshooting
+
+### Error 1:
+
+Applications/TransferLearning/Draw_Classification/jni/meson.build:5:0: ERROR: Dependency "glib-2.0" not found, tried pkgconfig and cmake
+
+### Solution: Please install libglib2.0-dev using the following:
+
+sudo apt-get install libglib2.0-dev
+
+### Error 2:
+
+ERROR: Dependency "gstreamer-1.0" not found, tried pkgconfig and cmake
+
+### Solution: Please install  libgstreamer1.0-dev using the following:
+
+sudo apt-get install libgstreamer1.0-dev
+
+### Error 3:
+
+meson.build:157:3: ERROR: Dependency "nnstreamer" not found, tried pkgconfig and cmake
+
+### Solution: Please install  nnstreamer-dev using the following:
+
+sudo apt install nnstreamer-dev
+
+
+
