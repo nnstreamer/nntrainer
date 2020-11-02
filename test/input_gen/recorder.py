@@ -20,6 +20,8 @@ with warnings.catch_warnings():
     import tensorflow as tf
     from tensorflow.python import keras as K
 
+from transLayer import attach_trans_layer
+
 __all__ = ["record"]
 
 tf.compat.v1.enable_eager_execution()
@@ -65,28 +67,6 @@ def _rand_like(tensorOrShape, scale=1):
     return tf.convert_to_tensor(t) * scale
 
 
-##
-# For some layers, nntrainer has different layout
-# this function reorder lists from keras layout to nntrainer layout
-def _get_relayout_weight_fn(layer):
-    if isinstance(layer, K.layers.Conv2D):
-        raise NotImplementedError("Not implemented yet")
-
-    if isinstance(layer, K.layers.BatchNormalization):
-        def reorder_bn(x):
-            # initial input layout
-            if len(x) == 4:
-                return [x[2], x[3], x[0], x[1]]
-            # trainable weight layout
-            if len(x) == 2:
-                return x
-            raise ValueError("BatchNormalization layer should have 4 or 2 weights.")
-
-        return reorder_bn
-
-    return lambda x: x
-
-
 _debug_default_formatter = lambda key, value: "\033[4;32mkey: {}\033[0m\n {}".format(
     key, value
 )
@@ -126,8 +106,7 @@ def prepare_data(model, input_shape, label_shape, writer_fn, **kwargs):
 
     initial_weights = []
     for layer in model.layers:
-        relayout = _get_relayout_weight_fn(layer)
-        initial_weights += relayout(layer.weights.copy())
+        initial_weights += layer.weights.copy()
 
     writer_fn(initial_input, label, *initial_weights)
     _debug_print(
@@ -146,7 +125,17 @@ def prepare_data(model, input_shape, label_shape, writer_fn, **kwargs):
 def train_step(model, optimizer, loss_fn, initial_input, label, writer_fn, **kwargs):
     with tf.GradientTape(persistent=True) as tape:
         tape.watch(initial_input)
-        outputs = model(initial_input, training=True)
+
+        outputs = []
+        inp = initial_input
+
+        for layer in model.layers:
+            try:
+                outp = layer(inp, training=True)
+            except TypeError:
+                outp = layer(inp)
+            outputs.append(outp)
+            inp = outp
 
         loss = loss_fn(label, outputs[-1])
         outputs.append(loss)
@@ -155,8 +144,6 @@ def train_step(model, optimizer, loss_fn, initial_input, label, writer_fn, **kwa
 
     for layer_output, layer in zip(outputs, model.layers):
         # print("generating for %s" % layer.name)
-        to_nntr_layout = _get_relayout_weight_fn(layer)
-
         gradients = tape.gradient(loss, layer.trainable_weights)
         optimizer.apply_gradients(zip(gradients, layer.trainable_weights))
 
@@ -173,8 +160,8 @@ def train_step(model, optimizer, loss_fn, initial_input, label, writer_fn, **kwa
         writer_fn(
             layer_output,  # output of forward
             dx,  # output of backward
-            *to_nntr_layout(gradients),  # weight gradient output from backward
-            *to_nntr_layout(weights)  # updated weight after optimization
+            *gradients,  # weight gradient output from backward
+            *weights  # updated weight after optimization
         )
 
         _debug_print(
@@ -221,6 +208,8 @@ def generate_recordable_model(
             outputs = outputs[:-1]
 
     model = K.Model(inputs=inputs, outputs=outputs)
+
+    model._layers = [attach_trans_layer(layer) for layer in model.layers]
 
     model.summary(
         print_fn=lambda x: _debug_print(
