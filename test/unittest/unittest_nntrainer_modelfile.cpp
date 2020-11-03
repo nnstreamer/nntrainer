@@ -466,7 +466,7 @@ TEST(nntrainerIniTest, backbone_n_08) {
   nntrainerIniTest::save_ini(ini_name, {nw_base, backbone_random_external});
   nntrainer::NeuralNetwork NN;
 
-#ifdef ENABLE_NNSTREAMER_BACKBONE
+#if defined(ENABLE_NNSTREAMER_BACKBONE) || defined(ENABLE_TFLITE_BACKBONE)
   EXPECT_EQ(NN.loadFromConfig(ini_name), ML_ERROR_NONE);
   EXPECT_EQ(NN.init(), ML_ERROR_INVALID_PARAMETER);
 #else
@@ -482,7 +482,7 @@ TEST(nntrainerIniTest, backbone_p_09) {
   nntrainerIniTest::save_ini(ini_name, {nw_base_mse, backbone_valid_external});
   nntrainer::NeuralNetwork NN;
 
-#ifdef ENABLE_NNSTREAMER_BACKBONE
+#if defined(ENABLE_NNSTREAMER_BACKBONE) || defined(ENABLE_TFLITE_BACKBONE)
   EXPECT_EQ(NN.loadFromConfig(ini_name), ML_ERROR_NONE);
   EXPECT_EQ(NN.init(), ML_ERROR_NONE);
 #else
@@ -499,7 +499,7 @@ TEST(nntrainerIniTest, backbone_p_10) {
                              {nw_base_mse, backbone_valid_external_no_shape});
   nntrainer::NeuralNetwork NN;
 
-#ifdef ENABLE_NNSTREAMER_BACKBONE
+#if defined(ENABLE_NNSTREAMER_BACKBONE) || defined(ENABLE_TFLITE_BACKBONE)
   EXPECT_EQ(NN.loadFromConfig(ini_name), ML_ERROR_NONE);
   EXPECT_EQ(NN.init(), ML_ERROR_NONE);
 #else

@@ -41,6 +41,7 @@ enum class LayerType {
   LAYER_CONCAT,                         /** Concat Layer type */
   LAYER_LOSS,                           /** Loss Layer type */
   LAYER_BACKBONE_NNSTREAMER,            /** Backbone using NNStreamer */
+  LAYER_BACKBONE_TFLITE,                /** Backbone using TFLite */
   LAYER_UNKNOWN = ML_TRAIN_LAYER_TYPE_UNKNOWN /** Unknown */
 };
 

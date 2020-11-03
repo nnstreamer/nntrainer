@@ -132,6 +132,11 @@ if get_option('enable-nnstreamer-backbone')
   add_project_arguments('-DENABLE_NNSTREAMER_BACKBONE=1', language:['c','cpp'])
 endif
 
+tflite_dep = dependency('tensorflow-lite', required: false)
+if get_option('enable-tflite-backbone')
+  add_project_arguments('-DENABLE_TFLITE_BACKBONE=1', language:['c','cpp'])
+endif
+
 jsoncpp_dep = dependency('jsoncpp') # jsoncpp
 libcurl_dep = dependency('libcurl')
 gtest_dep = dependency('gtest', required: false)
@@ -149,7 +154,9 @@ subdir('nntrainer')
 subdir('api')
 
 if get_option('enable-app')
-  tflite_dep = dependency('tensorflow-lite', required: true)
+  if not tflite_dep.found()
+    error('Tensorflow-Lite dependency not found')
+  endif
   subdir('Applications')
 endif
 

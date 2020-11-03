@@ -94,9 +94,21 @@ nntrainer_headers = [
 ]
 
 if get_option('enable-nnstreamer-backbone')
+  if not nnstreamer_capi_dep.found()
+    error('NNStreamer CAPI dependency not found')
+  endif
   nntrainer_base_deps += nnstreamer_capi_dep
   nntrainer_headers += 'include/nnstreamer_layer.h'
   nntrainer_sources += 'src/nnstreamer_layer.cpp'
+endif
+
+if get_option('enable-tflite-backbone')
+  if not tflite_dep.found()
+    error('Tensorflow-Lite dependency not found')
+  endif
+  nntrainer_base_deps += tflite_dep
+  nntrainer_headers += 'include/tflite_layer.h'
+  nntrainer_sources += 'src/tflite_layer.cpp'
 endif
 
 # Build libraries
