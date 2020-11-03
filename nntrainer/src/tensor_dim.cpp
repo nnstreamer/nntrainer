@@ -114,7 +114,14 @@ unsigned int TensorDim::rank() const {
   return rank;
 }
 
-unsigned int &TensorDim::operator[](unsigned int index) {
+unsigned int &TensorDim::operator[](const unsigned int index) {
+  if (index >= MAXDIM)
+    throw std::out_of_range(
+      "[TensorDim] Tensor Dimension index should be between 0 and 4");
+  return dim[index];
+}
+
+const unsigned int &TensorDim::operator[](const unsigned int index) const {
   if (index >= MAXDIM)
     throw std::out_of_range(
       "[TensorDim] Tensor Dimension index should be between 0 and 4");

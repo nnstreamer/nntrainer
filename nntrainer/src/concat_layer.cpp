@@ -24,12 +24,22 @@ namespace nntrainer {
 int ConcatLayer::initialize() {
   int status = ML_ERROR_NONE;
   unsigned int channel = 0;
+
   if (num_inputs == 0) {
     ml_loge("Error: number of inputs are not initialized");
     return ML_ERROR_INVALID_PARAMETER;
   }
 
-  for (unsigned int idx = 0; idx < num_inputs; ++idx) {
+  const TensorDim &d = input_dim[0];
+  channel += d.channel();
+  for (unsigned int idx = 1; idx < num_inputs; ++idx) {
+    const TensorDim &dim = input_dim[idx];
+
+    for (unsigned int i = 2; i < d.rank(); ++i) {
+      if (d[i] != dim[i])
+        throw std::runtime_error("Error: concat layer requires same "
+                                 "shape from  all input layers");
+    }
     channel += input_dim[idx].channel();
   }
 
@@ -40,35 +50,30 @@ int ConcatLayer::initialize() {
 }
 
 sharedConstTensors ConcatLayer::forwarding(sharedConstTensors in) {
-
-  TensorDim d = in[0]->getDim();
-  unsigned int concat_channel = d.channel();
-
-  for (unsigned int idx = 1; idx < num_inputs; ++idx) {
-    TensorDim dim = in[idx]->getDim();
+  hidden = Tensor(output_dim[0]);
 
 #ifdef DEBUG
+  const TensorDim &d = in[0]->getDim();
+  channel += d.channel();
+  for (unsigned int idx = 1; idx < num_inputs; ++idx) {
+    const TensorDim &dim = in[idx]->getDim();
+
     for (unsigned int i = 2; i < d.rank(); ++i) {
       if (d[i] != dim[i])
         throw std::runtime_error("Error: concat layer requires same "
                                  "shape from  all input layers");
     }
-#endif
-    concat_channel += dim.channel();
+    channel += input_dim[idx].channel();
   }
 
-#ifdef DEBUG
-  if (concat_channel != output_dim[0].channel()) {
+  if (channel != output_dim[0].channel())
     throw std::runtime_error(
       "Error: Sum of channel of input layers is not same with output channel");
-  }
 #endif
 
-  hidden = Tensor(output_dim[0]);
+  unsigned int f_size = output_dim[0].getFeatureLen();
 
-  unsigned int f_size = d.width() * d.height() * (concat_channel);
-
-  for (unsigned int b = 0; b < d.batch(); ++b) {
+  for (unsigned int b = 0; b < input_dim[0].batch(); ++b) {
     unsigned int position = 0;
     for (unsigned int idx = 0; idx < num_inputs; ++idx) {
       TensorDim in_dim = in[idx]->getDim();
