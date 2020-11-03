@@ -121,7 +121,27 @@ private:
                                  std::shared_ptr<Layer> &layer,
                                  const std::string &backbone_name);
 
+  /**
+   * @brief     Check if the file extension is the given @a ext
+   * @param[in] filename full name of the file
+   * @param[in] ext extension to match with
+   * @retval true if @a ext, else false
+   */
+  static bool fileExt(const std::string &filename, const std::string &ext);
+
+  /**
+   * @brief     Check if the file extension is ini
+   * @param[in] filename full name of the file
+   * @retval true if ini, else false
+   */
   static bool fileIni(const std::string &filename);
+
+  /**
+   * @brief     Check if the file extension is tflite
+   * @param[in] filename full name of the file
+   * @retval true if tflite, else false
+   */
+  static bool fileTfLite(const std::string &filename);
 
   const char *unknown = "Unknown";
 };

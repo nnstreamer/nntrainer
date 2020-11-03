@@ -406,6 +406,7 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %if 0%{?support_nnstreamer_backbone}
 %{_includedir}/nntrainer/nnstreamer_layer.h
 %endif
+%{_includedir}/nntrainer/tflite_layer.h
 %{_libdir}/pkgconfig/nntrainer.pc
 
 %files devel-static

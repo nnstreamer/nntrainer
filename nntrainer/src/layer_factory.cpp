@@ -22,6 +22,7 @@
 #include <loss_layer.h>
 #include <nntrainer_error.h>
 #include <pooling2d_layer.h>
+#include <tflite_layer.h>
 
 #ifdef ENABLE_NNSTREAMER_BACKBONE
 #include <nnstreamer_layer.h>
@@ -57,6 +58,12 @@ std::unique_ptr<Layer> createLayer(LayerType type) {
     return std::make_unique<NNStreamerLayer>();
 #else
     throw exception::not_supported("NNStreamer backbone layer not supported");
+#endif
+  case LayerType::LAYER_BACKBONE_TFLITE:
+#ifdef ENABLE_TFLITE_BACKBONE
+    return std::make_unique<TfLiteLayer>();
+#else
+    throw exception::not_supported("TfLite backbone layer not supported");
 #endif
   case LayerType::LAYER_UNKNOWN:
     /** fallthrough intended */

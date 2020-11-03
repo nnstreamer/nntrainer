@@ -249,17 +249,27 @@ int ModelLoader::loadBackboneConfigExternal(dictionary *ini,
                                             const std::string &backbone_config,
                                             std::shared_ptr<Layer> &layer,
                                             const std::string &backbone_name) {
-#ifdef ENABLE_NNSTREAMER_BACKBONE
+  LayerType type = LayerType::LAYER_UNKNOWN;
+
+#if defined(ENABLE_NNSTREAMER_BACKBONE)
+  type = LayerType::LAYER_BACKBONE_NNSTREAMER;
+#endif
+
+  /** TfLite has higher priority */
+#if defined(ENABLE_TFLITE_BACKBONE)
+  if (fileTfLite(backbone_config))
+    type = LayerType::LAYER_BACKBONE_TFLITE;
+#endif
+
+  if (type == LayerType::LAYER_UNKNOWN)
+    return ML_ERROR_NOT_SUPPORTED;
+
   int status = ML_ERROR_NONE;
-  status = loadLayerConfigIniCommon(ini, layer, backbone_name,
-                                    LayerType::LAYER_BACKBONE_NNSTREAMER);
+  status = loadLayerConfigIniCommon(ini, layer, backbone_name, type);
   NN_RETURN_STATUS();
 
   layer->setProperty(Layer::PropertyType::modelfile, backbone_config);
   return status;
-#else
-  return ML_ERROR_NOT_SUPPORTED;
-#endif
 }
 
 /**
@@ -385,16 +395,24 @@ int ModelLoader::loadFromConfig(std::string config, NeuralNetwork &model,
   return ML_ERROR_INVALID_PARAMETER;
 }
 
-bool ModelLoader::fileIni(const std::string &filename) {
+bool ModelLoader::fileExt(const std::string &filename, const std::string &ext) {
   size_t position = filename.find_last_of(".");
   if (position == std::string::npos)
     return false;
 
-  if (filename.substr(position + 1) == "ini") {
+  if (filename.substr(position + 1) == ext) {
     return true;
   }
 
   return false;
+}
+
+bool ModelLoader::fileIni(const std::string &filename) {
+  return fileExt(filename, "ini");
+}
+
+bool ModelLoader::fileTfLite(const std::string &filename) {
+  return fileExt(filename, "tflite");
 }
 
 } // namespace nntrainer
