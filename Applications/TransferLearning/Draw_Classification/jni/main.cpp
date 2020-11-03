@@ -486,10 +486,10 @@ int testModel(const char *data_path, const char *model) {
   snprintf(pipeline, sizeof(pipeline),
            "appsrc name=srcx ! "
            "other/"
-           "tensor,dimension=(string)1:%d:1:1,type=(string)float32,framerate=("
+           "tensor,dimension=(string)%d:1:1:1,type=(string)float32,framerate=("
            "fraction)0/1 ! "
-           "tensor_filter framework=nntrainer model=\"%s\" input=1:%d:1:1 "
-           "inputtype=float32 output=1:%d:1:1 outputtype=float32 ! tensor_sink "
+           "tensor_filter framework=nntrainer model=\"%s\" input=%d "
+           "inputtype=float32 output=%d outputtype=float32 ! tensor_sink "
            "name=sinkx",
            INPUT_SIZE, model, INPUT_SIZE, LABEL_SIZE);
 
