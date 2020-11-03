@@ -637,7 +637,7 @@ int run_inference_pipeline_(appdata_s *ad, const char *filesrc) {
           "tensor_transform mode=arithmetic option=%s ! "
           "tensor_filter framework=tensorflow-lite model=%s ! "
           "tensor_filter framework=nntrainer model=%s input=1280:7:7:1 "
-          "inputtype=float32 output=1:%d:1:1 outputtype=float32 ! "
+          "inputtype=float32 output=%d outputtype=float32 ! "
           "tensor_sink name=sink",
           filesrc, "typecast:float32,add:-127.5,div:127.5", tf_model_path,
           trainer_model_path, NUM_CLASS);

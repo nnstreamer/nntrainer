@@ -115,7 +115,6 @@ void NNTrainer::validateTensor(const GstTensorsInfo *tensorInfo,
 
   nntrainer::TensorDim dim;
   nntrainer_tensor_info_s info_s;
-  unsigned int order[3] = {1, 3, 2};
 
   if (is_input)
     dim = model->getInputDimension()[0];
@@ -128,17 +127,12 @@ void NNTrainer::validateTensor(const GstTensorsInfo *tensorInfo,
 
   info_s.rank = NUM_DIM;
 
-  for (unsigned int i = 0; i < NUM_DIM - 1; ++i) {
-    if (tensorInfo->info[0].dimension[i] != dim.getDim()[order[i]])
+  for (unsigned int i = 0; i < NUM_DIM; ++i) {
+    if (tensorInfo->info[0].dimension[i] != dim.getDim()[NUM_DIM - i - 1])
       throw std::invalid_argument("Tensor dimension doesn't match");
 
-    info_s.dims.push_back(dim.getDim()[order[i]]);
+    info_s.dims.push_back(dim.getDim()[i]);
   }
-
-  if (tensorInfo->info[0].dimension[NUM_DIM - 1] != dim.getDim()[0])
-    throw std::invalid_argument("Tensor dimension doesn't match");
-
-  info_s.dims.push_back(dim.getDim()[0]);
 
   if (is_input)
     input_tensor_info.push_back(info_s);
@@ -177,7 +171,7 @@ int NNTrainer::run(const GstTensorMemory *input, GstTensorMemory *output) {
 
   std::vector<std::int64_t> d = input_tensor_info[0].dims;
   nntrainer::Tensor X =
-    nntrainer::Tensor(nntrainer::TensorDim(d[3], d[0], d[2], d[1]),
+    nntrainer::Tensor(nntrainer::TensorDim(d[0], d[1], d[2], d[3]),
                       static_cast<float *>(input[0].data));
 
   std::shared_ptr<const nntrainer::Tensor> o;
