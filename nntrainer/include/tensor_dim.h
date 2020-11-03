@@ -99,7 +99,8 @@ public:
   bool isEmpty() const { return len == 0; }
   unsigned int rank() const;
 
-  unsigned int &operator[](unsigned int index);
+  unsigned int &operator[](const unsigned int index);
+  const unsigned int &operator[](const unsigned int index) const;
 
   /**
    * @brief Calculate standard strides
