@@ -96,7 +96,7 @@ int NNStreamerLayer::initialize() {
   TensorDim in_dim;
 
   status = ml_single_open(&single, modelfile.c_str(), NULL, NULL,
-                          ML_NNFW_TYPE_TENSORFLOW_LITE, ML_NNFW_HW_ANY);
+                          ML_NNFW_TYPE_ANY, ML_NNFW_HW_AUTO);
   if (status != ML_ERROR_NONE)
     return finalizeError(status);
 
