@@ -11,7 +11,12 @@ ifndef NNTRAINER_ROOT
 NNTRAINER_ROOT := $(LOCAL_PATH)/../../../..
 endif
 
-NNTRAINER_INCLUDES := $(NNTRAINER_ROOT)/nntrainer/include \
+NNTRAINER_INCLUDES := $(NNTRAINER_ROOT)/nntrainer \
+	$(NNTRAINER_ROOT)/nntrainer/dataset \
+	$(NNTRAINER_ROOT)/nntrainer/models \
+	$(NNTRAINER_ROOT)/nntrainer/layers \
+	$(NNTRAINER_ROOT)/nntrainer/optimizers \
+	$(NNTRAINER_ROOT)/nntrainer/tensor \
 	$(NNTRAINER_ROOT)/api \
 	$(NNTRAINER_ROOT)/api/ccapi/include \
 	$(NNTRAINER_ROOT)/api/capi/include/platform
