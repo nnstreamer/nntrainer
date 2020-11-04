@@ -10,6 +10,7 @@
  * @brief	This is Convolution Layer Class for Neural Network
  *
  */
+#include <algorithm>
 #include <cstring>
 #include <string>
 
@@ -48,7 +49,7 @@ int Conv2DLayer::initialize() {
 
   for (unsigned int i = 0; i < filter_size; ++i) {
     /*< @note: order of weight and bias are:
-               w0 w1 w2 ... w3
+               w0 w1 w2 ... w(filter_size) b0 b1 b2 ... b(filter_size)
     */
     weightAt(i) = std::move(
       Weight(dim, weight_initializer, true, kernelPrefix + std::to_string(i)));
@@ -195,10 +196,6 @@ sharedConstTensors Conv2DLayer::backwarding(sharedConstTensors derivatives,
     delBias.setZero();
   }
 
-  Tensor ret(in_dim.batch(), in_dim.channel(), in_dim.height() + padding[0] * 2,
-             in_dim.width() + padding[1] * 2);
-  ret.setZero();
-
   /** Calculate DelK
    *
    * This is the 2D Matrix Shape [ height ] x [ width ]
@@ -315,20 +312,32 @@ sharedConstTensors Conv2DLayer::backwarding(sharedConstTensors derivatives,
    *       x [(input_dim.height() + padding[0]*2)
    *           *(input_dim.width() + padding[1]*2) (width)]
    */
+  using uint = unsigned int;
+
+  Tensor ret(in_dim.batch(), in_dim.channel(), in_dim.height() + padding[0] * 2,
+             in_dim.width() + padding[1] * 2);
+  ret.setZero();
 
   TensorDim kdim(ret.channel(), filter_size, kernel_size[0], kernel_size[1]);
 
-  std::vector<float> imkernel(kdim.getDataLen());
+  uint kernel_total_size = kernel_size[0] * kernel_size[1];
 
-  unsigned int count = 0;
-  float *d = imkernel.data();
+  Tensor imKernel(1, 1, in_dim.channel(), filter_size * kernel_total_size);
+  float *d = imKernel.getData();
 
-  for (unsigned int j = 0; j < ret.channel(); ++j) {
-    for (unsigned int i = 0; i < filter_size; ++i) {
-      Tensor &filters = weightAt(i).getVariableRef();
-      for (unsigned int k = 0; k < kernel_size[0] * kernel_size[1]; ++k) {
-        d[count++] = filters.getData()[j * kernel_size[0] * kernel_size[1] + k];
-      }
+  for (uint channel_idx = 0; channel_idx < in_dim.channel(); ++channel_idx) {
+    /// each row contains all kernel element in particular channel.
+    uint row_size = kernel_total_size * filter_size;
+    for (uint filter_idx = 0; filter_idx < filter_size; ++filter_idx) {
+      Tensor &filter = weightAt(filter_idx).getVariableRef();
+
+      /// starting index of each kernel in imKernel
+      float *start =
+        d + channel_idx * row_size + filter_idx * kernel_total_size;
+      /// starting index of each channel in filter
+      float *filter_start = filter.getData() + channel_idx * kernel_total_size;
+
+      std::reverse_copy(filter_start, filter_start + kernel_total_size, start);
     }
   }
 
@@ -342,10 +351,9 @@ sharedConstTensors Conv2DLayer::backwarding(sharedConstTensors derivatives,
                 derivative->width()),
       derivative->getAddress(b * derivative->getDim().getFeatureLen()));
 
-    status =
-      conv2d_gemm(imkernel.data(), kdim, inSub, input_dim_padded, stride,
-                  same_pad, ret.getAddress(b * ret.getDim().getFeatureLen()),
-                  input_dim_padded.getFeatureLen(), true);
+    status = conv2d_gemm(d, kdim, inSub, input_dim_padded, stride, same_pad,
+                         ret.getAddress(b * ret.getDim().getFeatureLen()),
+                         input_dim_padded.getFeatureLen(), true);
     if (status != ML_ERROR_NONE)
       throw std::runtime_error("Backwarding Convolution failed.");
   }

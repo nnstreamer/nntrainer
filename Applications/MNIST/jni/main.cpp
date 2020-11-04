@@ -241,9 +241,9 @@ int getBatch_val(float **outVec, float **outLabel, bool *last,
 
 #if defined(APP_VALIDATE)
 TEST(MNIST_training, verify_accuracy) {
-  EXPECT_FLOAT_EQ(training_loss, 2.3255470);
-  EXPECT_FLOAT_EQ(validation_loss, 2.3074534);
-  EXPECT_FLOAT_EQ(last_batch_loss, 2.2916341);
+  EXPECT_FLOAT_EQ(training_loss, 2.3230426);
+  EXPECT_FLOAT_EQ(validation_loss, 2.3045228);
+  EXPECT_FLOAT_EQ(last_batch_loss, 2.2880380153656006);
 }
 #endif
 
