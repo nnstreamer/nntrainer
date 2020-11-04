@@ -9,6 +9,9 @@
 libs/
 obj/
 
+# tflite for applications
+tensorflow-1.13.1
+
 # CTag
 /tags
 /TAGS

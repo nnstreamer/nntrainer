@@ -31,10 +31,10 @@
 #include <stdlib.h>
 #include <time.h>
 
-#include "databuffer.h"
-#include "databuffer_func.h"
-#include "neuralnet.h"
-#include "tensor.h"
+#include <databuffer.h>
+#include <databuffer_func.h>
+#include <neuralnet.h>
+#include <tensor.h>
 
 std::string data_file;
 
