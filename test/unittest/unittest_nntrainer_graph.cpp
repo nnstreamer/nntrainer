@@ -99,9 +99,6 @@ static IniSection conv2d("conv2d", "Type = conv2d |"
                                    "padding = 0,0 |");
 
 static int SUCCESS = 0;
-static int LOADFAIL = initest::LOAD;
-static int INITFAIL = initest::INIT;
-static int ALLFAIL = LOADFAIL | INITFAIL;
 
 using I = IniSection;
 

@@ -29,7 +29,6 @@
 #include <nntrainer_internal.h>
 #include <nntrainer_log.h>
 #include <optimizer_factory.h>
-#include <parse_util.h>
 #include <sstream>
 #include <stdarg.h>
 #include <string.h>

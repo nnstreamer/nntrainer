@@ -53,42 +53,48 @@ include $(PREBUILT_STATIC_LIBRARY)
 include $(CLEAR_VARS)
 endif #ENABLE_TFLITE_BACKBONE
 
-NNTRAINER_SRCS := $(NNTRAINER_ROOT)/nntrainer/src/neuralnet.cpp \
-                  $(NNTRAINER_ROOT)/nntrainer/src/tensor.cpp \
-                  $(NNTRAINER_ROOT)/nntrainer/src/lazy_tensor.cpp \
-                  $(NNTRAINER_ROOT)/nntrainer/src/layer.cpp \
-                  $(NNTRAINER_ROOT)/nntrainer/src/layer_factory.cpp \
-                  $(NNTRAINER_ROOT)/nntrainer/src/input_layer.cpp \
-                  $(NNTRAINER_ROOT)/nntrainer/src/fc_layer.cpp \
-                  $(NNTRAINER_ROOT)/nntrainer/src/bn_layer.cpp \
-                  $(NNTRAINER_ROOT)/nntrainer/src/loss_layer.cpp \
-                  $(NNTRAINER_ROOT)/nntrainer/src/databuffer.cpp \
-                  $(NNTRAINER_ROOT)/nntrainer/src/databuffer_factory.cpp \
-                  $(NNTRAINER_ROOT)/nntrainer/src/databuffer_func.cpp \
-                  $(NNTRAINER_ROOT)/nntrainer/src/databuffer_file.cpp \
-                  $(NNTRAINER_ROOT)/nntrainer/src/util_func.cpp \
-                  $(NNTRAINER_ROOT)/nntrainer/src/optimizer.cpp \
-                  $(NNTRAINER_ROOT)/nntrainer/src/parse_util.cpp \
-                  $(NNTRAINER_ROOT)/nntrainer/src/tensor_dim.cpp \
-                  $(NNTRAINER_ROOT)/nntrainer/src/conv2d_layer.cpp \
-                  $(NNTRAINER_ROOT)/nntrainer/src/pooling2d_layer.cpp \
-                  $(NNTRAINER_ROOT)/nntrainer/src/activation_layer.cpp \
-                  $(NNTRAINER_ROOT)/nntrainer/src/flatten_layer.cpp \
-                  $(NNTRAINER_ROOT)/nntrainer/src/model_loader.cpp \
-                  $(NNTRAINER_ROOT)/nntrainer/src/addition_layer.cpp \
-                  $(NNTRAINER_ROOT)/nntrainer/src/concat_layer.cpp \
-                  $(NNTRAINER_ROOT)/nntrainer/src/blas_interface.cpp \
-                  $(NNTRAINER_ROOT)/nntrainer/src/weight.cpp \
-                  $(NNTRAINER_ROOT)/nntrainer/src/adam.cpp \
-                  $(NNTRAINER_ROOT)/nntrainer/src/sgd.cpp \
-                  $(NNTRAINER_ROOT)/nntrainer/src/optimizer_factory.cpp
+NNTRAINER_SRCS := $(NNTRAINER_ROOT)/nntrainer/models/neuralnet.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/models/model_loader.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/dataset/databuffer.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/dataset/databuffer_factory.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/dataset/databuffer_func.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/dataset/databuffer_file.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/tensor/tensor.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/tensor/lazy_tensor.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/tensor/weight.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/tensor/tensor_dim.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/tensor/blas_interface.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/layers/layer.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/layers/layer_factory.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/layers/input_layer.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/layers/fc_layer.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/layers/bn_layer.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/layers/loss_layer.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/layers/conv2d_layer.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/layers/pooling2d_layer.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/layers/activation_layer.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/layers/flatten_layer.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/layers/addition_layer.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/layers/concat_layer.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/optimizers/optimizer.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/optimizers/adam.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/optimizers/sgd.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/optimizers/optimizer_factory.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/utils/util_func.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/utils/parse_util.cpp
 
 # Add tflite backbone building
 ifeq ($(ENABLE_TFLITE_BACKBONE),1)
-NNTRAINER_SRCS += $(NNTRAINER_ROOT)/nntrainer/src/tflite_layer.cpp
+NNTRAINER_SRCS += $(NNTRAINER_ROOT)/nntrainer/layers/tflite_layer.cpp
 endif #ENABLE_TFLITE_BACKBONE
 
-NNTRAINER_INCLUDES := $(NNTRAINER_ROOT)/nntrainer/include \
+NNTRAINER_INCLUDES := $(NNTRAINER_ROOT)/nntrainer \
+                      $(NNTRAINER_ROOT)/nntrainer/dataset \
+                      $(NNTRAINER_ROOT)/nntrainer/layers \
+                      $(NNTRAINER_ROOT)/nntrainer/models \
+                      $(NNTRAINER_ROOT)/nntrainer/tensor \
+                      $(NNTRAINER_ROOT)/nntrainer/optimizers \
+                      $(NNTRAINER_ROOT)/nntrainer/utils \
                       $(NNTRAINER_ROOT)/api \
                       $(NNTRAINER_ROOT)/api/ccapi/include \
                       $(NNTRAINER_ROOT)/api/capi/include/platform
@@ -124,7 +130,12 @@ include $(CLEAR_VARS)
 CAPI_NNTRAINER_SRCS := $(NNTRAINER_ROOT)/api/capi/src/nntrainer.cpp \
                   $(NNTRAINER_ROOT)/api/capi/src/nntrainer_util.cpp
 
-CAPI_NNTRAINER_INCLUDES := $(NNTRAINER_ROOT)/nntrainer/include \
+CAPI_NNTRAINER_INCLUDES := $(NNTRAINER_ROOT)/nntrainer \
+                      $(NNTRAINER_ROOT)/nntrainer/dataset \
+                      $(NNTRAINER_ROOT)/nntrainer/layers \
+                      $(NNTRAINER_ROOT)/nntrainer/models \
+                      $(NNTRAINER_ROOT)/nntrainer/tensor \
+                      $(NNTRAINER_ROOT)/nntrainer/optimizers \
                       $(NNTRAINER_ROOT)/api \
                       $(NNTRAINER_ROOT)/api/ccapi/include \
                       $(NNTRAINER_ROOT)/api/capi/include \
@@ -150,7 +161,12 @@ include $(CLEAR_VARS)
 
 CCAPI_NNTRAINER_SRCS := $(NNTRAINER_ROOT)/api/ccapi/src/factory.cpp
 
-CCAPI_NNTRAINER_INCLUDES := $(NNTRAINER_ROOT)/nntrainer/include \
+CCAPI_NNTRAINER_INCLUDES := $(NNTRAINER_ROOT)/nntrainer \
+                      $(NNTRAINER_ROOT)/nntrainer/dataset \
+                      $(NNTRAINER_ROOT)/nntrainer/layers \
+                      $(NNTRAINER_ROOT)/nntrainer/models \
+                      $(NNTRAINER_ROOT)/nntrainer/tensor \
+                      $(NNTRAINER_ROOT)/nntrainer/optimizers \
                       $(NNTRAINER_ROOT)/api \
                       $(NNTRAINER_ROOT)/api/ccapi/include \
                       $(NNTRAINER_ROOT)/api/capi/include/platform

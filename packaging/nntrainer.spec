@@ -373,42 +373,15 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %files devel
 %{_includedir}/nntrainer/databuffer.h
 %{_includedir}/nntrainer/databuffer_factory.h
-%{_includedir}/nntrainer/databuffer_file.h
-%{_includedir}/nntrainer/databuffer_func.h
-%{_includedir}/nntrainer/databuffer_util.h
 %{_includedir}/nntrainer/layer_internal.h
 %{_includedir}/nntrainer/layer_factory.h
-%{_includedir}/nntrainer/input_layer.h
-%{_includedir}/nntrainer/fc_layer.h
-%{_includedir}/nntrainer/bn_layer.h
-%{_includedir}/nntrainer/conv2d_layer.h
-%{_includedir}/nntrainer/pooling2d_layer.h
-%{_includedir}/nntrainer/flatten_layer.h
-%{_includedir}/nntrainer/loss_layer.h
-%{_includedir}/nntrainer/activation_layer.h
 %{_includedir}/nntrainer/neuralnet.h
-%{_includedir}/nntrainer/model_loader.h
 %{_includedir}/nntrainer/tensor.h
-%{_includedir}/nntrainer/lazy_tensor.h
 %{_includedir}/nntrainer/tensor_dim.h
-%{_includedir}/nntrainer/nntrainer_log.h
-%{_includedir}/nntrainer/nntrainer_logger.h
 %{_includedir}/nntrainer/optimizer_internal.h
-%{_includedir}/nntrainer/util_func.h
-%{_includedir}/nntrainer/parse_util.h
-%{_includedir}/nntrainer/addition_layer.h
-%{_includedir}/nntrainer/concat_layer.h
-%{_includedir}/nntrainer/delegate.h
-%{_includedir}/nntrainer/nntrainer-api-common.h
-%{_includedir}/nntrainer/blas_interface.h
-%{_includedir}/nntrainer/weight.h
-%{_includedir}/nntrainer/adam.h
-%{_includedir}/nntrainer/sgd.h
 %{_includedir}/nntrainer/optimizer_factory.h
-%if 0%{?support_nnstreamer_backbone}
-%{_includedir}/nntrainer/nnstreamer_layer.h
-%endif
-%{_includedir}/nntrainer/tflite_layer.h
+%{_includedir}/nntrainer/nntrainer-api-common.h
+%{_includedir}/nntrainer/weight.h
 %{_libdir}/pkgconfig/nntrainer.pc
 
 %files devel-static
