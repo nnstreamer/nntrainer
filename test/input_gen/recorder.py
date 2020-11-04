@@ -126,23 +126,30 @@ def train_step(model, optimizer, loss_fn, initial_input, label, writer_fn, **kwa
     with tf.GradientTape(persistent=True) as tape:
         tape.watch(initial_input)
 
-        outputs = []
+        outputs = {}
         inp = initial_input
 
         for layer in model.layers:
+            if isinstance(layer, K.layers.Permute):
+                continue
+
             try:
                 outp = layer(inp, training=True)
             except TypeError:
                 outp = layer(inp)
-            outputs.append(outp)
+            outputs[layer.name] = outp
             inp = outp
 
-        loss = loss_fn(label, outputs[-1])
-        outputs.append(loss)
+        loss = loss_fn(label, outp)
 
     layer_input = initial_input
 
-    for layer_output, layer in zip(outputs, model.layers):
+    for layer in model.layers:
+        # print(layer_output)
+        if isinstance(layer, K.layers.Permute):
+            continue
+        layer_output = outputs[layer.name]
+
         # print("generating for %s" % layer.name)
         gradients = tape.gradient(loss, layer.trainable_weights)
         optimizer.apply_gradients(zip(gradients, layer.trainable_weights))
@@ -157,6 +164,11 @@ def train_step(model, optimizer, loss_fn, initial_input, label, writer_fn, **kwa
         weights = layer.weights.copy()
         dx = tape.gradient(loss, layer_input)
 
+        try:
+            gradients = layer.to_nntr_trainable_weights(gradients)
+        except AttributeError:
+            pass
+
         writer_fn(
             layer_output,  # output of forward
             dx,  # output of backward
@@ -165,7 +177,7 @@ def train_step(model, optimizer, loss_fn, initial_input, label, writer_fn, **kwa
         )
 
         _debug_print(
-            output=layer_output, dx=dx, weights=weights, gradients=gradients, **kwargs
+            output=layer_output, dx=dx, weights=weights, gradients=gradients, dx_shape=dx.shape, **kwargs
         )
 
         layer_input = layer_output
@@ -198,7 +210,7 @@ def generate_recordable_model(
 ):
     if model is not None:
         if isinstance(model, list):
-            model = K.Sequential(model)
+            model = K.Sequential([attach_trans_layer(layer) for layer in model])
         inputs = model.input
         outputs = [model.input] + [layer.output for layer in model.layers]
 
@@ -216,6 +228,7 @@ def generate_recordable_model(
             summary=x, print_format=value_only_formatter, **kwargs
         )
     )
+
 
     return model
 

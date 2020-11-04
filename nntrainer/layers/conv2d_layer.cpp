@@ -316,14 +316,13 @@ sharedConstTensors Conv2DLayer::backwarding(sharedConstTensors derivatives,
 
   Tensor ret(in_dim.batch(), in_dim.channel(), in_dim.height() + padding[0] * 2,
              in_dim.width() + padding[1] * 2);
-  ret.setZero();
 
   TensorDim kdim(ret.channel(), filter_size, kernel_size[0], kernel_size[1]);
 
   uint kernel_total_size = kernel_size[0] * kernel_size[1];
 
   Tensor imKernel(1, 1, in_dim.channel(), filter_size * kernel_total_size);
-  float *d = imKernel.getData();
+  float *imKernel_raw = imKernel.getData();
 
   for (uint channel_idx = 0; channel_idx < in_dim.channel(); ++channel_idx) {
     /// each row contains all kernel element in particular channel.
@@ -333,7 +332,7 @@ sharedConstTensors Conv2DLayer::backwarding(sharedConstTensors derivatives,
 
       /// starting index of each kernel in imKernel
       float *start =
-        d + channel_idx * row_size + filter_idx * kernel_total_size;
+        imKernel_raw + channel_idx * row_size + filter_idx * kernel_total_size;
       /// starting index of each channel in filter
       float *filter_start = filter.getData() + channel_idx * kernel_total_size;
 
@@ -351,9 +350,10 @@ sharedConstTensors Conv2DLayer::backwarding(sharedConstTensors derivatives,
                 derivative->width()),
       derivative->getAddress(b * derivative->getDim().getFeatureLen()));
 
-    status = conv2d_gemm(d, kdim, inSub, input_dim_padded, stride, same_pad,
-                         ret.getAddress(b * ret.getDim().getFeatureLen()),
-                         input_dim_padded.getFeatureLen(), true);
+    status =
+      conv2d_gemm(imKernel_raw, kdim, inSub, input_dim_padded, stride, same_pad,
+                  ret.getAddress(b * ret.getDim().getFeatureLen()),
+                  input_dim_padded.getFeatureLen(), true);
     if (status != ML_ERROR_NONE)
       throw std::runtime_error("Backwarding Convolution failed.");
   }
