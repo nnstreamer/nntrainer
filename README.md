@@ -28,6 +28,7 @@ Even though it trains part of the neural network models, NNtrainer requires quit
 * [Gichan Jang](https://github.com/gichan-jang)
 * [Yongjoo Ahn](https://github.com/anyj0527)
 * [Jihoon Lee](https://github.com/zhoonit)
+* [Hyeonseok Lee](https://github.com/lhs8928)
 
 ## Components
 
