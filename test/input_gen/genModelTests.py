@@ -33,11 +33,10 @@ with warnings.catch_warnings():
     import tensorflow as tf
     from tensorflow.python import keras as K
 
-
 opt = tf.keras.optimizers
 
 if __name__ == "__main__":
-## please generate all test cases since golden data format can change anytime
+    ## please generate all test cases since golden data format can change anytime
     fc_sigmoid = [
         K.Input(shape=(3, 3)),
         K.layers.Dense(5),
@@ -100,9 +99,46 @@ if __name__ == "__main__":
     fc_bn_sigmoid_tc(
         file_name="fc_bn_sigmoid_cross.info",
         loss_fn_str="cross_softmax",
-        # debug=["summary", "iteration", "loss"],
+        # debug=["summary", "iteration", "weights"],
     )
 
     fc_bn_sigmoid_tc(
         file_name="fc_bn_sigmoid_mse.info", loss_fn_str="mse",
+    )
+
+    _mnist_block = lambda filter_size: [
+        K.layers.Conv2D(filters=filter_size, kernel_size=(3, 4)),
+        K.layers.Activation("sigmoid"),
+        K.layers.AveragePooling2D(pool_size=(2, 2)),
+    ]
+
+    mnist_conv = [
+        K.Input(shape=(2, 4, 5)),
+        *_mnist_block(2),
+        K.layers.Flatten(),
+        K.layers.Dense(10),
+        K.layers.Activation("softmax"),
+    ]
+
+    mnist_conv_tc = partial(
+        record,
+        model=mnist_conv,
+        optimizer=opt.SGD(learning_rate=0.1),
+        iteration=10,
+    )
+
+    mnist_conv_tc(
+        input_shape=(3, 2, 4, 5),
+        label_shape=(3, 10),
+        file_name="mnist_conv_cross.info",
+        loss_fn_str="cross_softmax",
+        # debug=["summary", "loss", "layer_name", "initial_weights"],
+    )
+
+    mnist_conv_tc(
+        input_shape=(1, 2, 4, 5),
+        label_shape=(1, 10),
+        file_name="mnist_conv_cross_one_input.info",
+        loss_fn_str="cross_softmax",
+        # debug=["summary", "loss", "layer_name", "initial_weights"],
     )

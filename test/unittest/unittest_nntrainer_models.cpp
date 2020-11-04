@@ -39,14 +39,23 @@ using FlatGraphType = nntrainer::NeuralNetwork::FlatGraphType;
  */
 void verify(const nntrainer::Tensor &actual, const nntrainer::Tensor &expected,
             const std::string &error_msg) {
+
   if (actual != expected) {
     std::cout
       << "============================================================\n";
+    std::cout << "\033[1;33m" << error_msg << "\033[0m\n";
     std::cout << "\033[1;33mcurrent\033[0m  " << actual
               << "\033[1;33mexpected\033[0m  " << expected;
 
-    std::cout << "\033[1;33mdifference\033[0m " << actual.subtract(expected);
-
+    if (actual.getDim() == expected.getDim()) {
+      nntrainer::Tensor diff = actual.subtract(expected);
+      const float *diff_data = diff.getData();
+      std::cout << "\033[1;33mdifference\033[0m " << diff;
+      std::cout << "number of data: " << diff.length() << std::endl;
+      std::cout << "\033[4;33mMAX DIFF: "
+                << *std::max_element(diff_data, diff_data + diff.length())
+                << "\033[0m\n";
+    }
     std::stringstream ss;
     ss << "\033[4;33m" << error_msg << "\033[0m";
     throw std::invalid_argument(ss.str().c_str());
@@ -254,8 +263,8 @@ NodeWatcher::backward(nntrainer::sharedConstTensors deriv, int iteration,
 
   nntrainer::sharedConstTensors out = node->backwarding(deriv, iteration);
   if (should_verify) {
-    verify(*out[0], expected_dx, err_msg);
     verifyGrad(err_msg);
+    verify(*out[0], expected_dx, err_msg);
     verifyWeight(err_msg);
   }
 
@@ -416,14 +425,16 @@ auto mkModelTc(const IniTestWrapper &ini, const std::string &label_dim,
 static IniSection nn_base("model", "type = NeuralNetwork");
 static std::string input_base = "type = input";
 static std::string fc_base = "type = Fully_connected";
+static std::string conv_base = "type = conv2d | stride = 1,1 | padding = 0,0";
+static std::string pooling_base = "type = pooling2d | padding = 0,0";
 
 static std::string adam_base = "optimizer=adam | beta1 = 0.9 | beta2 = 0.999 | "
                                "epsilon = 1e-7";
 
 static IniSection act_base("activation", "Type = Activation");
-static IniSection softmax = act_base + "Activation = softmax";
-static IniSection sigmoid = act_base + "Activation = sigmoid";
-static IniSection relu = act_base + "Activation = relu";
+static IniSection softmax_base = act_base + "Activation = softmax";
+static IniSection sigmoid_base = act_base + "Activation = sigmoid";
+static IniSection relu_base = act_base + "Activation = relu";
 static IniSection bn_base("bn", "Type=batch_normalization");
 
 using I = IniSection;
@@ -461,41 +472,78 @@ using INI = IniTestWrapper;
  * Type = Activation
  * Activation = softmax
  */
+// clang-format off
 INI fc_sigmoid_mse(
   "fc_sigmoid_mse",
-  {nn_base + "learning_rate=1 | optimizer=sgd | loss=mse | batch_size = 3",
-   I("input") + input_base + "input_shape = 1:1:3",
-   I("dense") + fc_base + "unit = 5", I("act") + sigmoid,
-   I("dense_1") + fc_base + "unit = 10", I("act_1") + softmax});
+  {
+    nn_base + "learning_rate=1 | optimizer=sgd | loss=mse | batch_size = 3",
+    I("input") + input_base + "input_shape = 1:1:3",
+    I("dense") + fc_base + "unit = 5",
+    I("act") + sigmoid_base,
+    I("dense_1") + fc_base + "unit = 10",
+    I("act_1") + softmax_base
+  }
+);
 
 INI fc_sigmoid_cross =
   INI("fc_sigmoid_cross") + fc_sigmoid_mse + "model/loss=cross";
 
 INI fc_relu_mse(
   "fc_relu_mse",
-  {nn_base + "Learning_rate=0.1 | Optimizer=sgd | Loss=mse | batch_size = 3",
-   I("input") + input_base + "input_shape = 1:1:3",
-   I("dense") + fc_base + "unit = 10", I("act") + relu,
-   I("dense_1") + fc_base + "unit = 2", I("act_1") + sigmoid});
+  {
+    nn_base + "Learning_rate=0.1 | Optimizer=sgd | Loss=mse | batch_size = 3",
+    I("input") + input_base + "input_shape = 1:1:3",
+    I("dense") + fc_base + "unit = 10",
+    I("act") + relu_base,
+    I("dense_1") + fc_base + "unit = 2",
+    I("act_1") + sigmoid_base
+  }
+);
 
 INI fc_bn_sigmoid_cross(
   "fc_bn_sigmoid_cross",
-  {nn_base + "learning_rate=1 | optimizer=sgd | loss=cross | batch_size = 3",
-   I("input") + input_base + "input_shape = 1:1:3",
-   I("dense") + fc_base + "unit = 10", I("bn") + bn_base, I("act") + sigmoid,
-   I("dense_2") + fc_base + "unit = 10", I("act_3") + softmax});
+  {
+    nn_base + "learning_rate=1 | optimizer=sgd | loss=cross | batch_size = 3",
+    I("input") + input_base + "input_shape = 1:1:3",
+    I("dense") + fc_base + "unit = 10",
+    I("bn") + bn_base,
+    I("act") + sigmoid_base,
+    I("dense_2") + fc_base + "unit = 10",
+    I("act_3") + softmax_base
+  }
+);
 
 INI fc_bn_sigmoid_mse =
   INI("fc_bn_sigmoid_mse") + fc_bn_sigmoid_cross + "model/loss=mse";
 
-// clang-format off
+std::string mnist_pooling =
+  pooling_base + "| pool_size=2,2 | stride=2,2 | pooling=average | padding=0,0";
+
+INI mnist_conv_cross(
+  "mnist_conv_cross",
+  {
+    nn_base + "learning_rate=0.1 | optimizer=sgd | loss=cross | batch_size=3",
+    I("input") + input_base + "input_shape=2:4:5",
+    I("conv2d_c1_layer") + conv_base + "kernel_size=3,4 | filters=2",
+    I("act_1") + sigmoid_base,
+    I("pool_1") + mnist_pooling,
+    I("flatten", "type=flatten"),
+    I("outputlayer") + fc_base + "unit = 10",
+    I("act_3") + softmax_base
+  }
+);
+
+INI mnist_conv_cross_one_input = INI("mnist_conv_cross_one_input") + mnist_conv_cross + "model/batch_size=1";
+
 INSTANTIATE_TEST_CASE_P(
   nntrainerModelAutoTests, nntrainerModelTest, ::testing::Values(
-mkModelTc(fc_sigmoid_mse, "3:1:1:10", 10),
-mkModelTc(fc_sigmoid_cross, "3:1:1:10", 10),
-mkModelTc(fc_relu_mse, "3:1:1:2", 10),
-mkModelTc(fc_bn_sigmoid_cross, "3:1:1:10", 10),
-mkModelTc(fc_bn_sigmoid_mse, "3:1:1:10", 10)
+    mkModelTc(fc_sigmoid_mse, "3:1:1:10", 10),
+    mkModelTc(fc_sigmoid_cross, "3:1:1:10", 10),
+    mkModelTc(fc_relu_mse, "3:1:1:2", 10),
+    mkModelTc(fc_bn_sigmoid_cross, "3:1:1:10", 10),
+    mkModelTc(fc_bn_sigmoid_mse, "3:1:1:10", 10),
+    mkModelTc(mnist_conv_cross, "3:1:1:10", 10),
+    mkModelTc(mnist_conv_cross_one_input, "1:1:1:10", 10)
 // / #if gtest_version <= 1.7.0
 ));
 /// #else gtest_version > 1.8.0
