@@ -39,6 +39,7 @@ enum class LayerType {
   LAYER_ACTIVATION,                     /** Activation Layer type */
   LAYER_ADDITION,                       /** Addition Layer type */
   LAYER_CONCAT,                         /** Concat Layer type */
+  LAYER_OUT,                            /** Multi Output Layer type */
   LAYER_LOSS,                           /** Loss Layer type */
   LAYER_BACKBONE_NNSTREAMER,            /** Backbone using NNStreamer */
   LAYER_BACKBONE_TFLITE,                /** Backbone using TFLite */
@@ -93,6 +94,7 @@ public:
    *            24. beta_initializer" : string (type)
    *            25. modelfile : model file for loading config for backbone layer
    *            26. input_layers" : string (type)
+   *            27. output_layers" : string (type)
    */
   enum class PropertyType {
     input_shape = 0,
@@ -122,6 +124,7 @@ public:
     beta_initializer = 24,
     modelfile = 25, /** model file for loading config for backbone layer */
     input_layers = 26,
+    output_layers = 27,
     unknown
   };
 

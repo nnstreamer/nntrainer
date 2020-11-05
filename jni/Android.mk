@@ -67,6 +67,7 @@ NNTRAINER_SRCS := $(NNTRAINER_ROOT)/nntrainer/models/neuralnet.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/layer.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/layer_factory.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/input_layer.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/layers/output_layer.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/fc_layer.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/bn_layer.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/loss_layer.cpp \

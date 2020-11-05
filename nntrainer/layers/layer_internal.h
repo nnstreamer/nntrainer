@@ -428,6 +428,16 @@ private:
   static int def_name_count;
 
   /**
+   * @brief     input layer names
+   */
+  std::vector<std::string> input_layers;
+
+  /**
+   * @brief     output layer names
+   */
+  std::vector<std::string> output_layers;
+
+  /**
    * @brief     Ensure that layer has a name
    */
   void ensureName();
