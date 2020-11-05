@@ -208,6 +208,17 @@ void Layer::setProperty(const PropertyType type, const std::string &value) {
         num_inputs = concat_layers.size();
     }
     break;
+  case PropertyType::output_layers:
+    if (!value.empty()) {
+      std::regex reg("\\,+");
+      std::vector<std::string> concat_layers = split(value, reg);
+
+      num_outputs = concat_layers.size();
+
+      for (unsigned int i = 0; i < num_outputs; ++i)
+        output_layers.push_back(concat_layers[i]);
+    }
+    break;
   default:
     std::string msg =
       "[Layer] Unknown Layer Property Key for value " + std::string(value);
