@@ -31,14 +31,6 @@
 namespace nntrainer {
 
 /**
- * @brief     Enumeration of Optimizer
- *            0. SGD
- *            1. ADAM
- *            2. Unknown
- */
-using OptType = ml::train::OptimizerType;
-
-/**
  * @class   Optimizer Base class for optimizers
  * @brief   Base class for all optimizers
  */
@@ -51,9 +43,8 @@ public:
   /**
    * @brief     Default Constructor of Optimizer Class
    */
-  Optimizer(const OptType t, float lr, float decay_rate = 1.0f,
-            unsigned int decay_steps = 0, float continue_train = false) :
-    type(t),
+  Optimizer(float lr, float decay_rate = 1.0f, unsigned int decay_steps = 0,
+            float continue_train = false) :
     learning_rate(lr),
     decay_rate(decay_rate),
     decay_steps(decay_steps),
@@ -84,12 +75,6 @@ public:
    * @parma[in] rhs Optimizer to be moved.
    */
   Optimizer &operator=(Optimizer &&rhs) = default;
-
-  /**
-   * @brief     get Optimizer Type
-   * @retval    Optimizer type
-   */
-  OptType getType() { return type; };
 
   /**
    * @brief     get Learning Rate
@@ -152,22 +137,11 @@ public:
                            const std::string &value = "");
 
   /**
-   * @brief     get the base name for the optimizer
-   * @retval    base name of the optimizer
-   */
-  virtual std::string getBaseName() = 0;
-
-  /**
    * @brief     validate the optimizer
    */
   virtual void checkValidation();
 
 protected:
-  /**
-   * @brief Optimizer Type
-   */
-  OptType type;
-
   /**
    * @brief     get Learning Rate for the given iteration
    * @param[in] iteration Iteration for the learning rate

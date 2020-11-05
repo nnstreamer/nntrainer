@@ -29,7 +29,7 @@ namespace train {
 /**
  * @brief     Enumeration of optimizer type
  */
-enum class OptimizerType {
+enum OptimizerType {
   ADAM = ML_TRAIN_OPTIMIZER_TYPE_ADAM,      /** adam */
   SGD = ML_TRAIN_OPTIMIZER_TYPE_SGD,        /** sgd */
   UNKNOWN = ML_TRAIN_OPTIMIZER_TYPE_UNKNOWN /** unknown */
@@ -50,7 +50,7 @@ public:
    * @brief     get Optimizer Type
    * @retval    Optimizer type
    */
-  virtual OptimizerType getType() = 0;
+  virtual const std::string getType() const = 0;
 
   /**
    * @brief     get Learning Rate
@@ -121,7 +121,7 @@ public:
  * @brief Factory creator with constructor for optimizer
  */
 std::unique_ptr<Optimizer>
-createOptimizer(OptimizerType type,
+createOptimizer(const std::string &type,
                 const std::vector<std::string> &properties = {});
 
 } // namespace train

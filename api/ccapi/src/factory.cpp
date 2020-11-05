@@ -44,7 +44,7 @@ std::unique_ptr<Layer> createLayer(LayerType type,
  * @brief Factory creator with constructor for optimizer
  */
 std::unique_ptr<Optimizer>
-createOptimizer(OptimizerType type,
+createOptimizer(const std::string &type,
                 const std::vector<std::string> &properties) {
   std::unique_ptr<Optimizer> optimizer = nntrainer::createOptimizer(type);
 

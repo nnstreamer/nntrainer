@@ -52,7 +52,6 @@ namespace nntrainer {
  *            9. UNKNOWN
  */
 typedef enum {
-  TOKEN_OPT,
   TOKEN_LOSS,
   TOKEN_MODEL,
   TOKEN_ACTI,

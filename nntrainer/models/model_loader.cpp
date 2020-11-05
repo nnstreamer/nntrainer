@@ -58,8 +58,7 @@ int ModelLoader::loadModelConfigIni(dictionary *ini, NeuralNetwork &model) {
     iniparser_getint(ini, "Model:Batch_Size", model.batch_size);
 
   /** Default to adam optimizer */
-  OptType opt_type = (OptType)parseType(
-    iniparser_getstring(ini, "Model:Optimizer", "adam"), TOKEN_OPT);
+  const char *opt_type = iniparser_getstring(ini, "Model:Optimizer", "adam");
 
   try {
     model.opt = nntrainer::createOptimizer(opt_type);
@@ -87,7 +86,7 @@ int ModelLoader::loadModelConfigIni(dictionary *ini, NeuralNetwork &model) {
                        ini, "Model:Decay_rate",
                        std::to_string(model.opt->getDecayRate()).c_str()))});
 
-  if (model.opt->getType() == OptType::ADAM) {
+  if (model.opt->getType() == "adam") {
     std::shared_ptr<Adam> opt_adam = std::static_pointer_cast<Adam>(model.opt);
 
     optimizer_prop.push_back(
