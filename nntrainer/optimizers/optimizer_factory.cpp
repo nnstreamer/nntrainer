@@ -9,6 +9,8 @@
  * @bug		No known bugs except for NYI items
  * @brief	This is the optimizer factory.
  */
+#include <algorithm>
+#include <sstream>
 
 #include <adam.h>
 #include <optimizer_factory.h>
@@ -16,36 +18,47 @@
 
 namespace nntrainer {
 
+static bool istrequal(const std::string &a, const std::string &b) {
+  return std::equal(a.begin(), a.end(), b.begin(),
+                    [](char a, char b) { return tolower(a) == tolower(b); });
+}
 /**
  * @brief Factory creator with copy constructor
  */
-std::unique_ptr<Optimizer> createOptimizer(OptType type, const Optimizer &opt) {
-  switch (type) {
-  case OptType::SGD:
+std::unique_ptr<Optimizer> createOptimizer(const std::string &type,
+                                           const Optimizer &opt) {
+  /// #673: use context to create optimizer
+  if (istrequal(type, "sgd")) {
     return std::make_unique<SGD>(static_cast<const SGD &>(opt));
-  case OptType::ADAM:
-    return std::make_unique<Adam>(static_cast<const Adam &>(opt));
-  case OptType::UNKNOWN:
-    /** fallthrough intended */
-  default:
-    throw std::invalid_argument("Unknown type for the optimizer");
   }
+
+  if (istrequal(type, "adam")) {
+    return std::make_unique<Adam>(static_cast<const Adam &>(opt));
+  }
+
+  std::stringstream ss;
+  ss << "Unknown type for the optimizer, type: " << type;
+
+  throw std::invalid_argument(ss.str().c_str());
 }
 
 /**
  * @brief Factory creator with constructor
  */
-std::unique_ptr<Optimizer> createOptimizer(OptType type) {
-  switch (type) {
-  case OptType::SGD:
+std::unique_ptr<Optimizer> createOptimizer(const std::string &type) {
+  /// #673: use context to create optimizer
+  if (istrequal(type, "sgd")) {
     return std::make_unique<SGD>();
-  case OptType::ADAM:
-    return std::make_unique<Adam>();
-  case OptType::UNKNOWN:
-    /** fallthrough intended */
-  default:
-    throw std::invalid_argument("Unknown type for the optimizer");
   }
+
+  if (istrequal(type, "adam")) {
+    return std::make_unique<Adam>();
+  }
+
+  std::stringstream ss;
+  ss << "Unknown type for the optimizer, type: " << type;
+
+  throw std::invalid_argument(ss.str().c_str());
 }
 
 } // namespace nntrainer

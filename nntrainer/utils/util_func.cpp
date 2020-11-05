@@ -153,4 +153,23 @@ void checkedWrite(std::ofstream &file, const char *array, std::streamsize size,
   checkFile(file, error_msg);
 }
 
+std::string readString(std::ifstream &file, const char *error_msg) {
+  std::string str;
+  size_t size;
+
+  checkedRead(file, (char *)&size, sizeof(size), error_msg);
+  str.resize(size);
+  checkedRead(file, (char *)&str[0], size, error_msg);
+
+  return str;
+}
+
+void writeString(std::ofstream &file, const std::string &str,
+                 const char *error_msg) {
+  size_t size = str.size();
+
+  checkedWrite(file, (char *)&size, sizeof(size), error_msg);
+  checkedWrite(file, (char *)&str[0], size, error_msg);
+}
+
 } // namespace nntrainer

@@ -22,6 +22,8 @@
 
 namespace nntrainer {
 
+const std::string Adam::type = "adam";
+
 int Adam::initialize(std::shared_ptr<Weight> weight_list,
                      unsigned int num_weights, bool set_tensor) {
   int status = ML_ERROR_NONE;
@@ -123,25 +125,19 @@ void Adam::setProperty(const PropertyType type, const std::string &value) {
 
 void Adam::read(std::ifstream &file) {
   /// @todo need strong exception safety guarantee
-  OptType loaded_type;
-  checkedRead(file, (char *)&loaded_type, sizeof(OptType),
-              "[Adam::read] operation failed");
+  Optimizer::read(file);
 
-  if (loaded_type == type) {
-    if (continue_train) {
-      for (auto iter = weight_mv.begin(); iter != weight_mv.end(); iter++) {
-        (*iter).first.read(file);
-        (*iter).second.read(file);
-      }
-    } else {
-      size_t total_size = 0;
-      for (auto iter = weight_mv.begin(); iter != weight_mv.end(); iter++)
-        total_size += (*iter).first.getSize() + (*iter).second.getSize();
-
-      file.seekg(total_size, std::ifstream::cur);
+  if (continue_train) {
+    for (auto iter = weight_mv.begin(); iter != weight_mv.end(); iter++) {
+      (*iter).first.read(file);
+      (*iter).second.read(file);
     }
   } else {
-    ml_logw("Not loading saved optimizer parameters due to mismatched type");
+    size_t total_size = 0;
+    for (auto iter = weight_mv.begin(); iter != weight_mv.end(); iter++)
+      total_size += (*iter).first.getSize() + (*iter).second.getSize();
+
+    file.seekg(total_size, std::ifstream::cur);
   }
 }
 

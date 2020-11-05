@@ -438,7 +438,7 @@ int main(int argc, char *argv[]) {
       NN.forwarding({MAKE_SHARED_TENSOR(X)})[0]->apply(stepFunction);
     } catch (...) {
       std::cerr << "Error while forwarding the model" << std::endl;
-      return 0;
+      return 1;
     }
   }
 

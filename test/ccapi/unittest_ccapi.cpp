@@ -67,7 +67,7 @@ TEST(ccapi_layer, construct_02_p) {
  * @brief Neural Network Optimizer Contruct Test
  */
 TEST(ccapi_optimizer, construct_01_n) {
-  EXPECT_THROW(ml::train::createOptimizer(ml::train::OptimizerType::UNKNOWN),
+  EXPECT_THROW(ml::train::createOptimizer("Not existing type"),
                std::invalid_argument);
 }
 
@@ -75,8 +75,8 @@ TEST(ccapi_optimizer, construct_01_n) {
  * @brief Neural Network Optimizer Contruct Test
  */
 TEST(ccapi_optimizer, construct_02_p) {
-  EXPECT_NO_THROW(ml::train::createOptimizer(ml::train::OptimizerType::ADAM));
-  EXPECT_NO_THROW(ml::train::createOptimizer(ml::train::OptimizerType::SGD));
+  EXPECT_NO_THROW(ml::train::createOptimizer("adam"));
+  EXPECT_NO_THROW(ml::train::createOptimizer("sgd"));
 }
 
 /**
@@ -149,9 +149,8 @@ TEST(nntrainer_ccapi, train_dataset_with_file_01_p) {
 
   EXPECT_NO_THROW(
     optimizer = ml::train::createOptimizer(
-      ml::train::OptimizerType::ADAM,
-      {"learning_rate=0.0001", "decay_rate=0.96", "decay_steps=1000",
-       "beta1=0.002", "beta2=0.001", "epsilon=1e-7"}));
+      "adam", {"learning_rate=0.0001", "decay_rate=0.96", "decay_steps=1000",
+               "beta1=0.002", "beta2=0.001", "epsilon=1e-7"}));
   EXPECT_NO_THROW(model->setOptimizer(optimizer));
 
   EXPECT_NO_THROW(
@@ -200,9 +199,8 @@ TEST(nntrainer_ccapi, train_dataset_with_generator_01_p) {
 
   EXPECT_NO_THROW(
     optimizer = ml::train::createOptimizer(
-      ml::train::OptimizerType::ADAM,
-      {"learning_rate=0.0001", "decay_rate=0.96", "decay_steps=1000",
-       "beta1=0.002", "beta2=0.001", "epsilon=1e-7"}));
+      "adam", {"learning_rate=0.0001", "decay_rate=0.96", "decay_steps=1000",
+               "beta1=0.002", "beta2=0.001", "epsilon=1e-7"}));
   EXPECT_NO_THROW(model->setOptimizer(optimizer));
 
   EXPECT_NO_THROW(

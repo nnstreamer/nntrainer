@@ -28,8 +28,7 @@ public:
    * @brief     Constructor of Optimizer Class
    */
   template <typename... Args>
-  SGD(float lr = 0.0001f, Args... args) :
-    Optimizer(OptType::SGD, lr, args...) {}
+  SGD(float lr = 0.0001f, Args... args) : Optimizer(lr, args...) {}
 
   /**
    * @copydoc apply_gradient(Weight &weight, int tensor_idx, double updated_lr,
@@ -39,10 +38,12 @@ public:
                       int iteration);
 
   /**
-   * @brief     get the base name for the optimizer
-   * @retval    base name of the optimizer
+   * @copydoc Optimizer::getType()
    */
-  std::string getBaseName() { return "SGD"; };
+  const std::string getType() const { return SGD::type; }
+
+private:
+  static const std::string type;
 };
 } /* namespace nntrainer */
 

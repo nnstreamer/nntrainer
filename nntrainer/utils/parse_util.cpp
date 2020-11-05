@@ -65,12 +65,6 @@ int getKeyValue(std::string input_str, std::string &key, std::string &value) {
 unsigned int parseType(std::string ll, InputType t) {
   unsigned int ret;
   unsigned int i;
-  /**
-   * @brief     Optimizer String from configure file
-   *            "adam" : Adaptive Moment Estimation
-   *            "sgd"  : Stochestic Gradient Descent
-   */
-  std::array<std::string, 2> optimizer_string = {"adam", "sgd"};
 
   /**
    * @brief     Loss Function String from configure file
@@ -156,15 +150,6 @@ unsigned int parseType(std::string ll, InputType t) {
                                                "global_average"};
 
   switch (t) {
-  case TOKEN_OPT:
-    for (i = 0; i < optimizer_string.size(); i++) {
-      if (!strncasecmp(optimizer_string[i].c_str(), ll.c_str(),
-                       optimizer_string[i].size())) {
-        return (i);
-      }
-    }
-    ret = (unsigned int)OptType::UNKNOWN;
-    break;
   case TOKEN_LOSS:
     for (i = 0; i < loss_string.size(); i++) {
       if (!strncasecmp(loss_string[i].c_str(), ll.c_str(),

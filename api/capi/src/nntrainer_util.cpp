@@ -10,21 +10,28 @@
  * @bug No known bugs except for NYI items
  */
 
+#include <nntrainer_error.h>
 #include <nntrainer_internal.h>
 
 /**
  * @brief Convert nntrainer API optimizer type to neural network optimizer type
  */
-nntrainer::OptType
+const std::string
 ml_optimizer_to_nntrainer_type(ml_train_optimizer_type_e type) {
   switch (type) {
   case ML_TRAIN_OPTIMIZER_TYPE_ADAM:
-    return nntrainer::OptType::ADAM;
+    return "adam";
   case ML_TRAIN_OPTIMIZER_TYPE_SGD:
-    return nntrainer::OptType::SGD;
+    return "sgd";
+  case ML_TRAIN_OPTIMIZER_TYPE_UNKNOWN:
+  /// fall through intended
   default:
-    return nntrainer::OptType::UNKNOWN;
+    throw nntrainer::exception::not_supported(
+      "[ml_optimmizer_to_nntrainer_type] Not supported type given");
   }
+
+  throw nntrainer::exception::not_supported(
+    "[ml_optimmizer_to_nntrainer_type] Not supported type given");
 }
 
 /**

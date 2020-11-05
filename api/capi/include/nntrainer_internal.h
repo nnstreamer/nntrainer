@@ -332,9 +332,9 @@ void ml_tizen_set_feature_state(feature_state_t state);
 /**
  * @brief Convert nntrainer API optimizer type to neural network optimizer type
  * @param[in] type Optimizer type API enum
- * @return nntrainer::OptType optimizer type
+ * @return const std::string optimizer type
  */
-nntrainer::OptType
+const std::string
 ml_optimizer_to_nntrainer_type(ml_train_optimizer_type_e type);
 
 /**

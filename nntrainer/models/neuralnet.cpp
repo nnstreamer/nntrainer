@@ -361,8 +361,10 @@ void NeuralNetwork::saveModel() {
  *            read training parameters from the optimizer if continuing train
  */
 void NeuralNetwork::readModel() {
-  if (!isFileExist(save_path))
+  if (!isFileExist(save_path)) {
+    ml_logd("skipping reading model, path is not valid: %s", save_path.c_str());
     return;
+  }
 
   NeuralNetwork tmp(*this);
 
@@ -621,9 +623,6 @@ int NeuralNetwork::extendGraph(GraphType graph, std::string prefix) {
 
 int NeuralNetwork::setOptimizer(
   std::shared_ptr<ml::train::Optimizer> optimizer) {
-
-  if (optimizer->getType() == OptType::UNKNOWN)
-    return ML_ERROR_INVALID_PARAMETER;
 
   if (initialized) {
     return ML_ERROR_NOT_SUPPORTED;

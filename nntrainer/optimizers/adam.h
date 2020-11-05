@@ -30,7 +30,7 @@ public:
   template <typename... Args>
   Adam(float lr = 0.001f, double b1 = 0.9f, double b2 = 0.999f,
        double ep = 1.0e-7f, Args... args) :
-    Optimizer(OptType::ADAM, lr, args...),
+    Optimizer(lr, args...),
     beta1(b1),
     beta2(b2),
     epsilon(ep) {}
@@ -43,10 +43,9 @@ public:
                       int iteration);
 
   /**
-   * @brief     get the base name for the optimizer
-   * @retval    base name of the optimizer
+   * @copydoc Optimizer::getType()
    */
-  std::string getBaseName() { return "Adam"; };
+  const std::string getType() const { return Adam::type; }
 
   /**
    * @copydoc   getLearningRate(int iteration)
@@ -92,6 +91,8 @@ public:
   double getEpsilon() { return epsilon; }
 
 private:
+  static const std::string type;
+
   /**
    * @brief Internal Tensors for adam Optimizer
    */

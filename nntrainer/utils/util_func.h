@@ -116,6 +116,23 @@ void checkedRead(std::ifstream &file, char *array, std::streamsize size,
  */
 void checkedWrite(std::ofstream &file, const char *array, std::streamsize size,
                   const char *error_msg = default_error_msg);
+/**
+ * @brief read string from a binary file
+ *
+ * @param file file to input
+ * @return std::string result string
+ */
+std::string readString(std::ifstream &file,
+                       const char *error_msg = default_error_msg);
+
+/**
+ * @brief write string to a binary file
+ *
+ * @param file file to write
+ * @param str target string to write
+ */
+void writeString(std::ofstream &file, const std::string &str,
+                 const char *error_msg = default_error_msg);
 
 } /* namespace nntrainer */
 

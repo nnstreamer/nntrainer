@@ -124,7 +124,7 @@ protected:
   }
 
   // setting optimizer property separated by "|"
-  int setOptimizer(nntrainer::OptType type, const std::string &str = "") {
+  int setOptimizer(const std::string &type, const std::string &str = "") {
     std::vector<std::string> input_str;
     std::regex words_regex("[^|]+");
     auto words_begin =
@@ -281,10 +281,10 @@ TEST_F(nntrainer_InputLayer, set_property_05_p) {
  * @brief Input Layer
  */
 TEST_F(nntrainer_InputLayer, setOptimizer_01_p) {
-  status = setOptimizer(nntrainer::OptType::ADAM, "learning_rate=0.001 |"
-                                                  "beta1=0.9 |"
-                                                  "beta2=0.9999 |"
-                                                  "epsilon=1e-7");
+  status = setOptimizer("adam", "learning_rate=0.001 |"
+                                "beta1=0.9 |"
+                                "beta2=0.9999 |"
+                                "epsilon=1e-7");
 
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
@@ -396,10 +396,10 @@ TEST(nntrainer_FullyConnectedLayer_init_name, initialize_05_n) {
  * @brief Fully Connected Layer
  */
 TEST_F(nntrainer_FullyConnectedLayer, setOptimizer_01_p) {
-  status = setOptimizer(nntrainer::OptType::ADAM, "learning_rate=0.001 |"
-                                                  "beta1=0.9 |"
-                                                  "beta2=0.9999 |"
-                                                  "epsilon=1e-7");
+  status = setOptimizer("adam", "learning_rate=0.001 |"
+                                "beta1=0.9 |"
+                                "beta2=0.9999 |"
+                                "epsilon=1e-7");
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
@@ -407,7 +407,7 @@ TEST_F(nntrainer_FullyConnectedLayer, setOptimizer_01_p) {
  * @brief FullyConnected Layer
  */
 TEST_F(nntrainer_FullyConnectedLayer, setOptimizer_02_p) {
-  status = setOptimizer(nntrainer::OptType::SGD, "learning_rate=0.1");
+  status = setOptimizer("sgd", "learning_rate=0.1");
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
@@ -597,7 +597,7 @@ TEST_F(nntrainer_FullyConnectedLayer_TFmatch,
   std::vector<float> weight_data;
   std::vector<float> bias_data;
 
-  setOptimizer(nntrainer::OptType::ADAM, "learning_rate=1.0");
+  setOptimizer("adam", "learning_rate=1.0");
 
   sharedConstTensor out;
 
@@ -631,10 +631,7 @@ TEST_F(nntrainer_FullyConnectedLayer_TFmatch,
  */
 TEST_F(nntrainer_FullyConnectedLayer_TFmatch,
        forwarding_backwarding_loss_00_p) {
-  std::vector<float> weight_data;
-  std::vector<float> bias_data;
-
-  setOptimizer(nntrainer::OptType::ADAM, "learning_rate=0.0001");
+  setOptimizer("adam", "learning_rate=0.0001");
   addLoss(nntrainer::LossType::LOSS_ENTROPY_SOFTMAX);
 
   matchForwarding("tc_fc_1_goldenFCResultSoftmaxCrossAdam.out");
@@ -649,7 +646,7 @@ TEST_F(nntrainer_FullyConnectedLayer_TFmatch,
  */
 TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_backwarding_01_p) {
 
-  setOptimizer(nntrainer::OptType::SGD, "learning_rate=1.0");
+  setOptimizer("sgd", "learning_rate=1.0");
 
   /** Verify forwarding and backwarding without loss */
   matchForwarding("tc_fc_1_goldenFCResultActNone.out");
@@ -667,7 +664,7 @@ TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_backwarding_02_p) {
 
   addActivation(nntrainer::ActivationType::ACT_SIGMOID);
   addLoss(nntrainer::LossType::LOSS_MSE);
-  setOptimizer(nntrainer::OptType::SGD, "learning_rate=1.0");
+  setOptimizer("sgd", "learning_rate=1.0");
 
   /** Verify forwarding value */
   matchForwarding("tc_fc_1_goldenFCResultSigmoidMse.out");
@@ -688,7 +685,7 @@ TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_backwarding_03_p) {
 
   addActivation(nntrainer::ActivationType::ACT_SOFTMAX);
   addLoss(nntrainer::LossType::LOSS_MSE);
-  setOptimizer(nntrainer::OptType::SGD, "learning_rate=1.0");
+  setOptimizer("sgd", "learning_rate=1.0");
 
   /** Verify forwarding value */
   matchForwarding("tc_fc_1_goldenFCResultSoftmaxMse.out");
@@ -708,7 +705,7 @@ TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_backwarding_03_p) {
 TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_backwarding_04_p) {
 
   addLoss(nntrainer::LossType::LOSS_MSE);
-  setOptimizer(nntrainer::OptType::SGD, "learning_rate=1.0");
+  setOptimizer("sgd", "learning_rate=1.0");
 
   /** Verify forwarding value */
   matchForwarding("tc_fc_1_goldenFCResultActNone.out");
@@ -741,7 +738,7 @@ TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_backwarding_05_p) {
 
   addActivation(nntrainer::ActivationType::ACT_SIGMOID);
   addLoss(nntrainer::LossType::LOSS_MSE);
-  setOptimizer(nntrainer::OptType::SGD, "learning_rate=1.0");
+  setOptimizer("sgd", "learning_rate=1.0");
 
   /** Verify forwarding value */
   matchForwarding("tc_fc_1_goldenFCResultSigmoidMse.out");
@@ -762,7 +759,7 @@ TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_backwarding_06_p) {
 
   addActivation(nntrainer::ActivationType::ACT_SOFTMAX);
   addLoss(nntrainer::LossType::LOSS_MSE);
-  setOptimizer(nntrainer::OptType::SGD, "learning_rate=1.0");
+  setOptimizer("sgd", "learning_rate=1.0");
 
   /** Verify forwarding value */
   matchForwarding("tc_fc_1_goldenFCResultSoftmaxMse.out");
@@ -783,7 +780,7 @@ TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_backwarding_06_p) {
 TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_backwarding_07_p) {
 
   addLoss(nntrainer::LossType::LOSS_ENTROPY_SIGMOID);
-  setOptimizer(nntrainer::OptType::SGD, "learning_rate=1.0");
+  setOptimizer("sgd", "learning_rate=1.0");
 
   /** Verify forwarding value */
   matchForwarding("tc_fc_1_goldenFCResultSigmoidCross.out");
@@ -804,7 +801,7 @@ TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_backwarding_07_p) {
 TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_backwarding_08_p) {
 
   addLoss(nntrainer::LossType::LOSS_ENTROPY_SOFTMAX);
-  setOptimizer(nntrainer::OptType::SGD, "learning_rate=1.0");
+  setOptimizer("sgd", "learning_rate=1.0");
 
   /** Verify forwarding value */
   matchForwarding("tc_fc_1_goldenFCResultSoftmaxCross.out");
@@ -840,7 +837,7 @@ protected:
   virtual void prepareLayer() {
     setProperty("input_shape=1:1:12 | epsilon=0.001 | momentum=0.90");
     setBatch(3);
-    setOptimizer(nntrainer::OptType::SGD, "learning_rate=1");
+    setOptimizer("sgd", "learning_rate=1");
   }
 };
 
@@ -857,8 +854,7 @@ TEST_F(nntrainer_BatchNormalizationLayer, initialize_01_p) {
  */
 TEST_F(nntrainer_BatchNormalizationLayer, setOptimizer_01_p) {
   status = setOptimizer(
-    nntrainer::OptType::ADAM,
-    "learning_rate=0.001 | beta1=0.9 | beta2=0.9999 | epsilon=1e-7");
+    "adam", "learning_rate=0.001 | beta1=0.9 | beta2=0.9999 | epsilon=1e-7");
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
@@ -925,7 +921,7 @@ protected:
   virtual void prepareLayer() {
     setProperty("input_shape=2:4:5 | epsilon=0.001 | momentum=0.90");
     setBatch(3);
-    setOptimizer(nntrainer::OptType::SGD, "learning_rate=1");
+    setOptimizer("sgd", "learning_rate=1");
   }
 };
 
@@ -966,7 +962,7 @@ protected:
   virtual void prepareLayer() {
     setProperty("input_shape=2:4:5 | epsilon=0.001 | momentum=0.90");
     setBatch(1);
-    setOptimizer(nntrainer::OptType::SGD, "learning_rate=1");
+    setOptimizer("sgd", "learning_rate=1");
   }
 };
 
@@ -1115,7 +1111,7 @@ TEST_F(nntrainer_Conv2DLayer, backwarding_01_p) {
 
   loadFile("tc_conv2d_1_conv2DLayer.in", in);
   loadFile("tc_conv2d_1_conv2DKernel.in", layer);
-  setOptimizer(nntrainer::OptType::SGD, "learning_rate=1.0");
+  setOptimizer("sgd", "learning_rate=1.0");
 
   EXPECT_NO_THROW(out = *layer.forwarding({MAKE_SHARED_TENSOR(in)})[0]);
 
@@ -1171,7 +1167,7 @@ TEST_F(nntrainer_Conv2DLayer, backwarding_02_p) {
   loadFile("tc_conv2d_2_conv2DLayer.in", in);
   loadFile("tc_conv2d_2_conv2DKernel.in", layer);
 
-  setOptimizer(nntrainer::OptType::SGD, "learning_rate=1.0");
+  setOptimizer("sgd", "learning_rate=1.0");
 
   EXPECT_NO_THROW(out = *layer.forwarding({MAKE_SHARED_TENSOR(in)})[0]);
 
@@ -1261,7 +1257,7 @@ TEST_F(nntrainer_Conv2DLayer, backwarding_03_p) {
   loadFile("tc_conv2d_int_conv2DKernel.in", layer1);
 
   std::shared_ptr<nntrainer::Optimizer> op;
-  EXPECT_NO_THROW(op = nntrainer::createOptimizer(nntrainer::OptType::SGD));
+  EXPECT_NO_THROW(op = nntrainer::createOptimizer("sgd"));
   status = op->setProperty({"learning_rate=1.0"});
   EXPECT_EQ(status, ML_ERROR_NONE);
   status = layer1.setOptimizer(op);
@@ -1281,13 +1277,13 @@ TEST_F(nntrainer_Conv2DLayer, backwarding_03_p) {
 
   loadFile("tc_conv2d_int_conv2DKernel2.in", layer2);
   std::shared_ptr<nntrainer::Optimizer> op2;
-  EXPECT_NO_THROW(op2 = nntrainer::createOptimizer(nntrainer::OptType::SGD));
+  EXPECT_NO_THROW(op2 = nntrainer::createOptimizer("sgd"));
   status = op2->setProperty({"learning_rate=1.0"});
   EXPECT_EQ(status, ML_ERROR_NONE);
   status = layer2.setOptimizer(op2);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  setOptimizer(nntrainer::OptType::SGD, "learning_rate=1.0");
+  setOptimizer("sgd", "learning_rate=1.0");
 
   unsigned int filter_size;
   std::vector<float> grad_data;
@@ -1391,7 +1387,7 @@ TEST_F(nntrainer_Conv2DLayer, backwarding_04_p) {
   loadFile("tc_conv2d_3_conv2DLayer.in", in);
   loadFile("tc_conv2d_3_conv2DKernel.in", layer);
 
-  setOptimizer(nntrainer::OptType::SGD, "learning_rate=1.0");
+  setOptimizer("sgd", "learning_rate=1.0");
   EXPECT_NO_THROW(out = *layer.forwarding({MAKE_SHARED_TENSOR(in)})[0]);
 
   for (unsigned int i = 0; i < derivatives.getDim().getDataLen(); ++i) {

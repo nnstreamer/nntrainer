@@ -21,12 +21,13 @@ namespace nntrainer {
 /**
  * @brief Factory creator with copy constructor
  */
-std::unique_ptr<Optimizer> createOptimizer(OptType type, const Optimizer &opt);
+std::unique_ptr<Optimizer> createOptimizer(const std::string &type,
+                                           const Optimizer &opt);
 
 /**
  * @brief Factory creator with constructor
  */
-std::unique_ptr<Optimizer> createOptimizer(OptType type);
+std::unique_ptr<Optimizer> createOptimizer(const std::string &type);
 
 } // namespace nntrainer
 
