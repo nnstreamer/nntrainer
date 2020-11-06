@@ -255,6 +255,57 @@ bias_initializer = zeros
 Activation = softmax
 ```
 
+### Backbone section
+
+This allows to describe another model, termed as backbone, to be used in the model described by the current ini file.
+The backbone to be used can be described with another ini configuration file path, or with model file for external frameworks.
+Support for backbones of external framework for Tensorflow-Lite is provided natively with Tensorflow-Lite framework.
+Support for backbones of other external frameworks is done using nnstreamer and its plugin.
+When using nnstreamer for external framework, ensure to add the corresponding baseline ML framework and its corresponding nnstreamer plugin as a dependency or install manually.
+For example, when using PyTorch based model as a backbone, both the packages *PyTorch* and *nnstreamer-pytorch* must be installed.
+
+Backbones made of nntrainer models, described using ini, support training the backbone also.
+However, this is not supported with external frameworks.
+It is possible to describe a backbone inside a backbone ini configuration file, as well as listing down multiple backbones to build a single model.
+For backbone ini configuration file, Model and Dataset sections are ignored.
+
+Describing a backbone is very similar to describing a layer.
+Start with a "[ ${layer name} ]" which must be unique throughtout the model. In case of backbone, the name of the backbone is prepended to the name of all the layers inside the backbone.
+
+1. ```backbone = <string>```
+
+   Path of the backbone file. Supported model files:
+    * .ini - NNTrainer models
+    * .tflite - Tensorflow-Lite models
+    * .pb / .pt / .py / .circle etc via NNStreamer (corresponding nnstreamer plugin required)
+
+2. ```trainable = <bool>```
+
+   If this backbone must be trained. Only supported for ini backbones (nntrainer models).
+``
+Below is sample backbone section.
+
+```ini
+# Model Section
+[Model]
+...
+
+# block1
+[block1]
+backbone = resnet_block.ini
+trainable = false
+
+# block2
+[block2]
+backbone = resnet_block.ini
+trainable = true
+
+[outputlayer]
+type = fully_connected
+unit = 10
+activation = softmax
+```
+
 ### Configuration file example
 
 This has one input layer, two convolution layers, two pooling layers, one flatten layer and one fully connected layer to classify MNIST example.
@@ -262,7 +313,7 @@ This has one input layer, two convolution layers, two pooling layers, one flatte
 It takes 1 x 28 x 28 gray data (0~255) as an input. Adam optimizer is used to apply gradient and learning rate is 1.0e-4.
 
 ```ini
-# Modell Section
+# Model Section
 [Model]
 type = NeuralNetwork
 learning_rate = 1e-4
