@@ -5,13 +5,10 @@ In this example, we demonstrate training full neural network model with mnist da
 ### Neural Network Model Configuration
 Network model consists of two convolution layer, two pooling layer, one flatten layer and one fully connected layer.
 
-<p align = "center">
-<img src="https://github.com/nnstreamer/nntrainer/blob/master/docs/images/mnist_model.png">
-</p>
-
+![MNIST Model](https://github.com/nnstreamer/nntrainer/blob/main/docs/images/mnist_model.png?raw=true)
 
 ### MNIST Data Set and DataBuffer
-In order to make training short, we use subset of full mnist dataset, 100 images per class and save it into file named ```mnist_trainingSet.dat```. The input image size is 784 (28x28) and the label is an one-hot vector for classifying 10 digits. The ith image feature and label data must be at ```i x ((784 x sizeof(float) + label(10 x sizeof(float))``` byte position. 
+In order to make training short, we use subset of full mnist dataset, 100 images per class and save it into file named ```mnist_trainingSet.dat```. The input image size is 784 (28x28) and the label is an one-hot vector for classifying 10 digits. The ith image feature and label data must be at ```i x ((784 x sizeof(float) + label(10 x sizeof(float))``` byte position.
 
 ``` bash
 ...
@@ -138,11 +135,7 @@ $ python3 Training_Keras.py
 ### Comparison with Tensorflow
 This is the comparison with tensorflow-1.14.0 for the two cases. One is with zero initialization of weight and bias and the other is random weight initialization data using the default intializers for each layer from tensorflow. As can be seen with the result below, the results are same within the margin of error.
 
-<p align = "center">
-<img src="https://github.com/nnstreamer/nntrainer/blob/master/docs/images/image2020-9-1_8-23-40.png" width=500>
-</p>
+![image](https://github.com/nnstreamer/nntrainer/blob/main/docs/images/image2020-9-1_8-23-40.png?raw=true)
 
-<p align = "center">
-<img src="https://github.com/nnstreamer/nntrainer/blob/master/docs/images/image2020-9-1_11-14-53.png" width=500>
-</p>
 
+![image](https://github.com/nnstreamer/nntrainer/blob/main/docs/images/image2020-9-1_8-23-40.png?raw=true)

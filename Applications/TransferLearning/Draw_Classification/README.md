@@ -24,8 +24,7 @@ A Softmax activation is added to the fully connected layer. Mean Squared Error l
 ### NNTrainer Model Configuration
 
 The configuration of the example is below,
-<p align = "center">
-<img src="https://github.com/nnstreamer/nntrainer/blob/master/docs/images/02a7ee80-f0ce-11e9-97b8-bcc19b7eb222.png" width="400" height="250" > </p>
+![image](https://github.com/nnstreamer/nntrainer/blob/main/docs/images/02a7ee80-f0ce-11e9-97b8-bcc19b7eb222.png?raw=true)
 
 ### Resource Data
 
@@ -41,9 +40,7 @@ happy  sad  soso  ssd_Mobilenet_v2_coco_feature.tflite  testset  Training.ini
 ```happy, sad, soso``` contains the images to train (5 for each class) and ```ssd_mobile_v2_coco_feature.tflite``` is for feature extractor. ```testset``` images are used to evaluate accuracy (2 images per class).
 
 Training and test dataset are as shown below:
-<p align = "center">
-<img src="https://github.com/nnstreamer/nntrainer/blob/master/docs/images/7944ec00-f0ce-11e9-87af-aea730bcd0f5.png" >
-</p>
+![image](https://github.com/nnstreamer/nntrainer/blob/main/docs/images/7944ec00-f0ce-11e9-87af-aea730bcd0f5.png?raw=true)
 
 ### Configuration File
 
@@ -95,7 +92,4 @@ $ ./Applications/TransferLearning/Draw_Classification/jni/nntrainer_training ../
 The training reduces the training loss starting from `1.08` to `0.0048`.
 The test results for the 8 test cases are below. Top-1 prediction is used to check the results.
 
-<p align ="center">
-<img src="https://github.com/nnstreamer/nntrainer/blob/master/docs/images/16555400-f0d2-11e9-959b-f61935fefd5a.png" width ="500" height="180">
-</p>
-
+![image](https://github.com/nnstreamer/nntrainer/blob/main/docs/images/16555400-f0d2-11e9-959b-f61935fefd5a.png?raw=true)
