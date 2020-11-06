@@ -283,9 +283,9 @@ export NNSTREAMER_FILTERS=$(pwd)/build/nnstreamer/tensor_filter
 pushd build
 
 rm -rf model.bin
-TF_APP=Applications/TransferLearning/Draw_Classification
-cp ../${TF_APP}/res/ssd_mobilenet_v2_coco_feature.tflite .
-./${TF_APP}/jni/nntrainer_training ../${TF_APP}/res/Training.ini ../${TF_APP}/res
+TF_APP=$(pwd)/Applications/TransferLearning/Draw_Classification
+TF_APP_RES=$(pwd)/../Applications/TransferLearning/Draw_Classification/res
+${TF_APP}/jni/nntrainer_training ${TF_APP_RES}/Training.ini ${TF_APP_RES}
 
 %if 0%{?support_ccapi}
 rm -rf model.bin

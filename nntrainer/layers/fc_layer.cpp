@@ -90,18 +90,6 @@ sharedConstTensors FullyConnectedLayer::forwarding(sharedConstTensors in) {
   return {MAKE_SHARED_TENSOR(hidden)};
 }
 
-void FullyConnectedLayer::read(std::ifstream &file) {
-  Layer::read(file);
-  if (opt)
-    opt->read(file);
-}
-
-void FullyConnectedLayer::save(std::ofstream &file) {
-  Layer::save(file);
-  if (opt)
-    opt->save(file);
-}
-
 void FullyConnectedLayer::copy(std::shared_ptr<Layer> l) {
   Layer::copy(l);
 

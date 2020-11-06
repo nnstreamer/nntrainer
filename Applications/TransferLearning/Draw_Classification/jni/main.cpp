@@ -420,6 +420,12 @@ int main(int argc, char *argv[]) {
   /** location of resources ( ../../res/ ) */
   std::string data_path = args[1];
 
+  /// @todo #716 and discard this
+  if (chdir(data_path.c_str()) < 0) {
+    std::cout << "changing directory to data path failed\n";
+    return 1;
+  }
+
   srand(time(NULL));
 
   /** Load input images */

@@ -675,11 +675,13 @@ void Tensor::reshape(const TensorDim &d) {
 }
 
 void Tensor::save(std::ofstream &file) {
-  file.write((char *)getData(), getSize());
+  checkedWrite(file, (char *)getData(), getSize(),
+               "[Tensor::save] operation failed");
 }
 
 void Tensor::read(std::ifstream &file) {
-  file.read((char *)getData(), getSize());
+  checkedRead(file, (char *)getData(), getSize(),
+              "[Tensor::read] operation failed");
 }
 
 /**

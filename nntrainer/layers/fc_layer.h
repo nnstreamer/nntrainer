@@ -52,18 +52,6 @@ public:
   FullyConnectedLayer &operator=(FullyConnectedLayer &&rhs) = default;
 
   /**
-   * @brief     Read Weight & Bias Data from file
-   * @param[in] file input stream file
-   */
-  void read(std::ifstream &file);
-
-  /**
-   * @brief     Save Weight & Bias Data to file
-   * @param[in] file output stream file
-   */
-  void save(std::ofstream &file);
-
-  /**
    * @copydoc Layer::forwarding(sharedConstTensors in)
    */
   sharedConstTensors forwarding(sharedConstTensors in);
