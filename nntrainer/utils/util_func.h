@@ -90,6 +90,33 @@ Tensor rotate_180(Tensor in);
  */
 bool isFileExist(std::string file);
 
+constexpr const char *default_error_msg =
+  "[util::checkeFile] file operation failed";
+
+/**
+ * @brief same as file.read except it checks if fail to read the file
+ *
+ * @param file file to read
+ * @param array char * array
+ * @param size size of the array
+ * @param error_msg error msg to print when operation fail
+ * @throw std::runtime_error if file.fail() is true after read.
+ */
+void checkedRead(std::ifstream &file, char *array, std::streamsize size,
+                 const char *error_msg = default_error_msg);
+
+/**
+ * @brief same as file.write except it checks if fail to write the file
+ *
+ * @param file file to write
+ * @param array char * array
+ * @param size size of the array
+ * @param error_msg error msg to print when operation fail
+ * @throw std::runtime_error if file.fail() is true after write.
+ */
+void checkedWrite(std::ofstream &file, const char *array, std::streamsize size,
+                  const char *error_msg = default_error_msg);
+
 } /* namespace nntrainer */
 
 #endif /* __cplusplus */

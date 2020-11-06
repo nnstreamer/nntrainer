@@ -342,7 +342,12 @@ NeuralNetwork &NeuralNetwork::copy(NeuralNetwork &from) {
  *            save training parameters from the optimizer
  */
 void NeuralNetwork::saveModel() {
+  if (save_path == std::string()) {
+    return;
+  }
+
   std::ofstream model_file(save_path, std::ios::out | std::ios::binary);
+
   for (unsigned int i = 0; i < layers.size(); i++)
     layers[i]->save(model_file);
   model_file.write((char *)&epoch_idx, sizeof(epoch_idx));
@@ -358,15 +363,21 @@ void NeuralNetwork::saveModel() {
 void NeuralNetwork::readModel() {
   if (!isFileExist(save_path))
     return;
+
+  NeuralNetwork tmp(*this);
+
   std::ifstream model_file(save_path, std::ios::in | std::ios::binary);
   for (unsigned int i = 0; i < layers.size(); i++)
-    layers[i]->read(model_file);
-  if (continue_train) {
-    model_file.read((char *)&epoch_idx, sizeof(epoch_idx));
-    model_file.read((char *)&iter, sizeof(iter));
-  }
+    tmp.layers[i]->read(model_file);
+  checkedRead(model_file, (char *)&tmp.epoch_idx, sizeof(epoch_idx),
+              "[NeuralNetwork::readModel] failed to read epoch_idx");
+  checkedRead(model_file, (char *)&tmp.iter, sizeof(iter),
+              "[NeuralNetwork::readModel] failed to read iteration");
+
   model_file.close();
   ml_logi("read modelfile: %s", save_path.c_str());
+
+  swap(tmp, *this);
 }
 
 void NeuralNetwork::setBatchSize(unsigned int batch) {
@@ -432,6 +443,11 @@ int NeuralNetwork::train(std::vector<std::string> values) {
  */
 int NeuralNetwork::train_run() {
   int status = ML_ERROR_NONE;
+
+  if (!continue_train) {
+    epoch_idx = 0;
+    iter = 0;
+  }
 
   for (epoch_idx = epoch_idx + 1; epoch_idx <= epochs; ++epoch_idx) {
     training.loss = 0.0f;

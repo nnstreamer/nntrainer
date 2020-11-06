@@ -169,6 +169,8 @@ protected:
     if (!file.good()) {
       throw std::runtime_error("could not read, check filename");
     }
+    /// @note if you want to load weight only, you either have to load weight
+    /// one by one or do that before setting optimizer to the layer
     for (auto &t : ts)
       t.read(file);
     file.close();
@@ -446,8 +448,14 @@ protected:
     label =
       MAKE_SHARED_TENSOR(nntrainer::Tensor(layer.getOutputDimension()[0]));
 
+    std::vector<nntrainer::Tensor> v;
+
+    for (unsigned int i = 0; i < layer.getNumWeights(); ++i) {
+      v.push_back(layer.weightAt(i).getVariable());
+    }
+
     loadFile("tc_fc_1_FCLayer.in", in);
-    loadFile("tc_fc_1_FCKernel.in", layer);
+    loadFile("tc_fc_1_FCKernel.in", v);
     loadFile("tc_fc_1_FCLabel.in", *label);
     layers.clear();
 
@@ -482,8 +490,9 @@ protected:
     layers.push_back(loss_layer);
 
     if (type == nntrainer::LossType::LOSS_ENTROPY_SOFTMAX) {
+      nntrainer::Tensor weight = layer.weightAt(0).getVariable();
       loadFile("tc_fc_1_FCLayer_sensible.in", in);
-      loadFile("tc_fc_1_FCKernel_sensible.in", layer);
+      loadFile("tc_fc_1_FCKernel_sensible.in", weight);
       loadFile("tc_fc_1_FCLabel_sensible.in", *label);
     }
   }
@@ -816,8 +825,15 @@ protected:
 
   virtual int reinitialize() {
     int status = super::reinitialize();
+
+    std::vector<nntrainer::Tensor> v;
+
+    for (unsigned int i = 0; i < layer.getNumWeights(); ++i) {
+      v.push_back(layer.weightAt(i).getVariable());
+    }
+
     loadFile("tc_bn_fc_1_BNLayerInput.in", in);
-    loadFile("tc_bn_fc_1_BNLayerWeights.in", layer);
+    loadFile("tc_bn_fc_1_BNLayerWeights.in", v);
     return status;
   }
 
@@ -897,8 +913,12 @@ protected:
 
   virtual int reinitialize() {
     int status = super::reinitialize();
+    std::vector<nntrainer::Tensor> v;
+    for (unsigned int i = 0; i < layer.getNumWeights(); ++i) {
+      v.push_back(layer.weightAt(i).getVariable());
+    }
     loadFile("tc_bn_conv_1_BNLayerInput.in", in);
-    loadFile("tc_bn_conv_1_BNLayerWeights.in", layer);
+    loadFile("tc_bn_conv_1_BNLayerWeights.in", v);
     return status;
   }
 
@@ -932,8 +952,14 @@ protected:
 
   virtual int reinitialize() {
     int status = super::reinitialize();
+
+    std::vector<nntrainer::Tensor> v;
+    for (unsigned int i = 0; i < layer.getNumWeights(); ++i) {
+      v.push_back(layer.weightAt(i).getVariable());
+    }
+
     loadFile("tc_bn_conv_2_BNLayerInput.in", in);
-    loadFile("tc_bn_conv_2_BNLayerWeights.in", layer);
+    loadFile("tc_bn_conv_2_BNLayerWeights.in", v);
     return status;
   }
 
@@ -1079,7 +1105,6 @@ TEST_F(nntrainer_Conv2DLayer, backwarding_01_p) {
                         "stride=1, 1 |"
                         "padding=0,0");
 
-  setOptimizer(nntrainer::OptType::SGD, "learning_rate=1.0");
   unsigned int filter_size = 2;
   std::vector<float> grad_data;
   std::vector<float> weight_data;
@@ -1090,6 +1115,7 @@ TEST_F(nntrainer_Conv2DLayer, backwarding_01_p) {
 
   loadFile("tc_conv2d_1_conv2DLayer.in", in);
   loadFile("tc_conv2d_1_conv2DKernel.in", layer);
+  setOptimizer(nntrainer::OptType::SGD, "learning_rate=1.0");
 
   EXPECT_NO_THROW(out = *layer.forwarding({MAKE_SHARED_TENSOR(in)})[0]);
 
@@ -1133,8 +1159,6 @@ TEST_F(nntrainer_Conv2DLayer, backwarding_02_p) {
                         "padding=0,0",
                         2);
 
-  setOptimizer(nntrainer::OptType::SGD, "learning_rate=1.0");
-
   unsigned int filter_size = 3;
   std::vector<float> grad_data;
   std::vector<float> weight_data;
@@ -1146,6 +1170,8 @@ TEST_F(nntrainer_Conv2DLayer, backwarding_02_p) {
 
   loadFile("tc_conv2d_2_conv2DLayer.in", in);
   loadFile("tc_conv2d_2_conv2DKernel.in", layer);
+
+  setOptimizer(nntrainer::OptType::SGD, "learning_rate=1.0");
 
   EXPECT_NO_THROW(out = *layer.forwarding({MAKE_SHARED_TENSOR(in)})[0]);
 
@@ -1220,6 +1246,8 @@ TEST_F(nntrainer_Conv2DLayer, backwarding_03_p) {
                         "stride=1, 1 |"
                         "padding=0, 0");
 
+  loadFile("tc_conv2d_int_conv2DLayer.in", in);
+
   nntrainer::Conv2DLayer layer1;
   status =
     layer1.setProperty({"input_shape=3:28:28", "bias_initializer=zeros",
@@ -1228,6 +1256,15 @@ TEST_F(nntrainer_Conv2DLayer, backwarding_03_p) {
   EXPECT_EQ(status, ML_ERROR_NONE);
   layer1.setBatch(1);
   status = layer1.initialize();
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  loadFile("tc_conv2d_int_conv2DKernel.in", layer1);
+
+  std::shared_ptr<nntrainer::Optimizer> op;
+  EXPECT_NO_THROW(op = nntrainer::createOptimizer(nntrainer::OptType::SGD));
+  status = op->setProperty({"learning_rate=1.0"});
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = layer1.setOptimizer(op);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   nntrainer::Conv2DLayer layer2;
@@ -1242,13 +1279,7 @@ TEST_F(nntrainer_Conv2DLayer, backwarding_03_p) {
   status = layer2.initialize();
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  std::shared_ptr<nntrainer::Optimizer> op;
-  EXPECT_NO_THROW(op = nntrainer::createOptimizer(nntrainer::OptType::SGD));
-  status = op->setProperty({"learning_rate=1.0"});
-  EXPECT_EQ(status, ML_ERROR_NONE);
-  status = layer1.setOptimizer(op);
-  EXPECT_EQ(status, ML_ERROR_NONE);
-
+  loadFile("tc_conv2d_int_conv2DKernel2.in", layer2);
   std::shared_ptr<nntrainer::Optimizer> op2;
   EXPECT_NO_THROW(op2 = nntrainer::createOptimizer(nntrainer::OptType::SGD));
   status = op2->setProperty({"learning_rate=1.0"});
@@ -1266,10 +1297,6 @@ TEST_F(nntrainer_Conv2DLayer, backwarding_03_p) {
   nntrainer::Weight *param_data;
 
   nntrainer::Tensor derivatives(1, 12, 24, 24);
-
-  loadFile("tc_conv2d_int_conv2DLayer.in", in);
-  loadFile("tc_conv2d_int_conv2DKernel.in", layer1);
-  loadFile("tc_conv2d_int_conv2DKernel2.in", layer2);
 
   nntrainer::Tensor out1;
   EXPECT_NO_THROW(out1 = *layer1.forwarding({MAKE_SHARED_TENSOR(in)})[0]);
@@ -1353,7 +1380,6 @@ TEST_F(nntrainer_Conv2DLayer, backwarding_04_p) {
                         "stride=1,1 |"
                         "padding=0,0");
 
-  setOptimizer(nntrainer::OptType::SGD, "learning_rate=1.0");
   unsigned int filter_size = 12;
   std::vector<float> grad_data;
   std::vector<float> weight_data;
@@ -1365,6 +1391,7 @@ TEST_F(nntrainer_Conv2DLayer, backwarding_04_p) {
   loadFile("tc_conv2d_3_conv2DLayer.in", in);
   loadFile("tc_conv2d_3_conv2DKernel.in", layer);
 
+  setOptimizer(nntrainer::OptType::SGD, "learning_rate=1.0");
   EXPECT_NO_THROW(out = *layer.forwarding({MAKE_SHARED_TENSOR(in)})[0]);
 
   for (unsigned int i = 0; i < derivatives.getDim().getDataLen(); ++i) {

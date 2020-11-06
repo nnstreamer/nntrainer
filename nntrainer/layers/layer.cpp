@@ -38,7 +38,7 @@ void Layer::setActivation(ActivationType acti) {
 }
 
 int Layer::setOptimizer(std::shared_ptr<Optimizer> opt) {
-  this->opt = createOptimizer(opt->getType(), *opt.get());
+  this->opt = createOptimizer(opt->getType(), *opt);
   return this->opt->initialize(weight_list, num_weights, true);
 }
 
@@ -93,12 +93,16 @@ void Layer::read(std::ifstream &file) {
   for (unsigned int i = 0; i < num_weights; ++i) {
     weightAt(i).getVariableRef().read(file);
   }
+  if (opt)
+    opt->read(file);
 }
 
 void Layer::save(std::ofstream &file) {
   for (unsigned int i = 0; i < num_weights; ++i) {
     weightAt(i).getVariableRef().save(file);
   }
+  if (opt)
+    opt->save(file);
 }
 
 int Layer::setProperty(std::vector<std::string> values) {

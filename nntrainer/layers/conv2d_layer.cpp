@@ -68,10 +68,6 @@ int Conv2DLayer::initialize() {
   return status;
 }
 
-void Conv2DLayer::read(std::ifstream &file) { Layer::read(file); }
-
-void Conv2DLayer::save(std::ofstream &file) { Layer::save(file); }
-
 sharedConstTensors Conv2DLayer::forwarding(sharedConstTensors in) {
   int status = ML_ERROR_NONE;
 

@@ -61,6 +61,20 @@ TEST(nntrainer_util_func, logFloat_01_p) {
   }
 }
 
+TEST(nntrainer_util_func, checkedRead_n) {
+  std::ifstream file("not existing file");
+  char array[5];
+
+  EXPECT_THROW(nntrainer::checkedRead(file, array, 5), std::runtime_error);
+}
+
+TEST(nntrainer_util_func, checkedWrite_n) {
+  std::ofstream file("/not good file");
+  char array[5];
+
+  EXPECT_THROW(nntrainer::checkedWrite(file, array, 5), std::runtime_error);
+}
+
 TEST(nntrainer_parse_util, throw_status_no_error_p) {
   EXPECT_NO_THROW(nntrainer::throw_status(ML_ERROR_NONE));
 }

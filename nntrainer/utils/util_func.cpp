@@ -132,4 +132,25 @@ bool isFileExist(std::string file_name) {
   return infile.good();
 }
 
+template <typename T>
+static void checkFile(const T &file, const char *error_msg) {
+  if (file.bad() | file.eof() | !file.good() | file.fail()) {
+    throw std::runtime_error(error_msg);
+  }
+}
+
+void checkedRead(std::ifstream &file, char *array, std::streamsize size,
+                 const char *error_msg) {
+  file.read(array, size);
+
+  checkFile(file, error_msg);
+}
+
+void checkedWrite(std::ofstream &file, const char *array, std::streamsize size,
+                  const char *error_msg) {
+  file.write(array, size);
+
+  checkFile(file, error_msg);
+}
+
 } // namespace nntrainer

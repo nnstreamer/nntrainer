@@ -122,8 +122,10 @@ void Adam::setProperty(const PropertyType type, const std::string &value) {
 }
 
 void Adam::read(std::ifstream &file) {
+  /// @todo need strong exception safety guarantee
   OptType loaded_type;
-  file.read((char *)&loaded_type, sizeof(OptType));
+  checkedRead(file, (char *)&loaded_type, sizeof(OptType),
+              "[Adam::read] operation failed");
 
   if (loaded_type == type) {
     if (continue_train) {

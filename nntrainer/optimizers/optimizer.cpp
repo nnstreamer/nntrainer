@@ -129,8 +129,11 @@ void Optimizer::setProperty(const PropertyType type, const std::string &value) {
 }
 
 void Optimizer::read(std::ifstream &file) {
+  /// @todo need strong exception safety guarantee
   OptType loaded_type;
-  file.read((char *)&loaded_type, sizeof(OptType));
+
+  checkedRead(file, (char *)&loaded_type, sizeof(OptType),
+              "[Optimizer::read] read operation failed");
 
   if (loaded_type >= OptType::UNKNOWN)
     throw std::runtime_error("Saved file has unknown optimizer");
@@ -140,6 +143,7 @@ void Optimizer::save(std::ofstream &file) {
   if (type >= OptType::UNKNOWN)
     throw std::runtime_error("Cannot save unknown optimizer");
 
-  file.write((char *)&type, sizeof(OptType));
+  checkedWrite(file, (char *)&type, sizeof(OptType),
+               "[Optimizer::save] operation failed");
 }
 } // namespace nntrainer
