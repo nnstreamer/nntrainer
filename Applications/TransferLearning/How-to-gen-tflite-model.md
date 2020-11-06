@@ -33,13 +33,13 @@ After execute the this command, open ```localhost:6006``` with your prefered bro
 > 6006 is the default port for tensorboard. If you set different port number, then use it.
 
 <p align = "center">
-<img src="https://github.com/nnstreamer/nntrainer/blob/master/docs/images/mobilenetv2.gif" width=600>
+<img src="/docs/images/mobilenetv2.gif" width=600>
 </p>
 
 Now you can choose the layer removed from tensorboard. Let's say we want to use output of MobilenetV2/Conv_1/Relu6as an feature.
 
 <p align = "center">
-<img src="https://github.com/nnstreamer/nntrainer/blob/master/docs/images/SecondFeature.gif" width=600>
+<img src="/docs/images/SecondFeature.gif" width=600>
 </p>
 
 
