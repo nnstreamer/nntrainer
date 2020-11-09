@@ -4,7 +4,7 @@ nntrainer_inc = [
 ]
 
 nntrainer_sources = []
-nntrainer_headers = []
+nntrainer_headers = ['app_context.h']
 
 # pc file is not present for 'ml-api-common' yet
 if cxx.has_header('nnstreamer/ml-api-common.h', required: false)
@@ -43,6 +43,7 @@ endforeach
 
 nntrainer_common_sources = [
   'nntrainer_logger.cpp',
+  'app_context.cpp'
 ]
 
 foreach s : nntrainer_common_sources
