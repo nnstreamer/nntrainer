@@ -122,4 +122,10 @@ FullyConnectedLayer::backwarding(sharedConstTensors derivative, int iteration) {
 
   return {MAKE_SHARED_TENSOR(std::move(ret))};
 }
+
+void FullyConnectedLayer::scaleSize(float scalesize) noexcept {
+  unit = (unsigned int)(scalesize * (float)unit);
+  unit = std::max(unit, 1u);
+}
+
 } /* namespace nntrainer */

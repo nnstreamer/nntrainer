@@ -235,15 +235,37 @@ int ModelLoader::loadBackboneConfigIni(dictionary *ini,
   int status = ML_ERROR_NONE;
   NeuralNetwork backbone;
 
-  bool trainable =
-    iniparser_getboolean(ini, (backbone_name + ":trainable").c_str(), false);
-
   status = loadFromConfig(backbone_config, backbone, true);
   NN_RETURN_STATUS();
 
+  /** Load the backbone from its saved file */
+  bool preload =
+    iniparser_getboolean(ini, (backbone_name + ":Preload").c_str(), true);
+
+  bool trainable =
+    iniparser_getboolean(ini, (backbone_name + ":Trainable").c_str(), false);
+
+  double scale_size =
+    iniparser_getdouble(ini, (backbone_name + ":ScaleSize").c_str(), 1.0);
+  if (scale_size <= 0.0)
+    return ML_ERROR_INVALID_PARAMETER;
+
   auto graph = backbone.getGraph();
-  for (auto &layer : graph)
+  for (auto &layer : graph) {
     layer->setTrainable(trainable);
+    layer->resetDimension();
+    if (scale_size != 1) {
+      layer->scaleSize(scale_size);
+    }
+    /** TODO #361: this needs update in model file to be of dictionary format */
+    // if (preload) {
+    //   layer->weight_initializer = WeightInitializer::FILE_INITIALIZER;
+    //   layer->bias_initializer = WeightInitializer::FILE_INITIALIZER;
+    //   layer->initializer_file = backbone.save_path;
+    // }
+  }
+
+  // TODO: set input dimension for the first layer in the graph
 
   status = model.extendGraph(backbone.getGraph(), backbone_name);
   NN_RETURN_STATUS();

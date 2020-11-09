@@ -265,9 +265,36 @@ public:
   /**
    * @brief Set the batch for the layer
    * @param batch Batch value to be set
-   * @todo Make this private. Only model should be able to do this.
    */
   virtual void setBatch(unsigned int batch);
+
+  /**
+   * @brief Scale the size of this layer
+   * @param scalesize Scaling factor
+   * @note As the final size is going to be integer and the scalesize is float,
+   * the size is rounded to integer after scaling.
+   * @note Layer containing local variable must define this and update their
+   * shapes correspondingly. This can be called only prior to the initialization
+   * of the layer.
+   * @note We can assume that scale size is a non-zero positive value.
+   * @note In case the scaled size is less than 0, the size must be scaled back
+   * to 1 with a warning.
+   * @note The layer must be re-initialized for the new size to come to effect,
+   * if the layer has already been initialized. It is recommended to re-init the
+   * whole model as the neighboring layers will also need re-initialization.
+   */
+  virtual void scaleSize(float scalesize) noexcept {}
+
+  /**
+   * @brief Resets the input and output dimension for the layer
+   * @note This does not affect the number of inputs/outputs
+   */
+  void resetDimension() {
+    input_dim.clear();
+    input_dim.resize(num_inputs);
+    output_dim.clear();
+    output_dim.resize(num_outputs);
+  }
 
 protected:
   /**

@@ -89,6 +89,11 @@ public:
 
   static const std::string type;
 
+  /**
+   * @copydoc Layer::scaleSize(float scalesize)
+   */
+  void scaleSize(float scalesize) noexcept;
+
 private:
   unsigned int unit;
 };

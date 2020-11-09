@@ -620,4 +620,9 @@ int Conv2DLayer::im2col(Tensor in_padded, TensorDim kdim, float *in_col,
   return status;
 }
 
+void Conv2DLayer::scaleSize(float scalesize) noexcept {
+  filter_size = (unsigned int)(scalesize * (float)filter_size);
+  filter_size = std::max(filter_size, 1u);
+}
+
 } /* namespace nntrainer */
