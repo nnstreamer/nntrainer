@@ -25,12 +25,23 @@
 
 namespace nntrainer {
 
+struct NetBuffers {
+  Tensor var;
+  Tensor grad;
+};
+
 struct LayerNode {
   std::shared_ptr<Layer> layer;
   unsigned int index;
+  /* TODO : This NetBuffers should be inside of layers*/
+  std::vector<std::shared_ptr<NetBuffers>> input;
+  std::vector<std::shared_ptr<NetBuffers>> hidden;
 };
 
 class NetworkGraph {
+
+  friend class NeuralNetwork;
+
 public:
   NetworkGraph() : num_node(0), def_name_count(0){};
 
@@ -42,9 +53,15 @@ public:
 
   unsigned int getNumNode() { return num_node; }
 
+  void setNumNetBufferSize();
+
   LayerNode &getLayerNode(unsigned int ith);
 
+  LayerNode &getSortedLayerNode(unsigned int ith);
+
   LayerNode &getLayerNode(const std::string &layer_name);
+
+  LayerNode &getSortedLayerNode(const std::string &layer_name);
 
   void ensureName(std::shared_ptr<Layer> layer, const std::string &prefix,
                   bool force_rename);
@@ -77,6 +94,7 @@ private:
   std::vector<std::list<LayerNode>> adj;
   std::vector<LayerNode> Sorted;
   std::set<std::string> layer_names;
+  std::vector<std::shared_ptr<NetBuffers>> netBuffers;
   int def_name_count;
 };
 

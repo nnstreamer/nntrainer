@@ -65,6 +65,17 @@ LayerNode &NetworkGraph::getLayerNode(unsigned int ith) {
   throw std::invalid_argument("Cannot find Layer");
 }
 
+LayerNode &NetworkGraph::getSortedLayerNode(unsigned int ith) {
+
+  for (unsigned int i = 0; i < Sorted.size(); ++i) {
+    if (Sorted[i].index == ith) {
+      return Sorted[i];
+    }
+  }
+
+  throw std::invalid_argument("Cannot find Layer");
+}
+
 void NetworkGraph::topologicalSort() {
   std::stack<LayerNode> Stack;
 
@@ -132,6 +143,7 @@ int NetworkGraph::realizeMultiInputType(Layer &current) {
     std::shared_ptr<Layer> layer = nntrainer::createLayer("concat");
     ensureName(layer, current.getName());
     layer->num_inputs = current.num_inputs;
+    layer->input_dim.resize(layer->num_inputs);
     layer->input_layers.clear();
     for (unsigned int i = 0; i < current.input_layers.size(); ++i)
       layer->input_layers.push_back(current.input_layers[i]);
@@ -213,6 +225,7 @@ int NetworkGraph::realizeActivationType(
   layer->input_layers.push_back(current.getName());
 
   layer->num_outputs = current.num_outputs;
+  layer->output_dim.resize(layer->num_outputs);
   layer->output_layers.clear();
   for (unsigned int i = 0; i < current.num_outputs; ++i)
     layer->output_layers.push_back(current.output_layers[i]);
@@ -281,6 +294,9 @@ int NetworkGraph::addLossLayer(const LossType loss_type) {
   layer->input_layers.clear();
   layer->input_layers.push_back(input_str);
 
+  std::shared_ptr<LossLayer> temp = std::dynamic_pointer_cast<LossLayer>(layer);
+  temp->setLoss(updated_loss_type);
+
   addLayerNode(layer);
 
   return ML_ERROR_NONE;
@@ -302,8 +318,17 @@ void NetworkGraph::setOutputLayers(std::vector<std::shared_ptr<Layer>> layers) {
         }
       }
     }
-    layers[idx]->num_outputs = count;
+    if (layers[idx]->num_outputs != count) {
+      layers[idx]->num_outputs = count;
+      layers[idx]->output_dim.resize(count);
+    }
     std::cout << std::endl;
+  }
+
+  if (layers.back()->num_outputs == 0) {
+    layers.back()->num_outputs = 1;
+    layers.back()->output_dim.resize(1);
+    layers.back()->output_layers.push_back("exit");
   }
 }
 
@@ -392,6 +417,13 @@ int NetworkGraph::setGraphNode(std::vector<std::shared_ptr<Layer>> layers,
   return status;
 }
 
+void NetworkGraph::setNumNetBufferSize() {
+  for (unsigned int i = 0; i < Sorted.size(); ++i) {
+    Sorted[i].input.resize(Sorted[i].layer->input_layers.size());
+    Sorted[i].hidden.resize(Sorted[i].layer->output_layers.size());
+  }
+}
+
 LayerNode &NetworkGraph::getLayerNode(const std::string &layer_name) {
 
   std::list<LayerNode>::iterator iter;
@@ -399,6 +431,16 @@ LayerNode &NetworkGraph::getLayerNode(const std::string &layer_name) {
     iter = adj[i].begin();
     if ((*iter).layer->getName() == layer_name)
       return (*iter);
+  }
+
+  throw std::invalid_argument("Cannot find Layer");
+}
+
+LayerNode &NetworkGraph::getSortedLayerNode(const std::string &layer_name) {
+
+  for (unsigned int i = 0; i < Sorted.size(); ++i) {
+    if (Sorted[i].layer->getName() == layer_name)
+      return Sorted[i];
   }
 
   throw std::invalid_argument("Cannot find Layer");
