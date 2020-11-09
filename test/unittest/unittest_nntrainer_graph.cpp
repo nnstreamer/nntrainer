@@ -85,30 +85,106 @@ static IniSection nw_base("model", "Type = NeuralNetwork | "
 static IniSection nw_sgd = nw_base + "Optimizer = sgd |"
                                      "Learning_rate = 1";
 
-static IniSection input0("inputlayer0", "Type = input |"
-                                        "Input_Layers = dataset1 |"
-                                        "Input_Shape = 1:1:62720 ");
+static IniSection input("inputlayer", "Type = input |"
+                                      "Input_Shape = 3:32:32");
 
-static IniSection input1("inputlayer1", "Type = input |"
-                                        "Input_Layers = dataset2 |"
-                                        "Input_Shape = 1:1:62720 ");
+static IniSection conv2d8("conv2d8", "Type = conv2d |"
+                                     "input_layers=inputlayer |"
+                                     "bias_initializer = zeros |"
+                                     "Activation = relu |"
+                                     "filters = 32 |"
+                                     "kernel_size = 3,3 |"
+                                     "stride = 1,1 |"
+                                     "padding = 0,0");
 
-static IniSection conv2d("conv2d", "Type = conv2d |"
-                                   "input_layers=inputlayer0, inputlayer1 |"
-                                   "bias_initializer = zeros |"
-                                   "filters = 6 |"
-                                   "kernel_size = 5,5 |"
-                                   "stride = 1,1 |"
-                                   "padding = 0,0");
+static IniSection conv2d9("conv2d9", "Type = conv2d |"
+                                     "input_layers=conv2d8 |"
+                                     "bias_initializer = zeros |"
+                                     "Activation = relu |"
+                                     "filters = 64 |"
+                                     "kernel_size = 3,3 |"
+                                     "stride = 1,1 |"
+                                     "padding = 0,0");
 
-static IniSection flatten("flat", "Type = flatten |"
-                                  "input_layers=conv2d");
+static IniSection pooling2("pooling2", "Type = pooling2d |"
+                                       "input_layers = conv2d9 |"
+                                       "pool_size = 3, 3 |"
+                                       "stride = 3, 3 |"
+                                       "padding = 0, 0 |"
+                                       "pooling=max");
 
-static IniSection out("fclayer", "Type = fully_connected |"
-                                 "Unit = 10 |"
-                                 "input_layers = flat, conv2d |"
-                                 "bias_initializer = zeros |"
-                                 "Activation = softmax");
+static IniSection out0("out0", "Type = output |"
+                               "input_layers = pooling2");
+
+static IniSection conv2d10("conv2d10", "Type = conv2d |"
+                                       "input_layers=out0 |"
+                                       "bias_initializer = zeros |"
+                                       "Activation = relu |"
+                                       "filters = 64 |"
+                                       "kernel_size = 3,3 |"
+                                       "stride = 1,1 |"
+                                       "padding = 1,1");
+
+static IniSection conv2d11("conv2d11", "Type = conv2d |"
+                                       "input_layers=conv2d10 |"
+                                       "bias_initializer = zeros |"
+                                       "Activation = relu |"
+                                       "filters = 64 |"
+                                       "kernel_size = 3,3 |"
+                                       "stride = 1,1 |"
+                                       "padding = 1,1");
+
+static IniSection addition0("addition0", "Type=addition |"
+                                         "input_layers = conv2d11, out0 ");
+
+static IniSection out1("out1", "Type = output |"
+                               "input_layers = addition0");
+
+static IniSection conv2d12("conv2d12", "Type = conv2d |"
+                                       "input_layers=out1 |"
+                                       "bias_initializer = zeros |"
+                                       "Activation = relu |"
+                                       "filters = 64 |"
+                                       "kernel_size = 3,3 |"
+                                       "stride = 1,1 |"
+                                       "padding = 1,1");
+
+static IniSection conv2d13("conv2d13", "Type = conv2d |"
+                                       "input_layers=conv2d12 |"
+                                       "bias_initializer = zeros |"
+                                       "Activation = relu |"
+                                       "filters = 64 |"
+                                       "kernel_size = 3,3 |"
+                                       "stride = 1,1 |"
+                                       "padding = 1,1");
+
+static IniSection addition1("addition1", "Type=addition |"
+                                         "input_layers = conv2d13, out1 ");
+
+static IniSection conv2d14("conv2d14", "Type = conv2d |"
+                                       "input_layers=addition1 |"
+                                       "bias_initializer = zeros |"
+                                       "Activation = relu |"
+                                       "filters = 64 |"
+                                       "kernel_size = 3,3 |"
+                                       "stride = 1,1 |"
+                                       "padding = 0,0");
+
+static IniSection pooling3("pooling3", "Type = pooling2d |"
+                                       "input_layers = conv2d14 |"
+                                       "pooling=global_average");
+
+static IniSection fclayer0("fclayer0", "Type = fully_connected |"
+                                       "Unit = 256 |"
+                                       "input_layers = pooling3 |"
+                                       "bias_initializer = zeros |"
+                                       "Activation = relu");
+
+static IniSection fclayer1("fclayer1", "Type = fully_connected |"
+                                       "Unit = 10 |"
+                                       "input_layers = fclayer0 |"
+                                       "bias_initializer = zeros |"
+                                       "Activation = softmax");
 
 static int SUCCESS = 0;
 
@@ -122,11 +198,14 @@ mkIniTc(const char *name, const IniTestWrapper::Sections vec, int flag) {
   return std::make_tuple(name, vec, flag);
 }
 
-INSTANTIATE_TEST_CASE_P(nntrainerIniAutoTests, nntrainerGraphTest,
-                        ::testing::Values(mkIniTc("basic_p",
-                                                  {nw_sgd, input0, input1,
-                                                   conv2d, flatten, out},
-                                                  SUCCESS)));
+INSTANTIATE_TEST_CASE_P(
+  nntrainerIniAutoTests, nntrainerGraphTest,
+  ::testing::Values(mkIniTc("basic_p",
+                            {nw_sgd, input, conv2d8, conv2d9, pooling2, out0,
+                             conv2d10, conv2d11, addition0, out1, conv2d12,
+                             conv2d13, addition1, conv2d14, pooling3, fclayer0,
+                             fclayer1},
+                            SUCCESS)));
 
 int main(int argc, char **argv) {
   int result = -1;
