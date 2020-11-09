@@ -49,7 +49,8 @@ int Pooling2DLayer::initialize() {
                   1);
   } else {
     out_dim.height(1);
-    out_dim.width(1);
+    out_dim.channel(1);
+    out_dim.width(in_dim.channel());
   }
 
   if (pooling_type == PoolingType::max) {
@@ -136,7 +137,7 @@ sharedConstTensors Pooling2DLayer::backwarding(sharedConstTensors derivative,
     unsigned int p_size = width * height;
     for (unsigned int b = 0; b < batch; ++b) {
       for (unsigned int i = 0; i < channel; ++i) {
-        float del = derivative[0]->getValue(b, i, 0, 0) / (p_size);
+        float del = derivative[0]->getValue(b, 0, 0, i) / (p_size);
         for (unsigned int j = 0; j < height; ++j) {
           for (unsigned int k = 0; k < width; ++k) {
             result.setValue(b, i, j, k, del);
@@ -330,14 +331,14 @@ Tensor Pooling2DLayer::pooling2d(unsigned int batch, Tensor &in) {
           }
         }
       }
-      output.setValue(0, i, 0, 0, max);
+      output.setValue(0, 0, 0, i, max);
     }
   } break;
   case PoolingType::global_average: {
     output.setZero();
     Tensor sum_wh = in.chain().sum(3).sum(2).run();
     for (unsigned int i = 0; i < channel; ++i) {
-      output.setValue(0, i, 0, 0,
+      output.setValue(0, 0, 0, i,
                       sum_wh.getValue(0, i, 0, 0) / (in.width() * in.height()));
     }
   } break;
