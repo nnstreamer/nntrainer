@@ -522,6 +522,8 @@ private:
    * @param[in] d dimension to be set
    */
   void setInputDimension(std::vector<TensorDim> d) { input_dim = d; }
+
+  void setInputDimension(TensorDim d, unsigned int i) { input_dim[i] = d; }
 };
 
 /**

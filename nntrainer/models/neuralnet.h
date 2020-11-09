@@ -150,6 +150,8 @@ public:
    */
   int init();
 
+  int initialize();
+
   /**
    * @brief     Forward Propagation of the neural network
    * @param[in] input List of Input Tensors taken by the neural network

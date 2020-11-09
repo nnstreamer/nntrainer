@@ -203,6 +203,73 @@ int NeuralNetwork::compile() {
   return status;
 }
 
+int NeuralNetwork::initialize() {
+  int status = ML_ERROR_NONE;
+
+  unsigned int n_layers = (unsigned int)model_graph.Sorted.size();
+
+  ml_logd("initializing neural network, layer size: %d", n_layers);
+
+  model_graph.setNumNetBufferSize();
+
+  for (unsigned int idx = 0; idx < n_layers; ++idx) {
+    bool first = idx == 0;
+    Layer &l = *model_graph.getSortedLayerNode(idx).layer;
+    ml_logd("layer name : %s", l.getName().c_str());
+    const std::string &cur_type = l.getType();
+
+    if (!first) {
+      if (istrequal(model_graph.getSortedLayerNode(idx - 1).layer->getType(),
+                    ActivationLayer::type) &&
+          istrequal(cur_type, ActivationLayer::type)) {
+        ml_loge("double activation is not allowed");
+        return ML_ERROR_INVALID_PARAMETER;
+      }
+
+      for (unsigned int i = 0; i < l.input_layers.size(); ++i) {
+        std::cout << "      " << l.input_layers[i];
+        std::shared_ptr<NetBuffers> n_buffer = std::make_unique<NetBuffers>();
+        // TODO : NetBuffer of layers are managed by graph
+        // model_graph.netBuffers.push_back(n_buffer);
+
+        Layer &in_layer =
+          *model_graph.getSortedLayerNode(l.input_layers[i]).layer;
+
+        unsigned int location = 0;
+        for (unsigned int j = 0; j < in_layer.output_layers.size(); ++j) {
+          if (in_layer.output_layers[j] == l.getName()) {
+            location = j;
+            break;
+          }
+        }
+
+        l.setInputDimension(in_layer.getOutputDimension()[location], i);
+
+        n_buffer->var = Tensor(l.getInputDimension()[i]);
+        n_buffer->grad = Tensor(l.getInputDimension()[i]);
+
+        model_graph.getSortedLayerNode(idx).input[i] = n_buffer;
+
+        model_graph.getSortedLayerNode(l.input_layers[i]).hidden[location] =
+          n_buffer;
+      }
+    }
+
+    std::cout << std::endl;
+    status = l.initialize();
+    NN_RETURN_STATUS();
+
+    if (istrequal(cur_type, BatchNormalizationLayer::type) ||
+        istrequal(cur_type, Conv2DLayer::type) ||
+        istrequal(cur_type, FullyConnectedLayer::type)) {
+      status = l.setOptimizer(opt);
+      NN_RETURN_STATUS();
+    }
+  }
+
+  return status;
+}
+
 int NeuralNetwork::init() {
   int status = ML_ERROR_NONE;
   std::vector<TensorDim> previous_dim;

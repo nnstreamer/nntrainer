@@ -75,6 +75,14 @@ TEST_P(nntrainerGraphTest, loadConfig) {
   } else {
     EXPECT_EQ(status, ML_ERROR_NONE);
   }
+
+  status = NN.initialize();
+
+  if (failAtLoad()) {
+    EXPECT_NE(status, ML_ERROR_NONE);
+  } else {
+    EXPECT_EQ(status, ML_ERROR_NONE);
+  }
 }
 
 static IniSection nw_base("model", "Type = NeuralNetwork | "
