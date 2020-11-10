@@ -44,10 +44,6 @@ int Layer::setOptimizer(std::shared_ptr<Optimizer> opt) {
 
 int Layer::checkValidation() {
   int status = ML_ERROR_NONE;
-  if (type == LayerType::LAYER_UNKNOWN) {
-    ml_loge("Error: Layer type is unknown");
-    return ML_ERROR_INVALID_PARAMETER;
-  }
 
   if (activation_type == ActivationType::ACT_UNKNOWN) {
     ml_loge("Error: Have to set activation for this layer");
@@ -79,7 +75,6 @@ void Layer::copy(std::shared_ptr<Layer> l) {
   this->hidden.copy(l->hidden);
   this->activation_type = l->activation_type;
   this->loss = l->loss;
-  this->type = l->type;
   this->weight_regularizer = l->weight_regularizer;
   this->weight_regularizer_constant = l->weight_regularizer_constant;
   this->weight_initializer = l->weight_initializer;
@@ -311,9 +306,7 @@ void Layer::print(std::ostream &out, unsigned int flags) {
     else
       out << "<" << getName() << ">" << std::endl;
 
-    out << "Layer Type: "
-        << static_cast<std::underlying_type<LayerType>::type>(type)
-        << std::endl;
+    out << "Layer Type: " << getType() << std::endl;
   }
 
   if (flags & PRINT_SHAPE_INFO) {

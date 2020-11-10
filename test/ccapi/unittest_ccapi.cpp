@@ -42,25 +42,42 @@ TEST(ccapi_model, construct_02_p) {
  * @brief Neural Network Layer Contruct Test
  */
 TEST(ccapi_layer, construct_01_n) {
-  EXPECT_THROW(ml::train::createLayer(ml::train::LayerType::LAYER_UNKNOWN),
-               std::invalid_argument);
+  EXPECT_THROW(ml::train::createLayer("unknown type"), std::invalid_argument);
 }
 
 /**
  * @brief Neural Network Layer Contruct Test
  */
 TEST(ccapi_layer, construct_02_p) {
-  EXPECT_NO_THROW(ml::train::createLayer(ml::train::LayerType::LAYER_IN));
-  EXPECT_NO_THROW(ml::train::createLayer(ml::train::LayerType::LAYER_FC));
-  EXPECT_NO_THROW(ml::train::createLayer(ml::train::LayerType::LAYER_BN));
-  EXPECT_NO_THROW(ml::train::createLayer(ml::train::LayerType::LAYER_CONV2D));
-  EXPECT_NO_THROW(
-    ml::train::createLayer(ml::train::LayerType::LAYER_POOLING2D));
-  EXPECT_NO_THROW(ml::train::createLayer(ml::train::LayerType::LAYER_FLATTEN));
-  EXPECT_NO_THROW(
-    ml::train::createLayer(ml::train::LayerType::LAYER_ACTIVATION));
-  EXPECT_NO_THROW(ml::train::createLayer(ml::train::LayerType::LAYER_ADDITION));
-  EXPECT_NO_THROW(ml::train::createLayer(ml::train::LayerType::LAYER_LOSS));
+  auto layer = ml::train::createLayer("input");
+  EXPECT_EQ(layer->getType(), "input");
+
+  layer = ml::train::createLayer("fully_connected");
+  EXPECT_EQ(layer->getType(), "fully_connected");
+
+  layer = ml::train::createLayer("batch_normalization");
+  EXPECT_EQ(layer->getType(), "batch_normalization");
+
+  layer = ml::train::createLayer("conv2d");
+  EXPECT_EQ(layer->getType(), "conv2d");
+
+  layer = ml::train::createLayer("pooling2d");
+  EXPECT_EQ(layer->getType(), "pooling2d");
+
+  layer = ml::train::createLayer("flatten");
+  EXPECT_EQ(layer->getType(), "flatten");
+
+  layer = ml::train::createLayer("activation");
+  EXPECT_EQ(layer->getType(), "activation");
+
+  layer = ml::train::createLayer("addition");
+  EXPECT_EQ(layer->getType(), "addition");
+
+  layer = ml::train::createLayer("loss");
+  EXPECT_EQ(layer->getType(), "loss");
+
+  layer = ml::train::createLayer("Loss");
+  EXPECT_EQ(layer->getType(), "loss");
 }
 
 /**
@@ -133,15 +150,14 @@ TEST(nntrainer_ccapi, train_dataset_with_file_01_p) {
   EXPECT_NO_THROW(model =
                     ml::train::createModel(ml::train::ModelType::NEURAL_NET));
 
-  EXPECT_NO_THROW(layer = ml::train::createLayer(ml::train::LayerType::LAYER_IN,
-                                                 {"input_shape=1:1:62720",
-                                                  "normalization=true",
-                                                  "bias_initializer=zeros"}));
+  EXPECT_NO_THROW(layer = ml::train::createLayer(
+                    "input", {"input_shape=1:1:62720", "normalization=true",
+                              "bias_initializer=zeros"}));
   EXPECT_NO_THROW(model->addLayer(layer));
 
   EXPECT_NO_THROW(
     layer = ml::train::createLayer(
-      ml::train::LayerType::LAYER_FC,
+      "fully_connected",
       {"unit= 10", "activation=softmax", "bias_initializer=zeros",
        "weight_regularizer=l2norm", "weight_regularizer_constant=0.005",
        "weight_initializer=xavier_uniform"}));
@@ -183,15 +199,14 @@ TEST(nntrainer_ccapi, train_dataset_with_generator_01_p) {
   EXPECT_NO_THROW(model =
                     ml::train::createModel(ml::train::ModelType::NEURAL_NET));
 
-  EXPECT_NO_THROW(layer = ml::train::createLayer(ml::train::LayerType::LAYER_IN,
-                                                 {"input_shape=1:1:62720",
-                                                  "normalization=true",
-                                                  "bias_initializer=zeros"}));
+  EXPECT_NO_THROW(layer = ml::train::createLayer(
+                    "input", {"input_shape=1:1:62720", "normalization=true",
+                              "bias_initializer=zeros"}));
   EXPECT_NO_THROW(model->addLayer(layer));
 
   EXPECT_NO_THROW(
     layer = ml::train::createLayer(
-      ml::train::LayerType::LAYER_FC,
+      "fully_connected",
       {"unit= 10", "activation=softmax", "bias_initializer=zeros",
        "weight_regularizer=l2norm", "weight_regularizer_constant=0.005",
        "weight_initializer=xavier_uniform"}));

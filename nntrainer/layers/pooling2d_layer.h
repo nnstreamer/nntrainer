@@ -47,7 +47,7 @@ public:
     const std::array<unsigned int, POOLING2D_DIM> &stride_ = {1, 1},
     const std::array<unsigned int, POOLING2D_DIM> &padding_ = {0, 0},
     Args... args) :
-    Layer(LayerType::LAYER_POOLING2D, args...),
+    Layer(args...),
     pool_size(pool_size_),
     stride(stride_),
     padding(padding_),
@@ -119,10 +119,9 @@ public:
   };
 
   /**
-   * @brief     get the base name for the layer
-   * @retval    base name of the layer
+   * @copydoc Layer::getType()
    */
-  std::string getBaseName() { return "Pooling2D"; };
+  const std::string getType() const { return Pooling2DLayer::type; };
 
   using Layer::setProperty;
 
@@ -131,6 +130,8 @@ public:
    * &value)
    */
   void setProperty(const PropertyType type, const std::string &value = "");
+
+  static const std::string type;
 
 private:
   std::array<unsigned int, POOLING2D_DIM> pool_size;

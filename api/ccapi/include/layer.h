@@ -29,7 +29,7 @@ namespace train {
 /**
  * @brief     Enumeration of layer type
  */
-enum class LayerType {
+enum LayerType {
   LAYER_IN = ML_TRAIN_LAYER_TYPE_INPUT, /** Input Layer type */
   LAYER_FC = ML_TRAIN_LAYER_TYPE_FC,    /** Fully Connected Layer type */
   LAYER_BN,                             /** Batch Normalization Layer type */
@@ -174,6 +174,12 @@ public:
   virtual std::string getName() noexcept = 0;
 
   /**
+   * @brief Get the layer type
+   * @return const std::string type representation
+   */
+  virtual const std::string getType() const = 0;
+
+  /**
    * @brief Preset modes for printing summary for the layer
    */
   enum class PrintPreset {
@@ -195,10 +201,18 @@ public:
 };
 
 /**
+ * @brief Factory creator with constructor for layer type
+ */
+std::unique_ptr<Layer>
+createLayer(const LayerType &type,
+            const std::vector<std::string> &properties = {});
+
+/**
  * @brief Factory creator with constructor for layer
  */
 std::unique_ptr<Layer>
-createLayer(LayerType type, const std::vector<std::string> &properties = {});
+createLayer(const std::string &type,
+            const std::vector<std::string> &properties = {});
 
 } // namespace train
 } // namespace ml

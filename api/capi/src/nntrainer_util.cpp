@@ -37,13 +37,19 @@ ml_optimizer_to_nntrainer_type(ml_train_optimizer_type_e type) {
 /**
  * @brief Convert nntrainer API layer type to neural network layer type
  */
-nntrainer::LayerType ml_layer_to_nntrainer_type(ml_train_layer_type_e type) {
+const std::string ml_layer_to_nntrainer_type(ml_train_layer_type_e type) {
   switch (type) {
   case ML_TRAIN_LAYER_TYPE_FC:
-    return nntrainer::LayerType::LAYER_FC;
+    return nntrainer::FullyConnectedLayer::type;
   case ML_TRAIN_LAYER_TYPE_INPUT:
-    return nntrainer::LayerType::LAYER_IN;
+    return nntrainer::InputLayer::type;
+  case ML_TRAIN_LAYER_TYPE_UNKNOWN:
+  /// fall through intended
   default:
-    return nntrainer::LayerType::LAYER_UNKNOWN;
+    throw nntrainer::exception::not_supported(
+      "[ml_layer_to_nntrainer_type] Not supported type given");
   }
+
+  throw std::logic_error(
+    "[ml_layer_to_nntrainer_type] Control shouldn't reach here");
 }

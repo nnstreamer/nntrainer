@@ -28,6 +28,8 @@
 
 namespace nntrainer {
 
+const std::string InputLayer::type = "input";
+
 void InputLayer::setProperty(const PropertyType type,
                              const std::string &value) {
   int status = ML_ERROR_NONE;

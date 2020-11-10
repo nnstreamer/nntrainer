@@ -47,8 +47,6 @@ enum class ActivationType {
   ACT_UNKNOWN  /** unknown */
 };
 
-using LayerType = ml::train::LayerType;
-
 /**
  * @class   Layer Base class for layers
  * @brief   Base class for all layers
@@ -64,7 +62,7 @@ public:
    * @brief     Constructor of Layer Class
    */
   Layer(
-    LayerType type_, ActivationType activation_type_ = ActivationType::ACT_NONE,
+    ActivationType activation_type_ = ActivationType::ACT_NONE,
     WeightRegularizerType weight_regularizer_ = WeightRegularizerType::unknown,
     const float weight_regularizer_constant_ = 1.0f,
     WeightInitializer weight_initializer_ =
@@ -72,7 +70,6 @@ public:
     WeightInitializer bias_initializer_ = WeightInitializer::WEIGHT_ZEROS,
     bool trainable_ = true, bool flatten_ = false) :
     name(std::string()),
-    type(type_),
     loss(0.0f),
     activation_type(activation_type_),
     weight_regularizer(weight_regularizer_),
@@ -171,12 +168,6 @@ public:
    * @retval    Activation Type.
    */
   ActivationType getActivationType() { return this->activation_type; }
-
-  /**
-   * @brief     Layer type Getter
-   * @retval type LayerType
-   */
-  LayerType getType() { return type; }
 
   /**
    * @brief     Copy Layer
@@ -334,11 +325,6 @@ protected:
   std::shared_ptr<Optimizer> opt;
 
   /**
-   * @brief     Layer type
-   */
-  LayerType type;
-
-  /**
    * @brief     Loss value added by this layer
    */
   float loss;
@@ -402,12 +388,6 @@ protected:
    * @brief   Numer of outputs this layer will produce
    */
   unsigned int num_outputs;
-
-  /**
-   * @brief     Layer type Setter
-   * @param[in] type layer type
-   */
-  void setType(LayerType type) { this->type = type; }
 
   /**
    * @brief     Activation Setter
@@ -499,11 +479,6 @@ private:
    * @param[in] flags combination of LayerPrintOption
    */
   virtual void print(std::ostream &out, unsigned int flags = 0);
-
-  /**
-   * @brief     Get base name of the layer
-   */
-  virtual std::string getBaseName() = 0;
 
   /**
    * @brief     Initialize the layer

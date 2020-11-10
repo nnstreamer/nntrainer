@@ -24,6 +24,7 @@
 #include <nntrainer_error.h>
 #include <nntrainer_test_util.h>
 #include <optimizer_factory.h>
+#include <parse_util.h>
 #include <pooling2d_layer.h>
 #include <tensor_dim.h>
 #include <util_func.h>
@@ -506,7 +507,8 @@ protected:
         EXPECT_NO_THROW(out = layers[idx]->forwarding({out})[0]);
       }
 
-      if (layers.back()->getType() == nntrainer::LayerType::LAYER_LOSS) {
+      if (nntrainer::istrequal(layers.back()->getType(),
+                               nntrainer::LossLayer::type)) {
         std::shared_ptr<nntrainer::LossLayer> loss_layer =
           std::static_pointer_cast<nntrainer::LossLayer>(layers.back());
         EXPECT_NO_THROW(out = loss_layer->forwarding({out}, {label})[0]);
@@ -532,8 +534,8 @@ protected:
       MAKE_SHARED_TENSOR(constant(1.0, 3, 1, 1, 15));
     sharedConstTensor back_out;
 
-    if (layers.size() &&
-        layers.back()->getType() == nntrainer::LayerType::LAYER_LOSS) {
+    if (layers.size() && nntrainer::istrequal(layers.back()->getType(),
+                                              nntrainer::LossLayer::type)) {
       if (with_loss) {
         EXPECT_NO_THROW(back_out = layers.back()->backwarding({label}, 1)[0]);
       } else {

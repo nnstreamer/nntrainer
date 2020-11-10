@@ -51,7 +51,7 @@ public:
     WeightInitializer gamma_initializer = WeightInitializer::WEIGHT_ONES,
     WeightInitializer beta_initializer = WeightInitializer::WEIGHT_ONES,
     Args... args) :
-    Layer(LayerType::LAYER_BN, args...),
+    Layer(args...),
     epsilon(epsilon),
     momentum(momentum),
     axis(axis),
@@ -99,10 +99,9 @@ public:
   int initialize();
 
   /**
-   * @brief     get the base name for the layer
-   * @retval    base name of the layer
+   * @copydoc Layer::getType()
    */
-  std::string getBaseName() { return "BatchNormalization"; };
+  const std::string getType() const { return BatchNormalizationLayer::type; };
 
   using Layer::setProperty;
 
@@ -111,6 +110,8 @@ public:
    * &value)
    */
   void setProperty(const PropertyType type, const std::string &value = "");
+
+  static const std::string type;
 
 private:
   Tensor cvar; /**< training variance saved in bn_layer::forwarding and used in

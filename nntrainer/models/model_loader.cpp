@@ -11,6 +11,7 @@
  * @bug		No known bugs except for NYI items
  *
  */
+#include <sstream>
 
 #include <adam.h>
 #include <databuffer_factory.h>
@@ -23,8 +24,15 @@
 #include <nntrainer_log.h>
 #include <optimizer_factory.h>
 #include <parse_util.h>
-#include <sstream>
 #include <util_func.h>
+
+#if defined(ENABLE_NNSTREAMER_BACKBONE)
+#include <nnstreamer_layer.h>
+#endif
+
+#if defined(ENABLE_TFLITE_BACKBONE)
+#include <tflite_layer.h>
+#endif
 
 #define NN_INI_RETURN_STATUS()     \
   do {                             \
@@ -165,7 +173,7 @@ int ModelLoader::loadDatasetConfigIni(dictionary *ini, NeuralNetwork &model) {
 int ModelLoader::loadLayerConfigIniCommon(dictionary *ini,
                                           std::shared_ptr<Layer> &layer,
                                           const std::string &layer_name,
-                                          LayerType layer_type) {
+                                          const std::string &layer_type) {
   int status = ML_ERROR_NONE;
 
   try {
@@ -214,9 +222,8 @@ int ModelLoader::loadLayerConfigIniCommon(dictionary *ini,
 int ModelLoader::loadLayerConfigIni(dictionary *ini,
                                     std::shared_ptr<Layer> &layer,
                                     const std::string &layer_name) {
-  std::string layer_type_str =
+  const std::string &layer_type =
     iniparser_getstring(ini, (layer_name + ":Type").c_str(), unknown);
-  LayerType layer_type = (LayerType)parseType(layer_type_str, TOKEN_LAYER);
 
   return loadLayerConfigIniCommon(ini, layer, layer_name, layer_type);
 }
@@ -248,20 +255,17 @@ int ModelLoader::loadBackboneConfigExternal(dictionary *ini,
                                             const std::string &backbone_config,
                                             std::shared_ptr<Layer> &layer,
                                             const std::string &backbone_name) {
-  LayerType type = LayerType::LAYER_UNKNOWN;
+  std::string type;
 
 #if defined(ENABLE_NNSTREAMER_BACKBONE)
-  type = LayerType::LAYER_BACKBONE_NNSTREAMER;
+  type = NNStreamerLayer::type;
 #endif
 
   /** TfLite has higher priority */
 #if defined(ENABLE_TFLITE_BACKBONE)
   if (fileTfLite(backbone_config))
-    type = LayerType::LAYER_BACKBONE_TFLITE;
+    type = TfLiteLayer::type;
 #endif
-
-  if (type == LayerType::LAYER_UNKNOWN)
-    return ML_ERROR_NOT_SUPPORTED;
 
   int status = ML_ERROR_NONE;
   status = loadLayerConfigIniCommon(ini, layer, backbone_name, type);

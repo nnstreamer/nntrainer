@@ -27,10 +27,17 @@
 namespace ml {
 namespace train {
 
+std::unique_ptr<Layer> createLayer(const LayerType &type,
+                                   const std::vector<std::string> &properties) {
+  const std::string &t = nntrainer::layerGetStrType(type);
+
+  return createLayer(t, properties);
+}
+
 /**
  * @brief Factory creator with constructor for layer
  */
-std::unique_ptr<Layer> createLayer(LayerType type,
+std::unique_ptr<Layer> createLayer(const std::string &type,
                                    const std::vector<std::string> &properties) {
   std::unique_ptr<Layer> layer = nntrainer::createLayer(type);
 

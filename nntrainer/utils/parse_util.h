@@ -29,6 +29,8 @@
 #include <string>
 #include <vector>
 
+#include <ml-api-common.h>
+
 namespace nntrainer {
 
 #define NN_RETURN_STATUS()         \
@@ -40,22 +42,19 @@ namespace nntrainer {
 
 /**
  * @brief     Enumeration for input configuration file parsing
- *            0. OPT     ( Optimizer Token )
- *            1. LOSS    ( Loss Function Token )
- *            2. MODEL   ( Model Token )
- *            3. ACTI    ( Activation Token )
- *            4. LAYER   ( Layer Token )
- *            5. WEIGHT_INIT  ( Weight Initializer Token )
- *            7. WEIGHT_REGULARIZER  ( Weight Decay Token )
- *            8. PADDING  ( Padding Token )
- *            9. POOLING  ( Pooling Token )
- *            9. UNKNOWN
+ *            0. LOSS    ( Loss Function Token )
+ *            1. MODEL   ( Model Token )
+ *            2. ACTI    ( Activation Token )
+ *            3. WEIGHT_INIT  ( Weight Initializer Token )
+ *            4. WEIGHT_REGULARIZER  ( Weight Decay Token )
+ *            5. PADDING  ( Padding Token )
+ *            6. POOLING  ( Pooling Token )
+ *            7. UNKNOWN
  */
 typedef enum {
   TOKEN_LOSS,
   TOKEN_MODEL,
   TOKEN_ACTI,
-  TOKEN_LAYER,
   TOKEN_WEIGHT_INIT,
   TOKEN_WEIGHT_REGULARIZER,
   TOKEN_PADDING,
@@ -198,6 +197,15 @@ void printInstance(std::ostream &out, const T &t) {
   out << '<' << typeid(*t).name() << " at " << t << '>' << std::endl;
 }
 
+/**
+ * @brief Cast insensitive string comparison
+ *
+ * @param a first string to compare
+ * @param b second string to compare
+ * @return true if string is case-insensitive equal
+ * @return false if string is case-insensitive not equal
+ */
+bool istrequal(const std::string &a, const std::string &b);
 } /* namespace nntrainer */
 
 #endif /* __cplusplus */
