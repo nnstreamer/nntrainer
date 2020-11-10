@@ -238,9 +238,9 @@ int ModelLoader::loadBackboneConfigIni(dictionary *ini,
   status = loadFromConfig(backbone_config, backbone, true);
   NN_RETURN_STATUS();
 
-  /** Load the backbone from its saved file */
-  bool preload =
-    iniparser_getboolean(ini, (backbone_name + ":Preload").c_str(), true);
+  /** Wait for #361 Load the backbone from its saved file */
+  // bool preload =
+  //   iniparser_getboolean(ini, (backbone_name + ":Preload").c_str(), true);
 
   bool trainable =
     iniparser_getboolean(ini, (backbone_name + ":Trainable").c_str(), false);
@@ -250,7 +250,12 @@ int ModelLoader::loadBackboneConfigIni(dictionary *ini,
   if (scale_size <= 0.0)
     return ML_ERROR_INVALID_PARAMETER;
 
-  auto graph = backbone.getGraph();
+  std::string input_layer =
+    iniparser_getstring(ini, (backbone_name + ":InputLayer").c_str(), "");
+  std::string output_layer =
+    iniparser_getstring(ini, (backbone_name + ":OutputLayer").c_str(), "");
+
+  auto graph = backbone.getGraph(input_layer, output_layer);
   for (auto &layer : graph) {
     layer->setTrainable(trainable);
     layer->resetDimension();
@@ -265,9 +270,14 @@ int ModelLoader::loadBackboneConfigIni(dictionary *ini,
     // }
   }
 
-  // TODO: set input dimension for the first layer in the graph
+  // set input dimension for the first layer in the graph
+  std::string input_shape =
+    iniparser_getstring(ini, (backbone_name + ":Input_Shape").c_str(), "");
+  if (!input_shape.empty()) {
+    graph[0]->setProperty(Layer::PropertyType::input_shape, input_shape);
+  }
 
-  status = model.extendGraph(backbone.getGraph(), backbone_name);
+  status = model.extendGraph(graph, backbone_name);
   NN_RETURN_STATUS();
 
   return ML_ERROR_NONE;

@@ -308,7 +308,8 @@ public:
    * copied.
    * @retval current graph
    */
-  GraphType getGraph() { return layers; }
+  GraphType getGraph(const std::string &input_layer = "",
+                     const std::string &output_layer = "");
 
   /**
    * @brief     Set loss type for the neural network.

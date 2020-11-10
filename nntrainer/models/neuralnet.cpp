@@ -618,6 +618,43 @@ int NeuralNetwork::extendGraph(GraphType graph, std::string prefix) {
   return ML_ERROR_NONE;
 }
 
+std::vector<std::shared_ptr<Layer>>
+NeuralNetwork::getGraph(const std::string &input_layer,
+                        const std::string &output_layer) {
+  /** count layers after output layer */
+  unsigned int num_layers_remove_end = 0;
+  if (!output_layer.empty()) {
+    for (auto iter = layers.rbegin(); iter != layers.rend(); iter++) {
+      if ((*iter)->getName() != output_layer)
+        num_layers_remove_end++;
+      else
+        break;
+    }
+  }
+
+  if (num_layers_remove_end == layers.size())
+    return {};
+
+  /** count layers before input layer */
+  unsigned int num_layers_remove_start = 0;
+  if (!input_layer.empty()) {
+    for (auto iter = layers.begin();
+         iter != layers.end() - num_layers_remove_end; iter++) {
+      if ((*iter)->getName() != input_layer)
+        num_layers_remove_start++;
+      else
+        break;
+    }
+  }
+
+  /** copy the graph and return */
+  GraphType ret;
+  std::copy(layers.begin() + num_layers_remove_start,
+            layers.end() - num_layers_remove_end, std::back_inserter(ret));
+
+  return ret;
+}
+
 int NeuralNetwork::setOptimizer(
   std::shared_ptr<ml::train::Optimizer> optimizer) {
   if (initialized) {
