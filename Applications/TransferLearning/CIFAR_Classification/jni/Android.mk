@@ -54,6 +54,13 @@ include $(PREBUILT_SHARED_LIBRARY)
 
 include $(CLEAR_VARS)
 
+LOCAL_MODULE := ccapi-nntrainer
+LOCAL_SRC_FILES := $(NNTRAINER_ROOT)/libs/$(TARGET_ARCH_ABI)/libccapi-nntrainer.so
+
+include $(PREBUILT_SHARED_LIBRARY)
+
+include $(CLEAR_VARS)
+
 LOCAL_MODULE := app_utils
 LOCAL_SRC_FILES := $(NNTRAINER_ROOT)/Applications/utils/libs/$(TARGET_ARCH_ABI)/libapp_utils.so
 APP_UTILS_INCLUDES := $(NNTRAINER_ROOT)/Applications/utils/jni/includes
@@ -98,10 +105,8 @@ LOCAL_LDLIBS := -llog
 
 LOCAL_SRC_FILES := main_func.cpp
 
-LOCAL_SHARED_LIBRARIES := nntrainer
+LOCAL_SHARED_LIBRARIES := ccapi-nntrainer app_utils
 
-LOCAL_STATIC_LIBRARIES := tensorflow-lite
-
-LOCAL_C_INCLUDES += $(TFLITE_INCLUDES) $(NNTRAINER_INCLUDES)
+LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES) $(APP_UTILS_INCLUDES)
 
 include $(BUILD_EXECUTABLE)
