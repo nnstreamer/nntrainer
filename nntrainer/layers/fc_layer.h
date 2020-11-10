@@ -31,7 +31,7 @@ public:
    */
   template <typename... Args>
   FullyConnectedLayer(unsigned int unit_ = 0, Args... args) :
-    Layer(LayerType::LAYER_FC, args...),
+    Layer(args...),
     unit(unit_) {}
 
   /**
@@ -75,10 +75,9 @@ public:
   int initialize();
 
   /**
-   * @brief     get the base name for the layer
-   * @retval    base name of the layer
+   * @copydoc Layer::getType()
    */
-  std::string getBaseName() { return "FullyConnected"; };
+  const std::string getType() const { return FullyConnectedLayer::type; };
 
   using Layer::setProperty;
 
@@ -87,6 +86,8 @@ public:
    * &value)
    */
   void setProperty(const PropertyType type, const std::string &value = "");
+
+  static const std::string type;
 
 private:
   unsigned int unit;

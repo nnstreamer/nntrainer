@@ -14,14 +14,11 @@
 
 #include <adam.h>
 #include <optimizer_factory.h>
+#include <parse_util.h>
 #include <sgd.h>
 
 namespace nntrainer {
 
-static bool istrequal(const std::string &a, const std::string &b) {
-  return std::equal(a.begin(), a.end(), b.begin(),
-                    [](char a, char b) { return tolower(a) == tolower(b); });
-}
 /**
  * @brief Factory creator with copy constructor
  */

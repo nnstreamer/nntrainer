@@ -24,6 +24,8 @@
 
 namespace nntrainer {
 
+const std::string Pooling2DLayer::type = "pooling2d";
+
 int Pooling2DLayer::initialize() {
   int status = ML_ERROR_NONE;
 

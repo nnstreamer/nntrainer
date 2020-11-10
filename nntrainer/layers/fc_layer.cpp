@@ -31,6 +31,8 @@
 
 namespace nntrainer {
 
+const std::string FullyConnectedLayer::type = "fully_connected";
+
 enum class FCParams { weight, bias };
 
 int FullyConnectedLayer::initialize() {

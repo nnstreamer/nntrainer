@@ -30,8 +30,7 @@ public:
    * @brief     Constructor of Addition Layer
    */
   template <typename... Args>
-  AdditionLayer(unsigned int num_inputs_ = 0, Args... args) :
-    Layer(LayerType::LAYER_ADDITION, args...) {
+  AdditionLayer(unsigned int num_inputs_ = 0, Args... args) : Layer(args...) {
     num_inputs = num_inputs_;
   }
 
@@ -83,10 +82,9 @@ public:
   sharedConstTensors backwarding(sharedConstTensors in, int iteration);
 
   /**
-   * @brief     get the base name for the layer
-   * @retval    base name of the layer
+   * @copydoc Layer::getType()
    */
-  std::string getBaseName() { return "Addition"; };
+  const std::string getType() const { return AdditionLayer::type; };
 
   using Layer::setProperty;
 
@@ -95,6 +93,8 @@ public:
    * &value)
    */
   void setProperty(const PropertyType type, const std::string &value = "");
+
+  static const std::string type;
 };
 
 } // namespace nntrainer

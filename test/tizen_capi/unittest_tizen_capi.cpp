@@ -170,7 +170,7 @@ TEST(nntrainer_capi_nnmodel, compile_05_p) {
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   /** Find layer based on default name */
-  status = ml_train_model_get_layer(model, "Input0", &get_layer);
+  status = ml_train_model_get_layer(model, "input0", &get_layer);
   EXPECT_EQ(status, ML_ERROR_NONE);
   EXPECT_EQ(get_layer, layers[0]);
 
@@ -231,21 +231,21 @@ TEST(nntrainer_capi_nnmodel, compile_06_n) {
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   /** Find layer before adding */
-  status = ml_train_model_get_layer(model, "Input0", &get_layer);
+  status = ml_train_model_get_layer(model, "input0", &get_layer);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 
   status = ml_train_model_add_layer(model, layers[0]);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   /** Find layer based on default name */
-  status = ml_train_model_get_layer(model, "Input0", &get_layer);
+  status = ml_train_model_get_layer(model, "input0", &get_layer);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_train_layer_create(&layers[1], ML_TRAIN_LAYER_TYPE_FC);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   /** Create another layer with same name, different type */
-  status = ml_train_layer_set_property(layers[1], "name=Input0", NULL);
+  status = ml_train_layer_set_property(layers[1], "name=input0", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   /** Not add layer with existing name */

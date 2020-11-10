@@ -32,7 +32,7 @@ public:
    * @brief     Constructor of NNStreamer Layer
    */
   NNStreamerLayer(std::string model = "") :
-    Layer(LayerType::LAYER_BACKBONE_NNSTREAMER),
+    Layer(),
     modelfile(model),
     single(nullptr),
     in_res(nullptr),
@@ -73,10 +73,9 @@ public:
   void setTrainable(bool train);
 
   /**
-   * @brief     get the base name for the layer
-   * @retval    base name of the layer
+   * @copydoc Layer::getType()
    */
-  std::string getBaseName() { return "BackboneNNStreamer"; };
+  const std::string getType() const { return NNStreamerLayer::type; };
 
   using Layer::setProperty;
 
@@ -85,6 +84,8 @@ public:
    * &value)
    */
   void setProperty(const PropertyType type, const std::string &value = "");
+
+  static const std::string type;
 
 private:
   std::string modelfile;

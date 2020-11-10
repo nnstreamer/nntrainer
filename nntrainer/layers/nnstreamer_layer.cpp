@@ -23,6 +23,8 @@
 
 namespace nntrainer {
 
+const std::string NNStreamerLayer::type = "backbone_nnstreamer";
+
 int NNStreamerLayer::nnst_info_to_tensor_dim(ml_tensors_info_h &out_res,
                                              TensorDim &dim) {
   int status = ML_ERROR_NONE;

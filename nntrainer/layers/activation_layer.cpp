@@ -31,6 +31,8 @@
 
 namespace nntrainer {
 
+const std::string ActivationLayer::type = "activation";
+
 /**
  * @brief     Initialize the layer
  *

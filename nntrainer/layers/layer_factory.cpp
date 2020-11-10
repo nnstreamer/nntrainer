@@ -21,6 +21,7 @@
 #include <input_layer.h>
 #include <loss_layer.h>
 #include <nntrainer_error.h>
+#include <parse_util.h>
 #include <pooling2d_layer.h>
 
 #ifdef ENABLE_TFLITE_BACKBONE
@@ -33,46 +34,84 @@
 
 namespace nntrainer {
 
-/**
- * @brief Factory creator with constructor
- */
-std::unique_ptr<Layer> createLayer(LayerType type) {
+const std::string layerGetStrType(const LayerType &type) {
   switch (type) {
   case LayerType::LAYER_IN:
-    return std::make_unique<InputLayer>();
+    return InputLayer::type;
   case LayerType::LAYER_FC:
-    return std::make_unique<FullyConnectedLayer>();
+    return FullyConnectedLayer::type;
   case LayerType::LAYER_BN:
-    return std::make_unique<BatchNormalizationLayer>();
+    return BatchNormalizationLayer::type;
   case LayerType::LAYER_CONV2D:
-    return std::make_unique<Conv2DLayer>();
+    return Conv2DLayer::type;
   case LayerType::LAYER_POOLING2D:
-    return std::make_unique<Pooling2DLayer>();
+    return Pooling2DLayer::type;
   case LayerType::LAYER_FLATTEN:
-    return std::make_unique<FlattenLayer>();
+    return FlattenLayer::type;
   case LayerType::LAYER_ACTIVATION:
-    return std::make_unique<ActivationLayer>();
+    return ActivationLayer::type;
   case LayerType::LAYER_ADDITION:
-    return std::make_unique<AdditionLayer>();
+    return AdditionLayer::type;
   case LayerType::LAYER_LOSS:
-    return std::make_unique<LossLayer>();
-  case LayerType::LAYER_BACKBONE_NNSTREAMER:
+    return LossLayer::type;
 #ifdef ENABLE_NNSTREAMER_BACKBONE
-    return std::make_unique<NNStreamerLayer>();
-#else
-    throw exception::not_supported("NNStreamer backbone layer not supported");
+  case LayerType::LAYER_BACKBONE_NNSTREAMER:
+    return NNStreamerLayer::type;
 #endif
-  case LayerType::LAYER_BACKBONE_TFLITE:
 #ifdef ENABLE_TFLITE_BACKBONE
-    return std::make_unique<TfLiteLayer>();
-#else
-    throw exception::not_supported("TfLite backbone layer not supported");
+  case LayerType::LAYER_BACKBONE_TFLITE:
+    return TfLiteLayer::type;
 #endif
   case LayerType::LAYER_UNKNOWN:
     /** fallthrough intended */
   default:
     throw std::invalid_argument("Unknown type for the layer");
   }
+
+  throw std::runtime_error("Control should not reach here");
+}
+
+std::unique_ptr<Layer> createLayer(const LayerType &type) {
+  const std::string &s = layerGetStrType(type);
+
+  return createLayer(s);
+}
+
+/**
+ * @brief Factory creator with constructor
+ */
+std::unique_ptr<Layer> createLayer(const std::string &type) {
+
+  if (istrequal(type, InputLayer::type))
+    return std::make_unique<InputLayer>();
+  if (istrequal(type, FullyConnectedLayer::type))
+    return std::make_unique<FullyConnectedLayer>();
+  if (istrequal(type, BatchNormalizationLayer::type))
+    return std::make_unique<BatchNormalizationLayer>();
+  if (istrequal(type, Conv2DLayer::type))
+    return std::make_unique<Conv2DLayer>();
+  if (istrequal(type, Pooling2DLayer::type))
+    return std::make_unique<Pooling2DLayer>();
+  if (istrequal(type, FlattenLayer::type))
+    return std::make_unique<FlattenLayer>();
+  if (istrequal(type, ActivationLayer::type))
+    return std::make_unique<ActivationLayer>();
+  if (istrequal(type, AdditionLayer::type))
+    return std::make_unique<AdditionLayer>();
+  if (istrequal(type, LossLayer::type))
+    return std::make_unique<LossLayer>();
+#ifdef ENABLE_NNSTREAMER_BACKBONE
+  if (istrequal(type, NNStreamerLayer::type))
+    return std::make_unique<NNStreamerLayer>();
+#endif
+#ifdef ENABLE_TFLITE_BACKBONE
+  if (istrequal(type, TfLiteLayer::type))
+    return std::make_unique<TfLiteLayer>();
+#endif
+
+  std::stringstream ss;
+  ss << "Unsupported type given, type: " << type;
+  throw std::invalid_argument(ss.str().c_str());
 }
 
 } // namespace nntrainer

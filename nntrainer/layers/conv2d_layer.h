@@ -38,7 +38,7 @@ public:
               const std::array<unsigned int, CONV2D_DIM> &padding_ = {0, 0},
               bool normalization_ = false, bool standardization_ = false,
               Args... args) :
-    Layer(LayerType::LAYER_CONV2D, args...),
+    Layer(args...),
     filter_size(filter_size_),
     kernel_size(kernel_size_),
     stride(stride_),
@@ -95,10 +95,9 @@ public:
   /* }; */
 
   /**
-   * @brief     get the base name for the layer
-   * @retval    base name of the layer
+   * @copydoc Layer::getType()
    */
-  std::string getBaseName() { return "Convolution2D"; };
+  const std::string getType() const { return Conv2DLayer::type; };
 
   using Layer::setProperty;
 
@@ -107,6 +106,8 @@ public:
    * &value)
    */
   void setProperty(const PropertyType type, const std::string &value = "");
+
+  static const std::string type;
 
 private:
   unsigned int filter_size;

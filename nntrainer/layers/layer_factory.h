@@ -18,10 +18,20 @@
 
 namespace nntrainer {
 
+using LayerType = ml::train::LayerType;
+
+/**
+ * @brief get string representation type from integer
+ *
+ * @param type integer type
+ * @return const std::string string represented type
+ */
+const std::string layerGetStrType(const LayerType &type);
+
 /**
  * @brief Factory creator with constructor
  */
-std::unique_ptr<Layer> createLayer(LayerType type);
+std::unique_ptr<Layer> createLayer(const std::string &type);
 
 } /* namespace nntrainer */
 

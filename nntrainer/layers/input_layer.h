@@ -41,7 +41,7 @@ public:
   template <typename... Args>
   InputLayer(bool normalization = false, bool standardization = false,
              Args... args) :
-    Layer(LayerType::LAYER_IN, args...),
+    Layer(args...),
     normalization(false),
     standardization(false) {}
 
@@ -90,10 +90,9 @@ public:
   int initialize();
 
   /**
-   * @brief     get the base name for the layer
-   * @retval    base name of the layer
+   * @copydoc Layer::getType()
    */
-  std::string getBaseName() { return "Input"; };
+  const std::string getType() const { return InputLayer::type; };
 
   using Layer::setProperty;
 
@@ -102,6 +101,8 @@ public:
    * &value)
    */
   void setProperty(const PropertyType type, const std::string &value = "");
+
+  static const std::string type;
 
 private:
   bool normalization;

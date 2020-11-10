@@ -30,8 +30,7 @@ public:
    * @brief     Constructor of Output Layer
    */
   template <typename... Args>
-  OutputLayer(unsigned int num_output_ = 1, Args... args) :
-    Layer(LayerType::LAYER_OUT, args...) {
+  OutputLayer(unsigned int num_output_ = 1, Args... args) : Layer(args...) {
     num_outputs = num_output_;
   }
 

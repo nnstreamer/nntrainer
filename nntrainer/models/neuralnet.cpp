@@ -73,7 +73,7 @@ int NeuralNetwork::initLossLayer() {
   }
 
   if (updated_loss_type == LossType::LOSS_ENTROPY) {
-    if (layers.back()->getType() != LayerType::LAYER_ACTIVATION) {
+    if (!istrequal(layers.back()->getType(), ActivationLayer::type)) {
       ml_loge("Error: Cross Entropy need last layer to have softmax or sigmoid "
               "activation.");
       return ML_ERROR_NOT_SUPPORTED;
@@ -197,9 +197,11 @@ int NeuralNetwork::init() {
     Layer &l = *layers[i];
     ml_logd("layer name: %s", l.getName().c_str());
 
+    const std::string &cur_type = l.getType();
+
     if (!first) {
-      if (layers[i - 1]->getType() == LayerType::LAYER_ACTIVATION &&
-          l.getType() == LayerType::LAYER_ACTIVATION) {
+      if (istrequal(layers[i - 1]->getType(), ActivationLayer::type) &&
+          istrequal(cur_type, ActivationLayer::type)) {
         ml_loge("double activation is not allowed");
         return ML_ERROR_INVALID_PARAMETER;
       }
@@ -214,20 +216,17 @@ int NeuralNetwork::init() {
     status = layers[i]->initialize();
     NN_RETURN_STATUS();
 
-    switch (l.getType()) {
-    case LayerType::LAYER_BN:
-      /// fallthrough intended
-    case LayerType::LAYER_CONV2D:
-      /// fallthrough intended
-    case LayerType::LAYER_FC:
+    /// @fixme: this shouldn't be hardcorded as custom layer can have an
+    /// optimizer Every layer can have same interface but setOptimizer is
+    /// basically noop.
+    if (istrequal(cur_type, BatchNormalizationLayer::type) ||
+        istrequal(cur_type, Conv2DLayer::type) ||
+        istrequal(cur_type, FullyConnectedLayer::type)) {
       status = l.setOptimizer(opt);
       NN_RETURN_STATUS();
-      break;
-    default:
-      break;
     }
 
-    if (l.getType() != LayerType::LAYER_ACTIVATION) {
+    if (!istrequal(cur_type, ActivationLayer::type)) {
       status = realizeActivationType(l.getActivationType(), i);
       NN_RETURN_STATUS();
     }
@@ -303,7 +302,7 @@ sharedConstTensors NeuralNetwork::forwarding(sharedConstTensors input,
 void NeuralNetwork::backwarding(sharedConstTensors input,
                                 sharedConstTensors label, int iteration) {
 
-  if (layers.empty() || layers.back()->getType() != LayerType::LAYER_LOSS) {
+  if (layers.empty() || !istrequal(layers.back()->getType(), LossLayer::type)) {
     throw std::invalid_argument("last layer is not loss layer");
   }
 
@@ -361,6 +360,10 @@ void NeuralNetwork::saveModel() {
  *            read training parameters from the optimizer if continuing train
  */
 void NeuralNetwork::readModel() {
+  if (save_path == std::string()) {
+    return;
+  }
+
   if (!isFileExist(save_path)) {
     ml_logd("skipping reading model, path is not valid: %s", save_path.c_str());
     return;
@@ -561,19 +564,13 @@ int NeuralNetwork::isInitializable() {
   }
 
   /** First layer cannot be activation, batch normalization or loss */
-  switch (l.getType()) {
-  case LayerType::LAYER_ACTIVATION:
-    /// fallthrough intended
-  case LayerType::LAYER_BN:
-    /// fallthrough intended
-  case LayerType::LAYER_LOSS:
-    /// fallthrough intended
-    ml_loge("%s cannot be the first layer, type: %d", l.getName().c_str(),
-            static_cast<std::underlying_type<LayerType>::type>(l.getType()));
+  const std::string &type = l.getType();
+  if (istrequal(type, ActivationLayer::type) ||
+      istrequal(type, BatchNormalizationLayer::type) ||
+      istrequal(type, LossLayer::type)) {
+    ml_loge("%s cannot be the first layer, type: %s", l.getName().c_str(),
+            type.c_str());
     return ML_ERROR_INVALID_PARAMETER;
-  default:
-    /// normal case
-    break;
   }
 
   return ML_ERROR_NONE;
@@ -623,7 +620,6 @@ int NeuralNetwork::extendGraph(GraphType graph, std::string prefix) {
 
 int NeuralNetwork::setOptimizer(
   std::shared_ptr<ml::train::Optimizer> optimizer) {
-
   if (initialized) {
     return ML_ERROR_NOT_SUPPORTED;
   }
@@ -659,7 +655,7 @@ void NeuralNetwork::ensureName(NodeType layer, const std::string &prefix,
   std::set<std::string>::iterator iter;
   std::string name;
   if (orig_name_empty)
-    orig_name = layer->getBaseName();
+    orig_name = layer->getType();
   std::string direct_name = prefix + orig_name;
 
   do {
@@ -711,7 +707,7 @@ int NeuralNetwork::realizeActivationType(const ActivationType act,
   }
 
   Layer &current = *layers[position];
-  if (current.getType() == LayerType::LAYER_ACTIVATION) {
+  if (istrequal(current.getType(), ActivationLayer::type)) {
     ml_loge("It is not allowed to realize ativation layer, possibly layer is "
             "added right after activation");
     return ML_ERROR_INVALID_PARAMETER;
@@ -737,7 +733,7 @@ int NeuralNetwork::realizeFlattenType(const unsigned int position) {
   }
 
   Layer &current = *layers[position];
-  if (current.getType() == LayerType::LAYER_FLATTEN) {
+  if (istrequal(current.getType(), FlattenLayer::type)) {
     ml_loge(
       "It is not allowed to realize flatten layer, possibly flatten layer is "
       "added right after flatten");
@@ -838,7 +834,8 @@ void NeuralNetwork::print(std::ostream &out, unsigned int flags,
   }
 
   if (flags & PRINT_METRIC) {
-    /// @todo print metric (currently it is done at printPreset as a workaround)
+    /// @todo print metric (currently it is done at printPreset as a
+    /// workaround)
     /// @todo print loss function when it is not initialized. (if it is
     /// initialized, loss layer will be printed)
   }

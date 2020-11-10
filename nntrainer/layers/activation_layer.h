@@ -32,7 +32,7 @@ public:
    */
   template <typename... Args>
   ActivationLayer(ActivationType at = ActivationType::ACT_NONE, Args... args) :
-    Layer(LayerType::LAYER_ACTIVATION, args...) {
+    Layer(args...) {
     setActivation(at);
   }
 
@@ -79,10 +79,9 @@ public:
   void setActivation(ActivationType acti_type);
 
   /**
-   * @brief     get the base name for the layer
-   * @retval    base name of the layer
+   * @copydoc Layer::getType()
    */
-  std::string getBaseName() { return "Activation"; };
+  const std::string getType() const { return ActivationLayer::type; };
 
   /**
    * @brief       Calculate softmax for Tensor Type
@@ -146,6 +145,8 @@ public:
    * @param[in] x input
    */
   static float no_op_prime(float x);
+
+  static const std::string type;
 
 private:
   std::function<Tensor(Tensor const &)> _act_fn;

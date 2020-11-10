@@ -25,6 +25,8 @@
 
 namespace nntrainer {
 
+const std::string Conv2DLayer::type = "conv2d";
+
 int Conv2DLayer::initialize() {
   int status = ML_ERROR_NONE;
 

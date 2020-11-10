@@ -34,7 +34,7 @@ public:
    * @brief     Constructor of NNStreamer Layer
    */
   TfLiteLayer(std::string model = "") :
-    Layer(LayerType::LAYER_BACKBONE_TFLITE),
+    Layer(),
     modelfile(model),
     interpreter(nullptr),
     model(nullptr) {
@@ -72,10 +72,9 @@ public:
   void setTrainable(bool train);
 
   /**
-   * @brief     get the base name for the layer
-   * @retval    base name of the layer
+   * @copydoc Layer::getType()
    */
-  std::string getBaseName() { return "BackboneTFLite"; };
+  const std::string getType() const { return TfLiteLayer::type; };
 
   using Layer::setProperty;
 
@@ -84,6 +83,8 @@ public:
    * &value)
    */
   void setProperty(const PropertyType type, const std::string &value = "");
+
+  static const std::string type;
 
 private:
   std::string modelfile;

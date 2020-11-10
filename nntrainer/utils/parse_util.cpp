@@ -95,21 +95,6 @@ unsigned int parseType(std::string ll, InputType t) {
     "tanh", "sigmoid", "relu", "softmax", "none", "unknown"};
 
   /**
-   * @brief     Layer Type String from configure file
-   *            "input"  : Input Layer Object
-   *            "fully_conntected" : Fully Connected Layer Object
-   *            "batch_normalization" : Batch Normalization Layer Object
-   *            "conv2d" : Convolution 2D Layer Object
-   *            "pooling2d" : Pooling 2D Layer Object
-   *            "flatten" : Flatten Layer Object
-   *            "activation" : Activation Layer Object
-   *            "addition" : Addition Layer Object
-   */
-  std::array<std::string, 8> layer_string = {
-    "input",     "fully_connected", "batch_normalization", "conv2d",
-    "pooling2d", "flatten",         "activation",          "addition"};
-
-  /**
    * @brief     Weight Initialization Type String from configure file
    *            "zeros" : Zero Initialization
    *            "ones" : One Initialization
@@ -180,15 +165,6 @@ unsigned int parseType(std::string ll, InputType t) {
             "Moved to NO activation layer by default.",
             ll.c_str());
     ret = (unsigned int)ActivationType::ACT_UNKNOWN;
-    break;
-  case TOKEN_LAYER:
-    for (i = 0; i < layer_string.size(); i++) {
-      if (!strncasecmp(layer_string[i].c_str(), ll.c_str(),
-                       layer_string[i].size())) {
-        return (i);
-      }
-    }
-    ret = (unsigned int)LayerType::LAYER_UNKNOWN;
     break;
   case TOKEN_WEIGHT_INIT:
     for (i = 0; i < weight_ini_string.size(); i++) {
@@ -506,6 +482,11 @@ std::vector<std::string> split(const std::string &s, std::regex &reg) {
     ++iter;
   }
   return out;
+}
+
+bool istrequal(const std::string &a, const std::string &b) {
+  return std::equal(a.begin(), a.end(), b.begin(),
+                    [](char a, char b) { return tolower(a) == tolower(b); });
 }
 
 } /* namespace nntrainer */

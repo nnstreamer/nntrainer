@@ -44,7 +44,7 @@ public:
    */
   template <typename... Args>
   LossLayer(LossType loss_type_ = LossType::LOSS_UNKNOWN, Args... args) :
-    Layer(LayerType::LAYER_LOSS, args...),
+    Layer(args...),
     loss_type(LossType::LOSS_UNKNOWN) {}
 
   /**
@@ -97,10 +97,9 @@ public:
   int initialize();
 
   /**
-   * @brief     get the base name for the layer
-   * @retval    base name of the layer
+   * @copydoc Layer::getType()
    */
-  std::string getBaseName() { return "Loss"; };
+  const std::string getType() const { return LossLayer::type; };
 
   /**
    * @brief     set loss function
@@ -109,6 +108,8 @@ public:
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
   int setLoss(LossType l);
+
+  static const std::string type;
 
 private:
   LossType loss_type; /**< loss type of loss layer */

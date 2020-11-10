@@ -83,7 +83,7 @@ private:
    */
   int loadLayerConfigIniCommon(dictionary *ini, std::shared_ptr<Layer> &layer,
                                const std::string &layer_name,
-                               LayerType layer_type);
+                               const std::string &layer_type);
 
   /**
    * @brief     wrapper function to load layer config from ini

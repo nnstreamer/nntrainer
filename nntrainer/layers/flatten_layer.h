@@ -29,8 +29,7 @@ public:
   /**
    * @brief     Constructor of Flatten Layer
    */
-  template <typename... Args>
-  FlattenLayer(Args... args) : Layer(LayerType::LAYER_FLATTEN, args...) {}
+  template <typename... Args> FlattenLayer(Args... args) : Layer(args...) {}
 
   /**
    * @brief     Destructor of Flatten Layer
@@ -79,10 +78,11 @@ public:
   sharedConstTensors backwarding(sharedConstTensors in, int iteration);
 
   /**
-   * @brief     get the base name for the layer
-   * @retval    base name of the layer
+   * @copydoc Layer::getType()
    */
-  std::string getBaseName() { return "Flatten"; };
+  const std::string getType() const { return FlattenLayer::type; };
+
+  static const std::string type;
 };
 
 } // namespace nntrainer
