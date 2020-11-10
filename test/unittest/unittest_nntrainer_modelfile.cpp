@@ -191,14 +191,14 @@ static IniSection conv2d("conv2d", "Type = conv2d |"
                                    "stride = 1,1 |"
                                    "padding = 0,0 |");
 
-static IniSection conv2d_shape("conv2d", "Type = conv2d |"
-                                         "input_shape = 3:300:300 |"
-                                         "bias_initializer = zeros |"
-                                         "Activation = sigmoid |"
-                                         "filters = 6 |"
-                                         "kernel_size = 5,5 |"
-                                         "stride = 1,1 |"
-                                         "padding = 0,0 |");
+static IniSection conv2d_shape("conv2d_shape", "Type = conv2d |"
+                                               "input_shape = 3:300:300 |"
+                                               "bias_initializer = zeros |"
+                                               "Activation = sigmoid |"
+                                               "filters = 6 |"
+                                               "kernel_size = 5,5 |"
+                                               "stride = 1,1 |"
+                                               "padding = 0,0 |");
 
 static IniSection input2d("inputlayer", "Type = input |"
                                         "Input_Shape = 3:100:100");
@@ -221,6 +221,10 @@ static IniSection backbone_scaled_zero("blockT", "backbone = base.ini |"
 
 static IniSection backbone_random_external("block1",
                                            "backbone = random.tflite");
+
+static IniSection backbone_valid_inout("block1", "backbone = base.ini |"
+                                                 "InputLayer = flat | "
+                                                 "OutputLayer = fclayer");
 
 static IniSection
   backbone_valid_external("block1",
@@ -635,8 +639,8 @@ TEST(nntrainerIniTest, backbone_p_14) {
  * @note Input shape is provided in model file
  */
 TEST(nntrainerIniTest, backbone_n_15) {
-  const char *ini_name_scaled = "backbone_p15_scaled.ini";
-  const char *ini_name_full = "backbone_p15_full.ini";
+  const char *ini_name_scaled = "backbone_n15_scaled.ini";
+  const char *ini_name_full = "backbone_n15_full.ini";
   nntrainer::NeuralNetwork NN_scaled, NN_full;
 
   nntrainerIniTest::save_ini("base.ini", {conv2d, conv2d});
@@ -657,8 +661,8 @@ TEST(nntrainerIniTest, backbone_n_15) {
  * @note Input shape is striped from backbone and not provided in model file
  */
 TEST(nntrainerIniTest, backbone_n_16) {
-  const char *ini_name_scaled = "backbone_p16_scaled.ini";
-  const char *ini_name_full = "backbone_p16_full.ini";
+  const char *ini_name_scaled = "backbone_n16_scaled.ini";
+  const char *ini_name_full = "backbone_n16_full.ini";
   nntrainer::NeuralNetwork NN_scaled, NN_full;
 
   nntrainerIniTest::save_ini("base.ini", {conv2d_shape, conv2d});
@@ -672,6 +676,101 @@ TEST(nntrainerIniTest, backbone_n_16) {
 
   EXPECT_EQ(NN_scaled.loadFromConfig(ini_name_scaled), ML_ERROR_NONE);
   EXPECT_THROW(NN_scaled.init(), std::invalid_argument);
+}
+/**
+ * @brief Ini file unittest with backbone
+ * @note Input shape is striped from backbone and not provided in model file
+ */
+TEST(nntrainerIniTest, backbone_p_17) {
+  const char *ini_name_scaled = "backbone_p17_scaled.ini";
+  const char *ini_name_full = "backbone_p17_full.ini";
+  nntrainer::NeuralNetwork NN_scaled, NN_full;
+
+  nntrainerIniTest::save_ini("base.ini", {conv2d_shape, conv2d});
+
+  nntrainerIniTest::save_ini(ini_name_full,
+                             {nw_base_mse, input2d, backbone_valid});
+
+  EXPECT_EQ(NN_full.loadFromConfig(ini_name_full), ML_ERROR_NONE);
+  EXPECT_EQ(NN_full.init(), ML_ERROR_NONE);
+
+  nntrainerIniTest::save_ini(ini_name_scaled,
+                             {nw_base_mse, input2d, backbone_scaled});
+
+  EXPECT_EQ(NN_scaled.loadFromConfig(ini_name_scaled), ML_ERROR_NONE);
+  EXPECT_EQ(NN_scaled.init(), ML_ERROR_NONE);
+}
+
+/**
+ * @brief Ini file unittest with backbone
+ * @note Output layer name not found, epmty backbone
+ */
+TEST(nntrainerIniTest, backbone_n_18) {
+  const char *ini_name = "backbone_n18.ini";
+  nntrainer::NeuralNetwork NN;
+
+  nntrainerIniTest::save_ini("base.ini", {input2d, conv2d, flatten});
+  nntrainerIniTest::save_ini(ini_name,
+                             {nw_base_mse, input, backbone_valid_inout});
+
+  EXPECT_EQ(NN.loadFromConfig(ini_name), ML_ERROR_NONE);
+  EXPECT_EQ(NN.init(), ML_ERROR_NONE);
+
+  EXPECT_EQ(NN.getGraph().size(), 3);
+}
+
+/**
+ * @brief Ini file unittest with backbone
+ * @note Input layer name not found, epmty backbone
+ */
+TEST(nntrainerIniTest, backbone_n_19) {
+  const char *ini_name = "backbone_n19.ini";
+  nntrainer::NeuralNetwork NN;
+
+  nntrainerIniTest::save_ini("base.ini", {input2d, conv2d, batch_normal});
+  nntrainerIniTest::save_ini(ini_name,
+                             {nw_base_mse, input, backbone_valid_inout});
+
+  EXPECT_EQ(NN.loadFromConfig(ini_name), ML_ERROR_NONE);
+  EXPECT_EQ(NN.init(), ML_ERROR_NONE);
+
+  EXPECT_EQ(NN.getGraph().size(), 3);
+}
+
+/**
+ * @brief Ini file unittest with backbone
+ * @note input and output layer specified are found
+ */
+TEST(nntrainerIniTest, backbone_p_20) {
+  const char *ini_name = "backbone_p20.ini";
+  nntrainer::NeuralNetwork NN;
+
+  nntrainerIniTest::save_ini("base.ini", {input2d, conv2d, flatten, out});
+  nntrainerIniTest::save_ini(ini_name,
+                             {nw_base_mse, input, backbone_valid_inout});
+
+  EXPECT_EQ(NN.loadFromConfig(ini_name), ML_ERROR_NONE);
+  EXPECT_EQ(NN.init(), ML_ERROR_NONE);
+
+  EXPECT_EQ(NN.getGraph().size(), 6);
+}
+
+/**
+ * @brief Ini file unittest with backbone
+ * @note Input layer name not found, epmty backbone
+ */
+TEST(nntrainerIniTest, backbone_n_21) {
+  const char *ini_name = "backbone_n21.ini";
+  nntrainer::NeuralNetwork NN;
+
+  nntrainerIniTest::save_ini("base.ini", {input2d, conv2d, batch_normal, out});
+  nntrainerIniTest::save_ini(ini_name,
+                             {nw_base_mse, input, backbone_valid_inout});
+
+  EXPECT_EQ(NN.loadFromConfig(ini_name), ML_ERROR_NONE);
+  EXPECT_EQ(NN.init(), ML_ERROR_NONE);
+
+  EXPECT_EQ(NN.getGraph().size(), 3);
 }
 
 /**
