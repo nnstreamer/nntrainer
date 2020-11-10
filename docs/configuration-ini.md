@@ -281,7 +281,27 @@ Start with a "[ ${layer name} ]" which must be unique throughtout the model. In 
 
 2. ```trainable = <bool>```
 
-   If this backbone must be trained. Only supported for ini backbones (nntrainer models).
+   If this backbone must be trained (defaults to false). Only supported for ini backbones (nntrainer models).
+
+3. ```Preload = <bool>```
+
+   Load pretrained weights from the saved modelfile of backbone (defaults to false). Only supported for ini backbone (nntrainer models).
+
+4. ```ScaleSize = <float>```
+
+   Scale the size of the layers from backbone (defaults to 1.0). This applies for fully connected and convolution layer for now, where the units and the output channels are scaled respectively. Only supported for ini backbone (nntrainer models). If the model is being scaled, it cannot be preloaded from the saved modelfile. Only of the two options, ScaleSize and Preload, must be set at once.
+
+5. ```InputShape = <string>```
+
+   Set the shape of the input layer for the backbone model. Only supported for ini backbones (nntrainer models).
+
+6. ```InputLayer = <string>```
+
+   Choose the start layer for the backbone. This allows taking a subgraph starting with the specified layer name as a backbone. Only supported for ini backbones (nntrainer models).
+
+7. ```OutputLayer = <string>```
+
+   Choose the end layer for the backbone. This allows taking a subgraph ending with the specified layer name as a backbone. Only supported for ini backbones (nntrainer models).
 ``
 Below is sample backbone section.
 
