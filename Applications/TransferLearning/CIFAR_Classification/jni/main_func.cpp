@@ -20,11 +20,12 @@
  * @brief	This is Classification Example with one FC Layer
  *              The base model for feature extractor is mobilenet v2 with
  * 1280*7*7 feature size. It read the Classification.ini in res directory and
- * run according to the configureation.
+ * run according to the configuration.
  *
  */
 #include <climits>
 #include <cmath>
+#include <cstring>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -33,11 +34,11 @@
 #include <stdlib.h>
 #include <time.h>
 
-#include "databuffer.h"
-#include "databuffer_func.h"
-#include "neuralnet.h"
-#include "nntrainer_error.h"
-#include "tensor.h"
+#include <dataset.h>
+#include <ml-api-common.h>
+#include <model.h>
+
+#include <bitmap_helpers.h>
 
 #define TRAINING true
 
@@ -57,22 +58,21 @@ const unsigned int buffer_size = 100;
  */
 const unsigned int total_label_size = 10;
 
-/**
- * @brief     Max Epochs
- */
-const unsigned int iteration = 3000;
-
 const unsigned int batch_size = 32;
 
-const unsigned int feature_size = 62720;
+const unsigned int image_size = 224 * 224 * 3;
 
-unsigned int seed;
+unsigned int SEED = 1234;
+
+std::string data_path;
 
 using namespace std;
 
 bool duplicate[total_label_size * total_train_data_size];
 bool valduplicate[total_label_size * total_val_data_size];
 
+string total_label[10] = {"airplane", "automobile", "bird",  "cat",  "deer",
+                          "dog",      "frog",       "horse", "ship", "truck"};
 /**
  * @brief     step function
  * @param[in] x value to be distinguished
@@ -101,37 +101,114 @@ static int rangeRandom(int min, int max) {
   int remainder = RAND_MAX % n;
   int x;
   do {
-    x = rand_r(&seed);
+    x = rand_r(&SEED);
   } while (x >= RAND_MAX - remainder);
   return min + x % n;
 }
 
 /**
- * @brief     load data at specific position of file
- * @param[in] F  ifstream (input file)
- * @param[out] outVec
- * @param[out] outLabel
- * @param[in] id th data to get
- * @retval true/false false : end of data
+ * @brief     Load Image data to the given container
+ * @param[in] filename name of the file
+ * @param[out] image container to load the image data
  */
-bool getData(std::ifstream &F, std::vector<float> &outVec,
-             std::vector<float> &outLabel, unsigned int id) {
-  F.clear();
-  F.seekg(0, std::ios_base::end);
-  uint64_t file_length = F.tellg();
-  uint64_t position = (uint64_t)((feature_size + total_label_size) *
-                                 (uint64_t)id * sizeof(float));
+void getImage(const string filename, float *image) {
+  int width, height, channels;
+  uint8_t *in =
+    tflite::label_image::read_bmp(filename, &width, &height, &channels);
 
-  if (position > file_length) {
-    return false;
+  if (width * height * channels != image_size)
+    throw std::runtime_error("Dataset file image size error");
+
+  for (size_t i = 0; i < image_size; i++) {
+    image[i] = ((float)in[i]) / 255.0;
   }
-  F.seekg(position, std::ios::beg);
-  for (unsigned int i = 0; i < feature_size; i++)
-    F.read((char *)&outVec[i], sizeof(float));
-  for (unsigned int i = 0; i < total_label_size; i++)
-    F.read((char *)&outLabel[i], sizeof(float));
 
-  return true;
+  free(in);
+}
+
+/**
+ * @brief     Get the image with the given index and its label
+ * @param[in] data_path path containing the data
+ * @param[out] input container to hold the input
+ * @param[out] output container to hold the output
+ * @param[in] n index of the data to be loaded
+ * @param[in] is_val if this image is for training or validation
+ */
+void getNthImage(std::string data_path, float *input, float *output, int n,
+                 bool is_val = false) {
+  std::string path = data_path;
+  unsigned int data_size = total_train_data_size;
+  if (is_val)
+    data_size = total_val_data_size;
+
+  int label_idx = n / data_size;
+  int image_idx = n % data_size;
+
+  path += "train/" + total_label[label_idx] + "/";
+
+  std::stringstream ss;
+  if (is_val)
+    ss << std::setw(4) << std::setfill('0') << (5000 - image_idx);
+  else
+    ss << std::setw(4) << std::setfill('0') << (image_idx + 1);
+
+  path += ss.str() + ".bmp";
+
+  getImage(path, input);
+
+  memset(output, 0, total_label_size * sizeof(float));
+  output[label_idx] = 1;
+}
+
+/**
+ * @brief     Fills a batch of data into the containers
+ * @param[out] outVev input data
+ * @param[out] outLabel label data
+ * @param[out] last if this is last data
+ * @param[in] is_val if this data is for validation or training
+ */
+int getBatch(float **outVec, float **outLabel, bool *last, bool is_val) {
+  std::vector<int> memI;
+  std::vector<int> memJ;
+  unsigned int count = 0;
+  int data_size = total_train_data_size;
+  bool *dupl = duplicate;
+
+  if (is_val) {
+    data_size = total_val_data_size;
+    dupl = valduplicate;
+  }
+
+  for (unsigned int i = 0; i < total_label_size * data_size; i++) {
+    if (!dupl[i])
+      count++;
+  }
+
+  if (count < batch_size) {
+    for (unsigned int i = 0; i < total_label_size * data_size; ++i) {
+      dupl[i] = false;
+    }
+    *last = true;
+    return ML_ERROR_NONE;
+  }
+
+  count = 0;
+  while (count < batch_size) {
+    int nomI = rangeRandom(0, total_label_size * data_size - 1);
+    if (!dupl[nomI]) {
+      memI.push_back(nomI);
+      dupl[nomI] = true;
+      count++;
+    }
+  }
+
+  for (unsigned int i = 0; i < count; i++) {
+    getNthImage(data_path, &outVec[0][i * image_size],
+                &outLabel[0][i * total_label_size], memI[i], is_val);
+  }
+
+  *last = false;
+  return ML_ERROR_NONE;
 }
 
 /**
@@ -144,55 +221,7 @@ bool getData(std::ifstream &F, std::vector<float> &outVec,
  */
 int getBatch_train(float **outVec, float **outLabel, bool *last,
                    void *user_data) {
-  std::vector<int> memI;
-  std::vector<int> memJ;
-  unsigned int count = 0;
-  int data_size = total_train_data_size;
-
-  std::string filename = "trainingSet.dat";
-  std::ifstream F(filename, std::ios::in | std::ios::binary);
-
-  for (unsigned int i = 0; i < total_label_size * data_size; i++) {
-    if (!duplicate[i])
-      count++;
-  }
-
-  if (count < batch_size) {
-    for (unsigned int i = 0; i < total_label_size * data_size; ++i) {
-      duplicate[i] = false;
-    }
-    *last = true;
-    return ML_ERROR_NONE;
-  }
-
-  count = 0;
-  while (count < batch_size) {
-    int nomI = rangeRandom(0, total_label_size * data_size - 1);
-    if (!duplicate[nomI]) {
-      memI.push_back(nomI);
-      duplicate[nomI] = true;
-      count++;
-    }
-  }
-
-  for (unsigned int i = 0; i < count; i++) {
-    std::vector<float> o;
-    std::vector<float> l;
-
-    o.resize(feature_size);
-    l.resize(total_label_size);
-
-    getData(F, o, l, memI[i]);
-
-    for (unsigned int j = 0; j < feature_size; ++j)
-      outVec[0][i * feature_size + j] = o[j];
-    for (unsigned int j = 0; j < total_label_size; ++j)
-      outLabel[0][i * total_label_size + j] = l[j];
-  }
-
-  F.close();
-  *last = false;
-  return ML_ERROR_NONE;
+  return getBatch(outVec, outLabel, last, false);
 }
 
 /**
@@ -205,56 +234,7 @@ int getBatch_train(float **outVec, float **outLabel, bool *last,
  */
 int getBatch_val(float **outVec, float **outLabel, bool *last,
                  void *user_data) {
-
-  std::vector<int> memI;
-  std::vector<int> memJ;
-  unsigned int count = 0;
-  int data_size = total_val_data_size;
-
-  std::string filename = "trainingSet.dat";
-  std::ifstream F(filename, std::ios::in | std::ios::binary);
-
-  for (unsigned int i = 0; i < total_label_size * data_size; i++) {
-    if (!valduplicate[i])
-      count++;
-  }
-
-  if (count < batch_size) {
-    for (unsigned int i = 0; i < total_label_size * data_size; ++i) {
-      valduplicate[i] = false;
-    }
-    *last = true;
-    return ML_ERROR_NONE;
-  }
-
-  count = 0;
-  while (count < batch_size) {
-    int nomI = rangeRandom(0, total_label_size * data_size - 1);
-    if (!valduplicate[nomI]) {
-      memI.push_back(nomI);
-      valduplicate[nomI] = true;
-      count++;
-    }
-  }
-
-  for (unsigned int i = 0; i < count; i++) {
-    std::vector<float> o;
-    std::vector<float> l;
-
-    o.resize(feature_size);
-    l.resize(total_label_size);
-
-    getData(F, o, l, memI[i]);
-
-    for (unsigned int j = 0; j < feature_size; ++j)
-      outVec[0][i * feature_size + j] = o[j];
-    for (unsigned int j = 0; j < total_label_size; ++j)
-      outLabel[0][i * total_label_size + j] = l[j];
-  }
-
-  F.close();
-  *last = false;
-  return ML_ERROR_NONE;
+  return getBatch(outVec, outLabel, last, true);
 }
 
 /**
@@ -264,61 +244,59 @@ int getBatch_val(float **outVec, float **outLabel, bool *last,
  * @param[in]  arg 2 : resource path
  */
 int main(int argc, char *argv[]) {
-  if (argc < 2) {
-    std::cout << "./nntrainer_classification_func Config.ini\n";
+  if (argc < 3) {
+    std::cout << "./nntrainer_classification Config.ini resources\n";
     exit(0);
   }
   const vector<string> args(argv + 1, argv + argc);
   std::string config = args[0];
+  data_path = args[1] + "/";
 
-  seed = time(NULL);
-  srand(seed);
+  srand(SEED);
   std::vector<std::vector<float>> inputVector, outputVector;
   std::vector<std::vector<float>> inputValVector, outputValVector;
   std::vector<std::vector<float>> inputTestVector, outputTestVector;
 
-  // This is to check duplication of data
-  for (unsigned int i = 0; i < total_label_size * total_train_data_size; ++i) {
-    duplicate[i] = false;
-  }
-
-  for (unsigned int i = 0; i < total_label_size * total_val_data_size; ++i) {
-    valduplicate[i] = false;
-  }
+  /* This is to check duplication of data */
+  memset(duplicate, 0, sizeof(bool) * total_label_size * total_train_data_size);
+  memset(valduplicate, 0,
+         sizeof(bool) * total_label_size * total_val_data_size);
 
   /**
    * @brief     Data buffer Create & Initialization
    */
-  std::shared_ptr<nntrainer::DataBufferFromCallback> DB =
-    std::make_shared<nntrainer::DataBufferFromCallback>();
-  DB->setGeneratorFunc(nntrainer::BufferType::BUF_TRAIN, getBatch_train);
-  DB->setGeneratorFunc(nntrainer::BufferType::BUF_VAL, getBatch_val);
+  std::shared_ptr<ml::train::Dataset> dataset =
+    createDataset(ml::train::DatasetType::GENERATOR);
+  dataset->setGeneratorFunc(ml::train::DatasetDataType::DATA_TRAIN,
+                            getBatch_train);
+  dataset->setGeneratorFunc(ml::train::DatasetDataType::DATA_VAL, getBatch_val);
 
   /**
    * @brief     Neural Network Create & Initialization
    */
-  nntrainer::NeuralNetwork NN;
+  std::unique_ptr<ml::train::Model> model =
+    createModel(ml::train::ModelType::NEURAL_NET);
 
   try {
-    NN.loadFromConfig(config);
+    model->loadFromConfig(config);
   } catch (...) {
     std::cerr << "Error during loadFromConfig" << std::endl;
     return 0;
   }
   try {
-    NN.init();
+    model->init();
   } catch (...) {
     std::cerr << "Error during init" << std::endl;
     return 0;
   }
-  NN.readModel();
-  NN.setDataBuffer((DB));
+  model->readModel();
+  model->setDataset(dataset);
 
   /**
    * @brief     Neural Network Train & validation
    */
   try {
-    NN.train();
+    model->train();
   } catch (...) {
     std::cerr << "Error during train" << std::endl;
     return 0;
