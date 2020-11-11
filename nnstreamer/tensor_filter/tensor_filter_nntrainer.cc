@@ -27,6 +27,10 @@
 
 #include <neuralnet.h>
 
+#ifdef ml_loge
+#undef ml_loge
+#endif
+
 #define ml_loge g_critical
 
 /**
