@@ -49,34 +49,64 @@ TEST(ccapi_layer, construct_01_n) {
  * @brief Neural Network Layer Contruct Test
  */
 TEST(ccapi_layer, construct_02_p) {
-  auto layer = ml::train::createLayer("input");
+  std::shared_ptr<ml::train::Layer> layer;
+
+  EXPECT_NO_THROW(layer = ml::train::layer::Input());
   EXPECT_EQ(layer->getType(), "input");
 
-  layer = ml::train::createLayer("fully_connected");
+  EXPECT_NO_THROW(layer = ml::train::layer::FullyConnected());
   EXPECT_EQ(layer->getType(), "fully_connected");
 
-  layer = ml::train::createLayer("batch_normalization");
+  EXPECT_NO_THROW(layer = ml::train::layer::BatchNormalization());
   EXPECT_EQ(layer->getType(), "batch_normalization");
 
-  layer = ml::train::createLayer("conv2d");
+  EXPECT_NO_THROW(layer = ml::train::layer::Convolution2D());
   EXPECT_EQ(layer->getType(), "conv2d");
 
-  layer = ml::train::createLayer("pooling2d");
+  EXPECT_NO_THROW(layer = ml::train::layer::Pooling2D());
   EXPECT_EQ(layer->getType(), "pooling2d");
 
-  layer = ml::train::createLayer("flatten");
+  EXPECT_NO_THROW(layer = ml::train::layer::Flatten());
   EXPECT_EQ(layer->getType(), "flatten");
 
-  layer = ml::train::createLayer("activation");
-  EXPECT_EQ(layer->getType(), "activation");
-
-  layer = ml::train::createLayer("addition");
+  EXPECT_NO_THROW(layer = ml::train::layer::Addition());
   EXPECT_EQ(layer->getType(), "addition");
 
-  layer = ml::train::createLayer("loss");
+  EXPECT_NO_THROW(layer = ml::train::layer::Concat());
+  EXPECT_EQ(layer->getType(), "concat");
+
+  EXPECT_NO_THROW(layer = ml::train::layer::MultiOut());
+  EXPECT_EQ(layer->getType(), "multi_output");
+
+  EXPECT_NO_THROW(layer = ml::train::layer::BackboneNNStreamer());
+  EXPECT_EQ(layer->getType(), "backbone_nnstreamer");
+
+  EXPECT_NO_THROW(layer = ml::train::layer::BackboneTFLite());
+  EXPECT_EQ(layer->getType(), "backbone_tflite");
+
+  EXPECT_NO_THROW(layer = ml::train::layer::ReLU());
+  EXPECT_EQ(layer->getType(), "activation");
+
+  EXPECT_NO_THROW(layer = ml::train::layer::Tanh());
+  EXPECT_EQ(layer->getType(), "activation");
+
+  EXPECT_NO_THROW(layer = ml::train::layer::Sigmoid());
+  EXPECT_EQ(layer->getType(), "activation");
+
+  EXPECT_NO_THROW(layer = ml::train::layer::Softmax());
+  EXPECT_EQ(layer->getType(), "activation");
+}
+
+/**
+ * @brief Neural Network Loss Layer Contruct Test
+ */
+TEST(ccapi_layer, construct_03_p) {
+  std::shared_ptr<ml::train::Layer> layer;
+
+  EXPECT_NO_THROW(layer = ml::train::loss::MSE());
   EXPECT_EQ(layer->getType(), "loss");
 
-  layer = ml::train::createLayer("Loss");
+  EXPECT_NO_THROW(layer = ml::train::loss::CrossEntropy());
   EXPECT_EQ(layer->getType(), "loss");
 }
 
@@ -150,14 +180,13 @@ TEST(nntrainer_ccapi, train_dataset_with_file_01_p) {
   EXPECT_NO_THROW(model =
                     ml::train::createModel(ml::train::ModelType::NEURAL_NET));
 
-  EXPECT_NO_THROW(layer = ml::train::createLayer(
-                    "input", {"input_shape=1:1:62720", "normalization=true",
-                              "bias_initializer=zeros"}));
+  EXPECT_NO_THROW(layer = ml::train::layer::Input({"input_shape=1:1:62720",
+                                                   "normalization=true",
+                                                   "bias_initializer=zeros"}));
   EXPECT_NO_THROW(model->addLayer(layer));
 
   EXPECT_NO_THROW(
-    layer = ml::train::createLayer(
-      "fully_connected",
+    layer = ml::train::layer::FullyConnected(
       {"unit= 10", "activation=softmax", "bias_initializer=zeros",
        "weight_regularizer=l2norm", "weight_regularizer_constant=0.005",
        "weight_initializer=xavier_uniform"}));
@@ -199,14 +228,13 @@ TEST(nntrainer_ccapi, train_dataset_with_generator_01_p) {
   EXPECT_NO_THROW(model =
                     ml::train::createModel(ml::train::ModelType::NEURAL_NET));
 
-  EXPECT_NO_THROW(layer = ml::train::createLayer(
-                    "input", {"input_shape=1:1:62720", "normalization=true",
-                              "bias_initializer=zeros"}));
+  EXPECT_NO_THROW(layer = ml::train::layer::Input({"input_shape=1:1:62720",
+                                                   "normalization=true",
+                                                   "bias_initializer=zeros"}));
   EXPECT_NO_THROW(model->addLayer(layer));
 
   EXPECT_NO_THROW(
-    layer = ml::train::createLayer(
-      "fully_connected",
+    layer = ml::train::layer::FullyConnected(
       {"unit= 10", "activation=softmax", "bias_initializer=zeros",
        "weight_regularizer=l2norm", "weight_regularizer_constant=0.005",
        "weight_initializer=xavier_uniform"}));

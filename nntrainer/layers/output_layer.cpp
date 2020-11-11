@@ -21,6 +21,8 @@
 
 namespace nntrainer {
 
+const std::string OutputLayer::type = "multi_output";
+
 int OutputLayer::initialize() {
   int status = ML_ERROR_NONE;
 

@@ -15,12 +15,14 @@
 #include <activation_layer.h>
 #include <addition_layer.h>
 #include <bn_layer.h>
+#include <concat_layer.h>
 #include <conv2d_layer.h>
 #include <fc_layer.h>
 #include <flatten_layer.h>
 #include <input_layer.h>
 #include <loss_layer.h>
 #include <nntrainer_error.h>
+#include <output_layer.h>
 #include <parse_util.h>
 #include <pooling2d_layer.h>
 
@@ -53,7 +55,9 @@ const std::string layerGetStrType(const LayerType &type) {
   case LayerType::LAYER_ADDITION:
     return AdditionLayer::type;
   case LayerType::LAYER_LOSS:
-    return LossLayer::type;
+    /** TODO: move loss layer out of layer types for API */
+    throw exception::not_supported(
+      "Use createLoss() or related methods to create loss layer");
 #ifdef ENABLE_NNSTREAMER_BACKBONE
   case LayerType::LAYER_BACKBONE_NNSTREAMER:
     return NNStreamerLayer::type;
@@ -62,6 +66,10 @@ const std::string layerGetStrType(const LayerType &type) {
   case LayerType::LAYER_BACKBONE_TFLITE:
     return TfLiteLayer::type;
 #endif
+  case LayerType::LAYER_CONCAT:
+    return ConcatLayer::type;
+  case LayerType::LAYER_OUT:
+    return OutputLayer::type;
   case LayerType::LAYER_UNKNOWN:
     /** fallthrough intended */
   default:
@@ -108,10 +116,21 @@ std::unique_ptr<Layer> createLayer(const std::string &type) {
   if (istrequal(type, TfLiteLayer::type))
     return std::make_unique<TfLiteLayer>();
 #endif
+  if (istrequal(type, ConcatLayer::type))
+    return std::make_unique<ConcatLayer>();
+  if (istrequal(type, OutputLayer::type))
+    return std::make_unique<OutputLayer>();
 
   std::stringstream ss;
   ss << "Unsupported type given, type: " << type;
   throw std::invalid_argument(ss.str().c_str());
+}
+
+/**
+ * @brief Factory creator with constructor
+ */
+std::unique_ptr<Layer> createLoss(LossType type) {
+  return std::make_unique<LossLayer>(type);
 }
 
 } // namespace nntrainer
