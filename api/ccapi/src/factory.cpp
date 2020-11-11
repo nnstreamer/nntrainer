@@ -55,6 +55,47 @@ createOptimizer(const OptimizerType &type,
 }
 
 /**
+ * @brief Factory creator with constructor for loss
+ */
+static std::unique_ptr<Layer>
+createLoss(nntrainer::LossType type,
+           const std::vector<std::string> &properties) {
+  std::unique_ptr<Layer> layer = nntrainer::createLoss(type);
+
+  if (layer->setProperty(properties) != ML_ERROR_NONE)
+    throw std::invalid_argument("Set properties failed for layer");
+
+  return layer;
+}
+
+namespace loss {
+
+/**
+ * @brief Helper function to create loss layer
+ */
+static std::unique_ptr<Layer> Loss(nntrainer::LossType type,
+                                   const std::vector<std::string> &properties) {
+  return createLoss(type, properties);
+}
+
+/**
+ * @brief Helper function to create mse layer
+ */
+std::unique_ptr<Layer> MSE(const std::vector<std::string> &properties) {
+  return Loss(nntrainer::LossType::LOSS_MSE, properties);
+}
+
+/**
+ * @brief Helper function to create cross entropy layer
+ */
+std::unique_ptr<Layer>
+CrossEntropy(const std::vector<std::string> &properties) {
+  return Loss(nntrainer::LossType::LOSS_ENTROPY, properties);
+}
+
+} // namespace loss
+
+/**
  * @brief Factory creator with constructor for optimizer
  */
 std::unique_ptr<Optimizer>

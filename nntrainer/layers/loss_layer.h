@@ -45,7 +45,7 @@ public:
   template <typename... Args>
   LossLayer(LossType loss_type_ = LossType::LOSS_UNKNOWN, Args... args) :
     Layer(args...),
-    loss_type(LossType::LOSS_UNKNOWN) {}
+    loss_type(loss_type_) {}
 
   /**
    * @brief     Destructor of Loss Layer

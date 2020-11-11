@@ -82,12 +82,13 @@ public:
   sharedConstTensors backwarding(sharedConstTensors in, int iteration);
 
   /**
-   * @brief     get the base name for the layer
-   * @retval    base name of the layer
+   * @copydoc Layer::getType()
    */
-  std::string getBaseName() { return "Output"; };
+  const std::string getType() const { return OutputLayer::type; };
 
   using Layer::setProperty;
+
+  static const std::string type;
 
   /**
    * @copydoc Layer::setProperty(const PropertyType type, const std::string

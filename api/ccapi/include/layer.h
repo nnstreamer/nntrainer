@@ -214,6 +214,155 @@ std::unique_ptr<Layer>
 createLayer(const std::string &type,
             const std::vector<std::string> &properties = {});
 
+namespace layer {
+
+/**
+ * @brief Helper function to create input layer
+ */
+inline std::unique_ptr<Layer>
+Input(const std::vector<std::string> &properties = {}) {
+  return createLayer(LayerType::LAYER_IN, properties);
+}
+
+/**
+ * @brief Helper function to create fully connected layer
+ */
+inline std::unique_ptr<Layer>
+FullyConnected(const std::vector<std::string> &properties = {}) {
+  return createLayer(LayerType::LAYER_FC, properties);
+}
+
+/**
+ * @brief Helper function to create batch normalization layer
+ */
+inline std::unique_ptr<Layer>
+BatchNormalization(const std::vector<std::string> &properties = {}) {
+  return createLayer(LayerType::LAYER_BN, properties);
+}
+
+/**
+ * @brief Helper function to create convolution 2d layer
+ */
+inline std::unique_ptr<Layer>
+Convolution2D(const std::vector<std::string> &properties = {}) {
+  return createLayer(LayerType::LAYER_CONV2D, properties);
+}
+
+/**
+ * @brief Helper function to create pooling 2d layer
+ */
+inline std::unique_ptr<Layer>
+Pooling2D(const std::vector<std::string> &properties = {}) {
+  return createLayer(LayerType::LAYER_POOLING2D, properties);
+}
+
+/**
+ * @brief Helper function to create flatten layer
+ */
+inline std::unique_ptr<Layer>
+Flatten(const std::vector<std::string> &properties = {}) {
+  return createLayer(LayerType::LAYER_FLATTEN, properties);
+}
+
+/**
+ * @brief Helper function to create addition layer
+ */
+inline std::unique_ptr<Layer>
+Addition(const std::vector<std::string> &properties = {}) {
+  return createLayer(LayerType::LAYER_ADDITION, properties);
+}
+
+/**
+ * @brief Helper function to create concat layer
+ */
+inline std::unique_ptr<Layer>
+Concat(const std::vector<std::string> &properties = {}) {
+  return createLayer(LayerType::LAYER_CONCAT, properties);
+}
+
+/**
+ * @brief Helper function to create multi-out layer
+ */
+inline std::unique_ptr<Layer>
+MultiOut(const std::vector<std::string> &properties = {}) {
+  return createLayer(LayerType::LAYER_OUT, properties);
+}
+
+/**
+ * @brief Helper function to create nnstreamer backbone layer
+ */
+inline std::unique_ptr<Layer>
+BackboneNNStreamer(const std::vector<std::string> &properties = {}) {
+  return createLayer(LayerType::LAYER_BACKBONE_NNSTREAMER, properties);
+}
+
+/**
+ * @brief Helper function to create tflite backbone layer
+ */
+inline std::unique_ptr<Layer>
+BackboneTFLite(const std::vector<std::string> &properties = {}) {
+  return createLayer(LayerType::LAYER_BACKBONE_TFLITE, properties);
+}
+
+/**
+ * @brief Helper function to create activation layer
+ */
+inline std::unique_ptr<Layer>
+Activation(const std::string &act,
+           const std::vector<std::string> &properties = {}) {
+  std::vector<std::string> props(properties);
+  props.push_back(act);
+  return createLayer(LayerType::LAYER_ACTIVATION, props);
+}
+
+/**
+ * @brief Helper function to create ReLU activation layer
+ */
+inline std::unique_ptr<Layer>
+ReLU(const std::vector<std::string> &properties = {}) {
+  return Activation("Activation=relu", properties);
+}
+
+/**
+ * @brief Helper function to create Tanh layer
+ */
+inline std::unique_ptr<Layer>
+Tanh(const std::vector<std::string> &properties = {}) {
+  return Activation("Activation=tanh", properties);
+}
+
+/**
+ * @brief Helper function to create sigmoid layer
+ */
+inline std::unique_ptr<Layer>
+Sigmoid(const std::vector<std::string> &properties = {}) {
+  return Activation("Activation=sigmoid", properties);
+}
+
+/**
+ * @brief Helper function to create softmax layer
+ */
+inline std::unique_ptr<Layer>
+Softmax(const std::vector<std::string> &properties = {}) {
+  return Activation("Activation=softmax", properties);
+}
+
+} // namespace layer
+
+namespace loss {
+/**
+ * @brief Helper function to create mse layer
+ */
+std::unique_ptr<Layer> MSE(const std::vector<std::string> &properties = {});
+
+/**
+ * @brief Helper function to create cross entropy layer
+ */
+std::unique_ptr<Layer>
+CrossEntropy(const std::vector<std::string> &properties = {});
+
+} // namespace loss
+
 } // namespace train
 } // namespace ml
 

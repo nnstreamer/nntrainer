@@ -7,6 +7,7 @@ layer_sources = [
   'fc_layer.cpp',
   'flatten_layer.cpp',
   'input_layer.cpp',
+  'output_layer.cpp',
   'layer.cpp',
   'layer_factory.cpp',
   'loss_layer.cpp',
