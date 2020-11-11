@@ -51,7 +51,7 @@ This component defines layers which consist of a neural network model. Layers ha
 
 NNTrainer Provides
 
- | Keyward | Optimizer Name | Description |
+ | Keyword | Optimizer Name | Description |
  |:-------:|:---:|:---:|
  | sgd | Stochastic Gradient Decent | - |
  | adam | Adaptive Moment Estimation | - |
@@ -60,7 +60,7 @@ NNTrainer Provides
 
 NNTrainer provides
 
- | Keyward | Loss Name | Description |
+ | Keyword | Loss Name | Description |
  |:-------:|:---:|:---:|
  | mse | Mean squared Error | - |
  | cross | Cross Entropy - sigmoid | if activation last layer is sigmoid |
@@ -70,7 +70,7 @@ NNTrainer provides
 
 NNTrainer provides
 
- | Keyward | Loss Name | Description |
+ | Keyword | Loss Name | Description |
  |:-------:|:---:|:---|
  | tanh | tanh function | set as layer property |
  | sigmoid | sigmoid function | set as layer property |
@@ -85,7 +85,7 @@ NNTrainer provides
 Tensor is responsible for calculation of a layer. It executes several operations such as addition, division, multiplication, dot production, data averaging and so on. In order to accelerate  calculation speed, CBLAS (C-Basic Linear Algebra: CPU) and CUBLAS (CUDA: Basic Linear Algebra) for PC (Especially NVIDIA GPU) are implemented for some of the operations. Later, these calculations will be optimized.
 Currently, we supports lazy calculation mode to reduce complexity for copying tensors during calculations.
 
- | Keyward | Description |
+ | Keyword | Description |
  |:-------:|:---:|
  | 4D Tensor | B, C, H, W|
  | Add/sub/mul/div | - |
@@ -98,7 +98,7 @@ Currently, we supports lazy calculation mode to reduce complexity for copying te
 
 NNTrainer provides
 
- | Keyward | Loss Name | Description |
+ | Keyword | Loss Name | Description |
  |:-------:|:---:|:---|
  | weight_initializer | Weight Initialization | Xavier(Normal/Uniform), LeCun(Normal/Uniform),  HE(Normal/Unifor) |
  | weight_regularizer | weight decay ( L2Norm only ) | needs set weight_regularizer_constant & type |
