@@ -911,4 +911,8 @@ void NeuralNetwork::print(std::ostream &out, unsigned int flags,
   /// @todo Add status to check neuralnet has been run. #290
 }
 
+void NeuralNetwork::setSavePath(const std::string &path) {
+  save_path = app_context.getWorkingPath(path);
+}
+
 } /* namespace nntrainer */

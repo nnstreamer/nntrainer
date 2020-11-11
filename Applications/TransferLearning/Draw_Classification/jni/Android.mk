@@ -62,7 +62,8 @@ LOCAL_LDLIBS := -llog
 
 LOCAL_SRC_FILES := main.cpp
 
-LOCAL_SHARED_LIBRARIES := capi-nntrainer app_utils
+# @todo add api for context
+LOCAL_SHARED_LIBRARIES := nntrainer capi-nntrainer app_utils
 
 LOCAL_C_INCLUDES += $(TFLITE_INCLUDES) $(NNTRAINER_INCLUDES) $(APP_UTILS_INCLUDES)
 

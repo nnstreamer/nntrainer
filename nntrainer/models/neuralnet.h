@@ -28,6 +28,7 @@
 #include <vector>
 
 #include <activation_layer.h>
+#include <app_context.h>
 #include <bn_layer.h>
 #include <conv2d_layer.h>
 #include <databuffer.h>
@@ -77,7 +78,7 @@ public:
   /**
    * @brief     Constructor of NeuralNetwork Class
    */
-  NeuralNetwork() :
+  NeuralNetwork(AppContext app_context_ = AppContext(AppContext::Global())) :
     batch_size(1),
     epochs(1),
     epoch_idx(0),
@@ -90,7 +91,8 @@ public:
     continue_train(false),
     initialized(false),
     def_name_count(0),
-    loadedFromConfig(false) {}
+    loadedFromConfig(false),
+    app_context(app_context_) {}
 
   /**
    * @brief     Destructor of NeuralNetwork Class
@@ -382,6 +384,8 @@ private:
   RunStats training;   /** training statistics of the model */
   RunStats testing;    /** testing statistics of the model */
 
+  AppContext app_context; /** Configurations bound to current app */
+
   /**
    * @brief print function for neuralnet
    * @param[in] out outstream
@@ -498,6 +502,13 @@ private:
    * @param[in] flags verbosity from ml_train_summary_type_e
    */
   void printMetrics(std::ostream &out, unsigned int flags = 0);
+
+  /**
+   * @brief Set the Save Path
+   *
+   * @param path path to set as a save path
+   */
+  void setSavePath(const std::string &path);
 };
 
 } /* namespace nntrainer */

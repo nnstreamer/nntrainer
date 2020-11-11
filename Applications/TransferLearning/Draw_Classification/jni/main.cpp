@@ -44,6 +44,7 @@
 #endif
 
 #include "bitmap_helpers.h"
+#include <app_context.h>
 #include <nntrainer.h>
 
 /** Number of dimensions for the input data */
@@ -420,11 +421,8 @@ int main(int argc, char *argv[]) {
   /** location of resources ( ../../res/ ) */
   std::string data_path = args[1];
 
-  /// @todo #716 and discard this
-  if (chdir(data_path.c_str()) < 0) {
-    std::cout << "changing directory to data path failed\n";
-    return 1;
-  }
+  /// @todo add capi version of this
+  nntrainer::AppContext::Global().setWorkingDirectory(data_path);
 
   srand(time(NULL));
 

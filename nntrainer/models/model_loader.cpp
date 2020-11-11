@@ -61,7 +61,9 @@ int ModelLoader::loadModelConfigIni(dictionary *ini, NeuralNetwork &model) {
   model.epochs = iniparser_getint(ini, "Model:Epochs", model.epochs);
   model.loss_type = (LossType)parseType(
     iniparser_getstring(ini, "Model:Loss", unknown), TOKEN_LOSS);
-  model.save_path = iniparser_getstring(ini, "Model:Save_path", "./model.bin");
+  const std::string &save_path =
+    iniparser_getstring(ini, "Model:Save_path", "./model.bin");
+  model.setSavePath(save_path);
   model.batch_size =
     iniparser_getint(ini, "Model:Batch_Size", model.batch_size);
 
@@ -384,11 +386,14 @@ int ModelLoader::loadFromIni(std::string ini_file, NeuralNetwork &model,
      * @note The order of backbones in the ini file defines the order on the
      * backbones in the model graph
      */
-    const char *backbone =
+    const char *backbone_path =
       iniparser_getstring(ini, (sec_name + ":Backbone").c_str(), unknown);
-    if (backbone == unknown) {
+
+    const std::string &backbone =
+      model.app_context.getWorkingPath(backbone_path);
+    if (backbone_path == unknown) {
       status = loadLayerConfigIni(ini, layer, sec_name);
-    } else if (fileIni(backbone)) {
+    } else if (fileIni(backbone_path)) {
       status = loadBackboneConfigIni(ini, backbone, model, sec_name);
       NN_INI_RETURN_STATUS();
       continue;
