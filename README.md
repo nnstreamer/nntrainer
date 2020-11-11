@@ -140,11 +140,11 @@ A transfer learning example with for image classification using the Cifar 10 dat
 
 A logistic regression example using NNTrainer.
 
-## Getting Started (https://github.com/nnstreamer/nntrainer/blob/main/docs/getting-started.md)
+## [Getting Started] (https://github.com/nnstreamer/nntrainer/blob/main/docs/getting-started.md)
 
 Instructions for installing NNTrainer.
 
-### Running Examples (https://github.com/nnstreamer/nntrainer/blob/main/docs/how-to-run-examples.md)
+### [Running Examples] (https://github.com/nnstreamer/nntrainer/blob/main/docs/how-to-run-examples.md)
 
 Instructions for preparing NNTrainer for execution
 
