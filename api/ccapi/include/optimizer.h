@@ -124,6 +124,32 @@ std::unique_ptr<Optimizer>
 createOptimizer(const std::string &type,
                 const std::vector<std::string> &properties = {});
 
+/**
+ * @brief Factory creator with constructor for optimizer
+ */
+std::unique_ptr<Optimizer>
+createOptimizer(const OptimizerType &type,
+                const std::vector<std::string> &properties = {});
+
+namespace optimizer {
+
+/**
+ * @brief Helper function to create adam optimizer
+ */
+inline std::unique_ptr<Optimizer>
+Adam(const std::vector<std::string> &properties = {}) {
+  return createOptimizer(OptimizerType::ADAM, properties);
+}
+
+/**
+ * @brief Helper function to create sgd optimizer
+ */
+inline std::unique_ptr<Optimizer>
+SGD(const std::vector<std::string> &properties = {}) {
+  return createOptimizer(OptimizerType::SGD, properties);
+}
+
+} // namespace optimizer
 } // namespace train
 } // namespace ml
 
