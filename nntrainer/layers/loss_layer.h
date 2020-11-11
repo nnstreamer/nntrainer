@@ -111,6 +111,12 @@ public:
 
   static const std::string type;
 
+  /**
+   * @brief     get loss function
+   * @retval loss type.
+   */
+  LossType getLossType() const noexcept { return loss_type; }
+
 private:
   LossType loss_type; /**< loss type of loss layer */
 
