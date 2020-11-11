@@ -67,20 +67,30 @@ int NeuralNetwork::initLossLayer() {
   int status = ML_ERROR_NONE;
   LossType updated_loss_type = loss_type;
 
-  if (layers.empty()) {
-    status = ML_ERROR_INVALID_PARAMETER;
-    NN_RETURN_STATUS();
+  if (layers.back()->getType() != LossLayer::type) {
+    ml_loge("Error: loss layer is not the last layer of the model.");
+    return ML_ERROR_INVALID_PARAMETER;
   }
 
+  NodeType layer = layers.back();
+  std::shared_ptr<LossLayer> loss_layer =
+    std::static_pointer_cast<LossLayer>(layer);
+
   if (updated_loss_type == LossType::LOSS_ENTROPY) {
-    if (!istrequal(layers.back()->getType(), ActivationLayer::type)) {
+    if (layers.size() < 2) {
+      ml_loge("Error: Cross Entropy need last layer to have softmax or sigmoid "
+              "activation.");
+      return ML_ERROR_NOT_SUPPORTED;
+    }
+    NodeType act_layer = *(layers.end() - 2);
+
+    if (!istrequal(act_layer->getType(), ActivationLayer::type)) {
       ml_loge("Error: Cross Entropy need last layer to have softmax or sigmoid "
               "activation.");
       return ML_ERROR_NOT_SUPPORTED;
     }
 
-    NodeType act_layer = layers.back();
-    layers.pop_back();
+    layers.erase(layers.begin() + layers.size() - 2);
 
     switch (act_layer->getActivationType()) {
     case ActivationType::ACT_SIGMOID:
@@ -95,17 +105,9 @@ int NeuralNetwork::initLossLayer() {
     }
   }
 
-  std::shared_ptr<LossLayer> loss_layer = std::make_shared<LossLayer>();
-  ensureName(loss_layer);
-
-  loss_layer->setInputDimension(getOutputDimension());
-  status = loss_layer->initialize();
-  NN_RETURN_STATUS();
-
   status = loss_layer->setLoss(updated_loss_type);
   NN_RETURN_STATUS();
 
-  addLayer(std::static_pointer_cast<Layer>(loss_layer));
   return status;
 }
 
@@ -186,8 +188,28 @@ int NeuralNetwork::init() {
   int status = ML_ERROR_NONE;
   std::vector<TensorDim> previous_dim;
 
+  if (initialized) {
+    ml_loge("Error: Initializing the model again");
+    return ML_ERROR_NOT_SUPPORTED;
+  }
+
   status = isInitializable();
   NN_RETURN_STATUS();
+
+  /** Add loss layer if not already added */
+  if (layers.back()->getType() != LossLayer::type) {
+    std::shared_ptr<LossLayer> loss_layer = std::make_shared<LossLayer>();
+    status = loss_layer->setLoss(loss_type);
+    NN_RETURN_STATUS();
+    addLayer(std::static_pointer_cast<Layer>(loss_layer));
+  } else {
+    std::shared_ptr<LossLayer> loss_layer =
+      std::static_pointer_cast<LossLayer>(layers.back());
+    if (loss_layer->getLossType() != loss_type) {
+      ml_logw("Ignoring the loss type added to model configuration as "
+              "loss layer has been added externally.");
+    }
+  }
 
   ml_logd("initiating neural network, layer size: %d",
           (unsigned int)layers.size());
@@ -239,7 +261,7 @@ int NeuralNetwork::init() {
     previous_dim = l.getOutputDimension();
   }
 
-  /** Add the last layer as loss layer */
+  /** Initialize the last layer which must be loss layer */
   status = initLossLayer();
   NN_RETURN_STATUS();
 
