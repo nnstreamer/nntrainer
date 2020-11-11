@@ -21,6 +21,8 @@
 
 namespace nntrainer {
 
+std::mutex factory_mutex;
+
 AppContext AppContext::instance;
 
 /**
