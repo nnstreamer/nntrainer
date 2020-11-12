@@ -92,9 +92,12 @@ Tensor zero_pad(int batch, Tensor const &in, unsigned int const *padding) {
 }
 
 // This is strip pad and return original tensor
-Tensor strip_pad(Tensor const &in, unsigned int const *padding) {
-  Tensor output(in.batch(), in.channel(), in.height() - padding[0] * 2,
-                in.width() - padding[1] * 2);
+Tensor strip_pad(Tensor const &in, unsigned int const *padding,
+                 Tensor &output) {
+  if (output.uninitialized()) {
+    output = Tensor(in.batch(), in.channel(), in.height() - padding[0] * 2,
+                    in.width() - padding[1] * 2);
+  }
   output.setZero();
 
   for (unsigned int i = 0; i < in.batch(); ++i) {

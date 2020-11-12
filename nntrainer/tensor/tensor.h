@@ -416,11 +416,27 @@ public:
   Tensor apply(std::function<float(float)> f) const;
 
   /**
+   * @brief     Apply function element by element
+   * @param[in] *function function pointer applied
+   * @param[out] output output tensor
+   * @retval    Tensor
+   */
+  Tensor apply(std::function<float(float)> f, Tensor &output) const;
+
+  /**
    * @brief     Apply function to Tensor
    * @param[in] *function function pointer applied
    * @retval    Tensor
    */
   Tensor apply(std::function<Tensor(Tensor)> f) const;
+
+  /**
+   * @brief     Apply function to Tensor
+   * @param[in] *function function pointer applied
+   * @param[out] output output tensor
+   * @retval    Tensor
+   */
+  Tensor apply(std::function<Tensor(Tensor, Tensor &)> f, Tensor &output) const;
 
   Tensor apply_i(std::function<int(const Tensor &)> f) const;
 
@@ -436,6 +452,12 @@ public:
    * @retval    unsigned int length of the current _data
    */
   unsigned int length() const { return dim.getDataLen(); }
+
+  /**
+   * @brief     Get if the tensor has not been initialized
+   * @retval    true if not initialized
+   */
+  bool uninitialized() const { return length() == 0; }
 
   /**
    * @brief     Get size of the data
@@ -479,6 +501,16 @@ public:
    * @param[in] from Tensor to be copied
    */
   void copy(const Tensor &from);
+
+  /**
+   * @brief Get slice of the tensor, sliced by batch
+   * @param[in] offset offset to start the slice
+   * @param[in] size size of the slice
+   * @retval slice of this tensor
+   * @note This function provides a slice of this tensor, and does not create a
+   * copy
+   */
+  Tensor getBatchSlice(unsigned int offset, unsigned int size) const;
 
   /**
    * @brief     Convient wrapper for inplace copy of @a this.

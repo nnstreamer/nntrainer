@@ -52,6 +52,7 @@ sharedConstTensors LossLayer::forwarding(sharedConstTensors in,
   switch (loss_type) {
   case LossType::LOSS_MSE: {
     // y2 <- y2 - y;
+    hidden = y;
     Tensor residual = y2.subtract(y);
     l = residual.chain().multiply_i(residual).average().run();
   } break;
@@ -71,15 +72,11 @@ sharedConstTensors LossLayer::forwarding(sharedConstTensors in,
 
     // loss = log(1 + exp(-abs(y))) + max(y, 0) - (y * y2)
     l = mid_term.subtract(end_term).average();
-    y = y.apply(ActivationLayer::sigmoid);
+    hidden = y.apply(ActivationLayer::sigmoid, hidden);
   } break;
   case LossType::LOSS_ENTROPY_SOFTMAX: {
-    y = y.apply(ActivationLayer::softmax);
-    l = y2.chain()
-          .multiply_i(y.apply(logFloat))
-          .run()
-          .sum_by_batch()
-          .multiply(-1);
+    hidden = y.apply(ActivationLayer::softmax, hidden);
+    l = y2.multiply(hidden.apply(logFloat)).sum_by_batch().multiply(-1);
 
   } break;
   case LossType::LOSS_ENTROPY: {
@@ -92,21 +89,19 @@ sharedConstTensors LossLayer::forwarding(sharedConstTensors in,
   }
 
   updateLoss(l);
-  return {MAKE_SHARED_TENSOR(std::move(y))};
+  return {MAKE_SHARED_TENSOR(hidden)};
 }
 
 sharedConstTensors LossLayer::forwarding(sharedConstTensors in) {
-  Tensor ret;
-
   switch (loss_type) {
   case LossType::LOSS_MSE:
-    return in;
+    hidden = *in[0];
   case LossType::LOSS_ENTROPY_SIGMOID:
-    ret = in[0]->apply(ActivationLayer::sigmoid);
-    return {MAKE_SHARED_TENSOR(std::move(ret))};
+    hidden = in[0]->apply(ActivationLayer::sigmoid, hidden);
+    break;
   case LossType::LOSS_ENTROPY_SOFTMAX:
-    ret = in[0]->apply(ActivationLayer::softmax);
-    return {MAKE_SHARED_TENSOR(std::move(ret))};
+    hidden = in[0]->apply(ActivationLayer::softmax, hidden);
+    break;
   case LossType::LOSS_ENTROPY:
     throw std::runtime_error(
       "Error: Cross Entropy not supported without softmax or sigmoid.");
@@ -115,6 +110,8 @@ sharedConstTensors LossLayer::forwarding(sharedConstTensors in) {
   default:
     throw std::runtime_error("Error: Unknown loss_type.");
   }
+
+  return {MAKE_SHARED_TENSOR(hidden)};
 }
 
 void LossLayer::updateLoss(const Tensor &l) {
@@ -136,21 +133,21 @@ void LossLayer::copy(std::shared_ptr<Layer> l) {
 
 sharedConstTensors LossLayer::backwarding(sharedConstTensors derivative,
                                           int iteration) {
-  Tensor ret_derivative;
   Tensor y2 = *derivative[0];
   Tensor y = input;
+  Tensor ret;
 
   switch (loss_type) {
   case LossType::LOSS_MSE:
     ret_derivative = y.subtract(y2).multiply(2).divide(y.getDim().getDataLen());
     break;
   case LossType::LOSS_ENTROPY_SIGMOID:
-    y = y.apply(ActivationLayer::sigmoid);
-    ret_derivative = y.subtract(y2).divide(y.getDim().getDataLen());
+    ret = y.apply(ActivationLayer::sigmoid, ret);
+    ret_derivative = ret.subtract(y2).divide(ret.getDim().getDataLen());
     break;
   case LossType::LOSS_ENTROPY_SOFTMAX:
-    y = y.apply(ActivationLayer::softmax);
-    ret_derivative = y.subtract(y2).divide(y.batch());
+    ret = y.apply(ActivationLayer::softmax, ret);
+    ret_derivative = ret.subtract(y2).divide(ret.batch());
     break;
   case LossType::LOSS_ENTROPY:
     throw std::runtime_error(
@@ -161,7 +158,7 @@ sharedConstTensors LossLayer::backwarding(sharedConstTensors derivative,
     throw std::runtime_error("Unknown loss_type.");
   }
 
-  return {MAKE_SHARED_TENSOR(std::move(ret_derivative))};
+  return {MAKE_SHARED_TENSOR(ret_derivative)};
 }
 
 int LossLayer::setLoss(LossType l) {

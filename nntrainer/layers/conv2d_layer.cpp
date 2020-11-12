@@ -90,8 +90,9 @@ sharedConstTensors Conv2DLayer::forwarding(sharedConstTensors in) {
   }
 
   TensorDim hidden_dim = output_dim[0];
-  hidden = Tensor(hidden_dim);
-  hidden.setZero();
+  if (hidden.uninitialized()) {
+    hidden = Tensor(hidden_dim);
+  }
 
   /** Calculate Convolution 2D
    *
@@ -141,6 +142,7 @@ sharedConstTensors Conv2DLayer::forwarding(sharedConstTensors in) {
            kdim.getFeatureLen() * sizeof(float));
   }
 
+  Tensor bias_fill(1, 1, hidden.height(), hidden.width());
   for (unsigned int b = 0; b < in_dim.batch(); ++b) {
     std::vector<float> out(out_dim.getFeatureLen());
     Tensor inSub(TensorDim(1, input.channel(), input.height(), input.width()),
@@ -155,9 +157,8 @@ sharedConstTensors Conv2DLayer::forwarding(sharedConstTensors in) {
 
     for (unsigned int i = 0; i < filter_size; i++) {
       Tensor &bias = weightAt(i + filter_size).getVariableRef();
-      Tensor tmp(1, 1, hidden.height(), hidden.width());
-      tmp.setValue(bias.getValue(0, 0, 0, 0));
-      saxpy(hidden.height() * hidden.width(), 1, tmp.getData(), 1,
+      bias_fill.setValue(bias.getValue(0, 0, 0, 0));
+      saxpy(hidden.height() * hidden.width(), 1, bias_fill.getData(), 1,
             hidden.getAddress(b * hidden.getDim().getFeatureLen() +
                               i * hidden.height() * hidden.width()),
             1);
@@ -234,9 +235,7 @@ sharedConstTensors Conv2DLayer::backwarding(sharedConstTensors derivatives,
     std::vector<float> out(kernel_size[0] * kernel_size[1] * in_dim.channel() *
                            filter_size);
 
-    Tensor inSub(
-      TensorDim(1, in_dim.channel(), in_dim.height(), in_dim.width()),
-      input.getAddress(b * input.getDim().getFeatureLen()));
+    Tensor inSub = input.getBatchSlice(b, 1);
 
     status = conv2d_gemm(
       derivative->getAddress(b * derivative->getDim().getFeatureLen()),
@@ -343,10 +342,7 @@ sharedConstTensors Conv2DLayer::backwarding(sharedConstTensors derivatives,
                              in_dim.width() + padding[1] * 2);
 
   for (unsigned int b = 0; b < in_dim.batch(); ++b) {
-    Tensor inSub(
-      TensorDim(1, derivative->channel(), derivative->height(),
-                derivative->width()),
-      derivative->getAddress(b * derivative->getDim().getFeatureLen()));
+    Tensor inSub = derivative->getBatchSlice(b, 1);
 
     status =
       conv2d_gemm(imKernel_raw, kdim, inSub, input_dim_padded, stride, same_pad,
@@ -372,7 +368,8 @@ sharedConstTensors Conv2DLayer::backwarding(sharedConstTensors derivatives,
     opt->apply_gradients(weight_list, num_weights, iteration);
   }
 
-  return {MAKE_SHARED_TENSOR(std::move(strip_pad(ret, padding.data())))};
+  ret_derivative = strip_pad(ret, padding.data(), ret_derivative);
+  return {MAKE_SHARED_TENSOR(ret_derivative)};
 }
 
 void Conv2DLayer::copy(std::shared_ptr<Layer> l) {
