@@ -44,7 +44,7 @@ TEST(nntrainer_activation, softmax_01_p) {
 
   GEN_TEST_INPUT(T, (i * (width) + l + 1));
 
-  Results = T.apply(nntrainer::ActivationLayer::softmax);
+  Results = T.apply(nntrainer::ActivationLayer::softmax, Results);
   float *data = Results.getData();
   ASSERT_NE(nullptr, data);
 
@@ -63,14 +63,16 @@ TEST(nntrainer_activation, softmax_prime_01_p) {
   nntrainer::Tensor input(batch, channel, height, width);
   GEN_TEST_INPUT(input, (i * (width) + k + 1));
 
-  nntrainer::Tensor softmax_result =
-    input.apply(nntrainer::ActivationLayer::softmax);
+  nntrainer::Tensor softmax_result;
+  softmax_result =
+    input.apply(nntrainer::ActivationLayer::softmax, softmax_result);
 
   float *data = softmax_result.getData();
   ASSERT_NE(nullptr, data);
 
-  nntrainer::Tensor softmax_prime_result =
-    nntrainer::ActivationLayer::softmaxPrime(softmax_result);
+  nntrainer::Tensor softmax_prime_result;
+  softmax_prime_result = nntrainer::ActivationLayer::softmaxPrime(
+    softmax_result, softmax_prime_result);
 
   data = softmax_prime_result.getData();
   ASSERT_NE(nullptr, data);

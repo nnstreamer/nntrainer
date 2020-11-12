@@ -56,7 +56,7 @@
 
 #define CREATE_IF_EMPTY_DIMS(tensor, ...) \
   do {                                    \
-    if (tensor.length() == 0)             \
+    if (tensor.uninitialized())           \
       tensor = Tensor(__VA_ARGS__);       \
   } while (0);
 
@@ -264,6 +264,16 @@ Tensor Tensor::subtract(float const &value) { return this->add(-value); }
 
 Tensor Tensor::pow(float exponent) const {
   return apply([=](float in) { return powf(in, exponent); });
+}
+
+Tensor Tensor::getBatchSlice(unsigned int offset, unsigned int size) const {
+  Tensor ret = *this;
+
+  ret.dim.batch(size);
+  ret.data = std::shared_ptr<float>(
+    this->data, this->data.get() + offset * this->dim.getFeatureLen());
+
+  return ret;
 }
 
 int Tensor::operator_i(
@@ -596,16 +606,27 @@ Tensor Tensor::transpose(std::string direction) const {
 }
 
 Tensor Tensor::apply(std::function<float(float)> f) const {
-  Tensor result(dim.batch(), dim.channel(), dim.height(), dim.width());
+  Tensor result;
+  return apply(f, result);
+}
+
+Tensor Tensor::apply(std::function<float(float)> f, Tensor &output) const {
+  if (output.uninitialized())
+    output = Tensor(dim);
+
   const float *data = getData();
-  float *rdata = result.getData();
+  float *rdata = output.getData();
 
   std::transform(data, data + length(), rdata, f);
 
-  return result;
+  return output;
 }
 
 Tensor Tensor::apply(std::function<Tensor(Tensor)> f) const { return f(*this); }
+Tensor Tensor::apply(std::function<Tensor(Tensor, Tensor &)> f,
+                     Tensor &output) const {
+  return f(*this, output);
+}
 
 void Tensor::print(std::ostream &out) const {
   printInstance(out, this);

@@ -98,7 +98,9 @@ void Adam::apply_gradient(Weight &weight, int tensor_idx, double updated_lr,
   wv.multiply_i(beta2);
   wv.add_i(x_grad.multiply(x_grad), 1.0f - beta2);
 
-  x.add_i(wm.divide(wv.apply(sqrtEps)), -updated_lr);
+  Tensor divider;
+  divider = wv.apply(sqrtEps, divider);
+  x.add_i(wm.divide(divider), -updated_lr);
 }
 
 void Adam::setProperty(const PropertyType type, const std::string &value) {

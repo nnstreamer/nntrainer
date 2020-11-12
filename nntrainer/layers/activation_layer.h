@@ -85,17 +85,20 @@ public:
 
   /**
    * @brief       Calculate softmax for Tensor Type
-   * @param[in] t Tensor
+   * @param[in] x Tensor
+   * @param[out] output output Tensor
    * @retval      Tensor
    */
-  static Tensor softmax(Tensor const &x);
+  static Tensor softmax(Tensor const &x, Tensor &output);
 
   /**
    * @brief     derivative softmax function for Tensor Type
    * @param[in] x Tensor
+   * @param[out] output output Tensor
+   * @param[in] derivative derivative Tensor from next layer
    * @retVal    Tensor
    */
-  static Tensor softmaxPrime(Tensor const &x,
+  static Tensor softmaxPrime(Tensor const &x, Tensor &output,
                              Tensor const &derivative = Tensor());
 
   /**
@@ -149,36 +152,37 @@ public:
   static const std::string type;
 
 private:
-  std::function<Tensor(Tensor const &)> _act_fn;
-  std::function<Tensor(Tensor const &, Tensor const &)> _act_prime_fn;
+  std::function<Tensor(Tensor const &, Tensor &)> _act_fn;
+  std::function<Tensor(Tensor const &, Tensor &, Tensor const &)> _act_prime_fn;
 
   /**
    * @brief setActivation by custom activation function
    * @note  apply derivative as this activation_prime_fn does not utilize
    * derivative
-   * @param[in] std::function<Tensor(Tensor const &)> activation_fn activation
-   *            function to be used
-   * @param[in] std::function<Tensor(Tensor const &)> activation_prime_fn
-   *            activation_prime_function to be used
+   * @param[in] std::function<Tensor(Tensor const &, Tensor &)> activation_fn
+   * activation function to be used
+   * @param[in] std::function<Tensor(Tensor const &, Tensor &)>
+   * activation_prime_fn activation_prime_function to be used
    * @retval #ML_ERROR_NONE when successful
    */
   int setActivation(
-    std::function<Tensor(Tensor const &)> const &activation_fn,
-    std::function<Tensor(Tensor const &)> const &activation_prime_fn);
+    std::function<Tensor(Tensor const &, Tensor &)> const &activation_fn,
+    std::function<Tensor(Tensor const &, Tensor &)> const &activation_prime_fn);
 
   /**
    * @brief setActivation by custom activation function
    * @note  derivative not applied here as this activation_prime_fn applies
    * derivative itself
-   * @param[in] std::function<Tensor(Tensor const &)> activation_fn activation
-   *            function to be used
-   * @param[in] std::function<Tensor(Tensor const &, Tensor const &)>
+   * @param[in] std::function<Tensor(Tensor const &, Tensor &)> activation_fn
+   * activation function to be used
+   * @param[in] std::function<Tensor(Tensor const &, Tensor &, Tensor const &)>
    * activation_prime_fn activation_prime_function to be used
    * @retval #ML_ERROR_NONE when successful
    */
-  int setActivation(std::function<Tensor(Tensor const &)> const &activation_fn,
-                    std::function<Tensor(Tensor const &, Tensor const &)> const
-                      &activation_prime_fn);
+  int setActivation(
+    std::function<Tensor(Tensor const &, Tensor &)> const &activation_fn,
+    std::function<Tensor(Tensor const &, Tensor &, Tensor const &)> const
+      &activation_prime_fn);
 
   /**
    * @brief setActivation by custom activation function

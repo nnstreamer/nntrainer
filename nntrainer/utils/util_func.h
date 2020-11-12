@@ -72,9 +72,10 @@ Tensor zero_pad(int batch, Tensor const &in, unsigned int const *padding);
  * @brief     strip padding
  * @param[in] x input
  * @param[in] padding 2D padding size
+ * @param[in] output output tensor
  * @retVal Tensor output tensor without padding
  */
-Tensor strip_pad(Tensor const &in, unsigned int const *padding);
+Tensor strip_pad(Tensor const &in, unsigned int const *padding, Tensor &output);
 
 /**
  * @brief     rotate 180 dgree
