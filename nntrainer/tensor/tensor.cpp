@@ -54,6 +54,12 @@
           }                                                           \
   } while (0);
 
+#define CREATE_IF_EMPTY_DIMS(tensor, ...) \
+  do {                                    \
+    if (tensor.length() == 0)             \
+      tensor = Tensor(__VA_ARGS__);       \
+  } while (0);
+
 /** do clone of this, perform the operation and return the output */
 #define CLONE_OP_I(op, ...)                        \
   do {                                             \
@@ -445,12 +451,20 @@ Tensor Tensor::sum(const std::vector<unsigned int> &axes, float alpha) const {
   return ret;
 }
 
+Tensor Tensor::dot(Tensor const &m, bool trans, bool trans_m) const {
+  Tensor output;
+  dot(m, output, trans, trans_m);
+
+  return output;
+}
+
 /**
  * @note: This dot product flattens the fist 3 axis for the purpose of
  * computation. So, while performing, these matrices are behaving as 2-D
  * matrices. The dimensions are restored while returning back the tensor.
  */
-Tensor Tensor::dot(Tensor const &m, bool trans, bool trans_m) const {
+Tensor Tensor::dot(Tensor const &m, Tensor &result, bool trans,
+                   bool trans_m) const {
   if (m.dim.rank() > 2) {
     throw exception::not_supported("Error: support only for rank of dot "
                                    "matrix <= 2");
@@ -464,7 +478,6 @@ Tensor Tensor::dot(Tensor const &m, bool trans, bool trans_m) const {
   unsigned int dim2 = width();
   unsigned int mdim1 = m.batch() * m.channel() * m.height();
   unsigned int mdim2 = m.width();
-  Tensor result;
 
   unsigned int M, N, K, lda, ldb, ldc;
 
@@ -477,7 +490,7 @@ Tensor Tensor::dot(Tensor const &m, bool trans, bool trans_m) const {
     M = dim1;
     lda = K;
     ldb = N;
-    result = Tensor(batch(), channel(), height(), mdim2);
+    CREATE_IF_EMPTY_DIMS(result, batch(), channel(), height(), mdim2);
 
     // We are not set zero the result because of performnace reason.
     // However, result is not initialized properly. There might include garbage
@@ -493,7 +506,7 @@ Tensor Tensor::dot(Tensor const &m, bool trans, bool trans_m) const {
     M = dim1;
     lda = K;
     ldb = K;
-    result = Tensor(batch(), channel(), height(), mdim1);
+    CREATE_IF_EMPTY_DIMS(result, batch(), channel(), height(), mdim1);
   } else if (trans && !trans_m) {
     if (dim1 != mdim1)
       throw std::runtime_error(
@@ -503,7 +516,7 @@ Tensor Tensor::dot(Tensor const &m, bool trans, bool trans_m) const {
     M = dim2;
     lda = M;
     ldb = N;
-    result = Tensor(1, 1, dim2, mdim2);
+    CREATE_IF_EMPTY_DIMS(result, 1, 1, dim2, mdim2);
   } else {
     if (dim1 != mdim2)
       throw std::runtime_error(
@@ -513,7 +526,7 @@ Tensor Tensor::dot(Tensor const &m, bool trans, bool trans_m) const {
     M = dim2;
     lda = M;
     ldb = K;
-    result = Tensor(1, 1, dim2, mdim1);
+    CREATE_IF_EMPTY_DIMS(result, 1, 1, dim2, mdim1);
   }
   ldc = N;
 

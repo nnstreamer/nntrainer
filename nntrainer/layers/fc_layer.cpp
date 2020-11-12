@@ -82,7 +82,7 @@ sharedConstTensors FullyConnectedLayer::forwarding(sharedConstTensors in) {
   Tensor &bias = weightAt(static_cast<int>(FCParams::bias)).getVariableRef();
 
   input = *in[0];
-  hidden = input.dot(weight);
+  hidden = input.dot(weight, hidden);
   hidden.add_i(bias);
 
   if (weight_regularizer == WeightRegularizerType::l2norm) {
@@ -108,10 +108,10 @@ FullyConnectedLayer::backwarding(sharedConstTensors derivative, int iteration) {
   Tensor &djdw = weightAt(weight_idx).getGradientRef();
   Tensor &djdb = weightAt(bias_idx).getGradientRef();
 
-  Tensor ret = derivative[0]->dot(weight, false, true);
+  ret_derivative = derivative[0]->dot(weight, ret_derivative, false, true);
   djdb = derivative[0]->sum(0);
 
-  djdw = input.dot(*derivative[0], true, false);
+  djdw = input.dot(*derivative[0], djdw, true, false);
   if (isWeightRegularizerL2Norm())
     djdw.add_i(weight, weight_regularizer_constant);
   djdw = djdw.sum(0);
@@ -120,7 +120,7 @@ FullyConnectedLayer::backwarding(sharedConstTensors derivative, int iteration) {
     opt->apply_gradients(weight_list, num_weights, iteration);
   }
 
-  return {MAKE_SHARED_TENSOR(std::move(ret))};
+  return {MAKE_SHARED_TENSOR(ret_derivative)};
 }
 
 void FullyConnectedLayer::scaleSize(float scalesize) noexcept {

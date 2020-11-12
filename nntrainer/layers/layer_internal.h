@@ -334,6 +334,7 @@ protected:
    *            forwading result
    */
   Tensor hidden;
+  Tensor ret_derivative; /** derivative to be returned to previous layer */
 
   /**
    * @brief     Dimension of input activation
