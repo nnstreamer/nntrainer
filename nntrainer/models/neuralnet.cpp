@@ -476,6 +476,9 @@ int NeuralNetwork::train_run() {
     iter = 0;
   }
 
+  sharedTensor in = MAKE_SHARED_TENSOR(getInputDimension()[0]);
+  sharedTensor label = MAKE_SHARED_TENSOR(getOutputDimension()[0]);
+
   for (epoch_idx = epoch_idx + 1; epoch_idx <= epochs; ++epoch_idx) {
     training.loss = 0.0f;
     status = data_buffer->run(nntrainer::BufferType::BUF_TRAIN);
@@ -493,9 +496,6 @@ int NeuralNetwork::train_run() {
     }
 
     int count = 0;
-
-    sharedTensor in = MAKE_SHARED_TENSOR(getInputDimension()[0]);
-    sharedTensor label = MAKE_SHARED_TENSOR(getOutputDimension()[0]);
 
     while (true) {
       if (data_buffer->getDataFromBuffer(nntrainer::BufferType::BUF_TRAIN,

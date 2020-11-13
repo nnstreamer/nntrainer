@@ -202,11 +202,9 @@ Tensor Tensor::divide(float const &value) {
 
 int Tensor::add_i(float const &value) {
   float *data = getData();
-  unsigned int len = length();
 
-  Tensor tmp(dim);
-  tmp.setValue(value);
-  saxpy(len, 1, tmp.getData(), 1, data, 1);
+  std::transform(data, data + length(), data,
+                 std::bind2nd(std::plus<float>(), value));
 
   return ML_ERROR_NONE;
 }
@@ -690,6 +688,7 @@ void Tensor::copy(const Tensor &from) {
     throw std::runtime_error("Cannot copy non-contiguous tensor");
   }
 
+  // TODO: optimize this
   Tensor t = Tensor(from.getDim(), from.getData());
   swap(t, *this);
 }
@@ -788,7 +787,17 @@ float Tensor::l2norm() const {
   return snrm2(len, data, 1);
 }
 
-Tensor Tensor::normalization() const {
+Tensor Tensor::normalization(Tensor &output) const {
+  if (output.uninitialized())
+    output = Tensor(dim);
+
+  output.copy(*this);
+  output.normalization_i();
+
+  return output;
+}
+
+void Tensor::normalization_i() {
   const float *data = getData();
 
   auto bounds = std::minmax_element(data, data + length());
@@ -796,64 +805,43 @@ Tensor Tensor::normalization() const {
   const float max = *bounds.second;
 
   if (max == min) {
-    return this->subtract(*this);
+    Tensor tmp = *this;
+    this->subtract_i(tmp);
+  } else {
+    this->subtract_i(min);
+    this->divide_i(max - min);
   }
-  return this->chain().subtract_i(min).divide_i(max - min).run();
 }
 
 LazyTensor Tensor::chain() const { return LazyTensor(*this); }
 
-Tensor Tensor::standardization() const {
-  Tensor result(dim);
+Tensor Tensor::standardization(Tensor &output) const {
+  if (output.uninitialized())
+    output = Tensor(dim);
 
-  const float *data = getData();
-  float *rdata = result.getData();
+  output.copy(*this);
+  output.standardization_i();
+
+  return output;
+}
+
+void Tensor::standardization_i() {
+  Tensor mean_by_batch = this->sum_by_batch();
+  mean_by_batch.divide_i(dim.getFeatureLen());
+
+  this->subtract_i(mean_by_batch);
+
+  Tensor std_dev_by_batch(dim.batch(), 1, 1, 1);
+  std_dev_by_batch.setZero();
+  float *std_dev = std_dev_by_batch.getData();
 
   for (unsigned int k = 0; k < dim.batch(); ++k) {
-    int K = k * dim.getFeatureLen();
-    float mean;
-    float mean_tmp = 0.0f;
-    float std_tmp = 0.0f;
-    float std_dev = 0.0f;
-
-    for (unsigned int l = 0; l < dim.channel(); ++l) {
-      unsigned int L = K + l * dim.height() * dim.width();
-      for (unsigned int i = 0; i < dim.height(); ++i) {
-        unsigned int I = L + i * dim.width();
-        for (unsigned int j = 0; j < dim.width(); ++j) {
-          unsigned int J = I + j;
-          mean_tmp += data[J];
-        }
-      }
-    }
-
-    mean = mean_tmp / (this->dim.getFeatureLen());
-
-    for (unsigned int l = 0; l < dim.channel(); ++l) {
-      unsigned int L = K + l * dim.height() * dim.width();
-      for (unsigned int i = 0; i < dim.height(); ++i) {
-        unsigned int I = L + i * dim.width();
-        for (unsigned int j = 0; j < dim.width(); ++j) {
-          unsigned int J = I + j;
-          std_tmp += (data[J] - mean) * (data[J] - mean);
-        }
-      }
-    }
-    std_dev = sqrt(std_tmp) / (this->dim.getFeatureLen());
-
-    for (unsigned int l = 0; l < dim.channel(); ++l) {
-      unsigned int L = K + l * dim.height() * dim.width();
-      for (unsigned int i = 0; i < dim.height(); ++i) {
-        unsigned int I = L + i * dim.width();
-        for (unsigned int j = 0; j < dim.width(); ++j) {
-          unsigned int J = I + j;
-          rdata[J] = (data[J] - mean) / std_dev;
-        }
-      }
-    }
+    Tensor sub_this = this->getBatchSlice(k, 1);
+    std_dev[k] = sub_this.l2norm();
   }
 
-  return result;
+  std_dev_by_batch.divide_i(dim.getFeatureLen());
+  this->divide_i(std_dev_by_batch);
 }
 
 Tensor::BroadcastInfo Tensor::computeBroadcastInfo(const Tensor &m) {
