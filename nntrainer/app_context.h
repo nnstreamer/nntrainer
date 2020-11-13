@@ -106,7 +106,7 @@ public:
    * @brief Factory register function, use this function to register custom
    * object
    *
-   * @tparam T object to create
+   * @tparam T object to create. Currently Optimizer is supported
    * @param factory factory function that creates std::unique_ptr<T>
    * @param key key to access the factory, if key is empty, try to find key by
    * calling factory({})->getType();
@@ -150,6 +150,14 @@ public:
     return assigned_int_key;
   }
 
+  /**
+   * @brief Create an Object from the integer key
+   *
+   * @tparam T Type of Object, currently, Only optimizer is supported
+   * @param int_key integer key
+   * @param props property
+   * @return PtrType<T> unique pointer to the object
+   */
   template <typename T>
   PtrType<T> createObject(const int int_key, const PropsType &props = {}) {
     auto &index = std::get<IndexType<T>>(factory_map);
@@ -166,6 +174,14 @@ public:
     return createObject<T>(entry->second, props);
   }
 
+  /**
+   * @brief Create an Object from the string key
+   *
+   * @tparam T Type of object, currently, only optimizer is supported
+   * @param key integer key
+   * @param props property
+   * @return PtrType<T> unique pointer to the object
+   */
   template <typename T>
   PtrType<T> createObject(const std::string &key, const PropsType &props = {}) {
     auto &index = std::get<IndexType<T>>(factory_map);
@@ -195,8 +211,6 @@ public:
   }
 
 private:
-  static AppContext instance;
-
   FactoryMap<ml::train::Optimizer> factory_map;
   std::string working_path_base;
 };

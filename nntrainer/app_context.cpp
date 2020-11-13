@@ -15,15 +15,15 @@
 #include <iostream>
 #include <sstream>
 
+#include <adam.h>
 #include <app_context.h>
 #include <nntrainer_log.h>
+#include <sgd.h>
 #include <util_func.h>
 
 namespace nntrainer {
 
 std::mutex factory_mutex;
-
-AppContext AppContext::instance;
 
 /**
  * @brief initiate global context
@@ -37,11 +37,22 @@ static void init_global_context_nntrainer(void) __attribute__((constructor));
  */
 static void fini_global_context_nntrainer(void) __attribute__((destructor));
 
-static void init_global_context_nntrainer(void) {}
+static void init_global_context_nntrainer(void) {
+  using OptType = ml::train::OptimizerType;
+
+  auto &ac = AppContext::Global();
+  ac.registerFactory(ml::train::createOptimizer<SGD>, SGD::type, OptType::SGD);
+  ac.registerFactory(ml::train::createOptimizer<Adam>);
+  ac.registerFactory(AppContext::unknownFactory<ml::train::Optimizer>,
+                     "unknown", OptType::UNKNOWN);
+}
 
 static void fini_global_context_nntrainer(void) {}
 
-AppContext &AppContext::Global() { return AppContext::instance; }
+AppContext &AppContext::Global() {
+  static AppContext instance;
+  return instance;
+}
 
 static const std::string func_tag = "[AppContext::setWorkingDirectory] ";
 

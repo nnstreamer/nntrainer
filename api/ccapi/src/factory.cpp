@@ -14,6 +14,7 @@
 #include <string>
 #include <vector>
 
+#include <app_context.h>
 #include <databuffer.h>
 #include <databuffer_factory.h>
 #include <layer.h>
@@ -101,12 +102,8 @@ CrossEntropy(const std::vector<std::string> &properties) {
 std::unique_ptr<Optimizer>
 createOptimizer(const std::string &type,
                 const std::vector<std::string> &properties) {
-  std::unique_ptr<Optimizer> optimizer = nntrainer::createOptimizer(type);
-
-  if (optimizer->setProperty(properties) != ML_ERROR_NONE)
-    throw std::invalid_argument("Set properties failed for optimizer");
-
-  return optimizer;
+  auto ac = nntrainer::AppContext::Global();
+  return ac.createObject<Optimizer>(type, properties);
 }
 
 /**

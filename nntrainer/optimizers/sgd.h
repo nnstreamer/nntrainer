@@ -42,7 +42,6 @@ public:
    */
   const std::string getType() const { return SGD::type; }
 
-private:
   static const std::string type;
 };
 } /* namespace nntrainer */

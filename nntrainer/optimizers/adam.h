@@ -90,9 +90,9 @@ public:
    */
   double getEpsilon() { return epsilon; }
 
-private:
   static const std::string type;
 
+private:
   /**
    * @brief Internal Tensors for adam Optimizer
    */
