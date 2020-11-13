@@ -17,37 +17,27 @@
 namespace nntrainer {
 
 Weight::Weight(const Weight &rhs) :
-  initializer(rhs.initializer),
-  trainable(rhs.trainable),
-  name(rhs.name) {
-  var = rhs.var.clone();
-  grad = rhs.grad.clone();
-}
+  Var_Grad(static_cast<const Var_Grad &>(rhs)),
+  initializer(rhs.initializer) {}
 
 Weight &Weight::operator=(const Weight &rhs) {
   Weight temp(rhs);
   swap(temp, *this);
   return *this;
 }
-
 Weight::Weight(const TensorDim &dim, const WeightInitializer init, bool train,
                std::string name) :
-  initializer(init),
-  trainable(train),
-  name(name) {
+  Var_Grad(dim, train, name),
+  initializer(init) {
   if (initializer == WeightInitializer::WEIGHT_UNKNOWN)
     throw std::invalid_argument("Weight initializer unknown");
 
-  initializeVar(dim);
-  if (trainable) {
-    grad = Tensor(dim);
-    grad.setZero();
-  } else
-    grad = Tensor();
+  initializeWeight();
 }
 
-void Weight::initializeVar(const TensorDim &dim) {
-  var = Tensor(dim);
+void Weight::initializeWeight() {
+  const TensorDim dim = var.getDim();
+
   switch (initializer) {
   case WeightInitializer::WEIGHT_ZEROS:
     var.setZero();

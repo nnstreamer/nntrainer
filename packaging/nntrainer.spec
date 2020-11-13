@@ -381,6 +381,7 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %{_includedir}/nntrainer/optimizer_internal.h
 %{_includedir}/nntrainer/optimizer_factory.h
 %{_includedir}/nntrainer/nntrainer-api-common.h
+%{_includedir}/nntrainer/var_grad.h
 %{_includedir}/nntrainer/weight.h
 %{_includedir}/nntrainer/app_context.h
 %{_includedir}/nntrainer/network_graph.h

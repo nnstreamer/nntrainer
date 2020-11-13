@@ -15,6 +15,7 @@
 #define __WEIGHT_H__
 
 #include <tensor.h>
+#include <var_grad.h>
 
 namespace nntrainer {
 
@@ -45,7 +46,7 @@ enum class WeightInitializer {
  * @class   Weight
  * @brief   Weight with gradient, and its corresponding trainable property
  */
-class Weight {
+class Weight : public Var_Grad {
 
   /** Declare layers as friend to get variable/gradient reference */
   friend class Layer;
@@ -62,7 +63,7 @@ public:
   /**
    * @brief Weight default constructor
    */
-  Weight() : initializer(WeightInitializer::WEIGHT_UNKNOWN), trainable(false) {}
+  Weight() : Var_Grad(), initializer(WeightInitializer::WEIGHT_UNKNOWN) {}
 
   /**
    * @brief Construct a new Weight object
@@ -78,11 +79,9 @@ public:
     bool train = true, std::string name = "");
 
   /**
-   * @brief Allocate and initialize the variable
-   *
-   * @param dim Dimension for the variable
+   * @brief Allocate and initialize the weight variable
    */
-  void initializeVar(const TensorDim &dim);
+  void initializeWeight();
 
   /**
    * @brief Swap for weight
@@ -93,12 +92,8 @@ public:
    */
   friend void swap(Weight &lhs, Weight &rhs) noexcept {
     using std::swap;
-
-    swap(lhs.var, rhs.var);
+    swap(static_cast<Var_Grad &>(lhs), static_cast<Var_Grad &>(rhs));
     swap(lhs.initializer, rhs.initializer);
-    swap(lhs.trainable, rhs.trainable);
-    swap(lhs.grad, rhs.grad);
-    swap(lhs.name, rhs.name);
   }
 
   /**
@@ -131,62 +126,8 @@ public:
    */
   Weight &operator=(Weight &&rhs) = default;
 
-  /**
-   * @brief Get the TensorDim
-   *
-   * @return TensorDim Dimension
-   */
-  TensorDim getDim() { return var.getDim(); }
-
-  /**
-   * @brief Get if the weight is trainable
-   *
-   * @return true if trainable
-   * @return false is not trainable
-   */
-  bool getTrainable() { return trainable; }
-
-  /**
-   * @brief Get the name of the weight
-   *
-   * @return std::string name
-   */
-  std::string getName() { return name; }
-
-  /**
-   * @brief Get the variable tensor (by name)
-   *
-   * @return Tensor Variable tensor
-   */
-  Tensor getVariable() { return var; }
-
-  /**
-   * @brief Get the Gradient tensor (by name)
-   *
-   * @return Tensor Gradient tensor
-   */
-  Tensor getGradient() { return grad; }
-
 private:
-  /**
-   * @brief Get the variable tensor (by reference)
-   *
-   * @return Tensor Variable tensor
-   */
-  Tensor &getVariableRef() { return var; }
-
-  /**
-   * @brief Get the Gradient tensor (by reference)
-   *
-   * @return Tensor Gradient tensor
-   */
-  Tensor &getGradientRef() { return grad; }
-
-  Tensor var;                    /**< variable to be updated and used */
-  Tensor grad;                   /**< gradient for the variable */
   WeightInitializer initializer; /**< initializer for this variable */
-  bool trainable;                /**< if this variable is trainable */
-  std::string name;              /**< name of the parameter */
 };
 
 } // namespace nntrainer
