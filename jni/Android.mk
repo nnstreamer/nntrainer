@@ -61,6 +61,7 @@ NNTRAINER_SRCS := $(NNTRAINER_ROOT)/nntrainer/models/neuralnet.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/dataset/databuffer_file.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/tensor/tensor.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/tensor/lazy_tensor.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/tensor/var_grad.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/tensor/weight.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/tensor/tensor_dim.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/tensor/blas_interface.cpp \

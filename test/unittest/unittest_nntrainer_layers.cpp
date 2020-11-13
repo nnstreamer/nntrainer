@@ -1034,16 +1034,13 @@ TEST_F(nntrainer_Conv2DLayer, save_read_01_p) {
 
   std::ifstream read_file("save.bin");
   ASSERT_TRUE(read_file.good());
-  layer.read(read_file);
-
-  read_file.seekg(0, std::ios::beg);
 
   std::ifstream read_file2("save1.bin");
   ASSERT_TRUE(read_file2.good());
 
   float d1, d2;
 
-  for (int i = 0; i < (5 * 5 * 3 * 6) + 6; ++i) {
+  for (int i = 0; i < (5 * 5 * 3 * 12) + 12; ++i) {
     read_file.read((char *)&d1, sizeof(float));
     read_file2.read((char *)&d2, sizeof(float));
     EXPECT_FLOAT_EQ(d1, d2);

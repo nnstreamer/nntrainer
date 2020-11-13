@@ -3,13 +3,15 @@ tensor_sources = [
   'lazy_tensor.cpp',
   'tensor.cpp',
   'tensor_dim.cpp',
+  'var_grad.cpp',
   'weight.cpp'
 ]
 
 tensor_headers = [
   'tensor.h',
   'tensor_dim.h',
-  'weight.h'
+  'weight.h',
+  'var_grad.h'
 ]
 
 foreach s : tensor_sources
