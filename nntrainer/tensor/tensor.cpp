@@ -383,7 +383,9 @@ Tensor Tensor::sum_by_batch() {
  */
 Tensor Tensor::sum(unsigned int axis, float alpha) const {
   Tensor ret;
-
+  return sum(ret, axis, alpha);
+}
+Tensor Tensor::sum(Tensor &ret, unsigned int axis, float alpha) const {
   const float *data = getData();
 
   if (axis >= 4)
@@ -394,7 +396,7 @@ Tensor Tensor::sum(unsigned int axis, float alpha) const {
 
   switch (axis) {
   case 0: {
-    ret = Tensor(1, dim.channel(), dim.height(), dim.width());
+    CREATE_IF_EMPTY_DIMS(ret, 1, dim.channel(), dim.height(), dim.width());
     unsigned int feat_len = dim.getFeatureLen();
     unsigned int batch = dim.batch();
     Tensor ones(1, 1, 1, batch);
@@ -403,7 +405,7 @@ Tensor Tensor::sum(unsigned int axis, float alpha) const {
           ones.getData(), 1, 0.0, ret.getData(), 1);
   } break;
   case 1: {
-    ret = Tensor(dim.batch(), 1, dim.height(), dim.width());
+    CREATE_IF_EMPTY_DIMS(ret, dim.batch(), 1, dim.height(), dim.width());
     unsigned int feat_len = dim.height() * dim.width();
     unsigned int channel = dim.channel();
     Tensor ones(1, 1, 1, channel);
@@ -416,7 +418,7 @@ Tensor Tensor::sum(unsigned int axis, float alpha) const {
     }
   } break;
   case 2: {
-    ret = Tensor(dim.batch(), dim.channel(), 1, dim.width());
+    CREATE_IF_EMPTY_DIMS(ret, dim.batch(), dim.channel(), 1, dim.width());
     unsigned int width = dim.width();
     unsigned int height = dim.height();
     Tensor ones(1, 1, 1, height);
@@ -433,7 +435,7 @@ Tensor Tensor::sum(unsigned int axis, float alpha) const {
     }
   } break;
   case 3: {
-    ret = Tensor(dim.batch(), dim.channel(), dim.height(), 1);
+    CREATE_IF_EMPTY_DIMS(ret, dim.batch(), dim.channel(), dim.height(), 1);
     unsigned int m = ret.dim.getDataLen();
     unsigned int n = dim.width();
     Tensor ones(1, 1, 1, n);
