@@ -98,6 +98,7 @@ void Adam::apply_gradient(Weight &weight, int tensor_idx, double updated_lr,
   wv.multiply_i(beta2);
   wv.add_i(x_grad.multiply(x_grad), 1.0f - beta2);
 
+  // TODO: combine this operation to reduce from two temp allocations to one
   Tensor divider;
   divider = wv.apply(sqrtEps, divider);
   x.add_i(wm.divide(divider), -updated_lr);

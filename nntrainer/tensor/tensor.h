@@ -395,13 +395,25 @@ public:
    * @brief     Normalize the Tensor elements
    * @retval    Calculated Tensor
    */
-  Tensor normalization() const;
+  Tensor normalization(Tensor &output) const;
 
   /**
    * @brief     Standardize the Tensor elements
    * @retval    Calculated Tensor
    */
-  Tensor standardization() const;
+  Tensor standardization(Tensor &output) const;
+
+  /**
+   * @brief     Normalize the Tensor elements in-place
+   * @retval    Calculated Tensor
+   */
+  void normalization_i();
+
+  /**
+   * @brief     Standardize the Tensor elements in-place
+   * @retval    Calculated Tensor
+   */
+  void standardization_i();
 
   /**
    * @brief     Fill the Tensor elements with zero

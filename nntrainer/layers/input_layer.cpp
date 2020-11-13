@@ -58,9 +58,9 @@ sharedConstTensors InputLayer::forwarding(sharedConstTensors in) {
 
   hidden = input;
   if (normalization)
-    hidden = hidden.normalization();
+    hidden.normalization_i();
   if (standardization)
-    hidden = hidden.standardization();
+    hidden.standardization_i();
 
   return {MAKE_SHARED_TENSOR(hidden)};
 }

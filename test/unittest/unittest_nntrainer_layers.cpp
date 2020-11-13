@@ -999,7 +999,6 @@ protected:
                   "weight_regularizer=l2norm |"
                   "weight_regularizer_constant= 0.005 |"
                   "weight_initializer=xavier_uniform |"
-                  "normalization=true |"
                   "filters=12 | kernel_size= 5,5 | stride=3,3 | padding=1,1");
 
     EXPECT_EQ(status, ML_ERROR_NONE);
