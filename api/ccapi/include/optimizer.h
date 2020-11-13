@@ -21,6 +21,7 @@
 #include <string>
 #include <vector>
 
+#include <ml-api-common.h>
 #include <nntrainer-api-common.h>
 
 namespace ml {
@@ -131,6 +132,24 @@ std::unique_ptr<Optimizer>
 createOptimizer(const OptimizerType &type,
                 const std::vector<std::string> &properties = {});
 
+/*
+ * @brief General Optimizer Factory function to register optimizer
+ *
+ * @param props property representation
+ * @return std::unique_ptr<ml::train::Optimizer> created object
+ */
+template <typename T,
+          std::enable_if_t<std::is_base_of<Optimizer, T>::value, T> * = nullptr>
+std::unique_ptr<Optimizer>
+createOptimizer(const std::vector<std::string> &props = {}) {
+  std::unique_ptr<Optimizer> ptr = std::make_unique<T>();
+
+  if (ptr->setProperty(props) != ML_ERROR_NONE) {
+    throw std::invalid_argument("Set properties failed for optimizer");
+  }
+  return ptr;
+}
+
 namespace optimizer {
 
 /**
@@ -150,6 +169,7 @@ SGD(const std::vector<std::string> &properties = {}) {
 }
 
 } // namespace optimizer
+
 } // namespace train
 } // namespace ml
 
