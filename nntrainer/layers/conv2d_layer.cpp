@@ -81,14 +81,6 @@ sharedConstTensors Conv2DLayer::forwarding(sharedConstTensors in) {
   TensorDim &in_dim = input_dim[0];
   TensorDim &out_dim = output_dim[0];
 
-  if (normalization) {
-    input = input.normalization();
-  }
-
-  if (standardization) {
-    input = input.standardization();
-  }
-
   TensorDim hidden_dim = output_dim[0];
   hidden = Tensor(hidden_dim);
   hidden.setZero();
@@ -457,18 +449,6 @@ void Conv2DLayer::setProperty(const PropertyType type,
   case PropertyType::padding:
     if (!value.empty()) {
       status = getValues(CONV2D_DIM, value, (int *)(padding.data()));
-      throw_status(status);
-    }
-    break;
-  case PropertyType::normalization:
-    if (!value.empty()) {
-      status = setBoolean(normalization, value);
-      throw_status(status);
-    }
-    break;
-  case PropertyType::standardization:
-    if (!value.empty()) {
-      status = setBoolean(standardization, value);
       throw_status(status);
     }
     break;
