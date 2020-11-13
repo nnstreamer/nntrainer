@@ -294,6 +294,12 @@ int NetworkGraph::addLossLayer(const LossType loss_type) {
   layer->input_layers.clear();
   layer->input_layers.push_back(input_str);
 
+  if (layer->output_layers.size() == 0) {
+    layer->num_outputs = 1;
+    layer->output_dim.resize(1);
+    layer->output_layers.push_back("exit");
+  }
+
   std::shared_ptr<LossLayer> temp = std::dynamic_pointer_cast<LossLayer>(layer);
   temp->setLoss(updated_loss_type);
 
@@ -419,8 +425,8 @@ int NetworkGraph::setGraphNode(std::vector<std::shared_ptr<Layer>> layers,
 
 void NetworkGraph::setNumNetBufferSize() {
   for (unsigned int i = 0; i < Sorted.size(); ++i) {
-    Sorted[i].input.resize(Sorted[i].layer->input_layers.size());
-    Sorted[i].hidden.resize(Sorted[i].layer->output_layers.size());
+    Sorted[i].layer->net_input.resize(Sorted[i].layer->input_layers.size());
+    Sorted[i].layer->net_hidden.resize(Sorted[i].layer->output_layers.size());
   }
 }
 
@@ -488,6 +494,45 @@ int NetworkGraph::setEdge() {
   }
 
   return status;
+}
+
+void NetworkGraph::setBatchSize(unsigned int batch_size) {
+  for (auto const &layer_node : Sorted) {
+    layer_node.layer->setBatch(batch_size);
+  }
+}
+
+sharedConstTensors NetworkGraph::forwarding(sharedConstTensors input) {
+  for (unsigned int i = 0; i < Sorted.size() - 1; ++i) {
+    LayerNode &layer_node = Sorted[i];
+    if (layer_node.layer->getType() == LayerType::LAYER_IN) {
+      layer_node.layer->forwarding(input);
+    } else {
+      layer_node.layer->forwarding();
+    }
+  }
+
+  std::vector<sharedConstTensor> out;
+
+  for (unsigned int i = 0; i < Sorted[Sorted.size() - 2].layer->num_outputs;
+       ++i) {
+    out.push_back(
+      MAKE_SHARED_TENSOR(Sorted[Sorted.size() - 2].layer->net_hidden[i]->var));
+  }
+
+  return out;
+}
+
+void NetworkGraph::backwarding(sharedConstTensors output, int iteration) {
+
+  for (unsigned int i = Sorted.size() - 1; i > 0; i--) {
+    LayerNode &layer_node = Sorted[i];
+    if (layer_node.layer->getType() == LayerType::LAYER_LOSS) {
+      layer_node.layer->backwarding(iteration, output);
+    } else {
+      layer_node.layer->backwarding(iteration);
+    }
+  }
 }
 
 } /* namespace nntrainer */

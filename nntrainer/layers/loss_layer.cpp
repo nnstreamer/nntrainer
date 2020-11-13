@@ -44,9 +44,9 @@ int LossLayer::initialize() {
 
 sharedConstTensors LossLayer::forwarding(sharedConstTensors in,
                                          sharedConstTensors label) {
-  input = *in[0];
   Tensor y2 = *label[0];
-  Tensor y = input;
+  Tensor &y = net_hidden[0]->var;
+  y = net_input[0]->var;
   Tensor l;
 
   switch (loss_type) {
@@ -92,15 +92,18 @@ sharedConstTensors LossLayer::forwarding(sharedConstTensors in,
   return {MAKE_SHARED_TENSOR(hidden)};
 }
 
-sharedConstTensors LossLayer::forwarding(sharedConstTensors in) {
+void LossLayer::forwarding(sharedConstTensors in) {
   switch (loss_type) {
   case LossType::LOSS_MSE:
-    hidden = *in[0];
+    net_hidden[0]->var = net_input[0]->var;
+    break;
   case LossType::LOSS_ENTROPY_SIGMOID:
-    hidden = in[0]->apply(ActivationLayer::sigmoid, hidden);
+    net_hidden[0]->var =
+      net_input[0]->var.apply(ActivationLayer::sigmoid, net_hidden[0]->var);
     break;
   case LossType::LOSS_ENTROPY_SOFTMAX:
-    hidden = in[0]->apply(ActivationLayer::softmax, hidden);
+    net_hidden[0]->var =
+      net_input[0]->var.apply(ActivationLayer::softmax, net_hidden[0]->var);
     break;
   case LossType::LOSS_ENTROPY:
     throw std::runtime_error(
@@ -110,8 +113,6 @@ sharedConstTensors LossLayer::forwarding(sharedConstTensors in) {
   default:
     throw std::runtime_error("Error: Unknown loss_type.");
   }
-
-  return {MAKE_SHARED_TENSOR(hidden)};
 }
 
 void LossLayer::updateLoss(const Tensor &l) {
@@ -131,10 +132,10 @@ void LossLayer::copy(std::shared_ptr<Layer> l) {
   this->loss_type = from->loss_type;
 }
 
-sharedConstTensors LossLayer::backwarding(sharedConstTensors derivative,
-                                          int iteration) {
+void LossLayer::backwarding(int iteration, sharedConstTensors derivative) {
+  Tensor &ret_derivative = net_input[0]->grad;
   Tensor y2 = *derivative[0];
-  Tensor y = input;
+  Tensor &y = net_input[0]->var;
   Tensor ret;
 
   switch (loss_type) {
@@ -157,8 +158,6 @@ sharedConstTensors LossLayer::backwarding(sharedConstTensors derivative,
   default:
     throw std::runtime_error("Unknown loss_type.");
   }
-
-  return {MAKE_SHARED_TENSOR(ret_derivative)};
 }
 
 int LossLayer::setLoss(LossType l) {

@@ -165,9 +165,10 @@ void NNStreamerLayer::setProperty(const PropertyType type,
   }
 }
 
-sharedConstTensors NNStreamerLayer::forwarding(sharedConstTensors in) {
+void NNStreamerLayer::forwarding(sharedConstTensors in) {
   size_t data_size;
-  input = *in[0];
+  Tensor input = *in[0];
+  Tensor &hidden_ = net_hidden[0]->var;
 
   std::copy(input.getData(), input.getData() + input.length(),
             (float *)in_data);
@@ -176,7 +177,6 @@ sharedConstTensors NNStreamerLayer::forwarding(sharedConstTensors in) {
   if (status != ML_ERROR_NONE)
     throw std::runtime_error("Failed to forward nnstreamer backbone");
 
-  hidden = Tensor(output_dim[0], static_cast<const float *>(out_data));
   status =
     ml_tensors_data_get_tensor_data(out_data_cont, 0, &out_data, &data_size);
   if (status != ML_ERROR_NONE) {
@@ -185,15 +185,14 @@ sharedConstTensors NNStreamerLayer::forwarding(sharedConstTensors in) {
     throw std::runtime_error("Failed to forward nnstreamer backbone");
   }
 
-  if (data_size != hidden.getSize()) {
+  if (data_size != hidden_.getSize()) {
     ml_tensors_data_destroy(out_data_cont);
     out_data_cont = nullptr;
     throw std::runtime_error("Output size mismatch from nnstreamer backbone.");
   }
 
   std::copy((float *)out_data, (float *)((char *)out_data + data_size),
-            hidden.getData());
-  return {MAKE_SHARED_TENSOR(hidden)};
+            hidden_.getData());
 }
 
 void NNStreamerLayer::copy(std::shared_ptr<Layer> l) {
@@ -204,8 +203,8 @@ void NNStreamerLayer::copy(std::shared_ptr<Layer> l) {
   this->modelfile = from->modelfile;
 }
 
-sharedConstTensors NNStreamerLayer::backwarding(sharedConstTensors derivative,
-                                                int iteration) {
+void NNStreamerLayer::backwarding(int iteration,
+                                  sharedConstTensors derivative) {
   throw exception::not_supported(
     "Backwarding is not supported for nnstreamer layer");
 }

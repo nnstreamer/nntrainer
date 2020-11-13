@@ -53,22 +53,17 @@ void InputLayer::setProperty(const PropertyType type,
   }
 }
 
-sharedConstTensors InputLayer::forwarding(sharedConstTensors in) {
-  input = *in[0];
+void InputLayer::forwarding(sharedConstTensors in) {
+  Tensor &hidden_ = net_hidden[0]->var;
+  hidden_ = *in[0];
 
-  hidden = input;
   if (normalization)
-    hidden.normalization_i();
+    hidden_.normalization_i();
   if (standardization)
-    hidden.standardization_i();
-
-  return {MAKE_SHARED_TENSOR(hidden)};
+    hidden_.standardization_i();
 }
 
-sharedConstTensors InputLayer::backwarding(sharedConstTensors in,
-                                           int iteration) {
-  return in;
-}
+void InputLayer::backwarding(int iteration, sharedConstTensors in) {}
 
 int InputLayer::initialize() {
   int status = ML_ERROR_NONE;

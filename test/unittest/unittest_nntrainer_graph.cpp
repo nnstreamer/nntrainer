@@ -62,6 +62,11 @@ TEST_P(nntrainerGraphTest, loadConfig) {
   std::cout << std::get<0>(GetParam()) << std::endl;
   int status = NN.loadFromConfig(getIniName());
 
+  int batch = 32;
+  int channel = 3;
+  int height = 32;
+  int width = 32;
+
   if (failAtLoad()) {
     EXPECT_NE(status, ML_ERROR_NONE);
   } else {
@@ -83,6 +88,18 @@ TEST_P(nntrainerGraphTest, loadConfig) {
   } else {
     EXPECT_EQ(status, ML_ERROR_NONE);
   }
+
+  nntrainer::Tensor input(batch, channel, height, width);
+  GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k + 1);
+
+  NN.forwarding({MAKE_SHARED_TENSOR(input)});
+
+  nntrainer::Tensor output(10);
+
+  output.setZero();
+  output.setValue(0, 0, 0, 3, 1.0);
+
+  NN.backwarding({MAKE_SHARED_TENSOR(input)}, {MAKE_SHARED_TENSOR(output)}, 1);
 }
 
 static IniSection nw_base("model", "Type = NeuralNetwork | "

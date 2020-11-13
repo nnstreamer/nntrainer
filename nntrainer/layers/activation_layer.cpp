@@ -46,23 +46,21 @@ int ActivationLayer::initialize() {
   return ML_ERROR_NONE;
 }
 
-sharedConstTensors ActivationLayer::forwarding(sharedConstTensors in) {
-  input = *in[0];
+void ActivationLayer::forwarding(sharedConstTensors in) {
+  Tensor &hidden_ = net_hidden[0]->var;
   /// @note @a _act_fn is expected to work out of place and not modify @a input
-  _act_fn(input, hidden);
-
-  return {MAKE_SHARED_TENSOR(hidden)};
+  _act_fn(net_input[0]->var, hidden_);
 }
 
-sharedConstTensors ActivationLayer::backwarding(sharedConstTensors derivative,
-                                                int iteration) {
-  Tensor deriv = *derivative[0];
-  if (activation_type == ActivationType::ACT_SOFTMAX)
-    ret_derivative = _act_prime_fn(hidden, ret_derivative, deriv);
-  else
-    ret_derivative = _act_prime_fn(input, ret_derivative, deriv);
+void ActivationLayer::backwarding(int iteration,
+                                  sharedConstTensors derivative) {
+  Tensor &deriv = net_hidden[0]->grad;
+  Tensor &ret = net_input[0]->grad;
 
-  return {MAKE_SHARED_TENSOR(ret_derivative)};
+  if (activation_type == ActivationType::ACT_SOFTMAX)
+    _act_prime_fn(net_hidden[0]->var, ret, deriv);
+  else
+    _act_prime_fn(net_input[0]->var, ret, deriv);
 }
 
 int ActivationLayer::setActivation(

@@ -43,28 +43,20 @@ int OutputLayer::initialize() {
   return status;
 }
 
-sharedConstTensors OutputLayer::forwarding(sharedConstTensors in) {
-
-  sharedConstTensors ret;
+void OutputLayer::forwarding(sharedConstTensors in) {
+  Tensor &input_ = net_input[0]->var;
   for (unsigned int idx = 0; idx < num_outputs; ++idx) {
-    Tensor out = Tensor(output_dim[idx]);
-    out = *in[0];
-    ret.push_back(MAKE_SHARED_TENSOR(out));
+    net_hidden[idx]->var = input_;
   }
-
-  return ret;
 }
 
-sharedConstTensors OutputLayer::backwarding(sharedConstTensors derivative,
-                                            int iteration) {
+void OutputLayer::backwarding(int iteration, sharedConstTensors derivative) {
 
-  Tensor ret = Tensor(input_dim[0]);
+  Tensor &ret = net_input[0]->grad;
 
   for (unsigned int idx = 0; idx < num_outputs; ++idx) {
-    ret.add_i(*derivative[idx]);
+    ret.add_i(net_hidden[idx]->grad);
   }
-
-  return {MAKE_SHARED_TENSOR(ret)};
 }
 
 void OutputLayer::setProperty(const PropertyType type,

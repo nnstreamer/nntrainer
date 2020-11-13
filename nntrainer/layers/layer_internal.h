@@ -35,6 +35,11 @@
 
 namespace nntrainer {
 
+struct NetBuffers {
+  Tensor var;
+  Tensor grad;
+};
+
 /**
  * @brief     Enumeration of activation function type
  */
@@ -103,7 +108,7 @@ public:
    * @param[in] in List of Input Tensors taken by this layer
    * @retval    List of Output Tensors
    */
-  virtual sharedConstTensors forwarding(sharedConstTensors in) = 0;
+  virtual void forwarding(sharedConstTensors in = {}) = 0;
 
   /**
    * @brief     Back Propagation of a layer
@@ -111,8 +116,7 @@ public:
    * @param[in] iteration Iteration value for the Optimizer
    * @retval    Derivative List of Tensor for the previous layer
    */
-  virtual sharedConstTensors backwarding(sharedConstTensors in,
-                                         int iteration) = 0;
+  virtual void backwarding(int iteration, sharedConstTensors in = {}) = 0;
 
   /**
    * @brief     read layer Weight & Bias data from file
@@ -330,12 +334,16 @@ protected:
    */
   Tensor input;
 
+  std::vector<std::shared_ptr<NetBuffers>> net_input;
+
   /**
    * @brief     Hidden Layer Tensor which store the
    *            forwading result
    */
   Tensor hidden;
   Tensor ret_derivative; /** derivative to be returned to previous layer */
+
+  std::vector<std::shared_ptr<NetBuffers>> net_hidden;
 
   /**
    * @brief     Dimension of input activation

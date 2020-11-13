@@ -248,10 +248,10 @@ int NeuralNetwork::initialize() {
         n_buffer->var = Tensor(l.getInputDimension()[i]);
         n_buffer->grad = Tensor(l.getInputDimension()[i]);
 
-        model_graph.getSortedLayerNode(idx).input[i] = n_buffer;
+        model_graph.getSortedLayerNode(idx).layer->net_input[i] = n_buffer;
 
-        model_graph.getSortedLayerNode(l.input_layers[i]).hidden[location] =
-          n_buffer;
+        model_graph.getSortedLayerNode(l.input_layers[i])
+          .layer->net_hidden[location] = n_buffer;
       }
     }
 
@@ -265,6 +265,17 @@ int NeuralNetwork::initialize() {
       status = l.setOptimizer(opt);
       NN_RETURN_STATUS();
     }
+  }
+
+  for (unsigned int i = 0; i < model_graph.Sorted.back().layer->num_outputs;
+       ++i) {
+    std::shared_ptr<NetBuffers> last_hidden_buffer =
+      std::make_unique<NetBuffers>();
+    last_hidden_buffer->var =
+      Tensor(model_graph.Sorted.back().layer->getOutputDimension()[i]);
+    last_hidden_buffer->grad =
+      Tensor(model_graph.Sorted.back().layer->getOutputDimension()[i]);
+    model_graph.Sorted.back().layer->net_hidden[i] = last_hidden_buffer;
   }
 
   return status;
@@ -376,12 +387,7 @@ NeuralNetwork::~NeuralNetwork() {
  * @brief     forward propagation using layers object which has layer
  */
 sharedConstTensors NeuralNetwork::forwarding(sharedConstTensors input) {
-  sharedConstTensors X = input;
-  /** Do not forward the loss layer, as label is not available */
-  for (unsigned int i = 0; i < layers.size() - 1; i++) {
-    X = layers[i]->forwarding(X);
-  }
-
+  sharedConstTensors X = model_graph.forwarding(input);
   return X;
 }
 
@@ -391,12 +397,11 @@ sharedConstTensors NeuralNetwork::forwarding(sharedConstTensors input) {
 sharedConstTensors NeuralNetwork::forwarding(sharedConstTensors input,
                                              sharedConstTensors label) {
   sharedConstTensors X;
-
   if (input[0]->getDim().batch() > batch_size)
     throw std::logic_error("Error: mismatch in batchsize for data and model.");
 
   X = forwarding(input);
-  X = std::static_pointer_cast<LossLayer>(layers[layers.size() - 1])
+  X = std::static_pointer_cast<LossLayer>(model_graph.Sorted.back().layer)
         ->forwarding(X, label);
 
   return X;
@@ -410,15 +415,16 @@ sharedConstTensors NeuralNetwork::forwarding(sharedConstTensors input,
 void NeuralNetwork::backwarding(sharedConstTensors input,
                                 sharedConstTensors label, int iteration) {
 
-  if (layers.empty() || !istrequal(layers.back()->getType(), LossLayer::type)) {
+  if (model_graph.Sorted.empty() ||
+      !istrequal(model_graph.Sorted.back()->getType(), LossLayer::type)) {
     throw std::invalid_argument("last layer is not loss layer");
   }
 
   forwarding(input, label);
 
   sharedConstTensors output = label;
-  for (unsigned int i = layers.size() - 1; i > 0; i--)
-    output = layers[i]->backwarding(output, iteration);
+
+  model_graph.backwarding(output, iteration);
 }
 
 float NeuralNetwork::getLoss() {
@@ -495,8 +501,8 @@ void NeuralNetwork::readModel() {
 
 void NeuralNetwork::setBatchSize(unsigned int batch) {
   batch_size = batch;
-  for (auto const &layer : layers)
-    layer->setBatch(batch_size);
+
+  model_graph.setBatchSize(batch);
 
   if (data_buffer && data_buffer->setBatchSize(batch_size) != ML_ERROR_NONE)
     throw std::invalid_argument("Error setting batchsize for the dataset");
@@ -513,14 +519,24 @@ sharedConstTensors NeuralNetwork::inference(sharedConstTensors X) {
 
   sharedConstTensors out;
   try {
-    out = forwarding(X);
+    forwarding(X);
     /** Forward loss layer without label as well */
-    out = std::static_pointer_cast<LossLayer>(layers[layers.size() - 1])
-            ->forwarding(out);
+    std::static_pointer_cast<LossLayer>(model_graph.Sorted.back().layer)
+      ->forwarding();
   } catch (...) {
     ml_loge("Failed to inference Model");
     return out;
   }
+
+  for (unsigned int i = 0;
+       i < model_graph.Sorted[model_graph.Sorted.size() - 1].layer->num_outputs;
+       ++i) {
+    out.push_back(
+      MAKE_SHARED_TENSOR(model_graph.Sorted[model_graph.Sorted.size() - 1]
+                           .layer->net_hidden[i]
+                           ->var));
+  }
+
   return out;
 }
 

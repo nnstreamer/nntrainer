@@ -25,17 +25,9 @@
 
 namespace nntrainer {
 
-struct NetBuffers {
-  Tensor var;
-  Tensor grad;
-};
-
 struct LayerNode {
   std::shared_ptr<Layer> layer;
   unsigned int index;
-  /* TODO : This NetBuffers should be inside of layers*/
-  std::vector<std::shared_ptr<NetBuffers>> input;
-  std::vector<std::shared_ptr<NetBuffers>> hidden;
 };
 
 class NetworkGraph {
@@ -85,6 +77,12 @@ public:
   int addLossLayer(const LossType loss_type);
 
   int setEdge();
+
+  void setBatchSize(unsigned int batch_size);
+
+  sharedConstTensors forwarding(sharedConstTensors input);
+
+  void backwarding(sharedConstTensors input, int iteration);
 
 private:
   void topologicalSortUtil(unsigned int ith, bool visited[],
