@@ -76,20 +76,19 @@ void FullyConnectedLayer::setProperty(const PropertyType type,
   }
 }
 
-sharedConstTensors FullyConnectedLayer::forwarding(sharedConstTensors in) {
+void FullyConnectedLayer::forwarding(sharedConstTensors in) {
   Tensor &weight =
     weightAt(static_cast<int>(FCParams::weight)).getVariableRef();
   Tensor &bias = weightAt(static_cast<int>(FCParams::bias)).getVariableRef();
 
-  input = *in[0];
-  hidden = input.dot(weight, hidden);
-  hidden.add_i(bias);
+  Tensor &hidden_ = net_hidden[0]->var;
+  Tensor &input_ = net_input[0]->var;
+  hidden_ = input_.dot(weight, hidden_);
+  hidden_.add_i(bias);
 
   if (weight_regularizer == WeightRegularizerType::l2norm) {
     loss = weight_regularizer_constant * 0.5f * (weight.l2norm());
   }
-
-  return {MAKE_SHARED_TENSOR(hidden)};
 }
 
 void FullyConnectedLayer::copy(std::shared_ptr<Layer> l) {
@@ -100,26 +99,28 @@ void FullyConnectedLayer::copy(std::shared_ptr<Layer> l) {
   this->unit = from->unit;
 }
 
-sharedConstTensors
-FullyConnectedLayer::backwarding(sharedConstTensors derivative, int iteration) {
+void FullyConnectedLayer::backwarding(int iteration,
+                                      sharedConstTensors derivative) {
   unsigned int weight_idx = static_cast<int>(FCParams::weight);
   unsigned int bias_idx = static_cast<int>(FCParams::bias);
   Tensor &weight = weightAt(weight_idx).getVariableRef();
   Tensor &djdw = weightAt(weight_idx).getGradientRef();
   Tensor &djdb = weightAt(bias_idx).getGradientRef();
 
-  ret_derivative = derivative[0]->dot(weight, ret_derivative, false, true);
-  djdb = derivative[0]->sum(0);
+  Tensor &derivative_ = net_hidden[0]->grad;
+  Tensor &ret_ = net_input[0]->grad;
 
-  djdw = input.dot(*derivative[0], djdw, true, false);
+  ret_ = derivative_.dot(weight, ret_, false, true);
+  djdb = derivative_.sum(0);
+
+  djdw = net_input[0]->var.dot(derivative_, djdw, true, false);
+
   if (isWeightRegularizerL2Norm())
     djdw.add_i(weight, weight_regularizer_constant);
 
   if (trainable) {
     opt->apply_gradients(weight_list, num_weights, iteration);
   }
-
-  return {MAKE_SHARED_TENSOR(ret_derivative)};
 }
 
 void FullyConnectedLayer::scaleSize(float scalesize) noexcept {

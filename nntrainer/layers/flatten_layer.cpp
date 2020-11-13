@@ -41,21 +41,14 @@ int FlattenLayer::initialize() {
   return status;
 }
 
-sharedConstTensors FlattenLayer::forwarding(sharedConstTensors in) {
-  input = *in[0];
-  hidden = input;
-
-  hidden.reshape(output_dim[0]);
-
-  return {MAKE_SHARED_TENSOR(hidden)};
+void FlattenLayer::forwarding(sharedConstTensors in) {
+  memcpy(net_hidden[0]->var.getData(), net_input[0]->var.getData(),
+         output_dim[0].getDataLen());
 }
 
-sharedConstTensors FlattenLayer::backwarding(sharedConstTensors in,
-                                             int iteration) {
-  Tensor temp = *in[0];
-  temp.reshape(input_dim[0]);
-
-  return {MAKE_SHARED_TENSOR(std::move(temp))};
+void FlattenLayer::backwarding(int iteration, sharedConstTensors in) {
+  memcpy(net_input[0]->grad.getData(), net_hidden[0]->grad.getData(),
+         input_dim[0].getDataLen());
 }
 
 } /* namespace nntrainer */

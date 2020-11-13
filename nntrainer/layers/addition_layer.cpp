@@ -41,34 +41,22 @@ int AdditionLayer::initialize() {
   return status;
 }
 
-sharedConstTensors AdditionLayer::forwarding(sharedConstTensors in) {
-  hidden = Tensor(input_dim[0]);
-  hidden.setZero();
-
+void AdditionLayer::forwarding(sharedConstTensors in) {
+  Tensor &hidden_ = net_hidden[0]->var;
   TensorDim &in_dim = input_dim[0];
 
   for (unsigned int idx = 0; idx < num_inputs; ++idx) {
-    if (in_dim != in[idx]->getDim())
+    if (in_dim != net_input[idx]->var.getDim())
       throw std::runtime_error("Error: addition layer requires same "
                                "shape from all input layers");
-    hidden.add_i(*in[idx]);
+    hidden_.add_i(net_input[idx]->var);
   }
-
-  return {MAKE_SHARED_TENSOR(hidden)};
 }
 
-sharedConstTensors AdditionLayer::backwarding(sharedConstTensors derivative,
-                                              int iteration) {
-
-  sharedConstTensors ret;
+void AdditionLayer::backwarding(int iteration, sharedConstTensors derivative) {
   for (unsigned int i = 0; i < num_inputs; ++i) {
-    sharedTensor t =
-      std::shared_ptr<Tensor>(new Tensor(), std::default_delete<Tensor[]>());
-    *t = *derivative[0];
-    ret.push_back(t);
+    net_input[i]->grad = net_hidden[0]->grad;
   }
-
-  return ret;
 }
 
 void AdditionLayer::setProperty(const PropertyType type,

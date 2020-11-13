@@ -70,12 +70,12 @@ public:
   /**
    * @copydoc Layer::forwarding(sharedConstTensors in)
    */
-  sharedConstTensors forwarding(sharedConstTensors in);
+  void forwarding(sharedConstTensors in);
 
   /**
    * @copydoc Layer::backwarding(sharedConstTensors in, int iteration)
    */
-  sharedConstTensors backwarding(sharedConstTensors in, int iteration);
+  void backwarding(int iteration, sharedConstTensors in);
 
   /**
    * @copydoc Layer::getType()

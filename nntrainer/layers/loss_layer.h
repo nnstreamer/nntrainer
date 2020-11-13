@@ -55,7 +55,7 @@ public:
   /**
    * @copydoc Layer::forwarding(sharedConstTensors in)
    */
-  sharedConstTensors forwarding(sharedConstTensors in);
+  void forwarding(sharedConstTensors in = {});
 
   /**
    * @brief     Forward Propagation of a layer
@@ -69,7 +69,7 @@ public:
   /**
    * @copydoc Layer::backwarding(sharedConstTensors in, int iteration)
    */
-  sharedConstTensors backwarding(sharedConstTensors in, int iteration);
+  void backwarding(int iteration, sharedConstTensors in);
 
   /**
    * @brief     read layer Weight & Bias data from file

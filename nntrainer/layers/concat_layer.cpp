@@ -51,14 +51,15 @@ int ConcatLayer::initialize() {
   return status;
 }
 
-sharedConstTensors ConcatLayer::forwarding(sharedConstTensors in) {
-  hidden = Tensor(output_dim[0]);
+void ConcatLayer::forwarding(sharedConstTensors in) {
+  Tensor &hidden_ = net_hidden[0]->var;
 
 #ifdef DEBUG
-  const TensorDim &d = in[0]->getDim();
+  unsigned int channel = 0;
+  const TensorDim &d = net_input[0]->var.getDim();
   channel += d.channel();
   for (unsigned int idx = 1; idx < num_inputs; ++idx) {
-    const TensorDim &dim = in[idx]->getDim();
+    const TensorDim &dim = net_input[idx]->var.getDim();
 
     for (unsigned int i = 2; i < d.rank(); ++i) {
       if (d[i] != dim[i])
@@ -78,39 +79,29 @@ sharedConstTensors ConcatLayer::forwarding(sharedConstTensors in) {
   for (unsigned int b = 0; b < input_dim[0].batch(); ++b) {
     unsigned int position = 0;
     for (unsigned int idx = 0; idx < num_inputs; ++idx) {
-      TensorDim in_dim = in[idx]->getDim();
-      memcpy(hidden.getAddress(b * f_size + position),
-             in[idx]->getAddress(b * in_dim.getFeatureLen()),
+      TensorDim in_dim = net_input[idx]->var.getDim();
+      memcpy(hidden_.getAddress(b * f_size + position),
+             net_input[idx]->var.getAddress(b * in_dim.getFeatureLen()),
              in_dim.getFeatureLen() * sizeof(float));
       position += in_dim.getFeatureLen();
     }
   }
-
-  return {MAKE_SHARED_TENSOR(hidden)};
 }
 
-sharedConstTensors ConcatLayer::backwarding(sharedConstTensors derivative,
-                                            int iteration) {
-  sharedConstTensors ret;
-  TensorDim d = derivative[0]->getDim();
+void ConcatLayer::backwarding(int iteration, sharedConstTensors derivative) {
+  TensorDim d = net_hidden[0]->grad.getDim();
 
   unsigned int position = 0;
   for (unsigned int idx = 0; idx < num_inputs; ++idx) {
     TensorDim in_dim = input_dim[idx];
-    sharedTensor t = std::shared_ptr<Tensor>(new Tensor(in_dim),
-                                             std::default_delete<Tensor>());
 
     for (unsigned int b = 0; b < in_dim.batch(); ++b) {
-      memcpy(t->getAddress(b * in_dim.getFeatureLen()),
-             derivative[0]->getAddress(b * d.getFeatureLen() + position),
+      memcpy(net_input[idx]->grad.getAddress(b * in_dim.getFeatureLen()),
+             net_hidden[0]->grad.getAddress(b * d.getFeatureLen() + position),
              in_dim.getFeatureLen() * sizeof(float));
     }
     position += in_dim.getFeatureLen();
-
-    ret.push_back(t);
   }
-
-  return ret;
 }
 
 void ConcatLayer::setProperty(const PropertyType type,

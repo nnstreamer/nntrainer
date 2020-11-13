@@ -96,7 +96,7 @@ void TfLiteLayer::setProperty(const PropertyType type,
   }
 }
 
-sharedConstTensors TfLiteLayer::forwarding(sharedConstTensors in) {
+void TfLiteLayer::forwarding(sharedConstTensors in) {
 #ifdef DEBUG
   std::vector<TensorDim> dims;
   if (in.size() != input_dim.size())
@@ -126,9 +126,7 @@ sharedConstTensors TfLiteLayer::forwarding(sharedConstTensors in) {
   if (status != kTfLiteOk)
     throw std::runtime_error("Invoke failed");
 
-  hidden = *out[0];
-
-  return out;
+  net_hidden[0]->var = *out[0];
 }
 
 void TfLiteLayer::copy(std::shared_ptr<Layer> l) {
@@ -138,8 +136,7 @@ void TfLiteLayer::copy(std::shared_ptr<Layer> l) {
   this->modelfile = from->modelfile;
 }
 
-sharedConstTensors TfLiteLayer::backwarding(sharedConstTensors derivative,
-                                            int iteration) {
+void TfLiteLayer::backwarding(int iteration, sharedConstTensors derivative) {
   throw exception::not_supported(
     "Backwarding is not supported for tflite layer");
 }

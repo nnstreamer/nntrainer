@@ -66,27 +66,25 @@ int Pooling2DLayer::initialize() {
   return status;
 }
 
-sharedConstTensors Pooling2DLayer::forwarding(sharedConstTensors in) {
-  input = *in[0];
+void Pooling2DLayer::forwarding(sharedConstTensors in) {
+  Tensor &input_ = net_input[0]->var;
+  Tensor &hidden_ = net_hidden[0]->var;
 
   TensorDim hidden_dim = output_dim[0];
   TensorDim &in_dim = input_dim[0];
 
-  hidden = Tensor(hidden_dim);
-  hidden.setZero();
+  hidden_.setZero();
 
   for (unsigned int b = 0; b < in_dim.batch(); ++b) {
-    Tensor in_padded = zero_pad(b, input, padding.data());
+    Tensor in_padded = zero_pad(b, input_, padding.data());
     Tensor result = pooling2d(b, in_padded);
-    memcpy(hidden.getAddress(b * hidden.getDim().getFeatureLen()),
+    memcpy(hidden_.getAddress(b * hidden_.getDim().getFeatureLen()),
            result.getData(), result.getDim().getDataLen() * sizeof(float));
   }
-
-  return {MAKE_SHARED_TENSOR(hidden)};
 }
 
-sharedConstTensors Pooling2DLayer::backwarding(sharedConstTensors derivative,
-                                               int iteration) {
+void Pooling2DLayer::backwarding(int iteration,
+                                 sharedConstTensors derivatives) {
   unsigned int batch = input_dim[0].batch();
   unsigned int channel = input_dim[0].channel();
   unsigned int height = input_dim[0].height();
@@ -96,13 +94,16 @@ sharedConstTensors Pooling2DLayer::backwarding(sharedConstTensors derivative,
   unsigned int p_size = p_height * p_width;
 
   unsigned int J, K;
-  Tensor result = Tensor(input_dim[0]);
+  Tensor &result = net_input[0]->grad;
   result.setZero();
+
+  Tensor &deriv = net_hidden[0]->grad;
+
   float *out = result.getData();
   switch (pooling_type) {
   case PoolingType::max: {
-    for (unsigned int i = 0; i < derivative[0]->getDim().getDataLen(); ++i) {
-      out[max_idx[i]] += derivative[0]->getData()[i];
+    for (unsigned int i = 0; i < deriv.getDim().getDataLen(); ++i) {
+      out[max_idx[i]] += deriv.getData()[i];
     }
   } break;
   case PoolingType::average: {
@@ -112,8 +113,7 @@ sharedConstTensors Pooling2DLayer::backwarding(sharedConstTensors derivative,
         for (unsigned int j = 0; j <= height - p_height; j += stride[0]) {
           K = 0;
           for (unsigned int k = 0; k <= width - p_width; k += stride[1]) {
-            float del =
-              derivative[0]->getValue(b, i, J, K) / static_cast<float>(p_size);
+            float del = deriv.getValue(b, i, J, K) / static_cast<float>(p_size);
             for (unsigned int pi = 0; pi < p_height; ++pi) {
               for (unsigned int pj = 0; pj < p_width; ++pj) {
                 result.setValue(b, i, j + pi, k + pj,
@@ -128,8 +128,8 @@ sharedConstTensors Pooling2DLayer::backwarding(sharedConstTensors derivative,
     }
   } break;
   case PoolingType::global_max: {
-    for (unsigned int i = 0; i < derivative[0]->getDim().getDataLen(); ++i) {
-      float der = derivative[0]->getData()[i] / max_idx_global[i].size();
+    for (unsigned int i = 0; i < deriv.getDim().getDataLen(); ++i) {
+      float der = deriv.getData()[i] / max_idx_global[i].size();
       for (unsigned int m = 0; m < max_idx_global[i].size(); m++) {
         out[max_idx_global[i][m]] += der;
       }
@@ -139,7 +139,7 @@ sharedConstTensors Pooling2DLayer::backwarding(sharedConstTensors derivative,
     unsigned int p_size = width * height;
     for (unsigned int b = 0; b < batch; ++b) {
       for (unsigned int i = 0; i < channel; ++i) {
-        float del = derivative[0]->getValue(b, 0, 0, i) / (p_size);
+        float del = deriv.getValue(b, 0, 0, i) / (p_size);
         for (unsigned int j = 0; j < height; ++j) {
           for (unsigned int k = 0; k < width; ++k) {
             result.setValue(b, i, j, k, del);
@@ -152,7 +152,6 @@ sharedConstTensors Pooling2DLayer::backwarding(sharedConstTensors derivative,
   default:
     throw std::runtime_error("Error: Unknown Pooling Type");
   }
-  return {MAKE_SHARED_TENSOR(std::move(result))};
 }
 
 int Pooling2DLayer::setSize(int *size, PropertyType type) {
