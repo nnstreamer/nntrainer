@@ -86,7 +86,7 @@ void Adam::apply_gradient(Weight &weight, int tensor_idx, double updated_lr,
   // x.add_i(wm.divide(denom), -ll / biasCorrection1);
 
   std::function<double(double)> sqrtEps = [&](double f) {
-    return sqrtDouble(f) + this->epsilon;
+    return 1 / (sqrtDouble(f) + this->epsilon);
   };
 
   Tensor &wm = weight_mv[tensor_idx].first;
@@ -98,10 +98,10 @@ void Adam::apply_gradient(Weight &weight, int tensor_idx, double updated_lr,
   wv.multiply_i(beta2);
   wv.add_i(x_grad.multiply(x_grad), 1.0f - beta2);
 
-  // TODO: combine this operation to reduce from two temp allocations to one
   Tensor divider;
   divider = wv.apply(sqrtEps, divider);
-  x.add_i(wm.divide(divider), -updated_lr);
+  divider.multiply_i(wm);
+  x.add_i(divider, -updated_lr);
 }
 
 void Adam::setProperty(const PropertyType type, const std::string &value) {

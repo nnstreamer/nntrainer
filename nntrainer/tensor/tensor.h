@@ -341,6 +341,19 @@ public:
   Tensor sum(unsigned int axis, float alpha = 1.0) const;
 
   /**
+   * @brief     sum all the Tensor elements according to the axis
+   *            0 : batch direction
+   *            1 : channel direction
+   *            2 : height direction
+   *            3 : width direction
+   * @param[out] output output tensor
+   * @param[in] axis Axis to calculate sum along
+   * @param[in] alpha Scale the sum by this value
+   * @retval    Calculated Tensor
+   */
+  Tensor sum(Tensor &output, unsigned int axis, float alpha = 1.0) const;
+
+  /**
    * @brief sum all the Tensor by multiple axes
    *
    * @param axes axes to sum along

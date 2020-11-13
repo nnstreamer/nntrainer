@@ -114,7 +114,6 @@ FullyConnectedLayer::backwarding(sharedConstTensors derivative, int iteration) {
   djdw = input.dot(*derivative[0], djdw, true, false);
   if (isWeightRegularizerL2Norm())
     djdw.add_i(weight, weight_regularizer_constant);
-  djdw = djdw.sum(0);
 
   if (trainable) {
     opt->apply_gradients(weight_list, num_weights, iteration);
