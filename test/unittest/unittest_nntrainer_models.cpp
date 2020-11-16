@@ -17,6 +17,7 @@
 
 #include <gtest/gtest.h>
 
+#include <input_layer.h>
 #include <layer.h>
 #include <neuralnet.h>
 #include <weight.h>
@@ -163,6 +164,12 @@ public:
    * @param in input file stream
    */
   void read(std::ifstream &in);
+
+  /**
+   * @brief get Node type
+   *
+   * @return LayerType
+   */
 
 private:
   NodeType node;

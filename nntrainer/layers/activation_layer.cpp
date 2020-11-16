@@ -52,8 +52,7 @@ void ActivationLayer::forwarding(sharedConstTensors in) {
   _act_fn(net_input[0]->var, hidden_);
 }
 
-void ActivationLayer::backwarding(int iteration,
-                                  sharedConstTensors derivative) {
+void ActivationLayer::calcDerivative(sharedConstTensors derivative) {
   Tensor &deriv = net_hidden[0]->grad;
   Tensor &ret = net_input[0]->grad;
 

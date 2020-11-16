@@ -83,8 +83,7 @@ void Pooling2DLayer::forwarding(sharedConstTensors in) {
   }
 }
 
-void Pooling2DLayer::backwarding(int iteration,
-                                 sharedConstTensors derivatives) {
+void Pooling2DLayer::calcDerivative(sharedConstTensors derivative) {
   unsigned int batch = input_dim[0].batch();
   unsigned int channel = input_dim[0].channel();
   unsigned int height = input_dim[0].height();

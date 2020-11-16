@@ -53,7 +53,8 @@ void AdditionLayer::forwarding(sharedConstTensors in) {
   }
 }
 
-void AdditionLayer::backwarding(int iteration, sharedConstTensors derivative) {
+void AdditionLayer::calcDerivative(sharedConstTensors derivative) {
+
   for (unsigned int i = 0; i < num_inputs; ++i) {
     net_input[i]->grad = net_hidden[0]->grad;
   }

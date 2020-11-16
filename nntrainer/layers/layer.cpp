@@ -164,6 +164,12 @@ void Layer::save(std::ofstream &file) {
     opt->save(file);
 }
 
+void Layer::applyGradient(unsigned int iteration) {
+  if (trainable && num_weights > 0) {
+    opt->apply_gradients(weight_list, num_weights, iteration);
+  }
+}
+
 int Layer::setProperty(std::vector<std::string> values) {
   int status = ML_ERROR_NONE;
 

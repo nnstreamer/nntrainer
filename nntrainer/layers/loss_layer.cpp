@@ -135,7 +135,7 @@ void LossLayer::copy(std::shared_ptr<Layer> l) {
   this->loss_type = from->loss_type;
 }
 
-void LossLayer::backwarding(int iteration, sharedConstTensors derivative) {
+void LossLayer::calcDerivative(sharedConstTensors derivative) {
   Tensor &ret_derivative = net_input[0]->grad;
   Tensor y2 = *derivative[0];
   Tensor &y = net_input[0]->var;

@@ -52,9 +52,9 @@ public:
   void forwarding(sharedConstTensors in);
 
   /**
-   * @copydoc Layer::backwarding(sharedConstTensors in, int iteration)
+   * @copydoc Layer::calcDerivative(sharedConstTensors in)
    */
-  void backwarding(int iteration, sharedConstTensors in);
+  void calcDerivative(sharedConstTensors in);
 
   /**
    * @copydoc Layer::copy(std::shared_ptr<layer> l)
