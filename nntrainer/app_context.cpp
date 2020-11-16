@@ -15,11 +15,34 @@
 #include <iostream>
 #include <sstream>
 
-#include <adam.h>
 #include <app_context.h>
 #include <nntrainer_log.h>
-#include <sgd.h>
 #include <util_func.h>
+
+#include <adam.h>
+#include <sgd.h>
+
+#include <activation_layer.h>
+#include <addition_layer.h>
+#include <bn_layer.h>
+#include <concat_layer.h>
+#include <conv2d_layer.h>
+#include <fc_layer.h>
+#include <flatten_layer.h>
+#include <input_layer.h>
+#include <loss_layer.h>
+#include <nntrainer_error.h>
+#include <output_layer.h>
+#include <parse_util.h>
+#include <pooling2d_layer.h>
+
+#ifdef ENABLE_TFLITE_BACKBONE
+#include <tflite_layer.h>
+#endif
+
+#ifdef ENABLE_NNSTREAMER_BACKBONE
+#include <nnstreamer_layer.h>
+#endif
 
 namespace nntrainer {
 
@@ -38,13 +61,51 @@ static void init_global_context_nntrainer(void) __attribute__((constructor));
 static void fini_global_context_nntrainer(void) __attribute__((destructor));
 
 static void init_global_context_nntrainer(void) {
-  using OptType = ml::train::OptimizerType;
-
+  /// @note all layers should be added to the app_context to gaurantee that
+  /// createLayer/createOptimizer class is created
   auto &ac = AppContext::Global();
+
+  using OptType = ml::train::OptimizerType;
   ac.registerFactory(ml::train::createOptimizer<SGD>, SGD::type, OptType::SGD);
-  ac.registerFactory(ml::train::createOptimizer<Adam>);
+  ac.registerFactory(ml::train::createOptimizer<Adam>, Adam::type,
+                     OptType::ADAM);
   ac.registerFactory(AppContext::unknownFactory<ml::train::Optimizer>,
                      "unknown", OptType::UNKNOWN);
+
+  using LayerType = ml::train::LayerType;
+  ac.registerFactory(ml::train::createLayer<InputLayer>, InputLayer::type,
+                     LayerType::LAYER_IN);
+  ac.registerFactory(ml::train::createLayer<FullyConnectedLayer>,
+                     FullyConnectedLayer::type, LayerType::LAYER_FC);
+  ac.registerFactory(ml::train::createLayer<BatchNormalizationLayer>,
+                     BatchNormalizationLayer::type, LayerType::LAYER_BN);
+  ac.registerFactory(ml::train::createLayer<Conv2DLayer>, Conv2DLayer::type,
+                     LayerType::LAYER_CONV2D);
+  ac.registerFactory(ml::train::createLayer<Pooling2DLayer>,
+                     Pooling2DLayer::type, LayerType::LAYER_POOLING2D);
+  ac.registerFactory(ml::train::createLayer<FlattenLayer>, FlattenLayer::type,
+                     LayerType::LAYER_FLATTEN);
+  ac.registerFactory(ml::train::createLayer<ActivationLayer>,
+                     ActivationLayer::type, LayerType::LAYER_ACTIVATION);
+  ac.registerFactory(ml::train::createLayer<AdditionLayer>, AdditionLayer::type,
+                     LayerType::LAYER_ADDITION);
+  ac.registerFactory(ml::train::createLayer<ConcatLayer>, ConcatLayer::type,
+                     LayerType::LAYER_CONCAT);
+  ac.registerFactory(ml::train::createLayer<OutputLayer>, OutputLayer::type,
+                     LayerType::LAYER_OUT);
+  ac.registerFactory(ml::train::createLayer<LossLayer>, LossLayer::type,
+                     LayerType::LAYER_LOSS);
+#ifdef ENABLE_NNSTREAMER_BACKBONE
+  ac.registerFactory(ml::train::createLayer<NNStreamerLayer>,
+                     NNStreamerLayer::type,
+                     LayerType::LAYER_BACKBONE_NNSTREAMER);
+#endif
+#ifdef ENABLE_TFLITE_BACKBONE
+  ac.registerFactory(ml::train::createLayer<TfLiteLayer>, TfLiteLayer::type,
+                     LayerType::LAYER_BACKBONE_TFLITE);
+#endif
+  ac.registerFactory(AppContext::unknownFactory<ml::train::Layer>, "unknown",
+                     LayerType::LAYER_UNKNOWN);
 }
 
 static void fini_global_context_nntrainer(void) {}

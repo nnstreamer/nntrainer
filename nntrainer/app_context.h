@@ -2,11 +2,11 @@
 /**
  * Copyright (C) 2020 Jihoon Lee <jhoon.it.lee@samsung.com>
  *
- * @file	 app_context.h
- * @date	 10 November 2020
- * @brief	 This file contains app context related functions and classes that
+ * @file   app_context.h
+ * @date   10 November 2020
+ * @brief  This file contains app context related functions and classes that
  * manages the global configuration of the current environment
- * @see		 https://github.com/nnstreamer/nntrainer
+ * @see    https://github.com/nnstreamer/nntrainer
  * @author Jihoon Lee <jhoon.it.lee@samsung.com>
  * @bug    No known bugs except for NYI items
  *
@@ -107,7 +107,7 @@ public:
    * @brief Factory register function, use this function to register custom
    * object
    *
-   * @tparam T object to create. Currently Optimizer is supported
+   * @tparam T object to create. Currently Optimizer, Layer is supported
    * @param factory factory function that creates std::unique_ptr<T>
    * @param key key to access the factory, if key is empty, try to find key by
    * calling factory({})->getType();
@@ -222,7 +222,7 @@ public:
   }
 
 private:
-  FactoryMap<ml::train::Optimizer> factory_map;
+  FactoryMap<ml::train::Optimizer, ml::train::Layer> factory_map;
   std::string working_path_base;
 };
 

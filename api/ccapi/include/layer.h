@@ -21,6 +21,7 @@
 #include <string>
 #include <vector>
 
+#include <ml-api-common.h>
 #include <nntrainer-api-common.h>
 
 namespace ml {
@@ -362,6 +363,23 @@ std::unique_ptr<Layer>
 CrossEntropy(const std::vector<std::string> &properties = {});
 
 } // namespace loss
+
+/**
+ * @brief General Layer Factory function to register Layer
+ *
+ * @param props property representation
+ * @return std::unique_ptr<ml::train::Layer> created object
+ */
+template <typename T,
+          std::enable_if_t<std::is_base_of<Layer, T>::value, T> * = nullptr>
+std::unique_ptr<Layer> createLayer(const std::vector<std::string> &props = {}) {
+  std::unique_ptr<Layer> ptr = std::make_unique<T>();
+
+  if (ptr->setProperty(props) != ML_ERROR_NONE) {
+    throw std::invalid_argument("Set properties failed for layer");
+  }
+  return ptr;
+}
 
 } // namespace train
 } // namespace ml

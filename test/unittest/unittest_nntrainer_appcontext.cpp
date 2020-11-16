@@ -122,6 +122,32 @@ public:
   void checkValidation() {}
 };
 
+/// @todo solidify the api signature
+class CustomLayer : public ml::train::Layer {
+public:
+  static const std::string type;
+
+  int setProperty(std::vector<std::string> values) { return 1; }
+
+  void setProperty(const PropertyType type, const std::string &value = "") {}
+
+  int checkValidation() { return 1; }
+
+  float getLoss() { return 0.0f; }
+
+  void setTrainable(bool train) {}
+
+  bool getFlatten() { return true; }
+
+  std::string getName() noexcept { return ""; }
+
+  const std::string getType() const { return CustomLayer::type; }
+
+  void printPreset(std::ostream &out, PrintPreset preset) {}
+};
+
+const std::string CustomLayer::type = "identity_layer";
+
 using AC = nntrainer::AppContext;
 
 AC::PtrType<ml::train::Optimizer>
@@ -131,6 +157,7 @@ createCustomOptimizer(const AC::PropsType &v) {
   return p;
 }
 
+/// @todo change this to TEST_P to add other types of object
 TEST(nntrainerAppContextObjs, RegisterCreateCustomOptimizer_p) {
 
   // register without key in this case, getType() will be called and used
