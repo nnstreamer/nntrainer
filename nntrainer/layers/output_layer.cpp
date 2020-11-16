@@ -50,7 +50,7 @@ void OutputLayer::forwarding(sharedConstTensors in) {
   }
 }
 
-void OutputLayer::backwarding(int iteration, sharedConstTensors derivative) {
+void OutputLayer::calcDerivative(sharedConstTensors derivative) {
 
   Tensor &ret = net_input[0]->grad;
 

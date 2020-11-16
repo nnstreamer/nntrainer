@@ -136,9 +136,7 @@ void Conv2DLayer::forwarding(sharedConstTensors in) {
   Tensor bias_fill(1, 1, hidden_.height(), hidden_.width());
   for (unsigned int b = 0; b < in_dim.batch(); ++b) {
     std::vector<float> out(out_dim.getFeatureLen());
-    Tensor inSub(
-      TensorDim(1, input_.channel(), input_.height(), input_.width()),
-      input_.getAddress(b * input_.getDim().getFeatureLen()));
+    Tensor inSub = input_.getBatchSlice(b, 1);
 
     status = conv2d_gemm(imkernel.data(), kdim, inSub, out_dim, stride, padding,
                          out.data(), out.size(), true);
@@ -167,96 +165,16 @@ void Conv2DLayer::forwarding(sharedConstTensors in) {
   }
 }
 
-void Conv2DLayer::backwarding(int iteration, sharedConstTensors derivatives) {
+void Conv2DLayer::calcDerivative(sharedConstTensors derivatives) {
 
+  int status = ML_ERROR_NONE;
   TensorDim &in_dim = input_dim[0];
 
   std::array<unsigned int, CONV2D_DIM> same_pad;
   Tensor &derivative = net_hidden[0]->grad;
-  Tensor &input_ = net_input[0]->var;
 
   same_pad[0] = kernel_size[0] - 1;
   same_pad[1] = kernel_size[1] - 1;
-
-  for (unsigned int i = 0; i < filter_size; ++i) {
-    Tensor &delK = weightAt(i).getGradientRef();
-    Tensor &delBias = weightAt(i + filter_size).getGradientRef();
-    delK.setZero();
-    delBias.setZero();
-  }
-
-  /** Calculate DelK
-   *
-   * This is the 2D Matrix Shape [ height ] x [ width ]
-   *   . Height : filter_size
-   *   . Width  : derivative.height * derivative.width
-   *
-   *                          derivative
-   *                        +------|------+
-   *                        |------|------|
-   *  [filter_size (height) |------|------|
-   * (=derivative->channel) |------|------|
-   *                        +------|------+
-   *                     [derivative->height
-   *                       * derivative->width (width)]
-   *
-   *
-   * After im2Col with channel_mode false ( in : input )
-   *
-   * This is the 2D Matrix Shape [ height ] x [ width ]
-   *   . Height : derivative.height * derivative.width
-   *   . Width  : input_dim.channel * Kernel_size[0] * Kernel_size[1]
-   *
-   *                      +-|-|-|-|      |-|-|-|-+
-   *                      | | | | |      | | | | |
-   *  [derivative->width  |_|_|_|_|      |_|_|_|_|
-   * * derivative->height | | | | | .... | | | | |
-   *   (height)]          +_|_|_|_|      |_|_|_|_+
-   *                     [ input_dim.channel * kernel_size[0]
-   *                      * kernel_size[1] (width) ]
-   *
-   * Output Dimension
-   *   -> [ derivative->channel = filter_size (height) ]
-   *       x [input_dim.channel * kernel_size[0] * kernel_size[1] (width) ]
-   */
-
-  int status = ML_ERROR_NONE;
-  for (unsigned int b = 0; b < in_dim.batch(); ++b) {
-    std::vector<float> out(kernel_size[0] * kernel_size[1] * in_dim.channel() *
-                           filter_size);
-
-    Tensor inSub = input_.getBatchSlice(b, 1);
-
-    status = conv2d_gemm(
-      derivative.getAddress(b * derivative.getDim().getFeatureLen()),
-      TensorDim(1, derivative.channel(), derivative.height(),
-                derivative.width()),
-      inSub,
-      TensorDim(1, 1, filter_size,
-                kernel_size[0] * kernel_size[1] * in_dim.channel()),
-      stride, padding, out.data(), out.size(), false);
-    if (status != ML_ERROR_NONE)
-      throw std::runtime_error("Backwarding Convolution failed.");
-
-    for (unsigned int i = 0; i < filter_size; ++i) {
-      Tensor &delK = weightAt(i).getGradientRef();
-      Tensor &delBias = weightAt(i + filter_size).getGradientRef();
-      float *del = delK.getData();
-      unsigned int s = kernel_size[0] * kernel_size[1] * in_dim.channel();
-
-      for (unsigned int k = 0; k < s; ++k) {
-        del[k] += out[i * s + k];
-      }
-
-      float sum = 0.0;
-      for (unsigned int j = 0; j < derivative.height(); ++j) {
-        for (unsigned int k = 0; k < derivative.width(); ++k) {
-          sum += derivative.getValue(b, i, j, k);
-        }
-      }
-      delBias.setValue(0, 0, 0, 0, sum + delBias.getValue(0, 0, 0, 0));
-    }
-  }
 
   /** Calculate return derivative
    *
@@ -339,26 +257,108 @@ void Conv2DLayer::backwarding(int iteration, sharedConstTensors derivatives) {
                   ret.getAddress(b * ret.getDim().getFeatureLen()),
                   input_dim_padded.getFeatureLen(), true);
     if (status != ML_ERROR_NONE)
-      throw std::runtime_error("Backwarding Convolution failed.");
-  }
-
-  if (trainable) {
-    //  Update K / bias
-    for (unsigned int i = 0; i < filter_size; ++i) {
-      Tensor &delK = weightAt(i).getGradientRef();
-      Tensor &filters = weightAt(i).getVariableRef();
-
-      if (isWeightRegularizerL2Norm()) {
-        status = delK.add_i(filters, weight_regularizer_constant);
-        if (status != ML_ERROR_NONE)
-          throw std::runtime_error("Weight regularization failed");
-      }
-    }
-
-    opt->apply_gradients(weight_list, num_weights, iteration);
+      throw std::runtime_error("calcDerivative Convolution failed.");
   }
 
   strip_pad(ret, padding.data(), net_input[0]->grad);
+}
+
+void Conv2DLayer::calcGradient(sharedConstTensors derivatives) {
+  TensorDim &in_dim = input_dim[0];
+
+  Tensor &derivative = net_hidden[0]->grad;
+  Tensor &input_ = net_input[0]->var;
+  for (unsigned int i = 0; i < filter_size; ++i) {
+    Tensor &delK = weightAt(i).getGradientRef();
+    Tensor &delBias = weightAt(i + filter_size).getGradientRef();
+    delK.setZero();
+    delBias.setZero();
+  }
+
+  /** Calculate DelK
+   *
+   * This is the 2D Matrix Shape [ height ] x [ width ]
+   *   . Height : filter_size
+   *   . Width  : derivative.height * derivative.width
+   *
+   *                          derivative
+   *                        +------|------+
+   *                        |------|------|
+   *  [filter_size (height) |------|------|
+   * (=derivative->channel) |------|------|
+   *                        +------|------+
+   *                     [derivative->height
+   *                       * derivative->width (width)]
+   *
+   *
+   * After im2Col with channel_mode false ( in : input )
+   *
+   * This is the 2D Matrix Shape [ height ] x [ width ]
+   *   . Height : derivative.height * derivative.width
+   *   . Width  : input_dim.channel * Kernel_size[0] * Kernel_size[1]
+   *
+   *                      +-|-|-|-|      |-|-|-|-+
+   *                      | | | | |      | | | | |
+   *  [derivative->width  |_|_|_|_|      |_|_|_|_|
+   * * derivative->height | | | | | .... | | | | |
+   *   (height)]          +_|_|_|_|      |_|_|_|_+
+   *                     [ input_dim.channel * kernel_size[0]
+   *                      * kernel_size[1] (width) ]
+   *
+   * Output Dimension
+   *   -> [ derivative->channel = filter_size (height) ]
+   *       x [input_dim.channel * kernel_size[0] * kernel_size[1] (width) ]
+   */
+
+  int status = ML_ERROR_NONE;
+  for (unsigned int b = 0; b < in_dim.batch(); ++b) {
+    std::vector<float> out(kernel_size[0] * kernel_size[1] * in_dim.channel() *
+                           filter_size);
+
+    Tensor inSub = input_.getBatchSlice(b, 1);
+
+    status = conv2d_gemm(
+      derivative.getAddress(b * derivative.getDim().getFeatureLen()),
+      TensorDim(1, derivative.channel(), derivative.height(),
+                derivative.width()),
+      inSub,
+      TensorDim(1, 1, filter_size,
+                kernel_size[0] * kernel_size[1] * in_dim.channel()),
+      stride, padding, out.data(), out.size(), false);
+    if (status != ML_ERROR_NONE)
+      throw std::runtime_error("calcGradient Convolution failed.");
+
+    for (unsigned int i = 0; i < filter_size; ++i) {
+      Tensor &delK = weightAt(i).getGradientRef();
+      Tensor &delBias = weightAt(i + filter_size).getGradientRef();
+      float *del = delK.getData();
+      unsigned int s = kernel_size[0] * kernel_size[1] * in_dim.channel();
+
+      for (unsigned int k = 0; k < s; ++k) {
+        del[k] += out[i * s + k];
+      }
+
+      float sum = 0.0;
+      for (unsigned int j = 0; j < derivative.height(); ++j) {
+        for (unsigned int k = 0; k < derivative.width(); ++k) {
+          sum += derivative.getValue(b, i, j, k);
+        }
+      }
+      delBias.setValue(0, 0, 0, 0, sum + delBias.getValue(0, 0, 0, 0));
+    }
+  }
+
+  //  Apply regularization gradient
+  for (unsigned int i = 0; i < filter_size; ++i) {
+    Tensor &delK = weightAt(i).getGradientRef();
+    Tensor &filters = weightAt(i).getVariableRef();
+
+    if (isWeightRegularizerL2Norm()) {
+      status = delK.add_i(filters, weight_regularizer_constant);
+      if (status != ML_ERROR_NONE)
+        throw std::runtime_error("Weight regularization failed");
+    }
+  }
 }
 
 void Conv2DLayer::copy(std::shared_ptr<Layer> l) {

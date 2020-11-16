@@ -136,8 +136,8 @@ void TfLiteLayer::copy(std::shared_ptr<Layer> l) {
   this->modelfile = from->modelfile;
 }
 
-void TfLiteLayer::backwarding(int iteration, sharedConstTensors derivative) {
+void TfLiteLayer::calcDerivative(sharedConstTensors derivative) {
   throw exception::not_supported(
-    "Backwarding is not supported for tflite layer");
+    "calcDerivative is not supported for tflite layer");
 }
 } /* namespace nntrainer */

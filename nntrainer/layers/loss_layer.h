@@ -67,9 +67,9 @@ public:
                                 sharedConstTensors label);
 
   /**
-   * @copydoc Layer::backwarding(sharedConstTensors in, int iteration)
+   * @copydoc Layer::calcDerivative(sharedConstTensors in)
    */
-  void backwarding(int iteration, sharedConstTensors in);
+  void calcDerivative(sharedConstTensors in);
 
   /**
    * @brief     read layer Weight & Bias data from file

@@ -203,9 +203,8 @@ void NNStreamerLayer::copy(std::shared_ptr<Layer> l) {
   this->modelfile = from->modelfile;
 }
 
-void NNStreamerLayer::backwarding(int iteration,
-                                  sharedConstTensors derivative) {
+void NNStreamerLayer::calcDerivative(sharedConstTensors derivative) {
   throw exception::not_supported(
-    "Backwarding is not supported for nnstreamer layer");
+    "calcDerivative is not supported for nnstreamer layer");
 }
 } /* namespace nntrainer */

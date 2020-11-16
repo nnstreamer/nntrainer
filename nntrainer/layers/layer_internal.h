@@ -116,12 +116,34 @@ public:
   virtual sharedConstTensors forwarding_with_val(sharedConstTensors input);
 
   /**
-   * @brief     Back Propagation of a layer
+   * @brief     calc the derivative to be passed to the previous layer
    * @param[in] in List of Derivative Tensor from the next layer
-   * @param[in] iteration Iteration value for the Optimizer
    * @retval    Derivative List of Tensor for the previous layer
    */
-  virtual void backwarding(int iteration, sharedConstTensors in = {}) = 0;
+  virtual void calcDerivative(sharedConstTensors in) = 0;
+
+  /**
+   * @brief     Calculate the derivative of a layer
+   * @param[in] in List of Derivative Tensor from the next layer
+   */
+  virtual void calcGradient(sharedConstTensors in){};
+
+  /**
+   * @brief     Apply the gradient for the layer
+   * @param[in] iteration Iteration value for the Optimizer
+   */
+  virtual void applyGradient(unsigned int iteration);
+
+  /**
+   * @brief     Back Propagate the derivative to the previous layer
+   * @param[in] in List of Derivative Tensor from the next layer
+   * @retval    Derivative List of Tensor for the previous layer
+   */
+  virtual void backwarding(int iteration, sharedConstTensors in = {}) {
+    calcGradient(in);
+    calcDerivative(in);
+    applyGradient(iteration);
+  }
 
   virtual sharedConstTensors backwarding_with_val(int iteration,
                                                   sharedConstTensors deriv,

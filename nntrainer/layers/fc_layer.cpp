@@ -99,8 +99,16 @@ void FullyConnectedLayer::copy(std::shared_ptr<Layer> l) {
   this->unit = from->unit;
 }
 
-void FullyConnectedLayer::backwarding(int iteration,
-                                      sharedConstTensors derivative) {
+void FullyConnectedLayer::calcDerivative(sharedConstTensors derivative) {
+  unsigned int weight_idx = static_cast<int>(FCParams::weight);
+  Tensor &weight = weightAt(weight_idx).getVariableRef();
+  Tensor &derivative_ = net_hidden[0]->grad;
+  Tensor &ret_ = net_input[0]->grad;
+
+  ret_ = derivative_.dot(weight, ret_, false, true);
+}
+
+void FullyConnectedLayer::calcGradient(sharedConstTensors derivative) {
   unsigned int weight_idx = static_cast<int>(FCParams::weight);
   unsigned int bias_idx = static_cast<int>(FCParams::bias);
   Tensor &weight = weightAt(weight_idx).getVariableRef();
@@ -108,19 +116,12 @@ void FullyConnectedLayer::backwarding(int iteration,
   Tensor &djdb = weightAt(bias_idx).getGradientRef();
 
   Tensor &derivative_ = net_hidden[0]->grad;
-  Tensor &ret_ = net_input[0]->grad;
 
-  ret_ = derivative_.dot(weight, ret_, false, true);
   djdb = derivative_.sum(0);
-
   djdw = net_input[0]->var.dot(derivative_, djdw, true, false);
 
   if (isWeightRegularizerL2Norm())
     djdw.add_i(weight, weight_regularizer_constant);
-
-  if (trainable) {
-    opt->apply_gradients(weight_list, num_weights, iteration);
-  }
 }
 
 void FullyConnectedLayer::scaleSize(float scalesize) noexcept {

@@ -63,7 +63,10 @@ void InputLayer::forwarding(sharedConstTensors in) {
     hidden_.standardization_i();
 }
 
-void InputLayer::backwarding(int iteration, sharedConstTensors in) {}
+void InputLayer::calcDerivative(sharedConstTensors in) {
+  throw exception::not_supported(
+    "calcDerivative for input layer is not supported");
+}
 
 int InputLayer::initialize() {
   int status = ML_ERROR_NONE;

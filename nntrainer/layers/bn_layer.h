@@ -81,9 +81,14 @@ public:
   void forwarding(sharedConstTensors in);
 
   /**
-   * @copydoc Layer::backwarding(sharedConstTensors in, int iteration)
+   * @copydoc Layer::calcDerivative(sharedConstTensors in)
    */
-  void backwarding(int iteration, sharedConstTensors in);
+  void calcDerivative(sharedConstTensors in);
+
+  /**
+   * @copydoc Layer::calcGradient(sharedConstTensors in)
+   */
+  void calcGradient(sharedConstTensors in);
 
   /**
    * @brief     copy layer
@@ -115,12 +120,12 @@ public:
 
 private:
   Tensor cvar; /**< training variance saved in bn_layer::forwarding and used in
-                    bn_layer::backwarding */
+                    bn_layer::calcDerivative */
   Tensor invstd; /**<  inversed training std for backward pass */
 
   Tensor deviation; /**< (input - current_average) */
 
-  Tensor x_normalized; /**< normalized axis saved for backwarding */
+  Tensor x_normalized; /**< normalized axis saved for calcDerivative */
   float epsilon;       /**< epsilon */
   float momentum;      /**< momentum */
   int axis;            /**< Target axis, axis inferred at initialize when -1 */

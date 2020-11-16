@@ -88,7 +88,7 @@ void ConcatLayer::forwarding(sharedConstTensors in) {
   }
 }
 
-void ConcatLayer::backwarding(int iteration, sharedConstTensors derivative) {
+void ConcatLayer::calcDerivative(sharedConstTensors derivative) {
   TensorDim d = net_hidden[0]->grad.getDim();
 
   unsigned int position = 0;
