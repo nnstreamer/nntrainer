@@ -75,6 +75,7 @@ public:
   using GraphType = std::vector<NodeType>; /** actual graph type */
   using FlatGraphType =
     std::vector<NodeType>; /** topological sorted, iterable 1-D list of nodes */
+  using NetworkGraphType = nntrainer::NetworkGraph;
 
   /**
    * @brief     Constructor of NeuralNetwork Class
@@ -308,6 +309,8 @@ public:
    * @retval flatGraph of the current graph
    */
   FlatGraphType getFlatGraph() { return layers; }
+
+  NetworkGraphType getNetworkGraph() { return model_graph; }
 
   /**
    * @brief get current graph from the model

@@ -40,6 +40,9 @@ struct NetBuffers {
   Tensor grad;
 };
 
+typedef std::shared_ptr<nntrainer::NetBuffers> sharedNetBuffer;
+typedef std::vector<sharedNetBuffer> sharedNetBuffers;
+
 /**
  * @brief     Enumeration of activation function type
  */
@@ -110,6 +113,9 @@ public:
    */
   virtual void forwarding(sharedConstTensors in = {}) = 0;
 
+  virtual sharedConstTensors forwarding_with_val(sharedConstTensors input,
+                                      sharedConstTensors in = {});
+
   /**
    * @brief     Back Propagation of a layer
    * @param[in] in List of Derivative Tensor from the next layer
@@ -117,6 +123,10 @@ public:
    * @retval    Derivative List of Tensor for the previous layer
    */
   virtual void backwarding(int iteration, sharedConstTensors in = {}) = 0;
+
+  virtual sharedConstTensors backwarding_with_val(int iteration, 
+                                         sharedConstTensors deriv,
+                                         sharedConstTensors in = {});
 
   /**
    * @brief     read layer Weight & Bias data from file
@@ -299,6 +309,29 @@ public:
     input_dim.resize(num_inputs);
     output_dim.clear();
     output_dim.resize(num_outputs);
+  }
+
+  std::vector<Tensor> getHidden();
+
+  std::vector<Tensor> getGradient();
+
+  void resizeNetInput(unsigned int size){net_input.resize(size);}
+  
+  void resizeNetOutput(unsigned int size){net_hidden.resize(size);}
+
+  unsigned int getNumInputs(){return num_inputs;}
+  unsigned int getNumOutputs(){return num_outputs;}
+
+  void setInputBuffer(unsigned int i, std::shared_ptr<NetBuffers> n_buffer) {
+    if (i >= net_input.size())
+      throw std::invalid_argument("Error: exceed num_input size");
+    net_input[i] = n_buffer;
+  }
+
+  void setOutputBuffer(unsigned int i, std::shared_ptr<NetBuffers> n_buffer) {
+    if (i >= net_hidden.size())
+      throw std::invalid_argument("Error: exceed num_input size");
+    net_hidden[i] = n_buffer;
   }
 
 protected:

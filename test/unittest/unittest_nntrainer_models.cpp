@@ -27,8 +27,9 @@
  * Watcher Classes                                      *
  ********************************************************/
 
-using NodeType = nntrainer::NeuralNetwork::NodeType;
+using NodeType = nntrainer::LayerNode;
 using FlatGraphType = nntrainer::NeuralNetwork::FlatGraphType;
+using NetworkGraphType = nntrainer::NetworkGraph;
 
 /**
  * @brief verify tensor to the reference and throw if not match to stop
@@ -81,16 +82,16 @@ public:
    * @param node node to watch.
    */
   NodeWatcher(const NodeType &node) : node(node) {
-    unsigned int num_weights = node->getNumWeights();
-    node->setTrainable(true);
+    unsigned int num_weights = node.layer->getNumWeights();
+    node.layer->setTrainable(true);
 
     for (unsigned int i = 0; i < num_weights; ++i) {
-      const nntrainer::Weight &w = node->weightAt(i);
+      const nntrainer::Weight &w = node.layer->weightAt(i);
       expected_weights.push_back(w);
     }
 
-    expected_output = nntrainer::Tensor(node->getOutputDimension()[0]);
-    expected_dx = nntrainer::Tensor(node->getInputDimension()[0]);
+    expected_output = nntrainer::Tensor(node.layer->getOutputDimension()[0]);
+    expected_dx = nntrainer::Tensor(node.layer->getInputDimension()[0]);
   }
 
   /**
@@ -98,9 +99,9 @@ public:
    *
    */
   void readLayerWeight(std::ifstream &f) {
-    for (unsigned int i = 0; i < node->getNumWeights(); ++i) {
+    for (unsigned int i = 0; i < node.layer->getNumWeights(); ++i) {
       /// @note below is harrasing the fact the tensor shares same base memory
-      node->weightAt(i).getVariable().read(f);
+      node.layer->weightAt(i).getVariable().read(f);
     }
   }
 
@@ -111,8 +112,7 @@ public:
    * @param iteration iteration
    * @return nntrainer::sharedConstTensor
    */
-  nntrainer::sharedConstTensors forward(nntrainer::sharedConstTensors in,
-                                        int iteration);
+  void forward(int iteration);
 
   /**
    * @brief forward loss node with verifying inputs/weights/outputs
@@ -134,9 +134,7 @@ public:
    * @param should_verify should verify the inputs/gradients/outputs
    * @return nntrainer::sharedConstTensor
    */
-  nntrainer::sharedConstTensors backward(nntrainer::sharedConstTensors deriv,
-                                         int iteration,
-                                         bool should_verify = true);
+  void backward(int iteration, bool should_verify = true);
 
   /**
    * @brief verify weights of the current node
@@ -157,7 +155,7 @@ public:
    *
    * @return float loss
    */
-  float getLoss() { return node->getLoss(); }
+  float getLoss() { return node.layer->getLoss(); }
 
   /**
    * @brief read Node
@@ -212,14 +210,15 @@ void NodeWatcher::read(std::ifstream &in) {
 
 void NodeWatcher::verifyWeight(const std::string &error_msg) {
   for (unsigned int i = 0; i < expected_weights.size(); ++i) {
-    verify(node->weightAt(i).getVariable(), expected_weights[i].getVariable(),
-           error_msg + " " + node->weightAt(i).getName() + " weight");
+    verify(node.layer->weightAt(i).getVariable(),
+           expected_weights[i].getVariable(),
+           error_msg + " " + node.layer->weightAt(i).getName() + " weight");
   }
 }
 
 void NodeWatcher::verifyGrad(const std::string &error_msg) {
   for (unsigned int i = 0; i < expected_weights.size(); ++i) {
-    auto weight = node->weightAt(i);
+    auto weight = node.layer->weightAt(i);
     if (weight.getTrainable()) {
       verify(weight.getGradient(), expected_weights[i].getGradient(),
              error_msg + " " + weight.getName() + " grad");
@@ -227,48 +226,45 @@ void NodeWatcher::verifyGrad(const std::string &error_msg) {
   }
 }
 
-nntrainer::sharedConstTensors
-NodeWatcher::forward(nntrainer::sharedConstTensors in, int iteration) {
+void NodeWatcher::forward(int iteration) {
   std::stringstream ss;
-  ss << "forward failed at " << node->getName() << " at iteration "
+  ss << "forward failed at " << node.layer->getName() << " at iteration "
      << iteration;
   std::string err_msg = ss.str();
 
-  nntrainer::sharedConstTensors out = node->forwarding(in);
-  verify(*out[0], expected_output, err_msg + " at output");
-  return out;
+  std::vector<nntrainer::Tensor> out = node.layer->getHidden();
+
+  verify(out[0], expected_output, err_msg + " at output");
 }
 
 nntrainer::sharedConstTensors
 NodeWatcher::lossForward(nntrainer::sharedConstTensors pred,
                          nntrainer::sharedConstTensors answer, int iteration) {
   std::stringstream ss;
-  ss << "loss failed at " << node->getName() << " at iteration " << iteration;
+  ss << "loss failed at " << node.layer->getName() << " at iteration "
+     << iteration;
   std::string err_msg = ss.str();
 
   nntrainer::sharedConstTensors out =
-    std::static_pointer_cast<nntrainer::LossLayer>(node)->forwarding(pred,
-                                                                     answer);
+    std::static_pointer_cast<nntrainer::LossLayer>(node.layer)
+      ->forwarding(pred, answer);
 
   return out;
 }
 
-nntrainer::sharedConstTensors
-NodeWatcher::backward(nntrainer::sharedConstTensors deriv, int iteration,
-                      bool should_verify) {
+void NodeWatcher::backward(int iteration, bool should_verify) {
   std::stringstream ss;
-  ss << "backward failed at " << node->getName() << " at iteration "
+  ss << "backward failed at " << node.layer->getName() << " at iteration "
      << iteration;
   std::string err_msg = ss.str();
 
-  nntrainer::sharedConstTensors out = node->backwarding(deriv, iteration);
+  std::vector<nntrainer::Tensor> out = node.layer->getGradient();
+
   if (should_verify) {
+    verify(out[0], expected_dx, err_msg);
     verifyGrad(err_msg);
-    verify(*out[0], expected_dx, err_msg);
     verifyWeight(err_msg);
   }
-
-  return out;
 }
 
 GraphWatcher::GraphWatcher(const std::string &config) {
@@ -277,11 +273,17 @@ GraphWatcher::GraphWatcher(const std::string &config) {
     throw std::invalid_argument("load from config failed!");
   };
 
-  if (nn.init()) {
+  if (nn.compile()) {
     throw std::invalid_argument("initiation failed");
   };
 
-  FlatGraphType graph = nn.getFlatGraph();
+  if (nn.initialize()) {
+    throw std::invalid_argument("initiation failed");
+  };
+
+  NetworkGraphType model_graph = nn.getNetworkGraph();
+
+  std::vector<NodeType> graph = model_graph.getSorted();
 
   for (auto it = graph.begin(); it != graph.end() - 1; ++it) {
     nodes.push_back(NodeWatcher(*it));
@@ -311,18 +313,17 @@ void GraphWatcher::compareFor(const std::string &reference,
 
     readIteration(ref);
 
-    /// forward pass
-    for (auto &i : nodes)
-      input = i.forward(input, iteration);
-
-    loss_node.lossForward(input, label, iteration);
+    nn.forwarding(input, label);
     EXPECT_NEAR(expected_loss, loss_node.getLoss(), nntrainer::Tensor::epsilon);
 
-    /// backward pass and update weights
-    nntrainer::sharedConstTensors output =
-      loss_node.backward(label, iteration, false);
-    for (auto it = nodes.rbegin(); it != nodes.rend(); it++)
-      output = it->backward(output, iteration);
+    for (auto it = nodes.begin(); it != nodes.end() - 1; ++it) {
+      it->forward(iteration);
+    }
+
+    nn.getNetworkGraph().backwarding(label, iteration);
+
+    for (auto it = nodes.rbegin(); it != nodes.rend() - 1; it++)
+      it->backward(iteration);
   }
 }
 
@@ -475,43 +476,34 @@ using INI = IniTestWrapper;
 // clang-format off
 INI fc_sigmoid_mse(
   "fc_sigmoid_mse",
-  {
-    nn_base + "learning_rate=1 | optimizer=sgd | loss=mse | batch_size = 3",
-    I("input") + input_base + "input_shape = 1:1:3",
-    I("dense") + fc_base + "unit = 5",
-    I("act") + sigmoid_base,
-    I("dense_1") + fc_base + "unit = 10",
-    I("act_1") + softmax_base
-  }
-);
+  {nn_base + "learning_rate=1 | optimizer=sgd | loss=mse | batch_size = 3",
+   I("input") + input_base + "input_shape = 1:1:3",
+   I("dense") + fc_base + "unit = 5" + "input_layers=input",
+   I("act") + sigmoid + "input_layers=dense",
+   I("dense_1") + fc_base + "unit = 10" + "input_layers=act",
+   I("act_1") + softmax + "input_layers=dense_1"});
 
 INI fc_sigmoid_cross =
   INI("fc_sigmoid_cross") + fc_sigmoid_mse + "model/loss=cross";
 
 INI fc_relu_mse(
   "fc_relu_mse",
-  {
-    nn_base + "Learning_rate=0.1 | Optimizer=sgd | Loss=mse | batch_size = 3",
-    I("input") + input_base + "input_shape = 1:1:3",
-    I("dense") + fc_base + "unit = 10",
-    I("act") + relu_base,
-    I("dense_1") + fc_base + "unit = 2",
-    I("act_1") + sigmoid_base
-  }
-);
+  {nn_base + "Learning_rate=0.1 | Optimizer=sgd | Loss=mse | batch_size = 3",
+   I("input") + input_base + "input_shape = 1:1:3",
+   I("dense") + fc_base + "unit = 10" + "input_layers=input",
+   I("act") + relu + "input_layers=dense",
+   I("dense_1") + fc_base + "unit = 2" + "input_layers=act",
+   I("act_1") + sigmoid + "input_layers=dense" + "input_layers=dense_1"});
 
 INI fc_bn_sigmoid_cross(
   "fc_bn_sigmoid_cross",
-  {
-    nn_base + "learning_rate=1 | optimizer=sgd | loss=cross | batch_size = 3",
-    I("input") + input_base + "input_shape = 1:1:3",
-    I("dense") + fc_base + "unit = 10",
-    I("bn") + bn_base,
-    I("act") + sigmoid_base,
-    I("dense_2") + fc_base + "unit = 10",
-    I("act_3") + softmax_base
-  }
-);
+  {nn_base + "learning_rate=1 | optimizer=sgd | loss=cross | batch_size = 3",
+   I("input") + input_base + "input_shape = 1:1:3",
+   I("dense") + fc_base + "unit = 10" + "input_layers=input",
+   I("bn") + bn_base + "input_layers=dense",
+   I("act") + sigmoid + "input_layers=bn",
+   I("dense_2") + fc_base + "unit = 10" + "input_layers=act",
+   I("act_3") + softmax + "input_layers=dense_2"});
 
 INI fc_bn_sigmoid_mse =
   INI("fc_bn_sigmoid_mse") + fc_bn_sigmoid_cross + "model/loss=mse";
@@ -524,12 +516,12 @@ INI mnist_conv_cross(
   {
     nn_base + "learning_rate=0.1 | optimizer=sgd | loss=cross | batch_size=3",
     I("input") + input_base + "input_shape=2:4:5",
-    I("conv2d_c1_layer") + conv_base + "kernel_size=3,4 | filters=2",
-    I("act_1") + sigmoid_base,
-    I("pool_1") + mnist_pooling,
-    I("flatten", "type=flatten"),
-    I("outputlayer") + fc_base + "unit = 10",
-    I("act_3") + softmax_base
+    I("conv2d_c1_layer") + conv_base + "kernel_size=3,4 | filters=2" +"input_layers=input",
+    I("act_1") + sigmoid_base +"input_layers=conv2d_c1_layer",
+    I("pool_1") + mnist_pooling+"input_layers=act_1",
+    I("flatten", "type=flatten")+"input_layers=pool_1" ,
+    I("outputlayer") + fc_base + "unit = 10" +"input_layers=flatten",
+    I("act_3") + softmax_base +"input_layers=outputlayer"
   }
 );
 

@@ -66,6 +66,9 @@ public:
   sharedConstTensors forwarding(sharedConstTensors in,
                                 sharedConstTensors label);
 
+  sharedConstTensors forwarding_with_val(sharedConstTensors in,
+						  sharedConstTensors label);  
+
   /**
    * @copydoc Layer::backwarding(sharedConstTensors in, int iteration)
    */
