@@ -98,6 +98,16 @@ LayerNode &NetworkGraph::getSortedLayerNode(unsigned int ith) {
   throw std::invalid_argument("Cannot find Layer");
 }
 
+void NetworkGraph::countNonTrainableLayersAtBegin() {
+  /** TODO: update for multiple inputs when it is supported */
+  for (auto iter = Sorted.cbegin(); iter != Sorted.cend(); iter++) {
+    if ((*iter).layer->getTrainable()) {
+      skip_non_trainable_layers = iter - Sorted.cbegin();
+      break;
+    }
+  }
+}
+
 void NetworkGraph::topologicalSort() {
   std::stack<LayerNode> Stack;
   std::vector<bool> visited(num_node);
@@ -118,6 +128,9 @@ void NetworkGraph::topologicalSort() {
     Sorted.push_back(Stack.top());
     Stack.pop();
   }
+
+  /** TODO: this will be replaced with a corresponding graph function */
+  countNonTrainableLayersAtBegin();
 }
 
 void NetworkGraph::ensureName(std::shared_ptr<Layer> layer,
@@ -517,7 +530,9 @@ sharedConstTensors NetworkGraph::forwarding(sharedConstTensors input) {
 
 void NetworkGraph::backwarding(sharedConstTensors output, int iteration) {
 
-  for (unsigned int i = Sorted.size() - 1; i > 0; i--) {
+  /** First layer in Sorted must a INPUT layer */
+  for (unsigned int i = Sorted.size() - 1; i > skip_non_trainable_layers + 1;
+       i--) {
     LayerNode &layer_node = Sorted[i];
     if (istrequal(layer_node.layer->getType(), nntrainer::LossLayer::type)) {
       layer_node.layer->backwarding(iteration, output);
@@ -525,6 +540,13 @@ void NetworkGraph::backwarding(sharedConstTensors output, int iteration) {
       layer_node.layer->backwarding(iteration);
     }
   }
+
+  /** The last trainable layer need not calculate the derivatives */
+#ifdef ENABLE_TEST
+  Sorted[skip_non_trainable_layers + 1].layer->calcDerivative();
+#endif
+  Sorted[skip_non_trainable_layers + 1].layer->calcGradient();
+  Sorted[skip_non_trainable_layers + 1].layer->applyGradient(iteration);
 }
 
 std::vector<TensorDim> NetworkGraph::getInputDimension() {

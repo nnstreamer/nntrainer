@@ -235,6 +235,7 @@ int NeuralNetwork::initialize() {
   }
 
   setBatchSize(batch_size);
+
   initialized = true;
   return status;
 }
