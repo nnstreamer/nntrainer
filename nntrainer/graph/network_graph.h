@@ -45,7 +45,10 @@ public:
   /**
    * @brief     Constructor of NeuralNetwork Graph Class
    */
-  NetworkGraph() : num_node(0), def_name_count(0){};
+  NetworkGraph() :
+    num_node(0),
+    def_name_count(0),
+    skip_non_trainable_layers(0) {}
 
   /**
    * @brief add Edges between graph nodes
@@ -232,6 +235,14 @@ private:
   std::vector<std::shared_ptr<NetBuffers>>
     netBuffers;       /**< List of Buffers used to calculate layer */
   int def_name_count; /**< Count assigned to layer names declared by default */
+  unsigned int
+    skip_non_trainable_layers; /**< denotes the number of non-trainable layers
+                                  at the start of the graph */
+
+  /**
+   * @brief Calculate the number of non-trainable layers at the start
+   */
+  void countNonTrainableLayersAtBegin();
 };
 
 } // namespace nntrainer

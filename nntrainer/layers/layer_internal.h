@@ -120,13 +120,13 @@ public:
    * @param[in] in List of Derivative Tensor from the next layer
    * @retval    Derivative List of Tensor for the previous layer
    */
-  virtual void calcDerivative(sharedConstTensors in) = 0;
+  virtual void calcDerivative(sharedConstTensors in = {}) = 0;
 
   /**
    * @brief     Calculate the derivative of a layer
    * @param[in] in List of Derivative Tensor from the next layer
    */
-  virtual void calcGradient(sharedConstTensors in){};
+  virtual void calcGradient(sharedConstTensors in = {}){};
 
   /**
    * @brief     Apply the gradient for the layer
