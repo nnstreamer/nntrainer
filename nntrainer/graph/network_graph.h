@@ -84,6 +84,8 @@ public:
 
   void backwarding(sharedConstTensors input, int iteration);
 
+  std::vector<LayerNode> getSorted() { return Sorted; }
+
 private:
   void topologicalSortUtil(unsigned int ith, bool visited[],
                            std::stack<LayerNode> &Stack);

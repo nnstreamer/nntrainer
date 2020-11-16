@@ -42,8 +42,33 @@ int LossLayer::initialize() {
   return status;
 }
 
+sharedConstTensors LossLayer::forwarding_with_val(sharedConstTensors in,
+                                         sharedConstTensors label) {
+
+  for(unsigned int i=0;i<num_inputs;++i){
+    net_input[i]->var = *in[i];
+  }
+
+  if (num_outputs == 0)
+    throw("invalid number of outputs");
+
+  if (num_outputs != net_hidden.size())
+    net_hidden.resize(num_outputs);
+  
+  forwarding(in, label);
+
+  nntrainer::sharedConstTensors out;
+
+  for(unsigned int i =0; i<num_outputs;++i){
+    out.push_back(MAKE_SHARED_TENSOR(net_hidden[i]->var));
+  }
+
+  return out;  
+}  
+
 sharedConstTensors LossLayer::forwarding(sharedConstTensors in,
                                          sharedConstTensors label) {
+  net_input[0]->var = *in[0];
   Tensor y2 = *label[0];
   Tensor &y = net_hidden[0]->var;
   y = net_input[0]->var;

@@ -61,6 +61,22 @@ void Layer::setBatch(unsigned int batch) {
     output_dim[idx].setTensorDim(0, batch);
 }
 
+std::vector<Tensor> Layer::getHidden() {
+  std::vector<Tensor> ret;
+  for (unsigned int i = 0; i < num_outputs; ++i) {
+    ret.push_back(net_hidden[i]->var);
+  }
+  return ret;
+}
+
+std::vector<Tensor> Layer::getGradient() {
+  std::vector<Tensor> ret;
+  for (unsigned int i = 0; i < num_inputs; ++i) {
+    ret.push_back(net_input[i]->grad);
+  }
+  return ret;
+}
+
 void Layer::copy(std::shared_ptr<Layer> l) {
   setNumWeights(l->num_weights);
   for (unsigned int i = 0; i < num_weights; ++i) {
@@ -83,6 +99,74 @@ void Layer::copy(std::shared_ptr<Layer> l) {
   this->num_inputs = l->num_inputs;
   this->num_outputs = l->num_outputs;
 }
+
+sharedConstTensors Layer::forwarding_with_val(sharedConstTensors input,
+                                   sharedConstTensors in) {
+
+  for(unsigned int i=0;i<num_inputs;++i){
+    net_input[i]->var = *input[i];
+  }
+
+  if (num_outputs == 0)
+    throw("invalid number of outputs");
+
+  if (num_outputs != net_hidden.size())
+    net_hidden.resize(num_outputs);
+
+  // for (unsigned int i = 0; i < num_outputs; ++i) {
+  //   sharedNetBuffer h_buffer = std::make_unique<nntrainer::NetBuffers>();
+  //   h_buffer->var = Tensor(getOutputDimension()[i]);
+  //   h_buffer->grad = Tensor(getOutputDimension()[i]);
+  //   net_hidden[i] = h_buffer;
+  // }
+
+  forwarding(in);
+
+  nntrainer::sharedConstTensors out;
+
+  for(unsigned int i =0; i<num_outputs;++i){
+    out.push_back(MAKE_SHARED_TENSOR(net_hidden[i]->var));
+  }
+
+  return out;
+}
+
+sharedConstTensors Layer::backwarding_with_val(int iteration,
+                                      sharedConstTensors deriv,
+                                      sharedConstTensors in) {
+
+  for (unsigned int i = 0; i < num_outputs; ++i) {
+    net_hidden[i]->grad = *deriv[i];
+  }
+
+  if (num_inputs == 0)
+    throw("invalid number of inputs");
+
+  if (num_inputs != net_input.size())
+    net_input.resize(num_inputs);
+
+  // for (unsigned int i = 0; i < num_inputs; ++i) {
+  //   sharedNetBuffer h_buffer = std::make_unique<nntrainer::NetBuffers>();
+  //   h_buffer->var = Tensor(getInputDimension()[i]);
+  //   h_buffer->grad = Tensor(getInputDimension()[i]);
+  //   net_input[i] = h_buffer;
+  // }
+
+  if(getType() == nntrainer::LayerType::LAYER_LOSS){
+    backwarding(iteration, in);    
+  } else {
+    backwarding(iteration, deriv);
+  }
+
+  nntrainer::sharedConstTensors out;
+
+  for(unsigned int i =0; i<num_inputs;++i){
+    out.push_back(MAKE_SHARED_TENSOR(net_input[i]->grad));
+  }
+
+  return out;
+}
+  
 
 void Layer::read(std::ifstream &file) {
   for (unsigned int i = 0; i < num_weights; ++i) {

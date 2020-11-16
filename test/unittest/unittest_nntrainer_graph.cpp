@@ -62,7 +62,7 @@ TEST_P(nntrainerGraphTest, loadConfig) {
   std::cout << std::get<0>(GetParam()) << std::endl;
   int status = NN.loadFromConfig(getIniName());
 
-  int batch = 32;
+  int batch = 16;
   int channel = 3;
   int height = 32;
   int width = 32;
@@ -94,16 +94,18 @@ TEST_P(nntrainerGraphTest, loadConfig) {
 
   NN.forwarding({MAKE_SHARED_TENSOR(input)});
 
-  nntrainer::Tensor output(10);
+  nntrainer::Tensor output(batch, 1, 1, 10);
 
   output.setZero();
-  output.setValue(0, 0, 0, 3, 1.0);
+
+  for (int i = 0; i < batch; ++i)
+    output.setValue(i, 0, 0, 3, 1.0);
 
   NN.backwarding({MAKE_SHARED_TENSOR(input)}, {MAKE_SHARED_TENSOR(output)}, 1);
 }
 
 static IniSection nw_base("model", "Type = NeuralNetwork | "
-                                   "batch_size = 32 | "
+                                   "batch_size = 16 | "
                                    "epsilon = 1e-7 | "
                                    "loss = cross");
 

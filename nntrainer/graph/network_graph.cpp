@@ -409,7 +409,10 @@ int NetworkGraph::setGraphNode(std::vector<std::shared_ptr<Layer>> layers,
     }
   }
 
-  addLossLayer(loss_type);
+  if (layers.back()->getType() != LayerType::LAYER_LOSS) {
+    status = addLossLayer(loss_type);
+    NN_RETURN_STATUS();
+  }
 
   // std::list<LayerNode>::iterator iter;
   // for (unsigned int i = 0; i < adj.size(); ++i) {

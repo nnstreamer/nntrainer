@@ -199,6 +199,7 @@ int NeuralNetwork::compile() {
   NN_RETURN_STATUS();
 
   model_graph.topologicalSort();
+  setBatchSize(batch_size);
 
   return status;
 }
@@ -253,6 +254,12 @@ int NeuralNetwork::initialize() {
         model_graph.getSortedLayerNode(l.input_layers[i])
           .layer->net_hidden[location] = n_buffer;
       }
+    } else {
+      for (unsigned int i = 0; i < l.input_layers.size(); ++i) {
+        std::cout << "      " << l.input_layers[i];
+        std::shared_ptr<NetBuffers> n_buffer = std::make_unique<NetBuffers>();
+        l.net_input[i] = n_buffer;
+      }
     }
 
     std::cout << std::endl;
@@ -277,7 +284,7 @@ int NeuralNetwork::initialize() {
       Tensor(model_graph.Sorted.back().layer->getOutputDimension()[i]);
     model_graph.Sorted.back().layer->net_hidden[i] = last_hidden_buffer;
   }
-
+  initialized = true;
   return status;
 }
 
@@ -552,7 +559,7 @@ int NeuralNetwork::train(std::vector<std::string> values) {
   NN_RETURN_STATUS();
 
   /** set batch size just before training */
-  setBatchSize(batch_size);
+  // setBatchSize(batch_size);
 
   /** Setup data buffer properties */
   status = data_buffer->setClassNum(getOutputDimension()[0].width());
