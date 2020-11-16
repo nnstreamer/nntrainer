@@ -21,7 +21,7 @@
 #include <optimizer.h>
 
 /**
- * @brief Neural Network Model Contruct Test
+ * @brief Neural Network Model Construct Test
  */
 TEST(ccapi_model, construct_01_n) {
   EXPECT_THROW(ml::train::createModel(ml::train::ModelType::UNKNOWN),
@@ -32,14 +32,14 @@ TEST(ccapi_model, construct_01_n) {
 }
 
 /**
- * @brief Neural Network Model Contruct Test
+ * @brief Neural Network Model Construct Test
  */
 TEST(ccapi_model, construct_02_p) {
   EXPECT_NO_THROW(ml::train::createModel(ml::train::ModelType::NEURAL_NET));
 }
 
 /**
- * @brief Neural Network Layer Contruct Test
+ * @brief Neural Network Layer Construct Test
  */
 TEST(ccapi_layer, construct_01_n) {
   EXPECT_THROW(ml::train::createLayer("unknown type"), std::invalid_argument);

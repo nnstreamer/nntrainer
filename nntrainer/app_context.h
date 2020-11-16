@@ -15,6 +15,7 @@
 #ifndef __APP_CONTEXT_H__
 #define __APP_CONTEXT_H__
 
+#include <algorithm>
 #include <functional>
 #include <memory>
 #include <mutex>
@@ -124,7 +125,11 @@ public:
     auto &str_map = std::get<StrIndexType<T>>(index);
     auto &int_map = std::get<IntIndexType>(index);
 
-    const std::string &assigned_key = key == "" ? factory({})->getType() : key;
+    std::string assigned_key = key == "" ? factory({})->getType() : key;
+
+    std::transform(assigned_key.begin(), assigned_key.end(),
+                   assigned_key.begin(),
+                   [](unsigned char c) { return std::tolower(c); });
 
     const std::lock_guard<std::mutex> lock(factory_mutex);
     if (str_map.find(assigned_key) != str_map.end()) {
@@ -187,11 +192,17 @@ public:
     auto &index = std::get<IndexType<T>>(factory_map);
     auto &str_map = std::get<StrIndexType<T>>(index);
 
-    const auto &entry = str_map.find(key);
+    std::string lower_key;
+    lower_key.resize(key.length());
+
+    std::transform(key.begin(), key.end(), lower_key.begin(),
+                   [](unsigned char c) { return std::tolower(c); });
+
+    const auto &entry = str_map.find(lower_key);
 
     if (entry == str_map.end()) {
       std::stringstream ss;
-      ss << "Key is not found for the object. Key: " << key;
+      ss << "Key is not found for the object. Key: " << lower_key;
       throw exception::not_supported(ss.str().c_str());
     }
 
