@@ -40,12 +40,8 @@ std::unique_ptr<Layer> createLayer(const LayerType &type,
  */
 std::unique_ptr<Layer> createLayer(const std::string &type,
                                    const std::vector<std::string> &properties) {
-  std::unique_ptr<Layer> layer = nntrainer::createLayer(type);
-
-  if (layer->setProperty(properties) != ML_ERROR_NONE)
-    throw std::invalid_argument("Set properties failed for layer");
-
-  return layer;
+  auto &ac = nntrainer::AppContext::Global();
+  return ac.createObject<Layer>(type, properties);
 }
 
 std::unique_ptr<Optimizer>
@@ -102,7 +98,7 @@ CrossEntropy(const std::vector<std::string> &properties) {
 std::unique_ptr<Optimizer>
 createOptimizer(const std::string &type,
                 const std::vector<std::string> &properties) {
-  auto ac = nntrainer::AppContext::Global();
+  auto &ac = nntrainer::AppContext::Global();
   return ac.createObject<Optimizer>(type, properties);
 }
 
