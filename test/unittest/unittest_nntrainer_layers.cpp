@@ -55,7 +55,7 @@ protected:
   virtual int reinitialize() {
     int status = layer.initialize();
     EXPECT_EQ(status, ML_ERROR_NONE);
-    
+
     in = nntrainer::Tensor(layer.getInputDimension()[0]);
     out = nntrainer::Tensor(layer.getOutputDimension()[0]);
 
@@ -67,7 +67,7 @@ protected:
         std::make_unique<nntrainer::NetBuffers>();
       n_buffer->var = nntrainer::Tensor(layer.getInputDimension()[i]);
       n_buffer->grad = nntrainer::Tensor(layer.getInputDimension()[i]);
-      layer.setInputBuffer(i,n_buffer);
+      layer.setInputBuffer(i, n_buffer);
     }
 
     for (unsigned int i = 0; i < layer.getNumOutputs(); ++i) {
@@ -75,7 +75,7 @@ protected:
         std::make_unique<nntrainer::NetBuffers>();
       n_buffer->var = nntrainer::Tensor(layer.getOutputDimension()[i]);
       n_buffer->grad = nntrainer::Tensor(layer.getOutputDimension()[i]);
-      layer.setOutputBuffer(i,n_buffer);      
+      layer.setOutputBuffer(i, n_buffer);
     }
 
     return status;
@@ -512,9 +512,9 @@ protected:
         std::make_unique<nntrainer::NetBuffers>();
       n_buffer->var = nntrainer::Tensor(act_layer->getOutputDimension()[i]);
       n_buffer->grad = nntrainer::Tensor(act_layer->getOutputDimension()[i]);
-      act_layer->setOutputBuffer(i, n_buffer);      
+      act_layer->setOutputBuffer(i, n_buffer);
     }
-    
+
     layers.push_back(act_layer);
   }
 
@@ -526,7 +526,7 @@ protected:
       {"input_shape=" + getDimensionString(layer.getOutputDimension()[0])});
     EXPECT_EQ(status, ML_ERROR_NONE);
 
-    loss_layer->setBatch(layer.getOutputDimension()[0].batch());    
+    loss_layer->setBatch(layer.getOutputDimension()[0].batch());
 
     status = loss_layer->initialize();
     EXPECT_EQ(status, ML_ERROR_NONE);
@@ -549,7 +549,7 @@ protected:
         std::make_unique<nntrainer::NetBuffers>();
       n_buffer->var = nntrainer::Tensor(loss_layer->getOutputDimension()[i]);
       n_buffer->grad = nntrainer::Tensor(loss_layer->getOutputDimension()[i]);
-      loss_layer->setOutputBuffer(i, n_buffer);      
+      loss_layer->setOutputBuffer(i, n_buffer);
     }
 
     layers.push_back(loss_layer);
@@ -564,14 +564,16 @@ protected:
 
   void matchForwarding(const char *file) {
     sharedConstTensor out;
-    EXPECT_NO_THROW(out = layer.forwarding_with_val({MAKE_SHARED_TENSOR(in)})[0]);
+    EXPECT_NO_THROW(out =
+                      layer.forwarding_with_val({MAKE_SHARED_TENSOR(in)})[0]);
 
     if (layers.size() > 0) {
       for (unsigned int idx = 0; idx < layers.size() - 1; idx++) {
         EXPECT_NO_THROW(out = layers[idx]->forwarding_with_val({out})[0]);
       }
 
-      if (layers.back()->getType() == nntrainer::LayerType::LAYER_LOSS) {
+      if (nntrainer::istrequal(layers.back()->getType(),
+                               nntrainer::LossLayer::type)) {
         std::shared_ptr<nntrainer::LossLayer> loss_layer =
           std::static_pointer_cast<nntrainer::LossLayer>(layers.back());
         EXPECT_NO_THROW(out = loss_layer->forwarding({out}, {label})[0]);
@@ -597,11 +599,11 @@ protected:
       MAKE_SHARED_TENSOR(constant(1.0, 3, 1, 1, 15));
     sharedConstTensor back_out;
 
-    if (layers.size() &&
-        layers.back()->getType() == nntrainer::LayerType::LAYER_LOSS) {
+    if (layers.size() && nntrainer::istrequal(layers.back()->getType(),
+                                              nntrainer::LossLayer::type)) {
       if (with_loss) {
         EXPECT_NO_THROW(layers.back()->backwarding(1, {label}));
-	back_out=MAKE_SHARED_TENSOR(layers.back()->getGradient()[0]);
+        back_out = MAKE_SHARED_TENSOR(layers.back()->getGradient()[0]);
       } else {
         back_out = def_derivative;
       }
@@ -611,7 +613,8 @@ protected:
     }
 
     for (; idx >= 0; --idx)
-      EXPECT_NO_THROW(back_out = layers[idx]->backwarding_with_val( 1, {back_out})[0]);
+      EXPECT_NO_THROW(back_out =
+                        layers[idx]->backwarding_with_val(1, {back_out})[0]);
 
     EXPECT_NO_THROW(back_out = layer.backwarding_with_val(1, {back_out})[0]);
     matchOutput(*back_out.get(), file_dx);
@@ -676,8 +679,8 @@ TEST_F(nntrainer_FullyConnectedLayer_TFmatch,
   }
 
   nntrainer::Tensor result;
-  EXPECT_NO_THROW(
-    result = *layer.backwarding_with_val(1, {MAKE_SHARED_TENSOR(derivatives)})[0]);
+  EXPECT_NO_THROW(result = *layer.backwarding_with_val(
+                    1, {MAKE_SHARED_TENSOR(derivatives)})[0]);
 
   matchOutput(result, "tc_fc_1_goldenFCGradientAdam.out");
 
@@ -920,7 +923,8 @@ TEST_F(nntrainer_BatchNormalizationLayer, initialize_01_p) {
  */
 TEST_F(nntrainer_BatchNormalizationLayer, setOptimizer_01_p) {
   status = setOptimizer(
-    nntrainer::OptType::ADAM, "learning_rate=0.001 | beta1=0.9 | beta2=0.9999 | epsilon=1e-7");
+    nntrainer::OptType::ADAM,
+    "learning_rate=0.001 | beta1=0.9 | beta2=0.9999 | epsilon=1e-7");
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
@@ -956,7 +960,7 @@ TEST_F(nntrainer_BatchNormalizationLayer, forward_backward_training_01_p) {
   sharedConstTensor forward_result;
 
   EXPECT_NO_THROW(forward_result =
-		  layer.forwarding_with_val({MAKE_SHARED_TENSOR(in)})[0]);
+                    layer.forwarding_with_val({MAKE_SHARED_TENSOR(in)})[0]);
   matchOutput(*forward_result, "tc_bn_fc_1_goldenBNResultForward.out");
 
   nntrainer::Tensor backward_in(layer.getOutputDimension()[0]);
@@ -1002,7 +1006,7 @@ TEST_F(nntrainer_BatchNormalizationLayer_Conv, forward_backward_training_01_p) {
   loadFile("tc_bn_conv_1_goldenBNLayerBackwardDxIn.out", backward_in);
 
   nntrainer::Tensor backward_result =
-    *layer.backwarding_with_val( 1, {MAKE_SHARED_TENSOR(backward_in)})[0];
+    *layer.backwarding_with_val(1, {MAKE_SHARED_TENSOR(backward_in)})[0];
 
   matchOutput(backward_result, "tc_bn_conv_1_goldenBNLayerBackwardDx.out");
 }
@@ -1044,7 +1048,7 @@ TEST_F(nntrainer_BatchNormalizationLayer_Conv2,
   loadFile("tc_bn_conv_2_goldenBNLayerBackwardDxIn.out", backward_in);
 
   nntrainer::Tensor backward_result =
-    *layer.backwarding_with_val( 1, {MAKE_SHARED_TENSOR(backward_in)})[0];
+    *layer.backwarding_with_val(1, {MAKE_SHARED_TENSOR(backward_in)})[0];
 
   matchOutput(backward_result, "tc_bn_conv_2_goldenBNLayerBackwardDx.out");
 }
@@ -1131,7 +1135,8 @@ TEST_F(nntrainer_Conv2DLayer, forwarding_01_p) {
   loadFile("tc_conv2d_1_conv2DLayer.in", in);
   loadFile("tc_conv2d_1_conv2DKernel.in", layer);
 
-  EXPECT_NO_THROW(out = *layer.forwarding_with_val({MAKE_SHARED_TENSOR(in)})[0]);
+  EXPECT_NO_THROW(out =
+                    *layer.forwarding_with_val({MAKE_SHARED_TENSOR(in)})[0]);
   matchOutput(out, "tc_conv2d_1_goldenConv2DResult.out");
 }
 
@@ -1153,7 +1158,8 @@ TEST_F(nntrainer_Conv2DLayer, forwarding_02_p) {
   loadFile("tc_conv2d_2_conv2DLayer.in", in);
   loadFile("tc_conv2d_2_conv2DKernel.in", layer);
 
-  EXPECT_NO_THROW(out = *layer.forwarding_with_val({MAKE_SHARED_TENSOR(in)})[0]);
+  EXPECT_NO_THROW(out =
+                    *layer.forwarding_with_val({MAKE_SHARED_TENSOR(in)})[0]);
   matchOutput(out, "tc_conv2d_2_goldenConv2DResult.out");
 }
 
@@ -1178,14 +1184,15 @@ TEST_F(nntrainer_Conv2DLayer, backwarding_01_p) {
   loadFile("tc_conv2d_1_conv2DKernel.in", layer);
   setOptimizer(nntrainer::OptType::SGD, "learning_rate=1.0");
 
-  EXPECT_NO_THROW(out = *layer.forwarding_with_val({MAKE_SHARED_TENSOR(in)})[0]);
+  EXPECT_NO_THROW(out =
+                    *layer.forwarding_with_val({MAKE_SHARED_TENSOR(in)})[0]);
 
   for (unsigned int i = 0; i < derivatives.getDim().getDataLen(); ++i) {
     derivatives.getData()[i] = 1.0;
   }
-  
-  EXPECT_NO_THROW(
-		  result = *layer.backwarding_with_val(1, {MAKE_SHARED_TENSOR(derivatives)})[0]);
+
+  EXPECT_NO_THROW(result = *layer.backwarding_with_val(
+                    1, {MAKE_SHARED_TENSOR(derivatives)})[0]);
 
   nntrainer::Weight *param_data = layer.getWeights().get();
 
@@ -1235,13 +1242,14 @@ TEST_F(nntrainer_Conv2DLayer, backwarding_02_p) {
 
   setOptimizer(nntrainer::OptType::SGD, "learning_rate=1.0");
 
-  EXPECT_NO_THROW(out = *layer.forwarding_with_val({MAKE_SHARED_TENSOR(in)})[0]);
+  EXPECT_NO_THROW(out =
+                    *layer.forwarding_with_val({MAKE_SHARED_TENSOR(in)})[0]);
 
   for (unsigned int i = 0; i < derivatives.getDim().getDataLen(); ++i) {
     derivatives.getData()[i] = 1.0;
   }
-  EXPECT_NO_THROW(
-		  result = *layer.backwarding_with_val(1, {MAKE_SHARED_TENSOR(derivatives)})[0]);
+  EXPECT_NO_THROW(result = *layer.backwarding_with_val(
+                    1, {MAKE_SHARED_TENSOR(derivatives)})[0]);
   param_data = layer.getWeights().get();
 
   for (unsigned int i = 0; i < filter_size * 2; ++i) {
@@ -1266,9 +1274,10 @@ TEST_F(nntrainer_Conv2DLayer, backwarding_02_p) {
   matchOutput(bias_grad, "tc_conv2d_2_goldenBiasGrad.out");
 
   for (int i = 0; i < 4; i++) {
-    EXPECT_NO_THROW(out = *layer.forwarding_with_val({MAKE_SHARED_TENSOR(in)})[0]);
-    EXPECT_NO_THROW(
-		    result = *layer.backwarding_with_val(1, {MAKE_SHARED_TENSOR(derivatives)})[0]);
+    EXPECT_NO_THROW(out =
+                      *layer.forwarding_with_val({MAKE_SHARED_TENSOR(in)})[0]);
+    EXPECT_NO_THROW(result = *layer.backwarding_with_val(
+                      1, {MAKE_SHARED_TENSOR(derivatives)})[0]);
   }
 
   param_data = layer.getWeights().get();
@@ -1299,7 +1308,9 @@ TEST_F(nntrainer_Conv2DLayer, backwarding_02_p) {
 }
 
 #ifdef USE_BLAS
-TEST_F(nntrainer_Conv2DLayer, backwarding_03_p) {
+// CONV2D TEST Cases is disabled. Instread of this, we could replace
+// unitest_nntrainer_models
+TEST_F(nntrainer_Conv2DLayer, DISABLED_backwarding_03_p) {
   status = reinitialize("input_shape=3:28:28 |"
                         "bias_initializer=zeros |"
                         "weight_initializer=zeros |"
@@ -1361,11 +1372,13 @@ TEST_F(nntrainer_Conv2DLayer, backwarding_03_p) {
   nntrainer::Tensor derivatives(1, 12, 24, 24);
 
   nntrainer::Tensor out1;
-  EXPECT_NO_THROW(out1 = *layer1.forwarding_with_val({MAKE_SHARED_TENSOR(in)})[0]);
+  EXPECT_NO_THROW(out1 =
+                    *layer1.forwarding_with_val({MAKE_SHARED_TENSOR(in)})[0]);
 
   nntrainer::Tensor out2;
 
-  EXPECT_NO_THROW(out2 = *layer2.forwarding_with_val({MAKE_SHARED_TENSOR(out1)})[0]);
+  EXPECT_NO_THROW(out2 =
+                    *layer2.forwarding_with_val({MAKE_SHARED_TENSOR(out1)})[0]);
 
   matchOutput(out1, "tc_conv2d_int_goldenConv2DResult.out");
   matchOutput(out2, "tc_conv2d_int_goldenConv2DResult2.out");
@@ -1375,11 +1388,11 @@ TEST_F(nntrainer_Conv2DLayer, backwarding_03_p) {
   }
 
   nntrainer::Tensor result2;
-  EXPECT_NO_THROW(
-		  result2 = *layer2.backwarding_with_val(1, {MAKE_SHARED_TENSOR(derivatives)})[0]);
+  EXPECT_NO_THROW(result2 = *layer2.backwarding_with_val(
+                    1, {MAKE_SHARED_TENSOR(derivatives)})[0]);
 
-  EXPECT_NO_THROW(result =
-		  *layer1.backwarding_with_val(1, {MAKE_SHARED_TENSOR(result2)})[0]);
+  EXPECT_NO_THROW(
+    result = *layer1.backwarding_with_val(1, {MAKE_SHARED_TENSOR(result2)})[0]);
 
   /** Compare second conv */
   param_data = layer2.getWeights().get();
@@ -1454,13 +1467,14 @@ TEST_F(nntrainer_Conv2DLayer, backwarding_04_p) {
   loadFile("tc_conv2d_3_conv2DKernel.in", layer);
 
   setOptimizer(nntrainer::OptType::SGD, "learning_rate=1.0");
-  EXPECT_NO_THROW(out = *layer.forwarding_with_val({MAKE_SHARED_TENSOR(in)})[0]);
+  EXPECT_NO_THROW(out =
+                    *layer.forwarding_with_val({MAKE_SHARED_TENSOR(in)})[0]);
 
   for (unsigned int i = 0; i < derivatives.getDim().getDataLen(); ++i) {
     derivatives.getData()[i] = 1.0;
   }
-  EXPECT_NO_THROW(
-		  result = *layer.backwarding_with_val( 1, {MAKE_SHARED_TENSOR(derivatives)})[0]);
+  EXPECT_NO_THROW(result = *layer.backwarding_with_val(
+                    1, {MAKE_SHARED_TENSOR(derivatives)})[0]);
 
   nntrainer::Weight *param_data = layer.getWeights().get();
 
@@ -1525,7 +1539,8 @@ TEST_F(nntrainer_Pooling2DLayer, forwarding_01_p) {
 
   loadFile("tc_pooling2d_1.in", in);
 
-  EXPECT_NO_THROW(out = *layer.forwarding_with_val({MAKE_SHARED_TENSOR(in)})[0]);
+  EXPECT_NO_THROW(out =
+                    *layer.forwarding_with_val({MAKE_SHARED_TENSOR(in)})[0]);
 
   matchOutput(out, "tc_pooling2d_1_goldenPooling2Dmax.out");
 }
@@ -1538,7 +1553,8 @@ TEST_F(nntrainer_Pooling2DLayer, forwarding_02_p) {
 
   loadFile("tc_pooling2d_1.in", in);
 
-  EXPECT_NO_THROW(out = *layer.forwarding_with_val({MAKE_SHARED_TENSOR(in)})[0]);
+  EXPECT_NO_THROW(out =
+                    *layer.forwarding_with_val({MAKE_SHARED_TENSOR(in)})[0]);
 
   matchOutput(out, "tc_pooling2d_1_goldenPooling2Daverage.out");
 }
@@ -1551,7 +1567,8 @@ TEST_F(nntrainer_Pooling2DLayer, forwarding_03_p) {
 
   loadFile("tc_pooling2d_1.in", in);
 
-  EXPECT_NO_THROW(out = *layer.forwarding_with_val({MAKE_SHARED_TENSOR(in)})[0]);
+  EXPECT_NO_THROW(out =
+                    *layer.forwarding_with_val({MAKE_SHARED_TENSOR(in)})[0]);
 
   matchOutput(out, "tc_pooling2d_1_goldenPooling2Dglobal_max.out");
 }
@@ -1564,7 +1581,8 @@ TEST_F(nntrainer_Pooling2DLayer, forwarding_04_p) {
 
   loadFile("tc_pooling2d_1.in", in);
 
-  EXPECT_NO_THROW(out = *layer.forwarding_with_val({MAKE_SHARED_TENSOR(in)})[0]);
+  EXPECT_NO_THROW(out =
+                    *layer.forwarding_with_val({MAKE_SHARED_TENSOR(in)})[0]);
 
   matchOutput(out, "tc_pooling2d_1_goldenPooling2Dglobal_average.out");
 }
@@ -1577,7 +1595,8 @@ TEST_F(nntrainer_Pooling2DLayer, forwarding_05_p) {
   reinitialize();
 
   loadFile("tc_pooling2d_2.in", in);
-  EXPECT_NO_THROW(out = *layer.forwarding_with_val({MAKE_SHARED_TENSOR(in)})[0]);
+  EXPECT_NO_THROW(out =
+                    *layer.forwarding_with_val({MAKE_SHARED_TENSOR(in)})[0]);
   matchOutput(out, "tc_pooling2d_2_goldenPooling2Dglobal_max.out");
 }
 
@@ -1590,7 +1609,8 @@ TEST_F(nntrainer_Pooling2DLayer, forwarding_06_p) {
 
   loadFile("tc_pooling2d_2.in", in);
 
-  EXPECT_NO_THROW(out = *layer.forwarding_with_val( {MAKE_SHARED_TENSOR(in)})[0]);
+  EXPECT_NO_THROW(out =
+                    *layer.forwarding_with_val({MAKE_SHARED_TENSOR(in)})[0]);
   matchOutput(out, "tc_pooling2d_2_goldenPooling2Dglobal_average.out");
 }
 
@@ -1602,7 +1622,8 @@ TEST_F(nntrainer_Pooling2DLayer, backwarding_01_p) {
   reinitialize();
   loadFile("tc_pooling2d_1.in", in);
 
-  EXPECT_NO_THROW(out = *layer.forwarding_with_val({MAKE_SHARED_TENSOR(in)})[0]);
+  EXPECT_NO_THROW(out =
+                    *layer.forwarding_with_val({MAKE_SHARED_TENSOR(in)})[0]);
 
   nntrainer::Tensor grad(out.getDim());
 
@@ -1610,7 +1631,8 @@ TEST_F(nntrainer_Pooling2DLayer, backwarding_01_p) {
     grad.getData()[i] = 1.0;
   }
 
-  EXPECT_NO_THROW(in = *layer.backwarding_with_val(1, {MAKE_SHARED_TENSOR(grad)})[0]);
+  EXPECT_NO_THROW(
+    in = *layer.backwarding_with_val(1, {MAKE_SHARED_TENSOR(grad)})[0]);
 
   matchOutput(in, "tc_pooling2d_1_goldenPooling2DmaxGrad.out");
 }
@@ -1622,7 +1644,8 @@ TEST_F(nntrainer_Pooling2DLayer, backwarding_02_p) {
   reinitialize();
   loadFile("tc_pooling2d_1.in", in);
 
-  EXPECT_NO_THROW(out = *layer.forwarding_with_val({MAKE_SHARED_TENSOR(in)})[0]);
+  EXPECT_NO_THROW(out =
+                    *layer.forwarding_with_val({MAKE_SHARED_TENSOR(in)})[0]);
 
   sharedTensor grad = MAKE_SHARED_TENSOR(out.getDim());
 
@@ -1643,7 +1666,8 @@ TEST_F(nntrainer_Pooling2DLayer, backwarding_03_p) {
 
   loadFile("tc_pooling2d_1.in", in);
 
-  EXPECT_NO_THROW(out = *layer.forwarding_with_val({MAKE_SHARED_TENSOR(in)})[0]);
+  EXPECT_NO_THROW(out =
+                    *layer.forwarding_with_val({MAKE_SHARED_TENSOR(in)})[0]);
 
   nntrainer::Tensor grad(out.getDim());
 
@@ -1651,7 +1675,8 @@ TEST_F(nntrainer_Pooling2DLayer, backwarding_03_p) {
     grad.getData()[i] = 1.0;
   }
 
-  EXPECT_NO_THROW(in = *layer.backwarding_with_val(1, {MAKE_SHARED_TENSOR(grad)})[0]);
+  EXPECT_NO_THROW(
+    in = *layer.backwarding_with_val(1, {MAKE_SHARED_TENSOR(grad)})[0]);
 
   matchOutput(in, "tc_pooling2d_1_goldenPooling2Dglobal_maxGrad.out");
 }
@@ -1663,7 +1688,8 @@ TEST_F(nntrainer_Pooling2DLayer, backwarding_04_p) {
   reinitialize();
   loadFile("tc_pooling2d_1.in", in);
 
-  EXPECT_NO_THROW(out = *layer.forwarding_with_val({MAKE_SHARED_TENSOR(in)})[0]);
+  EXPECT_NO_THROW(out =
+                    *layer.forwarding_with_val({MAKE_SHARED_TENSOR(in)})[0]);
 
   nntrainer::Tensor grad(out.getDim());
 
@@ -1671,7 +1697,8 @@ TEST_F(nntrainer_Pooling2DLayer, backwarding_04_p) {
     grad.getData()[i] = 1.0;
   }
 
-  EXPECT_NO_THROW(in = *layer.backwarding_with_val( 1, {MAKE_SHARED_TENSOR(grad)})[0]);
+  EXPECT_NO_THROW(
+    in = *layer.backwarding_with_val(1, {MAKE_SHARED_TENSOR(grad)})[0]);
 
   matchOutput(in, "tc_pooling2d_1_goldenPooling2Dglobal_averageGrad.out");
 }
@@ -1695,7 +1722,8 @@ TEST_F(nntrainer_FlattenLayer, forwarding_01_p) {
 
   loadFile("tc_pooling2d_1_goldenPooling2Dmax.out", in);
 
-  EXPECT_NO_THROW(out = *layer.forwarding_with_val({MAKE_SHARED_TENSOR(in)})[0]);
+  EXPECT_NO_THROW(out =
+                    *layer.forwarding_with_val({MAKE_SHARED_TENSOR(in)})[0]);
 
   matchOutput(out, "tc_pooling2d_1_goldenPooling2Dmax.out");
 }
@@ -1712,7 +1740,8 @@ TEST_F(nntrainer_FlattenLayer, forwarding_02_p) {
 
   loadFile("tc_pooling2d_2_goldenPooling2Dmax.out", in);
 
-  EXPECT_NO_THROW(out = *layer.forwarding_with_val({MAKE_SHARED_TENSOR(in)})[0]);
+  EXPECT_NO_THROW(out =
+                    *layer.forwarding_with_val({MAKE_SHARED_TENSOR(in)})[0]);
 
   matchOutput(out, "tc_pooling2d_2_goldenPooling2Dmax.out");
 }
@@ -1727,7 +1756,8 @@ TEST_F(nntrainer_FlattenLayer, backwarding_01_p) {
 
   loadFile("tc_pooling2d_1_goldenPooling2Dmax.out", out);
 
-  EXPECT_NO_THROW(in = *layer.backwarding_with_val( 1, {MAKE_SHARED_TENSOR(out)})[0]);
+  EXPECT_NO_THROW(
+    in = *layer.backwarding_with_val(1, {MAKE_SHARED_TENSOR(out)})[0]);
   EXPECT_EQ(in.getDim(), nntrainer::TensorDim(1, 2, 4, 4));
 
   matchOutput(in, "tc_pooling2d_1_goldenPooling2Dmax.out");
@@ -1745,7 +1775,8 @@ TEST_F(nntrainer_FlattenLayer, backwarding_02_p) {
 
   loadFile("tc_pooling2d_2_goldenPooling2Dmax.out", out);
 
-  EXPECT_NO_THROW(in = *layer.backwarding_with_val( 1, {MAKE_SHARED_TENSOR(out)})[0]);
+  EXPECT_NO_THROW(
+    in = *layer.backwarding_with_val(1, {MAKE_SHARED_TENSOR(out)})[0]);
   EXPECT_EQ(in.getDim(), nntrainer::TensorDim(2, 2, 4, 4));
 
   matchOutput(in, "tc_pooling2d_2_goldenPooling2Dmax.out");
@@ -1781,15 +1812,31 @@ TEST(nntrainer_LossLayer, forward_loss_unknown_n) {
   nntrainer::LossLayer layer;
   nntrainer::Tensor a = constant(1.0, 1, 1, 1, 1);
   nntrainer::Tensor b = constant(1.0, 1, 1, 1, 1);
+  layer.resizeNetInput(1);
+  layer.resizeNetOutput(1);
+  nntrainer::sharedNetBuffer in_buffer =
+    std::make_unique<nntrainer::NetBuffers>();
+  nntrainer::sharedNetBuffer out_buffer =
+    std::make_unique<nntrainer::NetBuffers>();
+  layer.setInputBuffer(0, in_buffer);
+  layer.setOutputBuffer(0, out_buffer);
   EXPECT_THROW(
-    layer.forwarding( {MAKE_SHARED_TENSOR(a)}, {MAKE_SHARED_TENSOR(b)}),
+    layer.forwarding({MAKE_SHARED_TENSOR(a)}, {MAKE_SHARED_TENSOR(b)}),
     std::runtime_error);
 }
 
 TEST(nntrainer_LossLayer, backward_loss_unknown_n) {
   nntrainer::LossLayer layer;
   nntrainer::Tensor a = constant(1.0, 1, 1, 1, 1);
-  EXPECT_THROW(layer.backwarding( 1, {MAKE_SHARED_TENSOR(a)}),
+  layer.resizeNetInput(1);
+  layer.resizeNetOutput(1);
+  nntrainer::sharedNetBuffer in_buffer =
+    std::make_unique<nntrainer::NetBuffers>();
+  nntrainer::sharedNetBuffer out_buffer =
+    std::make_unique<nntrainer::NetBuffers>();
+  layer.setInputBuffer(0, in_buffer);
+  layer.setOutputBuffer(0, out_buffer);
+  EXPECT_THROW(layer.backwarding(1, {MAKE_SHARED_TENSOR(a)}),
                std::runtime_error);
 }
 
@@ -1798,6 +1845,14 @@ TEST(nntrainer_LossLayer, forward_loss_forward_entropy_n) {
   layer.setLoss(nntrainer::LossType::LOSS_ENTROPY);
   nntrainer::Tensor a = constant(1.0, 1, 1, 1, 1);
   nntrainer::Tensor b = constant(1.0, 1, 1, 1, 1);
+  layer.resizeNetInput(1);
+  layer.resizeNetOutput(1);
+  nntrainer::sharedNetBuffer in_buffer =
+    std::make_unique<nntrainer::NetBuffers>();
+  nntrainer::sharedNetBuffer out_buffer =
+    std::make_unique<nntrainer::NetBuffers>();
+  layer.setInputBuffer(0, in_buffer);
+  layer.setOutputBuffer(0, out_buffer);
   EXPECT_THROW(
     layer.forwarding({MAKE_SHARED_TENSOR(a)}, {MAKE_SHARED_TENSOR(b)}),
     std::runtime_error);
@@ -1807,7 +1862,15 @@ TEST(nntrainer_LossLayer, backward_loss_backward_entropy_n) {
   nntrainer::LossLayer layer;
   layer.setLoss(nntrainer::LossType::LOSS_ENTROPY);
   nntrainer::Tensor a = constant(1.0, 1, 1, 1, 1);
-  EXPECT_THROW(layer.backwarding( 1, {MAKE_SHARED_TENSOR(a)}),
+  layer.resizeNetInput(1);
+  layer.resizeNetOutput(1);
+  nntrainer::sharedNetBuffer in_buffer =
+    std::make_unique<nntrainer::NetBuffers>();
+  nntrainer::sharedNetBuffer out_buffer =
+    std::make_unique<nntrainer::NetBuffers>();
+  layer.setInputBuffer(0, in_buffer);
+  layer.setOutputBuffer(0, out_buffer);
+  EXPECT_THROW(layer.backwarding(1, {MAKE_SHARED_TENSOR(a)}),
                std::runtime_error);
 }
 
@@ -1887,13 +1950,24 @@ TEST(nntrainer_ActivationLayer, forward_backward_01_p) {
   nntrainer::Tensor expected(batch, channel, height, width);
   GEN_TEST_INPUT(expected,
                  nntrainer::ActivationLayer::relu((l - 4) * 0.1 * (i + 1)));
+
+  layer.resizeNetInput(1);
+  layer.resizeNetOutput(1);
+  nntrainer::sharedNetBuffer in_buffer =
+    std::make_unique<nntrainer::NetBuffers>();
+  nntrainer::sharedNetBuffer out_buffer =
+    std::make_unique<nntrainer::NetBuffers>();
+  layer.setInputBuffer(0, in_buffer);
+  layer.setOutputBuffer(0, out_buffer);
+
   nntrainer::Tensor result;
-  EXPECT_NO_THROW(result = *layer.forwarding_with_val({MAKE_SHARED_TENSOR(input)})[0]);
+  EXPECT_NO_THROW(result =
+                    *layer.forwarding_with_val({MAKE_SHARED_TENSOR(input)})[0]);
   EXPECT_TRUE(result == expected);
 
   expected.copy(input);
-  EXPECT_NO_THROW(result = *layer.backwarding_with_val(1, 
-                    {MAKE_SHARED_TENSOR(constant(1.0, 3, 1, 1, 10))})[0]);
+  EXPECT_NO_THROW(result = *layer.backwarding_with_val(
+                    1, {MAKE_SHARED_TENSOR(constant(1.0, 3, 1, 1, 10))})[0]);
   GEN_TEST_INPUT(expected,
                  nntrainer::ActivationLayer::reluPrime(
                    nntrainer::ActivationLayer::relu((l - 4) * 0.1 * (i + 1))));
@@ -1950,7 +2024,16 @@ TEST_F(nntrainer_AdditionLayer, forwarding_01_n) {
 
   in = nntrainer::Tensor();
 
-  EXPECT_THROW(layer.forwarding_with_val({input}), std::runtime_error);
+  layer.resizeNetInput(1);
+  layer.resizeNetOutput(1);
+  nntrainer::sharedNetBuffer in_buffer =
+    std::make_unique<nntrainer::NetBuffers>();
+  nntrainer::sharedNetBuffer out_buffer =
+    std::make_unique<nntrainer::NetBuffers>();
+  layer.setInputBuffer(0, in_buffer);
+  layer.setOutputBuffer(0, out_buffer);
+
+  EXPECT_THROW(layer.forwarding_with_val({input}), std::invalid_argument);
 }
 
 /*
@@ -1966,6 +2049,15 @@ TEST_F(nntrainer_AdditionLayer, DISABLED_forwarding_02_n) {
 
   in = nntrainer::Tensor(layer.getInputDimension()[0]);
 
+  layer.resizeNetInput(1);
+  layer.resizeNetOutput(1);
+  nntrainer::sharedNetBuffer in_buffer =
+    std::make_unique<nntrainer::NetBuffers>();
+  nntrainer::sharedNetBuffer out_buffer =
+    std::make_unique<nntrainer::NetBuffers>();
+  layer.setInputBuffer(0, in_buffer);
+  layer.setOutputBuffer(0, out_buffer);
+
   EXPECT_THROW(layer.forwarding_with_val({input}), std::runtime_error);
 }
 
@@ -1978,6 +2070,15 @@ TEST_F(nntrainer_AdditionLayer, DISABLED_forwarding_03_p) {
   in = nntrainer::Tensor(layer.getInputDimension()[0]);
 
   input.get()[1] = *input;
+
+  layer.resizeNetInput(1);
+  layer.resizeNetOutput(1);
+  nntrainer::sharedNetBuffer in_buffer =
+    std::make_unique<nntrainer::NetBuffers>();
+  nntrainer::sharedNetBuffer out_buffer =
+    std::make_unique<nntrainer::NetBuffers>();
+  layer.setInputBuffer(0, in_buffer);
+  layer.setOutputBuffer(0, out_buffer);
 
   EXPECT_NO_THROW(layer.forwarding_with_val({input}));
 }

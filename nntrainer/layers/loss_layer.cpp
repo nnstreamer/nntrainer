@@ -42,42 +42,19 @@ int LossLayer::initialize() {
   return status;
 }
 
-sharedConstTensors LossLayer::forwarding_with_val(sharedConstTensors in,
-                                         sharedConstTensors label) {
-
-  for(unsigned int i=0;i<num_inputs;++i){
-    net_input[i]->var = *in[i];
-  }
-
-  if (num_outputs == 0)
-    throw("invalid number of outputs");
-
-  if (num_outputs != net_hidden.size())
-    net_hidden.resize(num_outputs);
-  
-  forwarding(in, label);
-
-  nntrainer::sharedConstTensors out;
-
-  for(unsigned int i =0; i<num_outputs;++i){
-    out.push_back(MAKE_SHARED_TENSOR(net_hidden[i]->var));
-  }
-
-  return out;  
-}  
-
 sharedConstTensors LossLayer::forwarding(sharedConstTensors in,
                                          sharedConstTensors label) {
   net_input[0]->var = *in[0];
+  Tensor &hidden_ = net_hidden[0]->var;
+
   Tensor y2 = *label[0];
-  Tensor &y = net_hidden[0]->var;
-  y = net_input[0]->var;
+  Tensor y = net_input[0]->var;
   Tensor l;
 
   switch (loss_type) {
   case LossType::LOSS_MSE: {
     // y2 <- y2 - y;
-    hidden = y;
+    hidden_ = y;
     Tensor residual = y2.subtract(y);
     l = residual.chain().multiply_i(residual).average().run();
   } break;
@@ -97,11 +74,11 @@ sharedConstTensors LossLayer::forwarding(sharedConstTensors in,
 
     // loss = log(1 + exp(-abs(y))) + max(y, 0) - (y * y2)
     l = mid_term.subtract(end_term).average();
-    hidden = y.apply(ActivationLayer::sigmoid, hidden);
+    hidden_ = y.apply(ActivationLayer::sigmoid, hidden_);
   } break;
   case LossType::LOSS_ENTROPY_SOFTMAX: {
-    hidden = y.apply(ActivationLayer::softmax, hidden);
-    l = y2.multiply(hidden.apply(logFloat)).sum_by_batch().multiply(-1);
+    hidden_ = y.apply(ActivationLayer::softmax, hidden_);
+    l = y2.multiply(hidden_.apply(logFloat)).sum_by_batch().multiply(-1);
 
   } break;
   case LossType::LOSS_ENTROPY: {
@@ -114,7 +91,8 @@ sharedConstTensors LossLayer::forwarding(sharedConstTensors in,
   }
 
   updateLoss(l);
-  return {MAKE_SHARED_TENSOR(hidden)};
+
+  return {MAKE_SHARED_TENSOR(net_hidden[0]->var)};
 }
 
 void LossLayer::forwarding(sharedConstTensors in) {

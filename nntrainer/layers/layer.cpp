@@ -101,9 +101,9 @@ void Layer::copy(std::shared_ptr<Layer> l) {
 }
 
 sharedConstTensors Layer::forwarding_with_val(sharedConstTensors input,
-                                   sharedConstTensors in) {
+                                              sharedConstTensors in) {
 
-  for(unsigned int i=0;i<num_inputs;++i){
+  for (unsigned int i = 0; i < num_inputs; ++i) {
     net_input[i]->var = *input[i];
   }
 
@@ -124,7 +124,7 @@ sharedConstTensors Layer::forwarding_with_val(sharedConstTensors input,
 
   nntrainer::sharedConstTensors out;
 
-  for(unsigned int i =0; i<num_outputs;++i){
+  for (unsigned int i = 0; i < num_outputs; ++i) {
     out.push_back(MAKE_SHARED_TENSOR(net_hidden[i]->var));
   }
 
@@ -132,8 +132,8 @@ sharedConstTensors Layer::forwarding_with_val(sharedConstTensors input,
 }
 
 sharedConstTensors Layer::backwarding_with_val(int iteration,
-                                      sharedConstTensors deriv,
-                                      sharedConstTensors in) {
+                                               sharedConstTensors deriv,
+                                               sharedConstTensors in) {
 
   for (unsigned int i = 0; i < num_outputs; ++i) {
     net_hidden[i]->grad = *deriv[i];
@@ -145,28 +145,20 @@ sharedConstTensors Layer::backwarding_with_val(int iteration,
   if (num_inputs != net_input.size())
     net_input.resize(num_inputs);
 
-  // for (unsigned int i = 0; i < num_inputs; ++i) {
-  //   sharedNetBuffer h_buffer = std::make_unique<nntrainer::NetBuffers>();
-  //   h_buffer->var = Tensor(getInputDimension()[i]);
-  //   h_buffer->grad = Tensor(getInputDimension()[i]);
-  //   net_input[i] = h_buffer;
-  // }
-
-  if(getType() == nntrainer::LayerType::LAYER_LOSS){
-    backwarding(iteration, in);    
+  if (istrequal(getType(), "loss")) {
+    backwarding(iteration, in);
   } else {
     backwarding(iteration, deriv);
   }
 
   nntrainer::sharedConstTensors out;
 
-  for(unsigned int i =0; i<num_inputs;++i){
+  for (unsigned int i = 0; i < num_inputs; ++i) {
     out.push_back(MAKE_SHARED_TENSOR(net_input[i]->grad));
   }
 
   return out;
 }
-  
 
 void Layer::read(std::ifstream &file) {
   for (unsigned int i = 0; i < num_weights; ++i) {

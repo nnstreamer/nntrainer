@@ -479,9 +479,9 @@ INI fc_sigmoid_mse(
   {nn_base + "learning_rate=1 | optimizer=sgd | loss=mse | batch_size = 3",
    I("input") + input_base + "input_shape = 1:1:3",
    I("dense") + fc_base + "unit = 5" + "input_layers=input",
-   I("act") + sigmoid + "input_layers=dense",
+   I("act") + sigmoid_base + "input_layers=dense",
    I("dense_1") + fc_base + "unit = 10" + "input_layers=act",
-   I("act_1") + softmax + "input_layers=dense_1"});
+   I("act_1") + softmax_base + "input_layers=dense_1"});
 
 INI fc_sigmoid_cross =
   INI("fc_sigmoid_cross") + fc_sigmoid_mse + "model/loss=cross";
@@ -491,9 +491,9 @@ INI fc_relu_mse(
   {nn_base + "Learning_rate=0.1 | Optimizer=sgd | Loss=mse | batch_size = 3",
    I("input") + input_base + "input_shape = 1:1:3",
    I("dense") + fc_base + "unit = 10" + "input_layers=input",
-   I("act") + relu + "input_layers=dense",
+   I("act") + relu_base + "input_layers=dense",
    I("dense_1") + fc_base + "unit = 2" + "input_layers=act",
-   I("act_1") + sigmoid + "input_layers=dense" + "input_layers=dense_1"});
+   I("act_1") + sigmoid_base + "input_layers=dense" + "input_layers=dense_1"});
 
 INI fc_bn_sigmoid_cross(
   "fc_bn_sigmoid_cross",
@@ -501,9 +501,9 @@ INI fc_bn_sigmoid_cross(
    I("input") + input_base + "input_shape = 1:1:3",
    I("dense") + fc_base + "unit = 10" + "input_layers=input",
    I("bn") + bn_base + "input_layers=dense",
-   I("act") + sigmoid + "input_layers=bn",
+   I("act") + sigmoid_base + "input_layers=bn",
    I("dense_2") + fc_base + "unit = 10" + "input_layers=act",
-   I("act_3") + softmax + "input_layers=dense_2"});
+   I("act_3") + softmax_base + "input_layers=dense_2"});
 
 INI fc_bn_sigmoid_mse =
   INI("fc_bn_sigmoid_mse") + fc_bn_sigmoid_cross + "model/loss=mse";

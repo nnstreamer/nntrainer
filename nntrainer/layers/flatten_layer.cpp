@@ -43,12 +43,12 @@ int FlattenLayer::initialize() {
 
 void FlattenLayer::forwarding(sharedConstTensors in) {
   memcpy(net_hidden[0]->var.getData(), net_input[0]->var.getData(),
-         output_dim[0].getDataLen());
+         output_dim[0].getDataLen() * sizeof(float));
 }
 
 void FlattenLayer::backwarding(int iteration, sharedConstTensors in) {
   memcpy(net_input[0]->grad.getData(), net_hidden[0]->grad.getData(),
-         input_dim[0].getDataLen());
+         input_dim[0].getDataLen() * sizeof(float));
 }
 
 } /* namespace nntrainer */

@@ -13,7 +13,6 @@
 
 #include <layer_factory.h>
 #include <network_graph.h>
-
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <parse_util.h>
@@ -140,7 +139,7 @@ int NetworkGraph::realizeMultiInputType(Layer &current) {
     return ML_ERROR_NONE;
 
   if (current.num_inputs > 1) {
-    std::shared_ptr<Layer> layer = nntrainer::createLayer("concat");
+    std::shared_ptr<Layer> layer = nntrainer::createLayer("addition");
     ensureName(layer, current.getName());
     layer->num_inputs = current.num_inputs;
     layer->input_dim.resize(layer->num_inputs);
@@ -386,7 +385,13 @@ int NetworkGraph::setGraphNode(std::vector<std::shared_ptr<Layer>> layers,
     Layer &l = *layers[i];
     ml_logd("layer name: %s", l.getName().c_str());
 
-    if (l.getType() != "addition" || l.getType() != "concat") {
+    if (l.getType() == "input") {
+      l.num_inputs = 1;
+      l.input_layers.clear();
+      l.input_layers.push_back("data");
+    }
+
+    if (l.getType() != "addition" && l.getType() != "concat") {
       status = realizeMultiInputType(l);
       NN_RETURN_STATUS();
     }
@@ -409,27 +414,29 @@ int NetworkGraph::setGraphNode(std::vector<std::shared_ptr<Layer>> layers,
     }
   }
 
-  if (layers.back()->getType() != LayerType::LAYER_LOSS) {
+  if (layers.back()->getType() != "loss") {
     status = addLossLayer(loss_type);
     NN_RETURN_STATUS();
   }
-
-  // std::list<LayerNode>::iterator iter;
-  // for (unsigned int i = 0; i < adj.size(); ++i) {
-  //   iter = adj[i].begin();
-  //   for (unsigned int j = 0; j < (*iter).layer->input_layers.size(); ++j)
-  //     std::cout << "      " << (*iter).layer->input_layers[j] << std::endl;
-  //   std::cout << (*iter).index << " : " << (*iter).layer->getName()
-  //             << std::endl;
-  // }
 
   return status;
 }
 
 void NetworkGraph::setNumNetBufferSize() {
   for (unsigned int i = 0; i < Sorted.size(); ++i) {
-    Sorted[i].layer->net_input.resize(Sorted[i].layer->input_layers.size());
-    Sorted[i].layer->net_hidden.resize(Sorted[i].layer->output_layers.size());
+    bool first = i == 0;
+    bool last = i == Sorted.size() - 1;
+    if (first) {
+      Sorted[i].layer->net_input.resize(Sorted[i].layer->num_inputs);
+    } else {
+      Sorted[i].layer->net_input.resize(Sorted[i].layer->input_layers.size());
+    }
+
+    if (last) {
+      Sorted[i].layer->net_hidden.resize(Sorted[i].layer->num_outputs);
+    } else {
+      Sorted[i].layer->net_hidden.resize(Sorted[i].layer->output_layers.size());
+    }
   }
 }
 
@@ -508,7 +515,7 @@ void NetworkGraph::setBatchSize(unsigned int batch_size) {
 sharedConstTensors NetworkGraph::forwarding(sharedConstTensors input) {
   for (unsigned int i = 0; i < Sorted.size() - 1; ++i) {
     LayerNode &layer_node = Sorted[i];
-    if (layer_node.layer->getType() == LayerType::LAYER_IN) {
+    if (istrequal(layer_node.layer->getType(), "input")) {
       layer_node.layer->forwarding(input);
     } else {
       layer_node.layer->forwarding();
@@ -530,7 +537,7 @@ void NetworkGraph::backwarding(sharedConstTensors output, int iteration) {
 
   for (unsigned int i = Sorted.size() - 1; i > 0; i--) {
     LayerNode &layer_node = Sorted[i];
-    if (layer_node.layer->getType() == LayerType::LAYER_LOSS) {
+    if (istrequal(layer_node.layer->getType(), nntrainer::LossLayer::type)) {
       layer_node.layer->backwarding(iteration, output);
     } else {
       layer_node.layer->backwarding(iteration);

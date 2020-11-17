@@ -133,7 +133,7 @@ void Conv2DLayer::forwarding(sharedConstTensors in) {
            kdim.getFeatureLen() * sizeof(float));
   }
 
-  Tensor bias_fill(1, 1, hidden.height(), hidden.width());
+  Tensor bias_fill(1, 1, hidden_.height(), hidden_.width());
   for (unsigned int b = 0; b < in_dim.batch(); ++b) {
     std::vector<float> out(out_dim.getFeatureLen());
     Tensor inSub(
@@ -358,7 +358,7 @@ void Conv2DLayer::backwarding(int iteration, sharedConstTensors derivatives) {
     opt->apply_gradients(weight_list, num_weights, iteration);
   }
 
-  strip_pad(ret, padding.data(), net_inpt[0]->grad);
+  strip_pad(ret, padding.data(), net_input[0]->grad);
 }
 
 void Conv2DLayer::copy(std::shared_ptr<Layer> l) {

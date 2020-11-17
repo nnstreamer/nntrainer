@@ -96,6 +96,11 @@ public:
    */
   void setProperty(const PropertyType type, const std::string &value = "");
 
+  /**
+   * @copydoc Layer::getType()
+   */
+  const std::string getType() const { return OutputLayer::type; };
+
   static const std::string type;
 };
 
