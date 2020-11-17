@@ -58,9 +58,9 @@ void ActivationLayer::backwarding(int iteration,
   Tensor &ret = net_input[0]->grad;
 
   if (activation_type == ActivationType::ACT_SOFTMAX)
-    _act_prime_fn(net_hidden[0]->var, ret, deriv);
+    ret = _act_prime_fn(net_hidden[0]->var, ret, deriv);
   else
-    _act_prime_fn(net_input[0]->var, ret, deriv);
+    ret = _act_prime_fn(net_input[0]->var, ret, deriv);
 }
 
 int ActivationLayer::setActivation(

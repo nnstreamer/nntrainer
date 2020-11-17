@@ -249,7 +249,8 @@ int NeuralNetwork::initialize() {
         n_buffer->var = Tensor(l.getInputDimension()[i]);
         n_buffer->grad = Tensor(l.getInputDimension()[i]);
 
-        model_graph.getSortedLayerNode(idx).layer->net_input[i] = n_buffer;
+        // model_graph.getSortedLayerNode(idx).layer->net_input[i] = n_buffer;
+        l.net_input[i] = n_buffer;
 
         model_graph.getSortedLayerNode(l.input_layers[i])
           .layer->net_hidden[location] = n_buffer;
@@ -423,7 +424,7 @@ void NeuralNetwork::backwarding(sharedConstTensors input,
                                 sharedConstTensors label, int iteration) {
 
   if (model_graph.Sorted.empty() ||
-      !istrequal(model_graph.Sorted.back()->getType(), LossLayer::type)) {
+      !istrequal(model_graph.Sorted.back().layer->getType(), LossLayer::type)) {
     throw std::invalid_argument("last layer is not loss layer");
   }
 

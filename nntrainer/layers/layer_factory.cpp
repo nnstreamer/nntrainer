@@ -96,6 +96,8 @@ std::unique_ptr<Layer> createLayer(const std::string &type) {
 
   if (istrequal(type, InputLayer::type))
     return std::make_unique<InputLayer>();
+  if (istrequal(type, OutputLayer::type))
+    return std::make_unique<OutputLayer>();
   if (istrequal(type, FullyConnectedLayer::type))
     return std::make_unique<FullyConnectedLayer>();
   if (istrequal(type, BatchNormalizationLayer::type))
@@ -110,6 +112,8 @@ std::unique_ptr<Layer> createLayer(const std::string &type) {
     return std::make_unique<ActivationLayer>();
   if (istrequal(type, AdditionLayer::type))
     return std::make_unique<AdditionLayer>();
+  if (istrequal(type, ConcatLayer::type))
+    return std::make_unique<ConcatLayer>();
   if (istrequal(type, LossLayer::type))
     return std::make_unique<LossLayer>();
 #ifdef ENABLE_NNSTREAMER_BACKBONE
