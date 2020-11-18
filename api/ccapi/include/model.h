@@ -96,7 +96,9 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  virtual int init() = 0;
+  virtual int initialize() = 0;
+
+  virtual int compile() = 0;
 
   /**
    * @brief     save model and training parameters into file

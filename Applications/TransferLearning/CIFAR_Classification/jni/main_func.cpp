@@ -284,7 +284,8 @@ int main(int argc, char *argv[]) {
     return 0;
   }
   try {
-    model->init();
+    model->compile();
+    model->initialize();
   } catch (...) {
     std::cerr << "Error during init" << std::endl;
     return 0;

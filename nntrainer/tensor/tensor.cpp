@@ -636,7 +636,7 @@ void Tensor::print(std::ostream &out) const {
 
   out << dim;
 
-  if (len > 10000000) {
+  if (len > 100) {
     out << '[' << data[0] << ' ' << data[1] << ' ' << data[2] << " ... "
         << data[len - 3] << ' ' << data[len - 2] << ' ' << data[len - 1] << ']'
         << std::endl;

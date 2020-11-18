@@ -254,7 +254,12 @@ int ml_train_model_compile(ml_train_model_h model, ...) {
   if (status != ML_ERROR_NONE)
     return status;
 
-  f = [&]() { return NN->init(); };
+  f = [&]() { return NN->compile(); };
+  status = nntrainer_exception_boundary(f);
+  if (status != ML_ERROR_NONE)
+    return status;
+
+  f = [&]() { return NN->initialize(); };
   status = nntrainer_exception_boundary(f);
   if (status != ML_ERROR_NONE)
     return status;

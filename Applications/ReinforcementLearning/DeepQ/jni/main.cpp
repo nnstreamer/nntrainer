@@ -281,9 +281,11 @@ int main(int argc, char **argv) {
 
   try {
     mainNet.loadFromConfig(config);
-    mainNet.init();
+    mainNet.compile();
+    mainNet.initialize();
     targetNet.loadFromConfig(config);
-    targetNet.init();
+    targetNet.compile();
+    targetNet.initialize();
   } catch (...) {
     std::cerr << "Error during init" << std::endl;
     return 0;

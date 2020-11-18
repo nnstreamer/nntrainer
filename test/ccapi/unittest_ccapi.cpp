@@ -160,7 +160,8 @@ TEST(nntrainer_ccapi, train_with_config_01_p) {
                     ml::train::createModel(ml::train::ModelType::NEURAL_NET));
 
   EXPECT_EQ(model->loadFromConfig(config_file), ML_ERROR_NONE);
-  EXPECT_EQ(model->init(), ML_ERROR_NONE);
+  EXPECT_EQ(model->compile(), ML_ERROR_NONE);
+  EXPECT_EQ(model->initialize(), ML_ERROR_NONE);
   EXPECT_NO_THROW(model->train());
 
   EXPECT_FLOAT_EQ(model->getTrainingLoss(), 4.434051);
@@ -189,7 +190,8 @@ TEST(nntrainer_ccapi, train_dataset_with_file_01_p) {
     layer = ml::train::layer::FullyConnected(
       {"unit= 10", "activation=softmax", "bias_initializer=zeros",
        "weight_regularizer=l2norm", "weight_regularizer_constant=0.005",
-       "weight_initializer=xavier_uniform"}));
+       "weight_initializer=xavier_uniform",
+       "input_layers=" + layer->getName()}));
   EXPECT_NO_THROW(model->addLayer(layer));
 
   EXPECT_NO_THROW(
@@ -208,7 +210,8 @@ TEST(nntrainer_ccapi, train_dataset_with_file_01_p) {
   EXPECT_EQ(model->setProperty({"loss=cross", "batch_size=16", "epochs=2",
                                 "save_path=model.bin"}),
             ML_ERROR_NONE);
-  EXPECT_EQ(model->init(), ML_ERROR_NONE);
+  EXPECT_EQ(model->compile(), ML_ERROR_NONE);
+  EXPECT_EQ(model->initialize(), ML_ERROR_NONE);
   EXPECT_NO_THROW(model->train());
 
   EXPECT_FLOAT_EQ(model->getTrainingLoss(), 2.1934659);
@@ -237,7 +240,8 @@ TEST(nntrainer_ccapi, train_dataset_with_generator_01_p) {
     layer = ml::train::layer::FullyConnected(
       {"unit= 10", "activation=softmax", "bias_initializer=zeros",
        "weight_regularizer=l2norm", "weight_regularizer_constant=0.005",
-       "weight_initializer=xavier_uniform"}));
+       "weight_initializer=xavier_uniform",
+       "input_layers=" + layer->getName()}));
   EXPECT_NO_THROW(model->addLayer(layer));
 
   EXPECT_NO_THROW(
@@ -255,7 +259,8 @@ TEST(nntrainer_ccapi, train_dataset_with_generator_01_p) {
   EXPECT_EQ(model->setProperty({"loss=cross", "batch_size=16", "epochs=2",
                                 "save_path=model.bin"}),
             ML_ERROR_NONE);
-  EXPECT_EQ(model->init(), ML_ERROR_NONE);
+  EXPECT_EQ(model->compile(), ML_ERROR_NONE);
+  EXPECT_EQ(model->initialize(), ML_ERROR_NONE);
   EXPECT_NO_THROW(model->train());
 
   EXPECT_FLOAT_EQ(model->getTrainingLoss(), 2.2109976);

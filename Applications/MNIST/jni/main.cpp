@@ -290,7 +290,8 @@ int main(int argc, char *argv[]) {
   }
 
   try {
-    model->init();
+    model->compile();
+    model->initialize();
   } catch (...) {
     std::cerr << "Error during init" << std::endl;
     return 0;

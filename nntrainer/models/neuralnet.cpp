@@ -207,6 +207,11 @@ int NeuralNetwork::compile() {
 int NeuralNetwork::initialize() {
   int status = ML_ERROR_NONE;
 
+  if (initialized) {
+    ml_loge("Error: Initializing the model again");
+    return ML_ERROR_NOT_SUPPORTED;
+  }
+
   unsigned int n_layers = (unsigned int)model_graph.Sorted.size();
 
   ml_logd("initializing neural network, layer size: %d", n_layers);
@@ -437,8 +442,9 @@ void NeuralNetwork::backwarding(sharedConstTensors input,
 
 float NeuralNetwork::getLoss() {
   loss = 0.0f;
-  for (unsigned int i = 0; i < layers.size(); i++) {
-    loss += layers[i]->getLoss();
+
+  for (unsigned int i = 0; i < model_graph.Sorted.size(); i++) {
+    loss += model_graph.Sorted[i].layer->getLoss();
   }
   return loss;
 }
@@ -544,7 +550,6 @@ sharedConstTensors NeuralNetwork::inference(sharedConstTensors X) {
                            .layer->net_hidden[i]
                            ->var));
   }
-
   return out;
 }
 
@@ -560,13 +565,13 @@ int NeuralNetwork::train(std::vector<std::string> values) {
   NN_RETURN_STATUS();
 
   /** set batch size just before training */
-  // setBatchSize(batch_size);
+  setBatchSize(batch_size);
 
   /** Setup data buffer properties */
   status = data_buffer->setClassNum(getOutputDimension()[0].width());
   NN_RETURN_STATUS();
 
-  status = data_buffer->setFeatureSize(layers[0]->getInputDimension()[0]);
+  status = data_buffer->setFeatureSize(getInputDimension()[0]);
   NN_RETURN_STATUS();
 
   status = data_buffer->init();
