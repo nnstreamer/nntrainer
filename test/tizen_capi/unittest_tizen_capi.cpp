@@ -311,7 +311,8 @@ TEST(nntrainer_capi_nnmodel, train_01_p) {
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   /** Compare training statistics */
-  nntrainer_capi_model_comp_metrics(handle, 4.01373, 3.55134, 10.4167);
+  // nntrainer_capi_model_comp_metrics(handle, 4.01373, 3.55134, 10.4167);
+  nntrainer_capi_model_comp_metrics(handle, 4.528861, 4.0694098, 10.4167);
 
   status = ml_train_model_destroy(handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -658,9 +659,9 @@ TEST(nntrainer_capi_nnmodel, train_with_file_01_p) {
   status = ml_train_layer_create(&layers[0], ML_TRAIN_LAYER_TYPE_INPUT);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_train_layer_set_property(layers[0], "input_shape=1:1:62720",
-                                       "normalization=true",
-                                       "bias_initializer=zeros", NULL);
+  status = ml_train_layer_set_property(
+    layers[0], "input_shape=1:1:62720", "normalization=true",
+    "bias_initializer=zeros", "name=inputlayer", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_train_model_add_layer(model, layers[0]);
@@ -672,7 +673,8 @@ TEST(nntrainer_capi_nnmodel, train_with_file_01_p) {
   status = ml_train_layer_set_property(
     layers[1], "unit= 10", "activation=softmax", "bias_initializer=zeros",
     "weight_regularizer=l2norm", "weight_regularizer_constant=0.005",
-    "weight_initializer=xavier_uniform", NULL);
+    "weight_initializer=xavier_uniform", "name = fc1",
+    "input_layers=inputlayer", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_train_model_add_layer(model, layers[1]);
@@ -707,7 +709,8 @@ TEST(nntrainer_capi_nnmodel, train_with_file_01_p) {
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   /** Compare training statistics */
-  nntrainer_capi_model_comp_metrics(model, 2.13067, 2.19975, 20.8333);
+  // nntrainer_capi_model_comp_metrics(model, 2.13067, 2.19975, 20.8333);
+  nntrainer_capi_model_comp_metrics(model, 2.15465, 2.27508, 16.6667);
 
   status = ml_train_model_destroy(model);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -730,9 +733,9 @@ TEST(nntrainer_capi_nnmodel, train_with_generator_01_p) {
   status = ml_train_layer_create(&layers[0], ML_TRAIN_LAYER_TYPE_INPUT);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_train_layer_set_property(layers[0], "input_shape=1:1:62720",
-                                       "normalization=true",
-                                       "bias_initializer=zeros", NULL);
+  status = ml_train_layer_set_property(
+    layers[0], "input_shape=1:1:62720", "normalization=true",
+    "bias_initializer=zeros", "name=inputlayer", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_train_model_add_layer(model, layers[0]);
@@ -744,7 +747,8 @@ TEST(nntrainer_capi_nnmodel, train_with_generator_01_p) {
   status = ml_train_layer_set_property(
     layers[1], "unit= 10", "activation=softmax", "bias_initializer=zeros",
     "weight_regularizer=l2norm", "weight_regularizer_constant=0.005",
-    "weight_initializer=xavier_uniform", NULL);
+    "weight_initializer=xavier_uniform", "name=fc1", "input_layers=inputlayer",
+    NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_train_model_add_layer(model, layers[1]);
@@ -778,7 +782,8 @@ TEST(nntrainer_capi_nnmodel, train_with_generator_01_p) {
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   /** Compare training statistics */
-  nntrainer_capi_model_comp_metrics(model, 2.17921, 1.96506, 60.4167);
+  // nntrainer_capi_model_comp_metrics(model, 2.17921, 1.96506, 60.4167);
+  nntrainer_capi_model_comp_metrics(model, 2.2016799, 1.99342, 54.166698);
 
   status = ml_train_model_destroy(model);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -832,16 +837,17 @@ TEST(nntrainer_capi_nnmodel, train_with_generator_02_p) {
   status = ml_train_layer_create(&layers[0], ML_TRAIN_LAYER_TYPE_INPUT);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_train_layer_set_property(layers[0], "input_shape=1:1:100",
-                                       "normalization=true",
-                                       "bias_initializer=true", NULL);
+  status = ml_train_layer_set_property(
+    layers[0], "input_shape=1:1:100", "normalization=true",
+    "bias_initializer=true", "name=inputlayer", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_train_layer_create(&layers[1], ML_TRAIN_LAYER_TYPE_FC);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_train_layer_set_property(layers[1], "unit=10",
-                                       "activation=softmax", NULL);
+  status =
+    ml_train_layer_set_property(layers[1], "unit=10", "activation=softmax",
+                                "name=fc1", "input_layers=inputlayer", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_train_dataset_create_with_generator(

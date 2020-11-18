@@ -291,7 +291,7 @@ public:
    * @retval std::vector<TensorDim> input dimension
    */
   std::vector<TensorDim> getInputDimension() {
-    return layers[0]->getInputDimension();
+    return model_graph.getInputDimension();
   }
 
   /*
@@ -299,7 +299,7 @@ public:
    * @retval std::vector<TensorDim> output dimension
    */
   std::vector<TensorDim> getOutputDimension() {
-    return layers.back()->getOutputDimension();
+    return model_graph.getOutputDimension();
   }
 
   /**
@@ -393,7 +393,7 @@ private:
   RunStats testing;    /** testing statistics of the model */
 
   AppContext app_context; /** Configurations bound to current app */
-  
+
   NetworkGraph model_graph;
 
   /**

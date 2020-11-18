@@ -300,7 +300,8 @@ int NetworkGraph::addLossLayer(const LossType loss_type) {
   }
 
   std::shared_ptr<LossLayer> temp = std::dynamic_pointer_cast<LossLayer>(layer);
-  temp->setLoss(updated_loss_type);
+  status = temp->setLoss(updated_loss_type);
+  NN_RETURN_STATUS();
 
   addLayerNode(layer);
 
@@ -543,6 +544,14 @@ void NetworkGraph::backwarding(sharedConstTensors output, int iteration) {
       layer_node.layer->backwarding(iteration);
     }
   }
+}
+
+std::vector<TensorDim> NetworkGraph::getInputDimension() {
+  return Sorted[0].layer->getInputDimension();
+}
+
+std::vector<TensorDim> NetworkGraph::getOutputDimension() {
+  return Sorted.back().layer->getOutputDimension();
 }
 
 } /* namespace nntrainer */

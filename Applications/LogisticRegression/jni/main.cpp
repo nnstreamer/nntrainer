@@ -186,7 +186,8 @@ int main(int argc, char *argv[]) {
 
   try {
     NN.loadFromConfig(config);
-    NN.init();
+    NN.compile();
+    NN.initialize();
   } catch (...) {
     std::cerr << "Error during init" << std::endl;
     return 0;
