@@ -15,7 +15,6 @@ endif
 
 # Dependencies
 nntrainer_base_deps=[
-  openmp_dep,
   blas_dep,
   iniparser_dep,
   libm_dep,
