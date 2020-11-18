@@ -84,7 +84,6 @@ nntrainer_conf.set('LIB_INSTALL_DIR', nntrainer_libdir)
 nntrainer_conf.set('INCLUDE_INSTALL_DIR', nntrainer_includedir)
 
 dummy_dep = dependency('', required: false)
-openmp_dep = dependency('openmp')
 
 blas_dep = dummy_dep
 # Dependencies

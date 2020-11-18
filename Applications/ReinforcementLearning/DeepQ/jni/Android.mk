@@ -36,8 +36,8 @@ LOCAL_ARM_NEON := true
 LOCAL_CFLAGS += -std=c++14 -Ofast -mcpu=cortex-a53 -Ilz4-nougat/lib -fexceptions -DUSING_CUSTOM_ENV
 LOCAL_LDFLAGS += -Llz4-nougat/lib/obj/local/arm64-v8a/
 LOCAL_CXXFLAGS += -std=c++14 -DUSING_CUSTOM_ENV
-LOCAL_CFLAGS += -pthread -fopenmp -fexceptions
-LOCAL_LDFLAGS += -fopenmp -fexceptions
+LOCAL_CFLAGS += -pthread -fexceptions
+LOCAL_LDFLAGS += -fexceptions
 LOCAL_MODULE_TAGS := optional
 LOCAL_ARM_MODE := arm
 LOCAL_MODULE := nntrainer_deepq

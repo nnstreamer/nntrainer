@@ -110,9 +110,9 @@ INIPARSER_SRCS := $(INIPARSER_ROOT)/src/iniparser.c \
 INIPARSER_INCLUDES := $(INIPARSER_ROOT)/src
 
 LOCAL_ARM_NEON      := true
-LOCAL_CFLAGS        += -pthread -fopenmp -fexceptions
+LOCAL_CFLAGS        += -pthread -fexceptions
 LOCAL_CXXFLAGS      += -std=c++14 -frtti -fexceptions
-LOCAL_LDFLAGS       += -fuse-ld=bfd -fopenmp
+LOCAL_LDFLAGS       += -fuse-ld=bfd
 LOCAL_MODULE_TAGS   := optional
 
 LOCAL_LDLIBS        := -llog
@@ -150,9 +150,9 @@ CAPI_NNTRAINER_INCLUDES := $(NNTRAINER_ROOT)/nntrainer \
 LOCAL_SHARED_LIBRARIES := nntrainer
 
 LOCAL_ARM_NEON      := true
-LOCAL_CFLAGS        += -pthread -fopenmp -fexceptions
+LOCAL_CFLAGS        += -pthread -fexceptions
 LOCAL_CXXFLAGS      += -std=c++14 -frtti -fexceptions
-LOCAL_LDFLAGS       += -fuse-ld=bfd -fopenmp
+LOCAL_LDFLAGS       += -fuse-ld=bfd
 LOCAL_MODULE_TAGS   := optional
 
 LOCAL_LDLIBS        := -llog
@@ -181,9 +181,9 @@ CCAPI_NNTRAINER_INCLUDES := $(NNTRAINER_ROOT)/nntrainer \
 LOCAL_SHARED_LIBRARIES := nntrainer
 
 LOCAL_ARM_NEON      := true
-LOCAL_CFLAGS        += -pthread -fopenmp -fexceptions
+LOCAL_CFLAGS        += -pthread -fexceptions
 LOCAL_CXXFLAGS      += -std=c++14 -frtti -fexceptions
-LOCAL_LDFLAGS       += -fuse-ld=bfd -fopenmp
+LOCAL_LDFLAGS       += -fuse-ld=bfd
 LOCAL_MODULE_TAGS   := optional
 
 LOCAL_LDLIBS        := -llog
