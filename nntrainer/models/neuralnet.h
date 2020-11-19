@@ -92,6 +92,7 @@ public:
     data_buffer(nullptr),
     continue_train(false),
     initialized(false),
+    compiled(false),
     def_name_count(0),
     loadedFromConfig(false),
     app_context(app_context_) {}
@@ -381,6 +382,8 @@ private:
 
   bool initialized; /**< Network is initialized */
 
+  bool compiled; /**< Network is compiled */
+
   std::set<std::string>
     layer_names; /**< Set containing all the names of layers in the model */
 
@@ -487,6 +490,8 @@ private:
     swap(lhs.data_buffer, rhs.data_buffer);
     swap(lhs.continue_train, rhs.continue_train);
     swap(lhs.initialized, rhs.initialized);
+    swap(lhs.model_graph, rhs.model_graph);
+    swap(lhs.compiled, rhs.compiled);
     swap(lhs.layer_names, rhs.layer_names);
     swap(lhs.def_name_count, rhs.def_name_count);
     swap(lhs.loadedFromConfig, rhs.loadedFromConfig);
