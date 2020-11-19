@@ -280,7 +280,7 @@ INSTANTIATE_TEST_CASE_P(
   /**< positive: basic valid scenarios (2 positive and 3 negative cases) */
     mkIniTc("basic_p", {nw_adam, input, out+"input_layers=inputlayer"}, SUCCESS),
     mkIniTc("basic2_p", {nw_sgd, input, out+"input_layers=inputlayer"}, SUCCESS),
-    mkIniTc("basic_act_p", {nw_sgd, input + "-Activation", act_relu+"input_layers=inputlayer", out+"input_layers=fclayer" }, SUCCESS),
+    mkIniTc("basic_act_p", {nw_sgd, input + "-Activation", act_relu+"input_layers=inputlayer", out+"input_layers=activation_relu" }, SUCCESS),
     mkIniTc("basic_bn_p", {nw_sgd, input + "-Activation", batch_normal+"input_layers=inputlayer", act_relu+"input_layers=bn", out+"input_layers=activation_relu" }, SUCCESS),
     mkIniTc("basic_bn2_p", {nw_sgd, input + "-Activation", batch_normal + "Activation = relu"+"input_layers=inputlayer", out+"input_layers=bn" }, SUCCESS),
     mkIniTc("basic_dataset_p", {nw_adam, dataset, input, out+"input_layers=inputlayer"}, SUCCESS),
@@ -294,13 +294,13 @@ INSTANTIATE_TEST_CASE_P(
     mkIniTc("buffer_size_smaller_than_batch_size2_p", {nw_adam, input, out+"input_layers=inputlayer", dataset + "BufferSize=26"}, SUCCESS),
 
   /**< half negative: init fail cases (1 positive and 4 negative cases) */
-    mkIniTc("unknown_loss_n", {nw_adam + "loss = unknown", input, out+"input_layers=inputlayer"}, COMPFAIL),
-    mkIniTc("activation_very_first_n", {nw_sgd, act_relu, input+"input_layers=activation_relu", out+"input_layers=inputlayer"}, COMPFAIL),
-    mkIniTc("bnlayer_very_first_n", {nw_sgd, batch_normal, input+"input_layers=bn", out+"input_layers=inputlayer"}, INITFAIL),
+    mkIniTc("unknown_loss_n", {nw_adam + "loss = unknown", input, out+"input_layers=inputlayer"}, COMPFAIL | INITFAIL),
+    mkIniTc("activation_very_first_n", {nw_sgd, act_relu, input+"input_layers=activation_relu", out+"input_layers=inputlayer"}, COMPFAIL| INITFAIL),
+    mkIniTc("bnlayer_very_first_n", {nw_sgd, batch_normal, input+"input_layers=bn", out+"input_layers=inputlayer"}, COMPFAIL | INITFAIL),
     mkIniTc("act_layer_after_act_n", {nw_sgd, input, act_relu+"input_layers=inputlayer", out+"input_layers=activation_relu"}, INITFAIL),
     mkIniTc("act_layer_after_act_bn_n", {nw_sgd, input, act_relu+"input_layers=inputlayer", batch_normal+"input_layers=activation_relu", out+"input_layers=bn" }, INITFAIL),
-    mkIniTc("last_act_layer_relu_n", {nw_sgd, input, out+"input_layers=inputlayer", act_relu+"input_layers=fclayer" }, INITFAIL),
-    mkIniTc("last_act_layer_relu2_n", {nw_sgd, input, out+"input_layers=inputlayer" + "-Activation", act_relu+"input_layers=fclayer" }, INITFAIL),
+    mkIniTc("last_act_layer_relu_n", {nw_sgd, input, out+"input_layers=inputlayer", act_relu+"input_layers=fclayer" }, COMPFAIL | INITFAIL),
+    mkIniTc("last_act_layer_relu2_n", {nw_sgd, input, out+"input_layers=inputlayer" + "-Activation", act_relu+"input_layers=fclayer" }, COMPFAIL | INITFAIL),
 
   /**< negative: basic invalid scenarios (5 negative cases) */
     mkIniTc("no_model_sec_name_n", {I(nw_adam, "-", "")}, ALLFAIL),
@@ -315,7 +315,7 @@ INSTANTIATE_TEST_CASE_P(
     mkIniTc("wrong_opt_type_n", {nw_adam + "Optimizer = wrong_opt", input, out+"input_layers=inputlayer"}, ALLFAIL),
     mkIniTc("adam_minus_lr_n", {nw_adam + "Learning_rate = -0.1", input, out+"input_layers=inputlayer"}, ALLFAIL),
     mkIniTc("sgd_minus_lr_n", {nw_sgd + "Learning_rate = -0.1", input, out+"input_layers=inputlayer"}, ALLFAIL),
-    mkIniTc("no_loss_n", {nw_adam + "-loss", input, out+"input_layers=inputlayer"}, INITFAIL),
+    mkIniTc("no_loss_n", {nw_adam + "-loss", input, out+"input_layers=inputlayer"}, COMPFAIL | INITFAIL),
     mkIniTc("unknown_layer_type_n", {nw_adam, input + "Type = asdf", out+"input_layers=inputlayer"}, ALLFAIL),
     mkIniTc("unknown_layer_type2_n", {nw_adam, input, out + "Type = asdf"+"input_layers=inputlayer", I(out, "outlayer", "")}, ALLFAIL),
 

@@ -201,6 +201,8 @@ int NeuralNetwork::compile() {
   model_graph.topologicalSort();
   setBatchSize(batch_size);
 
+  compiled = true;
+
   return status;
 }
 
@@ -209,6 +211,11 @@ int NeuralNetwork::initialize() {
 
   if (initialized) {
     ml_loge("Error: Initializing the model again");
+    return ML_ERROR_NOT_SUPPORTED;
+  }
+
+  if (!compiled) {
+    ml_loge("Error: Need to compile first");
     return ML_ERROR_NOT_SUPPORTED;
   }
 
@@ -254,7 +261,6 @@ int NeuralNetwork::initialize() {
         n_buffer->var = Tensor(l.getInputDimension()[i]);
         n_buffer->grad = Tensor(l.getInputDimension()[i]);
 
-        // model_graph.getSortedLayerNode(idx).layer->net_input[i] = n_buffer;
         l.net_input[i] = n_buffer;
 
         model_graph.getSortedLayerNode(l.input_layers[i])
