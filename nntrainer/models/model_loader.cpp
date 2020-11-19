@@ -279,6 +279,12 @@ int ModelLoader::loadBackboneConfigIni(dictionary *ini,
     graph[0]->setProperty(Layer::PropertyType::input_shape, input_shape);
   }
 
+  std::string input_layers =
+    iniparser_getstring(ini, (backbone_name + ":Input_Layers").c_str(), "");
+  if (!input_layers.empty() && graph.size() != 0) {
+    graph[0]->setProperty(Layer::PropertyType::input_layers, input_layers);
+  }
+
   status = model.extendGraph(graph, backbone_name);
   NN_RETURN_STATUS();
 

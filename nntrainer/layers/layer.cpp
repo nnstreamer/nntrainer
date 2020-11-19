@@ -280,7 +280,7 @@ void Layer::setProperty(const PropertyType type, const std::string &value) {
 
       num_inputs = concat_layers.size();
       input_dim.resize(num_inputs);
-
+      input_layers.clear();
       for (unsigned int i = 0; i < num_inputs; ++i)
         input_layers.push_back(concat_layers[i]);
     }
@@ -292,7 +292,7 @@ void Layer::setProperty(const PropertyType type, const std::string &value) {
 
       num_outputs = concat_layers.size();
       output_dim.resize(num_outputs);
-
+      output_layers.clear();
       for (unsigned int i = 0; i < num_outputs; ++i)
         output_layers.push_back(concat_layers[i]);
     }

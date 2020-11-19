@@ -24,6 +24,7 @@
 #define __NEURALNET_H__
 #ifdef __cplusplus
 
+#include <map>
 #include <memory>
 #include <vector>
 
@@ -399,6 +400,8 @@ private:
 
   NetworkGraph model_graph;
 
+  std::map<std::string, std::string> sub_in_out;
+
   /**
    * @brief print function for neuralnet
    * @param[in] out outstream
@@ -492,6 +495,7 @@ private:
     swap(lhs.initialized, rhs.initialized);
     swap(lhs.model_graph, rhs.model_graph);
     swap(lhs.compiled, rhs.compiled);
+    swap(lhs.sub_in_out, rhs.sub_in_out);
     swap(lhs.layer_names, rhs.layer_names);
     swap(lhs.def_name_count, rhs.def_name_count);
     swap(lhs.loadedFromConfig, rhs.loadedFromConfig);

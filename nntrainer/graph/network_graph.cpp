@@ -296,7 +296,7 @@ int NetworkGraph::addLossLayer(const LossType loss_type) {
   if (layer->output_layers.size() == 0) {
     layer->num_outputs = 1;
     layer->output_dim.resize(1);
-    layer->output_layers.push_back("exit");
+    layer->output_layers.push_back("__exit__");
   }
 
   std::shared_ptr<LossLayer> temp = std::dynamic_pointer_cast<LossLayer>(layer);
@@ -334,7 +334,7 @@ void NetworkGraph::setOutputLayers(std::vector<std::shared_ptr<Layer>> layers) {
   if (layers.back()->num_outputs == 0) {
     layers.back()->num_outputs = 1;
     layers.back()->output_dim.resize(1);
-    layers.back()->output_layers.push_back("exit");
+    layers.back()->output_layers.push_back("__exit__");
   }
 }
 
@@ -386,11 +386,22 @@ int NetworkGraph::setGraphNode(std::vector<std::shared_ptr<Layer>> layers,
     Layer &l = *layers[i];
     ml_logd("layer name: %s", l.getName().c_str());
 
-    if (l.getType() == "input") {
+    if (l.input_layers.size() < 1) {
+      for (unsigned int i = 0; i < l.getInputDimension().size(); ++i) {
+        if (l.getInputDimension()[i].getDataLen() == 0)
+          throw std::invalid_argument("Input Dimension must be set");
+      }
+
       l.num_inputs = 1;
       l.input_layers.clear();
-      l.input_layers.push_back("data");
+      l.input_layers.push_back("__data__");
     }
+
+    // if (l.getType() == "input") {
+    //   l.num_inputs = 1;
+    //   l.input_layers.clear();
+    //   l.input_layers.push_back("__data__");
+    // }
 
     if (l.getType() != "addition" && l.getType() != "concat") {
       status = realizeMultiInputType(l);
@@ -473,6 +484,8 @@ int NetworkGraph::setEdge() {
       continue;
 
     for (unsigned int j = 0; j < (*iter).layer->input_layers.size(); ++j) {
+      if ((*iter).layer->input_layers[j] == "__data__")
+        continue;
       unsigned int to_node_id =
         getLayerNode((*iter).layer->input_layers[j]).index;
       std::cout << getLayerNode(to_node_id).layer->getName() << " : "
