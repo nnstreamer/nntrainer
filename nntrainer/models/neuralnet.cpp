@@ -296,6 +296,7 @@ int NeuralNetwork::initialize() {
       Tensor(model_graph.Sorted.back().layer->getOutputDimension()[i]);
     model_graph.Sorted.back().layer->net_hidden[i] = last_hidden_buffer;
   }
+
   initialized = true;
   return status;
 }
@@ -747,16 +748,36 @@ int NeuralNetwork::extendGraph(GraphType graph, std::string prefix) {
     return ML_ERROR_NOT_SUPPORTED;
   }
 
+  if (graph.size() == 0)
+    return ML_ERROR_NONE;
+
+  for (unsigned int i = 0; i < graph[0]->input_layers.size(); ++i) {
+    if (sub_in_out.find(graph[0]->input_layers[i]) != sub_in_out.end()) {
+      graph[0]->input_layers[i] = sub_in_out[graph[0]->input_layers[i]];
+    }
+  }
+
   /** Insert the layer to the graph */
   for (auto layer : graph) {
     /**
      * Add prefix to the existing layer name,
      * and ensure it is unique in this new graph
      */
+    std::string org_name = prefix + layer->getName();
     ensureName(layer, prefix, true);
+    sub_in_out.insert(std::make_pair(org_name, layer->getName()));
+
+    for (unsigned int i = 0; i < layer->input_layers.size(); ++i) {
+      if (sub_in_out.find(prefix + layer->input_layers[i]) !=
+          sub_in_out.end()) {
+        layer->input_layers[i] = sub_in_out[prefix + layer->input_layers[i]];
+      }
+    }
 
     layers.push_back(layer);
   }
+
+  sub_in_out.insert(std::make_pair(prefix, layers.back()->getName()));
 
   return ML_ERROR_NONE;
 }

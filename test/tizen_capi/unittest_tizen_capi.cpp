@@ -180,7 +180,8 @@ TEST(nntrainer_capi_nnmodel, compile_05_p) {
   status = ml_train_layer_set_property(
     layers[1], "unit= 10", "activation=softmax", "bias_initializer=zeros",
     "weight_regularizer=l2norm", "weight_regularizer_constant=0.005",
-    "weight_initializer=xavier_uniform", "name=fc100", NULL);
+    "weight_initializer=xavier_uniform", "name=fc100", "input_layers=input0",
+    NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_train_model_add_layer(model, layers[1]);
@@ -311,8 +312,7 @@ TEST(nntrainer_capi_nnmodel, train_01_p) {
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   /** Compare training statistics */
-  // nntrainer_capi_model_comp_metrics(handle, 4.01373, 3.55134, 10.4167);
-  nntrainer_capi_model_comp_metrics(handle, 4.528861, 4.0694098, 10.4167);
+  nntrainer_capi_model_comp_metrics(handle, 4.01373, 3.55134, 10.4167);
 
   status = ml_train_model_destroy(handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -709,8 +709,7 @@ TEST(nntrainer_capi_nnmodel, train_with_file_01_p) {
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   /** Compare training statistics */
-  // nntrainer_capi_model_comp_metrics(model, 2.13067, 2.19975, 20.8333);
-  nntrainer_capi_model_comp_metrics(model, 2.15465, 2.27508, 16.6667);
+  nntrainer_capi_model_comp_metrics(model, 2.13067, 2.19975, 20.8333);
 
   status = ml_train_model_destroy(model);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -782,8 +781,7 @@ TEST(nntrainer_capi_nnmodel, train_with_generator_01_p) {
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   /** Compare training statistics */
-  // nntrainer_capi_model_comp_metrics(model, 2.17921, 1.96506, 60.4167);
-  nntrainer_capi_model_comp_metrics(model, 2.2016799, 1.99342, 54.166698);
+  nntrainer_capi_model_comp_metrics(model, 2.17921, 1.96506, 60.4167);
 
   status = ml_train_model_destroy(model);
   EXPECT_EQ(status, ML_ERROR_NONE);
