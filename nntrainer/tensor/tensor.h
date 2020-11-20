@@ -618,6 +618,22 @@ public:
   const float *getAddress(unsigned int i) const;
 
   /**
+   * @brief    get address of n-d data
+   */
+  float *getAddress(unsigned int b, unsigned int c, unsigned int h,
+                    unsigned int w) {
+    return getAddress(getIndex(b, c, h, w));
+  }
+
+  /**
+   * @brief    get address of n-d data
+   */
+  const float *getAddress(unsigned int b, unsigned int c, unsigned int h,
+                          unsigned int w) const {
+    return getAddress(getIndex(b, c, h, w));
+  }
+
+  /**
    * @brief     set Tensor Dim
    * @param[in] d TensorDim
    * @note      Throws std::invalid_argument if size mismatch

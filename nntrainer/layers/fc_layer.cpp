@@ -53,8 +53,10 @@ int FullyConnectedLayer::initialize() {
   dim.batch(1);
 
   setNumWeights(2);
-  weightAt(0) = std::move(Weight(dim, weight_initializer, true, "FC:weight"));
-  weightAt(1) = std::move(Weight(bias_dim, bias_initializer, true, "FC:bias"));
+  weightAt(static_cast<int>(FCParams::weight)) =
+    std::move(Weight(dim, weight_initializer, true, "FC:weight"));
+  weightAt(static_cast<int>(FCParams::bias)) =
+    std::move(Weight(bias_dim, bias_initializer, true, "FC:bias"));
 
   return status;
 }

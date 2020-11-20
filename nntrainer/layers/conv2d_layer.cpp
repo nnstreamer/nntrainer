@@ -27,6 +27,8 @@ namespace nntrainer {
 
 const std::string Conv2DLayer::type = "conv2d";
 
+enum ConvParams { weight, bias };
+
 int Conv2DLayer::initialize() {
   int status = ML_ERROR_NONE;
 
@@ -41,23 +43,18 @@ int Conv2DLayer::initialize() {
     ml_logw("Warning: the length of previous layer dimension is one");
   }
 
-  TensorDim dim =
-    TensorDim(1, in_dim.channel(), kernel_size[0], kernel_size[1]);
-  TensorDim bias_dim = TensorDim(1, 1, 1, 1);
-
   std::string kernelPrefix = "Conv2d:filter";
   std::string biasPrefix = "Conv2d:bias";
-  setNumWeights(filter_size * 2);
 
-  for (unsigned int i = 0; i < filter_size; ++i) {
-    /*< @note: order of weight and bias are:
-               w0 w1 w2 ... w(filter_size) b0 b1 b2 ... b(filter_size)
-    */
-    weightAt(i) = std::move(
-      Weight(dim, weight_initializer, true, kernelPrefix + std::to_string(i)));
-    weightAt(i + filter_size) = std::move(
-      Weight(bias_dim, bias_initializer, true, biasPrefix + std::to_string(i)));
-  }
+  TensorDim dim =
+    TensorDim(filter_size, in_dim.channel(), kernel_size[0], kernel_size[1]);
+  TensorDim bias_dim = TensorDim(1, filter_size, 1, 1);
+  setNumWeights(2);
+
+  weightAt(ConvParams::weight) =
+    std::move(Weight(dim, weight_initializer, true, kernelPrefix));
+  weightAt(ConvParams::bias) =
+    std::move(Weight(bias_dim, bias_initializer, true, biasPrefix));
 
   // this output_dim should be the same with dimension of hidden
   out_dim.batch(in_dim.batch());
@@ -81,9 +78,13 @@ void Conv2DLayer::forwarding(sharedConstTensors in) {
   TensorDim &in_dim = input_dim[0];
   TensorDim &out_dim = output_dim[0];
 
-  TensorDim hidden_dim = output_dim[0];
   Tensor &hidden_ = net_hidden[0]->var;
-  hidden_.setZero();
+  if (hidden_.uninitialized()) {
+    hidden_ = Tensor(out_dim);
+  }
+
+  Tensor &filter_kernel = weightAt(ConvParams::weight).getVariableRef();
+  Tensor &bias_kernel = weightAt(ConvParams::bias).getVariableRef();
 
   /** Calculate Convolution 2D
    *
@@ -122,45 +123,22 @@ void Conv2DLayer::forwarding(sharedConstTensors in) {
    *       x [output_dim.height x output_dim.width]
    */
 
-  TensorDim kdim(filter_size, in_dim.channel(), kernel_size[0], kernel_size[1]);
-
-  std::vector<float> imkernel(kdim.getFeatureLen() * filter_size);
-
-  for (unsigned int i = 0; i < filter_size; ++i) {
-    Tensor &filters = weightAt(i).getVariableRef();
-    float *d = imkernel.data();
-    memcpy(&d[i * kdim.getFeatureLen()], filters.getData(),
-           kdim.getFeatureLen() * sizeof(float));
-  }
-
-  Tensor bias_fill(1, 1, hidden_.height(), hidden_.width());
   for (unsigned int b = 0; b < in_dim.batch(); ++b) {
-    std::vector<float> out(out_dim.getFeatureLen());
+    Tensor out = hidden_.getBatchSlice(b, 1);
     Tensor inSub = input_.getBatchSlice(b, 1);
 
-    status = conv2d_gemm(imkernel.data(), kdim, inSub, out_dim, stride, padding,
-                         out.data(), out.size(), true);
+    status =
+      conv2d_gemm(filter_kernel.getData(), filter_kernel.getDim(), inSub,
+                  out_dim, stride, padding, out.getData(), out.length(), true);
     if (status != ML_ERROR_NONE)
       throw std::runtime_error("Forwarding Convolution failed.");
-    memcpy(hidden_.getAddress(b * hidden_.getDim().getFeatureLen()), out.data(),
-           out.size() * sizeof(float));
-
-    for (unsigned int i = 0; i < filter_size; i++) {
-      Tensor &bias = weightAt(i + filter_size).getVariableRef();
-      bias_fill.setValue(bias.getValue(0, 0, 0, 0));
-      saxpy(hidden_.height() * hidden_.width(), 1, bias_fill.getData(), 1,
-            hidden_.getAddress(b * hidden_.getDim().getFeatureLen() +
-                               i * hidden_.height() * hidden_.width()),
-            1);
-    }
   }
+  hidden_.add_i(bias_kernel);
 
   loss = 0.0f;
   if (weight_regularizer == WeightRegularizerType::l2norm) {
-    for (unsigned int i = 0; i < filter_size; ++i) {
-      Tensor &weight = weightAt(i).getVariableRef();
-      loss += weight_regularizer_constant * 0.5f * (weight.l2norm());
-    }
+    loss += weight_regularizer_constant * 0.5f * (filter_kernel.l2norm());
+    // TODO: remove this average
     loss /= filter_size;
   }
 }
@@ -170,9 +148,10 @@ void Conv2DLayer::calcDerivative(sharedConstTensors derivatives) {
   int status = ML_ERROR_NONE;
   TensorDim &in_dim = input_dim[0];
 
-  std::array<unsigned int, CONV2D_DIM> same_pad;
   Tensor &derivative = net_hidden[0]->grad;
+  Tensor &filter_kernel = weightAt(ConvParams::weight).getVariableRef();
 
+  std::array<unsigned int, CONV2D_DIM> same_pad;
   same_pad[0] = kernel_size[0] - 1;
   same_pad[1] = kernel_size[1] - 1;
 
@@ -233,13 +212,13 @@ void Conv2DLayer::calcDerivative(sharedConstTensors derivatives) {
     /// each row contains all kernel element in particular channel.
     uint row_size = kernel_total_size * filter_size;
     for (uint filter_idx = 0; filter_idx < filter_size; ++filter_idx) {
-      Tensor &filter = weightAt(filter_idx).getVariableRef();
 
       /// starting index of each kernel in imKernel
       float *start =
         imKernel_raw + channel_idx * row_size + filter_idx * kernel_total_size;
       /// starting index of each channel in filter
-      float *filter_start = filter.getData() + channel_idx * kernel_total_size;
+      float *filter_start =
+        filter_kernel.getAddress(filter_idx, channel_idx, 0u, 0u);
 
       std::reverse_copy(filter_start, filter_start + kernel_total_size, start);
     }
@@ -266,14 +245,14 @@ void Conv2DLayer::calcDerivative(sharedConstTensors derivatives) {
 void Conv2DLayer::calcGradient(sharedConstTensors derivatives) {
   TensorDim &in_dim = input_dim[0];
 
+  Tensor &filter_kernel = weightAt(ConvParams::weight).getVariableRef();
   Tensor &derivative = net_hidden[0]->grad;
   Tensor &input_ = net_input[0]->var;
-  for (unsigned int i = 0; i < filter_size; ++i) {
-    Tensor &delK = weightAt(i).getGradientRef();
-    Tensor &delBias = weightAt(i + filter_size).getGradientRef();
-    delK.setZero();
-    delBias.setZero();
-  }
+
+  Tensor &delK = weightAt(ConvParams::weight).getGradientRef();
+  Tensor &delBias = weightAt(ConvParams::bias).getGradientRef();
+  delK.setZero();
+  delBias.setZero();
 
   /** Calculate DelK
    *
@@ -312,9 +291,7 @@ void Conv2DLayer::calcGradient(sharedConstTensors derivatives) {
 
   int status = ML_ERROR_NONE;
   for (unsigned int b = 0; b < in_dim.batch(); ++b) {
-    std::vector<float> out(kernel_size[0] * kernel_size[1] * in_dim.channel() *
-                           filter_size);
-
+    Tensor out = Tensor(delK.getDim());
     Tensor inSub = input_.getBatchSlice(b, 1);
 
     status = conv2d_gemm(
@@ -324,37 +301,18 @@ void Conv2DLayer::calcGradient(sharedConstTensors derivatives) {
       inSub,
       TensorDim(1, 1, filter_size,
                 kernel_size[0] * kernel_size[1] * in_dim.channel()),
-      stride, padding, out.data(), out.size(), false);
+      stride, padding, out.getData(), out.length(), false);
     if (status != ML_ERROR_NONE)
-      throw std::runtime_error("calcGradient Convolution failed.");
+      throw std::runtime_error("Backwarding Convolution failed.");
 
-    for (unsigned int i = 0; i < filter_size; ++i) {
-      Tensor &delK = weightAt(i).getGradientRef();
-      Tensor &delBias = weightAt(i + filter_size).getGradientRef();
-      float *del = delK.getData();
-      unsigned int s = kernel_size[0] * kernel_size[1] * in_dim.channel();
-
-      for (unsigned int k = 0; k < s; ++k) {
-        del[k] += out[i * s + k];
-      }
-
-      float sum = 0.0;
-      for (unsigned int j = 0; j < derivative.height(); ++j) {
-        for (unsigned int k = 0; k < derivative.width(); ++k) {
-          sum += derivative.getValue(b, i, j, k);
-        }
-      }
-      delBias.setValue(0, 0, 0, 0, sum + delBias.getValue(0, 0, 0, 0));
-    }
+    delK.add_i(out);
   }
+  delBias.add_i(derivative.sum({0, 2, 3}));
 
-  //  Apply regularization gradient
-  for (unsigned int i = 0; i < filter_size; ++i) {
-    Tensor &delK = weightAt(i).getGradientRef();
-    Tensor &filters = weightAt(i).getVariableRef();
-
+  if (trainable) {
+    //  Update K / bias
     if (isWeightRegularizerL2Norm()) {
-      status = delK.add_i(filters, weight_regularizer_constant);
+      status = delK.add_i(filter_kernel, weight_regularizer_constant);
       if (status != ML_ERROR_NONE)
         throw std::runtime_error("Weight regularization failed");
     }
@@ -450,47 +408,6 @@ void Conv2DLayer::setProperty(const PropertyType type,
     Layer::setProperty(type, value);
     break;
   }
-}
-
-int Conv2DLayer::conv2d(float *in, TensorDim indim, const float *kernel,
-                        TensorDim kdim, float *out, unsigned int const *stride,
-                        float bias) {
-
-  int status = ML_ERROR_NONE;
-  unsigned int channel = indim.channel();
-  unsigned int height = indim.height();
-  unsigned int width = indim.width();
-  unsigned int k_width = kdim.width();
-  unsigned int k_height = kdim.height();
-  unsigned int o_width = ((indim.width() - kdim.width()) / stride[0] + 1);
-
-  if (indim.channel() != kdim.channel()) {
-    ml_loge("Error: Input and Kenel Dimension is not match!");
-    return ML_ERROR_INVALID_PARAMETER;
-  }
-
-  // Optimizer This routine : There are lots of dulicated calculations
-  unsigned int I = 0;
-  unsigned int J = 0;
-  for (unsigned int j = 0; j < height - k_height + 1; j += stride[0]) {
-    J = 0;
-    for (unsigned int k = 0; k < width - k_width + 1; k += stride[1]) {
-      float sum = 0.0f;
-      for (unsigned int i = 0; i < channel; ++i) {
-        for (unsigned int ki = 0; ki < k_height; ++ki) {
-          for (unsigned int kj = 0; kj < k_width; ++kj) {
-            sum += kernel[i * k_height * k_width + ki * k_width + kj] *
-                   in[i * height * width + (j + ki) * width + (k + kj)];
-          }
-        }
-      }
-      sum += bias;
-      out[I * o_width + J] = sum;
-      J++;
-    }
-    I++;
-  }
-  return status;
 }
 
 int Conv2DLayer::conv2d_gemm(

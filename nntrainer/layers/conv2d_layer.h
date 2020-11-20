@@ -146,33 +146,6 @@ private:
   int setFilter(int f);
 
   /**
-   * @brief     set normalization
-   * @param[in] enable boolean
-   */
-  void setNormalization(bool enable) { this->normalization = enable; };
-
-  /**
-   * @brief     set standardization
-   * @param[in] enable boolean
-   */
-  void setStandardization(bool enable) { this->standardization = enable; };
-
-  /**
-   * @brief     calculation convolution
-   * @param[in] in input tensor data
-   * @param[in] indim input tensor dimension
-   * @param[in] kernel convolution kernel data
-   * @param[in] kdim convolution kernel dimension
-   * @param[in] out output
-   * @param[in] stride stride value : x, y direction
-   * @param[in] bias bias data
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   */
-  int conv2d(float *in, TensorDim indim, const float *kernel, TensorDim kdim,
-             float *out, unsigned int const *stride, float bias);
-
-  /**
    * @brief     calculation convolution with cblas_*gemm
    * @param[in] mkernel kernel data
    * @param[in] kdim kernel data demension
