@@ -70,10 +70,6 @@ const std::string layerGetStrType(const LayerType &type) {
   case LayerType::LAYER_BACKBONE_TFLITE:
     return TfLiteLayer::type;
 #endif
-  case LayerType::LAYER_CONCAT:
-    return ConcatLayer::type;
-  case LayerType::LAYER_OUT:
-    return OutputLayer::type;
   case LayerType::LAYER_UNKNOWN:
     /** fallthrough intended */
   default:
