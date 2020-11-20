@@ -603,7 +603,7 @@ protected:
                                               nntrainer::LossLayer::type)) {
       if (with_loss) {
         EXPECT_NO_THROW(layers.back()->backwarding(1, {label}));
-        back_out = MAKE_SHARED_TENSOR(layers.back()->getGradient()[0]);
+        back_out = MAKE_SHARED_TENSOR(layers.back()->getDerivatives()[0]);
       } else {
         back_out = def_derivative;
       }

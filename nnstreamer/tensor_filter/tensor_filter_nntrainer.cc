@@ -130,6 +130,8 @@ void NNTrainer::validateTensor(const GstTensorsInfo *tensorInfo,
 
   info_s.dims.push_back(tensorInfo->info[0].dimension[NUM_DIM - 1]);
 
+  // Here, we only compare channel, height, width.
+  // Just use batch from info variable, cause it will be updated if it differs.
   for (unsigned int i = 1; i < NUM_DIM; ++i) {
     if (tensorInfo->info[0].dimension[i - 1] != dim.getDim()[NUM_DIM - i])
       throw std::invalid_argument("Tensor dimension doesn't match");

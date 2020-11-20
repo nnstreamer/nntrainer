@@ -63,54 +63,6 @@ int NeuralNetwork::loadFromConfig(std::string config) {
   return ML_ERROR_NONE;
 }
 
-int NeuralNetwork::initLossLayer() {
-  int status = ML_ERROR_NONE;
-  LossType updated_loss_type = loss_type;
-
-  if (layers.back()->getType() != LossLayer::type) {
-    ml_loge("Error: loss layer is not the last layer of the model.");
-    return ML_ERROR_INVALID_PARAMETER;
-  }
-
-  NodeType layer = layers.back();
-  std::shared_ptr<LossLayer> loss_layer =
-    std::static_pointer_cast<LossLayer>(layer);
-
-  if (updated_loss_type == LossType::LOSS_ENTROPY) {
-    if (layers.size() < 2) {
-      ml_loge("Error: Cross Entropy need last layer to have softmax or sigmoid "
-              "activation.");
-      return ML_ERROR_NOT_SUPPORTED;
-    }
-    NodeType act_layer = *(layers.end() - 2);
-
-    if (!istrequal(act_layer->getType(), ActivationLayer::type)) {
-      ml_loge("Error: Cross Entropy need last layer to have softmax or sigmoid "
-              "activation.");
-      return ML_ERROR_NOT_SUPPORTED;
-    }
-
-    layers.erase(layers.begin() + layers.size() - 2);
-
-    switch (act_layer->getActivationType()) {
-    case ActivationType::ACT_SIGMOID:
-      updated_loss_type = LossType::LOSS_ENTROPY_SIGMOID;
-      break;
-    case ActivationType::ACT_SOFTMAX:
-      updated_loss_type = LossType::LOSS_ENTROPY_SOFTMAX;
-      break;
-    default:
-      ml_loge("Error: Cross Entropy not supported without softmax or sigmoid.");
-      return ML_ERROR_NOT_SUPPORTED;
-    }
-  }
-
-  status = loss_layer->setLoss(updated_loss_type);
-  NN_RETURN_STATUS();
-
-  return status;
-}
-
 int NeuralNetwork::setProperty(std::vector<std::string> values) {
   int status = ML_ERROR_NONE;
 
@@ -187,7 +139,7 @@ int NeuralNetwork::setTrainConfig(std::vector<std::string> values) {
 int NeuralNetwork::compile() {
   int status = ML_ERROR_NONE;
 
-  status = isInitializable();
+  status = isCompilable();
   NN_RETURN_STATUS();
 
   ml_logd("Compile model");
@@ -239,13 +191,8 @@ int NeuralNetwork::initialize() {
       }
 
       for (unsigned int i = 0; i < l.input_layers.size(); ++i) {
-        std::cout << "      " << l.input_layers[i];
         std::shared_ptr<NetBuffers> n_buffer = std::make_unique<NetBuffers>();
-        // TODO : NetBuffer of layers are managed by graph
-        // model_graph.netBuffers.push_back(n_buffer);
-
-        Layer &in_layer =
-          *model_graph.getSortedLayerNode(l.input_layers[i]).layer;
+        Layer &in_layer = *model_graph.getLayerNode(l.input_layers[i]).layer;
 
         unsigned int location = 0;
         for (unsigned int j = 0; j < in_layer.output_layers.size(); ++j) {
@@ -259,18 +206,16 @@ int NeuralNetwork::initialize() {
 
         l.net_input[i] = n_buffer;
 
-        model_graph.getSortedLayerNode(l.input_layers[i])
+        model_graph.getLayerNode(l.input_layers[i])
           .layer->net_hidden[location] = n_buffer;
       }
     } else {
       for (unsigned int i = 0; i < l.input_layers.size(); ++i) {
-        std::cout << "      " << l.input_layers[i];
         std::shared_ptr<NetBuffers> n_buffer = std::make_unique<NetBuffers>();
         l.net_input[i] = n_buffer;
       }
     }
 
-    std::cout << std::endl;
     status = l.initialize();
     NN_RETURN_STATUS();
 
@@ -628,7 +573,7 @@ int NeuralNetwork::train_run() {
   return status;
 }
 
-int NeuralNetwork::isInitializable() {
+int NeuralNetwork::isCompilable() {
   if (layers.empty()) {
     ml_loge("Layer is empty");
     return ML_ERROR_INVALID_PARAMETER;
@@ -663,7 +608,7 @@ int NeuralNetwork::addLayer(NodeType layer) {
   }
 
   /** Ensure that the layer has a name and is unique */
-  ensureName(layer);
+  model_graph.ensureName(layer);
 
   /** Validate the layer to be added */
   status = layer->checkValidation();
@@ -699,7 +644,7 @@ int NeuralNetwork::extendGraph(GraphType graph, std::string prefix) {
      * and ensure it is unique in this new graph
      */
     std::string org_name = prefix + layer->getName();
-    ensureName(layer, prefix, true);
+    model_graph.ensureName(layer, prefix, true);
     sub_in_out.insert(std::make_pair(org_name, layer->getName()));
 
     for (unsigned int i = 0; i < layer->input_layers.size(); ++i) {
@@ -771,37 +716,6 @@ int NeuralNetwork::setDataBuffer(std::shared_ptr<DataBuffer> data_buffer) {
   return ML_ERROR_NONE;
 }
 
-void NeuralNetwork::ensureName(NodeType layer, const std::string &prefix,
-                               bool force_rename) {
-  std::string orig_name = layer->getName();
-  bool orig_name_empty = orig_name.empty();
-  if (!orig_name_empty && !force_rename &&
-      layer_names.end() == layer_names.find(orig_name))
-    return;
-
-  /** If just prefix with layer name makes it unique - directly set the name */
-  if (!orig_name_empty) {
-    std::string direct_name = prefix + orig_name;
-    if (layer_names.find(direct_name) == layer_names.end()) {
-      layer->setName(direct_name);
-      return;
-    }
-  }
-
-  std::set<std::string>::iterator iter;
-  std::string name;
-  if (orig_name_empty)
-    orig_name = layer->getType();
-  std::string direct_name = prefix + orig_name;
-
-  do {
-    name = direct_name + std::to_string(def_name_count++);
-    iter = layer_names.find(name);
-  } while (iter != layer_names.end());
-
-  layer->setName(name);
-}
-
 int NeuralNetwork::getLayer(const char *name,
                             std::shared_ptr<ml::train::Layer> *layer) {
   std::shared_ptr<Layer> layer_;
@@ -823,70 +737,6 @@ int NeuralNetwork::getLayer(const char *name, NodeType *layer) {
   }
 
   return status;
-}
-
-int NeuralNetwork::realizeActivationType(const ActivationType act) {
-  unsigned int position = layers.end() - layers.begin() - 1;
-  return realizeActivationType(act, position);
-}
-
-int NeuralNetwork::realizeActivationType(const ActivationType act,
-                                         const unsigned int position) {
-  if (act == ActivationType::ACT_NONE) {
-    /// ActivationType::ACT_NONE does not need realization
-    return ML_ERROR_NONE;
-  }
-
-  if (layers.empty()) {
-    ml_loge("layer is empty");
-    return ML_ERROR_INVALID_PARAMETER;
-  }
-
-  Layer &current = *layers[position];
-  if (istrequal(current.getType(), ActivationLayer::type)) {
-    ml_loge("It is not allowed to realize ativation layer, possibly layer is "
-            "added right after activation");
-    return ML_ERROR_INVALID_PARAMETER;
-  }
-
-  if (act == ActivationType::ACT_UNKNOWN) {
-    ml_loge("cannot realize unknown activation type");
-    return ML_ERROR_INVALID_PARAMETER;
-  }
-
-  std::shared_ptr<ActivationLayer> act_layer =
-    std::make_shared<ActivationLayer>();
-  ensureName(act_layer, current.getName());
-  act_layer->setActivation(act);
-
-  layers.insert(layers.begin() + position + 1, act_layer);
-  return ML_ERROR_NONE;
-}
-
-int NeuralNetwork::realizeFlattenType(const unsigned int position) {
-  if (layers.empty()) {
-    return ML_ERROR_INVALID_PARAMETER;
-  }
-
-  Layer &current = *layers[position];
-  if (istrequal(current.getType(), FlattenLayer::type)) {
-    ml_loge(
-      "It is not allowed to realize flatten layer, possibly flatten layer is "
-      "added right after flatten");
-    return ML_ERROR_INVALID_PARAMETER;
-  }
-
-  std::shared_ptr<FlattenLayer> flatten_layer =
-    std::make_shared<FlattenLayer>();
-
-  ensureName(flatten_layer, current.getName());
-  layers.insert(layers.begin() + position + 1, flatten_layer);
-  return ML_ERROR_NONE;
-}
-
-int NeuralNetwork::realizeFlattenType() {
-  unsigned int position = layers.end() - layers.begin() - 1;
-  return realizeFlattenType(position);
 }
 
 /**

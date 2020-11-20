@@ -113,8 +113,7 @@ public:
    */
   virtual void forwarding(sharedConstTensors in = {}) = 0;
 
-  virtual sharedConstTensors forwarding_with_val(sharedConstTensors input,
-                                                 sharedConstTensors in = {});
+  virtual sharedConstTensors forwarding_with_val(sharedConstTensors input);
 
   /**
    * @brief     Back Propagation of a layer
@@ -311,10 +310,11 @@ public:
     output_dim.resize(num_outputs);
   }
 
-  std::vector<Tensor> getHidden();
+  std::vector<Tensor> getOutputs();
 
-  std::vector<Tensor> getGradient();
+  std::vector<Tensor> getDerivatives();
 
+#ifdef ENABLE_TEST
   void resizeNetInput(unsigned int size) { net_input.resize(size); }
 
   void resizeNetOutput(unsigned int size) { net_hidden.resize(size); }
@@ -333,6 +333,7 @@ public:
       throw std::invalid_argument("Error: exceed num_input size");
     net_hidden[i] = n_buffer;
   }
+#endif
 
 protected:
   /**
@@ -486,11 +487,6 @@ private:
    * @brief     output layer names
    */
   std::vector<std::string> output_layers;
-
-  /**
-   * @brief     Ensure that layer has a name
-   */
-  void ensureName();
 
   /**
    * @brief check if @a type is valid and print if prop is valid to @a out

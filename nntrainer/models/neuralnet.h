@@ -153,6 +153,12 @@ public:
    */
   int initialize();
 
+  /**
+   * @brief     Assign Graph Memory. This should be called after initialize.
+   * @TODO      Consider to move Network Graph Class
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
   int assignMem();
 
   /**
@@ -398,9 +404,11 @@ private:
 
   AppContext app_context; /** Configurations bound to current app */
 
-  NetworkGraph model_graph;
+  NetworkGraph model_graph; /** Network Model Graph */
 
-  std::map<std::string, std::string> sub_in_out;
+  std::map<std::string, std::string>
+    sub_in_out; /** This is map to identyfy input and output layer name of
+                   subgraph */
 
   /**
    * @brief print function for neuralnet
@@ -411,11 +419,6 @@ private:
   void print(
     std::ostream &out, unsigned int flags = 0,
     Layer::PrintPreset layerPrintPreset = Layer::PrintPreset::PRINT_SUMMARY);
-
-  /**
-   * @brief     Sets up and initialize the loss layer
-   */
-  int initLossLayer();
 
   /**
    * @brief     Set Loss
@@ -431,47 +434,11 @@ private:
   int train_run();
 
   /**
-   * @brief     check neural network is ready to init.
-   * @retval #ML_ERROR_NONE neuralnetwork is ready to init
-   * @retval #ML_ERROR_INVALID_PARAMETER not ready to init.
+   * @brief     check neural network is ready to compile.
+   * @retval #ML_ERROR_NONE neuralnetwork is ready to compile
+   * @retval #ML_ERROR_INVALID_PARAMETER not ready to compile.
    */
-  int isInitializable();
-
-  /**
-   * @brief     Realize act type to layer and insert it to layers
-   * @param[in] ActivationType act Activation Type
-   * @param[in] int Position position to insert activation layer.
-   * @note layer is inserted at position
-   */
-  int realizeActivationType(const ActivationType act,
-                            const unsigned int position);
-
-  /**
-   * @copydoc int realizeActivationType(ActivationType act, unsigned int
-   * &position);
-   * @note layer is inserted at the back of layers
-   */
-  int realizeActivationType(const ActivationType act);
-
-  /**
-   * @brief     Realize flatten type to layer and insert it to layers
-   * @param[in] int Position position to insert the layer.
-   * @note layer is inserted at position
-   */
-  int realizeFlattenType(const unsigned int position);
-
-  /**
-   * @copydoc int realizeActivationType(ActivationType act, unsigned int
-   * &position);
-   * @note layer is inserted at the back of layers
-   */
-  int realizeFlattenType();
-
-  /**
-   * @brief     Ensure that layer has a name
-   */
-  void ensureName(NodeType layer, const std::string &prefix = "",
-                  bool force_rename = false);
+  int isCompilable();
 
   /**
    * @brief     Swap function for the class

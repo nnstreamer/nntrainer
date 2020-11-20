@@ -418,7 +418,6 @@ int main(int argc, char *argv[]) {
   try {
     NN.compile();
     NN.initialize();
-    NN.assignMem();
   } catch (...) {
     std::cerr << "Error during init" << std::endl;
     return 0;
