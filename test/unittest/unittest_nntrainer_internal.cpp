@@ -44,7 +44,9 @@ TEST(nntrainer_NeuralNetwork, init_01_p) {
 
   status = NN.loadFromConfig(config_file);
   EXPECT_EQ(status, ML_ERROR_NONE);
-  status = NN.init();
+  status = NN.compile();
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = NN.initialize();
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
@@ -165,7 +167,9 @@ TEST(nntrainer_NeuralNetwork, init_02_p) {
 
   status = NN.loadFromConfig("./test.ini");
   EXPECT_EQ(status, ML_ERROR_NONE);
-  status = NN.init();
+  status = NN.compile();
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = NN.initialize();
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
@@ -194,7 +198,9 @@ TEST(nntrainer_NeuralNetwork, init_03_p) {
 
   status = NN.loadFromConfig(config_file);
   EXPECT_EQ(status, ML_ERROR_NONE);
-  status = NN.init();
+  status = NN.compile();
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = NN.initialize();
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
@@ -234,7 +240,9 @@ TEST(nntrainer_Conv2DLayer, initialize_01_p) {
   nntrainer::NeuralNetwork NN;
   status = NN.loadFromConfig(config_file);
   EXPECT_EQ(status, ML_ERROR_NONE);
-  status = NN.init();
+  status = NN.compile();
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = NN.initialize();
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
@@ -249,7 +257,9 @@ TEST(nntrainer_Conv2DLayer, initialize_02_p) {
   nntrainer::NeuralNetwork NN;
   status = NN.loadFromConfig(config_file);
   EXPECT_EQ(status, ML_ERROR_NONE);
-  status = NN.init();
+  status = NN.compile();
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = NN.initialize();
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
@@ -264,7 +274,9 @@ TEST(nntrainer_Layer, initialize_03_p) {
   nntrainer::NeuralNetwork NN;
   status = NN.loadFromConfig(config_file);
   EXPECT_EQ(status, ML_ERROR_NONE);
-  status = NN.init();
+  status = NN.compile();
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = NN.initialize();
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 

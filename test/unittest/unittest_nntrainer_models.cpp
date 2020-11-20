@@ -281,6 +281,10 @@ GraphWatcher::GraphWatcher(const std::string &config) {
     throw std::invalid_argument("initiation failed");
   };
 
+  if (nn.assignMem()) {
+    throw std::invalid_argument("assign Memory failed");
+  };
+
   NetworkGraphType model_graph = nn.getNetworkGraph();
 
   std::vector<NodeType> graph = model_graph.getSorted();

@@ -293,7 +293,10 @@ int ml_train_model_run(ml_train_model_h model, ...) {
     NN = nnmodel->network;
   }
 
-  returnable f = [&]() { return NN->train(arg_list); };
+  returnable f = [&]() { return NN->assignMem(); };
+  status = nntrainer_exception_boundary(f);
+
+  f = [&]() { return NN->train(arg_list); };
   status = nntrainer_exception_boundary(f);
 
   return status;
