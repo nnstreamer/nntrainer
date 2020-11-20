@@ -116,6 +116,7 @@ protected:
   void matchOutput(const float *result, const char *expected) {
     nntrainer::Tensor golden;
     loadFile(expected, golden);
+    /** FIXME: golden.length() is possibly 0 many times, verify and fix this */
     matchOutput(result, golden.getData(), golden.length());
   }
 

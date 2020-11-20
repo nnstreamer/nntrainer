@@ -163,7 +163,8 @@ private:
                   TensorDim outdim,
                   const std::array<unsigned int, CONV2D_DIM> &stride,
                   const std::array<unsigned int, CONV2D_DIM> &pad, float *out,
-                  unsigned int osize, bool channel_mode);
+                  unsigned int osize, bool channel_mode,
+                  float beta_dgemm = 0.0f);
 
   /**
    * @brief     reform the data to 2d matrix
