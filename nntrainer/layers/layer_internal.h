@@ -114,7 +114,7 @@ public:
   virtual void forwarding(sharedConstTensors in = {}) = 0;
 
   virtual sharedConstTensors forwarding_with_val(sharedConstTensors input,
-                                      sharedConstTensors in = {});
+                                                 sharedConstTensors in = {});
 
   /**
    * @brief     Back Propagation of a layer
@@ -124,9 +124,9 @@ public:
    */
   virtual void backwarding(int iteration, sharedConstTensors in = {}) = 0;
 
-  virtual sharedConstTensors backwarding_with_val(int iteration, 
-                                         sharedConstTensors deriv,
-                                         sharedConstTensors in = {});
+  virtual sharedConstTensors backwarding_with_val(int iteration,
+                                                  sharedConstTensors deriv,
+                                                  sharedConstTensors in = {});
 
   /**
    * @brief     read layer Weight & Bias data from file
@@ -315,12 +315,12 @@ public:
 
   std::vector<Tensor> getGradient();
 
-  void resizeNetInput(unsigned int size){net_input.resize(size);}
-  
-  void resizeNetOutput(unsigned int size){net_hidden.resize(size);}
+  void resizeNetInput(unsigned int size) { net_input.resize(size); }
 
-  unsigned int getNumInputs(){return num_inputs;}
-  unsigned int getNumOutputs(){return num_outputs;}
+  void resizeNetOutput(unsigned int size) { net_hidden.resize(size); }
+
+  unsigned int getNumInputs() { return num_inputs; }
+  unsigned int getNumOutputs() { return num_outputs; }
 
   void setInputBuffer(unsigned int i, std::shared_ptr<NetBuffers> n_buffer) {
     if (i >= net_input.size())

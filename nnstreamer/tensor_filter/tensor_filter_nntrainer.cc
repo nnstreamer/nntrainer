@@ -91,7 +91,7 @@ NNTrainer::NNTrainer(const char *model_config_,
   validateTensor(&prop->input_meta, true);
   validateTensor(&prop->output_meta, false);
 
-  model->init();
+  model->initialize();
   model->readModel();
 
   gst_tensors_info_copy(&inputTensorMeta, &prop->input_meta);
@@ -147,6 +147,7 @@ void NNTrainer::loadModel() {
 
   model = new nntrainer::NeuralNetwork();
   model->loadFromConfig(model_config);
+  model->compile();
 #if (DBG)
   gint64 stop_time = g_get_real_time();
   g_message("Model is loaded: %" G_GINT64_FORMAT, (stop_time - start_time));
