@@ -144,9 +144,10 @@ TEST_P(nntrainerIniTest, initTwice_n) {
 TEST_P(nntrainerIniTest, initThreetime_n) {
   std::cout << std::get<0>(GetParam()) << std::endl;
   int status = NN.loadFromConfig(getIniName());
-  status = NN.init();
-  status = NN.init();
-  status = NN.init();
+  status = NN.compile();
+  status = NN.initialize();
+  status = NN.initialize();
+  status = NN.initialize();
 
   EXPECT_NE(status, ML_ERROR_NONE);
 }
@@ -550,7 +551,7 @@ TEST(nntrainerIniTest, backbone_p_09) {
  * @brief Ini file unittest with backbone with normal backbone
  */
 // Enable after sepearet memory assign and initialization of graph
-TEST(nntrainerIniTest, DISABLED_backbone_p_10) {
+TEST(nntrainerIniTest, backbone_p_10) {
   const char *ini_name = "backbone_p10.ini";
   nntrainerIniTest::save_ini(ini_name,
                              {nw_base_mse, backbone_valid_external_no_shape});
@@ -558,8 +559,8 @@ TEST(nntrainerIniTest, DISABLED_backbone_p_10) {
 
 #if defined(ENABLE_NNSTREAMER_BACKBONE) || defined(ENABLE_TFLITE_BACKBONE)
   EXPECT_EQ(NN.loadFromConfig(ini_name), ML_ERROR_NONE);
-  EXPECT_EQ(NN.compile(), ML_ERROR_NONE);
-  EXPECT_EQ(NN.initialize(), ML_ERROR_NONE);
+  EXPECT_THROW(NN.compile(), std::invalid_argument);
+  EXPECT_EQ(NN.initialize(), ML_ERROR_NOT_SUPPORTED);
 #else
   EXPECT_EQ(NN.loadFromConfig(ini_name), ML_ERROR_NOT_SUPPORTED);
 #endif

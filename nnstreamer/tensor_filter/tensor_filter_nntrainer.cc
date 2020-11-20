@@ -88,11 +88,11 @@ NNTrainer::NNTrainer(const char *model_config_,
   model_config = g_strdup(model_config_);
   loadModel();
   model->compile();
+  model->initialize();
 
   validateTensor(&prop->input_meta, true);
   validateTensor(&prop->output_meta, false);
 
-  model->initialize();
   model->readModel();
 
   gst_tensors_info_copy(&inputTensorMeta, &prop->input_meta);
@@ -128,8 +128,10 @@ void NNTrainer::validateTensor(const GstTensorsInfo *tensorInfo,
 
   info_s.rank = NUM_DIM;
 
-  for (unsigned int i = 0; i < NUM_DIM; ++i) {
-    if (tensorInfo->info[0].dimension[i] != dim.getDim()[NUM_DIM - i - 1])
+  info_s.dims.push_back(tensorInfo->info[0].dimension[NUM_DIM - 1]);
+
+  for (unsigned int i = 1; i < NUM_DIM; ++i) {
+    if (tensorInfo->info[0].dimension[i - 1] != dim.getDim()[NUM_DIM - i])
       throw std::invalid_argument("Tensor dimension doesn't match");
 
     info_s.dims.push_back(dim.getDim()[i]);

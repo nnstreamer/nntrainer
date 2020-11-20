@@ -199,7 +199,6 @@ int NeuralNetwork::compile() {
   NN_RETURN_STATUS();
 
   model_graph.topologicalSort();
-  setBatchSize(batch_size);
 
   compiled = true;
 
@@ -258,9 +257,6 @@ int NeuralNetwork::initialize() {
 
         l.setInputDimension(in_layer.getOutputDimension()[location], i);
 
-        n_buffer->var = Tensor(l.getInputDimension()[i]);
-        n_buffer->grad = Tensor(l.getInputDimension()[i]);
-
         l.net_input[i] = n_buffer;
 
         model_graph.getSortedLayerNode(l.input_layers[i])
@@ -290,105 +286,11 @@ int NeuralNetwork::initialize() {
        ++i) {
     std::shared_ptr<NetBuffers> last_hidden_buffer =
       std::make_unique<NetBuffers>();
-    last_hidden_buffer->var =
-      Tensor(model_graph.Sorted.back().layer->getOutputDimension()[i]);
-    last_hidden_buffer->grad =
-      Tensor(model_graph.Sorted.back().layer->getOutputDimension()[i]);
     model_graph.Sorted.back().layer->net_hidden[i] = last_hidden_buffer;
   }
 
-  initialized = true;
-  return status;
-}
-
-int NeuralNetwork::init() {
-  int status = ML_ERROR_NONE;
-  std::vector<TensorDim> previous_dim;
-
-  if (initialized) {
-    ml_loge("Error: Initializing the model again");
-    return ML_ERROR_NOT_SUPPORTED;
-  }
-
-  status = isInitializable();
-  NN_RETURN_STATUS();
-
-  /** Add loss layer if not already added */
-  if (layers.back()->getType() != LossLayer::type) {
-    std::shared_ptr<LossLayer> loss_layer = std::make_shared<LossLayer>();
-    status = loss_layer->setLoss(loss_type);
-    NN_RETURN_STATUS();
-    addLayer(std::static_pointer_cast<Layer>(loss_layer));
-  } else {
-    std::shared_ptr<LossLayer> loss_layer =
-      std::static_pointer_cast<LossLayer>(layers.back());
-    if (loss_layer->getLossType() != loss_type) {
-      ml_logw("Ignoring the loss type added to model configuration as "
-              "loss layer has been added externally.");
-    }
-  }
-
-  ml_logd("initiating neural network, layer size: %d",
-          (unsigned int)layers.size());
-  /** Note: number of entries in layers will change. */
-  for (unsigned int i = 0; i < layers.size(); ++i) {
-    bool first = i == 0;
-    Layer &l = *layers[i];
-    ml_logd("layer name: %s", l.getName().c_str());
-
-    const std::string &cur_type = l.getType();
-
-    if (!first) {
-      if (istrequal(layers[i - 1]->getType(), ActivationLayer::type) &&
-          istrequal(cur_type, ActivationLayer::type)) {
-        ml_loge("double activation is not allowed");
-        return ML_ERROR_INVALID_PARAMETER;
-      }
-      if (l.getInputDimension().size()) {
-        l.setInputDimension(previous_dim);
-      } else if (previous_dim != l.getInputDimension()) {
-        ml_loge("Dimension mismatch between layers.");
-        return ML_ERROR_INVALID_PARAMETER;
-      }
-    }
-
-    status = layers[i]->initialize();
-    NN_RETURN_STATUS();
-
-    /// @fixme: this shouldn't be hardcorded as custom layer can have an
-    /// optimizer Every layer can have same interface but setOptimizer is
-    /// basically noop.
-    if (istrequal(cur_type, BatchNormalizationLayer::type) ||
-        istrequal(cur_type, Conv2DLayer::type) ||
-        istrequal(cur_type, FullyConnectedLayer::type)) {
-      status = l.setOptimizer(opt);
-      NN_RETURN_STATUS();
-    }
-
-    if (!istrequal(cur_type, ActivationLayer::type)) {
-      status = realizeActivationType(l.getActivationType(), i);
-      NN_RETURN_STATUS();
-    }
-
-    if (l.getFlatten()) {
-      status = realizeFlattenType(i);
-      NN_RETURN_STATUS();
-    }
-
-    previous_dim = l.getOutputDimension();
-  }
-
-  /** Initialize the last layer which must be loss layer */
-  status = initLossLayer();
-  NN_RETURN_STATUS();
-
-  ml_logd("initialize successful, with layer size: %d", (int)layers.size());
-
-  for (auto l : layers)
-    ml_logd("layer name: %s", l->getName().c_str());
-
-  initialized = true;
   setBatchSize(batch_size);
+  initialized = true;
   return status;
 }
 
@@ -538,6 +440,8 @@ sharedConstTensors NeuralNetwork::inference(sharedConstTensors X) {
     setBatchSize(X[0]->batch());
   }
 
+  assignMem();
+
   sharedConstTensors out;
   try {
     forwarding(X);
@@ -560,6 +464,34 @@ sharedConstTensors NeuralNetwork::inference(sharedConstTensors X) {
   return out;
 }
 
+int NeuralNetwork::assignMem() {
+  int status = ML_ERROR_NONE;
+  unsigned int n_layers = (unsigned int)model_graph.Sorted.size();
+
+  for (unsigned int idx = 0; idx < n_layers; ++idx) {
+    bool first = idx == 0;
+    Layer &l = *model_graph.getSortedLayerNode(idx).layer;
+
+    if (!first) {
+      for (unsigned int i = 0; i < l.input_layers.size(); ++i) {
+
+        l.net_input[i]->var = Tensor(l.getInputDimension()[i]);
+        l.net_input[i]->grad = Tensor(l.getInputDimension()[i]);
+      }
+    }
+  }
+
+  for (unsigned int i = 0; i < model_graph.Sorted.back().layer->num_outputs;
+       ++i) {
+    model_graph.Sorted.back().layer->net_hidden[i]->var =
+      Tensor(model_graph.Sorted.back().layer->getOutputDimension()[i]);
+    model_graph.Sorted.back().layer->net_hidden[i]->grad =
+      Tensor(model_graph.Sorted.back().layer->getOutputDimension()[i]);
+  }
+
+  return status;
+}
+
 int NeuralNetwork::train(std::vector<std::string> values) {
   int status = ML_ERROR_NONE;
 
@@ -573,6 +505,9 @@ int NeuralNetwork::train(std::vector<std::string> values) {
 
   /** set batch size just before training */
   setBatchSize(batch_size);
+
+  status = assignMem();
+  NN_RETURN_STATUS();
 
   /** Setup data buffer properties */
   status = data_buffer->setClassNum(getOutputDimension()[0].width());

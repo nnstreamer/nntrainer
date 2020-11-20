@@ -82,7 +82,13 @@ TEST_P(nntrainerGraphTest, loadConfig) {
   }
 
   status = NN.initialize();
+  if (failAtLoad()) {
+    EXPECT_NE(status, ML_ERROR_NONE);
+  } else {
+    EXPECT_EQ(status, ML_ERROR_NONE);
+  }
 
+  status = NN.assignMem();
   if (failAtLoad()) {
     EXPECT_NE(status, ML_ERROR_NONE);
   } else {

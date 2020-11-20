@@ -151,9 +151,9 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int init();
-
   int initialize();
+
+  int assignMem();
 
   /**
    * @brief     Forward Propagation of the neural network
