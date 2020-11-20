@@ -138,8 +138,6 @@ void Conv2DLayer::forwarding(sharedConstTensors in) {
   loss = 0.0f;
   if (weight_regularizer == WeightRegularizerType::l2norm) {
     loss += weight_regularizer_constant * 0.5f * (filter_kernel.l2norm());
-    // TODO: remove this average
-    loss /= filter_size;
   }
 }
 
