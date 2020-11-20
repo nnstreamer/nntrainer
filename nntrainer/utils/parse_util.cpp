@@ -485,6 +485,9 @@ std::vector<std::string> split(const std::string &s, std::regex &reg) {
 }
 
 bool istrequal(const std::string &a, const std::string &b) {
+  if (a.size() != b.size())
+    return false;
+
   return std::equal(a.begin(), a.end(), b.begin(),
                     [](char a, char b) { return tolower(a) == tolower(b); });
 }

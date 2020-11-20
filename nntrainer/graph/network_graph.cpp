@@ -181,7 +181,7 @@ int NetworkGraph::realizeFlattenType(
 
   for (unsigned int i = 0; i < layers.size(); ++i) {
     for (unsigned int j = 0; j < layers[i]->input_layers.size(); ++j) {
-      if (layers[i]->input_layers[j] == current.getName()) {
+      if (istrequal(layers[i]->input_layers[j], current.getName())) {
         layers[i]->input_layers[j] = layer->getName();
       }
     }
@@ -237,7 +237,7 @@ int NetworkGraph::realizeActivationType(
 
   for (unsigned int i = 0; i < layers.size(); ++i) {
     for (unsigned int j = 0; j < layers[i]->input_layers.size(); ++j) {
-      if (layers[i]->input_layers[j] == current.getName()) {
+      if (istrequal(layers[i]->input_layers[j], current.getName())) {
         layers[i]->input_layers[j] = layer->getName();
       }
     }
@@ -314,10 +314,10 @@ void NetworkGraph::setOutputLayers(std::vector<std::shared_ptr<Layer>> layers) {
     unsigned int count = 0;
     std::cout << layers[idx]->getName() << " : ";
     for (unsigned int i = 0; i < layers.size(); ++i) {
-      if (layers[i]->getName() == layers[idx]->getName())
+      if (istrequal(layers[i]->getName(), layers[idx]->getName()))
         continue;
       for (unsigned int j = 0; j < layers[i]->input_layers.size(); ++j) {
-        if (layers[i]->input_layers[j] == layers[idx]->getName()) {
+        if (istrequal(layers[i]->input_layers[j], layers[idx]->getName())) {
           layers[idx]->output_layers.push_back(layers[i]->getName());
           std::cout << layers[idx]->output_layers[count] << ", ";
           count++;
@@ -360,7 +360,7 @@ int NetworkGraph::realizeMultiOutputType(
 
       for (unsigned int j = 0; j < layers.size(); ++j) {
         for (unsigned int k = 0; k < layers[j]->input_layers.size(); ++k) {
-          if (layers[j]->input_layers[k] == current.getName()) {
+          if (istrequal(layers[j]->input_layers[k], current.getName())) {
             layers[j]->input_layers[k] = layer->getName();
           }
         }
@@ -396,12 +396,6 @@ int NetworkGraph::setGraphNode(std::vector<std::shared_ptr<Layer>> layers,
       l.input_layers.clear();
       l.input_layers.push_back("__data__");
     }
-
-    // if (l.getType() == "input") {
-    //   l.num_inputs = 1;
-    //   l.input_layers.clear();
-    //   l.input_layers.push_back("__data__");
-    // }
 
     if (l.getType() != "addition" && l.getType() != "concat") {
       status = realizeMultiInputType(l);
@@ -457,8 +451,9 @@ LayerNode &NetworkGraph::getLayerNode(const std::string &layer_name) {
   std::list<LayerNode>::iterator iter;
   for (unsigned int i = 0; i < adj.size(); ++i) {
     iter = adj[i].begin();
-    if ((*iter).layer->getName() == layer_name)
+    if (istrequal((*iter).layer->getName(), layer_name)) {
       return (*iter);
+    }
   }
 
   throw std::invalid_argument("Cannot find Layer");
@@ -467,7 +462,7 @@ LayerNode &NetworkGraph::getLayerNode(const std::string &layer_name) {
 LayerNode &NetworkGraph::getSortedLayerNode(const std::string &layer_name) {
 
   for (unsigned int i = 0; i < Sorted.size(); ++i) {
-    if (Sorted[i].layer->getName() == layer_name)
+    if (istrequal(Sorted[i].layer->getName(), layer_name))
       return Sorted[i];
   }
 
@@ -480,11 +475,12 @@ int NetworkGraph::setEdge() {
   std::list<LayerNode>::iterator iter;
   for (unsigned int i = 0; i < adj.size(); ++i) {
     iter = adj[i].begin();
-    if ((*iter).layer->getType() == "input")
+
+    if ((*iter).layer->getInputDimension()[0].getDataLen() != 0)
       continue;
 
     for (unsigned int j = 0; j < (*iter).layer->input_layers.size(); ++j) {
-      if ((*iter).layer->input_layers[j] == "__data__")
+      if (istrequal((*iter).layer->input_layers[j], "__data__"))
         continue;
       unsigned int to_node_id =
         getLayerNode((*iter).layer->input_layers[j]).index;
