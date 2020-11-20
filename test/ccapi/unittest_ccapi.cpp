@@ -76,7 +76,7 @@ TEST(ccapi_layer, construct_02_p) {
   EXPECT_EQ(layer->getType(), "concat");
 
   EXPECT_NO_THROW(layer = ml::train::layer::MultiOut());
-  EXPECT_EQ(layer->getType(), "multi_output");
+  EXPECT_EQ(layer->getType(), "output");
 
   EXPECT_NO_THROW(layer = ml::train::layer::BackboneNNStreamer());
   EXPECT_EQ(layer->getType(), "backbone_nnstreamer");

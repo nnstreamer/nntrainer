@@ -82,15 +82,6 @@ public:
   void backwarding(int iteration, sharedConstTensors in);
 
   /**
-   * @copydoc Layer::getType()
-   */
-  const std::string getType() const { return ConcatLayer::type; };
-
-  using Layer::setProperty;
-
-  static const std::string type;
-
-  /**
    * @copydoc Layer::setProperty(const PropertyType type, const std::string
    * &value)
    */
