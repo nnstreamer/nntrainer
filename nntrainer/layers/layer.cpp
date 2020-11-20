@@ -61,7 +61,7 @@ void Layer::setBatch(unsigned int batch) {
     output_dim[idx].setTensorDim(0, batch);
 }
 
-std::vector<Tensor> Layer::getHidden() {
+std::vector<Tensor> Layer::getOutputs() {
   std::vector<Tensor> ret;
   for (unsigned int i = 0; i < num_outputs; ++i) {
     ret.push_back(net_hidden[i]->var);
@@ -69,7 +69,7 @@ std::vector<Tensor> Layer::getHidden() {
   return ret;
 }
 
-std::vector<Tensor> Layer::getGradient() {
+std::vector<Tensor> Layer::getDerivatives() {
   std::vector<Tensor> ret;
   for (unsigned int i = 0; i < num_inputs; ++i) {
     ret.push_back(net_input[i]->grad);
@@ -100,27 +100,16 @@ void Layer::copy(std::shared_ptr<Layer> l) {
   this->num_outputs = l->num_outputs;
 }
 
-sharedConstTensors Layer::forwarding_with_val(sharedConstTensors input,
-                                              sharedConstTensors in) {
+sharedConstTensors Layer::forwarding_with_val(sharedConstTensors input) {
 
   for (unsigned int i = 0; i < num_inputs; ++i) {
     net_input[i]->var = *input[i];
   }
 
-  if (num_outputs == 0)
-    throw("invalid number of outputs");
-
   if (num_outputs != net_hidden.size())
     net_hidden.resize(num_outputs);
 
-  // for (unsigned int i = 0; i < num_outputs; ++i) {
-  //   sharedNetBuffer h_buffer = std::make_unique<nntrainer::NetBuffers>();
-  //   h_buffer->var = Tensor(getOutputDimension()[i]);
-  //   h_buffer->grad = Tensor(getOutputDimension()[i]);
-  //   net_hidden[i] = h_buffer;
-  // }
-
-  forwarding(in);
+  forwarding();
 
   nntrainer::sharedConstTensors out;
 
@@ -139,12 +128,11 @@ sharedConstTensors Layer::backwarding_with_val(int iteration,
     net_hidden[i]->grad = *deriv[i];
   }
 
-  if (num_inputs == 0)
-    throw("invalid number of inputs");
-
   if (num_inputs != net_input.size())
     net_input.resize(num_inputs);
 
+  // TODO Need to fix to use LossLayer::type instead of "loss". But cyclic
+  // includes!
   if (istrequal(getType(), "loss")) {
     backwarding(iteration, in);
   } else {

@@ -98,6 +98,11 @@ public:
    */
   virtual int initialize() = 0;
 
+  /**
+   * @brief     Compile Network. This should be called before initialize
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
   virtual int compile() = 0;
 
   /**

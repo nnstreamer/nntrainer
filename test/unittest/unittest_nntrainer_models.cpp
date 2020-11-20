@@ -232,7 +232,7 @@ void NodeWatcher::forward(int iteration) {
      << iteration;
   std::string err_msg = ss.str();
 
-  std::vector<nntrainer::Tensor> out = node.layer->getHidden();
+  std::vector<nntrainer::Tensor> out = node.layer->getOutputs();
 
   verify(out[0], expected_output, err_msg + " at output");
 }
@@ -258,11 +258,11 @@ void NodeWatcher::backward(int iteration, bool should_verify) {
      << iteration;
   std::string err_msg = ss.str();
 
-  std::vector<nntrainer::Tensor> out = node.layer->getGradient();
+  std::vector<nntrainer::Tensor> out = node.layer->getDerivatives();
 
   if (should_verify) {
-    verify(out[0], expected_dx, err_msg);
     verifyGrad(err_msg);
+    verify(out[0], expected_dx, err_msg);
     verifyWeight(err_msg);
   }
 }
