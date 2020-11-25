@@ -125,10 +125,9 @@ private:
 
   Tensor deviation; /**< (input - current_average) */
 
-  Tensor x_normalized; /**< normalized axis saved for calcDerivative */
-  float epsilon;       /**< epsilon */
-  float momentum;      /**< momentum */
-  int axis;            /**< Target axis, axis inferred at initialize when -1 */
+  float epsilon;  /**< epsilon */
+  float momentum; /**< momentum */
+  int axis;       /**< Target axis, axis inferred at initialize when -1 */
 
   std::vector<unsigned int> axes_to_reduce;      /**< target axes to reduce */
   std::array<WeightInitializer, 4> initializers; /**< weight initializers */

@@ -129,6 +129,7 @@ void BatchNormalizationLayer::forwarding(sharedConstTensors in) {
 
   Tensor &input_ = net_input[0]->var;
   Tensor &hidden_ = net_hidden[0]->var;
+
   /// @todo change trainable to train/eval mode #524
   if (trainable) {
     Tensor cmu = input_.average(axes_to_reduce);
@@ -142,16 +143,19 @@ void BatchNormalizationLayer::forwarding(sharedConstTensors in) {
     var.add_i(cvar, 1 - momentum);
 
     cvar.add_i(epsilon);
-
     invstd = cvar.pow(-0.5f);
-    this->x_normalized = deviation.multiply(invstd);
-    hidden_ = x_normalized.multiply(gamma);
+
+    hidden_ = deviation.multiply(invstd, hidden_);
+    hidden_.multiply_i(gamma);
     hidden_.add_i(beta);
   } else {
     deviation = input_.subtract(mu);
-    this->x_normalized = deviation.divide(var.add(epsilon).pow(0.5f));
-    hidden_ = x_normalized.multiply(gamma);
-    hidden_.add(beta);
+    invstd = var.add(epsilon);
+    invstd.pow_i(-0.5f);
+
+    hidden_ = deviation.multiply(invstd, hidden_);
+    hidden_.multiply_i(gamma);
+    hidden_.add_i(beta);
   }
 }
 
@@ -172,7 +176,7 @@ void BatchNormalizationLayer::calcDerivative(sharedConstTensors derivative) {
     deviation.multiply(deriv).sum(axes_to_reduce)));
 
   Tensor &dx = net_input[0]->grad;
-  dx = dx_2.multiply(dx_1);
+  dx = dx_2.multiply(dx_1, dx);
   dx.divide_i(N);
 }
 
@@ -183,7 +187,9 @@ void BatchNormalizationLayer::calcGradient(sharedConstTensors derivative) {
   Tensor &deriv = net_hidden[0]->grad;
 
   dbeta = deriv.sum(axes_to_reduce);
-  dgamma = deviation.multiply(invstd).multiply(deriv).sum(axes_to_reduce);
+  Tensor dev = deviation.multiply(invstd);
+  dev.multiply_i(deriv);
+  dgamma = dev.sum(axes_to_reduce);
 }
 
 void BatchNormalizationLayer::copy(std::shared_ptr<Layer> l) {

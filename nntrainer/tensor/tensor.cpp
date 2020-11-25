@@ -264,6 +264,10 @@ Tensor Tensor::pow(float exponent) const {
   return apply([=](float in) { return powf(in, exponent); });
 }
 
+int Tensor::pow_i(float exponent) {
+  return apply_i([=](float in) { return powf(in, exponent); });
+}
+
 Tensor Tensor::getBatchSlice(unsigned int offset, unsigned int size) const {
   Tensor ret = *this;
 
@@ -298,6 +302,51 @@ int Tensor::operator_i(
   }
 
   return operator_i_util(m, v_func, e);
+}
+
+void Tensor::operator_(Tensor const &m,
+                       std::function<void(const BroadcastInfo &e, const float *,
+                                          const float *, float *)>
+                         v_func,
+                       Tensor &output) const {
+
+  /// shortcut to cover when dimension matches
+  /// note that buffer_size, the last stride is only used in v_func but it might
+  /// be changed
+  if (dim == m.dim) {
+    BroadcastInfo e;
+    e.buffer_size = length();
+    e.strides[3] = 1;
+    v_func(e, getData(), m.getData(), output.getData());
+    return;
+  }
+
+  return operator_util(m, v_func, output, this->computeBroadcastInfo(m));
+}
+
+void Tensor::operator_util(
+  Tensor const &m,
+  std::function<void(const BroadcastInfo &e, const float *, const float *,
+                     float *)>
+    v_func,
+  Tensor &output, const BroadcastInfo &e, int cur_axis, unsigned int offset,
+  unsigned int m_offset) const {
+
+  const float *buf = this->getData();
+  const float *m_buf = m.getData();
+  float *out_buf = output.getData();
+
+  if (e.buffer_axis == cur_axis) {
+    v_func(e, buf + offset, m_buf + m_offset, out_buf + offset);
+    return;
+  }
+
+  cur_axis++;
+  for (unsigned int i = 0; i < dim.getTensorDim(cur_axis); ++i) {
+    unsigned int next_offset = offset + i * strides[cur_axis];
+    unsigned int next_m_offset = m_offset + i * e.strides[cur_axis];
+    operator_util(m, v_func, output, e, cur_axis, next_offset, next_m_offset);
+  }
 }
 
 int Tensor::operator_i_util(
@@ -344,6 +393,23 @@ int Tensor::multiply_i(Tensor const &m) {
 
 Tensor Tensor::multiply(Tensor const &m) const { CLONE_OP_I(multiply_i, m); }
 
+Tensor Tensor::multiply(Tensor const &m, Tensor &output) const {
+  auto f = [&](const BroadcastInfo &e, const float *buf, const float *m_buf,
+               float *output) {
+    for (unsigned int i = 0; i < e.buffer_size; ++i) {
+      *output = *buf * *m_buf;
+      buf += strides[3];
+      m_buf += e.strides[3];
+      output += strides[3];
+    }
+  };
+
+  CREATE_IF_EMPTY_DIMS(output, dim);
+  operator_(m, f, output);
+
+  return output;
+}
+
 int Tensor::divide_i(Tensor const &m) {
   auto f = [&](const BroadcastInfo &e, float *buf, const float *m_buf) {
     for (unsigned int i = 0; i < e.buffer_size; ++i) {
@@ -357,6 +423,23 @@ int Tensor::divide_i(Tensor const &m) {
 }
 
 Tensor Tensor::divide(Tensor const &m) const { CLONE_OP_I(divide_i, m); }
+
+Tensor Tensor::divide(Tensor const &m, Tensor &output) const {
+  auto f = [&](const BroadcastInfo &e, const float *buf, const float *m_buf,
+               float *output) {
+    for (unsigned int i = 0; i < e.buffer_size; ++i) {
+      *output = *buf / *m_buf;
+      buf += strides[3];
+      m_buf += e.strides[3];
+      output += strides[3];
+    }
+  };
+
+  CREATE_IF_EMPTY_DIMS(output, dim);
+  operator_(m, f, output);
+
+  return output;
+}
 
 /**
  * This is to sum the Tensor data according to the dim.batch().
@@ -610,9 +693,16 @@ Tensor Tensor::apply(std::function<float(float)> f) const {
   return apply(f, result);
 }
 
+int Tensor::apply_i(std::function<float(float)> f) {
+  float *data = getData();
+
+  std::transform(data, data + length(), data, f);
+
+  return ML_ERROR_NONE;
+}
+
 Tensor Tensor::apply(std::function<float(float)> f, Tensor &output) const {
-  if (output.uninitialized())
-    output = Tensor(dim);
+  CREATE_IF_EMPTY_DIMS(output, dim);
 
   const float *data = getData();
   float *rdata = output.getData();
@@ -623,6 +713,7 @@ Tensor Tensor::apply(std::function<float(float)> f, Tensor &output) const {
 }
 
 Tensor Tensor::apply(std::function<Tensor(Tensor)> f) const { return f(*this); }
+
 Tensor Tensor::apply(std::function<Tensor(Tensor, Tensor &)> f,
                      Tensor &output) const {
   return f(*this, output);
@@ -846,7 +937,7 @@ void Tensor::standardization_i() {
   this->divide_i(std_dev_by_batch);
 }
 
-Tensor::BroadcastInfo Tensor::computeBroadcastInfo(const Tensor &m) {
+Tensor::BroadcastInfo Tensor::computeBroadcastInfo(const Tensor &m) const {
   if (m.length() > this->length())
     throw exception::not_supported("broadcasting *this is not supported");
 
