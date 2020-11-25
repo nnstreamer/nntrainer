@@ -166,7 +166,7 @@ int setBoolean(bool &val, std::string str);
  * @retval #ML_ERROR_NONE Successful.
  * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
  */
-int getKeyValue(std::string input_str, std::string &key, std::string &value);
+int getKeyValue(std::string &input_str, std::string &key, std::string &value);
 
 /**
  * @brief     join vector of int to string with delimiter ","
@@ -184,7 +184,7 @@ int getValues(int n_str, std::string str, int *value);
  * @param[in] reg regular expression to use as delimiter
  * @retval    output string vector
  */
-std::vector<std::string> split(const std::string &s, std::regex &reg);
+std::vector<std::string> split(const std::string &s, const std::regex &reg);
 
 /**
  * @brief     print instance info. as <Type at (address)>
