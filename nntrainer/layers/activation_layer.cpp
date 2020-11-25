@@ -78,7 +78,10 @@ int ActivationLayer::setActivation(
   _act_fn = activation_fn;
   _act_prime_fn = [activation_prime_fn](Tensor const &x, Tensor &ret_derivative,
                                         Tensor const &derivative) {
-    return derivative.multiply(activation_prime_fn(x, ret_derivative));
+    ret_derivative = activation_prime_fn(x, ret_derivative);
+    ret_derivative.multiply_i(derivative);
+
+    return ret_derivative;
   };
 
   return ML_ERROR_NONE;
@@ -92,7 +95,10 @@ int ActivationLayer::setActivation(
   };
   _act_prime_fn = [activation_prime_fn](Tensor const &x, Tensor &ret_derivative,
                                         Tensor const &derivative) {
-    return derivative.multiply(x.apply(activation_prime_fn, ret_derivative));
+    ret_derivative = x.apply(activation_prime_fn, ret_derivative);
+    ret_derivative.multiply_i(derivative);
+
+    return ret_derivative;
   };
 
   return ML_ERROR_NONE;
