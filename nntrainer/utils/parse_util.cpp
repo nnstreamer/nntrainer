@@ -38,10 +38,10 @@
 
 namespace nntrainer {
 
-int getKeyValue(std::string input_str, std::string &key, std::string &value) {
+int getKeyValue(std::string &input_str, std::string &key, std::string &value) {
   int status = ML_ERROR_NONE;
   std::vector<std::string> list;
-  std::regex words_regex("[^\\s=]+");
+  static const std::regex words_regex("[^\\s=]+");
   input_str.erase(std::remove(input_str.begin(), input_str.end(), ' '),
                   input_str.end());
   auto words_begin =
@@ -434,7 +434,7 @@ int setBoolean(bool &val, std::string str) {
 
 int getValues(int n_str, std::string str, int *value) {
   int status = ML_ERROR_NONE;
-  std::regex words_regex("[^\\s.,:;!?]+");
+  static const std::regex words_regex("[^\\s.,:;!?]+");
   str.erase(std::remove(str.begin(), str.end(), ' '), str.end());
   auto words_begin = std::sregex_iterator(str.begin(), str.end(), words_regex);
   auto words_end = std::sregex_iterator();
@@ -465,7 +465,7 @@ const char *getValues(std::vector<int> values, const char *delimiter) {
   return std::move(vec_str.str().c_str());
 }
 
-std::vector<std::string> split(const std::string &s, std::regex &reg) {
+std::vector<std::string> split(const std::string &s, const std::regex &reg) {
   std::vector<std::string> out;
   char char_to_remove[NUM_SKIP_CHAR] = {' ', '[', ']'};
   std::string str = s;

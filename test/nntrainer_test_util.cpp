@@ -298,7 +298,7 @@ void IniSection::setEntry(const std::string &entry_str) {
 
   std::string key, value;
   for (std::sregex_iterator i = words_begin; i != words_end; ++i) {
-    const std::string &cur = (*i).str();
+    std::string cur = (*i).str();
 
     if (cur[0] == '-') {
       entry.erase(cur.substr(1));
