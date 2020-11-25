@@ -144,19 +144,15 @@ void BatchNormalizationLayer::forwarding(sharedConstTensors in) {
 
     cvar.add_i(epsilon);
     invstd = cvar.pow(-0.5f);
-
-    hidden_ = deviation.multiply(invstd, hidden_);
-    hidden_.multiply_i(gamma);
-    hidden_.add_i(beta);
   } else {
     deviation = input_.subtract(mu);
     invstd = var.add(epsilon);
     invstd.pow_i(-0.5f);
-
-    hidden_ = deviation.multiply(invstd, hidden_);
-    hidden_.multiply_i(gamma);
-    hidden_.add_i(beta);
   }
+
+  hidden_ = deviation.multiply(invstd, hidden_);
+  hidden_.multiply_i(gamma);
+  hidden_.add_i(beta);
 }
 
 void BatchNormalizationLayer::calcDerivative(sharedConstTensors derivative) {
