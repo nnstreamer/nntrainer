@@ -270,6 +270,8 @@ public:
    */
   Tensor multiply(Tensor const &m) const;
 
+  Tensor multiply(Tensor const &m, Tensor &output) const;
+
   /**
    * @brief     divide Tensor Elementwise
    * @param[in] m Tensor to be multiplied
@@ -284,12 +286,16 @@ public:
    */
   Tensor divide(Tensor const &m) const;
 
+  Tensor divide(Tensor const &m, Tensor &output) const;
+
   /**
    * @brief    Tensor power Element by Element
    * @param[in] float Divisor Tensor
    * @retval Calculated Tensor
    */
   Tensor pow(float m) const;
+
+  int pow_i(float m);
 
   /**
    * @brief     Dot Product of Tensor ( equal MxM )
@@ -463,7 +469,7 @@ public:
    */
   Tensor apply(std::function<Tensor(Tensor, Tensor &)> f, Tensor &output) const;
 
-  Tensor apply_i(std::function<int(const Tensor &)> f) const;
+  int apply_i(std::function<float(float)> f);
 
   /**
    * @brief     Print element
@@ -678,6 +684,13 @@ private:
     const BroadcastInfo &e, int cur_axis = -1, unsigned int offset = 0,
     unsigned int m_offset = 0);
 
+  void operator_util(Tensor const &m,
+                     std::function<void(const BroadcastInfo &e, const float *,
+                                        const float *, float *)>
+                       v_func,
+                     Tensor &output, const BroadcastInfo &e, int cur_axis = -1,
+                     unsigned int offset = 0, unsigned int m_offset = 0) const;
+
   /**
    * @brief Applies the given operator to the tensor with the passed argument
    *
@@ -690,13 +703,19 @@ private:
     Tensor const &m,
     std::function<void(const BroadcastInfo &e, float *, const float *)> v_func);
 
+  void operator_(Tensor const &m,
+                 std::function<void(const BroadcastInfo &e, const float *,
+                                    const float *, float *)>
+                   v_func,
+                 Tensor &output) const;
+
   /**
    * @brief compute Loop info for broadcasting and vectorization
    *
    * @param m target tensor to be calculated against.
    * @return BroadcastInfo Loopinfo needed to run external loop
    */
-  BroadcastInfo computeBroadcastInfo(const Tensor &m);
+  BroadcastInfo computeBroadcastInfo(const Tensor &m) const;
 
   /**< handle the data as a std::shared_ptr<float> type */
   TensorDim dim;
