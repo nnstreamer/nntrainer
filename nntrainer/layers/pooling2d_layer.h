@@ -147,7 +147,7 @@ private:
    * @param[in] in input tensor
    * @retval Tensor outoput tensor
    */
-  Tensor pooling2d(unsigned int batch, Tensor &in);
+  Tensor pooling2d(unsigned int batch, Tensor &in, Tensor &output);
 
   /**
    * @brief     set Pooling Type

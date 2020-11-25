@@ -70,16 +70,17 @@ void Pooling2DLayer::forwarding(sharedConstTensors in) {
   Tensor &input_ = net_input[0]->var;
   Tensor &hidden_ = net_hidden[0]->var;
 
-  TensorDim hidden_dim = output_dim[0];
+  TensorDim &hidden_dim = output_dim[0];
   TensorDim &in_dim = input_dim[0];
 
-  hidden_.setZero();
+  if (hidden_.uninitialized()) {
+    hidden_ = Tensor(hidden_dim);
+  }
 
   for (unsigned int b = 0; b < in_dim.batch(); ++b) {
     Tensor in_padded = zero_pad(b, input_, padding.data());
-    Tensor result = pooling2d(b, in_padded);
-    memcpy(hidden_.getAddress(b * hidden_.getDim().getFeatureLen()),
-           result.getData(), result.getDim().getDataLen() * sizeof(float));
+    Tensor result = hidden_.getBatchSlice(b, 1);
+    result = pooling2d(b, in_padded, result);
   }
 }
 
@@ -93,12 +94,12 @@ void Pooling2DLayer::calcDerivative(sharedConstTensors derivative) {
   unsigned int p_size = p_height * p_width;
 
   unsigned int J, K;
-  Tensor &result = net_input[0]->grad;
-  result.setZero();
-
   Tensor &deriv = net_hidden[0]->grad;
+  Tensor &result = net_input[0]->grad;
 
+  result.setZero();
   float *out = result.getData();
+
   switch (pooling_type) {
   case PoolingType::max: {
     for (unsigned int i = 0; i < deriv.getDim().getDataLen(); ++i) {
@@ -253,7 +254,8 @@ void Pooling2DLayer::setProperty(const PropertyType type,
   }
 }
 
-Tensor Pooling2DLayer::pooling2d(unsigned int batch, Tensor &in) {
+Tensor Pooling2DLayer::pooling2d(unsigned int batch, Tensor &in,
+                                 Tensor &output) {
   unsigned int channel = in.channel();
   unsigned int height = in.height();
   unsigned int width = in.width();
@@ -262,7 +264,8 @@ Tensor Pooling2DLayer::pooling2d(unsigned int batch, Tensor &in) {
   TensorDim &out_dim = output_dim[0];
   unsigned int base_idx = batch * out_dim.getFeatureLen();
 
-  Tensor output(out_dim.channel(), out_dim.height(), out_dim.width());
+  if (output.uninitialized())
+    output = Tensor(1, out_dim.channel(), out_dim.height(), out_dim.width());
 
   unsigned int J, K;
   switch (pooling_type) {
@@ -314,7 +317,6 @@ Tensor Pooling2DLayer::pooling2d(unsigned int batch, Tensor &in) {
     }
   } break;
   case PoolingType::global_max: {
-    output.setZero();
     for (unsigned int i = 0; i < channel; ++i) {
       unsigned int idx =
         batch * input_dim[0].getFeatureLen() + i * height * width;
@@ -335,7 +337,6 @@ Tensor Pooling2DLayer::pooling2d(unsigned int batch, Tensor &in) {
     }
   } break;
   case PoolingType::global_average: {
-    output.setZero();
     Tensor sum_wh = in.chain().sum(3).sum(2).run();
     for (unsigned int i = 0; i < channel; ++i) {
       output.setValue(0, 0, 0, i,
