@@ -78,7 +78,7 @@ void TensorDim::setTensorDim(unsigned int idx, unsigned int value) {
 
 int TensorDim::setTensorDim(const std::string &input_shape) {
   int status = ML_ERROR_NONE;
-  const std::regex words_regex("[^\\s.,:;!?]+");
+  static const std::regex words_regex("[^\\s.,:;!?]+");
   auto words_begin =
     std::sregex_iterator(input_shape.begin(), input_shape.end(), words_regex);
   auto words_end = std::sregex_iterator();
