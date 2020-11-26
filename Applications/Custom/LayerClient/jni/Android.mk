@@ -11,6 +11,7 @@ ifndef NNTRAINER_ROOT
 NNTRAINER_ROOT := $(LOCAL_PATH)/../../../..
 endif
 
+# todo: make this application only depending on ccapi and remove nntrainer related header
 NNTRAINER_INCLUDES := $(NNTRAINER_ROOT)/nntrainer \
 	$(NNTRAINER_ROOT)/nntrainer/dataset \
 	$(NNTRAINER_ROOT)/nntrainer/models \
@@ -52,18 +53,18 @@ LOCAL_CFLAGS += -std=c++14 -Ofast -mcpu=cortex-a53 -Ilz4-nougat/lib
 LOCAL_LDFLAGS += -Llz4-nougat/lib/obj/local/$(TARGET_ARCH_ABI)/
 LOCAL_CXXFLAGS += -std=c++14
 LOCAL_CFLAGS += -pthread -fexceptions
-LOCAL_LDFLAGS += -fopenmp -fexceptions
+LOCAL_LDFLAGS += -fexceptions
 LOCAL_MODULE_TAGS := optional
 LOCAL_ARM_MODE := arm
 LOCAL_MODULE := nntrainer_layer_client_example
 LOCAL_LDLIBS := -llog
 
-LOCAL_SRC_FILES := main.cpp
+LOCAL_SRC_FILES := main.cpp pow.cpp
 
 # todo: make this application only depending on ccapi
 LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer app_utils
 
-LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES) $(APP_UTILS_INCLUDES)
+LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES) $(APP_UTILS_INCLUDES) pow.h
 
 include $(BUILD_EXECUTABLE)
 

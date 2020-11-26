@@ -170,8 +170,10 @@ public:
    * @param[in] values values of property
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   * @note this shouldn't be virtual, this became virtual to support custom
+   * layer. should be reverted after layer.h can fully support custom layer
    */
-  int setProperty(std::vector<std::string> values);
+  virtual int setProperty(std::vector<std::string> values);
 
   /**
    * @brief setProperty by PropertyType

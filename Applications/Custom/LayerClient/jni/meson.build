@@ -1,7 +1,8 @@
 res_path = meson.current_source_dir() / '..' / 'res'
 
 layer_client_sources = [
-  'main.cpp'
+  'main.cpp',
+  'pow.cpp'
 ]
 
 layer_client_inc = include_directories('.')

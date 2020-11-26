@@ -47,8 +47,9 @@ std::unique_ptr<Layer> createLayer(const std::string &type,
 std::unique_ptr<Optimizer>
 createOptimizer(const OptimizerType &type,
                 const std::vector<std::string> &properties) {
+  auto &ac = nntrainer::AppContext::Global();
   const std::string &t = nntrainer::optimizerIntToStrType(type);
-  return createOptimizer(t, properties);
+  return ac.createObject<Optimizer>(t, properties);
 }
 
 /**

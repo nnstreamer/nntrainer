@@ -106,7 +106,7 @@ public:
   /**
    * @copydoc Layer::getType()
    */
-  const std::string getType() const { return BatchNormalizationLayer::type; };
+  const std::string getType() const { return BatchNormalizationLayer::type; }
 
   using Layer::setProperty;
 

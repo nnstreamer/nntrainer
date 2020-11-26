@@ -28,7 +28,7 @@ const std::string optimizerIntToStrType(const OptType &type) {
     return "adam";
   case OptType::SGD:
     return "sgd";
-  case ML_TRAIN_OPTIMIZER_TYPE_UNKNOWN:
+  case OptType::UNKNOWN:
   /// fall through intended
   default:
     throw exception::not_supported(
