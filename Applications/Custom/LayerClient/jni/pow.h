@@ -15,89 +15,59 @@
 #ifndef __POW_LAYER_H__
 #define __POW_LAYER_H__
 
-#include <layer.h>
+/// @todo migrate these to API
+#include <layer_internal.h>
 #include <tensor.h>
 
 namespace custom {
-class PowLayer : public ml::train::Layer {
+
+/// @todo inherit this to API
+// class PowLayer : public ml::train::Layer {
+class PowLayer : public nntrainer::Layer {
 public:
   /**
    * @brief Construct a new Pow Layer object that does elementwise power
    *
    * @param exponent_ exponent
    */
-  PowLayer(float exponent_ = 1) : exponent(exponent_) {}
+  PowLayer(float exponent_ = 1) : Layer(), exponent(exponent_) {}
 
   /**
    * @brief Destroy the Pow Layer object
    *
    */
-  ~PowLayer();
+  ~PowLayer() {}
+
+  using nntrainer::Layer::setProperty;
 
   /**
-   * @brief     set Property of layer
+   * @brief     set Property of layer, currently only "exponent is accepted"
    * @param[in] values values of property
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int setProperty(std::vector<std::string> values) {
-    /**< NYI */
-    return 1;
-  }
+  int setProperty(std::vector<std::string> values);
 
   /**
-   * @brief Set the Property by propertyType, this is not used in this demo
+   * @brief initializing nntrainer
    *
-   * @param type property type
-   * @param value value
+   * @return int ML_ERROR_NONE if success
    */
-  void setProperty(const ml::train::Layer::PropertyType type,
-                   const std::string &value = "") {
-    /**< NOT USED */
-  }
-
-  /**
-   * @brief check if hyperparameter is valid
-   *
-   * @return int ML_ERROR_NONE if successful
-   */
-  int checkValidataion() { return ML_ERROR_NONE; }
-
-  /**
-   * @brief Get the Loss bound to the object
-   *
-   * @return float
-   */
-  float getLoss() { return 0.0f; }
+  int initialize();
 
   /**
    * @brief nntrainer forwarding function
    *
    * @param in input tensors
-   * @return nntrainer::sharedConstTensors output tensors
    */
-  nntrainer::sharedConstTensors forwarding(nntrainer::sharedConstTensors in) {
-    return in;
-  }
+  void forwarding(nntrainer::sharedConstTensors in = {});
 
   /**
-   * @brief nntrainer backwaridng function
-   *
-   * @param in input tensors
-   * @param iteration number of iterations
-   * @return nntrainer::sharedConstTensors output tensors
+   * @brief     calc the derivative to be passed to the previous layer
+   * @param[in] in List of Derivative Tensor from the next layer
+   * @retval    Derivative List of Tensor for the previous layer
    */
-  nntrainer::sharedConstTensors backwarding(nntrainer::sharedConstTensors in,
-                                            int iteration) {
-    return in;
-  }
-
-  /**
-   * @brief initialize function
-   *
-   * @return int ML_ERROR_NONE if successful
-   */
-  int initialize() { return 1; }
+  void calcDerivative(nntrainer::sharedConstTensors in = {});
 
   /**
    * @brief Get the Type object
@@ -111,8 +81,6 @@ public:
 private:
   float exponent;
 };
-
-const std::string PowLayer::type = "pow";
 
 } // namespace custom
 
