@@ -15,6 +15,7 @@
 #define __MODEL_LOADER_H__
 #ifdef __cplusplus
 
+#include <app_context.h>
 #include <iniparser.h>
 #include <neuralnet.h>
 
@@ -29,7 +30,8 @@ public:
   /**
    * @brief     Constructor of the model loader
    */
-  ModelLoader() {}
+  ModelLoader(const AppContext &app_context_ = AppContext::Global()) :
+    app_context(app_context_) {}
 
   /**
    * @brief     Destructor of the model loader
@@ -144,6 +146,8 @@ private:
   static bool fileTfLite(const std::string &filename);
 
   const char *unknown = "Unknown";
+
+  AppContext app_context;
 };
 
 } /* namespace nntrainer */

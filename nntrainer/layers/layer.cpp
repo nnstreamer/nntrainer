@@ -183,6 +183,8 @@ int Layer::setProperty(std::vector<std::string> values) {
     unsigned int type = parseLayerProperty(key);
 
     if (value.empty()) {
+      ml_logd("value is empty for layer: %s, key: %s, value: %s",
+              getName().c_str(), key.c_str(), value.c_str());
       return ML_ERROR_INVALID_PARAMETER;
     }
 
@@ -190,6 +192,8 @@ int Layer::setProperty(std::vector<std::string> values) {
       /// @note this calls derived setProperty if available
       setProperty(static_cast<PropertyType>(type), value);
     } catch (...) {
+      ml_logd("value or key is not valid for layer: %s, key: %s, value: %s",
+              getName().c_str(), key.c_str(), value.c_str());
       return ML_ERROR_INVALID_PARAMETER;
     }
   }

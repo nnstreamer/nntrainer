@@ -50,7 +50,7 @@ int NeuralNetwork::loadFromConfig(std::string config) {
     return ML_ERROR_INVALID_PARAMETER;
   }
 
-  ModelLoader loader;
+  ModelLoader loader(app_context);
   NeuralNetwork tempNet(*this);
   int status = loader.loadFromConfig(config, tempNet);
   if (status != ML_ERROR_NONE) {

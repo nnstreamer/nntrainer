@@ -83,11 +83,11 @@ TEST(nntrainer_NeuralNetwork, load_config_03_n) {
   RESET_CONFIG("./test.ini");
   replaceString("Input_Shape = 1:1:62720", "Input_Shape = 1:1:0", "./test.ini",
                 config_str);
+
   nntrainer::NeuralNetwork NN;
 
-  /**< C++ exception with description "[TensorDim] Trying to assign value of 0
-   * to tensor dim" thrown in the test body. */
-  EXPECT_THROW(NN.loadFromConfig("./test.ini"), std::invalid_argument);
+  int status = NN.loadFromConfig("./test.ini");
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
 /**

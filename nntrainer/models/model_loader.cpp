@@ -177,9 +177,59 @@ int ModelLoader::loadLayerConfigIniCommon(dictionary *ini,
                                           const std::string &layer_name,
                                           const std::string &layer_type) {
   int status = ML_ERROR_NONE;
+  int num_entries = iniparser_getsecnkeys(ini, layer_name.c_str());
+
+  ml_logd("number of entries for %s: %d", layer_name.c_str(), num_entries);
+
+  if (num_entries < 1) {
+    std::stringstream ss;
+    ss << "there are no entries in the layer section: " << layer_name;
+    throw std::invalid_argument(ss.str());
+  }
+
+  std::unique_ptr<const char *[]> key_refs(new const char *[num_entries]);
+
+  if (iniparser_getseckeys(ini, layer_name.c_str(), key_refs.get()) ==
+      nullptr) {
+    std::stringstream ss;
+    ss << "failed to fetch key for layer: " << layer_name;
+    throw std::invalid_argument(ss.str());
+  }
+
+  std::vector<std::string> properties;
+  properties.reserve(num_entries - 1);
+
+  for (int i = 0; i < num_entries; ++i) {
+    /// key is ini section key, which is layer_name + ":" + prop_key
+    std::string key(key_refs[i]);
+    std::string prop_key = key.substr(key.find(":") + 1);
+
+    if (istrequal(prop_key, "type") || istrequal(prop_key, "backbone")) {
+      continue;
+    }
+
+    std::string value = iniparser_getstring(ini, key_refs[i], unknown);
+
+    if (value == unknown) {
+      std::stringstream ss;
+      ss << "parsing property failed key: " << key;
+      throw std::invalid_argument(ss.str());
+    }
+
+    if (value == "") {
+      std::stringstream ss;
+      ss << "property key " << key << " has empty value. It is not allowed";
+      throw std::invalid_argument(ss.str());
+    }
+    ml_logd("parsed properties: %s=%s", prop_key.c_str(), value.c_str());
+
+    properties.push_back(prop_key + "=" + value);
+  }
 
   try {
-    layer = nntrainer::createLayer(layer_type);
+    std::shared_ptr<ml::train::Layer> layer_ =
+      app_context.createObject<ml::train::Layer>(layer_type, properties);
+    layer = std::static_pointer_cast<Layer>(layer_);
   } catch (const std::exception &e) {
     ml_loge("%s %s", typeid(e).name(), e.what());
     status = ML_ERROR_INVALID_PARAMETER;
@@ -188,32 +238,6 @@ int ModelLoader::loadLayerConfigIniCommon(dictionary *ini,
     status = ML_ERROR_INVALID_PARAMETER;
   }
   NN_RETURN_STATUS();
-
-  unsigned int property_end =
-    static_cast<unsigned int>(Layer::PropertyType::unknown);
-
-  for (unsigned int i = 0; i < property_end; ++i) {
-    std::string prop = propToStr(i);
-    std::string value =
-      iniparser_getstring(ini, (layer_name + ":" + prop).c_str(), unknown);
-
-    /**! @todo: add following negative tc after #319
-     * 1. layer has empty prop -> throw std::invalid_argument
-     * 2. layer has not allowed property -> throw exception::not_supported
-     * 3. property value parse error -> throw std::invalid_argument
-     */
-    if (!strncmp(value.c_str(), unknown, strlen(unknown))) {
-      continue;
-    }
-
-    if (value == "") {
-      std::stringstream ss;
-      ss << "property key " << prop << " has empty value. It is not allowed";
-      throw std::invalid_argument(ss.str());
-    }
-
-    layer->setProperty(static_cast<Layer::PropertyType>(i), value);
-  }
 
   status = layer->setName(layer_name);
   NN_RETURN_STATUS();
@@ -370,7 +394,6 @@ int ModelLoader::loadFromIni(std::string ini_file, NeuralNetwork &model,
   ml_logd("parsing ini started");
   /** Get all the section names */
   ml_logi("==========================parsing ini...");
-  ml_logi("invalid properties does not cause error, rather be ignored");
   ml_logi("not-allowed property for the layer throws error");
   ml_logi("valid property with invalid value throws error as well");
   for (int idx = 0; idx < num_ini_sec; ++idx) {
