@@ -422,7 +422,6 @@ int NeuralNetwork::assignMem() {
       for (unsigned int i = 0; i < l.input_layers.size(); ++i) {
 
         l.net_input[i]->var = Tensor(l.getInputDimension()[i]);
-        l.net_input[i]->grad = Tensor(l.getInputDimension()[i]);
       }
     }
   }
@@ -430,8 +429,6 @@ int NeuralNetwork::assignMem() {
   for (unsigned int i = 0; i < model_graph.Sorted.back().layer->num_outputs;
        ++i) {
     model_graph.Sorted.back().layer->net_hidden[i]->var =
-      Tensor(model_graph.Sorted.back().layer->getOutputDimension()[i]);
-    model_graph.Sorted.back().layer->net_hidden[i]->grad =
       Tensor(model_graph.Sorted.back().layer->getOutputDimension()[i]);
   }
 

@@ -37,6 +37,8 @@ namespace nntrainer {
 
 struct NetBuffers {
   Tensor var;
+  /* TODO : We could remove this. for now, We are not allocate memory. This
+   * exists only for the unittest.  */
   Tensor grad;
 };
 

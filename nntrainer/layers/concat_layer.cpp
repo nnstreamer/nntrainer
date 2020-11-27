@@ -89,15 +89,15 @@ void ConcatLayer::forwarding(sharedConstTensors in) {
 }
 
 void ConcatLayer::calcDerivative(sharedConstTensors derivative) {
-  TensorDim d = net_hidden[0]->grad.getDim();
+  TensorDim d = net_hidden[0]->var.getDim();
 
   unsigned int position = 0;
   for (unsigned int idx = 0; idx < num_inputs; ++idx) {
     TensorDim in_dim = input_dim[idx];
 
     for (unsigned int b = 0; b < in_dim.batch(); ++b) {
-      memcpy(net_input[idx]->grad.getAddress(b * in_dim.getFeatureLen()),
-             net_hidden[0]->grad.getAddress(b * d.getFeatureLen() + position),
+      memcpy(net_input[idx]->var.getAddress(b * in_dim.getFeatureLen()),
+             net_hidden[0]->var.getAddress(b * d.getFeatureLen() + position),
              in_dim.getFeatureLen() * sizeof(float));
     }
     position += in_dim.getFeatureLen();

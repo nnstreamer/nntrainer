@@ -542,10 +542,11 @@ void NetworkGraph::backwarding(sharedConstTensors output, int iteration) {
   }
 
   /** The last trainable layer need not calculate the derivatives */
+  // Oder is matter here. 1. calcGradient 2.Derivative & Gradient
+  Sorted[skip_non_trainable_layers + 1].layer->calcGradient();
 #ifdef ENABLE_TEST
   Sorted[skip_non_trainable_layers + 1].layer->calcDerivative();
 #endif
-  Sorted[skip_non_trainable_layers + 1].layer->calcGradient();
   Sorted[skip_non_trainable_layers + 1].layer->applyGradient(iteration);
 }
 

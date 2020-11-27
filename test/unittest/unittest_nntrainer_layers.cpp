@@ -66,7 +66,6 @@ protected:
       std::shared_ptr<nntrainer::NetBuffers> n_buffer =
         std::make_unique<nntrainer::NetBuffers>();
       n_buffer->var = nntrainer::Tensor(layer.getInputDimension()[i]);
-      n_buffer->grad = nntrainer::Tensor(layer.getInputDimension()[i]);
       layer.setInputBuffer(i, n_buffer);
     }
 
@@ -74,7 +73,6 @@ protected:
       std::shared_ptr<nntrainer::NetBuffers> n_buffer =
         std::make_unique<nntrainer::NetBuffers>();
       n_buffer->var = nntrainer::Tensor(layer.getOutputDimension()[i]);
-      n_buffer->grad = nntrainer::Tensor(layer.getOutputDimension()[i]);
       layer.setOutputBuffer(i, n_buffer);
     }
 
@@ -502,7 +500,6 @@ protected:
       std::shared_ptr<nntrainer::NetBuffers> n_buffer =
         std::make_unique<nntrainer::NetBuffers>();
       n_buffer->var = nntrainer::Tensor(act_layer->getInputDimension()[i]);
-      n_buffer->grad = nntrainer::Tensor(act_layer->getInputDimension()[i]);
       act_layer->setInputBuffer(i, n_buffer);
     }
 
@@ -510,7 +507,6 @@ protected:
       std::shared_ptr<nntrainer::NetBuffers> n_buffer =
         std::make_unique<nntrainer::NetBuffers>();
       n_buffer->var = nntrainer::Tensor(act_layer->getOutputDimension()[i]);
-      n_buffer->grad = nntrainer::Tensor(act_layer->getOutputDimension()[i]);
       act_layer->setOutputBuffer(i, n_buffer);
     }
 
@@ -539,7 +535,6 @@ protected:
       std::shared_ptr<nntrainer::NetBuffers> n_buffer =
         std::make_unique<nntrainer::NetBuffers>();
       n_buffer->var = nntrainer::Tensor(loss_layer->getInputDimension()[i]);
-      n_buffer->grad = nntrainer::Tensor(loss_layer->getInputDimension()[i]);
       loss_layer->setInputBuffer(i, n_buffer);
     }
 
@@ -547,7 +542,6 @@ protected:
       std::shared_ptr<nntrainer::NetBuffers> n_buffer =
         std::make_unique<nntrainer::NetBuffers>();
       n_buffer->var = nntrainer::Tensor(loss_layer->getOutputDimension()[i]);
-      n_buffer->grad = nntrainer::Tensor(loss_layer->getOutputDimension()[i]);
       loss_layer->setOutputBuffer(i, n_buffer);
     }
 
@@ -1230,11 +1224,15 @@ TEST_F(nntrainer_Conv2DLayer, backwarding_02_p) {
   matchOutput(result, "tc_conv2d_2_goldenInputGrad.out");
   matchOutput(bias_grad, "tc_conv2d_2_goldenBiasGrad.out");
 
+  for (unsigned int i = 0; i < derivatives.getDim().getDataLen(); ++i) {
+    derivatives.getData()[i] = 1.0;
+  }
+
   for (int i = 0; i < 4; i++) {
     EXPECT_NO_THROW(out =
                       *layer.forwarding_with_val({MAKE_SHARED_TENSOR(in)})[0]);
     EXPECT_NO_THROW(result = *layer.backwarding_with_val(
-                      1, {MAKE_SHARED_TENSOR(derivatives)})[0]);
+                      0, {MAKE_SHARED_TENSOR(derivatives)})[0]);
   }
 
   /// @fixme: the output value of this test is around +/- 1.0e+07 which can't
