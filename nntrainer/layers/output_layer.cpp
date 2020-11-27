@@ -52,10 +52,10 @@ void OutputLayer::forwarding(sharedConstTensors in) {
 
 void OutputLayer::calcDerivative(sharedConstTensors derivative) {
 
-  Tensor &ret = net_input[0]->grad;
+  Tensor &ret = net_input[0]->var;
 
   for (unsigned int idx = 0; idx < num_outputs; ++idx) {
-    ret.add_i(net_hidden[idx]->grad);
+    ret.add_i(net_hidden[idx]->var);
   }
 }
 

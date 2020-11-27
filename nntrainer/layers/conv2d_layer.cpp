@@ -147,7 +147,7 @@ void Conv2DLayer::calcDerivative(sharedConstTensors derivatives) {
   int status = ML_ERROR_NONE;
   TensorDim &in_dim = input_dim[0];
 
-  Tensor &derivative = net_hidden[0]->grad;
+  Tensor &derivative = net_hidden[0]->var;
   Tensor &filter_kernel = weightAt(ConvParams::weight).getVariableRef();
 
   std::array<unsigned int, CONV2D_DIM> same_pad;
@@ -198,12 +198,12 @@ void Conv2DLayer::calcDerivative(sharedConstTensors derivatives) {
   using uint = unsigned int;
   bool no_padding = padding[0] == 0 && padding[1] == 0;
 
-  if (net_input[0]->grad.uninitialized())
-    net_input[0]->grad = Tensor(input.getDim());
+  if (net_input[0]->var.uninitialized())
+    net_input[0]->var = Tensor(input.getDim());
 
   Tensor ret;
   if (no_padding)
-    ret = net_input[0]->grad;
+    ret = net_input[0]->var;
   else
     ret =
       Tensor(in_dim.batch(), in_dim.channel(), in_dim.height() + padding[0] * 2,
@@ -247,14 +247,14 @@ void Conv2DLayer::calcDerivative(sharedConstTensors derivatives) {
   }
 
   if (!no_padding)
-    strip_pad(ret, padding.data(), net_input[0]->grad);
+    strip_pad(ret, padding.data(), net_input[0]->var);
 }
 
 void Conv2DLayer::calcGradient(sharedConstTensors derivatives) {
   TensorDim &in_dim = input_dim[0];
 
   Tensor &filter_kernel = weightAt(ConvParams::weight).getVariableRef();
-  Tensor &derivative = net_hidden[0]->grad;
+  Tensor &derivative = net_hidden[0]->var;
   Tensor &input_ = net_input[0]->var;
 
   Tensor &delK = weightAt(ConvParams::weight).getGradientRef();

@@ -47,8 +47,8 @@ void AdditionLayer::forwarding(sharedConstTensors in) {
 
   for (unsigned int idx = 0; idx < num_inputs; ++idx) {
     if (in_dim != net_input[idx]->var.getDim())
-      throw std::runtime_error("Error: addition layer requires same "
-                               "shape from all input layers");
+      throw std::invalid_argument("Error: addition layer requires same "
+                                  "shape from all input layers");
     hidden_.add_i(net_input[idx]->var);
   }
 }
@@ -56,7 +56,7 @@ void AdditionLayer::forwarding(sharedConstTensors in) {
 void AdditionLayer::calcDerivative(sharedConstTensors derivative) {
 
   for (unsigned int i = 0; i < num_inputs; ++i) {
-    net_input[i]->grad = net_hidden[0]->grad;
+    net_input[i]->var = net_hidden[0]->var;
   }
 }
 
