@@ -270,7 +270,7 @@ public:
    */
   Tensor multiply(Tensor const &m) const;
 
-  Tensor multiply(Tensor const &m, Tensor &output) const;
+  Tensor &multiply(Tensor const &m, Tensor &output) const;
 
   /**
    * @brief     divide Tensor Elementwise
@@ -286,7 +286,7 @@ public:
    */
   Tensor divide(Tensor const &m) const;
 
-  Tensor divide(Tensor const &m, Tensor &output) const;
+  Tensor &divide(Tensor const &m, Tensor &output) const;
 
   /**
    * @brief    Tensor power Element by Element
@@ -318,8 +318,8 @@ public:
    * @param[in] trans_m Transpose m
    * @retval    Calculated Tensor
    */
-  Tensor dot(Tensor const &m, Tensor &output, bool trans = false,
-             bool trans_m = false) const;
+  Tensor &dot(Tensor const &m, Tensor &output, bool trans = false,
+              bool trans_m = false) const;
 
   /**
    * @brief     Transpose Tensor
@@ -357,7 +357,7 @@ public:
    * @param[in] alpha Scale the sum by this value
    * @retval    Calculated Tensor
    */
-  Tensor sum(Tensor &output, unsigned int axis, float alpha = 1.0) const;
+  Tensor &sum(Tensor &output, unsigned int axis, float alpha = 1.0) const;
 
   /**
    * @brief sum all the Tensor by multiple axes
@@ -414,13 +414,13 @@ public:
    * @brief     Normalize the Tensor elements
    * @retval    Calculated Tensor
    */
-  Tensor normalization(Tensor &output) const;
+  Tensor &normalization(Tensor &output) const;
 
   /**
    * @brief     Standardize the Tensor elements
    * @retval    Calculated Tensor
    */
-  Tensor standardization(Tensor &output) const;
+  Tensor &standardization(Tensor &output) const;
 
   /**
    * @brief     Normalize the Tensor elements in-place
@@ -452,7 +452,7 @@ public:
    * @param[out] output output tensor
    * @retval    Tensor
    */
-  Tensor apply(std::function<float(float)> f, Tensor &output) const;
+  Tensor &apply(std::function<float(float)> f, Tensor &output) const;
 
   /**
    * @brief     Apply function to Tensor
@@ -467,7 +467,8 @@ public:
    * @param[out] output output tensor
    * @retval    Tensor
    */
-  Tensor apply(std::function<Tensor(Tensor, Tensor &)> f, Tensor &output) const;
+  Tensor &apply(std::function<Tensor &(Tensor, Tensor &)> f,
+                Tensor &output) const;
 
   int apply_i(std::function<float(float)> f);
 
@@ -724,6 +725,8 @@ private:
   std::shared_ptr<float> data;
 
   template <typename T> void setDist(T dist);
+
+  void copy(const float *buf);
 };
 
 /**

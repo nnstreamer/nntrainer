@@ -20,7 +20,8 @@ Var_Grad::Var_Grad(const Var_Grad &rhs) :
   trainable(rhs.trainable),
   name(rhs.name) {
   var = rhs.var.clone();
-  grad = rhs.grad.clone();
+  if (rhs.trainable)
+    grad = rhs.grad.clone();
 }
 
 Var_Grad &Var_Grad::operator=(const Var_Grad &rhs) {

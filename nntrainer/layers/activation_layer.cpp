@@ -63,8 +63,8 @@ void ActivationLayer::calcDerivative(sharedConstTensors derivative) {
 }
 
 int ActivationLayer::setActivation(
-  std::function<Tensor(Tensor const &, Tensor &)> const &activation_fn,
-  std::function<Tensor(Tensor const &, Tensor &, Tensor const &)> const
+  std::function<Tensor &(Tensor const &, Tensor &)> const &activation_fn,
+  std::function<Tensor &(Tensor const &, Tensor &, Tensor const &)> const
     &activation_prime_fn) {
   _act_fn = activation_fn;
   _act_prime_fn = activation_prime_fn;
@@ -73,11 +73,12 @@ int ActivationLayer::setActivation(
 }
 
 int ActivationLayer::setActivation(
-  std::function<Tensor(Tensor const &, Tensor &)> const &activation_fn,
-  std::function<Tensor(Tensor const &, Tensor &)> const &activation_prime_fn) {
+  std::function<Tensor &(Tensor const &, Tensor &)> const &activation_fn,
+  std::function<Tensor &(Tensor const &, Tensor &)> const
+    &activation_prime_fn) {
   _act_fn = activation_fn;
   _act_prime_fn = [activation_prime_fn](Tensor const &x, Tensor &ret_derivative,
-                                        Tensor const &derivative) {
+                                        Tensor const &derivative) -> Tensor & {
     ret_derivative = activation_prime_fn(x, ret_derivative);
     ret_derivative.multiply_i(derivative);
 
@@ -90,11 +91,11 @@ int ActivationLayer::setActivation(
 int ActivationLayer::setActivation(
   std::function<float(float const)> const &activation_fn,
   std::function<float(float const)> const &activation_prime_fn) {
-  _act_fn = [activation_fn](Tensor const &x, Tensor &hidden) {
+  _act_fn = [activation_fn](Tensor const &x, Tensor &hidden) -> Tensor & {
     return x.apply(activation_fn, hidden);
   };
   _act_prime_fn = [activation_prime_fn](Tensor const &x, Tensor &ret_derivative,
-                                        Tensor const &derivative) {
+                                        Tensor const &derivative) -> Tensor & {
     ret_derivative = x.apply(activation_prime_fn, ret_derivative);
     ret_derivative.multiply_i(derivative);
 
@@ -134,7 +135,7 @@ void ActivationLayer::setActivation(ActivationType acti_type) {
   }
 }
 
-Tensor ActivationLayer::softmax(Tensor const &t, Tensor &output) {
+Tensor &ActivationLayer::softmax(Tensor const &t, Tensor &output) {
   /**
    * shiftx_logit = logit - max_batch(logit)
    * softmax = exp(shiftx_logit) / (sum(exp(shiftx_logit)))
@@ -174,8 +175,8 @@ Tensor ActivationLayer::softmax(Tensor const &t, Tensor &output) {
   return output;
 }
 
-Tensor ActivationLayer::softmaxPrime(Tensor const &x, Tensor &output,
-                                     Tensor const &derivative) {
+Tensor &ActivationLayer::softmaxPrime(Tensor const &x, Tensor &output,
+                                      Tensor const &derivative) {
   unsigned int batch = x.batch();
   unsigned int channel = x.channel();
   unsigned int height = x.height();

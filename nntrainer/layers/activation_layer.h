@@ -89,7 +89,7 @@ public:
    * @param[out] output output Tensor
    * @retval      Tensor
    */
-  static Tensor softmax(Tensor const &x, Tensor &output);
+  static Tensor &softmax(Tensor const &x, Tensor &output);
 
   /**
    * @brief     derivative softmax function for Tensor Type
@@ -98,8 +98,8 @@ public:
    * @param[in] derivative derivative Tensor from next layer
    * @retVal    Tensor
    */
-  static Tensor softmaxPrime(Tensor const &x, Tensor &output,
-                             Tensor const &derivative = Tensor());
+  static Tensor &softmaxPrime(Tensor const &x, Tensor &output,
+                              Tensor const &derivative = Tensor());
 
   /**
    * @brief     sigmoid activation function
@@ -152,8 +152,9 @@ public:
   static const std::string type;
 
 private:
-  std::function<Tensor(Tensor const &, Tensor &)> _act_fn;
-  std::function<Tensor(Tensor const &, Tensor &, Tensor const &)> _act_prime_fn;
+  std::function<Tensor &(Tensor const &, Tensor &)> _act_fn;
+  std::function<Tensor &(Tensor const &, Tensor &, Tensor const &)>
+    _act_prime_fn;
 
   /**
    * @brief setActivation by custom activation function
@@ -166,8 +167,9 @@ private:
    * @retval #ML_ERROR_NONE when successful
    */
   int setActivation(
-    std::function<Tensor(Tensor const &, Tensor &)> const &activation_fn,
-    std::function<Tensor(Tensor const &, Tensor &)> const &activation_prime_fn);
+    std::function<Tensor &(Tensor const &, Tensor &)> const &activation_fn,
+    std::function<Tensor &(Tensor const &, Tensor &)> const
+      &activation_prime_fn);
 
   /**
    * @brief setActivation by custom activation function
@@ -180,8 +182,8 @@ private:
    * @retval #ML_ERROR_NONE when successful
    */
   int setActivation(
-    std::function<Tensor(Tensor const &, Tensor &)> const &activation_fn,
-    std::function<Tensor(Tensor const &, Tensor &, Tensor const &)> const
+    std::function<Tensor &(Tensor const &, Tensor &)> const &activation_fn,
+    std::function<Tensor &(Tensor const &, Tensor &, Tensor const &)> const
       &activation_prime_fn);
 
   /**
