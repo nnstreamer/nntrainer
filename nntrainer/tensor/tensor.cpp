@@ -87,12 +87,8 @@ Tensor::Tensor(const TensorDim &d, const float *buf) : Tensor() {
     data = std::shared_ptr<float>(new float[d.getDataLen()],
                                   std::default_delete<float[]>());
 
-    if (buf != nullptr) {
-      float *data = getData();
-      unsigned int len = length();
-
-      scopy(len, buf, 1, data, 1);
-    }
+    if (buf != nullptr)
+      copy(buf);
   }
 }
 
@@ -393,7 +389,7 @@ int Tensor::multiply_i(Tensor const &m) {
 
 Tensor Tensor::multiply(Tensor const &m) const { CLONE_OP_I(multiply_i, m); }
 
-Tensor Tensor::multiply(Tensor const &m, Tensor &output) const {
+Tensor &Tensor::multiply(Tensor const &m, Tensor &output) const {
   auto f = [&](const BroadcastInfo &e, const float *buf, const float *m_buf,
                float *output) {
     for (unsigned int i = 0; i < e.buffer_size; ++i) {
@@ -424,7 +420,7 @@ int Tensor::divide_i(Tensor const &m) {
 
 Tensor Tensor::divide(Tensor const &m) const { CLONE_OP_I(divide_i, m); }
 
-Tensor Tensor::divide(Tensor const &m, Tensor &output) const {
+Tensor &Tensor::divide(Tensor const &m, Tensor &output) const {
   auto f = [&](const BroadcastInfo &e, const float *buf, const float *m_buf,
                float *output) {
     for (unsigned int i = 0; i < e.buffer_size; ++i) {
@@ -468,14 +464,17 @@ Tensor Tensor::sum(unsigned int axis, float alpha) const {
   Tensor ret;
   return sum(ret, axis, alpha);
 }
-Tensor Tensor::sum(Tensor &ret, unsigned int axis, float alpha) const {
+Tensor &Tensor::sum(Tensor &ret, unsigned int axis, float alpha) const {
   const float *data = getData();
 
   if (axis >= 4)
     throw std::out_of_range("Error: axis is invalid");
 
-  if (dim.getDim()[axis] == 1 and alpha == 1.0)
-    return this->clone();
+  if (dim.getDim()[axis] == 1 and alpha == 1.0) {
+    CREATE_IF_EMPTY_DIMS(ret, dim);
+    ret.copy(*this);
+    return ret;
+  }
 
   switch (axis) {
   case 0: {
@@ -556,8 +555,8 @@ Tensor Tensor::dot(Tensor const &m, bool trans, bool trans_m) const {
  * computation. So, while performing, these matrices are behaving as 2-D
  * matrices. The dimensions are restored while returning back the tensor.
  */
-Tensor Tensor::dot(Tensor const &m, Tensor &result, bool trans,
-                   bool trans_m) const {
+Tensor &Tensor::dot(Tensor const &m, Tensor &result, bool trans,
+                    bool trans_m) const {
   if (m.dim.rank() > 2) {
     throw exception::not_supported("Error: support only for rank of dot "
                                    "matrix <= 2");
@@ -701,7 +700,7 @@ int Tensor::apply_i(std::function<float(float)> f) {
   return ML_ERROR_NONE;
 }
 
-Tensor Tensor::apply(std::function<float(float)> f, Tensor &output) const {
+Tensor &Tensor::apply(std::function<float(float)> f, Tensor &output) const {
   CREATE_IF_EMPTY_DIMS(output, dim);
 
   const float *data = getData();
@@ -714,8 +713,8 @@ Tensor Tensor::apply(std::function<float(float)> f, Tensor &output) const {
 
 Tensor Tensor::apply(std::function<Tensor(Tensor)> f) const { return f(*this); }
 
-Tensor Tensor::apply(std::function<Tensor(Tensor, Tensor &)> f,
-                     Tensor &output) const {
+Tensor &Tensor::apply(std::function<Tensor &(Tensor, Tensor &)> f,
+                      Tensor &output) const {
   return f(*this, output);
 }
 
@@ -775,15 +774,21 @@ const float *Tensor::getAddress(unsigned int i) const {
   return &getData()[i];
 }
 
+void Tensor::copy(const float *buf) { scopy(length(), buf, 1, getData(), 1); }
+
 void Tensor::copy(const Tensor &from) {
   // todo: enable copy to non-contiguous tensor
   if (!is_contiguous) {
     throw std::runtime_error("Cannot copy non-contiguous tensor");
   }
 
-  // TODO: optimize this
-  Tensor t = Tensor(from.getDim(), from.getData());
-  swap(t, *this);
+  if (length() == from.length()) {
+    reshape(from.getDim());
+    copy(from.getData());
+  } else {
+    Tensor t = Tensor(from.getDim(), from.getData());
+    swap(t, *this);
+  }
 }
 
 Tensor Tensor::clone() const {
@@ -880,7 +885,7 @@ float Tensor::l2norm() const {
   return snrm2(len, data, 1);
 }
 
-Tensor Tensor::normalization(Tensor &output) const {
+Tensor &Tensor::normalization(Tensor &output) const {
   if (output.uninitialized())
     output = Tensor(dim);
 
@@ -908,7 +913,7 @@ void Tensor::normalization_i() {
 
 LazyTensor Tensor::chain() const { return LazyTensor(*this); }
 
-Tensor Tensor::standardization(Tensor &output) const {
+Tensor &Tensor::standardization(Tensor &output) const {
   if (output.uninitialized())
     output = Tensor(dim);
 
