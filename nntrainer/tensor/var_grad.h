@@ -32,6 +32,11 @@ public:
   Var_Grad() = default;
 
   /**
+   * @brief Var_Grad default destructor
+   */
+  virtual ~Var_Grad() {}
+
+  /**
    * @brief Construct a new Var_Grad object
    *
    * @param dim Variable and gradient tensor dimension
@@ -60,7 +65,7 @@ public:
    *
    * @param rhs Var_Grad to construct from
    */
-  Var_Grad(const Var_Grad &rhs);
+  Var_Grad(const Var_Grad &rhs) = default;
 
   /**
    * @brief Move constructor for Var_Grad
@@ -75,7 +80,7 @@ public:
    * @param rhs copy from
    * @return Var_Grad& Updated Var_Grad
    */
-  Var_Grad &operator=(const Var_Grad &rhs);
+  Var_Grad &operator=(const Var_Grad &rhs) = default;
 
   /**
    * @brief move assignment
@@ -90,7 +95,7 @@ public:
    *
    * @return TensorDim Dimension
    */
-  TensorDim getDim() { return var.getDim(); }
+  TensorDim getDim() const { return var->getDim(); }
 
   /**
    * @brief Get if the Var_Grad is trainable
@@ -98,7 +103,7 @@ public:
    * @return true if trainable
    * @return false is not trainable
    */
-  bool getTrainable() const { return !grad.uninitialized(); }
+  bool getTrainable() const { return trainable; }
 
   /**
    * @brief set if the Var_Grad is trainable
@@ -111,28 +116,41 @@ public:
    *
    * @return std::string name
    */
-  std::string getName() { return name; }
+  std::string getName() const { return name; }
 
   /**
    * @brief Get the variable tensor (by name)
    *
    * @return Tensor Variable tensor
    */
-  Tensor getVariable() { return var; }
+  Tensor getVariable() const { return *var.get(); }
 
   /**
    * @brief Get the Gradient tensor (by name)
    *
    * @return Tensor Gradient tensor
    */
-  Tensor getGradient() { return grad; }
+  Tensor getGradient() const { return *grad.get(); }
 
   /**
    * @brief Allocate and initialize the weight variable
    *
    * @param dim Dimension for the weight variable
    */
-  void resetGradient() { grad.setZero(); }
+  void resetGradient() { grad->setZero(); }
+
+  /**
+   * @bried Clone the currnet object
+   *
+   * @return Cloned copy
+   */
+  virtual Var_Grad clone() const {
+    Var_Grad vg(*this);
+    vg.var = std::make_shared<Tensor>(this->var->clone());
+    vg.grad = std::make_shared<Tensor>(this->grad->clone());
+
+    return vg;
+  };
 
 protected:
   /**
@@ -140,18 +158,19 @@ protected:
    *
    * @return Tensor Variable tensor
    */
-  Tensor &getVariableRef() { return var; }
+  Tensor &getVariableRef() { return *var.get(); }
 
   /**
    * @brief Get the Gradient tensor (by reference)
    *
    * @return Tensor Gradient tensor
    */
-  Tensor &getGradientRef() { return grad; }
+  Tensor &getGradientRef() { return *grad.get(); }
 
-  Tensor var;       /**< variable to be updated and used */
-  Tensor grad;      /**< gradient for the variable */
-  std::string name; /**< name of the parameter */
+  std::shared_ptr<Tensor> var;  /**< variable to be updated and used */
+  std::shared_ptr<Tensor> grad; /**< gradient for the variable */
+  bool trainable;               /**< if this variable is trainable */
+  std::string name;             /**< name of the parameter */
 };
 
 } // namespace nntrainer

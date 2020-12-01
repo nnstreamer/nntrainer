@@ -87,8 +87,8 @@ public:
     node.layer->setTrainable(true);
 
     for (unsigned int i = 0; i < num_weights; ++i) {
-      const nntrainer::Weight &w = node.layer->weightAt(i);
-      expected_weights.push_back(w);
+      nntrainer::Weight &w = node.layer->weightAt(i);
+      expected_weights.push_back(w.clone());
     }
 
     expected_output = nntrainer::Tensor(node.layer->getOutputDimension()[0]);

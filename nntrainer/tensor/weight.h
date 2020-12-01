@@ -101,7 +101,7 @@ public:
    *
    * @param rhs weight to construct from
    */
-  Weight(const Weight &rhs);
+  Weight(const Weight &rhs) = default;
 
   /**
    * @brief Move constructor for weight
@@ -116,7 +116,7 @@ public:
    * @param rhs copy from
    * @return Weight& Updated weight
    */
-  Weight &operator=(const Weight &rhs);
+  Weight &operator=(const Weight &rhs) = default;
 
   /**
    * @brief move assignment
@@ -125,6 +125,21 @@ public:
    * @return Weight& Updated weight
    */
   Weight &operator=(Weight &&rhs) = default;
+
+  /**
+   * @bried Clone the currnet object
+   *
+   * @return Cloned copy
+   */
+  Weight clone() {
+    Weight w(*this);
+    if (!var->uninitialized())
+      w.var = std::make_shared<Tensor>(this->var->clone());
+    if (!grad->uninitialized())
+      w.grad = std::make_shared<Tensor>(this->grad->clone());
+
+    return w;
+  }
 
 private:
   WeightInitializer initializer; /**< initializer for this variable */
