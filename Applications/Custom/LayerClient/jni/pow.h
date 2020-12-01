@@ -17,6 +17,8 @@
 
 /// @todo migrate these to API
 #include <layer_internal.h>
+#include <manager.h>
+
 #include <tensor.h>
 
 namespace custom {
@@ -53,7 +55,7 @@ public:
    *
    * @return int ML_ERROR_NONE if success
    */
-  int initialize();
+  int initialize(nntrainer::Manager &manager);
 
   /**
    * @brief nntrainer forwarding function

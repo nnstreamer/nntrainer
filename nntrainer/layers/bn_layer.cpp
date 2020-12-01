@@ -34,10 +34,10 @@ namespace nntrainer {
 
 const std::string BatchNormalizationLayer::type = "batch_normalization";
 
-enum class BNParams { mu, var, gamma, beta };
+enum BNParams { mu, var, gamma, beta };
 
 /// @todo add multiple axis support
-int BatchNormalizationLayer::initialize() {
+int BatchNormalizationLayer::initialize(Manager &manager) {
   int status = ML_ERROR_NONE;
 
   if (num_inputs != 1) {
@@ -60,17 +60,18 @@ int BatchNormalizationLayer::initialize() {
   }
 
   setNumWeights(4);
-  weightAt(0) =
-    std::move(Weight(dim, initializers[static_cast<int>(BNParams::mu)], false,
-                     "BN:moving_mean"));
+  weightAt(BNParams::mu) =
+    std::move(Weight(dim, initializers[BNParams::mu], false, "BN:moving_mean"));
   ///@todo shift var to std to save computation
-  weightAt(1) =
-    std::move(Weight(dim, initializers[static_cast<int>(BNParams::var)], false,
-                     "BN:moving_variance"));
-  weightAt(2) = std::move(Weight(
-    dim, initializers[static_cast<int>(BNParams::gamma)], true, "BN:gamma"));
-  weightAt(3) = std::move(Weight(
-    dim, initializers[static_cast<int>(BNParams::beta)], true, "BN:beta"));
+  weightAt(BNParams::var) = std::move(
+    Weight(dim, initializers[BNParams::var], false, "BN:moving_variance"));
+  weightAt(BNParams::gamma) =
+    std::move(Weight(dim, initializers[BNParams::gamma], true, "BN:gamma"));
+  weightAt(BNParams::beta) =
+    std::move(Weight(dim, initializers[BNParams::beta], true, "BN:beta"));
+
+  manager.trackWeights({weightAt(BNParams::mu), weightAt(BNParams::var),
+                        weightAt(BNParams::gamma), weightAt(BNParams::beta)});
 
   return status;
 }
@@ -87,25 +88,25 @@ void BatchNormalizationLayer::setProperty(const PropertyType type,
     break;
   case PropertyType::moving_mean_initializer:
     if (!value.empty()) {
-      initializers[static_cast<int>(BNParams::mu)] =
+      initializers[BNParams::mu] =
         (WeightInitializer)parseType(value, TOKEN_WEIGHT_INIT);
     }
     break;
   case PropertyType::moving_variance_initializer:
     if (!value.empty()) {
-      initializers[static_cast<int>(BNParams::var)] =
+      initializers[BNParams::var] =
         (WeightInitializer)parseType(value, TOKEN_WEIGHT_INIT);
     }
     break;
   case PropertyType::beta_initializer:
     if (!value.empty()) {
-      initializers[static_cast<int>(BNParams::beta)] =
+      initializers[BNParams::beta] =
         (WeightInitializer)parseType(value, TOKEN_WEIGHT_INIT);
     }
     break;
   case PropertyType::gamma_initializer:
     if (!value.empty()) {
-      initializers[static_cast<int>(BNParams::gamma)] =
+      initializers[BNParams::gamma] =
         (WeightInitializer)parseType(value, TOKEN_WEIGHT_INIT);
     }
     break;
@@ -122,10 +123,10 @@ void BatchNormalizationLayer::setProperty(const PropertyType type,
 }
 
 void BatchNormalizationLayer::forwarding(sharedConstTensors in) {
-  Tensor &mu = weightAt(static_cast<int>(BNParams::mu)).getVariableRef();
-  Tensor &var = weightAt(static_cast<int>(BNParams::var)).getVariableRef();
-  Tensor &gamma = weightAt(static_cast<int>(BNParams::gamma)).getVariableRef();
-  Tensor &beta = weightAt(static_cast<int>(BNParams::beta)).getVariableRef();
+  Tensor &mu = weightAt(BNParams::mu).getVariableRef();
+  Tensor &var = weightAt(BNParams::var).getVariableRef();
+  Tensor &gamma = weightAt(BNParams::gamma).getVariableRef();
+  Tensor &beta = weightAt(BNParams::beta).getVariableRef();
 
   Tensor &input_ = net_input[0]->var;
   Tensor &hidden_ = net_hidden[0]->var;
@@ -157,7 +158,7 @@ void BatchNormalizationLayer::forwarding(sharedConstTensors in) {
 
 void BatchNormalizationLayer::calcDerivative(sharedConstTensors derivative) {
 
-  Tensor &gamma = weightAt(static_cast<int>(BNParams::gamma)).getVariableRef();
+  Tensor &gamma = weightAt(BNParams::gamma).getVariableRef();
   Tensor &deriv = net_hidden[0]->var;
 
   int N = 1;
@@ -178,8 +179,8 @@ void BatchNormalizationLayer::calcDerivative(sharedConstTensors derivative) {
 
 void BatchNormalizationLayer::calcGradient(sharedConstTensors derivative) {
 
-  Tensor &dgamma = weightAt(static_cast<int>(BNParams::gamma)).getGradientRef();
-  Tensor &dbeta = weightAt(static_cast<int>(BNParams::beta)).getGradientRef();
+  Tensor &dgamma = weightAt(BNParams::gamma).getGradientRef();
+  Tensor &dbeta = weightAt(BNParams::beta).getGradientRef();
   Tensor &deriv = net_hidden[0]->var;
 
   dbeta = deriv.sum(axes_to_reduce);

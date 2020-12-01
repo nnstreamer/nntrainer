@@ -47,7 +47,7 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int initialize();
+  int initialize(Manager &manager);
 
   /**
    * @brief     Read Activation layer params. This is essentially noops for now.

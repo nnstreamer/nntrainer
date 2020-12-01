@@ -22,7 +22,7 @@ namespace nntrainer {
 
 const std::string AdditionLayer::type = "addition";
 
-int AdditionLayer::initialize() {
+int AdditionLayer::initialize(Manager &manager) {
   int status = ML_ERROR_NONE;
   if (num_inputs == 0) {
     ml_loge("Error: number of inputs are not initialized");

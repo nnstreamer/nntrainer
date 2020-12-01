@@ -89,7 +89,7 @@ int PowLayer::setProperty(std::vector<std::string> values) {
   return nntrainer::Layer::setProperty(unhandled_values);
 }
 
-int PowLayer::initialize() {
+int PowLayer::initialize(nntrainer::Manager &manager) {
   // setting output dimension from input dimension
   output_dim[0] = input_dim[0];
 

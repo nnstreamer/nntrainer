@@ -28,6 +28,7 @@
 #include <vector>
 
 #include <layer.h>
+#include <manager.h>
 #include <optimizer_internal.h>
 #include <tensor.h>
 #include <tensor_dim.h>
@@ -476,6 +477,8 @@ protected:
                                 use setNumWeights() to avoid
                                 setting parameters twice */
 
+  std::vector<std::shared_ptr<Weight>> weights;
+
   /**
    * @brief   Number of inputs this layer will requries/will operate on
    */
@@ -578,7 +581,7 @@ private:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  virtual int initialize() = 0;
+  virtual int initialize(Manager &manager) = 0;
 
   /**
    * @brief Set the input dimension

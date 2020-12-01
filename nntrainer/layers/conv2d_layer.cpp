@@ -29,7 +29,7 @@ const std::string Conv2DLayer::type = "conv2d";
 
 enum ConvParams { weight, bias };
 
-int Conv2DLayer::initialize() {
+int Conv2DLayer::initialize(Manager &manager) {
   int status = ML_ERROR_NONE;
 
   if (input_dim.size() != 1 || output_dim.size() != 1) {
@@ -49,12 +49,14 @@ int Conv2DLayer::initialize() {
   TensorDim dim =
     TensorDim(filter_size, in_dim.channel(), kernel_size[0], kernel_size[1]);
   TensorDim bias_dim = TensorDim(1, filter_size, 1, 1);
-  setNumWeights(2);
 
+  setNumWeights(2);
   weightAt(ConvParams::weight) =
     Weight(dim, weight_initializer, true, kernelPrefix);
   weightAt(ConvParams::bias) =
     Weight(bias_dim, bias_initializer, true, biasPrefix);
+  manager.trackWeights(
+    {weightAt(ConvParams::weight), weightAt(ConvParams::bias)});
 
   // this output_dim should be the same with dimension of hidden
   out_dim.batch(in_dim.batch());

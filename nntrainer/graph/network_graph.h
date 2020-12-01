@@ -16,12 +16,13 @@
 #ifdef __cplusplus
 
 #include <iostream>
-#include <layer_internal.h>
 #include <list>
-#include <loss_layer.h>
 #include <memory>
 #include <stack>
 #include <vector>
+
+#include <layer_internal.h>
+#include <loss_layer.h>
 
 namespace nntrainer {
 

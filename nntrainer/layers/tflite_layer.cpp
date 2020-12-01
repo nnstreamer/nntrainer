@@ -41,7 +41,7 @@ void TfLiteLayer::setDimensions(const std::vector<int> &tensor_idx_list,
   }
 }
 
-int TfLiteLayer::initialize() {
+int TfLiteLayer::initialize(Manager &manager) {
   tflite::ops::builtin::BuiltinOpResolver resolver;
 
   model = tflite::FlatBufferModel::BuildFromFile(modelfile.c_str());

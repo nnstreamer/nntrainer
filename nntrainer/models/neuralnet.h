@@ -38,6 +38,7 @@
 #include <input_layer.h>
 #include <layer_internal.h>
 #include <loss_layer.h>
+#include <manager.h>
 #include <ml-api-common.h>
 #include <network_graph.h>
 #include <optimizer_internal.h>
@@ -381,6 +382,8 @@ private:
   NetType net_type; /**< Network Type */
 
   GraphType layers; /**< vector for store layer pointers */
+
+  Manager manager; /**< nntrainer manager */
 
   std::shared_ptr<DataBuffer> data_buffer; /**< Data Buffer to get Input */
 

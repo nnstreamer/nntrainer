@@ -35,7 +35,7 @@ namespace nntrainer {
 
 const std::string LossLayer::type = "loss";
 
-int LossLayer::initialize() {
+int LossLayer::initialize(Manager &manager) {
   int status = ML_ERROR_NONE;
 
   output_dim = input_dim;

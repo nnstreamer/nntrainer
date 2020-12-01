@@ -68,7 +68,7 @@ void InputLayer::calcDerivative(sharedConstTensors in) {
     "calcDerivative for input layer is not supported");
 }
 
-int InputLayer::initialize() {
+int InputLayer::initialize(Manager &manager) {
   int status = ML_ERROR_NONE;
   output_dim = input_dim;
 

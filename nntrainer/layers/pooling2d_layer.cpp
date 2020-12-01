@@ -26,7 +26,7 @@ namespace nntrainer {
 
 const std::string Pooling2DLayer::type = "pooling2d";
 
-int Pooling2DLayer::initialize() {
+int Pooling2DLayer::initialize(Manager &manager) {
   int status = ML_ERROR_NONE;
 
   if (input_dim.size() != 1 || output_dim.size() != 1) {

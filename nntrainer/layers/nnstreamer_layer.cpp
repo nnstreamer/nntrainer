@@ -93,7 +93,7 @@ int NNStreamerLayer::finalizeError(int status) {
   return status;
 }
 
-int NNStreamerLayer::initialize() {
+int NNStreamerLayer::initialize(Manager &manager) {
   int status = ML_ERROR_NONE;
   TensorDim in_dim;
 

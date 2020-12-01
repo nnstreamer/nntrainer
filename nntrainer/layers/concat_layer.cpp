@@ -23,7 +23,7 @@ namespace nntrainer {
 
 const std::string ConcatLayer::type = "concat";
 
-int ConcatLayer::initialize() {
+int ConcatLayer::initialize(Manager &manager) {
   int status = ML_ERROR_NONE;
   unsigned int channel = 0;
 

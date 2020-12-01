@@ -216,7 +216,7 @@ int NeuralNetwork::initialize() {
       }
     }
 
-    status = l.initialize();
+    status = l.initialize(manager);
     NN_RETURN_STATUS();
 
     if (istrequal(cur_type, BatchNormalizationLayer::type) ||
