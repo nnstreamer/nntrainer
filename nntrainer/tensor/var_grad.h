@@ -27,8 +27,9 @@ class Var_Grad {
 public:
   /**
    * @brief Var_Grad default constructor
+   * @note Default variable is not trainable as gradient is 0 dim tensor
    */
-  Var_Grad() : trainable(false) {}
+  Var_Grad() = default;
 
   /**
    * @brief Construct a new Var_Grad object
@@ -50,7 +51,6 @@ public:
     using std::swap;
 
     swap(lhs.var, rhs.var);
-    swap(lhs.trainable, rhs.trainable);
     swap(lhs.grad, rhs.grad);
     swap(lhs.name, rhs.name);
   }
@@ -98,7 +98,13 @@ public:
    * @return true if trainable
    * @return false is not trainable
    */
-  bool getTrainable() { return trainable; }
+  bool getTrainable() const { return !grad.uninitialized(); }
+
+  /**
+   * @brief set if the Var_Grad is trainable
+   * @param train true if trainable, else false
+   */
+  void setTrainable(bool train);
 
   /**
    * @brief Get the name of the Var_Grad
@@ -145,7 +151,6 @@ protected:
 
   Tensor var;       /**< variable to be updated and used */
   Tensor grad;      /**< gradient for the variable */
-  bool trainable;   /**< if this variable is trainable */
   std::string name; /**< name of the parameter */
 };
 
