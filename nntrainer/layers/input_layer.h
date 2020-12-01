@@ -87,7 +87,7 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int initialize();
+  int initialize(Manager &manager);
 
   /**
    * @copydoc Layer::getType()

@@ -33,9 +33,9 @@ namespace nntrainer {
 
 const std::string FullyConnectedLayer::type = "fully_connected";
 
-enum class FCParams { weight, bias };
+enum FCParams { weight, bias };
 
-int FullyConnectedLayer::initialize() {
+int FullyConnectedLayer::initialize(Manager &manager) {
   int status = ML_ERROR_NONE;
 
   if (num_inputs != 1) {
@@ -53,10 +53,11 @@ int FullyConnectedLayer::initialize() {
   dim.batch(1);
 
   setNumWeights(2);
-  weightAt(static_cast<int>(FCParams::weight)) =
-    std::move(Weight(dim, weight_initializer, true, "FC:weight"));
-  weightAt(static_cast<int>(FCParams::bias)) =
-    std::move(Weight(bias_dim, bias_initializer, true, "FC:bias"));
+  weightAt(FCParams::weight) =
+    Weight(dim, weight_initializer, true, "FC:weight");
+  weightAt(FCParams::bias) =
+    Weight(bias_dim, bias_initializer, true, "FC::bias");
+  manager.trackWeights({weightAt(FCParams::weight), weightAt(FCParams::bias)});
 
   return status;
 }

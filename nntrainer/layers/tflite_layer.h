@@ -64,7 +64,7 @@ public:
   /**
    * @copydoc Layer::initialize()
    */
-  int initialize();
+  int initialize(Manager &manager);
 
   /**
    * @copydoc Layer::setTrainable(bool train)

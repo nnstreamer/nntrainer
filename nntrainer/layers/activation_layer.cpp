@@ -39,7 +39,7 @@ const std::string ActivationLayer::type = "activation";
  * @retval #ML_ERROR_NONE Successful.
  * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
  */
-int ActivationLayer::initialize() {
+int ActivationLayer::initialize(Manager &manager) {
 
   output_dim = input_dim;
 

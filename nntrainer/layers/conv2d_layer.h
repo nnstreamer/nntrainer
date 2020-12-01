@@ -16,6 +16,7 @@
 #ifdef __cplusplus
 
 #include <layer_internal.h>
+#include <manager.h>
 #include <tensor.h>
 
 namespace nntrainer {
@@ -68,7 +69,7 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int initialize();
+  int initialize(Manager &manager);
 
   /**
    * @copydoc Layer::forwarding(sharedConstTensors in)
