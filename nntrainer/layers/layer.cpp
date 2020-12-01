@@ -39,7 +39,7 @@ void Layer::setActivation(ActivationType acti) {
 
 int Layer::setOptimizer(std::shared_ptr<Optimizer> opt) {
   this->opt = createOptimizer(opt->getType(), *opt);
-  return this->opt->initialize(weight_list, num_weights, true);
+  return this->opt->initialize(weights, true);
 }
 
 int Layer::checkValidation() {
@@ -78,10 +78,8 @@ std::vector<Tensor> Layer::getDerivatives() {
 }
 
 void Layer::copy(std::shared_ptr<Layer> l) {
-  setNumWeights(l->num_weights);
-  for (unsigned int i = 0; i < num_weights; ++i) {
-    weightAt(i) = l->weightAt(i);
-  }
+  for(auto const &w : weights)
+    weights.push_back(w.clone());
 
   // TODO: fix this #630
   this->opt = l->opt;
@@ -149,24 +147,24 @@ sharedConstTensors Layer::backwarding_with_val(int iteration,
 }
 
 void Layer::read(std::ifstream &file) {
-  for (unsigned int i = 0; i < num_weights; ++i) {
-    weightAt(i).getVariableRef().read(file);
+  for (auto &weight : weights) {
+    weight.getVariableRef().read(file);
   }
   if (opt)
     opt->read(file);
 }
 
 void Layer::save(std::ofstream &file) {
-  for (unsigned int i = 0; i < num_weights; ++i) {
-    weightAt(i).getVariableRef().save(file);
+  for (auto &weight : weights) {
+    weight.getVariableRef().save(file);
   }
   if (opt)
     opt->save(file);
 }
 
 void Layer::applyGradient(unsigned int iteration) {
-  if (trainable && num_weights > 0) {
-    opt->apply_gradients(weight_list, num_weights, iteration);
+  if (trainable && !weights.empty()) {
+    opt->apply_gradients(weights, iteration);
   }
 }
 
@@ -326,7 +324,7 @@ void Layer::printIfValid(std::ostream &out, const PropertyType type,
 void Layer::printShapeInfo(std::ostream &out) {
   for (unsigned int idx = 0; idx < num_inputs; ++idx) {
     out << "input " << input_dim[idx];
-    for (unsigned int i = 0; i < num_weights; i++)
+    for (unsigned int i = 0; i < weights.size(); i++)
       out << "inner" << i << " " << weightAt(i).getVariable().getDim();
   }
   for (unsigned int idx = 0; idx < num_outputs; ++idx) {
@@ -403,9 +401,9 @@ void Layer::print(std::ostream &out, unsigned int flags) {
 
   if (flags & PRINT_WEIGHTS) {
     out << "======weights: " << std::endl;
-    for (unsigned int i = 0; i < num_weights; ++i) {
-      out << '[' << weightAt(i).getName() << ']' << std::endl;
-      out << weightAt(i).var;
+    for (auto const &weight : weights) {
+      out << '[' << weight.getName() << ']' << std::endl;
+      out << weight.getVariable();
     }
   }
 

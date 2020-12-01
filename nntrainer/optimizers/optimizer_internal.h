@@ -105,11 +105,9 @@ public:
   /**
    * @brief     apply gradient to weight_list
    * @param[in] params Weight list
-   * @param[in] num_weights size of the array
    * @param[in] iteration nth epoch number
    */
-  void apply_gradients(std::shared_ptr<Weight> params, unsigned int num_weights,
-                       int iteration);
+  void apply_gradients(std::vector<Weight> &params, int iteration);
 
   /**
    * @brief     Read Training optimizer paramters from file
@@ -165,8 +163,7 @@ private:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  virtual int initialize(std::shared_ptr<Weight> params,
-                         unsigned int num_weights, bool setTensor);
+  virtual int initialize(std::vector<Weight> &params, bool setTensor);
 
   /**
    * @brief     apply gradient to the given weight
