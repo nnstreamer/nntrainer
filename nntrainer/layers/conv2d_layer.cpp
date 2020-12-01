@@ -128,9 +128,26 @@ void Conv2DLayer::forwarding(sharedConstTensors in) {
     Tensor out = hidden_.getBatchSlice(b, 1);
     Tensor inSub = input_.getBatchSlice(b, 1);
 
-    status =
-      conv2d_gemm(filter_kernel.getData(), filter_kernel.getDim(), inSub,
-                  out_dim, stride, padding, out.getData(), out.length(), true);
+    std::vector<float> in_col;
+
+    in_col.resize(filter_kernel.getDim().getFeatureLen() * out_dim.width() *
+                  out_dim.height());
+
+    Tensor in_padded;
+    Tensor &in_ref = in_padded;
+    if (padding[0] != 0 && padding[1] != 0) {
+      zero_pad(0, inSub, padding.data(), in_padded);
+    } else {
+      in_ref = inSub;
+    }
+
+    status = im2col(in_padded, filter_kernel.getDim(), in_col.data(), out_dim,
+                    stride, true);
+    if (status != ML_ERROR_NONE)
+      throw std::runtime_error("Forwarding Convolution failed.");
+
+    status = conv2d_gemm(filter_kernel.getData(), filter_kernel.getDim(),
+                         in_col.data(), out_dim, out.getData(), true);
     if (status != ML_ERROR_NONE)
       throw std::runtime_error("Forwarding Convolution failed.");
   }
@@ -161,7 +178,8 @@ void Conv2DLayer::calcDerivative(sharedConstTensors derivatives) {
    *   . Width  : filter_size * kernel_size[0] * kernel_size[1]
    *
    *                                kernel
-   *                             f0      f1          fn
+   *                             f0      fn-1          fn
+   *                            k..0     k..0         k..0
    *                          +---|---|---|---|...|---|---+
    *                          |---|---|---|---|...|---|---|
    * [filter.channel(height)] |---|---|---|---|...|---|---|
@@ -196,20 +214,11 @@ void Conv2DLayer::calcDerivative(sharedConstTensors derivatives) {
    *           *(input_dim.width() + padding[1]*2) (width)]
    */
   using uint = unsigned int;
-  bool no_padding = padding[0] == 0 && padding[1] == 0;
 
   if (net_input[0]->var.uninitialized())
     net_input[0]->var = Tensor(input.getDim());
 
-  Tensor ret;
-  if (no_padding)
-    ret = net_input[0]->var;
-  else
-    ret =
-      Tensor(in_dim.batch(), in_dim.channel(), in_dim.height() + padding[0] * 2,
-             in_dim.width() + padding[1] * 2);
-
-  TensorDim kdim(ret.channel(), filter_size, kernel_size[0], kernel_size[1]);
+  TensorDim kdim(in_dim.channel(), filter_size, kernel_size[0], kernel_size[1]);
 
   uint kernel_total_size = kernel_size[0] * kernel_size[1];
 
@@ -232,22 +241,34 @@ void Conv2DLayer::calcDerivative(sharedConstTensors derivatives) {
     }
   }
 
-  TensorDim input_dim_padded = TensorDim(ret.getDim());
-  input_dim_padded.batch(1);
+  Tensor ret;
+  ret = Tensor(1, in_dim.channel(), in_dim.height() + padding[0] * 2,
+               in_dim.width() + padding[1] * 2);
+
+  TensorDim input_dim_padded = ret.getDim();
 
   for (unsigned int b = 0; b < in_dim.batch(); ++b) {
     Tensor inSub = derivative.getBatchSlice(b, 1);
+    std::vector<float> in_col;
+    in_col.resize(kdim.getFeatureLen() * input_dim_padded.width() *
+                  input_dim_padded.height());
+
+    // There is always padding for return derivative calculation.
+    Tensor in_padded;
+    zero_pad(0, inSub, same_pad.data(), in_padded);
 
     status =
-      conv2d_gemm(imKernel_raw, kdim, inSub, input_dim_padded, stride, same_pad,
-                  ret.getAddress(b * ret.getDim().getFeatureLen()),
-                  input_dim_padded.getFeatureLen(), true);
+      im2col(in_padded, kdim, in_col.data(), input_dim_padded, stride, true);
+    if (status != ML_ERROR_NONE)
+      throw std::runtime_error("Forwarding Convolution failed.");
+
+    status = conv2d_gemm(imKernel_raw, kdim, in_col.data(), input_dim_padded,
+                         ret.getData(), true);
     if (status != ML_ERROR_NONE)
       throw std::runtime_error("calcDerivative Convolution failed.");
-  }
 
-  if (!no_padding)
-    strip_pad(ret, padding.data(), net_input[0]->var);
+    strip_pad(ret, padding.data(), net_input[0]->var, b);
+  }
 }
 
 void Conv2DLayer::calcGradient(sharedConstTensors derivatives) {
@@ -297,17 +318,34 @@ void Conv2DLayer::calcGradient(sharedConstTensors derivatives) {
    */
 
   int status = ML_ERROR_NONE;
+  TensorDim kdim =
+    TensorDim(1, derivative.channel(), derivative.height(), derivative.width());
+
+  TensorDim out_dim = TensorDim(
+    1, 1, filter_size, kernel_size[0] * kernel_size[1] * in_dim.channel());
+
   for (unsigned int b = 0; b < in_dim.batch(); ++b) {
     Tensor inSub = input_.getBatchSlice(b, 1);
 
+    std::vector<float> in_col;
+    in_col.resize(kdim.width() * kdim.height() * out_dim.width());
+
+    Tensor in_padded;
+    Tensor &in_ref = in_padded;
+    if (padding[0] != 0 && padding[1] != 0) {
+      zero_pad(0, inSub, padding.data(), in_padded);
+    } else {
+      in_ref = inSub;
+    }
+
+    status = im2col(in_padded, kdim, in_col.data(), out_dim, stride, false);
+    if (status != ML_ERROR_NONE)
+      throw std::runtime_error("Forwarding Convolution failed.");
+
     status = conv2d_gemm(
-      derivative.getAddress(b * derivative.getDim().getFeatureLen()),
-      TensorDim(1, derivative.channel(), derivative.height(),
-                derivative.width()),
-      inSub,
-      TensorDim(1, 1, filter_size,
-                kernel_size[0] * kernel_size[1] * in_dim.channel()),
-      stride, padding, delK.getData(), delK.length(), false, 1.0);
+      derivative.getAddress(b * derivative.getDim().getFeatureLen()), kdim,
+      in_col.data(), out_dim, delK.getData(), false, 1.0);
+
     if (status != ML_ERROR_NONE)
       throw std::runtime_error("Backwarding Convolution failed.");
   }
@@ -412,29 +450,13 @@ void Conv2DLayer::setProperty(const PropertyType type,
   }
 }
 
-int Conv2DLayer::conv2d_gemm(
-  const float *mkernel, TensorDim kdim, Tensor const &in, TensorDim outdim,
-  const std::array<unsigned int, CONV2D_DIM> &mstride,
-  const std::array<unsigned int, CONV2D_DIM> &pad, float *out,
-  unsigned int osize, bool channel_mode, float beta_dgemm) {
+int Conv2DLayer::conv2d_gemm(const float *mkernel, TensorDim kdim, float *mdata,
+                             TensorDim outdim, float *out, bool channel_mode,
+                             float beta_dgemm) {
   int status = ML_ERROR_NONE;
-  std::vector<float> in_col;
-
-  if (channel_mode) {
-    in_col.resize(kdim.getFeatureLen() * outdim.width() * outdim.height());
-  } else {
-    in_col.resize(kdim.width() * kdim.height() * outdim.width());
-  }
-
-  Tensor in_padded = zero_pad(0, in, pad.data());
-  status =
-    im2col(in_padded, kdim, in_col.data(), outdim, mstride, channel_mode);
-  if (status != ML_ERROR_NONE)
-    throw std::runtime_error("Forwarding Convolution failed.");
 
   float alpha_dgemm = 1.0f;
   const float *data = mkernel;
-  const float *mdata = in_col.data();
   float *rdata = out;
 
   unsigned int kh, kw, w;

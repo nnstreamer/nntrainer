@@ -151,19 +151,13 @@ private:
    * @param[in] kdim kernel data demension
    * @param[in] in input tensor
    * @param[in] outdim output tensor dimension
-   * @param[in] stride stride value : x, y direction
-   * @param[in] padd pad value : x, y direction
    * @param[out] out output data
-   * @param[in] osize output size
    * @param[in] channel_mode loop with channel first
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int conv2d_gemm(const float *mkernel, TensorDim kdim, Tensor const &in,
-                  TensorDim outdim,
-                  const std::array<unsigned int, CONV2D_DIM> &stride,
-                  const std::array<unsigned int, CONV2D_DIM> &pad, float *out,
-                  unsigned int osize, bool channel_mode,
+  int conv2d_gemm(const float *mkernel, TensorDim kdim, float *in,
+                  TensorDim outdim, float *out, bool channel_mode,
                   float beta_dgemm = 0.0f);
 
   /**
