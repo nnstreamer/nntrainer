@@ -78,7 +78,8 @@ void Pooling2DLayer::forwarding(sharedConstTensors in) {
   }
 
   for (unsigned int b = 0; b < in_dim.batch(); ++b) {
-    Tensor in_padded = zero_pad(b, input_, padding.data());
+    Tensor in_padded;
+    zero_pad(b, input_, padding.data(), in_padded);
     Tensor result = hidden_.getBatchSlice(b, 1);
     result = pooling2d(b, in_padded, result);
   }

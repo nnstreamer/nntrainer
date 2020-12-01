@@ -64,18 +64,20 @@ float exp_util(float x);
  * @param[in] batch batch index
  * @param[in] x input
  * @param[in] padding 2D padding size
- * @retVal Tensor output tensor with batch size is 1 for batch index
+ * @param[out] padded output
  */
-Tensor zero_pad(int batch, Tensor const &in, unsigned int const *padding);
+void zero_pad(int batch, Tensor const &in, unsigned int const *padding,
+              Tensor &output);
 
 /**
  * @brief     strip padding
  * @param[in] x input
  * @param[in] padding 2D padding size
  * @param[in] output output tensor
- * @retVal Tensor output tensor without padding
+ * @param[in] batch batch index
  */
-Tensor strip_pad(Tensor const &in, unsigned int const *padding, Tensor &output);
+void strip_pad(Tensor const &in, unsigned int const *padding, Tensor &output,
+               unsigned int batch);
 
 /**
  * @brief     rotate 180 dgree

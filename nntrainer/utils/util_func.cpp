@@ -49,7 +49,8 @@ float exp_util(float x) { return exp(x); }
 
 // This is 2D zero pad
 // TODO : Optimize for multi dimention padding
-Tensor zero_pad(int batch, Tensor const &in, unsigned int const *padding) {
+void zero_pad(int batch, Tensor const &in, unsigned int const *padding,
+              Tensor &output) {
   unsigned int c = in.channel();
   unsigned int h = in.height();
   unsigned int w = in.width();
@@ -60,7 +61,7 @@ Tensor zero_pad(int batch, Tensor const &in, unsigned int const *padding) {
   unsigned int height_p_h = h + padding[0];
   unsigned int width_p_h = w + padding[1];
 
-  Tensor output(1, c, height_p, width_p);
+  output = Tensor(1, c, height_p, width_p);
   output.setZero();
 
   for (unsigned int j = 0; j < c; ++j) {
@@ -87,30 +88,20 @@ Tensor zero_pad(int batch, Tensor const &in, unsigned int const *padding) {
       }
     }
   }
-
-  return output;
 }
 
 // This is strip pad and return original tensor
-Tensor strip_pad(Tensor const &in, unsigned int const *padding,
-                 Tensor &output) {
-  if (output.uninitialized()) {
-    output = Tensor(in.batch(), in.channel(), in.height() - padding[0] * 2,
-                    in.width() - padding[1] * 2);
-  }
-  output.setZero();
+void strip_pad(Tensor const &in, unsigned int const *padding, Tensor &output,
+               unsigned int batch) {
 
-  for (unsigned int i = 0; i < in.batch(); ++i) {
-    for (unsigned int j = 0; j < in.channel(); ++j) {
-      for (unsigned int k = 0; k < output.height(); ++k) {
-        for (unsigned int l = 0; l < output.width(); ++l) {
-          output.setValue(i, j, k, l,
-                          in.getValue(i, j, k + padding[0], l + padding[1]));
-        }
+  for (unsigned int j = 0; j < in.channel(); ++j) {
+    for (unsigned int k = 0; k < output.height(); ++k) {
+      for (unsigned int l = 0; l < output.width(); ++l) {
+        output.setValue(batch, j, k, l,
+                        in.getValue(0, j, k + padding[0], l + padding[1]));
       }
     }
   }
-  return output;
 }
 
 Tensor rotate_180(Tensor in) {
