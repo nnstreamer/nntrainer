@@ -16,11 +16,9 @@
 
 namespace nntrainer {
 
-Var_Grad::Var_Grad(const Var_Grad &rhs) :
-  trainable(rhs.trainable),
-  name(rhs.name) {
+Var_Grad::Var_Grad(const Var_Grad &rhs) : name(rhs.name) {
   var = rhs.var.clone();
-  if (rhs.trainable)
+  if (rhs.getTrainable())
     grad = rhs.grad.clone();
 }
 
@@ -31,15 +29,25 @@ Var_Grad &Var_Grad::operator=(const Var_Grad &rhs) {
 }
 
 Var_Grad::Var_Grad(const TensorDim &dim, bool train, const std::string &name) :
-  trainable(train),
   name(name) {
   var = Tensor(dim);
 
   grad = Tensor();
-  if (trainable) {
+  if (train) {
     grad = Tensor(dim);
   }
   resetGradient();
+}
+
+void Var_Grad::setTrainable(bool train) {
+  if (train == getTrainable())
+    return;
+
+  if (train) {
+    grad = Tensor(var.getDim());
+  } else {
+    grad = Tensor();
+  }
 }
 
 } // namespace nntrainer
