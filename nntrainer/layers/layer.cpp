@@ -327,7 +327,7 @@ void Layer::printShapeInfo(std::ostream &out) {
   for (unsigned int idx = 0; idx < num_inputs; ++idx) {
     out << "input " << input_dim[idx];
     for (unsigned int i = 0; i < num_weights; i++)
-      out << "inner" << i << " " << weightAt(i).var.getDim();
+      out << "inner" << i << " " << weightAt(i).getVariable().getDim();
   }
   for (unsigned int idx = 0; idx < num_outputs; ++idx) {
     out << "output " << output_dim[idx];

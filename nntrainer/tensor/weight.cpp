@@ -16,15 +16,6 @@
 
 namespace nntrainer {
 
-Weight::Weight(const Weight &rhs) :
-  Var_Grad(static_cast<const Var_Grad &>(rhs)),
-  initializer(rhs.initializer) {}
-
-Weight &Weight::operator=(const Weight &rhs) {
-  Weight temp(rhs);
-  swap(temp, *this);
-  return *this;
-}
 Weight::Weight(const TensorDim &dim, const WeightInitializer init, bool train,
                std::string name) :
   Var_Grad(dim, train, name),
@@ -36,35 +27,37 @@ Weight::Weight(const TensorDim &dim, const WeightInitializer init, bool train,
 }
 
 void Weight::initializeWeight() {
-  const TensorDim dim = var.getDim();
+  Tensor &var_ref = getVariableRef();
+  const TensorDim dim = var_ref.getDim();
 
   switch (initializer) {
   case WeightInitializer::WEIGHT_ZEROS:
-    var.setZero();
+    var_ref.setZero();
     break;
   case WeightInitializer::WEIGHT_ONES:
-    var.setValue(1.0f);
+    var_ref.setValue(1.0f);
     break;
   case WeightInitializer::WEIGHT_LECUN_NORMAL:
-    var.setRandNormal(0.0f, sqrtFloat(1.0f / dim.height()));
+    var_ref.setRandNormal(0.0f, sqrtFloat(1.0f / dim.height()));
     break;
   case WeightInitializer::WEIGHT_XAVIER_NORMAL:
-    var.setRandNormal(0.0f, sqrtFloat(2.0f / (dim.width() + dim.height())));
+    var_ref.setRandNormal(0.0f, sqrtFloat(2.0f / (dim.width() + dim.height())));
     break;
   case WeightInitializer::WEIGHT_HE_NORMAL:
-    var.setRandNormal(0.0f, sqrtFloat(2.0f / (dim.height())));
+    var_ref.setRandNormal(0.0f, sqrtFloat(2.0f / (dim.height())));
     break;
   case WeightInitializer::WEIGHT_LECUN_UNIFORM:
-    var.setRandUniform(-1.0f * sqrtFloat(1.0f / dim.height()),
-                       sqrtFloat(1.0f / dim.height()));
+    var_ref.setRandUniform(-1.0f * sqrtFloat(1.0f / dim.height()),
+                           sqrtFloat(1.0f / dim.height()));
     break;
   case WeightInitializer::WEIGHT_XAVIER_UNIFORM:
-    var.setRandUniform(-1.0f * sqrtFloat(6.0f / (dim.height() + dim.width())),
-                       sqrtFloat(6.0 / (dim.height() + dim.width())));
+    var_ref.setRandUniform(-1.0f *
+                             sqrtFloat(6.0f / (dim.height() + dim.width())),
+                           sqrtFloat(6.0 / (dim.height() + dim.width())));
     break;
   case WeightInitializer::WEIGHT_HE_UNIFORM:
-    var.setRandUniform(-1.0f * sqrtFloat(6.0f / (dim.height())),
-                       sqrtFloat(6.0 / (dim.height())));
+    var_ref.setRandUniform(-1.0f * sqrtFloat(6.0f / (dim.height())),
+                           sqrtFloat(6.0 / (dim.height())));
     break;
   default:
     break;
