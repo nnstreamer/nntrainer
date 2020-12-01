@@ -34,8 +34,7 @@
 
 namespace nntrainer {
 
-int Optimizer::initialize(std::shared_ptr<Weight> weight_list,
-                          unsigned int num_weights, bool set_tensor) {
+int Optimizer::initialize(std::vector<Weight> &weight_list, bool set_tensor) {
   return ML_ERROR_NONE;
 }
 
@@ -49,15 +48,12 @@ double Optimizer::getLearningRate(int iteration) {
   return ll;
 }
 
-void Optimizer::apply_gradients(std::shared_ptr<Weight> weight_list,
-                                unsigned int num_weights, int iteration) {
+void Optimizer::apply_gradients(std::vector<Weight> &weight_list, int iteration) {
 
   double ll = getLearningRate(iteration);
 
   int idx = 0;
-  for (unsigned int i = 0; i < num_weights; ++i) {
-    Weight &weight = weight_list.get()[i];
-
+  for (auto &weight : weight_list) {
     if (!weight.getTrainable())
       continue;
 

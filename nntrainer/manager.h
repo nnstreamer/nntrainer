@@ -50,7 +50,7 @@ public:
    *
    * @param ws  Weights to be tracked
    */
-  void trackWeights(std::vector<Weight> ws) {
+  void trackWeights(std::vector<Weight> &ws) {
     weights.reserve(weights.size() + ws.size());
     weights.insert(weights.end(), ws.begin(), ws.end());
   }

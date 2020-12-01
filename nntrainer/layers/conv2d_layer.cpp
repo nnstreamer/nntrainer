@@ -50,13 +50,14 @@ int Conv2DLayer::initialize(Manager &manager) {
     TensorDim(filter_size, in_dim.channel(), kernel_size[0], kernel_size[1]);
   TensorDim bias_dim = TensorDim(1, filter_size, 1, 1);
 
-  setNumWeights(2);
-  weightAt(ConvParams::weight) =
-    Weight(dim, weight_initializer, true, kernelPrefix);
-  weightAt(ConvParams::bias) =
-    Weight(bias_dim, bias_initializer, true, biasPrefix);
-  manager.trackWeights(
-    {weightAt(ConvParams::weight), weightAt(ConvParams::bias)});
+  if (weights.empty()) {
+    weights.reserve(2);
+    weights.push_back(createWeight(manager, dim, weight_initializer, true, kernelPrefix));
+    weights.push_back(createWeight(manager, bias_dim, bias_initializer, true, biasPrefix));
+  } else {
+    for (auto &weight : weights)
+      weight.reset(weight.getVariable().getDim(), weight_initializer, true);
+  }
 
   // this output_dim should be the same with dimension of hidden
   out_dim.batch(in_dim.batch());

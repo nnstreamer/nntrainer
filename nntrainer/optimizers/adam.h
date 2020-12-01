@@ -59,11 +59,9 @@ public:
   void setProperty(const PropertyType type, const std::string &value = "");
 
   /**
-   * @copydoc Optimizer::initialize(std::shared_ptr<Weight> params, unsigned int
-   num_weights, bool setTensor)
+   * @copydoc Optimizer::initialize(std::vector<Weight> params, bool setTensor)
    */
-  int initialize(std::shared_ptr<Weight> params, unsigned int num_weights,
-                 bool setTensor);
+  int initialize(std::vector<Weight> &params, bool setTensor);
 
   /**
    * @copydoc read(std::ifstream &file)

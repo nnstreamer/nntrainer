@@ -90,7 +90,6 @@ public:
     bias_initializer(bias_initializer_),
     flatten(flatten_),
     trainable(trainable_),
-    num_weights(0),
     num_inputs(1),
     num_outputs(1) {
     input_dim.resize(1);
@@ -257,7 +256,7 @@ public:
    * @brief     get all weights of the layer
    * @retval    vector of all params
    */
-  std::shared_ptr<Weight> getWeights() { return weight_list; }
+  std::vector<Weight> getWeights() { return weights; }
 
   /**
    * @brief     get if the output of this layer must be flatten
@@ -289,11 +288,7 @@ public:
    * @exception std::out_of_range for index out of range
    */
   Weight &weightAt(const unsigned int position) {
-    if (position >= num_weights) {
-      throw std::out_of_range("index out of range");
-    }
-
-    return weight_list.get()[position];
+    return weights[position];
   }
 
   /**
@@ -301,7 +296,7 @@ public:
    *
    * @return unsigned int number of weights
    */
-  unsigned int getNumWeights() { return num_weights; }
+  unsigned int getNumWeights() { return weights.size(); }
 
   /**
    * @brief Set the batch for the layer
@@ -448,36 +443,10 @@ protected:
   bool trainable;
 
   /**
-   * @brief     reserve memory for @a weight_list and set @a num_weights
-   * @exception std::invalid_argument when num_weights is already set and
-   * shouldn't be changed again.
+   * @brief     weight_list in this layer. This contains all weights of the
+   * layer.
    */
-  void setNumWeights(unsigned int psize) {
-    if (psize == num_weights)
-      return;
-
-    if (num_weights > 0) {
-      throw std::invalid_argument("param size can't be set once it is set");
-    }
-
-    num_weights = psize;
-    weight_list = std::shared_ptr<Weight>(new Weight[num_weights],
-                                          std::default_delete<Weight[]>());
-  }
-
-  /**
-   * @brief     weight_list in this layer. This contains trainable weights of
-   * layers.
-   */
-  std::shared_ptr<Weight> weight_list;
-
-  unsigned int num_weights; /**< length of weights.
-                                This shouldn't be changed
-                                after initiation
-                                use setNumWeights() to avoid
-                                setting parameters twice */
-
-  std::vector<std::shared_ptr<Weight>> weights;
+  std::vector<Weight> weights;
 
   /**
    * @brief   Number of inputs this layer will requries/will operate on

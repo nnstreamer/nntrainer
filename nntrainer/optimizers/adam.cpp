@@ -24,15 +24,12 @@ namespace nntrainer {
 
 const std::string Adam::type = "adam";
 
-int Adam::initialize(std::shared_ptr<Weight> weight_list,
-                     unsigned int num_weights, bool set_tensor) {
+int Adam::initialize(std::vector<Weight> &weight_list, bool set_tensor) {
   int status = ML_ERROR_NONE;
   weight_mv.clear();
 
   if (set_tensor) {
-    for (unsigned int i = 0; i < num_weights; ++i) {
-      Weight &w = weight_list.get()[i];
-
+    for (auto const &w : weight_list) {
       // TODO: only trainable weights must be sent to optimizer
       if (!w.getTrainable())
         continue;

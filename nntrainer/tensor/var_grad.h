@@ -144,13 +144,29 @@ public:
    *
    * @return Cloned copy
    */
-  virtual Var_Grad clone() const {
+  Var_Grad clone() const {
     Var_Grad vg(*this);
     vg.var = std::make_shared<Tensor>(this->var->clone());
     vg.grad = std::make_shared<Tensor>(this->grad->clone());
 
     return vg;
   };
+
+  /**
+   * @brief Reset the weight
+   *
+   * @param dim Variable and gradient tensor dimension
+   * @param train If the variable is trainable
+   *
+   * @note New dimension must maintain the shape of the variable
+   */
+
+  void reset (const TensorDim &dim, bool train) {
+    var->reshape(dim);
+    grad->reshape(dim);
+    trainable = train;
+    resetGradient();
+  }
 
 protected:
   /**
