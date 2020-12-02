@@ -654,8 +654,7 @@ protected:
 /**
  * @brief Fully Connected Layer
  */
-TEST_F(nntrainer_FullyConnectedLayer_TFmatch,
-       DISABLED_forwarding_backwarding_00_p) {
+TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_backwarding_00_p) {
   std::vector<float> weight_data;
   std::vector<float> bias_data;
 
