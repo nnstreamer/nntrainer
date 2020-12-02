@@ -1,6 +1,7 @@
 tensor_sources = [
   'blas_interface.cpp',
   'lazy_tensor.cpp',
+  'manager.cpp',
   'tensor.cpp',
   'tensor_dim.cpp',
   'var_grad.cpp',
@@ -8,6 +9,7 @@ tensor_sources = [
 ]
 
 tensor_headers = [
+  'manager.h',
   'tensor.h',
   'tensor_dim.h',
   'weight.h',

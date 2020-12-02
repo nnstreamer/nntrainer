@@ -81,7 +81,7 @@ public:
   /**
    * @brief Allocate and initialize the weight variable
    */
-  void initialize();
+  void initialize(const Tensor &grad_shared = Tensor());
 
   /**
    * @brief Swap for weight
@@ -137,7 +137,6 @@ public:
       w.var = std::make_shared<Tensor>(this->var->clone());
     if (!this->grad->uninitialized())
       w.grad = std::make_shared<Tensor>(this->grad->clone());
-
 
     return w;
   }

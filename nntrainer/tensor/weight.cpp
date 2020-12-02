@@ -22,12 +22,10 @@ Weight::Weight(const TensorDim &dim, const WeightInitializer init, bool train,
   initializer(init) {
   if (initializer == WeightInitializer::WEIGHT_UNKNOWN)
     throw std::invalid_argument("Weight initializer unknown");
-
-  // initialize();
 }
 
-void Weight::initialize() {
-  Var_Grad::initialize();
+void Weight::initialize(const Tensor &grad_shared) {
+  Var_Grad::initialize(grad_shared);
 
   Tensor &var_ref = getVariableRef();
   const TensorDim dim = var_ref.getDim();

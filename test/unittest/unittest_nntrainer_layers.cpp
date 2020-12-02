@@ -1265,6 +1265,9 @@ TEST_F(nntrainer_Conv2DLayer, DISABLED_backwarding_03_p) {
                         "padding=0, 0");
 
   loadFile("tc_conv2d_int_conv2DLayer.in", in);
+  nntrainer::Manager manager;
+
+  manager.setGradientMemoryOptimization(false);
 
   nntrainer::Conv2DLayer layer1;
   status =
