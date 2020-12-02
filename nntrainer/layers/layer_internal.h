@@ -287,9 +287,7 @@ public:
    * @brief     get data alias at param position.
    * @exception std::out_of_range for index out of range
    */
-  Weight &weightAt(const unsigned int position) {
-    return weights[position];
-  }
+  Weight &weightAt(const unsigned int position) { return weights[position]; }
 
   /**
    * @brief Get the number of weights

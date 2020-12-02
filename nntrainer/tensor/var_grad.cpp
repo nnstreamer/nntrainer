@@ -17,8 +17,14 @@
 namespace nntrainer {
 
 Var_Grad::Var_Grad(const TensorDim &dim, bool train, const std::string &name) :
+  dim(dim),
   trainable(train),
   name(name) {
+  var = std::make_shared<Tensor>();
+  grad = std::make_shared<Tensor>();
+}
+
+void Var_Grad::initialize() {
   var = std::make_shared<Tensor>(dim);
 
   grad = std::make_shared<Tensor>();

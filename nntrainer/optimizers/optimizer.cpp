@@ -48,7 +48,8 @@ double Optimizer::getLearningRate(int iteration) {
   return ll;
 }
 
-void Optimizer::apply_gradients(std::vector<Weight> &weight_list, int iteration) {
+void Optimizer::apply_gradients(std::vector<Weight> &weight_list,
+                                int iteration) {
 
   double ll = getLearningRate(iteration);
 

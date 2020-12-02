@@ -81,7 +81,7 @@ public:
   /**
    * @brief Allocate and initialize the weight variable
    */
-  void initializeWeight();
+  void initialize();
 
   /**
    * @brief Swap for weight
@@ -133,10 +133,11 @@ public:
    */
   Weight clone() const {
     Weight w(*this);
-    if (!var->uninitialized())
+    if (!this->var->uninitialized())
       w.var = std::make_shared<Tensor>(this->var->clone());
-    if (!grad->uninitialized())
+    if (!this->grad->uninitialized())
       w.grad = std::make_shared<Tensor>(this->grad->clone());
+
 
     return w;
   }
@@ -151,9 +152,9 @@ public:
    * @note New dimension must maintain the shape of the variable
    */
 
-  void reset (const TensorDim &dim, const WeightInitializer init, bool train) {
+  void reset(const TensorDim &dim, const WeightInitializer init, bool train) {
+    initializer = init;
     Var_Grad::reset(dim, train);
-    initializeWeight();
   }
 
 private:

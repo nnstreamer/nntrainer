@@ -346,6 +346,14 @@ public:
    */
   void printPreset(std::ostream &out, unsigned int preset);
 
+  /**
+   * @brief Enable gradient memory sharing based optimization
+   * @param opt True to enable, else false
+   */
+  void setGradientMemoryOptimization(bool opt) {
+    manager.setGradientMemoryOptimization(opt);
+  }
+
 private:
   /**
    * @brief   Print Options when printing layer info
