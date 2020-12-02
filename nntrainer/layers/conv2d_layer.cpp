@@ -52,11 +52,12 @@ int Conv2DLayer::initialize(Manager &manager) {
 
   if (weights.empty()) {
     weights.reserve(2);
-    weights.push_back(createWeight(manager, dim, weight_initializer, true, kernelPrefix));
-    weights.push_back(createWeight(manager, bias_dim, bias_initializer, true, biasPrefix));
+    weights.emplace_back(dim, weight_initializer, true, kernelPrefix);
+    weights.emplace_back(bias_dim, bias_initializer, true, biasPrefix);
+    manager.trackWeights(weights);
   } else {
-    for (auto &weight : weights)
-      weight.reset(weight.getVariable().getDim(), weight_initializer, true);
+    weights[ConvParams::weight].reset(dim, weight_initializer, true);
+    weights[ConvParams::bias].reset(bias_dim, bias_initializer, true);
   }
 
   // this output_dim should be the same with dimension of hidden

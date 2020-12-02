@@ -77,6 +77,8 @@ protected:
       layer.setOutputBuffer(i, n_buffer);
     }
 
+    manager.initialize();
+
     return status;
   }
 
@@ -93,7 +95,10 @@ protected:
   // anchor point to prepare layer
   virtual void prepareLayer(){};
 
-  virtual void resetLayer() { layer = LayerType(); }
+  virtual void resetLayer() {
+    layer = LayerType();
+    manager.reset();
+  }
 
   virtual void setInputDim(const std::string &dimension) {
     ASSERT_EQ(layer.setProperty({"input_shape=" + dimension}), ML_ERROR_NONE);

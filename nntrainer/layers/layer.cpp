@@ -78,7 +78,7 @@ std::vector<Tensor> Layer::getDerivatives() {
 }
 
 void Layer::copy(std::shared_ptr<Layer> l) {
-  for(auto const &w : weights)
+  for (auto const &w : weights)
     weights.push_back(w.clone());
 
   // TODO: fix this #630
