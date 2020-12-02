@@ -536,13 +536,26 @@ public:
 
   /**
    * @brief Get slice of the tensor, sliced by batch
-   * @param[in] offset offset to start the slice
+   * @param[in] offset offset in batch to start the slice
    * @param[in] size size of the slice
    * @retval slice of this tensor
    * @note This function provides a slice of this tensor, and does not create a
    * copy
    */
   Tensor getBatchSlice(unsigned int offset, unsigned int size) const;
+
+  /**
+   * @brief Get new tensor which shares memory with current tensor but different
+   * shape
+   *
+   * @param dim new dimension to be set for this tensor
+   * @param offset offset to be used from the start of the data in bytes
+   * @note The new tensor will share the same data as the current tensor but
+   * will have different size.
+   * @note New size added with offset must be less than the size of the original
+   * tensor.
+   */
+  Tensor getSharedDataTensor(const TensorDim dim, unsigned int offset) const;
 
   /**
    * @brief     Convient wrapper for inplace copy of @a this.

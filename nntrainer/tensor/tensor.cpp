@@ -265,11 +265,22 @@ int Tensor::pow_i(float exponent) {
 }
 
 Tensor Tensor::getBatchSlice(unsigned int offset, unsigned int size) const {
+  TensorDim dim_ = dim;
+  dim_.batch(size);
+
+  return getSharedDataTensor(dim_, offset * this->dim.getFeatureLen());
+}
+
+Tensor Tensor::getSharedDataTensor(const TensorDim dim_,
+                                   unsigned int offset) const {
   Tensor ret = *this;
 
-  ret.dim.batch(size);
-  ret.data = std::shared_ptr<float>(
-    this->data, this->data.get() + offset * this->dim.getFeatureLen());
+  if (dim_.getDataLen() + offset > dim.getDataLen())
+    throw std::invalid_argument(
+      "Creating shared tensor of size bigger than tensor memory.");
+
+  ret.dim = dim_;
+  ret.data = std::shared_ptr<float>(this->data, this->data.get() + offset);
 
   return ret;
 }

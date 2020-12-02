@@ -28,11 +28,12 @@ namespace nntrainer {
  * @brief   manager of nntrainer
  */
 class Manager {
+
 public:
   /**
    * @brief     Constructor of Manager
    */
-  Manager() : enable_gradient_memory_opt(true) {}
+  Manager() : max_weight_size(0), enable_gradient_memory_opt(true) {}
 
   /**
    * @brief     Destructor of Manager
@@ -44,27 +45,21 @@ public:
    *
    * @param w   Weight to be tracked
    */
-  void trackWeight(std::reference_wrapper<Weight> w) {
-    weights.emplace_back(w);
-  }
+  void trackWeight(std::reference_wrapper<Weight> w);
 
   /**
    * @brief     Add weights to be tracked and updated with nntrainer
    *
    * @param ws  Weights to be tracked
    */
-  void trackWeights(std::vector<Weight> &ws) {
-    weights.reserve(weights.size() + ws.size());
-    for (auto &w : ws)
-      weights.emplace_back(std::ref(w));
-  }
+  void trackWeights(std::vector<Weight> &ws);
 
   /**
    * @brief     Get weights tracked with nntrainer
    *
    * @retval    list of weight references
    */
-  std::vector<std::reference_wrapper<Weight>> getWeightRefs() {
+  std::vector<std::vector<std::reference_wrapper<Weight>>> getWeightRefs() {
     return weights;
   }
 
@@ -79,31 +74,25 @@ public:
   /**
    * @brief Allocate and initialize the weight variable
    */
-  void initialize() {
-    for (auto &weight : weights)
-      weight.get().initialize();
-  }
+  void initialize();
 
-  void reset() { weights.clear(); }
+  /**
+   * @brief Reset the manager state
+   */
+  void reset() {
+    weights.clear();
+    max_weight_size = 0;
+  }
 
 private:
   // TODO: ensure that names of these weights are unique
-  std::vector<std::reference_wrapper<Weight>> weights;
+  /**< Weights all the layer in the model to be managed */
+  std::vector<std::vector<std::reference_wrapper<Weight>>> weights;
+
+  size_t max_weight_size; /**< max weight required by a layer */
 
   bool enable_gradient_memory_opt; /**< share memory among all the gradients */
 };
-
-// /**
-//  * @brief Helper func for weight creation which are tracked by nntrainer
-//  *
-//  * @retval create weight
-//  */
-// template <typename... Args>
-// Weight createWeight(Manager &manager, Args... args) {
-//   Weight w = Weight(args...);
-//   manager.trackWeight(std::forward<Args...>args);
-//   return ;
-// }
 
 } // namespace nntrainer
 

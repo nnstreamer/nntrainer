@@ -93,7 +93,7 @@ public:
   /**
    * @brief Allocate and initialize the weight variable
    */
-  virtual void initialize();
+  virtual void initialize(const Tensor &grad_shared = Tensor());
 
   /**
    * @brief Get the TensorDim
