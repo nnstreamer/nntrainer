@@ -535,19 +535,21 @@ void NetworkGraph::backwarding(sharedConstTensors output, int iteration) {
        i--) {
     LayerNode &layer_node = Sorted[i];
     if (istrequal(layer_node.layer->getType(), nntrainer::LossLayer::type)) {
-      layer_node.layer->backwarding(iteration, output);
+      layer_node.layer->backwarding(output);
     } else {
-      layer_node.layer->backwarding(iteration);
+      layer_node.layer->backwarding();
     }
+    optimizer->apply_gradients(layer_node.layer->getWeightsRef(), iteration);
   }
 
   /** The last trainable layer need not calculate the derivatives */
-  // Oder is matter here. 1. calcGradient 2.Derivative & Gradient
+  // Order is matter here. 1. calcGradient 2.Derivative & Gradient
   Sorted[skip_non_trainable_layers + 1].layer->calcGradient();
 #ifdef ENABLE_TEST
   Sorted[skip_non_trainable_layers + 1].layer->calcDerivative();
 #endif
-  Sorted[skip_non_trainable_layers + 1].layer->applyGradient(iteration);
+  optimizer->apply_gradients(
+    Sorted[skip_non_trainable_layers + 1].layer->getWeightsRef(), iteration);
 }
 
 std::vector<TensorDim> NetworkGraph::getInputDimension() {

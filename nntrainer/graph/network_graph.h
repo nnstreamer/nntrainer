@@ -197,6 +197,8 @@ public:
    */
   void backwarding(sharedConstTensors input, int iteration);
 
+  void setOptimizer(std::shared_ptr<Optimizer> opt) { optimizer = opt; }
+
   /**
    * @brief     getter of ordered graph
    * @retval    ordered LayerNode list
@@ -239,6 +241,8 @@ private:
   unsigned int
     skip_non_trainable_layers; /**< denotes the number of non-trainable layers
                                   at the start of the graph */
+
+  std::shared_ptr<Optimizer> optimizer;
 
   /**
    * @brief Calculate the number of non-trainable layers at the start

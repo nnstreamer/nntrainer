@@ -174,14 +174,12 @@ public:
    * @param idx Index of the optimizer variable to get
    * @retval Reference of the optimizer variable
    */
-  Tensor &getOptimizerVariableRef(unsigned int idx) {
-    return opt_vars[idx];
-  }
+  Tensor &getOptimizerVariableRef(unsigned int idx) { return opt_vars[idx]; }
 
 private:
   WeightInitializer initializer; /**< initializer for this variable */
 
-  std::vector<Tensor> opt_vars;  /**< optimizer variables */
+  std::vector<Tensor> opt_vars; /**< optimizer variables */
 };
 
 } // namespace nntrainer
