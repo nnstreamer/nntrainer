@@ -39,7 +39,8 @@ void Layer::setActivation(ActivationType acti) {
 
 int Layer::setOptimizer(std::shared_ptr<Optimizer> opt) {
   this->opt = opt;
-  return this->opt->initialize(weights, true);
+  this->opt->addOptimizerVariable(weights);
+  return ML_ERROR_NONE;
 }
 
 int Layer::checkValidation() {

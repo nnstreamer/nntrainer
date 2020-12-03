@@ -26,22 +26,17 @@ const std::string Adam::type = "adam";
 
 enum AdamParams { wm, wv };
 
-int Adam::initialize(std::vector<Weight> &weight_list, bool set_tensor) {
-  int status = ML_ERROR_NONE;
+void Adam::addOptimizerVariable(std::vector<Weight> &weight_list) {
+  for (auto &w : weight_list) {
+    w.clearOptimizerVariables();
 
-  if (set_tensor) {
-    for (auto &w : weight_list) {
-      w.clearOptimizerVariables();
+    // TODO: only trainable weights must be sent to optimizer
+    if (!w.getTrainable())
+      continue;
 
-      // TODO: only trainable weights must be sent to optimizer
-      if (!w.getTrainable())
-        continue;
-
-      w.addOptimizerVariable(w.getDim()); /** Add wm */
-      w.addOptimizerVariable(w.getDim()); /** Add wv */
-    }
+    w.addOptimizerVariable(w.getDim()); /** Add wm */
+    w.addOptimizerVariable(w.getDim()); /** Add wv */
   }
-  return status;
 }
 
 double Adam::getLearningRate(int iteration) {
@@ -56,8 +51,7 @@ double Adam::getLearningRate(int iteration) {
   return ll;
 }
 
-void Adam::apply_gradient(Weight &weight, int tensor_idx, double updated_lr,
-                          int iteration) {
+void Adam::apply_gradient(Weight &weight, double updated_lr, int iteration) {
 
   Tensor &x = weight.getVariableRef();
   const Tensor &x_grad = weight.getGradientRef();

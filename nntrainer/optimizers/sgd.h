@@ -31,10 +31,10 @@ public:
   SGD(float lr = 0.0001f, Args... args) : Optimizer(lr, args...) {}
 
   /**
-   * @copydoc apply_gradient(Weight &weight, int tensor_idx, double updated_lr,
+   * @copydoc apply_gradient(Weight &weight, double updated_lr,
    * int iteration)
    */
-  void apply_gradient(Weight &weight, int tensor_idx, double updated_lr,
+  void apply_gradient(Weight &weight, double updated_lr,
                       int iteration);
 
   /**

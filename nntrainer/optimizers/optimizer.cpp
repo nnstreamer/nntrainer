@@ -34,7 +34,7 @@
 
 namespace nntrainer {
 
-int Optimizer::initialize(std::vector<Weight> &weight_list, bool set_tensor) {
+int Optimizer::initialize() {
   return ML_ERROR_NONE;
 }
 
@@ -53,13 +53,11 @@ void Optimizer::apply_gradients(std::vector<Weight> &weight_list,
 
   double ll = getLearningRate(iteration);
 
-  int idx = 0;
   for (auto &weight : weight_list) {
     if (!weight.getTrainable())
       continue;
 
-    apply_gradient(weight, idx, ll, iteration);
-    idx += 1;
+    apply_gradient(weight, ll, iteration);
   }
 }
 
