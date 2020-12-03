@@ -24,7 +24,7 @@
 #include <layer_internal.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
-#include <optimizer_factory.h>
+#include <optimizer_internal.h>
 #include <parse_util.h>
 #include <util_func.h>
 
@@ -35,12 +35,6 @@ void Layer::setActivation(ActivationType acti) {
     throw std::invalid_argument("Error:have to specify activation function");
   }
   activation_type = acti;
-}
-
-int Layer::setOptimizer(std::shared_ptr<Optimizer> opt) {
-  this->opt = opt;
-  this->opt->addOptimizerVariable(weights);
-  return ML_ERROR_NONE;
 }
 
 int Layer::checkValidation() {
@@ -82,8 +76,6 @@ void Layer::copy(std::shared_ptr<Layer> l) {
   for (auto const &w : weights)
     weights.push_back(w.clone());
 
-  // TODO: fix this #630
-  this->opt = l->opt;
   this->input_dim = l->input_dim;
   this->output_dim = l->output_dim;
   this->input.copy(l->input);
@@ -119,9 +111,10 @@ sharedConstTensors Layer::forwarding_with_val(sharedConstTensors input) {
   return out;
 }
 
-sharedConstTensors Layer::backwarding_with_val(int iteration,
-                                               sharedConstTensors deriv,
-                                               sharedConstTensors in) {
+sharedConstTensors
+Layer::backwarding_with_val(int iteration, sharedConstTensors deriv,
+                            sharedConstTensors in,
+                            std::shared_ptr<Optimizer> optimizer) {
 
   for (unsigned int i = 0; i < num_outputs; ++i) {
     net_hidden[i]->var = deriv[i]->clone();
@@ -133,11 +126,12 @@ sharedConstTensors Layer::backwarding_with_val(int iteration,
   // TODO Need to fix to use LossLayer::type instead of "loss". But cyclic
   // includes!
   if (istrequal(getType(), "loss")) {
-    backwarding(iteration, in);
+    backwarding(in);
   } else {
-    backwarding(iteration, deriv);
+    backwarding(deriv);
   }
 
+  applyGradient(iteration, optimizer);
   nntrainer::sharedConstTensors out;
 
   for (unsigned int i = 0; i < num_inputs; ++i) {
@@ -151,21 +145,11 @@ void Layer::read(std::ifstream &file) {
   for (auto &weight : weights) {
     weight.getVariableRef().read(file);
   }
-  if (opt)
-    opt->read(file);
 }
 
 void Layer::save(std::ofstream &file) {
   for (auto &weight : weights) {
     weight.getVariableRef().save(file);
-  }
-  if (opt)
-    opt->save(file);
-}
-
-void Layer::applyGradient(unsigned int iteration) {
-  if (trainable && !weights.empty()) {
-    opt->apply_gradients(weights, iteration);
   }
 }
 

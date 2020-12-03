@@ -34,8 +34,7 @@ public:
    * @copydoc apply_gradient(Weight &weight, double updated_lr,
    * int iteration)
    */
-  void apply_gradient(Weight &weight, double updated_lr,
-                      int iteration);
+  void apply_gradient(Weight &weight, double updated_lr, int iteration);
 
   /**
    * @copydoc Optimizer::getType()

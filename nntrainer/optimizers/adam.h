@@ -39,8 +39,7 @@ public:
    * @copydoc apply_gradient(Weight &weight, int tensor_idx, double updated_lr,
    * int iteration)
    */
-  void apply_gradient(Weight &weight, double updated_lr,
-                      int iteration);
+  void apply_gradient(Weight &weight, double updated_lr, int iteration);
 
   /**
    * @copydoc Optimizer::getType()
@@ -81,7 +80,6 @@ public:
   static const std::string type;
 
 private:
-
   double beta1;   /** momentum for grad */
   double beta2;   /** momentum for grad**2 */
   double epsilon; /** epsilon to protect overflow */

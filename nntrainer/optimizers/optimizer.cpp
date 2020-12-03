@@ -34,9 +34,7 @@
 
 namespace nntrainer {
 
-int Optimizer::initialize() {
-  return ML_ERROR_NONE;
-}
+int Optimizer::initialize() { return ML_ERROR_NONE; }
 
 double Optimizer::getLearningRate(int iteration) {
   double ll = learning_rate;
@@ -50,6 +48,9 @@ double Optimizer::getLearningRate(int iteration) {
 
 void Optimizer::apply_gradients(std::vector<Weight> &weight_list,
                                 int iteration) {
+
+  if (weight_list.empty())
+    return;
 
   double ll = getLearningRate(iteration);
 

@@ -140,20 +140,6 @@ public:
    */
   virtual void checkValidation();
 
-protected:
-  /**
-   * @brief     get Learning Rate for the given iteration
-   * @param[in] iteration Iteration for the learning rate
-   * @retval    Learning rate
-   */
-  virtual double getLearningRate(int iteration);
-
-  float learning_rate;      /** learning rate */
-  float decay_rate;         /** decay rate for learning rate */
-  unsigned int decay_steps; /** decay steps for learning rate */
-  bool continue_train; /** Continue training with previous tensors for adam */
-
-private:
   /**
    * @brief     initialize optimizer.
    * @retval #ML_ERROR_NONE Successful.
@@ -169,6 +155,20 @@ private:
    */
   virtual void addOptimizerVariable(std::vector<Weight> &params) {}
 
+protected:
+  /**
+   * @brief     get Learning Rate for the given iteration
+   * @param[in] iteration Iteration for the learning rate
+   * @retval    Learning rate
+   */
+  virtual double getLearningRate(int iteration);
+
+  float learning_rate;      /** learning rate */
+  float decay_rate;         /** decay rate for learning rate */
+  unsigned int decay_steps; /** decay steps for learning rate */
+  bool continue_train; /** Continue training with previous tensors for adam */
+
+private:
   /**
    * @brief     apply gradient to the given weight
    * @param[in] weight Weight and gradient set to be updated

@@ -134,22 +134,26 @@ public:
    * @brief     Apply the gradient for the layer
    * @param[in] iteration Iteration value for the Optimizer
    */
-  virtual void applyGradient(unsigned int iteration);
+  virtual void applyGradient(unsigned int iteration,
+                             std::shared_ptr<Optimizer> optimizer) {
+    if (optimizer)
+      optimizer->apply_gradients(weights, iteration);
+  }
 
   /**
    * @brief     Back Propagate the derivative to the previous layer
    * @param[in] in List of Derivative Tensor from the next layer
    * @retval    Derivative List of Tensor for the previous layer
    */
-  virtual void backwarding(int iteration, sharedConstTensors in = {}) {
+  virtual void backwarding(sharedConstTensors in = {}) {
     calcGradient(in);
     calcDerivative(in);
-    applyGradient(iteration);
   }
 
-  virtual sharedConstTensors backwarding_with_val(int iteration,
-                                                  sharedConstTensors deriv,
-                                                  sharedConstTensors in = {});
+  virtual sharedConstTensors
+  backwarding_with_val(int iteration, sharedConstTensors deriv,
+                       sharedConstTensors in = {},
+                       std::shared_ptr<Optimizer> optimizer = nullptr);
 
   /**
    * @brief     read layer Weight & Bias data from file
@@ -187,21 +191,6 @@ public:
    */
   virtual void setProperty(const PropertyType type,
                            const std::string &value = "");
-
-  /**
-   * @brief     Optimizer Setter
-   * @param[in] opt Optimizer
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   */
-  int setOptimizer(std::shared_ptr<Optimizer> opt);
-
-  /**
-   * @brief Get the Optimizer object
-   *
-   * @return std::shared_ptr<Optimizer> optimizer
-   */
-  std::shared_ptr<Optimizer> getOptimizer() { return opt; }
 
   /**
    * @brief     Activation Type Getter
@@ -334,6 +323,12 @@ public:
 
   std::vector<Tensor> getDerivatives();
 
+  /**
+   * @brief Get reference to the weights
+   * @retval Reference of the list of weights in the layer
+   */
+  std::vector<Weight> &getWeightsRef() { return weights; }
+
 #ifdef ENABLE_TEST
   void resizeNetInput(unsigned int size) { net_input.resize(size); }
 
@@ -408,12 +403,6 @@ protected:
    * @brief     Dimension of output activation
    */
   std::vector<TensorDim> output_dim;
-
-  /**
-   * @brief     Optimizer for this layer
-   */
-  // TODO: fix with #630
-  std::shared_ptr<Optimizer> opt;
 
   /**
    * @brief     Loss value added by this layer
