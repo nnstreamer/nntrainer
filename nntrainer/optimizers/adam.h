@@ -64,16 +64,6 @@ public:
   int initialize(std::vector<Weight> &params, bool setTensor);
 
   /**
-   * @copydoc read(std::ifstream &file)
-   */
-  void read(std::ifstream &file);
-
-  /**
-   * @copydoc save(std::ofstream &file)
-   */
-  void save(std::ofstream &file);
-
-  /**
    * @brief get beta1
    */
   double getBeta1() { return beta1; };
@@ -91,10 +81,6 @@ public:
   static const std::string type;
 
 private:
-  /**
-   * @brief Internal Tensors for adam Optimizer
-   */
-  std::vector<std::pair<Tensor, Tensor>> weight_mv;
 
   double beta1;   /** momentum for grad */
   double beta2;   /** momentum for grad**2 */

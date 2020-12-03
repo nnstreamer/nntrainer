@@ -150,14 +150,38 @@ public:
    *
    * @note New dimension must maintain the shape of the variable
    */
-
   void reset(const TensorDim &dim, const WeightInitializer init, bool train) {
     initializer = init;
     Var_Grad::reset(dim, train);
   }
 
+  /**
+   * @brief Clear optimizer variables
+   */
+  void clearOptimizerVariables() { opt_vars.clear(); }
+
+  /**
+   * @brief Add optimizer variables
+   * @param dim Optimizer variable dimension
+   */
+  void addOptimizerVariable(const TensorDim &dim) {
+    opt_vars.emplace_back(dim);
+    opt_vars.back().setZero();
+  }
+
+  /**
+   * @brief Get optimizer variable reference
+   * @param idx Index of the optimizer variable to get
+   * @retval Reference of the optimizer variable
+   */
+  Tensor &getOptimizerVariableRef(unsigned int idx) {
+    return opt_vars[idx];
+  }
+
 private:
   WeightInitializer initializer; /**< initializer for this variable */
+
+  std::vector<Tensor> opt_vars;  /**< optimizer variables */
 };
 
 } // namespace nntrainer

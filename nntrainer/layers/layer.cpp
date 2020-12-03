@@ -38,7 +38,7 @@ void Layer::setActivation(ActivationType acti) {
 }
 
 int Layer::setOptimizer(std::shared_ptr<Optimizer> opt) {
-  this->opt = createOptimizer(opt->getType(), *opt);
+  this->opt = opt;
   return this->opt->initialize(weights, true);
 }
 
