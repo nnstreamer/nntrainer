@@ -152,6 +152,13 @@ int NeuralNetwork::compile() {
 
   model_graph.topologicalSort();
 
+  auto &sorted = model_graph.getSorted();
+  if (sorted.empty() ||
+      !istrequal(sorted.back().layer->getType(), LossLayer::type)) {
+    ml_loge("last layer is not loss layer");
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
   compiled = true;
 
   return status;
@@ -234,8 +241,6 @@ int NeuralNetwork::initialize() {
 
   manager.initialize();
 
-  model_graph.setOptimizer(opt);
-
   initialized = true;
   return status;
 }
@@ -280,19 +285,37 @@ sharedConstTensors NeuralNetwork::forwarding(sharedConstTensors input,
  *            Call backwarding function of layer in reverse order
  *            No need to call at first Input Layer (No data to be updated)
  */
-void NeuralNetwork::backwarding(sharedConstTensors input,
-                                sharedConstTensors label, int iteration) {
+void NeuralNetwork::backwarding(sharedConstTensors label, int iteration) {
 
-  if (model_graph.Sorted.empty() ||
-      !istrequal(model_graph.Sorted.back().layer->getType(), LossLayer::type)) {
-    throw std::invalid_argument("last layer is not loss layer");
+  /**
+   * @note -2 as backwarding for input layer is not supported and
+   * last layer backwarding is run out of this loop
+   */
+  auto iter_begin = model_graph.getBackwardingBeginIter();
+  auto iter_end = model_graph.getBackwardingEndIter();
+  for (auto iter = iter_begin; iter != iter_end - 2; iter++) {
+    auto layer = iter->layer;
+    if (istrequal(layer->getType(), nntrainer::LossLayer::type)) {
+      layer->backwarding(label);
+    } else {
+      layer->backwarding();
+    }
+    opt->apply_gradients(layer->getWeightsRef(), iteration);
   }
 
-  forwarding(input, label);
-
-  sharedConstTensors output = label;
-
-  model_graph.backwarding(output, iteration);
+  auto last_layer = (iter_end - 2)->layer;
+  /**
+   * The last trainable layer need not calculate the derivatives
+   * Do not change this order:
+   * 1. calcGradient
+   * 2. calcDerivative
+   * 3. applyGradient
+   */
+  last_layer->calcGradient();
+#ifdef ENABLE_TEST
+  last_layer->calcDerivative();
+#endif
+  opt->apply_gradients(last_layer->getWeightsRef(), iteration);
 }
 
 float NeuralNetwork::getLoss() {
@@ -507,7 +530,8 @@ int NeuralNetwork::train_run() {
       if (data_buffer->getDataFromBuffer(nntrainer::BufferType::BUF_TRAIN,
                                          in->getData(), label->getData())) {
         try {
-          backwarding({in}, {label}, iter++);
+          forwarding({in}, {label});
+          backwarding({label}, iter++);
         } catch (...) {
           data_buffer->clear(nntrainer::BufferType::BUF_TRAIN);
           ml_loge("Error: training error in #%d/%d.", epoch_idx, epochs);

@@ -497,7 +497,8 @@ int main(int argc, char **argv) {
         nntrainer::Tensor in_tensor;
         try {
           in_tensor = nntrainer::Tensor(inbatch);
-          mainNet.backwarding({MAKE_SHARED_TENSOR(in_tensor)}, {Q}, iter);
+          mainNet.forwarding({MAKE_SHARED_TENSOR(in_tensor)}, {Q});
+          mainNet.backwarding({Q}, iter);
         } catch (...) {
           std::cerr << "Error during backwarding the network" << std::endl;
           return -1;
