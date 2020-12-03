@@ -5,7 +5,7 @@
 /build
 
 # jni build files
-/jni/iniparser
+iniparser/
 libs/
 obj/
 
