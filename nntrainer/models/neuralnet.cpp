@@ -175,6 +175,7 @@ int NeuralNetwork::initialize() {
   ml_logd("initializing neural network, layer size: %d", n_layers);
 
   model_graph.setNumNetBufferSize();
+  opt->initialize();
 
   for (unsigned int idx = 0; idx < n_layers; ++idx) {
     bool first = idx == 0;

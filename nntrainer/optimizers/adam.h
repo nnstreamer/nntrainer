@@ -39,7 +39,7 @@ public:
    * @copydoc apply_gradient(Weight &weight, int tensor_idx, double updated_lr,
    * int iteration)
    */
-  void apply_gradient(Weight &weight, int tensor_idx, double updated_lr,
+  void apply_gradient(Weight &weight, double updated_lr,
                       int iteration);
 
   /**
@@ -59,9 +59,9 @@ public:
   void setProperty(const PropertyType type, const std::string &value = "");
 
   /**
-   * @copydoc Optimizer::initialize(std::vector<Weight> params, bool setTensor)
+   * @copydoc Optimizer::addOptimizerVariable(std::vector<Weight> &params)
    */
-  int initialize(std::vector<Weight> &params, bool setTensor);
+  void addOptimizerVariable(std::vector<Weight> &params);
 
   /**
    * @brief get beta1

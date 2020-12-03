@@ -38,6 +38,7 @@ class Optimizer : public ml::train::Optimizer {
 
   /** Allow layer to initialize optimizer with itself */
   friend class Layer;
+  friend class NeuralNetwork;
 
 public:
   /**
@@ -154,26 +155,28 @@ protected:
 
 private:
   /**
-   * @brief     initialize optimizer. Initialize Weight if it is adam
-   * @param[in] params Weight list
-   * @param[in] num_weights size of the array
-   * @param[in] setTensor true if the layer need weight update.
-   *            Input Layer and Batch Normalization layer won't need it.
-   *            Therefore, it sets false.
+   * @brief     initialize optimizer.
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  virtual int initialize(std::vector<Weight> &params, bool setTensor);
+  virtual int initialize();
+
+  /**
+   * @brief     Add extra variables per weight if the optimizer needs any.
+   * @param[in] params Weight list
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  virtual void addOptimizerVariable(std::vector<Weight> &params) {}
 
   /**
    * @brief     apply gradient to the given weight
    * @param[in] weight Weight and gradient set to be updated
-   * @param[in] tensor_idx Idx of this tensor in the tensors list
    * @param[in] num_weights size of the array
    * @param[in] iteration nth epoch number
    * @note weight which is called upon can be assumed to be trainable
    */
-  virtual void apply_gradient(Weight &weight, int tensor_idx, double updated_lr,
+  virtual void apply_gradient(Weight &weight, double updated_lr,
                               int iteration) = 0;
 };
 
