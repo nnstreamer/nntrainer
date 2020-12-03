@@ -8,6 +8,10 @@ ifndef NNTRAINER_ROOT
 NNTRAINER_ROOT := $(LOCAL_PATH)/..
 endif
 
+ifndef NDK_LIBS_OUT
+NDK_LIBS_OUT := $(NDK_PROJECT_PATH)
+endif
+
 include $(CLEAR_VARS)
 
 ifndef INIPARSER_ROOT
@@ -15,12 +19,13 @@ ifneq ($(MAKECMDGOALS),clean)
 $(warning INIPARSER_ROOT is not defined!)
 $(warning INIPARSER SRC is going to be downloaded!)
 
-INIPARSER_ROOT :=./iniparser
+INIPARSER_ROOT :=$(NDK_LIBS_OUT)/iniparser
+
+$(info $(shell ($(LOCAL_PATH)/prepare_iniparser.sh $(NDK_LIBS_OUT))))
 
 endif
 endif
 
-$(info $(shell ($(LOCAL_PATH)/prepare_iniparser.sh )))
 
 include $(CLEAR_VARS)
 
@@ -36,9 +41,9 @@ ifneq ($(MAKECMDGOALS),clean)
 $(warning TENSORFLOW_ROOT is not defined!)
 $(warning TENSORFLOW SRC is going to be downloaded!)
 
-$(info $(shell ($(NNTRAINER_JNI_ROOT)/prepare_tflite.sh $(TENSORFLOW_VERSION) $(NNTRAINER_APPLICATION))))
+TENSORFLOW_ROOT := $(NDK_LIBS_OUT)/tensorflow-$(TENSORFLOW_VERSION)/tensorflow-lite
 
-TENSORFLOW_ROOT := $(NNTRAINER_JNI_ROOT)/tensorflow-$(TENSORFLOW_VERSION)/tensorflow-lite
+$(info $(shell ($(NNTRAINER_JNI_ROOT)/prepare_tflite.sh $(TENSORFLOW_VERSION) $(NDK_LIBS_OUT))))
 
 endif #TENSORFLOW_ROOT
 endif #MAKECMDGOALS

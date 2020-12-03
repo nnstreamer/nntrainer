@@ -167,3 +167,38 @@ if get_option('enable-nnstreamer-tensor-filter')
    nnstreamer_dep = dependency('nnstreamer', required: true)
    subdir('nnstreamer/tensor_filter')
 endif
+
+if get_option('enable-android')
+
+  ndk_build = find_program('ndk-build', required : true)
+  jni_root = meson.current_source_dir() / 'jni'
+  jni_build_root = meson.build_root() / 'jni'
+
+  ndk_args = {
+    'NDK_PROJECT_PATH': jni_root,
+    'APP_BUILD_SCRIPT': jni_root / 'Android.mk',
+    'NDK_APPLICATION_MK': jni_root / 'Application.mk',
+    'NDK_LIBS_OUT': jni_build_root / 'libs',
+    'NDK_OUT': jni_build_root / 'objs',
+  }
+
+  num_threads = run_command('grep', '-c', '^processor', '/proc/cpuinfo').stdout().strip()
+  message('num processor are: ' + num_threads)
+
+  thread_opt_flag = '-j' + num_threads
+
+  ndk_additional_flags = [thread_opt_flag]
+
+  ndk_build_command = [ndk_build]
+  foreach key, val : ndk_args
+    ndk_build_command += '@0@=@1@'.format(key, val)
+  endforeach
+  ndk_build_command += ndk_additional_flags
+
+  android_build_target = custom_target('android',
+    output: 'jni',
+    build_by_default: true,
+    command: ndk_build_command
+  )
+
+endif

@@ -4,6 +4,10 @@ TARGET=$2
 
 echo "PREPARING TENSORFLOW ${VERSION} at ${TARGET}"
 
+if [ ! -d ${TARGET} ]; then
+  mkdir -p ${TARGET}
+fi
+
 pushd ${TARGET}
 
 #Get tensorflow
