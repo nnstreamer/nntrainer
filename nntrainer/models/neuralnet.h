@@ -187,8 +187,7 @@ public:
    * @param[in] label List of Label Tensors for the model
    * @param[in] iteration Iteration Number for the optimizer
    */
-  void backwarding(sharedConstTensors input, sharedConstTensors label,
-                   int iteration);
+  void backwarding(sharedConstTensors label, int iteration);
 
   /**
    * @brief     save model and training parameters into file

@@ -336,7 +336,7 @@ void GraphWatcher::compareFor(const std::string &reference,
       it->forward(iteration);
     }
 
-    nn.getNetworkGraph().backwarding(label, iteration);
+    nn.backwarding(label, iteration);
 
     for (auto it = nodes.rbegin(); it != nodes.rend() - 1; it++)
       it->backward(iteration);

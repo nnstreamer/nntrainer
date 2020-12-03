@@ -168,8 +168,6 @@ protected:
     EXPECT_EQ(status, ML_ERROR_NONE);
 
     EXPECT_NO_THROW(opt->addOptimizerVariable(layer.getWeightsRef()));
-    // status = layer.setOptimizer(op);
-    // EXPECT_EQ(status, ML_ERROR_NONE);
 
     return status;
   }

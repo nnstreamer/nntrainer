@@ -166,6 +166,7 @@ public:
    */
   void addOptimizerVariable(const TensorDim &dim) {
     opt_vars.emplace_back(dim);
+    // TODO: Move this out when an optimizer does not initialize with 0.
     opt_vars.back().setZero();
   }
 

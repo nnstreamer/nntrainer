@@ -191,19 +191,26 @@ public:
   sharedConstTensors forwarding(sharedConstTensors input);
 
   /**
-   * @brief     backwarding network graph
-   * @param[in] input data
-   * @param[in] iteration
-   */
-  void backwarding(sharedConstTensors input, int iteration);
-
-  void setOptimizer(std::shared_ptr<Optimizer> opt) { optimizer = opt; }
-
-  /**
    * @brief     getter of ordered graph
    * @retval    ordered LayerNode list
    */
-  std::vector<LayerNode> getSorted() { return Sorted; }
+  const std::vector<LayerNode> &getSorted() { return Sorted; }
+
+  /**
+   * @brief     get begin iterator for the backwarding
+   * @retval    const reverse iterator marking the begin of backwarding
+   */
+  std::vector<LayerNode>::const_reverse_iterator getBackwardingBeginIter() {
+    return Sorted.crbegin();
+  }
+
+  /**
+   * @brief     get end iterator for the backwarding
+   * @retval    const reverse iterator marking the end of backwarding
+   */
+  std::vector<LayerNode>::const_reverse_iterator getBackwardingEndIter() {
+    return Sorted.crend() - skip_non_trainable_layers;
+  }
 
   /**
    * @brief     getter of output dimension of graph
@@ -241,8 +248,6 @@ private:
   unsigned int
     skip_non_trainable_layers; /**< denotes the number of non-trainable layers
                                   at the start of the graph */
-
-  std::shared_ptr<Optimizer> optimizer;
 
   /**
    * @brief Calculate the number of non-trainable layers at the start

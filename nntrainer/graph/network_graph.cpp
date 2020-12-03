@@ -528,30 +528,6 @@ sharedConstTensors NetworkGraph::forwarding(sharedConstTensors input) {
   return out;
 }
 
-void NetworkGraph::backwarding(sharedConstTensors output, int iteration) {
-
-  /** First layer in Sorted must a INPUT layer */
-  for (unsigned int i = Sorted.size() - 1; i > skip_non_trainable_layers + 1;
-       i--) {
-    LayerNode &layer_node = Sorted[i];
-    if (istrequal(layer_node.layer->getType(), nntrainer::LossLayer::type)) {
-      layer_node.layer->backwarding(output);
-    } else {
-      layer_node.layer->backwarding();
-    }
-    optimizer->apply_gradients(layer_node.layer->getWeightsRef(), iteration);
-  }
-
-  /** The last trainable layer need not calculate the derivatives */
-  // Order is matter here. 1. calcGradient 2.Derivative & Gradient
-  Sorted[skip_non_trainable_layers + 1].layer->calcGradient();
-#ifdef ENABLE_TEST
-  Sorted[skip_non_trainable_layers + 1].layer->calcDerivative();
-#endif
-  optimizer->apply_gradients(
-    Sorted[skip_non_trainable_layers + 1].layer->getWeightsRef(), iteration);
-}
-
 std::vector<TensorDim> NetworkGraph::getInputDimension() {
   return Sorted[0].layer->getInputDimension();
 }

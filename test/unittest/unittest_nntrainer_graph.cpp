@@ -107,7 +107,8 @@ TEST_P(nntrainerGraphTest, loadConfig) {
   for (int i = 0; i < batch; ++i)
     output.setValue(i, 0, 0, 3, 1.0);
 
-  NN.backwarding({MAKE_SHARED_TENSOR(input)}, {MAKE_SHARED_TENSOR(output)}, 1);
+  NN.forwarding({MAKE_SHARED_TENSOR(input)}, {MAKE_SHARED_TENSOR(output)});
+  NN.backwarding({MAKE_SHARED_TENSOR(output)}, 1);
 }
 
 static IniSection nw_base("model", "Type = NeuralNetwork | "

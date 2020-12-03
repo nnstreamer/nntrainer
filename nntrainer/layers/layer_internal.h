@@ -133,6 +133,7 @@ public:
   /**
    * @brief     Apply the gradient for the layer
    * @param[in] iteration Iteration value for the Optimizer
+   * @note      This function is no-op if optimizer is nullptr
    */
   virtual void applyGradient(unsigned int iteration,
                              std::shared_ptr<Optimizer> optimizer) {
