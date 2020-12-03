@@ -24,23 +24,21 @@ namespace nntrainer {
 
 const std::string Adam::type = "adam";
 
+enum AdamParams { wm, wv };
+
 int Adam::initialize(std::vector<Weight> &weight_list, bool set_tensor) {
   int status = ML_ERROR_NONE;
-  weight_mv.clear();
 
   if (set_tensor) {
-    for (auto const &w : weight_list) {
+    for (auto &w : weight_list) {
+      w.clearOptimizerVariables();
+
       // TODO: only trainable weights must be sent to optimizer
       if (!w.getTrainable())
         continue;
 
-      Tensor m = Tensor(w.getDim());
-      m.setZero();
-      Tensor v = Tensor(w.getDim());
-      v.setZero();
-      std::pair<Tensor, Tensor> p =
-        std::pair<Tensor, Tensor>(std::move(m), std::move(v));
-      weight_mv.push_back(std::move(p));
+      w.addOptimizerVariable(w.getDim()); /** Add wm */
+      w.addOptimizerVariable(w.getDim()); /** Add wv */
     }
   }
   return status;
@@ -68,8 +66,8 @@ void Adam::apply_gradient(Weight &weight, int tensor_idx, double updated_lr,
   // This is not deleted intentionally.
   // float biasCorrection1 = 1 - pow(beta1, iteration + 1);
   // float biasCorrection2 = 1 - pow(beta2, iteration + 1);
-  // Tensor &wm = weight_mv[idx].first;
-  // Tensor &wv = weight_mv[idx].second;
+  // Tensor &wm = weight.getOptimizerVariableRef(AdamParams::wm);
+  // Tensor &wv = weight.getOptimizerVariableRef(AdamParams::wv);
 
   // wm.multiply_i(beta1);
   // wm.add_i(x_grad, 1.0f - beta1);
@@ -86,8 +84,8 @@ void Adam::apply_gradient(Weight &weight, int tensor_idx, double updated_lr,
     return 1 / (sqrtDouble(f) + this->epsilon);
   };
 
-  Tensor &wm = weight_mv[tensor_idx].first;
-  Tensor &wv = weight_mv[tensor_idx].second;
+  Tensor &wm = weight.getOptimizerVariableRef(AdamParams::wm);
+  Tensor &wv = weight.getOptimizerVariableRef(AdamParams::wv);
 
   wm.multiply_i(beta1);
   wm.add_i(x_grad, 1.0f - beta1);
@@ -121,33 +119,6 @@ void Adam::setProperty(const PropertyType type, const std::string &value) {
   }
 
   throw_status(status);
-}
-
-void Adam::read(std::ifstream &file) {
-  /// @todo need strong exception safety guarantee
-  Optimizer::read(file);
-
-  if (continue_train) {
-    for (auto iter = weight_mv.begin(); iter != weight_mv.end(); iter++) {
-      (*iter).first.read(file);
-      (*iter).second.read(file);
-    }
-  } else {
-    size_t total_size = 0;
-    for (auto iter = weight_mv.begin(); iter != weight_mv.end(); iter++)
-      total_size += (*iter).first.getSize() + (*iter).second.getSize();
-
-    file.seekg(total_size, std::ifstream::cur);
-  }
-}
-
-void Adam::save(std::ofstream &file) {
-  Optimizer::save(file);
-
-  for (auto iter = weight_mv.begin(); iter != weight_mv.end(); iter++) {
-    (*iter).first.save(file);
-    (*iter).second.save(file);
-  }
 }
 
 } // namespace nntrainer
