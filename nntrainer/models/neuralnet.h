@@ -27,6 +27,9 @@
 #include <map>
 #include <memory>
 #include <vector>
+#ifdef PROFILE
+#include <chrono>
+#endif
 
 #include <activation_layer.h>
 #include <app_context.h>
@@ -354,6 +357,71 @@ public:
     manager.setGradientMemoryOptimization(opt);
   }
 
+/// @todo Make a more common class have this
+/// Maybe appcontext can have this?
+#ifdef PROFILE
+  class Profiler {
+  public:
+    // Designated key.
+    enum { FORWARD = 0 };
+
+    /**
+     * @brief query profile result
+     *
+     * @return std::chrono::time_point<std::chrono::steady_clock> profile result
+     */
+    std::chrono::milliseconds result(const int &key) { return time_taken[key]; }
+
+    /**
+     * @brief start profile
+     *
+     * @param key to record the profile result. Either designated key from enum
+     * or arbitrary key can be used
+     */
+    void start(const int &key) {
+      /// @todo: check if key is being reused with time_taken
+      start_time[key] = std::chrono::steady_clock::now();
+    }
+
+    /**
+     * @brief end profile
+     *
+     * @param key to record the profile result. Either designated key from enum
+     * or arbitrary key can be used
+     */
+    void end(const int &key) {
+      auto end = std::chrono::steady_clock::now();
+      auto iter = start_time.find(key);
+
+      if (iter == start_time.end()) {
+        throw std::invalid_argument("profiler hasn't started with the key");
+      }
+
+      time_taken[key] = std::chrono::duration_cast<std::chrono::milliseconds>(
+        end - iter->second);
+    }
+
+  private:
+    std::unordered_map<int, std::chrono::time_point<std::chrono::steady_clock>>
+      start_time; /**< start_time of the clock */
+    std::unordered_map<int, std::chrono::milliseconds> time_taken;
+  };
+
+public:
+  /**
+   * @brief Get the Profile Result
+   *
+   * @param key key to recorder the profile
+   * @return std::chrono::time_point<std::chrono::steady_clock>
+   */
+  std::chrono::milliseconds getProfileResult(const int &key) {
+    return profiler.result(key);
+  }
+
+private:
+  Profiler profiler;
+#endif
+
 private:
   /**
    * @brief   Print Options when printing layer info
@@ -395,8 +463,8 @@ private:
 
   std::shared_ptr<DataBuffer> data_buffer; /**< Data Buffer to get Input */
 
-  bool continue_train; /**< Continue train from the previous state of optimizer
-   and iterations */
+  bool continue_train; /**< Continue train from the previous state of
+   optimizer and iterations */
 
   bool initialized; /**< Network is initialized */
 

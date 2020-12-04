@@ -392,7 +392,13 @@ sharedConstTensors NeuralNetwork::inference(sharedConstTensors X) {
 
   sharedConstTensors out;
   try {
+#ifdef PROFILE
+    profiler.start(Profiler::FORWARD);
+#endif
     forwarding(X);
+#ifdef PROFILE
+    profiler.end(Profiler::FORWARD);
+#endif
     /** Forward loss layer without label as well */
     std::static_pointer_cast<LossLayer>(model_graph.Sorted.back().layer)
       ->forwarding();
