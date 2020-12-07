@@ -184,6 +184,7 @@ if get_option('enable-android')
     'NDK_APPLICATION_MK': jni_root / 'Application.mk',
     'NDK_LIBS_OUT': jni_build_root / 'libs',
     'NDK_OUT': jni_build_root / 'objs',
+    'ENABLE_PROFILE': get_option('enable-profile') ? 1 : 0,
   }
 
   num_threads = run_command('grep', '-c', '^processor', '/proc/cpuinfo').stdout().strip()
