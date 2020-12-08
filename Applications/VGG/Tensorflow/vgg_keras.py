@@ -5,7 +5,7 @@
 #
 # @file	vgg_keras.py
 # @date	08 Oct 2020
-# @brief	This is VGG Example using Keras
+# @brief	This is VGG16 Example using Keras
 # @see		https://github.com/nnstreamer/nntrainer
 # @author	Jijoong Moon <jijoong.moon@samsung.com>
 # @bug		No known bugs except for NYI items
@@ -41,9 +41,9 @@ np.random.seed(SEED)
 batch_size =128
 Learning = True
 Test = False
-num_epoch = 1500
+num_epoch = 1
 DEBUG = True
-USE_FIT = False
+USE_FIT = True
 
 def save(filename, *data):
     with open(filename, 'ab+') as outfile:
@@ -74,31 +74,27 @@ def datagen(x_data, y_data, batch_size):
 def create_model():
     model = models.Sequential()
     model.add(tf.keras.Input(shape=(32, 32, 3)))
-    model.add(Conv2D(16, (3,3), padding='same', activation='relu', bias_initializer=initializers.Zeros()))
-    model.add(Conv2D(16, (3,3), padding='same', activation='relu', bias_initializer=initializers.Zeros()))
-    model.add(MaxPooling2D(pool_size=(2,2)))
-    model.add(Conv2D(32, (3,3), padding='same', activation='relu', bias_initializer=initializers.Zeros()))
-    model.add(Conv2D(32, (3,3), padding='same', activation='relu', bias_initializer=initializers.Zeros()))
-    model.add(MaxPooling2D(pool_size=(2,2)))
-    model.add(Conv2D(64, (3,3), padding='same', activation='relu', bias_initializer=initializers.Zeros()))
     model.add(Conv2D(64, (3,3), padding='same', activation='relu', bias_initializer=initializers.Zeros()))
     model.add(Conv2D(64, (3,3), padding='same', activation='relu', bias_initializer=initializers.Zeros()))
     model.add(MaxPooling2D(pool_size=(2,2)))
     model.add(Conv2D(128, (3,3), padding='same', activation='relu', bias_initializer=initializers.Zeros()))
     model.add(Conv2D(128, (3,3), padding='same', activation='relu', bias_initializer=initializers.Zeros()))
-    model.add(Conv2D(128, (3,3), padding='same', activation='relu', bias_initializer=initializers.Zeros()))
     model.add(MaxPooling2D(pool_size=(2,2)))
-    model.add(Conv2D(128, (3,3), padding='same', activation='relu', bias_initializer=initializers.Zeros()))
-    model.add(Conv2D(128, (3,3), padding='same', activation='relu', bias_initializer=initializers.Zeros()))
-    model.add(Conv2D(128, (3,3), padding='same', bias_initializer=initializers.Zeros()))
-    model.add(BatchNormalization())
-    model.add(Activation('relu'))
+    model.add(Conv2D(256, (3,3), padding='same', activation='relu', bias_initializer=initializers.Zeros()))
+    model.add(Conv2D(256, (3,3), padding='same', activation='relu', bias_initializer=initializers.Zeros()))
+    model.add(Conv2D(256, (3,3), padding='same', activation='relu', bias_initializer=initializers.Zeros()))
     model.add(MaxPooling2D(pool_size=(2,2)))
+    model.add(Conv2D(512, (3,3), padding='same', activation='relu', bias_initializer=initializers.Zeros()))
+    model.add(Conv2D(512, (3,3), padding='same', activation='relu', bias_initializer=initializers.Zeros()))
+    model.add(Conv2D(512, (3,3), padding='same', activation='relu', bias_initializer=initializers.Zeros()))
+    model.add(MaxPooling2D(pool_size=(2,2)))
+    model.add(Conv2D(512, (3,3), padding='same', activation='relu', bias_initializer=initializers.Zeros()))
+    model.add(Conv2D(512, (3,3), padding='same', activation='relu', bias_initializer=initializers.Zeros()))
+    model.add(Conv2D(512, (3,3), padding='same', activation='relu', bias_initializer=initializers.Zeros()))
+    model.add(MaxPooling2D(pool_size=(2,2)))
+
     model.add(Flatten())
-    model.add(layers.Dense(128, bias_initializer=initializers.Zeros()))
-    model.add(BatchNormalization())
-    model.add(Activation('relu'))
-    model.add(layers.Dense(128, bias_initializer=initializers.Zeros()))
+    model.add(layers.Dense(256, bias_initializer=initializers.Zeros()))
     model.add(BatchNormalization())
     model.add(Activation('relu'))
     model.add(layers.Dense(100, bias_initializer=initializers.Zeros()))
