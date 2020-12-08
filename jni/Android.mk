@@ -45,18 +45,42 @@ TENSORFLOW_ROOT := $(NDK_LIBS_OUT)/tensorflow-$(TENSORFLOW_VERSION)/tensorflow-l
 
 $(info $(shell ($(NNTRAINER_JNI_ROOT)/prepare_tflite.sh $(TENSORFLOW_VERSION) $(NDK_LIBS_OUT))))
 
-endif #TENSORFLOW_ROOT
 endif #MAKECMDGOALS
+endif #TENSORFLOW_ROOT
 
 LOCAL_MODULE := tensorflow-lite
 LOCAL_SRC_FILES := $(TENSORFLOW_ROOT)/lib/arm64/libtensorflow-lite.a
-LOCAL_C_INCLUDES := $(TENSORFLOW_ROOT)/include
+LOCAL_EXPORT_C_INCLUDES := $(TENSORFLOW_ROOT)/include
 TFLITE_INCLUDES := $(LOCAL_C_INCLUDES)
 
 include $(PREBUILT_STATIC_LIBRARY)
 
-include $(CLEAR_VARS)
 endif #ENABLE_TFLITE_BACKBONE
+
+
+ifeq ($(ENABLE_BLAS), 1)
+include $(CLEAR_VARS)
+
+## prepare openblas if nothing present
+ifndef OPENBLAS_ROOT
+ifneq ($(MAKECMDGOALS),clean)
+
+OPENBLAS_ROOT := $(NDK_LIBS_OUT)/openblas
+$(info $(shell $(NNTRAINER_JNI_ROOT)/prepare_openblas.sh $(NDK_LIBS_OUT)))
+
+endif #MAKECMDGOALS
+endif #OPENBLAS_ROOT
+
+LOCAL_MODULE := openblas
+LOCAL_SRC_FILES := $(OPENBLAS_ROOT)/lib/libopenblas.a
+LOCAL_EXPORT_C_INCLUDES := $(OPENBLAS_ROOT)/include
+LOCAL_EXPORT_CFLAGS += -DUSE_BLAS=1
+
+include $(PREBUILT_STATIC_LIBRARY)
+endif #ENABLE_BLAS
+
+
+include $(CLEAR_VARS)
 
 NNTRAINER_SRCS := $(NNTRAINER_ROOT)/nntrainer/models/neuralnet.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/models/model_loader.cpp \
@@ -129,7 +153,7 @@ LOCAL_C_INCLUDES    := $(NNTRAINER_INCLUDES) $(INIPARSER_INCLUDES)
 
 # Add tflite backbone building
 ifeq ($(ENABLE_TFLITE_BACKBONE),1)
-LOCAL_STATIC_LIBRARIES := tensorflow-lite
+LOCAL_STATIC_LIBRARIES += tensorflow-lite
 LOCAL_C_INCLUDES += $(TFLITE_INCLUDES)
 LOCAL_CFLAGS += -DENABLE_TFLITE_BACKBONE=1
 endif #ENABLE_TFLITE_BACKBONE
@@ -138,6 +162,10 @@ endif #ENABLE_TFLITE_BACKBONE
 ifeq ($(ENABLE_PROFILE), 1)
 LOCAL_CFLAGS += -DPROFILE=1
 endif #ENABLE_PROFILE
+
+ifeq ($(ENABLE_BLAS), 1)
+LOCAL_STATIC_LIBRARIES += openblas
+endif #ENABLE_BLAS
 
 include $(BUILD_SHARED_LIBRARY)
 

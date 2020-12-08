@@ -176,7 +176,7 @@ if get_option('enable-android')
 
   ndk_build = find_program('ndk-build', required : true)
   jni_root = meson.current_source_dir() / 'jni'
-  jni_build_root = meson.build_root() / 'jni'
+  jni_build_root = meson.current_build_dir() / 'jni'
 
   ndk_args = {
     'NDK_PROJECT_PATH': jni_root,
@@ -185,6 +185,7 @@ if get_option('enable-android')
     'NDK_LIBS_OUT': jni_build_root / 'libs',
     'NDK_OUT': jni_build_root / 'objs',
     'ENABLE_PROFILE': get_option('enable-profile') ? 1 : 0,
+    'ENABLE_BLAS': get_option('enable-blas') ? 1 : 0,
   }
 
   num_threads = run_command('grep', '-c', '^processor', '/proc/cpuinfo').stdout().strip()
