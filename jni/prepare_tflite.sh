@@ -15,7 +15,7 @@ if [ ! -d "tensorflow-${VERSION}" ]; then
     if [ ! -f "tensorflow-lite-${VERSION}.tar.xz" ]; then
       echo "[TENSORFLOW-LITE] Download tensorflow-${VERSION}"
       URL="https://github.com/nnstreamer/nnstreamer-android-resource/raw/master/external/tensorflow-lite-${VERSION}.tar.xz"
-      if ! wget ${URL} ; then
+      if ! wget -q ${URL} ; then
         echo "[TENSORFLOW-LITE] There was an error while downloading tflite, check if you have specified right version"
         exit $?
       fi
