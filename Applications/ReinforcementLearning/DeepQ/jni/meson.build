@@ -3,7 +3,7 @@ env_dir='../../Environment'
 
 deepq_sources = [
   'main.cpp',
-  join_paths(env_dir, 'CartPole/cartpole.cpp')
+  env_dir / 'CartPole/cartpole.cpp'
 ]
 
 deepq_inc = [
@@ -32,4 +32,4 @@ e = executable('nntrainer_deepq',
   install_dir: application_install_dir
 )
 
-test('app_DeepQ', e, args: [join_paths(res_path, 'DeepQ.ini')], timeout: 60)
+test('app_DeepQ', e, args: [res_path / 'DeepQ.ini'], timeout: 60)

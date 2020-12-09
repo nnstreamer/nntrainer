@@ -4,5 +4,5 @@ util_sources = [
 ]
 
 foreach s : util_sources
-  nntrainer_sources += join_paths(meson.current_source_dir(), s)
+  nntrainer_sources += meson.current_source_dir() / s
 endforeach

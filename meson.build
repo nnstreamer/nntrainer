@@ -69,11 +69,11 @@ endforeach
 
 # Set install path
 nntrainer_prefix = get_option('prefix')
-nntrainer_libdir = join_paths(nntrainer_prefix, get_option('libdir'))
-nntrainer_bindir = join_paths(nntrainer_prefix, get_option('bindir'))
-nntrainer_includedir = join_paths(nntrainer_prefix, get_option('includedir'))
+nntrainer_libdir = nntrainer_prefix / get_option('libdir')
+nntrainer_bindir = nntrainer_prefix / get_option('bindir')
+nntrainer_includedir = nntrainer_prefix / get_option('includedir')
 nntrainer_inidir = get_option('sysconfdir')
-application_install_dir = join_paths(nntrainer_bindir, 'applications')
+application_install_dir = nntrainer_bindir / 'applications'
 
 # Set default configuration
 nntrainer_conf = configuration_data()
@@ -142,7 +142,7 @@ gtest_dep = dependency('gtest', required: false)
 
 # Install .pc
 configure_file(input: 'nntrainer.pc.in', output: 'nntrainer.pc',
-  install_dir: join_paths(nntrainer_libdir, 'pkgconfig'),
+  install_dir: nntrainer_libdir / 'pkgconfig',
   configuration: nntrainer_conf
 )
 

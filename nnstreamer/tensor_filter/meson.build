@@ -2,7 +2,7 @@ filter_sub_nntrainer_sources = ['tensor_filter_nntrainer.cc']
 
 nnstreamer_filter_nntrainer_sources = []
 foreach s : filter_sub_nntrainer_sources
-  nnstreamer_filter_nntrainer_sources += join_paths(meson.current_source_dir(), s)
+  nnstreamer_filter_nntrainer_sources += meson.current_source_dir() / s
 endforeach
 
 # TODO: remove gstreamer dependency by updating nnstreamer_plugin_api.h
@@ -15,9 +15,9 @@ nntrainer_prefix = get_option('prefix')
 
 nnstreamer_filter_nntrainer_deps = [glib_dep, gmodule_dep, gst_dep, nntrainer_dep, nnstreamer_dep]
 
-nnstreamer_libdir = join_paths(nntrainer_prefix, get_option('libdir'))
-subplugin_install_prefix = join_paths(nnstreamer_libdir, 'nnstreamer')
-filter_subplugin_install_dir = join_paths(subplugin_install_prefix, 'filters')
+nnstreamer_libdir = nntrainer_prefix / get_option('libdir')
+subplugin_install_prefix = nnstreamer_libdir / 'nnstreamer'
+filter_subplugin_install_dir = subplugin_install_prefix / 'filters'
 
 shared_library('nnstreamer_filter_nntrainer',
   nnstreamer_filter_nntrainer_sources,

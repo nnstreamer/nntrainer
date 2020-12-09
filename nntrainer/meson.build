@@ -47,7 +47,7 @@ nntrainer_common_sources = [
 ]
 
 foreach s : nntrainer_common_sources
-  nntrainer_sources += join_paths(meson.current_source_dir(), s)
+  nntrainer_sources += meson.current_source_dir() / s
 endforeach
 
 # Build libraries

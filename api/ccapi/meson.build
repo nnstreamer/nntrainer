@@ -10,14 +10,14 @@ else
 endif
 
 ccapi_src = []
-ccapi_src += join_paths(meson.current_source_dir(), 'src', 'factory.cpp')
+ccapi_src += meson.current_source_dir() / 'src' / 'factory.cpp'
 
 ccapi_headers = []
-ccapi_headers += join_paths(meson.current_source_dir(), 'include', 'dataset.h')
-ccapi_headers += join_paths(meson.current_source_dir(), 'include', 'layer.h')
-ccapi_headers += join_paths(meson.current_source_dir(), 'include', 'model.h')
-ccapi_headers += join_paths(meson.current_source_dir(), 'include', 'optimizer.h')
-ccapi_headers += join_paths(meson.current_source_dir(), '..', 'nntrainer-api-common.h')
+ccapi_headers += meson.current_source_dir() / 'include' / 'dataset.h'
+ccapi_headers += meson.current_source_dir() / 'include' / 'layer.h'
+ccapi_headers += meson.current_source_dir() / 'include' / 'model.h'
+ccapi_headers += meson.current_source_dir() / 'include' / 'optimizer.h'
+ccapi_headers += meson.current_source_dir() / '..' / 'nntrainer-api-common.h'
 
 ccapi_deps = [
   nntrainer_dep
@@ -45,7 +45,7 @@ nntrainer_ccapi_dep = declare_dependency(link_with: nntrainer_ccapi_lib,
 )
 
 configure_file(input: 'ccapi-nntrainer.pc.in', output: 'ccapi-nntrainer.pc',
-  install_dir: join_paths(nntrainer_libdir, 'pkgconfig'),
+  install_dir: nntrainer_libdir / 'pkgconfig',
   configuration: nntrainer_conf
 )
 

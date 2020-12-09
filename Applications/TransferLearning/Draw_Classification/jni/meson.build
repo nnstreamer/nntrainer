@@ -1,5 +1,5 @@
 build_root = meson.build_root()
-res_path = join_paths(meson.current_source_dir(), '..', 'res')
+res_path = meson.current_source_dir() / '..' / 'res'
 
 gst_api_version = '1.0'
 glib_dep = dependency('glib-2.0')

@@ -10,16 +10,16 @@ else
 endif
 
 capi_src = []
-capi_src += join_paths(meson.current_source_dir(), 'src','nntrainer.cpp')
-capi_src += join_paths(meson.current_source_dir(), 'src','nntrainer_util.cpp')
+capi_src += meson.current_source_dir() / 'src' / 'nntrainer.cpp'
+capi_src += meson.current_source_dir() / 'src' / 'nntrainer_util.cpp'
 
 if get_option('enable-tizen') and get_option('enable-tizen-feature-check')
-  capi_src += join_paths(meson.current_source_dir(), 'src','nntrainer-capi-tizen-feature-check.cpp')
+  capi_src += meson.current_source_dir() / 'src' / 'nntrainer-capi-tizen-feature-check.cpp'
 endif
 
 capi_headers = []
-capi_headers += join_paths(meson.current_source_dir(), 'include', 'nntrainer.h')
-capi_headers += join_paths(meson.current_source_dir(), '..', 'nntrainer-api-common.h')
+capi_headers += meson.current_source_dir() / 'include' / 'nntrainer.h'
+capi_headers += meson.current_source_dir() / '..' / 'nntrainer-api-common.h'
 
 capi_deps = [
   nntrainer_dep
@@ -59,7 +59,7 @@ nntrainer_capi_dep = declare_dependency(link_with: nntrainer_capi_lib,
 )
 
 configure_file(input: 'capi-nntrainer.pc.in', output: 'capi-nntrainer.pc',
-  install_dir: join_paths(nntrainer_libdir, 'pkgconfig'),
+  install_dir: nntrainer_libdir / 'pkgconfig',
   configuration: nntrainer_conf
 )
 

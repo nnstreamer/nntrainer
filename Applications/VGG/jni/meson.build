@@ -1,5 +1,5 @@
 build_root = meson.build_root()
-res_path = join_paths(meson.current_source_dir(), '..', 'res')
+res_path = meson.current_source_dir() / '..' / 'res'
 mnist_sources = [
   'main.cpp'
 ]

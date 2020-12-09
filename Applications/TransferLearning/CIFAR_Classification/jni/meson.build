@@ -1,5 +1,5 @@
 build_root = meson.build_root()
-res_path = join_paths(meson.current_source_dir(), '..', 'res')
+res_path = meson.current_source_dir() / '..' / 'res'
 
 classification_sources = [
   'main.cpp'
@@ -13,8 +13,8 @@ e = executable('nntrainer_classification',
   install_dir: application_install_dir
 )
 
-ini_in_path = join_paths(res_path, 'Classification.ini')
-ini_out_path = join_paths(build_root, 'classification.ini')
+ini_in_path = res_path / 'Classification.ini'
+ini_out_path = build_root / 'classification.ini'
 
 # change epochs to 5
 run_command('cp', ini_in_path, ini_out_path)
@@ -34,8 +34,8 @@ e = executable('nntrainer_classification_func',
   install_dir: application_install_dir
 )
 
-ini_in_path = join_paths(res_path, 'Classification_func.ini')
-ini_out_path = join_paths(build_root, 'classification_func.ini')
+ini_in_path = res_path / 'Classification_func.ini'
+ini_out_path = build_root / 'classification_func.ini'
 
 # change epochs to 5
 run_command('cp', ini_in_path, ini_out_path)
