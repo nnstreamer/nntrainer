@@ -14,20 +14,28 @@
 #ifndef __PROFILER_H__
 #define __PROFILER_H__
 
+namespace nntrainer {
+namespace profile {
+typedef enum {
+  NN_FORWARD = 0 /**< Neuralnet single inference without loss calculation */,
+  TEMP = 999 /**< Temporary event */
+} EVENT;
+}
+} // namespace nntrainer
 #ifndef PROFILE
 
-#define PROFILE_START(event_key)
-#define PROFILE_END(event_key)
+#define START_PROFILE(event_key)
+#define END_PROFILE(event_key)
 
 #else
 
-#define PROFILE_START(event_key)                         \
+#define START_PROFILE(event_key)                         \
   do {                                                   \
     auto &prof = nntrainer::profile::Profiler::Global(); \
     prof.start(event_key);                               \
   } while (0);
 
-#define PROFILE_END(event_key)                           \
+#define END_PROFILE(event_key)                           \
   do {                                                   \
     auto &prof = nntrainer::profile::Profiler::Global(); \
     prof.end(event_key);                                 \
@@ -43,12 +51,6 @@
 
 namespace nntrainer {
 namespace profile {
-
-typedef enum {
-  NN_FORWARD = 0 /**< Neuralnet single inference without loss calculation */,
-  TEMP = 999 /**< Temporary event */
-} EVENT;
-
 /**
  * @brief get string representation of event
  *

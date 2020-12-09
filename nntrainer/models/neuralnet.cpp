@@ -32,6 +32,7 @@
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <parse_util.h>
+#include <profiler.h>
 #include <unordered_set>
 #include <util_func.h>
 
@@ -273,7 +274,10 @@ sharedConstTensors NeuralNetwork::forwarding(sharedConstTensors input,
   if (input[0]->getDim().batch() > batch_size)
     throw std::logic_error("Error: mismatch in batchsize for data and model.");
 
+  START_PROFILE(profile::NN_FORWARD);
   X = forwarding(input);
+  END_PROFILE(profile::NN_FORWARD);
+
   X = std::static_pointer_cast<LossLayer>(model_graph.Sorted.back().layer)
         ->forwarding(X, label);
 
