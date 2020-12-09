@@ -1,4 +1,4 @@
-res_path = join_paths(meson.current_source_dir(), '..', 'res')
+res_path = meson.current_source_dir() / '..' / 'res'
 
 knn_sources = [
   'main_sample.cpp'

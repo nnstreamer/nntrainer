@@ -12,15 +12,15 @@ unzip_target = [
   'unittest_models.tar.gz'
 ]
 
-src_path = join_paths(meson.source_root(), 'packaging')
+src_path = meson.source_root() / 'packaging'
 dest_path = meson.build_root()
 
 foreach target: unzip_target
-  _src_path = join_paths(src_path, target)
+  _src_path = src_path / target
   run_command(['tar', 'xzf', _src_path, '-C', dest_path])
 endforeach
 
-run_command(['cp', join_paths(src_path, 'label.dat'), join_paths(dest_path, 'label.dat')])
+run_command(['cp', src_path / 'label.dat', dest_path / 'label.dat'])
 
 test_target = [
   'unittest_nntrainer_activations',
