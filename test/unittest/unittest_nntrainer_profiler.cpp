@@ -22,22 +22,24 @@ using namespace nntrainer::profile;
 
 class MockProfileListener : public ProfileListener {
 public:
-  MockProfileListener() : hit(false){};
+  MockProfileListener(Profiler *profiler, std::vector<int> events = {}) :
+    ProfileListener(profiler, events),
+    hit(false){};
 
   ~MockProfileListener(){};
 
-  void onNotify(const EVENT event,
+  void onNotify(const int event,
                 const std::chrono::milliseconds &value) override {
     hit = true;
   }
 
-  void reset(const EVENT event) override { hit = false; }
+  void reset(const int event) override { hit = false; }
 
   void report(std::ostream &out) const override {
     out << (hit ? "hit" : "no hit");
   }
 
-  const std::chrono::milliseconds result(const EVENT event) override {
+  const std::chrono::milliseconds result(const int event) override {
     return std::chrono::milliseconds();
   };
 
@@ -45,16 +47,34 @@ private:
   bool hit; /**< check if onNotify has been called */
 };
 
+TEST(GenericProfileListener, listenerBasicScenario_p) {
+
+  GenericProfileListener listener{nullptr};
+
+  /// assuming library-side code is calling onNotify
+  listener.onNotify(EVENT::NN_FORWARD, std::chrono::milliseconds{10});
+  listener.onNotify(EVENT::NN_FORWARD, std::chrono::milliseconds{100});
+  listener.onNotify(EVENT::NN_FORWARD, std::chrono::milliseconds{50});
+
+  auto result = listener.result(EVENT::NN_FORWARD);
+  EXPECT_EQ(result, std::chrono::milliseconds{50});
+
+  std::cout << listener;
+}
+
+TEST(GenericProfileListener, noResultButQueryResult_n) {
+  GenericProfileListener listener{nullptr};
+  EXPECT_THROW(listener.result(EVENT::NN_FORWARD), std::invalid_argument);
+}
+
 TEST(Profiler, profilePositiveTests_p) {
   /// Initiate and run Profile
   Profiler prof;
 
   /// subscribe listener
-  std::unique_ptr<ProfileListener> all_listener(new MockProfileListener);
-  std::unique_ptr<ProfileListener> event_listener(new MockProfileListener);
-
-  prof.subscribe(all_listener.get());
-  prof.subscribe(event_listener.get(), {EVENT::NN_FORWARD});
+  std::unique_ptr<ProfileListener> all_listener(new MockProfileListener{&prof});
+  std::unique_ptr<ProfileListener> event_listener(
+    new MockProfileListener{&prof, {EVENT::NN_FORWARD}});
 
   /// measure
   prof.start(EVENT::NN_FORWARD);
@@ -86,32 +106,72 @@ TEST(Profiler, profilePositiveTests_p) {
     event_listener->report(ss);
     EXPECT_EQ(ss.str(), "no hit");
   }
+
+  /// unsubscribe event_listener
+  event_listener->reset(EVENT::NN_FORWARD);
+  prof.unsubscribe(event_listener.get());
+  prof.start(EVENT::NN_FORWARD);
+  prof.end(EVENT::NN_FORWARD);
+
+  {
+    std::stringstream ss;
+    event_listener->report(ss);
+    EXPECT_EQ(ss.str(), "no hit");
+  }
 }
 
 TEST(Profiler, cannotStartTwice_n) {
   Profiler prof;
   prof.start(EVENT::NN_FORWARD);
 
+#ifdef DEBUG
   EXPECT_THROW(prof.start(EVENT::NN_FORWARD), std::invalid_argument);
+#endif
+}
+
+TEST(Profiler, endThatNeverStarted_n) {
+  Profiler prof;
+#ifdef DEBUG
+  EXPECT_THROW(prof.end(EVENT::NN_FORWARD), std::invalid_argument);
+#endif
 }
 
 TEST(Profiler, cannotEndTwice_n) {
   Profiler prof;
+  prof.start(EVENT::NN_FORWARD);
   prof.end(EVENT::NN_FORWARD);
 
+#ifdef DEBUG
   EXPECT_THROW(prof.end(EVENT::NN_FORWARD), std::invalid_argument);
+#endif
 }
 
 TEST(Profiler, subscribeNullListener_n) {
   Profiler prof;
 
-  prof.subscribe(nullptr);
+  EXPECT_THROW(prof.subscribe(nullptr), std::invalid_argument);
 }
 
 TEST(Profiler, subscribeNullListener2_n) {
   Profiler prof;
 
-  prof.subscribe(nullptr, {EVENT::NN_FORWARD});
+  EXPECT_THROW(prof.subscribe(nullptr, {EVENT::NN_FORWARD}),
+               std::invalid_argument);
+}
+
+TEST(Profiler, subscribeAllTwice_n) {
+  Profiler prof;
+  std::unique_ptr<ProfileListener> all_listener(new MockProfileListener{&prof});
+
+  EXPECT_THROW(prof.subscribe(all_listener.get()), std::invalid_argument);
+}
+
+TEST(Profiler, subscribePartialTwice_n) {
+  Profiler prof;
+  std::unique_ptr<ProfileListener> all_listener(new MockProfileListener{&prof});
+
+  EXPECT_THROW(prof.subscribe(all_listener.get(), {EVENT::NN_FORWARD}),
+               std::invalid_argument);
 }
 
 /**

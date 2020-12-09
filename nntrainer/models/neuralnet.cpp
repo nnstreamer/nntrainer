@@ -273,11 +273,7 @@ sharedConstTensors NeuralNetwork::forwarding(sharedConstTensors input,
   sharedConstTensors X;
   if (input[0]->getDim().batch() > batch_size)
     throw std::logic_error("Error: mismatch in batchsize for data and model.");
-
-  START_PROFILE(profile::NN_FORWARD);
   X = forwarding(input);
-  END_PROFILE(profile::NN_FORWARD);
-
   X = std::static_pointer_cast<LossLayer>(model_graph.Sorted.back().layer)
         ->forwarding(X, label);
 
@@ -417,7 +413,9 @@ sharedConstTensors NeuralNetwork::inference(sharedConstTensors X) {
 
   sharedConstTensors out;
   try {
+    START_PROFILE(profile::NN_FORWARD);
     forwarding(X);
+    END_PROFILE(profile::NN_FORWARD);
     /** Forward loss layer without label as well */
     std::static_pointer_cast<LossLayer>(model_graph.Sorted.back().layer)
       ->forwarding();
