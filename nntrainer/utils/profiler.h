@@ -10,18 +10,8 @@
  * @bug    No known bugs except for NYI items
  *
  */
-
 #ifndef __PROFILER_H__
 #define __PROFILER_H__
-
-namespace nntrainer {
-namespace profile {
-typedef enum {
-  NN_FORWARD = 0 /**< Neuralnet single inference without loss calculation */,
-  TEMP = 999 /**< Temporary event */
-} EVENT;
-}
-} // namespace nntrainer
 #ifndef PROFILE
 
 #define START_PROFILE(event_key)
@@ -44,20 +34,29 @@ typedef enum {
 #endif /** PROFILE */
 
 #include <chrono>
+#include <future>
 #include <iostream>
+#include <mutex>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
-
 namespace nntrainer {
 namespace profile {
+
+typedef enum {
+  NN_FORWARD = 0 /**< Neuralnet single inference without loss calculation */,
+  TEMP = 999 /**< Temporary event */
+} EVENT;
+
 /**
  * @brief get string representation of event
  *
  * @return std::string name
  */
-std::string event_to_str(const EVENT event);
+std::string event_to_str(const int event);
 
+class Profiler;
 /**
  * @brief Generic profile listener class to attach to a profiler,
  * this can be inherited to create a custom profile listener
@@ -65,10 +64,19 @@ std::string event_to_str(const EVENT event);
 class ProfileListener {
 public:
   /**
+   * @brief Construct a new Profile Listener object
+   *
+   * @param profiler_ profiler that this listener is bound to. Unsubscribe will
+   * be called when destruction
+   * @param events events for this profiler to listen to
+   */
+  ProfileListener(Profiler *profiler_, std::vector<int> events);
+
+  /**
    * @brief Destroy the Base Profile Listener object
    *
    */
-  virtual ~ProfileListener() = default;
+  virtual ~ProfileListener() noexcept;
 
   /**
    * @brief A callback function to be called from a profiler
@@ -76,7 +84,7 @@ public:
    * @param event event key to store the result
    * @param value time value from the profiler
    */
-  virtual void onNotify(const EVENT event,
+  virtual void onNotify(const int event,
                         const std::chrono::milliseconds &value) = 0;
 
   /**
@@ -84,7 +92,7 @@ public:
    *
    * @param event event which profiler should notice
    */
-  virtual void reset(const EVENT event) = 0;
+  virtual void reset(const int event) = 0;
 
   /**
    * @brief get the latest result of a event
@@ -92,7 +100,7 @@ public:
    * @param event event to query the result
    * @return const std::chrono::milliseconds
    */
-  virtual const std::chrono::milliseconds result(const EVENT event) = 0;
+  virtual const std::chrono::milliseconds result(const int event) = 0;
 
   /**
    * @brief report the result
@@ -100,10 +108,28 @@ public:
    * @param out outstream object to make a report
    */
   virtual void report(std::ostream &out) const = 0;
+
+private:
+  Profiler *profiler;
 };
 
 class GenericProfileListener : public ProfileListener {
 public:
+  /**
+   * @brief Construct a new GenericProfile Listener object
+   *
+   * @param profiler profiler that this listener is bound to. pass null if empty
+   * @param warmups_ ignore first @a warmups_ records when making report
+   */
+  GenericProfileListener(Profiler *profiler, std::vector<int> events = {},
+                         int warmups_ = 0) :
+    ProfileListener(profiler, events),
+    warmups(warmups_) {
+    for (auto &event : events) {
+      reset(event);
+    }
+  }
+
   /**
    * @brief Destroy the Generic Profile Listener object
    *
@@ -115,25 +141,40 @@ public:
    * std::chrono::milliseconds &value)
    */
   virtual void onNotify(const int event,
-                        const std::chrono::milliseconds &value);
+                        const std::chrono::milliseconds &value) override;
 
   /**
    * @copydoc ProfileListener::reset(const int event)
    */
-  virtual void reset(const int event);
+  virtual void reset(const int event) override;
 
   /**
    * @copydoc ProfileListener::result(const int event)
    */
-  virtual const std::chrono::milliseconds result(const int event);
+  virtual const std::chrono::milliseconds result(const int event) override;
 
   /**
    * @copydoc ProfileListener::report(std::ostream &out)
    */
-  virtual void report(std::ostream &out) const;
+  virtual void report(std::ostream &out) const override;
 
 private:
-  std::unordered_map<int, std::chrono::milliseconds> time_taken;
+  unsigned int warmups;
+
+  static constexpr int CUR = 0;
+  static constexpr int MIN = 1;
+  static constexpr int MAX = 2;
+  static constexpr int SUM = 3;
+  static constexpr int CNT = 4;
+
+  std::unordered_map<int, std::tuple<std::chrono::milliseconds, /** CUR */
+                                     std::chrono::milliseconds, /** MIN */
+                                     std::chrono::milliseconds, /** MAX */
+                                     std::chrono::milliseconds, /** SUM */
+                                     unsigned int /** CNT */>>
+    time_taken;
+
+  decltype(time_taken)::iterator time_iter; /**< iterator for the time_taken */
 };
 
 /**
@@ -169,7 +210,7 @@ public:
    * @param key to record the profile result. Either designated key from enum
    * or arbitrary key can be used
    */
-  void start(const EVENT &key);
+  void start(const int &key);
 
   /**
    * @brief end profile and notify to the listeners
@@ -177,18 +218,26 @@ public:
    * @param key to record the profile result. Either designated key from enum
    * or arbitrary key can be used
    */
-  void end(const EVENT &key);
+  void end(const int &key);
 
   /**
-   * @brief subscribe a listner to the profiler
+   * @brief subscribe a listener to the profiler
    *
-   * @param listener listener to register, listener must outlive lifetime of
-   * profiler
+   * @param listener listener to register, listener must call unsubscribe on
+   * destruction
    * @param events event listeners are subscribing, if empty listener subscribes
    * to all events
+   * @throw std::invalid_argument if listener is already registered
    */
   void subscribe(ProfileListener *listener,
-                 const std::vector<EVENT> &events = {});
+                 const std::vector<int> &events = {});
+
+  /**
+   * @brief unsubscribe a listener from the profiler
+   *
+   * @param listener listener to unsubscribe
+   */
+  void unsubscribe(ProfileListener *listener);
 
 private:
   /**
@@ -197,16 +246,22 @@ private:
    * @param event event to notify
    * @param value measured value from the profiler
    */
-  void notify(const EVENT &event, const std::chrono::milliseconds &value);
+  void notify(const int &event, const std::chrono::milliseconds &value);
 
-  std::vector<ProfileListener *>
-    all_event_listeners; /**< listeners subscribed to all events */
+  std::unordered_set<ProfileListener *>
+    all_registered_listeners; /**< prevent registering listener twice */
 
-  std::unordered_map<EVENT, std::vector<ProfileListener *>>
+  std::unordered_set<ProfileListener *>
+    all_event_listeners; /**< listeners listen to every events */
+
+  std::unordered_map<int, std::unordered_set<ProfileListener *>>
     event_listeners; /**< listeners for an events */
 
-  std::unordered_map<EVENT, std::chrono::time_point<std::chrono::steady_clock>>
+  std::unordered_map<int, std::chrono::time_point<std::chrono::steady_clock>>
     start_time; /**< start_time of the clock */
+
+  std::mutex subscription_mutex; /**< protect sub/unsub routine to
+                                             gaurantee invarient */
 };
 
 } // namespace profile
