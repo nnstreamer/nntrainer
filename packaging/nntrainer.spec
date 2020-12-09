@@ -386,6 +386,7 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %{_includedir}/nntrainer/app_context.h
 %{_includedir}/nntrainer/manager.h
 %{_includedir}/nntrainer/network_graph.h
+%{_includedir}/nntrainer/profiler.h
 %{_libdir}/pkgconfig/nntrainer.pc
 
 %files devel-static
