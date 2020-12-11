@@ -173,7 +173,6 @@ if get_option('enable-nnstreamer-tensor-filter')
 endif
 
 if get_option('enable-android')
-
   ndk_build = find_program('ndk-build', required : true)
   jni_root = meson.current_source_dir() / 'jni'
   jni_build_root = meson.current_build_dir() / 'jni'

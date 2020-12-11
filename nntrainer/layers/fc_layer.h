@@ -37,7 +37,7 @@ public:
   /**
    * @brief     Destructor of Fully Connected Layer
    */
-  ~FullyConnectedLayer(){};
+  virtual ~FullyConnectedLayer(){};
 
   /**
    *  @brief  Move constructor.
@@ -77,7 +77,7 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int initialize(Manager &manager);
+  virtual int initialize(Manager &manager);
 
   /**
    * @copydoc Layer::getType()

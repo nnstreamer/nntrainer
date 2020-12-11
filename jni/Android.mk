@@ -100,6 +100,7 @@ NNTRAINER_SRCS := $(NNTRAINER_ROOT)/nntrainer/models/neuralnet.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/input_layer.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/output_layer.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/fc_layer.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/layers/fc_layer_nnapi.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/bn_layer.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/loss_layer.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/conv2d_layer.cpp \
@@ -141,12 +142,12 @@ INIPARSER_SRCS := $(INIPARSER_ROOT)/src/iniparser.c \
 INIPARSER_INCLUDES := $(INIPARSER_ROOT)/src
 
 LOCAL_ARM_NEON      := true
-LOCAL_CFLAGS        += -pthread -fexceptions
+LOCAL_CFLAGS        += -pthread -fexceptions -DANDROID=1
 LOCAL_CXXFLAGS      += -std=c++14 -frtti -fexceptions
 LOCAL_LDFLAGS       += -fuse-ld=bfd
 LOCAL_MODULE_TAGS   := optional
 
-LOCAL_LDLIBS        := -llog -landroid
+LOCAL_LDLIBS        := -llog -landroid -lneuralnetworks
 
 LOCAL_MODULE        := nntrainer
 LOCAL_SRC_FILES     := $(NNTRAINER_SRCS) $(INIPARSER_SRCS)

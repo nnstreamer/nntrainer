@@ -44,6 +44,10 @@
 #include <nnstreamer_layer.h>
 #endif
 
+#ifdef __ANDROID__
+#include <fc_layer_nnapi.h>
+#endif
+
 namespace nntrainer {
 
 std::mutex factory_mutex;
@@ -103,6 +107,11 @@ static void init_global_context_nntrainer(void) {
 #ifdef ENABLE_TFLITE_BACKBONE
   ac.registerFactory(ml::train::createLayer<TfLiteLayer>, TfLiteLayer::type,
                      LayerType::LAYER_BACKBONE_TFLITE);
+#endif
+
+#ifdef __ANDROID__
+  ac.registerFactory(ml::train::createLayer<FullyConnectedLayer_NNAPI>,
+                     FullyConnectedLayer_NNAPI::type);
 #endif
   ac.registerFactory(AppContext::unknownFactory<ml::train::Layer>, "unknown",
                      LayerType::LAYER_UNKNOWN);

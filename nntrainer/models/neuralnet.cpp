@@ -274,6 +274,10 @@ int NeuralNetwork::initialize() {
 
   manager->initialize();
 
+  for (auto &node : model_graph.Sorted) {
+    node.layer->postInitialize(*manager);
+  }
+
   initialized = true;
   return status;
 }

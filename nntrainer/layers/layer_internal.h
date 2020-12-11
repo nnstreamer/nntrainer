@@ -541,6 +541,15 @@ private:
   virtual int initialize(Manager &manager) = 0;
 
   /**
+   * @brief   After memory assignment is finished. This function is called to do
+   * some work if needed
+   *
+   * @param manager
+   * @return int ML_ERROR_NONE if successfull
+   */
+  virtual int postInitialize(Manager &manager) { return ML_ERROR_NONE; };
+
+  /**
    * @brief Set the input dimension
    * @param[in] d dimension to be set
    */

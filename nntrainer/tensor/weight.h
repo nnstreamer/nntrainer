@@ -54,6 +54,10 @@ class Weight : public Var_Grad {
   friend class FullyConnectedLayer;
   friend class BatchNormalizationLayer;
 
+#ifdef __ANDROID__
+  friend class FullyConnectedLayer_NNAPI;
+#endif
+
   /** Declare opitmizer as friend to get variable/gradient reference */
   friend class Optimizer;
   friend class SGD;
