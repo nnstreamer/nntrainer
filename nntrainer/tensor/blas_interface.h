@@ -36,13 +36,15 @@ enum CBLAS_TRANSPOSE {
 
 namespace nntrainer {
 
-/* TODO : need to scopy, sscal, snrm2 */
 void sscal(const int N, const float alpha, float *X, const int incX);
 
 float snrm2(const int N, const float *X, const int incX);
 
 void scopy(const unsigned int N, const float *X, const int incX, float *Y,
            const int intY);
+
+float sdot(const unsigned int N, const float *X, const unsigned int incX,
+           const float *Y, const unsigned int incY);
 
 void saxpy(const unsigned int N, const float alpha, const float *X,
            const int incX, float *Y, const int incY);

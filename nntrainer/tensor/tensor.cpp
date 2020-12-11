@@ -633,11 +633,37 @@ Tensor &Tensor::dot(Tensor const &m, Tensor &result, bool trans,
   float *rdata = result.getData();
   const float alpha = 1.0f;
   const float beta = 0.0f;
-
   enum CBLAS_TRANSPOSE transA = trans ? CblasTrans : CblasNoTrans;
   enum CBLAS_TRANSPOSE transB = trans_m ? CblasTrans : CblasNoTrans;
-  sgemm(CblasRowMajor, transA, transB, M, N, K, alpha, data, lda, mdata, ldb,
-        beta, rdata, ldc);
+
+  /// shortcut handling in case of vector
+  /// for vector, (1 * K) == (K * 1) in current memory layout...
+  /// and plaese note that N, K, M is a fixed place holder after considering
+  /// transpose.
+  /// For example, there is no case like (1 * K) X (1 * K) while
+  /// (1 * K) X (1 * M) can be a case
+  /// case1: (1 * K) X (K * 1)
+  if (M == 1 && N == 1) {
+    *rdata = sdot(K, data, 1, mdata, 1);
+  }
+  /// case2: (M * K) X (K * 1)
+  else if (N == 1) {
+    sgemv(CblasRowMajor, transA, dim1, dim2, alpha, data, lda, mdata, 1, beta,
+          rdata, 1);
+  }
+  /// case3: (1 * K) X (K * N) = 1 * N = R
+  /// = R^T = (K * N) ^T * (1 * K) ^T = (N * K) * (K * 1) = (N * K) * (1 * K)
+  /// Effectively a translation of sgemv
+  else if (M == 1) {
+    transB = transB == CblasTrans ? CblasNoTrans : CblasTrans;
+    sgemv(CblasRowMajor, transB, mdim1, mdim2, alpha, mdata, ldb, data, 1, beta,
+          rdata, 1);
+  }
+  /// case others: use gemm
+  else {
+    sgemm(CblasRowMajor, transA, transB, M, N, K, alpha, data, lda, mdata, ldb,
+          beta, rdata, ldc);
+  }
 
   return result;
 }

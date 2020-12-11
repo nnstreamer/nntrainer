@@ -56,6 +56,16 @@ static void sgemv_raw(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA,
   }
 }
 
+static float sdot_raw(const unsigned int N, const float *X,
+                      const unsigned int incX, const float *Y,
+                      const unsigned int incY) {
+  float ret = 0;
+  for (unsigned int i = 0; i < N; ++i) {
+    ret += X[i * incX] * Y[i * incY];
+  }
+  return ret;
+}
+
 static void scopy_raw(const unsigned int N, const float *X, const int incX,
                       float *Y, const int incY) {
   unsigned int incy = abs(incY);
@@ -183,6 +193,15 @@ float snrm2(const int N, const float *X, const int incX) {
   return cblas_snrm2(N, X, incX);
 #else
   return snrm2_raw(N, X, incX);
+#endif
+}
+
+float sdot(const unsigned int N, const float *X, const unsigned int incX,
+           const float *Y, const unsigned int incY) {
+#ifdef USE_BLAS
+  return cblas_sdot(N, X, incX, Y, incY);
+#else
+  return sdot_raw(N, X, incX, Y, incY);
 #endif
 }
 
