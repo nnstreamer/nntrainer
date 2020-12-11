@@ -564,7 +564,8 @@ Tensor Tensor::dot(Tensor const &m, bool trans, bool trans_m) const {
 /**
  * @note: This dot product flattens the fist 3 axis for the purpose of
  * computation. So, while performing, these matrices are behaving as 2-D
- * matrices. The dimensions are restored while returning back the tensor.
+ * matrices. The dimensions are restored while returning back the tensor
+ * in case of trans is false.
  */
 Tensor &Tensor::dot(Tensor const &m, Tensor &result, bool trans,
                     bool trans_m) const {
@@ -591,9 +592,7 @@ Tensor &Tensor::dot(Tensor const &m, Tensor &result, bool trans,
     K = mdim1; /** == dim2 */
     N = mdim2;
     M = dim1;
-    lda = K;
-    ldb = N;
-    CREATE_IF_EMPTY_DIMS(result, batch(), channel(), height(), mdim2);
+    CREATE_IF_EMPTY_DIMS(result, batch(), channel(), height(), N);
 
     // We are not set zero the result because of performnace reason.
     // However, result is not initialized properly. There might include garbage
@@ -607,9 +606,7 @@ Tensor &Tensor::dot(Tensor const &m, Tensor &result, bool trans,
     K = mdim2; /** == dim2 */
     N = mdim1;
     M = dim1;
-    lda = K;
-    ldb = K;
-    CREATE_IF_EMPTY_DIMS(result, batch(), channel(), height(), mdim1);
+    CREATE_IF_EMPTY_DIMS(result, batch(), channel(), height(), N);
   } else if (trans && !trans_m) {
     if (dim1 != mdim1)
       throw std::runtime_error(
@@ -617,9 +614,7 @@ Tensor &Tensor::dot(Tensor const &m, Tensor &result, bool trans,
     K = mdim1; /** == dim1 */
     N = mdim2;
     M = dim2;
-    lda = M;
-    ldb = N;
-    CREATE_IF_EMPTY_DIMS(result, 1, 1, dim2, mdim2);
+    CREATE_IF_EMPTY_DIMS(result, 1, 1, M, N);
   } else {
     if (dim1 != mdim2)
       throw std::runtime_error(
@@ -627,11 +622,11 @@ Tensor &Tensor::dot(Tensor const &m, Tensor &result, bool trans,
     K = mdim2; /** == dim1 */
     N = mdim1;
     M = dim2;
-    lda = M;
-    ldb = K;
-    CREATE_IF_EMPTY_DIMS(result, 1, 1, dim2, mdim1);
+    CREATE_IF_EMPTY_DIMS(result, 1, 1, M, N);
   }
-  ldc = N;
+  lda = dim2;
+  ldb = mdim2;
+  ldc = result.width();
 
   const float *data = getData();
   const float *mdata = m.getData();
