@@ -1789,6 +1789,173 @@ end_dot_01_p:
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
+TEST(nntrainer_Tensor, dot_transpose_p) {
+  {
+    float a_data[] = {0, 3, 6, 9, 1, 4, 7, 10, 2, 5, 8, 11};
+    nntrainer::Tensor a(nntrainer::TensorDim(1, 1, 3, 4), a_data);
+    float b_data[] = {0, 4, 8, 1, 5, 9, 2, 6, 10, 3, 7, 11};
+    nntrainer::Tensor b(nntrainer::TensorDim(1, 1, 4, 3), b_data);
+    float answer_data[] = {20, 23,  26,  29,  56,  68,  80,  92,
+                           92, 113, 134, 155, 128, 158, 188, 218};
+    nntrainer::Tensor answer(nntrainer::TensorDim(1, 1, 4, 4), answer_data);
+    nntrainer::Tensor ret = a.dot(b, true, true);
+    EXPECT_EQ(ret, answer);
+  }
+  {
+    float a_data[] = {0, 3, 6, 9, 1, 4, 7, 10, 2, 5, 8, 11};
+    nntrainer::Tensor a(nntrainer::TensorDim(1, 1, 3, 4), a_data);
+    float b_data[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
+    nntrainer::Tensor b(nntrainer::TensorDim(1, 1, 3, 4), b_data);
+    float answer_data[] = {20, 23,  26,  29,  56,  68,  80,  92,
+                           92, 113, 134, 155, 128, 158, 188, 218};
+    nntrainer::Tensor answer(nntrainer::TensorDim(1, 1, 4, 4), answer_data);
+    nntrainer::Tensor ret = a.dot(b, true, false);
+    EXPECT_EQ(ret, answer);
+  }
+  {
+    float a_data[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
+    nntrainer::Tensor a(nntrainer::TensorDim(1, 1, 4, 3), a_data);
+    float b_data[] = {0, 4, 8, 1, 5, 9, 2, 6, 10, 3, 7, 11};
+    nntrainer::Tensor b(nntrainer::TensorDim(1, 1, 4, 3), b_data);
+    float answer_data[] = {20, 23,  26,  29,  56,  68,  80,  92,
+                           92, 113, 134, 155, 128, 158, 188, 218};
+    nntrainer::Tensor answer(nntrainer::TensorDim(1, 1, 4, 4), answer_data);
+    nntrainer::Tensor ret = a.dot(b, false, true);
+    EXPECT_EQ(ret, answer);
+  }
+  {
+    float a_data[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
+    nntrainer::Tensor a(nntrainer::TensorDim(1, 1, 4, 3), a_data);
+    float b_data[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
+    nntrainer::Tensor b(nntrainer::TensorDim(1, 1, 3, 4), b_data);
+    float answer_data[] = {20, 23,  26,  29,  56,  68,  80,  92,
+                           92, 113, 134, 155, 128, 158, 188, 218};
+    nntrainer::Tensor answer(nntrainer::TensorDim(1, 1, 4, 4), answer_data);
+    nntrainer::Tensor ret = a.dot(b, false, false);
+    EXPECT_EQ(ret, answer);
+  }
+  {
+    float a_data[] = {0, 3, 1, 4, 2, 5};
+    nntrainer::Tensor a(nntrainer::TensorDim(1, 1, 3, 2), a_data);
+    float b_data[] = {0, 4, 8, 1, 5, 9, 2, 6, 10, 3, 7, 11};
+    nntrainer::Tensor b(nntrainer::TensorDim(1, 1, 4, 3), b_data);
+    float answer_data[] = {20, 23, 26, 29, 56, 68, 80, 92};
+    nntrainer::Tensor answer(nntrainer::TensorDim(1, 1, 2, 4), answer_data);
+    nntrainer::Tensor ret = a.dot(b, true, true);
+    EXPECT_EQ(ret, answer);
+  }
+  {
+    float a_data[] = {0, 3, 1, 4, 2, 5};
+    nntrainer::Tensor a(nntrainer::TensorDim(1, 1, 3, 2), a_data);
+    float b_data[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
+    nntrainer::Tensor b(nntrainer::TensorDim(1, 1, 3, 4), b_data);
+    float answer_data[] = {20, 23, 26, 29, 56, 68, 80, 92};
+    nntrainer::Tensor answer(nntrainer::TensorDim(1, 1, 2, 4), answer_data);
+    nntrainer::Tensor ret = a.dot(b, true, false);
+    EXPECT_EQ(ret, answer);
+  }
+  {
+    float a_data[] = {0, 1, 2, 3, 4, 5};
+    nntrainer::Tensor a(nntrainer::TensorDim(1, 1, 2, 3), a_data);
+    float b_data[] = {0, 4, 8, 1, 5, 9, 2, 6, 10, 3, 7, 11};
+    nntrainer::Tensor b(nntrainer::TensorDim(1, 1, 4, 3), b_data);
+    float answer_data[] = {20, 23, 26, 29, 56, 68, 80, 92};
+    nntrainer::Tensor answer(nntrainer::TensorDim(1, 1, 2, 4), answer_data);
+    nntrainer::Tensor ret = a.dot(b, false, true);
+    EXPECT_EQ(ret, answer);
+  }
+  {
+    float a_data[] = {0, 1, 2, 3, 4, 5};
+    nntrainer::Tensor a(nntrainer::TensorDim(1, 1, 2, 3), a_data);
+    float b_data[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
+    nntrainer::Tensor b(nntrainer::TensorDim(1, 1, 3, 4), b_data);
+    float answer_data[] = {20, 23, 26, 29, 56, 68, 80, 92};
+    nntrainer::Tensor answer(nntrainer::TensorDim(1, 1, 2, 4), answer_data);
+    nntrainer::Tensor ret = a.dot(b, false, false);
+    EXPECT_EQ(ret, answer);
+  }
+  {
+    float a_data[] = {0, 3, 6, 9, 1, 4, 7, 10, 2, 5, 8, 11};
+    nntrainer::Tensor a(nntrainer::TensorDim(1, 1, 3, 4), a_data);
+    float b_data[] = {0, 2, 4, 1, 3, 5};
+    nntrainer::Tensor b(nntrainer::TensorDim(1, 1, 2, 3), b_data);
+    float answer_data[] = {10, 13, 28, 40, 46, 67, 64, 94};
+    nntrainer::Tensor answer(nntrainer::TensorDim(1, 1, 4, 2), answer_data);
+    nntrainer::Tensor ret = a.dot(b, true, true);
+    EXPECT_EQ(ret, answer);
+  }
+  {
+    float a_data[] = {0, 3, 6, 9, 1, 4, 7, 10, 2, 5, 8, 11};
+    nntrainer::Tensor a(nntrainer::TensorDim(1, 1, 3, 4), a_data);
+    float b_data[] = {0, 1, 2, 3, 4, 5};
+    nntrainer::Tensor b(nntrainer::TensorDim(1, 1, 3, 2), b_data);
+    float answer_data[] = {10, 13, 28, 40, 46, 67, 64, 94};
+    nntrainer::Tensor answer(nntrainer::TensorDim(1, 1, 4, 2), answer_data);
+    nntrainer::Tensor ret = a.dot(b, true, false);
+    EXPECT_EQ(ret, answer);
+  }
+  {
+    float a_data[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
+    nntrainer::Tensor a(nntrainer::TensorDim(1, 1, 4, 3), a_data);
+    float b_data[] = {0, 2, 4, 1, 3, 5};
+    nntrainer::Tensor b(nntrainer::TensorDim(1, 1, 2, 3), b_data);
+    float answer_data[] = {10, 13, 28, 40, 46, 67, 64, 94};
+    nntrainer::Tensor answer(nntrainer::TensorDim(1, 1, 4, 2), answer_data);
+    nntrainer::Tensor ret = a.dot(b, false, true);
+    EXPECT_EQ(ret, answer);
+  }
+  {
+    float a_data[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11};
+    nntrainer::Tensor a(nntrainer::TensorDim(1, 1, 4, 3), a_data);
+    float b_data[] = {0, 1, 2, 3, 4, 5};
+    nntrainer::Tensor b(nntrainer::TensorDim(1, 1, 3, 2), b_data);
+    float answer_data[] = {10, 13, 28, 40, 46, 67, 64, 94};
+    nntrainer::Tensor answer(nntrainer::TensorDim(1, 1, 4, 2), answer_data);
+    nntrainer::Tensor ret = a.dot(b, false, false);
+    EXPECT_EQ(ret, answer);
+  }
+  {
+    float a_data[] = {0, 3, 1, 4, 2, 5};
+    nntrainer::Tensor a(nntrainer::TensorDim(1, 1, 3, 2), a_data);
+    float b_data[] = {0, 2, 4, 1, 3, 5};
+    nntrainer::Tensor b(nntrainer::TensorDim(1, 1, 2, 3), b_data);
+    float answer_data[] = {10, 13, 28, 40};
+    nntrainer::Tensor answer(nntrainer::TensorDim(1, 1, 2, 2), answer_data);
+    nntrainer::Tensor ret = a.dot(b, true, true);
+    EXPECT_EQ(ret, answer);
+  }
+  {
+    float a_data[] = {0, 3, 1, 4, 2, 5};
+    nntrainer::Tensor a(nntrainer::TensorDim(1, 1, 3, 2), a_data);
+    float b_data[] = {0, 1, 2, 3, 4, 5};
+    nntrainer::Tensor b(nntrainer::TensorDim(1, 1, 3, 2), b_data);
+    float answer_data[] = {10, 13, 28, 40};
+    nntrainer::Tensor answer(nntrainer::TensorDim(1, 1, 2, 2), answer_data);
+    nntrainer::Tensor ret = a.dot(b, true, false);
+    EXPECT_EQ(ret, answer);
+  }
+  {
+    float a_data[] = {0, 1, 2, 3, 4, 5};
+    nntrainer::Tensor a(nntrainer::TensorDim(1, 1, 2, 3), a_data);
+    float b_data[] = {0, 2, 4, 1, 3, 5};
+    nntrainer::Tensor b(nntrainer::TensorDim(1, 1, 2, 3), b_data);
+    float answer_data[] = {10, 13, 28, 40};
+    nntrainer::Tensor answer(nntrainer::TensorDim(1, 1, 2, 2), answer_data);
+    nntrainer::Tensor ret = a.dot(b, false, true);
+    EXPECT_EQ(ret, answer);
+  }
+  {
+    float a_data[] = {0, 1, 2, 3, 4, 5};
+    nntrainer::Tensor a(nntrainer::TensorDim(1, 1, 2, 3), a_data);
+    float b_data[] = {0, 1, 2, 3, 4, 5};
+    nntrainer::Tensor b(nntrainer::TensorDim(1, 1, 3, 2), b_data);
+    float answer_data[] = {10, 13, 28, 40};
+    nntrainer::Tensor answer(nntrainer::TensorDim(1, 1, 2, 2), answer_data);
+    nntrainer::Tensor ret = a.dot(b, false, false);
+    EXPECT_EQ(ret, answer);
+  }
+}
+
 TEST(nntrainer_Tensor, transpose_01_p) {
   int status = ML_ERROR_NONE;
   int batch = 3;
