@@ -78,11 +78,15 @@ TEST(ccapi_layer, construct_02_p) {
   EXPECT_NO_THROW(layer = ml::train::layer::MultiOut());
   EXPECT_EQ(layer->getType(), "output");
 
+#ifdef ENABLE_NNSTREAMER_BACKBONE
   EXPECT_NO_THROW(layer = ml::train::layer::BackboneNNStreamer());
   EXPECT_EQ(layer->getType(), "backbone_nnstreamer");
+#endif
 
+#ifdef ENABLE_TFLITE_BACKBONE
   EXPECT_NO_THROW(layer = ml::train::layer::BackboneTFLite());
   EXPECT_EQ(layer->getType(), "backbone_tflite");
+#endif
 
   EXPECT_NO_THROW(layer = ml::train::layer::ReLU());
   EXPECT_EQ(layer->getType(), "activation");
