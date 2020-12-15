@@ -92,8 +92,12 @@ public:
 
   /**
    * @brief Allocate and initialize the weight variable
+   *
+   * @param weight_preallocated if initialized, use this tensor for weight
+   * @param grad_preallocated if initialized, use this tensor for grad
    */
-  virtual void initialize(const Tensor &grad_shared = Tensor());
+  virtual void initialize(const Tensor &weight_preallocated = Tensor(),
+                          const Tensor &grad_preallocated = Tensor());
 
   /**
    * @brief Get the TensorDim

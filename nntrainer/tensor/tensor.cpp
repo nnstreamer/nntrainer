@@ -92,6 +92,35 @@ Tensor::Tensor(const TensorDim &d, const float *buf) : Tensor() {
   }
 }
 
+Tensor Tensor::Wrap(float *buf, const TensorDim &d, int offset) {
+  if (d.getDataLen() == 0 || buf == nullptr) {
+    throw std::invalid_argument(
+      "[Tensor::Wrap] empty tensor dim is not allowed");
+  }
+
+  Tensor tmp;
+  tmp.dim = d;
+  tmp.strides = d.computeStrides();
+  /// Tensor does not own the memory
+  tmp.data = std::shared_ptr<float>(buf + offset, [](void *) {});
+
+  return tmp;
+}
+
+Tensor Tensor::Wrap(std::shared_ptr<float> buf, const TensorDim &d,
+                    int offset) {
+  if (d.getDataLen() == 0 || buf == nullptr) {
+    throw std::invalid_argument(
+      "[Tensor::Wrap] empty tensor dim is not allowed");
+  }
+
+  Tensor tmp;
+  tmp.dim = d;
+  tmp.data = std::shared_ptr<float>(buf, buf.get() + offset);
+
+  return tmp;
+}
+
 bool Tensor::operator==(const Tensor &rhs) const {
   if (this->dim != rhs.dim)
     return false;
