@@ -33,6 +33,28 @@ public:
     feature_len = 0;
   }
 
+  /**
+   * @brief Construct a new Tensor Dim object
+   *
+   * @param dims std::initialize_list
+   *
+   * formats of {w}, {h, w}, {c, h, w}, {b, c, h, w} are accepted
+   */
+  TensorDim(std::initializer_list<unsigned int> dims) : TensorDim() {
+    int shift_size = MAXDIM - dims.size();
+
+    if (shift_size < 0) {
+      throw std::invalid_argument("[TensorDim] max dimension is 4");
+    }
+
+    unsigned int cnt = 0;
+
+    for (auto &i : dims) {
+      setTensorDim(shift_size + cnt, i);
+      cnt += 1;
+    }
+  }
+
   TensorDim(unsigned int b, unsigned int c, unsigned int h, unsigned int w) :
     TensorDim() {
     setTensorDim(0, b);

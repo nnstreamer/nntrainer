@@ -16,6 +16,29 @@
 #include <tensor.h>
 #include <tensor_dim.h>
 
+TEST(nntrainer_TensorDim, ctor_initializer_p) {
+  unsigned int b = 3;
+  unsigned int c = 2;
+  unsigned int h = 4;
+  unsigned int w = 5;
+
+  nntrainer::TensorDim t = {w};
+  EXPECT_EQ(nntrainer::TensorDim(1, 1, 1, w), t);
+
+  t = {h, w};
+  EXPECT_EQ(nntrainer::TensorDim(1, 1, h, w), t);
+
+  t = {c, h, w};
+  EXPECT_EQ(nntrainer::TensorDim(1, c, h, w), t);
+
+  t = {b, c, h, w};
+  EXPECT_EQ(nntrainer::TensorDim(b, c, h, w), t);
+}
+
+TEST(nntrainer_TensorDim, ctor_initializer_n) {
+  EXPECT_THROW(nntrainer::TensorDim t({1, 2, 3, 4, 5}), std::invalid_argument);
+}
+
 TEST(nntrainer_TensorDim, setTensorDim_01_p) {
   int status = ML_ERROR_NONE;
 
