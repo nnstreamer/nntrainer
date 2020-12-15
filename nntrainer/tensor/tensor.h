@@ -59,6 +59,31 @@ public:
   Tensor(const TensorDim &d, const float *buf = nullptr);
 
   /**
+   * @brief Construct a new Tensor object from a buffer
+   * This will not copy buffer to a new tensor but directly uses it
+   *
+   * @param d tensor dim
+   * @param buf buffer
+   * @param offset offset to be used from current
+   * @return Tensor object
+   * @throws std::invalid_argument if buf is null
+   */
+  static Tensor Wrap(float *buf, const TensorDim &d, int offset = 0);
+
+  /**
+   * @brief Construct a new Tensor object from a buffer
+   * This will shared the buf
+   *
+   * @param d tensor dim
+   * @param buf buffer
+   * @param offset offset to be used
+   * @return Tensor object
+   * @throws std::invalid_argument if buf is null
+   */
+  static Tensor Wrap(std::shared_ptr<float> buf, const TensorDim &d,
+                     int offset = 0);
+
+  /**
    * @brief     Constructor of Tensor
    * @param[in] batch Batch of Tensor
    * @param[in] channel Channel of Tensor

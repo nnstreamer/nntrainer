@@ -55,6 +55,28 @@ TEST(nntrainer_TensorDim, setTensorDim_04_p) {
   EXPECT_EQ(d.width(), 7);
 }
 
+TEST(nntrainer_Tensor, TensorWrap_p) {
+  float dat[] = {1, 2, 3};
+
+  {
+    nntrainer::Tensor a = nntrainer::Tensor::Wrap(dat, {3});
+    /// check if a.getData() has same address with dat
+    EXPECT_EQ(dat, a.getData());
+    {
+      /// check if b.getData() has same address with data
+      nntrainer::Tensor b = a;
+      EXPECT_EQ(dat, b.getData());
+    }
+  }
+  /// check if dat is accessible after destruction of all the tensor
+  EXPECT_FLOAT_EQ(dat[2], 3);
+}
+
+TEST(nntrainer_Tensor, TensorWrap_n) {
+  float dat[] = {1, 2, 3};
+  EXPECT_THROW(nntrainer::Tensor::Wrap(dat, {}), std::invalid_argument);
+}
+
 TEST(nntrainer_Tensor, Tensor_01_p) {
   int status = ML_ERROR_NONE;
   nntrainer::Tensor tensor = nntrainer::Tensor(1, 2, 3);

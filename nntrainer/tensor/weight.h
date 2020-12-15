@@ -79,9 +79,10 @@ public:
     bool train = true, std::string name = "");
 
   /**
-   * @brief Allocate and initialize the weight variable
+   * @copydoc var_grad::initialize(const Tensor &, const Tensor &)
    */
-  void initialize(const Tensor &grad_shared = Tensor());
+  void initialize(const Tensor &weight_preallocated = Tensor(),
+                  const Tensor &grad_preallocated = Tensor());
 
   /**
    * @brief Swap for weight
