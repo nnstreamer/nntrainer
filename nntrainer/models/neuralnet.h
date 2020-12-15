@@ -85,7 +85,8 @@ public:
   /**
    * @brief     Constructor of NeuralNetwork Class
    */
-  NeuralNetwork(AppContext app_context_ = AppContext(AppContext::Global())) :
+  NeuralNetwork(AppContext app_context_ = AppContext(AppContext::Global()),
+                bool bn_opt = true) :
     batch_size(1),
     epochs(1),
     epoch_idx(0),
@@ -100,7 +101,8 @@ public:
     compiled(false),
     def_name_count(0),
     loadedFromConfig(false),
-    app_context(app_context_) {}
+    app_context(app_context_),
+    in_place_bn_layer_optimization(bn_opt) {}
 
   /**
    * @brief     Destructor of NeuralNetwork Class
@@ -164,6 +166,19 @@ public:
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
   int assignMem();
+
+  /**
+   * @brief     Update graph to make batch normalization in-place
+   * @note      This assumes that the batch normalization implementation does
+   * not need input/output of itself while backwarding. The reason is that the
+   * batch normalization layer caches a processed form of its own input than the
+   * input tensor itself.
+   * @note      This optimization might break the working when some other
+   * implementation of batch normalization layer is used or delegated to some
+   * other backend. Ensure to verify this optimization with other
+   * implementations once added.
+   */
+  void inPlaceBatchNormOptimization();
 
   /**
    * @brief     Forward Propagation of the neural network
@@ -351,10 +366,85 @@ public:
   /**
    * @brief Enable gradient memory sharing based optimization
    * @param opt True to enable, else false
+   * @note This optimization has no performance overhead.
    */
   void setGradientMemoryOptimization(bool opt) {
     manager.setGradientMemoryOptimization(opt);
   }
+
+  /**
+   * @brief Enable in-place batch normalization layer operation
+   * @param opt True to enable, else false
+   * @note This optimization has no performance overhead.
+   */
+  void setInPlaceBNLayerOptimization(bool opt) {
+    in_place_bn_layer_optimization = opt;
+  }
+
+/// @todo Make a more common class have this
+/// Maybe appcontext can have this?
+#ifdef PROFILE
+  class Profiler {
+  public:
+    // Designated key.
+    enum { FORWARD = 0 };
+
+    /**
+     * @brief query profile result
+     *
+     * @return std::chrono::time_point<std::chrono::steady_clock> profile result
+     */
+    std::chrono::milliseconds result(const int &key) { return time_taken[key]; }
+
+    /**
+     * @brief start profile
+     *
+     * @param key to record the profile result. Either designated key from enum
+     * or arbitrary key can be used
+     */
+    void start(const int &key) {
+      /// @todo: check if key is being reused with time_taken
+      start_time[key] = std::chrono::steady_clock::now();
+    }
+
+    /**
+     * @brief end profile
+     *
+     * @param key to record the profile result. Either designated key from enum
+     * or arbitrary key can be used
+     */
+    void end(const int &key) {
+      auto end = std::chrono::steady_clock::now();
+      auto iter = start_time.find(key);
+
+      if (iter == start_time.end()) {
+        throw std::invalid_argument("profiler hasn't started with the key");
+      }
+
+      time_taken[key] = std::chrono::duration_cast<std::chrono::milliseconds>(
+        end - iter->second);
+    }
+
+  private:
+    std::unordered_map<int, std::chrono::time_point<std::chrono::steady_clock>>
+      start_time; /**< start_time of the clock */
+    std::unordered_map<int, std::chrono::milliseconds> time_taken;
+  };
+
+public:
+  /**
+   * @brief Get the Profile Result
+   *
+   * @param key key to recorder the profile
+   * @return std::chrono::time_point<std::chrono::steady_clock>
+   */
+  std::chrono::milliseconds getProfileResult(const int &key) {
+    return profiler.result(key);
+  }
+
+private:
+  Profiler profiler;
+#endif
 
 private:
   /**
@@ -422,6 +512,9 @@ private:
   std::map<std::string, std::string>
     sub_in_out; /** This is map to identyfy input and output layer name of
                    subgraph */
+
+  bool in_place_bn_layer_optimization; /**< Run batch normalization layer
+                                          in-place */
 
   /**
    * @brief print function for neuralnet

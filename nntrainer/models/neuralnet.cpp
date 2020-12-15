@@ -165,6 +165,35 @@ int NeuralNetwork::compile() {
   return status;
 }
 
+void NeuralNetwork::inPlaceBatchNormOptimization() {
+  auto &sorted = model_graph.getSorted();
+
+  for (unsigned int idx = 1; idx < sorted.size() - 1; ++idx) {
+    auto &l = sorted[idx].layer;
+    if (l->getType() == BatchNormalizationLayer::type) {
+      /** @note assumes BatchNormalizationLayer is only for single in/out tensor
+       */
+      if (l->input_layers.size() != 1)
+        throw std::runtime_error("Internal error in the formed graph");
+
+      auto &prev_layer = model_graph.getLayerNode(l->input_layers[0]).layer;
+
+      unsigned int loc;
+      auto layer_name = l->getName();
+      for (loc = 0; loc < prev_layer->output_layers.size(); ++loc)
+        if (prev_layer->output_layers[loc] == layer_name)
+          break;
+
+      if (loc == prev_layer->output_layers.size())
+        throw std::runtime_error("Internal error in the formed graph.");
+
+      /** Share tensor with next layer */
+      prev_layer->net_hidden[loc] = l->net_hidden[0];
+      l->net_input[0] = l->net_hidden[0];
+    }
+  }
+}
+
 int NeuralNetwork::initialize() {
   int status = ML_ERROR_NONE;
 
@@ -239,6 +268,9 @@ int NeuralNetwork::initialize() {
   }
 
   setBatchSize(batch_size);
+
+  if (in_place_bn_layer_optimization)
+    inPlaceBatchNormOptimization();
 
   manager.initialize();
 
@@ -443,7 +475,7 @@ int NeuralNetwork::assignMem() {
     bool first = idx == 0;
     Layer &l = *model_graph.getSortedLayerNode(idx).layer;
 
-    if (!first) {
+    if (!first && l.getType() != BatchNormalizationLayer::type) {
       for (unsigned int i = 0; i < l.input_layers.size(); ++i) {
 
         l.net_input[i]->var = Tensor(l.getInputDimension()[i]);

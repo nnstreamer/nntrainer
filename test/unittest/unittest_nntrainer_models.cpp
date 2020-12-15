@@ -17,6 +17,7 @@
 
 #include <gtest/gtest.h>
 
+#include <bn_layer.h>
 #include <input_layer.h>
 #include <layer.h>
 #include <neuralnet.h>
@@ -113,7 +114,7 @@ public:
    * @param iteration iteration
    * @return nntrainer::sharedConstTensor
    */
-  void forward(int iteration);
+  void forward(int iteration, NodeWatcher &next_node);
 
   /**
    * @brief forward loss node with verifying inputs/weights/outputs
@@ -170,6 +171,7 @@ public:
    *
    * @return LayerType
    */
+  std::string getNodeType() { return node.layer->getType(); }
 
 private:
   NodeType node;
@@ -233,7 +235,7 @@ void NodeWatcher::verifyGrad(const std::string &error_msg) {
   }
 }
 
-void NodeWatcher::forward(int iteration) {
+void NodeWatcher::forward(int iteration, NodeWatcher &next_node) {
   std::stringstream ss;
   ss << "forward failed at " << node.layer->getName() << " at iteration "
      << iteration;
@@ -241,7 +243,9 @@ void NodeWatcher::forward(int iteration) {
 
   std::vector<nntrainer::Tensor> out = node.layer->getOutputs();
 
-  verify(out[0], expected_output, err_msg + " at output");
+  if (next_node.node.layer->getType() !=
+      nntrainer::BatchNormalizationLayer::type)
+    verify(out[0], expected_output, err_msg + " at output");
 }
 
 nntrainer::sharedConstTensors
@@ -333,13 +337,17 @@ void GraphWatcher::compareFor(const std::string &reference,
     EXPECT_NEAR(expected_loss, loss_node.getLoss(), nntrainer::Tensor::epsilon);
 
     for (auto it = nodes.begin(); it != nodes.end() - 1; ++it) {
-      it->forward(iteration);
+      it->forward(iteration, *(it + 1));
     }
 
     nn.backwarding(label, iteration);
 
-    for (auto it = nodes.rbegin(); it != nodes.rend() - 1; it++)
-      it->backward(iteration);
+    for (auto it = nodes.rbegin(); it != nodes.rend() - 1; it++) {
+      if ((*(it + 1)).getNodeType() == nntrainer::BatchNormalizationLayer::type)
+        it->backward(iteration, false);
+      else
+        it->backward(iteration, true);
+    }
   }
 }
 
