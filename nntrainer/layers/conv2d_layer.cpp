@@ -219,9 +219,6 @@ void Conv2DLayer::calcDerivative(sharedConstTensors derivatives) {
    */
   using uint = unsigned int;
 
-  if (net_input[0]->var.uninitialized())
-    net_input[0]->var = Tensor(input.getDim());
-
   TensorDim kdim(in_dim.channel(), filter_size, kernel_size[0], kernel_size[1]);
 
   uint kernel_total_size = kernel_size[0] * kernel_size[1];
