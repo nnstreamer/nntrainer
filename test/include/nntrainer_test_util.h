@@ -468,6 +468,7 @@ const std::string config_str2 = "[Model]"
   do {                                                       \
     std::ifstream file_stream(conf_name, std::ifstream::in); \
     if (file_stream.good()) {                                \
+      file_stream.close();                                   \
       if (std::remove(conf_name) != 0)                       \
         ml_loge("Error: Cannot delete file: %s", conf_name); \
       else                                                   \
