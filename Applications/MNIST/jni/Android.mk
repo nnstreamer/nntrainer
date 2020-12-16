@@ -39,7 +39,7 @@ LOCAL_LDFLAGS += -fexceptions
 LOCAL_MODULE_TAGS := optional
 LOCAL_ARM_MODE := arm
 LOCAL_MODULE := nntrainer_mnist
-LOCAL_LDLIBS := -llog
+LOCAL_LDLIBS := -llog -landroid
 
 LOCAL_SRC_FILES := main.cpp
 

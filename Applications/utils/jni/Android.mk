@@ -18,7 +18,7 @@ LOCAL_CXXFLAGS      += -std=c++14 -frtti -fexceptions
 LOCAL_LDFLAGS       += -fuse-ld=bfd
 LOCAL_MODULE_TAGS   := optional
 
-LOCAL_LDLIBS        := -llog
+LOCAL_LDLIBS        := -llog -landroid
 
 LOCAL_MODULE        := app_utils
 LOCAL_SRC_FILES     := $(UTILS_SRCS)
