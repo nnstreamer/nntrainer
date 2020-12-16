@@ -146,7 +146,7 @@ LOCAL_CXXFLAGS      += -std=c++14 -frtti -fexceptions
 LOCAL_LDFLAGS       += -fuse-ld=bfd
 LOCAL_MODULE_TAGS   := optional
 
-LOCAL_LDLIBS        := -llog
+LOCAL_LDLIBS        := -llog -landroid
 
 LOCAL_MODULE        := nntrainer
 LOCAL_SRC_FILES     := $(NNTRAINER_SRCS) $(INIPARSER_SRCS)
@@ -195,7 +195,7 @@ LOCAL_CXXFLAGS      += -std=c++14 -frtti -fexceptions
 LOCAL_LDFLAGS       += -fuse-ld=bfd
 LOCAL_MODULE_TAGS   := optional
 
-LOCAL_LDLIBS        := -llog
+LOCAL_LDLIBS        := -llog -landroid
 
 LOCAL_MODULE        := capi-nntrainer
 LOCAL_SRC_FILES     := $(CAPI_NNTRAINER_SRCS)
@@ -226,7 +226,7 @@ LOCAL_CXXFLAGS      += -std=c++14 -frtti -fexceptions
 LOCAL_LDFLAGS       += -fuse-ld=bfd
 LOCAL_MODULE_TAGS   := optional
 
-LOCAL_LDLIBS        := -llog
+LOCAL_LDLIBS        := -llog -landroid
 
 LOCAL_MODULE        := ccapi-nntrainer
 LOCAL_SRC_FILES     := $(CCAPI_NNTRAINER_SRCS)
