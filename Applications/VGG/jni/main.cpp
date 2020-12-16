@@ -423,10 +423,9 @@ int main(int argc, char *argv[]) {
     return 0;
   }
 
-  NN.readModel();
-  NN.setDataBuffer((DB));
-
   try {
+    NN.readModel();
+    NN.setDataBuffer((DB));
     NN.train();
     training_loss = NN.getTrainingLoss();
     validation_loss = NN.getValidationLoss();
