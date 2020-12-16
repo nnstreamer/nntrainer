@@ -95,6 +95,7 @@ public:
     loss_type(LossType::LOSS_UNKNOWN),
     weight_initializer(WeightInitializer::WEIGHT_UNKNOWN),
     net_type(NetType::UNKNOWN),
+    manager(std::make_shared<Manager>()),
     data_buffer(nullptr),
     continue_train(false),
     initialized(false),
@@ -369,7 +370,7 @@ public:
    * @note This optimization has no performance overhead.
    */
   void setGradientMemoryOptimization(bool opt) {
-    manager.setGradientMemoryOptimization(opt);
+    manager->setGradientMemoryOptimization(opt);
   }
 
   /**
@@ -483,7 +484,7 @@ private:
 
   GraphType layers; /**< vector for store layer pointers */
 
-  Manager manager; /**< nntrainer manager */
+  std::shared_ptr<Manager> manager; /**< nntrainer manager */
 
   std::shared_ptr<DataBuffer> data_buffer; /**< Data Buffer to get Input */
 
@@ -572,6 +573,7 @@ private:
     swap(lhs.layer_names, rhs.layer_names);
     swap(lhs.def_name_count, rhs.def_name_count);
     swap(lhs.loadedFromConfig, rhs.loadedFromConfig);
+    swap(lhs.manager, rhs.manager);
   }
 
   /**
