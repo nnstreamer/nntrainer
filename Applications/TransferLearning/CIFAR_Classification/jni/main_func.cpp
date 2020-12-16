@@ -123,7 +123,7 @@ void getImage(const string filename, float *image) {
     image[i] = ((float)in[i]) / 255.0;
   }
 
-  free(in);
+  delete[] in;
 }
 
 /**
@@ -271,13 +271,12 @@ int main(int argc, char *argv[]) {
                             getBatch_train);
   dataset->setGeneratorFunc(ml::train::DatasetDataType::DATA_VAL, getBatch_val);
 
+  std::unique_ptr<ml::train::Model> model;
   /**
    * @brief     Neural Network Create & Initialization
    */
-  std::unique_ptr<ml::train::Model> model =
-    createModel(ml::train::ModelType::NEURAL_NET);
-
   try {
+    model = createModel(ml::train::ModelType::NEURAL_NET);
     model->loadFromConfig(config);
   } catch (...) {
     std::cerr << "Error during loadFromConfig" << std::endl;

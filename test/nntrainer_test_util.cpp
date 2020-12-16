@@ -136,6 +136,14 @@ int getBatch_train(float **outVec, float **outLabel, bool *last,
 
   if (!alloc_train) {
     duplicate = (bool *)malloc(sizeof(bool) * data_size);
+    if (duplicate == nullptr) {
+      ml_loge("[test_util] allocationg memory failed");
+      alloc_train = false;
+      *last = false;
+      F.close();
+      return ML_ERROR_BAD_ADDRESS;
+    }
+
     for (unsigned int i = 0; i < data_size; ++i) {
       duplicate[i] = false;
     }
@@ -213,6 +221,13 @@ int getBatch_val(float **outVec, float **outLabel, bool *last,
 
   if (!alloc_val) {
     valduplicate = (bool *)malloc(sizeof(bool) * data_size);
+    if (valduplicate == nullptr) {
+      ml_loge("[test_util] allocationg memory failed");
+      alloc_val = false;
+      *last = false;
+      F.close();
+      return ML_ERROR_BAD_ADDRESS;
+    }
     for (unsigned int i = 0; i < data_size; ++i) {
       valduplicate[i] = false;
     }

@@ -127,14 +127,21 @@ int api_model_run() {
     return 1;
   }
 
-  /// creating array of layers same as in `custom_layer_client.ini`
-  std::vector<std::shared_ptr<ml::train::Layer>> layers{
-    ml::train::layer::Input({"name=inputlayer", "input_shape=1:1:100"}),
-    ml::train::createLayer(
-      "pow", {"name=powlayer", "exponent=3", "input_layers=inputlayer"}),
-    ml::train::layer::FullyConnected(
-      {"name=outputlayer", "input_layers=powlayer", "unit=10",
-       "bias_initializer=zeros", "activation=softmax"})};
+  std::vector<std::shared_ptr<ml::train::Layer>> layers;
+
+  try {
+    /// creating array of layers same as in `custom_layer_client.ini`
+    layers = std::vector<std::shared_ptr<ml::train::Layer>>{
+      ml::train::layer::Input({"name=inputlayer", "input_shape=1:1:100"}),
+      ml::train::createLayer(
+        "pow", {"name=powlayer", "exponent=3", "input_layers=inputlayer"}),
+      ml::train::layer::FullyConnected(
+        {"name=outputlayer", "input_layers=powlayer", "unit=10",
+         "bias_initializer=zeros", "activation=softmax"})};
+  } catch (nntrainer::exception::not_supported &e) {
+    std::cerr << "creating model failed";
+    return 1;
+  }
 
   for (auto &layer : layers) {
     model->addLayer(layer);

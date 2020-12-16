@@ -111,7 +111,7 @@ void getInputFeature(const std::string &filename, float *feature_input) {
   }
 
   if (INPUT_SIZE != input_img_size) {
-    delete in;
+    delete[] in;
     throw std::runtime_error("Input size does not match the required size");
   }
 
@@ -331,6 +331,7 @@ int testModel(const char *data_path, const char *model) {
 
     float featureVector[INPUT_SIZE];
     status = getInputFeature_c(test_file_path, featureVector);
+    free(test_file_path);
     if (status != ML_ERROR_NONE)
       goto fail_info_release;
 
@@ -422,7 +423,11 @@ int main(int argc, char *argv[]) {
   std::string data_path = args[1];
 
   /// @todo add capi version of this
-  nntrainer::AppContext::Global().setWorkingDirectory(data_path);
+  try {
+    nntrainer::AppContext::Global().setWorkingDirectory(data_path);
+  } catch (std::invalid_argument &e) {
+    std::cerr << "setting data_path failed, pwd is used instead";
+  }
 
   srand(time(NULL));
 
