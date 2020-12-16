@@ -79,7 +79,7 @@ LOCAL_LDFLAGS += -fexceptions
 LOCAL_MODULE_TAGS := optional
 LOCAL_ARM_MODE := arm
 LOCAL_MODULE := nntrainer_classification
-LOCAL_LDLIBS := -llog
+LOCAL_LDLIBS := -llog -landroid
 
 LOCAL_SRC_FILES := main.cpp
 
@@ -102,7 +102,7 @@ LOCAL_LDFLAGS += -fexceptions
 LOCAL_MODULE_TAGS := optional
 LOCAL_ARM_MODE := arm
 LOCAL_MODULE := nntrainer_classification_func
-LOCAL_LDLIBS := -llog
+LOCAL_LDLIBS := -llog -landroid
 
 LOCAL_SRC_FILES := main_func.cpp
 
