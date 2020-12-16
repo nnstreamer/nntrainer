@@ -38,7 +38,9 @@ public:
     in_res(nullptr),
     out_res(nullptr),
     in_data_cont(nullptr),
-    out_data_cont(nullptr) {
+    out_data_cont(nullptr),
+    in_data(nullptr),
+    out_data(nullptr) {
     trainable = false;
   }
 
