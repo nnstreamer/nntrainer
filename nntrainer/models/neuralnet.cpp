@@ -254,7 +254,7 @@ int NeuralNetwork::initialize() {
       }
     }
 
-    status = l.initialize(manager);
+    status = l.initialize(*manager);
     NN_RETURN_STATUS();
 
     opt->addOptimizerVariable(l.getWeightsRef());
@@ -272,7 +272,7 @@ int NeuralNetwork::initialize() {
   if (in_place_bn_layer_optimization)
     inPlaceBatchNormOptimization();
 
-  manager.initialize();
+  manager->initialize();
 
   initialized = true;
   return status;

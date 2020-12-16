@@ -17,7 +17,10 @@
 #include <android/sharedmem.h>
 #endif
 
+#ifdef DEBUG
 #include <cassert>
+#endif
+
 #include <fcntl.h>
 #include <functional>
 #include <limits>
@@ -148,6 +151,9 @@ void Manager::initialize() {
 }
 
 void Manager::initializeSharedMemory(size_t size) {
+  if (buf != nullptr || fd > 0 || buf_size > 0) {
+    throw std::runtime_error("[Manager] manager is already holding a buffer");
+  }
 
 #ifdef __ANDROID__
   /// unfortunately, memfd_create is not supported before android level 30
@@ -188,16 +194,22 @@ void Manager::initializeSharedMemory(size_t size) {
   buf = reinterpret_cast<float *>(buf_);
   fd = fd_;
   buf_size = size;
+
+  ml_logd("[Manager] memory acquired size: %zu, fd: %d, addr: %p", buf_size, fd,
+          buf);
 }
 
 void Manager::releaseSharedMemory() noexcept {
-  if (buf != nullptr) {
+  if (buf == nullptr) {
+    ml_logd("[Manager] buf is already empty, not released");
+    return;
+  }
+
 #ifdef DEBUG
-    assert(buf_size > 0);
+  assert(buf_size > 0 && fd > 0);
 #endif
-    if (munmap(buf, buf_size) < 0) {
-      ml_logw("[Manager] munmap failed on destruction please check");
-    }
+  if (munmap(buf, buf_size) < 0) {
+    ml_logw("[Manager] munmap failed on destruction please check");
   }
 
   if (fd != -1) {
@@ -205,6 +217,11 @@ void Manager::releaseSharedMemory() noexcept {
       ml_logw("[Manager] closing fd failed on destruction please check");
     }
   }
+
+  fd = -1;
+  buf = nullptr;
+  buf_size = 0;
+  ml_logd("[Manager] buf released");
 }
 
 } // namespace nntrainer

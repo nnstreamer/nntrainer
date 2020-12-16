@@ -36,10 +36,10 @@ public:
   Manager(bool enable_gradient_memory_opt_ = true,
           bool use_shared_memory_ = true);
 
-  /// @todo copy ctor / assignment ops but leave move ctor / assignment
-  Manager(const Manager &) = default;
+  ///@todo we can allow move ctor / assignment
+  Manager(const Manager &) = delete;
 
-  Manager &operator=(const Manager &) = default;
+  Manager &operator=(const Manager &) = delete;
 
   /**
    * @brief     Destructor of Manager
