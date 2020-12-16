@@ -48,13 +48,14 @@ template <typename LayerType>
 class nntrainer_abstractLayer : public ::testing::Test {
 protected:
   virtual void SetUp() {
+    manager = std::make_shared<nntrainer::Manager>(true, false);
     status = ML_ERROR_NONE;
     prepareLayer();
     reinitialize();
   }
 
   virtual int reinitialize() {
-    int status = layer.initialize(manager);
+    int status = layer.initialize(*manager);
     EXPECT_EQ(status, ML_ERROR_NONE);
 
     in = nntrainer::Tensor(layer.getInputDimension()[0]);
@@ -77,7 +78,7 @@ protected:
       layer.setOutputBuffer(i, n_buffer);
     }
 
-    manager.initialize();
+    manager->initialize();
 
     return status;
   }
@@ -97,7 +98,7 @@ protected:
 
   virtual void resetLayer() {
     layer = LayerType();
-    manager.reset();
+    manager->reset();
   }
 
   virtual void setInputDim(const std::string &dimension) {
@@ -208,7 +209,7 @@ protected:
   nntrainer::Tensor in;
   nntrainer::Tensor out;
   float local_tolerance = tolerance;
-  nntrainer::Manager manager;
+  std::shared_ptr<nntrainer::Manager> manager;
   std::shared_ptr<nntrainer::Optimizer> opt;
 };
 
@@ -370,7 +371,7 @@ TEST_F(nntrainer_FullyConnectedLayer, initialize_01_p) {
  * @brief Fully Connected Layer without setting any parameter
  */
 TEST(nntrainer_FullyConnectedLayer_n, initialize_02_n) {
-  nntrainer::Manager manager;
+  nntrainer::Manager manager{true, false};
   nntrainer::FullyConnectedLayer layer;
   EXPECT_THROW(layer.initialize(manager), std::invalid_argument);
 }
@@ -379,7 +380,7 @@ TEST(nntrainer_FullyConnectedLayer_n, initialize_02_n) {
  * @brief Fully Connected Layer without setting unit
  */
 TEST(nntrainer_FullyConnectedLayer_n, initialize_03_n) {
-  nntrainer::Manager manager;
+  nntrainer::Manager manager{true, false};
   nntrainer::FullyConnectedLayer layer;
   layer.setProperty({"input_shape=32:1:28:28"});
 
@@ -502,7 +503,7 @@ protected:
 
     act_layer->setBatch(layer.getOutputDimension()[0].batch());
 
-    status = act_layer->initialize(manager);
+    status = act_layer->initialize(*manager);
     EXPECT_EQ(status, ML_ERROR_NONE);
 
     act_layer->resizeNetInput(act_layer->getNumInputs());
@@ -535,7 +536,7 @@ protected:
 
     loss_layer->setBatch(layer.getOutputDimension()[0].batch());
 
-    status = loss_layer->initialize(manager);
+    status = loss_layer->initialize(*manager);
     EXPECT_EQ(status, ML_ERROR_NONE);
     status = loss_layer->setLoss(type);
     EXPECT_EQ(status, ML_ERROR_NONE);
@@ -1269,9 +1270,9 @@ TEST_F(nntrainer_Conv2DLayer, DISABLED_backwarding_03_p) {
                         "padding=0, 0");
 
   loadFile("tc_conv2d_int_conv2DLayer.in", in);
-  nntrainer::Manager manager;
+  auto manager = std::make_shared<nntrainer::Manager>();
 
-  manager.setGradientMemoryOptimization(false);
+  manager->setGradientMemoryOptimization(false);
 
   nntrainer::Conv2DLayer layer1;
   status =
@@ -1280,7 +1281,7 @@ TEST_F(nntrainer_Conv2DLayer, DISABLED_backwarding_03_p) {
                         "kernel_size= 5,5", "stride=1, 1", "padding=0, 0"});
   EXPECT_EQ(status, ML_ERROR_NONE);
   layer1.setBatch(1);
-  status = layer1.initialize(manager);
+  status = layer1.initialize(*manager);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   loadFile("tc_conv2d_int_conv2DKernel.in", layer1);
@@ -1299,7 +1300,7 @@ TEST_F(nntrainer_Conv2DLayer, DISABLED_backwarding_03_p) {
   status = layer2.setProperty(
     {"input_shape=" + getDimensionString(layer1.getOutputDimension()[0])});
   EXPECT_EQ(status, ML_ERROR_NONE);
-  status = layer2.initialize(manager);
+  status = layer2.initialize(*manager);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   loadFile("tc_conv2d_int_conv2DKernel2.in", layer2);
@@ -1787,13 +1788,13 @@ TEST(nntrainer_LossLayer, setProperty_individual_02_n) {
 }
 
 TEST(nntrainer_ActivationLayer, init_01_n) {
-  nntrainer::Manager manager;
+  nntrainer::Manager manager{true, false};
   nntrainer::ActivationLayer layer;
   EXPECT_THROW(layer.initialize(manager), std::invalid_argument);
 }
 
 TEST(nntrainer_ActivationLayer, init_02_p) {
-  nntrainer::Manager manager;
+  nntrainer::Manager manager{true, false};
   int status = ML_ERROR_NONE;
   nntrainer::ActivationLayer layer;
 
@@ -1885,7 +1886,7 @@ TEST_F(nntrainer_AdditionLayer, initialize_01_p) {
 TEST_F(nntrainer_AdditionLayer, initialize_02_n) {
   nntrainer::AdditionLayer layer;
   layer.setProperty({"input_shape=1:1:1:1"});
-  status = layer.initialize(manager);
+  status = layer.initialize(*manager);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
@@ -1896,7 +1897,7 @@ TEST_F(nntrainer_AdditionLayer, checkValidation_01_p) {
 
 TEST_F(nntrainer_AdditionLayer, setProperty_01_p) {
   setProperty("num_inputs=10");
-  status = layer.initialize(manager);
+  status = layer.initialize(*manager);
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
