@@ -92,10 +92,10 @@ Tensor::Tensor(const TensorDim &d, const float *buf) : Tensor() {
   }
 }
 
-Tensor Tensor::Wrap(float *buf, const TensorDim &d, int offset) {
+Tensor Tensor::Map(float *buf, const TensorDim &d, int offset) {
   if (d.getDataLen() == 0 || buf == nullptr) {
     throw std::invalid_argument(
-      "[Tensor::Wrap] empty tensor dim is not allowed");
+      "[Tensor::Map] empty tensor dim is not allowed");
   }
 
   Tensor tmp;
@@ -107,11 +107,10 @@ Tensor Tensor::Wrap(float *buf, const TensorDim &d, int offset) {
   return tmp;
 }
 
-Tensor Tensor::Wrap(std::shared_ptr<float> buf, const TensorDim &d,
-                    int offset) {
+Tensor Tensor::Map(std::shared_ptr<float> buf, const TensorDim &d, int offset) {
   if (d.getDataLen() == 0 || buf == nullptr) {
     throw std::invalid_argument(
-      "[Tensor::Wrap] empty tensor dim is not allowed");
+      "[Tensor::Map] empty tensor dim is not allowed");
   }
 
   Tensor tmp;
