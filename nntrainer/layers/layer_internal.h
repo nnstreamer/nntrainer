@@ -36,16 +36,6 @@
 
 namespace nntrainer {
 
-struct NetBuffers {
-  Tensor var;
-  /* TODO : We could remove this. for now, We are not allocate memory. This
-   * exists only for the unittest.  */
-  Tensor grad;
-};
-
-typedef std::shared_ptr<nntrainer::NetBuffers> sharedNetBuffer;
-typedef std::vector<sharedNetBuffer> sharedNetBuffers;
-
 /**
  * @brief     Enumeration of activation function type
  */
@@ -330,25 +320,17 @@ public:
    */
   std::vector<Weight> &getWeightsRef() { return weights; }
 
+  void setInputBuffers(std::vector<std::shared_ptr<Var_Grad>> inputs) {
+    net_input = inputs;
+  }
+
+  void setOutputBuffers(std::vector<std::shared_ptr<Var_Grad>> outputs) {
+    net_hidden = outputs;
+  }
+
 #ifdef ENABLE_TEST
-  void resizeNetInput(unsigned int size) { net_input.resize(size); }
-
-  void resizeNetOutput(unsigned int size) { net_hidden.resize(size); }
-
   unsigned int getNumInputs() { return num_inputs; }
   unsigned int getNumOutputs() { return num_outputs; }
-
-  void setInputBuffer(unsigned int i, std::shared_ptr<NetBuffers> n_buffer) {
-    if (i >= net_input.size())
-      throw std::invalid_argument("Error: exceed num_input size");
-    net_input[i] = n_buffer;
-  }
-
-  void setOutputBuffer(unsigned int i, std::shared_ptr<NetBuffers> n_buffer) {
-    if (i >= net_hidden.size())
-      throw std::invalid_argument("Error: exceed num_input size");
-    net_hidden[i] = n_buffer;
-  }
 #endif
 
 protected:
@@ -384,7 +366,7 @@ protected:
    */
   Tensor input;
 
-  std::vector<std::shared_ptr<NetBuffers>> net_input;
+  std::vector<std::shared_ptr<Var_Grad>> net_input;
 
   /**
    * @brief     Hidden Layer Tensor which store the
@@ -393,7 +375,7 @@ protected:
   Tensor hidden;
   Tensor ret_derivative; /** derivative to be returned to previous layer */
 
-  std::vector<std::shared_ptr<NetBuffers>> net_hidden;
+  std::vector<std::shared_ptr<Var_Grad>> net_hidden;
 
   /**
    * @brief     Dimension of input activation

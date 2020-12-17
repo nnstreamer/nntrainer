@@ -21,6 +21,7 @@
 #include <memory>
 #include <vector>
 
+#include <var_grad.h>
 #include <weight.h>
 
 namespace nntrainer {
@@ -88,9 +89,9 @@ public:
   Manager(bool enable_gradient_memory_opt_ = true,
           bool use_shared_memory_ = true);
 
-  Manager(const Manager &) = delete;
+  Manager(const Manager &) = default;
 
-  Manager &operator=(const Manager &) = delete;
+  Manager &operator=(const Manager &) = default;
 
   Manager(Manager &&) noexcept = default;
 
@@ -147,16 +148,60 @@ public:
     total_grad_size = 0;
     weight_mmaped_memory.reset();
     grad_mmaped_memory.reset();
+    in_outs.clear();
+  }
+
+  /**
+   * @brief Track the inputs/ouputs of the layer
+   * @param[in] layer_name Name of the layer
+   * @param[in] input_dim Dimension of the input for the layer
+   * @note Manager is kept independent from the layer object itself
+   */
+  void TrackLayerInOuts(const std::string layer_name,
+                        const std::vector<TensorDim> &input_dim);
+
+  /**
+   * @brief Get input tensor list for a layer by index
+   * @param[in] layer_idx Index of the layer in the order of layer tracked
+   * @note The order of layers tracked is same as the order of sorted layers
+   */
+  std::vector<std::shared_ptr<Var_Grad>> getInputsLayer(int layer_idx) {
+    if (layer_idx == -1)
+      return in_outs.back();
+    return in_outs[layer_idx];
+  }
+
+  /**
+   * @brief Initialize the inputs/outputs for the layers
+   * @todo Make initialize() and initializeInOuts() coherent but still separated
+   */
+  void initializeInOuts() {
+    // TODO: remove assign mem and do this
+    for (auto &in_out : in_outs)
+      for (auto &vg : in_out)
+        vg->initialize();
+  }
+
+  /**
+   * @brief Set the batch size for the inputs/outputs of the layers
+   */
+  void setBatchSize(unsigned int batch) {
+    for (auto &in_out : in_outs)
+      for (auto &vg : in_out)
+        vg->setBatchSize(batch);
   }
 
 private:
   // TODO: ensure that names of these weights are unique
-  /**< Weights all the layer in the model to be managed */
+  /**< Weights of all the layer in the model to be managed */
   std::vector<std::vector<std::reference_wrapper<Weight>>> weights;
 
   size_t total_weight_size; /**< total weight size */
   size_t total_grad_size;   /**< total weight size */
   size_t max_grad_size;     /**< max trainable weight required by a layer */
+
+  /**< Inputs/outputs of all the layer in the model */
+  std::vector<std::vector<std::shared_ptr<Var_Grad>>> in_outs;
 
   bool enable_gradient_memory_opt; /**< share memory among all the gradients */
 

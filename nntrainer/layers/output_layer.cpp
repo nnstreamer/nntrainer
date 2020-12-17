@@ -44,18 +44,18 @@ int OutputLayer::initialize(Manager &manager) {
 }
 
 void OutputLayer::forwarding(sharedConstTensors in) {
-  Tensor &input_ = net_input[0]->var;
+  Tensor &input_ = net_input[0]->getVariableRef();
   for (unsigned int idx = 0; idx < num_outputs; ++idx) {
-    net_hidden[idx]->var = input_;
+    net_hidden[idx]->getVariableRef() = input_;
   }
 }
 
 void OutputLayer::calcDerivative(sharedConstTensors derivative) {
 
-  Tensor &ret = net_input[0]->var;
+  Tensor &ret = net_input[0]->getVariableRef();
 
   for (unsigned int idx = 0; idx < num_outputs; ++idx) {
-    ret.add_i(net_hidden[idx]->var);
+    ret.add_i(net_hidden[idx]->getVariableRef());
   }
 }
 

@@ -77,16 +77,12 @@ void Conv2DLayer::forwarding(sharedConstTensors in) {
   if (num_inputs != 1)
     throw std::invalid_argument("Convolution layer only takes one input");
 
-  Tensor &input_ = net_input[0]->var;
+  Tensor &input_ = net_input[0]->getVariableRef();
 
   TensorDim &in_dim = input_dim[0];
   TensorDim &out_dim = output_dim[0];
 
-  Tensor &hidden_ = net_hidden[0]->var;
-  /** @todo This check is redundant, remove it later */
-  if (hidden_.uninitialized()) {
-    hidden_ = Tensor(out_dim);
-  }
+  Tensor &hidden_ = net_hidden[0]->getVariableRef();
 
   Tensor &filter_kernel = weightAt(ConvParams::weight).getVariableRef();
   Tensor &bias_kernel = weightAt(ConvParams::bias).getVariableRef();
@@ -168,7 +164,7 @@ void Conv2DLayer::calcDerivative(sharedConstTensors derivatives) {
   int status = ML_ERROR_NONE;
   TensorDim &in_dim = input_dim[0];
 
-  Tensor &derivative = net_hidden[0]->var;
+  Tensor &derivative = net_hidden[0]->getVariableRef();
   Tensor &filter_kernel = weightAt(ConvParams::weight).getVariableRef();
 
   std::array<unsigned int, CONV2D_DIM> same_pad;
@@ -268,7 +264,7 @@ void Conv2DLayer::calcDerivative(sharedConstTensors derivatives) {
     if (status != ML_ERROR_NONE)
       throw std::runtime_error("calcDerivative Convolution failed.");
 
-    strip_pad(ret, padding.data(), net_input[0]->var, b);
+    strip_pad(ret, padding.data(), net_input[0]->getVariableRef(), b);
   }
 }
 
@@ -276,8 +272,8 @@ void Conv2DLayer::calcGradient(sharedConstTensors derivatives) {
   TensorDim &in_dim = input_dim[0];
 
   Tensor &filter_kernel = weightAt(ConvParams::weight).getVariableRef();
-  Tensor &derivative = net_hidden[0]->var;
-  Tensor &input_ = net_input[0]->var;
+  Tensor &derivative = net_hidden[0]->getVariableRef();
+  Tensor &input_ = net_input[0]->getVariableRef();
 
   Tensor &delK = weightAt(ConvParams::weight).getGradientRef();
   Tensor &delBias = weightAt(ConvParams::bias).getGradientRef();

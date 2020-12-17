@@ -107,11 +107,12 @@ void PowLayer::forwarding(nntrainer::sharedConstTensors in) {
 #endif
 
   /// net hidden are used to save var,
-  net_hidden[0]->var = net_input[0]->var.pow(exponent);
+  net_hidden[0]->getVariableRef() =
+    net_input[0]->getVariableRef().pow(exponent);
 
 #ifdef DEBUG
-  std::cout << "input: " << net_input[0]->var;
-  std::cout << "output: " << net_hidden[0]->var;
+  std::cout << "input: " << net_input[0]->getVariable();
+  std::cout << "output: " << net_hidden[0]->getVariable();
   PowUtil::pause();
 #endif
 }
@@ -122,14 +123,14 @@ void PowLayer::calcDerivative(nntrainer::sharedConstTensors in) {
   std::cout << "pow layer backward is called\n";
 #endif
 
-  nntrainer::Tensor &derivative_ = net_hidden[0]->var;
-  nntrainer::Tensor &dx = net_input[0]->var;
+  nntrainer::Tensor &derivative_ = net_hidden[0]->getVariableRef();
+  nntrainer::Tensor &dx = net_input[0]->getVariableRef();
 
   dx = derivative_.multiply(exponent);
 
 #ifdef DEBUG
-  std::cout << "input: " << net_hidden[0]->var;
-  std::cout << "output: " << net_input[0]->var;
+  std::cout << "input: " << net_hidden[0]->getVariable();
+  std::cout << "output: " << net_input[0]->getVariable();
   PowUtil::pause();
 #endif
 }
