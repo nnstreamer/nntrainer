@@ -8,6 +8,7 @@
  * tensors
  * @see    https://github.com/nnstreamer/nntrainer
  * @author Parichay Kapoor <pk.kapoor@samsung.com>
+ * @author Jihoon Lee <jhoon.it.lee@samsung.com>
  * @bug	   No known bugs except for NYI items
  *
  */
@@ -17,11 +18,62 @@
 #ifdef __cplusplus
 
 #include <functional>
+#include <memory>
 #include <vector>
 
 #include <weight.h>
 
 namespace nntrainer {
+
+/**
+ * @class MMappedMemory
+ * @brief Memory Handler, that has mmaped memory with a file descriptor
+ */
+class MMapedMemory {
+public:
+  /**
+   * @brief Construct a new MMapedMemory object
+   *
+   * @param size bytesize of the memory chunk
+   * @param allocate_fd map a shared memory object to a file
+   */
+  MMapedMemory(size_t size, bool allocate_fd = false);
+
+  ~MMapedMemory() noexcept;
+
+  MMapedMemory(const MMapedMemory &) = delete;
+
+  MMapedMemory &operator=(const MMapedMemory &) = delete;
+
+  /**
+   * @brief Get the File descriptor.
+   * Will return -1 except for android
+   * @todo make this available for other platforms
+   *
+   * @return -1 if fd is not allocated (or unabled to allocate)
+   */
+  int getFd() noexcept { return fd; }
+
+  size_t size() noexcept { return buf_size; }
+
+  /**
+   * @brief get Typed buffer from the memory
+   *
+   * @tparam T Type to specify the buffer. return is reinterpreted to T*
+   * @return T* Typed buffer, return nullptr if empty
+   */
+  template <typename T> T *typedBuffer() noexcept {
+    return reinterpret_cast<T *>(buf);
+  }
+
+  void *data() noexcept { return typedBuffer<void>(); }
+
+private:
+  bool allocate_fd; /**< option to choose to allocate an fd */
+  int fd;           /**< fd to access the shared_memory  */
+  void *buf;        /**< buffer object when use_shared_memory */
+  size_t buf_size;  /**< buffer size */
+};
 
 /**
  * @class   Manager
@@ -36,10 +88,13 @@ public:
   Manager(bool enable_gradient_memory_opt_ = true,
           bool use_shared_memory_ = true);
 
-  ///@todo we can allow move ctor / assignment
   Manager(const Manager &) = delete;
 
   Manager &operator=(const Manager &) = delete;
+
+  Manager(Manager &&) noexcept = default;
+
+  Manager &operator=(Manager &&) noexcept = default;
 
   /**
    * @brief     Destructor of Manager
@@ -78,15 +133,6 @@ public:
   }
 
   /**
-   * @brief Get the File descriptor.
-   * Will return -1 except for android
-   * @todo make this available for other platforms
-   *
-   * @return -1 if not applicable, else file descriptor
-   */
-  int getFd() noexcept { return fd; }
-
-  /**
    * @brief Allocate and initialize the weight variable
    */
   void initialize();
@@ -99,23 +145,11 @@ public:
     max_grad_size = 0;
     total_weight_size = 0;
     total_grad_size = 0;
-    releaseSharedMemory();
+    weight_mmaped_memory.reset();
+    grad_mmaped_memory.reset();
   }
 
 private:
-  /**
-   * @brief initialize shared memory, buf_size is set here
-   *
-   * @param size Byte size
-   */
-  void initializeSharedMemory(size_t size);
-
-  /**
-   * @brief release shared memory, if use_sha
-   *
-   */
-  void releaseSharedMemory() noexcept;
-
   // TODO: ensure that names of these weights are unique
   /**< Weights all the layer in the model to be managed */
   std::vector<std::vector<std::reference_wrapper<Weight>>> weights;
@@ -129,9 +163,8 @@ private:
   /**< shared memory related */
   bool use_shared_memory; /**< uses shared memory object which is owned by
                              manager */
-  int fd;                 /**< fd to access the shared_memory  */
-  float *buf;             /**< buffer object when use_shared_memory */
-  size_t buf_size;        /**< buffer size */
+  std::unique_ptr<MMapedMemory> weight_mmaped_memory;
+  std::unique_ptr<MMapedMemory> grad_mmaped_memory;
 };
 
 } // namespace nntrainer
