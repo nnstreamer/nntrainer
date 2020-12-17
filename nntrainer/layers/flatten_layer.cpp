@@ -42,15 +42,15 @@ int FlattenLayer::initialize(Manager &manager) {
 }
 
 void FlattenLayer::forwarding(sharedConstTensors in) {
-  Tensor temp = net_input[0]->var;
-  temp.reshape(net_hidden[0]->var.getDim());
-  net_hidden[0]->var = temp;
+  Tensor temp = net_input[0]->getVariableRef();
+  temp.reshape(net_hidden[0]->getDim());
+  net_hidden[0]->getVariableRef() = temp;
 }
 
 void FlattenLayer::calcDerivative(sharedConstTensors in) {
-  Tensor temp = net_hidden[0]->var;
-  temp.reshape(net_input[0]->var.getDim());
-  net_input[0]->var = temp;
+  Tensor temp = net_hidden[0]->getVariableRef();
+  temp.reshape(net_input[0]->getDim());
+  net_input[0]->getVariableRef() = temp;
 }
 
 } /* namespace nntrainer */

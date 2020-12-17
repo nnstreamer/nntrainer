@@ -131,8 +131,8 @@ void BatchNormalizationLayer::forwarding(sharedConstTensors in) {
   Tensor &gamma = weightAt(BNParams::gamma).getVariableRef();
   Tensor &beta = weightAt(BNParams::beta).getVariableRef();
 
-  Tensor &input_ = net_input[0]->var;
-  Tensor &hidden_ = net_hidden[0]->var;
+  Tensor &input_ = net_input[0]->getVariableRef();
+  Tensor &hidden_ = net_hidden[0]->getVariableRef();
 
   /// @todo change trainable to train/eval mode #524
   if (trainable) {
@@ -162,7 +162,7 @@ void BatchNormalizationLayer::forwarding(sharedConstTensors in) {
 void BatchNormalizationLayer::calcDerivative(sharedConstTensors derivative) {
 
   Tensor &gamma = weightAt(BNParams::gamma).getVariableRef();
-  Tensor &deriv = net_hidden[0]->var;
+  Tensor &deriv = net_hidden[0]->getVariableRef();
 
   int N = 1;
   for (auto &axis : axes_to_reduce) {
@@ -175,7 +175,7 @@ void BatchNormalizationLayer::calcDerivative(sharedConstTensors derivative) {
   dx_2.subtract_i(deviation.divide(cvar).multiply(
     deviation.multiply(deriv).sum(axes_to_reduce)));
 
-  Tensor &dx = net_input[0]->var;
+  Tensor &dx = net_input[0]->getVariableRef();
   dx = dx_2.multiply(dx_1, dx);
   dx.divide_i(N);
 }
@@ -184,7 +184,7 @@ void BatchNormalizationLayer::calcGradient(sharedConstTensors derivative) {
 
   Tensor &dgamma = weightAt(BNParams::gamma).getGradientRef();
   Tensor &dbeta = weightAt(BNParams::beta).getGradientRef();
-  Tensor &deriv = net_hidden[0]->var;
+  Tensor &deriv = net_hidden[0]->getVariableRef();
 
   dbeta = deriv.sum(axes_to_reduce);
   Tensor dev = deviation.multiply(invstd);

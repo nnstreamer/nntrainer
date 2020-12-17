@@ -168,7 +168,7 @@ void NNStreamerLayer::setProperty(const PropertyType type,
 void NNStreamerLayer::forwarding(sharedConstTensors in) {
   size_t data_size;
   Tensor input = *in[0];
-  Tensor &hidden_ = net_hidden[0]->var;
+  Tensor &hidden_ = net_hidden[0]->getVariableRef();
 
   std::copy(input.getData(), input.getData() + input.length(),
             (float *)in_data);

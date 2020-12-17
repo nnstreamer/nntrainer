@@ -48,37 +48,26 @@ template <typename LayerType>
 class nntrainer_abstractLayer : public ::testing::Test {
 protected:
   virtual void SetUp() {
-    manager = std::make_shared<nntrainer::Manager>(true, false);
+    manager = nntrainer::Manager(true, false);
     status = ML_ERROR_NONE;
     prepareLayer();
     reinitialize();
   }
 
   virtual int reinitialize() {
-    int status = layer.initialize(*manager);
+    int status = layer.initialize(manager);
     EXPECT_EQ(status, ML_ERROR_NONE);
 
     in = nntrainer::Tensor(layer.getInputDimension()[0]);
     out = nntrainer::Tensor(layer.getOutputDimension()[0]);
 
-    layer.resizeNetInput(layer.getNumInputs());
-    layer.resizeNetOutput(layer.getNumOutputs());
+    manager.TrackLayerInOuts(layer.getName(), layer.getInputDimension());
+    layer.setInputBuffers(manager.getInputsLayer(-1));
+    manager.TrackLayerInOuts(layer.getName(), layer.getOutputDimension());
+    layer.setOutputBuffers(manager.getInputsLayer(-1));
 
-    for (unsigned int i = 0; i < layer.getNumInputs(); ++i) {
-      std::shared_ptr<nntrainer::NetBuffers> n_buffer =
-        std::make_unique<nntrainer::NetBuffers>();
-      n_buffer->var = nntrainer::Tensor(layer.getInputDimension()[i]);
-      layer.setInputBuffer(i, n_buffer);
-    }
-
-    for (unsigned int i = 0; i < layer.getNumOutputs(); ++i) {
-      std::shared_ptr<nntrainer::NetBuffers> n_buffer =
-        std::make_unique<nntrainer::NetBuffers>();
-      n_buffer->var = nntrainer::Tensor(layer.getOutputDimension()[i]);
-      layer.setOutputBuffer(i, n_buffer);
-    }
-
-    manager->initialize();
+    manager.initializeInOuts();
+    manager.initialize();
 
     return status;
   }
@@ -98,7 +87,7 @@ protected:
 
   virtual void resetLayer() {
     layer = LayerType();
-    manager->reset();
+    manager.reset();
   }
 
   virtual void setInputDim(const std::string &dimension) {
@@ -209,7 +198,7 @@ protected:
   nntrainer::Tensor in;
   nntrainer::Tensor out;
   float local_tolerance = tolerance;
-  std::shared_ptr<nntrainer::Manager> manager;
+  nntrainer::Manager manager;
   std::shared_ptr<nntrainer::Optimizer> opt;
 };
 
@@ -503,26 +492,15 @@ protected:
 
     act_layer->setBatch(layer.getOutputDimension()[0].batch());
 
-    status = act_layer->initialize(*manager);
+    status = act_layer->initialize(manager);
     EXPECT_EQ(status, ML_ERROR_NONE);
 
-    act_layer->resizeNetInput(act_layer->getNumInputs());
-    act_layer->resizeNetOutput(act_layer->getNumOutputs());
+    manager.TrackLayerInOuts(layer.getName(), layer.getInputDimension());
+    act_layer->setInputBuffers(manager.getInputsLayer(-1));
+    manager.TrackLayerInOuts(layer.getName(), layer.getOutputDimension());
+    act_layer->setOutputBuffers(manager.getInputsLayer(-1));
 
-    for (unsigned int i = 0; i < act_layer->getNumInputs(); ++i) {
-      std::shared_ptr<nntrainer::NetBuffers> n_buffer =
-        std::make_unique<nntrainer::NetBuffers>();
-      n_buffer->var = nntrainer::Tensor(act_layer->getInputDimension()[i]);
-      act_layer->setInputBuffer(i, n_buffer);
-    }
-
-    for (unsigned int i = 0; i < act_layer->getNumOutputs(); ++i) {
-      std::shared_ptr<nntrainer::NetBuffers> n_buffer =
-        std::make_unique<nntrainer::NetBuffers>();
-      n_buffer->var = nntrainer::Tensor(act_layer->getOutputDimension()[i]);
-      act_layer->setOutputBuffer(i, n_buffer);
-    }
-
+    manager.initializeInOuts();
     layers.push_back(act_layer);
   }
 
@@ -536,28 +514,17 @@ protected:
 
     loss_layer->setBatch(layer.getOutputDimension()[0].batch());
 
-    status = loss_layer->initialize(*manager);
+    status = loss_layer->initialize(manager);
     EXPECT_EQ(status, ML_ERROR_NONE);
     status = loss_layer->setLoss(type);
     EXPECT_EQ(status, ML_ERROR_NONE);
 
-    loss_layer->resizeNetInput(loss_layer->getNumInputs());
-    loss_layer->resizeNetOutput(loss_layer->getNumOutputs());
+    manager.TrackLayerInOuts(layer.getName(), layer.getInputDimension());
+    loss_layer->setInputBuffers(manager.getInputsLayer(-1));
+    manager.TrackLayerInOuts(layer.getName(), layer.getOutputDimension());
+    loss_layer->setOutputBuffers(manager.getInputsLayer(-1));
 
-    for (unsigned int i = 0; i < loss_layer->getNumInputs(); ++i) {
-      std::shared_ptr<nntrainer::NetBuffers> n_buffer =
-        std::make_unique<nntrainer::NetBuffers>();
-      n_buffer->var = nntrainer::Tensor(loss_layer->getInputDimension()[i]);
-      loss_layer->setInputBuffer(i, n_buffer);
-    }
-
-    for (unsigned int i = 0; i < loss_layer->getNumOutputs(); ++i) {
-      std::shared_ptr<nntrainer::NetBuffers> n_buffer =
-        std::make_unique<nntrainer::NetBuffers>();
-      n_buffer->var = nntrainer::Tensor(loss_layer->getOutputDimension()[i]);
-      loss_layer->setOutputBuffer(i, n_buffer);
-    }
-
+    manager.initializeInOuts();
     layers.push_back(loss_layer);
 
     if (type == nntrainer::LossType::LOSS_ENTROPY_SOFTMAX) {
@@ -1270,9 +1237,9 @@ TEST_F(nntrainer_Conv2DLayer, DISABLED_backwarding_03_p) {
                         "padding=0, 0");
 
   loadFile("tc_conv2d_int_conv2DLayer.in", in);
-  auto manager = std::make_shared<nntrainer::Manager>();
+  auto manager = nntrainer::Manager();
 
-  manager->setGradientMemoryOptimization(false);
+  manager.setGradientMemoryOptimization(false);
 
   nntrainer::Conv2DLayer layer1;
   status =
@@ -1281,7 +1248,7 @@ TEST_F(nntrainer_Conv2DLayer, DISABLED_backwarding_03_p) {
                         "kernel_size= 5,5", "stride=1, 1", "padding=0, 0"});
   EXPECT_EQ(status, ML_ERROR_NONE);
   layer1.setBatch(1);
-  status = layer1.initialize(*manager);
+  status = layer1.initialize(manager);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   loadFile("tc_conv2d_int_conv2DKernel.in", layer1);
@@ -1300,7 +1267,7 @@ TEST_F(nntrainer_Conv2DLayer, DISABLED_backwarding_03_p) {
   status = layer2.setProperty(
     {"input_shape=" + getDimensionString(layer1.getOutputDimension()[0])});
   EXPECT_EQ(status, ML_ERROR_NONE);
-  status = layer2.initialize(*manager);
+  status = layer2.initialize(manager);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   loadFile("tc_conv2d_int_conv2DKernel2.in", layer2);
@@ -1703,14 +1670,14 @@ TEST(nntrainer_LossLayer, forward_loss_unknown_n) {
   nntrainer::LossLayer layer;
   nntrainer::Tensor a = constant(1.0, 1, 1, 1, 1);
   nntrainer::Tensor b = constant(1.0, 1, 1, 1, 1);
-  layer.resizeNetInput(1);
-  layer.resizeNetOutput(1);
-  nntrainer::sharedNetBuffer in_buffer =
-    std::make_unique<nntrainer::NetBuffers>();
-  nntrainer::sharedNetBuffer out_buffer =
-    std::make_unique<nntrainer::NetBuffers>();
-  layer.setInputBuffer(0, in_buffer);
-  layer.setOutputBuffer(0, out_buffer);
+
+  nntrainer::Manager manager;
+  manager.TrackLayerInOuts(layer.getName(), layer.getInputDimension());
+  layer.setInputBuffers(manager.getInputsLayer(-1));
+  manager.TrackLayerInOuts(layer.getName(), layer.getOutputDimension());
+  layer.setOutputBuffers(manager.getInputsLayer(-1));
+
+  manager.initializeInOuts();
   EXPECT_THROW(
     layer.forwarding({MAKE_SHARED_TENSOR(a)}, {MAKE_SHARED_TENSOR(b)}),
     std::runtime_error);
@@ -1719,14 +1686,14 @@ TEST(nntrainer_LossLayer, forward_loss_unknown_n) {
 TEST(nntrainer_LossLayer, backward_loss_unknown_n) {
   nntrainer::LossLayer layer;
   nntrainer::Tensor a = constant(1.0, 1, 1, 1, 1);
-  layer.resizeNetInput(1);
-  layer.resizeNetOutput(1);
-  nntrainer::sharedNetBuffer in_buffer =
-    std::make_unique<nntrainer::NetBuffers>();
-  nntrainer::sharedNetBuffer out_buffer =
-    std::make_unique<nntrainer::NetBuffers>();
-  layer.setInputBuffer(0, in_buffer);
-  layer.setOutputBuffer(0, out_buffer);
+
+  nntrainer::Manager manager;
+  manager.TrackLayerInOuts(layer.getName(), layer.getInputDimension());
+  layer.setInputBuffers(manager.getInputsLayer(-1));
+  manager.TrackLayerInOuts(layer.getName(), layer.getOutputDimension());
+  layer.setOutputBuffers(manager.getInputsLayer(-1));
+
+  manager.initializeInOuts();
   EXPECT_THROW(layer.backwarding({MAKE_SHARED_TENSOR(a)}), std::runtime_error);
 }
 
@@ -1735,14 +1702,14 @@ TEST(nntrainer_LossLayer, forward_loss_forward_entropy_n) {
   layer.setLoss(nntrainer::LossType::LOSS_ENTROPY);
   nntrainer::Tensor a = constant(1.0, 1, 1, 1, 1);
   nntrainer::Tensor b = constant(1.0, 1, 1, 1, 1);
-  layer.resizeNetInput(1);
-  layer.resizeNetOutput(1);
-  nntrainer::sharedNetBuffer in_buffer =
-    std::make_unique<nntrainer::NetBuffers>();
-  nntrainer::sharedNetBuffer out_buffer =
-    std::make_unique<nntrainer::NetBuffers>();
-  layer.setInputBuffer(0, in_buffer);
-  layer.setOutputBuffer(0, out_buffer);
+
+  nntrainer::Manager manager;
+  manager.TrackLayerInOuts(layer.getName(), layer.getInputDimension());
+  layer.setInputBuffers(manager.getInputsLayer(-1));
+  manager.TrackLayerInOuts(layer.getName(), layer.getOutputDimension());
+  layer.setOutputBuffers(manager.getInputsLayer(-1));
+
+  manager.initializeInOuts();
   EXPECT_THROW(
     layer.forwarding({MAKE_SHARED_TENSOR(a)}, {MAKE_SHARED_TENSOR(b)}),
     std::runtime_error);
@@ -1752,14 +1719,14 @@ TEST(nntrainer_LossLayer, backward_loss_backward_entropy_n) {
   nntrainer::LossLayer layer;
   layer.setLoss(nntrainer::LossType::LOSS_ENTROPY);
   nntrainer::Tensor a = constant(1.0, 1, 1, 1, 1);
-  layer.resizeNetInput(1);
-  layer.resizeNetOutput(1);
-  nntrainer::sharedNetBuffer in_buffer =
-    std::make_unique<nntrainer::NetBuffers>();
-  nntrainer::sharedNetBuffer out_buffer =
-    std::make_unique<nntrainer::NetBuffers>();
-  layer.setInputBuffer(0, in_buffer);
-  layer.setOutputBuffer(0, out_buffer);
+
+  nntrainer::Manager manager;
+  manager.TrackLayerInOuts(layer.getName(), layer.getInputDimension());
+  layer.setInputBuffers(manager.getInputsLayer(-1));
+  manager.TrackLayerInOuts(layer.getName(), layer.getOutputDimension());
+  layer.setOutputBuffers(manager.getInputsLayer(-1));
+
+  manager.initializeInOuts();
   EXPECT_THROW(layer.backwarding({MAKE_SHARED_TENSOR(a)}), std::runtime_error);
 }
 
@@ -1842,14 +1809,13 @@ TEST(nntrainer_ActivationLayer, forward_backward_01_p) {
   GEN_TEST_INPUT(expected,
                  nntrainer::ActivationLayer::relu((l - 4) * 0.1 * (i + 1)));
 
-  layer.resizeNetInput(1);
-  layer.resizeNetOutput(1);
-  nntrainer::sharedNetBuffer in_buffer =
-    std::make_unique<nntrainer::NetBuffers>();
-  nntrainer::sharedNetBuffer out_buffer =
-    std::make_unique<nntrainer::NetBuffers>();
-  layer.setInputBuffer(0, in_buffer);
-  layer.setOutputBuffer(0, out_buffer);
+  nntrainer::Manager manager;
+  manager.TrackLayerInOuts(layer.getName(), layer.getInputDimension());
+  layer.setInputBuffers(manager.getInputsLayer(-1));
+  manager.TrackLayerInOuts(layer.getName(), layer.getOutputDimension());
+  layer.setOutputBuffers(manager.getInputsLayer(-1));
+
+  manager.initializeInOuts();
 
   nntrainer::Tensor result;
   EXPECT_NO_THROW(result =
@@ -1886,7 +1852,7 @@ TEST_F(nntrainer_AdditionLayer, initialize_01_p) {
 TEST_F(nntrainer_AdditionLayer, initialize_02_n) {
   nntrainer::AdditionLayer layer;
   layer.setProperty({"input_shape=1:1:1:1"});
-  status = layer.initialize(*manager);
+  status = layer.initialize(manager);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
@@ -1897,7 +1863,7 @@ TEST_F(nntrainer_AdditionLayer, checkValidation_01_p) {
 
 TEST_F(nntrainer_AdditionLayer, setProperty_01_p) {
   setProperty("num_inputs=10");
-  status = layer.initialize(*manager);
+  status = layer.initialize(manager);
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
@@ -1915,14 +1881,13 @@ TEST_F(nntrainer_AdditionLayer, forwarding_01_n) {
 
   in = nntrainer::Tensor();
 
-  layer.resizeNetInput(1);
-  layer.resizeNetOutput(1);
-  nntrainer::sharedNetBuffer in_buffer =
-    std::make_unique<nntrainer::NetBuffers>();
-  nntrainer::sharedNetBuffer out_buffer =
-    std::make_unique<nntrainer::NetBuffers>();
-  layer.setInputBuffer(0, in_buffer);
-  layer.setOutputBuffer(0, out_buffer);
+  nntrainer::Manager manager;
+  manager.TrackLayerInOuts(layer.getName(), layer.getInputDimension());
+  layer.setInputBuffers(manager.getInputsLayer(-1));
+  manager.TrackLayerInOuts(layer.getName(), layer.getOutputDimension());
+  layer.setOutputBuffers(manager.getInputsLayer(-1));
+
+  manager.initializeInOuts();
 
   EXPECT_THROW(layer.forwarding_with_val({input}), std::invalid_argument);
 }
@@ -1940,14 +1905,13 @@ TEST_F(nntrainer_AdditionLayer, DISABLED_forwarding_02_n) {
 
   in = nntrainer::Tensor(layer.getInputDimension()[0]);
 
-  layer.resizeNetInput(1);
-  layer.resizeNetOutput(1);
-  nntrainer::sharedNetBuffer in_buffer =
-    std::make_unique<nntrainer::NetBuffers>();
-  nntrainer::sharedNetBuffer out_buffer =
-    std::make_unique<nntrainer::NetBuffers>();
-  layer.setInputBuffer(0, in_buffer);
-  layer.setOutputBuffer(0, out_buffer);
+  nntrainer::Manager manager;
+  manager.TrackLayerInOuts(layer.getName(), layer.getInputDimension());
+  layer.setInputBuffers(manager.getInputsLayer(-1));
+  manager.TrackLayerInOuts(layer.getName(), layer.getOutputDimension());
+  layer.setOutputBuffers(manager.getInputsLayer(-1));
+
+  manager.initializeInOuts();
 
   EXPECT_THROW(layer.forwarding_with_val({input}), std::runtime_error);
 }
@@ -1962,14 +1926,11 @@ TEST_F(nntrainer_AdditionLayer, DISABLED_forwarding_03_p) {
 
   input.get()[1] = *input;
 
-  layer.resizeNetInput(1);
-  layer.resizeNetOutput(1);
-  nntrainer::sharedNetBuffer in_buffer =
-    std::make_unique<nntrainer::NetBuffers>();
-  nntrainer::sharedNetBuffer out_buffer =
-    std::make_unique<nntrainer::NetBuffers>();
-  layer.setInputBuffer(0, in_buffer);
-  layer.setOutputBuffer(0, out_buffer);
+  nntrainer::Manager manager;
+  manager.TrackLayerInOuts(layer.getName(), layer.getInputDimension());
+  layer.setInputBuffers(manager.getInputsLayer(-1));
+  manager.TrackLayerInOuts(layer.getName(), layer.getOutputDimension());
+  layer.setOutputBuffers(manager.getInputsLayer(-1));
 
   EXPECT_NO_THROW(layer.forwarding_with_val({input}));
 }

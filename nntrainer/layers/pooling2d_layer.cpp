@@ -67,8 +67,8 @@ int Pooling2DLayer::initialize(Manager &manager) {
 }
 
 void Pooling2DLayer::forwarding(sharedConstTensors in) {
-  Tensor &input_ = net_input[0]->var;
-  Tensor &hidden_ = net_hidden[0]->var;
+  Tensor &input_ = net_input[0]->getVariableRef();
+  Tensor &hidden_ = net_hidden[0]->getVariableRef();
 
   TensorDim &hidden_dim = output_dim[0];
   TensorDim &in_dim = input_dim[0];
@@ -96,8 +96,8 @@ void Pooling2DLayer::calcDerivative(sharedConstTensors derivative) {
 
   unsigned int J, K;
 
-  Tensor &deriv = net_hidden[0]->var;
-  Tensor &result = net_input[0]->var;
+  Tensor &deriv = net_hidden[0]->getVariableRef();
+  Tensor &result = net_input[0]->getVariableRef();
 
   result.setZero();
   float *out = result.getData();
