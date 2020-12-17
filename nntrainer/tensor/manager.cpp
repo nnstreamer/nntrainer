@@ -33,18 +33,100 @@
 #include <nntrainer_log.h>
 
 namespace nntrainer {
+MMapedMemory::MMapedMemory(size_t size, bool allocate_fd) :
+  fd(-1),
+  buf(nullptr),
+  buf_size(0) {
+
+#ifndef __ANDROID__
+  if (allocate_fd) {
+    /// @todo create a file in tmpfs and bind to memfs
+    /// memfd_create is not available for number of platforms so this is
+    /// commented
+    // auto fd_ = memfd_create("", 0);
+    // if (fd_ < 0) {
+    //   throw std::runtime_error("[Manager] creating mem fd failed");
+    // }
+    // if (ftruncate(fd_, size) < 0) {
+    //   throw std::runtime_error("[Manager] truncating fd failed");
+    // }
+    ml_logi("[MMapedMemory] fd creation is not supported in this platform");
+    allocate_fd = false;
+  }
+#endif
+  int fd_ = -1;
+  void *buf_ = nullptr;
+
+  if (allocate_fd) {
+#ifdef __ANDROID__
+    /// unfortunately, memfd_create is not supported before android level 30
+    fd_ = ASharedMemory_create("", size);
+    if (fd_ < 0) {
+      throw std::runtime_error("[MMapedMemory] creating mem fd failed");
+    }
+
+    if (ASharedMemory_setProt(fd_, PROT_READ | PROT_WRITE) < 0) {
+      // unlink / close the given fd here
+      close(fd_);
+      throw std::runtime_error("[MMapedMemory] Setting prot failed");
+    }
+
+    buf_ = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd_, 0);
+#endif
+  } else {
+    buf_ = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS,
+                fd_, 0);
+  }
+
+  if (buf_ == MAP_FAILED) {
+    if (fd_ != -1) {
+      // unlink / close the given fd here
+      close(fd_);
+    }
+
+    throw std::runtime_error("[MMapedMemory] mmap failed");
+  }
+
+  fd = fd_;
+  buf = buf_;
+  buf_size = size;
+
+  ml_logd("[MMapedMemory] memory acquired size: %zu, fd: %d, addr: %p",
+          buf_size, fd, buf);
+}
+
+MMapedMemory::~MMapedMemory() {
+#ifdef DEBUG
+  assert(buf_size > 0 && fd > 0);
+#endif
+
+  if (fd != -1) {
+    if (close(fd) < 0) {
+      ml_logw("[MMapedMemory] closing fd failed on destruction please check");
+    }
+  }
+
+  if (buf != nullptr) {
+    if (munmap(buf, buf_size) < 0) {
+      ml_logw("[MMapedMemory] munmap failed on destruction please check");
+    }
+  }
+
+  /// keeping the invariant although this is not necessary as of now
+  fd = -1;
+  buf = nullptr;
+  buf_size = 0;
+  ml_logd("[MMapedMemory] buf released");
+}
 
 Manager::Manager(bool enable_gradient_memory_opt_, bool use_shared_memory_) :
   total_weight_size(0),
   total_grad_size(0),
   max_grad_size(0),
   enable_gradient_memory_opt(enable_gradient_memory_opt_),
-  use_shared_memory(use_shared_memory_),
-  fd(-1),
-  buf(nullptr),
-  buf_size(0) {}
+  use_shared_memory(use_shared_memory_) {}
 
-Manager::~Manager() { releaseSharedMemory(); }
+Manager::~Manager() {}
 
 /**
  * @brief     Add weight to be tracked and updated with nntrainer
@@ -99,22 +181,26 @@ void Manager::initialize() {
   AllocFunc allocate_grad = allocate_none;
 
   if (use_shared_memory) {
+
+    /// this creates memory and sets to @a memory and returns AllocFunc
+    auto get_allocfunc = [](const size_t weight_size,
+                            std::unique_ptr<MMapedMemory> &memory) {
+      if (weight_size >= std::numeric_limits<size_t>::max() / sizeof(float)) {
+        throw std::invalid_argument(
+          "weights exceed maximum size supported for shared memory");
+      }
+      size_t byte_size = weight_size * sizeof(float);
+      memory = std::make_unique<MMapedMemory>(byte_size, true);
+      return [&memory](const TensorDim &dim, size_t offset) {
+        return Tensor::Map(memory->typedBuffer<float>(), dim, offset);
+      };
+    };
+
+    allocate_weight = get_allocfunc(total_weight_size, weight_mmaped_memory);
+
     size_t grad_size =
       enable_gradient_memory_opt ? max_grad_size : total_grad_size;
-    size_t total_size = total_weight_size + grad_size;
-
-    if (total_size >= std::numeric_limits<size_t>::max() / sizeof(float)) {
-      throw std::invalid_argument(
-        "weights exceed maximum size supported for shared memory");
-    }
-
-    size_t weight_bytes_size =
-      (total_weight_size + total_grad_size) * sizeof(float);
-    initializeSharedMemory(weight_bytes_size);
-
-    allocate_grad = allocate_weight = [&](const TensorDim &dim, size_t offset) {
-      return Tensor::Wrap(buf, dim, offset);
-    };
+    allocate_grad = get_allocfunc(grad_size, grad_mmaped_memory);
 
   } else {
     if (max_grad_size > 0 && enable_gradient_memory_opt) {
@@ -122,20 +208,18 @@ void Manager::initialize() {
                                     std::default_delete<float[]>());
 
       allocate_grad = [window](const TensorDim &dim, size_t offset) {
-        return Tensor::Wrap(window, dim, offset);
+        return Tensor::Map(window, dim, offset);
       };
     }
   }
 
   size_t weight_offset = 0;
-  size_t grad_initial_offset = use_shared_memory ? total_weight_size : 0;
-  size_t grad_offset = grad_initial_offset;
+  size_t grad_offset = 0;
 
   for (auto &l_w : weights) {
     if (enable_gradient_memory_opt) {
-      grad_offset = grad_initial_offset;
+      grad_offset = 0;
     }
-
     for (auto &w : l_w) {
       Weight &weight = w.get();
       auto dim = weight.getDim();
@@ -148,80 +232,6 @@ void Manager::initialize() {
       weight.initialize(weight_prealloc, grad_prealloc);
     }
   }
-}
-
-void Manager::initializeSharedMemory(size_t size) {
-  if (buf != nullptr || fd > 0 || buf_size > 0) {
-    throw std::runtime_error("[Manager] manager is already holding a buffer");
-  }
-
-#ifdef __ANDROID__
-  /// unfortunately, memfd_create is not supported before android level 30
-  auto fd_ = ASharedMemory_create("", size);
-  if (fd_ < 0) {
-    releaseSharedMemory();
-    throw std::runtime_error("[Manager] creating mem fd failed");
-  }
-
-  if (ASharedMemory_setProt(fd_, PROT_READ | PROT_WRITE) < 0) {
-    releaseSharedMemory();
-    throw std::runtime_error("[Manager] Setting prot failed");
-  }
-
-  auto buf_ = mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd_, 0);
-#else
-  /// @todo create a file in tmpfs and bind to memfs
-  /// memfd_create is not available for number of platforms so this is commented
-  // auto fd_ = memfd_create("", 0);
-  // if (fd_ < 0) {
-  //   releaseSharedMemory();
-  //   throw std::runtime_error("[Manager] creating mem fd failed");
-  // }
-  // if (ftruncate(fd_, size) < 0) {
-  //   releaseSharedMemory();
-  //   throw std::runtime_error("[Manager] truncating fd failed");
-  // }
-
-  auto fd_ = -1;
-  auto buf_ = mmap(NULL, size, PROT_READ | PROT_WRITE,
-                   MAP_PRIVATE | MAP_ANONYMOUS, fd_, 0);
-#endif
-  if (buf_ == MAP_FAILED) {
-    releaseSharedMemory();
-    throw std::runtime_error("[Manager] mmap failed");
-  }
-
-  buf = reinterpret_cast<float *>(buf_);
-  fd = fd_;
-  buf_size = size;
-
-  ml_logd("[Manager] memory acquired size: %zu, fd: %d, addr: %p", buf_size, fd,
-          buf);
-}
-
-void Manager::releaseSharedMemory() noexcept {
-  if (buf == nullptr) {
-    ml_logd("[Manager] buf is already empty, not released");
-    return;
-  }
-
-#ifdef DEBUG
-  assert(buf_size > 0 && fd > 0);
-#endif
-  if (munmap(buf, buf_size) < 0) {
-    ml_logw("[Manager] munmap failed on destruction please check");
-  }
-
-  if (fd != -1) {
-    if (close(fd) < 0) {
-      ml_logw("[Manager] closing fd failed on destruction please check");
-    }
-  }
-
-  fd = -1;
-  buf = nullptr;
-  buf_size = 0;
-  ml_logd("[Manager] buf released");
 }
 
 } // namespace nntrainer

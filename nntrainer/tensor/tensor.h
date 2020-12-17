@@ -68,7 +68,7 @@ public:
    * @return Tensor object
    * @throws std::invalid_argument if buf is null
    */
-  static Tensor Wrap(float *buf, const TensorDim &d, int offset = 0);
+  static Tensor Map(float *buf, const TensorDim &d, int offset = 0);
 
   /**
    * @brief Construct a new Tensor object from a buffer
@@ -80,8 +80,8 @@ public:
    * @return Tensor object
    * @throws std::invalid_argument if buf is null
    */
-  static Tensor Wrap(std::shared_ptr<float> buf, const TensorDim &d,
-                     int offset = 0);
+  static Tensor Map(std::shared_ptr<float> buf, const TensorDim &d,
+                    int offset = 0);
 
   /**
    * @brief     Constructor of Tensor
