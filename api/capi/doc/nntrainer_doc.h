@@ -39,8 +39,8 @@
  *
  * @section CAPI_ML_NNTRAINER_TRAIN_FEATURE Related Features
  * This function is related with the following features:\n
- *  - http://tizen.org/feature/machine_learning\n
- *  - http://tizen.org/feature/machine_learning.training\n
+ *  - %http://tizen.org/feature/machine_learning\n
+ *  - %http://tizen.org/feature/machine_learning.training\n
  *
  * It is recommended to probe features in your application for reliability.\n
  * You can check if a device supports the related features for this function by
