@@ -165,7 +165,6 @@ public:
    *
    * @note New dimension must maintain the shape of the variable
    */
-
   void reset(const TensorDim &tdim, bool train) {
     dim = tdim;
     if (!var->uninitialized())
@@ -176,7 +175,16 @@ public:
     resetGradient();
   }
 
-protected:
+  void setBatchSize(unsigned int batch) {
+    dim.batch(batch);
+    /** @note This will shape when changing batch size with initialized
+     * variables */
+    if (!var->uninitialized())
+      var->reshape(dim);
+    if (!grad->uninitialized())
+      grad->reshape(dim);
+  }
+
   /**
    * @brief Get the variable tensor (by reference)
    *
@@ -191,6 +199,7 @@ protected:
    */
   Tensor &getGradientRef() { return *grad.get(); }
 
+protected:
   TensorDim dim;                /**< dimension of the tensor */
   std::shared_ptr<Tensor> var;  /**< variable to be updated and used */
   std::shared_ptr<Tensor> grad; /**< gradient for the variable */

@@ -59,7 +59,7 @@ void Layer::setBatch(unsigned int batch) {
 std::vector<Tensor> Layer::getOutputs() {
   std::vector<Tensor> ret;
   for (unsigned int i = 0; i < num_outputs; ++i) {
-    ret.push_back(net_hidden[i]->var);
+    ret.push_back(net_hidden[i]->getVariableRef());
   }
   return ret;
 }
@@ -67,13 +67,13 @@ std::vector<Tensor> Layer::getOutputs() {
 std::vector<Tensor> Layer::getDerivatives() {
   std::vector<Tensor> ret;
   for (unsigned int i = 0; i < num_inputs; ++i) {
-    ret.push_back(net_input[i]->var);
+    ret.push_back(net_input[i]->getVariableRef());
   }
   return ret;
 }
 
 void Layer::copy(std::shared_ptr<Layer> l) {
-  for (auto const &w : weights)
+  for (auto const &w : l->weights)
     weights.push_back(w.clone());
 
   this->input_dim = l->input_dim;
@@ -94,7 +94,7 @@ void Layer::copy(std::shared_ptr<Layer> l) {
 sharedConstTensors Layer::forwarding_with_val(sharedConstTensors input) {
 
   for (unsigned int i = 0; i < num_inputs; ++i) {
-    net_input[i]->var = input[i]->clone();
+    net_input[i]->getVariableRef() = input[i]->clone();
   }
 
   if (num_outputs != net_hidden.size())
@@ -105,7 +105,7 @@ sharedConstTensors Layer::forwarding_with_val(sharedConstTensors input) {
   nntrainer::sharedConstTensors out;
 
   for (unsigned int i = 0; i < num_outputs; ++i) {
-    out.push_back(MAKE_SHARED_TENSOR(net_hidden[i]->var));
+    out.push_back(MAKE_SHARED_TENSOR(net_hidden[i]->getVariable()));
   }
 
   return out;
@@ -117,7 +117,7 @@ Layer::backwarding_with_val(int iteration, sharedConstTensors deriv,
                             std::shared_ptr<Optimizer> optimizer) {
 
   for (unsigned int i = 0; i < num_outputs; ++i) {
-    net_hidden[i]->var = deriv[i]->clone();
+    net_hidden[i]->getVariableRef() = deriv[i]->clone();
   }
 
   if (num_inputs != net_input.size())
@@ -135,7 +135,7 @@ Layer::backwarding_with_val(int iteration, sharedConstTensors deriv,
   nntrainer::sharedConstTensors out;
 
   for (unsigned int i = 0; i < num_inputs; ++i) {
-    out.push_back(MAKE_SHARED_TENSOR(net_input[i]->var));
+    out.push_back(MAKE_SHARED_TENSOR(net_input[i]->getVariable()));
   }
 
   return out;

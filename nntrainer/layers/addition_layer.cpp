@@ -42,21 +42,21 @@ int AdditionLayer::initialize(Manager &manager) {
 }
 
 void AdditionLayer::forwarding(sharedConstTensors in) {
-  Tensor &hidden_ = net_hidden[0]->var;
+  Tensor &hidden_ = net_hidden[0]->getVariableRef();
   TensorDim &in_dim = input_dim[0];
 
   for (unsigned int idx = 0; idx < num_inputs; ++idx) {
-    if (in_dim != net_input[idx]->var.getDim())
+    if (in_dim != net_input[idx]->getDim())
       throw std::invalid_argument("Error: addition layer requires same "
                                   "shape from all input layers");
-    hidden_.add_i(net_input[idx]->var);
+    hidden_.add_i(net_input[idx]->getVariableRef());
   }
 }
 
 void AdditionLayer::calcDerivative(sharedConstTensors derivative) {
 
   for (unsigned int i = 0; i < num_inputs; ++i) {
-    net_input[i]->var = net_hidden[0]->var;
+    net_input[i]->getVariableRef() = net_hidden[0]->getVariableRef();
   }
 }
 

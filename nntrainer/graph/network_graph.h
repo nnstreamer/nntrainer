@@ -242,7 +242,7 @@ private:
   std::vector<LayerNode> Sorted;         /**< Ordered Graph Node List  */
   std::set<std::string>
     layer_names; /**< Set containing all the names of layers in the model */
-  std::vector<std::shared_ptr<NetBuffers>>
+  std::vector<std::shared_ptr<Var_Grad>>
     netBuffers;       /**< List of Buffers used to calculate layer */
   int def_name_count; /**< Count assigned to layer names declared by default */
   unsigned int

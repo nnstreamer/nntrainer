@@ -44,11 +44,11 @@ int LossLayer::initialize(Manager &manager) {
 
 sharedConstTensors LossLayer::forwarding(sharedConstTensors in,
                                          sharedConstTensors label) {
-  net_input[0]->var = *in[0];
-  Tensor &hidden_ = net_hidden[0]->var;
+  net_input[0]->getVariableRef() = *in[0];
+  Tensor &hidden_ = net_hidden[0]->getVariableRef();
 
   Tensor y2 = *label[0];
-  Tensor y = net_input[0]->var;
+  Tensor y = net_input[0]->getVariableRef();
   Tensor l;
 
   switch (loss_type) {
@@ -92,21 +92,21 @@ sharedConstTensors LossLayer::forwarding(sharedConstTensors in,
 
   updateLoss(l);
 
-  return {MAKE_SHARED_TENSOR(net_hidden[0]->var)};
+  return {MAKE_SHARED_TENSOR(net_hidden[0]->getVariable())};
 }
 
 void LossLayer::forwarding(sharedConstTensors in) {
   switch (loss_type) {
   case LossType::LOSS_MSE:
-    net_hidden[0]->var = net_input[0]->var;
+    net_hidden[0]->getVariableRef() = net_input[0]->getVariableRef();
     break;
   case LossType::LOSS_ENTROPY_SIGMOID:
-    net_hidden[0]->var =
-      net_input[0]->var.apply(ActivationLayer::sigmoid, net_hidden[0]->var);
+    net_hidden[0]->getVariableRef() = net_input[0]->getVariableRef().apply(
+      ActivationLayer::sigmoid, net_hidden[0]->getVariableRef());
     break;
   case LossType::LOSS_ENTROPY_SOFTMAX:
-    net_hidden[0]->var =
-      net_input[0]->var.apply(ActivationLayer::softmax, net_hidden[0]->var);
+    net_hidden[0]->getVariableRef() = net_input[0]->getVariableRef().apply(
+      ActivationLayer::softmax, net_hidden[0]->getVariableRef());
     break;
   case LossType::LOSS_ENTROPY:
     throw std::runtime_error(
@@ -136,9 +136,9 @@ void LossLayer::copy(std::shared_ptr<Layer> l) {
 }
 
 void LossLayer::calcDerivative(sharedConstTensors derivative) {
-  Tensor &ret_derivative = net_input[0]->var;
+  Tensor &ret_derivative = net_input[0]->getVariableRef();
   Tensor y2 = *derivative[0];
-  Tensor &y = net_input[0]->var;
+  Tensor &y = net_input[0]->getVariableRef();
   Tensor ret;
 
   switch (loss_type) {

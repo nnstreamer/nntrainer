@@ -229,7 +229,6 @@ int NeuralNetwork::initialize() {
       }
 
       for (unsigned int i = 0; i < l.input_layers.size(); ++i) {
-        std::shared_ptr<NetBuffers> n_buffer = std::make_unique<NetBuffers>();
         Layer &in_layer = *model_graph.getLayerNode(l.input_layers[i]).layer;
 
         unsigned int location = 0;
@@ -241,17 +240,29 @@ int NeuralNetwork::initialize() {
         }
 
         l.setInputDimension(in_layer.getOutputDimension()[location], i);
+      }
 
-        l.net_input[i] = n_buffer;
+      manager.TrackLayerInOuts(l.getName(), l.getInputDimension());
+      auto in_out = manager.getInputsLayer(-1);
+      l.setInputBuffers(in_out);
+
+      for (unsigned int i = 0; i < l.input_layers.size(); ++i) {
+        Layer &in_layer = *model_graph.getLayerNode(l.input_layers[i]).layer;
+
+        unsigned int location = 0;
+        for (unsigned int j = 0; j < in_layer.output_layers.size(); ++j) {
+          if (in_layer.output_layers[j] == l.getName()) {
+            location = j;
+            break;
+          }
+        }
 
         model_graph.getLayerNode(l.input_layers[i])
-          .layer->net_hidden[location] = n_buffer;
+          .layer->net_hidden[location] = in_out[i];
       }
     } else {
-      for (unsigned int i = 0; i < l.input_layers.size(); ++i) {
-        std::shared_ptr<NetBuffers> n_buffer = std::make_unique<NetBuffers>();
-        l.net_input[i] = n_buffer;
-      }
+      manager.TrackLayerInOuts(l.getName(), l.getInputDimension());
+      l.setInputBuffers(manager.getInputsLayer(-1));
     }
 
     status = l.initialize(manager);
@@ -260,11 +271,13 @@ int NeuralNetwork::initialize() {
     opt->addOptimizerVariable(l.getWeightsRef());
   }
 
-  for (unsigned int i = 0; i < model_graph.Sorted.back().layer->num_outputs;
-       ++i) {
-    std::shared_ptr<NetBuffers> last_hidden_buffer =
-      std::make_unique<NetBuffers>();
-    model_graph.Sorted.back().layer->net_hidden[i] = last_hidden_buffer;
+  auto &last_layer = model_graph.Sorted.back().layer;
+  manager.TrackLayerInOuts(last_layer->getName(),
+                           last_layer->getOutputDimension());
+  auto in_out = manager.getInputsLayer(-1);
+
+  for (unsigned int i = 0; i < last_layer->num_outputs; ++i) {
+    last_layer->net_hidden[i] = in_out[i];
   }
 
   setBatchSize(batch_size);
@@ -427,6 +440,7 @@ void NeuralNetwork::setBatchSize(unsigned int batch) {
   batch_size = batch;
 
   model_graph.setBatchSize(batch);
+  manager.setBatchSize(batch);
 
   if (data_buffer && data_buffer->setBatchSize(batch_size) != ML_ERROR_NONE)
     throw std::invalid_argument("Error setting batchsize for the dataset");
@@ -462,34 +476,15 @@ sharedConstTensors NeuralNetwork::inference(sharedConstTensors X) {
     out.push_back(
       MAKE_SHARED_TENSOR(model_graph.Sorted[model_graph.Sorted.size() - 1]
                            .layer->net_hidden[i]
-                           ->var));
+                           ->getVariable()));
   }
   return out;
 }
 
 int NeuralNetwork::assignMem() {
-  int status = ML_ERROR_NONE;
-  unsigned int n_layers = (unsigned int)model_graph.Sorted.size();
-
-  for (unsigned int idx = 0; idx < n_layers; ++idx) {
-    bool first = idx == 0;
-    Layer &l = *model_graph.getSortedLayerNode(idx).layer;
-
-    if (!first && l.getType() != BatchNormalizationLayer::type) {
-      for (unsigned int i = 0; i < l.input_layers.size(); ++i) {
-
-        l.net_input[i]->var = Tensor(l.getInputDimension()[i]);
-      }
-    }
-  }
-
-  for (unsigned int i = 0; i < model_graph.Sorted.back().layer->num_outputs;
-       ++i) {
-    model_graph.Sorted.back().layer->net_hidden[i]->var =
-      Tensor(model_graph.Sorted.back().layer->getOutputDimension()[i]);
-  }
-
-  return status;
+  // TODO: directly replace this
+  manager.initializeInOuts();
+  return ML_ERROR_NONE;
 }
 
 int NeuralNetwork::train(std::vector<std::string> values) {

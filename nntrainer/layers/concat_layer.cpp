@@ -52,14 +52,14 @@ int ConcatLayer::initialize(Manager &manager) {
 }
 
 void ConcatLayer::forwarding(sharedConstTensors in) {
-  Tensor &hidden_ = net_hidden[0]->var;
+  Tensor &hidden_ = net_hidden[0]->getVariableRef();
 
 #ifdef DEBUG
   unsigned int channel = 0;
-  const TensorDim &d = net_input[0]->var.getDim();
+  const TensorDim &d = net_input[0]->getDim();
   channel += d.channel();
   for (unsigned int idx = 1; idx < num_inputs; ++idx) {
-    const TensorDim &dim = net_input[idx]->var.getDim();
+    const TensorDim &dim = net_input[idx]->getDim();
 
     for (unsigned int i = 2; i < d.rank(); ++i) {
       if (d[i] != dim[i])
@@ -79,26 +79,29 @@ void ConcatLayer::forwarding(sharedConstTensors in) {
   for (unsigned int b = 0; b < input_dim[0].batch(); ++b) {
     unsigned int position = 0;
     for (unsigned int idx = 0; idx < num_inputs; ++idx) {
-      TensorDim in_dim = net_input[idx]->var.getDim();
-      memcpy(hidden_.getAddress(b * f_size + position),
-             net_input[idx]->var.getAddress(b * in_dim.getFeatureLen()),
-             in_dim.getFeatureLen() * sizeof(float));
+      TensorDim in_dim = net_input[idx]->getDim();
+      memcpy(
+        hidden_.getAddress(b * f_size + position),
+        net_input[idx]->getVariable().getAddress(b * in_dim.getFeatureLen()),
+        in_dim.getFeatureLen() * sizeof(float));
       position += in_dim.getFeatureLen();
     }
   }
 }
 
 void ConcatLayer::calcDerivative(sharedConstTensors derivative) {
-  TensorDim d = net_hidden[0]->var.getDim();
+  TensorDim d = net_hidden[0]->getDim();
 
   unsigned int position = 0;
   for (unsigned int idx = 0; idx < num_inputs; ++idx) {
     TensorDim in_dim = input_dim[idx];
 
     for (unsigned int b = 0; b < in_dim.batch(); ++b) {
-      memcpy(net_input[idx]->var.getAddress(b * in_dim.getFeatureLen()),
-             net_hidden[0]->var.getAddress(b * d.getFeatureLen() + position),
-             in_dim.getFeatureLen() * sizeof(float));
+      memcpy(
+        net_input[idx]->getVariable().getAddress(b * in_dim.getFeatureLen()),
+        net_hidden[0]->getVariable().getAddress(b * d.getFeatureLen() +
+                                                position),
+        in_dim.getFeatureLen() * sizeof(float));
     }
     position += in_dim.getFeatureLen();
   }

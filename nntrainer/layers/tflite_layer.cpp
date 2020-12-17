@@ -126,7 +126,7 @@ void TfLiteLayer::forwarding(sharedConstTensors in) {
   if (status != kTfLiteOk)
     throw std::runtime_error("Invoke failed");
 
-  net_hidden[0]->var = *out[0];
+  net_hidden[0]->getVariableRef() = *out[0];
 }
 
 void TfLiteLayer::copy(std::shared_ptr<Layer> l) {

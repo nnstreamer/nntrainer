@@ -70,4 +70,23 @@ void Manager::initialize() {
   }
 }
 
+/**
+ * @brief Track the inputs/ouputs of the layer
+ */
+void Manager::TrackLayerInOuts(const std::string layer_name,
+                               const std::vector<TensorDim> &input_dim) {
+  int cnt = 0;
+  auto base_name = layer_name + ":Input";
+
+  std::vector<std::shared_ptr<Var_Grad>> in_out;
+  in_out.reserve(input_dim.size());
+
+  for (auto const &dim : input_dim) {
+    in_out.emplace_back(std::make_shared<Var_Grad>(
+      dim, false, base_name + std::to_string(cnt++)));
+  }
+
+  in_outs.push_back(in_out);
+}
+
 } // namespace nntrainer

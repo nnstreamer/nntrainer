@@ -54,7 +54,7 @@ void InputLayer::setProperty(const PropertyType type,
 }
 
 void InputLayer::forwarding(sharedConstTensors in) {
-  Tensor &hidden_ = net_hidden[0]->var;
+  Tensor &hidden_ = net_hidden[0]->getVariableRef();
   hidden_ = *in[0];
 
   if (normalization)

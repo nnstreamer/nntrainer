@@ -521,8 +521,8 @@ sharedConstTensors NetworkGraph::forwarding(sharedConstTensors input) {
 
   for (unsigned int i = 0; i < Sorted[Sorted.size() - 2].layer->num_outputs;
        ++i) {
-    out.push_back(
-      MAKE_SHARED_TENSOR(Sorted[Sorted.size() - 2].layer->net_hidden[i]->var));
+    out.push_back(MAKE_SHARED_TENSOR(
+      Sorted[Sorted.size() - 2].layer->net_hidden[i]->getVariable()));
   }
 
   return out;
