@@ -904,7 +904,7 @@ std::vector<unsigned int> Tensor::argmax() const {
   for (unsigned int b = 0; b < batch_size; b++) {
     auto max_iter =
       std::max_element(data + b * feature_len, data + (b + 1) * feature_len);
-    result[b] = std::distance(data, max_iter);
+    result[b] = std::distance(data, max_iter) - (b * feature_len);
   }
 
   return result;
