@@ -56,7 +56,7 @@ void AdditionLayer::forwarding(sharedConstTensors in) {
 void AdditionLayer::calcDerivative(sharedConstTensors derivative) {
 
   for (unsigned int i = 0; i < num_inputs; ++i) {
-    net_input[i]->getVariableRef() = net_hidden[0]->getVariableRef();
+    net_input[i]->getGradientRef() = net_hidden[0]->getGradientRef();
   }
 }
 

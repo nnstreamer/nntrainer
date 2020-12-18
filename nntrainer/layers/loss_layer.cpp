@@ -136,7 +136,7 @@ void LossLayer::copy(std::shared_ptr<Layer> l) {
 }
 
 void LossLayer::calcDerivative(sharedConstTensors derivative) {
-  Tensor &ret_derivative = net_input[0]->getVariableRef();
+  Tensor &ret_derivative = net_input[0]->getGradientRef();
   Tensor y2 = *derivative[0];
   Tensor &y = net_input[0]->getVariableRef();
   Tensor ret;

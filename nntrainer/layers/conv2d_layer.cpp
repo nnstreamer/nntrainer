@@ -164,7 +164,7 @@ void Conv2DLayer::calcDerivative(sharedConstTensors derivatives) {
   int status = ML_ERROR_NONE;
   TensorDim &in_dim = input_dim[0];
 
-  Tensor &derivative = net_hidden[0]->getVariableRef();
+  Tensor &derivative = net_hidden[0]->getGradientRef();
   Tensor &filter_kernel = weightAt(ConvParams::weight).getVariableRef();
 
   std::array<unsigned int, CONV2D_DIM> same_pad;
@@ -264,7 +264,7 @@ void Conv2DLayer::calcDerivative(sharedConstTensors derivatives) {
     if (status != ML_ERROR_NONE)
       throw std::runtime_error("calcDerivative Convolution failed.");
 
-    strip_pad(ret, padding.data(), net_input[0]->getVariableRef(), b);
+    strip_pad(ret, padding.data(), net_input[0]->getGradientRef(), b);
   }
 }
 
@@ -272,7 +272,7 @@ void Conv2DLayer::calcGradient(sharedConstTensors derivatives) {
   TensorDim &in_dim = input_dim[0];
 
   Tensor &filter_kernel = weightAt(ConvParams::weight).getVariableRef();
-  Tensor &derivative = net_hidden[0]->getVariableRef();
+  Tensor &derivative = net_hidden[0]->getGradientRef();
   Tensor &input_ = net_input[0]->getVariableRef();
 
   Tensor &delK = weightAt(ConvParams::weight).getGradientRef();

@@ -67,7 +67,7 @@ std::vector<Tensor> Layer::getOutputs() {
 std::vector<Tensor> Layer::getDerivatives() {
   std::vector<Tensor> ret;
   for (unsigned int i = 0; i < num_inputs; ++i) {
-    ret.push_back(net_input[i]->getVariableRef());
+    ret.push_back(net_input[i]->getGradientRef());
   }
   return ret;
 }
@@ -117,7 +117,7 @@ Layer::backwarding_with_val(int iteration, sharedConstTensors deriv,
                             std::shared_ptr<Optimizer> optimizer) {
 
   for (unsigned int i = 0; i < num_outputs; ++i) {
-    net_hidden[i]->getVariableRef() = deriv[i]->clone();
+    net_hidden[i]->getGradientRef() = deriv[i]->clone();
   }
 
   if (num_inputs != net_input.size())
@@ -135,7 +135,7 @@ Layer::backwarding_with_val(int iteration, sharedConstTensors deriv,
   nntrainer::sharedConstTensors out;
 
   for (unsigned int i = 0; i < num_inputs; ++i) {
-    out.push_back(MAKE_SHARED_TENSOR(net_input[i]->getVariable()));
+    out.push_back(MAKE_SHARED_TENSOR(net_input[i]->getGradient()));
   }
 
   return out;

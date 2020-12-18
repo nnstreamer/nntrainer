@@ -265,27 +265,6 @@ void Manager::TrackLayerInOuts(const std::string layer_name,
  */
 void Manager::initializeInOuts(bool trainable) {
   // TODO: remove assign mem and do this
-  // for (auto &in_out : in_outs)
-  //   for (auto &vg : in_out)
-  //     vg->initialize(Tensor(), trainable);
-
-  // Tensor shared_deriv;
-  // if (max_derivative_size > 0 && enable_derivative_memory_opt)
-  //   shared_deriv = Tensor(max_derivative_size);
-
-  // for (auto &l_io : in_outs) {
-  //   size_t offset = 0;
-  //   for (auto &io : l_io) {
-  //     if (io->getTrainable() && enable_derivative_memory_opt) {
-  //       io->initialize(
-  //         shared_deriv.getSharedDataTensor(io->getDim(), offset), trainable);
-  //       offset += io->getDim().getDataLen();
-  //     } else {
-  //       io->initialize(Tensor(), trainable);
-  //     }
-  //   }
-  // }
-
   for (auto &l_io : in_outs) {
     for (auto &io : l_io) {
       if (enable_derivative_memory_opt) {
