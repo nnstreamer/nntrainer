@@ -108,8 +108,8 @@ void FullyConnectedLayer::copy(std::shared_ptr<Layer> l) {
 void FullyConnectedLayer::calcDerivative(sharedConstTensors derivative) {
   unsigned int weight_idx = static_cast<int>(FCParams::weight);
   Tensor &weight = weightAt(weight_idx).getVariableRef();
-  Tensor &derivative_ = net_hidden[0]->getVariableRef();
-  Tensor &ret_ = net_input[0]->getVariableRef();
+  Tensor &derivative_ = net_hidden[0]->getGradientRef();
+  Tensor &ret_ = net_input[0]->getGradientRef();
 
   ret_ = derivative_.dot(weight, ret_, false, true);
 }
@@ -121,7 +121,7 @@ void FullyConnectedLayer::calcGradient(sharedConstTensors derivative) {
   Tensor &djdw = weightAt(weight_idx).getGradientRef();
   Tensor &djdb = weightAt(bias_idx).getGradientRef();
 
-  Tensor &derivative_ = net_hidden[0]->getVariableRef();
+  Tensor &derivative_ = net_hidden[0]->getGradientRef();
 
   djdb = derivative_.sum(0);
   djdw = net_input[0]->getVariableRef().dot(derivative_, djdw, true, false);
