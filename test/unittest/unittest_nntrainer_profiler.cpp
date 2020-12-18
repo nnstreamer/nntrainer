@@ -35,7 +35,7 @@ public:
 
   void reset(const int event) override { hit = false; }
 
-  void report(std::ostream &out) const override {
+  virtual void report(std::ostream &out) const override {
     out << (hit ? "hit" : "no hit");
   }
 
@@ -97,14 +97,21 @@ TEST(Profiler, profilePositiveTests_p) {
   /// measure that are not registered for event listener
   all_listener->reset(EVENT::NN_FORWARD);
   event_listener->reset(EVENT::NN_FORWARD);
-  prof.start(EVENT::TEMP);
-  prof.end(EVENT::TEMP);
+  prof.start(-1);
+  prof.end(-1);
 
   /// Check if notified on event profiler does not hit
   {
     std::stringstream ss;
     event_listener->report(ss);
     EXPECT_EQ(ss.str(), "no hit");
+  }
+
+  /// register a event key to profiler and check event to str
+  {
+    int key = prof.registerEvent("hello_world");
+    EXPECT_LT(key, 0);
+    EXPECT_EQ(prof.eventToStr(key), "hello_world");
   }
 
   /// unsubscribe event_listener

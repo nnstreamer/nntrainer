@@ -16,6 +16,7 @@
 
 #define START_PROFILE(event_key)
 #define END_PROFILE(event_key)
+#define REGISTER_EVENT(event_key, ret)
 
 #else
 
@@ -29,6 +30,12 @@
   do {                                                   \
     auto &prof = nntrainer::profile::Profiler::Global(); \
     prof.end(event_key);                                 \
+  } while (0);
+
+#define REGISTER_EVENT(event_str, ret)                   \
+  do {                                                   \
+    auto &prof = nntrainer::profile::Profiler::Global(); \
+    ret = prof.registerEvent(event_str);                 \
   } while (0);
 
 #endif /** PROFILE */
@@ -45,16 +52,8 @@ namespace nntrainer {
 namespace profile {
 
 typedef enum {
-  NN_FORWARD = 0 /**< Neuralnet single inference without loss calculation */,
-  TEMP = 999 /**< Temporary event */
+  NN_FORWARD = 1 /**< Neuralnet single inference without loss calculation */,
 } EVENT;
-
-/**
- * @brief get string representation of event
- *
- * @return std::string name
- */
-std::string event_to_str(const int event);
 
 class Profiler;
 /**
@@ -109,7 +108,7 @@ public:
    */
   virtual void report(std::ostream &out) const = 0;
 
-private:
+protected:
   Profiler *profiler;
 };
 
@@ -239,6 +238,21 @@ public:
    */
   void unsubscribe(ProfileListener *listener);
 
+  /**
+   * @brief registerEvent to record.
+   * @note Call to the function shouldn't be inside a critical path
+   *
+   * @return int return NEGATIVE integer to distinguish from reserved events
+   */
+  int registerEvent(const std::string &name);
+
+  /**
+   * @brief get string representation of an event
+   *
+   * @return std::string name
+   */
+  std::string eventToStr(const int event);
+
 private:
   /**
    * @brief notify the result
@@ -259,6 +273,12 @@ private:
 
   std::unordered_map<int, std::chrono::time_point<std::chrono::steady_clock>>
     start_time; /**< start_time of the clock */
+
+  std::vector<std::string>
+    custom_events; /**< integer indexed custom events. Actual key is negative to
+                      avoid clashing */
+
+  std::mutex event_registration_mutex; /**< protect custom event registration */
 
   std::mutex subscription_mutex; /**< protect sub/unsub routine to
                                              gaurantee invarient */

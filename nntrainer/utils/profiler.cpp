@@ -16,6 +16,7 @@
 #include <sstream>
 #include <tuple>
 
+#include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <profiler.h>
 
@@ -83,7 +84,7 @@ GenericProfileListener::result(const int event) {
   if (iter == time_taken.end() ||
       std::get<GenericProfileListener::CNT>(iter->second) == 0) {
     std::stringstream ss;
-    ss << "event has never recorded" << event_to_str(event);
+    ss << "event has never recorded" << profiler->eventToStr(event);
     throw std::invalid_argument("event has never recorded");
   }
 
@@ -91,7 +92,13 @@ GenericProfileListener::result(const int event) {
 }
 
 void GenericProfileListener::report(std::ostream &out) const {
-  const std::vector<unsigned int> column_size = {10, 23, 23, 23};
+  std::vector<unsigned int> column_size = {10, 23, 23, 23};
+
+  for (auto &entry : time_taken) {
+    auto title = profiler->eventToStr(entry.first);
+    column_size[0] =
+      std::max(column_size[0], static_cast<unsigned int>(title.length()));
+  }
   auto total_col_size =
     std::accumulate(column_size.begin(), column_size.end(), 0);
 
@@ -115,16 +122,18 @@ void GenericProfileListener::report(std::ostream &out) const {
     auto &cnt_ = std::get<GenericProfileListener::CNT>(entry.second);
     auto &min_ = std::get<GenericProfileListener::MIN>(entry.second);
     auto &max_ = std::get<GenericProfileListener::MAX>(entry.second);
-    auto &sum_ = std::get<GenericProfileListener::SUM>(time_iter->second);
+    auto &sum_ = std::get<GenericProfileListener::SUM>(entry.second);
+
+    auto title = profiler->eventToStr(entry.first);
 
     if (warmups >= cnt_) {
-      out << std::left << std::setw(total_col_size) << event_to_str(entry.first)
+      out << std::left << std::setw(total_col_size) << title
           << "less data then warmup\n";
       continue;
     }
 
     // clang-format off
-    out << std::setw(column_size[0]) << event_to_str(entry.first)
+    out << std::setw(column_size[0]) << title
         << std::setw(column_size[1]) << sum_.count() / (cnt_ - warmups)
         << std::setw(column_size[2]) << min_.count()
         << std::setw(column_size[3]) << max_.count() << '\n';
@@ -135,19 +144,6 @@ void GenericProfileListener::report(std::ostream &out) const {
 Profiler &Profiler::Global() {
   static Profiler instance;
   return instance;
-}
-
-std::string event_to_str(const int event) {
-  switch (event) {
-  case EVENT::NN_FORWARD:
-    return "nn_forward";
-  case EVENT::TEMP:
-    return "temp";
-  }
-
-  std::stringstream ss;
-  ss << "undef(" << event << ')';
-  return ss.str();
 }
 
 void Profiler::start(const int &event) {
@@ -234,6 +230,38 @@ void Profiler::unsubscribe(ProfileListener *listener) {
   for (auto &it : event_listeners) {
     it.second.erase(listener);
   }
+}
+
+std::string Profiler::eventToStr(const int event) {
+
+  /// reserved event
+  if (event >= 0) {
+    switch (event) {
+    case EVENT::NN_FORWARD:
+      return "nn_forward";
+    }
+  }
+  /// custom events
+  else if (event < 0) {
+    std::lock_guard<std::mutex> lk(event_registration_mutex);
+    int actual_idx = -event + 1;
+
+    if (actual_idx > static_cast<int>(custom_events.size()) - 1) {
+      std::stringstream ss;
+      ss << "undef(" << event << ')';
+      return ss.str();
+    }
+    return custom_events[actual_idx];
+  }
+
+  throw std::logic_error("control should not reach here");
+}
+
+int Profiler::registerEvent(const std::string &name) {
+  std::lock_guard<std::mutex> lk(event_registration_mutex);
+  custom_events.push_back(name);
+
+  return -custom_events.size();
 }
 
 } // namespace profile
