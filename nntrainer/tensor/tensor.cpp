@@ -281,6 +281,7 @@ Tensor Tensor::getSharedDataTensor(const TensorDim dim_,
 
   ret.dim = dim_;
   ret.data = std::shared_ptr<float>(this->data, this->data.get() + offset);
+  ret.strides = ret.dim.computeStrides();
 
   return ret;
 }
