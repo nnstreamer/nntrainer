@@ -23,6 +23,7 @@
 #include <nntrainer_log.h>
 #include <output_layer.h>
 #include <parse_util.h>
+#include <profiler.h>
 
 namespace nntrainer {
 
@@ -511,9 +512,13 @@ sharedConstTensors NetworkGraph::forwarding(sharedConstTensors input) {
     LayerNode &layer_node = Sorted[i];
     // TODO : Need to fix. Input Layer is not the only one which can take input.
     if (istrequal(layer_node.layer->getType(), InputLayer::type)) {
+      START_PROFILE(layer_node.event_key);
       layer_node.layer->forwarding(input);
+      END_PROFILE(layer_node.event_key);
     } else {
+      START_PROFILE(layer_node.event_key);
       layer_node.layer->forwarding();
+      END_PROFILE(layer_node.event_key);
     }
   }
 

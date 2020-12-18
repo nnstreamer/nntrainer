@@ -32,6 +32,9 @@ namespace nntrainer {
 struct LayerNode {
   std::shared_ptr<Layer> layer;
   unsigned int index;
+#ifdef PROFILE
+  int event_key;
+#endif
 };
 
 /**
@@ -248,7 +251,6 @@ private:
   unsigned int
     skip_non_trainable_layers; /**< denotes the number of non-trainable layers
                                   at the start of the graph */
-
   /**
    * @brief Calculate the number of non-trainable layers at the start
    */
