@@ -98,8 +98,8 @@ void ConcatLayer::calcDerivative(sharedConstTensors derivative) {
 
     for (unsigned int b = 0; b < in_dim.batch(); ++b) {
       memcpy(
-        net_input[idx]->getVariable().getAddress(b * in_dim.getFeatureLen()),
-        net_hidden[0]->getVariable().getAddress(b * d.getFeatureLen() +
+        net_input[idx]->getGradient().getAddress(b * in_dim.getFeatureLen()),
+        net_hidden[0]->getGradient().getAddress(b * d.getFeatureLen() +
                                                 position),
         in_dim.getFeatureLen() * sizeof(float));
     }

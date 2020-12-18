@@ -48,9 +48,9 @@ void FlattenLayer::forwarding(sharedConstTensors in) {
 }
 
 void FlattenLayer::calcDerivative(sharedConstTensors in) {
-  Tensor temp = net_hidden[0]->getVariableRef();
+  Tensor temp = net_hidden[0]->getGradientRef();
   temp.reshape(net_input[0]->getDim());
-  net_input[0]->getVariableRef() = temp;
+  net_input[0]->getGradientRef() = temp;
 }
 
 } /* namespace nntrainer */

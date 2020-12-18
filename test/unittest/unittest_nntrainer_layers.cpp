@@ -494,9 +494,11 @@ protected:
     status = act_layer->initialize(manager);
     EXPECT_EQ(status, ML_ERROR_NONE);
 
-    manager.TrackLayerInOuts(layer.getName(), layer.getInputDimension());
+    manager.TrackLayerInOuts(act_layer->getName(),
+                             act_layer->getInputDimension());
     act_layer->setInputBuffers(manager.getInputsLayer(-1));
-    manager.TrackLayerInOuts(layer.getName(), layer.getOutputDimension());
+    manager.TrackLayerInOuts(act_layer->getName(),
+                             act_layer->getOutputDimension());
     act_layer->setOutputBuffers(manager.getInputsLayer(-1));
 
     manager.initializeInOuts(true);
@@ -518,9 +520,11 @@ protected:
     status = loss_layer->setLoss(type);
     EXPECT_EQ(status, ML_ERROR_NONE);
 
-    manager.TrackLayerInOuts(layer.getName(), layer.getInputDimension());
+    manager.TrackLayerInOuts(loss_layer->getName(),
+                             loss_layer->getInputDimension());
     loss_layer->setInputBuffers(manager.getInputsLayer(-1));
-    manager.TrackLayerInOuts(layer.getName(), layer.getOutputDimension());
+    manager.TrackLayerInOuts(loss_layer->getName(),
+                             loss_layer->getOutputDimension());
     loss_layer->setOutputBuffers(manager.getInputsLayer(-1));
 
     manager.initializeInOuts(true);

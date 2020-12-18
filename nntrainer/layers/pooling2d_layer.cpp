@@ -96,8 +96,8 @@ void Pooling2DLayer::calcDerivative(sharedConstTensors derivative) {
 
   unsigned int J, K;
 
-  Tensor &deriv = net_hidden[0]->getVariableRef();
-  Tensor &result = net_input[0]->getVariableRef();
+  Tensor &deriv = net_hidden[0]->getGradientRef();
+  Tensor &result = net_input[0]->getGradientRef();
 
   result.setZero();
   float *out = result.getData();
