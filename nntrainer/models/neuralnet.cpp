@@ -242,7 +242,8 @@ int NeuralNetwork::initialize() {
         l.setInputDimension(in_layer.getOutputDimension()[location], i);
       }
 
-      manager.TrackLayerInOuts(l.getName(), l.getInputDimension());
+      manager.TrackLayerInOuts(l.getName(), l.getInputDimension(),
+                               l.getTrainable());
       auto in_out = manager.getInputsLayer(-1);
       l.setInputBuffers(in_out);
 
@@ -261,7 +262,8 @@ int NeuralNetwork::initialize() {
           .layer->net_hidden[location] = in_out[i];
       }
     } else {
-      manager.TrackLayerInOuts(l.getName(), l.getInputDimension());
+      manager.TrackLayerInOuts(l.getName(), l.getInputDimension(),
+                               l.getTrainable());
       l.setInputBuffers(manager.getInputsLayer(-1));
     }
 
@@ -273,7 +275,8 @@ int NeuralNetwork::initialize() {
 
   auto &last_layer = model_graph.Sorted.back().layer;
   manager.TrackLayerInOuts(last_layer->getName(),
-                           last_layer->getOutputDimension());
+                           last_layer->getOutputDimension(),
+                           last_layer->getTrainable());
   auto in_out = manager.getInputsLayer(-1);
 
   for (unsigned int i = 0; i < last_layer->num_outputs; ++i) {
@@ -333,12 +336,11 @@ sharedConstTensors NeuralNetwork::forwarding(sharedConstTensors input,
 void NeuralNetwork::backwarding(sharedConstTensors label, int iteration) {
 
   /**
-   * @note -2 as backwarding for input layer is not supported and
    * last layer backwarding is run out of this loop
    */
   auto iter_begin = model_graph.getBackwardingBeginIter();
   auto iter_end = model_graph.getBackwardingEndIter();
-  for (auto iter = iter_begin; iter != iter_end - 2; iter++) {
+  for (auto iter = iter_begin; iter != iter_end - 1; iter++) {
     auto layer = iter->layer;
     if (istrequal(layer->getType(), nntrainer::LossLayer::type)) {
       layer->backwarding(label);
@@ -348,7 +350,7 @@ void NeuralNetwork::backwarding(sharedConstTensors label, int iteration) {
     opt->apply_gradients(layer->getWeightsRef(), iteration);
   }
 
-  auto last_layer = (iter_end - 2)->layer;
+  auto last_layer = (iter_end - 1)->layer;
   /**
    * The last trainable layer need not calculate the derivatives
    * Do not change this order:
@@ -356,9 +358,9 @@ void NeuralNetwork::backwarding(sharedConstTensors label, int iteration) {
    * 2. calcDerivative
    * 3. applyGradient
    */
-  last_layer->calcGradient();
+  last_layer->calcGradient(label);
 #ifdef ENABLE_TEST
-  last_layer->calcDerivative();
+  last_layer->calcDerivative(label);
 #endif
   opt->apply_gradients(last_layer->getWeightsRef(), iteration);
 }
@@ -455,7 +457,7 @@ sharedConstTensors NeuralNetwork::inference(sharedConstTensors X) {
     setBatchSize(X[0]->batch());
   }
 
-  assignMem();
+  assignMem(false);
 
   sharedConstTensors out;
   try {
@@ -481,9 +483,9 @@ sharedConstTensors NeuralNetwork::inference(sharedConstTensors X) {
   return out;
 }
 
-int NeuralNetwork::assignMem() {
+int NeuralNetwork::assignMem(bool trainable) {
   // TODO: directly replace this
-  manager.initializeInOuts();
+  manager.initializeInOuts(trainable);
   return ML_ERROR_NONE;
 }
 
@@ -501,7 +503,7 @@ int NeuralNetwork::train(std::vector<std::string> values) {
   /** set batch size just before training */
   setBatchSize(batch_size);
 
-  status = assignMem();
+  status = assignMem(true);
   NN_RETURN_STATUS();
 
   /** Setup data buffer properties */

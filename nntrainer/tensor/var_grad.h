@@ -91,9 +91,18 @@ public:
   Var_Grad &operator=(Var_Grad &&rhs) = default;
 
   /**
-   * @brief Allocate and initialize the weight variable
+   * @brief Allocate and initialize the variable and grad
+   * @param[in] grad_shared Shared gradient to be used for initialization
+   * @param[in] trainable If all the variables should be trainable
    */
-  virtual void initialize(const Tensor &grad_shared = Tensor());
+  virtual void initialize(const Tensor &grad_shared = Tensor(),
+                          bool gtrain = true);
+
+  /**
+   * @brief Allocate and initialize the variable and grad
+   * @note Variable and grad share the memory in this case
+   */
+  virtual void initializeShared();
 
   /**
    * @brief Get the TensorDim

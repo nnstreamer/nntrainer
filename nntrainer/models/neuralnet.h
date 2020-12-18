@@ -162,10 +162,11 @@ public:
   /**
    * @brief     Assign Graph Memory. This should be called after initialize.
    * @TODO      Consider to move Network Graph Class
+   * @param[in] trainable Assign memory for inference or train mode
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int assignMem();
+  int assignMem(bool trainable = true);
 
   /**
    * @brief     Update graph to make batch normalization in-place

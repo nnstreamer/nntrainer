@@ -34,7 +34,10 @@ public:
   /**
    * @brief     Constructor of Manager
    */
-  Manager() : max_weight_size(0), enable_gradient_memory_opt(true) {}
+  Manager() :
+    max_weight_size(0),
+    max_derivative_size(0),
+    enable_gradient_memory_opt(true) {}
 
   /**
    * @brief     Destructor of Manager
@@ -73,6 +76,14 @@ public:
   }
 
   /**
+   * @brief Enable derivative memory sharing based optimization
+   * @param opt True to enable, else false
+   */
+  void setDerivativeMemoryOptimization(bool opt) {
+    enable_derivative_memory_opt = opt;
+  }
+
+  /**
    * @brief Allocate and initialize the weight variable
    */
   void initialize();
@@ -90,10 +101,12 @@ public:
    * @brief Track the inputs/ouputs of the layer
    * @param[in] layer_name Name of the layer
    * @param[in] input_dim Dimension of the input for the layer
+   * @param[in] trainable If the layer is trainable
    * @note Manager is kept independent from the layer object itself
    */
   void TrackLayerInOuts(const std::string layer_name,
-                        const std::vector<TensorDim> &input_dim);
+                        const std::vector<TensorDim> &input_dim,
+                        bool trainable = true);
 
   /**
    * @brief Get input tensor list for a layer by index
@@ -108,13 +121,9 @@ public:
 
   /**
    * @brief Initialize the inputs/outputs for the layers
+   * @param[in] trainable If true, initialize derivates, else, do not.
    */
-  void initializeInOuts() {
-    // TODO: remove assign mem and do this
-    for (auto &in_out : in_outs)
-      for (auto &vg : in_out)
-        vg->initialize();
-  }
+  void initializeInOuts(bool trainable);
 
   /**
    * @brief Set the batch size for the inputs/outputs of the layers
@@ -133,9 +142,12 @@ private:
   /**< Inputs/outputs of all the layer in the model */
   std::vector<std::vector<std::shared_ptr<Var_Grad>>> in_outs;
 
-  size_t max_weight_size; /**< max weight required by a layer */
+  size_t max_weight_size;     /**< max weight required by a layer */
+  size_t max_derivative_size; /**< max derivative required by a layer */
 
   bool enable_gradient_memory_opt; /**< share memory among all the gradients */
+  bool enable_derivative_memory_opt; /**< share memory among all the derivative
+                                        and output of the next layer */
 };
 
 } // namespace nntrainer
