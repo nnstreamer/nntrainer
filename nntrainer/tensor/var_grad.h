@@ -95,9 +95,17 @@ public:
    *
    * @param weight_preallocated if initialized, use this tensor for weight
    * @param grad_preallocated if initialized, use this tensor for grad
+   * @param gtrain If all the variables should be trainable
    */
   virtual void initialize(const Tensor &weight_preallocated = Tensor(),
-                          const Tensor &grad_preallocated = Tensor());
+                          const Tensor &grad_preallocated = Tensor(),
+                          bool gtrain = true);
+
+  /**
+   * @brief Allocate and initialize the variable and grad
+   * @note Variable and grad share the memory in this case
+   */
+  virtual void initializeShared();
 
   /**
    * @brief Get the TensorDim
