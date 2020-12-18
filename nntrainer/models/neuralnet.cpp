@@ -216,7 +216,8 @@ int NeuralNetwork::initialize() {
 
   for (unsigned int idx = 0; idx < n_layers; ++idx) {
     bool first = idx == 0;
-    Layer &l = *model_graph.getSortedLayerNode(idx).layer;
+    auto &lnode = model_graph.getSortedLayerNode(idx);
+    Layer &l = *lnode.layer;
     ml_logd("layer name : %s", l.getName().c_str());
     const std::string &cur_type = l.getType();
 
@@ -257,6 +258,7 @@ int NeuralNetwork::initialize() {
     status = l.initialize(manager);
     NN_RETURN_STATUS();
 
+    REGISTER_EVENT(l.getName(), lnode.event_key)
     opt->addOptimizerVariable(l.getWeightsRef());
   }
 

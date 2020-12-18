@@ -244,7 +244,7 @@ std::string Profiler::eventToStr(const int event) {
   /// custom events
   else if (event < 0) {
     std::lock_guard<std::mutex> lk(event_registration_mutex);
-    int actual_idx = -event + 1;
+    int actual_idx = -event - 1;
 
     if (actual_idx > static_cast<int>(custom_events.size()) - 1) {
       std::stringstream ss;
@@ -260,8 +260,12 @@ std::string Profiler::eventToStr(const int event) {
 int Profiler::registerEvent(const std::string &name) {
   std::lock_guard<std::mutex> lk(event_registration_mutex);
   custom_events.push_back(name);
+  int key = -custom_events.size();
 
-  return -custom_events.size();
+  ml_logd("[Profiler] Event registered, event name: %s event key: %d",
+          name.c_str(), key);
+
+  return key;
 }
 
 } // namespace profile
