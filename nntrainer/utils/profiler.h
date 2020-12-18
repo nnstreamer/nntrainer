@@ -84,7 +84,7 @@ public:
    * @param value time value from the profiler
    */
   virtual void onNotify(const int event,
-                        const std::chrono::milliseconds &value) = 0;
+                        const std::chrono::microseconds &value) = 0;
 
   /**
    * @brief resets the listener to the inital state for a particular key
@@ -97,9 +97,9 @@ public:
    * @brief get the latest result of a event
    *
    * @param event event to query the result
-   * @return const std::chrono::milliseconds
+   * @return const std::chrono::microseconds
    */
-  virtual const std::chrono::milliseconds result(const int event) = 0;
+  virtual const std::chrono::microseconds result(const int event) = 0;
 
   /**
    * @brief report the result
@@ -137,10 +137,10 @@ public:
 
   /**
    * @copydoc ProfileListener::onNotify(const int event, const
-   * std::chrono::milliseconds &value)
+   * std::chrono::microseconds &value)
    */
   virtual void onNotify(const int event,
-                        const std::chrono::milliseconds &value) override;
+                        const std::chrono::microseconds &value) override;
 
   /**
    * @copydoc ProfileListener::reset(const int event)
@@ -150,7 +150,7 @@ public:
   /**
    * @copydoc ProfileListener::result(const int event)
    */
-  virtual const std::chrono::milliseconds result(const int event) override;
+  virtual const std::chrono::microseconds result(const int event) override;
 
   /**
    * @copydoc ProfileListener::report(std::ostream &out)
@@ -166,10 +166,10 @@ private:
   static constexpr int SUM = 3;
   static constexpr int CNT = 4;
 
-  std::unordered_map<int, std::tuple<std::chrono::milliseconds, /** CUR */
-                                     std::chrono::milliseconds, /** MIN */
-                                     std::chrono::milliseconds, /** MAX */
-                                     std::chrono::milliseconds, /** SUM */
+  std::unordered_map<int, std::tuple<std::chrono::microseconds, /** CUR */
+                                     std::chrono::microseconds, /** MIN */
+                                     std::chrono::microseconds, /** MAX */
+                                     std::chrono::microseconds, /** SUM */
                                      unsigned int /** CNT */>>
     time_taken;
 
@@ -260,7 +260,7 @@ private:
    * @param event event to notify
    * @param value measured value from the profiler
    */
-  void notify(const int &event, const std::chrono::milliseconds &value);
+  void notify(const int &event, const std::chrono::microseconds &value);
 
   std::unordered_set<ProfileListener *>
     all_registered_listeners; /**< prevent registering listener twice */

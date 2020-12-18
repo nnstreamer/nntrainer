@@ -29,7 +29,7 @@ public:
   ~MockProfileListener(){};
 
   void onNotify(const int event,
-                const std::chrono::milliseconds &value) override {
+                const std::chrono::microseconds &value) override {
     hit = true;
   }
 
@@ -39,8 +39,8 @@ public:
     out << (hit ? "hit" : "no hit");
   }
 
-  const std::chrono::milliseconds result(const int event) override {
-    return std::chrono::milliseconds();
+  const std::chrono::microseconds result(const int event) override {
+    return std::chrono::microseconds();
   };
 
 private:
@@ -52,12 +52,12 @@ TEST(GenericProfileListener, listenerBasicScenario_p) {
   GenericProfileListener listener{nullptr};
 
   /// assuming library-side code is calling onNotify
-  listener.onNotify(EVENT::NN_FORWARD, std::chrono::milliseconds{10});
-  listener.onNotify(EVENT::NN_FORWARD, std::chrono::milliseconds{100});
-  listener.onNotify(EVENT::NN_FORWARD, std::chrono::milliseconds{50});
+  listener.onNotify(EVENT::NN_FORWARD, std::chrono::microseconds{10});
+  listener.onNotify(EVENT::NN_FORWARD, std::chrono::microseconds{100});
+  listener.onNotify(EVENT::NN_FORWARD, std::chrono::microseconds{50});
 
   auto result = listener.result(EVENT::NN_FORWARD);
-  EXPECT_EQ(result, std::chrono::milliseconds{50});
+  EXPECT_EQ(result, std::chrono::microseconds{50});
 
   std::cout << listener;
 }

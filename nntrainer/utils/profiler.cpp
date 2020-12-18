@@ -12,6 +12,7 @@
  */
 #include <algorithm>
 #include <iomanip>
+#include <map>
 #include <numeric>
 #include <sstream>
 #include <tuple>
@@ -41,7 +42,7 @@ ProfileListener::~ProfileListener() noexcept {
 }
 
 void GenericProfileListener::onNotify(const int event,
-                                      const std::chrono::milliseconds &value) {
+                                      const std::chrono::microseconds &value) {
 
   time_iter = time_taken.find(event);
 
@@ -70,14 +71,14 @@ void GenericProfileListener::onNotify(const int event,
 void GenericProfileListener::reset(const int event) {
   time_iter =
     time_taken
-      .insert({event, std::make_tuple(std::chrono::milliseconds{0},
-                                      std::chrono::milliseconds::max(),
-                                      std::chrono::milliseconds::min(),
-                                      std::chrono::milliseconds{0}, int{0})})
+      .insert({event, std::make_tuple(std::chrono::microseconds{0},
+                                      std::chrono::microseconds::max(),
+                                      std::chrono::microseconds::min(),
+                                      std::chrono::microseconds{0}, int{0})})
       .first;
 }
 
-const std::chrono::milliseconds
+const std::chrono::microseconds
 GenericProfileListener::result(const int event) {
   auto iter = time_taken.find(event);
 
@@ -117,27 +118,36 @@ void GenericProfileListener::report(std::ostream &out) const {
   // seperator
   out << std::string(total_col_size, '=') << '\n';
 
+  std::map<int, std::function<void(std::ostream & out)>> ordered_report;
+
   /// calculate metrics while skipping warmups
   for (auto &entry : time_taken) {
-    auto &cnt_ = std::get<GenericProfileListener::CNT>(entry.second);
-    auto &min_ = std::get<GenericProfileListener::MIN>(entry.second);
-    auto &max_ = std::get<GenericProfileListener::MAX>(entry.second);
-    auto &sum_ = std::get<GenericProfileListener::SUM>(entry.second);
+    auto func = [&](std::ostream &out) {
+      auto &cnt_ = std::get<GenericProfileListener::CNT>(entry.second);
+      auto &min_ = std::get<GenericProfileListener::MIN>(entry.second);
+      auto &max_ = std::get<GenericProfileListener::MAX>(entry.second);
+      auto &sum_ = std::get<GenericProfileListener::SUM>(entry.second);
 
-    auto title = profiler->eventToStr(entry.first);
+      auto title = profiler->eventToStr(entry.first);
 
-    if (warmups >= cnt_) {
-      out << std::left << std::setw(total_col_size) << title
-          << "less data then warmup\n";
-      continue;
-    }
+      if (warmups >= cnt_) {
+        out << std::left << std::setw(total_col_size) << title
+            << "less data then warmup\n";
+        return;
+      }
 
-    // clang-format off
+      // clang-format off
     out << std::setw(column_size[0]) << title
         << std::setw(column_size[1]) << sum_.count() / (cnt_ - warmups)
         << std::setw(column_size[2]) << min_.count()
         << std::setw(column_size[3]) << max_.count() << '\n';
-    // clang-format on
+      // clang-format on
+    };
+    ordered_report[-entry.first] = func;
+  }
+
+  for (auto &entry : ordered_report) {
+    entry.second(out);
   }
 }
 
@@ -170,7 +180,7 @@ void Profiler::end(const int &event) {
 #endif
 
   auto duration =
-    std::chrono::duration_cast<std::chrono::milliseconds>(end - iter->second);
+    std::chrono::duration_cast<std::chrono::microseconds>(end - iter->second);
   notify(event, duration);
 
 #ifdef DEBUG
@@ -179,7 +189,7 @@ void Profiler::end(const int &event) {
 }
 
 void Profiler::notify(const int &event,
-                      const std::chrono::milliseconds &value) {
+                      const std::chrono::microseconds &value) {
   std::lock_guard<std::mutex> lk(subscription_mutex);
   for (auto &listener : all_event_listeners) {
     listener->onNotify(event, value);
