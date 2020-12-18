@@ -66,7 +66,7 @@ protected:
     manager.TrackLayerInOuts(layer.getName(), layer.getOutputDimension());
     layer.setOutputBuffers(manager.getInputsLayer(-1));
 
-    manager.initializeInOuts();
+    manager.initializeInOuts(true);
     manager.initialize();
 
     return status;
@@ -500,7 +500,7 @@ protected:
     manager.TrackLayerInOuts(layer.getName(), layer.getOutputDimension());
     act_layer->setOutputBuffers(manager.getInputsLayer(-1));
 
-    manager.initializeInOuts();
+    manager.initializeInOuts(true);
     layers.push_back(act_layer);
   }
 
@@ -524,7 +524,7 @@ protected:
     manager.TrackLayerInOuts(layer.getName(), layer.getOutputDimension());
     loss_layer->setOutputBuffers(manager.getInputsLayer(-1));
 
-    manager.initializeInOuts();
+    manager.initializeInOuts(true);
     layers.push_back(loss_layer);
 
     if (type == nntrainer::LossType::LOSS_ENTROPY_SOFTMAX) {
@@ -1677,7 +1677,7 @@ TEST(nntrainer_LossLayer, forward_loss_unknown_n) {
   manager.TrackLayerInOuts(layer.getName(), layer.getOutputDimension());
   layer.setOutputBuffers(manager.getInputsLayer(-1));
 
-  manager.initializeInOuts();
+  manager.initializeInOuts(true);
   EXPECT_THROW(
     layer.forwarding({MAKE_SHARED_TENSOR(a)}, {MAKE_SHARED_TENSOR(b)}),
     std::runtime_error);
@@ -1693,7 +1693,7 @@ TEST(nntrainer_LossLayer, backward_loss_unknown_n) {
   manager.TrackLayerInOuts(layer.getName(), layer.getOutputDimension());
   layer.setOutputBuffers(manager.getInputsLayer(-1));
 
-  manager.initializeInOuts();
+  manager.initializeInOuts(true);
   EXPECT_THROW(layer.backwarding({MAKE_SHARED_TENSOR(a)}), std::runtime_error);
 }
 
@@ -1709,7 +1709,7 @@ TEST(nntrainer_LossLayer, forward_loss_forward_entropy_n) {
   manager.TrackLayerInOuts(layer.getName(), layer.getOutputDimension());
   layer.setOutputBuffers(manager.getInputsLayer(-1));
 
-  manager.initializeInOuts();
+  manager.initializeInOuts(true);
   EXPECT_THROW(
     layer.forwarding({MAKE_SHARED_TENSOR(a)}, {MAKE_SHARED_TENSOR(b)}),
     std::runtime_error);
@@ -1726,7 +1726,7 @@ TEST(nntrainer_LossLayer, backward_loss_backward_entropy_n) {
   manager.TrackLayerInOuts(layer.getName(), layer.getOutputDimension());
   layer.setOutputBuffers(manager.getInputsLayer(-1));
 
-  manager.initializeInOuts();
+  manager.initializeInOuts(true);
   EXPECT_THROW(layer.backwarding({MAKE_SHARED_TENSOR(a)}), std::runtime_error);
 }
 
@@ -1815,7 +1815,7 @@ TEST(nntrainer_ActivationLayer, forward_backward_01_p) {
   manager.TrackLayerInOuts(layer.getName(), layer.getOutputDimension());
   layer.setOutputBuffers(manager.getInputsLayer(-1));
 
-  manager.initializeInOuts();
+  manager.initializeInOuts(true);
 
   nntrainer::Tensor result;
   EXPECT_NO_THROW(result =
@@ -1887,7 +1887,7 @@ TEST_F(nntrainer_AdditionLayer, forwarding_01_n) {
   manager.TrackLayerInOuts(layer.getName(), layer.getOutputDimension());
   layer.setOutputBuffers(manager.getInputsLayer(-1));
 
-  manager.initializeInOuts();
+  manager.initializeInOuts(true);
 
   EXPECT_THROW(layer.forwarding_with_val({input}), std::invalid_argument);
 }
@@ -1911,7 +1911,7 @@ TEST_F(nntrainer_AdditionLayer, DISABLED_forwarding_02_n) {
   manager.TrackLayerInOuts(layer.getName(), layer.getOutputDimension());
   layer.setOutputBuffers(manager.getInputsLayer(-1));
 
-  manager.initializeInOuts();
+  manager.initializeInOuts(true);
 
   EXPECT_THROW(layer.forwarding_with_val({input}), std::runtime_error);
 }

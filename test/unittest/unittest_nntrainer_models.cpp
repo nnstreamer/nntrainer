@@ -85,7 +85,8 @@ public:
    */
   NodeWatcher(const NodeType &node) : node(node) {
     unsigned int num_weights = node.layer->getNumWeights();
-    node.layer->setTrainable(true);
+    if (node.layer->getType() != nntrainer::InputLayer::type)
+      node.layer->setTrainable(true);
 
     for (unsigned int i = 0; i < num_weights; ++i) {
       const nntrainer::Weight &w = node.layer->weightAt(i);

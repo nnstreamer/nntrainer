@@ -238,19 +238,63 @@ void Manager::initialize() {
  * @brief Track the inputs/ouputs of the layer
  */
 void Manager::TrackLayerInOuts(const std::string layer_name,
-                               const std::vector<TensorDim> &input_dim) {
+                               const std::vector<TensorDim> &input_dim,
+                               bool trainable) {
   int cnt = 0;
   auto base_name = layer_name + ":Input";
+
+  size_t inout_derivative_size = 0;
 
   std::vector<std::shared_ptr<Var_Grad>> in_out;
   in_out.reserve(input_dim.size());
 
   for (auto const &dim : input_dim) {
     in_out.emplace_back(std::make_shared<Var_Grad>(
-      dim, false, base_name + std::to_string(cnt++)));
+      dim, trainable, base_name + std::to_string(cnt++)));
+    if (trainable)
+      inout_derivative_size += dim.getDataLen();
   }
 
   in_outs.push_back(in_out);
+
+  max_derivative_size = std::max(max_derivative_size, inout_derivative_size);
+}
+
+/**
+ * @brief Initialize the inputs/outputs for the layer
+ */
+void Manager::initializeInOuts(bool trainable) {
+  // TODO: remove assign mem and do this
+  // for (auto &in_out : in_outs)
+  //   for (auto &vg : in_out)
+  //     vg->initialize(Tensor(), trainable);
+
+  // Tensor shared_deriv;
+  // if (max_derivative_size > 0 && enable_derivative_memory_opt)
+  //   shared_deriv = Tensor(max_derivative_size);
+
+  // for (auto &l_io : in_outs) {
+  //   size_t offset = 0;
+  //   for (auto &io : l_io) {
+  //     if (io->getTrainable() && enable_derivative_memory_opt) {
+  //       io->initialize(
+  //         shared_deriv.getSharedDataTensor(io->getDim(), offset), trainable);
+  //       offset += io->getDim().getDataLen();
+  //     } else {
+  //       io->initialize(Tensor(), trainable);
+  //     }
+  //   }
+  // }
+
+  for (auto &l_io : in_outs) {
+    for (auto &io : l_io) {
+      if (enable_derivative_memory_opt) {
+        io->initializeShared();
+      } else {
+        io->initialize(Tensor(), trainable);
+      }
+    }
+  }
 }
 
 } // namespace nntrainer

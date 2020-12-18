@@ -134,6 +134,14 @@ public:
   }
 
   /**
+   * @brief Enable derivative memory sharing based optimization
+   * @param opt True to enable, else false
+   */
+  void setDerivativeMemoryOptimization(bool opt) {
+    enable_derivative_memory_opt = opt;
+  }
+
+  /**
    * @brief Allocate and initialize the weight variable
    */
   void initialize();
@@ -155,10 +163,12 @@ public:
    * @brief Track the inputs/ouputs of the layer
    * @param[in] layer_name Name of the layer
    * @param[in] input_dim Dimension of the input for the layer
+   * @param[in] trainable If the layer is trainable
    * @note Manager is kept independent from the layer object itself
    */
   void TrackLayerInOuts(const std::string layer_name,
-                        const std::vector<TensorDim> &input_dim);
+                        const std::vector<TensorDim> &input_dim,
+                        bool trainable = true);
 
   /**
    * @brief Get input tensor list for a layer by index
@@ -174,13 +184,9 @@ public:
   /**
    * @brief Initialize the inputs/outputs for the layers
    * @todo Make initialize() and initializeInOuts() coherent but still separated
+   * @param[in] trainable If true, initialize derivates, else, do not.
    */
-  void initializeInOuts() {
-    // TODO: remove assign mem and do this
-    for (auto &in_out : in_outs)
-      for (auto &vg : in_out)
-        vg->initialize();
-  }
+  void initializeInOuts(bool trainable);
 
   /**
    * @brief Set the batch size for the inputs/outputs of the layers
@@ -196,14 +202,18 @@ private:
   /**< Weights of all the layer in the model to be managed */
   std::vector<std::vector<std::reference_wrapper<Weight>>> weights;
 
-  size_t total_weight_size; /**< total weight size */
-  size_t total_grad_size;   /**< total weight size */
-  size_t max_grad_size;     /**< max trainable weight required by a layer */
+  size_t total_weight_size;   /**< total weight size */
+  size_t total_grad_size;     /**< total weight size */
+  size_t max_grad_size;       /**< max trainable weight required by a layer */
+  size_t max_derivative_size; /**< max derivative required by a layer */
 
   /**< Inputs/outputs of all the layer in the model */
   std::vector<std::vector<std::shared_ptr<Var_Grad>>> in_outs;
 
+  /**< Optimization related */
   bool enable_gradient_memory_opt; /**< share memory among all the gradients */
+  bool enable_derivative_memory_opt; /**< share memory among all the derivative
+                                        and output of the next layer */
 
   /**< shared memory related */
   bool use_shared_memory; /**< uses shared memory object which is owned by
