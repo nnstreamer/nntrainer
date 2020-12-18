@@ -43,7 +43,9 @@ public:
              Args... args) :
     Layer(args...),
     normalization(false),
-    standardization(false) {}
+    standardization(false) {
+    trainable = false;
+  }
 
   /**
    * @brief     Destructor of InputLayer
@@ -88,6 +90,11 @@ public:
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
   int initialize(Manager &manager);
+
+  /**
+   * @copydoc Layer::setTrainable(bool train)
+   */
+  void setTrainable(bool train);
 
   /**
    * @copydoc Layer::getType()
