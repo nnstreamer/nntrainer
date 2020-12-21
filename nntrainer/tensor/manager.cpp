@@ -192,7 +192,8 @@ void Manager::initialize() {
       size_t byte_size = weight_size * sizeof(float);
       memory = std::make_unique<MMapedMemory>(byte_size, true);
       return [&memory](const TensorDim &dim, size_t offset) {
-        return Tensor::Map(memory->typedBuffer<float>(), dim, offset);
+        return Tensor::Map(memory->typedBuffer<float>(), dim, offset,
+                           memory->getFd());
       };
     };
 

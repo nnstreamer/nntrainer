@@ -51,7 +51,9 @@ public:
     dim(TensorDim()),
     strides{dim.computeStrides()},
     is_contiguous(true),
-    data(nullptr) {}
+    data(nullptr),
+    fd(-1),
+    offset(0) {}
 
   /**
    * @brief     Constructor of Tensor with dimension/buf
@@ -64,11 +66,13 @@ public:
    *
    * @param d tensor dim
    * @param buf buffer
-   * @param offset offset to be used from current
+   * @param offset float offset to be used from current
+   * @param fd file descriptor if any
    * @return Tensor object
    * @throws std::invalid_argument if buf is null
    */
-  static Tensor Map(float *buf, const TensorDim &d, int offset = 0);
+  static Tensor Map(float *buf, const TensorDim &d, int offset = 0,
+                    int fd = -1);
 
   /**
    * @brief Construct a new Tensor object from a buffer
@@ -693,6 +697,20 @@ public:
     return strides;
   }
 
+  /**
+   * @brief Get the File descriptor
+   *
+   * @return const int fd -1 if not applicable
+   */
+  const int getFd() const { return fd; }
+
+  /**
+   * @brief Get the Offset object
+   *
+   * @return const int offset, 0 if not applicable
+   */
+  const int getOffset() const { return offset; }
+
   static constexpr float epsilon = 1e-5;
 
 private:
@@ -765,6 +783,11 @@ private:
   template <typename T> void setDist(T dist);
 
   void copy(const float *buf);
+
+  /// consider move those to var_grad or manager if weights are bookkeepd
+  int fd; /**< If tensor is mapped tensor and has a backed fd, this is set else
+             -1 */
+  int offset; /**< If tensor is mapped tensor, this is offset from the buffer */
 };
 
 /**
