@@ -22,7 +22,6 @@
 #include <vector>
 
 #include <layer_internal.h>
-#include <loss_layer.h>
 
 namespace nntrainer {
 
@@ -224,6 +223,11 @@ public:
    */
   std::vector<TensorDim> getInputDimension();
 
+  /**
+   * @brief     Optimize the graph memory utilization for in-place operations
+   */
+  void inPlaceOptimize(Manager &manager);
+
 private:
   /**
    * @brief     topological sort
@@ -253,6 +257,13 @@ private:
    * @brief Calculate the number of non-trainable layers at the start
    */
   void countNonTrainableLayersAtBegin();
+
+  /**
+   * @brief Update graph to remove redundant memory for in-place layer
+   * @param layer_type Type of the layer which will work in-place
+   * @note This optimization has no performance overhead.
+   */
+  void inPlaceOptimize(const std::string &layer_type, Manager &manager);
 };
 
 } // namespace nntrainer

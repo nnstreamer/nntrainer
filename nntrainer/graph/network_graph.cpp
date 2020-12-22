@@ -13,6 +13,7 @@
 
 #include <activation_layer.h>
 #include <addition_layer.h>
+#include <bn_layer.h>
 #include <concat_layer.h>
 #include <flatten_layer.h>
 #include <input_layer.h>
@@ -534,6 +535,43 @@ std::vector<TensorDim> NetworkGraph::getInputDimension() {
 
 std::vector<TensorDim> NetworkGraph::getOutputDimension() {
   return Sorted.back().layer->getOutputDimension();
+}
+
+void NetworkGraph::inPlaceOptimize(const std::string &layer_type,
+                                   Manager &manager) {
+  for (auto &layer_node : Sorted) {
+    auto &l = layer_node.layer;
+    if (l->getType() == layer_type &&
+        l->getActivationType() != ActivationType::ACT_SOFTMAX) {
+      /** @note assumes BatchNormalizationLayer is only for single in/out tensor
+       */
+      if (l->input_layers.size() != 1)
+        throw std::runtime_error("Internal error in the formed graph");
+
+      auto &prev_layer = getLayerNode(l->input_layers[0]).layer;
+
+      unsigned int loc;
+      auto layer_name = l->getName();
+      for (loc = 0; loc < prev_layer->output_layers.size(); ++loc)
+        if (prev_layer->output_layers[loc] == layer_name)
+          break;
+
+      if (loc == prev_layer->output_layers.size())
+        throw std::runtime_error("Internal error in the formed graph.");
+
+      /** Share tensor with next layer */
+      prev_layer->net_hidden[loc] = l->net_hidden[0];
+      l->net_input[0] = l->net_hidden[0];
+
+      /** Untrack the memory for this layer */
+      manager.untrackLayerInOuts(prev_layer->getName());
+    }
+  }
+}
+
+void NetworkGraph::inPlaceOptimize(Manager &manager) {
+  inPlaceOptimize(BatchNormalizationLayer::type, manager);
+  inPlaceOptimize(ActivationLayer::type, manager);
 }
 
 } /* namespace nntrainer */

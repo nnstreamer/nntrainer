@@ -37,7 +37,9 @@ public:
   Manager() :
     max_weight_size(0),
     max_derivative_size(0),
-    enable_gradient_memory_opt(true) {}
+    enable_gradient_memory_opt(true),
+    enable_derivative_memory_opt(true),
+    enable_activation_memory_opt(true) {}
 
   /**
    * @brief     Destructor of Manager
@@ -84,6 +86,14 @@ public:
   }
 
   /**
+   * @brief Enable derivative memory sharing based optimization
+   * @param opt True to enable, else false
+   */
+  void setInPlaceActivationOptimization(bool opt) {
+    enable_activation_memory_opt = opt;
+  }
+
+  /**
    * @brief Allocate and initialize the weight variable
    */
   void initialize();
@@ -104,20 +114,16 @@ public:
    * @param[in] trainable If the layer is trainable
    * @note Manager is kept independent from the layer object itself
    */
-  void TrackLayerInOuts(const std::string layer_name,
-                        const std::vector<TensorDim> &input_dim,
-                        bool trainable = true);
+  std::vector<std::shared_ptr<Var_Grad>> &
+  TrackLayerInOuts(const std::string &layer_type, const std::string &layer_name,
+                   const std::vector<TensorDim> &input_dim);
 
   /**
-   * @brief Get input tensor list for a layer by index
-   * @param[in] layer_idx Index of the layer in the order of layer tracked
-   * @note The order of layers tracked is same as the order of sorted layers
+   * @brief Track the inputs/ouputs of the layer
+   * @param[in] layer_name Name of the layer
+   * @note Manager is kept independent from the layer object itself
    */
-  std::vector<std::shared_ptr<Var_Grad>> getInputsLayer(int layer_idx) {
-    if (layer_idx == -1)
-      return in_outs.back();
-    return in_outs[layer_idx];
-  }
+  void untrackLayerInOuts(const std::string layer_name);
 
   /**
    * @brief Initialize the inputs/outputs for the layers
@@ -129,6 +135,10 @@ public:
    * @brief Set the batch size for the inputs/outputs of the layers
    */
   void setBatchSize(unsigned int batch) {
+    if (!in_outs.empty() && !in_outs[0].empty()) {
+      max_derivative_size /= in_outs[0][0]->getDim().batch();
+      max_derivative_size *= batch;
+    }
     for (auto &in_out : in_outs)
       for (auto &vg : in_out)
         vg->setBatchSize(batch);
@@ -141,6 +151,7 @@ private:
 
   /**< Inputs/outputs of all the layer in the model */
   std::vector<std::vector<std::shared_ptr<Var_Grad>>> in_outs;
+  std::vector<bool> is_act_type;
 
   size_t max_weight_size;     /**< max weight required by a layer */
   size_t max_derivative_size; /**< max derivative required by a layer */
@@ -148,6 +159,9 @@ private:
   bool enable_gradient_memory_opt; /**< share memory among all the gradients */
   bool enable_derivative_memory_opt; /**< share memory among all the derivative
                                         and output of the next layer */
+  bool enable_activation_memory_opt; /**< Let activation layer work in-place
+                                        without allocating output layer for
+                                        itself */
 };
 
 } // namespace nntrainer

@@ -244,8 +244,7 @@ void NodeWatcher::forward(int iteration, NodeWatcher &next_node) {
 
   std::vector<nntrainer::Tensor> out = node.layer->getOutputs();
 
-  if (next_node.node.layer->getType() !=
-      nntrainer::BatchNormalizationLayer::type)
+  if (next_node.node.layer->getType() != nntrainer::ActivationLayer::type)
     verify(out[0], expected_output, err_msg + " at output");
 }
 
@@ -272,10 +271,11 @@ void NodeWatcher::backward(int iteration, bool should_verify) {
 
   std::vector<nntrainer::Tensor> out = node.layer->getDerivatives();
 
+  verifyGrad(err_msg);
+  verifyWeight(err_msg);
+
   if (should_verify) {
-    verifyGrad(err_msg);
     verify(out[0], expected_dx, err_msg);
-    verifyWeight(err_msg);
   }
 }
 
@@ -344,7 +344,8 @@ void GraphWatcher::compareFor(const std::string &reference,
     nn.backwarding(label, iteration);
 
     for (auto it = nodes.rbegin(); it != nodes.rend() - 1; it++) {
-      if ((*(it + 1)).getNodeType() == nntrainer::BatchNormalizationLayer::type)
+      if ((*(it + 1)).getNodeType() == nntrainer::ActivationLayer::type ||
+          (*(it)).getNodeType() == nntrainer::ActivationLayer::type)
         it->backward(iteration, false);
       else
         it->backward(iteration, true);
