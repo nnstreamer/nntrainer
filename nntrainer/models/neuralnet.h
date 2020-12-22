@@ -86,7 +86,7 @@ public:
    * @brief     Constructor of NeuralNetwork Class
    */
   NeuralNetwork(AppContext app_context_ = AppContext(AppContext::Global()),
-                bool bn_opt = true) :
+                bool in_place_opt = true) :
     batch_size(1),
     epochs(1),
     epoch_idx(0),
@@ -103,7 +103,7 @@ public:
     def_name_count(0),
     loadedFromConfig(false),
     app_context(app_context_),
-    in_place_bn_layer_optimization(bn_opt) {}
+    in_place_optimization(in_place_opt) {}
 
   /**
    * @brief     Destructor of NeuralNetwork Class
@@ -180,7 +180,7 @@ public:
    * other backend. Ensure to verify this optimization with other
    * implementations once added.
    */
-  void inPlaceBatchNormOptimization();
+  void inPlaceOptimization(const std::string &layer_type);
 
   /**
    * @brief     Forward Propagation of the neural network
@@ -375,12 +375,24 @@ public:
   }
 
   /**
-   * @brief Enable in-place batch normalization layer operation
+   * @brief Enable derivative memory sharing based optimization
    * @param opt True to enable, else false
    * @note This optimization has no performance overhead.
    */
-  void setInPlaceBNLayerOptimization(bool opt) {
-    in_place_bn_layer_optimization = opt;
+  void setDerivativeMemoryOptimization(bool opt) {
+    manager->setDerivativeMemoryOptimization(opt);
+    if (false)
+      setInPlaceLayerOptimization(opt);
+  }
+
+  /**
+   * @brief Enable in-place layer operations
+   * @param opt True to enable, else false
+   * @note This optimization has no performance overhead.
+   */
+  void setInPlaceLayerOptimization(bool opt) {
+    in_place_optimization = opt;
+    manager->setInPlaceActivationOptimization(opt);
   }
 
 /// @todo Make a more common class have this
@@ -515,8 +527,8 @@ private:
     sub_in_out; /** This is map to identyfy input and output layer name of
                    subgraph */
 
-  bool in_place_bn_layer_optimization; /**< Run batch normalization layer
-                                          in-place */
+  bool in_place_optimization; /**< Run batch normalization, activation, etc
+                                 layers in-place */
 
   /**
    * @brief print function for neuralnet

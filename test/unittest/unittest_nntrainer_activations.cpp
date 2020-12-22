@@ -110,7 +110,7 @@ TEST(nntrainer_activation, sigmoid_01_p) {
   }
 }
 
-TEST(nntrainer_activation, sigmoidPrime_01_p) {
+TEST(nntrainer_activation, DISABLED_sigmoidPrime_01_p) {
   int batch = 3;
   int channel = 1;
   int height = 1;
@@ -174,7 +174,7 @@ TEST(nntrainer_activation, tanhFloat_01_p) {
   }
 }
 
-TEST(nntrainer_activation, tanhFloatPrime_01_p) {
+TEST(nntrainer_activation, DISABLED_tanhFloatPrime_01_p) {
   int batch = 3;
   int channel = 1;
   int height = 1;

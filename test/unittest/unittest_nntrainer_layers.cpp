@@ -50,6 +50,7 @@ protected:
   virtual void SetUp() {
     manager = nntrainer::Manager(true, false);
     status = ML_ERROR_NONE;
+    manager.setInPlaceActivationOptimization(false);
     prepareLayer();
     reinitialize();
   }
@@ -61,10 +62,10 @@ protected:
     in = nntrainer::Tensor(layer.getInputDimension()[0]);
     out = nntrainer::Tensor(layer.getOutputDimension()[0]);
 
-    manager.TrackLayerInOuts(layer.getName(), layer.getInputDimension());
-    layer.setInputBuffers(manager.getInputsLayer(-1));
-    manager.TrackLayerInOuts(layer.getName(), layer.getOutputDimension());
-    layer.setOutputBuffers(manager.getInputsLayer(-1));
+    layer.setInputBuffers(manager.TrackLayerInOuts(
+      layer.getType(), layer.getName(), layer.getInputDimension()));
+    layer.setOutputBuffers(manager.TrackLayerInOuts(
+      layer.getType(), layer.getName(), layer.getOutputDimension()));
 
     manager.initializeInOuts(true);
     manager.initialize();
@@ -495,12 +496,12 @@ protected:
     status = act_layer->initialize(manager);
     EXPECT_EQ(status, ML_ERROR_NONE);
 
-    manager.TrackLayerInOuts(act_layer->getName(),
-                             act_layer->getInputDimension());
-    act_layer->setInputBuffers(manager.getInputsLayer(-1));
-    manager.TrackLayerInOuts(act_layer->getName(),
-                             act_layer->getOutputDimension());
-    act_layer->setOutputBuffers(manager.getInputsLayer(-1));
+    act_layer->setInputBuffers(
+      manager.TrackLayerInOuts(act_layer->getType(), act_layer->getName(),
+                               act_layer->getInputDimension()));
+    act_layer->setOutputBuffers(
+      manager.TrackLayerInOuts(act_layer->getType(), act_layer->getName(),
+                               act_layer->getOutputDimension()));
 
     manager.initializeInOuts(true);
     layers.push_back(act_layer);
@@ -521,12 +522,14 @@ protected:
     status = loss_layer->setLoss(type);
     EXPECT_EQ(status, ML_ERROR_NONE);
 
-    manager.TrackLayerInOuts(loss_layer->getName(),
-                             loss_layer->getInputDimension());
-    loss_layer->setInputBuffers(manager.getInputsLayer(-1));
-    manager.TrackLayerInOuts(loss_layer->getName(),
-                             loss_layer->getOutputDimension());
-    loss_layer->setOutputBuffers(manager.getInputsLayer(-1));
+    ;
+    loss_layer->setInputBuffers(
+      manager.TrackLayerInOuts(loss_layer->getType(), loss_layer->getName(),
+                               loss_layer->getInputDimension()));
+    ;
+    loss_layer->setOutputBuffers(
+      manager.TrackLayerInOuts(loss_layer->getType(), loss_layer->getName(),
+                               loss_layer->getOutputDimension()));
 
     manager.initializeInOuts(true);
     layers.push_back(loss_layer);
@@ -1676,10 +1679,10 @@ TEST(nntrainer_LossLayer, forward_loss_unknown_n) {
   nntrainer::Tensor b = constant(1.0, 1, 1, 1, 1);
 
   nntrainer::Manager manager;
-  manager.TrackLayerInOuts(layer.getName(), layer.getInputDimension());
-  layer.setInputBuffers(manager.getInputsLayer(-1));
-  manager.TrackLayerInOuts(layer.getName(), layer.getOutputDimension());
-  layer.setOutputBuffers(manager.getInputsLayer(-1));
+  layer.setInputBuffers(manager.TrackLayerInOuts(
+    layer.getType(), layer.getName(), layer.getInputDimension()));
+  layer.setOutputBuffers(manager.TrackLayerInOuts(
+    layer.getType(), layer.getName(), layer.getOutputDimension()));
 
   manager.initializeInOuts(true);
   EXPECT_THROW(
@@ -1692,10 +1695,10 @@ TEST(nntrainer_LossLayer, backward_loss_unknown_n) {
   nntrainer::Tensor a = constant(1.0, 1, 1, 1, 1);
 
   nntrainer::Manager manager;
-  manager.TrackLayerInOuts(layer.getName(), layer.getInputDimension());
-  layer.setInputBuffers(manager.getInputsLayer(-1));
-  manager.TrackLayerInOuts(layer.getName(), layer.getOutputDimension());
-  layer.setOutputBuffers(manager.getInputsLayer(-1));
+  layer.setInputBuffers(manager.TrackLayerInOuts(
+    layer.getType(), layer.getName(), layer.getInputDimension()));
+  layer.setOutputBuffers(manager.TrackLayerInOuts(
+    layer.getType(), layer.getName(), layer.getOutputDimension()));
 
   manager.initializeInOuts(true);
   EXPECT_THROW(layer.backwarding({MAKE_SHARED_TENSOR(a)}), std::runtime_error);
@@ -1708,10 +1711,10 @@ TEST(nntrainer_LossLayer, forward_loss_forward_entropy_n) {
   nntrainer::Tensor b = constant(1.0, 1, 1, 1, 1);
 
   nntrainer::Manager manager;
-  manager.TrackLayerInOuts(layer.getName(), layer.getInputDimension());
-  layer.setInputBuffers(manager.getInputsLayer(-1));
-  manager.TrackLayerInOuts(layer.getName(), layer.getOutputDimension());
-  layer.setOutputBuffers(manager.getInputsLayer(-1));
+  layer.setInputBuffers(manager.TrackLayerInOuts(
+    layer.getType(), layer.getName(), layer.getInputDimension()));
+  layer.setOutputBuffers(manager.TrackLayerInOuts(
+    layer.getType(), layer.getName(), layer.getOutputDimension()));
 
   manager.initializeInOuts(true);
   EXPECT_THROW(
@@ -1725,10 +1728,10 @@ TEST(nntrainer_LossLayer, backward_loss_backward_entropy_n) {
   nntrainer::Tensor a = constant(1.0, 1, 1, 1, 1);
 
   nntrainer::Manager manager;
-  manager.TrackLayerInOuts(layer.getName(), layer.getInputDimension());
-  layer.setInputBuffers(manager.getInputsLayer(-1));
-  manager.TrackLayerInOuts(layer.getName(), layer.getOutputDimension());
-  layer.setOutputBuffers(manager.getInputsLayer(-1));
+  layer.setInputBuffers(manager.TrackLayerInOuts(
+    layer.getType(), layer.getName(), layer.getInputDimension()));
+  layer.setOutputBuffers(manager.TrackLayerInOuts(
+    layer.getType(), layer.getName(), layer.getOutputDimension()));
 
   manager.initializeInOuts(true);
   EXPECT_THROW(layer.backwarding({MAKE_SHARED_TENSOR(a)}), std::runtime_error);
@@ -1814,11 +1817,16 @@ TEST(nntrainer_ActivationLayer, forward_backward_01_p) {
                  nntrainer::ActivationLayer::relu((l - 4) * 0.1 * (i + 1)));
 
   nntrainer::Manager manager;
-  manager.TrackLayerInOuts(layer.getName(), layer.getInputDimension());
-  layer.setInputBuffers(manager.getInputsLayer(-1));
-  manager.TrackLayerInOuts(layer.getName(), layer.getOutputDimension());
-  layer.setOutputBuffers(manager.getInputsLayer(-1));
+  manager.setInPlaceActivationOptimization(true);
 
+  layer.setProperty({"input_shape=3:1:1:10"});
+  layer.setBatch(3);
+  layer.initialize(manager);
+
+  layer.setInputBuffers(manager.TrackLayerInOuts(
+    layer.getType(), layer.getName(), layer.getInputDimension()));
+  layer.setOutputBuffers(manager.TrackLayerInOuts(
+    layer.getType(), layer.getName(), layer.getOutputDimension()));
   manager.initializeInOuts(true);
 
   nntrainer::Tensor result;
@@ -1886,10 +1894,10 @@ TEST_F(nntrainer_AdditionLayer, forwarding_01_n) {
   in = nntrainer::Tensor();
 
   nntrainer::Manager manager;
-  manager.TrackLayerInOuts(layer.getName(), layer.getInputDimension());
-  layer.setInputBuffers(manager.getInputsLayer(-1));
-  manager.TrackLayerInOuts(layer.getName(), layer.getOutputDimension());
-  layer.setOutputBuffers(manager.getInputsLayer(-1));
+  layer.setInputBuffers(manager.TrackLayerInOuts(
+    layer.getType(), layer.getName(), layer.getInputDimension()));
+  layer.setOutputBuffers(manager.TrackLayerInOuts(
+    layer.getType(), layer.getName(), layer.getOutputDimension()));
 
   manager.initializeInOuts(true);
 
@@ -1910,10 +1918,10 @@ TEST_F(nntrainer_AdditionLayer, DISABLED_forwarding_02_n) {
   in = nntrainer::Tensor(layer.getInputDimension()[0]);
 
   nntrainer::Manager manager;
-  manager.TrackLayerInOuts(layer.getName(), layer.getInputDimension());
-  layer.setInputBuffers(manager.getInputsLayer(-1));
-  manager.TrackLayerInOuts(layer.getName(), layer.getOutputDimension());
-  layer.setOutputBuffers(manager.getInputsLayer(-1));
+  layer.setInputBuffers(manager.TrackLayerInOuts(
+    layer.getType(), layer.getName(), layer.getInputDimension()));
+  layer.setOutputBuffers(manager.TrackLayerInOuts(
+    layer.getType(), layer.getName(), layer.getOutputDimension()));
 
   manager.initializeInOuts(true);
 
@@ -1931,10 +1939,10 @@ TEST_F(nntrainer_AdditionLayer, DISABLED_forwarding_03_p) {
   input.get()[1] = *input;
 
   nntrainer::Manager manager;
-  manager.TrackLayerInOuts(layer.getName(), layer.getInputDimension());
-  layer.setInputBuffers(manager.getInputsLayer(-1));
-  manager.TrackLayerInOuts(layer.getName(), layer.getOutputDimension());
-  layer.setOutputBuffers(manager.getInputsLayer(-1));
+  layer.setInputBuffers(manager.TrackLayerInOuts(
+    layer.getType(), layer.getName(), layer.getInputDimension()));
+  layer.setOutputBuffers(manager.TrackLayerInOuts(
+    layer.getType(), layer.getName(), layer.getOutputDimension()));
 
   EXPECT_NO_THROW(layer.forwarding_with_val({input}));
 }
