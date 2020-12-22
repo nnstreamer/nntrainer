@@ -50,24 +50,19 @@ void ActivationLayer::forwarding(sharedConstTensors in) {
   Tensor &hidden_ = net_hidden[0]->getVariableRef();
   /// @note @a _act_fn is expected to work out of place and not modify @a input
   _act_fn(net_input[0]->getVariableRef(), hidden_);
-  if (activation_type == ActivationType::ACT_SOFTMAX)
-    backup_hidden = hidden_.clone();
 }
 
 void ActivationLayer::calcDerivative(sharedConstTensors derivative) {
   Tensor &deriv = net_hidden[0]->getGradientRef();
   Tensor &ret = net_input[0]->getGradientRef();
+  Tensor &in = net_hidden[0]->getVariableRef();
 
-  if (activation_type == ActivationType::ACT_SOFTMAX) {
-    ret = _act_prime_fn(backup_hidden, ret, deriv);
-  } else {
-    ret = _act_prime_fn(net_input[0]->getVariableRef(), ret, deriv);
-  }
+  ret = _act_prime_fn(in, ret, deriv);
 }
 
 int ActivationLayer::setActivation(
   std::function<Tensor &(Tensor const &, Tensor &)> const &activation_fn,
-  std::function<Tensor &(Tensor const &, Tensor &, Tensor const &)> const
+  std::function<Tensor &(Tensor &, Tensor &, Tensor const &)> const
     &activation_prime_fn) {
   _act_fn = activation_fn;
   _act_prime_fn = activation_prime_fn;
@@ -77,13 +72,12 @@ int ActivationLayer::setActivation(
 
 int ActivationLayer::setActivation(
   std::function<Tensor &(Tensor const &, Tensor &)> const &activation_fn,
-  std::function<Tensor &(Tensor const &, Tensor &)> const
-    &activation_prime_fn) {
+  std::function<Tensor &(Tensor &, Tensor &)> const &activation_prime_fn) {
   _act_fn = activation_fn;
-  _act_prime_fn = [activation_prime_fn](Tensor const &x, Tensor &ret_derivative,
+  _act_prime_fn = [activation_prime_fn](Tensor &x, Tensor &ret_derivative,
                                         Tensor const &derivative) -> Tensor & {
-    ret_derivative = activation_prime_fn(x, ret_derivative);
-    ret_derivative.multiply_i(derivative);
+    x = activation_prime_fn(x, x);
+    ret_derivative = derivative.multiply(x, ret_derivative);
 
     return ret_derivative;
   };
@@ -97,10 +91,10 @@ int ActivationLayer::setActivation(
   _act_fn = [activation_fn](Tensor const &x, Tensor &hidden) -> Tensor & {
     return x.apply(activation_fn, hidden);
   };
-  _act_prime_fn = [activation_prime_fn](Tensor const &x, Tensor &ret_derivative,
+  _act_prime_fn = [activation_prime_fn](Tensor &x, Tensor &ret_derivative,
                                         Tensor const &derivative) -> Tensor & {
-    ret_derivative = x.apply(activation_prime_fn, ret_derivative);
-    ret_derivative.multiply_i(derivative);
+    x = x.apply(activation_prime_fn, x);
+    ret_derivative = derivative.multiply(x, ret_derivative);
 
     return ret_derivative;
   };
@@ -228,15 +222,15 @@ Tensor &ActivationLayer::softmaxPrime(Tensor const &x, Tensor &output,
 float ActivationLayer::sigmoid(float x) { return 1.0f / (1.0f + exp_util(-x)); }
 
 float ActivationLayer::sigmoidPrime(float x) {
-  float sprime = sigmoid(x);
-  return sprime * (1.0f - sprime);
+  // float sprime = sigmoid(x);
+  return x * (1.0f - x);
 }
 
 float ActivationLayer::tanhFloat(float x) { return (float)tanh(x); }
 
 float ActivationLayer::tanhPrime(float x) {
-  float th = (float)tanh(x);
-  return 1.0f - th * th;
+  // float th = (float)tanh(x);
+  return 1.0f - x * x;
 }
 
 float ActivationLayer::relu(float x) {

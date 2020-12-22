@@ -165,35 +165,6 @@ int NeuralNetwork::compile() {
   return status;
 }
 
-void NeuralNetwork::inPlaceBatchNormOptimization() {
-  auto &sorted = model_graph.getSorted();
-
-  for (unsigned int idx = 1; idx < sorted.size() - 1; ++idx) {
-    auto &l = sorted[idx].layer;
-    if (l->getType() == BatchNormalizationLayer::type) {
-      /** @note assumes BatchNormalizationLayer is only for single in/out tensor
-       */
-      if (l->input_layers.size() != 1)
-        throw std::runtime_error("Internal error in the formed graph");
-
-      auto &prev_layer = model_graph.getLayerNode(l->input_layers[0]).layer;
-
-      unsigned int loc;
-      auto layer_name = l->getName();
-      for (loc = 0; loc < prev_layer->output_layers.size(); ++loc)
-        if (prev_layer->output_layers[loc] == layer_name)
-          break;
-
-      if (loc == prev_layer->output_layers.size())
-        throw std::runtime_error("Internal error in the formed graph.");
-
-      /** Share tensor with next layer */
-      prev_layer->net_hidden[loc] = l->net_hidden[0];
-      l->net_input[0] = l->net_hidden[0];
-    }
-  }
-}
-
 int NeuralNetwork::initialize() {
   int status = ML_ERROR_NONE;
 
@@ -221,6 +192,10 @@ int NeuralNetwork::initialize() {
     ml_logd("layer name : %s", l.getName().c_str());
     const std::string &cur_type = l.getType();
 
+    /**
+     * Set input dimension for all the layers.
+     * For input layer, as input dimension is known, set input tensor.
+     */
     if (!first) {
       if (istrequal(model_graph.getSortedLayerNode(idx - 1).layer->getType(),
                     ActivationLayer::type) &&
@@ -242,12 +217,29 @@ int NeuralNetwork::initialize() {
 
         l.setInputDimension(in_layer.getOutputDimension()[location], i);
       }
-
-      manager->TrackLayerInOuts(l.getName(), l.getInputDimension(),
-                                l.getTrainable());
-      auto in_out = manager->getInputsLayer(-1);
+    } else {
+      auto in_out = manager->TrackLayerInOuts(l.getType(), l.getName(),
+                                              l.getInputDimension());
       l.setInputBuffers(in_out);
+    }
 
+    /**
+     * Initialize all the layers, allocate output tensors for each layer
+     * and add optimizer related weights for the layer
+     */
+    status = l.initialize(*manager);
+    NN_RETURN_STATUS();
+
+    REGISTER_EVENT(l.getName(), lnode.event_key)
+    opt->addOptimizerVariable(l.getWeightsRef());
+
+    auto in_out = manager->TrackLayerInOuts(l.getType(), l.getName(),
+                                            l.getOutputDimension());
+    l.setOutputBuffers(in_out);
+
+    /** Connect the output of the previous layers with the input of the current
+     * layer */
+    if (!first) {
       for (unsigned int i = 0; i < l.input_layers.size(); ++i) {
         Layer &in_layer = *model_graph.getLayerNode(l.input_layers[i]).layer;
 
@@ -259,36 +251,42 @@ int NeuralNetwork::initialize() {
           }
         }
 
-        model_graph.getLayerNode(l.input_layers[i])
-          .layer->net_hidden[location] = in_out[i];
+        l.net_input[i] = model_graph.getLayerNode(l.input_layers[i])
+                           .layer->net_hidden[location];
       }
-    } else {
-      manager->TrackLayerInOuts(l.getName(), l.getInputDimension(),
-                                l.getTrainable());
-      l.setInputBuffers(manager->getInputsLayer(-1));
+      // <<<<<<< d5b08b6c082d5ab907768f9293434db7f82a8cd2
+      //     } else {
+      //       manager->TrackLayerInOuts(l.getName(), l.getInputDimension(),
+      //                                 l.getTrainable());
+      //       l.setInputBuffers(manager->getInputsLayer(-1));
+      //     }
+      //
+      //     status = l.initialize(*manager);
+      //     NN_RETURN_STATUS();
+      //
+      //     REGISTER_EVENT(l.getName(), lnode.event_key)
+      //     opt->addOptimizerVariable(l.getWeightsRef());
+      //   }
+      //
+      //   auto &last_layer = model_graph.Sorted.back().layer;
+      //   manager->TrackLayerInOuts(last_layer->getName(),
+      //                             last_layer->getOutputDimension(),
+      //                             last_layer->getTrainable());
+      //   auto in_out = manager->getInputsLayer(-1);
+      //
+      //   for (unsigned int i = 0; i < last_layer->num_outputs; ++i) {
+      //     last_layer->net_hidden[i] = in_out[i];
+      //   }
+      //
+      // =======
     }
-
-    status = l.initialize(*manager);
-    NN_RETURN_STATUS();
-
-    REGISTER_EVENT(l.getName(), lnode.event_key)
-    opt->addOptimizerVariable(l.getWeightsRef());
   }
-
-  auto &last_layer = model_graph.Sorted.back().layer;
-  manager->TrackLayerInOuts(last_layer->getName(),
-                            last_layer->getOutputDimension(),
-                            last_layer->getTrainable());
-  auto in_out = manager->getInputsLayer(-1);
-
-  for (unsigned int i = 0; i < last_layer->num_outputs; ++i) {
-    last_layer->net_hidden[i] = in_out[i];
-  }
-
+  // >>>>>>> [activation] Making activation in-place
   setBatchSize(batch_size);
 
-  if (in_place_bn_layer_optimization)
-    inPlaceBatchNormOptimization();
+  if (in_place_optimization) {
+    model_graph.inPlaceOptimize(*manager);
+  }
 
   manager->initialize();
 

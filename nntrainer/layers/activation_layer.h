@@ -74,7 +74,7 @@ public:
   /**
    * @brief setActivation by preset ActivationType
    *
-   * @param[in] ActivationTypeeActivationTypeeActivationTypeet
+   * @param[in] ActivationType
    */
   void setActivation(ActivationType acti_type);
 
@@ -153,8 +153,7 @@ public:
 
 private:
   std::function<Tensor &(Tensor const &, Tensor &)> _act_fn;
-  std::function<Tensor &(Tensor const &, Tensor &, Tensor const &)>
-    _act_prime_fn;
+  std::function<Tensor &(Tensor &, Tensor &, Tensor const &)> _act_prime_fn;
 
   Tensor backup_hidden;
 
@@ -170,8 +169,7 @@ private:
    */
   int setActivation(
     std::function<Tensor &(Tensor const &, Tensor &)> const &activation_fn,
-    std::function<Tensor &(Tensor const &, Tensor &)> const
-      &activation_prime_fn);
+    std::function<Tensor &(Tensor &, Tensor &)> const &activation_prime_fn);
 
   /**
    * @brief setActivation by custom activation function
@@ -185,7 +183,7 @@ private:
    */
   int setActivation(
     std::function<Tensor &(Tensor const &, Tensor &)> const &activation_fn,
-    std::function<Tensor &(Tensor const &, Tensor &, Tensor const &)> const
+    std::function<Tensor &(Tensor &, Tensor &, Tensor const &)> const
       &activation_prime_fn);
 
   /**

@@ -98,7 +98,7 @@ sharedConstTensors Layer::forwarding_with_val(sharedConstTensors input) {
   }
 
   if (num_outputs != net_hidden.size())
-    net_hidden.resize(num_outputs);
+    throw std::invalid_argument("Number of inputs mismatched");
 
   forwarding();
 
@@ -121,7 +121,7 @@ Layer::backwarding_with_val(int iteration, sharedConstTensors deriv,
   }
 
   if (num_inputs != net_input.size())
-    net_input.resize(num_inputs);
+    throw std::invalid_argument("Number of inputs mismatched");
 
   // TODO Need to fix to use LossLayer::type instead of "loss". But cyclic
   // includes!
