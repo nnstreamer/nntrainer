@@ -100,6 +100,10 @@ if get_option('enable-blas')
   endif
 endif
 
+if get_option('enable-eigen')
+  add_project_arguments('-DUSE_EIGEN=1', language:['c', 'cpp'])
+endif
+
 if get_option('enable-profile')
   add_project_arguments('-DPROFILE=1', language:['c', 'cpp'])
 endif
@@ -186,6 +190,7 @@ if get_option('enable-android')
     'NDK_OUT': jni_build_root / 'objs',
     'ENABLE_PROFILE': get_option('enable-profile') ? 1 : 0,
     'ENABLE_BLAS': get_option('enable-blas') ? 1 : 0,
+    'ENABLE_EIGEN': get_option('enable-blas') ? 1 : 0,
   }
 
   num_threads = run_command('grep', '-c', '^processor', '/proc/cpuinfo').stdout().strip()
