@@ -900,7 +900,7 @@ std::vector<unsigned int> Tensor::argmax() const {
   unsigned int batch_size = batch();
   unsigned int feature_len = dim.getFeatureLen();
 
-  result.reserve(batch_size);
+  result.resize(batch_size);
 
   for (unsigned int b = 0; b < batch_size; b++) {
     auto max_iter =
