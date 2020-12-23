@@ -134,10 +134,12 @@ public:
    *
    * @param deriv dervatives
    * @param iteration iteration
-   * @param should_verify should verify the inputs/gradients/outputs
+   * @param verify_deriv should verify the derivatives
+   * @param verify_grad should verify the derivatives
    * @return nntrainer::sharedConstTensor
    */
-  void backward(int iteration, bool should_verify = true);
+  void backward(int iteration, bool verify_derv = true,
+                bool verify_grad = true);
 
   /**
    * @brief verify weights of the current node
@@ -184,7 +186,7 @@ private:
 class GraphWatcher {
 public:
   using WatchedFlatGraph = std::vector<NodeWatcher>;
-  GraphWatcher(const std::string &config);
+  GraphWatcher(const std::string &config, const bool opt);
 
   void compareFor(const std::string &reference,
                   const nntrainer::TensorDim &label_shape,
@@ -200,6 +202,7 @@ private:
   WatchedFlatGraph nodes;
   NodeWatcher loss_node;
   float expected_loss;
+  bool optimize;
 };
 
 void NodeWatcher::read(std::ifstream &in) {
@@ -263,7 +266,7 @@ NodeWatcher::lossForward(nntrainer::sharedConstTensors pred,
   return out;
 }
 
-void NodeWatcher::backward(int iteration, bool should_verify) {
+void NodeWatcher::backward(int iteration, bool verify_deriv, bool verify_grad) {
   std::stringstream ss;
   ss << "backward failed at " << node.layer->getName() << " at iteration "
      << iteration;
@@ -271,20 +274,26 @@ void NodeWatcher::backward(int iteration, bool should_verify) {
 
   std::vector<nntrainer::Tensor> out = node.layer->getDerivatives();
 
-  verifyGrad(err_msg);
-  verifyWeight(err_msg);
+  if (verify_grad) {
+    verifyGrad(err_msg);
+  }
 
-  if (should_verify) {
+  if (verify_deriv) {
     verify(out[0], expected_dx, err_msg);
   }
+
+  verifyWeight(err_msg);
 }
 
-GraphWatcher::GraphWatcher(const std::string &config) {
+GraphWatcher::GraphWatcher(const std::string &config, const bool opt) :
+  optimize(opt) {
   nn = nntrainer::NeuralNetwork();
 
   /** Disable gradient optimization as gradient is being matched for each layer
    */
-  nn.setGradientMemoryOptimization(false);
+  nn.setGradientMemoryOptimization(optimize);
+  nn.setDerivativeMemoryOptimization(optimize);
+  nn.setInPlaceLayerOptimization(optimize);
 
   if (nn.loadFromConfig(config)) {
     throw std::invalid_argument("load from config failed!");
@@ -346,9 +355,9 @@ void GraphWatcher::compareFor(const std::string &reference,
     for (auto it = nodes.rbegin(); it != nodes.rend() - 1; it++) {
       if ((*(it + 1)).getNodeType() == nntrainer::ActivationLayer::type ||
           (*(it)).getNodeType() == nntrainer::ActivationLayer::type)
-        it->backward(iteration, false);
+        it->backward(iteration, false, !optimize);
       else
-        it->backward(iteration, true);
+        it->backward(iteration, true, !optimize);
     }
   }
 }
@@ -423,9 +432,21 @@ private:
  * @brief check given ini is failing/suceeding at load
  */
 TEST_P(nntrainerModelTest, model_test) {
-  GraphWatcher g(getIniName());
+  /** Check model with all optimizations off */
+  GraphWatcher g_unopt(getIniName(), false);
+  g_unopt.compareFor(getGoldenName(), getLabelDim(), getIteration());
 
-  g.compareFor(getGoldenName(), getLabelDim(), getIteration());
+  /// add stub test for tcm
+  EXPECT_EQ(std::get<0>(GetParam()), std::get<0>(GetParam()));
+}
+
+/**
+ * @brief check given ini is failing/suceeding at load
+ */
+TEST_P(nntrainerModelTest, model_test_optimized) {
+  /** Check model with all optimizations on */
+  GraphWatcher g_opt(getIniName(), true);
+  g_opt.compareFor(getGoldenName(), getLabelDim(), getIteration());
 
   /// add stub test for tcm
   EXPECT_EQ(std::get<0>(GetParam()), std::get<0>(GetParam()));
