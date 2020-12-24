@@ -141,20 +141,6 @@ bool Tensor::operator==(const Tensor &rhs) const {
   return true;
 }
 
-float Tensor::getValue(unsigned int batch, unsigned int c, unsigned int h,
-                       unsigned int w) const {
-  return getData()[getIndex(batch, c, h, w)];
-}
-
-void Tensor::setValue(unsigned int batch, unsigned int c, unsigned int h,
-                      unsigned int w, float value) {
-  if (!is_contiguous) {
-    throw std::runtime_error("cannot set value of non-contiguous tensor");
-  }
-
-  getData()[getIndex(batch, c, h, w)] = value;
-}
-
 template <typename T> void Tensor::setDist(T dist) {
   float *data = getData();
   unsigned int len = length();
@@ -920,7 +906,7 @@ void Tensor::setValue(float val) {
   std::fill(data, data + length(), val);
 }
 
-void Tensor::setZero() { setValue(0); }
+void Tensor::setZero() { sscal(length(), 0, getData(), 1); }
 
 std::vector<unsigned int> Tensor::argmax() const {
   const float *data = getData();

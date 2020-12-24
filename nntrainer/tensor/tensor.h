@@ -32,6 +32,12 @@
 
 #include <tensor_dim.h>
 
+#ifdef DEBUG
+#define EXCEPT_WHEN_DEBUG
+#else
+#define EXCEPT_WHEN_DEBUG noexcept
+#endif
+
 #define MAKE_SHARED_TENSOR(...) std::make_shared<nntrainer::Tensor>(__VA_ARGS__)
 
 namespace nntrainer {
@@ -188,7 +194,51 @@ public:
    * @param[in] w width location
    */
   float getValue(unsigned int batch, unsigned int c, unsigned int h,
-                 unsigned int w) const;
+                 unsigned int w) const noexcept {
+    return getData()[getIndex(batch, c, h, w)];
+  }
+
+  /**
+   * @brief Get the Value thinking that it is padded
+   * for example, for the tensor (virtually padded) below,
+   * getValue(0, 0, 2, 2, 1, 1, .0f) will return 5
+   * padding available for height and width axis for now
+   * 0 0 0 0 0
+   * 0 1 2 3 0
+   * 0 4 5 6 0
+   * 0 7 8 9 0
+   * 0 0 0 0 0
+   * @param b batch index
+   * @param c channel index
+   * @param h height index
+   * @param w width index
+   * @param ph padding height
+   * @param pw padding width
+   * @return float value
+   */
+  float getValuePadded(unsigned int b, unsigned int c, unsigned int h,
+                       unsigned int w, unsigned int ph, unsigned int pw,
+                       float pad_value = 0) const EXCEPT_WHEN_DEBUG {
+#if DEBUG
+    unsigned int padded_h = 2 * ph + h;
+    unsigned int padded_w = 2 * pw + w;
+    if (h > padded_h && w > padded_w) {
+      throw std::out_of_range(
+        "[Tensor::getValuePadded] trying to access out of range");
+    }
+#endif
+
+    auto in_range = [](unsigned int virtual_pos, unsigned int pad,
+                       unsigned int actual_len) -> bool {
+      return pad <= virtual_pos && virtual_pos < (pad + actual_len);
+    };
+
+    if (in_range(h, ph, height()) && in_range(w, pw, width())) {
+      return getValue(b, c, h - ph, w - pw);
+    }
+
+    return pad_value;
+  }
 
   /**
    * @brief     Multiply value element by element immediately
@@ -526,12 +576,14 @@ public:
    * @brief     Set the element value
    * @param[in] batch batch location
    * @param[in] c channel location
-   * @param[in] i height location
-   * @param[in] j width location
+   * @param[in] h height location
+   * @param[in] w width location
    * @param[in] value value to be stored
    */
-  void setValue(unsigned int batch, unsigned int c, unsigned int i,
-                unsigned int j, float value);
+  void setValue(unsigned int batch, unsigned int c, unsigned int h,
+                unsigned int w, float value) noexcept {
+    data.get()[getIndex(batch, c, h, w)] = value;
+  }
 
   /**
    * @brief     Fill the Tensor elements with value
@@ -700,7 +752,7 @@ private:
    * @brief Get linear index given the n-d index
    */
   inline unsigned int getIndex(unsigned int b, unsigned int c, unsigned int h,
-                               unsigned int w) const {
+                               unsigned int w) const noexcept {
     return (b * strides[0] + c * strides[1] + h * strides[2] + w * strides[3]);
   }
 
@@ -765,7 +817,7 @@ private:
   template <typename T> void setDist(T dist);
 
   void copy(const float *buf);
-};
+}; // namespace nntrainer
 
 /**
  * @brief   Overriding output stream
