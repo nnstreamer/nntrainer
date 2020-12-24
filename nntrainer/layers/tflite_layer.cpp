@@ -96,14 +96,14 @@ void TfLiteLayer::setProperty(const PropertyType type,
   }
 }
 
-void TfLiteLayer::forwarding(sharedConstTensors in) {
+void TfLiteLayer::forwarding() {
 #ifdef DEBUG
   std::vector<TensorDim> dims;
-  if (in.size() != input_dim.size())
+  if (net_input.size() != input_dim.size())
     throw std::invalid_argument("Provided number of input dimensions mismatch");
 
   for (int idx = 0; idx < dims.size(); idx++) {
-    if (in[idx].getDim() != input_dim[idx])
+    if (net_input[idx]->getDim() != input_dim[idx])
       throw std::invalid_argument("Input dimensions mismatch");
   }
 #endif
@@ -111,8 +111,9 @@ void TfLiteLayer::forwarding(sharedConstTensors in) {
   sharedConstTensors out;
 
   auto in_indices = interpreter->inputs();
-  for (size_t idx = 0; idx < in.size(); idx++)
-    interpreter->tensor(in_indices[idx])->data.raw = (char *)in[idx]->getData();
+  for (size_t idx = 0; idx < net_input.size(); idx++)
+    interpreter->tensor(in_indices[idx])->data.raw =
+      (char *)net_input[idx]->getVariableRef().getData();
 
   auto out_indices = interpreter->outputs();
   out.resize(out_indices.size());
@@ -136,7 +137,7 @@ void TfLiteLayer::copy(std::shared_ptr<Layer> l) {
   this->modelfile = from->modelfile;
 }
 
-void TfLiteLayer::calcDerivative(sharedConstTensors derivative) {
+void TfLiteLayer::calcDerivative() {
   throw exception::not_supported(
     "calcDerivative is not supported for tflite layer");
 }

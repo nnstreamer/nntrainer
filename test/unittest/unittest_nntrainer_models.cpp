@@ -261,7 +261,7 @@ NodeWatcher::lossForward(nntrainer::sharedConstTensors pred,
 
   nntrainer::sharedConstTensors out =
     std::static_pointer_cast<nntrainer::LossLayer>(node.layer)
-      ->forwarding(pred, answer);
+      ->forwarding_with_val(pred, answer);
 
   return out;
 }

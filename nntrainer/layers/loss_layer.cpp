@@ -42,44 +42,52 @@ int LossLayer::initialize(Manager &manager) {
   return status;
 }
 
-sharedConstTensors LossLayer::forwarding(sharedConstTensors in,
-                                         sharedConstTensors label) {
-  net_input[0]->getVariableRef() = *in[0];
+void LossLayer::forwarding() {
   Tensor &hidden_ = net_hidden[0]->getVariableRef();
-
-  Tensor y2 = *label[0];
   Tensor y = net_input[0]->getVariableRef();
   Tensor l;
+  bool label_exist = true;
+
+  if (net_input.empty())
+    label_exist = false;
 
   switch (loss_type) {
   case LossType::LOSS_MSE: {
     // y2 <- y2 - y;
     hidden_ = y;
-    Tensor residual = y2.subtract(y);
-    l = residual.chain().multiply_i(residual).average().run();
+    if (label_exist) {
+      Tensor &y2 = net_hidden[0]->getGradientRef();
+      Tensor residual = y2.subtract(y);
+      l = residual.chain().multiply_i(residual).average().run();
+    }
   } break;
   case LossType::LOSS_ENTROPY_SIGMOID: {
-    // @todo: change this to apply_i
-    // @note: the output should be logit before applying sigmoid
-    // log(1 + exp(-abs(y))) + max(y, 0)
-    Tensor mid_term = y.apply(static_cast<float (*)(float)>(&std::fabs))
-                        .multiply(-1.0)
-                        .apply(static_cast<float (*)(float)>(&std::exp))
-                        .add(1.0)
-                        .apply(logFloat);
-    mid_term = mid_term.add(y.apply(ActivationLayer::relu));
-
-    // y * y2
-    Tensor end_term = y2.chain().multiply_i(y).run();
-
-    // loss = log(1 + exp(-abs(y))) + max(y, 0) - (y * y2)
-    l = mid_term.subtract(end_term).average();
     hidden_ = y.apply(ActivationLayer::sigmoid, hidden_);
+    if (label_exist) {
+      Tensor &y2 = net_hidden[0]->getGradientRef();
+      // @todo: change this to apply_i
+      // @note: the output should be logit before applying sigmoid
+      // log(1 + exp(-abs(y))) + max(y, 0)
+      Tensor mid_term = y.apply(static_cast<float (*)(float)>(&std::fabs))
+                          .multiply(-1.0)
+                          .apply(static_cast<float (*)(float)>(&std::exp))
+                          .add(1.0)
+                          .apply(logFloat);
+      mid_term = mid_term.add(y.apply(ActivationLayer::relu));
+
+      // y * y2
+      Tensor end_term = y2.chain().multiply_i(y).run();
+
+      // loss = log(1 + exp(-abs(y))) + max(y, 0) - (y * y2)
+      l = mid_term.subtract(end_term).average();
+    }
   } break;
   case LossType::LOSS_ENTROPY_SOFTMAX: {
     hidden_ = y.apply(ActivationLayer::softmax, hidden_);
-    l = y2.multiply(hidden_.apply(logFloat)).sum_by_batch().multiply(-1);
-
+    if (label_exist) {
+      Tensor &y2 = net_hidden[0]->getGradientRef();
+      l = y2.multiply(hidden_.apply(logFloat)).sum_by_batch().multiply(-1);
+    }
   } break;
   case LossType::LOSS_ENTROPY: {
     throw std::runtime_error(
@@ -90,32 +98,8 @@ sharedConstTensors LossLayer::forwarding(sharedConstTensors in,
   default: { throw std::runtime_error("Error: Unknown loss_type."); }
   }
 
-  updateLoss(l);
-
-  return {MAKE_SHARED_TENSOR(net_hidden[0]->getVariable())};
-}
-
-void LossLayer::forwarding(sharedConstTensors in) {
-  switch (loss_type) {
-  case LossType::LOSS_MSE:
-    net_hidden[0]->getVariableRef() = net_input[0]->getVariableRef();
-    break;
-  case LossType::LOSS_ENTROPY_SIGMOID:
-    net_hidden[0]->getVariableRef() = net_input[0]->getVariableRef().apply(
-      ActivationLayer::sigmoid, net_hidden[0]->getVariableRef());
-    break;
-  case LossType::LOSS_ENTROPY_SOFTMAX:
-    net_hidden[0]->getVariableRef() = net_input[0]->getVariableRef().apply(
-      ActivationLayer::softmax, net_hidden[0]->getVariableRef());
-    break;
-  case LossType::LOSS_ENTROPY:
-    throw std::runtime_error(
-      "Error: Cross Entropy not supported without softmax or sigmoid.");
-  case LossType::LOSS_UNKNOWN:
-    /** intended */
-  default:
-    throw std::runtime_error("Error: Unknown loss_type.");
-  }
+  if (label_exist)
+    updateLoss(l);
 }
 
 void LossLayer::updateLoss(const Tensor &l) {
@@ -135,9 +119,9 @@ void LossLayer::copy(std::shared_ptr<Layer> l) {
   this->loss_type = from->loss_type;
 }
 
-void LossLayer::calcDerivative(sharedConstTensors derivative) {
+void LossLayer::calcDerivative() {
   Tensor &ret_derivative = net_input[0]->getGradientRef();
-  Tensor y2 = *derivative[0];
+  Tensor &y2 = net_hidden[0]->getGradientRef();
   Tensor &y = net_input[0]->getVariableRef();
   Tensor ret;
 

@@ -286,8 +286,8 @@ int getBatch_train_file(float **outVec, float **outLabel, bool *last,
   unsigned int count = 0;
   int data_size = num_train;
 
-  std::string filename = "vgg_trainingSet.dat";
-  std::ifstream F(filename, std::ios::in | std::ios::binary);
+  // std::string filename = "vgg_trainingSet.dat";
+  // std::ifstream F(filename, std::ios::in | std::ios::binary);
 
   if (data_size * num_class - train_count < batch_size) {
     *last = true;
@@ -300,10 +300,10 @@ int getBatch_train_file(float **outVec, float **outLabel, bool *last,
     std::vector<float> o;
     std::vector<float> l;
 
-    o.resize(feature_size);
-    l.resize(num_class);
+    o.resize(feature_size, 0);
+    l.resize(num_class, 0);
 
-    getData(F, o, l, i);
+    // getData(F, o, l, i);
 
     for (unsigned int j = 0; j < feature_size; ++j)
       outVec[0][count * feature_size + j] = o[j];
@@ -312,7 +312,7 @@ int getBatch_train_file(float **outVec, float **outLabel, bool *last,
     count++;
   }
 
-  F.close();
+  // F.close();
   *last = false;
   train_count += batch_size;
   return ML_ERROR_NONE;
@@ -334,8 +334,8 @@ int getBatch_val_file(float **outVec, float **outLabel, bool *last,
   unsigned int count = 0;
   int data_size = num_val;
 
-  std::string filename = "vgg_valSet.dat";
-  std::ifstream F(filename, std::ios::in | std::ios::binary);
+  // std::string filename = "vgg_valSet.dat";
+  // std::ifstream F(filename, std::ios::in | std::ios::binary);
 
   if (data_size * num_class - val_count < batch_size) {
     *last = true;
@@ -351,7 +351,7 @@ int getBatch_val_file(float **outVec, float **outLabel, bool *last,
     o.resize(feature_size);
     l.resize(num_class);
 
-    getData(F, o, l, i);
+    // getData(F, o, l, i);
 
     for (unsigned int j = 0; j < feature_size; ++j)
       outVec[0][count * feature_size + j] = o[j];
@@ -360,7 +360,7 @@ int getBatch_val_file(float **outVec, float **outLabel, bool *last,
     count++;
   }
 
-  F.close();
+  // F.close();
   *last = false;
   val_count += batch_size;
   return ML_ERROR_NONE;

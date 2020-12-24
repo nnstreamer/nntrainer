@@ -100,7 +100,7 @@ int PowLayer::initialize(nntrainer::Manager &manager) {
   return 0;
 }
 
-void PowLayer::forwarding(nntrainer::sharedConstTensors in) {
+void PowLayer::forwarding() {
 #ifdef DEBUG
   /// intended here to demonstrate that PowLayer::forwarding is being called
   std::cout << "pow layer forward is called\n";
@@ -117,7 +117,7 @@ void PowLayer::forwarding(nntrainer::sharedConstTensors in) {
 #endif
 }
 
-void PowLayer::calcDerivative(nntrainer::sharedConstTensors in) {
+void PowLayer::calcDerivative() {
 /// intended here to demonstrate that PowLayer::backwarding is being called
 #ifdef DEBUG
   std::cout << "pow layer backward is called\n";

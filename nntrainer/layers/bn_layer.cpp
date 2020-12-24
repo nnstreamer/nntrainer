@@ -125,7 +125,7 @@ void BatchNormalizationLayer::setProperty(const PropertyType type,
   }
 }
 
-void BatchNormalizationLayer::forwarding(sharedConstTensors in) {
+void BatchNormalizationLayer::forwarding() {
   Tensor &mu = weightAt(BNParams::mu).getVariableRef();
   Tensor &var = weightAt(BNParams::var).getVariableRef();
   Tensor &gamma = weightAt(BNParams::gamma).getVariableRef();
@@ -159,7 +159,7 @@ void BatchNormalizationLayer::forwarding(sharedConstTensors in) {
   hidden_.add_i(beta);
 }
 
-void BatchNormalizationLayer::calcDerivative(sharedConstTensors derivative) {
+void BatchNormalizationLayer::calcDerivative() {
 
   Tensor &gamma = weightAt(BNParams::gamma).getVariableRef();
   Tensor &deriv = net_hidden[0]->getGradientRef();
@@ -180,7 +180,7 @@ void BatchNormalizationLayer::calcDerivative(sharedConstTensors derivative) {
   dx.divide_i(N);
 }
 
-void BatchNormalizationLayer::calcGradient(sharedConstTensors derivative) {
+void BatchNormalizationLayer::calcGradient() {
 
   Tensor &dgamma = weightAt(BNParams::gamma).getGradientRef();
   Tensor &dbeta = weightAt(BNParams::beta).getGradientRef();

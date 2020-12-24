@@ -165,9 +165,9 @@ void NNStreamerLayer::setProperty(const PropertyType type,
   }
 }
 
-void NNStreamerLayer::forwarding(sharedConstTensors in) {
+void NNStreamerLayer::forwarding() {
   size_t data_size;
-  Tensor input = *in[0];
+  Tensor &input = net_input[0]->getVariableRef();
   Tensor &hidden_ = net_hidden[0]->getVariableRef();
 
   std::copy(input.getData(), input.getData() + input.length(),
@@ -203,7 +203,7 @@ void NNStreamerLayer::copy(std::shared_ptr<Layer> l) {
   this->modelfile = from->modelfile;
 }
 
-void NNStreamerLayer::calcDerivative(sharedConstTensors derivative) {
+void NNStreamerLayer::calcDerivative() {
   throw exception::not_supported(
     "calcDerivative is not supported for nnstreamer layer");
 }

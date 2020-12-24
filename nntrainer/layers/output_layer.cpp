@@ -43,14 +43,14 @@ int OutputLayer::initialize(Manager &manager) {
   return status;
 }
 
-void OutputLayer::forwarding(sharedConstTensors in) {
+void OutputLayer::forwarding() {
   Tensor &input_ = net_input[0]->getVariableRef();
   for (unsigned int idx = 0; idx < num_outputs; ++idx) {
     net_hidden[idx]->getVariableRef() = input_;
   }
 }
 
-void OutputLayer::calcDerivative(sharedConstTensors derivative) {
+void OutputLayer::calcDerivative() {
 
   Tensor &ret = net_input[0]->getGradientRef();
 

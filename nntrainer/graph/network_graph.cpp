@@ -508,28 +508,16 @@ void NetworkGraph::setBatchSize(unsigned int batch_size) {
   }
 }
 
-sharedConstTensors NetworkGraph::forwarding(sharedConstTensors input) {
-  for (unsigned int i = 0; i < Sorted.size() - 1; ++i) {
-    LayerNode &layer_node = Sorted[i];
-    // TODO : Need to fix. Input Layer is not the only one which can take input.
-    if (istrequal(layer_node.layer->getType(), InputLayer::type)) {
-      START_PROFILE(layer_node.event_key);
-      layer_node.layer->forwarding(input);
-      END_PROFILE(layer_node.event_key);
-    } else {
-      START_PROFILE(layer_node.event_key);
-      layer_node.layer->forwarding();
-      END_PROFILE(layer_node.event_key);
-    }
+sharedConstTensors NetworkGraph::forwarding() {
+  for (auto const &ln : Sorted) {
+    START_PROFILE(ln.event_key);
+    ln.layer->forwarding();
+    END_PROFILE(ln.event_key);
   }
 
   std::vector<sharedConstTensor> out;
-
-  for (unsigned int i = 0; i < Sorted[Sorted.size() - 2].layer->num_outputs;
-       ++i) {
-    out.push_back(MAKE_SHARED_TENSOR(
-      Sorted[Sorted.size() - 2].layer->net_hidden[i]->getVariable()));
-  }
+  for (auto const &nh : Sorted.back().layer->net_hidden)
+    out.push_back(MAKE_SHARED_TENSOR(nh->getVariable()));
 
   return out;
 }
@@ -548,7 +536,7 @@ void NetworkGraph::inPlaceOptimize(const std::string &layer_type,
     auto &l = layer_node.layer;
     if (l->getType() == layer_type &&
         l->getActivationType() != ActivationType::ACT_SOFTMAX) {
-      /** @note assumes BatchNormalizationLayer is only for single in/out tensor
+      /** @note assumes layer to be optimized is only for single in/out tensor
        */
       if (l->input_layers.size() != 1)
         throw std::runtime_error("Internal error in the formed graph");
@@ -564,6 +552,9 @@ void NetworkGraph::inPlaceOptimize(const std::string &layer_type,
       if (loc == prev_layer->output_layers.size())
         throw std::runtime_error("Internal error in the formed graph.");
 
+      if (prev_layer->getType() == InputLayer::type ||
+          prev_layer->getType() == ActivationLayer::type)
+        continue;
       /** Share tensor with next layer */
       prev_layer->net_hidden[loc] = l->net_hidden[0];
       l->net_input[0] = l->net_hidden[0];

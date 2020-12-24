@@ -62,14 +62,14 @@ public:
   void save(std::ofstream &file){/* noop */};
 
   /**
-   * @copydoc Layer::forwarding(sharedConstTensors in)
+   * @copydoc Layer::forwarding()
    */
-  void forwarding(sharedConstTensors in);
+  void forwarding();
 
   /**
-   * @copydoc Layer::calcDerivative(sharedConstTensors in)
+   * @copydoc Layer::calcDerivative()
    */
-  void calcDerivative(sharedConstTensors in);
+  void calcDerivative();
 
   /**
    * @brief setActivation by preset ActivationType

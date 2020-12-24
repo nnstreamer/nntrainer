@@ -91,14 +91,21 @@ void Layer::copy(std::shared_ptr<Layer> l) {
   this->num_outputs = l->num_outputs;
 }
 
-sharedConstTensors Layer::forwarding_with_val(sharedConstTensors input) {
+sharedConstTensors Layer::forwarding_with_val(sharedConstTensors input,
+                                              sharedConstTensors label) {
+
+  if (net_input.size() != input.size())
+    throw std::invalid_argument("Number of inputs mismatched");
 
   for (unsigned int i = 0; i < num_inputs; ++i) {
     net_input[i]->getVariableRef() = input[i]->clone();
   }
 
-  if (num_outputs != net_hidden.size())
-    throw std::invalid_argument("Number of inputs mismatched");
+  if (!label.empty()) {
+    for (unsigned int i = 0; i < num_outputs; ++i) {
+      net_hidden[i]->getGradientRef() = label[i]->clone();
+    }
+  }
 
   forwarding();
 
@@ -111,27 +118,14 @@ sharedConstTensors Layer::forwarding_with_val(sharedConstTensors input) {
   return out;
 }
 
-sharedConstTensors
-Layer::backwarding_with_val(int iteration, sharedConstTensors deriv,
-                            sharedConstTensors in,
-                            std::shared_ptr<Optimizer> optimizer) {
+sharedConstTensors Layer::backwarding_with_val(sharedConstTensors label) {
 
   for (unsigned int i = 0; i < num_outputs; ++i) {
-    net_hidden[i]->getGradientRef() = deriv[i]->clone();
+    net_hidden[i]->getGradientRef() = label[i]->clone();
   }
 
-  if (num_inputs != net_input.size())
-    throw std::invalid_argument("Number of inputs mismatched");
+  backwarding();
 
-  // TODO Need to fix to use LossLayer::type instead of "loss". But cyclic
-  // includes!
-  if (istrequal(getType(), "loss")) {
-    backwarding(in);
-  } else {
-    backwarding(deriv);
-  }
-
-  applyGradient(iteration, optimizer);
   nntrainer::sharedConstTensors out;
 
   for (unsigned int i = 0; i < num_inputs; ++i) {
