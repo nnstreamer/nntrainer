@@ -41,13 +41,13 @@ int FlattenLayer::initialize(Manager &manager) {
   return status;
 }
 
-void FlattenLayer::forwarding(sharedConstTensors in) {
+void FlattenLayer::forwarding() {
   Tensor temp = net_input[0]->getVariableRef();
   temp.reshape(net_hidden[0]->getDim());
   net_hidden[0]->getVariableRef() = temp;
 }
 
-void FlattenLayer::calcDerivative(sharedConstTensors in) {
+void FlattenLayer::calcDerivative() {
   Tensor temp = net_hidden[0]->getGradientRef();
   temp.reshape(net_input[0]->getDim());
   net_input[0]->getGradientRef() = temp;

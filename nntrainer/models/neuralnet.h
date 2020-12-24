@@ -186,7 +186,12 @@ public:
    * @param[in] input List of Input Tensors taken by the neural network
    * @retval    List of Output Tensors
    */
-  sharedConstTensors forwarding(sharedConstTensors input);
+  // sharedConstTensors forwarding(sharedConstTensors input);
+
+  /**
+   * @brief     Forward Propagation of the neural network
+   */
+  sharedConstTensors forwarding();
 
   /**
    * @brief     Forward Propagation of the neural network
@@ -195,15 +200,20 @@ public:
    * @retval    List of Output Tensors
    */
   sharedConstTensors forwarding(sharedConstTensors input,
-                                sharedConstTensors label);
+                                sharedConstTensors label = {});
 
   /**
    * @brief     Backward Propagation of the neural network
-   * @param[in] input List of Input Tensors taken by the neural network
    * @param[in] label List of Label Tensors for the model
    * @param[in] iteration Iteration Number for the optimizer
    */
   void backwarding(sharedConstTensors label, int iteration);
+
+  /**
+   * @brief     Backward Propagation of the neural network
+   * @param[in] iteration Iteration Number for the optimizer
+   */
+  void backwarding(int iteration);
 
   /**
    * @brief     save model and training parameters into file

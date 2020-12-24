@@ -138,7 +138,8 @@ public:
    * @param verify_grad should verify the derivatives
    * @return nntrainer::sharedConstTensor
    */
-  void backward(int iteration, bool verify_derv = true, bool verify_grad = true);
+  void backward(int iteration, bool verify_derv = true,
+                bool verify_grad = true);
 
   /**
    * @brief verify weights of the current node
@@ -260,7 +261,7 @@ NodeWatcher::lossForward(nntrainer::sharedConstTensors pred,
 
   nntrainer::sharedConstTensors out =
     std::static_pointer_cast<nntrainer::LossLayer>(node.layer)
-      ->forwarding(pred, answer);
+      ->forwarding_with_val(pred, answer);
 
   return out;
 }
@@ -285,7 +286,7 @@ void NodeWatcher::backward(int iteration, bool verify_deriv, bool verify_grad) {
 }
 
 GraphWatcher::GraphWatcher(const std::string &config, const bool opt) :
-optimize(opt) {
+  optimize(opt) {
   nn = nntrainer::NeuralNetwork();
 
   /** Disable gradient optimization as gradient is being matched for each layer

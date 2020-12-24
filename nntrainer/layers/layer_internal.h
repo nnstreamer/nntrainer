@@ -103,26 +103,32 @@ public:
    * @param[in] in List of Input Tensors taken by this layer
    * @retval    List of Output Tensors
    */
-  virtual void forwarding(sharedConstTensors in = {}) = 0;
+  virtual void forwarding() = 0;
 
-  virtual sharedConstTensors forwarding_with_val(sharedConstTensors input);
+  /**
+   * @brief     Forward Propagation of a layer
+   * @param[in] input List of Input Tensors taken by this layer
+   * @param[in] label List of Label Tensors taken by this layer
+   * @retval    List of Output Tensors
+   */
+  virtual sharedConstTensors forwarding_with_val(sharedConstTensors input,
+                                                 sharedConstTensors label = {});
 
   /**
    * @brief     calc the derivative to be passed to the previous layer
-   * @param[in] in List of Derivative Tensor from the next layer
    * @retval    Derivative List of Tensor for the previous layer
    */
-  virtual void calcDerivative(sharedConstTensors in = {}) = 0;
+  virtual void calcDerivative() = 0;
 
   /**
    * @brief     Calculate the derivative of a layer
-   * @param[in] in List of Derivative Tensor from the next layer
    */
-  virtual void calcGradient(sharedConstTensors in = {}){};
+  virtual void calcGradient(){};
 
   /**
    * @brief     Apply the gradient for the layer
    * @param[in] iteration Iteration value for the Optimizer
+   * @param[in] optimizer Optimizer to apply the gradient
    * @note      This function is no-op if optimizer is nullptr
    */
   virtual void applyGradient(unsigned int iteration,
@@ -133,18 +139,32 @@ public:
 
   /**
    * @brief     Back Propagate the derivative to the previous layer
-   * @param[in] in List of Derivative Tensor from the next layer
    * @retval    Derivative List of Tensor for the previous layer
    */
-  virtual void backwarding(sharedConstTensors in = {}) {
-    calcGradient(in);
-    calcDerivative(in);
+  virtual void backwarding() {
+    calcGradient();
+    calcDerivative();
   }
 
+  /**
+   * @brief     Backward to calculate the gradient for the layer and apply it
+   * @param[in] iteration Iteration value for the Optimizer
+   * @param[in] deriv Derivative for the layer
+   * @param[in] optimizer Optimizer to apply the gradient
+   */
   virtual sharedConstTensors
   backwarding_with_val(int iteration, sharedConstTensors deriv,
-                       sharedConstTensors in = {},
-                       std::shared_ptr<Optimizer> optimizer = nullptr);
+                       std::shared_ptr<Optimizer> optimizer = nullptr) {
+    auto ret = backwarding_with_val(deriv);
+    applyGradient(iteration, optimizer);
+    return ret;
+  };
+
+  /**
+   * @brief     Backward to calculate the gradient for the layer
+   * @param[in] deriv Derivative for the layer
+   */
+  virtual sharedConstTensors backwarding_with_val(sharedConstTensors deriv);
 
   /**
    * @brief     read layer Weight & Bias data from file

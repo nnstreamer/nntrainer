@@ -279,9 +279,9 @@ NeuralNetwork::~NeuralNetwork() {
 /**
  * @brief     forward propagation using layers object which has layer
  */
-sharedConstTensors NeuralNetwork::forwarding(sharedConstTensors input) {
-  sharedConstTensors X = model_graph.forwarding(input);
-  return X;
+sharedConstTensors NeuralNetwork::forwarding() {
+  return model_graph.forwarding();
+  // model_graph.Sorted.back().layer->forwarding();
 }
 
 /**
@@ -289,14 +289,21 @@ sharedConstTensors NeuralNetwork::forwarding(sharedConstTensors input) {
  */
 sharedConstTensors NeuralNetwork::forwarding(sharedConstTensors input,
                                              sharedConstTensors label) {
-  sharedConstTensors X;
   if (input[0]->getDim().batch() > batch_size)
     throw std::logic_error("Error: mismatch in batchsize for data and model.");
-  X = forwarding(input);
-  X = std::static_pointer_cast<LossLayer>(model_graph.Sorted.back().layer)
-        ->forwarding(X, label);
 
-  return X;
+  auto &first_layer = model_graph.getSortedLayerNode(0).layer;
+  auto &last_layer =
+    model_graph.getSortedLayerNode(model_graph.getSorted().size() - 1).layer;
+
+  if (label.empty())
+    last_layer->net_hidden.clear();
+  else
+    last_layer->net_hidden[0]->getGradientRef() = *label[0].get();
+
+  first_layer->net_input[0]->getVariableRef() = *input[0].get();
+
+  return forwarding();
 }
 
 /**
@@ -304,8 +311,7 @@ sharedConstTensors NeuralNetwork::forwarding(sharedConstTensors input,
  *            Call backwarding function of layer in reverse order
  *            No need to call at first Input Layer (No data to be updated)
  */
-void NeuralNetwork::backwarding(sharedConstTensors label, int iteration) {
-
+void NeuralNetwork::backwarding(int iteration) {
   /**
    * last layer backwarding is run out of this loop
    */
@@ -313,11 +319,7 @@ void NeuralNetwork::backwarding(sharedConstTensors label, int iteration) {
   auto iter_end = model_graph.getBackwardingEndIter();
   for (auto iter = iter_begin; iter != iter_end - 1; iter++) {
     auto layer = iter->layer;
-    if (istrequal(layer->getType(), nntrainer::LossLayer::type)) {
-      layer->backwarding(label);
-    } else {
-      layer->backwarding();
-    }
+    layer->backwarding();
     opt->apply_gradients(layer->getWeightsRef(), iteration);
   }
 
@@ -329,11 +331,24 @@ void NeuralNetwork::backwarding(sharedConstTensors label, int iteration) {
    * 2. calcDerivative
    * 3. applyGradient
    */
-  last_layer->calcGradient(label);
+  last_layer->calcGradient();
 #ifdef ENABLE_TEST
-  last_layer->calcDerivative(label);
+  last_layer->calcDerivative();
 #endif
   opt->apply_gradients(last_layer->getWeightsRef(), iteration);
+}
+
+/**
+ * @brief     back propagation
+ *            Call backwarding function of layer in reverse order
+ *            No need to call at first Input Layer (No data to be updated)
+ */
+void NeuralNetwork::backwarding(sharedConstTensors label, int iteration) {
+  auto &loss_layer =
+    model_graph.getSortedLayerNode(model_graph.getSorted().size() - 1).layer;
+  loss_layer->net_hidden[0]->getGradientRef() = *label[0].get();
+
+  backwarding(iteration);
 }
 
 float NeuralNetwork::getLoss() {
@@ -501,8 +516,13 @@ int NeuralNetwork::train_run() {
     iter = 0;
   }
 
-  sharedTensor in = MAKE_SHARED_TENSOR(getInputDimension()[0]);
-  sharedTensor label = MAKE_SHARED_TENSOR(getOutputDimension()[0]);
+  auto &first_layer = model_graph.getSortedLayerNode(0).layer;
+  auto &last_layer =
+    model_graph.getSortedLayerNode(model_graph.getSorted().size() - 1).layer;
+
+  auto &output = last_layer->net_hidden[0]->getVariableRef();
+  auto &label = last_layer->net_hidden[0]->getGradientRef();
+  auto &in = first_layer->net_input[0]->getVariableRef();
 
   for (epoch_idx = epoch_idx + 1; epoch_idx <= epochs; ++epoch_idx) {
     training.loss = 0.0f;
@@ -524,10 +544,10 @@ int NeuralNetwork::train_run() {
 
     while (true) {
       if (data_buffer->getDataFromBuffer(nntrainer::BufferType::BUF_TRAIN,
-                                         in->getData(), label->getData())) {
+                                         in.getData(), label.getData())) {
         try {
-          forwarding({in}, {label});
-          backwarding({label}, iter++);
+          forwarding();
+          backwarding(iter++);
         } catch (...) {
           data_buffer->clear(nntrainer::BufferType::BUF_TRAIN);
           ml_loge("Error: training error in #%d/%d.", epoch_idx, epochs);
@@ -565,10 +585,10 @@ int NeuralNetwork::train_run() {
 
       while (true) {
         if (data_buffer->getDataFromBuffer(nntrainer::BufferType::BUF_VAL,
-                                           in->getData(), label->getData())) {
-          sharedConstTensors Y = forwarding({in}, {label});
-          auto model_out = Y[0]->argmax();
-          auto label_out = label->argmax();
+                                           in.getData(), label.getData())) {
+          forwarding();
+          auto model_out = output.argmax();
+          auto label_out = label.argmax();
           for (unsigned int b = 0; b < batch_size; b++) {
             if (model_out[b] == label_out[b])
               right++;

@@ -71,7 +71,7 @@ int Conv2DLayer::initialize(Manager &manager) {
   return status;
 }
 
-void Conv2DLayer::forwarding(sharedConstTensors in) {
+void Conv2DLayer::forwarding() {
   int status = ML_ERROR_NONE;
 
   if (num_inputs != 1)
@@ -159,7 +159,7 @@ void Conv2DLayer::forwarding(sharedConstTensors in) {
   }
 }
 
-void Conv2DLayer::calcDerivative(sharedConstTensors derivatives) {
+void Conv2DLayer::calcDerivative() {
 
   int status = ML_ERROR_NONE;
   TensorDim &in_dim = input_dim[0];
@@ -268,7 +268,7 @@ void Conv2DLayer::calcDerivative(sharedConstTensors derivatives) {
   }
 }
 
-void Conv2DLayer::calcGradient(sharedConstTensors derivatives) {
+void Conv2DLayer::calcGradient() {
   TensorDim &in_dim = input_dim[0];
 
   Tensor &filter_kernel = weightAt(ConvParams::weight).getVariableRef();

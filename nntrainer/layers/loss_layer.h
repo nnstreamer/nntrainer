@@ -53,23 +53,14 @@ public:
   ~LossLayer(){};
 
   /**
-   * @copydoc Layer::forwarding(sharedConstTensors in)
+   * @copydoc Layer::forwarding()
    */
-  void forwarding(sharedConstTensors in = {});
+  void forwarding();
 
   /**
-   * @brief     Forward Propagation of a layer
-   * @param[in] in List of Input Tensors taken by this layer
-   * @param[in] label List of Label Tensors for the model
-   * @retval    List of Input Tensors as it is.
+   * @copydoc Layer::calcDerivative()
    */
-  sharedConstTensors forwarding(sharedConstTensors in,
-                                sharedConstTensors label);
-
-  /**
-   * @copydoc Layer::calcDerivative(sharedConstTensors in)
-   */
-  void calcDerivative(sharedConstTensors in);
+  void calcDerivative();
 
   /**
    * @brief     read layer Weight & Bias data from file

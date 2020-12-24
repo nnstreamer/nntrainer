@@ -82,7 +82,7 @@ void FullyConnectedLayer::setProperty(const PropertyType type,
   }
 }
 
-void FullyConnectedLayer::forwarding(sharedConstTensors in) {
+void FullyConnectedLayer::forwarding() {
   Tensor &weight =
     weightAt(static_cast<int>(FCParams::weight)).getVariableRef();
   Tensor &bias = weightAt(static_cast<int>(FCParams::bias)).getVariableRef();
@@ -105,7 +105,7 @@ void FullyConnectedLayer::copy(std::shared_ptr<Layer> l) {
   this->unit = from->unit;
 }
 
-void FullyConnectedLayer::calcDerivative(sharedConstTensors derivative) {
+void FullyConnectedLayer::calcDerivative() {
   unsigned int weight_idx = static_cast<int>(FCParams::weight);
   Tensor &weight = weightAt(weight_idx).getVariableRef();
   Tensor &derivative_ = net_hidden[0]->getGradientRef();
@@ -114,7 +114,7 @@ void FullyConnectedLayer::calcDerivative(sharedConstTensors derivative) {
   ret_ = derivative_.dot(weight, ret_, false, true);
 }
 
-void FullyConnectedLayer::calcGradient(sharedConstTensors derivative) {
+void FullyConnectedLayer::calcGradient() {
   unsigned int weight_idx = static_cast<int>(FCParams::weight);
   unsigned int bias_idx = static_cast<int>(FCParams::bias);
   Tensor &weight = weightAt(weight_idx).getVariableRef();

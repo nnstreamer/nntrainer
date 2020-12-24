@@ -51,7 +51,7 @@ int ConcatLayer::initialize(Manager &manager) {
   return status;
 }
 
-void ConcatLayer::forwarding(sharedConstTensors in) {
+void ConcatLayer::forwarding() {
   Tensor &hidden_ = net_hidden[0]->getVariableRef();
 
 #ifdef DEBUG
@@ -89,7 +89,7 @@ void ConcatLayer::forwarding(sharedConstTensors in) {
   }
 }
 
-void ConcatLayer::calcDerivative(sharedConstTensors derivative) {
+void ConcatLayer::calcDerivative() {
   TensorDim d = net_hidden[0]->getDim();
 
   unsigned int position = 0;

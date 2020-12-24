@@ -41,7 +41,7 @@ int AdditionLayer::initialize(Manager &manager) {
   return status;
 }
 
-void AdditionLayer::forwarding(sharedConstTensors in) {
+void AdditionLayer::forwarding() {
   Tensor &hidden_ = net_hidden[0]->getVariableRef();
   TensorDim &in_dim = input_dim[0];
 
@@ -53,7 +53,7 @@ void AdditionLayer::forwarding(sharedConstTensors in) {
   }
 }
 
-void AdditionLayer::calcDerivative(sharedConstTensors derivative) {
+void AdditionLayer::calcDerivative() {
 
   for (unsigned int i = 0; i < num_inputs; ++i) {
     net_input[i]->getGradientRef() = net_hidden[0]->getGradientRef();
