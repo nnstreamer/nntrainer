@@ -216,9 +216,9 @@ public:
    * @param pw padding width
    * @return float value
    */
-  float getValuePadded(unsigned int b, unsigned int c, unsigned int h,
-                       unsigned int w, unsigned int ph, unsigned int pw,
-                       float pad_value = 0) const EXCEPT_WHEN_DEBUG {
+  float getValuePaddedVirtual(unsigned int b, unsigned int c, unsigned int h,
+                              unsigned int w, unsigned int ph, unsigned int pw,
+                              float pad_value = 0) const EXCEPT_WHEN_DEBUG {
 #if DEBUG
     unsigned int padded_h = 2 * ph + h;
     unsigned int padded_w = 2 * pw + w;

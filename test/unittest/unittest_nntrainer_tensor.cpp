@@ -110,7 +110,7 @@ TEST(nntrainer_Tensor, TensorPaddedValue_p) {
       if (1 <= i && i <= 3 && 1 <= j && j <= 3) {
         expected = (i - 1) * 3 + (j - 1);
       }
-      float actual = a.getValuePadded(0, 0, i, j, 1, 1, default_padded);
+      float actual = a.getValuePaddedVirtual(0, 0, i, j, 1, 1, default_padded);
       EXPECT_FLOAT_EQ(actual, expected);
     }
   }

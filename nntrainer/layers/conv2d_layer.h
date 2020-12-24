@@ -17,6 +17,7 @@
 
 #include <layer_internal.h>
 #include <manager.h>
+#include <memory.h>
 #include <tensor.h>
 
 namespace nntrainer {
@@ -153,28 +154,36 @@ private:
    * @param[in] in input tensor
    * @param[in] outdim output tensor dimension
    * @param[out] out output data
-   * @param[in] channel_mode loop with channel first
+   * @param[in] channel_mode loop with channel first,
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int conv2d_gemm(const float *mkernel, TensorDim kdim, float *in,
+  int conv2d_gemm(const float *mkernel, TensorDim kdim, const float *in,
                   TensorDim outdim, float *out, bool channel_mode,
                   float beta_dgemm = 0.0f);
 
   /**
    * @brief     reform the data to 2d matrix
-   * @param[in] in_padded padded input data
+   * a region is sampled considering @a padding, @a mstride of unit @a kdim
+   * Each region is mapped to one column,
+   * if channel mode, kernel channel is considered part of kernel feature
+   * if not, kernel channel is consider part of output dimension
+   *
+   * @param[in] in input data
    * @param[in] kdim kernel dimesion for define number of row
-   * @param[out] inCol reformed data
-   * @param[in] outdim output dimension
+   * @param[in] padding padding information
    * @param[in] mstride stride value : x, y direction
    * @param[in] channel_mode loop with channel first
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   * @return Tensor im2col tensor
    */
-  int im2col(Tensor in_padded, TensorDim kdim, float *inCol, TensorDim outdim,
-             const std::array<unsigned int, CONV2D_DIM> &mstride,
-             bool channel_mode);
+  Tensor im2col(const Tensor &in, const TensorDim &kdim,
+                const std::array<unsigned int, CONV2D_DIM> &padding,
+                const std::array<unsigned int, CONV2D_DIM> &mstride,
+                bool channel_mode);
+
+  int im2col_(Tensor in_padded, TensorDim kdim, float *in_col, TensorDim outdim,
+              const std::array<unsigned int, CONV2D_DIM> &mstride,
+              bool channel_mode);
 };
 
 } // namespace nntrainer
