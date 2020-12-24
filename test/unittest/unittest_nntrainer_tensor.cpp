@@ -100,6 +100,22 @@ TEST(nntrainer_Tensor, TensorWrap_n) {
   EXPECT_THROW(nntrainer::Tensor::Map(dat, {}), std::invalid_argument);
 }
 
+TEST(nntrainer_Tensor, TensorPaddedValue_p) {
+  nntrainer::Tensor a = ranged(1, 1, 3, 3);
+  float default_padded = -1;
+
+  for (int i = 0; i < 5; ++i) {
+    for (int j = 0; j < 5; ++j) {
+      float expected = default_padded;
+      if (1 <= i && i <= 3 && 1 <= j && j <= 3) {
+        expected = (i - 1) * 3 + (j - 1);
+      }
+      float actual = a.getValuePadded(0, 0, i, j, 1, 1, default_padded);
+      EXPECT_FLOAT_EQ(actual, expected);
+    }
+  }
+}
+
 TEST(nntrainer_Tensor, Tensor_01_p) {
   int status = ML_ERROR_NONE;
   nntrainer::Tensor tensor = nntrainer::Tensor(1, 2, 3);
