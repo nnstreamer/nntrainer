@@ -50,14 +50,14 @@ public:
   ~NNStreamerLayer();
 
   /**
-   * @copydoc Layer::forwarding(sharedConstTensors in)
+   * @copydoc Layer::forwarding()
    */
-  void forwarding(sharedConstTensors in);
+  void forwarding();
 
   /**
-   * @copydoc Layer::calcDerivative(sharedConstTensors in)
+   * @copydoc Layer::calcDerivative()
    */
-  void calcDerivative(sharedConstTensors in);
+  void calcDerivative();
 
   /**
    * @copydoc Layer::copy(std::shared_ptr<layer> l)

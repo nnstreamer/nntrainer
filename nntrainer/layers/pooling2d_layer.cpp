@@ -66,7 +66,7 @@ int Pooling2DLayer::initialize(Manager &manager) {
   return status;
 }
 
-void Pooling2DLayer::forwarding(sharedConstTensors in) {
+void Pooling2DLayer::forwarding() {
   Tensor &input_ = net_input[0]->getVariableRef();
   Tensor &hidden_ = net_hidden[0]->getVariableRef();
 
@@ -85,7 +85,7 @@ void Pooling2DLayer::forwarding(sharedConstTensors in) {
   }
 }
 
-void Pooling2DLayer::calcDerivative(sharedConstTensors derivative) {
+void Pooling2DLayer::calcDerivative() {
   unsigned int batch = input_dim[0].batch();
   unsigned int channel = input_dim[0].channel();
   unsigned int height = input_dim[0].height();

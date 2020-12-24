@@ -46,13 +46,13 @@ int ActivationLayer::initialize(Manager &manager) {
   return ML_ERROR_NONE;
 }
 
-void ActivationLayer::forwarding(sharedConstTensors in) {
+void ActivationLayer::forwarding() {
   Tensor &hidden_ = net_hidden[0]->getVariableRef();
   /// @note @a _act_fn is expected to work out of place and not modify @a input
   _act_fn(net_input[0]->getVariableRef(), hidden_);
 }
 
-void ActivationLayer::calcDerivative(sharedConstTensors derivative) {
+void ActivationLayer::calcDerivative() {
   Tensor &deriv = net_hidden[0]->getGradientRef();
   Tensor &ret = net_input[0]->getGradientRef();
   Tensor &in = net_hidden[0]->getVariableRef();

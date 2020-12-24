@@ -292,10 +292,12 @@ void Manager::initializeInOuts(bool trainable) {
     shared_deriv = Tensor(max_derivative_size);
 
   size_t count = 0;
-  for (auto &l_io : in_outs) {
+  for (unsigned int idx = 0; idx < in_outs.size(); idx++) {
+    auto &l_io = in_outs[idx];
     size_t offset = 0;
+    bool is_last_layer = idx == in_outs.size() - 1;
     for (auto &io : l_io) {
-      if (enable_derivative_memory_opt) {
+      if (enable_derivative_memory_opt && !is_last_layer) {
         if (is_act_type[count] && enable_activation_memory_opt) {
           io->initialize(
             Tensor(), shared_deriv.getSharedDataTensor(io->getDim(), offset));
@@ -304,7 +306,10 @@ void Manager::initializeInOuts(bool trainable) {
           io->initializeShared();
         }
       } else {
-        io->initialize(Tensor(), Tensor(), trainable);
+        if (is_last_layer)
+          io->initialize(Tensor(), Tensor(), true);
+        else
+          io->initialize(Tensor(), Tensor(), trainable);
       }
     }
     count += 1;

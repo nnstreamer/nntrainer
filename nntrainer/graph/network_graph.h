@@ -190,7 +190,7 @@ public:
    * @param[in] input data
    * @retval output tensors
    */
-  sharedConstTensors forwarding(sharedConstTensors input);
+  sharedConstTensors forwarding();
 
   /**
    * @brief     getter of ordered graph

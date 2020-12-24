@@ -59,17 +59,13 @@ public:
 
   /**
    * @brief nntrainer forwarding function
-   *
-   * @param in input tensors
    */
-  void forwarding(nntrainer::sharedConstTensors in = {});
+  void forwarding();
 
   /**
    * @brief     calc the derivative to be passed to the previous layer
-   * @param[in] in List of Derivative Tensor from the next layer
-   * @retval    Derivative List of Tensor for the previous layer
    */
-  void calcDerivative(nntrainer::sharedConstTensors in = {});
+  void calcDerivative();
 
   /**
    * @brief Get the Type object

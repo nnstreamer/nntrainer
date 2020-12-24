@@ -53,9 +53,9 @@ void InputLayer::setProperty(const PropertyType type,
   }
 }
 
-void InputLayer::forwarding(sharedConstTensors in) {
+void InputLayer::forwarding() {
   Tensor &hidden_ = net_hidden[0]->getVariableRef();
-  hidden_ = *in[0];
+  hidden_ = net_input[0]->getVariableRef();
 
   if (normalization)
     hidden_.normalization_i();
@@ -63,7 +63,7 @@ void InputLayer::forwarding(sharedConstTensors in) {
     hidden_.standardization_i();
 }
 
-void InputLayer::calcDerivative(sharedConstTensors in) {
+void InputLayer::calcDerivative() {
   throw exception::not_supported(
     "calcDerivative for input layer is not supported");
 }
