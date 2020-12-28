@@ -157,6 +157,10 @@ void Conv2DLayer::forwarding() {
                                 filter_kernel.getDim().getFeatureLen()};
 
   filter_kernel.reshape(filter_dim_squeezed);
+
+  /// @note allocating this at initialize phase will save initialization time
+  /// with extra memory overhead
+  Tensor im2col_result;
   for (unsigned int b = 0; b < in_dim.batch(); ++b) {
     Tensor out = hidden_.getBatchSlice(b, 1);
     out.reshape({filter_size, out_dim.width() * out_dim.height()});
@@ -164,9 +168,7 @@ void Conv2DLayer::forwarding() {
     Tensor in_sub = input_.getBatchSlice(b, 1);
 
     START_PROFILE(im2col_key);
-    /// @todo allocate before batch and reuse the allocated tensor
-    /// pass a memory block and use Tensor::Map
-    Tensor im2col_result = im2col(in_sub, filter_dim, padding, stride, true);
+    im2col(in_sub, filter_dim, padding, stride, true, im2col_result);
     END_PROFILE(im2col_key);
 
     START_PROFILE(conv_gemm_profile_key);
@@ -276,10 +278,12 @@ void Conv2DLayer::calcDerivative() {
   /// we will need to have a zero cost image view by manipulating stride
   Tensor ret = Tensor(ret_dim_squeezed);
 
+  Tensor im2col_result;
+
   for (unsigned int b = 0; b < in_dim.batch(); ++b) {
     Tensor inSub = derivative.getBatchSlice(b, 1);
 
-    Tensor im2col_result = im2col(inSub, kdim, same_pad, stride, true);
+    im2col(inSub, kdim, same_pad, stride, true, im2col_result);
 
     ret.reshape(ret_dim_squeezed);
     imKernel.dot(im2col_result, ret);
@@ -345,13 +349,14 @@ void Conv2DLayer::calcGradient() {
     {out_dim.batch(), out_dim.channel() * out_dim.height() * out_dim.width()}};
 
   delK.reshape(out_dim_squeezed);
+
+  Tensor im2col_result;
   for (unsigned int b = 0; b < in_dim.batch(); ++b) {
     Tensor in_sub = input_.getBatchSlice(b, 1);
     Tensor deriv_sub = derivative.getBatchSlice(b, 1);
     deriv_sub.reshape({kdim.channel(), kdim.height() * kdim.width()});
 
-    Tensor im2col_result =
-      im2col(in_sub, derivative.getDim(), padding, stride, false);
+    im2col(in_sub, derivative.getDim(), padding, stride, false, im2col_result);
 
     deriv_sub.dot(im2col_result, delK, false, false, 1.0f);
   }
@@ -457,10 +462,10 @@ void Conv2DLayer::setProperty(const PropertyType type,
   }
 }
 
-Tensor Conv2DLayer::im2col(const Tensor &in, const TensorDim &kdim,
-                           const std::array<unsigned int, CONV2D_DIM> &padding,
-                           const std::array<unsigned int, CONV2D_DIM> &mstride,
-                           bool channel_mode) {
+void Conv2DLayer::im2col(const Tensor &in, const TensorDim &kdim,
+                         const std::array<unsigned int, CONV2D_DIM> &padding,
+                         const std::array<unsigned int, CONV2D_DIM> &mstride,
+                         bool channel_mode, Tensor &out) {
   /// @todo: add dimension validation here
   const int pad_value = 0;
   unsigned int ph = padding[0];
@@ -474,19 +479,19 @@ Tensor Conv2DLayer::im2col(const Tensor &in, const TensorDim &kdim,
   unsigned int out_height = (height - k_height) / mstride[0] + 1;
   unsigned int out_width = (width - k_width) / mstride[1] + 1;
 
-  Tensor im2col_array;
-  if (channel_mode) {
-    im2col_array = Tensor(kdim.getFeatureLen(), out_height * out_width);
-  } else {
-    im2col_array =
-      Tensor(k_height * k_width, in.channel() * out_height * out_width);
-  }
+  if (out.uninitialized()) {
+    if (channel_mode) {
+      out = Tensor(kdim.getFeatureLen(), out_height * out_width);
+    } else {
+      out = Tensor(k_height * k_width, in.channel() * out_height * out_width);
+    }
 
-  if (pad_value == 0) {
-    im2col_array.setZero();
-  } else {
-    /// not reaching here, just preparing for non-zero pad_value
-    im2col_array.setValue(pad_value);
+    if (pad_value == 0) {
+      out.setZero();
+    } else {
+      /// not reaching here, just preparing for non-zero pad_value
+      out.setValue(pad_value);
+    }
   }
 
   auto in_range = [](unsigned int virtual_pos, unsigned int pad,
@@ -520,7 +525,7 @@ Tensor Conv2DLayer::im2col(const Tensor &in, const TensorDim &kdim,
                 continue;
               }
               float val = in.getValue(0, c, h - ph, w - pw);
-              im2col_array.setValue(0, 0, im_h, im_w, val);
+              out.setValue(0, 0, im_h, im_w, val);
               im_h++;
             }
           }
@@ -549,7 +554,7 @@ Tensor Conv2DLayer::im2col(const Tensor &in, const TensorDim &kdim,
                 continue;
               }
               float val = in.getValue(0, c, h - ph, w - pw);
-              im2col_array.setValue(0, 0, im_h, im_w, val);
+              out.setValue(0, 0, im_h, im_w, val);
               im_h++;
             }
           }
@@ -558,8 +563,6 @@ Tensor Conv2DLayer::im2col(const Tensor &in, const TensorDim &kdim,
       }
     }
   }
-
-  return im2col_array;
 }
 
 void Conv2DLayer::scaleSize(float scalesize) noexcept {

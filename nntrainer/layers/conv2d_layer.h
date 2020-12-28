@@ -159,12 +159,14 @@ private:
    * @param[in] padding padding information
    * @param[in] mstride stride value : x, y direction
    * @param[in] channel_mode loop with channel first
-   * @return Tensor im2col tensor
+   * @param[out] out out tensor to put, if uninitialized, allocate a new tensor
+   * and set padding
+   * @note if out is initialized tensor, setting padding is skipped.
    */
-  Tensor im2col(const Tensor &in, const TensorDim &kdim,
-                const std::array<unsigned int, CONV2D_DIM> &padding,
-                const std::array<unsigned int, CONV2D_DIM> &mstride,
-                bool channel_mode);
+  void im2col(const Tensor &in, const TensorDim &kdim,
+              const std::array<unsigned int, CONV2D_DIM> &padding,
+              const std::array<unsigned int, CONV2D_DIM> &mstride,
+              bool channel_mode, Tensor &out);
 };
 
 } // namespace nntrainer
