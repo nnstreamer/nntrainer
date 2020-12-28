@@ -228,12 +228,7 @@ public:
     }
 #endif
 
-    auto in_range = [](unsigned int virtual_pos, unsigned int pad,
-                       unsigned int actual_len) -> bool {
-      return pad <= virtual_pos && virtual_pos < (pad + actual_len);
-    };
-
-    if (in_range(h, ph, height()) && in_range(w, pw, width())) {
+    if (ph <= h && h < ph + height() && pw <= w && w < pw + width()) {
       return getValue(b, c, h - ph, w - pw);
     }
 
