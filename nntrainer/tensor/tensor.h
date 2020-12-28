@@ -391,10 +391,11 @@ public:
    * @param[in] output output Tensor
    * @param[in] trans Transpose
    * @param[in] trans_m Transpose m
+   * @param[in] beta beta
    * @retval    Calculated Tensor
    */
   Tensor &dot(Tensor const &m, Tensor &output, bool trans = false,
-              bool trans_m = false) const;
+              bool trans_m = false, float beta = 0.0f) const;
 
   /**
    * @brief     Transpose Tensor

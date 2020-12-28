@@ -152,26 +152,34 @@ void Conv2DLayer::forwarding() {
    *   -> [Channel ( = filter_size = output_dim.channel )]
    *       x [output_dim.height x output_dim.width]
    */
+  TensorDim filter_dim = filter_kernel.getDim();
+  TensorDim filter_dim_squeezed{filter_kernel.batch(),
+                                filter_kernel.getDim().getFeatureLen()};
+
+  filter_kernel.reshape(filter_dim_squeezed);
   for (unsigned int b = 0; b < in_dim.batch(); ++b) {
     Tensor out = hidden_.getBatchSlice(b, 1);
+    out.reshape({filter_size, out_dim.width() * out_dim.height()});
+
     Tensor in_sub = input_.getBatchSlice(b, 1);
 
     START_PROFILE(im2col_key);
     /// @todo allocate before batch and reuse the allocated tensor
     /// pass a memory block and use Tensor::Map
-    Tensor im2col_result =
-      im2col(in_sub, filter_kernel.getDim(), padding, stride, true);
+    Tensor im2col_result = im2col(in_sub, filter_dim, padding, stride, true);
     END_PROFILE(im2col_key);
 
     START_PROFILE(conv_gemm_profile_key);
-    status = conv2d_gemm(filter_kernel.getData(), filter_kernel.getDim(),
-                         im2col_result.getData(), out_dim, out.getData(), true);
+    filter_kernel.dot(im2col_result, out);
     END_PROFILE(conv_gemm_profile_key);
-    if (status != ML_ERROR_NONE)
-      throw std::runtime_error("Forwarding Convolution failed.");
   }
+
+  filter_kernel.reshape(filter_dim);
   START_PROFILE(add_bias_key);
-  hidden_.add_i(bias_kernel);
+  status = hidden_.add_i(bias_kernel);
+  if (status != ML_ERROR_NONE) {
+    throw std::invalid_argument("[Conv2D] adding bias failed");
+  }
   END_PROFILE(add_bias_key);
 
   loss = 0.0f;
@@ -182,7 +190,6 @@ void Conv2DLayer::forwarding() {
 
 void Conv2DLayer::calcDerivative() {
 
-  int status = ML_ERROR_NONE;
   TensorDim &in_dim = input_dim[0];
 
   Tensor &derivative = net_hidden[0]->getGradientRef();
@@ -236,8 +243,6 @@ void Conv2DLayer::calcDerivative() {
    */
   using uint = unsigned int;
 
-  TensorDim kdim(in_dim.channel(), filter_size, kernel_size[0], kernel_size[1]);
-
   uint kernel_total_size = kernel_size[0] * kernel_size[1];
 
   Tensor imKernel(1, 1, in_dim.channel(), filter_size * kernel_total_size);
@@ -259,21 +264,26 @@ void Conv2DLayer::calcDerivative() {
     }
   }
 
-  Tensor ret;
-  ret = Tensor(1, in_dim.channel(), in_dim.height() + padding[0] * 2,
-               in_dim.width() + padding[1] * 2);
+  TensorDim kdim(in_dim.channel(), filter_size, kernel_size[0], kernel_size[1]);
 
-  TensorDim input_dim_padded = ret.getDim();
+  TensorDim ret_dim{in_dim.channel(), in_dim.height() + padding[0] * 2,
+                    in_dim.width() + padding[1] * 2};
+
+  TensorDim ret_dim_squeezed{
+    {ret_dim.channel(), ret_dim.height() * ret_dim.width()}};
+
+  /// @todo: optimize this as suggested in #825
+  /// we will need to have a zero cost image view by manipulating stride
+  Tensor ret = Tensor(ret_dim_squeezed);
 
   for (unsigned int b = 0; b < in_dim.batch(); ++b) {
     Tensor inSub = derivative.getBatchSlice(b, 1);
 
     Tensor im2col_result = im2col(inSub, kdim, same_pad, stride, true);
 
-    status = conv2d_gemm(imKernel_raw, kdim, im2col_result.getData(),
-                         input_dim_padded, ret.getData(), true);
-    if (status != ML_ERROR_NONE)
-      throw std::runtime_error("calcDerivative Convolution failed.");
+    ret.reshape(ret_dim_squeezed);
+    imKernel.dot(im2col_result, ret);
+    ret.reshape(ret_dim);
 
     strip_pad(ret, padding.data(), net_input[0]->getGradientRef(), b);
   }
@@ -330,21 +340,22 @@ void Conv2DLayer::calcGradient() {
   TensorDim kdim{
     {derivative.channel(), derivative.height(), derivative.width()}};
 
-  TensorDim out_dim{{filter_size, in_dim.channel() * filter_kernel.height() *
-                                    filter_kernel.width()}};
+  TensorDim out_dim{delK.getDim()};
+  TensorDim out_dim_squeezed{
+    {out_dim.batch(), out_dim.channel() * out_dim.height() * out_dim.width()}};
 
+  delK.reshape(out_dim_squeezed);
   for (unsigned int b = 0; b < in_dim.batch(); ++b) {
     Tensor in_sub = input_.getBatchSlice(b, 1);
+    Tensor deriv_sub = derivative.getBatchSlice(b, 1);
+    deriv_sub.reshape({kdim.channel(), kdim.height() * kdim.width()});
+
     Tensor im2col_result =
       im2col(in_sub, derivative.getDim(), padding, stride, false);
 
-    status = conv2d_gemm(
-      derivative.getAddress(b * derivative.getDim().getFeatureLen()), kdim,
-      im2col_result.getData(), out_dim, delK.getData(), false, 1.0);
-
-    if (status != ML_ERROR_NONE)
-      throw std::runtime_error("Backwarding Convolution failed.");
+    deriv_sub.dot(im2col_result, delK, false, false, 1.0f);
   }
+  delK.reshape(out_dim);
   delBias = derivative.sum({0, 2, 3});
 
   //  Update K / bias
@@ -444,33 +455,6 @@ void Conv2DLayer::setProperty(const PropertyType type,
     Layer::setProperty(type, value);
     break;
   }
-}
-
-int Conv2DLayer::conv2d_gemm(const float *mkernel, TensorDim kdim,
-                             const float *in, TensorDim outdim, float *out,
-                             bool channel_mode, float beta_dgemm) {
-  int status = ML_ERROR_NONE;
-
-  float alpha_dgemm = 1.0f;
-  const float *data = mkernel;
-  float *rdata = out;
-
-  unsigned int kh, kw, w;
-
-  if (channel_mode) {
-    kh = kdim.batch();
-    kw = kdim.getFeatureLen();
-    w = outdim.width() * outdim.height();
-  } else {
-    kh = outdim.height();
-    kw = kdim.width() * kdim.height();
-    w = outdim.width();
-  }
-
-  sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, kh, w, kw, alpha_dgemm, data,
-        kw, in, w, beta_dgemm, rdata, w);
-
-  return status;
 }
 
 Tensor Conv2DLayer::im2col(const Tensor &in, const TensorDim &kdim,
