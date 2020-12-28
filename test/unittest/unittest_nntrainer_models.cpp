@@ -572,6 +572,34 @@ INI mnist_conv_cross(
   }
 );
 
+INI conv_1x1(
+  "conv_1x1",
+  {
+    nn_base + "learning_rate=0.1 | optimizer=sgd | loss=cross | batch_size=3",
+    I("input") + input_base + "input_shape=2:4:5",
+    I("conv2d_c1_layer") + conv_base + "kernel_size=1,1 | filters=4" +"input_layers=input",
+    I("act_1") + sigmoid_base +"input_layers=conv2d_c1_layer",
+    I("flatten", "type=flatten")+"input_layers=act_1" ,
+    I("outputlayer") + fc_base + "unit = 10" +"input_layers=flatten",
+    I("act_2") + softmax_base +"input_layers=outputlayer"
+  }
+);
+
+INI conv_input_matches_kernel(
+  "conv_input_matches_kernel",
+  {
+    nn_base + "learning_rate=0.1 | optimizer=sgd | loss=cross | batch_size=3",
+    I("input") + input_base + "input_shape=2:4:5",
+    I("conv2d_c1_layer") + conv_base + "kernel_size=4,5 | filters=4" +"input_layers=input",
+    I("act_1") + sigmoid_base +"input_layers=conv2d_c1_layer",
+    I("flatten", "type=flatten")+"input_layers=act_1" ,
+    I("outputlayer") + fc_base + "unit = 10" +"input_layers=flatten",
+    I("act_2") + softmax_base +"input_layers=outputlayer"
+  }
+);
+
+
+
 INI mnist_conv_cross_one_input = INI("mnist_conv_cross_one_input") + mnist_conv_cross + "model/batch_size=1";
 
 INSTANTIATE_TEST_CASE_P(
@@ -582,7 +610,9 @@ INSTANTIATE_TEST_CASE_P(
     mkModelTc(fc_bn_sigmoid_cross, "3:1:1:10", 10),
     mkModelTc(fc_bn_sigmoid_mse, "3:1:1:10", 10),
     mkModelTc(mnist_conv_cross, "3:1:1:10", 10),
-    mkModelTc(mnist_conv_cross_one_input, "1:1:1:10", 10)
+    mkModelTc(mnist_conv_cross_one_input, "1:1:1:10", 10),
+    mkModelTc(conv_1x1, "3:1:1:10", 10),
+    mkModelTc(conv_input_matches_kernel, "3:1:1:10", 10)
 // / #if gtest_version <= 1.7.0
 ));
 /// #else gtest_version > 1.8.0

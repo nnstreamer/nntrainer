@@ -172,7 +172,7 @@ void Conv2DLayer::forwarding() {
     END_PROFILE(im2col_key);
 
     START_PROFILE(conv_gemm_profile_key);
-    filter_kernel.dot(im2col_result, out);
+    filter_kernel.dot(im2col_result, out, false, true);
     END_PROFILE(conv_gemm_profile_key);
   }
 
@@ -286,7 +286,7 @@ void Conv2DLayer::calcDerivative() {
     im2col(inSub, kdim, same_pad, stride, true, im2col_result);
 
     ret.reshape(ret_dim_squeezed);
-    imKernel.dot(im2col_result, ret);
+    imKernel.dot(im2col_result, ret, false, true);
     ret.reshape(ret_dim);
 
     strip_pad(ret, padding.data(), net_input[0]->getGradientRef(), b);
@@ -357,7 +357,6 @@ void Conv2DLayer::calcGradient() {
     deriv_sub.reshape({kdim.channel(), kdim.height() * kdim.width()});
 
     im2col(in_sub, derivative.getDim(), padding, stride, false, im2col_result);
-
     deriv_sub.dot(im2col_result, delK, false, false, 1.0f);
   }
   delK.reshape(out_dim);
@@ -472,16 +471,27 @@ void Conv2DLayer::im2col(const Tensor &in, const TensorDim &kdim,
   unsigned int pw = padding[1];
 
   unsigned int channel = in.channel();
-  unsigned int height = in.height() + ph * 2;
-  unsigned int width = in.width() + pw * 2;
+  int in_height = in.height();
+  int in_width = in.width();
+  unsigned int height = in_height + ph * 2;
+  unsigned int width = in_width + pw * 2;
   unsigned int k_height = kdim.height();
   unsigned int k_width = kdim.width();
   unsigned int out_height = (height - k_height) / mstride[0] + 1;
   unsigned int out_width = (width - k_width) / mstride[1] + 1;
+  unsigned int kernel_feature_size = kdim.getFeatureLen();
+
+  /// shortcut 1: if kernel is 1x1
+  // Current setup requires this to be transposed for channel mode = true
+  // if (channel_mode && k_height * k_width == 1) {
+  //   out = in;
+  //   out.reshape({channel, height * width});
+  //   return;
+  // }
 
   if (out.uninitialized()) {
     if (channel_mode) {
-      out = Tensor(kdim.getFeatureLen(), out_height * out_width);
+      out = Tensor(out_height * out_width, kernel_feature_size);
     } else {
       out = Tensor(k_height * k_width, in.channel() * out_height * out_width);
     }
@@ -494,44 +504,46 @@ void Conv2DLayer::im2col(const Tensor &in, const TensorDim &kdim,
     }
   }
 
-  auto in_range = [](unsigned int virtual_pos, unsigned int pad,
-                     unsigned int actual_len) -> bool {
-    return pad <= virtual_pos && virtual_pos < (pad + actual_len);
-  };
+  float *out_data = out.getData();
 
   if (channel_mode) {
-    unsigned int h_stride_end = height - k_height;
-    unsigned int w_stride_end = width - k_width;
+    int h_stride_end = height - k_height - ph;
+    int w_stride_end = width - k_width - pw;
+
     /// get a patch, size of kernel
     /// hs is height_strided, ws is width_strided
-    unsigned int im_w = 0;
-    for (unsigned int hs = 0; hs <= h_stride_end; hs += mstride[0]) {
-      for (unsigned int ws = 0; ws <= w_stride_end; ws += mstride[1]) {
-        unsigned int im_h = 0;
-        unsigned int patch_height_end = k_height + hs;
-        unsigned int patch_width_end = k_width + ws;
+    unsigned int owidth = out.width();
+    unsigned int base_im_w = 0;
+    for (int hs = -ph; hs <= h_stride_end; hs += mstride[0]) {
+      unsigned int base_im_h = 0;
+      int patch_height_end = k_height + hs;
+      /// map the patch to a single line looping through channel
+      for (unsigned int c = 0; c < channel; ++c) {
+        for (int h = hs; h < patch_height_end; ++h) {
+          if (h < 0 || in_height <= h) {
+            base_im_h += k_width;
+            continue;
+          }
 
-        for (unsigned int c = 0; c < channel; ++c) {
-          /// map the patch to a single line loopting through channel
-          for (unsigned int h = hs; h < patch_height_end; ++h) {
-            if (!in_range(h, ph, in.height())) {
-              im_h += k_width;
-              continue;
-            }
+          unsigned int im_w = base_im_w;
+          for (int ws = -pw; ws <= w_stride_end; ws += mstride[1]) {
+            unsigned int im_h = base_im_h;
+            int patch_width_end = k_width + ws;
 
-            for (unsigned int w = ws; w < patch_width_end; ++w) {
-              if (!in_range(w, pw, in.width())) {
+            for (int w = ws; w < patch_width_end; ++w) {
+              if (w < 0 || in_width <= w) {
                 im_h++;
                 continue;
               }
-              float val = in.getValue(0, c, h - ph, w - pw);
-              out.setValue(0, 0, im_h, im_w, val);
+              out_data[im_w * owidth + im_h] = in.getValue(0, c, h, w);
               im_h++;
             }
+            im_w++;
           }
+          base_im_h += k_width;
         }
-        im_w++;
       }
+      base_im_w += out_width;
     }
   } else {
     unsigned int im_w = 0;
@@ -543,16 +555,17 @@ void Conv2DLayer::im2col(const Tensor &in, const TensorDim &kdim,
           unsigned int patch_width_end = k_width + ws;
 
           for (unsigned int h = hs; h < patch_height_end; ++h) {
-            if (!in_range(h, ph, in.height())) {
+            if (h < ph || in_height + ph <= h) {
               im_h += k_width;
               continue;
             }
 
             for (unsigned int w = ws; w < patch_width_end; ++w) {
-              if (!in_range(w, pw, in.width())) {
+              if (w < pw || in_width + pw <= w) {
                 im_h++;
                 continue;
               }
+
               float val = in.getValue(0, c, h - ph, w - pw);
               out.setValue(0, 0, im_h, im_w, val);
               im_h++;

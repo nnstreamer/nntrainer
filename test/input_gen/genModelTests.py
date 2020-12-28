@@ -121,10 +121,7 @@ if __name__ == "__main__":
     ]
 
     mnist_conv_tc = partial(
-        record,
-        model=mnist_conv,
-        optimizer=opt.SGD(learning_rate=0.1),
-        iteration=10,
+        record, model=mnist_conv, optimizer=opt.SGD(learning_rate=0.1), iteration=10,
     )
 
     mnist_conv_tc(
@@ -141,4 +138,32 @@ if __name__ == "__main__":
         file_name="mnist_conv_cross_one_input.info",
         loss_fn_str="cross_softmax",
         # debug=["summary", "loss", "layer_name", "initial_weights"],
+    )
+
+    conv_nxn_model = lambda kernel_size: [
+        K.Input(shape=(2, 4, 5)),
+        K.layers.Conv2D(filters=4, kernel_size=kernel_size),
+        K.layers.Activation("sigmoid"),
+        K.layers.Flatten(),
+        K.layers.Dense(10),
+        K.layers.Activation("softmax"),
+    ]
+
+    conv_nxn_tc = partial(
+        record,
+        optimizer=opt.SGD(learning_rate=0.1),
+        iteration=10,
+        input_shape=(3, 2, 4, 5),
+        label_shape=(3, 10),
+        loss_fn_str="cross_softmax",
+    )
+
+    # 1x1 kernel size
+    conv_nxn_tc(
+        model=conv_nxn_model((1, 1)), file_name="conv_1x1.info",
+    )
+
+    # height width is same as input size
+    conv_nxn_tc(
+        model=conv_nxn_model((4, 5)), file_name="conv_input_matches_kernel.info"
     )
