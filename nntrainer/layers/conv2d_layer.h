@@ -148,21 +148,6 @@ private:
   int setFilter(int f);
 
   /**
-   * @brief     calculation convolution with cblas_*gemm
-   * @param[in] mkernel kernel data
-   * @param[in] kdim kernel data demension
-   * @param[in] in input tensor
-   * @param[in] outdim output tensor dimension
-   * @param[out] out output data
-   * @param[in] channel_mode loop with channel first,
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   */
-  int conv2d_gemm(const float *mkernel, TensorDim kdim, const float *in,
-                  TensorDim outdim, float *out, bool channel_mode,
-                  float beta_dgemm = 0.0f);
-
-  /**
    * @brief     reform the data to 2d matrix
    * a region is sampled considering @a padding, @a mstride of unit @a kdim
    * Each region is mapped to one column,
@@ -180,10 +165,6 @@ private:
                 const std::array<unsigned int, CONV2D_DIM> &padding,
                 const std::array<unsigned int, CONV2D_DIM> &mstride,
                 bool channel_mode);
-
-  int im2col_(Tensor in_padded, TensorDim kdim, float *in_col, TensorDim outdim,
-              const std::array<unsigned int, CONV2D_DIM> &mstride,
-              bool channel_mode);
 };
 
 } // namespace nntrainer
