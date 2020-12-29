@@ -76,6 +76,10 @@ void ConcatLayer::forwarding() {
 
   unsigned int f_size = output_dim[0].getFeatureLen();
 
+  /**
+   * @todo avoid copy by creating input here as a shared_tensor of the output
+   * here and then this layer can be in_place as well
+   */
   for (unsigned int b = 0; b < input_dim[0].batch(); ++b) {
     unsigned int position = 0;
     for (unsigned int idx = 0; idx < num_inputs; ++idx) {

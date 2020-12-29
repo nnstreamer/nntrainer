@@ -51,6 +51,7 @@ protected:
     manager = nntrainer::Manager(true, false);
     status = ML_ERROR_NONE;
     manager.setInPlaceActivationOptimization(false);
+    manager.setInferenceInOutMemoryOptimization(false);
     prepareLayer();
     reinitialize();
   }
@@ -62,9 +63,9 @@ protected:
     in = nntrainer::Tensor(layer.getInputDimension()[0]);
     out = nntrainer::Tensor(layer.getOutputDimension()[0]);
 
-    layer.setInputBuffers(manager.TrackLayerInOuts(
+    layer.setInputBuffers(manager.trackLayerInputs(
       layer.getType(), layer.getName(), layer.getInputDimension()));
-    layer.setOutputBuffers(manager.TrackLayerInOuts(
+    layer.setOutputBuffers(manager.trackLayerOutputs(
       layer.getType(), layer.getName(), layer.getOutputDimension()));
 
     manager.initializeInOuts(true);
@@ -362,6 +363,7 @@ TEST_F(nntrainer_FullyConnectedLayer, initialize_01_p) {
  */
 TEST(nntrainer_FullyConnectedLayer_n, initialize_02_n) {
   nntrainer::Manager manager{true, false};
+  manager.setInferenceInOutMemoryOptimization(false);
   nntrainer::FullyConnectedLayer layer;
   EXPECT_THROW(layer.initialize(manager), std::invalid_argument);
 }
@@ -371,6 +373,7 @@ TEST(nntrainer_FullyConnectedLayer_n, initialize_02_n) {
  */
 TEST(nntrainer_FullyConnectedLayer_n, initialize_03_n) {
   nntrainer::Manager manager{true, false};
+  manager.setInferenceInOutMemoryOptimization(false);
   nntrainer::FullyConnectedLayer layer;
   layer.setProperty({"input_shape=32:1:28:28"});
 
@@ -497,11 +500,11 @@ protected:
     EXPECT_EQ(status, ML_ERROR_NONE);
 
     act_layer->setInputBuffers(
-      manager.TrackLayerInOuts(act_layer->getType(), act_layer->getName(),
+      manager.trackLayerInputs(act_layer->getType(), act_layer->getName(),
                                act_layer->getInputDimension()));
     act_layer->setOutputBuffers(
-      manager.TrackLayerInOuts(act_layer->getType(), act_layer->getName(),
-                               act_layer->getOutputDimension()));
+      manager.trackLayerOutputs(act_layer->getType(), act_layer->getName(),
+                                act_layer->getOutputDimension()));
 
     manager.initializeInOuts(true);
     layers.push_back(act_layer);
@@ -524,12 +527,12 @@ protected:
 
     ;
     loss_layer->setInputBuffers(
-      manager.TrackLayerInOuts(loss_layer->getType(), loss_layer->getName(),
+      manager.trackLayerInputs(loss_layer->getType(), loss_layer->getName(),
                                loss_layer->getInputDimension()));
     ;
     loss_layer->setOutputBuffers(
-      manager.TrackLayerInOuts(loss_layer->getType(), loss_layer->getName(),
-                               loss_layer->getOutputDimension()));
+      manager.trackLayerOutputs(loss_layer->getType(), loss_layer->getName(),
+                                loss_layer->getOutputDimension()));
 
     manager.initializeInOuts(true);
     layers.push_back(loss_layer);
@@ -1246,6 +1249,7 @@ TEST_F(nntrainer_Conv2DLayer, DISABLED_backwarding_03_p) {
 
   loadFile("tc_conv2d_int_conv2DLayer.in", in);
   auto manager = nntrainer::Manager();
+  manager.setInferenceInOutMemoryOptimization(false);
 
   manager.setGradientMemoryOptimization(false);
 
@@ -1682,9 +1686,10 @@ TEST(nntrainer_LossLayer, forward_loss_unknown_n) {
   nntrainer::Tensor b = constant(1.0, 1, 1, 1, 1);
 
   nntrainer::Manager manager;
-  layer.setInputBuffers(manager.TrackLayerInOuts(
+  manager.setInferenceInOutMemoryOptimization(false);
+  layer.setInputBuffers(manager.trackLayerInputs(
     layer.getType(), layer.getName(), layer.getInputDimension()));
-  layer.setOutputBuffers(manager.TrackLayerInOuts(
+  layer.setOutputBuffers(manager.trackLayerOutputs(
     layer.getType(), layer.getName(), layer.getOutputDimension()));
 
   manager.initializeInOuts(true);
@@ -1698,9 +1703,10 @@ TEST(nntrainer_LossLayer, backward_loss_unknown_n) {
   nntrainer::Tensor a = constant(1.0, 1, 1, 1, 1);
 
   nntrainer::Manager manager;
-  layer.setInputBuffers(manager.TrackLayerInOuts(
+  manager.setInferenceInOutMemoryOptimization(false);
+  layer.setInputBuffers(manager.trackLayerInputs(
     layer.getType(), layer.getName(), layer.getInputDimension()));
-  layer.setOutputBuffers(manager.TrackLayerInOuts(
+  layer.setOutputBuffers(manager.trackLayerOutputs(
     layer.getType(), layer.getName(), layer.getOutputDimension()));
 
   manager.initializeInOuts(true);
@@ -1715,9 +1721,10 @@ TEST(nntrainer_LossLayer, forward_loss_forward_entropy_n) {
   nntrainer::Tensor b = constant(1.0, 1, 1, 1, 1);
 
   nntrainer::Manager manager;
-  layer.setInputBuffers(manager.TrackLayerInOuts(
+  manager.setInferenceInOutMemoryOptimization(false);
+  layer.setInputBuffers(manager.trackLayerInputs(
     layer.getType(), layer.getName(), layer.getInputDimension()));
-  layer.setOutputBuffers(manager.TrackLayerInOuts(
+  layer.setOutputBuffers(manager.trackLayerOutputs(
     layer.getType(), layer.getName(), layer.getOutputDimension()));
 
   manager.initializeInOuts(true);
@@ -1732,9 +1739,10 @@ TEST(nntrainer_LossLayer, backward_loss_backward_entropy_n) {
   nntrainer::Tensor a = constant(1.0, 1, 1, 1, 1);
 
   nntrainer::Manager manager;
-  layer.setInputBuffers(manager.TrackLayerInOuts(
+  manager.setInferenceInOutMemoryOptimization(false);
+  layer.setInputBuffers(manager.trackLayerInputs(
     layer.getType(), layer.getName(), layer.getInputDimension()));
-  layer.setOutputBuffers(manager.TrackLayerInOuts(
+  layer.setOutputBuffers(manager.trackLayerOutputs(
     layer.getType(), layer.getName(), layer.getOutputDimension()));
 
   manager.initializeInOuts(true);
@@ -1768,12 +1776,14 @@ TEST(nntrainer_LossLayer, setProperty_individual_02_n) {
 
 TEST(nntrainer_ActivationLayer, init_01_n) {
   nntrainer::Manager manager{true, false};
+  manager.setInferenceInOutMemoryOptimization(false);
   nntrainer::ActivationLayer layer;
   EXPECT_THROW(layer.initialize(manager), std::invalid_argument);
 }
 
 TEST(nntrainer_ActivationLayer, init_02_p) {
   nntrainer::Manager manager{true, false};
+  manager.setInferenceInOutMemoryOptimization(false);
   int status = ML_ERROR_NONE;
   nntrainer::ActivationLayer layer;
 
@@ -1822,15 +1832,16 @@ TEST(nntrainer_ActivationLayer, forward_backward_01_p) {
                  nntrainer::ActivationLayer::relu((l - 4) * 0.1 * (i + 1)));
 
   nntrainer::Manager manager;
+  manager.setInferenceInOutMemoryOptimization(false);
   manager.setInPlaceActivationOptimization(true);
 
   layer.setProperty({"input_shape=3:1:1:10"});
   layer.setBatch(3);
   layer.initialize(manager);
 
-  layer.setInputBuffers(manager.TrackLayerInOuts(
+  layer.setInputBuffers(manager.trackLayerInputs(
     layer.getType(), layer.getName(), layer.getInputDimension()));
-  layer.setOutputBuffers(manager.TrackLayerInOuts(
+  layer.setOutputBuffers(manager.trackLayerOutputs(
     layer.getType(), layer.getName(), layer.getOutputDimension()));
   manager.initializeInOuts(true);
 
@@ -1899,9 +1910,10 @@ TEST_F(nntrainer_AdditionLayer, forwarding_01_n) {
   in = nntrainer::Tensor();
 
   nntrainer::Manager manager;
-  layer.setInputBuffers(manager.TrackLayerInOuts(
+  manager.setInferenceInOutMemoryOptimization(false);
+  layer.setInputBuffers(manager.trackLayerInputs(
     layer.getType(), layer.getName(), layer.getInputDimension()));
-  layer.setOutputBuffers(manager.TrackLayerInOuts(
+  layer.setOutputBuffers(manager.trackLayerOutputs(
     layer.getType(), layer.getName(), layer.getOutputDimension()));
 
   manager.initializeInOuts(true);
@@ -1923,9 +1935,10 @@ TEST_F(nntrainer_AdditionLayer, DISABLED_forwarding_02_n) {
   in = nntrainer::Tensor(layer.getInputDimension()[0]);
 
   nntrainer::Manager manager;
-  layer.setInputBuffers(manager.TrackLayerInOuts(
+  manager.setInferenceInOutMemoryOptimization(false);
+  layer.setInputBuffers(manager.trackLayerInputs(
     layer.getType(), layer.getName(), layer.getInputDimension()));
-  layer.setOutputBuffers(manager.TrackLayerInOuts(
+  layer.setOutputBuffers(manager.trackLayerOutputs(
     layer.getType(), layer.getName(), layer.getOutputDimension()));
 
   manager.initializeInOuts(true);
@@ -1944,9 +1957,10 @@ TEST_F(nntrainer_AdditionLayer, DISABLED_forwarding_03_p) {
   input.get()[1] = *input;
 
   nntrainer::Manager manager;
-  layer.setInputBuffers(manager.TrackLayerInOuts(
+  manager.setInferenceInOutMemoryOptimization(false);
+  layer.setInputBuffers(manager.trackLayerInputs(
     layer.getType(), layer.getName(), layer.getInputDimension()));
-  layer.setOutputBuffers(manager.TrackLayerInOuts(
+  layer.setOutputBuffers(manager.trackLayerOutputs(
     layer.getType(), layer.getName(), layer.getOutputDimension()));
 
   EXPECT_NO_THROW(layer.forwarding_with_val({input}));
