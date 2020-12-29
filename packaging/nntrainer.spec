@@ -276,7 +276,7 @@ cp label.dat build
 tar xzf unittest_layers.tar.gz -C build
 
 # independent unittests of nntrainer
-# bash %{test_script} ./test
+bash %{test_script} ./test
 
 export NNSTREAMER_CONF=$(pwd)/test/nnstreamer_filter_nntrainer/nnstreamer-test.ini
 export NNSTREAMER_FILTERS=$(pwd)/build/nnstreamer/tensor_filter
