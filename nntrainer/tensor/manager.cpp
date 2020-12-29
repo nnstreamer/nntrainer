@@ -120,13 +120,16 @@ MMapedMemory::~MMapedMemory() {
   ml_logd("[MMapedMemory] buf released");
 }
 
-Manager::Manager(bool enable_gradient_memory_opt_, bool use_shared_memory_) :
+Manager::Manager(bool enable_gradient_memory_opt_,
+                 bool enable_derivative_memory_opt_,
+                 bool enable_activation_memory_opt_, bool use_shared_memory_) :
   total_weight_size(0),
   total_grad_size(0),
   max_grad_size(0),
+  max_derivative_size(0),
   enable_gradient_memory_opt(enable_gradient_memory_opt_),
-  enable_derivative_memory_opt(true),
-  enable_activation_memory_opt(true),
+  enable_derivative_memory_opt(enable_derivative_memory_opt_),
+  enable_activation_memory_opt(enable_activation_memory_opt_),
   use_shared_memory(use_shared_memory_) {}
 
 Manager::~Manager() {}
