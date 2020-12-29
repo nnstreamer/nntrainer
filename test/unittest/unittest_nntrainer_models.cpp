@@ -353,11 +353,10 @@ void GraphWatcher::compareFor(const std::string &reference,
     nn.backwarding(label, iteration);
 
     for (auto it = nodes.rbegin(); it != nodes.rend() - 1; it++) {
-      if ((*(it + 1)).getNodeType() == nntrainer::ActivationLayer::type ||
-          (*(it)).getNodeType() == nntrainer::ActivationLayer::type)
-        it->backward(iteration, false, !optimize);
-      else
+      if (it == nodes.rend())
         it->backward(iteration, true, !optimize);
+      else
+        it->backward(iteration, !optimize, !optimize);
     }
   }
 }
