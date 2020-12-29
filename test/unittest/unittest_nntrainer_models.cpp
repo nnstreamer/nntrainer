@@ -294,6 +294,7 @@ GraphWatcher::GraphWatcher(const std::string &config, const bool opt) :
   nn.setGradientMemoryOptimization(optimize);
   nn.setDerivativeMemoryOptimization(optimize);
   nn.setInPlaceLayerOptimization(optimize);
+  nn.setInferenceInOutMemoryOptimization(optimize);
 
   if (nn.loadFromConfig(config)) {
     throw std::invalid_argument("load from config failed!");
@@ -334,10 +335,10 @@ void GraphWatcher::compareFor(const std::string &reference,
   }
 
   auto data = prepareData(ref, label_shape);
+  nntrainer::sharedConstTensors input;
 
   for (unsigned int iteration = 0; iteration < iterations; ++iteration) {
-    nntrainer::sharedConstTensors input = {
-      MAKE_SHARED_TENSOR(std::get<0>(data).clone())};
+    input = {MAKE_SHARED_TENSOR(std::get<0>(data).clone())};
     nntrainer::sharedConstTensors label = {
       MAKE_SHARED_TENSOR(std::get<1>(data).clone())};
 
@@ -360,6 +361,12 @@ void GraphWatcher::compareFor(const std::string &reference,
         it->backward(iteration, true, !optimize);
     }
   }
+
+  /**
+   * This inference is to ensure that inference runs with/without optimizations
+   * for various kinds of models
+   */
+  EXPECT_NO_THROW(nn.inference(input));
 }
 
 std::array<nntrainer::Tensor, 2>

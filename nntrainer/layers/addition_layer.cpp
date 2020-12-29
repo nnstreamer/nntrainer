@@ -45,6 +45,7 @@ void AdditionLayer::forwarding() {
   Tensor &hidden_ = net_hidden[0]->getVariableRef();
   TensorDim &in_dim = input_dim[0];
 
+  /** @todo check possibility for in-place of addition layer */
   for (unsigned int idx = 0; idx < num_inputs; ++idx) {
     if (in_dim != net_input[idx]->getDim())
       throw std::invalid_argument("Error: addition layer requires same "

@@ -46,7 +46,7 @@ void LossLayer::forwarding() {
   Tensor &hidden_ = net_hidden[0]->getVariableRef();
   Tensor y = net_input[0]->getVariableRef();
   Tensor l;
-  bool label_exist = true;
+  bool label_exist = !net_hidden[0]->getGradientRef().uninitialized();
 
   if (net_input.empty())
     label_exist = false;

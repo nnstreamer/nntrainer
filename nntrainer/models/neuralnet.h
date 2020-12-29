@@ -405,6 +405,15 @@ public:
     manager->setInPlaceActivationOptimization(opt);
   }
 
+  /**
+   * @brief Enable inout memory sharing based optimization for inference
+   * @param opt True to enable, else false
+   * @note This optimization has no performance overhead.
+   */
+  void setInferenceInOutMemoryOptimization(bool opt) {
+    manager->setInferenceInOutMemoryOptimization(opt);
+  }
+
 /// @todo Make a more common class have this
 /// Maybe appcontext can have this?
 #ifdef PROFILE

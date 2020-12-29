@@ -217,10 +217,6 @@ int NeuralNetwork::initialize() {
 
         l.setInputDimension(in_layer.getOutputDimension()[location], i);
       }
-    } else {
-      auto in_out = manager->TrackLayerInOuts(l.getType(), l.getName(),
-                                              l.getInputDimension());
-      l.setInputBuffers(in_out);
     }
 
     /**
@@ -233,8 +229,8 @@ int NeuralNetwork::initialize() {
     REGISTER_EVENT(l.getName(), lnode.event_key)
     opt->addOptimizerVariable(l.getWeightsRef());
 
-    auto in_out = manager->TrackLayerInOuts(l.getType(), l.getName(),
-                                            l.getOutputDimension());
+    auto &in_out = manager->trackLayerOutputs(
+      l.getType(), l.getName(), l.getOutputDimension(), l.getInputDimension());
     l.setOutputBuffers(in_out);
 
     /** Connect the output of the previous layers with the input of the current
@@ -254,34 +250,13 @@ int NeuralNetwork::initialize() {
         l.net_input[i] = model_graph.getLayerNode(l.input_layers[i])
                            .layer->net_hidden[location];
       }
-      // <<<<<<< d5b08b6c082d5ab907768f9293434db7f82a8cd2
-      //     } else {
-      //       manager->TrackLayerInOuts(l.getName(), l.getInputDimension(),
-      //                                 l.getTrainable());
-      //       l.setInputBuffers(manager->getInputsLayer(-1));
-      //     }
-      //
-      //     status = l.initialize(*manager);
-      //     NN_RETURN_STATUS();
-      //
-      //     REGISTER_EVENT(l.getName(), lnode.event_key)
-      //     opt->addOptimizerVariable(l.getWeightsRef());
-      //   }
-      //
-      //   auto &last_layer = model_graph.Sorted.back().layer;
-      //   manager->TrackLayerInOuts(last_layer->getName(),
-      //                             last_layer->getOutputDimension(),
-      //                             last_layer->getTrainable());
-      //   auto in_out = manager->getInputsLayer(-1);
-      //
-      //   for (unsigned int i = 0; i < last_layer->num_outputs; ++i) {
-      //     last_layer->net_hidden[i] = in_out[i];
-      //   }
-      //
-      // =======
+    } else {
+      auto &in_out = manager->trackLayerInputs(l.getType(), l.getName(),
+                                               l.getInputDimension(),
+                                               l.getOutputDimension());
+      l.setInputBuffers(in_out);
     }
   }
-  // >>>>>>> [activation] Making activation in-place
   setBatchSize(batch_size);
 
   if (in_place_optimization) {
@@ -310,7 +285,6 @@ NeuralNetwork::~NeuralNetwork() {
  */
 sharedConstTensors NeuralNetwork::forwarding() {
   return model_graph.forwarding();
-  // model_graph.Sorted.back().layer->forwarding();
 }
 
 /**
@@ -326,7 +300,7 @@ sharedConstTensors NeuralNetwork::forwarding(sharedConstTensors input,
     model_graph.getSortedLayerNode(model_graph.getSorted().size() - 1).layer;
 
   if (label.empty())
-    last_layer->net_hidden.clear();
+    last_layer->net_hidden[0]->getGradientRef() = Tensor();
   else
     last_layer->net_hidden[0]->getGradientRef() = *label[0].get();
 

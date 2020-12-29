@@ -556,8 +556,8 @@ void NetworkGraph::inPlaceOptimize(const std::string &layer_type,
           prev_layer->getType() == ActivationLayer::type)
         continue;
       /** Share tensor with next layer */
-      prev_layer->net_hidden[loc] = l->net_hidden[0];
       l->net_input[0] = l->net_hidden[0];
+      prev_layer->net_hidden[loc] = l->net_hidden[0];
 
       /** Untrack the memory for this layer */
       manager.untrackLayerInOuts(prev_layer->getName());

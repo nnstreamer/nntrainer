@@ -89,6 +89,7 @@ public:
   Manager(bool enable_gradient_memory_opt_ = true,
           bool enable_derivative_memory_opt_ = true,
           bool enable_activation_memory_opt_ = true,
+          bool enable_inference_inout_memory_opt_ = true,
           bool use_shared_memory_ = true);
 
   Manager(const Manager &) = default;
@@ -152,6 +153,14 @@ public:
   }
 
   /**
+   * @brief Enable inout memory sharing based optimization for inference
+   * @param opt True to enable, else false
+   */
+  void setInferenceInOutMemoryOptimization(bool opt) {
+    enable_inference_inout_memory_opt = opt;
+  }
+
+  /**
    * @brief Allocate and initialize the weight variable
    */
   void initialize();
@@ -164,28 +173,50 @@ public:
     max_grad_size = 0;
     total_weight_size = 0;
     total_grad_size = 0;
+    max_shared_inout = 0;
     weight_mmaped_memory.reset();
     grad_mmaped_memory.reset();
     in_outs.clear();
   }
 
   /**
-   * @brief Track the inputs/ouputs of the layer
+   * @brief Track the inputs of the layer
+   * @param[in] layer_type Type of the layer
    * @param[in] layer_name Name of the layer
    * @param[in] input_dim Dimension of the input for the layer
-   * @param[in] trainable If the layer is trainable
+   * @param[in] output_dim Dimension of the output for the layer (optional)
+   * @retval created objects for input of the layer
    * @note Manager is kept independent from the layer object itself
+   * @note This function only allocates variables using the input_dim of the
+   * layer. The output dimension is for optimization purposes.
    */
   std::vector<std::shared_ptr<Var_Grad>> &
-  TrackLayerInOuts(const std::string &layer_type, const std::string &layer_name,
-                   const std::vector<TensorDim> &input_dim);
+  trackLayerInputs(const std::string &layer_type, const std::string &layer_name,
+                   const std::vector<TensorDim> &input_dim,
+                   const std::vector<TensorDim> &output_dim = {});
 
+  /**
+   * @brief Track the ouputs of the layer
+   * @param[in] layer_type Type of the layer
+   * @param[in] layer_name Name of the layer
+   * @param[in] output_dim Dimension of the output for the layer
+   * @param[in] input_dim Dimension of the input for the layer (optional)
+   * @retval created objects for output of the layer
+   * @note Manager is kept independent from the layer object itself
+   * @note This function only allocates variables using the output_dim of the
+   * layer. The input dimension is for optimization purposes.
+   */
+  std::vector<std::shared_ptr<Var_Grad>> &
+  trackLayerOutputs(const std::string &layer_type,
+                    const std::string &layer_name,
+                    const std::vector<TensorDim> &output_dim,
+                    const std::vector<TensorDim> &input_dim = {});
   /**
    * @brief Track the inputs/ouputs of the layer
    * @param[in] layer_name Name of the layer
    * @note Manager is kept independent from the layer object itself
    */
-  void untrackLayerInOuts(const std::string layer_name);
+  void untrackLayerInOuts(const std::string &layer_name);
 
   /**
    * @brief Initialize the inputs/outputs for the layers
@@ -200,7 +231,9 @@ public:
   void setBatchSize(unsigned int batch) {
     if (!in_outs.empty() && !in_outs[0].empty()) {
       max_derivative_size /= in_outs[0][0]->getDim().batch();
+      max_shared_inout /= in_outs[0][0]->getDim().batch();
       max_derivative_size *= batch;
+      max_shared_inout *= batch;
     }
     for (auto &in_out : in_outs)
       for (auto &vg : in_out)
@@ -216,10 +249,12 @@ private:
   size_t total_grad_size;     /**< total weight size */
   size_t max_grad_size;       /**< max trainable weight required by a layer */
   size_t max_derivative_size; /**< max derivative required by a layer */
+  size_t max_shared_inout;    /**< max memory for in/outs for inference */
 
   /**< Inputs/outputs of all the layer in the model */
   std::vector<std::vector<std::shared_ptr<Var_Grad>>> in_outs;
   std::vector<bool> is_act_type;
+  std::vector<bool> is_flat_type;
 
   /**< Optimization related */
   bool enable_gradient_memory_opt; /**< share memory among all the gradients */
@@ -228,12 +263,32 @@ private:
   bool enable_activation_memory_opt; /**< Let activation layer work in-place
                                         without allocating output layer for
                                         itself */
+  bool enable_inference_inout_memory_opt; /**< Use shared memory for inputs and
+                                             outputs of all the layers in
+                                             inference mode */
 
   /**< shared memory related */
   bool use_shared_memory; /**< uses shared memory object which is owned by
                              manager */
   std::unique_ptr<MMapedMemory> weight_mmaped_memory;
   std::unique_ptr<MMapedMemory> grad_mmaped_memory;
+
+  /**
+   * @brief Track the inputs/ouputs of the layer
+   * @param[in] layer_type Type of the layer
+   * @param[in] layer_name Name of the layer
+   * @param[in] inout_dim Dimension of the input/output for the layer
+   * @retval created objects for input/output of the layer
+   * @note Manager is kept independent from the layer object itself
+   */
+  std::vector<std::shared_ptr<Var_Grad>> &
+  trackLayerInOuts(const std::string &layer_type, const std::string &layer_name,
+                   const std::vector<TensorDim> &inout_dim);
+  /**
+   * @brief UnTrack the inputs/ouputs of the layer
+   * @param[in] var_name Name of the variable
+   */
+  void untrackVariable(const std::string &var_name);
 };
 
 } // namespace nntrainer

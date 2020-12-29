@@ -30,6 +30,7 @@
 #include <vector>
 
 #include <activation_layer.h>
+#include <flatten_layer.h>
 #include <manager.h>
 #include <nntrainer_log.h>
 
@@ -122,14 +123,18 @@ MMapedMemory::~MMapedMemory() {
 
 Manager::Manager(bool enable_gradient_memory_opt_,
                  bool enable_derivative_memory_opt_,
-                 bool enable_activation_memory_opt_, bool use_shared_memory_) :
+                 bool enable_activation_memory_opt_,
+                 bool enable_inference_inout_memory_opt_,
+                 bool use_shared_memory_) :
   total_weight_size(0),
   total_grad_size(0),
   max_grad_size(0),
   max_derivative_size(0),
+  max_shared_inout(0),
   enable_gradient_memory_opt(enable_gradient_memory_opt_),
   enable_derivative_memory_opt(enable_derivative_memory_opt_),
   enable_activation_memory_opt(enable_activation_memory_opt_),
+  enable_inference_inout_memory_opt(enable_inference_inout_memory_opt_),
   use_shared_memory(use_shared_memory_) {}
 
 Manager::~Manager() {}
@@ -245,66 +250,156 @@ void Manager::initialize() {
  * still derivative memory needs to be allocated
  */
 std::vector<std::shared_ptr<Var_Grad>> &
-Manager::TrackLayerInOuts(const std::string &layer_type,
+Manager::trackLayerInOuts(const std::string &layer_type,
                           const std::string &layer_name,
-                          const std::vector<TensorDim> &input_dim) {
+                          const std::vector<TensorDim> &inout_dim) {
   int cnt = 0;
-  auto base_name = layer_name + ":InOut";
   bool is_act_layer = layer_type == ActivationLayer::type;
+  bool is_flat_layer = layer_type == FlattenLayer::type;
 
   size_t inout_derivative_size = 0;
 
   std::vector<std::shared_ptr<Var_Grad>> in_out;
-  in_out.reserve(input_dim.size());
+  in_out.reserve(inout_dim.size());
 
-  for (auto const &dim : input_dim) {
-    in_out.emplace_back(
-      std::make_shared<Var_Grad>(dim, true, base_name + std::to_string(cnt++)));
+  for (auto const &dim : inout_dim) {
+    in_out.emplace_back(std::make_shared<Var_Grad>(
+      dim, true, layer_name + std::to_string(cnt++)));
     if (is_act_layer)
       inout_derivative_size += dim.getDataLen();
   }
 
   in_outs.push_back(in_out);
   is_act_type.push_back(is_act_layer);
+  is_flat_type.push_back(is_flat_layer);
 
   max_derivative_size = std::max(max_derivative_size, inout_derivative_size);
   return in_outs.back();
 }
 
-void Manager::untrackLayerInOuts(const std::string layer_name) {
-  auto var_name = layer_name + ":InOut" + std::to_string(0);
+std::vector<std::shared_ptr<Var_Grad>> &
+Manager::trackLayerOutputs(const std::string &layer_type,
+                           const std::string &layer_name,
+                           const std::vector<TensorDim> &output_dim,
+                           const std::vector<TensorDim> &input_dim) {
+  if (enable_inference_inout_memory_opt && input_dim.empty()) {
+    throw std::invalid_argument(
+      "Input dimensions are required with inference memory opt.");
+  } else if (enable_inference_inout_memory_opt) {
+    size_t shared_inout = 0;
 
+    for (auto const &dim : output_dim)
+      shared_inout += dim.getDataLen();
+
+    for (auto const &dim : input_dim)
+      shared_inout += dim.getDataLen();
+
+    max_shared_inout = std::max(max_shared_inout, shared_inout);
+  }
+
+  return trackLayerInOuts(layer_type, layer_name + ":Output", output_dim);
+}
+
+std::vector<std::shared_ptr<Var_Grad>> &
+Manager::trackLayerInputs(const std::string &layer_type,
+                          const std::string &layer_name,
+                          const std::vector<TensorDim> &input_dim,
+                          const std::vector<TensorDim> &output_dim) {
+  if (enable_inference_inout_memory_opt && output_dim.empty()) {
+    throw std::invalid_argument(
+      "Output dimensions are required with inference memory opt.");
+  } else if (enable_inference_inout_memory_opt) {
+    size_t shared_inout = 0;
+
+    for (auto const &dim : output_dim)
+      shared_inout += dim.getDataLen();
+
+    for (auto const &dim : input_dim)
+      shared_inout += dim.getDataLen();
+
+    max_shared_inout = std::max(max_shared_inout, shared_inout);
+  }
+
+  return trackLayerInOuts(layer_type, layer_name + ":Input", input_dim);
+}
+
+void Manager::untrackVariable(const std::string &var_name) {
   for (unsigned int cnt = 0; cnt < in_outs.size(); cnt++) {
     if (!in_outs[cnt].empty() && in_outs[cnt][0]->getName() == var_name) {
       in_outs.erase(in_outs.begin() + cnt);
       is_act_type.erase(is_act_type.begin() + cnt);
+      is_flat_type.erase(is_flat_type.begin() + cnt);
       break;
     }
   }
+}
+
+void Manager::untrackLayerInOuts(const std::string &layer_name) {
+  untrackVariable(layer_name + ":Input" + std::to_string(0));
+  untrackVariable(layer_name + ":Output" + std::to_string(0));
 }
 
 /**
  * @brief Initialize the inputs/outputs for the layer
  */
 void Manager::initializeInOuts(bool trainable) {
+  // Allocate shared derivative memory
   Tensor shared_deriv;
-  if (max_derivative_size > 0 && enable_activation_memory_opt)
+  if (max_derivative_size > 0 && enable_activation_memory_opt && trainable)
     shared_deriv = Tensor(max_derivative_size);
 
-  size_t count = 0;
+  // @todo Do not count memory of the input tensor of the input layer in the
+  // estimate of max_shared_inout as it is not used
+
+  // Allocate shared input/output memory for inference
+  // @note Memory for label is not allocated here as inference doesnt has label
+  Tensor shared_inout;
+  if (!trainable && enable_inference_inout_memory_opt)
+    shared_inout = Tensor(max_shared_inout);
+
+  /**
+   * A single buffer (shared_inout) provides memory for inputs and outputs of a
+   * layer. Further, the output of layer i shares memory with input with layer
+   * i+1. So, each alternate layer allocates memory from either the start of the
+   * buffer or the end of the buffer, and use_first_last tracks this
+   */
+  bool use_first_last = 0;
   for (unsigned int idx = 0; idx < in_outs.size(); idx++) {
     auto &l_io = in_outs[idx];
     size_t offset = 0;
     bool is_last_layer = idx == in_outs.size() - 1;
+
+    // For flatten layer, do not assign new memory
+    if (idx > 0 && is_flat_type[idx])
+      use_first_last = 1 - use_first_last;
+
     for (auto &io : l_io) {
-      if (enable_derivative_memory_opt && !is_last_layer) {
-        if (is_act_type[count] && enable_activation_memory_opt) {
+      if (!trainable) {
+        Tensor shared_inout_cur = Tensor();
+        if (enable_inference_inout_memory_opt) {
+          if (use_first_last) {
+            // Create tensor with from the front of shared tensor
+            shared_inout_cur =
+              shared_inout.getSharedDataTensor(io->getDim(), offset);
+          } else {
+            // Create tensor with from the back of shared tensor
+            shared_inout_cur = shared_inout.getSharedDataTensor(
+              io->getDim(),
+              max_shared_inout - io->getDim().getDataLen() - offset);
+          }
+          offset += io->getDim().getDataLen();
+        }
+        io->initialize(shared_inout_cur, Tensor(), trainable);
+
+      } else if (enable_derivative_memory_opt && !is_last_layer) {
+        if (is_act_type[idx] && enable_activation_memory_opt) {
           io->initialize(
             Tensor(), shared_deriv.getSharedDataTensor(io->getDim(), offset));
           offset += io->getDim().getDataLen();
         } else {
           io->initializeShared();
         }
+
       } else {
         if (is_last_layer)
           io->initialize(Tensor(), Tensor(), true);
@@ -312,7 +407,7 @@ void Manager::initializeInOuts(bool trainable) {
           io->initialize(Tensor(), Tensor(), trainable);
       }
     }
-    count += 1;
+    use_first_last = 1 - use_first_last;
   }
 }
 
