@@ -87,6 +87,8 @@ public:
    * @brief     Constructor of Manager
    */
   Manager(bool enable_gradient_memory_opt_ = true,
+          bool enable_derivative_memory_opt_ = true,
+          bool enable_activation_memory_opt_ = true,
           bool use_shared_memory_ = true);
 
   Manager(const Manager &) = default;
