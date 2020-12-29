@@ -391,8 +391,8 @@ public:
    */
   void setDerivativeMemoryOptimization(bool opt) {
     manager->setDerivativeMemoryOptimization(opt);
-    if (false)
-      setInPlaceLayerOptimization(opt);
+    if (opt == false)
+      setInPlaceLayerOptimization(false);
   }
 
   /**
