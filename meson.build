@@ -131,6 +131,10 @@ if not iniparser_dep.found()
 endif
 
 nnstreamer_capi_dep = dependency('capi-nnstreamer', required:false)
+if nnstreamer_capi_dep.found()
+  add_project_arguments('-DNNSTREAMER_AVAILABLE=1', language:['c','cpp'])
+endif
+
 if get_option('enable-nnstreamer-backbone')
   add_project_arguments('-DENABLE_NNSTREAMER_BACKBONE=1', language:['c','cpp'])
 endif

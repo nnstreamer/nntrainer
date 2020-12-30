@@ -4,13 +4,12 @@ res_path = meson.current_source_dir() / '..' / 'res'
 gst_api_version = '1.0'
 glib_dep = dependency('glib-2.0')
 gst_dep = dependency('gstreamer-'+gst_api_version)
-if build_platform == 'tizen'
-  if not nnstreamer_capi_dep.found()
-    error('nnstreamer capi dependency not found for tizen')
-  endif
-  if not gtest_dep.found()
-    error('Gtest dependency not found for tizen')
-  endif
+
+if not nnstreamer_capi_dep.found()
+  error('nnstreamer capi dependency not found for tizen')
+endif
+if not gtest_dep.found()
+  error('Gtest dependency not found for tizen')
 endif
 
 training_sources = [
