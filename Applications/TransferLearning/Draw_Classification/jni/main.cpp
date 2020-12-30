@@ -25,7 +25,7 @@
  *
  */
 
-#if defined(__TIZEN__) && defined(ENABLE_TEST)
+#if defined(NNSTREAMER_AVAILABLE) && defined(ENABLE_TEST)
 #define APP_VALIDATE
 #endif
 
@@ -34,7 +34,7 @@
 #include <time.h>
 #include <unistd.h>
 
-#if defined(__TIZEN__)
+#if defined(NNSTREAMER_AVAILABLE)
 #include <nnstreamer.h>
 #endif
 #include <nntrainer_internal.h>
@@ -218,7 +218,7 @@ int trainModel(const char *config) {
   return status;
 }
 
-#if defined(__TIZEN__)
+#if defined(NNSTREAMER_AVAILABLE)
 void sink_cb(const ml_tensors_data_h data, const ml_tensors_info_h info,
              void *user_data) {
   static int test_file_idx = 1;
@@ -275,7 +275,7 @@ int getInputFeature_c(const std::string filename, float *feature_input) {
  * @param[in] config Model config file path
  */
 int testModel(const char *data_path, const char *model) {
-#if defined(__TIZEN__)
+#if defined(NNSTREAMER_AVAILABLE)
   int status = ML_ERROR_NONE;
   ml_pipeline_h pipe;
   ml_pipeline_src_h src;
@@ -378,7 +378,7 @@ fail_pipe_destroy:
 fail_exit:
   return status;
 #else
-  std::cout << "Testing of model only with TIZEN." << std::endl;
+  std::cout << "Testing of model is supported without NNStreamer." << std::endl;
   return ML_ERROR_NONE;
 #endif
 }
