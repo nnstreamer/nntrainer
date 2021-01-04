@@ -174,22 +174,12 @@ void Manager::trackWeights(std::vector<Weight> &ws) {
   max_grad_size = std::max(max_grad_size, grad_size);
 }
 
-/**
- * @brief Allocate and initialize the weight variable
- */
-void Manager::initialize() {
-  if (total_weight_size == 0) {
-    ml_logw("Nothing done on initialize because there is no weight registered");
-    return;
-  }
-  using AllocFunc = std::function<Tensor(const TensorDim &, size_t)>;
-
+Manager::AllocFunc Manager::getAllocFunc(bool is_weight) {
   AllocFunc allocate_none = [](const TensorDim &dim, size_t) {
     return Tensor();
   };
 
-  AllocFunc allocate_weight = allocate_none;
-  AllocFunc allocate_grad = allocate_none;
+  AllocFunc allocate_func = allocate_none;
 
   if (use_shared_memory) {
 
@@ -207,24 +197,67 @@ void Manager::initialize() {
       };
     };
 
-    allocate_weight = get_allocfunc(total_weight_size, weight_mmaped_memory);
-
-    size_t grad_size =
-      enable_gradient_memory_opt ? max_grad_size : total_grad_size;
-    allocate_grad = get_allocfunc(grad_size, grad_mmaped_memory);
-
-  } else {
+    if (is_weight) {
+      /** For weights */
+      allocate_func = get_allocfunc(total_weight_size, weight_mmaped_memory);
+    } else {
+      /** for gradients */
+      size_t grad_size =
+        enable_gradient_memory_opt ? max_grad_size : total_grad_size;
+      allocate_func = get_allocfunc(grad_size, grad_mmaped_memory);
+    }
+  } else if (!is_weight) {
+    /** only for gradients */
     if (max_grad_size > 0 && enable_gradient_memory_opt) {
       std::shared_ptr<float> window(new float[max_grad_size],
                                     std::default_delete<float[]>());
 
-      allocate_grad = [window](const TensorDim &dim, size_t offset) {
+      allocate_func = [window](const TensorDim &dim, size_t offset) {
         return Tensor::Map(window, dim, offset);
       };
     }
   }
 
+  return allocate_func;
+}
+
+/**
+ * @brief Allocate and initialize the weight variable
+ */
+void Manager::initializeWeights() {
+  if (total_weight_size == 0) {
+    ml_logw("Nothing done on initialize because there is no weight registered");
+    return;
+  }
+
+  AllocFunc allocate_weight = getAllocFunc(true);
+
   size_t weight_offset = 0;
+
+  for (auto &l_w : weights) {
+    for (auto &w : l_w) {
+      Weight &weight = w.get();
+      auto dim = weight.getDim();
+      Tensor weight_prealloc = allocate_weight(dim, weight_offset);
+      Tensor grad_prealloc = Tensor();
+
+      weight_offset += dim.getDataLen();
+      weight.initialize(weight_prealloc, Tensor(), false);
+    }
+  }
+}
+
+/**
+ * @brief Allocate and initialize the weight variable
+ */
+void Manager::initializeGradients() {
+  if (total_weight_size == 0) {
+    ml_logw("Nothing done on initialize because there is no weight registered");
+    return;
+  }
+
+  AllocFunc allocate_grad = getAllocFunc(false);
+
   size_t grad_offset = 0;
 
   for (auto &l_w : weights) {
@@ -234,13 +267,12 @@ void Manager::initialize() {
     for (auto &w : l_w) {
       Weight &weight = w.get();
       auto dim = weight.getDim();
-      Tensor weight_prealloc = allocate_weight(dim, weight_offset);
-      Tensor grad_prealloc =
-        weight.getTrainable() ? allocate_grad(dim, grad_offset) : Tensor();
+      Tensor grad_prealloc = Tensor();
+      if (weight.getTrainable())
+        grad_prealloc = allocate_grad(dim, grad_offset);
 
-      weight_offset += dim.getDataLen();
       grad_offset += dim.getDataLen();
-      weight.initialize(weight_prealloc, grad_prealloc);
+      weight.initializeGrad(grad_prealloc, true);
     }
   }
 }
@@ -340,9 +372,13 @@ void Manager::untrackLayerInOuts(const std::string &layer_name) {
 }
 
 /**
- * @brief Initialize the inputs/outputs for the layer
+ * @brief Initialize the inputs/outputs/gradients/derivatives for the layer
  */
-void Manager::initializeInOuts(bool trainable) {
+void Manager::initializeTensors(bool trainable) {
+  // Allocate gradients
+  if (trainable)
+    initializeGradients();
+
   // Allocate shared derivative memory
   Tensor shared_deriv;
   if (max_derivative_size > 0 && enable_activation_memory_opt && trainable)

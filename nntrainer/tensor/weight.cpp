@@ -25,8 +25,16 @@ Weight::Weight(const TensorDim &dim, const WeightInitializer init, bool train,
 }
 
 void Weight::initialize(const Tensor &weights_preallocated,
-                        const Tensor &grad_preallocated) {
-  Var_Grad::initialize(weights_preallocated, grad_preallocated);
+                        const Tensor &grad_preallocated, bool gtrain) {
+  Var_Grad::initialize(weights_preallocated, grad_preallocated, gtrain);
+
+  if (gtrain) {
+    // If trainable, allocate optimizer parameters
+    for (auto const &dim : opt_vars_dim) {
+      opt_vars.emplace_back(dim);
+      opt_vars.back().setZero();
+    }
+  }
 
   Tensor &var_ref = getVariableRef();
   const TensorDim dim = var_ref.getDim();
@@ -62,6 +70,19 @@ void Weight::initialize(const Tensor &weights_preallocated,
     break;
   default:
     break;
+  }
+}
+
+void Weight::initializeGrad(const Tensor &grad_preallocated, bool gtrain) {
+  // Use self variable to initialize itself
+  Var_Grad::initialize(this->getVariableRef(), grad_preallocated, gtrain);
+
+  if (gtrain) {
+    // If trainable, allocate optimizer parameters
+    for (auto const &dim : opt_vars_dim) {
+      opt_vars.emplace_back(dim);
+      opt_vars.back().setZero();
+    }
   }
 }
 

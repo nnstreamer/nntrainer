@@ -162,8 +162,10 @@ public:
 
   /**
    * @brief Allocate and initialize the weight variable
+   * @note This only allocates weights and does not handle training related
+   * memory for weights
    */
-  void initialize();
+  void initializeWeights();
 
   /**
    * @brief Reset the manager state
@@ -219,11 +221,14 @@ public:
   void untrackLayerInOuts(const std::string &layer_name);
 
   /**
-   * @brief Initialize the inputs/outputs for the layers
-   * @todo Make initialize() and initializeInOuts() coherent but still separated
-   * @param[in] trainable If true, initialize derivates, else, do not.
+   * @brief Initialize the inputs/outputs/derivatives/gradients for the layers
+   * @param[in] trainable If true, initialize derivates/gradients, else, do not.
+   * @note The memory allocation strategy varies based on the trainable. The
+   * memory allocated for inference mode is not compatible with training, and
+   * will require full allocation than reusing memory allocated with inference
+   * mode.
    */
-  void initializeInOuts(bool trainable);
+  void initializeTensors(bool trainable);
 
   /**
    * @brief Set the batch size for the inputs/outputs of the layers
@@ -273,6 +278,8 @@ private:
   std::unique_ptr<MMapedMemory> weight_mmaped_memory;
   std::unique_ptr<MMapedMemory> grad_mmaped_memory;
 
+  using AllocFunc = std::function<Tensor(const TensorDim &, size_t)>;
+
   /**
    * @brief Track the inputs/ouputs of the layer
    * @param[in] layer_type Type of the layer
@@ -289,6 +296,19 @@ private:
    * @param[in] var_name Name of the variable
    */
   void untrackVariable(const std::string &var_name);
+
+  /**
+   * @brief Allocate and initialize the weight gradients
+   * @note This only allocates weight's gradients and assumes that weights are
+   * pre-allocated.
+   */
+  void initializeGradients();
+
+  /**
+   * @brief Get helper allocator function to use for weight or gradient
+   * @param[in] is_weight true if weight, else false meaning its gradient
+   */
+  AllocFunc getAllocFunc(bool is_weight);
 };
 
 } // namespace nntrainer
