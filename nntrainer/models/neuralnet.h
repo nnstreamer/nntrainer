@@ -414,6 +414,11 @@ public:
     manager->setInferenceInOutMemoryOptimization(opt);
   }
 
+  /**
+   * @brief     Update batch size of the model as well as its layers/dataset
+   */
+  void setBatchSize() { setBatchSize(batch_size); }
+
 /// @todo Make a more common class have this
 /// Maybe appcontext can have this?
 #ifdef PROFILE

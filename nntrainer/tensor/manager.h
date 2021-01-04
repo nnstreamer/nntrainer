@@ -235,8 +235,9 @@ public:
    */
   void setBatchSize(unsigned int batch) {
     if (!in_outs.empty() && !in_outs[0].empty()) {
-      max_derivative_size /= in_outs[0][0]->getDim().batch();
-      max_shared_inout /= in_outs[0][0]->getDim().batch();
+      unsigned int prev_batch = in_outs[0][0]->getDim().batch();
+      max_derivative_size /= prev_batch;
+      max_shared_inout /= prev_batch;
       max_derivative_size *= batch;
       max_shared_inout *= batch;
     }

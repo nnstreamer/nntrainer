@@ -257,7 +257,8 @@ int NeuralNetwork::initialize() {
       l.setInputBuffers(in_out);
     }
   }
-  setBatchSize(batch_size);
+  setBatchSize();
+
   // Allocate and initialize weights
   manager->initializeWeights();
 
