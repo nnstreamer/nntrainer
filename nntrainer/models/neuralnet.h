@@ -36,6 +36,7 @@
 #include <bn_layer.h>
 #include <conv2d_layer.h>
 #include <databuffer.h>
+#include <dynamic_training_optimization.h>
 #include <fc_layer.h>
 #include <flatten_layer.h>
 #include <input_layer.h>
@@ -47,6 +48,7 @@
 #include <optimizer_internal.h>
 #include <pooling2d_layer.h>
 #include <tensor.h>
+#include <util_func.h>
 
 #include <model.h>
 #include <nntrainer-api-common.h>
@@ -181,13 +183,6 @@ public:
    * implementations once added.
    */
   void inPlaceOptimization(const std::string &layer_type);
-
-  /**
-   * @brief     Forward Propagation of the neural network
-   * @param[in] input List of Input Tensors taken by the neural network
-   * @retval    List of Output Tensors
-   */
-  // sharedConstTensors forwarding(sharedConstTensors input);
 
   /**
    * @brief     Forward Propagation of the neural network
@@ -420,6 +415,26 @@ public:
    */
   void setBatchSize() { setBatchSize(batch_size); }
 
+  /**
+   * @brief Enable dynamic fine-tuning optimization
+   * @param threshold Comparison limit to decide if weight updated or not
+   * @param mode dynamic fine-tuning optimization mode. Supported modes are
+   * "max" and "norm" for now
+   */
+  void enableDynamicTraining(
+    float threshold,
+    std::string op = DynamicTrainingOptimization::dft_opt_norm) {
+    dft_opt.setThreshold(threshold);
+    dft_opt.setOp(op);
+  }
+
+  /**
+   * @brief Disable dynamic fine-tuning optimization
+   */
+  void disableDynamicFineTuning() {
+    dft_opt.setOp(DynamicTrainingOptimization::dft_opt_off);
+  }
+
 /// @todo Make a more common class have this
 /// Maybe appcontext can have this?
 #ifdef PROFILE
@@ -554,6 +569,9 @@ private:
 
   bool in_place_optimization; /**< Run batch normalization, activation, etc
                                  layers in-place */
+
+  DynamicTrainingOptimization dft_opt; /**< Dynamic fine-tuning optimization
+   mode. supported modes are "off", "max" and "norm" */
 
   /**
    * @brief print function for neuralnet

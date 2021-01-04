@@ -325,7 +325,18 @@ void NeuralNetwork::backwarding(int iteration) {
   for (auto iter = iter_begin; iter != iter_end - 1; iter++) {
     auto layer = iter->layer;
     layer->backwarding();
-    opt->apply_gradients(layer->getWeightsRef(), iteration);
+
+    auto apply_grad_check =
+      dft_opt.checkIfApply(layer->getWeightsRef(), layer->net_input[0],
+                           layer->net_hidden[0], opt, iteration);
+    std::vector<Weight> weights_to_update;
+
+    for (unsigned int idx = 0; idx < apply_grad_check.size(); idx++) {
+      if (apply_grad_check[idx])
+        weights_to_update.emplace_back(layer->getWeightsRef()[idx]);
+    }
+
+    opt->apply_gradients(weights_to_update, iteration);
   }
 
   auto last_layer = (iter_end - 1)->layer;
