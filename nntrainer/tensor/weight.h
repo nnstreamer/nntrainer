@@ -82,7 +82,16 @@ public:
    * @copydoc var_grad::initialize(const Tensor &, const Tensor &)
    */
   void initialize(const Tensor &weight_preallocated = Tensor(),
-                  const Tensor &grad_preallocated = Tensor());
+                  const Tensor &grad_preallocated = Tensor(),
+                  bool gtrain = true);
+
+  /**
+   * @brief Initialize the gradient for the weight
+   * @param grad_preallocated if initialized, use this tensor for grad
+   * @param gtrain If all the variables should be trainable
+   */
+  void initializeGrad(const Tensor &grad_preallocated = Tensor(),
+                      bool gtrain = true);
 
   /**
    * @brief Swap for weight
@@ -159,16 +168,18 @@ public:
   /**
    * @brief Clear optimizer variables
    */
-  void clearOptimizerVariables() { opt_vars.clear(); }
+  void clearOptimizerVariables() {
+    opt_vars.clear();
+    opt_vars_dim.clear();
+  }
 
   /**
    * @brief Add optimizer variables
    * @param dim Optimizer variable dimension
    */
   void addOptimizerVariable(const TensorDim &dim) {
-    opt_vars.emplace_back(dim);
+    opt_vars_dim.emplace_back(dim);
     // TODO: Move this out when an optimizer does not initialize with 0.
-    opt_vars.back().setZero();
   }
 
   /**
@@ -181,7 +192,8 @@ public:
 private:
   WeightInitializer initializer; /**< initializer for this variable */
 
-  std::vector<Tensor> opt_vars; /**< optimizer variables */
+  std::vector<Tensor> opt_vars;        /**< optimizer variables */
+  std::vector<TensorDim> opt_vars_dim; /**< optimizer variables dimensions */
 };
 
 } // namespace nntrainer

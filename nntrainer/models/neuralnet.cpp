@@ -258,12 +258,12 @@ int NeuralNetwork::initialize() {
     }
   }
   setBatchSize(batch_size);
+  // Allocate and initialize weights
+  manager->initializeWeights();
 
   if (in_place_optimization) {
     model_graph.inPlaceOptimize(*manager);
   }
-
-  manager->initialize();
 
   initialized = true;
   return status;
@@ -505,7 +505,7 @@ sharedConstTensors NeuralNetwork::inference(sharedConstTensors X) {
 
 int NeuralNetwork::assignMem(bool trainable) {
   // TODO: directly replace this
-  manager->initializeInOuts(trainable);
+  manager->initializeTensors(trainable);
   return ML_ERROR_NONE;
 }
 
