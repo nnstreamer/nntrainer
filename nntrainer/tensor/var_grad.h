@@ -228,6 +228,20 @@ public:
    */
   Tensor &getGradientRef() { return *grad.get(); }
 
+  /**
+   * @brief Get the variable tensor (by reference)
+   *
+   * @return Tensor Variable tensor
+   */
+  Tensor &getVariableRef() const { return *var.get(); }
+
+  /**
+   * @brief Get the Gradient tensor (by reference)
+   *
+   * @return Tensor Gradient tensor
+   */
+  Tensor &getGradientRef() const { return *grad.get(); }
+
 protected:
   TensorDim dim;                /**< dimension of the tensor */
   std::shared_ptr<Tensor> var;  /**< variable to be updated and used */

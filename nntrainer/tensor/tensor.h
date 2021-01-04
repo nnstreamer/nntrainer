@@ -679,6 +679,12 @@ public:
   std::vector<unsigned int> argmax() const;
 
   /**
+   * @brief     return max of the absolute values of the tensor
+   * @retval    maximum absolute value
+   */
+  float max_abs() const;
+
+  /**
    * @brief     return a copy of the Tensor Dim
    * @retval    TensorDim
    */

@@ -155,7 +155,6 @@ public:
    */
   virtual void addOptimizerVariable(std::vector<Weight> &params) {}
 
-protected:
   /**
    * @brief     get Learning Rate for the given iteration
    * @param[in] iteration Iteration for the learning rate
@@ -163,6 +162,7 @@ protected:
    */
   virtual double getLearningRate(int iteration);
 
+protected:
   float learning_rate;      /** learning rate */
   float decay_rate;         /** decay rate for learning rate */
   unsigned int decay_steps; /** decay steps for learning rate */
