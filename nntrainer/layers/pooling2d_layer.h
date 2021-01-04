@@ -100,11 +100,6 @@ public:
   void calcDerivative();
 
   /**
-   * @copydoc Layer::setBatch(unsigned int batch)
-   */
-  void setBatch(unsigned int batch);
-
-  /**
    * @brief     copy layer
    * @param[in] l layer to copy
    */

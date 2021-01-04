@@ -55,14 +55,6 @@ int Pooling2DLayer::initialize(Manager &manager) {
     out_dim.width(in_dim.channel());
   }
 
-  if (pooling_type == PoolingType::max) {
-    max_idx.resize(out_dim.getDataLen());
-  }
-
-  if (pooling_type == PoolingType::global_max) {
-    max_idx_global.resize(out_dim.getDataLen());
-  }
-
   return status;
 }
 
@@ -75,6 +67,12 @@ void Pooling2DLayer::forwarding(bool training) {
 
   if (hidden_.uninitialized()) {
     hidden_ = Tensor(hidden_dim);
+  }
+
+  if (pooling_type == PoolingType::max) {
+    max_idx.resize(output_dim[0].getDataLen());
+  } else if (pooling_type == PoolingType::global_max) {
+    max_idx_global.resize(output_dim[0].getDataLen());
   }
 
   for (unsigned int b = 0; b < in_dim.batch(); ++b) {
@@ -180,16 +178,6 @@ int Pooling2DLayer::setSize(int *size, PropertyType type) {
     break;
   }
   return status;
-}
-
-void Pooling2DLayer::setBatch(unsigned int batch) {
-  Layer::setBatch(batch);
-
-  if (pooling_type == PoolingType::max) {
-    max_idx.resize(output_dim[0].getDataLen());
-  } else if (pooling_type == PoolingType::global_max) {
-    max_idx_global.resize(output_dim[0].getDataLen());
-  }
 }
 
 void Pooling2DLayer::copy(std::shared_ptr<Layer> l) {
