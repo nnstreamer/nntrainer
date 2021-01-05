@@ -272,6 +272,12 @@ void Layer::setProperty(const PropertyType type, const std::string &value) {
         output_layers.push_back(concat_layers[i]);
     }
     break;
+  case PropertyType::trainable:
+    if (!value.empty()) {
+      status = setBoolean(trainable, value);
+      throw_status(status);
+    }
+    break;
   default:
     std::string msg =
       "[Layer] Unknown Layer Property Key for value " + std::string(value);
