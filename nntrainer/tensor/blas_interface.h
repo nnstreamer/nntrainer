@@ -60,6 +60,8 @@ void sgemv(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA, const unsigned int M,
            const unsigned int lda, const float *X, const int incX,
            const float beta, float *Y, const int incY);
 
+unsigned int isamax(const unsigned int N, const float *X, const int incX);
+
 } /* namespace nntrainer */
 #endif /* __cplusplus */
 #endif /* __BLAS_INTERFACE_H__ */

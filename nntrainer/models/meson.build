@@ -1,6 +1,7 @@
 model_sources = [
   'model_loader.cpp',
-  'neuralnet.cpp'
+  'neuralnet.cpp',  
+  'dynamic_training_optimization.cpp'
 ]
 
 model_headers = [

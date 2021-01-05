@@ -26,7 +26,6 @@ $(info $(shell ($(LOCAL_PATH)/prepare_iniparser.sh $(NDK_LIBS_OUT))))
 endif
 endif
 
-
 include $(CLEAR_VARS)
 
 NNTRAINER_JNI_ROOT := $(NNTRAINER_ROOT)/jni
@@ -57,7 +56,6 @@ include $(PREBUILT_STATIC_LIBRARY)
 
 endif #ENABLE_TFLITE_BACKBONE
 
-
 ifeq ($(ENABLE_BLAS), 1)
 include $(CLEAR_VARS)
 
@@ -79,11 +77,11 @@ LOCAL_EXPORT_CFLAGS += -DUSE_BLAS=1
 include $(PREBUILT_STATIC_LIBRARY)
 endif #ENABLE_BLAS
 
-
 include $(CLEAR_VARS)
 
 NNTRAINER_SRCS := $(NNTRAINER_ROOT)/nntrainer/models/neuralnet.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/models/model_loader.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/models/dynamic_training_optimization.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/dataset/databuffer.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/dataset/databuffer_factory.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/dataset/databuffer_func.cpp \

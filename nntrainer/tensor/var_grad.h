@@ -233,14 +233,14 @@ public:
    *
    * @return Tensor Variable tensor
    */
-  Tensor &getVariableRef() const { return *var.get(); }
+  const Tensor &getVariableRef() const { return *var.get(); }
 
   /**
    * @brief Get the Gradient tensor (by reference)
    *
    * @return Tensor Gradient tensor
    */
-  Tensor &getGradientRef() const { return *grad.get(); }
+  const Tensor &getGradientRef() const { return *grad.get(); }
 
 protected:
   TensorDim dim;                /**< dimension of the tensor */
