@@ -311,6 +311,38 @@ sharedConstTensors NeuralNetwork::forwarding(sharedConstTensors input,
   return forwarding(training);
 }
 
+void NeuralNetwork::backwarding(std::shared_ptr<Layer> layer, int iteration,
+                                bool calc_derivative) {
+  /**
+   * Do not change this order:
+   * 1. calcGradient
+   * 2. calcDerivative
+   * 3. applyGradient
+   */
+  bool apply_gradient;
+  /** If gradient optimization mode, then calculate gradient first */
+  if (dynamic_training_opt.isGradientMode())
+    layer->calcGradient();
+
+  /**
+   * If optimization off, or gradient must be applied, then this will be true
+   */
+  apply_gradient = dynamic_training_opt.checkIfApply(
+    layer->getWeightsRef(), layer->net_input[0], layer->net_hidden[0], opt,
+    iteration);
+
+  /** If gradient must be applied and its not gradient mode, calculate gradient
+   */
+  if (!dynamic_training_opt.isGradientMode() && apply_gradient)
+    layer->calcGradient();
+
+  if (calc_derivative)
+    layer->calcDerivative();
+
+  if (apply_gradient)
+    opt->apply_gradients(layer->getWeightsRef(), iteration);
+}
+
 /**
  * @brief     back propagation
  *            Call backwarding function of layer in reverse order
@@ -322,36 +354,20 @@ void NeuralNetwork::backwarding(int iteration) {
    */
   auto iter_begin = model_graph.getBackwardingBeginIter();
   auto iter_end = model_graph.getBackwardingEndIter();
+
   for (auto iter = iter_begin; iter != iter_end - 1; iter++) {
-    auto layer = iter->layer;
-    layer->backwarding();
-
-    auto apply_grad_check =
-      dft_opt.checkIfApply(layer->getWeightsRef(), layer->net_input[0],
-                           layer->net_hidden[0], opt, iteration);
-    std::vector<Weight> weights_to_update;
-
-    for (unsigned int idx = 0; idx < apply_grad_check.size(); idx++) {
-      if (apply_grad_check[idx])
-        weights_to_update.emplace_back(layer->getWeightsRef()[idx]);
-    }
-
-    opt->apply_gradients(weights_to_update, iteration);
+    backwarding(iter->layer, iteration, true);
   }
 
   auto last_layer = (iter_end - 1)->layer;
   /**
    * The last trainable layer need not calculate the derivatives
-   * Do not change this order:
-   * 1. calcGradient
-   * 2. calcDerivative
-   * 3. applyGradient
    */
-  last_layer->calcGradient();
 #ifdef ENABLE_TEST
-  last_layer->calcDerivative();
+  backwarding(last_layer, iteration, true);
+#else
+  backwarding(last_layer, iteration, false);
 #endif
-  opt->apply_gradients(last_layer->getWeightsRef(), iteration);
 }
 
 /**

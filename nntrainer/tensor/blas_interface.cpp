@@ -119,6 +119,20 @@ static void sgemm_raw(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA,
   }
 }
 
+static unsigned int isamax_raw(const unsigned int N, const float *X,
+                               const int incX) {
+
+  unsigned int max_idx = 0;
+  float max_val = X[0];
+  for (unsigned int n = 1; n < N; n += incX) {
+    float cur_val = abs(X[n]);
+    if (cur_val > max_val) {
+      max_val = cur_val;
+      max_idx = n;
+    }
+  }
+}
+
 #endif
 
 void saxpy(const unsigned int N, const float alpha, const float *X,
@@ -214,6 +228,14 @@ void sgemv(CBLAS_ORDER order, CBLAS_TRANSPOSE TransA, const unsigned int M,
                      incY);
 #else
   return sgemv_raw(order, TransA, M, N, alpha, A, lda, X, incX, beta, Y, incY);
+#endif
+}
+
+unsigned int isamax(const unsigned int N, const float *X, const int incX) {
+#ifdef USE_BLAS
+  return cblas_isamax(N, X, incX);
+#else
+  return isamax_raw(N, X, incX);
 #endif
 }
 

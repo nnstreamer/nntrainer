@@ -961,6 +961,14 @@ float Tensor::l2norm() const {
   return snrm2(len, data, 1);
 }
 
+float Tensor::max_abs() const {
+  unsigned int len = length();
+  const float *data = getData();
+
+  unsigned int idx = isamax(len, data, 1);
+  return *(data + idx);
+}
+
 Tensor &Tensor::normalization(Tensor &output) const {
   if (output.uninitialized())
     output = Tensor(dim);
