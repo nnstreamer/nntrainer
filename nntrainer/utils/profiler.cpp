@@ -93,7 +93,7 @@ GenericProfileListener::result(const int event) {
 }
 
 void GenericProfileListener::report(std::ostream &out) const {
-  std::vector<unsigned int> column_size = {10, 23, 23, 23};
+  std::vector<unsigned int> column_size = {10, 23, 23, 23, 23};
 
   for (auto &entry : time_taken) {
     auto title = profiler->eventToStr(entry.first);
@@ -112,7 +112,8 @@ void GenericProfileListener::report(std::ostream &out) const {
   out << std::setw(column_size[0]) << "key"
       << std::setw(column_size[1]) << "avg"
       << std::setw(column_size[2]) << "min"
-      << std::setw(column_size[3]) << "max" << '\n';
+      << std::setw(column_size[3]) << "max"
+      << std::setw(column_size[4]) << "sum" << '\n';
   // clang-format on
 
   // seperator
@@ -140,7 +141,8 @@ void GenericProfileListener::report(std::ostream &out) const {
     out << std::setw(column_size[0]) << title
         << std::setw(column_size[1]) << sum_.count() / (cnt_ - warmups)
         << std::setw(column_size[2]) << min_.count()
-        << std::setw(column_size[3]) << max_.count() << '\n';
+        << std::setw(column_size[3]) << max_.count()
+        << std::setw(column_size[4]) << sum_.count() << '\n';
       // clang-format on
     };
     ordered_report[-entry.first] = func;
