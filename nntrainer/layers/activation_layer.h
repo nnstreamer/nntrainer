@@ -33,6 +33,7 @@ public:
   template <typename... Args>
   ActivationLayer(ActivationType at = ActivationType::ACT_NONE, Args... args) :
     Layer(args...) {
+    setTrainable(false);
     setActivation(at);
   }
 

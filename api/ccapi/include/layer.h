@@ -126,6 +126,7 @@ public:
     modelfile = 25, /** model file for loading config for backbone layer */
     input_layers = 26,
     output_layers = 27,
+    trainable = 28,
     unknown
   };
 
