@@ -72,10 +72,9 @@ public:
   void save(std::ofstream &file){};
 
   /**
-   * @copydoc Layer::forwarding()
+   * @copydoc Layer::forwarding(bool training)
    */
-  void forwarding();
-
+  void forwarding(bool training = true) override;
   /**
    * @copydoc Layer::calcDerivative()
    */

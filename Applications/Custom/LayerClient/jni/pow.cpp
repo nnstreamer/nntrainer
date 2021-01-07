@@ -100,7 +100,7 @@ int PowLayer::initialize(nntrainer::Manager &manager) {
   return 0;
 }
 
-void PowLayer::forwarding() {
+void PowLayer::forwarding(bool training) {
 #ifdef DEBUG
   /// intended here to demonstrate that PowLayer::forwarding is being called
   std::cout << "pow layer forward is called\n";

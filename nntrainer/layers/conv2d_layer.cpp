@@ -100,7 +100,7 @@ int Conv2DLayer::initialize(Manager &manager) {
   return status;
 }
 
-void Conv2DLayer::forwarding() {
+void Conv2DLayer::forwarding(bool training) {
   int status = ML_ERROR_NONE;
 
   if (num_inputs != 1)

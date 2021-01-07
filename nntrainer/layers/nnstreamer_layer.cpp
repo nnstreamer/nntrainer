@@ -165,7 +165,7 @@ void NNStreamerLayer::setProperty(const PropertyType type,
   }
 }
 
-void NNStreamerLayer::forwarding() {
+void NNStreamerLayer::forwarding(bool training) {
   size_t data_size;
   Tensor &input = net_input[0]->getVariableRef();
   Tensor &hidden_ = net_hidden[0]->getVariableRef();

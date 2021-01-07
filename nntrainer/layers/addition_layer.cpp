@@ -41,7 +41,7 @@ int AdditionLayer::initialize(Manager &manager) {
   return status;
 }
 
-void AdditionLayer::forwarding() {
+void AdditionLayer::forwarding(bool training) {
   Tensor &hidden_ = net_hidden[0]->getVariableRef();
   TensorDim &in_dim = input_dim[0];
 

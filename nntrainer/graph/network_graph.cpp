@@ -508,10 +508,10 @@ void NetworkGraph::setBatchSize(unsigned int batch_size) {
   }
 }
 
-sharedConstTensors NetworkGraph::forwarding() {
+sharedConstTensors NetworkGraph::forwarding(bool training) {
   for (auto const &ln : Sorted) {
     START_PROFILE(ln.event_key);
-    ln.layer->forwarding();
+    ln.layer->forwarding(training);
     END_PROFILE(ln.event_key);
   }
 

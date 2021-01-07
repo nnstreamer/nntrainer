@@ -59,8 +59,9 @@ public:
 
   /**
    * @brief nntrainer forwarding function
+   * @param[in] training true if forwarding is on training
    */
-  void forwarding();
+  void forwarding(bool training = true) override;
 
   /**
    * @brief     calc the derivative to be passed to the previous layer

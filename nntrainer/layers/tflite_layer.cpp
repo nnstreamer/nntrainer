@@ -96,7 +96,7 @@ void TfLiteLayer::setProperty(const PropertyType type,
   }
 }
 
-void TfLiteLayer::forwarding() {
+void TfLiteLayer::forwarding(bool training) {
 #ifdef DEBUG
   std::vector<TensorDim> dims;
   if (net_input.size() != input_dim.size())
