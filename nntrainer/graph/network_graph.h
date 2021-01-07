@@ -188,9 +188,10 @@ public:
   /**
    * @brief     forwarding network graph
    * @param[in] input data
+   * @param[in] training true if forwarding is on training
    * @retval output tensors
    */
-  sharedConstTensors forwarding();
+  sharedConstTensors forwarding(bool training = false);
 
   /**
    * @brief     getter of ordered graph

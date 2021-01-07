@@ -41,7 +41,7 @@ int FlattenLayer::initialize(Manager &manager) {
   return status;
 }
 
-void FlattenLayer::forwarding() {
+void FlattenLayer::forwarding(bool training) {
   Tensor temp = net_input[0]->getVariableRef();
   temp.reshape(net_hidden[0]->getDim());
   net_hidden[0]->getVariableRef() = temp;

@@ -283,15 +283,16 @@ NeuralNetwork::~NeuralNetwork() {
 /**
  * @brief     forward propagation using layers object which has layer
  */
-sharedConstTensors NeuralNetwork::forwarding() {
-  return model_graph.forwarding();
+sharedConstTensors NeuralNetwork::forwarding(bool training) {
+  return model_graph.forwarding(training);
 }
 
 /**
  * @brief     forward propagation using layers object which has layer
  */
 sharedConstTensors NeuralNetwork::forwarding(sharedConstTensors input,
-                                             sharedConstTensors label) {
+                                             sharedConstTensors label,
+                                             bool training) {
   if (input[0]->getDim().batch() > batch_size)
     throw std::logic_error("Error: mismatch in batchsize for data and model.");
 
@@ -306,7 +307,7 @@ sharedConstTensors NeuralNetwork::forwarding(sharedConstTensors input,
 
   first_layer->net_input[0]->getVariableRef() = *input[0].get();
 
-  return forwarding();
+  return forwarding(training);
 }
 
 /**
@@ -451,11 +452,11 @@ sharedConstTensors NeuralNetwork::inference(sharedConstTensors X) {
   sharedConstTensors out;
   try {
     START_PROFILE(profile::NN_FORWARD);
-    forwarding(X);
+    forwarding(X, {}, false);
     END_PROFILE(profile::NN_FORWARD);
     /** Forward loss layer without label as well */
     std::static_pointer_cast<LossLayer>(model_graph.Sorted.back().layer)
-      ->forwarding();
+      ->forwarding(false);
   } catch (...) {
     ml_loge("Failed to inference Model");
     return out;
@@ -549,7 +550,7 @@ int NeuralNetwork::train_run() {
       if (data_buffer->getDataFromBuffer(nntrainer::BufferType::BUF_TRAIN,
                                          in.getData(), label.getData())) {
         try {
-          forwarding();
+          forwarding(true);
           backwarding(iter++);
         } catch (...) {
           data_buffer->clear(nntrainer::BufferType::BUF_TRAIN);
@@ -589,7 +590,7 @@ int NeuralNetwork::train_run() {
       while (true) {
         if (data_buffer->getDataFromBuffer(nntrainer::BufferType::BUF_VAL,
                                            in.getData(), label.getData())) {
-          forwarding();
+          forwarding(false);
           auto model_out = output.argmax();
           auto label_out = label.argmax();
           for (unsigned int b = 0; b < batch_size; b++) {

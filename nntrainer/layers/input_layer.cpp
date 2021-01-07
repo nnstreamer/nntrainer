@@ -53,7 +53,7 @@ void InputLayer::setProperty(const PropertyType type,
   }
 }
 
-void InputLayer::forwarding() {
+void InputLayer::forwarding(bool training) {
   Tensor &hidden_ = net_hidden[0]->getVariableRef();
   hidden_ = net_input[0]->getVariableRef();
 

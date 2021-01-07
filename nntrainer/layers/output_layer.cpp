@@ -43,7 +43,7 @@ int OutputLayer::initialize(Manager &manager) {
   return status;
 }
 
-void OutputLayer::forwarding() {
+void OutputLayer::forwarding(bool training) {
   Tensor &input_ = net_input[0]->getVariableRef();
   for (unsigned int idx = 0; idx < num_outputs; ++idx) {
     net_hidden[idx]->getVariableRef() = input_;

@@ -192,7 +192,7 @@ public:
   /**
    * @brief     Forward Propagation of the neural network
    */
-  sharedConstTensors forwarding();
+  sharedConstTensors forwarding(bool training = true);
 
   /**
    * @brief     Forward Propagation of the neural network
@@ -201,7 +201,8 @@ public:
    * @retval    List of Output Tensors
    */
   sharedConstTensors forwarding(sharedConstTensors input,
-                                sharedConstTensors label = {});
+                                sharedConstTensors label = {},
+                                bool training = true);
 
   /**
    * @brief     Backward Propagation of the neural network

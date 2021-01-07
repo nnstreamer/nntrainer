@@ -82,7 +82,7 @@ void FullyConnectedLayer::setProperty(const PropertyType type,
   }
 }
 
-void FullyConnectedLayer::forwarding() {
+void FullyConnectedLayer::forwarding(bool training) {
   Tensor &weight =
     weightAt(static_cast<int>(FCParams::weight)).getVariableRef();
   Tensor &bias = weightAt(static_cast<int>(FCParams::bias)).getVariableRef();

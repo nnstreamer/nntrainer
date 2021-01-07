@@ -125,7 +125,7 @@ void BatchNormalizationLayer::setProperty(const PropertyType type,
   }
 }
 
-void BatchNormalizationLayer::forwarding() {
+void BatchNormalizationLayer::forwarding(bool training) {
   Tensor &mu = weightAt(BNParams::mu).getVariableRef();
   Tensor &var = weightAt(BNParams::var).getVariableRef();
   Tensor &gamma = weightAt(BNParams::gamma).getVariableRef();
@@ -134,8 +134,7 @@ void BatchNormalizationLayer::forwarding() {
   Tensor &input_ = net_input[0]->getVariableRef();
   Tensor &hidden_ = net_hidden[0]->getVariableRef();
 
-  /// @todo change trainable to train/eval mode #524
-  if (trainable) {
+  if (training) {
     Tensor cmu = input_.average(axes_to_reduce);
     deviation = input_.subtract(cmu);
 

@@ -66,7 +66,7 @@ int Pooling2DLayer::initialize(Manager &manager) {
   return status;
 }
 
-void Pooling2DLayer::forwarding() {
+void Pooling2DLayer::forwarding(bool training) {
   Tensor &input_ = net_input[0]->getVariableRef();
   Tensor &hidden_ = net_hidden[0]->getVariableRef();
 

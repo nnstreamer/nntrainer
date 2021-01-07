@@ -103,7 +103,7 @@ public:
    * @param[in] in List of Input Tensors taken by this layer
    * @retval    List of Output Tensors
    */
-  virtual void forwarding() = 0;
+  virtual void forwarding(bool training = true) = 0;
 
   /**
    * @brief     Forward Propagation of a layer

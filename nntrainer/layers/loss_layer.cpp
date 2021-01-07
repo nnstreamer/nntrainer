@@ -42,7 +42,8 @@ int LossLayer::initialize(Manager &manager) {
   return status;
 }
 
-void LossLayer::forwarding() {
+void LossLayer::forwarding(bool training) {
+  /// @todo loss layer can be determined with training variable
   Tensor &hidden_ = net_hidden[0]->getVariableRef();
   Tensor y = net_input[0]->getVariableRef();
   Tensor l;

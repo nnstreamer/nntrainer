@@ -73,9 +73,9 @@ public:
   int initialize(Manager &manager);
 
   /**
-   * @copydoc Layer::forwarding()
+   * @copydoc Layer::forwarding(bool training)
    */
-  void forwarding();
+  void forwarding(bool training = true) override;
 
   /**
    * @copydoc Layer::calcDerivative()

@@ -51,7 +51,7 @@ int ConcatLayer::initialize(Manager &manager) {
   return status;
 }
 
-void ConcatLayer::forwarding() {
+void ConcatLayer::forwarding(bool training) {
   Tensor &hidden_ = net_hidden[0]->getVariableRef();
 
 #ifdef DEBUG
