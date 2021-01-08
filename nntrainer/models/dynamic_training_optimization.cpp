@@ -18,6 +18,7 @@
 #include <layer_internal.h>
 #include <tensor.h>
 #include <util_func.h>
+#include <conv2d_layer.h>
 
 namespace nntrainer {
 DynamicTrainingOptimization::DynamicTrainingOptimization(int threshold_,
@@ -36,6 +37,26 @@ DynamicTrainingOptimization::DynamicTrainingOptimization(int threshold_,
  * @brief     Check if the given weights can skip updating
  * @note true if should be applied, else false
  */
+// bool DynamicTrainingOptimization::checkIfApply(
+//   const std::vector<Weight> &weights, const std::shared_ptr<Var_Grad> input,
+//   const std::shared_ptr<Var_Grad> output, const std::shared_ptr<Optimizer> opt,
+//   int iteration) {
+//   // if (!enabled || iteration < skip_n_iterations)
+//   if (!enabled)
+//     return true;
+
+//   std::vector<bool> apply;
+//   apply.reserve(weights.size());
+
+//   for (auto const &weight : weights)
+//       apply.push_back(checkIfApply(weight, input, output, opt, iteration));
+
+//   // return std::accumulate(apply.begin(), apply.end(), true,
+//   //                        std::logical_and<bool>());
+//   return std::accumulate(apply.begin(), apply.end(), false,
+//                          std::logical_or<bool>());
+// }
+
 bool DynamicTrainingOptimization::checkIfApply(
   const std::vector<Weight> &weights, const std::shared_ptr<Var_Grad> &input,
   const std::shared_ptr<Var_Grad> &output,
@@ -43,14 +64,23 @@ bool DynamicTrainingOptimization::checkIfApply(
   if (!enabled || iteration < skip_n_iterations)
     return true;
 
-  std::vector<bool> apply;
-  apply.reserve(weights.size());
+  bool apply = true;
+  // apply.reserve(weights.size());
 
-  for (auto const &weight : weights)
-    apply.push_back(checkIfApply(weight, input, output, opt, iteration));
+  /** Check only for the weight and not for bias */
+  if (!weights.empty() && weights[0].getName() == "Conv2d:filter") {
+    apply = checkIfApply(weights[0], input, output, opt, iteration);
+  }
+  // }
 
-  return std::accumulate(apply.begin(), apply.end(), true,
-                         std::logical_and<bool>());
+  return apply;
+  // if (apply.empty())
+  //   return true;
+
+  // // return std::accumulate(apply.begin(), apply.end(), true,
+  // //                        std::logical_and<bool>());
+  // return std::accumulate(apply.begin(), apply.end(), false,
+  //                        std::logical_or<bool>());
 }
 
 /**
@@ -61,15 +91,17 @@ bool DynamicTrainingOptimization::checkIfApply(
   const Weight &weight, const std::shared_ptr<Var_Grad> &input,
   const std::shared_ptr<Var_Grad> &output,
   const std::shared_ptr<Optimizer> &opt, int iteration) {
-  if (iteration < skip_n_iterations)
-    return true;
+  // if (iteration < skip_n_iterations)
+  //   return true;
 
   if (!weight.getTrainable() || weight.getGradientRef().uninitialized())
     return true;
 
   float reduced_ratio = calc_ratio_op(weight, input, output, reduce_op);
 
-  return checkIfApply(reduced_ratio, (float)opt->getLearningRate(iteration));
+  // std::cout << weight.getName() << " ratio = " << reduced_ratio << std::endl;
+  // return checkIfApply(reduced_ratio, (float)opt->getLearningRate(iteration));
+  return checkIfApply(reduced_ratio, (float)opt->getLearningRate());
 }
 
 /**
@@ -79,12 +111,22 @@ float DynamicTrainingOptimization::ratioUsingDerivative(
   const Weight &weight, const std::shared_ptr<Var_Grad> &input,
   const std::shared_ptr<Var_Grad> &output,
   std::function<float(Tensor const &)> reduce_op) {
-  float reduced_derivative = reduce_op(output->getGradientRef());
-  float reduced_input = reduce_op(input->getVariableRef());
-  float reduced_weight = reduce_op(weight.getVariableRef());
-  float reduced_grad = reduced_derivative * reduced_input;
+  /** Only for convolution */
+  Tensor reduced_derivative = output->getGradientRef().average(0);
+  Tensor reduced_input = input->getVariableRef().average(0);
 
-  return reduced_grad / reduced_weight;
+  TensorDim der_dim = reduced_derivative.getDim();
+  Tensor im2col_result;
+  reduced_derivative.reshape({der_dim.channel(), der_dim.height() * der_dim.width()});
+  Conv2DLayer::im2col(reduced_input, der_dim, {1,1}, {1,1}, false, im2col_result);
+
+  Tensor approx_grad;
+  reduced_derivative.dot(im2col_result, approx_grad, false, false, 0.0f);
+
+  approx_grad.reshape(weight.getDim());
+
+  Tensor ratio = approx_grad.divide(weight.getVariableRef());
+  return reduce_op(ratio) * input->getDim().batch();
 }
 
 /**
@@ -132,9 +174,18 @@ float DynamicTrainingOptimization::reduceByNorm(Tensor const &ratio) {
   return l2norm / std::sqrt(ratio.length());
 }
 
+/**
+ * @brief     Operation to decide if update should be skipped
+ * @note      Calcalate mean of the absolute values of the tensor
+ */
+float DynamicTrainingOptimization::reduceByMeanAbs(Tensor const &ratio) {
+  return ratio.mean_abs();
+}
+
 /**< Different types of reduce operations */
 const std::string DynamicTrainingOptimization::dft_opt_max = "max";
 const std::string DynamicTrainingOptimization::dft_opt_norm = "norm";
+const std::string DynamicTrainingOptimization::dft_opt_mean_abs = "mean_abs";
 
 const std::string DynamicTrainingOptimization::dft_opt_mode_gradient =
   "gradient";

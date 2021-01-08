@@ -187,6 +187,7 @@ public:
 
 private:
   WeightInitializer initializer; /**< initializer for this variable */
+  std::function<void(Tensor const &, Tensor const &, Layer &)> calcGradient;
 
   std::vector<Tensor> opt_vars;        /**< optimizer variables */
   std::vector<TensorDim> opt_vars_dim; /**< optimizer variables dimensions */

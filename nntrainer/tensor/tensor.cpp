@@ -978,7 +978,18 @@ float Tensor::max_abs() const {
   const float *data = getData();
 
   unsigned int idx = isamax(len, data, 1);
-  return *(data + idx);
+  return std::abs(*(data + idx));
+}
+
+float Tensor::mean_abs() const {
+  unsigned int len = length();
+  const float *data = getData();
+
+  float sum = 0;
+  for (unsigned int i = 0; i < len; i++)
+    sum += std::fabs(data[i]);
+
+  return sum / ((float)len);
 }
 
 Tensor &Tensor::normalization(Tensor &output) const {

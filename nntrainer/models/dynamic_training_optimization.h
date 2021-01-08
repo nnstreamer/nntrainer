@@ -66,6 +66,11 @@ public:
   };
 
   /**
+   * @brief     Get the threshold for optimization
+   */
+  float getThreshold() { return threshold; };
+
+  /**
    * @brief     Set the reduce operation for dynamic optimization
    */
   void setOp(const std::string &op) {
@@ -73,6 +78,8 @@ public:
       reduce_op = reduceByMax;
     else if (op == dft_opt_norm)
       reduce_op = reduceByNorm;
+    else if (op == dft_opt_mean_abs)
+      reduce_op = reduceByMeanAbs;
     else
       throw std::invalid_argument(
         "Unsupported reduction op in dynamic training");
@@ -161,6 +168,7 @@ public:
   /**< Different types of reduce operations */
   static const std::string dft_opt_max;
   static const std::string dft_opt_norm;
+  static const std::string dft_opt_mean_abs;
 
   /**< Different types of optimization modes */
   static const std::string dft_opt_mode_gradient;
@@ -226,6 +234,12 @@ private:
    * @note      Calcalate l2 norm of the tensor averaged by its size
    */
   static float reduceByNorm(Tensor const &ratio);
+
+  /**
+   * @brief     Operation to decide if update should be skipped
+   * @note      Calcalate mean of the absolute values of the tensor
+   */
+  static float reduceByMeanAbs(Tensor const &ratio);
 };
 
 } /* namespace nntrainer */

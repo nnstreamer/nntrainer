@@ -319,6 +319,13 @@ void NeuralNetwork::backwarding(std::shared_ptr<Layer> layer, int iteration,
    * 2. calcDerivative
    * 3. applyGradient
    */
+  static double skip_grad_count = 0, total_count = 0;
+
+  if (iteration == 0) {
+    skip_grad_count = 0;
+    total_count = 0;
+  }
+
   bool apply_gradient;
   /** If gradient optimization mode, then calculate gradient first */
   if (dynamic_training_opt.isGradientMode())
@@ -341,6 +348,21 @@ void NeuralNetwork::backwarding(std::shared_ptr<Layer> layer, int iteration,
 
   if (apply_gradient)
     opt->apply_gradients(layer->getWeightsRef(), iteration);
+
+  if (dynamic_training_opt.enabled() && !layer->getWeightsRef().empty() &&
+      layer->getWeightsRef()[0].getName() == "Conv2d:filter") {
+    total_count += 1;
+    if (apply_gradient) {
+#ifdef DEBUG
+      std::cout << "Grad applied for " << layer->getName() << ", skipped ratio -> " << skip_grad_count/total_count << std::endl;
+#endif
+    } else {
+      skip_grad_count += 1;
+#ifdef DEBUG
+      std::cout << "Grad skipped for " << layer->getName() << ", skipped ratio -> " << skip_grad_count/total_count << std::endl;
+#endif
+    }
+  }
 }
 
 /**
@@ -633,6 +655,12 @@ int NeuralNetwork::train_run() {
 
     std::cout << "#" << epoch_idx << "/" << epochs
               << " - Training Loss: " << training.loss;
+
+//   for (auto const &ln : model_graph.Sorted) {
+//     ln.layer->setTrainable(false);
+//   }
+//   std::shared_ptr<InputLayer> in_layer = std::static_pointer_cast<InputLayer>(model_graph.Sorted[0].layer);
+//   // in_layer->disableAugmentation();
 
     if (data_buffer->getValidation()[(int)nntrainer::BufferType::BUF_VAL]) {
       int right = 0;

@@ -421,7 +421,7 @@ public:
    * "max" and "norm" for now
    */
   void enableDynamicTraining(
-    float threshold, std::string op = DynamicTrainingOptimization::dft_opt_norm,
+    float threshold, std::string op = DynamicTrainingOptimization::dft_opt_mean_abs,
     std::string mode = DynamicTrainingOptimization::dft_opt_mode_derivative) {
     dynamic_training_opt.setThreshold(threshold);
     dynamic_training_opt.setOp(op);
