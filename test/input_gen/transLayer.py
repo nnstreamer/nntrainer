@@ -139,11 +139,12 @@ class ChannelLastTransLayer(AbstractTransLayer):
 
 CHANNEL_LAST_LAYERS = (K.layers.Conv2D, K.layers.AveragePooling2D)
 
+
 ##
 # @brief A factory function to attach translayer to existing layer
 # if nothing should be attached, it does not attach the layer
 def attach_trans_layer(layer):
-    if isinstance(layer, K.layers.BatchNormalization):
+    if isinstance(layer, (K.layers.BatchNormalization, K.layers.normalization_v2.BatchNormalization)):
         return BatchNormTransLayer(layer)
 
     if isinstance(layer, CHANNEL_LAST_LAYERS):
