@@ -119,7 +119,7 @@ public:
    * @brief     Constructor of Tensor with just width
    * @param[in] width Width of Tensor
    */
-  Tensor(int width) : Tensor(1, 1, 1, width){};
+  explicit Tensor(int width) : Tensor(1, 1, 1, width){};
 
   /**
    * @brief     Constructor of Tensor
@@ -251,6 +251,14 @@ public:
   Tensor multiply(float const &value);
 
   /**
+   * @brief     multiply value element by element
+   * @param[in] value multiplier
+   * @param[out] out out tensor to store the result
+   * @retval    Calculated Tensor
+   */
+  Tensor multiply(float const &value, Tensor &out) const;
+
+  /**
    * @brief     Divide value element by element immediately
    * @param[in] value divisor
    * @retval    #ML_ERROR_INVALID_PARAMETER Tensor dimension is not right
@@ -282,6 +290,14 @@ public:
   Tensor add(Tensor const &m, float const alpha = 1) const;
 
   /**
+   * @brief     Add Tensor Element by Element
+   * @param[in] m Tensor to be added
+   * @param[out] m Tensor to be out
+   * @retval    Calculated Tensor
+   */
+  Tensor add(Tensor const &m, Tensor &out, float const alpha = 1) const;
+
+  /**
    * @brief Add Tensor Element immediately to target tensor without mem copy
    * @param[in] value value to be added
    * @retval #ML_ERROR_NONE  Successful
@@ -295,6 +311,14 @@ public:
    * @retval    Calculated Tensor
    */
   Tensor add(float const &value);
+
+  /**
+   * @brief     Add Tensor Element by Element
+   * @param[in] value value to be added
+   * @param[in] out Tensor to save output without allocating new memory
+   * @retval    Calculated Tensor
+   */
+  Tensor add(float const &value, Tensor &out) const;
 
   /**
    * @brief     memcpyless version of subtract
