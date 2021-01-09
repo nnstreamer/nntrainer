@@ -182,6 +182,14 @@ subdir('nntrainer')
 # Build api
 subdir('api')
 
+if get_option('enable-test')
+  if gtest_dep.found()
+    subdir('test')
+  else
+    error('test enabled but gtest not found')
+  endif
+endif
+
 if get_option('enable-app')
   jsoncpp_dep = dependency('jsoncpp') # jsoncpp
   libcurl_dep = dependency('libcurl')
@@ -189,14 +197,6 @@ if get_option('enable-app')
     error('Tensorflow-Lite dependency not found')
   endif
   subdir('Applications')
-endif
-
-if get_option('enable-test')
-  if gtest_dep.found()
-    subdir('test')
-  else
-    error('test enabled but gtest not found')
-  endif
 endif
 
 if get_option('enable-nnstreamer-tensor-filter')
