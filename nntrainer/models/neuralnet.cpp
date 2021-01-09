@@ -302,6 +302,16 @@ sharedConstTensors NeuralNetwork::forwarding(sharedConstTensors input,
   auto &last_layer =
     model_graph.getSortedLayerNode(model_graph.getSorted().size() - 1).layer;
 
+  /// @note centroid_knn layer needs to be the last layer, currently it is
+  /// not possible because loss layer is always added.
+  /// if centroid_knn layer can be last layer, this loop is not required
+  for (auto &layer_node : model_graph.getSorted()) {
+    auto l = layer_node.layer;
+    if (l->getType() == "centroid_knn") {
+      l->net_hidden[0]->getGradientRef() = *label[0].get();
+    }
+  }
+
   if (label.empty())
     last_layer->net_hidden[0]->getGradientRef() = Tensor();
   else

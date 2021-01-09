@@ -94,7 +94,8 @@ void Layer::copy(std::shared_ptr<Layer> l) {
 }
 
 sharedConstTensors Layer::forwarding_with_val(sharedConstTensors input,
-                                              sharedConstTensors label) {
+                                              sharedConstTensors label,
+                                              bool training) {
 
   if (net_input.size() != input.size()) {
     std::stringstream ss;
@@ -113,7 +114,7 @@ sharedConstTensors Layer::forwarding_with_val(sharedConstTensors input,
     }
   }
 
-  forwarding();
+  forwarding(training);
 
   nntrainer::sharedConstTensors out;
 
