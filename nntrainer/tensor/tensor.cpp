@@ -183,16 +183,27 @@ Tensor::Tensor(
           this->setValue(i, j, k, l, d[i][j][k][l]);
 }
 
-int Tensor::multiply_i(float const &value) {
+Tensor Tensor::multiply(float const &value, Tensor &out) const {
+  /// @note this is not depending on multiply_i as there is an optimized version
+  /// of multiply_i
+  CREATE_IF_EMPTY_DIMS(out, getDim());
+  const float *data = getData();
 
+  std::transform(data, data + length(), out.getData(),
+                 std::bind2nd(std::multiplies<float>(), value));
+
+  return out;
+}
+
+Tensor Tensor::multiply(float const &value) { CLONE_OP_I(multiply_i, value); }
+
+int Tensor::multiply_i(float const &value) {
   float *data = getData();
   unsigned int len = length();
 
   sscal(len, value, data, 1);
   return ML_ERROR_NONE;
 }
-
-Tensor Tensor::multiply(float const &value) { CLONE_OP_I(multiply_i, value); }
 
 int Tensor::divide_i(float const &value) {
   if (value == 0.0f) {
@@ -219,7 +230,26 @@ int Tensor::add_i(float const &value) {
   return ML_ERROR_NONE;
 }
 
+Tensor Tensor::add(Tensor const &m, Tensor &out, float const alpha) const {
+  CREATE_IF_EMPTY_DIMS(out, getDim());
+  scopy(length(), getData(), 1, out.getData(), 1);
+  out.add_i(m, alpha);
+
+  return out;
+}
+
 Tensor Tensor::add(float const &value) { CLONE_OP_I(add_i, value); }
+
+Tensor Tensor::add(float const &value, Tensor &out) const {
+  const float *data = getData();
+
+  CREATE_IF_EMPTY_DIMS(out, getDim());
+
+  std::transform(data, data + length(), out.getData(),
+                 std::bind2nd(std::plus<float>(), value));
+
+  return out;
+}
 
 /**
  * @struct External Loop Info for broadcasted info
