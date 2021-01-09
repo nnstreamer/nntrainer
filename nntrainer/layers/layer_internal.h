@@ -109,10 +109,13 @@ public:
    * @brief     Forward Propagation of a layer
    * @param[in] input List of Input Tensors taken by this layer
    * @param[in] label List of Label Tensors taken by this layer
+   * @param[in] training if training, pass true else false. some layers have
+   * diffrent behavior depending on this
    * @retval    List of Output Tensors
    */
   virtual sharedConstTensors forwarding_with_val(sharedConstTensors input,
-                                                 sharedConstTensors label = {});
+                                                 sharedConstTensors label = {},
+                                                 bool training = true);
 
   /**
    * @brief     calc the derivative to be passed to the previous layer

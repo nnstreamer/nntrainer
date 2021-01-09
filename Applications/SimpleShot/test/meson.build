@@ -5,6 +5,7 @@ test_target = [
   'simpleshot_utils_test.cpp',
   'simpleshot_centering_test.cpp',
   'simpleshot_l2norm_test.cpp',
+  'simpleshot_centroid_knn.cpp'
 ]
 
 exe = executable(
