@@ -1,12 +1,17 @@
 simpleshot_sources = [
-  'simpleshot_utils.cpp'
+  'simpleshot_utils.cpp',
+  'layers/centering.cpp',
+  'layers/l2norm.cpp',
 ]
 
-simpleshot_inc = include_directories('.')
-
+simpleshot_inc = include_directories([
+  '.',
+  'layers',
+])
 
 e = executable('simpleshot_runner',
   ['task_runner.cpp'] + simpleshot_sources,
+  include_directories: simpleshot_inc,
   dependencies: [app_utils_dep, nntrainer_dep, tflite_dep],
   install: get_option('install-app'),
   install_dir: application_install_dir

@@ -20,6 +20,8 @@
  * @bug		No known bugs except for NYI items
  *
  */
+#include <ostream>
+#include <sstream>
 
 #include <layer_internal.h>
 #include <nntrainer_error.h>
@@ -94,8 +96,12 @@ void Layer::copy(std::shared_ptr<Layer> l) {
 sharedConstTensors Layer::forwarding_with_val(sharedConstTensors input,
                                               sharedConstTensors label) {
 
-  if (net_input.size() != input.size())
-    throw std::invalid_argument("Number of inputs mismatched");
+  if (net_input.size() != input.size()) {
+    std::stringstream ss;
+    ss << "Number of inputs mismatched, given: " << input.size()
+       << " expected: " << net_input.size();
+    throw std::invalid_argument(ss.str().c_str());
+  }
 
   for (unsigned int i = 0; i < num_inputs; ++i) {
     net_input[i]->getVariableRef() = input[i]->clone();

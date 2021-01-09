@@ -2,7 +2,7 @@
 /**
  * Copyright (C) 2020 Jihoon Lee <jhoon.it.lee@samsung.com>
  *
- * @file	utils_test.cpp
+ * @file	simpleshot_utils_test.cpp
  * @date	08 Jan 2021
  * @brief	test for simpleshot utils
  * @see		https://github.com/nnstreamer/nntrainer

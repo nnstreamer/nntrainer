@@ -250,7 +250,7 @@ public:
    * @brief     get trainable for this layer
    * @retval train to enable/disable train
    */
-  bool getTrainable() noexcept { return trainable; }
+  virtual bool getTrainable() noexcept { return trainable; }
 
   /**
    * @brief     get all weights of the layer
