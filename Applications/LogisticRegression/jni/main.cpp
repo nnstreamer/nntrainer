@@ -217,7 +217,8 @@ int main(int argc, char *argv[]) {
 
       try {
         float answer =
-          NN.forwarding({MAKE_SHARED_TENSOR(nntrainer::Tensor({o}))})[0]
+          NN.forwarding({MAKE_SHARED_TENSOR(nntrainer::Tensor({o}))},
+                        {MAKE_SHARED_TENSOR(nntrainer::Tensor({l}))})[0]
             ->apply(stepFunction)
             .getValue(0, 0, 0, 0);
         std::cout << answer << " : " << l[0] << std::endl;
