@@ -599,6 +599,15 @@ int NeuralNetwork::train_run() {
   auto &label = last_layer->net_hidden[0]->getGradientRef();
   auto &in = first_layer->net_input[0]->getVariableRef();
 
+  /// @todo migrate this to trait based system; sth like need label?
+  std::shared_ptr<Layer> knn;
+  for (auto &layer_node : model_graph.getSorted()) {
+    knn = layer_node.layer;
+    if (knn->getType() == "centroid_knn") {
+      knn->net_hidden[0]->getGradientRef() = label;
+    }
+  }
+
   for (epoch_idx = epoch_idx + 1; epoch_idx <= epochs; ++epoch_idx) {
     training.loss = 0.0f;
     status = data_buffer->run(nntrainer::BufferType::BUF_TRAIN);
