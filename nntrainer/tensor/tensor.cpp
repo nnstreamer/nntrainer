@@ -893,7 +893,7 @@ void Tensor::print(std::ostream &out) const {
   const float *data = getData();
 
   unsigned int len = length();
-
+  out << "data addr: " << data << '\n';
   out << dim;
 
   if (len > 100) {

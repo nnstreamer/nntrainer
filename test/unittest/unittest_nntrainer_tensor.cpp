@@ -2413,6 +2413,7 @@ TEST(nntrainer_Tensor, print_small_size) {
   ss << target;
 
   expected << '<' << typeid(target).name() << " at " << &target << ">\n"
+           << "data addr: " << target.getData() << '\n'
            << "Shape: 3:1:2:3\n"
            << "         1          1          1 \n"
            << "         1          1          1 \n"
@@ -2436,6 +2437,7 @@ TEST(nntrainer_Tensor, print_large_size) {
   std::stringstream ss, expected;
 
   expected << '<' << typeid(target).name() << " at " << &target << ">\n"
+           << "data addr: " << target.getData() << '\n'
            << "Shape: 3:10:10:10\n"
            << "[1.2 1.2 1.2 ... 1.2 1.2 1.2]\n";
   ss << target;
