@@ -126,6 +126,7 @@ void LossLayer::calcDerivative() {
   Tensor &y = net_input[0]->getVariableRef();
   Tensor ret;
 
+  /// @todo loss backwarding is allocating a new memory. loss layer shouldn't!!
   switch (loss_type) {
   case LossType::LOSS_MSE:
     ret_derivative = y.subtract(y2).multiply(2).divide(y.getDim().getDataLen());

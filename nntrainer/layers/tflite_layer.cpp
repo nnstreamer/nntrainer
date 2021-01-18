@@ -98,36 +98,44 @@ void TfLiteLayer::setProperty(const PropertyType type,
 
 void TfLiteLayer::forwarding(bool training) {
 #ifdef DEBUG
-  std::vector<TensorDim> dims;
   if (net_input.size() != input_dim.size())
     throw std::invalid_argument("Provided number of input dimensions mismatch");
 
-  for (int idx = 0; idx < dims.size(); idx++) {
+  for (unsigned int idx = 0; idx < input_dim.size(); idx++) {
     if (net_input[idx]->getDim() != input_dim[idx])
       throw std::invalid_argument("Input dimensions mismatch");
   }
 #endif
-
-  sharedConstTensors out;
-
   auto in_indices = interpreter->inputs();
   for (size_t idx = 0; idx < net_input.size(); idx++)
     interpreter->tensor(in_indices[idx])->data.raw =
       (char *)net_input[idx]->getVariableRef().getData();
 
   auto out_indices = interpreter->outputs();
-  out.resize(out_indices.size());
   for (size_t idx = 0; idx < out_indices.size(); idx++) {
-    out[idx] = MAKE_SHARED_TENSOR(output_dim[idx]);
     interpreter->tensor(out_indices[idx])->data.raw =
-      (char *)out[idx]->getData();
+      reinterpret_cast<char *>(net_hidden[idx]->getVariableRef().getData());
   }
 
   int status = interpreter->Invoke();
   if (status != kTfLiteOk)
     throw std::runtime_error("Invoke failed");
 
-  net_hidden[0]->getVariableRef() = *out[0];
+#ifdef DEBUG
+  std::vector<TensorDim> out_tf_dim;
+  setDimensions(interpreter->outputs(), out_tf_dim, true);
+  if (out_tf_dim.size() != output_dim.size()) {
+    throw std::invalid_argument(
+      "[TfliteLayer::forward] number of output dimension does not match");
+  }
+
+  for (unsigned int i = 0; i < out_tf_dim.size(); ++i) {
+    if (output_dim[i] != out_tf_dim[i]) {
+      throw std::invalid_argumetns(
+        "[TfliteLayer::forward] output dimension does not match");
+    }
+  }
+#endif
 }
 
 void TfLiteLayer::copy(std::shared_ptr<Layer> l) {
