@@ -190,8 +190,13 @@ Manager::AllocFunc Manager::getAllocFunc(bool is_weight) {
     /**< use_shared_memory has been deprecated */
 
     /// this creates memory and sets to @a memory and returns AllocFunc
-    auto get_allocfunc = [](const unsigned int weight_size,
-                            std::unique_ptr<MMapedMemory> &memory) {
+    auto get_allocfunc =
+      [allocate_none](const unsigned int weight_size,
+                      std::unique_ptr<MMapedMemory> &memory) -> AllocFunc {
+      if (weight_size == 0) {
+        return allocate_none;
+      }
+
       if (weight_size >=
           std::numeric_limits<unsigned int>::max() / sizeof(float)) {
         throw std::invalid_argument(
