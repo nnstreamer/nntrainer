@@ -463,6 +463,33 @@ void NeuralNetwork::setBatchSize(unsigned int batch) {
     throw std::invalid_argument("Error setting batchsize for the dataset");
 }
 
+bool NeuralNetwork::validateInput(sharedConstTensors X) {
+
+  auto &first_layer = model_graph.getSortedLayerNode(0).layer;
+  auto input_dim = first_layer->getInputDimension();
+  if (X.size() != input_dim.size()) {
+    ml_loge("Error: provided number of inputs %d, required %d", (int)X.size(),
+            (int)input_dim.size());
+    return false;
+  }
+
+  for (unsigned int dim = 0; dim < input_dim.size(); dim++) {
+    if (input_dim[dim] != X[dim]->getDim()) {
+      ml_loge("Error: provided input shape does not match required shape");
+      std::stringstream ss;
+      ss << X[dim]->getDim();
+      ml_loge("Provided tensor summary : %s", ss.str().c_str());
+
+      ss.str(std::string());
+      ss << input_dim[dim];
+      ml_loge("Required tensor summary : %s", ss.str().c_str());
+      return false;
+    }
+  }
+
+  return true;
+}
+
 sharedConstTensors NeuralNetwork::inference(sharedConstTensors X) {
   if (batch_size != X[0]->batch()) {
     /**
@@ -472,9 +499,12 @@ sharedConstTensors NeuralNetwork::inference(sharedConstTensors X) {
     setBatchSize(X[0]->batch());
   }
 
+  sharedConstTensors out;
+  if (!validateInput(X))
+    return out;
+
   assignMem(false);
 
-  sharedConstTensors out;
   try {
     START_PROFILE(profile::NN_FORWARD);
     forwarding(X);
