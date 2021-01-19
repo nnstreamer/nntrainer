@@ -2,10 +2,8 @@ mnist_sources = [
   'main.cpp'
 ]
 
-if build_platform == 'tizen'
-  if not gtest_dep.found()
-    error('Gtest dependency not found for MNIST application')
-  endif
+if not gtest_dep.found()
+  error('Gtest dependency not found for MNIST application')
 endif
 
 executable('nntrainer_mnist',
