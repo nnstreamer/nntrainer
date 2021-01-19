@@ -636,6 +636,13 @@ private:
    * @param path path to set as a save path
    */
   void setSavePath(const std::string &path);
+
+  /**
+   * @brief     Match the given tensor shape with input shape of the model
+   * @param[in] X input tensor
+   * @retval true if matches, false is error
+   */
+  bool validateInput(sharedConstTensors X);
 };
 
 } /* namespace nntrainer */
