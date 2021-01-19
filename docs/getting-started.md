@@ -109,12 +109,18 @@ sudo apt install ./nntrainer-dev_0.1.0*_amd64.deb
 
 ### Build with meson
 
-Get meson from <https://mesonbuild.com/Getting-meson.html>
+Add nnstreamer ppa for some of the dependencies.
+
+```bash
+sudo add-apt-repository ppa:nnstreamer/ppa
+sudo apt-get update
+```
 
 Install the required packages.
 
 ```bash
 sudo apt install meson ninja-build
+sudo apt install gcc g++ pkg-config libopenblas-dev libiniparser-dev libjsoncpp-dev libcurl3-dev tensorflow-lite-dev nnstreamer-dev libglib2.0-dev libgstreamer1.0-dev libgtest-dev
 ```
 
 Build at the git repo root directory, this will install nntrainer and related files.
@@ -145,31 +151,21 @@ gbs build
 
 `gbs build` will execute unit testing as well unlike meson build.
 
-
 ## Troubleshooting
 
 ### Error 1:
 
-Applications/TransferLearning/Draw_Classification/jni/meson.build:5:0: ERROR: Dependency "glib-2.0" not found, tried pkgconfig and cmake
+```bash
+In file included from /usr/include/tensorflow/lite/core/api/op_resolver.h:20,
+                 from /usr/include/tensorflow/lite/model.h:39,
+                 from /usr/include/tensorflow/lite/kernels/register.h:19,
+                 from ../Applications/KNN/jni/main_sample.cpp:21:
+/usr/include/tensorflow/lite/schema/schema_generated.h:21:10: fatal error: flatbuffers/flatbuffers.h: No such file or directory
+   21 | #include "flatbuffers/flatbuffers.h"
+      |          ^~~~~~~~~~~~~~~~~~~~~~~~~~~
+compilation terminated.
+```
 
-### Solution: Please install libglib2.0-dev using the following:
+### Solution: Please install libflatbuffers-dev using the following:
 
-sudo apt-get install libglib2.0-dev
-
-### Error 2:
-
-ERROR: Dependency "gstreamer-1.0" not found, tried pkgconfig and cmake
-
-### Solution: Please install  libgstreamer1.0-dev using the following:
-
-sudo apt-get install libgstreamer1.0-dev
-
-### Error 3:
-
-meson.build:157:3: ERROR: Dependency "nnstreamer" not found, tried pkgconfig and cmake
-
-### Solution: Please install  nnstreamer-dev using the following:
-
-sudo apt install nnstreamer-dev
-
-
+sudo apt install libflatbuffers-dev
