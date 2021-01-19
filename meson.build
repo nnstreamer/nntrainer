@@ -96,7 +96,11 @@ if get_option('enable-blas')
   if build_platform == 'tizen'
     blas_dep = dependency('openblas')
   else
-    blas_dep = dependency('blas-openblas')
+    blas_dep = dependency('blas-openblas', required:false)
+    # for Ubuntu 20.04
+    if not blas_dep.found()
+      blas_dep = dependency('openblas')
+    endif
   endif
 endif
 
@@ -144,8 +148,6 @@ if get_option('enable-tflite-backbone')
   add_project_arguments('-DENABLE_TFLITE_BACKBONE=1', language:['c','cpp'])
 endif
 
-jsoncpp_dep = dependency('jsoncpp') # jsoncpp
-libcurl_dep = dependency('libcurl')
 gtest_dep = dependency('gtest', required: false)
 
 # Install .pc
@@ -161,6 +163,8 @@ subdir('nntrainer')
 subdir('api')
 
 if get_option('enable-app')
+  jsoncpp_dep = dependency('jsoncpp') # jsoncpp
+  libcurl_dep = dependency('libcurl')
   if not tflite_dep.found()
     error('Tensorflow-Lite dependency not found')
   endif
