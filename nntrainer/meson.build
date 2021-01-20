@@ -6,17 +6,11 @@ nntrainer_inc = [
 nntrainer_sources = []
 nntrainer_headers = ['app_context.h']
 
-# pc file is not present for 'ml-api-common' yet
-if cxx.has_header('nnstreamer/ml-api-common.h', required: false)
-  nntrainer_inc += include_directories ('/usr/include/nnstreamer')
-else
-  nntrainer_inc += include_directories ('../api/capi/include/platform')
-endif
-
 # Dependencies
 nntrainer_base_deps=[
   blas_dep,
   iniparser_dep,
+  ml_api_common_dep,
   libm_dep,
   libdl_dep,
   thread_dep

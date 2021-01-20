@@ -137,7 +137,16 @@ endif
 nnstreamer_capi_dep = dependency('capi-nnstreamer', required:false)
 if nnstreamer_capi_dep.found()
   add_project_arguments('-DNNSTREAMER_AVAILABLE=1', language:['c','cpp'])
+  # accessing this variable when dep_.not_found() remains hard error on purpose
+  supported_nnstreamer_capi = nnstreamer_capi_dep.version().version_compare('>=1.7.0')
+  if not supported_nnstreamer_capi
+    add_project_arguments('-DUNSUPPORTED_NNSTREAMER=1', language:['c','cpp'])
+    warning('capi-nnstreamer version is too old, we do not know if it works with older nnstreamer version')
+  endif
 endif
+
+# todo: change this to a capi-ml-common after #nnstreamer/3014
+ml_api_common_dep = dependency('capi-nnstreamer', required:true)
 
 if get_option('enable-nnstreamer-backbone')
   add_project_arguments('-DENABLE_NNSTREAMER_BACKBONE=1', language:['c','cpp'])
@@ -183,12 +192,12 @@ if get_option('enable-app')
 endif
 
 if get_option('enable-test')
-   subdir('test')
+  subdir('test')
 endif
 
 if get_option('enable-nnstreamer-tensor-filter')
-   nnstreamer_dep = dependency('nnstreamer', required: true)
-   subdir('nnstreamer/tensor_filter')
+  nnstreamer_dep = dependency('nnstreamer', required: true)
+  subdir('nnstreamer/tensor_filter')
 endif
 
 if get_option('enable-android')
