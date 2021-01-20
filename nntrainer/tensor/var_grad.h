@@ -99,7 +99,26 @@ public:
    */
   virtual void initialize(const Tensor &weight_preallocated = Tensor(),
                           const Tensor &grad_preallocated = Tensor(),
-                          bool gtrain = true);
+                          bool gtrain = true) {
+    initializeWeight(weight_preallocated, gtrain);
+    initializeGrad(grad_preallocated, gtrain);
+  }
+
+  /**
+   * @brief Initialize the variable for the weight
+   * @param preallocated if initialized, use this tensor for variable memory
+   * @param gtrain If all the variables should be trainable
+   */
+  virtual void initializeWeight(const Tensor &preallocated = Tensor(),
+                                bool gtrain = true);
+
+  /**
+   * @brief Initialize the gradient for the weight
+   * @param preallocated if initialized, use this tensor for gradient memory
+   * @param gtrain If all the variables should be trainable
+   */
+  virtual void initializeGrad(const Tensor &preallocated = Tensor(),
+                              bool gtrain = true);
 
   /**
    * @brief Allocate and initialize the variable and grad

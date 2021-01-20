@@ -131,6 +131,7 @@ Manager::Manager(bool enable_gradient_memory_opt_,
   max_grad_size(0),
   max_derivative_size(0),
   max_shared_inout(0),
+  weights_initialized(false),
   enable_gradient_memory_opt(enable_gradient_memory_opt_),
   enable_derivative_memory_opt(enable_derivative_memory_opt_),
   enable_activation_memory_opt(enable_activation_memory_opt_),
@@ -147,6 +148,7 @@ void Manager::trackWeight(std::reference_wrapper<Weight> w) {
   /// use_shared_memory = true
   std::vector<std::reference_wrapper<Weight>> temp = {w};
   weights.emplace_back(temp);
+  weights_initialized = false;
 }
 
 /**
@@ -172,6 +174,7 @@ void Manager::trackWeights(std::vector<Weight> &ws) {
   total_weight_size += weight_size;
   total_grad_size += grad_size;
   max_grad_size = std::max(max_grad_size, grad_size);
+  weights_initialized = false;
 }
 
 Manager::AllocFunc Manager::getAllocFunc(bool is_weight) {
@@ -242,9 +245,11 @@ void Manager::initializeWeights() {
       Tensor grad_prealloc = Tensor();
 
       weight_offset += dim.getDataLen();
-      weight.initialize(weight_prealloc, Tensor(), false);
+      weight.initializeWeight(weight_prealloc, false);
     }
   }
+
+  weights_initialized = true;
 }
 
 /**
@@ -375,6 +380,10 @@ void Manager::untrackLayerInOuts(const std::string &layer_name) {
  * @brief Initialize the inputs/outputs/gradients/derivatives for the layer
  */
 void Manager::initializeTensors(bool trainable) {
+  // If weights not initialized, initialize weights as well
+  if (!weights_initialized)
+    initializeWeights();
+
   // Allocate gradients
   if (trainable)
     initializeGradients();
