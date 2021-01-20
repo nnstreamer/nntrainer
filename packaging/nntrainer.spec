@@ -33,7 +33,12 @@ BuildRequires:	iniparser-devel
 BuildRequires:	gtest-devel
 BuildRequires:	python3
 BuildRequires:	python3-numpy
+
+%if 0%{tizen_version_major} >= 6
 BuildRequires:	capi-ml-common-devel
+%else
+BuildRequires:  capi-nnstreamer-devel
+%endif
 
 %if 0%{?unit_test}
 BuildRequires:	ssat >= 1.1.0
@@ -109,6 +114,7 @@ Summary:	Development package for custom nntrainer developers
 Requires:	nntrainer = %{version}-%{release}
 Requires:	iniparser-devel
 Requires:	openblas-devel
+Requires: capi-ml-common-devel
 
 %description devel
 Development package for custom nntrainer developers.
@@ -261,6 +267,12 @@ CXXFLAGS=`echo $CXXFLAGS | sed -e "s|-std=gnu++11||"`
 %if 0%{?testcoverage}
 CXXFLAGS="${CXXFLAGS} -fprofile-arcs -ftest-coverage"
 CFLAGS="${CFLAGS} -fprofile-arcs -ftest-coverage"
+%endif
+
+# Add backward competibility for tizen < 6
+%if 0%{tizen_version_major} < 6
+ln -sf %{_includedir}/nnstreamer/nnstreamer.h %{_includedir}/nnstreamer/ml-api-common.h
+ln -sf %{_libdir}/pkgconfig/capi-nnstreamer.pc %{_libdir}/pkgconfig/capi-ml-common.pc
 %endif
 
 mkdir -p build
