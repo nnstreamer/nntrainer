@@ -27,6 +27,7 @@
 #include <optimizer_factory.h>
 #include <parse_util.h>
 #include <pooling2d_layer.h>
+#include <preprocess_flip_layer.h>
 #include <tensor_dim.h>
 #include <util_func.h>
 
@@ -338,6 +339,150 @@ TEST_F(nntrainer_InputLayer, checkValidation_01_p) {
 
   status = layer.checkValidation();
   EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+class nntrainer_PreprocessFlipLayer
+  : public nntrainer_abstractLayer<nntrainer::PreprocessFlipLayer> {
+protected:
+  virtual void prepareLayer() {
+    setInputDim("3:5:5");
+    setBatch(1);
+  }
+};
+
+/**
+ * @brief Preprocess Flip Layer
+ */
+TEST_F(nntrainer_PreprocessFlipLayer, initialize_01_p) {
+  int status = reinitialize();
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Preprocess Flip Layer
+ */
+TEST_F(nntrainer_PreprocessFlipLayer, set_property_01_n) {
+  int status = layer.setProperty({"flip_direction=vertical_and_horizontal"});
+  EXPECT_NE(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Preprocess Flip Layer
+ */
+TEST_F(nntrainer_PreprocessFlipLayer, set_property_02_n) {
+  int status = layer.setProperty({"flip_direction=flip"});
+  EXPECT_NE(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Preprocess Flip Layer
+ */
+TEST_F(nntrainer_PreprocessFlipLayer, forwarding_01_p) {
+  layer.setProperty({"input_shape=1:3:5:5"});
+  layer.setProperty({"flip_direction=horizontal"});
+  nntrainer::Tensor in(nntrainer::TensorDim({1, 3, 5, 5}));
+  nntrainer::Tensor out_flip, out_orig;
+
+  in.setRandNormal(0.0f, 10.0f);
+
+  while (out_flip.uninitialized() || (out_flip == in)) {
+    EXPECT_NO_THROW(out_flip =
+                      *layer.forwarding_with_val({MAKE_SHARED_TENSOR(in)})[0]);
+  }
+  EXPECT_NE(out_flip, in);
+
+  while (out_orig.uninitialized() || (out_orig != in)) {
+    EXPECT_NO_THROW(
+      out_orig = *layer.forwarding_with_val({MAKE_SHARED_TENSOR(out_flip)})[0]);
+  }
+  EXPECT_EQ(out_orig, in);
+}
+
+/**
+ * @brief Preprocess Flip Layer
+ */
+TEST_F(nntrainer_PreprocessFlipLayer, forwarding_02_p) {
+  layer.setProperty({"input_shape=1:2:4:4"});
+  layer.setProperty({"flip_direction=horizontal"});
+  nntrainer::Tensor in(nntrainer::TensorDim({1, 2, 4, 4}));
+  nntrainer::Tensor out_flip, out_orig;
+
+  in.setRandNormal(0.0f, 10.0f);
+
+  while (out_flip.uninitialized() || (out_flip == in)) {
+    EXPECT_NO_THROW(out_flip =
+                      *layer.forwarding_with_val({MAKE_SHARED_TENSOR(in)})[0]);
+  }
+  EXPECT_NE(out_flip, in);
+
+  while (out_orig.uninitialized() || (out_orig != in)) {
+    EXPECT_NO_THROW(
+      out_orig = *layer.forwarding_with_val({MAKE_SHARED_TENSOR(out_flip)})[0]);
+  }
+  EXPECT_EQ(out_orig, in);
+}
+/**
+ * @brief Preprocess Flip Layer
+ */
+TEST_F(nntrainer_PreprocessFlipLayer, forwarding_03_p) {
+  layer.setProperty({"input_shape=1:3:5:5"});
+  layer.setProperty({"flip_direction=vertical"});
+  nntrainer::Tensor in(nntrainer::TensorDim({1, 3, 5, 5}));
+  nntrainer::Tensor out_flip, out_orig;
+
+  in.setRandNormal(0.0f, 10.0f);
+
+  while (out_flip.uninitialized() || (out_flip == in)) {
+    EXPECT_NO_THROW(out_flip =
+                      *layer.forwarding_with_val({MAKE_SHARED_TENSOR(in)})[0]);
+  }
+  EXPECT_NE(out_flip, in);
+
+  while (out_orig.uninitialized() || (out_orig != in)) {
+    EXPECT_NO_THROW(
+      out_orig = *layer.forwarding_with_val({MAKE_SHARED_TENSOR(out_flip)})[0]);
+  }
+  EXPECT_EQ(out_orig, in);
+}
+
+/**
+ * @brief Preprocess Flip Layer
+ */
+TEST_F(nntrainer_PreprocessFlipLayer, forwarding_04_p) {
+  layer.setProperty({"input_shape=1:2:4:4"});
+  layer.setProperty({"flip_direction=vertical"});
+  nntrainer::Tensor in(nntrainer::TensorDim({1, 2, 4, 4}));
+  nntrainer::Tensor out_flip, out_orig;
+
+  in.setRandNormal(0.0f, 10.0f);
+
+  while (out_flip.uninitialized() || (out_flip == in)) {
+    EXPECT_NO_THROW(out_flip =
+                      *layer.forwarding_with_val({MAKE_SHARED_TENSOR(in)})[0]);
+  }
+  EXPECT_NE(out_flip, in);
+
+  while (out_orig.uninitialized() || (out_orig != in)) {
+    EXPECT_NO_THROW(
+      out_orig = *layer.forwarding_with_val({MAKE_SHARED_TENSOR(out_flip)})[0]);
+  }
+  EXPECT_EQ(out_orig, in);
+}
+
+/**
+ * @brief Preprocess Flip Layer
+ */
+TEST_F(nntrainer_PreprocessFlipLayer, forwarding_05_p) {
+  layer.setProperty({"input_shape=1:2:4:4"});
+  layer.setBatch(5);
+  layer.setProperty({"flip_direction=horizontal_and_vertical"});
+  nntrainer::Tensor in(nntrainer::TensorDim({5, 2, 4, 4}));
+  nntrainer::Tensor out_flip;
+
+  in.setRandNormal(0.0f, 10.0f);
+
+  EXPECT_NO_THROW(out_flip =
+                    *layer.forwarding_with_val({MAKE_SHARED_TENSOR(in)})[0]);
 }
 
 class nntrainer_FullyConnectedLayer

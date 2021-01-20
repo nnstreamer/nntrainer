@@ -241,6 +241,8 @@ unsigned int parseType(std::string ll, InputType t) {
  * modelfile = 25
  * input_layers = 26
  * output_layers = 27
+ * trainable = 28
+ * flip_direction = 29
  *
  * InputLayer has 0, 1, 2, 3 properties.
  * FullyConnectedLayer has 1, 4, 6, 7, 8, 9 properties.
@@ -248,7 +250,7 @@ unsigned int parseType(std::string ll, InputType t) {
  * Pooling2DLayer has 12, 13, 14, 15 properties.
  * BatchNormalizationLayer has 0, 1, 5, 6, 7 properties.
  */
-static std::array<std::string, 30> property_string = {
+static std::array<std::string, 31> property_string = {
   "input_shape",
   "normalization",
   "standardization",
@@ -278,6 +280,7 @@ static std::array<std::string, 30> property_string = {
   "input_layers",
   "output_layers",
   "trainable",
+  "flip_direction",
   "unknown"};
 
 unsigned int parseLayerProperty(std::string property) {

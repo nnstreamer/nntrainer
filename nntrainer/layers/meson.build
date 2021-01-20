@@ -12,7 +12,8 @@ layer_sources = [
   'layer.cpp',
   'layer_factory.cpp',
   'loss_layer.cpp',
-  'pooling2d_layer.cpp'
+  'pooling2d_layer.cpp',
+  'preprocess_flip_layer.cpp',
 ]
 
 layer_headers = [

@@ -127,6 +127,7 @@ public:
     input_layers = 26,
     output_layers = 27,
     trainable = 28,
+    flip_direction = 29,
     unknown
   };
 
