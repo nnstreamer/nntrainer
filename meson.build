@@ -150,6 +150,17 @@ endif
 
 gtest_dep = dependency('gtest', required: false)
 
+opencv_dep = dependency('opencv', required: false)
+if not opencv_dep.found()
+  opencv_dep = dependency('opencv4', required: false)
+  if not opencv_dep.found()
+    opencv_dep = dependency('opencv3', required: false)
+  endif
+endif
+if opencv_dep.found()
+  add_project_arguments('-DENABLE_DATA_AUGMENTATION_OPENCV=1', language:['c','cpp'])
+endif
+
 # Install .pc
 configure_file(input: 'nntrainer.pc.in', output: 'nntrainer.pc',
   install_dir: nntrainer_libdir / 'pkgconfig',

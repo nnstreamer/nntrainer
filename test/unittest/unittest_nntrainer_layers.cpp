@@ -28,6 +28,7 @@
 #include <parse_util.h>
 #include <pooling2d_layer.h>
 #include <preprocess_flip_layer.h>
+#include <preprocess_translate_layer.h>
 #include <tensor_dim.h>
 #include <util_func.h>
 
@@ -421,6 +422,7 @@ TEST_F(nntrainer_PreprocessFlipLayer, forwarding_02_p) {
   }
   EXPECT_EQ(out_orig, in);
 }
+
 /**
  * @brief Preprocess Flip Layer
  */
@@ -483,6 +485,79 @@ TEST_F(nntrainer_PreprocessFlipLayer, forwarding_05_p) {
 
   EXPECT_NO_THROW(out_flip =
                     *layer.forwarding_with_val({MAKE_SHARED_TENSOR(in)})[0]);
+}
+
+class nntrainer_PreprocessTranslateLayer
+  : public nntrainer_abstractLayer<nntrainer::PreprocessTranslateLayer> {
+protected:
+  virtual void prepareLayer() {
+    setInputDim("3:32:32");
+    setBatch(1);
+  }
+};
+
+/**
+ * @brief Preprocess Translate Layer
+ */
+TEST_F(nntrainer_PreprocessTranslateLayer, initialize_01_p) {
+  int status = reinitialize();
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Preprocess Translate Layer
+ */
+TEST_F(nntrainer_PreprocessTranslateLayer, set_property_01_p) {
+  int status = layer.setProperty({"random_translate=0.5"});
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief Preprocess Translate Layer
+ */
+TEST_F(nntrainer_PreprocessTranslateLayer, forwarding_01_p) {
+  layer.setBatch(2);
+  layer.setProperty({"random_translate=0.0"});
+  layer.initialize(manager);
+
+  manager.initialize();
+  manager.initializeInOuts(true);
+
+  nntrainer::Tensor in(nntrainer::TensorDim({2, 3, 32, 32}));
+  nntrainer::Tensor out_trans;
+
+  in.setRandNormal(0.0f, 10.0f);
+
+  EXPECT_NO_THROW(out_trans =
+                    *layer.forwarding_with_val({MAKE_SHARED_TENSOR(in)})[0]);
+  EXPECT_EQ(out_trans, in);
+}
+
+/**
+ * @brief Preprocess Translate Layer
+ */
+TEST_F(nntrainer_PreprocessTranslateLayer, forwarding_02_p) {
+#if defined(ENABLE_DATA_AUGMENTATION_OPENCV)
+  layer.setBatch(1);
+  layer.setProperty({"random_translate=0.1"});
+  layer.initialize(manager);
+
+  manager.initialize();
+  manager.initializeInOuts(true);
+
+  nntrainer::Tensor in(nntrainer::TensorDim({1, 3, 32, 32}));
+
+  in.setRandNormal(0.0f, 10.0f);
+
+  nntrainer::Tensor out_trans;
+  EXPECT_NO_THROW(out_trans =
+                    *layer.forwarding_with_val({MAKE_SHARED_TENSOR(in)})[0]);
+  EXPECT_NE(out_trans, in);
+#else
+  layer.setBatch(1);
+  layer.setProperty({"random_translate=0.1"});
+  EXPECT_THROW(layer.initialize(manager), nntrainer::exception::not_supported);
+#endif
 }
 
 class nntrainer_FullyConnectedLayer
