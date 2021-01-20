@@ -8,5 +8,6 @@ Name: ccapi-nntrainer
 Description: NNTrainer cc API
 Version: @VERSION@
 Requires:
+# Requires: capi-ml-common-devel
 Libs: -L${libdir} -lccapi-nntrainer
 Cflags: -I${includedir}/nntrainer
