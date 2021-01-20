@@ -7,6 +7,7 @@
 %define         nntrainerapplicationdir %{_libdir}/nntrainer/bin
 %define         test_script $(pwd)/packaging/run_unittests.sh
 %define         gen_input $(pwd)/test/input_gen/genInput.py
+%define         support_data_augmentation_opencv 1
 %bcond_with tizen
 
 Name:		nntrainer
@@ -49,6 +50,10 @@ BuildRequires:	gym-http-api-devel
 # to be compatible with gcc-9, lcov should have a higher version than 1.14.1
 BuildRequires: lcov
 # BuildRequires:	taos-ci-unittest-coverage-assessment
+%endif
+
+%if 0%{?support_data_augmentation_opencv}
+BuildRequires: opencv-devel
 %endif
 
 %if %{with tizen}

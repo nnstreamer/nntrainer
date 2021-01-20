@@ -14,6 +14,7 @@ layer_sources = [
   'loss_layer.cpp',
   'pooling2d_layer.cpp',
   'preprocess_flip_layer.cpp',
+  'preprocess_translate_layer.cpp'
 ]
 
 layer_headers = [
@@ -38,6 +39,9 @@ if get_option('enable-tflite-backbone')
   layer_deps += tflite_dep
   layer_sources += 'tflite_layer.cpp'
 endif
+
+# dependency for data augmentation, if present
+layer_deps += opencv_dep
 
 nntrainer_base_deps += layer_deps
 
