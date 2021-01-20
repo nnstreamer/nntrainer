@@ -79,18 +79,15 @@ public:
     bool train = true, std::string name = "");
 
   /**
-   * @copydoc var_grad::initialize(const Tensor &, const Tensor &)
+   * @copydoc var_grad::initializeWeight(const Tensor &, bool)
    */
-  void initialize(const Tensor &weight_preallocated = Tensor(),
-                  const Tensor &grad_preallocated = Tensor(),
-                  bool gtrain = true);
+  void initializeWeight(const Tensor &preallocated = Tensor(),
+                        bool gtrain = true);
 
   /**
-   * @brief Initialize the gradient for the weight
-   * @param grad_preallocated if initialized, use this tensor for grad
-   * @param gtrain If all the variables should be trainable
+   * @copydoc var_grad::initializeGrad(const Tensor &, bool)
    */
-  void initializeGrad(const Tensor &grad_preallocated = Tensor(),
+  void initializeGrad(const Tensor &preallocated = Tensor(),
                       bool gtrain = true);
 
   /**

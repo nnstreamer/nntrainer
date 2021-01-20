@@ -256,6 +256,7 @@ private:
   size_t max_grad_size;       /**< max trainable weight required by a layer */
   size_t max_derivative_size; /**< max derivative required by a layer */
   size_t max_shared_inout;    /**< max memory for in/outs for inference */
+  bool weights_initialized;   /**< track if weights have been initialized */
 
   /**< Inputs/outputs of all the layer in the model */
   std::vector<std::vector<std::shared_ptr<Var_Grad>>> in_outs;

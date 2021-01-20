@@ -24,20 +24,21 @@ Var_Grad::Var_Grad(const TensorDim &dim, bool train, const std::string &name) :
   grad = std::make_shared<Tensor>();
 }
 
-void Var_Grad::initialize(const Tensor &weights_preallocated,
-                          const Tensor &grad_preallocated, bool gtrain) {
-  if (!weights_preallocated.uninitialized()) {
-    var = std::make_shared<Tensor>(weights_preallocated);
+void Var_Grad::initializeWeight(const Tensor &preallocated, bool gtrain) {
+  if (!preallocated.uninitialized()) {
+    var = std::make_shared<Tensor>(preallocated);
   } else {
     var = std::make_shared<Tensor>(dim);
   }
+}
 
-  if (!grad_preallocated.uninitialized() && gtrain) {
+void Var_Grad::initializeGrad(const Tensor &preallocated, bool gtrain) {
+  if (!preallocated.uninitialized() && gtrain) {
     /**
      * Making a new tensor is intentional here as this tensor is not shared
      * with other layers but the internal memory is.
      */
-    grad = std::make_shared<Tensor>(grad_preallocated);
+    grad = std::make_shared<Tensor>(preallocated);
   } else {
     grad = std::make_shared<Tensor>();
     if (trainable && gtrain) {
