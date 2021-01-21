@@ -74,6 +74,28 @@
 
 namespace nntrainer {
 
+/**
+ * @struct External Loop Info for broadcasted info
+ * @brief External Loop Info for broadcasted iteration. Please refer to
+ * DISABLED_private_external_loop_n in unittest_nntrainer_tensor.
+ * @note This should better be implemented in iterator fashion before used
+ * extensively.
+ */
+struct Tensor::BroadcastInfo {
+
+  /**
+   * @brief Construct a new External Loop Info object
+   *
+   */
+  BroadcastInfo() : strides{0, 0, 0, 0} {}
+
+  unsigned int buffer_size; /**< virtual size of the buffer */
+  int buffer_axis;          /**< the smallest axis that should be looped.
+                                 -1 means no loop needed*/
+  std::array<unsigned int, MAXDIM>
+    strides; /**< modified strides for the loop */
+};
+
 static auto rng = [] {
   std::mt19937 rng;
   rng.seed(getSeed());
@@ -195,9 +217,25 @@ Tensor::Tensor(
           this->setValue(i, j, k, l, d[i][j][k][l]);
 }
 
-Tensor Tensor::multiply(float const &value, Tensor &out) const {
-  /// @note this is not depending on multiply_i as there is an optimized version
-  /// of multiply_i
+int Tensor::multiply_i(float const &value) {
+  float *data = getData();
+  unsigned int len = length();
+
+  sscal(len, value, data, 1);
+  return ML_ERROR_NONE;
+}
+
+Tensor Tensor::multiply(float const &value) const {
+  CLONE_OP_I(multiply_i, value);
+}
+
+Tensor &Tensor::multiply(float const &value, Tensor &out) const {
+  /// @note this is not depending on multiply_i as there is an optimized
+  /// version of multiply_i
+
+  if (out.uninitialized()) {
+    out = this->clone();
+  }
   CREATE_IF_EMPTY_DIMS(out, getDim());
   const float *data = getData();
 
@@ -205,16 +243,6 @@ Tensor Tensor::multiply(float const &value, Tensor &out) const {
                  std::bind2nd(std::multiplies<float>(), value));
 
   return out;
-}
-
-Tensor Tensor::multiply(float const &value) { CLONE_OP_I(multiply_i, value); }
-
-int Tensor::multiply_i(float const &value) {
-  float *data = getData();
-  unsigned int len = length();
-
-  sscal(len, value, data, 1);
-  return ML_ERROR_NONE;
 }
 
 int Tensor::divide_i(float const &value) {
@@ -225,12 +253,16 @@ int Tensor::divide_i(float const &value) {
   return this->multiply_i(1.0f / value);
 }
 
-Tensor Tensor::divide(float const &value) {
+Tensor Tensor::divide(float const &value) const {
   if (value == 0.0f) {
     throw std::runtime_error("Error: Divide by zero");
   }
 
   CLONE_OP_I(divide_i, value);
+}
+
+Tensor Tensor::divide(float const &value, Tensor &out) const {
+  throw nntrainer::exception::not_supported("NYI");
 }
 
 int Tensor::add_i(float const &value) {
@@ -242,15 +274,7 @@ int Tensor::add_i(float const &value) {
   return ML_ERROR_NONE;
 }
 
-Tensor Tensor::add(Tensor const &m, Tensor &out, float const alpha) const {
-  CREATE_IF_EMPTY_DIMS(out, getDim());
-  scopy(length(), getData(), 1, out.getData(), 1);
-  out.add_i(m, alpha);
-
-  return out;
-}
-
-Tensor Tensor::add(float const &value) { CLONE_OP_I(add_i, value); }
+Tensor Tensor::add(float const &value) const { CLONE_OP_I(add_i, value); }
 
 Tensor Tensor::add(float const &value, Tensor &out) const {
   const float *data = getData();
@@ -263,36 +287,86 @@ Tensor Tensor::add(float const &value, Tensor &out) const {
   return out;
 }
 
-/**
- * @struct External Loop Info for broadcasted info
- * @brief External Loop Info for broadcasted iteration. Please refer to
- * DISABLED_private_external_loop_n in unittest_nntrainer_tensor.
- * @note This should better be implemented in iterator fashion before used
- * extensively.
- */
-struct Tensor::BroadcastInfo {
+int Tensor::subtract_i(float const &value) { return this->add_i(-value); }
 
-  /**
-   * @brief Construct a new External Loop Info object
-   *
-   */
-  BroadcastInfo() : strides{0, 0, 0, 0} {}
+Tensor Tensor::subtract(float const &value) const { return this->add(-value); }
 
-  unsigned int buffer_size; /**< virtual size of the buffer */
-  int buffer_axis;          /**< the smallest axis that should be looped.
-                                 -1 means no loop needed*/
-  std::array<unsigned int, MAXDIM>
-    strides; /**< modified strides for the loop */
-};
+Tensor Tensor::subtract(float const &value, Tensor &out) const {
+  throw nntrainer::exception::not_supported("NYI");
+}
 
-/**
- * @brief Add Tensor Element by Element without mem copy
- * @param[in] m Tensor to be added
- * #retval #ML_ERROR_NONE  Successful
- * #retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter
- * TODO: add axis rather doing add over the last two dimensions always
- */
+Tensor Tensor::pow(float exponent) const {
+  return apply([=](float in) { return powf(in, exponent); });
+}
+
+int Tensor::pow_i(float exponent) {
+  return apply_i([=](float in) { return powf(in, exponent); });
+}
+
+int Tensor::multiply_i(Tensor const &m) {
+  auto f = [&](const BroadcastInfo &e, float *buf, const float *m_buf) {
+    for (unsigned int i = 0; i < e.buffer_size; ++i) {
+      *buf *= *m_buf;
+      buf += strides[3];
+      m_buf += e.strides[3];
+    }
+  };
+
+  return operator_i(m, f);
+}
+
+Tensor Tensor::multiply(Tensor const &m) const { CLONE_OP_I(multiply_i, m); }
+
+Tensor &Tensor::multiply(Tensor const &m, Tensor &output) const {
+  auto f = [&](const BroadcastInfo &e, const float *buf, const float *m_buf,
+               float *output) {
+    for (unsigned int i = 0; i < e.buffer_size; ++i) {
+      *output = *buf * *m_buf;
+      buf += strides[3];
+      m_buf += e.strides[3];
+      output += strides[3];
+    }
+  };
+
+  CREATE_IF_EMPTY_DIMS(output, dim);
+  operator_(m, f, output);
+
+  return output;
+}
+
+int Tensor::divide_i(Tensor const &m) {
+  auto f = [&](const BroadcastInfo &e, float *buf, const float *m_buf) {
+    for (unsigned int i = 0; i < e.buffer_size; ++i) {
+      *buf /= *m_buf;
+      buf += strides[3];
+      m_buf += e.strides[3];
+    }
+  };
+
+  return operator_i(m, f);
+}
+
+Tensor Tensor::divide(Tensor const &m) const { CLONE_OP_I(divide_i, m); }
+
+Tensor &Tensor::divide(Tensor const &m, Tensor &output) const {
+  auto f = [&](const BroadcastInfo &e, const float *buf, const float *m_buf,
+               float *output) {
+    for (unsigned int i = 0; i < e.buffer_size; ++i) {
+      *output = *buf / *m_buf;
+      buf += strides[3];
+      m_buf += e.strides[3];
+      output += strides[3];
+    }
+  };
+
+  CREATE_IF_EMPTY_DIMS(output, dim);
+  operator_(m, f, output);
+
+  return output;
+}
+
 int Tensor::add_i(Tensor const &m, float const alpha) {
+  /// @TODO: add axis rather doing add over the last two dimensions always
   auto f = [&](const BroadcastInfo &e, float *buf, const float *m_buf) {
     saxpy(e.buffer_size, alpha, m_buf, e.strides[3], buf, strides[3]);
   };
@@ -304,20 +378,20 @@ Tensor Tensor::add(Tensor const &m, float const alpha) const {
   CLONE_OP_I(add_i, m, alpha);
 }
 
+Tensor &Tensor::add(Tensor const &m, Tensor &out, float const alpha) const {
+  CREATE_IF_EMPTY_DIMS(out, getDim());
+  scopy(length(), getData(), 1, out.getData(), 1);
+  out.add_i(m, alpha);
+
+  return out;
+}
+
 int Tensor::subtract_i(Tensor const &m) { return add_i(m, -1); }
 
 Tensor Tensor::subtract(Tensor const &m) const { return add(m, -1); }
 
-int Tensor::subtract_i(float const &value) { return this->add_i(-value); }
-
-Tensor Tensor::subtract(float const &value) { return this->add(-value); }
-
-Tensor Tensor::pow(float exponent) const {
-  return apply([=](float in) { return powf(in, exponent); });
-}
-
-int Tensor::pow_i(float exponent) {
-  return apply_i([=](float in) { return powf(in, exponent); });
+Tensor &Tensor::subtract(Tensor const &m, Tensor &out) const {
+  throw nntrainer::exception::not_supported("NYI");
 }
 
 Tensor Tensor::getBatchSlice(unsigned int offset, unsigned int size) const {
@@ -349,8 +423,8 @@ int Tensor::operator_i(
   BroadcastInfo e;
 
   /// shortcut to cover when dimension matches
-  /// note that buffer_size, the last stride is only used in v_func but it might
-  /// be changed
+  /// note that buffer_size, the last stride is only used in v_func but it
+  /// might be changed
   if (dim == m.dim) {
     e.buffer_size = length();
     e.strides[3] = 1;
@@ -375,8 +449,8 @@ void Tensor::operator_(Tensor const &m,
                        Tensor &output) const {
 
   /// shortcut to cover when dimension matches
-  /// note that buffer_size, the last stride is only used in v_func but it might
-  /// be changed
+  /// note that buffer_size, the last stride is only used in v_func but it
+  /// might be changed
   if (dim == m.dim) {
     BroadcastInfo e;
     e.buffer_size = length();
@@ -441,68 +515,6 @@ int Tensor::operator_i_util(
   }
 
   return status;
-}
-
-int Tensor::multiply_i(Tensor const &m) {
-  auto f = [&](const BroadcastInfo &e, float *buf, const float *m_buf) {
-    for (unsigned int i = 0; i < e.buffer_size; ++i) {
-      *buf *= *m_buf;
-      buf += strides[3];
-      m_buf += e.strides[3];
-    }
-  };
-
-  return operator_i(m, f);
-}
-
-Tensor Tensor::multiply(Tensor const &m) const { CLONE_OP_I(multiply_i, m); }
-
-Tensor &Tensor::multiply(Tensor const &m, Tensor &output) const {
-  auto f = [&](const BroadcastInfo &e, const float *buf, const float *m_buf,
-               float *output) {
-    for (unsigned int i = 0; i < e.buffer_size; ++i) {
-      *output = *buf * *m_buf;
-      buf += strides[3];
-      m_buf += e.strides[3];
-      output += strides[3];
-    }
-  };
-
-  CREATE_IF_EMPTY_DIMS(output, dim);
-  operator_(m, f, output);
-
-  return output;
-}
-
-int Tensor::divide_i(Tensor const &m) {
-  auto f = [&](const BroadcastInfo &e, float *buf, const float *m_buf) {
-    for (unsigned int i = 0; i < e.buffer_size; ++i) {
-      *buf /= *m_buf;
-      buf += strides[3];
-      m_buf += e.strides[3];
-    }
-  };
-
-  return operator_i(m, f);
-}
-
-Tensor Tensor::divide(Tensor const &m) const { CLONE_OP_I(divide_i, m); }
-
-Tensor &Tensor::divide(Tensor const &m, Tensor &output) const {
-  auto f = [&](const BroadcastInfo &e, const float *buf, const float *m_buf,
-               float *output) {
-    for (unsigned int i = 0; i < e.buffer_size; ++i) {
-      *output = *buf / *m_buf;
-      buf += strides[3];
-      m_buf += e.strides[3];
-      output += strides[3];
-    }
-  };
-
-  CREATE_IF_EMPTY_DIMS(output, dim);
-  operator_(m, f, output);
-
-  return output;
 }
 
 /**
@@ -652,9 +664,9 @@ Tensor &Tensor::dot(Tensor const &m, Tensor &result, bool trans, bool trans_m,
     CREATE_IF_EMPTY_DIMS(result, batch(), channel(), height(), N);
 
     // We are not set zero the result because of performnace reason.
-    // However, result is not initialized properly. There might include garbage
-    // like nan. When we have to use this value as in C = alpha*A*B + beta*C,
-    // then have to check gargabe data of C is not effect or not.
+    // However, result is not initialized properly. There might include
+    // garbage like nan. When we have to use this value as in C = alpha*A*B +
+    // beta*C, then have to check gargabe data of C is not effect or not.
 
   } else if (!trans && trans_m) {
     if (dim2 != mdim2)
@@ -775,17 +787,17 @@ Tensor Tensor::transpose(std::string direction) const {
   return result;
 }
 
-Tensor Tensor::apply(std::function<float(float)> f) const {
-  Tensor result;
-  return apply(f, result);
-}
-
 int Tensor::apply_i(std::function<float(float)> f) {
   float *data = getData();
 
   std::transform(data, data + length(), data, f);
 
   return ML_ERROR_NONE;
+}
+
+Tensor Tensor::apply(std::function<float(float)> f) const {
+  Tensor result;
+  return apply(f, result);
 }
 
 Tensor &Tensor::apply(std::function<float(float)> f, Tensor &output) const {

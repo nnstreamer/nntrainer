@@ -251,7 +251,7 @@ public:
    * @param[in] value multiplier
    * @retval    Calculated Tensor
    */
-  Tensor multiply(float const &value);
+  Tensor multiply(float const &value) const;
 
   /**
    * @brief     multiply value element by element
@@ -259,7 +259,29 @@ public:
    * @param[out] out out tensor to store the result
    * @retval    Calculated Tensor
    */
-  Tensor multiply(float const &value, Tensor &out) const;
+  Tensor &multiply(float const &value, Tensor &out) const;
+
+  /**
+   * @brief     Multiply Tensor Elementwise
+   * @param[in] m Tensor to be multiplied
+   * @retval    #ML_ERROR_NONE successful
+   */
+  int multiply_i(Tensor const &m);
+
+  /**
+   * @brief     Multiply Tensor Element by Element ( Not the MxM )
+   * @param[in] m Tensor to be multiplied
+   * @retval    Calculated Tensor
+   */
+  Tensor multiply(Tensor const &m) const;
+
+  /**
+   * @brief     Multiply Tensor Element by Element ( Not the MxM )
+   * @param[in] m Tensor to be multiplied
+   * @param[out] output Tensor to store the result
+   * @retval    Calculated Tensor
+   */
+  Tensor &multiply(Tensor const &m, Tensor &output) const;
 
   /**
    * @brief     Divide value element by element immediately
@@ -274,7 +296,60 @@ public:
    * @param[in] value Divisor
    * @retval    Calculated Tensor
    */
-  Tensor divide(float const &value);
+  Tensor divide(float const &value) const;
+
+  /**
+   * @brief     Divide value element by element
+   * @param[in] value Divisor
+   * @param[out] out out parameter to store the result
+   * @retval    Calculated Tensor
+   */
+  Tensor divide(float const &value, Tensor &out) const;
+
+  /**
+   * @brief     divide Tensor Elementwise
+   * @param[in] m Tensor to be multiplied
+   * @retval    #ML_ERROR_NONE successful
+   */
+  int divide_i(Tensor const &m);
+
+  /**
+   * @brief     Divide Tensor Element by Element
+   * @param[in] m Divisor Tensor
+   * @retval    Calculated Tensor
+   */
+  Tensor divide(Tensor const &m) const;
+
+  /**
+   * @brief     divide Tensor Elementwise
+   * @param[in] m Tensor to be multiplied
+   * @param[out] output Tensor to store the result
+   * @retval    Calculated Tensor
+   */
+  Tensor &divide(Tensor const &m, Tensor &output) const;
+
+  /**
+   * @brief Add Tensor Element immediately to target tensor without mem copy
+   * @param[in] value value to be added
+   * @retval #ML_ERROR_NONE  Successful
+   * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter
+   */
+  int add_i(float const &value);
+
+  /**
+   * @brief     Add value Element by Element
+   * @param[in] value value to be added
+   * @retval    Calculated Tensor
+   */
+  Tensor add(float const &value) const;
+
+  /**
+   * @brief     Add Tensor Element by Element
+   * @param[in] value value to be added
+   * @param[out] out Tensor to save output without allocating new memory
+   * @retval    Calculated Tensor
+   */
+  Tensor &add(float const &value, Tensor &out) const;
 
   /**
    * @brief Add Tensor Element by Element without mem copy
@@ -298,30 +373,30 @@ public:
    * @param[out] m Tensor to be out
    * @retval    Calculated Tensor
    */
-  Tensor add(Tensor const &m, Tensor &out, float const alpha = 1) const;
+  Tensor &add(Tensor const &m, Tensor &out, float const alpha = 1) const;
 
   /**
-   * @brief Add Tensor Element immediately to target tensor without mem copy
-   * @param[in] value value to be added
+   * @brief     memcpyless version of subtract
+   * @param[in] value value to subtract
    * @retval #ML_ERROR_NONE  Successful
    * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter
    */
-  int add_i(float const &value);
+  int subtract_i(float const &value);
 
   /**
-   * @brief     Add value Element by Element
-   * @param[in] value value to be added
+   * @brief     subtract value Element by Element
+   * @param[in] value value to be subtracted
    * @retval    Calculated Tensor
    */
-  Tensor add(float const &value);
+  Tensor subtract(float const &value) const;
 
   /**
-   * @brief     Add Tensor Element by Element
+   * @brief     Subtract Tensor Element by Element
    * @param[in] value value to be added
-   * @param[in] out Tensor to save output without allocating new memory
+   * @param[out] out Tensor to save output without allocating new memory
    * @retval    Calculated Tensor
    */
-  Tensor add(float const &value, Tensor &out) const;
+  Tensor &subtract(float const &value, Tensor &out) const;
 
   /**
    * @brief     memcpyless version of subtract
@@ -339,60 +414,35 @@ public:
   Tensor subtract(Tensor const &m) const;
 
   /**
-   * @brief     memcpyless version of subtract
-   * @param[in] value value to subtract
-   * @retval #ML_ERROR_NONE  Successful
-   * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter
-   */
-  int subtract_i(float const &value);
-
-  /**
-   * @brief     subtract value Element by Element
-   * @param[in] value value to be subtracted
+   * @brief     Subtract Tensor Element by Element
+   * @param[in] m Tensor to be added
+   * @param[out] m Tensor to be out
    * @retval    Calculated Tensor
    */
-  Tensor subtract(float const &value);
+  Tensor &subtract(Tensor const &m, Tensor &out) const;
 
   /**
-   * @brief     Multiply Tensor Elementwise
-   * @param[in] m Tensor to be multiplied
-   * @retval    #ML_ERROR_NONE successful
+   * @brief Tensor power elementwise
+   *
+   * @param exponent exponent
+   * @return int ML_ERROR_NONE if successful
    */
-  int multiply_i(Tensor const &m);
-
-  /**
-   * @brief     Multiply Tensor Element by Element ( Not the MxM )
-   * @param[in] m Tensor to be multiplied
-   * @retval    Calculated Tensor
-   */
-  Tensor multiply(Tensor const &m) const;
-
-  Tensor &multiply(Tensor const &m, Tensor &output) const;
-
-  /**
-   * @brief     divide Tensor Elementwise
-   * @param[in] m Tensor to be multiplied
-   * @retval    #ML_ERROR_NONE successful
-   */
-  int divide_i(Tensor const &m);
-
-  /**
-   * @brief     Divide Tensor Element by Element
-   * @param[in] m Divisor Tensor
-   * @retval    Calculated Tensor
-   */
-  Tensor divide(Tensor const &m) const;
-
-  Tensor &divide(Tensor const &m, Tensor &output) const;
+  int pow_i(float exponent);
 
   /**
    * @brief    Tensor power Element by Element
-   * @param[in] float Divisor Tensor
+   * @param[in] exponent exponent
    * @retval Calculated Tensor
    */
-  Tensor pow(float m) const;
+  Tensor pow(float exponent) const;
 
-  int pow_i(float m);
+  /**
+   * @brief    Tensor power Element by Element
+   * @param[in] exponent exponent
+   * @param[out] out out to store the result
+   * @retval Calculated Tensor
+   */
+  Tensor &pow(float exponent, Tensor &out) const;
 
   /**
    * @brief     Dot Product of Tensor ( equal MxM )
@@ -538,6 +588,14 @@ public:
   void setZero();
 
   /**
+   * @brief Apply instantly to the element
+   *
+   * @param f function to apply
+   * @return int ML_ERROR_NONE if successful
+   */
+  int apply_i(std::function<float(float)> f);
+
+  /**
    * @brief     Apply function element by element
    * @param[in] *function function pointer applied
    * @retval    Tensor
@@ -567,8 +625,6 @@ public:
    */
   Tensor &apply(std::function<Tensor &(Tensor, Tensor &)> f,
                 Tensor &output) const;
-
-  int apply_i(std::function<float(float)> f);
 
   /**
    * @brief     Print element
