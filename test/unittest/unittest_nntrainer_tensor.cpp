@@ -507,7 +507,7 @@ TEST(nntrainer_Tensor, multiply_03_n) {
 
   nntrainer::Tensor test(batch - 1, height - 1, width - 1);
 
-  EXPECT_THROW({ input.multiply(test); }, std::runtime_error);
+  EXPECT_THROW({ input.multiply(test); }, std::invalid_argument);
 }
 
 TEST(nntrainer_Tensor, multiply_float_01_p) {
@@ -633,7 +633,7 @@ TEST(nntrainer_Tensor, divide_02_n) {
   nntrainer::Tensor input(batch, channel, height, width);
   GEN_TEST_INPUT(input, i * (batch * height) + j * (width) + k + 1);
 
-  EXPECT_THROW({ input.divide(0.0); }, std::runtime_error);
+  EXPECT_THROW({ input.divide(0.0); }, std::invalid_argument);
 }
 
 TEST(nntrainer_Tensor, divide_03_n) {
@@ -647,7 +647,7 @@ TEST(nntrainer_Tensor, divide_03_n) {
 
   nntrainer::Tensor test(batch - 1, channel, height - 1, width - 1);
 
-  EXPECT_THROW({ input.divide(test); }, std::runtime_error);
+  EXPECT_THROW({ input.divide(test); }, std::invalid_argument);
 }
 
 TEST(nntrainer_Tensor, divide_i_broadcast_01_p) {
@@ -1329,7 +1329,7 @@ TEST(nntrainer_Tensor, add_03_n) {
 
   nntrainer::Tensor test(batch - 1, channel, height - 1, width - 1);
 
-  EXPECT_THROW({ input.add(test); }, std::runtime_error);
+  EXPECT_THROW({ input.add(test); }, std::invalid_argument);
 }
 
 TEST(nntrainer_Tensor, pow_01_p) {
@@ -1442,7 +1442,6 @@ TEST(nntrainer_Tensor, subtract_01_p) {
 }
 
 TEST(nntrainer_Tensor, subtract_02_p) {
-  int status = ML_ERROR_NONE;
   int batch = 3;
   int channel = 1;
   int height = 3;
@@ -1453,19 +1452,7 @@ TEST(nntrainer_Tensor, subtract_02_p) {
 
   nntrainer::Tensor result = input.subtract(input);
 
-  float *data = result.getData();
-  ASSERT_NE(nullptr, data);
-  float *indata = input.getData();
-  ASSERT_NE(nullptr, indata);
-
-  for (int i = 0; i < batch * height * width; ++i) {
-    if (data[i] != 0.0) {
-      status = ML_ERROR_RESULT_OUT_OF_RANGE;
-      break;
-    }
-  }
-
-  EXPECT_EQ(status, ML_ERROR_NONE);
+  EXPECT_EQ(constant(0.0, batch, channel, height, width), result);
 }
 
 TEST(nntrainer_Tensor, subtract_03_n) {
@@ -1479,7 +1466,7 @@ TEST(nntrainer_Tensor, subtract_03_n) {
 
   nntrainer::Tensor test(batch - 1, channel, height - 1, width - 1);
 
-  EXPECT_THROW({ input.subtract(test); }, std::runtime_error);
+  EXPECT_THROW({ input.subtract(test); }, std::invalid_argument);
 }
 
 TEST(nntrainer_Tensor, subtract_float_01_p) {
@@ -2420,7 +2407,6 @@ TEST(nntrainer_Tensor, constructor_from_shared_const_ptr_shares_variable_n) {
 TEST(nntrainer_Tensor, print_small_size) {
   nntrainer::Tensor target = constant(1.0, 3, 1, 2, 3);
 
-  std::cerr << target;
   std::stringstream ss, expected;
   ss << target;
 
@@ -2475,9 +2461,55 @@ TEST(nntrainer_Tensor, DISABLED_equation_test_01_p) {
   }
 }
 
-/**
- * @brief Main gtest
- */
+TEST(nntrainer_Tensor, fill_p) {
+  /// same dimension, buffer size
+  {
+    nntrainer::Tensor target(3, 2, 4, 5);
+    nntrainer::Tensor original = randUniform(3, 2, 4, 5, -1.0f, 1.0f);
+    target.fill(original, false);
+
+    EXPECT_EQ(target, original);
+  }
+
+  /// same dimension, buffer size is different (not tested)
+  {
+    /// there is no way to make non contiguous tensor publicily yet
+    EXPECT_TRUE(true);
+  }
+
+  /// uninitialized with initialized flag is true
+  {
+    nntrainer::Tensor target;
+    nntrainer::Tensor original = randUniform(3, 2, 4, 5, -1.0f, 1.0f);
+    target.fill(original, true);
+
+    EXPECT_EQ(target, original);
+  }
+}
+
+TEST(nntrainer_Tensor, fill_uninitialized_n) {
+  nntrainer::Tensor target;
+  nntrainer::Tensor original = randUniform(3, 1, 2, 3, -1.0f, 1.0f);
+  EXPECT_THROW(target.fill(original, false), std::invalid_argument);
+}
+
+TEST(nntrainer_Tensor, fill_different_dimension_n) {
+  nntrainer::Tensor target(3, 1, 3, 2);
+  nntrainer::Tensor original = randUniform(3, 1, 2, 3, -1.0f, 1.0f);
+  EXPECT_THROW(target.fill(original, false), std::invalid_argument);
+}
+
+TEST(nntrainer_Tensor, DISABLED_fill_non_contiguous_n) {
+  /// there is no way to make non contiguous tensor publicily yet
+  EXPECT_TRUE(false);
+}
+
+TEST(nntrainer_Tensor, DISABLED_fill_different_buffer_size_n) {
+  /// there is no way to make same dimension, diffrent buffersized tensor
+  /// publicily yet
+  EXPECT_TRUE(false);
+}
+
 int main(int argc, char **argv) {
   int result = -1;
 
@@ -2491,7 +2523,7 @@ int main(int argc, char **argv) {
   try {
     result = RUN_ALL_TESTS();
   } catch (...) {
-    std::cerr << "Error duing RUN_ALL_TSETS()" << std::endl;
+    std::cerr << "Error duing RUN_ALL_TESTS()" << std::endl;
   }
 
   return result;
