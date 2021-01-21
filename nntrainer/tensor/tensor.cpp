@@ -67,7 +67,7 @@
     if (clone.op(__VA_ARGS__) != ML_ERROR_NONE) {  \
       std::stringstream ss;                        \
       ss << "Error: op " << __func__ << " failed"; \
-      throw std::runtime_error(ss.str());          \
+      throw std::invalid_argument(ss.str());       \
     }                                              \
     return clone;                                  \
   } while (0);
@@ -218,6 +218,8 @@ Tensor::Tensor(
 }
 
 int Tensor::multiply_i(float const &value) {
+  /// @note this is not depending on multiply_i as there is an optimized
+  /// version for multiply_i
   float *data = getData();
   unsigned int len = length();
 
@@ -226,162 +228,184 @@ int Tensor::multiply_i(float const &value) {
 }
 
 Tensor Tensor::multiply(float const &value) const {
-  CLONE_OP_I(multiply_i, value);
+  Tensor t;
+  return multiply(value, t);
 }
 
 Tensor &Tensor::multiply(float const &value, Tensor &out) const {
-  /// @note this is not depending on multiply_i as there is an optimized
-  /// version of multiply_i
-
-  if (out.uninitialized()) {
-    out = this->clone();
-  }
-  CREATE_IF_EMPTY_DIMS(out, getDim());
-  const float *data = getData();
-
-  std::transform(data, data + length(), out.getData(),
-                 std::bind2nd(std::multiplies<float>(), value));
-
-  return out;
+  /// @todo add unittest
+  auto f = std::bind(std::multiplies<float>(), std::placeholders::_1, value);
+  return apply(f, out);
 }
 
 int Tensor::divide_i(float const &value) {
   if (value == 0.0f) {
     return ML_ERROR_INVALID_PARAMETER;
   }
-
-  return this->multiply_i(1.0f / value);
+  this->divide(value, *this);
+  return ML_ERROR_NONE;
 }
 
 Tensor Tensor::divide(float const &value) const {
-  if (value == 0.0f) {
-    throw std::runtime_error("Error: Divide by zero");
-  }
-
-  CLONE_OP_I(divide_i, value);
+  Tensor t;
+  return divide(value, t);
 }
 
-Tensor Tensor::divide(float const &value, Tensor &out) const {
-  throw nntrainer::exception::not_supported("NYI");
+Tensor &Tensor::divide(float const &value, Tensor &out) const {
+  auto f = std::bind(std::divides<float>(), std::placeholders::_1, value);
+  /// @todo add unittest
+  if (value == 0.0f) {
+    std::stringstream ss;
+    ss << "[Tensor] divide by value failed, value: " << value;
+    throw std::invalid_argument(ss.str().c_str());
+  }
+  return apply(f, out);
 }
 
 int Tensor::add_i(float const &value) {
-  float *data = getData();
+  this->add(value, *this);
+  return ML_ERROR_NONE;
+}
 
-  std::transform(data, data + length(), data,
-                 std::bind2nd(std::plus<float>(), value));
+Tensor Tensor::add(float const &value) const {
+  Tensor t;
+  return add(value, t);
+}
+
+Tensor &Tensor::add(float const &value, Tensor &out) const {
+  /// @todo add unittest
+  auto f = std::bind(std::plus<float>(), std::placeholders::_1, value);
+  return apply(f, out);
+}
+
+int Tensor::subtract_i(float const &value) {
+  this->subtract(value, *this);
+  return ML_ERROR_NONE;
+}
+
+Tensor Tensor::subtract(float const &value) const {
+  Tensor t;
+  return subtract(value, t);
+}
+
+Tensor &Tensor::subtract(float const &value, Tensor &out) const {
+  /// @todo add unittest
+  auto f = std::bind(std::minus<float>(), std::placeholders::_1, value);
+  return apply(f, out);
+}
+
+int Tensor::pow_i(float exponent) {
+  pow(exponent, *this);
+  return ML_ERROR_NONE;
+}
+
+Tensor Tensor::pow(float exponent) const {
+  Tensor t;
+  return pow(exponent, t);
+}
+
+Tensor &Tensor::pow(float exponent, Tensor &out) const {
+  auto f = [exponent](float in) { return powf(in, exponent); };
+  return apply(f, out);
+}
+
+int Tensor::multiply_i(Tensor const &m) {
+  try {
+    this->multiply(m, *this);
+  } catch (std::exception &err) {
+    ml_loge("%s %s", typeid(err).name(), err.what());
+    return ML_ERROR_INVALID_PARAMETER;
+  }
 
   return ML_ERROR_NONE;
 }
 
-Tensor Tensor::add(float const &value) const { CLONE_OP_I(add_i, value); }
-
-Tensor Tensor::add(float const &value, Tensor &out) const {
-  const float *data = getData();
-
-  CREATE_IF_EMPTY_DIMS(out, getDim());
-
-  std::transform(data, data + length(), out.getData(),
-                 std::bind2nd(std::plus<float>(), value));
-
-  return out;
+Tensor Tensor::multiply(Tensor const &m) const {
+  Tensor t;
+  return this->multiply(m, t);
 }
-
-int Tensor::subtract_i(float const &value) { return this->add_i(-value); }
-
-Tensor Tensor::subtract(float const &value) const { return this->add(-value); }
-
-Tensor Tensor::subtract(float const &value, Tensor &out) const {
-  throw nntrainer::exception::not_supported("NYI");
-}
-
-Tensor Tensor::pow(float exponent) const {
-  return apply([=](float in) { return powf(in, exponent); });
-}
-
-int Tensor::pow_i(float exponent) {
-  return apply_i([=](float in) { return powf(in, exponent); });
-}
-
-int Tensor::multiply_i(Tensor const &m) {
-  auto f = [&](const BroadcastInfo &e, float *buf, const float *m_buf) {
-    for (unsigned int i = 0; i < e.buffer_size; ++i) {
-      *buf *= *m_buf;
-      buf += strides[3];
-      m_buf += e.strides[3];
-    }
-  };
-
-  return operator_i(m, f);
-}
-
-Tensor Tensor::multiply(Tensor const &m) const { CLONE_OP_I(multiply_i, m); }
 
 Tensor &Tensor::multiply(Tensor const &m, Tensor &output) const {
   auto f = [&](const BroadcastInfo &e, const float *buf, const float *m_buf,
-               float *output) {
+               float *out_buf) {
     for (unsigned int i = 0; i < e.buffer_size; ++i) {
-      *output = *buf * *m_buf;
+      *out_buf = *buf * *m_buf;
       buf += strides[3];
       m_buf += e.strides[3];
-      output += strides[3];
+      out_buf += strides[3];
     }
   };
 
-  CREATE_IF_EMPTY_DIMS(output, dim);
-  operator_(m, f, output);
-
+  apply_broadcast(m, f, output);
   return output;
 }
 
 int Tensor::divide_i(Tensor const &m) {
-  auto f = [&](const BroadcastInfo &e, float *buf, const float *m_buf) {
-    for (unsigned int i = 0; i < e.buffer_size; ++i) {
-      *buf /= *m_buf;
-      buf += strides[3];
-      m_buf += e.strides[3];
-    }
-  };
+  try {
+    this->divide(m, *this);
+  } catch (std::exception &err) {
+    ml_loge("%s %s", typeid(err).name(), err.what());
+    return ML_ERROR_INVALID_PARAMETER;
+  }
 
-  return operator_i(m, f);
+  return ML_ERROR_NONE;
 }
 
-Tensor Tensor::divide(Tensor const &m) const { CLONE_OP_I(divide_i, m); }
+Tensor Tensor::divide(Tensor const &m) const {
+  Tensor t;
+  return this->divide(m, t);
+}
 
 Tensor &Tensor::divide(Tensor const &m, Tensor &output) const {
   auto f = [&](const BroadcastInfo &e, const float *buf, const float *m_buf,
-               float *output) {
+               float *out_buf) {
     for (unsigned int i = 0; i < e.buffer_size; ++i) {
-      *output = *buf / *m_buf;
+      *out_buf = *buf / *m_buf;
       buf += strides[3];
       m_buf += e.strides[3];
-      output += strides[3];
+      out_buf += strides[3];
     }
   };
 
-  CREATE_IF_EMPTY_DIMS(output, dim);
-  operator_(m, f, output);
-
+  apply_broadcast(m, f, output);
   return output;
 }
 
 int Tensor::add_i(Tensor const &m, float const alpha) {
   /// @TODO: add axis rather doing add over the last two dimensions always
-  auto f = [&](const BroadcastInfo &e, float *buf, const float *m_buf) {
-    saxpy(e.buffer_size, alpha, m_buf, e.strides[3], buf, strides[3]);
+  /// operator i has optimized version
+  auto f = [&](const BroadcastInfo &e, const float *buf, const float *m_buf,
+               float *out_buf) {
+    saxpy(e.buffer_size, alpha, m_buf, e.strides[3], out_buf, strides[3]);
   };
 
-  return operator_i(m, f);
+  try {
+    apply_broadcast(m, f, *this);
+  } catch (std::exception &err) {
+    ml_loge("%s %s", typeid(err).name(), err.what());
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
+  return ML_ERROR_NONE;
 }
 
 Tensor Tensor::add(Tensor const &m, float const alpha) const {
-  CLONE_OP_I(add_i, m, alpha);
+  Tensor t;
+  return this->add(m, t, alpha);
 }
 
 Tensor &Tensor::add(Tensor const &m, Tensor &out, float const alpha) const {
-  CREATE_IF_EMPTY_DIMS(out, getDim());
-  scopy(length(), getData(), 1, out.getData(), 1);
-  out.add_i(m, alpha);
+  auto f = [&](const BroadcastInfo &e, const float *buf, const float *m_buf,
+               float *out_buf) {
+    for (unsigned int i = 0; i < e.buffer_size; ++i) {
+      *out_buf = *buf + *m_buf * alpha;
+      buf += strides[3];
+      m_buf += e.strides[3];
+      out_buf += strides[3];
+    }
+  };
+
+  apply_broadcast(m, f, out);
 
   return out;
 }
@@ -391,7 +415,7 @@ int Tensor::subtract_i(Tensor const &m) { return add_i(m, -1); }
 Tensor Tensor::subtract(Tensor const &m) const { return add(m, -1); }
 
 Tensor &Tensor::subtract(Tensor const &m, Tensor &out) const {
-  throw nntrainer::exception::not_supported("NYI");
+  return add(m, out, -1);
 }
 
 Tensor Tensor::getBatchSlice(unsigned int offset, unsigned int size) const {
@@ -416,37 +440,13 @@ Tensor Tensor::getSharedDataTensor(const TensorDim dim_,
   return ret;
 }
 
-int Tensor::operator_i(
+void Tensor::apply_broadcast(
   Tensor const &m,
-  std::function<void(const BroadcastInfo &e, float *, const float *)> v_func) {
-
-  BroadcastInfo e;
-
-  /// shortcut to cover when dimension matches
-  /// note that buffer_size, the last stride is only used in v_func but it
-  /// might be changed
-  if (dim == m.dim) {
-    e.buffer_size = length();
-    e.strides[3] = 1;
-    v_func(e, getData(), m.getData());
-    return ML_ERROR_NONE;
-  }
-
-  try {
-    e = this->computeBroadcastInfo(m);
-  } catch (std::exception &err) {
-    ml_loge("%s %s", typeid(err).name(), err.what());
-    return ML_ERROR_INVALID_PARAMETER;
-  }
-
-  return operator_i_util(m, v_func, e);
-}
-
-void Tensor::operator_(Tensor const &m,
-                       std::function<void(const BroadcastInfo &e, const float *,
-                                          const float *, float *)>
-                         v_func,
-                       Tensor &output) const {
+  std::function<void(const BroadcastInfo &e, const float *, const float *,
+                     float *)>
+    v_func,
+  Tensor &output) const {
+  CREATE_IF_EMPTY_DIMS(output, dim);
 
   /// shortcut to cover when dimension matches
   /// note that buffer_size, the last stride is only used in v_func but it
@@ -459,10 +459,10 @@ void Tensor::operator_(Tensor const &m,
     return;
   }
 
-  return operator_util(m, v_func, output, this->computeBroadcastInfo(m));
+  return apply_broadcast_util(m, v_func, output, this->computeBroadcastInfo(m));
 }
 
-void Tensor::operator_util(
+void Tensor::apply_broadcast_util(
   Tensor const &m,
   std::function<void(const BroadcastInfo &e, const float *, const float *,
                      float *)>
@@ -483,38 +483,9 @@ void Tensor::operator_util(
   for (unsigned int i = 0; i < dim.getTensorDim(cur_axis); ++i) {
     unsigned int next_offset = offset + i * strides[cur_axis];
     unsigned int next_m_offset = m_offset + i * e.strides[cur_axis];
-    operator_util(m, v_func, output, e, cur_axis, next_offset, next_m_offset);
+    apply_broadcast_util(m, v_func, output, e, cur_axis, next_offset,
+                         next_m_offset);
   }
-}
-
-int Tensor::operator_i_util(
-  Tensor const &m,
-  std::function<void(const BroadcastInfo &e, float *, const float *)> v_func,
-  const BroadcastInfo &e, int cur_axis, unsigned int offset,
-  unsigned int m_offset) {
-
-  float *buf = this->getData();
-  const float *m_buf = m.getData();
-  int status = ML_ERROR_NONE;
-
-  if (e.buffer_axis == cur_axis) {
-    v_func(e, buf + offset, m_buf + m_offset);
-    return ML_ERROR_NONE;
-  }
-
-  cur_axis++;
-  for (unsigned int i = 0; i < dim.getTensorDim(cur_axis); ++i) {
-    unsigned int next_offset = offset + i * strides[cur_axis];
-    unsigned int next_m_offset = m_offset + i * e.strides[cur_axis];
-    status =
-      operator_i_util(m, v_func, e, cur_axis, next_offset, next_m_offset);
-    if (status != ML_ERROR_NONE) {
-      ml_loge("[operator_i] failed: %d", status);
-      return status;
-    }
-  }
-
-  return status;
 }
 
 /**
@@ -806,6 +777,12 @@ Tensor &Tensor::apply(std::function<float(float)> f, Tensor &output) const {
   const float *data = getData();
   float *rdata = output.getData();
 
+  if (dim != output.dim) {
+    /// @todo add unittest
+    throw std::invalid_argument(
+      "[Tensor::apply] output dimension does not match");
+  }
+
   std::transform(data, data + length(), rdata, f);
 
   return output;
@@ -874,7 +851,13 @@ const float *Tensor::getAddress(unsigned int i) const {
   return &getData()[i];
 }
 
-void Tensor::copy(const float *buf) { scopy(length(), buf, 1, getData(), 1); }
+void Tensor::copy(const float *buf) noexcept {
+  if (buf == getData()) {
+    return;
+  }
+
+  scopy(length(), buf, 1, getData(), 1);
+}
 
 void Tensor::copy(const Tensor &from) {
   // todo: enable copy to non-contiguous tensor
@@ -901,8 +884,33 @@ void Tensor::reshape(const TensorDim &d) {
   if (d.getDataLen() != dim.getDataLen()) {
     throw std::invalid_argument("Error: reshape cannot change the tensor size");
   }
+
   dim = d;
   strides = d.computeStrides();
+}
+
+void Tensor::fill(const Tensor &from, bool initialize) {
+  if (initialize && this->uninitialized()) {
+    return this->copy(from);
+  }
+
+  if (!from.is_contiguous || !is_contiguous) {
+    /// @todo enable this if needed
+    throw nntrainer::exception::not_supported(
+      "[Tensor::fill] non-contiguous tensors are not supported");
+  }
+
+  if (dim != from.getDim()) {
+    throw std::invalid_argument("[Tensor::fill] dimension must be the same");
+  }
+
+  if (strides != from.getStrides()) {
+    /// @todo length does not represent buffer size, there should be way to get
+    /// the buffer size
+    throw std::invalid_argument("[Tensor::fill] buffer size must be the same");
+  }
+
+  this->copy(from.getData());
 }
 
 void Tensor::save(std::ofstream &file) {
@@ -1065,7 +1073,7 @@ Tensor::BroadcastInfo Tensor::computeBroadcastInfo(const Tensor &m) const {
       continue;
     }
 
-    /// If given dimension is 1, it could be reuesed, the stride remaining 0
+    /// If given dimension is 1, it could be reused, the stride remaining 0
     /// Need to check if dim[i] == 1 && m_dim[i] == 1 first though
     /// If so, strides should not change
     if (m_dim.getTensorDim(i) == 1) {
@@ -1073,7 +1081,7 @@ Tensor::BroadcastInfo Tensor::computeBroadcastInfo(const Tensor &m) const {
     }
 
     std::stringstream ss;
-    ss << "[computeBroadcastInfo] broadcasting only allowed for"
+    ss << "[computeBroadcastInfo] broadcasting only allowed for "
           "dimension value of 1 \n"
        << "this: " << dim << "target: " << m_dim;
     throw std::invalid_argument(ss.str().c_str());

@@ -304,7 +304,7 @@ public:
    * @param[out] out out parameter to store the result
    * @retval    Calculated Tensor
    */
-  Tensor divide(float const &value, Tensor &out) const;
+  Tensor &divide(float const &value, Tensor &out) const;
 
   /**
    * @brief     divide Tensor Elementwise
@@ -823,6 +823,17 @@ public:
   void reshape(const TensorDim &d);
 
   /**
+   * @brief fill tensor data with current value,
+   * if dimension is not exactly same, it is a hard error in this function
+   * so, only stride is overriden to @a this
+   *
+   * @param from Tensor to fill the data from
+   * @param initialize if uninitialized, initialize with from.getDim()
+   * @throws std::invalid_argument if dimension and stride does not match
+   */
+  void fill(const Tensor &from, bool initialize = false);
+
+  /**
    * @brief     return current stride of tensor.
    * @retval    int[MAXDIM] strides
    */
@@ -854,18 +865,14 @@ private:
    * @retval #ML_ERROR_NONE Successful
    * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter
    */
-  int operator_i_util(
-    Tensor const &m,
-    std::function<void(const BroadcastInfo &e, float *, const float *)> v_func,
-    const BroadcastInfo &e, int cur_axis = -1, unsigned int offset = 0,
-    unsigned int m_offset = 0);
-
-  void operator_util(Tensor const &m,
-                     std::function<void(const BroadcastInfo &e, const float *,
-                                        const float *, float *)>
-                       v_func,
-                     Tensor &output, const BroadcastInfo &e, int cur_axis = -1,
-                     unsigned int offset = 0, unsigned int m_offset = 0) const;
+  void
+  apply_broadcast_util(Tensor const &m,
+                       std::function<void(const BroadcastInfo &e, const float *,
+                                          const float *, float *)>
+                         v_func,
+                       Tensor &output, const BroadcastInfo &e,
+                       int cur_axis = -1, unsigned int offset = 0,
+                       unsigned int m_offset = 0) const;
 
   /**
    * @brief Applies the given operator to the tensor with the passed argument
@@ -875,15 +882,11 @@ private:
    * @retval #ML_ERROR_NONE Successful
    * @retval #ML_ERROR_INVALID_PARAMETER Invalid Parameter
    */
-  int operator_i(
-    Tensor const &m,
-    std::function<void(const BroadcastInfo &e, float *, const float *)> v_func);
-
-  void operator_(Tensor const &m,
-                 std::function<void(const BroadcastInfo &e, const float *,
-                                    const float *, float *)>
-                   v_func,
-                 Tensor &output) const;
+  void apply_broadcast(Tensor const &m,
+                       std::function<void(const BroadcastInfo &e, const float *,
+                                          const float *, float *)>
+                         v_func,
+                       Tensor &output) const;
 
   /**
    * @brief compute Loop info for broadcasting and vectorization
@@ -901,7 +904,7 @@ private:
 
   template <typename T> void setDist(T dist);
 
-  void copy(const float *buf);
+  void copy(const float *buf) noexcept;
 }; // namespace nntrainer
 
 /**
