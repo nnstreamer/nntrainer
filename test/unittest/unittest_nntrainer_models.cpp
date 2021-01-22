@@ -281,11 +281,11 @@ void NodeWatcher::backward(int iteration, bool verify_deriv, bool verify_grad) {
   std::vector<nntrainer::Tensor> out = node.layer->getDerivatives();
 
   if (verify_grad) {
-    verifyGrad(err_msg);
+    verifyGrad(err_msg + " grad");
   }
 
   if (verify_deriv) {
-    verify(out[0], expected_dx, err_msg);
+    verify(out[0], expected_dx, err_msg + " deriv");
   }
 
   verifyWeight(err_msg);

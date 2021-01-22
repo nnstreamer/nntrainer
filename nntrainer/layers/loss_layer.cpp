@@ -129,15 +129,30 @@ void LossLayer::calcDerivative() {
   /// @todo loss backwarding is allocating a new memory. loss layer shouldn't!!
   switch (loss_type) {
   case LossType::LOSS_MSE:
-    ret_derivative = y.subtract(y2).multiply(2).divide(y.getDim().getDataLen());
+    y.subtract(y2, ret_derivative);
+    ret_derivative.multiply_i(2);
+    if (ret_derivative.divide_i(y.length()) != ML_ERROR_NONE) {
+      throw std::runtime_error(
+        "[Loss::calcDerivative] Error when calculating loss");
+    }
     break;
   case LossType::LOSS_ENTROPY_SIGMOID:
-    ret = y.apply(ActivationLayer::sigmoid, ret);
-    ret_derivative = ret.subtract(y2).divide(ret.getDim().getDataLen());
+    y.apply(ActivationLayer::sigmoid, ret_derivative);
+    ret_derivative.subtract_i(y2);
+    if (ret_derivative.divide_i(ret_derivative.length()) != ML_ERROR_NONE) {
+      throw std::runtime_error(
+        "[Loss::calcDerivative] Error when calculating loss");
+    }
     break;
   case LossType::LOSS_ENTROPY_SOFTMAX:
-    ret = y.apply(ActivationLayer::softmax, ret);
-    ret_derivative = ret.subtract(y2).divide(ret.batch());
+    /// @note y and ret_derivative can be same here, so this has to be out-place
+    /// operation
+    y.apply(ActivationLayer::softmax, ret);
+    ret.subtract(y2, ret_derivative);
+    if (ret_derivative.divide_i(ret.batch()) != ML_ERROR_NONE) {
+      throw std::runtime_error(
+        "[Loss::calcDerivative] Error when calculating loss");
+    }
     break;
   case LossType::LOSS_ENTROPY:
     throw std::runtime_error(
