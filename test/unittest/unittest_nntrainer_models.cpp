@@ -247,7 +247,13 @@ void NodeWatcher::forward(int iteration, NodeWatcher &next_node) {
 
   std::vector<nntrainer::Tensor> out = node.layer->getOutputs();
 
-  if (next_node.node.layer->getType() != nntrainer::ActivationLayer::type)
+  /**
+   * @todo Do not veify if the layer is operting in-place by checking its
+   * property
+   */
+  if (next_node.node.layer->getType() != nntrainer::ActivationLayer::type &&
+      next_node.node.layer->getType() !=
+        nntrainer::BatchNormalizationLayer::type)
     verify(out[0], expected_output, err_msg + " at output");
 }
 
