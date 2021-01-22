@@ -24,7 +24,7 @@ Var_Grad::Var_Grad(const TensorDim &dim, bool train, const std::string &name) :
   grad = std::make_shared<Tensor>();
 }
 
-void Var_Grad::initializeWeight(const Tensor &preallocated, bool gtrain) {
+void Var_Grad::initializeWeight(const Tensor &preallocated) {
   if (!preallocated.uninitialized()) {
     var = std::make_shared<Tensor>(preallocated);
   } else {
