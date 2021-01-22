@@ -28,6 +28,13 @@
 
 namespace nntrainer {
 
+/**
+ * @todo Make inPlace as a static property of the layer and a state to verify if
+ * this layer is working in-place
+ */
+static const std::vector<std::string> in_place_layers = {
+  ActivationLayer::type, BatchNormalizationLayer::type};
+
 void NetworkGraph::updateNameInLayers(
   std::vector<std::shared_ptr<Layer>> &layers, const std::string &cname,
   const std::string &name) {
@@ -552,9 +559,22 @@ void NetworkGraph::inPlaceOptimize(const std::string &layer_type,
       if (loc == prev_layer->output_layers.size())
         throw std::runtime_error("Internal error in the formed graph.");
 
-      if (prev_layer->getType() == InputLayer::type ||
-          prev_layer->getType() == ActivationLayer::type)
+      if (prev_layer->getType() == InputLayer::type)
         continue;
+
+      /** check if previous layer was also in-place */
+      bool prev_layer_in_place = false;
+      for (auto const &in_place_layer : in_place_layers) {
+        if (prev_layer->getType() == in_place_layer) {
+          prev_layer_in_place = true;
+          break;
+        }
+      }
+
+      /** Two layers cant work in-place consecutively */
+      if (prev_layer_in_place)
+        continue;
+
       /** Share tensor with next layer */
       l->net_input[0] = l->net_hidden[0];
       prev_layer->net_hidden[loc] = l->net_hidden[0];
@@ -566,8 +586,8 @@ void NetworkGraph::inPlaceOptimize(const std::string &layer_type,
 }
 
 void NetworkGraph::inPlaceOptimize(Manager &manager) {
-  inPlaceOptimize(BatchNormalizationLayer::type, manager);
-  inPlaceOptimize(ActivationLayer::type, manager);
+  for (auto const &layer_type : in_place_layers)
+    inPlaceOptimize(layer_type, manager);
 }
 
 } /* namespace nntrainer */
