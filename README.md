@@ -4,6 +4,10 @@
 ![GitHub repo size](https://img.shields.io/github/repo-size/nnstreamer/nntrainer)
 ![GitHub issues](https://img.shields.io/github/issues/nnstreamer/nntrainer)
 ![GitHub pull requests](https://img.shields.io/github/issues-pr/nnstreamer/nntrainer)
+<a href="https://scan.coverity.com/projects/nnstreamer-nntrainer">
+  <img alt="Coverity Scan Build Status"
+       src="https://scan.coverity.com/projects/22512/badge.svg"/>
+</a>
 
 NNtrainer is a Software Framework for training Neural Network models on devices.
 
