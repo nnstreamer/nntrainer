@@ -245,7 +245,7 @@ void Manager::initializeWeights() {
       Tensor grad_prealloc = Tensor();
 
       weight_offset += dim.getDataLen();
-      weight.initializeWeight(weight_prealloc, false);
+      weight.initializeWeight(weight_prealloc);
     }
   }
 

@@ -24,8 +24,8 @@ Weight::Weight(const TensorDim &dim, const WeightInitializer init, bool train,
     throw std::invalid_argument("Weight initializer unknown");
 }
 
-void Weight::initializeWeight(const Tensor &weights_preallocated, bool gtrain) {
-  Var_Grad::initializeWeight(weights_preallocated, gtrain);
+void Weight::initializeWeight(const Tensor &weights_preallocated) {
+  Var_Grad::initializeWeight(weights_preallocated);
 
   Tensor &var_ref = getVariableRef();
   const TensorDim dim = var_ref.getDim();
