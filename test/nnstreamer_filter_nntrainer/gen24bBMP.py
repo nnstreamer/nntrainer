@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 
 ##
-# SPDX-License-Identifier: LGPL-2.1-only
+# SPDX-License-Identifier: Apache-2.0
 #
 # Copyright (C) 2018 Samsung Electronics
 #
 # @file gen24bBMP.py
-# @brief Generate 24bpp .bmp files for test cases
+# @brief Generate 24bpp .bmp files for test cases. Relicensed for nntrainer by authors.
 # @author MyungJoo Ham <myungjoo.ham@samsung.com>
 
 from __future__ import print_function

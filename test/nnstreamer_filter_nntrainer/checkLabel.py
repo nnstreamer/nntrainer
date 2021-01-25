@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 
 ##
-# SPDX-License-Identifier: LGPL-2.1-only
+# SPDX-License-Identifier: Apache-2.0
 #
-# Copyright (C) 2018 Samsung Electronics
+# Copyright (C) 2021 Samsung Electronics
 #
 # @file checkLabel.py
-# @brief Check the result label of tensorflow-lite model
+# @brief Check the result label of tensorflow-lite model. Relicensed for nntrainer by authors
 # @author HyoungJoo Ahn <hello.ahn@samsung.com>
 
 import sys
