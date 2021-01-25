@@ -89,16 +89,78 @@ static auto rng = [] {
   return rng;
 }();
 
-Tensor::Tensor(const TensorDim &d, const float *buf) : Tensor() {
+Tensor::Tensor(const TensorDim &d, const float *buf, bool alloc_now) : Tensor() {
   if (d.getDataLen() != 0) {
+    if (buf != nullptr && !alloc_now)
+      throw std::invalid_argument("alloc_now must be true to create a tensor with a buffer");
+
     dim = d;
     strides = d.computeStrides();
-    data = std::shared_ptr<float>(new float[d.getDataLen()],
-                                  std::default_delete<float[]>());
+
+    if (alloc_now)
+      data = std::shared_ptr<float>(new float[d.getDataLen()],
+          std::default_delete<float[]>());
 
     if (buf != nullptr)
       copy(buf);
   }
+}
+
+/**
+ * @class SrcSharedTensor
+ * @brief Source of the shared tensor
+ */
+class SrcSharedTensor {
+public:
+  /**
+   * @brief   Constructor for the class
+   */
+  SrcSharedTensor(): src(nullptr), off(0) {}
+
+  SrcSharedTensor(const Tensor *tensor, unsigned int offset): src(tensor), off(offset) {}
+
+  /**
+   * @brief   Get the allocated src tensor
+   */
+  const Tensor *tensor() {
+    if (!src)
+      throw std::runtime_error("Accessing empty src tensor");
+
+    /**
+     * Allocate source tensor if not already allocated.
+     */
+    if (!src->isAllocated())
+      throw std::runtime_error("Source tensor must be allocated before allocating dependent tensors");
+      // src->allocate();
+
+    return src;
+  }
+
+  /**
+   * @brief   Get the offset from the source tensor
+   */
+  unsigned int offset() {
+    return off;
+  }
+
+private:
+  const Tensor *src;   /**< Tensor of the source */
+  unsigned int off;  /**< offset from the source data ptr */
+};
+
+void Tensor::allocate() {
+  if (data)
+    /// already allocated
+    return;
+
+  if (src_tensor) {
+    /// allocate data based on the source tensor
+    data = std::shared_ptr<float>(src_tensor->tensor()->data, src_tensor->tensor()->data.get() + src_tensor->offset());
+  }
+
+  /// allocate new memory for the tensor data
+  data = std::shared_ptr<float>(new float[dim.getDataLen()],
+      std::default_delete<float[]>());
 }
 
 Tensor Tensor::Map(float *buf, unsigned int size, const TensorDim &d,
@@ -421,8 +483,16 @@ Tensor Tensor::getSharedDataTensor(const TensorDim dim_,
       "Creating shared tensor of size bigger than tensor memory.");
 
   ret.dim = dim_;
-  ret.data = std::shared_ptr<float>(this->data, this->data.get() + offset);
   ret.strides = ret.dim.computeStrides();
+
+  /**
+   * In this case, its the caller's responsibility to ensure that allocate() is
+   * called for this function before operating on this tensor.
+   */
+  if (this->data)
+    ret.data = std::shared_ptr<float>(this->data, this->data.get() + offset);
+  else
+    ret.src_tensor = std::make_shared<SrcSharedTensor>(this, offset);
 
   return ret;
 }

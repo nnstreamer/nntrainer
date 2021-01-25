@@ -43,6 +43,7 @@
 namespace nntrainer {
 
 class LazyTensor;
+class SrcSharedTensor;
 
 /**
  * @class   Tensor Class for Calculation
@@ -57,12 +58,17 @@ public:
     dim(TensorDim()),
     strides{dim.computeStrides()},
     is_contiguous(true),
-    data(nullptr) {}
+    data(nullptr),
+    src_tensor() {}
 
   /**
    * @brief     Constructor of Tensor with dimension/buf
+   * @param d Tensor dim for this tensor
+   * @param bug buffer
+   * @alloc_now If the memory of the tensor must be allocated
+   * @throws if buf is not null and allow_now is false
    */
-  Tensor(const TensorDim &d, const float *buf = nullptr);
+  Tensor(const TensorDim &d, const float *buf = nullptr, bool alloc_now = true);
 
   /**
    * @brief Construct a new Tensor object from a buffer
@@ -188,6 +194,22 @@ public:
    * @param[in] rhs Tensor to be compared with
    */
   bool operator!=(const Tensor &rhs) const { return !(*this == rhs); }
+
+  /**
+   * @brief    Allocate memory for this tensor
+   */
+  void allocate();
+
+  /**
+   * @brief    Deallocate memory for this tensor
+   * @note     This will not necessary free the memory as tensors share memory
+   */
+  void deallocate() { data = nullptr; }
+
+  /**
+   * @brief    Check if the tensor has memory allocated/assigned/associated
+   */
+  bool isAllocated() const { return data == nullptr; }
 
   /**
    * @brief     return value at specific location
@@ -900,7 +922,16 @@ private:
   TensorDim dim;
   std::array<unsigned int, MAXDIM> strides;
   bool is_contiguous;
+
   std::shared_ptr<float> data;
+
+  /**<
+   * When using shared_data with tensor, this stores the ptr of the source
+   * tensor which handles the full memory. If tensor data is already allocated,
+   * this does not affect the tensor. If the tensor data is not allocated, and
+   * src_ptr is valid, this tensor will use the memory allocated by the src_ptr
+   */
+  std::shared_ptr<SrcSharedTensor> src_tensor;
 
   template <typename T> void setDist(T dist);
 
