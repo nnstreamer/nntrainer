@@ -576,8 +576,22 @@ void NetworkGraph::inPlaceOptimize(const std::string &layer_type,
         continue;
 
       /** Share tensor with next layer */
-      l->net_input[0] = l->net_hidden[0];
-      prev_layer->net_hidden[loc] = l->net_hidden[0];
+      l->net_input[0] = l->net_hidden[0]; // I2 = O2
+      if (l->getType() == BatchNormalizationLayer::type) {
+        prev_layer->net_hidden[loc] = l->net_hidden[0]; // O1 = O2
+      } else if (l->getType() == ActivationLayer::type) {
+        // THIS IS NOT WORKING BECAUSE INITIALIZES MAKES NEW SHARED_PTR OF TENSOR
+        // THAN KEEPING THE SAME SHARED_PTR AND JUST CHANGING THE TENSOR IN IT
+        prev_layer->net_hidden[loc]->getGradientRef() =
+          l->net_hidden[0]->getVariableRef(); // O1.G = O2.V
+        prev_layer->net_hidden[loc]->getVariableRef() =
+          l->net_hidden[0]->getVariableRef(); // O1.V = O2.V
+      }
+
+      /** prev layer should use this shared output for derivative though */
+      // prev_layer->net_hidden[loc] =
+      //   std::shared_ptr<Var_Grad>(*prev_layer->net_hidden[loc].get());
+      // prev_layer->net_hidden[loc].get
 
       /** Untrack the memory for this layer */
       manager.untrackLayerInOuts(prev_layer->getName());
