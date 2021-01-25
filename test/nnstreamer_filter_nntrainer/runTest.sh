@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 ##
-## SPDX-License-Identifier: LGPL-2.1-only
+## SPDX-License-Identifier: Apache-2.0
 ##
 ## @file runTest.sh
 ## @author Jijoong Moon <jijoong.moon@samsung.com>

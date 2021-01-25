@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: LGPL-2.1-only */
+/* SPDX-License-Identifier: Apache-2.0 */
 /**
  * GStreamer Tensor_Filter, nntrainer Module
  * Copyright (C) 2020 Jijoong Moon <jijoong.moon@samsung.com>

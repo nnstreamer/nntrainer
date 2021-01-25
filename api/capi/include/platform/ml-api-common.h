@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: LGPL-2.1-only */
+/* SPDX-License-Identifier: Apache-2.0 */
 /**
  * NNStreamer API / Tizen Machine-Learning API Common Header
  * Copyright (C) 2020 MyungJoo Ham <myungjoo.ham@samsung.com>
@@ -6,7 +6,7 @@
 /**
  * @file	ml-api-common.h
  * @date	07 May 2020
- * @brief	Dummy ML-API Common Header from nnstreamer
+ * @brief	Dummy ML-API Common Header from nnstreamer. Relicensed by authors.
  * @see		https://github.com/nnstreamer/nnstreamer
  * @author	MyungJoo Ham <myungjoo.ham@samsung.com>
  * @author Jijoong Moon <jijoong.moon@samsung.com>
