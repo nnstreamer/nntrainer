@@ -157,12 +157,12 @@ void Manager::trackWeights(std::vector<Weight> &ws) {
   std::vector<std::reference_wrapper<Weight>> layer_weights;
   layer_weights.reserve(ws.size());
 
-  size_t weight_size = 0;
-  size_t grad_size = 0;
+  unsigned int weight_size = 0;
+  unsigned int grad_size = 0;
 
   for (auto &w : ws) {
     layer_weights.emplace_back(std::ref(w));
-    size_t len = w.getDim().getDataLen();
+    unsigned int len = w.getDim().getDataLen();
     weight_size += len;
     if (w.getTrainable())
       grad_size += len;
@@ -177,23 +177,23 @@ void Manager::trackWeights(std::vector<Weight> &ws) {
 }
 
 Manager::AllocFunc Manager::getAllocFunc(bool is_weight) {
-  AllocFunc allocate_none = [](const TensorDim &dim, size_t) {
+  AllocFunc allocate_none = [](const TensorDim &dim, unsigned int) {
     return Tensor();
   };
 
   AllocFunc allocate_func = allocate_none;
 
-  /**< use_shared_memory has been deprecated */
   if (use_shared_memory) {
+    /**< use_shared_memory has been deprecated */
 
     /// this creates memory and sets to @a memory and returns AllocFunc
-    auto get_allocfunc = [](const size_t weight_size,
+    auto get_allocfunc = [](const unsigned int weight_size,
                             std::unique_ptr<MMapedMemory> &memory) {
-      if (weight_size >= std::numeric_limits<size_t>::max() / sizeof(float)) {
+      if (weight_size >= std::numeric_limits<unsigned int>::max() / sizeof(float)) {
         throw std::invalid_argument(
           "weights exceed maximum size supported for shared memory");
       }
-      size_t byte_size = weight_size * sizeof(float);
+      unsigned int byte_size = weight_size * sizeof(float);
       memory = std::make_unique<MMapedMemory>(byte_size, true);
       return [&memory, byte_size](const TensorDim &dim, size_t offset) {
         return Tensor::Map(memory->typedBuffer<float>(), byte_size, dim,
@@ -206,16 +206,16 @@ Manager::AllocFunc Manager::getAllocFunc(bool is_weight) {
       allocate_func = get_allocfunc(total_weight_size, weight_mmaped_memory);
     } else {
       /** for gradients */
-      size_t grad_size =
+      unsigned int grad_size =
         enable_gradient_memory_opt ? max_grad_size : total_grad_size;
       allocate_func = get_allocfunc(grad_size, grad_mmaped_memory);
     }
   } else if (!is_weight) {
     /** only for gradients */
     if (max_grad_size > 0 && enable_gradient_memory_opt) {
-      Tensor shared_grad = Tensor(TensorDim({(unsigned int)max_grad_size}));
+      shared_grad = Tensor(TensorDim({(unsigned int)max_grad_size}), nullptr, false);
 
-      allocate_func = [shared_grad](const TensorDim &dim, size_t offset) {
+      allocate_func = [this](const TensorDim &dim, unsigned int offset) {
         return shared_grad.getSharedDataTensor(dim, offset);
       };
     }
@@ -235,7 +235,7 @@ void Manager::initializeWeights() {
 
   AllocFunc allocate_weight = getAllocFunc(true);
 
-  size_t weight_offset = 0;
+  unsigned int weight_offset = 0;
 
   for (auto &l_w : weights) {
     for (auto &w : l_w) {
@@ -252,6 +252,28 @@ void Manager::initializeWeights() {
   weights_initialized = true;
 }
 
+void Manager::allocateWeights() {
+  for (auto &l_w : weights) {
+    for (auto &w : l_w) {
+      Weight &weight = w.get();
+      weight.allocateVariable();
+    }
+  }
+}
+
+void Manager::allocateGradients() {
+  /** Allocate the source tensors for shared memories */
+  if (!shared_grad.uninitialized())
+    shared_grad.allocate();
+
+  for (auto &l_w : weights) {
+    for (auto &w : l_w) {
+      Weight &weight = w.get();
+      weight.allocateGradient();
+    }
+  }
+}
+
 /**
  * @brief Allocate and initialize the weight variable
  */
@@ -263,7 +285,7 @@ void Manager::initializeGradients() {
 
   AllocFunc allocate_grad = getAllocFunc(false);
 
-  size_t grad_offset = 0;
+  unsigned int grad_offset = 0;
 
   for (auto &l_w : weights) {
     if (enable_gradient_memory_opt) {
@@ -294,14 +316,14 @@ Manager::trackLayerInOuts(const std::string &layer_type,
   bool is_act_layer = layer_type == ActivationLayer::type;
   bool is_flat_layer = layer_type == FlattenLayer::type;
 
-  size_t inout_derivative_size = 0;
+  unsigned int inout_derivative_size = 0;
 
   std::vector<std::shared_ptr<Var_Grad>> in_out;
   in_out.reserve(inout_dim.size());
 
   for (auto const &dim : inout_dim) {
     in_out.emplace_back(std::make_shared<Var_Grad>(
-      dim, true, layer_name + std::to_string(cnt++)));
+      dim, true, false, layer_name + std::to_string(cnt++)));
     if (is_act_layer)
       inout_derivative_size += dim.getDataLen();
   }
@@ -323,7 +345,7 @@ Manager::trackLayerOutputs(const std::string &layer_type,
     throw std::invalid_argument(
       "Input dimensions are required with inference memory opt.");
   } else if (enable_inference_inout_memory_opt) {
-    size_t shared_inout = 0;
+    unsigned int shared_inout = 0;
 
     for (auto const &dim : output_dim)
       shared_inout += dim.getDataLen();
@@ -346,7 +368,7 @@ Manager::trackLayerInputs(const std::string &layer_type,
     throw std::invalid_argument(
       "Output dimensions are required with inference memory opt.");
   } else if (enable_inference_inout_memory_opt) {
-    size_t shared_inout = 0;
+    unsigned int shared_inout = 0;
 
     for (auto const &dim : output_dim)
       shared_inout += dim.getDataLen();
@@ -376,6 +398,30 @@ void Manager::untrackLayerInOuts(const std::string &layer_name) {
   untrackVariable(layer_name + ":Output" + std::to_string(0));
 }
 
+void Manager::allocateInOuts() {
+  /** Allocate the source tensors for shared memories */
+  if (!shared_inout.uninitialized())
+    shared_inout.allocate();
+
+  for (auto &l_io : in_outs) {
+    for (auto &io : l_io) {
+      io->allocateVariable();
+    }
+  }
+}
+
+void Manager::allocateDerivatives() {
+  /** Allocate the source tensors for shared memories */
+  if (!shared_deriv.uninitialized())
+    shared_deriv.allocate();
+
+  for (auto &l_io : in_outs) {
+    for (auto &io : l_io) {
+      io->allocateGradient();
+    }
+  }
+}
+
 /**
  * @brief Initialize the inputs/outputs/gradients/derivatives for the layer
  */
@@ -389,18 +435,16 @@ void Manager::initializeTensors(bool trainable) {
     initializeGradients();
 
   // Allocate shared derivative memory
-  Tensor shared_deriv;
   if (max_derivative_size > 0 && enable_activation_memory_opt && trainable)
-    shared_deriv = Tensor(max_derivative_size);
+    shared_deriv = Tensor(TensorDim({max_derivative_size}), nullptr, false);
 
   // @todo Do not count memory of the input tensor of the input layer in the
   // estimate of max_shared_inout as it is not used
 
   // Allocate shared input/output memory for inference
   // @note Memory for label is not allocated here as inference doesnt has label
-  Tensor shared_inout;
   if (!trainable && enable_inference_inout_memory_opt)
-    shared_inout = Tensor(max_shared_inout);
+    shared_inout = Tensor(TensorDim({max_shared_inout}), nullptr, false);
 
   /**
    * A single buffer (shared_inout) provides memory for inputs and outputs of a
@@ -411,7 +455,7 @@ void Manager::initializeTensors(bool trainable) {
   bool use_first_last = 0;
   for (unsigned int idx = 0; idx < in_outs.size(); idx++) {
     auto &l_io = in_outs[idx];
-    size_t offset = 0;
+    unsigned int offset = 0;
     bool is_last_layer = idx == in_outs.size() - 1;
 
     // For flatten layer, do not assign new memory

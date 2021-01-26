@@ -729,11 +729,24 @@ public:
    * @param dim new dimension to be set for this tensor
    * @param offset offset to be used from the start of the data in bytes
    * @note The new tensor will share the same data as the current tensor but
-   * will have different size.
+   * can have different size.
    * @note New size added with offset must be less than the size of the original
    * tensor.
    */
   Tensor getSharedDataTensor(const TensorDim dim, unsigned int offset) const;
+
+  /**
+   * @brief make this tensor share memory with given tensor
+   *
+   * @param src Source tensor whose memory is to be shared
+   * @param offset offset to be used from the start of the data in bytes
+   * @note This tensor will share the same data as the current tensor but
+   * can have different size.
+   * @note This tensor's size added with offset must be less than the size of
+   * the source tensor.
+   * @note The stride of the source tensor and this tensor must be same.
+   */
+  void makeSharedDataTensor(const Tensor &src, unsigned int offset = 0);
 
   /**
    * @brief     Convient wrapper for inplace copy of @a this.

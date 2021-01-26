@@ -77,8 +77,8 @@ int Conv2DLayer::initialize(Manager &manager) {
 
   if (weights.empty()) {
     weights.reserve(2);
-    weights.emplace_back(dim, weight_initializer, true, kernelPrefix);
-    weights.emplace_back(bias_dim, bias_initializer, true, biasPrefix);
+    weights.emplace_back(dim, weight_initializer, true, false, kernelPrefix);
+    weights.emplace_back(bias_dim, bias_initializer, true, false, biasPrefix);
     manager.trackWeights(weights);
   } else {
     weights[ConvParams::weight].reset(dim, weight_initializer, true);

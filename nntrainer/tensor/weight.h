@@ -76,7 +76,7 @@ public:
   Weight(
     const TensorDim &dim,
     const WeightInitializer init = WeightInitializer::WEIGHT_XAVIER_UNIFORM,
-    bool train = true, std::string name = "");
+    bool train = true, bool alloc_now = true, std::string name = "");
 
   /**
    * @copydoc var_grad::initializeWeight(const Tensor &)
@@ -185,11 +185,38 @@ public:
    */
   Tensor &getOptimizerVariableRef(unsigned int idx) { return opt_vars[idx]; }
 
+  /**
+   * @brief Allocate and initialize the weight variable, if needed
+   */
+  void allocateVariable() {
+    Var_Grad::allocateVariable();
+    initializeVariable();
+  }
+
+  /**
+   * @brief Allocate and initialize the weight gradient, if needed
+   */
+  void allocateGradient() {
+    Var_Grad::allocateGradient();
+    resetGradient();
+    allocateOptimizerVariables();
+  }
+
 private:
   WeightInitializer initializer; /**< initializer for this variable */
 
   std::vector<Tensor> opt_vars;        /**< optimizer variables */
   std::vector<TensorDim> opt_vars_dim; /**< optimizer variables dimensions */
+
+  /**
+   * @brief Initialize the weight with the initializer
+   */
+  void initializeVariable();
+
+  /**
+   * @brief Allocate optimizer related variables for the given weights
+   */
+  void allocateOptimizerVariables();
 };
 
 } // namespace nntrainer

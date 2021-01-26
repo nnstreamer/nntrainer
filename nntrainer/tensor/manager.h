@@ -245,22 +245,55 @@ public:
         vg->setBatchSize(batch);
   }
 
+  /**
+   * @brief Allocate memory for all the managed tensors
+   */
+  void allocateTensors() {
+    allocateWeights();
+    allocateGradients();
+    allocateInOuts();
+    allocateDerivatives();
+  }
+
+  /**
+   * @brief Allocate memory for all the managed weights
+   */
+  void allocateWeights();
+
+  /**
+   * @brief Allocate memory for all the managed gradients
+   */
+  void allocateGradients();
+
+  /**
+   * @brief Allocate memory for all the managed layers inputs and outputs
+   */
+  void allocateInOuts();
+
+  /**
+   * @brief Allocate memory for all the managed layer derivatives
+   */
+  void allocateDerivatives();
+
 private:
   // TODO: ensure that names of these weights are unique
   /**< Weights of all the layer in the model to be managed */
   std::vector<std::vector<std::reference_wrapper<Weight>>> weights;
 
-  size_t total_weight_size;   /**< total weight size */
-  size_t total_grad_size;     /**< total weight size */
-  size_t max_grad_size;       /**< max trainable weight required by a layer */
-  size_t max_derivative_size; /**< max derivative required by a layer */
-  size_t max_shared_inout;    /**< max memory for in/outs for inference */
+  unsigned int total_weight_size;   /**< total weight size */
+  unsigned int total_grad_size;     /**< total weight size */
+  unsigned int max_grad_size;       /**< max trainable weight required by a layer */
+  unsigned int max_derivative_size; /**< max derivative required by a layer */
+  unsigned int max_shared_inout;    /**< max memory for in/outs for inference */
   bool weights_initialized;   /**< track if weights have been initialized */
 
   /**< Inputs/outputs of all the layer in the model */
   std::vector<std::vector<std::shared_ptr<Var_Grad>>> in_outs;
   std::vector<bool> is_act_type;
   std::vector<bool> is_flat_type;
+  Tensor shared_grad;   /**< Shared tensor containing memory for weight gradients */
+  Tensor shared_inout;  /**< Shared tensor containing memory for input and outputs for inference */
+  Tensor shared_deriv;  /**< Shared tensor containing memory for input and output derivatives */
 
   /**< Optimization related */
   bool enable_gradient_memory_opt; /**< share memory among all the gradients */
@@ -279,7 +312,8 @@ private:
   std::unique_ptr<MMapedMemory> weight_mmaped_memory;
   std::unique_ptr<MMapedMemory> grad_mmaped_memory;
 
-  using AllocFunc = std::function<Tensor(const TensorDim &, size_t)>;
+  /** Alloc function definition */
+  using AllocFunc = std::function<Tensor(const TensorDim &, unsigned int)>;
 
   /**
    * @brief Track the inputs/ouputs of the layer

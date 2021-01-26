@@ -497,6 +497,25 @@ Tensor Tensor::getSharedDataTensor(const TensorDim dim_,
   return ret;
 }
 
+void Tensor::makeSharedDataTensor(const Tensor &src, unsigned int offset) {
+  if (strides != src.strides)
+    throw std::invalid_argument(
+      "Creating shared tensor of different stride than source tensor.");
+
+  if (getDim().getDataLen() + offset > src.getDim().getDataLen())
+    throw std::invalid_argument(
+      "Creating shared tensor of different size or stride than source tensor.");
+
+  /**
+   * In this case, its the caller's responsibility to ensure that allocate() is
+   * called for this function before operating on this tensor.
+   */
+  if (src.data)
+    data = std::shared_ptr<float>(src.data, src.data.get() + offset);
+  else
+    src_tensor = std::make_shared<SrcSharedTensor>(&src, offset);
+}
+
 void Tensor::apply_broadcast(
   Tensor const &m,
   std::function<void(const BroadcastInfo &e, const float *, const float *,
