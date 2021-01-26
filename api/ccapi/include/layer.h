@@ -33,17 +33,18 @@ namespace train {
 enum LayerType {
   LAYER_IN = ML_TRAIN_LAYER_TYPE_INPUT, /** Input Layer type */
   LAYER_FC = ML_TRAIN_LAYER_TYPE_FC,    /** Fully Connected Layer type */
-  LAYER_BN,                             /** Batch Normalization Layer type */
-  LAYER_CONV2D,                         /** Convolution 2D Layer type */
-  LAYER_POOLING2D,                      /** Pooling 2D Layer type */
-  LAYER_FLATTEN,                        /** Flatten Layer type */
-  LAYER_ACTIVATION,                     /** Activation Layer type */
-  LAYER_ADDITION,                       /** Addition Layer type */
-  LAYER_CONCAT,                         /** Concat Layer type */
-  LAYER_OUT,                            /** Multi Output Layer type */
-  LAYER_LOSS,                           /** Loss Layer type */
-  LAYER_BACKBONE_NNSTREAMER,            /** Backbone using NNStreamer */
-  LAYER_BACKBONE_TFLITE,                /** Backbone using TFLite */
+  LAYER_BN = ML_TRAIN_LAYER_TYPE_BN,    /** Batch Normalization Layer type */
+  LAYER_CONV2D = ML_TRAIN_LAYER_TYPE_CONV2D, /** Convolution 2D Layer type */
+  LAYER_POOLING2D = ML_TRAIN_LAYER_TYPE_POOLING2D, /** Pooling 2D Layer type */
+  LAYER_FLATTEN = ML_TRAIN_LAYER_TYPE_FLATTEN,     /** Flatten Layer type */
+  LAYER_ACTIVATION =
+    ML_TRAIN_LAYER_TYPE_ACTIVATION,              /** Activation Layer type */
+  LAYER_ADDITION = ML_TRAIN_LAYER_TYPE_ADDITION, /** Addition Layer type */
+  LAYER_CONCAT = ML_TRAIN_LAYER_TYPE_CONCAT,     /** Concat Layer type */
+  LAYER_MULTIOUT = ML_TRAIN_LAYER_TYPE_MULTIOUT, /** Multi Output Layer type */
+  LAYER_LOSS,                                    /** Loss Layer type */
+  LAYER_BACKBONE_NNSTREAMER,                  /** Backbone using NNStreamer */
+  LAYER_BACKBONE_TFLITE,                      /** Backbone using TFLite */
   LAYER_UNKNOWN = ML_TRAIN_LAYER_TYPE_UNKNOWN /** Unknown */
 };
 
@@ -289,7 +290,7 @@ Concat(const std::vector<std::string> &properties = {}) {
  */
 inline std::unique_ptr<Layer>
 MultiOut(const std::vector<std::string> &properties = {}) {
-  return createLayer(LayerType::LAYER_OUT, properties);
+  return createLayer(LayerType::LAYER_MULTIOUT, properties);
 }
 
 /**

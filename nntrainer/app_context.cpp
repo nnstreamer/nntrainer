@@ -89,10 +89,10 @@ static void init_global_context_nntrainer(void) {
                      ActivationLayer::type, LayerType::LAYER_ACTIVATION);
   ac.registerFactory(ml::train::createLayer<AdditionLayer>, AdditionLayer::type,
                      LayerType::LAYER_ADDITION);
+  ac.registerFactory(ml::train::createLayer<OutputLayer>, OutputLayer::type,
+                     LayerType::LAYER_MULTIOUT);
   ac.registerFactory(ml::train::createLayer<ConcatLayer>, ConcatLayer::type,
                      LayerType::LAYER_CONCAT);
-  ac.registerFactory(ml::train::createLayer<OutputLayer>, OutputLayer::type,
-                     LayerType::LAYER_OUT);
   ac.registerFactory(ml::train::createLayer<LossLayer>, LossLayer::type,
                      LayerType::LAYER_LOSS);
 #ifdef ENABLE_NNSTREAMER_BACKBONE
