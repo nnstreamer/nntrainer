@@ -64,17 +64,17 @@ public:
   /**
    * @copydoc Layer::forwarding()
    */
-  void forwarding();
+  void forwarding(bool training = true) override;
 
   /**
    * @copydoc Layer::calcDerivative()
    */
-  void calcDerivative();
+  void calcDerivative() override;
 
   /**
    * @copydoc Layer::setTrainable(bool train)
    */
-  void setTrainable(bool train);
+  void setTrainable(bool train) override;
 
   using Layer::setProperty;
 
@@ -82,12 +82,15 @@ public:
    * @copydoc Layer::setProperty(const PropertyType type, const std::string
    * &value)
    */
-  void setProperty(const PropertyType type, const std::string &value = "");
+  void setProperty(const PropertyType type,
+                   const std::string &value = "") override;
 
   /**
    * @copydoc Layer::getType()
    */
-  const std::string getType() const { return PreprocessFlipLayer::type; };
+  const std::string getType() const override {
+    return PreprocessFlipLayer::type;
+  }
 
   static const std::string type;
 

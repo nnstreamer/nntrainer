@@ -77,9 +77,16 @@ void PreprocessTranslateLayer::setProperty(const PropertyType type,
   }
 }
 
-void PreprocessTranslateLayer::forwarding() {
-  for (unsigned int idx = 0; idx < input_dim.size(); idx++) {
+void PreprocessTranslateLayer::forwarding(bool training) {
+  if (!training) {
+    for (unsigned int idx = 0; idx < input_dim.size(); idx++) {
+      net_hidden[idx]->getVariableRef() = net_input[idx]->getVariableRef();
+    }
 
+    return;
+  }
+
+  for (unsigned int idx = 0; idx < input_dim.size(); idx++) {
     Tensor &hidden_ = net_hidden[idx]->getVariableRef();
     Tensor &input_ = net_input[idx]->getVariableRef();
 
