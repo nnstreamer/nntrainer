@@ -40,7 +40,7 @@ const std::string layerGetStrType(const LayerType &type) {
   switch (type) {
   case LayerType::LAYER_IN:
     return InputLayer::type;
-  case LayerType::LAYER_OUT:
+  case LayerType::LAYER_MULTIOUT:
     return OutputLayer::type;
   case LayerType::LAYER_FC:
     return FullyConnectedLayer::type;

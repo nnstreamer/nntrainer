@@ -27,8 +27,16 @@ extern "C" {
  * @since_tizen 6.0
  */
 typedef enum {
-  ML_TRAIN_LAYER_TYPE_INPUT = 0,    /**< Input Layer */
-  ML_TRAIN_LAYER_TYPE_FC,           /**< Fully Connected Layer */
+  ML_TRAIN_LAYER_TYPE_INPUT = 0,  /**< Input Layer */
+  ML_TRAIN_LAYER_TYPE_FC,         /**< Fully Connected Layer */
+  ML_TRAIN_LAYER_TYPE_BN,         /**< Batch Normalization Layer (since 6.5) */
+  ML_TRAIN_LAYER_TYPE_CONV2D,     /**< Convolution 2D Layer (since 6.5) */
+  ML_TRAIN_LAYER_TYPE_POOLING2D,  /**< Pooling 2D Layer (since 6.5) */
+  ML_TRAIN_LAYER_TYPE_FLATTEN,    /**< Flatten Layer (since 6.5) */
+  ML_TRAIN_LAYER_TYPE_ACTIVATION, /**< Activation Layer (since 6.5) */
+  ML_TRAIN_LAYER_TYPE_ADDITION,   /**< Addition Layer (since 6.5) */
+  ML_TRAIN_LAYER_TYPE_CONCAT,     /**< Concat Layer (since 6.5) */
+  ML_TRAIN_LAYER_TYPE_MULTIOUT,   /**< MultiOut Layer (since 6.5) */
   ML_TRAIN_LAYER_TYPE_UNKNOWN = 999 /**< Unknown Layer */
 } ml_train_layer_type_e;
 
