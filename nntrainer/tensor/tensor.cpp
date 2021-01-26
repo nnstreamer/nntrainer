@@ -59,19 +59,6 @@
     if (tensor.uninitialized())           \
       tensor = Tensor(__VA_ARGS__);       \
   } while (0);
-
-/** do clone of this, perform the operation and return the output */
-#define CLONE_OP_I(op, ...)                        \
-  do {                                             \
-    Tensor clone = this->clone();                  \
-    if (clone.op(__VA_ARGS__) != ML_ERROR_NONE) {  \
-      std::stringstream ss;                        \
-      ss << "Error: op " << __func__ << " failed"; \
-      throw std::invalid_argument(ss.str());       \
-    }                                              \
-    return clone;                                  \
-  } while (0);
-
 namespace nntrainer {
 
 /**
@@ -238,77 +225,6 @@ Tensor &Tensor::multiply(float const &value, Tensor &out) const {
   return apply(f, out);
 }
 
-int Tensor::divide_i(float const &value) {
-  if (value == 0.0f) {
-    return ML_ERROR_INVALID_PARAMETER;
-  }
-  this->divide(value, *this);
-  return ML_ERROR_NONE;
-}
-
-Tensor Tensor::divide(float const &value) const {
-  Tensor t;
-  return divide(value, t);
-}
-
-Tensor &Tensor::divide(float const &value, Tensor &out) const {
-  auto f = std::bind(std::divides<float>(), std::placeholders::_1, value);
-  /// @todo add unittest
-  if (value == 0.0f) {
-    std::stringstream ss;
-    ss << "[Tensor] divide by value failed, value: " << value;
-    throw std::invalid_argument(ss.str().c_str());
-  }
-  return apply(f, out);
-}
-
-int Tensor::add_i(float const &value) {
-  this->add(value, *this);
-  return ML_ERROR_NONE;
-}
-
-Tensor Tensor::add(float const &value) const {
-  Tensor t;
-  return add(value, t);
-}
-
-Tensor &Tensor::add(float const &value, Tensor &out) const {
-  /// @todo add unittest
-  auto f = std::bind(std::plus<float>(), std::placeholders::_1, value);
-  return apply(f, out);
-}
-
-int Tensor::subtract_i(float const &value) {
-  this->subtract(value, *this);
-  return ML_ERROR_NONE;
-}
-
-Tensor Tensor::subtract(float const &value) const {
-  Tensor t;
-  return subtract(value, t);
-}
-
-Tensor &Tensor::subtract(float const &value, Tensor &out) const {
-  /// @todo add unittest
-  auto f = std::bind(std::minus<float>(), std::placeholders::_1, value);
-  return apply(f, out);
-}
-
-int Tensor::pow_i(float exponent) {
-  pow(exponent, *this);
-  return ML_ERROR_NONE;
-}
-
-Tensor Tensor::pow(float exponent) const {
-  Tensor t;
-  return pow(exponent, t);
-}
-
-Tensor &Tensor::pow(float exponent, Tensor &out) const {
-  auto f = [exponent](float in) { return powf(in, exponent); };
-  return apply(f, out);
-}
-
 int Tensor::multiply_i(Tensor const &m) {
   try {
     this->multiply(m, *this);
@@ -340,6 +256,30 @@ Tensor &Tensor::multiply(Tensor const &m, Tensor &output) const {
   return output;
 }
 
+int Tensor::divide_i(float const &value) {
+  if (value == 0.0f) {
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+  this->divide(value, *this);
+  return ML_ERROR_NONE;
+}
+
+Tensor Tensor::divide(float const &value) const {
+  Tensor t;
+  return divide(value, t);
+}
+
+Tensor &Tensor::divide(float const &value, Tensor &out) const {
+  auto f = std::bind(std::divides<float>(), std::placeholders::_1, value);
+  /// @todo add unittest
+  if (value == 0.0f) {
+    std::stringstream ss;
+    ss << "[Tensor] divide by value failed, value: " << value;
+    throw std::invalid_argument(ss.str().c_str());
+  }
+  return apply(f, out);
+}
+
 int Tensor::divide_i(Tensor const &m) {
   try {
     this->divide(m, *this);
@@ -369,6 +309,22 @@ Tensor &Tensor::divide(Tensor const &m, Tensor &output) const {
 
   apply_broadcast(m, f, output);
   return output;
+}
+
+int Tensor::add_i(float const &value) {
+  this->add(value, *this);
+  return ML_ERROR_NONE;
+}
+
+Tensor Tensor::add(float const &value) const {
+  Tensor t;
+  return add(value, t);
+}
+
+Tensor &Tensor::add(float const &value, Tensor &out) const {
+  /// @todo add unittest
+  auto f = std::bind(std::plus<float>(), std::placeholders::_1, value);
+  return apply(f, out);
 }
 
 int Tensor::add_i(Tensor const &m, float const alpha) {
@@ -410,12 +366,43 @@ Tensor &Tensor::add(Tensor const &m, Tensor &out, float const alpha) const {
   return out;
 }
 
+int Tensor::subtract_i(float const &value) {
+  this->subtract(value, *this);
+  return ML_ERROR_NONE;
+}
+
+Tensor Tensor::subtract(float const &value) const {
+  Tensor t;
+  return subtract(value, t);
+}
+
+Tensor &Tensor::subtract(float const &value, Tensor &out) const {
+  /// @todo add unittest
+  auto f = std::bind(std::minus<float>(), std::placeholders::_1, value);
+  return apply(f, out);
+}
+
 int Tensor::subtract_i(Tensor const &m) { return add_i(m, -1); }
 
 Tensor Tensor::subtract(Tensor const &m) const { return add(m, -1); }
 
 Tensor &Tensor::subtract(Tensor const &m, Tensor &out) const {
   return add(m, out, -1);
+}
+
+int Tensor::pow_i(float exponent) {
+  pow(exponent, *this);
+  return ML_ERROR_NONE;
+}
+
+Tensor Tensor::pow(float exponent) const {
+  Tensor t;
+  return pow(exponent, t);
+}
+
+Tensor &Tensor::pow(float exponent, Tensor &out) const {
+  auto f = [exponent](float in) { return powf(in, exponent); };
+  return apply(f, out);
 }
 
 Tensor Tensor::getBatchSlice(unsigned int offset, unsigned int size) const {
@@ -891,7 +878,8 @@ void Tensor::reshape(const TensorDim &d) {
 
 void Tensor::fill(const Tensor &from, bool initialize) {
   if (initialize && this->uninitialized()) {
-    return this->copy(from);
+    this->copy(from);
+    return;
   }
 
   if (!from.is_contiguous || !is_contiguous) {
