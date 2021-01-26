@@ -15,7 +15,9 @@
 #ifndef __ML_TRAIN_LAYER_H__
 #define __ML_TRAIN_LAYER_H__
 
-#if __cplusplus >= MIN_CPP_VERSION
+#if __cplusplus < MIN_CPP_VERSION
+#error "CPP versions c++14 or over are only supported"
+#endif // __cpluscplus
 
 #include <memory>
 #include <string>
@@ -385,10 +387,23 @@ std::unique_ptr<Layer> createLayer(const std::vector<std::string> &props = {}) {
   return ptr;
 }
 
+using CreateLayerFunc = Layer *(*)();
+using DestroyLayerFunc = void (*)(Layer *);
+
+/**
+ * @brief  Layer Pluggable struct that enables pluggable layer
+ *
+ */
+typedef struct {
+  CreateLayerFunc createfunc;   /**< create layer function */
+  DestroyLayerFunc destroyfunc; /**< destory function */
+} LayerPluggable;
+
+/**
+ * @brief pluggable layer must have this structure defined
+ */
+extern "C" LayerPluggable ml_train_layer_pluggable;
+
 } // namespace train
 } // namespace ml
-
-#else
-#error "CPP versions c++14 or over are only supported"
-#endif // __cpluscplus
 #endif // __ML_TRAIN_LAYER_H__
