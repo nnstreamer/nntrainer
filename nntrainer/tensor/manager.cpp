@@ -124,8 +124,7 @@ MMapedMemory::~MMapedMemory() {
 Manager::Manager(bool enable_gradient_memory_opt_,
                  bool enable_derivative_memory_opt_,
                  bool enable_activation_memory_opt_,
-                 bool enable_inference_inout_memory_opt_,
-                 bool use_shared_memory_) :
+                 bool enable_inference_inout_memory_opt_) :
   total_weight_size(0),
   total_grad_size(0),
   max_grad_size(0),
@@ -136,7 +135,7 @@ Manager::Manager(bool enable_gradient_memory_opt_,
   enable_derivative_memory_opt(enable_derivative_memory_opt_),
   enable_activation_memory_opt(enable_activation_memory_opt_),
   enable_inference_inout_memory_opt(enable_inference_inout_memory_opt_),
-  use_shared_memory(use_shared_memory_) {}
+  use_shared_memory(false) {}
 
 Manager::~Manager() {}
 
@@ -184,6 +183,7 @@ Manager::AllocFunc Manager::getAllocFunc(bool is_weight) {
 
   AllocFunc allocate_func = allocate_none;
 
+  /**< use_shared_memory has been deprecated */
   if (use_shared_memory) {
 
     /// this creates memory and sets to @a memory and returns AllocFunc
@@ -212,11 +212,10 @@ Manager::AllocFunc Manager::getAllocFunc(bool is_weight) {
   } else if (!is_weight) {
     /** only for gradients */
     if (max_grad_size > 0 && enable_gradient_memory_opt) {
-      std::shared_ptr<float> window(new float[max_grad_size],
-                                    std::default_delete<float[]>());
+      Tensor shared_grad = Tensor(TensorDim({(unsigned int)max_grad_size}));
 
-      allocate_func = [window](const TensorDim &dim, size_t offset) {
-        return Tensor::Map(window, dim, offset);
+      allocate_func = [shared_grad](const TensorDim &dim, size_t offset) {
+        return shared_grad.getSharedDataTensor(dim, offset);
       };
     }
   }
