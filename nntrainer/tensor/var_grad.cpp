@@ -35,8 +35,8 @@ void Var_Grad::initializeVariable(const Tensor &preallocated) {
   }
 }
 
-void Var_Grad::initializeGradient(const Tensor &preallocated, bool gtrain) {
-  if (!preallocated.uninitialized() && gtrain) {
+void Var_Grad::initializeGradient(const Tensor &preallocated) {
+  if (!preallocated.uninitialized()) {
     /**
      * Making a new tensor is intentional here as this tensor is not shared
      * with other layers but the internal memory is.

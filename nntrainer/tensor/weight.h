@@ -84,10 +84,9 @@ public:
   void initializeVariable(const Tensor &preallocated = Tensor());
 
   /**
-   * @copydoc var_grad::initializeGradient(const Tensor &, bool)
+   * @copydoc var_grad::initializeGradient(const Tensor &)
    */
-  void initializeGradient(const Tensor &preallocated = Tensor(),
-                          bool gtrain = true);
+  void initializeGradient(const Tensor &preallocated = Tensor());
 
   /**
    * @brief Swap for weight

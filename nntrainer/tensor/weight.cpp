@@ -69,10 +69,10 @@ void Weight::runVariableInitializer() {
   }
 }
 
-void Weight::initializeGradient(const Tensor &preallocated, bool gtrain) {
+void Weight::initializeGradient(const Tensor &preallocated) {
   // Use self variable to initialize itself
-  Var_Grad::initializeGradient(preallocated, gtrain);
-  if (gtrain && alloc_now)
+  Var_Grad::initializeGradient(preallocated);
+  if (alloc_now)
     allocateOptimizerVariables();
 }
 

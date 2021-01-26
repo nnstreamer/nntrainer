@@ -101,7 +101,8 @@ public:
                           const Tensor &grad_preallocated = Tensor(),
                           bool gtrain = true) {
     initializeVariable(var_preallocated);
-    initializeGradient(grad_preallocated, gtrain);
+    if (gtrain)
+      initializeGradient(grad_preallocated);
   }
 
   /**
@@ -113,10 +114,8 @@ public:
   /**
    * @brief Initialize the gradient for the variable
    * @param preallocated if initialized, use this tensor for gradient memory
-   * @param gtrain If all the variables should be trainable
    */
-  virtual void initializeGradient(const Tensor &preallocated = Tensor(),
-                                  bool gtrain = true);
+  virtual void initializeGradient(const Tensor &preallocated = Tensor());
 
   /**
    * @brief Allocate and initialize the variable and grad
