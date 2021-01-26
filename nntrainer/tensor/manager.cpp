@@ -272,10 +272,10 @@ void Manager::initializeGradients() {
       Weight &weight = w.get();
       auto dim = weight.getDim();
       Tensor grad_prealloc = Tensor();
-      if (weight.getTrainable())
+      if (weight.getTrainable()) {
         grad_prealloc = allocate_grad(dim, grad_offset);
-
-      grad_offset += dim.getDataLen();
+        grad_offset += dim.getDataLen();
+      }
       weight.initializeGrad(grad_prealloc, true);
     }
   }
