@@ -226,6 +226,8 @@ private:
   std::string working_path_base;
 };
 
+namespace plugin {}
+
 } // namespace nntrainer
 
 #endif /* __APP_CONTEXT_H__ */
