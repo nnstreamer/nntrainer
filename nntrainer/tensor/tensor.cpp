@@ -852,7 +852,7 @@ void Tensor::copy(const Tensor &from) {
     throw std::runtime_error("Cannot copy non-contiguous tensor");
   }
 
-  if (length() == from.length()) {
+  if (from.length() != 0 && length() == from.length()) {
     reshape(from.getDim());
     copy(from.getData());
   } else {

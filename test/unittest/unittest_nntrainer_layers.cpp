@@ -2118,27 +2118,6 @@ TEST_F(nntrainer_AdditionLayer, setProperty_02_n) {
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
-TEST_F(nntrainer_AdditionLayer, forwarding_01_n) {
-  setProperty("num_inputs=1");
-
-  sharedTensor input = std::shared_ptr<nntrainer::Tensor>(
-    new nntrainer::Tensor[1], std::default_delete<nntrainer::Tensor[]>());
-  nntrainer::Tensor &in = *input;
-
-  in = nntrainer::Tensor();
-
-  nntrainer::Manager manager;
-  manager.setInferenceInOutMemoryOptimization(false);
-  layer.setInputBuffers(manager.trackLayerInputs(
-    layer.getType(), layer.getName(), layer.getInputDimension()));
-  layer.setOutputBuffers(manager.trackLayerOutputs(
-    layer.getType(), layer.getName(), layer.getOutputDimension()));
-
-  manager.initializeTensors(true);
-
-  EXPECT_THROW(layer.forwarding_with_val({input}), std::invalid_argument);
-}
-
 /*
  *Disabled until input_layer keyward is enabled.
  */
