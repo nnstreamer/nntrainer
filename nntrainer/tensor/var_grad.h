@@ -43,7 +43,7 @@ public:
    * @param train If the variable is trainable
    * @param name Name for this Var_Grad
    */
-  Var_Grad(const TensorDim &dim, bool train = true,
+  Var_Grad(const TensorDim &dim, bool train = true, bool alloc_now = true,
            const std::string &name = "");
 
   /**
@@ -242,11 +242,22 @@ public:
    */
   const Tensor &getGradientRef() const { return *grad.get(); }
 
+  /**
+   * @brief Allocate memory for the variable
+   */
+  void allocateVariable() { var->allocate(); }
+
+  /**
+   * @brief Allocate memory for the variable
+   */
+  void allocateGradient() { grad->allocate(); }
+
 protected:
   TensorDim dim;                /**< dimension of the tensor */
   std::shared_ptr<Tensor> var;  /**< variable to be updated and used */
   std::shared_ptr<Tensor> grad; /**< gradient for the variable */
   bool trainable;               /**< if this variable is trainable */
+  bool alloc_now;               /**< if the tensor should be allocated instantly */
   std::string name;             /**< name of the parameter */
 };
 

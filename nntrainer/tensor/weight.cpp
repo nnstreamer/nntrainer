@@ -17,8 +17,8 @@
 namespace nntrainer {
 
 Weight::Weight(const TensorDim &dim, const WeightInitializer init, bool train,
-               std::string name) :
-  Var_Grad(dim, train, name),
+               bool alloc_now_, std::string name) :
+  Var_Grad(dim, train, alloc_now_, name),
   initializer(init) {
   if (initializer == WeightInitializer::WEIGHT_UNKNOWN)
     throw std::invalid_argument("Weight initializer unknown");
@@ -27,6 +27,11 @@ Weight::Weight(const TensorDim &dim, const WeightInitializer init, bool train,
 void Weight::initializeWeight(const Tensor &weights_preallocated) {
   Var_Grad::initializeWeight(weights_preallocated);
 
+  if (alloc_now)
+    initializeWeight();
+}
+
+void Weight::initializeVariable() {
   Tensor &var_ref = getVariableRef();
   const TensorDim dim = var_ref.getDim();
 
@@ -67,13 +72,15 @@ void Weight::initializeWeight(const Tensor &weights_preallocated) {
 void Weight::initializeGrad(const Tensor &preallocated, bool gtrain) {
   // Use self variable to initialize itself
   Var_Grad::initializeGrad(preallocated, gtrain);
+  if (gtrain && alloc_now)
+    allocateOptimizerVariables();
+}
 
-  if (gtrain) {
-    // If trainable, allocate optimizer parameters
-    for (auto const &dim : opt_vars_dim) {
-      opt_vars.emplace_back(dim);
-      opt_vars.back().setZero();
-    }
+void Weight::allocateOptimizerVariables() {
+  // Allocate optimizer parameters
+  for (auto const &dim : opt_vars_dim) {
+    opt_vars.emplace_back(dim);
+    opt_vars.back().setZero();
   }
 }
 

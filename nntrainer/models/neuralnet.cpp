@@ -534,6 +534,8 @@ sharedConstTensors NeuralNetwork::inference(sharedConstTensors X) {
 int NeuralNetwork::assignMem(bool trainable) {
   // TODO: directly replace this
   manager->initializeTensors(trainable);
+
+  manager->allocateTensors();
   return ML_ERROR_NONE;
 }
 

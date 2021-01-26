@@ -16,19 +16,18 @@
 
 namespace nntrainer {
 
-Var_Grad::Var_Grad(const TensorDim &dim, bool train, const std::string &name) :
+Var_Grad::Var_Grad(const TensorDim &dim, bool train, bool alloc_now_, const std::string &name) :
   dim(dim),
   trainable(train),
+  alloc_now(alloc_now_),
   name(name) {
-  var = std::make_shared<Tensor>();
-  grad = std::make_shared<Tensor>();
+  var = std::make_shared<Tensor>(dim, nullptr, alloc_now);
+  grad = std::make_shared<Tensor>(dim, nullptr, alloc_now);
 }
 
 void Var_Grad::initializeWeight(const Tensor &preallocated) {
   if (!preallocated.uninitialized()) {
-    var = std::make_shared<Tensor>(preallocated);
-  } else {
-    var = std::make_shared<Tensor>(dim);
+    var->makeSharedDataTensor(preallocated);
   }
 }
 
@@ -38,25 +37,25 @@ void Var_Grad::initializeGrad(const Tensor &preallocated, bool gtrain) {
      * Making a new tensor is intentional here as this tensor is not shared
      * with other layers but the internal memory is.
      */
-    grad = std::make_shared<Tensor>(preallocated);
+    grad->makeSharedDataTensor(preallocated);
   } else {
     grad = std::make_shared<Tensor>();
     if (trainable && gtrain) {
-      grad = std::make_shared<Tensor>(dim);
+      grad = std::make_shared<Tensor>(dim, nullptr, alloc_now);
     }
     resetGradient();
   }
 }
 
 void Var_Grad::initializeShared() {
-  var = std::make_shared<Tensor>(dim);
-  grad = std::make_shared<Tensor>(*var.get());
+  grad->makeSharedDataTensor(*var.get());
 }
 
 void Var_Grad::setTrainable(bool train) {
   trainable = train;
   if (trainable && grad->uninitialized()) {
-    grad = std::make_shared<Tensor>(var->getDim());
+    bool alloc_now_ = var->isAllocated();
+    grad = std::make_shared<Tensor>(var->getDim(), nullptr, alloc_now_);
   }
 }
 
