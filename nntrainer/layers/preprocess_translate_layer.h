@@ -64,27 +64,29 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int initialize(Manager &manager);
+  int initialize(Manager &manager) override;
 
   /**
    * @copydoc Layer::forwarding()
    */
-  void forwarding();
+  void forwarding(bool training = true) override;
 
   /**
    * @copydoc Layer::calcDerivative()
    */
-  void calcDerivative();
+  void calcDerivative() override;
 
   /**
    * @copydoc Layer::setTrainable(bool train)
    */
-  void setTrainable(bool train);
+  void setTrainable(bool train) override;
 
   /**
    * @copydoc Layer::getType()
    */
-  const std::string getType() const { return PreprocessTranslateLayer::type; };
+  const std::string getType() const override {
+    return PreprocessTranslateLayer::type;
+  }
 
   using Layer::setProperty;
 

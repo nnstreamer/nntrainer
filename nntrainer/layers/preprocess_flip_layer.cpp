@@ -59,7 +59,14 @@ void PreprocessFlipLayer::setProperty(const PropertyType type,
   }
 }
 
-void PreprocessFlipLayer::forwarding() {
+void PreprocessFlipLayer::forwarding(bool training) {
+  if (!training) {
+    for (unsigned int idx = 0; idx < input_dim.size(); idx++) {
+      net_hidden[idx]->getVariableRef() = net_input[idx]->getVariableRef();
+    }
+
+    return;
+  }
   using std::swap;
   bool fliph, flipw;
 

@@ -520,8 +520,7 @@ TEST_F(nntrainer_PreprocessTranslateLayer, forwarding_01_p) {
   layer.setProperty({"random_translate=0.0"});
   layer.initialize(manager);
 
-  manager.initialize();
-  manager.initializeInOuts(true);
+  manager.initializeTensors(true);
 
   nntrainer::Tensor in(nntrainer::TensorDim({2, 3, 32, 32}));
   nntrainer::Tensor out_trans;
@@ -542,8 +541,7 @@ TEST_F(nntrainer_PreprocessTranslateLayer, forwarding_02_p) {
   layer.setProperty({"random_translate=0.1"});
   layer.initialize(manager);
 
-  manager.initialize();
-  manager.initializeInOuts(true);
+  manager.initializeTensors(true);
 
   nntrainer::Tensor in(nntrainer::TensorDim({1, 3, 32, 32}));
 
