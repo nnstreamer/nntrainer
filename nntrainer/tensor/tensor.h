@@ -73,6 +73,8 @@ public:
    * @param offset offset to be used from current
    * @return Tensor object
    * @throws std::invalid_argument if buf is null
+   *
+   * @note This method is unsafe as it does not check buf size.
    */
   static Tensor Map(float *buf, const TensorDim &d, int offset = 0);
 
@@ -85,6 +87,8 @@ public:
    * @param offset offset to be used
    * @return Tensor object
    * @throws std::invalid_argument if buf is null
+   *
+   * @note This method is unsafe as it does not check buf size.
    */
   static Tensor Map(std::shared_ptr<float> buf, const TensorDim &d,
                     int offset = 0);
