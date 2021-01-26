@@ -5,5 +5,6 @@ includedir=@INCLUDE_INSTALL_DIR@
 Name : nntrainer
 Version : @VERSION@
 Description: Software Framework for Training Neural Network on Device
+Requires: capi-ml-common
 Libs: -L${libdir} -lnntrainer
 Cflags: -I${includedir}/nntrainer

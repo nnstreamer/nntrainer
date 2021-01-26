@@ -120,7 +120,14 @@ Install the required packages.
 
 ```bash
 sudo apt install meson ninja-build
-sudo apt install gcc g++ pkg-config libopenblas-dev libiniparser-dev libjsoncpp-dev libcurl3-dev tensorflow-lite-dev nnstreamer-dev libglib2.0-dev libgstreamer1.0-dev libgtest-dev
+sudo apt install gcc g++ pkg-config libopenblas-dev libiniparser-dev nnstreamer-api-common-dev
+```
+
+For full-functionality, you might want to add more packages
+```bash
+sudo apt install libjsoncpp-dev libcurl3-dev  # for application demo
+sudo apt install tensorflow-lite-dev nnstreamer-dev libglib2.0-dev libgstreamer1.0-dev # for backbone support
+sudo apt install libgtest-dev # for testing
 ```
 
 Build at the git repo root directory, this will install nntrainer and related files.

@@ -145,8 +145,7 @@ if nnstreamer_capi_dep.found()
   endif
 endif
 
-# todo: change this to a capi-ml-common after #nnstreamer/3014
-ml_api_common_dep = dependency('capi-nnstreamer', required:true)
+ml_api_common_dep = dependency('capi-ml-common', required: true)
 
 if get_option('enable-nnstreamer-backbone')
   add_project_arguments('-DENABLE_NNSTREAMER_BACKBONE=1', language:['c','cpp'])
