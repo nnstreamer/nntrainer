@@ -300,7 +300,7 @@ void Manager::initializeGradients() {
         grad_prealloc = allocate_grad(dim, grad_offset);
         grad_offset += dim.getDataLen();
       }
-      weight.initializeGradient(grad_prealloc, true);
+      weight.initializeGradient(grad_prealloc);
     }
   }
 }
