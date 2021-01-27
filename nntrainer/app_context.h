@@ -84,6 +84,20 @@ public:
   void setWorkingDirectory(const std::string &base);
 
   /**
+   * @brief register a layer factory from a shared library
+   * plugin must have **extern "C" LayerPluggable *ml_train_layer_pluggable**
+   * defined else error
+   *
+   * @param library_path a file name of the library
+   * @param base_path    base path to make a full path (optional)
+   * @return int integer key to create the layer
+   * @throws std::invalid_parameter if library_path is invalid or library is
+   * invalid
+   */
+  int registerLayerPlugin(const std::string &library_path,
+                          const std::string &base_path = "");
+
+  /**
    * @brief Get Working Path from a relative or representation of a path
    * strating from @a working_path_base.
    * @param[in] path to make full path
