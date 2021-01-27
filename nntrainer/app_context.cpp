@@ -12,10 +12,12 @@
  *
  */
 #include <dirent.h>
+#include <dlfcn.h>
 #include <iostream>
 #include <sstream>
 
 #include <app_context.h>
+#include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <util_func.h>
 
@@ -34,6 +36,7 @@
 #include <nntrainer_error.h>
 #include <output_layer.h>
 #include <parse_util.h>
+#include <plugged_layer.h>
 #include <pooling2d_layer.h>
 
 #ifdef ENABLE_TFLITE_BACKBONE
@@ -111,7 +114,24 @@ AppContext &AppContext::Global() {
   return instance;
 }
 
-static const std::string func_tag = "[AppContext::setWorkingDirectory] ";
+static const std::string func_tag = "[AppContext] ";
+
+namespace {
+const std::string getFullPath(const std::string &path,
+                              const std::string &base) {
+  /// if path is absolute, return path
+  if (path[0] == '/') {
+    return path;
+  }
+
+  if (base == std::string()) {
+    return path == std::string() ? "." : path;
+  }
+
+  return path == std::string() ? base : base + "/" + path;
+}
+
+} // namespace
 
 void AppContext::setWorkingDirectory(const std::string &base) {
   DIR *dir = opendir(base.c_str());
@@ -137,18 +157,46 @@ void AppContext::setWorkingDirectory(const std::string &base) {
 }
 
 const std::string AppContext::getWorkingPath(const std::string &path) {
+  return getFullPath(path, working_path_base);
+}
 
-  /// if path is absolute, return path
-  if (path[0] == '/') {
-    return path;
-  }
+int AppContext::registerLayerPlugin(const std::string &path,
+                                    const std::string &base_path) {
+  const std::string full_path = getFullPath(path, base_path);
 
-  if (working_path_base == std::string()) {
-    return path == std::string() ? "." : path;
-  }
+  void *handle = dlopen(full_path.c_str(), RTLD_LAZY | RTLD_LOCAL);
+  const char *error_msg = dlerror();
 
-  return path == std::string() ? working_path_base
-                               : working_path_base + "/" + path;
+  NNTR_THROW_IF(handle == nullptr, std::invalid_argument)
+    << func_tag << "open plugin failed, reason: " << error_msg;
+
+  ml::train::LayerPluggable *pluggable =
+    reinterpret_cast<ml::train::LayerPluggable *>(
+      dlsym(handle, "ml_train_layer_pluggable"));
+
+  error_msg = dlerror();
+  auto close_dl = [handle] { dlclose(handle); };
+  NNTR_THROW_IF_CLEANUP(error_msg != nullptr || pluggable == nullptr,
+                        std::invalid_argument, close_dl)
+    << func_tag << "loading symbol failed, reason: " << error_msg;
+
+  auto layer = pluggable->createfunc();
+  NNTR_THROW_IF_CLEANUP(layer == nullptr, std::invalid_argument, close_dl)
+    << func_tag << "created pluggable layer is null";
+  auto type = layer->getType();
+  NNTR_THROW_IF_CLEANUP(type == "", std::invalid_argument, close_dl)
+    << func_tag << "custom layer must specify type name, but it is empty";
+  pluggable->destroyfunc(layer);
+
+  FactoryType<ml::train::Layer> factory_func =
+    [pluggable](const PropsType &prop) {
+      std::unique_ptr<ml::train::Layer> layer =
+        std::make_unique<internal::PluggedLayer>(pluggable);
+
+      return layer;
+    };
+
+  return registerFactory<ml::train::Layer>(factory_func, type);
 }
 
 } // namespace nntrainer
