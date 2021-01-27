@@ -1,3 +1,7 @@
+---
+title: How to run examples
+...
+
 # How to run examples
 
 ## Preparing NNTrainer for execution

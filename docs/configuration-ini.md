@@ -1,3 +1,7 @@
+---
+title: Configuration ini
+...
+
 # Writing Configuration File
 
 NNTrainer requires network configuration file which includes network layers and hyper-parameters. The format of configuration file is iniparser format which is commonly used. Keywords are not case sensitive and the line start with '#' will be ignored.

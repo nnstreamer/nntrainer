@@ -1,3 +1,7 @@
+---
+title: Coding Convention
+...
+
 # Coding Convention
 
 ## C headers (.h)
@@ -9,7 +13,7 @@ Except the two, you are required to follow the general coding styles mandated by
 ## C/C++ files (.cpp, .c)
 
 Use .h for headers and .cpp / .c for source.
-You have to use clang-format with the given [.clang-format](../.clang-format) file
+You have to use clang-format with the given [.clang-format](https://github.com/nnstreamer/nntrainer/blob/main/.clang-format) file
 
 
 ## Other files
