@@ -24,12 +24,65 @@
 #define ML_ERROR_RESULT_OUT_OF_RANGE (-ERANGE)
 #endif
 
+#include <functional>
+#include <sstream>
 #include <stdexcept>
+
+#define NNTR_THROW_IF(pred, err) \
+  if ((pred))                    \
+  nntrainer::exception::ErrorNotification<err>()
+
+#define NNTR_THROW_IF_CLEANUP(pred, err, cleanup_func) \
+  if ((pred))                                          \
+  nntrainer::exception::ErrorNotification<err>(cleanup_func)
+
 namespace nntrainer {
 
 /// @note underscore_case is used for ::exception to keep in accordance with
 /// std::exception
 namespace exception {
+
+/**
+ * @brief Error Notification class, error is thrown when the class is destroyed.
+ * DO NOT use this outside as this contains throwing destructor.
+ *
+ * @tparam Err Error type that except cstring as an argument.
+ */
+template <typename Err,
+          typename std::enable_if_t<std::is_base_of<std::exception, Err>::value,
+                                    Err> * = nullptr>
+class ErrorNotification {
+public:
+  /**
+   * @brief Construct a new Error Notification object
+   *
+   */
+  explicit ErrorNotification() : cleanup_func([] {}) {}
+
+  explicit ErrorNotification(std::function<void()> cleanup_func_) :
+    cleanup_func(cleanup_func_) {}
+
+  /**
+   * @brief Destroy the Error Notification object, Error is thrown when
+   * destroying this
+   *
+   */
+  ~ErrorNotification() noexcept(false) {
+    cleanup_func();
+    throw Err(ss.str().c_str());
+  }
+
+  template <typename T>
+  friend ErrorNotification<Err> &&operator<<(ErrorNotification<Err> &&out,
+                                             T &&e) {
+    out.ss << e;
+    return std::move(out);
+  }
+
+private:
+  std::stringstream ss;
+  std::function<void()> cleanup_func;
+};
 
 /**
  * @brief derived class of invalid argument to represent specific functionality
