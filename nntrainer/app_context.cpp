@@ -49,22 +49,18 @@ namespace nntrainer {
 std::mutex factory_mutex;
 
 /**
- * @brief initiate global context
- *
- */
-static void init_global_context_nntrainer(void) __attribute__((constructor));
-
-/**
  * @brief finialize global context
  *
  */
 static void fini_global_context_nntrainer(void) __attribute__((destructor));
 
-static void init_global_context_nntrainer(void) {
+static void fini_global_context_nntrainer(void) {}
+
+std::once_flag global_app_context_init_flag;
+
+static void add_default_object(AppContext &ac) {
   /// @note all layers should be added to the app_context to gaurantee that
   /// createLayer/createOptimizer class is created
-  auto &ac = AppContext::Global();
-
   using OptType = ml::train::OptimizerType;
   ac.registerFactory(ml::train::createOptimizer<SGD>, SGD::type, OptType::SGD);
   ac.registerFactory(ml::train::createOptimizer<Adam>, Adam::type,
@@ -108,10 +104,9 @@ static void init_global_context_nntrainer(void) {
                      LayerType::LAYER_UNKNOWN);
 }
 
-static void fini_global_context_nntrainer(void) {}
-
 AppContext &AppContext::Global() {
   static AppContext instance;
+  std::call_once(global_app_context_init_flag, add_default_object, instance);
   return instance;
 }
 
