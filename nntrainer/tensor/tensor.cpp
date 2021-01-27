@@ -92,10 +92,16 @@ Tensor::Tensor(const TensorDim &d, const float *buf) : Tensor() {
   }
 }
 
-Tensor Tensor::Map(float *buf, const TensorDim &d, int offset) {
+Tensor Tensor::Map(float *buf, unsigned int size, const TensorDim &d,
+                   int offset) {
   if (d.getDataLen() == 0 || buf == nullptr) {
     throw std::invalid_argument(
       "[Tensor::Map] empty tensor dim is not allowed");
+  }
+
+  if (d.getDataLen() + offset > size) {
+    throw std::invalid_argument(
+      "Creating shared tensor of size bigger than tensor memory.");
   }
 
   Tensor tmp;
@@ -107,10 +113,16 @@ Tensor Tensor::Map(float *buf, const TensorDim &d, int offset) {
   return tmp;
 }
 
-Tensor Tensor::Map(std::shared_ptr<float> buf, const TensorDim &d, int offset) {
+Tensor Tensor::Map(std::shared_ptr<float> buf, unsigned int size,
+                   const TensorDim &d, int offset) {
   if (d.getDataLen() == 0 || buf == nullptr) {
     throw std::invalid_argument(
       "[Tensor::Map] empty tensor dim is not allowed");
+  }
+
+  if (d.getDataLen() + offset > size) {
+    throw std::invalid_argument(
+      "Creating shared tensor of size bigger than tensor memory.");
   }
 
   Tensor tmp;
