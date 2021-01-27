@@ -280,6 +280,29 @@ TEST(nntrainer_Layer, initialize_03_p) {
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
+TEST(nntrainer_throw_if, throw_invalid_arg_p) {
+  try {
+    NNTR_THROW_IF(1 == 1, std::invalid_argument) << "error msg";
+  } catch (std::invalid_argument &e) {
+    EXPECT_STREQ("error msg", e.what());
+  }
+
+  try {
+    NNTR_THROW_IF(true, std::invalid_argument) << "error msg";
+  } catch (std::invalid_argument &e) {
+    EXPECT_STREQ("error msg", e.what());
+  }
+
+  bool hit = false;
+  auto cleanup = [&hit] { hit = true; };
+  try {
+    NNTR_THROW_IF_CLEANUP(true, std::invalid_argument, cleanup) << "error msg";
+  } catch (std::invalid_argument &e) {
+    EXPECT_STREQ("error msg", e.what());
+    EXPECT_TRUE(hit);
+  }
+}
+
 /**
  * @brief Main gtest
  */
