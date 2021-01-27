@@ -59,12 +59,12 @@ LOCAL_ARM_MODE := arm
 LOCAL_MODULE := nntrainer_layer_client_example
 LOCAL_LDLIBS := -llog -landroid
 
-LOCAL_SRC_FILES := main.cpp pow.cpp
+LOCAL_SRC_FILES := main.cpp $(LOCAL_PATH)/../../pow.cpp
 
 # todo: make this application only depending on ccapi
 LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer app_utils
 
-LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES) $(APP_UTILS_INCLUDES) pow.h
+LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES) $(APP_UTILS_INCLUDES) $(LOCAL_PATH)/../..
 
 include $(BUILD_EXECUTABLE)
 

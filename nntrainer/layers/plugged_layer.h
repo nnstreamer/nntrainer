@@ -87,6 +87,14 @@ public:
   void calcGradient() override { layerImpl->calcGradient(); }
 
   /**
+   * @copydoc Layer::applyGradient(unsigned int, std::shared_ptr<Optimizer>)
+   */
+  void applyGradient(unsigned int iteration,
+                     std::shared_ptr<Optimizer> optimizer) override {
+    layerImpl->applyGradient(iteration, std::move(optimizer));
+  }
+
+  /**
    * @copydoc Layer::read(std::ifstream &file)
    */
   void read(std::ifstream &file) override { layerImpl->read(file); }
