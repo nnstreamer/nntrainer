@@ -30,19 +30,17 @@
 
 #define NNTR_THROW_IF(pred, err) \
   if ((pred))                    \
-    nntrainer::exception::internal::ErrorNotification<err> {}
+    nntrainer::exception::ErrorNotification<err> {}
 
 #define NNTR_THROW_IF_CLEANUP(pred, err, cleanup_func) \
   if ((pred))                                          \
-    nntrainer::exception::internal::ErrorNotification<err> { cleanup_func }
+    nntrainer::exception::ErrorNotification<err> { cleanup_func }
 
 namespace nntrainer {
 
 /// @note underscore_case is used for ::exception to keep in accordance with
 /// std::exception
 namespace exception {
-
-namespace internal {
 
 /**
  * @brief Error Notification class, error is thrown when the class is destroyed.
@@ -85,8 +83,6 @@ private:
   std::stringstream ss;
   std::function<void()> cleanup_func;
 };
-
-} // namespace internal
 
 /**
  * @brief derived class of invalid argument to represent specific functionality
