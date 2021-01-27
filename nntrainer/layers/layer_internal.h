@@ -223,25 +223,25 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int checkValidation();
+  virtual int checkValidation();
 
   /**
    * @brief Get the output dimension
    * @return TensorDim dimension of the output
    */
-  std::vector<TensorDim> getOutputDimension() { return output_dim; }
+  virtual std::vector<TensorDim> getOutputDimension() { return output_dim; }
 
   /**
    * @brief Get the input dimension
    * @return TensorDim dimension of the input
    */
-  std::vector<TensorDim> getInputDimension() { return input_dim; }
+  virtual std::vector<TensorDim> getInputDimension() { return input_dim; }
 
   /**
    * @brief  get the loss value added by this layer
    * @retval loss value
    */
-  float getLoss() { return loss; }
+  virtual float getLoss() { return loss; }
 
   /**
    * @brief     set trainable for this layer
@@ -259,7 +259,7 @@ public:
    * @brief     get all weights of the layer
    * @retval    vector of all params
    */
-  std::vector<Weight> getWeights() { return weights; }
+  virtual std::vector<Weight> getWeights() { return weights; }
 
   /**
    * @brief     get if the output of this layer must be flatten
@@ -270,12 +270,12 @@ public:
   /**
    * @brief     Set name of the layer
    */
-  int setName(std::string name);
+  virtual int setName(std::string name);
 
   /**
    * @brief     Get name of the layer
    */
-  std::string getName() noexcept { return name; }
+  virtual std::string getName() noexcept { return name; }
 
   /**
    * @brief print using PrintPreset
@@ -283,21 +283,23 @@ public:
    * @param out oustream
    * @param preset preset to be used
    */
-  void printPreset(std::ostream &out,
-                   PrintPreset preset = PrintPreset::PRINT_SUMMARY);
+  virtual void printPreset(std::ostream &out,
+                           PrintPreset preset = PrintPreset::PRINT_SUMMARY);
 
   /**
    * @brief     get data alias at param position.
    * @exception std::out_of_range for index out of range
    */
-  Weight &weightAt(const unsigned int position) { return weights[position]; }
+  virtual Weight &weightAt(const unsigned int position) {
+    return weights[position];
+  }
 
   /**
    * @brief Get the number of weights
    *
    * @return unsigned int number of weights
    */
-  unsigned int getNumWeights() { return weights.size(); }
+  virtual unsigned int getNumWeights() { return weights.size(); }
 
   /**
    * @brief Set the batch for the layer
@@ -326,34 +328,43 @@ public:
    * @brief Resets the input and output dimension for the layer
    * @note This does not affect the number of inputs/outputs
    */
-  void resetDimension() {
+  virtual void resetDimension() {
     input_dim.clear();
     input_dim.resize(num_inputs);
     output_dim.clear();
     output_dim.resize(num_outputs);
   }
 
-  std::vector<Tensor> getOutputs();
+  virtual std::vector<Tensor> getOutputs();
 
-  std::vector<Tensor> getDerivatives();
+  virtual std::vector<Tensor> getDerivatives();
 
   /**
    * @brief Get reference to the weights
    * @retval Reference of the list of weights in the layer
    */
-  std::vector<Weight> &getWeightsRef() { return weights; }
+  virtual std::vector<Weight> &getWeightsRef() { return weights; }
 
-  void setInputBuffers(std::vector<std::shared_ptr<Var_Grad>> inputs) {
+  virtual void setInputBuffers(std::vector<std::shared_ptr<Var_Grad>> inputs) {
     net_input = inputs;
   }
 
-  void setOutputBuffers(std::vector<std::shared_ptr<Var_Grad>> outputs) {
+  virtual void
+  setOutputBuffers(std::vector<std::shared_ptr<Var_Grad>> outputs) {
     net_hidden = outputs;
   }
 
+  /**
+   * @brief     Initialize the layer
+   *            - Weight(Height, Width), Bias(1, Width)
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  virtual int initialize(Manager &manager) = 0;
+
 #ifdef ENABLE_TEST
-  unsigned int getNumInputs() { return num_inputs; }
-  unsigned int getNumOutputs() { return num_outputs; }
+  virtual unsigned int getNumInputs() { return num_inputs; }
+  virtual unsigned int getNumOutputs() { return num_outputs; }
 #endif
 
 protected:
@@ -536,14 +547,6 @@ private:
    * @param[in] flags combination of LayerPrintOption
    */
   virtual void print(std::ostream &out, unsigned int flags = 0);
-
-  /**
-   * @brief     Initialize the layer
-   *            - Weight(Height, Width), Bias(1, Width)
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   */
-  virtual int initialize(Manager &manager) = 0;
 
   /**
    * @brief Set the input dimension
