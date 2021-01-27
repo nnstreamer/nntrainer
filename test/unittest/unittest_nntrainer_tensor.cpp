@@ -82,7 +82,7 @@ TEST(nntrainer_Tensor, TensorWrap_p) {
   float dat[] = {1, 2, 3};
 
   {
-    nntrainer::Tensor a = nntrainer::Tensor::Map(dat, {3});
+    nntrainer::Tensor a = nntrainer::Tensor::Map(dat, 3, {3});
     /// check if a.getData() has same address with dat
     EXPECT_EQ(dat, a.getData());
     {
@@ -95,9 +95,14 @@ TEST(nntrainer_Tensor, TensorWrap_p) {
   EXPECT_FLOAT_EQ(dat[2], 3);
 }
 
-TEST(nntrainer_Tensor, TensorWrap_n) {
+TEST(nntrainer_Tensor, TensorWrap_01_n) {
   float dat[] = {1, 2, 3};
-  EXPECT_THROW(nntrainer::Tensor::Map(dat, {}), std::invalid_argument);
+  EXPECT_THROW(nntrainer::Tensor::Map(dat, 3, {}), std::invalid_argument);
+}
+
+TEST(nntrainer_Tensor, TensorWrap_02_n) {
+  float dat[] = {1, 2, 3};
+  EXPECT_THROW(nntrainer::Tensor::Map(dat, 3, {4}), std::invalid_argument);
 }
 
 TEST(nntrainer_Tensor, TensorPaddedValue_p) {

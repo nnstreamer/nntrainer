@@ -68,30 +68,29 @@ public:
    * @brief Construct a new Tensor object from a buffer
    * This will not copy buffer to a new tensor but directly uses it
    *
-   * @param d tensor dim
    * @param buf buffer
+   * @param size buffer size in bytes
+   * @param d tensor dim
    * @param offset offset to be used from current
    * @return Tensor object
    * @throws std::invalid_argument if buf is null
-   *
-   * @note This method is unsafe as it does not check buf size.
    */
-  static Tensor Map(float *buf, const TensorDim &d, int offset = 0);
+  static Tensor Map(float *buf, unsigned int size, const TensorDim &d,
+                    int offset = 0);
 
   /**
    * @brief Construct a new Tensor object from a buffer
    * This will shared the buf
    *
-   * @param d tensor dim
    * @param buf buffer
+   * @param size buffer size in bytes
+   * @param d tensor dim
    * @param offset offset to be used
    * @return Tensor object
    * @throws std::invalid_argument if buf is null
-   *
-   * @note This method is unsafe as it does not check buf size.
    */
-  static Tensor Map(std::shared_ptr<float> buf, const TensorDim &d,
-                    int offset = 0);
+  static Tensor Map(std::shared_ptr<float> buf, unsigned int size,
+                    const TensorDim &d, int offset = 0);
 
   /**
    * @brief     Constructor of Tensor
