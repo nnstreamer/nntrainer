@@ -9,6 +9,8 @@
  * @author      Jijoong Moon <jijoong.moon@samsung.com>
  * @bug         No known bugs
  */
+#include <gtest/gtest.h>
+
 #include "nntrainer_test_util.h"
 #include "util_func.h"
 #include <fstream>
@@ -72,10 +74,10 @@ TEST(nntrainer_TensorDim, setTensorDim_04_p) {
   d.setTensorDim(2, 6);
   d.setTensorDim(3, 7);
 
-  EXPECT_EQ(d.batch(), 4);
-  EXPECT_EQ(d.channel(), 5);
-  EXPECT_EQ(d.height(), 6);
-  EXPECT_EQ(d.width(), 7);
+  EXPECT_EQ(d.batch(), 4u);
+  EXPECT_EQ(d.channel(), 5u);
+  EXPECT_EQ(d.height(), 6u);
+  EXPECT_EQ(d.width(), 7u);
 }
 
 TEST(nntrainer_Tensor, TensorWrap_p) {
@@ -2371,10 +2373,10 @@ TEST(nntrainer_Tensor, reshape_n_02) {
 
   /** Changing the dim of a tensor only affects local copy of the dim */
   A_dim.setTensorDim(1, 100);
-  EXPECT_EQ(A_dim.getTensorDim(1), 100);
+  EXPECT_EQ(A_dim.getTensorDim(1), 100u);
 
   nntrainer::TensorDim A_dim_2 = A.getDim();
-  EXPECT_EQ(A_dim_2.getTensorDim(1), 4);
+  EXPECT_EQ(A_dim_2.getTensorDim(1), 4u);
 }
 
 TEST(nntrainer_Tensor, copy_and_reshape_n) {

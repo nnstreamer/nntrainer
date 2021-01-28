@@ -692,7 +692,7 @@ TEST(nntrainerIniTest, backbone_p_14) {
 
   EXPECT_EQ(NN_full.getInputDimension()[0].channel(),
             NN_scaled_zero.getInputDimension()[0].channel());
-  EXPECT_EQ(1, NN_scaled_zero.getOutputDimension()[0].channel());
+  EXPECT_EQ(1u, NN_scaled_zero.getOutputDimension()[0].channel());
 }
 
 /**
@@ -791,7 +791,7 @@ TEST(nntrainerIniTest, backbone_n_18) {
   EXPECT_EQ(NN.compile(), ML_ERROR_NONE);
   EXPECT_EQ(NN.initialize(), ML_ERROR_NONE);
 
-  EXPECT_EQ(NN.getNetworkGraph().getSorted().size(), 3);
+  EXPECT_EQ(NN.getNetworkGraph().getSorted().size(), 3u);
 }
 
 /**
@@ -813,7 +813,7 @@ TEST(nntrainerIniTest, backbone_n_19) {
   EXPECT_EQ(NN.compile(), ML_ERROR_NONE);
   EXPECT_EQ(NN.initialize(), ML_ERROR_NONE);
 
-  EXPECT_EQ(NN.getNetworkGraph().getSorted().size(), 3);
+  EXPECT_EQ(NN.getNetworkGraph().getSorted().size(), 3u);
 }
 
 /**
@@ -834,7 +834,7 @@ TEST(nntrainerIniTest, backbone_p_20) {
   EXPECT_EQ(NN.loadFromConfig(ini_name), ML_ERROR_NONE);
   EXPECT_EQ(NN.compile(), ML_ERROR_NONE);
   EXPECT_EQ(NN.initialize(), ML_ERROR_NONE);
-  EXPECT_EQ(NN.getNetworkGraph().getSorted().size(), 6);
+  EXPECT_EQ(NN.getNetworkGraph().getSorted().size(), 6u);
 }
 
 /**
@@ -856,7 +856,7 @@ TEST(nntrainerIniTest, backbone_n_21) {
   EXPECT_EQ(NN.loadFromConfig(ini_name), ML_ERROR_NONE);
   EXPECT_EQ(NN.compile(), ML_ERROR_NONE);
   EXPECT_EQ(NN.initialize(), ML_ERROR_NONE);
-  EXPECT_EQ(NN.getNetworkGraph().getSorted().size(), 3);
+  EXPECT_EQ(NN.getNetworkGraph().getSorted().size(), 3u);
   // EXPECT_EQ(NN.getGraph().size(), 3);
 }
 

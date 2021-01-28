@@ -19,6 +19,7 @@
  * @author      Jijoong Moon <jijoong.moon@samsung.com>
  * @bug         No known bugs
  */
+#include <gtest/gtest.h>
 
 #include <nntrainer.h>
 #include <nntrainer_internal.h>
@@ -903,7 +904,7 @@ TEST(nntrainer_capi_summary, summary_01_p) {
   status = ml_train_model_get_summary(handle, ML_TRAIN_SUMMARY_TENSOR, &sum);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  EXPECT_GT(strlen(sum), 100);
+  EXPECT_GT(strlen(sum), 100u);
 
   status = ml_train_model_destroy(handle);
   EXPECT_EQ(status, ML_ERROR_NONE);

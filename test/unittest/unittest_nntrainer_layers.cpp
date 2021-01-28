@@ -9,6 +9,8 @@
  * @author      Jijoong Moon <jijoong.moon@samsung.com>
  * @bug         No known bugs
  */
+#include <gtest/gtest.h>
+
 #include <fstream>
 #include <regex>
 
@@ -237,10 +239,10 @@ TEST_F(nntrainer_InputLayer, set_property_02_p) {
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   dim = layer.getInputDimension()[0];
-  EXPECT_EQ(dim.getTensorDim(0), 1);
-  EXPECT_EQ(dim.getTensorDim(1), 3);
-  EXPECT_EQ(dim.getTensorDim(2), 2);
-  EXPECT_EQ(dim.getTensorDim(3), 1);
+  EXPECT_EQ(dim.getTensorDim(0), 1u);
+  EXPECT_EQ(dim.getTensorDim(1), 3u);
+  EXPECT_EQ(dim.getTensorDim(2), 2u);
+  EXPECT_EQ(dim.getTensorDim(3), 1u);
 }
 
 TEST_F(nntrainer_InputLayer, set_property_03_p) {
@@ -249,10 +251,10 @@ TEST_F(nntrainer_InputLayer, set_property_03_p) {
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   dim = layer.getInputDimension()[0];
-  EXPECT_EQ(dim.getTensorDim(0), 1);
-  EXPECT_EQ(dim.getTensorDim(1), 3);
-  EXPECT_EQ(dim.getTensorDim(2), 2);
-  EXPECT_EQ(dim.getTensorDim(3), 1);
+  EXPECT_EQ(dim.getTensorDim(0), 1u);
+  EXPECT_EQ(dim.getTensorDim(1), 3u);
+  EXPECT_EQ(dim.getTensorDim(2), 2u);
+  EXPECT_EQ(dim.getTensorDim(3), 1u);
 }
 
 TEST_F(nntrainer_InputLayer, set_property_04_p) {
@@ -262,10 +264,10 @@ TEST_F(nntrainer_InputLayer, set_property_04_p) {
 
   /** Set input shape ignores batch size */
   dim = layer.getInputDimension()[0];
-  EXPECT_EQ(dim.getTensorDim(0), 1);
-  EXPECT_EQ(dim.getTensorDim(1), 3);
-  EXPECT_EQ(dim.getTensorDim(2), 2);
-  EXPECT_EQ(dim.getTensorDim(3), 1);
+  EXPECT_EQ(dim.getTensorDim(0), 1u);
+  EXPECT_EQ(dim.getTensorDim(1), 3u);
+  EXPECT_EQ(dim.getTensorDim(2), 2u);
+  EXPECT_EQ(dim.getTensorDim(3), 1u);
 }
 
 TEST_F(nntrainer_InputLayer, set_property_05_p) {
@@ -276,30 +278,30 @@ TEST_F(nntrainer_InputLayer, set_property_05_p) {
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   dim = layer.getInputDimension()[0];
-  EXPECT_EQ(dim.getTensorDim(0), 5);
-  EXPECT_EQ(dim.getTensorDim(1), 3);
-  EXPECT_EQ(dim.getTensorDim(2), 28);
-  EXPECT_EQ(dim.getTensorDim(3), 28);
+  EXPECT_EQ(dim.getTensorDim(0), 5u);
+  EXPECT_EQ(dim.getTensorDim(1), 3u);
+  EXPECT_EQ(dim.getTensorDim(2), 28u);
+  EXPECT_EQ(dim.getTensorDim(3), 28u);
 
   /** Original batch size is retained */
   status = setProperty("input_shape=1:3:2:1");
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   dim = layer.getInputDimension()[0];
-  EXPECT_EQ(dim.getTensorDim(0), 5);
-  EXPECT_EQ(dim.getTensorDim(1), 3);
-  EXPECT_EQ(dim.getTensorDim(2), 2);
-  EXPECT_EQ(dim.getTensorDim(3), 1);
+  EXPECT_EQ(dim.getTensorDim(0), 5u);
+  EXPECT_EQ(dim.getTensorDim(1), 3u);
+  EXPECT_EQ(dim.getTensorDim(2), 2u);
+  EXPECT_EQ(dim.getTensorDim(3), 1u);
 
   /** Original batch size is retained */
   status = setProperty("input_shape=4:3:2:1");
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   dim = layer.getInputDimension()[0];
-  EXPECT_EQ(dim.getTensorDim(0), 5);
-  EXPECT_EQ(dim.getTensorDim(1), 3);
-  EXPECT_EQ(dim.getTensorDim(2), 2);
-  EXPECT_EQ(dim.getTensorDim(3), 1);
+  EXPECT_EQ(dim.getTensorDim(0), 5u);
+  EXPECT_EQ(dim.getTensorDim(1), 3u);
+  EXPECT_EQ(dim.getTensorDim(2), 2u);
+  EXPECT_EQ(dim.getTensorDim(3), 1u);
 }
 
 /**
@@ -630,7 +632,7 @@ TEST(nntrainer_FullyConnectedLayer_init_name, initialize_05_n) {
 
   /** no name is set */
   layer_name = layer0.getName();
-  EXPECT_EQ(layer_name.length(), 0);
+  EXPECT_EQ(layer_name.length(), 0u);
 
   /** Set empty name */
   status = layer0.setProperty({"name="});
@@ -1291,8 +1293,8 @@ TEST_F(nntrainer_Conv2DLayer, print_01_p) {
   std::stringstream ss, ss2;
   layer.printPreset(ss, nntrainer::Layer::PrintPreset::PRINT_ALL);
   ss2 << layer;
-  EXPECT_GT(ss.str().size(), 100);
-  EXPECT_GT(ss2.str().size(), 100);
+  EXPECT_GT(ss.str().size(), 100u);
+  EXPECT_GT(ss2.str().size(), 100u);
 }
 
 /**

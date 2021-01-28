@@ -19,6 +19,7 @@
  * @author      Jijoong Moon <jijoong.moon@samsung.com>
  * @bug         No known bugs
  */
+#include <gtest/gtest.h>
 
 #include <nntrainer.h>
 #include <nntrainer_internal.h>

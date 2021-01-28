@@ -321,7 +321,8 @@ void IniSection::setEntry(const std::string &entry_str) {
     }
 
     int status = nntrainer::getKeyValue(cur, key, value);
-    EXPECT_EQ(status, ML_ERROR_NONE);
+    NNTR_THROW_IF(status != ML_ERROR_NONE, std::invalid_argument)
+      << "getKeyValue Failed";
     entry[key] = value;
   }
 }
