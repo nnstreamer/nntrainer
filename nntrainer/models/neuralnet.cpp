@@ -22,6 +22,7 @@
  */
 
 #include <cmath>
+#include <cstring>
 #include <fstream>
 #include <sstream>
 
@@ -428,6 +429,10 @@ void NeuralNetwork::saveModel() {
   }
 
   std::ofstream model_file(save_path, std::ios::out | std::ios::binary);
+
+  NNTR_THROW_IF(!model_file.good(), std::invalid_argument)
+    << "model file not opened, file path: " << save_path
+    << " reason: " << strerror(errno);
 
   for (unsigned int i = 0; i < layers.size(); i++)
     layers[i]->save(model_file);
@@ -968,6 +973,11 @@ void NeuralNetwork::print(std::ostream &out, unsigned int flags,
 
 void NeuralNetwork::setSavePath(const std::string &path) {
   save_path = app_context.getWorkingPath(path);
+  if (!isFileExist(save_path)) {
+    ml_logw("[NeuralNetworks] save path does not exist, file will be newly "
+            "created, path: %s",
+            save_path.c_str());
+  }
 }
 
 } /* namespace nntrainer */
