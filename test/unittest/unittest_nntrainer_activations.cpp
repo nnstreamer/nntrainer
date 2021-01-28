@@ -21,9 +21,9 @@
  * @author      Parichay Kapoor <pk.kapoor@samsung.com>
  * @bug         No known bugs
  */
+#include <gtest/gtest.h>
 
 #include <activation_layer.h>
-#include <gtest/gtest.h>
 #include <neuralnet.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>

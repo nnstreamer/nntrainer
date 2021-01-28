@@ -20,6 +20,8 @@
  * @author      Jijoong Moon <jijoong.moon@samsung.com>
  * @bug         No known bugs
  */
+#include <gtest/gtest.h>
+
 #include <fstream>
 
 #include <databuffer_file.h>

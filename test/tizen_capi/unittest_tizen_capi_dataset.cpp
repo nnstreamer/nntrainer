@@ -9,6 +9,7 @@
  * @author      Parichay Kapoor <pk.kapoor@samsung.com>
  * @bug         No known bugs
  */
+#include <gtest/gtest.h>
 
 #include <nntrainer.h>
 #include <nntrainer_internal.h>

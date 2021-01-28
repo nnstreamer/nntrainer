@@ -157,7 +157,8 @@ if get_option('enable-tflite-backbone')
   add_project_arguments('-DENABLE_TFLITE_BACKBONE=1', language:['c','cpp'])
 endif
 
-gtest_dep = dependency('gtest', required: false)
+gtest_dep = dependency('gtest', static: true, main: false, required: false)
+gtest_main_dep = dependency('gtest', static: true, main: true, required: false)
 
 opencv_dep = dependency('opencv', required: false)
 if not opencv_dep.found()
@@ -192,7 +193,11 @@ if get_option('enable-app')
 endif
 
 if get_option('enable-test')
-  subdir('test')
+  if gtest_dep.found()
+    subdir('test')
+  else
+    error('test enabled but gtest not found')
+  endif
 endif
 
 if get_option('enable-nnstreamer-tensor-filter')

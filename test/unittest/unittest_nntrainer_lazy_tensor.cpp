@@ -9,6 +9,7 @@
  * @bug		No known bugs except for NYI items
  *
  */
+#include <gtest/gtest.h>
 
 #include "nntrainer_test_util.h"
 #include "util_func.h"
