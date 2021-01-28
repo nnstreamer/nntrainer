@@ -25,6 +25,6 @@ if get_option('enable-test')
 )
 
 testenv = environment()
-testenv.set('RES_PATH', meson.current_build_dir())
+testenv.set('NNTRAINER_PATH', meson.current_build_dir())
 test('app_plugin_test', exe, env: testenv)
 endif

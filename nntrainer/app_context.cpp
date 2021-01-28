@@ -15,6 +15,10 @@
 #include <dlfcn.h>
 #include <iostream>
 #include <sstream>
+#include <string>
+#include <vector>
+
+#include <iniparser.h>
 
 #include <app_context.h>
 #include <nntrainer_error.h>
@@ -47,7 +51,103 @@
 #include <nnstreamer_layer.h>
 #endif
 
+/// add #ifdef across platform
+static std::string layerlib_suffix = "layer.so";
+static const std::string func_tag = "[AppContext] ";
+
+constexpr const char *DEFAULT_CONF_PATH = "/etc/nntrainer.ini";
+
+constexpr const char *getConfPath() {
+#ifdef NNTRAINER_CONF_PATH
+  return NNTRAINER_CONF_PATH;
+#endif
+  return DEFAULT_CONF_PATH;
+}
+
 namespace nntrainer {
+
+namespace {
+bool endswith(const std::string &target, const std::string &suffix) {
+  if (target.size() < suffix.size()) {
+    return false;
+  }
+  size_t spos = target.size() - suffix.size();
+  return target.substr(spos) == suffix;
+}
+
+/**
+ * @brief Get the plugin path from conf ini
+ *
+ * @return std::string plugin path
+ */
+std::string getPluginPathConf() {
+  std::string conf_path{getConfPath()};
+
+  NNTR_THROW_IF(!isFileExist(conf_path), std::invalid_argument)
+    << func_tag << "There is no existing config file";
+  ml_logd("%s conf path: %s", func_tag.c_str(), conf_path.c_str());
+
+  dictionary *ini = iniparser_load(conf_path.c_str());
+  NNTR_THROW_IF(ini == nullptr, std::runtime_error)
+    << func_tag << "loading ini failed";
+
+  auto freedict = [ini] { iniparser_freedict(ini); };
+
+  const char *path = iniparser_getstring(ini, "plugins:layer", NULL);
+  NNTR_THROW_IF_CLEANUP(path == nullptr, std::invalid_argument, freedict)
+    << func_tag << "plugins layer failed";
+
+  freedict();
+  std::string ret{path};
+  return ret;
+}
+
+/**
+ * @brief Get the plugin paths
+ *
+ * @return std::vector<std::string> list of paths to search for
+ */
+std::vector<std::string> getPluginPaths() {
+  std::vector<std::string> ret;
+
+  const char *env_path = std::getenv("NNTRAINER_PATH");
+  if (env_path != nullptr) {
+    if (isFileExist(env_path)) {
+      ml_logd("NNTRAINER_PATH is defined and valid. path: %s", env_path);
+      ret.emplace_back(env_path);
+    } else {
+      ml_logw("NNTRAINER_PATH is given but it is not valid. path: %s",
+              env_path);
+    }
+  }
+
+  try {
+    std::string conf_path = getPluginPathConf();
+    ret.emplace_back(conf_path);
+    ml_logd("DEFAULT CONF PATH, path: %s", conf_path.c_str());
+  } catch (std::exception &e) {
+    ml_logw("failed to get conf path, conf path is %s, reason: %s",
+            getConfPath(), e.what());
+  }
+
+  return ret;
+}
+
+const std::string getFullPath(const std::string &path,
+                              const std::string &base) {
+  /// if path is absolute, return path
+  if (path[0] == '/') {
+    return path;
+  }
+
+  if (base == std::string()) {
+    return path == std::string() ? "." : path;
+  }
+
+  return path == std::string() ? base : base + "/" + path;
+}
+
+} // namespace
 
 std::mutex factory_mutex;
 
@@ -107,31 +207,38 @@ static void add_default_object(AppContext &ac) {
                      LayerType::LAYER_UNKNOWN);
 }
 
+static void add_extension_object(AppContext &ac) {
+  auto dir_list = getPluginPaths();
+
+  for (auto &path : dir_list) {
+    try {
+      ac.registerLayerFromDirectory(path);
+    } catch (std::exception &e) {
+      ml_logw("tried to register extension from %s but failed, reason: %s",
+              path.c_str(), e.what());
+    }
+  }
+}
+
+static void registerer(AppContext &ac) noexcept {
+  try {
+    add_default_object(ac);
+    add_extension_object(ac);
+  } catch (std::exception &e) {
+    ml_loge("registering layers failed!!, reason: %s", e.what());
+  } catch (...) {
+    ml_loge("registering layer failed due to unknown reason");
+  }
+};
+
 AppContext &AppContext::Global() {
   static AppContext instance;
-  std::call_once(global_app_context_init_flag, add_default_object,
-                 std::ref(instance));
+  /// in g++ there is a bug that hangs up if caller throws,
+  /// so registerer is noexcept although it'd better not
+  /// https://gcc.gnu.org/bugzilla/show_bug.cgi?id=70298
+  std::call_once(global_app_context_init_flag, registerer, std::ref(instance));
   return instance;
 }
-
-static const std::string func_tag = "[AppContext] ";
-
-namespace {
-const std::string getFullPath(const std::string &path,
-                              const std::string &base) {
-  /// if path is absolute, return path
-  if (path[0] == '/') {
-    return path;
-  }
-
-  if (base == std::string()) {
-    return path == std::string() ? "." : path;
-  }
-
-  return path == std::string() ? base : base + "/" + path;
-}
-
-} // namespace
 
 void AppContext::setWorkingDirectory(const std::string &base) {
   DIR *dir = opendir(base.c_str());
@@ -160,9 +267,9 @@ const std::string AppContext::getWorkingPath(const std::string &path) {
   return getFullPath(path, working_path_base);
 }
 
-int AppContext::registerLayerPlugin(const std::string &path,
-                                    const std::string &base_path) {
-  const std::string full_path = getFullPath(path, base_path);
+int AppContext::registerLayer(const std::string &library_path,
+                              const std::string &base_path) {
+  const std::string full_path = getFullPath(library_path, base_path);
 
   void *handle = dlopen(full_path.c_str(), RTLD_LAZY | RTLD_LOCAL);
   const char *error_msg = dlerror();
@@ -197,6 +304,33 @@ int AppContext::registerLayerPlugin(const std::string &path,
     };
 
   return registerFactory<ml::train::Layer>(factory_func, type);
+}
+
+std::vector<int>
+AppContext::registerLayerFromDirectory(const std::string &base_path) {
+  DIR *dir = opendir(base_path.c_str());
+
+  NNTR_THROW_IF(dir == nullptr, std::invalid_argument)
+    << func_tag << "failed to open the directory: " << base_path;
+
+  struct dirent *entry;
+
+  std::vector<int> keys;
+  while ((entry = readdir(dir)) != NULL) {
+    if (endswith(entry->d_name, layerlib_suffix)) {
+      try {
+        int key = registerLayer(entry->d_name, base_path);
+        keys.emplace_back(key);
+      } catch (std::exception &e) {
+        closedir(dir);
+        throw;
+      }
+    }
+  }
+
+  closedir(dir);
+
+  return keys;
 }
 
 } // namespace nntrainer

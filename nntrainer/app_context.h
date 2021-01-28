@@ -94,8 +94,16 @@ public:
    * @throws std::invalid_parameter if library_path is invalid or library is
    * invalid
    */
-  int registerLayerPlugin(const std::string &library_path,
-                          const std::string &base_path = "");
+  int registerLayer(const std::string &library_path,
+                    const std::string &base_path = "");
+
+  /**
+   * @brief register Layer from a directory.
+   *
+   * @param base_path a directory path to search layer's
+   * @return std::vector<int> list of integer key to create a layer
+   */
+  std::vector<int> registerLayerFromDirectory(const std::string &base_path);
 
   /**
    * @brief Get Working Path from a relative or representation of a path
