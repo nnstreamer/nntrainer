@@ -62,8 +62,10 @@ int ModelLoader::loadModelConfigIni(dictionary *ini, NeuralNetwork &model) {
   model.loss_type = (LossType)parseType(
     iniparser_getstring(ini, "Model:Loss", unknown), TOKEN_LOSS);
   const std::string &save_path =
-    iniparser_getstring(ini, "Model:Save_path", "./model.bin");
-  model.setSavePath(model.app_context.getWorkingPath(save_path));
+    iniparser_getstring(ini, "Model:Save_path", unknown);
+  if (save_path != unknown) {
+    model.setSavePath(save_path);
+  }
   model.batch_size =
     iniparser_getint(ini, "Model:Batch_Size", model.batch_size);
 

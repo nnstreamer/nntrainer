@@ -288,8 +288,8 @@ int main(int argc, char *argv[]) {
                               getBatch_train);
     dataset->setGeneratorFunc(ml::train::DatasetDataType::DATA_VAL,
                               getBatch_val);
-  } catch (...) {
-    std::cerr << "Error creating dataset" << std::endl;
+  } catch (std::exception &e) {
+    std::cerr << "Error creating dataset" << e.what() << std::endl;
     return 1;
   }
 
@@ -300,8 +300,8 @@ int main(int argc, char *argv[]) {
      */
     model = createModel(ml::train::ModelType::NEURAL_NET);
     model->loadFromConfig(config);
-  } catch (...) {
-    std::cerr << "Error during loadFromConfig" << std::endl;
+  } catch (std::exception &e) {
+    std::cerr << "Error during loadFromConfig " << e.what() << std::endl;
     return 1;
   }
 
@@ -310,8 +310,8 @@ int main(int argc, char *argv[]) {
     model->initialize();
     model->readModel();
     model->setDataset(dataset);
-  } catch (...) {
-    std::cerr << "Error during init" << std::endl;
+  } catch (std::exception &e) {
+    std::cerr << "Error during init " << e.what() << std::endl;
     return 1;
   }
 
@@ -331,8 +331,8 @@ int main(int argc, char *argv[]) {
     training_loss = model->getTrainingLoss();
     validation_loss = model->getValidationLoss();
     last_batch_loss = model->getLoss();
-  } catch (...) {
-    std::cerr << "Error during train" << std::endl;
+  } catch (std::exception &e) {
+    std::cerr << "Error during train " << e.what() << std::endl;
     return 0;
   }
 
