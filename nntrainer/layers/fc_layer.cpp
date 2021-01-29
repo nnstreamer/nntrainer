@@ -126,8 +126,6 @@ void FullyConnectedLayer::calcGradient() {
 
   djdb = derivative_.sum(0);
   djdw = net_input[0]->getVariableRef().dot(derivative_, djdw, true, false);
-
-  weightAt(weight_idx).calcRegularizationGradient();
 }
 
 void FullyConnectedLayer::scaleSize(float scalesize) noexcept {

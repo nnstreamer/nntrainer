@@ -18,9 +18,7 @@ namespace nntrainer {
 const std::string SGD::type = "sgd";
 
 void SGD::apply_gradient(Weight &weight, double updated_lr, int iteration) {
-  Tensor &x = weight.getVariableRef();
-  const Tensor &x_grad = weight.getGradientRef();
-  x.add_i(x_grad, -updated_lr);
+  weight.applyGradient(updated_lr);
 }
 
 } // namespace nntrainer
