@@ -131,6 +131,8 @@ static unsigned int isamax_raw(const unsigned int N, const float *X,
       max_idx = n;
     }
   }
+
+  return max_idx;
 }
 
 #endif
