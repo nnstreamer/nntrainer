@@ -4,12 +4,12 @@
  *
  * @file   centroid_knn.cpp
  * @date   09 Jan 2021
- * @details  This file contains the simple nearest neighbor layer, this layer
- * takes centroid and calculate l2 distance
+ * @brief  This file contains the simple nearest neighbor layer
  * @see    https://github.com/nnstreamer/nntrainer
  * @author Jihoon Lee <jhoon.it.lee@samsung.com>
  * @bug    No known bugs except for NYI items
  *
+ * @details This layer takes centroid and calculate l2 distance
  */
 
 #include <iostream>
@@ -88,16 +88,18 @@ int CentroidKNN::initialize(nntrainer::Manager &manager) {
   if (weights.empty()) {
     weights.reserve(2);
     weights.emplace_back(map_dim, nntrainer::WeightInitializer::WEIGHT_ZEROS,
-                         false, "centroidNN:map");
+                         nntrainer::WeightRegularizer::NONE, 1.0f, false,
+                         "centroidNN:map");
     weights.emplace_back(samples_seen,
-                         nntrainer::WeightInitializer::WEIGHT_ZEROS, false,
+                         nntrainer::WeightInitializer::WEIGHT_ZEROS,
+                         nntrainer::WeightRegularizer::NONE, 1.0f, false,
                          "centroidNN:num_samples");
     manager.trackWeights(weights);
   } else {
     weights[0].reset(map_dim, nntrainer::WeightInitializer::WEIGHT_ZEROS,
-                     false);
+                     nntrainer::WeightRegularizer::NONE, 1.0f, false);
     weights[1].reset(samples_seen, nntrainer::WeightInitializer::WEIGHT_ZEROS,
-                     false);
+                     nntrainer::WeightRegularizer::NONE, 1.0f, false);
   }
 
   return ML_ERROR_NONE;
