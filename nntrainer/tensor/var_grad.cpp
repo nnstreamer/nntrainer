@@ -16,13 +16,17 @@
 
 namespace nntrainer {
 
-Var_Grad::Var_Grad(const TensorDim &dim, bool train, bool alloc_now_, const std::string &name) :
+Var_Grad::Var_Grad(const TensorDim &dim, bool train, bool alloc_now_,
+                   const std::string &name) :
   dim(dim),
   trainable(train),
   alloc_now(alloc_now_),
   name(name) {
   var = std::make_shared<Tensor>(dim, nullptr, alloc_now);
-  grad = std::make_shared<Tensor>(dim, nullptr, alloc_now);
+  if (trainable)
+    grad = std::make_shared<Tensor>(dim, nullptr, alloc_now);
+  else
+    grad = std::make_shared<Tensor>();
 }
 
 void Var_Grad::initializeWeight(const Tensor &preallocated) {
@@ -38,18 +42,12 @@ void Var_Grad::initializeGrad(const Tensor &preallocated, bool gtrain) {
      * with other layers but the internal memory is.
      */
     grad->makeSharedDataTensor(preallocated);
-  } else {
-    grad = std::make_shared<Tensor>();
-    if (trainable && gtrain) {
-      grad = std::make_shared<Tensor>(dim, nullptr, alloc_now);
-    }
-    resetGradient();
   }
+  if (alloc_now)
+    resetGradient();
 }
 
-void Var_Grad::initializeShared() {
-  grad->makeSharedDataTensor(*var.get());
-}
+void Var_Grad::initializeShared() { grad->makeSharedDataTensor(*var.get()); }
 
 void Var_Grad::setTrainable(bool train) {
   trainable = train;
