@@ -733,12 +733,11 @@ protected:
     EXPECT_EQ(status, ML_ERROR_NONE);
     status = loss_layer->setLoss(type);
     EXPECT_EQ(status, ML_ERROR_NONE);
+    loss_type = type;
 
-    ;
     loss_layer->setInputBuffers(
       manager.trackLayerInputs(loss_layer->getType(), loss_layer->getName(),
                                loss_layer->getInputDimension()));
-    ;
     loss_layer->setOutputBuffers(
       manager.trackLayerOutputs(loss_layer->getType(), loss_layer->getName(),
                                 loss_layer->getOutputDimension()));
@@ -848,9 +847,14 @@ protected:
   void matchUpdatedWeightsGradients() {
     std::vector<nntrainer::Weight> params = layer.getWeights();
 
+    bool match_grads = true;
+    if (loss_type != nntrainer::LossType::LOSS_UNKNOWN)
+      match_grads = false;
+
     /** Match gradients and updated weights */
     for (int idx = 0; idx < 2; ++idx) {
-      matchOutput(params[idx].getGradient(), grad[idx]);
+      if (match_grads)
+        matchOutput(params[idx].getGradient(), grad[idx]);
       matchOutput(params[idx].getVariable(), new_w[idx]);
     }
   }
@@ -859,6 +863,7 @@ protected:
   std::vector<nntrainer::Tensor> new_w;
   std::vector<nntrainer::Tensor> grad;
   std::vector<std::shared_ptr<nntrainer::Layer>> layers;
+  nntrainer::LossType loss_type = nntrainer::LossType::LOSS_UNKNOWN;
 };
 
 /**

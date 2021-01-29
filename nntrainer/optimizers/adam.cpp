@@ -54,7 +54,7 @@ double Adam::getLearningRate(int iteration) {
 void Adam::apply_gradient(Weight &weight, double updated_lr, int iteration) {
 
   Tensor &x = weight.getVariableRef();
-  const Tensor &x_grad = weight.getGradientRef();
+  Tensor &x_grad = weight.getGradientRef();
 
   // This is implementation of adam from original paper.
   // This is not deleted intentionally.
@@ -87,10 +87,9 @@ void Adam::apply_gradient(Weight &weight, double updated_lr, int iteration) {
   wv.multiply_i(beta2);
   wv.add_i(x_grad.multiply(x_grad), 1.0f - beta2);
 
-  Tensor divider;
-  divider = wv.apply(sqrtEps, divider);
-  divider.multiply_i(wm);
-  x.add_i(divider, -updated_lr);
+  x_grad = wv.apply(sqrtEps, x_grad);
+  x_grad.multiply_i(wm);
+  x.add_i(x_grad, -updated_lr);
 }
 
 void Adam::setProperty(const PropertyType type, const std::string &value) {
