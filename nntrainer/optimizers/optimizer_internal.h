@@ -108,7 +108,7 @@ public:
    * @param[in] params Weight list
    * @param[in] iteration nth epoch number
    */
-  void apply_gradients(std::vector<Weight> &params, int iteration);
+  void applyGradients(std::vector<Weight> &params, int iteration);
 
   /**
    * @brief     Read Training optimizer paramters from file
@@ -176,8 +176,8 @@ private:
    * @param[in] iteration nth epoch number
    * @note weight which is called upon can be assumed to be trainable
    */
-  virtual void apply_gradient(Weight &weight, double updated_lr,
-                              int iteration) = 0;
+  virtual void applyGradient(Weight &weight, double updated_lr,
+                             int iteration) = 0;
 };
 
 } /* namespace nntrainer */

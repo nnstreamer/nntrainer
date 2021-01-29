@@ -83,7 +83,8 @@ public:
     const TensorDim &dim,
     const WeightInitializer init = WeightInitializer::WEIGHT_XAVIER_UNIFORM,
     const WeightRegularizer reg = WeightRegularizer::NONE,
-    const float reg_const = 1.0f, bool train = true, bool alloc_now = true, std::string name = "");
+    const float reg_const = 1.0f, bool train = true, bool alloc_now = true,
+    std::string name = "");
 
   /**
    * @copydoc var_grad::initializeVariable(const Tensor &)
@@ -243,9 +244,7 @@ public:
   /**
    * @brief     Apply the gradient to the weight
    */
-  void applyGradient(double lr) {
-    var->add_i(*grad.get(), -lr);
-  }
+  void applyGradient(double lr) { var->add_i(*grad.get(), -lr); }
 
 private:
   WeightInitializer initializer; /**< initializer for this variable */

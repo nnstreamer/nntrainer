@@ -17,7 +17,7 @@ namespace nntrainer {
 
 const std::string SGD::type = "sgd";
 
-void SGD::apply_gradient(Weight &weight, double updated_lr, int iteration) {
+void SGD::applyGradient(Weight &weight, double updated_lr, int iteration) {
   weight.applyGradient(updated_lr);
 }
 

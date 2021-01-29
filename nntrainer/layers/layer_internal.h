@@ -136,7 +136,7 @@ public:
   virtual void applyGradient(unsigned int iteration,
                              std::shared_ptr<Optimizer> optimizer) {
     if (optimizer)
-      optimizer->apply_gradients(weights, iteration);
+      optimizer->applyGradients(weights, iteration);
   }
 
   /**

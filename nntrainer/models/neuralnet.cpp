@@ -352,7 +352,7 @@ void NeuralNetwork::backwarding(std::shared_ptr<Layer> layer, int iteration,
     layer->calcDerivative();
 
   if (apply_gradient)
-    opt->apply_gradients(layer->getWeightsRef(), iteration);
+    opt->applyGradients(layer->getWeightsRef(), iteration);
 }
 
 /**
