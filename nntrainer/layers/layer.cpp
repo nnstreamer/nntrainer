@@ -232,8 +232,8 @@ void Layer::setProperty(const PropertyType type, const std::string &value) {
   case PropertyType::weight_regularizer:
     if (!value.empty()) {
       weight_regularizer =
-        (WeightRegularizerType)parseType(value, TOKEN_WEIGHT_REGULARIZER);
-      if (weight_regularizer == WeightRegularizerType::unknown) {
+        (WeightRegularizer)parseType(value, TOKEN_WEIGHT_REGULARIZER);
+      if (weight_regularizer == WeightRegularizer::UNKNOWN) {
         throw std::invalid_argument("[Layer] Unknown Weight decay");
       }
     }

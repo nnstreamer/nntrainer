@@ -643,9 +643,10 @@ int NeuralNetwork::train_run() {
           std::rethrow_exception(std::current_exception());
         }
         std::cout << "#" << epoch_idx << "/" << epochs;
+        float loss = getLoss();
         data_buffer->displayProgress(count++, nntrainer::BufferType::BUF_TRAIN,
-                                     getLoss());
-        training.loss += getLoss();
+                                     loss);
+        training.loss += loss;
       } else {
         data_buffer->clear(nntrainer::BufferType::BUF_TRAIN);
         break;

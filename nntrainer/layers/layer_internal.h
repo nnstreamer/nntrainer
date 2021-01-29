@@ -63,14 +63,13 @@ public:
   /**
    * @brief     Constructor of Layer Class
    */
-  Layer(
-    ActivationType activation_type_ = ActivationType::ACT_NONE,
-    WeightRegularizerType weight_regularizer_ = WeightRegularizerType::unknown,
-    const float weight_regularizer_constant_ = 1.0f,
-    WeightInitializer weight_initializer_ =
-      WeightInitializer::WEIGHT_XAVIER_UNIFORM,
-    WeightInitializer bias_initializer_ = WeightInitializer::WEIGHT_ZEROS,
-    bool trainable_ = true, bool flatten_ = false) :
+  Layer(ActivationType activation_type_ = ActivationType::ACT_NONE,
+        WeightRegularizer weight_regularizer_ = WeightRegularizer::NONE,
+        const float weight_regularizer_constant_ = 1.0f,
+        WeightInitializer weight_initializer_ =
+          WeightInitializer::WEIGHT_XAVIER_UNIFORM,
+        WeightInitializer bias_initializer_ = WeightInitializer::WEIGHT_ZEROS,
+        bool trainable_ = true, bool flatten_ = false) :
     name(std::string()),
     loss(0.0f),
     activation_type(activation_type_),
@@ -389,13 +388,6 @@ protected:
   std::string name;
 
   /**
-   * @brief     check if current layer's weight decay type is l2norm
-   * @return    bool is weightdecay type is L2 Norm
-   */
-  bool isWeightRegularizerL2Norm() {
-    return weight_regularizer == WeightRegularizerType::l2norm;
-  }
-  /**
    * @brief     Input Tensor
    */
   Tensor input;
@@ -428,7 +420,7 @@ protected:
 
   ActivationType activation_type;
 
-  WeightRegularizerType weight_regularizer;
+  WeightRegularizer weight_regularizer;
 
   float weight_regularizer_constant;
 
@@ -518,14 +510,6 @@ private:
    * Layer::print()
    */
   virtual void printMetric(std::ostream &out);
-
-  /**
-   * @brief     set weight decay parameters
-   * @param[in] w struct for weight decay
-   */
-  void setWeightRegularizer(WeightRegularizerType type) {
-    weight_regularizer = type;
-  }
 
   /**
    * @brief  set Weight Initialization Type

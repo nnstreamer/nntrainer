@@ -54,12 +54,16 @@ int FullyConnectedLayer::initialize(Manager &manager) {
 
   if (weights.empty()) {
     weights.reserve(2);
-    weights.emplace_back(dim, weight_initializer, true, "FC:weight");
-    weights.emplace_back(bias_dim, bias_initializer, true, "FC:bias");
+    weights.emplace_back(dim, weight_initializer, weight_regularizer,
+                         weight_regularizer_constant, true, "FC:weight");
+    weights.emplace_back(bias_dim, bias_initializer, WeightRegularizer::NONE,
+                         1.0f, true, "FC:bias");
     manager.trackWeights(weights);
   } else {
-    weights[FCParams::weight].reset(dim, weight_initializer, true);
-    weights[FCParams::bias].reset(bias_dim, bias_initializer, true);
+    weights[FCParams::weight].reset(dim, weight_initializer, weight_regularizer,
+                                    weight_regularizer_constant, true);
+    weights[FCParams::bias].reset(bias_dim, bias_initializer,
+                                  WeightRegularizer::NONE, 1.0f, true);
   }
 
   return status;
@@ -92,9 +96,7 @@ void FullyConnectedLayer::forwarding(bool training) {
   hidden_ = input_.dot(weight, hidden_);
   hidden_.add_i(bias);
 
-  if (weight_regularizer == WeightRegularizerType::l2norm) {
-    loss = weight_regularizer_constant * 0.5f * (weight.l2norm());
-  }
+  loss = weightAt(static_cast<int>(FCParams::weight)).getRegularizationLoss();
 }
 
 void FullyConnectedLayer::copy(std::shared_ptr<Layer> l) {
@@ -117,7 +119,6 @@ void FullyConnectedLayer::calcDerivative() {
 void FullyConnectedLayer::calcGradient() {
   unsigned int weight_idx = static_cast<int>(FCParams::weight);
   unsigned int bias_idx = static_cast<int>(FCParams::bias);
-  Tensor &weight = weightAt(weight_idx).getVariableRef();
   Tensor &djdw = weightAt(weight_idx).getGradientRef();
   Tensor &djdb = weightAt(bias_idx).getGradientRef();
 
@@ -126,8 +127,7 @@ void FullyConnectedLayer::calcGradient() {
   djdb = derivative_.sum(0);
   djdw = net_input[0]->getVariableRef().dot(derivative_, djdw, true, false);
 
-  if (isWeightRegularizerL2Norm())
-    djdw.add_i(weight, weight_regularizer_constant);
+  weightAt(weight_idx).calcRegularizationGradient();
 }
 
 void FullyConnectedLayer::scaleSize(float scalesize) noexcept {

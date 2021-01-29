@@ -111,12 +111,11 @@ unsigned int parseType(std::string ll, InputType t) {
     "xavier_normal", "xavier_uniform", "he_normal",    "he_uniform"};
 
   /**
-   * @brief     Weight Decay String from configure file
+   * @brief     Weight Regularization String from configure file
    *            "L2Norm"  : squared norm regularization
-   *            "Regression" : Regression
+   *            "None" : none
    */
-  std::array<std::string, 2> weight_regularizer_string = {"l2norm",
-                                                          "regression"};
+  std::array<std::string, 2> weight_regularizer_string = {"l2norm", "none"};
 
   /**
    * @brief     Weight Decay String from configure file
@@ -183,7 +182,7 @@ unsigned int parseType(std::string ll, InputType t) {
         return (i);
       }
     }
-    ret = (unsigned int)WeightRegularizerType::unknown;
+    ret = (unsigned int)WeightRegularizer::UNKNOWN;
     break;
   case TOKEN_PADDING:
     for (i = 0; i < padding_string.size(); i++) {

@@ -20,11 +20,12 @@
 namespace nntrainer {
 
 /**
- * @brief     Enumeration of Weight Decay type
+ * @brief     Enumeration of Weight Regularizer
  */
-enum class WeightRegularizerType {
-  l2norm, /** L2 norm regularizer */
-  unknown /** Unknown */
+enum class WeightRegularizer {
+  L2NORM, /**< L2 norm regularization */
+  NONE,   /**< no regularization */
+  UNKNOWN /**< Unknown */
 };
 
 /**
@@ -63,20 +64,26 @@ public:
   /**
    * @brief Weight default constructor
    */
-  Weight() : Var_Grad(), initializer(WeightInitializer::WEIGHT_UNKNOWN) {}
+  Weight() :
+    Var_Grad(),
+    initializer(WeightInitializer::WEIGHT_UNKNOWN),
+    regularizer(WeightRegularizer::UNKNOWN),
+    regularizer_constant(1.0f) {}
 
   /**
    * @brief Construct a new Weight object
    *
    * @param dim Variable and gradient tensor dimension
-   * @param init Initializer for the tensor
+   * @param init Initializer for the weight
+   * @param reg Regularizer for the weight
    * @param train If the variable is trainable
    * @param name Name for this weight
    */
   Weight(
     const TensorDim &dim,
     const WeightInitializer init = WeightInitializer::WEIGHT_XAVIER_UNIFORM,
-    bool train = true, bool alloc_now = true, std::string name = "");
+    const WeightRegularizer reg = WeightRegularizer::NONE,
+    const float reg_const = 1.0f, bool train = true, bool alloc_now = true, std::string name = "");
 
   /**
    * @copydoc var_grad::initializeVariable(const Tensor &)
@@ -99,6 +106,7 @@ public:
     using std::swap;
     swap(static_cast<Var_Grad &>(lhs), static_cast<Var_Grad &>(rhs));
     swap(lhs.initializer, rhs.initializer);
+    swap(lhs.regularizer, rhs.regularizer);
   }
 
   /**
@@ -150,13 +158,18 @@ public:
    * @brief Reset the weight
    *
    * @param dim Variable and gradient tensor dimension
-   * @param init Initializer for the tensor
+   * @param init Initializer for the weight
+   * @param reg Regularizer for the weight
    * @param train If the variable is trainable
    *
    * @note New dimension must maintain the shape of the variable
    */
-  void reset(const TensorDim &dim, const WeightInitializer init, bool train) {
+  void reset(const TensorDim &dim, const WeightInitializer init,
+             const WeightRegularizer reg, const float reg_const, bool train) {
     initializer = init;
+    regularizer = reg;
+    regularizer_constant = reg_const;
+
     Var_Grad::reset(dim, train);
   }
 
@@ -201,8 +214,36 @@ public:
     allocateOptimizerVariables();
   }
 
+  /**
+   * @brief     check if weight regularizer type is l2norm
+   * @return    bool is weight regrulatizer type is L2 Norm
+   */
+  bool isWeightRegularizerL2Norm() {
+    return regularizer == WeightRegularizer::L2NORM;
+  }
+
+  /**
+   * @brief     Get loss from the regularization of the weight
+   */
+  float getRegularizationLoss() {
+    if (isWeightRegularizerL2Norm())
+      return regularizer_constant * 0.5f * var->l2norm();
+
+    return 0;
+  }
+
+  /**
+   * @brief     Calculate gradient from the regularizaiton of the weight
+   */
+  void calcRegularizationGradient() {
+    if (isWeightRegularizerL2Norm())
+      grad->add_i(*var.get(), regularizer_constant);
+  }
+
 private:
   WeightInitializer initializer; /**< initializer for this variable */
+  WeightRegularizer regularizer; /**< regularizer for this variable */
+  float regularizer_constant;    /**< constant factor for regularization */
 
   std::vector<Tensor> opt_vars;        /**< optimizer variables */
   std::vector<TensorDim> opt_vars_dim; /**< optimizer variables dimensions */
