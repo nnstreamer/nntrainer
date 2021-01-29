@@ -383,6 +383,7 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %defattr(-,root,root,-)
 %license LICENSE
 %{_libdir}/libnntrainer.so
+%{_sysconfdir}/nntrainer.ini
 
 %files devel
 %{_includedir}/nntrainer/databuffer.h

@@ -72,7 +72,7 @@ nntrainer_prefix = get_option('prefix')
 nntrainer_libdir = nntrainer_prefix / get_option('libdir')
 nntrainer_bindir = nntrainer_prefix / get_option('bindir')
 nntrainer_includedir = nntrainer_prefix / get_option('includedir')
-nntrainer_inidir = get_option('sysconfdir')
+nntrainer_confdir = get_option('sysconfdir')
 application_install_dir = nntrainer_bindir / 'applications'
 
 # handle resources
@@ -92,6 +92,7 @@ nntrainer_conf.set('VERSION', meson.project_version())
 nntrainer_conf.set('PREFIX', nntrainer_prefix)
 nntrainer_conf.set('EXEC_PREFIX', nntrainer_bindir)
 nntrainer_conf.set('LIB_INSTALL_DIR', nntrainer_libdir)
+nntrainer_conf.set('PLUGIN_INSTALL_PREFIX', nntrainer_libdir / 'nntrainer')
 nntrainer_conf.set('INCLUDE_INSTALL_DIR', nntrainer_includedir)
 
 dummy_dep = dependency('', required: false)
@@ -185,6 +186,21 @@ endif
 configure_file(input: 'nntrainer.pc.in', output: 'nntrainer.pc',
   install_dir: nntrainer_libdir / 'pkgconfig',
   configuration: nntrainer_conf
+)
+
+# Install conf
+configure_file(
+  input: 'nntrainer.ini.in',
+  output: 'nntrainer.ini',
+  install_dir: nntrainer_confdir,
+  configuration: nntrainer_conf
+)
+nntrainer_conf_abs_path = get_option('prefix') / nntrainer_confdir / 'nntrainer.ini'
+message('NNTRAINER_CONF_PATH=@0@'.format(nntrainer_conf_abs_path))
+
+add_project_arguments(
+  '-DNNTRAINER_CONF_PATH="@0@"'.format(nntrainer_conf_abs_path),
+  language: ['c', 'cpp']
 )
 
 # Build nntrainer

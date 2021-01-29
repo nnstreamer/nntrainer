@@ -1,0 +1,8 @@
+#######################
+# nntrainer conf file #
+#######################
+
+# default plugin paths, below path is searched and registered when the library is being loaded.
+[plugins]
+# path to search for layers
+layer=@PLUGIN_INSTALL_PREFIX@/layers
