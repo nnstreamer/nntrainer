@@ -240,6 +240,13 @@ public:
       grad->add_i(*var.get(), regularizer_constant);
   }
 
+  /**
+   * @brief     Apply the gradient to the weight
+   */
+  void applyGradient(double lr) {
+    var->add_i(*grad.get(), -lr);
+  }
+
 private:
   WeightInitializer initializer; /**< initializer for this variable */
   WeightRegularizer regularizer; /**< regularizer for this variable */

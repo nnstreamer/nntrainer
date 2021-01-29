@@ -357,9 +357,6 @@ void Conv2DLayer::calcGradient() {
   }
   delK.reshape(out_dim);
   delBias = derivative.sum({0, 2, 3});
-
-  /// calculate regularization based gradient for weight only
-  weightAt(ConvParams::weight).calcRegularizationGradient();
 }
 
 void Conv2DLayer::copy(std::shared_ptr<Layer> l) {

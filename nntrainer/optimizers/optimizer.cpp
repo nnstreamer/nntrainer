@@ -58,6 +58,9 @@ void Optimizer::apply_gradients(std::vector<Weight> &weight_list,
     if (!weight.getTrainable())
       continue;
 
+    /** calculate regularization gradient before applying the gradient */
+    weight.calcRegularizationGradient();
+
     apply_gradient(weight, ll, iteration);
   }
 }
