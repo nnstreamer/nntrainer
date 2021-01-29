@@ -11,6 +11,8 @@
  *
  */
 
+#include <sstream>
+
 #include <activation_layer.h>
 #include <addition_layer.h>
 #include <bn_layer.h>
@@ -576,22 +578,49 @@ void NetworkGraph::inPlaceOptimize(const std::string &layer_type,
         continue;
 
       /** Share tensor with next layer */
-      l->net_input[0] = l->net_hidden[0]; // I2 = O2
+      /**
+       * Assume two layers, L1 and L2, with I and O corresponding to the layer
+       * outputs. Assume L2 to be the layer, needing in-place optimization.
+       */
       if (l->getType() == BatchNormalizationLayer::type) {
-        prev_layer->net_hidden[loc] = l->net_hidden[0]; // O1 = O2
+        /**
+         * With batch normalization, neither input nor output of the layer are
+         * requried for calculatin gradient and derivative. Just input
+         * derivative is required. In this scenraio, L2 is assumed to be batch
+         * normaliztion layer, and L1 is assumed to be a non-in-place layer.
+         * Hence, L1 layer's output and L2 layer's input var_grad are modified.
+         */
+        auto &inplace_shared_vg_ptr = l->net_hidden[0];
+        l->net_input[0] = inplace_shared_vg_ptr;             /// I2 = O2
+        prev_layer->net_hidden[loc] = inplace_shared_vg_ptr; /// O1 = O2
       } else if (l->getType() == ActivationLayer::type) {
-        // THIS IS NOT WORKING BECAUSE INITIALIZES MAKES NEW SHARED_PTR OF TENSOR
-        // THAN KEEPING THE SAME SHARED_PTR AND JUST CHANGING THE TENSOR IN IT
-        prev_layer->net_hidden[loc]->getGradientRef() =
-          l->net_hidden[0]->getVariableRef(); // O1.G = O2.V
-        prev_layer->net_hidden[loc]->getVariableRef() =
-          l->net_hidden[0]->getVariableRef(); // O1.V = O2.V
+        /**
+         * For activation layer, output of the layer and input derivative, both
+         * , are requried for calculating the gradient and derivative. In this
+         * scenraio, L2 is assumed to be activation layer, and L1 is assumed to
+         * be a non-in-place layer.
+         * Hence, L1 layer's output and L2 layer's input var_grad are
+         * differently. L1 layer operates out of place and share the memory for
+         * its output (O1.V) and input derivative (O1.G). L2 layer operates
+         * in-place and use a common shared derivative memory for their
+         * derivatives (handled in manager.cpp).
+         */
+        /**
+         * @note As this updates the tensors used in the prev_layer->net_hidden
+         * (O1), the tensors inside l->net_input (I2) are automatically updated
+         * as they share the same var_grad object.
+         */
+        auto &inplace_shared_vg = *l->net_hidden[0].get();
+        prev_layer->net_hidden[loc]->updateVariableByVariable(
+          inplace_shared_vg); /// O1.G = O2.V
+        prev_layer->net_hidden[loc]->updateGradientByVariable(
+          inplace_shared_vg); /// O1.V = O2.V
+      } else {
+        std::stringstream ss;
+        ss << l->getType();
+        ss << " layer is not supported for in-place optimization";
+        throw std::runtime_error(ss.str());
       }
-
-      /** prev layer should use this shared output for derivative though */
-      // prev_layer->net_hidden[loc] =
-      //   std::shared_ptr<Var_Grad>(*prev_layer->net_hidden[loc].get());
-      // prev_layer->net_hidden[loc].get
 
       /** Untrack the memory for this layer */
       manager.untrackLayerInOuts(prev_layer->getName());

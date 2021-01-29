@@ -209,7 +209,7 @@ public:
   /**
    * @brief    Check if the tensor has memory allocated/assigned/associated
    */
-  bool isAllocated() const { return data == nullptr; }
+  bool isAllocated() const { return data != nullptr; }
 
   /**
    * @brief     return value at specific location
@@ -949,6 +949,20 @@ private:
   template <typename T> void setDist(T dist);
 
   void copy(const float *buf) noexcept;
+
+  /**
+   * @brief Update destination tensor to share memory with source tensor
+   *
+   * @param src src tensor containing the memory
+   * @param dest destination tensor which will share the memory
+   * @param offset offset to be used from the start of the data in bytes
+   * @note The new tensor will share the same data as the current tensor but
+   * can have different size.
+   * @note New size added with offset must be less than the size of the original
+   * tensor.
+   */
+  static void createSharedDataTensor(const Tensor &src, Tensor &dest,
+                                     unsigned int offset);
 }; // namespace nntrainer
 
 /**

@@ -249,7 +249,9 @@ public:
    * @brief Allocate memory for all the managed tensors
    */
   void allocateTensors() {
-    allocateWeights();
+    /// Weights are allocated while initializing
+    if (!weights_initialized)
+      allocateWeights();
     allocateGradients();
     allocateInOuts();
     allocateDerivatives();
@@ -280,20 +282,23 @@ private:
   /**< Weights of all the layer in the model to be managed */
   std::vector<std::vector<std::reference_wrapper<Weight>>> weights;
 
-  unsigned int total_weight_size;   /**< total weight size */
-  unsigned int total_grad_size;     /**< total weight size */
-  unsigned int max_grad_size;       /**< max trainable weight required by a layer */
+  unsigned int total_weight_size; /**< total weight size */
+  unsigned int total_grad_size;   /**< total weight size */
+  unsigned int max_grad_size; /**< max trainable weight required by a layer */
   unsigned int max_derivative_size; /**< max derivative required by a layer */
   unsigned int max_shared_inout;    /**< max memory for in/outs for inference */
-  bool weights_initialized;   /**< track if weights have been initialized */
+  bool weights_initialized; /**< track if weights have been initialized */
 
   /**< Inputs/outputs of all the layer in the model */
   std::vector<std::vector<std::shared_ptr<Var_Grad>>> in_outs;
   std::vector<bool> is_act_type;
   std::vector<bool> is_flat_type;
-  Tensor shared_grad;   /**< Shared tensor containing memory for weight gradients */
-  Tensor shared_inout;  /**< Shared tensor containing memory for input and outputs for inference */
-  Tensor shared_deriv;  /**< Shared tensor containing memory for input and output derivatives */
+  Tensor
+    shared_grad; /**< Shared tensor containing memory for weight gradients */
+  Tensor shared_inout; /**< Shared tensor containing memory for input and
+                          outputs for inference */
+  Tensor shared_deriv; /**< Shared tensor containing memory for input and output
+                          derivatives */
 
   /**< Optimization related */
   bool enable_gradient_memory_opt; /**< share memory among all the gradients */

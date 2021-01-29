@@ -185,6 +185,8 @@ int NeuralNetwork::initialize() {
   model_graph.setNumNetBufferSize();
   opt->initialize();
 
+  setBatchSize();
+
   for (unsigned int idx = 0; idx < n_layers; ++idx) {
     bool first = idx == 0;
     auto &lnode = model_graph.getSortedLayerNode(idx);
@@ -257,7 +259,6 @@ int NeuralNetwork::initialize() {
       l.setInputBuffers(in_out);
     }
   }
-  setBatchSize();
 
   // Allocate and initialize weights
   manager->initializeWeights();

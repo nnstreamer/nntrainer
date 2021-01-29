@@ -28,7 +28,7 @@ void Weight::initializeWeight(const Tensor &weights_preallocated) {
   Var_Grad::initializeWeight(weights_preallocated);
 
   if (alloc_now)
-    initializeWeight();
+    initializeVariable();
 }
 
 void Weight::initializeVariable() {

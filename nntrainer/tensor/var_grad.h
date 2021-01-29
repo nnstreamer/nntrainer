@@ -250,15 +250,24 @@ public:
   /**
    * @brief Allocate memory for the variable
    */
-  void allocateGradient() { grad->allocate(); }
+  void allocateGradient() {
+    grad->allocate();
+    resetGradient();
+  }
+
+  void updateVariable(Tensor &t) { var = std::shared_ptr<Tensor>(&t); }
+  void updateGradient(Tensor &t) { grad = std::shared_ptr<Tensor>(&t); }
+
+  void updateVariableByVariable(const Var_Grad &vg) { var = vg.var; }
+  void updateGradientByVariable(const Var_Grad &vg) { grad = vg.var; }
 
 protected:
   TensorDim dim;                /**< dimension of the tensor */
   std::shared_ptr<Tensor> var;  /**< variable to be updated and used */
   std::shared_ptr<Tensor> grad; /**< gradient for the variable */
   bool trainable;               /**< if this variable is trainable */
-  bool alloc_now;               /**< if the tensor should be allocated instantly */
-  std::string name;             /**< name of the parameter */
+  bool alloc_now;   /**< if the tensor should be allocated instantly */
+  std::string name; /**< name of the parameter */
 };
 
 } // namespace nntrainer

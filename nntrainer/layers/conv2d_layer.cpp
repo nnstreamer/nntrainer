@@ -68,17 +68,14 @@ int Conv2DLayer::initialize(Manager &manager) {
     ml_logw("Warning: the length of previous layer dimension is one");
   }
 
-  std::string kernelPrefix = "Conv2d:filter";
-  std::string biasPrefix = "Conv2d:bias";
-
   TensorDim dim =
     TensorDim(filter_size, in_dim.channel(), kernel_size[0], kernel_size[1]);
   TensorDim bias_dim = TensorDim(1, filter_size, 1, 1);
 
   if (weights.empty()) {
     weights.reserve(2);
-    weights.emplace_back(dim, weight_initializer, true, false, kernelPrefix);
-    weights.emplace_back(bias_dim, bias_initializer, true, false, biasPrefix);
+    weights.emplace_back(dim, weight_initializer, true, "Conv2d:filter");
+    weights.emplace_back(bias_dim, bias_initializer, true, "Conv2d:bias");
     manager.trackWeights(weights);
   } else {
     weights[ConvParams::weight].reset(dim, weight_initializer, true);
