@@ -16,12 +16,17 @@
 
 namespace nntrainer {
 
-Weight::Weight(const TensorDim &dim, const WeightInitializer init, bool train,
+Weight::Weight(const TensorDim &dim, const WeightInitializer init,
+               const WeightRegularizer reg, const float reg_const, bool train,
                bool alloc_now_, std::string name) :
   Var_Grad(dim, train, alloc_now_, name),
-  initializer(init) {
+  initializer(init),
+  regularizer(reg),
+  regularizer_constant(reg_const) {
   if (initializer == WeightInitializer::WEIGHT_UNKNOWN)
     throw std::invalid_argument("Weight initializer unknown");
+  if (regularizer == WeightRegularizer::UNKNOWN)
+    throw std::invalid_argument("Weight regularizer unknown");
 }
 
 void Weight::initializeVariable(const Tensor &preallocated) {

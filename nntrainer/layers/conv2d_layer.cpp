@@ -74,12 +74,17 @@ int Conv2DLayer::initialize(Manager &manager) {
 
   if (weights.empty()) {
     weights.reserve(2);
-    weights.emplace_back(dim, weight_initializer, true, "Conv2d:filter");
-    weights.emplace_back(bias_dim, bias_initializer, true, "Conv2d:bias");
+    weights.emplace_back(dim, weight_initializer, weight_regularizer,
+                         weight_regularizer_constant, true, "Conv2d:filter");
+    weights.emplace_back(bias_dim, bias_initializer, WeightRegularizer::NONE,
+                         1.0f, true, "Conv2d:bias");
     manager.trackWeights(weights);
   } else {
-    weights[ConvParams::weight].reset(dim, weight_initializer, true);
-    weights[ConvParams::bias].reset(bias_dim, bias_initializer, true);
+    weights[ConvParams::weight].reset(dim, weight_initializer,
+                                      weight_regularizer,
+                                      weight_regularizer_constant, true);
+    weights[ConvParams::bias].reset(bias_dim, bias_initializer,
+                                    WeightRegularizer::NONE, 1.0f, true);
   }
 
   // this output_dim should be the same with dimension of hidden
@@ -181,10 +186,7 @@ void Conv2DLayer::forwarding(bool training) {
   }
   END_PROFILE(add_bias_key);
 
-  loss = 0.0f;
-  if (weight_regularizer == WeightRegularizerType::l2norm) {
-    loss += weight_regularizer_constant * 0.5f * (filter_kernel.l2norm());
-  }
+  loss = weightAt(ConvParams::weight).getRegularizationLoss();
 }
 
 void Conv2DLayer::calcDerivative() {
@@ -293,7 +295,6 @@ void Conv2DLayer::calcDerivative() {
 void Conv2DLayer::calcGradient() {
   TensorDim &in_dim = input_dim[0];
 
-  Tensor &filter_kernel = weightAt(ConvParams::weight).getVariableRef();
   Tensor &derivative = net_hidden[0]->getGradientRef();
   Tensor &input_ = net_input[0]->getVariableRef();
 
@@ -336,8 +337,6 @@ void Conv2DLayer::calcGradient() {
    *       x [input_dim.channel * kernel_size[0] * kernel_size[1] (width) ]
    */
 
-  int status = ML_ERROR_NONE;
-
   TensorDim kdim{
     {derivative.channel(), derivative.height(), derivative.width()}};
 
@@ -359,12 +358,8 @@ void Conv2DLayer::calcGradient() {
   delK.reshape(out_dim);
   delBias = derivative.sum({0, 2, 3});
 
-  //  Update K / bias
-  if (isWeightRegularizerL2Norm()) {
-    status = delK.add_i(filter_kernel, weight_regularizer_constant);
-    if (status != ML_ERROR_NONE)
-      throw std::runtime_error("Weight regularization failed");
-  }
+  /// calculate regularization based gradient for weight only
+  weightAt(ConvParams::weight).calcRegularizationGradient();
 }
 
 void Conv2DLayer::copy(std::shared_ptr<Layer> l) {
