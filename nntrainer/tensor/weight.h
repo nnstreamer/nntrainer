@@ -79,15 +79,15 @@ public:
     bool train = true, bool alloc_now = true, std::string name = "");
 
   /**
-   * @copydoc var_grad::initializeWeight(const Tensor &)
+   * @copydoc var_grad::initializeVariable(const Tensor &)
    */
-  void initializeWeight(const Tensor &preallocated = Tensor());
+  void initializeVariable(const Tensor &preallocated = Tensor());
 
   /**
-   * @copydoc var_grad::initializeGrad(const Tensor &, bool)
+   * @copydoc var_grad::initializeGradient(const Tensor &, bool)
    */
-  void initializeGrad(const Tensor &preallocated = Tensor(),
-                      bool gtrain = true);
+  void initializeGradient(const Tensor &preallocated = Tensor(),
+                          bool gtrain = true);
 
   /**
    * @brief Swap for weight
@@ -211,7 +211,7 @@ private:
   /**
    * @brief Initialize the weight with the initializer
    */
-  void initializeVariable();
+  void runVariableInitializer();
 
   /**
    * @brief Allocate optimizer related variables for the given weights

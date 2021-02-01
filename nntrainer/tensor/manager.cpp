@@ -246,7 +246,7 @@ void Manager::initializeWeights() {
       Tensor grad_prealloc = Tensor();
 
       weight_offset += dim.getDataLen();
-      weight.initializeWeight(weight_prealloc);
+      weight.initializeVariable(weight_prealloc);
     }
   }
 
@@ -300,7 +300,7 @@ void Manager::initializeGradients() {
         grad_prealloc = allocate_grad(dim, grad_offset);
         grad_offset += dim.getDataLen();
       }
-      weight.initializeGrad(grad_prealloc, true);
+      weight.initializeGradient(grad_prealloc, true);
     }
   }
 }

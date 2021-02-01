@@ -93,30 +93,30 @@ public:
   /**
    * @brief Allocate and initialize the weight variable
    *
-   * @param weight_preallocated if initialized, use this tensor for weight
+   * @param var_preallocated if initialized, use this tensor for var
    * @param grad_preallocated if initialized, use this tensor for grad
    * @param gtrain If all the variables should be trainable
    */
-  virtual void initialize(const Tensor &weight_preallocated = Tensor(),
+  virtual void initialize(const Tensor &var_preallocated = Tensor(),
                           const Tensor &grad_preallocated = Tensor(),
                           bool gtrain = true) {
-    initializeWeight(weight_preallocated);
-    initializeGrad(grad_preallocated, gtrain);
+    initializeVariable(var_preallocated);
+    initializeGradient(grad_preallocated, gtrain);
   }
 
   /**
-   * @brief Initialize the variable for the weight
+   * @brief Initialize the variable
    * @param preallocated if initialized, use this tensor for variable memory
    */
-  virtual void initializeWeight(const Tensor &preallocated = Tensor());
+  virtual void initializeVariable(const Tensor &preallocated = Tensor());
 
   /**
-   * @brief Initialize the gradient for the weight
+   * @brief Initialize the gradient for the variable
    * @param preallocated if initialized, use this tensor for gradient memory
    * @param gtrain If all the variables should be trainable
    */
-  virtual void initializeGrad(const Tensor &preallocated = Tensor(),
-                              bool gtrain = true);
+  virtual void initializeGradient(const Tensor &preallocated = Tensor(),
+                                  bool gtrain = true);
 
   /**
    * @brief Allocate and initialize the variable and grad
@@ -167,9 +167,7 @@ public:
   Tensor getGradient() const { return *grad.get(); }
 
   /**
-   * @brief Allocate and initialize the weight variable
-   *
-   * @param dim Dimension for the weight variable
+   * @brief Reset the gradient to 0
    */
   void resetGradient() { grad->setZero(); }
 
@@ -187,7 +185,7 @@ public:
   };
 
   /**
-   * @brief Reset the weight
+   * @brief Reset the variable and gradient
    *
    * @param dim Variable and gradient tensor dimension
    * @param train If the variable is trainable
@@ -255,10 +253,28 @@ public:
     resetGradient();
   }
 
+  /**
+   * @bried Update the variable to use the given tensor
+   * @param t Tensor to update with
+   */
   void updateVariable(Tensor &t) { var = std::shared_ptr<Tensor>(&t); }
+
+  /**
+   * @bried Update the gradient to use the given tensor
+   * @param t Tensor to update with
+   */
   void updateGradient(Tensor &t) { grad = std::shared_ptr<Tensor>(&t); }
 
+  /**
+   * @bried Update the variable to use the variable from the given param
+   * @param vg Var_Grad whose variable must be updated with
+   */
   void updateVariableByVariable(const Var_Grad &vg) { var = vg.var; }
+
+  /**
+   * @bried Update the gradient to use the variable from the given param
+   * @param vg Var_Grad whose variable must be updated with
+   */
   void updateGradientByVariable(const Var_Grad &vg) { grad = vg.var; }
 
 protected:
