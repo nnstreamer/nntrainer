@@ -22,9 +22,9 @@ Var_Grad::Var_Grad(const TensorDim &dim, bool train, bool alloc_now_,
   trainable(train),
   alloc_now(alloc_now_),
   name(name) {
-  var = std::make_shared<Tensor>(dim, nullptr, alloc_now);
+  var = std::make_shared<Tensor>(dim, alloc_now);
   if (trainable)
-    grad = std::make_shared<Tensor>(dim, nullptr, alloc_now);
+    grad = std::make_shared<Tensor>(dim, alloc_now);
   else
     grad = std::make_shared<Tensor>();
 }
@@ -53,7 +53,7 @@ void Var_Grad::setTrainable(bool train) {
   trainable = train;
   if (trainable && grad->uninitialized()) {
     bool alloc_now_ = var->isAllocated();
-    grad = std::make_shared<Tensor>(var->getDim(), nullptr, alloc_now_);
+    grad = std::make_shared<Tensor>(var->getDim(), alloc_now_);
   }
 }
 

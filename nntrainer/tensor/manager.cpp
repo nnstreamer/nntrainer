@@ -214,7 +214,7 @@ Manager::AllocFunc Manager::getAllocFunc(bool is_weight) {
   } else if (!is_weight) {
     /** only for gradients */
     if (max_grad_size > 0 && enable_gradient_memory_opt) {
-      shared_grad = Tensor({(unsigned int)max_grad_size}, nullptr, false);
+      shared_grad = Tensor(TensorDim({max_grad_size}), false);
 
       allocate_func = [this](const TensorDim &dim, unsigned int offset) {
         return shared_grad.getSharedDataTensor(dim, offset);
@@ -437,7 +437,7 @@ void Manager::initializeTensors(bool trainable) {
 
   // Allocate shared derivative memory
   if (max_derivative_size > 0 && enable_activation_memory_opt && trainable)
-    shared_deriv = Tensor({max_derivative_size}, nullptr, false);
+    shared_deriv = Tensor(TensorDim({max_derivative_size}), false);
 
   // @todo Do not count memory of the input tensor of the input layer in the
   // estimate of max_shared_inout as it is not used
@@ -445,7 +445,7 @@ void Manager::initializeTensors(bool trainable) {
   // Allocate shared input/output memory for inference
   // @note Memory for label is not allocated here as inference doesnt has label
   if (!trainable && enable_inference_inout_memory_opt)
-    shared_inout = Tensor({max_shared_inout}, nullptr, false);
+    shared_inout = Tensor(TensorDim({max_shared_inout}), false);
 
   /**
    * A single buffer (shared_inout) provides memory for inputs and outputs of a
