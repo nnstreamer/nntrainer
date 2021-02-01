@@ -472,6 +472,17 @@ Tensor Tensor::getBatchSlice(unsigned int offset, unsigned int size) const {
 
 void Tensor::createSharedDataTensor(const Tensor &src, Tensor &dest,
                                     unsigned int offset) {
+  /**
+   * - If src already has data allocaed, then directly make dest tensor based on
+   * the src tensor.
+   * - If src.data does not exist (meaning tensor does not memory allocated),
+   * and src.src_tensor does not exist (meaning the src tensor does not depened
+   * on another tensor), then create a SrcSharedTensor around the src.
+   * - If src.src_tensor exists, then use the src.src_tensor to create the
+   *  required SrcSharedTensor to avoid recursive dependency.
+   *
+   * @note src.data and src.src_tensor cannot co-exist.
+   */
   if (src.data)
     dest.data = std::shared_ptr<float>(src.data, src.data.get() + offset);
   else if (!src.src_tensor)

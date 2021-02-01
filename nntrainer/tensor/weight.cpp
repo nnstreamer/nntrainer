@@ -24,14 +24,14 @@ Weight::Weight(const TensorDim &dim, const WeightInitializer init, bool train,
     throw std::invalid_argument("Weight initializer unknown");
 }
 
-void Weight::initializeWeight(const Tensor &weights_preallocated) {
-  Var_Grad::initializeWeight(weights_preallocated);
+void Weight::initializeVariable(const Tensor &preallocated) {
+  Var_Grad::initializeVariable(preallocated);
 
   if (alloc_now)
-    initializeVariable();
+    runVariableInitializer();
 }
 
-void Weight::initializeVariable() {
+void Weight::runVariableInitializer() {
   Tensor &var_ref = getVariableRef();
   const TensorDim dim = var_ref.getDim();
 
@@ -69,9 +69,9 @@ void Weight::initializeVariable() {
   }
 }
 
-void Weight::initializeGrad(const Tensor &preallocated, bool gtrain) {
+void Weight::initializeGradient(const Tensor &preallocated, bool gtrain) {
   // Use self variable to initialize itself
-  Var_Grad::initializeGrad(preallocated, gtrain);
+  Var_Grad::initializeGradient(preallocated, gtrain);
   if (gtrain && alloc_now)
     allocateOptimizerVariables();
 }

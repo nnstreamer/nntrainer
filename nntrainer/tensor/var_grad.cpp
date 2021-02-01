@@ -29,13 +29,13 @@ Var_Grad::Var_Grad(const TensorDim &dim, bool train, bool alloc_now_,
     grad = std::make_shared<Tensor>();
 }
 
-void Var_Grad::initializeWeight(const Tensor &preallocated) {
+void Var_Grad::initializeVariable(const Tensor &preallocated) {
   if (!preallocated.uninitialized()) {
     var->makeSharedDataTensor(preallocated);
   }
 }
 
-void Var_Grad::initializeGrad(const Tensor &preallocated, bool gtrain) {
+void Var_Grad::initializeGradient(const Tensor &preallocated, bool gtrain) {
   if (!preallocated.uninitialized() && gtrain) {
     /**
      * Making a new tensor is intentional here as this tensor is not shared
