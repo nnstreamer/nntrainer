@@ -39,6 +39,8 @@ warning_flags = [
   '-Wno-error=varargs',
   '-O2',
   '-ftree-vectorize'
+#  '-g'
+
 ]
 
 warning_c_flags = [
