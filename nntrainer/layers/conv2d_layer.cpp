@@ -307,6 +307,9 @@ int Conv2DLayer::initialize(Manager &manager) {
   /// 4) we don't have same padding for now but later, same padding don't apply
   /// when kernel size is even in current implementation (we need to handle
   /// assymetric padding)
+  /// 5) the possibility to overflow should be checked.
+  /// If h_stride_end or w_stride_end in col2im or im2col is over INT_MAX, it
+  /// can overflow and it will cause unexpected behavior.
 
   // this output_dim should be the same with dimension of hidden
   out_dim.batch(in_dim.batch());
@@ -409,6 +412,9 @@ void Conv2DLayer::calcDerivative() {
 
   filter_kernel.reshape(filter_dim_squeezed);
 
+  /// for each batch
+  /// filter_kernel^T X derivaitive  -> column matrix
+  /// col2im(column matrix) to reconstruct the original image
   Tensor col2im_result;
   for (unsigned int b = 0; b < derivative.batch(); ++b) {
     Tensor deriv_sub = derivative.getBatchSlice(b, 1);
