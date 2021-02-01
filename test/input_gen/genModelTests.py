@@ -167,3 +167,24 @@ if __name__ == "__main__":
     conv_nxn_tc(
         model=conv_nxn_model((4, 5)), file_name="conv_input_matches_kernel.info"
     )
+
+    conv_multi_stride = [
+        K.Input(shape=(2, 6, 4)),
+        K.layers.Conv2D(filters=4, kernel_size=(3, 2), strides=(3, 2)),
+        K.layers.Activation("sigmoid"),
+        K.layers.Flatten(),
+        K.layers.Dense(10),
+        K.layers.Activation("softmax"),
+    ]
+
+    conv_multi_stride_tc = partial(
+        record,
+        model=conv_multi_stride,
+        optimizer=opt.SGD(learning_rate=0.1),
+        iteration=10,
+        input_shape=(3, 2, 6, 4),
+        label_shape=(3, 10),
+        loss_fn_str="cross_softmax"
+    )
+
+    conv_multi_stride_tc(file_name="conv_multi_stride.info")
