@@ -64,11 +64,17 @@ public:
   /**
    * @brief     Constructor of Tensor with dimension/buf
    * @param d Tensor dim for this tensor
-   * @param bug buffer
-   * @alloc_now If the memory of the tensor must be allocated
-   * @throws if buf is not null and allow_now is false
+   * @param buf buffer
+   * @note Memory for this tensor is instantaneously allocated
    */
-  Tensor(const TensorDim &d, const float *buf = nullptr, bool alloc_now = true);
+  Tensor(const TensorDim &d, const float *buf = nullptr);
+
+  /**
+   * @brief     Constructor of Tensor with dimension, possibly lazily
+   * @param d Tensor dim for this tensor
+   * @param alloc_now If the memory of the tensor must be allocated
+   */
+  Tensor(const TensorDim &d, bool alloc_now);
 
   /**
    * @brief Construct a new Tensor object from a buffer
@@ -105,7 +111,8 @@ public:
    * @param[in] height Height of Tensor
    * @param[in] width Width of Tensor
    */
-  Tensor(int batch, int channel, int height, int width) :
+  Tensor(unsigned int batch, unsigned int channel, unsigned int height,
+         unsigned int width) :
     Tensor(TensorDim(batch, channel, height, width)){};
 
   /**
@@ -114,7 +121,7 @@ public:
    * @param[in] height Height of Tensor
    * @param[in] width Width of Tensor
    */
-  Tensor(int channel, int height, int width) :
+  Tensor(unsigned int channel, unsigned int height, unsigned int width) :
     Tensor(1, channel, height, width){};
 
   /**
@@ -122,13 +129,14 @@ public:
    * @param[in] height Height of Tensor
    * @param[in] width Width of Tensor
    */
-  Tensor(int height, int width) : Tensor(1, 1, height, width){};
+  Tensor(unsigned int height, unsigned int width) :
+    Tensor(1, 1, height, width){};
 
   /**
    * @brief     Constructor of Tensor with just width
    * @param[in] width Width of Tensor
    */
-  explicit Tensor(int width) : Tensor(1, 1, 1, width){};
+  explicit Tensor(unsigned int width) : Tensor(1, 1, 1, width){};
 
   /**
    * @brief     Constructor of Tensor

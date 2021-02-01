@@ -89,22 +89,21 @@ static auto rng = [] {
   return rng;
 }();
 
-Tensor::Tensor(const TensorDim &d, const float *buf, bool alloc_now) :
-  Tensor() {
+Tensor::Tensor(const TensorDim &d, const float *buf) : Tensor() {
   if (d.getDataLen() != 0) {
-    if (buf != nullptr && !alloc_now)
-      throw std::invalid_argument(
-        "alloc_now must be true to create a tensor with a buffer");
-
     dim = d;
     strides = d.computeStrides();
 
-    if (alloc_now)
-      allocate();
+    allocate();
 
     if (buf != nullptr)
       copy(buf);
   }
+}
+
+Tensor::Tensor(const TensorDim &d, bool alloc_now) : Tensor(d, nullptr) {
+  if (d.getDataLen() != 0 && alloc_now)
+    allocate();
 }
 
 /**
