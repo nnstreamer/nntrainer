@@ -694,6 +694,24 @@ Tensor &Tensor::dot(Tensor const &m, Tensor &result, bool trans, bool trans_m,
   return result;
 }
 
+Tensor Tensor::convFlip() const {
+
+  Tensor ret(TensorDim({channel(), batch(), height(), width()}));
+
+  for (unsigned int b = 0; b < ret.batch(); ++b) {
+    for (unsigned int c = 0; c < ret.channel(); ++c) {
+      for (unsigned int h = 0; h < ret.height(); ++h) {
+        for (unsigned int w = 0; w < ret.width(); ++w) {
+          ret.setValue(b, c, h, w,
+                       getValue(c, b, height() - h - 1, width() - w - 1));
+        }
+      }
+    }
+  }
+
+  return ret;
+}
+
 Tensor Tensor::transpose(std::string direction) const {
   unsigned int SL, SI, SJ, SK;
   int dir[MAXDIM - 1];

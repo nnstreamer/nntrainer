@@ -470,6 +470,12 @@ public:
               bool trans_m = false, float beta = 0.0f) const;
 
   /**
+   * @brief transpose batch and channel and
+   * flip the given Tensor horizontal and vertical
+   */
+  Tensor convFlip() const;
+
+  /**
    * @brief     Transpose Tensor
    * @param[in] direction to transpose ex) 0:2:1
    * @retval    Calculated Tensor
