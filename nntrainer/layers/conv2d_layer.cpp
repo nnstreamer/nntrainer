@@ -26,30 +26,123 @@
 #include <util_func.h>
 
 namespace nntrainer {
-
-/// @note this will be deleted after conv2d optimization is done!
-#ifdef PROFILE
 namespace {
 
-int pad_profile_key;
-int conv_gemm_profile_key;
-int im2col_key;
-int add_bias_key;
-int clean_up;
-int temp_key;
+struct ChannelToCol {};
+struct ChannelToRow {};
 
-void register_event() {
-  pad_profile_key = profile::Profiler::Global().registerEvent("zero_pad");
-  im2col_key = profile::Profiler::Global().registerEvent("im2col");
-  conv_gemm_profile_key =
-    profile::Profiler::Global().registerEvent("conv_gemm");
+/**
+ * @brief convolution operation abstracted to
+ * in \x\ filter = out, where \x\ denotes convolution operation
+ *
+ * @tparam T either ChannelToRow, ChannelToCol.
+ * ChannelToCol is channel mode (channel goes to column)
+ * ChannelToRow is non-channel mode (channle goes to row)
+ * @param in input
+ * @param filter filter to convolution to
+ * @param out target output, it should be already allocated with end dimension
+ * @param padding {height, width} padding
+ * @param stride {height, width} stride
+ * @param dilation {height, width} dilation
+ */
+template <typename T>
+void conv2d_op(const Tensor &in, const Tensor &filter, Tensor &out,
+               const std::array<unsigned, CONV2D_DIM> &padding = {0, 0},
+               const std::array<unsigned, CONV2D_DIM> &stride = {1, 1},
+               const std::array<unsigned, CONV2D_DIM> &dilation = {1, 1}) {
+  throw std::invalid_argument("conv2d_op need to be called with a tag");
+}
 
-  add_bias_key = profile::Profiler::Global().registerEvent("add_bias_key");
-  clean_up = profile::Profiler::Global().registerEvent("clean_up");
-  temp_key = profile::Profiler::Global().registerEvent("temp_key");
+/**
+ * @brief implementation of convolution ops needed when channel need to go to
+ * column, the example describes what to expect, internally the im2col array
+ * is transposed to maximize cache locality and minimize memcopy
+ * eg)    x     \*\     filter      =     y, where \*\ denotes conv operation
+ * (N, C, H, W) \*\ (FN, C, FH, FW) = (N, FN, OH, OW)
+ * ==> for each batch, slice imx
+ * [1] imx <- im2col(x)
+ * [2]   filter  x             imx              =       y
+ * (FN, FH * FW * C) x (FH * FW * C, OH * OW)   = (FN, OH * OW)
+ * [3] y <- reshape(y, (FN, OH, OW))
+ *
+ * @copydoc template<typename T>conv2d_op(const Tensor &in, const Tensor
+ * &filter, Tensor &out, const std::array<unsigned, CONV2D_DIM> &padding, const
+ * std::array<unsigned, CONV2D_DIM> &stride, const std::array<unsgined,
+ * CONV2D_DIM> &dilation)
+ */
+template <>
+void conv2d_op<ChannelToCol>(const Tensor &in, const Tensor &filter,
+                             Tensor &out,
+                             const std::array<unsigned, CONV2D_DIM> &padding,
+                             const std::array<unsigned, CONV2D_DIM> &stride,
+                             const std::array<unsigned, CONV2D_DIM> &dilation) {
+
+  NNTR_THROW_IF(in.channel() != filter.channel(), std::invalid_argument)
+    << "channel mismatch, in_dim: " << in.getDim()
+    << "out_dim: " << out.getDim();
+
+  TensorDim filter_dim = filter.getDim();
+  Tensor f = filter;
+
+  f.reshape({filter.batch(), filter.getDim().getFeatureLen()});
+
+  // todo: allocate im2col_result beforehand to save time
+  Tensor im2col_result;
+  for (unsigned int b = 0; b < in.batch(); ++b) {
+    Tensor out_sub = out.getBatchSlice(b, 1);
+    Tensor in_sub = in.getBatchSlice(b, 1);
+
+    out_sub.reshape({out.channel(), out.width() * out.height()});
+    Conv2DLayer::im2col(in_sub, filter_dim, padding, stride, true,
+                        im2col_result);
+    f.dot(im2col_result, out_sub, false, true);
+  }
+}
+
+/**
+ * @brief implementation of convolution ops needed when channel need to go to
+ * row, the example describes what to expect
+ * eg)    x     \*\       dy        =       dw, where \*\ denotes conv operation
+ * (N, C, H, W) \*\ (N, FN, OH, OW) = (FN, C, FH, FW)
+ * ==> for each batch, slice dy, x
+ * [1] imx <- im2col(x)
+ * [2]   dy      x        imx             =         dw
+ * (FN, OH * OW) x (OH * OW, C * FH * FW) = (FN, C * FH * FW)
+ * [3] dw <- reshape(dw, (FN, C, FH, FW))
+ *
+ * @copydoc template<typename T>conv2d_op(const Tensor &in, const Tensor
+ * &filter, Tensor &out, const std::array<unsigned, CONV2D_DIM> &padding, const
+ * std::array<unsigned, CONV2D_DIM> &stride, const std::array<unsgined,
+ * CONV2D_DIM> &dilation)
+ */
+template <>
+void conv2d_op<ChannelToRow>(const Tensor &in, const Tensor &filter,
+                             Tensor &out,
+                             const std::array<unsigned, CONV2D_DIM> &padding,
+                             const std::array<unsigned, CONV2D_DIM> &stride,
+                             const std::array<unsigned, CONV2D_DIM> &dilation) {
+  Tensor f = filter;
+  f.reshape(
+    {filter.batch(), 1, filter.channel(), filter.height() * filter.width()});
+
+  Tensor o = out;
+  o.reshape({out.batch(), out.channel() * out.height() * out.width()});
+
+  // todo: allocate im2col_result beforehand to save time
+  Tensor im2col_result;
+  for (unsigned int b = 0; b < in.batch(); ++b) {
+    Tensor in_sub = in.getBatchSlice(b, 1);
+    Tensor filter_sub = f.getBatchSlice(b, 1);
+
+    Conv2DLayer::im2col(in_sub, filter.getDim(), padding, stride, false,
+                        im2col_result);
+
+    /// start from zero and accumulates to o
+    filter_sub.dot(im2col_result, o, false, false, b > 0 ? 1.0f : 0.0f);
+  }
 }
 } // namespace
-#endif
+
 const std::string Conv2DLayer::type = "conv2d";
 
 enum ConvParams { weight, bias };
@@ -90,10 +183,6 @@ int Conv2DLayer::initialize(Manager &manager) {
   out_dim.width((in_dim.width() - kernel_size[1] + 2 * padding[1]) / stride[1] +
                 1);
 
-#ifdef PROFILE
-  register_event();
-#endif
-
   return status;
 }
 
@@ -104,10 +193,6 @@ void Conv2DLayer::forwarding(bool training) {
     throw std::invalid_argument("Convolution layer only takes one input");
 
   Tensor &input_ = net_input[0]->getVariableRef();
-
-  TensorDim &in_dim = input_dim[0];
-  TensorDim &out_dim = output_dim[0];
-
   Tensor &hidden_ = net_hidden[0]->getVariableRef();
 
   Tensor &filter_kernel = weightAt(ConvParams::weight).getVariableRef();
@@ -149,38 +234,12 @@ void Conv2DLayer::forwarding(bool training) {
    *   -> [Channel ( = filter_size = output_dim.channel )]
    *       x [output_dim.height x output_dim.width]
    */
-  TensorDim filter_dim = filter_kernel.getDim();
-  TensorDim filter_dim_squeezed{filter_kernel.batch(),
-                                filter_kernel.getDim().getFeatureLen()};
+  conv2d_op<ChannelToCol>(input_, filter_kernel, hidden_, padding, stride);
 
-  filter_kernel.reshape(filter_dim_squeezed);
-
-  /// @note allocating this at initialize phase will save initialization time
-  /// with extra memory overhead
-  Tensor im2col_result;
-  for (unsigned int b = 0; b < in_dim.batch(); ++b) {
-    Tensor out = hidden_.getBatchSlice(b, 1);
-    out.reshape({filter_size, out_dim.width() * out_dim.height()});
-
-    Tensor in_sub = input_.getBatchSlice(b, 1);
-
-    START_PROFILE(im2col_key);
-    im2col(in_sub, filter_dim, padding, stride, true, im2col_result);
-    END_PROFILE(im2col_key);
-
-    START_PROFILE(conv_gemm_profile_key);
-    filter_kernel.dot(im2col_result, out, false, true);
-    END_PROFILE(conv_gemm_profile_key);
-  }
-
-  filter_kernel.reshape(filter_dim);
-  START_PROFILE(add_bias_key);
   status = hidden_.add_i(bias_kernel);
   if (status != ML_ERROR_NONE) {
     throw std::invalid_argument("[Conv2D] adding bias failed");
   }
-  END_PROFILE(add_bias_key);
-
   loss = 0.0f;
   if (weight_regularizer == WeightRegularizerType::l2norm) {
     loss += weight_regularizer_constant * 0.5f * (filter_kernel.l2norm());
@@ -188,15 +247,8 @@ void Conv2DLayer::forwarding(bool training) {
 }
 
 void Conv2DLayer::calcDerivative() {
-
-  TensorDim &in_dim = input_dim[0];
-
   Tensor &derivative = net_hidden[0]->getGradientRef();
   Tensor &filter_kernel = weightAt(ConvParams::weight).getVariableRef();
-
-  std::array<unsigned int, CONV2D_DIM> same_pad;
-  same_pad[0] = kernel_size[0] - 1;
-  same_pad[1] = kernel_size[1] - 1;
 
   /** Calculate return derivative
    *
@@ -240,59 +292,17 @@ void Conv2DLayer::calcDerivative() {
    *       x [(input_dim.height() + padding[0]*2)
    *           *(input_dim.width() + padding[1]*2) (width)]
    */
-  using uint = unsigned int;
+  Tensor flipped = filter_kernel.convTransFlip();
 
-  uint kernel_total_size = kernel_size[0] * kernel_size[1];
+  std::array<unsigned int, CONV2D_DIM> same_pad;
+  same_pad[0] = kernel_size[0] - 1;
+  same_pad[1] = kernel_size[1] - 1;
 
-  Tensor imKernel(1, 1, in_dim.channel(), filter_size * kernel_total_size);
-  float *imKernel_raw = imKernel.getData();
-
-  for (uint channel_idx = 0; channel_idx < in_dim.channel(); ++channel_idx) {
-    /// each row contains all kernel element in particular channel.
-    uint row_size = kernel_total_size * filter_size;
-    for (uint filter_idx = 0; filter_idx < filter_size; ++filter_idx) {
-
-      /// starting index of each kernel in imKernel
-      float *start =
-        imKernel_raw + channel_idx * row_size + filter_idx * kernel_total_size;
-      /// starting index of each channel in filter
-      float *filter_start =
-        filter_kernel.getAddress(filter_idx, channel_idx, 0, 0);
-
-      std::reverse_copy(filter_start, filter_start + kernel_total_size, start);
-    }
-  }
-
-  TensorDim kdim(in_dim.channel(), filter_size, kernel_size[0], kernel_size[1]);
-
-  TensorDim ret_dim{in_dim.channel(), in_dim.height() + padding[0] * 2,
-                    in_dim.width() + padding[1] * 2};
-
-  TensorDim ret_dim_squeezed{
-    {ret_dim.channel(), ret_dim.height() * ret_dim.width()}};
-
-  /// @todo: optimize this as suggested in #825
-  /// we will need to have a zero cost image view by manipulating stride
-  Tensor ret = Tensor(ret_dim_squeezed);
-
-  Tensor im2col_result;
-
-  for (unsigned int b = 0; b < in_dim.batch(); ++b) {
-    Tensor inSub = derivative.getBatchSlice(b, 1);
-
-    im2col(inSub, kdim, same_pad, stride, true, im2col_result);
-
-    ret.reshape(ret_dim_squeezed);
-    imKernel.dot(im2col_result, ret, false, true);
-    ret.reshape(ret_dim);
-
-    strip_pad(ret, padding.data(), net_input[0]->getGradientRef(), b);
-  }
+  conv2d_op<ChannelToCol>(derivative, flipped, net_input[0]->getGradientRef(),
+                          same_pad, {1, 1}, {1, 1});
 }
 
 void Conv2DLayer::calcGradient() {
-  TensorDim &in_dim = input_dim[0];
-
   Tensor &filter_kernel = weightAt(ConvParams::weight).getVariableRef();
   Tensor &derivative = net_hidden[0]->getGradientRef();
   Tensor &input_ = net_input[0]->getVariableRef();
@@ -335,28 +345,10 @@ void Conv2DLayer::calcGradient() {
    *   -> [ derivative->channel = filter_size (height) ]
    *       x [input_dim.channel * kernel_size[0] * kernel_size[1] (width) ]
    */
-
   int status = ML_ERROR_NONE;
 
-  TensorDim kdim{
-    {derivative.channel(), derivative.height(), derivative.width()}};
+  conv2d_op<ChannelToRow>(input_, derivative, delK, padding, stride);
 
-  TensorDim out_dim{delK.getDim()};
-  TensorDim out_dim_squeezed{
-    {out_dim.batch(), out_dim.channel() * out_dim.height() * out_dim.width()}};
-
-  delK.reshape(out_dim_squeezed);
-
-  Tensor im2col_result;
-  for (unsigned int b = 0; b < in_dim.batch(); ++b) {
-    Tensor in_sub = input_.getBatchSlice(b, 1);
-    Tensor deriv_sub = derivative.getBatchSlice(b, 1);
-    deriv_sub.reshape({kdim.channel(), kdim.height() * kdim.width()});
-
-    im2col(in_sub, derivative.getDim(), padding, stride, false, im2col_result);
-    deriv_sub.dot(im2col_result, delK, false, false, 1.0f);
-  }
-  delK.reshape(out_dim);
   delBias = derivative.sum({0, 2, 3});
 
   //  Update K / bias
@@ -462,7 +454,6 @@ void Conv2DLayer::im2col(const Tensor &in, const TensorDim &kdim,
                          const std::array<unsigned int, CONV2D_DIM> &padding,
                          const std::array<unsigned int, CONV2D_DIM> &mstride,
                          bool channel_mode, Tensor &out) {
-  /// @todo: add dimension validation here
   const int pad_value = 0;
   unsigned int ph = padding[0];
   unsigned int pw = padding[1];
@@ -476,19 +467,20 @@ void Conv2DLayer::im2col(const Tensor &in, const TensorDim &kdim,
   unsigned int k_width = kdim.width();
   unsigned int out_height = (height - k_height) / mstride[0] + 1;
   unsigned int out_width = (width - k_width) / mstride[1] + 1;
-  unsigned int kernel_feature_size = kdim.getFeatureLen();
 
-  /// shortcut 1: if kernel is 1x1
-  // Current setup requires this to be transposed for channel mode = true
-  // if (channel_mode && k_height * k_width == 1) {
-  //   out = in;
-  //   out.reshape({channel, height * width});
-  //   return;
-  // }
+  NNTR_THROW_IF((height - k_height) % mstride[0] != 0, std::invalid_argument)
+    << "calculated height is not integer. "
+    << "padded height: " << height << " kernel height: " << k_height
+    << " stride: " << mstride[0];
+
+  NNTR_THROW_IF((width - k_width) % mstride[1] != 0, std::invalid_argument)
+    << "calculated width is not integer. "
+    << "padded width: " << width << " kernel width: " << k_width
+    << " stride: " << mstride[1];
 
   if (out.uninitialized()) {
     if (channel_mode) {
-      out = Tensor(out_height * out_width, kernel_feature_size);
+      out = Tensor(out_height * out_width, in.channel() * k_height * k_width);
     } else {
       out = Tensor(k_height * k_width, in.channel() * out_height * out_width);
     }
