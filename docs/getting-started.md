@@ -155,6 +155,20 @@ gbs build
 
 `gbs build` will execute unit testing as well unlike meson build.
 
+## Build with Android NDK
+
+Get Android NDK required for the build from <https://developer.android.com/ndk/downloads>
+
+With Android NDK ready, follow the below instructions to generate NNTrainer's compiled files:
+
+```bash
+$ pushd jni
+$ ndk-build NDK_PROJECT_PATH=. APP_BUILD_SCRIPT=./Android-nnstreamer.mk NDK_APPLICATION_MK=./Application.mk -j$(nproc)
+$ ls libs/arm64-v8a/
+libcapi-nntrainer.so  libccapi-nntrainer.so  libc++_shared.so  libnntrainer.so
+$ popd
+```
+
 ## Troubleshooting
 
 ### Error 1:
