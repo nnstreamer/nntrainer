@@ -132,6 +132,7 @@ public:
    * @param[in] kdim kernel dimesion for define number of row
    * @param[in] padding padding information
    * @param[in] mstride stride value : x, y direction
+   * @param[in] dilataion dilation value : x, y direction
    * @param[in] channel_mode loop with channel first
    * @param[out] out out tensor to put, if uninitialized, allocate a new tensor
    * and set padding
@@ -140,6 +141,7 @@ public:
   static void im2col(const Tensor &in, const TensorDim &kdim,
                      const std::array<unsigned int, CONV2D_DIM> &padding,
                      const std::array<unsigned int, CONV2D_DIM> &mstride,
+                     const std::array<unsigned int, CONV2D_DIM> &dilation,
                      bool channel_mode, Tensor &out);
 
 private:
