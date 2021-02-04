@@ -71,8 +71,9 @@ unsigned int parseType(std::string ll, InputType t) {
    * @brief     Loss Function String from configure file
    *            "mse"  : Mean Squared Error
    *            "caterogical" : Categorical Cross Entropy
+   *            "none" : No Loss attached to the model
    */
-  std::array<std::string, 2> loss_string = {"mse", "cross"};
+  std::array<std::string, 3> loss_string = {"mse", "cross", "none"};
 
   /**
    * @brief     Model Type String from configure file

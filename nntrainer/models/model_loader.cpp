@@ -60,7 +60,7 @@ int ModelLoader::loadModelConfigIni(dictionary *ini, NeuralNetwork &model) {
     iniparser_getstring(ini, "Model:Type", unknown), TOKEN_MODEL);
   model.epochs = iniparser_getint(ini, "Model:Epochs", model.epochs);
   model.loss_type = (LossType)parseType(
-    iniparser_getstring(ini, "Model:Loss", unknown), TOKEN_LOSS);
+    iniparser_getstring(ini, "Model:Loss", none), TOKEN_LOSS);
   const std::string &save_path =
     iniparser_getstring(ini, "Model:Save_path", unknown);
   if (save_path != unknown) {

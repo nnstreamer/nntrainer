@@ -20,6 +20,7 @@
 #include <bn_layer.h>
 #include <input_layer.h>
 #include <layer.h>
+#include <loss_layer.h>
 #include <neuralnet.h>
 #include <weight.h>
 
@@ -195,6 +196,9 @@ public:
                   const nntrainer::TensorDim &label_shape,
                   unsigned int iterations);
 
+  void validateFor(const std::string &reference,
+                   const nntrainer::TensorDim &label_shape);
+
 private:
   std::array<nntrainer::Tensor, 2>
   prepareData(std::ifstream &f, const nntrainer::TensorDim &label_dim);
@@ -362,14 +366,39 @@ void GraphWatcher::compareFor(const std::string &reference,
       it->forward(iteration, *(it + 1));
     }
 
-    nn.backwarding(label, iteration);
+    if (loss_node.getNodeType() == nntrainer::LossLayer::type) {
+      nn.backwarding(label, iteration);
 
-    for (auto it = nodes.rbegin(); it != nodes.rend() - 1; it++) {
-      if (it == nodes.rend())
-        it->backward(iteration, true, !optimize);
-      else
-        it->backward(iteration, !optimize, !optimize);
+      for (auto it = nodes.rbegin(); it != nodes.rend() - 1; it++) {
+        if (it == nodes.rend())
+          it->backward(iteration, true, !optimize);
+        else
+          it->backward(iteration, !optimize, !optimize);
+      }
+    } else {
+      EXPECT_THROW(nn.backwarding(label, iteration), std::runtime_error);
     }
+  }
+
+  /**
+   * This inference is to ensure that inference runs with/without optimizations
+   * for various kinds of models
+   */
+  EXPECT_NO_THROW(nn.inference(input));
+}
+
+void GraphWatcher::validateFor(const std::string &reference,
+                               const nntrainer::TensorDim &label_shape) {
+  nntrainer::sharedConstTensors input = {
+    MAKE_SHARED_TENSOR(nn.getInputDimension()[0])};
+  nntrainer::sharedConstTensors label = {MAKE_SHARED_TENSOR(label_shape)};
+
+  EXPECT_NO_THROW(nn.forwarding(input, label));
+
+  if (loss_node.getNodeType() == nntrainer::LossLayer::type) {
+    EXPECT_NO_THROW(nn.backwarding(label, 0));
+  } else {
+    EXPECT_THROW(nn.backwarding(label, 0), std::runtime_error);
   }
 
   /**
@@ -446,24 +475,40 @@ private:
 };
 
 /**
- * @brief check given ini is failing/suceeding at load
+ * @brief check given ini is failing/suceeding at unoptimized running
  */
 TEST_P(nntrainerModelTest, model_test) {
   /** Check model with all optimizations off */
-  GraphWatcher g_unopt(getIniName(), false);
-  g_unopt.compareFor(getGoldenName(), getLabelDim(), getIteration());
+  if (getIniName().find("validate") == std::string::npos) {
+    GraphWatcher g_unopt(getIniName(), false);
+    g_unopt.compareFor(getGoldenName(), getLabelDim(), getIteration());
 
-  /// add stub test for tcm
-  EXPECT_EQ(std::get<0>(GetParam()), std::get<0>(GetParam()));
+    /// add stub test for tcm
+    EXPECT_EQ(std::get<0>(GetParam()), std::get<0>(GetParam()));
+  }
 }
 
 /**
- * @brief check given ini is failing/suceeding at load
+ * @brief check given ini is failing/suceeding at optimized running
  */
 TEST_P(nntrainerModelTest, model_test_optimized) {
   /** Check model with all optimizations on */
+  if (getIniName().find("validate") == std::string::npos) {
+    GraphWatcher g_opt(getIniName(), true);
+    g_opt.compareFor(getGoldenName(), getLabelDim(), getIteration());
+
+    /// add stub test for tcm
+    EXPECT_EQ(std::get<0>(GetParam()), std::get<0>(GetParam()));
+  }
+}
+
+/**
+ * @brief check given ini is failing/suceeding at validation
+ */
+TEST_P(nntrainerModelTest, model_test_validate) {
+  /** Check model with all optimizations on */
   GraphWatcher g_opt(getIniName(), true);
-  g_opt.compareFor(getGoldenName(), getLabelDim(), getIteration());
+  g_opt.validateFor(getGoldenName(), getLabelDim());
 
   /// add stub test for tcm
   EXPECT_EQ(std::get<0>(GetParam()), std::get<0>(GetParam()));
@@ -615,7 +660,31 @@ INI conv_input_matches_kernel(
   }
 );
 
+INI conv_no_loss_validate(
+  "conv_no_loss_validate",
+  {
+    nn_base + "learning_rate=0.1 | optimizer=sgd | batch_size=3",
+    I("input") + input_base + "input_shape=2:4:5",
+    I("conv2d_c1_layer") + conv_base + "kernel_size=4,5 | filters=4" +"input_layers=input",
+    I("act_1") + sigmoid_base +"input_layers=conv2d_c1_layer",
+    I("flatten", "type=flatten")+"input_layers=act_1" ,
+    I("outputlayer") + fc_base + "unit = 10" +"input_layers=flatten",
+    I("act_2") + softmax_base +"input_layers=outputlayer"
+  }
+);
 
+INI conv_none_loss_validate(
+  "conv_none_loss_validate",
+  {
+    nn_base + "learning_rate=0.1 | optimizer=sgd | loss=none | batch_size=3",
+    I("input") + input_base + "input_shape=2:4:5",
+    I("conv2d_c1_layer") + conv_base + "kernel_size=4,5 | filters=4" +"input_layers=input",
+    I("act_1") + sigmoid_base +"input_layers=conv2d_c1_layer",
+    I("flatten", "type=flatten")+"input_layers=act_1" ,
+    I("outputlayer") + fc_base + "unit = 10" +"input_layers=flatten",
+    I("act_2") + softmax_base +"input_layers=outputlayer"
+  }
+);
 
 INI mnist_conv_cross_one_input = INI("mnist_conv_cross_one_input") + mnist_conv_cross + "model/batch_size=1";
 
@@ -629,7 +698,9 @@ INSTANTIATE_TEST_CASE_P(
     mkModelTc(mnist_conv_cross, "3:1:1:10", 10),
     mkModelTc(mnist_conv_cross_one_input, "1:1:1:10", 10),
     mkModelTc(conv_1x1, "3:1:1:10", 10),
-    mkModelTc(conv_input_matches_kernel, "3:1:1:10", 10)
+    mkModelTc(conv_input_matches_kernel, "3:1:1:10", 10),
+    mkModelTc(conv_no_loss_validate, "3:1:1:10", 1),
+    mkModelTc(conv_none_loss_validate, "3:1:1:10", 1)
 // / #if gtest_version <= 1.7.0
 ));
 /// #else gtest_version > 1.8.0

@@ -155,9 +155,8 @@ int NeuralNetwork::compile() {
   model_graph.topologicalSort();
 
   auto &sorted = model_graph.getSorted();
-  if (sorted.empty() ||
-      !istrequal(sorted.back().layer->getType(), LossLayer::type)) {
-    ml_loge("last layer is not loss layer");
+  if (sorted.empty()) {
+    ml_loge("Empty model");
     return ML_ERROR_INVALID_PARAMETER;
   }
 
@@ -366,6 +365,9 @@ void NeuralNetwork::backwarding(int iteration) {
    */
   auto iter_begin = model_graph.getBackwardingBeginIter();
   auto iter_end = model_graph.getBackwardingEndIter();
+
+  if (iter_begin->layer->getType() != LossLayer::type)
+    throw std::runtime_error("Error: no loss provided for training.");
 
   for (auto iter = iter_begin; iter != iter_end - 1; iter++) {
     backwarding(iter->layer, iteration, true);
