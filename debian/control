@@ -10,7 +10,7 @@ Build-Depends: gcc-9 | gcc-8 | gcc-7 | gcc-6 | gcc-5 (>=5.4),
  libcurl4-openssl-dev | libcurl3-nns-dev | libcurl4-nns-dev, libgtest-dev,
  libflatbuffers-dev, libglib2.0-dev, nnstreamer-dev, libgstreamer1.0-dev,
  libgstreamer-plugins-base1.0-dev, gstreamer1.0-tools, gstreamer1.0-plugins-base,
- gstreamer1.0-plugins-good
+ gstreamer1.0-plugins-good, nnstreamer-api-dev
 Standards-Version: 3.9.6
 Homepage: https://github.com/nnstreamer/nntrainer
 
