@@ -240,9 +240,21 @@ public:
       max_derivative_size *= batch;
       max_shared_inout *= batch;
     }
+
+    /**
+     * All the tensors must be deallocated first and then allocated.
+     * Deallocating and allocating tensors one by one can potentially lead to
+     * high requirement of the peak memory requirement.
+     */
+    deallocateInOuts();
+    deallocateDerivatives();
+
     for (auto &in_out : in_outs)
       for (auto &vg : in_out)
         vg->setBatchSize(batch);
+
+    allocateInOuts();
+    allocateDerivatives();
   }
 
   /**
@@ -255,6 +267,18 @@ public:
     allocateGradients();
     allocateInOuts();
     allocateDerivatives();
+  }
+
+  /**
+   * @brief Deallocate memory for all the managed tensors
+   */
+  void deallocateTensors(bool dealloc_weights = false) {
+    if (dealloc_weights)
+      deallocateWeights();
+
+    deallocateGradients();
+    deallocateInOuts();
+    deallocateDerivatives();
   }
 
   /**
@@ -276,6 +300,29 @@ public:
    * @brief Allocate memory for all the managed layer derivatives
    */
   void allocateDerivatives();
+
+  /**
+   * @brief Deallocate memory for all the weights
+   */
+  void deallocateWeights();
+
+  /**
+   * @brief Deallocate memory for all the gradients of the weights
+   *
+   */
+  void deallocateGradients();
+
+  /**
+   * @brief Deallocate memory for all the input and output tensors
+   *
+   */
+  void deallocateInOuts();
+
+  /**
+   * @brief Deallocate memory for all the inputs and outputs derivative tensors
+   *
+   */
+  void deallocateDerivatives();
 
 private:
   // TODO: ensure that names of these weights are unique

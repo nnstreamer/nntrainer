@@ -254,7 +254,7 @@ public:
   /*
    * @brief Allocate memory for the variable and gradient
    */
-  void alllocate() {
+  void allocate() {
     allocateVariable();
     allocateGradient();
   }

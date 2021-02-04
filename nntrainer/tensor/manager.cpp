@@ -270,6 +270,15 @@ void Manager::allocateWeights() {
   }
 }
 
+void Manager::deallocateWeights() {
+  for (auto &l_w : weights) {
+    for (auto &w : l_w) {
+      Weight &weight = w.get();
+      weight.deallocateVariable();
+    }
+  }
+}
+
 void Manager::allocateGradients() {
   /** Allocate the source tensors for shared memories */
   if (!shared_grad.uninitialized())
@@ -279,6 +288,17 @@ void Manager::allocateGradients() {
     for (auto &w : l_w) {
       Weight &weight = w.get();
       weight.allocateGradient();
+    }
+  }
+}
+
+void Manager::deallocateGradients() {
+  shared_grad.deallocate();
+
+  for (auto &l_w : weights) {
+    for (auto &w : l_w) {
+      Weight &weight = w.get();
+      weight.deallocateGradient();
     }
   }
 }
@@ -419,6 +439,16 @@ void Manager::allocateInOuts() {
   }
 }
 
+void Manager::deallocateInOuts() {
+  shared_inout.deallocate();
+
+  for (auto &l_io : in_outs) {
+    for (auto &io : l_io) {
+      io->deallocateVariable();
+    }
+  }
+}
+
 void Manager::allocateDerivatives() {
   /** Allocate the source tensors for shared memories */
   if (!shared_deriv.uninitialized())
@@ -427,6 +457,16 @@ void Manager::allocateDerivatives() {
   for (auto &l_io : in_outs) {
     for (auto &io : l_io) {
       io->allocateGradient();
+    }
+  }
+}
+
+void Manager::deallocateDerivatives() {
+  shared_deriv.deallocate();
+
+  for (auto &l_io : in_outs) {
+    for (auto &io : l_io) {
+      io->deallocateGradient();
     }
   }
 }
