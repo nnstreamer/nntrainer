@@ -156,7 +156,6 @@ void Tensor::allocate() {
     data = std::shared_ptr<float>(src_tensor->tensor()->data,
                                   src_tensor->tensor()->data.get() +
                                     src_tensor->offset());
-    src_tensor = nullptr;
   } else {
     /// allocate new memory for the tensor data
     data = std::shared_ptr<float>(new float[dim.getDataLen()],
@@ -486,7 +485,8 @@ void Tensor::createSharedDataTensor(const Tensor &src, Tensor &dest,
    * - If src.src_tensor exists, then use the src.src_tensor to create the
    *  required SrcSharedTensor to avoid recursive dependency.
    *
-   * @note src.data and src.src_tensor cannot co-exist.
+   * @note src.data and src.src_tensor CAN co-exist. src.src_tensor is stored
+   * if the batch size of src is updated and needs reallocation.
    */
   if (src.data)
     dest.data = std::shared_ptr<float>(src.data, src.data.get() + offset);

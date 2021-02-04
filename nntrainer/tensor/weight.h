@@ -246,6 +246,14 @@ public:
    */
   void applyGradient(double lr) { var->add_i(*grad.get(), -lr); }
 
+  /**
+   * @brief Deallocate memory for the gradient of the weight
+   */
+  void deallocateGradient() {
+    Var_Grad::deallocateGradient();
+    opt_vars.clear();
+  }
+
 private:
   WeightInitializer initializer; /**< initializer for this variable */
   WeightRegularizer regularizer; /**< regularizer for this variable */

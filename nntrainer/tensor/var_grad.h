@@ -203,12 +203,11 @@ public:
 
   void setBatchSize(unsigned int batch) {
     dim.batch(batch);
-    /** @note This will shape when changing batch size with initialized
-     * variables */
+
     if (!var->uninitialized())
-      var->reshape(dim);
+      var->updateBatch(batch);
     if (!grad->uninitialized())
-      grad->reshape(dim);
+      grad->updateBatch(batch);
   }
 
   /**
@@ -251,6 +250,32 @@ public:
     grad->allocate();
     resetGradient();
   }
+
+  /*
+   * @brief Allocate memory for the variable and gradient
+   */
+  void alllocate() {
+    allocateVariable();
+    allocateGradient();
+  }
+
+  /*
+   * @brief Deallocate memory for the variable and gradient
+   */
+  void deallocate() {
+    deallocateVariable();
+    deallocateGradient();
+  }
+
+  /**
+   * @brief Deallocate memory for the variable
+   */
+  void deallocateVariable() { var->deallocate(); }
+
+  /**
+   * @brief Deallocate memory for the variable
+   */
+  void deallocateGradient() { grad->deallocate(); }
 
   /**
    * @bried Update the variable to use the given tensor
