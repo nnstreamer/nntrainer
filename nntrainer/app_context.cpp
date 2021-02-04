@@ -106,7 +106,8 @@ static void add_default_object(AppContext &ac) {
 
 AppContext &AppContext::Global() {
   static AppContext instance;
-  std::call_once(global_app_context_init_flag, add_default_object, instance);
+  std::call_once(global_app_context_init_flag, add_default_object,
+                 std::ref(instance));
   return instance;
 }
 
