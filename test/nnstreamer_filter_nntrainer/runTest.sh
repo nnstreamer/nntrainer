@@ -72,14 +72,14 @@ else
 fi
 
 # Test with mnist model
-PATH_TO_CONFIG="../test_models/models/mnist_inf.ini"
+PATH_TO_CONFIG="../test_models/models/mnist.ini"
 PATH_TO_DATA="../test_models/data/2.png"
 
 gstTest "--gst-plugin-path=${PATH_TO_PLUGIN} filesrc location=${PATH_TO_DATA} ! pngdec ! tensor_converter ! other/tensor,dimension=1:28:28:1 ! tensor_transform mode=transpose option=1:2:0:3 ! tensor_transform mode=typecast option=float32 ! tensor_filter framework=nntrainer model=${PATH_TO_CONFIG} input=28:28:1:1 inputtype=float32 output=10 outputtype=float32 ! filesink location=nntrainer.out.1.log" 1 0 0 $PERFORMANCE
 python checkLabel.py nntrainer.out.1.log 2
 testResult $? 1 "Golden test comparison" 0 1
 
-PATH_TO_CONFIG="../test_models/models/mnist_inf.ini"
+PATH_TO_CONFIG="../test_models/models/mnist.ini"
 PATH_TO_DATA="../test_models/data/0.png"
 
 gstTest "--gst-plugin-path=${PATH_TO_PLUGIN} filesrc location=${PATH_TO_DATA} ! pngdec ! tensor_converter ! tensor_transform mode=transpose option=1:2:0:3 ! tensor_transform mode=typecast option=float32 ! tensor_filter framework=nntrainer model=${PATH_TO_CONFIG} input=28:28:1:1 inputtype=float32 output=10:1:1:1 outputtype=float32 ! filesink location=nntrainer.out.2.log" 1 0 0 $PERFORMANCE

@@ -123,6 +123,8 @@ int NeuralNetwork::setTrainConfig(std::vector<std::string> values) {
     case PropertyType::batch_size: {
       status = setUint(batch_size, value);
       NN_RETURN_STATUS();
+      if (initialized)
+        setBatchSize();
       /** TODO: increase buffer size if it is smaller than batch size.
        * also if this is set with default batch size, then make it
        * smaller/larger
