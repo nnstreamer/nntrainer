@@ -23,6 +23,7 @@ $ export LD_LIBRARY_PATH = $LD_LIBRARY_PATH:${PWD}/android-ndk-r21d/
 
 ### Build NNTrainer with NDK-Build
 Once you install NDK package, you can build the nntrainer.so for android as below.
+Currently, the APP_ABI is set arm64-v8a. If you want to use armeabi-v7a, you have to change in Application.mk file.
 
 ```bash
 $ ls
