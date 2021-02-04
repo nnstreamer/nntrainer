@@ -303,7 +303,7 @@ INSTANTIATE_TEST_CASE_P(
 
   /**< half negative: init fail cases (1 positive and 4 negative cases) */
     mkIniTc("unknown_loss_n", {nw_adam + "loss = unknown", input, out+"input_layers=inputlayer"}, COMPFAIL | INITFAIL),
-    mkIniTc("activation_very_first_n", {nw_sgd, act_relu, input+"input_layers=activation_relu", out+"input_layers=inputlayer"}, COMPFAIL| INITFAIL),
+    mkIniTc("activation_very_first_n", {nw_sgd, act_relu, input+"input_layers=activation_relu", out+"input_layers=inputlayer"}, COMPFAIL | INITFAIL),
     mkIniTc("bnlayer_very_first_n", {nw_sgd, batch_normal, input+"input_layers=bn", out+"input_layers=inputlayer"}, COMPFAIL | INITFAIL),
     mkIniTc("act_layer_after_act_n", {nw_sgd, input, act_relu+"input_layers=inputlayer", out+"input_layers=activation_relu"}, INITFAIL),
     mkIniTc("act_layer_after_act_bn_n", {nw_sgd, input, act_relu+"input_layers=inputlayer", batch_normal+"input_layers=activation_relu", out+"input_layers=bn" }, INITFAIL),
@@ -323,7 +323,7 @@ INSTANTIATE_TEST_CASE_P(
     mkIniTc("wrong_opt_type_n", {nw_adam + "Optimizer = wrong_opt", input, out+"input_layers=inputlayer"}, ALLFAIL),
     mkIniTc("adam_minus_lr_n", {nw_adam + "Learning_rate = -0.1", input, out+"input_layers=inputlayer"}, ALLFAIL),
     mkIniTc("sgd_minus_lr_n", {nw_sgd + "Learning_rate = -0.1", input, out+"input_layers=inputlayer"}, ALLFAIL),
-    mkIniTc("no_loss_n", {nw_adam + "-loss", input, out+"input_layers=inputlayer"}, COMPFAIL | INITFAIL),
+    mkIniTc("no_loss_p", {nw_adam + "-loss", input, out+"input_layers=inputlayer"}, SUCCESS),
     mkIniTc("unknown_layer_type_n", {nw_adam, input + "Type = asdf", out+"input_layers=inputlayer"}, ALLFAIL),
     mkIniTc("unknown_layer_type2_n", {nw_adam, input, out + "Type = asdf"+"input_layers=inputlayer", I(out, "outlayer", "")}, ALLFAIL),
 

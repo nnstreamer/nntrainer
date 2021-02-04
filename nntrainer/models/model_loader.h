@@ -146,6 +146,7 @@ private:
   static bool fileTfLite(const std::string &filename);
 
   const char *unknown = "Unknown";
+  const char *none = "none";
 
   AppContext app_context;
 };

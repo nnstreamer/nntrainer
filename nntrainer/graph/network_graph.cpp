@@ -450,7 +450,8 @@ int NetworkGraph::setGraphNode(std::vector<std::shared_ptr<Layer>> &layers,
     }
   }
 
-  if (layers.back()->getType() != LossLayer::type) {
+  if (layers.back()->getType() != LossLayer::type &&
+      loss_type != LossType::LOSS_NONE) {
     status = addLossLayer(loss_type);
     NN_RETURN_STATUS();
   }

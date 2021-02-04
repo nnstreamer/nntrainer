@@ -93,7 +93,7 @@ public:
     epoch_idx(0),
     iter(0),
     loss(0.0f),
-    loss_type(LossType::LOSS_UNKNOWN),
+    loss_type(LossType::LOSS_NONE),
     weight_initializer(WeightInitializer::WEIGHT_UNKNOWN),
     net_type(NetType::UNKNOWN),
     manager(std::make_shared<Manager>()),

@@ -30,6 +30,7 @@ enum class LossType {
                          */
   LOSS_ENTROPY_SOFTMAX, /** Cross Entropy amalgamated with softmax for stability
                          */
+  LOSS_NONE,            /** No loss for this model */
   LOSS_UNKNOWN          /** Unknown */
 };
 

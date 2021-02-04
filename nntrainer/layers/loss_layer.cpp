@@ -94,6 +94,10 @@ void LossLayer::forwarding(bool training) {
     throw std::runtime_error(
       "Error: Cross Entropy not supported without softmax or sigmoid.");
   }
+  case LossType::LOSS_NONE: {
+    hidden_ = y;
+    break;
+  }
   case LossType::LOSS_UNKNOWN:
     /** intended */
   default: { throw std::runtime_error("Error: Unknown loss_type."); }
@@ -157,6 +161,8 @@ void LossLayer::calcDerivative() {
   case LossType::LOSS_ENTROPY:
     throw std::runtime_error(
       "Error: Cross Entropy not supported without softmax or sigmoid.");
+  case LossType::LOSS_NONE:
+    throw std::runtime_error("Error: No loss provided for training.");
   case LossType::LOSS_UNKNOWN:
     /** intended */
   default:
