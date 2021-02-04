@@ -823,6 +823,32 @@ public:
   unsigned int width() const { return dim.width(); }
 
   /**
+   * @brief     update batch size for this tensor
+   * @param     batch size
+   * @note      The batchsize of src_tensor need not be related with this
+   * tensor's batch size
+   *
+   * @note      The memory for this tensor will re-allocated/re-assigned if the
+   * updated batch size is different than the current batch size.
+   *
+   * @note      If this tensor is/was the src_tensor for some other, then
+   * reduction in batch size can make the dependent tensors allocate fail due to
+   * memory smaller. Caller must handle this in their own end.
+   *
+   * @note      If this tensor is re-allocated, then the memory might not be
+   * immediately freed as the tensor already dependeing on this tensor also
+   * share the same memory. So, the peak memory consumption in worst case can
+   * reach the total memory requirements of a model with old batchsize and the
+   * new batch size. It is recommended to first deallocate all the tensors,
+   * updateBatch and then allocate again to avoid such issues.
+   */
+  void updateBatch(unsigned int batch) {
+    dim.batch(batch);
+    if (isAllocated())
+      reallocate();
+  }
+
+  /**
    * @brief     return Data pointer of Tensor
    * @retval    float pointer
    */
@@ -971,6 +997,18 @@ private:
    */
   static void createSharedDataTensor(const Tensor &src, Tensor &dest,
                                      unsigned int offset);
+
+  /**
+   * @brief    Reallocate memory for this tensor
+   * @note     This will not necessary free the memory as tensors share memory
+   * @note     This can increase the peak memory consumption when callled on all
+   * the tensors of a model sequentially. It is advised to first deallocate all
+   * the tensors and then allocate, than reallocate tensors one by one.
+   */
+  void reallocate() {
+    deallocate();
+    allocate();
+  }
 }; // namespace nntrainer
 
 /**
