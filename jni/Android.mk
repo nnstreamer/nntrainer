@@ -33,7 +33,7 @@ NNTRAINER_JNI_ROOT := $(NNTRAINER_ROOT)/jni
 # Build tflite if its backbone is enabled
 ifeq ($(ENABLE_TFLITE_BACKBONE),1)
 $(warning BUILDING TFLITE BACKBONE !)
-TENSORFLOW_VERSION := 1.13.1
+TENSORFLOW_VERSION := 2.3.0
 
 ifndef TENSORFLOW_ROOT
 ifneq ($(MAKECMDGOALS),clean)
@@ -48,7 +48,12 @@ endif #MAKECMDGOALS
 endif #TENSORFLOW_ROOT
 
 LOCAL_MODULE := tensorflow-lite
-LOCAL_SRC_FILES := $(TENSORFLOW_ROOT)/lib/arm64/libtensorflow-lite.a
+LIB_ := arm64
+
+ifeq ($(APP_ABI), armeabi-v7a)
+	LIB_ := armv7
+endif
+LOCAL_SRC_FILES := $(TENSORFLOW_ROOT)/lib/$(LIB_)/libtensorflow-lite.a
 LOCAL_EXPORT_C_INCLUDES := $(TENSORFLOW_ROOT)/include
 TFLITE_INCLUDES := $(LOCAL_C_INCLUDES)
 
