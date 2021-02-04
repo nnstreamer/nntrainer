@@ -41,7 +41,12 @@ endif
 endif
 
 LOCAL_MODULE := tensorflow-lite
-LOCAL_SRC_FILES := $(TENSORFLOW_ROOT)/lib/arm64/libtensorflow-lite.a
+LIB_ := arm64
+
+ifeq ($(APP_ABI), armeabi-v7a)
+	LIB_ := armv7
+endif
+LOCAL_SRC_FILES := $(TENSORFLOW_ROOT)/lib/$(LIB_)/libtensorflow-lite.a
 LOCAL_EXPORT_C_INCLUDES := $(TENSORFLOW_ROOT)/include
 
 include $(PREBUILT_STATIC_LIBRARY)
