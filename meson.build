@@ -6,7 +6,8 @@ project('nntrainer', 'c', 'cpp',
     'werror=true',
     'warning_level=1',
     'c_std=gnu89',
-    'cpp_std=c++14'
+    'cpp_std=c++14',
+    'buildtype=release'
   ]
 )
 add_project_arguments('-DMIN_CPP_VERSION=201402', language:['c','cpp'])
@@ -37,7 +38,6 @@ warning_flags = [
   '-Wvla',
   '-Wpointer-arith',
   '-Wno-error=varargs',
-  '-O2',
   '-ftree-vectorize'
 ]
 
