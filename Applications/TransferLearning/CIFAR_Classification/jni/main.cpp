@@ -416,15 +416,20 @@ int main(int argc, char *argv[]) {
     NN.initialize();
   } catch (...) {
     std::cerr << "Error during init" << std::endl;
-    return 0;
+    return 1;
   }
-  NN.readModel();
+  try {
+    NN.readModel();
+  } catch (...) {
+    std::cerr << "Error during readModel" << std::endl;
+    return 1;
+  }
 
   try {
     NN.train();
   } catch (...) {
     std::cerr << "Error during train" << std::endl;
-    return 0;
+    return 1;
   }
 
   if (!TRAINING) {
