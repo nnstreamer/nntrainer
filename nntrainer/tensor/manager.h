@@ -36,9 +36,9 @@ public:
    * @brief Construct a new MMapedMemory object
    *
    * @param size bytesize of the memory chunk
-   * @param allocate_fd map a shared memory object to a file
+   * @param allocate_fd_ map a shared memory object to a file
    */
-  MMapedMemory(size_t size, bool allocate_fd = false);
+  MMapedMemory(size_t size, bool allocate_fd_ = false);
 
   ~MMapedMemory() noexcept;
 
@@ -70,10 +70,10 @@ public:
   void *data() noexcept { return typedBuffer<void>(); }
 
 private:
-  bool allocate_fd; /**< option to choose to allocate an fd */
   int fd;           /**< fd to access the shared_memory  */
   void *buf;        /**< buffer object when use_shared_memory */
   size_t buf_size;  /**< buffer size */
+  bool allocate_fd; /**< option to choose to allocate an fd */
 };
 
 /**
