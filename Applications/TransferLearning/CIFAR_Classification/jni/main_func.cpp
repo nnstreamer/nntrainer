@@ -270,7 +270,8 @@ int main(int argc, char *argv[]) {
     dataset = createDataset(ml::train::DatasetType::GENERATOR);
     dataset->setGeneratorFunc(ml::train::DatasetDataType::DATA_TRAIN,
                               getBatch_train);
-    dataset->setGeneratorFunc(ml::train::DatasetDataType::DATA_VAL, getBatch_val);
+    dataset->setGeneratorFunc(ml::train::DatasetDataType::DATA_VAL,
+                              getBatch_val);
   } catch (...) {
     std::cerr << "Error creating dataset" << std::endl;
     return 1;

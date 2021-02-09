@@ -292,6 +292,7 @@ void NodeWatcher::backward(int iteration, bool verify_deriv, bool verify_grad) {
 }
 
 GraphWatcher::GraphWatcher(const std::string &config, const bool opt) :
+  expected_loss(0.0),
   optimize(opt) {
   nn = nntrainer::NeuralNetwork();
 
