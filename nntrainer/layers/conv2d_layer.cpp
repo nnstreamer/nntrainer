@@ -544,6 +544,10 @@ void Conv2DLayer::im2col(const Tensor &in, const TensorDim &kdim,
     }
   } else {
     unsigned int im_w = 0;
+
+    if (k_height > height || k_width > width)
+      throw std::runtime_error("Kernel shape bigger than input shape");
+
     for (unsigned int c = 0; c < channel; ++c) {
       for (unsigned int hs = 0; hs <= height - k_height; hs += mstride[0]) {
         for (unsigned int ws = 0; ws <= width - k_width; ws += mstride[1]) {
