@@ -75,8 +75,14 @@ static int ini_model_run(const std::string &ini_path) {
     return 1;
   }
 
-  std::shared_ptr<ml::train::Dataset> dataset = ml::train::createDataset(
-    ml::train::DatasetType::GENERATOR, constant_generator_cb, nullptr, nullptr);
+  std::shared_ptr<ml::train::Dataset> dataset;
+  try {
+    dataset = ml::train::createDataset(ml::train::DatasetType::GENERATOR,
+                                       constant_generator_cb, nullptr, nullptr);
+  } catch (...) {
+    std::cerr << "creating dataset failed";
+    return 1;
+  }
 
   if (model->setDataset(dataset) != 0) {
     std::cerr << "failed to set datatset";
@@ -111,23 +117,34 @@ int api_model_run() {
   auto model = ml::train::createModel(ml::train::ModelType::NEURAL_NET,
                                       {"loss=cross", "batch_size=10"});
 
-  std::shared_ptr<ml::train::Dataset> dataset = ml::train::createDataset(
-    ml::train::DatasetType::GENERATOR, constant_generator_cb, nullptr, nullptr);
+  std::shared_ptr<ml::train::Dataset> dataset;
+  std::shared_ptr<ml::train::Optimizer> optimizer;
+  std::vector<std::shared_ptr<ml::train::Layer>> layers;
+
+  try {
+    dataset = ml::train::createDataset(ml::train::DatasetType::GENERATOR,
+                                       constant_generator_cb, nullptr, nullptr);
+  } catch (...) {
+    std::cerr << "creating dataset failed";
+    return 1;
+  }
 
   if (model->setDataset(dataset) != 0) {
     std::cerr << "failed to set datatset";
     return 1;
   }
 
-  std::shared_ptr<ml::train::Optimizer> optimizer =
-    ml::train::optimizer::SGD({"learning_rate=0.1"});
+  try {
+    optimizer = ml::train::optimizer::SGD({"learning_rate=0.1"});
+  } catch (...) {
+    std::cerr << "creating optimizer failed";
+    return 1;
+  }
 
   if (model->setOptimizer(optimizer) != 0) {
     std::cerr << "failed to set optimizer";
     return 1;
   }
-
-  std::vector<std::shared_ptr<ml::train::Layer>> layers;
 
   try {
     /// creating array of layers same as in `custom_layer_client.ini`
