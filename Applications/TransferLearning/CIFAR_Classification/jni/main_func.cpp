@@ -289,7 +289,12 @@ int main(int argc, char *argv[]) {
     std::cerr << "Error during init" << std::endl;
     return 0;
   }
-  model->readModel();
+  try {
+    model->readModel();
+  } catch (...) {
+    std::cerr << "Error during readModel" << std::endl;
+    return 0;
+  }
   model->setDataset(dataset);
 
   /**
