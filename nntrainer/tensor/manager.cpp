@@ -35,10 +35,11 @@
 #include <nntrainer_log.h>
 
 namespace nntrainer {
-MMapedMemory::MMapedMemory(size_t size, bool allocate_fd) :
+MMapedMemory::MMapedMemory(size_t size, bool allocate_fd_) :
   fd(-1),
   buf(nullptr),
-  buf_size(0) {
+  buf_size(0),
+  allocate_fd(allocate_fd_) {
 
 #ifndef __ANDROID__
   if (allocate_fd) {
