@@ -81,12 +81,12 @@ MMapedMemory::MMapedMemory(size_t size, bool allocate_fd) :
   }
 
   if (buf_ == MAP_FAILED) {
-    #ifdef __ANDROID__
-      if (fd_ != -1) {
-        // unlink / close the given fd here
-        close(fd_);
-      }
-    #endif
+#ifdef __ANDROID__
+    if (fd_ != -1) {
+      // unlink / close the given fd here
+      close(fd_);
+    }
+#endif
 
     throw std::runtime_error("[MMapedMemory] mmap failed");
   }
