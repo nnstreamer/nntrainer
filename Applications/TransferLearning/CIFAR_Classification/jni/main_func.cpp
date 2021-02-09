@@ -265,11 +265,16 @@ int main(int argc, char *argv[]) {
   /**
    * @brief     Data buffer Create & Initialization
    */
-  std::shared_ptr<ml::train::Dataset> dataset =
-    createDataset(ml::train::DatasetType::GENERATOR);
-  dataset->setGeneratorFunc(ml::train::DatasetDataType::DATA_TRAIN,
-                            getBatch_train);
-  dataset->setGeneratorFunc(ml::train::DatasetDataType::DATA_VAL, getBatch_val);
+  std::shared_ptr<ml::train::Dataset> dataset;
+  try {
+    dataset = createDataset(ml::train::DatasetType::GENERATOR);
+    dataset->setGeneratorFunc(ml::train::DatasetDataType::DATA_TRAIN,
+                              getBatch_train);
+    dataset->setGeneratorFunc(ml::train::DatasetDataType::DATA_VAL, getBatch_val);
+  } catch (...) {
+    std::cerr << "Error creating dataset" << std::endl;
+    return 1;
+  }
 
   std::unique_ptr<ml::train::Model> model;
   /**
@@ -280,20 +285,20 @@ int main(int argc, char *argv[]) {
     model->loadFromConfig(config);
   } catch (...) {
     std::cerr << "Error during loadFromConfig" << std::endl;
-    return 0;
+    return 1;
   }
   try {
     model->compile();
     model->initialize();
   } catch (...) {
     std::cerr << "Error during init" << std::endl;
-    return 0;
+    return 1;
   }
   try {
     model->readModel();
   } catch (...) {
     std::cerr << "Error during readModel" << std::endl;
-    return 0;
+    return 1;
   }
   model->setDataset(dataset);
 
@@ -304,7 +309,7 @@ int main(int argc, char *argv[]) {
     model->train();
   } catch (...) {
     std::cerr << "Error during train" << std::endl;
-    return 0;
+    return 1;
   }
 
   /**

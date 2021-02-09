@@ -279,7 +279,7 @@ int main(int argc, char *argv[]) {
     dataset->setGeneratorFunc(ml::train::DatasetDataType::DATA_VAL,
                               getBatch_val);
   } catch (...) {
-    std::cerr << "Error creating dataset";
+    std::cerr << "Error creating dataset" << std::endl;
     return 1;
   }
 
