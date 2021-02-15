@@ -101,9 +101,14 @@ Tensor::Tensor(const TensorDim &d, const float *buf) : Tensor() {
   }
 }
 
-Tensor::Tensor(const TensorDim &d, bool alloc_now) : Tensor(d, nullptr) {
-  if (d.getDataLen() != 0 && alloc_now)
-    allocate();
+Tensor::Tensor(const TensorDim &d, bool alloc_now) : Tensor() {
+  if (d.getDataLen() != 0) {
+    dim = d;
+    strides = d.computeStrides();
+
+    if (alloc_now)
+      allocate();
+  }
 }
 
 /**
