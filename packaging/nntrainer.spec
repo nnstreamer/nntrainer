@@ -35,7 +35,7 @@ BuildRequires:	python3
 BuildRequires:	python3-numpy
 
 %if 0%{tizen_version_major} >= 6
-BuildRequires:	capi-ml-common-devel
+BuildRequires:	capi-machine-learning-common-devel
 %else
 BuildRequires:  capi-nnstreamer-devel
 %endif
@@ -68,10 +68,10 @@ BuildRequires:	pkgconfig(dlog)
 
 %if 0%{?support_nnstreamer_backbone}
 BuildRequires: nnstreamer-tensorflow-lite
-BuildRequires: capi-nnstreamer-devel
+BuildRequires: capi-machine-learning-inference-devel
 
 Requires:	nnstreamer-tensorflow-lite
-Requires:	capi-nnstreamer
+Requires:	capi-machine-learning-inference
 %endif # support_nnstreamer_backbone
 
 %define enable_nnstreamer_tensor_filter -Denable-nnstreamer-tensor-filter=false
@@ -114,7 +114,7 @@ Summary:	Development package for custom nntrainer developers
 Requires:	nntrainer = %{version}-%{release}
 Requires:	iniparser-devel
 Requires:	openblas-devel
-Requires: capi-ml-common-devel
+Requires:	capi-machine-learning-common-devel
 
 %description devel
 Development package for custom nntrainer developers.
@@ -130,14 +130,14 @@ Static library package of nntrainer-devel
 Summary:	NNTrainer Examples
 Requires:	nntrainer = %{version}-%{release}
 Requires:	iniparser
-Requires:	capi-nnstreamer
+Requires:	capi-machine-learning-inference
 Requires:	nnstreamer-tensorflow-lite
 BuildRequires:	nnstreamer-tensorflow-lite
 BuildRequires:	tensorflow-lite-devel
 BuildRequires:	pkgconfig(jsoncpp)
 BuildRequires:	pkgconfig(libcurl)
 BuildRequires:	pkgconfig(dlog)
-BuildRequires:	capi-nnstreamer-devel
+BuildRequires:	capi-machine-learning-inference-devel
 BuildRequires:	glib2-devel
 BuildRequires:  gstreamer-devel
 
@@ -168,7 +168,7 @@ You can train neural networks efficiently.
 Summary:         Tizen Native API Devel Kit for NNTrainer
 Group:           Multimedia/Framework
 Requires:        capi-nntrainer = %{version}-%{release}
-Requires:        capi-ml-common-devel
+Requires:        capi-machine-learning-common-devel
 %description -n capi-nntrainer-devel
 Developmental kit for Tizen Native NNTrainer API.
 
