@@ -134,7 +134,7 @@ if not iniparser_dep.found()
   endif
 endif
 
-nnstreamer_capi_dep = dependency('capi-nnstreamer', required:false)
+nnstreamer_capi_dep = dependency('capi-ml-inference', required:false)
 if nnstreamer_capi_dep.found()
   add_project_arguments('-DNNSTREAMER_AVAILABLE=1', language:['c','cpp'])
   # accessing this variable when dep_.not_found() remains hard error on purpose
@@ -145,8 +145,7 @@ if nnstreamer_capi_dep.found()
   endif
 endif
 
-# todo: change this to a capi-ml-common after #nnstreamer/3014
-ml_api_common_dep = dependency('capi-nnstreamer', required:true)
+ml_api_common_dep = dependency('capi-ml-common', required:true)
 
 if get_option('enable-nnstreamer-backbone')
   add_project_arguments('-DENABLE_NNSTREAMER_BACKBONE=1', language:['c','cpp'])
