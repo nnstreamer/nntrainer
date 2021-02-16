@@ -19,7 +19,7 @@ License:	Apache-2.0
 Source0:	nntrainer-%{version}.tar.gz
 Source1001:	nntrainer.manifest
 %if %{with tizen}
-Source1002:     capi-nntrainer.manifest
+Source1002:     capi-machine-learning-training.manifest
 %endif
 Source2001:	trainset.tar.gz
 Source2002:	valset.tar.gz
@@ -95,7 +95,7 @@ Requires:	nntrainer-core = %{version}-%{release}
 Requires:	nnstreamer-nntrainer = %{version}-%{release}
 %endif #nnstreamer_filter
 %if %{with tizen}
-Requires:	capi-nntrainer = %{version}-%{release}
+Requires:	capi-machine-learning-training = %{version}-%{release}
 %endif #tizen
 
 %description
@@ -153,57 +153,57 @@ HTML pages of lcov results of NNTrainer generated during rpmbuild
 %endif
 
 %if %{with tizen}
-%package -n capi-nntrainer
+%package -n capi-machine-learning-training
 Summary:         Tizen Native API for NNTrainer
 Group:           Multimedia/Framework
 Requires:        %{name} = %{version}-%{release}
-%description -n capi-nntrainer
+%description -n capi-machine-learning-training
 Tizen Native API wrapper for NNTrainer.
 You can train neural networks efficiently.
 
-%post -n capi-nntrainer -p /sbin/ldconfig
-%postun -n capi-nntrainer -p /sbin/ldconfig
+%post -n capi-machine-learning-training -p /sbin/ldconfig
+%postun -n capi-machine-learning-training -p /sbin/ldconfig
 
-%package -n capi-nntrainer-devel
+%package -n capi-machine-learning-training-devel
 Summary:         Tizen Native API Devel Kit for NNTrainer
 Group:           Multimedia/Framework
-Requires:        capi-nntrainer = %{version}-%{release}
+Requires:        capi-machine-learning-training = %{version}-%{release}
 Requires:        capi-machine-learning-common-devel
-%description -n capi-nntrainer-devel
+%description -n capi-machine-learning-training-devel
 Developmental kit for Tizen Native NNTrainer API.
 
-%package -n capi-nntrainer-devel-static
+%package -n capi-machine-learning-training-devel-static
 Summary:         Static library for Tizen Native API
 Group:           Multimedia/Framework
-Requires:        capi-nntrainer-devel = %{version}-%{release}
-%description -n capi-nntrainer-devel-static
-Static library of capi-nntrainer-devel package.
+Requires:        capi-machine-learning-training-devel = %{version}-%{release}
+%description -n capi-machine-learning-training-devel-static
+Static library of capi-machine-learning-training-devel package.
 
 %if 0%{?support_ccapi}
-%package -n ccapi-nntrainer
+%package -n ccapi-machine-learning-training
 Summary:         Tizen Native API for NNTrainer
 Group:           Multimedia/Framework
 Requires:        %{name} = %{version}-%{release}
-%description -n ccapi-nntrainer
+%description -n ccapi-machine-learning-training
 Tizen Native API wrapper for NNTrainer.
 You can train neural networks efficiently.
 
-%post -n ccapi-nntrainer -p /sbin/ldconfig
-%postun -n ccapi-nntrainer -p /sbin/ldconfig
+%post -n ccapi-machine-learning-training -p /sbin/ldconfig
+%postun -n ccapi-machine-learning-training -p /sbin/ldconfig
 
-%package -n ccapi-nntrainer-devel
+%package -n ccapi-machine-learning-training-devel
 Summary:         Tizen Native API Devel Kit for NNTrainer
 Group:           Multimedia/Framework
-Requires:        ccapi-nntrainer = %{version}-%{release}
-%description -n ccapi-nntrainer-devel
+Requires:        ccapi-machine-learning-training = %{version}-%{release}
+%description -n ccapi-machine-learning-training-devel
 Developmental kit for Tizen Native NNTrainer API.
 
-%package -n ccapi-nntrainer-devel-static
+%package -n ccapi-machine-learning-training-devel-static
 Summary:         Static library for Tizen c++ API
 Group:           Multimedia/Framework
-Requires:        ccapi-nntrainer-devel = %{version}-%{release}
-%description -n ccapi-nntrainer-devel-static
-Static library of ccapi-nntrainer-devel package.
+Requires:        ccapi-machine-learning-training-devel = %{version}-%{release}
+%description -n ccapi-machine-learning-training-devel-static
+Static library of ccapi-machine-learning-training-devel package.
 %endif
 
 %if 0%{?nnstreamer_filter}
@@ -376,7 +376,6 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %endif  # test coverage
 
 %post -p /sbin/ldconfig
-
 %postun -p /sbin/ldconfig
 
 %files
@@ -411,33 +410,33 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %exclude %{_libdir}/libcapi*.a
 
 %if %{with tizen}
-%files -n capi-nntrainer
-%manifest capi-nntrainer.manifest
+%files -n capi-machine-learning-training
+%manifest capi-machine-learning-training.manifest
 %license LICENSE
 %{_libdir}/libcapi-nntrainer.so
 
-%files -n capi-nntrainer-devel
+%files -n capi-machine-learning-training-devel
 %{_includedir}/nntrainer/nntrainer.h
 %{_includedir}/nntrainer/nntrainer-api-common.h
-%{_libdir}/pkgconfig/capi-nntrainer.pc
+%{_libdir}/pkgconfig/capi-ml-training.pc
 
-%files -n capi-nntrainer-devel-static
+%files -n capi-machine-learning-training-devel-static
 %{_libdir}/libcapi-nntrainer.a
 
 %if 0%{?support_ccapi}
-%files -n ccapi-nntrainer
-%manifest capi-nntrainer.manifest
+%files -n ccapi-machine-learning-training
+%manifest capi-machine-learning-training.manifest
 %license LICENSE
 %{_libdir}/libccapi-nntrainer.so
 
-%files -n ccapi-nntrainer-devel
+%files -n ccapi-machine-learning-training-devel
 %{_includedir}/nntrainer/model.h
 %{_includedir}/nntrainer/layer.h
 %{_includedir}/nntrainer/optimizer.h
 %{_includedir}/nntrainer/dataset.h
-%{_libdir}/pkgconfig/ccapi-nntrainer.pc
+%{_libdir}/pkgconfig/ccapi-ml-training.pc
 
-%files -n ccapi-nntrainer-devel-static
+%files -n ccapi-machine-learning-training-devel-static
 %{_libdir}/libccapi-nntrainer.a
 %endif # support_ccapi
 
