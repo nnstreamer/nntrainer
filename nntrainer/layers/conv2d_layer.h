@@ -147,27 +147,6 @@ private:
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
   int setFilter(int f);
-
-  /**
-   * @brief     reform the data to 2d matrix
-   * a region is sampled considering @a padding, @a mstride of unit @a kdim
-   * Each region is mapped to one column,
-   * if channel mode, kernel channel is considered part of kernel feature
-   * if not, kernel channel is consider part of output dimension
-   *
-   * @param[in] in input data
-   * @param[in] kdim kernel dimesion for define number of row
-   * @param[in] padding padding information
-   * @param[in] mstride stride value : x, y direction
-   * @param[in] channel_mode loop with channel first
-   * @param[out] out out tensor to put, if uninitialized, allocate a new tensor
-   * and set padding
-   * @note if out is initialized tensor, setting padding is skipped.
-   */
-  void im2col(const Tensor &in, const TensorDim &kdim,
-              const std::array<unsigned int, CONV2D_DIM> &padding,
-              const std::array<unsigned int, CONV2D_DIM> &mstride,
-              bool channel_mode, Tensor &out);
 };
 
 } // namespace nntrainer

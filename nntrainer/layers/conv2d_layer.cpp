@@ -26,30 +26,241 @@
 #include <util_func.h>
 
 namespace nntrainer {
-
-/// @note this will be deleted after conv2d optimization is done!
-#ifdef PROFILE
 namespace {
 
-int pad_profile_key;
-int conv_gemm_profile_key;
-int im2col_key;
-int add_bias_key;
-int clean_up;
-int temp_key;
+/**
+ * @brief     reconstruct image data from 2d column matrix
+ *
+ * @param[in] in input data
+ * @param[in] kdim kernel dimesion for define number of row
+ * @param[in] padding padding information
+ * @param[in] mstride stride value : x, y direction
+ * @param[in] dilation kernel dilation factor : x, y each
+ * @param[out] image image tensor to put
+ */
+static void col2im(const Tensor &col_matrix, const TensorDim &kdim,
+                   const std::array<unsigned, CONV2D_DIM> &padding,
+                   const std::array<unsigned, CONV2D_DIM> &mstride,
+                   const std::array<unsigned, CONV2D_DIM> &dilation,
+                   Tensor &image) {
+  unsigned ph = padding[0];
+  unsigned pw = padding[1];
 
-void register_event() {
-  pad_profile_key = profile::Profiler::Global().registerEvent("zero_pad");
-  im2col_key = profile::Profiler::Global().registerEvent("im2col");
-  conv_gemm_profile_key =
-    profile::Profiler::Global().registerEvent("conv_gemm");
+  unsigned k_height = kdim.height();
+  unsigned k_width = kdim.width();
 
-  add_bias_key = profile::Profiler::Global().registerEvent("add_bias_key");
-  clean_up = profile::Profiler::Global().registerEvent("clean_up");
-  temp_key = profile::Profiler::Global().registerEvent("temp_key");
+  /// effective kernel height considering dilation
+  unsigned eff_k_height = (k_height - 1) * dilation[0] + 1;
+  /// effective kernel width considering dilation
+  unsigned eff_k_width = (k_width - 1) * dilation[1] + 1;
+
+  unsigned im_channel = image.channel();
+  int im_height = image.height();
+  int im_width = image.width();
+
+  unsigned hstride = mstride[0];
+  unsigned wstride = mstride[1];
+
+  unsigned hdilation = dilation[0];
+  unsigned wdilation = dilation[1];
+
+  /// image considering padding
+  unsigned im_eff_height = im_height + 2 * ph;
+  unsigned im_eff_width = im_width + 2 * pw;
+  image.setZero();
+
+  int h_stride_end = im_eff_height - eff_k_height - ph;
+  int w_stride_end = im_eff_width - eff_k_width - pw;
+
+  unsigned col_w = 0;
+  for (int hs = -ph; hs <= h_stride_end; hs += hstride) {
+    for (int ws = -pw; ws <= w_stride_end; ws += wstride) {
+      unsigned col_h = 0;
+      int patch_height_end = hs + eff_k_height;
+      int patch_width_end = ws + eff_k_width;
+      for (unsigned c = 0; c < im_channel; c++) {
+        for (int h = hs; h < patch_height_end; h += hdilation) {
+          if (h < 0 || im_height <= h) {
+            col_h += k_width;
+            continue;
+          }
+          for (int w = ws; w < patch_width_end; w += wdilation) {
+            if (w < 0 || im_width <= w) {
+              col_h++;
+              continue;
+            }
+
+            float *val = image.getAddress(0, c, h, w);
+            *val += col_matrix.getValue(0, 0, col_h, col_w);
+            col_h++;
+          }
+        }
+      }
+      col_w++;
+    }
+  }
 }
+
+/**
+ * @brief     reform the data to 2d matrix
+ * a region is sampled considering @a padding, @a mstride of unit @a kdim
+ * Each region is mapped to one column,
+ * if channel mode, kernel channel is considered part of kernel feature
+ * if not, kernel channel is consider part of output dimension
+ *
+ * @param[in] in input data
+ * @param[in] kdim kernel dimesion for define number of row
+ * @param[in] padding padding information
+ * @param[in] mstride stride value : x, y direction
+ * @param[in] dilation kernel dilation factor : x, y each
+ * @param[in] channel_mode loop with channel first
+ * @param[out] out out tensor to put, if uninitialized, allocate a new tensor
+ * and set padding
+ * @note if out is initialized tensor, setting padding is skipped.
+ */
+static void im2col(const Tensor &in, const TensorDim &kdim,
+                   const std::array<unsigned int, CONV2D_DIM> &padding,
+                   const std::array<unsigned int, CONV2D_DIM> &mstride,
+                   const std::array<unsigned int, CONV2D_DIM> &dilation,
+                   bool channel_mode, Tensor &out) {
+  const int pad_value = 0;
+  unsigned int ph = padding[0];
+  unsigned int pw = padding[1];
+
+  unsigned int channel = in.channel();
+  int in_height = in.height();
+  int in_width = in.width();
+  unsigned int height = in_height + ph * 2;
+  unsigned int width = in_width + pw * 2;
+  unsigned int k_height = kdim.height();
+  unsigned int k_width = kdim.width();
+
+  /// effective kernel height considering dilation
+  unsigned int eff_k_height = (k_height - 1) * dilation[0] + 1;
+  /// effective kernel width considering dilation
+  unsigned int eff_k_width = (k_width - 1) * dilation[1] + 1;
+
+  unsigned int out_height = (height - eff_k_height) / mstride[0] + 1;
+  unsigned int out_width = (width - eff_k_width) / mstride[1] + 1;
+
+  NNTR_THROW_IF(height < eff_k_height, std::invalid_argument)
+    << "calculated height is smaller then effective kernel height."
+    << " padded height: " << height
+    << " kernel height with dilataion: " << eff_k_height
+    << " stride: " << mstride[0];
+
+  NNTR_THROW_IF(width < eff_k_width, std::invalid_argument)
+    << "calculated width is smaller then effective kernel width."
+    << " padded width: " << width
+    << " kernel width with dilataion: " << eff_k_width
+    << " stride: " << mstride[1];
+
+  NNTR_THROW_IF((height - eff_k_height) % mstride[0] != 0,
+                std::invalid_argument)
+    << "calculated height is not integer. "
+    << "padded height: " << height << " kernel height: " << k_height
+    << " stride: " << mstride[0];
+
+  NNTR_THROW_IF((width - eff_k_width) % mstride[1] != 0, std::invalid_argument)
+    << "calculated width is not integer. "
+    << "padded width: " << width << " kernel width: " << k_width
+    << " stride: " << mstride[1];
+
+  if (out.uninitialized()) {
+    if (channel_mode) {
+      out = Tensor(out_height * out_width, in.channel() * k_height * k_width);
+    } else {
+      out = Tensor(k_height * k_width, in.channel() * out_height * out_width);
+    }
+
+    if (pad_value == 0) {
+      out.setZero();
+    } else {
+      /// not reaching here, just preparing for non-zero pad_value
+      out.setValue(pad_value);
+    }
+  }
+
+  float *out_data = out.getData();
+
+  if (channel_mode) {
+    int h_stride_end = height - eff_k_height - ph;
+    int w_stride_end = width - eff_k_width - pw;
+
+    /// get a patch, size of kernel
+    /// hs is height_strided, ws is width_strided
+    unsigned int owidth = out.width();
+    unsigned int base_im_w = 0;
+    for (int hs = -ph; hs <= h_stride_end; hs += mstride[0]) {
+      unsigned int base_im_h = 0;
+      int patch_height_end = eff_k_height + hs;
+      /// map the patch to a single line looping through channel
+      for (unsigned int c = 0; c < channel; ++c) {
+        for (int h = hs; h < patch_height_end; h += dilation[0]) {
+          if (h < 0 || in_height <= h) {
+            base_im_h += k_width;
+            continue;
+          }
+
+          unsigned int im_w = base_im_w;
+          for (int ws = -pw; ws <= w_stride_end; ws += mstride[1]) {
+            unsigned int im_h = base_im_h;
+            int patch_width_end = eff_k_width + ws;
+
+            for (int w = ws; w < patch_width_end; w += dilation[1]) {
+              if (w < 0 || in_width <= w) {
+                im_h++;
+                continue;
+              }
+              out_data[im_w * owidth + im_h] = in.getValue(0, c, h, w);
+              im_h++;
+            }
+            im_w++;
+          }
+          base_im_h += k_width;
+        }
+      }
+      base_im_w += out_width;
+    }
+  } else {
+    unsigned int im_w = 0;
+
+    if (eff_k_height > height || eff_k_width > width)
+      throw std::runtime_error("Kernel shape bigger than input shape");
+
+    for (unsigned int c = 0; c < channel; ++c) {
+      for (unsigned int hs = 0; hs <= height - eff_k_height; hs += mstride[0]) {
+        for (unsigned int ws = 0; ws <= width - eff_k_width; ws += mstride[1]) {
+          unsigned int im_h = 0;
+          unsigned int patch_height_end = eff_k_height + hs;
+          unsigned int patch_width_end = eff_k_width + ws;
+
+          for (unsigned int h = hs; h < patch_height_end; h += dilation[0]) {
+            if (h < ph || in_height + ph <= h) {
+              im_h += k_width;
+              continue;
+            }
+
+            for (unsigned int w = ws; w < patch_width_end; w += dilation[1]) {
+              if (w < pw || in_width + pw <= w) {
+                im_h++;
+                continue;
+              }
+
+              float val = in.getValue(0, c, h - ph, w - pw);
+              out.setValue(0, 0, im_h, im_w, val);
+              im_h++;
+            }
+          }
+          im_w++;
+        }
+      }
+    }
+  }
+}
+
 } // namespace
-#endif
+
 const std::string Conv2DLayer::type = "conv2d";
 
 enum ConvParams { weight, bias };
@@ -87,6 +298,16 @@ int Conv2DLayer::initialize(Manager &manager) {
                                     WeightRegularizer::NONE, 1.0f, true);
   }
 
+  /// @todo: add dimension check, this is delayed because
+  /// any application might fail after this check
+  /// 1) (in_dim.height() - kernel_size[0] + 2 * padding[0]) % stride[0] == 0
+  /// 2) (in_dim.width() - kernel_size[1] + 2 * padding[1]) % stride[1] == 0
+  /// 3) calcGradient uses im2col with dilated kernel,
+  /// which should have the similar restriction
+  /// 4) we don't have same padding for now but later, same padding don't apply
+  /// when kernel size is even in current implementation (we need to handle
+  /// assymetric padding)
+
   // this output_dim should be the same with dimension of hidden
   out_dim.batch(in_dim.batch());
   out_dim.channel(filter_size);
@@ -94,10 +315,6 @@ int Conv2DLayer::initialize(Manager &manager) {
     (in_dim.height() - kernel_size[0] + 2 * padding[0]) / stride[0] + 1);
   out_dim.width((in_dim.width() - kernel_size[1] + 2 * padding[1]) / stride[1] +
                 1);
-
-#ifdef PROFILE
-  register_event();
-#endif
 
   return status;
 }
@@ -109,10 +326,6 @@ void Conv2DLayer::forwarding(bool training) {
     throw std::invalid_argument("Convolution layer only takes one input");
 
   Tensor &input_ = net_input[0]->getVariableRef();
-
-  TensorDim &in_dim = input_dim[0];
-  TensorDim &out_dim = output_dim[0];
-
   Tensor &hidden_ = net_hidden[0]->getVariableRef();
 
   Tensor &filter_kernel = weightAt(ConvParams::weight).getVariableRef();
@@ -154,6 +367,8 @@ void Conv2DLayer::forwarding(bool training) {
    *   -> [Channel ( = filter_size = output_dim.channel )]
    *       x [output_dim.height x output_dim.width]
    */
+  TensorDim &in_dim = input_dim[0];
+  TensorDim &out_dim = output_dim[0];
   TensorDim filter_dim = filter_kernel.getDim();
   TensorDim filter_dim_squeezed{filter_kernel.batch(),
                                 filter_kernel.getDim().getFeatureLen()};
@@ -169,132 +384,45 @@ void Conv2DLayer::forwarding(bool training) {
 
     Tensor in_sub = input_.getBatchSlice(b, 1);
 
-    START_PROFILE(im2col_key);
-    im2col(in_sub, filter_dim, padding, stride, true, im2col_result);
-    END_PROFILE(im2col_key);
+    im2col(in_sub, filter_dim, padding, stride, {1, 1}, true, im2col_result);
 
-    START_PROFILE(conv_gemm_profile_key);
     filter_kernel.dot(im2col_result, out, false, true);
-    END_PROFILE(conv_gemm_profile_key);
   }
 
   filter_kernel.reshape(filter_dim);
-  START_PROFILE(add_bias_key);
   status = hidden_.add_i(bias_kernel);
   if (status != ML_ERROR_NONE) {
     throw std::invalid_argument("[Conv2D] adding bias failed");
   }
-  END_PROFILE(add_bias_key);
 
   loss = weightAt(ConvParams::weight).getRegularizationLoss();
 }
 
 void Conv2DLayer::calcDerivative() {
-
-  TensorDim &in_dim = input_dim[0];
-
   Tensor &derivative = net_hidden[0]->getGradientRef();
+  Tensor &input_derivative = net_input[0]->getGradientRef();
   Tensor &filter_kernel = weightAt(ConvParams::weight).getVariableRef();
 
-  std::array<unsigned int, CONV2D_DIM> same_pad;
-  same_pad[0] = kernel_size[0] - 1;
-  same_pad[1] = kernel_size[1] - 1;
+  TensorDim filter_dim = filter_kernel.getDim();
+  TensorDim filter_dim_squeezed{filter_kernel.batch(),
+                                filter_kernel.getDim().getFeatureLen()};
 
-  /** Calculate return derivative
-   *
-   * This is the 2D Matrix Shape [ height ] x [ width ]
-   *   . Height : filter.channel = input_dim.channel
-   *   . Width  : filter_size * kernel_size[0] * kernel_size[1]
-   *
-   *                                kernel
-   *                             f0      fn-1          fn
-   *                            k..0     k..0         k..0
-   *                          +---|---|---|---|...|---|---+
-   *                          |---|---|---|---|...|---|---|
-   * [filter.channel(height)] |---|---|---|---|...|---|---|
-   *   (=input_dim.channel)   |---|---|---|---|...|---|---|
-   *                          +---|---|---|---|...|---|---+
-   *                                 [ filter_size
-   *                               * kernel_size[0]
-   *                            * kernel_size[1] (width) ]
-   *
-   *
-   * After im2Col with channel_mode true ( in : derivative with full padding )
-   *
-   * This is the 2D Matrix Shape [ height ] x [ width ]
-   *   . Height : filter_size * kernel_size[0] * kernel_size[1]
-   *   . Width  : (input_dim.height + padding[0]*2) x (input_dim.width +
-   * padding[1]*2)
-   *
-   *                      +-|-|-|-|      |-|-|-|-+
-   *                      | | | | |      | | | | |
-   *  [ filter_size       |_|_|_|_|      |_|_|_|_|
-   *  * kernel_size[0]    | | | | | .... | | | | |
-   *  * kernel_size[1]    |_|_|_|_|      |_|_|_|_|
-   *    (height) ]        | | | | |      | | | | |
-   *                      +_|_|_|_|      |_|_|_|_+
-   *                     [(input_dim.height() + padding[0] *2)
-   *                      * (input_dim.width() + padding[1] *2)]
-   *
-   * Output Dimension
-   *
-   *   -> [ input_dim.channel (height) ]
-   *       x [(input_dim.height() + padding[0]*2)
-   *           *(input_dim.width() + padding[1]*2) (width)]
-   */
-  using uint = unsigned int;
+  filter_kernel.reshape(filter_dim_squeezed);
 
-  uint kernel_total_size = kernel_size[0] * kernel_size[1];
+  Tensor col2im_result;
+  for (unsigned int b = 0; b < derivative.batch(); ++b) {
+    Tensor deriv_sub = derivative.getBatchSlice(b, 1);
+    Tensor in_deriv_sub = input_derivative.getBatchSlice(b, 1);
+    deriv_sub.reshape({filter_size, derivative.width() * derivative.height()});
 
-  Tensor imKernel(1, 1, in_dim.channel(), filter_size * kernel_total_size);
-  float *imKernel_raw = imKernel.getData();
-
-  for (uint channel_idx = 0; channel_idx < in_dim.channel(); ++channel_idx) {
-    /// each row contains all kernel element in particular channel.
-    uint row_size = kernel_total_size * filter_size;
-    for (uint filter_idx = 0; filter_idx < filter_size; ++filter_idx) {
-
-      /// starting index of each kernel in imKernel
-      float *start =
-        imKernel_raw + channel_idx * row_size + filter_idx * kernel_total_size;
-      /// starting index of each channel in filter
-      float *filter_start =
-        filter_kernel.getAddress(filter_idx, channel_idx, 0, 0);
-
-      std::reverse_copy(filter_start, filter_start + kernel_total_size, start);
-    }
+    filter_kernel.dot(deriv_sub, col2im_result, true, false);
+    col2im(col2im_result, filter_dim, padding, stride, {1, 1}, in_deriv_sub);
   }
 
-  TensorDim kdim(in_dim.channel(), filter_size, kernel_size[0], kernel_size[1]);
-
-  TensorDim ret_dim{in_dim.channel(), in_dim.height() + padding[0] * 2,
-                    in_dim.width() + padding[1] * 2};
-
-  TensorDim ret_dim_squeezed{
-    {ret_dim.channel(), ret_dim.height() * ret_dim.width()}};
-
-  /// @todo: optimize this as suggested in #825
-  /// we will need to have a zero cost image view by manipulating stride
-  Tensor ret = Tensor(ret_dim_squeezed);
-
-  Tensor im2col_result;
-
-  for (unsigned int b = 0; b < in_dim.batch(); ++b) {
-    Tensor inSub = derivative.getBatchSlice(b, 1);
-
-    im2col(inSub, kdim, same_pad, stride, true, im2col_result);
-
-    ret.reshape(ret_dim_squeezed);
-    imKernel.dot(im2col_result, ret, false, true);
-    ret.reshape(ret_dim);
-
-    strip_pad(ret, padding.data(), net_input[0]->getGradientRef(), b);
-  }
+  filter_kernel.reshape(filter_dim);
 }
 
 void Conv2DLayer::calcGradient() {
-  TensorDim &in_dim = input_dim[0];
-
   Tensor &derivative = net_hidden[0]->getGradientRef();
   Tensor &input_ = net_input[0]->getVariableRef();
 
@@ -336,26 +464,26 @@ void Conv2DLayer::calcGradient() {
    *   -> [ derivative->channel = filter_size (height) ]
    *       x [input_dim.channel * kernel_size[0] * kernel_size[1] (width) ]
    */
+  Tensor f = derivative;
+  f.reshape({derivative.batch(), 1, derivative.channel(),
+             derivative.height() * derivative.width()});
 
-  TensorDim kdim{
-    {derivative.channel(), derivative.height(), derivative.width()}};
+  Tensor o = delK;
+  o.reshape({delK.batch(), delK.channel() * delK.height() * delK.width()});
 
-  TensorDim out_dim{delK.getDim()};
-  TensorDim out_dim_squeezed{
-    {out_dim.batch(), out_dim.channel() * out_dim.height() * out_dim.width()}};
-
-  delK.reshape(out_dim_squeezed);
-
+  /// @todo: allocate im2col_result beforehand to save time
   Tensor im2col_result;
-  for (unsigned int b = 0; b < in_dim.batch(); ++b) {
+  for (unsigned int b = 0; b < input_.batch(); ++b) {
     Tensor in_sub = input_.getBatchSlice(b, 1);
-    Tensor deriv_sub = derivative.getBatchSlice(b, 1);
-    deriv_sub.reshape({kdim.channel(), kdim.height() * kdim.width()});
+    Tensor filter_sub = f.getBatchSlice(b, 1);
 
-    im2col(in_sub, derivative.getDim(), padding, stride, false, im2col_result);
-    deriv_sub.dot(im2col_result, delK, false, false, 1.0f);
+    im2col(in_sub, derivative.getDim(), padding, {1, 1}, stride, false,
+           im2col_result);
+
+    /// start from zero and accumulates to o
+    filter_sub.dot(im2col_result, o, false, false, b > 0 ? 1.0f : 0.0f);
   }
-  delK.reshape(out_dim);
+
   delBias = derivative.sum({0, 2, 3});
 }
 
@@ -447,127 +575,6 @@ void Conv2DLayer::setProperty(const PropertyType type,
   default:
     Layer::setProperty(type, value);
     break;
-  }
-}
-
-void Conv2DLayer::im2col(const Tensor &in, const TensorDim &kdim,
-                         const std::array<unsigned int, CONV2D_DIM> &padding,
-                         const std::array<unsigned int, CONV2D_DIM> &mstride,
-                         bool channel_mode, Tensor &out) {
-  /// @todo: add dimension validation here
-  const int pad_value = 0;
-  unsigned int ph = padding[0];
-  unsigned int pw = padding[1];
-
-  unsigned int channel = in.channel();
-  int in_height = in.height();
-  int in_width = in.width();
-  unsigned int height = in_height + ph * 2;
-  unsigned int width = in_width + pw * 2;
-  unsigned int k_height = kdim.height();
-  unsigned int k_width = kdim.width();
-  unsigned int out_height = (height - k_height) / mstride[0] + 1;
-  unsigned int out_width = (width - k_width) / mstride[1] + 1;
-  unsigned int kernel_feature_size = kdim.getFeatureLen();
-
-  /// shortcut 1: if kernel is 1x1
-  // Current setup requires this to be transposed for channel mode = true
-  // if (channel_mode && k_height * k_width == 1) {
-  //   out = in;
-  //   out.reshape({channel, height * width});
-  //   return;
-  // }
-
-  if (out.uninitialized()) {
-    if (channel_mode) {
-      out = Tensor(out_height * out_width, kernel_feature_size);
-    } else {
-      out = Tensor(k_height * k_width, in.channel() * out_height * out_width);
-    }
-
-    if (pad_value == 0) {
-      out.setZero();
-    } else {
-      /// not reaching here, just preparing for non-zero pad_value
-      out.setValue(pad_value);
-    }
-  }
-
-  float *out_data = out.getData();
-
-  if (channel_mode) {
-    int h_stride_end = height - k_height - ph;
-    int w_stride_end = width - k_width - pw;
-
-    /// get a patch, size of kernel
-    /// hs is height_strided, ws is width_strided
-    unsigned int owidth = out.width();
-    unsigned int base_im_w = 0;
-    for (int hs = -ph; hs <= h_stride_end; hs += mstride[0]) {
-      unsigned int base_im_h = 0;
-      int patch_height_end = k_height + hs;
-      /// map the patch to a single line looping through channel
-      for (unsigned int c = 0; c < channel; ++c) {
-        for (int h = hs; h < patch_height_end; ++h) {
-          if (h < 0 || in_height <= h) {
-            base_im_h += k_width;
-            continue;
-          }
-
-          unsigned int im_w = base_im_w;
-          for (int ws = -pw; ws <= w_stride_end; ws += mstride[1]) {
-            unsigned int im_h = base_im_h;
-            int patch_width_end = k_width + ws;
-
-            for (int w = ws; w < patch_width_end; ++w) {
-              if (w < 0 || in_width <= w) {
-                im_h++;
-                continue;
-              }
-              out_data[im_w * owidth + im_h] = in.getValue(0, c, h, w);
-              im_h++;
-            }
-            im_w++;
-          }
-          base_im_h += k_width;
-        }
-      }
-      base_im_w += out_width;
-    }
-  } else {
-    unsigned int im_w = 0;
-
-    if (k_height > height || k_width > width)
-      throw std::runtime_error("Kernel shape bigger than input shape");
-
-    for (unsigned int c = 0; c < channel; ++c) {
-      for (unsigned int hs = 0; hs <= height - k_height; hs += mstride[0]) {
-        for (unsigned int ws = 0; ws <= width - k_width; ws += mstride[1]) {
-          unsigned int im_h = 0;
-          unsigned int patch_height_end = k_height + hs;
-          unsigned int patch_width_end = k_width + ws;
-
-          for (unsigned int h = hs; h < patch_height_end; ++h) {
-            if (h < ph || in_height + ph <= h) {
-              im_h += k_width;
-              continue;
-            }
-
-            for (unsigned int w = ws; w < patch_width_end; ++w) {
-              if (w < pw || in_width + pw <= w) {
-                im_h++;
-                continue;
-              }
-
-              float val = in.getValue(0, c, h - ph, w - pw);
-              out.setValue(0, 0, im_h, im_w, val);
-              im_h++;
-            }
-          }
-          im_w++;
-        }
-      }
-    }
   }
 }
 
