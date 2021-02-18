@@ -1,31 +1,29 @@
 /* SPDX-License-Identifier: Apache-2.0 */
 /**
- * GStreamer Tensor_Filter, nntrainer Module
+ * NNStreamer Tensor_Filter, nntrainer Module
  * Copyright (C) 2020 Jijoong Moon <jijoong.moon@samsung.com>
  */
 /**
  * @file	tensor_filter_nntrainer.cc
  * @date	09 Sept 2020
  * @brief	nntrainer inference module for tensor_filter gstreamer plugin
- * @see		http://github.com/nnsuite/nnstreamer
+ * @see		http://github.com/nnstreamer/nnstreamer
  * @author	Jijoong Moon <jijoong.moon@samsung.com>
  * @bug		No known bugs except for NYI items
  *
- * This is the per-NN-framework plugin (tensorflow-lite) for tensor_filter.
+ * This is the per-NN-framework plugin (e.g) tensorflow-lite) for tensor_filter.
  * Fill in "GstTensorFilterFramework" for tensor_filter.h/c
  *
  */
 
 #include <algorithm>
 #include <limits>
-#include <map>
 #include <sstream>
 #include <unistd.h>
 
-#include <nnstreamer_plugin_api.h>
-#include <nnstreamer_plugin_api_filter.h>
-
 #include <neuralnet.h>
+
+#include "tensor_filter_nntrainer.hh"
 
 #ifdef ml_loge
 #undef ml_loge
@@ -44,48 +42,11 @@
 
 static const gchar *nntrainer_accl_support[] = {NULL};
 
-/**
- * @brief	Internal data structure for nntrainer
- */
-typedef struct {
-  int rank;
-  std::vector<std::int64_t> dims;
-} nntrainer_tensor_info_s;
-
-class NNTrainer {
-public:
-  /**
-   * member functions.
-   */
-  NNTrainer(const char *model_config_, const GstTensorFilterProperties *prop);
-  ~NNTrainer();
-
-  const char *getModelConfig();
-
-  int getInputTensorDim(GstTensorsInfo *info);
-  int getOutputTensorDim(GstTensorsInfo *info);
-  int run(const GstTensorMemory *input, GstTensorMemory *output);
-  void freeOutputTensor(void *data);
-
-private:
-  void loadModel();
-  void validateTensor(const GstTensorsInfo *tensorInfo, bool is_input);
-
-  char *model_config;
-  nntrainer::NeuralNetwork *model;
-
-  GstTensorsInfo inputTensorMeta;
-  GstTensorsInfo outputTensorMeta;
-
-  std::vector<nntrainer_tensor_info_s> input_tensor_info;
-  std::map<void *, std::shared_ptr<nntrainer::Tensor>> outputTensorMap;
-};
-
 void init_filter_nntrainer(void) __attribute__((constructor));
 void fini_filter_nntrainer(void) __attribute__((destructor));
 
-NNTrainer::NNTrainer(const char *model_config_,
-                     const GstTensorFilterProperties *prop) {
+NNTrainerInference::NNTrainerInference(const char *model_config_,
+                                       const GstTensorFilterProperties *prop) {
   gst_tensors_info_init(&inputTensorMeta);
   gst_tensors_info_init(&outputTensorMeta);
 
@@ -103,7 +64,7 @@ NNTrainer::NNTrainer(const char *model_config_,
   gst_tensors_info_copy(&outputTensorMeta, &prop->output_meta);
 }
 
-NNTrainer::~NNTrainer() {
+NNTrainerInference::~NNTrainerInference() {
   if (model != nullptr) {
     delete model;
   }
@@ -113,10 +74,10 @@ NNTrainer::~NNTrainer() {
   g_free(model_config);
 }
 
-const char *NNTrainer::getModelConfig() { return model_config; }
+const char *NNTrainerInference::getModelConfig() { return model_config; }
 
-void NNTrainer::validateTensor(const GstTensorsInfo *tensorInfo,
-                               bool is_input) {
+void NNTrainerInference::validateTensor(const GstTensorsInfo *tensorInfo,
+                                        bool is_input) {
 
   nntrainer::TensorDim dim;
   nntrainer_tensor_info_s info_s;
@@ -147,7 +108,7 @@ void NNTrainer::validateTensor(const GstTensorsInfo *tensorInfo,
     input_tensor_info.push_back(info_s);
 }
 
-void NNTrainer::loadModel() {
+void NNTrainerInference::loadModel() {
 #if (DBG)
   gint64 start_time = g_get_real_time();
 #endif
@@ -162,17 +123,18 @@ void NNTrainer::loadModel() {
 #endif
 }
 
-int NNTrainer::getInputTensorDim(GstTensorsInfo *info) {
+int NNTrainerInference::getInputTensorDim(GstTensorsInfo *info) {
   gst_tensors_info_copy(info, &inputTensorMeta);
   return 0;
 }
 
-int NNTrainer::getOutputTensorDim(GstTensorsInfo *info) {
+int NNTrainerInference::getOutputTensorDim(GstTensorsInfo *info) {
   gst_tensors_info_copy(info, &outputTensorMeta);
   return 0;
 }
 
-int NNTrainer::run(const GstTensorMemory *input, GstTensorMemory *output) {
+int NNTrainerInference::run(const GstTensorMemory *input,
+                            GstTensorMemory *output) {
 #if (DBG)
   gint64 start_time = g_get_real_time();
 #endif
@@ -211,7 +173,7 @@ int NNTrainer::run(const GstTensorMemory *input, GstTensorMemory *output) {
   return 0;
 }
 
-void NNTrainer::freeOutputTensor(void *data) {
+void NNTrainerInference::freeOutputTensor(void *data) {
   if (data != nullptr) {
     std::map<void *, std::shared_ptr<nntrainer::Tensor>>::iterator it =
       outputTensorMap.find(data);
@@ -223,7 +185,8 @@ void NNTrainer::freeOutputTensor(void *data) {
 
 static void nntrainer_close(const GstTensorFilterProperties *prop,
                             void **private_data) {
-  NNTrainer *nntrainer = static_cast<NNTrainer *>(*private_data);
+  NNTrainerInference *nntrainer =
+    static_cast<NNTrainerInference *>(*private_data);
 
   if (!nntrainer)
     return;
@@ -236,7 +199,8 @@ static int nntrainer_loadModelFile(const GstTensorFilterProperties *prop,
   if (prop->num_models != 1)
     return -1;
 
-  NNTrainer *nntrainer = static_cast<NNTrainer *>(*private_data);
+  NNTrainerInference *nntrainer =
+    static_cast<NNTrainerInference *>(*private_data);
   const gchar *model_file = prop->model_files[0];
   if (nntrainer != NULL) {
     if (g_strcmp0(model_file, nntrainer->getModelConfig()) == 0)
@@ -246,7 +210,7 @@ static int nntrainer_loadModelFile(const GstTensorFilterProperties *prop,
   }
 
   try {
-    nntrainer = new NNTrainer(model_file, prop);
+    nntrainer = new NNTrainerInference(model_file, prop);
   } catch (std::exception &e) {
     ml_loge("%s %s", typeid(e).name(), e.what());
     return -1;
@@ -268,7 +232,8 @@ static int nntrainer_open(const GstTensorFilterProperties *prop,
 static int nntrainer_run(const GstTensorFilterProperties *prop,
                          void **private_data, const GstTensorMemory *input,
                          GstTensorMemory *output) {
-  NNTrainer *nntrainer = static_cast<NNTrainer *>(*private_data);
+  NNTrainerInference *nntrainer =
+    static_cast<NNTrainerInference *>(*private_data);
   g_return_val_if_fail(nntrainer && input && output, -EINVAL);
 
   return nntrainer->run(input, output);
@@ -276,20 +241,23 @@ static int nntrainer_run(const GstTensorFilterProperties *prop,
 
 static int nntrainer_getInputDim(const GstTensorFilterProperties *prop,
                                  void **private_data, GstTensorsInfo *info) {
-  NNTrainer *nntrainer = static_cast<NNTrainer *>(*private_data);
+  NNTrainerInference *nntrainer =
+    static_cast<NNTrainerInference *>(*private_data);
   g_return_val_if_fail(nntrainer && info, -EINVAL);
   return nntrainer->getInputTensorDim(info);
 }
 
 static int nntrainer_getOutputDim(const GstTensorFilterProperties *prop,
                                   void **private_data, GstTensorsInfo *info) {
-  NNTrainer *nntrainer = static_cast<NNTrainer *>(*private_data);
+  NNTrainerInference *nntrainer =
+    static_cast<NNTrainerInference *>(*private_data);
   g_return_val_if_fail(nntrainer && info, -EINVAL);
   return nntrainer->getOutputTensorDim(info);
 }
 
 static void nntrainer_destroyNotify(void **private_data, void *data) {
-  NNTrainer *nntrainer = static_cast<NNTrainer *>(*private_data);
+  NNTrainerInference *nntrainer =
+    static_cast<NNTrainerInference *>(*private_data);
   if (nntrainer) {
     nntrainer->freeOutputTensor(data);
   }
