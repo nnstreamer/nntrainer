@@ -22,7 +22,7 @@ filter_subplugin_install_dir = subplugin_install_prefix / 'filters'
 shared_library('nnstreamer_filter_nntrainer',
   nnstreamer_filter_nntrainer_sources,
   dependencies: nnstreamer_filter_nntrainer_deps,
-  include_directories: nntrainer_inc,
+  include_directories: [nntrainer_inc, '.'], # '.' shouldn't be installed
   install: true,
   install_dir: filter_subplugin_install_dir
 )
@@ -30,7 +30,7 @@ shared_library('nnstreamer_filter_nntrainer',
 static_library('nnstreamer_filter_nntrainer',
   nnstreamer_filter_nntrainer_sources,
   dependencies: nnstreamer_filter_nntrainer_deps,
-  include_directories: nntrainer_inc,
+  include_directories: [nntrainer_inc, '.'], # '.' shouldn't be installed
   install: true,
   install_dir: nnstreamer_libdir
 )
