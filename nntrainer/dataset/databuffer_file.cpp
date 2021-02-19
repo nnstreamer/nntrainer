@@ -318,6 +318,8 @@ int DataBufferFromDataFile::setDataFile(DataType type, std::string path) {
     return ML_ERROR_INVALID_PARAMETER;
     break;
   }
+  ml_logd("datafile has set. type: %d, path: %s", type, path.c_str());
+
   return status;
 }
 
@@ -364,6 +366,7 @@ int DataBufferFromDataFile::setFeatureSize(TensorDim tdim) {
   } else {
     max_test = 0;
   }
+
   return status;
 }
 
