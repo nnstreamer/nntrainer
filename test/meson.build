@@ -1,3 +1,6 @@
+nntrainer_test_resdir = nntrainer_resdir / 'test'
+run_command('mkdir', '-p', nntrainer_test_resdir)
+
 nntrainer_test_inc = include_directories('./include')
 
 nntrainer_test_deps = [
@@ -29,5 +32,8 @@ if get_option('enable-ccapi')
 endif
 
 if get_option('enable-nnstreamer-tensor-filter')
-  install_subdir('test_models', install_dir: application_install_dir)
+  run_command('cp', '-lr',
+    meson.current_source_dir() / 'test_models/',
+    nntrainer_test_resdir
+  )
 endif

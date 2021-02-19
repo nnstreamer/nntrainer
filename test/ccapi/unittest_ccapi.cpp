@@ -20,6 +20,10 @@
 #include <nntrainer_test_util.h>
 #include <optimizer.h>
 
+static const std::string getTestResPath(const std::string &file) {
+  return getResPath(file, {"test"});
+}
+
 /**
  * @brief Neural Network Model Construct Test
  */
@@ -204,10 +208,12 @@ TEST(nntrainer_ccapi, train_dataset_with_file_01_p) {
        "beta1=0.002", "beta2=0.001", "epsilon=1e-7"}));
   EXPECT_NO_THROW(model->setOptimizer(optimizer));
 
-  EXPECT_NO_THROW(
-    dataset = ml::train::createDataset(
-      ml::train::DatasetType::FILE, "trainingSet.dat", "valSet.dat", nullptr));
-  EXPECT_EQ(dataset->setProperty({"label_data=label.dat", "buffer_size=100"}),
+  EXPECT_NO_THROW(dataset = ml::train::createDataset(
+                    ml::train::DatasetType::FILE,
+                    getTestResPath("trainingSet.dat").c_str(),
+                    getTestResPath("valSet.dat").c_str(), nullptr));
+  EXPECT_EQ(dataset->setProperty(
+              {"label_data=" + getTestResPath("label.dat"), "buffer_size=100"}),
             ML_ERROR_NONE);
   EXPECT_EQ(model->setDataset(dataset), ML_ERROR_NONE);
 
@@ -276,6 +282,7 @@ TEST(nntrainer_ccapi, train_dataset_with_generator_01_p) {
  * @brief Main gtest
  */
 int main(int argc, char **argv) {
+  nntrainer::AppContext::Global().setWorkingDirectory(getTestResPath(""));
   int result = -1;
 
   try {

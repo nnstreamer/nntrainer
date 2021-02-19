@@ -124,7 +124,7 @@ int getBatch_train(float **outVec, float **outLabel, bool *last,
   unsigned int data_size = 0;
   *last = true;
 
-  std::string filename = "trainingSet.dat";
+  std::string filename = getResPath("trainingSet.dat", {"test"});
   std::ifstream F(filename, std::ios::in | std::ios::binary);
 
   if (F.good()) {
@@ -209,7 +209,7 @@ int getBatch_val(float **outVec, float **outLabel, bool *last,
   unsigned int data_size = 0;
   *last = true;
 
-  std::string filename = "trainingSet.dat";
+  std::string filename = getResPath("trainingSet.dat", {"test"});
   std::ifstream F(filename, std::ios::in | std::ios::binary);
 
   if (F.good()) {
@@ -364,4 +364,26 @@ void IniTestWrapper::updateSections(const Sections &sections_) {
   for (auto &section : sections_) {
     updateSection(section);
   }
+}
+
+const std::string
+getResPath(const std::string &filename,
+           const std::initializer_list<const char *> fallback_base) {
+  static const char *prefix = std::getenv("NNTRAINER_RESOURCE_PATH");
+  static const char *fallback_prefix = "./res";
+
+  std::stringstream ss;
+  if (prefix != nullptr) {
+    ss << prefix << '/' << filename;
+    return ss.str();
+  }
+
+  ss << fallback_prefix;
+  for (auto &folder : fallback_base) {
+    ss << '/' << folder;
+  }
+
+  ss << '/' << filename;
+
+  return ss.str();
 }
