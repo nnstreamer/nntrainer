@@ -33,14 +33,13 @@ class nntrainerIniTest
       std::tuple<const char *, const IniTestWrapper::Sections, int>> {
 
 public:
-  static void save_ini(const char *filename, std::vector<IniSection> sections,
-                       std::ios_base::openmode mode = std::ios_base::out) {
-    IniTestWrapper::save_ini(filename, sections, mode);
-  }
-
   static void SetUpTestCase() {
     nntrainer::AppContext::Global().setWorkingDirectory(
       getResPath("", {"test"}));
+  }
+
+  static void TearDownTestCase() {
+    nntrainer::AppContext::Global().setWorkingDirectory(".");
   }
 
 protected:
@@ -350,82 +349,64 @@ INSTANTIATE_TEST_CASE_P(
  * @brief Ini file unittest with backbone with wrong file
  */
 TEST(nntrainerIniTest, backbone_n_01) {
-  const char *ini_name = "backbone_n1.ini";
-  nntrainerIniTest::save_ini(ini_name, {nw_base, backbone_random});
+  ScopedIni s{"backbone_n1", {nw_base, backbone_random}};
   nntrainer::NeuralNetwork NN;
 
-  EXPECT_EQ(NN.loadFromConfig(ini_name), ML_ERROR_INVALID_PARAMETER);
+  EXPECT_EQ(NN.loadFromConfig(s.getIniName()), ML_ERROR_INVALID_PARAMETER);
 }
 
 /**
  * @brief Ini file unittest with backbone with empty backbone
  */
 TEST(nntrainerIniTest, backbone_n_02) {
-  const char *ini_name = "backbone_n2.ini";
-  nntrainerIniTest::save_ini("base.ini", {nw_base});
-  nntrainerIniTest::save_ini(ini_name, {nw_base, backbone_valid});
+  ScopedIni b{"base", {nw_base}};
+  ScopedIni s{"backbone_n2", {nw_base, backbone_valid}};
   nntrainer::NeuralNetwork NN;
 
-  EXPECT_EQ(NN.loadFromConfig(ini_name), ML_ERROR_INVALID_PARAMETER);
+  EXPECT_EQ(NN.loadFromConfig(s.getIniName()), ML_ERROR_INVALID_PARAMETER);
 }
 
 /**
  * @brief Ini file unittest with backbone with normal backbone
  */
 TEST(nntrainerIniTest, backbone_p_03) {
-  const char *ini_name = "backbone_p3.ini";
-  nntrainerIniTest::save_ini("base.ini", {nw_base, batch_normal});
-  nntrainerIniTest::save_ini(ini_name, {nw_base, backbone_valid});
+  ScopedIni b{"base", {nw_base, batch_normal}};
+  ScopedIni s{"backbone_p3", {nw_base, backbone_valid}};
   nntrainer::NeuralNetwork NN;
 
-  EXPECT_EQ(NN.loadFromConfig(ini_name), ML_ERROR_NONE);
+  EXPECT_EQ(NN.loadFromConfig(s.getIniName()), ML_ERROR_NONE);
 }
 
 /**
  * @brief Ini file unittest with backbone without model parameters
  */
 TEST(nntrainerIniTest, backbone_p_04) {
-  const char *ini_name = "backbone_p4.ini";
-  nntrainerIniTest::save_ini("base.ini", {flatten, conv2d});
-  nntrainerIniTest::save_ini(ini_name, {nw_base, backbone_valid});
+  ScopedIni b{"base", {flatten, conv2d}};
+  ScopedIni s{"backbone_p4", {nw_base, backbone_valid}};
   nntrainer::NeuralNetwork NN;
 
-  EXPECT_EQ(NN.loadFromConfig(ini_name), ML_ERROR_NONE);
+  EXPECT_EQ(NN.loadFromConfig(s.getIniName()), ML_ERROR_NONE);
 }
 
 /**
  * @brief Ini file unittest matching model with and without backbone
  */
 TEST(nntrainerIniTest, backbone_p_05) {
-  const char *bb_use_ini_name = "backbone_made.ini";
-  const char *direct_ini_name = "direct_made.ini";
 
   /** Create a backbone.ini */
-  nntrainerIniTest::save_ini("base.ini", {nw_adam, conv2d});
+  ScopedIni b("base", {nw_adam, conv2d});
 
   /** Create a model of 4 conv layers using backbone */
-  std::string backbone_valid_orig_name = backbone_valid.getName();
-
-  nntrainerIniTest::save_ini(
-    bb_use_ini_name,
-    {nw_sgd, input2d, backbone_valid + "input_layers=inputlayer"});
-  backbone_valid.rename("block2");
-  nntrainerIniTest::save_ini(bb_use_ini_name,
-                             {backbone_valid + "input_layers=block1"},
-                             std::ios_base::app);
-  backbone_valid.rename("block3");
-  nntrainerIniTest::save_ini(bb_use_ini_name,
-                             {backbone_valid + "input_layers=block2"},
-                             std::ios_base::app);
-  backbone_valid.rename("block4");
-  nntrainerIniTest::save_ini(bb_use_ini_name,
-                             {backbone_valid + "input_layers=block3"},
-                             std::ios_base::app);
-
-  backbone_valid.rename(backbone_valid_orig_name);
+  ScopedIni backbone_made(
+    "backbone_made",
+    {nw_sgd, input2d, I("block1") + backbone_valid + "input_layers=inputlayer",
+     I("block2") + backbone_valid + "input_layers=block1",
+     I("block3") + backbone_valid + "input_layers=block2",
+     I("block4") + backbone_valid + "input_layers=block3"});
 
   nntrainer::NeuralNetwork NN_backbone;
-  EXPECT_EQ(NN_backbone.loadFromConfig(bb_use_ini_name), ML_ERROR_NONE);
+  EXPECT_EQ(NN_backbone.loadFromConfig(backbone_made.getIniName()),
+            ML_ERROR_NONE);
   EXPECT_EQ(NN_backbone.compile(), ML_ERROR_NONE);
   EXPECT_EQ(NN_backbone.initialize(), ML_ERROR_NONE);
 
@@ -436,32 +417,18 @@ TEST(nntrainerIniTest, backbone_p_05) {
   EXPECT_EQ(NN_backbone.getLearningRate(), 1);
 
   /** Create the same model directly without using backbone */
-  std::string conv2d_orig_name = conv2d.getName();
-
-  nntrainerIniTest::save_ini(direct_ini_name, {nw_sgd, input2d});
-  conv2d.rename("block1conv2d");
-  nntrainerIniTest::save_ini(
-    direct_ini_name, {conv2d + "input_layers=inputlayer"}, std::ios_base::app);
-  conv2d.rename("block2conv2d");
-  nntrainerIniTest::save_ini(direct_ini_name,
-                             {conv2d + "input_layers=block1conv2d"},
-                             std::ios_base::app);
-  conv2d.rename("block3conv2d");
-  nntrainerIniTest::save_ini(direct_ini_name,
-                             {conv2d + "input_layers=block2conv2d"},
-                             std::ios_base::app);
-  conv2d.rename("block4conv2d");
-  nntrainerIniTest::save_ini(direct_ini_name,
-                             {conv2d + "input_layers=block3conv2d"},
-                             std::ios_base::app);
-
-  conv2d.rename(conv2d_orig_name);
+  // std::string conv2d_orig_name = conv2d.getName();
+  ScopedIni direct_made(
+    "direct_made",
+    {nw_sgd, input2d, I("block1conv2d") + conv2d + "input_layers=inputlayer",
+     I("block2conv2d") + conv2d + "input_layers=block1conv2d",
+     I("block3conv2d") + conv2d + "input_layers=block2conv2d",
+     I("block4conv2d") + conv2d + "input_layers=block3conv2d"});
 
   nntrainer::NeuralNetwork NN_direct;
-  EXPECT_EQ(NN_direct.loadFromConfig(direct_ini_name), ML_ERROR_NONE);
+  EXPECT_EQ(NN_direct.loadFromConfig(direct_made.getIniName()), ML_ERROR_NONE);
   EXPECT_EQ(NN_direct.compile(), ML_ERROR_NONE);
   EXPECT_EQ(NN_direct.initialize(), ML_ERROR_NONE);
-
   /** Summary of both the models must match precisely */
   NN_backbone.printPreset(std::cout, ML_TRAIN_SUMMARY_MODEL);
   NN_direct.printPreset(std::cout, ML_TRAIN_SUMMARY_MODEL);
@@ -489,12 +456,11 @@ TEST(nntrainerIniTest, backbone_p_05) {
  * @brief Ini file unittest matching model with and without trainable
  */
 TEST(nntrainerIniTest, backbone_p_06) {
-  const char *ini_name = "backbone_p6.ini";
-  nntrainerIniTest::save_ini("base.ini", {flatten, conv2d});
-  nntrainerIniTest::save_ini(ini_name, {nw_base, backbone_valid});
+  ScopedIni b("base", {flatten, conv2d});
+  ScopedIni s("backbone_p6", {nw_base, backbone_valid});
   nntrainer::NeuralNetwork NN;
 
-  EXPECT_EQ(NN.loadFromConfig(ini_name), ML_ERROR_NONE);
+  EXPECT_EQ(NN.loadFromConfig(s.getIniName()), ML_ERROR_NONE);
 
   /** default trainable is false */
   auto graph = NN.getFlatGraph();
@@ -506,13 +472,11 @@ TEST(nntrainerIniTest, backbone_p_06) {
  * @brief Ini file unittest matching model with and without trainable
  */
 TEST(nntrainerIniTest, backbone_p_07) {
-  const char *ini_name = "backbone_p7.ini";
-  nntrainerIniTest::save_ini("base.ini", {conv2d});
-  nntrainerIniTest::save_ini(ini_name,
-                             {nw_base, backbone_notrain, backbone_train});
+  ScopedIni b("base", {conv2d});
+  ScopedIni s("backbone_p7", {nw_base, backbone_notrain, backbone_train});
   nntrainer::NeuralNetwork NN;
 
-  EXPECT_EQ(NN.loadFromConfig(ini_name), ML_ERROR_NONE);
+  EXPECT_EQ(NN.loadFromConfig(s.getIniName()), ML_ERROR_NONE);
 
   /** trainable is set to false */
   auto graph = NN.getFlatGraph();
@@ -524,16 +488,16 @@ TEST(nntrainerIniTest, backbone_p_07) {
  * @brief Ini file unittest with backbone with normal backbone
  */
 TEST(nntrainerIniTest, backbone_n_08) {
-  const char *ini_name = "backbone_n8.ini";
-  nntrainerIniTest::save_ini(ini_name, {nw_base, backbone_random_external});
+  ScopedIni s("backbone_n8", {nw_base, backbone_random_external});
+
   nntrainer::NeuralNetwork NN;
 
 #if defined(ENABLE_NNSTREAMER_BACKBONE) || defined(ENABLE_TFLITE_BACKBONE)
-  EXPECT_EQ(NN.loadFromConfig(ini_name), ML_ERROR_NONE);
+  EXPECT_EQ(NN.loadFromConfig(s.getIniName()), ML_ERROR_NONE);
   EXPECT_THROW(NN.compile(), std::invalid_argument);
   EXPECT_EQ(NN.initialize(), ML_ERROR_NOT_SUPPORTED);
 #else
-  EXPECT_EQ(NN.loadFromConfig(ini_name), ML_ERROR_NOT_SUPPORTED);
+  EXPECT_EQ(NN.loadFromConfig(s.getIniName()), ML_ERROR_NOT_SUPPORTED);
 #endif
 }
 
@@ -541,17 +505,16 @@ TEST(nntrainerIniTest, backbone_n_08) {
  * @brief Ini file unittest with backbone with normal backbone
  */
 TEST(nntrainerIniTest, backbone_p_09) {
-  const char *ini_name = "backbone_p9.ini";
-  nntrainerIniTest::save_ini(
-    ini_name, {nw_base_mse + "-batch_size", backbone_valid_external});
+  ScopedIni s("backbone_p9",
+              {nw_base_mse + "-batch_size", backbone_valid_external});
   nntrainer::NeuralNetwork NN;
 
 #if defined(ENABLE_NNSTREAMER_BACKBONE) || defined(ENABLE_TFLITE_BACKBONE)
-  EXPECT_EQ(NN.loadFromConfig(ini_name), ML_ERROR_NONE);
+  EXPECT_EQ(NN.loadFromConfig(s.getIniName()), ML_ERROR_NONE);
   EXPECT_EQ(NN.compile(), ML_ERROR_NONE);
   EXPECT_EQ(NN.initialize(), ML_ERROR_NONE);
 #else
-  EXPECT_EQ(NN.loadFromConfig(ini_name), ML_ERROR_NOT_SUPPORTED);
+  EXPECT_EQ(NN.loadFromConfig(s.getIniName()), ML_ERROR_NOT_SUPPORTED);
 #endif
 }
 
@@ -560,17 +523,15 @@ TEST(nntrainerIniTest, backbone_p_09) {
  */
 // Enable after sepearet memory assign and initialization of graph
 TEST(nntrainerIniTest, backbone_p_10) {
-  const char *ini_name = "backbone_p10.ini";
-  nntrainerIniTest::save_ini(ini_name,
-                             {nw_base_mse, backbone_valid_external_no_shape});
+  ScopedIni s("backbone_p10", {nw_base_mse, backbone_valid_external_no_shape});
   nntrainer::NeuralNetwork NN;
 
 #if defined(ENABLE_NNSTREAMER_BACKBONE) || defined(ENABLE_TFLITE_BACKBONE)
-  EXPECT_EQ(NN.loadFromConfig(ini_name), ML_ERROR_NONE);
+  EXPECT_EQ(NN.loadFromConfig(s.getIniName()), ML_ERROR_NONE);
   EXPECT_THROW(NN.compile(), std::invalid_argument);
   EXPECT_EQ(NN.initialize(), ML_ERROR_NOT_SUPPORTED);
 #else
-  EXPECT_EQ(NN.loadFromConfig(ini_name), ML_ERROR_NOT_SUPPORTED);
+  EXPECT_EQ(NN.loadFromConfig(s.getIniName()), ML_ERROR_NOT_SUPPORTED);
 #endif
 }
 
@@ -580,23 +541,26 @@ TEST(nntrainerIniTest, backbone_p_10) {
  * layers
  */
 TEST(nntrainerIniTest, backbone_p_11) {
-  const char *ini_name_scaled_half = "backbone_p11_scaled_half.ini";
-  const char *ini_name_full = "backbone_p11_full.ini";
-  nntrainerIniTest::save_ini(
-    "base.ini", {conv2d, batch_normal + "input_layers=conv2d", conv2d});
-  nntrainerIniTest::save_ini(
-    ini_name_scaled_half,
+
+  ScopedIni base("base",
+                 {conv2d, batch_normal + "input_layers=conv2d", conv2d});
+
+  ScopedIni ini_scaled_half(
+    "backbone_p11_scaled_half",
     {nw_base_mse, input2d, backbone_scaled + "input_layers=inputlayer"});
-  nntrainerIniTest::save_ini(
-    ini_name_full,
+
+  ScopedIni ini_full(
+    "backbone_p11_full",
     {nw_base_mse, input2d, backbone_valid + "input_layers=inputlayer"});
+
   nntrainer::NeuralNetwork NN_scaled_half, NN_full;
 
-  EXPECT_EQ(NN_full.loadFromConfig(ini_name_full), ML_ERROR_NONE);
+  EXPECT_EQ(NN_full.loadFromConfig(ini_full.getIniName()), ML_ERROR_NONE);
   EXPECT_EQ(NN_full.compile(), ML_ERROR_NONE);
   EXPECT_EQ(NN_full.initialize(), ML_ERROR_NONE);
 
-  EXPECT_EQ(NN_scaled_half.loadFromConfig(ini_name_scaled_half), ML_ERROR_NONE);
+  EXPECT_EQ(NN_scaled_half.loadFromConfig(ini_scaled_half.getIniName()),
+            ML_ERROR_NONE);
   EXPECT_EQ(NN_scaled_half.compile(), ML_ERROR_NONE);
   EXPECT_EQ(NN_scaled_half.initialize(), ML_ERROR_NONE);
 
@@ -613,23 +577,22 @@ TEST(nntrainerIniTest, backbone_p_11) {
  * layers
  */
 TEST(nntrainerIniTest, backbone_p_12) {
-  const char *ini_name_scaled_half = "backbone_p12_scaled_half.ini";
-  const char *ini_name_full = "backbone_p12_full.ini";
-  nntrainerIniTest::save_ini("base.ini",
-                             {out, batch_normal + "input_layers=fclayer"});
-  nntrainerIniTest::save_ini(
-    ini_name_scaled_half,
-    {nw_base_mse, input, backbone_scaled + "input_layers=inputlayer"});
-  nntrainerIniTest::save_ini(
-    ini_name_full,
+  ScopedIni b("base", {out, batch_normal + "input_layers=fclayer"});
+  ScopedIni scaled_half(
+    "backbone_p12_scaled_half",
+    {{nw_base_mse, input, backbone_scaled + "input_layers=inputlayer"}});
+  ScopedIni scaled_full(
+    "backbone_p12_scaled_full",
     {nw_base_mse, input, backbone_valid + "input_layers=inputlayer"});
+
   nntrainer::NeuralNetwork NN_scaled_half, NN_full;
 
-  EXPECT_EQ(NN_full.loadFromConfig(ini_name_full), ML_ERROR_NONE);
+  EXPECT_EQ(NN_full.loadFromConfig(scaled_full.getIniName()), ML_ERROR_NONE);
   EXPECT_EQ(NN_full.compile(), ML_ERROR_NONE);
   EXPECT_EQ(NN_full.initialize(), ML_ERROR_NONE);
 
-  EXPECT_EQ(NN_scaled_half.loadFromConfig(ini_name_scaled_half), ML_ERROR_NONE);
+  EXPECT_EQ(NN_scaled_half.loadFromConfig(scaled_half.getIniName()),
+            ML_ERROR_NONE);
   EXPECT_EQ(NN_scaled_half.compile(), ML_ERROR_NONE);
   EXPECT_EQ(NN_scaled_half.initialize(), ML_ERROR_NONE);
 
@@ -645,24 +608,26 @@ TEST(nntrainerIniTest, backbone_p_12) {
  * @note Input shape from layers of backbone are striped off
  */
 TEST(nntrainerIniTest, backbone_p_13) {
-  const char *ini_name_scaled_half = "backbone_p13_scaled_half.ini";
-  const char *ini_name_full = "backbone_p13_full.ini";
-  nntrainerIniTest::save_ini(
-    "base.ini", {conv2d_shape, batch_normal + "input_layers=conv2d_shape",
-                 conv2d + "input_layers=bn"});
-  nntrainerIniTest::save_ini(
-    ini_name_scaled_half,
+  ScopedIni base("base",
+                 {conv2d_shape, batch_normal + "input_layers=conv2d_shape",
+                  conv2d + "input_layers=bn"});
+
+  ScopedIni scaled_half(
+    "backbone_p13_scaled_half",
     {nw_base_mse, input2d, backbone_scaled + "input_layers=inputlayer"});
-  nntrainerIniTest::save_ini(
-    ini_name_full,
+
+  ScopedIni scaled_full(
+    "backbone_p13_full",
     {nw_base_mse, input2d, backbone_valid + "input_layers=inputlayer"});
+
   nntrainer::NeuralNetwork NN_scaled_half, NN_full;
 
-  EXPECT_EQ(NN_full.loadFromConfig(ini_name_full), ML_ERROR_NONE);
+  EXPECT_EQ(NN_full.loadFromConfig(scaled_full.getIniName()), ML_ERROR_NONE);
   EXPECT_EQ(NN_full.compile(), ML_ERROR_NONE);
   EXPECT_EQ(NN_full.initialize(), ML_ERROR_NONE);
 
-  EXPECT_EQ(NN_scaled_half.loadFromConfig(ini_name_scaled_half), ML_ERROR_NONE);
+  EXPECT_EQ(NN_scaled_half.loadFromConfig(scaled_half.getIniName()),
+            ML_ERROR_NONE);
   EXPECT_EQ(NN_scaled_half.compile(), ML_ERROR_NONE);
   EXPECT_EQ(NN_scaled_half.initialize(), ML_ERROR_NONE);
 
@@ -678,23 +643,24 @@ TEST(nntrainerIniTest, backbone_p_13) {
  * @note Scaled size is at least 1
  */
 TEST(nntrainerIniTest, backbone_p_14) {
-  const char *ini_name_scaled_zero = "backbone_p14_scaled_zero.ini";
-  const char *ini_name_full = "backbone_p14_full.ini";
-  nntrainerIniTest::save_ini(
-    "base.ini", {conv2d_shape, conv2d + "input_layers=conv2d_shape"});
-  nntrainerIniTest::save_ini(
-    ini_name_scaled_zero,
+  ScopedIni base("base", {conv2d_shape, conv2d + "input_layers=conv2d_shape"});
+
+  ScopedIni scaled_zero(
+    "backbone_p14_scaled_zero",
     {nw_base_mse, input2d, backbone_scaled_zero + "input_layers=inputlayer"});
-  nntrainerIniTest::save_ini(
-    ini_name_full,
+
+  ScopedIni scaled_full(
+    "backbone_p14_full",
     {nw_base_mse, input2d, backbone_valid + "input_layers=inputlayer"});
+
   nntrainer::NeuralNetwork NN_scaled_zero, NN_full;
 
-  EXPECT_EQ(NN_full.loadFromConfig(ini_name_full), ML_ERROR_NONE);
+  EXPECT_EQ(NN_full.loadFromConfig(scaled_full.getIniName()), ML_ERROR_NONE);
   EXPECT_EQ(NN_full.compile(), ML_ERROR_NONE);
   EXPECT_EQ(NN_full.initialize(), ML_ERROR_NONE);
 
-  EXPECT_EQ(NN_scaled_zero.loadFromConfig(ini_name_scaled_zero), ML_ERROR_NONE);
+  EXPECT_EQ(NN_scaled_zero.loadFromConfig(scaled_zero.getIniName()),
+            ML_ERROR_NONE);
   EXPECT_EQ(NN_scaled_zero.compile(), ML_ERROR_NONE);
   EXPECT_EQ(NN_scaled_zero.initialize(), ML_ERROR_NONE);
 
@@ -708,21 +674,18 @@ TEST(nntrainerIniTest, backbone_p_14) {
  * @note Input shape is provided in model file
  */
 TEST(nntrainerIniTest, backbone_n_15) {
-  const char *ini_name_scaled = "backbone_n15_scaled.ini";
-  const char *ini_name_full = "backbone_n15_full.ini";
+  ScopedIni base("base", {conv2d, conv2d});
+
+  ScopedIni full("backbone_n15_scaled", {nw_base_mse, backbone_valid});
+
   nntrainer::NeuralNetwork NN_scaled, NN_full;
-
-  nntrainerIniTest::save_ini("base.ini", {conv2d, conv2d});
-
-  nntrainerIniTest::save_ini(ini_name_full, {nw_base_mse, backbone_valid});
-
-  EXPECT_EQ(NN_full.loadFromConfig(ini_name_full), ML_ERROR_NONE);
+  EXPECT_EQ(NN_full.loadFromConfig(full.getIniName()), ML_ERROR_NONE);
   EXPECT_THROW(NN_full.compile(), std::invalid_argument);
   EXPECT_EQ(NN_full.initialize(), ML_ERROR_NOT_SUPPORTED);
 
-  nntrainerIniTest::save_ini(ini_name_scaled, {nw_base_mse, backbone_scaled});
+  ScopedIni scaled("backbone_n15_scaled", {nw_base_mse, backbone_scaled});
 
-  EXPECT_EQ(NN_scaled.loadFromConfig(ini_name_scaled), ML_ERROR_NONE);
+  EXPECT_EQ(NN_scaled.loadFromConfig(scaled.getIniName()), ML_ERROR_NONE);
   EXPECT_THROW(NN_scaled.compile(), std::invalid_argument);
   EXPECT_EQ(NN_scaled.initialize(), ML_ERROR_NOT_SUPPORTED);
 }
@@ -732,22 +695,19 @@ TEST(nntrainerIniTest, backbone_n_15) {
  * @note Input shape is striped from backbone and not provided in model file
  */
 TEST(nntrainerIniTest, backbone_n_16) {
-  const char *ini_name_scaled = "backbone_n16_scaled.ini";
-  const char *ini_name_full = "backbone_n16_full.ini";
   nntrainer::NeuralNetwork NN_scaled, NN_full;
 
-  nntrainerIniTest::save_ini(
-    "base.ini", {conv2d_shape, conv2d + "input_layers=conv2d_shape"});
+  ScopedIni base("base", {conv2d_shape, conv2d + "input_layers=conv2d_shape"});
 
-  nntrainerIniTest::save_ini(ini_name_full, {nw_base_mse, backbone_valid});
+  ScopedIni full("backbone_n16_full", {nw_base_mse, backbone_valid});
 
-  EXPECT_EQ(NN_full.loadFromConfig(ini_name_full), ML_ERROR_NONE);
+  EXPECT_EQ(NN_full.loadFromConfig(full.getIniName()), ML_ERROR_NONE);
   EXPECT_THROW(NN_full.compile(), std::invalid_argument);
   EXPECT_EQ(NN_full.initialize(), ML_ERROR_NOT_SUPPORTED);
 
-  nntrainerIniTest::save_ini(ini_name_scaled, {nw_base_mse, backbone_scaled});
+  ScopedIni scaled("backbone_n16_full", {nw_base_mse, backbone_scaled});
 
-  EXPECT_EQ(NN_scaled.loadFromConfig(ini_name_scaled), ML_ERROR_NONE);
+  EXPECT_EQ(NN_scaled.loadFromConfig(scaled.getIniName()), ML_ERROR_NONE);
   EXPECT_THROW(NN_scaled.compile(), std::invalid_argument);
   EXPECT_EQ(NN_scaled.initialize(), ML_ERROR_NOT_SUPPORTED);
 }
@@ -756,26 +716,23 @@ TEST(nntrainerIniTest, backbone_n_16) {
  * @note Input shape is striped from backbone and not provided in model file
  */
 TEST(nntrainerIniTest, backbone_p_17) {
-  const char *ini_name_scaled = "backbone_p17_scaled.ini";
-  const char *ini_name_full = "backbone_p17_full.ini";
   nntrainer::NeuralNetwork NN_scaled, NN_full;
 
-  nntrainerIniTest::save_ini(
-    "base.ini", {conv2d_shape, conv2d + "input_layers=conv2d_shape"});
+  ScopedIni base("base", {conv2d_shape, conv2d + "input_layers=conv2d_shape"});
 
-  nntrainerIniTest::save_ini(
-    ini_name_full,
+  ScopedIni full(
+    "backbone_p17_full",
     {nw_base_mse, input2d, backbone_valid + "input_layers=inputlayer"});
 
-  EXPECT_EQ(NN_full.loadFromConfig(ini_name_full), ML_ERROR_NONE);
+  EXPECT_EQ(NN_full.loadFromConfig(full.getIniName()), ML_ERROR_NONE);
   EXPECT_EQ(NN_full.compile(), ML_ERROR_NONE);
   EXPECT_EQ(NN_full.initialize(), ML_ERROR_NONE);
 
-  nntrainerIniTest::save_ini(
-    ini_name_scaled,
+  ScopedIni scaled(
+    "backbone_p17_scaled",
     {nw_base_mse, input2d, backbone_scaled + "input_layers=inputlayer"});
 
-  EXPECT_EQ(NN_scaled.loadFromConfig(ini_name_scaled), ML_ERROR_NONE);
+  EXPECT_EQ(NN_scaled.loadFromConfig(scaled.getIniName()), ML_ERROR_NONE);
   EXPECT_EQ(NN_scaled.compile(), ML_ERROR_NONE);
   EXPECT_EQ(NN_scaled.initialize(), ML_ERROR_NONE);
 }
@@ -785,17 +742,15 @@ TEST(nntrainerIniTest, backbone_p_17) {
  * @note Output layer name not found, epmty backbone
  */
 TEST(nntrainerIniTest, backbone_n_18) {
-  const char *ini_name = "backbone_n18.ini";
   nntrainer::NeuralNetwork NN;
 
-  nntrainerIniTest::save_ini("base.ini",
-                             {input2d, conv2d + "input_layers=inputlayer",
-                              flatten + "input_layers=conv2d"});
-  nntrainerIniTest::save_ini(
-    ini_name,
+  ScopedIni base("base", {input2d, conv2d + "input_layers=inputlayer",
+                          flatten + "input_layers=conv2d"});
+  ScopedIni backbone(
+    "Backbone_n18",
     {nw_base_mse, input, backbone_valid_inout + "input_layers=inputlayer"});
 
-  EXPECT_EQ(NN.loadFromConfig(ini_name), ML_ERROR_NONE);
+  EXPECT_EQ(NN.loadFromConfig(backbone.getIniName()), ML_ERROR_NONE);
   EXPECT_EQ(NN.compile(), ML_ERROR_NONE);
   EXPECT_EQ(NN.initialize(), ML_ERROR_NONE);
 
@@ -807,17 +762,16 @@ TEST(nntrainerIniTest, backbone_n_18) {
  * @note Input layer name not found, epmty backbone
  */
 TEST(nntrainerIniTest, backbone_n_19) {
-  const char *ini_name = "backbone_n19.ini";
   nntrainer::NeuralNetwork NN;
 
-  nntrainerIniTest::save_ini("base.ini",
-                             {input2d, conv2d + "input_layers=inputlayer",
-                              batch_normal + "input_layers=conv2d"});
-  nntrainerIniTest::save_ini(
-    ini_name,
+  ScopedIni base("base", {input2d, conv2d + "input_layers=inputlayer",
+                          batch_normal + "input_layers=conv2d"});
+
+  ScopedIni backbone(
+    "backbone_n19",
     {nw_base_mse, input, backbone_valid_inout + "input_layers=inputlayer"});
 
-  EXPECT_EQ(NN.loadFromConfig(ini_name), ML_ERROR_NONE);
+  EXPECT_EQ(NN.loadFromConfig(backbone.getIniName()), ML_ERROR_NONE);
   EXPECT_EQ(NN.compile(), ML_ERROR_NONE);
   EXPECT_EQ(NN.initialize(), ML_ERROR_NONE);
 
@@ -829,17 +783,17 @@ TEST(nntrainerIniTest, backbone_n_19) {
  * @note input and output layer specified are found
  */
 TEST(nntrainerIniTest, backbone_p_20) {
-  const char *ini_name = "backbone_p20.ini";
   nntrainer::NeuralNetwork NN;
 
-  nntrainerIniTest::save_ini(
-    "base.ini", {input2d, conv2d + "input_layers=inputlayer",
-                 flatten + "input_layers=conv2d", out + "input_layers=flat"});
-  nntrainerIniTest::save_ini(
-    ini_name,
+  ScopedIni base("base",
+                 {input2d, conv2d + "input_layers=inputlayer",
+                  flatten + "input_layers=conv2d", out + "input_layers=flat"});
+
+  ScopedIni backbone(
+    "backbone_p20",
     {nw_base_mse, input, backbone_valid_inout + "input_layers=inputlayer"});
 
-  EXPECT_EQ(NN.loadFromConfig(ini_name), ML_ERROR_NONE);
+  EXPECT_EQ(NN.loadFromConfig(backbone.getIniName()), ML_ERROR_NONE);
   EXPECT_EQ(NN.compile(), ML_ERROR_NONE);
   EXPECT_EQ(NN.initialize(), ML_ERROR_NONE);
   EXPECT_EQ(NN.getNetworkGraph().getSorted().size(), 6u);
@@ -850,18 +804,16 @@ TEST(nntrainerIniTest, backbone_p_20) {
  * @note Input layer name not found, epmty backbone
  */
 TEST(nntrainerIniTest, backbone_n_21) {
-  const char *ini_name = "backbone_n21.ini";
   nntrainer::NeuralNetwork NN;
 
-  nntrainerIniTest::save_ini("base.ini",
-                             {input2d, conv2d + "input_layers=inputlayer",
-                              batch_normal + "input_layers=conv2d",
-                              out + "input_layers=bn"});
-  nntrainerIniTest::save_ini(
-    ini_name,
+  ScopedIni base("base", {input2d, conv2d + "input_layers=inputlayer",
+                          batch_normal + "input_layers=conv2d",
+                          out + "input_layers=bn"});
+  ScopedIni backbone(
+    "backbone_n21",
     {nw_base_mse, input, backbone_valid_inout + "input_layers=inputlayer"});
 
-  EXPECT_EQ(NN.loadFromConfig(ini_name), ML_ERROR_NONE);
+  EXPECT_EQ(NN.loadFromConfig(backbone.getIniName()), ML_ERROR_NONE);
   EXPECT_EQ(NN.compile(), ML_ERROR_NONE);
   EXPECT_EQ(NN.initialize(), ML_ERROR_NONE);
   EXPECT_EQ(NN.getNetworkGraph().getSorted().size(), 3u);
