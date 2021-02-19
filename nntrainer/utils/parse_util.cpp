@@ -50,7 +50,7 @@ int getKeyValue(std::string &input_str, std::string &key, std::string &value) {
   int nwords = std::distance(words_begin, words_end);
   if (nwords != 2) {
     ml_loge("Error: input string must be 'key = value' format, %s given",
-            input_str);
+            input_str.c_str());
     return ML_ERROR_INVALID_PARAMETER;
   }
 

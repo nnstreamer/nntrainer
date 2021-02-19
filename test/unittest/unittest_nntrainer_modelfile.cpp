@@ -16,6 +16,8 @@
 #include <nntrainer-api-common.h>
 #include <nntrainer_internal.h>
 
+#include <app_context.h>
+
 #include <nntrainer_test_util.h>
 
 namespace initest {
@@ -34,6 +36,11 @@ public:
   static void save_ini(const char *filename, std::vector<IniSection> sections,
                        std::ios_base::openmode mode = std::ios_base::out) {
     IniTestWrapper::save_ini(filename, sections, mode);
+  }
+
+  static void SetUpTestCase() {
+    nntrainer::AppContext::Global().setWorkingDirectory(
+      getResPath("", {"test"}));
   }
 
 protected:
@@ -247,13 +254,14 @@ static IniSection backbone_valid_inout("block1", "backbone = base.ini |"
                                                  "InputLayer = flat | "
                                                  "OutputLayer = fclayer");
 
-static IniSection
-  backbone_valid_external("block1",
-                          "backbone = ../test/test_models/models/add.tflite | "
-                          "Input_Shape = 1:1:1");
+static std::string add_tflite =
+  std::string("backbone = ") +
+  getResPath("add.tflite", {"test", "test_models", "models"});
 
-static IniSection backbone_valid_external_no_shape(
-  "block1", "backbone = ../test/test_models/models/add.tflite");
+static IniSection backbone_valid_external =
+  IniSection("block1", add_tflite + "| Input_Shape = 1:1:1");
+
+static IniSection backbone_valid_external_no_shape("block1", add_tflite);
 
 static int SUCCESS = 0;
 static int LOADFAIL = initest::LOAD;

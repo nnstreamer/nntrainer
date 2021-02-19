@@ -5,22 +5,23 @@ unittest_nntrainer_deps = [
 
 # test material need to be unzipped from "(project_home)/packaging/"
 unzip_target = [
-  'trainset.tar.gz',
-  'valset.tar.gz',
-  'testset.tar.gz',
-  'unittest_layers.tar.gz',
-  'unittest_models.tar.gz'
+  ['trainset.tar.gz', ''],
+  ['valset.tar.gz', ''],
+  ['testset.tar.gz', ''],
+  ['unittest_layers.tar.gz', 'unittest_layers'],
+  ['unittest_models.tar.gz', 'unittest_models'],
 ]
 
 src_path = meson.source_root() / 'packaging'
-dest_path = meson.build_root()
+dest_path = nntrainer_test_resdir
 
 foreach target: unzip_target
-  _src_path = src_path / target
-  run_command(['tar', 'xzf', _src_path, '-C', dest_path])
+  _src_path = src_path / target[0]
+  run_command('mkdir', '-p', dest_path / target[1])
+  run_command(['tar', 'xzf', _src_path, '-C', dest_path / target[1]])
 endforeach
 
-run_command(['cp', src_path / 'label.dat', dest_path / 'label.dat'])
+run_command(['cp', '-l', src_path / 'label.dat', dest_path / 'label.dat'])
 
 test_target = [
   'unittest_nntrainer_activations',
