@@ -213,7 +213,7 @@ public:
    * @brief erase ini
    *
    */
-  void erase_ini() { remove(getIniName().c_str()); }
+  void erase_ini() noexcept { remove(getIniName().c_str()); }
 
   bool operator==(const IniTestWrapper &rhs) const {
     return name == rhs.name && sections == rhs.sections;
@@ -290,150 +290,26 @@ private:
   Sections sections;
 };
 
-/// @todo: migrate this to datafile unittest
-const std::string config_str = "[Model]"
-                               "\n"
-                               "Type = NeuralNetwork"
-                               "\n"
-                               "Learning_rate = 0.0001"
-                               "\n"
-                               "Decay_rate = 0.96"
-                               "\n"
-                               "Decay_steps = 1000"
-                               "\n"
-                               "Epochs = 1"
-                               "\n"
-                               "Optimizer = adam"
-                               "\n"
-                               "Loss = cross"
-                               "\n"
-                               "Weight_Regularizer = l2norm"
-                               "\n"
-                               "weight_regularizer_constant = 0.005"
-                               "\n"
-                               "Save_Path = 'model.bin'"
-                               "\n"
-                               "batch_size = 32"
-                               "\n"
-                               "beta1 = 0.9"
-                               "\n"
-                               "beta2 = 0.9999"
-                               "\n"
-                               "epsilon = 1e-7"
-                               "\n"
-                               "[DataSet]"
-                               "\n"
-                               "BufferSize=100"
-                               "\n"
-                               "TrainData = trainingSet.dat"
-                               "\n"
-                               "ValidData = valSet.dat"
-                               "\n"
-                               "LabelData = label.dat"
-                               "\n"
-                               "[inputlayer]"
-                               "\n"
-                               "Type = input"
-                               "\n"
-                               "Input_Shape = 1:1:62720"
-                               "\n"
-                               "bias_initializer = zeros"
-                               "\n"
-                               "Normalization = true"
-                               "\n"
-                               "Activation = sigmoid"
-                               "\n"
-                               "[outputlayer]"
-                               "\n"
-                               "Type = fully_connected"
-                               "\n"
-                               "input_layers = inputlayer"
-                               "\n"
-                               "Unit = 10"
-                               "\n"
-                               "bias_initializer = zeros"
-                               "\n"
-                               "Activation = softmax"
-                               "\n";
+/**
+ * @brief This class wraps IniTestWrapper
+ *
+ */
+class ScopedIni {
+public:
+  ScopedIni(const IniTestWrapper &ini_) : ini(ini_) { ini.save_ini(); }
+  ScopedIni(const std::string &name_,
+            const IniTestWrapper::Sections &sections_) :
+    ini(name_, sections_) {
+    ini.save_ini();
+  }
 
-const std::string config_str2 = "[Model]"
-                                "\n"
-                                "Type = NeuralNetwork"
-                                "\n"
-                                "Learning_rate = 0.0001"
-                                "\n"
-                                "Decay_rate = 0.96"
-                                "\n"
-                                "Decay_steps = 1000"
-                                "\n"
-                                "Epochs = 1"
-                                "\n"
-                                "Optimizer = adam"
-                                "\n"
-                                "Loss = cross"
-                                "\n"
-                                "Weight_Regularizer = l2norm"
-                                "\n"
-                                "weight_regularizer_constant = 0.005"
-                                "\n"
-                                "Model = 'model.bin'"
-                                "\n"
-                                "batch_size = 32"
-                                "\n"
-                                "beta1 = 0.9"
-                                "\n"
-                                "beta2 = 0.9999"
-                                "\n"
-                                "epsilon = 1e-7"
-                                "\n"
-                                "[DataSet]"
-                                "\n"
-                                "BufferSize=100"
-                                "\n"
-                                "TrainData = trainingSet.dat"
-                                "\n"
-                                "ValidData = valSet.dat"
-                                "\n"
-                                "LabelData = label.dat"
-                                "\n"
-                                "[conv2dlayer]"
-                                "\n"
-                                "Type = conv2d"
-                                "\n"
-                                "Input_Shape = 3:28:28"
-                                "\n"
-                                "bias_initializer = zeros"
-                                "\n"
-                                "Activation = sigmoid"
-                                "\n"
-                                "weight_regularizer=l2norm"
-                                "\n"
-                                "weight_regularizer_constant=0.005"
-                                "\n"
-                                "filters=6"
-                                "\n"
-                                "kernel_size=5,5"
-                                "\n"
-                                "stride=1,1"
-                                "\n"
-                                "padding=0,0"
-                                "\n"
-                                "weight_initializer=xavier_uniform"
-                                "\n"
-                                "flatten = false"
-                                "\n"
-                                "[outputlayer]"
-                                "\n"
-                                "Type = fully_connected"
-                                "\n"
-                                "input_layers = conv2dlayer"
-                                "\n"
-                                "Unit = 10"
-                                "\n"
-                                "bias_initializer = zeros"
-                                "\n"
-                                "Activation = softmax"
-                                "\n";
+  std::string getIniName() { return ini.getIniName(); }
+
+  ~ScopedIni() { ini.erase_ini(); }
+
+private:
+  IniTestWrapper ini;
+};
 
 #define GEN_TEST_INPUT(input, eqation_i_j_k_l) \
   do {                                         \
@@ -447,18 +323,6 @@ const std::string config_str2 = "[Model]"
         }                                      \
       }                                        \
     }                                          \
-  } while (0)
-
-#define RESET_CONFIG(conf_name)                              \
-  do {                                                       \
-    std::ifstream file_stream(conf_name, std::ifstream::in); \
-    if (file_stream.good()) {                                \
-      file_stream.close();                                   \
-      if (std::remove(conf_name) != 0)                       \
-        ml_loge("Error: Cannot delete file: %s", conf_name); \
-      else                                                   \
-        ml_logi("Info: deleteing file: %s", conf_name);      \
-    }                                                        \
   } while (0)
 
 /**

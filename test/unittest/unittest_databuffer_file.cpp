@@ -41,7 +41,8 @@ TEST(nntrainer_DataBuffer, setFeatureSize_01_p) {
   dim.setTensorDim("32:1:1:62720");
   status = data_buffer.setClassNum(10);
   EXPECT_EQ(status, ML_ERROR_NONE);
-  status = data_buffer.setDataFile(nntrainer::DATA_TRAIN, "./trainingSet.dat");
+  status = data_buffer.setDataFile(nntrainer::DATA_TRAIN,
+                                   getTestResPath("trainingSet.dat"));
   EXPECT_EQ(status, ML_ERROR_NONE);
   status = data_buffer.setFeatureSize(dim);
   EXPECT_EQ(status, ML_ERROR_NONE);
