@@ -15,6 +15,10 @@
 #include <nntrainer_internal.h>
 #include <nntrainer_test_util.h>
 
+static const std::string getTestResPath(const std::string &filename) {
+  return getResPath(filename, {"test"});
+}
+
 /**
  * @brief Neural Network Dataset Create / Destroy Test (negative test)
  */
@@ -76,15 +80,16 @@ TEST(nntrainer_capi_dataset, create_destroy_04_n) {
 TEST(nntrainer_capi_dataset, create_destroy_05_p) {
   ml_train_dataset_h dataset;
   int status;
-
-  status = ml_train_dataset_create_with_file(&dataset, "trainingSet.dat",
-                                             "valSet.dat", "testSet.dat");
+  status = ml_train_dataset_create_with_file(
+    &dataset, getTestResPath("trainingSet.dat").c_str(),
+    getTestResPath("valSet.dat").c_str(),
+    getTestResPath("testSet.dat").c_str());
   EXPECT_EQ(status, ML_ERROR_NONE);
   status = ml_train_dataset_destroy(dataset);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status =
-    ml_train_dataset_create_with_file(&dataset, "trainingSet.dat", NULL, NULL);
+  status = ml_train_dataset_create_with_file(
+    &dataset, getTestResPath("trainingSet.dat").c_str(), NULL, NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_train_dataset_destroy(dataset);
@@ -139,22 +144,26 @@ TEST(nntrainer_capi_dataset, set_dataset_property_02_p) {
   ml_train_dataset_h dataset;
   int status;
 
-  status =
-    ml_train_dataset_create_with_file(&dataset, "trainingSet.dat", NULL, NULL);
+  status = ml_train_dataset_create_with_file(
+    &dataset, getTestResPath("trainingSet.dat").c_str(), NULL, NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
+
+  std::string train_prop = "train_data=" + getTestResPath("trainingSet.dat");
+  std::string val_prop = "val_data=" + getTestResPath("valSet.dat");
+  std::string test_prop = "test_data=" + getTestResPath("testSet.dat");
+  std::string label_prop = "label_data=" + getTestResPath("label.dat");
 
   /** Multiple properties */
-  status = ml_train_dataset_set_property(dataset, "val_data=valSet.dat",
-                                         "test_data=testSet.dat", NULL);
+  status = ml_train_dataset_set_property(dataset, val_prop.c_str(),
+                                         test_prop.c_str(), NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_train_dataset_set_property(dataset, "label_data=label.dat",
+  status = ml_train_dataset_set_property(dataset, label_prop.c_str(),
                                          "buffer_size=100", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   /** Overwrite properties */
-  status =
-    ml_train_dataset_set_property(dataset, "train_data=trainingSet.dat", NULL);
+  status = ml_train_dataset_set_property(dataset, train_prop.c_str(), NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_train_dataset_destroy(dataset);
@@ -226,8 +235,8 @@ TEST(nntrainer_capi_dataset, set_dataset_02_p) {
   status = ml_train_model_construct(&model);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status =
-    ml_train_dataset_create_with_file(&dataset, "trainingSet.dat", NULL, NULL);
+  status = ml_train_dataset_create_with_file(
+    &dataset, getTestResPath("trainingSet.dat").c_str(), NULL, NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_train_model_set_dataset(model, dataset);
@@ -248,12 +257,12 @@ TEST(nntrainer_capi_dataset, set_dataset_03_p) {
   status = ml_train_model_construct(&model);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status =
-    ml_train_dataset_create_with_file(&dataset1, "trainingSet.dat", NULL, NULL);
+  status = ml_train_dataset_create_with_file(
+    &dataset1, getTestResPath("trainingSet.dat").c_str(), NULL, NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status =
-    ml_train_dataset_create_with_file(&dataset2, "valSet.dat", NULL, NULL);
+  status = ml_train_dataset_create_with_file(
+    &dataset2, getTestResPath("valSet.dat").c_str(), NULL, NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_train_model_set_dataset(model, dataset1);

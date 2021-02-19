@@ -511,5 +511,20 @@ int getBatch_train(float **outVec, float **outLabel, bool *last,
  */
 int getBatch_val(float **outVec, float **outLabel, bool *last, void *user_data);
 
+/**
+ * @brief Get the Res Path object
+ * @note if NNTRAINER_RESOURCE_PATH environment variable is given, @a
+ * fallback_base is ignored and NNTRINAER_RESOURCE_PATH is directly used as a
+ * base
+ *
+ * @param filename filename if omitted, ${prefix}/${base} will be returned
+ * @param fallback_base list of base to attach when NNTRAINER_RESOURCE_PATH is
+ * not given
+ * @return const std::string path,
+ */
+const std::string
+getResPath(const std::string &filename,
+           const std::initializer_list<const char *> fallback_base = {});
+
 #endif /* __cplusplus */
 #endif /* __NNTRAINER_TEST_UTIL_H__ */

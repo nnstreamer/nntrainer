@@ -75,6 +75,17 @@ nntrainer_includedir = nntrainer_prefix / get_option('includedir')
 nntrainer_inidir = get_option('sysconfdir')
 application_install_dir = nntrainer_bindir / 'applications'
 
+# handle resources
+nntrainer_resdir = meson.build_root() / 'res'
+run_command('mkdir', '-p', nntrainer_resdir)
+
+if get_option('install-app')
+# add a script to install resources from installs to application_install_dir
+meson.add_install_script(
+  'sh', '-c', 'cp -r @0@ ${DESTDIR}@1@'.format(nntrainer_resdir, application_install_dir)
+)
+endif
+
 # Set default configuration
 nntrainer_conf = configuration_data()
 nntrainer_conf.set('VERSION', meson.project_version())
