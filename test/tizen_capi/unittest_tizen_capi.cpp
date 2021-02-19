@@ -28,6 +28,39 @@
 static const std::string getTestResPath(const std::string &file) {
   return getResPath(file, {"test"});
 }
+
+static IniSection model_base("Model", "Type = NeuralNetwork"
+                                      " | Learning_rate = 0.0001"
+                                      " | Decay_rate = 0.96"
+                                      " | Decay_steps = 1000"
+                                      " | Epochs = 1"
+                                      " | Optimizer = adam"
+                                      " | Loss = cross"
+                                      " | Weight_Regularizer = l2norm"
+                                      " | weight_regularizer_constant = 0.005"
+                                      " | Save_Path = 'model.bin'"
+                                      " | batch_size = 32"
+                                      " | beta1 = 0.9"
+                                      " | beta2 = 0.9999"
+                                      " | epsilon = 1e-7");
+
+static IniSection dataset("Dataset", "BufferSize=100"
+                                     " | TrainData = trainingSet.dat"
+                                     " | ValidData = valSet.dat"
+                                     " | LabelData = label.dat");
+
+static IniSection inputlayer("inputlayer", "Type = input"
+                                           "| Input_Shape = 1:1:62720"
+                                           "| bias_initializer = zeros"
+                                           "| Normalization = true"
+                                           "| Activation = sigmoid");
+
+static IniSection outputlayer("outputlayer", "Type = fully_connected"
+                                             "| input_layers = inputlayer"
+                                             "| Unit = 10"
+                                             "| bias_initializer = zeros"
+                                             "| Activation = softmax");
+
 /**
  * @brief Compare the training statistics
  */
@@ -101,11 +134,11 @@ TEST(nntrainer_capi_nnmodel, construct_destruct_03_n) {
 TEST(nntrainer_capi_nnmodel, compile_01_p) {
   ml_train_model_h handle = NULL;
   int status = ML_ERROR_NONE;
-  std::string config_file = "./test_compile_01_p.ini";
-  RESET_CONFIG(config_file.c_str());
-  replaceString("Layers = inputlayer outputlayer",
-                "Layers = inputlayer outputlayer", config_file, config_str);
-  status = ml_train_model_construct_with_conf(config_file.c_str(), &handle);
+
+  ScopedIni s("test_compile_01_p",
+              {model_base, dataset, inputlayer, outputlayer});
+
+  status = ml_train_model_construct_with_conf(s.getIniName().c_str(), &handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
   status = ml_train_model_compile(handle, NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -130,11 +163,12 @@ TEST(nntrainer_capi_nnmodel, construct_conf_01_n) {
 TEST(nntrainer_capi_nnmodel, construct_conf_02_n) {
   ml_train_model_h handle = NULL;
   int status = ML_ERROR_NONE;
-  std::string config_file = "./test_compile_03_n.ini";
-  RESET_CONFIG(config_file.c_str());
-  replaceString("Input_Shape = 1:1:62720", "Input_Shape=1:1:0", config_file,
-                config_str);
-  status = ml_train_model_construct_with_conf(config_file.c_str(), &handle);
+
+  ScopedIni s(
+    "test_compile_03_n",
+    {model_base, dataset, inputlayer + "Input_Shape=1:1:0", outputlayer});
+
+  status = ml_train_model_construct_with_conf(s.getIniName().c_str(), &handle);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
@@ -299,14 +333,12 @@ TEST(nntrainer_capi_nnmodel, compile_06_n) {
 TEST(nntrainer_capi_nnmodel, train_01_p) {
   ml_train_model_h handle = NULL;
   int status = ML_ERROR_NONE;
-  std::string config_file = "./test_train_01_p.ini";
-  RESET_CONFIG(config_file.c_str());
-  replaceString("Input_Shape = 1:1:62720", "Input_Shape=1:1:62720", config_file,
-                config_str);
-  replaceString("batch_size = 32", "batch_size = 16", config_file, config_str);
-  replaceString("BufferSize=100", "", config_file, config_str);
 
-  status = ml_train_model_construct_with_conf(config_file.c_str(), &handle);
+  ScopedIni s("test_train_01_p",
+              {model_base + "batch_size = 16", dataset + "-BufferSize",
+               inputlayer, outputlayer});
+
+  status = ml_train_model_construct_with_conf(s.getIniName().c_str(), &handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_train_model_compile(handle, NULL);
@@ -337,11 +369,11 @@ TEST(nntrainer_capi_nnmodel, train_02_n) {
 TEST(nntrainer_capi_nnmodel, train_03_n) {
   ml_train_model_h handle = NULL;
   int status = ML_ERROR_NONE;
-  std::string config_file = "./test_train_01_p.ini";
-  RESET_CONFIG(config_file.c_str());
-  replaceString("batch_size = 32", "batch_size = 16", config_file, config_str);
-  replaceString("BufferSize=100", "", config_file, config_str);
-  status = ml_train_model_construct_with_conf(config_file.c_str(), &handle);
+  ScopedIni s("test_train_01_p",
+              {model_base + "batch_size = 16", dataset + "-BufferSize",
+               inputlayer, outputlayer});
+
+  status = ml_train_model_construct_with_conf(s.getIniName().c_str(), &handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
   status = ml_train_model_compile(handle, NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -487,12 +519,10 @@ TEST(nntrainer_capi_nnmodel, addLayer_05_n) {
   ml_train_model_h model = NULL;
   ml_train_layer_h layer = NULL;
 
-  std::string config_file = "./test_compile_01_p.ini";
-  RESET_CONFIG(config_file.c_str());
-  replaceString("Layers = inputlayer outputlayer",
-                "Layers = inputlayer outputlayer", config_file, config_str);
+  ScopedIni s("test_compile_01_p",
+              {model_base, dataset, inputlayer, outputlayer});
 
-  status = ml_train_model_construct_with_conf(config_file.c_str(), &model);
+  status = ml_train_model_construct_with_conf(s.getIniName().c_str(), &model);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_train_model_compile(model, NULL);
@@ -898,11 +928,10 @@ TEST(nntrainer_capi_nnmodel, train_with_generator_02_p) {
 TEST(nntrainer_capi_summary, summary_01_p) {
   ml_train_model_h handle = NULL;
   int status = ML_ERROR_NONE;
-  std::string config_file = "./test_compile_01_p.ini";
-  RESET_CONFIG(config_file.c_str());
-  replaceString("Layers = inputlayer outputlayer",
-                "Layers = inputlayer outputlayer", config_file, config_str);
-  status = ml_train_model_construct_with_conf(config_file.c_str(), &handle);
+
+  ScopedIni s("test_compile_01_p",
+              {model_base, dataset, inputlayer, outputlayer});
+  status = ml_train_model_construct_with_conf(s.getIniName().c_str(), &handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
   status = ml_train_model_compile(handle, NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -925,11 +954,10 @@ TEST(nntrainer_capi_summary, summary_01_p) {
 TEST(nntrainer_capi_summary, summary_02_n) {
   ml_train_model_h handle = NULL;
   int status = ML_ERROR_NONE;
-  std::string config_file = "./test_compile_01_p.ini";
-  RESET_CONFIG(config_file.c_str());
-  replaceString("Layers = inputlayer outputlayer",
-                "Layers = inputlayer outputlayer", config_file, config_str);
-  status = ml_train_model_construct_with_conf(config_file.c_str(), &handle);
+
+  ScopedIni s("test_compile_01_p",
+              {model_base, dataset, inputlayer, outputlayer});
+  status = ml_train_model_construct_with_conf(s.getIniName().c_str(), &handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
   status = ml_train_model_compile(handle, NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);

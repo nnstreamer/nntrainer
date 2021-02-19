@@ -156,18 +156,46 @@ TEST(ccapi_dataset, construct_02_p) {
 TEST(nntrainer_ccapi, train_with_config_01_p) {
   std::unique_ptr<ml::train::Model> model;
 
-  std::string config_file = "./test_train_01_p.ini";
-  RESET_CONFIG(config_file.c_str());
+  static IniSection model_base("Model", "Type = NeuralNetwork"
+                                        " | Learning_rate = 0.0001"
+                                        " | Decay_rate = 0.96"
+                                        " | Decay_steps = 1000"
+                                        " | Epochs = 1"
+                                        " | Optimizer = adam"
+                                        " | Loss = cross"
+                                        " | Weight_Regularizer = l2norm"
+                                        " | weight_regularizer_constant = 0.005"
+                                        " | Save_Path = 'model.bin'"
+                                        " | batch_size = 32"
+                                        " | beta1 = 0.9"
+                                        " | beta2 = 0.9999"
+                                        " | epsilon = 1e-7");
 
-  replaceString("Input_Shape = 1:1:62720", "Input_Shape=1:1:62720", config_file,
-                config_str);
-  replaceString("batch_size = 32", "batch_size = 16", config_file, config_str);
-  replaceString("BufferSize=100", "", config_file, config_str);
+  static IniSection dataset("Dataset", "BufferSize=100"
+                                       " | TrainData = trainingSet.dat"
+                                       " | ValidData = valSet.dat"
+                                       " | LabelData = label.dat");
+
+  static IniSection inputlayer("inputlayer", "Type = input"
+                                             "| Input_Shape = 1:1:62720"
+                                             "| bias_initializer = zeros"
+                                             "| Normalization = true"
+                                             "| Activation = sigmoid");
+
+  static IniSection outputlayer("outputlayer", "Type = fully_connected"
+                                               "| input_layers = inputlayer"
+                                               "| Unit = 10"
+                                               "| bias_initializer = zeros"
+                                               "| Activation = softmax");
+
+  ScopedIni s("test_train_01_p",
+              {model_base + "batch_size = 16", dataset + "-BufferSize",
+               inputlayer, outputlayer});
 
   EXPECT_NO_THROW(model =
                     ml::train::createModel(ml::train::ModelType::NEURAL_NET));
 
-  EXPECT_EQ(model->loadFromConfig(config_file), ML_ERROR_NONE);
+  EXPECT_EQ(model->loadFromConfig(s.getIniName()), ML_ERROR_NONE);
   EXPECT_EQ(model->compile(), ML_ERROR_NONE);
   EXPECT_EQ(model->initialize(), ML_ERROR_NONE);
   EXPECT_NO_THROW(model->train());
