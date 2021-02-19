@@ -49,7 +49,8 @@ int getKeyValue(std::string &input_str, std::string &key, std::string &value) {
   auto words_end = std::sregex_iterator();
   int nwords = std::distance(words_begin, words_end);
   if (nwords != 2) {
-    ml_loge("Error: input string must be 'key = value' format");
+    ml_loge("Error: input string must be 'key = value' format, %s given",
+            input_str);
     return ML_ERROR_INVALID_PARAMETER;
   }
 

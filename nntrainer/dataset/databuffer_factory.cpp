@@ -47,16 +47,25 @@ std::unique_ptr<DataBuffer> createDataBuffer(DataBufferType type,
 
   std::unique_ptr<DataBuffer> dataset = createDataBuffer(type);
 
-  if (dataset->setDataFile(DataType::DATA_TRAIN, train_file) != ML_ERROR_NONE)
-    throw std::invalid_argument("Invalid train file");
+  NNTR_THROW_IF(train_file == nullptr ||
+                  dataset->setDataFile(DataType::DATA_TRAIN, train_file) !=
+                    ML_ERROR_NONE,
+                std::invalid_argument)
+    << "invalid train file, path: " << (train_file ? train_file : "null");
 
-  if (valid_file &&
-      dataset->setDataFile(DataType::DATA_VAL, valid_file) != ML_ERROR_NONE)
-    throw std::invalid_argument("Invalid valid file");
+  if (valid_file) {
+    NNTR_THROW_IF(dataset->setDataFile(DataType::DATA_VAL, valid_file) !=
+                    ML_ERROR_NONE,
+                  std::invalid_argument)
+      << "invalid valid file, path: " << (valid_file ? valid_file : "null");
+  }
 
-  if (test_file &&
-      dataset->setDataFile(DataType::DATA_TEST, test_file) != ML_ERROR_NONE)
-    throw std::invalid_argument("Invalid test file");
+  if (test_file) {
+    NNTR_THROW_IF(dataset->setDataFile(DataType::DATA_TEST, test_file) !=
+                    ML_ERROR_NONE,
+                  std::invalid_argument)
+      << "invalid test file, path: " << (test_file ? test_file : "null");
+  }
 
   return dataset;
 }
