@@ -25,6 +25,9 @@
 #include <nntrainer_internal.h>
 #include <nntrainer_test_util.h>
 
+static const std::string getTestResPath(const std::string &file) {
+  return getResPath(file, {"test"});
+}
 /**
  * @brief Compare the training statistics
  */
@@ -692,11 +695,13 @@ TEST(nntrainer_capi_nnmodel, train_with_file_01_p) {
   status = ml_train_model_set_optimizer(model, optimizer);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_train_dataset_create_with_file(&dataset, "trainingSet.dat",
-                                             "valSet.dat", NULL);
+  status = ml_train_dataset_create_with_file(
+    &dataset, getTestResPath("trainingSet.dat").c_str(),
+    getTestResPath("valSet.dat").c_str(), NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_train_dataset_set_property(dataset, "label_data=label.dat",
+  const std::string label_prop = "label_data=" + getTestResPath("label.dat");
+  status = ml_train_dataset_set_property(dataset, label_prop.c_str(),
                                          "buffer_size=100", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
@@ -706,7 +711,8 @@ TEST(nntrainer_capi_nnmodel, train_with_file_01_p) {
   status = ml_train_model_compile(model, "loss=cross", "batch_size=16", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_train_model_run(model, "epochs=2", "save_path=model.bin", NULL);
+  status = ml_train_model_run(model, "epochs=2",
+                              "save_path=capi_tizen_model.bin", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   /** Compare training statistics */
@@ -778,7 +784,8 @@ TEST(nntrainer_capi_nnmodel, train_with_generator_01_p) {
   status = ml_train_model_compile(model, "loss=cross", "batch_size=16", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_train_model_run(model, "epochs=2", "save_path=model.bin", NULL);
+  status = ml_train_model_run(model, "epochs=2",
+                              "save_path=capi_tizen_model.bin", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   /** Compare training statistics */
@@ -938,6 +945,7 @@ TEST(nntrainer_capi_summary, summary_02_n) {
  * @brief Main gtest
  */
 int main(int argc, char **argv) {
+  nntrainer::AppContext::Global().setWorkingDirectory(getTestResPath(""));
   int result = -1;
 
   try {

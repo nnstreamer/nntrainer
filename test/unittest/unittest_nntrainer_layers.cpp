@@ -48,6 +48,10 @@ static std::string getDimensionString(const nntrainer::TensorDim &dim) {
   return dim_str;
 }
 
+static std::string getLayerResPath(const std::string &file_name) {
+  return getResPath(file_name, {"test", "unittest_layers"});
+}
+
 template <typename LayerType>
 class nntrainer_abstractLayer : public ::testing::Test {
 protected:
@@ -180,7 +184,7 @@ protected:
   }
 
   template <typename T> void loadFile(const char *filename, T &t) {
-    std::ifstream file(filename);
+    std::ifstream file(getLayerResPath(filename));
     if (!file.good()) {
       throw std::runtime_error("could not read, check filename");
     }
@@ -190,7 +194,7 @@ protected:
 
   template <typename T>
   void loadFile(const char *filename, std::vector<T> &ts) {
-    std::ifstream file(filename);
+    std::ifstream file(getLayerResPath(filename));
     if (!file.good()) {
       throw std::runtime_error("could not read, check filename");
     }

@@ -25,6 +25,9 @@
 
 #include "nntrainer_test_util.h"
 
+static const std::string getModelsPath(const std::string &file_name) {
+  return getResPath(file_name, {"test", "unittest_models"});
+}
 /********************************************************
  * Watcher Classes                                      *
  ********************************************************/
@@ -333,7 +336,8 @@ GraphWatcher::GraphWatcher(const std::string &config, const bool opt) :
 void GraphWatcher::compareFor(const std::string &reference,
                               const nntrainer::TensorDim &label_shape,
                               const unsigned int iterations) {
-  std::ifstream ref(reference, std::ios_base::in | std::ios_base::binary);
+  std::ifstream ref(getModelsPath(reference),
+                    std::ios_base::in | std::ios_base::binary);
 
   if (!ref.good()) {
     std::stringstream ss;

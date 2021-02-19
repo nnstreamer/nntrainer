@@ -19,7 +19,3 @@ foreach test_name : unittest_name_list
 
   test(unittest_name, exec)
 endforeach
-
-if (get_option('enable-test'))
-  install_data('test_conf.ini', install_dir: application_install_dir)
-endif
