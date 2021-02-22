@@ -1,5 +1,7 @@
 res_path = meson.current_source_dir() / '..' / 'res'
 
+run_command('cp', '-lr', res_path, nntr_app_resdir / 'KNN')
+
 knn_sources = [
   'main_sample.cpp'
 ]
@@ -13,4 +15,4 @@ e = executable('knn_sample',
   install_dir: application_install_dir
 )
 
-test('app_knn', e, args: [res_path + '/'])
+test('app_knn', e, args: [nntr_app_resdir / 'KNN'])

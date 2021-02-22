@@ -91,6 +91,8 @@ float training_loss = 0.0;
 float validation_loss = 0.0;
 float last_batch_loss = 0.0;
 
+std::string filename = "mnist_trainingSet.dat";
+
 /**
  * @brief     step function
  * @param[in] x value to be distinguished
@@ -151,7 +153,6 @@ int getBatch_train(float **outVec, float **outLabel, bool *last,
   unsigned int count = 0;
   int data_size = total_train_data_size;
 
-  std::string filename = "mnist_trainingSet.dat";
   std::ifstream F(filename, std::ios::in | std::ios::binary);
 
 #if VALIDATION
@@ -203,7 +204,6 @@ int getBatch_val(float **outVec, float **outLabel, bool *last,
   unsigned int count = 0;
   int data_size = total_val_data_size;
 
-  std::string filename = "mnist_trainingSet.dat";
   std::ifstream F(filename, std::ios::in | std::ios::binary);
 
 #if VALIDATION
@@ -255,13 +255,23 @@ TEST(MNIST_training, verify_accuracy) {
  */
 int main(int argc, char *argv[]) {
   int status = 0;
-  if (argc < 2) {
-    std::cout << "./nntrainer_mnist mnist.ini\n";
+#ifdef APP_VALIDATE
+  remove("mnist_model.bin");
+#endif
+  if (argc < 3) {
+    std::cout << "./nntrainer_mnist mnist.ini dataset.dat\n";
     exit(0);
   }
 
   const std::vector<std::string> args(argv + 1, argv + argc);
   std::string config = args[0];
+  filename = args[1];
+
+  std::ifstream f(filename);
+  if (!f.good()) {
+    std::cout << "dataset is not good, filename: " << filename << '\n';
+    exit(1);
+  }
 
   srand(time(NULL));
   std::vector<std::vector<float>> inputVector, outputVector;

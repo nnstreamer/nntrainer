@@ -299,16 +299,14 @@ export NNSTREAMER_CONF=$(pwd)/test/nnstreamer_filter_nntrainer/nnstreamer-test.i
 export NNSTREAMER_FILTERS=$(pwd)/build/nnstreamer/tensor_filter
 pushd build
 
-rm -rf model.bin
 TF_APP=$(pwd)/Applications/TransferLearning/Draw_Classification
-TF_APP_RES=$(pwd)/../Applications/TransferLearning/Draw_Classification/res
+TF_APP_RES=$(pwd)/res/app/Draw_Classification
 ${TF_APP}/jni/nntrainer_training ${TF_APP_RES}/Training.ini ${TF_APP_RES}
 
 %if 0%{?support_ccapi}
-rm -rf model.bin
-cp ../Applications/MNIST/jni/mnist_trainingSet.dat .
 MNIST_APP=Applications/MNIST
-./${MNIST_APP}/jni/nntrainer_mnist ../${MNIST_APP}/res/mnist.ini
+MNIST_RES=res/app/MNIST/
+./${MNIST_APP}/jni/nntrainer_mnist ./${MNIST_RES}/mnist.ini ./${MNIST_RES}/mnist_trainingSet.dat
 %endif # support_ccapi
 
 popd
