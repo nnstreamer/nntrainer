@@ -40,6 +40,7 @@
 
 #include <bitmap_helpers.h>
 
+#include <app_context.h>
 #define TRAINING true
 
 /**
@@ -251,6 +252,13 @@ int main(int argc, char *argv[]) {
   const vector<string> args(argv + 1, argv + argc);
   std::string config = args[0];
   data_path = args[1] + "/";
+
+  /// @todo add api version of this
+  try {
+    nntrainer::AppContext::Global().setWorkingDirectory(data_path);
+  } catch (std::invalid_argument &e) {
+    std::cerr << "setting data_path failed, pwd is used instead";
+  }
 
   srand(SEED);
   std::vector<std::vector<float>> inputVector, outputVector;

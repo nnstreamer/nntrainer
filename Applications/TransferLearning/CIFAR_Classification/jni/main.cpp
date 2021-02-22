@@ -39,8 +39,9 @@
 #include <stdlib.h>
 #include <time.h>
 
-#include "neuralnet.h"
-#include "tensor.h"
+#include <app_context.h>
+#include <neuralnet.h>
+#include <tensor.h>
 
 #define TRAINING true
 
@@ -348,8 +349,11 @@ bool read(std::vector<std::vector<float>> &inVec,
   file = data_path + file;
   std::ifstream TrainingSet(file, std::ios::in | std::ios::binary);
 
-  if (!TrainingSet.good())
+  if (!TrainingSet.good()) {
+    std::cerr << "try reading file path but failed, path: " << file
+              << std::endl;
     return false;
+  }
 
   return true;
 }
@@ -367,7 +371,14 @@ int main(int argc, char *argv[]) {
   }
   const vector<string> args(argv + 1, argv + argc);
   std::string config = args[0];
-  data_path = args[1];
+  data_path = args[1] + '/';
+
+  /// @todo add api version of this
+  try {
+    nntrainer::AppContext::Global().setWorkingDirectory(data_path);
+  } catch (std::invalid_argument &e) {
+    std::cerr << "setting data_path failed, pwd is used instead";
+  }
 
   seed = time(NULL);
   srand(seed);
@@ -380,7 +391,7 @@ int main(int argc, char *argv[]) {
     /**
      * @brief     Extract Feature
      */
-    std::string filename = "trainingSet.dat";
+    std::string filename = data_path + "trainingSet.dat";
     std::ofstream f(filename, std::ios::out | std::ios::binary);
     ExtractFeatures(data_path, inputVector, outputVector, "training", f);
     f.close();
@@ -390,7 +401,7 @@ int main(int argc, char *argv[]) {
     /**
      * @brief     Extract Feature
      */
-    std::string filename = "valSet.dat";
+    std::string filename = data_path + "valSet.dat";
     std::ofstream f(filename, std::ios::out | std::ios::binary);
     ExtractFeatures(data_path, inputValVector, outputValVector, "val", f);
     f.close();
@@ -400,7 +411,7 @@ int main(int argc, char *argv[]) {
     /**
      * @brief     Extract Feature
      */
-    std::string filename = "testSet.dat";
+    std::string filename = data_path + "testSet.dat";
     std::ofstream f(filename, std::ios::out | std::ios::binary);
     ExtractFeatures(data_path, inputTestVector, outputTestVector, "test", f);
     f.close();
