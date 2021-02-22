@@ -1,3 +1,6 @@
+nntr_app_resdir = nntrainer_resdir / 'app'
+run_command('mkdir', '-p', nntr_app_resdir)
+
 subdir('utils/jni')
 subdir('KNN/jni')
 subdir('LogisticRegression/jni')
