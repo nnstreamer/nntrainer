@@ -88,6 +88,7 @@ LOCAL_LDLIBS := -llog -landroid
 
 LOCAL_SRC_FILES := main.cpp
 
+# migrate this to ccapi
 LOCAL_SHARED_LIBRARIES := nntrainer app_utils
 
 LOCAL_STATIC_LIBRARIES := tensorflow-lite
@@ -112,6 +113,8 @@ LOCAL_LDLIBS := -llog -landroid
 LOCAL_SRC_FILES := main_func.cpp
 
 LOCAL_SHARED_LIBRARIES := ccapi-nntrainer app_utils
+# nntrainer is added for app_context, this should be removed
+LOCAL_SHARED_LIBRARIES += nntrainer
 
 LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES) $(APP_UTILS_INCLUDES)
 

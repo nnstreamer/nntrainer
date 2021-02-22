@@ -112,10 +112,8 @@ Once you compile the codes, you can run with
 ``` bash
 
 $ cd ${build_dir}
-$ mkdir ../Applications/MNIST/jni/test
-$ cp ${build_dir}/Applications/MNIST/jni/nntrainer_mnist ../Applications/MNIST/jni
-$ cd ../Applications/MNIST/jni
-$ ./nntrainer_mnist ${res}/mnist.ini
+$ export MNIST_RES=${build_dir}/res/app/MNIST
+$ ./Applications/MNIST/jni/nntrainer_mnist .${MNIST_RES}/mnist.ini ${MNIST_RES}/mnist_trainingSet.dat
 ```
 
 For the comparison, we provide Tensorflow code for same model and dataset in ```Tensorflow/Training_Keras.py```.
