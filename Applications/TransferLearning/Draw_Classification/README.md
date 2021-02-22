@@ -83,7 +83,7 @@ Once the application has been build with meson, use the instructions below to ru
 ```bash
 $ pwd
   build
-$ ./Applications/TransferLearning/Draw_Classification/jni/nntrainer_training ../Applications/TransferLearning/Draw_Classification/res/Training.ini ../Applications/TransferLearning/Draw_Classification/res/
+$ ./Applications/TransferLearning/Draw_Classification/jni/nntrainer_training ./res/app/Draw_Classification/Training.ini ./res/app/Draw_Classification/
 
 ```
 

@@ -50,13 +50,20 @@ Activation = sigmoid
 Once you compile, you can train with
 
 ```bash
-$ ./nntrainer_logistic train ${res}/LogisticRegression.ini ${res}/dataset1.txt
+
+/data/nntrainer/build/Applications/LogisticRegression/jni/nntrainer_logistic train /data/nntrainer/build/res/app/LogisticRegression/LogisticRegression.ini /data/nntrainer/build/res/app/LogisticRegression/dataset1.txt
+
+export ${res}
+$ cd ${build_dir}
+$ export res=$(pwd)/res/app/LogisticRegression
+$ export app=$(pwd)/Application/LogisticRegression/jni/nntrainer_logistic
+$ ${app} train ${res}/LogisticRegression.ini ${res}/dataset1.txt
 ```
 
-You can see ```model.bin``` to inference after training and check the accuracy with
+You can see ```logistic_model.bin``` to inference after training and check the accuracy with
 
 ```bash
-$ ./nntrainer_logistic inference ${res}/LogisticRegression.ini ${res}/test.txt
+$ ${app} inference ${res}/LogisticRegression.ini ${res}/dataset1.txt
 1 : 1
 1 : 1
 1 : 1
