@@ -786,6 +786,8 @@ public:
    */
   float max_abs() const;
 
+  float mean_abs() const;
+
   /**
    * @brief     return a copy of the Tensor Dim
    * @retval    TensorDim
