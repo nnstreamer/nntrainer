@@ -67,12 +67,12 @@ public:
   /**
    * @brief     No Weight data for this Input Layer
    */
-  void read(std::ifstream &file){};
+  void read(std::ifstream &file) override{};
 
   /**
    * @brief     No Weight data for this Input Layer
    */
-  void save(std::ofstream &file){};
+  void save(std::ofstream &file) override{};
 
   /**
    * @copydoc Layer::forwarding(bool training)
@@ -81,24 +81,24 @@ public:
   /**
    * @copydoc Layer::calcDerivative()
    */
-  void calcDerivative();
+  void calcDerivative() override;
 
   /**
    * @brief     Initializer of Input Layer
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int initialize(Manager &manager);
+  int initialize(Manager &manager) override;
 
   /**
    * @copydoc Layer::setTrainable(bool train)
    */
-  void setTrainable(bool train);
+  void setTrainable(bool train) override;
 
   /**
    * @copydoc Layer::getType()
    */
-  const std::string getType() const { return InputLayer::type; };
+  const std::string getType() const override { return InputLayer::type; };
 
   using Layer::setProperty;
 
@@ -106,7 +106,8 @@ public:
    * @copydoc Layer::setProperty(const PropertyType type, const std::string
    * &value)
    */
-  void setProperty(const PropertyType type, const std::string &value = "");
+  void setProperty(const PropertyType type,
+                   const std::string &value = "") override;
 
   static const std::string type;
 

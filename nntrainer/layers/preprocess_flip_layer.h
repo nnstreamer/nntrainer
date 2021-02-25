@@ -59,7 +59,7 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int initialize(Manager &manager);
+  int initialize(Manager &manager) override;
 
   /**
    * @copydoc Layer::forwarding()

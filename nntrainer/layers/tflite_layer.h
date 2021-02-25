@@ -54,27 +54,27 @@ public:
   /**
    * @copydoc Layer::calcDerivative()
    */
-  void calcDerivative();
+  void calcDerivative() override;
 
   /**
    * @copydoc Layer::copy(std::shared_ptr<layer> l)
    */
-  void copy(std::shared_ptr<Layer> l);
+  void copy(std::shared_ptr<Layer> l) override;
 
   /**
    * @copydoc Layer::initialize()
    */
-  int initialize(Manager &manager);
+  int initialize(Manager &manager) override;
 
   /**
    * @copydoc Layer::setTrainable(bool train)
    */
-  void setTrainable(bool train);
+  void setTrainable(bool train) override;
 
   /**
    * @copydoc Layer::getType()
    */
-  const std::string getType() const { return TfLiteLayer::type; };
+  const std::string getType() const override { return TfLiteLayer::type; };
 
   using Layer::setProperty;
 
@@ -82,7 +82,8 @@ public:
    * @copydoc Layer::setProperty(const PropertyType type, const std::string
    * &value)
    */
-  void setProperty(const PropertyType type, const std::string &value = "");
+  void setProperty(const PropertyType type,
+                   const std::string &value = "") override;
 
   static const std::string type;
 

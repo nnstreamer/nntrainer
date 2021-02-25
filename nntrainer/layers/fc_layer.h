@@ -59,30 +59,32 @@ public:
   /**
    * @copydoc Layer::calcDerivative()
    */
-  void calcDerivative();
+  void calcDerivative() override;
 
   /**
    * @copydoc Layer::calcGradient()
    */
-  void calcGradient();
+  void calcGradient() override;
 
   /**
    * @brief     copy layer
    * @param[in] l layer to copy
    */
-  void copy(std::shared_ptr<Layer> l);
+  void copy(std::shared_ptr<Layer> l) override;
 
   /**
    * @brief     initialize layer
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int initialize(Manager &manager);
+  int initialize(Manager &manager) override;
 
   /**
    * @copydoc Layer::getType()
    */
-  const std::string getType() const { return FullyConnectedLayer::type; };
+  const std::string getType() const override {
+    return FullyConnectedLayer::type;
+  };
 
   using Layer::setProperty;
 
@@ -90,14 +92,15 @@ public:
    * @copydoc Layer::setProperty(const PropertyType type, const std::string
    * &value)
    */
-  void setProperty(const PropertyType type, const std::string &value = "");
+  void setProperty(const PropertyType type,
+                   const std::string &value = "") override;
 
   static const std::string type;
 
   /**
    * @copydoc Layer::scaleSize(float scalesize)
    */
-  void scaleSize(float scalesize) noexcept;
+  void scaleSize(float scalesize) noexcept override;
 
 private:
   unsigned int unit;

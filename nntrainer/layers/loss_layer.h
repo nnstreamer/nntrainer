@@ -60,37 +60,37 @@ public:
   /**
    * @copydoc Layer::calcDerivative()
    */
-  void calcDerivative();
+  void calcDerivative() override;
 
   /**
    * @brief     read layer Weight & Bias data from file
    * @param[in] file input file stream
    */
-  void read(std::ifstream &file) {}
+  void read(std::ifstream &file) override {}
 
   /**
    * @brief     save layer Weight & Bias data from file
    * @param[in] file output file stream
    */
-  void save(std::ofstream &file) {}
+  void save(std::ofstream &file) override {}
 
   /**
    * @brief     copy layer
    * @param[in] l layer to copy
    */
-  void copy(std::shared_ptr<Layer> l);
+  void copy(std::shared_ptr<Layer> l) override;
 
   /**
    * @brief     initialize layer
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int initialize(Manager &manager);
+  int initialize(Manager &manager) override;
 
   /**
    * @copydoc Layer::getType()
    */
-  const std::string getType() const { return LossLayer::type; };
+  const std::string getType() const override { return LossLayer::type; };
 
   /**
    * @brief     set loss function

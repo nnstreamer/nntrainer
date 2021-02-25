@@ -94,7 +94,8 @@ public:
    * @copydoc Layer::setProperty(const PropertyType type, const std::string
    * &value)
    */
-  void setProperty(const PropertyType type, const std::string &value = "");
+  void setProperty(const PropertyType type,
+                   const std::string &value = "") override;
 
   static const std::string type;
 
