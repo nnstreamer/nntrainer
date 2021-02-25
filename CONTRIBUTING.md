@@ -4,7 +4,7 @@
 
 Anyone who has been contributed to the repository by submitting a pull-request and have it reviewed, accepted, and merged by committers is a contributor.
 
-Each contributor should comply with the [Code of Conduct](https://github.com/nntrainer/nntrainer/blob/main/CODE_OF_CONDUCT.md), this document (CONTRIBUTING.md), and [the Linux Foundation's policies](http://lfprojects.org/policies/).
+Each contributor should comply with the [Code of Conduct](https://github.com/nnstreamer/nntrainer/blob/main/CODE_OF_CONDUCT.md), this document (CONTRIBUTING.md), and [the Linux Foundation's policies](http://lfprojects.org/policies/).
 
 Every contributor is able and encouraged to review codes and to participate in other developmental activities.
 
@@ -18,7 +18,7 @@ A contributor may become a committer with approvals of more than half of the com
 
 A committer may be retired by approvals of more than half of the committers.
 
-Each committer is also a contributor and should comply with the [Code of Conduct](https://github.com/nntrainer/nntrainer/blob/main/CODE_OF_CONDUCT.md), this document (CONTRIBUTING.md), and [the Linux Foundation's policies](http://lfprojects.org/policies/).
+Each committer is also a contributor and should comply with the [Code of Conduct](https://github.com/nnstreamer/nntrainer/blob/main/CODE_OF_CONDUCT.md), this document (CONTRIBUTING.md), and [the Linux Foundation's policies](http://lfprojects.org/policies/).
 
 The committers are:
 
