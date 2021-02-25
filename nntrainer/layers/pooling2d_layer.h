@@ -75,19 +75,19 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int initialize(Manager &manager);
+  int initialize(Manager &manager) override;
 
   /**
    * @brief     Read Weight & Bias Data from file
    * @param[in] file input stream file
    */
-  void read(std::ifstream &file){};
+  void read(std::ifstream &file) override{};
 
   /**
    * @brief     Save Weight & Bias Data to file
    * @param[in] file output stream file
    */
-  void save(std::ofstream &file){};
+  void save(std::ofstream &file) override{};
 
   /**
    * @copydoc Layer::forwarding(bool training)
@@ -97,13 +97,13 @@ public:
   /**
    * @copydoc Layer::calcDerivative()
    */
-  void calcDerivative();
+  void calcDerivative() override;
 
   /**
    * @brief     copy layer
    * @param[in] l layer to copy
    */
-  void copy(std::shared_ptr<Layer> l);
+  void copy(std::shared_ptr<Layer> l) override;
 
   /* TO DO : support keras type of padding */
   enum class PaddingType {
@@ -116,7 +116,7 @@ public:
   /**
    * @copydoc Layer::getType()
    */
-  const std::string getType() const { return Pooling2DLayer::type; };
+  const std::string getType() const override { return Pooling2DLayer::type; };
 
   using Layer::setProperty;
 
@@ -124,7 +124,8 @@ public:
    * @copydoc Layer::setProperty(const PropertyType type, const std::string
    * &value)
    */
-  void setProperty(const PropertyType type, const std::string &value = "");
+  void setProperty(const PropertyType type,
+                   const std::string &value = "") override;
 
   static const std::string type;
 

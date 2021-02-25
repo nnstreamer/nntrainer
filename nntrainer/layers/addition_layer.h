@@ -57,19 +57,19 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int initialize(Manager &manager);
+  int initialize(Manager &manager) override;
 
   /**
    * @brief     Read Weight & Bias Data from file
    * @param[in] file input stream file
    */
-  void read(std::ifstream &file){};
+  void read(std::ifstream &file) override{};
 
   /**
    * @brief     Save Weight & Bias Data to file
    * @param[in] file output stream file
    */
-  void save(std::ofstream &file){};
+  void save(std::ofstream &file) override{};
 
   /**
    * @copydoc Layer::forwarding(bool training)
@@ -79,12 +79,12 @@ public:
   /**
    * @copydoc Layer::calcDerivative()
    */
-  void calcDerivative();
+  void calcDerivative() override;
 
   /**
    * @copydoc Layer::getType()
    */
-  const std::string getType() const { return AdditionLayer::type; };
+  const std::string getType() const override { return AdditionLayer::type; };
 
   using Layer::setProperty;
 
@@ -92,7 +92,8 @@ public:
    * @copydoc Layer::setProperty(const PropertyType type, const std::string
    * &value)
    */
-  void setProperty(const PropertyType type, const std::string &value = "");
+  void setProperty(const PropertyType type,
+                   const std::string &value = "") override;
 
   static const std::string type;
 };

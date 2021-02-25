@@ -48,19 +48,19 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int initialize(Manager &manager);
+  int initialize(Manager &manager) override;
 
   /**
    * @brief     Read Activation layer params. This is essentially noops for now.
    * @param[in] file input stream file
    */
-  void read(std::ifstream &file){/* noop */};
+  void read(std::ifstream &file) override{/* noop */};
 
   /**
    * @brief     Save Activation layer params. This is essentially noops for now.
    * @param[in] file output stream file
    */
-  void save(std::ofstream &file){/* noop */};
+  void save(std::ofstream &file) override{/* noop */};
 
   /**
    * @copydoc Layer::forwarding(bool training)
@@ -70,19 +70,19 @@ public:
   /**
    * @copydoc Layer::calcDerivative()
    */
-  void calcDerivative();
+  void calcDerivative() override;
 
   /**
    * @brief setActivation by preset ActivationType
    *
    * @param[in] ActivationType
    */
-  void setActivation(ActivationType acti_type);
+  void setActivation(ActivationType acti_type) override;
 
   /**
    * @copydoc Layer::getType()
    */
-  const std::string getType() const { return ActivationLayer::type; };
+  const std::string getType() const override { return ActivationLayer::type; };
 
   /**
    * @brief       Calculate softmax for Tensor Type
