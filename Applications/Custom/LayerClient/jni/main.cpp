@@ -193,12 +193,18 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  auto &app_context = nntrainer::AppContext::Global();
-  /// registering custom layer here
-  /// registerFactory excepts a function that returns unique_ptr<Layer> from
-  /// std::vector<std::string> ml::train::createLayer<T> is a templated function
-  /// for generic usage
-  app_context.registerFactory(ml::train::createLayer<custom::PowLayer>);
+  try {
+    auto &app_context = nntrainer::AppContext::Global();
+    /// registering custom layer here
+    /// registerFactory excepts a function that returns unique_ptr<Layer> from
+    /// std::vector<std::string> ml::train::createLayer<T> is a templated
+    /// function for generic usage
+    app_context.registerFactory(ml::train::createLayer<custom::PowLayer>);
+  } catch (std::invalid_argument &e) {
+    std::cerr << "failed to register factory, reason: " << e.what()
+              << std::endl;
+    return 1;
+  }
 
   const std::string arg(argv[1]);
 
