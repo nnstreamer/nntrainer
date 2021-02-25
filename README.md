@@ -62,10 +62,10 @@ This component defines layers which consist of a neural network model. Layers ha
  | Keyword | Layer Name | Description |
  |:-------:|:---:|:---|
  |  conv2d | Convolution 2D |Convolution 2-Dimentional Layer |
- |  pooling2d | Pooling 2D |Pooling 2-Dimentional Layer. Support average / max / global average / global max pooing |
+ |  pooling2d | Pooling 2D |Pooling 2-Dimentional Layer. Support average / max / global average / global max pooling |
  | flatten | Flatten | Flatten Layer |
  | fully_connected | Fully Connected | Fully Connected Layer |
- | input | Input | Input Layer.  This is not always requied. |
+ | input | Input | Input Layer.  This is not always required. |
  | batch_normalization | Batch Normalization Layer | Batch Normalization Layer. |
  | loss layer | loss layer | hidden from users |
  | activation | activaiton layer | set by layer property |
