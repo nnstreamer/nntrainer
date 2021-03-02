@@ -30,11 +30,11 @@
 
 #define NNTR_THROW_IF(pred, err) \
   if ((pred))                    \
-  nntrainer::exception::internal::ErrorNotification<err>()
+    nntrainer::exception::internal::ErrorNotification<err> {}
 
 #define NNTR_THROW_IF_CLEANUP(pred, err, cleanup_func) \
   if ((pred))                                          \
-  nntrainer::exception::internal::ErrorNotification<err>(cleanup_func)
+    nntrainer::exception::internal::ErrorNotification<err> { cleanup_func }
 
 namespace nntrainer {
 
