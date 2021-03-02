@@ -55,14 +55,13 @@
 static std::string layerlib_suffix = "layer.so";
 static const std::string func_tag = "[AppContext] ";
 
-constexpr const char *DEFAULT_CONF_PATH = "/etc/nntrainer.ini";
-
-constexpr const char *getConfPath() {
 #ifdef NNTRAINER_CONF_PATH
-  return NNTRAINER_CONF_PATH;
+constexpr const char *DEFAULT_CONF_PATH = NNTRAINER_CONF_PATH;
+#else
+constexpr const char *DEFAULT_CONF_PATH = "/etc/nntrainer.ini";
 #endif
-  return DEFAULT_CONF_PATH;
-}
+
+constexpr const char *getConfPath() { return DEFAULT_CONF_PATH; }
 
 namespace nntrainer {
 
@@ -80,7 +79,7 @@ bool endswith(const std::string &target, const std::string &suffix) {
  *
  * @return std::string plugin path
  */
-std::string getPluginPathConf() {
+std::string getPluginPathConf(const std::string &suffix) {
   std::string conf_path{getConfPath()};
 
   NNTR_THROW_IF(!isFileExist(conf_path), std::invalid_argument)
@@ -93,7 +92,11 @@ std::string getPluginPathConf() {
 
   auto freedict = [ini] { iniparser_freedict(ini); };
 
-  const char *path = iniparser_getstring(ini, "plugins:layer", NULL);
+  std::string s{"plugins:"};
+
+  s += suffix;
+
+  const char *path = iniparser_getstring(ini, s.c_str(), NULL);
   NNTR_THROW_IF_CLEANUP(path == nullptr, std::invalid_argument, freedict)
     << func_tag << "plugins layer failed";
 
@@ -110,6 +113,14 @@ std::string getPluginPathConf() {
 std::vector<std::string> getPluginPaths() {
   std::vector<std::string> ret;
 
+  /*** @note NNTRAINER_PATH is an environment variable stating a @a directory
+   * where you would like to look for the layers, while NNTRAINER_CONF_PATH is a
+   * (buildtime hardcoded @a file path) to locate configuration file *.ini file
+   */
+  /*** @note for now, NNTRAINER_PATH is a SINGLE PATH rather than serise of path
+   * like PATH environment variable. this could be improved but for now, it is
+   * enough
+   */
   const char *env_path = std::getenv("NNTRAINER_PATH");
   if (env_path != nullptr) {
     if (isFileExist(env_path)) {
@@ -122,7 +133,7 @@ std::vector<std::string> getPluginPaths() {
   }
 
   try {
-    std::string conf_path = getPluginPathConf();
+    std::string conf_path = getPluginPathConf("layer");
     ret.emplace_back(conf_path);
     ml_logd("DEFAULT CONF PATH, path: %s", conf_path.c_str());
   } catch (std::exception &e) {
