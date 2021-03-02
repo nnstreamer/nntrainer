@@ -99,6 +99,8 @@ public:
 
   /**
    * @brief register Layer from a directory.
+   * @note if you have a clashing type with already registered layer, it will
+   * throw from `registerFactory` function
    *
    * @param base_path a directory path to search layer's
    * @return std::vector<int> list of integer key to create a layer

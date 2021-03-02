@@ -8,7 +8,7 @@ layer_client_sources = [
 ini_in_path = res_path / 'custom_layer_client.ini'
 ini_out_path = meson.build_root() / 'custom_layer_client.ini'
 
-run_command('cp', ini_in_path, ini_out_path)
+run_command('cp', '-lr', res_path, nntr_app_resdir / 'LayerClient')
 
 e = executable('layer_client',
   layer_client_sources,
