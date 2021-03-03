@@ -156,7 +156,11 @@ if nnstreamer_capi_dep.found()
   endif
 endif
 
-ml_api_common_dep = dependency('capi-ml-common', required:true)
+# TODO: Workaround bug nnstreamer_capi_dep is also failed!
+ml_api_common_dep = dependency('capi-ml-common', required:false)
+if not nnstreamer_capi_dep.found()
+  ml_api_common_dep = nnstreamer_capi_dep
+endif
 
 if get_option('enable-nnstreamer-backbone')
   add_project_arguments('-DENABLE_NNSTREAMER_BACKBONE=1', language:['c','cpp'])

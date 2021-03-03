@@ -34,9 +34,11 @@ BuildRequires:	gtest-devel
 BuildRequires:	python3
 BuildRequires:	python3-numpy
 
-%if 0%{tizen_version_major} >= 6
+%if (0%{tizen_version_major} >= 6 && 0%{?tizen_version_minor} >= 5)
 BuildRequires:	capi-machine-learning-common-devel
+BuildRequires:  capi-machine-learning-inference-devel
 %else
+BuildRequires:  capi-ml-common-devel
 BuildRequires:  capi-nnstreamer-devel
 %endif
 
@@ -68,7 +70,6 @@ BuildRequires:	pkgconfig(dlog)
 
 %if 0%{?support_nnstreamer_backbone}
 BuildRequires: nnstreamer-tensorflow-lite
-BuildRequires: capi-machine-learning-inference-devel
 
 Requires:	nnstreamer-tensorflow-lite
 Requires:	capi-machine-learning-inference
@@ -114,7 +115,11 @@ Summary:	Development package for custom nntrainer developers
 Requires:	nntrainer = %{version}-%{release}
 Requires:	iniparser-devel
 Requires:	openblas-devel
+%if (0%{tizen_version_major} >= 6 && 0%{?tizen_version_minor} >= 5)
 Requires:	capi-machine-learning-common-devel
+%else
+Requires:	capi-ml-common-devel
+%endif
 
 %description devel
 Development package for custom nntrainer developers.
@@ -137,9 +142,14 @@ BuildRequires:	tensorflow-lite-devel
 BuildRequires:	pkgconfig(jsoncpp)
 BuildRequires:	pkgconfig(libcurl)
 BuildRequires:	pkgconfig(dlog)
-BuildRequires:	capi-machine-learning-inference-devel
 BuildRequires:	glib2-devel
 BuildRequires:  gstreamer-devel
+%if (0%{tizen_version_major} >= 6 && 0%{?tizen_version_minor} >= 5)
+BuildRequires:  capi-machine-learning-inference-devel
+%else
+BuildRequires:  capi-nnstreamer-devel
+%endif
+
 
 %description applications
 NNTrainer Examples for test purpose.
@@ -168,7 +178,11 @@ You can train neural networks efficiently.
 Summary:         Tizen Native API Devel Kit for NNTrainer
 Group:           Multimedia/Framework
 Requires:        capi-machine-learning-training = %{version}-%{release}
+%if (0%{tizen_version_major} >= 6 && 0%{?tizen_version_minor} >= 5)
 Requires:        capi-machine-learning-common-devel
+%else
+Requires:        capi-ml-common-devel
+%endif
 %description -n capi-machine-learning-training-devel
 Developmental kit for Tizen Native NNTrainer API.
 
@@ -267,12 +281,6 @@ CXXFLAGS=`echo $CXXFLAGS | sed -e "s|-std=gnu++11||"`
 %if 0%{?testcoverage}
 CXXFLAGS="${CXXFLAGS} -fprofile-arcs -ftest-coverage"
 CFLAGS="${CFLAGS} -fprofile-arcs -ftest-coverage"
-%endif
-
-# Add backward competibility for tizen < 6
-%if 0%{tizen_version_major} < 6
-ln -sf %{_includedir}/nnstreamer/nnstreamer.h %{_includedir}/nnstreamer/ml-api-common.h
-ln -sf %{_libdir}/pkgconfig/capi-nnstreamer.pc %{_libdir}/pkgconfig/capi-ml-common.pc
 %endif
 
 mkdir -p build
