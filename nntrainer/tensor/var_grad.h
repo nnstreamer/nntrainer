@@ -244,7 +244,7 @@ public:
   void allocateVariable() { var->allocate(); }
 
   /**
-   * @brief Allocate memory for the variable
+   * @brief Allocate memory for the gradient
    */
   void allocateGradient() {
     grad->allocate();
@@ -273,7 +273,7 @@ public:
   void deallocateVariable() { var->deallocate(); }
 
   /**
-   * @brief Deallocate memory for the variable
+   * @brief Deallocate memory for the gradient
    */
   void deallocateGradient() { grad->deallocate(); }
 
