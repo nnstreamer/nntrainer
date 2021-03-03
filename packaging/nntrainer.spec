@@ -8,7 +8,40 @@
 %define         test_script $(pwd)/packaging/run_unittests.sh
 %define         gen_input $(pwd)/test/input_gen/genInput.py
 %define         support_data_augmentation_opencv 1
+
 %bcond_with tizen
+
+# dependency resolution
+%if 0%{tizen_version_major}%{tizen_version_minor} >= 65
+# (rpm -qi nnstreamer --queryformat '%%{VERSION}' | sed -e 's/\.//g') >= 171
+
+%define         capi_machine_learning_common	   capi-machine-learning-common
+%define         capi_machine_learning_inference	 capi-machine-learning-inference
+
+%define         capi_ml_common_pkg_name          capi-ml-common
+%define         capi_ml_inference_pkg_name       capi-ml-inference
+
+%else
+
+%if 0%{tizen_version_major}%{tizen_version_minor} >= 60
+# (rpm -qi nnstreamer --queryformat '%%{VERSION}' | sed -e 's/\.//g') >= 160
+%define         capi_machine_learning_common     capi-ml-common
+%define         capi_machine_learning_inference  capi-nnstreamer
+
+%define         capi_ml_common_pkg_name          capi-nnstreamer
+%define         capi_ml_inference_pkg_name       capi-nnstreamer
+%else
+%{error: nnst_version < 6.0 is not supported}
+# shouldn't reach here. Below is for the reference.
+# If you prepare ml-common-api.h, below can work though.
+%define         capi_machine_learning_inference  capi-nnstreamer
+%define         capi_machine_learning_common	   capi-nnstreamer
+
+%define         capi_ml_common_pkg_name          capi-nnstreamer
+%define         capi_ml_inference_pkg_name       capi-nnstreamer
+%endif # 0%{tizen_version_major}%{tizen_version_minor} >= 60
+
+%endif # 0%{tizen_version_major}%{tizen_version_minor} >= 65
 
 Name:		nntrainer
 Summary:	Software framework for training neural networks
@@ -34,11 +67,7 @@ BuildRequires:	gtest-devel
 BuildRequires:	python3
 BuildRequires:	python3-numpy
 
-%if 0%{tizen_version_major} >= 6
-BuildRequires:	capi-machine-learning-common-devel
-%else
-BuildRequires:  capi-nnstreamer-devel
-%endif
+BuildRequires:	%{capi_machine_learning_common}-devel
 
 %if 0%{?unit_test}
 BuildRequires:	ssat >= 1.1.0
@@ -68,10 +97,10 @@ BuildRequires:	pkgconfig(dlog)
 
 %if 0%{?support_nnstreamer_backbone}
 BuildRequires: nnstreamer-tensorflow-lite
-BuildRequires: capi-machine-learning-inference-devel
+BuildRequires: %{capi_machine_learning_inference}-devel
 
 Requires:	nnstreamer-tensorflow-lite
-Requires:	capi-machine-learning-inference
+Requires:	%{capi_machine_learning_inference}
 %endif # support_nnstreamer_backbone
 
 %define enable_nnstreamer_tensor_filter -Denable-nnstreamer-tensor-filter=false
@@ -114,7 +143,7 @@ Summary:	Development package for custom nntrainer developers
 Requires:	nntrainer = %{version}-%{release}
 Requires:	iniparser-devel
 Requires:	openblas-devel
-Requires:	capi-machine-learning-common-devel
+Requires:	%{capi_machine_learning_common}-devel
 
 %description devel
 Development package for custom nntrainer developers.
@@ -130,14 +159,14 @@ Static library package of nntrainer-devel
 Summary:	NNTrainer Examples
 Requires:	nntrainer = %{version}-%{release}
 Requires:	iniparser
-Requires:	capi-machine-learning-inference
+Requires:	%{capi_machine_learning_inference}
 Requires:	nnstreamer-tensorflow-lite
 BuildRequires:	nnstreamer-tensorflow-lite
 BuildRequires:	tensorflow-lite-devel
 BuildRequires:	pkgconfig(jsoncpp)
 BuildRequires:	pkgconfig(libcurl)
 BuildRequires:	pkgconfig(dlog)
-BuildRequires:	capi-machine-learning-inference-devel
+BuildRequires:	%{capi_machine_learning_inference}-devel
 BuildRequires:	glib2-devel
 BuildRequires:  gstreamer-devel
 
@@ -168,7 +197,7 @@ You can train neural networks efficiently.
 Summary:         Tizen Native API Devel Kit for NNTrainer
 Group:           Multimedia/Framework
 Requires:        capi-machine-learning-training = %{version}-%{release}
-Requires:        capi-machine-learning-common-devel
+Requires:        %{capi_machine_learning_common}-devel
 %description -n capi-machine-learning-training-devel
 Developmental kit for Tizen Native NNTrainer API.
 
@@ -230,6 +259,7 @@ NNSteamer tensor filter static package for nntrainer to support inference.
 %define install_app -Dinstall-app=true
 %define enable_ccapi -Denable-ccapi=false
 %define enable_nnstreamer_backbone -Denable-nnstreamer-backbone=false
+%define capi_ml_pkg_dep_resolution -Dcapi-ml-inference-actual=%{?capi_ml_inference_pkg_name} -Dcapi-ml-common-actual=%{?capi_ml_common_pkg_name}
 
 %if %{with tizen}
 %define enable_tizen -Denable-tizen=true
@@ -281,7 +311,7 @@ meson --buildtype=plain --prefix=%{_prefix} --sysconfdir=%{_sysconfdir} \
       --includedir=%{_includedir} %{install_app} %{enable_tizen} \
       %{enable_tizen_feature_check} %{enable_cblas} %{enable_ccapi} \
       %{enable_gym} %{enable_nnstreamer_tensor_filter} \
-      %{enable_nnstreamer_backbone} build
+      %{enable_nnstreamer_backbone} %{capi_ml_pkg_dep_resolution} build
 
 ninja -C build %{?_smp_mflags}
 
