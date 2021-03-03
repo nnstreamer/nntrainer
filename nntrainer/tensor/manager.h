@@ -249,33 +249,21 @@ public:
    * @brief Allocate memory for all the managed tensors
    */
   void allocateTensors() {
-    /// Weights are allocated while initializing
-    if (!weights_initialized)
+    if (!weights_allocated)
       allocateWeights();
-    allocateGradients();
-    allocateInOuts();
-    allocateDerivatives();
+
+    if (!tensors_allocated) {
+      allocateGradients();
+      allocateInOuts();
+      allocateDerivatives();
+      tensors_allocated = true;
+    }
   }
 
   /**
    * @brief Allocate memory for all the managed weights
    */
   void allocateWeights();
-
-  /**
-   * @brief Allocate memory for all the managed gradients
-   */
-  void allocateGradients();
-
-  /**
-   * @brief Allocate memory for all the managed layers inputs and outputs
-   */
-  void allocateInOuts();
-
-  /**
-   * @brief Allocate memory for all the managed layer derivatives
-   */
-  void allocateDerivatives();
 
 private:
   // TODO: ensure that names of these weights are unique
@@ -287,7 +275,11 @@ private:
   unsigned int max_grad_size; /**< max trainable weight required by a layer */
   unsigned int max_derivative_size; /**< max derivative required by a layer */
   unsigned int max_shared_inout;    /**< max memory for in/outs for inference */
+
   bool weights_initialized; /**< track if weights have been initialized */
+  bool tensors_initialized; /**< track if other tensors have been initialized */
+  bool weights_allocated; /**< track if weights have been allocated */
+  bool tensors_allocated; /**< track if other tensors have been allocated */
 
   /**< Inputs/outputs of all the layer in the model */
   std::vector<std::vector<std::shared_ptr<Var_Grad>>> in_outs;
@@ -349,6 +341,21 @@ private:
    * @param[in] is_weight true if weight, else false meaning its gradient
    */
   AllocFunc getAllocFunc(bool is_weight);
+
+  /**
+   * @brief Allocate memory for all the managed gradients
+   */
+  void allocateGradients();
+
+  /**
+   * @brief Allocate memory for all the managed layers inputs and outputs
+   */
+  void allocateInOuts();
+
+  /**
+   * @brief Allocate memory for all the managed layer derivatives
+   */
+  void allocateDerivatives();
 };
 
 } // namespace nntrainer
