@@ -254,6 +254,14 @@ public:
     opt_vars.clear();
   }
 
+  /**
+   * @brief Deallocate the weight gardient and variable
+   */
+  void deallocate() {
+    deallocateGradient();
+    deallocateVariable();
+  }
+
 private:
   WeightInitializer initializer; /**< initializer for this variable */
   WeightRegularizer regularizer; /**< regularizer for this variable */

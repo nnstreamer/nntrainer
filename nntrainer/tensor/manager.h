@@ -168,16 +168,30 @@ public:
 
   /**
    * @brief Reset the manager state
+   * @note The tensors assigned to the layers are not reset. They will be
+   * automatically reset once the model is initialized again.
    */
   void reset() {
-    weights.clear();
-    max_grad_size = 0;
+    deallocateTensors(true);
+    weights_allocated = false;
+    tensors_allocated = false;
+
     total_weight_size = 0;
     total_grad_size = 0;
+    max_grad_size = 0;
+    max_derivative_size = 0;
     max_shared_inout = 0;
+
     weight_mmaped_memory.reset();
     grad_mmaped_memory.reset();
+
     in_outs.clear();
+    weights.clear();
+    is_act_type.clear();
+    is_flat_type.clear();
+
+    weights_initialized = false;
+    tensors_initialized = false;
   }
 
   /**
@@ -246,15 +260,20 @@ public:
      * Deallocating and allocating tensors one by one can potentially lead to
      * high requirement of the peak memory requirement.
      */
-    deallocateInOuts();
-    deallocateDerivatives();
+
+    if (tensors_allocated) {
+      deallocateTensors();
+      deallocateDerivatives();
+    }
 
     for (auto &in_out : in_outs)
       for (auto &vg : in_out)
         vg->setBatchSize(batch);
 
-    allocateInOuts();
-    allocateDerivatives();
+    if (tensors_allocated) {
+      allocateInOuts();
+      allocateDerivatives();
+    }
   }
 
   /**
@@ -276,12 +295,16 @@ public:
    * @brief Deallocate memory for all the managed tensors
    */
   void deallocateTensors(bool dealloc_weights = false) {
-    if (dealloc_weights)
+    if (dealloc_weights and weights_allocated)
       deallocateWeights();
 
-    deallocateGradients();
-    deallocateInOuts();
-    deallocateDerivatives();
+    if (tensors_allocated) {
+      deallocateGradients();
+      deallocateInOuts();
+      deallocateDerivatives();
+
+      tensors_allocated = false;
+    }
   }
 
   /**
@@ -290,42 +313,9 @@ public:
   void allocateWeights();
 
   /**
-   * @brief Allocate memory for all the managed gradients
-   */
-  void allocateGradients();
-
-  /**
-   * @brief Allocate memory for all the managed layers inputs and outputs
-   */
-  void allocateInOuts();
-
-  /**
-   * @brief Allocate memory for all the managed layer derivatives
-   */
-  void allocateDerivatives();
-
-  /**
    * @brief Deallocate memory for all the weights
    */
   void deallocateWeights();
-
-  /**
-   * @brief Deallocate memory for all the gradients of the weights
-   *
-   */
-  void deallocateGradients();
-
-  /**
-   * @brief Deallocate memory for all the input and output tensors
-   *
-   */
-  void deallocateInOuts();
-
-  /**
-   * @brief Deallocate memory for all the inputs and outputs derivative tensors
-   *
-   */
-  void deallocateDerivatives();
 
 private:
   // TODO: ensure that names of these weights are unique
@@ -340,8 +330,8 @@ private:
 
   bool weights_initialized; /**< track if weights have been initialized */
   bool tensors_initialized; /**< track if other tensors have been initialized */
-  bool weights_allocated; /**< track if weights have been allocated */
-  bool tensors_allocated; /**< track if other tensors have been allocated */
+  bool weights_allocated;   /**< track if weights have been allocated */
+  bool tensors_allocated;   /**< track if other tensors have been allocated */
 
   /**< Inputs/outputs of all the layer in the model */
   std::vector<std::vector<std::shared_ptr<Var_Grad>>> in_outs;
@@ -418,6 +408,24 @@ private:
    * @brief Allocate memory for all the managed layer derivatives
    */
   void allocateDerivatives();
+
+  /**
+   * @brief Deallocate memory for all the gradients of the weights
+   *
+   */
+  void deallocateGradients();
+
+  /**
+   * @brief Deallocate memory for all the input and output tensors
+   *
+   */
+  void deallocateInOuts();
+
+  /**
+   * @brief Deallocate memory for all the inputs and outputs derivative tensors
+   *
+   */
+  void deallocateDerivatives();
 };
 
 } // namespace nntrainer

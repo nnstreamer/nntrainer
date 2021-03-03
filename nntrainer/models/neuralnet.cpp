@@ -277,6 +277,7 @@ int NeuralNetwork::initialize() {
  * @brief     free layers
  */
 NeuralNetwork::~NeuralNetwork() {
+  manager.reset();
   layers.erase(layers.begin(), layers.end());
 
   if (data_buffer) {

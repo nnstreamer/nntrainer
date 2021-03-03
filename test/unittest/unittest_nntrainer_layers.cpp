@@ -76,9 +76,6 @@ protected:
     layer.setOutputBuffers(manager.trackLayerOutputs(
       layer.getType(), layer.getName(), layer.getOutputDimension()));
 
-    manager.initializeTensors(true);
-    manager.allocateTensors();
-
     return status;
   }
 
@@ -168,10 +165,13 @@ protected:
     EXPECT_EQ(status, ML_ERROR_NONE);
 
     EXPECT_NO_THROW(opt->addOptimizerVariable(layer.getWeightsRef()));
-    manager.initializeTensors(true);
-    manager.allocateTensors();
 
     return status;
+  }
+
+  void allocateMemory() {
+    manager.initializeTensors(true);
+    manager.allocateTensors();
   }
 
   template <typename T> void saveFile(const char *filename, T &t) {
@@ -723,8 +723,6 @@ protected:
       manager.trackLayerOutputs(act_layer->getType(), act_layer->getName(),
                                 act_layer->getOutputDimension()));
 
-    manager.initializeTensors(true);
-    manager.allocateTensors();
     layers.push_back(act_layer);
   }
 
@@ -751,8 +749,6 @@ protected:
       manager.trackLayerOutputs(loss_layer->getType(), loss_layer->getName(),
                                 loss_layer->getOutputDimension()));
 
-    manager.initializeTensors(true);
-    manager.allocateTensors();
     layers.push_back(loss_layer);
 
     if (type == nntrainer::LossType::LOSS_ENTROPY_SOFTMAX) {
@@ -884,6 +880,7 @@ TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_backwarding_00_p) {
   std::vector<float> bias_data;
 
   setOptimizer(nntrainer::OptType::ADAM, "learning_rate=1.0");
+  allocateMemory();
 
   sharedConstTensor out;
 
@@ -917,8 +914,9 @@ TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_backwarding_00_p) {
  */
 TEST_F(nntrainer_FullyConnectedLayer_TFmatch,
        forwarding_backwarding_loss_00_p) {
-  setOptimizer(nntrainer::OptType::ADAM, "learning_rate=0.0001");
   addLoss(nntrainer::LossType::LOSS_ENTROPY_SOFTMAX);
+  setOptimizer(nntrainer::OptType::ADAM, "learning_rate=0.0001");
+  allocateMemory();
 
   matchForwarding("tc_fc_1_goldenFCResultSoftmaxCrossAdam.out");
 
@@ -933,6 +931,7 @@ TEST_F(nntrainer_FullyConnectedLayer_TFmatch,
 TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_backwarding_01_p) {
 
   setOptimizer(nntrainer::OptType::SGD, "learning_rate=1.0");
+  allocateMemory();
 
   /** Verify forwarding and backwarding without loss */
   matchForwarding("tc_fc_1_goldenFCResultActNone.out");
@@ -951,6 +950,7 @@ TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_backwarding_02_p) {
   addActivation(nntrainer::ActivationType::ACT_SIGMOID);
   addLoss(nntrainer::LossType::LOSS_MSE);
   setOptimizer(nntrainer::OptType::SGD, "learning_rate=1.0");
+  allocateMemory();
 
   /** Verify forwarding value */
   matchForwarding("tc_fc_1_goldenFCResultSigmoidMse.out");
@@ -972,6 +972,7 @@ TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_backwarding_03_p) {
   addActivation(nntrainer::ActivationType::ACT_SOFTMAX);
   addLoss(nntrainer::LossType::LOSS_MSE);
   setOptimizer(nntrainer::OptType::SGD, "learning_rate=1.0");
+  allocateMemory();
 
   /** Verify forwarding value */
   matchForwarding("tc_fc_1_goldenFCResultSoftmaxMse.out");
@@ -992,6 +993,7 @@ TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_backwarding_04_p) {
 
   addLoss(nntrainer::LossType::LOSS_MSE);
   setOptimizer(nntrainer::OptType::SGD, "learning_rate=1.0");
+  allocateMemory();
 
   /** Verify forwarding value */
   matchForwarding("tc_fc_1_goldenFCResultActNone.out");
@@ -1025,6 +1027,7 @@ TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_backwarding_05_p) {
   addActivation(nntrainer::ActivationType::ACT_SIGMOID);
   addLoss(nntrainer::LossType::LOSS_MSE);
   setOptimizer(nntrainer::OptType::SGD, "learning_rate=1.0");
+  allocateMemory();
 
   /** Verify forwarding value */
   matchForwarding("tc_fc_1_goldenFCResultSigmoidMse.out");
@@ -1046,6 +1049,7 @@ TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_backwarding_06_p) {
   addActivation(nntrainer::ActivationType::ACT_SOFTMAX);
   addLoss(nntrainer::LossType::LOSS_MSE);
   setOptimizer(nntrainer::OptType::SGD, "learning_rate=1.0");
+  allocateMemory();
 
   /** Verify forwarding value */
   matchForwarding("tc_fc_1_goldenFCResultSoftmaxMse.out");
@@ -1067,6 +1071,7 @@ TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_backwarding_07_p) {
 
   addLoss(nntrainer::LossType::LOSS_ENTROPY_SIGMOID);
   setOptimizer(nntrainer::OptType::SGD, "learning_rate=1.0");
+  allocateMemory();
 
   /** Verify forwarding value */
   matchForwarding("tc_fc_1_goldenFCResultSigmoidCross.out");
@@ -1088,6 +1093,7 @@ TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_backwarding_08_p) {
 
   addLoss(nntrainer::LossType::LOSS_ENTROPY_SOFTMAX);
   setOptimizer(nntrainer::OptType::SGD, "learning_rate=1.0");
+  allocateMemory();
 
   /** Verify forwarding value */
   matchForwarding("tc_fc_1_goldenFCResultSoftmaxCross.out");
@@ -1176,6 +1182,7 @@ TEST_F(nntrainer_BatchNormalizationLayer, forward_backward_training_01_p) {
   layer.setTrainable(true);
   sharedConstTensor forward_result;
 
+  allocateMemory();
   EXPECT_NO_THROW(forward_result =
                     layer.forwarding_with_val({MAKE_SHARED_TENSOR(in)})[0]);
   matchOutput(*forward_result, "tc_bn_fc_1_goldenBNResultForward.out");
@@ -1215,6 +1222,7 @@ protected:
 TEST_F(nntrainer_BatchNormalizationLayer_Conv, forward_backward_training_01_p) {
   layer.setTrainable(true);
   sharedConstTensor forward_result;
+  allocateMemory();
 
   forward_result = layer.forwarding_with_val({MAKE_SHARED_TENSOR(in)})[0];
   matchOutput(*forward_result, "tc_bn_conv_1_goldenBNResultForward.out");
@@ -1257,6 +1265,7 @@ TEST_F(nntrainer_BatchNormalizationLayer_Conv2,
        forward_backward_training_01_p) {
   layer.setTrainable(true);
   sharedConstTensor forward_result;
+  allocateMemory();
 
   forward_result = layer.forwarding_with_val({MAKE_SHARED_TENSOR(in)})[0];
   matchOutput(*forward_result, "tc_bn_conv_2_goldenBNResultForward.out");
@@ -1313,6 +1322,7 @@ TEST_F(nntrainer_Conv2DLayer, initialize_01_p) {
  * @brief Convolution 2D Layer save and read and save
  */
 TEST_F(nntrainer_Conv2DLayer, save_read_01_p) {
+  allocateMemory();
   saveFile("save.bin", layer);
   saveFile("save1.bin", layer);
 
@@ -1342,6 +1352,7 @@ TEST_F(nntrainer_Conv2DLayer, forwarding_01_p) {
                "bias_initializer = zeros |"
                "weight_initializer=xavier_uniform |"
                "filters=2 | kernel_size=3,3 | stride=1, 1 | padding=0,0");
+  allocateMemory();
 
   ASSERT_EQ(in.getDim(), nntrainer::TensorDim(1, 3, 7, 7));
   ASSERT_EQ(out.getDim(), nntrainer::TensorDim(1, 2, 5, 5));
@@ -1365,6 +1376,7 @@ TEST_F(nntrainer_Conv2DLayer, forwarding_02_p) {
                  "weight_initializer=xavier_uniform |"
                  "filters=3 | kernel_size=3,3 | stride=1, 1 | padding=0,0",
                  2);
+  allocateMemory();
 
   ASSERT_EQ(in.getDim(), nntrainer::TensorDim(2, 3, 7, 7));
   ASSERT_EQ(out.getDim(), nntrainer::TensorDim(2, 3, 5, 5));
@@ -1391,6 +1403,7 @@ TEST_F(nntrainer_Conv2DLayer, backwarding_01_p) {
   loadFile("tc_conv2d_1_conv2DLayer.in", in);
   loadFile("tc_conv2d_1_conv2DKernel.in", layer);
   setOptimizer(nntrainer::OptType::SGD, "learning_rate=1.0");
+  allocateMemory();
 
   EXPECT_NO_THROW(out =
                     *layer.forwarding_with_val({MAKE_SHARED_TENSOR(in)})[0]);
@@ -1429,6 +1442,7 @@ TEST_F(nntrainer_Conv2DLayer, backwarding_02_p) {
   loadFile("tc_conv2d_2_conv2DKernel.in", layer);
 
   setOptimizer(nntrainer::OptType::SGD, "learning_rate=1.0");
+  allocateMemory();
 
   EXPECT_NO_THROW(out =
                     *layer.forwarding_with_val({MAKE_SHARED_TENSOR(in)})[0]);
@@ -1522,6 +1536,7 @@ TEST_F(nntrainer_Conv2DLayer, DISABLED_backwarding_03_p) {
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   setOptimizer(nntrainer::OptType::SGD, "learning_rate=1.0");
+  allocateMemory();
 
   nntrainer::Tensor derivatives(1, 12, 24, 24);
 
@@ -1583,6 +1598,8 @@ TEST_F(nntrainer_Conv2DLayer, backwarding_04_p) {
   loadFile("tc_conv2d_3_conv2DKernel.in", layer);
 
   setOptimizer(nntrainer::OptType::SGD, "learning_rate=1.0");
+  allocateMemory();
+
   EXPECT_NO_THROW(out =
                     *layer.forwarding_with_val({MAKE_SHARED_TENSOR(in)})[0]);
 
@@ -1639,6 +1656,7 @@ TEST_F(nntrainer_Pooling2DLayer, forwarding_01_p) {
   setProperty("pool_size=2,2 | stride=1,1 | padding=0,0 | pooling=max");
 
   reinitialize();
+  allocateMemory();
 
   loadFile("tc_pooling2d_1.in", in);
 
@@ -1653,6 +1671,7 @@ TEST_F(nntrainer_Pooling2DLayer, forwarding_02_p) {
   setProperty("pool_size=2,2 | stride=1,1 | padding=0,0 | pooling=average");
 
   reinitialize();
+  allocateMemory();
 
   loadFile("tc_pooling2d_1.in", in);
 
@@ -1667,6 +1686,7 @@ TEST_F(nntrainer_Pooling2DLayer, forwarding_03_p) {
   setInputDim("2:5:5");
   setProperty("pooling=global_max");
   reinitialize();
+  allocateMemory();
 
   loadFile("tc_pooling2d_1.in", in);
 
@@ -1681,6 +1701,7 @@ TEST_F(nntrainer_Pooling2DLayer, forwarding_04_p) {
   setInputDim("2:5:5");
   setProperty("pooling=global_average");
   reinitialize();
+  allocateMemory();
 
   loadFile("tc_pooling2d_1.in", in);
 
@@ -1696,6 +1717,7 @@ TEST_F(nntrainer_Pooling2DLayer, forwarding_05_p) {
   setBatch(2);
   setProperty("pooling=global_max");
   reinitialize();
+  allocateMemory();
 
   loadFile("tc_pooling2d_2.in", in);
   EXPECT_NO_THROW(out =
@@ -1709,6 +1731,7 @@ TEST_F(nntrainer_Pooling2DLayer, forwarding_06_p) {
   setBatch(2);
   setProperty("pooling=global_average");
   reinitialize();
+  allocateMemory();
 
   loadFile("tc_pooling2d_2.in", in);
 
@@ -1723,6 +1746,7 @@ TEST_F(nntrainer_Pooling2DLayer, backwarding_01_p) {
   setProperty("pool_size=2,2 | stride=1,1 | padding=0,0 | pooling=max");
 
   reinitialize();
+  allocateMemory();
   loadFile("tc_pooling2d_1.in", in);
 
   EXPECT_NO_THROW(out =
@@ -1745,6 +1769,7 @@ TEST_F(nntrainer_Pooling2DLayer, backwarding_02_p) {
   setInputDim("2:5:5");
   setProperty("pool_size=2,2 | stride=1,1 | padding=0,0 | pooling=average");
   reinitialize();
+  allocateMemory();
   loadFile("tc_pooling2d_1.in", in);
 
   EXPECT_NO_THROW(out =
@@ -1766,6 +1791,7 @@ TEST_F(nntrainer_Pooling2DLayer, backwarding_03_p) {
   setInputDim("2:5:5");
   setProperty("pool_size=2,2 | stride=1,1 | padding=0,0 | pooling=global_max");
   reinitialize();
+  allocateMemory();
 
   loadFile("tc_pooling2d_1.in", in);
 
@@ -1789,6 +1815,7 @@ TEST_F(nntrainer_Pooling2DLayer, backwarding_04_p) {
   setProperty(
     "pool_size=2,2 | stride=1,1 | padding=0,0 | pooling=global_average");
   reinitialize();
+  allocateMemory();
   loadFile("tc_pooling2d_1.in", in);
 
   EXPECT_NO_THROW(out =

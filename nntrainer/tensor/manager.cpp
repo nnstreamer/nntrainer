@@ -143,9 +143,10 @@ Manager::Manager(bool enable_gradient_memory_opt_,
   enable_inference_inout_memory_opt(enable_inference_inout_memory_opt_),
   use_shared_memory(false) {}
 
-Manager::~Manager() {
-  // TODO: deallocate everything associated
-}
+/**
+ * @brief Destructor
+ */
+Manager::~Manager() { reset(); }
 
 /**
  * @brief     Add weight to be tracked and updated with nntrainer
@@ -286,6 +287,8 @@ void Manager::deallocateWeights() {
       weight.deallocateVariable();
     }
   }
+
+  weights_allocated = false;
 }
 
 void Manager::allocateGradients() {
