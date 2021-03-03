@@ -134,13 +134,18 @@ Manager::Manager(bool enable_gradient_memory_opt_,
   max_derivative_size(0),
   max_shared_inout(0),
   weights_initialized(false),
+  tensors_initialized(false),
+  weights_allocated(false),
+  tensors_allocated(false),
   enable_gradient_memory_opt(enable_gradient_memory_opt_),
   enable_derivative_memory_opt(enable_derivative_memory_opt_),
   enable_activation_memory_opt(enable_activation_memory_opt_),
   enable_inference_inout_memory_opt(enable_inference_inout_memory_opt_),
   use_shared_memory(false) {}
 
-Manager::~Manager() {}
+Manager::~Manager() {
+  // TODO: deallocate everything associated
+}
 
 /**
  * @brief     Add weight to be tracked and updated with nntrainer
@@ -250,6 +255,7 @@ void Manager::initializeWeights() {
     for (auto &w : l_w) {
       Weight &weight = w.get();
       auto dim = weight.getDim();
+      /** This will allocate memory for weights right now */
       Tensor weight_prealloc = allocate_weight(dim, weight_offset);
       Tensor grad_prealloc = Tensor();
 
@@ -259,6 +265,7 @@ void Manager::initializeWeights() {
   }
 
   weights_initialized = true;
+  weights_allocated = true;
 }
 
 void Manager::allocateWeights() {
@@ -268,6 +275,8 @@ void Manager::allocateWeights() {
       weight.allocateVariable();
     }
   }
+
+  weights_allocated = true;
 }
 
 void Manager::deallocateWeights() {
@@ -547,6 +556,8 @@ void Manager::initializeTensors(bool trainable) {
     }
     use_first_last = 1 - use_first_last;
   }
+
+  tensors_initialized = true;
 }
 
 } // namespace nntrainer
