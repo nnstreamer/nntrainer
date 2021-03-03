@@ -514,7 +514,8 @@ bool NeuralNetwork::validateInput(sharedConstTensors X) {
   return true;
 }
 
-sharedConstTensors NeuralNetwork::inference(sharedConstTensors X) {
+sharedConstTensors NeuralNetwork::inference(sharedConstTensors X,
+                                            bool free_mem) {
   if (batch_size != X[0]->batch()) {
     /**
      * Note that inference resets batch_size of the previous train configuration
@@ -549,6 +550,15 @@ sharedConstTensors NeuralNetwork::inference(sharedConstTensors X) {
                            .layer->net_hidden[i]
                            ->getVariable()));
   }
+
+  if (free_mem)
+    /**
+     * Free the memory needed for training before exiting.
+     * Note that this does not free the weights for the model.
+     * Weights of the model will be freed when the model is destroyed.
+     */
+    manager->deallocateTensors(false);
+
   return out;
 }
 

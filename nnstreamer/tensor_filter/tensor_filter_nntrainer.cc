@@ -148,7 +148,7 @@ int NNTrainerInference::run(const GstTensorMemory *input,
   std::shared_ptr<const nntrainer::Tensor> o;
 
   try {
-    o = model->inference({MAKE_SHARED_TENSOR(X)})[0];
+    o = model->inference({MAKE_SHARED_TENSOR(X)}, false)[0];
   } catch (std::exception &e) {
     ml_loge("%s %s", typeid(e).name(), e.what());
     return -2;

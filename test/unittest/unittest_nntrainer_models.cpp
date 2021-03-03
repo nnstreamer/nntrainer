@@ -384,7 +384,7 @@ void GraphWatcher::compareFor(const std::string &reference,
    * This inference is to ensure that inference runs with/without optimizations
    * for various kinds of models
    */
-  EXPECT_NO_THROW(nn.inference(input));
+  EXPECT_NO_THROW(nn.inference(input, false));
 }
 
 void GraphWatcher::validateFor(const std::string &reference,
@@ -405,7 +405,11 @@ void GraphWatcher::validateFor(const std::string &reference,
    * This inference is to ensure that inference runs with/without optimizations
    * for various kinds of models
    */
-  EXPECT_NO_THROW(nn.inference(input));
+  EXPECT_NO_THROW(nn.inference(input, false));
+  /** run inference again which frees the memory */
+  EXPECT_NO_THROW(nn.inference(input, true));
+  /** run inference again which will force to allocate memory again */
+  EXPECT_NO_THROW(nn.inference(input, true));
 }
 
 std::array<nntrainer::Tensor, 2>

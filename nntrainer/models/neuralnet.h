@@ -162,7 +162,8 @@ public:
   int initialize();
 
   /**
-   * @brief     Allocate memory for the model. This should be called after initialize.
+   * @brief     Allocate memory for the model. This should be called after
+   * initialize.
    * @param[in] trainable Assign memory for inference or train mode
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
@@ -173,7 +174,8 @@ public:
    * @brief     Deallocate memory for the model.
    * @param[in] trainable Assign memory for inference or train mode
    * @retval #ML_ERROR_NONE Successful.
-   * @note This does not free the model graph but only the weight tensors, and input/output/gradient/derivative tensors if any.
+   * @note This does not free the model graph but only the weight tensors, and
+   * input/output/gradient/derivative tensors if any.
    */
   int deallocate();
 
@@ -254,7 +256,7 @@ public:
    * @param[in] X input tensor
    * @retval shared_ptr<const Tensor>
    */
-  sharedConstTensors inference(sharedConstTensors X);
+  sharedConstTensors inference(sharedConstTensors X, bool free_mem = true);
 
   /**
    * @brief     Run NeuralNetwork train with callback function by user
