@@ -371,9 +371,9 @@ TEST(nntrainer_ccapi, train_batch_size_update_after) {
   EXPECT_EQ(model->setProperty({"batch_size=4"}), ML_ERROR_NONE);
   EXPECT_NO_THROW(model->train());
 
-  EXPECT_FLOAT_EQ(model->getTrainingLoss(), 1.9582682);
-  EXPECT_FLOAT_EQ(model->getValidationLoss(), 2.1831701);
-  EXPECT_FLOAT_EQ(model->getLoss(), 2.1985414);
+  EXPECT_FLOAT_EQ(model->getTrainingLoss(), 1.9613363);
+  EXPECT_FLOAT_EQ(model->getValidationLoss(), 2.1835098);
+  EXPECT_FLOAT_EQ(model->getLoss(), 2.1977143);
 }
 
 /**
