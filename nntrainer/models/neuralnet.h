@@ -162,13 +162,20 @@ public:
   int initialize();
 
   /**
-   * @brief     Assign Graph Memory. This should be called after initialize.
-   * @TODO      Consider to move Network Graph Class
+   * @brief     Allocate memory for the model. This should be called after initialize.
    * @param[in] trainable Assign memory for inference or train mode
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int assignMem(bool trainable = true);
+  int allocate(bool trainable = true);
+
+  /**
+   * @brief     Deallocate memory for the model.
+   * @param[in] trainable Assign memory for inference or train mode
+   * @retval #ML_ERROR_NONE Successful.
+   * @note This does not free the model graph but only the weight tensors, and input/output/gradient/derivative tensors if any.
+   */
+  int deallocate();
 
   /**
    * @brief     Update graph to make batch normalization in-place

@@ -88,7 +88,7 @@ TEST_P(nntrainerGraphTest, loadConfig) {
     EXPECT_EQ(status, ML_ERROR_NONE);
   }
 
-  status = NN.assignMem();
+  status = NN.allocate();
   if (failAtLoad()) {
     EXPECT_NE(status, ML_ERROR_NONE);
   } else {

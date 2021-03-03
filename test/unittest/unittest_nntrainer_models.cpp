@@ -322,7 +322,7 @@ GraphWatcher::GraphWatcher(const std::string &config, const bool opt) :
     throw std::invalid_argument("initiation failed");
   };
 
-  if (nn.assignMem()) {
+  if (nn.allocate()) {
     throw std::invalid_argument("assign Memory failed");
   };
 
