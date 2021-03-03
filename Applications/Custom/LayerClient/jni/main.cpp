@@ -208,10 +208,15 @@ int main(int argc, char *argv[]) {
 
   const std::string arg(argv[1]);
 
-  if (arg == "model") {
-    return api_model_run();
-  } else {
-    return ini_model_run(arg);
+  try {
+    if (arg == "model") {
+      return api_model_run();
+    } else {
+      return ini_model_run(arg);
+    }
+  } catch (std::invalid_argument &e) {
+    std::cerr << "failed to run the model, reason: " << e.what() << std::endl;
+    return 1;
   }
 
   /// should not reach here
