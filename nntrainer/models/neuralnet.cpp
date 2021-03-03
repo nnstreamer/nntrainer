@@ -527,7 +527,7 @@ sharedConstTensors NeuralNetwork::inference(sharedConstTensors X) {
   if (!validateInput(X))
     return out;
 
-  assignMem(false);
+  allocate(false);
 
   try {
     START_PROFILE(profile::NN_FORWARD);
@@ -552,11 +552,17 @@ sharedConstTensors NeuralNetwork::inference(sharedConstTensors X) {
   return out;
 }
 
-int NeuralNetwork::assignMem(bool trainable) {
+int NeuralNetwork::allocate(bool trainable) {
   // TODO: directly replace this
   manager->initializeTensors(trainable);
 
   manager->allocateTensors();
+  return ML_ERROR_NONE;
+}
+
+int NeuralNetwork::deallocate() {
+  manager->deallocateTensors(true);
+
   return ML_ERROR_NONE;
 }
 
@@ -574,7 +580,7 @@ int NeuralNetwork::train(std::vector<std::string> values) {
   /** set batch size just before training */
   setBatchSize(batch_size);
 
-  status = assignMem(true);
+  status = allocate(true);
   NN_RETURN_STATUS();
 
   /** Setup data buffer properties */
@@ -587,7 +593,15 @@ int NeuralNetwork::train(std::vector<std::string> values) {
   status = data_buffer->init();
   NN_RETURN_STATUS();
 
-  return train_run();
+  status = train_run();
+
+  /**
+   * Free the memory needed for training before exiting.
+   * Note that this does not free the weights for the model.
+   * Weights of the model will be freed when the model is destroyed.
+   */
+  manager->deallocateTensors(false);
+  return status;
 }
 
 /**
