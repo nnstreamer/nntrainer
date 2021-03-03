@@ -248,6 +248,9 @@ void Manager::initializeWeights() {
     return;
   }
 
+  if (weights_initialized)
+    return;
+
   AllocFunc allocate_weight = getAllocFunc(true);
 
   unsigned int weight_offset = 0;
@@ -266,10 +269,14 @@ void Manager::initializeWeights() {
   }
 
   weights_initialized = true;
+  /** weights are allocated without delay */
   weights_allocated = true;
 }
 
 void Manager::allocateWeights() {
+  if (weights_allocated)
+    return;
+
   for (auto &l_w : weights) {
     for (auto &w : l_w) {
       Weight &weight = w.get();
@@ -491,18 +498,21 @@ void Manager::initializeTensors(bool trainable) {
   if (!weights_initialized)
     initializeWeights();
 
-  // Allocate gradients
+  if (tensors_initialized)
+    return;
+
+  // Initialize gradients
   if (trainable)
     initializeGradients();
 
-  // Allocate shared derivative memory
+  // Initialize shared derivative memory
   if (max_derivative_size > 0 && enable_activation_memory_opt && trainable)
     shared_deriv = Tensor(TensorDim({max_derivative_size}), false);
 
   // @todo Do not count memory of the input tensor of the input layer in the
   // estimate of max_shared_inout as it is not used
 
-  // Allocate shared input/output memory for inference
+  // Initialize shared input/output memory for inference
   // @note Memory for label is not allocated here as inference doesnt has label
   if (!trainable && enable_inference_inout_memory_opt)
     shared_inout = Tensor(TensorDim({max_shared_inout}), false);

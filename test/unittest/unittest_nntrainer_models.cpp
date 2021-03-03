@@ -762,9 +762,13 @@ INSTANTIATE_TEST_CASE_P(
     mkModelTc(conv_same_padding_multi_stride, "3:1:1:10", 10),
     mkModelTc(conv_no_loss_validate, "3:1:1:10", 1),
     mkModelTc(conv_none_loss_validate, "3:1:1:10", 1)
-), [](const testing::TestParamInfo<nntrainerModelTest::ParamType>& info){
- return std::get<0>(info.param).getName();
-});
+// / #if gtest_version <= 1.7.0
+));
+/// #else gtest_version > 1.8.0
+// ), [](const testing::TestParamInfo<nntrainerModelTest::ParamType>& info){
+//  return std::get<0>(info.param).getName();
+// });
+/// #end if */
 // clang-format on
 
 /**

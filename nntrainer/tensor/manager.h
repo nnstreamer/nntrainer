@@ -173,8 +173,6 @@ public:
    */
   void reset() {
     deallocateTensors(true);
-    weights_allocated = false;
-    tensors_allocated = false;
 
     total_weight_size = 0;
     total_grad_size = 0;
