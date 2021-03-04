@@ -47,6 +47,7 @@ enum LayerType {
   LAYER_LOSS,                                    /** Loss Layer type */
   LAYER_BACKBONE_NNSTREAMER,                  /** Backbone using NNStreamer */
   LAYER_BACKBONE_TFLITE,                      /** Backbone using TFLite */
+  LAYER_EMBEDDING,                            /** Embedding Layer type */
   LAYER_UNKNOWN = ML_TRAIN_LAYER_TYPE_UNKNOWN /** Unknown */
 };
 
@@ -97,8 +98,14 @@ public:
    *            23. gamma_initializer : string (type),
    *            24. beta_initializer" : string (type)
    *            25. modelfile : model file for loading config for backbone layer
-   *            26. input_layers" : string (type)
-   *            27. output_layers" : string (type)
+   *            26. input_layers : string (type)
+   *            27. output_layers : string (type)
+   *            28. trainable :
+   *            29. flip_direction
+   *            30. random_translate
+   *            31. in_dim : int ( input dimension for embedding layer )
+   *            32. out_dim : int ( output dimesion for embedding layer )
+   *            33. in_length : int ( input length for embedding layer )
    */
   enum class PropertyType {
     input_shape = 0,
@@ -132,6 +139,9 @@ public:
     trainable = 28,
     flip_direction = 29,
     random_translate = 30,
+    in_dim = 31,
+    out_dim = 32,
+    in_length = 33,
     unknown
   };
 
@@ -309,6 +319,14 @@ BackboneNNStreamer(const std::vector<std::string> &properties = {}) {
 inline std::unique_ptr<Layer>
 BackboneTFLite(const std::vector<std::string> &properties = {}) {
   return createLayer(LayerType::LAYER_BACKBONE_TFLITE, properties);
+}
+
+/**
+ * @brief Helper function to create Embedding layer
+ */
+inline std::unique_ptr<Layer>
+Embedding(const std::vector<std::string> &properties = {}) {
+  return createLayer(LayerType::LAYER_EMBEDDING, properties);
 }
 
 /**
