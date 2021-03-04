@@ -174,22 +174,23 @@ public:
   void reset() {
     deallocateTensors(true);
 
+    deinitializeTensors();
+    weights_initialized = false;
+
+    weight_mmaped_memory.reset();
+    grad_mmaped_memory.reset();
+
+    /** reset model registered variables */
     total_weight_size = 0;
     total_grad_size = 0;
     max_grad_size = 0;
     max_derivative_size = 0;
     max_shared_inout = 0;
 
-    weight_mmaped_memory.reset();
-    grad_mmaped_memory.reset();
-
     in_outs.clear();
     weights.clear();
     is_act_type.clear();
     is_flat_type.clear();
-
-    weights_initialized = false;
-    tensors_initialized = false;
   }
 
   /**
@@ -233,13 +234,13 @@ public:
 
   /**
    * @brief Initialize the inputs/outputs/derivatives/gradients for the layers
-   * @param[in] trainable If true, initialize derivates/gradients, else, do not.
-   * @note The memory allocation strategy varies based on the trainable. The
+   * @param[in] training If true, initialize derivates/gradients, else, do not.
+   * @note The memory allocation strategy varies based on the training. The
    * memory allocated for inference mode is not compatible with training, and
    * will require full allocation than reusing memory allocated with inference
    * mode.
    */
-  void initializeTensors(bool trainable);
+  void initializeTensors(bool training);
 
   /**
    * @brief Set the batch size for the inputs/outputs of the layers
@@ -261,7 +262,8 @@ public:
 
     if (tensors_allocated) {
       deallocateTensors();
-      deallocateDerivatives();
+      if (model_training)
+        deallocateDerivatives();
     }
 
     for (auto &in_out : in_outs)
@@ -270,7 +272,8 @@ public:
 
     if (tensors_allocated) {
       allocateInOuts();
-      allocateDerivatives();
+      if (model_training)
+        allocateDerivatives();
     }
   }
 
@@ -282,9 +285,11 @@ public:
       allocateWeights();
 
     if (!tensors_allocated) {
-      allocateGradients();
+      if (model_training)
+        allocateGradients();
       allocateInOuts();
-      allocateDerivatives();
+      if (model_training)
+        allocateDerivatives();
       tensors_allocated = true;
     }
   }
@@ -297,9 +302,11 @@ public:
       deallocateWeights();
 
     if (tensors_allocated) {
-      deallocateGradients();
+      if (model_training)
+        deallocateGradients();
       deallocateInOuts();
-      deallocateDerivatives();
+      if (model_training)
+        deallocateDerivatives();
 
       tensors_allocated = false;
     }
@@ -330,6 +337,7 @@ private:
   bool tensors_initialized; /**< track if other tensors have been initialized */
   bool weights_allocated;   /**< track if weights have been allocated */
   bool tensors_allocated;   /**< track if other tensors have been allocated */
+  bool model_training;      /**< track if the model is in training mode */
 
   /**< Inputs/outputs of all the layer in the model */
   std::vector<std::vector<std::shared_ptr<Var_Grad>>> in_outs;
@@ -424,6 +432,8 @@ private:
    *
    */
   void deallocateDerivatives();
+  void initializeTensors();
+  void deinitializeTensors();
 };
 
 } // namespace nntrainer
