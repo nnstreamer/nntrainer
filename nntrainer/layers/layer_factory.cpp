@@ -17,6 +17,7 @@
 #include <bn_layer.h>
 #include <concat_layer.h>
 #include <conv2d_layer.h>
+#include <embedding.h>
 #include <fc_layer.h>
 #include <flatten_layer.h>
 #include <input_layer.h>
@@ -70,6 +71,8 @@ const std::string layerGetStrType(const LayerType &type) {
   case LayerType::LAYER_BACKBONE_TFLITE:
     return TfLiteLayer::type;
 #endif
+  case LayerType::LAYER_EMBEDDING:
+    return EmbeddingLayer::type;
   case LayerType::LAYER_UNKNOWN:
     /** fallthrough intended */
   default:
@@ -124,7 +127,8 @@ std::unique_ptr<Layer> createLayer(const std::string &type) {
     return std::make_unique<ConcatLayer>();
   if (istrequal(type, OutputLayer::type))
     return std::make_unique<OutputLayer>();
-
+  if (istrequal(type, EmbeddingLayer::type))
+    return std::make_unique<EmbeddingLayer>();
   std::stringstream ss;
   ss << "Unsupported type given, type: " << type;
   throw std::invalid_argument(ss.str().c_str());

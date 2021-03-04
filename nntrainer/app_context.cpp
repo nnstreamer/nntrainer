@@ -29,6 +29,7 @@
 #include <bn_layer.h>
 #include <concat_layer.h>
 #include <conv2d_layer.h>
+#include <embedding.h>
 #include <fc_layer.h>
 #include <flatten_layer.h>
 #include <input_layer.h>
@@ -103,6 +104,8 @@ static void add_default_object(AppContext &ac) {
   ac.registerFactory(ml::train::createLayer<TfLiteLayer>, TfLiteLayer::type,
                      LayerType::LAYER_BACKBONE_TFLITE);
 #endif
+  ac.registerFactory(ml::train::createLayer<EmbeddingLayer>,
+                     EmbeddingLayer::type, LayerType::LAYER_EMBEDDING);
   ac.registerFactory(AppContext::unknownFactory<ml::train::Layer>, "unknown",
                      LayerType::LAYER_UNKNOWN);
 }
