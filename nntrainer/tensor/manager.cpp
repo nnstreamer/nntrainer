@@ -137,6 +137,7 @@ Manager::Manager(bool enable_gradient_memory_opt_,
   tensors_initialized(false),
   weights_allocated(false),
   tensors_allocated(false),
+  model_training(false),
   enable_gradient_memory_opt(enable_gradient_memory_opt_),
   enable_derivative_memory_opt(enable_derivative_memory_opt_),
   enable_activation_memory_opt(enable_activation_memory_opt_),
@@ -323,7 +324,7 @@ void Manager::deallocateGradients() {
 }
 
 /**
- * @brief Allocate and initialize the weight variable
+ * @brief Initialize the weight gradients
  */
 void Manager::initializeGradients() {
   if (total_weight_size == 0) {
@@ -490,23 +491,13 @@ void Manager::deallocateDerivatives() {
   }
 }
 
-/**
- * @brief Initialize the inputs/outputs/gradients/derivatives for the layer
- */
-void Manager::initializeTensors(bool trainable) {
-  // If weights not initialized, initialize weights as well
-  if (!weights_initialized)
-    initializeWeights();
-
-  if (tensors_initialized)
-    return;
-
+void Manager::initializeTensors() {
   // Initialize gradients
-  if (trainable)
+  if (model_training)
     initializeGradients();
 
   // Initialize shared derivative memory
-  if (max_derivative_size > 0 && enable_activation_memory_opt && trainable)
+  if (max_derivative_size > 0 && enable_activation_memory_opt && model_training)
     shared_deriv = Tensor(TensorDim({max_derivative_size}), false);
 
   // @todo Do not count memory of the input tensor of the input layer in the
@@ -514,7 +505,7 @@ void Manager::initializeTensors(bool trainable) {
 
   // Initialize shared input/output memory for inference
   // @note Memory for label is not allocated here as inference doesnt has label
-  if (!trainable && enable_inference_inout_memory_opt)
+  if (!model_training && enable_inference_inout_memory_opt)
     shared_inout = Tensor(TensorDim({max_shared_inout}), false);
 
   /**
@@ -534,7 +525,7 @@ void Manager::initializeTensors(bool trainable) {
       use_first_last = 1 - use_first_last;
 
     for (auto &io : l_io) {
-      if (!trainable) {
+      if (!model_training) {
         Tensor shared_inout_cur = Tensor();
         if (enable_inference_inout_memory_opt) {
           if (use_first_last) {
@@ -549,7 +540,7 @@ void Manager::initializeTensors(bool trainable) {
           }
           offset += io->getDim().getDataLen();
         }
-        io->initialize(shared_inout_cur, Tensor(), trainable);
+        io->initialize(shared_inout_cur, Tensor(), model_training);
 
       } else if (enable_derivative_memory_opt && !is_last_layer) {
         if (is_act_type[idx] && enable_activation_memory_opt) {
@@ -564,13 +555,44 @@ void Manager::initializeTensors(bool trainable) {
         if (is_last_layer)
           io->initialize(Tensor(), Tensor(), true);
         else
-          io->initialize(Tensor(), Tensor(), trainable);
+          io->initialize(Tensor(), Tensor(), model_training);
       }
     }
     use_first_last = 1 - use_first_last;
   }
 
   tensors_initialized = true;
+}
+
+/**
+ * @brief Initialize the inputs/outputs/gradients/derivatives for the layer
+ */
+void Manager::initializeTensors(bool training) {
+  // If weights not initialized, initialize weights as well
+  if (!weights_initialized)
+    initializeWeights();
+
+  if (tensors_initialized && model_training == training)
+    return;
+
+  if (tensors_initialized)
+    deinitializeTensors();
+
+  model_training = training;
+
+  initializeTensors();
+}
+
+/**
+ * @brief Deinitialize the inputs/outputs/gradients/derivatives for the layers
+ */
+void Manager::deinitializeTensors() {
+
+  shared_deriv = Tensor();
+  shared_inout = Tensor();
+  shared_grad = Tensor();
+
+  tensors_initialized = false;
 }
 
 } // namespace nntrainer
