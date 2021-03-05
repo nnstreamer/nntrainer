@@ -23,7 +23,7 @@ static const std::string getTestResPath(const std::string &filename) {
  * @brief Neural Network Dataset Create / Destroy Test (negative test)
  */
 TEST(nntrainer_capi_dataset, create_destroy_01_n) {
-  ml_train_dataset_h dataset;
+  ml_train_dataset_h dataset = nullptr;
   int status;
   status = ml_train_dataset_create_with_file(&dataset, NULL, NULL, NULL);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
@@ -36,7 +36,7 @@ TEST(nntrainer_capi_dataset, create_destroy_01_n) {
  * @brief Neural Network Dataset Create / Destroy Test (negative test)
  */
 TEST(nntrainer_capi_dataset, create_destroy_02_n) {
-  ml_train_dataset_h dataset;
+  ml_train_dataset_h dataset = nullptr;
   int status;
   status =
     ml_train_dataset_create_with_file(&dataset, "nofile.txt", NULL, NULL);
@@ -50,7 +50,7 @@ TEST(nntrainer_capi_dataset, create_destroy_02_n) {
  * @brief Neural Network Dataset Create / Destroy Test (negative test)
  */
 TEST(nntrainer_capi_dataset, create_destroy_03_n) {
-  ml_train_dataset_h dataset;
+  ml_train_dataset_h dataset = nullptr;
   int status;
   status = ml_train_dataset_create_with_generator(&dataset, NULL, NULL, NULL);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
