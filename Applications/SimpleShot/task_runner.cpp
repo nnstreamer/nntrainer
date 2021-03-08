@@ -256,8 +256,13 @@ int main(int argc, char **argv) {
     return 1;
   };
 
-  std::shared_ptr<ml::train::Optimizer> optimizer =
-    ml::train::optimizer::SGD({"learning_rate=0.1"});
+  std::shared_ptr<ml::train::Optimizer> optimizer;
+  try {
+    optimizer = ml::train::optimizer::SGD({"learning_rate=0.1"});
+  } catch (...) {
+    std::cerr << "creating optimizer failed";
+    return 1;
+  }
 
   if (model->setOptimizer(optimizer) != 0) {
     std::cerr << "failed to set optimizer" << std::endl;

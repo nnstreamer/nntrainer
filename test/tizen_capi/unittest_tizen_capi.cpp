@@ -973,7 +973,11 @@ TEST(nntrainer_capi_summary, summary_02_n) {
  * @brief Main gtest
  */
 int main(int argc, char **argv) {
-  nntrainer::AppContext::Global().setWorkingDirectory(getTestResPath(""));
+  try {
+    nntrainer::AppContext::Global().setWorkingDirectory(getTestResPath(""));
+  } catch (std::invalid_argument &e) {
+    ml_loge("Failed to get test res path\n");
+  }
   int result = -1;
 
   try {

@@ -380,7 +380,12 @@ TEST(nntrainer_ccapi, train_batch_size_update_after) {
  * @brief Main gtest
  */
 int main(int argc, char **argv) {
-  nntrainer::AppContext::Global().setWorkingDirectory(getTestResPath(""));
+  try {
+    nntrainer::AppContext::Global().setWorkingDirectory(getTestResPath(""));
+  } catch (std::invalid_argument &e) {
+    std::cout << "failed to get test res path\n";
+  }
+
   int result = -1;
 
   try {
