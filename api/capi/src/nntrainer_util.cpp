@@ -13,6 +13,18 @@
 #include <nntrainer_error.h>
 #include <nntrainer_internal.h>
 
+#include <activation_layer.h>
+#include <addition_layer.h>
+#include <bn_layer.h>
+#include <concat_layer.h>
+#include <conv2d_layer.h>
+#include <fc_layer.h>
+#include <flatten_layer.h>
+#include <input_layer.h>
+#include <loss_layer.h>
+#include <output_layer.h>
+#include <pooling2d_layer.h>
+
 /**
  * @brief Convert nntrainer API optimizer type to neural network optimizer type
  */
@@ -43,6 +55,22 @@ const std::string ml_layer_to_nntrainer_type(ml_train_layer_type_e type) {
     return nntrainer::FullyConnectedLayer::type;
   case ML_TRAIN_LAYER_TYPE_INPUT:
     return nntrainer::InputLayer::type;
+  case ML_TRAIN_LAYER_TYPE_BN:
+    return nntrainer::BatchNormalizationLayer::type;
+  case ML_TRAIN_LAYER_TYPE_CONV2D:
+    return nntrainer::Conv2DLayer::type;
+  case ML_TRAIN_LAYER_TYPE_POOLING2D:
+    return nntrainer::Pooling2DLayer::type;
+  case ML_TRAIN_LAYER_TYPE_FLATTEN:
+    return nntrainer::FlattenLayer::type;
+  case ML_TRAIN_LAYER_TYPE_ACTIVATION:
+    return nntrainer::ActivationLayer::type;
+  case ML_TRAIN_LAYER_TYPE_ADDITION:
+    return nntrainer::AdditionLayer::type;
+  case ML_TRAIN_LAYER_TYPE_CONCAT:
+    return nntrainer::ConcatLayer::type;
+  case ML_TRAIN_LAYER_TYPE_MULTIOUT:
+    return nntrainer::OutputLayer::type;
   case ML_TRAIN_LAYER_TYPE_UNKNOWN:
   /// fall through intended
   default:
