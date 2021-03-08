@@ -23,10 +23,41 @@ namespace nntrainer {
 
 const std::string EmbeddingLayer::type = "embedding";
 
+enum EmbeddingParams { weight };
+
 int EmbeddingLayer::initialize(Manager &manager) {
   int status = ML_ERROR_NONE;
+  if (num_inputs != 1) {
+    throw std::invalid_argument("Embedding layer takes only one input");
+  }
 
-  // NYI
+  if (input_dim[0].channel() != 1) {
+    throw std::invalid_argument(
+      "Embedding layer takes only one for channel size");
+  }
+
+  output_dim[0] = input_dim[0];
+
+  output_dim[0].height(in_length);
+  output_dim[0].width(out_dim);
+  input_dim[0].width(in_length);
+
+  TensorDim dim = output_dim[0];
+
+  dim.height(in_dim);
+  dim.width(out_dim);
+  dim.batch(1);
+
+  if (weights.empty()) {
+    weights.reserve(1);
+    weights.emplace_back(dim, weight_initializer, weight_regularizer,
+                         weight_regularizer_constant, true, "Embedding");
+    manager.trackWeights(weights);
+  } else {
+    weights[EmbeddingParams::weight].reset(dim, weight_initializer,
+                                           weight_regularizer,
+                                           weight_regularizer_constant, true);
+  }
 
   return status;
 }
@@ -64,7 +95,31 @@ void EmbeddingLayer::setProperty(const PropertyType type,
 }
 
 void EmbeddingLayer::forwarding(bool training) {
-  // NYI
+  Tensor &weight =
+    weightAt(static_cast<int>(EmbeddingParams::weight)).getVariableRef();
+  Tensor &hidden_ = net_hidden[0]->getVariableRef();
+  Tensor &input_ = net_input[0]->getVariableRef();
+
+  for (unsigned int b = 0; b < input_.batch(); ++b) {
+    float *in_data = input_.getAddress(b * input_.getDim().getFeatureLen());
+
+    for (unsigned int i = 0; i < in_length; ++i) {
+      if (in_data[i] < 0)
+        continue;
+
+      float *weight_data =
+        weight.getAddress(static_cast<uint>(in_data[i]) * out_dim);
+      float *out_data =
+        hidden_.getAddress(b * hidden_.getDim().getFeatureLen() + i * out_dim);
+
+      for (unsigned int j = 0; j < out_dim; ++j) {
+        out_data[j] = weight_data[j];
+      }
+    }
+  }
+
+  loss =
+    weightAt(static_cast<int>(EmbeddingParams::weight)).getRegularizationLoss();
 }
 
 void EmbeddingLayer::copy(std::shared_ptr<Layer> l) {

@@ -18,6 +18,7 @@
 #include <addition_layer.h>
 #include <bn_layer.h>
 #include <conv2d_layer.h>
+#include <embedding.h>
 #include <fc_layer.h>
 #include <flatten_layer.h>
 #include <input_layer.h>
@@ -2207,6 +2208,54 @@ TEST_F(nntrainer_AdditionLayer, DISABLED_forwarding_03_p) {
     layer.getType(), layer.getName(), layer.getInputDimension()));
   layer.setOutputBuffers(manager.trackLayerOutputs(
     layer.getType(), layer.getName(), layer.getOutputDimension()));
+
+  EXPECT_NO_THROW(layer.forwarding_with_val({input}));
+}
+
+class nntrainer_EmbeddingLayer
+  : public nntrainer_abstractLayer<nntrainer::EmbeddingLayer> {
+
+protected:
+  typedef nntrainer_abstractLayer<nntrainer::EmbeddingLayer> super;
+
+  virtual void prepareLayer() {
+    int status = setProperty("in_dim=50 |"
+                             "out_dim=8 |"
+                             "in_length=12");
+    EXPECT_EQ(status, ML_ERROR_NONE);
+    setBatch(3);
+  }
+
+  nntrainer::Tensor result;
+};
+
+TEST_F(nntrainer_EmbeddingLayer, initialize_01_p) {
+  status = reinitialize();
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+TEST_F(nntrainer_EmbeddingLayer, forwarding_01_p) {
+  float sentence[36] = {45, 16, 32, 27, 34, 33, 0,  0,  0, 0, 0,  0,
+                        24, 2,  27, 34, 33, 37, 32, 27, 3, 0, 0,  0,
+                        22, 27, 16, 28, 35, 33, 7,  2,  2, 3, 33, 35};
+
+  sharedTensor input = std::shared_ptr<nntrainer::Tensor>(
+    new nntrainer::Tensor[1], std::default_delete<nntrainer::Tensor[]>());
+
+  nntrainer::Tensor &in = *input;
+
+  in = nntrainer::Tensor(nntrainer::TensorDim(3, 1, 1, 12), sentence);
+
+  nntrainer::Manager manager;
+
+  manager.setInferenceInOutMemoryOptimization(false);
+  layer.setInputBuffers(manager.trackLayerInputs(
+    layer.getType(), layer.getName(), layer.getInputDimension()));
+  layer.setOutputBuffers(manager.trackLayerOutputs(
+    layer.getType(), layer.getName(), layer.getOutputDimension()));
+
+  manager.initializeTensors(false);
+  manager.allocateTensors();
 
   EXPECT_NO_THROW(layer.forwarding_with_val({input}));
 }
