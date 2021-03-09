@@ -2252,6 +2252,46 @@ TEST_F(nntrainer_EmbeddingLayer, forwarding_01_p) {
   EXPECT_NO_THROW(layer.forwarding_with_val({input}));
 }
 
+TEST_F(nntrainer_EmbeddingLayer, forwarding_backwarding_01_p) {
+  float sentence[36] = {45, 16, 32, 27, 34, 33, 0,  0,  0, 0, 0,  0,
+                        24, 2,  27, 34, 33, 37, 32, 27, 3, 0, 0,  0,
+                        22, 27, 16, 28, 35, 33, 7,  2,  2, 3, 33, 35};
+
+  sharedTensor input = std::shared_ptr<nntrainer::Tensor>(
+    new nntrainer::Tensor[1], std::default_delete<nntrainer::Tensor[]>());
+
+  nntrainer::Tensor &in = *input;
+
+  in = nntrainer::Tensor(nntrainer::TensorDim(3, 1, 1, 12), sentence);
+
+  nntrainer::Manager manager;
+
+  manager.setInferenceInOutMemoryOptimization(false);
+  layer.setInputBuffers(manager.trackLayerInputs(
+    layer.getType(), layer.getName(), layer.getInputDimension()));
+  layer.setOutputBuffers(manager.trackLayerOutputs(
+    layer.getType(), layer.getName(), layer.getOutputDimension()));
+
+  manager.initializeTensors(true);
+  manager.allocateTensors();
+
+  EXPECT_NO_THROW(layer.forwarding_with_val({input}));
+
+  nntrainer::Tensor derivatives(3, 1, 12, 8);
+
+  for (unsigned int i = 0; i < derivatives.getDim().getDataLen(); ++i) {
+    derivatives.getData()[i] = 1.0;
+  }
+
+  setOptimizer(nntrainer::OptType::ADAM, "learning_rate=1.0");
+
+  allocateMemory();
+
+  nntrainer::Tensor result;
+  EXPECT_NO_THROW(result = *layer.backwarding_with_val(
+                    1, {MAKE_SHARED_TENSOR(derivatives)}, opt)[0]);
+}
+
 /**
  * @brief Main gtest
  */
