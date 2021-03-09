@@ -298,7 +298,8 @@ sharedConstTensors NeuralNetwork::forwarding(bool training) {
 sharedConstTensors NeuralNetwork::forwarding(sharedConstTensors input,
                                              sharedConstTensors label,
                                              bool training) {
-  if (input[0]->getDim().batch() > batch_size)
+  if (input[0]->batch() != batch_size ||
+      (!label.empty() && label[0]->batch() != batch_size))
     throw std::logic_error("Error: mismatch in batchsize for data and model.");
 
   auto &first_layer = model_graph.getSortedLayerNode(0).layer;
