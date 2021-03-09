@@ -491,21 +491,14 @@ void Manager::deallocateDerivatives() {
   }
 }
 
-void Manager::initializeTensors() {
-  // Initialize gradients
-  if (model_training)
-    initializeGradients();
-
-  // Initialize shared derivative memory
-  if (max_derivative_size > 0 && enable_activation_memory_opt && model_training)
-    shared_deriv = Tensor(TensorDim({max_derivative_size}), false);
-
-  // @todo Do not count memory of the input tensor of the input layer in the
-  // estimate of max_shared_inout as it is not used
+void Manager::initializeTensorsInference() {
+  // @todo Do not count memory of the input tensor of the input layer and
+  // output tensor of the last layer in the estimate of max_shared_inout as it
+  // is not used
 
   // Initialize shared input/output memory for inference
   // @note Memory for label is not allocated here as inference doesnt has label
-  if (!model_training && enable_inference_inout_memory_opt)
+  if (enable_inference_inout_memory_opt)
     shared_inout = Tensor(TensorDim({max_shared_inout}), false);
 
   /**
@@ -513,36 +506,66 @@ void Manager::initializeTensors() {
    * layer. Further, the output of layer i shares memory with input with layer
    * i+1. So, each alternate layer allocates memory from either the start of the
    * buffer or the end of the buffer, and use_first_last tracks this
+   *
+   * @note Label for the last layer is not initialized in inference.
+   * @note Input for the first layer is not initialized in inference.
    */
   bool use_first_last = 0;
   for (unsigned int idx = 0; idx < in_outs.size(); idx++) {
     auto &l_io = in_outs[idx];
     unsigned int offset = 0;
-    bool is_last_layer = idx == in_outs.size() - 1;
+    bool is_first_layer = idx == 0;
 
     // For flatten layer, do not assign new memory
     if (idx > 0 && is_flat_type[idx])
       use_first_last = 1 - use_first_last;
 
-    for (auto &io : l_io) {
-      if (!model_training) {
-        Tensor shared_inout_cur = Tensor();
-        if (enable_inference_inout_memory_opt) {
-          if (use_first_last) {
-            // Create tensor with from the front of shared tensor
-            shared_inout_cur =
-              shared_inout.getSharedDataTensor(io->getDim(), offset);
-          } else {
-            // Create tensor with from the back of shared tensor
-            shared_inout_cur = shared_inout.getSharedDataTensor(
-              io->getDim(),
-              max_shared_inout - io->getDim().getDataLen() - offset);
-          }
-          offset += io->getDim().getDataLen();
-        }
-        io->initialize(shared_inout_cur, Tensor(), model_training);
+    // In inference mode, do not allocate the memory for the input of the first
+    // layer. These is the first entry in the in_outs. Inference() will override
+    // input tensors of the first layer
+    if (is_first_layer)
+      continue;
 
-      } else if (enable_derivative_memory_opt && !is_last_layer) {
+    for (auto &io : l_io) {
+      Tensor shared_inout_cur = Tensor();
+      if (enable_inference_inout_memory_opt) {
+        // if optimized
+        if (use_first_last) {
+          // Create tensor with from the front of shared tensor
+          shared_inout_cur =
+            shared_inout.getSharedDataTensor(io->getDim(), offset);
+        } else {
+          // Create tensor with from the back of shared tensor
+          shared_inout_cur = shared_inout.getSharedDataTensor(
+            io->getDim(),
+            max_shared_inout - io->getDim().getDataLen() - offset);
+        }
+        offset += io->getDim().getDataLen();
+      }
+      io->initialize(shared_inout_cur, Tensor(), false);
+    }
+    use_first_last = 1 - use_first_last;
+  }
+}
+
+void Manager::initializeTensorsTrain() {
+  // Initialize gradients
+  initializeGradients();
+
+  // Initialize shared derivative memory
+  if (max_derivative_size > 0 && enable_activation_memory_opt)
+    shared_deriv = Tensor(TensorDim({max_derivative_size}), false);
+
+  for (unsigned int idx = 0; idx < in_outs.size(); idx++) {
+    auto &l_io = in_outs[idx];
+    unsigned int offset = 0;
+    bool is_last_layer = idx == in_outs.size() - 1;
+
+    for (auto &io : l_io) {
+      // Last layer requires separate memory allocations for output and label
+      // (deriv)
+      if (enable_derivative_memory_opt && !is_last_layer) {
+        // Training Mode with optimizations
         if (is_act_type[idx] && enable_activation_memory_opt) {
           io->initialize(
             Tensor(), shared_deriv.getSharedDataTensor(io->getDim(), offset));
@@ -552,16 +575,11 @@ void Manager::initializeTensors() {
         }
 
       } else {
-        if (is_last_layer)
-          io->initialize(Tensor(), Tensor(), true);
-        else
-          io->initialize(Tensor(), Tensor(), model_training);
+        // Training Mode without optimizations
+        io->initialize(Tensor(), Tensor(), true);
       }
     }
-    use_first_last = 1 - use_first_last;
   }
-
-  tensors_initialized = true;
 }
 
 /**
@@ -579,8 +597,11 @@ void Manager::initializeTensors(bool training) {
     deinitializeTensors();
 
   model_training = training;
-
-  initializeTensors();
+  if (model_training)
+    initializeTensorsTrain();
+  else
+    initializeTensorsInference();
+  tensors_initialized = true;
 }
 
 /**
