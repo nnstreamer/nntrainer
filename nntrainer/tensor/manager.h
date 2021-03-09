@@ -11,6 +11,10 @@
  * @author Jihoon Lee <jhoon.it.lee@samsung.com>
  * @bug	   No known bugs except for NYI items
  *
+ *
+ * @details Manager assumes that the layer inouts are being tracked by the
+ * manager in the order of the execution. If the order is not maintained, then
+ * the optimizations cannot be performed and will result in wrong values.
  */
 
 #ifndef __MANAGER_H__
@@ -432,8 +436,21 @@ private:
    *
    */
   void deallocateDerivatives();
-  void initializeTensors();
+
+  /**
+   * @brief Deinitialize the tensors
+   */
   void deinitializeTensors();
+
+  /**
+   * @brief Initialize the tensors for inference mode
+   */
+  void initializeTensorsInference();
+
+  /**
+   * @brief Initialize the tensors for training mode
+   */
+  void initializeTensorsTrain();
 };
 
 } // namespace nntrainer
