@@ -534,9 +534,6 @@ sharedConstTensors NeuralNetwork::inference(sharedConstTensors X,
     START_PROFILE(profile::NN_FORWARD);
     forwarding(X, {}, false);
     END_PROFILE(profile::NN_FORWARD);
-    /** Forward loss layer without label as well */
-    std::static_pointer_cast<LossLayer>(model_graph.Sorted.back().layer)
-      ->forwarding(false);
   } catch (...) {
     ml_loge("Failed to inference Model");
     return out;
