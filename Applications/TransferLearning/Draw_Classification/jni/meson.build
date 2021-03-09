@@ -26,4 +26,6 @@ e = executable('nntrainer_training',
   install_dir: application_install_dir
 )
 
-test('app_draw_classification', e, args: [nntr_draw_resdir / 'Training.ini', nntr_draw_resdir], timeout: 60)
+nntrainer_filter_env = 'NNSTREAMER_FILTERS=' + meson.build_root() + '/nnstreamer/tensor_filter'
+test('app_draw_classification', e, env: nntrainer_filter_env,
+  args: [nntr_draw_resdir / 'Training.ini', nntr_draw_resdir], timeout: 100)
