@@ -104,17 +104,21 @@ void EmbeddingLayer::forwarding(bool training) {
     float *in_data = input_.getAddress(b * input_.getDim().getFeatureLen());
 
     for (unsigned int i = 0; i < in_length; ++i) {
-      if (in_data[i] < 0)
+      if (in_data[i] > in_dim) {
+        throw std::invalid_argument("input word index is greater than in_dim");
+      }
+
+      // Assume padding is 0 and index always start from 1.
+      // If in_data[i] - 1 < 0, then it skips.
+      if (in_data[i] - 1 < 0)
         continue;
 
       float *weight_data =
-        weight.getAddress(static_cast<uint>(in_data[i]) * out_dim);
+        weight.getAddress(static_cast<uint>(in_data[i] - 1) * out_dim);
       float *out_data =
         hidden_.getAddress(b * hidden_.getDim().getFeatureLen() + i * out_dim);
 
-      for (unsigned int j = 0; j < out_dim; ++j) {
-        out_data[j] = weight_data[j];
-      }
+      std::copy(weight_data, weight_data + out_dim, out_data);
     }
   }
 
@@ -133,10 +137,43 @@ void EmbeddingLayer::copy(std::shared_ptr<Layer> l) {
 }
 
 void EmbeddingLayer::calcDerivative() {
-  // NYI
+  // Uncomment this after fixing issues backwarding of first layer. (Issues
+  // #1017)
+  // throw exception::not_supported(
+  //   "calcDerivative for Embedding layer is not supported");
+  return; // intended
 }
+
 void EmbeddingLayer::calcGradient() {
-  // NYI
+  Tensor &djdw =
+    weightAt(static_cast<int>(EmbeddingParams::weight)).getGradientRef();
+  Tensor &derivative_ = net_hidden[0]->getGradientRef();
+  Tensor &input_ = net_input[0]->getVariableRef();
+
+  djdw.setZero();
+
+  // TODO:
+  // This is to calculate gradient with current implementation of optimizer.
+  // In order to accelerate, we need to better way like using index to weight.
+
+  for (unsigned int b = 0; b < input_.batch(); ++b) {
+    float *in_data = input_.getAddress(b * input_.getDim().getFeatureLen());
+
+    for (unsigned int i = 0; i < in_length; ++i) {
+      // Assume padding is 0 and index always start from 1.
+      // If in_data[i] - 1 < 0, then it skips.
+      if (in_data[i] - 1 < 0)
+        continue;
+
+      float *djdw_data =
+        djdw.getAddress(static_cast<uint>(in_data[i] - 1) * out_dim);
+      float *grad_data = derivative_.getAddress(
+        b * derivative_.getDim().getFeatureLen() + i * out_dim);
+
+      std::transform(djdw_data, djdw_data + out_dim, grad_data, djdw_data,
+                     std::plus<float>());
+    }
+  }
 }
 
 } // namespace nntrainer
