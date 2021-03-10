@@ -164,6 +164,9 @@ void Manager::trackWeight(std::reference_wrapper<Weight> w) {
  * @brief     Add weights to be tracked and updated with nntrainer
  */
 void Manager::trackWeights(std::vector<Weight> &ws) {
+  if (weights_initialized || tensors_initialized)
+    throw std::runtime_error("Cannot track more weights after initialize.");
+
   std::vector<std::reference_wrapper<Weight>> layer_weights;
   layer_weights.reserve(ws.size());
 
@@ -229,6 +232,7 @@ Manager::AllocFunc Manager::getAllocFunc(bool is_weight) {
   } else if (!is_weight) {
     /** only for gradients */
     if (max_grad_size > 0 && enable_gradient_memory_opt) {
+      // create a lazily allocated shared_grad
       shared_grad = Tensor(TensorDim({max_grad_size}), false);
 
       allocate_func = [this](const TensorDim &dim, unsigned int offset) {
@@ -260,18 +264,15 @@ void Manager::initializeWeights() {
     for (auto &w : l_w) {
       Weight &weight = w.get();
       auto dim = weight.getDim();
-      /** This will allocate memory for weights right now */
-      Tensor weight_prealloc = allocate_weight(dim, weight_offset);
-      Tensor grad_prealloc = Tensor();
 
+      Tensor weight_prealloc = allocate_weight(dim, weight_offset);
       weight_offset += dim.getDataLen();
+
       weight.initializeVariable(weight_prealloc);
     }
   }
 
   weights_initialized = true;
-  /** weights are allocated without delay */
-  weights_allocated = true;
 }
 
 void Manager::allocateWeights() {
@@ -361,6 +362,10 @@ std::vector<std::shared_ptr<Var_Grad>> &
 Manager::trackLayerInOuts(const std::string &layer_type,
                           const std::string &layer_name,
                           const std::vector<TensorDim> &inout_dim) {
+  if (tensors_initialized)
+    throw std::runtime_error(
+      "Cannot track more inputs/outputs after initialize.");
+
   int cnt = 0;
   bool is_act_layer = layer_type == ActivationLayer::type;
   bool is_flat_layer = layer_type == FlattenLayer::type;

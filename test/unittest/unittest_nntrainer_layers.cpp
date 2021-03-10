@@ -62,12 +62,15 @@ protected:
     manager.setInPlaceActivationOptimization(false);
     manager.setInferenceInOutMemoryOptimization(false);
     prepareLayer();
-    reinitialize();
+    initialize();
   }
 
-  virtual int reinitialize() {
+  virtual int initialize() {
     int status = layer.initialize(manager);
     EXPECT_EQ(status, ML_ERROR_NONE);
+
+    manager.initializeWeights();
+    manager.allocateWeights();
 
     in = nntrainer::Tensor(layer.getInputDimension()[0]);
     out = nntrainer::Tensor(layer.getOutputDimension()[0]);
@@ -80,12 +83,21 @@ protected:
     return status;
   }
 
+  virtual int reinitialize() {
+    resetLayer();
+    prepareLayer();
+    status = initialize();
+    EXPECT_EQ(status, ML_ERROR_NONE);
+    return status;
+  }
+
   virtual int reinitialize(const std::string str, int batch_size = 1) {
     resetLayer();
+    prepareLayer();
     int status = setProperty(str);
     EXPECT_EQ(status, ML_ERROR_NONE);
     setBatch(batch_size);
-    status = reinitialize();
+    status = initialize();
     EXPECT_EQ(status, ML_ERROR_NONE);
     return status;
   }
@@ -694,8 +706,8 @@ class nntrainer_FullyConnectedLayer_TFmatch
 protected:
   typedef nntrainer_abstractLayer<nntrainer::FullyConnectedLayer> super;
 
-  virtual int reinitialize() {
-    int status = super::reinitialize();
+  virtual int initialize() {
+    int status = super::initialize();
     label =
       MAKE_SHARED_TENSOR(nntrainer::Tensor(layer.getOutputDimension()[0]));
 
@@ -1656,7 +1668,7 @@ TEST_F(nntrainer_Pooling2DLayer, forwarding_01_p) {
   setInputDim("2:5:5");
   setProperty("pool_size=2,2 | stride=1,1 | padding=0,0 | pooling=max");
 
-  reinitialize();
+  initialize();
   allocateMemory();
 
   loadFile("tc_pooling2d_1.in", in);
@@ -1671,7 +1683,7 @@ TEST_F(nntrainer_Pooling2DLayer, forwarding_02_p) {
   setInputDim("2:5:5");
   setProperty("pool_size=2,2 | stride=1,1 | padding=0,0 | pooling=average");
 
-  reinitialize();
+  initialize();
   allocateMemory();
 
   loadFile("tc_pooling2d_1.in", in);
@@ -1686,7 +1698,7 @@ TEST_F(nntrainer_Pooling2DLayer, forwarding_03_p) {
   resetLayer();
   setInputDim("2:5:5");
   setProperty("pooling=global_max");
-  reinitialize();
+  initialize();
   allocateMemory();
 
   loadFile("tc_pooling2d_1.in", in);
@@ -1701,7 +1713,7 @@ TEST_F(nntrainer_Pooling2DLayer, forwarding_04_p) {
   resetLayer();
   setInputDim("2:5:5");
   setProperty("pooling=global_average");
-  reinitialize();
+  initialize();
   allocateMemory();
 
   loadFile("tc_pooling2d_1.in", in);
@@ -1717,7 +1729,7 @@ TEST_F(nntrainer_Pooling2DLayer, forwarding_05_p) {
   setInputDim("2:5:5");
   setBatch(2);
   setProperty("pooling=global_max");
-  reinitialize();
+  initialize();
   allocateMemory();
 
   loadFile("tc_pooling2d_2.in", in);
@@ -1731,7 +1743,7 @@ TEST_F(nntrainer_Pooling2DLayer, forwarding_06_p) {
   setInputDim("2:5:5");
   setBatch(2);
   setProperty("pooling=global_average");
-  reinitialize();
+  initialize();
   allocateMemory();
 
   loadFile("tc_pooling2d_2.in", in);
@@ -1746,7 +1758,7 @@ TEST_F(nntrainer_Pooling2DLayer, backwarding_01_p) {
   setInputDim("2:5:5");
   setProperty("pool_size=2,2 | stride=1,1 | padding=0,0 | pooling=max");
 
-  reinitialize();
+  initialize();
   allocateMemory();
   loadFile("tc_pooling2d_1.in", in);
 
@@ -1769,7 +1781,7 @@ TEST_F(nntrainer_Pooling2DLayer, backwarding_02_p) {
   resetLayer();
   setInputDim("2:5:5");
   setProperty("pool_size=2,2 | stride=1,1 | padding=0,0 | pooling=average");
-  reinitialize();
+  initialize();
   allocateMemory();
   loadFile("tc_pooling2d_1.in", in);
 
@@ -1791,7 +1803,7 @@ TEST_F(nntrainer_Pooling2DLayer, backwarding_03_p) {
   resetLayer();
   setInputDim("2:5:5");
   setProperty("pool_size=2,2 | stride=1,1 | padding=0,0 | pooling=global_max");
-  reinitialize();
+  initialize();
   allocateMemory();
 
   loadFile("tc_pooling2d_1.in", in);
@@ -1815,7 +1827,7 @@ TEST_F(nntrainer_Pooling2DLayer, backwarding_04_p) {
   setInputDim("2:5:5");
   setProperty(
     "pool_size=2,2 | stride=1,1 | padding=0,0 | pooling=global_average");
-  reinitialize();
+  initialize();
   allocateMemory();
   loadFile("tc_pooling2d_1.in", in);
 
@@ -1865,7 +1877,7 @@ TEST_F(nntrainer_FlattenLayer, forwarding_01_p) {
 TEST_F(nntrainer_FlattenLayer, forwarding_02_p) {
   setInputDim("2:4:4");
   setBatch(2);
-  reinitialize();
+  initialize();
 
   EXPECT_EQ(out.getDim(), nntrainer::TensorDim(2, 1, 1, 32));
 
@@ -1900,7 +1912,7 @@ TEST_F(nntrainer_FlattenLayer, backwarding_01_p) {
 TEST_F(nntrainer_FlattenLayer, backwarding_02_p) {
   setInputDim("2:4:4");
   setBatch(2);
-  reinitialize();
+  initialize();
 
   EXPECT_EQ(out.getDim(), nntrainer::TensorDim(2, 1, 1, 32));
 

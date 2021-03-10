@@ -263,6 +263,7 @@ int NeuralNetwork::initialize() {
 
   // Allocate and initialize weights
   manager->initializeWeights();
+  manager->allocateWeights();
 
   if (in_place_optimization) {
     model_graph.inPlaceOptimize(*manager);
