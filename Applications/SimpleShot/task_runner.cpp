@@ -246,10 +246,16 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  std::shared_ptr<ml::train::Dataset> train_dataset = ml::train::createDataset(
-    ml::train::DatasetType::FILE,
-    {"train_data=" + train_path, "val_data=" + val_path,
-     "label_data=" + label_path});
+  std::shared_ptr<ml::train::Dataset> train_dataset;
+  try {
+    train_dataset = ml::train::createDataset(ml::train::DatasetType::FILE,
+                                             {"train_data=" + train_path,
+                                              "val_data=" + val_path,
+                                              "label_data=" + label_path});
+  } catch (...) {
+    std::cerr << "creating dataset failed";
+    return 1;
+  }
 
   if (model->setDataset(train_dataset)) {
     std::cerr << "failed to set dataset" << std::endl;
