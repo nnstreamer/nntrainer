@@ -1,6 +1,3 @@
-gtest_dep_with_main = dependency('gtest', main : true, required : false)
-
-
 test_target = [
   'simpleshot_utils_test.cpp',
   'simpleshot_centering_test.cpp',
@@ -10,7 +7,7 @@ test_target = [
 
 exe = executable(
   'simpleshot_tests', test_target,
-  dependencies: [gtest_dep_with_main,
+  dependencies: [gtest_main_dep,
       simpleshot_test_dep,
       nntrainer_dep,
       nntrainer_ccapi_dep,
