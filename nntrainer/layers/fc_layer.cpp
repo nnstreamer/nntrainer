@@ -55,9 +55,9 @@ int FullyConnectedLayer::initialize(Manager &manager) {
   if (weights.empty()) {
     weights.reserve(2);
     weights.emplace_back(dim, weight_initializer, weight_regularizer,
-                         weight_regularizer_constant, true, true, "FC:weight");
+                         weight_regularizer_constant, true, false, "FC:weight");
     weights.emplace_back(bias_dim, bias_initializer, WeightRegularizer::NONE,
-                         1.0f, true, true, "FC:bias");
+                         1.0f, true, false, "FC:bias");
     manager.trackWeights(weights);
   } else {
     weights[FCParams::weight].reset(dim, weight_initializer, weight_regularizer,

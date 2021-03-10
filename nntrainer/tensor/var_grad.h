@@ -41,10 +41,11 @@ public:
    *
    * @param dim Variable and gradient tensor dimension
    * @param train If the variable is trainable
+   * @param alloc_now The memory for the var_grad tensors be allocated upon init
    * @param name Name for this Var_Grad
    */
-  Var_Grad(const TensorDim &dim, bool train = true, bool alloc_now = true,
-           const std::string &name = "");
+  explicit Var_Grad(const TensorDim &dim, bool train = true,
+                    bool alloc_now = false, const std::string &name = "");
 
   /**
    * @brief Swap for Var_Grad
@@ -168,7 +169,10 @@ public:
   /**
    * @brief Reset the gradient to 0
    */
-  void resetGradient() { grad->setZero(); }
+  void resetGradient() {
+    if (grad->isAllocated())
+      grad->setZero();
+  }
 
   /**
    * @bried Clone the currnet object

@@ -65,14 +65,16 @@ public:
    * @param dim Variable and gradient tensor dimension
    * @param init Initializer for the weight
    * @param reg Regularizer for the weight
+   * @param reg_const Constant multiplier for regularizer
    * @param train If the variable is trainable
+   * @param alloc_now The memory for the weight tensors be allocated upon init
    * @param name Name for this weight
    */
-  Weight(
+  explicit Weight(
     const TensorDim &dim,
     const WeightInitializer init = WeightInitializer::WEIGHT_XAVIER_UNIFORM,
     const WeightRegularizer reg = WeightRegularizer::NONE,
-    const float reg_const = 1.0f, bool train = true, bool alloc_now = true,
+    const float reg_const = 1.0f, bool train = true, bool alloc_now = false,
     std::string name = "");
 
   /**
@@ -192,7 +194,7 @@ public:
    */
   void allocateVariable() {
     Var_Grad::allocateVariable();
-    initializeVariable();
+    runVariableInitializer();
   }
 
   /**

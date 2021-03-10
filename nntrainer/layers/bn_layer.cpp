@@ -63,15 +63,17 @@ int BatchNormalizationLayer::initialize(Manager &manager) {
   if (weights.empty()) {
     weights.reserve(4);
     weights.emplace_back(dim, initializers[BNParams::mu],
-                         WeightRegularizer::NONE, 1.0f, false, true,
+                         WeightRegularizer::NONE, 1.0f, false, false,
                          "BN::moving_mean");
     weights.emplace_back(dim, initializers[BNParams::var],
-                         WeightRegularizer::NONE, 1.0f, false, true,
+                         WeightRegularizer::NONE, 1.0f, false, false,
                          "BN::moving_variance");
     weights.emplace_back(dim, initializers[BNParams::gamma],
-                         WeightRegularizer::NONE, 1.0f, true, true, "BN::gamma");
+                         WeightRegularizer::NONE, 1.0f, true, false,
+                         "BN::gamma");
     weights.emplace_back(dim, initializers[BNParams::beta],
-                         WeightRegularizer::NONE, 1.0f, true, true, "BN::beta");
+                         WeightRegularizer::NONE, 1.0f, true, false,
+                         "BN::beta");
     manager.trackWeights(weights);
   } else {
     weights[BNParams::mu].reset(dim, initializers[BNParams::mu],
