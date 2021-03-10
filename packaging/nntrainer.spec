@@ -330,7 +330,7 @@ tar xzf unittest_layers.tar.gz -C build
 # independent unittests of nntrainer
 bash %{test_script} ./test
 
-# export NNSTREAMER_CONF=$(pwd)/test/nnstreamer_filter_nntrainer/nnstreamer-test.ini
+# export NNSTREAMER_CONF=$(pwd)/test/nnstreamer/nnstreamer-test.ini
 # export NNSTREAMER_FILTERS=$(pwd)/build/nnstreamer/tensor_filter
 pushd build
 
@@ -348,9 +348,9 @@ popd
 
 # unittest for nntrainer plugin for nnstreamer
 # %if 0%{?nnstreamer_filter}
-# export NNSTREAMER_CONF=$(pwd)/test/nnstreamer_filter_nntrainer/nnstreamer-test.ini
+# export NNSTREAMER_CONF=$(pwd)/test/nnstreamer/nnstreamer-test.ini
 # export NNSTREAMER_FILTERS=$(pwd)/build/nnstreamer/tensor_filter
-# pushd test/nnstreamer_filter_nntrainer
+# pushd test/nnstreamer
 # bash runTest.sh
 # popd
 # %endif #nnstreamer_filter

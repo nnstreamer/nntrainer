@@ -21,10 +21,9 @@ if get_option('enable-test')
     nntrainer_testutil_dep
   ],
   install: get_option('enable-test'),
-  install_dir: application_install_dir
-)
+  install_dir: application_install_dir)
 
-testenv = environment()
-testenv.set('NNTRAINER_PATH', meson.current_build_dir())
-test('app_plugin_test', exe, env: testenv)
+  testenv = environment()
+  testenv.set('NNTRAINER_PATH', meson.current_build_dir())
+  test('app_plugin_test', exe, env: testenv)
 endif
