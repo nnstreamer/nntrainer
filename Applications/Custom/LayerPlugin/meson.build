@@ -15,7 +15,7 @@ if get_option('enable-test')
   exe = executable(
   'app_plugin_test', test_target,
   dependencies: [
-    gtest_dep_with_main,
+    gtest_main_dep,
     nntrainer_dep,
     nntrainer_ccapi_dep,
     nntrainer_testutil_dep

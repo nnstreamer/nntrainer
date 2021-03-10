@@ -1,5 +1,3 @@
-gtest_dep_with_main = dependency('gtest', main : true, required : false)
-
 nntr_app_resdir = nntrainer_resdir / 'app'
 run_command('mkdir', '-p', nntr_app_resdir)
 
