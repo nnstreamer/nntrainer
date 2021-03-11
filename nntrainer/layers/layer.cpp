@@ -51,16 +51,16 @@ int Layer::checkValidation() {
 }
 
 void Layer::setBatch(unsigned int batch) {
-  for (unsigned int idx = 0; idx < num_inputs; ++idx)
+  for (unsigned int idx = 0; idx < getNumInputs(); ++idx)
     input_dim[idx].setTensorDim(0, batch);
 
-  for (unsigned int idx = 0; idx < num_outputs; ++idx)
+  for (unsigned int idx = 0; idx < getNumOutputs(); ++idx)
     output_dim[idx].setTensorDim(0, batch);
 }
 
 std::vector<Tensor> Layer::getOutputs() {
   std::vector<Tensor> ret;
-  for (unsigned int i = 0; i < num_outputs; ++i) {
+  for (unsigned int i = 0; i < getNumOutputs(); ++i) {
     ret.push_back(net_hidden[i]->getVariableRef());
   }
   return ret;
@@ -68,7 +68,7 @@ std::vector<Tensor> Layer::getOutputs() {
 
 std::vector<Tensor> Layer::getDerivatives() {
   std::vector<Tensor> ret;
-  for (unsigned int i = 0; i < num_inputs; ++i) {
+  for (unsigned int i = 0; i < getNumInputs(); ++i) {
     ret.push_back(net_input[i]->getGradientRef());
   }
   return ret;
@@ -80,8 +80,6 @@ void Layer::copy(std::shared_ptr<Layer> l) {
 
   this->input_dim = l->input_dim;
   this->output_dim = l->output_dim;
-  this->input.copy(l->input);
-  this->hidden.copy(l->hidden);
   this->activation_type = l->activation_type;
   this->loss = l->loss;
   this->weight_regularizer = l->weight_regularizer;
@@ -89,27 +87,25 @@ void Layer::copy(std::shared_ptr<Layer> l) {
   this->weight_initializer = l->weight_initializer;
   this->flatten = l->flatten;
   this->trainable = l->trainable;
-  this->num_inputs = l->num_inputs;
-  this->num_outputs = l->num_outputs;
 }
 
 sharedConstTensors Layer::forwarding_with_val(sharedConstTensors input,
                                               sharedConstTensors label,
                                               bool training) {
 
-  if (net_input.size() != input.size()) {
+  if (getNumInputs() != input.size()) {
     std::stringstream ss;
     ss << "Number of inputs mismatched, given: " << input.size()
-       << " expected: " << net_input.size();
+       << " expected: " << getNumInputs();
     throw std::invalid_argument(ss.str().c_str());
   }
 
-  for (unsigned int i = 0; i < num_inputs; ++i) {
+  for (unsigned int i = 0; i < getNumInputs(); ++i) {
     net_input[i]->getVariableRef() = input[i]->clone();
   }
 
   if (!label.empty()) {
-    for (unsigned int i = 0; i < num_outputs; ++i) {
+    for (unsigned int i = 0; i < getNumOutputs(); ++i) {
       net_hidden[i]->getGradientRef() = label[i]->clone();
     }
   }
@@ -118,7 +114,7 @@ sharedConstTensors Layer::forwarding_with_val(sharedConstTensors input,
 
   nntrainer::sharedConstTensors out;
 
-  for (unsigned int i = 0; i < num_outputs; ++i) {
+  for (unsigned int i = 0; i < getNumOutputs(); ++i) {
     out.push_back(MAKE_SHARED_TENSOR(net_hidden[i]->getVariable()));
   }
 
@@ -127,7 +123,7 @@ sharedConstTensors Layer::forwarding_with_val(sharedConstTensors input,
 
 sharedConstTensors Layer::backwarding_with_val(sharedConstTensors label) {
 
-  for (unsigned int i = 0; i < num_outputs; ++i) {
+  for (unsigned int i = 0; i < getNumOutputs(); ++i) {
     net_hidden[i]->getGradientRef() = label[i]->clone();
   }
 
@@ -135,7 +131,7 @@ sharedConstTensors Layer::backwarding_with_val(sharedConstTensors label) {
 
   nntrainer::sharedConstTensors out;
 
-  for (unsigned int i = 0; i < num_inputs; ++i) {
+  for (unsigned int i = 0; i < getNumInputs(); ++i) {
     out.push_back(MAKE_SHARED_TENSOR(net_input[i]->getGradient()));
   }
 
@@ -195,7 +191,7 @@ void Layer::setProperty(const PropertyType type, const std::string &value) {
     }
     break;
   case PropertyType::input_shape: {
-    if (num_inputs != 1) {
+    if (getNumInputs() != 1) {
       throw std::invalid_argument("input_shape keyword is only for one input");
     }
 
@@ -260,10 +256,10 @@ void Layer::setProperty(const PropertyType type, const std::string &value) {
       static const std::regex reg("\\,+");
       std::vector<std::string> concat_layers = split(value, reg);
 
-      num_inputs = concat_layers.size();
-      input_dim.resize(num_inputs);
+      /** TODO : match this with num_inputs property */
+      setNumInputs(concat_layers.size());
       input_layers.clear();
-      for (unsigned int i = 0; i < num_inputs; ++i)
+      for (unsigned int i = 0; i < getNumInputs(); ++i)
         input_layers.push_back(concat_layers[i]);
     }
     break;
@@ -272,10 +268,9 @@ void Layer::setProperty(const PropertyType type, const std::string &value) {
       static const std::regex reg("\\,+");
       std::vector<std::string> concat_layers = split(value, reg);
 
-      num_outputs = concat_layers.size();
-      output_dim.resize(num_outputs);
+      setNumOutputs(concat_layers.size());
       output_layers.clear();
-      for (unsigned int i = 0; i < num_outputs; ++i)
+      for (unsigned int i = 0; i < getNumOutputs(); ++i)
         output_layers.push_back(concat_layers[i]);
     }
     break;
@@ -314,12 +309,12 @@ void Layer::printIfValid(std::ostream &out, const PropertyType type,
 }
 
 void Layer::printShapeInfo(std::ostream &out) {
-  for (unsigned int idx = 0; idx < num_inputs; ++idx) {
+  for (unsigned int idx = 0; idx < getNumInputs(); ++idx) {
     out << "input " << input_dim[idx];
     for (unsigned int i = 0; i < weights.size(); i++)
       out << "inner" << i << " " << weightAt(i).getVariable().getDim();
   }
-  for (unsigned int idx = 0; idx < num_outputs; ++idx) {
+  for (unsigned int idx = 0; idx < getNumOutputs(); ++idx) {
     out << "output " << output_dim[idx];
   }
 }

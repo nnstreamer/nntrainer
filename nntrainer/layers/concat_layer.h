@@ -30,8 +30,8 @@ public:
    * @brief     Constructor of Concat Layer
    */
   template <typename... Args>
-  ConcatLayer(unsigned int num_inputs_ = 0, Args... args) : Layer(args...) {
-    num_inputs = num_inputs_;
+  ConcatLayer(unsigned int num_inputs_ = 1, Args... args) : Layer(args...) {
+    setNumInputs(num_inputs_);
   }
 
   /**

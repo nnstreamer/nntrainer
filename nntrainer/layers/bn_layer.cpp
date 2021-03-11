@@ -40,7 +40,7 @@ enum BNParams { mu, var, gamma, beta };
 int BatchNormalizationLayer::initialize(Manager &manager) {
   int status = ML_ERROR_NONE;
 
-  if (num_inputs != 1) {
+  if (getNumInputs() != 1) {
     throw std::invalid_argument(
       "Only one input is allowed for batch normalization layer");
   }

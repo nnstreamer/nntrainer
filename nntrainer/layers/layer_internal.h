@@ -78,11 +78,9 @@ public:
     weight_initializer(weight_initializer_),
     bias_initializer(bias_initializer_),
     flatten(flatten_),
-    trainable(trainable_),
-    num_inputs(1),
-    num_outputs(1) {
-    input_dim.resize(1);
-    output_dim.resize(1);
+    trainable(trainable_) {
+    setNumInputs(1);
+    setNumOutputs(1);
   }
 
   /**
@@ -328,8 +326,11 @@ public:
    * @note This does not affect the number of inputs/outputs
    */
   virtual void resetDimension() {
+    unsigned int num_inputs = input_dim.size();
     input_dim.clear();
     input_dim.resize(num_inputs);
+
+    unsigned int num_outputs = output_dim.size();
     output_dim.clear();
     output_dim.resize(num_outputs);
   }
@@ -361,10 +362,23 @@ public:
    */
   virtual int initialize(Manager &manager) = 0;
 
-#ifdef ENABLE_TEST
-  virtual unsigned int getNumInputs() { return num_inputs; }
-  virtual unsigned int getNumOutputs() { return num_outputs; }
-#endif
+  virtual unsigned int getNumInputs() { return input_dim.size(); }
+
+  virtual unsigned int getNumOutputs() { return output_dim.size(); }
+
+  void setNumInputs(unsigned int size) {
+    if (size < 1)
+      throw std::invalid_argument("Minimum number of inputs must be 1");
+    input_dim.resize(size);
+    net_input.resize(size);
+  }
+
+  void setNumOutputs(unsigned int size) {
+    if (size < 1)
+      throw std::invalid_argument("Minimum number of outputs must be 1");
+    output_dim.resize(size);
+    net_hidden.resize(size);
+  }
 
 protected:
   /**
@@ -388,18 +402,9 @@ protected:
   std::string name;
 
   /**
-   * @brief     Input Tensor
+   * @brief     Input and Output Tensors
    */
-  Tensor input;
-
   std::vector<std::shared_ptr<Var_Grad>> net_input;
-
-  /**
-   * @brief     Hidden Layer Tensor which store the
-   *            forwading result
-   */
-  Tensor hidden;
-  Tensor ret_derivative; /** derivative to be returned to previous layer */
 
   std::vector<std::shared_ptr<Var_Grad>> net_hidden;
 
@@ -445,16 +450,6 @@ protected:
   std::vector<Weight> weights;
 
   /**
-   * @brief   Number of inputs this layer will requries/will operate on
-   */
-  unsigned int num_inputs;
-
-  /**
-   * @brief   Numer of outputs this layer will produce
-   */
-  unsigned int num_outputs;
-
-  /**
    * @brief     Activation Setter
    * @param[in] activation activation type
    * @throw std::invalid_argument when ActivationType is unknown
@@ -472,11 +467,13 @@ private:
    */
   static int def_name_count;
 
+  // TODO: remove this from here
   /**
    * @brief     input layer names
    */
   std::vector<std::string> input_layers;
 
+  // TODO: remove this from here
   /**
    * @brief     output layer names
    */

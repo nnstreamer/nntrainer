@@ -31,7 +31,7 @@ public:
    */
   template <typename... Args>
   OutputLayer(unsigned int num_output_ = 1, Args... args) : Layer(args...) {
-    num_outputs = num_output_;
+    setNumOutputs(num_output_);
   }
 
   /**

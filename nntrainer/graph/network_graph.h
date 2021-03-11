@@ -78,12 +78,6 @@ public:
   unsigned int getNumNode() { return num_node; }
 
   /**
-   * @brief initialize net_input and net_hidden of each layer
-   *        according to num_input and num_output
-   */
-  void setNumNetBufferSize();
-
-  /**
    * @brief getter of LayerNode with index number
    * @param[in] index
    * @ret LayerNode

@@ -184,7 +184,6 @@ int NeuralNetwork::initialize() {
 
   ml_logd("initializing neural network, layer size: %d", n_layers);
 
-  model_graph.setNumNetBufferSize();
   opt->initialize();
 
   setBatchSize();
@@ -541,7 +540,8 @@ sharedConstTensors NeuralNetwork::inference(sharedConstTensors X,
   }
 
   for (unsigned int i = 0;
-       i < model_graph.Sorted[model_graph.Sorted.size() - 1].layer->num_outputs;
+       i <
+       model_graph.Sorted[model_graph.Sorted.size() - 1].layer->getNumOutputs();
        ++i) {
     out.push_back(
       MAKE_SHARED_TENSOR(model_graph.Sorted[model_graph.Sorted.size() - 1]

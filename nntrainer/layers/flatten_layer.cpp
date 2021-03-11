@@ -23,7 +23,7 @@ namespace nntrainer {
 const std::string FlattenLayer::type = "flatten";
 
 int FlattenLayer::initialize(Manager &manager) {
-  if (num_inputs != 1) {
+  if (getNumInputs() != 1) {
     throw std::invalid_argument("input_shape keyword is only for one input");
   }
 
