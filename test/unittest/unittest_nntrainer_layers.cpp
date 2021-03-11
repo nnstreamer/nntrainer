@@ -2252,6 +2252,33 @@ TEST_F(nntrainer_EmbeddingLayer, forwarding_01_p) {
   EXPECT_NO_THROW(layer.forwarding_with_val({input}));
 }
 
+TEST_F(nntrainer_EmbeddingLayer, forwarding_02_p) {
+
+  sharedTensor input = std::shared_ptr<nntrainer::Tensor>(
+    new nntrainer::Tensor[1], std::default_delete<nntrainer::Tensor[]>());
+
+  nntrainer::Tensor &in = *input;
+
+  in = nntrainer::Tensor(nntrainer::TensorDim(3, 1, 1, 12));
+
+  loadFile("tc_embedding_01_Input.in", in);
+
+  nntrainer::Manager manager;
+
+  manager.setInferenceInOutMemoryOptimization(false);
+  layer.setInputBuffers(manager.trackLayerInputs(
+    layer.getType(), layer.getName(), layer.getInputDimension()));
+  layer.setOutputBuffers(manager.trackLayerOutputs(
+    layer.getType(), layer.getName(), layer.getOutputDimension()));
+
+  manager.initializeTensors(false);
+  manager.allocateTensors();
+
+  EXPECT_NO_THROW(out = *layer.forwarding_with_val({input})[0]);
+
+  matchOutput(out, "tc_embedding_01_golden.out");
+}
+
 TEST_F(nntrainer_EmbeddingLayer, forwarding_backwarding_01_p) {
   float sentence[36] = {45, 16, 32, 27, 34, 33, 0,  0,  0, 0, 0,  0,
                         24, 2,  27, 34, 33, 37, 32, 27, 3, 0, 0,  0,
