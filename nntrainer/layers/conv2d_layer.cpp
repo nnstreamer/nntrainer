@@ -325,7 +325,7 @@ int Conv2DLayer::initialize(Manager &manager) {
 void Conv2DLayer::forwarding(bool training) {
   int status = ML_ERROR_NONE;
 
-  if (num_inputs != 1)
+  if (getNumInputs() != 1)
     throw std::invalid_argument("Convolution layer only takes one input");
 
   Tensor &input_ = net_input[0]->getVariableRef();

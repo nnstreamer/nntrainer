@@ -1933,7 +1933,7 @@ TEST(nntrainer_LossLayer, setLoss_02_n) {
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
-TEST(nntrainer_LossLayer, forward_nolabel_n) {
+TEST(nntrainer_LossLayer, DISABLED_forward_nolabel_n) {
   nntrainer::LossLayer layer;
   nntrainer::Tensor a = constant(1.0, 1, 1, 1, 1);
   layer.setProperty({"input_shape=1:1:1:1"});
@@ -2143,11 +2143,11 @@ TEST_F(nntrainer_AdditionLayer, initialize_01_p) {
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
-TEST_F(nntrainer_AdditionLayer, initialize_02_n) {
+TEST_F(nntrainer_AdditionLayer, initialize_02_p) {
   nntrainer::AdditionLayer layer;
   layer.setProperty({"input_shape=1:1:1:1"});
   status = layer.initialize(manager);
-  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+  EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
 TEST_F(nntrainer_AdditionLayer, checkValidation_01_p) {

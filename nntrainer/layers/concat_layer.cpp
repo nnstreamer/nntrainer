@@ -27,14 +27,14 @@ int ConcatLayer::initialize(Manager &manager) {
   int status = ML_ERROR_NONE;
   unsigned int channel = 0;
 
-  if (num_inputs == 0) {
+  if (getNumInputs() == 0) {
     ml_loge("Error: number of inputs are not initialized");
     return ML_ERROR_INVALID_PARAMETER;
   }
 
   const TensorDim &d = input_dim[0];
   channel += d.channel();
-  for (unsigned int idx = 1; idx < num_inputs; ++idx) {
+  for (unsigned int idx = 1; idx < getNumInputs(); ++idx) {
     const TensorDim &dim = input_dim[idx];
 
     for (unsigned int i = 2; i < d.rank(); ++i) {
@@ -58,7 +58,7 @@ void ConcatLayer::forwarding(bool training) {
   unsigned int channel = 0;
   const TensorDim &d = net_input[0]->getDim();
   channel += d.channel();
-  for (unsigned int idx = 1; idx < num_inputs; ++idx) {
+  for (unsigned int idx = 1; idx < getNumInputs(); ++idx) {
     const TensorDim &dim = net_input[idx]->getDim();
 
     for (unsigned int i = 2; i < d.rank(); ++i) {
@@ -82,7 +82,7 @@ void ConcatLayer::forwarding(bool training) {
    */
   for (unsigned int b = 0; b < input_dim[0].batch(); ++b) {
     unsigned int position = 0;
-    for (unsigned int idx = 0; idx < num_inputs; ++idx) {
+    for (unsigned int idx = 0; idx < getNumInputs(); ++idx) {
       TensorDim in_dim = net_input[idx]->getDim();
       memcpy(
         hidden_.getAddress(b * f_size + position),
@@ -97,7 +97,7 @@ void ConcatLayer::calcDerivative() {
   TensorDim d = net_hidden[0]->getDim();
 
   unsigned int position = 0;
-  for (unsigned int idx = 0; idx < num_inputs; ++idx) {
+  for (unsigned int idx = 0; idx < getNumInputs(); ++idx) {
     TensorDim in_dim = input_dim[idx];
 
     for (unsigned int b = 0; b < in_dim.batch(); ++b) {
@@ -118,10 +118,10 @@ void ConcatLayer::setProperty(const PropertyType type,
   switch (type) {
   case PropertyType::num_inputs: {
     if (!value.empty()) {
+      unsigned int num_inputs;
       status = setUint(num_inputs, value);
       throw_status(status);
-      if (num_inputs < 1)
-        throw std::invalid_argument("Minimum number of inputs must be 1");
+      setNumInputs(num_inputs);
     }
   } break;
   default:

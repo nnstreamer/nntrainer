@@ -27,7 +27,7 @@ enum EmbeddingParams { weight };
 
 int EmbeddingLayer::initialize(Manager &manager) {
   int status = ML_ERROR_NONE;
-  if (num_inputs != 1) {
+  if (getNumInputs() != 1) {
     throw std::invalid_argument("Embedding layer takes only one input");
   }
 

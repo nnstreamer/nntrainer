@@ -177,18 +177,17 @@ void NetworkGraph::ensureName(std::shared_ptr<Layer> layer,
 
 int NetworkGraph::realizeMultiInputType(Layer &current) {
   int status = ML_ERROR_NONE;
-  if (current.num_inputs == 1)
+  if (current.getNumInputs() == 1)
     return ML_ERROR_NONE;
 
   std::shared_ptr<Layer> layer = nntrainer::createLayer(AdditionLayer::type);
   ensureName(layer, current.getName());
-  layer->num_inputs = current.num_inputs;
-  layer->input_dim.resize(layer->num_inputs);
+  layer->setNumInputs(current.getNumInputs());
   layer->input_layers.clear();
   for (unsigned int i = 0; i < current.input_layers.size(); ++i)
     layer->input_layers.push_back(current.input_layers[i]);
 
-  current.num_inputs = 1;
+  current.setNumInputs(1);
   current.input_layers.clear();
   current.input_layers.push_back(layer->getName());
   addLayerNode(layer);
@@ -214,7 +213,7 @@ int NetworkGraph::realizeFlattenType(
 
   ensureName(layer, current.getName());
 
-  layer->num_inputs = 1;
+  layer->setNumInputs(1);
   layer->input_layers.clear();
   layer->input_layers.push_back(current.getName());
 
@@ -254,20 +253,19 @@ int NetworkGraph::realizeActivationType(
 
   ensureName(layer, current.getName());
   layer->setActivation(act);
-  layer->num_inputs = 1;
+  layer->setNumInputs(1);
   layer->input_layers.clear();
   layer->input_layers.push_back(current.getName());
 
-  if (current.num_outputs != 1)
+  if (current.getNumOutputs() != 1)
     return ML_ERROR_INVALID_PARAMETER;
 
-  layer->num_outputs = current.num_outputs;
-  layer->output_dim.resize(layer->num_outputs);
+  layer->setNumOutputs(current.getNumOutputs());
   layer->output_layers.clear();
-  for (unsigned int i = 0; i < current.num_outputs; ++i)
+  for (unsigned int i = 0; i < current.getNumOutputs(); ++i)
     layer->output_layers.push_back(current.output_layers[i]);
 
-  current.num_outputs = 1;
+  current.setNumOutputs(1);
   current.output_layers.clear();
   current.output_layers.push_back(layer->getName());
 
@@ -317,17 +315,16 @@ int NetworkGraph::addLossLayer(const LossType loss_type) {
   ensureName(layer);
 
   LayerNode last_node = getLayerNode(num_node - 1);
-  last_node.layer->num_outputs = 1;
+  last_node.layer->setNumOutputs(1);
   last_node.layer->output_layers.clear();
   last_node.layer->output_layers.push_back(layer->getName());
 
-  layer->num_inputs = 1;
+  layer->setNumInputs(1);
   layer->input_layers.clear();
   layer->input_layers.push_back(input_str);
 
   if (layer->output_layers.size() == 0) {
-    layer->num_outputs = 1;
-    layer->output_dim.resize(1);
+    layer->setNumOutputs(1);
     layer->output_layers.push_back("__exit__");
   }
 
@@ -341,6 +338,15 @@ int NetworkGraph::addLossLayer(const LossType loss_type) {
 
 void NetworkGraph::setOutputLayers(
   std::vector<std::shared_ptr<Layer>> &layers) {
+
+  if (layers.back()->getNumOutputs() > 0 &&
+      layers.back()->output_layers.size() > 0) {
+    throw std::runtime_error("last layer already has a output layer");
+  }
+
+  layers.back()->setNumOutputs(1);
+  layers.back()->output_layers.clear();
+  layers.back()->output_layers.push_back("__exit__");
 
   for (unsigned int idx = 0; idx < layers.size(); ++idx) {
     for (unsigned int i = 0; i < layers.size(); ++i) {
@@ -356,16 +362,10 @@ void NetworkGraph::setOutputLayers(
         }
       }
     }
-    if (layers[idx]->num_outputs != layers[idx]->output_layers.size()) {
-      layers[idx]->num_outputs = layers[idx]->output_layers.size();
-      layers[idx]->output_dim.resize(layers[idx]->output_layers.size());
-    }
-  }
 
-  if (layers.back()->num_outputs == 0) {
-    layers.back()->num_outputs = 1;
-    layers.back()->output_dim.resize(1);
-    layers.back()->output_layers.push_back("__exit__");
+    if (layers[idx]->getNumOutputs() != layers[idx]->output_layers.size()) {
+      layers[idx]->setNumOutputs(layers[idx]->output_layers.size());
+    }
   }
 
   for (auto idx = layers.begin(); idx < layers.end(); ++idx) {
@@ -377,17 +377,17 @@ void NetworkGraph::setOutputLayers(
 int NetworkGraph::realizeMultiOutputType(
   Layer &current, std::vector<std::shared_ptr<Layer>> &layers) {
   int status = ML_ERROR_NONE;
-  if (current.num_outputs == 1)
+  if (current.getNumOutputs() == 1)
     return ML_ERROR_NONE;
 
   std::shared_ptr<Layer> layer = nntrainer::createLayer(OutputLayer::type);
   ensureName(layer, current.getName());
 
-  layer->num_inputs = 1;
+  layer->setNumInputs(1);
   layer->input_layers.clear();
   layer->input_layers.push_back(current.getName());
 
-  layer->num_outputs = current.num_outputs;
+  layer->setNumOutputs(current.getNumOutputs());
   layer->output_layers.clear();
 
   for (unsigned int i = 0; i < current.output_layers.size(); ++i) {
@@ -396,7 +396,7 @@ int NetworkGraph::realizeMultiOutputType(
     updateNameInLayers(layers, current.getName(), layer->getName());
   }
 
-  current.num_outputs = 1;
+  current.setNumOutputs(1);
   current.output_layers.clear();
   current.output_layers.push_back(layer->getName());
   addLayerNode(layer);
@@ -421,7 +421,7 @@ int NetworkGraph::setGraphNode(std::vector<std::shared_ptr<Layer>> &layers,
           throw std::invalid_argument("Input Dimension must be set");
       }
 
-      l.num_inputs = 1;
+      l.setNumInputs(1);
       l.input_layers.clear();
       l.input_layers.push_back("__data__");
     }
@@ -457,24 +457,6 @@ int NetworkGraph::setGraphNode(std::vector<std::shared_ptr<Layer>> &layers,
   }
 
   return status;
-}
-
-void NetworkGraph::setNumNetBufferSize() {
-  for (unsigned int i = 0; i < Sorted.size(); ++i) {
-    bool first = i == 0;
-    bool last = i == Sorted.size() - 1;
-    if (first) {
-      Sorted[i].layer->net_input.resize(Sorted[i].layer->num_inputs);
-    } else {
-      Sorted[i].layer->net_input.resize(Sorted[i].layer->input_layers.size());
-    }
-
-    if (last) {
-      Sorted[i].layer->net_hidden.resize(Sorted[i].layer->num_outputs);
-    } else {
-      Sorted[i].layer->net_hidden.resize(Sorted[i].layer->output_layers.size());
-    }
-  }
 }
 
 LayerNode &NetworkGraph::getLayerNode(const std::string &layer_name) {
