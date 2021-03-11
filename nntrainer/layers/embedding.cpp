@@ -41,6 +41,7 @@ int EmbeddingLayer::initialize(Manager &manager) {
   output_dim[0].height(in_length);
   output_dim[0].width(out_dim);
   input_dim[0].width(in_length);
+  input_dim[0].height(1);
 
   TensorDim dim = output_dim[0];
 

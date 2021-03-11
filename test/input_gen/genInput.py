@@ -54,6 +54,13 @@ def gen_tensor(shape, dtype=np.float32):
     dtype = np.float32
   return rand_t.astype(dtype)
 
+def gen_tensor_bound(shape, bound, dtype=np.float32):
+    rand_t = np.random.randint(bound, size=shape)
+    if dtype == tf.float32:
+        dtype = np.float32
+    return rand_t.astype(dtype)
+
+
 ##
 # @brief generate random data and save
 # @param[in] outfile_name outfile_name
@@ -66,6 +73,13 @@ def gen_input(outfile_name, input_shape, savefile=True):
     if savefile:
         save(outfile_name, x)
     return x
+
+def gen_input_bound(outfile_name, input_shape, bound, savefile=True):
+    x = gen_tensor_bound(input_shape, bound)
+    if savefile:
+        save(outfile_name, x)
+    return x
+
 
 ##
 # @brief conv2d layer forwarding with tensorflow
@@ -548,6 +562,24 @@ def gen_test_case_bn(input_shape, base_name, axis, training=True):
     save(base_name + "_goldenBNLayerBackwardDxIn.out", backward_input)
     save(base_name + "_goldenBNLayerBackwardDx.out", grad[0])
 
+
+def embedding_tf(input_data, in_dim, out_dim, train=False, loss='mse', opt='sgd'):
+    model = tf.keras.Sequential()
+    model.add(tf.keras.layers.Embedding(in_dim, out_dim, input_length=input_data.shape[1]))
+    model.compile('sgd', 'mse')
+    output_array=model.predict(input_data)
+    return output_array
+
+def gen_test_case_embedding(input_shape, in_dim, out_dim, base_name, gen_in):
+    if gen_in:
+        input_data =gen_input_bound(base_name+"_Input.in", (input_shape[0], input_shape[3]), 50)
+    else:
+        with open(baswe_name+"_Input.in", 'rb') as f:
+            input_data = np.fromfile(f, dtype=np.float32)
+            input_data=np.reshape(input_data, (input_shape[0], input_shape[3]))
+    golden_embedding = embedding_tf(input_data, in_dim, out_dim)
+    save(base_name+"_golden.out", golden_embedding)
+
 if __name__ == "__main__":
     target = sys.argv[1]
 
@@ -612,3 +644,6 @@ if __name__ == "__main__":
         gen_test_case_pooling(input_shape = [2,2,5,5], pool_size=[2,2], stride=[1,1], padding=[0,0], pooling="average", base_name="tc_pooling2d_2", gen_in=False)
         gen_test_case_pooling(input_shape = [2,2,5,5], pool_size=[2,2], stride=[1,1], padding=[0,0], pooling="global_max", base_name="tc_pooling2d_2", gen_in=False)
         gen_test_case_pooling(input_shape = [2,2,5,5], pool_size=[2,2], stride=[1,1], padding=[0,0], pooling="global_average", base_name="tc_pooling2d_2", gen_in=False)
+
+    if target == "embedding":
+        gen_test_case_embedding(input_shape=[3,1,1,12], in_dim=50, out_dim=8, base_name="tc_embedding_01", gen_in=True)
