@@ -1933,14 +1933,6 @@ TEST(nntrainer_LossLayer, setLoss_02_n) {
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
-TEST(nntrainer_LossLayer, DISABLED_forward_nolabel_n) {
-  nntrainer::LossLayer layer;
-  nntrainer::Tensor a = constant(1.0, 1, 1, 1, 1);
-  layer.setProperty({"input_shape=1:1:1:1"});
-  EXPECT_THROW(layer.forwarding_with_val({MAKE_SHARED_TENSOR(a)}),
-               std::invalid_argument);
-}
-
 TEST(nntrainer_LossLayer, forward_loss_unknown_n) {
   nntrainer::LossLayer layer;
   nntrainer::Tensor a = constant(1.0, 1, 1, 1, 1);
