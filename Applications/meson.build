@@ -12,6 +12,7 @@ subdir('ReinforcementLearning/DeepQ/jni')
 subdir('TransferLearning/CIFAR_Classification/jni')
 subdir('TransferLearning/Draw_Classification/jni')
 subdir('Custom')
+subdir('Embedding/jni')
 
 if get_option('enable-tflite-backbone')
   subdir('SimpleShot')
