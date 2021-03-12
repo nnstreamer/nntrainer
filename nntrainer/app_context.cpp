@@ -145,6 +145,20 @@ std::vector<std::string> getPluginPaths() {
   return ret;
 }
 
+/**
+ * @brief Get the Full Path from given string
+ * @details path is resolved in the following order
+ * 1) if @a path is absolute, return path
+ * ----------------------------------------
+ * 2) if @a base == "" && @a path == "", return "."
+ * 3) if @a base == "" && @a path != "", return @a path
+ * 4) if @a base != "" && @a path == "", return @a base
+ * 5) if @a base != "" && @a path != "", return @a base + "/" + path
+ *
+ * @param path path to calculate from base
+ * @param base base path
+ * @return const std::string
+ */
 const std::string getFullPath(const std::string &path,
                               const std::string &base) {
   /// if path is absolute, return path

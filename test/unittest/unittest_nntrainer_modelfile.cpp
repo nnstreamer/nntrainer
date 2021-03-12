@@ -39,7 +39,7 @@ public:
   }
 
   static void TearDownTestCase() {
-    nntrainer::AppContext::Global().setWorkingDirectory(".");
+    nntrainer::AppContext::Global().unsetWorkingDirectory();
   }
 
 protected:
@@ -801,7 +801,7 @@ TEST(nntrainerIniTest, backbone_p_20) {
 
 /**
  * @brief Ini file unittest with backbone
- * @note Input layer name not found, epmty backbone
+ * @note Input layer name not found, empty backbone
  */
 TEST(nntrainerIniTest, backbone_n_21) {
   nntrainer::NeuralNetwork NN;
@@ -818,6 +818,58 @@ TEST(nntrainerIniTest, backbone_n_21) {
   EXPECT_EQ(NN.initialize(), ML_ERROR_NONE);
   EXPECT_EQ(NN.getNetworkGraph().getSorted().size(), 3u);
   // EXPECT_EQ(NN.getGraph().size(), 3);
+}
+
+/**
+ * @brief backbone is relative to original ini, if working directory is not set,
+ * it should be referred relative to the .ini
+ *
+ */
+TEST(nntrainerIniTest, backbone_relative_to_ini_p) {
+  ScopedIni b{getResPath("base"), {nw_base, batch_normal}};
+  ScopedIni s{
+    getResPath("original"),
+    {nw_base + "loss=mse", input, backbone_valid + "input_layers=inputlayer"}};
+
+  nntrainer::NeuralNetwork NN;
+
+  EXPECT_EQ(NN.loadFromConfig(s.getIniName()), ML_ERROR_NONE);
+  EXPECT_EQ(NN.compile(), ML_ERROR_NONE);
+  EXPECT_EQ(NN.initialize(), ML_ERROR_NONE);
+}
+
+/**
+ * @brief backbone is at different directory, if working directory is not set,
+ * it should be referred relative to the .ini
+ *
+ */
+TEST(nntrainerIniTest, backbone_from_different_directory_n) {
+  ScopedIni b{"base", {nw_base, batch_normal}};
+  ScopedIni s{
+    getResPath("original"),
+    {nw_base + "loss=mse", input, backbone_valid + "input_layers=inputlayer"}};
+
+  nntrainer::NeuralNetwork NN;
+
+  EXPECT_EQ(NN.loadFromConfig(s.getIniName()), ML_ERROR_INVALID_PARAMETER);
+}
+
+/**
+ * @brief backbone is at different directory, if working directory is not set,
+ * it should be referred relative to the .ini
+ *
+ */
+TEST(nntrainerIniTest, backbone_based_on_working_directory_p) {
+  ScopedIni b{getResPath("base", {"test"}), {nw_base, batch_normal}};
+  ScopedIni s{
+    getResPath("original"),
+    {nw_base + "loss=mse", input, backbone_valid + "input_layers=inputlayer"}};
+
+  nntrainer::AppContext ac(nntrainer::AppContext::Global());
+  ac.setWorkingDirectory(getResPath("", {"test"}));
+  nntrainer::NeuralNetwork NN(ac);
+
+  EXPECT_EQ(NN.loadFromConfig(s.getIniName()), ML_ERROR_NONE);
 }
 
 /**
