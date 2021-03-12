@@ -79,10 +79,15 @@ gstTest "--gst-plugin-path=${PATH_TO_PLUGIN} filesrc location=${PATH_TO_DATA} ! 
 python checkLabel.py nntrainer.out.1.log 2
 testResult $? 1 "Golden test comparison" 0 1
 
+# no input, output
+gstTest "--gst-plugin-path=${PATH_TO_PLUGIN} filesrc location=${PATH_TO_DATA} ! pngdec ! tensor_converter ! other/tensor,dimension=1:28:28:1 ! tensor_transform mode=transpose option=1:2:0:3 ! tensor_transform mode=typecast option=float32 ! tensor_filter framework=nntrainer model=${PATH_TO_CONFIG} ! filesink location=nntrainer.out.2.log" 2 0 0 $PERFORMANCE
+python checkLabel.py nntrainer.out.2.log 2
+testResult $? 2 "Golden test comparison" 0 1
+
 PATH_TO_CONFIG="../test_models/models/mnist.ini"
 PATH_TO_DATA="../test_models/data/0.png"
 
-gstTest "--gst-plugin-path=${PATH_TO_PLUGIN} filesrc location=${PATH_TO_DATA} ! pngdec ! tensor_converter ! tensor_transform mode=transpose option=1:2:0:3 ! tensor_transform mode=typecast option=float32 ! tensor_filter framework=nntrainer model=${PATH_TO_CONFIG} input=28:28:1:1 inputtype=float32 output=10:1:1:1 outputtype=float32 ! filesink location=nntrainer.out.2.log" 1 0 0 $PERFORMANCE
-python checkLabel.py nntrainer.out.2.log 0
-testResult $? 2 "Golden test comparison" 0 1
+gstTest "--gst-plugin-path=${PATH_TO_PLUGIN} filesrc location=${PATH_TO_DATA} ! pngdec ! tensor_converter ! tensor_transform mode=transpose option=1:2:0:3 ! tensor_transform mode=typecast option=float32 ! tensor_filter framework=nntrainer model=${PATH_TO_CONFIG} input=28:28:1:1 inputtype=float32 output=10:1:1:1 outputtype=float32 ! filesink location=nntrainer.out.3.log" 3 0 0 $PERFORMANCE
+python checkLabel.py nntrainer.out.3.log 0
+testResult $? 3 "Golden test comparison" 0 1
 report
