@@ -15,6 +15,8 @@
 #define __MODEL_LOADER_H__
 #ifdef __cplusplus
 
+#include <memory>
+
 #include <app_context.h>
 #include <iniparser.h>
 #include <neuralnet.h>
@@ -31,7 +33,8 @@ public:
    * @brief     Constructor of the model loader
    */
   ModelLoader(const AppContext &app_context_ = AppContext::Global()) :
-    app_context(app_context_) {}
+    app_context(app_context_),
+    model_file_context(nullptr) {}
 
   /**
    * @brief     Destructor of the model loader
@@ -145,10 +148,29 @@ private:
    */
   static bool fileTfLite(const std::string &filename);
 
+  /**
+   * @brief resolvePath to absolute path written in a model description
+   *
+   * @note  if path is absolute path, return path.
+   *        if app_context has working directory set, resolve from app_context
+   *        if not, resolve path assuming model_path is the current directory.
+   *        The behavior relys on the semantics of getWorkingPath();
+   * @param path path to resolve
+   * @return const std::string resolved path.
+   */
+  const std::string resolvePath(const std::string &path) {
+    auto app_context_resolved_path = app_context.getWorkingPath(path);
+    return model_file_context->getWorkingPath(app_context_resolved_path);
+  }
+
   const char *unknown = "Unknown";
   const char *none = "none";
 
   AppContext app_context;
+  std::unique_ptr<AppContext>
+    model_file_context; /**< model_file specific context which is
+           referred to as if app_context cannot
+           resolve some given configuration */
 };
 
 } /* namespace nntrainer */

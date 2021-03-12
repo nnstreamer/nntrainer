@@ -84,6 +84,20 @@ public:
   void setWorkingDirectory(const std::string &base);
 
   /**
+   * @brief unset working directory
+   *
+   */
+  void unsetWorkingDirectory() { working_path_base = ""; }
+
+  /**
+   * @brief query if the appcontext has working directory set
+   *
+   * @return true working path base is set
+   * @return false working path base is not set
+   */
+  bool hasWorkingDirectory() { return !working_path_base.empty(); }
+
+  /**
    * @brief register a layer factory from a shared library
    * plugin must have **extern "C" LayerPluggable *ml_train_layer_pluggable**
    * defined else error

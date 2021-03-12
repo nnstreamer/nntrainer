@@ -64,7 +64,7 @@ int ModelLoader::loadModelConfigIni(dictionary *ini, NeuralNetwork &model) {
   const std::string &save_path =
     iniparser_getstring(ini, "Model:Save_path", unknown);
   if (save_path != unknown) {
-    model.setSavePath(save_path);
+    model.setSavePath(resolvePath(save_path));
   }
   model.batch_size =
     iniparser_getint(ini, "Model:Batch_Size", model.batch_size);
@@ -151,7 +151,7 @@ int ModelLoader::loadDatasetConfigIni(dictionary *ini, NeuralNetwork &model) {
       return required ? ML_ERROR_INVALID_PARAMETER : ML_ERROR_NONE;
     }
 
-    return dbuffer->setDataFile(dt, model.app_context.getWorkingPath(path));
+    return dbuffer->setDataFile(dt, resolvePath(path));
   };
 
   status = parse_and_set("DataSet:TrainData", DATA_TRAIN, true);
@@ -425,8 +425,7 @@ int ModelLoader::loadFromIni(std::string ini_file, NeuralNetwork &model,
     const char *backbone_path =
       iniparser_getstring(ini, (sec_name + ":Backbone").c_str(), unknown);
 
-    const std::string &backbone =
-      model.app_context.getWorkingPath(backbone_path);
+    const std::string &backbone = resolvePath(backbone_path);
     if (backbone_path == unknown) {
       status = loadLayerConfigIni(ini, layer, sec_name);
     } else if (fileIni(backbone_path)) {
@@ -456,7 +455,41 @@ int ModelLoader::loadFromIni(std::string ini_file, NeuralNetwork &model,
  * @brief     load all of model and dataset from given config file
  */
 int ModelLoader::loadFromConfig(std::string config, NeuralNetwork &model) {
-  return loadFromConfig(config, model, false);
+
+  if (model_file_context != nullptr) {
+    ml_loge(
+      "model_file_context is already initialized, there is a possiblity that "
+      "last load from config wasn't finished correctly, and model loader is "
+      "reused");
+    return ML_ERROR_UNKNOWN;
+  }
+
+  model_file_context = std::make_unique<AppContext>();
+
+  auto config_realpath_char = realpath(config.c_str(), nullptr);
+  if (config_realpath_char == nullptr) {
+    ml_loge("failed to resolve config path to absolute path, reason: %s",
+            strerror(errno));
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+  std::string config_realpath(config_realpath_char);
+  free(config_realpath_char);
+
+  auto pos = config_realpath.find_last_of("/");
+  if (pos == std::string::npos) {
+    ml_loge("resolved model path does not contain any path seperater. %s",
+            config_realpath.c_str());
+    return ML_ERROR_UNKNOWN;
+  }
+
+  auto base_path = config_realpath.substr(0, pos);
+  model_file_context->setWorkingDirectory(base_path);
+  ml_logd("for the current model working directory is set to %s",
+          base_path.c_str());
+
+  int status = loadFromConfig(config_realpath, model, false);
+  model_file_context.reset();
+  return status;
 }
 
 /**
