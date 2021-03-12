@@ -36,10 +36,6 @@ namespace nntrainer {
  */
 class Optimizer : public ml::train::Optimizer {
 
-  /** Allow layer to initialize optimizer with itself */
-  friend class Layer;
-  friend class NeuralNetwork;
-
 public:
   /**
    * @brief     Default Constructor of Optimizer Class

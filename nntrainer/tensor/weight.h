@@ -49,17 +49,6 @@ enum class WeightInitializer {
  */
 class Weight : public Var_Grad {
 
-  /** Declare layers as friend to get variable/gradient reference */
-  friend class Layer;
-  friend class Conv2DLayer;
-  friend class FullyConnectedLayer;
-  friend class BatchNormalizationLayer;
-
-  /** Declare opitmizer as friend to get variable/gradient reference */
-  friend class Optimizer;
-  friend class SGD;
-  friend class Adam;
-
 public:
   /**
    * @brief Weight default constructor

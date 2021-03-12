@@ -56,7 +56,6 @@ class Layer : public ml::train::Layer {
 
   /** model classes can call private methods which arent exposed to public */
   friend class NeuralNetwork;
-  friend class ModelLoader;
   friend class NetworkGraph;
 
 public:
