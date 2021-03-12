@@ -41,16 +41,14 @@ public:
    * @brief Construct a new NNTrainerInference object
    *
    * @param model_config_ config address
-   * @param prop tensor filter property
    */
-  NNTrainerInference(const char *model_config_,
-                     const GstTensorFilterProperties *prop);
+  NNTrainerInference(const std::string &model_config);
 
   /**
    * @brief Destroy the NNTrainerInference object
    *
    */
-  ~NNTrainerInference();
+  ~NNTrainerInference() = default;
 
   /**
    * @brief Get the Model Config object
@@ -60,23 +58,36 @@ public:
   const char *getModelConfig();
 
   /**
-   * @brief Get the Input Tensor Dim object
+   * @brief Set the Batch Size
    *
-   * @param[out] info copied tensor info, free after use
-   * @return int 0 if success
+   * @param batch batch size
    */
-  int getInputTensorDim(GstTensorsInfo *info);
+  void setBatchSize(unsigned int batch) {
+    std::stringstream ss;
+    ss << "batch_size=" << batch;
+    model->setProperty({ss.str()});
+  }
 
   /**
-   * @brief Get the Output Tensor Dim object
+   * @brief Get the Input Dimension object
    *
-   * @param info copied tensor info, free after use
-   * @return int 0 if success
+   * @return const std::vector<nntrainer::TensorDim> input dimensions
    */
-  int getOutputTensorDim(GstTensorsInfo *info);
+  const std::vector<nntrainer::TensorDim> getInputDimension() {
+    return model->getInputDimension();
+  }
 
   /**
-   * @brief run inference
+   * @brief Get the Output Dimension object
+   *
+   * @return const std::vector<nntrainer::TensorDim> output dimensions
+   */
+  const std::vector<nntrainer::TensorDim> getOutputDimension() {
+    return model->getOutputDimension();
+  }
+
+  /**
+   * @brief run inference, output
    *
    * @param input input tensor memory
    * @param output output tensor memory
@@ -93,14 +104,21 @@ public:
 
 private:
   void loadModel();
-  void validateTensor(const GstTensorsInfo *tensorInfo, bool is_input);
 
-  char *model_config;
-  nntrainer::NeuralNetwork *model;
-
-  GstTensorsInfo inputTensorMeta;
-  GstTensorsInfo outputTensorMeta;
-
-  std::vector<nntrainer_tensor_info_s> input_tensor_info;
+  std::string model_config;
+  ///@todo change this to ccapi
+  /// required method
+  /// model->loadFromConfig              (available)
+  /// model->setProperty                 (available)
+  /// model->compile                     (available)
+  /// model->initialize                  (available)
+  /// model->readModel                   (available)
+  /// model->inference                   (n/a)
+  /// model->getInputDimension           (n/a)
+  /// model->getOutputDimension          (n/a)
+  /// possibly required for optimization
+  /// model->forwarding                  (n/a)
+  /// model->allocate                    (n/a)
+  std::unique_ptr<nntrainer::NeuralNetwork> model;
   std::map<void *, std::shared_ptr<nntrainer::Tensor>> outputTensorMap;
 };

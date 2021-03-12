@@ -539,10 +539,16 @@ sharedConstTensors NetworkGraph::forwarding(bool training) {
 }
 
 std::vector<TensorDim> NetworkGraph::getInputDimension() {
+  /// @todo add check if the graph is compiled
+  NNTR_THROW_IF(num_node == 0, std::invalid_argument)
+    << "[NetworkGraph] the graph has no node!";
   return Sorted[0].layer->getInputDimension();
 }
 
 std::vector<TensorDim> NetworkGraph::getOutputDimension() {
+  /// @todo add check if the graph is compiled
+  NNTR_THROW_IF(num_node == 0, std::invalid_argument)
+    << "[NetworkGraph] the graph has no node!";
   return Sorted.back().layer->getOutputDimension();
 }
 

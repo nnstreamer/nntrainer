@@ -22,6 +22,7 @@
 #include <unistd.h>
 
 #include <neuralnet.h>
+#include <nntrainer_error.h>
 
 #include "tensor_filter_nntrainer.hh"
 
@@ -45,92 +46,46 @@ static const gchar *nntrainer_accl_support[] = {NULL};
 void init_filter_nntrainer(void) __attribute__((constructor));
 void fini_filter_nntrainer(void) __attribute__((destructor));
 
-NNTrainerInference::NNTrainerInference(const char *model_config_,
-                                       const GstTensorFilterProperties *prop) {
-  gst_tensors_info_init(&inputTensorMeta);
-  gst_tensors_info_init(&outputTensorMeta);
+static std::unique_ptr<GstTensorInfo>
+to_nnst_tensor_dim(const nntrainer::TensorDim &dim) {
+  auto info = std::unique_ptr<GstTensorInfo>(g_new(GstTensorInfo, 1));
+  gst_tensor_info_init(info.get());
 
-  model_config = g_strdup(model_config_);
+  info->type = _NNS_FLOAT32;
+  for (unsigned int i = 0; i < NUM_DIM; ++i) {
+    info->dimension[i] = dim.getTensorDim(NUM_DIM - i - 1);
+  }
+
+  return info;
+}
+
+static nntrainer::TensorDim to_nntr_tensor_dim(const GstTensorInfo *info) {
+  const tensor_dim &d = info->dimension;
+  return {d[3], d[2], d[1], d[0]};
+}
+
+NNTrainerInference::NNTrainerInference(const std::string &model_config_) :
+  model_config(model_config_) {
   loadModel();
   model->compile();
   model->initialize();
-
-  validateTensor(&prop->input_meta, true);
-  validateTensor(&prop->output_meta, false);
-
   model->readModel();
-
-  gst_tensors_info_copy(&inputTensorMeta, &prop->input_meta);
-  gst_tensors_info_copy(&outputTensorMeta, &prop->output_meta);
 }
 
-NNTrainerInference::~NNTrainerInference() {
-  if (model != nullptr) {
-    delete model;
-  }
-
-  gst_tensors_info_free(&inputTensorMeta);
-  gst_tensors_info_free(&outputTensorMeta);
-  g_free(model_config);
-}
-
-const char *NNTrainerInference::getModelConfig() { return model_config; }
-
-void NNTrainerInference::validateTensor(const GstTensorsInfo *tensorInfo,
-                                        bool is_input) {
-
-  nntrainer::TensorDim dim;
-  nntrainer_tensor_info_s info_s;
-
-  if (is_input)
-    dim = model->getInputDimension()[0];
-  else
-    dim = model->getOutputDimension()[0];
-
-  if (tensorInfo->info[0].type != _NNS_FLOAT32)
-    throw std::invalid_argument(
-      "only float32 is supported for input and output");
-
-  info_s.rank = NUM_DIM;
-
-  info_s.dims.push_back(tensorInfo->info[0].dimension[NUM_DIM - 1]);
-
-  // Here, we only compare channel, height, width.
-  // Just use batch from info variable, cause it will be updated if it differs.
-  for (unsigned int i = 1; i < NUM_DIM; ++i) {
-    if (tensorInfo->info[0].dimension[i - 1] != dim.getDim()[NUM_DIM - i])
-      throw std::invalid_argument("Tensor dimension doesn't match");
-
-    info_s.dims.push_back(dim.getDim()[i]);
-  }
-
-  if (is_input)
-    input_tensor_info.push_back(info_s);
+const char *NNTrainerInference::getModelConfig() {
+  return model_config.c_str();
 }
 
 void NNTrainerInference::loadModel() {
 #if (DBG)
   gint64 start_time = g_get_real_time();
 #endif
-  if (model_config == nullptr)
-    throw std::invalid_argument("model config is null!");
-
-  model = new nntrainer::NeuralNetwork();
+  model = std::make_unique<nntrainer::NeuralNetwork>();
   model->loadFromConfig(model_config);
 #if (DBG)
   gint64 stop_time = g_get_real_time();
   g_message("Model is loaded: %" G_GINT64_FORMAT, (stop_time - start_time));
 #endif
-}
-
-int NNTrainerInference::getInputTensorDim(GstTensorsInfo *info) {
-  gst_tensors_info_copy(info, &inputTensorMeta);
-  return 0;
-}
-
-int NNTrainerInference::getOutputTensorDim(GstTensorsInfo *info) {
-  gst_tensors_info_copy(info, &outputTensorMeta);
-  return 0;
 }
 
 int NNTrainerInference::run(const GstTensorMemory *input,
@@ -140,15 +95,24 @@ int NNTrainerInference::run(const GstTensorMemory *input,
 #endif
   std::shared_ptr<nntrainer::Tensor> out;
 
-  std::vector<std::int64_t> d = input_tensor_info[0].dims;
-  nntrainer::Tensor X =
-    nntrainer::Tensor(nntrainer::TensorDim(d[0], d[1], d[2], d[3]),
-                      static_cast<float *>(input[0].data));
+  auto input_dims = getInputDimension();
+  nntrainer::sharedConstTensors inputs;
+  inputs.reserve(input_dims.size());
 
-  std::shared_ptr<const nntrainer::Tensor> o;
+  const GstTensorMemory *input_mem = input;
+  unsigned int offset = 0;
+  for (auto &id : input_dims) {
+    // do not allocate new, but instead use tensor::Map
+    inputs.emplace_back(MAKE_SHARED_TENSOR(nntrainer::Tensor::Map(
+      static_cast<float *>(input_mem->data), input_mem->size, id, offset)));
+    input_mem++;
+    offset += input_mem->size;
+  }
+
+  nntrainer::sharedConstTensors outputs;
 
   try {
-    o = model->inference({MAKE_SHARED_TENSOR(X)}, false)[0];
+    outputs = model->inference(inputs, false);
   } catch (std::exception &e) {
     ml_loge("%s %s", typeid(e).name(), e.what());
     return -2;
@@ -157,14 +121,18 @@ int NNTrainerInference::run(const GstTensorMemory *input,
     return -3;
   }
 
-  if (o == nullptr) {
-    return -1;
+  GstTensorMemory *output_mem = output;
+  for (auto &o : outputs) {
+    if (o == nullptr) {
+      return -1;
+    }
+
+    out = std::const_pointer_cast<nntrainer::Tensor>(o);
+    output_mem->data = out->getData();
+
+    outputTensorMap.insert(std::make_pair(output_mem->data, out));
+    output_mem++;
   }
-
-  out = std::const_pointer_cast<nntrainer::Tensor>(o);
-  output[0].data = out->getData();
-
-  outputTensorMap.insert(std::make_pair(output[0].data, out));
 
 #if (DBG)
   gint64 stop_time = g_get_real_time();
@@ -210,7 +178,7 @@ static int nntrainer_loadModelFile(const GstTensorFilterProperties *prop,
   }
 
   try {
-    nntrainer = new NNTrainerInference(model_file, prop);
+    nntrainer = new NNTrainerInference(model_file);
   } catch (std::exception &e) {
     ml_loge("%s %s", typeid(e).name(), e.what());
     return -1;
@@ -239,20 +207,45 @@ static int nntrainer_run(const GstTensorFilterProperties *prop,
   return nntrainer->run(input, output);
 }
 
-static int nntrainer_getInputDim(const GstTensorFilterProperties *prop,
-                                 void **private_data, GstTensorsInfo *info) {
+static int nntrainer_setInputDim(const GstTensorFilterProperties *prop,
+                                 void **private_data,
+                                 const GstTensorsInfo *in_info,
+                                 GstTensorsInfo *out_info) {
   NNTrainerInference *nntrainer =
     static_cast<NNTrainerInference *>(*private_data);
-  g_return_val_if_fail(nntrainer && info, -EINVAL);
-  return nntrainer->getInputTensorDim(info);
-}
+  g_return_val_if_fail(prop && nntrainer && in_info && out_info, -EINVAL);
 
-static int nntrainer_getOutputDim(const GstTensorFilterProperties *prop,
-                                  void **private_data, GstTensorsInfo *info) {
-  NNTrainerInference *nntrainer =
-    static_cast<NNTrainerInference *>(*private_data);
-  g_return_val_if_fail(nntrainer && info, -EINVAL);
-  return nntrainer->getOutputTensorDim(info);
+  auto num_input = in_info->num_tensors;
+  g_return_val_if_fail(num_input != 0, -EINVAL);
+
+  /// this does not allocate the memory for the inference, so setting batch here
+  /// does not have a large effect on the first inference call as of now.
+  /// we can make a call to nntrainer->allocate();
+  /// which would wrap around NeuralNetwork::allocate(false);
+  /// However, it might not be a good choice in therms of migrating to api.
+  nntrainer->setBatchSize(in_info->info[0].dimension[3]);
+
+  auto model_inputs = nntrainer->getInputDimension();
+  /// check number of in
+  g_return_val_if_fail(num_input == model_inputs.size(), -EINVAL);
+
+  /// check each in dimension matches
+  for (unsigned int i = 0; i < num_input; ++i) {
+    g_return_val_if_fail(in_info->info[i].type == _NNS_FLOAT32, -EINVAL);
+    g_return_val_if_fail(
+      model_inputs[i] == to_nntr_tensor_dim(in_info->info + i), -EINVAL);
+  }
+
+  auto model_outputs = nntrainer->getOutputDimension();
+  g_return_val_if_fail(!model_outputs.empty(), -EINVAL);
+  /// set gstTensorInfo
+  out_info->num_tensors = model_outputs.size();
+  for (unsigned int i = 0; i < out_info->num_tensors; ++i) {
+    gst_tensor_info_copy(out_info->info + i,
+                         to_nnst_tensor_dim(model_outputs[i]).get());
+  }
+
+  return 0;
 }
 
 static void nntrainer_destroyNotify(void **private_data, void *data) {
@@ -285,10 +278,11 @@ void init_filter_nntrainer(void) {
   NNS_support_nntrainer.run_without_model = FALSE;
   NNS_support_nntrainer.verify_model_path = FALSE;
   NNS_support_nntrainer.invoke_NN = nntrainer_run;
-  NNS_support_nntrainer.getInputDimension = nntrainer_getInputDim;
-  NNS_support_nntrainer.getOutputDimension = nntrainer_getOutputDim;
+  NNS_support_nntrainer.setInputDimension = nntrainer_setInputDim;
   NNS_support_nntrainer.destroyNotify = nntrainer_destroyNotify;
   NNS_support_nntrainer.checkAvailability = nntrainer_checkAvailability;
+  NNS_support_nntrainer.getInputDimension = NULL;
+  NNS_support_nntrainer.getOutputDimension = NULL;
 
   nnstreamer_filter_probe(&NNS_support_nntrainer);
 }
