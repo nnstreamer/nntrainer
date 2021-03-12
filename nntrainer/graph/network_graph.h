@@ -178,7 +178,7 @@ public:
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
   void extendGraph(std::vector<std::shared_ptr<Layer>> graph,
-                   std::string prefix);
+                   std::string &prefix);
 
   /**
    * @brief     Ensure that layer has a name

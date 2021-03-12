@@ -584,7 +584,7 @@ NetworkGraph::getGraph(const std::string &input_layer,
 }
 
 void NetworkGraph::extendGraph(std::vector<std::shared_ptr<Layer>> graph,
-                               std::string prefix) {
+                               std::string &prefix) {
 
   /**
    * The input_layers for graph[0] here is provided to the backbone by the ini
