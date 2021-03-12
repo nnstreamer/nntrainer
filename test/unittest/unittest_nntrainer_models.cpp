@@ -20,6 +20,7 @@
 #include <bn_layer.h>
 #include <input_layer.h>
 #include <layer.h>
+#include <layer_factory.h>
 #include <loss_layer.h>
 #include <neuralnet.h>
 #include <weight.h>
@@ -774,6 +775,27 @@ INSTANTIATE_TEST_CASE_P(
 // });
 /// #end if */
 // clang-format on
+
+/**
+ * @brief Read or save the model before initialize
+ */
+TEST(nntrainerModels, read_save_01_n) {
+  nntrainer::NeuralNetwork NN;
+  std::shared_ptr<nntrainer::Layer> layer =
+    nntrainer::createLayer(nntrainer::InputLayer::type);
+  layer->setProperty(
+    {"input_shape=1:1:62720", "normalization=true", "bias_initializer=zeros"});
+
+  EXPECT_NO_THROW(NN.addLayer(layer));
+
+  EXPECT_THROW(NN.readModel(), std::runtime_error);
+  EXPECT_THROW(NN.saveModel(), std::runtime_error);
+
+  EXPECT_EQ(NN.compile(), ML_ERROR_NONE);
+
+  EXPECT_THROW(NN.readModel(), std::runtime_error);
+  EXPECT_THROW(NN.saveModel(), std::runtime_error);
+}
 
 /**
  * @brief Main gtest

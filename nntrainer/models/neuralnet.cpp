@@ -429,6 +429,9 @@ NeuralNetwork &NeuralNetwork::copy(NeuralNetwork &from) {
  *            save training parameters from the optimizer
  */
 void NeuralNetwork::saveModel() {
+  if (!initialized)
+    throw std::runtime_error("Cannot save the model before initialize.");
+
   if (save_path == std::string()) {
     return;
   }
@@ -452,6 +455,9 @@ void NeuralNetwork::saveModel() {
  *            read training parameters from the optimizer if continuing train
  */
 void NeuralNetwork::readModel() {
+  if (!initialized)
+    throw std::runtime_error("Cannot save the model before initialize.");
+
   if (save_path == std::string()) {
     return;
   }
