@@ -103,6 +103,7 @@ public:
   friend void swap(NetworkGraph &lhs, NetworkGraph &rhs) {
     using std::swap;
 
+    swap(lhs.num_node, rhs.num_node);
     swap(lhs.layers, rhs.layers);
     swap(lhs.adj, rhs.adj);
     swap(lhs.Sorted, rhs.Sorted);
@@ -330,7 +331,7 @@ private:
 
   void updateNameInLayers(const std::string &cname, const std::string &name);
 
-  std::map<std::string, std::string> sub_in_out; /** This is map to identyfy
+  std::map<std::string, std::string> sub_in_out; /** This is map to identify
                    input and output layer name of subgraph */
   std::vector<std::shared_ptr<Layer>>
     layers;                              /**< vector for store layer pointers */
