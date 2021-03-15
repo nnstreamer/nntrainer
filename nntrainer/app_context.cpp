@@ -83,9 +83,13 @@ bool endswith(const std::string &target, const std::string &suffix) {
 std::string getPluginPathConf(const std::string &suffix) {
   std::string conf_path{getConfPath()};
 
-  NNTR_THROW_IF(!isFileExist(conf_path), std::invalid_argument)
-    << func_tag << "There is no existing config file";
   ml_logd("%s conf path: %s", func_tag.c_str(), conf_path.c_str());
+  if (!isFileExist(conf_path)) {
+    ml_logw(
+      "%s conf path does not exist, skip getting plugin path from the conf",
+      func_tag.c_str());
+    return std::string();
+  }
 
   dictionary *ini = iniparser_load(conf_path.c_str());
   NNTR_THROW_IF(ini == nullptr, std::runtime_error)
@@ -133,13 +137,10 @@ std::vector<std::string> getPluginPaths() {
     }
   }
 
-  try {
-    std::string conf_path = getPluginPathConf("layer");
+  std::string conf_path = getPluginPathConf("layer");
+  if (conf_path != "") {
     ret.emplace_back(conf_path);
     ml_logd("DEFAULT CONF PATH, path: %s", conf_path.c_str());
-  } catch (std::exception &e) {
-    ml_logw("failed to get conf path, conf path is %s, reason: %s",
-            getConfPath(), e.what());
   }
 
   return ret;

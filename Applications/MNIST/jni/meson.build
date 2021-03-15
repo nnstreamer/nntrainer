@@ -19,8 +19,13 @@ e = executable('nntrainer_mnist',
   install_dir: application_install_dir
 )
 
-test('app_mnist', e, args: [
-  nntr_mnist_resdir / 'mnist.ini',
-  nntr_mnist_resdir / 'mnist_trainingSet.dat']
+test(
+  'app_mnist',
+  e,
+  args: [
+    nntr_mnist_resdir / 'mnist.ini',
+    nntr_mnist_resdir / 'mnist_trainingSet.dat'
+  ],
+  timeout: 60
 )
 
