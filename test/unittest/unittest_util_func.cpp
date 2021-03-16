@@ -61,6 +61,22 @@ TEST(nntrainer_util_func, logFloat_01_p) {
   }
 }
 
+TEST(nntrainer_util_func, rotate_180_p) {
+  nntrainer::TensorDim dim(1, 1, 2, 3);
+
+  float data[6] = {1, 2, 3, 4, 5, 6};
+  float rotated_data[6] = {6, 5, 4, 3, 2, 1};
+
+  nntrainer::Tensor tensor1(dim, data);
+  nntrainer::Tensor tensor2 = nntrainer::rotate_180(tensor1);
+
+  for (unsigned int i = 0, cnt = 0; i < dim.batch(); ++i)
+    for (unsigned int j = 0; j < dim.channel(); ++j)
+      for (unsigned int k = 0; k < dim.height(); ++k)
+        for (unsigned int l = 0; l < dim.width(); ++l)
+          EXPECT_EQ(tensor2.getValue(i, j, k, l), rotated_data[cnt++]);
+}
+
 TEST(nntrainer_util_func, checkedRead_n) {
   std::ifstream file("not existing file");
   char array[5];
@@ -73,6 +89,19 @@ TEST(nntrainer_util_func, checkedWrite_n) {
   char array[5];
 
   EXPECT_THROW(nntrainer::checkedWrite(file, array, 5), std::runtime_error);
+}
+
+TEST(nntrainer_util_func, readString_n) {
+  std::ifstream file("not existing file");
+
+  EXPECT_THROW(nntrainer::readString(file), std::runtime_error);
+}
+
+TEST(nntrainer_util_func, writeString_n) {
+  std::ofstream file("/not good file");
+  std::string str;
+
+  EXPECT_THROW(nntrainer::writeString(file, str), std::runtime_error);
 }
 
 TEST(nntrainer_parse_util, throw_status_no_error_p) {
