@@ -461,7 +461,7 @@ void NeuralNetwork::saveModel() {
  */
 void NeuralNetwork::readModel() {
   if (!initialized)
-    throw std::runtime_error("Cannot save the model before initialize.");
+    throw std::runtime_error("Cannot read the model before initialize.");
 
   if (save_path == std::string()) {
     return;

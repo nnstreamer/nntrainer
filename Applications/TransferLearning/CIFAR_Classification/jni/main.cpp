@@ -431,8 +431,8 @@ int main(int argc, char *argv[]) {
   }
   try {
     NN.readModel();
-  } catch (...) {
-    std::cerr << "Error during readModel" << std::endl;
+  } catch (std::exception &e) {
+    std::cerr << "Error during readModel reason: " << e.what() << std::endl;
     return 1;
   }
 

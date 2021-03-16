@@ -168,7 +168,7 @@ Start with "[ ${layer name} ]". This layer name must be unique throughout networ
      * relu : ReLU function
      * softmax : softmax function
 
-8. ```weight_decay = <string>```
+8. ```weight_regularizer = <string>```
 
    set weight decay
      * l2norm : L2 normalization
@@ -232,10 +232,10 @@ Each layer requires different properties.
 
  | Layer | Properties |
  |:-------:|:---|
- | conv2d |<ul><li>filters</li><li>kernel_size</li><li>stride</li><li>padding</li><li>normalization</li><li>standardization</li><li>input_shape</li><li>bias_init_zero</li><li>activation</li><li>flatten</li><li>weight_decay</li><li>weight_regularizer_constant</li><li>weight_initializer</li></ul>|
+ | conv2d |<ul><li>filters</li><li>kernel_size</li><li>stride</li><li>padding</li><li>normalization</li><li>standardization</li><li>input_shape</li><li>bias_init_zero</li><li>activation</li><li>flatten</li><li>weight_regularizer</li><li>weight_regularizer_constant</li><li>weight_initializer</li></ul>|
  | pooling2d | <ul><li>pooling</li><li>pool_size</li><li>stride</li><li>padding</li></ul> |
  | flatten | - |
- | fully_connected | <lu><li>unit</li><li>normalization</li><li>standardization</li><li>input_shape</li><li>bias_initializer</li><li>activation</li><li>flatten</li><li>weight_decay</li><li>weight_regularizer_constant</li><li>weight_initializer</li></lu>|
+ | fully_connected | <lu><li>unit</li><li>normalization</li><li>standardization</li><li>input_shape</li><li>bias_initializer</li><li>activation</li><li>flatten</li><li>weight_regularizer</li><li>weight_regularizer_constant</li><li>weight_initializer</li></lu>|
  | input | <lu><li>normalization </li><li>standardization</li><li>input_shape</li><li>flatten</li></lu>|
  | batch_normalization | <lu><li>epsilon</li><li>flatten</li></lu> |
 

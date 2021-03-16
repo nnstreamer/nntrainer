@@ -32,4 +32,4 @@ e = executable('nntrainer_deepq',
   install_dir: application_install_dir
 )
 
-test('app_DeepQ', e, args: [res_path / 'DeepQ.ini'], timeout: 60)
+# test('app_DeepQ', e, args: [res_path / 'DeepQ.ini'], timeout: 60)
