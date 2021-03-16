@@ -445,16 +445,6 @@ protected:
   virtual void setActivation(ActivationType activation);
 
 private:
-  /**
-   * @brief     Set containing all the names of layers
-   */
-  static std::set<std::string> layer_names;
-
-  /**
-   * @brief     Count assigned to layer names declared by default
-   */
-  static int def_name_count;
-
   // TODO: remove this from here
   /**
    * @brief     input layer names

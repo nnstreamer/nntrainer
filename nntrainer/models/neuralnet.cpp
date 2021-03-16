@@ -760,9 +760,9 @@ int NeuralNetwork::extendGraph(GraphType graph, std::string prefix) {
 }
 
 std::vector<std::shared_ptr<Layer>>
-NeuralNetwork::getGraph(const std::string &input_layer,
-                        const std::string &output_layer) {
-  return model_graph.getGraph(input_layer, output_layer);
+NeuralNetwork::getUnsortedLayers(const std::string &input_layer,
+                                 const std::string &output_layer) {
+  return model_graph.getUnsortedLayers(input_layer, output_layer);
 }
 
 int NeuralNetwork::setOptimizer(

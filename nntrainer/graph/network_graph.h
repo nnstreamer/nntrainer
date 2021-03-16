@@ -48,10 +48,9 @@ public:
    * @brief     Constructor of NeuralNetwork Graph Class
    */
   NetworkGraph() :
-    num_node(0),
     def_name_count(0),
     skip_non_trainable_layers(0),
-  compiled(false) {}
+    compiled(false) {}
 
   /**
    * @brief     Compile the graph
@@ -71,16 +70,18 @@ public:
    * copied.
    * @retval current flat graph
    *
-   * TODO: rename to getUnsortedLayers
+   * @todo remove getting unsorted layers from model loader, compile model
+   * loader
    */
-  std::vector<std::shared_ptr<Layer>> getGraph(const std::string &input_layer,
-                                               const std::string &output_layer);
+  std::vector<std::shared_ptr<Layer>>
+  getUnsortedLayers(const std::string &input_layer,
+                    const std::string &output_layer);
 
   /**
    * @brief getter of number of nodes
    * @param[out] number of nodes
    */
-  unsigned int size() { return num_node; }
+  unsigned int size() { return adj.size(); }
 
   /**
    * @brief get if the graph is empty
@@ -94,11 +95,9 @@ public:
   friend void swap(NetworkGraph &lhs, NetworkGraph &rhs) {
     using std::swap;
 
-    swap(lhs.num_node, rhs.num_node);
     swap(lhs.adj, rhs.adj);
     swap(lhs.Sorted, rhs.Sorted);
     swap(lhs.layer_names, rhs.layer_names);
-    swap(lhs.netBuffers, rhs.netBuffers);
     swap(lhs.def_name_count, rhs.def_name_count);
     swap(lhs.skip_non_trainable_layers, rhs.skip_non_trainable_layers);
   }
@@ -110,7 +109,6 @@ public:
     adj.clear();
     Sorted.clear();
     layer_names.clear();
-    netBuffers.clear();
     def_name_count = 0;
     skip_non_trainable_layers = 0;
   }
@@ -142,19 +140,14 @@ public:
    * @retval Layer
    */
   std::shared_ptr<Layer> getLayer(const std::string &layer_name) {
-    for (auto iter = adj.begin(); iter != adj.end(); ++iter) {
-      if ((*iter).front().layer->getName() == layer_name) {
-        return (*iter).front().layer;
-      }
-    }
-
-    return nullptr;
+    return getLayerNode(layer_name).layer;
   }
 
   /**
-   * @brief getter of Layer with layer name
-   * @param[in] layer name
-   * @retval Layer
+   * @brief getter all the layers in the model
+   * @retval Layers
+   * @note these layers will be in sorted order if the model is compiled,
+   * otherwise the order is the order of addition of layers in the model.
    */
   std::vector<std::shared_ptr<Layer>> getLayers();
 
@@ -165,6 +158,8 @@ public:
    * @note It is assumed that this model is valid by itself
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   *
+   * @todo rename to addLayers
    */
   void extendGraph(std::vector<std::shared_ptr<Layer>> graph,
                    std::string &prefix);
@@ -230,7 +225,7 @@ public:
    */
   NetworkGraph &copy(NetworkGraph &from) {
     if (this != &from) {
-      // TODO: this assumes elements already in layers/adj, solve that
+      // FIXME: this assumes elements already in layers/adj, solve that
       for (unsigned int i = 0; i < adj.size(); i++)
         adj[i].front().layer->copy(from.adj[i].front().layer);
     }
@@ -240,18 +235,15 @@ public:
 private:
   std::map<std::string, std::string> sub_in_out; /** This is map to identify
                    input and output layer name of subgraph */
-  unsigned int num_node;                 /**< Total Number of Graph Nodes */
-  std::vector<std::list<LayerNode>> adj; /**< Graph Structure */
-  std::vector<LayerNode> Sorted;         /**< Ordered Graph Node List  */
+  std::vector<std::list<LayerNode>> adj;         /**< Graph Structure */
+  std::vector<LayerNode> Sorted; /**< Ordered Graph Node List  */
   std::set<std::string>
     layer_names; /**< Set containing all the names of layers in the model */
-  std::vector<std::shared_ptr<Var_Grad>>
-    netBuffers;       /**< List of Buffers used to calculate layer */
   int def_name_count; /**< Count assigned to layer names declared by default */
   unsigned int
     skip_non_trainable_layers; /**< denotes the number of non-trainable layers
                                   at the start of the graph */
-  bool compiled;    /**< if the model graph is compiled */
+  bool compiled;               /**< if the model graph is compiled */
 
   /**
    * @brief     topological sort
@@ -277,7 +269,7 @@ private:
   int checkCompiledGraph();
 
   /**
-   * @brief add Edges between graph nodes
+   * @brief add Edge between graph nodes
    * @param[in] ith Node index : From
    * @param[in] node LayerNode object to be added : To
    */
@@ -288,22 +280,21 @@ private:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int setEdge();
+  int connectGraph();
 
   /**
    * @brief     make connection for the given node idx
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  void setEdge(unsigned int adj_idx);
+  void connectGraph(unsigned int adj_idx);
 
   /**
-   * @brief     Build Graph Nodes
-   * @param[in] loss_type loss type
+   * @brief     Realize Graph Nodes
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int setGraphNode();
+  int realizeGraph();
 
   /**
    * @brief     check and add Multi Input Layer : addition or concat Layer
@@ -368,9 +359,9 @@ private:
   void topologicalSort();
 
   /**
-   * @brief     update name of the dependent layer in adj
+   * @brief     update name of the the connections
    */
-  void updateNameInLayers(const std::string &cname, const std::string &name);
+  void updateConnectionName(const std::string &from, const std::string &to);
 
   /**
    * @brief Calculate the number of non-trainable layers at the start

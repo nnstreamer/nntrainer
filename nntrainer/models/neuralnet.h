@@ -348,6 +348,8 @@ public:
    * @note flat graph contains pointer to the actual nodes, which is not deeply
    * copied.
    * @retval flatGraph of the current graph
+   * @note these layers will be in sorted order if the model is compiled,
+   * otherwise the order is the order of addition of layers in the model.
    */
   FlatGraphType getFlatGraph() { return model_graph.getLayers(); }
 
@@ -359,8 +361,8 @@ public:
    * copied.
    * @retval current graph
    */
-  GraphType getGraph(const std::string &input_layer = "",
-                     const std::string &output_layer = "");
+  GraphType getUnsortedLayers(const std::string &input_layer = "",
+                              const std::string &output_layer = "");
 
   /**
    * @brief     Set loss type for the neural network.
