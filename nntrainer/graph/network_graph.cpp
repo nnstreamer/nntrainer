@@ -60,6 +60,8 @@ void NetworkGraph::addLayerNode(std::shared_ptr<Layer> layer) {
   std::list<LayerNode> l;
   std::unique_ptr<LayerNode> node = std::make_unique<LayerNode>();
 
+  ensureName(layer);
+
   node->layer = layer;
   node->index = num_node;
 
@@ -146,17 +148,14 @@ void NetworkGraph::ensureName(std::shared_ptr<Layer> layer,
   std::string orig_name = layer->getName();
   bool orig_name_empty = orig_name.empty();
   if (!orig_name_empty && !force_rename &&
-      layer_names.end() == layer_names.find(orig_name)) {
-    layer_names.insert(orig_name);
+      layer_names.end() == layer_names.find(orig_name))
     return;
-  }
 
   /** If just prefix with layer name makes it unique - directly set the name */
   if (!orig_name_empty) {
     std::string direct_name = prefix + orig_name;
     if (layer_names.find(direct_name) == layer_names.end()) {
       layer->setName(direct_name);
-      layer_names.insert(direct_name);
       return;
     }
   }
@@ -173,7 +172,6 @@ void NetworkGraph::ensureName(std::shared_ptr<Layer> layer,
   } while (iter != layer_names.end());
 
   layer->setName(name);
-  layer_names.insert(name);
 }
 
 int NetworkGraph::realizeMultiInputType(Layer &current) {
@@ -586,19 +584,9 @@ NetworkGraph::getGraph(const std::string &input_layer,
 void NetworkGraph::extendGraph(std::vector<std::shared_ptr<Layer>> graph,
                                std::string prefix) {
 
-  /**
-   * The input_layers for graph[0] here is provided to the backbone by the ini
-   * file and is overwritten here by the model loader for connection making.
-   *
-   * This loop intends to connect a new backbone to be added with an old
-   * backbone.
-   */
   for (unsigned int i = 0; i < graph[0]->input_layers.size(); ++i) {
     if (sub_in_out.find(graph[0]->input_layers[i]) != sub_in_out.end()) {
       graph[0]->input_layers[i] = sub_in_out[graph[0]->input_layers[i]];
-    } else if (layer_names.find(graph[0]->input_layers[i]) ==
-               layer_names.end()) {
-      throw std::runtime_error("Input layer name for backbone not found.");
     }
   }
 
@@ -608,24 +596,20 @@ void NetworkGraph::extendGraph(std::vector<std::shared_ptr<Layer>> graph,
      * Add prefix to the existing layer name,
      * and ensure it is unique in this new graph
      */
-    std::string orig_name = prefix + layer->getName();
+    std::string org_name = prefix + layer->getName();
     ensureName(layer, prefix, true);
-    sub_in_out.insert(std::make_pair(orig_name, layer->getName()));
+    sub_in_out.insert(std::make_pair(org_name, layer->getName()));
 
     for (unsigned int i = 0; i < layer->input_layers.size(); ++i) {
       if (sub_in_out.find(prefix + layer->input_layers[i]) !=
           sub_in_out.end()) {
         layer->input_layers[i] = sub_in_out[prefix + layer->input_layers[i]];
-      } else if (layer_names.find(layer->input_layers[i]) ==
-                 layer_names.end()) {
-        throw std::runtime_error("Input layer name for backbone not found.");
       }
     }
 
     layers.push_back(layer);
   }
 
-  /** This allows connecting a layer to the backbone */
   sub_in_out.insert(std::make_pair(prefix, layers.back()->getName()));
 }
 
