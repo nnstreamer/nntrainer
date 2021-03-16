@@ -787,6 +787,7 @@ TEST(nntrainerModels, read_save_01_n) {
     {"input_shape=1:1:62720", "normalization=true", "bias_initializer=zeros"});
 
   EXPECT_NO_THROW(NN.addLayer(layer));
+  EXPECT_NO_THROW(NN.setProperty({"loss=mse"}));
 
   EXPECT_THROW(NN.readModel(), std::runtime_error);
   EXPECT_THROW(NN.saveModel(), std::runtime_error);

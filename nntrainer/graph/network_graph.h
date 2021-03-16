@@ -81,6 +81,8 @@ public:
    * @note graph contains pointer to the actual nodes, which is not deeply
    * copied.
    * @retval current flat graph
+   *
+   * TODO: rename to getUnsortedLayers
    */
   std::vector<std::shared_ptr<Layer>> getGraph(const std::string &input_layer,
                                                const std::string &output_layer);
@@ -95,7 +97,7 @@ public:
    * @brief get if the graph is empty
    * @param[out] true if empty, else false
    */
-  bool empty() { return layers.empty(); }
+  bool empty() { return adj.empty(); }
 
   /**
    * @brief     Swap function for the class
@@ -104,7 +106,6 @@ public:
     using std::swap;
 
     swap(lhs.num_node, rhs.num_node);
-    swap(lhs.layers, rhs.layers);
     swap(lhs.adj, rhs.adj);
     swap(lhs.Sorted, rhs.Sorted);
     swap(lhs.layer_names, rhs.layer_names);
@@ -117,7 +118,6 @@ public:
    * @brief     reset the graph
    */
   void reset() {
-    layers.clear();
     adj.clear();
     Sorted.clear();
     layer_names.clear();
@@ -153,9 +153,9 @@ public:
    * @retval Layer
    */
   std::shared_ptr<Layer> getLayer(const std::string &layer_name) {
-    for (auto iter = layers.begin(); iter != layers.end(); ++iter) {
-      if ((*iter)->getName() == layer_name) {
-        return *iter;
+    for (auto iter = adj.begin(); iter != adj.end(); ++iter) {
+      if ((*iter).front().layer->getName() == layer_name) {
+        return (*iter).front().layer;
       }
     }
 
@@ -167,7 +167,7 @@ public:
    * @param[in] layer name
    * @retval Layer
    */
-  std::vector<std::shared_ptr<Layer>> &getLayers() { return layers; }
+  std::vector<std::shared_ptr<Layer>> getLayers();
 
   /**
    * @brief     join passed graph into the existing graph model
@@ -197,7 +197,7 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int setGraphNode(const LossType loss_type);
+  int setGraphNode();
 
   /**
    * @brief     check and add Multi Input Layer : addition or concat Layer
@@ -245,6 +245,13 @@ public:
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
   int setEdge();
+
+  /**
+   * @brief     make connection for the given node idx
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  void setEdge(unsigned int adj_idx);
 
   /**
    * @brief     set batch size
@@ -306,8 +313,9 @@ public:
    */
   NetworkGraph &copy(NetworkGraph &from) {
     if (this != &from) {
-      for (unsigned int i = 0; i < layers.size(); i++)
-        layers[i]->copy(from.layers[i]);
+      // TODO: this assumes elements already in layers/adj, solve that
+      for (unsigned int i = 0; i < adj.size(); i++)
+        adj[i].front().layer->copy(from.adj[i].front().layer);
     }
     return *this;
   }
@@ -333,8 +341,6 @@ private:
 
   std::map<std::string, std::string> sub_in_out; /** This is map to identify
                    input and output layer name of subgraph */
-  std::vector<std::shared_ptr<Layer>>
-    layers;                              /**< vector for store layer pointers */
   unsigned int num_node;                 /**< Total Number of Graph Nodes */
   std::vector<std::list<LayerNode>> adj; /**< Graph Structure */
   std::vector<LayerNode> Sorted;         /**< Ordered Graph Node List  */
