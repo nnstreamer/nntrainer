@@ -468,5 +468,15 @@ int main(int argc, char *argv[]) {
   }
 #endif
 
+  // please comment below if you are going to train continuously.
+  try {
+    const std::string data_path =
+      nntrainer::AppContext::Global().getWorkingPath("model_draw_cls.bin");
+    remove(data_path.c_str());
+  } catch (std::exception &e) {
+    std::cerr << "failed to get working data_path, reason: " << e.what();
+    return 1;
+  }
+
   return status;
 }
