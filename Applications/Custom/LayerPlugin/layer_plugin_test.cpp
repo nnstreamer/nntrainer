@@ -13,11 +13,13 @@
 #include <gtest/gtest.h>
 
 #include <dlfcn.h>
+#include <fstream>
 #include <iostream>
 #include <string>
 
 #include <app_context.h>
 #include <layer.h>
+#include <layer_internal.h>
 
 const char *NNTRAINER_PATH = std::getenv("NNTRAINER_PATH");
 
@@ -63,8 +65,25 @@ TEST(AppContext, DlRegisterDirectory_n) {
 TEST(AppContext, DefaultEnvironmentPath_p) {
   /// as NNTRAINER_PATH is fed to the test, this should success without an
   /// error
-  auto layer = ml::train::createLayer("pow");
-  EXPECT_EQ(layer->getType(), "pow");
+  auto l = ml::train::createLayer("pow");
+  EXPECT_EQ(l->getType(), "pow");
+
+  std::unique_ptr<nntrainer::Layer> layer(
+    static_cast<nntrainer::Layer *>(l.release()));
+
+  std::ifstream input_file("does_not_exist");
+  EXPECT_NO_THROW(layer->read(input_file));
+  remove("does_not_exist");
+
+  std::ofstream output_file("does_not_exist");
+  EXPECT_NO_THROW(layer->save(output_file));
+  remove("does_not_exist");
+
+  EXPECT_NO_THROW(layer->getName());
+  EXPECT_NE(layer->setProperty({"invalid_values"}), ML_ERROR_NONE);
+  EXPECT_EQ(layer->checkValidation(), ML_ERROR_NONE);
+  EXPECT_EQ(layer->getOutputDimension()[0], nntrainer::TensorDim());
+  EXPECT_EQ(layer->getInputDimension()[0], nntrainer::TensorDim());
 }
 
 TEST(AppContext, DefaultEnvironmentPath_n) {
