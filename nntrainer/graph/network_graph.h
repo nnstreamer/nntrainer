@@ -53,22 +53,10 @@ public:
     skip_non_trainable_layers(0) {}
 
   /**
-   * @brief add Edges between graph nodes
-   * @param[in] ith Node index : From
-   * @param[in] node LayerNode object to be added : To
+   * @brief     Compile the graph
+   * @param[in] loss_type loss for the graph
    */
-  void addEdge(unsigned int ith, LayerNode node);
-
-  /**
-   * @brief Sorting and Define order to calculate : Depth First Search
-   */
-  void topologicalSort();
-
-  /**
-   * @brief Create new LayerNode and add into Graph
-   * @param[in] layer shared_ptr of Layer
-   */
-  void addLayerNode(std::shared_ptr<Layer> layer);
+  int compile(const LossType loss_type);
 
   /**
    * @brief Create new LayerNode and add into Graph
@@ -181,79 +169,6 @@ public:
                    std::string &prefix);
 
   /**
-   * @brief     Ensure that layer has a name
-   */
-  void ensureName(std::shared_ptr<Layer> layer, const std::string &prefix = "",
-                  bool force_rename = false);
-
-  /**
-   * @brief     set Multi Output Layer
-   */
-  void setOutputLayers();
-
-  /**
-   * @brief     Build Graph Nodes
-   * @param[in] loss_type loss type
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   */
-  int setGraphNode();
-
-  /**
-   * @brief     check and add Multi Input Layer : addition or concat Layer
-   * @param[in] current layer
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   */
-  int realizeMultiInputType(Layer &current);
-
-  /**
-   * @brief     check and add Multi output Layer : output Layer
-   * @param[in] current layer
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   */
-  int realizeMultiOutputType(Layer &current);
-
-  /**
-   * @brief     Realize act type to layer and insert it to layers
-   * @param[in] current layer
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   */
-  int realizeActivationType(Layer &current);
-
-  /**
-   * @brief     Realize flatten type to layer and insert it to layers
-   * @param[in] current layer
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   */
-  int realizeFlattenType(Layer &current);
-
-  /**
-   * @brief     adding loss layer at last position
-   * @param[in] loss_type loss type
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   */
-  int addLossLayer(const LossType loss_type);
-
-  /**
-   * @brief     make connection between nodes
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   */
-  int setEdge();
-
-  /**
-   * @brief     make connection for the given node idx
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   */
-  void setEdge(unsigned int adj_idx);
-
-  /**
    * @brief     set batch size
    * @param[in] batch size
    */
@@ -320,25 +235,7 @@ public:
     return *this;
   }
 
-  /**
-   * @brief     check if graph is ready to compile.
-   * @retval #ML_ERROR_NONE graph is ready to compile
-   * @retval #ML_ERROR_INVALID_PARAMETER not ready to compile.
-   */
-  int isCompilable();
-
 private:
-  /**
-   * @brief     topological sort
-   * @param[in] ith index of LayerNode
-   * @param[in] visited temp list
-   * @param[in] stack for Node list to visit.
-   */
-  void topologicalSortUtil(unsigned int ith, std::vector<bool> &visited,
-                           std::stack<LayerNode> &Stack);
-
-  void updateNameInLayers(const std::string &cname, const std::string &name);
-
   std::map<std::string, std::string> sub_in_out; /** This is map to identify
                    input and output layer name of subgraph */
   unsigned int num_node;                 /**< Total Number of Graph Nodes */
@@ -352,6 +249,119 @@ private:
   unsigned int
     skip_non_trainable_layers; /**< denotes the number of non-trainable layers
                                   at the start of the graph */
+
+  /**
+   * @brief     topological sort
+   * @param[in] ith index of LayerNode
+   * @param[in] visited temp list
+   * @param[in] stack for Node list to visit.
+   */
+  void topologicalSortUtil(unsigned int ith, std::vector<bool> &visited,
+                           std::stack<LayerNode> &Stack);
+
+  /**
+   * @brief     check if graph is ready to compile.
+   * @retval #ML_ERROR_NONE graph is ready to compile
+   * @retval #ML_ERROR_INVALID_PARAMETER not ready to compile.
+   */
+  int isCompilable();
+
+  /**
+   * @brief add Edges between graph nodes
+   * @param[in] ith Node index : From
+   * @param[in] node LayerNode object to be added : To
+   */
+  void addEdge(unsigned int ith, LayerNode node);
+
+  /**
+   * @brief     make connection between nodes
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  int setEdge();
+
+  /**
+   * @brief     make connection for the given node idx
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  void setEdge(unsigned int adj_idx);
+
+  /**
+   * @brief     Build Graph Nodes
+   * @param[in] loss_type loss type
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  int setGraphNode();
+
+  /**
+   * @brief     check and add Multi Input Layer : addition or concat Layer
+   * @param[in] current layer
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  int realizeMultiInputType(Layer &current);
+
+  /**
+   * @brief     check and add Multi output Layer : output Layer
+   * @param[in] current layer
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  int realizeMultiOutputType(Layer &current);
+
+  /**
+   * @brief     Realize act type to layer and insert it to layers
+   * @param[in] current layer
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  int realizeActivationType(Layer &current);
+
+  /**
+   * @brief     Realize flatten type to layer and insert it to layers
+   * @param[in] current layer
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  int realizeFlattenType(Layer &current);
+
+  /**
+   * @brief     adding loss layer at last position
+   * @param[in] loss_type loss type
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  int addLossLayer(const LossType loss_type);
+
+  /**
+   * @brief     set Multi Output Layer
+   */
+  void setOutputLayers();
+
+  /**
+   * @brief     Ensure that layer has a name
+   */
+  void ensureName(std::shared_ptr<Layer> layer, const std::string &prefix = "",
+                  bool force_rename = false);
+
+  /**
+   * @brief Create new LayerNode and add into Graph
+   * @param[in] layer shared_ptr of Layer
+   */
+  void addLayerNode(std::shared_ptr<Layer> layer);
+
+  /**
+   * @brief Sorting and Define order to calculate : Depth First Search
+   */
+  void topologicalSort();
+
+  /**
+   * @brief     update name of the dependent layer in adj
+   */
+  void updateNameInLayers(const std::string &cname, const std::string &name);
+
   /**
    * @brief Calculate the number of non-trainable layers at the start
    */

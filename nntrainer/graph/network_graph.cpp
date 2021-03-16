@@ -37,6 +37,26 @@ namespace nntrainer {
 static const std::vector<std::string> in_place_layers = {
   ActivationLayer::type, BatchNormalizationLayer::type};
 
+int NetworkGraph::compile(const LossType loss_type) {
+  int status = ML_ERROR_NONE;
+
+  status = isCompilable();
+  NN_RETURN_STATUS();
+
+  status = setGraphNode();
+  NN_RETURN_STATUS();
+
+  status = setEdge();
+  NN_RETURN_STATUS();
+
+  topologicalSort();
+
+  status = addLossLayer(loss_type);
+  NN_RETURN_STATUS();
+
+  return status;
+}
+
 void NetworkGraph::updateNameInLayers(const std::string &cname,
                                       const std::string &name) {
   for (unsigned int i = 0; i < adj.size(); ++i) {
