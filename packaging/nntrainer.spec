@@ -111,7 +111,7 @@ BuildRequires:	nnstreamer-devel
 
 %if 0%{?unit_test}
 BuildRequires:	nnstreamer-protobuf
-BuildRequires:	nnstreamer-extra
+# BuildRequires:	nnstreamer-test-devel
 BuildRequires:	gst-plugins-good-extra
 BuildRequires:	python
 %endif #unit_test
@@ -259,6 +259,7 @@ NNSteamer tensor filter static package for nntrainer to support inference.
 %define install_app -Dinstall-app=true
 %define enable_ccapi -Denable-ccapi=false
 %define enable_nnstreamer_backbone -Denable-nnstreamer-backbone=false
+%define enable_profile -Denable-profile=false
 %define capi_ml_pkg_dep_resolution -Dcapi-ml-inference-actual=%{?capi_ml_inference_pkg_name} -Dcapi-ml-common-actual=%{?capi_ml_common_pkg_name}
 
 %if %{with tizen}
@@ -276,6 +277,10 @@ NNSteamer tensor filter static package for nntrainer to support inference.
 
 %if 0%{?support_nnstreamer_backbone}
 %define enable_nnstreamer_backbone -Denable-nnstreamer-backbone=true
+%endif
+
+%if 0%{?unit_test}
+%define enable_profile -Denable-profile=true
 %endif
 
 %prep
@@ -310,7 +315,7 @@ meson --buildtype=plain --prefix=%{_prefix} --sysconfdir=%{_sysconfdir} \
       --libdir=%{_libdir} --bindir=%{nntrainerapplicationdir} \
       --includedir=%{_includedir} %{install_app} %{enable_tizen} \
       %{enable_tizen_feature_check} %{enable_cblas} %{enable_ccapi} \
-      %{enable_gym} %{enable_nnstreamer_tensor_filter} \
+      %{enable_gym} %{enable_nnstreamer_tensor_filter} %{enable_profile} \
       %{enable_nnstreamer_backbone} %{capi_ml_pkg_dep_resolution} build
 
 ninja -C build %{?_smp_mflags}
@@ -325,13 +330,13 @@ tar xzf unittest_layers.tar.gz -C build
 # independent unittests of nntrainer
 bash %{test_script} ./test
 
-export NNSTREAMER_CONF=$(pwd)/test/nnstreamer_filter_nntrainer/nnstreamer-test.ini
-export NNSTREAMER_FILTERS=$(pwd)/build/nnstreamer/tensor_filter
+# export NNSTREAMER_CONF=$(pwd)/test/nnstreamer_filter_nntrainer/nnstreamer-test.ini
+# export NNSTREAMER_FILTERS=$(pwd)/build/nnstreamer/tensor_filter
 pushd build
 
-TF_APP=$(pwd)/Applications/TransferLearning/Draw_Classification
-TF_APP_RES=$(pwd)/res/app/Draw_Classification
-${TF_APP}/jni/nntrainer_training ${TF_APP_RES}/Training.ini ${TF_APP_RES}
+# TF_APP=$(pwd)/Applications/TransferLearning/Draw_Classification
+# TF_APP_RES=$(pwd)/res/app/Draw_Classification
+# ${TF_APP}/jni/nntrainer_training ${TF_APP_RES}/Training.ini ${TF_APP_RES}
 
 %if 0%{?support_ccapi}
 MNIST_APP=Applications/MNIST
@@ -342,13 +347,13 @@ MNIST_RES=res/app/MNIST/
 popd
 
 # unittest for nntrainer plugin for nnstreamer
-%if 0%{?nnstreamer_filter}
-export NNSTREAMER_CONF=$(pwd)/test/nnstreamer_filter_nntrainer/nnstreamer-test.ini
-export NNSTREAMER_FILTERS=$(pwd)/build/nnstreamer/tensor_filter
-pushd test/nnstreamer_filter_nntrainer
-bash runTest.sh
-popd
-%endif #nnstreamer_filter
+# %if 0%{?nnstreamer_filter}
+# export NNSTREAMER_CONF=$(pwd)/test/nnstreamer_filter_nntrainer/nnstreamer-test.ini
+# export NNSTREAMER_FILTERS=$(pwd)/build/nnstreamer/tensor_filter
+# pushd test/nnstreamer_filter_nntrainer
+# bash runTest.sh
+# popd
+# %endif #nnstreamer_filter
 %endif #unit_test
 
 %install
@@ -391,7 +396,7 @@ find . -name "CMakeCXXCompilerId*.gcda" -delete
 #find . -path "/build/*.j
 
 # Generate report
-lcov -t 'NNTrainer Unit Test Coverage' -o unittest.info -c -d . -b %{_builddir}/%{name}-%{version}/build --include "*/nntrainer/*" --include "*/api/*" --exclude "*/tensorflow/*"
+lcov -t 'NNTrainer Unit Test Coverage' -o unittest.info -c -d . -b %{_builddir}/%{name}-%{version}/build --include "*/nntrainer/*" --include "*/api/*" --exclude "*/tensorflow/*" --exclude "*/nntrainer_logger.cpp"
 
 # Exclude generated files
 lcov -r unittest.info "*/test/*" "*/meson*/*" -o unittest-filtered.info
