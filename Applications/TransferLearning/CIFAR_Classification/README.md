@@ -77,8 +77,8 @@ Type = fully_connected
 Unit = 10
 bias_initializer = zeros
 Activation = softmax
-Weight_Decay = l2norm
-weight_Decay_Lambda = 0.005
+weight_regularizer = l2norm
+weight_regularizer_constant = 0.005
 ```
 
 If you want to use generator (option #2), then remove [DataSet] section, and provide dataset generator callbacks.
