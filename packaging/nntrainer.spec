@@ -321,30 +321,35 @@ meson --buildtype=plain --prefix=%{_prefix} --sysconfdir=%{_sysconfdir} \
 ninja -C build %{?_smp_mflags}
 
 %if 0%{?unit_test}
-tar xzf trainset.tar.gz -C build
-tar xzf valset.tar.gz -C build
-tar xzf testset.tar.gz -C build
-cp label.dat build
-tar xzf unittest_layers.tar.gz -C build
-
 # independent unittests of nntrainer
-bash %{test_script} ./test
+# @todo: we only need single line of this.
+%define meson_test meson test -C build -t 2.0 --print-errorlogs
+%{meson_test} unittest_tizen_capi
+%{meson_test} unittest_tizen_capi_layer
+%{meson_test} unittest_tizen_capi_optimizer
+%{meson_test} unittest_tizen_capi_dataset
+%{meson_test} unittest_nntrainer_activations
+%{meson_test} unittest_nntrainer_internal
+%{meson_test} unittest_nntrainer_layers
+%{meson_test} unittest_nntrainer_lazy_tensor
+%{meson_test} unittest_nntrainer_tensor
+%{meson_test} unittest_util_func
+%{meson_test} unittest_databuffer_file
+%{meson_test} unittest_nntrainer_modelfile
+%{meson_test} unittest_nntrainer_models
+%{meson_test} unittest_nntrainer_graph
+%{meson_test} unittest_nntrainer_appcontext
+%{meson_test} unittest_nntrainer_profiler
+%{meson_test} unittest_ccapi
+%{meson_test} app_knn
+%{meson_test} app_logistic
+%{meson_test} app_mnist
+%{meson_test} app_cifar_classification
+%{meson_test} app_cifar_classification_func
+# %{meson_test} app_draw_classification
+%{meson_test} app_plugin_test
+%{meson_test} simpleshot_tests
 
-# export NNSTREAMER_CONF=$(pwd)/test/nnstreamer/nnstreamer-test.ini
-# export NNSTREAMER_FILTERS=$(pwd)/build/nnstreamer/tensor_filter
-pushd build
-
-# TF_APP=$(pwd)/Applications/TransferLearning/Draw_Classification
-# TF_APP_RES=$(pwd)/res/app/Draw_Classification
-# ${TF_APP}/jni/nntrainer_training ${TF_APP_RES}/Training.ini ${TF_APP_RES}
-
-%if 0%{?support_ccapi}
-MNIST_APP=Applications/MNIST
-MNIST_RES=res/app/MNIST/
-./${MNIST_APP}/jni/nntrainer_mnist ./${MNIST_RES}/mnist.ini ./${MNIST_RES}/mnist_trainingSet.dat
-%endif # support_ccapi
-
-popd
 
 # unittest for nntrainer plugin for nnstreamer
 # %if 0%{?nnstreamer_filter}
