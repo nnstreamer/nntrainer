@@ -817,7 +817,7 @@ TEST(nntrainerIniTest, backbone_n_21) {
   EXPECT_EQ(NN.compile(), ML_ERROR_NONE);
   EXPECT_EQ(NN.initialize(), ML_ERROR_NONE);
   EXPECT_EQ(NN.getNetworkGraph().getSorted().size(), 3u);
-  // EXPECT_EQ(NN.getGraph().size(), 3);
+  // EXPECT_EQ(NN.getUnsortedLayers().size(), 3);
 }
 
 /**

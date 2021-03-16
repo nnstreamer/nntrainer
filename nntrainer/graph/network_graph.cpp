@@ -9,6 +9,7 @@
  * @bug     No known bugs except for NYI items
  * @brief   This is Network Graph Class for Neural Network
  *
+ * @todo    Support multi-input graph.
  */
 
 #include <sstream>
@@ -40,6 +41,9 @@ static const std::vector<std::string> in_place_layers = {
 int NetworkGraph::compile(const LossType loss_type) {
   int status = ML_ERROR_NONE;
 
+  if (compiled)
+    return status;
+
   status = isCompilable();
   NN_RETURN_STATUS();
 
@@ -57,6 +61,8 @@ int NetworkGraph::compile(const LossType loss_type) {
   status = checkCompiledGraph();
   NN_RETURN_STATUS();
 
+  compiled = true;
+
   return status;
 }
 
@@ -71,13 +77,6 @@ void NetworkGraph::updateNameInLayers(const std::string &cname,
       }
     }
   }
-}
-
-void NetworkGraph::addEdge(unsigned int ith, LayerNode node) {
-  if (ith > num_node - 1)
-    throw std::invalid_argument("Exceed total number of layer");
-
-  adj[ith].push_back(node);
 }
 
 void NetworkGraph::addLayerNode(std::shared_ptr<Layer> layer) {
@@ -120,11 +119,10 @@ LayerNode &NetworkGraph::getLayerNode(unsigned int ith) {
 }
 
 LayerNode &NetworkGraph::getSortedLayerNode(unsigned int ith) {
-  return Sorted[ith];
+  return getSorted()[ith];
 }
 
 void NetworkGraph::countNonTrainableLayersAtBegin() {
-  /** TODO: update for multiple inputs when it is supported */
   for (auto iter = Sorted.cbegin(); iter != Sorted.cend(); iter++) {
     if ((*iter).layer->getTrainable()) {
       skip_non_trainable_layers = iter - Sorted.cbegin();
@@ -554,6 +552,13 @@ LayerNode &NetworkGraph::getLayerNode(const std::string &layer_name) {
   throw std::invalid_argument("Cannot find Layer");
 }
 
+void NetworkGraph::addEdge(unsigned int ith, LayerNode node) {
+  if (ith > num_node - 1)
+    throw std::invalid_argument("Exceed total number of layer");
+
+  adj[ith].push_back(node);
+}
+
 void NetworkGraph::setEdge(unsigned int adj_idx) {
   std::list<LayerNode>::iterator iter = adj[adj_idx].begin();
 
@@ -579,37 +584,35 @@ int NetworkGraph::setEdge() {
 }
 
 void NetworkGraph::setBatchSize(unsigned int batch_size) {
-  for (auto const &layer_node : Sorted) {
-    layer_node.layer->setBatch(batch_size);
+  for (auto const &layer_adj_list : adj) {
+    layer_adj_list.front().layer->setBatch(batch_size);
   }
 }
 
 sharedConstTensors NetworkGraph::forwarding(bool training) {
-  for (auto const &ln : Sorted) {
+  for (auto const &ln : getSorted()) {
     START_PROFILE(ln.event_key);
     ln.layer->forwarding(training);
     END_PROFILE(ln.event_key);
   }
 
   std::vector<sharedConstTensor> out;
-  for (auto const &nh : Sorted.back().layer->net_hidden)
+  for (auto const &nh : getSorted().back().layer->net_hidden)
     out.push_back(MAKE_SHARED_TENSOR(nh->getVariable()));
 
   return out;
 }
 
-std::vector<TensorDim> NetworkGraph::getInputDimension() {
-  /// @todo add check if the graph is compiled
-  NNTR_THROW_IF(num_node == 0, std::invalid_argument)
+std::vector<TensorDim> NetworkGraph::getInputDimension() const {
+  NNTR_THROW_IF(empty(), std::invalid_argument)
     << "[NetworkGraph] the graph has no node!";
-  return Sorted[0].layer->getInputDimension();
+  return getSorted()[0].layer->getInputDimension();
 }
 
-std::vector<TensorDim> NetworkGraph::getOutputDimension() {
-  /// @todo add check if the graph is compiled
-  NNTR_THROW_IF(num_node == 0, std::invalid_argument)
+std::vector<TensorDim> NetworkGraph::getOutputDimension() const {
+  NNTR_THROW_IF(empty(), std::invalid_argument)
     << "[NetworkGraph] the graph has no node!";
-  return Sorted.back().layer->getOutputDimension();
+  return getSorted().back().layer->getOutputDimension();
 }
 
 std::vector<std::shared_ptr<Layer>>
@@ -661,6 +664,9 @@ std::vector<std::shared_ptr<Layer>> NetworkGraph::getLayers() {
 void NetworkGraph::extendGraph(std::vector<std::shared_ptr<Layer>> graph,
                                std::string &prefix) {
 
+  if (compiled)
+    throw std::runtime_error("Cannot modify graph after compile");
+
   /**
    * The input_layers for graph[0] here is provided to the backbone by the ini
    * file and is overwritten here by the model loader for connection making.
@@ -706,6 +712,9 @@ void NetworkGraph::extendGraph(std::vector<std::shared_ptr<Layer>> graph,
 }
 
 void NetworkGraph::addLayer(std::shared_ptr<Layer> layer) {
+  if (compiled)
+    throw std::runtime_error("Cannot modify graph after compile");
+
   /** Ensure that the layer has a name and is unique */
   ensureName(layer);
 
@@ -715,7 +724,7 @@ void NetworkGraph::addLayer(std::shared_ptr<Layer> layer) {
 
 void NetworkGraph::inPlaceOptimize(const std::string &layer_type,
                                    Manager &manager) {
-  for (auto &layer_node : Sorted) {
+  for (auto &layer_node : getSorted()) {
     auto &l = layer_node.layer;
     if (l->getType() == layer_type &&
         l->getActivationType() != ActivationType::ACT_SOFTMAX) {
@@ -805,6 +814,20 @@ void NetworkGraph::inPlaceOptimize(const std::string &layer_type,
 void NetworkGraph::inPlaceOptimize(Manager &manager) {
   for (auto const &layer_type : in_place_layers)
     inPlaceOptimize(layer_type, manager);
+}
+
+const std::vector<LayerNode> &NetworkGraph::getSorted() const {
+  if (!compiled)
+    throw std::runtime_error("Cannot get sorted graph before compiling graph");
+
+  return Sorted;
+}
+
+std::vector<LayerNode> &NetworkGraph::getSorted() {
+  if (!compiled)
+    throw std::runtime_error("Cannot get sorted graph before compiling graph");
+
+  return Sorted;
 }
 
 } /* namespace nntrainer */
