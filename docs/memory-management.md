@@ -12,8 +12,7 @@ Memory management for a model consists of multiple parts including:
 
 The management for the above 3 kinds of memory is done depending on the mode of execution of the model, namely `inference` or `training` mode. The memory management of these tensors is performed by the `Manager` inside `NNTrainer`.
 
-The memory for the `weights` are allocated at the time of initializing the model, where the `weights` are either initialized using the provided initializer or loaded from the saved model file. The memory allocated for `weights` is freed
-upon `destruction` of the model object containing the `weights`.
+The memory for the `weights` are allocated at the time of initializing the model, where the `weights` are either initialized using the provided initializer or loaded from the saved model file. The memory allocated for `weights` is freed upon `destruction` of the model object containing the `weights`.
 
 The memory for the `Input, Output and Label` tensors and `Variables` is allocated lazily, and de-allocated once its usage is finished.
 
