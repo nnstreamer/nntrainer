@@ -54,6 +54,9 @@ int NetworkGraph::compile(const LossType loss_type) {
   status = addLossLayer(loss_type);
   NN_RETURN_STATUS();
 
+  status = checkCompiledGraph();
+  NN_RETURN_STATUS();
+
   return status;
 }
 
@@ -152,7 +155,6 @@ void NetworkGraph::topologicalSort() {
     Stack.pop();
   }
 
-  /** TODO: this will be replaced with a corresponding graph function */
   countNonTrainableLayersAtBegin();
 }
 
@@ -196,14 +198,18 @@ int NetworkGraph::realizeMultiInputType(Layer &current) {
   if (current.getNumInputs() == 1)
     return ML_ERROR_NONE;
 
+  // TODO: this can be addition or concat layer - add support
   std::shared_ptr<Layer> layer = nntrainer::createLayer(AdditionLayer::type);
   ensureName(layer, current.getName());
+
   layer->setNumInputs(current.getNumInputs());
   layer->input_layers.clear();
   for (unsigned int i = 0; i < current.input_layers.size(); ++i)
     layer->input_layers.push_back(current.input_layers[i]);
 
-  // TODO: update previous layer names
+  layer->setNumOutputs(1);
+  layer->output_layers.clear();
+  layer->output_layers.push_back(current.getName());
 
   current.setNumInputs(1);
   current.input_layers.clear();
@@ -230,11 +236,23 @@ int NetworkGraph::realizeFlattenType(Layer &current) {
 
   ensureName(layer, current.getName());
 
-  // TODO: update previous layer names
-
   layer->setNumInputs(1);
   layer->input_layers.clear();
   layer->input_layers.push_back(current.getName());
+
+  if (current.getNumOutputs() != 1)
+    return ML_ERROR_INVALID_PARAMETER;
+
+  layer->setNumOutputs(current.getNumOutputs());
+  layer->output_layers.clear();
+  for (unsigned int i = 0; i < current.getNumOutputs(); ++i)
+    layer->output_layers.push_back(current.output_layers[i]);
+
+  current.setNumOutputs(1);
+  current.output_layers.clear();
+  current.output_layers.push_back(layer->getName());
+
+  updateNameInLayers(current.getName(), layer->getName());
 
   addLayerNode(layer);
 
@@ -270,6 +288,7 @@ int NetworkGraph::realizeActivationType(Layer &current) {
   std::shared_ptr<Layer> layer = nntrainer::createLayer("activation");
 
   ensureName(layer, current.getName());
+
   layer->setActivation(act);
   layer->setNumInputs(1);
   layer->input_layers.clear();
@@ -440,23 +459,29 @@ int NetworkGraph::isCompilable() {
     return ML_ERROR_INVALID_PARAMETER;
   }
 
-  Layer &l = *adj[0].front().layer;
+  return ML_ERROR_NONE;
+}
 
-  /** Dimension of first layer must be known */
-  // TODO: move this to the input layer and not first layer
-  if (l.getInputDimension().size() == 0) {
-    ml_loge("InputDimension of first layer is not set");
-    return ML_ERROR_INVALID_PARAMETER;
-  }
-
+int NetworkGraph::checkCompiledGraph() {
+  auto &l = Sorted[0].layer;
   /** First layer cannot be activation, batch normalization or loss */
-  const std::string &type = l.getType();
+  const std::string &type = l->getType();
   if (istrequal(type, ActivationLayer::type) ||
       istrequal(type, BatchNormalizationLayer::type) ||
       istrequal(type, LossLayer::type)) {
-    ml_loge("%s cannot be the first layer, type: %s", l.getName().c_str(),
+    ml_loge("%s cannot be the first layer, type: %s", l->getName().c_str(),
             type.c_str());
     return ML_ERROR_INVALID_PARAMETER;
+  }
+
+  /** Dimension of input layers must be known */
+  for (auto const &lnode : Sorted) {
+    if (lnode.layer->getType() == InputLayer::type) {
+      if (lnode.layer->getInputDimension().size() == 0) {
+        ml_loge("InputDimension of first layer is not set");
+        return ML_ERROR_INVALID_PARAMETER;
+      }
+    }
   }
 
   return ML_ERROR_NONE;
@@ -475,10 +500,15 @@ int NetworkGraph::setGraphNode() {
     Layer &l = *adj[i].front().layer;
     ml_logd("layer name: %s", l.getName().c_str());
 
+    /** If a layer does not has input nodes, then it must have input dimension
+     */
     if (l.input_layers.size() < 1) {
       for (unsigned int i = 0; i < l.getInputDimension().size(); ++i) {
-        if (l.getInputDimension()[i].getDataLen() == 0)
-          throw std::invalid_argument("Input Dimension must be set");
+        if (l.getInputDimension()[i].getDataLen() == 0) {
+          ml_loge("Input Dimension must be set");
+          status = ML_ERROR_INVALID_PARAMETER;
+          NN_RETURN_STATUS();
+        }
       }
 
       l.setNumInputs(1);

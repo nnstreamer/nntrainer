@@ -267,6 +267,13 @@ private:
   int isCompilable();
 
   /**
+   * @brief     check if the compiled graph is of correct form.
+   * @retval #ML_ERROR_NONE graph is ready to compile
+   * @retval #ML_ERROR_INVALID_PARAMETER not ready to compile.
+   */
+  int checkCompiledGraph();
+
+  /**
    * @brief add Edges between graph nodes
    * @param[in] ith Node index : From
    * @param[in] node LayerNode object to be added : To

@@ -494,7 +494,7 @@ TEST(nntrainerIniTest, backbone_n_08) {
 
 #if defined(ENABLE_NNSTREAMER_BACKBONE) || defined(ENABLE_TFLITE_BACKBONE)
   EXPECT_EQ(NN.loadFromConfig(s.getIniName()), ML_ERROR_NONE);
-  EXPECT_THROW(NN.compile(), std::invalid_argument);
+  EXPECT_EQ(NN.compile(), ML_ERROR_INVALID_PARAMETER);
   EXPECT_EQ(NN.initialize(), ML_ERROR_NOT_SUPPORTED);
 #else
   EXPECT_EQ(NN.loadFromConfig(s.getIniName()), ML_ERROR_NOT_SUPPORTED);
@@ -528,7 +528,7 @@ TEST(nntrainerIniTest, backbone_p_10) {
 
 #if defined(ENABLE_NNSTREAMER_BACKBONE) || defined(ENABLE_TFLITE_BACKBONE)
   EXPECT_EQ(NN.loadFromConfig(s.getIniName()), ML_ERROR_NONE);
-  EXPECT_THROW(NN.compile(), std::invalid_argument);
+  EXPECT_EQ(NN.compile(), ML_ERROR_INVALID_PARAMETER);
   EXPECT_EQ(NN.initialize(), ML_ERROR_NOT_SUPPORTED);
 #else
   EXPECT_EQ(NN.loadFromConfig(s.getIniName()), ML_ERROR_NOT_SUPPORTED);
@@ -680,13 +680,13 @@ TEST(nntrainerIniTest, backbone_n_15) {
 
   nntrainer::NeuralNetwork NN_scaled, NN_full;
   EXPECT_EQ(NN_full.loadFromConfig(full.getIniName()), ML_ERROR_NONE);
-  EXPECT_THROW(NN_full.compile(), std::invalid_argument);
+  EXPECT_EQ(NN_full.compile(), ML_ERROR_INVALID_PARAMETER);
   EXPECT_EQ(NN_full.initialize(), ML_ERROR_NOT_SUPPORTED);
 
   ScopedIni scaled("backbone_n15_scaled", {nw_base_mse, backbone_scaled});
 
   EXPECT_EQ(NN_scaled.loadFromConfig(scaled.getIniName()), ML_ERROR_NONE);
-  EXPECT_THROW(NN_scaled.compile(), std::invalid_argument);
+  EXPECT_EQ(NN_scaled.compile(), ML_ERROR_INVALID_PARAMETER);
   EXPECT_EQ(NN_scaled.initialize(), ML_ERROR_NOT_SUPPORTED);
 }
 
@@ -702,13 +702,13 @@ TEST(nntrainerIniTest, backbone_n_16) {
   ScopedIni full("backbone_n16_full", {nw_base_mse, backbone_valid});
 
   EXPECT_EQ(NN_full.loadFromConfig(full.getIniName()), ML_ERROR_NONE);
-  EXPECT_THROW(NN_full.compile(), std::invalid_argument);
+  EXPECT_EQ(NN_full.compile(), ML_ERROR_INVALID_PARAMETER);
   EXPECT_EQ(NN_full.initialize(), ML_ERROR_NOT_SUPPORTED);
 
   ScopedIni scaled("backbone_n16_full", {nw_base_mse, backbone_scaled});
 
   EXPECT_EQ(NN_scaled.loadFromConfig(scaled.getIniName()), ML_ERROR_NONE);
-  EXPECT_THROW(NN_scaled.compile(), std::invalid_argument);
+  EXPECT_EQ(NN_scaled.compile(), ML_ERROR_INVALID_PARAMETER);
   EXPECT_EQ(NN_scaled.initialize(), ML_ERROR_NOT_SUPPORTED);
 }
 /**
