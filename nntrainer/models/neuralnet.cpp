@@ -148,13 +148,16 @@ int NeuralNetwork::compile() {
 
   ml_logd("Compile model");
 
-  status = model_graph.setGraphNode(loss_type);
+  status = model_graph.setGraphNode();
   NN_RETURN_STATUS();
 
   status = model_graph.setEdge();
   NN_RETURN_STATUS();
 
   model_graph.topologicalSort();
+
+  status = model_graph.addLossLayer(loss_type);
+  NN_RETURN_STATUS();
 
   auto &sorted = model_graph.getSorted();
   if (sorted.empty()) {
@@ -886,7 +889,7 @@ void NeuralNetwork::print(std::ostream &out, unsigned int flags,
   }
 
   // TODO: get sorted layers if initialized
-  auto &layers = model_graph.getLayers();
+  auto layers = model_graph.getLayers();
   if (flags & PRINT_GRAPH_INFO) {
     out << "graph contains " << layers.size() << " operation nodes\n";
     /// @todo print graph info
