@@ -143,12 +143,12 @@ int NeuralNetwork::setTrainConfig(std::vector<std::string> values) {
 int NeuralNetwork::compile() {
   int status = ML_ERROR_NONE;
 
-  status = model_graph.isCompilable();
+  status = isCompilable();
   NN_RETURN_STATUS();
 
   ml_logd("Compile model");
 
-  status = model_graph.setGraphNode(loss_type);
+  status = model_graph.setGraphNode(layers, loss_type);
   NN_RETURN_STATUS();
 
   status = model_graph.setEdge();
@@ -180,7 +180,7 @@ int NeuralNetwork::initialize() {
     return ML_ERROR_NOT_SUPPORTED;
   }
 
-  unsigned int n_layers = (unsigned int)model_graph.getSorted().size();
+  unsigned int n_layers = (unsigned int)model_graph.Sorted.size();
 
   ml_logd("initializing neural network, layer size: %d", n_layers);
 
@@ -277,7 +277,7 @@ int NeuralNetwork::initialize() {
  */
 NeuralNetwork::~NeuralNetwork() {
   manager.reset();
-  model_graph.reset();
+  layers.erase(layers.begin(), layers.end());
 
   if (data_buffer) {
     data_buffer->clear();
@@ -403,9 +403,8 @@ void NeuralNetwork::backwarding(sharedConstTensors label, int iteration) {
 float NeuralNetwork::getLoss() {
   loss = 0.0f;
 
-  auto &sorted = model_graph.getSorted();
-  for (unsigned int i = 0; i < sorted.size(); i++) {
-    loss += sorted[i].layer->getLoss();
+  for (unsigned int i = 0; i < model_graph.Sorted.size(); i++) {
+    loss += model_graph.Sorted[i].layer->getLoss();
   }
   return loss;
 }
@@ -418,7 +417,8 @@ NeuralNetwork &NeuralNetwork::copy(NeuralNetwork &from) {
     loss = from.loss;
     opt = from.opt;
 
-    model_graph.copy(from.model_graph);
+    for (unsigned int i = 0; i < layers.size(); i++)
+      layers[i]->copy(from.layers[i]);
   }
   return *this;
 }
@@ -436,18 +436,14 @@ void NeuralNetwork::saveModel() {
     return;
   }
 
-  if (!initialized)
-    throw std::runtime_error("Cannot save the model before initialize.");
-
   std::ofstream model_file(save_path, std::ios::out | std::ios::binary);
 
   NNTR_THROW_IF(!model_file.good(), std::invalid_argument)
     << "model file not opened, file path: " << save_path
     << " reason: " << strerror(errno);
 
-  auto &layers = model_graph.getSorted();
   for (unsigned int i = 0; i < layers.size(); i++)
-    layers[i].layer->save(model_file);
+    layers[i]->save(model_file);
   model_file.write((char *)&epoch_idx, sizeof(epoch_idx));
   model_file.write((char *)&iter, sizeof(iter));
   model_file.close();
@@ -471,16 +467,11 @@ void NeuralNetwork::readModel() {
     return;
   }
 
-  if (!initialized)
-    throw std::runtime_error("Cannot save the model before initialize.");
-
   NeuralNetwork tmp(*this);
 
   std::ifstream model_file(save_path, std::ios::in | std::ios::binary);
-
-  auto &layers = tmp.model_graph.getSorted();
   for (unsigned int i = 0; i < layers.size(); i++)
-    layers[i].layer->read(model_file);
+    tmp.layers[i]->read(model_file);
   checkedRead(model_file, (char *)&tmp.epoch_idx, sizeof(epoch_idx),
               "[NeuralNetwork::readModel] failed to read epoch_idx");
   checkedRead(model_file, (char *)&tmp.iter, sizeof(iter),
@@ -554,9 +545,14 @@ sharedConstTensors NeuralNetwork::inference(sharedConstTensors X,
     return out;
   }
 
-  auto &last_layer = model_graph.getSorted().back().layer;
-  for (unsigned int i = 0; i < last_layer->getNumOutputs(); ++i) {
-    out.push_back(MAKE_SHARED_TENSOR(last_layer->net_hidden[i]->getVariable()));
+  for (unsigned int i = 0;
+       i <
+       model_graph.Sorted[model_graph.Sorted.size() - 1].layer->getNumOutputs();
+       ++i) {
+    out.push_back(
+      MAKE_SHARED_TENSOR(model_graph.Sorted[model_graph.Sorted.size() - 1]
+                           .layer->net_hidden[i]
+                           ->getVariable()));
   }
 
   if (free_mem)
@@ -744,12 +740,42 @@ int NeuralNetwork::train_run() {
   return status;
 }
 
+int NeuralNetwork::isCompilable() {
+  if (layers.empty()) {
+    ml_loge("Layer is empty");
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
+  Layer &l = *layers[0];
+
+  /** Dimension of first layer must be known */
+  if (l.getInputDimension().size() == 0) {
+    ml_loge("InputDimension of first layer is not set");
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
+  /** First layer cannot be activation, batch normalization or loss */
+  const std::string &type = l.getType();
+  if (istrequal(type, ActivationLayer::type) ||
+      istrequal(type, BatchNormalizationLayer::type) ||
+      istrequal(type, LossLayer::type)) {
+    ml_loge("%s cannot be the first layer, type: %s", l.getName().c_str(),
+            type.c_str());
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
+  return ML_ERROR_NONE;
+}
+
 int NeuralNetwork::addLayer(NodeType layer) {
   int status = ML_ERROR_NONE;
 
   if (initialized) {
     return ML_ERROR_NOT_SUPPORTED;
   }
+
+  /** Ensure that the layer has a name and is unique */
+  model_graph.ensureName(layer);
 
   /** Validate the layer to be added */
   status = layer->checkValidation();
@@ -759,7 +785,7 @@ int NeuralNetwork::addLayer(NodeType layer) {
   }
 
   /** Insert the layer to the graph */
-  model_graph.addLayer(layer);
+  layers.push_back(layer);
 
   return status;
 }
@@ -772,14 +798,72 @@ int NeuralNetwork::extendGraph(GraphType graph, std::string prefix) {
   if (graph.size() == 0)
     return ML_ERROR_NONE;
 
-  model_graph.extendGraph(graph, prefix);
+  for (unsigned int i = 0; i < graph[0]->input_layers.size(); ++i) {
+    if (sub_in_out.find(graph[0]->input_layers[i]) != sub_in_out.end()) {
+      graph[0]->input_layers[i] = sub_in_out[graph[0]->input_layers[i]];
+    }
+  }
+
+  /** Insert the layer to the graph */
+  for (auto layer : graph) {
+    /**
+     * Add prefix to the existing layer name,
+     * and ensure it is unique in this new graph
+     */
+    std::string org_name = prefix + layer->getName();
+    model_graph.ensureName(layer, prefix, true);
+    sub_in_out.insert(std::make_pair(org_name, layer->getName()));
+
+    for (unsigned int i = 0; i < layer->input_layers.size(); ++i) {
+      if (sub_in_out.find(prefix + layer->input_layers[i]) !=
+          sub_in_out.end()) {
+        layer->input_layers[i] = sub_in_out[prefix + layer->input_layers[i]];
+      }
+    }
+
+    layers.push_back(layer);
+  }
+
+  sub_in_out.insert(std::make_pair(prefix, layers.back()->getName()));
+
   return ML_ERROR_NONE;
 }
 
 std::vector<std::shared_ptr<Layer>>
 NeuralNetwork::getGraph(const std::string &input_layer,
                         const std::string &output_layer) {
-  return model_graph.getGraph(input_layer, output_layer);
+  /** count layers after output layer */
+  unsigned int num_layers_remove_end = 0;
+  if (!output_layer.empty()) {
+    for (auto iter = layers.rbegin(); iter != layers.rend(); iter++) {
+      if ((*iter)->getName() != output_layer)
+        num_layers_remove_end++;
+      else
+        break;
+    }
+  }
+
+  if (num_layers_remove_end == layers.size())
+    return {};
+
+  /** count layers before input layer */
+  unsigned int num_layers_remove_start = 0;
+  if (!input_layer.empty()) {
+    for (auto iter = layers.begin();
+         iter != layers.end() - num_layers_remove_end; iter++) {
+      if ((*iter)->getName() != input_layer)
+        num_layers_remove_start++;
+      else
+        break;
+    }
+  }
+
+  /** copy the graph and return */
+  GraphType ret;
+  std::copy(layers.begin() + num_layers_remove_start,
+            layers.end() - num_layers_remove_end, std::back_inserter(ret));
+
+  return ret;
 }
 
 int NeuralNetwork::setOptimizer(
@@ -809,13 +893,17 @@ int NeuralNetwork::getLayer(const char *name,
 }
 
 int NeuralNetwork::getLayer(const char *name, NodeType *layer) {
-  NodeType ret = model_graph.getLayer(std::string(name));
+  int status = ML_ERROR_INVALID_PARAMETER;
+  std::string name_str(name);
 
-  if (ret == nullptr)
-    return ML_ERROR_INVALID_PARAMETER;
+  for (auto iter = layers.begin(); iter != layers.end(); ++iter) {
+    if ((*iter)->getName() == name_str) {
+      *layer = *iter;
+      return ML_ERROR_NONE;
+    }
+  }
 
-  *layer = ret;
-  return ML_ERROR_NONE;
+  return status;
 }
 
 /**
@@ -884,8 +972,6 @@ void NeuralNetwork::print(std::ostream &out, unsigned int flags,
     printInstance(out, this);
   }
 
-  // TODO: get sorted layers if initialized
-  auto &layers = model_graph.getLayers();
   if (flags & PRINT_GRAPH_INFO) {
     out << "graph contains " << layers.size() << " operation nodes\n";
     /// @todo print graph info

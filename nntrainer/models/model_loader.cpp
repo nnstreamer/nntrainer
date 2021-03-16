@@ -442,7 +442,7 @@ int ModelLoader::loadFromIni(std::string ini_file, NeuralNetwork &model,
   }
   ml_logd("parsing ini finished");
 
-  if (model.getFlatGraph().empty()) {
+  if (model.layers.empty()) {
     ml_loge("there is no layer section in the ini file");
     status = ML_ERROR_INVALID_PARAMETER;
   }

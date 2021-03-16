@@ -101,6 +101,7 @@ public:
     continue_train(false),
     initialized(false),
     compiled(false),
+    def_name_count(0),
     loadedFromConfig(false),
     app_context(app_context_),
     in_place_optimization(in_place_opt) {}
@@ -349,7 +350,7 @@ public:
    * copied.
    * @retval flatGraph of the current graph
    */
-  FlatGraphType getFlatGraph() { return model_graph.getLayers(); }
+  FlatGraphType getFlatGraph() { return layers; }
 
   NetworkGraphType getNetworkGraph() { return model_graph; }
 
@@ -477,6 +478,8 @@ private:
 
   NetType net_type; /**< Network Type */
 
+  GraphType layers; /**< vector for store layer pointers */
+
   std::shared_ptr<Manager> manager; /**< nntrainer manager */
 
   std::shared_ptr<DataBuffer> data_buffer; /**< Data Buffer to get Input */
@@ -488,6 +491,11 @@ private:
 
   bool compiled; /**< Network is compiled */
 
+  std::set<std::string>
+    layer_names; /**< Set containing all the names of layers in the model */
+
+  int def_name_count; /**< Count assigned to layer names declared by default */
+
   bool loadedFromConfig; /**< Check if config is loaded to prevent load twice */
 
   RunStats validation; /** validation statistics of the model */
@@ -497,6 +505,10 @@ private:
   AppContext app_context; /** Configurations bound to current app */
 
   NetworkGraph model_graph; /** Network Model Graph */
+
+  std::map<std::string, std::string>
+    sub_in_out; /** This is map to identyfy input and output layer name of
+                   subgraph */
 
   bool in_place_optimization; /**< Run batch normalization, activation, etc
                                  layers in-place */
@@ -528,6 +540,13 @@ private:
   int train_run();
 
   /**
+   * @brief     check neural network is ready to compile.
+   * @retval #ML_ERROR_NONE neuralnetwork is ready to compile
+   * @retval #ML_ERROR_INVALID_PARAMETER not ready to compile.
+   */
+  int isCompilable();
+
+  /**
    * @brief     Swap function for the class
    */
   friend void swap(NeuralNetwork &lhs, NeuralNetwork &rhs) {
@@ -543,11 +562,15 @@ private:
     swap(lhs.save_path, rhs.save_path);
     swap(lhs.opt, rhs.opt);
     swap(lhs.net_type, rhs.net_type);
+    swap(lhs.layers, rhs.layers);
     swap(lhs.data_buffer, rhs.data_buffer);
     swap(lhs.continue_train, rhs.continue_train);
     swap(lhs.initialized, rhs.initialized);
     swap(lhs.model_graph, rhs.model_graph);
     swap(lhs.compiled, rhs.compiled);
+    swap(lhs.sub_in_out, rhs.sub_in_out);
+    swap(lhs.layer_names, rhs.layer_names);
+    swap(lhs.def_name_count, rhs.def_name_count);
     swap(lhs.loadedFromConfig, rhs.loadedFromConfig);
     swap(lhs.manager, rhs.manager);
   }
