@@ -141,29 +141,8 @@ int NeuralNetwork::setTrainConfig(std::vector<std::string> values) {
 }
 
 int NeuralNetwork::compile() {
-  int status = ML_ERROR_NONE;
-
-  status = model_graph.isCompilable();
+  int status = model_graph.compile(loss_type);
   NN_RETURN_STATUS();
-
-  ml_logd("Compile model");
-
-  status = model_graph.setGraphNode();
-  NN_RETURN_STATUS();
-
-  status = model_graph.setEdge();
-  NN_RETURN_STATUS();
-
-  model_graph.topologicalSort();
-
-  status = model_graph.addLossLayer(loss_type);
-  NN_RETURN_STATUS();
-
-  auto &sorted = model_graph.getSorted();
-  if (sorted.empty()) {
-    ml_loge("Empty model");
-    return ML_ERROR_INVALID_PARAMETER;
-  }
 
   compiled = true;
 
