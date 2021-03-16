@@ -47,10 +47,10 @@ int NetworkGraph::compile(const LossType loss_type) {
   status = isCompilable();
   NN_RETURN_STATUS();
 
-  status = setGraphNode();
+  status = realizeGraph();
   NN_RETURN_STATUS();
 
-  status = setEdge();
+  status = connectGraph();
   NN_RETURN_STATUS();
 
   topologicalSort();
@@ -66,13 +66,13 @@ int NetworkGraph::compile(const LossType loss_type) {
   return status;
 }
 
-void NetworkGraph::updateNameInLayers(const std::string &cname,
-                                      const std::string &name) {
+void NetworkGraph::updateConnectionName(const std::string &from,
+                                        const std::string &to) {
   for (unsigned int i = 0; i < adj.size(); ++i) {
     auto &layer = adj[i].front().layer;
     for (unsigned int j = 0; j < layer->input_layers.size(); ++j) {
-      if (istrequal(layer->input_layers[j], cname)) {
-        layer->input_layers[j] = name;
+      if (istrequal(layer->input_layers[j], from)) {
+        layer->input_layers[j] = to;
         return;
       }
     }
@@ -84,11 +84,22 @@ void NetworkGraph::addLayerNode(std::shared_ptr<Layer> layer) {
   std::unique_ptr<LayerNode> node = std::make_unique<LayerNode>();
 
   node->layer = layer;
-  node->index = num_node;
+  node->index = adj.size();
 
   l.assign(1, *node);
   adj.push_back(l);
-  num_node++;
+}
+
+LayerNode &NetworkGraph::getLayerNode(unsigned int ith) {
+
+  if (adj[ith].front().index != ith)
+    throw std::runtime_error("Graph internal index mismatch");
+
+  return adj[ith].front();
+}
+
+LayerNode &NetworkGraph::getSortedLayerNode(unsigned int ith) {
+  return getSorted()[ith];
 }
 
 void NetworkGraph::topologicalSortUtil(unsigned int ith,
@@ -105,23 +116,6 @@ void NetworkGraph::topologicalSortUtil(unsigned int ith,
   Stack.push(getLayerNode(ith));
 }
 
-LayerNode &NetworkGraph::getLayerNode(unsigned int ith) {
-
-  std::list<LayerNode>::iterator iter;
-  for (unsigned int i = 0; i < num_node; ++i) {
-    iter = adj[i].begin();
-    if ((*iter).index == ith) {
-      return *iter;
-    }
-  }
-
-  throw std::invalid_argument("Cannot find Layer");
-}
-
-LayerNode &NetworkGraph::getSortedLayerNode(unsigned int ith) {
-  return getSorted()[ith];
-}
-
 void NetworkGraph::countNonTrainableLayersAtBegin() {
   for (auto iter = Sorted.cbegin(); iter != Sorted.cend(); iter++) {
     if ((*iter).layer->getTrainable()) {
@@ -133,7 +127,7 @@ void NetworkGraph::countNonTrainableLayersAtBegin() {
 
 void NetworkGraph::topologicalSort() {
   std::stack<LayerNode> Stack;
-  std::vector<bool> visited(num_node);
+  std::vector<bool> visited(adj.size());
   Sorted.clear();
 
   std::fill(visited.begin(), visited.end(), false);
@@ -142,7 +136,7 @@ void NetworkGraph::topologicalSort() {
   // should be the only one input for now.). Need to support multiple input and
   // support search.
 
-  for (unsigned int i = 0; i < num_node; ++i) {
+  for (unsigned int i = 0; i < adj.size(); ++i) {
     if (visited[i] == false) {
       topologicalSortUtil(i, visited, Stack);
     }
@@ -218,7 +212,7 @@ int NetworkGraph::realizeMultiInputType(Layer &current) {
 }
 
 int NetworkGraph::realizeFlattenType(Layer &current) {
-  if (num_node == 0) {
+  if (adj.empty()) {
     ml_loge("layer is empty");
     return ML_ERROR_INVALID_PARAMETER;
   }
@@ -250,7 +244,7 @@ int NetworkGraph::realizeFlattenType(Layer &current) {
   current.output_layers.clear();
   current.output_layers.push_back(layer->getName());
 
-  updateNameInLayers(current.getName(), layer->getName());
+  updateConnectionName(current.getName(), layer->getName());
 
   addLayerNode(layer);
 
@@ -267,7 +261,7 @@ int NetworkGraph::realizeActivationType(Layer &current) {
     return ML_ERROR_NONE;
   }
 
-  if (num_node == 0) {
+  if (adj.empty()) {
     ml_loge("layer is empty");
     return ML_ERROR_INVALID_PARAMETER;
   }
@@ -304,7 +298,7 @@ int NetworkGraph::realizeActivationType(Layer &current) {
   current.output_layers.clear();
   current.output_layers.push_back(layer->getName());
 
-  updateNameInLayers(current.getName(), layer->getName());
+  updateConnectionName(current.getName(), layer->getName());
   addLayerNode(layer);
 
   return status;
@@ -323,7 +317,7 @@ int NetworkGraph::addLossLayer(const LossType loss_type) {
   }
 
   LossType updated_loss_type = loss_type;
-  if (num_node == 0) {
+  if (adj.empty()) {
     status = ML_ERROR_INVALID_PARAMETER;
     NN_RETURN_STATUS();
   }
@@ -339,7 +333,6 @@ int NetworkGraph::addLossLayer(const LossType loss_type) {
     LayerNode last_node = Sorted.back();
     adj.pop_back();
     Sorted.pop_back();
-    num_node--;
 
     switch (last_node.layer->getActivationType()) {
     case ActivationType::ACT_SIGMOID:
@@ -376,9 +369,13 @@ int NetworkGraph::addLossLayer(const LossType loss_type) {
   status = layer->setLoss(updated_loss_type);
   NN_RETURN_STATUS();
 
+  /**
+   * As the loss layer is always the last, it could be added manually to Sorted
+   * for performance.
+   */
   addLayerNode(layer);
-  setEdge(adj.size() - 1);
-  topologicalSort();
+  connectGraph(adj.size() - 1);
+  Sorted.push_back(adj.back().front());
 
   return ML_ERROR_NONE;
 }
@@ -440,7 +437,7 @@ int NetworkGraph::realizeMultiOutputType(Layer &current) {
   for (unsigned int i = 0; i < current.output_layers.size(); ++i) {
     layer->output_layers.push_back(current.output_layers[i]);
 
-    updateNameInLayers(current.getName(), layer->getName());
+    updateConnectionName(current.getName(), layer->getName());
   }
 
   current.setNumOutputs(1);
@@ -485,7 +482,7 @@ int NetworkGraph::checkCompiledGraph() {
   return ML_ERROR_NONE;
 }
 
-int NetworkGraph::setGraphNode() {
+int NetworkGraph::realizeGraph() {
 
   int status = ML_ERROR_NONE;
 
@@ -541,30 +538,24 @@ int NetworkGraph::setGraphNode() {
 
 LayerNode &NetworkGraph::getLayerNode(const std::string &layer_name) {
 
-  std::list<LayerNode>::iterator iter;
-  for (unsigned int i = 0; i < adj.size(); ++i) {
-    iter = adj[i].begin();
-    if (istrequal((*iter).layer->getName(), layer_name)) {
-      return (*iter);
-    }
+  for (auto &lnode_list : adj) {
+    auto &lnode = lnode_list.front();
+    if (istrequal(lnode.layer->getName(), layer_name))
+      return lnode;
   }
 
   throw std::invalid_argument("Cannot find Layer");
 }
 
 void NetworkGraph::addEdge(unsigned int ith, LayerNode node) {
-  if (ith > num_node - 1)
+  if (ith >= adj.size())
     throw std::invalid_argument("Exceed total number of layer");
 
   adj[ith].push_back(node);
 }
 
-void NetworkGraph::setEdge(unsigned int adj_idx) {
+void NetworkGraph::connectGraph(unsigned int adj_idx) {
   std::list<LayerNode>::iterator iter = adj[adj_idx].begin();
-
-  /** TODO: remove this check - check if already initialized */
-  if ((*iter).layer->getInputDimension()[0].getDataLen() != 0)
-    return;
 
   for (unsigned int j = 0; j < (*iter).layer->input_layers.size(); ++j) {
     if (istrequal((*iter).layer->input_layers[j], "__data__"))
@@ -575,9 +566,9 @@ void NetworkGraph::setEdge(unsigned int adj_idx) {
   }
 }
 
-int NetworkGraph::setEdge() {
+int NetworkGraph::connectGraph() {
   for (unsigned int i = 0; i < adj.size(); ++i) {
-    setEdge(i);
+    connectGraph(i);
   }
 
   return ML_ERROR_NONE;
@@ -616,8 +607,8 @@ std::vector<TensorDim> NetworkGraph::getOutputDimension() const {
 }
 
 std::vector<std::shared_ptr<Layer>>
-NetworkGraph::getGraph(const std::string &input_layer,
-                       const std::string &output_layer) {
+NetworkGraph::getUnsortedLayers(const std::string &input_layer,
+                                const std::string &output_layer) {
   /** count layers after output layer */
   unsigned int num_layers_remove_end = 0;
   if (!output_layer.empty()) {
@@ -655,8 +646,13 @@ NetworkGraph::getGraph(const std::string &input_layer,
 
 std::vector<std::shared_ptr<Layer>> NetworkGraph::getLayers() {
   std::vector<std::shared_ptr<Layer>> ret;
-  std::transform(adj.begin(), adj.end(), std::back_inserter(ret),
-                 [](auto const &elem) { return elem.front().layer; });
+  if (compiled) {
+    std::transform(Sorted.begin(), Sorted.end(), std::back_inserter(ret),
+                   [](auto const &elem) { return elem.layer; });
+  } else {
+    std::transform(adj.begin(), adj.end(), std::back_inserter(ret),
+                   [](auto const &elem) { return elem.front().layer; });
+  }
 
   return ret;
 }
