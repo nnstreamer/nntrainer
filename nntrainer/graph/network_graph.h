@@ -50,7 +50,8 @@ public:
   NetworkGraph() :
     num_node(0),
     def_name_count(0),
-    skip_non_trainable_layers(0) {}
+    skip_non_trainable_layers(0),
+  compiled(false) {}
 
   /**
    * @brief     Compile the graph
@@ -65,7 +66,7 @@ public:
   void addLayer(std::shared_ptr<Layer> layer);
 
   /**
-   * @brief get current flat graph from the model
+   * @brief get current flat graph from the model before sorting
    * @note graph contains pointer to the actual nodes, which is not deeply
    * copied.
    * @retval current flat graph
@@ -186,7 +187,8 @@ public:
    * @brief     getter of ordered graph
    * @retval    ordered LayerNode list
    */
-  const std::vector<LayerNode> &getSorted() { return Sorted; }
+  const std::vector<LayerNode> &getSorted() const;
+  std::vector<LayerNode> &getSorted();
 
   /**
    * @brief     get begin iterator for the backwarding
@@ -208,13 +210,13 @@ public:
    * @brief     getter of output dimension of graph
    * @retval    output tensor dim list
    */
-  std::vector<TensorDim> getOutputDimension();
+  std::vector<TensorDim> getOutputDimension() const;
 
   /**
    * @brief     getter of input dimension of graph
    * @retval    input tensor dim list
    */
-  std::vector<TensorDim> getInputDimension();
+  std::vector<TensorDim> getInputDimension() const;
 
   /**
    * @brief     Optimize the graph memory utilization for in-place operations
@@ -249,6 +251,7 @@ private:
   unsigned int
     skip_non_trainable_layers; /**< denotes the number of non-trainable layers
                                   at the start of the graph */
+  bool compiled;    /**< if the model graph is compiled */
 
   /**
    * @brief     topological sort
