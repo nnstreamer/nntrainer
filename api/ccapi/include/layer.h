@@ -48,6 +48,7 @@ enum LayerType {
   LAYER_BACKBONE_NNSTREAMER,                  /** Backbone using NNStreamer */
   LAYER_BACKBONE_TFLITE,                      /** Backbone using TFLite */
   LAYER_EMBEDDING,                            /** Embedding Layer type */
+  LAYER_RNN,                                  /** RNN Layer type */
   LAYER_UNKNOWN = ML_TRAIN_LAYER_TYPE_UNKNOWN /** Unknown */
 };
 
@@ -327,6 +328,14 @@ BackboneTFLite(const std::vector<std::string> &properties = {}) {
 inline std::unique_ptr<Layer>
 Embedding(const std::vector<std::string> &properties = {}) {
   return createLayer(LayerType::LAYER_EMBEDDING, properties);
+}
+
+/**
+ * @brief Helper function to create RNN layer
+ */
+inline std::unique_ptr<Layer>
+RNN(const std::vector<std::string> &properties = {}) {
+  return createLayer(LayerType::LAYER_RNN, properties);
 }
 
 /**
