@@ -41,9 +41,6 @@ static const std::vector<std::string> in_place_layers = {
 int NetworkGraph::compile(const LossType loss_type) {
   int status = ML_ERROR_NONE;
 
-  if (compiled)
-    return status;
-
   status = isCompilable();
   NN_RETURN_STATUS();
 
@@ -70,10 +67,11 @@ void NetworkGraph::updateConnectionName(const std::string &from,
                                         const std::string &to) {
   for (unsigned int i = 0; i < adj.size(); ++i) {
     auto &layer = adj[i].front().layer;
+    if (istrequal(layer->getName(), to))
+      continue;
     for (unsigned int j = 0; j < layer->input_layers.size(); ++j) {
       if (istrequal(layer->input_layers[j], from)) {
         layer->input_layers[j] = to;
-        return;
       }
     }
   }
@@ -91,6 +89,8 @@ void NetworkGraph::addLayerNode(std::shared_ptr<Layer> layer) {
 }
 
 LayerNode &NetworkGraph::getLayerNode(unsigned int ith) {
+  if (ith >= adj.size())
+    throw std::invalid_argument("Exceed total number of layer");
 
   if (adj[ith].front().index != ith)
     throw std::runtime_error("Graph internal index mismatch");
@@ -99,6 +99,9 @@ LayerNode &NetworkGraph::getLayerNode(unsigned int ith) {
 }
 
 LayerNode &NetworkGraph::getSortedLayerNode(unsigned int ith) {
+  if (ith >= getSorted().size())
+    throw std::invalid_argument("Exceed total number of layer");
+
   return getSorted()[ith];
 }
 
@@ -154,6 +157,9 @@ void NetworkGraph::ensureName(std::shared_ptr<Layer> layer,
                               const std::string &prefix, bool force_rename) {
   std::string orig_name = layer->getName();
   bool orig_name_empty = orig_name.empty();
+  /** If layer already has name which is unique and valid, and force is disabled,
+   * then nothing to do.
+   */
   if (!orig_name_empty && !force_rename &&
       layer_names.end() == layer_names.find(orig_name)) {
     layer_names.insert(orig_name);
@@ -245,7 +251,6 @@ int NetworkGraph::realizeFlattenType(Layer &current) {
   current.output_layers.push_back(layer->getName());
 
   updateConnectionName(current.getName(), layer->getName());
-
   addLayerNode(layer);
 
   return ML_ERROR_NONE;
@@ -449,6 +454,11 @@ int NetworkGraph::realizeMultiOutputType(Layer &current) {
 }
 
 int NetworkGraph::isCompilable() {
+  if (compiled) {
+    ml_loge("Graph is already compiled");
+    return ML_ERROR_NOT_SUPPORTED;
+  }
+
   if (adj.empty()) {
     ml_loge("Layer is empty");
     return ML_ERROR_INVALID_PARAMETER;

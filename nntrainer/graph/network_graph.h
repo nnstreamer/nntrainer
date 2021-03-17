@@ -55,6 +55,7 @@ public:
   /**
    * @brief     Compile the graph
    * @param[in] loss_type loss for the graph
+   * returns ML_ERROR_NONE on success, error on failure
    */
   int compile(const LossType loss_type);
 
@@ -342,7 +343,12 @@ private:
   void setOutputLayers();
 
   /**
-   * @brief     Ensure that layer has a name
+   * @brief     Ensure that layer has a name.
+   * @param[in] layer Layer whose name is to be ensured to be valid
+   * @param[in] prefix Prefix to be attached to the layer name
+   * @param[in] force_rename If the layer must be forcefully rename
+   * @details   Ensures that the layer has a unique and a valid name. A valid
+   * name pre-assigned to the layer can be changed if force_rename is enabled.
    */
   void ensureName(std::shared_ptr<Layer> layer, const std::string &prefix = "",
                   bool force_rename = false);
