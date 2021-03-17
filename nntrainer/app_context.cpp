@@ -43,6 +43,7 @@
 #include <parse_util.h>
 #include <plugged_layer.h>
 #include <pooling2d_layer.h>
+#include <rnn.h>
 
 #ifdef ENABLE_TFLITE_BACKBONE
 #include <tflite_layer.h>
@@ -232,6 +233,10 @@ static void add_default_object(AppContext &ac) {
 #endif
   ac.registerFactory(ml::train::createLayer<EmbeddingLayer>,
                      EmbeddingLayer::type, LayerType::LAYER_EMBEDDING);
+
+  ac.registerFactory(ml::train::createLayer<RNNLayer>, RNNLayer::type,
+                     LayerType::LAYER_RNN);
+
   ac.registerFactory(AppContext::unknownFactory<ml::train::Layer>, "unknown",
                      LayerType::LAYER_UNKNOWN);
 }

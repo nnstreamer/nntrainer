@@ -26,6 +26,7 @@
 #include <output_layer.h>
 #include <parse_util.h>
 #include <pooling2d_layer.h>
+#include <rnn.h>
 
 #ifdef ENABLE_TFLITE_BACKBONE
 #include <tflite_layer.h>
@@ -129,6 +130,8 @@ std::unique_ptr<Layer> createLayer(const std::string &type) {
     return std::make_unique<OutputLayer>();
   if (istrequal(type, EmbeddingLayer::type))
     return std::make_unique<EmbeddingLayer>();
+  if (istrequal(type, RNNLayer::type))
+    return std::make_unique<RNNLayer>();
   std::stringstream ss;
   ss << "Unsupported type given, type: " << type;
   throw std::invalid_argument(ss.str().c_str());
