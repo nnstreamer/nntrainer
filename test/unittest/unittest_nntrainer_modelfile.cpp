@@ -750,11 +750,8 @@ TEST(nntrainerIniTest, backbone_n_18) {
     "Backbone_n18",
     {nw_base_mse, input, backbone_valid_inout + "input_layers=inputlayer"});
 
-  EXPECT_EQ(NN.loadFromConfig(backbone.getIniName()), ML_ERROR_NONE);
-  EXPECT_EQ(NN.compile(), ML_ERROR_NONE);
-  EXPECT_EQ(NN.initialize(), ML_ERROR_NONE);
-
-  EXPECT_EQ(NN.getNetworkGraph().getSorted().size(), 3u);
+  EXPECT_EQ(NN.loadFromConfig(backbone.getIniName()),
+            ML_ERROR_INVALID_PARAMETER);
 }
 
 /**
@@ -771,11 +768,8 @@ TEST(nntrainerIniTest, backbone_n_19) {
     "backbone_n19",
     {nw_base_mse, input, backbone_valid_inout + "input_layers=inputlayer"});
 
-  EXPECT_EQ(NN.loadFromConfig(backbone.getIniName()), ML_ERROR_NONE);
-  EXPECT_EQ(NN.compile(), ML_ERROR_NONE);
-  EXPECT_EQ(NN.initialize(), ML_ERROR_NONE);
-
-  EXPECT_EQ(NN.getNetworkGraph().getSorted().size(), 3u);
+  EXPECT_EQ(NN.loadFromConfig(backbone.getIniName()),
+            ML_ERROR_INVALID_PARAMETER);
 }
 
 /**
@@ -797,27 +791,6 @@ TEST(nntrainerIniTest, backbone_p_20) {
   EXPECT_EQ(NN.compile(), ML_ERROR_NONE);
   EXPECT_EQ(NN.initialize(), ML_ERROR_NONE);
   EXPECT_EQ(NN.getNetworkGraph().getSorted().size(), 6u);
-}
-
-/**
- * @brief Ini file unittest with backbone
- * @note Input layer name not found, empty backbone
- */
-TEST(nntrainerIniTest, backbone_n_21) {
-  nntrainer::NeuralNetwork NN;
-
-  ScopedIni base("base", {input2d, conv2d + "input_layers=inputlayer",
-                          batch_normal + "input_layers=conv2d",
-                          out + "input_layers=bn"});
-  ScopedIni backbone(
-    "backbone_n21",
-    {nw_base_mse, input, backbone_valid_inout + "input_layers=inputlayer"});
-
-  EXPECT_EQ(NN.loadFromConfig(backbone.getIniName()), ML_ERROR_NONE);
-  EXPECT_EQ(NN.compile(), ML_ERROR_NONE);
-  EXPECT_EQ(NN.initialize(), ML_ERROR_NONE);
-  EXPECT_EQ(NN.getNetworkGraph().getSorted().size(), 3u);
-  // EXPECT_EQ(NN.getUnsortedLayers().size(), 3);
 }
 
 /**

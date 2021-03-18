@@ -284,6 +284,12 @@ int ModelLoader::loadBackboneConfigIni(dictionary *ini,
     iniparser_getstring(ini, (backbone_name + ":OutputLayer").c_str(), "");
 
   auto graph = backbone.getUnsortedLayers(input_layer, output_layer);
+
+  if (graph.empty()) {
+    ml_loge("Empty backbone.");
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
   for (auto &layer : graph) {
     layer->setTrainable(trainable);
     layer->resetDimension();

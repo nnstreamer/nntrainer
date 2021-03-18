@@ -157,8 +157,8 @@ void NetworkGraph::ensureName(std::shared_ptr<Layer> layer,
                               const std::string &prefix, bool force_rename) {
   std::string orig_name = layer->getName();
   bool orig_name_empty = orig_name.empty();
-  /** If layer already has name which is unique and valid, and force is disabled,
-   * then nothing to do.
+  /** If layer already has name which is unique and valid, and force is
+   * disabled, then nothing to do.
    */
   if (!orig_name_empty && !force_rename &&
       layer_names.end() == layer_names.find(orig_name)) {
@@ -605,13 +605,13 @@ sharedConstTensors NetworkGraph::forwarding(bool training) {
 }
 
 std::vector<TensorDim> NetworkGraph::getInputDimension() const {
-  NNTR_THROW_IF(empty(), std::invalid_argument)
+  NNTR_THROW_IF(this->empty(), std::invalid_argument)
     << "[NetworkGraph] the graph has no node!";
   return getSorted()[0].layer->getInputDimension();
 }
 
 std::vector<TensorDim> NetworkGraph::getOutputDimension() const {
-  NNTR_THROW_IF(empty(), std::invalid_argument)
+  NNTR_THROW_IF(this->empty(), std::invalid_argument)
     << "[NetworkGraph] the graph has no node!";
   return getSorted().back().layer->getOutputDimension();
 }
