@@ -54,22 +54,19 @@ public:
   virtual const std::string getType() const = 0;
 
   /**
-   * @brief     get Learning Rate
-   * @retval    Learning rate
+   * @brief     Default allowed properties
+   * Available for all optimizers
+   * - learning_rate : float
+   *
+   * Available for SGD and Adam optimizers
+   * - decay_rate : float,
+   * - decay_steps : float,
+   *
+   * Available for Adam optimizer
+   * - beta1 : float,
+   * - beta2 : float,
+   * - epsilon : float,
    */
-  virtual float getLearningRate() = 0;
-
-  /**
-   * @brief     get Decay Rate for learning rate decay
-   * @retval    decay rate
-   */
-  virtual float getDecayRate() = 0;
-
-  /**
-   * @brief     get Decay Steps for learning rate decay
-   * @retval    decay steps
-   */
-  virtual float getDecaySteps() = 0;
 
   /**
    * @brief     set Optimizer Parameters
@@ -78,44 +75,6 @@ public:
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
   virtual int setProperty(std::vector<std::string> values) = 0;
-
-  /**
-   * @brief     Property Enumeration
-   * learning_rate : float ,
-   * decay_rate : float,
-   * decay_steps : float,
-   * beta1 : float,
-   * beta2 : float,
-   * epsilon : float,
-   */
-  enum class PropertyType {
-    learning_rate = 0,
-    decay_rate = 1,
-    decay_steps = 2,
-    beta1 = 3,
-    beta2 = 4,
-    epsilon = 5,
-    continue_train = 6,
-    unknown = 7,
-  };
-
-  /**
-   * @brief setProperty by PropertyType
-   * @note By passing empty string, this can validate if @a type is valid
-   * @param[in] type property type to be passed
-   * @param[in] value value to be passed, if empty string is passed, do nothing
-   * but throws error when @a type is invalid
-   * @exception exception::not_supported     when property type is not valid for
-   * the particular layer
-   * @exception std::invalid_argument invalid argument
-   */
-  virtual void setProperty(const PropertyType type,
-                           const std::string &value = "") = 0;
-
-  /**
-   * @brief     validate the optimizer
-   */
-  virtual void checkValidation() = 0;
 };
 
 /**

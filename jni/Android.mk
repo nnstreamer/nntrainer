@@ -116,7 +116,8 @@ NNTRAINER_SRCS := $(NNTRAINER_ROOT)/nntrainer/models/neuralnet.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/embedding.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/rnn.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/graph/network_graph.cpp \
-                  $(NNTRAINER_ROOT)/nntrainer/optimizers/optimizer.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/optimizers/optimizer_devel.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/optimizers/optimizer_impl.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/optimizers/adam.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/optimizers/sgd.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/optimizers/optimizer_factory.cpp \

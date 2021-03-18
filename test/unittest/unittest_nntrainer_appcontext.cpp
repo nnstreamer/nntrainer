@@ -19,7 +19,8 @@
 #include <typeinfo>
 #include <unistd.h>
 
-#include <optimizer.h>
+#include <optimizer_devel.h>
+#include <weight.h>
 
 #include <app_context.h>
 #include <nntrainer_error.h>
@@ -88,38 +89,42 @@ TEST_F(nntrainerAppContextDirectory, notExisitingSetDirectory_n) {
                std::invalid_argument);
 }
 
-class CustomOptimizer : public ml::train::Optimizer {
+class CustomOptimizer : public nntrainer::Optimizer {
 public:
+  /** Full custom optimizer example which overrides all functions */
   const std::string getType() const { return "identity_optimizer"; }
 
   float getLearningRate() { return 1.0f; }
 
-  float getDecayRate() { return 1.0f; }
-
-  float getDecaySteps() { return 1.0f; }
+  double getLearningRate(size_t iteration) const { return 1.0f; }
 
   int setProperty(std::vector<std::string> values) { return 1; }
+
+  int initialize() { return 0; }
+
+  void addOptimizerVariable(std::vector<nntrainer::Weight> &params) {}
 
   void setProperty(const PropertyType type, const std::string &value = "") {}
 
   void checkValidation() {}
+
+  void applyGradient(nntrainer::Weight &weight, double updated_lr,
+                     int iteration) {}
 };
 
-class CustomOptimizer2 : public ml::train::Optimizer {
+class CustomOptimizer2 : public nntrainer::Optimizer {
 public:
+  /** Minimal custom optimizer example which define only necessary functions */
   const std::string getType() const { return "identity_optimizer"; }
 
-  float getLearningRate() { return 1.0f; }
+  int initialize() { return 0; }
 
-  float getDecayRate() { return 1.0f; }
+  double getLearningRate(size_t iteration) const { return 1.0f; }
 
-  float getDecaySteps() { return 1.0f; }
+  void addOptimizerVariable(std::vector<nntrainer::Weight> &params) {}
 
-  int setProperty(std::vector<std::string> values) { return 1; }
-
-  void setProperty(const PropertyType type, const std::string &value = "") {}
-
-  void checkValidation() {}
+  void applyGradient(nntrainer::Weight &weight, double updated_lr,
+                     int iteration) {}
 };
 
 /// @todo solidify the api signature

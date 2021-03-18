@@ -45,7 +45,7 @@
 #include <manager.h>
 #include <ml-api-common.h>
 #include <network_graph.h>
-#include <optimizer_internal.h>
+#include <optimizer_devel.h>
 #include <pooling2d_layer.h>
 #include <tensor.h>
 

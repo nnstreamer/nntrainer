@@ -14,7 +14,7 @@
 #define __ADAM_H__
 #ifdef __cplusplus
 
-#include <optimizer_internal.h>
+#include <optimizer_impl.h>
 
 namespace nntrainer {
 
@@ -22,7 +22,7 @@ namespace nntrainer {
  * @class   Adam optimizer class
  * @brief   Adam optimizer
  */
-class Adam : public Optimizer {
+class Adam : public OptimizerImpl {
 public:
   /**
    * @brief     Constructor of Optimizer Class
@@ -30,7 +30,7 @@ public:
   template <typename... Args>
   Adam(float lr = 0.001f, double b1 = 0.9f, double b2 = 0.999f,
        double ep = 1.0e-7f, Args... args) :
-    Optimizer(lr, args...),
+    OptimizerImpl(lr, args...),
     beta1(b1),
     beta2(b2),
     epsilon(ep) {}
@@ -49,7 +49,7 @@ public:
   /**
    * @copydoc   getLearningRate(int iteration)
    */
-  double getLearningRate(int iteration);
+  double getLearningRate(size_t iteration) const;
 
   /**
    * @copydoc setProperty(const PropertyType type,

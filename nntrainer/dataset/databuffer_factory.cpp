@@ -2,7 +2,7 @@
 /**
  * Copyright (C) 2020 Parichay Kapoor <pk.kapoor@samsung.com>
  *
- * @file	optimizer_factory.cpp
+ * @file	databuffer_factory.cpp
  * @date	11 October 2020
  * @see		https://github.com/nnstreamer/nntrainer
  * @author	Parichay Kapoor <pk.kapoor@samsung.com>

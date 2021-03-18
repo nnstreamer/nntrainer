@@ -29,7 +29,7 @@
 
 #include <layer.h>
 #include <manager.h>
-#include <optimizer_internal.h>
+#include <optimizer_devel.h>
 #include <tensor.h>
 #include <tensor_dim.h>
 #include <weight.h>
