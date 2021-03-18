@@ -625,11 +625,17 @@ int NeuralNetwork::train_run() {
   auto &in = first_layer->net_input[0]->getVariableRef();
 
   /// @todo migrate this to trait based system; sth like need label?
-  std::shared_ptr<Layer> knn;
+  std::shared_ptr<Layer> layer_;
   for (auto &layer_node : model_graph.getSorted()) {
-    knn = layer_node.layer;
-    if (knn->getType() == "centroid_knn") {
-      knn->net_hidden[0]->getGradientRef() = label;
+    layer_ = layer_node.layer;
+    if (layer_->getType() == "centroid_knn") {
+      layer_->net_hidden[0]->getGradientRef() = label;
+    }
+
+    if (layer_->getType() == "RNN"){
+      Tensor &var_ref= layer_->net_hidden[0]->getVariableRef();
+      // for now, we are using Xavir_normal for hidden initialization
+      var_ref.setRandNormal(0.0f, sqrtFloat(2.0f / (var_ref.width() + var_ref.height())));
     }
   }
 

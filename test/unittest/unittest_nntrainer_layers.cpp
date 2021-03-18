@@ -32,6 +32,7 @@
 #include <pooling2d_layer.h>
 #include <preprocess_flip_layer.h>
 #include <preprocess_translate_layer.h>
+#include <rnn.h>
 #include <tensor_dim.h>
 #include <util_func.h>
 
@@ -2328,6 +2329,25 @@ TEST_F(nntrainer_EmbeddingLayer, forwarding_backwarding_01_p) {
   nntrainer::Tensor result;
   EXPECT_NO_THROW(result = *layer.backwarding_with_val(
                     1, {MAKE_SHARED_TENSOR(derivatives)}, opt)[0]);
+}
+
+class nntrainer_RNNLayer : public nntrainer_abstractLayer<nntrainer::RNNLayer> {
+
+protected:
+  typedef nntrainer_abstractLayer<nntrainer::RNNLayer> super;
+
+  virtual void prepareLayer() {
+    int status = setProperty("unit=100");
+    EXPECT_EQ(status, ML_ERROR_NONE);
+    setBatch(1);
+  }
+
+  nntrainer::Tensor result;
+};
+
+TEST_F(nntrainer_RNNLayer, initialize_01_p) {
+  status = reinitialize();
+  EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
 /**
