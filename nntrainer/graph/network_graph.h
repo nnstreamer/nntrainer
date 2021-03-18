@@ -82,13 +82,13 @@ public:
    * @brief getter of number of nodes
    * @param[out] number of nodes
    */
-  unsigned int size() { return adj.size(); }
+  unsigned int size() const { return adj.size(); }
 
   /**
    * @brief get if the graph is empty
    * @param[out] true if empty, else false
    */
-  bool empty() { return adj.empty(); }
+  bool empty() const { return adj.empty(); }
 
   /**
    * @brief     Swap function for the class
