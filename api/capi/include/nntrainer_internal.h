@@ -30,7 +30,6 @@
 #include <neuralnet.h>
 #include <nntrainer.h>
 #include <nntrainer_log.h>
-#include <optimizer_internal.h>
 #include <string>
 #include <unordered_map>
 

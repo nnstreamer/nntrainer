@@ -39,8 +39,8 @@ void Adam::addOptimizerVariable(std::vector<Weight> &weight_list) {
   }
 }
 
-double Adam::getLearningRate(int iteration) {
-  double ll = Optimizer::getLearningRate(iteration);
+double Adam::getLearningRate(size_t iteration) const {
+  double ll = OptimizerImpl::getLearningRate(iteration);
 
   std::function<float(double)> biasCorrection = [&](float f) {
     return 1.0f - pow(f, iteration + 1);
@@ -105,7 +105,7 @@ void Adam::setProperty(const PropertyType type, const std::string &value) {
     status = setDouble(epsilon, value);
     break;
   default:
-    Optimizer::setProperty(type, value);
+    OptimizerImpl::setProperty(type, value);
     status = ML_ERROR_NONE;
     break;
   }

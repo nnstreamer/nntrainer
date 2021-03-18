@@ -28,7 +28,7 @@
 #include <neuralnet.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
-#include <optimizer_internal.h>
+#include <optimizer_devel.h>
 #include <parse_util.h>
 #include <pooling2d_layer.h>
 #include <sstream>

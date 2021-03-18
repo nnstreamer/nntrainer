@@ -24,6 +24,7 @@
 #include <nntrainer_log.h>
 #include <optimizer_factory.h>
 #include <parse_util.h>
+#include <sgd.h>
 #include <util_func.h>
 
 #if defined(ENABLE_NNSTREAMER_BACKBONE)
@@ -89,30 +90,36 @@ int ModelLoader::loadModelConfigIni(dictionary *ini, NeuralNetwork &model) {
        ini, "Model:Learning_rate",
        std::to_string(model.opt->getLearningRate()).c_str()))});
 
-  optimizer_prop.push_back(
-    {"decay_steps=" + std::string(iniparser_getstring(
-                        ini, "Model:Decay_steps",
-                        std::to_string(model.opt->getDecaySteps()).c_str()))});
-  optimizer_prop.push_back(
-    {"decay_rate=" + std::string(iniparser_getstring(
-                       ini, "Model:Decay_rate",
-                       std::to_string(model.opt->getDecayRate()).c_str()))});
-
-  if (model.opt->getType() == "adam") {
-    std::shared_ptr<Adam> opt_adam = std::static_pointer_cast<Adam>(model.opt);
+  // TODO: create a optimizer section in the INI
+  if (model.opt->getType() == SGD::type || model.opt->getType() == Adam::type) {
+    std::shared_ptr<OptimizerImpl> opt_impl =
+      std::static_pointer_cast<OptimizerImpl>(model.opt);
 
     optimizer_prop.push_back(
-      {"beta1=" +
-       std::string(iniparser_getstring(
-         ini, "Model:Beta1", std::to_string(opt_adam->getBeta1()).c_str()))});
+      {"decay_steps=" + std::string(iniparser_getstring(
+                          ini, "Model:Decay_steps",
+                          std::to_string(opt_impl->getDecaySteps()).c_str()))});
     optimizer_prop.push_back(
-      {"beta2=" +
-       std::string(iniparser_getstring(
-         ini, "Model:Beta2", std::to_string(opt_adam->getBeta2()).c_str()))});
-    optimizer_prop.push_back(
-      {"epsilon=" + std::string(iniparser_getstring(
-                      ini, "Model:Epsilon",
-                      std::to_string(opt_adam->getEpsilon()).c_str()))});
+      {"decay_rate=" + std::string(iniparser_getstring(
+                         ini, "Model:Decay_rate",
+                         std::to_string(opt_impl->getDecayRate()).c_str()))});
+
+    if (opt_impl->getType() == "adam") {
+      std::shared_ptr<Adam> opt_adam = std::static_pointer_cast<Adam>(opt_impl);
+
+      optimizer_prop.push_back(
+        {"beta1=" +
+         std::string(iniparser_getstring(
+           ini, "Model:Beta1", std::to_string(opt_adam->getBeta1()).c_str()))});
+      optimizer_prop.push_back(
+        {"beta2=" +
+         std::string(iniparser_getstring(
+           ini, "Model:Beta2", std::to_string(opt_adam->getBeta2()).c_str()))});
+      optimizer_prop.push_back(
+        {"epsilon=" + std::string(iniparser_getstring(
+                        ini, "Model:Epsilon",
+                        std::to_string(opt_adam->getEpsilon()).c_str()))});
+    }
   }
 
   status = model.opt->setProperty(optimizer_prop);

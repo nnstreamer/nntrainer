@@ -14,7 +14,7 @@
 #define __SGD_H__
 #ifdef __cplusplus
 
-#include <optimizer_internal.h>
+#include <optimizer_impl.h>
 
 namespace nntrainer {
 
@@ -22,13 +22,13 @@ namespace nntrainer {
  * @class   SGD optimizer class
  * @brief   Stochastic Gradient Descent optimizer class
  */
-class SGD : public Optimizer {
+class SGD : public OptimizerImpl {
 public:
   /**
    * @brief     Constructor of Optimizer Class
    */
   template <typename... Args>
-  SGD(float lr = 0.0001f, Args... args) : Optimizer(lr, args...) {}
+  SGD(float lr = 0.0001f, Args... args) : OptimizerImpl(lr, args...) {}
 
   /**
    * @copydoc applyGradient(Weight &weight, double updated_lr,

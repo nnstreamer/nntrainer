@@ -14,8 +14,7 @@
 #define __OPTIMIZER_FACTORY_H__
 #ifdef __cplusplus
 
-#include <optimizer.h>
-#include <optimizer_internal.h>
+#include <optimizer_devel.h>
 
 namespace nntrainer {
 

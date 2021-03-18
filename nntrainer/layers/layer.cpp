@@ -26,7 +26,6 @@
 #include <layer_internal.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
-#include <optimizer_internal.h>
 #include <parse_util.h>
 #include <util_func.h>
 
