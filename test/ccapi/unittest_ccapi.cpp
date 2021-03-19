@@ -157,19 +157,18 @@ TEST(nntrainer_ccapi, train_with_config_01_p) {
   std::unique_ptr<ml::train::Model> model;
 
   static IniSection model_base("Model", "Type = NeuralNetwork"
-                                        " | Learning_rate = 0.0001"
-                                        " | Decay_rate = 0.96"
-                                        " | Decay_steps = 1000"
                                         " | Epochs = 1"
-                                        " | Optimizer = adam"
                                         " | Loss = cross"
-                                        " | Weight_Regularizer = l2norm"
-                                        " | weight_regularizer_constant = 0.005"
                                         " | Save_Path = 'model.bin'"
-                                        " | batch_size = 32"
-                                        " | beta1 = 0.9"
-                                        " | beta2 = 0.9999"
-                                        " | epsilon = 1e-7");
+                                        " | batch_size = 32");
+
+  static IniSection optimizer("Optimizer", "Type = adam"
+                                           " | Learning_rate = 0.0001"
+                                           " | Decay_rate = 0.96"
+                                           " | Decay_steps = 1000"
+                                           " | beta1 = 0.9"
+                                           " | beta2 = 0.9999"
+                                           " | epsilon = 1e-7");
 
   static IniSection dataset("Dataset", "BufferSize=100"
                                        " | TrainData = trainingSet.dat"
@@ -189,8 +188,8 @@ TEST(nntrainer_ccapi, train_with_config_01_p) {
                                                "| Activation = softmax");
 
   ScopedIni s("test_train_01_p",
-              {model_base + "batch_size = 16", dataset + "-BufferSize",
-               inputlayer, outputlayer});
+              {model_base + "batch_size = 16", optimizer,
+               dataset + "-BufferSize", inputlayer, outputlayer});
 
   EXPECT_NO_THROW(model =
                     ml::train::createModel(ml::train::ModelType::NEURAL_NET));

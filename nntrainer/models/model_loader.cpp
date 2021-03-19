@@ -45,6 +45,34 @@
 
 namespace nntrainer {
 
+int ModelLoader::loadOptimizerConfigIni(dictionary *ini, NeuralNetwork &model) {
+  int status = ML_ERROR_NONE;
+
+  if (iniparser_find_entry(ini, "Optimizer") == 0) {
+    ml_logw("there is no [Optimizer] section in given ini file."
+            "This model can only be used for inference.");
+    return ML_ERROR_NONE;
+  }
+
+  /** Default to adam optimizer */
+  const char *opt_type = iniparser_getstring(ini, "Optimizer:Type", "adam");
+  std::vector<std::string> properties = parseProperties(ini, "Optimizer");
+
+  try {
+    std::shared_ptr<ml::train::Optimizer> optimizer =
+      app_context.createObject<ml::train::Optimizer>(opt_type, properties);
+    model.setOptimizer(optimizer);
+  } catch (std::exception &e) {
+    ml_loge("%s %s", typeid(e).name(), e.what());
+    return ML_ERROR_INVALID_PARAMETER;
+  } catch (...) {
+    ml_loge("Creating the optimizer failed");
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
+  return status;
+}
+
 /**
  * @brief     load model config from ini
  */
@@ -69,61 +97,6 @@ int ModelLoader::loadModelConfigIni(dictionary *ini, NeuralNetwork &model) {
   }
   model.batch_size =
     iniparser_getint(ini, "Model:Batch_Size", model.batch_size);
-
-  /** Default to adam optimizer */
-  const char *opt_type = iniparser_getstring(ini, "Model:Optimizer", "adam");
-
-  try {
-    model.opt = nntrainer::createOptimizer(opt_type);
-  } catch (std::exception &e) {
-    ml_loge("%s %s", typeid(e).name(), e.what());
-    return ML_ERROR_INVALID_PARAMETER;
-  } catch (...) {
-    ml_loge("Creating the optimizer failed");
-    return ML_ERROR_INVALID_PARAMETER;
-  }
-
-  std::vector<std::string> optimizer_prop = {};
-  optimizer_prop.push_back(
-    {"learning_rate=" +
-     std::string(iniparser_getstring(
-       ini, "Model:Learning_rate",
-       std::to_string(model.opt->getLearningRate()).c_str()))});
-
-  // TODO: create a optimizer section in the INI
-  if (model.opt->getType() == SGD::type || model.opt->getType() == Adam::type) {
-    std::shared_ptr<OptimizerImpl> opt_impl =
-      std::static_pointer_cast<OptimizerImpl>(model.opt);
-
-    optimizer_prop.push_back(
-      {"decay_steps=" + std::string(iniparser_getstring(
-                          ini, "Model:Decay_steps",
-                          std::to_string(opt_impl->getDecaySteps()).c_str()))});
-    optimizer_prop.push_back(
-      {"decay_rate=" + std::string(iniparser_getstring(
-                         ini, "Model:Decay_rate",
-                         std::to_string(opt_impl->getDecayRate()).c_str()))});
-
-    if (opt_impl->getType() == "adam") {
-      std::shared_ptr<Adam> opt_adam = std::static_pointer_cast<Adam>(opt_impl);
-
-      optimizer_prop.push_back(
-        {"beta1=" +
-         std::string(iniparser_getstring(
-           ini, "Model:Beta1", std::to_string(opt_adam->getBeta1()).c_str()))});
-      optimizer_prop.push_back(
-        {"beta2=" +
-         std::string(iniparser_getstring(
-           ini, "Model:Beta2", std::to_string(opt_adam->getBeta2()).c_str()))});
-      optimizer_prop.push_back(
-        {"epsilon=" + std::string(iniparser_getstring(
-                        ini, "Model:Epsilon",
-                        std::to_string(opt_adam->getEpsilon()).c_str()))});
-    }
-  }
-
-  status = model.opt->setProperty(optimizer_prop);
-  NN_RETURN_STATUS();
 
   return status;
 }
@@ -181,27 +154,24 @@ int ModelLoader::loadDatasetConfigIni(dictionary *ini, NeuralNetwork &model) {
   return status;
 }
 
-int ModelLoader::loadLayerConfigIniCommon(dictionary *ini,
-                                          std::shared_ptr<Layer> &layer,
-                                          const std::string &layer_name,
-                                          const std::string &layer_type) {
-  int status = ML_ERROR_NONE;
-  int num_entries = iniparser_getsecnkeys(ini, layer_name.c_str());
+std::vector<std::string>
+ModelLoader::parseProperties(dictionary *ini, const std::string &section_name) {
+  int num_entries = iniparser_getsecnkeys(ini, section_name.c_str());
 
-  ml_logd("number of entries for %s: %d", layer_name.c_str(), num_entries);
+  ml_logd("number of entries for %s: %d", section_name.c_str(), num_entries);
 
   if (num_entries < 1) {
     std::stringstream ss;
-    ss << "there are no entries in the layer section: " << layer_name;
+    ss << "there are no entries in the section: " << section_name;
     throw std::invalid_argument(ss.str());
   }
 
   std::unique_ptr<const char *[]> key_refs(new const char *[num_entries]);
 
-  if (iniparser_getseckeys(ini, layer_name.c_str(), key_refs.get()) ==
+  if (iniparser_getseckeys(ini, section_name.c_str(), key_refs.get()) ==
       nullptr) {
     std::stringstream ss;
-    ss << "failed to fetch key for layer: " << layer_name;
+    ss << "failed to fetch key for section: " << section_name;
     throw std::invalid_argument(ss.str());
   }
 
@@ -209,7 +179,7 @@ int ModelLoader::loadLayerConfigIniCommon(dictionary *ini,
   properties.reserve(num_entries - 1);
 
   for (int i = 0; i < num_entries; ++i) {
-    /// key is ini section key, which is layer_name + ":" + prop_key
+    /// key is ini section key, which is section_name + ":" + prop_key
     std::string key(key_refs[i]);
     std::string prop_key = key.substr(key.find(":") + 1);
 
@@ -234,6 +204,16 @@ int ModelLoader::loadLayerConfigIniCommon(dictionary *ini,
 
     properties.push_back(prop_key + "=" + value);
   }
+
+  return properties;
+}
+
+int ModelLoader::loadLayerConfigIniCommon(dictionary *ini,
+                                          std::shared_ptr<Layer> &layer,
+                                          const std::string &layer_name,
+                                          const std::string &layer_type) {
+  int status = ML_ERROR_NONE;
+  std::vector<std::string> properties = parseProperties(ini, layer_name);
 
   try {
     std::shared_ptr<ml::train::Layer> layer_ =
@@ -371,6 +351,8 @@ int ModelLoader::loadFromIni(std::string ini_file, NeuralNetwork &model,
   unsigned int model_len = strlen(model_str);
   const char dataset_str[] = "dataset";
   unsigned int dataset_len = strlen(dataset_str);
+  const char optimizer_str[] = "optimizer";
+  unsigned int optimizer_len = strlen(optimizer_str);
 
   if (ini_file.empty()) {
     ml_loge("Error: Configuration File is not defined");
@@ -404,6 +386,9 @@ int ModelLoader::loadFromIni(std::string ini_file, NeuralNetwork &model,
 
     status = loadDatasetConfigIni(ini, model);
     NN_INI_RETURN_STATUS();
+
+    status = loadOptimizerConfigIni(ini, model);
+    NN_INI_RETURN_STATUS();
   }
 
   ml_logd("parsing ini started");
@@ -425,6 +410,9 @@ int ModelLoader::loadFromIni(std::string ini_file, NeuralNetwork &model,
       continue;
 
     if (strncasecmp(dataset_str, sec_name.c_str(), dataset_len) == 0)
+      continue;
+
+    if (strncasecmp(optimizer_str, sec_name.c_str(), optimizer_len) == 0)
       continue;
 
     /** Parse all the layers defined as sections in order */

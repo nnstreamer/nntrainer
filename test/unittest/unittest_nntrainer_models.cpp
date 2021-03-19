@@ -555,6 +555,7 @@ static IniSection softmax_base = act_base + "Activation = softmax";
 static IniSection sigmoid_base = act_base + "Activation = sigmoid";
 static IniSection relu_base = act_base + "Activation = relu";
 static IniSection bn_base("bn", "Type=batch_normalization");
+static IniSection sgd_base("optimizer", "Type = sgd");
 
 using I = IniSection;
 using INI = IniTestWrapper;
@@ -594,7 +595,8 @@ using INI = IniTestWrapper;
 // clang-format off
 INI fc_sigmoid_mse(
   "fc_sigmoid_mse",
-  {nn_base + "learning_rate=1 | optimizer=sgd | loss=mse | batch_size = 3",
+  {nn_base + "loss=mse | batch_size = 3",
+   sgd_base + "learning_rate = 1",
    I("input") + input_base + "input_shape = 1:1:3",
    I("dense") + fc_base + "unit = 5",
    I("act") + sigmoid_base,
@@ -606,7 +608,8 @@ INI fc_sigmoid_cross =
 
 INI fc_relu_mse(
   "fc_relu_mse",
-  {nn_base + "Learning_rate=0.1 | Optimizer=sgd | Loss=mse | batch_size = 3",
+  {nn_base + "Loss=mse | batch_size = 3",
+   sgd_base + "learning_rate = 0.1",
    I("input") + input_base + "input_shape = 1:1:3",
    I("dense") + fc_base + "unit = 10",
    I("act") + relu_base,
@@ -615,7 +618,8 @@ INI fc_relu_mse(
 
 INI fc_bn_sigmoid_cross(
   "fc_bn_sigmoid_cross",
-  {nn_base + "learning_rate=1 | optimizer=sgd | loss=cross | batch_size = 3",
+  {nn_base + "loss=cross | batch_size = 3",
+   sgd_base + "learning_rate = 1",
    I("input") + input_base + "input_shape = 1:1:3",
    I("dense") + fc_base + "unit = 10" + "input_layers=input",
    I("bn") + bn_base + "input_layers=dense",
@@ -632,7 +636,8 @@ std::string mnist_pooling =
 INI mnist_conv_cross(
   "mnist_conv_cross",
   {
-    nn_base + "learning_rate=0.1 | optimizer=sgd | loss=cross | batch_size=3",
+    nn_base + "loss=cross | batch_size=3",
+    sgd_base + "learning_rate = 0.1",
     I("input") + input_base + "input_shape=2:4:5",
     I("conv2d_c1_layer") + conv_base + "kernel_size=3,4 | filters=2" +"input_layers=input",
     I("act_1") + sigmoid_base +"input_layers=conv2d_c1_layer",
@@ -646,7 +651,8 @@ INI mnist_conv_cross(
 INI conv_1x1(
   "conv_1x1",
   {
-    nn_base + "learning_rate=0.1 | optimizer=sgd | loss=cross | batch_size=3",
+    nn_base + "loss=cross | batch_size=3",
+    sgd_base + "learning_rate = 0.1",
     I("input") + input_base + "input_shape=2:4:5",
     I("conv2d_c1_layer") + conv_base + "kernel_size=1,1 | filters=4",
     I("act_1") + sigmoid_base,
@@ -659,7 +665,8 @@ INI conv_1x1(
 INI conv_input_matches_kernel(
   "conv_input_matches_kernel",
   {
-    nn_base + "learning_rate=0.1 | optimizer=sgd | loss=cross | batch_size=3",
+    nn_base + "loss=cross | batch_size=3",
+    sgd_base + "learning_rate = 0.1",
     I("input") + input_base + "input_shape=2:4:5",
     I("conv2d_c1_layer") + conv_base + "kernel_size=4,5 | filters=4" +"input_layers=input",
     I("act_1") + sigmoid_base +"input_layers=conv2d_c1_layer",
@@ -672,8 +679,9 @@ INI conv_input_matches_kernel(
 INI conv_basic(
   "conv_basic",
   {
-    nn_base + "learning_rate=0.1 | optimizer=sgd | loss=cross | batch_size=3",
-        I("input") + input_base + "input_shape=2:5:3",
+    nn_base + "loss=cross | batch_size=3",
+    sgd_base + "learning_rate = 0.1",
+    I("input") + input_base + "input_shape=2:5:3",
     I("conv2d_c1") + conv_base +
             "kernel_size = 3,3 | filters=4" + "input_layers=input",
     I("act_1") + sigmoid_base +"input_layers=conv2d_c1",
@@ -687,7 +695,8 @@ INI conv_same_padding(
   "conv_same_padding",
   {
     nn_base + "learning_rate=0.1 | optimizer=sgd | loss=cross | batch_size=3",
-        I("input") + input_base + "input_shape=2:5:3",
+    sgd_base + "learning_rate = 0.1",
+    I("input") + input_base + "input_shape=2:5:3",
     I("conv2d_c1") + conv_base +
             "kernel_size = 3,3 | filters=4 | padding =1,1" + "input_layers=input",
     I("act_1") + sigmoid_base +"input_layers=conv2d_c1",
@@ -700,8 +709,9 @@ INI conv_same_padding(
 INI conv_multi_stride(
   "conv_multi_stride",
   {
-    nn_base + "learning_rate=0.1 | optimizer=sgd | loss=cross | batch_size=3",
-        I("input") + input_base + "input_shape=2:5:3",
+    nn_base + "loss=cross | batch_size=3",
+    sgd_base + "learning_rate = 0.1",
+    I("input") + input_base + "input_shape=2:5:3",
     I("conv2d_c1") + conv_base +
             "kernel_size = 3,3 | filters=4 | stride=2,2" + "input_layers=input",
     I("act_1") + sigmoid_base +"input_layers=conv2d_c1",
@@ -729,8 +739,9 @@ INI conv_uneven_strides(
 INI conv_same_padding_multi_stride(
   "conv_same_padding_multi_stride",
   {
-    nn_base + "learning_rate=0.1 | optimizer=sgd | loss=cross | batch_size=3",
-        I("input") + input_base + "input_shape=2:5:3",
+    nn_base + "loss=cross | batch_size=3",
+    sgd_base + "learning_rate = 0.1",
+    I("input") + input_base + "input_shape=2:5:3",
     I("conv2d_c1") + conv_base +
             "kernel_size = 3,3 | filters=4 | stride=2,2 | padding=1,1" + "input_layers=input",
     I("act_1") + sigmoid_base +"input_layers=conv2d_c1",
@@ -743,7 +754,8 @@ INI conv_same_padding_multi_stride(
 INI conv_no_loss_validate(
   "conv_no_loss_validate",
   {
-    nn_base + "learning_rate=0.1 | optimizer=sgd | batch_size=3",
+    nn_base + "batch_size=3",
+    sgd_base + "learning_rate = 0.1",
     I("input") + input_base + "input_shape=2:4:5",
     I("conv2d_c1_layer") + conv_base + "kernel_size=4,5 | filters=4" +"input_layers=input",
     I("act_1") + sigmoid_base +"input_layers=conv2d_c1_layer",
@@ -756,7 +768,8 @@ INI conv_no_loss_validate(
 INI conv_none_loss_validate(
   "conv_none_loss_validate",
   {
-    nn_base + "learning_rate=0.1 | optimizer=sgd | loss=none | batch_size=3",
+    nn_base + "loss=none | batch_size=3",
+    sgd_base + "learning_rate = 0.1",
     I("input") + input_base + "input_shape=2:4:5",
     I("conv2d_c1_layer") + conv_base + "kernel_size=4,5 | filters=4" +"input_layers=input",
     I("act_1") + sigmoid_base +"input_layers=conv2d_c1_layer",

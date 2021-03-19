@@ -161,25 +161,28 @@ TEST_P(nntrainerIniTest, initThreetime_n) {
 /// @todo add run test could be added with iniTest flag to control skip
 static IniSection nw_base("model", "Type = NeuralNetwork | "
                                    "batch_size = 32 | "
-                                   "epsilon = 1e-7 | "
                                    "loss = cross");
 
 static IniSection nw_base_mse("model", "Type = NeuralNetwork | "
                                        "batch_size = 32 | "
-                                       "epsilon = 1e-7 | "
                                        "loss = mse");
 
-static IniSection adam("adam", "Optimizer = adam |"
-                               "Learning_rate = 0.00001 |"
-                               "Decay_rate = 0.96 |"
-                               "Decay_steps = 1000");
+static IniSection adam("Optimizer", "Type = adam |"
+                                    "epsilon = 1e-7 | "
+                                    "Learning_rate = 0.00001 |"
+                                    "Decay_rate = 0.96 |"
+                                    "Decay_steps = 1000");
 
-static IniSection nw_sgd = nw_base + "Optimizer = sgd |"
-                                     "Learning_rate = 1";
+static IniSection sgd("Optimizer", "Type = sgd |"
+                                   "Learning_rate = 1");
 
-static IniSection nw_adam = nw_base + adam;
+// static IniSection nw_sgd = nw_base + "Optimizer = sgd |"
+//                                      "Learning_rate = 1";
 
-static IniSection nw_adam_n = nw_base + "Learning_rate = -1";
+// static IniSection nw_adam = nw_base + adam;
+
+// static IniSection nw_adam_n = nw_base + "Learning_rate = -1";
+// static IniSection adam_n = adam + "Learning_rate = -1";
 
 static IniSection dataset("DataSet", "BufferSize = 100 |"
                                      "TrainData = trainingSet.dat | "
@@ -286,56 +289,56 @@ mkIniTc(const char *name, const IniTestWrapper::Sections vec, int flag) {
 INSTANTIATE_TEST_CASE_P(
   nntrainerIniAutoTests, nntrainerIniTest, ::testing::Values(
   /**< positive: basic valid scenarios (2 positive and 3 negative cases) */
-    mkIniTc("basic_p", {nw_adam, input, out+"input_layers=inputlayer"}, SUCCESS),
-    mkIniTc("basic2_p", {nw_sgd, input, out+"input_layers=inputlayer"}, SUCCESS),
-    mkIniTc("basic_act_p", {nw_sgd, input + "-Activation", act_relu+"input_layers=inputlayer", out+"input_layers=activation_relu" }, SUCCESS),
-    mkIniTc("basic_bn_p", {nw_sgd, input + "-Activation", batch_normal+"input_layers=inputlayer", act_relu+"input_layers=bn", out+"input_layers=activation_relu" }, SUCCESS),
-    mkIniTc("basic_bn2_p", {nw_sgd, input + "-Activation", batch_normal + "Activation = relu"+"input_layers=inputlayer", out+"input_layers=bn" }, SUCCESS),
-    mkIniTc("basic_dataset_p", {nw_adam, dataset, input, out+"input_layers=inputlayer"}, SUCCESS),
-    mkIniTc("basic_dataset2_p", {nw_sgd, input, out+"input_layers=inputlayer", dataset}, SUCCESS),
-    mkIniTc("basic_dataset3_p", {dataset, nw_sgd, input, out+"input_layers=inputlayer"}, SUCCESS),
-    mkIniTc("basic_conv2d_p", {nw_adam, conv2d + "input_shape = 1:10:10"}, SUCCESS),
-    mkIniTc("no_testSet_p", {nw_adam, dataset + "-TestData", input, out+"input_layers=inputlayer"}, SUCCESS),
-    mkIniTc("no_validSet_p", {nw_adam, dataset + "-ValidData", input, out+"input_layers=inputlayer"}, SUCCESS),
-    mkIniTc("no_bufferSize_p", {nw_adam, dataset + "-BufferSize", input, out+"input_layers=inputlayer"}, SUCCESS),
-    mkIniTc("buffer_size_smaller_than_batch_size_p", {nw_adam, dataset + "BufferSize=26", input, out+"input_layers=inputlayer"}, SUCCESS),
-    mkIniTc("buffer_size_smaller_than_batch_size2_p", {nw_adam, input, out+"input_layers=inputlayer", dataset + "BufferSize=26"}, SUCCESS),
+    mkIniTc("basic_p", {nw_base, adam, input, out+"input_layers=inputlayer"}, SUCCESS),
+    mkIniTc("basic2_p", {nw_base, sgd, input, out+"input_layers=inputlayer"}, SUCCESS),
+    mkIniTc("basic_act_p", {nw_base, sgd, input + "-Activation", act_relu+"input_layers=inputlayer", out+"input_layers=activation_relu" }, SUCCESS),
+    mkIniTc("basic_bn_p", {nw_base, sgd, input + "-Activation", batch_normal+"input_layers=inputlayer", act_relu+"input_layers=bn", out+"input_layers=activation_relu" }, SUCCESS),
+    mkIniTc("basic_bn2_p", {nw_base, sgd, input + "-Activation", batch_normal + "Activation = relu"+"input_layers=inputlayer", out+"input_layers=bn" }, SUCCESS),
+    mkIniTc("basic_dataset_p", {nw_base, adam, dataset, input, out+"input_layers=inputlayer"}, SUCCESS),
+    mkIniTc("basic_dataset2_p", {nw_base, sgd, input, out+"input_layers=inputlayer", dataset}, SUCCESS),
+    mkIniTc("basic_dataset3_p", {dataset, nw_base, sgd, input, out+"input_layers=inputlayer"}, SUCCESS),
+    mkIniTc("basic_conv2d_p", {nw_base, adam, conv2d + "input_shape = 1:10:10"}, SUCCESS),
+    mkIniTc("no_testSet_p", {nw_base, adam, dataset + "-TestData", input, out+"input_layers=inputlayer"}, SUCCESS),
+    mkIniTc("no_validSet_p", {nw_base, adam, dataset + "-ValidData", input, out+"input_layers=inputlayer"}, SUCCESS),
+    mkIniTc("no_bufferSize_p", {nw_base, adam, dataset + "-BufferSize", input, out+"input_layers=inputlayer"}, SUCCESS),
+    mkIniTc("buffer_size_smaller_than_batch_size_p", {nw_base, adam, dataset + "BufferSize=26", input, out+"input_layers=inputlayer"}, SUCCESS),
+    mkIniTc("buffer_size_smaller_than_batch_size2_p", {nw_base, adam, input, out+"input_layers=inputlayer", dataset + "BufferSize=26"}, SUCCESS),
 
   /**< half negative: init fail cases (1 positive and 4 negative cases) */
-    mkIniTc("unknown_loss_n", {nw_adam + "loss = unknown", input, out+"input_layers=inputlayer"}, COMPFAIL | INITFAIL),
-    mkIniTc("activation_very_first_n", {nw_sgd, act_relu, input+"input_layers=activation_relu", out+"input_layers=inputlayer"}, COMPFAIL | INITFAIL),
-    mkIniTc("bnlayer_very_first_n", {nw_sgd, batch_normal, input+"input_layers=bn", out+"input_layers=inputlayer"}, COMPFAIL | INITFAIL),
-    mkIniTc("act_layer_after_act_n", {nw_sgd, input, act_relu+"input_layers=inputlayer", out+"input_layers=activation_relu"}, INITFAIL),
-    mkIniTc("act_layer_after_act_bn_n", {nw_sgd, input, act_relu+"input_layers=inputlayer", batch_normal+"input_layers=activation_relu", out+"input_layers=bn" }, INITFAIL),
-    mkIniTc("last_act_layer_relu_n", {nw_sgd, input, out+"input_layers=inputlayer", act_relu+"input_layers=fclayer" }, COMPFAIL | INITFAIL),
-    mkIniTc("last_act_layer_relu2_n", {nw_sgd, input, out+"input_layers=inputlayer" + "-Activation", act_relu+"input_layers=fclayer" }, COMPFAIL | INITFAIL),
+    mkIniTc("unknown_loss_n", {nw_base + "loss = unknown", adam, input, out+"input_layers=inputlayer"}, COMPFAIL | INITFAIL),
+    mkIniTc("activation_very_first_n", {nw_base, sgd, act_relu, input+"input_layers=activation_relu", out+"input_layers=inputlayer"}, COMPFAIL | INITFAIL),
+    mkIniTc("bnlayer_very_first_n", {nw_base, sgd, batch_normal, input+"input_layers=bn", out+"input_layers=inputlayer"}, COMPFAIL | INITFAIL),
+    mkIniTc("act_layer_after_act_n", {nw_base, sgd, input, act_relu+"input_layers=inputlayer", out+"input_layers=activation_relu"}, INITFAIL),
+    mkIniTc("act_layer_after_act_bn_n", {nw_base, sgd, input, act_relu+"input_layers=inputlayer", batch_normal+"input_layers=activation_relu", out+"input_layers=bn" }, INITFAIL),
+    mkIniTc("last_act_layer_relu_n", {nw_base, sgd, input, out+"input_layers=inputlayer", act_relu+"input_layers=fclayer" }, COMPFAIL | INITFAIL),
+    mkIniTc("last_act_layer_relu2_n", {nw_base, sgd, input, out+"input_layers=inputlayer" + "-Activation", act_relu+"input_layers=fclayer" }, COMPFAIL | INITFAIL),
 
   /**< negative: basic invalid scenarios (5 negative cases) */
-    mkIniTc("no_model_sec_name_n", {I(nw_adam, "-", "")}, ALLFAIL),
+    mkIniTc("no_model_sec_name_n", {I(nw_base, "-", "")}, ALLFAIL),
     mkIniTc("no_model_sec_n", {input, out+"input_layers=inputlayer"}, ALLFAIL),
     mkIniTc("empty_n", {}, ALLFAIL),
-    mkIniTc("no_layers_n", {nw_adam}, ALLFAIL),
-    mkIniTc("no_layers_2_n", {nw_adam, dataset}, ALLFAIL),
+    mkIniTc("no_layers_n", {nw_base, adam}, ALLFAIL),
+    mkIniTc("no_layers_2_n", {nw_base, adam, dataset}, ALLFAIL),
     /// #391
-    // mkIniTc("ini_has_empty_value_n", {nw_adam + "epsilon = _", input, out}, ALLFAIL),
+    // mkIniTc("ini_has_empty_value_n", {nw_base, adam + "epsilon = _", input, out}, ALLFAIL),
 
   /**< negative: property(hyperparam) validation (5 negative cases) */
-    mkIniTc("wrong_opt_type_n", {nw_adam + "Optimizer = wrong_opt", input, out+"input_layers=inputlayer"}, ALLFAIL),
-    mkIniTc("adam_minus_lr_n", {nw_adam + "Learning_rate = -0.1", input, out+"input_layers=inputlayer"}, ALLFAIL),
-    mkIniTc("sgd_minus_lr_n", {nw_sgd + "Learning_rate = -0.1", input, out+"input_layers=inputlayer"}, ALLFAIL),
-    mkIniTc("no_loss_p", {nw_adam + "-loss", input, out+"input_layers=inputlayer"}, SUCCESS),
-    mkIniTc("unknown_layer_type_n", {nw_adam, input + "Type = asdf", out+"input_layers=inputlayer"}, ALLFAIL),
-    mkIniTc("unknown_layer_type2_n", {nw_adam, input, out + "Type = asdf"+"input_layers=inputlayer", I(out, "outlayer", "")}, ALLFAIL),
+    mkIniTc("wrong_opt_type_n", {nw_base, adam + "Type = wrong_opt", input, out+"input_layers=inputlayer"}, ALLFAIL),
+    mkIniTc("adam_minus_lr_n", {nw_base, adam + "Learning_rate = -0.1", input, out+"input_layers=inputlayer"}, ALLFAIL),
+    mkIniTc("sgd_minus_lr_n", {nw_base, sgd + "Learning_rate = -0.1", input, out+"input_layers=inputlayer"}, ALLFAIL),
+    mkIniTc("no_loss_p", {nw_base + "-loss", adam, input, out+"input_layers=inputlayer"}, SUCCESS),
+    mkIniTc("unknown_layer_type_n", {nw_base, adam, input + "Type = asdf", out+"input_layers=inputlayer"}, ALLFAIL),
+    mkIniTc("unknown_layer_type2_n", {nw_base, adam, input, out + "Type = asdf"+"input_layers=inputlayer", I(out, "outlayer", "")}, ALLFAIL),
 
   /**< negative: little bit of tweeks to check determinancy (5 negative cases) */
-    mkIniTc("wrong_nw_dataset_n", {nw_adam, input, out+"input_layers=inputlayer", dataset + "-LabelData"}, ALLFAIL),
-    mkIniTc("wrong_nw_dataset2_n", {nw_adam, dataset + "-LabelData", input, out+"input_layers=inputlayer"}, ALLFAIL),
+    mkIniTc("wrong_nw_dataset_n", {nw_base, adam, input, out+"input_layers=inputlayer", dataset + "-LabelData"}, ALLFAIL),
+    mkIniTc("wrong_nw_dataset2_n", {nw_base, adam, dataset + "-LabelData", input, out+"input_layers=inputlayer"}, ALLFAIL),
 
   /**< negative: dataset is not complete (5 negative cases) */
-    mkIniTc("no_trainingSet_n", {nw_adam, dataset + "-TrainData", input, out+"input_layers=inputlayer"}, ALLFAIL),
-    mkIniTc("no_labelSet_n", {nw_adam, dataset + "-LabelData", input, out+"input_layers=inputlayer"}, ALLFAIL),
+    mkIniTc("no_trainingSet_n", {nw_base, adam, dataset + "-TrainData", input, out+"input_layers=inputlayer"}, ALLFAIL),
+    mkIniTc("no_labelSet_n", {nw_base, adam, dataset + "-LabelData", input, out+"input_layers=inputlayer"}, ALLFAIL),
 
-    mkIniTc("backbone_filemissing_n", {nw_adam, dataset + "-LabelData", input, out+"input_layers=inputlayer"}, ALLFAIL)
+    mkIniTc("backbone_filemissing_n", {nw_base, adam, dataset + "-LabelData", input, out+"input_layers=inputlayer"}, ALLFAIL)
 /// #if gtest_version <= 1.7.0
 ));
 /// #else gtest_version > 1.8.0
@@ -349,7 +352,7 @@ INSTANTIATE_TEST_CASE_P(
  * @brief Ini file unittest with backbone with wrong file
  */
 TEST(nntrainerIniTest, backbone_n_01) {
-  ScopedIni s{"backbone_n1", {nw_base, backbone_random}};
+  ScopedIni s{"backbone_n1", {nw_base, adam, backbone_random}};
   nntrainer::NeuralNetwork NN;
 
   EXPECT_EQ(NN.loadFromConfig(s.getIniName()), ML_ERROR_INVALID_PARAMETER);
@@ -360,7 +363,7 @@ TEST(nntrainerIniTest, backbone_n_01) {
  */
 TEST(nntrainerIniTest, backbone_n_02) {
   ScopedIni b{"base", {nw_base}};
-  ScopedIni s{"backbone_n2", {nw_base, backbone_valid}};
+  ScopedIni s{"backbone_n2", {nw_base, adam, backbone_valid}};
   nntrainer::NeuralNetwork NN;
 
   EXPECT_EQ(NN.loadFromConfig(s.getIniName()), ML_ERROR_INVALID_PARAMETER);
@@ -371,7 +374,7 @@ TEST(nntrainerIniTest, backbone_n_02) {
  */
 TEST(nntrainerIniTest, backbone_p_03) {
   ScopedIni b{"base", {nw_base, batch_normal}};
-  ScopedIni s{"backbone_p3", {nw_base, backbone_valid}};
+  ScopedIni s{"backbone_p3", {nw_base, adam, backbone_valid}};
   nntrainer::NeuralNetwork NN;
 
   EXPECT_EQ(NN.loadFromConfig(s.getIniName()), ML_ERROR_NONE);
@@ -382,7 +385,7 @@ TEST(nntrainerIniTest, backbone_p_03) {
  */
 TEST(nntrainerIniTest, backbone_p_04) {
   ScopedIni b{"base", {flatten, conv2d}};
-  ScopedIni s{"backbone_p4", {nw_base, backbone_valid}};
+  ScopedIni s{"backbone_p4", {nw_base, adam, backbone_valid}};
   nntrainer::NeuralNetwork NN;
 
   EXPECT_EQ(NN.loadFromConfig(s.getIniName()), ML_ERROR_NONE);
@@ -394,15 +397,15 @@ TEST(nntrainerIniTest, backbone_p_04) {
 TEST(nntrainerIniTest, backbone_p_05) {
 
   /** Create a backbone.ini */
-  ScopedIni b("base", {nw_adam, conv2d});
+  ScopedIni b("base", {nw_base, conv2d});
 
   /** Create a model of 4 conv layers using backbone */
   ScopedIni backbone_made(
-    "backbone_made",
-    {nw_sgd, input2d, I("block1") + backbone_valid + "input_layers=inputlayer",
-     I("block2") + backbone_valid + "input_layers=block1",
-     I("block3") + backbone_valid + "input_layers=block2",
-     I("block4") + backbone_valid + "input_layers=block3"});
+    "backbone_made", {nw_base, sgd, input2d,
+                      I("block1") + backbone_valid + "input_layers=inputlayer",
+                      I("block2") + backbone_valid + "input_layers=block1",
+                      I("block3") + backbone_valid + "input_layers=block2",
+                      I("block4") + backbone_valid + "input_layers=block3"});
 
   nntrainer::NeuralNetwork NN_backbone;
   EXPECT_EQ(NN_backbone.loadFromConfig(backbone_made.getIniName()),
@@ -419,11 +422,11 @@ TEST(nntrainerIniTest, backbone_p_05) {
   /** Create the same model directly without using backbone */
   // std::string conv2d_orig_name = conv2d.getName();
   ScopedIni direct_made(
-    "direct_made",
-    {nw_sgd, input2d, I("block1conv2d") + conv2d + "input_layers=inputlayer",
-     I("block2conv2d") + conv2d + "input_layers=block1conv2d",
-     I("block3conv2d") + conv2d + "input_layers=block2conv2d",
-     I("block4conv2d") + conv2d + "input_layers=block3conv2d"});
+    "direct_made", {nw_base, sgd, input2d,
+                    I("block1conv2d") + conv2d + "input_layers=inputlayer",
+                    I("block2conv2d") + conv2d + "input_layers=block1conv2d",
+                    I("block3conv2d") + conv2d + "input_layers=block2conv2d",
+                    I("block4conv2d") + conv2d + "input_layers=block3conv2d"});
 
   nntrainer::NeuralNetwork NN_direct;
   EXPECT_EQ(NN_direct.loadFromConfig(direct_made.getIniName()), ML_ERROR_NONE);
@@ -457,7 +460,7 @@ TEST(nntrainerIniTest, backbone_p_05) {
  */
 TEST(nntrainerIniTest, backbone_p_06) {
   ScopedIni b("base", {flatten, conv2d});
-  ScopedIni s("backbone_p6", {nw_base, backbone_valid});
+  ScopedIni s("backbone_p6", {nw_base, adam, backbone_valid});
   nntrainer::NeuralNetwork NN;
 
   EXPECT_EQ(NN.loadFromConfig(s.getIniName()), ML_ERROR_NONE);
@@ -473,7 +476,7 @@ TEST(nntrainerIniTest, backbone_p_06) {
  */
 TEST(nntrainerIniTest, backbone_p_07) {
   ScopedIni b("base", {conv2d});
-  ScopedIni s("backbone_p7", {nw_base, backbone_notrain, backbone_train});
+  ScopedIni s("backbone_p7", {nw_base, adam, backbone_notrain, backbone_train});
   nntrainer::NeuralNetwork NN;
 
   EXPECT_EQ(NN.loadFromConfig(s.getIniName()), ML_ERROR_NONE);
@@ -488,7 +491,7 @@ TEST(nntrainerIniTest, backbone_p_07) {
  * @brief Ini file unittest with backbone with normal backbone
  */
 TEST(nntrainerIniTest, backbone_n_08) {
-  ScopedIni s("backbone_n8", {nw_base, backbone_random_external});
+  ScopedIni s("backbone_n8", {nw_base, adam, backbone_random_external});
 
   nntrainer::NeuralNetwork NN;
 
@@ -506,7 +509,7 @@ TEST(nntrainerIniTest, backbone_n_08) {
  */
 TEST(nntrainerIniTest, backbone_p_09) {
   ScopedIni s("backbone_p9",
-              {nw_base_mse + "-batch_size", backbone_valid_external});
+              {nw_base_mse + "-batch_size", adam, backbone_valid_external});
   nntrainer::NeuralNetwork NN;
 
 #if defined(ENABLE_NNSTREAMER_BACKBONE) || defined(ENABLE_TFLITE_BACKBONE)
@@ -523,7 +526,8 @@ TEST(nntrainerIniTest, backbone_p_09) {
  */
 // Enable after sepearet memory assign and initialization of graph
 TEST(nntrainerIniTest, backbone_p_10) {
-  ScopedIni s("backbone_p10", {nw_base_mse, backbone_valid_external_no_shape});
+  ScopedIni s("backbone_p10",
+              {nw_base_mse, adam, backbone_valid_external_no_shape});
   nntrainer::NeuralNetwork NN;
 
 #if defined(ENABLE_NNSTREAMER_BACKBONE) || defined(ENABLE_TFLITE_BACKBONE)
@@ -547,11 +551,11 @@ TEST(nntrainerIniTest, backbone_p_11) {
 
   ScopedIni ini_scaled_half(
     "backbone_p11_scaled_half",
-    {nw_base_mse, input2d, backbone_scaled + "input_layers=inputlayer"});
+    {nw_base_mse, adam, input2d, backbone_scaled + "input_layers=inputlayer"});
 
   ScopedIni ini_full(
     "backbone_p11_full",
-    {nw_base_mse, input2d, backbone_valid + "input_layers=inputlayer"});
+    {nw_base_mse, adam, input2d, backbone_valid + "input_layers=inputlayer"});
 
   nntrainer::NeuralNetwork NN_scaled_half, NN_full;
 
@@ -580,10 +584,10 @@ TEST(nntrainerIniTest, backbone_p_12) {
   ScopedIni b("base", {out, batch_normal + "input_layers=fclayer"});
   ScopedIni scaled_half(
     "backbone_p12_scaled_half",
-    {{nw_base_mse, input, backbone_scaled + "input_layers=inputlayer"}});
+    {{nw_base_mse, adam, input, backbone_scaled + "input_layers=inputlayer"}});
   ScopedIni scaled_full(
     "backbone_p12_scaled_full",
-    {nw_base_mse, input, backbone_valid + "input_layers=inputlayer"});
+    {nw_base_mse, adam, input, backbone_valid + "input_layers=inputlayer"});
 
   nntrainer::NeuralNetwork NN_scaled_half, NN_full;
 
@@ -614,11 +618,11 @@ TEST(nntrainerIniTest, backbone_p_13) {
 
   ScopedIni scaled_half(
     "backbone_p13_scaled_half",
-    {nw_base_mse, input2d, backbone_scaled + "input_layers=inputlayer"});
+    {nw_base_mse, adam, input2d, backbone_scaled + "input_layers=inputlayer"});
 
   ScopedIni scaled_full(
     "backbone_p13_full",
-    {nw_base_mse, input2d, backbone_valid + "input_layers=inputlayer"});
+    {nw_base_mse, adam, input2d, backbone_valid + "input_layers=inputlayer"});
 
   nntrainer::NeuralNetwork NN_scaled_half, NN_full;
 
@@ -645,13 +649,13 @@ TEST(nntrainerIniTest, backbone_p_13) {
 TEST(nntrainerIniTest, backbone_p_14) {
   ScopedIni base("base", {conv2d_shape, conv2d + "input_layers=conv2d_shape"});
 
-  ScopedIni scaled_zero(
-    "backbone_p14_scaled_zero",
-    {nw_base_mse, input2d, backbone_scaled_zero + "input_layers=inputlayer"});
+  ScopedIni scaled_zero("backbone_p14_scaled_zero",
+                        {nw_base_mse, adam, input2d,
+                         backbone_scaled_zero + "input_layers=inputlayer"});
 
   ScopedIni scaled_full(
     "backbone_p14_full",
-    {nw_base_mse, input2d, backbone_valid + "input_layers=inputlayer"});
+    {nw_base_mse, adam, input2d, backbone_valid + "input_layers=inputlayer"});
 
   nntrainer::NeuralNetwork NN_scaled_zero, NN_full;
 
@@ -676,14 +680,14 @@ TEST(nntrainerIniTest, backbone_p_14) {
 TEST(nntrainerIniTest, backbone_n_15) {
   ScopedIni base("base", {conv2d, conv2d});
 
-  ScopedIni full("backbone_n15_scaled", {nw_base_mse, backbone_valid});
+  ScopedIni full("backbone_n15_scaled", {nw_base_mse, adam, backbone_valid});
 
   nntrainer::NeuralNetwork NN_scaled, NN_full;
   EXPECT_EQ(NN_full.loadFromConfig(full.getIniName()), ML_ERROR_NONE);
   EXPECT_EQ(NN_full.compile(), ML_ERROR_INVALID_PARAMETER);
   EXPECT_EQ(NN_full.initialize(), ML_ERROR_NOT_SUPPORTED);
 
-  ScopedIni scaled("backbone_n15_scaled", {nw_base_mse, backbone_scaled});
+  ScopedIni scaled("backbone_n15_scaled", {nw_base_mse, adam, backbone_scaled});
 
   EXPECT_EQ(NN_scaled.loadFromConfig(scaled.getIniName()), ML_ERROR_NONE);
   EXPECT_EQ(NN_scaled.compile(), ML_ERROR_INVALID_PARAMETER);
@@ -699,13 +703,13 @@ TEST(nntrainerIniTest, backbone_n_16) {
 
   ScopedIni base("base", {conv2d_shape, conv2d + "input_layers=conv2d_shape"});
 
-  ScopedIni full("backbone_n16_full", {nw_base_mse, backbone_valid});
+  ScopedIni full("backbone_n16_full", {nw_base_mse, adam, backbone_valid});
 
   EXPECT_EQ(NN_full.loadFromConfig(full.getIniName()), ML_ERROR_NONE);
   EXPECT_EQ(NN_full.compile(), ML_ERROR_INVALID_PARAMETER);
   EXPECT_EQ(NN_full.initialize(), ML_ERROR_NOT_SUPPORTED);
 
-  ScopedIni scaled("backbone_n16_full", {nw_base_mse, backbone_scaled});
+  ScopedIni scaled("backbone_n16_full", {nw_base_mse, adam, backbone_scaled});
 
   EXPECT_EQ(NN_scaled.loadFromConfig(scaled.getIniName()), ML_ERROR_NONE);
   EXPECT_EQ(NN_scaled.compile(), ML_ERROR_INVALID_PARAMETER);
@@ -722,7 +726,7 @@ TEST(nntrainerIniTest, backbone_p_17) {
 
   ScopedIni full(
     "backbone_p17_full",
-    {nw_base_mse, input2d, backbone_valid + "input_layers=inputlayer"});
+    {nw_base_mse, adam, input2d, backbone_valid + "input_layers=inputlayer"});
 
   EXPECT_EQ(NN_full.loadFromConfig(full.getIniName()), ML_ERROR_NONE);
   EXPECT_EQ(NN_full.compile(), ML_ERROR_NONE);
@@ -730,7 +734,7 @@ TEST(nntrainerIniTest, backbone_p_17) {
 
   ScopedIni scaled(
     "backbone_p17_scaled",
-    {nw_base_mse, input2d, backbone_scaled + "input_layers=inputlayer"});
+    {nw_base_mse, adam, input2d, backbone_scaled + "input_layers=inputlayer"});
 
   EXPECT_EQ(NN_scaled.loadFromConfig(scaled.getIniName()), ML_ERROR_NONE);
   EXPECT_EQ(NN_scaled.compile(), ML_ERROR_NONE);
@@ -746,9 +750,9 @@ TEST(nntrainerIniTest, backbone_n_18) {
 
   ScopedIni base("base", {input2d, conv2d + "input_layers=inputlayer",
                           flatten + "input_layers=conv2d"});
-  ScopedIni backbone(
-    "Backbone_n18",
-    {nw_base_mse, input, backbone_valid_inout + "input_layers=inputlayer"});
+  ScopedIni backbone("Backbone_n18",
+                     {nw_base_mse, adam, input,
+                      backbone_valid_inout + "input_layers=inputlayer"});
 
   EXPECT_EQ(NN.loadFromConfig(backbone.getIniName()),
             ML_ERROR_INVALID_PARAMETER);
@@ -764,9 +768,9 @@ TEST(nntrainerIniTest, backbone_n_19) {
   ScopedIni base("base", {input2d, conv2d + "input_layers=inputlayer",
                           batch_normal + "input_layers=conv2d"});
 
-  ScopedIni backbone(
-    "backbone_n19",
-    {nw_base_mse, input, backbone_valid_inout + "input_layers=inputlayer"});
+  ScopedIni backbone("backbone_n19",
+                     {nw_base_mse, adam, input,
+                      backbone_valid_inout + "input_layers=inputlayer"});
 
   EXPECT_EQ(NN.loadFromConfig(backbone.getIniName()),
             ML_ERROR_INVALID_PARAMETER);
@@ -783,9 +787,9 @@ TEST(nntrainerIniTest, backbone_p_20) {
                  {input2d, conv2d + "input_layers=inputlayer",
                   flatten + "input_layers=conv2d", out + "input_layers=flat"});
 
-  ScopedIni backbone(
-    "backbone_p20",
-    {nw_base_mse, input, backbone_valid_inout + "input_layers=inputlayer"});
+  ScopedIni backbone("backbone_p20",
+                     {nw_base_mse, adam, input,
+                      backbone_valid_inout + "input_layers=inputlayer"});
 
   EXPECT_EQ(NN.loadFromConfig(backbone.getIniName()), ML_ERROR_NONE);
   EXPECT_EQ(NN.compile(), ML_ERROR_NONE);
@@ -800,9 +804,9 @@ TEST(nntrainerIniTest, backbone_p_20) {
  */
 TEST(nntrainerIniTest, backbone_relative_to_ini_p) {
   ScopedIni b{getResPath("base"), {nw_base, batch_normal}};
-  ScopedIni s{
-    getResPath("original"),
-    {nw_base + "loss=mse", input, backbone_valid + "input_layers=inputlayer"}};
+  ScopedIni s{getResPath("original"),
+              {nw_base + "loss=mse", adam, input,
+               backbone_valid + "input_layers=inputlayer"}};
 
   nntrainer::NeuralNetwork NN;
 
@@ -818,9 +822,9 @@ TEST(nntrainerIniTest, backbone_relative_to_ini_p) {
  */
 TEST(nntrainerIniTest, backbone_from_different_directory_n) {
   ScopedIni b{"base", {nw_base, batch_normal}};
-  ScopedIni s{
-    getResPath("original"),
-    {nw_base + "loss=mse", input, backbone_valid + "input_layers=inputlayer"}};
+  ScopedIni s{getResPath("original"),
+              {nw_base + "loss=mse", adam, input,
+               backbone_valid + "input_layers=inputlayer"}};
 
   nntrainer::NeuralNetwork NN;
 
@@ -834,9 +838,9 @@ TEST(nntrainerIniTest, backbone_from_different_directory_n) {
  */
 TEST(nntrainerIniTest, backbone_based_on_working_directory_p) {
   ScopedIni b{getResPath("base", {"test"}), {nw_base, batch_normal}};
-  ScopedIni s{
-    getResPath("original"),
-    {nw_base + "loss=mse", input, backbone_valid + "input_layers=inputlayer"}};
+  ScopedIni s{getResPath("original"),
+              {nw_base + "loss=mse", adam, input,
+               backbone_valid + "input_layers=inputlayer"}};
 
   nntrainer::AppContext ac(nntrainer::AppContext::Global());
   ac.setWorkingDirectory(getResPath("", {"test"}));

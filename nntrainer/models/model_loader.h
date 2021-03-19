@@ -80,6 +80,13 @@ private:
   int loadModelConfigIni(dictionary *ini, NeuralNetwork &model);
 
   /**
+   * @brief     load optimizer config from ini
+   * @param[in] ini dictionary containing the config
+   * @param[in/out] model model to be loaded
+   */
+  int loadOptimizerConfigIni(dictionary *ini, NeuralNetwork &model);
+
+  /**
    * @brief     load layer config from ini given the layer type
    * @param[in] ini dictionary containing the config
    * @param[in/out] layer layer to be loaded
@@ -162,6 +169,9 @@ private:
     auto app_context_resolved_path = app_context.getWorkingPath(path);
     return model_file_context->getWorkingPath(app_context_resolved_path);
   }
+
+  std::vector<std::string> parseProperties(dictionary *ini,
+                                           const std::string &section_name);
 
   const char *unknown = "Unknown";
   const char *none = "none";
