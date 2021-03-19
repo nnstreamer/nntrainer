@@ -390,9 +390,13 @@ void GraphWatcher::compareFor(const std::string &reference,
 
 void GraphWatcher::validateFor(const std::string &reference,
                                const nntrainer::TensorDim &label_shape) {
-  nntrainer::sharedConstTensors input = {
-    MAKE_SHARED_TENSOR(nn.getInputDimension()[0])};
-  nntrainer::sharedConstTensors label = {MAKE_SHARED_TENSOR(label_shape)};
+  auto in_tensor = MAKE_SHARED_TENSOR(nn.getInputDimension()[0]);
+  in_tensor->setRandNormal();
+  nntrainer::sharedConstTensors input = {in_tensor};
+
+  auto label_tensor = MAKE_SHARED_TENSOR(label_shape);
+  label_tensor->setRandNormal();
+  nntrainer::sharedConstTensors label = {label_tensor};
 
   EXPECT_NO_THROW(nn.forwarding(input, label));
 
