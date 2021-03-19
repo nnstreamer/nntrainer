@@ -11,6 +11,7 @@
  *
  */
 
+#include <cmath>
 #include <layer_internal.h>
 #include <lazy_tensor.h>
 #include <nntrainer_error.h>
@@ -95,7 +96,38 @@ void RNNLayer::setProperty(const PropertyType type, const std::string &value) {
   }
 }
 
-void RNNLayer::forwarding(bool training) {}
+void RNNLayer::forwarding(bool training) {
+  Tensor &weight_xh =
+    weightAt(static_cast<int>(RNNParams::weight_xh)).getVariableRef();
+  Tensor &weight_hh =
+    weightAt(static_cast<int>(RNNParams::weight_hh)).getVariableRef();
+  Tensor &bias_h =
+    weightAt(static_cast<int>(RNNParams::bias_h)).getVariableRef();
+
+  Tensor &hidden_ = net_hidden[0]->getVariableRef();
+  Tensor &input_ = net_input[0]->getVariableRef();
+
+  for (unsigned int b = 0; b < input_dim[0].batch(); ++b) {
+    Tensor islice = input_.getBatchSlice(b, 1);
+    Tensor oslice = hidden_.getBatchSlice(b, 1);
+
+    for (unsigned int t = 0; t < islice.height(); ++t) {
+      Tensor xs = Tensor(TensorDim(1, 1, 1, islice.width()),
+                         islice.getAddress(t * islice.width()));
+      unsigned int id = 0;
+      if (t > 0) {
+        id = t - 1;
+      }
+      Tensor hs = Tensor(TensorDim(1, 1, 1, oslice.width()),
+                         oslice.getAddress(t * oslice.width()));
+      Tensor hs_prev = Tensor(TensorDim(1, 1, 1, oslice.width()),
+                              oslice.getAddress(id * oslice.width()));
+      // Calculate hs_t = tanh(Whh*h_(t-1) + Wxh*X_t))
+      hs =
+        xs.dot(weight_xh).add(hs_prev.dot(weight_hh).add(bias_h)).apply(tanh);
+    }
+  }
+}
 
 void RNNLayer::copy(std::shared_ptr<Layer> l) {
   Layer::copy(l);
