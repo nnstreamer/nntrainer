@@ -277,6 +277,7 @@ int getInputFeature_c(const std::string filename, float *feature_input) {
 int testModel(const char *data_path, const char *model) {
 #if defined(NNSTREAMER_AVAILABLE)
   int status = ML_ERROR_NONE;
+  int new_status;
   ml_pipeline_h pipe;
   ml_pipeline_src_h src;
   ml_pipeline_sink_h sink;
@@ -363,17 +364,28 @@ int testModel(const char *data_path, const char *model) {
 
 fail_info_release:
   ml_tensors_info_destroy(in_info);
-
-  status = ml_pipeline_stop(pipe);
+  new_status = ml_pipeline_stop(pipe);
+  if (status == ML_ERROR_NONE && new_status != ML_ERROR_NONE) {
+    status = new_status;
+  }
 
 fail_sink_release:
-  status = ml_pipeline_sink_unregister(sink);
+  new_status = ml_pipeline_sink_unregister(sink);
+  if (status == ML_ERROR_NONE && new_status != ML_ERROR_NONE) {
+    status = new_status;
+  }
 
 fail_src_release:
-  status = ml_pipeline_src_release_handle(src);
+  new_status = ml_pipeline_src_release_handle(src);
+  if (status == ML_ERROR_NONE && new_status != ML_ERROR_NONE) {
+    status = new_status;
+  }
 
 fail_pipe_destroy:
-  status = ml_pipeline_destroy(pipe);
+  new_status = ml_pipeline_destroy(pipe);
+  if (status == ML_ERROR_NONE && new_status != ML_ERROR_NONE) {
+    status = new_status;
+  }
 
 fail_exit:
   return status;
