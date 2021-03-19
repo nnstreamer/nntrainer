@@ -113,11 +113,10 @@ TEST_P(nntrainerGraphTest, loadConfig) {
 
 static IniSection nw_base("model", "Type = NeuralNetwork | "
                                    "batch_size = 16 | "
-                                   "epsilon = 1e-7 | "
                                    "loss = cross");
 
-static IniSection nw_sgd = nw_base + "Optimizer = sgd |"
-                                     "Learning_rate = 1";
+static IniSection sgd("Optimizer", "Type = sgd |"
+                                   "Learning_rate = 1");
 
 static IniSection input("inputlayer", "Type = input |"
                                       "Input_Shape = 3:32:32");
@@ -236,10 +235,10 @@ mkIniTc(const char *name, const IniTestWrapper::Sections vec, int flag) {
 INSTANTIATE_TEST_CASE_P(
   nntrainerIniAutoTests, nntrainerGraphTest,
   ::testing::Values(mkIniTc("basic_p",
-                            {nw_sgd, input, conv2d8, conv2d9, pooling2, out0,
-                             conv2d10, conv2d11, addition0, out1, conv2d12,
-                             conv2d13, addition1, conv2d14, pooling3, fclayer0,
-                             fclayer1},
+                            {nw_base, sgd, input, conv2d8, conv2d9, pooling2,
+                             out0, conv2d10, conv2d11, addition0, out1,
+                             conv2d12, conv2d13, addition1, conv2d14, pooling3,
+                             fclayer0, fclayer1},
                             SUCCESS)));
 
 int main(int argc, char **argv) {

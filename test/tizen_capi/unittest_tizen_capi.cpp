@@ -30,19 +30,18 @@ static const std::string getTestResPath(const std::string &file) {
 }
 
 static IniSection model_base("Model", "Type = NeuralNetwork"
-                                      " | Learning_rate = 0.0001"
-                                      " | Decay_rate = 0.96"
-                                      " | Decay_steps = 1000"
                                       " | Epochs = 1"
-                                      " | Optimizer = adam"
                                       " | Loss = cross"
-                                      " | Weight_Regularizer = l2norm"
-                                      " | weight_regularizer_constant = 0.005"
                                       " | Save_Path = 'model.bin'"
-                                      " | batch_size = 32"
-                                      " | beta1 = 0.9"
-                                      " | beta2 = 0.9999"
-                                      " | epsilon = 1e-7");
+                                      " | batch_size = 32");
+
+static IniSection optimizer("Optimizer", "Type = adam"
+                                         " | Learning_rate = 0.0001"
+                                         " | Decay_rate = 0.96"
+                                         " | Decay_steps = 1000"
+                                         " | beta1 = 0.9"
+                                         " | beta2 = 0.9999"
+                                         " | epsilon = 1e-7");
 
 static IniSection dataset("Dataset", "BufferSize=100"
                                      " | TrainData = trainingSet.dat"
@@ -136,7 +135,7 @@ TEST(nntrainer_capi_nnmodel, compile_01_p) {
   int status = ML_ERROR_NONE;
 
   ScopedIni s("test_compile_01_p",
-              {model_base, dataset, inputlayer, outputlayer});
+              {model_base, optimizer, dataset, inputlayer, outputlayer});
 
   status = ml_train_model_construct_with_conf(s.getIniName().c_str(), &handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -164,9 +163,9 @@ TEST(nntrainer_capi_nnmodel, construct_conf_02_n) {
   ml_train_model_h handle = NULL;
   int status = ML_ERROR_NONE;
 
-  ScopedIni s(
-    "test_compile_03_n",
-    {model_base, dataset, inputlayer + "Input_Shape=1:1:0", outputlayer});
+  ScopedIni s("test_compile_03_n",
+              {model_base, optimizer, dataset, inputlayer + "Input_Shape=1:1:0",
+               outputlayer});
 
   status = ml_train_model_construct_with_conf(s.getIniName().c_str(), &handle);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
@@ -335,8 +334,8 @@ TEST(nntrainer_capi_nnmodel, train_01_p) {
   int status = ML_ERROR_NONE;
 
   ScopedIni s("test_train_01_p",
-              {model_base + "batch_size = 16", dataset + "-BufferSize",
-               inputlayer, outputlayer});
+              {model_base + "batch_size = 16", optimizer,
+               dataset + "-BufferSize", inputlayer, outputlayer});
 
   status = ml_train_model_construct_with_conf(s.getIniName().c_str(), &handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -370,8 +369,8 @@ TEST(nntrainer_capi_nnmodel, train_03_n) {
   ml_train_model_h handle = NULL;
   int status = ML_ERROR_NONE;
   ScopedIni s("test_train_01_p",
-              {model_base + "batch_size = 16", dataset + "-BufferSize",
-               inputlayer, outputlayer});
+              {model_base + "batch_size = 16", optimizer,
+               dataset + "-BufferSize", inputlayer, outputlayer});
 
   status = ml_train_model_construct_with_conf(s.getIniName().c_str(), &handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -520,7 +519,7 @@ TEST(nntrainer_capi_nnmodel, addLayer_05_n) {
   ml_train_layer_h layer = NULL;
 
   ScopedIni s("test_compile_01_p",
-              {model_base, dataset, inputlayer, outputlayer});
+              {model_base, optimizer, dataset, inputlayer, outputlayer});
 
   status = ml_train_model_construct_with_conf(s.getIniName().c_str(), &model);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -930,7 +929,7 @@ TEST(nntrainer_capi_summary, summary_01_p) {
   int status = ML_ERROR_NONE;
 
   ScopedIni s("test_compile_01_p",
-              {model_base, dataset, inputlayer, outputlayer});
+              {model_base, optimizer, dataset, inputlayer, outputlayer});
   status = ml_train_model_construct_with_conf(s.getIniName().c_str(), &handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
   status = ml_train_model_compile(handle, NULL);
@@ -956,7 +955,7 @@ TEST(nntrainer_capi_summary, summary_02_n) {
   int status = ML_ERROR_NONE;
 
   ScopedIni s("test_compile_01_p",
-              {model_base, dataset, inputlayer, outputlayer});
+              {model_base, optimizer, dataset, inputlayer, outputlayer});
   status = ml_train_model_construct_with_conf(s.getIniName().c_str(), &handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
   status = ml_train_model_compile(handle, NULL);

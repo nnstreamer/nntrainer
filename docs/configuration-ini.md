@@ -26,21 +26,13 @@ Start with "[Model]"
      * knn : K-nearest neighbor
      * neuralnetwork : Deep Neural Network
 
-2. ```learning_rate = <float>```
-
-   Initial learning rate to decay
-
-3. ```epochs = <unsigned int>```
+2. ```epochs = <unsigned int>```
 
    Number of epochs to train
 
-4. ```optimizer = <string>```
+   Create a new section for this
 
-   Optimizer to apply the gradients to weights.
-     * adam : Adaptive Moment Estimation
-     * sgd : stochastic gradient decent
-
-5. ```loss = <string>```
+3. ```loss = <string>```
 
    Loss function
      * mse : mean squared error
@@ -48,25 +40,13 @@ Start with "[Model]"
         Only allowed with sigmoid and softmax activation function
      * none : no loss for the model (this model will only support inference)
 
-6. ```save_path = <string>```
+4. ```save_path = <string>```
 
    Model file path to save updated weights
 
-7. ```batch_size = <unsigned int>```
+5. ```batch_size = <unsigned int>```
 
    Mini batch size
-
-8. ```beta1 = <float>```
-
-   beta1 parameter for adam optimizer. Only valid for adam.   0.9 is default.
-
-9. ```beta2 = <float>```
-
-   beta2 parameter for adam optimizer. Only valid for adam. 0.999 is default.
-
-10. ```epsilon = <float>```
-
-     Epsilon parameter for adam optimizer. Only valid for adam. 1.0e-7 is default.
 
 Below is sample Network section.
 
@@ -74,11 +54,47 @@ Below is sample Network section.
 # Network Section : Network
 [Model]
 Type = NeuralNetwork
-Learning_rate = 1e-4
 Epochs = 1500
-Optimizer = adam
 Loss = cross
 Save_Path = "model.bin"
+batch_size = 32
+```
+
+### Optimizer Section
+
+Define the optimizer to be used for training. This is an optional section needed only for training, and can be skipped for inference.
+
+Start with "[ Optimizer ]"
+
+1. ```type = <string>```
+
+   Optimizer type to apply the gradients to weights.
+     * adam : Adaptive Moment Estimation
+     * sgd : stochastic gradient decent
+
+2. ```learning_rate = <float>```
+
+   Initial learning rate to decay
+
+3. ```beta1 = <float>```
+
+   beta1 parameter for adam optimizer. Only valid for adam.   0.9 is default.
+
+4. ```beta2 = <float>```
+
+   beta2 parameter for adam optimizer. Only valid for adam. 0.999 is default.
+
+5. ```epsilon = <float>```
+
+     Epsilon parameter for adam optimizer. Only valid for adam. 1.0e-7 is default.
+
+Below is a sample Optimizer section.
+
+```ini
+# Optimizer Section
+[Optimizer]
+Type = adam
+Learning_rate = 1e-4
 batch_size = 32
 beta1 = 0.9
 beta2 = 0.999
