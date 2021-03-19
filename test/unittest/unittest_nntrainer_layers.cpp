@@ -2337,8 +2337,9 @@ protected:
   typedef nntrainer_abstractLayer<nntrainer::RNNLayer> super;
 
   virtual void prepareLayer() {
-    int status = setProperty("unit=100");
+    int status = setProperty("unit=3");
     EXPECT_EQ(status, ML_ERROR_NONE);
+    setInputDim("1:3:3");
     setBatch(1);
   }
 
@@ -2348,6 +2349,24 @@ protected:
 TEST_F(nntrainer_RNNLayer, initialize_01_p) {
   status = reinitialize();
   EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+TEST_F(nntrainer_RNNLayer, forwarding_01_p) {
+  float data[9] = {1, 2, 3, 2, 3, 4, 3, 4, 5};
+  sharedTensor input = std::shared_ptr<nntrainer::Tensor>(
+    new nntrainer::Tensor[1], std::default_delete<nntrainer::Tensor[]>());
+  nntrainer::Tensor &in = *input;
+  in = nntrainer::Tensor(nntrainer::TensorDim(1, 1, 3, 3), data);
+  nntrainer::Manager manager;
+  manager.setInferenceInOutMemoryOptimization(false);
+  layer.setInputBuffers(manager.trackLayerInputs(
+    layer.getType(), layer.getName(), layer.getInputDimension()));
+  layer.setOutputBuffers(manager.trackLayerOutputs(
+    layer.getType(), layer.getName(), layer.getOutputDimension()));
+
+  manager.initializeTensors(false);
+  manager.allocateTensors();
+  EXPECT_NO_THROW(layer.forwarding_with_val({input}));
 }
 
 /**
