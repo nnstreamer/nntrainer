@@ -34,7 +34,7 @@ public:
   /**
    * @brief Var_Grad default destructor
    */
-  virtual ~Var_Grad() {}
+  virtual ~Var_Grad() = default;
 
   /**
    * @brief Construct a new Var_Grad object
@@ -46,20 +46,6 @@ public:
    */
   explicit Var_Grad(const TensorDim &dim, bool train = true,
                     bool alloc_now = false, const std::string &name = "");
-
-  /**
-   * @brief Swap for Var_Grad
-   *
-   * @param lhs Swap to
-   * @param rhs Swap from
-   */
-  friend void swap(Var_Grad &lhs, Var_Grad &rhs) noexcept {
-    using std::swap;
-
-    swap(lhs.var, rhs.var);
-    swap(lhs.grad, rhs.grad);
-    swap(lhs.name, rhs.name);
-  }
 
   /**
    * @brief Copy constructor for Var_Grad
@@ -280,18 +266,6 @@ public:
    * @brief Deallocate memory for the gradient
    */
   void deallocateGradient() { grad->deallocate(); }
-
-  /**
-   * @bried Update the variable to use the given tensor
-   * @param t Tensor to update with
-   */
-  void updateVariable(Tensor &t) { var = std::shared_ptr<Tensor>(&t); }
-
-  /**
-   * @bried Update the gradient to use the given tensor
-   * @param t Tensor to update with
-   */
-  void updateGradient(Tensor &t) { grad = std::shared_ptr<Tensor>(&t); }
 
   /**
    * @bried Update the variable to use the variable from the given param
