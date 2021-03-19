@@ -106,8 +106,8 @@ protected:
   virtual void prepareLayer(){};
 
   virtual void resetLayer() {
-    layer = LayerType();
     manager.reset();
+    layer = LayerType();
   }
 
   virtual void setInputDim(const std::string &dimension) {
