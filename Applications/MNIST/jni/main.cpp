@@ -256,7 +256,11 @@ TEST(MNIST_training, verify_accuracy) {
 int main(int argc, char *argv[]) {
   int status = 0;
 #ifdef APP_VALIDATE
-  remove("mnist_model.bin");
+  status = remove("mnist_model.bin");
+  if (status != ML_ERROR_NONE) {
+    std::cerr << "Error remove bin file" << std::endl;
+    return 0;
+  }
 #endif
   if (argc < 3) {
     std::cout << "./nntrainer_mnist mnist.ini dataset.dat\n";

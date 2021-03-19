@@ -229,7 +229,11 @@ void sink_cb(const ml_tensors_data_h data, const ml_tensors_info_h info,
   int max_idx = -1;
   float max_val = 0; // last layer is softmax, so all values will be positive
 
-  ml_tensors_info_get_tensor_dimension(info, 0, dim);
+  status = ml_tensors_info_get_tensor_dimension(info, 0, dim);
+  if (status != ML_ERROR_NONE) {
+    std::cerr << "Error while get tensor dimension\n";
+    return;
+  }
 
   status =
     ml_tensors_data_get_tensor_data(data, 0, (void **)&raw_data, &data_size);
