@@ -93,10 +93,13 @@ public:
   void setProperty(const PropertyType type,
                    const std::string &value = "") override;
 
+  void setActivation(ActivationType acti_type) override;
+
   static const std::string type;
 
 private:
   unsigned int unit;
+  ActiFunc acti_func;
 };
 } // namespace nntrainer
 

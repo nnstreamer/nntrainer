@@ -123,8 +123,8 @@ void RNNLayer::forwarding(bool training) {
       Tensor hs_prev = Tensor(TensorDim(1, 1, 1, oslice.width()),
                               oslice.getAddress(id * oslice.width()));
       // Calculate hs_t = tanh(Whh*h_(t-1) + Wxh*X_t))
-      hs =
-        xs.dot(weight_xh).add(hs_prev.dot(weight_hh).add(bias_h)).apply(tanh);
+      hs = xs.dot(weight_xh).add(hs_prev.dot(weight_hh).add(bias_h));
+      acti_func.run_fn(hs, hs);
     }
   }
 }
@@ -142,6 +142,11 @@ void RNNLayer::calcDerivative() {
 
 void RNNLayer::calcGradient() {
   // NYI
+}
+
+void RNNLayer::setActivation(ActivationType acti_type) {
+  Layer::setActivation(acti_type);
+  acti_func.setActiFunc(acti_type);
 }
 
 } // namespace nntrainer
