@@ -134,6 +134,7 @@ void GenericProfileListener::report(std::ostream &out) const {
       if (warmups >= cnt_) {
         out << std::left << std::setw(total_col_size) << title
             << "less data then warmup\n";
+        out << std::right; // Restore outputstream adjustflag to standard stream
         return;
       }
 
