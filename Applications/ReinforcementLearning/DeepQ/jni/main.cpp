@@ -294,7 +294,12 @@ int main(int argc, char **argv) {
   /**
    * @brief     Read Model Data if any
    */
-  mainNet.readModel();
+  try {
+    mainNet.readModel();
+  } catch (...) {
+    std::cerr << "Error during readModel\n";
+    return 1;
+  }
 
   /**
    * @brief     Sync targetNet
