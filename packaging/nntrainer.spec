@@ -110,8 +110,7 @@ BuildRequires:	nnstreamer-devel
 %define enable_nnstreamer_tensor_filter -Denable-nnstreamer-tensor-filter=true
 
 %if 0%{?unit_test}
-BuildRequires:	nnstreamer-protobuf
-# BuildRequires:	nnstreamer-test-devel
+BuildRequires:	nnstreamer-test-devel
 BuildRequires:	gst-plugins-good-extra
 BuildRequires:	python
 %endif #unit_test
@@ -120,7 +119,7 @@ BuildRequires:	python
 
 Requires:	nntrainer-core = %{version}-%{release}
 
-%if  0%{?nnstreamer_filter}
+%if 0%{?nnstreamer_filter}
 Requires:	nnstreamer-nntrainer = %{version}-%{release}
 %endif #nnstreamer_filter
 %if %{with tizen}
@@ -161,6 +160,7 @@ Requires:	nntrainer = %{version}-%{release}
 Requires:	iniparser
 Requires:	%{capi_machine_learning_inference}
 Requires:	nnstreamer-tensorflow-lite
+BuildRequires:  nnstreamer-test-devel
 BuildRequires:	nnstreamer-tensorflow-lite
 BuildRequires:	tensorflow-lite-devel
 BuildRequires:	pkgconfig(jsoncpp)
@@ -321,44 +321,18 @@ meson --buildtype=plain --prefix=%{_prefix} --sysconfdir=%{_sysconfdir} \
 ninja -C build %{?_smp_mflags}
 
 %if 0%{?unit_test}
-# independent unittests of nntrainer
-# @todo: we only need single line of this.
-%define meson_test meson test -C build -t 2.0 --print-errorlogs
-%{meson_test} unittest_tizen_capi
-%{meson_test} unittest_tizen_capi_layer
-%{meson_test} unittest_tizen_capi_optimizer
-%{meson_test} unittest_tizen_capi_dataset
-%{meson_test} unittest_nntrainer_activations
-%{meson_test} unittest_nntrainer_internal
-%{meson_test} unittest_nntrainer_layers
-%{meson_test} unittest_nntrainer_lazy_tensor
-%{meson_test} unittest_nntrainer_tensor
-%{meson_test} unittest_util_func
-%{meson_test} unittest_databuffer_file
-%{meson_test} unittest_nntrainer_modelfile
-%{meson_test} unittest_nntrainer_models
-%{meson_test} unittest_nntrainer_graph
-%{meson_test} unittest_nntrainer_appcontext
-%{meson_test} unittest_nntrainer_profiler
-%{meson_test} unittest_ccapi
-%{meson_test} app_knn
-%{meson_test} app_logistic
-%{meson_test} app_mnist
-%{meson_test} app_cifar_classification
-%{meson_test} app_cifar_classification_func
-# %{meson_test} app_draw_classification
-%{meson_test} app_plugin_test
-%{meson_test} simpleshot_tests
-
+export NNSTREAMER_CONF=$(pwd)/test/nnstreamer/nnstreamer-test.ini
+export NNSTREAMER_FILTERS=$(pwd)/build/nnstreamer/tensor_filter
+meson test -C build -t 2.0 --print-errorlogs
 
 # unittest for nntrainer plugin for nnstreamer
-# %if 0%{?nnstreamer_filter}
-# export NNSTREAMER_CONF=$(pwd)/test/nnstreamer/nnstreamer-test.ini
-# export NNSTREAMER_FILTERS=$(pwd)/build/nnstreamer/tensor_filter
-# pushd test/nnstreamer
+# todo: migrate this to meson test soon
+%if 0%{?nnstreamer_filter}
+pushd test/nnstreamer
+ssat
 # bash runTest.sh
-# popd
-# %endif #nnstreamer_filter
+popd
+%endif #nnstreamer_filter
 %endif #unit_test
 
 %install
@@ -423,7 +397,7 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %defattr(-,root,root,-)
 %license LICENSE
 %{_libdir}/libnntrainer.so
-%{_sysconfdir}/nntrainer.ini
+%config %{_sysconfdir}/nntrainer.ini
 
 %files devel
 %{_includedir}/nntrainer/databuffer.h
