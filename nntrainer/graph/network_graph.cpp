@@ -28,6 +28,7 @@
 #include <output_layer.h>
 #include <parse_util.h>
 #include <profiler.h>
+#include <rnn.h>
 
 namespace nntrainer {
 
@@ -260,6 +261,12 @@ int NetworkGraph::realizeActivationType(Layer &current) {
   int status = ML_ERROR_NONE;
 
   ActivationType act = current.getActivationType();
+
+  if (current.getType() == RNNLayer::type) {
+    // No need to add activation layer for RNN Layer
+    current.setActivation(act);
+    return status;
+  }
 
   if (act == ActivationType::ACT_NONE) {
     /// ActivationType::ACT_NONE does not need realization

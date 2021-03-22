@@ -2337,7 +2337,7 @@ protected:
   typedef nntrainer_abstractLayer<nntrainer::RNNLayer> super;
 
   virtual void prepareLayer() {
-    int status = setProperty("unit=3");
+    int status = setProperty("unit=3 | activation=tanh");
     EXPECT_EQ(status, ML_ERROR_NONE);
     setInputDim("1:3:3");
     setBatch(1);
