@@ -77,6 +77,10 @@ const char *label_names[LABEL_SIZE] = {"happy", "sad", "soso"};
 float inputVector[EPOCH_SIZE][INPUT_SIZE];
 float labelVector[EPOCH_SIZE][LABEL_SIZE];
 
+#if defined(NNSTREAMER_AVAILABLE)
+float featureVector[INPUT_SIZE];
+#endif
+
 #if defined(APP_VALIDATE)
 /** Benchmark output values */
 const float test_output_benchmark[TOTAL_TEST_SIZE] = {
@@ -334,7 +338,6 @@ int testModel(const char *data_path, const char *model) {
       goto fail_info_release;
     }
 
-    float featureVector[INPUT_SIZE];
     status = getInputFeature_c(test_file_path, featureVector);
     free(test_file_path);
     if (status != ML_ERROR_NONE)
