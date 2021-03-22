@@ -2097,8 +2097,7 @@ TEST(nntrainer_ActivationLayer, forward_backward_01_p) {
   nntrainer::Tensor input(batch, channel, height, width);
   GEN_TEST_INPUT(input, (l - 4) * 0.1 * (i + 1));
   nntrainer::Tensor expected(batch, channel, height, width);
-  GEN_TEST_INPUT(expected,
-                 nntrainer::ActivationLayer::relu((l - 4) * 0.1 * (i + 1)));
+  GEN_TEST_INPUT(expected, nntrainer::ActiFunc::relu((l - 4) * 0.1 * (i + 1)));
 
   nntrainer::Manager manager;
   manager.setInferenceInOutMemoryOptimization(false);
@@ -2124,8 +2123,8 @@ TEST(nntrainer_ActivationLayer, forward_backward_01_p) {
   EXPECT_NO_THROW(result = *layer.backwarding_with_val(
                     1, {MAKE_SHARED_TENSOR(constant(1.0, 3, 1, 1, 10))})[0]);
   GEN_TEST_INPUT(expected,
-                 nntrainer::ActivationLayer::reluPrime(
-                   nntrainer::ActivationLayer::relu((l - 4) * 0.1 * (i + 1))));
+                 nntrainer::ActiFunc::reluPrime(
+                   nntrainer::ActiFunc::relu((l - 4) * 0.1 * (i + 1))));
   EXPECT_TRUE(result == expected);
 }
 

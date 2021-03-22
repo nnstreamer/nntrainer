@@ -27,6 +27,7 @@
 #include <set>
 #include <vector>
 
+#include <acti_func.h>
 #include <layer.h>
 #include <manager.h>
 #include <optimizer_internal.h>
@@ -35,18 +36,6 @@
 #include <weight.h>
 
 namespace nntrainer {
-
-/**
- * @brief     Enumeration of activation function type
- */
-enum class ActivationType {
-  ACT_TANH,    /** tanh */
-  ACT_SIGMOID, /** sigmoid */
-  ACT_RELU,    /** ReLU */
-  ACT_SOFTMAX, /** softmax */
-  ACT_NONE,    /** no op */
-  ACT_UNKNOWN  /** unknown */
-};
 
 /**
  * @class   Layer Base class for layers

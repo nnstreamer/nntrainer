@@ -2,88 +2,77 @@
 /**
  * Copyright (C) 2020 Jihoon Lee <jhoon.it.lee@samsung.com>
  *
- * @file   activation_layer.h
- * @date   17 June 2020
+ * @file   acti_func.cpp
+ * @date   22 March 2021
  * @see    https://github.com/nnstreamer/nntrainer
  * @author Jihoon Lee <jhoon.it.lee@samsung.com>
+ * @author Jijoong Moon <jijoong.moon@samsung.com>
  * @bug    No known bugs except for NYI items
- * @brief  This is Activation Layer Class for Neural Network
+ * @brief  This is Activation Function Class for Neural Network
  *
  */
 
-#ifndef __ACTIVATION_LAYER_H__
-#define __ACTIVATION_LAYER_H__
+#ifndef __ACTI_FUNC_H__
+#define __ACTI_FUNC_H__
 #ifdef __cplusplus
 
-#include <acti_func.h>
-#include <layer_internal.h>
 #include <tensor.h>
 
 namespace nntrainer {
 
 /**
- * @class   Activation Layer
- * @brief   Activation Layer
+ * @brief     Enumeration of activation function type
  */
-class ActivationLayer : public Layer {
+enum class ActivationType {
+  ACT_TANH,    /** tanh */
+  ACT_SIGMOID, /** sigmoid */
+  ACT_RELU,    /** ReLU */
+  ACT_SOFTMAX, /** softmax */
+  ACT_NONE,    /** no op */
+  ACT_UNKNOWN  /** unknown */
+};
+
+/**
+ * @class   ActiFunc Class
+ * @brief   ActiFunc Class
+ */
+class ActiFunc {
 
 public:
   /**
-   * @brief     Constructor of Activation Layer
+   * @brief     Constructor of ActiFunc
    */
-  template <typename... Args>
-  ActivationLayer(ActivationType at = ActivationType::ACT_NONE, Args... args) :
-    Layer(args...) {
-    setTrainable(false);
-    setActivation(at);
-  }
+  ActiFunc(ActivationType at = ActivationType::ACT_NONE) { setActiFunc(at); }
 
   /**
-   * @brief     Destructor of Activation Layer
+   * @brief     Destructor of ActiFunc
    */
-  ~ActivationLayer(){};
-
-  /**
-   * @brief     Initialize the layer
-   *
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   */
-  int initialize(Manager &manager) override;
-
-  /**
-   * @brief     Read Activation layer params. This is essentially noops for now.
-   * @param[in] file input stream file
-   */
-  void read(std::ifstream &file) override{/* noop */};
-
-  /**
-   * @brief     Save Activation layer params. This is essentially noops for now.
-   * @param[in] file output stream file
-   */
-  void save(std::ofstream &file) override{/* noop */};
-
-  /**
-   * @copydoc Layer::forwarding(bool training)
-   */
-  void forwarding(bool training = true) override;
-
-  /**
-   * @copydoc Layer::calcDerivative()
-   */
-  void calcDerivative() override;
+  ~ActiFunc() = default;
 
   /**
    * @brief setActivation by preset ActivationType
    *
    * @param[in] ActivationType
    */
-  void setActivation(ActivationType acti_type) override;
+  void setActiFunc(ActivationType acti_type);
 
   /**
-   * @copydoc Layer::getType()
+   * @brief run function
+   *
+   * @param[in] x : input
+   * @param[out] output : output
    */
-  const std::string getType() const override { return ActivationLayer::type; };
+  void run_fn(Tensor const &x, Tensor &output);
+
+  /**
+   * @brief run prime function
+   *
+   * @param[in] in : input
+   * @param[out] ret : output
+   * @param[in] deriv : derivative
+   * @retVal    Tensor
+   */
+  Tensor &run_prime_fn(Tensor &in, Tensor &ret, Tensor const &deriv);
 
   /**
    * @brief       Calculate softmax for Tensor Type
@@ -153,11 +142,6 @@ public:
 
   static const std::string type;
 
-private:
-  ActiFunc acti_func;
-
-  Tensor backup_hidden;
-
   /**
    * @brief setActivation by custom activation function
    * @note  apply derivative as this activation_prime_fn does not utilize
@@ -200,9 +184,13 @@ private:
   int setActivation(
     std::function<float(float const)> const &activation_fn,
     std::function<float(float const)> const &activation_prime_fn);
+
+private:
+  std::function<Tensor &(Tensor const &, Tensor &)> _act_fn;
+  std::function<Tensor &(Tensor &, Tensor &, Tensor const &)> _act_prime_fn;
 };
 
 } // namespace nntrainer
 
 #endif /* __cplusplus */
-#endif /* __ACTIVATION_LAYER_H__ */
+#endif /* __ACTI_FUNC_H__ */
