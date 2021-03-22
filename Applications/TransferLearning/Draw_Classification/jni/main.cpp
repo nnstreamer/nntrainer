@@ -455,16 +455,35 @@ int main(int argc, char *argv[]) {
     loadAllData(data_path, inputVector, labelVector);
   } catch (...) {
     std::cout << "Failed loading input images." << std::endl;
+#if defined(__TIZEN__)
+    set_feature_state(NOT_CHECKED_YET);
+#endif
     return 1;
   }
 
   /** Do the training */
-  status = trainModel(config.c_str());
+  try {
+    status = trainModel(config.c_str());
+  } catch (...) {
+    std::cerr << "Failed train model\n";
+#if defined(__TIZEN__)
+    set_feature_state(NOT_CHECKED_YET);
+#endif
+    return 1;
+  }
   if (status != ML_ERROR_NONE)
     return 1;
 
   /** Test the trained model */
-  status = testModel(data_path.c_str(), config.c_str());
+  try {
+    status = testModel(data_path.c_str(), config.c_str());
+  } catch (...) {
+    std::cerr << "Failed test model\n";
+#if defined(__TIZEN__)
+    set_feature_state(NOT_CHECKED_YET);
+#endif
+    return 1;
+  }
   if (status != ML_ERROR_NONE)
     return 1;
 
