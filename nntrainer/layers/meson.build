@@ -16,7 +16,8 @@ layer_sources = [
   'preprocess_flip_layer.cpp',
   'preprocess_translate_layer.cpp',
   'embedding.cpp',
-  'rnn.cpp'
+  'rnn.cpp',
+  'acti_func.cpp'
 ]
 
 layer_headers = [

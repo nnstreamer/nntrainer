@@ -44,7 +44,7 @@ TEST(nntrainer_activation, softmax_01_p) {
 
   GEN_TEST_INPUT(T, (i * (width) + l + 1));
 
-  Results = T.apply(nntrainer::ActivationLayer::softmax, Results);
+  Results = T.apply(nntrainer::ActiFunc::softmax, Results);
   float *data = Results.getData();
   ASSERT_NE(nullptr, data);
 
@@ -64,15 +64,14 @@ TEST(nntrainer_activation, softmax_prime_01_p) {
   GEN_TEST_INPUT(input, (i * (width) + k + 1));
 
   nntrainer::Tensor softmax_result;
-  softmax_result =
-    input.apply(nntrainer::ActivationLayer::softmax, softmax_result);
+  softmax_result = input.apply(nntrainer::ActiFunc::softmax, softmax_result);
 
   float *data = softmax_result.getData();
   ASSERT_NE(nullptr, data);
 
   nntrainer::Tensor softmax_prime_result;
-  softmax_prime_result = nntrainer::ActivationLayer::softmaxPrime(
-    softmax_result, softmax_prime_result);
+  softmax_prime_result =
+    nntrainer::ActiFunc::softmaxPrime(softmax_result, softmax_prime_result);
 
   data = softmax_prime_result.getData();
   ASSERT_NE(nullptr, data);
@@ -98,7 +97,7 @@ TEST(nntrainer_activation, sigmoid_01_p) {
   nntrainer::Tensor input(batch, channel, height, width);
   GEN_TEST_INPUT(input, (l - 4) * 0.1 * (i + 1));
 
-  nntrainer::Tensor Results = input.apply(nntrainer::ActivationLayer::sigmoid);
+  nntrainer::Tensor Results = input.apply(nntrainer::ActiFunc::sigmoid);
 
   float *data = Results.getData();
   ASSERT_NE(nullptr, data);
@@ -128,13 +127,12 @@ TEST(nntrainer_activation, DISABLED_sigmoidPrime_01_p) {
   nntrainer::Tensor input(batch, channel, height, width);
   GEN_TEST_INPUT(input, (l - 4) * 0.1 * (i + 1));
 
-  nntrainer::Tensor sigmoid_result =
-    input.apply(nntrainer::ActivationLayer::sigmoid);
+  nntrainer::Tensor sigmoid_result = input.apply(nntrainer::ActiFunc::sigmoid);
   float *data = sigmoid_result.getData();
   ASSERT_NE(nullptr, data);
 
   nntrainer::Tensor prime_result =
-    sigmoid_result.apply(nntrainer::ActivationLayer::sigmoidPrime);
+    sigmoid_result.apply(nntrainer::ActiFunc::sigmoidPrime);
   data = prime_result.getData();
   ASSERT_NE(nullptr, data);
 
@@ -161,8 +159,7 @@ TEST(nntrainer_activation, tanhFloat_01_p) {
   nntrainer::Tensor input(batch, channel, height, width);
   GEN_TEST_INPUT(input, (l - 4) * 0.1 * (i + 1));
 
-  nntrainer::Tensor Results =
-    input.apply(nntrainer::ActivationLayer::tanhFloat);
+  nntrainer::Tensor Results = input.apply(nntrainer::ActiFunc::tanhFloat);
 
   float *data = Results.getData();
   ASSERT_NE(nullptr, data);
@@ -189,13 +186,12 @@ TEST(nntrainer_activation, DISABLED_tanhFloatPrime_01_p) {
   nntrainer::Tensor input(batch, channel, height, width);
   GEN_TEST_INPUT(input, (l - 4) * 0.1 * (i + 1));
 
-  nntrainer::Tensor tanh_result =
-    input.apply(nntrainer::ActivationLayer::tanhFloat);
+  nntrainer::Tensor tanh_result = input.apply(nntrainer::ActiFunc::tanhFloat);
   float *data = tanh_result.getData();
   ASSERT_NE(nullptr, data);
 
   nntrainer::Tensor prime_result =
-    tanh_result.apply(nntrainer::ActivationLayer::tanhPrime);
+    tanh_result.apply(nntrainer::ActiFunc::tanhPrime);
   data = prime_result.getData();
   ASSERT_NE(nullptr, data);
 
@@ -216,7 +212,7 @@ TEST(nntrainer_activation, relu_01_p) {
   nntrainer::Tensor input(batch, channel, height, width);
   GEN_TEST_INPUT(input, (l - 4) * 0.1 * (i + 1));
 
-  nntrainer::Tensor Results = input.apply(nntrainer::ActivationLayer::relu);
+  nntrainer::Tensor Results = input.apply(nntrainer::ActiFunc::relu);
 
   float *data = Results.getData();
   ASSERT_NE(nullptr, data);
@@ -239,12 +235,12 @@ TEST(nntrainer_activation, reluPrime_01_p) {
   nntrainer::Tensor input(batch, channel, height, width);
   GEN_TEST_INPUT(input, (l - 4) * 0.1 * (i + 1));
 
-  nntrainer::Tensor relu_result = input.apply(nntrainer::ActivationLayer::relu);
+  nntrainer::Tensor relu_result = input.apply(nntrainer::ActiFunc::relu);
   float *data = relu_result.getData();
   ASSERT_NE(nullptr, data);
 
   nntrainer::Tensor prime_result =
-    relu_result.apply(nntrainer::ActivationLayer::reluPrime);
+    relu_result.apply(nntrainer::ActiFunc::reluPrime);
   data = prime_result.getData();
   ASSERT_NE(nullptr, data);
 

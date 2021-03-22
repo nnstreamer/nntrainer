@@ -21,7 +21,7 @@
  *
  */
 
-#include <activation_layer.h>
+#include <acti_func.h>
 #include <cmath>
 #include <layer_internal.h>
 #include <lazy_tensor.h>
@@ -63,7 +63,7 @@ void LossLayer::forwarding(bool training) {
     }
   } break;
   case LossType::LOSS_ENTROPY_SIGMOID: {
-    hidden_ = y.apply(ActivationLayer::sigmoid, hidden_);
+    hidden_ = y.apply(ActiFunc::sigmoid, hidden_);
     if (label_exist) {
       Tensor &y2 = net_hidden[0]->getGradientRef();
       // @todo: change this to apply_i
@@ -74,7 +74,7 @@ void LossLayer::forwarding(bool training) {
                           .apply(static_cast<float (*)(float)>(&std::exp))
                           .add(1.0)
                           .apply(logFloat);
-      mid_term = mid_term.add(y.apply(ActivationLayer::relu));
+      mid_term = mid_term.add(y.apply(ActiFunc::relu));
 
       // y * y2
       Tensor end_term = y2.chain().multiply_i(y).run();
@@ -84,7 +84,7 @@ void LossLayer::forwarding(bool training) {
     }
   } break;
   case LossType::LOSS_ENTROPY_SOFTMAX: {
-    hidden_ = y.apply(ActivationLayer::softmax, hidden_);
+    hidden_ = y.apply(ActiFunc::softmax, hidden_);
     if (label_exist) {
       Tensor &y2 = net_hidden[0]->getGradientRef();
       l = y2.multiply(hidden_.apply(logFloat)).sum_by_batch().multiply(-1);
@@ -141,7 +141,7 @@ void LossLayer::calcDerivative() {
     }
     break;
   case LossType::LOSS_ENTROPY_SIGMOID:
-    y.apply(ActivationLayer::sigmoid, ret_derivative);
+    y.apply(ActiFunc::sigmoid, ret_derivative);
     ret_derivative.subtract_i(y2);
     if (ret_derivative.divide_i(ret_derivative.length()) != ML_ERROR_NONE) {
       throw std::runtime_error(
@@ -151,7 +151,7 @@ void LossLayer::calcDerivative() {
   case LossType::LOSS_ENTROPY_SOFTMAX:
     /// @note y and ret_derivative can be same here, so this has to be out-place
     /// operation
-    y.apply(ActivationLayer::softmax, ret);
+    y.apply(ActiFunc::softmax, ret);
     ret.subtract(y2, ret_derivative);
     if (ret_derivative.divide_i(ret.batch()) != ML_ERROR_NONE) {
       throw std::runtime_error(
