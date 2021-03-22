@@ -74,7 +74,7 @@ struct Tensor::BroadcastInfo {
    * @brief Construct a new External Loop Info object
    *
    */
-  BroadcastInfo() : strides{0, 0, 0, 0} {}
+  BroadcastInfo() : buffer_size(0), buffer_axis(-1), strides{0, 0, 0, 0} {}
 
   unsigned int buffer_size; /**< virtual size of the buffer */
   int buffer_axis;          /**< the smallest axis that should be looped.
