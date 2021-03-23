@@ -17,5 +17,5 @@ foreach test_name : unittest_name_list
     install_dir: application_install_dir
   )
 
-  test(unittest_name, exec)
+  test(unittest_name, exec, args: '--gtest_output=xml:@0@/@1@.xml'.format(meson.build_root(), unittest_name))
 endforeach

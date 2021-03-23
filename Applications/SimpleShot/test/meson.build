@@ -15,5 +15,5 @@ exe = executable(
   install: get_option('enable-test'),
   install_dir: application_install_dir
 )
-test('simpleshot_tests', exe)
+test('simpleshot_tests', exe, args: '--gtest_output=xml:@0@/@1@.xml'.format(meson.build_root(), 'simpleshot_tests'))
 
