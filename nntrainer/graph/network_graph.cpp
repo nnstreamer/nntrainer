@@ -264,6 +264,9 @@ int NetworkGraph::realizeActivationType(Layer &current) {
 
   if (current.getType() == RNNLayer::type) {
     // No need to add activation layer for RNN Layer
+    // Default activation is tanh
+    if (act == ActivationType::ACT_NONE)
+      act = ActivationType::ACT_TANH;
     current.setActivation(act);
     return status;
   }
