@@ -33,6 +33,7 @@
 #include <flatten_layer.h>
 #include <manager.h>
 #include <nntrainer_log.h>
+#include <rnn.h>
 
 namespace nntrainer {
 MMapedMemory::MMapedMemory(size_t size, bool allocate_fd_) :
@@ -369,6 +370,7 @@ Manager::trackLayerInOuts(const std::string &layer_type,
   int cnt = 0;
   bool is_act_layer = layer_type == ActivationLayer::type;
   bool is_flat_layer = layer_type == FlattenLayer::type;
+  bool is_rnn_layer = layer_type == RNNLayer::type;
 
   unsigned int inout_derivative_size = 0;
 
@@ -378,12 +380,13 @@ Manager::trackLayerInOuts(const std::string &layer_type,
   for (auto const &dim : inout_dim) {
     in_out.emplace_back(std::make_shared<Var_Grad>(
       dim, true, false, layer_name + std::to_string(cnt++)));
-    if (is_act_layer)
+    if (is_act_layer || is_rnn_layer)
       inout_derivative_size += dim.getDataLen();
   }
 
   in_outs.push_back(in_out);
   is_act_type.push_back(is_act_layer);
+  is_rnn_type.push_back(is_rnn_layer);
   is_flat_type.push_back(is_flat_layer);
 
   max_derivative_size = std::max(max_derivative_size, inout_derivative_size);
@@ -441,6 +444,7 @@ void Manager::untrackVariable(const std::string &var_name) {
     if (!in_outs[cnt].empty() && in_outs[cnt][0]->getName() == var_name) {
       in_outs.erase(in_outs.begin() + cnt);
       is_act_type.erase(is_act_type.begin() + cnt);
+      is_rnn_type.erase(is_rnn_type.begin() + cnt);
       is_flat_type.erase(is_flat_type.begin() + cnt);
       break;
     }
@@ -571,7 +575,8 @@ void Manager::initializeTensorsTrain() {
       // (deriv)
       if (enable_derivative_memory_opt && !is_last_layer) {
         // Training Mode with optimizations
-        if (is_act_type[idx] && enable_activation_memory_opt) {
+        if (enable_activation_memory_opt &&
+            (is_rnn_type[idx] || is_act_type[idx])) {
           io->initialize(
             Tensor(), shared_deriv.getSharedDataTensor(io->getDim(), offset));
           offset += io->getDim().getDataLen();
