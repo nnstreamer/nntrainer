@@ -13,6 +13,7 @@
  */
 #include <algorithm>
 #include <cstring>
+#include <limits>
 #include <string>
 
 #include <blas_interface.h>
@@ -142,29 +143,6 @@ static void im2col(const Tensor &in, const TensorDim &kdim,
 
   unsigned int out_height = (height - eff_k_height) / mstride[0] + 1;
   unsigned int out_width = (width - eff_k_width) / mstride[1] + 1;
-
-  NNTR_THROW_IF(height < eff_k_height, std::invalid_argument)
-    << "calculated height is smaller then effective kernel height."
-    << " padded height: " << height
-    << " kernel height with dilataion: " << eff_k_height
-    << " stride: " << mstride[0];
-
-  NNTR_THROW_IF(width < eff_k_width, std::invalid_argument)
-    << "calculated width is smaller then effective kernel width."
-    << " padded width: " << width
-    << " kernel width with dilataion: " << eff_k_width
-    << " stride: " << mstride[1];
-
-  NNTR_THROW_IF((height - eff_k_height) % mstride[0] != 0,
-                std::invalid_argument)
-    << "calculated height is not integer. "
-    << "padded height: " << height << " kernel height: " << k_height
-    << " stride: " << mstride[0];
-
-  NNTR_THROW_IF((width - eff_k_width) % mstride[1] != 0, std::invalid_argument)
-    << "calculated width is not integer. "
-    << "padded width: " << width << " kernel width: " << k_width
-    << " stride: " << mstride[1];
 
   if (out.uninitialized()) {
     if (channel_mode) {
@@ -299,26 +277,48 @@ int Conv2DLayer::initialize(Manager &manager) {
                                     WeightRegularizer::NONE, 1.0f, true);
   }
 
-  /// @todo: add dimension check, this is delayed because
-  /// any application might fail after this check
-  /// 1) (in_dim.height() - kernel_size[0] + 2 * padding[0]) % stride[0] == 0
-  /// 2) (in_dim.width() - kernel_size[1] + 2 * padding[1]) % stride[1] == 0
-  /// 3) calcGradient uses im2col with dilated kernel,
-  /// which should have the similar restriction
-  /// 4) we don't have same padding for now but later, same padding don't apply
+  /// we don't have same padding for now but later, same padding don't apply
   /// when kernel size is even in current implementation (we need to handle
   /// assymetric padding)
-  /// 5) the possibility to overflow should be checked.
-  /// If h_stride_end or w_stride_end in col2im or im2col is over INT_MAX, it
-  /// can overflow and it will cause unexpected behavior.
 
-  // this output_dim should be the same with dimension of hidden
+  // this output_dim must be the same with dimension of hidden
   out_dim.batch(in_dim.batch());
   out_dim.channel(filter_size);
   out_dim.height(
     (in_dim.height() - kernel_size[0] + 2 * padding[0]) / stride[0] + 1);
   out_dim.width((in_dim.width() - kernel_size[1] + 2 * padding[1]) / stride[1] +
                 1);
+
+  unsigned int eff_in_height = in_dim.height() + padding[0] * 2;
+  unsigned int eff_in_width = in_dim.width() + padding[1] * 2;
+
+  unsigned int eff_deriv_kernel_height = (out_dim.height() - 1) * stride[0] + 1;
+  unsigned int eff_deriv_kernel_width = (out_dim.width() - 1) * stride[1] + 1;
+
+  if (eff_in_height < kernel_size[0] || eff_in_width < kernel_size[1]) {
+    ml_loge("Failed to initialize: in size + padding is smaller than effective "
+            "kernel");
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+  if (eff_in_height < eff_deriv_kernel_height ||
+      eff_in_width < eff_deriv_kernel_width) {
+    ml_loge("Failed to initialize: in size + padding is smaller than effective "
+            "deriviatve kernel");
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+  unsigned int IM = std::numeric_limits<int>::max();
+
+  if (eff_in_height - padding[0] - kernel_size[0] > IM ||
+      eff_in_width - padding[1] - kernel_size[1] > IM) {
+    ml_loge("Failed to initialize: Calculated patch end is over int max");
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
+  if (eff_in_height - padding[0] - eff_deriv_kernel_height > IM ||
+      eff_in_width - padding[1] - eff_deriv_kernel_width > IM) {
+    ml_loge("Failed to initialize: Calculated patch end is over int max");
+    return ML_ERROR_INVALID_PARAMETER;
+  }
 
   return status;
 }

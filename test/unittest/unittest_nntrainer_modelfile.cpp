@@ -294,7 +294,7 @@ INSTANTIATE_TEST_CASE_P(
     mkIniTc("basic_dataset_p", {nw_adam, dataset, input, out+"input_layers=inputlayer"}, SUCCESS),
     mkIniTc("basic_dataset2_p", {nw_sgd, input, out+"input_layers=inputlayer", dataset}, SUCCESS),
     mkIniTc("basic_dataset3_p", {dataset, nw_sgd, input, out+"input_layers=inputlayer"}, SUCCESS),
-    mkIniTc("basic_conv2d_p", {nw_adam, conv2d + "input_shape = 1:1:62720"}, SUCCESS),
+    mkIniTc("basic_conv2d_p", {nw_adam, conv2d + "input_shape = 1:10:10"}, SUCCESS),
     mkIniTc("no_testSet_p", {nw_adam, dataset + "-TestData", input, out+"input_layers=inputlayer"}, SUCCESS),
     mkIniTc("no_validSet_p", {nw_adam, dataset + "-ValidData", input, out+"input_layers=inputlayer"}, SUCCESS),
     mkIniTc("no_bufferSize_p", {nw_adam, dataset + "-BufferSize", input, out+"input_layers=inputlayer"}, SUCCESS),
