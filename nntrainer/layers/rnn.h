@@ -93,13 +93,23 @@ public:
   void setProperty(const PropertyType type,
                    const std::string &value = "") override;
 
-  void setActivation(ActivationType acti_type) override;
-
   static const std::string type;
 
 private:
+  /**
+   * @brief     hidden state size
+   */
   unsigned int unit;
+
+  /**
+   * @brief     activation function for h_t : default is tanh
+   */
   ActiFunc acti_func;
+
+  /**
+   * @brief     To save hidden state variable ( batch, 1, 1, unit )
+   */
+  Tensor h_prev;
 };
 } // namespace nntrainer
 

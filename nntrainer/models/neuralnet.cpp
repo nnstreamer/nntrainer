@@ -631,13 +631,6 @@ int NeuralNetwork::train_run() {
     if (layer_->getType() == "centroid_knn") {
       layer_->net_hidden[0]->getGradientRef() = label;
     }
-
-    if (layer_->getType() == "RNN") {
-      Tensor &var_ref = layer_->net_hidden[0]->getVariableRef();
-      // for now, we are using Xavir_normal for hidden initialization
-      var_ref.setRandNormal(
-        0.0f, sqrtFloat(2.0f / (var_ref.width() + var_ref.height())));
-    }
   }
 
   for (epoch_idx = epoch_idx + 1; epoch_idx <= epochs; ++epoch_idx) {

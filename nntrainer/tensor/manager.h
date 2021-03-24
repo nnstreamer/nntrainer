@@ -194,6 +194,7 @@ public:
     in_outs.clear();
     weights.clear();
     is_act_type.clear();
+    is_rnn_type.clear();
     is_flat_type.clear();
   }
 
@@ -346,6 +347,7 @@ private:
   /**< Inputs/outputs of all the layer in the model */
   std::vector<std::vector<std::shared_ptr<Var_Grad>>> in_outs;
   std::vector<bool> is_act_type;
+  std::vector<bool> is_rnn_type;
   std::vector<bool> is_flat_type;
   Tensor
     shared_grad; /**< Shared tensor containing memory for weight gradients */
