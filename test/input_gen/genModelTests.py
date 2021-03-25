@@ -186,9 +186,10 @@ if __name__ == "__main__":
     )
 
     conv_layer_tc()(file_name="conv_basic.info")
-    conv_layer_tc(padding="same")(file_name="conv_same_padding.info") # padding: 1, 1
+    conv_layer_tc(padding="same")(file_name="conv_same_padding.info")  # padding: 1, 1
     conv_layer_tc(strides=(2, 2))(file_name="conv_multi_stride.info")
-    conv_layer_tc(padding="same", strides=(2, 2))( # padding: 1, 1
-        file_name="conv_same_padding_multi_stride.info",
-        debug="summary"
+    conv_layer_tc(padding="same", strides=(2, 2))(  # padding: 1, 1
+        file_name="conv_same_padding_multi_stride.info"
     )
+
+    conv_layer_tc(strides=(3, 3))(file_name="conv_uneven_strides.info", debug="summary")

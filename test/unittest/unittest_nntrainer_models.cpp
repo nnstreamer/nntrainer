@@ -711,6 +711,21 @@ INI conv_multi_stride(
   }
 );
 
+INI conv_uneven_strides(
+  "conv_uneven_strides",
+  {
+    nn_base + "learning_rate=0.1 | optimizer=sgd | loss=cross | batch_size=3",
+        I("input") + input_base + "input_shape=2:5:3",
+    I("conv2d_c1") + conv_base +
+            "kernel_size = 3,3 | filters=4 | stride=3,3" + "input_layers=input",
+    I("act_1") + sigmoid_base +"input_layers=conv2d_c1",
+    I("flatten", "type=flatten")+"input_layers=act_1",
+    I("outputlayer") + fc_base + "unit = 10" + "input_layers=flatten",
+    I("act_2") + softmax_base +"input_layers=outputlayer"
+  }
+);
+
+
 INI conv_same_padding_multi_stride(
   "conv_same_padding_multi_stride",
   {
@@ -768,6 +783,7 @@ INSTANTIATE_TEST_CASE_P(
     mkModelTc(conv_basic, "3:1:1:10", 10),
     mkModelTc(conv_same_padding, "3:1:1:10", 10),
     mkModelTc(conv_multi_stride, "3:1:1:10", 10),
+    mkModelTc(conv_uneven_strides, "3:1:1:10", 10),
     mkModelTc(conv_same_padding_multi_stride, "3:1:1:10", 10),
     mkModelTc(conv_no_loss_validate, "3:1:1:10", 1),
     mkModelTc(conv_none_loss_validate, "3:1:1:10", 1)
