@@ -127,23 +127,29 @@ public:
   void setProperty(const PropertyType type,
                    const std::string &value = "") override;
 
+  /**
+   * @brief Set the batch for the layer
+   * @param batch Batch value to be set
+   */
+  void setBatch(unsigned int batch) override;
+
   static const std::string type;
 
 private:
   std::array<unsigned int, POOLING2D_DIM> pool_size;
   std::array<unsigned int, POOLING2D_DIM> stride;
   std::array<unsigned int, POOLING2D_DIM> padding;
-  std::vector<unsigned int> max_idx;
-  std::vector<std::vector<unsigned int>> max_idx_global;
+  std::vector<int> max_idx;
+  std::vector<std::vector<int>> max_idx_global;
   PoolingType pooling_type;
 
   /**
    * @brief     calculation convolution
-   * @param[in] batch batch index
-   * @param[in] in input tensor
+   * @param[in] in input tensor (batch sliced)
+   * @param[in] training check if training, if training this will memorize index
    * @retval Tensor outoput tensor
    */
-  Tensor pooling2d(unsigned int batch, Tensor &in, Tensor &output);
+  Tensor pooling2d(Tensor &in, bool training, Tensor &output);
 
   /**
    * @brief     set Pooling Type
