@@ -139,7 +139,9 @@ private:
   std::array<unsigned int, POOLING2D_DIM> pool_size;
   std::array<unsigned int, POOLING2D_DIM> stride;
   std::array<unsigned int, POOLING2D_DIM> padding;
-  std::vector<int> max_idx;
+  std::vector<int>
+    max_idx; /**< in case of max pool, idx that points to the first max item
+                  in case of avearge pol, effective average counter */
   std::vector<std::vector<int>> max_idx_global;
   PoolingType pooling_type;
 

@@ -204,9 +204,10 @@ static IniSection conv2d14("conv2d14", "Type = conv2d |"
                                        "stride = 1,1 |"
                                        "padding = 0,0");
 
-static IniSection pooling3("pooling3", "Type = pooling2d |"
-                                       "input_layers = conv2d14 |"
-                                       "pooling=global_average");
+static IniSection pooling3("pooling3",
+                           "Type = pooling2d |"
+                           "input_layers = conv2d14 |"
+                           "pooling=global_average | flatten = true");
 
 static IniSection fclayer0("fclayer0", "Type = fully_connected |"
                                        "Unit = 256 |"
