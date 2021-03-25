@@ -298,30 +298,16 @@ int Conv2DLayer::initialize(Manager &manager) {
   unsigned int eff_in_height = in_dim.height() + padding[0] * 2;
   unsigned int eff_in_width = in_dim.width() + padding[1] * 2;
 
-  unsigned int eff_deriv_kernel_height = (out_dim.height() - 1) * stride[0] + 1;
-  unsigned int eff_deriv_kernel_width = (out_dim.width() - 1) * stride[1] + 1;
-
   if (eff_in_height < kernel_size[0] || eff_in_width < kernel_size[1]) {
     ml_loge("Failed to initialize: in size + padding is smaller than effective "
             "kernel");
     return ML_ERROR_INVALID_PARAMETER;
   }
-  if (eff_in_height < eff_deriv_kernel_height ||
-      eff_in_width < eff_deriv_kernel_width) {
-    ml_loge("Failed to initialize: in size + padding is smaller than effective "
-            "deriviatve kernel");
-    return ML_ERROR_INVALID_PARAMETER;
-  }
+
   unsigned int IM = std::numeric_limits<int>::max();
 
   if (eff_in_height - padding[0] - kernel_size[0] > IM ||
       eff_in_width - padding[1] - kernel_size[1] > IM) {
-    ml_loge("Failed to initialize: Calculated patch end is over int max");
-    return ML_ERROR_INVALID_PARAMETER;
-  }
-
-  if (eff_in_height - padding[0] - eff_deriv_kernel_height > IM ||
-      eff_in_width - padding[1] - eff_deriv_kernel_width > IM) {
     ml_loge("Failed to initialize: Calculated patch end is over int max");
     return ML_ERROR_INVALID_PARAMETER;
   }
@@ -453,7 +439,7 @@ void Conv2DLayer::calcGradient() {
                              derivative.width() * derivative.height()};
 
   /// input -(im2col)-> column_matrix -> filter x (column_matrix) = output
-  /// so delK = column_matrix ^ T X dy;
+  /// so delK = dy x column_matrix ^ T;
   for (unsigned int b = 0; b < input_.batch(); ++b) {
     Tensor deriv_sub = derivative.getBatchSlice(b, 1);
     deriv_sub.reshape(out_dim_squeezed);
