@@ -86,6 +86,7 @@ int RNNLayer::initialize(Manager &manager) {
 
 void RNNLayer::setProperty(const PropertyType type, const std::string &value) {
   int status = ML_ERROR_NONE;
+  // TODO : Add return_state property & api to get the hidden input
   switch (type) {
   case PropertyType::unit: {
     if (!value.empty()) {
@@ -123,6 +124,9 @@ void RNNLayer::forwarding(bool training) {
   Tensor hs_prev;
   Tensor hs;
 
+  if (training)
+    h_prev.setZero();
+
   // TODO : check merge b and t index
   for (unsigned int b = 0; b < input_dim[0].batch(); ++b) {
     Tensor islice = input_.getBatchSlice(b, 1);
@@ -151,7 +155,8 @@ void RNNLayer::forwarding(bool training) {
       // TODO : In-place calculation for activation
       acti_func.run_fn(hs, hs);
     }
-    h_prev.getBatchSlice(b, 1).copy(hs);
+    if (!training)
+      h_prev.getBatchSlice(b, 1).copy(hs);
   }
 }
 
@@ -163,11 +168,74 @@ void RNNLayer::copy(std::shared_ptr<Layer> l) {
 }
 
 void RNNLayer::calcDerivative() {
-  //  NYI
+  Tensor &derivative_ = net_hidden[0]->getGradientRef();
+  Tensor &weight =
+    weightAt(static_cast<int>(RNNParams::weight_xh)).getVariableRef();
+  Tensor &ret_ = net_input[0]->getGradientRef();
+
+  derivative_.dot(weight, ret_, false, true);
 }
 
 void RNNLayer::calcGradient() {
-  // NYI
+  Tensor &djdw_x =
+    weightAt(static_cast<int>(RNNParams::weight_xh)).getGradientRef();
+  Tensor &djdw_h =
+    weightAt(static_cast<int>(RNNParams::weight_hh)).getGradientRef();
+  Tensor &djdb_h =
+    weightAt(static_cast<int>(RNNParams::bias_h)).getGradientRef();
+  Tensor &weight_hh =
+    weightAt(static_cast<int>(RNNParams::weight_hh)).getVariableRef();
+
+  Tensor &derivative_ = net_hidden[0]->getGradientRef();
+  Tensor &hidden_ = net_hidden[0]->getVariableRef();
+  Tensor &input_ = net_input[0]->getVariableRef();
+  Tensor dh_nx = Tensor(TensorDim(1, 1, 1, derivative_.width()));
+
+  for (unsigned int b = 0; b < input_dim[0].batch(); ++b) {
+    Tensor deriv_t = derivative_.getBatchSlice(b, 1);
+    Tensor xs_t = input_.getBatchSlice(b, 1);
+    Tensor hs_t = hidden_.getBatchSlice(b, 1);
+    dh_nx.setZero();
+
+    Tensor dh;
+    Tensor xs;
+    Tensor hs_prev;
+    Tensor hs;
+
+    for (unsigned int t = deriv_t.height(); t-- > 0;) {
+      dh = deriv_t.getSharedDataTensor(TensorDim(1, 1, 1, deriv_t.width()),
+                                       t * deriv_t.width());
+      xs = xs_t.getSharedDataTensor(TensorDim(1, 1, 1, xs_t.width()),
+                                    t * xs_t.width());
+      hs = hs_t.getSharedDataTensor(TensorDim(1, 1, 1, hs_t.width()),
+                                    t * hs_t.width());
+      if (t == 0) {
+        hs_prev = Tensor(TensorDim(1, 1, 1, hs_t.width()));
+        hs_prev.setZero();
+      } else {
+        hs_prev = hs_t.getSharedDataTensor(TensorDim(1, 1, 1, hs_t.width()),
+                                           (t - 1) * hs_t.width());
+      }
+
+      if (t < deriv_t.height() - 1) {
+        dh.add_i(dh_nx);
+      }
+
+      acti_func.run_prime_fn(hs, dh, dh);
+      dh.multiply_i(hs);
+
+      float alpha = 1.0;
+
+      if (b != 0) {
+        alpha = 0.0;
+      }
+
+      djdb_h.add_i(dh, alpha);
+      djdw_x.add_i(xs.dot(dh, true, false), alpha);
+      djdw_h.add_i(hs_prev.dot(dh, true, false), alpha);
+      dh.dot(weight_hh, dh_nx, false, true, 1.0);
+    }
+  }
 }
 
 } // namespace nntrainer
