@@ -114,7 +114,7 @@ static void col2im(const Tensor &col_matrix, const TensorDim &kdim,
  * @param[in] padding padding information
  * @param[in] mstride stride value : x, y direction
  * @param[in] dilation kernel dilation factor : x, y each
- * @param[in] channel_mode loop with channel first
+ * @param[in] channel_mode loop with channel first (not used)
  * @param[out] out out tensor to put, if uninitialized, allocate a new tensor
  * and set padding
  * @note if out is initialized tensor, setting padding is skipped.
@@ -145,11 +145,14 @@ static void im2col(const Tensor &in, const TensorDim &kdim,
   unsigned int out_width = (width - eff_k_width) / mstride[1] + 1;
 
   if (out.uninitialized()) {
-    if (channel_mode) {
-      out = Tensor(out_height * out_width, in.channel() * k_height * k_width);
-    } else {
-      out = Tensor(k_height * k_width, in.channel() * out_height * out_width);
-    }
+    // if (channel_mode) {
+    out = Tensor(out_height * out_width, in.channel() * k_height * k_width);
+    // } else {
+    //   out_height -= 2;
+    //   out =
+    //     Tensor(k_height * k_width, in.channel() * (out_height) *
+    //     (out_width));
+    // }
 
     if (pad_value == 0) {
       out.setZero();
@@ -161,80 +164,83 @@ static void im2col(const Tensor &in, const TensorDim &kdim,
 
   float *out_data = out.getData();
 
-  if (channel_mode) {
-    int h_stride_end = height - eff_k_height - ph;
-    int w_stride_end = width - eff_k_width - pw;
+  // if (channel_mode) {
+  int h_stride_end = height - eff_k_height - ph;
+  int w_stride_end = width - eff_k_width - pw;
 
-    /// get a patch, size of kernel
-    /// hs is height_strided, ws is width_strided
-    unsigned int owidth = out.width();
-    unsigned int base_im_w = 0;
-    for (int hs = -ph; hs <= h_stride_end; hs += mstride[0]) {
-      unsigned int base_im_h = 0;
-      int patch_height_end = eff_k_height + hs;
-      /// map the patch to a single line looping through channel
-      for (unsigned int c = 0; c < channel; ++c) {
-        for (int h = hs; h < patch_height_end; h += dilation[0]) {
-          if (h < 0 || in_height <= h) {
-            base_im_h += k_width;
-            continue;
-          }
-
-          unsigned int im_w = base_im_w;
-          for (int ws = -pw; ws <= w_stride_end; ws += mstride[1]) {
-            unsigned int im_h = base_im_h;
-            int patch_width_end = eff_k_width + ws;
-
-            for (int w = ws; w < patch_width_end; w += dilation[1]) {
-              if (w < 0 || in_width <= w) {
-                im_h++;
-                continue;
-              }
-              out_data[im_w * owidth + im_h] = in.getValue(0, c, h, w);
-              im_h++;
-            }
-            im_w++;
-          }
-          base_im_h += k_width;
-        }
-      }
-      base_im_w += out_width;
-    }
-  } else {
-    unsigned int im_w = 0;
-
-    if (eff_k_height > height || eff_k_width > width)
-      throw std::runtime_error("Kernel shape bigger than input shape");
-
+  /// get a patch, size of kernel
+  /// hs is height_strided, ws is width_strided
+  unsigned int owidth = out.width();
+  unsigned int base_im_w = 0;
+  for (int hs = -ph; hs <= h_stride_end; hs += mstride[0]) {
+    unsigned int base_im_h = 0;
+    int patch_height_end = eff_k_height + hs;
+    /// map the patch to a single line looping through channel
     for (unsigned int c = 0; c < channel; ++c) {
-      for (unsigned int hs = 0; hs <= height - eff_k_height; hs += mstride[0]) {
-        for (unsigned int ws = 0; ws <= width - eff_k_width; ws += mstride[1]) {
-          unsigned int im_h = 0;
-          unsigned int patch_height_end = eff_k_height + hs;
-          unsigned int patch_width_end = eff_k_width + ws;
+      for (int h = hs; h < patch_height_end; h += dilation[0]) {
+        if (h < 0 || in_height <= h) {
+          base_im_h += k_width;
+          continue;
+        }
 
-          for (unsigned int h = hs; h < patch_height_end; h += dilation[0]) {
-            if (h < ph || in_height + ph <= h) {
-              im_h += k_width;
+        unsigned int im_w = base_im_w;
+        for (int ws = -pw; ws <= w_stride_end; ws += mstride[1]) {
+          unsigned int im_h = base_im_h;
+          int patch_width_end = eff_k_width + ws;
+
+          for (int w = ws; w < patch_width_end; w += dilation[1]) {
+            if (w < 0 || in_width <= w) {
+              im_h++;
               continue;
             }
-
-            for (unsigned int w = ws; w < patch_width_end; w += dilation[1]) {
-              if (w < pw || in_width + pw <= w) {
-                im_h++;
-                continue;
-              }
-
-              float val = in.getValue(0, c, h - ph, w - pw);
-              out.setValue(0, 0, im_h, im_w, val);
-              im_h++;
-            }
+            out_data[im_w * owidth + im_h] = in.getValue(0, c, h, w);
+            im_h++;
           }
           im_w++;
         }
+        base_im_h += k_width;
       }
     }
+    base_im_w += out_width;
   }
+  // } else {
+  //   unsigned int im_w = 0;
+
+  //   if (eff_k_height > height || eff_k_width > width)
+  //     throw std::runtime_error("Kernel shape bigger than input shape");
+
+  //   for (unsigned int c = 0; c < channel; ++c) {
+  //     for (unsigned int hs = 0; hs <= height - eff_k_height; hs +=
+  //     mstride[0]) {
+  //       for (unsigned int ws = 0; ws <= width - eff_k_width; ws +=
+  //       mstride[1]) {
+  //         unsigned int im_h = 0;
+  //         unsigned int patch_height_end = eff_k_height + hs;
+  //         unsigned int patch_width_end = eff_k_width + ws;
+
+  //         for (unsigned int h = hs; h < patch_height_end; h += dilation[0]) {
+  //           if (h < ph || in_height + ph <= h) {
+  //             im_h += k_width;
+  //             continue;
+  //           }
+
+  //           for (unsigned int w = ws; w < patch_width_end; w += dilation[1])
+  //           {
+  //             if (w < pw || in_width + pw <= w) {
+  //               im_h++;
+  //               continue;
+  //             }
+
+  //             float val = in.getValue(0, c, h - ph, w - pw);
+  //             out.setValue(0, 0, im_h, im_w, val);
+  //             im_h++;
+  //           }
+  //         }
+  //         im_w++;
+  //       }
+  //     }
+  //   }
+  // }
 }
 
 } // namespace
@@ -437,60 +443,28 @@ void Conv2DLayer::calcGradient() {
   Tensor &delBias = weightAt(ConvParams::bias).getGradientRef();
   delK.setZero();
 
-  /** Calculate DelK
-   *
-   * This is the 2D Matrix Shape [ height ] x [ width ]
-   *   . Height : filter_size
-   *   . Width  : derivative.height * derivative.width
-   *
-   *                          derivative
-   *                        +------|------+
-   *                        |------|------|
-   *  [filter_size (height) |------|------|
-   * (=derivative->channel) |------|------|
-   *                        +------|------+
-   *                     [derivative->height
-   *                       * derivative->width (width)]
-   *
-   *
-   * After im2Col with channel_mode false ( in : input )
-   *
-   * This is the 2D Matrix Shape [ height ] x [ width ]
-   *   . Height : derivative.height * derivative.width
-   *   . Width  : input_dim.channel * Kernel_size[0] * Kernel_size[1]
-   *
-   *                      +-|-|-|-|      |-|-|-|-+
-   *                      | | | | |      | | | | |
-   *  [derivative->width  |_|_|_|_|      |_|_|_|_|
-   * * derivative->height | | | | | .... | | | | |
-   *   (height)]          +_|_|_|_|      |_|_|_|_+
-   *                     [ input_dim.channel(filter_channel)  * kernel_size[0]
-   *                      * kernel_size[1] (width) ]
-   *
-   * Output Dimension
-   *   -> [ derivative->channel = filter_size (height) ]
-   *       x [input_dim.channel * kernel_size[0] * kernel_size[1] (width) ]
-   */
-  Tensor f = derivative;
-  f.reshape({derivative.batch(), 1, derivative.channel(),
-             derivative.height() * derivative.width()});
+  TensorDim filter_dim = delK.getDim();
+  TensorDim filter_dim_squeezed{filter_dim.batch(), filter_dim.getFeatureLen()};
 
-  Tensor o = delK;
-  o.reshape({delK.batch(), delK.channel() * delK.height() * delK.width()});
+  delK.reshape(filter_dim_squeezed);
 
-  /// @todo: allocate im2col_result beforehand to save time
   Tensor im2col_result;
+  TensorDim out_dim_squeezed{filter_size,
+                             derivative.width() * derivative.height()};
+
+  /// input -(im2col)-> column_matrix -> filter x (column_matrix) = output
+  /// so delK = column_matrix ^ T X dy;
   for (unsigned int b = 0; b < input_.batch(); ++b) {
+    Tensor deriv_sub = derivative.getBatchSlice(b, 1);
+    deriv_sub.reshape(out_dim_squeezed);
+
     Tensor in_sub = input_.getBatchSlice(b, 1);
-    Tensor filter_sub = f.getBatchSlice(b, 1);
 
-    im2col(in_sub, derivative.getDim(), padding, {1, 1}, stride, false,
-           im2col_result);
-
-    /// start from zero and accumulates to o
-    filter_sub.dot(im2col_result, o, false, false, b > 0 ? 1.0f : 0.0f);
+    im2col(in_sub, filter_dim, padding, stride, {1, 1}, true, im2col_result);
+    deriv_sub.dot(im2col_result, delK, false, false, b == 0 ? 0 : 1);
   }
 
+  delK.reshape(filter_dim);
   delBias = derivative.sum({0, 2, 3});
 }
 
