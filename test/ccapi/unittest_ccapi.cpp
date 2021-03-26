@@ -24,6 +24,8 @@ static const std::string getTestResPath(const std::string &file) {
   return getResPath(file, {"test"});
 }
 
+// Add unittest for train fail without optimizer, but inference pass
+
 /**
  * @brief Neural Network Model Construct Test
  */
@@ -150,43 +152,42 @@ TEST(ccapi_dataset, construct_02_p) {
   EXPECT_NO_THROW(ml::train::createDataset(ml::train::DatasetType::FILE));
 }
 
+static IniSection model_base("Model", "Type = NeuralNetwork"
+                                      " | Epochs = 1"
+                                      " | Loss = cross"
+                                      " | Save_Path = 'model.bin'"
+                                      " | batch_size = 32");
+
+static IniSection optimizer("Optimizer", "Type = adam"
+                                         " | Learning_rate = 0.0001"
+                                         " | Decay_rate = 0.96"
+                                         " | Decay_steps = 1000"
+                                         " | beta1 = 0.9"
+                                         " | beta2 = 0.9999"
+                                         " | epsilon = 1e-7");
+
+static IniSection dataset("Dataset", "BufferSize=100"
+                                     " | TrainData = trainingSet.dat"
+                                     " | ValidData = valSet.dat"
+                                     " | LabelData = label.dat");
+
+static IniSection inputlayer("inputlayer", "Type = input"
+                                           "| Input_Shape = 1:1:62720"
+                                           "| bias_initializer = zeros"
+                                           "| Normalization = true"
+                                           "| Activation = sigmoid");
+
+static IniSection outputlayer("outputlayer", "Type = fully_connected"
+                                             "| input_layers = inputlayer"
+                                             "| Unit = 10"
+                                             "| bias_initializer = zeros"
+                                             "| Activation = softmax");
+
 /**
  * @brief Neural Network Model Training
  */
 TEST(nntrainer_ccapi, train_with_config_01_p) {
   std::unique_ptr<ml::train::Model> model;
-
-  static IniSection model_base("Model", "Type = NeuralNetwork"
-                                        " | Epochs = 1"
-                                        " | Loss = cross"
-                                        " | Save_Path = 'model.bin'"
-                                        " | batch_size = 32");
-
-  static IniSection optimizer("Optimizer", "Type = adam"
-                                           " | Learning_rate = 0.0001"
-                                           " | Decay_rate = 0.96"
-                                           " | Decay_steps = 1000"
-                                           " | beta1 = 0.9"
-                                           " | beta2 = 0.9999"
-                                           " | epsilon = 1e-7");
-
-  static IniSection dataset("Dataset", "BufferSize=100"
-                                       " | TrainData = trainingSet.dat"
-                                       " | ValidData = valSet.dat"
-                                       " | LabelData = label.dat");
-
-  static IniSection inputlayer("inputlayer", "Type = input"
-                                             "| Input_Shape = 1:1:62720"
-                                             "| bias_initializer = zeros"
-                                             "| Normalization = true"
-                                             "| Activation = sigmoid");
-
-  static IniSection outputlayer("outputlayer", "Type = fully_connected"
-                                               "| input_layers = inputlayer"
-                                               "| Unit = 10"
-                                               "| bias_initializer = zeros"
-                                               "| Activation = softmax");
-
   ScopedIni s("test_train_01_p",
               {model_base + "batch_size = 16", optimizer,
                dataset + "-BufferSize", inputlayer, outputlayer});
@@ -373,6 +374,24 @@ TEST(nntrainer_ccapi, train_batch_size_update_after) {
   EXPECT_FLOAT_EQ(model->getTrainingLoss(), 1.9613363);
   EXPECT_FLOAT_EQ(model->getValidationLoss(), 2.1835098);
   EXPECT_FLOAT_EQ(model->getLoss(), 2.1977143);
+}
+
+/**
+ * @brief Neural Network Model Training
+ */
+TEST(nntrainer_ccapi, train_with_config_02_n) {
+  std::unique_ptr<ml::train::Model> model;
+  ScopedIni s("test_train_01_p",
+              {model_base + "batch_size = 16", dataset + "-BufferSize",
+               inputlayer, outputlayer});
+
+  EXPECT_NO_THROW(model =
+                    ml::train::createModel(ml::train::ModelType::NEURAL_NET));
+
+  EXPECT_EQ(model->loadFromConfig(s.getIniName()), ML_ERROR_NONE);
+  EXPECT_EQ(model->compile(), ML_ERROR_NONE);
+  EXPECT_EQ(model->initialize(), ML_ERROR_NONE);
+  EXPECT_EQ(model->train(), ML_ERROR_INVALID_PARAMETER);
 }
 
 /**

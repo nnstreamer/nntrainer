@@ -166,8 +166,6 @@ int NeuralNetwork::initialize() {
 
   ml_logd("initializing neural network, layer size: %d", n_layers);
 
-  opt->initialize();
-
   setBatchSize();
 
   for (unsigned int idx = 0; idx < n_layers; ++idx) {
@@ -212,7 +210,6 @@ int NeuralNetwork::initialize() {
     NN_RETURN_STATUS();
 
     REGISTER_EVENT(l.getName(), lnode.event_key)
-    opt->addOptimizerVariable(l.getWeightsRef());
 
     auto &in_out = manager->trackLayerOutputs(
       l.getType(), l.getName(), l.getOutputDimension(), l.getInputDimension());
@@ -240,6 +237,15 @@ int NeuralNetwork::initialize() {
                                                l.getInputDimension(),
                                                l.getOutputDimension());
       l.setInputBuffers(in_out);
+    }
+  }
+
+  // initialize optimizer and related variables
+  if (opt) {
+    opt->initialize();
+    for (unsigned int idx = 0; idx < n_layers; ++idx) {
+      auto &lnode = model_graph.getSortedLayerNode(idx);
+      opt->addOptimizerVariable(lnode.layer->getWeightsRef());
     }
   }
 
@@ -572,6 +578,11 @@ int NeuralNetwork::train(std::vector<std::string> values) {
 
   if (data_buffer == nullptr) {
     ml_loge("Cannot initialize the model without the data buffer.");
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
+  if (!opt) {
+    ml_loge("Cannot train network without optimizer.");
     return ML_ERROR_INVALID_PARAMETER;
   }
 
