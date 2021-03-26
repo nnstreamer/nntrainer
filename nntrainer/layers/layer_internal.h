@@ -179,6 +179,81 @@ public:
   virtual int setProperty(std::vector<std::string> values);
 
   /**
+   * @brief     Property Enumeration
+   *            0. input shape : string
+   *            1. bias zero : bool
+   *            2. normalization : bool
+   *            3. standardization : bool
+   *            4. activation : string (type)
+   *            5. epsilon : float
+   *            6. weight_regularizer : string (type)
+   *            7. weight_regularizer_constant : float
+   *            8. unit : int
+   *            9. weight_initializer : string (type)
+   *            10. filter_size : int
+   *            11. kernel_size : ( n , m )
+   *            12. stride : ( n, m )
+   *            13. padding : ( n, m )
+   *            14. pool_size : ( n,m )
+   *            15. pooling : max, average, global_max, global_average
+   *            16. flatten : bool
+   *            17. name : string (type)
+   *            18. num_inputs : unsigned int (minimum 1)
+   *            19. num_outputs : unsigned int (minimum 1)
+   *            20. momentum : float,
+   *            21. moving_mean_initializer : string (type),
+   *            22. moving_variance_initializer : string (type),
+   *            23. gamma_initializer : string (type),
+   *            24. beta_initializer" : string (type)
+   *            25. modelfile : model file for loading config for backbone layer
+   *            26. input_layers : string (type)
+   *            27. output_layers : string (type)
+   *            28. trainable :
+   *            29. flip_direction
+   *            30. random_translate
+   *            31. in_dim : int ( input dimension for embedding layer )
+   *            32. out_dim : int ( output dimesion for embedding layer )
+   *            33. in_length : int ( input length for embedding layer )
+   */
+  enum class PropertyType {
+    input_shape = 0,
+    normalization = 1,
+    standardization = 2,
+    activation = 3,
+    epsilon = 4,
+    weight_regularizer = 5,
+    weight_regularizer_constant = 6,
+    unit = 7,
+    weight_initializer = 8,
+    bias_initializer = 9,
+    filters = 10,
+    kernel_size = 11,
+    stride = 12,
+    padding = 13,
+    pool_size = 14,
+    pooling = 15,
+    flatten = 16,
+    name = 17,
+    num_inputs = 18,
+    num_outputs = 19,
+    momentum = 20,
+    moving_mean_initializer = 21,
+    moving_variance_initializer = 22,
+    gamma_initializer = 23,
+    beta_initializer = 24,
+    modelfile = 25, /** model file for loading config for backbone layer */
+    input_layers = 26,
+    output_layers = 27,
+    trainable = 28,
+    flip_direction = 29,
+    random_translate = 30,
+    in_dim = 31,
+    out_dim = 32,
+    in_length = 33,
+    unknown
+  };
+
+  /**
    * @brief setProperty by PropertyType
    * @note By passing empty string, this can validate if @a type is valid
    * @param[in] type property type to be passed
@@ -250,7 +325,7 @@ public:
    * @brief     get if the output of this layer must be flatten
    * @retval    flatten value
    */
-  bool getFlatten() { return flatten; }
+  virtual bool getFlatten() { return flatten; }
 
   /**
    * @brief     Set name of the layer
@@ -261,6 +336,17 @@ public:
    * @brief     Get name of the layer
    */
   virtual std::string getName() noexcept { return name; }
+
+  /**
+   * @brief Preset modes for printing summary for the layer
+   */
+  enum class PrintPreset {
+    PRINT_NONE = 0,     /**< Print nothing */
+    PRINT_SUMMARY,      /**< Print preset including summary information */
+    PRINT_SUMMARY_META, /**< Print summary preset that includes meta information
+                         */
+    PRINT_ALL           /**< Print everything possible */
+  };
 
   /**
    * @brief print using PrintPreset
@@ -525,6 +611,23 @@ std::ostream &operator<<(std::ostream &out, T &l) {
   l.printPreset(out, Layer::PrintPreset::PRINT_SUMMARY);
   return out;
 }
+
+using CreateLayerFunc = ml::train::Layer *(*)();
+using DestroyLayerFunc = void (*)(ml::train::Layer *);
+
+/**
+ * @brief  Layer Pluggable struct that enables pluggable layer
+ *
+ */
+typedef struct {
+  CreateLayerFunc createfunc;   /**< create layer function */
+  DestroyLayerFunc destroyfunc; /**< destory function */
+} LayerPluggable;
+
+/**
+ * @brief pluggable layer must have this structure defined
+ */
+extern "C" LayerPluggable ml_train_layer_pluggable;
 
 } // namespace nntrainer
 

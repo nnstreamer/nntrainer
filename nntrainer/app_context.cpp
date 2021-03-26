@@ -311,8 +311,8 @@ int AppContext::registerLayer(const std::string &library_path,
   NNTR_THROW_IF(handle == nullptr, std::invalid_argument)
     << func_tag << "open plugin failed, reason: " << error_msg;
 
-  ml::train::LayerPluggable *pluggable =
-    reinterpret_cast<ml::train::LayerPluggable *>(
+  nntrainer::LayerPluggable *pluggable =
+    reinterpret_cast<nntrainer::LayerPluggable *>(
       dlsym(handle, "ml_train_layer_pluggable"));
 
   error_msg = dlerror();

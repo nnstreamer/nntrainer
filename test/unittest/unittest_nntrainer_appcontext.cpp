@@ -135,9 +135,6 @@ public:
 
   int setProperty(std::vector<std::string> values) override { return 1; }
 
-  void setProperty(const PropertyType type,
-                   const std::string &value = "") override {}
-
   int checkValidation() override { return 1; }
 
   float getLoss() override { return 0.0f; }
@@ -149,8 +146,6 @@ public:
   std::string getName() noexcept override { return ""; }
 
   const std::string getType() const override { return CustomLayer::type; }
-
-  void printPreset(std::ostream &out, PrintPreset preset) override {}
 };
 
 const std::string CustomLayer::type = "identity_layer";

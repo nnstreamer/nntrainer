@@ -24,7 +24,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include <layer.h>
+#include <layer_internal.h>
 #include <optimizer.h>
 
 #include <nntrainer_error.h>
