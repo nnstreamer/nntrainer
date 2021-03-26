@@ -49,8 +49,8 @@ Version:	0.1.1
 Release:	0
 Packager:	Jijoong Moon <jijoong.moon@sansumg.com>
 License:	Apache-2.0
-Source0:	nntrainer-%{version}.tar.gz
-Source1001:	nntrainer.manifest
+Source0:	%{name}-%{version}.tar.gz
+Source1001:	%{name}.manifest
 %if %{with tizen}
 Source1002:     capi-machine-learning-training.manifest
 %endif
@@ -118,7 +118,7 @@ BuildRequires:	python
 %endif #nnstreamer_filter
 %endif  # tizen
 
-Requires:	nntrainer-core = %{version}-%{release}
+Requires:	%{name}-core = %{version}-%{release}
 
 %if  0%{?nnstreamer_filter}
 Requires:	nnstreamer-nntrainer = %{version}-%{release}
@@ -140,7 +140,7 @@ NNtrainer is Software Framework for Training Neural Network Models on Devices.
 
 %package devel
 Summary:	Development package for custom nntrainer developers
-Requires:	nntrainer = %{version}-%{release}
+Requires:	%{name} = %{version}-%{release}
 Requires:	iniparser-devel
 Requires:	openblas-devel
 Requires:	%{capi_machine_learning_common}-devel
@@ -157,7 +157,7 @@ Static library package of nntrainer-devel
 
 %package applications
 Summary:	NNTrainer Examples
-Requires:	nntrainer = %{version}-%{release}
+Requires:	%{name} = %{version}-%{release}
 Requires:	iniparser
 Requires:	%{capi_machine_learning_inference}
 Requires:	nnstreamer-tensorflow-lite
