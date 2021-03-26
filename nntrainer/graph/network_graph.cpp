@@ -216,13 +216,13 @@ int NetworkGraph::realizeMultiInputType(Layer &current) {
   for (unsigned int i = 0; i < current.input_layers.size(); ++i)
     layer->input_layers.push_back(current.input_layers[i]);
 
-  layer->setNumOutputs(1);
-  layer->output_layers.clear();
-  layer->output_layers.push_back(current.getName());
+  layer->setNumOutputs(current.getNumOutputs());
 
-  current.setNumInputs(1);
+  current.setNumInputs(layer->getNumOutputs());
   current.input_layers.clear();
   current.input_layers.push_back(layer->getName());
+  /** output layers for layer obj will be set in setOutputLayers() */
+
   addLayerNode(layer);
 
   return status;
@@ -245,21 +245,11 @@ int NetworkGraph::realizeFlattenType(Layer &current) {
 
   ensureName(layer, current.getName());
 
-  layer->setNumInputs(1);
+  layer->setNumInputs(current.getNumInputs());
   layer->input_layers.clear();
   layer->input_layers.push_back(current.getName());
-
-  if (current.getNumOutputs() != 1)
-    return ML_ERROR_INVALID_PARAMETER;
-
   layer->setNumOutputs(current.getNumOutputs());
-  layer->output_layers.clear();
-  for (unsigned int i = 0; i < current.getNumOutputs(); ++i)
-    layer->output_layers.push_back(current.output_layers[i]);
-
-  current.setNumOutputs(1);
-  current.output_layers.clear();
-  current.output_layers.push_back(layer->getName());
+  /** output layers for layer obj will be set in setOutputLayers() */
 
   updateConnectionName(current.getName(), layer->getName());
   addLayerNode(layer);
@@ -307,23 +297,38 @@ int NetworkGraph::realizeActivationType(Layer &current) {
   ensureName(layer, current.getName());
 
   layer->setActivation(act);
-  layer->setNumInputs(1);
+  layer->setNumInputs(current.getNumInputs());
   layer->input_layers.clear();
   layer->input_layers.push_back(current.getName());
-
-  if (current.getNumOutputs() != 1)
-    return ML_ERROR_INVALID_PARAMETER;
-
   layer->setNumOutputs(current.getNumOutputs());
-  layer->output_layers.clear();
-  for (unsigned int i = 0; i < current.getNumOutputs(); ++i)
-    layer->output_layers.push_back(current.output_layers[i]);
-
-  current.setNumOutputs(1);
-  current.output_layers.clear();
-  current.output_layers.push_back(layer->getName());
+  /** output layers for layer obj will be set in setOutputLayers() */
 
   updateConnectionName(current.getName(), layer->getName());
+  addLayerNode(layer);
+
+  return status;
+}
+
+int NetworkGraph::realizeMultiOutputType(Layer &current) {
+  int status = ML_ERROR_NONE;
+  if (current.getNumOutputs() == 1)
+    return ML_ERROR_NONE;
+
+  std::shared_ptr<Layer> layer = nntrainer::createLayer(OutputLayer::type);
+  ensureName(layer, current.getName());
+
+  layer->setNumInputs(current.getNumInputs());
+  layer->input_layers.clear();
+  layer->input_layers.push_back(current.getName());
+  layer->setNumOutputs(current.output_layers.size());
+  /** output layers for layer obj will be set in setOutputLayers() */
+
+  for (unsigned int i = 0; i < current.output_layers.size(); ++i) {
+    updateConnectionName(current.getName(), layer->getName());
+  }
+
+  current.setNumOutputs(layer->getNumInputs());
+
   addLayerNode(layer);
 
   return status;
@@ -385,6 +390,8 @@ int NetworkGraph::addLossLayer(const LossType loss_type) {
   layer->input_layers.clear();
   layer->input_layers.push_back(input_str);
 
+  /** Set output layers here as setOutputLayers will not be called after adding
+   * loss. */
   if (layer->output_layers.size() == 0) {
     layer->setNumOutputs(1);
     layer->output_layers.push_back("__exit__");
@@ -406,15 +413,7 @@ int NetworkGraph::addLossLayer(const LossType loss_type) {
 
 void NetworkGraph::setOutputLayers() {
 
-  auto &last_layer = adj.back().front().layer;
-  if (last_layer->getNumOutputs() > 0 && last_layer->output_layers.size() > 0) {
-    throw std::runtime_error("last layer already has a output layer");
-  }
-
-  last_layer->setNumOutputs(1);
-  last_layer->output_layers.clear();
-  last_layer->output_layers.push_back("__exit__");
-
+  size_t last_layer_count = 0;
   for (unsigned int idx = 0; idx < adj.size(); ++idx) {
     auto &layer_idx = adj[idx].front().layer;
     for (unsigned int i = 0; i < adj.size(); ++i) {
@@ -433,43 +432,33 @@ void NetworkGraph::setOutputLayers() {
     }
 
     if (layer_idx->getNumOutputs() != layer_idx->output_layers.size()) {
-      layer_idx->setNumOutputs(layer_idx->output_layers.size());
+      if (layer_idx->output_layers.size() == 0) {
+        /** No output layer inplies its the last layer */
+        layer_idx->setNumOutputs(1);
+        layer_idx->output_layers.clear();
+        layer_idx->output_layers.push_back("__exit__");
+        last_layer_count += 1;
+      } else if (layer_idx->getNumOutputs() < layer_idx->output_layers.size()) {
+        /** this if the multi-output layer */
+        if (layer_idx->getType() != OutputLayer::type)
+          throw std::logic_error("Error: Graph has more edges than expected.");
+        layer_idx->setNumOutputs(layer_idx->output_layers.size());
+      } else {
+        /** error for any other layer */
+        throw std::logic_error("Graph node has fewer edges than expected.");
+      }
     }
+  }
+
+  if (last_layer_count != 1) {
+    throw std::invalid_argument(
+      "Error: Multiple last layers in the model not supported");
   }
 
   for (auto iter = adj.begin(); iter < adj.end(); ++iter) {
     if ((*iter).front().layer->output_layers.size() == 0)
       throw std::runtime_error("There is un-connected node");
   }
-}
-
-int NetworkGraph::realizeMultiOutputType(Layer &current) {
-  int status = ML_ERROR_NONE;
-  if (current.getNumOutputs() == 1)
-    return ML_ERROR_NONE;
-
-  std::shared_ptr<Layer> layer = nntrainer::createLayer(OutputLayer::type);
-  ensureName(layer, current.getName());
-
-  layer->setNumInputs(1);
-  layer->input_layers.clear();
-  layer->input_layers.push_back(current.getName());
-
-  layer->setNumOutputs(current.getNumOutputs());
-  layer->output_layers.clear();
-
-  for (unsigned int i = 0; i < current.output_layers.size(); ++i) {
-    layer->output_layers.push_back(current.output_layers[i]);
-
-    updateConnectionName(current.getName(), layer->getName());
-  }
-
-  current.setNumOutputs(1);
-  current.output_layers.clear();
-  current.output_layers.push_back(layer->getName());
-  addLayerNode(layer);
-
-  return status;
 }
 
 int NetworkGraph::isCompilable() {
@@ -517,8 +506,6 @@ int NetworkGraph::realizeGraph() {
 
   addDefaultInputLayers();
 
-  setOutputLayers();
-
   size_t adj_size_before_realize = adj.size();
   /** This loop modifes adj. Get the size of adj preemptively. */
 
@@ -563,6 +550,8 @@ int NetworkGraph::realizeGraph() {
       NN_RETURN_STATUS();
     }
   }
+
+  setOutputLayers();
 
   return status;
 }
