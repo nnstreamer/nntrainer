@@ -59,6 +59,13 @@ int NetworkGraph::compile(const LossType loss_type) {
   status = checkCompiledGraph();
   NN_RETURN_STATUS();
 
+  /**
+   * Now that graph is compiled, remove all edges to save memory.
+   * NodeList is kept for now for O(1) access of layers by idx.
+   */
+  for (unsigned int i = 0; i < adj.size(); ++i)
+    adj[i].resize(1);
+
   compiled = true;
 
   return status;
@@ -100,7 +107,7 @@ void NetworkGraph::addLayerNode(std::shared_ptr<Layer> layer) {
 }
 
 LayerNode &NetworkGraph::getLayerNode(unsigned int ith) {
-  if (ith >= adj.size())
+  if (ith >= size())
     throw std::invalid_argument("Exceed total number of layer");
 
   if (adj[ith].front().index != ith)
