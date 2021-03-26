@@ -226,8 +226,7 @@ TEST(nntrainer_ccapi, train_dataset_with_file_01_p) {
     layer = ml::train::layer::FullyConnected(
       {"unit= 10", "activation=softmax", "bias_initializer=zeros",
        "weight_regularizer=l2norm", "weight_regularizer_constant=0.005",
-       "weight_initializer=xavier_uniform",
-       "input_layers=" + layer->getName()}));
+       "weight_initializer=xavier_uniform", "input_layers=input0"}));
   EXPECT_NO_THROW(model->addLayer(layer));
 
   EXPECT_NO_THROW(
@@ -278,8 +277,7 @@ TEST(nntrainer_ccapi, train_dataset_with_generator_01_p) {
     layer = ml::train::layer::FullyConnected(
       {"unit= 10", "activation=softmax", "bias_initializer=zeros",
        "weight_regularizer=l2norm", "weight_regularizer_constant=0.005",
-       "weight_initializer=xavier_uniform",
-       "input_layers=" + layer->getName()}));
+       "weight_initializer=xavier_uniform", "input_layers=input0"}));
   EXPECT_NO_THROW(model->addLayer(layer));
 
   EXPECT_NO_THROW(
@@ -327,8 +325,7 @@ TEST(nntrainer_ccapi, train_batch_size_update_after) {
     layer = ml::train::layer::FullyConnected(
       {"unit= 10", "activation=softmax", "bias_initializer=zeros",
        "weight_regularizer=l2norm", "weight_regularizer_constant=0.005",
-       "weight_initializer=xavier_uniform",
-       "input_layers=" + layer->getName()}));
+       "weight_initializer=xavier_uniform", "input_layers=input0"}));
   EXPECT_NO_THROW(model->addLayer(layer));
 
   EXPECT_NO_THROW(

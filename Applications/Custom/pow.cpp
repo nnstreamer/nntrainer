@@ -148,7 +148,7 @@ void destory_pow_layer(ml::train::Layer *layer) {
 }
 
 extern "C" {
-ml::train::LayerPluggable ml_train_layer_pluggable{create_pow_layer,
+nntrainer::LayerPluggable ml_train_layer_pluggable{create_pow_layer,
                                                    destory_pow_layer};
 }
 
