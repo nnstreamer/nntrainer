@@ -766,6 +766,118 @@ INI conv_none_loss_validate(
   }
 );
 
+INI pooling_max_same_padding(
+  "pooling_max_same_padding",
+  {
+    nn_base + "learning_rate=0.1 | optimizer=sgd | loss=cross | batch_size=3",
+        I("input") + input_base + "input_shape=2:5:3",
+    I("pooling_1") + pooling_base +
+            "pooling=max | pool_size = 3,3 | padding =1,1" + "input_layers=input",
+    I("act_1") + sigmoid_base + "input_layers=pooling_1",
+    I("flatten", "type=flatten")+ "input_layers=act_1",
+    I("outputlayer") + fc_base + "unit = 10" + "input_layers=flatten",
+    I("act_2") + softmax_base + "input_layers=outputlayer"
+  }
+);
+
+INI pooling_max_same_padding_multi_stride(
+  "pooling_max_same_padding_multi_stride",
+  {
+    nn_base + "learning_rate=0.1 | optimizer=sgd | loss=cross | batch_size=3",
+        I("input") + input_base + "input_shape=2:3:5",
+    I("pooling_1") + pooling_base +
+            "pooling=max | pool_size = 3,3 | padding =1,1 | stride=2,2" + "input_layers=input",
+    I("act_1") + sigmoid_base + "input_layers=pooling_1",
+    I("flatten", "type=flatten")+ "input_layers=act_1",
+    I("outputlayer") + fc_base + "unit = 10" + "input_layers=flatten",
+    I("act_2") + softmax_base + "input_layers=outputlayer"
+  }
+);
+
+INI pooling_max_valid_padding(
+  "pooling_max_valid_padding",
+  {
+    nn_base + "learning_rate=0.1 | optimizer=sgd | loss=cross | batch_size=3",
+        I("input") + input_base + "input_shape=2:5:3",
+    I("pooling_1") + pooling_base +
+            "pooling=max | pool_size = 3,3 | padding =0,0" + "input_layers=input",
+    I("act_1") + sigmoid_base + "input_layers=pooling_1",
+    I("flatten", "type=flatten")+ "input_layers=act_1",
+    I("outputlayer") + fc_base + "unit = 10" + "input_layers=flatten",
+    I("act_2") + softmax_base + "input_layers=outputlayer"
+  }
+);
+
+INI pooling_avg_same_padding(
+  "pooling_avg_same_padding",
+  {
+    nn_base + "learning_rate=0.1 | optimizer=sgd | loss=cross | batch_size=3",
+        I("input") + input_base + "input_shape=2:5:3",
+    I("pooling_1") + pooling_base +
+            "pooling=average | pool_size = 3,3 | padding =1,1" + "input_layers=input",
+    I("act_1") + sigmoid_base + "input_layers=pooling_1",
+    I("flatten", "type=flatten")+ "input_layers=act_1",
+    I("outputlayer") + fc_base + "unit = 10" + "input_layers=flatten",
+    I("act_2") + softmax_base + "input_layers=outputlayer"
+  }
+);
+
+INI pooling_avg_valid_padding(
+  "pooling_avg_valid_padding",
+  {
+    nn_base + "learning_rate=0.1 | optimizer=sgd | loss=cross | batch_size=3",
+        I("input") + input_base + "input_shape=2:5:3",
+    I("pooling_1") + pooling_base +
+            "pooling=average | pool_size = 3,3 | padding =0,0" + "input_layers=input",
+    I("act_1") + sigmoid_base + "input_layers=pooling_1",
+    I("flatten", "type=flatten")+ "input_layers=act_1",
+    I("outputlayer") + fc_base + "unit = 10" + "input_layers=flatten",
+    I("act_2") + softmax_base + "input_layers=outputlayer"
+  }
+);
+
+INI pooling_avg_same_padding_multi_stride(
+  "pooling_avg_same_padding_multi_stride",
+  {
+    nn_base + "learning_rate=0.1 | optimizer=sgd | loss=cross | batch_size=3",
+        I("input") + input_base + "input_shape=2:3:5",
+    I("pooling_1") + pooling_base +
+            "pooling=average | pool_size = 3,3 | padding =1,1 | stride=2,2" + "input_layers=input",
+    I("act_1") + sigmoid_base + "input_layers=pooling_1",
+    I("flatten", "type=flatten")+ "input_layers=act_1",
+    I("outputlayer") + fc_base + "unit = 10" + "input_layers=flatten",
+    I("act_2") + softmax_base + "input_layers=outputlayer"
+  }
+);
+
+INI pooling_global_avg(
+  "pooling_global_avg",
+  {
+    nn_base + "learning_rate=0.1 | optimizer=sgd | loss=cross | batch_size=3",
+        I("input") + input_base + "input_shape=2:5:3",
+    I("pooling_1") + pooling_base +
+            "pooling=global_average" + "input_layers=input",
+    I("act_1") + sigmoid_base + "input_layers=pooling_1",
+    I("flatten", "type=flatten")+ "input_layers=act_1",
+    I("outputlayer") + fc_base + "unit = 10" + "input_layers=flatten",
+    I("act_2") + softmax_base + "input_layers=outputlayer"
+  }
+);
+
+INI pooling_global_max(
+  "pooling_global_max",
+  {
+    nn_base + "learning_rate=0.1 | optimizer=sgd | loss=cross | batch_size=3",
+        I("input") + input_base + "input_shape=2:5:3",
+    I("pooling_1") + pooling_base +
+            "pooling=global_max" + "input_layers=input",
+    I("act_1") + sigmoid_base + "input_layers=pooling_1",
+    I("flatten", "type=flatten")+ "input_layers=act_1",
+    I("outputlayer") + fc_base + "unit = 10" + "input_layers=flatten",
+    I("act_2") + softmax_base + "input_layers=outputlayer"
+  }
+);
+
 INI mnist_conv_cross_one_input = INI("mnist_conv_cross_one_input") + mnist_conv_cross + "model/batch_size=1";
 
 INSTANTIATE_TEST_CASE_P(
@@ -786,7 +898,16 @@ INSTANTIATE_TEST_CASE_P(
     mkModelTc(conv_uneven_strides, "3:1:1:10", 10),
     mkModelTc(conv_same_padding_multi_stride, "3:1:1:10", 10),
     mkModelTc(conv_no_loss_validate, "3:1:1:10", 1),
-    mkModelTc(conv_none_loss_validate, "3:1:1:10", 1)
+    mkModelTc(conv_none_loss_validate, "3:1:1:10", 1),
+    /**< single pooling layer test */
+    mkModelTc(pooling_max_same_padding, "3:1:1:10", 10),
+    mkModelTc(pooling_max_same_padding_multi_stride, "3:1:1:10", 10),
+    mkModelTc(pooling_max_valid_padding, "3:1:1:10", 10),
+    mkModelTc(pooling_avg_same_padding, "3:1:1:10", 10),
+    mkModelTc(pooling_avg_same_padding_multi_stride, "3:1:1:10", 10),
+    mkModelTc(pooling_avg_valid_padding, "3:1:1:10", 10),
+    mkModelTc(pooling_global_avg, "3:1:1:10", 10),
+    mkModelTc(pooling_global_max, "3:1:1:10", 10)
 // / #if gtest_version <= 1.7.0
 ));
 /// #else gtest_version > 1.8.0
