@@ -193,3 +193,70 @@ if __name__ == "__main__":
     )
 
     conv_layer_tc(strides=(3, 3))(file_name="conv_uneven_strides.info", debug="summary")
+
+    pool_layer_tc = lambda pool_layer: partial(
+        record,
+        model=[
+            K.Input(shape=(2, 5, 3)),
+            pool_layer,
+            K.layers.Activation("sigmoid"),
+            K.layers.Flatten(),
+            K.layers.Dense(10),
+            K.layers.Activation("softmax"),
+        ],
+        optimizer=opt.SGD(learning_rate=0.1),
+        iteration=10,
+        input_shape=(3, 2, 5, 3),
+        label_shape=(3, 10),
+        loss_fn_str="cross_softmax",
+    )
+
+    pool_layer_tc(K.layers.MaxPooling2D(pool_size=3, strides=1, padding="same"))(
+        file_name="pooling_max_same_padding.info",  # debug="output"
+    )  # padding: 1, 1
+
+    pool_layer_tc(K.layers.MaxPooling2D(pool_size=3, strides=1, padding="valid"))(
+        file_name="pooling_max_valid_padding.info",  # debug="output"
+    )  # padding: 1, 1
+
+    pool_layer_tc(K.layers.AveragePooling2D(pool_size=3, strides=1, padding="same"))(
+        file_name="pooling_avg_same_padding.info",  # debug="dx"
+    )  # padding: 1, 1
+
+    pool_layer_tc(K.layers.AveragePooling2D(pool_size=3, strides=1, padding="valid"))(
+        file_name="pooling_avg_valid_padding.info",  # debug="dx"
+    )
+
+    pool_layer_tc(K.layers.GlobalAvgPool2D(data_format="channels_first"))(
+        file_name="pooling_global_avg.info",  # debug="summary"
+    )
+
+    pool_layer_tc(K.layers.GlobalMaxPool2D(data_format="channels_first"))(
+        file_name="pooling_global_max.info",  # debug="dx"
+    )
+
+    pool_layer_tc2 = lambda pool_layer: partial(
+        record,
+        model=[
+            K.Input(shape=(2, 3, 5)),
+            pool_layer,
+            K.layers.Activation("sigmoid"),
+            K.layers.Flatten(),
+            K.layers.Dense(10),
+            K.layers.Activation("softmax"),
+        ],
+        optimizer=opt.SGD(learning_rate=0.1),
+        iteration=10,
+        input_shape=(3, 2, 3, 5),
+        label_shape=(3, 10),
+        loss_fn_str="cross_softmax",
+    )
+
+    pool_layer_tc2(K.layers.MaxPooling2D(pool_size=3, strides=2, padding="same"))(
+        file_name="pooling_max_same_padding_multi_stride.info",  # debug="dx"
+    )
+
+    pool_layer_tc2(K.layers.AveragePooling2D(pool_size=3, strides=2, padding="same"))(
+        file_name="pooling_avg_same_padding_multi_stride.info", # debug="output"
+    )
+
