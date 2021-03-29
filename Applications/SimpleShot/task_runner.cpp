@@ -19,6 +19,7 @@
 
 #include <app_context.h>
 #include <model.h>
+#include <nntrainer-api-common.h>
 
 #include "layers/centering.h"
 #include "layers/centroid_knn.h"
@@ -240,7 +241,7 @@ int main(int argc, char **argv) {
   std::unique_ptr<ml::train::Model> model;
   try {
     model = simpleshot::createModel(model_str, app_path, method);
-    model->printPreset(std::cout, 0);
+    model->summarize(std::cout, ML_TRAIN_SUMMARY_MODEL);
   } catch (std::exception &e) {
     std::cerr << "creating Model failed: " << e.what();
     return 1;

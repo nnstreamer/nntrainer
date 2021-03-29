@@ -21,6 +21,8 @@
 #include <string>
 #include <vector>
 
+#include <nntrainer-api-common.h>
+
 #include <dataset.h>
 #include <layer.h>
 #include <optimizer.h>
@@ -34,7 +36,6 @@ namespace train {
  */
 enum class ModelType {
   KNN,        /** k Nearest Neighbor */
-  REGRESSION, /** Logistic Regression */
   NEURAL_NET, /** Neural Network */
   UNKNOWN     /** Unknown */
 };
@@ -51,30 +52,6 @@ public:
   virtual ~Model() = default;
 
   /**
-   * @brief     Get Loss from the previous ran batch of data
-   * @retval    loss value
-   */
-  virtual float getLoss() = 0;
-
-  /**
-   * @brief     Get Loss from the previous epoch of training data
-   * @retval    loss value
-   */
-  virtual float getTrainingLoss() = 0;
-
-  /**
-   * @brief     Get Loss from the previous epoch of validation data
-   * @retval    loss value
-   */
-  virtual float getValidationLoss() = 0;
-
-  /**
-   * @brief     Get Learning rate
-   * @retval    Learning rate
-   */
-  virtual float getLearningRate() = 0;
-
-  /**
    * @brief     Create and load the Network with ini configuration file.
    * @param[in] config config file path
    * @retval #ML_ERROR_NONE Successful.
@@ -82,6 +59,15 @@ public:
    */
   virtual int loadFromConfig(std::string config) = 0;
 
+  /**
+   * @brief     Minimal set of properties that must be supported by the model
+   * @details   The minimal properies:
+                - loss_type
+                - batch_size
+                - epochs
+                - save_path
+                - continue_train
+   */
   /**
    * @brief     set Property of Network
    * @param[in] values values of property
@@ -91,19 +77,19 @@ public:
   virtual int setProperty(std::vector<std::string> values) = 0;
 
   /**
-   * @brief     Initialize Network. This should be called after set all
-   * hyperparameters.
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   */
-  virtual int initialize() = 0;
-
-  /**
    * @brief     Compile Network. This should be called before initialize
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
   virtual int compile() = 0;
+
+  /**
+   * @brief     Initialize Network. This should be called after setting the
+   * property and compiling. hyperparameters.
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  virtual int initialize() = 0;
 
   /**
    * @brief     save model and training parameters into file
@@ -116,13 +102,7 @@ public:
   virtual void readModel() = 0;
 
   /**
-   * @brief     get Epochs
-   * @retval    epochs
-   */
-  virtual unsigned int getEpochs() = 0;
-
-  /**
-   * @brief     Run Model train
+   * @brief     Run Model training and validation
    * @param[in] values hyper parameters
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
@@ -151,35 +131,25 @@ public:
    */
   virtual int setOptimizer(std::shared_ptr<Optimizer> optimizer) = 0;
 
-  /*
-   * @brief     get layer by name from neural network model
-   * @param[in] name name of the layer to get
-   * @param[out] layer shared_ptr to hold the layer to get
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+  /**
+   * @brief     Summarize the model
+   * @param out std::ostream to get the model summary
+   * @param verbosity verbosity of the summary
    */
-  virtual int getLayer(const char *name, std::shared_ptr<Layer> *layer) = 0;
+  virtual void summarize(std::ostream &out,
+                         ml_train_summary_type_e verbosity) = 0;
 
   /**
-   * @brief     Property Enumeration
+   * @brief     Get Loss from the previous epoch of training data
+   * @retval    loss value
    */
-  enum class PropertyType {
-    loss = 0,
-    loss_type = 1,
-    batch_size = 2,
-    epochs = 3,
-    save_path = 4,
-    continue_train = 5,
-    unknown = 6
-  };
+  virtual float getTrainingLoss() = 0;
 
   /**
-   * @brief Print Option when printing model info. The function delegates to the
-   * `print`
-   * @param out std::ostream to print
-   * @param preset preset from `ml_train_summary_type_e`
+   * @brief     Get Loss from the previous epoch of validation data
+   * @retval    loss value
    */
-  virtual void printPreset(std::ostream &out, unsigned int preset) = 0;
+  virtual float getValidationLoss() = 0;
 };
 
 /**

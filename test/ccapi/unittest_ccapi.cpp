@@ -202,7 +202,6 @@ TEST(nntrainer_ccapi, train_with_config_01_p) {
 
   EXPECT_FLOAT_EQ(model->getTrainingLoss(), 4.434051);
   EXPECT_FLOAT_EQ(model->getValidationLoss(), 2.9646113);
-  EXPECT_FLOAT_EQ(model->getLoss(), 2.8036859);
 }
 
 /**
@@ -253,7 +252,6 @@ TEST(nntrainer_ccapi, train_dataset_with_file_01_p) {
 
   EXPECT_FLOAT_EQ(model->getTrainingLoss(), 2.1934659);
   EXPECT_FLOAT_EQ(model->getValidationLoss(), 2.2051108);
-  EXPECT_FLOAT_EQ(model->getLoss(), 2.1751201);
 }
 
 /**
@@ -301,7 +299,6 @@ TEST(nntrainer_ccapi, train_dataset_with_generator_01_p) {
 
   EXPECT_FLOAT_EQ(model->getTrainingLoss(), 2.2109976);
   EXPECT_FLOAT_EQ(model->getValidationLoss(), 1.995334);
-  EXPECT_FLOAT_EQ(model->getLoss(), 1.9843285);
 }
 
 /**
@@ -370,7 +367,6 @@ TEST(nntrainer_ccapi, train_batch_size_update_after) {
 
   EXPECT_FLOAT_EQ(model->getTrainingLoss(), 1.9613363);
   EXPECT_FLOAT_EQ(model->getValidationLoss(), 2.1835098);
-  EXPECT_FLOAT_EQ(model->getLoss(), 2.1977143);
 }
 
 /**
