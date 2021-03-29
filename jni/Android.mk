@@ -182,39 +182,6 @@ include $(BUILD_SHARED_LIBRARY)
 
 include $(CLEAR_VARS)
 
-CAPI_NNTRAINER_SRCS := $(NNTRAINER_ROOT)/api/capi/src/nntrainer.cpp \
-                  $(NNTRAINER_ROOT)/api/capi/src/nntrainer_util.cpp
-
-CAPI_NNTRAINER_INCLUDES := $(NNTRAINER_ROOT)/nntrainer \
-                      $(NNTRAINER_ROOT)/nntrainer/dataset \
-                      $(NNTRAINER_ROOT)/nntrainer/layers \
-                      $(NNTRAINER_ROOT)/nntrainer/models \
-                      $(NNTRAINER_ROOT)/nntrainer/graph \
-                      $(NNTRAINER_ROOT)/nntrainer/tensor \
-                      $(NNTRAINER_ROOT)/nntrainer/optimizers \
-                      $(NNTRAINER_ROOT)/api \
-                      $(NNTRAINER_ROOT)/api/ccapi/include \
-                      $(NNTRAINER_ROOT)/api/capi/include \
-                      $(NNTRAINER_ROOT)/api/capi/include/platform
-
-LOCAL_SHARED_LIBRARIES := nntrainer
-
-LOCAL_ARM_NEON      := true
-LOCAL_CFLAGS        += -pthread -fexceptions
-LOCAL_CXXFLAGS      += -std=c++14 -frtti -fexceptions
-LOCAL_LDFLAGS       += -fuse-ld=bfd
-LOCAL_MODULE_TAGS   := optional
-
-LOCAL_LDLIBS        := -llog -landroid
-
-LOCAL_MODULE        := capi-nntrainer
-LOCAL_SRC_FILES     := $(CAPI_NNTRAINER_SRCS)
-LOCAL_C_INCLUDES    := $(CAPI_NNTRAINER_INCLUDES)
-
-include $(BUILD_SHARED_LIBRARY)
-
-include $(CLEAR_VARS)
-
 CCAPI_NNTRAINER_SRCS := $(NNTRAINER_ROOT)/api/ccapi/src/factory.cpp
 
 CCAPI_NNTRAINER_INCLUDES := $(NNTRAINER_ROOT)/nntrainer \
@@ -241,5 +208,31 @@ LOCAL_LDLIBS        := -llog -landroid
 LOCAL_MODULE        := ccapi-nntrainer
 LOCAL_SRC_FILES     := $(CCAPI_NNTRAINER_SRCS)
 LOCAL_C_INCLUDES    := $(CCAPI_NNTRAINER_INCLUDES)
+
+include $(BUILD_SHARED_LIBRARY)
+
+include $(CLEAR_VARS)
+
+CAPI_NNTRAINER_SRCS := $(NNTRAINER_ROOT)/api/capi/src/nntrainer.cpp
+
+CAPI_NNTRAINER_INCLUDES := $(NNTRAINER_ROOT)/nntrainer \
+                      $(NNTRAINER_ROOT)/api \
+                      $(NNTRAINER_ROOT)/api/ccapi/include \
+                      $(NNTRAINER_ROOT)/api/capi/include \
+                      $(NNTRAINER_ROOT)/api/capi/include/platform
+
+LOCAL_SHARED_LIBRARIES := ccapi-nntrainer
+
+LOCAL_ARM_NEON      := true
+LOCAL_CFLAGS        += -pthread -fexceptions
+LOCAL_CXXFLAGS      += -std=c++14 -frtti -fexceptions
+LOCAL_LDFLAGS       += -fuse-ld=bfd
+LOCAL_MODULE_TAGS   := optional
+
+LOCAL_LDLIBS        := -llog -landroid
+
+LOCAL_MODULE        := capi-nntrainer
+LOCAL_SRC_FILES     := $(CAPI_NNTRAINER_SRCS)
+LOCAL_C_INCLUDES    := $(CAPI_NNTRAINER_INCLUDES)
 
 include $(BUILD_SHARED_LIBRARY)

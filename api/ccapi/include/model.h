@@ -87,7 +87,7 @@ public:
 
   /**
    * @brief     Initialize Network. This should be called after setting the
-   * property and compiling. hyperparameters.
+   * property and compiling.
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
@@ -134,6 +134,15 @@ public:
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
   virtual int setOptimizer(std::shared_ptr<Optimizer> optimizer) = 0;
+
+  /*
+   * @brief     get layer by name from neural network model
+   * @param[in] name name of the layer to get
+   * @param[out] layer shared_ptr to hold the layer to get
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  virtual int getLayer(const char *name, std::shared_ptr<Layer> *layer) = 0;
 
   /**
    * @brief     Summarize the model

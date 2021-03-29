@@ -129,7 +129,7 @@ public:
 };
 
 /// @todo solidify the api signature
-class CustomLayer : public ml::train::Layer {
+class CustomLayer : public nntrainer::Layer {
 public:
   static const std::string type;
 
