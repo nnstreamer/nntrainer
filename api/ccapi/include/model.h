@@ -73,6 +73,8 @@ public:
    * @param[in] values values of property
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   * @details   This function accepts vector of properties in the format -
+   *  { std::string property_name, void * property_val, ...}
    */
   virtual int setProperty(std::vector<std::string> values) = 0;
 
@@ -106,6 +108,8 @@ public:
    * @param[in] values hyper parameters
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   * @details   This function accepts vector of properties in the format -
+   *  { std::string property_name, void * property_val, ...}
    */
   virtual int train(std::vector<std::string> values = {}) = 0;
 
