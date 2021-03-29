@@ -334,7 +334,6 @@ int main(int argc, char *argv[]) {
     model->train();
     training_loss = model->getTrainingLoss();
     validation_loss = model->getValidationLoss();
-    last_batch_loss = model->getLoss();
   } catch (std::exception &e) {
     std::cerr << "Error during train " << e.what() << std::endl;
     return 0;

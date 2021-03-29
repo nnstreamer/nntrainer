@@ -142,7 +142,25 @@ public:
    */
   int loadFromConfig(std::string config);
 
+  /**
+   * @brief     Compile the graph in the model
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
   int compile();
+
+  /**
+   * @brief     Property Enumeration
+   */
+  enum class PropertyType {
+    loss = 0,
+    loss_type = 1,
+    batch_size = 2,
+    epochs = 3,
+    save_path = 4,
+    continue_train = 5,
+    unknown = 6
+  };
 
   /**
    * @brief     set Property of Network
@@ -316,7 +334,8 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int getLayer(const char *name, std::shared_ptr<ml::train::Layer> *layer);
+  virtual int getLayer(const char *name,
+                       std::shared_ptr<ml::train::Layer> *layer);
 
   /*
    * @brief     get layer by name from neural network model
@@ -373,12 +392,21 @@ public:
   int setLoss(LossType loss);
 
   /**
+   * @brief     Summarize the model
+   * @param out std::ostream to get the model summary
+   * @param verbosity verbosity of the summary
+   */
+  virtual void summarize(std::ostream &out, ml_train_summary_type_e verbosity) {
+    printPreset(out, (unsigned int)verbosity);
+  }
+
+  /**
    * @brief Print Option when printing model info. The function delegates to the
    * `print`
    * @param out std::ostream to print
    * @param preset preset from `ml_train_summary_type_e`
    */
-  void printPreset(std::ostream &out, unsigned int preset);
+  virtual void printPreset(std::ostream &out, unsigned int preset);
 
   /**
    * @brief Enable gradient memory sharing based optimization
