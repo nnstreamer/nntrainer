@@ -287,11 +287,8 @@ int main(int argc, char *argv[]) {
    */
   std::shared_ptr<ml::train::Dataset> dataset;
   try {
-    dataset = createDataset(ml::train::DatasetType::GENERATOR);
-    dataset->setGeneratorFunc(ml::train::DatasetDataType::DATA_TRAIN,
-                              getBatch_train);
-    dataset->setGeneratorFunc(ml::train::DatasetDataType::DATA_VAL,
-                              getBatch_val);
+    dataset = createDataset(ml::train::DatasetType::GENERATOR, getBatch_train,
+                            getBatch_val);
   } catch (std::exception &e) {
     std::cerr << "Error creating dataset" << e.what() << std::endl;
     return 1;

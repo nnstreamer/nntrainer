@@ -1,3 +1,4 @@
+
 // SPDX-License-Identifier: Apache-2.0
 /**
  * Copyright (C) 2020 Parichay Kapoor <pk.kapoor@samsung.com>
@@ -66,30 +67,26 @@ public:
   virtual ~Dataset() = default;
 
   /**
-   * @brief     set function pointer for each type
-   * @param[in] type data type : DATA_TRAIN, DATA_VAL, DATA_TEST
-   * @param[in] call back function pointer
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   */
-  virtual int setGeneratorFunc(DatasetDataType type, datagen_cb func) = 0;
-
-  /**
-   * @brief     set train data file name
-   * @param[in] type data type : DATA_TRAIN, DATA_VAL, DATA_TEST
-   * @param[in] path file path
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   */
-  virtual int setDataFile(DatasetDataType type, std::string path) = 0;
-
-  /**
    * @brief     set property
    * @param[in] values values of property
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   * @details   Properties (values) is in the format -
+   *  { std::string property_name, std::string property_val, ...}
    */
   virtual int setProperty(std::vector<std::string> values) = 0;
+
+  /**
+   * @brief     set property to allow setting non-string values such as
+   * user_data for callbacks
+   * @param[in] values values of property
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   * @note      this is a superset of the setProperty(std::vector<std::string>)
+   * @details   Properties (values) is in the format -
+   *  { std::string property_name, void * property_val, ...}
+   */
+  virtual int setProperty(std::vector<void *> values) = 0;
 };
 
 /**
