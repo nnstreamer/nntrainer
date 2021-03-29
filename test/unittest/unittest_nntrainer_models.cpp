@@ -906,8 +906,8 @@ INSTANTIATE_TEST_CASE_P(
     mkModelTc(pooling_avg_same_padding, "3:1:1:10", 10),
     mkModelTc(pooling_avg_same_padding_multi_stride, "3:1:1:10", 10),
     mkModelTc(pooling_avg_valid_padding, "3:1:1:10", 10),
-    mkModelTc(pooling_global_avg, "3:1:1:10", 10)
-    // mkModelTc(pooling_global_max, "3:1:1:10", 10)
+    mkModelTc(pooling_global_avg, "3:1:1:10", 10),
+    mkModelTc(pooling_global_max, "3:1:1:10", 10)
 // / #if gtest_version <= 1.7.0
 ));
 /// #else gtest_version > 1.8.0

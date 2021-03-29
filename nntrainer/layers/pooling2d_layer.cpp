@@ -87,7 +87,7 @@ int Pooling2DLayer::initialize(Manager &manager) {
   out_dim.width((eff_in_width - pool_size[1]) / stride[1] + 1);
 
   if (pooling_type == PoolingType::global_max) {
-    max_idx_global.resize(out_dim.batch() * out_dim.getFeatureLen());
+    max_idx_global.reserve(out_dim.batch() * out_dim.getFeatureLen());
   } else {
     max_idx.reserve(in_dim.batch() * out_dim.getFeatureLen());
   }
@@ -195,11 +195,21 @@ void Pooling2DLayer::calcDerivative() {
     }
   } break;
   case PoolingType::global_max: {
-    for (unsigned int i = 0; i < deriv.getDim().getDataLen(); ++i) {
-      float der = deriv.getData()[i] / max_idx_global[i].size();
-      for (unsigned int m = 0; m < max_idx_global[i].size(); m++) {
-        result_data[max_idx_global[i][m]] += der;
+    auto iter = max_idx_global.begin();
+    float *deriv_data = deriv.getData();
+    unsigned int outer_loop = batch * channel;
+    for (unsigned int _ = 0; _ < outer_loop; _++) {
+      for (unsigned int i = 0; i < out_map_size; ++i) {
+        float der = *deriv_data / iter->size();
+
+        for (auto &idx : *iter) {
+          result_data[idx] += der;
+        }
+
+        iter++;
+        deriv_data++;
       }
+      result_data += in_map_size;
     }
   } break;
   default:
@@ -355,6 +365,38 @@ Tensor Pooling2DLayer::pooling2d(Tensor &in, bool training, Tensor &output) {
     break;
   }
   case PoolingType::global_max: {
+    pool_fn = [&, this](const float *in_data, int start_h, int start_w) {
+      int end_h = start_h + patch_height;
+      int end_w = start_w + patch_width;
+
+      float max_val = std::numeric_limits<float>::lowest();
+
+      decltype(max_idx_global)::iterator indexor;
+      if (training) {
+        max_idx_global.emplace_back();
+        indexor = max_idx_global.end() - 1;
+      }
+
+      for (int h = start_h; h < end_h; ++h) {
+        for (int w = start_w; w < end_w; ++w) {
+          int cur_idx = h * in_width + w;
+          float val = in_data[cur_idx];
+          if (max_val < val) {
+            max_val = val;
+            if (training) {
+              indexor->clear();
+              indexor->push_back(cur_idx);
+            }
+          } else if (max_val == val) {
+            if (training) {
+              indexor->push_back(cur_idx);
+            }
+          }
+        }
+      }
+
+      return max_val;
+    };
     break;
   }
   case PoolingType::global_average:
@@ -390,49 +432,22 @@ Tensor Pooling2DLayer::pooling2d(Tensor &in, bool training, Tensor &output) {
     break;
   }
 
-  switch (pooling_type) {
-  case PoolingType::global_average:
-  case PoolingType::average:
-  case PoolingType::max: {
-    const float *in_data = in.getData();
-    float *out_data = output.getData();
-    unsigned int map_size = in_height * in_width;
-    int heigth_stride_end = height - patch_height - pad_height;
-    int width_stride_end = width - patch_width - pad_width;
-    for (unsigned int i = 0; i < channel; ++i) {
-      const float *in_data_channel_sliced = in_data + i * map_size;
-      for (int j = -pad_height; j <= heigth_stride_end; j += stride[0]) {
-        for (int k = -pad_width; k <= width_stride_end; k += stride[1]) {
-          float pool_value = pool_fn(in_data_channel_sliced, j, k);
-          *out_data = pool_value;
-          out_data++;
-        }
+  const float *in_data = in.getData();
+  float *out_data = output.getData();
+
+  unsigned int map_size = in_height * in_width;
+
+  int heigth_stride_end = height - patch_height - pad_height;
+  int width_stride_end = width - patch_width - pad_width;
+  for (unsigned int i = 0; i < channel; ++i) {
+    const float *in_data_channel_sliced = in_data + i * map_size;
+    for (int j = -pad_height; j <= heigth_stride_end; j += stride[0]) {
+      for (int k = -pad_width; k <= width_stride_end; k += stride[1]) {
+        float pool_value = pool_fn(in_data_channel_sliced, j, k);
+        *out_data = pool_value;
+        out_data++;
       }
     }
-  } break;
-  case PoolingType::global_max: {
-    for (unsigned int i = 0; i < channel; ++i) {
-      unsigned int idx = i * height * width;
-      float max = std::numeric_limits<float>::lowest();
-      max_idx_global[i].clear();
-      for (unsigned int j = 0; j < height; ++j) {
-        for (unsigned int k = 0; k < width; ++k) {
-          float val = in.getValue(0, i, j, k);
-          if (max <= val) {
-            if (max < val)
-              max_idx_global[i].clear();
-            max_idx_global[i].push_back(idx + j * width + k);
-            max = val;
-          }
-        }
-      }
-      output.setValue(0, i, 0, 0, max);
-    }
-  } break;
-  default:
-    ml_loge("Error: Unknown Pooling Type");
-    throw std::runtime_error("Error: Unknown Pooling Type");
-    break;
   }
 
   return output;
