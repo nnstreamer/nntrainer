@@ -21,17 +21,17 @@
  * @author Parichay Kapoor <pk.kapoor@samsung.com>
  * @bug No known bugs except for NYI items
  */
-#include <databuffer_factory.h>
-#include <layer_factory.h>
-#include <layer_internal.h>
-#include <neuralnet.h>
-#include <nntrainer_error.h>
-#include <nntrainer_internal.h>
-#include <nntrainer_log.h>
-#include <optimizer_factory.h>
+
+#include <cstdarg>
+#include <cstring>
 #include <sstream>
-#include <stdarg.h>
-#include <string.h>
+#include <string>
+
+#include <nntrainer.h>
+#include <nntrainer_internal.h>
+
+#include <nntrainer_error.h>
+#include <nntrainer_log.h>
 
 /**
  * @brief   Global lock for nntrainer C-API
@@ -132,7 +132,7 @@ static int exception_bounded_make_shared(Tp &target, Types... args) {
  */
 template <typename T>
 static int ml_train_dataset_create(ml_train_dataset_h *dataset,
-                                   nntrainer::DataBufferType type, T train,
+                                   ml::train::DatasetType type, T train,
                                    T valid, T test) {
   int status = ML_ERROR_NONE;
 
@@ -143,8 +143,7 @@ static int ml_train_dataset_create(ml_train_dataset_h *dataset,
   nndataset->in_use = false;
 
   returnable f = [&]() {
-    nndataset->data_buffer =
-      nntrainer::createDataBuffer(type, train, valid, test);
+    nndataset->dataset = ml::train::createDataset(type, train, valid, test);
     return ML_ERROR_NONE;
   };
 
@@ -164,7 +163,7 @@ extern "C" {
 #endif
 
 /**
- * @brief Function to create Network::NeuralNetwork object.
+ * @brief Function to create ml::train::Model object.
  */
 static int nn_object(ml_train_model_h *model) {
   int status = ML_ERROR_NONE;
@@ -179,11 +178,15 @@ static int nn_object(ml_train_model_h *model) {
 
   *model = nnmodel;
 
-  status =
-    exception_bounded_make_shared<nntrainer::NeuralNetwork>(nnmodel->network);
+  returnable f = [&]() {
+    nnmodel->model = ml::train::createModel(ml::train::ModelType::NEURAL_NET);
+    return ML_ERROR_NONE;
+  };
+
+  status = nntrainer_exception_boundary(f);
   if (status != ML_ERROR_NONE) {
-    ml_loge("Error: creating nn object failed");
     delete nnmodel;
+    ml_loge("Error: creating nn object failed");
   }
 
   return status;
@@ -204,7 +207,7 @@ int ml_train_model_construct_with_conf(const char *model_conf,
                                        ml_train_model_h *model) {
   int status = ML_ERROR_NONE;
   ml_train_model *nnmodel;
-  std::shared_ptr<nntrainer::NeuralNetwork> NN;
+  std::shared_ptr<ml::train::Model> m;
   returnable f;
 
   status = ml_train_model_construct(model);
@@ -212,9 +215,9 @@ int ml_train_model_construct_with_conf(const char *model_conf,
     return status;
 
   nnmodel = (ml_train_model *)(*model);
-  NN = nnmodel->network;
+  m = nnmodel->model;
 
-  f = [&]() { return NN->loadFromConfig(model_conf); };
+  f = [&]() { return m->loadFromConfig(model_conf); };
   status = nntrainer_exception_boundary(f);
   if (status != ML_ERROR_NONE) {
     ml_train_model_destroy(*model);
@@ -228,7 +231,7 @@ int ml_train_model_compile(ml_train_model_h model, ...) {
   const char *data;
   ml_train_model *nnmodel;
   returnable f;
-  std::shared_ptr<nntrainer::NeuralNetwork> NN;
+  std::shared_ptr<ml::train::Model> m;
 
   check_feature_state();
 
@@ -246,20 +249,20 @@ int ml_train_model_compile(ml_train_model_h model, ...) {
   {
     ML_TRAIN_GET_VALID_MODEL_LOCKED(nnmodel, model);
     ML_TRAIN_ADOPT_LOCK(nnmodel, model_lock);
-    NN = nnmodel->network;
+    m = nnmodel->model;
   }
 
-  f = [&]() { return NN->setProperty(arg_list); };
+  f = [&]() { return m->setProperty(arg_list); };
   status = nntrainer_exception_boundary(f);
   if (status != ML_ERROR_NONE)
     return status;
 
-  f = [&]() { return NN->compile(); };
+  f = [&]() { return m->compile(); };
   status = nntrainer_exception_boundary(f);
   if (status != ML_ERROR_NONE)
     return status;
 
-  f = [&]() { return NN->initialize(); };
+  f = [&]() { return m->initialize(); };
   status = nntrainer_exception_boundary(f);
   if (status != ML_ERROR_NONE)
     return status;
@@ -271,7 +274,7 @@ int ml_train_model_run(ml_train_model_h model, ...) {
   int status = ML_ERROR_NONE;
   ml_train_model *nnmodel;
   const char *data;
-  std::shared_ptr<nntrainer::NeuralNetwork> NN;
+  std::shared_ptr<ml::train::Model> m;
 
   check_feature_state();
 
@@ -290,10 +293,10 @@ int ml_train_model_run(ml_train_model_h model, ...) {
   {
     ML_TRAIN_GET_VALID_MODEL_LOCKED(nnmodel, model);
     ML_TRAIN_ADOPT_LOCK(nnmodel, model_lock);
-    NN = nnmodel->network;
+    m = nnmodel->model;
   }
 
-  returnable f = [&]() { return NN->train(arg_list); };
+  returnable f = [&]() { return m->train(arg_list); };
   status = nntrainer_exception_boundary(f);
 
   return status;
@@ -310,8 +313,8 @@ int ml_train_model_destroy(ml_train_model_h model) {
     ML_TRAIN_ADOPT_LOCK(nnmodel, model_lock);
   }
 
-  std::shared_ptr<nntrainer::NeuralNetwork> NN;
-  NN = nnmodel->network;
+  std::shared_ptr<ml::train::Model> m;
+  m = nnmodel->model;
 
   if (nnmodel->optimizer) {
     ML_TRAIN_RESET_VALIDATED_HANDLE(nnmodel->optimizer);
@@ -339,17 +342,17 @@ static int ml_train_model_get_summary_util(ml_train_model_h model,
                                            std::stringstream &ss) {
   int status = ML_ERROR_NONE;
   ml_train_model *nnmodel;
-  std::shared_ptr<nntrainer::NeuralNetwork> NN;
+  std::shared_ptr<ml::train::Model> m;
 
   {
     ML_TRAIN_GET_VALID_MODEL_LOCKED(nnmodel, model);
     ML_TRAIN_ADOPT_LOCK(nnmodel, model_lock);
 
-    NN = nnmodel->network;
+    m = nnmodel->model;
   }
 
   returnable f = [&]() {
-    NN->printPreset(ss, verbosity);
+    m->summarize(ss, verbosity);
     return ML_ERROR_NONE;
   };
 
@@ -384,7 +387,7 @@ int ml_train_model_get_summary(ml_train_model_h model,
   }
 
   *summary = (char *)malloc((size + 1) * sizeof(char));
-  memcpy(*summary, str.c_str(), size + 1);
+  std::memcpy(*summary, str.c_str(), size + 1);
 
   return status;
 }
@@ -406,25 +409,25 @@ int ml_train_model_add_layer(ml_train_model_h model, ml_train_layer_h layer) {
     return ML_ERROR_INVALID_PARAMETER;
   }
 
-  std::shared_ptr<nntrainer::NeuralNetwork> NN;
-  std::shared_ptr<nntrainer::Layer> NL;
+  std::shared_ptr<ml::train::Model> m;
+  std::shared_ptr<ml::train::Layer> l;
 
-  NN = nnmodel->network;
-  NL = nnlayer->layer;
+  m = nnmodel->model;
+  l = nnlayer->layer;
 
-  if (nnmodel->layers_map.count(NL->getName())) {
+  if (nnmodel->layers_map.count(l->getName())) {
     ml_loge("It is not allowed to add layer with same name: %s",
-            NL->getName().c_str());
+            l->getName().c_str());
     return ML_ERROR_INVALID_PARAMETER;
   }
 
-  returnable f = [&]() { return NN->addLayer(NL); };
+  returnable f = [&]() { return m->addLayer(l); };
 
   status = nntrainer_exception_boundary(f);
   if (status != ML_ERROR_NONE)
     return status;
 
-  nnmodel->layers_map.insert({NL->getName(), nnlayer});
+  nnmodel->layers_map.insert({l->getName(), nnlayer});
   nnlayer->in_use = true;
   return status;
 }
@@ -447,13 +450,13 @@ int ml_train_model_set_optimizer(ml_train_model_h model,
     return ML_ERROR_INVALID_PARAMETER;
   }
 
-  std::shared_ptr<nntrainer::NeuralNetwork> NN;
-  std::shared_ptr<nntrainer::Optimizer> opt;
+  std::shared_ptr<ml::train::Model> m;
+  std::shared_ptr<ml::train::Optimizer> opt;
 
-  NN = nnmodel->network;
+  m = nnmodel->model;
   opt = nnopt->optimizer;
 
-  returnable f = [&]() { return NN->setOptimizer(opt); };
+  returnable f = [&]() { return m->setOptimizer(opt); };
 
   status = nntrainer_exception_boundary(f);
   if (status == ML_ERROR_NONE) {
@@ -484,13 +487,13 @@ int ml_train_model_set_dataset(ml_train_model_h model,
     return ML_ERROR_INVALID_PARAMETER;
   }
 
-  std::shared_ptr<nntrainer::NeuralNetwork> NN;
-  std::shared_ptr<nntrainer::DataBuffer> data;
+  std::shared_ptr<ml::train::Model> m;
+  std::shared_ptr<ml::train::Dataset> d;
 
-  NN = nnmodel->network;
-  data = nndataset->data_buffer;
+  m = nnmodel->model;
+  d = nndataset->dataset;
 
-  returnable f = [&]() { return NN->setDataBuffer(data); };
+  returnable f = [&]() { return m->setDataset(d); };
 
   status = nntrainer_exception_boundary(f);
   if (status == ML_ERROR_NONE) {
@@ -522,14 +525,14 @@ int ml_train_model_get_layer(ml_train_model_h model, const char *layer_name,
   }
 
   /**
-   * if layer not found in layers_map, get layer from NeuralNetwork,
+   * if layer not found in layers_map, get layer from model,
    * wrap it in struct nnlayer, add new entry in layer_map and then return
    */
-  std::shared_ptr<nntrainer::NeuralNetwork> NN;
-  std::shared_ptr<nntrainer::Layer> NL;
+  std::shared_ptr<ml::train::Model> m;
+  std::shared_ptr<ml::train::Layer> l;
 
-  NN = nnmodel->network;
-  returnable f = [&]() { return NN->getLayer(layer_name, &NL); };
+  m = nnmodel->model;
+  returnable f = [&]() { return m->getLayer(layer_name, &l); };
   status = nntrainer_exception_boundary(f);
 
   if (status != ML_ERROR_NONE)
@@ -537,9 +540,9 @@ int ml_train_model_get_layer(ml_train_model_h model, const char *layer_name,
 
   ml_train_layer *nnlayer = new ml_train_layer;
   nnlayer->magic = ML_NNTRAINER_MAGIC;
-  nnlayer->layer = NL;
+  nnlayer->layer = l;
   nnlayer->in_use = true;
-  nnmodel->layers_map.insert({NL->getName(), nnlayer});
+  nnmodel->layers_map.insert({l->getName(), nnlayer});
 
   *layer = nnlayer;
   return status;
@@ -556,7 +559,7 @@ int ml_train_layer_create(ml_train_layer_h *layer, ml_train_layer_type_e type) {
   nnlayer->in_use = false;
 
   returnable f = [&]() {
-    nnlayer->layer = nntrainer::createLayer(ml_layer_to_nntrainer_type(type));
+    nnlayer->layer = ml::train::createLayer((ml::train::LayerType)type);
     return ML_ERROR_NONE;
   };
 
@@ -597,7 +600,7 @@ int ml_train_layer_set_property(ml_train_layer_h layer, ...) {
   int status = ML_ERROR_NONE;
   ml_train_layer *nnlayer;
   const char *data;
-  std::shared_ptr<nntrainer::Layer> NL;
+  std::shared_ptr<ml::train::Layer> l;
 
   check_feature_state();
 
@@ -617,10 +620,10 @@ int ml_train_layer_set_property(ml_train_layer_h layer, ...) {
     ML_TRAIN_GET_VALID_LAYER_LOCKED(nnlayer, layer);
     ML_TRAIN_ADOPT_LOCK(nnlayer, layer_lock);
 
-    NL = nnlayer->layer;
+    l = nnlayer->layer;
   }
 
-  returnable f = [&]() { return NL->setProperty(arg_list); };
+  returnable f = [&]() { return l->setProperty(arg_list); };
   status = nntrainer_exception_boundary(f);
 
   return status;
@@ -638,7 +641,7 @@ int ml_train_optimizer_create(ml_train_optimizer_h *optimizer,
 
   returnable f = [&]() {
     nnopt->optimizer =
-      nntrainer::createOptimizer(ml_optimizer_to_nntrainer_type(type));
+      ml::train::createOptimizer((ml::train::OptimizerType)type);
     return ML_ERROR_NONE;
   };
 
@@ -678,7 +681,7 @@ int ml_train_optimizer_set_property(ml_train_optimizer_h optimizer, ...) {
   int status = ML_ERROR_NONE;
   ml_train_optimizer *nnopt;
   const char *data;
-  std::shared_ptr<nntrainer::Optimizer> opt;
+  std::shared_ptr<ml::train::Optimizer> opt;
 
   check_feature_state();
 
@@ -712,7 +715,7 @@ int ml_train_dataset_create_with_generator(ml_train_dataset_h *dataset,
                                            ml_train_datagen_cb train_cb,
                                            ml_train_datagen_cb valid_cb,
                                            ml_train_datagen_cb test_cb) {
-  return ml_train_dataset_create(dataset, nntrainer::DataBufferType::GENERATOR,
+  return ml_train_dataset_create(dataset, ml::train::DatasetType::GENERATOR,
                                  train_cb, valid_cb, test_cb);
 }
 
@@ -720,7 +723,7 @@ int ml_train_dataset_create_with_file(ml_train_dataset_h *dataset,
                                       const char *train_file,
                                       const char *valid_file,
                                       const char *test_file) {
-  return ml_train_dataset_create(dataset, nntrainer::DataBufferType::FILE,
+  return ml_train_dataset_create(dataset, ml::train::DatasetType::FILE,
                                  train_file, valid_file, test_file);
 }
 
@@ -728,7 +731,7 @@ int ml_train_dataset_set_property(ml_train_dataset_h dataset, ...) {
   int status = ML_ERROR_NONE;
   ml_train_dataset *nndataset;
   void *data;
-  std::shared_ptr<nntrainer::DataBuffer> data_buffer;
+  std::shared_ptr<ml::train::Dataset> d;
 
   check_feature_state();
 
@@ -748,10 +751,10 @@ int ml_train_dataset_set_property(ml_train_dataset_h dataset, ...) {
     ML_TRAIN_GET_VALID_DATASET_LOCKED(nndataset, dataset);
     ML_TRAIN_ADOPT_LOCK(nndataset, dataset_lock);
 
-    data_buffer = nndataset->data_buffer;
+    d = nndataset->dataset;
   }
 
-  returnable f = [&]() { return data_buffer->setProperty(arg_list); };
+  returnable f = [&]() { return d->setProperty(arg_list); };
   status = nntrainer_exception_boundary(f);
 
   return status;

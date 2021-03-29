@@ -34,9 +34,17 @@ include $(PREBUILT_SHARED_LIBRARY)
 
 include $(CLEAR_VARS)
 
+LOCAL_MODULE := ccapi-nntrainer
+LOCAL_SRC_FILES := $(NNTRAINER_ROOT)/libs/$(TARGET_ARCH_ABI)/libccapi-nntrainer.so
+LOCAL_SHARED_LIBRARIES := nntrainer
+
+include $(PREBUILT_SHARED_LIBRARY)
+
+include $(CLEAR_VARS)
+
 LOCAL_MODULE := capi-nntrainer
 LOCAL_SRC_FILES := $(NNTRAINER_ROOT)/libs/$(TARGET_ARCH_ABI)/libcapi-nntrainer.so
-LOCAL_SHARED_LIBRARIES := nntrainer
+LOCAL_SHARED_LIBRARIES := ccapi-nntrainer
 
 include $(PREBUILT_SHARED_LIBRARY)
 

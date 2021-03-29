@@ -25,13 +25,18 @@
 #ifndef __NNTRAINER_INTERNAL_H__
 #define __NNTRAINER_INTERNAL_H__
 
-#include <layer_internal.h>
 #include <mutex>
-#include <neuralnet.h>
-#include <nntrainer.h>
-#include <nntrainer_log.h>
 #include <string>
 #include <unordered_map>
+
+#include <nntrainer.h>
+
+#include <dataset.h>
+#include <layer.h>
+#include <model.h>
+#include <optimizer.h>
+
+#include <nntrainer_log.h>
 
 #define ML_NNTRAINER_MAGIC 0x777F888F
 
@@ -73,7 +78,7 @@ extern "C" {
  */
 typedef struct {
   uint magic;
-  std::shared_ptr<nntrainer::Layer> layer;
+  std::shared_ptr<ml::train::Layer> layer;
   bool in_use;
   std::mutex m;
 } ml_train_layer;
@@ -85,7 +90,7 @@ typedef struct {
  */
 typedef struct {
   uint magic;
-  std::shared_ptr<nntrainer::Optimizer> optimizer;
+  std::shared_ptr<ml::train::Optimizer> optimizer;
   bool in_use;
   std::mutex m;
 } ml_train_optimizer;
@@ -96,7 +101,7 @@ typedef struct {
  */
 typedef struct {
   uint magic;
-  std::shared_ptr<nntrainer::DataBuffer> data_buffer;
+  std::shared_ptr<ml::train::Dataset> dataset;
   bool in_use;
   std::mutex m;
 } ml_train_dataset;
@@ -106,7 +111,7 @@ typedef struct {
  */
 typedef struct {
   uint magic;
-  std::shared_ptr<nntrainer::NeuralNetwork> network;
+  std::shared_ptr<ml::train::Model> model;
   std::unordered_map<std::string, ml_train_layer *> layers_map;
   ml_train_optimizer *optimizer;
   ml_train_dataset *dataset;
@@ -327,20 +332,5 @@ void ml_tizen_set_feature_state(feature_state_t state);
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */
-
-/**
- * @brief Convert nntrainer API optimizer type to neural network optimizer type
- * @param[in] type Optimizer type API enum
- * @return const std::string optimizer type
- */
-const std::string
-ml_optimizer_to_nntrainer_type(ml_train_optimizer_type_e type);
-
-/**
- * @brief Convert nntrainer API layer type to neural network layer type
- * @param[in] type Layer type API enum
- * @return const std::string layer type
- */
-const std::string ml_layer_to_nntrainer_type(ml_train_layer_type_e type);
 
 #endif

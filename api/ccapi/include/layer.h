@@ -116,6 +116,15 @@ public:
    *  { std::string property_name, void * property_val, ...}
    */
   virtual int setProperty(std::vector<std::string> values) = 0;
+
+  /**
+   * @brief     Get name of the layer
+   * @retval    name of the layer
+   * @note      This name is unique to this layer in a model
+   * @Note      This name might be changed once this layer is added to the model
+   * to keep the name unique to the model
+   */
+  virtual std::string getName() noexcept = 0;
 };
 
 /**
