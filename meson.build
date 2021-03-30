@@ -135,7 +135,7 @@ endif
 libm_dep = cxx.find_library('m') # cmath library
 libdl_dep = cxx.find_library('dl') # DL library
 thread_dep = dependency('threads') # pthread for tensorflow-lite
-iniparser_dep = dependency('iniparser', required : false) # iniparser
+iniparser_dep = dependency('iniparser', required : false, version : '>=4.1') # iniparser
 if not iniparser_dep.found()
   message('falling back to find libiniparser library and header files')
   libiniparser_dep = cxx.find_library('iniparser')
