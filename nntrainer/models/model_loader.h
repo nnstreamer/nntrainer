@@ -174,9 +174,11 @@ private:
    * @brief parse all the properties for a given section
    * @param[in] ini dictionary containing the config
    * @param[in] section_name name of the section for properties to parse
+   * @param[in] filter_props the properties to be filtered out
    */
-  std::vector<std::string> parseProperties(dictionary *ini,
-                                           const std::string &section_name);
+  std::vector<std::string>
+  parseProperties(dictionary *ini, const std::string &section_name,
+                  const std::vector<std::string> &filter_props = {});
 
   const char *unknown = "Unknown";
   const char *none = "none";

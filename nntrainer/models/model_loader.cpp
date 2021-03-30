@@ -64,7 +64,8 @@ int ModelLoader::loadOptimizerConfigIni(dictionary *ini, NeuralNetwork &model) {
 
   /** Default to adam optimizer */
   const char *opt_type = iniparser_getstring(ini, "Optimizer:Type", "adam");
-  std::vector<std::string> properties = parseProperties(ini, "Optimizer");
+  std::vector<std::string> properties =
+    parseProperties(ini, "Optimizer", {"type"});
 
   try {
     std::shared_ptr<ml::train::Optimizer> optimizer =
@@ -92,19 +93,21 @@ int ModelLoader::loadModelConfigIni(dictionary *ini, NeuralNetwork &model) {
     return ML_ERROR_INVALID_PARAMETER;
   }
 
-  /** Default to neural network model type */
-  model.net_type = (nntrainer::NetType)parseType(
-    iniparser_getstring(ini, "Model:Type", unknown), TOKEN_MODEL);
-  model.epochs = iniparser_getint(ini, "Model:Epochs", model.epochs);
-  model.loss_type = (LossType)parseType(
-    iniparser_getstring(ini, "Model:Loss", none), TOKEN_LOSS);
+  std::vector<std::string> properties =
+    parseProperties(ini, "Model",
+                    {"optimizer", "learning_rate", "decay_steps", "decay_rate",
+                     "beta1", "beta2", "epsilon", "type", "save_path"});
+
+  status = model.setProperty(properties);
+  if (status != ML_ERROR_NONE)
+    return status;
+
+  /** handle save_path as a special case for model_file_context */
   const std::string &save_path =
     iniparser_getstring(ini, "Model:Save_path", unknown);
   if (save_path != unknown) {
     model.setSavePath(resolvePath(save_path));
   }
-  model.batch_size =
-    iniparser_getint(ini, "Model:Batch_Size", model.batch_size);
 
   /**
    ********
@@ -185,7 +188,6 @@ int ModelLoader::loadModelConfigIni(dictionary *ini, NeuralNetwork &model) {
  * @brief     load dataset config from ini
  */
 int ModelLoader::loadDatasetConfigIni(dictionary *ini, NeuralNetwork &model) {
-  ml_logd("start parsing dataset config");
   int status = ML_ERROR_NONE;
 
   if (iniparser_find_entry(ini, "Dataset") == 0) {
@@ -235,7 +237,8 @@ int ModelLoader::loadDatasetConfigIni(dictionary *ini, NeuralNetwork &model) {
 }
 
 std::vector<std::string>
-ModelLoader::parseProperties(dictionary *ini, const std::string &section_name) {
+ModelLoader::parseProperties(dictionary *ini, const std::string &section_name,
+                             const std::vector<std::string> &filter_props) {
   int num_entries = iniparser_getsecnkeys(ini, section_name.c_str());
 
   ml_logd("number of entries for %s: %d", section_name.c_str(), num_entries);
@@ -263,9 +266,12 @@ ModelLoader::parseProperties(dictionary *ini, const std::string &section_name) {
     std::string key(key_refs[i]);
     std::string prop_key = key.substr(key.find(":") + 1);
 
-    if (istrequal(prop_key, "type") || istrequal(prop_key, "backbone")) {
+    bool filter_key_found = false;
+    for (auto const &filter_key : filter_props)
+      if (istrequal(prop_key, filter_key))
+        filter_key_found = true;
+    if (filter_key_found)
       continue;
-    }
 
     std::string value = iniparser_getstring(ini, key_refs[i], unknown);
 
@@ -293,7 +299,8 @@ int ModelLoader::loadLayerConfigIniCommon(dictionary *ini,
                                           const std::string &layer_name,
                                           const std::string &layer_type) {
   int status = ML_ERROR_NONE;
-  std::vector<std::string> properties = parseProperties(ini, layer_name);
+  std::vector<std::string> properties =
+    parseProperties(ini, layer_name, {"type", "backbone"});
 
   try {
     std::shared_ptr<ml::train::Layer> layer_ =
