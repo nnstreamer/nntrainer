@@ -49,9 +49,17 @@ int ModelLoader::loadOptimizerConfigIni(dictionary *ini, NeuralNetwork &model) {
   int status = ML_ERROR_NONE;
 
   if (iniparser_find_entry(ini, "Optimizer") == 0) {
-    ml_logw("there is no [Optimizer] section in given ini file."
-            "This model can only be used for inference.");
+    if (!model.opt) {
+      ml_logw("there is no [Optimizer] section in given ini file."
+              "This model can only be used for inference.");
+    }
     return ML_ERROR_NONE;
+  }
+
+  /** Optimizer already set with deprecated method */
+  if (model.opt) {
+    ml_loge("Error: optimizers specified twice.");
+    return ML_ERROR_INVALID_PARAMETER;
   }
 
   /** Default to adam optimizer */
@@ -97,6 +105,78 @@ int ModelLoader::loadModelConfigIni(dictionary *ini, NeuralNetwork &model) {
   }
   model.batch_size =
     iniparser_getint(ini, "Model:Batch_Size", model.batch_size);
+
+  /**
+   ********
+   * Note: Below is only to maintain backward compatibility
+   ********
+   */
+
+  /** If no optimizer specified, exit without error */
+  const char *opt_type = iniparser_getstring(ini, "Model:Optimizer", unknown);
+  if (opt_type == unknown)
+    return status;
+
+  if (model.opt) {
+    /** Optimizer already set with a new section */
+    ml_loge("Error: optimizers specified twice.");
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
+  ml_logw("Warning: using deprecated ini style for optimizers.");
+  ml_logw(
+    "Warning: create [ Optimizer ] section in ini to specify optimizers.");
+
+  try {
+    model.opt = nntrainer::createOptimizer(opt_type);
+  } catch (std::exception &e) {
+    ml_loge("%s %s", typeid(e).name(), e.what());
+    return ML_ERROR_INVALID_PARAMETER;
+  } catch (...) {
+    ml_loge("Creating the optimizer failed");
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
+  std::vector<std::string> optimizer_prop = {};
+  optimizer_prop.push_back(
+    {"learning_rate=" +
+     std::string(iniparser_getstring(
+       ini, "Model:Learning_rate",
+       std::to_string(model.opt->getLearningRate()).c_str()))});
+
+  if (model.opt->getType() == SGD::type || model.opt->getType() == Adam::type) {
+    std::shared_ptr<OptimizerImpl> opt_impl =
+      std::static_pointer_cast<OptimizerImpl>(model.opt);
+
+    optimizer_prop.push_back(
+      {"decay_steps=" + std::string(iniparser_getstring(
+                          ini, "Model:Decay_steps",
+                          std::to_string(opt_impl->getDecaySteps()).c_str()))});
+    optimizer_prop.push_back(
+      {"decay_rate=" + std::string(iniparser_getstring(
+                         ini, "Model:Decay_rate",
+                         std::to_string(opt_impl->getDecayRate()).c_str()))});
+
+    if (opt_impl->getType() == "adam") {
+      std::shared_ptr<Adam> opt_adam = std::static_pointer_cast<Adam>(opt_impl);
+
+      optimizer_prop.push_back(
+        {"beta1=" +
+         std::string(iniparser_getstring(
+           ini, "Model:Beta1", std::to_string(opt_adam->getBeta1()).c_str()))});
+      optimizer_prop.push_back(
+        {"beta2=" +
+         std::string(iniparser_getstring(
+           ini, "Model:Beta2", std::to_string(opt_adam->getBeta2()).c_str()))});
+      optimizer_prop.push_back(
+        {"epsilon=" + std::string(iniparser_getstring(
+                        ini, "Model:Epsilon",
+                        std::to_string(opt_adam->getEpsilon()).c_str()))});
+    }
+  }
+
+  status = model.opt->setProperty(optimizer_prop);
+  NN_RETURN_STATUS();
 
   return status;
 }

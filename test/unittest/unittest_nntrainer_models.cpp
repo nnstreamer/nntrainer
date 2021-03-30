@@ -694,7 +694,7 @@ INI conv_basic(
 INI conv_same_padding(
   "conv_same_padding",
   {
-    nn_base + "learning_rate=0.1 | optimizer=sgd | loss=cross | batch_size=3",
+    nn_base + "loss=cross | batch_size=3",
     sgd_base + "learning_rate = 0.1",
     I("input") + input_base + "input_shape=2:5:3",
     I("conv2d_c1") + conv_base +
