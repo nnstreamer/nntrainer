@@ -78,6 +78,16 @@ void NetworkGraph::updateConnectionName(const std::string &from,
   }
 }
 
+void NetworkGraph::addDefaultInputLayers() {
+  for (unsigned int i = 1; i < adj.size(); ++i) {
+    auto &layer = adj[i].front().layer;
+    auto &prev_layer = adj[i - 1].front().layer;
+    if (layer->input_layers.size() == 0) {
+      layer->input_layers.push_back(prev_layer->getName());
+    }
+  }
+}
+
 void NetworkGraph::addLayerNode(std::shared_ptr<Layer> layer) {
   std::list<LayerNode> l;
   std::unique_ptr<LayerNode> node = std::make_unique<LayerNode>();
@@ -505,6 +515,8 @@ int NetworkGraph::checkCompiledGraph() {
 int NetworkGraph::realizeGraph() {
 
   int status = ML_ERROR_NONE;
+
+  addDefaultInputLayers();
 
   setOutputLayers();
 
