@@ -510,7 +510,9 @@ int main(int argc, char *argv[]) {
   try {
     const std::string data_path =
       nntrainer::AppContext::Global().getWorkingPath("model_draw_cls.bin");
-    remove(data_path.c_str());
+    if (remove(data_path.c_str())) {
+      std::cerr << "failed to remove models_draw_cls.bin file\n";
+    }
   } catch (std::exception &e) {
     std::cerr << "failed to get working data_path, reason: " << e.what();
     return 1;

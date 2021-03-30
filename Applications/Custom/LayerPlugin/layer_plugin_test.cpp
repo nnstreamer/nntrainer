@@ -73,11 +73,15 @@ TEST(AppContext, DefaultEnvironmentPath_p) {
 
   std::ifstream input_file("does_not_exist");
   EXPECT_NO_THROW(layer->read(input_file));
-  remove("does_not_exist");
+  if (remove("does_not_exist")) {
+    std::cerr << "failed to remove file\n";
+  }
 
   std::ofstream output_file("does_not_exist");
   EXPECT_NO_THROW(layer->save(output_file));
-  remove("does_not_exist");
+  if (remove("does_not_exist")) {
+    std::cerr << "failed to remove file\n";
+  }
 
   EXPECT_NO_THROW(layer->getName());
   EXPECT_NE(layer->setProperty({"invalid_values"}), ML_ERROR_NONE);
