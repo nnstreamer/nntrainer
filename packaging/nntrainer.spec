@@ -62,7 +62,7 @@ Source2005:	unittest_layers.tar.gz
 
 BuildRequires:	meson >= 0.50.0
 BuildRequires:	openblas-devel
-BuildRequires:	iniparser-devel
+BuildRequires:	iniparser-devel >= 4.1
 BuildRequires:	gtest-devel
 BuildRequires:	python3
 BuildRequires:	python3-numpy
@@ -131,7 +131,7 @@ NNtrainer Meta package for tizen
 
 %package core
 Summary:	Software framework for training neural networks
-Requires:	iniparser
+Requires:	iniparser >= 4.1
 Requires:	libopenblas_pthreads0
 
 %description core
@@ -140,7 +140,6 @@ NNtrainer is Software Framework for Training Neural Network Models on Devices.
 %package devel
 Summary:	Development package for custom nntrainer developers
 Requires:	nntrainer = %{version}-%{release}
-Requires:	iniparser-devel
 Requires:	openblas-devel
 Requires:	%{capi_machine_learning_common}-devel
 
@@ -157,7 +156,6 @@ Static library package of nntrainer-devel
 %package applications
 Summary:	NNTrainer Examples
 Requires:	nntrainer = %{version}-%{release}
-Requires:	iniparser
 Requires:	%{capi_machine_learning_inference}
 Requires:	nnstreamer-tensorflow-lite
 BuildRequires:  nnstreamer-test-devel
@@ -330,7 +328,6 @@ meson test -C build -t 2.0 --print-errorlogs
 %if 0%{?nnstreamer_filter}
 pushd test/nnstreamer
 ssat
-# bash runTest.sh
 popd
 %endif #nnstreamer_filter
 %endif #unit_test
