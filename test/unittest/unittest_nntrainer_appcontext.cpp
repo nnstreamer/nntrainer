@@ -104,7 +104,8 @@ public:
 
   void addOptimizerVariable(std::vector<nntrainer::Weight> &params) override {}
 
-  void setProperty(const PropertyType type, const std::string &value = "") override {}
+  void setProperty(const PropertyType type,
+                   const std::string &value = "") override {}
 
   void checkValidation() const override {}
 
@@ -134,7 +135,8 @@ public:
 
   int setProperty(std::vector<std::string> values) override { return 1; }
 
-  void setProperty(const PropertyType type, const std::string &value = "") override {}
+  void setProperty(const PropertyType type,
+                   const std::string &value = "") override {}
 
   int checkValidation() override { return 1; }
 

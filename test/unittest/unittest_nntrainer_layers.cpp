@@ -1803,7 +1803,7 @@ TEST_F(nntrainer_Pooling2DLayer, backwarding_02_p) {
 TEST_F(nntrainer_Pooling2DLayer, backwarding_03_p) {
   resetLayer();
   setInputDim("2:5:5");
-  setProperty("pool_size=2,2 | stride=1,1 | padding=0,0 | pooling=global_max");
+  setProperty("pooling=global_max");
   initialize();
   allocateMemory();
 
@@ -1826,8 +1826,7 @@ TEST_F(nntrainer_Pooling2DLayer, backwarding_03_p) {
 
 TEST_F(nntrainer_Pooling2DLayer, backwarding_04_p) {
   setInputDim("2:5:5");
-  setProperty(
-    "pool_size=2,2 | stride=1,1 | padding=0,0 | pooling=global_average");
+  setProperty("pooling=global_average");
   initialize();
   allocateMemory();
   loadFile("tc_pooling2d_1.in", in);
