@@ -338,9 +338,14 @@ private:
   int addLossLayer(const LossType loss_type);
 
   /**
-   * @brief     set Multi Output Layer
+   * @brief     set output connections for all the layers
    */
   void setOutputLayers();
+
+  /**
+   * @brief     set default input layer connections
+   */
+  void addDefaultInputLayers();
 
   /**
    * @brief     Ensure that layer has a name.
