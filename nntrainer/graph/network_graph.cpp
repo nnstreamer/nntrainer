@@ -327,8 +327,7 @@ int NetworkGraph::addLossLayer(const LossType loss_type) {
     return status;
 
   if (loss_type == LossType::LOSS_NONE) {
-    status = ML_ERROR_INVALID_PARAMETER;
-    NN_RETURN_STATUS();
+    return ML_ERROR_NONE;
   }
 
   LossType updated_loss_type = loss_type;
