@@ -170,6 +170,11 @@ private:
     return model_file_context->getWorkingPath(app_context_resolved_path);
   }
 
+  /**
+   * @brief parse all the properties for a given section
+   * @param[in] ini dictionary containing the config
+   * @param[in] section_name name of the section for properties to parse
+   */
   std::vector<std::string> parseProperties(dictionary *ini,
                                            const std::string &section_name);
 
