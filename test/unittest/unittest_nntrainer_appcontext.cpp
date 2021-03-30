@@ -92,39 +92,39 @@ TEST_F(nntrainerAppContextDirectory, notExisitingSetDirectory_n) {
 class CustomOptimizer : public nntrainer::Optimizer {
 public:
   /** Full custom optimizer example which overrides all functions */
-  const std::string getType() const { return "identity_optimizer"; }
+  const std::string getType() const override { return "identity_optimizer"; }
 
-  float getLearningRate() { return 1.0f; }
+  float getLearningRate() const override { return 1.0f; }
 
-  double getLearningRate(size_t iteration) const { return 1.0f; }
+  double getLearningRate(size_t iteration) const override { return 1.0f; }
 
-  int setProperty(std::vector<std::string> values) { return 1; }
+  int setProperty(std::vector<std::string> values) override { return 1; }
 
-  int initialize() { return 0; }
+  int initialize() override { return 0; }
 
-  void addOptimizerVariable(std::vector<nntrainer::Weight> &params) {}
+  void addOptimizerVariable(std::vector<nntrainer::Weight> &params) override {}
 
-  void setProperty(const PropertyType type, const std::string &value = "") {}
+  void setProperty(const PropertyType type, const std::string &value = "") override {}
 
-  void checkValidation() {}
+  void checkValidation() const override {}
 
   void applyGradient(nntrainer::Weight &weight, double updated_lr,
-                     int iteration) {}
+                     int iteration) override {}
 };
 
 class CustomOptimizer2 : public nntrainer::Optimizer {
 public:
   /** Minimal custom optimizer example which define only necessary functions */
-  const std::string getType() const { return "identity_optimizer"; }
+  const std::string getType() const override { return "identity_optimizer"; }
 
-  int initialize() { return 0; }
+  int initialize() override { return 0; }
 
-  double getLearningRate(size_t iteration) const { return 1.0f; }
+  double getLearningRate(size_t iteration) const override { return 1.0f; }
 
-  void addOptimizerVariable(std::vector<nntrainer::Weight> &params) {}
+  void addOptimizerVariable(std::vector<nntrainer::Weight> &params) override {}
 
   void applyGradient(nntrainer::Weight &weight, double updated_lr,
-                     int iteration) {}
+                     int iteration) override {}
 };
 
 /// @todo solidify the api signature
@@ -132,23 +132,23 @@ class CustomLayer : public ml::train::Layer {
 public:
   static const std::string type;
 
-  int setProperty(std::vector<std::string> values) { return 1; }
+  int setProperty(std::vector<std::string> values) override { return 1; }
 
-  void setProperty(const PropertyType type, const std::string &value = "") {}
+  void setProperty(const PropertyType type, const std::string &value = "") override {}
 
-  int checkValidation() { return 1; }
+  int checkValidation() override { return 1; }
 
-  float getLoss() { return 0.0f; }
+  float getLoss() override { return 0.0f; }
 
-  void setTrainable(bool train) {}
+  void setTrainable(bool train) override {}
 
-  bool getFlatten() { return true; }
+  bool getFlatten() override { return true; }
 
-  std::string getName() noexcept { return ""; }
+  std::string getName() noexcept override { return ""; }
 
-  const std::string getType() const { return CustomLayer::type; }
+  const std::string getType() const override { return CustomLayer::type; }
 
-  void printPreset(std::ostream &out, PrintPreset preset) {}
+  void printPreset(std::ostream &out, PrintPreset preset) override {}
 };
 
 const std::string CustomLayer::type = "identity_layer";
