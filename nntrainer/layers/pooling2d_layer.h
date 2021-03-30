@@ -141,7 +141,17 @@ private:
   std::array<unsigned int, POOLING2D_DIM> padding;
   std::vector<int>
     max_idx; /**< in case of max pool, idx that points to the first max item
-                  in case of avearge pol, effective average counter */
+                  in case of avearge pol, effective average counter
+                  effective average counter is number of patches actually
+                  counted into when calculating the average
+                  // clang-format off
+                  eg) pooling of below
+                  x x x
+                  x 3 3
+                  x 3 3
+                  = 12 / 4 = 3
+                  // clang-format on
+              */
   std::vector<std::vector<int>> max_idx_global;
   PoolingType pooling_type;
 

@@ -34,6 +34,11 @@ int Pooling2DLayer::initialize(Manager &manager) {
     return ML_ERROR_INVALID_PARAMETER;
   }
 
+  if (input_dim.size() != 1) {
+    ml_loge("[Pooling2D] pooling layer only accepts number of one layer");
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
   TensorDim &in_dim = input_dim[0];
   TensorDim &out_dim = output_dim[0];
 
@@ -43,23 +48,22 @@ int Pooling2DLayer::initialize(Manager &manager) {
 
   if (pooling_type == PoolingType::global_max ||
       pooling_type == PoolingType::global_average) {
-    if (pool_size[0] != in_dim.height() || pool_size[1] != in_dim.width()) {
-      ml_logw(
+    if (pool_size[0] != 0 || pool_size[1] != 0) {
+      ml_loge(
         "[Pooling2D] global_max, global_average does not accept pool size");
-      pool_size[0] = in_dim.height();
-      pool_size[1] = in_dim.width();
+      return ML_ERROR_INVALID_PARAMETER;
     }
+    pool_size[0] = in_dim.height();
+    pool_size[1] = in_dim.width();
 
     if (padding[0] != 0 || padding[1] != 0) {
-      ml_logw("[Pooling2D] global_max, global_average does not accept padding");
-      padding[0] = 0;
-      padding[1] = 0;
+      ml_loge("[Pooling2D] global_max, global_average does not accept padding");
+      return ML_ERROR_INVALID_PARAMETER;
     }
 
     if (stride[0] != 1 || stride[1] != 1) {
-      ml_logw("[Pooling2D] global_max, global_average does not accept stride");
-      stride[0] = 1;
-      stride[1] = 1;
+      ml_loge("[Pooling2D] global_max, global_average does not accept stride");
+      return ML_ERROR_INVALID_PARAMETER;
     }
   }
 
