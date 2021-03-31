@@ -18,7 +18,7 @@ run_entry() {
 if [ -f "$1" ]; then
     echo $1
     run_entry $1
-    return $?
+    exit $?
 elif [ -d "$1" ]; then
     testlist=$(find $1 -type f -executable -name "unittest_*")
     for t in ${testlist}; do
