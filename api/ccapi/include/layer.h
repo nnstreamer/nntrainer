@@ -107,6 +107,7 @@ public:
    *            31. in_dim : int ( input dimension for embedding layer )
    *            32. out_dim : int ( output dimesion for embedding layer )
    *            33. in_length : int ( input length for embedding layer )
+   *            34. recurrent_activation :  string (type) - lstm
    */
   enum class PropertyType {
     input_shape = 0,
@@ -143,6 +144,7 @@ public:
     in_dim = 31,
     out_dim = 32,
     in_length = 33,
+    recurrent_activation = 34,
     unknown
   };
 

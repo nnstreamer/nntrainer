@@ -17,7 +17,8 @@ layer_sources = [
   'preprocess_translate_layer.cpp',
   'embedding.cpp',
   'rnn.cpp',
-  'acti_func.cpp'
+  'acti_func.cpp',
+  'lstm.cpp'
 ]
 
 layer_headers = [
