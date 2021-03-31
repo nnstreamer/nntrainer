@@ -136,6 +136,16 @@ private:
    * @brief     activation function for recurrent : default is sigmoid
    */
   ActiFunc recurrent_acti_func;
+
+  /**
+   * @brief     To save hidden state variable ( batch, 1, 1, unit )
+   */
+  Tensor h_prev;
+
+  /**
+   * @brief     To save memory cell variable ( batch, 1, 1, unit )
+   */
+  Tensor c_prev;
 };
 } // namespace nntrainer
 
