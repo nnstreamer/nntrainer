@@ -26,11 +26,69 @@ const std::string LSTMLayer::type = "lstm";
 
 enum LSTMParams { weight_xh, weight_hh, bias_h };
 
+#define NUM_GATE 4
+
+// - weight_xh ( input to hidden )
+//  : [1, 1, input_sizex4, unit (hidden_size) ] -> f, g, i, o
+// - weight_hh ( hidden to hidden )
+//  : [1, 1, unit (hidden_size) x 4, unit (hidden_size)] -> f, g, i, o
+// - bias_h ( hidden bias )
+//  : [1, 1, 4, unit (hidden_size)] -> f, g, i, o
 int LSTMLayer::initialize(Manager &manager) {
   int status = ML_ERROR_NONE;
   if (getNumInputs() != 1) {
     throw std::invalid_argument("LSTM layer takes only one input");
   }
+
+  // input_dim = [ batch, 1, time_iterantion, feature_size ]
+  // outut_dim = [ batch, 1, time_iteration, hidden_size ( unit ) ]
+  output_dim[0] = input_dim[0];
+  output_dim[0].width(unit);
+
+  TensorDim bias_dim = TensorDim();
+  bias_dim.setTensorDim(3, unit);
+  bias_dim.height(NUM_GATE);
+
+  TensorDim dim_xh = output_dim[0];
+  dim_xh.height(input_dim[0].width() * NUM_GATE);
+  dim_xh.batch(1);
+
+  TensorDim dim_hh = output_dim[0];
+  dim_hh.height(unit * NUM_GATE);
+  dim_hh.batch(1);
+
+  if (weights.empty()) {
+    weights.reserve(3);
+    // weight_initializer can be set sepeartely. weight_xh initializer,
+    // weight_hh initializer kernel initializer & recurrent_initializer in keras
+    // for now, it is set same way.
+    weights.emplace_back(dim_xh, weight_initializer, weight_regularizer,
+                         weight_regularizer_constant, true, "LSTM:weight_xh");
+    weights.emplace_back(dim_hh, weight_initializer, weight_regularizer,
+                         weight_regularizer_constant, true, "LSTM:weight_hh");
+    weights.emplace_back(bias_dim, bias_initializer, WeightRegularizer::NONE,
+                         1.0f, true, "LSTM:bias_h");
+    manager.trackWeights(weights);
+  } else {
+    weights[LSTMParams::weight_xh].reset(dim_xh, weight_initializer,
+                                         weight_regularizer,
+                                         weight_regularizer_constant, true);
+    weights[LSTMParams::weight_hh].reset(dim_hh, weight_initializer,
+                                         weight_regularizer,
+                                         weight_regularizer_constant, true);
+    weights[LSTMParams::bias_h].reset(bias_dim, bias_initializer,
+                                      WeightRegularizer::NONE, 1.0f, true);
+  }
+
+  TensorDim cell_dim = TensorDim();
+  cell_dim.setTensorDim(3, unit);
+  cell_dim.batch(input_dim[0].batch());
+
+  h_prev = Tensor(cell_dim);
+  h_prev.setZero();
+
+  c_prev = Tensor(cell_dim);
+  c_prev.setZero();
 
   return status;
 }
