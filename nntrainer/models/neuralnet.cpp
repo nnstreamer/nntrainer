@@ -26,13 +26,20 @@
 #include <fstream>
 #include <sstream>
 
+#include <activation_layer.h>
+#include <bn_layer.h>
+#include <conv2d_layer.h>
 #include <databuffer_file.h>
 #include <databuffer_func.h>
+#include <fc_layer.h>
+#include <flatten_layer.h>
+#include <input_layer.h>
 #include <model_loader.h>
 #include <neuralnet.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <parse_util.h>
+#include <pooling2d_layer.h>
 #include <profiler.h>
 #include <unordered_set>
 #include <util_func.h>

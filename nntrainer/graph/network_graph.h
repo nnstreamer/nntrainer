@@ -23,6 +23,7 @@
 #include <vector>
 
 #include <layer_internal.h>
+#include <loss_layer.h>
 
 namespace nntrainer {
 

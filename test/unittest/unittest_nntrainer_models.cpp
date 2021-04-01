@@ -17,6 +17,7 @@
 
 #include <gtest/gtest.h>
 
+#include <activation_layer.h>
 #include <bn_layer.h>
 #include <input_layer.h>
 #include <layer.h>

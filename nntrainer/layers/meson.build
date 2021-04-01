@@ -22,7 +22,9 @@ layer_sources = [
 
 layer_headers = [
   'layer_factory.h',
-  'layer_internal.h'
+  'layer_internal.h',
+  'acti_func.h',
+  'loss_layer.h'
 ]
 
 layer_deps = []

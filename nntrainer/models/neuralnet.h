@@ -31,22 +31,15 @@
 #include <chrono>
 #endif
 
-#include <activation_layer.h>
 #include <app_context.h>
-#include <bn_layer.h>
-#include <conv2d_layer.h>
 #include <databuffer.h>
 #include <dynamic_training_optimization.h>
-#include <fc_layer.h>
-#include <flatten_layer.h>
-#include <input_layer.h>
 #include <layer_internal.h>
 #include <loss_layer.h>
 #include <manager.h>
 #include <ml-api-common.h>
 #include <network_graph.h>
 #include <optimizer_devel.h>
-#include <pooling2d_layer.h>
 #include <tensor.h>
 
 #include <model.h>

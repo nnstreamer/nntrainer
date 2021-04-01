@@ -6,4 +6,5 @@ Name : nntrainer
 Version : @VERSION@
 Description: Software Framework for Training Neural Network on Device
 Libs: -L${libdir} -lnntrainer
+Requires: capi-ml-common
 Cflags: -I${includedir}/nntrainer
