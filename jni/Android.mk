@@ -126,6 +126,7 @@ NNTRAINER_SRCS := $(NNTRAINER_ROOT)/nntrainer/models/neuralnet.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/utils/util_func.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/utils/parse_util.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/utils/profiler.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/compiler/compiler.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/app_context.cpp
 
 # Add tflite backbone building
@@ -141,6 +142,7 @@ NNTRAINER_INCLUDES := $(NNTRAINER_ROOT)/nntrainer \
                       $(NNTRAINER_ROOT)/nntrainer/optimizers \
                       $(NNTRAINER_ROOT)/nntrainer/utils \
                       $(NNTRAINER_ROOT)/nntrainer/graph \
+                      $(NNTRAINER_ROOT)/nntrainer/compiler \
                       $(NNTRAINER_ROOT)/api \
                       $(NNTRAINER_ROOT)/api/ccapi/include \
                       $(NNTRAINER_ROOT)/api/capi/include/platform

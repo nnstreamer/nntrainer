@@ -52,3 +52,4 @@ foreach target: test_target
   test(target, exe, args: ['--gtest_output=xml:@0@/@1@.xml'.format(meson.build_root(), target)] )
 endforeach
 
+subdir('compiler')
