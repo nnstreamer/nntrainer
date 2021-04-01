@@ -49,6 +49,7 @@ enum LayerType {
   LAYER_BACKBONE_TFLITE,                      /** Backbone using TFLite */
   LAYER_EMBEDDING,                            /** Embedding Layer type */
   LAYER_RNN,                                  /** RNN Layer type */
+  LAYER_LSTM,                                 /** LSTM Layer type */
   LAYER_UNKNOWN = ML_TRAIN_LAYER_TYPE_UNKNOWN /** Unknown */
 };
 
@@ -106,6 +107,7 @@ public:
    * - out_dim : int ( output dimesion for embedding layer )
    * - in_length : int ( input length for embedding layer )
    * - recurrent_activation : string (type) - used only in lstm
+   * - dist_layer : string (type) - layer name to be distributed
    */
   /**
    * @brief     set Property of layer
@@ -265,6 +267,14 @@ Embedding(const std::vector<std::string> &properties = {}) {
 inline std::unique_ptr<Layer>
 RNN(const std::vector<std::string> &properties = {}) {
   return createLayer(LayerType::LAYER_RNN, properties);
+}
+
+/**
+ * @brief Helper function to create LSTM layer
+ */
+inline std::unique_ptr<Layer>
+LSTM(const std::vector<std::string> &properties = {}) {
+  return createLayer(LayerType::LAYER_LSTM, properties);
 }
 
 /**

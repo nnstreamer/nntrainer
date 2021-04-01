@@ -146,6 +146,8 @@ private:
    * @brief     To save memory cell variable ( batch, 1, 1, unit )
    */
   Tensor c_prev;
+
+  std::shared_ptr<Var_Grad> mem_cell;
 };
 } // namespace nntrainer
 
