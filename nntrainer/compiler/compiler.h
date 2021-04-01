@@ -37,13 +37,65 @@
  * @bug No known bugs except for NYI items
  */
 
+#include <iostream>
+#include <memory>
+
 namespace nntrainer {
 
 class ExecutableGraph;
 
 class GraphRepresentation;
 
-class GraphCompiler;
+/**
+ * @brief Pure virtual class for the Graph Compiler
+ *
+ */
+class GraphCompiler {
+public:
+  virtual ~GraphCompiler() {}
+  /**
+   * @brief serialize graph to a file stream
+   *
+   * @param representation graph representation
+   * @param file ifstream to serialize graph
+   */
+  virtual std::shared_ptr<ExecutableGraph>
+  compile(const GraphRepresentation &representation) = 0;
+
+  /**
+   * @brief deserialize graph from a file stream
+   *
+   * @param executable executable graph
+   * @return GraphRepresentation graph representation
+   */
+  virtual GraphRepresentation
+  decompile(std::shared_ptr<ExecutableGraph> executable) = 0;
+};
+
+/**
+ * @brief Pure virtual class for the Graph Interpreter
+ *
+ */
+class GraphInterpreter {
+public:
+  virtual ~GraphInterpreter() {}
+  /**
+   * @brief serialize graph to a stream
+   *
+   * @param representation graph representation
+   * @param out outstream to serialize graph
+   */
+  virtual void serialize(const GraphRepresentation &representation,
+                         std::ostream &out) = 0;
+
+  /**
+   * @brief deserialize graph from a stream
+   *
+   * @param in in stream to deserialize
+   * @return GraphRepresentation graph representation
+   */
+  virtual GraphRepresentation deserialize(std::istream &in) = 0;
+};
 
 class GraphInterpreter;
 
