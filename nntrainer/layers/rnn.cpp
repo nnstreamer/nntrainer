@@ -133,7 +133,7 @@ void RNNLayer::forwarding(bool training) {
     Tensor oslice = hidden_.getBatchSlice(b, 1);
 
     for (unsigned int t = 0; t < islice.height(); ++t) {
-      Tensor xs = input_.getSharedDataTensor(TensorDim(1, 1, 1, islice.width()),
+      Tensor xs = islice.getSharedDataTensor(TensorDim(1, 1, 1, islice.width()),
                                              t * islice.width());
       // Calculate Hidden
       // activation(xs.dot(weight_xh).add(hs_prev.dot(weight_hh).add(bias_h)));
