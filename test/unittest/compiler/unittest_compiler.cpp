@@ -13,5 +13,3 @@
 #include <gtest/gtest.h>
 
 #include <compiler.h>
-
-TEST(scaffoldingTest, sampleTest) { EXPECT_NO_THROW(nntrainer::hello_world()); }

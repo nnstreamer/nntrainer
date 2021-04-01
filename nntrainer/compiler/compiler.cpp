@@ -10,10 +10,4 @@
  * @bug No known bugs except for NYI items
  */
 
-#include <iostream>
-
-namespace nntrainer {
-
-void hello_world() { std::cout << "hello_world\n"; }
-
-} // namespace nntrainer
+namespace nntrainer {} // namespace nntrainer
