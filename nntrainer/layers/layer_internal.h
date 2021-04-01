@@ -57,7 +57,8 @@ public:
         WeightInitializer weight_initializer_ =
           WeightInitializer::WEIGHT_XAVIER_UNIFORM,
         WeightInitializer bias_initializer_ = WeightInitializer::WEIGHT_ZEROS,
-        bool trainable_ = true, bool flatten_ = false) :
+        bool trainable_ = true, bool flatten_ = false,
+        bool distribute_ = false) :
     name(std::string()),
     loss(0.0f),
     activation_type(activation_type_),
@@ -66,7 +67,8 @@ public:
     weight_initializer(weight_initializer_),
     bias_initializer(bias_initializer_),
     flatten(flatten_),
-    trainable(trainable_) {
+    trainable(trainable_),
+    distribute(distribute_) {
     setNumInputs(1);
     setNumOutputs(1);
   }
@@ -215,7 +217,7 @@ public:
    *            32. out_dim : int ( output dimesion for embedding layer )
    *            33. in_length : int ( input length for embedding layer )
    *            34. recurrent_activation :  string (type) - lstm
-   *            35. dist_layer : string (type) - layer name to be distributed
+   *            35. distribute : bool
    */
   enum class PropertyType {
     input_shape = 0,
@@ -253,7 +255,7 @@ public:
     out_dim = 32,
     in_length = 33,
     recurrent_activation = 34,
-    dist_layer = 35,
+    distribute = 35,
     unknown
   };
 
@@ -318,6 +320,18 @@ public:
    * @retval train to enable/disable train
    */
   virtual bool getTrainable() noexcept { return trainable; }
+
+  /**
+   * @brief     set distribute for this layer
+   * @param[in] dist to enable/disable distribute
+   */
+  virtual void setDistribute(bool dist) { distribute = dist; }
+
+  /**
+   * @brief     get distribute for this layer
+   * @retval dist to enable/disable distribute
+   */
+  virtual bool getDistribute() noexcept { return distribute; }
 
   /**
    * @brief     get all weights of the layer
@@ -520,6 +534,11 @@ protected:
    * @brief     making this false will skip updating this layer variables
    */
   bool trainable;
+
+  /*
+   * @brief     making this true will iterating along with time distribution
+   */
+  bool distribute;
 
   /**
    * @brief     weight_list in this layer. This contains all weights of the

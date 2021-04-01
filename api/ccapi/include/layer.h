@@ -50,6 +50,7 @@ enum LayerType {
   LAYER_EMBEDDING,                            /** Embedding Layer type */
   LAYER_RNN,                                  /** RNN Layer type */
   LAYER_LSTM,                                 /** LSTM Layer type */
+  LAYER_TIME_DIST,                            /** Time Distributed Layer type */
   LAYER_UNKNOWN = ML_TRAIN_LAYER_TYPE_UNKNOWN /** Unknown */
 };
 
@@ -107,6 +108,7 @@ public:
    * - out_dim : int ( output dimesion for embedding layer )
    * - in_length : int ( input length for embedding layer )
    * - recurrent_activation : string (type) - used only in lstm
+   * - distribute : bool
    */
   /**
    * @brief     set Property of layer
@@ -274,6 +276,14 @@ RNN(const std::vector<std::string> &properties = {}) {
 inline std::unique_ptr<Layer>
 LSTM(const std::vector<std::string> &properties = {}) {
   return createLayer(LayerType::LAYER_LSTM, properties);
+}
+
+/**
+ * @brief Helper function to create Time Distributed layer
+ */
+inline std::unique_ptr<Layer>
+TimeDistLayer(const std::vector<std::string> &properties = {}) {
+  return createLayer(LayerType::LAYER_TIME_DIST, properties);
 }
 
 /**

@@ -29,10 +29,7 @@ public:
   /**
    * @brief     Constructor of Time Distribution Layer
    */
-  template <typename... Args>
-  TimeDistLayer(std::shared_ptr<Layer> iter_, Args... args) :
-    Layer(args...),
-    iter(iter_) {}
+  template <typename... Args> TimeDistLayer(Args... args) : Layer(args...) {}
 
   /**
    * @brief     Destructor of Time Distributed Layer
@@ -84,23 +81,12 @@ public:
    */
   const std::string getType() const override { return TimeDistLayer::type; };
 
-  using Layer::setProperty;
-
-  /**
-   * @copydoc Layer::setProperty(const PropertyType type, const std::string
-   * &value)
-   */
-  void setProperty(const PropertyType type,
-                   const std::string &value = "") override;
-
   static const std::string type;
 
 private:
   /* @brief Layer to be distributed through time */
-  std::shared_ptr<Layer> iter;
 
-  /* @brief Name of Layer be distributed through time */
-  std::string iter_name;
+  std::shared_ptr<Layer> dist_layer;
 };
 } // namespace nntrainer
 
