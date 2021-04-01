@@ -249,6 +249,7 @@ unsigned int parseType(std::string ll, InputType t) {
  * out_dim = 32
  * in_length = 33
  * recurrent_activation = 34
+ * dist_layer = 35
  *
  * InputLayer has 0, 1, 2, 3 properties.
  * FullyConnectedLayer has 1, 4, 6, 7, 8, 9 properties.
@@ -256,7 +257,7 @@ unsigned int parseType(std::string ll, InputType t) {
  * Pooling2DLayer has 12, 13, 14, 15 properties.
  * BatchNormalizationLayer has 0, 1, 5, 6, 7 properties.
  */
-static std::array<std::string, 36> property_string = {
+static std::array<std::string, 37> property_string = {
   "input_shape",
   "normalization",
   "standardization",
@@ -292,6 +293,7 @@ static std::array<std::string, 36> property_string = {
   "out_dim",
   "in_length",
   "recurrent_activation",
+  "dist_layer"
   "unknown"};
 
 unsigned int parseLayerProperty(std::string property) {
