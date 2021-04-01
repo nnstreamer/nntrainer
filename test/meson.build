@@ -3,14 +3,11 @@ run_command('mkdir', '-p', nntrainer_test_resdir)
 
 nntrainer_test_inc = include_directories('./include')
 
-nntrainer_test_deps = [
-  nntrainer_dep
-]
 
 nntrainer_testutil_lib = static_library(
   'nntrainer_test_util',
   'nntrainer_test_util.cpp',
-  dependencies: [nntrainer_test_deps],
+  dependencies: [nntrainer_dep],
   include_directories: nntrainer_test_inc
 )
 
@@ -19,8 +16,17 @@ nntrainer_testutil_dep = declare_dependency(
   include_directories: nntrainer_test_inc
 )
 
-nntrainer_test_deps += nntrainer_testutil_dep
-nntrainer_test_deps += gtest_dep
+nntrainer_test_deps = [
+  nntrainer_dep,
+  nntrainer_testutil_dep,
+  gtest_dep
+]
+
+nntrainer_test_main_deps = [
+  nntrainer_dep,
+  nntrainer_testutil_dep,
+  gtest_main_dep
+]
 
 if get_option('enable-capi')
   subdir('tizen_capi')

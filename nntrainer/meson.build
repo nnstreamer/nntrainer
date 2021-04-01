@@ -21,6 +21,7 @@ if build_platform == 'tizen'
 endif
 
 nntrainer_elements = [
+  'compiler',
   'dataset',
   'layers',
   'models',
