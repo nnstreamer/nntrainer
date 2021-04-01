@@ -40,7 +40,7 @@ int LSTMLayer::initialize(Manager &manager) {
     throw std::invalid_argument("LSTM layer takes only one input");
   }
 
-  // input_dim = [ batch, 1, time_iterantion, feature_size ]
+  // input_dim = [ batch, 1, time_iteration, feature_size ]
   // outut_dim = [ batch, 1, time_iteration, hidden_size ( unit ) ]
   output_dim[0] = input_dim[0];
   output_dim[0].width(unit);
@@ -165,18 +165,16 @@ void LSTMLayer::forwarding(bool training) {
     Tensor cell = m_cell_.getBatchSlice(b, 1);
 
     for (unsigned int t = 0; t < islice.height(); ++t) {
-      Tensor xs = input_.getSharedDataTensor(TensorDim(1, 1, 1, islice.width()),
-                                             t * islice.width());
-      hs = oslice.getSharedDataTensor(TensorDim(1, 1, 1, oslice.width()),
-                                      t * oslice.width());
-      cs = cell.getSharedDataTensor(TensorDim(1, 1, 1, cell.width()),
-                                    t * cell.width());
+      Tensor xs =
+        input_.getSharedDataTensor({islice.width()}, t * islice.width());
+      hs = oslice.getSharedDataTensor({oslice.width()}, t * oslice.width());
+      cs = cell.getSharedDataTensor({cell.width()}, t * cell.width());
 
       if (t > 0) {
-        hs_prev = oslice.getSharedDataTensor(TensorDim(1, 1, 1, oslice.width()),
+        hs_prev = oslice.getSharedDataTensor({oslice.width()},
                                              (t - 1) * oslice.width());
-        cs_prev = cell.getSharedDataTensor(TensorDim(1, 1, 1, cell.width()),
-                                           (t - 1) * cell.width());
+        cs_prev =
+          cell.getSharedDataTensor({cell.width()}, (t - 1) * cell.width());
       } else {
         hs_prev = h_prev.getBatchSlice(b, 1);
         cs_prev = c_prev.getBatchSlice(b, 1);
@@ -185,10 +183,10 @@ void LSTMLayer::forwarding(bool training) {
       temp.add_i(bias_h);
       temp.add_i(xs.dot(weight_xh));
 
-      f = temp.getSharedDataTensor(TensorDim(1, 1, 1, unit), 0);
-      g = temp.getSharedDataTensor(TensorDim(1, 1, 1, unit), temp.width());
-      i = temp.getSharedDataTensor(TensorDim(1, 1, 1, unit), 2 * temp.width());
-      o = temp.getSharedDataTensor(TensorDim(1, 1, 1, unit), 3 * temp.width());
+      f = temp.getSharedDataTensor({unit}, 0);
+      g = temp.getSharedDataTensor({unit}, temp.width());
+      i = temp.getSharedDataTensor({unit}, 2 * temp.width());
+      o = temp.getSharedDataTensor({unit}, 3 * temp.width());
 
       recurrent_acti_func.run_fn(f, f);
       recurrent_acti_func.run_fn(i, i);
@@ -201,6 +199,8 @@ void LSTMLayer::forwarding(bool training) {
       acti_func.run_fn(cs, hs);
       hs.multiply_i(o);
     }
+    // size of h_prev and hs size is same : unit.
+    // size of c_prev and cs is same : unit.
     h_prev.getBatchSlice(b, 1).copy(hs);
     c_prev.getBatchSlice(b, 1).copy(cs);
   }

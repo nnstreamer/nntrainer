@@ -107,7 +107,6 @@ public:
    * - out_dim : int ( output dimesion for embedding layer )
    * - in_length : int ( input length for embedding layer )
    * - recurrent_activation : string (type) - used only in lstm
-   * - dist_layer : string (type) - layer name to be distributed
    */
   /**
    * @brief     set Property of layer

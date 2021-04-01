@@ -18,7 +18,8 @@ layer_sources = [
   'embedding.cpp',
   'rnn.cpp',
   'acti_func.cpp',
-  'lstm.cpp'
+  'lstm.cpp',
+  'time_dist.cpp'
 ]
 
 layer_headers = [
