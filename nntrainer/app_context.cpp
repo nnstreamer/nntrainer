@@ -38,6 +38,7 @@
 #include <flatten_layer.h>
 #include <input_layer.h>
 #include <loss_layer.h>
+#include <lstm.h>
 #include <nntrainer_error.h>
 #include <output_layer.h>
 #include <parse_util.h>
@@ -236,6 +237,9 @@ static void add_default_object(AppContext &ac) {
 
   ac.registerFactory(ml::train::createLayer<RNNLayer>, RNNLayer::type,
                      LayerType::LAYER_RNN);
+
+  ac.registerFactory(ml::train::createLayer<LSTMLayer>, LSTMLayer::type,
+                     LayerType::LAYER_LSTM);
 
   ac.registerFactory(AppContext::unknownFactory<ml::train::Layer>, "unknown",
                      LayerType::LAYER_UNKNOWN);

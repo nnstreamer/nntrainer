@@ -29,11 +29,11 @@ enum LSTMParams { weight_xh, weight_hh, bias_h };
 #define NUM_GATE 4
 
 // - weight_xh ( input to hidden )
-//  : [1, 1, input_sizex4, unit (hidden_size) ] -> f, g, i, o
+//  : [1, 1, input_size, unit (hidden_size) x NUM_GATE] -> f, g, i, o
 // - weight_hh ( hidden to hidden )
-//  : [1, 1, unit (hidden_size) x 4, unit (hidden_size)] -> f, g, i, o
+//  : [1, 1, unit (hidden_size) , unit (hidden_size) x NUM_GATE] -> f, g, i, o
 // - bias_h ( hidden bias )
-//  : [1, 1, 4, unit (hidden_size)] -> f, g, i, o
+//  : [1, 1, 1, unit (hidden_size) x NUM_GATE] -> f, g, i, o
 int LSTMLayer::initialize(Manager &manager) {
   int status = ML_ERROR_NONE;
   if (getNumInputs() != 1) {
@@ -46,15 +46,16 @@ int LSTMLayer::initialize(Manager &manager) {
   output_dim[0].width(unit);
 
   TensorDim bias_dim = TensorDim();
-  bias_dim.setTensorDim(3, unit);
-  bias_dim.height(NUM_GATE);
+  bias_dim.setTensorDim(3, unit * NUM_GATE);
 
   TensorDim dim_xh = output_dim[0];
-  dim_xh.height(input_dim[0].width() * NUM_GATE);
+  dim_xh.height(input_dim[0].width());
+  dim_xh.width(unit * NUM_GATE);
   dim_xh.batch(1);
 
   TensorDim dim_hh = output_dim[0];
-  dim_hh.height(unit * NUM_GATE);
+  dim_hh.height(unit);
+  dim_hh.width(unit * NUM_GATE);
   dim_hh.batch(1);
 
   if (weights.empty()) {
@@ -79,6 +80,11 @@ int LSTMLayer::initialize(Manager &manager) {
     weights[LSTMParams::bias_h].reset(bias_dim, bias_initializer,
                                       WeightRegularizer::NONE, 1.0f, true);
   }
+
+  mem_cell =
+    std::make_shared<Var_Grad>(output_dim[0], true, true, "LSTM:mem_cell");
+  mem_cell->getVariableRef().setZero();
+  mem_cell->getGradientRef().setZero();
 
   TensorDim cell_dim = TensorDim();
   cell_dim.setTensorDim(3, unit);
@@ -132,7 +138,72 @@ void LSTMLayer::setRecurrentActivation(ActivationType activation) {
 }
 
 void LSTMLayer::forwarding(bool training) {
-  // NYI
+  Tensor &weight_xh =
+    weightAt(static_cast<int>(LSTMParams::weight_xh)).getVariableRef();
+  Tensor &weight_hh =
+    weightAt(static_cast<int>(LSTMParams::weight_hh)).getVariableRef();
+  Tensor &bias_h =
+    weightAt(static_cast<int>(LSTMParams::bias_h)).getVariableRef();
+
+  Tensor &hidden_ = net_hidden[0]->getVariableRef();
+  Tensor &input_ = net_input[0]->getVariableRef();
+  Tensor &m_cell_ = mem_cell->getVariableRef();
+
+  Tensor temp;
+  Tensor hs_prev;
+  Tensor cs_prev;
+  Tensor hs;
+  Tensor cs;
+  Tensor f;
+  Tensor g;
+  Tensor i;
+  Tensor o;
+
+  for (unsigned int b = 0; b < input_dim[0].batch(); ++b) {
+    Tensor islice = input_.getBatchSlice(b, 1);
+    Tensor oslice = hidden_.getBatchSlice(b, 1);
+    Tensor cell = m_cell_.getBatchSlice(b, 1);
+
+    for (unsigned int t = 0; t < islice.height(); ++t) {
+      Tensor xs = input_.getSharedDataTensor(TensorDim(1, 1, 1, islice.width()),
+                                             t * islice.width());
+      hs = oslice.getSharedDataTensor(TensorDim(1, 1, 1, oslice.width()),
+                                      t * oslice.width());
+      cs = cell.getSharedDataTensor(TensorDim(1, 1, 1, cell.width()),
+                                    t * cell.width());
+
+      if (t > 0) {
+        hs_prev = oslice.getSharedDataTensor(TensorDim(1, 1, 1, oslice.width()),
+                                             (t - 1) * oslice.width());
+        cs_prev = cell.getSharedDataTensor(TensorDim(1, 1, 1, cell.width()),
+                                           (t - 1) * cell.width());
+      } else {
+        hs_prev = h_prev.getBatchSlice(b, 1);
+        cs_prev = c_prev.getBatchSlice(b, 1);
+      }
+      hs_prev.dot(weight_hh, temp);
+      temp.add_i(bias_h);
+      temp.add_i(xs.dot(weight_xh));
+
+      f = temp.getSharedDataTensor(TensorDim(1, 1, 1, unit), 0);
+      g = temp.getSharedDataTensor(TensorDim(1, 1, 1, unit), temp.width());
+      i = temp.getSharedDataTensor(TensorDim(1, 1, 1, unit), 2 * temp.width());
+      o = temp.getSharedDataTensor(TensorDim(1, 1, 1, unit), 3 * temp.width());
+
+      recurrent_acti_func.run_fn(f, f);
+      recurrent_acti_func.run_fn(i, i);
+      recurrent_acti_func.run_fn(o, o);
+      acti_func.run_fn(g, g);
+
+      f.multiply(cs_prev, cs);
+      cs.add_i(g.multiply_i(i));
+
+      acti_func.run_fn(cs, hs);
+      hs.multiply_i(o);
+    }
+    h_prev.getBatchSlice(b, 1).copy(hs);
+    c_prev.getBatchSlice(b, 1).copy(cs);
+  }
 }
 
 void LSTMLayer::copy(std::shared_ptr<Layer> l) {
