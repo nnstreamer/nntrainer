@@ -33,24 +33,6 @@ int TimeDistLayer::initialize(Manager &manager) {
   return status;
 }
 
-void TimeDistLayer::setProperty(const PropertyType type,
-                                const std::string &value) {
-  int status = ML_ERROR_NONE;
-  switch (type) {
-  case PropertyType::dist_layer: {
-    if (!value.empty()) {
-      iter_name = value;
-    } else {
-      status = ML_ERROR_INVALID_PARAMETER;
-      throw_status(status);
-    }
-  }
-  default:
-    Layer::setProperty(type, value);
-    break;
-  }
-}
-
 void TimeDistLayer::forwarding(bool training) {
   // NYI
 }
@@ -60,7 +42,7 @@ void TimeDistLayer::copy(std::shared_ptr<Layer> l) {
 
   std::shared_ptr<TimeDistLayer> from =
     std::static_pointer_cast<TimeDistLayer>(l);
-  this->iter = from->iter;
+  this->dist_layer = from->dist_layer;
 }
 
 void TimeDistLayer::calcDerivative() {

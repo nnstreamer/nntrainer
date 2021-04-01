@@ -45,6 +45,7 @@
 #include <plugged_layer.h>
 #include <pooling2d_layer.h>
 #include <rnn.h>
+#include <time_dist.h>
 
 #ifdef ENABLE_TFLITE_BACKBONE
 #include <tflite_layer.h>
@@ -240,6 +241,9 @@ static void add_default_object(AppContext &ac) {
 
   ac.registerFactory(ml::train::createLayer<LSTMLayer>, LSTMLayer::type,
                      LayerType::LAYER_LSTM);
+
+  ac.registerFactory(ml::train::createLayer<TimeDistLayer>, TimeDistLayer::type,
+                     LayerType::LAYER_TIME_DIST);
 
   ac.registerFactory(AppContext::unknownFactory<ml::train::Layer>, "unknown",
                      LayerType::LAYER_UNKNOWN);
