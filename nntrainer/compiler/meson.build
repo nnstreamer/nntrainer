@@ -1,6 +1,4 @@
-compiler_sources = [
-  'compiler.cpp'
-]
+compiler_sources = []
 
 compiler_headers = []
 

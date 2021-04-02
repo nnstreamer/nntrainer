@@ -2,12 +2,14 @@
 /**
  * Copyright (C) 2021 Jihoon Lee <jhoon.it.lee@samsung.com>
  *
- * @file compiler.cpp
- * @date 01 April 2021
- * @brief NNTrainer compiler that reads and generates excutable graph
+ * @file unittest_interpreter.cpp
+ * @date 02 April 2021
+ * @brief interpreter test
  * @see	https://github.com/nnstreamer/nntrainer
  * @author Jihoon Lee <jhoon.it.lee@samsung.com>
  * @bug No known bugs except for NYI items
  */
 
-namespace nntrainer {} // namespace nntrainer
+#include <gtest/gtest.h>
+
+#include <interpreter.h>
