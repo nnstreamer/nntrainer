@@ -22,6 +22,7 @@ nntrainer_test_deps = [
   gtest_dep
 ]
 
+# this is depedency is for the gtest with main included
 nntrainer_test_main_deps = [
   nntrainer_dep,
   nntrainer_testutil_dep,
