@@ -77,7 +77,7 @@ public:
    */
   std::vector<std::shared_ptr<Layer>>
   getUnsortedLayers(const std::string &input_layer,
-                    const std::string &output_layer);
+                    const std::string &output_layer) const;
 
   /**
    * @brief getter of number of nodes
