@@ -636,6 +636,10 @@ std::vector<TensorDim> NetworkGraph::getOutputDimension() const {
 std::vector<std::shared_ptr<Layer>>
 NetworkGraph::getUnsortedLayers(const std::string &input_layer,
                                 const std::string &output_layer) const {
+  /// @FIXME: this won't work if input, output layers are not in order
+  /// Further, this function must be removed. There should be rather
+  /// getAllNames and getLayerByName instead of getUnsortedLayers.
+
   /** count layers after output layer */
   unsigned int num_layers_remove_end = 0;
   if (!output_layer.empty()) {
