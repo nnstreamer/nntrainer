@@ -30,6 +30,10 @@ int TimeDistLayer::initialize(Manager &manager) {
     throw std::invalid_argument("Time distributed layer takes only one input");
   }
 
+  if (!dist_layer) {
+    throw std::invalid_argument("distributed layer is not set properly");
+  }
+
   return status;
 }
 
@@ -44,6 +48,11 @@ void TimeDistLayer::copy(std::shared_ptr<Layer> l) {
     std::static_pointer_cast<TimeDistLayer>(l);
   this->dist_layer = from->dist_layer;
 }
+
+void TimeDistLayer::setDistLayer(std::shared_ptr<Layer> l) {
+  dist_layer = l;
+  Layer::setActivation(l->getActivationType());
+};
 
 void TimeDistLayer::calcDerivative() {
   // NYI

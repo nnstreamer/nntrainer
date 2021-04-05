@@ -54,6 +54,9 @@ static std::string getLayerResPath(const std::string &file_name) {
   return getResPath(file_name, {"test", "unittest_layers"});
 }
 
+/**
+ * @brief nntainer abstract Layer for test
+ */
 template <typename LayerType>
 class nntrainer_abstractLayer : public ::testing::Test {
 protected:
@@ -228,6 +231,9 @@ protected:
   std::shared_ptr<nntrainer::Optimizer> opt;
 };
 
+/**
+ * @brief nntainer Input Layer for test
+ */
 class nntrainer_InputLayer
   : public nntrainer_abstractLayer<nntrainer::InputLayer> {
 protected:
@@ -364,6 +370,9 @@ TEST_F(nntrainer_InputLayer, checkValidation_01_p) {
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
+/**
+ * @brief nntainer Flip Layer for test
+ */
 class nntrainer_PreprocessFlipLayer
   : public nntrainer_abstractLayer<nntrainer::PreprocessFlipLayer> {
 protected:
@@ -509,6 +518,9 @@ TEST_F(nntrainer_PreprocessFlipLayer, forwarding_05_p) {
                     *layer.forwarding_with_val({MAKE_SHARED_TENSOR(in)})[0]);
 }
 
+/**
+ * @brief Preprocess Translate Layer
+ */
 class nntrainer_PreprocessTranslateLayer
   : public nntrainer_abstractLayer<nntrainer::PreprocessTranslateLayer> {
 protected:
@@ -580,6 +592,9 @@ TEST_F(nntrainer_PreprocessTranslateLayer, forwarding_02_p) {
 #endif
 }
 
+/**
+ * @brief nntainer Fully Conneced Layer for test
+ */
 class nntrainer_FullyConnectedLayer
   : public nntrainer_abstractLayer<nntrainer::FullyConnectedLayer> {
 protected:
@@ -692,6 +707,14 @@ TEST_F(nntrainer_FullyConnectedLayer, setActivation_02_n) {
 }
 
 /**
+ * @brief Fully Connected Layer
+ */
+TEST_F(nntrainer_FullyConnectedLayer, setDistribute_01_p) {
+  status = layer.setProperty({"distribute=true"});
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
  * @brief FullyConnected Layer
  */
 TEST_F(nntrainer_FullyConnectedLayer, checkValidation_01_p) {
@@ -701,6 +724,9 @@ TEST_F(nntrainer_FullyConnectedLayer, checkValidation_01_p) {
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
+/**
+ * @brief nntainer Fully Conneced Layer for test
+ */
 class nntrainer_FullyConnectedLayer_TFmatch
   : public nntrainer_abstractLayer<nntrainer::FullyConnectedLayer> {
 
@@ -1121,6 +1147,9 @@ TEST_F(nntrainer_FullyConnectedLayer_TFmatch, forwarding_backwarding_08_p) {
                    "tc_fc_1_goldenFCGradientsSoftmaxCross.out", true);
 }
 
+/**
+ * @brief nntainer Batch Normalization Layer for test
+ */
 class nntrainer_BatchNormalizationLayer
   : public nntrainer_abstractLayer<nntrainer::BatchNormalizationLayer> {
 protected:
@@ -1210,6 +1239,9 @@ TEST_F(nntrainer_BatchNormalizationLayer, forward_backward_training_01_p) {
   matchOutput(backward_result, "tc_bn_fc_1_goldenBNLayerBackwardDx.out");
 }
 
+/**
+ * @brief nntainer Batch Normalization Layer for test
+ */
 class nntrainer_BatchNormalizationLayer_Conv
   : public nntrainer_abstractLayer<nntrainer::BatchNormalizationLayer> {
 protected:
@@ -1250,6 +1282,9 @@ TEST_F(nntrainer_BatchNormalizationLayer_Conv, forward_backward_training_01_p) {
   matchOutput(backward_result, "tc_bn_conv_1_goldenBNLayerBackwardDx.out");
 }
 
+/**
+ * @brief nntainer Batch Normalization Layer for test
+ */
 class nntrainer_BatchNormalizationLayer_Conv2
   : public nntrainer_abstractLayer<nntrainer::BatchNormalizationLayer> {
 protected:
@@ -1293,6 +1328,9 @@ TEST_F(nntrainer_BatchNormalizationLayer_Conv2,
   matchOutput(backward_result, "tc_bn_conv_2_goldenBNLayerBackwardDx.out");
 }
 
+/**
+ * @brief nntainer Convolution Layer for test
+ */
 class nntrainer_Conv2DLayer
   : public nntrainer_abstractLayer<nntrainer::Conv2DLayer> {
 
@@ -1634,6 +1672,9 @@ TEST_F(nntrainer_Conv2DLayer, backwarding_04_p) {
   matchOutput(bias_grad, "tc_conv2d_3_goldenBiasGrad.out");
 }
 
+/**
+ * @brief nntainer Pooling Layer for test
+ */
 class nntrainer_Pooling2DLayer
   : public nntrainer_abstractLayer<nntrainer::Pooling2DLayer> {
 protected:
@@ -1846,6 +1887,9 @@ TEST_F(nntrainer_Pooling2DLayer, backwarding_04_p) {
   matchOutput(in, "tc_pooling2d_1_goldenPooling2Dglobal_averageGrad.out");
 }
 
+/**
+ * @brief nntainer Flatten Layer for test
+ */
 class nntrainer_FlattenLayer
   : public nntrainer_abstractLayer<nntrainer::FlattenLayer> {
 protected:
@@ -2169,10 +2213,7 @@ TEST_F(nntrainer_AdditionLayer, setProperty_02_n) {
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
-/*
- *Disabled until input_layer keyward is enabled.
- */
-
+// Disabled until input_layer keyward is enabled.
 TEST_F(nntrainer_AdditionLayer, DISABLED_forwarding_02_n) {
   setProperty("num_inputs=2");
 
@@ -2215,6 +2256,9 @@ TEST_F(nntrainer_AdditionLayer, DISABLED_forwarding_03_p) {
   EXPECT_NO_THROW(layer.forwarding_with_val({input}));
 }
 
+/**
+ * @brief nntainer Embedding Layer for test
+ */
 class nntrainer_EmbeddingLayer
   : public nntrainer_abstractLayer<nntrainer::EmbeddingLayer> {
 
@@ -2330,6 +2374,9 @@ TEST_F(nntrainer_EmbeddingLayer, forwarding_backwarding_01_p) {
                     1, {MAKE_SHARED_TENSOR(derivatives)}, opt)[0]);
 }
 
+/**
+ * @brief nntainer RNN Layer for test
+ */
 class nntrainer_RNNLayer : public nntrainer_abstractLayer<nntrainer::RNNLayer> {
 
 protected:

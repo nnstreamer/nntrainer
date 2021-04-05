@@ -79,7 +79,19 @@ public:
    * @brief     set distribute layer
    * @param[in] l layer to distribute along time
    */
-  void setDistLayer(std::shared_ptr<Layer> l) { dist_layer = l; };
+  void setDistLayer(std::shared_ptr<Layer> l);
+
+  /**
+   * @brief     get distribute layer type
+   * @retval layer type
+   */
+  std::string getDistLayerType() { return dist_layer->getType(); }
+
+  /**
+   * @brief     get distribute layer
+   * @retval dist_layer std::shared_ptr<Layer>
+   */
+  std::shared_ptr<Layer> getDistLayer() { return dist_layer; };
 
   /**
    * @copydoc Layer::getType()
@@ -89,8 +101,9 @@ public:
   static const std::string type;
 
 private:
-  /* @brief Layer to be distributed through time */
-
+  /**
+   * @brief Layer to be distributed through time
+   */
   std::shared_ptr<Layer> dist_layer;
 };
 } // namespace nntrainer

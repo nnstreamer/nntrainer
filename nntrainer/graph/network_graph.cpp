@@ -29,6 +29,7 @@
 #include <parse_util.h>
 #include <profiler.h>
 #include <rnn.h>
+#include <time_dist.h>
 
 namespace nntrainer {
 
@@ -38,6 +39,13 @@ namespace nntrainer {
  */
 static const std::vector<std::string> in_place_layers = {
   ActivationLayer::type, BatchNormalizationLayer::type};
+
+static std::shared_ptr<Layer> distributeLayer(std::shared_ptr<Layer> l) {
+  std::shared_ptr<Layer> layer = nntrainer::createLayer(TimeDistLayer::type);
+  std::dynamic_pointer_cast<TimeDistLayer>(layer)->setDistLayer(l);
+
+  return layer;
+}
 
 int NetworkGraph::compile(const LossType loss_type) {
   int status = ML_ERROR_NONE;
@@ -196,8 +204,14 @@ void NetworkGraph::ensureName(std::shared_ptr<Layer> layer,
 
   std::set<std::string>::iterator iter;
   std::string name;
-  if (orig_name_empty)
-    orig_name = layer->getType();
+  if (orig_name_empty) {
+    if (layer->getType() == TimeDistLayer::type) {
+      orig_name =
+        std::dynamic_pointer_cast<TimeDistLayer>(layer)->getDistLayerType();
+    } else {
+      orig_name = layer->getType();
+    }
+  }
   std::string direct_name = prefix + orig_name;
 
   do {
@@ -299,11 +313,15 @@ int NetworkGraph::realizeActivationType(Layer &current) {
     return ML_ERROR_INVALID_PARAMETER;
   }
 
-  std::shared_ptr<Layer> layer = nntrainer::createLayer("activation");
+  std::shared_ptr<Layer> layer = nntrainer::createLayer(ActivationLayer::type);
+  layer->setActivation(act);
+
+  if (current.getType() == TimeDistLayer::type) {
+    layer = distributeLayer(layer);
+  }
 
   ensureName(layer, current.getName());
 
-  layer->setActivation(act);
   layer->setNumInputs(current.getNumInputs());
   layer->input_layers.clear();
   layer->input_layers.push_back(current.getName());
@@ -348,6 +366,12 @@ int NetworkGraph::addLossLayer(const LossType loss_type) {
   if (Sorted.back().layer->getType() == LossLayer::type)
     return status;
 
+  if (Sorted.back().layer->getType() == TimeDistLayer::type) {
+    if (std::static_pointer_cast<TimeDistLayer>(Sorted.back().layer)
+          ->getDistLayerType() == LossLayer::type)
+      return status;
+  }
+
   if (loss_type == LossType::LOSS_NONE) {
     return ML_ERROR_NONE;
   }
@@ -360,8 +384,14 @@ int NetworkGraph::addLossLayer(const LossType loss_type) {
 
   LayerNode last_node = Sorted.back();
   if (updated_loss_type == LossType::LOSS_ENTROPY) {
-    if (last_node.layer->getType() != "activation") {
-      ml_loge("Error: Cross Entropy need last layer to have softmax or sigmoid "
+    auto type = last_node.layer->getType();
+    if (type == TimeDistLayer::type) {
+      type = std::dynamic_pointer_cast<TimeDistLayer>(last_node.layer)
+               ->getDistLayerType();
+    }
+
+    if (type != "activation") {
+      ml_loge("Error: Cross Entropy need last layer to have softmax or sigmoid"
               "activation.");
       return ML_ERROR_NOT_SUPPORTED;
     }
@@ -386,7 +416,16 @@ int NetworkGraph::addLossLayer(const LossType loss_type) {
   last_node = Sorted.back();
   std::string input_str = last_node.layer->getName();
 
-  std::shared_ptr<LossLayer> layer = std::make_unique<LossLayer>();
+  std::shared_ptr<Layer> layer = nntrainer::createLayer(LossLayer::type);
+
+  status =
+    std::dynamic_pointer_cast<LossLayer>(layer)->setLoss(updated_loss_type);
+  NN_RETURN_STATUS();
+
+  if (last_node.layer->getType() == TimeDistLayer::type) {
+    layer = distributeLayer(layer);
+  }
+
   ensureName(layer);
 
   last_node.layer->setNumOutputs(1);
@@ -403,9 +442,6 @@ int NetworkGraph::addLossLayer(const LossType loss_type) {
     layer->setNumOutputs(1);
     layer->output_layers.push_back("__exit__");
   }
-
-  status = layer->setLoss(updated_loss_type);
-  NN_RETURN_STATUS();
 
   /**
    * As the loss layer is always the last, it could be added manually to Sorted
@@ -636,7 +672,7 @@ std::vector<TensorDim> NetworkGraph::getOutputDimension() const {
 std::vector<std::shared_ptr<Layer>>
 NetworkGraph::getUnsortedLayers(const std::string &input_layer,
                                 const std::string &output_layer) const {
-  /// @FIXME: this won't work if input, output layers are not in order
+  /// @fixme: this won't work if input, output layers are not in order
   /// Further, this function must be removed. There should be rather
   /// getAllNames and getLayerByName instead of getUnsortedLayers.
 
