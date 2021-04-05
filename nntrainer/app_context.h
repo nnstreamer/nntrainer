@@ -202,7 +202,8 @@ public:
    * @return PtrType<T> unique pointer to the object
    */
   template <typename T>
-  PtrType<T> createObject(const int int_key, const PropsType &props = {}) {
+  PtrType<T> createObject(const int int_key,
+                          const PropsType &props = {}) const {
     auto &index = std::get<IndexType<T>>(factory_map);
     auto &int_map = std::get<IntIndexType>(index);
 
@@ -226,7 +227,8 @@ public:
    * @return PtrType<T> unique pointer to the object
    */
   template <typename T>
-  PtrType<T> createObject(const std::string &key, const PropsType &props = {}) {
+  PtrType<T> createObject(const std::string &key,
+                          const PropsType &props = {}) const {
     auto &index = std::get<IndexType<T>>(factory_map);
     auto &str_map = std::get<StrIndexType<T>>(index);
 
