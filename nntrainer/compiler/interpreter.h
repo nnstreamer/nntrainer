@@ -19,14 +19,14 @@
  *
  *         +--------+
  *         |iostream|
- *         +--+-----+
- *            |  ^
+ *         +--+--+--+
+ *            ^  |
  * serialize()|  |
  *            |  |
  *        (Interpreter)
  *            |  |
  *            |  | deserialize()
- *            v  |
+ *            |  v
  *    +-------+--+--------+
  *    |GraphRepresentation|
  *    +-------+-----------+
