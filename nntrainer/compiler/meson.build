@@ -1,4 +1,6 @@
-compiler_sources = []
+compiler_sources = [
+  'ini_interpreter.cpp'
+]
 
 compiler_headers = []
 
