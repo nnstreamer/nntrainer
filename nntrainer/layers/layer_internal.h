@@ -515,6 +515,7 @@ protected:
    */
   float loss;
 
+  // TODO: remove this from here
   ActivationType activation_type;
 
   WeightRegularizer weight_regularizer;
@@ -525,6 +526,7 @@ protected:
 
   WeightInitializer bias_initializer; /** initializer for bias */
 
+  // TODO: remove this from here
   /**
    * @brief   Output of this layer should be flattened
    */
