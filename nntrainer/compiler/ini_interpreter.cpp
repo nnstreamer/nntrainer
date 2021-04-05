@@ -39,10 +39,89 @@ namespace {
 class PlainLayer {};    /**< Plain Layer tag */
 class BackboneLayer {}; /**< Backbone Layer tag */
 
-template <typename T>
-static std::shared_ptr<Layer> section2layer(dictionary *ini,
+/**
+ * @brief convert section to list of string based properties
+ *
+ * @param ini ini handler
+ * @param sec_name section name
+ * @return std::vector<std::string> list of properties
+ */
+std::vector<std::string> section2properties(dictionary *ini,
                                             const std::string &sec_name) {
-  /// NYI!
+  int num_entries = iniparser_getsecnkeys(ini, sec_name.c_str());
+  NNTR_THROW_IF(num_entries < 1, std::invalid_argument)
+    << "there are no entries in the layer section: " << sec_name;
+  ml_logd("number of entries for %s: %d", sec_name.c_str(), num_entries);
+
+  std::unique_ptr<const char *[]> key_refs(new const char *[num_entries]);
+  NNTR_THROW_IF(iniparser_getseckeys(ini, sec_name.c_str(), key_refs.get()) ==
+                  nullptr,
+                std::invalid_argument)
+    << "failed to fetch keys for the section: " << sec_name;
+
+  std::vector<std::string> properties;
+  properties.reserve(num_entries - 1);
+
+  for (int i = 0; i < num_entries; ++i) {
+    std::string key(key_refs[i]);
+    std::string prop_key = key.substr(key.find(":") + 1);
+
+    if (istrequal(prop_key, "type") || istrequal(prop_key, "backbone")) {
+      continue;
+    }
+
+    std::string value = iniparser_getstring(ini, key_refs[i], UNKNOWN_STR);
+    NNTR_THROW_IF(value == UNKNOWN_STR || value.empty(), std::invalid_argument)
+      << "parsing property failed key: " << key << " value: " << value;
+
+    ml_logd("parsed properties: %s=%s", prop_key.c_str(), value.c_str());
+    properties.push_back(prop_key + "=" + value);
+  }
+
+  properties.push_back("name=" + sec_name);
+
+  return properties;
+}
+
+/**
+ * @brief convert section to a layer object (later it might be layer node)
+ *
+ * @tparam T tag
+ * @param ini dictionary * ini
+ * @param sec_name section name
+ * @param ac app context to search for the layer
+ * @return std::shared_ptr<Layer> return layer object
+ */
+template <typename T>
+std::shared_ptr<Layer> section2layer(dictionary *ini,
+                                     const std::string &sec_name,
+                                     const AppContext &ac) {
+  throw std::invalid_argument("supported only with a tag for now");
+}
+
+template <>
+std::shared_ptr<Layer> section2layer<PlainLayer>(dictionary *ini,
+                                                 const std::string &sec_name,
+                                                 const AppContext &ac) {
+
+  const std::string &layer_type =
+    iniparser_getstring(ini, (sec_name + ":Type").c_str(), UNKNOWN_STR);
+  NNTR_THROW_IF(layer_type == UNKNOWN_STR, std::invalid_argument)
+    << "section name is invalid, section name: " << sec_name;
+
+  auto properties = section2properties(ini, sec_name);
+  std::shared_ptr<ml::train::Layer> layer_ =
+    ac.createObject<ml::train::Layer>(layer_type, properties);
+
+  auto layer = std::static_pointer_cast<Layer>(layer_);
+
+  return layer;
+}
+
+template <>
+std::shared_ptr<Layer> section2layer<BackboneLayer>(dictionary *ini,
+                                                    const std::string &sec_name,
+                                                    const AppContext &ac) {
   return nullptr;
 }
 
@@ -127,10 +206,10 @@ IniGraphInterpreter::deserialize(const std::string &in) {
       }
 
       if (backbone_path == UNKNOWN_STR) {
-        layer = section2layer<PlainLayer>(ini, sec_name);
+        layer = section2layer<PlainLayer>(ini, sec_name, app_context);
       } else {
         /// @todo deprecate this as well with #1072
-        layer = section2layer<BackboneLayer>(ini, sec_name);
+        layer = section2layer<BackboneLayer>(ini, sec_name, app_context);
       }
 
       graph->addLayer(layer);

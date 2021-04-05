@@ -11,11 +11,12 @@
  */
 #include <iostream>
 #include <memory>
+#include <string>
 
 #include <iniparser.h>
 
+#include <app_context.h>
 #include <interpreter.h>
-#include <string>
 
 #ifndef __INI_INTERPRETER_H__
 #define __INI_INTERPRETER_H__
@@ -34,8 +35,10 @@ public:
    * @param pathResolver_ path resolver function to be used
    */
   IniGraphInterpreter(
+    const AppContext &app_context_ = AppContext::Global(),
     std::function<const std::string(const std::string &)> pathResolver_ =
       [](const std::string &path) { return path; }) :
+    app_context(app_context_),
     pathResolver(pathResolver_) {}
 
   virtual ~IniGraphInterpreter(){};
@@ -73,6 +76,7 @@ private:
   std::shared_ptr<Layer> loadBackboneConfigIni(dictionary *ini,
                                                const std::string &section);
 
+  AppContext app_context;
   std::function<const std::string(std::string)> pathResolver;
 };
 
