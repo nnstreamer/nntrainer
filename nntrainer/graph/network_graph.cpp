@@ -635,7 +635,7 @@ std::vector<TensorDim> NetworkGraph::getOutputDimension() const {
 
 std::vector<std::shared_ptr<Layer>>
 NetworkGraph::getUnsortedLayers(const std::string &input_layer,
-                                const std::string &output_layer) {
+                                const std::string &output_layer) const {
   /** count layers after output layer */
   unsigned int num_layers_remove_end = 0;
   if (!output_layer.empty()) {

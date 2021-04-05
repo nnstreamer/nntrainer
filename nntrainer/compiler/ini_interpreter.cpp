@@ -20,6 +20,14 @@
 #include <parse_util.h>
 #include <util_func.h>
 
+#if defined(ENABLE_NNSTREAMER_BACKBONE)
+#include <nnstreamer_layer.h>
+#endif
+
+#if defined(ENABLE_TFLITE_BACKBONE)
+#include <tflite_layer.h>
+#endif
+
 static constexpr const char *FUNC_TAG = "[IniInterpreter] ";
 
 static constexpr const char *UNKNOWN_STR = "UNKNOWN";
@@ -90,24 +98,26 @@ std::vector<std::string> section2properties(dictionary *ini,
  * @param ini dictionary * ini
  * @param sec_name section name
  * @param ac app context to search for the layer
+ * @param backbone_file full path of backbone file (defaulted to be omitted)
  * @return std::shared_ptr<Layer> return layer object
  */
 template <typename T>
-std::shared_ptr<Layer> section2layer(dictionary *ini,
-                                     const std::string &sec_name,
-                                     const AppContext &ac) {
+std::shared_ptr<Layer>
+section2layer(dictionary *ini, const std::string &sec_name,
+              const AppContext &ac, const std::string &backbone_file = "") {
   throw std::invalid_argument("supported only with a tag for now");
 }
 
 template <>
-std::shared_ptr<Layer> section2layer<PlainLayer>(dictionary *ini,
-                                                 const std::string &sec_name,
-                                                 const AppContext &ac) {
+std::shared_ptr<Layer>
+section2layer<PlainLayer>(dictionary *ini, const std::string &sec_name,
+                          const AppContext &ac,
+                          const std::string &backbone_file) {
 
   const std::string &layer_type =
     iniparser_getstring(ini, (sec_name + ":Type").c_str(), UNKNOWN_STR);
   NNTR_THROW_IF(layer_type == UNKNOWN_STR, std::invalid_argument)
-    << "section name is invalid, section name: " << sec_name;
+    << FUNC_TAG << "section name is invalid, section name: " << sec_name;
 
   auto properties = section2properties(ini, sec_name);
   std::shared_ptr<ml::train::Layer> layer_ =
@@ -119,26 +129,120 @@ std::shared_ptr<Layer> section2layer<PlainLayer>(dictionary *ini,
 }
 
 template <>
-std::shared_ptr<Layer> section2layer<BackboneLayer>(dictionary *ini,
-                                                    const std::string &sec_name,
-                                                    const AppContext &ac) {
-  return nullptr;
+std::shared_ptr<Layer>
+section2layer<BackboneLayer>(dictionary *ini, const std::string &sec_name,
+                             const AppContext &ac,
+                             const std::string &backbone_file) {
+  std::string type;
+
+#if defined(ENABLE_NNSTREAMER_BACKBONE)
+  type = NNStreamerLayer::type;
+#endif
+
+/** TfLite has higher priority */
+#if defined(ENABLE_TFLITE_BACKBONE)
+  if (endswith(backbone_file, ".tflite")) {
+    type = TfLiteLayer::type;
+  }
+#endif
+
+  NNTR_THROW_IF(type.empty(), std::invalid_argument)
+    << FUNC_TAG
+    << "This nntrainer does not support external section: " << sec_name
+    << " backbone: " << backbone_file;
+
+  auto properties = section2properties(ini, sec_name);
+  properties.push_back("modelfile=" + backbone_file);
+  std::shared_ptr<ml::train::Layer> layer_ =
+    ac.createObject<ml::train::Layer>(type, properties);
+
+  auto layer = std::static_pointer_cast<Layer>(layer_);
+  int status = layer->setName(sec_name);
+  throw_status(status);
+
+  return layer;
 }
 
-static std::shared_ptr<GraphRepresentation>
-section2graph(dictionary *ini, const std::string &sec_name) {
-  /// NYI!
-  return nullptr;
+/**
+ * @brief check if graph is supported
+ *
+ * @param backbone_name name of the backbone
+ * @return true if the file extension is supported to make a graph
+ * @return false if the file extension is not supported
+ */
+static bool graphSupported(const std::string &backbone_name) {
+  return endswith(backbone_name, ".ini");
 }
 
-bool graphSupported(const std::string &backbone_name) {
-  /// NYI!
-  return true;
-}
-
+/**
+ * @brief Get the Mergeable Graph object
+ *
+ * @param graph currently, extendGraph accepts
+ * std::vector<std::shared_ptr<Layer>>, so return in this format
+ * @param ini ini to parse property
+ * @param sec_name section name
+ * @return std::vector<std::shared_ptr<Layer>> mergeable graph
+ */
 std::vector<std::shared_ptr<Layer>>
-getMergeableGraph(std::shared_ptr<const GraphRepresentation>) {
-  return {};
+getMergeableGraph(std::shared_ptr<const GraphRepresentation> graph,
+                  dictionary *ini, const std::string &sec_name) {
+  std::string input_layer =
+    iniparser_getstring(ini, (sec_name + ":InputLayer").c_str(), "");
+  std::string output_layer =
+    iniparser_getstring(ini, (sec_name + ":OutputLayer").c_str(), "");
+
+  auto g = graph->getUnsortedLayers(input_layer, output_layer);
+
+  NNTR_THROW_IF(g.empty(), std::invalid_argument)
+    << FUNC_TAG << "backbone graph is empty";
+
+  /** Wait for #361 Load the backbone from its saved file */
+  // bool preload =
+  //   iniparser_getboolean(ini, (sec_name + ":Preload").c_str(), true);
+
+  bool trainable =
+    iniparser_getboolean(ini, (sec_name + ":Trainable").c_str(), false);
+  double scale_size =
+    iniparser_getdouble(ini, (sec_name + ":ScaleSize").c_str(), 1.0);
+
+  NNTR_THROW_IF(scale_size <= 0.0, std::invalid_argument)
+    << FUNC_TAG
+    << "backbone cannot have non-positive scale_size. Current scale size: "
+    << scale_size;
+
+  for (auto &layer : g) {
+    layer->setTrainable(trainable);
+    layer->resetDimension();
+    if (scale_size != 1) {
+      layer->scaleSize(scale_size);
+    }
+    /** TODO #361: this needs update in model file to be of dictionary format */
+    // if (preload) {
+    //   layer->weight_initializer = WeightInitializer::FILE_INITIALIZER;
+    //   layer->bias_initializer = WeightInitializer::FILE_INITIALIZER;
+    //   layer->initializer_file = backbone.save_path;
+    // }
+  }
+
+  // set input dimension for the first layer in the graph
+
+  /** FIXME :the layers is not the actual model_graph. It is just the vector of
+   * layers generated by Model Loader. so graph[0] is still valid. Also we need
+   * to consider that the first layer of ini might be th first of layers. Need
+   * to change by compiling the backbone before using here. */
+  std::string input_shape =
+    iniparser_getstring(ini, (sec_name + ":Input_Shape").c_str(), "");
+  if (!input_shape.empty()) {
+    g[0]->setProperty(Layer::PropertyType::input_shape, input_shape);
+  }
+
+  std::string input_layers =
+    iniparser_getstring(ini, (sec_name + ":Input_Layers").c_str(), "");
+  if (!input_layers.empty() && g.size() != 0) {
+    g[0]->setProperty(Layer::PropertyType::input_layers, input_layers);
+  }
+
+  return g;
 };
 
 } // namespace
@@ -149,7 +253,6 @@ void IniGraphInterpreter::serialize(
 
 std::shared_ptr<GraphRepresentation>
 IniGraphInterpreter::deserialize(const std::string &in) {
-
   NNTR_THROW_IF(in.empty(), std::invalid_argument)
     << FUNC_TAG << "given in file is empty";
 
@@ -170,13 +273,15 @@ IniGraphInterpreter::deserialize(const std::string &in) {
     std::make_shared<GraphRepresentation>();
 
   try {
+    ml_logi("==========================parsing ini...");
+    ml_logi("not-allowed property for the layer throws error");
+    ml_logi("valid property with invalid value throws error as well");
     for (int idx = 0; idx < num_ini_sec; ++idx) {
       auto sec_name_ = iniparser_getsecname(ini, idx);
       NNTR_THROW_IF_CLEANUP(!sec_name_, std::runtime_error, freedict)
-        << "parsing a section name returned error, filename: " << in
+        << FUNC_TAG << "parsing a section name returned error, filename: " << in
         << "idx: " << idx;
 
-      ml_logd("probing section_name: %s", sec_name_);
       std::string sec_name(sec_name_);
 
       if (istrequal(sec_name, MODEL_STR) || istrequal(sec_name, DATASET_STR) ||
@@ -185,6 +290,7 @@ IniGraphInterpreter::deserialize(const std::string &in) {
         continue;
       }
       /** Parse all the layers defined as sections in order */
+      ml_logd("probing section_name: %s", sec_name_);
       std::shared_ptr<Layer> layer;
 
       /**
@@ -197,10 +303,11 @@ IniGraphInterpreter::deserialize(const std::string &in) {
 
       const std::string &backbone = pathResolver(backbone_path);
       if (graphSupported(backbone)) {
-        auto g = section2graph(ini, sec_name);
+        /// @todo: this will be changed to a general way to add a graph
+        auto g = this->deserialize(backbone);
 
         /// @todo: deprecate this. We should extend graph from a graph
-        auto tmp = getMergeableGraph(g);
+        auto tmp = getMergeableGraph(g, ini, sec_name);
         graph->extendGraph(tmp, sec_name);
         continue;
       }
@@ -209,7 +316,8 @@ IniGraphInterpreter::deserialize(const std::string &in) {
         layer = section2layer<PlainLayer>(ini, sec_name, app_context);
       } else {
         /// @todo deprecate this as well with #1072
-        layer = section2layer<BackboneLayer>(ini, sec_name, app_context);
+        layer =
+          section2layer<BackboneLayer>(ini, sec_name, app_context, backbone);
       }
 
       graph->addLayer(layer);
