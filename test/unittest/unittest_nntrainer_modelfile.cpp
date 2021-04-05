@@ -860,6 +860,22 @@ TEST(nntrainerIniTest, backbone_based_on_working_directory_p) {
 }
 
 /**
+ * @brief Ini file unittest with distributed layer
+ */
+TEST(nntrainerIniTest, distribute_p_01) {
+  ScopedIni s{
+    "distribute_p1",
+    {nw_base, adam,
+     input + "-Activation" + "-Input_Shape" + "Input_Shape = 3:1:10:10",
+     out + "distribute=true"}};
+  nntrainer::NeuralNetwork NN;
+
+  EXPECT_EQ(NN.loadFromConfig(s.getIniName()), ML_ERROR_NONE);
+  EXPECT_EQ(NN.compile(), ML_ERROR_NONE);
+  // EXPECT_EQ(NN.initialize(), ML_ERROR_NONE);
+}
+
+/**
  * @brief Main gtest
  */
 int main(int argc, char **argv) {

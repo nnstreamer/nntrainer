@@ -15,9 +15,12 @@
 
 #include <vector>
 
+#include <layer.h>
+#include <layer_factory.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <parse_util.h>
+#include <time_dist.h>
 #include <util_func.h>
 
 #if defined(ENABLE_NNSTREAMER_BACKBONE)
@@ -44,8 +47,16 @@ namespace {
  *  1. deprecate tag dispatching along with #1072
  *  2. deprecate getMergeableGraph (extendGraph should accept graph itself)
  */
-class PlainLayer {};    /**< Plain Layer tag */
-class BackboneLayer {}; /**< Backbone Layer tag */
+
+/**
+ * @brief Plain Layer tag
+ */
+class PlainLayer {};
+
+/**
+ * @brief Backbone Layer tag
+ */
+class BackboneLayer {};
 
 /**
  * @brief convert section to list of string based properties
@@ -124,6 +135,14 @@ section2layer<PlainLayer>(dictionary *ini, const std::string &sec_name,
     ac.createObject<ml::train::Layer>(layer_type, properties);
 
   auto layer = std::static_pointer_cast<Layer>(layer_);
+
+  if (layer->getDistribute()) {
+    ml_logd("This %s layer is going to distributed", sec_name.c_str());
+    std::shared_ptr<Layer> dist_layer =
+      nntrainer::createLayer(TimeDistLayer::type);
+    std::dynamic_pointer_cast<TimeDistLayer>(dist_layer)->setDistLayer(layer);
+    layer = dist_layer;
+  }
 
   return layer;
 }

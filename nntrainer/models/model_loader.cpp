@@ -295,6 +295,7 @@ ModelLoader::parseProperties(dictionary *ini, const std::string &section_name,
 
   return properties;
 }
+
 /**
  * @brief     load all of model and dataset from ini
  */
