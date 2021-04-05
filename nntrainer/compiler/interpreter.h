@@ -9,6 +9,7 @@
  * @see	https://github.com/nnstreamer/nntrainer
  * @author Jihoon Lee <jhoon.it.lee@samsung.com>
  * @bug No known bugs except for NYI items
+ * @note The boundary of graph interpreter is restricted to graph only.
  * @details
  * Graph is convertible either from a file, representation by a appropriate
  interpreter
@@ -38,8 +39,8 @@
 #ifndef __INTERPRETER_H__
 #define __INTERPRETER_H__
 
-#include <iostream>
 #include <memory>
+#include <string>
 
 #include <network_graph.h>
 
@@ -58,20 +59,20 @@ public:
    * @brief serialize graph to a stream
    *
    * @param representation graph representation
-   * @param out outstream to serialize graph
+   * @param out output file name
    */
   virtual void
   serialize(std::shared_ptr<const GraphRepresentation> representation,
-            std::ostream &out) = 0;
+            const std::string &out) = 0;
 
   /**
    * @brief deserialize graph from a stream
    *
-   * @param in in stream to deserialize
+   * @param in input file name
    * @return GraphRepresentation graph representation
    */
   virtual std::shared_ptr<GraphRepresentation>
-  deserialize(std::istream &in) = 0;
+  deserialize(const std::string &in) = 0;
 };
 
 } // namespace nntrainer
