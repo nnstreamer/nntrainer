@@ -16,7 +16,6 @@
 #ifdef __cplusplus
 
 #include <tensor.h>
-#include <time_dist.h>
 
 namespace nntrainer {
 
@@ -34,7 +33,7 @@ public:
   /**
    * @brief     Destructor of Time Distributed Layer
    */
-  ~TimeDistLayer(){};
+  ~TimeDistLayer() = default;
 
   /**
    *  @brief  Move constructor.
@@ -77,6 +76,12 @@ public:
   int initialize(Manager &manager) override;
 
   /**
+   * @brief     set distribute layer
+   * @param[in] l layer to distribute along time
+   */
+  void setDistLayer(std::shared_ptr<Layer> l) { dist_layer = l; };
+
+  /**
    * @copydoc Layer::getType()
    */
   const std::string getType() const override { return TimeDistLayer::type; };
@@ -91,4 +96,4 @@ private:
 } // namespace nntrainer
 
 #endif /* __cplusplus */
-#endif /* __FC_LAYER_H__ */
+#endif /* __TIME_DIST_H__ */
