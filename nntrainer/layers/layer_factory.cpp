@@ -27,6 +27,7 @@
 #include <parse_util.h>
 #include <pooling2d_layer.h>
 #include <rnn.h>
+#include <time_dist.h>
 
 #ifdef ENABLE_TFLITE_BACKBONE
 #include <tflite_layer.h>
@@ -74,6 +75,8 @@ const std::string layerGetStrType(const LayerType &type) {
 #endif
   case LayerType::LAYER_EMBEDDING:
     return EmbeddingLayer::type;
+  case LayerType::LAYER_TIME_DIST:
+    return TimeDistLayer::type;
   case LayerType::LAYER_UNKNOWN:
     /** fallthrough intended */
   default:
@@ -132,6 +135,8 @@ std::unique_ptr<Layer> createLayer(const std::string &type) {
     return std::make_unique<EmbeddingLayer>();
   if (istrequal(type, RNNLayer::type))
     return std::make_unique<RNNLayer>();
+  if (istrequal(type, TimeDistLayer::type))
+    return std::make_unique<TimeDistLayer>();
   std::stringstream ss;
   ss << "Unsupported type given, type: " << type;
   throw std::invalid_argument(ss.str().c_str());

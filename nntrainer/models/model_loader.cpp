@@ -25,6 +25,7 @@
 #include <optimizer_factory.h>
 #include <parse_util.h>
 #include <sgd.h>
+#include <time_dist.h>
 #include <util_func.h>
 
 #if defined(ENABLE_NNSTREAMER_BACKBONE)
@@ -305,7 +306,18 @@ int ModelLoader::loadLayerConfigIniCommon(dictionary *ini,
   try {
     std::shared_ptr<ml::train::Layer> layer_ =
       app_context.createObject<ml::train::Layer>(layer_type, properties);
-    layer = std::static_pointer_cast<Layer>(layer_);
+    if (std::static_pointer_cast<Layer>(layer_)->getDistribute()) {
+      ml_logd("This %s layer is going to distributed",
+              layer_->getName().c_str());
+      std::shared_ptr<ml::train::Layer> dist_layer =
+        app_context.createObject<ml::train::Layer>(LayerType::LAYER_TIME_DIST);
+      layer = std::static_pointer_cast<Layer>(dist_layer);
+      std::shared_ptr<TimeDistLayer> drived =
+        std::dynamic_pointer_cast<TimeDistLayer>(layer);
+      drived->setDistLayer(std::static_pointer_cast<Layer>(layer_));
+    } else {
+      layer = std::static_pointer_cast<Layer>(layer_);
+    }
   } catch (const std::exception &e) {
     ml_loge("%s %s", typeid(e).name(), e.what());
     status = ML_ERROR_INVALID_PARAMETER;
