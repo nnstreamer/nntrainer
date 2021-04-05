@@ -166,4 +166,12 @@ void writeString(std::ofstream &file, const std::string &str,
   checkedWrite(file, (char *)&str[0], size, error_msg);
 }
 
+bool endswith(const std::string &target, const std::string &suffix) {
+  if (target.size() < suffix.size()) {
+    return false;
+  }
+  size_t spos = target.size() - suffix.size();
+  return target.substr(spos) == suffix;
+}
+
 } // namespace nntrainer

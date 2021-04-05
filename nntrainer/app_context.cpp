@@ -70,13 +70,6 @@ constexpr const char *getConfPath() { return DEFAULT_CONF_PATH; }
 namespace nntrainer {
 
 namespace {
-bool endswith(const std::string &target, const std::string &suffix) {
-  if (target.size() < suffix.size()) {
-    return false;
-  }
-  size_t spos = target.size() - suffix.size();
-  return target.substr(spos) == suffix;
-}
 
 /**
  * @brief Get the plugin path from conf ini

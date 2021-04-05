@@ -137,6 +137,16 @@ std::string readString(std::ifstream &file,
 void writeString(std::ofstream &file, const std::string &str,
                  const char *error_msg = default_error_msg);
 
+/**
+ * @brief check if string ends with @a suffix
+ *
+ * @param target string to cehck
+ * @param suffix check if string ends with @a suffix
+ * @return true @a target ends with @a suffix
+ * @return false @a target does not ends with @a suffix
+ */
+bool endswith(const std::string &target, const std::string &suffix);
+
 } /* namespace nntrainer */
 
 #endif /* __cplusplus */
