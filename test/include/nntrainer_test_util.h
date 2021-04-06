@@ -25,7 +25,9 @@
 #define __NNTRAINER_TEST_UTIL_H__
 #ifdef __cplusplus
 
+#include <errno.h>
 #include <fstream>
+#include <string.h>
 #include <unordered_map>
 
 #include <neuralnet.h>
@@ -213,7 +215,11 @@ public:
    * @brief erase ini
    *
    */
-  void erase_ini() noexcept { remove(getIniName().c_str()); }
+  void erase_ini() noexcept {
+    if (remove(getIniName().c_str())) {
+      std::cerr << "Failed while removing file: " << strerror(errno) << "\n";
+    }
+  }
 
   bool operator==(const IniTestWrapper &rhs) const {
     return name == rhs.name && sections == rhs.sections;
