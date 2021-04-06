@@ -457,6 +457,7 @@ class nntrainerModelTest
       const IniTestWrapper, const nntrainer::TensorDim, const unsigned int>> {
 
 protected:
+  nntrainerModelTest() : iteration(0), name("") {}
   virtual void SetUp() {
     auto param = GetParam();
 

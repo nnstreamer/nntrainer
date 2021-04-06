@@ -27,6 +27,7 @@ class nntrainerGraphTest
       std::tuple<const char *, const IniTestWrapper::Sections, int>> {
 
 protected:
+  nntrainerGraphTest() : failAt(0), name("") {}
   virtual void SetUp() {
     name = std::string(std::get<0>(GetParam()));
     std::cout << "starting test case : " << name << std::endl << std::endl;
