@@ -59,6 +59,7 @@ void LSTMLayer::setProperty(const PropertyType type, const std::string &value) {
       recurrent_activation_type = acti_type;
       recurrent_acti_func.setActiFunc(acti_type);
     }
+    break;
   default:
     Layer::setProperty(type, value);
     break;
