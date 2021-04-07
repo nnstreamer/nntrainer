@@ -2,13 +2,13 @@
 /**
  * Copyright (C) 2020 Parichay Kapoor <pk.kapoor@samsung.com>
  *
- * @file	model_loader.c
- * @date	5 August 2020
- * @brief	This is model loader class for the Neural Network
- * @see		https://github.com/nnstreamer/nntrainer
- * @author	Jijoong Moon <jijoong.moon@samsung.com>
- * @author	Parichay Kapoor <pk.kapoor@samsung.com>
- * @bug		No known bugs except for NYI items
+ * @file  model_loader.cpp
+ * @date  5 August 2020
+ * @brief This is model loader class for the Neural Network
+ * @see   https://github.com/nnstreamer/nntrainer
+ * @author  Jijoong Moon <jijoong.moon@samsung.com>
+ * @author  Parichay Kapoor <pk.kapoor@samsung.com>
+ * @bug   No known bugs except for NYI items
  *
  */
 #include <sstream>
@@ -17,6 +17,7 @@
 #include <databuffer_factory.h>
 #include <databuffer_file.h>
 #include <databuffer_func.h>
+#include <ini_interpreter.h>
 #include <layer_factory.h>
 #include <model_loader.h>
 #include <neuralnet.h>
@@ -446,12 +447,6 @@ int ModelLoader::loadFromIni(std::string ini_file, NeuralNetwork &model,
   int status = ML_ERROR_NONE;
   int num_ini_sec = 0;
   dictionary *ini;
-  const char model_str[] = "model";
-  unsigned int model_len = strlen(model_str);
-  const char dataset_str[] = "dataset";
-  unsigned int dataset_len = strlen(dataset_str);
-  const char optimizer_str[] = "optimizer";
-  unsigned int optimizer_len = strlen(optimizer_str);
 
   if (ini_file.empty()) {
     ml_loge("Error: Configuration File is not defined");
@@ -490,60 +485,24 @@ int ModelLoader::loadFromIni(std::string ini_file, NeuralNetwork &model,
     NN_INI_RETURN_STATUS();
   }
 
-  ml_logd("parsing ini started");
-  /** Get all the section names */
-  ml_logi("==========================parsing ini...");
-  ml_logi("not-allowed property for the layer throws error");
-  ml_logi("valid property with invalid value throws error as well");
-  for (int idx = 0; idx < num_ini_sec; ++idx) {
-    std::string sec_name = iniparser_getsecname(ini, idx);
-    ml_logd("probing section name: %s", sec_name.c_str());
+  auto path_resolver = [this](const std::string &path) {
+    return resolvePath(path);
+  };
 
-    if (sec_name.empty()) {
-      ml_loge("Error: Unable to retrieve section names from ini.");
+  ml_logd("parsing graph started");
+  try {
+    std::unique_ptr<GraphInterpreter> ini_interpreter =
+      std::make_unique<nntrainer::IniGraphInterpreter>(app_context,
+                                                       path_resolver);
+    model.model_graph = *ini_interpreter->deserialize(ini_file);
+    ml_logd("parsing graph finished");
+
+    if (model.getFlatGraph().empty()) {
+      ml_loge("there is no layer section in the ini file");
       status = ML_ERROR_INVALID_PARAMETER;
-      NN_INI_RETURN_STATUS();
     }
-
-    if (strncasecmp(model_str, sec_name.c_str(), model_len) == 0)
-      continue;
-
-    if (strncasecmp(dataset_str, sec_name.c_str(), dataset_len) == 0)
-      continue;
-
-    if (strncasecmp(optimizer_str, sec_name.c_str(), optimizer_len) == 0)
-      continue;
-
-    /** Parse all the layers defined as sections in order */
-    std::shared_ptr<Layer> layer;
-
-    /**
-     * If this section is a backbone, load backbone section from this
-     * @note The order of backbones in the ini file defines the order on the
-     * backbones in the model graph
-     */
-    const char *backbone_path =
-      iniparser_getstring(ini, (sec_name + ":Backbone").c_str(), unknown);
-
-    const std::string &backbone = resolvePath(backbone_path);
-    if (backbone_path == unknown) {
-      status = loadLayerConfigIni(ini, layer, sec_name);
-    } else if (fileIni(backbone_path)) {
-      status = loadBackboneConfigIni(ini, backbone, model, sec_name);
-      NN_INI_RETURN_STATUS();
-      continue;
-    } else {
-      status = loadBackboneConfigExternal(ini, backbone, layer, sec_name);
-    }
-    NN_INI_RETURN_STATUS();
-
-    status = model.addLayer(layer);
-    NN_INI_RETURN_STATUS();
-  }
-  ml_logd("parsing ini finished");
-
-  if (model.getFlatGraph().empty()) {
-    ml_loge("there is no layer section in the ini file");
+  } catch (std::exception &e) {
+    ml_loge("failed to load graph, reason: %s ", e.what());
     status = ML_ERROR_INVALID_PARAMETER;
   }
 
