@@ -87,53 +87,6 @@ private:
   int loadOptimizerConfigIni(dictionary *ini, NeuralNetwork &model);
 
   /**
-   * @brief     load layer config from ini given the layer type
-   * @param[in] ini dictionary containing the config
-   * @param[in/out] layer layer to be loaded
-   * @param[in] layer_name name of the layer to be loaded
-   * @param[in] layer_type type of the layer to be loaded
-   */
-  int loadLayerConfigIniCommon(dictionary *ini, std::shared_ptr<Layer> &layer,
-                               const std::string &layer_name,
-                               const std::string &layer_type);
-
-  /**
-   * @brief     wrapper function to load layer config from ini
-   * @param[in] ini dictionary containing the config
-   * @param[in/out] layer layer to be loaded
-   * @param[in] layer_name name of the layer to be loaded
-   */
-  int loadLayerConfigIni(dictionary *ini, std::shared_ptr<Layer> &layer,
-                         const std::string &layer_name);
-
-  /**
-   * @brief     load backbone config from ini
-   * @param[in] ini dictionary containing the config
-   * @param[in] backbone_config config file containing the backbone config
-   * @param[in/out] model model to be added the backbone to
-   * @param[in] backbone_name name of the backbone to be loaded
-   */
-  int loadBackboneConfigIni(dictionary *ini, const std::string &backbone_config,
-                            NeuralNetwork &model,
-                            const std::string &backbone_name);
-
-  /**
-   * @brief     wrapper function to load backbone config as layer from ini
-   * @param[in] ini dictionary containing the config
-   * @param[in] backbone_config config file containing the backbone config
-   * @param[in/out] model model to be added the backbone to
-   * @param[in] backbone_name name of the backbone to be loaded
-   * @note External implies that this backbone is dependent on external
-   * frameworks and this model will be treated as a blackbox by nntrainer.
-   * Training this backbone is dependent on the API exposed by the corresponding
-   * framework.
-   */
-  int loadBackboneConfigExternal(dictionary *ini,
-                                 const std::string &backbone_config,
-                                 std::shared_ptr<Layer> &layer,
-                                 const std::string &backbone_name);
-
-  /**
    * @brief     Check if the file extension is the given @a ext
    * @param[in] filename full name of the file
    * @param[in] ext extension to match with
