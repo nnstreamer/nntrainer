@@ -90,7 +90,7 @@ public:
    * @brief Construct a new Node Watcher object
    *
    */
-  NodeWatcher() {}
+  NodeWatcher() : node(nullptr, 0) {}
 
   /**
    * @brief Construct a new Node Watcher object
@@ -98,19 +98,21 @@ public:
    * @param node node to watch.
    */
   NodeWatcher(const NodeType &node) : node(node) {
-    unsigned int num_weights = node.layer->getNumWeights();
-    if (node.layer->getType() != nntrainer::InputLayer::type &&
-        node.layer->getType() != nntrainer::PreprocessFlipLayer::type &&
-        node.layer->getType() != nntrainer::PreprocessTranslateLayer::type)
-      node.layer->setTrainable(true);
+    unsigned int num_weights = node.getObject()->getNumWeights();
+    if (node.getObject()->getType() != nntrainer::InputLayer::type &&
+        node.getObject()->getType() != nntrainer::PreprocessFlipLayer::type &&
+        node.getObject()->getType() !=
+          nntrainer::PreprocessTranslateLayer::type)
+      node.getObject()->setTrainable(true);
 
     for (unsigned int i = 0; i < num_weights; ++i) {
-      const nntrainer::Weight &w = node.layer->weightAt(i);
+      const nntrainer::Weight &w = node.getObject()->weightAt(i);
       expected_weights.push_back(w.clone());
     }
 
-    expected_output = nntrainer::Tensor(node.layer->getOutputDimension()[0]);
-    expected_dx = nntrainer::Tensor(node.layer->getInputDimension()[0]);
+    expected_output =
+      nntrainer::Tensor(node.getObject()->getOutputDimension()[0]);
+    expected_dx = nntrainer::Tensor(node.getObject()->getInputDimension()[0]);
   }
 
   /**
@@ -118,9 +120,9 @@ public:
    *
    */
   void readLayerWeight(std::ifstream &f) {
-    for (unsigned int i = 0; i < node.layer->getNumWeights(); ++i) {
+    for (unsigned int i = 0; i < node.getObject()->getNumWeights(); ++i) {
       /// @note below is harrasing the fact the tensor shares same base memory
-      node.layer->weightAt(i).getVariable().read(f);
+      node.getObject()->weightAt(i).getVariable().read(f);
     }
   }
 
@@ -176,7 +178,7 @@ public:
    *
    * @return float loss
    */
-  float getLoss() { return node.layer->getLoss(); }
+  float getLoss() { return node.getObject()->getLoss(); }
 
   /**
    * @brief read Node
@@ -190,7 +192,7 @@ public:
    *
    * @return LayerType
    */
-  std::string getNodeType() { return node.layer->getType(); }
+  std::string getNodeType() { return node.getObject()->getType(); }
 
 private:
   NodeType node;
@@ -265,15 +267,16 @@ void NodeWatcher::read(std::ifstream &in) {
 
 void NodeWatcher::verifyWeight(const std::string &error_msg) {
   for (unsigned int i = 0; i < expected_weights.size(); ++i) {
-    verify(node.layer->weightAt(i).getVariable(),
+    verify(node.getObject()->weightAt(i).getVariable(),
            expected_weights[i].getVariable(),
-           error_msg + " " + node.layer->weightAt(i).getName() + " weight");
+           error_msg + " " + node.getObject()->weightAt(i).getName() +
+             " weight");
   }
 }
 
 void NodeWatcher::verifyGrad(const std::string &error_msg) {
   for (unsigned int i = 0; i < expected_weights.size(); ++i) {
-    auto weight = node.layer->weightAt(i);
+    auto weight = node.getObject()->weightAt(i);
     if (weight.getTrainable()) {
       verify(weight.getGradient(), expected_weights[i].getGradient(),
              error_msg + " " + weight.getName() + " grad");
@@ -283,18 +286,19 @@ void NodeWatcher::verifyGrad(const std::string &error_msg) {
 
 void NodeWatcher::forward(int iteration, NodeWatcher &next_node) {
   std::stringstream ss;
-  ss << "forward failed at " << node.layer->getName() << " at iteration "
+  ss << "forward failed at " << node.getObject()->getName() << " at iteration "
      << iteration;
   std::string err_msg = ss.str();
 
-  std::vector<nntrainer::Tensor> out = node.layer->getOutputs();
+  std::vector<nntrainer::Tensor> out = node.getObject()->getOutputs();
 
   /**
    * @todo Do not veify if the layer is operting in-place by checking its
    * property
    */
-  if (next_node.node.layer->getType() != nntrainer::ActivationLayer::type &&
-      next_node.node.layer->getType() !=
+  if (next_node.node.getObject()->getType() !=
+        nntrainer::ActivationLayer::type &&
+      next_node.node.getObject()->getType() !=
         nntrainer::BatchNormalizationLayer::type)
     verify(out[0], expected_output, err_msg + " at output");
 }
@@ -303,12 +307,12 @@ nntrainer::sharedConstTensors
 NodeWatcher::lossForward(nntrainer::sharedConstTensors pred,
                          nntrainer::sharedConstTensors answer, int iteration) {
   std::stringstream ss;
-  ss << "loss failed at " << node.layer->getName() << " at iteration "
+  ss << "loss failed at " << node.getObject()->getName() << " at iteration "
      << iteration;
   std::string err_msg = ss.str();
 
   nntrainer::sharedConstTensors out =
-    std::static_pointer_cast<nntrainer::LossLayer>(node.layer)
+    std::static_pointer_cast<nntrainer::LossLayer>(node.getObject())
       ->forwarding_with_val(pred, answer);
 
   return out;
@@ -316,11 +320,11 @@ NodeWatcher::lossForward(nntrainer::sharedConstTensors pred,
 
 void NodeWatcher::backward(int iteration, bool verify_deriv, bool verify_grad) {
   std::stringstream ss;
-  ss << "backward failed at " << node.layer->getName() << " at iteration "
+  ss << "backward failed at " << node.getObject()->getName() << " at iteration "
      << iteration;
   std::string err_msg = ss.str();
 
-  std::vector<nntrainer::Tensor> out = node.layer->getDerivatives();
+  std::vector<nntrainer::Tensor> out = node.getObject()->getDerivatives();
 
   if (verify_grad) {
     verifyGrad(err_msg + " grad");
