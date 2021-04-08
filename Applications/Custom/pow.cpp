@@ -21,6 +21,9 @@ namespace custom {
 const std::string PowLayer::type = "pow";
 namespace PowUtil {
 
+/**
+ * @brief Entry structure for handling properties
+ */
 struct Entry {
   std::string key;
   std::string value;
@@ -136,13 +139,13 @@ void PowLayer::calcDerivative() {
 
 #ifdef PLUGGABLE
 
-ml::train::Layer *create_pow_layer() {
+nntrainer::Layer *create_pow_layer() {
   auto layer = new PowLayer();
   std::cout << "power created\n";
   return layer;
 }
 
-void destory_pow_layer(ml::train::Layer *layer) {
+void destory_pow_layer(nntrainer::Layer *layer) {
   std::cout << "power deleted\n";
   delete layer;
 }

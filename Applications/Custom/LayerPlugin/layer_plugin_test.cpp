@@ -19,7 +19,7 @@
 
 #include <app_context.h>
 #include <layer.h>
-#include <layer_internal.h>
+#include <layer_node.h>
 
 const char *NNTRAINER_PATH = std::getenv("NNTRAINER_PATH");
 
@@ -30,7 +30,7 @@ TEST(AppContext, DlRegisterOpen_p) {
 
   ac.registerLayer("libpow_layer.so", NNTRAINER_PATH);
 
-  auto layer = ac.createObject<ml::train::Layer>("pow");
+  auto layer = ac.createObject<nntrainer::Layer>("pow");
 
   EXPECT_EQ(layer->getType(), "pow");
 }
@@ -50,7 +50,7 @@ TEST(AppContext, DlRegisterDirectory_p) {
 
   ac.registerLayerFromDirectory(NNTRAINER_PATH);
 
-  auto layer = ac.createObject<ml::train::Layer>("pow");
+  auto layer = ac.createObject<nntrainer::Layer>("pow");
 
   EXPECT_EQ(layer->getType(), "pow");
 }
@@ -65,11 +65,10 @@ TEST(AppContext, DlRegisterDirectory_n) {
 TEST(AppContext, DefaultEnvironmentPath_p) {
   /// as NNTRAINER_PATH is fed to the test, this should success without an
   /// error
-  auto l = ml::train::createLayer("pow");
+  std::shared_ptr<ml::train::Layer> l = ml::train::createLayer("pow");
   EXPECT_EQ(l->getType(), "pow");
 
-  std::unique_ptr<nntrainer::Layer> layer(
-    static_cast<nntrainer::Layer *>(l.release()));
+  auto layer = nntrainer::getLayerDevel(l);
 
   std::ifstream input_file("does_not_exist");
   EXPECT_NO_THROW(layer->read(input_file));

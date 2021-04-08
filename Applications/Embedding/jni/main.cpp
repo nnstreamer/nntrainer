@@ -15,15 +15,17 @@
  */
 
 #include <cmath>
-#include <dataset.h>
 #include <fstream>
 #include <iostream>
-#include <ml-api-common.h>
-#include <neuralnet.h>
 #include <sstream>
 #include <stdlib.h>
 #include <tensor.h>
 #include <time.h>
+
+#include <dataset.h>
+#include <layer_node.h>
+#include <ml-api-common.h>
+#include <neuralnet.h>
 
 std::string data_file;
 
@@ -181,8 +183,10 @@ int main(int argc, char *argv[]) {
    */
   std::vector<std::vector<float>> inputVector, outputVector;
   nntrainer::NeuralNetwork NN;
-  std::shared_ptr<nntrainer::Layer> layer;
-  std::shared_ptr<nntrainer::Layer> layer_fc;
+  std::shared_ptr<ml::train::Layer> layer;
+  std::shared_ptr<ml::train::Layer> layer_fc;
+  std::shared_ptr<nntrainer::Layer> layer_;
+  std::shared_ptr<nntrainer::Layer> layer_fc_;
   std::string name = "embedding";
   std::string fc_name = "outputlayer";
   nntrainer::Tensor weight;
@@ -205,7 +209,10 @@ int main(int argc, char *argv[]) {
     NN.getLayer(name.c_str(), &layer);
     NN.getLayer(fc_name.c_str(), &layer_fc);
 
-    weight = layer->getWeights()[0].getVariable();
+    layer_ = nntrainer::getLayerDevel(layer);
+    layer_fc_ = nntrainer::getLayerDevel(layer_fc);
+
+    weight = layer_->getWeights()[0].getVariable();
     weight.print(std::cout);
 
   } catch (...) {
@@ -226,11 +233,11 @@ int main(int argc, char *argv[]) {
     // std::string name = "embedding";
     // NN.getLayer(name.c_str(), &layer);
 
-    weight = layer->getWeights()[0].getVariable();
+    weight = layer_->getWeights()[0].getVariable();
     weight.print(std::cout);
 
     nntrainer::Tensor golden(1, 1, 15, 8);
-    
+
     try {
       loadFile("embedding_weight_golden.out", golden);
       golden.print(std::cout);
@@ -238,7 +245,8 @@ int main(int argc, char *argv[]) {
       nntrainer::Tensor weight_out_fc(1, 1, 32, 1);
       loadFile("fc_weight_golden.out", weight_out_fc);
       weight_out_fc.print(std::cout);
-      weight_fc = layer_fc->getWeights()[0].getVariable();
+
+      weight_fc = layer_fc_->getWeights()[0].getVariable();
       weight_fc.print(std::cout);
     } catch (...) {
       std::cerr << "Error during loadFile\n";

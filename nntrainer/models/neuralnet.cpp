@@ -171,13 +171,14 @@ int NeuralNetwork::initialize() {
   for (unsigned int idx = 0; idx < n_layers; ++idx) {
     bool first = idx == 0;
     auto &lnode = model_graph.getSortedLayerNode(idx);
-    Layer &l = *lnode.getObject();
-    ml_logd("layer name : %s", l.getName().c_str());
+    auto &lptr = lnode->getObject();
+    ml_logd("layer name : %s", lptr->getName().c_str());
     std::string cur_type;
-    if (l.getType() == TimeDistLayer::type) {
-      cur_type = dynamic_cast<TimeDistLayer &>(l).getDistLayerType();
+    if (lptr->getType() == TimeDistLayer::type) {
+      cur_type =
+        std::dynamic_pointer_cast<TimeDistLayer>(lptr)->getDistLayerType();
     } else {
-      cur_type = l.getType();
+      cur_type = lptr->getType();
     }
 
     /**
@@ -186,10 +187,10 @@ int NeuralNetwork::initialize() {
      */
     if (!first) {
       std::string l_pre_type =
-        model_graph.getSortedLayerNode(idx - 1).getObject()->getType();
+        model_graph.getSortedLayerNode(idx - 1)->getObject()->getType();
       if (l_pre_type == TimeDistLayer::type) {
         l_pre_type = std::dynamic_pointer_cast<TimeDistLayer>(
-                       model_graph.getSortedLayerNode(idx - 1).getObject())
+                       model_graph.getSortedLayerNode(idx - 1)->getObject())
                        ->getDistLayerType();
       }
       if (istrequal(l_pre_type, ActivationLayer::type) &&
@@ -198,19 +199,19 @@ int NeuralNetwork::initialize() {
         return ML_ERROR_INVALID_PARAMETER;
       }
 
-      for (unsigned int i = 0; i < l.input_layers.size(); ++i) {
+      for (unsigned int i = 0; i < lptr->input_layers.size(); ++i) {
         Layer &in_layer =
-          *model_graph.getLayerNode(l.input_layers[i]).getObject();
+          *model_graph.getLayerNode(lptr->input_layers[i])->getObject();
 
         unsigned int location = 0;
         for (unsigned int j = 0; j < in_layer.output_layers.size(); ++j) {
-          if (in_layer.output_layers[j] == l.getName()) {
+          if (in_layer.output_layers[j] == lptr->getName()) {
             location = j;
             break;
           }
         }
 
-        l.setInputDimension(in_layer.getOutputDimension()[location], i);
+        lptr->setInputDimension(in_layer.getOutputDimension()[location], i);
       }
     }
 
@@ -218,38 +219,40 @@ int NeuralNetwork::initialize() {
      * Initialize all the layers, allocate output tensors for each layer
      * and add optimizer related weights for the layer
      */
-    status = l.initialize(*manager);
+    status = lptr->initialize(*manager);
     NN_RETURN_STATUS();
 
-    REGISTER_EVENT(l.getName(), lnode.event_key)
+    REGISTER_EVENT(lptr->getName(), lnode->event_key)
 
-    auto &in_out = manager->trackLayerOutputs(
-      cur_type, l.getName(), l.getOutputDimension(), l.getInputDimension());
-    l.setOutputBuffers(in_out);
+    auto &in_out = manager->trackLayerOutputs(cur_type, lptr->getName(),
+                                              lptr->getOutputDimension(),
+                                              lptr->getInputDimension());
+    lptr->setOutputBuffers(in_out);
 
     /** Connect the output of the previous layers with the input of the current
      * layer */
     if (!first) {
-      for (unsigned int i = 0; i < l.input_layers.size(); ++i) {
+      for (unsigned int i = 0; i < lptr->input_layers.size(); ++i) {
         Layer &in_layer =
-          *model_graph.getLayerNode(l.input_layers[i]).getObject();
+          *model_graph.getLayerNode(lptr->input_layers[i])->getObject();
 
         unsigned int location = 0;
         for (unsigned int j = 0; j < in_layer.output_layers.size(); ++j) {
-          if (in_layer.output_layers[j] == l.getName()) {
+          if (in_layer.output_layers[j] == lptr->getName()) {
             location = j;
             break;
           }
         }
 
-        l.net_input[i] = model_graph.getLayerNode(l.input_layers[i])
-                           .getObject()
-                           ->net_hidden[location];
+        lptr->net_input[i] = model_graph.getLayerNode(lptr->input_layers[i])
+                               ->getObject()
+                               ->net_hidden[location];
       }
     } else {
-      auto &in_out = manager->trackLayerInputs(
-        cur_type, l.getName(), l.getInputDimension(), l.getOutputDimension());
-      l.setInputBuffers(in_out);
+      auto &in_out = manager->trackLayerInputs(cur_type, lptr->getName(),
+                                               lptr->getInputDimension(),
+                                               lptr->getOutputDimension());
+      lptr->setInputBuffers(in_out);
     }
   }
 
@@ -258,7 +261,7 @@ int NeuralNetwork::initialize() {
     opt->initialize();
     for (unsigned int idx = 0; idx < n_layers; ++idx) {
       auto &lnode = model_graph.getSortedLayerNode(idx);
-      opt->addOptimizerVariable(lnode.getObject()->getWeightsRef());
+      opt->addOptimizerVariable(lnode->getObject()->getWeightsRef());
     }
   }
 
@@ -303,16 +306,16 @@ sharedConstTensors NeuralNetwork::forwarding(sharedConstTensors input,
       (!label.empty() && label[0]->batch() != batch_size))
     throw std::logic_error("Error: mismatch in batchsize for data and model.");
 
-  auto &first_layer = model_graph.getSortedLayerNode(0).getObject();
+  auto &first_layer = model_graph.getSortedLayerNode(0)->getObject();
   auto &last_layer =
     model_graph.getSortedLayerNode(model_graph.getSorted().size() - 1)
-      .getObject();
+      ->getObject();
 
   /// @note centroid_knn layer needs to be the last layer, currently it is
   /// not possible because loss layer is always added.
   /// if centroid_knn layer can be last layer, this loop is not required
   for (auto &layer_node : model_graph.getSorted()) {
-    auto l = layer_node.getObject();
+    auto &l = layer_node->getObject();
     if (l->getType() == "centroid_knn") {
       l->net_hidden[0]->getGradientRef() = *label[0].get();
     }
@@ -380,10 +383,11 @@ void NeuralNetwork::backwarding(int iteration) {
   auto iter_begin = model_graph.getBackwardingBeginIter();
   auto iter_end = model_graph.getBackwardingEndIter();
 
-  if (iter_begin->getObject()->getType() != LossLayer::type) {
+  auto &lptr_begin = (*iter_begin);
+  if (lptr_begin->getObject()->getType() != LossLayer::type) {
     bool has_loss = false;
-    if (iter_begin->getObject()->getType() == TimeDistLayer::type) {
-      if (std::dynamic_pointer_cast<TimeDistLayer>(iter_begin->getObject())
+    if (lptr_begin->getObject()->getType() == TimeDistLayer::type) {
+      if (std::dynamic_pointer_cast<TimeDistLayer>(lptr_begin->getObject())
             ->getDistLayerType() == LossLayer::type)
         has_loss = true;
     }
@@ -392,10 +396,10 @@ void NeuralNetwork::backwarding(int iteration) {
   }
 
   for (auto iter = iter_begin; iter != iter_end - 1; iter++) {
-    backwarding(iter->getObject(), iteration, true);
+    backwarding((*iter)->getObject(), iteration, true);
   }
 
-  auto last_layer = (iter_end - 1)->getObject();
+  auto last_layer = (*(iter_end - 1))->getObject();
   /**
    * The last trainable layer need not calculate the derivatives
    */
@@ -414,7 +418,7 @@ void NeuralNetwork::backwarding(int iteration) {
 void NeuralNetwork::backwarding(sharedConstTensors label, int iteration) {
   auto &loss_layer =
     model_graph.getSortedLayerNode(model_graph.getSorted().size() - 1)
-      .getObject();
+      ->getObject();
   loss_layer->net_hidden[0]->getGradientRef() = *label[0].get();
 
   backwarding(iteration);
@@ -425,7 +429,7 @@ float NeuralNetwork::getLoss() {
 
   auto &sorted = model_graph.getSorted();
   for (unsigned int i = 0; i < sorted.size(); i++) {
-    loss += sorted[i].getObject()->getLoss();
+    loss += sorted[i]->getObject()->getLoss();
   }
   return loss;
 }
@@ -467,7 +471,7 @@ void NeuralNetwork::saveModel() {
 
   auto &layers = model_graph.getSorted();
   for (unsigned int i = 0; i < layers.size(); i++)
-    layers[i].getObject()->save(model_file);
+    layers[i]->getObject()->save(model_file);
   model_file.write((char *)&epoch_idx, sizeof(epoch_idx));
   model_file.write((char *)&iter, sizeof(iter));
   model_file.close();
@@ -500,7 +504,7 @@ void NeuralNetwork::readModel() {
 
   auto &layers = tmp.model_graph.getSorted();
   for (unsigned int i = 0; i < layers.size(); i++)
-    layers[i].getObject()->read(model_file);
+    layers[i]->getObject()->read(model_file);
   checkedRead(model_file, (char *)&tmp.epoch_idx, sizeof(epoch_idx),
               "[NeuralNetwork::readModel] failed to read epoch_idx");
   checkedRead(model_file, (char *)&tmp.iter, sizeof(iter),
@@ -524,7 +528,7 @@ void NeuralNetwork::setBatchSize(unsigned int batch) {
 
 bool NeuralNetwork::validateInput(sharedConstTensors X) {
 
-  auto &first_layer = model_graph.getSortedLayerNode(0).getObject();
+  auto &first_layer = model_graph.getSortedLayerNode(0)->getObject();
   auto input_dim = first_layer->getInputDimension();
   if (X.size() != input_dim.size()) {
     ml_loge("Error: provided number of inputs %d, required %d", (int)X.size(),
@@ -574,7 +578,7 @@ sharedConstTensors NeuralNetwork::inference(sharedConstTensors X,
     return out;
   }
 
-  auto &last_layer = model_graph.getSorted().back().getObject();
+  auto &last_layer = model_graph.getSorted().back()->getObject();
   for (unsigned int i = 0; i < last_layer->getNumOutputs(); ++i) {
     out.push_back(MAKE_SHARED_TENSOR(last_layer->net_hidden[i]->getVariable()));
   }
@@ -658,10 +662,10 @@ int NeuralNetwork::train_run() {
     iter = 0;
   }
 
-  auto &first_layer = model_graph.getSortedLayerNode(0).getObject();
+  auto &first_layer = model_graph.getSortedLayerNode(0)->getObject();
   auto &last_layer =
     model_graph.getSortedLayerNode(model_graph.getSorted().size() - 1)
-      .getObject();
+      ->getObject();
 
   auto &output = last_layer->net_hidden[0]->getVariableRef();
   auto &label = last_layer->net_hidden[0]->getGradientRef();
@@ -670,7 +674,7 @@ int NeuralNetwork::train_run() {
   /// @todo migrate this to trait based system; sth like need label?
   std::shared_ptr<Layer> layer_;
   for (auto &layer_node : model_graph.getSorted()) {
-    layer_ = layer_node.getObject();
+    layer_ = layer_node->getObject();
     if (layer_->getType() == "centroid_knn") {
       layer_->net_hidden[0]->getGradientRef() = label;
     }
@@ -778,7 +782,7 @@ int NeuralNetwork::addLayer(NodeType layer) {
   }
 
   /** Validate the layer to be added */
-  status = layer->checkValidation();
+  status = layer->getObject()->checkValidation();
   if (status != ML_ERROR_NONE) {
     ml_loge("layer(%s) validation failed.", layer->getName().c_str());
     return status;
@@ -802,7 +806,7 @@ int NeuralNetwork::extendGraph(GraphType graph, std::string prefix) {
   return ML_ERROR_NONE;
 }
 
-std::vector<std::shared_ptr<Layer>>
+NeuralNetwork::GraphType
 NeuralNetwork::getUnsortedLayers(const std::string &input_layer,
                                  const std::string &output_layer) {
   return model_graph.getUnsortedLayers(input_layer, output_layer);
@@ -827,20 +831,8 @@ int NeuralNetwork::setDataBuffer(std::shared_ptr<DataBuffer> data_buffer) {
 
 int NeuralNetwork::getLayer(const char *name,
                             std::shared_ptr<ml::train::Layer> *layer) {
-  std::shared_ptr<Layer> layer_;
-  int ret = getLayer(name, &layer_);
-  if (ret == ML_ERROR_NONE)
-    *layer = layer_;
-  return ret;
-}
-
-int NeuralNetwork::getLayer(const char *name, NodeType *layer) {
-  NodeType ret = model_graph.getLayer(std::string(name));
-
-  if (ret == nullptr)
-    return ML_ERROR_INVALID_PARAMETER;
-
-  *layer = ret;
+  *layer = std::static_pointer_cast<ml::train::Layer>(
+    model_graph.getLayerNode(std::string(name)));
   return ML_ERROR_NONE;
 }
 
@@ -911,7 +903,7 @@ void NeuralNetwork::print(std::ostream &out, unsigned int flags,
   }
 
   // TODO: get sorted layers if initialized
-  auto layers = model_graph.getLayers();
+  auto layers = model_graph.getLayerNodes();
   if (flags & PRINT_GRAPH_INFO) {
     out << "graph contains " << layers.size() << " operation nodes\n";
     /// @todo print graph info
@@ -940,7 +932,7 @@ void NeuralNetwork::print(std::ostream &out, unsigned int flags,
 
   /** print layer properties */
   for (auto &layer : layers)
-    layer->printPreset(out, layerPrintPreset);
+    layer->getObject()->printPreset(out, layerPrintPreset);
 
   /// @todo Add status to check neuralnet has been run. #290
 }

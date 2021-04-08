@@ -34,9 +34,12 @@ makeGraph(const std::vector<LayerReprentation> &layer_reps) {
   auto graph = std::make_shared<nntrainer::GraphRepresentation>();
 
   for (const auto &layer_representation : layer_reps) {
-    std::shared_ptr<ml::train::Layer> layer = ac.createObject<ml::train::Layer>(
-      layer_representation.first, layer_representation.second);
-    graph->addLayer(std::static_pointer_cast<nntrainer::Layer>(layer));
+    std::shared_ptr<nntrainer::Layer> nntr_layer =
+      ac.createObject<nntrainer::Layer>(layer_representation.first,
+                                        layer_representation.second);
+    std::shared_ptr<nntrainer::LayerNode> layer =
+      std::make_unique<nntrainer::LayerNode>(nntr_layer);
+    graph->addLayer(layer);
   }
 
   return graph;
@@ -59,8 +62,8 @@ auto ini_interpreter =
  */
 static void graphEqual(const nntrainer::GraphRepresentation &lhs,
                        const nntrainer::GraphRepresentation &rhs) {
-  auto layers = lhs.getLayers();
-  auto ref_layers = rhs.getLayers();
+  const auto &layers = lhs.getLayerNodes();
+  const auto &ref_layers = rhs.getLayerNodes();
   EXPECT_EQ(layers.size(), ref_layers.size());
 
   auto is_node_equal = [](const nntrainer::Layer &l,
@@ -79,7 +82,7 @@ static void graphEqual(const nntrainer::GraphRepresentation &lhs,
 
   if (layers.size() == ref_layers.size()) {
     for (unsigned int i = 0; i < layers.size(); ++i) {
-      is_node_equal(*layers[i], *ref_layers[i]);
+      is_node_equal(*layers[i]->getObject(), *ref_layers[i]->getObject());
     }
   }
 }

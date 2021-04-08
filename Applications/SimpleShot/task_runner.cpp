@@ -223,11 +223,11 @@ int main(int argc, char **argv) {
 
   try {
     app_context.registerFactory(
-      ml::train::createLayer<simpleshot::layers::CenteringLayer>);
+      nntrainer::createLayer<simpleshot::layers::CenteringLayer>);
     app_context.registerFactory(
-      ml::train::createLayer<simpleshot::layers::L2NormLayer>);
+      nntrainer::createLayer<simpleshot::layers::L2NormLayer>);
     app_context.registerFactory(
-      ml::train::createLayer<simpleshot::layers::CentroidKNN>);
+      nntrainer::createLayer<simpleshot::layers::CentroidKNN>);
   } catch (std::exception &e) {
     std::cerr << "registering factory failed: " << e.what();
     return 1;

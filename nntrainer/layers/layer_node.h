@@ -2,12 +2,12 @@
 /**
  * Copyright (C) 2021 Parichay Kapoor <pk.kapoor@samsung.com>
  *
- * @file   graph_node.h
+ * @file   layer_node.h
  * @date   1 April 2021
  * @see    https://github.com/nnstreamer/nntrainer
  * @author Parichay Kapoor <pk.kapoor@samsung.com>
  * @bug    No known bugs except for NYI items
- * @brief  This is the graph node interface for c++ API
+ * @brief  This is the layer node for network graph
  */
 
 #ifndef __LAYER_NODE_H__
@@ -26,10 +26,15 @@ namespace nntrainer {
 class LayerNode : public ml::train::Layer, public GraphNode {
 public:
   /**
+   * @brief     Default constructor
+   */
+  LayerNode() : LayerNode(nullptr) {}
+
+  /**
    * @brief     Constructor of LayerNode class
    *
    */
-  LayerNode(std::shared_ptr<nntrainer::Layer> l, size_t idx) :
+  LayerNode(std::shared_ptr<nntrainer::Layer> l, size_t idx = 0) :
     layer(l),
     index(idx),
     flatten(false),
@@ -40,6 +45,11 @@ public:
    *
    */
   ~LayerNode() = default;
+
+  /**
+   * @brief     Set the index for the node
+   */
+  void setIndex(size_t idx) { index = idx; }
 
   /**
    * Support all the interface requirements by ml::train::Layer
@@ -109,6 +119,7 @@ public:
 #endif
 
 private:
+  // TODO: make this unique_ptr once getObject API is removed
   std::shared_ptr<nntrainer::Layer>
     layer;      /**< The actual object in the graph node */
   size_t index; /**< index of each node */
@@ -119,6 +130,14 @@ private:
   ActivationType
     activation_type; /**< activation applied to the output of this node */
 };
+
+/**
+ * @brief   Get Layer devel from ml::train::Layer
+ *
+ * @param   l Layer object
+ * @return  Layer devel object
+ */
+std::shared_ptr<Layer> getLayerDevel(std::shared_ptr<ml::train::Layer> l);
 
 } // namespace nntrainer
 #endif // __LAYER_NODE_H__

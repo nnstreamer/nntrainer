@@ -514,7 +514,7 @@ int main(int argc, char **argv) {
         writeFile << "mainNet Loss : " << mainNet.getLoss()
                   << " : targetNet Loss : " << targetNet.getLoss() << "\n";
         std::cout << "\n\n =================== TRAINIG & COPY NET "
-                    "==================\n\n";
+                     "==================\n\n";
         std::cout << "mainNet Loss : ";
         std::cout.width(15);
         std::cout << mainNet.getLoss() << "\n targetNet Loss : ";

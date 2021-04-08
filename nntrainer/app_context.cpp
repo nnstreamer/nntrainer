@@ -197,56 +197,56 @@ static void add_default_object(AppContext &ac) {
                      "unknown", OptType::UNKNOWN);
 
   using LayerType = ml::train::LayerType;
-  ac.registerFactory(ml::train::createLayer<InputLayer>, InputLayer::type,
+  ac.registerFactory(nntrainer::createLayer<InputLayer>, InputLayer::type,
                      LayerType::LAYER_IN);
-  ac.registerFactory(ml::train::createLayer<FullyConnectedLayer>,
+  ac.registerFactory(nntrainer::createLayer<FullyConnectedLayer>,
                      FullyConnectedLayer::type, LayerType::LAYER_FC);
-  ac.registerFactory(ml::train::createLayer<BatchNormalizationLayer>,
+  ac.registerFactory(nntrainer::createLayer<BatchNormalizationLayer>,
                      BatchNormalizationLayer::type, LayerType::LAYER_BN);
-  ac.registerFactory(ml::train::createLayer<Conv2DLayer>, Conv2DLayer::type,
+  ac.registerFactory(nntrainer::createLayer<Conv2DLayer>, Conv2DLayer::type,
                      LayerType::LAYER_CONV2D);
-  ac.registerFactory(ml::train::createLayer<Pooling2DLayer>,
+  ac.registerFactory(nntrainer::createLayer<Pooling2DLayer>,
                      Pooling2DLayer::type, LayerType::LAYER_POOLING2D);
-  ac.registerFactory(ml::train::createLayer<FlattenLayer>, FlattenLayer::type,
+  ac.registerFactory(nntrainer::createLayer<FlattenLayer>, FlattenLayer::type,
                      LayerType::LAYER_FLATTEN);
-  ac.registerFactory(ml::train::createLayer<ActivationLayer>,
+  ac.registerFactory(nntrainer::createLayer<ActivationLayer>,
                      ActivationLayer::type, LayerType::LAYER_ACTIVATION);
-  ac.registerFactory(ml::train::createLayer<AdditionLayer>, AdditionLayer::type,
+  ac.registerFactory(nntrainer::createLayer<AdditionLayer>, AdditionLayer::type,
                      LayerType::LAYER_ADDITION);
-  ac.registerFactory(ml::train::createLayer<OutputLayer>, OutputLayer::type,
+  ac.registerFactory(nntrainer::createLayer<OutputLayer>, OutputLayer::type,
                      LayerType::LAYER_MULTIOUT);
-  ac.registerFactory(ml::train::createLayer<ConcatLayer>, ConcatLayer::type,
+  ac.registerFactory(nntrainer::createLayer<ConcatLayer>, ConcatLayer::type,
                      LayerType::LAYER_CONCAT);
-  ac.registerFactory(ml::train::createLayer<LossLayer>, LossLayer::type,
+  ac.registerFactory(nntrainer::createLayer<LossLayer>, LossLayer::type,
                      LayerType::LAYER_LOSS);
-  ac.registerFactory(ml::train::createLayer<PreprocessFlipLayer>,
+  ac.registerFactory(nntrainer::createLayer<PreprocessFlipLayer>,
                      PreprocessFlipLayer::type,
                      LayerType::LAYER_PREPROCESS_FLIP);
-  ac.registerFactory(ml::train::createLayer<PreprocessTranslateLayer>,
+  ac.registerFactory(nntrainer::createLayer<PreprocessTranslateLayer>,
                      PreprocessTranslateLayer::type,
                      LayerType::LAYER_PREPROCESS_TRANSLATE);
 #ifdef ENABLE_NNSTREAMER_BACKBONE
-  ac.registerFactory(ml::train::createLayer<NNStreamerLayer>,
+  ac.registerFactory(nntrainer::createLayer<NNStreamerLayer>,
                      NNStreamerLayer::type,
                      LayerType::LAYER_BACKBONE_NNSTREAMER);
 #endif
 #ifdef ENABLE_TFLITE_BACKBONE
-  ac.registerFactory(ml::train::createLayer<TfLiteLayer>, TfLiteLayer::type,
+  ac.registerFactory(nntrainer::createLayer<TfLiteLayer>, TfLiteLayer::type,
                      LayerType::LAYER_BACKBONE_TFLITE);
 #endif
-  ac.registerFactory(ml::train::createLayer<EmbeddingLayer>,
+  ac.registerFactory(nntrainer::createLayer<EmbeddingLayer>,
                      EmbeddingLayer::type, LayerType::LAYER_EMBEDDING);
 
-  ac.registerFactory(ml::train::createLayer<RNNLayer>, RNNLayer::type,
+  ac.registerFactory(nntrainer::createLayer<RNNLayer>, RNNLayer::type,
                      LayerType::LAYER_RNN);
 
-  ac.registerFactory(ml::train::createLayer<LSTMLayer>, LSTMLayer::type,
+  ac.registerFactory(nntrainer::createLayer<LSTMLayer>, LSTMLayer::type,
                      LayerType::LAYER_LSTM);
 
-  ac.registerFactory(ml::train::createLayer<TimeDistLayer>, TimeDistLayer::type,
+  ac.registerFactory(nntrainer::createLayer<TimeDistLayer>, TimeDistLayer::type,
                      LayerType::LAYER_TIME_DIST);
 
-  ac.registerFactory(AppContext::unknownFactory<ml::train::Layer>, "unknown",
+  ac.registerFactory(AppContext::unknownFactory<nntrainer::Layer>, "unknown",
                      LayerType::LAYER_UNKNOWN);
 }
 
@@ -338,15 +338,15 @@ int AppContext::registerLayer(const std::string &library_path,
     << func_tag << "custom layer must specify type name, but it is empty";
   pluggable->destroyfunc(layer);
 
-  FactoryType<ml::train::Layer> factory_func =
+  FactoryType<nntrainer::Layer> factory_func =
     [pluggable](const PropsType &prop) {
-      std::unique_ptr<ml::train::Layer> layer =
+      std::unique_ptr<nntrainer::Layer> layer =
         std::make_unique<internal::PluggedLayer>(pluggable);
 
       return layer;
     };
 
-  return registerFactory<ml::train::Layer>(factory_func, type);
+  return registerFactory<nntrainer::Layer>(factory_func, type);
 }
 
 std::vector<int>

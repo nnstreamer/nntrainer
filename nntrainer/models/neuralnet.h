@@ -40,7 +40,7 @@
 #include <fc_layer.h>
 #include <flatten_layer.h>
 #include <input_layer.h>
-#include <layer_internal.h>
+#include <layer_node.h>
 #include <loss_layer.h>
 #include <manager.h>
 #include <ml-api-common.h>
@@ -78,8 +78,8 @@ class NeuralNetwork : public ml::train::Model {
   friend class ModelLoader; /** access private members of ModelLoader */
 
 public:
-  using NodeType = std::shared_ptr<Layer>; /** Type of a Node */
-  using GraphType = std::vector<NodeType>; /** actual graph type */
+  using NodeType = std::shared_ptr<LayerNode>; /** Type of a Node */
+  using GraphType = std::vector<NodeType>;     /** actual graph type */
   using FlatGraphType =
     std::vector<NodeType>; /** topological sorted, iterable 1-D list of nodes */
   using NetworkGraphType = nntrainer::NetworkGraph;
@@ -301,7 +301,7 @@ public:
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
   int addLayer(std::shared_ptr<ml::train::Layer> layer) {
-    return addLayer(std::static_pointer_cast<Layer>(layer));
+    return addLayer(std::static_pointer_cast<LayerNode>(layer));
   }
 
   /**
@@ -371,7 +371,7 @@ public:
    * @note these layers will be in sorted order if the model is compiled,
    * otherwise the order is the order of addition of layers in the model.
    */
-  FlatGraphType getFlatGraph() { return model_graph.getLayers(); }
+  FlatGraphType getFlatGraph() { return model_graph.getLayerNodes(); }
 
   /**
    * @brief     get network graph

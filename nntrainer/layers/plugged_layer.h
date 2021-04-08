@@ -37,7 +37,7 @@ public:
   PluggedLayer(const nntrainer::LayerPluggable *pluggable) :
     /// @todo we won't need dynamic pointer cast here after api is fully
     /// implemented
-    layerImpl(dynamic_cast<nntrainer::Layer *>(pluggable->createfunc())),
+    layerImpl(pluggable->createfunc()),
     destroy_func(pluggable->destroyfunc) {
     NNTR_THROW_IF(layerImpl == nullptr, std::invalid_argument)
       << "either create_func_ failed or cannot dynamic cast to layer_internal";

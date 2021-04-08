@@ -454,14 +454,16 @@ TEST(nntrainerIniTest, backbone_p_05) {
   EXPECT_EQ(flat_backbone.size(), flat_direct.size());
 
   for (size_t idx = 0; idx < flat_backbone.size(); idx++) {
-    EXPECT_EQ(flat_backbone[idx]->getType(), flat_direct[idx]->getType());
-    EXPECT_EQ(flat_backbone[idx]->getInputDimension(),
-              flat_direct[idx]->getInputDimension());
-    EXPECT_EQ(flat_backbone[idx]->getOutputDimension(),
-              flat_direct[idx]->getOutputDimension());
-    EXPECT_EQ(flat_backbone[idx]->getActivationType(),
-              flat_direct[idx]->getActivationType());
-    EXPECT_EQ(flat_backbone[idx]->getName(), flat_direct[idx]->getName());
+    auto &backbone_layer = flat_backbone[idx]->getObject();
+    auto &direct_layer = flat_direct[idx]->getObject();
+    EXPECT_EQ(backbone_layer->getType(), direct_layer->getType());
+    EXPECT_EQ(backbone_layer->getInputDimension(),
+              direct_layer->getInputDimension());
+    EXPECT_EQ(backbone_layer->getOutputDimension(),
+              direct_layer->getOutputDimension());
+    EXPECT_EQ(backbone_layer->getActivationType(),
+              direct_layer->getActivationType());
+    EXPECT_EQ(backbone_layer->getName(), direct_layer->getName());
   }
 }
 
