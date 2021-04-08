@@ -49,6 +49,10 @@ void IniSection::setEntry(const std::map<std::string, std::string> &entry) {
   }
 }
 
+void IniSection::setEntry(const std::string &key, const std::string &value) {
+  entry[key] = value;
+}
+
 void IniSection::setEntry(const std::string &entry_str) {
   // setting property separated by "|"
   std::regex words_regex("[^|]+");
@@ -70,7 +74,7 @@ void IniSection::setEntry(const std::string &entry_str) {
     NNTR_THROW_IF(status != ML_ERROR_NONE, std::invalid_argument)
       << "getKeyValue Failed";
 
-    entry[key] = value;
+    setEntry(key, value);
   }
 }
 
