@@ -2,6 +2,7 @@ util_sources = [
   'parse_util.cpp',
   'util_func.cpp',
   'profiler.cpp',
+  'ini_wrapper.cpp',
 ]
 
 util_headers = [
