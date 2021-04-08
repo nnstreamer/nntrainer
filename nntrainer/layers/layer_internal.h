@@ -30,6 +30,7 @@
 #include <acti_func.h>
 #include <layer.h>
 #include <manager.h>
+#include <node_exporter.h>
 #include <optimizer_devel.h>
 #include <tensor.h>
 #include <tensor_dim.h>
@@ -298,6 +299,17 @@ public:
    * @return TensorDim dimension of the input
    */
   virtual std::vector<TensorDim> getInputDimension() { return input_dim; }
+
+  /**
+   * @brief this function helps exporting the layer in a predefined format,
+   * while workarounding issue caused by templated function type eraser
+   *
+   * @param exporter exporter that conatins exporting logic
+   * @param method enum value to identify how it should be exported to
+   */
+  virtual void
+  export_to(const Exporter &exporter,
+            ExportMethods method = ExportMethods::METHOD_STRINGVECTOR){};
 
   /**
    * @brief  get the loss value added by this layer
