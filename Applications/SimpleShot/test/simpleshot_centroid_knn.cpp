@@ -25,9 +25,9 @@ namespace layers {
 
 TEST(centroid_knn, simple_functions) {
   auto &app_context = nntrainer::AppContext::Global();
-  app_context.registerFactory(ml::train::createLayer<CentroidKNN>);
+  app_context.registerFactory(nntrainer::createLayer<CentroidKNN>);
 
-  auto c = app_context.createObject<ml::train::Layer>(
+  auto c = app_context.createObject<nntrainer::Layer>(
     "centroid_knn", {"num_class=5", "input_shape=1:1:3"});
 
   std::unique_ptr<CentroidKNN> layer(static_cast<CentroidKNN *>(c.release()));

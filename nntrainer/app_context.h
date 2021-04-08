@@ -65,7 +65,10 @@ public:
 
   template <typename... Ts> using FactoryMap = std::tuple<IndexType<Ts>...>;
 
-  AppContext(){};
+  /**
+   * @brief   Default constructor
+   */
+  AppContext() = default;
 
   /**
    *
@@ -133,6 +136,19 @@ public:
    */
   const std::string getWorkingPath(const std::string &path = "");
 
+  /**
+   * @brief Factory register function, use this function to register custom
+   * object
+   *
+   * @tparam T object to create. Currently Optimizer, Layer is supported
+   * @param factory factory function that creates std::unique_ptr<T>
+   * @param key key to access the factory, if key is empty, try to find key by
+   * calling factory({})->getType();
+   * @param int_key key to access the factory by integer, if it is -1(default),
+   * the function automatically unsigned the key and return
+   * @return const int unique integer value to access the current factory
+   * @throw invalid argument when key and/or int_key is already taken
+   */
   template <typename T>
   const int registerFactory(const PtrFactoryType<T> factory,
                             const std::string &key = "",
@@ -262,7 +278,7 @@ public:
   }
 
 private:
-  FactoryMap<ml::train::Optimizer, ml::train::Layer> factory_map;
+  FactoryMap<ml::train::Optimizer, nntrainer::Layer> factory_map;
   std::string working_path_base;
 };
 

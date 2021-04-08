@@ -114,14 +114,14 @@ std::vector<std::string> section2properties(dictionary *ini,
  * @return std::shared_ptr<Layer> return layer object
  */
 template <typename T>
-std::shared_ptr<Layer>
+std::shared_ptr<LayerNode>
 section2layer(dictionary *ini, const std::string &sec_name,
               const AppContext &ac, const std::string &backbone_file = "") {
   throw std::invalid_argument("supported only with a tag for now");
 }
 
 template <>
-std::shared_ptr<Layer>
+std::shared_ptr<LayerNode>
 section2layer<PlainLayer>(dictionary *ini, const std::string &sec_name,
                           const AppContext &ac,
                           const std::string &backbone_file) {
@@ -132,24 +132,26 @@ section2layer<PlainLayer>(dictionary *ini, const std::string &sec_name,
     << FUNC_TAG << "section type is invalid for section name: " << sec_name;
 
   auto properties = section2properties(ini, sec_name);
-  std::shared_ptr<ml::train::Layer> layer_ =
-    ac.createObject<ml::train::Layer>(layer_type, properties);
+  std::shared_ptr<Layer> nntr_layer =
+    ac.createObject<Layer>(layer_type, properties);
 
-  auto layer = std::static_pointer_cast<Layer>(layer_);
+  auto layer = std::make_unique<LayerNode>(nntr_layer);
 
-  if (layer->getDistribute()) {
+  if (nntr_layer->getDistribute()) {
     ml_logd("This %s layer is going to distributed", sec_name.c_str());
     std::shared_ptr<Layer> dist_layer =
       nntrainer::createLayer(TimeDistLayer::type);
-    std::dynamic_pointer_cast<TimeDistLayer>(dist_layer)->setDistLayer(layer);
-    layer = dist_layer;
+    std::dynamic_pointer_cast<TimeDistLayer>(dist_layer)
+      ->setDistLayer(nntr_layer);
+
+    layer = std::make_unique<LayerNode>(dist_layer);
   }
 
   return layer;
 }
 
 template <>
-std::shared_ptr<Layer>
+std::shared_ptr<LayerNode>
 section2layer<BackboneLayer>(dictionary *ini, const std::string &sec_name,
                              const AppContext &ac,
                              const std::string &backbone_file) {
@@ -173,10 +175,9 @@ section2layer<BackboneLayer>(dictionary *ini, const std::string &sec_name,
 
   auto properties = section2properties(ini, sec_name);
   properties.push_back("modelfile=" + backbone_file);
-  std::shared_ptr<ml::train::Layer> layer_ =
-    ac.createObject<ml::train::Layer>(type, properties);
+  std::shared_ptr<Layer> nntr_layer = ac.createObject<Layer>(type, properties);
 
-  auto layer = std::static_pointer_cast<Layer>(layer_);
+  auto layer = std::make_unique<LayerNode>(nntr_layer);
 
   return layer;
 }
@@ -201,7 +202,7 @@ static bool graphSupported(const std::string &backbone_name) {
  * @param sec_name section name
  * @return std::vector<std::shared_ptr<Layer>> mergeable graph
  */
-std::vector<std::shared_ptr<Layer>>
+std::vector<std::shared_ptr<LayerNode>>
 getMergeableGraph(std::shared_ptr<const GraphRepresentation> graph,
                   dictionary *ini, const std::string &sec_name) {
   std::string input_layer =
@@ -229,10 +230,10 @@ getMergeableGraph(std::shared_ptr<const GraphRepresentation> graph,
     << scale_size;
 
   for (auto &layer : g) {
-    layer->setTrainable(trainable);
-    layer->resetDimension();
+    layer->getObject()->setTrainable(trainable);
+    layer->getObject()->resetDimension();
     if (scale_size != 1) {
-      layer->scaleSize(scale_size);
+      layer->getObject()->scaleSize(scale_size);
     }
     /** TODO #361: this needs update in model file to be of dictionary format */
     // if (preload) {
@@ -251,13 +252,15 @@ getMergeableGraph(std::shared_ptr<const GraphRepresentation> graph,
   std::string input_shape =
     iniparser_getstring(ini, (sec_name + ":Input_Shape").c_str(), "");
   if (!input_shape.empty()) {
-    g[0]->setProperty(Layer::PropertyType::input_shape, input_shape);
+    g[0]->getObject()->setProperty(Layer::PropertyType::input_shape,
+                                   input_shape);
   }
 
   std::string input_layers =
     iniparser_getstring(ini, (sec_name + ":Input_Layers").c_str(), "");
   if (!input_layers.empty()) {
-    g[0]->setProperty(Layer::PropertyType::input_layers, input_layers);
+    g[0]->getObject()->setProperty(Layer::PropertyType::input_layers,
+                                   input_layers);
   }
 
   return g;
@@ -271,7 +274,7 @@ void IniGraphInterpreter::serialize(
 
   std::vector<IniSection> sections;
   for (const auto &ln : representation->getSorted()) {
-    const auto &layer = ln.getObject();
+    const auto &layer = ln->getObject();
 
     IniSection s(layer->getName());
     s.setEntry("type", layer->getType());
@@ -333,7 +336,7 @@ IniGraphInterpreter::deserialize(const std::string &in) {
       }
       /** Parse all the layers defined as sections in order */
       ml_logd("probing section_name: %s", sec_name_);
-      std::shared_ptr<Layer> layer;
+      std::shared_ptr<LayerNode> layer;
 
       /**
        * If this section is a backbone, load backbone section from this

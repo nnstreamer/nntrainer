@@ -49,7 +49,7 @@ public:
   /**
    * @brief     Destructor
    */
-  ~DataBufferFromCallback(){};
+  ~DataBufferFromCallback() = default;
 
   /**
    * @brief     Initialize Buffer

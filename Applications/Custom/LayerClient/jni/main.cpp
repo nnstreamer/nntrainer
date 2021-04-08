@@ -199,7 +199,7 @@ int main(int argc, char *argv[]) {
     /// registerFactory excepts a function that returns unique_ptr<Layer> from
     /// std::vector<std::string> ml::train::createLayer<T> is a templated
     /// function for generic usage
-    app_context.registerFactory(ml::train::createLayer<custom::PowLayer>);
+    app_context.registerFactory(nntrainer::createLayer<custom::PowLayer>);
   } catch (std::invalid_argument &e) {
     std::cerr << "failed to register factory, reason: " << e.what()
               << std::endl;

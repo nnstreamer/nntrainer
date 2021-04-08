@@ -43,8 +43,11 @@ namespace nntrainer {
 /**
  * @class   Layer Base class for layers
  * @brief   Base class for all layers
+ *
+ * @details nntrainer::Layer inherits ml::train::Layer but has been ommitted to
+ * disallow static_cast between nntrainer::Layer and ml::train::Layer objects.
  */
-class Layer : public ml::train::Layer {
+class Layer {
 
   /** model classes can call private methods which arent exposed to public */
   friend class NeuralNetwork;
@@ -77,6 +80,11 @@ public:
   }
 
   /**
+   * @brief     Destructor of Layer Class
+   */
+  virtual ~Layer() = default;
+
+  /**
    *  @brief  Move constructor of Layer.
    *  @param[in] Layer &&
    */
@@ -87,6 +95,12 @@ public:
    * @parma[in] rhs Layer to be moved.
    */
   virtual Layer &operator=(Layer &&rhs) = default;
+
+  /**
+   * @brief Get the layer type
+   * @return const std::string type representation
+   */
+  virtual const std::string getType() const = 0;
 
   /**
    * @brief     Forward Propagation of a layer
@@ -711,8 +725,8 @@ std::ostream &operator<<(std::ostream &out, T &l) {
   return out;
 }
 
-using CreateLayerFunc = ml::train::Layer *(*)();
-using DestroyLayerFunc = void (*)(ml::train::Layer *);
+using CreateLayerFunc = nntrainer::Layer *(*)();
+using DestroyLayerFunc = void (*)(nntrainer::Layer *);
 
 /**
  * @brief  Layer Pluggable struct that enables pluggable layer
@@ -727,6 +741,23 @@ typedef struct {
  * @brief pluggable layer must have this structure defined
  */
 extern "C" LayerPluggable ml_train_layer_pluggable;
+
+/**
+ * @brief General Layer Factory function to register Layer
+ *
+ * @param props property representation
+ * @return std::unique_ptr<ml::train::Layer> created object
+ */
+template <typename T,
+          std::enable_if_t<std::is_base_of<Layer, T>::value, T> * = nullptr>
+std::unique_ptr<Layer> createLayer(const std::vector<std::string> &props = {}) {
+  std::unique_ptr<Layer> ptr = std::make_unique<T>();
+
+  if (ptr->setProperty(props) != ML_ERROR_NONE) {
+    throw std::invalid_argument("Set properties failed for layer");
+  }
+  return ptr;
+}
 
 } // namespace nntrainer
 
