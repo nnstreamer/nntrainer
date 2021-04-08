@@ -93,7 +93,7 @@ public:
   Manager(bool enable_gradient_memory_opt_ = true,
           bool enable_derivative_memory_opt_ = true,
           bool enable_activation_memory_opt_ = true,
-          bool enable_inference_inout_memory_opt_ = true);
+          bool enable_inference_inout_memory_opt_ = false);
 
   Manager(const Manager &) = default;
 
