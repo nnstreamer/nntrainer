@@ -14,6 +14,7 @@
 #include <iostream>
 
 #include <dataset.h>
+#include <ini_wrapper.h>
 #include <layer.h>
 #include <ml-api-common.h>
 #include <model.h>
@@ -152,36 +153,38 @@ TEST(ccapi_dataset, construct_02_p) {
   EXPECT_NO_THROW(ml::train::createDataset(ml::train::DatasetType::FILE));
 }
 
-static IniSection model_base("Model", "Type = NeuralNetwork"
-                                      " | Epochs = 1"
-                                      " | Loss = cross"
-                                      " | Save_Path = 'model.bin'"
-                                      " | batch_size = 32");
+static nntrainer::IniSection model_base("Model", "Type = NeuralNetwork"
+                                                 " | Epochs = 1"
+                                                 " | Loss = cross"
+                                                 " | Save_Path = 'model.bin'"
+                                                 " | batch_size = 32");
 
-static IniSection optimizer("Optimizer", "Type = adam"
-                                         " | Learning_rate = 0.0001"
-                                         " | Decay_rate = 0.96"
-                                         " | Decay_steps = 1000"
-                                         " | beta1 = 0.9"
-                                         " | beta2 = 0.9999"
-                                         " | epsilon = 1e-7");
+static nntrainer::IniSection optimizer("Optimizer", "Type = adam"
+                                                    " | Learning_rate = 0.0001"
+                                                    " | Decay_rate = 0.96"
+                                                    " | Decay_steps = 1000"
+                                                    " | beta1 = 0.9"
+                                                    " | beta2 = 0.9999"
+                                                    " | epsilon = 1e-7");
 
-static IniSection dataset("Dataset", "BufferSize=100"
-                                     " | TrainData = trainingSet.dat"
-                                     " | ValidData = valSet.dat"
-                                     " | LabelData = label.dat");
+static nntrainer::IniSection dataset("Dataset", "BufferSize=100"
+                                                " | TrainData = trainingSet.dat"
+                                                " | ValidData = valSet.dat"
+                                                " | LabelData = label.dat");
 
-static IniSection inputlayer("inputlayer", "Type = input"
-                                           "| Input_Shape = 1:1:62720"
-                                           "| bias_initializer = zeros"
-                                           "| Normalization = true"
-                                           "| Activation = sigmoid");
+static nntrainer::IniSection inputlayer("inputlayer",
+                                        "Type = input"
+                                        "| Input_Shape = 1:1:62720"
+                                        "| bias_initializer = zeros"
+                                        "| Normalization = true"
+                                        "| Activation = sigmoid");
 
-static IniSection outputlayer("outputlayer", "Type = fully_connected"
-                                             "| input_layers = inputlayer"
-                                             "| Unit = 10"
-                                             "| bias_initializer = zeros"
-                                             "| Activation = softmax");
+static nntrainer::IniSection outputlayer("outputlayer",
+                                         "Type = fully_connected"
+                                         "| input_layers = inputlayer"
+                                         "| Unit = 10"
+                                         "| bias_initializer = zeros"
+                                         "| Activation = softmax");
 
 /**
  * @brief Neural Network Model Training

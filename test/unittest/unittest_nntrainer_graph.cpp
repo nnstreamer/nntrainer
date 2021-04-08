@@ -11,6 +11,7 @@
  */
 
 #include <gtest/gtest.h>
+#include <ini_wrapper.h>
 #include <neuralnet.h>
 
 #include "nntrainer_test_util.h"
@@ -24,7 +25,7 @@ typedef enum {
 
 class nntrainerGraphTest
   : public ::testing::TestWithParam<
-      std::tuple<const char *, const IniTestWrapper::Sections, int>> {
+      std::tuple<const char *, const nntrainer::IniWrapper::Sections, int>> {
 
 protected:
   virtual void SetUp() {
@@ -33,7 +34,7 @@ protected:
 
     auto sections = std::get<1>(GetParam());
 
-    ini = IniTestWrapper(name, sections);
+    ini = nntrainer::IniWrapper(name, sections);
 
     failAt = std::get<2>(GetParam());
     ini.save_ini();
@@ -52,7 +53,7 @@ protected:
 private:
   int failAt;
   std::string name;
-  IniTestWrapper ini;
+  nntrainer::IniWrapper ini;
 };
 
 /**
@@ -111,124 +112,124 @@ TEST_P(nntrainerGraphTest, loadConfig) {
   NN.backwarding({MAKE_SHARED_TENSOR(output)}, 1);
 }
 
-static IniSection nw_base("model", "Type = NeuralNetwork | "
-                                   "batch_size = 16 | "
-                                   "loss = cross");
+static nntrainer::IniSection nw_base("model", "Type = NeuralNetwork | "
+                                              "batch_size = 16 | "
+                                              "loss = cross");
 
-static IniSection sgd("Optimizer", "Type = sgd |"
-                                   "Learning_rate = 1");
+static nntrainer::IniSection sgd("Optimizer", "Type = sgd |"
+                                              "Learning_rate = 1");
 
-static IniSection input("inputlayer", "Type = input |"
-                                      "Input_Shape = 3:32:32");
+static nntrainer::IniSection input("inputlayer", "Type = input |"
+                                                 "Input_Shape = 3:32:32");
 
-static IniSection conv2d8("conv2d8", "Type = conv2d |"
-                                     "input_layers=inputlayer |"
-                                     "bias_initializer = zeros |"
-                                     "Activation = relu |"
-                                     "filters = 32 |"
-                                     "kernel_size = 3,3 |"
-                                     "stride = 1,1 |"
-                                     "padding = 0,0");
+static nntrainer::IniSection conv2d8("conv2d8", "Type = conv2d |"
+                                                "input_layers=inputlayer |"
+                                                "bias_initializer = zeros |"
+                                                "Activation = relu |"
+                                                "filters = 32 |"
+                                                "kernel_size = 3,3 |"
+                                                "stride = 1,1 |"
+                                                "padding = 0,0");
 
-static IniSection conv2d9("conv2d9", "Type = conv2d |"
-                                     "input_layers=conv2d8 |"
-                                     "bias_initializer = zeros |"
-                                     "Activation = relu |"
-                                     "filters = 64 |"
-                                     "kernel_size = 3,3 |"
-                                     "stride = 1,1 |"
-                                     "padding = 0,0");
+static nntrainer::IniSection conv2d9("conv2d9", "Type = conv2d |"
+                                                "input_layers=conv2d8 |"
+                                                "bias_initializer = zeros |"
+                                                "Activation = relu |"
+                                                "filters = 64 |"
+                                                "kernel_size = 3,3 |"
+                                                "stride = 1,1 |"
+                                                "padding = 0,0");
 
-static IniSection pooling2("pooling2", "Type = pooling2d |"
-                                       "input_layers = conv2d9 |"
-                                       "pool_size = 3, 3 |"
-                                       "stride = 3, 3 |"
-                                       "padding = 0, 0 |"
-                                       "pooling=max");
+static nntrainer::IniSection pooling2("pooling2", "Type = pooling2d |"
+                                                  "input_layers = conv2d9 |"
+                                                  "pool_size = 3, 3 |"
+                                                  "stride = 3, 3 |"
+                                                  "padding = 0, 0 |"
+                                                  "pooling=max");
 
-static IniSection out0("out0", "Type = output |"
-                               "input_layers = pooling2");
+static nntrainer::IniSection out0("out0", "Type = output |"
+                                          "input_layers = pooling2");
 
-static IniSection conv2d10("conv2d10", "Type = conv2d |"
-                                       "input_layers=out0 |"
-                                       "bias_initializer = zeros |"
-                                       "Activation = relu |"
-                                       "filters = 64 |"
-                                       "kernel_size = 3,3 |"
-                                       "stride = 1,1 |"
-                                       "padding = 1,1");
+static nntrainer::IniSection conv2d10("conv2d10", "Type = conv2d |"
+                                                  "input_layers=out0 |"
+                                                  "bias_initializer = zeros |"
+                                                  "Activation = relu |"
+                                                  "filters = 64 |"
+                                                  "kernel_size = 3,3 |"
+                                                  "stride = 1,1 |"
+                                                  "padding = 1,1");
 
-static IniSection conv2d11("conv2d11", "Type = conv2d |"
-                                       "input_layers=conv2d10 |"
-                                       "bias_initializer = zeros |"
-                                       "Activation = relu |"
-                                       "filters = 64 |"
-                                       "kernel_size = 3,3 |"
-                                       "stride = 1,1 |"
-                                       "padding = 1,1");
+static nntrainer::IniSection conv2d11("conv2d11", "Type = conv2d |"
+                                                  "input_layers=conv2d10 |"
+                                                  "bias_initializer = zeros |"
+                                                  "Activation = relu |"
+                                                  "filters = 64 |"
+                                                  "kernel_size = 3,3 |"
+                                                  "stride = 1,1 |"
+                                                  "padding = 1,1");
 
-static IniSection addition0("addition0", "Type=addition |"
-                                         "input_layers = conv2d11, out0 ");
+static nntrainer::IniSection addition0("addition0",
+                                       "Type=addition |"
+                                       "input_layers = conv2d11, out0 ");
 
-static IniSection out1("out1", "Type = output |"
-                               "input_layers = addition0");
+static nntrainer::IniSection out1("out1", "Type = output |"
+                                          "input_layers = addition0");
 
-static IniSection conv2d12("conv2d12", "Type = conv2d |"
-                                       "input_layers=out1 |"
-                                       "bias_initializer = zeros |"
-                                       "Activation = relu |"
-                                       "filters = 64 |"
-                                       "kernel_size = 3,3 |"
-                                       "stride = 1,1 |"
-                                       "padding = 1,1");
+static nntrainer::IniSection conv2d12("conv2d12", "Type = conv2d |"
+                                                  "input_layers=out1 |"
+                                                  "bias_initializer = zeros |"
+                                                  "Activation = relu |"
+                                                  "filters = 64 |"
+                                                  "kernel_size = 3,3 |"
+                                                  "stride = 1,1 |"
+                                                  "padding = 1,1");
 
-static IniSection conv2d13("conv2d13", "Type = conv2d |"
-                                       "input_layers=conv2d12 |"
-                                       "bias_initializer = zeros |"
-                                       "Activation = relu |"
-                                       "filters = 64 |"
-                                       "kernel_size = 3,3 |"
-                                       "stride = 1,1 |"
-                                       "padding = 1,1");
+static nntrainer::IniSection conv2d13("conv2d13", "Type = conv2d |"
+                                                  "input_layers=conv2d12 |"
+                                                  "bias_initializer = zeros |"
+                                                  "Activation = relu |"
+                                                  "filters = 64 |"
+                                                  "kernel_size = 3,3 |"
+                                                  "stride = 1,1 |"
+                                                  "padding = 1,1");
 
-static IniSection addition1("addition1", "Type=addition |"
-                                         "input_layers = conv2d13, out1 ");
+static nntrainer::IniSection addition1("addition1",
+                                       "Type=addition |"
+                                       "input_layers = conv2d13, out1 ");
 
-static IniSection conv2d14("conv2d14", "Type = conv2d |"
-                                       "input_layers=addition1 |"
-                                       "bias_initializer = zeros |"
-                                       "Activation = relu |"
-                                       "filters = 64 |"
-                                       "kernel_size = 3,3 |"
-                                       "stride = 1,1 |"
-                                       "padding = 0,0");
+static nntrainer::IniSection conv2d14("conv2d14", "Type = conv2d |"
+                                                  "input_layers=addition1 |"
+                                                  "bias_initializer = zeros |"
+                                                  "Activation = relu |"
+                                                  "filters = 64 |"
+                                                  "kernel_size = 3,3 |"
+                                                  "stride = 1,1 |"
+                                                  "padding = 0,0");
 
-static IniSection pooling3("pooling3",
-                           "Type = pooling2d |"
-                           "input_layers = conv2d14 |"
-                           "pooling=global_average | flatten = true");
+static nntrainer::IniSection
+  pooling3("pooling3", "Type = pooling2d |"
+                       "input_layers = conv2d14 |"
+                       "pooling=global_average | flatten = true");
 
-static IniSection fclayer0("fclayer0", "Type = fully_connected |"
-                                       "Unit = 256 |"
-                                       "input_layers = pooling3 |"
-                                       "bias_initializer = zeros |"
-                                       "Activation = relu");
+static nntrainer::IniSection fclayer0("fclayer0", "Type = fully_connected |"
+                                                  "Unit = 256 |"
+                                                  "input_layers = pooling3 |"
+                                                  "bias_initializer = zeros |"
+                                                  "Activation = relu");
 
-static IniSection fclayer1("fclayer1", "Type = fully_connected |"
-                                       "Unit = 10 |"
-                                       "input_layers = fclayer0 |"
-                                       "bias_initializer = zeros |"
-                                       "Activation = softmax");
+static nntrainer::IniSection fclayer1("fclayer1", "Type = fully_connected |"
+                                                  "Unit = 10 |"
+                                                  "input_layers = fclayer0 |"
+                                                  "bias_initializer = zeros |"
+                                                  "Activation = softmax");
 
 static int SUCCESS = 0;
-
-using I = IniSection;
 
 /**
  * @brief make ini test case from given parameter
  */
-std::tuple<const char *, const IniTestWrapper::Sections, int>
-mkIniTc(const char *name, const IniTestWrapper::Sections vec, int flag) {
+std::tuple<const char *, const nntrainer::IniWrapper::Sections, int>
+mkIniTc(const char *name, const nntrainer::IniWrapper::Sections vec, int flag) {
   return std::make_tuple(name, vec, flag);
 }
 
