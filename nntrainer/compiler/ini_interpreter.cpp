@@ -13,8 +13,10 @@
  */
 #include <ini_interpreter.h>
 
+#include <sstream>
 #include <vector>
 
+#include <ini_wrapper.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <parse_util.h>
@@ -247,7 +249,22 @@ getMergeableGraph(std::shared_ptr<const GraphRepresentation> graph,
 
 void IniGraphInterpreter::serialize(
   std::shared_ptr<const GraphRepresentation> representation,
-  const std::string &out) {}
+  const std::string &out) {
+
+  std::vector<IniSection> sections;
+  for (const auto &ln : representation->getSorted()) {
+    const auto &layer = ln.layer;
+
+    IniSection s(layer->getName());
+    s.setEntry("type", layer->getType());
+
+    /// @todo: implement export a property
+    std::cout << ln.layer->getName() << std::endl;
+  }
+
+  auto ini = IniWrapper(out, sections);
+  ini.save_ini();
+}
 
 std::shared_ptr<GraphRepresentation>
 IniGraphInterpreter::deserialize(const std::string &in) {

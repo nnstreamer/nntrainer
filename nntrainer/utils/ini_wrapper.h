@@ -144,6 +144,14 @@ public:
    */
   std::string getName() const { return section_name; }
 
+  /**
+   * @brief Set the Entry object by key and value
+   *
+   * @param key key to update
+   * @param value value to be added
+   */
+  void setEntry(const std::string &key, const std::string &value);
+
 private:
   /**
    * @brief Set the Entry

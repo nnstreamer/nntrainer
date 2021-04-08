@@ -110,6 +110,28 @@ TEST_P(nntrainerInterpreterTest, graphEqual) {
   }
 }
 
+/**
+ * @brief graph serialize after deserialize, compare if they are the same
+ *
+ */
+TEST_P(nntrainerInterpreterTest, graphSerializeAfterDeserialize) {
+  auto g = interpreter->deserialize(file_path);
+
+  auto out_file_path = file_path + ".out";
+
+  /// @todo: change this to something like graph::finalize
+  int status = g->compile(nntrainer::LossType::LOSS_NONE);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  interpreter->serialize(g, out_file_path);
+
+  // auto new_g = interpreter->deserialize(out_file_path);
+
+  /// @todo: enable this
+  /// check if graph is the same
+  // EXPECT_EQ(*g, *new_g);
+  // EXPECT_EQ(remove(out_file_path.c_str()), 0);
+}
+
 auto fc0 = LayerReprentation("fully_connected",
                              {"name=fc0", "unit=1", "input_shape=1:1:100"});
 
