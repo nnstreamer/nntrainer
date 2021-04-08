@@ -50,7 +50,11 @@ void AdditionLayer::forwarding(bool training) {
     if (in_dim != net_input[idx]->getDim())
       throw std::invalid_argument("Error: addition layer requires same "
                                   "shape from all input layers");
-    hidden_.add_i(net_input[idx]->getVariableRef());
+    if (!idx) {
+      hidden_.fill(net_hidden[idx]->getGradientRef(), false);
+    } else {
+      hidden_.add_i(net_input[idx]->getVariableRef());
+    }
   }
 }
 
