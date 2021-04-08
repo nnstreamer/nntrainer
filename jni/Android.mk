@@ -194,6 +194,7 @@ CCAPI_NNTRAINER_INCLUDES := $(NNTRAINER_ROOT)/nntrainer \
                       $(NNTRAINER_ROOT)/nntrainer/tensor \
                       $(NNTRAINER_ROOT)/nntrainer/graph \
                       $(NNTRAINER_ROOT)/nntrainer/optimizers \
+                      $(NNTRAINER_ROOT)/nntrainer/utils \
                       $(NNTRAINER_ROOT)/api \
                       $(NNTRAINER_ROOT)/api/ccapi/include \
                       $(NNTRAINER_ROOT)/api/capi/include/platform
