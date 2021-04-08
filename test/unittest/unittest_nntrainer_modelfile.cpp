@@ -17,6 +17,7 @@
 #include <nntrainer_internal.h>
 
 #include <app_context.h>
+#include <ini_wrapper.h>
 
 #include <nntrainer_test_util.h>
 
@@ -28,9 +29,13 @@ typedef enum {
 } IniFailAt;
 };
 
+/**
+ * @brief Ini Test wrapper
+ *
+ */
 class nntrainerIniTest
   : public ::testing::TestWithParam<
-      std::tuple<const char *, const IniTestWrapper::Sections, int>> {
+      std::tuple<const char *, const nntrainer::IniWrapper::Sections, int>> {
 
 public:
   static void SetUpTestCase() {
@@ -49,7 +54,7 @@ protected:
 
     auto sections = std::get<1>(GetParam());
 
-    ini = IniTestWrapper(name, sections);
+    ini = nntrainer::IniWrapper(name, sections);
 
     failAt = std::get<2>(GetParam());
     ini.save_ini();
@@ -70,7 +75,7 @@ protected:
 private:
   int failAt;
   std::string name;
-  IniTestWrapper ini;
+  nntrainer::IniWrapper ini;
 };
 
 /**
@@ -159,111 +164,116 @@ TEST_P(nntrainerIniTest, initThreetime_n) {
 }
 
 /// @todo add run test could be added with iniTest flag to control skip
-static IniSection nw_base("model", "Type = NeuralNetwork | "
-                                   "batch_size = 32 | "
-                                   "loss = cross");
+static nntrainer::IniSection nw_base("model", "Type = NeuralNetwork | "
+                                              "batch_size = 32 | "
+                                              "loss = cross");
 
-static IniSection nw_base_mse("model", "Type = NeuralNetwork | "
-                                       "batch_size = 32 | "
-                                       "loss = mse");
+static nntrainer::IniSection nw_base_mse("model", "Type = NeuralNetwork | "
+                                                  "batch_size = 32 | "
+                                                  "loss = mse");
 
-static IniSection adam("Optimizer", "Type = adam |"
-                                    "epsilon = 1e-7 | "
-                                    "Learning_rate = 0.00001 |"
-                                    "Decay_rate = 0.96 |"
-                                    "Decay_steps = 1000");
+static nntrainer::IniSection adam("Optimizer", "Type = adam |"
+                                               "epsilon = 1e-7 | "
+                                               "Learning_rate = 0.00001 |"
+                                               "Decay_rate = 0.96 |"
+                                               "Decay_steps = 1000");
 
-static IniSection sgd("Optimizer", "Type = sgd |"
-                                   "Learning_rate = 1");
+static nntrainer::IniSection sgd("Optimizer", "Type = sgd |"
+                                              "Learning_rate = 1");
 
-// static IniSection nw_sgd = nw_base + "Optimizer = sgd |"
+// static nntrainer::IniSection nw_sgd = nw_base + "Optimizer = sgd |"
 //                                      "Learning_rate = 1";
 
-// static IniSection nw_adam = nw_base + adam;
+// static nntrainer::IniSection nw_adam = nw_base + adam;
 
-// static IniSection nw_adam_n = nw_base + "Learning_rate = -1";
-// static IniSection adam_n = adam + "Learning_rate = -1";
+// static nntrainer::IniSection nw_adam_n = nw_base + "Learning_rate = -1";
+// static nntrainer::IniSection adam_n = adam + "Learning_rate = -1";
 
-static IniSection dataset("DataSet", "BufferSize = 100 |"
-                                     "TrainData = trainingSet.dat | "
-                                     "TestData = testSet.dat |"
-                                     "ValidData = valSet.dat |"
-                                     "LabelData = label.dat");
+static nntrainer::IniSection dataset("DataSet", "BufferSize = 100 |"
+                                                "TrainData = trainingSet.dat | "
+                                                "TestData = testSet.dat |"
+                                                "ValidData = valSet.dat |"
+                                                "LabelData = label.dat");
 
-static IniSection batch_normal("bn", "Type = batch_normalization |"
-                                     "momentum = 1.2 |"
-                                     "moving_mean_initializer = zeros |"
-                                     "moving_variance_initializer = ones |"
-                                     "gamma_initializer = zeros |"
-                                     "beta_initializer = ones");
+static nntrainer::IniSection batch_normal("bn",
+                                          "Type = batch_normalization |"
+                                          "momentum = 1.2 |"
+                                          "moving_mean_initializer = zeros |"
+                                          "moving_variance_initializer = ones |"
+                                          "gamma_initializer = zeros |"
+                                          "beta_initializer = ones");
 
-static IniSection flatten("flat", "Type = flatten");
+static nntrainer::IniSection flatten("flat", "Type = flatten");
 
-static IniSection input("inputlayer", "Type = input |"
-                                      "Input_Shape = 1:1:62720 |"
-                                      "bias_initializer = zeros |"
-                                      "Normalization = true |"
-                                      "Activation = sigmoid");
+static nntrainer::IniSection input("inputlayer", "Type = input |"
+                                                 "Input_Shape = 1:1:62720 |"
+                                                 "bias_initializer = zeros |"
+                                                 "Normalization = true |"
+                                                 "Activation = sigmoid");
 
-static IniSection act_relu("activation_relu", "Type = activation | "
-                                              "Activation = relu");
+static nntrainer::IniSection act_relu("activation_relu", "Type = activation | "
+                                                         "Activation = relu");
 
-static IniSection out("fclayer", "Type = fully_connected |"
-                                 "Unit = 10 |"
-                                 "bias_initializer = zeros |"
-                                 "Activation = softmax");
+static nntrainer::IniSection out("fclayer", "Type = fully_connected |"
+                                            "Unit = 10 |"
+                                            "bias_initializer = zeros |"
+                                            "Activation = softmax");
 
-static IniSection conv2d("conv2d", "Type = conv2d |"
-                                   "bias_initializer = zeros |"
-                                   "Activation = sigmoid |"
-                                   "filters = 6 |"
-                                   "kernel_size = 5,5 |"
-                                   "stride = 1,1 |"
-                                   "padding = 0,0 |");
+static nntrainer::IniSection conv2d("conv2d", "Type = conv2d |"
+                                              "bias_initializer = zeros |"
+                                              "Activation = sigmoid |"
+                                              "filters = 6 |"
+                                              "kernel_size = 5,5 |"
+                                              "stride = 1,1 |"
+                                              "padding = 0,0 |");
 
-static IniSection conv2d_shape("conv2d_shape", "Type = conv2d |"
-                                               "input_shape = 3:300:300 |"
-                                               "bias_initializer = zeros |"
-                                               "Activation = sigmoid |"
-                                               "filters = 6 |"
-                                               "kernel_size = 5,5 |"
-                                               "stride = 1,1 |"
-                                               "padding = 0,0 |");
+static nntrainer::IniSection conv2d_shape("conv2d_shape",
+                                          "Type = conv2d |"
+                                          "input_shape = 3:300:300 |"
+                                          "bias_initializer = zeros |"
+                                          "Activation = sigmoid |"
+                                          "filters = 6 |"
+                                          "kernel_size = 5,5 |"
+                                          "stride = 1,1 |"
+                                          "padding = 0,0 |");
 
-static IniSection input2d("inputlayer", "Type = input |"
-                                        "Input_Shape = 3:100:100");
+static nntrainer::IniSection input2d("inputlayer", "Type = input |"
+                                                   "Input_Shape = 3:100:100");
 
-static IniSection backbone_random("block1", "backbone = random.ini");
+static nntrainer::IniSection backbone_random("block1", "backbone = random.ini");
 
-static IniSection backbone_valid("block1", "backbone = base.ini");
+static nntrainer::IniSection backbone_valid("block1", "backbone = base.ini");
 
-static IniSection backbone_notrain("blockNT", "backbone = base.ini |"
-                                              "trainable = false");
+static nntrainer::IniSection backbone_notrain("blockNT", "backbone = base.ini |"
+                                                         "trainable = false");
 
-static IniSection backbone_train("blockT", "backbone = base.ini |"
-                                           "trainable = true");
+static nntrainer::IniSection backbone_train("blockT", "backbone = base.ini |"
+                                                      "trainable = true");
 
-static IniSection backbone_scaled("blockT", "backbone = base.ini |"
-                                            "ScaleSize = 0.5");
+static nntrainer::IniSection backbone_scaled("blockT", "backbone = base.ini |"
+                                                       "ScaleSize = 0.5");
 
-static IniSection backbone_scaled_zero("blockT", "backbone = base.ini |"
-                                                 "ScaleSize = 0.00005");
+static nntrainer::IniSection backbone_scaled_zero("blockT",
+                                                  "backbone = base.ini |"
+                                                  "ScaleSize = 0.00005");
 
-static IniSection backbone_random_external("block1",
-                                           "backbone = random.tflite");
+static nntrainer::IniSection
+  backbone_random_external("block1", "backbone = random.tflite");
 
-static IniSection backbone_valid_inout("block1", "backbone = base.ini |"
-                                                 "InputLayer = flat | "
-                                                 "OutputLayer = fclayer");
+static nntrainer::IniSection backbone_valid_inout("block1",
+                                                  "backbone = base.ini |"
+                                                  "InputLayer = flat | "
+                                                  "OutputLayer = fclayer");
 
 static std::string add_tflite =
   std::string("backbone = ") +
   getResPath("add.tflite", {"test", "test_models", "models"});
 
-static IniSection backbone_valid_external =
-  IniSection("block1", add_tflite + "| Input_Shape = 1:1:1");
+static nntrainer::IniSection backbone_valid_external =
+  nntrainer::IniSection("block1", add_tflite + "| Input_Shape = 1:1:1");
 
-static IniSection backbone_valid_external_no_shape("block1", add_tflite);
+static nntrainer::IniSection backbone_valid_external_no_shape("block1",
+                                                              add_tflite);
 
 static int SUCCESS = 0;
 static int LOADFAIL = initest::LOAD;
@@ -271,13 +281,13 @@ static int COMPFAIL = initest::COMP;
 static int INITFAIL = initest::INIT;
 static int ALLFAIL = LOADFAIL | INITFAIL | COMPFAIL;
 
-using I = IniSection;
+using I = nntrainer::IniSection;
 
 /**
  * @brief make ini test case from given parameter
  */
-std::tuple<const char *, const IniTestWrapper::Sections, int>
-mkIniTc(const char *name, const IniTestWrapper::Sections vec, int flag) {
+std::tuple<const char *, const nntrainer::IniWrapper::Sections, int>
+mkIniTc(const char *name, const nntrainer::IniWrapper::Sections vec, int flag) {
   return std::make_tuple(name, vec, flag);
 }
 

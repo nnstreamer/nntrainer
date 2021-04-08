@@ -303,69 +303,6 @@ nntrainer::Tensor randUniform(unsigned int batch, unsigned int channel,
   return t;
 }
 
-void IniSection::setEntry(const std::string &entry_str) {
-  // setting property separated by "|"
-  std::regex words_regex("[^|]+");
-
-  auto words_begin =
-    std::sregex_iterator(entry_str.begin(), entry_str.end(), words_regex);
-  auto words_end = std::sregex_iterator();
-
-  std::string key, value;
-  for (std::sregex_iterator i = words_begin; i != words_end; ++i) {
-    std::string cur = (*i).str();
-
-    if (cur[0] == '-') {
-      entry.erase(cur.substr(1));
-      continue;
-    }
-
-    int status = nntrainer::getKeyValue(cur, key, value);
-    NNTR_THROW_IF(status != ML_ERROR_NONE, std::invalid_argument)
-      << "getKeyValue Failed";
-    entry[key] = value;
-  }
-}
-
-void IniTestWrapper::updateSection(const std::string &s) {
-
-  auto seperator_pos = s.find('/');
-
-  if (seperator_pos == std::string::npos) {
-    throw std::invalid_argument("invalid string format is given, please "
-                                "include use sectionKey/properties format");
-  }
-
-  auto section_key = s.substr(0, seperator_pos);
-  auto properties = s.substr(seperator_pos + 1);
-
-  IniSection target(section_key, properties);
-
-  updateSection(target);
-}
-
-void IniTestWrapper::updateSection(const IniSection &s) {
-
-  auto section = std::find_if(sections.begin(), sections.end(),
-                              [&](const IniSection &section) {
-                                return section.section_name == s.section_name;
-                              });
-
-  if (section == sections.end()) {
-    std::stringstream ss;
-    ss << "section key is not found key: " << s.section_name;
-    throw std::invalid_argument(ss.str().c_str());
-  }
-
-  (*section) += s;
-}
-
-void IniTestWrapper::updateSections(const Sections &sections_) {
-  for (auto &section : sections_) {
-    updateSection(section);
-  }
-}
-
 const std::string
 getResPath(const std::string &filename,
            const std::initializer_list<const char *> fallback_base) {

@@ -30,6 +30,12 @@
 
 #include "nntrainer_test_util.h"
 
+/**
+ * @brief Get the Models Path object
+ *
+ * @param file_name file name
+ * @return const std::string model path
+ */
 static const std::string getModelsPath(const std::string &file_name) {
   return getResPath(file_name, {"test", "unittest_models"});
 }
@@ -475,13 +481,14 @@ void GraphWatcher::readIteration(std::ifstream &f) {
 /**
  * @brief nntrainerModelTest fixture for parametrized test
  *
- * @param IniTestWrapper ini data
+ * @param nntrainer::IniWrapper ini data
  * @param nntrainer::TensorDim label dimension
  * @param int Iteration
  */
 class nntrainerModelTest
-  : public ::testing::TestWithParam<std::tuple<
-      const IniTestWrapper, const nntrainer::TensorDim, const unsigned int>> {
+  : public ::testing::TestWithParam<
+      std::tuple<const nntrainer::IniWrapper, const nntrainer::TensorDim,
+                 const unsigned int>> {
 
 protected:
   nntrainerModelTest() : iteration(0), name("") {}
@@ -508,7 +515,7 @@ private:
   nntrainer::TensorDim label_dim;
   int iteration;
   std::string name;
-  IniTestWrapper ini;
+  nntrainer::IniWrapper ini;
 };
 
 /**
@@ -556,11 +563,11 @@ TEST_P(nntrainerModelTest, model_test_validate) {
  *
  * @param const char * name of the ini and test. the tester generates name.ini
  * and try to read name.info
- * @param IniTestWrapper::Sections ini data
+ * @param nntrainer::IniWrapper::Sections ini data
  * @param nntrainer::TensorDim label dimension
  * @param int Iteration
  */
-auto mkModelTc(const IniTestWrapper &ini, const std::string &label_dim,
+auto mkModelTc(const nntrainer::IniWrapper &ini, const std::string &label_dim,
                const unsigned int iteration) {
   return std::make_tuple(ini, nntrainer::TensorDim(label_dim), iteration);
 }
@@ -569,7 +576,7 @@ auto mkModelTc(const IniTestWrapper &ini, const std::string &label_dim,
  * Actual Test                                          *
  ********************************************************/
 
-static IniSection nn_base("model", "type = NeuralNetwork");
+static nntrainer::IniSection nn_base("model", "type = NeuralNetwork");
 static std::string input_base = "type = input";
 static std::string fc_base = "type = Fully_connected";
 static std::string conv_base = "type = conv2d | stride = 1,1 | padding = 0,0";
@@ -580,15 +587,15 @@ static std::string preprocess_translate_base = "type = preprocess_translate";
 static std::string adam_base = "optimizer=adam | beta1 = 0.9 | beta2 = 0.999 | "
                                "epsilon = 1e-7";
 
-static IniSection act_base("activation", "Type = Activation");
-static IniSection softmax_base = act_base + "Activation = softmax";
-static IniSection sigmoid_base = act_base + "Activation = sigmoid";
-static IniSection relu_base = act_base + "Activation = relu";
-static IniSection bn_base("bn", "Type=batch_normalization");
-static IniSection sgd_base("optimizer", "Type = sgd");
+static nntrainer::IniSection act_base("activation", "Type = Activation");
+static nntrainer::IniSection softmax_base = act_base + "Activation = softmax";
+static nntrainer::IniSection sigmoid_base = act_base + "Activation = sigmoid";
+static nntrainer::IniSection relu_base = act_base + "Activation = relu";
+static nntrainer::IniSection bn_base("bn", "Type=batch_normalization");
+static nntrainer::IniSection sgd_base("optimizer", "Type = sgd");
 
-using I = IniSection;
-using INI = IniTestWrapper;
+using I = nntrainer::IniSection;
+using INI = nntrainer::IniWrapper;
 
 /**
  * This is just a wrapper for an ini file with save / erase attached.
