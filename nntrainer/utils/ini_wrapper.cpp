@@ -69,8 +69,56 @@ void IniSection::setEntry(const std::string &entry_str) {
     int status = getKeyValue(cur, key, value);
     NNTR_THROW_IF(status != ML_ERROR_NONE, std::invalid_argument)
       << "getKeyValue Failed";
+
     entry[key] = value;
   }
+}
+
+void IniWrapper::updateSection(const std::string &s) {
+
+  auto seperator_pos = s.find('/');
+
+  NNTR_THROW_IF(seperator_pos == std::string::npos, std::invalid_argument)
+    << "invalid string format is given, please "
+       "pass format of sectionKey/properties format";
+
+  auto section_key = s.substr(0, seperator_pos);
+  auto properties = s.substr(seperator_pos + 1);
+
+  IniSection target(section_key, properties);
+
+  updateSection(target);
+}
+
+void IniWrapper::updateSection(const IniSection &s) {
+
+  auto section = std::find_if(sections.begin(), sections.end(),
+                              [&](const IniSection &section) {
+                                return section.getName() == s.getName();
+                              });
+
+  NNTR_THROW_IF(section == sections.end(), std::invalid_argument)
+    << "section key is not found key: " << s.getName();
+
+  (*section) += s;
+}
+
+void IniWrapper::updateSections(const Sections &sections_) {
+  for (auto &section : sections_) {
+    updateSection(section);
+  }
+}
+
+void IniWrapper::save_ini() {
+  std::ofstream out(getIniName().c_str(), std::ios_base::out);
+  NNTR_THROW_IF(!out.good(), std::runtime_error) << "cannot open ini";
+
+  for (auto &it : sections) {
+    it.print(out);
+    out << std::endl;
+  }
+
+  out.close();
 }
 
 } // namespace nntrainer

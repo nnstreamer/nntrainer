@@ -11,9 +11,12 @@
  * @bug No known bugs except for NYI items
  */
 
+#include <fstream>
 #include <iostream>
 #include <map>
 #include <string>
+
+#include <vector>
 
 #ifndef __INI_WRAPPER_H__
 #define __INI_WRAPPER_H__
@@ -139,7 +142,7 @@ public:
    *
    * @return std::string section name
    */
-  std::string getName() { return section_name; }
+  std::string getName() const { return section_name; }
 
 private:
   /**
@@ -171,6 +174,162 @@ private:
   friend std::ostream &operator<<(std::ostream &os, const IniSection &section) {
     return os << section.section_name;
   }
+};
+
+/**
+ * @brief IniWrapper using IniSections
+ *
+ */
+class IniWrapper {
+public:
+  using Sections = std::vector<IniSection>;
+
+  /**
+   * @brief Construct a new Ini Test Wrapper object
+   *
+   */
+  IniWrapper() = default;
+
+  /**
+   * @brief Construct a new Ini Test Wrapper object
+   *
+   * @param name_ name of the ini without `.ini` extension
+   * @param sections_ sections that should go into ini
+   */
+  IniWrapper(const std::string &name_, const Sections &sections_ = {}) :
+    name(name_),
+    sections(sections_){};
+
+  /**
+   * @brief ini operator== to check if IniWrapper is equal
+   *
+   * @param rhs IniWrapper to compare
+   * @return true true if ini is equal (deeply)
+   * @return false false if ini is not equal
+   */
+  bool operator==(const IniWrapper &rhs) const {
+    return name == rhs.name && sections == rhs.sections;
+  }
+
+  /**
+   * @brief ini operator!= to check if IniWrapper is not equal
+   *
+   * @param rhs IniWrapper to compare
+   * @return true if not equal
+   * @return false if equal
+   */
+  bool operator!=(const IniWrapper &rhs) const { return !operator==(rhs); }
+
+  /**
+   * @brief update sections if section is empty, else update section by section
+   * by key
+   *
+   * @param[in] ini IniWrapper
+   * @return IniWrapper& this
+   */
+  IniWrapper &operator+=(const IniWrapper &ini) {
+    if (sections.empty()) {
+      sections = ini.sections;
+    } else {
+      updateSections(ini.sections);
+    }
+
+    return *this;
+  }
+
+  /**
+   * @brief update sections if section is empty, else update section by section
+   * by key
+   *
+   * @param[in] rhs IniWrapper
+   * @return IniWrapper& a new instance
+   */
+  IniWrapper operator+(const IniWrapper &rhs) const {
+    return IniWrapper(*this) += rhs;
+  }
+
+  /**
+   * @brief update a single section using operator+=
+   *
+   * @param string format of `sectionkey / propkey=val | propkey=val| ..`
+   * @return IniWrapper& ini wrapper
+   */
+  IniWrapper &operator+=(const std::string &s) {
+    updateSection(s);
+    return *this;
+  }
+
+  /**
+   * @brief update a single section using operator +
+   *
+   * @param rhs string representatioin to merge
+   * @return IniWrapper ini wrapper
+   */
+  IniWrapper operator+(const std::string &rhs) const {
+    return IniWrapper(*this) += rhs;
+  }
+
+  /**
+   * @brief Get the Ini Name object
+   *
+   * @return std::string ini name with extension appended
+   */
+  std::string getIniName() { return name + ".ini"; }
+
+  /**
+   * @brief Get the Name
+   *
+   * @return std::string name
+   */
+  std::string getName() const { return name; }
+
+  /**
+   * @brief save ini to a file
+   */
+  void save_ini();
+  /**
+   * @brief erase ini
+   *
+   */
+  void erase_ini() noexcept { remove(getIniName().c_str()); }
+
+  /**
+   * @brief operator<< to print information to outstream
+   *
+   * @param os outstream
+   * @param ini ini wrapper
+   * @return std::ostream& outstream
+   */
+  friend std::ostream &operator<<(std::ostream &os, const IniWrapper &ini) {
+    return os << ini.name;
+  }
+
+private:
+  /**
+   * @brief update a section from a formatted string, `sectionkey / propkey=val
+   * | propkey=val`
+   *
+   * @param string_representation "model/optimizer=SGD | ..."
+   */
+  void updateSection(const std::string &string_representation);
+
+  /**
+   * @brief update Section that matches section key of @a sections
+   *
+   * @param section section
+   */
+  void updateSection(const IniSection &section);
+
+  /**
+   * @brief update sections with following rule
+   * if there is a section key, update entry of the section else throw
+   * std::invalid_argument
+   * @param sections sections to update
+   */
+  void updateSections(const Sections &sections_);
+
+  std::string name;  /**< name of ini */
+  Sections sections; /**< sections of ini */
 };
 
 } // namespace nntrainer
