@@ -15,7 +15,9 @@
 #define __FC_LAYER_H__
 #ifdef __cplusplus
 
+#include <common_properties.h>
 #include <layer_internal.h>
+#include <node_exporter.h>
 #include <tensor.h>
 
 namespace nntrainer {
@@ -32,7 +34,7 @@ public:
   template <typename... Args>
   FullyConnectedLayer(unsigned int unit_ = 0, Args... args) :
     Layer(args...),
-    unit(unit_) {}
+    fc_props(props::Unit(unit_)) {}
 
   /**
    * @brief     Destructor of Fully Connected Layer
@@ -80,6 +82,13 @@ public:
   int initialize(Manager &manager) override;
 
   /**
+   * @copydoc Layer::export_to(Exporter &exporter, ExportMethods method)
+   */
+  void
+  export_to(Exporter &exporter,
+            ExportMethods method = ExportMethods::METHOD_STRINGVECTOR) override;
+
+  /**
    * @copydoc Layer::getType()
    */
   const std::string getType() const override {
@@ -103,7 +112,7 @@ public:
   void scaleSize(float scalesize) noexcept override;
 
 private:
-  unsigned int unit;
+  std::tuple<props::Unit> fc_props;
 };
 } // namespace nntrainer
 

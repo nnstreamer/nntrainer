@@ -14,6 +14,7 @@
 #include <utility>
 
 #include <base_properties.h>
+#include <fc_layer.h>
 #include <nntrainer_error.h>
 #include <node_exporter.h>
 #include <util_func.h>
@@ -164,6 +165,16 @@ TEST(Exporter, notExported_n) {
 
   EXPECT_THROW(e.get_result<nntrainer::ExportMethods::METHOD_STRINGVECTOR>(),
                std::invalid_argument);
+}
+
+TEST(Exporter, exportFromLayer_p) {
+  auto layer = nntrainer::FullyConnectedLayer(1);
+  nntrainer::Exporter e;
+  layer.export_to(e);
+
+  auto result = e.get_result<nntrainer::ExportMethods::METHOD_STRINGVECTOR>();
+  auto pair = std::pair<std::string, std::string>("unit", "1");
+  EXPECT_EQ(result[0], pair);
 }
 
 /**
