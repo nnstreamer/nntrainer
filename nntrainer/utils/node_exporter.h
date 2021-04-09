@@ -3,7 +3,7 @@
  * Copyright (C) 2021 Jihoon Lee <jhoon.it.lee@samsung.com>
  *
  * @file node_exporter.h
- * @date 08 April 2021
+ * @date 09 April 2021
  * @brief NNTrainer Node exporter
  * @see	https://github.com/nnstreamer/nntrainer
  * @author Jihoon Lee <jhoon.it.lee@samsung.com>
@@ -75,7 +75,16 @@ public:
   template <typename... Ts>
   void save_result(const std::tuple<Ts...> &props, ExportMethods method) {
     switch (method) {
+
     case ExportMethods::METHOD_STRINGVECTOR: {
+
+      /**
+       * @brief function to pass to the iterate_prop, this saves the property to
+       * stored_result
+       *
+       * @param prop property property to pass
+       * @param index index of the current property
+       */
       auto callable = [this](auto &&prop, size_t index) {
         std::string key = std::remove_reference_t<decltype(prop)>::key;
         stored_result.emplace_back(key, to_string(prop));

@@ -91,6 +91,7 @@ NNTRAINER_SRCS := $(NNTRAINER_ROOT)/nntrainer/models/neuralnet.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/dataset/databuffer_factory.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/dataset/databuffer_func.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/dataset/databuffer_file.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/compiler/ini_interpreter.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/tensor/tensor.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/tensor/lazy_tensor.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/tensor/manager.cpp \
@@ -128,8 +129,7 @@ NNTRAINER_SRCS := $(NNTRAINER_ROOT)/nntrainer/models/neuralnet.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/utils/ini_wrapper.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/utils/parse_util.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/utils/profiler.cpp \
-                  $(NNTRAINER_ROOT)/nntrainer/utils/profiler.cpp \
-                  $(NNTRAINER_ROOT)/nntrainer/compiler/node_exporter.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/utils/node_exporter.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/app_context.cpp
 
 # Add tflite backbone building
