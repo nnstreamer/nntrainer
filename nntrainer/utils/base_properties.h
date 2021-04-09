@@ -277,8 +277,8 @@ template <typename T> std::string to_string(const T &property) {
  * @brief convert dispatcher (from string)
  *
  * @tparam T type to convert
- * @param str string to vert
- * @param property property, converted type
+ * @param str string to convert
+ * @param[out] property property, converted type
  */
 template <typename T> void from_string(const std::string &str, T &property) {
   using tag_type =
