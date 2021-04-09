@@ -15,6 +15,7 @@
 #include <vector>
 
 #include <nntrainer_error.h>
+#include <parse_util.h>
 
 #ifndef __NODE_EXPORTER_H__
 #define __NODE_EXPORTER_H__
@@ -114,40 +115,6 @@ public:
   const T &get_result();
 
 private:
-  /**
-   * @brief base case of iterate_prop, iterate_prop iterates the given tuple
-   *
-   * @tparam I size of tuple(automated)
-   * @tparam Callable generic lambda to be called during iteration
-   * @tparam Ts types from tuple
-   * @param c callable gerneric labmda
-   * @param tup tuple to be iterated
-   * @return void
-   */
-  template <size_t I = 0, typename Callable, typename... Ts>
-  typename std::enable_if<I == sizeof...(Ts), void>::type
-  iterate_prop(Callable &&c, const std::tuple<Ts...> &tup) {
-    // end of recursion;
-  }
-
-  /**
-   * @brief base case of iterate_prop, iterate_prop iterates the given tuple
-   *
-   * @tparam I size of tuple(automated)
-   * @tparam Callable generic lambda to be called during iteration
-   * @tparam Ts types from tuple
-   * @param c callable gerneric labmda
-   * @param tup tuple to be iterated
-   * @return not used
-   */
-  template <size_t I = 0, typename Callable, typename... Ts>
-  typename std::enable_if<(I < sizeof...(Ts)), void>::type
-  iterate_prop(Callable &&c, const std::tuple<Ts...> &tup) {
-    c(std::get<I>(tup), I);
-
-    iterate_prop<I + 1>(c, tup);
-  }
-
   std::vector<std::pair<std::string, std::string>>
     stored_result; /**< stored result */
 
@@ -155,6 +122,91 @@ private:
   /// involved to `save_result`
   bool is_exported; /**< boolean to check if exported */
 };
+
+/**
+ * @brief base case of iterate_prop, iterate_prop iterates the given tuple
+ *
+ * @tparam I size of tuple(automated)
+ * @tparam Callable generic lambda to be called during iteration
+ * @tparam Ts types from tuple
+ * @param c callable gerneric labmda
+ * @param tup tuple to be iterated
+ * @return void
+ */
+template <size_t I = 0, typename Callable, typename... Ts>
+typename std::enable_if<I == sizeof...(Ts), void>::type
+iterate_prop(Callable &&c, const std::tuple<Ts...> &tup) {
+  // end of recursion;
+}
+
+/**
+ * @brief base case of iterate_prop, iterate_prop iterates the given tuple
+ *
+ * @tparam I size of tuple(automated)
+ * @tparam Callable generic lambda to be called during iteration
+ * @tparam Ts types from tuple
+ * @param c callable gerneric labmda
+ * @param tup tuple to be iterated
+ * @return not used
+ */
+template <size_t I = 0, typename Callable, typename... Ts>
+typename std::enable_if<(I < sizeof...(Ts)), void>::type
+iterate_prop(Callable &&c, const std::tuple<Ts...> &tup) {
+  c(std::get<I>(tup), I);
+
+  iterate_prop<I + 1>(c, tup);
+}
+
+/**
+ * @copydoc  template <size_t I = 0, typename Callable, typename... Ts>
+typename std::enable_if<(I < sizeof...(Ts)), void>::type iterate_prop(Callable
+&&c, const std::tuple<Ts...> &tup)
+ */
+template <size_t I = 0, typename Callable, typename... Ts>
+typename std::enable_if<(I < sizeof...(Ts)), void>::type
+iterate_prop(Callable &&c, std::tuple<Ts...> &tup) {
+  c(std::get<I>(tup), I);
+
+  iterate_prop<I + 1>(c, tup);
+}
+
+/**
+ * @brief load property from the api formatted string ({"key=value",
+ * "key1=value1"})
+ *
+ * @tparam Ts prop type
+ * @param string_vector api formatted string;
+ * @param[out] props props to be iterated
+ * @return std::vector<std::string> vector of string that is not used while
+ * setting the property
+ */
+template <typename... Ts>
+std::vector<std::string>
+load_properties(const std::vector<std::string> &string_vector,
+                std::tuple<Ts...> &props) {
+
+  std::vector<std::string> left = string_vector;
+
+  auto callable = [&left](auto &&prop, size_t index) {
+    std::string prop_key = std::remove_reference_t<decltype(prop)>::key;
+
+    for (auto iter = left.begin(); iter < left.end(); ++iter) {
+      std::string key, value;
+      int status = getKeyValue(*iter, key, value);
+      NNTR_THROW_IF(status != ML_ERROR_NONE, std::invalid_argument)
+        << "parsing property failed, original format: " << *iter;
+
+      if (istrequal(prop_key, key) == true) {
+        from_string(value, prop);
+        iter = left.erase(iter);
+      }
+    }
+  };
+
+  iterate_prop(callable, props);
+
+  return left;
+}
 
 } // namespace nntrainer
 #endif // __NODE_EXPORTER_H__

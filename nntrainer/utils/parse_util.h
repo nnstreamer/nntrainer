@@ -166,7 +166,8 @@ int setBoolean(bool &val, std::string str);
  * @retval #ML_ERROR_NONE Successful.
  * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
  */
-int getKeyValue(std::string &input_str, std::string &key, std::string &value);
+int getKeyValue(const std::string &input_str, std::string &key,
+                std::string &value);
 
 /**
  * @brief     join vector of int to string with delimiter ","

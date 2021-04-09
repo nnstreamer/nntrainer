@@ -121,6 +121,29 @@ TEST(BasicProperty, valid_p) {
     auto pair2 = std::pair<std::string, std::string>("quality_banana", "");
     EXPECT_EQ(result[1], pair2);
   }
+
+  { /**< export from layer */
+    auto layer = nntrainer::FullyConnectedLayer(1);
+    nntrainer::Exporter e;
+    layer.export_to(e);
+
+    auto result = e.get_result<nntrainer::ExportMethods::METHOD_STRINGVECTOR>();
+    auto pair = std::pair<std::string, std::string>("unit", "1");
+    EXPECT_EQ(result[0], pair);
+  }
+
+  { /**< load from layer */
+    auto props = std::make_tuple(NumBanana(), QualityOfBanana());
+
+    auto v =
+      nntrainer::load_properties({"num_banana=2", "quality_banana=thisisgood",
+                                  "num_banana=42", "not_used=key"},
+                                 props);
+
+    EXPECT_EQ(v, std::vector<std::string>{"not_used=key"});
+    EXPECT_EQ(std::get<0>(props).get(), 42);
+    EXPECT_EQ(std::get<1>(props).get(), "thisisgood");
+  }
 }
 
 TEST(BasicProperty, setNotValid_01_n) {
@@ -165,16 +188,6 @@ TEST(Exporter, notExported_n) {
 
   EXPECT_THROW(e.get_result<nntrainer::ExportMethods::METHOD_STRINGVECTOR>(),
                std::invalid_argument);
-}
-
-TEST(Exporter, exportFromLayer_p) {
-  auto layer = nntrainer::FullyConnectedLayer(1);
-  nntrainer::Exporter e;
-  layer.export_to(e);
-
-  auto result = e.get_result<nntrainer::ExportMethods::METHOD_STRINGVECTOR>();
-  auto pair = std::pair<std::string, std::string>("unit", "1");
-  EXPECT_EQ(result[0], pair);
 }
 
 /**

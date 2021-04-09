@@ -1,4 +1,3 @@
-#include <node_exporter.h>
 // SPDX-License-Identifier: Apache-2.0
 /**
  * Copyright (C) 2021 Jihoon Lee <jhoon.it.lee@samsung.com>
@@ -10,6 +9,9 @@
  * @author Jihoon Lee <jhoon.it.lee@samsung.com>
  * @bug No known bugs except for NYI items
  */
+
+#include <node_exporter.h>
+
 namespace nntrainer {
 
 template <>
