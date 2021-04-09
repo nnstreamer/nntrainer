@@ -36,6 +36,7 @@ const std::string FullyConnectedLayer::type = "fully_connected";
 enum FCParams { weight, bias };
 
 int FullyConnectedLayer::initialize(Manager &manager) {
+  auto unit = std::get<props::Unit>(fc_props).get();
   int status = ML_ERROR_NONE;
 
   if (getNumInputs() != 1) {
@@ -69,16 +70,16 @@ int FullyConnectedLayer::initialize(Manager &manager) {
   return status;
 }
 
+void FullyConnectedLayer::export_to(Exporter &exporter, ExportMethods method) {
+  Layer::export_to(exporter, method);
+  exporter.save_result(fc_props, method);
+}
+
 void FullyConnectedLayer::setProperty(const PropertyType type,
                                       const std::string &value) {
-  int status = ML_ERROR_NONE;
   switch (type) {
   case PropertyType::unit: {
-    if (!value.empty()) {
-      status = setUint(unit, value);
-      throw_status(status);
-      output_dim[0].width(unit);
-    }
+    from_string(value, std::get<props::Unit>(fc_props));
   } break;
   default:
     Layer::setProperty(type, value);
@@ -104,7 +105,8 @@ void FullyConnectedLayer::copy(std::shared_ptr<Layer> l) {
 
   std::shared_ptr<FullyConnectedLayer> from =
     std::static_pointer_cast<FullyConnectedLayer>(l);
-  this->unit = from->unit;
+
+  std::get<props::Unit>(fc_props) = std::get<props::Unit>(from->fc_props);
 }
 
 void FullyConnectedLayer::calcDerivative() {
@@ -129,6 +131,7 @@ void FullyConnectedLayer::calcGradient() {
 }
 
 void FullyConnectedLayer::scaleSize(float scalesize) noexcept {
+  auto &unit = std::get<props::Unit>(fc_props).get();
   unit = (unsigned int)(scalesize * (float)unit);
   unit = std::max(unit, 1u);
 }

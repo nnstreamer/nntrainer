@@ -312,7 +312,7 @@ public:
    * @param method enum value to identify how it should be exported to
    */
   virtual void
-  export_to(const Exporter &exporter,
+  export_to(Exporter &exporter,
             ExportMethods method = ExportMethods::METHOD_STRINGVECTOR){};
 
   /**

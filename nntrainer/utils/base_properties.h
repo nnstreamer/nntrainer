@@ -28,6 +28,7 @@ namespace nntrainer {
 template <typename T> struct prop_tag { using type = typename T::prop_tag; };
 
 struct int_prop_tag {};       /**< property is treated as integer */
+struct uint_prop_tag {};      /**< property is treated as integer */
 struct vector_prop_tag {};    /**< property is treated as vector, eg) 1,2,3 */
 struct dimension_prop_tag {}; /**< property is treated as dimension, eg 1:2:3 */
 struct double_prop_tag {};    /**< property is treated as double */
@@ -41,6 +42,20 @@ struct str_prop_tag {};       /**< property is treated as string */
 template <typename T> class Property {
 
 public:
+  /**
+   * @brief Construct a new Property object
+   *
+   */
+  Property() = default;
+
+  /**
+   * @brief Construct a new Property object, setting default skip validation on
+   * purpose
+   *
+   * @param value default value
+   */
+  Property(const T &value) : value(value){};
+
   /**
    * @brief Destroy the Property object
    *
@@ -157,16 +172,33 @@ template <> struct str_converter<int_prop_tag> {
   static int from_string(const std::string &value) { return std::stoi(value); }
 };
 
+/**
+ * @copydoc template<typename Tag> struct_converter;
+ */
+template <> struct str_converter<uint_prop_tag> {
+  static std::string to_string(const int value) {
+    return std::to_string(value);
+  }
+
+  static unsigned int from_string(const std::string &value) {
+    return std::stoul(value);
+  }
+};
+
 /** convert dispatcher */
 template <typename T> std::string to_string(const T &property) {
-  using tag_type = typename tag_cast<typename prop_tag<T>::type,
-                                     vector_prop_tag, int_prop_tag>::type;
+  using tag_type =
+    typename tag_cast<typename prop_tag<T>::type, int_prop_tag, uint_prop_tag,
+                      vector_prop_tag, dimension_prop_tag, double_prop_tag,
+                      str_prop_tag>::type;
   return str_converter<tag_type>::to_string(property.get());
 }
 
 template <typename T> void from_string(const std::string &str, T &property) {
   using tag_type =
-    typename tag_cast<typename prop_tag<T>::type, int_prop_tag>::type;
+    typename tag_cast<typename prop_tag<T>::type, int_prop_tag, uint_prop_tag,
+                      vector_prop_tag, dimension_prop_tag, double_prop_tag,
+                      str_prop_tag>::type;
   property.set(str_converter<tag_type>::from_string(str));
 }
 
