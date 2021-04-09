@@ -53,7 +53,11 @@ void OutputLayer::calcDerivative() {
   Tensor &ret = net_input[0]->getGradientRef();
 
   for (unsigned int idx = 0; idx < getNumOutputs(); ++idx) {
-    ret.add_i(net_hidden[idx]->getGradientRef());
+    if (idx == 0) {
+      ret.fill(net_hidden[idx]->getGradientRef(), false);
+    } else {
+      ret.add_i(net_hidden[idx]->getGradientRef());
+    }
   }
 }
 
