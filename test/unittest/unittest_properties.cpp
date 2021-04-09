@@ -4,14 +4,18 @@
  *
  * @file unittest_properties.h
  * @date 09 April 2021
- * @brief This file contains test and sepecification of properties
+ * @brief This file contains test and sepecification of properties and exporter
  * @see	https://github.com/nnstreamer/nntrainer
  * @author Jihoon Lee <jhoon.it.lee@samsung.com>
  * @bug No known bugs except for NYI items
  */
 #include <gtest/gtest.h>
 
+#include <utility>
+
 #include <base_properties.h>
+#include <nntrainer_error.h>
+#include <node_exporter.h>
 #include <util_func.h>
 
 namespace { /**< define a property for testing */
@@ -60,29 +64,49 @@ TEST(BasicProperty, tagCast) {
   }
 }
 
+/// @todo convert this to typed param test
 TEST(BasicProperty, valid_p) {
-  { /** set -> get / to_string */
+  { /** set -> get / to_string, int*/
     NumBanana b;
     b.set(123);
     EXPECT_EQ(b.get(), 123);
     EXPECT_EQ(nntrainer::to_string(b), "123");
+  }
 
+  { /**< from_string -> get / to_string, int*/
+    NumBanana b;
+    nntrainer::from_string("3", b);
+    EXPECT_EQ(b.get(), 3);
+    EXPECT_EQ(nntrainer::to_string(b), "3");
+  }
+
+  { /** set -> get / to_string, string*/
     QualityOfBanana q;
     q.set("this is good");
     EXPECT_EQ(q.get(), "this is good");
     EXPECT_EQ(nntrainer::to_string(q), "this is good");
   }
 
-  { /**< from_string -> get / to_string */
-    NumBanana b;
-    nntrainer::from_string("3", b);
-    EXPECT_EQ(b.get(), 3);
-    EXPECT_EQ(nntrainer::to_string(b), "3");
-
+  { /**< from_string -> get / to_string, string prop */
     QualityOfBanana q;
     nntrainer::from_string("this is good", q);
     EXPECT_EQ(q.get(), "this is good");
     EXPECT_EQ(nntrainer::to_string(q), "this is good");
+  }
+
+  { /**< exporter test */
+    auto props = std::make_tuple(NumBanana(), QualityOfBanana());
+
+    nntrainer::Exporter e;
+    e.save_result(props, nntrainer::ExportMethods::METHOD_STRINGVECTOR);
+
+    auto result = e.get_result<nntrainer::ExportMethods::METHOD_STRINGVECTOR>();
+
+    auto pair = std::pair<std::string, std::string>("num_banana", "1");
+    EXPECT_EQ(result[0], pair);
+
+    auto pair2 = std::pair<std::string, std::string>("quality_banana", "");
+    EXPECT_EQ(result[1], pair2);
   }
 }
 
@@ -109,6 +133,25 @@ TEST(BasicProperty, fromStringNotValid_02_n) {
 TEST(BasicProperty, fromStringNotValid_03_n) {
   QualityOfBanana q;
   EXPECT_THROW(nntrainer::from_string("invalid_str", q), std::invalid_argument);
+}
+
+TEST(Exporter, invalidMethods_n) {
+  auto props = std::make_tuple(NumBanana(), QualityOfBanana());
+
+  nntrainer::Exporter e;
+  EXPECT_THROW(e.save_result(props, nntrainer::ExportMethods::METHOD_UNDEFINED),
+               nntrainer::exception::not_supported);
+}
+
+TEST(Exporter, notExported_n) {
+  auto props = std::make_tuple(NumBanana(), QualityOfBanana());
+
+  nntrainer::Exporter e;
+  /// intended comment
+  // e.save_result(props, nntrainer::ExportMethods::METHOD_STRINGVECTOR);
+
+  EXPECT_THROW(e.get_result<nntrainer::ExportMethods::METHOD_STRINGVECTOR>(),
+               std::invalid_argument);
 }
 
 /**

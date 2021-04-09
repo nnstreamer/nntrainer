@@ -3,7 +3,7 @@
  * Copyright (C) 2021 Jihoon Lee <jhoon.it.lee@samsung.com>
  *
  * @file node_exporter.h
- * @date 08 April 2021
+ * @date 09 April 2021
  * @brief NNTrainer Node exporter
  * @see	https://github.com/nnstreamer/nntrainer
  * @author Jihoon Lee <jhoon.it.lee@samsung.com>
