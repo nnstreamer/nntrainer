@@ -128,7 +128,8 @@ NNTRAINER_SRCS := $(NNTRAINER_ROOT)/nntrainer/models/neuralnet.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/utils/ini_wrapper.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/utils/parse_util.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/utils/profiler.cpp \
-                  $(NNTRAINER_ROOT)/nntrainer/compiler/ini_interpreter.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/utils/profiler.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/compiler/node_exporter.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/app_context.cpp
 
 # Add tflite backbone building

@@ -14,10 +14,17 @@
 #include <utility>
 #include <vector>
 
+#include <nntrainer_error.h>
+
 #ifndef __NODE_EXPORTER_H__
 #define __NODE_EXPORTER_H__
 
 namespace nntrainer {
+
+/**
+ * @brief Defines Export Method to be called with
+ *
+ */
 enum class ExportMethods {
   METHOD_STRINGVECTOR = 0, /**< export to a string vector */
   METHOD_TFLITE = 1,       /**< epxort to tflite */
@@ -26,8 +33,18 @@ enum class ExportMethods {
 
 namespace {
 
+/**
+ * @brief meta function that return return_type when a method is being called
+ *
+ * @tparam method returned when certain method is being called
+ */
 template <ExportMethods method> struct return_type { using type = void; };
 
+/**
+ * @brief meta function to check return type when the method is string vector
+ *
+ * @tparam specialized so not given
+ */
 template <> struct return_type<ExportMethods::METHOD_STRINGVECTOR> {
   using type = std::vector<std::pair<std::string, std::string>>;
 };
@@ -56,11 +73,22 @@ public:
    * @param method method to export
    */
   template <typename... Ts>
-  void save_result(std::tuple<Ts...> &props, ExportMethods method) {
-    if (is_exported) {
-      throw std::invalid_argument("This exporter is already used");
+  void save_result(const std::tuple<Ts...> &props, ExportMethods method) {
+    switch (method) {
+    case ExportMethods::METHOD_STRINGVECTOR: {
+      auto callable = [this](auto &&prop, size_t index) {
+        std::string key = std::remove_reference_t<decltype(prop)>::key;
+        stored_result.emplace_back(key, to_string(prop));
+      };
+      iterate_prop(callable, props);
+    } break;
+    case ExportMethods::METHOD_TFLITE:
+    /// fall thorugh intended (NYI!!)
+    case ExportMethods::METHOD_UNDEFINED:
+    /// fall thorugh intended
+    default:
+      throw exception::not_supported("given method is not supported yet");
     }
-    /** NYI!! */
 
     is_exported = true;
   }
@@ -72,16 +100,51 @@ public:
    * @tparam T appropriate return type regarding the export method
    * @return T T
    */
-  template <ExportMethods methods, typename T = return_type<methods>>
-  T get_result() {
-    if (!is_exported) {
-      throw std::invalid_argument("This exporter is not exported anything yet");
-    }
-    /** NYI!! */
-  }
+  template <ExportMethods methods,
+            typename T = typename return_type<methods>::type>
+  const T &get_result();
 
 private:
-  bool is_exported;
+  /**
+   * @brief base case of iterate_prop, iterate_prop iterates the given tuple
+   *
+   * @tparam I size of tuple(automated)
+   * @tparam Callable generic lambda to be called during iteration
+   * @tparam Ts types from tuple
+   * @param c callable gerneric labmda
+   * @param tup tuple to be iterated
+   * @return void
+   */
+  template <size_t I = 0, typename Callable, typename... Ts>
+  typename std::enable_if<I == sizeof...(Ts), void>::type
+  iterate_prop(Callable &&c, const std::tuple<Ts...> &tup) {
+    // end of recursion;
+  }
+
+  /**
+   * @brief base case of iterate_prop, iterate_prop iterates the given tuple
+   *
+   * @tparam I size of tuple(automated)
+   * @tparam Callable generic lambda to be called during iteration
+   * @tparam Ts types from tuple
+   * @param c callable gerneric labmda
+   * @param tup tuple to be iterated
+   * @return not used
+   */
+  template <size_t I = 0, typename Callable, typename... Ts>
+  typename std::enable_if<(I < sizeof...(Ts)), void>::type
+  iterate_prop(Callable &&c, const std::tuple<Ts...> &tup) {
+    c(std::get<I>(tup), I);
+
+    iterate_prop<I + 1>(c, tup);
+  }
+
+  std::vector<std::pair<std::string, std::string>>
+    stored_result; /**< stored result */
+
+  /// consider changing this to a promise / future if there is a async function
+  /// involved to `save_result`
+  bool is_exported; /**< boolean to check if exported */
 };
 
 } // namespace nntrainer
