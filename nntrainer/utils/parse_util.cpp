@@ -38,19 +38,23 @@
 
 namespace nntrainer {
 
-int getKeyValue(std::string &input_str, std::string &key, std::string &value) {
+int getKeyValue(const std::string &input_str, std::string &key,
+                std::string &value) {
   int status = ML_ERROR_NONE;
+  auto input_trimmed = input_str;
+
   std::vector<std::string> list;
   static const std::regex words_regex("[^\\s=]+");
-  input_str.erase(std::remove(input_str.begin(), input_str.end(), ' '),
-                  input_str.end());
-  auto words_begin =
-    std::sregex_iterator(input_str.begin(), input_str.end(), words_regex);
+  input_trimmed.erase(
+    std::remove(input_trimmed.begin(), input_trimmed.end(), ' '),
+    input_trimmed.end());
+  auto words_begin = std::sregex_iterator(input_trimmed.begin(),
+                                          input_trimmed.end(), words_regex);
   auto words_end = std::sregex_iterator();
   int nwords = std::distance(words_begin, words_end);
   if (nwords != 2) {
     ml_loge("Error: input string must be 'key = value' format, %s given",
-            input_str.c_str());
+            input_trimmed.c_str());
     return ML_ERROR_INVALID_PARAMETER;
   }
 
@@ -60,6 +64,7 @@ int getKeyValue(std::string &input_str, std::string &key, std::string &value) {
 
   key = list[0];
   value = list[1];
+
   return status;
 }
 
