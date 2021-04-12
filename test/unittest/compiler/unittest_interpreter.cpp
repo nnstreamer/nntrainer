@@ -46,6 +46,41 @@ auto ini_interpreter =
   std::make_shared<nntrainer::IniGraphInterpreter>(ac, pathResolver);
 
 /**
+ * @brief prototypical version of checking graph is equal
+ *
+ * @param lhs compiled(later, finalized) graph to be compared
+ * @param rhs compiled(later, finalized) graph to be compared
+ * @return true graph is equal
+ * @return false graph is not equal
+ */
+static void graphEqual(const nntrainer::GraphRepresentation &lhs,
+                       const nntrainer::GraphRepresentation &rhs) {
+  auto layers = lhs.getLayers();
+  auto ref_layers = rhs.getLayers();
+  EXPECT_EQ(layers.size(), ref_layers.size());
+
+  auto is_node_equal = [](const nntrainer::Layer &l,
+                          const nntrainer::Layer &r) {
+    nntrainer::Exporter lhs_export;
+    nntrainer::Exporter rhs_export;
+
+    l.export_to(lhs_export);
+    r.export_to(rhs_export);
+
+    /*** fixme, there is one caveat that order matters in this form */
+    EXPECT_EQ(
+      lhs_export.get_result<nntrainer::ExportMethods::METHOD_STRINGVECTOR>(),
+      rhs_export.get_result<nntrainer::ExportMethods::METHOD_STRINGVECTOR>());
+  };
+
+  if (layers.size() == ref_layers.size()) {
+    for (unsigned int i = 0; i < layers.size(); ++i) {
+      is_node_equal(*layers[i], *ref_layers[i]);
+    }
+  }
+}
+
+/**
  * @brief nntrainer Interpreter Test setup
  *
  * @note Proposing an evolutional path of current test
@@ -90,24 +125,11 @@ TEST_P(nntrainerInterpreterTest, graphEqual) {
   status = g->compile(nntrainer::LossType::LOSS_NONE);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  /// @todo: make a graph equal
+  /// @todo: make a proper graph equal
   /// 1. having same number of nodes
   /// 2. layer name is identical (this is too strict though)
   /// 3. attributes of layer is identical
-  // EXPECT_EQ(*graph, *interpreter->deserialize(file_path));
-
-  auto layers = g->getLayers();
-  auto ref_layers = reference->getLayers();
-  EXPECT_EQ(layers.size(), ref_layers.size());
-
-  if (layers.size() == ref_layers.size()) {
-    for (auto &layer : layers) {
-      std::shared_ptr<nntrainer::Layer> ref_layer;
-      EXPECT_NO_THROW(ref_layer = reference->getLayer(layer->getName()));
-
-      /// @todo: layer->getProperties() and do check on each properties
-    }
-  }
+  graphEqual(*g, *reference);
 }
 
 /**
@@ -123,13 +145,11 @@ TEST_P(nntrainerInterpreterTest, graphSerializeAfterDeserialize) {
   int status = g->compile(nntrainer::LossType::LOSS_NONE);
   EXPECT_EQ(status, ML_ERROR_NONE);
   interpreter->serialize(g, out_file_path);
+  auto new_g = interpreter->deserialize(out_file_path);
 
-  // auto new_g = interpreter->deserialize(out_file_path);
+  graphEqual(*g, *new_g);
 
-  /// @todo: enable this
-  /// check if graph is the same
-  // EXPECT_EQ(*g, *new_g);
-  // EXPECT_EQ(remove(out_file_path.c_str()), 0);
+  EXPECT_EQ(remove(out_file_path.c_str()), 0) << strerror(errno);
 }
 
 auto fc0 = LayerReprentation("fully_connected",

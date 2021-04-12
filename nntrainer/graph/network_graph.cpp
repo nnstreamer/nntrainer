@@ -724,7 +724,7 @@ NetworkGraph::getUnsortedLayers(const std::string &input_layer,
   return ret;
 }
 
-std::vector<std::shared_ptr<Layer>> NetworkGraph::getLayers() {
+std::vector<std::shared_ptr<Layer>> NetworkGraph::getLayers() const {
   std::vector<std::shared_ptr<Layer>> ret;
   if (compiled) {
     std::transform(Sorted.begin(), Sorted.end(), std::back_inserter(ret),

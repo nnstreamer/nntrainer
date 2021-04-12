@@ -305,9 +305,16 @@ public:
   std::string getName() const { return name; }
 
   /**
-   * @brief save ini to a file
+   * @brief save ini to a file, (getIniName() is used to save)
    */
   void save_ini();
+
+  /**
+   * @brief save ini by ini_name
+   *
+   * @param ini_name ini name to svae
+   */
+  void save_ini(const std::string &ini_name);
   /**
    * @brief erase ini
    *
