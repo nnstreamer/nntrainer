@@ -113,8 +113,10 @@ void IniWrapper::updateSections(const Sections &sections_) {
   }
 }
 
-void IniWrapper::save_ini() {
-  std::ofstream out(getIniName().c_str(), std::ios_base::out);
+void IniWrapper::save_ini() { save_ini(getIniName()); }
+
+void IniWrapper::save_ini(const std::string &ini_name) {
+  std::ofstream out(ini_name.c_str(), std::ios_base::out);
   NNTR_THROW_IF(!out.good(), std::runtime_error) << "cannot open ini";
 
   for (auto &it : sections) {

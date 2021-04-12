@@ -21,6 +21,7 @@
 #include <layer_factory.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
+#include <node_exporter.h>
 #include <parse_util.h>
 #include <time_dist.h>
 #include <util_func.h>
@@ -275,12 +276,21 @@ void IniGraphInterpreter::serialize(
     IniSection s(layer->getName());
     s.setEntry("type", layer->getType());
 
-    /// @todo: implement export a property
-    std::cout << layer->getName() << std::endl;
+    Exporter e;
+    layer->export_to(e);
+
+    const auto key_val_pairs =
+      e.get_result<ExportMethods::METHOD_STRINGVECTOR>();
+
+    for (const auto &pair : key_val_pairs) {
+      s.setEntry(pair.first, pair.second);
+    }
+
+    sections.push_back(s);
   }
 
   auto ini = IniWrapper(out, sections);
-  ini.save_ini();
+  ini.save_ini(out);
 }
 
 std::shared_ptr<GraphRepresentation>
