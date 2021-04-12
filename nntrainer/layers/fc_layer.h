@@ -84,9 +84,9 @@ public:
   /**
    * @copydoc Layer::export_to(Exporter &exporter, ExportMethods method)
    */
-  void
-  export_to(Exporter &exporter,
-            ExportMethods method = ExportMethods::METHOD_STRINGVECTOR) override;
+  void export_to(
+    Exporter &exporter,
+    ExportMethods method = ExportMethods::METHOD_STRINGVECTOR) const override;
 
   /**
    * @copydoc Layer::getType()

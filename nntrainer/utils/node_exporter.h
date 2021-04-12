@@ -182,8 +182,8 @@ iterate_prop(Callable &&c, std::tuple<Ts...> &tup) {
  */
 template <typename... Ts>
 std::vector<std::string>
-load_properties(const std::vector<std::string> &string_vector,
-                std::tuple<Ts...> &props) {
+loadProperties(const std::vector<std::string> &string_vector,
+               std::tuple<Ts...> &props) {
 
   std::vector<std::pair<std::string, std::string>> left;
   left.reserve(string_vector.size());

@@ -25,9 +25,11 @@
 
 #include <memory>
 #include <set>
+#include <tuple>
 #include <vector>
 
 #include <acti_func.h>
+#include <common_properties.h>
 #include <layer.h>
 #include <manager.h>
 #include <node_exporter.h>
@@ -60,7 +62,7 @@ public:
         WeightInitializer bias_initializer_ = WeightInitializer::WEIGHT_ZEROS,
         bool trainable_ = true, bool flatten_ = false,
         bool distribute_ = false) :
-    name(std::string()),
+    layer_props(props::Name()),
     loss(0.0f),
     activation_type(activation_type_),
     weight_regularizer(weight_regularizer_),
@@ -313,7 +315,9 @@ public:
    */
   virtual void
   export_to(Exporter &exporter,
-            ExportMethods method = ExportMethods::METHOD_STRINGVECTOR){};
+            ExportMethods method = ExportMethods::METHOD_STRINGVECTOR) const {
+    exporter.save_result(layer_props, ExportMethods::METHOD_STRINGVECTOR);
+  };
 
   /**
    * @brief  get the loss value added by this layer
@@ -365,7 +369,9 @@ public:
   /**
    * @brief     Get name of the layer
    */
-  virtual std::string getName() noexcept { return name; }
+  virtual std::string getName() noexcept {
+    return std::get<props::Name>(layer_props).get();
+  }
 
   /**
    * @brief Preset modes for printing summary for the layer
@@ -558,10 +564,7 @@ protected:
     // clang-format on
   } PrintOption;
 
-  /**
-   * @brief     Name of the layer (works as the identifier)
-   */
-  std::string name;
+  std::tuple<props::Name> layer_props; /**< supported properties of layer */
 
   /**
    * @brief     Input Tensors

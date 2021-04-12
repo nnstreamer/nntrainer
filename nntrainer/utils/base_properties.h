@@ -132,6 +132,95 @@ private:
 };
 
 /**
+ * @brief base string property class, string needs special move / copy semantics
+ * because some c++14 compiler does not have nothrow_move_assignment/ctor
+ * operator for std::string. This class mitigates the issue
+ * As std::string is using default allocator for basic_string, this workaround
+ * is safe
+ *
+ */
+template <> class Property<std::string> {
+
+public:
+  /**
+   * @brief Construct a new Property object
+   *
+   */
+  Property() = default;
+
+  /**
+   * @brief Construct a new Property object, setting default skip validation on
+   * purpose
+   *
+   * @param value default value
+   */
+  Property(const std::string &value) : value(value){};
+
+  Property(const Property &rhs) = default;
+  Property &operator=(const Property &) = default;
+
+  Property(Property &&rhs) noexcept = default;
+
+  /**
+   * @brief move assignment operator, this patch makes,
+   * std::is_nothrow_move_assignable<Property<std::string>>::value == true
+   * Which might not hold true for some of the old compilers.
+   *
+   * @param rhs rvalue property to move
+   * @return Property& moved result
+   */
+  Property &operator=(Property &&rhs) noexcept {
+    value = std::move(rhs.value);
+    return *this;
+  }
+
+  /**
+   * @brief Destroy the Property object
+   *
+   */
+  virtual ~Property() = default;
+
+  /**
+   * @brief get the underlying data
+   *
+   * @return const T& data
+   */
+  const std::string &get() const { return value; }
+
+  /**
+   * @brief get the underlying data
+   *
+   * @return T& data
+   */
+  std::string &get() { return value; }
+
+  /**
+   * @brief set the underlying data
+   *
+   * @param v value to set
+   * @throw std::invalid_argument if argument is not valid
+   */
+  void set(const std::string &v) {
+    if (!is_valid(v)) {
+      throw std::invalid_argument("argument is not valid");
+    }
+    value = v;
+  }
+
+  /**
+   * @brief check if given value is valid
+   *
+   * @param v value to check
+   * @return true if valid
+   * @return false if not valid
+   */
+  virtual bool is_valid(const std::string &v) { return true; }
+
+private:
+  std::string value; /**< underlying data */
+};
+
+/**
  * @brief meta function to cast tag to it's base
  * @code below is the test spec for the cast
  *
