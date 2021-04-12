@@ -208,13 +208,9 @@ void NetworkGraph::ensureName(std::shared_ptr<Layer> layer,
   std::set<std::string>::iterator iter;
   std::string name;
   if (orig_name_empty) {
-    if (layer->getType() == TimeDistLayer::type) {
-      orig_name =
-        std::dynamic_pointer_cast<TimeDistLayer>(layer)->getDistLayerType();
-    } else {
-      orig_name = layer->getType();
-    }
+    orig_name = layer->getType();
   }
+
   std::string direct_name = prefix + orig_name;
 
   do {
@@ -319,11 +315,14 @@ int NetworkGraph::realizeActivationType(Layer &current) {
   std::shared_ptr<Layer> layer = nntrainer::createLayer(ActivationLayer::type);
   layer->setActivation(act);
 
-  if (current.getType() == TimeDistLayer::type) {
-    layer = distributeLayer(layer);
-  }
-
   ensureName(layer, current.getName());
+
+  if (current.getType() == TimeDistLayer::type) {
+    std::string unit_str = layer->getName();
+    layer->setName(layer->getName() + "_unit");
+    layer = distributeLayer(layer);
+    layer->setName(unit_str);
+  }
 
   layer->setNumInputs(current.getNumInputs());
   layer->input_layers.clear();
@@ -425,11 +424,14 @@ int NetworkGraph::addLossLayer(const LossType loss_type) {
     std::dynamic_pointer_cast<LossLayer>(layer)->setLoss(updated_loss_type);
   NN_RETURN_STATUS();
 
-  if (last_node.getObject()->getType() == TimeDistLayer::type) {
-    layer = distributeLayer(layer);
-  }
-
   ensureName(layer);
+
+  if (last_node.getObject()->getType() == TimeDistLayer::type) {
+    std::string unit_str = layer->getName();
+    layer->setName(unit_str + "_unit");
+    layer = distributeLayer(layer);
+    layer->setName(unit_str);
+  }
 
   last_node.getObject()->setNumOutputs(1);
   last_node.getObject()->output_layers.clear();

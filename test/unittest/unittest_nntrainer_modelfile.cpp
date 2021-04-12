@@ -872,7 +872,7 @@ TEST(nntrainerIniTest, distribute_p_01) {
 
   EXPECT_EQ(NN.loadFromConfig(s.getIniName()), ML_ERROR_NONE);
   EXPECT_EQ(NN.compile(), ML_ERROR_NONE);
-  // EXPECT_EQ(NN.initialize(), ML_ERROR_NONE);
+  EXPECT_EQ(NN.initialize(), ML_ERROR_NONE);
 }
 
 /**
