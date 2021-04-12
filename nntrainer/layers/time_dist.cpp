@@ -34,6 +34,28 @@ int TimeDistLayer::initialize(Manager &manager) {
     throw std::invalid_argument("distributed layer is not set properly");
   }
 
+  if (input_dim[0].channel() != 1) {
+    throw std::invalid_argument(
+      "only 1 channel is allow for time distributed layer");
+  }
+
+  TensorDim dist_dim = input_dim[0];
+  dist_dim.height(1);
+
+  dist_layer->setInputDimension({dist_dim});
+
+  // Set the weight of dist_layer
+  // Input & Output Buffer is set by manager of model.
+  // During forwarding and backwarding, it set the input and output buffer of
+  // dist_layer properly
+  // dist_layer will use forwarding_with_val and backwarding_with_val
+  dist_layer->initialize(manager);
+
+  output_dim[0] = dist_layer->getOutputDimension()[0];
+
+  // input_dim[0].height is number of time iteration
+  output_dim[0].height(input_dim[0].height());
+
   return status;
 }
 

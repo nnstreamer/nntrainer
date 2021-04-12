@@ -439,8 +439,14 @@ public:
     output_dim.resize(num_outputs);
   }
 
+  /**
+   * @brief Get hidden tensors
+   */
   virtual std::vector<Tensor> getOutputs();
 
+  /**
+   * @brief Get derivatives tensors
+   */
   virtual std::vector<Tensor> getDerivatives();
 
   /**
@@ -449,10 +455,16 @@ public:
    */
   virtual std::vector<Weight> &getWeightsRef() { return weights; }
 
+  /**
+   * @brief Set input Buffers
+   */
   virtual void setInputBuffers(std::vector<std::shared_ptr<Var_Grad>> inputs) {
     net_input = inputs;
   }
 
+  /**
+   * @brief Set output Buffers
+   */
   virtual void
   setOutputBuffers(std::vector<std::shared_ptr<Var_Grad>> outputs) {
     net_hidden = outputs;
@@ -466,10 +478,19 @@ public:
    */
   virtual int initialize(Manager &manager) = 0;
 
+  /**
+   * @brief get number of input layers
+   */
   virtual unsigned int getNumInputs() { return input_dim.size(); }
 
+  /**
+   * @brief get number of output layers
+   */
   virtual unsigned int getNumOutputs() { return output_dim.size(); }
 
+  /**
+   * @brief set Number of Input Layers
+   */
   void setNumInputs(unsigned int size) {
     if (size < 1)
       throw std::invalid_argument("Minimum number of inputs must be 1");
@@ -477,11 +498,32 @@ public:
     net_input.resize(size);
   }
 
+  /**
+   * @brief set Number of Output Layers
+   */
   void setNumOutputs(unsigned int size) {
     if (size < 1)
       throw std::invalid_argument("Minimum number of outputs must be 1");
     output_dim.resize(size);
     net_hidden.resize(size);
+  }
+
+  /**
+   * @brief Set the input dimension
+   * @param[in] d dimension to be set
+   */
+  void setInputDimension(const std::vector<TensorDim> &d) { input_dim = d; }
+
+  /**
+   * @brief Set the input dimension
+   * @param[in] d dimension to be set
+   * @param[in] i axis
+   */
+  void setInputDimension(const TensorDim &d, unsigned int i) {
+    if (i < 0 || i > MAXDIM)
+      throw std::invalid_argument(
+        "axis must be greater than 0 and less then MAX_DIM : 4");
+    input_dim[i] = d;
   }
 
 protected:
@@ -506,10 +548,13 @@ protected:
   std::string name;
 
   /**
-   * @brief     Input and Output Tensors
+   * @brief     Input Tensors
    */
   std::vector<std::shared_ptr<Var_Grad>> net_input;
 
+  /**
+   * @brief Output Tensors
+   */
   std::vector<std::shared_ptr<Var_Grad>> net_hidden;
 
   /**
@@ -534,9 +579,15 @@ protected:
 
   float weight_regularizer_constant;
 
-  WeightInitializer weight_initializer; /** initializer for weights */
+  /**
+   * @brief initializer for weights
+   */
+  WeightInitializer weight_initializer;
 
-  WeightInitializer bias_initializer; /** initializer for bias */
+  /**
+   * @brief initializer for bias
+   */
+  WeightInitializer bias_initializer;
 
   // TODO: remove this from here
   /**
@@ -544,12 +595,12 @@ protected:
    */
   bool flatten;
 
-  /*
+  /**
    * @brief     making this false will skip updating this layer variables
    */
   bool trainable;
 
-  /*
+  /**
    * @brief     making this true will iterating along with time distribution
    */
   bool distribute;
@@ -629,14 +680,6 @@ private:
    * @param[in] flags combination of LayerPrintOption
    */
   virtual void print(std::ostream &out, unsigned int flags = 0);
-
-  /**
-   * @brief Set the input dimension
-   * @param[in] d dimension to be set
-   */
-  void setInputDimension(std::vector<TensorDim> d) { input_dim = d; }
-
-  void setInputDimension(TensorDim d, unsigned int i) { input_dim[i] = d; }
 };
 
 /**
