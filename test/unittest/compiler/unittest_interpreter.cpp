@@ -19,6 +19,10 @@
 #include <interpreter.h>
 #include <layer.h>
 
+#ifdef ENABLE_TFLITE_INTERPRETER
+#include <tflite_interpreter.h>
+#endif
+
 #include <nntrainer_test_util.h>
 
 using LayerReprentation = std::pair<std::string, std::vector<std::string>>;

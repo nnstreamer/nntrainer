@@ -39,3 +39,6 @@ tensorflow-1.13.1
 __pycache__/
 *.py[cod]
 *$py.class
+
+# flatbuffer compiled header
+*_generated.h
