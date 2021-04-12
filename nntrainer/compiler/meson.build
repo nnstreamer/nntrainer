@@ -14,6 +14,7 @@ if get_option('enable-tflite-interpreter')
                                command: [flatc, '-c', '@INPUT@'])
 
   nntrainer_sources += flat_header
+  compiler_sources += 'tflite_interpreter.cpp'
 endif
 
 foreach s : compiler_sources

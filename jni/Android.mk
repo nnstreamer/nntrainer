@@ -44,6 +44,9 @@ TENSORFLOW_ROOT := $(NDK_LIBS_OUT)/tensorflow-$(TENSORFLOW_VERSION)/tensorflow-l
 
 $(info $(shell ($(NNTRAINER_JNI_ROOT)/prepare_tflite.sh $(TENSORFLOW_VERSION) $(NDK_LIBS_OUT))))
 
+$(info $(shell (flatc -c $(NNTRAINER_ROOT)/nntrainer/compiler/tf_schema.fbs)))
+$(info $(shell (mv tf_scehma_generated.h $(NNTRAINER_ROOT)/nntrainer/compiler)))
+
 endif #MAKECMDGOALS
 endif #TENSORFLOW_ROOT
 
@@ -91,7 +94,6 @@ NNTRAINER_SRCS := $(NNTRAINER_ROOT)/nntrainer/models/neuralnet.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/dataset/databuffer_factory.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/dataset/databuffer_func.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/dataset/databuffer_file.cpp \
-                  $(NNTRAINER_ROOT)/nntrainer/compiler/ini_interpreter.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/tensor/tensor.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/tensor/lazy_tensor.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/tensor/manager.cpp \
@@ -130,6 +132,8 @@ NNTRAINER_SRCS := $(NNTRAINER_ROOT)/nntrainer/models/neuralnet.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/utils/parse_util.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/utils/profiler.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/utils/node_exporter.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/compiler/ini_interpreter.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/compiler/tflite_interpreter.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/app_context.cpp
 
 # Add tflite backbone building
