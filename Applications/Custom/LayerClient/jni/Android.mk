@@ -52,7 +52,7 @@ include $(CLEAR_VARS)
 LOCAL_ARM_NEON := true
 LOCAL_CFLAGS += -std=c++14 -Ofast -mcpu=cortex-a53 -Ilz4-nougat/lib
 LOCAL_LDFLAGS += -Llz4-nougat/lib/obj/local/$(TARGET_ARCH_ABI)/
-LOCAL_CXXFLAGS += -std=c++14
+LOCAL_CXXFLAGS += -std=c++14 -frtti
 LOCAL_CFLAGS += -pthread -fexceptions
 LOCAL_LDFLAGS += -fexceptions
 LOCAL_MODULE_TAGS := optional
