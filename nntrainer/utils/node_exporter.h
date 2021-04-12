@@ -185,19 +185,25 @@ std::vector<std::string>
 load_properties(const std::vector<std::string> &string_vector,
                 std::tuple<Ts...> &props) {
 
-  std::vector<std::string> left = string_vector;
+  std::vector<std::pair<std::string, std::string>> left;
+  left.reserve(string_vector.size());
+
+  std::transform(string_vector.begin(), string_vector.end(),
+                 std::back_inserter(left), [](const std::string &property) {
+                   std::string key, value;
+                   int status = getKeyValue(property, key, value);
+                   NNTR_THROW_IF(status != ML_ERROR_NONE, std::invalid_argument)
+                     << "parsing property failed, original format: "
+                     << property;
+                   return std::make_pair(key, value);
+                 });
 
   auto callable = [&left](auto &&prop, size_t index) {
     std::string prop_key = std::remove_reference_t<decltype(prop)>::key;
 
     for (auto iter = left.begin(); iter < left.end(); ++iter) {
-      std::string key, value;
-      int status = getKeyValue(*iter, key, value);
-      NNTR_THROW_IF(status != ML_ERROR_NONE, std::invalid_argument)
-        << "parsing property failed, original format: " << *iter;
-
-      if (istrequal(prop_key, key) == true) {
-        from_string(value, prop);
+      if (istrequal(prop_key, iter->first) == true) {
+        from_string(iter->second, prop);
         iter = left.erase(iter);
       }
     }
@@ -205,7 +211,15 @@ load_properties(const std::vector<std::string> &string_vector,
 
   iterate_prop(callable, props);
 
-  return left;
+  std::vector<std::string> remainder;
+  remainder.reserve(left.size());
+
+  std::transform(left.begin(), left.end(), std::back_inserter(remainder),
+                 [](const decltype(left)::value_type &v) {
+                   return v.first + "=" + v.second;
+                 });
+
+  return remainder;
 }
 
 } // namespace nntrainer
