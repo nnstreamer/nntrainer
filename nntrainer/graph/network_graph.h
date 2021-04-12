@@ -151,7 +151,7 @@ public:
    * @note these layers will be in sorted order if the model is compiled,
    * otherwise the order is the order of addition of layers in the model.
    */
-  std::vector<std::shared_ptr<Layer>> getLayers();
+  std::vector<std::shared_ptr<Layer>> getLayers() const;
 
   /**
    * @brief     join passed graph into the existing graph model
