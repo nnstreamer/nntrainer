@@ -153,6 +153,14 @@ void Layer::save(std::ofstream &file) {
 int Layer::setProperty(std::vector<std::string> values) {
   int status = ML_ERROR_NONE;
 
+  try {
+    values = loadProperties(values, layer_props);
+  } catch (std::invalid_argument &e) {
+    ml_loge("parsing property failed, reason: %s", e.what());
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
+  /// @todo: deprecate this in favor of loadProperties
   for (unsigned int i = 0; i < values.size(); ++i) {
     std::string key;
     std::string value;
@@ -297,7 +305,7 @@ int Layer::setName(std::string name_) {
   if (name_.empty())
     return ML_ERROR_INVALID_PARAMETER;
 
-  name = name_;
+  std::get<props::Name>(layer_props).set(name_);
   return ML_ERROR_NONE;
 }
 

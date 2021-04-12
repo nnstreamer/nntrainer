@@ -128,17 +128,19 @@ TEST(BasicProperty, valid_p) {
     layer.export_to(e);
 
     auto result = e.get_result<nntrainer::ExportMethods::METHOD_STRINGVECTOR>();
-    auto pair = std::pair<std::string, std::string>("unit", "1");
-    EXPECT_EQ(result[0], pair);
+    auto pair0 = std::pair<std::string, std::string>("name", "");
+    EXPECT_EQ(result[0], pair0);
+    auto pair1 = std::pair<std::string, std::string>("unit", "1");
+    EXPECT_EQ(result[1], pair1);
   }
 
   { /**< load from layer */
     auto props = std::make_tuple(NumBanana(), QualityOfBanana());
 
     auto v =
-      nntrainer::load_properties({"num_banana=2", "quality_banana=thisisgood",
-                                  "num_banana=42", "not_used=key"},
-                                 props);
+      nntrainer::loadProperties({"num_banana=2", "quality_banana=thisisgood",
+                                 "num_banana=42", "not_used=key"},
+                                props);
 
     EXPECT_EQ(v, std::vector<std::string>{"not_used=key"});
     EXPECT_EQ(std::get<0>(props).get(), 42);

@@ -70,7 +70,8 @@ int FullyConnectedLayer::initialize(Manager &manager) {
   return status;
 }
 
-void FullyConnectedLayer::export_to(Exporter &exporter, ExportMethods method) {
+void FullyConnectedLayer::export_to(Exporter &exporter,
+                                    ExportMethods method) const {
   Layer::export_to(exporter, method);
   exporter.save_result(fc_props, method);
 }
