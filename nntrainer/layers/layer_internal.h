@@ -460,10 +460,35 @@ public:
   virtual std::vector<Tensor> getDerivatives();
 
   /**
+   * @brief Get the Input Ref object
+   *
+   * @return std::vector<std::shared_ptr<Var_Grad>>&
+   */
+  virtual const std::vector<std::shared_ptr<Var_Grad>> &getInputRef() const {
+    return net_input;
+  }
+
+  /**
+   * @brief Get the Output Ref object
+   *
+   * @return std::vector<std::shared_ptr<Var_Grad>>&
+   */
+  virtual const std::vector<std::shared_ptr<Var_Grad>> &getOutputRef() const {
+    return net_hidden;
+  }
+
+  /**
    * @brief Get reference to the weights
    * @retval Reference of the list of weights in the layer
    */
   virtual std::vector<Weight> &getWeightsRef() { return weights; }
+
+  /**
+   * @brief Get the Weights Ref object
+   *
+   * @return const std::vector<Weight>& refs of weights
+   */
+  virtual const std::vector<Weight> &getWeightsRef() const { return weights; }
 
   /**
    * @brief Set the Input Buffers object
