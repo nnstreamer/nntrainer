@@ -15,6 +15,7 @@
 #include <fstream>
 #include <memory>
 #include <string>
+#include <tuple>
 
 #include <tf_schema_generated.h>
 
@@ -199,30 +200,114 @@ private:
 using TfOpNodes = std::vector<TfOpNode>;
 
 /**
+ * @brief Bidirectional Index map
+ *
+ * @tparam T type of a underlying value, please note that T will be copied, so
+ * please use this for pointers and primitive values that is okay to copy
+ */
+template <typename T> class BidirectionalIndexMap {
+public:
+  /**
+   * @brief addDatapoint to the map
+   *
+   * @param data data to be added if there is no occurrence, data will be
+   * copied.
+   */
+  void addDataWhenNotFound(T data) {
+    auto search = data2index.find(data);
+
+    if (search == data2index.end()) {
+      data2index[data] = index2data.size();
+      index2data.push_back(data);
+    }
+  }
+
+  /**
+   * @brief Get the Index of the data
+   *
+   * @param key data that will be the key
+   * @return unsigned int index
+   */
+  unsigned int getIndex(const T &key) const {
+    auto search = data2index.find(key);
+
+    NNTR_THROW_IF(search == data2index.end(), std::invalid_argument)
+      << FUNC_TAG << "Cannot find index for key: " << key;
+
+    return *search;
+  }
+
+  /**
+   * @brief Get the Data object
+   *
+   * @param idx index to be searched
+   * @return T datapoint T
+   */
+  T getData(unsigned int index) const {
+    NNTR_THROW_IF(index >= index2data.size(), std::invalid_argument)
+      << FUNC_TAG << "Cannot find data for index: " << index;
+
+    return index2data[index];
+  }
+
+private:
+  std::unordered_map<T, unsigned int> data2index; /**< data -> index map */
+  std::vector<T> index2data;                      /**< index -> data map */
+};
+
+/**
  * @brief tensorflow operation index map, this class manages operation index
  * mapping
  *
  */
 class TfOpIdxMap {
 public:
-  TfOpIdxMap(std::vector<TfOpNode> nodes){};
+  TfOpIdxMap(const TfOpNodes &nodes) {
+    auto &opcode_map = getIndexMap<tflite::BuiltinOperator>();
+    auto update_opcode = [&opcode_map](tflite::BuiltinOperator opcode) {
+      opcode_map.addDataWhenNotFound(opcode);
+    };
+
+    auto &buffer_map = getIndexMap<const float *>();
+    buffer_map.addDataWhenNotFound(empty_buffer); /// put empty buffer to first
+
+    auto update_buffers = [&buffer_map](const TfOpNode::Variables &variables) {
+      for (auto &variable : variables) {
+        const Tensor &t = variable->getVariableRef();
+        if (!t.uninitialized() && t.isAllocated()) {
+          buffer_map.addDataWhenNotFound(t.getData());
+        }
+      }
+    };
+
+    auto &variable_map = getIndexMap<const Var_Grad *>();
+    auto update_variables =
+      [&variable_map](const TfOpNode::Variables &variables) {
+        for (auto &variable : variables) {
+          variable_map.addDataWhenNotFound(variable);
+        }
+      };
+
+    for (auto &op_node : nodes) {
+      update_opcode(op_node.getOpType());
+      update_variables(op_node.getInputs());
+      update_variables(op_node.getOutputs());
+      update_variables(op_node.getWeights());
+      update_buffers(op_node.getWeights());
+    }
+  }
+
+  template <typename T> BidirectionalIndexMap<T> &getIndexMap() {
+    return std::get<BidirectionalIndexMap<T>>(maps);
+  }
 
 private:
-  /**
-   * @brief Bidirectional Index map
-   *
-   * @tparam T type of a underyling value
-   */
-  template <typename T> class BidirectionalIndexMap {
-    std::unordered_map<T, unsigned int> data2index; /**< data -> index map */
-    std::vector<T> index2data;                      /**< index -> data map */
-  };
-
   float empty_buffer[0]; /**< unintialized tensor points to this buffer */
 
-  BidirectionalIndexMap<float *> buffer_map; /**< underlying buffer map */
-  BidirectionalIndexMap<tflite::BuiltinOperator> opcode_map; /**< opcode map */
-  BidirectionalIndexMap<Var_Grad *> variable_map;            /**< tensor map */
+  std::tuple<BidirectionalIndexMap<const float *>, /**< underlying buffer map */
+             BidirectionalIndexMap<tflite::BuiltinOperator>, /**< opcode map */
+             BidirectionalIndexMap<const Var_Grad *>>        /**< tensor map */
+    maps;
 };
 
 TfOpNodes
@@ -230,8 +315,7 @@ buildOpNodes(std::shared_ptr<const GraphRepresentation> representation) {
   TfOpNodes nodes;
   /// @todo, look ahead of layers to get nodes that can be fused
   for (const auto &ln : representation->getSorted()) {
-    nodes.emplace_back(*ln.layer);
-    std::cout << ln.layer->getName() << '\n';
+    nodes.emplace_back(*ln.getObject());
   }
 
   return nodes;
