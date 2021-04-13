@@ -161,16 +161,28 @@ TEST_P(nntrainerInterpreterTest, graphSerializeAfterDeserialize) {
 }
 
 auto fc0 = LayerReprentation("fully_connected",
-                             {"name=fc0", "unit=1", "input_shape=1:1:100"});
+                             {"name=fc0", "unit=1", "input_shape=1:1:10"});
+auto fc1 = LayerReprentation("fully_connected",
+                             {"name=fc1", "unit=1", "input_shape=1:1:10"});
 
 auto flatten = LayerReprentation("flatten", {"name=flat"});
 
 #ifdef ENABLE_TFLITE_INTERPRETER
 TEST(flatbuffer, playground) {
+
+  auto manager = std::make_shared<nntrainer::Manager>();
+
   nntrainer::TfliteInterpreter interpreter;
-  auto g = makeGraph({fc0});
-  g->compile(nntrainer::LossType::LOSS_NONE);
+  auto g = makeGraph({fc0, fc1});
+  EXPECT_EQ(g->compile(nntrainer::LossType::LOSS_NONE), ML_ERROR_NONE);
+  EXPECT_EQ(g->initialize(manager), ML_ERROR_NONE);
+
+  manager->initializeWeights();
+  manager->allocateWeights();
+
   interpreter.serialize(g, "test.tflite");
+
+  manager->deallocateWeights();
 }
 #endif
 /**

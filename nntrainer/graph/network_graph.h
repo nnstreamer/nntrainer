@@ -242,6 +242,14 @@ public:
     return *this;
   }
 
+  /**
+   * @brief initialize network graph, with given manager
+   * @note this is taken from neuralnet, This might need some changes
+   *
+   * @param manager manager to allocate tensors
+   */
+  int initialize(std::shared_ptr<Manager> manager);
+
 private:
   std::map<std::string, std::string> sub_in_out; /** This is map to identify
                    input and output layer name of subgraph */

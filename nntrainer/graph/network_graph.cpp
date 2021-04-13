@@ -925,4 +925,94 @@ std::vector<std::shared_ptr<LayerNode>> &NetworkGraph::getSorted() {
   return Sorted;
 }
 
+int NetworkGraph::initialize(std::shared_ptr<Manager> manager) {
+  int status = ML_ERROR_NONE;
+
+  for (unsigned int idx = 0; idx < Sorted.size(); ++idx) {
+    bool first = idx == 0;
+    auto &lnode = getSortedLayerNode(idx);
+    auto &lptr = lnode->getObject();
+    ml_logd("layer name : %s", lptr->getName().c_str());
+    std::string cur_type;
+    if (lptr->getType() == TimeDistLayer::type) {
+      cur_type =
+        std::dynamic_pointer_cast<TimeDistLayer>(lptr)->getDistLayerType();
+    } else {
+      cur_type = lptr->getType();
+    }
+
+    /**
+     * Set input dimension for all the layers.
+     * For input layer, as input dimension is known, set input tensor.
+     */
+    if (!first) {
+      std::string l_pre_type =
+        getSortedLayerNode(idx - 1)->getObject()->getType();
+      if (l_pre_type == TimeDistLayer::type) {
+        l_pre_type = std::dynamic_pointer_cast<TimeDistLayer>(
+                       getSortedLayerNode(idx - 1)->getObject())
+                       ->getDistLayerType();
+      }
+
+      if (istrequal(l_pre_type, ActivationLayer::type) &&
+          istrequal(cur_type, ActivationLayer::type)) {
+        ml_loge("double activation is not allowed");
+        return ML_ERROR_INVALID_PARAMETER;
+      }
+
+      for (unsigned int i = 0; i < lptr->input_layers.size(); ++i) {
+        Layer &in_layer = *getLayerNode(lptr->input_layers[i])->getObject();
+
+        unsigned int location = 0;
+        for (unsigned int j = 0; j < in_layer.output_layers.size(); ++j) {
+          if (in_layer.output_layers[j] == lptr->getName()) {
+            location = j;
+            break;
+          }
+        }
+
+        lptr->setInputDimension(in_layer.getOutputDimension()[location], i);
+      }
+    }
+
+    /**
+     * Initialize all the layers, allocate output tensors for each layer
+     * and add optimizer related weights for the layer
+     */
+    status = lptr->initialize(*manager);
+    NN_RETURN_STATUS();
+
+    auto &in_out = manager->trackLayerOutputs(cur_type, lptr->getName(),
+                                              lptr->getOutputDimension(),
+                                              lptr->getInputDimension());
+    lptr->setOutputBuffers(in_out);
+
+    /** Connect the output of the previous layers with the input of the current
+     * layer */
+    if (!first) {
+      for (unsigned int i = 0; i < lptr->input_layers.size(); ++i) {
+        Layer &in_layer = *getLayerNode(lptr->input_layers[i])->getObject();
+
+        unsigned int location = 0;
+        for (unsigned int j = 0; j < in_layer.output_layers.size(); ++j) {
+          if (in_layer.output_layers[j] == lptr->getName()) {
+            location = j;
+            break;
+          }
+        }
+
+        lptr->net_input[i] = getLayerNode(lptr->input_layers[i])
+                               ->getObject()
+                               ->net_hidden[location];
+      }
+    } else {
+      auto &in_out = manager->trackLayerInputs(cur_type, lptr->getName(),
+                                               lptr->getInputDimension(),
+                                               lptr->getOutputDimension());
+      lptr->setInputBuffers(in_out);
+    }
+  }
+  return status;
+}
+
 } /* namespace nntrainer */
