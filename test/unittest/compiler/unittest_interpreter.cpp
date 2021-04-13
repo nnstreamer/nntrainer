@@ -168,7 +168,9 @@ auto flatten = LayerReprentation("flatten", {"name=flat"});
 #ifdef ENABLE_TFLITE_INTERPRETER
 TEST(flatbuffer, playground) {
   nntrainer::TfliteInterpreter interpreter;
-  interpreter.serialize(nullptr, "test.tflite");
+  auto g = makeGraph({fc0});
+  g->compile(nntrainer::LossType::LOSS_NONE);
+  interpreter.serialize(g, "test.tflite");
 }
 #endif
 /**
