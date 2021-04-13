@@ -161,6 +161,12 @@ auto fc0 = LayerReprentation("fully_connected",
 
 auto flatten = LayerReprentation("flatten", {"name=flat"});
 
+#ifdef ENABLE_TFLITE_INTERPRETER
+TEST(flatbuffer, playground) {
+  nntrainer::TfliteInterpreter interpreter;
+  interpreter.serialize(nullptr, "test.tflite");
+}
+#endif
 /**
  * @brief make ini test case from given parameter
  */
