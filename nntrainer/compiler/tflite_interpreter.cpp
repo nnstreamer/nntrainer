@@ -16,6 +16,8 @@
 #include <memory>
 #include <string>
 #include <tuple>
+#include <type_traits>
+#include <utility>
 
 #include <tf_schema_generated.h>
 
@@ -202,24 +204,40 @@ using TfOpNodes = std::vector<TfOpNode>;
 /**
  * @brief Bidirectional Index map
  *
- * @tparam T type of a underlying value, please note that T will be copied, so
- * please use this for pointers and primitive values that is okay to copy
+ * @tparam Key type of a underlying hashable value, please note that T will be
+ * copied, so please use this for pointers and primitive values that is okay to
+ * copy
+ * @tparam Data data type to be stored inside the vector, if not given, same as
+ * KeyType
  */
-template <typename T> class BidirectionalIndexMap {
+template <typename KeyType, typename DataType = KeyType>
+class BidirectionalIndexMap {
 public:
   /**
    * @brief addDatapoint to the map
    *
+   * @param key key to be added to search for the data
    * @param data data to be added if there is no occurrence, data will be
    * copied.
    */
-  void addDataWhenNotFound(T data) {
-    auto search = data2index.find(data);
+  void addDataWhenNotFound(KeyType key, DataType data) {
+    auto search = key2index.find(key);
 
-    if (search == data2index.end()) {
-      data2index[data] = index2data.size();
+    if (search == key2index.end()) {
+      key2index[key] = index2data.size();
       index2data.push_back(data);
     }
+  }
+
+  /**
+   * @brief addDatapoint to the map when key and datatype is same
+   *
+   * @param key key/data to add
+   */
+  void addDataWhenNotFound(KeyType key) {
+    static_assert(std::is_same<KeyType, DataType>::value == true,
+                  "key type and data type are different!");
+    addDataWhenNotFound(key, key);
   }
 
   /**
@@ -228,10 +246,10 @@ public:
    * @param key data that will be the key
    * @return unsigned int index
    */
-  unsigned int getIndex(const T &key) const {
-    auto search = data2index.find(key);
+  unsigned int getIndex(const KeyType &key) const {
+    auto search = key2index.find(key);
 
-    NNTR_THROW_IF(search == data2index.end(), std::invalid_argument)
+    NNTR_THROW_IF(search == key2index.end(), std::invalid_argument)
       << FUNC_TAG << "Cannot find index for key: " << key;
 
     return *search;
@@ -243,7 +261,7 @@ public:
    * @param idx index to be searched
    * @return T datapoint T
    */
-  T getData(unsigned int index) const {
+  DataType getData(unsigned int index) const {
     NNTR_THROW_IF(index >= index2data.size(), std::invalid_argument)
       << FUNC_TAG << "Cannot find data for index: " << index;
 
@@ -255,11 +273,19 @@ public:
    *
    * @return const std::vector<T>& underlying data
    */
-  const std::vector<T> &getData() const { return index2data; }
+  const std::vector<DataType> &getData() const { return index2data; }
 
 private:
-  std::unordered_map<T, unsigned int> data2index; /**< data -> index map */
-  std::vector<T> index2data;                      /**< index -> data map */
+  std::unordered_map<KeyType, unsigned int> key2index; /**< key -> index map */
+  std::vector<DataType> index2data;                    /**< index -> data map */
+};
+
+/**
+ * @brief Tfbuffer struct (not yet fully specified)
+ *
+ */
+struct TfBuffer {
+  size_t size;
 };
 
 /**
@@ -269,21 +295,28 @@ private:
  */
 class TfOpIdxMap {
 public:
+  using Buffer = std::pair<size_t, const float *>;
+
   TfOpIdxMap(const TfOpNodes &nodes) {
     auto &opcode_map = getIndexMap<tflite::BuiltinOperator>();
     auto update_opcode = [&opcode_map](tflite::BuiltinOperator opcode) {
       opcode_map.addDataWhenNotFound(opcode);
     };
 
-    auto &buffer_map = getIndexMap<const float *>();
-    buffer_map.addDataWhenNotFound(empty_buffer); /// put empty buffer to first
+    auto &buffer_map = getIndexMap<const float *, Buffer>();
+    buffer_map.addDataWhenNotFound(
+      empty_buffer, {0, empty_buffer}); /// put empty buffer to first
 
     auto update_buffers = [&buffer_map](const TfOpNode::Variables &variables) {
       for (auto &variable : variables) {
         const Tensor &t = variable->getVariableRef();
-        if (!t.uninitialized() && t.isAllocated()) {
-          buffer_map.addDataWhenNotFound(t.getData());
-        }
+
+        NNTR_THROW_IF(t.uninitialized() || !t.isAllocated(),
+                      std::invalid_argument)
+          << FUNC_TAG << "Weight tensor must be allocated";
+
+        const float *buf = t.getData();
+        buffer_map.addDataWhenNotFound(buf, {t.getSize(), buf});
       }
     };
 
@@ -304,18 +337,23 @@ public:
     }
   }
 
-  template <typename T> BidirectionalIndexMap<T> &getIndexMap() {
-    return std::get<BidirectionalIndexMap<T>>(maps);
+  template <typename KeyType, typename DataType = KeyType>
+  BidirectionalIndexMap<KeyType, DataType> &getIndexMap() {
+    return std::get<BidirectionalIndexMap<KeyType, DataType>>(maps);
   }
 
-  template <typename T> const BidirectionalIndexMap<T> &getIndexMap() const {
-    return std::get<BidirectionalIndexMap<T>>(maps);
+  template <typename KeyType, typename DataType = KeyType>
+  const BidirectionalIndexMap<KeyType, DataType> &getIndexMap() const {
+    return std::get<BidirectionalIndexMap<KeyType, DataType>>(maps);
   }
+
+  const float *get_empty_buffer() const { return empty_buffer; }
 
 private:
-  float empty_buffer[0]; /**< unintialized tensor points to this buffer */
+  float
+    empty_buffer[0]; /**< reserved unintialized tensor points to this buffer */
 
-  std::tuple<BidirectionalIndexMap<const float *>, /**< underlying buffer map */
+  std::tuple<BidirectionalIndexMap<const float *, Buffer>,   /**< buffer map */
              BidirectionalIndexMap<tflite::BuiltinOperator>, /**< opcode map */
              BidirectionalIndexMap<const Var_Grad *>>        /**< tensor map */
     maps;
@@ -334,9 +372,28 @@ buildOpNodes(std::shared_ptr<const GraphRepresentation> representation) {
 
 flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<tflite::Buffer>>>
 buildBuffers(const TfOpIdxMap &map, flatbuffers::FlatBufferBuilder &fbb) {
-  /** NYI! */
-  return flatbuffers::Offset<
-    flatbuffers::Vector<flatbuffers::Offset<tflite::Buffer>>>();
+  const auto &buffers =
+    map.getIndexMap<const float *, TfOpIdxMap::Buffer>().getData();
+
+  std::vector<flatbuffers::Offset<tflite::Buffer>> fb_buffers;
+  fb_buffers.reserve(buffers.size() + 1);
+  /// add reserved buffer to denote undefined
+  fb_buffers.push_back(tflite::CreateBuffer(fbb));
+
+  auto create_buffer_offset = [&fbb](const TfOpIdxMap::Buffer &buffer) {
+    if (buffer.first == 0) {
+      return tflite::CreateBuffer(fbb);
+    }
+
+    auto data = fbb.CreateVector(
+      reinterpret_cast<const uint8_t *>(buffer.second), buffer.first);
+
+    return tflite::CreateBuffer(fbb, data);
+  };
+
+  std::transform(buffers.begin(), buffers.end(), std::back_inserter(fb_buffers),
+                 create_buffer_offset);
+  return fbb.CreateVector(fb_buffers);
 }
 
 flatbuffers::Offset<
@@ -377,22 +434,23 @@ buildSubGraph(const TfOpNodes &nodes, const TfOpIdxMap &map,
 void TfliteInterpreter::serialize(
   std::shared_ptr<const GraphRepresentation> representation,
   const std::string &out) {
-  /// @todo check if graph is finalized
+  /// @todo check if graph is finalized & initialized and ready to serialize.
+  /// 1. The graph must have weights, input dims, output dims set
   flatbuffers::FlatBufferBuilder fbb;
 
   auto opNodes = buildOpNodes(representation);
-  TfOpIdxMap map(opNodes); /// build TfOpIdxMap
+  TfOpIdxMap map(opNodes); /// build TfOpIdxMap from opNodes
 
   auto opcodes = buildOperatorCodes(map, fbb);
-  auto UNUSED(buffers) = buildBuffers(map, fbb);
   auto UNUSED(subgraph) = buildSubGraph(opNodes, map, fbb);
+  auto buffers = buildBuffers(map, fbb);
   auto desc = fbb.CreateString("This file is generated from NNTrainer");
 
   tflite::ModelBuilder model_builder(fbb);
 
   model_builder.add_operator_codes(opcodes);
-  WILL(model_builder.add_buffers(buffers));
   WILL(model_builder.add_subgraphs(subgraph));
+  model_builder.add_buffers(buffers);
   model_builder.add_version(3);
   model_builder.add_description(desc);
   auto model = model_builder.Finish();
@@ -402,7 +460,12 @@ void TfliteInterpreter::serialize(
 }
 
 std::shared_ptr<GraphRepresentation>
-TfliteInterpreter::deserialize(const std::string &in) { /** NYI! */
+TfliteInterpreter::deserialize(const std::string &in) {
+  /// ======== list of things to consider ========
+  /// we need to reconstruct some properties from the shape
+  /// eg) units are not saved as a property
+
+  /** NYI! */
   return nullptr;
 }
 
