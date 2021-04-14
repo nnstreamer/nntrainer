@@ -43,25 +43,28 @@ int FullyConnectedLayer::initialize(Manager &manager) {
     throw std::invalid_argument("Fully connected layer takes only one input");
   }
 
-  output_dim[0] = input_dim[0];
+  auto &in_dim = input_dim[0];
+  /// @todo fc actaully supports multidimensions. EffDimFlag shouldn't be fixed
+  /// like this.
+  in_dim.setEffDimFlag(0b1001);
+  in_dim.setDynDimFlag(0b1000);
+
+  output_dim[0] = in_dim;
   output_dim[0].width(unit);
 
-  TensorDim bias_dim = TensorDim();
-  bias_dim.setTensorDim(3, unit);
-
-  TensorDim dim = output_dim[0];
-  dim.height(input_dim[0].width());
-  dim.batch(1);
+  TensorDim bias_dim(1, 1, 1, unit, 0b0001);
+  TensorDim weight_dim(1, 1, in_dim.width(), unit, 0b0011);
 
   if (weights.empty()) {
     weights.reserve(2);
-    weights.emplace_back(dim, weight_initializer, weight_regularizer,
+    weights.emplace_back(weight_dim, weight_initializer, weight_regularizer,
                          weight_regularizer_constant, true, false, "FC:weight");
     weights.emplace_back(bias_dim, bias_initializer, WeightRegularizer::NONE,
                          1.0f, true, false, "FC:bias");
     manager.trackWeights(weights);
   } else {
-    weights[FCParams::weight].reset(dim, weight_initializer, weight_regularizer,
+    weights[FCParams::weight].reset(weight_dim, weight_initializer,
+                                    weight_regularizer,
                                     weight_regularizer_constant, true);
     weights[FCParams::bias].reset(bias_dim, bias_initializer,
                                   WeightRegularizer::NONE, 1.0f, true);

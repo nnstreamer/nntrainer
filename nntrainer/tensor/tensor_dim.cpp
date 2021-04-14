@@ -33,7 +33,7 @@ TensorDim::TensorDim(const std::string &shape) : TensorDim() {
 TensorDim &TensorDim::operator=(const TensorDim &rhs) {
   using std::swap;
 
-  TensorDim tmp(rhs.batch(), rhs.channel(), rhs.height(), rhs.width());
+  TensorDim tmp(rhs);
   swap(*this, tmp);
   return *this;
 }
@@ -153,6 +153,29 @@ const unsigned int &TensorDim::operator[](const unsigned int index) const {
 }
 
 void TensorDim::reverse() { std::reverse(dim, dim + MAXDIM); }
+
+std::vector<int> TensorDim::getEffectiveDimension(bool dynamic) const {
+  std::vector<int> eff_dim;
+  eff_dim.reserve(eff_dim_flag.count());
+
+  auto get_axis = [dynamic, this](unsigned int axis) -> int {
+    if (dynamic && dyn_dim_flag[MAXDIM - axis - 1]) {
+      return -1;
+    }
+
+    return dim[axis];
+  };
+
+  for (unsigned int i = 0; i < MAXDIM; ++i) {
+    /// flip dim_flag to effectively match with our cognition
+    /// ex) 3:5:1:1 -> 3:5, we are setting eff_dim_flag to 0b1100
+    if (eff_dim_flag[MAXDIM - i - 1]) {
+      eff_dim.push_back(get_axis(i));
+    }
+  }
+
+  return eff_dim;
+}
 
 std::ostream &operator<<(std::ostream &out, TensorDim const &d) {
   out << "Shape: " << d.batch() << ":" << d.channel() << ":" << d.height()

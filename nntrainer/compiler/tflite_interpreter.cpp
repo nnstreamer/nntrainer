@@ -414,39 +414,6 @@ buildOperatorCodes(const TfOpIdxMap &map, flatbuffers::FlatBufferBuilder &fbb) {
   return fbb.CreateVector(fb_op_codes);
 }
 
-/**
- * @brief get Serialized Tensor shape
- * @note when building tensorshape, the tensor shape must be final, when we
- * reach here it, the tensordim should be final which means if transpose is
- * needed, it should be done already.
- * @param dim Tensor dimension to convert
- * @param type tflite Tensor type
- * @param effective_dimension bitflag of valid 'nchw' dimension, ex) 0b1011
- * means,nhw is effective
- * @param is_signature check if the given dimension is regarded as a tensor
- * signature
- * @return flatbuffers::Offset<flatbuffers::Vector<int32_t>>
- */
-flatbuffers::Offset<flatbuffers::Vector<int32_t>>
-buildTensorShape(const TensorDim &dim, flatbuffers::FlatBufferBuilder &fbb,
-                 int effective_dimension, bool is_signature = false) {
-  std::vector<int32_t> fb_dimension;
-
-  /// batch dimension is always considered with signature
-  if ((effective_dimension >> 3) & 1) {
-    fb_dimension.push_back(is_signature ? -1 : dim.batch());
-  }
-
-  for (unsigned int i = 1; i < MAXDIM; ++i) {
-    if (((effective_dimension >> (MAXDIM - i - 1)) & 1) == 0) {
-      continue;
-    }
-    fb_dimension.push_back(dim.getTensorDim(i));
-  }
-
-  return fbb.CreateVector(fb_dimension);
-}
-
 flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<tflite::Tensor>>>
 buildTensors(const TfOpIdxMap &map, flatbuffers::FlatBufferBuilder &fbb) {
   /// @todo: the actual (suqeezed) tensor dimension must be known before coming
@@ -458,18 +425,16 @@ buildTensors(const TfOpIdxMap &map, flatbuffers::FlatBufferBuilder &fbb) {
   fb_tensors.reserve(variables.size());
 
   auto create_tensor = [&fbb, &buffer_map](const Var_Grad *var) {
-    /// @fixme: There is a fixed assumption that effective_dimension is 0b1001,
-    /// this is not true, this should be supported inherently from TensorDim
-    /// class.
-    int FIX_ME_FLAG = 0b1001;
-    auto shape = buildTensorShape(var->getDim(), fbb, FIX_ME_FLAG, false);
+    bool need_shape_signature = var->getDim().is_dynamic();
+    std::vector<int32_t> eff_dim = var->getDim().getEffectiveDimension();
+    auto shape = fbb.CreateVector(eff_dim);
 
-    /// in *.tflite spec, there is tensor dimension and tensor signature
-    /// dimension the only difference is that tensor signature dimension gets
-    /// the value of -1 which denotes the size is unspecified. Mostly, batch
-    /// dimension has the signature of -1, we don't have such concept yet so
-    /// this is handled by boolean for now
-    auto shape_sig = buildTensorShape(var->getDim(), fbb, FIX_ME_FLAG, true);
+    decltype(shape) shape_sig;
+    if (need_shape_signature) {
+      std::vector<int32_t> dyn_dim = var->getDim().getEffectiveDimension(true);
+      shape_sig = fbb.CreateVector(dyn_dim);
+    }
+
     auto name = fbb.CreateString(var->getName());
     auto tensor = var->getVariableRef();
 
@@ -481,8 +446,11 @@ buildTensors(const TfOpIdxMap &map, flatbuffers::FlatBufferBuilder &fbb) {
     tflite::TensorBuilder builder(fbb);
     builder.add_name(name);
     builder.add_buffer(buffer_idx);
+    builder.add_type(tflite::TensorType_FLOAT32);
     builder.add_shape(shape);
-    builder.add_shape_signature(shape_sig);
+    if (need_shape_signature) {
+      builder.add_shape_signature(shape_sig);
+    }
     return builder.Finish();
   };
 

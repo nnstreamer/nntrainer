@@ -37,6 +37,34 @@ TEST(nntrainer_TensorDim, ctor_initializer_p) {
   EXPECT_EQ(nntrainer::TensorDim(b, c, h, w), t);
 }
 
+TEST(nntrianer_TensorDim, effective_dimension_p) {
+  nntrainer::TensorDim t(3, 2, 4, 5);
+  EXPECT_EQ(t.getEffectiveDimension(), std::vector<int>({3, 2, 4, 5}));
+
+  t.setEffDimFlag(0b1101);
+  EXPECT_EQ(t.getEffectiveDimension(), std::vector<int>({3, 2, 5}));
+
+  t.setEffDimFlag(0b0011);
+  EXPECT_EQ(t.getEffectiveDimension(), std::vector<int>({4, 5}));
+
+  t.setEffDimFlag(0b1111);
+  EXPECT_EQ(t.getEffectiveDimension(), std::vector<int>({3, 2, 4, 5}));
+
+  t.setEffDimFlag(0b1100);
+  EXPECT_EQ(t.getEffectiveDimension(), std::vector<int>({3, 2}));
+
+  t.setDynDimFlag(0b1100);
+  EXPECT_EQ(t.getEffectiveDimension(true), std::vector<int>({-1, -1}));
+
+  auto copied_t = t;
+  EXPECT_EQ(copied_t.getEffectiveDimension(), std::vector<int>({3, 2}));
+  EXPECT_EQ(copied_t.getEffectiveDimension(true), std::vector<int>({-1, -1}));
+
+  auto moved_t = std::move(copied_t);
+  EXPECT_EQ(moved_t.getEffectiveDimension(), std::vector<int>({3, 2}));
+  EXPECT_EQ(moved_t.getEffectiveDimension(true), std::vector<int>({-1, -1}));
+}
+
 TEST(nntrainer_TensorDim, ctor_initializer_n) {
   EXPECT_THROW(nntrainer::TensorDim t({1, 2, 3, 4, 5}), std::invalid_argument);
 }
