@@ -159,7 +159,7 @@ TEST_P(nntrainerInterpreterTest, graphSerializeAfterDeserialize) {
 auto fc0 = LayerReprentation("fully_connected",
                              {"name=fc0", "unit=1", "input_shape=1:1:10"});
 auto fc1 = LayerReprentation("fully_connected",
-                             {"name=fc1", "unit=1", "input_shape=1:1:10"});
+                             {"name=fc1", "unit=2", "input_shape=1:1:10"});
 
 auto flatten = LayerReprentation("flatten", {"name=flat"});
 
