@@ -2096,13 +2096,6 @@ TEST(nntrainer_LossLayer, setProperty_individual_02_n) {
                nntrainer::exception::not_supported);
 }
 
-TEST(nntrainer_ActivationLayer, init_01_n) {
-  nntrainer::Manager manager{true, false};
-  manager.setInferenceInOutMemoryOptimization(false);
-  nntrainer::ActivationLayer layer;
-  EXPECT_THROW(layer.initialize(manager), std::invalid_argument);
-}
-
 TEST(nntrainer_ActivationLayer, init_02_p) {
   nntrainer::Manager manager{true, false};
   manager.setInferenceInOutMemoryOptimization(false);
