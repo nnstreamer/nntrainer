@@ -30,14 +30,16 @@ public:
    * @brief     Constructor of LSTMLayer
    */
   template <typename... Args>
-  LSTMLayer(unsigned int unit_ = 0, Args... args) :
+  LSTMLayer(
+    unsigned int unit_ = 0,
+    ActivationType recurrent_activation_type_ = ActivationType::ACT_SIGMOID,
+    Args... args) :
     Layer(args...),
     unit(unit_) {
     /* Default Activation Type is tanh */
     if (getActivationType() == ActivationType::ACT_NONE)
       setActivation(ActivationType::ACT_TANH);
-    if (getRecurrentActivationType() == ActivationType::ACT_NONE)
-      setRecurrentActivation(ActivationType::ACT_SIGMOID);
+    setRecurrentActivation(recurrent_activation_type_);
   }
 
   /**
