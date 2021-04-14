@@ -19,13 +19,19 @@
 #include <array>
 #include <iostream>
 
+#include <bitset>
+#include <vector>
+
 namespace nntrainer {
 
 constexpr const size_t MAXDIM = 4;
 
 class TensorDim {
 public:
-  TensorDim() {
+  TensorDim(const std::bitset<MAXDIM> &eff_dim_flag_ = 0b1111,
+            const std::bitset<MAXDIM> &dyn_dim_flag_ = 0b0000) :
+    eff_dim_flag(eff_dim_flag_),
+    dyn_dim_flag(dyn_dim_flag_) {
     for (size_t i = 0; i < MAXDIM; ++i) {
       dim[i] = 0;
     }
@@ -55,8 +61,20 @@ public:
     }
   }
 
-  TensorDim(unsigned int b, unsigned int c, unsigned int h, unsigned int w) :
-    TensorDim() {
+  /**
+   * @brief Construct a new Tensor Dim object
+   *
+   * @param b batch
+   * @param c channel
+   * @param h height
+   * @param w width
+   * @param eff_dim_flag_ dimension bit flag to calculate the dynamic
+   * dimension, rightmost is width
+   */
+  TensorDim(unsigned int b, unsigned int c, unsigned int h, unsigned int w,
+            const std::bitset<MAXDIM> &eff_dim_flag_ = 0b1111,
+            const std::bitset<MAXDIM> &dyn_dim_flag_ = 0b0000) :
+    TensorDim(eff_dim_flag_, dyn_dim_flag_) {
     setTensorDim(0, b);
     setTensorDim(1, c);
     setTensorDim(2, h);
@@ -84,6 +102,29 @@ public:
   TensorDim &operator=(TensorDim &&rhs) noexcept;
 
   /**
+   * @brief Set the Dim Flag to retrieve effective dimension
+   * @note eg) if dimension 4:1:10:1 should be squeezed to 4:10,
+   *       set this to 0b1010, rightmost is width
+   *
+   * @param dim_flag_ dimension bit to calculate, rightmost is width
+   */
+  void setEffDimFlag(const std::bitset<MAXDIM> &dim_flag_) {
+    eff_dim_flag = dim_flag_;
+  }
+
+  /**
+   * @brief Set the dynamic Dim Flag to retrieve dynamic dimension (that can
+   * change during running)
+   * @note eg) if dimension 4:1:10:1 should be squeezed to dynamic to batch,
+   *       set this to 0b1000, rightmost is width
+   *
+   * @param dim_flag_ dimension bit to calculate, rightmost is width
+   */
+  void setDynDimFlag(const std::bitset<MAXDIM> &dim_flag_) {
+    dyn_dim_flag = dim_flag_;
+  }
+
+  /**
    * @brief  swap variable of Conv2D Layer
    * @parma[out] lhs Optimizer
    * @parma[in] rhs Optimizer
@@ -93,6 +134,8 @@ public:
                      std::begin(rhs.dim));
     std::swap(lhs.len, rhs.len);
     std::swap(lhs.feature_len, rhs.feature_len);
+    std::swap(lhs.eff_dim_flag, rhs.eff_dim_flag);
+    std::swap(lhs.dyn_dim_flag, rhs.dyn_dim_flag);
   }
 
   unsigned int batch() const { return dim[0]; };
@@ -138,7 +181,29 @@ public:
    */
   void reverse();
 
+  /**
+   * @brief Get the Effective Dimension of the current
+   * @note dynamic dimension is returned as -1
+   *
+   * @param dynamic if dimension has to be considering dynamic set this to ture
+   * @return std::vector<unsigned int> integer vector
+   */
+  std::vector<int> getEffectiveDimension(bool dynamic = false) const;
+
+  /**
+   * @brief check if tensor is dynamic
+   *
+   * @return true any of dyn_dim_flag is set
+   * @return false none of dyn_dim_flag is set
+   */
+  bool is_dynamic() const { return dyn_dim_flag.any(); }
+
 private:
+  std::bitset<MAXDIM> eff_dim_flag; /**< dimension bit flag to define effective
+          dimension size */
+
+  std::bitset<MAXDIM> dyn_dim_flag; /**< dimension bit flag to define
+dynamic dimension size */
   unsigned int dim[MAXDIM];
   unsigned int len;
   unsigned int feature_len;
