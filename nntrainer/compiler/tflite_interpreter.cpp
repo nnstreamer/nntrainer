@@ -252,7 +252,7 @@ public:
     NNTR_THROW_IF(search == key2index.end(), std::invalid_argument)
       << FUNC_TAG << "Cannot find index for key: " << key;
 
-    return *search;
+    return search->second;
   }
 
   /**
@@ -281,14 +281,6 @@ private:
 };
 
 /**
- * @brief Tfbuffer struct (not yet fully specified)
- *
- */
-struct TfBuffer {
-  size_t size;
-};
-
-/**
  * @brief tensorflow operation index map, this class manages operation index
  * mapping
  *
@@ -305,7 +297,9 @@ public:
 
     auto &buffer_map = getIndexMap<const float *, Buffer>();
     buffer_map.addDataWhenNotFound(
-      empty_buffer, {0, empty_buffer}); /// put empty buffer to first
+      nullptr, {0, empty_buffer}); // this represents undefined buffer
+    buffer_map.addDataWhenNotFound(
+      empty_buffer, {0, empty_buffer}); /// this represents empty buffer
 
     auto update_buffers = [&buffer_map](const TfOpNode::Variables &variables) {
       for (auto &variable : variables) {
@@ -363,6 +357,7 @@ TfOpNodes
 buildOpNodes(std::shared_ptr<const GraphRepresentation> representation) {
   TfOpNodes nodes;
   /// @todo, look ahead of layers to get nodes that can be fused
+  /// we will need to have a dedicated builder
   for (const auto &ln : representation->getSorted()) {
     nodes.emplace_back(*ln->getObject());
   }
@@ -376,9 +371,7 @@ buildBuffers(const TfOpIdxMap &map, flatbuffers::FlatBufferBuilder &fbb) {
     map.getIndexMap<const float *, TfOpIdxMap::Buffer>().getData();
 
   std::vector<flatbuffers::Offset<tflite::Buffer>> fb_buffers;
-  fb_buffers.reserve(buffers.size() + 1);
-  /// add reserved buffer to denote undefined
-  fb_buffers.push_back(tflite::CreateBuffer(fbb));
+  fb_buffers.reserve(buffers.size());
 
   auto create_buffer_offset = [&fbb](const TfOpIdxMap::Buffer &buffer) {
     if (buffer.first == 0) {
@@ -421,12 +414,103 @@ buildOperatorCodes(const TfOpIdxMap &map, flatbuffers::FlatBufferBuilder &fbb) {
   return fbb.CreateVector(fb_op_codes);
 }
 
+/**
+ * @brief get Serialized Tensor shape
+ * @note when building tensorshape, the tensor shape must be final, when we
+ * reach here it, the tensordim should be final which means if transpose is
+ * needed, it should be done already.
+ * @param dim Tensor dimension to convert
+ * @param type tflite Tensor type
+ * @param effective_dimension bitflag of valid 'nchw' dimension, ex) 0b1011
+ * means,nhw is effective
+ * @param is_signature check if the given dimension is regarded as a tensor
+ * signature
+ * @return flatbuffers::Offset<flatbuffers::Vector<int32_t>>
+ */
+flatbuffers::Offset<flatbuffers::Vector<int32_t>>
+buildTensorShape(const TensorDim &dim, flatbuffers::FlatBufferBuilder &fbb,
+                 int effective_dimension, bool is_signature = false) {
+  std::vector<int32_t> fb_dimension;
+
+  /// batch dimension is always considered with signature
+  if ((effective_dimension >> 3) & 1) {
+    fb_dimension.push_back(is_signature ? -1 : dim.batch());
+  }
+
+  for (unsigned int i = 1; i < MAXDIM; ++i) {
+    if (((effective_dimension >> (MAXDIM - i - 1)) & 1) == 0) {
+      continue;
+    }
+    fb_dimension.push_back(dim.getTensorDim(i));
+  }
+
+  return fbb.CreateVector(fb_dimension);
+}
+
+flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<tflite::Tensor>>>
+buildTensors(const TfOpIdxMap &map, flatbuffers::FlatBufferBuilder &fbb) {
+  /// @todo: the actual (suqeezed) tensor dimension must be known before coming
+  /// here. For now, it is directly guessed for the fc layer
+  const auto &variables = map.getIndexMap<const Var_Grad *>().getData();
+  const auto &buffer_map = map.getIndexMap<const float *, TfOpIdxMap::Buffer>();
+
+  std::vector<flatbuffers::Offset<tflite::Tensor>> fb_tensors;
+  fb_tensors.reserve(variables.size());
+
+  auto create_tensor = [&fbb, &buffer_map](const Var_Grad *var) {
+    /// @fixme: There is a fixed assumption that effective_dimension is 0b1001,
+    /// this is not true, this should be supported inherently from TensorDim
+    /// class.
+    int FIX_ME_FLAG = 0b1001;
+    auto shape = buildTensorShape(var->getDim(), fbb, FIX_ME_FLAG, false);
+
+    /// in *.tflite spec, there is tensor dimension and tensor signature
+    /// dimension the only difference is that tensor signature dimension gets
+    /// the value of -1 which denotes the size is unspecified. Mostly, batch
+    /// dimension has the signature of -1, we don't have such concept yet so
+    /// this is handled by boolean for now
+    auto shape_sig = buildTensorShape(var->getDim(), fbb, FIX_ME_FLAG, true);
+    auto name = fbb.CreateString(var->getName());
+    auto tensor = var->getVariableRef();
+
+    unsigned int buffer_idx = 1;
+    if (!tensor.uninitialized() && tensor.isAllocated()) {
+      buffer_idx = buffer_map.getIndex(var->getVariableRef().getData());
+    }
+
+    tflite::TensorBuilder builder(fbb);
+    builder.add_name(name);
+    builder.add_buffer(buffer_idx);
+    builder.add_shape(shape);
+    builder.add_shape_signature(shape_sig);
+    return builder.Finish();
+  };
+
+  std::transform(variables.begin(), variables.end(),
+                 std::back_inserter(fb_tensors), create_tensor);
+
+  return fbb.CreateVector(fb_tensors);
+}
+
 flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<tflite::SubGraph>>>
-buildSubGraph(const TfOpNodes &nodes, const TfOpIdxMap &map,
-              flatbuffers::FlatBufferBuilder &fbb) {
-  /** NYI! */
-  return flatbuffers::Offset<
-    flatbuffers::Vector<flatbuffers::Offset<tflite::SubGraph>>>();
+buildSubGraphs(const TfOpNodes &nodes, const TfOpIdxMap &map,
+               flatbuffers::FlatBufferBuilder &fbb) {
+
+  auto tensors = buildTensors(map, fbb);
+
+  /// @todo extract this to buildSubgraph if there is one or more subgraph
+  auto name = fbb.CreateString("main");
+
+  auto builder = tflite::SubGraphBuilder(fbb);
+  builder.add_tensors(tensors);
+  builder.add_name(name);
+  auto subgraph = builder.Finish();
+
+  std::vector<flatbuffers::Offset<tflite::SubGraph>> subgraphs;
+  subgraphs.reserve(1);
+  subgraphs.push_back(subgraph);
+
+  return fbb.CreateVector(subgraphs);
 }
 
 } // namespace
@@ -442,14 +526,14 @@ void TfliteInterpreter::serialize(
   TfOpIdxMap map(opNodes); /// build TfOpIdxMap from opNodes
 
   auto opcodes = buildOperatorCodes(map, fbb);
-  auto UNUSED(subgraph) = buildSubGraph(opNodes, map, fbb);
+  auto subgraphs = buildSubGraphs(opNodes, map, fbb);
   auto buffers = buildBuffers(map, fbb);
   auto desc = fbb.CreateString("This file is generated from NNTrainer");
 
   tflite::ModelBuilder model_builder(fbb);
 
   model_builder.add_operator_codes(opcodes);
-  WILL(model_builder.add_subgraphs(subgraph));
+  model_builder.add_subgraphs(subgraphs);
   model_builder.add_buffers(buffers);
   model_builder.add_version(3);
   model_builder.add_description(desc);
