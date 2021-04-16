@@ -556,6 +556,7 @@ public:
   }
 
   /**
+
    * @brief Set the input dimension
    * @param[in] d dimension to be set
    */
@@ -571,6 +572,25 @@ public:
       throw std::invalid_argument(
         "axis must be greater than 0 and less then MAX_DIM : 4");
     input_dim[i] = d;
+  }
+
+
+  /**
+   * @brief Get the Input Layers object
+   *
+   * @return const std::vector<std::string>&
+   */
+  const std::vector<std::string> &getInputLayers() const {
+    return input_layers;
+  }
+
+  /**
+   * @brief Get the Output Layers object
+   *
+   * @return const std::vector<std::string>&
+   */
+  const std::vector<std::string> &getOutputLayers() const {
+    return output_layers;
   }
 
 protected:

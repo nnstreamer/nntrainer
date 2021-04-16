@@ -75,11 +75,24 @@ public:
    * fused
    * @param layer layer that is converted to TfOpNode
    */
-  TfOpNode(const Layer &layer) {
+  TfOpNode(const Layer &layer) : is_input(false), is_output(false) {
+    setInOut(layer);
     setInputs(layer.getInputRef());
     setOutputs(layer.getOutputRef());
     setWeights(layer.getWeightsRef());
     setOpType(layer.getType());
+  }
+
+  /**
+   * @brief Set the In Out object
+   *
+   */
+  void setInOut(const Layer &layer) {
+    auto &in = layer.getInputLayers();
+    is_input = std::find(in.begin(), in.end(), "__data__") != in.end();
+
+    auto &out = layer.getOutputLayers();
+    is_output = std::find(out.begin(), out.end(), "__exit__") != out.end();
   }
 
   /**
@@ -174,6 +187,22 @@ public:
   const Variables &getWeights() const { return weights; }
 
   /**
+   * @brief check if this op node is model input
+   *
+   * @return true if op node is model input
+   * @return false if op node is not model input
+   */
+  bool isInput() const { return is_input; }
+
+  /**
+   * @brief check if this op node is model output
+   *
+   * @return true if op node is model output
+   * @return false if op node is not model output
+   */
+  bool isOutput() const { return is_output; }
+
+  /**
    * @brief Get the Op Type object
    *
    * @return const tflite::BuiltinOperator
@@ -191,6 +220,9 @@ private:
   Variables inputs;  /**< input variables */
   Variables outputs; /**< output variables */
   Variables weights; /**< weight variables */
+
+  bool is_input;  /**< true if given input is input; */
+  bool is_output; /**< true if given output is output; */
 
   tflite::BuiltinOperator op_type;
 
@@ -330,6 +362,24 @@ public:
       update_variables(op_node.getWeights());
       update_buffers(op_node.getWeights());
     }
+
+    auto update_model_io_to =
+      [&variable_map](const TfOpNode::Variables &variables,
+                      std::vector<int> &v) {
+        for (auto &variable : variables) {
+          auto index = variable_map.getIndex(variable);
+          v.push_back(index);
+        }
+      };
+
+    for (auto &op_node : nodes) {
+      if (op_node.isInput()) {
+        update_model_io_to(op_node.getInputs(), inputs);
+      }
+      if (op_node.isOutput()) {
+        update_model_io_to(op_node.getOutputs(), outputs);
+      }
+    }
   }
 
   template <typename KT, typename DT = KT>
@@ -344,14 +394,22 @@ public:
 
   const float *get_empty_buffer() const { return empty_buffer; }
 
+  const std::vector<int> &getInputs() const { return inputs; }
+
+  const std::vector<int> &getOutputs() const { return outputs; }
+
 private:
-  float
-    empty_buffer[0]; /**< reserved unintialized tensor points to this buffer */
+  float empty_buffer[0]; /**< reserved unintialized tensor points to this
+                            buffer */
 
   std::tuple<BidirectionalIndexMap<const float *, Buffer>,   /**< buffer map */
-             BidirectionalIndexMap<tflite::BuiltinOperator>, /**< opcode map */
+             BidirectionalIndexMap<tflite::BuiltinOperator>, /**< opcode map
+                                                              */
              BidirectionalIndexMap<const Var_Grad *>>        /**< tensor map */
     maps;
+
+  std::vector<int> inputs;
+  std::vector<int> outputs;
 };
 
 TfOpNodes
@@ -417,8 +475,8 @@ buildOperatorCodes(const TfOpIdxMap &map, flatbuffers::FlatBufferBuilder &fbb) {
 
 flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<tflite::Tensor>>>
 buildTensors(const TfOpIdxMap &map, flatbuffers::FlatBufferBuilder &fbb) {
-  /// @todo: the actual (suqeezed) tensor dimension must be known before coming
-  /// here. For now, it is directly guessed for the fc layer
+  /// @todo: the actual (suqeezed) tensor dimension must be known before
+  /// coming here. For now, it is directly guessed for the fc layer
   const auto &variables = map.getIndexMap<const Var_Grad *>().getData();
   const auto &buffer_map = map.getIndexMap<const float *, TfOpIdxMap::Buffer>();
 
@@ -469,9 +527,13 @@ buildSubGraphs(const TfOpNodes &nodes, const TfOpIdxMap &map,
 
   /// @todo extract this to buildSubgraph if there is one or more subgraph
   auto name = fbb.CreateString("main");
+  auto inputs = fbb.CreateVector(map.getInputs());
+  auto outputs = fbb.CreateVector(map.getOutputs());
 
   auto builder = tflite::SubGraphBuilder(fbb);
   builder.add_tensors(tensors);
+  builder.add_inputs(inputs);
+  builder.add_outputs(outputs);
   builder.add_name(name);
   auto subgraph = builder.Finish();
 
