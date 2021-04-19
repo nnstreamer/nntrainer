@@ -143,6 +143,8 @@ public:
   void setOpType(const std::string &type) {
     if (istrequal(type, FullyConnectedLayer::type)) {
       setOpType(tflite::BuiltinOperator_FULLY_CONNECTED);
+      setBuiltinOptions(tflite::BuiltinOptions_FullyConnectedOptions,
+                        flatbuffers::Offset<void>());
       return;
     }
 
@@ -157,7 +159,7 @@ public:
    * @param builtin_ops_ flatbuffer offset of builtin_ops
    */
   void setBuiltinOptions(tflite::BuiltinOptions builtin_option_type_,
-                         flatbuffers::Offset<void> &builtin_ops_) {
+                         const flatbuffers::Offset<void> &builtin_ops_) {
     builtin_ops = builtin_ops_;
     builtin_option_type = builtin_option_type_;
   }
@@ -208,6 +210,15 @@ public:
    * @return const tflite::BuiltinOperator
    */
   const tflite::BuiltinOperator getOpType() const { return op_type; }
+
+  /**
+   * @brief Get the Op Type object
+   *
+   * @return const tflite::BuiltinOperator
+   */
+  const tflite::BuiltinOptions getOptionType() const {
+    return builtin_option_type;
+  }
 
 private:
   /**
@@ -519,11 +530,69 @@ buildTensors(const TfOpIdxMap &map, flatbuffers::FlatBufferBuilder &fbb) {
   return fbb.CreateVector(fb_tensors);
 }
 
+flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<tflite::Operator>>>
+buildOperators(const TfOpNodes &nodes, const TfOpIdxMap &map,
+               flatbuffers::FlatBufferBuilder &fbb) {
+
+  /// this lambda maps variables to list of indexes in the map
+  auto variables_to_idx_vector = [&map](const TfOpNode::Variables &v) {
+    auto &variable_map = map.getIndexMap<const Var_Grad *>();
+    std::vector<int> idx_vector;
+    idx_vector.reserve(v.size());
+
+    std::transform(v.begin(), v.end(), std::back_inserter(idx_vector),
+                   [&variable_map](const Var_Grad *variable) {
+                     return variable_map.getIndex(variable);
+                   });
+    return idx_vector;
+  };
+
+  auto create_operator = [&fbb, &map,
+                          &variables_to_idx_vector](const TfOpNode &node) {
+    auto &index_map = map.getIndexMap<tflite::BuiltinOperator>();
+
+    auto op_code = index_map.getIndex(node.getOpType());
+    auto inputs = variables_to_idx_vector(node.getInputs());
+
+    /// @todo: weights will be having specific order, if this is different,
+    /// there should be a way to resolve this
+    auto weight_input = variables_to_idx_vector(node.getWeights());
+    inputs.reserve(inputs.size() + weight_input.size());
+    inputs.insert(inputs.end(), weight_input.begin(), weight_input.end());
+
+    auto outputs = variables_to_idx_vector(node.getOutputs());
+
+    auto fb_inputs = fbb.CreateVector(inputs);
+    auto fb_outputs = fbb.CreateVector(outputs);
+    /// @todo: this will need to move to exporter
+    auto fb_options = tflite::CreateFullyConnectedOptions(fbb);
+
+    tflite::OperatorBuilder builder(fbb);
+    builder.add_opcode_index(op_code);
+    builder.add_builtin_options_type(node.getOptionType());
+    builder.add_builtin_options(fb_options.Union());
+    builder.add_inputs(fb_inputs);
+    builder.add_outputs(fb_outputs);
+    return builder.Finish();
+  };
+
+  std::vector<flatbuffers::Offset<tflite::Operator>> v;
+  v.reserve(nodes.size());
+
+  for (auto &node : nodes) {
+    auto op = create_operator(node);
+    v.push_back(op);
+  }
+
+  return fbb.CreateVector(v);
+}
+
 flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<tflite::SubGraph>>>
 buildSubGraphs(const TfOpNodes &nodes, const TfOpIdxMap &map,
                flatbuffers::FlatBufferBuilder &fbb) {
 
   auto tensors = buildTensors(map, fbb);
+  auto ops = buildOperators(nodes, map, fbb);
 
   /// @todo extract this to buildSubgraph if there is one or more subgraph
   auto name = fbb.CreateString("main");
@@ -535,6 +604,7 @@ buildSubGraphs(const TfOpNodes &nodes, const TfOpIdxMap &map,
   builder.add_inputs(inputs);
   builder.add_outputs(outputs);
   builder.add_name(name);
+  builder.add_operators(ops);
   auto subgraph = builder.Finish();
 
   std::vector<flatbuffers::Offset<tflite::SubGraph>> subgraphs;
