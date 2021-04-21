@@ -45,12 +45,14 @@ enum LayerType {
   LAYER_CONCAT = ML_TRAIN_LAYER_TYPE_CONCAT,     /** Concat Layer type */
   LAYER_MULTIOUT = ML_TRAIN_LAYER_TYPE_MULTIOUT, /** Multi Output Layer type */
   LAYER_LOSS,                                    /** Loss Layer type */
-  LAYER_BACKBONE_NNSTREAMER,                  /** Backbone using NNStreamer */
-  LAYER_BACKBONE_TFLITE,                      /** Backbone using TFLite */
-  LAYER_EMBEDDING,                            /** Embedding Layer type */
-  LAYER_RNN,                                  /** RNN Layer type */
-  LAYER_LSTM,                                 /** LSTM Layer type */
-  LAYER_TIME_DIST,                            /** Time Distributed Layer type */
+  LAYER_PREPROCESS_FLIP,      /** Preprocess flip Layer type */
+  LAYER_PREPROCESS_TRANSLATE, /** Preprocess translate Layer type */
+  LAYER_BACKBONE_NNSTREAMER,  /** Backbone using NNStreamer */
+  LAYER_BACKBONE_TFLITE,      /** Backbone using TFLite */
+  LAYER_EMBEDDING,            /** Embedding Layer type */
+  LAYER_RNN,                  /** RNN Layer type */
+  LAYER_LSTM,                 /** LSTM Layer type */
+  LAYER_TIME_DIST,            /** Time Distributed Layer type */
   LAYER_UNKNOWN = ML_TRAIN_LAYER_TYPE_UNKNOWN /** Unknown */
 };
 

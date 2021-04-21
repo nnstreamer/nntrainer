@@ -34,7 +34,9 @@ public:
   template <typename... Args>
   PreprocessFlipLayer(Args... args) :
     Layer(args...),
-    flipdirection(FlipDirection::horizontal_and_vertical) {}
+    flipdirection(FlipDirection::horizontal_and_vertical) {
+    trainable = false;
+  }
 
   /**
    * @brief     Destructor of Preprocess FLip Layer

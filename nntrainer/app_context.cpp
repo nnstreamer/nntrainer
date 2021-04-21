@@ -44,6 +44,8 @@
 #include <parse_util.h>
 #include <plugged_layer.h>
 #include <pooling2d_layer.h>
+#include <preprocess_flip_layer.h>
+#include <preprocess_translate_layer.h>
 #include <rnn.h>
 #include <time_dist.h>
 
@@ -217,6 +219,12 @@ static void add_default_object(AppContext &ac) {
                      LayerType::LAYER_CONCAT);
   ac.registerFactory(ml::train::createLayer<LossLayer>, LossLayer::type,
                      LayerType::LAYER_LOSS);
+  ac.registerFactory(ml::train::createLayer<PreprocessFlipLayer>,
+                     PreprocessFlipLayer::type,
+                     LayerType::LAYER_PREPROCESS_FLIP);
+  ac.registerFactory(ml::train::createLayer<PreprocessTranslateLayer>,
+                     PreprocessTranslateLayer::type,
+                     LayerType::LAYER_PREPROCESS_TRANSLATE);
 #ifdef ENABLE_NNSTREAMER_BACKBONE
   ac.registerFactory(ml::train::createLayer<NNStreamerLayer>,
                      NNStreamerLayer::type,

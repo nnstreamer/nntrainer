@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
-/* Copyright (C) 2020 Jihoon Lee <jihoon.it.lee@samsung.com>
+/**
+ * Copyright (C) 2020 Jihoon Lee <jihoon.it.lee@samsung.com>
  *
  * @file	unittest_nntrainer_models.cpp
  * @date	19 Oct 2020
@@ -23,6 +24,8 @@
 #include <layer_factory.h>
 #include <loss_layer.h>
 #include <neuralnet.h>
+#include <preprocess_flip_layer.h>
+#include <preprocess_translate_layer.h>
 #include <weight.h>
 
 #include "nntrainer_test_util.h"
@@ -90,7 +93,9 @@ public:
    */
   NodeWatcher(const NodeType &node) : node(node) {
     unsigned int num_weights = node.layer->getNumWeights();
-    if (node.layer->getType() != nntrainer::InputLayer::type)
+    if (node.layer->getType() != nntrainer::InputLayer::type &&
+        node.layer->getType() != nntrainer::PreprocessFlipLayer::type &&
+        node.layer->getType() != nntrainer::PreprocessTranslateLayer::type)
       node.layer->setTrainable(true);
 
     for (unsigned int i = 0; i < num_weights; ++i) {
@@ -569,6 +574,8 @@ static std::string input_base = "type = input";
 static std::string fc_base = "type = Fully_connected";
 static std::string conv_base = "type = conv2d | stride = 1,1 | padding = 0,0";
 static std::string pooling_base = "type = pooling2d | padding = 0,0";
+static std::string preprocess_flip_base = "type = preprocess_flip";
+static std::string preprocess_translate_base = "type = preprocess_translate";
 
 static std::string adam_base = "optimizer=adam | beta1 = 0.9 | beta2 = 0.999 | "
                                "epsilon = 1e-7";
@@ -914,6 +921,40 @@ INI pooling_global_max(
   }
 );
 
+INI preprocess_flip_validate(
+  "preprocess_flip_validate",
+  {
+    nn_base + "loss=cross | batch_size=3",
+    sgd_base + "learning_rate = 0.1",
+    I("input") + input_base + "input_shape=2:4:5",
+    I("preprocess_flip") + preprocess_flip_base +
+            "flip_direction=vertical" + "input_layers=input",
+    I("conv2d_c1_layer") + conv_base + "kernel_size=3,4 | filters=2" +"input_layers=preprocess_flip",
+    I("act_1") + sigmoid_base +"input_layers=conv2d_c1_layer",
+    I("pool_1") + mnist_pooling+"input_layers=act_1",
+    I("flatten", "type=flatten")+"input_layers=pool_1" ,
+    I("outputlayer") + fc_base + "unit = 10" +"input_layers=flatten",
+    I("act_3") + softmax_base +"input_layers=outputlayer"
+  }
+);
+
+INI preprocess_translate_validate(
+  "preprocess_translate_validate",
+  {
+    nn_base + "loss=cross | batch_size=3",
+    sgd_base + "learning_rate = 0.1",
+    I("input") + input_base + "input_shape=2:4:5",
+    I("preprocess_translate") + preprocess_translate_base +
+            "random_translate=0.5" + "input_layers=input",
+    I("conv2d_c1_layer") + conv_base + "kernel_size=3,4 | filters=2" +"input_layers=preprocess_translate",
+    I("act_1") + sigmoid_base +"input_layers=conv2d_c1_layer",
+    I("pool_1") + mnist_pooling+"input_layers=act_1",
+    I("flatten", "type=flatten")+"input_layers=pool_1" ,
+    I("outputlayer") + fc_base + "unit = 10" +"input_layers=flatten",
+    I("act_3") + softmax_base +"input_layers=outputlayer"
+  }
+);
+
 INI mnist_conv_cross_one_input = INI("mnist_conv_cross_one_input") + mnist_conv_cross + "model/batch_size=1";
 
 INSTANTIATE_TEST_CASE_P(
@@ -943,7 +984,12 @@ INSTANTIATE_TEST_CASE_P(
     mkModelTc(pooling_avg_same_padding_multi_stride, "3:1:1:10", 10),
     mkModelTc(pooling_avg_valid_padding, "3:1:1:10", 10),
     mkModelTc(pooling_global_avg, "3:1:1:10", 10),
-    mkModelTc(pooling_global_max, "3:1:1:10", 10)
+    mkModelTc(pooling_global_max, "3:1:1:10", 10),
+    /**< augmentation layer */
+#if defined(ENABLE_DATA_AUGMENTATION_OPENCV)
+    mkModelTc(preprocess_translate_validate, "3:1:1:10", 10),
+#endif
+    mkModelTc(preprocess_flip_validate, "3:1:1:10", 10)
 // / #if gtest_version <= 1.7.0
 ));
 /// #else gtest_version > 1.8.0

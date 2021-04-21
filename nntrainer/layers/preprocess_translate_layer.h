@@ -39,7 +39,9 @@ public:
   PreprocessTranslateLayer(Args... args) :
     Layer(args...),
     translation_factor(0.0),
-    epsilon(1e-5) {}
+    epsilon(1e-5) {
+    trainable = false;
+  }
 
   /**
    * @brief     Destructor of Preprocess Translate Layer
