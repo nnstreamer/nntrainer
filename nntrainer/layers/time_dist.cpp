@@ -60,7 +60,79 @@ int TimeDistLayer::initialize(Manager &manager) {
 }
 
 void TimeDistLayer::forwarding(bool training) {
-  // NYI
+  Tensor &hidden_ = net_hidden[0]->getVariableRef();
+  Tensor &input_ = net_input[0]->getVariableRef();
+
+  Tensor hidden_g, h_g;
+
+  TensorDim ho_dim = hidden_.getDim();
+  TensorDim in_dim = input_.getDim();
+
+  // input_.dim = [ 1, b, h, w ] : nntrainer only support 1,2,3 transpose
+  input_.reshape({1, in_dim[0], in_dim[2], in_dim[3]});
+  Tensor in = input_.transpose("1:0:2");
+  // now in.dim = [1, h, b, w]
+  in.reshape({in_dim[2], in_dim[1], in_dim[0], in_dim[3]});
+  // now in.dim = [h, 1, b, w]
+
+  Tensor out = Tensor({ho_dim[2], 1, ho_dim[0], ho_dim[3]}, true);
+  // now out.dim = [h, 1, b, w]
+
+  TensorDim i_dim = in_dim;
+  i_dim.channel(1);
+  i_dim.height(1);
+
+  TensorDim h_dim = ho_dim;
+  h_dim.channel(1);
+  h_dim.height(1);
+
+  if (dist_layer->getType() == "loss") {
+    hidden_g = net_hidden[0]->getGradientRef();
+    if (!hidden_g.uninitialized()) {
+      hidden_g.reshape({1, ho_dim[0], ho_dim[2], ho_dim[3]});
+
+      h_g = hidden_g.transpose("1:0:2");
+      h_g.reshape({ho_dim[2], 1, ho_dim[0], ho_dim[3]});
+    }
+  }
+
+  for (unsigned int i = 0; i < in_dim.height(); ++i) {
+    //
+    // Iterate Height Direction. The dimension of in is input_[ b, 1, 1, width
+    // ]. The dimension of out is hidden_[ b, 1, 1, width ]
+    //
+    Tensor label_iter;
+
+    Tensor in_iter =
+      in.getSharedDataTensor(i_dim, i * in_dim.batch() * in_dim.width());
+    Tensor out_iter =
+      out.getSharedDataTensor(h_dim, i * ho_dim.batch() * ho_dim.width());
+
+    Var_Grad in_var(i_dim, true, false, dist_layer->getName() + ":input");
+    Var_Grad out_var(h_dim, true, false, dist_layer->getName() + ":output");
+
+    in_var.initializeVariable(in_iter);
+    out_var.initializeVariable(out_iter);
+
+    if (dist_layer->getType() == "loss") {
+      label_iter =
+        h_g.getSharedDataTensor(h_dim, i * ho_dim.batch() * ho_dim.width());
+      out_var.initializeGradient(label_iter);
+    }
+
+    dist_layer->setInputBuffers({std::make_shared<Var_Grad>(in_var)});
+    dist_layer->setOutputBuffers({std::make_shared<Var_Grad>(out_var)});
+
+    dist_layer->forwarding();
+  }
+
+  input_.reshape(in_dim);
+  out.reshape({1, ho_dim[2], ho_dim[0], ho_dim[3]});
+  hidden_.copy(out.transpose("1:0:2"));
+
+  hidden_.reshape(ho_dim);
+  if (dist_layer->getType() == "loss")
+    hidden_g.reshape(ho_dim);
 }
 
 void TimeDistLayer::copy(std::shared_ptr<Layer> l) {
