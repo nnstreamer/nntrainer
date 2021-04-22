@@ -44,10 +44,22 @@ public:
    */
   MMapedMemory(size_t size, bool allocate_fd_ = false);
 
+  /**
+   * @brief Destroy the MMapedMemory object
+   *
+   */
   ~MMapedMemory() noexcept;
 
+  /**
+   * @brief Construct a new MMapedMemory object (deleted)
+   *
+   */
   MMapedMemory(const MMapedMemory &) = delete;
 
+  /**
+   * @brief Copy assignment operator (deleted)
+   *
+   */
   MMapedMemory &operator=(const MMapedMemory &) = delete;
 
   /**
@@ -59,6 +71,11 @@ public:
    */
   int getFd() noexcept { return fd; }
 
+  /**
+   * @brief get the size of managed memory
+   *
+   * @return size_t size
+   */
   size_t size() noexcept { return buf_size; }
 
   /**
@@ -95,12 +112,29 @@ public:
           bool enable_activation_memory_opt_ = true,
           bool enable_inference_inout_memory_opt_ = false);
 
-  Manager(const Manager &) = default;
+  /**
+   * @brief Construct a new Manager object (deleted)
+   *
+   */
+  Manager(const Manager &) = delete;
 
-  Manager &operator=(const Manager &) = default;
+  /**
+   * @brief Copy Assign a new Manager object (deleted)
+   *
+   */
+  Manager &operator=(const Manager &) = delete;
 
+  /**
+   * @brief Move Construct a new Manager object
+   *
+   */
   Manager(Manager &&) noexcept = default;
 
+  /**
+   * @brief Move assign a new Manager object
+   *
+   * @return Manager& reference to newly assign
+   */
   Manager &operator=(Manager &&) noexcept = default;
 
   /**

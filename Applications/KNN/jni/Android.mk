@@ -41,6 +41,7 @@ ifeq ($(APP_ABI), armeabi-v7a)
 endif
 LOCAL_SRC_FILES := $(TENSORFLOW_ROOT)/lib/$(LIB_)/libtensorflow-lite.a
 LOCAL_EXPORT_C_INCLUDES := $(TENSORFLOW_ROOT)/include
+LOCAL_EXPORT_LDLIBS := -lEGL -lGLESv2
 
 include $(PREBUILT_STATIC_LIBRARY)
 
