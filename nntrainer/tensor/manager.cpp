@@ -101,7 +101,7 @@ MMapedMemory::MMapedMemory(size_t size, bool allocate_fd_) :
           buf_size, fd, buf);
 }
 
-MMapedMemory::~MMapedMemory() {
+MMapedMemory::~MMapedMemory() noexcept {
 #ifdef DEBUG
   assert(buf_size > 0 && fd > 0);
 #endif

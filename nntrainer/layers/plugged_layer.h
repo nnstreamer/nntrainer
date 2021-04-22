@@ -67,7 +67,9 @@ public:
   /**
    * @copydoc Layer::initialize(Manager &manager)
    */
-  int initialize(Manager &manager) { return layerImpl->initialize(manager); }
+  int initialize(Manager &manager) override {
+    return layerImpl->initialize(manager);
+  }
 
   /**
    * @copydoc Layer::forwarding(bool training)
@@ -133,7 +135,7 @@ public:
   /**
    * @copydoc Layer::getLoss()
    */
-  float getLoss() { return layerImpl->getLoss(); }
+  float getLoss() override { return layerImpl->getLoss(); }
 
   /**
    * @copydoc Layer::copy(std::shared_ptr<Layer> l)

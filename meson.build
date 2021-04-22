@@ -38,6 +38,7 @@ warning_flags = [
   '-Wvla',
   '-Wpointer-arith',
   '-Wno-error=varargs',
+  '-Wdefaulted-function-deleted',
   '-ftree-vectorize'
 ]
 
