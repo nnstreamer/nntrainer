@@ -204,7 +204,11 @@ TEST(nntrainer_ccapi, train_with_config_01_p) {
   EXPECT_NO_THROW(model->train());
 
   EXPECT_FLOAT_EQ(model->getTrainingLoss(), 4.434051);
+#ifdef __i586__
+  EXPECT_NEAR(model->getValidationLoss(), 2.9646113, 1.0e-5);
+#else
   EXPECT_FLOAT_EQ(model->getValidationLoss(), 2.9646113);
+#endif
 }
 
 /**
