@@ -188,22 +188,45 @@ private:
   std::vector<nntrainer::Weight> expected_weights;
 };
 
+/**
+ * @brief GraphWatcher monitors and checks the graph operation like
+ * forwarding & backwarding
+ */
 class GraphWatcher {
 public:
   using WatchedFlatGraph = std::vector<NodeWatcher>;
   GraphWatcher(const std::string &config, const bool opt);
 
+  /**
+   * @brief check forwarding & backwarding & inference throws or not
+   * @param reference model file name
+   * @param label_shape shape of label tensor
+   * @param iterations tensor dimension of label
+   */
   void compareFor(const std::string &reference,
                   const nntrainer::TensorDim &label_shape,
                   unsigned int iterations);
 
-  void validateFor(const std::string &reference,
-                   const nntrainer::TensorDim &label_shape);
+  /**
+   * @brief check forwarding & backwarding & inference throws or not
+   * @param label_shape shape of label tensor
+   */
+  void validateFor(const nntrainer::TensorDim &label_shape);
 
 private:
+  /**
+   * @brief read and prepare the image & label data
+   * @param f input file stream
+   * @param label_dim tensor dimension of label
+   * @return std::array<nntrainer::Tensor, 2> {input, label} tensors
+   */
   std::array<nntrainer::Tensor, 2>
   prepareData(std::ifstream &f, const nntrainer::TensorDim &label_dim);
 
+  /**
+   * @brief read Graph
+   * @param f input file stream
+   */
   void readIteration(std::ifstream &f);
 
   nntrainer::NeuralNetwork nn;
@@ -388,8 +411,7 @@ void GraphWatcher::compareFor(const std::string &reference,
   EXPECT_NO_THROW(nn.inference(input, false));
 }
 
-void GraphWatcher::validateFor(const std::string &reference,
-                               const nntrainer::TensorDim &label_shape) {
+void GraphWatcher::validateFor(const nntrainer::TensorDim &label_shape) {
   auto in_tensor = MAKE_SHARED_TENSOR(nn.getInputDimension()[0]);
   in_tensor->setRandNormal();
   nntrainer::sharedConstTensors input = {in_tensor};
@@ -518,7 +540,7 @@ TEST_P(nntrainerModelTest, model_test_optimized) {
 TEST_P(nntrainerModelTest, model_test_validate) {
   /** Check model with all optimizations on */
   GraphWatcher g_opt(getIniName(), true);
-  g_opt.validateFor(getGoldenName(), getLabelDim());
+  g_opt.validateFor(getLabelDim());
 
   /// add stub test for tcm
   EXPECT_EQ(std::get<0>(GetParam()), std::get<0>(GetParam()));
