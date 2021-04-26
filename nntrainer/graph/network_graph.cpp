@@ -152,9 +152,10 @@ void NetworkGraph::countNonTrainableLayersAtBegin() {
   for (auto iter = Sorted.cbegin(); iter != Sorted.cend(); iter++) {
     if ((*iter).getObject()->getTrainable()) {
       skip_non_trainable_layers = iter - Sorted.cbegin();
-      break;
+      return;
     }
   }
+  skip_non_trainable_layers = Sorted.size();
 }
 
 void NetworkGraph::topologicalSort() {

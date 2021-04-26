@@ -703,7 +703,7 @@ int NeuralNetwork::train_run() {
         } catch (...) {
           data_buffer->clear(nntrainer::BufferType::BUF_TRAIN);
           ml_loge("Error: training error in #%d/%d.", epoch_idx, epochs);
-          std::rethrow_exception(std::current_exception());
+          throw;
         }
         std::cout << "#" << epoch_idx << "/" << epochs;
         float loss = getLoss();
