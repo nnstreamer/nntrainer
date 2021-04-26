@@ -508,24 +508,6 @@ public:
     net_hidden.resize(size);
   }
 
-  /**
-   * @brief Set the input dimension
-   * @param[in] d dimension to be set
-   */
-  void setInputDimension(const std::vector<TensorDim> &d) { input_dim = d; }
-
-  /**
-   * @brief Set the input dimension
-   * @param[in] d dimension to be set
-   * @param[in] i axis
-   */
-  void setInputDimension(const TensorDim &d, unsigned int i) {
-    if (i < 0 || i > MAXDIM)
-      throw std::invalid_argument(
-        "axis must be greater than 0 and less then MAX_DIM : 4");
-    input_dim[i] = d;
-  }
-
 protected:
   /**
    * @brief   Print Options when printing layer info
@@ -617,6 +599,24 @@ protected:
    * @throw std::invalid_argument when ActivationType is unknown
    */
   virtual void setActivation(ActivationType activation);
+
+  /**
+   * @brief Set the input dimension
+   * @param[in] d dimension to be set
+   */
+  void setInputDimension(const std::vector<TensorDim> &d) { input_dim = d; }
+
+  /**
+   * @brief Set the input dimension
+   * @param[in] d dimension to be set
+   * @param[in] i axis
+   */
+  void setInputDimension(const TensorDim &d, unsigned int i) {
+    if (i < 0 || i > MAXDIM)
+      throw std::invalid_argument(
+        "axis must be greater than 0 and less then MAX_DIM : 4");
+    input_dim[i] = d;
+  }
 
 private:
   // TODO: remove this from here
