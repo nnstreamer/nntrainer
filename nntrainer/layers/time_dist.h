@@ -94,6 +94,24 @@ public:
   std::shared_ptr<Layer> getDistLayer() { return dist_layer; };
 
   /**
+   * @brief     get transposed Tensor
+   * @param[in] m Tensor
+   * @retval Tensor transposed Tensor
+   */
+  Tensor transposeTensor(Tensor &m);
+
+  /**
+   * @brief  calculate the pointer of each input and output tensors
+   */
+  void setPosition();
+
+  /**
+   * @brief  Transpose Input and Output Tensors to avoid duplicatation becuase
+   * of memory optimization
+   */
+  void transposeInOut();
+
+  /**
    * @copydoc Layer::getType()
    */
   const std::string getType() const override { return TimeDistLayer::type; };
@@ -105,6 +123,11 @@ private:
    * @brief Layer to be distributed through time
    */
   std::shared_ptr<Layer> dist_layer;
+
+  /**
+   * @brief pointer value of each input/output tensors to compare position
+   */
+  float *positions[4];
 };
 } // namespace nntrainer
 

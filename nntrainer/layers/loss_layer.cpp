@@ -95,7 +95,7 @@ void LossLayer::forwarding(bool training) {
       "Error: Cross Entropy not supported without softmax or sigmoid.");
   }
   case LossType::LOSS_NONE: {
-    hidden_ = y;
+    hidden_.fill(y);
     break;
   }
   case LossType::LOSS_UNKNOWN:

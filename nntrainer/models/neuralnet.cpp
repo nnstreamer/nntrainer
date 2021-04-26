@@ -173,16 +173,26 @@ int NeuralNetwork::initialize() {
     auto &lnode = model_graph.getSortedLayerNode(idx);
     Layer &l = *lnode.getObject();
     ml_logd("layer name : %s", l.getName().c_str());
-    const std::string &cur_type = l.getType();
+    std::string cur_type;
+    if (l.getType() == TimeDistLayer::type) {
+      cur_type = dynamic_cast<TimeDistLayer &>(l).getDistLayerType();
+    } else {
+      cur_type = l.getType();
+    }
 
     /**
      * Set input dimension for all the layers.
      * For input layer, as input dimension is known, set input tensor.
      */
     if (!first) {
-      if (istrequal(
-            model_graph.getSortedLayerNode(idx - 1).getObject()->getType(),
-            ActivationLayer::type) &&
+      std::string l_pre_type =
+        model_graph.getSortedLayerNode(idx - 1).getObject()->getType();
+      if (l_pre_type == TimeDistLayer::type) {
+        l_pre_type = std::dynamic_pointer_cast<TimeDistLayer>(
+                       model_graph.getSortedLayerNode(idx - 1).getObject())
+                       ->getDistLayerType();
+      }
+      if (istrequal(l_pre_type, ActivationLayer::type) &&
           istrequal(cur_type, ActivationLayer::type)) {
         ml_loge("double activation is not allowed");
         return ML_ERROR_INVALID_PARAMETER;
@@ -213,8 +223,14 @@ int NeuralNetwork::initialize() {
 
     REGISTER_EVENT(l.getName(), lnode.event_key)
 
+    // std::string l_type;
+    // if (l.getType() == TimeDistLayer::type) {
+    //   l_type = dynamic_cast<TimeDistLayer&>(l).getDistLayerType();
+    // } else {
+    //   l_type = l.getType();
+    // }
     auto &in_out = manager->trackLayerOutputs(
-      l.getType(), l.getName(), l.getOutputDimension(), l.getInputDimension());
+      cur_type, l.getName(), l.getOutputDimension(), l.getInputDimension());
     l.setOutputBuffers(in_out);
 
     /** Connect the output of the previous layers with the input of the current
@@ -237,9 +253,8 @@ int NeuralNetwork::initialize() {
                            ->net_hidden[location];
       }
     } else {
-      auto &in_out = manager->trackLayerInputs(l.getType(), l.getName(),
-                                               l.getInputDimension(),
-                                               l.getOutputDimension());
+      auto &in_out = manager->trackLayerInputs(
+        cur_type, l.getName(), l.getInputDimension(), l.getOutputDimension());
       l.setInputBuffers(in_out);
     }
   }
@@ -347,8 +362,16 @@ void NeuralNetwork::backwarding(std::shared_ptr<Layer> layer, int iteration,
   if (calc_derivative)
     layer->calcDerivative();
 
-  if (apply_gradient)
-    opt->applyGradients(layer->getWeightsRef(), iteration);
+  if (apply_gradient) {
+    if (layer->getType() == TimeDistLayer::type) {
+      opt->applyGradients(std::dynamic_pointer_cast<TimeDistLayer>(layer)
+                            ->getDistLayer()
+                            ->getWeightsRef(),
+                          iteration);
+    } else {
+      opt->applyGradients(layer->getWeightsRef(), iteration);
+    }
+  }
 }
 
 /**
@@ -363,8 +386,16 @@ void NeuralNetwork::backwarding(int iteration) {
   auto iter_begin = model_graph.getBackwardingBeginIter();
   auto iter_end = model_graph.getBackwardingEndIter();
 
-  if (iter_begin->getObject()->getType() != LossLayer::type)
-    throw std::runtime_error("Error: no loss provided for training.");
+  if (iter_begin->getObject()->getType() != LossLayer::type) {
+    bool has_loss = false;
+    if (iter_begin->getObject()->getType() == TimeDistLayer::type) {
+      if (std::dynamic_pointer_cast<TimeDistLayer>(iter_begin->getObject())
+            ->getDistLayerType() == LossLayer::type)
+        has_loss = true;
+    }
+    if (!has_loss)
+      throw std::runtime_error("Error: no loss provided for training.");
+  }
 
   for (auto iter = iter_begin; iter != iter_end - 1; iter++) {
     backwarding(iter->getObject(), iteration, true);
