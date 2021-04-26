@@ -369,8 +369,8 @@ int NetworkGraph::addLossLayer(const LossType loss_type) {
   if (Sorted.back().getObject()->getType() == LossLayer::type)
     return status;
 
-  if (Sorted.back().layer->getType() == TimeDistLayer::type) {
-    if (std::static_pointer_cast<TimeDistLayer>(Sorted.back().layer)
+  if (Sorted.back().getObject()->getType() == TimeDistLayer::type) {
+    if (std::static_pointer_cast<TimeDistLayer>(Sorted.back().getObject())
           ->getDistLayerType() == LossLayer::type)
       return status;
   }
@@ -387,9 +387,9 @@ int NetworkGraph::addLossLayer(const LossType loss_type) {
 
   LayerNode last_node = Sorted.back();
   if (updated_loss_type == LossType::LOSS_ENTROPY) {
-    auto type = last_node.layer->getType();
+    auto type = last_node.getObject()->getType();
     if (type == TimeDistLayer::type) {
-      type = std::dynamic_pointer_cast<TimeDistLayer>(last_node.layer)
+      type = std::dynamic_pointer_cast<TimeDistLayer>(last_node.getObject())
                ->getDistLayerType();
     }
 
@@ -425,7 +425,7 @@ int NetworkGraph::addLossLayer(const LossType loss_type) {
     std::dynamic_pointer_cast<LossLayer>(layer)->setLoss(updated_loss_type);
   NN_RETURN_STATUS();
 
-  if (last_node.layer->getType() == TimeDistLayer::type) {
+  if (last_node.getObject()->getType() == TimeDistLayer::type) {
     layer = distributeLayer(layer);
   }
 

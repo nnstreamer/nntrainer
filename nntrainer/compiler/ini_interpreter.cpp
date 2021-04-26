@@ -16,9 +16,9 @@
 #include <sstream>
 #include <vector>
 
+#include <ini_wrapper.h>
 #include <layer.h>
 #include <layer_factory.h>
-#include <ini_wrapper.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <parse_util.h>
@@ -270,13 +270,13 @@ void IniGraphInterpreter::serialize(
 
   std::vector<IniSection> sections;
   for (const auto &ln : representation->getSorted()) {
-    const auto &layer = ln.layer;
+    const auto &layer = ln.getObject();
 
     IniSection s(layer->getName());
     s.setEntry("type", layer->getType());
 
     /// @todo: implement export a property
-    std::cout << ln.layer->getName() << std::endl;
+    std::cout << layer->getName() << std::endl;
   }
 
   auto ini = IniWrapper(out, sections);
