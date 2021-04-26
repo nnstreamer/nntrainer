@@ -141,9 +141,10 @@ void NetworkGraph::countNonTrainableLayersAtBegin() {
   for (auto iter = Sorted.cbegin(); iter != Sorted.cend(); iter++) {
     if ((*iter).layer->getTrainable()) {
       skip_non_trainable_layers = iter - Sorted.cbegin();
-      break;
+      return;
     }
   }
+  skip_non_trainable_layers = Sorted.size();
 }
 
 void NetworkGraph::topologicalSort() {
@@ -636,7 +637,7 @@ std::vector<TensorDim> NetworkGraph::getOutputDimension() const {
 std::vector<std::shared_ptr<Layer>>
 NetworkGraph::getUnsortedLayers(const std::string &input_layer,
                                 const std::string &output_layer) const {
-  /// @FIXME: this won't work if input, output layers are not in order
+  /// @fixme: this won't work if input, output layers are not in order
   /// Further, this function must be removed. There should be rather
   /// getAllNames and getLayerByName instead of getUnsortedLayers.
 

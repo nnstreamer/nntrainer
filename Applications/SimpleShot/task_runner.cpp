@@ -130,7 +130,7 @@ std::unique_ptr<ml::train::Model> createModel(const std::string &backbone,
 
   LayerHandle backbone_layer = ml::train::layer::BackboneTFLite(
     {"name=backbone", "modelfile=" + getModelFilePath(backbone, app_path),
-     "input_shape=32:32:3"});
+     "input_shape=32:32:3", "trainable=false"});
   model->addLayer(backbone_layer);
 
   auto generate_knn_part = [&backbone, &app_path,
@@ -141,35 +141,30 @@ std::unique_ptr<ml::train::Model> createModel(const std::string &backbone,
       "num_class=" + std::to_string(num_classes);
 
     if (variant == "UN") {
-      LayerHandle knn = ml::train::createLayer(
-        "centroid_knn", {"name=knn", num_class_prop, "input_layers=backbone"});
-      knn->setProperty({"input_layers=backbone", "trainable=false"});
-      v.push_back(knn);
+      /// left empty intended
     } else if (variant == "L2N") {
-      LayerHandle l2 = ml::train::createLayer(
-        "l2norm", {"name=l2norm", "input_layers=backbone"});
-      LayerHandle knn = ml::train::createLayer(
-        "centroid_knn", {"name=knn", num_class_prop, "input_layers=l2norm"});
+      LayerHandle l2 =
+        ml::train::createLayer("l2norm", {"name=l2norm", "trainable=false"});
       v.push_back(l2);
-      v.push_back(knn);
     } else if (variant == "CL2N") {
-
       LayerHandle centering = ml::train::createLayer(
         "centering", {"name=center",
                       "feature_path=" + getFeatureFilePath(backbone, app_path),
-                      "input_layers=backbone"});
-      LayerHandle l2 = ml::train::createLayer(
-        "l2norm", {"name=l2norm", "input_layers=center"});
-      LayerHandle knn = ml::train::createLayer(
-        "centroid_knn", {"name=knn", num_class_prop, "input_layers=l2norm"});
+                      "trainable=false"});
+      LayerHandle l2 =
+        ml::train::createLayer("l2norm", {"name=l2norm", "trainable=false"});
       v.push_back(centering);
       v.push_back(l2);
-      v.push_back(knn);
     } else {
       std::stringstream ss;
       ss << "unsupported variant type: " << variant;
       throw std::invalid_argument(ss.str().c_str());
     }
+
+    LayerHandle knn = ml::train::createLayer(
+      "centroid_knn", {"name=knn", num_class_prop, "trainable=false"});
+    v.push_back(knn);
+
     return v;
   };
 
