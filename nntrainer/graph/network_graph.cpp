@@ -594,7 +594,8 @@ int NetworkGraph::realizeGraph() {
       NN_RETURN_STATUS();
     }
 
-    if (l.getFlatten()) {
+    // Flatten in TimeDistLayer is not supported.
+    if (l.getFlatten() && l.getType() != TimeDistLayer::type) {
       status = realizeFlattenType(l);
       NN_RETURN_STATUS();
     }
@@ -795,7 +796,12 @@ void NetworkGraph::inPlaceOptimize(const std::string &layer_type,
                                    Manager &manager) {
   for (auto &layer_node : getSorted()) {
     auto &l = layer_node.getObject();
-    if (l->getType() == layer_type &&
+    std::string l_type = l->getType();
+    if (l_type == TimeDistLayer::type) {
+      l_type = std::dynamic_pointer_cast<TimeDistLayer>(l)->getDistLayerType();
+    }
+
+    if (l_type == layer_type &&
         l->getActivationType() != ActivationType::ACT_SOFTMAX) {
       /** @note assumes layer to be optimized is only for single in/out tensor
        */
@@ -834,7 +840,7 @@ void NetworkGraph::inPlaceOptimize(const std::string &layer_type,
        * Assume two layers, L1 and L2, with I and O corresponding to the layer
        * outputs. Assume L2 to be the layer, needing in-place optimization.
        */
-      if (l->getType() == BatchNormalizationLayer::type) {
+      if (l_type == BatchNormalizationLayer::type) {
         /**
          * With batch normalization, neither input nor output of the layer are
          * requried for calculatin gradient and derivative. Just input
@@ -845,7 +851,7 @@ void NetworkGraph::inPlaceOptimize(const std::string &layer_type,
         auto &inplace_shared_vg_ptr = l->net_hidden[0];
         l->net_input[0] = inplace_shared_vg_ptr;             /// I2 = O2
         prev_layer->net_hidden[loc] = inplace_shared_vg_ptr; /// O1 = O2
-      } else if (l->getType() == ActivationLayer::type) {
+      } else if (l_type == ActivationLayer::type) {
         /**
          * For activation layer, output of the layer and input derivative, both
          * , are requried for calculating the gradient and derivative. In this
@@ -869,7 +875,7 @@ void NetworkGraph::inPlaceOptimize(const std::string &layer_type,
           inplace_shared_vg); /// O1.V = O2.V
       } else {
         std::stringstream ss;
-        ss << l->getType();
+        ss << l_type;
         ss << " layer is not supported for in-place optimization";
         throw std::runtime_error(ss.str());
       }

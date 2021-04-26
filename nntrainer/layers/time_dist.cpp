@@ -23,6 +23,78 @@ namespace nntrainer {
 
 const std::string TimeDistLayer::type = "time_dist";
 
+static void reshape(Tensor &m) {
+  TensorDim d = m.getDim();
+  m.reshape({d[2], d[1], d[0], d[3]});
+}
+
+void TimeDistLayer::setPosition() {
+  positions[0] = net_input[0]->getVariableRef().getData();
+  positions[1] = net_input[0]->getGradientRef().getData();
+  positions[2] = net_hidden[0]->getVariableRef().getData();
+  positions[3] = net_hidden[0]->getGradientRef().getData();
+}
+
+void TimeDistLayer::transposeInOut() {
+  // Position[0] : net_input.variable
+  Tensor &input_ = net_input[0]->getVariableRef();
+  input_.copy(transposeTensor(input_));
+
+  // Position[1] : net_input.gradient
+  Tensor &ret_ = net_input[0]->getGradientRef();
+  if (ret_.getData() != positions[0]) {
+    ret_.copy(transposeTensor(ret_));
+  } else {
+    reshape(ret_);
+  }
+
+  // Position[2] : net_hidden.variable
+  Tensor &hval_ = net_hidden[0]->getVariableRef();
+  if (hval_.getData() != positions[0] && hval_.getData() != positions[1]) {
+    hval_.copy(transposeTensor(hval_));
+  } else {
+    reshape(hval_);
+  }
+
+  // Position[3] : net_hidden.gradient
+  bool trans = true;
+
+  Tensor &derivative_ = net_hidden[0]->getGradientRef();
+  for (unsigned int i = 0; i < 3; ++i) {
+    if (derivative_.getData() == positions[i]) {
+      trans = false;
+      break;
+    }
+  }
+  if (trans)
+    derivative_.copy(transposeTensor(derivative_));
+  else
+    reshape(derivative_);
+}
+
+Tensor TimeDistLayer::transposeTensor(Tensor &m) {
+  TensorDim dim = m.getDim();
+  // Assume the channel is 1. Time Dimension is h. It transpose [b, 1, h, w] to
+  // [h, 1, b, w ] and nntrainer only support 1,2,3 transpose. So we do reshape
+  // first to make [1, b,h, w]
+  // TODO:
+  // If we do {1, dim[0]*dim[1], dim[2], dim[3]} and transpose to {1, dim[2],
+  // dim[0]*dim[1], dim[3]}. Then reshpae to {dim[2], dim[0], dim[1], dim[3]}
+  // then we could support the case which dim[1] is not 1. But we need to change
+  // some other places of code to support.
+  //
+  if (dim[1] != 1)
+    throw std::invalid_argument(
+      "Channel of Time distributed layer must be 1 for now");
+
+  m.reshape({dim[1], dim[0], dim[2], dim[3]});
+  Tensor in = m.transpose("1:0:2");
+  in.reshape({dim[2], dim[1], dim[0], dim[3]});
+  m.reshape(dim);
+
+  return in;
+}
+
 int TimeDistLayer::initialize(Manager &manager) {
   int status = ML_ERROR_NONE;
 
@@ -60,23 +132,21 @@ int TimeDistLayer::initialize(Manager &manager) {
 }
 
 void TimeDistLayer::forwarding(bool training) {
+  setPosition();
+
   Tensor &hidden_ = net_hidden[0]->getVariableRef();
   Tensor &input_ = net_input[0]->getVariableRef();
+  // input_.dim = [ b, 1, h, w ]
 
   Tensor hidden_g, h_g;
 
   TensorDim ho_dim = hidden_.getDim();
   TensorDim in_dim = input_.getDim();
 
-  // input_.dim = [ 1, b, h, w ] : nntrainer only support 1,2,3 transpose
-  input_.reshape({1, in_dim[0], in_dim[2], in_dim[3]});
-  Tensor in = input_.transpose("1:0:2");
-  // now in.dim = [1, h, b, w]
-  in.reshape({in_dim[2], in_dim[1], in_dim[0], in_dim[3]});
-  // now in.dim = [h, 1, b, w]
+  // TODO: This transposed Input Tensor could be resued for backwarding
+  Tensor in = transposeTensor(input_);
 
   Tensor out = Tensor({ho_dim[2], 1, ho_dim[0], ho_dim[3]}, true);
-  // now out.dim = [h, 1, b, w]
 
   TensorDim i_dim = in_dim;
   i_dim.channel(1);
@@ -89,12 +159,12 @@ void TimeDistLayer::forwarding(bool training) {
   if (dist_layer->getType() == "loss") {
     hidden_g = net_hidden[0]->getGradientRef();
     if (!hidden_g.uninitialized()) {
-      hidden_g.reshape({1, ho_dim[0], ho_dim[2], ho_dim[3]});
-
-      h_g = hidden_g.transpose("1:0:2");
-      h_g.reshape({ho_dim[2], 1, ho_dim[0], ho_dim[3]});
+      h_g = transposeTensor(hidden_g);
     }
   }
+
+  Var_Grad in_var(i_dim, true, false, dist_layer->getName() + ":input");
+  Var_Grad out_var(h_dim, true, false, dist_layer->getName() + ":output");
 
   for (unsigned int i = 0; i < in_dim.height(); ++i) {
     //
@@ -107,9 +177,6 @@ void TimeDistLayer::forwarding(bool training) {
       in.getSharedDataTensor(i_dim, i * in_dim.batch() * in_dim.width());
     Tensor out_iter =
       out.getSharedDataTensor(h_dim, i * ho_dim.batch() * ho_dim.width());
-
-    Var_Grad in_var(i_dim, true, false, dist_layer->getName() + ":input");
-    Var_Grad out_var(h_dim, true, false, dist_layer->getName() + ":output");
 
     in_var.initializeVariable(in_iter);
     out_var.initializeVariable(out_iter);
@@ -126,13 +193,7 @@ void TimeDistLayer::forwarding(bool training) {
     dist_layer->forwarding();
   }
 
-  input_.reshape(in_dim);
-  out.reshape({1, ho_dim[2], ho_dim[0], ho_dim[3]});
-  hidden_.copy(out.transpose("1:0:2"));
-
-  hidden_.reshape(ho_dim);
-  if (dist_layer->getType() == "loss")
-    hidden_g.reshape(ho_dim);
+  hidden_.copy(transposeTensor(out));
 }
 
 void TimeDistLayer::copy(std::shared_ptr<Layer> l) {
@@ -149,11 +210,85 @@ void TimeDistLayer::setDistLayer(std::shared_ptr<Layer> l) {
 };
 
 void TimeDistLayer::calcDerivative() {
-  // NYI
+  Tensor &derivative_ = net_hidden[0]->getGradientRef();
+  Tensor &hval_ = net_hidden[0]->getVariableRef();
+  Tensor &ret_ = net_input[0]->getGradientRef();
+  Tensor &input_ = net_input[0]->getVariableRef();
+
+  TensorDim der_dim = derivative_.getDim();
+  TensorDim ret_dim = ret_.getDim();
+
+  TensorDim r_dim = {ret_dim[2], 1, 1, ret_dim[3]};
+  TensorDim d_dim = {der_dim[2], 1, 1, der_dim[3]};
+
+  Var_Grad in_var(r_dim, true, false, dist_layer->getName() + ":input");
+  Var_Grad out_var(d_dim, true, false, dist_layer->getName() + ":output");
+
+  for (unsigned int i = 0; i < der_dim[0]; ++i) {
+    Tensor ret_iter =
+      ret_.getSharedDataTensor(r_dim, i * r_dim.batch() * r_dim.width());
+    Tensor in_iter =
+      input_.getSharedDataTensor(r_dim, i * r_dim.batch() * r_dim.width());
+    Tensor d_iter =
+      derivative_.getSharedDataTensor(d_dim, i * d_dim.batch() * d_dim.width());
+    Tensor hval_iter =
+      hval_.getSharedDataTensor(d_dim, i * d_dim.batch() * d_dim.width());
+
+    in_var.initializeGradient(ret_iter);
+    in_var.initializeVariable(in_iter);
+    out_var.initializeGradient(d_iter);
+    out_var.initializeVariable(hval_iter);
+
+    dist_layer->setInputBuffers({std::make_shared<Var_Grad>(in_var)});
+    dist_layer->setOutputBuffers({std::make_shared<Var_Grad>(out_var)});
+
+    dist_layer->calcDerivative();
+  }
+
+  ret_.copy(transposeTensor(ret_));
+  // We are not going to transpose the data. The Date is not used anymore.
+  // It will be overwritten at next iteration
+  // Just reshpae the tensors
+  hval_.reshape({der_dim[2], 1, der_dim[0], der_dim[3]});
+  derivative_.reshape({der_dim[2], 1, der_dim[0], der_dim[3]});
+  input_.reshape({ret_dim[2], 1, ret_dim[0], ret_dim[3]});
 }
 
 void TimeDistLayer::calcGradient() {
-  // NYI
+  // Even if the dist_layer->getNumWeights() == 0, We do transpose here
+  // for the calculation of derivatives and overwrite original tensors.
+  // And use them in calcDerivatives() without transpose.
+  transposeInOut();
+
+  if (dist_layer->getNumWeights() == 0)
+    return;
+
+  Tensor &input_ = net_input[0]->getVariableRef();
+  Tensor &derivative_ = net_hidden[0]->getGradientRef();
+
+  TensorDim der_dim = derivative_.getDim();
+  TensorDim in_dim = input_.getDim();
+
+  TensorDim i_dim = {in_dim[2], 1, 1, in_dim[3]};
+  TensorDim d_dim = {der_dim[2], 1, 1, der_dim[3]};
+
+  for (unsigned int i = 0; i < der_dim[0]; ++i) {
+    Tensor in_iter =
+      input_.getSharedDataTensor(i_dim, i * i_dim.batch() * i_dim.width());
+    Tensor d_iter =
+      derivative_.getSharedDataTensor(d_dim, i * d_dim.batch() * d_dim.width());
+
+    Var_Grad in_var(i_dim, true, false, dist_layer->getName() + ":input");
+    Var_Grad out_var(d_dim, true, false, dist_layer->getName() + ":output");
+
+    in_var.initializeVariable(in_iter);
+    out_var.initializeGradient(d_iter);
+
+    dist_layer->setInputBuffers({std::make_shared<Var_Grad>(in_var)});
+    dist_layer->setOutputBuffers({std::make_shared<Var_Grad>(out_var)});
+
+    dist_layer->calcGradient();
+  }
 }
 
 } /* namespace nntrainer */
