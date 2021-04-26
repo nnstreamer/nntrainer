@@ -208,6 +208,9 @@ private:
 class GraphWatcher {
 public:
   using WatchedFlatGraph = std::vector<NodeWatcher>;
+  /**
+   * @brief   GraphWatcher constructor
+   */
   GraphWatcher(const std::string &config, const bool opt);
 
   /**
@@ -221,7 +224,7 @@ public:
                   unsigned int iterations);
 
   /**
-   * @brief check forwarding & backwarding & inference throws or not
+   * @brief   Validate the running of the graph without any errors
    * @param label_shape shape of label tensor
    */
   void validateFor(const nntrainer::TensorDim &label_shape);
