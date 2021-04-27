@@ -2,12 +2,12 @@
 /**
  * Copyright (C) 2021 Jijoong Moon <jijoong.moon@samsung.com>
  *
- * @file	embedding.h
- * @date	04 March 2021
- * @brief	This is Embedding Layer Class of Neural Network
- * @see		https://github.com/nnstreamer/nntrainer
- * @author	Jijoong Moon <jijoong.moon@samsung.com>
- * @bug		No known bugs except for NYI items
+ * @file   embedding.h
+ * @date   04 March 2021
+ * @brief  This is Embedding Layer Class of Neural Network
+ * @see    https://github.com/nnstreamer/nntrainer
+ * @author Jijoong Moon <jijoong.moon@samsung.com>
+ * @bug    No known bugs except for NYI items
  *
  */
 

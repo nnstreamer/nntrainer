@@ -2,12 +2,12 @@
 /**
  * Copyright (C) 2020 Jijoong Moon <jijoong.moon@samsung.com>
  *
- * @file	blas_interface.cpp
- * @date	28 Aug 2020
- * @see		https://github.com/nnstreamer/nntrainer
- * @author	Jijoong Moon <jijoong.moon@samsung.com>
- * @bug		No known bugs except for NYI items
- * @brief	This is dummy header for blas support
+ * @file   blas_interface.cpp
+ * @date   28 Aug 2020
+ * @see    https://github.com/nnstreamer/nntrainer
+ * @author Jijoong Moon <jijoong.moon@samsung.com>
+ * @bug    No known bugs except for NYI items
+ * @brief  This is dummy header for blas support
  *
  */
 

@@ -2,13 +2,13 @@
 /**
  * Copyright (C) 2020 Parichay Kapoor <pk.kapoor@samsung.com>
  *
- * @file	model.h
- * @date	14 October 2020
- * @see		https://github.com/nnstreamer/nntrainer
- * @author	Jijoong Moon <jijoong.moon@samsung.com>
- * @author	Parichay Kapoor <pk.kapoor@samsung.com>
- * @bug		No known bugs except for NYI items
- * @brief	This is model interface for c++ API
+ * @file   model.h
+ * @date   14 October 2020
+ * @see	   https://github.com/nnstreamer/nntrainer
+ * @author Jijoong Moon <jijoong.moon@samsung.com>
+ * @author Parichay Kapoor <pk.kapoor@samsung.com>
+ * @bug	   No known bugs except for NYI items
+ * @brief  This is model interface for c++ API
  *
  * @note This is experimental API and not stable.
  */

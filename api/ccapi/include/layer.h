@@ -2,12 +2,12 @@
 /**
  * Copyright (C) 2020 Parichay Kapoor <pk.kapoor@samsung.com>
  *
- * @file	layer.h
- * @date	14 October 2020
- * @see		https://github.com/nnstreamer/nntrainer
- * @author	Parichay Kapoor <pk.kapoor@samsung.com>
- * @bug		No known bugs except for NYI items
- * @brief	This is layers interface for c++ API
+ * @file   layer.h
+ * @date   14 October 2020
+ * @see    https://github.com/nnstreamer/nntrainer
+ * @author Parichay Kapoor <pk.kapoor@samsung.com>
+ * @bug	   No known bugs except for NYI items
+ * @brief  This is layers interface for c++ API
  *
  * @note This is experimental API and not stable.
  */

@@ -3,13 +3,13 @@
 /**
  * Copyright (C) 2020 Parichay Kapoor <pk.kapoor@samsung.com>
  *
- * @file	dataset.h
- * @date	14 October 2020
- * @see		https://github.com/nnstreamer/nntrainer
- * @author	Jijoong Moon <jijoong.moon@samsung.com>
- * @author	Parichay Kapoor <pk.kapoor@samsung.com>
- * @bug		No known bugs except for NYI items
- * @brief	This is dataset interface for c++ API
+ * @file   dataset.h
+ * @date   14 October 2020
+ * @see    https://github.com/nnstreamer/nntrainer
+ * @author Jijoong Moon <jijoong.moon@samsung.com>
+ * @author Parichay Kapoor <pk.kapoor@samsung.com>
+ * @bug	   No known bugs except for NYI items
+ * @brief  This is dataset interface for c++ API
  *
  * @note This is experimental API and not stable.
  */

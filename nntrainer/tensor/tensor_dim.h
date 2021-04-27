@@ -3,12 +3,12 @@
  * Copyright (C) 2020 Jijoong Moon <jijoong.moon@samsung.com>
  */
 /**
- * @file	tensor_dim.h
- * @date	22 May 2020
- * @brief	This is Tensor Dimension Class
- * @see		https://github.com/nnstreamer/nntrainer
- * @author	Jijoong Moon <jijoong.moon@samsung.com>
- * @bug		No known bugs except for NYI items
+ * @file   tensor_dim.h
+ * @date   22 May 2020
+ * @brief  This is Tensor Dimension Class
+ * @see    https://github.com/nnstreamer/nntrainer
+ * @author Jijoong Moon <jijoong.moon@samsung.com>
+ * @bug    No known bugs except for NYI items
  *
  */
 

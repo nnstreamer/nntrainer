@@ -3,12 +3,12 @@
 #
 # Copyright (C) 2020 Jijoong Moon <jijoong.moon@samsung.com>
 #
-# @file	vgg_keras.py
-# @date	08 Oct 2020
-# @brief	This is VGG16 Example using Keras
-# @see		https://github.com/nnstreamer/nntrainer
-# @author	Jijoong Moon <jijoong.moon@samsung.com>
-# @bug		No known bugs except for NYI items
+# @file	  vgg_keras.py
+# @date	  08 Oct 2020
+# @brief  This is VGG16 Example using Keras
+# @see    https://github.com/nnstreamer/nntrainer
+# @author Jijoong Moon <jijoong.moon@samsung.com>
+# @bug    No known bugs except for NYI items
 #
 # vgg example : filter size is reduced.
 # conv3_16 - conv3_16, max_pooling, conv3_32 - conv3_32, max_pooling, conv3_64 - conv3_64 - conv3_64, max_pooling,

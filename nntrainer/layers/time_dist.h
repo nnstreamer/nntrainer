@@ -2,12 +2,12 @@
 /**
  * Copyright (C) 2020 Jijoong Moon <jijoong.moon@samsung.com>
  *
- * @file	time_dist.h
- * @date	01 April 2021
- * @brief	This is Time Distributed Layer Class of Neural Network
- * @see		https://github.com/nnstreamer/nntrainer
- * @author	Jijoong Moon <jijoong.moon@samsung.com>
- * @bug		No known bugs except for NYI items
+ * @file   time_dist.h
+ * @date   01 April 2021
+ * @brief  This is Time Distributed Layer Class of Neural Network
+ * @see    https://github.com/nnstreamer/nntrainer
+ * @author Jijoong Moon <jijoong.moon@samsung.com>
+ * @bug    No known bugs except for NYI items
  *
  */
 

@@ -2,12 +2,12 @@
 /**
  * Copyright (C) 2020 Parichay Kapoor <pk.kapoor@samsung.com>
  *
- * @file	delegate.h
- * @date	7 Aug 2020
- * @brief	This is Delegate Class for the Neural Network
- * @see		https://github.com/nnstreamer/nntrainer
- * @author	Parichay Kapoor <pk.kapoor@samsung.com>
- * @bug		No known bugs except for NYI items
+ * @file   delegate.h
+ * @date   7 Aug 2020
+ * @brief  This is Delegate Class for the Neural Network
+ * @see    https://github.com/nnstreamer/nntrainer
+ * @author Parichay Kapoor <pk.kapoor@samsung.com>
+ * @bug    No known bugs except for NYI items
  *
  * @note This class is experimental and subject to major modifications.
  *

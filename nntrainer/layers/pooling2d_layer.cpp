@@ -2,12 +2,12 @@
 /**
  * Copyright (C) 2020 Jijoong Moon <jijoong.moon@samsung.com>
  *
- * @file	pooling2d_layer.cpp
- * @date	12 June 2020
- * @see		https://github.com/nnstreamer/nntrainer
- * @author	Jijoong Moon <jijoong.moon@samsung.com>
- * @bug		No known bugs except for NYI items
- * @brief	This is 2 Dimensional Pooling Layer Class for Neural Network
+ * @file   pooling2d_layer.cpp
+ * @date   12 June 2020
+ * @see    https://github.com/nnstreamer/nntrainer
+ * @author Jijoong Moon <jijoong.moon@samsung.com>
+ * @bug    No known bugs except for NYI items
+ * @brief  This is 2 Dimensional Pooling Layer Class for Neural Network
  *
  */
 

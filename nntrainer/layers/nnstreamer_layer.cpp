@@ -2,12 +2,12 @@
 /**
  * Copyright (C) 2020 Parichay Kapoor <pk.kapoor@samsung.com>
  *
- * @file	nnstreamer_layer.cpp
- * @date	26 October 2020
- * @brief	This is class to encapsulate nnstreamer as a layer of Neural Network
- * @see		https://github.com/nnstreamer/nntrainer
- * @author	Parichay Kapoor <pk.kapoor@samsung.com>
- * @bug		No known bugs except for NYI items
+ * @file   nnstreamer_layer.cpp
+ * @date   26 October 2020
+ * @brief  This is class to encapsulate nnstreamer as a layer of Neural Network
+ * @see    https://github.com/nnstreamer/nntrainer
+ * @author Parichay Kapoor <pk.kapoor@samsung.com>
+ * @bug	   No known bugs except for NYI items
  *
  * @todo: provide input/output dimensions to nnstreamer for certain frameworks
  * @todo: support transposing the data to support NCHW nntrainer data to NHWC

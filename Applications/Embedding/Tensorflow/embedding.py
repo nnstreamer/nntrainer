@@ -3,12 +3,12 @@
 #
 # Copyright (C) 2021 Jijoong Moon <jijoong.moon@samsung.com>
 #
-# @file	embedding.py
-# @date	15 March 2021
-# @brief	This is Simple Embedding Layer Training Example
-# @see		https://github.com/nnstreamer/nntrainer
-# @author	Jijoong Moon <jijoong.moon@samsung.com>
-# @bug		No known bugs except for NYI items
+# @file	  embedding.py
+# @date	  15 March 2021
+# @brief  This is Simple Embedding Layer Training Example
+# @see    https://github.com/nnstreamer/nntrainer
+# @author Jijoong Moon <jijoong.moon@samsung.com>
+# @bug    No known bugs except for NYI items
 #
 #
 

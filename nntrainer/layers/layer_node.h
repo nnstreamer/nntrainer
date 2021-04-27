@@ -2,12 +2,12 @@
 /**
  * Copyright (C) 2021 Parichay Kapoor <pk.kapoor@samsung.com>
  *
- * @file	graph_node.h
- * @date	1 April 2021
- * @see		https://github.com/nnstreamer/nntrainer
- * @author	Parichay Kapoor <pk.kapoor@samsung.com>
- * @bug		No known bugs except for NYI items
- * @brief	This is the graph node interface for c++ API
+ * @file   graph_node.h
+ * @date   1 April 2021
+ * @see    https://github.com/nnstreamer/nntrainer
+ * @author Parichay Kapoor <pk.kapoor@samsung.com>
+ * @bug    No known bugs except for NYI items
+ * @brief  This is the graph node interface for c++ API
  */
 
 #ifndef __LAYER_NODE_H__

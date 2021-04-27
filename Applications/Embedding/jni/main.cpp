@@ -2,12 +2,12 @@
 /**
  * Copyright (C) 2021 Jijoong Moon <jijoong.moon@samsung.com>
  *
- * @file	main.cpp
- * @date	10 March 2021
- * @see		https://github.com/nnstreamer/nntrainer
- * @author	Jijoong Moon <jijoong.moon@samsung.com>
- * @bug		No known bugs except for NYI items
- * @brief	This is Binary Logistic Regression Example
+ * @file   main.cpp
+ * @date   10 March 2021
+ * @see    https://github.com/nnstreamer/nntrainer
+ * @author Jijoong Moon <jijoong.moon@samsung.com>
+ * @bug    No known bugs except for NYI items
+ * @brief  This is Binary Logistic Regression Example
  *
  *              Trainig set (embedding_input.txt) : 4 colume data + result (1.0
  * or 0.0) Configuration file : ../../res/Embedding.ini

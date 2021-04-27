@@ -2,12 +2,12 @@
 /**
  * Copyright (C) 2020 Jijoong Moon <jijoong.moon@samsung.com>
  *
- * @file	main.cpp for K Nearest Neighbor
- * @date	04 December 2019
- * @see		https://github.com/nnstreamer/nntrainer
- * @author	Jijoong Moon <jijoong.moon@samsung.com>
- * @bug		No known bugs except for NYI items
- * @brief	This is Transfer Learning Example with KNN
+ * @file   main.cpp for K Nearest Neighbor
+ * @date   04 December 2019
+ * @see    https://github.com/nnstreamer/nntrainer
+ * @author Jijoong Moon <jijoong.moon@samsung.com>
+ * @bug    No known bugs except for NYI items
+ * @brief  This is Transfer Learning Example with KNN
  *
  *              Inputs : Three Categories ( Happy, Sad, Soso ) with
  *                       5 pictures for each category
