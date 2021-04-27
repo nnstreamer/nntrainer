@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
- * Copyright (C) 2020 Jihoon Lee <jihoon.it.lee@samsung.com>
+ * Copyright (C) 2020 Jihoon Lee <jhoon.it.lee@samsung.com>
  *
  * @file   unittest_nntrainer_lazy_tensor.cpp
  * @date   05 Jun 2020
  * @brief  A unittest for nntrainer_lazy_tensor
  * @see    https://github.com/nnstreamer/nntrainer
- * @author Jihoon Lee <jihoon.it.lee@samsung.com>
+ * @author Jihoon Lee <jhoon.it.lee@samsung.com>
  * @bug    No known bugs except for NYI items
  */
 #include <gtest/gtest.h>

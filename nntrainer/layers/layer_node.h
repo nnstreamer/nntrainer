@@ -68,7 +68,7 @@ public:
    *
    * @retval    name of the layer
    * @note      This name is unique to this layer in a model
-   * @Note      This name might be changed once this layer is added to the model
+   * @note      This name might be changed once this layer is added to the model
    * to keep the name unique to the model
    */
   std::string getName() noexcept { return layer->getName(); }
