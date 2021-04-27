@@ -2,12 +2,12 @@
 /**
  * Copyright (C) 2020 Parichay Kapoor <pk.kapoor@samsung.com>
  *
- * @file	layer_factory.h
- * @date	7 October 2020
- * @see		https://github.com/nnstreamer/nntrainer
- * @author	Parichay Kapoor <pk.kapoor@samsung.com>
- * @bug		No known bugs except for NYI items
- * @brief	This is the layer factory.
+ * @file   layer_factory.h
+ * @date   7 October 2020
+ * @see    https://github.com/nnstreamer/nntrainer
+ * @author Parichay Kapoor <pk.kapoor@samsung.com>
+ * @bug    No known bugs except for NYI items
+ * @brief  This is the layer factory.
  */
 
 #ifndef __LAYER_FACTORY_H__

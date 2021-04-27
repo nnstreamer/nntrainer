@@ -2,12 +2,12 @@
 /**
  * Copyright (C) 2020 Jijoong Moon <jijoong.moon@samsung.com>
  *
- * @file	main.cpp
- * @date	01 July 2020
- * @see		https://github.com/nnstreamer/nntrainer
- * @author	Jijoong Moon <jijoong.moon@samsung.com>
- * @bug		No known bugs except for NYI items
- * @brief	This is MNIST Example with
+ * @file   main.cpp
+ * @date   01 July 2020
+ * @see    https://github.com/nnstreamer/nntrainer
+ * @author Jijoong Moon <jijoong.moon@samsung.com>
+ * @bug    No known bugs except for NYI items
+ * @brief  This is MNIST Example with
  *
  * Input 28x28
  * Conv2D 5 x 5 : 6 filters, stride 1x1, padding=0,0

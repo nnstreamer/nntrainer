@@ -2,12 +2,12 @@
 /**
  * Copyright (C) 2020 Parichay Kapoor <pk.kapoor@samsung.com>
  *
- * @file	fc_layer.h
- * @date	14 May 2020
- * @brief	This is Fully Connected Layer Class of Neural Network
- * @see		https://github.com/nnstreamer/nntrainer
- * @author	Jijoong Moon <jijoong.moon@samsung.com>
- * @bug		No known bugs except for NYI items
+ * @file   fc_layer.h
+ * @date   14 May 2020
+ * @brief  This is Fully Connected Layer Class of Neural Network
+ * @see    https://github.com/nnstreamer/nntrainer
+ * @author Jijoong Moon <jijoong.moon@samsung.com>
+ * @bug    No known bugs except for NYI items
  *
  */
 

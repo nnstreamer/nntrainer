@@ -2,12 +2,12 @@
  *
  * Copyright (C) 2020 Jihoon Lee <jihoon.it.lee@samsung.com>
  *
- * @file	lazy_tensor.cpp
- * @date	05 Jun 2020
- * @brief	A lazy evaluation calculator for tensors
- * @see		https://github.com/nnstreamer/nntrainer
- * @author	Jihoon Lee <jihoon.it.lee@samsung.com>
- * @bug		No known bugs except for NYI items
+ * @file   lazy_tensor.cpp
+ * @date   05 Jun 2020
+ * @brief  A lazy evaluation calculator for tensors
+ * @see    https://github.com/nnstreamer/nntrainer
+ * @author Jihoon Lee <jihoon.it.lee@samsung.com>
+ * @bug    No known bugs except for NYI items
  *
  */
 

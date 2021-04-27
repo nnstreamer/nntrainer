@@ -2,12 +2,12 @@
 /**
  * Copyright (C) 2020 Parichay Kapoor <pk.kapoor@samsung.com>
  *
- * @file	weight.h
- * @date	22 September 2020
- * @see		https://github.com/nnstreamer/nntrainer
- * @author	Parichay Kapoor <pk.kapoor@samsung.com>
- * @bug		No known bugs except for NYI items
- * @brief	This is Weight Class for Neural Network
+ * @file   weight.h
+ * @date   22 September 2020
+ * @see    https://github.com/nnstreamer/nntrainer
+ * @author Parichay Kapoor <pk.kapoor@samsung.com>
+ * @bug    No known bugs except for NYI items
+ * @brief  This is Weight Class for Neural Network
  *
  */
 

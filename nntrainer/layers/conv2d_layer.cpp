@@ -2,13 +2,13 @@
 /**
  * Copyright (C) 2020 Jijoong Moon <jijoong.moon@samsung.com>
  *
- * @file	conv2d_layer.h
- * @date	02 June 2020
- * @see		https://github.com/nnstreamer/nntrainer
- * @author	Jijoong Moon <jijoong.moon@samsung.com>
- * @author	Jihoon Lee <jhoon.it.lee@samsung.com>
- * @bug		No known bugs except for NYI items
- * @brief	This is Convolution Layer Class for Neural Network
+ * @file   conv2d_layer.h
+ * @date   02 June 2020
+ * @see    https://github.com/nnstreamer/nntrainer
+ * @author Jijoong Moon <jijoong.moon@samsung.com>
+ * @author Jihoon Lee <jhoon.it.lee@samsung.com>
+ * @bug    No known bugs except for NYI items
+ * @brief  This is Convolution Layer Class for Neural Network
  *
  */
 #include <algorithm>

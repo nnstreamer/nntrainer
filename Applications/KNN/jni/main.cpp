@@ -2,12 +2,12 @@
 /**
  * Copyright (C) 2020 Jijoong Moon <jijoong.moon@samsung.com>
  *
- * @file	main.cpp
- * @date	21 August 2020
- * @brief	This is KNN example.
- * @see		https://github.com/nnstreamer/nntrainer
- * @author	Jijoong Moon <jijoong.moon@samsung.com>
- * @bug		No known bugs except for NYI items
+ * @file   main.cpp
+ * @date   21 August 2020
+ * @brief  This is KNN example.
+ * @see    https://github.com/nnstreamer/nntrainer
+ * @author Jijoong Moon <jijoong.moon@samsung.com>
+ * @bug    No known bugs except for NYI items
  *
  */
 

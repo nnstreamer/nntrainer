@@ -2,13 +2,13 @@
 /**
  * Copyright (C) 2020 Parichay Kapoor <pk.kapoor@samsung.com>
  *
- * @file	optimizer_impl.cpp
- * @date	18 March 2021
- * @brief	This is base Optimizer implementation class
- * @see		https://github.com/nnstreamer/nntrainer
- * @author	Jijoong Moon <jijoong.moon@samsung.com>
- * @author	Parichay Kapoor <pk.kapoor@samsung.com>
- * @bug		No known bugs except for NYI items
+ * @file   optimizer_impl.cpp
+ * @date   18 March 2021
+ * @brief  This is base Optimizer implementation class
+ * @see    https://github.com/nnstreamer/nntrainer
+ * @author Jijoong Moon <jijoong.moon@samsung.com>
+ * @author Parichay Kapoor <pk.kapoor@samsung.com>
+ * @bug    No known bugs except for NYI items
  *
  */
 

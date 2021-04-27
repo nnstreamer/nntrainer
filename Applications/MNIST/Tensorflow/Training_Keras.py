@@ -3,12 +3,12 @@
 #
 # Copyright (C) 2020 Jijoong Moon <jijoong.moon@samsung.com>
 #
-# @file	mnist_Keras.py
-# @date	13 July 2020
-# @brief	This is Simple Classification Example using Keras
-# @see		https://github.com/nnstreamer/nntrainer
-# @author	Jijoong Moon <jijoong.moon@samsung.com>
-# @bug		No known bugs except for NYI items
+# @file   mnist_Keras.py
+# @date   13 July 2020
+# @brief  This is Simple Classification Example using Keras
+# @see    https://github.com/nnstreamer/nntrainer
+# @author Jijoong Moon <jijoong.moon@samsung.com>
+# @bug    No known bugs except for NYI items
 #
 # mnist example
 # inputlayer -> conv2d (5x5) 6 filters -> pooling2d 2x2 (valid) -> conv2d (5x5) 12 filters ->

@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: Apache-2.0
 #
-# @file	main.py
-# @date	08 Dec 2020
-# @brief	This is VGG16 Example using PyTorch
-# @see		https://github.com/nnstreamer/nntrainer
-# @author	Parichay Kapoor <pk.kapoor@samsung.com>
-# @bug		No known bugs except for NYI items
+# @file	  main.py
+# @date	  08 Dec 2020
+# @brief  This is VGG16 Example using PyTorch
+# @see    https://github.com/nnstreamer/nntrainer
+# @author Parichay Kapoor <pk.kapoor@samsung.com>
+# @bug    No known bugs except for NYI items
 #
 # This is based on official pytorch examples
 

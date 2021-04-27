@@ -2,11 +2,11 @@
 /**
  * Copyright (C) 2020 Jihoon Lee <jhoon.it.lee@samsung.com>
  *
- * @file	 unittest_app_context.h
- * @date	 9 November 2020
- * @brief	 This file contains app context related functions and classes that
+ * @file   unittest_app_context.h
+ * @date   9 November 2020
+ * @brief  This file contains app context related functions and classes that
  * manages the global configuration of the current environment
- * @see		 https://github.com/nnstreamer/nntrainer
+ * @see    https://github.com/nnstreamer/nntrainer
  * @author Jihoon Lee <jhoon.it.lee@samsung.com>
  * @bug    No known bugs except for NYI items
  *

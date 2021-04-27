@@ -4,13 +4,13 @@
  * Copyright (C) 2020 MyungJoo Ham <myungjoo.ham@samsung.com>
  */
 /**
- * @file	ml-api-common.h
- * @date	07 May 2020
- * @brief	Dummy ML-API Common Header from nnstreamer. Relicensed by authors.
- * @see		https://github.com/nnstreamer/nnstreamer
- * @author	MyungJoo Ham <myungjoo.ham@samsung.com>
+ * @file   ml-api-common.h
+ * @date   07 May 2020
+ * @brief  Dummy ML-API Common Header from nnstreamer. Relicensed by authors.
+ * @see    https://github.com/nnstreamer/nnstreamer
+ * @author MyungJoo Ham <myungjoo.ham@samsung.com>
  * @author Jijoong Moon <jijoong.moon@samsung.com>
- * @bug		No known bugs except for NYI items
+ * @bug    No known bugs except for NYI items
  *
  * @details
  *      More entries might be migrated from nnstreamer.h if

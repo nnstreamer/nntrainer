@@ -3,12 +3,12 @@
 #
 # Copyright (C) 2020 Jijoong Moon <jijoong.moon@samsung.com>
 #
-# @file	convert.py
-# @date	12 Oct 2020
-# @brief	This is script to convert cifar100 data set for vgg model
-# @see		https://github.com/nnstreamer/nntrainer
-# @author	Jijoong Moon <jijoong.moon@samsung.com>
-# @bug		No known bugs except for NYI items
+# @file	  convert.py
+# @date	  12 Oct 2020
+# @brief  This is script to convert cifar100 data set for vgg model
+# @see    https://github.com/nnstreamer/nntrainer
+# @author Jijoong Moon <jijoong.moon@samsung.com>
+# @bug    No known bugs except for NYI items
 #
 # python3 convert.py path_for_cifar100 [train | val]
 #  - trainingSet.dat for training : 100 images x 100 classes

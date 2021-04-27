@@ -2,12 +2,12 @@
 /**
  * Copyright (C) 2020 Jijoong Moon <jijoong.moon@samsung.com>
  *
- * @file	flatten_layer.h
- * @date	16 June 2020
- * @see		https://github.com/nnstreamer/nntrainer
- * @author	Jijoong Moon <jijoong.moon@samsung.com>
- * @bug		No known bugs except for NYI items
- * @brief	This is Flatten Layer Class for Neural Network
+ * @file   flatten_layer.h
+ * @date   16 June 2020
+ * @see    https://github.com/nnstreamer/nntrainer
+ * @author Jijoong Moon <jijoong.moon@samsung.com>
+ * @bug    No known bugs except for NYI items
+ * @brief  This is Flatten Layer Class for Neural Network
  *
  */
 

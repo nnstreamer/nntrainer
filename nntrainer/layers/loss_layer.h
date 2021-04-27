@@ -2,12 +2,12 @@
 /**
  * Copyright (C) 2020 Parichay Kapoor <pk.kapoor@samsung.com>
  *
- * @file	loss_layer.h
- * @date	12 June 2020
- * @brief	This is Loss Layer Class of Neural Network
- * @see		https://github.com/nnstreamer/nntrainer
- * @author	Parichay Kapoor <pk.kapoor@samsung.com>
- * @bug		No known bugs except for NYI items
+ * @file   loss_layer.h
+ * @date   12 June 2020
+ * @brief  This is Loss Layer Class of Neural Network
+ * @see    https://github.com/nnstreamer/nntrainer
+ * @author Parichay Kapoor <pk.kapoor@samsung.com>
+ * @bug    No known bugs except for NYI items
  *
  */
 

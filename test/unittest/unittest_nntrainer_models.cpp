@@ -2,12 +2,12 @@
 /**
  * Copyright (C) 2020 Jihoon Lee <jihoon.it.lee@samsung.com>
  *
- * @file	unittest_nntrainer_models.cpp
- * @date	19 Oct 2020
- * @brief	Model multi iteration, itegrated test
- * @see		https://github.com/nnstreamer/nntrainer
- * @author	Jihoon Lee <jihoon.it.lee@samsung.com>
- * @bug		No known bugs except for NYI items
+ * @file   unittest_nntrainer_models.cpp
+ * @date   19 Oct 2020
+ * @brief  Model multi iteration, itegrated test
+ * @see    https://github.com/nnstreamer/nntrainer
+ * @author Jihoon Lee <jihoon.it.lee@samsung.com>
+ * @bug    No known bugs except for NYI items
  *
  */
 #include <algorithm>

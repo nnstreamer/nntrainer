@@ -2,12 +2,12 @@
 /**
  * Copyright (C) 2020 Parichay Kapoor <pk.kapoor@samsung.com>
  *
- * @file	var_grad.h
- * @date	13 November 2020
- * @see		https://github.com/nnstreamer/nntrainer
- * @author	Parichay Kapoor <pk.kapoor@samsung.com>
- * @bug		No known bugs except for NYI items
- * @brief	This is Var_Grad Class for Neural Network
+ * @file   var_grad.h
+ * @date   13 November 2020
+ * @see    https://github.com/nnstreamer/nntrainer
+ * @author Parichay Kapoor <pk.kapoor@samsung.com>
+ * @bug    No known bugs except for NYI items
+ * @brief  This is Var_Grad Class for Neural Network
  *
  */
 

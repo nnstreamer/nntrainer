@@ -4,13 +4,13 @@
  * Copyright (C) 2020 Jijoong Moon <jijoong.moon@samsung.com>
  */
 /**
- * @file	tensor_filter_nntrainer.hh
- * @date	09 Sept 2020
- * @brief	nntrainer inference module for tensor_filter gstreamer plugin header
- * @note  The clas has been exposed from tensor_filter_nntrainer.cc to unittest
- * @see		http://github.com/nnstreamer/nnstreamer
- * @author	Jijoong Moon <jijoong.moon@samsung.com>
- * @bug		No known bugs except for NYI items
+ * @file   tensor_filter_nntrainer.hh
+ * @date   09 Sept 2020
+ * @brief  nntrainer inference module for tensor_filter gstreamer plugin header
+ * @note   The clas has been exposed from tensor_filter_nntrainer.cc to unittest
+ * @see    http://github.com/nnstreamer/nnstreamer
+ * @author Jijoong Moon <jijoong.moon@samsung.com>
+ * @bug    No known bugs except for NYI items
  *
  * This is the per-NN-framework plugin (e.g) tensorflow-lite) for tensor_filter.
  * Fill in "GstTensorFilterFramework" for tensor_filter.h/c

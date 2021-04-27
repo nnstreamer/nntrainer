@@ -2,12 +2,12 @@
 /**
  * Copyright (C) 2020 Parichay Kapoor <pk.kapoor@samsung.com>
  *
- * @file	preprocess_flip_layer.h
- * @date	20 January 2020
- * @see		https://github.com/nnstreamer/nntrainer
- * @author	Parichay Kapoor <pk.kapoor@samsung.com>
- * @bug		No known bugs except for NYI items
- * @brief	This is Preprocess Random Flip Layer Class for Neural Network
+ * @file   preprocess_flip_layer.h
+ * @date   20 January 2020
+ * @see    https://github.com/nnstreamer/nntrainer
+ * @author Parichay Kapoor <pk.kapoor@samsung.com>
+ * @bug    No known bugs except for NYI items
+ * @brief  This is Preprocess Random Flip Layer Class for Neural Network
  *
  */
 
