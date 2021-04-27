@@ -93,7 +93,7 @@ std::unique_ptr<Optimizer>
 createOptimizer(const OptimizerType &type,
                 const std::vector<std::string> &properties = {});
 
-/*
+/**
  * @brief General Optimizer Factory function to register optimizer
  *
  * @param props property representation

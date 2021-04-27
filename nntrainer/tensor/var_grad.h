@@ -161,7 +161,7 @@ public:
   }
 
   /**
-   * @bried Clone the currnet object
+   * @brief Clone the currnet object
    *
    * @return Cloned copy
    */
@@ -241,7 +241,7 @@ public:
     resetGradient();
   }
 
-  /*
+  /**
    * @brief Allocate memory for the variable and gradient
    */
   void allocate() {
@@ -249,7 +249,7 @@ public:
     allocateGradient();
   }
 
-  /*
+  /**
    * @brief Deallocate memory for the variable and gradient
    */
   void deallocate() {
@@ -268,13 +268,13 @@ public:
   void deallocateGradient() { grad->deallocate(); }
 
   /**
-   * @bried Update the variable to use the variable from the given param
+   * @brief Update the variable to use the variable from the given param
    * @param vg Var_Grad whose variable must be updated with
    */
   void updateVariableByVariable(const Var_Grad &vg) { var = vg.var; }
 
   /**
-   * @bried Update the gradient to use the variable from the given param
+   * @brief Update the gradient to use the variable from the given param
    * @param vg Var_Grad whose variable must be updated with
    */
   void updateGradientByVariable(const Var_Grad &vg) { grad = vg.var; }

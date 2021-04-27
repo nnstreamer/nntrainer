@@ -135,7 +135,7 @@ public:
    */
   virtual int setOptimizer(std::shared_ptr<Optimizer> optimizer) = 0;
 
-  /*
+  /**
    * @brief     get layer by name from neural network model
    * @param[in] name name of the layer to get
    * @param[out] layer shared_ptr to hold the layer to get
