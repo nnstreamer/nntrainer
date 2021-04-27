@@ -27,12 +27,41 @@ namespace nntrainer {
  */
 template <typename T> struct prop_tag { using type = typename T::prop_tag; };
 
-struct int_prop_tag {};       /**< property is treated as integer */
-struct uint_prop_tag {};      /**< property is treated as integer */
-struct vector_prop_tag {};    /**< property is treated as vector, eg) 1,2,3 */
-struct dimension_prop_tag {}; /**< property is treated as dimension, eg 1:2:3 */
-struct double_prop_tag {};    /**< property is treated as double */
-struct str_prop_tag {};       /**< property is treated as string */
+/**
+ * @brief property is treated as integer
+ *
+ */
+struct int_prop_tag {};
+
+/**
+ * @brief property is treated as unsigned integer
+ *
+ */
+struct uint_prop_tag {};
+
+/**
+ * @brief property is treated as vector, eg) 1,2,3
+ *
+ */
+struct vector_prop_tag {};
+
+/**
+ * @brief property is treated as dimension, eg 1:2:3
+ *
+ */
+struct dimension_prop_tag {};
+
+/**
+ * @brief property is treated as double
+ *
+ */
+struct double_prop_tag {};
+
+/**
+ * @brief property is treated as string
+ *
+ */
+struct str_prop_tag {};
 
 /**
  * @brief base property class, inherit this to make a convinient property
@@ -153,39 +182,89 @@ struct tag_cast<Tag, BaseTag, Others...> {
 template <typename Tag> struct str_converter {};
 
 /**
+ * @brief struct converter
+ *
  * @copydoc template<typename Tag> struct_converter;
  */
 template <> struct str_converter<str_prop_tag> {
+
+  /**
+   * @brief string converter to string
+   *
+   * @param value value to convert
+   * @return std::string to_string
+   */
   static std::string to_string(const std::string &value) { return value; }
 
+  /**
+   * @brief string converter from string
+   *
+   * @param str value to convert
+   * @return std::string converted value
+   */
   static std::string from_string(const std::string &str) { return str; }
 };
 
 /**
+ * @brief struct converter
+ *
  * @copydoc template<typename Tag> struct_converter;
  */
 template <> struct str_converter<int_prop_tag> {
+  /**
+   * @brief string converter to string
+   *
+   * @param value value to convert
+   * @return std::string to_string
+   */
   static std::string to_string(const int value) {
     return std::to_string(value);
   }
 
+  /**
+   * @brief string converter from string
+   *
+   * @param str value to convert
+   * @return std::string converted value
+   */
   static int from_string(const std::string &value) { return std::stoi(value); }
 };
 
 /**
+ * @brief struct converter
+ *
  * @copydoc template<typename Tag> struct_converter;
  */
 template <> struct str_converter<uint_prop_tag> {
-  static std::string to_string(const int value) {
+
+  /**
+   * @brief string converter to string
+   *
+   * @param value value to convert
+   * @return std::string to_string
+   */
+  static std::string to_string(const unsigned int value) {
     return std::to_string(value);
   }
 
+  /**
+   * @brief string converter from string
+   *
+   * @param str value to convert
+   * @return std::string converted value
+   */
   static unsigned int from_string(const std::string &value) {
     return std::stoul(value);
   }
 };
 
-/** convert dispatcher */
+/**
+ * @brief convert dispatcher (to string)
+ *
+ * @tparam T type to convert
+ * @param property property to convert
+ * @return std::string converted string
+ */
 template <typename T> std::string to_string(const T &property) {
   using tag_type =
     typename tag_cast<typename prop_tag<T>::type, int_prop_tag, uint_prop_tag,
@@ -194,6 +273,13 @@ template <typename T> std::string to_string(const T &property) {
   return str_converter<tag_type>::to_string(property.get());
 }
 
+/**
+ * @brief convert dispatcher (from string)
+ *
+ * @tparam T type to convert
+ * @param str string to vert
+ * @param property property, converted type
+ */
 template <typename T> void from_string(const std::string &str, T &property) {
   using tag_type =
     typename tag_cast<typename prop_tag<T>::type, int_prop_tag, uint_prop_tag,

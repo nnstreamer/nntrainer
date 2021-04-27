@@ -441,11 +441,15 @@ public:
 
   /**
    * @brief Get hidden tensors
+   *
+   * @return std::vector<Tensor>  get outputs
    */
   virtual std::vector<Tensor> getOutputs();
 
   /**
    * @brief Get derivatives tensors
+   *
+   * @return std::vector<Tensor> get derivatives
    */
   virtual std::vector<Tensor> getDerivatives();
 
@@ -456,7 +460,9 @@ public:
   virtual std::vector<Weight> &getWeightsRef() { return weights; }
 
   /**
-   * @brief Set input Buffers
+   * @brief Set the Input Buffers object
+   *
+   * @param inputs inputs to set
    */
   virtual void setInputBuffers(std::vector<std::shared_ptr<Var_Grad>> inputs) {
     net_input = inputs;
@@ -464,6 +470,8 @@ public:
 
   /**
    * @brief Set output Buffers
+   *
+   * @param outputs output to set
    */
   virtual void
   setOutputBuffers(std::vector<std::shared_ptr<Var_Grad>> outputs) {
@@ -480,16 +488,22 @@ public:
 
   /**
    * @brief get number of input layers
+   *
+   * @return unsigned int input size
    */
   virtual unsigned int getNumInputs() { return input_dim.size(); }
 
   /**
    * @brief get number of output layers
+   *
+   * @return unsigned int output size
    */
   virtual unsigned int getNumOutputs() { return output_dim.size(); }
 
   /**
    * @brief set Number of Input Layers
+   *
+   * @param size size of inputs
    */
   void setNumInputs(unsigned int size) {
     if (size < 1)
@@ -500,6 +514,8 @@ public:
 
   /**
    * @brief set Number of Output Layers
+   *
+   * @param size size of outputs
    */
   void setNumOutputs(unsigned int size) {
     if (size < 1)
