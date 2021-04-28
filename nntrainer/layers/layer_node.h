@@ -30,6 +30,8 @@ public:
    *
    */
   LayerNode(std::shared_ptr<nntrainer::Layer> l, size_t idx) :
+    activation_type(ActivationType::ACT_NONE),
+    flatten(false),
     layer(l),
     index(idx) {}
 
