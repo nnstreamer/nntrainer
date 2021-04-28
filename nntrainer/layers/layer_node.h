@@ -30,6 +30,8 @@ public:
    *
    */
   LayerNode(std::shared_ptr<nntrainer::Layer> l, size_t idx) :
+    activation_type(ActivationType::ACT_NONE),
+    flatten(false),
     layer(l),
     index(idx) {}
 
@@ -68,7 +70,7 @@ public:
    *
    * @retval    name of the layer
    * @note      This name is unique to this layer in a model
-   * @Note      This name might be changed once this layer is added to the model
+   * @note      This name might be changed once this layer is added to the model
    * to keep the name unique to the model
    */
   std::string getName() noexcept { return layer->getName(); }
