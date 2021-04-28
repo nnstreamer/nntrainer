@@ -191,6 +191,11 @@ public:
     resetGradient();
   }
 
+  /**
+   * @brief Set batch size
+   *
+   * @param batch batch size
+   */
   void setBatchSize(unsigned int batch) {
     dim.batch(batch);
 
