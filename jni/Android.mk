@@ -133,6 +133,7 @@ NNTRAINER_SRCS := $(NNTRAINER_ROOT)/nntrainer/models/neuralnet.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/utils/profiler.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/utils/node_exporter.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/compiler/ini_interpreter.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/compiler/tflite_opnode.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/compiler/tflite_interpreter.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/app_context.cpp
 
