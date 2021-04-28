@@ -471,11 +471,16 @@ void NetworkGraph::setOutputLayers() {
         continue;
       for (unsigned int j = 0; j < layer_i->input_layers.size(); ++j) {
         if (istrequal(layer_i->input_layers[j], layer_idx->getName())) {
+          bool already_exist = false;
           for (unsigned int k = 0; k < layer_idx->output_layers.size(); ++k) {
-            if (!istrequal(layer_idx->output_layers[k], layer_i->getName()))
-              continue;
+            if (!istrequal(layer_idx->output_layers[k], layer_i->getName())) {
+              already_exist = true;
+              break;
+            }
           }
-          layer_idx->output_layers.push_back(layer_i->getName());
+
+          if (!already_exist)
+            layer_idx->output_layers.push_back(layer_i->getName());
         }
       }
     }
