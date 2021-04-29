@@ -19,6 +19,7 @@
 
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
+#include <parse_util.h>
 #include <tensor_dim.h>
 
 namespace nntrainer {
@@ -93,6 +94,29 @@ int TensorDim::setTensorDim(const std::string &input_shape) {
   }
 
   return status;
+}
+
+TensorDim TensorDim::transpose(const std::string &direction) const {
+  int dirs[MAXDIM - 1];
+
+  getValues(3, direction, dirs);
+
+  const std::array<unsigned int, MAXDIM> axes{{0, (unsigned int)dirs[0] + 1,
+                                               (unsigned int)dirs[1] + 1,
+                                               (unsigned int)dirs[2] + 1}};
+
+  return transpose(axes);
+}
+
+TensorDim
+TensorDim::transpose(const std::array<unsigned int, MAXDIM> &axes) const {
+  TensorDim tmp(*this);
+
+  for (unsigned int i = 0; i < MAXDIM; ++i) {
+    tmp.setTensorDim(i, getTensorDim(axes[i]));
+  }
+
+  return tmp;
 }
 
 bool TensorDim::operator==(const TensorDim &rhs) const {

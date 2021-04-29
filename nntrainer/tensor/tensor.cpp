@@ -390,7 +390,7 @@ Tensor &Tensor::add(float const &value, Tensor &out) const {
 }
 
 int Tensor::add_i(Tensor const &m, float const alpha) {
-  /// @TODO: add axis rather doing add over the last two dimensions always
+  /// @todo: add axis rather doing add over the last two dimensions always
   /// operator i has optimized version
   auto f = [&](const BroadcastInfo &e, const float *buf, const float *m_buf,
                float *out_buf) {
@@ -800,29 +800,25 @@ Tensor &Tensor::dot(Tensor const &m, Tensor &result, bool trans, bool trans_m,
   return result;
 }
 
-Tensor Tensor::transpose(std::string direction) const {
+Tensor &Tensor::transpose(const std::string &direction, Tensor &out) const {
+  if (out.getData() == getData()) {
+    Tensor tmp = clone();
+    return tmp.transpose(direction, out);
+  }
+
   unsigned int SL, SI, SJ, SK;
-  int dir[MAXDIM - 1];
-  unsigned int fromDim[4];
   const float *inptr;
   float *outptr;
 
-  fromDim[0] = dim.batch();
-  fromDim[1] = dim.channel();
-  fromDim[2] = dim.height();
-  fromDim[3] = dim.width();
+  out.reshape(dim.transpose(direction));
 
-  getValues(3, direction, dir);
-  Tensor result(dim.batch(), fromDim[dir[0] + 1], fromDim[dir[1] + 1],
-                fromDim[dir[2] + 1]);
+  int indexI = direction[0] - '0';
+  int indexJ = direction[2] - '0';
 
-  int indexI = dir[0];
-  int indexJ = dir[1];
-
-  SL = fromDim[0], SI = fromDim[1], SJ = fromDim[2], SK = fromDim[3];
+  SL = dim.batch(), SI = dim.channel(), SJ = dim.height(), SK = dim.width();
 
   inptr = getData();
-  outptr = result.getData();
+  outptr = out.getData();
 
   switch (indexI) {
   case 0:
@@ -848,6 +844,12 @@ Tensor Tensor::transpose(std::string direction) const {
     break;
   }
 
+  return out;
+}
+
+Tensor Tensor::transpose(const std::string &direction) const {
+  Tensor result(dim);
+  transpose(direction, result);
   return result;
 }
 
