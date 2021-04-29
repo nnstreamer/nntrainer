@@ -285,9 +285,9 @@ void IniGraphInterpreter::serialize(
     layer->export_to(e);
 
     const auto key_val_pairs =
-      e.get_result<ExportMethods::METHOD_STRINGVECTOR>();
+      e.getResult<ExportMethods::METHOD_STRINGVECTOR>();
 
-    for (const auto &pair : key_val_pairs) {
+    for (const auto &pair : *key_val_pairs) {
       s.setEntry(pair.first, pair.second);
     }
 

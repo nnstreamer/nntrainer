@@ -38,14 +38,6 @@ public:
   TfOpNode() = default;
 
   /**
-   * @brief Construct a new Tf Op Node object from layer
-   * @note this is a shortcut to skip if layer does not need to be devided or
-   * fused
-   * @param layer layer that is converted to TfOpNode
-   */
-  TfOpNode(const Layer &layer);
-
-  /**
    * @brief Check and set if layer has model in/out
    *
    * @param layer layer to check
@@ -75,15 +67,10 @@ public:
 
   /**
    * @brief Set the Op Type object
-   * @todo Considering number of alternatives to optimize this, for now it is
-   * just workable.
-   * 1. add and maintain global unordered map
-   * 2. Save information in the appcontext later we can retrieve
-   * 3. let type be an immutable property and let exporter handle this instead
-   * of this method (preferrable)
-   * @param type type to convert
+   *
+   * @param op_type_ operation type
    */
-  void setOpType(const std::string &type);
+  void setOpType(tflite::BuiltinOperator op_type_) { op_type = op_type_; }
 
   /**
    * @brief Set the Builtin Options object,
@@ -170,13 +157,6 @@ public:
   }
 
 private:
-  /**
-   * @brief Set the Op Type object
-   *
-   * @param op_type_ operation type
-   */
-  void setOpType(tflite::BuiltinOperator op_type_) { op_type = op_type_; }
-
   Variables inputs;  /**< input variables */
   Variables outputs; /**< output variables */
   Variables weights; /**< weight variables */
