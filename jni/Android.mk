@@ -3,6 +3,15 @@ LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
 
 ENABLE_TFLITE_BACKBONE := 1
+ENABLE_TFLITE_INTERPRETER := 1
+
+NEED_TF_LITE := 0
+
+ifeq ($(ENABLE_TFLITE_BACKBONE), 1)
+NEED_TF_LITE := 1
+else ifeq ($(ENABLE_TFLITE_INTERPRETER), 1)
+NEED_TF_LITE := 1
+endif
 
 ifndef NNTRAINER_ROOT
 NNTRAINER_ROOT := $(LOCAL_PATH)/..
@@ -31,7 +40,7 @@ include $(CLEAR_VARS)
 NNTRAINER_JNI_ROOT := $(NNTRAINER_ROOT)/jni
 
 # Build tflite if its backbone is enabled
-ifeq ($(ENABLE_TFLITE_BACKBONE),1)
+ifeq ($(NEED_TF_LITE),1)
 $(warning BUILDING TFLITE BACKBONE !)
 TENSORFLOW_VERSION := 2.3.0
 
@@ -62,7 +71,7 @@ LOCAL_EXPORT_LDLIBS := -lEGL -lGLESv2
 
 include $(PREBUILT_STATIC_LIBRARY)
 
-endif #ENABLE_TFLITE_BACKBONE
+endif #NEED_TF_LITE
 
 ifeq ($(ENABLE_BLAS), 1)
 include $(CLEAR_VARS)
@@ -133,9 +142,12 @@ NNTRAINER_SRCS := $(NNTRAINER_ROOT)/nntrainer/models/neuralnet.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/utils/profiler.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/utils/node_exporter.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/compiler/ini_interpreter.cpp \
-                  $(NNTRAINER_ROOT)/nntrainer/compiler/tflite_opnode.cpp \
-                  $(NNTRAINER_ROOT)/nntrainer/compiler/tflite_interpreter.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/app_context.cpp
+
+ifeq ($(ENABLE_TFLITE_INTERPRETER), 1)
+NNTRAINER_SRCS += $(NNTRAINER_ROOT)/nntrainer/compiler/tflite_opnode.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/compiler/tflite_interpreter.cpp
+endif #ENABLE_TFLITE_INTERPRETER
 
 # Add tflite backbone building
 ifeq ($(ENABLE_TFLITE_BACKBONE),1)
@@ -178,6 +190,10 @@ ifeq ($(ENABLE_TFLITE_BACKBONE),1)
 LOCAL_STATIC_LIBRARIES += tensorflow-lite
 LOCAL_CFLAGS += -DENABLE_TFLITE_BACKBONE=1
 endif #ENABLE_TFLITE_BACKBONE
+
+ifeq ($(ENABLE_TFLITE_INTERPRETER), 1)
+LOCAL_CFLAGS += -DENABLE_TFLITE_INTERPRETER
+endif #ENABLE_TFLITE_INTERPRETER
 
 # Enable Profile
 ifeq ($(ENABLE_PROFILE), 1)
