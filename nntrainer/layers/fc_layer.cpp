@@ -74,7 +74,7 @@ int FullyConnectedLayer::initialize(Manager &manager) {
 void FullyConnectedLayer::export_to(Exporter &exporter,
                                     ExportMethods method) const {
   Layer::export_to(exporter, method);
-  exporter.save_result(fc_props, method);
+  exporter.saveResult(fc_props, method, this);
 }
 
 void FullyConnectedLayer::setProperty(const PropertyType type,

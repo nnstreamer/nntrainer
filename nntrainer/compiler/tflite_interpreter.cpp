@@ -59,7 +59,7 @@ void builder2file(const flatbuffers::FlatBufferBuilder &builder,
   os.close();
 }
 
-using TfOpNodes = std::vector<TfOpNode>;
+using TfOpNodes = std::vector<std::unique_ptr<TfOpNode>>;
 
 /**
  * @brief Bidirectional Index map
@@ -184,11 +184,11 @@ public:
       };
 
     for (auto &op_node : nodes) {
-      update_opcode(op_node.getOpType());
-      update_variables(op_node.getInputs());
-      update_variables(op_node.getOutputs());
-      update_variables(op_node.getWeights());
-      update_buffers(op_node.getWeights());
+      update_opcode(op_node->getOpType());
+      update_variables(op_node->getInputs());
+      update_variables(op_node->getOutputs());
+      update_variables(op_node->getWeights());
+      update_buffers(op_node->getWeights());
     }
 
     auto update_model_io_to =
@@ -201,11 +201,11 @@ public:
       };
 
     for (auto &op_node : nodes) {
-      if (op_node.isInput()) {
-        update_model_io_to(op_node.getInputs(), inputs);
+      if (op_node->isInput()) {
+        update_model_io_to(op_node->getInputs(), inputs);
       }
-      if (op_node.isOutput()) {
-        update_model_io_to(op_node.getOutputs(), outputs);
+      if (op_node->isOutput()) {
+        update_model_io_to(op_node->getOutputs(), outputs);
       }
     }
   }
@@ -246,7 +246,10 @@ buildOpNodes(std::shared_ptr<const GraphRepresentation> representation) {
   /// @todo, look ahead of layers to get nodes that can be fused
   /// we will need to have a dedicated builder
   for (const auto &ln : representation->getSorted()) {
-    nodes.emplace_back(*ln.getObject());
+    Exporter e;
+    ln.getObject()->export_to(e, ExportMethods::METHOD_TFLITE);
+
+    nodes.emplace_back(e.getResult<ExportMethods::METHOD_TFLITE>());
   }
 
   return nodes;
@@ -397,7 +400,7 @@ buildOperators(const TfOpNodes &nodes, const TfOpIdxMap &map,
   v.reserve(nodes.size());
 
   for (auto &node : nodes) {
-    auto op = create_operator(node);
+    auto op = create_operator(*node);
     v.push_back(op);
   }
 

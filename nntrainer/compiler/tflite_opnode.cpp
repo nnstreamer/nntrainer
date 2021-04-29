@@ -16,14 +16,6 @@
 
 namespace nntrainer {
 
-TfOpNode::TfOpNode(const Layer &layer) : TfOpNode() {
-  setInOut(layer);
-  setInputs(layer.getInputRef());
-  setOutputs(layer.getOutputRef());
-  setWeights(layer.getWeightsRef());
-  setOpType(layer.getType());
-}
-
 void TfOpNode::setInOut(const Layer &layer) {
   auto &in = layer.getInputLayers();
   is_input = std::find(in.begin(), in.end(), "__data__") != in.end();
@@ -51,18 +43,6 @@ void TfOpNode::setWeights(const std::vector<Weight> &weights_) {
   weights.reserve(weights_.size());
   std::transform(weights_.begin(), weights_.end(), std::back_inserter(weights),
                  [](const auto &data) { return &data; });
-}
-
-void TfOpNode::setOpType(const std::string &type) {
-
-  if (istrequal(type, FullyConnectedLayer::type)) {
-    setOpType(tflite::BuiltinOperator_FULLY_CONNECTED);
-    setBuiltinOptions(tflite::BuiltinOptions_FullyConnectedOptions,
-                      flatbuffers::Offset<void>());
-    return;
-  }
-
-  throw std::invalid_argument("not supported type");
 }
 
 void TfOpNode::setBuiltinOptions(

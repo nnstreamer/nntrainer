@@ -111,15 +111,16 @@ TEST(BasicProperty, valid_p) {
     auto props = std::make_tuple(NumBanana(), QualityOfBanana());
 
     nntrainer::Exporter e;
-    e.save_result(props, nntrainer::ExportMethods::METHOD_STRINGVECTOR);
+    e.saveResult(props, nntrainer::ExportMethods::METHOD_STRINGVECTOR);
 
-    auto result = e.get_result<nntrainer::ExportMethods::METHOD_STRINGVECTOR>();
+    auto result =
+      std::move(e.getResult<nntrainer::ExportMethods::METHOD_STRINGVECTOR>());
 
     auto pair = std::pair<std::string, std::string>("num_banana", "1");
-    EXPECT_EQ(result[0], pair);
+    EXPECT_EQ(result->at(0), pair);
 
     auto pair2 = std::pair<std::string, std::string>("quality_banana", "");
-    EXPECT_EQ(result[1], pair2);
+    EXPECT_EQ(result->at(1), pair2);
   }
 
   { /**< export from layer */
@@ -127,11 +128,12 @@ TEST(BasicProperty, valid_p) {
     nntrainer::Exporter e;
     layer.export_to(e);
 
-    auto result = e.get_result<nntrainer::ExportMethods::METHOD_STRINGVECTOR>();
+    auto result =
+      std::move(e.getResult<nntrainer::ExportMethods::METHOD_STRINGVECTOR>());
     auto pair0 = std::pair<std::string, std::string>("name", "");
-    EXPECT_EQ(result[0], pair0);
+    EXPECT_EQ(result->at(0), pair0);
     auto pair1 = std::pair<std::string, std::string>("unit", "1");
-    EXPECT_EQ(result[1], pair1);
+    EXPECT_EQ(result->at(1), pair1);
   }
 
   { /**< load from layer */
@@ -177,7 +179,7 @@ TEST(Exporter, invalidMethods_n) {
   auto props = std::make_tuple(NumBanana(), QualityOfBanana());
 
   nntrainer::Exporter e;
-  EXPECT_THROW(e.save_result(props, nntrainer::ExportMethods::METHOD_UNDEFINED),
+  EXPECT_THROW(e.saveResult(props, nntrainer::ExportMethods::METHOD_UNDEFINED),
                nntrainer::exception::not_supported);
 }
 
@@ -186,10 +188,10 @@ TEST(Exporter, notExported_n) {
 
   nntrainer::Exporter e;
   /// intended comment
-  // e.save_result(props, nntrainer::ExportMethods::METHOD_STRINGVECTOR);
+  // e.saveResult(props, nntrainer::ExportMethods::METHOD_STRINGVECTOR);
 
-  EXPECT_THROW(e.get_result<nntrainer::ExportMethods::METHOD_STRINGVECTOR>(),
-               std::invalid_argument);
+  EXPECT_EQ(e.getResult<nntrainer::ExportMethods::METHOD_STRINGVECTOR>(),
+            nullptr);
 }
 
 /**

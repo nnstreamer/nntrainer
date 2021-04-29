@@ -9,6 +9,7 @@
  * @author Jihoon Lee <jhoon.it.lee@samsung.com>
  * @bug No known bugs except for NYI items
  */
+#include <memory>
 #include <string>
 #include <tuple>
 #include <utility>
@@ -21,6 +22,12 @@
 #define __NODE_EXPORTER_H__
 
 namespace nntrainer {
+
+/**
+ * @brief Forward declaration of TfOpNode
+ *
+ */
+class TfOpNode;
 
 /**
  * @brief Defines Export Method to be called with
@@ -49,6 +56,28 @@ template <ExportMethods method> struct return_type { using type = void; };
 template <> struct return_type<ExportMethods::METHOD_STRINGVECTOR> {
   using type = std::vector<std::pair<std::string, std::string>>;
 };
+
+/**
+ * @brief meta function to check return type when the method is string vector
+ *
+ * @tparam specialized so not given
+ */
+template <> struct return_type<ExportMethods::METHOD_TFLITE> {
+  using type = TfOpNode;
+};
+
+/**
+ * @brief Create a empty ptr if null
+ *
+ * @tparam T type to create
+ * @param[in/out] ptr ptr to create
+ */
+template <typename T> void createIfNull(std::unique_ptr<T> &ptr) {
+  if (ptr == nullptr) {
+    ptr = std::make_unique<T>();
+  }
+}
+
 } // namespace
 
 /**
@@ -63,37 +92,47 @@ public:
    * @brief Construct a new Exporter object
    *
    */
-  Exporter() : is_exported(false){};
+  Exporter();
+
+  /**
+   * @brief Destroy the Exporter object
+   *
+   */
+  ~Exporter();
 
   /**
    * @brief this function iterates over the property and process the property in
    * a designated way.
    *
    * @tparam Ts type of elements
+   * @tparam NodeType NodeType element
    * @param props tuple that contains properties
    * @param method method to export
+   * @param self this pointer to the layer which is being exported
    */
-  template <typename... Ts>
-  void save_result(const std::tuple<Ts...> &props, ExportMethods method) {
+  template <typename... Ts, typename NodeType = void>
+  void saveResult(const std::tuple<Ts...> &props, ExportMethods method,
+                  const NodeType *self = nullptr) {
     switch (method) {
-
     case ExportMethods::METHOD_STRINGVECTOR: {
+      createIfNull(stored_result);
 
       /**
-       * @brief function to pass to the iterate_prop, this saves the property to
-       * stored_result
+       * @brief function to pass to the iterate_prop, this saves the property
+       * to stored_result
        *
        * @param prop property property to pass
        * @param index index of the current property
        */
       auto callable = [this](auto &&prop, size_t index) {
         std::string key = std::remove_reference_t<decltype(prop)>::key;
-        stored_result.emplace_back(key, to_string(prop));
+        stored_result->emplace_back(key, to_string(prop));
       };
       iterate_prop(callable, props);
     } break;
     case ExportMethods::METHOD_TFLITE:
-    /// fall thorugh intended (NYI!!)
+      saveTflResult(props, self);
+      break;
     case ExportMethods::METHOD_UNDEFINED:
     /// fall thorugh intended
     default:
@@ -105,21 +144,44 @@ public:
 
   /**
    * @brief Get the result object
+   * @note @a unique_ptr here will be a member of @a this. The ownership is
+   * passed to the caller, thus after getResult, the target member is cleared.
+   * This is intended design choice to mimic single function call, between @a
+   * saveResult and @a getResult
    *
    * @tparam methods method to get
    * @tparam T appropriate return type regarding the export method
-   * @return T T
+   * @return std::unique_ptr<T> predefined return type according to the method.
+   * @retval nullptr not exported
    */
   template <ExportMethods methods,
             typename T = typename return_type<methods>::type>
-  const T &get_result();
+  std::unique_ptr<T> getResult() noexcept;
 
 private:
-  std::vector<std::pair<std::string, std::string>>
+  /**
+   * @brief ProtoType to enable saving result to tfnode
+   *
+   * @tparam PropsType propsType PropsType to receive with self
+   * @tparam NodeType NodeType of current layer.
+   * @param props properties to get with @a self
+   * @param self @a this of the current layer
+   */
+  template <typename PropsType, typename NodeType>
+  void saveTflResult(const PropsType &props, const NodeType *self) {
+    NNTR_THROW_IF(true, nntrainer::exception::not_supported)
+      << "given node cannot be converted to tfnode";
+  }
+
+#ifdef ENABLE_TFLITE_INTERPRETER
+  std::unique_ptr<TfOpNode> tf_node; /**< created node from the export */
+#endif
+
+  std::unique_ptr<std::vector<std::pair<std::string, std::string>>>
     stored_result; /**< stored result */
 
   /// consider changing this to a promise / future if there is a async function
-  /// involved to `save_result`
+  /// involved to `saveResult`
   bool is_exported; /**< boolean to check if exported */
 };
 
