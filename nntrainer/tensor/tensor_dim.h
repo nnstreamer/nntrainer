@@ -210,6 +210,25 @@ public:
   unsigned int getNumDim() const { return MAXDIM; }
 
   /**
+   * @brief calculate tranposed dimension
+   * @note In this function, batch direction is not considered, so channel is 0
+   * @todo make batch 0
+   *
+   * @param direction  direction to transpose
+   * @return TensorDim calculated dimension
+   */
+  TensorDim transpose(const std::string &direction) const;
+
+  /**
+   * @brief calculate trasposed dimension
+   * @note In this function, batch direction is considered 0
+   *
+   * @param axes axes to be transposed
+   * @return TensorDim calculated dimension
+   */
+  TensorDim transpose(const std::array<unsigned int, MAXDIM> &axes) const;
+
+  /**
    * @brief Get the Tensor dimension for an axis
    *
    * @param idx axis to get
@@ -221,7 +240,7 @@ public:
    * @brief Set the Tensor Dim object
    *
    * @param idx axis to set
-   * @param value value to sset
+   * @param value value to set
    */
   void setTensorDim(unsigned int idx, unsigned int value);
 
