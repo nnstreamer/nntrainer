@@ -332,7 +332,7 @@ public:
   virtual void
   export_to(Exporter &exporter,
             ExportMethods method = ExportMethods::METHOD_STRINGVECTOR) const {
-    exporter.save_result(layer_props, ExportMethods::METHOD_STRINGVECTOR);
+    exporter.saveResult(layer_props, method, this);
   };
 
   /**

@@ -75,8 +75,8 @@ static void graphEqual(const nntrainer::GraphRepresentation &lhs,
 
     /*** fixme, there is one caveat that order matters in this form */
     EXPECT_EQ(
-      lhs_export.get_result<nntrainer::ExportMethods::METHOD_STRINGVECTOR>(),
-      rhs_export.get_result<nntrainer::ExportMethods::METHOD_STRINGVECTOR>());
+      *lhs_export.getResult<nntrainer::ExportMethods::METHOD_STRINGVECTOR>(),
+      *rhs_export.getResult<nntrainer::ExportMethods::METHOD_STRINGVECTOR>());
   };
 
   if (lhs.size() == rhs.size()) {
