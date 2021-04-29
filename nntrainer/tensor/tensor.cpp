@@ -390,7 +390,7 @@ Tensor &Tensor::add(float const &value, Tensor &out) const {
 }
 
 int Tensor::add_i(Tensor const &m, float const alpha) {
-  /// @TODO: add axis rather doing add over the last two dimensions always
+  /// @todo: add axis rather doing add over the last two dimensions always
   /// operator i has optimized version
   auto f = [&](const BroadcastInfo &e, const float *buf, const float *m_buf,
                float *out_buf) {
@@ -800,7 +800,10 @@ Tensor &Tensor::dot(Tensor const &m, Tensor &result, bool trans, bool trans_m,
   return result;
 }
 
-Tensor Tensor::transpose(std::string direction) const {
+Tensor &Tensor::transpose(const std::string &direction, Tensor &out) const {
+  NNTR_THROW_IF(out.getData() == getData(), std::invalid_argument)
+    << "Tensor having same underlying data is not allowed";
+
   unsigned int SL, SI, SJ, SK;
   int dir[MAXDIM - 1];
   unsigned int fromDim[4];
@@ -813,8 +816,12 @@ Tensor Tensor::transpose(std::string direction) const {
   fromDim[3] = dim.width();
 
   getValues(3, direction, dir);
-  Tensor result(dim.batch(), fromDim[dir[0] + 1], fromDim[dir[1] + 1],
-                fromDim[dir[2] + 1]);
+
+  TensorDim result_dim{dim.batch(), fromDim[dir[0] + 1], fromDim[dir[1] + 1],
+                       fromDim[dir[2] + 1]};
+
+  NNTR_THROW_IF((out.getDim() != result_dim), std::invalid_argument)
+    << "dimension does not match";
 
   int indexI = dir[0];
   int indexJ = dir[1];
@@ -822,7 +829,7 @@ Tensor Tensor::transpose(std::string direction) const {
   SL = fromDim[0], SI = fromDim[1], SJ = fromDim[2], SK = fromDim[3];
 
   inptr = getData();
-  outptr = result.getData();
+  outptr = out.getData();
 
   switch (indexI) {
   case 0:
@@ -848,7 +855,43 @@ Tensor Tensor::transpose(std::string direction) const {
     break;
   }
 
-  return result;
+  return out;
+}
+
+Tensor Tensor::transpose(const std::string &direction) const {
+  int dir[MAXDIM - 1];
+  unsigned int fromDim[4];
+
+  fromDim[0] = dim.batch();
+  fromDim[1] = dim.channel();
+  fromDim[2] = dim.height();
+  fromDim[3] = dim.width();
+
+  getValues(3, direction, dir);
+  Tensor result(dim.batch(), fromDim[dir[0] + 1], fromDim[dir[1] + 1],
+                fromDim[dir[2] + 1]);
+
+  return transpose(direction, result);
+}
+
+void Tensor::transpose_i(const std::string &direction) {
+  int dir[MAXDIM - 1];
+  unsigned int fromDim[4];
+
+  fromDim[0] = dim.batch();
+  fromDim[1] = dim.channel();
+  fromDim[2] = dim.height();
+  fromDim[3] = dim.width();
+
+  getValues(3, direction, dir);
+
+  TensorDim result_dim{dim.batch(), fromDim[dir[0] + 1], fromDim[dir[1] + 1],
+                       fromDim[dir[2] + 1]};
+
+  Tensor original = clone();
+  reshape(result_dim);
+
+  original.transpose(direction, *this);
 }
 
 int Tensor::apply_i(std::function<float(float)> f) {

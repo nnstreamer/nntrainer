@@ -56,7 +56,7 @@ public:
    */
   Tensor() :
     dim(TensorDim()),
-    strides{dim.computeStrides()},
+    strides(dim.computeStrides()),
     is_contiguous(true),
     data(nullptr),
     src_tensor() {}
@@ -504,7 +504,22 @@ public:
    * @param[in] direction to transpose ex) 0:2:1
    * @retval    Calculated Tensor
    */
-  Tensor transpose(std::string direction) const;
+  Tensor transpose(const std::string &direction) const;
+
+  /**
+   * @brief Transpose Tensor
+   * @param direction to transpose ex) 0:2:1
+   * @param[out] Tensor to saved to
+   * @retval Tensor& reference to the out
+   */
+  Tensor &transpose(const std::string &direction, Tensor &out) const;
+
+  /**
+   * @brief Transpose a tensor and put it back to @a this
+   *
+   * @param direction to transpose ex) 0:2:1
+   */
+  void transpose_i(const std::string &direction);
 
   /**
    * @brief     sum all the Tensor elements according to the batch
@@ -980,8 +995,20 @@ private:
    */
   std::shared_ptr<SrcSharedTensor> src_tensor;
 
+  /**
+   * @brief Set the Dist object
+   *
+   * @tparam T distrubution engine
+   * @param dist distribution engine
+   */
   template <typename T> void setDist(T dist);
 
+  /**
+   * @brief copy a buffer to @a this, the caller has to ensure that @a this is
+   * initialized otherwise undefined behavior
+   *
+   * @param buf buffer to copy from
+   */
   void copy(const float *buf) noexcept;
 
   /**
