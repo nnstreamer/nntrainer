@@ -185,11 +185,6 @@ public:
    * @retval    ordered LayerNode list
    */
   const std::vector<LayerNode> &getSorted() const;
-
-  /**
-   * @brief     getter of orderd graph
-   * @retval    ordered LayerNode list
-   */
   std::vector<LayerNode> &getSorted();
 
   /**
@@ -357,13 +352,12 @@ private:
    * @brief     Ensure that layer has a name.
    * @param[in] layer Layer whose name is to be ensured to be valid
    * @param[in] prefix Prefix to be attached to the layer name
-   * @param[in] postfix Postfix to be attached to the layer name
    * @param[in] force_rename If the layer must be forcefully rename
    * @details   Ensures that the layer has a unique and a valid name. A valid
    * name pre-assigned to the layer can be changed if force_rename is enabled.
    */
   void ensureName(std::shared_ptr<Layer> layer, const std::string &prefix = "",
-                  const std::string &postfix = "", bool force_rename = false);
+                  bool force_rename = false);
 
   /**
    * @brief Create new LayerNode and add into Graph

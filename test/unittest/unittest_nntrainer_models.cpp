@@ -26,7 +26,6 @@
 #include <neuralnet.h>
 #include <preprocess_flip_layer.h>
 #include <preprocess_translate_layer.h>
-#include <time_dist.h>
 #include <weight.h>
 
 #include "nntrainer_test_util.h"
@@ -194,11 +193,6 @@ public:
    * @return LayerType
    */
   std::string getNodeType() { return node.getObject()->getType(); }
-
-  std::string getTimeDistInternalLayerType() {
-    return std::dynamic_pointer_cast<nntrainer::TimeDistLayer>(node.getObject())
-      ->getDistLayerType();
-  }
 
 private:
   NodeType node;
@@ -449,14 +443,7 @@ void GraphWatcher::validateFor(const nntrainer::TensorDim &label_shape) {
   if (loss_node.getNodeType() == nntrainer::LossLayer::type) {
     EXPECT_NO_THROW(nn.backwarding(label, 0));
   } else {
-    if (loss_node.getNodeType() == nntrainer::TimeDistLayer::type) {
-      if (loss_node.getTimeDistInternalLayerType() ==
-          nntrainer::LossLayer::type) {
-        EXPECT_NO_THROW(nn.backwarding(label, 0));
-      }
-    } else {
-      EXPECT_THROW(nn.backwarding(label, 0), std::runtime_error);
-    }
+    EXPECT_THROW(nn.backwarding(label, 0), std::runtime_error);
   }
 
   /**
@@ -988,22 +975,8 @@ INI fc_softmax_mse_distribute_validate(
   "fc_softmax_mse_distribute_validate",
   {nn_base + "loss=mse | batch_size = 3",
    sgd_base + "learning_rate = 1",
-   I("input") + input_base + "input_shape = 1:5:5",
-   I("dense") + fc_base + "unit = 3"+"activation=softmax"+"distribute=true"});
-
-INI fc_softmax_cross_distribute_validate(
-  "fc_softmax_cross_distribute_validate",
-  {nn_base + "loss=cross | batch_size = 3",
-   sgd_base + "learning_rate = 1",
-   I("input") + input_base + "input_shape = 1:5:5",
-   I("dense") + fc_base + "unit = 3"+"activation=softmax"+"distribute=true"});
-
-INI fc_sigmoid_cross_distribute_validate(
-  "fc_sigmoid_mse_distribute_validate",
-  {nn_base + "loss=cross | batch_size = 3",
-   sgd_base + "learning_rate = 1",
-   I("input") + input_base + "input_shape = 1:5:5",
-   I("dense") + fc_base + "unit = 3"+"activation=sigmoid"+"distribute=true"});
+   I("input") + input_base + "input_shape = 1:10:10",
+   I("dense") + fc_base + "unit = 5"+"activation=softmax"+"distribute=true"});
 
 INSTANTIATE_TEST_CASE_P(
   nntrainerModelAutoTests, nntrainerModelTest, ::testing::Values(
@@ -1037,10 +1010,8 @@ INSTANTIATE_TEST_CASE_P(
 #if defined(ENABLE_DATA_AUGMENTATION_OPENCV)
     mkModelTc(preprocess_translate_validate, "3:1:1:10", 10),
 #endif
-    mkModelTc(preprocess_flip_validate, "3:1:1:10", 10),
-    mkModelTc(fc_softmax_mse_distribute_validate, "3:1:5:3", 1),
-    mkModelTc(fc_softmax_cross_distribute_validate, "3:1:5:3", 1),
-    mkModelTc(fc_sigmoid_cross_distribute_validate, "3:1:5:3", 1)
+    mkModelTc(preprocess_flip_validate, "3:1:1:10", 10)
+    mkModelTc(fc_softmax_mse_distribute_validate, "3:1:10:5", 1)
 // / #if gtest_version <= 1.7.0
 ));
 /// #else gtest_version > 1.8.0
@@ -1050,9 +1021,8 @@ INSTANTIATE_TEST_CASE_P(
 /// #end if */
 // clang-format on
 
-/**
+
  * @brief Read or save the model before initialize
- */
 TEST(nntrainerModels, read_save_01_n) {
   nntrainer::NeuralNetwork NN;
   std::shared_ptr<nntrainer::Layer> layer =
