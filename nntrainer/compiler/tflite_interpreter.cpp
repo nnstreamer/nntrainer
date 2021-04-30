@@ -161,13 +161,11 @@ public:
     buffer_map.addDataWhenNotFound(
       empty_buffer, {0, empty_buffer}); /// this represents empty buffer
 
-    auto update_buffers = [&buffer_map](const TfOpNode::Variables &variables) {
-      for (auto &variable : variables) {
-        const Tensor &t = variable->getVariableRef();
-
+    auto update_buffers = [&buffer_map](const std::vector<Tensor> &tensors) {
+      for (auto &t : tensors) {
         NNTR_THROW_IF(t.uninitialized() || !t.isAllocated(),
                       std::invalid_argument)
-          << FUNC_TAG << "Weight tensor must be allocated";
+          << FUNC_TAG << "Buffered tensor must be allocated";
 
         const float *buf = t.getData();
         buffer_map.addDataWhenNotFound(buf, {t.getSize(), buf});
@@ -186,8 +184,7 @@ public:
       update_opcode(op_node->getOpType());
       update_variables(op_node->getInputs());
       update_variables(op_node->getOutputs());
-      update_variables(op_node->getWeights());
-      update_buffers(op_node->getWeights());
+      update_buffers(op_node->getBuffer());
     }
 
     auto update_model_io_to =
@@ -316,13 +313,14 @@ buildTensors(const TfOpIdxMap &map, flatbuffers::FlatBufferBuilder &fbb) {
   fb_tensors.reserve(variables.size());
 
   auto create_tensor = [&fbb, &buffer_map](const Var_Grad *var) {
-    bool need_shape_signature = var->getDim().is_dynamic();
-    std::vector<int32_t> eff_dim = var->getDim().getEffectiveDimension();
+    auto dim = var->getDim();
+    bool need_shape_signature = dim.is_dynamic();
+    std::vector<int32_t> eff_dim = dim.getEffectiveDimension();
     auto shape = fbb.CreateVector(eff_dim);
 
     decltype(shape) shape_sig;
     if (need_shape_signature) {
-      std::vector<int32_t> dyn_dim = var->getDim().getEffectiveDimension(true);
+      std::vector<int32_t> dyn_dim = dim.getEffectiveDimension(true);
       shape_sig = fbb.CreateVector(dyn_dim);
     }
 
@@ -374,12 +372,6 @@ buildOperators(const TfOpNodes &nodes, const TfOpIdxMap &map,
 
     auto op_code = index_map.getIndex(node.getOpType());
     auto inputs = variables_to_idx_vector(node.getInputs());
-
-    /// @todo: weights will be having specific order, if this is different,
-    /// there should be a way to resolve this
-    auto weight_input = variables_to_idx_vector(node.getWeights());
-    inputs.reserve(inputs.size() + weight_input.size());
-    inputs.insert(inputs.end(), weight_input.begin(), weight_input.end());
 
     auto outputs = variables_to_idx_vector(node.getOutputs());
 

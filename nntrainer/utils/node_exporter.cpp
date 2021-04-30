@@ -59,7 +59,14 @@ void Exporter::saveTflResult(const std::tuple<props::Unit> &props,
                              const FullyConnectedLayer *self) {
   createIfNull(tf_node);
 
-  tf_node->setWeights(self->getWeightsRef());
+  auto &weights = self->getWeightsRef();
+
+  /// transpose weight [h, w] -> [w, h]
+  std::unique_ptr<Var_Grad> weight_vg =
+    std::make_unique<Var_Grad>(weights[0].cloneTransposeVariableOnly("0:2:1"));
+
+  tf_node->appendInput(std::move(weight_vg), true);
+  tf_node->appendInput(&weights[1], true);
 
   tf_node->setOpType(tflite::BuiltinOperator_FULLY_CONNECTED);
   /// we probably going to need flatbuffer inside exporter regarding this
