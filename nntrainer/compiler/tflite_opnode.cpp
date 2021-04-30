@@ -39,6 +39,24 @@ void TfOpNode::setOutputs(
                  [](const auto &data) { return data.get(); });
 }
 
+void TfOpNode::appendInput(std::unique_ptr<Var_Grad> &&variable,
+                           bool keep_buffer) {
+  appendInput(variable.get(), keep_buffer);
+  node_owned_variable.emplace_back(std::move(variable));
+}
+
+void TfOpNode::appendInput(const Var_Grad *variable, bool keep_buffer) {
+  inputs.emplace_back(variable);
+
+  if (keep_buffer) {
+    auto &t = variable->getVariableRef();
+    NNTR_THROW_IF(t.isAllocated() == false, std::invalid_argument)
+      << "[TfOpNode] given variable is not allocated, name: "
+      << variable->getName();
+    buffers.emplace_back(std::move(t));
+  }
+}
+
 void TfOpNode::setWeights(const std::vector<Weight> &weights_) {
   weights.reserve(weights_.size());
   std::transform(weights_.begin(), weights_.end(), std::back_inserter(weights),
@@ -51,5 +69,12 @@ void TfOpNode::setBuiltinOptions(
   builtin_ops = builtin_ops_;
   builtin_option_type = builtin_option_type_;
 }
+
+/**
+ * @brief Get the Buffer object
+ *
+ * @return const std::vector<Tensor> buffer
+ */
+const std::vector<Tensor> TfOpNode::getBuffer() const { return buffers; }
 
 } // namespace nntrainer

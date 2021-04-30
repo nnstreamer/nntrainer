@@ -54,9 +54,29 @@ public:
   /**
    * @brief Set the Outputs object
    *
-   * @param outputs_
+   * @param outputs_ output to be inserted
    */
   void setOutputs(const std::vector<std::shared_ptr<Var_Grad>> &outputs_);
+
+  /**
+   * @brief append input to the node with ownership
+   *
+   * @param variable variable to be appended to the input, if it is unique_ptr,
+   * it implies ownership has to be kept in the op node.
+   * @param keep_buffer true if buffer has to be saved to the tflite file
+   */
+  void appendInput(std::unique_ptr<Var_Grad> &&variable,
+                   bool keep_buffer = false);
+
+  /**
+   * @brief append non-owing input to the node
+   *
+   * @param variable variable to be appended
+   * @param keep_buffer true if buffer has to be saved to be tflite file
+   * @throw std::invalid_argument if underlying tensor does not have internal
+   * storage
+   */
+  void appendInput(const Var_Grad *variable, bool keep_buffer = false);
 
   /**
    * @brief Set the Weights object
@@ -111,18 +131,11 @@ public:
   const Variables &getOutputs() const { return outputs; }
 
   /**
-   * @brief Get the Weights object
+   * @brief Get the Buffer object
    *
-   * @return Variables&
+   * @return const std::vector<Tensor> buffer
    */
-  Variables &getWeights() { return weights; }
-
-  /**
-   * @brief Get the Weights object
-   *
-   * @return const Variables& outputs
-   */
-  const Variables &getWeights() const { return weights; }
+  const std::vector<Tensor> getBuffer() const;
 
   /**
    * @brief check if this op node is model input
@@ -165,6 +178,14 @@ private:
   bool is_output; /**< true if given output is output; */
 
   tflite::BuiltinOperator op_type;
+
+  std::vector<std::unique_ptr<Var_Grad>>
+    node_owned_variable; /**< when node should be transformed it's own type, it
+                          * needs to be owned by someone, so @a TfOpNode owns
+                          * those orphaned var_grad until the instance is
+                          * destroyed */
+
+  std::vector<Tensor> buffers; /**< buffers to be recorded */
 
   /// retrieve this from export_to
   flatbuffers::Offset<void> builtin_ops;
