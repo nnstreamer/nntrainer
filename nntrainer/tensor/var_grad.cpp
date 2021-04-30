@@ -14,6 +14,8 @@
 #include <util_func.h>
 #include <var_grad.h>
 
+#include <nntrainer_error.h>
+
 namespace nntrainer {
 
 Var_Grad::Var_Grad(const TensorDim &dim, bool train, bool alloc_now_,
@@ -55,6 +57,21 @@ void Var_Grad::setTrainable(bool train) {
     bool alloc_now_ = var->isAllocated();
     grad = std::make_shared<Tensor>(var->getDim(), alloc_now_);
   }
+}
+
+Var_Grad
+Var_Grad::cloneTransposeVariableOnly(const std::string &direction) const {
+  Var_Grad vg(*this);
+  /// @todo: make this clonable even when not allocated
+  NNTR_THROW_IF(var->isAllocated() == false, std::invalid_argument)
+    << "transpose clone is only allowed when variable is allocated, var name: "
+    << getName();
+
+  vg.var = std::make_shared<Tensor>(var->transpose(direction));
+  vg.dim = vg.var->getDim();
+  vg.grad.reset();
+
+  return vg;
 }
 
 } // namespace nntrainer

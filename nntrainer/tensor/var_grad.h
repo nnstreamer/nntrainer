@@ -167,11 +167,24 @@ public:
    */
   Var_Grad clone() const {
     Var_Grad vg(*this);
+
+    /// @fixme even if var is not allocated, cloned var will have allocated
+    /// memory
     vg.var = std::make_shared<Tensor>(this->var->clone());
     vg.grad = std::make_shared<Tensor>(this->grad->clone());
 
     return vg;
   };
+
+  /**
+   * @brief transpose and clone variable, gradient is set to null here
+   * @warning returned var_grad has broken invariant, so the gradient should
+   * never be used
+   *
+   * @param direction direction to transpose
+   * @return Var_Grad new var_grad
+   */
+  Var_Grad cloneTransposeVariableOnly(const std::string &direction) const;
 
   /**
    * @brief Reset the variable and gradient
