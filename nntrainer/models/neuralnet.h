@@ -48,7 +48,6 @@
 #include <optimizer_devel.h>
 #include <pooling2d_layer.h>
 #include <tensor.h>
-#include <time_dist.h>
 
 #include <model.h>
 #include <nntrainer-api-common.h>
@@ -328,7 +327,7 @@ public:
    */
   int setOptimizer(std::shared_ptr<ml::train::Optimizer> optimizer);
 
-  /**
+  /*
    * @brief     get layer by name from neural network model
    * @param[in] name name of the layer to get
    * @param[out] layer shared_ptr to hold the layer to get
@@ -338,7 +337,7 @@ public:
   virtual int getLayer(const char *name,
                        std::shared_ptr<ml::train::Layer> *layer);
 
-  /**
+  /*
    * @brief     get layer by name from neural network model
    * @param[in] name name of the layer to get
    * @param[out] layer shared_ptr to hold the layer to get
@@ -347,7 +346,7 @@ public:
    */
   int getLayer(const char *name, NodeType *layer);
 
-  /**
+  /*
    * @brief     get input dimension of neural network
    * @retval std::vector<TensorDim> input dimension
    */
@@ -355,7 +354,7 @@ public:
     return model_graph.getInputDimension();
   }
 
-  /**
+  /*
    * @brief     get output dimension of neural network
    * @retval std::vector<TensorDim> output dimension
    */
@@ -373,10 +372,6 @@ public:
    */
   FlatGraphType getFlatGraph() { return model_graph.getLayers(); }
 
-  /**
-   * @brief     get network graph
-   * @retval NetowrkGraphType
-   */
   NetworkGraphType getNetworkGraph() { return model_graph; }
 
   /**

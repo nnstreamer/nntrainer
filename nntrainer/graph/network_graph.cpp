@@ -183,8 +183,7 @@ void NetworkGraph::topologicalSort() {
 }
 
 void NetworkGraph::ensureName(std::shared_ptr<Layer> layer,
-                              const std::string &prefix,
-                              const std::string &postfix, bool force_rename) {
+                              const std::string &prefix, bool force_rename) {
   std::string orig_name = layer->getName();
   bool orig_name_empty = orig_name.empty();
   /** If layer already has name which is unique and valid, and force is
@@ -198,7 +197,7 @@ void NetworkGraph::ensureName(std::shared_ptr<Layer> layer,
 
   /** If just prefix with layer name makes it unique - directly set the name */
   if (!orig_name_empty) {
-    std::string direct_name = prefix + orig_name + postfix;
+    std::string direct_name = prefix + orig_name;
     if (layer_names.find(direct_name) == layer_names.end()) {
       layer->setName(direct_name);
       layer_names.insert(direct_name);
@@ -212,7 +211,7 @@ void NetworkGraph::ensureName(std::shared_ptr<Layer> layer,
     orig_name = layer->getType();
   }
 
-  std::string direct_name = prefix + orig_name + postfix;
+  std::string direct_name = prefix + orig_name;
 
   do {
     name = direct_name + std::to_string(def_name_count++);
@@ -320,7 +319,7 @@ int NetworkGraph::realizeActivationType(Layer &current) {
 
   if (current.getType() == TimeDistLayer::type) {
     std::string unit_str = layer->getName();
-    ensureName(layer, "", "_unit");
+    layer->setName(layer->getName() + "_unit");
     layer = distributeLayer(layer);
     layer->setName(unit_str);
   }
@@ -429,7 +428,7 @@ int NetworkGraph::addLossLayer(const LossType loss_type) {
 
   if (last_node.getObject()->getType() == TimeDistLayer::type) {
     std::string unit_str = layer->getName();
-    ensureName(layer, "", "_unit");
+    layer->setName(unit_str + "_unit");
     layer = distributeLayer(layer);
     layer->setName(unit_str);
   }
@@ -594,8 +593,7 @@ int NetworkGraph::realizeGraph() {
       NN_RETURN_STATUS();
     }
 
-    // Flatten in TimeDistLayer is not supported.
-    if (l.getFlatten() && l.getType() != TimeDistLayer::type) {
+    if (l.getFlatten()) {
       status = realizeFlattenType(l);
       NN_RETURN_STATUS();
     }
@@ -760,7 +758,7 @@ void NetworkGraph::extendGraph(std::vector<std::shared_ptr<Layer>> graph,
      * and ensure it is unique in this new graph
      */
     std::string orig_name = prefix + layer->getName();
-    ensureName(layer, prefix, "", true);
+    ensureName(layer, prefix, true);
     sub_in_out.insert(std::make_pair(orig_name, layer->getName()));
 
     for (unsigned int i = 0; i < layer->input_layers.size(); ++i) {
@@ -796,12 +794,7 @@ void NetworkGraph::inPlaceOptimize(const std::string &layer_type,
                                    Manager &manager) {
   for (auto &layer_node : getSorted()) {
     auto &l = layer_node.getObject();
-    std::string l_type = l->getType();
-    if (l_type == TimeDistLayer::type) {
-      l_type = std::dynamic_pointer_cast<TimeDistLayer>(l)->getDistLayerType();
-    }
-
-    if (l_type == layer_type &&
+    if (l->getType() == layer_type &&
         l->getActivationType() != ActivationType::ACT_SOFTMAX) {
       /** @note assumes layer to be optimized is only for single in/out tensor
        */
@@ -840,7 +833,7 @@ void NetworkGraph::inPlaceOptimize(const std::string &layer_type,
        * Assume two layers, L1 and L2, with I and O corresponding to the layer
        * outputs. Assume L2 to be the layer, needing in-place optimization.
        */
-      if (l_type == BatchNormalizationLayer::type) {
+      if (l->getType() == BatchNormalizationLayer::type) {
         /**
          * With batch normalization, neither input nor output of the layer are
          * requried for calculatin gradient and derivative. Just input
@@ -851,7 +844,7 @@ void NetworkGraph::inPlaceOptimize(const std::string &layer_type,
         auto &inplace_shared_vg_ptr = l->net_hidden[0];
         l->net_input[0] = inplace_shared_vg_ptr;             /// I2 = O2
         prev_layer->net_hidden[loc] = inplace_shared_vg_ptr; /// O1 = O2
-      } else if (l_type == ActivationLayer::type) {
+      } else if (l->getType() == ActivationLayer::type) {
         /**
          * For activation layer, output of the layer and input derivative, both
          * , are requried for calculating the gradient and derivative. In this
@@ -875,7 +868,7 @@ void NetworkGraph::inPlaceOptimize(const std::string &layer_type,
           inplace_shared_vg); /// O1.V = O2.V
       } else {
         std::stringstream ss;
-        ss << l_type;
+        ss << l->getType();
         ss << " layer is not supported for in-place optimization";
         throw std::runtime_error(ss.str());
       }
