@@ -971,13 +971,6 @@ INI preprocess_translate_validate(
 
 INI mnist_conv_cross_one_input = INI("mnist_conv_cross_one_input") + mnist_conv_cross + "model/batch_size=1";
 
-INI fc_softmax_mse_distribute_validate(
-  "fc_softmax_mse_distribute_validate",
-  {nn_base + "loss=mse | batch_size = 3",
-   sgd_base + "learning_rate = 1",
-   I("input") + input_base + "input_shape = 1:10:10",
-   I("dense") + fc_base + "unit = 5"+"activation=softmax"+"distribute=true"});
-
 INSTANTIATE_TEST_CASE_P(
   nntrainerModelAutoTests, nntrainerModelTest, ::testing::Values(
     mkModelTc(fc_sigmoid_mse, "3:1:1:10", 10),
@@ -1011,7 +1004,6 @@ INSTANTIATE_TEST_CASE_P(
     mkModelTc(preprocess_translate_validate, "3:1:1:10", 10),
 #endif
     mkModelTc(preprocess_flip_validate, "3:1:1:10", 10)
-    mkModelTc(fc_softmax_mse_distribute_validate, "3:1:10:5", 1)
 // / #if gtest_version <= 1.7.0
 ));
 /// #else gtest_version > 1.8.0
@@ -1021,8 +1013,9 @@ INSTANTIATE_TEST_CASE_P(
 /// #end if */
 // clang-format on
 
-
+/**
  * @brief Read or save the model before initialize
+ */
 TEST(nntrainerModels, read_save_01_n) {
   nntrainer::NeuralNetwork NN;
   std::shared_ptr<nntrainer::Layer> layer =
