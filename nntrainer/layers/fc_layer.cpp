@@ -93,7 +93,7 @@ void FullyConnectedLayer::forwarding(bool training) {
 
   Tensor &hidden_ = net_hidden[0]->getVariableRef();
   Tensor &input_ = net_input[0]->getVariableRef();
-  input_.dot(weight, hidden_);
+  hidden_ = input_.dot(weight, hidden_);
   hidden_.add_i(bias);
 
   loss = weightAt(static_cast<int>(FCParams::weight)).getRegularizationLoss();

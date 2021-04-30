@@ -55,7 +55,7 @@ void LossLayer::forwarding(bool training) {
   switch (loss_type) {
   case LossType::LOSS_MSE: {
     // y2 <- y2 - y;
-    hidden_.fill(y);
+    hidden_ = y;
     if (label_exist) {
       Tensor &y2 = net_hidden[0]->getGradientRef();
       Tensor residual = y2.subtract(y);
