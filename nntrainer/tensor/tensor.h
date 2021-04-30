@@ -509,17 +509,10 @@ public:
   /**
    * @brief Transpose Tensor
    * @param direction to transpose ex) 0:2:1
-   * @param[out] Tensor to saved to
+   * @param[out] Tensor to save to, dimension is always reshaped.
    * @retval Tensor& reference to the out
    */
   Tensor &transpose(const std::string &direction, Tensor &out) const;
-
-  /**
-   * @brief Transpose a tensor and put it back to @a this
-   *
-   * @param direction to transpose ex) 0:2:1
-   */
-  void transpose_i(const std::string &direction);
 
   /**
    * @brief     sum all the Tensor elements according to the batch
