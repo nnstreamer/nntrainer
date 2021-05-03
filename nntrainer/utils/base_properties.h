@@ -9,8 +9,7 @@
  * @author Jihoon Lee <jhoon.it.lee@samsung.com>
  * @bug No known bugs except for NYI items
  */
-#include <iostream>
-#include <sstream>
+#include <nntrainer_error.h>
 #include <string>
 
 #ifndef __BASE_PROPERTIES_H__
@@ -64,7 +63,7 @@ struct double_prop_tag {};
 struct str_prop_tag {};
 
 /**
- * @brief base property class, inherit this to make a convinient property
+ * @brief base property class, inherit this to make a convenient property
  *
  * @tparam T
  */
@@ -112,9 +111,8 @@ public:
    * @throw std::invalid_argument if argument is not valid
    */
   void set(const T &v) {
-    if (!is_valid(v)) {
-      throw std::invalid_argument("argument is not valid");
-    }
+    NNTR_THROW_IF(is_valid(v) == false, std::invalid_argument)
+      << "argument is not valid";
     value = v;
   }
 
@@ -267,84 +265,25 @@ struct tag_cast<Tag, BaseTag, Others...> {
  * This structure defines how to convert to convert from/to string
  *
  * @tparam Tag tag type for the converter
+ * @tparam DataType underlying datatype
  */
-template <typename Tag> struct str_converter {};
-
-/**
- * @brief struct converter
- *
- * @copydoc template<typename Tag> struct_converter;
- */
-template <> struct str_converter<str_prop_tag> {
+template <typename Tag, typename DataType> struct str_converter {
 
   /**
-   * @brief string converter to string
+   * @brief convert underlying value to string
    *
-   * @param value value to convert
-   * @return std::string to_string
+   * @param value value to convert to string
+   * @return std::string string
    */
-  static std::string to_string(const std::string &value) { return value; }
+  static std::string to_string(const DataType &value);
 
   /**
-   * @brief string converter from string
+   * @brief convert string to underlying value
    *
-   * @param str value to convert
-   * @return std::string converted value
+   * @param value value to convert to string
+   * @return DataType converted type
    */
-  static std::string from_string(const std::string &str) { return str; }
-};
-
-/**
- * @brief struct converter
- *
- * @copydoc template<typename Tag> struct_converter;
- */
-template <> struct str_converter<int_prop_tag> {
-  /**
-   * @brief string converter to string
-   *
-   * @param value value to convert
-   * @return std::string to_string
-   */
-  static std::string to_string(const int value) {
-    return std::to_string(value);
-  }
-
-  /**
-   * @brief string converter from string
-   *
-   * @param str value to convert
-   * @return std::string converted value
-   */
-  static int from_string(const std::string &value) { return std::stoi(value); }
-};
-
-/**
- * @brief struct converter
- *
- * @copydoc template<typename Tag> struct_converter;
- */
-template <> struct str_converter<uint_prop_tag> {
-
-  /**
-   * @brief string converter to string
-   *
-   * @param value value to convert
-   * @return std::string to_string
-   */
-  static std::string to_string(const unsigned int value) {
-    return std::to_string(value);
-  }
-
-  /**
-   * @brief string converter from string
-   *
-   * @param str value to convert
-   * @return std::string converted value
-   */
-  static unsigned int from_string(const std::string &value) {
-    return std::stoul(value);
-  }
+  static DataType from_string(const std::string &value);
 };
 
 /**
@@ -359,7 +298,10 @@ template <typename T> std::string to_string(const T &property) {
     typename tag_cast<typename prop_tag<T>::type, int_prop_tag, uint_prop_tag,
                       vector_prop_tag, dimension_prop_tag, double_prop_tag,
                       str_prop_tag>::type;
-  return str_converter<tag_type>::to_string(property.get());
+
+  using data_type = std::remove_cv_t<
+    std::remove_reference_t<decltype(std::declval<T>().get())>>;
+  return str_converter<tag_type, data_type>::to_string(property.get());
 }
 
 /**
@@ -374,7 +316,11 @@ template <typename T> void from_string(const std::string &str, T &property) {
     typename tag_cast<typename prop_tag<T>::type, int_prop_tag, uint_prop_tag,
                       vector_prop_tag, dimension_prop_tag, double_prop_tag,
                       str_prop_tag>::type;
-  property.set(str_converter<tag_type>::from_string(str));
+
+  using data_type = std::remove_cv_t<
+    std::remove_reference_t<decltype(std::declval<T>().get())>>;
+
+  property.set(str_converter<tag_type, data_type>::from_string(str));
 }
 
 } // namespace nntrainer
