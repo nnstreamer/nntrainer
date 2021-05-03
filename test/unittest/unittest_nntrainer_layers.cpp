@@ -1270,7 +1270,8 @@ TEST_F(nntrainer_BatchNormalizationLayer_Conv, forward_backward_training_01_p) {
   sharedConstTensor forward_result;
   allocateMemory();
 
-  forward_result = layer.forwarding_with_val({MAKE_SHARED_TENSOR(in)})[0];
+  EXPECT_NO_THROW(forward_result =
+                    layer.forwarding_with_val({MAKE_SHARED_TENSOR(in)})[0]);
   matchOutput(*forward_result, "tc_bn_conv_1_goldenBNResultForward.out");
 
   nntrainer::Tensor backward_in(layer.getOutputDimension()[0]);
@@ -1316,7 +1317,8 @@ TEST_F(nntrainer_BatchNormalizationLayer_Conv2,
   sharedConstTensor forward_result;
   allocateMemory();
 
-  forward_result = layer.forwarding_with_val({MAKE_SHARED_TENSOR(in)})[0];
+  EXPECT_NO_THROW(forward_result =
+                    layer.forwarding_with_val({MAKE_SHARED_TENSOR(in)})[0]);
   matchOutput(*forward_result, "tc_bn_conv_2_goldenBNResultForward.out");
 
   nntrainer::Tensor backward_in(layer.getOutputDimension()[0]);
