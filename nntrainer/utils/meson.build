@@ -3,7 +3,8 @@ util_sources = [
   'util_func.cpp',
   'profiler.cpp',
   'ini_wrapper.cpp',
-  'node_exporter.cpp'
+  'node_exporter.cpp',
+  'base_properties.cpp'
 ]
 
 util_headers = [
