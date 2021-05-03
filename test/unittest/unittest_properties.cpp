@@ -54,6 +54,22 @@ public:
     return nntrainer::endswith(v, "good");
   }
 };
+
+/**
+ * @brief DimensionOfBanana property for example, this has to have batch size of
+ * 1
+ *
+ */
+class DimensionOfBanana : public nntrainer::Property<nntrainer::TensorDim> {
+public:
+  static constexpr const char *key = "banana_size";
+  using prop_tag = nntrainer::dimension_prop_tag;
+
+  bool isValid(const nntrainer::TensorDim &dim) const override {
+    std::cerr << dim;
+    return dim.batch() == 1;
+  }
+};
 } // namespace
 
 TEST(BasicProperty, tagCast) {
@@ -111,6 +127,27 @@ TEST(BasicProperty, valid_p) {
     EXPECT_EQ(nntrainer::to_string(q), "this is good");
   }
 
+  { /** set -> get / to_string, dimension*/
+    DimensionOfBanana q;
+    q.set({1, 2, 3, 4});
+    EXPECT_EQ(q.get(), nntrainer::TensorDim(1, 2, 3, 4));
+    EXPECT_EQ(nntrainer::to_string(q), "1:2:3:4");
+  }
+
+  { /**< from_string -> get / to_string, dimension */
+    DimensionOfBanana q;
+    nntrainer::from_string("1:2:3:4", q);
+    EXPECT_EQ(q.get(), nntrainer::TensorDim(1, 2, 3, 4));
+    EXPECT_EQ(nntrainer::to_string(q), "1:2:3:4");
+  }
+
+  { /**< from_string -> get / to_string, dimension */
+    DimensionOfBanana q;
+    nntrainer::from_string("3:4", q);
+    EXPECT_EQ(q.get(), nntrainer::TensorDim(1, 1, 3, 4));
+    EXPECT_EQ(nntrainer::to_string(q), "1:1:3:4");
+  }
+
   { /**< exporter test */
     auto props = std::make_tuple(NumBanana(), QualityOfBanana());
 
@@ -139,12 +176,13 @@ TEST(BasicProperty, valid_p) {
   }
 
   { /**< load from layer */
-    auto props = std::make_tuple(NumBanana(), QualityOfBanana());
+    auto props =
+      std::make_tuple(NumBanana(), QualityOfBanana(), DimensionOfBanana());
 
-    auto v =
-      nntrainer::loadProperties({"num_banana=2", "quality_banana=thisisgood",
-                                 "num_banana=42", "not_used=key"},
-                                props);
+    auto v = nntrainer::loadProperties(
+      {"num_banana=2", "quality_banana=thisisgood", "num_banana=42",
+       "banana_size=2:2:3", "not_used=key"},
+      props);
 
     EXPECT_EQ(v, std::vector<std::string>{"not_used=key"});
     EXPECT_EQ(std::get<0>(props).get(), 42);
@@ -162,6 +200,11 @@ TEST(BasicProperty, setNotValid_02_n) {
   EXPECT_THROW(q.set("invalid_str"), std::invalid_argument);
 }
 
+TEST(BasicProperty, setNotValid_03_n) {
+  DimensionOfBanana d;
+  EXPECT_THROW(d.set({3, 3, 2, 4}), std::invalid_argument);
+}
+
 TEST(BasicProperty, fromStringNotValid_01_n) {
   NumBanana b;
   EXPECT_THROW(nntrainer::from_string("not integer", b), std::invalid_argument);
@@ -175,6 +218,26 @@ TEST(BasicProperty, fromStringNotValid_02_n) {
 TEST(BasicProperty, fromStringNotValid_03_n) {
   QualityOfBanana q;
   EXPECT_THROW(nntrainer::from_string("invalid_str", q), std::invalid_argument);
+}
+
+TEST(BasicProperty, fromStringNotValid_04_n) {
+  DimensionOfBanana d;
+  EXPECT_THROW(nntrainer::from_string("1:1:2:3:5", d), std::invalid_argument);
+}
+
+TEST(BasicProperty, fromStringNotValid_05_n) {
+  DimensionOfBanana d;
+  EXPECT_THROW(nntrainer::from_string("2:2:3:5", d), std::invalid_argument);
+}
+
+TEST(BasicProperty, fromStringNotValid_06_n) {
+  DimensionOfBanana d;
+  EXPECT_THROW(nntrainer::from_string("", d), std::invalid_argument);
+}
+
+TEST(BasicProperty, fromStringNotValid_07_n) {
+  DimensionOfBanana d;
+  EXPECT_THROW(nntrainer::from_string(":2:3:5", d), std::invalid_argument);
 }
 
 TEST(Exporter, invalidMethods_n) {
