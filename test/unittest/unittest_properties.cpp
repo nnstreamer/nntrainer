@@ -54,6 +54,20 @@ public:
     return nntrainer::endswith(v, "good");
   }
 };
+
+/**
+ * @brief BananaTypes property for example
+ *
+ */
+class BananaTypes : public nntrainer::Property<std::vector<unsigned int>> {
+public:
+  static constexpr const char *key = "banana_types";
+  using prop_tag = nntrainer::vector_prop_tag;
+
+  bool is_valid(const std::vector<unsigned int> &v) override {
+    return v.size() > 3;
+  }
+};
 } // namespace
 
 TEST(BasicProperty, tagCast) {
@@ -107,6 +121,20 @@ TEST(BasicProperty, valid_p) {
     EXPECT_EQ(nntrainer::to_string(q), "this is good");
   }
 
+  { /** set -> get / to_string, uint vector prop*/
+    BananaTypes q;
+    q.set({1, 2, 3, 4});
+    EXPECT_EQ(q.get(), std::vector<unsigned int>({1, 2, 3, 4}));
+    EXPECT_EQ(nntrainer::to_string(q), "1,2,3,4");
+  }
+
+  { /**< from_string -> get / to_string, uint vector prop */
+    BananaTypes q;
+    nntrainer::from_string("1, 2,3, 4, 5", q);
+    EXPECT_EQ(q.get(), std::vector<unsigned int>({1, 2, 3, 4, 5}));
+    EXPECT_EQ(nntrainer::to_string(q), "1,2,3,4,5");
+  }
+
   { /**< exporter test */
     auto props = std::make_tuple(NumBanana(), QualityOfBanana());
 
@@ -158,6 +186,11 @@ TEST(BasicProperty, setNotValid_02_n) {
   EXPECT_THROW(q.set("invalid_str"), std::invalid_argument);
 }
 
+TEST(BasicProperty, setNotValid_03_n) {
+  BananaTypes q;
+  EXPECT_THROW(q.set({1, 2}), std::invalid_argument);
+}
+
 TEST(BasicProperty, fromStringNotValid_01_n) {
   NumBanana b;
   EXPECT_THROW(nntrainer::from_string("not integer", b), std::invalid_argument);
@@ -170,6 +203,11 @@ TEST(BasicProperty, fromStringNotValid_02_n) {
 
 TEST(BasicProperty, fromStringNotValid_03_n) {
   QualityOfBanana q;
+  EXPECT_THROW(nntrainer::from_string("invalid_str", q), std::invalid_argument);
+}
+
+TEST(BasicProperty, fromStringNotValid_04_n) {
+  BananaTypes q;
   EXPECT_THROW(nntrainer::from_string("invalid_str", q), std::invalid_argument);
 }
 
