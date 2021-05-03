@@ -11,7 +11,9 @@
  */
 #include <gtest/gtest.h>
 
+#include <array>
 #include <utility>
+#include <vector>
 
 #include <base_properties.h>
 #include <fc_layer.h>
@@ -33,7 +35,7 @@ struct banana_prop_tag : nntrainer::int_prop_tag {};
  */
 class NumBanana : public nntrainer::Property<int> {
 public:
-  NumBanana() { set(1); }                          /**< default value if any */
+  NumBanana(int num = 1) : Property<int>(num) {}   /**< default value if any */
   static constexpr const char *key = "num_banana"; /**< unique key to access */
   using prop_tag = banana_prop_tag;                /**< property type */
 
@@ -46,6 +48,7 @@ public:
  */
 class QualityOfBanana : public nntrainer::Property<std::string> {
 public:
+  QualityOfBanana(const char *value = "") : Property<std::string>(value) {}
   static constexpr const char *key = "quality_banana";
   using prop_tag = nntrainer::str_prop_tag;
 
@@ -82,7 +85,7 @@ TEST(BasicProperty, tagCast) {
   }
 
   { /**< tag_cast ranged cast */
-    using T = nntrainer::tag_cast<banana_prop_tag, nntrainer::vector_prop_tag,
+    using T = nntrainer::tag_cast<banana_prop_tag, nntrainer::float_prop_tag,
                                   nntrainer::int_prop_tag>::type;
     ::testing::StaticAssertTypeEq<T, nntrainer::int_prop_tag>();
   }
@@ -148,6 +151,24 @@ TEST(BasicProperty, valid_p) {
     EXPECT_EQ(nntrainer::to_string(q), "1:1:3:4");
   }
 
+  { /**< from_string -> get / to_string, uint vector prop */
+    std::vector<NumBanana> bananas;
+    EXPECT_EQ(nntrainer::getPropKey(bananas), "num_banana");
+    nntrainer::from_string("1, 2,3, 4, 5", bananas);
+    auto expected = std::vector<NumBanana>({1, 2, 3, 4, 5});
+    EXPECT_EQ(bananas, expected);
+    EXPECT_EQ(nntrainer::to_string(bananas), "1,2,3,4,5");
+  }
+
+  { /**< from_string -> get / to_string, uint array prop */
+    std::array<NumBanana, 4> bananas;
+    EXPECT_EQ(nntrainer::getPropKey(bananas), "num_banana");
+    nntrainer::from_string("1, 2,3, 4", bananas);
+    auto expected = std::array<NumBanana, 4>({1, 2, 3, 4});
+    EXPECT_EQ(bananas, expected);
+    EXPECT_EQ(nntrainer::to_string(bananas), "1,2,3,4");
+  }
+
   { /**< exporter test */
     auto props = std::make_tuple(NumBanana(), QualityOfBanana());
 
@@ -187,6 +208,22 @@ TEST(BasicProperty, valid_p) {
     EXPECT_EQ(v, std::vector<std::string>{"not_used=key"});
     EXPECT_EQ(std::get<0>(props).get(), 42);
     EXPECT_EQ(std::get<1>(props).get(), "thisisgood");
+  }
+
+  { /**< load from layer */
+    std::tuple<std::array<NumBanana, 4>, std::vector<QualityOfBanana>> props;
+
+    auto v = nntrainer::loadProperties(
+      {"num_banana=1,2, 3 ,4", "quality_banana=thisisgood, thisisverygood",
+       "not_used=key"},
+      props);
+
+    EXPECT_EQ(v, std::vector<std::string>{"not_used=key"});
+    auto expected = std::array<NumBanana, 4>({1, 2, 3, 4});
+    EXPECT_EQ(std::get<0>(props), expected);
+    auto expected2 =
+      std::vector<QualityOfBanana>({"thisisgood", "thisisverygood"});
+    EXPECT_EQ(std::get<1>(props), expected2);
   }
 }
 
@@ -238,6 +275,41 @@ TEST(BasicProperty, fromStringNotValid_06_n) {
 TEST(BasicProperty, fromStringNotValid_07_n) {
   DimensionOfBanana d;
   EXPECT_THROW(nntrainer::from_string(":2:3:5", d), std::invalid_argument);
+}
+
+TEST(BasicProperty, fromStringVectorElementContainNotValidString_n) {
+  std::vector<NumBanana> bs;
+  EXPECT_THROW(nntrainer::from_string("1, 2, 3, not_valid", bs),
+               std::invalid_argument);
+}
+
+TEST(BasicProperty, fromStringVectorElementContainNotValidProp_n) {
+  std::vector<NumBanana> bs;
+  EXPECT_THROW(nntrainer::from_string("1, 2, 3, -1", bs),
+               std::invalid_argument);
+}
+
+TEST(BasicProperty, fromStringLessArrayElementSize_n) {
+  std::array<NumBanana, 4> bs;
+  EXPECT_THROW(nntrainer::from_string("1, 2, 3", bs), std::invalid_argument);
+}
+
+TEST(BasicProperty, fromStringOverArrayElementSize_n) {
+  std::array<NumBanana, 4> bs;
+  EXPECT_THROW(nntrainer::from_string("1, 2, 3,4,5", bs),
+               std::invalid_argument);
+}
+
+TEST(BasicProperty, fromStringArrayNotValidString_n) {
+  std::array<NumBanana, 4> bs;
+  EXPECT_THROW(nntrainer::from_string("1, 2, invalid, 4", bs),
+               std::invalid_argument);
+}
+
+TEST(BasicProperty, fromStringArrayNotValidProp_n) {
+  std::array<NumBanana, 4> bs;
+  EXPECT_THROW(nntrainer::from_string("1, 2, -1, 4", bs),
+               std::invalid_argument);
 }
 
 TEST(Exporter, invalidMethods_n) {
