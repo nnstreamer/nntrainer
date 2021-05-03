@@ -11,7 +11,9 @@
  */
 #include <base_properties.h>
 
+#include <sstream>
 #include <string>
+#include <vector>
 
 namespace nntrainer {
 
@@ -48,4 +50,38 @@ unsigned int str_converter<uint_prop_tag, unsigned int>::from_string(
   const std::string &value) {
   return std::stoul(value);
 }
+
+template <>
+std::string str_converter<dimension_prop_tag, TensorDim>::to_string(
+  const TensorDim &dimension) {
+  std::stringstream ss;
+  ss << dimension.batch() << ':' << dimension.channel() << ':'
+     << dimension.height() << ':' << dimension.width();
+  return ss.str();
+}
+
+template <>
+TensorDim str_converter<dimension_prop_tag, TensorDim>::from_string(
+  const std::string &value) {
+  std::vector<std::string> tokens;
+  std::string token;
+  std::istringstream iss(value);
+
+  while (std::getline(iss, token, ':')) {
+    tokens.push_back(token);
+  }
+
+  NNTR_THROW_IF(tokens.size() > MAXDIM, std::invalid_argument)
+    << "More than 4 axes is not supported, target string: " << value;
+
+  TensorDim target;
+
+  int cur_axis = 3;
+  for (auto iter = tokens.rbegin(); iter != tokens.rend(); iter++) {
+    target.setTensorDim(cur_axis--, std::stoul(*iter));
+  }
+
+  return target;
+}
+
 } // namespace nntrainer

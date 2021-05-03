@@ -11,6 +11,7 @@
  */
 #include <nntrainer_error.h>
 #include <string>
+#include <tensor_dim.h>
 
 #ifndef __BASE_PROPERTIES_H__
 #define __BASE_PROPERTIES_H__
