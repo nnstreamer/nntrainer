@@ -14,6 +14,7 @@
 #include <utility>
 #include <vector>
 
+#include <base_properties.h>
 #include <nntrainer_error.h>
 #include <parse_util.h>
 
@@ -87,8 +88,8 @@ public:
        * @param index index of the current property
        */
       auto callable = [this](auto &&prop, size_t index) {
-        std::string key = std::remove_reference_t<decltype(prop)>::key;
-        stored_result.emplace_back(key, to_string(prop));
+        std::string key = getPropKey(prop);
+        stored_result.emplace_back(std::move(key), to_string(prop));
       };
       iterate_prop(callable, props);
     } break;
@@ -199,7 +200,7 @@ loadProperties(const std::vector<std::string> &string_vector,
                  });
 
   auto callable = [&left](auto &&prop, size_t index) {
-    std::string prop_key = std::remove_reference_t<decltype(prop)>::key;
+    std::string prop_key = getPropKey(prop);
 
     for (auto iter = left.begin(); iter < left.end(); ++iter) {
       if (istrequal(prop_key, iter->first) == true) {

@@ -9,9 +9,13 @@
  * @author Jihoon Lee <jhoon.it.lee@samsung.com>
  * @bug No known bugs except for NYI items
  */
-#include <nntrainer_error.h>
+#include <array>
+#include <sstream>
 #include <string>
-#include <tensor_dim.h>
+#include <vector>
+
+#include <nntrainer_error.h>
+#include <parse_util.h>
 
 #ifndef __BASE_PROPERTIES_H__
 #define __BASE_PROPERTIES_H__
@@ -20,12 +24,51 @@
 
 namespace nntrainer {
 
+template <typename T>
+using remove_cv_ref_t = std::remove_cv_t<std::remove_reference_t<T>>;
 /**
- * @brief property tag to specialize functions based on this
+ * @brief property info to specialize functions based on this
  *
  * @tparam T property type
  */
-template <typename T> struct prop_tag { using type = typename T::prop_tag; };
+template <typename T> struct prop_info {
+  using prop_type = remove_cv_ref_t<T>;
+  using tag_type = typename prop_type::prop_tag;
+  using data_type = remove_cv_ref_t<decltype(std::declval<prop_type>().get())>;
+};
+
+/**
+ * @brief property info when it is wrapped inside a vector
+ *
+ * @tparam T property type
+ */
+template <typename T> struct prop_info<std::vector<T>> {
+  using prop_type = typename prop_info<T>::prop_type;
+  using tag_type = typename prop_info<T>::tag_type;
+  using data_type = typename prop_info<T>::data_type;
+};
+
+/**
+ * @brief property info when it is wrapped inside an array
+ *
+ * @tparam T property type
+ */
+template <typename T, size_t size> struct prop_info<std::array<T, size>> {
+  using prop_type = typename prop_info<T>::prop_type;
+  using tag_type = typename prop_info<T>::tag_type;
+  using data_type = typename prop_info<T>::data_type;
+};
+
+/**
+ * @brief Get the Prop Key object
+ *
+ * @tparam T property to get type
+ * @param prop property
+ * @return constexpr const char* key
+ */
+template <typename T> constexpr const char *getPropKey(T &&prop) {
+  return prop_info<remove_cv_ref_t<T>>::prop_type::key;
+}
 
 /**
  * @brief property is treated as integer
@@ -40,22 +83,16 @@ struct int_prop_tag {};
 struct uint_prop_tag {};
 
 /**
- * @brief property is treated as vector, eg) 1,2,3
- *
- */
-struct vector_prop_tag {};
-
-/**
  * @brief property is treated as dimension, eg 1:2:3
  *
  */
 struct dimension_prop_tag {};
 
 /**
- * @brief property is treated as double
+ * @brief property is treated as float
  *
  */
-struct double_prop_tag {};
+struct float_prop_tag {};
 
 /**
  * @brief property is treated as string
@@ -139,6 +176,15 @@ public:
    * @return false if not valid
    */
   virtual bool isValid(const T &v) const { return true; }
+
+  /**
+   * @brief operator==
+   *
+   * @param rhs right side to compare
+   * @return true if equal
+   * @return false if not equal
+   */
+  bool operator==(const Property<T> &rhs) const { return value == rhs.value; }
 
 private:
   T value; /**< underlying data */
@@ -235,6 +281,17 @@ public:
   }
 
   /**
+   * @brief operator==
+   *
+   * @param rhs right side to compare
+   * @return true if equal
+   * @return false if not equal
+   */
+  bool operator==(const Property<std::string> &rhs) const {
+    return value == rhs.value;
+  }
+
+  /**
    * @brief check if given value is valid
    *
    * @param v value to check
@@ -253,13 +310,13 @@ private:
  *
  * struct custom_tag: int_prop_tag {};
  *
- * using tag_type = tag_cast<custom_tag, vector_prop_tag>::type
- * static_assert(<std::is_save_v<tag_type, custom_tag> == false);
+ * using tag_type = tag_cast<custom_tag, float_prop_tag>::type
+ * static_assert(<std::is_same_v<tag_type, custom_tag> == true);
  *
  * using tag_type = tag_cast<custom_tag, int_prop_tag>::type
- * static_assert(<std::is_save_v<tag_type, int_prop_tag> == true);
+ * static_assert(<std::is_same_v<tag_type, int_prop_tag> == true);
  *
- * using tag_type = tag_cast<custom_tag, vector_prop_tag, int_prop_tag>::type
+ * using tag_type = tag_cast<custom_tag, float_prop_tag, int_prop_tag>::type
  * static_assert(std::is_same_v<tag_type, int_prop_tag> == true);
  *
  * @tparam Tags First tag: tag to be casted, rest tags: candidates
@@ -323,33 +380,111 @@ template <typename Tag, typename DataType> struct str_converter {
  * @return std::string converted string
  */
 template <typename T> std::string to_string(const T &property) {
+  using info = prop_info<T>;
   using tag_type =
-    typename tag_cast<typename prop_tag<T>::type, int_prop_tag, uint_prop_tag,
-                      vector_prop_tag, dimension_prop_tag, double_prop_tag,
-                      str_prop_tag>::type;
+    typename tag_cast<typename info::tag_type, int_prop_tag, uint_prop_tag,
+                      dimension_prop_tag, float_prop_tag, str_prop_tag>::type;
+  using data_type = typename info::data_type;
 
-  using data_type = std::remove_cv_t<
-    std::remove_reference_t<decltype(std::declval<T>().get())>>;
   return str_converter<tag_type, data_type>::to_string(property.get());
 }
 
 /**
+ * @brief to_string vector specialization
+ * @copydoc template <typename T> std::string to_string(const T &property)
+ */
+template <typename T> std::string to_string(const std::vector<T> &property) {
+  std::stringstream ss;
+  auto last_iter = property.end() - 1;
+  for (auto iter = property.begin(); iter != last_iter; ++iter) {
+    ss << to_string(*iter) << ',';
+  }
+  ss << to_string(*last_iter);
+
+  return ss.str();
+}
+
+/**
+ * @brief to_string array specialization
+ * @copydoc template <typename T> std::string to_string(const T &property)
+ */
+template <typename T, size_t sz>
+static std::string to_string(const std::array<T, sz> &value) {
+  std::stringstream ss;
+  auto last_iter = value.end() - 1;
+  for (auto iter = value.begin(); iter != last_iter; ++iter) {
+    ss << to_string(*iter) << ',';
+  }
+  ss << to_string(*last_iter);
+
+  return ss.str();
+}
+
+/**
+ *
  * @brief convert dispatcher (from string)
+ *
  *
  * @tparam T type to convert
  * @param str string to convert
  * @param[out] property property, converted type
  */
 template <typename T> void from_string(const std::string &str, T &property) {
+  using info = prop_info<T>;
   using tag_type =
-    typename tag_cast<typename prop_tag<T>::type, int_prop_tag, uint_prop_tag,
-                      vector_prop_tag, dimension_prop_tag, double_prop_tag,
-                      str_prop_tag>::type;
-
-  using data_type = std::remove_cv_t<
-    std::remove_reference_t<decltype(std::declval<T>().get())>>;
+    typename tag_cast<typename info::tag_type, int_prop_tag, uint_prop_tag,
+                      dimension_prop_tag, float_prop_tag, str_prop_tag>::type;
+  using data_type = typename info::data_type;
 
   property.set(str_converter<tag_type, data_type>::from_string(str));
+}
+
+/**
+ * @brief transform iternal data, this is to use with std::transform
+ *
+ * @param item item to transform
+ * @return DataType transformed result
+ */
+template <typename T> static T from_string_helper_(const std::string &item) {
+  T t;
+  from_string(item, t);
+  return t;
+}
+
+static const std::regex reg_("\\s*\\,\\s*");
+
+/**
+ * @brief from_string array specialization
+ * @copydoc template <typename T> void from_string(const std::string &str, T
+ * &property)
+ * @note array implies that the size is @b fixed so there will be a validation
+ * check on size
+ */
+template <typename T, size_t sz>
+void from_string(const std::string &value, std::array<T, sz> &property) {
+  auto v = split(value, reg_);
+  NNTR_THROW_IF(v.size() != sz, std::invalid_argument)
+    << "size must match with array size, array size: " << sz
+    << " string: " << value;
+
+  std::transform(v.begin(), v.end(), property.begin(), from_string_helper_<T>);
+}
+
+/**
+ * @brief from_string vector specialization
+ * @copydoc str_converter<Tag, DataType>::to_string(const DataType &value)
+ * @note vector implies that the size is @b not fixed so there shouldn't be any
+ * validation on size
+ *
+ */
+template <typename T>
+void from_string(const std::string &value, std::vector<T> &property) {
+  auto v = split(value, reg_);
+
+  property.clear();
+  property.reserve(v.size());
+  std::transform(v.begin(), v.end(), std::back_inserter(property),
+                 from_string_helper_<T>);
 }
 
 } // namespace nntrainer

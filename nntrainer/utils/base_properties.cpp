@@ -10,8 +10,11 @@
  * @bug No known bugs except for NYI items
  */
 #include <base_properties.h>
+#include <parse_util.h>
+#include <tensor_dim.h>
 
 #include <sstream>
+#include <regex>
 #include <string>
 #include <vector>
 
