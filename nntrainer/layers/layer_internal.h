@@ -542,7 +542,7 @@ public:
    * @param[in] i axis
    */
   void setInputDimension(const TensorDim &d, unsigned int i) {
-    if (i < 0 || i > MAXDIM)
+    if (i > MAXDIM)
       throw std::invalid_argument(
         "axis must be greater than 0 and less then MAX_DIM : 4");
     input_dim[i] = d;
