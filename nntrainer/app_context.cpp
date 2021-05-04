@@ -42,6 +42,7 @@
 #include <nntrainer_error.h>
 #include <output_layer.h>
 #include <parse_util.h>
+#include <permute_layer.h>
 #include <plugged_layer.h>
 #include <pooling2d_layer.h>
 #include <preprocess_flip_layer.h>
@@ -245,6 +246,9 @@ static void add_default_object(AppContext &ac) {
 
   ac.registerFactory(ml::train::createLayer<TimeDistLayer>, TimeDistLayer::type,
                      LayerType::LAYER_TIME_DIST);
+
+  ac.registerFactory(ml::train::createLayer<PermuteLayer>, PermuteLayer::type,
+                     LayerType::LAYER_PERMUTE);
 
   ac.registerFactory(AppContext::unknownFactory<ml::train::Layer>, "unknown",
                      LayerType::LAYER_UNKNOWN);

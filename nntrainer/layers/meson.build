@@ -19,7 +19,8 @@ layer_sources = [
   'rnn.cpp',
   'acti_func.cpp',
   'lstm.cpp',
-  'time_dist.cpp'
+  'time_dist.cpp',
+  'permute_layer.cpp'
 ]
 
 layer_headers = [
