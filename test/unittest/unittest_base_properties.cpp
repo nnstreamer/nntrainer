@@ -96,6 +96,19 @@ TEST(BasicProperty, tagCast) {
   }
 }
 
+TEST(BasicProperty, propInfo) {
+  { /**< prop_info test */
+    using prop_type = nntrainer::prop_info<QualityOfBanana>::prop_type;
+    ::testing::StaticAssertTypeEq<prop_type, QualityOfBanana>();
+
+    using tag_type = nntrainer::prop_info<QualityOfBanana>::tag_type;
+    ::testing::StaticAssertTypeEq<tag_type, nntrainer::str_prop_tag>();
+
+    using data_type = nntrainer::prop_info<QualityOfBanana>::data_type;
+    ::testing::StaticAssertTypeEq<data_type, std::string>();
+  }
+}
+
 /// @todo convert this to typed param test
 TEST(BasicProperty, valid_p) {
   { /** set -> get / to_string, int*/

@@ -28,13 +28,13 @@ template <typename T>
 using remove_cv_ref_t = std::remove_cv_t<std::remove_reference_t<T>>;
 /**
  * @brief property info to specialize functions based on this
- *
  * @tparam T property type
  */
 template <typename T> struct prop_info {
-  using prop_type = remove_cv_ref_t<T>;
-  using tag_type = typename prop_type::prop_tag;
-  using data_type = remove_cv_ref_t<decltype(std::declval<prop_type>().get())>;
+  using prop_type = remove_cv_ref_t<T>;          /** property type of T */
+  using tag_type = typename prop_type::prop_tag; /** Property tag of T */
+  using data_type = remove_cv_ref_t<decltype(
+    std::declval<prop_type>().get())>; /** Underlying datatype of T */
 };
 
 /**

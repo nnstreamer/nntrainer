@@ -22,7 +22,8 @@ layer_sources = [
   'lstm.cpp',
   'time_dist.cpp',
   'common_properties.cpp',
-  'split_layer.cpp'
+  'split_layer.cpp',
+  'permute_layer.cpp'
 ]
 
 layer_headers = [
