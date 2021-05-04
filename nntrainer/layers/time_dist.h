@@ -28,7 +28,11 @@ public:
   /**
    * @brief     Constructor of Time Distribution Layer
    */
-  template <typename... Args> TimeDistLayer(Args... args) : Layer(args...) {}
+  template <typename... Args> TimeDistLayer(Args... args) : Layer(args...) {
+    for (unsigned int i = 0; i < 4; ++i) {
+      positions[i] = nullptr;
+    }
+  }
 
   /**
    * @brief     Destructor of Time Distributed Layer
