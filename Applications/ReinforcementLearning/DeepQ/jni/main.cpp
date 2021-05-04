@@ -524,7 +524,12 @@ int main(int argc, char **argv) {
        */
 
       targetNet.copy(mainNet);
-      mainNet.saveModel();
+      try {
+        mainNet.saveModel();
+      } catch (std::exception &e) {
+        std::cerr << "Error during saveModel: " << e.what() << "\n";
+        return 1;
+      }
     }
   }
 

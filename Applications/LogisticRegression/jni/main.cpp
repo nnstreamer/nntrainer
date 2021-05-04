@@ -203,7 +203,12 @@ int main(int argc, char *argv[]) {
       return 0;
     }
   } else {
-    NN.readModel();
+    try {
+      NN.readModel();
+    } catch (std::exception &e) {
+      std::cerr << "Error during readModel: " << e.what() << "\n";
+      return 1;
+    }
     std::ifstream dataFile(data_file);
     int cn = 0;
     for (unsigned int j = 0; j < total_val_data_size; ++j) {
