@@ -99,7 +99,9 @@ int TensorDim::setTensorDim(const std::string &input_shape) {
 TensorDim TensorDim::transpose(const std::string &direction) const {
   int dirs[MAXDIM - 1];
 
-  getValues(3, direction, dirs);
+  int status = getValues(3, direction, dirs);
+  NNTR_THROW_IF(status != ML_ERROR_NONE, std::invalid_argument)
+    << "parsing direction failed";
 
   const std::array<unsigned int, MAXDIM> axes{{0, (unsigned int)dirs[0] + 1,
                                                (unsigned int)dirs[1] + 1,

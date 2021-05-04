@@ -42,6 +42,7 @@
 #include <nntrainer_error.h>
 #include <output_layer.h>
 #include <parse_util.h>
+#include <permute_layer.h>
 #include <plugged_layer.h>
 #include <plugged_optimizer.h>
 #include <pooling2d_layer.h>
@@ -248,6 +249,9 @@ static void add_default_object(AppContext &ac) {
                      LayerType::LAYER_TIME_DIST);
   ac.registerFactory(nntrainer::createLayer<SplitLayer>, SplitLayer::type,
                      LayerType::LAYER_SPLIT);
+  ac.registerFactory(nntrainer::createLayer<PermuteLayer>, PermuteLayer::type,
+                     LayerType::LAYER_PERMUTE);
+
   ac.registerFactory(AppContext::unknownFactory<nntrainer::Layer>, "unknown",
                      LayerType::LAYER_UNKNOWN);
 }

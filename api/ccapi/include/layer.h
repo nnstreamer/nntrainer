@@ -54,6 +54,7 @@ enum LayerType {
   LAYER_LSTM,                 /** LSTM Layer type */
   LAYER_SPLIT,                /** Splite Layer type */
   LAYER_TIME_DIST,            /** Time Distributed Layer type */
+  LAYER_PERMUTE,              /** Permute layer */
   LAYER_UNKNOWN = ML_TRAIN_LAYER_TYPE_UNKNOWN /** Unknown */
 };
 
