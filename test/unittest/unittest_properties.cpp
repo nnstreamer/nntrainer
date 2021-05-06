@@ -82,6 +82,8 @@ TEST(BasicProperty, valid_p) {
   { /** set -> get / to_string, int*/
     NumBanana b;
     b.set(123);
+    int ib = b;
+    EXPECT_EQ(ib, 123);
     EXPECT_EQ(b.get(), 123);
     EXPECT_EQ(nntrainer::to_string(b), "123");
   }
@@ -96,6 +98,8 @@ TEST(BasicProperty, valid_p) {
   { /** set -> get / to_string, string*/
     QualityOfBanana q;
     q.set("this is good");
+    std::string sq = q;
+    EXPECT_EQ(sq, "this is good");
     EXPECT_EQ(q.get(), "this is good");
     EXPECT_EQ(nntrainer::to_string(q), "this is good");
   }

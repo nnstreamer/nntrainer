@@ -91,6 +91,20 @@ public:
   virtual ~Property() = default;
 
   /**
+   * @brief cast operator for property
+   *
+   * @return T value
+   */
+  operator T &() { return value; }
+
+  /**
+   * @brief cast operator for property
+   *
+   * @return T value
+   */
+  operator const T &() const { return value; }
+
+  /**
    * @brief get the underlying data
    *
    * @return const T& data
@@ -171,6 +185,20 @@ public:
     value = std::move(rhs.value);
     return *this;
   }
+
+  /**
+   * @brief cast operator for property
+   *
+   * @return std::string& value
+   */
+  operator const std::string &() const { return value; }
+
+  /**
+   * @brief cast operator for property
+   *
+   * @return std::string& value
+   */
+  operator std::string &() { return value; }
 
   /**
    * @brief Destroy the Property object
