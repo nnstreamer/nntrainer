@@ -9,6 +9,8 @@
  * @author Jihoon Lee <jhoon.it.lee@samsung.com>
  * @bug    No known bugs except for NYI items
  */
+#include <sstream>
+#include <string>
 #include <tuple>
 
 #include <nntrainer_error.h>
@@ -20,9 +22,57 @@
 
 namespace nntrainer {
 
+bool props::Direction::isValid(const unsigned int &value) const {
+  return value <= 2;
+}
+
 const std::string PermuteLayer::type = "permute";
 
-int PermuteLayer::initialize(Manager &manager) { /** NYI */
+/**
+ * @brief buildTransposeString based on array
+ * @todo deprecate this
+ *
+ * @param arr array to make a representation
+ * @return const std::string string to return
+ */
+static std::string
+buildTrasposeString(const std::array<props::Direction, 3> &arr) {
+  std::stringstream ss;
+  ss << arr[0].get() << ':' << arr[1].get() << ':' << arr[2].get();
+  return ss.str();
+}
+
+int PermuteLayer::initialize(Manager &manager) {
+  auto initiate_direction = [this] {
+    std::bitset<3> check_transpose; /**< check if transpose contains all axis */
+
+    for (int i = 0; i < 3; ++i) {
+      check_transpose.set(direction[i], true);
+      this->reverse_direction[direction[i]].set(i);
+    }
+
+    NNTR_THROW_IF(check_transpose.all() == false, std::invalid_argument)
+      << "[Permute] "
+      << "transpose direction is invalid, checked direction: "
+      << check_transpose.to_string();
+
+    /*** @todo deprecate this */
+    direction_str = buildTrasposeString(direction);
+    rdirection_str = buildTrasposeString(direction);
+  };
+
+  auto initiate_dimension = [this] {
+    output_dim[0] = input_dim[0].transpose(direction_str);
+  };
+
+  try {
+    initiate_direction();
+    initiate_dimension();
+  } catch (std::exception &e) {
+    ml_loge("[Permute] Initiation failed, reason: %s", e.what());
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
   return ML_ERROR_NONE;
 }
 
@@ -32,12 +82,32 @@ void PermuteLayer::forwarding(bool training) { /** NYI */
 void PermuteLayer::calcDerivative() { /** NYI */
 }
 
-void PermuteLayer::copy(std::shared_ptr<Layer> l) { /** NYI */
+void PermuteLayer::copy(std::shared_ptr<Layer> l) {
+  Layer::copy(l);
+
+  std::shared_ptr<PermuteLayer> from =
+    std::static_pointer_cast<PermuteLayer>(l);
+
+  direction = from->direction;
+  direction_str = from->direction_str;
+  reverse_direction = from->reverse_direction;
+  rdirection_str = from->rdirection_str;
 }
 
-void PermuteLayer::export_to(Exporter &exporter, ExportMethods method) const {}
+void PermuteLayer::export_to(Exporter &exporter, ExportMethods method) const {
+  Layer::export_to(exporter, method);
+  exporter.saveResult(std::forward_as_tuple(direction), method);
+}
 
 int PermuteLayer::setProperty(std::vector<std::string> values) {
+  try {
+    auto left_values = loadProperties(values, std::forward_as_tuple(direction));
+    Layer::setProperty(left_values);
+  } catch (std::invalid_argument &e) {
+    ml_loge("[PermuteLayer] failed to set property, reason: %s", e.what());
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
   return ML_ERROR_NONE;
 }
 
