@@ -125,7 +125,7 @@ public:
    * @throw std::invalid_argument if argument is not valid
    */
   void set(const T &v) {
-    NNTR_THROW_IF(is_valid(v) == false, std::invalid_argument)
+    NNTR_THROW_IF(isValid(v) == false, std::invalid_argument)
       << "argument is not valid";
     value = v;
   }
@@ -137,7 +137,7 @@ public:
    * @return true if valid
    * @return false if not valid
    */
-  virtual bool is_valid(const T &v) { return true; }
+  virtual bool isValid(const T &v) const { return true; }
 
 private:
   T value; /**< underlying data */
@@ -227,7 +227,7 @@ public:
    * @throw std::invalid_argument if argument is not valid
    */
   void set(const std::string &v) {
-    if (!is_valid(v)) {
+    if (!isValid(v)) {
       throw std::invalid_argument("argument is not valid");
     }
     value = v;
@@ -240,7 +240,7 @@ public:
    * @return true if valid
    * @return false if not valid
    */
-  virtual bool is_valid(const std::string &v) { return true; }
+  virtual bool isValid(const std::string &v) const { return true; }
 
 private:
   std::string value; /**< underlying data */

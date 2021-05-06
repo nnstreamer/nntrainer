@@ -37,7 +37,7 @@ public:
   static constexpr const char *key = "num_banana"; /**< unique key to access */
   using prop_tag = banana_prop_tag;                /**< property type */
 
-  bool is_valid(const int &v) override { return v >= 0; }
+  bool isValid(const int &v) const override { return v >= 0; }
 };
 
 /**
@@ -49,7 +49,7 @@ public:
   static constexpr const char *key = "quality_banana";
   using prop_tag = nntrainer::str_prop_tag;
 
-  bool is_valid(const std::string &v) override {
+  bool isValid(const std::string &v) const override {
     /// assuming quality of banana property must ends with word "good";
     return nntrainer::endswith(v, "good");
   }
