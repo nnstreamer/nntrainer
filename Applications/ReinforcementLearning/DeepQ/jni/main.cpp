@@ -516,9 +516,19 @@ int main(int argc, char **argv) {
                    "==================\n\n";
       std::cout << "mainNet Loss : ";
       std::cout.width(15);
-      std::cout << mainNet.getLoss() << "\n targetNet Loss : ";
+      try {
+        std::cout << mainNet.getLoss() << "\n targetNet Loss : ";
+      } catch (std::exception &e) {
+        std::cerr << "Error during getLoss: " << e.what() << "\n";
+        return 1;
+      }
       std::cout.width(15);
-      std::cout << targetNet.getLoss() << "\n\n";
+      try {
+        std::cout << targetNet.getLoss() << "\n\n";
+      } catch (std::exception &e) {
+        std::cerr << "Error during getLoss: " << e.what() << "\n";
+        return 1;
+      }
       /**
        * @brief     copy targetNetwork
        */
