@@ -43,7 +43,7 @@ public:
   static constexpr const char *key = "unit";    /**< unique key to access */
   using prop_tag = uint_prop_tag;               /**< property type */
 
-  bool is_valid(const unsigned int &v) override { return v > 0; }
+  bool isValid(const unsigned int &v) const override { return v > 0; }
 };
 
 } // namespace props
