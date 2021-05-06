@@ -273,16 +273,15 @@ iterate_prop(Callable &&c, std::tuple<Ts...> &tup) {
  * @brief load property from the api formatted string ({"key=value",
  * "key1=value1"})
  *
- * @tparam Ts prop type
+ * @tparam Tuple tuple type
  * @param string_vector api formatted string;
  * @param[out] props props to be iterated
  * @return std::vector<std::string> vector of string that is not used while
  * setting the property
  */
-template <typename... Ts>
+template <typename Tuple>
 std::vector<std::string>
-loadProperties(const std::vector<std::string> &string_vector,
-               std::tuple<Ts...> &props) {
+loadProperties(const std::vector<std::string> &string_vector, Tuple &&props) {
 
   std::vector<std::pair<std::string, std::string>> left;
   left.reserve(string_vector.size());

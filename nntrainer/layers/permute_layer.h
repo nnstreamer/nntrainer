@@ -14,11 +14,34 @@
 #define __PERMUTE_LAYER_H__
 
 #include <array>
+#include <string>
 
 #include <base_properties.h>
 #include <layer_internal.h>
 #include <node_exporter.h>
 namespace nntrainer {
+
+namespace props {
+/**
+ * @brief Direction property, direction property describes the axis to be
+ * transposed. to be used with array
+ *
+ */
+class Direction : public nntrainer::Property<unsigned int> {
+public:
+  static constexpr const char *key = "direction"; /**< unique key to access */
+  using prop_tag = uint_prop_tag;                 /**< property type */
+
+  /**
+   * @brief check if given value is valid
+   *
+   * @return true if valid
+   * @return false if not valid
+   */
+  bool isValid(const unsigned int &) const override;
+};
+} // namespace props
+
 /**
  * @class   PermuteLayer
  * @brief   Permute layer to transpose a tensor
@@ -29,7 +52,11 @@ public:
    * @brief     Constructor of Permute Layer
    * @param     direction direction to permute
    */
-  template <typename... Args> PermuteLayer(Args... args) : Layer(args...) {}
+  template <typename... Args>
+  PermuteLayer(Args... args) :
+    Layer(args...),
+    direction(),
+    reverse_direction() {}
 
   /**
    * @brief     Destructor of Permute Layer
@@ -91,6 +118,15 @@ public:
    * @copydoc Layer::setProperty(std::vector<std::string> values);
    */
   int setProperty(std::vector<std::string> values) override;
+
+private:
+  std::string
+    direction_str; /**< transpose representation, @todo deprecate this */
+  std::string rdirection_str; /**< transpose representation, @todo
+                                        deprecate this */
+
+  std::array<props::Direction, 3> direction;
+  std::array<props::Direction, 3> reverse_direction;
 };
 
 } // namespace nntrainer
