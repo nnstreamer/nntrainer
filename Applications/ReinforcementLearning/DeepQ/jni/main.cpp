@@ -510,20 +510,15 @@ int main(int argc, char **argv) {
         }
       }
 
-      writeFile << "mainNet Loss : " << mainNet.getLoss()
-                << " : targetNet Loss : " << targetNet.getLoss() << "\n";
-      std::cout << "\n\n =================== TRAINIG & COPY NET "
-                   "==================\n\n";
-      std::cout << "mainNet Loss : ";
-      std::cout.width(15);
       try {
+        writeFile << "mainNet Loss : " << mainNet.getLoss()
+                  << " : targetNet Loss : " << targetNet.getLoss() << "\n";
+        std::cout << "\n\n =================== TRAINIG & COPY NET "
+                    "==================\n\n";
+        std::cout << "mainNet Loss : ";
+        std::cout.width(15);
         std::cout << mainNet.getLoss() << "\n targetNet Loss : ";
-      } catch (std::exception &e) {
-        std::cerr << "Error during getLoss: " << e.what() << "\n";
-        return 1;
-      }
-      std::cout.width(15);
-      try {
+        std::cout.width(15);
         std::cout << targetNet.getLoss() << "\n\n";
       } catch (std::exception &e) {
         std::cerr << "Error during getLoss: " << e.what() << "\n";

@@ -230,19 +230,26 @@ int main(int argc, char *argv[]) {
     weight.print(std::cout);
 
     nntrainer::Tensor golden(1, 1, 15, 8);
-    loadFile("embedding_weight_golden.out", golden);
+    
+    try {
+      loadFile("embedding_weight_golden.out", golden);
+      golden.print(std::cout);
 
-    golden.print(std::cout);
-
-    nntrainer::Tensor weight_out_fc(1, 1, 32, 1);
-    loadFile("fc_weight_golden.out", weight_out_fc);
-    weight_out_fc.print(std::cout);
-
-    weight_fc = layer_fc->getWeights()[0].getVariable();
-    weight_fc.print(std::cout);
-
+      nntrainer::Tensor weight_out_fc(1, 1, 32, 1);
+      loadFile("fc_weight_golden.out", weight_out_fc);
+      weight_out_fc.print(std::cout);
+      weight_fc = layer_fc->getWeights()[0].getVariable();
+      weight_fc.print(std::cout);
+    } catch (...) {
+      std::cerr << "Error during loadFile\n";
+    }
   } else {
-    NN.readModel();
+    try {
+      NN.readModel();
+    } catch (std::exception &e) {
+      std::cerr << "Error during readModel: " << e.what() << "\n";
+      return 1;
+    }
     std::ifstream dataFile(data_file);
     int cn = 0;
     for (unsigned int j = 0; j < total_val_data_size; ++j) {
