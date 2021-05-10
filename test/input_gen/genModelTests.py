@@ -192,7 +192,42 @@ if __name__ == "__main__":
         file_name="conv_same_padding_multi_stride.info"
     )
 
-    conv_layer_tc(strides=(3, 3))(file_name="conv_uneven_strides.info", debug="summary")
+    conv_layer_tc(strides=(3, 3))(file_name="conv_uneven_strides.info")
+
+    record(
+        file_name="conv_uneven_strides2.info",
+        model=[
+            K.Input(shape=(2, 4, 4)),
+            K.layers.Conv2D(filters=2, kernel_size=(2, 2), strides=(1, 2)),
+            K.layers.Activation("sigmoid"),
+            K.layers.Flatten(),
+            K.layers.Dense(10),
+            K.layers.Activation("softmax"),
+        ],
+        optimizer=opt.SGD(learning_rate=0.1),
+        iteration=10,
+        input_shape=(3, 2, 4, 4),
+        label_shape=(3, 10),
+        loss_fn_str="cross_softmax",
+        # debug="summary"
+    )
+
+    record(
+        file_name="conv_uneven_strides3.info",
+        model=[
+            K.Input(shape=(2, 4, 4)),
+            K.layers.Conv2D(filters=2, kernel_size=(2, 2), strides=(2, 1)),
+            K.layers.Activation("sigmoid"),
+            K.layers.Flatten(),
+            K.layers.Dense(10),
+            K.layers.Activation("softmax"),
+        ],
+        optimizer=opt.SGD(learning_rate=0.1),
+        iteration=10,
+        input_shape=(3, 2, 4, 4),
+        label_shape=(3, 10),
+        loss_fn_str="cross_softmax",
+    )
 
     pool_layer_tc = lambda pool_layer: partial(
         record,
