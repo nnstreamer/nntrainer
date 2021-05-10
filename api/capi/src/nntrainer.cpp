@@ -387,6 +387,10 @@ int ml_train_model_get_summary(ml_train_model_h model,
   }
 
   *summary = (char *)malloc((size + 1) * sizeof(char));
+  if (*summary == nullptr) {
+    ml_loge("failed to malloc");
+    return ML_ERROR_OUT_OF_MEMORY;
+  }
   std::memcpy(*summary, str.c_str(), size + 1);
 
   return status;

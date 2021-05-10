@@ -134,19 +134,19 @@ std::unique_ptr<ml::train::Model> createModel(const std::string &backbone,
   model->addLayer(backbone_layer);
 
   auto generate_knn_part = [&backbone, &app_path,
-                            num_classes](const std::string &variant) {
+                            num_classes](const std::string &variant_) {
     std::vector<LayerHandle> v;
 
     const std::string num_class_prop =
       "num_class=" + std::to_string(num_classes);
 
-    if (variant == "UN") {
+    if (variant_ == "UN") {
       /// left empty intended
-    } else if (variant == "L2N") {
+    } else if (variant_ == "L2N") {
       LayerHandle l2 =
         ml::train::createLayer("l2norm", {"name=l2norm", "trainable=false"});
       v.push_back(l2);
-    } else if (variant == "CL2N") {
+    } else if (variant_ == "CL2N") {
       LayerHandle centering = ml::train::createLayer(
         "centering", {"name=center",
                       "feature_path=" + getFeatureFilePath(backbone, app_path),
@@ -157,7 +157,7 @@ std::unique_ptr<ml::train::Model> createModel(const std::string &backbone,
       v.push_back(l2);
     } else {
       std::stringstream ss;
-      ss << "unsupported variant type: " << variant;
+      ss << "unsupported variant type: " << variant_;
       throw std::invalid_argument(ss.str().c_str());
     }
 
