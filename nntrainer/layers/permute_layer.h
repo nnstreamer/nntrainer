@@ -23,11 +23,11 @@ namespace nntrainer {
 
 namespace props {
 /**
- * @brief Direction property, direction property describes the axis to be
+ * @brief PermuteDims property, direction property describes the axis to be
  * transposed. to be used with array
  *
  */
-class Direction : public nntrainer::Property<unsigned int> {
+class PermuteDims : public nntrainer::Property<unsigned int> {
 public:
   static constexpr const char *key = "direction"; /**< unique key to access */
   using prop_tag = uint_prop_tag;                 /**< property type */
@@ -125,8 +125,8 @@ private:
   std::string rdirection_str; /**< transpose representation, @todo
                                         deprecate this */
 
-  std::array<props::Direction, 3> direction;
-  std::array<props::Direction, 3> reverse_direction;
+  std::array<props::PermuteDims, 3> direction;
+  std::array<props::PermuteDims, 3> reverse_direction;
 };
 
 } // namespace nntrainer
