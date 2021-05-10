@@ -322,6 +322,7 @@ INSTANTIATE_TEST_CASE_P(
     mkIniTc("act_layer_after_act_bn_n", {nw_base, sgd, input, act_relu+"input_layers=inputlayer", batch_normal+"input_layers=activation_relu", out+"input_layers=bn" }, INITFAIL),
     mkIniTc("last_act_layer_relu_n", {nw_base, sgd, input, out+"input_layers=inputlayer", act_relu+"input_layers=fclayer" }, COMPFAIL | INITFAIL),
     mkIniTc("last_act_layer_relu2_n", {nw_base, sgd, input, out+"input_layers=inputlayer" + "-Activation", act_relu+"input_layers=fclayer" }, COMPFAIL | INITFAIL),
+    mkIniTc("basic_conv2d_n", {nw_base, adam, conv2d + "input_shape = 1:1:62720"}, INITFAIL),
 
   /**< negative: basic invalid scenarios (5 negative cases) */
     mkIniTc("no_model_sec_name_n", {I(nw_base, "-", "")}, ALLFAIL),
