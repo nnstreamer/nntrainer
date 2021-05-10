@@ -22,8 +22,8 @@
 
 namespace nntrainer {
 
-bool props::Direction::isValid(const unsigned int &value) const {
-  return value <= 2;
+bool props::PermuteDims::isValid(const unsigned int &value) const {
+  return 0 < value && value <= 3;
 }
 
 const std::string PermuteLayer::type = "permute";
@@ -36,9 +36,9 @@ const std::string PermuteLayer::type = "permute";
  * @return const std::string string to return
  */
 static std::string
-buildTrasposeString(const std::array<props::Direction, 3> &arr) {
+buildTrasposeString(const std::array<props::PermuteDims, 3> &arr) {
   std::stringstream ss;
-  ss << arr[0].get() << ':' << arr[1].get() << ':' << arr[2].get();
+  ss << arr[0].get() - 1 << ':' << arr[1].get() - 1 << ':' << arr[2].get() - 1;
   return ss.str();
 }
 
@@ -47,8 +47,8 @@ int PermuteLayer::initialize(Manager &manager) {
     std::bitset<3> check_transpose; /**< check if transpose contains all axis */
 
     for (int i = 0; i < 3; ++i) {
-      check_transpose.set(direction[i], true);
-      this->reverse_direction[direction[i]].set(i);
+      check_transpose.set(direction[i] - 1, true);
+      this->reverse_direction[direction[i] - 1].set(i + 1);
     }
 
     NNTR_THROW_IF(check_transpose.all() == false, std::invalid_argument)
@@ -76,10 +76,18 @@ int PermuteLayer::initialize(Manager &manager) {
   return ML_ERROR_NONE;
 }
 
-void PermuteLayer::forwarding(bool training) { /** NYI */
+void PermuteLayer::forwarding(bool training) {
+  auto &input_ = net_input[0]->getVariableRef();
+  auto &hidden_ = net_hidden[0]->getVariableRef();
+
+  input_.transpose(direction_str, hidden_);
 }
 
-void PermuteLayer::calcDerivative() { /** NYI */
+void PermuteLayer::calcDerivative() {
+  auto &input_grad = net_input[0]->getGradientRef();
+  auto &hidden_grad = net_hidden[0]->getGradientRef();
+
+  hidden_grad.transpose(rdirection_str, input_grad);
 }
 
 void PermuteLayer::copy(std::shared_ptr<Layer> l) {

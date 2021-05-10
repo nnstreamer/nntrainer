@@ -32,6 +32,7 @@
 #include <nntrainer_test_util.h>
 #include <optimizer_factory.h>
 #include <parse_util.h>
+#include <permute_layer.h>
 #include <pooling2d_layer.h>
 #include <preprocess_flip_layer.h>
 #include <preprocess_translate_layer.h>
@@ -2433,7 +2434,7 @@ TEST_F(nntrainer_RNNLayer, backwarding_01_p) {
 }
 
 /**
- * @brief nntainer RNN Layer for test
+ * @brief nntainer LSTM Layer for test
  */
 class nntrainer_LSTMLayer
   : public nntrainer_abstractLayer<nntrainer::LSTMLayer> {
@@ -2652,6 +2653,80 @@ TEST(nntrainer_LayerNode, setFlatten_01_p) {
   auto lnode = nntrainer::createLayerNode(nntrainer::FullyConnectedLayer::type);
   status = lnode->setProperty({"flatten=true"});
   EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+/**
+ * @brief nntainer PermuteLayer test
+ */
+class nntrainer_PermuteLayer
+  : public nntrainer_abstractLayer<nntrainer::PermuteLayer> {
+
+protected:
+  typedef nntrainer_abstractLayer<nntrainer::PermuteLayer> super;
+
+  virtual void prepareLayer() {
+    int status = setProperty("direction=3,2,1");
+    EXPECT_EQ(status, ML_ERROR_NONE);
+    setInputDim("2:4:5");
+    setBatch(3);
+  }
+
+  nntrainer::Tensor result;
+};
+
+TEST_F(nntrainer_PermuteLayer, initialize_01_p) {
+  status = reinitialize();
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+TEST_F(nntrainer_PermuteLayer, setPropertyDirectionInvalidSeperator_01_n) {
+  status = layer.setProperty({"direction=3|1|2"});
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+}
+
+TEST_F(nntrainer_PermuteLayer, setPropertyDirectionInvalidSeperator_02_n) {
+  status = layer.setProperty({"direction=3:1:2"});
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+}
+
+TEST_F(nntrainer_PermuteLayer, setPropertyTooManyDimension_01_n) {
+  status = layer.setProperty({"direction=1,2,3,0"});
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+}
+
+TEST_F(nntrainer_PermuteLayer, setPropertyAxisMoreThanFour_n) {
+  status = layer.setProperty({"direction=1,2,4"});
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+}
+
+TEST_F(nntrainer_PermuteLayer, setPropertyInvalidString_n) {
+  status = layer.setProperty({"direction=random_string"});
+  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+}
+
+TEST_F(nntrainer_PermuteLayer, forwardBackward_p) {
+
+  nntrainer::Tensor in = ranged(3, 2, 4, 5);
+  allocateMemory();
+  out = *layer.forwarding_with_val({MAKE_SHARED_TENSOR(in)})[0];
+
+  float answer_data[] = {
+    0,   20,  5,   25,  10,  30,  15,  35,  1,   21,  6,   26,  11,  31,  16,
+    36,  2,   22,  7,   27,  12,  32,  17,  37,  3,   23,  8,   28,  13,  33,
+    18,  38,  4,   24,  9,   29,  14,  34,  19,  39,  40,  60,  45,  65,  50,
+    70,  55,  75,  41,  61,  46,  66,  51,  71,  56,  76,  42,  62,  47,  67,
+    52,  72,  57,  77,  43,  63,  48,  68,  53,  73,  58,  78,  44,  64,  49,
+    69,  54,  74,  59,  79,  80,  100, 85,  105, 90,  110, 95,  115, 81,  101,
+    86,  106, 91,  111, 96,  116, 82,  102, 87,  107, 92,  112, 97,  117, 83,
+    103, 88,  108, 93,  113, 98,  118, 84,  104, 89,  109, 94,  114, 99,  119};
+  nntrainer::Tensor answer({3, 5, 4, 2}, answer_data);
+  EXPECT_EQ(answer, out);
+
+  nntrainer::Tensor in2 =
+    *layer.backwarding_with_val(1, {MAKE_SHARED_TENSOR(out)}, opt)[0];
+
+  /// @note forwarding -> backwarding -> forwarding has the exact same value
+  EXPECT_EQ(in2, in);
 }
 
 /**
