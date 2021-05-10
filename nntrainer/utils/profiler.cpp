@@ -123,7 +123,7 @@ void GenericProfileListener::report(std::ostream &out) const {
 
   /// calculate metrics while skipping warmups
   for (auto &entry : time_taken) {
-    auto func = [&](std::ostream &out) {
+    auto func = [&](std::ostream &out_) {
       auto &cnt_ = std::get<GenericProfileListener::CNT>(entry.second);
       auto &min_ = std::get<GenericProfileListener::MIN>(entry.second);
       auto &max_ = std::get<GenericProfileListener::MAX>(entry.second);
@@ -132,14 +132,15 @@ void GenericProfileListener::report(std::ostream &out) const {
       auto title = profiler->eventToStr(entry.first);
 
       if (warmups >= cnt_) {
-        out << std::left << std::setw(total_col_size) << title
-            << "less data then warmup\n";
-        out << std::right; // Restore outputstream adjustflag to standard stream
+        out_ << std::left << std::setw(total_col_size) << title
+             << "less data then warmup\n";
+        out_
+          << std::right; // Restore outputstream adjustflag to standard stream
         return;
       }
 
       // clang-format off
-    out << std::setw(column_size[0]) << title
+    out_ << std::setw(column_size[0]) << title
         << std::setw(column_size[1]) << sum_.count() / (cnt_ - warmups)
         << std::setw(column_size[2]) << min_.count()
         << std::setw(column_size[3]) << max_.count()

@@ -156,7 +156,7 @@ void DataBufferFromCallback::updateData(BufferType type) {
   try {
     if ((cur_size == NULL) || (running == NULL) || (data == NULL) ||
         (datalabel == NULL))
-      throw std::runtime_error("Error: assining error");
+      throw std::runtime_error("Error: assigning error");
   } catch (...) {
     globalExceptionPtr = std::current_exception();
     NN_EXCEPTION_NOTI(DATA_ERROR);
@@ -172,6 +172,21 @@ void DataBufferFromCallback::updateData(BufferType type) {
                     input_dim.height() * input_dim.width());
   float *veclabel =
     (float *)malloc(sizeof(float) * input_dim.batch() * class_num);
+
+  try {
+    if (vec_arr == nullptr || veclabel_arr == nullptr || vec == nullptr ||
+        veclabel == nullptr) {
+      free(vec);
+      free(veclabel);
+      free(vec_arr);
+      free(veclabel_arr);
+      throw std::runtime_error("Error: assigning error");
+    }
+  } catch (...) {
+    globalExceptionPtr = std::current_exception();
+    NN_EXCEPTION_NOTI(DATA_ERROR);
+    return;
+  }
 
   vec_arr[0] = vec;
   veclabel_arr[0] = veclabel;

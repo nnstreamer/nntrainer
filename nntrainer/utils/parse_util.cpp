@@ -510,8 +510,9 @@ bool istrequal(const std::string &a, const std::string &b) {
   if (a.size() != b.size())
     return false;
 
-  return std::equal(a.begin(), a.end(), b.begin(),
-                    [](char a, char b) { return tolower(a) == tolower(b); });
+  return std::equal(a.begin(), a.end(), b.begin(), [](char a_, char b_) {
+    return tolower(a_) == tolower(b_);
+  });
 }
 
 } /* namespace nntrainer */
