@@ -19,13 +19,13 @@
 #include <iostream>
 #include <sstream>
 #include <stdlib.h>
-#include <tensor.h>
 #include <time.h>
 
 #include <dataset.h>
-#include <layer_node.h>
+#include <layer_internal.h>
 #include <ml-api-common.h>
 #include <neuralnet.h>
+#include <tensor.h>
 
 std::string data_file;
 

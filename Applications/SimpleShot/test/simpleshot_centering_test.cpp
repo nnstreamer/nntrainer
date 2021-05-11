@@ -16,7 +16,7 @@
 #include <memory>
 
 #include <app_context.h>
-#include <layer_node.h>
+#include <layer_internal.h>
 #include <manager.h>
 #include <nntrainer_test_util.h>
 

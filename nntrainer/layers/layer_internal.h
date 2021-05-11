@@ -759,6 +759,14 @@ std::unique_ptr<Layer> createLayer(const std::vector<std::string> &props = {}) {
   return ptr;
 }
 
+/**
+ * @brief   Get Layer devel from ml::train::Layer
+ *
+ * @param   l Layer object
+ * @return  Layer devel object
+ */
+std::shared_ptr<Layer> getLayerDevel(std::shared_ptr<ml::train::Layer> l);
+
 } // namespace nntrainer
 
 #endif /* __cplusplus */

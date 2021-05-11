@@ -131,13 +131,5 @@ private:
     activation_type; /**< activation applied to the output of this node */
 };
 
-/**
- * @brief   Get Layer devel from ml::train::Layer
- *
- * @param   l Layer object
- * @return  Layer devel object
- */
-std::shared_ptr<Layer> getLayerDevel(std::shared_ptr<ml::train::Layer> l);
-
 } // namespace nntrainer
 #endif // __LAYER_NODE_H__

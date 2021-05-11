@@ -385,7 +385,7 @@ GraphWatcher::GraphWatcher(const std::string &config, const bool opt) :
   std::vector<NodeType> graph = model_graph.getSorted();
 
   for (auto it = graph.begin(); it != graph.end() - 1; ++it) {
-    nodes.push_back(NodeWatcher((*it)));
+    nodes.push_back(NodeWatcher(*it));
   }
 
   loss_node = NodeWatcher(graph.back());
