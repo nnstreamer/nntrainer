@@ -150,6 +150,7 @@ private:
   Tensor c_prev;
 
   std::shared_ptr<Var_Grad> mem_cell;
+  std::shared_ptr<Var_Grad> fgio;
 };
 } // namespace nntrainer
 

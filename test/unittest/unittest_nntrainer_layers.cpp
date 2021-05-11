@@ -24,6 +24,7 @@
 #include <input_layer.h>
 #include <layer_internal.h>
 #include <loss_layer.h>
+#include <lstm.h>
 #include <manager.h>
 #include <nntrainer_error.h>
 #include <nntrainer_test_util.h>
@@ -2433,6 +2434,45 @@ TEST_F(nntrainer_RNNLayer, backwarding_01_p) {
   nntrainer::Tensor result;
   EXPECT_NO_THROW(result = *layer.backwarding_with_val(
                     1, {MAKE_SHARED_TENSOR(derivatives)}, opt)[0]);
+}
+
+/**
+ * @brief nntainer RNN Layer for test
+ */
+class nntrainer_LSTMLayer
+  : public nntrainer_abstractLayer<nntrainer::LSTMLayer> {
+
+protected:
+  typedef nntrainer_abstractLayer<nntrainer::LSTMLayer> super;
+
+  virtual void prepareLayer() {
+    int status =
+      setProperty("unit=3 | activation=sigmoid | recurrent_activation = tanh");
+    EXPECT_EQ(status, ML_ERROR_NONE);
+    setInputDim("2:1:3:3");
+    setBatch(2);
+  }
+
+  nntrainer::Tensor result;
+};
+
+TEST_F(nntrainer_LSTMLayer, initialize_01_p) {
+  status = reinitialize();
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+TEST_F(nntrainer_LSTMLayer, forwarding_01_p) {
+
+  status = reinitialize();
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  float data[18] = {1, 2, 3, 2, 3, 4, 3, 4, 5, 4, 5, 6, 5, 6, 7, 6, 7, 8};
+
+  sharedTensor input = std::shared_ptr<nntrainer::Tensor>(
+    new nntrainer::Tensor[1], std::default_delete<nntrainer::Tensor[]>());
+  nntrainer::Tensor &in = *input;
+  in = nntrainer::Tensor(nntrainer::TensorDim(2, 1, 3, 3), data);
+  allocateMemory();
+  EXPECT_NO_THROW(layer.forwarding_with_val({input}, {}, false));
 }
 
 /**
