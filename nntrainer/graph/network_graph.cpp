@@ -404,9 +404,8 @@ int NetworkGraph::addLossLayer(const LossType loss_type) {
       return ML_ERROR_NOT_SUPPORTED;
     }
 
-    /// TODO: the last entry in adj and sorted are not same
-    adj.pop_back();
     Sorted.pop_back();
+    adj.erase(adj.begin() + last_node->getIndex());
 
     switch (last_node->getObject()->getActivationType()) {
     case ActivationType::ACT_SIGMOID:
@@ -421,11 +420,13 @@ int NetworkGraph::addLossLayer(const LossType loss_type) {
     }
   }
 
-  /// @note this assumes that loss layer only supports single input
   last_node = Sorted.back();
 
-  /// TODO: need to find all the nodes whose entry matches with node remove and
-  /// update them all
+  /**
+   * Remove all the connections for the current lasy layer as it will now only
+   * connect with the new loss layer to be added.
+   * @note this assumes that loss layer only supports single input
+   */
   if (updated_loss_type == LossType::LOSS_ENTROPY_SIGMOID ||
       updated_loss_type == LossType::LOSS_ENTROPY_SOFTMAX)
     adj[last_node->getIndex()].resize(1);

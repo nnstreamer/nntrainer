@@ -24,6 +24,7 @@
 #include <sstream>
 
 #include <layer_internal.h>
+#include <layer_node.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <parse_util.h>
@@ -414,5 +415,9 @@ void Layer::print(std::ostream &out, unsigned int flags) {
     printMetric(out);
   }
 };
+
+std::shared_ptr<Layer> getLayerDevel(std::shared_ptr<ml::train::Layer> l) {
+  return std::static_pointer_cast<LayerNode>(l)->getObject();
+}
 
 } /* namespace nntrainer */

@@ -34,6 +34,7 @@ makeGraph(const std::vector<LayerReprentation> &layer_reps) {
   auto graph = std::make_shared<nntrainer::GraphRepresentation>();
 
   for (const auto &layer_representation : layer_reps) {
+    /// @todo Use unique_ptr here
     std::shared_ptr<nntrainer::Layer> nntr_layer =
       ac.createObject<nntrainer::Layer>(layer_representation.first,
                                         layer_representation.second);

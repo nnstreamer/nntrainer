@@ -12,14 +12,4 @@
 
 #include <layer_node.h>
 
-namespace nntrainer {
-
-std::shared_ptr<Layer> getLayerDevel(std::shared_ptr<ml::train::Layer> l) {
-  std::shared_ptr<LayerNode> lnode = std::static_pointer_cast<LayerNode>(l);
-
-  std::shared_ptr<Layer> &layer = lnode->getObject();
-
-  return layer;
-}
-
-}; // namespace nntrainer
+namespace nntrainer {}; // namespace nntrainer

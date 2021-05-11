@@ -19,7 +19,7 @@
 
 #include <app_context.h>
 #include <layer.h>
-#include <layer_node.h>
+#include <layer_internal.h>
 
 const char *NNTRAINER_PATH = std::getenv("NNTRAINER_PATH");
 
