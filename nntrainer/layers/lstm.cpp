@@ -86,6 +86,13 @@ int LSTMLayer::initialize(Manager &manager) {
   mem_cell->getVariableRef().setZero();
   mem_cell->getGradientRef().setZero();
 
+  TensorDim d = input_dim[0];
+  d.width(unit * NUM_GATE);
+
+  fgio = std::make_shared<Var_Grad>(d, true, true, "LSTM:fgio");
+  fgio->getVariableRef().setZero();
+  fgio->getGradientRef().setZero();
+
   TensorDim cell_dim = TensorDim();
   cell_dim.setTensorDim(3, unit);
   cell_dim.batch(input_dim[0].batch());
@@ -150,26 +157,24 @@ void LSTMLayer::forwarding(bool training) {
   Tensor &input_ = net_input[0]->getVariableRef();
   Tensor &m_cell_ = mem_cell->getVariableRef();
 
-  Tensor temp;
   Tensor hs_prev;
   Tensor cs_prev;
   Tensor hs;
   Tensor cs;
-  Tensor f;
-  Tensor g;
-  Tensor i;
-  Tensor o;
 
   for (unsigned int b = 0; b < input_dim[0].batch(); ++b) {
     Tensor islice = input_.getBatchSlice(b, 1);
     Tensor oslice = hidden_.getBatchSlice(b, 1);
     Tensor cell = m_cell_.getBatchSlice(b, 1);
+    Tensor fgio_ = fgio->getVariableRef().getBatchSlice(b, 1);
 
     for (unsigned int t = 0; t < islice.height(); ++t) {
       Tensor xs =
         input_.getSharedDataTensor({islice.width()}, t * islice.width());
       hs = oslice.getSharedDataTensor({oslice.width()}, t * oslice.width());
       cs = cell.getSharedDataTensor({cell.width()}, t * cell.width());
+      Tensor fgio_t =
+        fgio_.getSharedDataTensor({unit * NUM_GATE}, unit * t * NUM_GATE);
 
       if (t > 0) {
         hs_prev = oslice.getSharedDataTensor({oslice.width()},
@@ -180,25 +185,25 @@ void LSTMLayer::forwarding(bool training) {
         hs_prev = h_prev.getBatchSlice(b, 1);
         cs_prev = c_prev.getBatchSlice(b, 1);
       }
-      hs_prev.dot(weight_hh, temp);
-      temp.add_i(bias_h);
-      temp.add_i(xs.dot(weight_xh));
+      hs_prev.dot(weight_hh, fgio_t);
+      fgio_t.add_i(bias_h);
+      fgio_t.add_i(xs.dot(weight_xh));
 
-      f = temp.getSharedDataTensor({unit}, 0);
-      g = temp.getSharedDataTensor({unit}, temp.width());
-      i = temp.getSharedDataTensor({unit}, 2 * temp.width());
-      o = temp.getSharedDataTensor({unit}, 3 * temp.width());
+      Tensor hf = fgio_t.getSharedDataTensor({unit}, 0);
+      Tensor hg = fgio_t.getSharedDataTensor({unit}, unit);
+      Tensor hi = fgio_t.getSharedDataTensor({unit}, unit * 2);
+      Tensor ho = fgio_t.getSharedDataTensor({unit}, unit * 3);
 
-      recurrent_acti_func.run_fn(f, f);
-      recurrent_acti_func.run_fn(i, i);
-      recurrent_acti_func.run_fn(o, o);
-      acti_func.run_fn(g, g);
+      recurrent_acti_func.run_fn(hf, hf);
+      recurrent_acti_func.run_fn(hi, hi);
+      recurrent_acti_func.run_fn(ho, ho);
+      acti_func.run_fn(hg, hg);
 
-      f.multiply(cs_prev, cs);
-      cs.add_i(g.multiply_i(i));
+      hf.multiply(cs_prev, cs);
+      cs.add_i(hg.multiply_i(hi));
 
       acti_func.run_fn(cs, hs);
-      hs.multiply_i(o);
+      hs.multiply_i(ho);
     }
     // size of h_prev and hs size is same : unit.
     // size of c_prev and cs is same : unit.
@@ -218,11 +223,116 @@ void LSTMLayer::copy(std::shared_ptr<Layer> l) {
 }
 
 void LSTMLayer::calcDerivative() {
-  // NYI
+  Tensor &derivative_ = fgio->getGradientRef();
+  Tensor &weight =
+    weightAt(static_cast<int>(LSTMParams::weight_xh)).getVariableRef();
+  Tensor &ret_ = net_input[0]->getGradientRef();
+  derivative_.dot(weight, ret_, false, true);
 }
 
 void LSTMLayer::calcGradient() {
-  // NYI
+  Tensor &djdw_x =
+    weightAt(static_cast<int>(LSTMParams::weight_xh)).getGradientRef();
+  Tensor &djdw_h =
+    weightAt(static_cast<int>(LSTMParams::weight_hh)).getGradientRef();
+  Tensor &djdb_h =
+    weightAt(static_cast<int>(LSTMParams::bias_h)).getGradientRef();
+  Tensor &weight_hh =
+    weightAt(static_cast<int>(LSTMParams::weight_hh)).getVariableRef();
+
+  Tensor &derivative_ = net_hidden[0]->getGradientRef();
+  Tensor &hidden_ = net_hidden[0]->getVariableRef();
+  Tensor &input_ = net_input[0]->getVariableRef();
+  Tensor &m_cell_ = mem_cell->getVariableRef();
+
+  Tensor dh_nx = Tensor({derivative_.width()});
+  Tensor dc_nx = Tensor({derivative_.width()});
+
+  for (unsigned int b = 0; b < input_dim[0].batch(); ++b) {
+    Tensor deriv_t = derivative_.getBatchSlice(b, 1);
+    Tensor xs_t = input_.getBatchSlice(b, 1);
+    Tensor hs_t = hidden_.getBatchSlice(b, 1);
+    Tensor cs_t = m_cell_.getBatchSlice(b, 1);
+
+    dh_nx.setZero();
+    dc_nx.setZero();
+
+    Tensor dh;
+    Tensor xs;
+    Tensor hs_prev;
+    Tensor cs_prev;
+    Tensor hs;
+    Tensor cs;
+    Tensor dc;
+    Tensor dfgio_ = fgio->getGradientRef().getBatchSlice(b, 1);
+    Tensor fgio_ = fgio->getVariableRef().getBatchSlice(b, 1);
+
+    for (unsigned int t = deriv_t.height(); t-- > 0;) {
+      dh = deriv_t.getSharedDataTensor({deriv_t.width()}, t * deriv_t.width());
+      xs = xs_t.getSharedDataTensor({xs_t.width()}, t * xs_t.width());
+      hs = hs_t.getSharedDataTensor({hs_t.width()}, t * hs_t.width());
+      cs = cs_t.getSharedDataTensor({cs_t.width()}, t * cs_t.width());
+
+      Tensor dfgio_t =
+        dfgio_.getSharedDataTensor({unit * NUM_GATE}, unit * t * NUM_GATE);
+      Tensor fgio_t =
+        fgio_.getSharedDataTensor({unit * NUM_GATE}, unit * t * NUM_GATE);
+
+      if (t == 0) {
+        hs_prev = Tensor({hs_t.width()});
+        hs_prev.setZero();
+        cs_prev = Tensor({cs_t.width()});
+        cs_prev.setZero();
+      } else {
+        hs_prev =
+          hs_t.getSharedDataTensor({hs_t.width()}, (t - 1) * hs_t.width());
+        cs_prev =
+          cs_t.getSharedDataTensor({cs_t.width()}, (t - 1) * cs_t.width());
+      }
+
+      if (t < deriv_t.height() - 1) {
+        dh.add_i(dh_nx);
+      }
+
+      Tensor dhf = dfgio_t.getSharedDataTensor({unit}, 0);
+      Tensor dhg = dfgio_t.getSharedDataTensor({unit}, unit);
+      Tensor dhi = dfgio_t.getSharedDataTensor({unit}, unit * 2);
+      Tensor dho = dfgio_t.getSharedDataTensor({unit}, unit * 3);
+
+      Tensor hf = fgio_t.getSharedDataTensor({unit}, 0);
+      Tensor hg = fgio_t.getSharedDataTensor({unit}, unit);
+      Tensor hi = fgio_t.getSharedDataTensor({unit}, unit * 2);
+      Tensor ho = fgio_t.getSharedDataTensor({unit}, unit * 3);
+
+      acti_func.run_fn(cs, dho);
+      dho.multiply_i(dh);
+
+      recurrent_acti_func.run_prime_fn(cs, dc, dc);
+      dc.multiply_i(dh);
+      dc.multiply_i(ho);
+      dc.add_i(dc_nx);
+
+      dc.multiply(cs_prev, dhf);
+      dc.multiply(hg, dhi);
+      dc.multiply(hi, dhg);
+      dc.multiply(hf, dc_nx);
+
+      dho.multiply(recurrent_acti_func.run_prime_fn(ho, ho, ho));
+      dhf.multiply(recurrent_acti_func.run_prime_fn(hf, hf, hf));
+      dhi.multiply(recurrent_acti_func.run_prime_fn(hi, hi, hi));
+      dhg.multiply(acti_func.run_prime_fn(hg, hg, hg));
+
+      float alpha = 1.0;
+      if (b != 0) {
+        alpha = 0.0;
+      }
+
+      djdb_h.add_i(dfgio_t, alpha);
+      djdw_x.add_i(xs.dot(dfgio_t, true, false), alpha);
+      djdw_h.add_i(hs_prev.dot(dfgio_t, true, false), alpha);
+      dh.dot(weight_hh, dh_nx, false, true, 1.0);
+    }
+  }
 }
 
 } // namespace nntrainer
