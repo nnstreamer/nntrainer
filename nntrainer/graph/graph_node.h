@@ -40,7 +40,7 @@ public:
    * @brief     Set index of the node
    *
    */
-  // virtual void setIndex(size_t) = 0;
+  virtual void setIndex(size_t) = 0;
 
   /**
    * @brief     Get the Name of the underlying object
@@ -54,30 +54,10 @@ public:
    * @brief     Set the Name of the underlying object
    *
    * @param[in] std::string Name for the underlying object
-   * @note name of each node in the graph must be unique
-   *
-   * @todo make it work with setProperty
+   * @note name of each node in the graph must be unique, and caller must ensure
+   * that
    */
-  // virtual int setName(std::string name) = 0;
-
-  /**
-   * @brief     Get the trainable property of the underlying object
-   *
-   * @return boolean true if trainable, else false
-   */
-  virtual bool getTrainable() noexcept = 0;
-
-  /**
-   * @brief     Set the properties for the node
-   *
-   * @param[in] properties properties of the node
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   *
-   * @note this shouldn't be virtual, this became virtual to support custom
-   * layer. should be reverted after layer.h can fully support custom layer
-   */
-  virtual int setProperty(std::vector<std::string> properties) = 0;
+  virtual int setName(const std::string &name) = 0;
 
   /**
    * @brief     Get the Type of the underlying object
@@ -85,6 +65,13 @@ public:
    * @return const std::string type representation
    */
   virtual const std::string getType() const = 0;
+
+  /**
+   * @brief     Copy the graph
+   * @param[in] from Graph Object to copy
+   * @retval    Graph Object copyed
+   */
+  // virtual GraphNode &copy(const GraphNode &from) = 0;
 };
 
 } // namespace nntrainer
