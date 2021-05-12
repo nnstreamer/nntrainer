@@ -69,11 +69,20 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    * @details   This function accepts vector of properties in the format -
-   *  { std::string property_name, void * property_val, ...}
+   *  { std::string property_name=property_val, ...}
    */
   int setProperty(std::vector<std::string> properties) {
     return layer->setProperty(properties);
   }
+
+  /**
+   * @brief     set name of layer
+   *
+   * @param[in] name Name of the layer
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   */
+  int setName(const std::string &name) { return setProperty({"name=" + name}); }
 
   /**
    * @brief     Get name of the layer

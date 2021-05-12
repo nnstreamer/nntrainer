@@ -1,5 +1,6 @@
 layer_sources = [
   'network_graph.cpp',
+  'graph_core.cpp'
 ]
 
 layer_headers = [

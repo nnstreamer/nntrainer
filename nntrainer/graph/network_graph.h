@@ -11,8 +11,8 @@
  *
  */
 
-#ifndef __NETWORK_GRAPH_H_
-#define __NETWORK_GRAPH_H_
+#ifndef __NETWORK_GRAPH_H__
+#define __NETWORK_GRAPH_H__
 #ifdef __cplusplus
 
 #include <iostream>
