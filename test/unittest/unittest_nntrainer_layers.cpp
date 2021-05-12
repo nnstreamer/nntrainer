@@ -121,7 +121,7 @@ protected:
   void setBatch(unsigned int batch) { layer.setBatch(batch); }
 
   void matchOutput(const float *result, const float *golden, size_t length) {
-    ASSERT_GT(length, 0);
+    ASSERT_GT(length, (size_t)0);
     for (size_t i = 0; i < length; ++i) {
       EXPECT_NEAR(result[i], golden[i], local_tolerance);
     }
