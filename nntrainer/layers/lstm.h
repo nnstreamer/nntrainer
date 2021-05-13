@@ -149,7 +149,14 @@ private:
    */
   Tensor c_prev;
 
+  /**
+   * @brief     To save cell data
+   */
   std::shared_ptr<Var_Grad> mem_cell;
+
+  /**
+   * @brief     To save intermediate gates
+   */
   std::shared_ptr<Var_Grad> fgio;
 };
 } // namespace nntrainer
