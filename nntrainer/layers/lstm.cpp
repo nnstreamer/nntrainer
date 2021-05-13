@@ -170,7 +170,7 @@ void LSTMLayer::forwarding(bool training) {
 
     for (unsigned int t = 0; t < islice.height(); ++t) {
       Tensor xs =
-        input_.getSharedDataTensor({islice.width()}, t * islice.width());
+        islice.getSharedDataTensor({islice.width()}, t * islice.width());
       hs = oslice.getSharedDataTensor({oslice.width()}, t * oslice.width());
       cs = cell.getSharedDataTensor({cell.width()}, t * cell.width());
       Tensor fgio_t =
@@ -194,15 +194,15 @@ void LSTMLayer::forwarding(bool training) {
       Tensor hi = fgio_t.getSharedDataTensor({unit}, unit * 2);
       Tensor ho = fgio_t.getSharedDataTensor({unit}, unit * 3);
 
-      recurrent_acti_func.run_fn(hf, hf);
-      recurrent_acti_func.run_fn(hi, hi);
-      recurrent_acti_func.run_fn(ho, ho);
-      acti_func.run_fn(hg, hg);
+      acti_func.run_fn(hf, hf);
+      acti_func.run_fn(hi, hi);
+      acti_func.run_fn(ho, ho);
+      recurrent_acti_func.run_fn(hg, hg);
 
       hf.multiply(cs_prev, cs);
-      cs.add_i(hg.multiply_i(hi));
+      cs.add_i(hg.multiply(hi));
 
-      acti_func.run_fn(cs, hs);
+      recurrent_acti_func.run_fn(cs, hs);
       hs.multiply_i(ho);
     }
     // size of h_prev and hs size is same : unit.
@@ -244,18 +244,20 @@ void LSTMLayer::calcGradient() {
   Tensor &hidden_ = net_hidden[0]->getVariableRef();
   Tensor &input_ = net_input[0]->getVariableRef();
   Tensor &m_cell_ = mem_cell->getVariableRef();
+  Tensor &dm_cell_ = mem_cell->getGradientRef();
 
   Tensor dh_nx = Tensor({derivative_.width()});
   Tensor dc_nx = Tensor({derivative_.width()});
 
   for (unsigned int b = 0; b < input_dim[0].batch(); ++b) {
     Tensor deriv_t = derivative_.getBatchSlice(b, 1);
+    Tensor derivc_t = dm_cell_.getBatchSlice(b, 1);
     Tensor xs_t = input_.getBatchSlice(b, 1);
     Tensor hs_t = hidden_.getBatchSlice(b, 1);
     Tensor cs_t = m_cell_.getBatchSlice(b, 1);
 
-    dh_nx.setZero();
     dc_nx.setZero();
+    dh_nx.setZero();
 
     Tensor dh;
     Tensor xs;
@@ -269,6 +271,8 @@ void LSTMLayer::calcGradient() {
 
     for (unsigned int t = deriv_t.height(); t-- > 0;) {
       dh = deriv_t.getSharedDataTensor({deriv_t.width()}, t * deriv_t.width());
+      dc =
+        derivc_t.getSharedDataTensor({derivc_t.width()}, t * derivc_t.width());
       xs = xs_t.getSharedDataTensor({xs_t.width()}, t * xs_t.width());
       hs = hs_t.getSharedDataTensor({hs_t.width()}, t * hs_t.width());
       cs = cs_t.getSharedDataTensor({cs_t.width()}, t * cs_t.width());
@@ -304,12 +308,10 @@ void LSTMLayer::calcGradient() {
       Tensor hi = fgio_t.getSharedDataTensor({unit}, unit * 2);
       Tensor ho = fgio_t.getSharedDataTensor({unit}, unit * 3);
 
-      acti_func.run_fn(cs, dho);
+      recurrent_acti_func.run_fn(cs, dho);
       dho.multiply_i(dh);
-
-      recurrent_acti_func.run_prime_fn(cs, dc, dc);
+      recurrent_acti_func.run_prime_fn(cs, dc, ho);
       dc.multiply_i(dh);
-      dc.multiply_i(ho);
       dc.add_i(dc_nx);
 
       dc.multiply(cs_prev, dhf);
@@ -317,20 +319,18 @@ void LSTMLayer::calcGradient() {
       dc.multiply(hi, dhg);
       dc.multiply(hf, dc_nx);
 
-      dho.multiply(recurrent_acti_func.run_prime_fn(ho, ho, ho));
-      dhf.multiply(recurrent_acti_func.run_prime_fn(hf, hf, hf));
-      dhi.multiply(recurrent_acti_func.run_prime_fn(hi, hi, hi));
-      dhg.multiply(acti_func.run_prime_fn(hg, hg, hg));
+      acti_func.run_prime_fn(ho, dho, dho);
+      acti_func.run_prime_fn(hf, dhf, dhf);
+      acti_func.run_prime_fn(hi, dhi, dhi);
+      recurrent_acti_func.run_prime_fn(hg, dhg, dhg);
 
-      float alpha = 1.0;
-      if (b != 0) {
-        alpha = 0.0;
-      }
-
-      djdb_h.add_i(dfgio_t, alpha);
-      djdw_x.add_i(xs.dot(dfgio_t, true, false), alpha);
-      djdw_h.add_i(hs_prev.dot(dfgio_t, true, false), alpha);
-      dh.dot(weight_hh, dh_nx, false, true, 1.0);
+      djdb_h.add_i(dfgio_t);
+      djdw_x.add_i(xs.dot(dfgio_t, true, false));
+      djdw_h.add_i(hs_prev.dot(dfgio_t, true, false));
+      // TODO : Change this after more unittest cases.
+      // xs.dot(dfgio_t, djdw_x, true, false);
+      // hs_prev.dot(dfgio_t, djdw_h, true, false);
+      dfgio_t.dot(weight_hh, dh_nx, false, true);
     }
   }
 }
