@@ -324,6 +324,7 @@ void LSTMLayer::calcGradient() {
       acti_func.run_prime_fn(hi, dhi, dhi);
       recurrent_acti_func.run_prime_fn(hg, dhg, dhg);
 
+
       djdb_h.add_i(dfgio_t);
       djdw_x.add_i(xs.dot(dfgio_t, true, false));
       djdw_h.add_i(hs_prev.dot(dfgio_t, true, false));
@@ -331,6 +332,16 @@ void LSTMLayer::calcGradient() {
       // xs.dot(dfgio_t, djdw_x, true, false);
       // hs_prev.dot(dfgio_t, djdw_h, true, false);
       dfgio_t.dot(weight_hh, dh_nx, false, true);
+      // float alpha = 1.0;
+      // if (b != 0) {
+      //   alpha = 0.0;
+      // }
+
+      // djdb_h.add_i(dfgio_t, alpha);
+      // djdw_x.add_i(xs.dot(dfgio_t, true, false), alpha);
+      // djdw_h.add_i(hs_prev.dot(dfgio_t, true, false), alpha);
+      // dfgio_t.dot(weight_hh, dh_nx, false, true, 1.0);
+
     }
   }
 }
