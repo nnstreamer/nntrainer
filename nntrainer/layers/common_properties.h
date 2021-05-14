@@ -56,6 +56,106 @@ public:
   bool isValid(const unsigned int &v) const override { return v > 0; }
 };
 
+/**
+ * @brief RAII class to define the connection spec
+ *
+ */
+class ConnectionSpec {
+public:
+  static std::string NoneType;
+
+  /**
+   * @brief Construct a new Connection Spec object
+   */
+  ConnectionSpec() = default;
+  /**
+   * @brief Construct a new Connection Spec object
+   *
+   * @param layer_ids_ layer ids that will be an operand
+   * @param op_type_ operator type
+   */
+  ConnectionSpec(const std::vector<Name> &layer_ids_,
+                 const std::string &op_type_ = ConnectionSpec::NoneType);
+
+  /**
+   * @brief Construct a new Connection Spec object
+   *
+   * @param rhs rhs to copy
+   */
+  ConnectionSpec(const ConnectionSpec &rhs);
+
+  /**
+   * @brief Copy assignment operator
+   *
+   * @param rhs rhs to copy
+   * @return ConnectionSpec&
+   */
+  ConnectionSpec &operator=(const ConnectionSpec &rhs);
+
+  /**
+   * @brief Move Construct Connection Spec object
+   *
+   * @param rhs rhs to move
+   */
+  ConnectionSpec(ConnectionSpec &&rhs) noexcept;
+
+  /**
+   * @brief Move assign a connection spec operator
+   *
+   * @param rhs rhs to move
+   * @return ConnectionSpec&
+   */
+  ConnectionSpec &operator=(ConnectionSpec &&rhs) noexcept;
+
+  /**
+   * @brief Get the Op Type object
+   *
+   * @return const std::string& op_type (read-only)
+   */
+  const std::string &getOpType() const { return op_type; }
+
+  /**
+   * @brief Get the Layer Ids object
+   *
+   * @return const std::vector<Name>& vector of layer ids (read-only)
+   */
+  const std::vector<Name> &getLayerIds() const { return layer_ids; }
+
+  /**
+   *
+   * @brief operator==
+   *
+   * @param rhs right side to compare
+   * @return true if equal
+   * @return false if not equal
+   */
+  bool operator==(const ConnectionSpec &rhs) const;
+
+private:
+  std::string op_type;
+  std::vector<Name> layer_ids;
+};
+
+/**
+ * @brief Connection prop tag type
+ *
+ */
+struct connection_prop_tag {};
+
+/**
+ * @brief InputSpec property, this defines connection specification of an input
+ *
+ */
+class InputSpec : public nntrainer::Property<ConnectionSpec> {
+public:
+  InputSpec(const ConnectionSpec &value = ConnectionSpec()) :
+    nntrainer::Property<ConnectionSpec>(value) {} /**< default value if any */
+  static constexpr const char *key =
+    "input_layers";                     /**< unique key to access */
+  using prop_tag = connection_prop_tag; /**< property type */
+  bool isValid(const ConnectionSpec &v) const override;
+};
+
 } // namespace props
 } // namespace nntrainer
 

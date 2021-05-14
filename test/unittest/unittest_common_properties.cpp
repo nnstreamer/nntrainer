@@ -98,6 +98,94 @@ TEST(NameProperty, mustStartWithAlphaNumeric_01_n) {
   EXPECT_THROW(n.set("+layer"), std::invalid_argument);
 }
 
+TEST(InputSpecProperty, setPropertyValid_p) {
+  using namespace nntrainer::props;
+  {
+    InputSpec expected(
+      ConnectionSpec({Name("A"), Name("B"), Name("C")}, "concat"));
+
+    InputSpec actual;
+    nntrainer::from_string("A, B, C", actual);
+    EXPECT_EQ(actual, expected);
+    EXPECT_EQ("A,B,C", nntrainer::to_string(actual));
+  }
+
+  {
+    InputSpec expected(
+      ConnectionSpec({Name("A"), Name("B"), Name("C")}, "addition"));
+
+    InputSpec actual;
+    nntrainer::from_string("A+ B +C", actual);
+    EXPECT_EQ("A+B+C", nntrainer::to_string(actual));
+
+    EXPECT_EQ(actual, expected);
+  }
+
+  {
+    InputSpec expected(ConnectionSpec({Name("A")}, ConnectionSpec::NoneType));
+
+    InputSpec actual;
+    nntrainer::from_string("A", actual);
+    EXPECT_EQ("A", nntrainer::to_string(actual));
+
+    EXPECT_EQ(actual, expected);
+  }
+}
+
+TEST(InputSpecProperty, emptyString_n_01) {
+  using namespace nntrainer::props;
+  InputSpec actual;
+  EXPECT_THROW(nntrainer::from_string("", actual), std::invalid_argument);
+}
+
+TEST(InputSpecProperty, combinedOperator_n_01) {
+  using namespace nntrainer::props;
+  InputSpec actual;
+  EXPECT_THROW(nntrainer::from_string("A,B+C", actual), std::invalid_argument);
+}
+
+TEST(InputSpecProperty, combinedOperator_n_02) {
+  using namespace nntrainer::props;
+  InputSpec actual;
+  EXPECT_THROW(nntrainer::from_string("A+B,C", actual), std::invalid_argument);
+}
+
+TEST(InputSpecProperty, noOperator_n_01) {
+  using namespace nntrainer::props;
+  InputSpec actual;
+  EXPECT_THROW(nntrainer::from_string("A B", actual), std::invalid_argument);
+}
+
+TEST(InputSpecProperty, noOperator_n_02) {
+  using namespace nntrainer::props;
+  InputSpec actual;
+  EXPECT_THROW(nntrainer::from_string("A B", actual), std::invalid_argument);
+}
+
+TEST(InputSpecProperty, leadingOperator_n_01) {
+  using namespace nntrainer::props;
+  InputSpec actual;
+  EXPECT_THROW(nntrainer::from_string(",A,B", actual), std::invalid_argument);
+}
+
+TEST(InputSpecProperty, leadingOperator_n_02) {
+  using namespace nntrainer::props;
+  InputSpec actual;
+  EXPECT_THROW(nntrainer::from_string("+A+B", actual), std::invalid_argument);
+}
+
+TEST(InputSpecProperty, trailingOperator_n_01) {
+  using namespace nntrainer::props;
+  InputSpec actual;
+  EXPECT_THROW(nntrainer::from_string("A,B,,", actual), std::invalid_argument);
+}
+
+TEST(InputSpecProperty, trailingOperator_n_02) {
+  using namespace nntrainer::props;
+  InputSpec actual;
+  EXPECT_THROW(nntrainer::from_string("A+B++", actual), std::invalid_argument);
+}
+
 /**
  * @brief Main gtest
  */
