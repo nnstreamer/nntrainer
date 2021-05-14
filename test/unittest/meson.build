@@ -35,7 +35,8 @@ test_target = [
   'unittest_nntrainer_models',
   'unittest_nntrainer_graph',
   'unittest_nntrainer_appcontext',
-  'unittest_properties',
+  'unittest_base_properties',
+  'unittest_common_properties'
 ]
 
 if get_option('enable-profile')

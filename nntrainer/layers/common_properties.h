@@ -2,12 +2,13 @@
 /**
  * Copyright (C) 2021 Jihoon Lee <jhoon.it.lee@samsung.com>
  *
- * @file common_properties.h
- * @date 09 April 2021
- * @brief This file contains list of common properties widely used across layers
- * @see	https://github.com/nnstreamer/nntrainer
+ * @file   common_properties.h
+ * @date   09 April 2021
+ * @brief  This file contains list of common properties widely used across
+ * layers
+ * @see	   https://github.com/nnstreamer/nntrainer
  * @author Jihoon Lee <jhoon.it.lee@samsung.com>
- * @bug No known bugs except for NYI items
+ * @bug    No known bugs except for NYI items
  */
 
 #include <string>
@@ -30,6 +31,15 @@ public:
     nntrainer::Property<std::string>(value) {} /**< default value if any */
   static constexpr const char *key = "name";   /**< unique key to access */
   using prop_tag = str_prop_tag;               /**< property type */
+
+  /**
+   * @brief name validator
+   *
+   * @param v string to validate
+   * @return true if it contains alphanumeric and/or '-', '_', '/'
+   * @return false if it is empty or contains non-valid character
+   */
+  bool isValid(const std::string &v) const override;
 };
 
 /**
