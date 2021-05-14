@@ -2,7 +2,7 @@
 /**
  * Copyright (C) 2021 Jihoon Lee <jhoon.it.lee@samsung.com>
  *
- * @file unittest_properties.h
+ * @file unittest_base_properties.h
  * @date 09 April 2021
  * @brief This file contains test and specification of properties and exporter
  * @see	https://github.com/nnstreamer/nntrainer
