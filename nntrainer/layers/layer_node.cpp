@@ -10,6 +10,16 @@
  * @brief  This is the layer node for network graph
  */
 
+#include <layer_factory.h>
 #include <layer_node.h>
 
-namespace nntrainer {}; // namespace nntrainer
+namespace nntrainer {
+
+/**
+ * @brief Layer factory creator with constructor
+ */
+std::unique_ptr<LayerNode> createLayerNode(const std::string &type) {
+  return std::make_unique<LayerNode>(createLayer(type));
+}
+
+}; // namespace nntrainer

@@ -175,7 +175,7 @@ int NeuralNetwork::initialize() {
   if (opt) {
     opt->initialize();
     for (unsigned int idx = 0; idx < n_layers; ++idx) {
-      auto &lnode = model_graph.getSortedLayerNode(idx);
+      auto const &lnode = model_graph.getSortedLayerNode(idx);
       opt->addOptimizerVariable(lnode->getObject()->getWeightsRef());
     }
   }
@@ -298,7 +298,7 @@ void NeuralNetwork::backwarding(int iteration) {
   auto iter_begin = model_graph.getBackwardingBeginIter();
   auto iter_end = model_graph.getBackwardingEndIter();
 
-  auto &lptr_begin = (*iter_begin);
+  auto const &lptr_begin = (*iter_begin);
   if (lptr_begin->getObject()->getType() != LossLayer::type) {
     bool has_loss = false;
     if (lptr_begin->getObject()->getType() == TimeDistLayer::type) {
@@ -310,18 +310,18 @@ void NeuralNetwork::backwarding(int iteration) {
       throw std::runtime_error("Error: no loss provided for training.");
   }
 
-  for (auto iter = iter_begin; iter != iter_end - 1; iter++) {
+  auto iter = iter_begin;
+  for (; iter != iter_end - 1; iter++) {
     backwarding((*iter)->getObject(), iteration, true);
   }
 
-  auto last_layer = (*(iter_end - 1))->getObject();
   /**
    * The last trainable layer need not calculate the derivatives
    */
 #ifdef ENABLE_TEST
-  backwarding(last_layer, iteration, true);
+  backwarding((*iter)->getObject(), iteration, true);
 #else
-  backwarding(last_layer, iteration, false);
+  backwarding((*iter)->getObject(), iteration, false);
 #endif
 }
 
@@ -812,10 +812,8 @@ void NeuralNetwork::print(std::ostream &out, unsigned int flags,
     printInstance(out, this);
   }
 
-  // TODO: get sorted layers if initialized
-  auto layers = model_graph.getLayerNodes();
   if (flags & PRINT_GRAPH_INFO) {
-    out << "graph contains " << layers.size() << " operation nodes\n";
+    out << "graph contains " << model_graph.size() << " operation nodes\n";
     /// @todo print graph info
   }
 
@@ -835,12 +833,14 @@ void NeuralNetwork::print(std::ostream &out, unsigned int flags,
     /// initialized, loss layer will be printed)
   }
 
-  if (layers.empty()) {
+  if (model_graph.empty()) {
     out << "model is empty!" << std::endl;
     return;
   }
 
   /** print layer properties */
+  // TODO: get sorted layers if initialized
+  auto layers = model_graph.getLayerNodes();
   for (auto &layer : layers)
     layer->getObject()->printPreset(out, layerPrintPreset);
 

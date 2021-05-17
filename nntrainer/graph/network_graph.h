@@ -22,6 +22,7 @@
 #include <stack>
 #include <vector>
 
+#include <graph_core.h>
 #include <layer_internal.h>
 #include <layer_node.h>
 #include <loss_layer.h>
@@ -38,10 +39,7 @@ public:
   /**
    * @brief     Constructor of NeuralNetwork Graph Class
    */
-  NetworkGraph() :
-    def_name_count(0),
-    skip_non_trainable_layers(0),
-    compiled(false) {}
+  NetworkGraph() : graph(), skip_non_trainable_layers(0), compiled(false) {}
 
   /**
    * @brief     Compile the graph
@@ -73,23 +71,13 @@ public:
    * @brief getter of number of nodes
    * @param[out] number of nodes
    */
-  unsigned int size() const {
-    if (!compiled)
-      return adj.size();
-    else
-      return Sorted.size();
-  }
+  unsigned int size() const { return graph.size(); }
 
   /**
    * @brief get if the graph is empty
    * @param[out] true if empty, else false
    */
-  bool empty() const {
-    if (!compiled)
-      return adj.empty();
-    else
-      return Sorted.empty();
-  }
+  bool empty() const { return graph.empty(); }
 
   /**
    * @brief     Swap function for the class
@@ -97,10 +85,7 @@ public:
   friend void swap(NetworkGraph &lhs, NetworkGraph &rhs) {
     using std::swap;
 
-    swap(lhs.adj, rhs.adj);
-    swap(lhs.Sorted, rhs.Sorted);
-    swap(lhs.layer_names, rhs.layer_names);
-    swap(lhs.def_name_count, rhs.def_name_count);
+    swap(lhs.graph, rhs.graph);
     swap(lhs.skip_non_trainable_layers, rhs.skip_non_trainable_layers);
   }
 
@@ -109,10 +94,7 @@ public:
    */
   void reset() {
 
-    adj.clear();
-    Sorted.clear();
-    layer_names.clear();
-    def_name_count = 0;
+    graph.reset();
     skip_non_trainable_layers = 0;
   }
 
@@ -121,21 +103,27 @@ public:
    * @param[in] index
    * @ret LayerNode
    */
-  std::shared_ptr<LayerNode> &getLayerNode(unsigned int ith);
+  std::shared_ptr<LayerNode> getLayerNode(unsigned int ith) {
+    return std::static_pointer_cast<LayerNode>(graph.getNode(ith));
+  }
 
   /**
    * @brief getter of Sorted LayerNode with index number
    * @param[in] index
    * @ret LayerNode
    */
-  std::shared_ptr<LayerNode> &getSortedLayerNode(unsigned int ith);
+  std::shared_ptr<LayerNode> getSortedLayerNode(unsigned int ith) {
+    return std::static_pointer_cast<LayerNode>(graph.getSortedNode(ith));
+  }
 
   /**
    * @brief getter of LayerNode with layer name
    * @param[in] layer name
    * @retval LayerNode
    */
-  std::shared_ptr<LayerNode> &getLayerNode(const std::string &layer_name);
+  std::shared_ptr<LayerNode> getLayerNode(const std::string &layer_name) {
+    return std::static_pointer_cast<LayerNode>(graph.getNode(layer_name));
+  }
 
   /**
    * @brief getter of Layer with layer name
@@ -185,30 +173,24 @@ public:
    * @brief     getter of ordered graph
    * @retval    ordered LayerNode list
    */
-  const std::vector<std::shared_ptr<LayerNode>> &getSorted() const;
-
-  /**
-   * @brief     getter of ordered graph
-   * @retval    ordered LayerNode list
-   */
-  std::vector<std::shared_ptr<LayerNode>> &getSorted();
+  const std::vector<std::shared_ptr<LayerNode>> getSorted() const;
 
   /**
    * @brief     get begin iterator for the backwarding
    * @retval    const reverse iterator marking the begin of backwarding
    */
-  std::vector<std::shared_ptr<LayerNode>>::const_reverse_iterator
-  getBackwardingBeginIter() {
-    return Sorted.crbegin();
+  graph_reverse_iterator<const LayerNode> getBackwardingBeginIter() {
+    return graph.crbegin<LayerNode>();
   }
 
   /**
    * @brief     get end iterator for the backwarding
    * @retval    const reverse iterator marking the end of backwarding
    */
-  std::vector<std::shared_ptr<LayerNode>>::const_reverse_iterator
-  getBackwardingEndIter() {
-    return Sorted.crend() - skip_non_trainable_layers;
+  graph_reverse_iterator<const LayerNode> getBackwardingEndIter() {
+    graph_reverse_iterator<const LayerNode> iter = graph.crend<LayerNode>();
+    iter -= skip_non_trainable_layers;
+    return iter;
   }
 
   /**
@@ -234,11 +216,8 @@ public:
    * @retval    Graph Object copyed
    */
   NetworkGraph &copy(NetworkGraph &from) {
-    if (this != &from) {
-      // FIXME: this assumes elements already in layers/adj, solve that
-      for (unsigned int i = 0; i < adj.size(); i++)
-        adj[i].front()->getObject()->copy(from.adj[i].front()->getObject());
-    }
+    graph.copy(from.graph);
+    skip_non_trainable_layers = from.skip_non_trainable_layers;
     return *this;
   }
 
@@ -253,13 +232,8 @@ public:
 private:
   std::map<std::string, std::string> sub_in_out; /** This is map to identify
                    input and output layer name of subgraph */
-  std::vector<std::list<std::shared_ptr<LayerNode>>>
-    adj; /**< Graph Structure */
-  std::vector<std::shared_ptr<LayerNode>>
-    Sorted; /**< Ordered Graph Node List  */
-  std::set<std::string>
-    layer_names; /**< Set containing all the names of layers in the model */
-  int def_name_count; /**< Count assigned to layer names declared by default */
+
+  GraphCore graph; /** core graph object */
   unsigned int
     skip_non_trainable_layers; /**< denotes the number of non-trainable layers
                                   at the start of the graph */
@@ -287,13 +261,6 @@ private:
    * @retval #ML_ERROR_INVALID_PARAMETER not ready to compile.
    */
   int checkCompiledGraph();
-
-  /**
-   * @brief add Edge between graph nodes
-   * @param[in] ith Node index : From
-   * @param[in] node LayerNode object to be added : To
-   */
-  void addEdge(unsigned int ith, std::shared_ptr<LayerNode> &node);
 
   /**
    * @brief     make connection between nodes
@@ -383,17 +350,6 @@ private:
    * @param[in] layer shared_ptr of Layer
    */
   void addLayerNode(std::shared_ptr<Layer> layer);
-
-  /**
-   * @brief Add given LayerNode to the Graph
-   * @param[in] layer shared_ptr of LayerNode
-   */
-  void addLayerNode(std::shared_ptr<LayerNode> layer);
-
-  /**
-   * @brief Sorting and Define order to calculate : Depth First Search
-   */
-  void topologicalSort();
 
   /**
    * @brief     update name of the the connections

@@ -18,6 +18,7 @@
 #include <graph_core.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
+#include <parse_util.h>
 
 namespace nntrainer {
 
@@ -40,7 +41,7 @@ void GraphCore::addGraphNode(std::shared_ptr<GraphNode> node) {
   adj.push_back(std::list<std::shared_ptr<GraphNode>>({node}));
 }
 
-std::shared_ptr<GraphNode> &GraphCore::getGraphNode(unsigned int ith) {
+std::shared_ptr<GraphNode> &GraphCore::getNode(unsigned int ith) {
   if (ith >= size())
     throw std::invalid_argument("Exceed total number of nodes");
 
@@ -50,7 +51,7 @@ std::shared_ptr<GraphNode> &GraphCore::getGraphNode(unsigned int ith) {
   return adj[ith].front();
 }
 
-std::shared_ptr<GraphNode> &GraphCore::getSortedGraphNode(unsigned int ith) {
+std::shared_ptr<GraphNode> &GraphCore::getSortedNode(unsigned int ith) {
   if (ith >= getSorted().size())
     throw std::invalid_argument("Exceed total number of nodes");
 
@@ -69,7 +70,7 @@ void GraphCore::topologicalSortUtil(
       topologicalSortUtil(index, visited, Stack);
   }
 
-  Stack.push(getGraphNode(ith));
+  Stack.push(getNode(ith));
 }
 
 void GraphCore::topologicalSort() {
@@ -96,10 +97,11 @@ void GraphCore::topologicalSort() {
   }
 }
 
-std::shared_ptr<GraphNode> &GraphCore::getGraphNode(const std::string &name) {
+std::shared_ptr<GraphNode> &GraphCore::getNode(const std::string &name) {
   for (auto &lnode_list : adj) {
     auto &lnode = lnode_list.front();
-    if (lnode->getName() == name)
+    /// TODO: make this name checking case sensitive
+    if (istrequal(lnode->getName(), name))
       return lnode;
   }
 
@@ -108,14 +110,15 @@ std::shared_ptr<GraphNode> &GraphCore::getGraphNode(const std::string &name) {
   throw std::invalid_argument(ss.str());
 }
 
-void GraphCore::addEdge(unsigned int ith, std::shared_ptr<GraphNode> &node) {
+void GraphCore::addEdge(unsigned int ith,
+                        const std::shared_ptr<GraphNode> &node) {
   if (ith >= adj.size())
     throw std::invalid_argument("Exceed total number of nodes");
 
   adj[ith].push_back(node);
 }
 
-std::vector<std::shared_ptr<GraphNode>> GraphCore::getGraphNodes() const {
+std::vector<std::shared_ptr<GraphNode>> GraphCore::getNodes() const {
   std::vector<std::shared_ptr<GraphNode>> ret;
   if (!Sorted.empty()) {
     std::transform(Sorted.begin(), Sorted.end(), std::back_inserter(ret),
@@ -128,9 +131,10 @@ std::vector<std::shared_ptr<GraphNode>> GraphCore::getGraphNodes() const {
   return ret;
 }
 
-void GraphCore::addNode(std::shared_ptr<GraphNode> node) {
+void GraphCore::addNode(std::shared_ptr<GraphNode> node, bool ensure_name) {
   /** Ensure that the node has a name and is unique */
-  ensureName(node);
+  if (ensure_name)
+    ensureName(*node);
 
   /** Insert the node to the graph */
   addGraphNode(node);
@@ -150,10 +154,9 @@ std::vector<std::shared_ptr<GraphNode>> &GraphCore::getSorted() {
   return Sorted;
 }
 
-void GraphCore::ensureName(std::shared_ptr<GraphNode> &node,
-                           const std::string &prefix,
+void GraphCore::ensureName(GraphNode &node, const std::string &prefix,
                            const std::string &postfix, bool force_rename) {
-  std::string orig_name = node->getName();
+  std::string orig_name = node.getName();
   bool orig_name_empty = orig_name.empty();
   /** If node already has name which is unique and valid, and force is
    * disabled, then nothing to do.
@@ -168,7 +171,7 @@ void GraphCore::ensureName(std::shared_ptr<GraphNode> &node,
   if (!orig_name_empty) {
     std::string direct_name = prefix + orig_name + postfix;
     if (node_names.find(direct_name) == node_names.end()) {
-      node->setName(direct_name);
+      node.setName(direct_name);
       node_names.insert(direct_name);
       return;
     }
@@ -177,7 +180,7 @@ void GraphCore::ensureName(std::shared_ptr<GraphNode> &node,
   std::set<std::string>::iterator iter;
   std::string name;
   if (orig_name_empty) {
-    orig_name = node->getType();
+    orig_name = node.getType();
   }
 
   std::string direct_name = prefix + orig_name + postfix;
@@ -187,7 +190,7 @@ void GraphCore::ensureName(std::shared_ptr<GraphNode> &node,
     iter = node_names.find(name);
   } while (iter != node_names.end());
 
-  node->setName(name);
+  node.setName(name);
   node_names.insert(name);
 }
 

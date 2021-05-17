@@ -374,6 +374,12 @@ public:
   FlatGraphType getFlatGraph() { return model_graph.getLayerNodes(); }
 
   /**
+   * @brief get if the model is empty
+   * @param[out] true if empty, else false
+   */
+  bool empty() const { return model_graph.empty(); }
+
+  /**
    * @brief     get network graph
    * @retval NetowrkGraphType
    */

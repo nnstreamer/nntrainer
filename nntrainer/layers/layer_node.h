@@ -140,5 +140,10 @@ private:
     activation_type; /**< activation applied to the output of this node */
 };
 
+/**
+ * @brief LayerNode creator with constructor
+ */
+std::unique_ptr<LayerNode> createLayerNode(const std::string &type);
+
 } // namespace nntrainer
 #endif // __LAYER_NODE_H__

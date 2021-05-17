@@ -36,15 +36,6 @@ class GraphCore {
 
 public:
   /**
-   * @brief     Iterators to traverse the GraphCore object
-   */
-  typedef typename std::vector<std::shared_ptr<GraphNode>>::const_iterator
-    const_iterator;
-  typedef
-    typename std::vector<std::shared_ptr<GraphNode>>::const_reverse_iterator
-      const_reverse_iterator;
-
-  /**
    * @brief     Constructor of Graph Core Class
    */
   GraphCore() : def_name_count(0) {}
@@ -53,7 +44,7 @@ public:
    * @brief Add the given node into Graph
    * @param[in] node shared_ptr of node
    */
-  void addNode(std::shared_ptr<GraphNode> node);
+  void addNode(std::shared_ptr<GraphNode> node, bool ensure_name = true);
 
   /**
    * @brief getter of number of nodes
@@ -84,7 +75,10 @@ public:
     using std::swap;
 
     swap(lhs.adj, rhs.adj);
+    swap(lhs.node_list, rhs.node_list);
     swap(lhs.Sorted, rhs.Sorted);
+    swap(lhs.node_names, rhs.node_names);
+    swap(lhs.def_name_count, rhs.def_name_count);
   }
 
   /**
@@ -93,28 +87,31 @@ public:
   void reset() {
     adj.clear();
     Sorted.clear();
+    node_names.clear();
+    def_name_count = 0;
   }
 
   /**
    * @brief getter of GraphNode with index number
    * @param[in] index
    * @ret GraphNode
+   * TODO: make this func const
    */
-  std::shared_ptr<GraphNode> &getGraphNode(unsigned int ith);
+  std::shared_ptr<GraphNode> &getNode(unsigned int ith);
 
   /**
    * @brief getter of Sorted GraphNode with index number
    * @param[in] index
    * @ret GraphNode
    */
-  std::shared_ptr<GraphNode> &getSortedGraphNode(unsigned int ith);
+  std::shared_ptr<GraphNode> &getSortedNode(unsigned int ith);
 
   /**
    * @brief getter of GraphNode with node name
    * @param[in] node name
    * @retval GraphNode
    */
-  std::shared_ptr<GraphNode> &getGraphNode(const std::string &name);
+  std::shared_ptr<GraphNode> &getNode(const std::string &name);
 
   /**
    * @brief getter all the node nodes in the model
@@ -123,7 +120,7 @@ public:
    * otherwise the order is the order of addition of node nodes in the model.
    * TODO: deprecate this
    */
-  std::vector<std::shared_ptr<GraphNode>> getGraphNodes() const;
+  std::vector<std::shared_ptr<GraphNode>> getNodes() const;
 
   /**
    * @brief     join passed graph into the existing graph model
@@ -156,25 +153,45 @@ public:
    * @brief     get begin iterator for the forwarding
    * @retval    const iterator marking the begin of forwarding
    */
-  inline const_iterator cbegin() { return Sorted.cbegin(); }
+  template <
+    typename T = GraphNode,
+    std::enable_if_t<std::is_base_of<GraphNode, T>::value, T> * = nullptr>
+  inline graph_iterator<T const> cbegin() {
+    return graph_iterator<T const>(&Sorted[0]);
+  }
 
   /**
    * @brief     get end iterator for the forwarding
    * @retval    const iterator marking the emd of forwarding
    */
-  inline const_iterator cend() { return Sorted.cend(); }
+  template <
+    typename T = GraphNode,
+    std::enable_if_t<std::is_base_of<GraphNode, T>::value, T> * = nullptr>
+  inline graph_iterator<T const> cend() {
+    return graph_iterator<T const>((&Sorted.back()) + 1);
+  }
 
   /**
    * @brief     get begin iterator for the backwarding
    * @retval    const reverse iterator marking the begin of backwarding
    */
-  inline const_reverse_iterator crbegin() { return Sorted.crbegin(); }
+  template <
+    typename T = GraphNode,
+    std::enable_if_t<std::is_base_of<GraphNode, T>::value, T> * = nullptr>
+  inline graph_reverse_iterator<T const> crbegin() {
+    return graph_reverse_iterator<T const>(cend<T>());
+  }
 
   /**
    * @brief     get end iterator for the backwarding
    * @retval    const reverse iterator marking the end of backwarding
    */
-  inline const_reverse_iterator crend() { return Sorted.crend(); }
+  template <
+    typename T = GraphNode,
+    std::enable_if_t<std::is_base_of<GraphNode, T>::value, T> * = nullptr>
+  inline graph_reverse_iterator<T const> crend() {
+    return graph_reverse_iterator<T const>(cbegin<T>());
+  }
 
   /**
    * @brief Sorting and Define order to calculate : Depth First Search
@@ -187,11 +204,11 @@ public:
    * @retval    Graph Object copyed
    */
   GraphCore &copy(GraphCore &from) {
-    // if (this != &from) {
-    //   // FIXME: this assumes elements already in nodes/adj, solve that
-    //   for (unsigned int i = 0; i < adj.size(); i++)
-    //     adj[i].front()->getObject()->copy(from.adj[i].front()->getObject());
-    // }
+    if (this != &from) {
+      // FIXME: this assumes elements already in nodes/adj, solve that
+      // for (unsigned int i = 0; i < adj.size(); i++)
+      //   adj[i].front()->getObject()->copy(from.adj[i].front()->getObject());
+    }
     return *this;
   }
 
@@ -200,7 +217,7 @@ public:
    * @param[in] ith Node index : From
    * @param[in] node GraphNode object to be added : To
    */
-  void addEdge(unsigned int ith, std::shared_ptr<GraphNode> &node);
+  void addEdge(unsigned int ith, const std::shared_ptr<GraphNode> &node);
 
   /**
    * @brief     make connection between nodes
@@ -224,14 +241,37 @@ public:
    * @details   Ensures that the node has a unique and a valid name. A valid
    * name pre-assigned to the node can be changed if force_rename is enabled.
    */
-  void ensureName(std::shared_ptr<GraphNode> &node,
-                  const std::string &prefix = "",
+  void ensureName(GraphNode &node, const std::string &prefix = "",
                   const std::string &postfix = "", bool force_rename = false);
+
+  void remove_last_node() {
+    auto last_node = Sorted.back();
+    Sorted.pop_back();
+    adj.erase(adj.begin() + last_node->getIndex());
+
+    /**
+     * Remove all the connections for the current lasy layer as it will now only
+     */
+    last_node = Sorted.back();
+    adj[last_node->getIndex()].resize(1);
+  }
+
+  void addLossToSorted() { Sorted.push_back(adj.back().front()); }
+
+  bool verifyNode(const std::string &name) {
+    if (node_names.find(name) == node_names.end())
+      return false;
+    return true;
+  }
 
 private:
   std::vector<std::list<std::shared_ptr<GraphNode>>>
     adj; /**< adjacency list for graph */
+  std::vector<std::shared_ptr<GraphNode>> node_list; /**< Ordered Node List  */
+
   std::vector<std::shared_ptr<GraphNode>> Sorted; /**< Ordered Node List  */
+  bool sorted; /** if the node_list is sorted */
+
   std::set<std::string>
     node_names;       /**< Set containing all the names of nodes in the model */
   int def_name_count; /**< Count assigned to node names declared by default */
