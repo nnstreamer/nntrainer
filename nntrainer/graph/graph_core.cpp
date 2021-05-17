@@ -41,7 +41,7 @@ void GraphCore::addGraphNode(std::shared_ptr<GraphNode> node) {
   adj.push_back(std::list<std::shared_ptr<GraphNode>>({node}));
 }
 
-std::shared_ptr<GraphNode> &GraphCore::getNode(unsigned int ith) {
+const std::shared_ptr<GraphNode> &GraphCore::getNode(unsigned int ith) const {
   if (ith >= size())
     throw std::invalid_argument("Exceed total number of nodes");
 
@@ -51,7 +51,7 @@ std::shared_ptr<GraphNode> &GraphCore::getNode(unsigned int ith) {
   return adj[ith].front();
 }
 
-std::shared_ptr<GraphNode> &GraphCore::getSortedNode(unsigned int ith) {
+const std::shared_ptr<GraphNode> &GraphCore::getSortedNode(unsigned int ith) const {
   if (ith >= getSorted().size())
     throw std::invalid_argument("Exceed total number of nodes");
 
@@ -97,7 +97,7 @@ void GraphCore::topologicalSort() {
   }
 }
 
-std::shared_ptr<GraphNode> &GraphCore::getNode(const std::string &name) {
+const std::shared_ptr<GraphNode> &GraphCore::getNode(const std::string &name) const {
   for (auto &lnode_list : adj) {
     auto &lnode = lnode_list.front();
     /// TODO: make this name checking case sensitive
