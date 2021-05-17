@@ -110,10 +110,9 @@ void NetworkGraph::addLayerNode(std::shared_ptr<Layer> layer) {
 }
 
 void NetworkGraph::countNonTrainableLayersAtBegin() {
-  for (auto iter = graph.cbegin<LayerNode>(); iter != graph.cend<LayerNode>();
-       iter++) {
+  for (auto iter = cbegin(); iter != cend(); iter++) {
     if ((*iter)->getObject()->getTrainable()) {
-      skip_non_trainable_layers = iter - graph.cbegin<LayerNode>();
+      skip_non_trainable_layers = iter - cbegin();
       return;
     }
   }
@@ -290,7 +289,7 @@ int NetworkGraph::addLossLayer(const LossType loss_type) {
       return ML_ERROR_NOT_SUPPORTED;
     }
 
-    graph.remove_last_node();
+    graph.removeLastNode();
 
     switch (last_layer_node->getObject()->getActivationType()) {
     case ActivationType::ACT_SIGMOID:
@@ -435,8 +434,7 @@ int NetworkGraph::checkCompiledGraph() {
   }
 
   /** Dimension of input layers must be known */
-  for (auto iter = graph.cbegin<LayerNode>(); iter != graph.cend<LayerNode>();
-       iter++) {
+  for (auto iter = cbegin(); iter != cend(); iter++) {
     auto lnode = (*iter);
     if (lnode->getObject()->getType() == InputLayer::type) {
       if (lnode->getObject()->getInputDimension().size() == 0) {
@@ -683,8 +681,7 @@ void NetworkGraph::addLayer(std::shared_ptr<LayerNode> layer) {
 
 void NetworkGraph::inPlaceOptimize(const std::string &layer_type,
                                    Manager &manager) {
-  for (auto iter = graph.cbegin<LayerNode>(); iter != graph.cend<LayerNode>();
-       iter++) {
+  for (auto iter = cbegin(); iter != cend(); iter++) {
     auto layer_node = *iter;
     auto &l = layer_node->getObject();
     std::string l_type = l->getType();

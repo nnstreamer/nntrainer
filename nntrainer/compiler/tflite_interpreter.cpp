@@ -358,7 +358,9 @@ buildOpNodes(std::shared_ptr<const GraphRepresentation> representation) {
   TfOpNodes nodes;
   /// @todo, look ahead of layers to get nodes that can be fused
   /// we will need to have a dedicated builder
-  for (const auto &ln : representation->getSorted()) {
+  for (auto iter = representation->cbegin(); iter != representation->cend();
+       iter++) {
+    const auto &ln = *iter;
     nodes.emplace_back(*ln->getObject());
   }
 

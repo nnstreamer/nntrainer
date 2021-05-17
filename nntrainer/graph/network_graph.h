@@ -173,7 +173,19 @@ public:
    * @brief     get begin iterator for the graph
    * @retval    const reverse iterator
    */
-  graph_iterator<const LayerNode> cbegin() const {
+  graph_iterator<LayerNode> begin() { return graph.begin<LayerNode>(); }
+
+  /**
+   * @brief     get end iterator for the graph
+   * @retval    const reverse iterator
+   */
+  graph_iterator<LayerNode> end() { return graph.end<LayerNode>(); }
+
+  /**
+   * @brief     get begin iterator for the graph
+   * @retval    const reverse iterator
+   */
+  graph_const_iterator<LayerNode> cbegin() const {
     return graph.cbegin<LayerNode>();
   }
 
@@ -181,7 +193,7 @@ public:
    * @brief     get end iterator for the graph
    * @retval    const iterator
    */
-  graph_iterator<const LayerNode> cend() const {
+  graph_const_iterator<LayerNode> cend() const {
     return graph.cend<LayerNode>();
   }
 
@@ -189,7 +201,7 @@ public:
    * @brief     get reverse begin iterator for the graph
    * @retval    const reverse iterator
    */
-  graph_reverse_iterator<const LayerNode> crbegin() const {
+  graph_const_reverse_iterator<LayerNode> crbegin() const {
     return graph.crbegin<LayerNode>();
   }
 
@@ -197,7 +209,7 @@ public:
    * @brief     get reverse end iterator for the graph
    * @retval    const reverse iterator
    */
-  graph_reverse_iterator<const LayerNode> crend() const {
+  graph_const_reverse_iterator<LayerNode> crend() const {
     return graph.crend<LayerNode>();
   }
 
@@ -205,7 +217,7 @@ public:
    * @brief     get begin iterator for the backwarding
    * @retval    const reverse iterator marking the begin of backwarding
    */
-  graph_reverse_iterator<const LayerNode> getBackwardingBeginIter() const {
+  graph_const_reverse_iterator<LayerNode> getBackwardingBeginIter() const {
     return crbegin();
   }
 
@@ -213,7 +225,7 @@ public:
    * @brief     get end iterator for the backwarding
    * @retval    const reverse iterator marking the end of backwarding
    */
-  graph_reverse_iterator<const LayerNode> getBackwardingEndIter() const {
+  graph_const_reverse_iterator<LayerNode> getBackwardingEndIter() const {
     auto iter = crend();
     iter -= skip_non_trainable_layers;
     return iter;
