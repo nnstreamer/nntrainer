@@ -807,7 +807,7 @@ TEST(nntrainerIniTest, backbone_p_20) {
   EXPECT_EQ(NN.loadFromConfig(backbone.getIniName()), ML_ERROR_NONE);
   EXPECT_EQ(NN.compile(), ML_ERROR_NONE);
   EXPECT_EQ(NN.initialize(), ML_ERROR_NONE);
-  EXPECT_EQ(NN.getNetworkGraph().getSorted().size(), 6u);
+  EXPECT_EQ(NN.getNetworkGraph().size(), 6u);
 }
 
 /**

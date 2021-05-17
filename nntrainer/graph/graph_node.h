@@ -84,7 +84,7 @@ public:
 template <typename T>
 class GraphNodeIterator : public std::iterator<std::random_access_iterator_tag,
                                                std::shared_ptr<GraphNode>> {
-  std::shared_ptr<GraphNode> *p; /** underlying object of GraphNode */
+  const std::shared_ptr<GraphNode> *p; /** underlying object of GraphNode */
 
 public:
   /**
@@ -107,7 +107,7 @@ public:
    *
    * @param x underlying object of GraphNode
    */
-  GraphNodeIterator(std::shared_ptr<GraphNode> *x) : p(x) {}
+  GraphNodeIterator(const std::shared_ptr<GraphNode> *x) : p(x) {}
 
   /**
    * @brief reference operator

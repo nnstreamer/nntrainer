@@ -162,7 +162,7 @@ int NeuralNetwork::initialize() {
     return ML_ERROR_NOT_SUPPORTED;
   }
 
-  unsigned int n_layers = (unsigned int)model_graph.getSorted().size();
+  unsigned int n_layers = (unsigned int)model_graph.size();
 
   ml_logd("initializing neural network, layer size: %d", n_layers);
 
@@ -223,7 +223,7 @@ sharedConstTensors NeuralNetwork::forwarding(sharedConstTensors input,
 
   auto &first_layer = model_graph.getSortedLayerNode(0)->getObject();
   auto &last_layer =
-    model_graph.getSortedLayerNode(model_graph.getSorted().size() - 1)
+    model_graph.getSortedLayerNode(model_graph.size() - 1)
       ->getObject();
 
   /// @note centroid_knn layer needs to be the last layer, currently it is
@@ -332,7 +332,7 @@ void NeuralNetwork::backwarding(int iteration) {
  */
 void NeuralNetwork::backwarding(sharedConstTensors label, int iteration) {
   auto &loss_layer =
-    model_graph.getSortedLayerNode(model_graph.getSorted().size() - 1)
+    model_graph.getSortedLayerNode(model_graph.size() - 1)
       ->getObject();
   loss_layer->net_hidden[0]->getGradientRef() = *label[0].get();
 
@@ -488,7 +488,7 @@ sharedConstTensors NeuralNetwork::inference(sharedConstTensors X,
   forwarding(X, {}, false);
   END_PROFILE(profile::NN_FORWARD);
 
-  auto &last_layer = model_graph.getSorted().back()->getObject();
+  auto &last_layer = model_graph.getSortedLayerNode(model_graph.size() - 1)->getObject();
   for (unsigned int i = 0; i < last_layer->getNumOutputs(); ++i) {
     out.push_back(MAKE_SHARED_TENSOR(last_layer->net_hidden[i]->getVariable()));
   }
@@ -574,7 +574,7 @@ int NeuralNetwork::train_run() {
 
   auto &first_layer = model_graph.getSortedLayerNode(0)->getObject();
   auto &last_layer =
-    model_graph.getSortedLayerNode(model_graph.getSorted().size() - 1)
+    model_graph.getSortedLayerNode(model_graph.size() - 1)
       ->getObject();
 
   auto &output = last_layer->net_hidden[0]->getVariableRef();

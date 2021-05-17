@@ -258,9 +258,9 @@ int NetworkGraph::realizeMultiOutputType(Layer &current) {
 int NetworkGraph::addLossLayer(const LossType loss_type) {
 
   int status = ML_ERROR_NONE;
+  auto const &last_node = graph.getSortedNode(graph.size() - 1);
+  auto last_layer_node = getSortedLayerNode(graph.size() - 1);
 
-  auto last_node = graph.getSortedNode(graph.size() - 1);
-  auto last_layer_node = LNODE(last_node);
   if (last_node->getType() == LossLayer::type)
     return status;
 
@@ -305,8 +305,7 @@ int NetworkGraph::addLossLayer(const LossType loss_type) {
     }
   }
 
-  auto const sorted = graph.getSorted();
-  last_node = sorted.back();
+  auto const &updated_last_node = getSortedLayerNode(graph.size() - 1);
 
   std::shared_ptr<Layer> layer = nntrainer::createLayer(LossLayer::type);
   std::shared_ptr<LayerNode> lnode = std::make_shared<LayerNode>(layer);
@@ -315,9 +314,9 @@ int NetworkGraph::addLossLayer(const LossType loss_type) {
   NN_RETURN_STATUS();
   graph.ensureName(*lnode);
 
-  std::string input_str = last_node->getName();
+  std::string input_str = updated_last_node->getName();
 
-  if (last_node->getType() == TimeDistLayer::type) {
+  if (updated_last_node->getType() == TimeDistLayer::type) {
     std::string unit_str = layer->getName();
     graph.ensureName(*lnode, "", "_unit");
     layer = distributeLayer(layer);
@@ -325,7 +324,7 @@ int NetworkGraph::addLossLayer(const LossType loss_type) {
     layer->setName(unit_str);
   }
 
-  last_layer_node = LNODE(last_node);
+  last_layer_node = LNODE(updated_last_node);
   last_layer_node->getObject()->setNumOutputs(1);
   last_layer_node->getObject()->output_layers.clear();
   last_layer_node->getObject()->output_layers.push_back(layer->getName());
@@ -536,17 +535,16 @@ void NetworkGraph::setBatchSize(unsigned int batch_size) {
   }
 }
 
-sharedConstTensors NetworkGraph::forwarding(bool training) {
-  auto const &node_list = graph.getNodes();
-  for (auto const &node : node_list) {
-    auto const &ln = LNODE(node);
+sharedConstTensors NetworkGraph::forwarding(bool training) const {
+  for (auto iter = cbegin(); iter != cend(); iter++) {
+    auto const &ln = *iter;
     START_PROFILE(ln->event_key);
     ln->getObject()->forwarding(training);
     END_PROFILE(ln->event_key);
   }
 
   std::vector<sharedConstTensor> out;
-  for (auto const &nh : getSorted().back()->getObject()->net_hidden)
+  for (auto const &nh : getSortedLayerNode(graph.size()-1)->getObject()->net_hidden)
     out.push_back(MAKE_SHARED_TENSOR(nh->getVariable()));
 
   return out;
@@ -555,13 +553,13 @@ sharedConstTensors NetworkGraph::forwarding(bool training) {
 std::vector<TensorDim> NetworkGraph::getInputDimension() const {
   NNTR_THROW_IF(this->empty(), std::invalid_argument)
     << "[NetworkGraph] the graph has no node!";
-  return getSorted()[0]->getObject()->getInputDimension();
+  return getSortedLayerNode(0)->getObject()->getInputDimension();
 }
 
 std::vector<TensorDim> NetworkGraph::getOutputDimension() const {
   NNTR_THROW_IF(this->empty(), std::invalid_argument)
     << "[NetworkGraph] the graph has no node!";
-  return getSorted().back()->getObject()->getOutputDimension();
+  return getSortedLayerNode(graph.size()-1)->getObject()->getOutputDimension();
 }
 
 std::vector<std::shared_ptr<LayerNode>>
@@ -682,7 +680,8 @@ void NetworkGraph::addLayer(std::shared_ptr<LayerNode> layer) {
 
 void NetworkGraph::inPlaceOptimize(const std::string &layer_type,
                                    Manager &manager) {
-  for (auto &layer_node : getSorted()) {
+  for (auto iter = graph.cbegin<LayerNode>(); iter != graph.cend<LayerNode>(); iter++) {
+    auto layer_node = *iter;
     auto &l = layer_node->getObject();
     std::string l_type = l->getType();
     if (l_type == TimeDistLayer::type) {

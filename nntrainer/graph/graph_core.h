@@ -95,23 +95,22 @@ public:
    * @brief getter of GraphNode with index number
    * @param[in] index
    * @ret GraphNode
-   * TODO: make this func const
    */
-  std::shared_ptr<GraphNode> &getNode(unsigned int ith);
+  const std::shared_ptr<GraphNode> &getNode(unsigned int ith) const;
 
   /**
    * @brief getter of Sorted GraphNode with index number
    * @param[in] index
    * @ret GraphNode
    */
-  std::shared_ptr<GraphNode> &getSortedNode(unsigned int ith);
+  const std::shared_ptr<GraphNode> &getSortedNode(unsigned int ith) const;
 
   /**
    * @brief getter of GraphNode with node name
    * @param[in] node name
    * @retval GraphNode
    */
-  std::shared_ptr<GraphNode> &getNode(const std::string &name);
+  const std::shared_ptr<GraphNode> &getNode(const std::string &name) const;
 
   /**
    * @brief getter all the node nodes in the model
@@ -156,8 +155,8 @@ public:
   template <
     typename T = GraphNode,
     std::enable_if_t<std::is_base_of<GraphNode, T>::value, T> * = nullptr>
-  inline graph_iterator<T const> cbegin() {
-    return graph_iterator<T const>(&Sorted[0]);
+  inline graph_iterator<T const> cbegin() const {
+    return graph_iterator<T const>(&(*Sorted.cbegin()));
   }
 
   /**
@@ -167,8 +166,8 @@ public:
   template <
     typename T = GraphNode,
     std::enable_if_t<std::is_base_of<GraphNode, T>::value, T> * = nullptr>
-  inline graph_iterator<T const> cend() {
-    return graph_iterator<T const>((&Sorted.back()) + 1);
+  inline graph_iterator<T const> cend() const {
+    return graph_iterator<T const>(&(*Sorted.cend()));
   }
 
   /**
@@ -178,7 +177,7 @@ public:
   template <
     typename T = GraphNode,
     std::enable_if_t<std::is_base_of<GraphNode, T>::value, T> * = nullptr>
-  inline graph_reverse_iterator<T const> crbegin() {
+  inline graph_reverse_iterator<T const> crbegin() const {
     return graph_reverse_iterator<T const>(cend<T>());
   }
 
@@ -189,7 +188,7 @@ public:
   template <
     typename T = GraphNode,
     std::enable_if_t<std::is_base_of<GraphNode, T>::value, T> * = nullptr>
-  inline graph_reverse_iterator<T const> crend() {
+  inline graph_reverse_iterator<T const> crend() const {
     return graph_reverse_iterator<T const>(cbegin<T>());
   }
 

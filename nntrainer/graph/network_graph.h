@@ -103,7 +103,7 @@ public:
    * @param[in] index
    * @ret LayerNode
    */
-  std::shared_ptr<LayerNode> getLayerNode(unsigned int ith) {
+  std::shared_ptr<LayerNode> getLayerNode(unsigned int ith) const {
     return std::static_pointer_cast<LayerNode>(graph.getNode(ith));
   }
 
@@ -112,7 +112,7 @@ public:
    * @param[in] index
    * @ret LayerNode
    */
-  std::shared_ptr<LayerNode> getSortedLayerNode(unsigned int ith) {
+  std::shared_ptr<LayerNode> getSortedLayerNode(unsigned int ith) const {
     return std::static_pointer_cast<LayerNode>(graph.getSortedNode(ith));
   }
 
@@ -121,7 +121,7 @@ public:
    * @param[in] layer name
    * @retval LayerNode
    */
-  std::shared_ptr<LayerNode> getLayerNode(const std::string &layer_name) {
+  std::shared_ptr<LayerNode> getLayerNode(const std::string &layer_name) const {
     return std::static_pointer_cast<LayerNode>(graph.getNode(layer_name));
   }
 
@@ -167,7 +167,7 @@ public:
    * @param[in] training true if forwarding is on training
    * @retval output tensors
    */
-  sharedConstTensors forwarding(bool training = false);
+  sharedConstTensors forwarding(bool training = false) const;
 
   /**
    * @brief     getter of ordered graph
@@ -175,11 +175,19 @@ public:
    */
   const std::vector<std::shared_ptr<LayerNode>> getSorted() const;
 
+  graph_iterator<const LayerNode> cbegin() const {
+    return graph.cbegin<LayerNode>();
+  }
+
+  graph_iterator<const LayerNode> cend() const {
+    return graph.cend<LayerNode>();
+  }
+
   /**
    * @brief     get begin iterator for the backwarding
    * @retval    const reverse iterator marking the begin of backwarding
    */
-  graph_reverse_iterator<const LayerNode> getBackwardingBeginIter() {
+  graph_reverse_iterator<const LayerNode> crbegin() const {
     return graph.crbegin<LayerNode>();
   }
 
@@ -187,8 +195,24 @@ public:
    * @brief     get end iterator for the backwarding
    * @retval    const reverse iterator marking the end of backwarding
    */
-  graph_reverse_iterator<const LayerNode> getBackwardingEndIter() {
-    graph_reverse_iterator<const LayerNode> iter = graph.crend<LayerNode>();
+  graph_reverse_iterator<const LayerNode> crend() const {
+    return graph.crend<LayerNode>();
+  }
+
+  /**
+   * @brief     get begin iterator for the backwarding
+   * @retval    const reverse iterator marking the begin of backwarding
+   */
+  graph_reverse_iterator<const LayerNode> getBackwardingBeginIter() const {
+    return crbegin();
+  }
+
+  /**
+   * @brief     get end iterator for the backwarding
+   * @retval    const reverse iterator marking the end of backwarding
+   */
+  graph_reverse_iterator<const LayerNode> getBackwardingEndIter() const {
+    auto iter = crend();
     iter -= skip_non_trainable_layers;
     return iter;
   }
