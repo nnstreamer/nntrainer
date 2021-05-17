@@ -544,7 +544,8 @@ sharedConstTensors NetworkGraph::forwarding(bool training) const {
   }
 
   std::vector<sharedConstTensor> out;
-  for (auto const &nh : getSortedLayerNode(graph.size()-1)->getObject()->net_hidden)
+  for (auto const &nh :
+       getSortedLayerNode(graph.size() - 1)->getObject()->net_hidden)
     out.push_back(MAKE_SHARED_TENSOR(nh->getVariable()));
 
   return out;
@@ -559,7 +560,9 @@ std::vector<TensorDim> NetworkGraph::getInputDimension() const {
 std::vector<TensorDim> NetworkGraph::getOutputDimension() const {
   NNTR_THROW_IF(this->empty(), std::invalid_argument)
     << "[NetworkGraph] the graph has no node!";
-  return getSortedLayerNode(graph.size()-1)->getObject()->getOutputDimension();
+  return getSortedLayerNode(graph.size() - 1)
+    ->getObject()
+    ->getOutputDimension();
 }
 
 std::vector<std::shared_ptr<LayerNode>>
@@ -680,7 +683,8 @@ void NetworkGraph::addLayer(std::shared_ptr<LayerNode> layer) {
 
 void NetworkGraph::inPlaceOptimize(const std::string &layer_type,
                                    Manager &manager) {
-  for (auto iter = graph.cbegin<LayerNode>(); iter != graph.cend<LayerNode>(); iter++) {
+  for (auto iter = graph.cbegin<LayerNode>(); iter != graph.cend<LayerNode>();
+       iter++) {
     auto layer_node = *iter;
     auto &l = layer_node->getObject();
     std::string l_type = l->getType();
@@ -778,24 +782,12 @@ void NetworkGraph::inPlaceOptimize(Manager &manager) {
     inPlaceOptimize(layer_type, manager);
 }
 
-const std::vector<std::shared_ptr<LayerNode>> NetworkGraph::getSorted() const {
-  if (!compiled)
-    throw std::runtime_error("Cannot get sorted graph before compiling graph");
-
-  auto const &sorted = graph.getSorted();
-  std::vector<std::shared_ptr<LayerNode>> ret;
-  std::transform(sorted.begin(), sorted.end(), std::back_inserter(ret),
-                 [](auto const &elem) { return LNODE(elem); });
-
-  return ret;
-}
-
 int NetworkGraph::initialize(std::shared_ptr<Manager> manager) {
   int status = ML_ERROR_NONE;
 
-  for (unsigned int idx = 0; idx < Sorted.size(); ++idx) {
+  for (unsigned int idx = 0; idx < graph.size(); ++idx) {
     bool first = idx == 0;
-    auto &lnode = getSortedLayerNode(idx);
+    auto const &lnode = getSortedLayerNode(idx);
     auto &lptr = lnode->getObject();
     ml_logd("layer name : %s", lptr->getName().c_str());
     std::string cur_type;

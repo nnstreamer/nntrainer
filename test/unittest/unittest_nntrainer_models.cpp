@@ -44,7 +44,7 @@ static const std::string getModelsPath(const std::string &file_name) {
  * Watcher Classes                                      *
  ********************************************************/
 
-using NodeType = std::shared_ptr<nntrainer::LayerNode>;
+using NodeType = std::shared_ptr<const nntrainer::LayerNode>;
 using FlatGraphType = nntrainer::NeuralNetwork::FlatGraphType;
 using NetworkGraphType = nntrainer::NetworkGraph;
 
@@ -382,13 +382,13 @@ GraphWatcher::GraphWatcher(const std::string &config, const bool opt) :
 
   NetworkGraphType model_graph = nn.getNetworkGraph();
 
-  std::vector<NodeType> graph = model_graph.getSorted();
-
-  for (auto it = graph.begin(); it != graph.end() - 1; ++it) {
-    nodes.push_back(NodeWatcher(*it));
+  for (auto it = model_graph.cbegin(); it != model_graph.cend() - 1; ++it) {
+    auto const &lnode = *it;
+    nodes.push_back(NodeWatcher(lnode));
   }
 
-  loss_node = NodeWatcher(graph.back());
+  loss_node =
+    NodeWatcher(model_graph.getSortedLayerNode(model_graph.size() - 1));
 }
 
 void GraphWatcher::compareFor(const std::string &reference,

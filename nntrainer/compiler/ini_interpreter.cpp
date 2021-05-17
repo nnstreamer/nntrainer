@@ -273,7 +273,9 @@ void IniGraphInterpreter::serialize(
   const std::string &out) {
 
   std::vector<IniSection> sections;
-  for (const auto &ln : representation->getSorted()) {
+  for (auto iter = representation->cbegin(); iter != representation->cend();
+       iter++) {
+    const auto &ln = *iter;
     const auto &layer = ln->getObject();
 
     IniSection s(layer->getName());
