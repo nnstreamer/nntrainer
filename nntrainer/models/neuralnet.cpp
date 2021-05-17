@@ -223,13 +223,13 @@ sharedConstTensors NeuralNetwork::forwarding(sharedConstTensors input,
 
   auto &first_layer = model_graph.getSortedLayerNode(0)->getObject();
   auto &last_layer =
-    model_graph.getSortedLayerNode(model_graph.size() - 1)
-      ->getObject();
+    model_graph.getSortedLayerNode(model_graph.size() - 1)->getObject();
 
   /// @note centroid_knn layer needs to be the last layer, currently it is
   /// not possible because loss layer is always added.
   /// if centroid_knn layer can be last layer, this loop is not required
-  for (auto &layer_node : model_graph.getSorted()) {
+  for (auto iter = model_graph.cbegin(); iter != model_graph.cend(); iter++) {
+    auto const &layer_node = *iter;
     auto &l = layer_node->getObject();
     if (l->getType() == "centroid_knn") {
       l->net_hidden[0]->getGradientRef() = *label[0].get();
@@ -332,8 +332,7 @@ void NeuralNetwork::backwarding(int iteration) {
  */
 void NeuralNetwork::backwarding(sharedConstTensors label, int iteration) {
   auto &loss_layer =
-    model_graph.getSortedLayerNode(model_graph.size() - 1)
-      ->getObject();
+    model_graph.getSortedLayerNode(model_graph.size() - 1)->getObject();
   loss_layer->net_hidden[0]->getGradientRef() = *label[0].get();
 
   backwarding(iteration);
@@ -342,9 +341,8 @@ void NeuralNetwork::backwarding(sharedConstTensors label, int iteration) {
 float NeuralNetwork::getLoss() {
   loss = 0.0f;
 
-  auto &sorted = model_graph.getSorted();
-  for (unsigned int i = 0; i < sorted.size(); i++) {
-    loss += sorted[i]->getObject()->getLoss();
+  for (auto iter = model_graph.cbegin(); iter != model_graph.cend(); iter++) {
+    loss += (*iter)->getObject()->getLoss();
   }
   return loss;
 }
@@ -384,9 +382,9 @@ void NeuralNetwork::saveModel() {
     << "model file not opened, file path: " << save_path
     << " reason: " << strerror(errno);
 
-  auto &layers = model_graph.getSorted();
-  for (unsigned int i = 0; i < layers.size(); i++)
-    layers[i]->getObject()->save(model_file);
+  for (auto iter = model_graph.cbegin(); iter != model_graph.cend(); iter++)
+    (*iter)->getObject()->save(model_file);
+
   model_file.write((char *)&epoch_idx, sizeof(epoch_idx));
   model_file.write((char *)&iter, sizeof(iter));
   model_file.close();
@@ -417,9 +415,9 @@ void NeuralNetwork::readModel() {
 
   std::ifstream model_file(save_path, std::ios::in | std::ios::binary);
 
-  auto &layers = tmp.model_graph.getSorted();
-  for (unsigned int i = 0; i < layers.size(); i++)
-    layers[i]->getObject()->read(model_file);
+  for (auto iter = model_graph.cbegin(); iter != model_graph.cend(); iter++)
+    (*iter)->getObject()->read(model_file);
+
   checkedRead(model_file, (char *)&tmp.epoch_idx, sizeof(epoch_idx),
               "[NeuralNetwork::readModel] failed to read epoch_idx");
   checkedRead(model_file, (char *)&tmp.iter, sizeof(iter),
@@ -488,7 +486,8 @@ sharedConstTensors NeuralNetwork::inference(sharedConstTensors X,
   forwarding(X, {}, false);
   END_PROFILE(profile::NN_FORWARD);
 
-  auto &last_layer = model_graph.getSortedLayerNode(model_graph.size() - 1)->getObject();
+  auto &last_layer =
+    model_graph.getSortedLayerNode(model_graph.size() - 1)->getObject();
   for (unsigned int i = 0; i < last_layer->getNumOutputs(); ++i) {
     out.push_back(MAKE_SHARED_TENSOR(last_layer->net_hidden[i]->getVariable()));
   }
@@ -574,17 +573,16 @@ int NeuralNetwork::train_run() {
 
   auto &first_layer = model_graph.getSortedLayerNode(0)->getObject();
   auto &last_layer =
-    model_graph.getSortedLayerNode(model_graph.size() - 1)
-      ->getObject();
+    model_graph.getSortedLayerNode(model_graph.size() - 1)->getObject();
 
   auto &output = last_layer->net_hidden[0]->getVariableRef();
   auto &label = last_layer->net_hidden[0]->getGradientRef();
   auto &in = first_layer->net_input[0]->getVariableRef();
 
   /// @todo migrate this to trait based system; sth like need label?
-  std::shared_ptr<Layer> layer_;
-  for (auto &layer_node : model_graph.getSorted()) {
-    layer_ = layer_node->getObject();
+
+  for (auto iter = model_graph.cbegin(); iter != model_graph.cend(); iter++) {
+    auto const &layer_ = (*iter)->getObject();
     if (layer_->getType() == "centroid_knn") {
       layer_->net_hidden[0]->getGradientRef() = label;
     }

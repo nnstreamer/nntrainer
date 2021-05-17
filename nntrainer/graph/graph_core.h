@@ -135,20 +135,6 @@ public:
                    std::string &prefix);
 
   /**
-   * @brief     getter of ordered graph
-   * @retval    ordered GraphNode list
-   * TODO: deprecate this
-   */
-  const std::vector<std::shared_ptr<GraphNode>> &getSorted() const;
-
-  /**
-   * @brief     getter of ordered graph
-   * @retval    ordered GraphNode list
-   * TODO: deprecate this
-   */
-  std::vector<std::shared_ptr<GraphNode>> &getSorted();
-
-  /**
    * @brief     get begin iterator for the forwarding
    * @retval    const iterator marking the begin of forwarding
    */

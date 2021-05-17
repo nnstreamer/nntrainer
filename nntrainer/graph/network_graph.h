@@ -170,30 +170,32 @@ public:
   sharedConstTensors forwarding(bool training = false) const;
 
   /**
-   * @brief     getter of ordered graph
-   * @retval    ordered LayerNode list
+   * @brief     get begin iterator for the graph
+   * @retval    const reverse iterator
    */
-  const std::vector<std::shared_ptr<LayerNode>> getSorted() const;
-
   graph_iterator<const LayerNode> cbegin() const {
     return graph.cbegin<LayerNode>();
   }
 
+  /**
+   * @brief     get end iterator for the graph
+   * @retval    const iterator
+   */
   graph_iterator<const LayerNode> cend() const {
     return graph.cend<LayerNode>();
   }
 
   /**
-   * @brief     get begin iterator for the backwarding
-   * @retval    const reverse iterator marking the begin of backwarding
+   * @brief     get reverse begin iterator for the graph
+   * @retval    const reverse iterator
    */
   graph_reverse_iterator<const LayerNode> crbegin() const {
     return graph.crbegin<LayerNode>();
   }
 
   /**
-   * @brief     get end iterator for the backwarding
-   * @retval    const reverse iterator marking the end of backwarding
+   * @brief     get reverse end iterator for the graph
+   * @retval    const reverse iterator
    */
   graph_reverse_iterator<const LayerNode> crend() const {
     return graph.crend<LayerNode>();

@@ -63,9 +63,7 @@ auto ini_interpreter =
  */
 static void graphEqual(const nntrainer::GraphRepresentation &lhs,
                        const nntrainer::GraphRepresentation &rhs) {
-  const auto &layers = lhs.getLayerNodes();
-  const auto &ref_layers = rhs.getLayerNodes();
-  EXPECT_EQ(layers.size(), ref_layers.size());
+  EXPECT_EQ(lhs.size(), rhs.size());
 
   auto is_node_equal = [](const nntrainer::Layer &l,
                           const nntrainer::Layer &r) {
@@ -81,9 +79,11 @@ static void graphEqual(const nntrainer::GraphRepresentation &lhs,
       rhs_export.get_result<nntrainer::ExportMethods::METHOD_STRINGVECTOR>());
   };
 
-  if (layers.size() == ref_layers.size()) {
-    for (unsigned int i = 0; i < layers.size(); ++i) {
-      is_node_equal(*layers[i]->getObject(), *ref_layers[i]->getObject());
+  if (lhs.size() == rhs.size()) {
+    auto lhs_iter = lhs.cbegin();
+    auto rhs_iter = rhs.cbegin();
+    for (; lhs_iter != lhs.cend(), rhs_iter != rhs.cend(); lhs_iter++, rhs_iter++) {
+      is_node_equal(*lhs_iter->getObject(), *rhs_iter->getObject());
     }
   }
 }

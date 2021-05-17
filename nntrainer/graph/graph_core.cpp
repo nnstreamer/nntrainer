@@ -51,11 +51,12 @@ const std::shared_ptr<GraphNode> &GraphCore::getNode(unsigned int ith) const {
   return adj[ith].front();
 }
 
-const std::shared_ptr<GraphNode> &GraphCore::getSortedNode(unsigned int ith) const {
-  if (ith >= getSorted().size())
+const std::shared_ptr<GraphNode> &
+GraphCore::getSortedNode(unsigned int ith) const {
+  if (ith >= Sorted.size())
     throw std::invalid_argument("Exceed total number of nodes");
 
-  return getSorted()[ith];
+  return Sorted[ith];
 }
 
 void GraphCore::topologicalSortUtil(
@@ -97,7 +98,8 @@ void GraphCore::topologicalSort() {
   }
 }
 
-const std::shared_ptr<GraphNode> &GraphCore::getNode(const std::string &name) const {
+const std::shared_ptr<GraphNode> &
+GraphCore::getNode(const std::string &name) const {
   for (auto &lnode_list : adj) {
     auto &lnode = lnode_list.front();
     /// TODO: make this name checking case sensitive
@@ -138,20 +140,6 @@ void GraphCore::addNode(std::shared_ptr<GraphNode> node, bool ensure_name) {
 
   /** Insert the node to the graph */
   addGraphNode(node);
-}
-
-const std::vector<std::shared_ptr<GraphNode>> &GraphCore::getSorted() const {
-  if (Sorted.empty())
-    throw std::runtime_error("Cannot get sorted graph before topologicalSort");
-
-  return Sorted;
-}
-
-std::vector<std::shared_ptr<GraphNode>> &GraphCore::getSorted() {
-  if (Sorted.empty())
-    throw std::runtime_error("Cannot get sorted graph before topologicalSort");
-
-  return Sorted;
 }
 
 void GraphCore::ensureName(GraphNode &node, const std::string &prefix,
