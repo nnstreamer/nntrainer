@@ -102,7 +102,6 @@ const std::shared_ptr<GraphNode> &
 GraphCore::getNode(const std::string &name) const {
   for (auto &lnode_list : adj) {
     auto &lnode = lnode_list.front();
-    /// TODO: make this name checking case sensitive
     if (istrequal(lnode->getName(), name))
       return lnode;
   }
@@ -149,8 +148,7 @@ void GraphCore::ensureName(GraphNode &node, const std::string &prefix,
   /** If node already has name which is unique and valid, and force is
    * disabled, then nothing to do.
    */
-  if (!orig_name_empty && !force_rename &&
-      node_names.end() == node_names.find(orig_name)) {
+  if (!orig_name_empty && !force_rename && !verifyNode(orig_name)) {
     node_names.insert(orig_name);
     return;
   }
@@ -158,7 +156,7 @@ void GraphCore::ensureName(GraphNode &node, const std::string &prefix,
   /** If just prefix with node name makes it unique - directly set the name */
   if (!orig_name_empty) {
     std::string direct_name = prefix + orig_name + postfix;
-    if (node_names.find(direct_name) == node_names.end()) {
+    if (!verifyNode(direct_name)) {
       node.setName(direct_name);
       node_names.insert(direct_name);
       return;
@@ -181,5 +179,20 @@ void GraphCore::ensureName(GraphNode &node, const std::string &prefix,
   node.setName(name);
   node_names.insert(name);
 }
+
+void GraphCore::removeLastNode() {
+  auto last_node = Sorted.back();
+  Sorted.pop_back();
+  adj.erase(adj.begin() + last_node->getIndex());
+
+  /**
+   * Remove all the connections for the current last layer as it will now only
+   */
+  /// TODO: sorted.back() is not necessarily the previous layer
+  last_node = Sorted.back();
+  adj[last_node->getIndex()].resize(1);
+}
+
+void GraphCore::addLossToSorted() { Sorted.push_back(adj.back().front()); }
 
 } /* namespace nntrainer */

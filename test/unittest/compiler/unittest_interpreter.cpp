@@ -82,7 +82,8 @@ static void graphEqual(const nntrainer::GraphRepresentation &lhs,
   if (lhs.size() == rhs.size()) {
     auto lhs_iter = lhs.cbegin();
     auto rhs_iter = rhs.cbegin();
-    for (; lhs_iter != lhs.cend(), rhs_iter != rhs.cend(); lhs_iter++, rhs_iter++) {
+    for (; lhs_iter != lhs.cend(), rhs_iter != rhs.cend();
+         lhs_iter++, rhs_iter++) {
       is_node_equal(*lhs_iter->getObject(), *rhs_iter->getObject());
     }
   }

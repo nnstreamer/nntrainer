@@ -80,11 +80,13 @@ public:
  *
  * @note    This does not include the complete list of required functions. Add
  * them as per need.
+ *
+ * @note    GraphNodeType is to enable for both GraphNode and const GraphNode
  */
-template <typename T>
-class GraphNodeIterator : public std::iterator<std::random_access_iterator_tag,
-                                               std::shared_ptr<GraphNode>> {
-  const std::shared_ptr<GraphNode> *p; /** underlying object of GraphNode */
+template <typename LayerNodeType, typename GraphNodeType>
+class GraphNodeIterator
+  : public std::iterator<std::random_access_iterator_tag, GraphNodeType> {
+  GraphNodeType *p; /** underlying object of GraphNode */
 
 public:
   /**
@@ -93,21 +95,21 @@ public:
    * @note    these are not requried to be explicitly defined now, but maintains
    *          forward compatibility for c++17 and later
    *
-   * @note    valute_type, pointer and reference are different from standard
+   * @note    value_type, pointer and reference are different from standard
    * iterator
    */
-  typedef std::shared_ptr<T> value_type;
+  typedef std::shared_ptr<LayerNodeType> value_type;
   typedef std::random_access_iterator_tag iterator_category;
   typedef std::ptrdiff_t difference_type;
-  typedef std::shared_ptr<T> *pointer;
-  typedef std::shared_ptr<T> &reference;
+  typedef std::shared_ptr<LayerNodeType> *pointer;
+  typedef std::shared_ptr<LayerNodeType> &reference;
 
   /**
    * @brief Construct a new Graph Node Iterator object
    *
    * @param x underlying object of GraphNode
    */
-  GraphNodeIterator(const std::shared_ptr<GraphNode> *x) : p(x) {}
+  GraphNodeIterator(GraphNodeType *x) : p(x) {}
 
   /**
    * @brief reference operator
@@ -115,7 +117,9 @@ public:
    * @return value_type
    * @note this is different from standard iterator
    */
-  value_type operator*() const { return std::static_pointer_cast<T>(*p); }
+  value_type operator*() const {
+    return std::static_pointer_cast<LayerNodeType>(*p);
+  }
 
   /**
    * @brief pointer operator
@@ -123,7 +127,9 @@ public:
    * @return value_type
    * @note this is different from standard iterator
    */
-  value_type operator->() const { return std::static_pointer_cast<T>(*p); }
+  value_type operator->() const {
+    return std::static_pointer_cast<LayerNodeType>(*p);
+  }
 
   /**
    * @brief == comparison operator override
@@ -290,13 +296,30 @@ public:
 /**
  * @brief     Iterators to traverse the graph
  */
-template <class T> using graph_iterator = GraphNodeIterator<T>;
+template <class LayerNodeType>
+using graph_iterator =
+  GraphNodeIterator<LayerNodeType, std::shared_ptr<GraphNode>>;
 
 /**
  * @brief     Iterators to traverse the graph
  */
-template <class T>
-using graph_reverse_iterator = GraphNodeReverseIterator<GraphNodeIterator<T>>;
+template <class LayerNodeType>
+using graph_reverse_iterator = GraphNodeReverseIterator<
+  GraphNodeIterator<LayerNodeType, std::shared_ptr<GraphNode>>>;
+
+/**
+ * @brief     Iterators to traverse the graph
+ */
+template <class LayerNodeType>
+using graph_const_iterator =
+  GraphNodeIterator<const LayerNodeType, const std::shared_ptr<GraphNode>>;
+
+/**
+ * @brief     Iterators to traverse the graph
+ */
+template <class LayerNodeType>
+using graph_const_reverse_iterator = GraphNodeReverseIterator<
+  GraphNodeIterator<const LayerNodeType, const std::shared_ptr<GraphNode>>>;
 
 } // namespace nntrainer
 #endif // __GRAPH_NODE_H__

@@ -137,12 +137,35 @@ public:
   /**
    * @brief     get begin iterator for the forwarding
    * @retval    const iterator marking the begin of forwarding
+   * TODO:      iterate over node_list if sorted is not available
    */
   template <
     typename T = GraphNode,
     std::enable_if_t<std::is_base_of<GraphNode, T>::value, T> * = nullptr>
-  inline graph_iterator<T const> cbegin() const {
-    return graph_iterator<T const>(&(*Sorted.cbegin()));
+  inline graph_iterator<T> begin() {
+    return graph_iterator<T>(&(*Sorted.begin()));
+  }
+
+  /**
+   * @brief     get end iterator for the forwarding
+   * @retval    iterator marking the end of forwarding
+   */
+  template <
+    typename T = GraphNode,
+    std::enable_if_t<std::is_base_of<GraphNode, T>::value, T> * = nullptr>
+  inline graph_iterator<T> end() {
+    return graph_iterator<T>(&(*Sorted.end()));
+  }
+
+  /**
+   * @brief     get begin iterator for the forwarding
+   * @retval    const iterator marking the begin of forwarding
+   */
+  template <
+    typename T = GraphNode,
+    std::enable_if_t<std::is_base_of<GraphNode, T>::value, T> * = nullptr>
+  inline graph_const_iterator<T> cbegin() const {
+    return graph_const_iterator<T>(&(*Sorted.cbegin()));
   }
 
   /**
@@ -152,8 +175,8 @@ public:
   template <
     typename T = GraphNode,
     std::enable_if_t<std::is_base_of<GraphNode, T>::value, T> * = nullptr>
-  inline graph_iterator<T const> cend() const {
-    return graph_iterator<T const>(&(*Sorted.cend()));
+  inline graph_const_iterator<T> cend() const {
+    return graph_const_iterator<T>(&(*Sorted.cend()));
   }
 
   /**
@@ -163,8 +186,8 @@ public:
   template <
     typename T = GraphNode,
     std::enable_if_t<std::is_base_of<GraphNode, T>::value, T> * = nullptr>
-  inline graph_reverse_iterator<T const> crbegin() const {
-    return graph_reverse_iterator<T const>(cend<T>());
+  inline graph_const_reverse_iterator<T> crbegin() const {
+    return graph_const_reverse_iterator<T>(cend<T>());
   }
 
   /**
@@ -174,8 +197,8 @@ public:
   template <
     typename T = GraphNode,
     std::enable_if_t<std::is_base_of<GraphNode, T>::value, T> * = nullptr>
-  inline graph_reverse_iterator<T const> crend() const {
-    return graph_reverse_iterator<T const>(cbegin<T>());
+  inline graph_const_reverse_iterator<T> crend() const {
+    return graph_const_reverse_iterator<T>(cbegin<T>());
   }
 
   /**
@@ -229,34 +252,36 @@ public:
   void ensureName(GraphNode &node, const std::string &prefix = "",
                   const std::string &postfix = "", bool force_rename = false);
 
-  void remove_last_node() {
-    auto last_node = Sorted.back();
-    Sorted.pop_back();
-    adj.erase(adj.begin() + last_node->getIndex());
+  /**
+   * @brief     Remove last node from the sorted list
+   */
+  void removeLastNode();
 
-    /**
-     * Remove all the connections for the current lasy layer as it will now only
-     */
-    last_node = Sorted.back();
-    adj[last_node->getIndex()].resize(1);
-  }
+  /**
+   * @brief     Add last node (loss node) to the last of the sorted
+   */
+  void addLossToSorted();
 
-  void addLossToSorted() { Sorted.push_back(adj.back().front()); }
-
-  bool verifyNode(const std::string &name) {
+  /**
+   * @brief     Verify if the node exists
+   */
+  inline bool verifyNode(const std::string &name) {
     if (node_names.find(name) == node_names.end())
       return false;
     return true;
   }
 
 private:
+  /// TODO: make this when needed. Till then, keep only nodelist
   std::vector<std::list<std::shared_ptr<GraphNode>>>
     adj; /**< adjacency list for graph */
-  std::vector<std::shared_ptr<GraphNode>> node_list; /**< Ordered Node List  */
 
+  std::vector<std::shared_ptr<GraphNode>>
+    node_list;                                    /**< Unordered Node List  */
   std::vector<std::shared_ptr<GraphNode>> Sorted; /**< Ordered Node List  */
   bool sorted; /** if the node_list is sorted */
 
+  /// TODO: update with unordered_set
   std::set<std::string>
     node_names;       /**< Set containing all the names of nodes in the model */
   int def_name_count; /**< Count assigned to node names declared by default */
