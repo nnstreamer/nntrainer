@@ -15,30 +15,34 @@ with warnings.catch_warnings():
     import tensorflow as tf
     from tensorflow.python import keras as K
 
+import inspect
+from inspect import signature
+
 ##
 # @brief AbstractTransLayer is a proxy to translate a layer to nntrainer layout.
 # This class delegates most of the method/member to self.tf_layer except that
 # input, output, weights are reinterpreted to be in nntrainer_layer layout
-class AbstractTransLayer:
-    def __init__(self, tf_layer):
+class AbstractTransLayer(K.layers.Layer):
+    def __init__(self, tf_layer, *args, **kwargs):
         if not isinstance(tf_layer, K.engine.base_layer.Layer):
             raise ValueError("tf_layer must be type of keras layer")
+        super().__init__(*args, **kwargs, name=tf_layer.name + "/translated")
         self.tf_layer = tf_layer
-
-    def __getattr__(self, name):
-        return self.tf_layer.__getattribute__(name)
-
-    def __call__(self, *args, **kwargs):
-        return self.call(*args, **kwargs)
+        self.call.__func__.__signature__ = signature(self.tf_layer.call)
+        self.has_training = "training" in inspect.getfullargspec(self.call).args
 
     ##
     # @brief call function
     # @param nntr_input input with nntrainer layout
-    def call(self, nntr_input, *args, **kwargs):
+    def call(self, nntr_input, training=None):
         tf_input = self.to_tf_tensor(nntr_input)
-        tf_output = self.tf_layer.__call__(tf_input, *args, **kwargs)
-        self.output = self.to_nntr_tensor(tf_output)
-        return self.output
+
+        additional_args = {}
+        if self.has_training:
+            additional_args["training"] = training
+
+        tf_output = self.tf_layer(tf_input, **additional_args)
+        return self.to_nntr_tensor(tf_output)
 
     ##
     # @brief change a tensor to tf layout
@@ -63,15 +67,6 @@ class AbstractTransLayer:
     # @param tensorOrList tensor or list of tensors to convert
     def to_nntr_trainable_weights(self, tensorOrList):
         raise NotImplementedError("Abstract method should not be called!")
-
-    ##
-    # @brief overriding the identity of this class. This ensures that transLayer
-    # is a type of a Layer.
-    # Note that this more like a hack and it might break
-    # any method using self.__class__
-    @property
-    def __class__(self):
-        return K.engine.base_layer.Layer
 
     ##
     # @brief hook to get weights
@@ -99,7 +94,6 @@ class IdentityTransLayer(AbstractTransLayer):
 ##
 # @brief Translayer for batch normalization layer
 class BatchNormTransLayer(IdentityTransLayer):
-
     def to_nntr_weights(self, tensorOrList):
         x = tensorOrList
         assert len(x) == 4
@@ -118,11 +112,16 @@ class ChannelLastTransLayer(AbstractTransLayer):
     # height, width, channel, filter_size -> filter_size, channel, height, width
     TO_NNTR_KERNEL = (3, 2, 0, 1)
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.to_tf_layer_ = K.layers.Permute(ChannelLastTransLayer.TO_CHANNELS_LAST)
+        self.to_nntr_layer_ = K.layers.Permute(ChannelLastTransLayer.TO_CHANNELS_FIRST)
+
     def to_tf_tensor(self, tensor):
-        return K.layers.Permute(ChannelLastTransLayer.TO_CHANNELS_LAST)(tensor)
+        return self.to_tf_layer_(tensor)
 
     def to_nntr_tensor(self, tensor):
-        return K.layers.Permute(ChannelLastTransLayer.TO_CHANNELS_FIRST)(tensor)
+        return self.to_nntr_layer_(tensor)
 
     @classmethod
     def _nntr_kernel(cls, tensor):

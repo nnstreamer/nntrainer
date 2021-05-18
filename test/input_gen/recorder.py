@@ -126,28 +126,20 @@ def train_step(model, optimizer, loss_fn, initial_input, label, writer_fn, **kwa
     with tf.GradientTape(persistent=True) as tape:
         tape.watch(initial_input)
 
-        outputs = {}
         inp = initial_input
-
+        outp = model.call(inp, training=True)
+        outputs = {}
         for layer in model.layers:
-            if isinstance(layer, K.layers.Permute):
-                continue
+            output_indices = model.recorder__output_maps[layer.name]
+            outputs[layer.name] = [outp[i] for i in output_indices]
 
-            try:
-                outp = layer(inp, training=True)
-            except TypeError:
-                outp = layer(inp)
-            outputs[layer.name] = outp
-            inp = outp
-
-        loss = loss_fn(label, outp)
+        loss = loss_fn(label, outp[-1])
 
     layer_input = initial_input
 
+    # if traversal order is different from nntrainer, this need to be restructured to rely on the order of output.
     for layer in model.layers:
-        # print(layer_output)
-        if isinstance(layer, K.layers.Permute):
-            continue
+        # we might need a bit of reordering if output is more than one
         layer_output = outputs[layer.name]
 
         # print("generating for %s" % layer.name)
@@ -170,14 +162,20 @@ def train_step(model, optimizer, loss_fn, initial_input, label, writer_fn, **kwa
             pass
 
         writer_fn(
-            layer_output,  # output of forward
-            dx,  # output of backward
+            *layer_output,  # output of forward
+            *dx,  # output of backward
             *gradients,  # weight gradient output from backward
             *weights  # updated weight after optimization
         )
 
+        _debug_print(name=layer.name, print_format=value_only_formatter, **kwargs)
         _debug_print(
-            output=layer_output, dx=dx, weights=weights, gradients=gradients, dx_shape=dx.shape, **kwargs
+            output=layer_output,
+            dx=dx,
+            weights=weights,
+            gradients=gradients,
+            dx_shape=[i.shape for i in dx],
+            **kwargs
         )
 
         layer_input = layer_output
@@ -201,6 +199,7 @@ value_only_formatter = lambda key, value: value
 
 ##
 # @brief generate recordable model
+# @note if model, inputs, outputs is given, trans_layer will NOT be automatically attached
 # @param loss_fn_str one of LOSS_FN string otherwise raise KeyError
 # @param model base model to record, if model is present @a inputs and @a outputs is ignored
 # @param inputs keras inputs to build a model
@@ -208,20 +207,22 @@ value_only_formatter = lambda key, value: value
 def generate_recordable_model(
     loss_fn_str, model=None, inputs=None, outputs=None, **kwargs
 ):
-    if model is not None:
-        if isinstance(model, list):
-            model = K.Sequential([attach_trans_layer(layer) for layer in model])
-        inputs = model.input
-        outputs = [model.input] + [layer.output for layer in model.layers]
+    if isinstance(model, list):
+        model = [attach_trans_layer(layer) for layer in model]
 
-    # omit last activation layer if cross softmax or corss_sigmoid
-    if loss_fn_str == "cross_softmax" or loss_fn_str == "cross_sigmoid":
-        if isinstance(model.layers[-1], K.layers.Activation):
-            outputs = outputs[:-1]
+        inputs = model[0]  # first layer must be input
+        outputs = [inputs]
+        for layer in model[1:]:
+            current_output = layer(outputs[-1])
+            outputs.append(current_output)
 
-    model = K.Model(inputs=inputs, outputs=outputs)
+    if isinstance(model, K.models.Model) == False:
+        # omit last activation layer if cross softmax or cross_sigmoid
+        if loss_fn_str == "cross_softmax" or loss_fn_str == "cross_sigmoid":
+            if isinstance(outputs[-1]._keras_history.layer, K.layers.Activation):
+                outputs = outputs[:-1]
 
-    model._layers = [attach_trans_layer(layer) for layer in model.layers]
+        model = K.Model(inputs=inputs, outputs=outputs)
 
     model.summary(
         print_fn=lambda x: _debug_print(
@@ -229,6 +230,15 @@ def generate_recordable_model(
         )
     )
 
+    output_maps = {}
+    for idx, output in enumerate(model.outputs):
+        layer_name = output._keras_history.layer.name
+        try:
+            output_maps[layer_name].append(idx)
+        except KeyError:
+            output_maps[layer_name] = [idx]
+
+    model.recorder__output_maps = output_maps
 
     return model
 
