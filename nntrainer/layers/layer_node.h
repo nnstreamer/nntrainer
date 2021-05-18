@@ -8,6 +8,8 @@
  * @author Parichay Kapoor <pk.kapoor@samsung.com>
  * @bug    No known bugs except for NYI items
  * @brief  This is the layer node for network graph
+ *
+ * @todo   Add printPreset support
  */
 
 #ifndef __LAYER_NODE_H__
@@ -71,9 +73,7 @@ public:
    * @details   This function accepts vector of properties in the format -
    *  { std::string property_name=property_val, ...}
    */
-  int setProperty(std::vector<std::string> properties) {
-    return layer->setProperty(properties);
-  }
+  int setProperty(std::vector<std::string> properties);
 
   /**
    * @brief     set name of layer
@@ -133,6 +133,16 @@ public:
    */
   bool getTrainable() noexcept { return layer->getTrainable(); }
 
+  /**
+   * Support interfaces for the properties intercepted from layer
+   */
+
+  /**
+   * @brief     get if the output of this layer must be flatten
+   * @retval    flatten value
+   */
+  bool getFlatten() { return flatten; }
+
 #ifdef PROFILE
   int event_key;
 #endif
@@ -153,12 +163,47 @@ private:
   bool flatten; /**< flatten the output of this node */
   ActivationType
     activation_type; /**< activation applied to the output of this node */
+  bool distribute;
+
+  /**
+   * These properties are set for the layer by the user but are intercepted
+   * and used in the node which forms the basic element of the graph.
+   */
+  std::tuple<> props; /**< properties for the layer node */
+
+  /**
+   * @brief setProperty by PropertyType
+   * @note By passing empty string, this can validate if @a type is valid
+   * @param[in] type property type to be passed
+   * @param[in] value value to be passed, if empty string is passed, do nothing
+   * but throws error when @a type is invalid
+   * @exception exception::not_supported     when property type is not valid for
+   * the particular layer
+   * @exception std::invalid_argument invalid argument
+   */
+  virtual void setProperty(const nntrainer::Layer::PropertyType type,
+                           const std::string &value = "");
 };
 
 /**
  * @brief LayerNode creator with constructor
+ *
+ * @params[in] type Type of the layer to be constructed
+ * @params[in] properties Properties of the layer
  */
-std::unique_ptr<LayerNode> createLayerNode(const std::string &type);
+std::unique_ptr<LayerNode>
+createLayerNode(const std::string &type,
+                const std::vector<std::string> &properties = {});
+
+/**
+ * @brief LayerNode creator with constructor
+ *
+ * @params[in] layer Already constructed layer
+ * @params[in] properties Properties of the layer
+ */
+std::unique_ptr<LayerNode>
+createLayerNode(std::shared_ptr<nntrainer::Layer> layer,
+                const std::vector<std::string> &properties = {});
 
 } // namespace nntrainer
 #endif // __LAYER_NODE_H__

@@ -85,7 +85,6 @@ void Layer::copy(std::shared_ptr<Layer> l) {
   this->weight_regularizer = l->weight_regularizer;
   this->weight_regularizer_constant = l->weight_regularizer_constant;
   this->weight_initializer = l->weight_initializer;
-  this->flatten = l->flatten;
   this->trainable = l->trainable;
   this->distribute = l->distribute;
 }
@@ -228,12 +227,6 @@ void Layer::setProperty(const PropertyType type, const std::string &value) {
       setActivation((ActivationType)parseType(value, TOKEN_ACTI));
     }
     break;
-  case PropertyType::flatten:
-    if (!value.empty()) {
-      status = setBoolean(flatten, value);
-      throw_status(status);
-    }
-    break;
   case PropertyType::weight_regularizer:
     if (!value.empty()) {
       weight_regularizer =
@@ -338,7 +331,6 @@ void Layer::printPropertiesMeta(std::ostream &out) {
   printIfValid(
     out, PropertyType::activation,
     static_cast<std::underlying_type<ActivationType>::type>(activation_type));
-  printIfValid(out, PropertyType::flatten, flatten);
 }
 
 void Layer::printProperties(std::ostream &out) {
