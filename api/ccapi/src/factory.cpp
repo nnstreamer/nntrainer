@@ -40,11 +40,8 @@ std::unique_ptr<Layer> createLayer(const LayerType &type,
  */
 std::unique_ptr<Layer> createLayer(const std::string &type,
                                    const std::vector<std::string> &properties) {
-  auto &ac = nntrainer::AppContext::Global();
-  std::shared_ptr<nntrainer::Layer> nntr_layer =
-    ac.createObject<nntrainer::Layer>(type, properties);
   std::unique_ptr<nntrainer::LayerNode> layer =
-    std::make_unique<nntrainer::LayerNode>(nntr_layer);
+    nntrainer::createLayerNode(type, properties);
 
   return layer;
 }
@@ -63,12 +60,8 @@ createOptimizer(const OptimizerType &type,
 static std::unique_ptr<Layer>
 createLoss(nntrainer::LossType type,
            const std::vector<std::string> &properties) {
-  std::shared_ptr<nntrainer::Layer> nntr_layer = nntrainer::createLoss(type);
   std::unique_ptr<nntrainer::LayerNode> layer =
-    std::make_unique<nntrainer::LayerNode>(nntr_layer);
-
-  if (layer->setProperty(properties) != ML_ERROR_NONE)
-    throw std::invalid_argument("Set properties failed for layer");
+    nntrainer::createLayerNode(nntrainer::createLoss(type), properties);
 
   return layer;
 }

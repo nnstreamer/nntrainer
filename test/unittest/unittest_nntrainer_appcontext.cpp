@@ -25,6 +25,10 @@
 #include <app_context.h>
 #include <nntrainer_error.h>
 
+/**
+ * @brief   Directory for appcontext unittests
+ *
+ */
 class nntrainerAppContextDirectory : public ::testing::Test {
 
 protected:
@@ -89,6 +93,10 @@ TEST_F(nntrainerAppContextDirectory, notExisitingSetDirectory_n) {
                std::invalid_argument);
 }
 
+/**
+ * @brief   Custom Optimizer for unittests
+ *
+ */
 class CustomOptimizer : public nntrainer::Optimizer {
 public:
   /** Full custom optimizer example which overrides all functions */
@@ -112,6 +120,10 @@ public:
                      int iteration) override {}
 };
 
+/**
+ * @brief   Custom Optimizer for unittests
+ *
+ */
 class CustomOptimizer2 : public nntrainer::Optimizer {
 public:
   /** Minimal custom optimizer example which define only necessary functions */
@@ -127,7 +139,11 @@ public:
                      int iteration) override {}
 };
 
-/// @todo solidify the api signature
+/**
+ * @brief   Custom Layer for unittests
+ *
+ * @todo solidify the api signature
+ */
 class CustomLayer : public nntrainer::Layer {
 public:
   static const std::string type;
@@ -139,8 +155,6 @@ public:
   float getLoss() override { return 0.0f; }
 
   void setTrainable(bool train) override {}
-
-  bool getFlatten() override { return true; }
 
   std::string getName() noexcept override { return ""; }
 

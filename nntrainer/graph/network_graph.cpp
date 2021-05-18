@@ -460,7 +460,8 @@ int NetworkGraph::realizeGraph() {
   std::vector<std::shared_ptr<GraphNode>> node_list = graph.getNodes();
 
   for (unsigned int i = 0; i < num_nodes; ++i) {
-    Layer &l = *LNODE(node_list[i])->getObject();
+    auto const &lnode = LNODE(node_list[i]);
+    Layer &l = *lnode->getObject();
     ml_logd("layer name: %s", l.getName().c_str());
 
     /** If a layer does not has input nodes, then it must have input dimension
@@ -491,7 +492,7 @@ int NetworkGraph::realizeGraph() {
     }
 
     // Flatten in TimeDistLayer is not supported.
-    if (l.getFlatten() && l.getType() != TimeDistLayer::type) {
+    if (lnode->getFlatten() && l.getType() != TimeDistLayer::type) {
       status = realizeFlattenType(l);
       NN_RETURN_STATUS();
     }

@@ -72,7 +72,6 @@ public:
     weight_regularizer_constant(weight_regularizer_constant_),
     weight_initializer(weight_initializer_),
     bias_initializer(bias_initializer_),
-    flatten(flatten_),
     trainable(trainable_),
     distribute(distribute_) {
     setNumInputs(1);
@@ -372,12 +371,6 @@ public:
   virtual std::vector<Weight> getWeights() { return weights; }
 
   /**
-   * @brief     get if the output of this layer must be flatten
-   * @retval    flatten value
-   */
-  virtual bool getFlatten() { return flatten; }
-
-  /**
    * @brief     Set name of the layer
    */
   virtual int setName(std::string name);
@@ -668,17 +661,12 @@ protected:
    */
   WeightInitializer bias_initializer;
 
-  // TODO: remove this from here
-  /**
-   * @brief   Output of this layer should be flattened
-   */
-  bool flatten;
-
   /**
    * @brief     making this false will skip updating this layer variables
    */
   bool trainable;
 
+  // TODO: remove this from here
   /**
    * @brief     making this true will iterating along with time distribution
    */
@@ -744,12 +732,6 @@ private:
    * @param[in] wini WeightInitializer
    */
   void setWeightInit(WeightInitializer wini) { weight_initializer = wini; }
-
-  /**
-   * @brief     get if the output of this layer must be flatten
-   * @retval    flatten value
-   */
-  void setFlatten(bool flatten) { this->flatten = flatten; }
 
   /**
    * @brief     Print layer related information. Do not override without clear

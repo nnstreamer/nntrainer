@@ -19,6 +19,7 @@
 #include <ini_wrapper.h>
 #include <layer.h>
 #include <layer_factory.h>
+#include <layer_node.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <node_exporter.h>
@@ -132,10 +133,7 @@ section2layer<PlainLayer>(dictionary *ini, const std::string &sec_name,
     << FUNC_TAG << "section type is invalid for section name: " << sec_name;
 
   auto properties = section2properties(ini, sec_name);
-  std::shared_ptr<Layer> nntr_layer =
-    ac.createObject<Layer>(layer_type, properties);
-
-  auto layer = std::make_unique<LayerNode>(nntr_layer);
+  std::shared_ptr<Layer> nntr_layer = ac.createObject<Layer>(layer_type);
 
   if (nntr_layer->getDistribute()) {
     ml_logd("This %s layer is going to distributed", sec_name.c_str());
@@ -144,8 +142,10 @@ section2layer<PlainLayer>(dictionary *ini, const std::string &sec_name,
     std::dynamic_pointer_cast<TimeDistLayer>(dist_layer)
       ->setDistLayer(nntr_layer);
 
-    layer = std::make_unique<LayerNode>(dist_layer);
+    nntr_layer = dist_layer;
   }
+
+  auto layer = createLayerNode(nntr_layer, properties);
 
   return layer;
 }
@@ -175,9 +175,8 @@ section2layer<BackboneLayer>(dictionary *ini, const std::string &sec_name,
 
   auto properties = section2properties(ini, sec_name);
   properties.push_back("modelfile=" + backbone_file);
-  std::shared_ptr<Layer> nntr_layer = ac.createObject<Layer>(type, properties);
 
-  auto layer = std::make_unique<LayerNode>(nntr_layer);
+  auto layer = createLayerNode(type, properties);
 
   return layer;
 }
