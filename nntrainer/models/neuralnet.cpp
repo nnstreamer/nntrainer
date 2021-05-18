@@ -480,18 +480,13 @@ sharedConstTensors NeuralNetwork::inference(sharedConstTensors X,
 
   sharedConstTensors out;
   if (!validateInput(X))
-    return out;
+    throw std::invalid_argument("Input validation failed.");
 
   allocate(false);
 
-  try {
-    START_PROFILE(profile::NN_FORWARD);
-    forwarding(X, {}, false);
-    END_PROFILE(profile::NN_FORWARD);
-  } catch (...) {
-    ml_loge("Failed to inference Model");
-    return out;
-  }
+  START_PROFILE(profile::NN_FORWARD);
+  forwarding(X, {}, false);
+  END_PROFILE(profile::NN_FORWARD);
 
   auto &last_layer = model_graph.getSorted().back()->getObject();
   for (unsigned int i = 0; i < last_layer->getNumOutputs(); ++i) {

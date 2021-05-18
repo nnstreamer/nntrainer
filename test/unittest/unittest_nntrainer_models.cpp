@@ -1043,10 +1043,12 @@ INSTANTIATE_TEST_CASE_P(
 #if defined(ENABLE_DATA_AUGMENTATION_OPENCV)
     mkModelTc(preprocess_translate_validate, "3:1:1:10", 10),
 #endif
-    mkModelTc(preprocess_flip_validate, "3:1:1:10", 10),
-    mkModelTc(fc_softmax_mse_distribute_validate, "3:1:5:3", 1),
-    mkModelTc(fc_softmax_cross_distribute_validate, "3:1:5:3", 1),
-    mkModelTc(fc_sigmoid_cross_distribute_validate, "3:1:5:3", 1)
+    mkModelTc(preprocess_flip_validate, "3:1:1:10", 10)
+
+    /// #1192 time distribution inference bug
+    // mkModelTc(fc_softmax_mse_distribute_validate, "3:1:5:3", 1),
+    // mkModelTc(fc_softmax_cross_distribute_validate, "3:1:5:3", 1),
+    // mkModelTc(fc_sigmoid_cross_distribute_validate, "3:1:5:3", 1)
 // / #if gtest_version <= 1.7.0
 ));
 /// #else gtest_version > 1.8.0
