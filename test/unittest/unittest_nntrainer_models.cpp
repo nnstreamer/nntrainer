@@ -607,6 +607,7 @@ static nntrainer::IniSection nn_base("model", "type = NeuralNetwork");
 static std::string input_base = "type = input";
 static std::string fc_base = "type = Fully_connected";
 static std::string conv_base = "type = conv2d | stride = 1,1 | padding = 0,0";
+static std::string lstm_base = "type = lstm";
 static std::string pooling_base = "type = pooling2d | padding = 0,0";
 static std::string preprocess_flip_base = "type = preprocess_flip";
 static std::string preprocess_translate_base = "type = preprocess_translate";
@@ -1067,6 +1068,18 @@ INI addition_resnet_like_validate(
   }
 );
 
+INI lstm_basic(
+  "lstm_basic",
+  {
+    nn_base + "loss=mse | batch_size=1",
+    sgd_base + "learning_rate = 0.1",
+    I("input") + input_base + "input_shape=1:2:1",
+    I("lstm") + lstm_base +
+      "unit = 2" + "input_layers=input",
+    I("outputlayer") + fc_base + "unit = 1" + "input_layers=lstm"
+  }
+);
+
 INSTANTIATE_TEST_CASE_P(
   nntrainerModelAutoTests, nntrainerModelTest, ::testing::Values(
     mkModelTc(fc_sigmoid_mse, "3:1:1:10", 10),
@@ -1105,11 +1118,13 @@ INSTANTIATE_TEST_CASE_P(
 
     /**< Addition test */
     mkModelTc(addition_resnet_like_validate, "3:1:1:10", 10)
+    mkModelTc(preprocess_flip_validate, "3:1:1:10", 10)
 
     /// #1192 time distribution inference bug
     // mkModelTc(fc_softmax_mse_distribute_validate, "3:1:5:3", 1),
     // mkModelTc(fc_softmax_cross_distribute_validate, "3:1:5:3", 1),
     // mkModelTc(fc_sigmoid_cross_distribute_validate, "3:1:5:3", 1)
+    mkModelTc(lstm_basic, "1:1:1:1", 1)
 // / #if gtest_version <= 1.7.0
 ));
 /// #else gtest_version > 1.8.0
