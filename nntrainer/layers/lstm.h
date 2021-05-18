@@ -32,20 +32,17 @@ public:
   template <typename... Args>
   LSTMLayer(
     unsigned int unit_ = 0,
-    ActivationType recurrent_activation_type_ = ActivationType::ACT_SIGMOID,
-    Args... args) :
+    ActivationType recurrent_activation_type_ = ActivationType::ACT_NONE,
+    bool sequence = false, Args... args) :
     Layer(args...),
-    unit(unit_) {
-    /* Default Activation Type is tanh */
-    if (getActivationType() == ActivationType::ACT_NONE)
-      setActivation(ActivationType::ACT_TANH);
-    setRecurrentActivation(recurrent_activation_type_);
-  }
+    unit(unit_),
+    recurrent_activation_type(recurrent_activation_type_),
+    return_sequences(sequence){};
 
   /**
    * @brief     Destructor of LSTMLayer
    */
-  ~LSTMLayer(){};
+  ~LSTMLayer() = default;
 
   /**
    *  @brief  Move constructor.
@@ -125,17 +122,17 @@ private:
   unsigned int unit;
 
   /**
-   * @brief     activation function for h_t : default is tanh
+   * @brief     activation function for h_t : default is sigmoid
    */
   ActiFunc acti_func;
 
   /**
-   * @brief     activation type for recurrent : default is sigmoid
+   * @brief     activation type for recurrent : default is tanh
    */
   ActivationType recurrent_activation_type;
 
   /**
-   * @brief     activation function for recurrent : default is sigmoid
+   * @brief     activation function for recurrent : default is tanh
    */
   ActiFunc recurrent_acti_func;
 
@@ -153,11 +150,22 @@ private:
    * @brief     To save cell data
    */
   std::shared_ptr<Var_Grad> mem_cell;
-
+  
   /**
    * @brief     To save intermediate gates
    */
   std::shared_ptr<Var_Grad> fgio;
+
+  /**
+   * @brief     hidden state
+   */
+  std::shared_ptr<Var_Grad> hidden;
+  
+  /**
+   * @brief     variable to set return sequences
+   */
+  bool return_sequences;
+  
 };
 } // namespace nntrainer
 
