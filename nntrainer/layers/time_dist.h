@@ -118,6 +118,17 @@ public:
    */
   void transposeInOut();
 
+  using Layer::setProperty;
+
+  /**
+   * @copydoc Layer::setProperty(const PropertyType type, const std::string
+   * &value)
+   */
+  void setProperty(const PropertyType type,
+                   const std::string &value = "") override {
+    dist_layer->setProperty(type, value);
+  }
+
   /**
    * @copydoc Layer::getType()
    */
