@@ -45,7 +45,7 @@ TENSORFLOW_ROOT := $(NDK_LIBS_OUT)/tensorflow-$(TENSORFLOW_VERSION)/tensorflow-l
 $(info $(shell ($(NNTRAINER_JNI_ROOT)/prepare_tflite.sh $(TENSORFLOW_VERSION) $(NDK_LIBS_OUT))))
 
 $(info $(shell (flatc -c $(NNTRAINER_ROOT)/nntrainer/compiler/tf_schema.fbs)))
-$(info $(shell (mv tf_scehma_generated.h $(NNTRAINER_ROOT)/nntrainer/compiler)))
+$(info $(shell (mv tf_schema_generated.h $(NNTRAINER_ROOT)/nntrainer/compiler)))
 
 endif #MAKECMDGOALS
 endif #TENSORFLOW_ROOT
