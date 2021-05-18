@@ -390,7 +390,7 @@ int NetworkGraph::addLossLayer(const LossType loss_type) {
     NN_RETURN_STATUS();
   }
 
-  auto &last_node = Sorted.back();
+  auto last_node = Sorted.back();
   if (updated_loss_type == LossType::LOSS_ENTROPY) {
     auto type = last_node->getObject()->getType();
     if (type == TimeDistLayer::type) {
