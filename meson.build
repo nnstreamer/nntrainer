@@ -186,6 +186,7 @@ endif
 if opencv_dep.found()
   add_project_arguments('-DENABLE_DATA_AUGMENTATION_OPENCV=1', language:['c','cpp'])
 endif
+flatc_prog = find_program('flatc', required: false)
 
 # Install .pc
 configure_file(input: 'nntrainer.pc.in', output: 'nntrainer.pc',
