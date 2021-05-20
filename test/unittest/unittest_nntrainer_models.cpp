@@ -1018,24 +1018,53 @@ INI mnist_conv_cross_one_input = INI("mnist_conv_cross_one_input") + mnist_conv_
 
 INI fc_softmax_mse_distribute_validate(
   "fc_softmax_mse_distribute_validate",
-  {nn_base + "loss=mse | batch_size = 3",
-   sgd_base + "learning_rate = 1",
-   I("input") + input_base + "input_shape = 1:5:5",
-   I("dense") + fc_base + "unit = 3"+"activation=softmax"+"distribute=true"});
+  {
+    nn_base + "loss=mse | batch_size = 3",
+    sgd_base + "learning_rate = 1",
+    I("input") + input_base + "input_shape = 1:5:5",
+    I("dense") + fc_base + "unit = 3"+"activation=softmax"+"distribute=true"
+  }
+);
 
 INI fc_softmax_cross_distribute_validate(
   "fc_softmax_cross_distribute_validate",
-  {nn_base + "loss=cross | batch_size = 3",
-   sgd_base + "learning_rate = 1",
-   I("input") + input_base + "input_shape = 1:5:5",
-   I("dense") + fc_base + "unit = 3"+"activation=softmax"+"distribute=true"});
+  {
+    nn_base + "loss=cross | batch_size = 3",
+    sgd_base + "learning_rate = 1",
+    I("input") + input_base + "input_shape = 1:5:5",
+    I("dense") + fc_base + "unit = 3"+"activation=softmax"+"distribute=true"
+  }
+);
 
 INI fc_sigmoid_cross_distribute_validate(
   "fc_sigmoid_mse_distribute_validate",
-  {nn_base + "loss=cross | batch_size = 3",
-   sgd_base + "learning_rate = 1",
-   I("input") + input_base + "input_shape = 1:5:5",
-   I("dense") + fc_base + "unit = 3"+"activation=sigmoid"+"distribute=true"});
+  {
+    nn_base + "loss=cross | batch_size = 3",
+    sgd_base + "learning_rate = 1",
+    I("input") + input_base + "input_shape = 1:5:5",
+    I("dense") + fc_base + "unit = 3"+"activation=sigmoid"+"distribute=true"
+  }
+);
+
+INI addition_resnet_like_validate(
+  "addition_resnet_like_validate",
+  {
+    nn_base + "loss=mse | batch_size = 3",
+    sgd_base + "learning_rate = 0.1",
+    I("x") + input_base + "input_shape = 2:3:5",
+    I("addition_a1") + conv_base
+      + "filters=4 | kernel_size=3,3 | stride=2,2 | padding=1,1",
+    I("addition_a2") + relu_base,
+    I("addition_a3") + conv_base + "filters=4 | kernel_size=3,3 | padding=1,1",
+    I("addition_b1") + conv_base
+      + "filters=4 | kernel_size=1,1 | stride=2,2"
+      + "input_layers=x",
+    I("addition_c1", "type=addition | input_layers=addition_a3, addition_b1"),
+    I("addition_c2", "type=flatten"),
+    I("addition_c3") + fc_base + "unit=10",
+    I("addition_c4") + softmax_base,
+  }
+);
 
 INSTANTIATE_TEST_CASE_P(
   nntrainerModelAutoTests, nntrainerModelTest, ::testing::Values(
@@ -1071,7 +1100,10 @@ INSTANTIATE_TEST_CASE_P(
 #if defined(ENABLE_DATA_AUGMENTATION_OPENCV)
     mkModelTc(preprocess_translate_validate, "3:1:1:10", 10),
 #endif
-    mkModelTc(preprocess_flip_validate, "3:1:1:10", 10)
+    mkModelTc(preprocess_flip_validate, "3:1:1:10", 10),
+
+    /**< Addition test */
+    mkModelTc(addition_resnet_like_validate, "3:1:1:10", 10)
 
     /// #1192 time distribution inference bug
     // mkModelTc(fc_softmax_mse_distribute_validate, "3:1:5:3", 1),
