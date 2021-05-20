@@ -298,34 +298,32 @@ if __name__ == "__main__":
         file_name="pooling_avg_same_padding_multi_stride.info",  # debug="output"
     )
 
-    ###################### intended, below kind will be uncommented soon
+    def addition_test():
+        # x -> [a, b] -> c
+        x = K.Input(shape=(2, 3, 5), name="x")
+        a1 = TL(K.layers.Conv2D(filters=4, kernel_size=(3, 3), strides=2, padding="same", name="addition_a1"))(
+            x
+        )
+        a2 = K.layers.Activation("relu", name="addtion_a2")(a1)
+        a3 = TL(K.layers.Conv2D(filters=4, kernel_size=(3, 3), padding="same", name="addition_a3"))(a2)
+        b1 = TL(K.layers.Conv2D(filters=4, kernel_size=1, strides=2, padding="same", name="addtion_b1"))(x)
+        c1 = K.layers.Add(name="addition_c1")([a3, b1])
+        c2 = K.layers.Flatten(name="addition_c2")(c1)
+        c3 = K.layers.Dense(10, name="addition_c3")(c2)
+        c4 = K.layers.Activation("softmax", name="addition_c4")(c3)
 
-    # def addition_test():
-    #     # x -> [a, b] -> c
-    #     x = K.Input(shape=(2, 3, 5), name="x")
-    #     a1 = TL(K.layers.Conv2D(filters=4, kernel_size=(3, 3), strides=2, padding="same", name="addition_a1"))(
-    #         x
-    #     )
-    #     a2 = K.layers.Activation("relu", name="addtion_a2")(a1)
-    #     a3 = TL(K.layers.Conv2D(filters=4, kernel_size=(3, 3), padding="same", name="addition_a3"))(a2)
-    #     b1 = TL(K.layers.Conv2D(filters=4, kernel_size=1, strides=2, padding="same", name="addtion_b1"))(x)
-    #     c1 = K.layers.Add(name="addition_c1")([a3, b1])
-    #     c2 = K.layers.Flatten(name="addition_c2")(c1)
-    #     c3 = K.layers.Dense(10, name="addition_c3")(c2)
-    #     c4 = K.layers.Activation("softmax", name="addition_c4")(c3)
+        return x, [x, a1, a2, a3, b1, c1, c2, c3, c4]
 
-    #     return x, [a1, a2, a3, b1, c1, c2, c3, c4]
-
-    # x, y = addition_test()
-    # record(
-    #     loss_fn_str="cross_softmax",
-    #     file_name="addition_resnet_like.info",
-    #     input_shape=(3, 2, 3, 5),
-    #     label_shape=(3, 10),
-    #     optimizer=opt.SGD(learning_rate=0.1),
-    #     iteration=1,
-    #     inputs=x,
-    #     outputs=y,
-    #     debug=["name", "summary"],
-    # )
+    x, y = addition_test()
+    record(
+        loss_fn_str="mse",
+        file_name="addition_resnet_like.info",
+        input_shape=(3, 2, 3, 5),
+        label_shape=(3, 10),
+        optimizer=opt.SGD(learning_rate=0.1),
+        iteration=1,
+        inputs=x,
+        outputs=y,
+        debug=["name", "summary"],
+    )
 
