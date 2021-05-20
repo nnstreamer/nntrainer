@@ -14,7 +14,7 @@ option('enable-nnstreamer-backbone', type: 'boolean', value: true)
 option('enable-tflite-backbone', type: 'boolean', value: true)
 option('enable-android', type: 'boolean', value: false)
 option('enable-profile', type: 'boolean', value: false)
-option('enable-tflite-interpreter', type: 'boolean', value: false)
+option('enable-tflite-interpreter', type: 'boolean', value: true)
 
 # dependency conflict resolution
 option('capi-ml-inference-actual', type: 'string', value: 'capi-ml-inference',

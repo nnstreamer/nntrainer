@@ -5,6 +5,7 @@
 %define         support_ccapi 1
 %define         support_nnstreamer_backbone 1
 %define         support_tflite_backbone 1
+%define         support_tflite_interpreter 1
 %define         nntrainerapplicationdir %{_libdir}/nntrainer/bin
 %define         gen_input $(pwd)/test/input_gen/genInput.py
 %define         support_data_augmentation_opencv 1
@@ -47,7 +48,7 @@ Name:		nntrainer
 Summary:	Software framework for training neural networks
 Version:	0.2.0
 Release:	0
-Packager:	Jijoong Moon <jijoong.moon@sansumg.com>
+Packager:	Jijoong Moon <jijoong.moon@samsung.com>
 License:	Apache-2.0
 Source0:	nntrainer-%{version}.tar.gz
 Source1001:	nntrainer.manifest
@@ -106,6 +107,10 @@ Requires:	%{capi_machine_learning_inference}
 %if 0%{?support_tflite_backbone}
 BuildRequires: tensorflow2-lite-devel
 %endif # support_tflite_backbone
+
+%if 0%{?support_tflite_interpreter}
+BuildRequires: tensorflow2-lite-devel
+%endif # support_tflite_interpreter
 
 %define enable_nnstreamer_tensor_filter -Denable-nnstreamer-tensor-filter=false
 
@@ -262,6 +267,7 @@ NNSteamer tensor filter static package for nntrainer to support inference.
 %define enable_ccapi -Denable-ccapi=false
 %define enable_nnstreamer_backbone -Denable-nnstreamer-backbone=false
 %define enable_tflite_backbone -Denable-tflite-backbone=false
+%define enable_tflite_interpreter -Denable-tflite-interpreter=false
 %define enable_profile -Denable-profile=false
 %define capi_ml_pkg_dep_resolution -Dcapi-ml-inference-actual=%{?capi_ml_inference_pkg_name} -Dcapi-ml-common-actual=%{?capi_ml_common_pkg_name}
 %define enable_reduce_tolerance -Dreduce-tolerance=true
@@ -294,6 +300,10 @@ NNSteamer tensor filter static package for nntrainer to support inference.
 
 %if 0%{?unit_test}
 %define enable_profile -Denable-profile=true
+%endif
+
+%if 0%{?support_tflite_interpreter}
+%define enable_tflite_interpreter -Denable-tflite-interpreter=true
 %endif
 
 %prep
@@ -330,7 +340,8 @@ meson --buildtype=plain --prefix=%{_prefix} --sysconfdir=%{_sysconfdir} \
       %{enable_tizen_feature_check} %{enable_cblas} %{enable_ccapi} \
       %{enable_gym} %{enable_nnstreamer_tensor_filter} %{enable_profile} \
       %{enable_nnstreamer_backbone} %{enable_tflite_backbone} \
-      %{capi_ml_pkg_dep_resolution} %{enable_reduce_tolerance} build
+      %{enable_tflite_interpreter} %{capi_ml_pkg_dep_resolution} \
+      %{enable_reduce_tolerance} build
 
 ninja -C build %{?_smp_mflags}
 

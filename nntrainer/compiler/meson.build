@@ -5,15 +5,23 @@ compiler_sources = [
 compiler_headers = []
 
 if get_option('enable-tflite-interpreter')
-  flatc = find_program('flatc', required: true)
+  if not tflite_dep.found()
+    error('Tensorflow-Lite dependency not found')
+  endif
+  if not flatc_prog.found()
+    error('flatc executable not found')
+  endif
+
   add_project_arguments('-DENABLE_TFLITE_INTERPRETER=1', language:['c','cpp'])
 
   flat_header = custom_target('tflite-schema',
                                input: 'tf_schema.fbs',
                                output: 'tf_schema_generated.h',
-                               command: [flatc, '-c', '@INPUT@'])
+                               command: [flatc_prog, '-o', '@CURRENT_SOURCE_DIR@', '-c', '@INPUT@'])
 
-  nntrainer_sources += flat_header
+  flat_header_dep = declare_dependency(sources : [flat_header])
+
+  nntrainer_base_deps += flat_header_dep
   compiler_sources += [
     'tflite_interpreter.cpp',
     'tflite_opnode.cpp'
