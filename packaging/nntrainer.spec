@@ -4,6 +4,7 @@
 %define         use_gym 0
 %define         support_ccapi 1
 %define         support_nnstreamer_backbone 1
+%define         support_tflite_backbone 1
 %define         nntrainerapplicationdir %{_libdir}/nntrainer/bin
 %define         test_script $(pwd)/packaging/run_unittests.sh
 %define         gen_input $(pwd)/test/input_gen/genInput.py
@@ -102,6 +103,10 @@ BuildRequires: %{capi_machine_learning_inference}-devel
 Requires:	nnstreamer-tensorflow-lite
 Requires:	%{capi_machine_learning_inference}
 %endif # support_nnstreamer_backbone
+
+%if 0%{?support_tflite_backbone}
+BuildRequires: tensorflow-lite-devel
+%endif # support_tflite_backbone
 
 %define enable_nnstreamer_tensor_filter -Denable-nnstreamer-tensor-filter=false
 
@@ -257,6 +262,7 @@ NNSteamer tensor filter static package for nntrainer to support inference.
 %define install_app -Dinstall-app=true
 %define enable_ccapi -Denable-ccapi=false
 %define enable_nnstreamer_backbone -Denable-nnstreamer-backbone=false
+%define enable_tflite_backbone -Denable-tflite-backbone=false
 %define enable_profile -Denable-profile=false
 %define capi_ml_pkg_dep_resolution -Dcapi-ml-inference-actual=%{?capi_ml_inference_pkg_name} -Dcapi-ml-common-actual=%{?capi_ml_common_pkg_name}
 
@@ -275,6 +281,10 @@ NNSteamer tensor filter static package for nntrainer to support inference.
 
 %if 0%{?support_nnstreamer_backbone}
 %define enable_nnstreamer_backbone -Denable-nnstreamer-backbone=true
+%endif
+
+%if 0%{?support_tflite_backbone}
+%define enable_tflite_backbone -Denable-tflite-backbone=true
 %endif
 
 %if 0%{?unit_test}
@@ -314,7 +324,8 @@ meson --buildtype=plain --prefix=%{_prefix} --sysconfdir=%{_sysconfdir} \
       --includedir=%{_includedir} %{install_app} %{enable_tizen} \
       %{enable_tizen_feature_check} %{enable_cblas} %{enable_ccapi} \
       %{enable_gym} %{enable_nnstreamer_tensor_filter} %{enable_profile} \
-      %{enable_nnstreamer_backbone} %{capi_ml_pkg_dep_resolution} build
+      %{enable_nnstreamer_backbone} %{enable_tflite_backbone} \
+      %{capi_ml_pkg_dep_resolution} build
 
 ninja -C build %{?_smp_mflags}
 
