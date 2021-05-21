@@ -92,20 +92,7 @@ public:
    * @note      This name might be changed once this layer is added to the model
    * to keep the name unique to the model
    */
-  const std::string getName() const noexcept {
-    auto &name = std::get<props::Name>(props);
-    return name.empty() ? "" : name.get();
-  }
-
-  /**
-   * @brief     Get name of the layer
-   *
-   * @retval    name of the layer
-   * @note      This name is unique to this layer in a model
-   * @note      This name might be changed once this layer is added to the model
-   * to keep the name unique to the model
-   */
-  std::string getName() noexcept {
+  const std::string getName() const noexcept override {
     auto &name = std::get<props::Name>(props);
     return name.empty() ? "" : name.get();
   }
