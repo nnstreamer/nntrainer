@@ -390,7 +390,6 @@ void LSTMLayer::calcGradient() {
       recurrent_acti_func.run_prime_fn(hf, dhf, dhf);
       recurrent_acti_func.run_prime_fn(hi, dhi, dhi);
       acti_func.run_prime_fn(hg, dhg, dhg);
-
       djdb_h.add_i(dfgio_t);
       djdw_x.add_i(xs.dot(dfgio_t, true, false));
       djdw_h.add_i(hs_prev.dot(dfgio_t, true, false));

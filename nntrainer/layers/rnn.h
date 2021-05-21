@@ -30,11 +30,10 @@ public:
    * @brief     Constructor of RNNLayer
    */
   template <typename... Args>
-  RNNLayer(unsigned int unit_ = 0, Args... args) : Layer(args...), unit(unit_) {
-    /* Default Activation Type is tanh */
-    if (getActivationType() == ActivationType::ACT_NONE)
-      setActivation(ActivationType::ACT_TANH);
-  }
+  RNNLayer(unsigned int unit_ = 0, bool sequence = false, Args... args) :
+    Layer(args...),
+    unit(unit_),
+    return_sequences(sequence){};
 
   /**
    * @brief     Destructor of RNNLayer
@@ -112,6 +111,16 @@ private:
    * @brief     To save hidden state variable ( batch, 1, 1, unit )
    */
   Tensor h_prev;
+
+  /**
+   * @brief     opiont for return sequence
+   */
+  bool return_sequences;
+
+  /**
+   * @brief     hidden variable for rnn
+   */
+  std::shared_ptr<Var_Grad> hidden;
 };
 } // namespace nntrainer
 

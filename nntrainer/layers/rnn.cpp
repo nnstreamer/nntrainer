@@ -43,6 +43,10 @@ int RNNLayer::initialize(Manager &manager) {
   output_dim[0] = input_dim[0];
   output_dim[0].width(unit);
 
+  if (!return_sequences) {
+    output_dim[0].height(1);
+  }
+
   TensorDim bias_dim = TensorDim();
   bias_dim.setTensorDim(3, unit);
 
@@ -81,6 +85,21 @@ int RNNLayer::initialize(Manager &manager) {
   h_prev = Tensor(bias_dim);
   h_prev.setZero();
 
+  TensorDim d = input_dim[0];
+  d.width(unit);
+
+  // We do not need this if we reuse net_hidden[0]. But if we do, then the unit
+  // test will fail. Becuase it modifies the date during gradient calculation
+  // TODO : We could control with something like #define test to save memory
+  hidden = std::make_shared<Var_Grad>(d, true, true, "RNN:temp_hidden");
+  hidden->getVariableRef().setZero();
+  hidden->getGradientRef().setZero();
+
+  if (Layer::activation_type == ActivationType::ACT_NONE) {
+    Layer::activation_type = ActivationType::ACT_TANH;
+    acti_func.setActiFunc(activation_type);
+  }
+
   return status;
 }
 
@@ -102,6 +121,12 @@ void RNNLayer::setProperty(const PropertyType type, const std::string &value) {
       acti_func.setActiFunc(acti_type);
     }
     break;
+  case PropertyType::return_sequences:
+    if (!value.empty()) {
+      status = setBoolean(return_sequences, value);
+      throw_status(status);
+    }
+    break;
   default:
     Layer::setProperty(type, value);
     break;
@@ -117,7 +142,9 @@ void RNNLayer::forwarding(bool training) {
   Tensor &bias_h =
     weightAt(static_cast<int>(RNNParams::bias_h)).getVariableRef();
 
-  Tensor &hidden_ = net_hidden[0]->getVariableRef();
+  Tensor hidden_;
+  hidden_ = hidden->getVariableRef();
+
   Tensor &input_ = net_input[0]->getVariableRef();
 
   Tensor temp;
@@ -158,6 +185,18 @@ void RNNLayer::forwarding(bool training) {
     if (!training)
       h_prev.getBatchSlice(b, 1).copy(hs);
   }
+
+  if (!return_sequences) {
+    TensorDim d = hidden_.getDim();
+    for (unsigned int b = 0; b < input_dim[0].batch(); ++b) {
+      float *data = hidden_.getAddress(b * d.width() * d.height() +
+                                       (d.height() - 1) * d.width());
+      float *rdata = net_hidden[0]->getVariableRef().getAddress(b * d.width());
+      std::copy(data, data + d.width(), rdata);
+    }
+  } else {
+    net_hidden[0]->getVariableRef().copy(hidden_);
+  }
 }
 
 void RNNLayer::copy(std::shared_ptr<Layer> l) {
@@ -168,7 +207,9 @@ void RNNLayer::copy(std::shared_ptr<Layer> l) {
 }
 
 void RNNLayer::calcDerivative() {
-  Tensor &derivative_ = net_hidden[0]->getGradientRef();
+  Tensor derivative_;
+  derivative_ = hidden->getGradientRef();
+
   Tensor &weight =
     weightAt(static_cast<int>(RNNParams::weight_xh)).getVariableRef();
   Tensor &ret_ = net_input[0]->getGradientRef();
@@ -186,8 +227,24 @@ void RNNLayer::calcGradient() {
   Tensor &weight_hh =
     weightAt(static_cast<int>(RNNParams::weight_hh)).getVariableRef();
 
-  Tensor &derivative_ = net_hidden[0]->getGradientRef();
-  Tensor &hidden_ = net_hidden[0]->getVariableRef();
+  Tensor derivative_;
+  Tensor hidden_;
+  derivative_ = hidden->getGradientRef();
+
+  if (!return_sequences) {
+    TensorDim d = derivative_.getDim();
+    for (unsigned int b = 0; b < input_dim[0].batch(); ++b) {
+      float *data = derivative_.getAddress(b * d.width() * d.height() +
+                                           (d.height() - 1) * d.width());
+      float *rdata = net_hidden[0]->getGradientRef().getAddress(b * d.width());
+      std::copy(rdata, rdata + d.width(), data);
+    }
+  } else {
+    derivative_.copy(net_hidden[0]->getGradientRef());
+  }
+
+  hidden_ = hidden->getVariableRef();
+
   Tensor &input_ = net_input[0]->getVariableRef();
   Tensor dh_nx = Tensor(TensorDim(1, 1, 1, derivative_.width()));
 
@@ -222,17 +279,10 @@ void RNNLayer::calcGradient() {
       }
 
       acti_func.run_prime_fn(hs, dh, dh);
-      dh.multiply_i(hs);
 
-      float alpha = 1.0;
-
-      if (b != 0) {
-        alpha = 0.0;
-      }
-
-      djdb_h.add_i(dh, alpha);
-      djdw_x.add_i(xs.dot(dh, true, false), alpha);
-      djdw_h.add_i(hs_prev.dot(dh, true, false), alpha);
+      djdb_h.add_i(dh);
+      djdw_x.add_i(xs.dot(dh, true, false));
+      djdw_h.add_i(hs_prev.dot(dh, true, false));
       dh.dot(weight_hh, dh_nx, false, true, 1.0);
     }
   }
