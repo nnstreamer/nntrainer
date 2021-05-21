@@ -23,9 +23,8 @@
 namespace nntrainer {
 namespace props {
 bool Name::isValid(const std::string &v) const {
-
   static std::regex allowed("[a-zA-Z0-9][-_./a-zA-Z0-9]*");
-  return std::regex_match(v, allowed);
+  return !v.empty() && std::regex_match(v, allowed);
 }
 
 ConnectionSpec::ConnectionSpec(const std::vector<props::Name> &layer_ids_,

@@ -91,7 +91,8 @@ public:
    * to keep the name unique to the model
    */
   const std::string getName() const noexcept {
-    return std::get<props::Name>(props).get();
+    auto &name = std::get<props::Name>(props);
+    return name.empty() ? "" : name.get();
   }
 
   /**
@@ -102,7 +103,10 @@ public:
    * @note      This name might be changed once this layer is added to the model
    * to keep the name unique to the model
    */
-  std::string getName() noexcept { return std::get<props::Name>(props).get(); }
+  std::string getName() noexcept {
+    auto &name = std::get<props::Name>(props);
+    return name.empty() ? "" : name.get();
+  }
 
   /**
    * Support all the interface requirements by GraphNode<nntrainer::Layer>
