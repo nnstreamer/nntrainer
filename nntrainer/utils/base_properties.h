@@ -10,6 +10,7 @@
  * @bug No known bugs except for NYI items
  */
 #include <array>
+#include <memory>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -112,15 +113,41 @@ public:
    * @brief Construct a new Property object
    *
    */
-  Property() = default;
+  Property() : value(nullptr){};
 
   /**
-   * @brief Construct a new Property object, setting default skip validation on
-   * purpose
+   * @brief Construct a new Property object
    *
    * @param value default value
    */
-  Property(const T &value) : value(value){};
+  Property(const T &value_) { set(value_); }
+
+  /**
+   * @brief Copy Construct a new Property object
+   *
+   * @param rhs right side to copy from
+   */
+  Property(const Property &rhs) {
+    if (this != &rhs) {
+      value = std::make_unique<T>(*rhs.value);
+    }
+  }
+
+  /**
+   * @brief Copy assignment operator of a new property
+   *
+   * @param rhs right side to copy from
+   * @return Property& this
+   */
+  Property &operator=(const Property &rhs) {
+    if (this != &rhs) {
+      value = std::make_unique<T>(*rhs.value);
+    }
+    return *this;
+  };
+
+  Property(Property &&rhs) noexcept = default;
+  Property &operator=(Property &&rhs) noexcept = default;
 
   /**
    * @brief Destroy the Property object
@@ -133,28 +160,44 @@ public:
    *
    * @return T value
    */
-  operator T &() { return value; }
+  operator T &() { return get(); }
 
   /**
    * @brief cast operator for property
    *
    * @return T value
    */
-  operator const T &() const { return value; }
+  operator const T &() const { return get(); }
 
   /**
    * @brief get the underlying data
    *
    * @return const T& data
    */
-  const T &get() const { return value; }
+  const T &get() const {
+    NNTR_THROW_IF(value == nullptr, std::invalid_argument)
+      << "Cannot get property, property is empty";
+    return *value;
+  }
 
   /**
    * @brief get the underlying data
    *
    * @return T& data
    */
-  T &get() { return value; }
+  T &get() {
+    NNTR_THROW_IF(value == nullptr, std::invalid_argument)
+      << "Cannot get property, property is empty";
+    return *value;
+  }
+
+  /**
+   * @brief check if property is empty
+   *
+   * @retval true empty
+   * @retval false not empty
+   */
+  bool empty() const { return value == nullptr; }
 
   /**
    * @brief set the underlying data
@@ -165,7 +208,7 @@ public:
   void set(const T &v) {
     NNTR_THROW_IF(isValid(v) == false, std::invalid_argument)
       << "argument is not valid";
-    value = v;
+    value = std::make_unique<T>(v);
   }
 
   /**
@@ -184,124 +227,10 @@ public:
    * @retval true if equal
    * @retval false if not equal
    */
-  bool operator==(const Property<T> &rhs) const { return value == rhs.value; }
+  bool operator==(const Property<T> &rhs) const { return *value == *rhs.value; }
 
 private:
-  T value; /**< underlying data */
-};
-
-/**
- * @brief base string property class, string needs special move / copy semantics
- * because some c++14 compiler does not have nothrow_move_assignment/ctor
- * operator for std::string. This class mitigates the issue
- * As std::string is using default allocator for basic_string, this workaround
- * is safe
- *
- */
-template <> class Property<std::string> {
-
-public:
-  /**
-   * @brief Construct a new Property object
-   *
-   */
-  Property() = default;
-
-  /**
-   * @brief Construct a new Property object, setting default skip validation on
-   * purpose
-   *
-   * @param value default value
-   */
-  Property(const std::string &value) : value(value){};
-
-  Property(const Property &rhs) = default;
-  Property &operator=(const Property &) = default;
-
-  Property(Property &&rhs) noexcept = default;
-
-  /**
-   * @brief move assignment operator, this patch makes,
-   * std::is_nothrow_move_assignable<Property<std::string>>::value == true
-   * Which might not hold true for some of the old compilers.
-   *
-   * @param rhs rvalue property to move
-   * @return Property& moved result
-   */
-  Property &operator=(Property &&rhs) noexcept {
-    value = std::move(rhs.value);
-    return *this;
-  }
-
-  /**
-   * @brief cast operator for property
-   *
-   * @return std::string& value
-   */
-  operator const std::string &() const { return value; }
-
-  /**
-   * @brief cast operator for property
-   *
-   * @return std::string& value
-   */
-  operator std::string &() { return value; }
-
-  /**
-   * @brief Destroy the Property object
-   *
-   */
-  virtual ~Property() = default;
-
-  /**
-   * @brief get the underlying data
-   *
-   * @return const T& data
-   */
-  const std::string &get() const { return value; }
-
-  /**
-   * @brief get the underlying data
-   *
-   * @return T& data
-   */
-  std::string &get() { return value; }
-
-  /**
-   * @brief set the underlying data
-   *
-   * @param v value to set
-   * @throw std::invalid_argument if argument is not valid
-   */
-  void set(const std::string &v) {
-    if (!isValid(v)) {
-      throw std::invalid_argument("argument is not valid");
-    }
-    value = v;
-  }
-
-  /**
-   * @brief operator==
-   *
-   * @param rhs right side to compare
-   * @retval true if equal
-   * @retval false if not equal
-   */
-  bool operator==(const Property<std::string> &rhs) const {
-    return value == rhs.value;
-  }
-
-  /**
-   * @brief check if given value is valid
-   *
-   * @param v value to check
-   * @retval true if valid
-   * @retval false if not valid
-   */
-  virtual bool isValid(const std::string &v) const { return true; }
-
-private:
-  std::string value; /**< underlying data */
+  std::unique_ptr<T> value; /**< underlying data */
 };
 
 /**
