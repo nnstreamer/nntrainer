@@ -43,13 +43,6 @@ namespace nntrainer {
 static const std::vector<std::string> in_place_layers = {
   ActivationLayer::type, BatchNormalizationLayer::type};
 
-static std::shared_ptr<Layer> distributeLayer(std::shared_ptr<Layer> l) {
-  std::shared_ptr<Layer> layer = nntrainer::createLayer(TimeDistLayer::type);
-  std::dynamic_pointer_cast<TimeDistLayer>(layer)->setDistLayer(l);
-
-  return layer;
-}
-
 int NetworkGraph::compile(const LossType loss_type) {
   int status = ML_ERROR_NONE;
 
@@ -121,8 +114,14 @@ void NetworkGraph::countNonTrainableLayersAtBegin() {
   skip_non_trainable_layers = graph.size();
 }
 
-int NetworkGraph::realizeMultiInputType(Layer &current) {
+int NetworkGraph::realizeMultiInputType(
+  const std::shared_ptr<LayerNode> &in_node) {
+  Layer &current = *in_node->getObject();
   int status = ML_ERROR_NONE;
+  /**
+   * Multi-input works with time distribution layer by itself
+   *
+   */
   if (current.getNumInputs() == 1)
     return ML_ERROR_NONE;
 
@@ -148,7 +147,9 @@ int NetworkGraph::realizeMultiInputType(Layer &current) {
   return status;
 }
 
-int NetworkGraph::realizeFlattenType(Layer &current) {
+int NetworkGraph::realizeFlattenType(
+  const std::shared_ptr<LayerNode> &in_node) {
+  Layer &current = *in_node->getObject();
   if (current.getType() == FlattenLayer::type) {
     ml_loge(
       "It is not allowed to realize flatten layer, possibly flatten layer is "
@@ -172,7 +173,9 @@ int NetworkGraph::realizeFlattenType(Layer &current) {
   return ML_ERROR_NONE;
 }
 
-int NetworkGraph::realizeActivationType(Layer &current) {
+int NetworkGraph::realizeActivationType(
+  const std::shared_ptr<LayerNode> &in_node) {
+  Layer &current = *in_node->getObject();
   int status = ML_ERROR_NONE;
 
   ActivationType act = current.getActivationType();
@@ -203,18 +206,15 @@ int NetworkGraph::realizeActivationType(Layer &current) {
   }
 
   std::shared_ptr<LayerNode> lnode = createLayerNode(ActivationLayer::type);
-  std::shared_ptr<Layer> layer = lnode->getObject();
-
-  layer->setActivation(act);
   graph.ensureName(*lnode, current.getName());
 
-  if (current.getType() == TimeDistLayer::type) {
-    std::string unit_str = layer->getName();
-    graph.ensureName(*lnode, "", "_unit");
-    layer = distributeLayer(layer);
-    lnode = std::make_shared<LayerNode>(layer);
-    layer->setName(unit_str);
+  if (in_node->getDistribute()) {
+    lnode->setProperty({"distribute=true"});
+    graph.ensureName(*lnode, "", "_distribute");
   }
+
+  std::shared_ptr<Layer> layer = lnode->getObject();
+  layer->setActivation(act);
 
   layer->setNumInputs(current.getNumInputs());
   layer->input_layers.clear();
@@ -228,9 +228,16 @@ int NetworkGraph::realizeActivationType(Layer &current) {
   return status;
 }
 
-int NetworkGraph::realizeMultiOutputType(Layer &current) {
+int NetworkGraph::realizeMultiOutputType(
+  const std::shared_ptr<LayerNode> &in_node) {
+  Layer &current = *in_node->getObject();
   int status = ML_ERROR_NONE;
-  if (current.output_layers.size() == 1)
+  /**
+   * Multi-input works with time distribution layer by itself
+   *
+   */
+
+  if (current.getNumOutputs() == 1)
     return ML_ERROR_NONE;
 
   std::shared_ptr<LayerNode> lnode = createLayerNode(OutputLayer::type);
@@ -260,19 +267,12 @@ int NetworkGraph::realizeMultiOutputType(Layer &current) {
 
 /** TODO: this needs special attention */
 int NetworkGraph::addLossLayer(const LossType loss_type) {
-
   int status = ML_ERROR_NONE;
-  auto const &last_node = graph.getSortedNode(graph.size() - 1);
+  auto const &last_node = LNODE(graph.getSortedNode(graph.size() - 1));
   auto last_layer_node = getSortedLayerNode(graph.size() - 1);
 
   if (last_node->getType() == LossLayer::type)
     return status;
-
-  if (last_node->getType() == TimeDistLayer::type) {
-    if (std::static_pointer_cast<TimeDistLayer>(last_layer_node->getObject())
-          ->getDistLayerType() == LossLayer::type)
-      return status;
-  }
 
   if (loss_type == LossType::LOSS_NONE) {
     return ML_ERROR_NONE;
@@ -282,11 +282,6 @@ int NetworkGraph::addLossLayer(const LossType loss_type) {
 
   if (updated_loss_type == LossType::LOSS_ENTROPY) {
     auto type = last_node->getType();
-    if (type == TimeDistLayer::type) {
-      type =
-        std::dynamic_pointer_cast<TimeDistLayer>(last_layer_node->getObject())
-          ->getDistLayerType();
-    }
 
     if (type != "activation") {
       ml_loge("Error: Cross Entropy need last layer to have softmax or sigmoid"
@@ -296,7 +291,7 @@ int NetworkGraph::addLossLayer(const LossType loss_type) {
 
     graph.removeLastNode();
 
-    switch (last_layer_node->getObject()->getActivationType()) {
+    switch (last_layer_node->getActivationType()) {
     case ActivationType::ACT_SIGMOID:
       updated_loss_type = LossType::LOSS_ENTROPY_SIGMOID;
       break;
@@ -320,12 +315,9 @@ int NetworkGraph::addLossLayer(const LossType loss_type) {
 
   std::string input_str = updated_last_node->getName();
 
-  if (updated_last_node->getType() == TimeDistLayer::type) {
-    std::string unit_str = layer->getName();
-    graph.ensureName(*lnode, "", "_unit");
-    layer = distributeLayer(layer);
-    lnode = std::make_shared<LayerNode>(layer);
-    layer->setName(unit_str);
+  if (updated_last_node->getDistribute()) {
+    lnode->setProperty({"distribute=true"});
+    graph.ensureName(*lnode, "", "_distribute");
   }
 
   last_layer_node = LNODE(updated_last_node);
@@ -482,18 +474,18 @@ int NetworkGraph::realizeGraph() {
 
     if (l.getType() != AdditionLayer::type &&
         l.getType() != ConcatLayer::type) {
-      status = realizeMultiInputType(l);
+      status = realizeMultiInputType(lnode);
       NN_RETURN_STATUS();
     }
 
     if (l.getType() != ActivationLayer::type) {
-      status = realizeActivationType(l);
+      status = realizeActivationType(lnode);
       NN_RETURN_STATUS();
     }
 
     // Flatten in TimeDistLayer is not supported.
-    if (lnode->getFlatten() && l.getType() != TimeDistLayer::type) {
-      status = realizeFlattenType(l);
+    if (lnode->getFlatten() && !lnode->getDistribute()) {
+      status = realizeFlattenType(lnode);
       NN_RETURN_STATUS();
     }
   }
@@ -509,9 +501,10 @@ int NetworkGraph::realizeGraph() {
   node_list = graph.getNodes();
 
   for (unsigned int i = 0; i < num_nodes; ++i) {
-    Layer &l = *LNODE(node_list[i])->getObject();
-    if (l.getType() != OutputLayer::type && l.getType() != SplitLayer::type) {
-      status = realizeMultiOutputType(l);
+    auto const &lnode = LNODE(node_list[i]);
+    if (lnode->getType() != OutputLayer::type &&
+        lnode->getType() != SplitLayer::type) {
+      status = realizeMultiOutputType(lnode);
       NN_RETURN_STATUS();
     }
   }
@@ -704,9 +697,6 @@ void NetworkGraph::inPlaceOptimize(const std::string &layer_type,
     auto layer_node = *iter;
     auto &l = layer_node->getObject();
     std::string l_type = l->getType();
-    if (l_type == TimeDistLayer::type) {
-      l_type = std::dynamic_pointer_cast<TimeDistLayer>(l)->getDistLayerType();
-    }
 
     if (l_type == layer_type &&
         l->getActivationType() != ActivationType::ACT_SOFTMAX) {
@@ -806,26 +796,14 @@ int NetworkGraph::initialize(std::shared_ptr<Manager> manager) {
     auto const &lnode = getSortedLayerNode(idx);
     auto &lptr = lnode->getObject();
     ml_logd("layer name : %s", lptr->getName().c_str());
-    std::string cur_type;
-    if (lptr->getType() == TimeDistLayer::type) {
-      cur_type =
-        std::dynamic_pointer_cast<TimeDistLayer>(lptr)->getDistLayerType();
-    } else {
-      cur_type = lptr->getType();
-    }
+    std::string cur_type = lptr->getType();
 
     /**
      * Set input dimension for all the layers.
      * For input layer, as input dimension is known, set input tensor.
      */
     if (!first) {
-      std::string l_pre_type =
-        getSortedLayerNode(idx - 1)->getObject()->getType();
-      if (l_pre_type == TimeDistLayer::type) {
-        l_pre_type = std::dynamic_pointer_cast<TimeDistLayer>(
-                       getSortedLayerNode(idx - 1)->getObject())
-                       ->getDistLayerType();
-      }
+      std::string l_pre_type = getSortedLayerNode(idx - 1)->getType();
 
       if (istrequal(l_pre_type, ActivationLayer::type) &&
           istrequal(cur_type, ActivationLayer::type)) {

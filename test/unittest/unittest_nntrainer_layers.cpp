@@ -24,6 +24,7 @@
 #include <flatten_layer.h>
 #include <input_layer.h>
 #include <layer_internal.h>
+#include <layer_node.h>
 #include <loss_layer.h>
 #include <lstm.h>
 #include <manager.h>
@@ -139,7 +140,6 @@ protected:
                    const nntrainer::TensorDim &dim) {
     nntrainer::Tensor golden(dim);
     loadFile(expected, golden);
-    /** FIXME: golden.length() is possibly 0 many times, verify and fix this */
     matchOutput(result, golden.getData(), golden.length());
   }
 
@@ -710,14 +710,6 @@ TEST_F(nntrainer_FullyConnectedLayer, setActivation_01_p) {
 TEST_F(nntrainer_FullyConnectedLayer, setActivation_02_n) {
   status = layer.setProperty({"activation=unknown"});
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
-}
-
-/**
- * @brief Fully Connected Layer
- */
-TEST_F(nntrainer_FullyConnectedLayer, setDistribute_01_p) {
-  status = layer.setProperty({"distribute=true"});
-  EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
 /**
@@ -2633,6 +2625,33 @@ TEST_F(nntrainer_SplitLayer, forwarding_backwarding_01_p) {
 
     EXPECT_EQ(*joined_deriv[0].get(), derivative);
   }
+}
+
+/**
+ * @brief Layer Node
+ */
+TEST(nntrainer_LayerNode, setDistribute_01_p) {
+  int status = ML_ERROR_NONE;
+
+  auto lnode = nntrainer::createLayerNode(nntrainer::FullyConnectedLayer::type);
+
+  EXPECT_EQ(false, lnode->getDistribute());
+
+  status = lnode->setProperty({"distribute=true"});
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  EXPECT_EQ(true, lnode->getDistribute());
+}
+
+/**
+ * @brief Layer Node
+ */
+TEST(nntrainer_LayerNode, setFlatten_01_p) {
+  int status = ML_ERROR_NONE;
+
+  auto lnode = nntrainer::createLayerNode(nntrainer::FullyConnectedLayer::type);
+  status = lnode->setProperty({"flatten=true"});
+  EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
 /**

@@ -133,20 +133,8 @@ section2layer<PlainLayer>(dictionary *ini, const std::string &sec_name,
     << FUNC_TAG << "section type is invalid for section name: " << sec_name;
 
   auto properties = section2properties(ini, sec_name);
-  std::shared_ptr<Layer> nntr_layer = ac.createObject<Layer>(layer_type);
 
-  if (nntr_layer->getDistribute()) {
-    ml_logd("This %s layer is going to distributed", sec_name.c_str());
-    std::shared_ptr<Layer> dist_layer =
-      nntrainer::createLayer(TimeDistLayer::type);
-    std::dynamic_pointer_cast<TimeDistLayer>(dist_layer)
-      ->setDistLayer(nntr_layer);
-
-    nntr_layer = dist_layer;
-  }
-
-  auto layer = createLayerNode(nntr_layer, properties);
-
+  auto layer = createLayerNode(ac.createObject<Layer>(layer_type), properties);
   return layer;
 }
 

@@ -323,35 +323,35 @@ private:
 
   /**
    * @brief     check and add Multi Input Layer : addition or concat Layer
-   * @param[in] current layer
+   * @param[in] in_node layernode
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int realizeMultiInputType(Layer &current);
+  int realizeMultiInputType(const std::shared_ptr<LayerNode> &in_node);
 
   /**
    * @brief     check and add Multi output Layer : output Layer
-   * @param[in] current layer
+   * @param[in] in_node layernode
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int realizeMultiOutputType(Layer &current);
+  int realizeMultiOutputType(const std::shared_ptr<LayerNode> &in_node);
 
   /**
    * @brief     Realize act type to layer and insert it to layers
-   * @param[in] current layer
+   * @param[in] in_node layernode
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int realizeActivationType(Layer &current);
+  int realizeActivationType(const std::shared_ptr<LayerNode> &in_node);
 
   /**
    * @brief     Realize flatten type to layer and insert it to layers
-   * @param[in] current layer
+   * @param[in] in_node layernode
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int realizeFlattenType(Layer &current);
+  int realizeFlattenType(const std::shared_ptr<LayerNode> &in_node);
 
   /**
    * @brief     adding loss layer at last position

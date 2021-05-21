@@ -15,8 +15,19 @@
 #include <layer_node.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
+#include <time_dist.h>
 
 namespace nntrainer {
+
+LayerNode::LayerNode(std::shared_ptr<nntrainer::Layer> l, size_t idx) :
+  layer(l),
+  index(idx),
+  flatten(false),
+  distribute(false),
+  activation_type(ActivationType::ACT_NONE) {
+  if (layer->getType() == TimeDistLayer::type)
+    distribute = true;
+}
 
 /**
  * @brief Layer factory creator with constructor
@@ -76,19 +87,33 @@ int LayerNode::setProperty(std::vector<std::string> properties) {
     }
   }
 
-  status = layer->setProperty(remainder);
+  status = getLayer()->setProperty(remainder);
   return status;
 }
 
 void LayerNode::setProperty(const nntrainer::Layer::PropertyType type,
                             const std::string &value) {
   int status = ML_ERROR_NONE;
+  using PropertyType = nntrainer::Layer::PropertyType;
 
   switch (type) {
-  case nntrainer::Layer::PropertyType::flatten:
+  case PropertyType::flatten:
     if (!value.empty()) {
       status = setBoolean(flatten, value);
       throw_status(status);
+    }
+    break;
+  case PropertyType::distribute:
+    if (!value.empty()) {
+      status = setBoolean(distribute, value);
+      throw_status(status);
+      if (distribute) {
+        auto &ac = nntrainer::AppContext::Global();
+        std::shared_ptr<nntrainer::Layer> dlayer =
+          ac.createObject<nntrainer::Layer>(TimeDistLayer::type);
+        std::dynamic_pointer_cast<TimeDistLayer>(dlayer)->setDistLayer(layer);
+        layer = dlayer;
+      }
     }
     break;
   default:
@@ -113,6 +138,44 @@ std::ostream &operator<<(std::ostream &out, const LayerNode &l) {
   // print_vector(l.getObject()->input_layers, " input_layers");
   // print_vector(l.getObject()->output_layers, "output_layers");
   return out;
+}
+
+std::string LayerNode::getDistLayerType() const {
+  if (distribute)
+    return std::dynamic_pointer_cast<TimeDistLayer>(layer)->getDistLayerType();
+  else
+    throw std::runtime_error(
+      "Get distribution layer type for non-distributed layer");
+}
+
+ActivationType LayerNode::getActivationType() {
+  return getLayer()->getActivationType();
+}
+
+const std::string LayerNode::getType() const { return getLayer()->getType(); }
+
+std::shared_ptr<nntrainer::Layer> &LayerNode::getObject() { return getLayer(); }
+
+const std::shared_ptr<nntrainer::Layer> &LayerNode::getObject() const {
+  return getLayer();
+}
+
+bool LayerNode::getTrainable() const noexcept {
+  return getLayer()->getTrainable();
+}
+
+const std::shared_ptr<nntrainer::Layer> &LayerNode::getLayer() const {
+  if (distribute)
+    return std::dynamic_pointer_cast<TimeDistLayer>(layer)->getDistLayer();
+  else
+    return layer;
+}
+
+std::shared_ptr<nntrainer::Layer> &LayerNode::getLayer() {
+  if (distribute)
+    return std::dynamic_pointer_cast<TimeDistLayer>(layer)->getDistLayer();
+  else
+    return layer;
 }
 
 }; // namespace nntrainer

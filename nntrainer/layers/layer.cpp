@@ -86,7 +86,6 @@ void Layer::copy(std::shared_ptr<Layer> l) {
   this->weight_regularizer_constant = l->weight_regularizer_constant;
   this->weight_initializer = l->weight_initializer;
   this->trainable = l->trainable;
-  this->distribute = l->distribute;
 }
 
 sharedConstTensors Layer::forwarding_with_val(sharedConstTensors input,
@@ -282,12 +281,6 @@ void Layer::setProperty(const PropertyType type, const std::string &value) {
       throw_status(status);
     }
     break;
-  case PropertyType::distribute:
-    if (!value.empty()) {
-      status = setBoolean(distribute, value);
-      throw_status(status);
-    }
-    break;
   default:
     std::string msg =
       "[Layer] Unknown Layer Property Key for value " + std::string(value);
@@ -335,7 +328,6 @@ void Layer::printPropertiesMeta(std::ostream &out) {
 
 void Layer::printProperties(std::ostream &out) {
   out << "Trainable: " << trainable << std::endl;
-  out << "Distributed: " << distribute << std::endl;
   printIfValid(out, PropertyType::weight_regularizer,
                static_cast<int>(weight_regularizer));
   printIfValid(out, PropertyType::weight_regularizer_constant,
