@@ -606,9 +606,9 @@ Tensor Tensor::sum_by_batch() {
  */
 Tensor Tensor::sum(unsigned int axis, float alpha) const {
   Tensor ret;
-  return sum(ret, axis, alpha);
+  return sum(axis, ret, alpha);
 }
-Tensor &Tensor::sum(Tensor &ret, unsigned int axis, float alpha) const {
+Tensor &Tensor::sum(unsigned int axis, Tensor &ret, float alpha) const {
   const float *data = getData();
 
   if (axis >= 4)
@@ -676,15 +676,27 @@ Tensor &Tensor::sum(Tensor &ret, unsigned int axis, float alpha) const {
 }
 
 Tensor Tensor::sum(const std::vector<unsigned int> &axes, float alpha) const {
+  Tensor ret;
+  return sum(axes, ret, alpha);
+}
+
+Tensor &Tensor::sum(const std::vector<unsigned int> &axes, Tensor &output,
+                    float alpha) const {
   if (axes.empty())
     throw std::invalid_argument("empty axes given");
 
-  Tensor ret = this->sum(axes[0], alpha);
+  if (axes.size() == 1) {
+    this->sum(axes[0], output, alpha);
+  } else {
+    Tensor ret = this->sum(axes[0], alpha);
 
-  for (unsigned int i = 1; i < axes.size(); ++i)
-    ret = ret.sum(axes[i]);
+    for (unsigned int i = 1; i < axes.size() - 1; ++i)
+      ret = ret.sum(axes[i]);
 
-  return ret;
+    ret.sum(axes.back(), output);
+  }
+
+  return output;
 }
 
 Tensor Tensor::dot(Tensor const &m, bool trans, bool trans_m) const {
