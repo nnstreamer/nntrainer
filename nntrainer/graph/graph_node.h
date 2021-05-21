@@ -35,7 +35,7 @@ public:
    * @brief     Get index of the node
    *
    */
-  virtual size_t getIndex() = 0;
+  virtual size_t getIndex() const = 0;
 
   /**
    * @brief     Set index of the node

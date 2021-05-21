@@ -36,11 +36,7 @@ public:
    * @brief     Constructor of LayerNode class
    *
    */
-  LayerNode(std::shared_ptr<nntrainer::Layer> l, size_t idx = 0) :
-    layer(l),
-    index(idx),
-    flatten(false),
-    activation_type(ActivationType::ACT_NONE) {}
+  LayerNode(std::shared_ptr<nntrainer::Layer> l, size_t idx = 0);
 
   /**
    * @brief     Destructor of LayerNode Class
@@ -62,7 +58,7 @@ public:
    *
    * @return const std::string type representation
    */
-  const std::string getType() const { return layer->getType(); }
+  const std::string getType() const;
 
   /**
    * @brief     set Property of layer
@@ -92,7 +88,7 @@ public:
    * @note      This name might be changed once this layer is added to the model
    * to keep the name unique to the model
    */
-  const std::string getName() const noexcept { return layer->getName(); }
+  const std::string getName() const noexcept { return getLayer()->getName(); }
 
   /**
    * @brief     Get name of the layer
@@ -102,7 +98,7 @@ public:
    * @note      This name might be changed once this layer is added to the model
    * to keep the name unique to the model
    */
-  std::string getName() noexcept { return layer->getName(); }
+  std::string getName() noexcept { return getLayer()->getName(); }
 
   /**
    * Support all the interface requirements by GraphNode<nntrainer::Layer>
@@ -112,26 +108,26 @@ public:
    * @brief     Get underlying object
    *
    */
-  std::shared_ptr<nntrainer::Layer> &getObject() { return layer; }
+  std::shared_ptr<nntrainer::Layer> &getObject();
 
   /**
    * @brief     Get underlying object
    *
    */
-  const std::shared_ptr<nntrainer::Layer> &getObject() const { return layer; }
+  const std::shared_ptr<nntrainer::Layer> &getObject() const;
 
   /**
    * @brief     Get index of the node
    *
    */
-  size_t getIndex() { return index; }
+  size_t getIndex() const { return index; }
 
   /**
    * @brief     Get the trainable property of the underlying object
    *
    * @return boolean true if trainable, else false
    */
-  bool getTrainable() noexcept { return layer->getTrainable(); }
+  bool getTrainable() const noexcept;
 
   /**
    * Support interfaces for the properties intercepted from layer
@@ -141,7 +137,25 @@ public:
    * @brief     get if the output of this layer must be flatten
    * @retval    flatten value
    */
-  bool getFlatten() { return flatten; }
+  bool getFlatten() const { return flatten; }
+
+  /**
+   * @brief     get distribute for this layer
+   * @retval dist to enable/disable distribute
+   */
+  bool getDistribute() const noexcept { return distribute; }
+
+  /**
+   * @brief     get distribute for this layer
+   * @retval dist to enable/disable distribute
+   */
+  std::string getDistLayerType() const;
+
+  /**
+   * @brief     Activation Type Getter
+   * @retval    Activation Type.
+   */
+  ActivationType getActivationType();
 
 #ifdef PROFILE
   int event_key;
@@ -160,10 +174,10 @@ private:
 
   std::vector<std::string> input_layers;  /**< input layer names */
   std::vector<std::string> output_layers; /**< output layer names */
-  bool flatten; /**< flatten the output of this node */
+  bool flatten;    /**< flatten the output of this node */
+  bool distribute; /**< to enable itearting along with time distribution */
   ActivationType
     activation_type; /**< activation applied to the output of this node */
-  bool distribute;
 
   /**
    * These properties are set for the layer by the user but are intercepted
@@ -181,8 +195,24 @@ private:
    * the particular layer
    * @exception std::invalid_argument invalid argument
    */
-  virtual void setProperty(const nntrainer::Layer::PropertyType type,
-                           const std::string &value = "");
+  void setProperty(const nntrainer::Layer::PropertyType type,
+                   const std::string &value = "");
+
+  /**
+   * @brief   Get the effective layer managed by this layer node
+   *
+   * @details this is layer inside the distribution layer if this layer node
+   * is distributed.
+   */
+  const std::shared_ptr<nntrainer::Layer> &getLayer() const;
+
+  /**
+   * @brief   Get the effective layer managed by this layer node
+   *
+   * @details this is layer inside the distribution layer if this layer node
+   * is distributed.
+   */
+  std::shared_ptr<nntrainer::Layer> &getLayer();
 };
 
 /**

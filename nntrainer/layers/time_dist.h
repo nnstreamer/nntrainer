@@ -95,7 +95,7 @@ public:
    * @brief     get distribute layer
    * @retval dist_layer std::shared_ptr<Layer>
    */
-  std::shared_ptr<Layer> getDistLayer() { return dist_layer; };
+  std::shared_ptr<Layer> &getDistLayer() { return dist_layer; };
 
   /**
    * @brief     get transposed Tensor according to time iteration axis
@@ -126,6 +126,10 @@ public:
    */
   void setProperty(const PropertyType type,
                    const std::string &value = "") override {
+    /**
+     * @note assumption: name of the dist_layer is set via setName() and not
+     * with setProperty()
+     */
     dist_layer->setProperty(type, value);
   }
 

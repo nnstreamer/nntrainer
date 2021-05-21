@@ -63,8 +63,7 @@ public:
         WeightInitializer weight_initializer_ =
           WeightInitializer::WEIGHT_XAVIER_UNIFORM,
         WeightInitializer bias_initializer_ = WeightInitializer::WEIGHT_ZEROS,
-        bool trainable_ = true, bool flatten_ = false,
-        bool distribute_ = false) :
+        bool trainable_ = true) :
     layer_props(props::Name()),
     loss(0.0f),
     activation_type(activation_type_),
@@ -72,8 +71,7 @@ public:
     weight_regularizer_constant(weight_regularizer_constant_),
     weight_initializer(weight_initializer_),
     bias_initializer(bias_initializer_),
-    trainable(trainable_),
-    distribute(distribute_) {
+    trainable(trainable_) {
     setNumInputs(1);
     setNumOutputs(1);
   }
@@ -293,8 +291,9 @@ public:
   /**
    * @brief     Activation Type Getter
    * @retval    Activation Type.
+   * @todo      This function will soon be removed
    */
-  ActivationType getActivationType() { return this->activation_type; }
+  virtual ActivationType getActivationType() { return this->activation_type; }
 
   /**
    * @brief     Copy Layer
@@ -351,18 +350,6 @@ public:
    * @retval train to enable/disable train
    */
   virtual bool getTrainable() noexcept { return trainable; }
-
-  /**
-   * @brief     set distribute for this layer
-   * @param[in] dist to enable/disable distribute
-   */
-  virtual void setDistribute(bool dist) { distribute = dist; }
-
-  /**
-   * @brief     get distribute for this layer
-   * @retval dist to enable/disable distribute
-   */
-  virtual bool getDistribute() noexcept { return distribute; }
 
   /**
    * @brief     get all weights of the layer
@@ -601,6 +588,14 @@ public:
     return output_layers;
   }
 
+  /**
+   * @brief     Activation Setter
+   * @param[in] activation activation type
+   * @throw std::invalid_argument when ActivationType is unknown
+   * @todo      This function will soon be removed
+   */
+  virtual void setActivation(ActivationType activation);
+
 protected:
   /**
    * @brief   Print Options when printing layer info
@@ -666,24 +661,11 @@ protected:
    */
   bool trainable;
 
-  // TODO: remove this from here
-  /**
-   * @brief     making this true will iterating along with time distribution
-   */
-  bool distribute;
-
   /**
    * @brief     weight_list in this layer. This contains all weights of the
    * layer.
    */
   std::vector<Weight> weights;
-
-  /**
-   * @brief     Activation Setter
-   * @param[in] activation activation type
-   * @throw std::invalid_argument when ActivationType is unknown
-   */
-  virtual void setActivation(ActivationType activation);
 
 private:
   // TODO: remove this from here
