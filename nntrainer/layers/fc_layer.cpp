@@ -127,8 +127,8 @@ void FullyConnectedLayer::calcGradient() {
 
   Tensor &derivative_ = net_hidden[0]->getGradientRef();
 
-  djdb = derivative_.sum(0);
-  djdw = net_input[0]->getVariableRef().dot(derivative_, djdw, true, false);
+  derivative_.sum({0, 1, 2}, djdb);
+  net_input[0]->getVariableRef().dot(derivative_, djdw, true, false);
 }
 
 void FullyConnectedLayer::scaleSize(float scalesize) noexcept {
