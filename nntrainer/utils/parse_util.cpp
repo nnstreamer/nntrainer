@@ -255,6 +255,7 @@ unsigned int parseType(std::string ll, InputType t) {
  * in_length = 33
  * recurrent_activation = 34
  * distribute = 35
+ * split_dimension = 36
  *
  * InputLayer has 0, 1, 2, 3 properties.
  * FullyConnectedLayer has 1, 4, 6, 7, 8, 9 properties.
@@ -299,6 +300,7 @@ static std::array<std::string, 37> property_string = {
   "in_length",
   "recurrent_activation",
   "distribute",
+  "split_dimension",
   "unknown"};
 
 unsigned int parseLayerProperty(std::string property) {

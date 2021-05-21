@@ -2,17 +2,17 @@
 /**
  * Copyright (C) 2020 Jijoong Moon <jijoong.moon@samsung.com>
  *
- * @file   concat_layer.h
- * @date   27 Oct 2020
+ * @file   split_layer.h
+ * @date   21 May 2021
  * @see    https://github.com/nnstreamer/nntrainer
- * @author Jijoong Moon <jijoong.moon@samsung.com>
+ * @author Parichay Kapoor <pk.kapoor@samsung.com>
  * @bug    No known bugs except for NYI items
- * @brief  This is Concat Layer Class for Neural Network
+ * @brief  This is Split Layer Class for Neural Network
  *
  */
 
-#ifndef __CONCAT_LAYER_H__
-#define __CONCAT_LAYER_H__
+#ifndef __SPLIT_LAYER_H__
+#define __SPLIT_LAYER_H__
 #ifdef __cplusplus
 
 #include <layer_internal.h>
@@ -21,35 +21,38 @@
 namespace nntrainer {
 
 /**
- * @class   Concat Layer
- * @brief   Concat Layer
+ * @class   Split Layer
+ * @brief   Split Layer
  */
-class ConcatLayer : public Layer {
+class SplitLayer : public Layer {
 public:
   /**
-   * @brief     Constructor of Concat Layer
+   * @brief     Constructor of Split Layer
    */
   template <typename... Args>
-  ConcatLayer(unsigned int num_inputs_ = 1, Args... args) : Layer(args...) {
-    setNumInputs(num_inputs_);
+  SplitLayer(unsigned int num_output_, unsigned int split_dim = 1,
+             Args... args) :
+    Layer(args...),
+    split_dimension(split_dim) {
+    setNumOutputs(num_output_);
   }
 
   /**
-   * @brief     Destructor of Concat Layer
+   * @brief     Destructor of Split Layer
    */
-  ~ConcatLayer() = default;
+  ~SplitLayer() = default;
 
   /**
-   *  @brief  Move constructor of ConcatLayer.
-   *  @param[in] ConcatLayer &&
+   *  @brief  Move constructor of SplitLayer.
+   *  @param[in] SplitLayer &&
    */
-  ConcatLayer(ConcatLayer &&rhs) noexcept = default;
+  SplitLayer(SplitLayer &&rhs) noexcept = default;
 
   /**
    * @brief  Move assignment operator.
-   * @parma[in] rhs ConcatLayer to be moved.
+   * @parma[in] rhs SplitLayer to be moved.
    */
-  ConcatLayer &operator=(ConcatLayer &&rhs) = default;
+  SplitLayer &operator=(SplitLayer &&rhs) = default;
 
   /**
    * @brief     initialize layer
@@ -91,12 +94,17 @@ public:
   /**
    * @copydoc Layer::getType()
    */
-  const std::string getType() const override { return ConcatLayer::type; };
+  const std::string getType() const override { return SplitLayer::type; };
 
   static const std::string type;
+
+private:
+  unsigned int split_dimension; /** dimension along which to split the input */
+  TensorDim input_reshape_helper;  /** helper dimension to reshape input */
+  TensorDim output_reshape_helper; /** helper dimension to reshape outputs */
 };
 
 } // namespace nntrainer
 
 #endif /* __cplusplus */
-#endif /* __CONCAT_LAYER_H__ */
+#endif /* __SPLIT_LAYER_H__ */
