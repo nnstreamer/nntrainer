@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: Apache-2.0
 /**
- * Copyright (C) 2020 Jijoong Moon <jijoong.moon@samsung.com>
+ * Copyright (C) 2021 Parichay Kapoor <pk.kapoor@samsung.com>
  *
  * @file   split_layer.h
  * @date   21 May 2021
@@ -9,6 +9,8 @@
  * @bug    No known bugs except for NYI items
  * @brief  This is Split Layer Class for Neural Network
  *
+ * @todo   Add support for number of splits and uneven splits. For now, this can
+ * be acheived with combination of split and concat layers.
  */
 
 #ifndef __SPLIT_LAYER_H__
