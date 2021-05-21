@@ -27,10 +27,20 @@ namespace props {
  */
 class Name : public nntrainer::Property<std::string> {
 public:
-  Name(const std::string &value = "") :
-    nntrainer::Property<std::string>(value) {} /**< default value if any */
-  static constexpr const char *key = "name";   /**< unique key to access */
-  using prop_tag = str_prop_tag;               /**< property type */
+  /**
+   * @brief Construct a new Name object without a default value
+   *
+   */
+  Name() : nntrainer::Property<std::string>() {}
+
+  /**
+   * @brief Construct a new Name object with a default value
+   *
+   * @param value value to contrusct the property
+   */
+  Name(const std::string &value) : nntrainer::Property<std::string>(value) {}
+  static constexpr const char *key = "name"; /**< unique key to access */
+  using prop_tag = str_prop_tag;             /**< property type */
 
   /**
    * @brief name validator
@@ -48,7 +58,7 @@ public:
  */
 class Unit : public nntrainer::Property<unsigned int> {
 public:
-  Unit(unsigned int value = 0) :
+  Unit(unsigned int value = 1) :
     nntrainer::Property<unsigned int>(value) {} /**< default value if any */
   static constexpr const char *key = "unit";    /**< unique key to access */
   using prop_tag = uint_prop_tag;               /**< property type */
@@ -64,10 +74,6 @@ class ConnectionSpec {
 public:
   static std::string NoneType;
 
-  /**
-   * @brief Construct a new Connection Spec object
-   */
-  ConnectionSpec() = default;
   /**
    * @brief Construct a new Connection Spec object
    *
@@ -148,7 +154,18 @@ struct connection_prop_tag {};
  */
 class InputSpec : public nntrainer::Property<ConnectionSpec> {
 public:
-  InputSpec(const ConnectionSpec &value = ConnectionSpec()) :
+  /**
+   * @brief Construct a new Input Spec object
+   *
+   */
+  InputSpec() : nntrainer::Property<ConnectionSpec>() {}
+
+  /**
+   * @brief Construct a new Input Spec object
+   *
+   * @param value default value of a input spec
+   */
+  InputSpec(const ConnectionSpec &value) :
     nntrainer::Property<ConnectionSpec>(value) {} /**< default value if any */
   static constexpr const char *key =
     "input_layers";                     /**< unique key to access */

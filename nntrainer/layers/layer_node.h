@@ -93,7 +93,8 @@ public:
    * to keep the name unique to the model
    */
   const std::string getName() const noexcept override {
-    return std::get<props::Name>(props).get();
+    auto &name = std::get<props::Name>(props);
+    return name.empty() ? "" : name.get();
   }
 
   /**
