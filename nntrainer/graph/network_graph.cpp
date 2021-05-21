@@ -180,15 +180,6 @@ int NetworkGraph::realizeActivationType(
 
   ActivationType act = current.getActivationType();
 
-  if (current.getType() == RNNLayer::type) {
-    // No need to add activation layer for RNN Layer
-    // Default activation is tanh
-    if (act == ActivationType::ACT_NONE)
-      act = ActivationType::ACT_TANH;
-    current.setActivation(act);
-    return status;
-  }
-
   if (act == ActivationType::ACT_NONE) {
     /// ActivationType::ACT_NONE does not need realization
     return ML_ERROR_NONE;

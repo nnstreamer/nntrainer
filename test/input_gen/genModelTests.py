@@ -440,3 +440,40 @@ if __name__ == "__main__":
         loss_fn_str="mse"
     )
     multi_lstm_layer_return_sequence_with_batch_n(file_name="multi_lstm_return_sequence_with_batch_n.info", debug=["summary", "initial_weights", "dx", "output", "layer_name", "label","weights","gradients"],)    
+
+
+    rnn_layer_tc = lambda rnn_layer: partial(
+        record,
+        model=[
+            K.Input(batch_shape=(1, 1, 1)),
+            rnn_layer,
+            K.layers.Dense(1)
+        ],
+        optimizer=opt.SGD(learning_rate=0.1),
+        iteration=1,
+        input_shape=(1,1,1),
+        label_shape=(1,1),
+        is_onehot=False,
+        loss_fn_str="mse"
+    )
+    rnn = K.layers.SimpleRNN(2)
+    rnn_layer_tc(rnn)(file_name="rnn_basic.info", debug=["summary", "initial_weights", "dx", "output", "layer_name", "label","weights","gradients"],)
+
+    rnn_layer_return_sequence_tc = lambda rnn_layer: partial(
+        record,
+        model=[
+            K.Input(batch_shape=(1, 2, 1)),
+            rnn_layer,
+            K.layers.Dense(1)
+        ],
+        optimizer=opt.SGD(learning_rate=0.1),
+        iteration=1,
+        input_shape=(1,2,1),
+        label_shape=(2,1),
+        is_onehot=False,
+        loss_fn_str="mse"
+    )
+
+    rnn = K.layers.SimpleRNN(2, return_sequences=True)
+    rnn_layer_return_sequence_tc(rnn)(file_name="rnn_return_sequences.info", debug=["summary", "initial_weights", "dx", "output", "layer_name", "label"],)
+
