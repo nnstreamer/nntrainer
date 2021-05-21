@@ -126,8 +126,10 @@ public:
        * @param index index of the current property
        */
       auto callable = [this](auto &&prop, size_t index) {
-        std::string key = getPropKey(prop);
-        stored_result->emplace_back(key, to_string(prop));
+        if (!prop.empty()) {
+          std::string key = getPropKey(prop);
+          stored_result->emplace_back(std::move(key), to_string(prop));
+        }
       };
       iterate_prop(callable, props);
     } break;

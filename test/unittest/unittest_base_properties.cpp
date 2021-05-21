@@ -49,7 +49,8 @@ public:
  */
 class QualityOfBanana : public nntrainer::Property<std::string> {
 public:
-  QualityOfBanana(const char *value = "") : Property<std::string>(value) {}
+  QualityOfBanana() : nntrainer::Property<std::string>() {}
+  QualityOfBanana(const char *value) : Property<std::string>(value) {}
   static constexpr const char *key = "quality_banana";
   using prop_tag = nntrainer::str_prop_tag;
 
@@ -194,9 +195,6 @@ TEST(BasicProperty, valid_p) {
 
     auto pair = std::pair<std::string, std::string>("num_banana", "1");
     EXPECT_EQ(result->at(0), pair);
-
-    auto pair2 = std::pair<std::string, std::string>("quality_banana", "");
-    EXPECT_EQ(result->at(1), pair2);
   }
 
   { /**< export from layer */
@@ -205,12 +203,9 @@ TEST(BasicProperty, valid_p) {
     nntrainer::Exporter e;
     lnode.export_to(e);
 
-    auto result =
-      std::move(e.getResult<nntrainer::ExportMethods::METHOD_STRINGVECTOR>());
-    auto pair0 = std::pair<std::string, std::string>("name", "");
-    EXPECT_EQ(result->at(0), pair0);
+    auto result = e.getResult<nntrainer::ExportMethods::METHOD_STRINGVECTOR>();
     auto pair1 = std::pair<std::string, std::string>("unit", "1");
-    EXPECT_EQ(result->at(1), pair1);
+    EXPECT_EQ(result->at(0), pair1);
   }
 
   { /**< load from layer */
