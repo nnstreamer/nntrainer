@@ -13,8 +13,8 @@
 #include <parse_util.h>
 #include <tensor_dim.h>
 
-#include <sstream>
 #include <regex>
+#include <sstream>
 #include <string>
 #include <vector>
 
