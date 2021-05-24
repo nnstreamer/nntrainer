@@ -1073,9 +1073,9 @@ INI lstm_basic(
   {
     nn_base + "loss=mse | batch_size=1",
     sgd_base + "learning_rate = 0.1",
-    I("input") + input_base + "input_shape=1:2:1",
+    I("input") + input_base + "input_shape=1:1:1",
     I("lstm") + lstm_base +
-      "unit = 2" + "input_layers=input",
+      "unit = 1" + "input_layers=input",
     I("outputlayer") + fc_base + "unit = 1" + "input_layers=lstm"
   }
 );
@@ -1118,7 +1118,6 @@ INSTANTIATE_TEST_CASE_P(
 
     /**< Addition test */
     mkModelTc(addition_resnet_like_validate, "3:1:1:10", 10)
-    mkModelTc(preprocess_flip_validate, "3:1:1:10", 10)
 
     /// #1192 time distribution inference bug
     // mkModelTc(fc_softmax_mse_distribute_validate, "3:1:5:3", 1),

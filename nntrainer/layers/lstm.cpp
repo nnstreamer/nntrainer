@@ -221,8 +221,8 @@ void LSTMLayer::forwarding(bool training) {
         cs_prev = c_prev.getBatchSlice(b, 1);
       }
       hs_prev.dot(weight_hh, fgio_t);
-      fgio_t.add_i(bias_h);
       fgio_t.add_i(xs.dot(weight_xh));
+      fgio_t.add_i(bias_h);
 
       Tensor hi = fgio_t.getSharedDataTensor({unit}, 0);
       Tensor hf = fgio_t.getSharedDataTensor({unit}, unit);
@@ -372,8 +372,9 @@ void LSTMLayer::calcGradient() {
 
       acti_func.run_fn(cs, dho);
       dho.multiply_i(dh);
-      acti_func.run_prime_fn(cs, dc, ho);
-      dc.multiply_i(dh);
+      acti_func.run_fn(cs, cs);
+      acti_func.run_prime_fn(cs, dc, dh);
+      dc.multiply_i(ho);
       dc.add_i(dc_nx);
 
       dc.multiply(cs_prev, dhf);
