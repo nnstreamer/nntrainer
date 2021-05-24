@@ -330,16 +330,16 @@ if __name__ == "__main__":
     lstm_layer_tc = lambda lstm_layer: partial(
         record,
         model=[
-            K.Input(batch_shape=(1, 2, 1)),
+            K.Input(batch_shape=(1, 1, 1)),
             lstm_layer,
             K.layers.Dense(1)
         ],
         optimizer=opt.SGD(learning_rate=0.1),
         iteration=1,
-        input_shape=(1,2,1),
+        input_shape=(1,1,1),
         label_shape=(1,1),
         is_onehot=False,
         loss_fn_str="mse"
     )
-    lstm = K.layers.LSTM(2)
-    lstm_layer_tc(lstm)(file_name="lstm_basic.info", debug=["summary", "initial_weights", "dx", "output", "layer_name", "label"],)
+    lstm = K.layers.LSTM(1, recurrent_activation='sigmoid', activation='tanh')
+    lstm_layer_tc(lstm)(file_name="lstm_basic.info", debug=["summary", "initial_weights", "dx", "output", "layer_name", "label","weights","gradients"],)
