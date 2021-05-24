@@ -92,6 +92,16 @@ public:
    * @note      This name might be changed once this layer is added to the model
    * to keep the name unique to the model
    */
+  const std::string getName() const noexcept { return layer->getName(); }
+
+  /**
+   * @brief     Get name of the layer
+   *
+   * @retval    name of the layer
+   * @note      This name is unique to this layer in a model
+   * @note      This name might be changed once this layer is added to the model
+   * to keep the name unique to the model
+   */
   std::string getName() noexcept { return layer->getName(); }
 
   /**
@@ -126,6 +136,11 @@ public:
 #ifdef PROFILE
   int event_key;
 #endif
+
+  /**
+   * @brief   Overriding output stream for layers and it's derived class
+   */
+  friend std::ostream &operator<<(std::ostream &out, const LayerNode &l);
 
 private:
   // TODO: make this unique_ptr once getObject API is removed
