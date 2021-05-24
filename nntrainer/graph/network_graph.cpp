@@ -229,25 +229,29 @@ int NetworkGraph::realizeActivationType(Layer &current) {
 
 int NetworkGraph::realizeMultiOutputType(Layer &current) {
   int status = ML_ERROR_NONE;
-  if (current.getNumOutputs() == 1)
+  if (current.output_layers.size() == 1)
     return ML_ERROR_NONE;
 
   std::shared_ptr<LayerNode> lnode = createLayerNode(OutputLayer::type);
   std::shared_ptr<Layer> layer = lnode->getObject();
   graph.ensureName(*lnode, current.getName());
 
-  layer->setNumInputs(current.getNumInputs());
   layer->input_layers.clear();
   layer->input_layers.push_back(current.getName());
+  layer->setNumInputs(1);
+
+  layer->output_layers = current.output_layers;
   layer->setNumOutputs(current.output_layers.size());
-  /** output layers for layer obj will be set in setOutputLayers() */
+
+  current.setNumOutputs(1);
+  current.output_layers.clear();
+  current.output_layers.push_back(layer->getName());
 
   for (unsigned int i = 0; i < current.output_layers.size(); ++i) {
     updateConnectionName(current.getName(), layer->getName());
   }
 
-  current.setNumOutputs(layer->getNumInputs());
-
+  current.setNumOutputs(current.output_layers.size());
   graph.addNode(lnode, false);
 
   return status;
@@ -365,7 +369,7 @@ void NetworkGraph::setOutputLayers() {
         if (istrequal(layer_i->input_layers[j], layer_idx->getName())) {
           bool already_exist = false;
           for (unsigned int k = 0; k < layer_idx->output_layers.size(); ++k) {
-            if (!istrequal(layer_idx->output_layers[k], layer_i->getName())) {
+            if (istrequal(layer_idx->output_layers[k], layer_i->getName())) {
               already_exist = true;
               break;
             }
@@ -385,9 +389,6 @@ void NetworkGraph::setOutputLayers() {
         layer_idx->output_layers.push_back("__exit__");
         last_layer_count += 1;
       } else if (layer_idx->getNumOutputs() < layer_idx->output_layers.size()) {
-        /** this if the multi-output layer */
-        if (layer_idx->getType() != OutputLayer::type)
-          throw std::logic_error("Error: Graph has more edges than expected.");
         layer_idx->setNumOutputs(layer_idx->output_layers.size());
       } else {
         /** error for any other layer */
@@ -488,11 +489,6 @@ int NetworkGraph::realizeGraph() {
       NN_RETURN_STATUS();
     }
 
-    if (l.getType() != OutputLayer::type) {
-      status = realizeMultiOutputType(l);
-      NN_RETURN_STATUS();
-    }
-
     // Flatten in TimeDistLayer is not supported.
     if (l.getFlatten() && l.getType() != TimeDistLayer::type) {
       status = realizeFlattenType(l);
@@ -500,7 +496,28 @@ int NetworkGraph::realizeGraph() {
     }
   }
 
-  setOutputLayers();
+  try {
+    setOutputLayers();
+  } catch (std::exception &e) {
+    ml_loge("setting output layer failed, reason: %s", e.what());
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
+  num_nodes = graph.size();
+  node_list = graph.getNodes();
+
+  for (unsigned int i = 0; i < num_nodes; ++i) {
+    Layer &l = *LNODE(node_list[i])->getObject();
+    if (l.getType() != OutputLayer::type) {
+      status = realizeMultiOutputType(l);
+      NN_RETURN_STATUS();
+    }
+  }
+
+  num_nodes = graph.size();
+  node_list = graph.getNodes();
+
+  /// @todo add check that input_layers <-> output_layers does match.
 
   return status;
 }
