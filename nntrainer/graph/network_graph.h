@@ -390,7 +390,10 @@ private:
   void addLayerNode(std::shared_ptr<Layer> layer);
 
   /**
-   * @brief     update name of the the connections
+   * @brief update input_layers, output_layers node name
+   *
+   * @param from update name from @a from
+   * @param to update name to @a to
    */
   void updateConnectionName(const std::string &from, const std::string &to);
 

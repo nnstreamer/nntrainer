@@ -217,9 +217,13 @@ sharedConstTensors NeuralNetwork::forwarding(bool training) {
 sharedConstTensors NeuralNetwork::forwarding(sharedConstTensors input,
                                              sharedConstTensors label,
                                              bool training) {
-  if (input[0]->batch() != batch_size ||
-      (!label.empty() && label[0]->batch() != batch_size))
-    throw std::logic_error("Error: mismatch in batchsize for data and model.");
+
+  NNTR_THROW_IF(input[0]->batch() != batch_size ||
+                  (!label.empty() && label[0]->batch() != batch_size),
+                std::logic_error)
+    << "Error: mismatch in batchsize for data and model."
+    << " input_batch: " << input[0]->batch()
+    << " label_batch: " << label[0]->batch() << " target_batch: " << batch_size;
 
   auto &first_layer = model_graph.getSortedLayerNode(0)->getObject();
   auto &last_layer =
