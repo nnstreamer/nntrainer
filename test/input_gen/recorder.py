@@ -13,6 +13,7 @@ import sys
 import os
 import warnings
 import random
+from collections import defaultdict
 
 with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=FutureWarning)
@@ -36,6 +37,14 @@ LOSS_FN = {
     "cross_sigmoid": lambda: tf.keras.losses.BinaryCrossentropy(from_logits=True),
     "cross_softmax": lambda: tf.keras.losses.CategoricalCrossentropy(from_logits=True),
 }
+
+
+def _flatten(l: list):
+    for el in l:
+        if isinstance(el, list):
+            yield from _flatten(el)
+        else:
+            yield el
 
 
 def _get_loss_fn(loss_fn_representation):
@@ -65,6 +74,14 @@ def _rand_like(tensorOrShape, scale=1):
 
     t = np.random.randint(-10, 10, shape).astype(dtype=np.float32)
     return tf.convert_to_tensor(t) * scale
+
+
+##
+# @brief access keras layer hidden inside a tensor
+# @note this function is relying on non-api implementation, this might break in the future
+# @param tensor tensor to get layer
+def _klayer(tensor):
+    return tensor._keras_history.layer
 
 
 _debug_default_formatter = lambda key, value: "\033[4;32mkey: {}\033[0m\n {}".format(
@@ -105,7 +122,11 @@ def prepare_data(model, input_shape, label_shape, writer_fn, **kwargs):
     )
 
     initial_weights = []
-    for layer in model.layers:
+    for layer in iter_model(model):
+        if "file_shape_generation" in kwargs.get("debug", []):
+            get_shape = lambda x: [i.shape for i in x]
+            print(layer.name)
+            print("initial_weights", get_shape(layer.weights))
         initial_weights += layer.weights.copy()
 
     writer_fn(initial_input, label, *initial_weights)
@@ -120,6 +141,16 @@ def prepare_data(model, input_shape, label_shape, writer_fn, **kwargs):
 
 
 ##
+# @brief iterate model in the order of output rather than layer
+# @note we might need a bit of reordering if output is more than one, this is assuming 1 to 1 mapping of a model and they are far apart
+# @param model model to be iterated
+# @yield layer
+def iter_model(model):
+    for out in model.outputs:
+        yield _klayer(out)
+
+
+##
 # @brief model iteration wrapper that listen to the gradient and outputs of the model
 # each results are recorded.
 def train_step(model, optimizer, loss_fn, initial_input, label, writer_fn, **kwargs):
@@ -129,20 +160,24 @@ def train_step(model, optimizer, loss_fn, initial_input, label, writer_fn, **kwa
         inp = initial_input
         outp = model.call(inp, training=True)
         outputs = {}
+        inputs = {}
         for layer in model.layers:
-            output_indices = model.recorder__output_maps[layer.name]
+            output_indices = model.recorder__output_map[layer.name]
             outputs[layer.name] = [outp[i] for i in output_indices]
+
+            input_indices = model.recorder__input_map[layer.name]
+            inputs[layer.name] = [outp[i] for i in input_indices]
 
         loss = loss_fn(label, outp[-1])
 
-    layer_input = initial_input
-
-    # if traversal order is different from nntrainer, this need to be restructured to rely on the order of output.
-    for layer in model.layers:
-        # we might need a bit of reordering if output is more than one
+    for layer in iter_model(model):
         layer_output = outputs[layer.name]
+        layer_input = inputs[layer.name]
 
-        # print("generating for %s" % layer.name)
+        # when there is a multiple input, this will break.
+        if not layer_input:
+            layer_input = [initial_input]
+
         gradients = tape.gradient(loss, layer.trainable_weights)
         optimizer.apply_gradients(zip(gradients, layer.trainable_weights))
 
@@ -154,7 +189,7 @@ def train_step(model, optimizer, loss_fn, initial_input, label, writer_fn, **kwa
         _debug_print(lr=optimizer.lr, **kwargs)
 
         weights = layer.weights.copy()
-        dx = tape.gradient(loss, layer_input)
+        dx = tape.gradient(loss, list(_flatten(layer_input)))
 
         try:
             gradients = layer.to_nntr_trainable_weights(gradients)
@@ -169,6 +204,15 @@ def train_step(model, optimizer, loss_fn, initial_input, label, writer_fn, **kwa
         )
 
         _debug_print(name=layer.name, print_format=value_only_formatter, **kwargs)
+
+        if "file_shape_generation" in kwargs.get("debug", []):
+            get_shape = lambda x: [i.shape for i in x]
+            print(layer.name)
+            print("output", get_shape(layer_output))
+            print("dx", get_shape(dx))
+            print("weights", get_shape(weights))
+            print("gradients", get_shape(gradients))
+
         _debug_print(
             output=layer_output,
             dx=dx,
@@ -177,8 +221,6 @@ def train_step(model, optimizer, loss_fn, initial_input, label, writer_fn, **kwa
             dx_shape=[i.shape for i in dx],
             **kwargs
         )
-
-        layer_input = layer_output
 
     writer_fn(loss)
     _debug_print(loss=loss, **kwargs)
@@ -200,6 +242,7 @@ value_only_formatter = lambda key, value: value
 ##
 # @brief generate recordable model
 # @note if model, inputs, outputs is given, trans_layer will NOT be automatically attached
+# @note in case of using multiout layer, output usage order must match
 # @param loss_fn_str one of LOSS_FN string otherwise raise KeyError
 # @param model base model to record, if model is present @a inputs and @a outputs is ignored
 # @param inputs keras inputs to build a model
@@ -219,10 +262,13 @@ def generate_recordable_model(
     if isinstance(model, K.models.Model) == False:
         # omit last activation layer if cross softmax or cross_sigmoid
         if loss_fn_str == "cross_softmax" or loss_fn_str == "cross_sigmoid":
-            if isinstance(outputs[-1]._keras_history.layer, K.layers.Activation):
+            if isinstance(_klayer(outputs[-1]), K.layers.Activation):
                 outputs = outputs[:-1]
 
         model = K.Model(inputs=inputs, outputs=outputs)
+
+    inputs = model.inputs
+    outputs = model.outputs
 
     model.summary(
         print_fn=lambda x: _debug_print(
@@ -230,15 +276,50 @@ def generate_recordable_model(
         )
     )
 
-    output_maps = {}
+    output_map = {}
     for idx, output in enumerate(model.outputs):
-        layer_name = output._keras_history.layer.name
+        layer_name = _klayer(output).name
         try:
-            output_maps[layer_name].append(idx)
+            output_map[layer_name].append(idx)
         except KeyError:
-            output_maps[layer_name] = [idx]
+            output_map[layer_name] = [idx]
 
-    model.recorder__output_maps = output_maps
+    input_map = defaultdict(list)
+
+    def _insert_input_map(key_layer):
+        if isinstance(key_layer, K.layers.InputLayer):
+            return
+
+        input_node = key_layer.input
+
+        if not isinstance(input_node, list):
+            input_node = [input_node]
+
+        for node in input_node:
+            layer, _, tensor_idx = node._keras_history
+
+            target_idx = output_map[layer.name][tensor_idx]
+            input_list = input_map[key_layer.name]
+            if target_idx not in input_list:
+                input_list.append(target_idx)
+
+    for idx, output in enumerate(outputs):
+        target_layer = model.get_layer(_klayer(output).name)
+        _insert_input_map(target_layer)
+
+    for _, value in input_map.items():
+        if not value:
+            raise ValueError(f"input_map must contain value. {input_map}")
+
+    _debug_print(input_map=input_map, output_map=output_map, **kwargs)
+
+    # Additional property of output, inputs. This maps index of outputs which
+    # will be used to locate the calculated output
+    # same applies to model input
+    # eg) if in model(inputs=A, outputs=[A, B]),
+    # if B is output of A, output_map[_klayer(B).name] will have 0 (index of A)
+    model.recorder__output_map = output_map
+    model.recorder__input_map = input_map
 
     return model
 
