@@ -21,7 +21,7 @@ with warnings.catch_warnings():
     import tensorflow as tf
     from tensorflow.python import keras as K
 
-from transLayer import attach_trans_layer
+from transLayer import attach_trans_layer, MultiOutLayer
 
 __all__ = ["record"]
 
@@ -174,6 +174,9 @@ def train_step(model, optimizer, loss_fn, initial_input, label, writer_fn, **kwa
         loss = loss_fn(label, outp[-1])
 
     for layer in iter_model(model):
+        if isinstance(layer, MultiOutLayer):
+            continue
+
         layer_output = outputs[layer.name]
         layer_input = inputs[layer.name]
 

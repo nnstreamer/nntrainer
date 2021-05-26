@@ -144,6 +144,36 @@ CHANNEL_LAST_LAYERS = (
     K.layers.MaxPool2D,
 )
 
+##
+# @brief Multiout wrapper layer, this class separate gradient
+# to calculate derivative properly
+# when calling, this returns [x] * @a num_output just like output Layer does in NNTrainer
+class MultiOutLayer(IdentityTransLayer):
+
+    ##
+    # @brief init function
+    # @param tf_layer tf_layer to get number of outputs
+    # @param num_output explicit number to generate number of output
+    def __init__(self, tf_layer = None, *args, num_output, **kwargs):
+        if not tf_layer:
+            tf_layer = K.layers.Layer()
+
+        super().__init__(tf_layer, *args, **kwargs)
+
+        # this enables seperating gradient one by one
+        self.stub_layers = [K.layers.Lambda(lambda x: x + 0) for i in range(num_output)]
+
+    ##
+    # @brief call function
+    # @param x input with nntrainer layout
+    def call(self, x, training=None):
+        additional_args = {}
+        if self.has_training:
+            additional_args["training"] = training
+
+        tf_output = self.tf_layer(x, **additional_args)
+
+        return [layer(tf_output) for layer in self.stub_layers]
 
 ##
 # @brief A factory function to attach translayer to existing layer
