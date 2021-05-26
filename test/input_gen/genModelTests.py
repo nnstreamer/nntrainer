@@ -35,6 +35,7 @@ with warnings.catch_warnings():
     from tensorflow.python import keras as K
 
 from transLayer import attach_trans_layer as TL
+from transLayer import MultiOutLayer
 
 opt = tf.keras.optimizers
 
@@ -301,18 +302,29 @@ if __name__ == "__main__":
     def addition_test():
         # x -> [a, b] -> c
         x = K.Input(shape=(2, 3, 5), name="x")
-        a1 = TL(K.layers.Conv2D(filters=4, kernel_size=(3, 3), strides=2, padding="same", name="addition_a1"))(
-            x
-        )
-        a2 = K.layers.Activation("relu", name="addtion_a2")(a1)
-        a3 = TL(K.layers.Conv2D(filters=4, kernel_size=(3, 3), padding="same", name="addition_a3"))(a2)
-        b1 = TL(K.layers.Conv2D(filters=4, kernel_size=1, strides=2, padding="same", name="addtion_b1"))(x)
+        a0, b0 = MultiOutLayer(num_output=2)(x)
+        a1 = TL(
+            K.layers.Conv2D(
+                filters=4, kernel_size=3, strides=2, padding="same", name="addition_a1"
+            )
+        )(a0)
+        a2 = K.layers.Activation("relu", name="addition_a2")(a1)
+        a3 = TL(
+            K.layers.Conv2D(
+                filters=4, kernel_size=3, padding="same", name="addition_a3"
+            )
+        )(a2)
+        b1 = TL(
+            K.layers.Conv2D(
+                filters=4, kernel_size=1, strides=2, padding="same", name="addition_b1"
+            )
+        )(b0)
         c1 = K.layers.Add(name="addition_c1")([a3, b1])
         c2 = K.layers.Flatten(name="addition_c2")(c1)
         c3 = K.layers.Dense(10, name="addition_c3")(c2)
         c4 = K.layers.Activation("softmax", name="addition_c4")(c3)
 
-        return x, [x, a1, a2, a3, b1, c1, c2, c3, c4]
+        return x, [x, b0, b1, a0, a1, a2, a3, c1, c2, c3, c4]
 
     x, y = addition_test()
     record(
@@ -324,7 +336,7 @@ if __name__ == "__main__":
         iteration=1,
         inputs=x,
         outputs=y,
-        debug=["name", "summary"],
+        # debug=["name", "summary", "output", "initial_weights"],
     )
 
     lstm_layer_tc = lambda lstm_layer: partial(
