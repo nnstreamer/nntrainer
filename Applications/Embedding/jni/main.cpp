@@ -196,15 +196,25 @@ int main(int argc, char *argv[]) {
    */
 
   try {
-    NN.loadFromConfig(config);
-    NN.compile();
-    NN.initialize();
+    auto status = NN.loadFromConfig(config);
+    if (status != ML_ERROR_NONE) {
+      std::cerr << "Error during loading" << std::endl;
+      return 1;
+    }
+
+    status = NN.compile();
+    if (status != ML_ERROR_NONE) {
+      std::cerr << "Error during compile" << std::endl;
+      return 1;
+    }
+    status = NN.initialize();
+    if (status != ML_ERROR_NONE) {
+      std::cerr << "Error during initialize" << std::endl;
+      return 1;
+    }
     NN.readModel();
 
-    nntrainer::Tensor weight_in(1, 1, 15, 8);
-    loadFile("embedding_weight_input.in", weight_in);
-
-    weight_in.print(std::cout);
+    std::cout << "Input dimension: " << NN.getInputDimension()[0];
 
     NN.getLayer(name.c_str(), &layer);
     NN.getLayer(fc_name.c_str(), &layer_fc);
@@ -216,8 +226,8 @@ int main(int argc, char *argv[]) {
     weight.print(std::cout);
 
   } catch (...) {
-    std::cerr << "Error during init" << std::endl;
-    return 0;
+    std::cerr << "Unexpected Error during init" << std::endl;
+    return 1;
   }
 
   if (training) {
@@ -226,16 +236,13 @@ int main(int argc, char *argv[]) {
       NN.train();
     } catch (...) {
       std::cerr << "Error during train" << std::endl;
-      return 0;
+      return 1;
     }
-
-    // std::shared_ptr<nntrainer::Layer> layer;
-    // std::string name = "embedding";
-    // NN.getLayer(name.c_str(), &layer);
 
     weight = layer_->getWeights()[0].getVariable();
     weight.print(std::cout);
 
+    /****** testing with a golden data if any ********/
     nntrainer::Tensor golden(1, 1, 15, 8);
 
     try {
@@ -249,7 +256,7 @@ int main(int argc, char *argv[]) {
       weight_fc = layer_fc_->getWeights()[0].getVariable();
       weight_fc.print(std::cout);
     } catch (...) {
-      std::cerr << "Error during loadFile\n";
+      std::cerr << "Warning: during loading golden data\n";
     }
   } else {
     try {
@@ -279,7 +286,7 @@ int main(int argc, char *argv[]) {
         cn += answer == l[0];
       } catch (...) {
         std::cerr << "Error during forwarding the model" << std::endl;
-        return -1;
+        return 1;
       }
     }
     std::cout << "[ Accuracy ] : "
