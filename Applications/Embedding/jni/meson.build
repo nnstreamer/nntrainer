@@ -12,3 +12,9 @@ test('app_embedding', e, args: ['train',
   nntr_app_resdir / 'Embedding' / 'Embedding.ini',
   nntr_app_resdir / 'Embedding' / 'embedding_input.txt']
 )
+
+# test split example
+test('app_embedding_split', e, args: ['train',
+  nntr_app_resdir / 'Embedding' / 'Embedding_split.ini',
+  nntr_app_resdir / 'Embedding' / 'embedding_input.txt']
+)

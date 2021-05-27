@@ -183,14 +183,6 @@ int main(int argc, char *argv[]) {
    */
   std::vector<std::vector<float>> inputVector, outputVector;
   nntrainer::NeuralNetwork NN;
-  std::shared_ptr<ml::train::Layer> layer;
-  std::shared_ptr<ml::train::Layer> layer_fc;
-  std::shared_ptr<nntrainer::Layer> layer_;
-  std::shared_ptr<nntrainer::Layer> layer_fc_;
-  std::string name = "embedding";
-  std::string fc_name = "outputlayer";
-  nntrainer::Tensor weight;
-  nntrainer::Tensor weight_fc;
   /**
    * @brief     Initialize NN with configuration file path
    */
@@ -216,15 +208,6 @@ int main(int argc, char *argv[]) {
 
     std::cout << "Input dimension: " << NN.getInputDimension()[0];
 
-    NN.getLayer(name.c_str(), &layer);
-    NN.getLayer(fc_name.c_str(), &layer_fc);
-
-    layer_ = nntrainer::getLayerDevel(layer);
-    layer_fc_ = nntrainer::getLayerDevel(layer_fc);
-
-    weight = layer_->getWeights()[0].getVariable();
-    weight.print(std::cout);
-
   } catch (...) {
     std::cerr << "Unexpected Error during init" << std::endl;
     return 1;
@@ -239,9 +222,6 @@ int main(int argc, char *argv[]) {
       return 1;
     }
 
-    weight = layer_->getWeights()[0].getVariable();
-    weight.print(std::cout);
-
     /****** testing with a golden data if any ********/
     nntrainer::Tensor golden(1, 1, 15, 8);
 
@@ -252,9 +232,6 @@ int main(int argc, char *argv[]) {
       nntrainer::Tensor weight_out_fc(1, 1, 32, 1);
       loadFile("fc_weight_golden.out", weight_out_fc);
       weight_out_fc.print(std::cout);
-
-      weight_fc = layer_fc_->getWeights()[0].getVariable();
-      weight_fc.print(std::cout);
     } catch (...) {
       std::cerr << "Warning: during loading golden data\n";
     }
