@@ -1116,6 +1116,36 @@ INI lstm_return_sequence_with_batch_n(
   }
 );
 
+INI multi_lstm_return_sequence(
+  "multi_lstm_return_sequence",
+  {
+    nn_base + "loss=mse | batch_size=1",
+    sgd_base + "learning_rate = 0.1",
+    I("input") + input_base + "input_shape=1:2:1",
+    I("lstm") + lstm_base +
+      "unit = 2" + "input_layers=input"+ "return_sequences=true",
+    I("lstm2") + lstm_base +
+      "unit = 2" + "input_layers=lstm",
+    I("outputlayer") + fc_base + "unit = 1" + "input_layers=lstm2"
+  }
+);
+
+
+INI multi_lstm_return_sequence_with_batch_n(
+  "multi_lstm_return_sequence_with_batch_n",
+  {
+    nn_base + "loss=mse | batch_size=2",
+    sgd_base + "learning_rate = 0.1",
+    I("input") + input_base + "input_shape=1:2:1",
+    I("lstm") + lstm_base +
+      "unit = 2" + "input_layers=input"+ "return_sequences=true",
+    I("lstm2") + lstm_base +
+      "unit = 2" + "input_layers=lstm",
+    I("outputlayer") + fc_base + "unit = 1" + "input_layers=lstm2"
+  }
+);
+
+
 
 INSTANTIATE_TEST_CASE_P(
   nntrainerModelAutoTests, nntrainerModelTest, ::testing::Values(
@@ -1163,7 +1193,9 @@ INSTANTIATE_TEST_CASE_P(
     mkModelTc(lstm_basic, "1:1:1:1", 1),
     mkModelTc(lstm_return_sequence, "1:1:2:1", 1),
     mkModelTc(lstm_return_sequence_with_batch, "2:1:2:1", 1),
-    mkModelTc(lstm_return_sequence_with_batch_n, "2:1:2:1", 2)
+    mkModelTc(lstm_return_sequence_with_batch_n, "2:1:2:1", 2),
+    mkModelTc(multi_lstm_return_sequence, "1:1:1:1", 1),
+    mkModelTc(multi_lstm_return_sequence_with_batch_n, "2:1:1:1", 2)
 // / #if gtest_version <= 1.7.0
 ));
 /// #else gtest_version > 1.8.0

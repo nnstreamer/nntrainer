@@ -393,5 +393,38 @@ if __name__ == "__main__":
         loss_fn_str="mse"
     )
     lstm = K.layers.LSTM(2, recurrent_activation='sigmoid', activation='tanh', return_sequences=True)
-    lstm_layer_return_sequence_with_batch_n(lstm)(file_name="lstm_return_sequence_with_batch_n.info", debug=["summary", "initial_weights", "dx", "output", "layer_name", "label","weights","gradients"],)    
+    lstm_layer_return_sequence_with_batch_n(lstm)(file_name="lstm_return_sequence_with_batch_n.info", debug=["summary", "initial_weights", "dx", "output", "layer_name", "label","weights","gradients"],)
 
+    multi_lstm_layer_return_sequence = partial(
+        record,
+        model=[
+            K.Input(batch_shape=(1, 2, 1)),
+            K.layers.LSTM(2, recurrent_activation='sigmoid', activation='tanh', return_sequences=True),
+            K.layers.LSTM(2, recurrent_activation='sigmoid', activation='tanh'),
+            K.layers.Dense(1)
+        ],
+        optimizer=opt.SGD(learning_rate=0.1),
+        iteration=1,
+        input_shape=(1,2,1),
+        label_shape=(1,1,1),
+        is_onehot=False,
+        loss_fn_str="mse"
+    )
+    multi_lstm_layer_return_sequence(file_name="multi_lstm_return_sequence.info", debug=["summary", "initial_weights", "dx", "output", "layer_name", "label","weights","gradients"],)    
+
+    multi_lstm_layer_return_sequence_with_batch_n = partial(
+        record,
+        model=[
+            K.Input(batch_shape=(2, 2, 1)),
+            K.layers.LSTM(2, recurrent_activation='sigmoid', activation='tanh', return_sequences=True),
+            K.layers.LSTM(2, recurrent_activation='sigmoid', activation='tanh'),
+            K.layers.Dense(1)
+        ],
+        optimizer=opt.SGD(learning_rate=0.1),
+        iteration=2,
+        input_shape=(2,2,1),
+        label_shape=(2,1),
+        is_onehot=False,
+        loss_fn_str="mse"
+    )
+    multi_lstm_layer_return_sequence_with_batch_n(file_name="multi_lstm_return_sequence_with_batch_n.info", debug=["summary", "initial_weights", "dx", "output", "layer_name", "label","weights","gradients"],)    
