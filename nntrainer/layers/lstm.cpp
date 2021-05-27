@@ -92,33 +92,21 @@ int LSTMLayer::initialize(Manager &manager) {
   d.width(unit);
 
   mem_cell = std::make_shared<Var_Grad>(d, true, true, "LSTM:mem_cell");
-  mem_cell->getVariableRef().setZero();
-  mem_cell->getGradientRef().setZero();
-
-  if (!return_sequences) {
-    hidden = std::make_shared<Var_Grad>(d, true, true, "LSTM:temp_hidden");
-    hidden->getVariableRef().setZero();
-    hidden->getGradientRef().setZero();
-  }
-
+  hidden = std::make_shared<Var_Grad>(d, true, true, "LSTM:output");
   d.width(unit * NUM_GATE);
   fgio = std::make_shared<Var_Grad>(d, true, true, "LSTM:fgio");
-  fgio->getVariableRef().setZero();
-  fgio->getGradientRef().setZero();
 
   TensorDim cell_dim = TensorDim();
   cell_dim.setTensorDim(3, unit);
   cell_dim.batch(input_dim[0].batch());
 
   h_prev = Tensor(cell_dim);
-  h_prev.setZero();
 
   c_prev = Tensor(cell_dim);
-  c_prev.setZero();
 
-  if (Layer::activation_type == ActivationType::ACT_NONE) {
-    Layer::activation_type = ActivationType::ACT_TANH;
-    acti_func.setActiFunc(activation_type);
+  if (hidden_state_activation_type == ActivationType::ACT_NONE) {
+    hidden_state_activation_type = ActivationType::ACT_TANH;
+    acti_func.setActiFunc(hidden_state_activation_type);
   }
 
   if (recurrent_activation_type == ActivationType::ACT_NONE) {
@@ -140,10 +128,10 @@ void LSTMLayer::setProperty(const PropertyType type, const std::string &value) {
       output_dim[0].width(unit);
     }
     break;
-  case PropertyType::activation:
+  case PropertyType::hidden_state_activation:
     if (!value.empty()) {
       ActivationType acti_type = (ActivationType)parseType(value, TOKEN_ACTI);
-      Layer::activation_type = acti_type;
+      hidden_state_activation_type = acti_type;
       acti_func.setActiFunc(acti_type);
     }
     break;
@@ -182,12 +170,15 @@ void LSTMLayer::forwarding(bool training) {
   Tensor &bias_h =
     weightAt(static_cast<int>(LSTMParams::bias_h)).getVariableRef();
 
+  mem_cell->getVariableRef().setZero();
+  hidden->getVariableRef().setZero();
+  fgio->getVariableRef().setZero();
+
+  h_prev.setZero();
+  c_prev.setZero();
+
   Tensor hidden_;
-  if (!return_sequences) {
-    hidden_ = hidden->getVariableRef();
-  } else {
-    hidden_ = net_hidden[0]->getVariableRef();
-  }
+  hidden_ = hidden->getVariableRef();
 
   Tensor &input_ = net_input[0]->getVariableRef();
   Tensor &m_cell_ = mem_cell->getVariableRef();
@@ -254,6 +245,9 @@ void LSTMLayer::forwarding(bool training) {
       float *rdata = net_hidden[0]->getVariableRef().getAddress(b * d.width());
       std::copy(data, data + d.width(), rdata);
     }
+  } else {
+    std::copy(hidden_.getData(), hidden_.getData() + hidden_.length(),
+              net_hidden[0]->getVariableRef().getData());
   }
 }
 
@@ -262,6 +256,7 @@ void LSTMLayer::copy(std::shared_ptr<Layer> l) {
 
   std::shared_ptr<LSTMLayer> from = std::static_pointer_cast<LSTMLayer>(l);
   this->unit = from->unit;
+  this->hidden_state_activation_type = from->hidden_state_activation_type;
   this->acti_func = from->acti_func;
   this->recurrent_activation_type = from->recurrent_activation_type;
   this->recurrent_acti_func = from->recurrent_acti_func;
@@ -285,11 +280,18 @@ void LSTMLayer::calcGradient() {
   Tensor &weight_hh =
     weightAt(static_cast<int>(LSTMParams::weight_hh)).getVariableRef();
 
-  Tensor derivative_;
+  djdw_x.setZero();
+  djdw_h.setZero();
+  djdb_h.setZero();
+
+  mem_cell->getGradientRef().setZero();
+  hidden->getGradientRef().setZero();
+  fgio->getGradientRef().setZero();
+
+  Tensor derivative_ = hidden->getGradientRef();
   Tensor hidden_;
 
   if (!return_sequences) {
-    derivative_ = hidden->getGradientRef();
     TensorDim d = derivative_.getDim();
     for (unsigned int b = 0; b < input_dim[0].batch(); ++b) {
       float *data = derivative_.getAddress(b * d.width() * d.height() +
@@ -297,12 +299,14 @@ void LSTMLayer::calcGradient() {
       float *rdata = net_hidden[0]->getGradientRef().getAddress(b * d.width());
       std::copy(rdata, rdata + d.width(), data);
     }
-
-    hidden_ = hidden->getVariableRef();
   } else {
-    derivative_ = net_hidden[0]->getGradientRef();
-    hidden_ = net_hidden[0]->getVariableRef();
+    std::copy(net_hidden[0]->getGradientRef().getData(),
+              net_hidden[0]->getGradientRef().getData() +
+                net_hidden[0]->getGradientRef().length(),
+              derivative_.getData());
   }
+
+  hidden_ = hidden->getVariableRef();
 
   Tensor &input_ = net_input[0]->getVariableRef();
   Tensor &m_cell_ = mem_cell->getVariableRef();
@@ -387,24 +391,10 @@ void LSTMLayer::calcGradient() {
       recurrent_acti_func.run_prime_fn(hi, dhi, dhi);
       acti_func.run_prime_fn(hg, dhg, dhg);
 
-
       djdb_h.add_i(dfgio_t);
       djdw_x.add_i(xs.dot(dfgio_t, true, false));
       djdw_h.add_i(hs_prev.dot(dfgio_t, true, false));
-      // TODO : Change this after more unittest cases.
-      // xs.dot(dfgio_t, djdw_x, true, false);
-      // hs_prev.dot(dfgio_t, djdw_h, true, false);
       dfgio_t.dot(weight_hh, dh_nx, false, true);
-      // float alpha = 1.0;
-      // if (b != 0) {
-      //   alpha = 0.0;
-      // }
-
-      // djdb_h.add_i(dfgio_t, alpha);
-      // djdw_x.add_i(xs.dot(dfgio_t, true, false), alpha);
-      // djdw_h.add_i(hs_prev.dot(dfgio_t, true, false), alpha);
-      // dfgio_t.dot(weight_hh, dh_nx, false, true, 1.0);
-
     }
   }
 }
