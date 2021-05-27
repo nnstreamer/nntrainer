@@ -182,8 +182,16 @@ void GraphCore::ensureName(GraphNode &node, const std::string &prefix,
 
 void GraphCore::removeLastNode() {
   auto last_node = Sorted.back();
+
   Sorted.pop_back();
-  adj.erase(adj.begin() + last_node->getIndex());
+
+  /// fix index after last node has been deleted.
+  auto after = adj.erase(adj.begin() + last_node->getIndex());
+  auto after_index = last_node->getIndex();
+
+  for (; after != adj.end(); ++after) {
+    after->front()->setIndex(after_index++);
+  }
 
   /**
    * Remove all the connections for the current last layer as it will now only
