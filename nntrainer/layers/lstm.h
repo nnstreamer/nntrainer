@@ -32,10 +32,12 @@ public:
   template <typename... Args>
   LSTMLayer(
     unsigned int unit_ = 0,
+    ActivationType hidden_state_activation_type_ = ActivationType::ACT_NONE,
     ActivationType recurrent_activation_type_ = ActivationType::ACT_NONE,
     bool sequence = false, Args... args) :
     Layer(args...),
     unit(unit_),
+    hidden_state_activation_type(hidden_state_activation_type_),
     recurrent_activation_type(recurrent_activation_type_),
     return_sequences(sequence){};
 
@@ -122,17 +124,22 @@ private:
   unsigned int unit;
 
   /**
-   * @brief     activation function for h_t : default is sigmoid
+   * @brief     activation type for recurrent : default is tanh
+   */
+  ActivationType hidden_state_activation_type;
+
+  /**
+   * @brief     activation function for h_t : default is tanh
    */
   ActiFunc acti_func;
 
   /**
-   * @brief     activation type for recurrent : default is tanh
+   * @brief     activation type for recurrent : default is sigmoid
    */
   ActivationType recurrent_activation_type;
 
   /**
-   * @brief     activation function for recurrent : default is tanh
+   * @brief     activation function for recurrent : default is sigmoid
    */
   ActiFunc recurrent_acti_func;
 
@@ -150,7 +157,7 @@ private:
    * @brief     To save cell data
    */
   std::shared_ptr<Var_Grad> mem_cell;
-  
+
   /**
    * @brief     To save intermediate gates
    */
@@ -160,12 +167,11 @@ private:
    * @brief     hidden state
    */
   std::shared_ptr<Var_Grad> hidden;
-  
+
   /**
    * @brief     variable to set return sequences
    */
   bool return_sequences;
-  
 };
 } // namespace nntrainer
 

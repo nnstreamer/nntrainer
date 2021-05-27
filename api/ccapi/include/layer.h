@@ -113,6 +113,7 @@ public:
    * - recurrent_activation : string (type) - used only in lstm
    * - return_sequences : bool (type) - used only in lstm
    * - distribute : bool
+   * - hidden_state_activation : string (type) - used only in lstm
    */
   /**
    * @brief     set Property of layer

@@ -236,6 +236,7 @@ public:
    *            35. distribute : bool
    *            36. split_dimension : string (type)
    *            37. return_sequences :  bool (type) - lstm
+   *            39. hidden_state_activation :  string (type) - lstm
    */
   enum class PropertyType {
     input_shape = 0,
@@ -276,6 +277,7 @@ public:
     distribute = 35,
     split_dimension = 36,
     return_sequences = 37,
+    hidden_state_activation = 38,
     unknown
   };
 
