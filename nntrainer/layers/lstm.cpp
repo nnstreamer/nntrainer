@@ -177,8 +177,7 @@ void LSTMLayer::forwarding(bool training) {
   h_prev.setZero();
   c_prev.setZero();
 
-  Tensor hidden_;
-  hidden_ = hidden->getVariableRef();
+  Tensor &hidden_ = hidden->getVariableRef();
 
   Tensor &input_ = net_input[0]->getVariableRef();
   Tensor &m_cell_ = mem_cell->getVariableRef();
@@ -260,6 +259,7 @@ void LSTMLayer::copy(std::shared_ptr<Layer> l) {
   this->acti_func = from->acti_func;
   this->recurrent_activation_type = from->recurrent_activation_type;
   this->recurrent_acti_func = from->recurrent_acti_func;
+  this->return_sequences = from->return_sequences;
 }
 
 void LSTMLayer::calcDerivative() {
@@ -289,7 +289,6 @@ void LSTMLayer::calcGradient() {
   fgio->getGradientRef().setZero();
 
   Tensor derivative_ = hidden->getGradientRef();
-  Tensor hidden_;
 
   if (!return_sequences) {
     TensorDim d = derivative_.getDim();
@@ -306,7 +305,7 @@ void LSTMLayer::calcGradient() {
               derivative_.getData());
   }
 
-  hidden_ = hidden->getVariableRef();
+  Tensor &hidden_ = hidden->getVariableRef();
 
   Tensor &input_ = net_input[0]->getVariableRef();
   Tensor &m_cell_ = mem_cell->getVariableRef();

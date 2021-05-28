@@ -83,7 +83,6 @@ int RNNLayer::initialize(Manager &manager) {
 
   bias_dim.batch(input_dim[0].batch());
   h_prev = Tensor(bias_dim);
-  h_prev.setZero();
 
   TensorDim d = input_dim[0];
   d.width(unit);
@@ -92,8 +91,6 @@ int RNNLayer::initialize(Manager &manager) {
   // test will fail. Becuase it modifies the date during gradient calculation
   // TODO : We could control with something like #define test to save memory
   hidden = std::make_shared<Var_Grad>(d, true, true, "RNN:temp_hidden");
-  hidden->getVariableRef().setZero();
-  hidden->getGradientRef().setZero();
 
   if (Layer::activation_type == ActivationType::ACT_NONE) {
     Layer::activation_type = ActivationType::ACT_TANH;
@@ -142,17 +139,19 @@ void RNNLayer::forwarding(bool training) {
   Tensor &bias_h =
     weightAt(static_cast<int>(RNNParams::bias_h)).getVariableRef();
 
-  Tensor hidden_;
-  hidden_ = hidden->getVariableRef();
+  hidden->getVariableRef().setZero();
 
+  if (training) {
+    hidden->getGradientRef().setZero();
+  }
+  h_prev.setZero();
+
+  Tensor &hidden_ = hidden->getVariableRef();
   Tensor &input_ = net_input[0]->getVariableRef();
 
   Tensor temp;
   Tensor hs_prev;
   Tensor hs;
-
-  if (training)
-    h_prev.setZero();
 
   // TODO : check merge b and t index
   for (unsigned int b = 0; b < input_dim[0].batch(); ++b) {
@@ -160,14 +159,12 @@ void RNNLayer::forwarding(bool training) {
     Tensor oslice = hidden_.getBatchSlice(b, 1);
 
     for (unsigned int t = 0; t < islice.height(); ++t) {
-      Tensor xs = islice.getSharedDataTensor(TensorDim(1, 1, 1, islice.width()),
-                                             t * islice.width());
-      // Calculate Hidden
-      // activation(xs.dot(weight_xh).add(hs_prev.dot(weight_hh).add(bias_h)));
-      hs = oslice.getSharedDataTensor(TensorDim(1, 1, 1, oslice.width()),
-                                      t * oslice.width());
+      Tensor xs =
+        islice.getSharedDataTensor({islice.width()}, t * islice.width());
+
+      hs = oslice.getSharedDataTensor({oslice.width()}, t * oslice.width());
       if (t > 0) {
-        hs_prev = oslice.getSharedDataTensor(TensorDim(1, 1, 1, oslice.width()),
+        hs_prev = oslice.getSharedDataTensor({oslice.width()},
                                              (t - 1) * oslice.width());
       } else {
         hs_prev = h_prev.getBatchSlice(b, 1);
@@ -204,12 +201,12 @@ void RNNLayer::copy(std::shared_ptr<Layer> l) {
 
   std::shared_ptr<RNNLayer> from = std::static_pointer_cast<RNNLayer>(l);
   this->unit = from->unit;
+  this->return_sequences = from->return_sequences;
+  this->acti_func = from->acti_func;
 }
 
 void RNNLayer::calcDerivative() {
-  Tensor derivative_;
-  derivative_ = hidden->getGradientRef();
-
+  Tensor &derivative_ = hidden->getGradientRef();
   Tensor &weight =
     weightAt(static_cast<int>(RNNParams::weight_xh)).getVariableRef();
   Tensor &ret_ = net_input[0]->getGradientRef();
@@ -227,9 +224,11 @@ void RNNLayer::calcGradient() {
   Tensor &weight_hh =
     weightAt(static_cast<int>(RNNParams::weight_hh)).getVariableRef();
 
-  Tensor derivative_;
-  Tensor hidden_;
-  derivative_ = hidden->getGradientRef();
+  djdw_x.setZero();
+  djdw_h.setZero();
+  djdb_h.setZero();
+
+  Tensor &derivative_ = hidden->getGradientRef();
 
   if (!return_sequences) {
     TensorDim d = derivative_.getDim();
@@ -243,7 +242,7 @@ void RNNLayer::calcGradient() {
     derivative_.copy(net_hidden[0]->getGradientRef());
   }
 
-  hidden_ = hidden->getVariableRef();
+  Tensor &hidden_ = hidden->getVariableRef();
 
   Tensor &input_ = net_input[0]->getVariableRef();
   Tensor dh_nx = Tensor(TensorDim(1, 1, 1, derivative_.width()));
@@ -281,9 +280,9 @@ void RNNLayer::calcGradient() {
       acti_func.run_prime_fn(hs, dh, dh);
 
       djdb_h.add_i(dh);
-      djdw_x.add_i(xs.dot(dh, true, false));
-      djdw_h.add_i(hs_prev.dot(dh, true, false));
-      dh.dot(weight_hh, dh_nx, false, true, 1.0);
+      xs.dot(dh, djdw_x, true, false, 1.0);
+      hs_prev.dot(dh, djdw_h, true, false, 1.0);
+      dh.dot(weight_hh, dh_nx, false, true);
     }
   }
 }
