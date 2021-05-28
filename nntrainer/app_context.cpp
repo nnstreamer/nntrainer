@@ -36,6 +36,7 @@
 #include <embedding.h>
 #include <fc_layer.h>
 #include <flatten_layer.h>
+#include <gru.h>
 #include <input_layer.h>
 #include <loss_layer.h>
 #include <lstm.h>
@@ -245,6 +246,8 @@ static void add_default_object(AppContext &ac) {
                      LayerType::LAYER_RNN);
   ac.registerFactory(nntrainer::createLayer<LSTMLayer>, LSTMLayer::type,
                      LayerType::LAYER_LSTM);
+  ac.registerFactory(nntrainer::createLayer<GRULayer>, GRULayer::type,
+                     LayerType::LAYER_GRU);
   ac.registerFactory(nntrainer::createLayer<TimeDistLayer>, TimeDistLayer::type,
                      LayerType::LAYER_TIME_DIST);
   ac.registerFactory(nntrainer::createLayer<SplitLayer>, SplitLayer::type,

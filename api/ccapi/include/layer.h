@@ -53,6 +53,7 @@ enum LayerType {
   LAYER_RNN,                  /** RNN Layer type */
   LAYER_LSTM,                 /** LSTM Layer type */
   LAYER_SPLIT,                /** Splite Layer type */
+  LAYER_GRU,                  /** GRU Layer type */
   LAYER_TIME_DIST,            /** Time Distributed Layer type */
   LAYER_PERMUTE,              /** Permute layer */
   LAYER_UNKNOWN = ML_TRAIN_LAYER_TYPE_UNKNOWN /** Unknown */
@@ -282,6 +283,14 @@ RNN(const std::vector<std::string> &properties = {}) {
 inline std::unique_ptr<Layer>
 LSTM(const std::vector<std::string> &properties = {}) {
   return createLayer(LayerType::LAYER_LSTM, properties);
+}
+
+/**
+ * @brief Helper function to create GRU layer
+ */
+inline std::unique_ptr<Layer>
+GRU(const std::vector<std::string> &properties = {}) {
+  return createLayer(LayerType::LAYER_GRU, properties);
 }
 
 /**
