@@ -101,7 +101,7 @@ void SplitLayer::forwarding(bool training) {
   input_.reshape(input_reshape_helper);
 
   for (unsigned int idx = 0; idx < getNumOutputs(); idx++) {
-    Tensor &output_ = net_hidden[0]->getVariableRef();
+    Tensor &output_ = net_hidden[idx]->getVariableRef();
     output_.reshape(output_reshape_helper);
 
     for (unsigned int batch = 0; batch < input_.batch(); batch++) {
@@ -109,7 +109,7 @@ void SplitLayer::forwarding(bool training) {
         input_.getAddress(batch, 0, idx, 0), input_reshape_helper.width(),
         {1, 1, 1, input_reshape_helper.width()});
       Tensor dest_tensor = Tensor::Map(
-        output_.getAddress(batch, 0, idx, 0), output_reshape_helper.width(),
+        output_.getAddress(batch, 0, 0, 0), output_reshape_helper.width(),
         {1, 1, 1, output_reshape_helper.width()});
       dest_tensor.copy(source_tensor);
     }
@@ -126,7 +126,7 @@ void SplitLayer::calcDerivative() {
   input_.reshape(input_reshape_helper);
 
   for (unsigned int idx = 0; idx < getNumOutputs(); idx++) {
-    Tensor &output_ = net_hidden[0]->getGradientRef();
+    Tensor &output_ = net_hidden[idx]->getGradientRef();
     output_.reshape(output_reshape_helper);
 
     for (unsigned int batch = 0; batch < input_.batch(); batch++) {
@@ -134,7 +134,7 @@ void SplitLayer::calcDerivative() {
                                        input_reshape_helper.width(),
                                        {1, 1, 1, input_reshape_helper.width()});
       const Tensor source_tensor = Tensor::Map(
-        output_.getAddress(batch, 0, idx, 0), output_reshape_helper.width(),
+        output_.getAddress(batch, 0, 0, 0), output_reshape_helper.width(),
         {1, 1, 1, output_reshape_helper.width()});
       dest_tensor.copy(source_tensor);
     }

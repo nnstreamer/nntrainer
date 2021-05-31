@@ -32,12 +32,9 @@ public:
    * @brief     Constructor of Split Layer
    */
   template <typename... Args>
-  SplitLayer(unsigned int num_output_, unsigned int split_dim = 1,
-             Args... args) :
+  SplitLayer(unsigned int split_dim = 1, Args... args) :
     Layer(args...),
-    split_dimension(split_dim) {
-    setNumOutputs(num_output_);
-  }
+    split_dimension(split_dim) {}
 
   /**
    * @brief     Destructor of Split Layer
@@ -85,6 +82,8 @@ public:
    * @copydoc Layer::calcDerivative()
    */
   void calcDerivative() override;
+
+  using Layer::setProperty;
 
   /**
    * @copydoc Layer::setProperty(const PropertyType type, const std::string
