@@ -27,6 +27,7 @@
 #include <parse_util.h>
 #include <pooling2d_layer.h>
 #include <rnn.h>
+#include <split_layer.h>
 #include <time_dist.h>
 
 #ifdef ENABLE_TFLITE_BACKBONE
@@ -77,6 +78,8 @@ const std::string layerGetStrType(const LayerType &type) {
     return EmbeddingLayer::type;
   case LayerType::LAYER_TIME_DIST:
     return TimeDistLayer::type;
+  case LayerType::LAYER_SPLIT:
+    return SplitLayer::type;
   case LayerType::LAYER_UNKNOWN:
     /** fallthrough intended */
   default:

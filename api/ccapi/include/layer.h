@@ -52,6 +52,7 @@ enum LayerType {
   LAYER_EMBEDDING,            /** Embedding Layer type */
   LAYER_RNN,                  /** RNN Layer type */
   LAYER_LSTM,                 /** LSTM Layer type */
+  LAYER_SPLIT,                /** Splite Layer type */
   LAYER_TIME_DIST,            /** Time Distributed Layer type */
   LAYER_UNKNOWN = ML_TRAIN_LAYER_TYPE_UNKNOWN /** Unknown */
 };

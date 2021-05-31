@@ -47,6 +47,7 @@
 #include <preprocess_flip_layer.h>
 #include <preprocess_translate_layer.h>
 #include <rnn.h>
+#include <split_layer.h>
 #include <time_dist.h>
 
 #ifdef ENABLE_TFLITE_BACKBONE
@@ -236,16 +237,14 @@ static void add_default_object(AppContext &ac) {
 #endif
   ac.registerFactory(nntrainer::createLayer<EmbeddingLayer>,
                      EmbeddingLayer::type, LayerType::LAYER_EMBEDDING);
-
   ac.registerFactory(nntrainer::createLayer<RNNLayer>, RNNLayer::type,
                      LayerType::LAYER_RNN);
-
   ac.registerFactory(nntrainer::createLayer<LSTMLayer>, LSTMLayer::type,
                      LayerType::LAYER_LSTM);
-
   ac.registerFactory(nntrainer::createLayer<TimeDistLayer>, TimeDistLayer::type,
                      LayerType::LAYER_TIME_DIST);
-
+  ac.registerFactory(nntrainer::createLayer<SplitLayer>, SplitLayer::type,
+                     LayerType::LAYER_SPLIT);
   ac.registerFactory(AppContext::unknownFactory<nntrainer::Layer>, "unknown",
                      LayerType::LAYER_UNKNOWN);
 }

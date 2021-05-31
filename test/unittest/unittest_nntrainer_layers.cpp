@@ -17,6 +17,7 @@
 #include <activation_layer.h>
 #include <addition_layer.h>
 #include <bn_layer.h>
+#include <concat_layer.h>
 #include <conv2d_layer.h>
 #include <embedding.h>
 #include <fc_layer.h>
@@ -34,6 +35,7 @@
 #include <preprocess_flip_layer.h>
 #include <preprocess_translate_layer.h>
 #include <rnn.h>
+#include <split_layer.h>
 #include <tensor_dim.h>
 #include <util_func.h>
 
@@ -2496,6 +2498,139 @@ TEST_F(nntrainer_LSTMLayer, backwarding_01_p) {
 
   EXPECT_NO_THROW(result = *layer.backwarding_with_val(
                     1, {MAKE_SHARED_TENSOR(derivatives)}, opt)[0]);
+}
+
+/**
+ * @brief nntainer split Layer for test
+ */
+class nntrainer_SplitLayer
+  : public nntrainer_abstractLayer<nntrainer::SplitLayer> {
+
+protected:
+  typedef nntrainer_abstractLayer<nntrainer::SplitLayer> super;
+
+  virtual void prepareLayer() {
+    int status = setProperty("input_shape=9:8:7:6");
+    EXPECT_EQ(status, ML_ERROR_NONE);
+  }
+
+  nntrainer::Tensor result;
+};
+
+/**
+ * @brief Split Layer
+ */
+TEST_F(nntrainer_SplitLayer, init_01_p) {
+  nntrainer::TensorDim out_dim_expect;
+  layer.setBatch(9);
+
+  for (unsigned int idx = 1; idx < nntrainer::MAXDIM; idx++) {
+    std::stringstream ss;
+    ss << "split_dimension=" << idx;
+    EXPECT_EQ(ML_ERROR_NONE, layer.setProperty({ss.str()}));
+    ss.clear();
+    layer.initialize(manager);
+
+    auto in_dim = layer.getInputDimension();
+    auto out_dim = layer.getOutputDimension();
+
+    int val_at_split_dim = in_dim[0].getTensorDim(idx);
+    EXPECT_EQ(out_dim.size(), val_at_split_dim);
+
+    out_dim_expect = in_dim[0];
+    out_dim_expect.setTensorDim(idx, 1);
+
+    for (auto const &out_d : out_dim) {
+      EXPECT_EQ(out_dim_expect, out_d);
+    }
+  }
+}
+
+/**
+ * @brief Split Layer
+ */
+TEST_F(nntrainer_SplitLayer, init_02_n) {
+  nntrainer::TensorDim out_dim_expect;
+  layer.setBatch(9);
+  layer.setProperty({"split_dimension=0"});
+  EXPECT_EQ(ML_ERROR_INVALID_PARAMETER, layer.initialize(manager));
+}
+
+/**
+ * @brief Split Layer
+ */
+TEST_F(nntrainer_SplitLayer, init_03_n) {
+  nntrainer::TensorDim out_dim_expect;
+  layer.setBatch(9);
+  layer.setProperty({"split_dimension=5"});
+  EXPECT_EQ(ML_ERROR_INVALID_PARAMETER, layer.initialize(manager));
+  layer.setProperty({"split_dimension=8"});
+  EXPECT_EQ(ML_ERROR_INVALID_PARAMETER, layer.initialize(manager));
+}
+
+/**
+ * @brief Split + Concat Layer
+ */
+TEST_F(nntrainer_SplitLayer, forwarding_backwarding_01_p) {
+  nntrainer::ConcatLayer concat;
+  nntrainer::TensorDim out_dim_expect;
+  layer.setBatch(9);
+  concat.setBatch(9);
+
+  /// enable till nntrainer::MAXDIM once #1227 is resolved
+  for (unsigned int idx = 1; idx < 2; idx++) {
+    std::stringstream ss;
+    ss << "num_inputs=" << idx;
+    EXPECT_EQ(ML_ERROR_NONE, concat.setProperty({ss.str()}));
+    ss.str(std::string());
+
+    ss << "split_dimension=" << idx;
+    layer.setProperty({ss.str()});
+    EXPECT_EQ(ML_ERROR_NONE, layer.setProperty({ss.str()}));
+
+    auto in_dim = layer.getInputDimension();
+    auto out_dim = layer.getOutputDimension();
+    unsigned int val_at_split_dim = in_dim[0].getTensorDim(idx);
+    out_dim_expect = in_dim[0];
+    out_dim_expect.setTensorDim(idx, 1);
+
+    for (unsigned int ni = 0; ni < val_at_split_dim; ni++)
+      concat.setInputDimension(
+        std::vector<nntrainer::TensorDim>(val_at_split_dim, out_dim_expect));
+
+    nntrainer::Manager manager;
+    manager.setInferenceInOutMemoryOptimization(false);
+
+    layer.initialize(manager);
+    concat.initialize(manager);
+
+    layer.setInputBuffers(manager.trackLayerInputs(
+      layer.getType(), layer.getName(), layer.getInputDimension()));
+    layer.setOutputBuffers(manager.trackLayerOutputs(
+      layer.getType(), layer.getName(), layer.getOutputDimension()));
+    concat.setInputBuffers(layer.getOutputRef());
+    concat.setOutputBuffers(manager.trackLayerOutputs(
+      concat.getType(), concat.getName(), concat.getOutputDimension()));
+
+    manager.initializeTensors(true);
+    manager.allocateTensors();
+
+    nntrainer::Tensor input(in_dim[0]);
+    nntrainer::Tensor derivative(in_dim[0]);
+    input.setRandUniform();
+    derivative.setRandUniform();
+
+    auto split_outs = layer.forwarding_with_val({MAKE_SHARED_TENSOR(input)});
+    auto joined_inputs = concat.forwarding_with_val(split_outs);
+
+    EXPECT_EQ(input, *joined_inputs[0].get());
+
+    auto split_derv =
+      concat.backwarding_with_val({MAKE_SHARED_TENSOR(derivative)});
+    auto joined_deriv = layer.backwarding_with_val(split_derv);
+
+    EXPECT_EQ(*joined_deriv[0].get(), derivative);
+  }
 }
 
 /**
