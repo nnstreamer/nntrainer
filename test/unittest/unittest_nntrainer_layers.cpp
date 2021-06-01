@@ -2534,7 +2534,7 @@ TEST_F(nntrainer_SplitLayer, init_01_p) {
     auto in_dim = layer.getInputDimension();
     auto out_dim = layer.getOutputDimension();
 
-    int val_at_split_dim = in_dim[0].getTensorDim(idx);
+    unsigned int val_at_split_dim = in_dim[0].getTensorDim(idx);
     EXPECT_EQ(out_dim.size(), val_at_split_dim);
 
     out_dim_expect = in_dim[0];
