@@ -26,9 +26,10 @@ namespace nntrainer {
 
 int OptimizerImpl::initialize() { return ML_ERROR_NONE; }
 
-void OptimizerImpl::setProperty(const PropertyType type,
+void OptimizerImpl::setProperty(const std::string &key,
                                 const std::string &value) {
   int status = ML_ERROR_NONE;
+  PropertyType type = static_cast<PropertyType>(parseOptProperty(key));
 
   switch (type) {
   case PropertyType::learning_rate:
@@ -44,7 +45,7 @@ void OptimizerImpl::setProperty(const PropertyType type,
     status = setBoolean(continue_train, value);
     break;
   default:
-    Optimizer::setProperty(type, value);
+    Optimizer::setProperty(key, value);
     status = ML_ERROR_NONE;
     break;
   }
