@@ -29,15 +29,15 @@
 
 std::string data_file;
 
-const unsigned int total_train_data_size = 10;
+const unsigned int total_train_data_size = 25;
 
 unsigned int train_count = 0;
 
 const unsigned int batch_size = 10;
 
-const unsigned int feature_size = 4;
+const unsigned int feature_size = 2;
 
-const unsigned int total_val_data_size = 10;
+const unsigned int total_val_data_size = 25;
 
 bool training = false;
 
@@ -79,8 +79,9 @@ bool getData(std::ifstream &F, std::vector<float> &outVec,
 
   F.putback(c);
 
-  if (!std::getline(F, temp))
+  if (!std::getline(F, temp)) {
     return false;
+  }
 
   std::istringstream buffer(temp);
   float x;
@@ -123,16 +124,15 @@ int getBatch_train(float **outVec, float **outLabel, bool *last,
     return 0;
   }
 
+  std::vector<float> o;
+  std::vector<float> l;
+  o.resize(feature_size);
+  l.resize(1);
+
   for (unsigned int i = train_count; i < train_count + batch_size; ++i) {
-
-    std::vector<float> o;
-    std::vector<float> l;
-    o.resize(feature_size);
-    l.resize(1);
-
     if (!getData(dataFile, o, l, i)) {
       return -1;
-    };
+    }
 
     for (unsigned int j = 0; j < feature_size; ++j)
       outVec[0][count * feature_size + j] = o[j];
@@ -152,7 +152,10 @@ int getBatch_train(float **outVec, float **outLabel, bool *last,
  *            back propagation of NN
  * @param[in]  arg 1 : train / inference
  * @param[in]  arg 2 : configuration file path
- * @param[in]  arg 3 : resource path (dataset.txt or testset.txt)
+ * @param[in]  arg 3 : resource path (data) with below format
+ * (int) (int) (float) #first data
+ * ...
+ * in each row represents user id, product id, rating (0 to 10)
  */
 int main(int argc, char *argv[]) {
   if (argc < 4) {

@@ -616,9 +616,10 @@ int NeuralNetwork::train_run() {
         try {
           forwarding(true);
           backwarding(iter++);
-        } catch (...) {
+        } catch (std::exception &e) {
           data_buffer->clear(nntrainer::BufferType::BUF_TRAIN);
-          ml_loge("Error: training error in #%d/%d.", epoch_idx, epochs);
+          ml_loge("Error: training error in #%d/%d. %s", epoch_idx, epochs,
+                  e.what());
           throw;
         }
         std::cout << "#" << epoch_idx << "/" << epochs;

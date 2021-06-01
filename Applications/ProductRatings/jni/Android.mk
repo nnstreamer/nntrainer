@@ -46,7 +46,7 @@ LOCAL_CFLAGS += -pthread -fexceptions
 LOCAL_LDFLAGS += -fexceptions
 LOCAL_MODULE_TAGS := optional
 LOCAL_ARM_MODE := arm
-LOCAL_MODULE := nntrainer_embedding
+LOCAL_MODULE := nntrainer_product_ratings
 LOCAL_LDLIBS := -llog -landroid
 
 LOCAL_SRC_FILES := main.cpp
