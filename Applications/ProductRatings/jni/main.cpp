@@ -226,10 +226,10 @@ int main(int argc, char *argv[]) {
       return 1;
     }
 
-    /****** testing with a golden data if any ********/
-    nntrainer::Tensor golden(1, 1, 15, 8);
-
     try {
+      /****** testing with a golden data if any ********/
+      nntrainer::Tensor golden(1, 1, 15, 8);
+
       loadFile("embedding_weight_golden.out", golden);
       golden.print(std::cout);
 

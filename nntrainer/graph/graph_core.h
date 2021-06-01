@@ -38,7 +38,7 @@ public:
   /**
    * @brief     Constructor of Graph Core Class
    */
-  GraphCore() : def_name_count(0) {}
+  GraphCore() : sorted(false), def_name_count(0) {}
 
   /**
    * @brief Add the given node into Graph
