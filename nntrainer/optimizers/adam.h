@@ -52,10 +52,10 @@ public:
   double getLearningRate(size_t iteration) const;
 
   /**
-   * @copydoc setProperty(const PropertyType type,
-                           const std::string &value = "")
+   * @copydoc setProperty(const std::string &key,
+                           const std::string &value)
    */
-  void setProperty(const PropertyType type, const std::string &value = "");
+  void setProperty(const std::string &key, const std::string &value);
 
   /**
    * @copydoc Optimizer::addOptimizerVariable(std::vector<Weight> &params)

@@ -94,17 +94,17 @@ public:
   };
 
   /**
-   * @brief setProperty by PropertyType
+   * @brief setProperty individually
    * @note By passing empty string, this can validate if @a type is valid
-   * @param[in] type property type to be passed
+   * @param[in] key key to be passed as string
    * @param[in] value value to be passed, if empty string is passed, do nothing
    * but throws error when @a type is invalid
-   * @exception exception::not_supported     when property type is not valid for
+   * @exception exception::not_supported     when string type is not valid for
    * the particular layer
    * @exception std::invalid_argument invalid argument
    */
-  virtual void setProperty(const PropertyType type,
-                           const std::string &value = "") = 0;
+  virtual void setProperty(const std::string &key,
+                           const std::string &value) = 0;
 
   /**
    * @brief     initialize optimizer.

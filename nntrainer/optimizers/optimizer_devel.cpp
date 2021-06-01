@@ -51,15 +51,13 @@ int Optimizer::setProperty(std::vector<std::string> values) {
     status = getKeyValue(values[i], key, value);
     NN_RETURN_STATUS();
 
-    unsigned int type = parseOptProperty(key);
-
     if (value.empty()) {
       return ML_ERROR_INVALID_PARAMETER;
     }
 
     try {
       /// @note this calls derived setProperty if available
-      setProperty(static_cast<PropertyType>(type), value);
+      setProperty(key, value);
     } catch (...) {
       return ML_ERROR_INVALID_PARAMETER;
     }
@@ -78,8 +76,9 @@ void Optimizer::checkValidation() const {
     throw std::invalid_argument("Learning rate must be positive");
 }
 
-void Optimizer::setProperty(const PropertyType type, const std::string &value) {
+void Optimizer::setProperty(const std::string &key, const std::string &value) {
   int status = ML_ERROR_NONE;
+  unsigned int type = parseOptProperty(key);
 
   switch (type) {
   default:

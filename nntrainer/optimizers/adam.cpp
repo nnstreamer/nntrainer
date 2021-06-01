@@ -91,8 +91,9 @@ void Adam::applyGradient(Weight &weight, double updated_lr, int iteration) {
   weight.applyGradient(updated_lr);
 }
 
-void Adam::setProperty(const PropertyType type, const std::string &value) {
+void Adam::setProperty(const std::string &key, const std::string &value) {
   int status = ML_ERROR_NONE;
+  PropertyType type = static_cast<PropertyType>(parseOptProperty(key));
 
   switch (type) {
   case PropertyType::beta1:
@@ -105,7 +106,7 @@ void Adam::setProperty(const PropertyType type, const std::string &value) {
     status = setDouble(epsilon, value);
     break;
   default:
-    OptimizerImpl::setProperty(type, value);
+    OptimizerImpl::setProperty(key, value);
     status = ML_ERROR_NONE;
     break;
   }
