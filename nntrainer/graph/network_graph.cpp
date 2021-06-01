@@ -29,6 +29,7 @@
 #include <parse_util.h>
 #include <profiler.h>
 #include <rnn.h>
+#include <split_layer.h>
 #include <time_dist.h>
 
 #define LNODE(x) std::static_pointer_cast<LayerNode>(x)
@@ -508,7 +509,7 @@ int NetworkGraph::realizeGraph() {
 
   for (unsigned int i = 0; i < num_nodes; ++i) {
     Layer &l = *LNODE(node_list[i])->getObject();
-    if (l.getType() != OutputLayer::type) {
+    if (l.getType() != OutputLayer::type && l.getType() != SplitLayer::type) {
       status = realizeMultiOutputType(l);
       NN_RETURN_STATUS();
     }
