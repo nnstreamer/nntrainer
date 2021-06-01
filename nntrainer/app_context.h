@@ -115,14 +115,28 @@ public:
                     const std::string &base_path = "");
 
   /**
-   * @brief register Layer from a directory.
-   * @note if you have a clashing type with already registered layer, it will
-   * throw from `registerFactory` function
+   * @brief register a optimizer factory from a shared library
+   * plugin must have **extern "C" OptimizerPluggable
+   * *ml_train_optimizer_pluggable** defined else error
    *
-   * @param base_path a directory path to search layer's
-   * @return std::vector<int> list of integer key to create a layer
+   * @param library_path a file name of the library
+   * @param base_path    base path to make a full path (optional)
+   * @return int integer key to create the optimizer
+   * @throws std::invalid_parameter if library_path is invalid or library is
+   * invalid
    */
-  std::vector<int> registerLayerFromDirectory(const std::string &base_path);
+  int registerOptimizer(const std::string &library_path,
+                        const std::string &base_path = "");
+
+  /**
+   * @brief register pluggables from a directory.
+   * @note if you have a clashing type with already registered pluggable, it
+   * will throw from `registerFactory` function
+   *
+   * @param base_path a directory path to search pluggables's
+   * @return std::vector<int> list of integer key to create a pluggable
+   */
+  std::vector<int> registerPluggableFromDirectory(const std::string &base_path);
 
   /**
    * @brief Get Working Path from a relative or representation of a path

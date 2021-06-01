@@ -43,6 +43,7 @@
 #include <output_layer.h>
 #include <parse_util.h>
 #include <plugged_layer.h>
+#include <plugged_optimizer.h>
 #include <pooling2d_layer.h>
 #include <preprocess_flip_layer.h>
 #include <preprocess_translate_layer.h>
@@ -58,7 +59,9 @@
 #endif
 
 /// add #ifdef across platform
+static std::string solib_suffix = ".so";
 static std::string layerlib_suffix = "layer.so";
+static std::string optimizerlib_suffix = "optimizer.so";
 static const std::string func_tag = "[AppContext] ";
 
 #ifdef NNTRAINER_CONF_PATH
@@ -255,7 +258,7 @@ static void add_extension_object(AppContext &ac) {
 
   for (auto &path : dir_list) {
     try {
-      ac.registerLayerFromDirectory(path);
+      ac.registerPluggableFromDirectory(path);
     } catch (std::exception &e) {
       ml_logw("tried to register extension from %s but failed, reason: %s",
               path.c_str(), e.what());
@@ -349,8 +352,47 @@ int AppContext::registerLayer(const std::string &library_path,
   return registerFactory<nntrainer::Layer>(factory_func, type);
 }
 
+int AppContext::registerOptimizer(const std::string &library_path,
+                                  const std::string &base_path) {
+  const std::string full_path = getFullPath(library_path, base_path);
+
+  void *handle = dlopen(full_path.c_str(), RTLD_LAZY | RTLD_LOCAL);
+  const char *error_msg = dlerror();
+
+  NNTR_THROW_IF(handle == nullptr, std::invalid_argument)
+    << func_tag << "open plugin failed, reason: " << error_msg;
+
+  nntrainer::OptimizerPluggable *pluggable =
+    reinterpret_cast<nntrainer::OptimizerPluggable *>(
+      dlsym(handle, "ml_train_optimizer_pluggable"));
+
+  error_msg = dlerror();
+  auto close_dl = [handle] { dlclose(handle); };
+  NNTR_THROW_IF_CLEANUP(error_msg != nullptr || pluggable == nullptr,
+                        std::invalid_argument, close_dl)
+    << func_tag << "loading symbol failed, reason: " << error_msg;
+
+  auto optimizer = pluggable->createfunc();
+  NNTR_THROW_IF_CLEANUP(optimizer == nullptr, std::invalid_argument, close_dl)
+    << func_tag << "created pluggable optimizer is null";
+  auto type = optimizer->getType();
+  NNTR_THROW_IF_CLEANUP(type == "", std::invalid_argument, close_dl)
+    << func_tag << "custom optimizer must specify type name, but it is empty";
+  pluggable->destroyfunc(optimizer);
+
+  FactoryType<ml::train::Optimizer> factory_func =
+    [pluggable](const PropsType &prop) {
+      std::unique_ptr<ml::train::Optimizer> optimizer =
+        std::make_unique<internal::PluggedOptimizer>(pluggable);
+
+      return optimizer;
+    };
+
+  return registerFactory<ml::train::Optimizer>(factory_func, type);
+}
+
 std::vector<int>
-AppContext::registerLayerFromDirectory(const std::string &base_path) {
+AppContext::registerPluggableFromDirectory(const std::string &base_path) {
   DIR *dir = opendir(base_path.c_str());
 
   NNTR_THROW_IF(dir == nullptr, std::invalid_argument)
@@ -360,13 +402,23 @@ AppContext::registerLayerFromDirectory(const std::string &base_path) {
 
   std::vector<int> keys;
   while ((entry = readdir(dir)) != NULL) {
-    if (endswith(entry->d_name, layerlib_suffix)) {
-      try {
-        int key = registerLayer(entry->d_name, base_path);
-        keys.emplace_back(key);
-      } catch (std::exception &e) {
-        closedir(dir);
-        throw;
+    if (endswith(entry->d_name, solib_suffix)) {
+      if (endswith(entry->d_name, layerlib_suffix)) {
+        try {
+          int key = registerLayer(entry->d_name, base_path);
+          keys.emplace_back(key);
+        } catch (std::exception &e) {
+          closedir(dir);
+          throw;
+        }
+      } else if (endswith(entry->d_name, optimizerlib_suffix)) {
+        try {
+          int key = registerOptimizer(entry->d_name, base_path);
+          keys.emplace_back(key);
+        } catch (std::exception &e) {
+          closedir(dir);
+          throw;
+        }
       }
     }
   }
