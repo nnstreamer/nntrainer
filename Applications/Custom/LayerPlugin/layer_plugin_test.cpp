@@ -2,7 +2,7 @@
 /**
  * Copyright (C) 2020 Jihoon Lee <jhoon.it.lee@samsung.com>
  *
- * @file   test.cpp
+ * @file   layer_plugin_test.cpp
  * @date   26 January 2021
  * @brief  This file contains the execution part of LayerPlugin example
  * @see    https://github.com/nnstreamer/nntrainer
@@ -48,7 +48,7 @@ TEST(AppContext, DlRegisterDirectory_p) {
     << "NNTRAINER_PATH environment value must be set";
   auto ac = nntrainer::AppContext();
 
-  ac.registerLayerFromDirectory(NNTRAINER_PATH);
+  ac.registerPluggableFromDirectory(NNTRAINER_PATH);
 
   auto layer = ac.createObject<nntrainer::Layer>("pow");
 
@@ -58,7 +58,7 @@ TEST(AppContext, DlRegisterDirectory_p) {
 TEST(AppContext, DlRegisterDirectory_n) {
   auto ac = nntrainer::AppContext();
 
-  EXPECT_THROW(ac.registerLayerFromDirectory("wrong path"),
+  EXPECT_THROW(ac.registerPluggableFromDirectory("wrong path"),
                std::invalid_argument);
 }
 

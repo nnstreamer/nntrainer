@@ -32,15 +32,10 @@ class Optimizer : public ml::train::Optimizer {
 
 public:
   /**
-   * @brief     Default Constructor of Optimizer Class
-   */
-  // Optimizer() = default
-
-  /**
    * @brief     get Learning Rate
    * @retval    Learning rate in float
    */
-  virtual float getLearningRate() const { return getLearningRate(0); };
+  virtual float getLearningRate() const { return getLearningRate(0); }
 
   /**
    * @brief     get Learning Rate for the given iteration
@@ -155,6 +150,23 @@ private:
   virtual void applyGradient(Weight &weight, double updated_lr,
                              int iteration) = 0;
 };
+
+using CreateOptimizerFunc = ml::train::Optimizer *(*)();
+using DestroyOptimizerFunc = void (*)(ml::train::Optimizer *);
+
+/**
+ * @brief  Optimizer Pluggable struct that enables pluggable layer
+ *
+ */
+typedef struct {
+  CreateOptimizerFunc createfunc;   /**< create function */
+  DestroyOptimizerFunc destroyfunc; /**< destory function */
+} OptimizerPluggable;
+
+/**
+ * @brief pluggable optimizer must have this structure defined
+ */
+extern "C" OptimizerPluggable ml_train_optimizer_pluggable;
 
 } /* namespace nntrainer */
 
