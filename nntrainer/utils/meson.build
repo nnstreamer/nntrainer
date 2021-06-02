@@ -8,7 +8,10 @@ util_sources = [
 ]
 
 util_headers = [
-  'profiler.h'
+  'profiler.h',
+  'base_properties.h',
+  'parse_util.h',
+  'node_exporter.h'
 ]
 
 foreach s : util_sources

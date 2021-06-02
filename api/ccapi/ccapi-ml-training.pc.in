@@ -4,7 +4,7 @@ exec_prefix=@PREFIX@
 libdir=@LIB_INSTALL_DIR@
 includedir=@INCLUDE_INSTALL_DIR@
 
-Name: ccapi-nntrainer
+Name: ccapi-ml-training
 Description: NNTrainer cc API
 Version: @VERSION@
 Requires:

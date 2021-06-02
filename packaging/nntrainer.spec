@@ -397,6 +397,20 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %config %{_sysconfdir}/nntrainer.ini
 
 %files devel
+%{_includedir}/nntrainer/app_context.h
+%{_includedir}/nntrainer/nntrainer_error.h
+%{_includedir}/nntrainer/nntrainer_log.h
+%{_includedir}/nntrainer/nntrainer_logger.h
+%{_includedir}/nntrainer/acti_func.h
+%{_includedir}/nntrainer/common_properties.h
+%{_includedir}/nntrainer/loss_layer.h
+%{_includedir}/nntrainer/weight.h
+%{_includedir}/nntrainer/var_grad.h
+%{_includedir}/nntrainer/base_properties.h
+%{_includedir}/nntrainer/node_exporter.h
+%{_includedir}/nntrainer/parse_util.h
+%{_includedir}/nntrainer/graph_core.h
+%{_includedir}/nntrainer/graph_node.h
 %{_includedir}/nntrainer/databuffer.h
 %{_includedir}/nntrainer/databuffer_factory.h
 %{_includedir}/nntrainer/layer_internal.h
@@ -407,13 +421,11 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %{_includedir}/nntrainer/optimizer_devel.h
 %{_includedir}/nntrainer/optimizer_impl.h
 %{_includedir}/nntrainer/optimizer_factory.h
-%{_includedir}/nntrainer/nntrainer-api-common.h
-%{_includedir}/nntrainer/var_grad.h
-%{_includedir}/nntrainer/weight.h
-%{_includedir}/nntrainer/app_context.h
+%{_includedir}/nntrainer/profiler.h
+%{_includedir}/nntrainer/dynamic_training_optimization.h
+%{_includedir}/nntrainer/layer_node.h
 %{_includedir}/nntrainer/manager.h
 %{_includedir}/nntrainer/network_graph.h
-%{_includedir}/nntrainer/profiler.h
 %{_libdir}/pkgconfig/nntrainer.pc
 
 %files devel-static

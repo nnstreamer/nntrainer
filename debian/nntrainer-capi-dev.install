@@ -1,0 +1,4 @@
+/usr/include/nntrainer/nntrainer.h
+/usr/include/nntrainer/nntrainer-api-common.h
+/usr/lib/*/pkgconfig/capi-ml-training.pc
+/usr/lib/*/libcapi-*.a

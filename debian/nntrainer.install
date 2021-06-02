@@ -1,2 +1,2 @@
-/usr/lib/*/*.so
+/usr/lib/*/libnntrainer.so
 /etc/nntrainer.ini

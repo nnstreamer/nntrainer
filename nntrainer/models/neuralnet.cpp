@@ -34,6 +34,7 @@
 #include <nntrainer_log.h>
 #include <parse_util.h>
 #include <profiler.h>
+#include <time_dist.h>
 #include <unordered_set>
 #include <util_func.h>
 
