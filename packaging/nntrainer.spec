@@ -96,15 +96,15 @@ BuildRequires:	pkgconfig(capi-base-common)
 BuildRequires:	pkgconfig(dlog)
 
 %if 0%{?support_nnstreamer_backbone}
-BuildRequires: nnstreamer-tensorflow-lite
+BuildRequires: nnstreamer-tensorflow2-lite
 BuildRequires: %{capi_machine_learning_inference}-devel
 
-Requires:	nnstreamer-tensorflow-lite
+Requires:	nnstreamer-tensorflow2-lite
 Requires:	%{capi_machine_learning_inference}
 %endif # support_nnstreamer_backbone
 
 %if 0%{?support_tflite_backbone}
-BuildRequires: tensorflow-lite-devel
+BuildRequires: tensorflow2-lite-devel
 %endif # support_tflite_backbone
 
 %define enable_nnstreamer_tensor_filter -Denable-nnstreamer-tensor-filter=false
@@ -161,10 +161,10 @@ Static library package of nntrainer-devel
 Summary:	NNTrainer Examples
 Requires:	nntrainer = %{version}-%{release}
 Requires:	%{capi_machine_learning_inference}
-Requires:	nnstreamer-tensorflow-lite
+Requires:	nnstreamer-tensorflow2-lite
 BuildRequires:  nnstreamer-test-devel
-BuildRequires:	nnstreamer-tensorflow-lite
-BuildRequires:	tensorflow-lite-devel
+BuildRequires:	nnstreamer-tensorflow2-lite
+BuildRequires:	tensorflow2-lite-devel
 BuildRequires:	pkgconfig(jsoncpp)
 BuildRequires:	pkgconfig(libcurl)
 BuildRequires:	pkgconfig(dlog)

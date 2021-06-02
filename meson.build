@@ -164,7 +164,7 @@ if get_option('enable-nnstreamer-backbone')
   add_project_arguments('-DENABLE_NNSTREAMER_BACKBONE=1', language:['c','cpp'])
 endif
 
-tflite_dep = dependency('tensorflow-lite', required: false)
+tflite_dep = dependency('tensorflow2-lite', required: false)
 if get_option('enable-tflite-backbone')
   add_project_arguments('-DENABLE_TFLITE_BACKBONE=1', language:['c','cpp'])
 endif
