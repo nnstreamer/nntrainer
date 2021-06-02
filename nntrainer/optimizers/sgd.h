@@ -32,7 +32,6 @@ public:
 
   /**
    * @copydoc applyGradient(Weight &weight, double updated_lr,
-   * int iteration)
    */
   void applyGradient(Weight &weight, double updated_lr, int iteration);
 
