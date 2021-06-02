@@ -72,10 +72,12 @@ int SplitLayer::initialize(Manager &manager) {
    * together and all the dimensions after the split_dimension to faciliate
    * easier splitting of the data.
    */
-  input_reshape_helper = {1, 1, 1, 1};
-  for (unsigned int idx = 0; idx < split_dimension; ++idx) {
-    input_reshape_helper.batch(input_reshape_helper.batch() *
-                               in_dim.getTensorDim(idx));
+  leading_helper_dim = 1;
+  input_reshape_helper.channel(1);
+  input_reshape_helper.height(1);
+  input_reshape_helper.width(1);
+  for (unsigned int idx = 1; idx < split_dimension; ++idx) {
+    leading_helper_dim *= in_dim.getTensorDim(idx);
   }
 
   input_reshape_helper.height(in_dim.getTensorDim(split_dimension));
@@ -92,7 +94,15 @@ int SplitLayer::initialize(Manager &manager) {
   output_reshape_helper = input_reshape_helper;
   output_reshape_helper.height(1);
 
+  setBatch(in_dim.batch());
+
   return status;
+}
+
+void SplitLayer::setBatch(unsigned int batch) {
+  Layer::setBatch(batch);
+  input_reshape_helper.batch(batch * leading_helper_dim);
+  output_reshape_helper.batch(batch * leading_helper_dim);
 }
 
 void SplitLayer::forwarding(bool training) {
@@ -153,6 +163,8 @@ void SplitLayer::setProperty(const PropertyType type,
   case PropertyType::split_dimension: {
     if (!value.empty()) {
       status = setUint(split_dimension, value);
+      NNTR_THROW_IF(split_dimension == 0, std::invalid_argument)
+        << "[Split] Batch dimension cannot be split dimension";
       throw_status(status);
     }
   } break;
