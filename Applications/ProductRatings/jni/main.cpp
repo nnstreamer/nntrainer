@@ -7,7 +7,7 @@
  * @see    https://github.com/nnstreamer/nntrainer
  * @author Jijoong Moon <jijoong.moon@samsung.com>
  * @bug    No known bugs except for NYI items
- * @brief  This is Binary Logistic Regression Example
+ * @brief  This is a simple recommendation system Example
  *
  *              Trainig set (embedding_input.txt) : 4 colume data + result (1.0
  * or 0.0) Configuration file : ../../res/Embedding.ini
