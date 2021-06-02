@@ -1,4 +1,10 @@
-nntrainer (0.1.1) UNRELEASED; urgency=medium
+nntrainer (0.2.0) unstable; urgency=medium
+
+  * 0.2.0 released
+
+ -- jijoongmoon <jijoong.moon@samsung.com>  Wed, 02 Jun 2021 22:14:52 +0900
+
+nntrainer (0.1.1) unstable; urgency=medium
 
   * 0.1.1 released
 
