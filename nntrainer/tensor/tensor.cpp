@@ -988,9 +988,10 @@ Tensor Tensor::clone() const {
 }
 
 void Tensor::reshape(const TensorDim &d) {
-  if (d.getDataLen() != dim.getDataLen()) {
-    throw std::invalid_argument("Error: reshape cannot change the tensor size");
-  }
+  NNTR_THROW_IF(d.getDataLen() != dim.getDataLen(), std::invalid_argument)
+    << "[Tensor]: reshape cannot change the buffer size, trying reshaping "
+       "\nfrom "
+    << getDim() << " to " << d;
 
   dim = d;
   strides = d.computeStrides();

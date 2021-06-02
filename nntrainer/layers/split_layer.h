@@ -83,6 +83,11 @@ public:
    */
   void calcDerivative() override;
 
+  /**
+   * @copydoc Layer::setBatch(unsigned int batch)
+   */
+  void setBatch(unsigned int batch) override;
+
   using Layer::setProperty;
 
   /**
@@ -101,6 +106,8 @@ public:
 
 private:
   unsigned int split_dimension; /** dimension along which to split the input */
+  unsigned int leading_helper_dim; /**< batch dimension of helper dimension not
+                                containing the actual batch */
   TensorDim input_reshape_helper;  /** helper dimension to reshape input */
   TensorDim output_reshape_helper; /** helper dimension to reshape outputs */
 };

@@ -212,8 +212,8 @@ int main(int argc, char *argv[]) {
 
     std::cout << "Input dimension: " << NN.getInputDimension()[0];
 
-  } catch (...) {
-    std::cerr << "Unexpected Error during init" << std::endl;
+  } catch (std::exception &e) {
+    std::cerr << "Unexpected Error during init " << e.what() << std::endl;
     return 1;
   }
 
