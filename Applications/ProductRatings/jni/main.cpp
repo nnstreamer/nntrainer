@@ -33,7 +33,7 @@ const unsigned int total_train_data_size = 25;
 
 unsigned int train_count = 0;
 
-const unsigned int batch_size = 10;
+const unsigned int batch_size = 20;
 
 const unsigned int feature_size = 2;
 
@@ -134,8 +134,9 @@ int getBatch_train(float **outVec, float **outLabel, bool *last,
       return -1;
     }
 
-    for (unsigned int j = 0; j < feature_size; ++j)
+    for (unsigned int j = 0; j < feature_size; ++j) {
       outVec[0][count * feature_size + j] = o[j];
+    }
     outLabel[0][count] = l[0];
 
     count++;
@@ -219,9 +220,9 @@ int main(int argc, char *argv[]) {
   if (training) {
     NN.setDataset(dataset);
     try {
-      NN.train();
-    } catch (...) {
-      std::cerr << "Error during train" << std::endl;
+      NN.train({"batch_size=" + std::to_string(batch_size)});
+    } catch (std::exception &e) {
+      std::cerr << "Error during train " << e.what() << std::endl;
       return 1;
     }
 
