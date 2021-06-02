@@ -4,7 +4,7 @@ exec_prefix=@PREFIX@
 libdir=@LIB_INSTALL_DIR@
 includedir=@INCLUDE_INSTALL_DIR@
 
-Name: tizen-api-nntrainer
+Name: capi-ml-training
 Description: NNTrainer API for Tizen
 Version: @VERSION@
 Requires:

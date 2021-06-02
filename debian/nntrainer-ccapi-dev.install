@@ -1,0 +1,6 @@
+/usr/include/nntrainer/model.h
+/usr/include/nntrainer/layer.h
+/usr/include/nntrainer/optimizer.h
+/usr/include/nntrainer/dataset.h
+/usr/lib/*/pkgconfig/ccapi-ml-training.pc
+/usr/lib/*/libccapi-*.a

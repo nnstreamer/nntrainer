@@ -3,8 +3,8 @@ Section: libs
 Priority: optional
 Maintainer: Jijoong Moon <jijoong.moon@samsung.com>
 Build-Depends: gcc-9 | gcc-8 | gcc-7 (>=7.5),
- python3, python3-dev, python3-numpy,
- pkg-config, cmake, ninja-build, meson (>=0.50), debhelper (>=9), libboost-dev,
+ python3, python3-numpy,
+ pkg-config, cmake, ninja-build, meson (>=0.50), debhelper (>=9),
  libopenblas-dev, libiniparser-dev (>=4.1), tensorflow-lite-dev, libjsoncpp-dev,
  libcurl3-gnutls-dev | libcurl4-gnutls-dev | libcurl3-openssl-dev |
  libcurl4-openssl-dev | libcurl3-nns-dev | libcurl4-nns-dev, libgtest-dev,
@@ -35,3 +35,30 @@ Depends: nntrainer, ${shlibs:Depends}, ${misc:Depends}
 Description: NNTrainer Applications pacakge
  This is nntrainer applications package.
 
+Package: ccapi-ml-training
+Architecture: any
+Multi-Arch: same
+Depends: nntrainer, ${shlibs:Depends}, ${misc:Depends}
+Description: NNTrainer cc-API
+ This package provides c++ API set to train machine learning models on-device.
+
+Package: ccapi-ml-training-dev
+Architecture: any
+Multi-Arch: same
+Depends: ccapi-ml-training, ${shlibs:Depends}, ${misc:Depends}
+Description: Developement package for NNTrainer cc-API
+ This is a development package for NNTrainer cc-API.
+
+Package: capi-ml-training
+Architecture: any
+Multi-Arch: same
+Depends: ccapi-ml-training, ${shlibs:Depends}, ${misc:Depends}
+Description: NNTrainer c-API
+ This package provides native API set to train machine learning models on-device.
+
+Package: capi-ml-training-dev
+Architecture: any
+Multi-Arch: same
+Depends: capi-ml-training, ${shlibs:Depends}, ${misc:Depends}
+Description: Developement package for NNTrainer c-API
+ This is a development package for NNTrainer c-API.

@@ -4,7 +4,9 @@ layer_sources = [
 ]
 
 layer_headers = [
-  'network_graph.h'
+  'network_graph.h',
+  'graph_node.h',
+  'graph_core.h'
 ]
 
 foreach s : layer_sources
