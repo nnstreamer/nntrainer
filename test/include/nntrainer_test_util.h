@@ -37,7 +37,7 @@
 #include <parse_util.h>
 #include <tensor.h>
 
-#define tolerance 10e-5
+#define tolerance 1.0e-5
 
 /** Enum values to get model accuracy and loss. Sync with internal CAPI header
  */

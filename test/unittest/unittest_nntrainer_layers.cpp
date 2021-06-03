@@ -967,6 +967,7 @@ TEST_F(nntrainer_FullyConnectedLayer_TFmatch,
 
   matchForwarding("tc_fc_1_goldenFCResultSoftmaxCrossAdam.out");
 
+  local_tolerance = 1.3e-4;
   matchBackwarding("tc_fc_1_goldenFCGradientDxSoftmaxCrossAdam.out",
                    "tc_fc_1_goldenFCUpdatedWeightsSoftmaxCrossAdam.out",
                    "tc_fc_1_goldenFCGradientsSoftmaxCrossAdam.out", true);
@@ -1244,6 +1245,7 @@ TEST_F(nntrainer_BatchNormalizationLayer, forward_backward_training_01_p) {
   nntrainer::Tensor backward_result =
     *layer.backwarding_with_val(1, {MAKE_SHARED_TENSOR(backward_in)}, opt)[0];
 
+  local_tolerance = 1.3e-4;
   matchOutput(backward_result, "tc_bn_fc_1_goldenBNLayerBackwardDx.out");
 }
 

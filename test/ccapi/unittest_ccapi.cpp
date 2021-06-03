@@ -203,12 +203,8 @@ TEST(nntrainer_ccapi, train_with_config_01_p) {
   EXPECT_EQ(model->initialize(), ML_ERROR_NONE);
   EXPECT_NO_THROW(model->train());
 
-  EXPECT_FLOAT_EQ(model->getTrainingLoss(), 4.434051);
-#ifdef __i586__
-  EXPECT_NEAR(model->getValidationLoss(), 2.9646113, 1.0e-5);
-#else
-  EXPECT_FLOAT_EQ(model->getValidationLoss(), 2.9646113);
-#endif
+  EXPECT_NEAR(model->getTrainingLoss(), 4.434051, tolerance);
+  EXPECT_NEAR(model->getValidationLoss(), 2.9646113, tolerance);
 }
 
 /**
@@ -257,8 +253,8 @@ TEST(nntrainer_ccapi, train_dataset_with_file_01_p) {
   EXPECT_EQ(model->initialize(), ML_ERROR_NONE);
   EXPECT_NO_THROW(model->train());
 
-  EXPECT_FLOAT_EQ(model->getTrainingLoss(), 2.1934659);
-  EXPECT_FLOAT_EQ(model->getValidationLoss(), 2.2051108);
+  EXPECT_NEAR(model->getTrainingLoss(), 2.1934659, tolerance);
+  EXPECT_NEAR(model->getValidationLoss(), 2.2051108, tolerance);
 }
 
 /**
@@ -304,8 +300,8 @@ TEST(nntrainer_ccapi, train_dataset_with_generator_01_p) {
   EXPECT_EQ(model->initialize(), ML_ERROR_NONE);
   EXPECT_NO_THROW(model->train());
 
-  EXPECT_FLOAT_EQ(model->getTrainingLoss(), 2.2109976);
-  EXPECT_FLOAT_EQ(model->getValidationLoss(), 1.995334);
+  EXPECT_NEAR(model->getTrainingLoss(), 2.2109976, tolerance);
+  EXPECT_NEAR(model->getValidationLoss(), 1.995334, tolerance);
 }
 
 /**
@@ -372,8 +368,8 @@ TEST(nntrainer_ccapi, train_batch_size_update_after) {
   EXPECT_EQ(model->setProperty({"batch_size=4"}), ML_ERROR_NONE);
   EXPECT_NO_THROW(model->train());
 
-  EXPECT_FLOAT_EQ(model->getTrainingLoss(), 1.9613363);
-  EXPECT_FLOAT_EQ(model->getValidationLoss(), 2.1835098);
+  EXPECT_NEAR(model->getTrainingLoss(), 1.9613363, tolerance);
+  EXPECT_NEAR(model->getValidationLoss(), 2.1835098, tolerance);
 }
 
 /**

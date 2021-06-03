@@ -78,7 +78,7 @@ static void nntrainer_capi_model_comp_metrics(ml_train_model_h model,
     &summary1);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  EXPECT_FLOAT_EQ(std::strtof(summary1, nullptr), train_loss);
+  EXPECT_NEAR(std::strtof(summary1, nullptr), train_loss, tolerance);
   free(summary1);
 
   status = ml_train_model_get_summary(
@@ -86,7 +86,7 @@ static void nntrainer_capi_model_comp_metrics(ml_train_model_h model,
     &summary2);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  EXPECT_FLOAT_EQ(std::strtof(summary2, nullptr), valid_loss);
+  EXPECT_NEAR(std::strtof(summary2, nullptr), valid_loss, tolerance);
   free(summary2);
 
   status = ml_train_model_get_summary(
@@ -94,7 +94,7 @@ static void nntrainer_capi_model_comp_metrics(ml_train_model_h model,
     &summary3);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  EXPECT_FLOAT_EQ(std::strtof(summary3, nullptr), valid_accuracy);
+  EXPECT_NEAR(std::strtof(summary3, nullptr), valid_accuracy, tolerance);
   free(summary3);
 }
 
