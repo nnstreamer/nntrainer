@@ -5,7 +5,6 @@
 %define         support_ccapi 1
 %define         support_nnstreamer_backbone 1
 %define         nntrainerapplicationdir %{_libdir}/nntrainer/bin
-%define         test_script $(pwd)/packaging/run_unittests.sh
 %define         gen_input $(pwd)/test/input_gen/genInput.py
 %define         support_data_augmentation_opencv 1
 
