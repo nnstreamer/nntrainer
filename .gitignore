@@ -9,6 +9,7 @@
 iniparser/
 libs/
 obj/
+ml_api_common/
 
 # tflite for applications
 tensorflow-1.13.1

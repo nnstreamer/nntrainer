@@ -11,7 +11,8 @@
 # usage: ./prepare_openblas.sh target
 
 TARGET=$1
-TAR_NAME=openblas-0.2.20.tar.gz
+FILE_PREFIX=openblas
+TAR_NAME=${TAR_PREFIX}-0.2.20.tar.gz
 URL="https://github.com/nnstreamer/nnstreamer-android-resource/raw/master/external/${TAR_NAME}"
 
 echo "PREPARING OPENBLAS at ${TARGET}"
@@ -36,6 +37,6 @@ function _untar_cblas {
   rm -f ${TAR_NAME}
 }
 
-[ ! -d "openblas" ] && _download_cblas && _untar_cblas
+[ ! -d "${TAR_PREFIX}" ] && _download_cblas && _untar_cblas
 
 popd
