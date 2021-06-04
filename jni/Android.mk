@@ -21,6 +21,10 @@ ifndef NDK_LIBS_OUT
 NDK_LIBS_OUT := $(NDK_PROJECT_PATH)
 endif
 
+ifndef NDK_INCLUDES_OUT
+NDK_INCLUDES_OUT := $(NDK_PROJECT_PATH)
+endif
+
 include $(CLEAR_VARS)
 
 ifndef INIPARSER_ROOT
@@ -32,8 +36,8 @@ INIPARSER_ROOT :=$(NDK_LIBS_OUT)/iniparser
 
 $(info $(shell ($(LOCAL_PATH)/prepare_iniparser.sh $(NDK_LIBS_OUT))))
 
-endif
-endif
+endif #MAKECMDGOALS
+endif #INIPARSER_ROOT
 
 include $(CLEAR_VARS)
 
@@ -91,8 +95,22 @@ LOCAL_SRC_FILES := $(OPENBLAS_ROOT)/lib/libopenblas.a
 LOCAL_EXPORT_C_INCLUDES := $(OPENBLAS_ROOT)/include
 LOCAL_EXPORT_CFLAGS += -DUSE_BLAS=1
 
+include $(CLEAR_VARS)
+
 include $(PREBUILT_STATIC_LIBRARY)
 endif #ENABLE_BLAS
+
+## prepare ml common api if nothing present
+ifndef ML_API_COMMON_ROOT
+ifneq ($(MAKECMDGOALS),clean)
+
+ML_API_COMMON_ROOT := $(NDK_INCLUDES_OUT)/ml_api_common
+$(info $(shell ($(NNTRAINER_JNI_ROOT)/prepare_ml-api-common.sh $(ML_API_COMMON_ROOT))))
+
+endif #MAKECMDGOALS
+endif #ML_API_COMMON_ROOT
+
+ML_API_COMMON_INCLUDES := $(ML_API_COMMON_ROOT)/include
 
 include $(CLEAR_VARS)
 
@@ -171,8 +189,7 @@ NNTRAINER_INCLUDES := $(NNTRAINER_ROOT)/nntrainer \
                       $(NNTRAINER_ROOT)/nntrainer/utils \
                       $(NNTRAINER_ROOT)/nntrainer/compiler \
                       $(NNTRAINER_ROOT)/api \
-                      $(NNTRAINER_ROOT)/api/ccapi/include \
-                      $(NNTRAINER_ROOT)/api/capi/include/platform
+                      $(NNTRAINER_ROOT)/api/ccapi/include
 
 INIPARSER_SRCS := $(INIPARSER_ROOT)/src/iniparser.c \
                   $(INIPARSER_ROOT)/src/dictionary.c
@@ -189,7 +206,7 @@ LOCAL_LDLIBS        := -llog -landroid
 
 LOCAL_MODULE        := nntrainer
 LOCAL_SRC_FILES     := $(NNTRAINER_SRCS) $(INIPARSER_SRCS)
-LOCAL_C_INCLUDES    := $(NNTRAINER_INCLUDES) $(INIPARSER_INCLUDES)
+LOCAL_C_INCLUDES    := $(NNTRAINER_INCLUDES) $(INIPARSER_INCLUDES) $(ML_API_COMMON_INCLUDES)
 
 # Add tflite backbone building
 ifeq ($(ENABLE_TFLITE_BACKBONE),1)
@@ -225,8 +242,7 @@ CCAPI_NNTRAINER_INCLUDES := $(NNTRAINER_ROOT)/nntrainer \
                       $(NNTRAINER_ROOT)/nntrainer/optimizers \
                       $(NNTRAINER_ROOT)/nntrainer/utils \
                       $(NNTRAINER_ROOT)/api \
-                      $(NNTRAINER_ROOT)/api/ccapi/include \
-                      $(NNTRAINER_ROOT)/api/capi/include/platform
+                      $(NNTRAINER_ROOT)/api/ccapi/include
 
 LOCAL_SHARED_LIBRARIES := nntrainer
 
@@ -240,7 +256,7 @@ LOCAL_LDLIBS        := -llog -landroid
 
 LOCAL_MODULE        := ccapi-nntrainer
 LOCAL_SRC_FILES     := $(CCAPI_NNTRAINER_SRCS)
-LOCAL_C_INCLUDES    := $(CCAPI_NNTRAINER_INCLUDES)
+LOCAL_C_INCLUDES    := $(CCAPI_NNTRAINER_INCLUDES) $(ML_API_COMMON_INCLUDES)
 
 include $(BUILD_SHARED_LIBRARY)
 
@@ -251,8 +267,7 @@ CAPI_NNTRAINER_SRCS := $(NNTRAINER_ROOT)/api/capi/src/nntrainer.cpp
 CAPI_NNTRAINER_INCLUDES := $(NNTRAINER_ROOT)/nntrainer \
                       $(NNTRAINER_ROOT)/api \
                       $(NNTRAINER_ROOT)/api/ccapi/include \
-                      $(NNTRAINER_ROOT)/api/capi/include \
-                      $(NNTRAINER_ROOT)/api/capi/include/platform
+                      $(NNTRAINER_ROOT)/api/capi/include
 
 LOCAL_SHARED_LIBRARIES := ccapi-nntrainer
 
@@ -266,6 +281,6 @@ LOCAL_LDLIBS        := -llog -landroid
 
 LOCAL_MODULE        := capi-nntrainer
 LOCAL_SRC_FILES     := $(CAPI_NNTRAINER_SRCS)
-LOCAL_C_INCLUDES    := $(CAPI_NNTRAINER_INCLUDES)
+LOCAL_C_INCLUDES    := $(CAPI_NNTRAINER_INCLUDES) $(ML_API_COMMON_INCLUDES)
 
 include $(BUILD_SHARED_LIBRARY)

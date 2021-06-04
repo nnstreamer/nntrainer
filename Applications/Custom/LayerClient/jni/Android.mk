@@ -12,6 +12,7 @@ NNTRAINER_ROOT := $(LOCAL_PATH)/../../../..
 endif
 
 # todo: make this application only depending on ccapi and remove nntrainer related header
+ML_API_COMMON_INCLUDES := ${NNTRAINER_ROOT}/ml_api_common/include
 NNTRAINER_INCLUDES := $(NNTRAINER_ROOT)/nntrainer \
 	$(NNTRAINER_ROOT)/nntrainer/dataset \
 	$(NNTRAINER_ROOT)/nntrainer/models \
@@ -21,7 +22,7 @@ NNTRAINER_INCLUDES := $(NNTRAINER_ROOT)/nntrainer \
 	$(NNTRAINER_ROOT)/nntrainer/tensor \
 	$(NNTRAINER_ROOT)/api \
 	$(NNTRAINER_ROOT)/api/ccapi/include \
-	$(NNTRAINER_ROOT)/api/capi/include/platform
+	${ML_API_COMMON_INCLUDES}
 
 NNTRAINER_APPLICATION := $(NNTRAINER_ROOT)/Applications
 

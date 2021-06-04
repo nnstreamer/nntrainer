@@ -7,7 +7,6 @@ includedir=@INCLUDE_INSTALL_DIR@
 Name: ccapi-ml-training
 Description: NNTrainer cc API
 Version: @VERSION@
-Requires:
-# Requires: capi-ml-common-devel
+Requires: @CAPI_ML_COMMON_DEP@
 Libs: -L${libdir} -lccapi-nntrainer
 Cflags: -I${includedir}/nntrainer

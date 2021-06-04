@@ -11,9 +11,10 @@ ifndef NNTRAINER_ROOT
 NNTRAINER_ROOT := $(LOCAL_PATH)/../../../
 endif
 
+ ML_API_COMMON_INCLUDES := ${NNTRAINER_ROOT}/ml_api_common/include
 NNTRAINER_INCLUDES := $(NNTRAINER_ROOT)/nntrainer/include \
 	$(NNTRAINER_ROOT)/api \
-	$(NNTRAINER_ROOT)/api/capi/include/platform
+	${ML_API_COMMON_INCLUDES}
 
 NNTRAINER_APPLICATION := $(NNTRAINER_ROOT)/Applications
 

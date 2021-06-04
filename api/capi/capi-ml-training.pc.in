@@ -7,7 +7,6 @@ includedir=@INCLUDE_INSTALL_DIR@
 Name: capi-ml-training
 Description: NNTrainer API for Tizen
 Version: @VERSION@
-Requires:
-# Requires: capi-ml-common
+Requires: @CAPI_ML_COMMON_DEP@
 Libs: -L${libdir} -lcapi-nntrainer
 Cflags: -I${includedir}/nntrainer
