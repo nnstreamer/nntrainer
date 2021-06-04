@@ -16,6 +16,11 @@
 ROOT_DIR:=$(shell pwd)
 export DEB_HOST_MULTIARCH ?= $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
 export DEB_HOST_ARCH ?= $(shell dpkg-architecture -qDEB_HOST_ARCH)
+ifdef unit_test
+	export ENABLE_REDUCE_TOLERANCE ?= true
+else
+	export ENABLE_REDUCE_TOLERANCE ?= false
+endif
 
 %:
 	dh $@ --parallel
@@ -27,7 +32,8 @@ override_dh_auto_configure:
 	mkdir -p build
 	meson --buildtype=plain --prefix=/usr --sysconfdir=/etc \
 		--libdir=lib/$(DEB_HOST_MULTIARCH) --bindir=lib/nntrainer/bin \
-		--includedir=include -Dinstall-app=true build
+		--includedir=include -Dinstall-app=true -Ddebian-build=true \
+		-Dreduce-tolerance=$(ENABLE_REDUCE_TOLERANCE) build
 
 override_dh_auto_build:
 	ninja -C build
