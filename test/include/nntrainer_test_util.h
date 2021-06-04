@@ -37,7 +37,12 @@
 #include <parse_util.h>
 #include <tensor.h>
 
+/** tolerance is reduced for packaging, but CI runs at full tolerance */
+#ifdef REDUCE_TOLERANCE
+#define tolerance 1.0e-4
+#else
 #define tolerance 1.0e-5
+#endif
 
 /** Enum values to get model accuracy and loss. Sync with internal CAPI header
  */

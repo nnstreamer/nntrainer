@@ -133,6 +133,10 @@ if get_option('enable-test')
   add_project_arguments('-DENABLE_TEST=1', language:['c','cpp'])
 endif
 
+if get_option('reduce-tolerance')
+  add_project_arguments('-DREDUCE_TOLERANCE=1', language:['c', 'cpp'])
+endif
+
 libm_dep = cxx.find_library('m') # cmath library
 libdl_dep = cxx.find_library('dl') # DL library
 thread_dep = dependency('threads') # pthread for tensorflow-lite
