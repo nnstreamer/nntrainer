@@ -49,9 +49,15 @@ template <>
 void Exporter::saveTflResult(const std::tuple<props::Name> &props,
                              const Layer *self) {
   createIfNull(tf_node);
+}
+
+template <>
+void Exporter::saveTflResult(const std::tuple<props::Name> &props,
+                             const LayerNode *self) {
+  createIfNull(tf_node);
   tf_node->setInOut(*self);
-  tf_node->setInputs(self->getInputRef());
-  tf_node->setOutputs(self->getOutputRef());
+  tf_node->setInputs(self->getObject()->getInputRef());
+  tf_node->setOutputs(self->getObject()->getOutputRef());
 }
 
 template <>

@@ -18,7 +18,7 @@
 
 #include <tf_schema_generated.h>
 
-#include <layer_internal.h>
+#include <layer_node.h>
 #include <var_grad.h>
 
 namespace nntrainer {
@@ -42,7 +42,7 @@ public:
    *
    * @param layer layer to check
    */
-  void setInOut(const Layer &layer);
+  void setInOut(const LayerNode &layer);
 
   /**
    * @brief Set the Inputs object from layer

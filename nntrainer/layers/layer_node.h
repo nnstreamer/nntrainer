@@ -18,6 +18,7 @@
 #include <graph_node.h>
 #include <layer.h>
 #include <layer_internal.h>
+#include <node_exporter.h>
 
 namespace nntrainer {
 
@@ -158,6 +159,18 @@ public:
   ActivationType getActivationType();
 
   /**
+   * @brief     Get number of inputs
+   * @retval    number of inputs
+   */
+  unsigned int getNumInputs() const { return input_layers.size(); }
+
+  /**
+   * @brief     Get number of outputs
+   * @retval    number of outputs
+   */
+  unsigned int getNumOutputs() const { return output_layers.size(); }
+
+  /**
    * @brief Get the Input Layers object
    *
    * @return const std::vector<std::string>&
@@ -198,6 +211,7 @@ public:
    */
   void addInputLayers(const std::string &in_layer) {
     input_layers.push_back(in_layer);
+    layer->setNumInputs(input_layers.size());
   }
 
   /**
@@ -207,6 +221,7 @@ public:
    */
   void addOutputLayers(const std::string &out_layer) {
     output_layers.push_back(out_layer);
+    layer->setNumOutputs(output_layers.size());
   }
 
   /**
@@ -216,6 +231,7 @@ public:
    */
   void setInputLayers(const std::vector<std::string> &layers) {
     input_layers = layers;
+    layer->setNumInputs(layers.size());
   }
 
   /**
@@ -225,7 +241,21 @@ public:
    */
   void setOutputLayers(const std::vector<std::string> &layers) {
     output_layers = layers;
+    layer->setNumOutputs(layers.size());
   }
+
+  /**
+   * @brief this function helps exporting the layer in a predefined format,
+   * while workarounding issue caused by templated function type eraser
+   *
+   * @param exporter exporter that conatins exporting logic
+   * @param method enum value to identify how it should be exported to
+   */
+  virtual void
+  export_to(Exporter &exporter,
+            ExportMethods method = ExportMethods::METHOD_STRINGVECTOR) const {
+    exporter.saveResult(props, method, this);
+  };
 
 #ifdef PROFILE
   int event_key;
