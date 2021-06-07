@@ -119,19 +119,19 @@ void LayerNode::setProperty(const nntrainer::Layer::PropertyType type,
   case PropertyType::input_layers:
     if (!value.empty()) {
       static const std::regex reg("\\,+");
-      std::vector<std::string> concat_layers = split(value, reg);
+      std::vector<std::string> split_layers = split(value, reg);
 
-      layer->setNumInputs(concat_layers.size());
-      input_layers = concat_layers;
+      layer->setNumInputs(split_layers.size());
+      input_layers = split_layers;
     }
     break;
   case PropertyType::output_layers:
     if (!value.empty()) {
       static const std::regex reg("\\,+");
-      std::vector<std::string> concat_layers = split(value, reg);
+      std::vector<std::string> split_layers = split(value, reg);
 
-      layer->setNumOutputs(concat_layers.size());
-      output_layers = concat_layers;
+      layer->setNumOutputs(split_layers.size());
+      output_layers = split_layers;
     }
     break;
   default:

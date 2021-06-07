@@ -16,7 +16,7 @@
 
 namespace nntrainer {
 
-void TfOpNode::setInOut(const Layer &layer) {
+void TfOpNode::setInOut(const LayerNode &layer) {
   auto &in = layer.getInputLayers();
   is_input = std::find(in.begin(), in.end(), "__data__") != in.end();
 

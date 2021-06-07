@@ -343,6 +343,7 @@ public:
    *
    * @param exporter exporter that conatins exporting logic
    * @param method enum value to identify how it should be exported to
+   * @todo remove this when name is moved to layer_node
    */
   virtual void
   export_to(Exporter &exporter,
@@ -552,7 +553,11 @@ public:
   void setNumInputs(unsigned int size) {
     if (size < 1)
       throw std::invalid_argument("Minimum number of inputs must be 1");
-    input_dim.resize(size);
+    if (input_dim.size() != size) {
+      /** clear is intentional to clear any previously set input dimensions */
+      input_dim.clear();
+      input_dim.resize(size);
+    }
     net_input.resize(size);
   }
 
@@ -564,7 +569,11 @@ public:
   void setNumOutputs(unsigned int size) {
     if (size < 1)
       throw std::invalid_argument("Minimum number of outputs must be 1");
-    output_dim.resize(size);
+    if (output_dim.size() != size) {
+      /** clear is intentional to clear any previously set output dimensions */
+      output_dim.clear();
+      output_dim.resize(size);
+    }
     net_hidden.resize(size);
   }
 

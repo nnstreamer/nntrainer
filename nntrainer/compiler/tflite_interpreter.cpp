@@ -22,6 +22,7 @@
 #include <tf_schema_generated.h>
 
 #include <fc_layer.h>
+#include <layer_node.h>
 #include <nntrainer_error.h>
 #include <node_exporter.h>
 #include <tensor.h>
