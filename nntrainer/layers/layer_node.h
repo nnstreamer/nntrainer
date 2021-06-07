@@ -157,6 +157,76 @@ public:
    */
   ActivationType getActivationType();
 
+  /**
+   * @brief Get the Input Layers object
+   *
+   * @return const std::vector<std::string>&
+   */
+  const std::vector<std::string> &getInputLayers() const {
+    return input_layers;
+  }
+
+  /**
+   * @brief Get the Output Layers object
+   *
+   * @return const std::vector<std::string>&
+   */
+  const std::vector<std::string> &getOutputLayers() const {
+    return output_layers;
+  }
+
+  /**
+   * @brief Update input layers entry name
+   *
+   * @param from The name to be updated
+   * @param to The name to be updated to
+   */
+  void updateInputLayers(const std::string &from, const std::string &to);
+
+  /**
+   * @brief Update the input layers name at the given idx
+   *
+   * @param idx The index at which layer name must be updated
+   * @param to The name to be updated to
+   */
+  void updateInputLayers(const unsigned int idx, const std::string &to);
+
+  /**
+   * @brief Add name to the input layers
+   *
+   * @param in_layer Name to be added
+   */
+  void addInputLayers(const std::string &in_layer) {
+    input_layers.push_back(in_layer);
+  }
+
+  /**
+   * @brief Add name to the output layers
+   *
+   * @param out_layer Name to be added
+   */
+  void addOutputLayers(const std::string &out_layer) {
+    output_layers.push_back(out_layer);
+  }
+
+  /**
+   * @brief Set the Input Layers object
+   *
+   * @param layers Name of the layers
+   */
+  void setInputLayers(const std::vector<std::string> &layers) {
+    input_layers = layers;
+  }
+
+  /**
+   * @brief Set the Output Layers object
+   *
+   * @param layers Name of the layers
+   */
+  void setOutputLayers(const std::vector<std::string> &layers) {
+    output_layers = layers;
+  }
+
 #ifdef PROFILE
   int event_key;
 #endif
@@ -172,6 +242,7 @@ private:
     layer;      /**< The actual object in the graph node */
   size_t index; /**< index of each node */
 
+  /** TODO : move management of num_inputs to layer_node */
   std::vector<std::string> input_layers;  /**< input layer names */
   std::vector<std::string> output_layers; /**< output layer names */
   bool flatten;    /**< flatten the output of this node */

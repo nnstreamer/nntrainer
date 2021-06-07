@@ -588,24 +588,6 @@ public:
   }
 
   /**
-   * @brief Get the Input Layers object
-   *
-   * @return const std::vector<std::string>&
-   */
-  const std::vector<std::string> &getInputLayers() const {
-    return input_layers;
-  }
-
-  /**
-   * @brief Get the Output Layers object
-   *
-   * @return const std::vector<std::string>&
-   */
-  const std::vector<std::string> &getOutputLayers() const {
-    return output_layers;
-  }
-
-  /**
    * @brief     Activation Setter
    * @param[in] activation activation type
    * @throw std::invalid_argument when ActivationType is unknown
@@ -694,18 +676,6 @@ protected:
   std::vector<Weight> weights;
 
 private:
-  // TODO: remove this from here
-  /**
-   * @brief     input layer names
-   */
-  std::vector<std::string> input_layers;
-
-  // TODO: remove this from here
-  /**
-   * @brief     output layer names
-   */
-  std::vector<std::string> output_layers;
-
   /**
    * @brief check if @a type is valid and print if prop is valid to @a out
    */
