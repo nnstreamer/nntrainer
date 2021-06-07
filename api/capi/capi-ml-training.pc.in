@@ -8,5 +8,7 @@ Name: capi-ml-training
 Description: NNTrainer API for Tizen
 Version: @VERSION@
 Requires: @CAPI_ML_COMMON_DEP@
+Requires.private: nntrainer
 Libs: -L${libdir} -lcapi-nntrainer
 Cflags: -I${includedir}/nntrainer
+Libs.private: -L${libdir} -lnntrainer
