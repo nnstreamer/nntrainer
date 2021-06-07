@@ -116,6 +116,24 @@ void LayerNode::setProperty(const nntrainer::Layer::PropertyType type,
       }
     }
     break;
+  case PropertyType::input_layers:
+    if (!value.empty()) {
+      static const std::regex reg("\\,+");
+      std::vector<std::string> concat_layers = split(value, reg);
+
+      layer->setNumInputs(concat_layers.size());
+      input_layers = concat_layers;
+    }
+    break;
+  case PropertyType::output_layers:
+    if (!value.empty()) {
+      static const std::regex reg("\\,+");
+      std::vector<std::string> concat_layers = split(value, reg);
+
+      layer->setNumOutputs(concat_layers.size());
+      output_layers = concat_layers;
+    }
+    break;
   default:
     throw std::invalid_argument("Unknown property.");
   }
@@ -176,6 +194,22 @@ std::shared_ptr<nntrainer::Layer> &LayerNode::getLayer() {
     return std::dynamic_pointer_cast<TimeDistLayer>(layer)->getDistLayer();
   else
     return layer;
+}
+
+void LayerNode::updateInputLayers(const std::string &from,
+                                  const std::string &to) {
+  for (unsigned int idx = 0; idx < input_layers.size(); ++idx) {
+    if (istrequal(input_layers[idx], from)) {
+      input_layers[idx] = to;
+    }
+  }
+}
+
+void LayerNode::updateInputLayers(const unsigned int idx,
+                                  const std::string &to) {
+  if (idx >= input_layers.size())
+    throw std::out_of_range("Out of range for input_layers");
+  input_layers[idx] = to;
 }
 
 }; // namespace nntrainer

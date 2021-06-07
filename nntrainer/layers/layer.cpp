@@ -252,29 +252,6 @@ void Layer::setProperty(const PropertyType type, const std::string &value) {
       bias_initializer = (WeightInitializer)parseType(value, TOKEN_WEIGHT_INIT);
     }
     break;
-  case PropertyType::input_layers:
-    if (!value.empty()) {
-      static const std::regex reg("\\,+");
-      std::vector<std::string> concat_layers = split(value, reg);
-
-      /** TODO : match this with num_inputs property */
-      setNumInputs(concat_layers.size());
-      input_layers.clear();
-      for (unsigned int i = 0; i < getNumInputs(); ++i)
-        input_layers.push_back(concat_layers[i]);
-    }
-    break;
-  case PropertyType::output_layers:
-    if (!value.empty()) {
-      static const std::regex reg("\\,+");
-      std::vector<std::string> concat_layers = split(value, reg);
-
-      setNumOutputs(concat_layers.size());
-      output_layers.clear();
-      for (unsigned int i = 0; i < getNumOutputs(); ++i)
-        output_layers.push_back(concat_layers[i]);
-    }
-    break;
   case PropertyType::trainable:
     if (!value.empty()) {
       status = setBoolean(trainable, value);

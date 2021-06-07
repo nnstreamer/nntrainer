@@ -239,15 +239,13 @@ getMergeableGraph(std::shared_ptr<const GraphRepresentation> graph,
   std::string input_shape =
     iniparser_getstring(ini, (sec_name + ":Input_Shape").c_str(), "");
   if (!input_shape.empty()) {
-    g[0]->getObject()->setProperty(Layer::PropertyType::input_shape,
-                                   input_shape);
+    g[0]->setProperty({"input_shape=" + input_shape});
   }
 
   std::string input_layers =
     iniparser_getstring(ini, (sec_name + ":Input_Layers").c_str(), "");
   if (!input_layers.empty()) {
-    g[0]->getObject()->setProperty(Layer::PropertyType::input_layers,
-                                   input_layers);
+    g[0]->setProperty({"input_layers=" + input_layers});
   }
 
   return g;
