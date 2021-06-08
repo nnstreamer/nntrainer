@@ -89,6 +89,11 @@ public:
   int initialize(Manager &manager) override;
 
   /**
+   * @copydoc Layer::requireLabel()
+   */
+  bool requireLabel() const override { return true; }
+
+  /**
    * @copydoc Layer::getType()
    */
   const std::string getType() const override { return LossLayer::type; };

@@ -125,6 +125,19 @@ public:
   virtual void calcDerivative() = 0;
 
   /**
+   * @brief  check if this layer requires label to be passed
+   * @note   if requireLabel() == true means, for now, that it is endpoint of a
+   * graph(numOutlayers == 0). label will be fed to the gradient of hidden if
+   * requireLabel is true
+   * @todo   If we get to have a use case for requireLabel(true) but in the
+   * middle of a graph, change the semantics
+   *
+   * @return true requires a label when training
+   * @return false does not require a label
+   */
+  virtual bool requireLabel() const { return false; }
+
+  /**
    * @brief     Calculate the derivative of a layer
    */
   virtual void calcGradient(){};
