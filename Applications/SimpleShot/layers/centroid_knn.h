@@ -25,8 +25,10 @@
 namespace simpleshot {
 namespace layers {
 
-/// @todo inherit this to API
-// class CentroidKNN : public ml::train::Layer {
+/**
+ * @brief Centroid KNN layer which takes centroid and do k-nearest neighbor
+ * classification
+ */
 class CentroidKNN : public nntrainer::Layer {
 public:
   /**
@@ -75,6 +77,11 @@ public:
    * returns distance vector of shape (num_class, )
    */
   void forwarding(bool training = true) override;
+
+  /**
+   * @copydoc Layer::requireLabel()
+   */
+  bool requireLabel() const override { return true; }
 
   /**
    * @brief     calc the derivative to be passed to the previous layer
