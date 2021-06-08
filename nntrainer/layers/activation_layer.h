@@ -55,13 +55,13 @@ public:
    * @brief     Read Activation layer params. This is essentially noops for now.
    * @param[in] file input stream file
    */
-  void read(std::ifstream &file) override{/* noop */};
+  void read(std::ifstream &file) override{/** noop */};
 
   /**
    * @brief     Save Activation layer params. This is essentially noops for now.
    * @param[in] file output stream file
    */
-  void save(std::ofstream &file) override{/* noop */};
+  void save(std::ofstream &file) override{/** noop */};
 
   /**
    * @copydoc Layer::forwarding(bool training)
@@ -84,6 +84,11 @@ public:
    * @copydoc Layer::getType()
    */
   const std::string getType() const override { return ActivationLayer::type; };
+
+  /**
+   * @copydoc Layer::supportInPlace()
+   */
+  bool supportInPlace() const override { return acti_func.supportInPlace(); }
 
   /**
    * @brief       Calculate softmax for Tensor Type
@@ -154,9 +159,8 @@ public:
   static const std::string type;
 
 private:
-  ActiFunc acti_func;
-
-  Tensor backup_hidden;
+  ActiFunc
+    acti_func; /**< activation function designating the activation operation */
 
   /**
    * @brief setActivation by custom activation function

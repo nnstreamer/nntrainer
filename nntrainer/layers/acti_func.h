@@ -75,6 +75,11 @@ public:
   Tensor &run_prime_fn(Tensor &in, Tensor &ret, Tensor const &deriv);
 
   /**
+   * @copydoc Layer::supportInPlace()
+   */
+  bool supportInPlace() const;
+
+  /**
    * @brief       Calculate softmax for Tensor Type
    * @param[in] x Tensor
    * @param[out] output output Tensor
@@ -140,8 +145,6 @@ public:
    */
   static float no_op_prime(float x);
 
-  static const std::string type;
-
   /**
    * @brief setActivation by custom activation function
    * @note  apply derivative as this activation_prime_fn does not utilize
@@ -188,6 +191,9 @@ public:
 private:
   std::function<Tensor &(Tensor const &, Tensor &)> _act_fn;
   std::function<Tensor &(Tensor &, Tensor &, Tensor const &)> _act_prime_fn;
+
+  ActivationType
+    activation_type; /**< type of the activaiton represented by this */
 };
 
 } // namespace nntrainer
