@@ -36,13 +36,6 @@
 
 namespace nntrainer {
 
-/**
- * @todo Make inPlace as a static property of the layer and a state to verify if
- * this layer is working in-place
- */
-static const std::vector<std::string> in_place_layers = {
-  ActivationLayer::type, BatchNormalizationLayer::type};
-
 int NetworkGraph::compile(const LossType loss_type) {
   int status = ML_ERROR_NONE;
 
@@ -682,15 +675,19 @@ void NetworkGraph::addLayer(std::shared_ptr<LayerNode> layer) {
   graph.addNode(layer);
 }
 
-void NetworkGraph::inPlaceOptimize(const std::string &layer_type,
-                                   Manager &manager) {
+void NetworkGraph::inPlaceOptimize(Manager &manager) {
   for (auto iter = cbegin(); iter != cend(); iter++) {
     auto layer_node = *iter;
     auto &l = layer_node->getObject();
     std::string l_type = l->getType();
 
-    if (l_type == layer_type &&
-        l->getActivationType() != ActivationType::ACT_SOFTMAX) {
+    /**
+     * @todo concat/multi-output layer can be made in-place but with special
+     * handling where these layers can become no-op.
+     * consider this optimization for later
+     */
+
+    if (l->supportInPlace()) {
       /** @note assumes layer to be optimized is only for single in/out tensor
        */
       if (l->input_layers.size() != 1)
@@ -707,20 +704,12 @@ void NetworkGraph::inPlaceOptimize(const std::string &layer_type,
       if (loc == prev_layer->output_layers.size())
         throw std::runtime_error("Internal error in the formed graph.");
 
+      /** Previous layer cannot be input layer for in-place layer */
       if (prev_layer->getType() == InputLayer::type)
         continue;
 
-      /** check if previous layer was also in-place */
-      bool prev_layer_in_place = false;
-      for (auto const &in_place_layer : in_place_layers) {
-        if (prev_layer->getType() == in_place_layer) {
-          prev_layer_in_place = true;
-          break;
-        }
-      }
-
       /** Two layers cant work in-place consecutively */
-      if (prev_layer_in_place)
+      if (prev_layer->supportInPlace())
         continue;
 
       /** Share tensor with next layer */
@@ -733,7 +722,7 @@ void NetworkGraph::inPlaceOptimize(const std::string &layer_type,
          * With batch normalization, neither input nor output of the layer are
          * requried for calculatin gradient and derivative. Just input
          * derivative is required. In this scenraio, L2 is assumed to be batch
-         * normaliztion layer, and L1 is assumed to be a non-in-place layer.
+         * normalization layer, and L1 is assumed to be a non-in-place layer.
          * Hence, L1 layer's output and L2 layer's input var_grad are modified.
          */
         auto &inplace_shared_vg_ptr = l->net_hidden[0];
@@ -772,11 +761,6 @@ void NetworkGraph::inPlaceOptimize(const std::string &layer_type,
       manager.untrackLayerInOuts(prev_layer->getName());
     }
   }
-}
-
-void NetworkGraph::inPlaceOptimize(Manager &manager) {
-  for (auto const &layer_type : in_place_layers)
-    inPlaceOptimize(layer_type, manager);
 }
 
 int NetworkGraph::initialize(std::shared_ptr<Manager> manager) {

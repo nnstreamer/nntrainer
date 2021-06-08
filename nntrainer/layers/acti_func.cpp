@@ -78,6 +78,7 @@ int ActiFunc::setActivation(
  * @param[in] ActivationType ActivationType ActivationType to be set
  */
 void ActiFunc::setActiFunc(ActivationType acti_type) {
+  activation_type = acti_type;
 
   switch (acti_type) {
   case ActivationType::ACT_TANH:
@@ -105,6 +106,14 @@ void ActiFunc::run_fn(Tensor const &x, Tensor &output) { _act_fn(x, output); }
 
 Tensor &ActiFunc::run_prime_fn(Tensor &in, Tensor &ret, Tensor const &deriv) {
   return _act_prime_fn(in, ret, deriv);
+}
+
+bool ActiFunc::supportInPlace() const {
+  bool support_in_place = true;
+  if (activation_type == ActivationType::ACT_SOFTMAX)
+    support_in_place = false;
+
+  return support_in_place;
 }
 
 Tensor &ActiFunc::softmax(Tensor const &t, Tensor &output) {

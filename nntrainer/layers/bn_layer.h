@@ -110,6 +110,11 @@ public:
     return BatchNormalizationLayer::type;
   }
 
+  /**
+   * @copydoc Layer::supportInPlace()
+   */
+  bool supportInPlace() const override { return true; }
+
   using Layer::setProperty;
 
   /**

@@ -613,6 +613,15 @@ public:
    */
   virtual void setActivation(ActivationType activation);
 
+  /**
+   * @brief   If the current layer can support in-place
+   *
+   * @return  true if inplace, else false
+   * @details all layers default to out of place execution
+   * @note all layers default to out of place execution
+   */
+  virtual bool supportInPlace() const { return false; }
+
 protected:
   /**
    * @brief   Print Options when printing layer info
