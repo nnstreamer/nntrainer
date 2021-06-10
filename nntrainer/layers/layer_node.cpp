@@ -55,13 +55,6 @@ createLayerNode(std::shared_ptr<nntrainer::Layer> layer,
 int LayerNode::setProperty(std::vector<std::string> properties) {
   int status = ML_ERROR_NONE;
 
-  try {
-    properties = loadProperties(properties, props);
-  } catch (std::invalid_argument &e) {
-    ml_loge("parsing property failed, reason: %s", e.what());
-    return ML_ERROR_INVALID_PARAMETER;
-  }
-
   /// @todo: deprecate this in favor of loadProperties
   std::vector<std::string> remainder;
   for (unsigned int i = 0; i < properties.size(); ++i) {
