@@ -2,7 +2,8 @@ res_path = meson.current_source_dir() / '..' / 'res'
 
 layer_client_sources = [
   'main.cpp',
-  layer_example_src
+  layer_example_pow_src,
+  layer_example_mae_src
 ]
 
 ini_in_path = res_path / 'custom_layer_client.ini'
