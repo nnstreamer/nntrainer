@@ -246,7 +246,7 @@ buildOpNodes(std::shared_ptr<const GraphRepresentation> representation) {
        iter++) {
     const auto &ln = *iter;
     Exporter e;
-    ln->getObject()->export_to(e, ExportMethods::METHOD_TFLITE);
+    ln->export_to(e, ExportMethods::METHOD_TFLITE);
 
     nodes.emplace_back(e.getResult<ExportMethods::METHOD_TFLITE>());
   }

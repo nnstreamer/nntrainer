@@ -207,7 +207,6 @@ class Layer;
 /**
  * @copydoc template <typename PropsType, typename NodeType> void
  * Exporter::saveTflResult(const PropsType &props, const NodeType *self);
- * @todo remove this when layer is refactored
  */
 template <>
 void Exporter::saveTflResult(const std::tuple<props::Name> &props,
@@ -219,8 +218,7 @@ class LayerNode;
  * Exporter::saveTflResult(const PropsType &props, const NodeType *self);
  */
 template <>
-void Exporter::saveTflResult(const std::tuple<props::Name> &props,
-                             const LayerNode *self);
+void Exporter::saveTflResult(const std::tuple<> &props, const LayerNode *self);
 
 class FullyConnectedLayer;
 /**

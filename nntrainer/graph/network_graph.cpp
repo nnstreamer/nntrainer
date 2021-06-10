@@ -333,7 +333,6 @@ void NetworkGraph::setOutputLayers() {
       if (layer_idx->getNumOutputs() == 0) {
         /** No output layer inplies its the last layer */
         layer_idx->setOutputLayers({"__exit__"});
-        ;
         last_layer_count += 1;
       } else {
         /** error for any other layer */
