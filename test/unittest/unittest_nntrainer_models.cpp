@@ -18,16 +18,11 @@
 
 #include <gtest/gtest.h>
 
-#include <activation_layer.h>
-#include <bn_layer.h>
 #include <input_layer.h>
 #include <layer.h>
 #include <layer_factory.h>
 #include <loss_layer.h>
 #include <neuralnet.h>
-#include <preprocess_flip_layer.h>
-#include <preprocess_translate_layer.h>
-#include <time_dist.h>
 #include <weight.h>
 
 #include "nntrainer_test_util.h"
@@ -101,11 +96,11 @@ public:
    */
   NodeWatcher(const NodeType &node) : node(node) {
     unsigned int num_weights = node->getObject()->getNumWeights();
-    if (node->getObject()->getType() != nntrainer::InputLayer::type &&
-        node->getObject()->getType() != nntrainer::PreprocessFlipLayer::type &&
-        node->getObject()->getType() !=
-          nntrainer::PreprocessTranslateLayer::type)
+    try {
       node->getObject()->setTrainable(true);
+    } catch (...) {
+      std::cout << "Cannot set layer " << node->getType() << " trainable";
+    }
 
     for (unsigned int i = 0; i < num_weights; ++i) {
       const nntrainer::Weight &w = node->getObject()->weightAt(i);
@@ -194,18 +189,7 @@ public:
    *
    * @return LayerType
    */
-  std::string getNodeType() { return node->getObject()->getType(); }
-
-  /**
-   * @brief get Time Distribution internal layer tyoe
-   *
-   * @return LayerType
-   */
-  std::string getTimeDistInternalLayerType() {
-    return std::dynamic_pointer_cast<nntrainer::TimeDistLayer>(
-             node->getObject())
-      ->getDistLayerType();
-  }
+  std::string getNodeType() { return node->getType(); }
 
 private:
   NodeType node;
@@ -308,14 +292,7 @@ void NodeWatcher::forward(int iteration, NodeWatcher &next_node) {
 
   std::vector<nntrainer::Tensor> out = node->getObject()->getOutputs();
 
-  /**
-   * @todo Do not veify if the layer is operting in-place by checking its
-   * property
-   */
-  if (next_node.node->getObject()->getType() !=
-        nntrainer::ActivationLayer::type &&
-      next_node.node->getObject()->getType() !=
-        nntrainer::BatchNormalizationLayer::type)
+  if (!next_node.node->getObject()->supportInPlace())
     verify(out[0], expected_output, err_msg + " at output");
 }
 
@@ -455,15 +432,6 @@ void GraphWatcher::validateFor(const nntrainer::TensorDim &label_shape) {
 
   if (loss_node.getNodeType() == nntrainer::LossLayer::type) {
     EXPECT_NO_THROW(nn.backwarding(label, 0));
-  } else {
-    if (loss_node.getNodeType() == nntrainer::TimeDistLayer::type) {
-      if (loss_node.getTimeDistInternalLayerType() ==
-          nntrainer::LossLayer::type) {
-        EXPECT_NO_THROW(nn.backwarding(label, 0));
-      }
-    } else {
-      EXPECT_THROW(nn.backwarding(label, 0), std::runtime_error);
-    }
   }
 
   /**
