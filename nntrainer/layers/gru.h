@@ -121,6 +121,11 @@ private:
   unsigned int unit;
 
   /**
+   * @brief     activation type for hidden state : default is sigmoid
+   */
+  ActivationType hidden_state_activation_type;
+
+  /**
    * @brief     activation function for h_t : default is sigmoid
    */
   ActiFunc acti_func;
