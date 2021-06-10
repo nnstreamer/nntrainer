@@ -47,10 +47,10 @@ int NetworkGraph::compile(const LossType loss_type) {
 
   graph.topologicalSort();
 
-  countNonTrainableLayersAtBegin();
-
   status = addLossLayer(loss_type);
   NN_RETURN_STATUS();
+
+  countNonTrainableLayersAtBegin();
 
   status = checkCompiledGraph();
   NN_RETURN_STATUS();
@@ -212,18 +212,31 @@ int NetworkGraph::realizeMultiOutputType(
   return status;
 }
 
-/** TODO: this needs special attention */
+/**
+ * @fixme: the implementation assumes loss layer should always be at the last
+ * layer and the there is only one loss, this assumption is not true
+ */
 int NetworkGraph::addLossLayer(const LossType loss_type) {
   int status = ML_ERROR_NONE;
   auto const &last_node = LNODE(graph.getSortedNode(graph.size() - 1));
   auto last_layer_node = getSortedLayerNode(graph.size() - 1);
 
-  if (last_node->getType() == LossLayer::type)
+  if (last_layer_node->getObject()->requireLabel()) {
     return status;
+  }
 
   if (loss_type == LossType::LOSS_NONE) {
-    return ML_ERROR_NONE;
+    return status;
   }
+
+  /**
+   * @note if model has property loss=sometype, this is dealt below. This
+   * semantics assume there is only one loss, so return ML_ERROR_INVALID_PARAM
+   * if there is more than one loss
+   */
+
+  /// @todo enable this
+  /// if (num_layer_that_requires_label > 2) { return error; }
 
   LossType updated_loss_type = loss_type;
 
@@ -236,6 +249,7 @@ int NetworkGraph::addLossLayer(const LossType loss_type) {
       return ML_ERROR_NOT_SUPPORTED;
     }
 
+    /// @todo add remove node by it's name or address or equivalent
     graph.removeLastNode();
 
     switch (last_layer_node->getActivationType()) {
