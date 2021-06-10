@@ -312,8 +312,8 @@ void LSTMLayer::calcGradient() {
   Tensor &m_cell_ = mem_cell->getVariableRef();
   Tensor &dm_cell_ = mem_cell->getGradientRef();
 
-  Tensor dh_nx = Tensor({derivative_.width()});
-  Tensor dc_nx = Tensor({derivative_.width()});
+  Tensor dh_nx = Tensor(derivative_.width());
+  Tensor dc_nx = Tensor(derivative_.width());
 
   for (unsigned int b = 0; b < input_dim[0].batch(); ++b) {
     Tensor deriv_t = derivative_.getBatchSlice(b, 1);
@@ -349,9 +349,9 @@ void LSTMLayer::calcGradient() {
         fgio_.getSharedDataTensor({unit * NUM_GATE}, unit * t * NUM_GATE);
 
       if (t == 0) {
-        hs_prev = Tensor({hs_t.width()});
+        hs_prev = Tensor(hs_t.width());
         hs_prev.setZero();
-        cs_prev = Tensor({cs_t.width()});
+        cs_prev = Tensor(cs_t.width());
         cs_prev.setZero();
       } else {
         hs_prev =
