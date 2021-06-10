@@ -18,7 +18,6 @@
 /// @todo migrate these to API(#987)
 #include <layer_internal.h>
 #include <manager.h>
-
 #include <tensor.h>
 
 namespace custom {
@@ -28,7 +27,7 @@ namespace custom {
  * configurable by PowLayer::setProperty)
  *
  */
-class PowLayer : public nntrainer::LayerV1 {
+class PowLayer final : public nntrainer::LayerV1 {
 public:
   /**
    * @brief Construct a new Pow Layer object that does elementwise power
@@ -51,14 +50,14 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int setProperty(std::vector<std::string> values);
+  int setProperty(std::vector<std::string> values) override;
 
   /**
    * @brief initializing nntrainer
    *
    * @return int ML_ERROR_NONE if success
    */
-  int initialize(nntrainer::Manager &manager);
+  int initialize(nntrainer::Manager &manager) override;
 
   /**
    * @brief nntrainer forwarding function
@@ -69,14 +68,14 @@ public:
   /**
    * @brief     calc the derivative to be passed to the previous layer
    */
-  void calcDerivative();
+  void calcDerivative() override;
 
   /**
-   * @brief Get the Type object
+   * @brief Get the Type object, this must return PowLayer::type
    *
    * @return const std::string
    */
-  const std::string getType() const { return PowLayer::type; }
+  const std::string getType() const override { return PowLayer::type; }
 
   inline static const std::string type = "pow";
 

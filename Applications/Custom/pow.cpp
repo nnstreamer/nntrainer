@@ -14,7 +14,7 @@
 #include <iostream>
 #include <regex>
 
-#include <pow.h>
+#include "pow.h"
 
 namespace custom {
 

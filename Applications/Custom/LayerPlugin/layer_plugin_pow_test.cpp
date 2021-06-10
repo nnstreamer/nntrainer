@@ -2,9 +2,10 @@
 /**
  * Copyright (C) 2020 Jihoon Lee <jhoon.it.lee@samsung.com>
  *
- * @file   layer_plugin_test.cpp
+ * @file   layer_plugin_pow_test.cpp
  * @date   26 January 2021
- * @brief  This file contains the execution part of LayerPlugin example
+ * @brief  This file contains the execution part of pow layer in LayerPlugin
+ * example
  * @see    https://github.com/nnstreamer/nntrainer
  * @author Jihoon Lee <jhoon.it.lee@samsung.com>
  * @bug    No known bugs except for NYI items
@@ -12,7 +13,6 @@
  */
 #include <gtest/gtest.h>
 
-#include <dlfcn.h>
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -21,9 +21,9 @@
 #include <layer.h>
 #include <layer_internal.h>
 
-const char *NNTRAINER_PATH = std::getenv("NNTRAINER_PATH");
+static const char *NNTRAINER_PATH = std::getenv("NNTRAINER_PATH");
 
-TEST(AppContext, DlRegisterOpen_p) {
+TEST(PowLayer, DlRegisterOpen_p) {
   ASSERT_NE(NNTRAINER_PATH, nullptr)
     << "NNTRAINER_PATH environment value must be set";
   auto ac = nntrainer::AppContext();
@@ -35,7 +35,7 @@ TEST(AppContext, DlRegisterOpen_p) {
   EXPECT_EQ(layer->getType(), "pow");
 }
 
-TEST(AppContext, DlRegisterWrongPath_n) {
+TEST(PowLayer, DlRegisterWrongPath_n) {
   ASSERT_NE(NNTRAINER_PATH, nullptr)
     << "NNTRAINER_PATH environment value must be set";
   auto ac = nntrainer::AppContext();
@@ -43,7 +43,7 @@ TEST(AppContext, DlRegisterWrongPath_n) {
   EXPECT_THROW(ac.registerLayer("wrong_name.so"), std::invalid_argument);
 }
 
-TEST(AppContext, DlRegisterDirectory_p) {
+TEST(PowLayer, DlRegisterDirectory_p) {
   ASSERT_NE(NNTRAINER_PATH, nullptr)
     << "NNTRAINER_PATH environment value must be set";
   auto ac = nntrainer::AppContext();
@@ -55,14 +55,14 @@ TEST(AppContext, DlRegisterDirectory_p) {
   EXPECT_EQ(layer->getType(), "pow");
 }
 
-TEST(AppContext, DlRegisterDirectory_n) {
+TEST(PowLayer, DlRegisterDirectory_n) {
   auto ac = nntrainer::AppContext();
 
   EXPECT_THROW(ac.registerPluggableFromDirectory("wrong path"),
                std::invalid_argument);
 }
 
-TEST(AppContext, DefaultEnvironmentPath_p) {
+TEST(PowLayer, DefaultEnvironmentPath_p) {
   /// as NNTRAINER_PATH is fed to the test, this should success without an
   /// error
   std::shared_ptr<ml::train::Layer> l = ml::train::createLayer("pow");
@@ -89,7 +89,7 @@ TEST(AppContext, DefaultEnvironmentPath_p) {
   EXPECT_EQ(layer->getInputDimension()[0], nntrainer::TensorDim());
 }
 
-TEST(AppContext, DefaultEnvironmentPath_n) {
+TEST(PowLayer, DefaultEnvironmentPath_n) {
   /// pow2 does not exist
   EXPECT_THROW(ml::train::createLayer("pow2"), std::invalid_argument);
 }
