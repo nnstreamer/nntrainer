@@ -17,6 +17,7 @@
 
 #include <graph_node.h>
 #include <layer.h>
+#include <layer_context.h>
 #include <layer_internal.h>
 #include <node_exporter.h>
 
@@ -281,11 +282,12 @@ private:
   ActivationType
     activation_type; /**< activation applied to the output of this node */
 
-  /**
-   * These properties are set for the layer by the user but are intercepted
-   * and used in the node which forms the basic element of the graph.
-   */
-  std::tuple<> props; /**< properties for the layer node */
+  RunLayerContext
+    run_context; /**< context required for running/execution of the layer. This
+                    will also contain the properties of the layer. */
+  InitLayerContext init_context; /**< context to be built for/while
+                                    initialization of the layer. This will also
+                                    contain the properties of the layer. */
 
   /**
    * @brief setProperty by PropertyType
