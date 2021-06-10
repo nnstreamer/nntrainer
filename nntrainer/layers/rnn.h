@@ -30,9 +30,13 @@ public:
    * @brief     Constructor of RNNLayer
    */
   template <typename... Args>
-  RNNLayer(unsigned int unit_ = 0, bool sequence = false, Args... args) :
+  RNNLayer(
+    unsigned int unit_ = 0,
+    ActivationType hidden_state_activation_type_ = ActivationType::ACT_NONE,
+    bool sequence = false, Args... args) :
     LayerV1(args...),
     unit(unit_),
+    hidden_state_activation_type(hidden_state_activation_type_),
     return_sequences(sequence){};
 
   /**
@@ -101,6 +105,11 @@ private:
    * @brief     hidden state size
    */
   unsigned int unit;
+
+  /**
+   * @brief     activation type for recurrent : default is tanh
+   */
+  ActivationType hidden_state_activation_type;
 
   /**
    * @brief     activation function for h_t : default is tanh

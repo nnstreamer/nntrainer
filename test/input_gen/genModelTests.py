@@ -425,25 +425,3 @@ if __name__ == "__main__":
     )
     multi_rnn_layer_tc(1,2)(file_name="multi_rnn_return_sequence.info")
     multi_rnn_layer_tc(2,2)(file_name="multi_rnn_return_sequence_with_batch.info")
-    
-    gru_layer_tc = lambda batch, time, return_sequences: partial(
-        record,
-        model=[
-            K.Input(batch_shape=(batch,time, 1)),
-            K.layers.GRU(
-                time,
-                recurrent_activation="sigmoid",
-                activation="tanh",
-                return_sequences=return_sequences,
-            ),
-            K.layers.Dense(1),
-        ],
-        optimizer=opt.SGD(learning_rate=0.1),
-        iteration=10,
-        input_shape=(batch, time, 1),
-        label_shape=(batch, 1),
-        is_onehot=False,
-        loss_fn_str="mse",
-    )
-
-    gru_layer_tc(1, 1, False)(file_name="gru_basic.info")
