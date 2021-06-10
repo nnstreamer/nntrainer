@@ -36,8 +36,8 @@ public:
    * @brief name validator
    *
    * @param v string to validate
-   * @return true if it contains alphanumeric and/or '-', '_', '/'
-   * @return false if it is empty or contains non-valid character
+   * @retval true if it contains alphanumeric and/or '-', '_', '/'
+   * @retval false if it is empty or contains non-valid character
    */
   bool isValid(const std::string &v) const override;
 };

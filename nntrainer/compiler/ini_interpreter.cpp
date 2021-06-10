@@ -173,8 +173,8 @@ section2layer<BackboneLayer>(dictionary *ini, const std::string &sec_name,
  * @brief check if graph is supported
  *
  * @param backbone_name name of the backbone
- * @return true if the file extension is supported to make a graph
- * @return false if the file extension is not supported
+ * @retval true if the file extension is supported to make a graph
+ * @retval false if the file extension is not supported
  */
 static bool graphSupported(const std::string &backbone_name) {
   return endswith(backbone_name, ".ini");

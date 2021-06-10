@@ -25,8 +25,10 @@
 namespace simpleshot {
 namespace layers {
 
-/// @todo inherit this to API
-// class CenteringLayer : public ml::train::Layer {
+/**
+ * @brief centering layer that centers the feature
+ *
+ */
 class CenteringLayer : public nntrainer::Layer {
 public:
   /**
@@ -98,8 +100,8 @@ public:
   /**
    * @brief get boolean if the function is trainable
    *
-   * @return true trainable
-   * @return false not trainable
+   * @retval true trainable
+   * @retval false not trainable
    */
   bool getTrainable() noexcept override { return false; }
 

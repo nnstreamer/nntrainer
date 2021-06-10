@@ -120,8 +120,8 @@ public:
   /**
    * @brief Get if the Var_Grad is trainable
    *
-   * @return true if trainable
-   * @return false is not trainable
+   * @retval true if trainable
+   * @retval false is not trainable
    */
   bool getTrainable() const { return trainable; }
 

@@ -62,6 +62,11 @@ typedef enum {
   TOKEN_UNKNOWN
 } InputType;
 
+/**
+ * @brief convert integer based status to throw
+ *
+ * @param status status to throw
+ */
 inline void throw_status(int status) {
   switch (status) {
   case ML_ERROR_NONE:
@@ -203,8 +208,8 @@ void printInstance(std::ostream &out, const T &t) {
  *
  * @param a first string to compare
  * @param b second string to compare
- * @return true if string is case-insensitive equal
- * @return false if string is case-insensitive not equal
+ * @retval true if string is case-insensitive equal
+ * @retval false if string is case-insensitive not equal
  */
 bool istrequal(const std::string &a, const std::string &b);
 } /* namespace nntrainer */

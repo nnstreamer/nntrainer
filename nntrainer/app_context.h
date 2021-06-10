@@ -95,8 +95,8 @@ public:
   /**
    * @brief query if the appcontext has working directory set
    *
-   * @return true working path base is set
-   * @return false working path base is not set
+   * @retval true working path base is set
+   * @retval false working path base is not set
    */
   bool hasWorkingDirectory() { return !working_path_base.empty(); }
 
