@@ -98,6 +98,11 @@ public:
   std::shared_ptr<LayerV1> &getDistLayer() { return dist_layer; };
 
   /**
+   * @copydoc Layer::requireLabe()
+   */
+  bool requireLabel() const override { return dist_layer->requireLabel(); }
+
+  /**
    * @brief     get transposed Tensor according to time iteration axis
    *            [b, 1, h, w] to [h, 1, b, w]
    * @param[in] m Tensor

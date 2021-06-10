@@ -226,27 +226,34 @@ sharedConstTensors NeuralNetwork::forwarding(sharedConstTensors input,
     << " input_batch: " << input[0]->batch()
     << " label_batch: " << label[0]->batch() << " target_batch: " << batch_size;
 
-  auto &first_layer = model_graph.getSortedLayerNode(0)->getObject();
-  auto &last_layer =
-    model_graph.getSortedLayerNode(model_graph.size() - 1)->getObject();
+  auto fill_label = [&label](auto &layer) {
+    NNTR_THROW_IF(label.size() != layer.net_hidden.size(),
+                  std::invalid_argument)
+      << "label size does not match with the layer requirements"
+      << " layer: " << layer.getName() << " label size: " << label.size()
+      << " requirements size: " << layer.net_hidden.size();
 
-  /// @note centroid_knn layer needs to be the last layer, currently it is
-  /// not possible because loss layer is always added.
-  /// if centroid_knn layer can be last layer, this loop is not required
+    for (unsigned int i = 0; i < layer.net_hidden.size(); i++) {
+      layer.net_hidden[i]->getGradientRef() = *label[i];
+    }
+  };
+
+  auto clear_label = [](auto &layer) {
+    for (unsigned int i = 0; i < layer.net_hidden.size(); i++) {
+      layer.net_hidden[i]->getGradientRef() = Tensor();
+    }
+  };
+
+  /// feed or clear label
   for (auto iter = model_graph.cbegin(); iter != model_graph.cend(); iter++) {
-    auto const &layer_node = *iter;
-    auto &l = layer_node->getObject();
-    if (l->getType() == "centroid_knn") {
-      l->net_hidden[0]->getGradientRef() = *label[0].get();
+    auto &l = *iter->getObject();
+    if (l.requireLabel()) {
+      label.empty() ? clear_label(l) : fill_label(l);
     }
   }
 
-  if (label.empty())
-    last_layer->net_hidden[0]->getGradientRef() = Tensor();
-  else
-    last_layer->net_hidden[0]->getGradientRef() = *label[0].get();
-
-  first_layer->net_input[0]->getVariableRef() = *input[0].get();
+  auto &first_layer = model_graph.getSortedLayerNode(0)->getObject();
+  first_layer->net_input[0]->getVariableRef() = *input[0];
 
   return forwarding(training);
 }
@@ -303,17 +310,16 @@ void NeuralNetwork::backwarding(int iteration) {
   auto iter_begin = model_graph.getBackwardingBeginIter();
   auto iter_end = model_graph.getBackwardingEndIter();
 
-  auto const &lptr_begin = (*iter_begin);
-  if (lptr_begin->getObject()->getType() != LossLayer::type) {
-    bool has_loss = false;
-    if (lptr_begin->getObject()->getType() == TimeDistLayer::type) {
-      if (std::dynamic_pointer_cast<TimeDistLayer>(lptr_begin->getObject())
-            ->getDistLayerType() == LossLayer::type)
-        has_loss = true;
-    }
-    if (!has_loss)
-      throw std::runtime_error("Error: no loss provided for training.");
+  /// there is no layer to train, so backwarding is essentially noop
+  if (iter_begin == iter_end) {
+    return;
   }
+
+  auto const &lptr_begin = (*iter_begin);
+
+  if (lptr_begin->getObject()->requireLabel() == false)
+    throw std::runtime_error(
+      "Error: last layer does not accept label, we can't train");
 
   auto iter = iter_begin;
   for (; iter != iter_end - 1; iter++) {
@@ -584,15 +590,6 @@ int NeuralNetwork::train_run() {
   auto &output = last_layer->net_hidden[0]->getVariableRef();
   auto &label = last_layer->net_hidden[0]->getGradientRef();
   auto &in = first_layer->net_input[0]->getVariableRef();
-
-  /// @todo migrate this to trait based system; sth like need label?
-
-  for (auto iter = model_graph.cbegin(); iter != model_graph.cend(); iter++) {
-    auto const &layer_ = (*iter)->getObject();
-    if (layer_->getType() == "centroid_knn") {
-      layer_->net_hidden[0]->getGradientRef() = label;
-    }
-  }
 
   for (epoch_idx = epoch_idx + 1; epoch_idx <= epochs; ++epoch_idx) {
     training.loss = 0.0f;
