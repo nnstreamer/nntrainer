@@ -620,6 +620,7 @@ static std::string fc_base = "type = Fully_connected";
 static std::string conv_base = "type = conv2d | stride = 1,1 | padding = 0,0";
 static std::string rnn_base = "type = rnn";
 static std::string lstm_base = "type = lstm";
+static std::string gru_base = "type = gru";
 static std::string pooling_base = "type = pooling2d | padding = 0,0";
 static std::string preprocess_flip_base = "type = preprocess_flip";
 static std::string preprocess_translate_base = "type = preprocess_translate";
@@ -1207,6 +1208,18 @@ INI multi_rnn_return_sequence_with_batch(
   }
 );
 
+INI gru_basic(
+  "gru_basic",
+  {
+    nn_base + "loss=mse | batch_size=1",
+    sgd_base + "learning_rate = 0.1",
+    I("input") + input_base + "input_shape=1:1:1",
+    I("gru") + gru_base +
+      "unit = 1" + "input_layers=input",
+    I("outputlayer") + fc_base + "unit = 1" + "input_layers=gru"
+  }
+);
+
 INSTANTIATE_TEST_CASE_P(
   nntrainerModelAutoTests, nntrainerModelTest, ::testing::Values(
     mkModelTc(fc_sigmoid_mse, "3:1:1:10", 10),
@@ -1259,7 +1272,8 @@ INSTANTIATE_TEST_CASE_P(
     mkModelTc(rnn_return_sequences, "1:1:2:1", 10),
     mkModelTc(rnn_return_sequence_with_batch, "2:1:2:1", 10),
     mkModelTc(multi_rnn_return_sequence, "1:1:1:1", 10),
-    mkModelTc(multi_rnn_return_sequence_with_batch, "2:1:1:1", 10)
+    mkModelTc(multi_rnn_return_sequence_with_batch, "2:1:1:1", 10),
+    mkModelTc(gru_basic, "1:1:1:1", 1)
 ), [](const testing::TestParamInfo<nntrainerModelTest::ParamType>& info){
  return std::get<0>(info.param).getName();
 });
