@@ -303,8 +303,8 @@ public:
    * @brief check if tensor dims are equal
    *
    * @param rhs other side to compare
-   * @return true equal
-   * @return false not equal
+   * @retval true equal
+   * @retval false not equal
    */
   bool operator==(const TensorDim &rhs) const;
 
@@ -312,16 +312,16 @@ public:
    * @brief check if tensor dims are not equal
    *
    * @param rhs other side to compare
-   * @return true not equal
-   * @return false equal
+   * @retval true not equal
+   * @retval false equal
    */
   bool operator!=(const TensorDim &rhs) const { return !(*this == rhs); }
 
   /**
    * @brief check if given tensor dimension is empty
    *
-   * @return true empty
-   * @return false not empty
+   * @retval true empty
+   * @retval false not empty
    */
   bool isEmpty() const { return len == 0; }
 
@@ -374,8 +374,8 @@ public:
   /**
    * @brief check if tensor is dynamic
    *
-   * @return true any of dyn_dim_flag is set
-   * @return false none of dyn_dim_flag is set
+   * @retval true any of dyn_dim_flag is set
+   * @retval false none of dyn_dim_flag is set
    */
   bool is_dynamic() const { return dyn_dim_flag.any(); }
 

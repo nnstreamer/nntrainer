@@ -132,8 +132,8 @@ public:
    * @todo   If we get to have a use case for requireLabel(true) but in the
    * middle of a graph, change the semantics
    *
-   * @return true requires a label when training
-   * @return false does not require a label
+   * @retval true requires a label when training
+   * @retval false does not require a label
    */
   virtual bool requireLabel() const { return false; }
 

@@ -58,8 +58,8 @@ auto ini_interpreter =
  *
  * @param lhs compiled(later, finalized) graph to be compared
  * @param rhs compiled(later, finalized) graph to be compared
- * @return true graph is equal
- * @return false graph is not equal
+ * @retval true graph is equal
+ * @retval false graph is not equal
  */
 static void graphEqual(const nntrainer::GraphRepresentation &lhs,
                        const nntrainer::GraphRepresentation &rhs) {

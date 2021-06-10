@@ -172,8 +172,8 @@ public:
    * @brief check if given value is valid
    *
    * @param v value to check
-   * @return true if valid
-   * @return false if not valid
+   * @retval true if valid
+   * @retval false if not valid
    */
   virtual bool isValid(const T &v) const { return true; }
 
@@ -181,8 +181,8 @@ public:
    * @brief operator==
    *
    * @param rhs right side to compare
-   * @return true if equal
-   * @return false if not equal
+   * @retval true if equal
+   * @retval false if not equal
    */
   bool operator==(const Property<T> &rhs) const { return value == rhs.value; }
 
@@ -284,8 +284,8 @@ public:
    * @brief operator==
    *
    * @param rhs right side to compare
-   * @return true if equal
-   * @return false if not equal
+   * @retval true if equal
+   * @retval false if not equal
    */
   bool operator==(const Property<std::string> &rhs) const {
     return value == rhs.value;
@@ -295,8 +295,8 @@ public:
    * @brief check if given value is valid
    *
    * @param v value to check
-   * @return true if valid
-   * @return false if not valid
+   * @retval true if valid
+   * @retval false if not valid
    */
   virtual bool isValid(const std::string &v) const { return true; }
 

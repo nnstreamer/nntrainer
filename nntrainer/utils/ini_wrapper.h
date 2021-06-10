@@ -125,8 +125,8 @@ public:
    * @brief equal operator between ini section
    *
    * @param rhs ini section to compare
-   * @return true two inisections are equal
-   * @return false two ini sections are not equal
+   * @retval true two inisections are equal
+   * @retval false two ini sections are not equal
    */
   bool operator==(const IniSection &rhs) const {
     return section_name == rhs.section_name && entry == rhs.entry;
@@ -136,8 +136,8 @@ public:
    * @brief  not equal operator between ini section
    *
    * @param rhs ini section to compare
-   * @return true two inisections are not equal
-   * @return false two inisections are equal
+   * @retval true two inisections are not equal
+   * @retval false two inisections are equal
    */
   bool operator!=(const IniSection &rhs) const { return !operator==(rhs); }
 
@@ -225,8 +225,8 @@ public:
    * @brief ini operator== to check if IniWrapper is equal
    *
    * @param rhs IniWrapper to compare
-   * @return true true if ini is equal (deeply)
-   * @return false false if ini is not equal
+   * @retval true true if ini is equal (deeply)
+   * @retval false false if ini is not equal
    */
   bool operator==(const IniWrapper &rhs) const {
     return name == rhs.name && sections == rhs.sections;
@@ -236,8 +236,8 @@ public:
    * @brief ini operator!= to check if IniWrapper is not equal
    *
    * @param rhs IniWrapper to compare
-   * @return true if not equal
-   * @return false if equal
+   * @retval true if not equal
+   * @retval false if equal
    */
   bool operator!=(const IniWrapper &rhs) const { return !operator==(rhs); }
 

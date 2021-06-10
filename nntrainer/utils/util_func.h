@@ -30,7 +30,7 @@ namespace nntrainer {
 
 /**
  * @brief     get the seed
- * @retVal    seed
+ * @return    seed
  */
 unsigned int getSeed();
 
@@ -45,6 +45,12 @@ float random();
  */
 float sqrtFloat(float x);
 
+/**
+ * @brief    sqrt function for dobuld type
+ *
+ * @param x value to take sqrt
+ * @return double return value
+ */
 double sqrtDouble(double x);
 
 /**
@@ -142,8 +148,8 @@ void writeString(std::ofstream &file, const std::string &str,
  *
  * @param target string to cehck
  * @param suffix check if string ends with @a suffix
- * @return true @a target ends with @a suffix
- * @return false @a target does not ends with @a suffix
+ * @retval true @a target ends with @a suffix
+ * @retval false @a target does not ends with @a suffix
  */
 bool endswith(const std::string &target, const std::string &suffix);
 

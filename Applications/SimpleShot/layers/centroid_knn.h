@@ -99,8 +99,8 @@ public:
   /**
    * @brief get boolean if the function is trainable
    *
-   * @return true trainable
-   * @return false not trainable
+   * @retval true trainable
+   * @retval false not trainable
    */
   bool getTrainable() noexcept override { return false; }
 

@@ -136,8 +136,8 @@ public:
    *
    * @param lhs iterator lhs
    * @param rhs iterator rhs
-   * @return true if match
-   * @return false if mismatch
+   * @retval true if match
+   * @retval false if mismatch
    */
   friend bool operator==(GraphNodeIterator const &lhs,
                          GraphNodeIterator const &rhs) {
@@ -149,8 +149,8 @@ public:
    *
    * @param lhs iterator lhs
    * @param rhs iterator rhs
-   * @return true if mismatch
-   * @return false if match
+   * @retval true if mismatch
+   * @retval false if match
    */
   friend bool operator!=(GraphNodeIterator const &lhs,
                          GraphNodeIterator const &rhs) {

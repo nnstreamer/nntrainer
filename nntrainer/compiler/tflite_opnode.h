@@ -140,16 +140,16 @@ public:
   /**
    * @brief check if this op node is model input
    *
-   * @return true if op node is model input
-   * @return false if op node is not model input
+   * @retval true if op node is model input
+   * @retval false if op node is not model input
    */
   bool isInputNode() const { return is_input; }
 
   /**
    * @brief check if this op node is model output
    *
-   * @return true if op node is model output
-   * @return false if op node is not model output
+   * @retval true if op node is model output
+   * @retval false if op node is not model output
    */
   bool isOutputNode() const { return is_output; }
 
