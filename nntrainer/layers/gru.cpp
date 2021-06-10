@@ -102,9 +102,9 @@ int GRULayer::initialize(Manager &manager) {
 
   h_prev = Tensor(h_dim);
 
-  if (LayerV1::activation_type == ActivationType::ACT_NONE) {
-    LayerV1::activation_type = ActivationType::ACT_TANH;
-    acti_func.setActiFunc(activation_type);
+  if (hidden_state_activation_type == ActivationType::ACT_NONE) {
+    hidden_state_activation_type = ActivationType::ACT_TANH;
+    acti_func.setActiFunc(hidden_state_activation_type);
   }
 
   if (recurrent_activation_type == ActivationType::ACT_NONE) {
@@ -178,6 +178,11 @@ void GRULayer::forwarding(bool training) {
 
   Tensor hs_prev;
   Tensor hs;
+
+  // zt = sigma(W_hz.h_prev + W_xz.xs)
+  // rt = sigma(W_hr.h_prev + W_xr.xs)
+  // gt = tanh((h_prev*rt).W_hr + W_xg.xs)
+  // h_nx = (1-zt)*gt + zt*h_prev
 
   for (unsigned int b = 0; b < input_dim[0].batch(); ++b) {
     Tensor islice = input_.getBatchSlice(b, 1);
