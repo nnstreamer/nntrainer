@@ -261,13 +261,12 @@ void IniGraphInterpreter::serialize(
   for (auto iter = representation->cbegin(); iter != representation->cend();
        iter++) {
     const auto &ln = *iter;
-    const auto &layer = ln->getObject();
 
-    IniSection s(layer->getName());
-    s.setEntry("type", layer->getType());
+    IniSection s(ln->getName());
+    s.setEntry("type", ln->getType());
 
     Exporter e;
-    layer->export_to(e);
+    ln->export_to(e);
 
     const auto key_val_pairs =
       e.getResult<ExportMethods::METHOD_STRINGVECTOR>();

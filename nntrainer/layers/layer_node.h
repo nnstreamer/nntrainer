@@ -255,6 +255,7 @@ public:
   export_to(Exporter &exporter,
             ExportMethods method = ExportMethods::METHOD_STRINGVECTOR) const {
     exporter.saveResult(props, method, this);
+    layer->export_to(exporter, method);
   };
 
 #ifdef PROFILE
