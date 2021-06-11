@@ -25,8 +25,6 @@
 namespace simpleshot {
 namespace layers {
 
-const std::string L2NormLayer::type = "l2norm";
-
 int L2NormLayer::initialize(nntrainer::Manager &manager) {
   if (input_dim[0].channel() != 1 || input_dim[0].height() != 1) {
     ml_logw("l2norm layer is designed for channel and height is 1 for now, "

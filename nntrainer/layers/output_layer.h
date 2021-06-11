@@ -92,7 +92,7 @@ public:
    */
   const std::string getType() const override { return OutputLayer::type; };
 
-  static const std::string type;
+  inline static const std::string type = "output";
 };
 
 } // namespace nntrainer

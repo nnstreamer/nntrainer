@@ -26,14 +26,14 @@ namespace simpleshot {
 namespace layers {
 
 /**
- * @brief centering layer that centers the feature
+ * @brief Center Layer Class that does elementwise
+ * subtraction from mean feature vector
  *
  */
 class CenteringLayer : public nntrainer::LayerV1 {
 public:
   /**
-   * @brief Construct a new Centering Layer object that does elementwise
-   * subtraction from mean feature vector
+   * @brief Construct a new Centering Layer object
    */
   CenteringLayer() : LayerV1() {}
 
@@ -112,7 +112,7 @@ public:
    */
   const std::string getType() const override { return CenteringLayer::type; }
 
-  static const std::string type;
+  inline static const std::string type = "centering";
 
 private:
   std::string feature_path;

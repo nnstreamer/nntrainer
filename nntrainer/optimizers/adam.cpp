@@ -22,8 +22,6 @@
 
 namespace nntrainer {
 
-const std::string Adam::type = "adam";
-
 enum AdamParams { wm, wv };
 
 void Adam::addOptimizerVariable(std::vector<Weight> &weight_list) {

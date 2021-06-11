@@ -84,7 +84,7 @@ public:
    */
   const std::string getType() const override { return FlattenLayer::type; };
 
-  static const std::string type;
+  inline static const std::string type = "flatten";
 };
 
 } // namespace nntrainer

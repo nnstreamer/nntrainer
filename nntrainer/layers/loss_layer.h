@@ -106,7 +106,7 @@ public:
    */
   int setLoss(LossType l);
 
-  static const std::string type;
+  inline static const std::string type = "loss";
 
   /**
    * @brief     get loss function

@@ -244,8 +244,6 @@ static void im2col(const Tensor &in, const TensorDim &kdim,
 
 } // namespace
 
-const std::string Conv2DLayer::type = "conv2d";
-
 enum ConvParams { weight, bias };
 
 int Conv2DLayer::initialize(Manager &manager) {

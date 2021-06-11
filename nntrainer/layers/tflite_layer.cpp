@@ -16,8 +16,6 @@
 
 namespace nntrainer {
 
-const std::string TfLiteLayer::type = "backbone_tflite";
-
 void TfLiteLayer::setDimensions(const std::vector<int> &tensor_idx_list,
                                 std::vector<TensorDim> &dim, bool is_output) {
   unsigned int num_tensors = tensor_idx_list.size();

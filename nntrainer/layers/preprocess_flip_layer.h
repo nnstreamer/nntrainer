@@ -94,7 +94,7 @@ public:
     return PreprocessFlipLayer::type;
   }
 
-  static const std::string type;
+  inline static const std::string type = "preprocess_flip";
 
 private:
   /** String names for the flip direction */

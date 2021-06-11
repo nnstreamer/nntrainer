@@ -77,7 +77,7 @@ public:
    */
   double getEpsilon() { return epsilon; }
 
-  static const std::string type;
+  inline static const std::string type = "adam";
 
 private:
   double beta1;   /** momentum for grad */

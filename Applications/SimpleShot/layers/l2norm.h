@@ -26,7 +26,7 @@ namespace simpleshot {
 namespace layers {
 
 /**
- * @brief This layer l2 normalize the feature
+ * @brief Layer class that l2normalizes a feature vector
  *
  */
 class L2NormLayer : public nntrainer::LayerV1 {
@@ -89,7 +89,7 @@ public:
    */
   bool getTrainable() noexcept override { return false; }
 
-  static const std::string type;
+  inline static const std::string type = "l2norm";
 };
 } // namespace layers
 } // namespace simpleshot

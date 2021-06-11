@@ -103,7 +103,7 @@ public:
    */
   const std::string getType() const override { return SplitLayer::type; };
 
-  static const std::string type;
+  inline static const std::string type = "split";
 
 private:
   unsigned int split_dimension; /** dimension along which to split the input */

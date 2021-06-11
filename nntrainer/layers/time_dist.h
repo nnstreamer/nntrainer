@@ -143,7 +143,7 @@ public:
    */
   const std::string getType() const override { return TimeDistLayer::type; };
 
-  static const std::string type;
+  inline static const std::string type = "time_dist";
 
 private:
   /**

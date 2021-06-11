@@ -22,8 +22,6 @@
 
 namespace nntrainer {
 
-const std::string RNNLayer::type = "rnn";
-
 // - weight_xh ( input to hidden )
 //  : [1, 1, input_size, unit (hidden_size) ]
 // - weight_hh ( hidden to hidden )

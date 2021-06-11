@@ -104,7 +104,7 @@ public:
    */
   bool getTrainable() noexcept override { return false; }
 
-  static const std::string type;
+  inline static const std::string type = "centroid_knn";
 
 private:
   unsigned int num_class;

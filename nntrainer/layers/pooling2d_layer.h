@@ -106,8 +106,8 @@ public:
   void copy(std::shared_ptr<LayerV1> l) override;
 
   /**
-   * @brief Padding Type
-   *
+   * @brief PaddingType Class
+   * @todo support keras type of padding
    */
   enum class PaddingType {
     full = 0,
@@ -136,7 +136,7 @@ public:
    */
   void setBatch(unsigned int batch) override;
 
-  static const std::string type;
+  inline static const std::string type = "pooling2d";
 
 private:
   std::array<unsigned int, POOLING2D_DIM> pool_size;

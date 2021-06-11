@@ -124,7 +124,7 @@ public:
   void setProperty(const PropertyType type,
                    const std::string &value = "") override;
 
-  static const std::string type;
+  inline static const std::string type = "batch_normalization";
 
 private:
   Tensor cvar; /**< training variance saved in bn_layer::forwarding and used in

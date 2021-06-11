@@ -85,7 +85,7 @@ public:
   void setProperty(const PropertyType type,
                    const std::string &value = "") override;
 
-  static const std::string type;
+  inline static const std::string type = "backbone_tflite";
 
 private:
   std::string modelfile;

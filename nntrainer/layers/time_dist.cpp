@@ -21,8 +21,6 @@
 
 namespace nntrainer {
 
-const std::string TimeDistLayer::type = "time_dist";
-
 static void reshape(Tensor &m) {
   TensorDim d = m.getDim();
   m.reshape({d[2], d[1], d[0], d[3]});

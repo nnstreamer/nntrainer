@@ -28,8 +28,6 @@
 namespace simpleshot {
 namespace layers {
 
-const std::string CentroidKNN::type = "centroid_knn";
-
 int CentroidKNN::setProperty(std::vector<std::string> values) {
   util::Entry e;
 

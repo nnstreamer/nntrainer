@@ -95,7 +95,7 @@ public:
    */
   const std::string getType() const override { return ConcatLayer::type; };
 
-  static const std::string type;
+  inline static const std::string type = "concat";
 };
 
 } // namespace nntrainer
