@@ -90,7 +90,8 @@ public:
  *
  * @note    GraphNodeType is to enable for both GraphNode and const GraphNode
  */
-template <typename LayerNodeType, typename GraphNodeType>
+template <typename LayerNodeType, typename LayerNodePtrType,
+          typename GraphNodeType>
 class GraphNodeIterator
   : public std::iterator<std::random_access_iterator_tag, GraphNodeType> {
   GraphNodeType *p; /** underlying object of GraphNode */
@@ -105,11 +106,11 @@ public:
    * @note    value_type, pointer and reference are different from standard
    * iterator
    */
-  typedef std::shared_ptr<LayerNodeType> value_type;
+  typedef LayerNodePtrType value_type;
   typedef std::random_access_iterator_tag iterator_category;
   typedef std::ptrdiff_t difference_type;
-  typedef std::shared_ptr<LayerNodeType> *pointer;
-  typedef std::shared_ptr<LayerNodeType> &reference;
+  typedef LayerNodePtrType *pointer;
+  typedef LayerNodePtrType &reference;
 
   /**
    * @brief Construct a new Graph Node Iterator object
@@ -305,28 +306,31 @@ public:
  */
 template <class LayerNodeType>
 using graph_iterator =
-  GraphNodeIterator<LayerNodeType, std::shared_ptr<GraphNode>>;
+  GraphNodeIterator<LayerNodeType, std::shared_ptr<LayerNodeType>,
+                    std::shared_ptr<GraphNode>>;
 
 /**
  * @brief     Iterators to traverse the graph
  */
 template <class LayerNodeType>
-using graph_reverse_iterator = GraphNodeReverseIterator<
-  GraphNodeIterator<LayerNodeType, std::shared_ptr<GraphNode>>>;
+using graph_reverse_iterator = GraphNodeReverseIterator<GraphNodeIterator<
+  LayerNodeType, std::shared_ptr<LayerNodeType>, std::shared_ptr<GraphNode>>>;
 
 /**
  * @brief     Iterators to traverse the graph
  */
 template <class LayerNodeType>
 using graph_const_iterator =
-  GraphNodeIterator<const LayerNodeType, const std::shared_ptr<GraphNode>>;
+  GraphNodeIterator<LayerNodeType, const std::shared_ptr<LayerNodeType>,
+                    const std::shared_ptr<GraphNode>>;
 
 /**
  * @brief     Iterators to traverse the graph
  */
 template <class LayerNodeType>
 using graph_const_reverse_iterator = GraphNodeReverseIterator<
-  GraphNodeIterator<const LayerNodeType, const std::shared_ptr<GraphNode>>>;
+  GraphNodeIterator<LayerNodeType, const std::shared_ptr<LayerNodeType>,
+                    const std::shared_ptr<GraphNode>>>;
 
 } // namespace nntrainer
 #endif // __GRAPH_NODE_H__
