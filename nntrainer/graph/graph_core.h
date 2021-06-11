@@ -121,34 +121,6 @@ public:
   template <
     typename T = GraphNode,
     std::enable_if_t<std::is_base_of<GraphNode, T>::value, T> * = nullptr>
-  inline graph_iterator<T> begin() {
-    if (Sorted.empty())
-      return graph_iterator<T>(&(*node_list.begin()));
-    else
-      return graph_iterator<T>(&(*Sorted.begin()));
-  }
-
-  /**
-   * @brief     get end iterator for the forwarding
-   * @retval    iterator marking the end of forwarding
-   */
-  template <
-    typename T = GraphNode,
-    std::enable_if_t<std::is_base_of<GraphNode, T>::value, T> * = nullptr>
-  inline graph_iterator<T> end() {
-    if (Sorted.empty())
-      return graph_iterator<T>(&(*node_list.end()));
-    else
-      return graph_iterator<T>(&(*Sorted.end()));
-  }
-
-  /**
-   * @brief     get begin iterator for the forwarding
-   * @retval    const iterator marking the begin of forwarding
-   */
-  template <
-    typename T = GraphNode,
-    std::enable_if_t<std::is_base_of<GraphNode, T>::value, T> * = nullptr>
   inline graph_const_iterator<T> cbegin() const {
     if (Sorted.empty())
       return graph_const_iterator<T>(&(*node_list.cbegin()));
