@@ -160,7 +160,7 @@ void GraphCore::ensureName(GraphNode &node, const std::string &prefix,
     }
   }
 
-  std::set<std::string>::iterator iter;
+  std::unordered_set<std::string>::iterator iter;
   std::string name;
   if (orig_name_empty) {
     orig_name = node.getType();
