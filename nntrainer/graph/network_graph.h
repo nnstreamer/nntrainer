@@ -311,20 +311,6 @@ private:
   int checkCompiledGraph();
 
   /**
-   * @brief     make connection between nodes
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   */
-  int connectGraph();
-
-  /**
-   * @brief     make connection for the given node idx
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   */
-  void connectGraph(unsigned int adj_idx);
-
-  /**
    * @brief     Realize Graph Nodes
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.

@@ -68,6 +68,13 @@ public:
   virtual const std::string getType() const = 0;
 
   /**
+   * @brief     Get the input connections for this node
+   *
+   * @return list of name of the nodes which form input connections
+   */
+  virtual const std::vector<std::string> &getInputConnections() const = 0;
+
+  /**
    * @brief     Copy the graph
    * @param[in] from Graph Object to copy
    * @retval    Graph Object copyed
