@@ -70,7 +70,7 @@ void NetworkGraph::updateConnectionName(const std::string &from,
 
   const std::vector<std::shared_ptr<GraphNode>> &node_list = graph.getNodes();
   for (unsigned int i = 0; i < node_list.size(); ++i) {
-    auto &layer = LNODE(node_list[i])->getObject();
+    auto &layer = node_list[i];
     if (istrequal(layer->getName(), to))
       continue;
     LNODE(node_list[i])->updateInputLayers(from, to);
@@ -105,19 +105,18 @@ void NetworkGraph::countNonTrainableLayersAtBegin() {
 
 int NetworkGraph::realizeMultiInputType(
   const std::shared_ptr<LayerNode> &in_node) {
-  Layer &current = *in_node->getObject();
   int status = ML_ERROR_NONE;
   /**
    * Multi-input works with time distribution layer by itself
    *
    */
-  if (current.getNumInputs() == 1)
+  if (in_node->getNumInputs() <= 1)
     return ML_ERROR_NONE;
 
   // TODO: this can be addition or concat layer - add support
   std::shared_ptr<LayerNode> lnode = createLayerNode(AdditionLayer::type);
   std::shared_ptr<Layer> layer = lnode->getObject();
-  graph.ensureName(*lnode, current.getName());
+  graph.ensureName(*lnode, in_node->getName());
 
   lnode->setInputLayers(in_node->getInputLayers());
   in_node->setInputLayers({lnode->getName()});
@@ -130,8 +129,7 @@ int NetworkGraph::realizeMultiInputType(
 
 int NetworkGraph::realizeFlattenType(
   const std::shared_ptr<LayerNode> &in_node) {
-  Layer &current = *in_node->getObject();
-  if (current.getType() == FlattenLayer::type) {
+  if (in_node->getType() == FlattenLayer::type) {
     ml_loge(
       "It is not allowed to realize flatten layer, possibly flatten layer is "
       "added right after flatten");
@@ -140,12 +138,12 @@ int NetworkGraph::realizeFlattenType(
 
   std::shared_ptr<LayerNode> lnode = createLayerNode(FlattenLayer::type);
   std::shared_ptr<Layer> layer = lnode->getObject();
-  graph.ensureName(*lnode, current.getName());
+  graph.ensureName(*lnode, in_node->getName());
 
   lnode->setInputLayers({in_node->getName()});
   /** output layers for layer obj will be set in setOutputLayers() */
 
-  updateConnectionName(current.getName(), layer->getName());
+  updateConnectionName(in_node->getName(), lnode->getName());
   graph.addNode(lnode, false);
 
   return ML_ERROR_NONE;
@@ -163,7 +161,7 @@ int NetworkGraph::realizeActivationType(
     return ML_ERROR_NONE;
   }
 
-  if (current.getType() == ActivationLayer::type) {
+  if (in_node->getType() == ActivationLayer::type) {
     ml_loge("It is not allowed to realize ativation layer, possibly layer is "
             "added right after activation");
     return ML_ERROR_INVALID_PARAMETER;
@@ -175,11 +173,10 @@ int NetworkGraph::realizeActivationType(
   }
 
   std::shared_ptr<LayerNode> lnode = createLayerNode(ActivationLayer::type);
-  graph.ensureName(*lnode, current.getName());
+  graph.ensureName(*lnode, in_node->getName());
 
   if (in_node->getDistribute()) {
     lnode->setProperty({"distribute=true"});
-    graph.ensureName(*lnode, "", "_distribute");
   }
 
   std::shared_ptr<Layer> layer = lnode->getObject();
@@ -188,7 +185,7 @@ int NetworkGraph::realizeActivationType(
   lnode->setInputLayers({in_node->getName()});
   /** output layers for layer aobj will be set in setOutputLayers() */
 
-  updateConnectionName(current.getName(), layer->getName());
+  updateConnectionName(in_node->getName(), lnode->getName());
   graph.addNode(lnode, false);
 
   return status;
@@ -196,27 +193,26 @@ int NetworkGraph::realizeActivationType(
 
 int NetworkGraph::realizeMultiOutputType(
   const std::shared_ptr<LayerNode> &in_node) {
-  Layer &current = *in_node->getObject();
   int status = ML_ERROR_NONE;
   /**
    * Multi-input works with time distribution layer by itself
    *
    */
 
-  if (current.getNumOutputs() == 1)
+  if (in_node->getNumOutputs() <= 1)
     return ML_ERROR_NONE;
 
   std::shared_ptr<LayerNode> lnode = createLayerNode(OutputLayer::type);
   std::shared_ptr<Layer> layer = lnode->getObject();
-  graph.ensureName(*lnode, current.getName());
+  graph.ensureName(*lnode, in_node->getName());
 
   lnode->setInputLayers({in_node->getName()});
   lnode->setOutputLayers(in_node->getOutputLayers());
 
-  in_node->setOutputLayers({layer->getName()});
+  in_node->setOutputLayers({lnode->getName()});
 
   for (unsigned int i = 0; i < in_node->getNumOutputs(); ++i) {
-    updateConnectionName(current.getName(), layer->getName());
+    updateConnectionName(in_node->getName(), lnode->getName());
   }
 
   graph.addNode(lnode, false);
@@ -276,11 +272,10 @@ int NetworkGraph::addLossLayer(const LossType loss_type) {
 
   if (updated_last_node->getDistribute()) {
     lnode->setProperty({"distribute=true"});
-    graph.ensureName(*lnode, "", "_distribute");
   }
 
   last_layer_node = LNODE(updated_last_node);
-  last_layer_node->setOutputLayers({layer->getName()});
+  last_layer_node->setOutputLayers({lnode->getName()});
 
   lnode->setInputLayers({input_str});
 
@@ -367,7 +362,7 @@ int NetworkGraph::isCompilable() {
 }
 
 int NetworkGraph::checkCompiledGraph() {
-  auto const &l = getSortedLayerNode(0)->getObject();
+  auto const &l = getSortedLayerNode(0);
   /** First layer cannot be activation, batch normalization or loss */
   const std::string &type = l->getType();
   if (istrequal(type, ActivationLayer::type) ||
@@ -405,7 +400,7 @@ int NetworkGraph::realizeGraph() {
   for (unsigned int i = 0; i < num_nodes; ++i) {
     auto const &lnode = LNODE(node_list[i]);
     Layer &l = *lnode->getObject();
-    ml_logd("layer name: %s", l.getName().c_str());
+    ml_logd("layer name: %s", lnode->getName().c_str());
 
     /** If a layer does not has input nodes, then it must have input dimension
      */
@@ -660,7 +655,7 @@ void NetworkGraph::inPlaceOptimize(Manager &manager) {
         getLayerNode(layer_node->getInputLayers()[0])->getObject();
 
       unsigned int loc;
-      auto layer_name = l->getName();
+      auto layer_name = layer_node->getName();
       auto &output_layers = prev_node->getOutputLayers();
       for (loc = 0; loc < output_layers.size(); ++loc)
         if (output_layers[loc] == layer_name)
@@ -723,7 +718,7 @@ void NetworkGraph::inPlaceOptimize(Manager &manager) {
       }
 
       /** Untrack the memory for this layer */
-      manager.untrackLayerInOuts(prev_layer->getName());
+      manager.untrackLayerInOuts(prev_node->getName());
     }
   }
 }
@@ -735,7 +730,7 @@ int NetworkGraph::initialize(std::shared_ptr<Manager> manager) {
     bool first = idx == 0;
     auto const &lnode = getSortedLayerNode(idx);
     auto &lptr = lnode->getObject();
-    ml_logd("layer name : %s", lptr->getName().c_str());
+    ml_logd("layer name : %s", lnode->getName().c_str());
     std::string cur_type = lptr->getType();
 
     /**
@@ -757,7 +752,7 @@ int NetworkGraph::initialize(std::shared_ptr<Manager> manager) {
 
         unsigned int location = 0;
         for (unsigned int j = 0; j < in_layer_node->getNumOutputs(); ++j) {
-          if (in_layer_node->getOutputLayers()[j] == lptr->getName()) {
+          if (in_layer_node->getOutputLayers()[j] == lnode->getName()) {
             location = j;
             break;
           }
@@ -775,7 +770,7 @@ int NetworkGraph::initialize(std::shared_ptr<Manager> manager) {
     status = lptr->initialize(*manager);
     NN_RETURN_STATUS();
 
-    auto &in_out = manager->trackLayerOutputs(cur_type, lptr->getName(),
+    auto &in_out = manager->trackLayerOutputs(cur_type, lnode->getName(),
                                               lptr->getOutputDimension(),
                                               lptr->getInputDimension());
     lptr->setOutputBuffers(in_out);
@@ -789,7 +784,7 @@ int NetworkGraph::initialize(std::shared_ptr<Manager> manager) {
 
         unsigned int location = 0;
         for (unsigned int j = 0; j < in_layer_node->getNumOutputs(); ++j) {
-          if (in_layer_node->getOutputLayers()[j] == lptr->getName()) {
+          if (in_layer_node->getOutputLayers()[j] == lnode->getName()) {
             location = j;
             break;
           }
@@ -799,7 +794,7 @@ int NetworkGraph::initialize(std::shared_ptr<Manager> manager) {
           getLayerNode(input_layers[i])->getObject()->net_hidden[location];
       }
     } else {
-      auto &in_out = manager->trackLayerInputs(cur_type, lptr->getName(),
+      auto &in_out = manager->trackLayerInputs(cur_type, lnode->getName(),
                                                lptr->getInputDimension(),
                                                lptr->getOutputDimension());
       lptr->setInputBuffers(in_out);

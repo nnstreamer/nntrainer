@@ -82,7 +82,7 @@ TEST(AppContext, DefaultEnvironmentPath_p) {
     std::cerr << "failed to remove file\n";
   }
 
-  EXPECT_NO_THROW(layer->getName());
+  EXPECT_NO_THROW(layer->getType());
   EXPECT_NE(layer->setProperty({"invalid_values"}), ML_ERROR_NONE);
   EXPECT_EQ(layer->checkValidation(), ML_ERROR_NONE);
   EXPECT_EQ(layer->getOutputDimension()[0], nntrainer::TensorDim());

@@ -15,6 +15,7 @@
 #include <memory>
 
 #include <app_context.h>
+#include <layer_node.h>
 #include <manager.h>
 #include <nntrainer_test_util.h>
 
@@ -27,17 +28,19 @@ TEST(centroid_knn, simple_functions) {
   auto &app_context = nntrainer::AppContext::Global();
   app_context.registerFactory(nntrainer::createLayer<CentroidKNN>);
 
-  auto c = app_context.createObject<nntrainer::Layer>(
-    "centroid_knn", {"num_class=5", "input_shape=1:1:3"});
+  auto lnode =
+    nntrainer::createLayerNode(app_context.createObject<nntrainer::Layer>(
+      "centroid_knn", {"num_class=5", "input_shape=1:1:3"}));
+  auto &c = lnode->getObject();
 
-  std::unique_ptr<CentroidKNN> layer(static_cast<CentroidKNN *>(c.release()));
+  std::shared_ptr<CentroidKNN> layer = std::static_pointer_cast<CentroidKNN>(c);
 
   nntrainer::Manager manager{true, true, true, false};
   layer->initialize(manager);
   layer->setInputBuffers(manager.trackLayerInputs(
-    layer->getType(), layer->getName(), layer->getInputDimension()));
+    lnode->getType(), lnode->getName(), layer->getInputDimension()));
   layer->setOutputBuffers(manager.trackLayerOutputs(
-    layer->getType(), layer->getName(), layer->getOutputDimension()));
+    lnode->getType(), lnode->getName(), layer->getOutputDimension()));
 
   manager.initializeTensors(true);
   manager.allocateTensors();

@@ -320,7 +320,7 @@ void NodeWatcher::verifyGrad(const std::string &error_msg) {
 
 void NodeWatcher::forward(int iteration, NodeWatcher &next_node) {
   std::stringstream ss;
-  ss << "forward failed at " << node->getObject()->getName() << " at iteration "
+  ss << "forward failed at " << node->getName() << " at iteration "
      << iteration;
   std::string err_msg = ss.str();
 
@@ -335,8 +335,7 @@ nntrainer::sharedConstTensors
 NodeWatcher::lossForward(nntrainer::sharedConstTensors pred,
                          nntrainer::sharedConstTensors answer, int iteration) {
   std::stringstream ss;
-  ss << "loss failed at " << node->getObject()->getName() << " at iteration "
-     << iteration;
+  ss << "loss failed at " << node->getName() << " at iteration " << iteration;
   std::string err_msg = ss.str();
 
   nntrainer::sharedConstTensors out =
@@ -353,8 +352,8 @@ void NodeWatcher::backward(int iteration, bool verify_deriv, bool verify_grad) {
   }
 
   std::stringstream ss;
-  ss << "backward failed at " << node->getObject()->getName()
-     << " at iteration " << iteration;
+  ss << "backward failed at " << node->getName() << " at iteration "
+     << iteration;
   std::string err_msg = ss.str();
 
   std::vector<nntrainer::Tensor> out = node->getObject()->getDerivatives();
