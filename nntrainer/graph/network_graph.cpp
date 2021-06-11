@@ -45,9 +45,6 @@ int NetworkGraph::compile(const LossType loss_type) {
   status = realizeGraph();
   NN_RETURN_STATUS();
 
-  status = connectGraph();
-  NN_RETURN_STATUS();
-
   graph.topologicalSort();
 
   status = addLossLayer(loss_type);
@@ -58,8 +55,6 @@ int NetworkGraph::compile(const LossType loss_type) {
   status = checkCompiledGraph();
   NN_RETURN_STATUS();
 
-  /** Save memory by removing edges once it has been compiled */
-  graph.removeEdges();
   compiled = true;
 
   return status;
@@ -304,7 +299,6 @@ int NetworkGraph::addLossLayer(const LossType loss_type) {
    * for performance.
    */
   graph.addNode(lnode, false);
-  connectGraph(graph.size() - 1);
   graph.addLossToSorted();
 
   return ML_ERROR_NONE;
@@ -473,27 +467,6 @@ int NetworkGraph::realizeGraph() {
   /// @todo add check that input_layers <-> output_layers does match.
 
   return status;
-}
-
-void NetworkGraph::connectGraph(unsigned int adj_idx) {
-
-  std::shared_ptr<LayerNode> node = LNODE(graph.getNode(adj_idx));
-
-  auto &input_layers = node->getInputLayers();
-  for (unsigned int j = 0; j < input_layers.size(); ++j) {
-    if (istrequal(input_layers[j], "__data__"))
-      continue;
-    unsigned int to_node_id = getLayerNode(input_layers[j])->getIndex();
-    graph.addEdge(to_node_id, node);
-  }
-}
-
-int NetworkGraph::connectGraph() {
-  for (unsigned int i = 0; i < graph.size(); ++i) {
-    connectGraph(i);
-  }
-
-  return ML_ERROR_NONE;
 }
 
 void NetworkGraph::setBatchSize(unsigned int batch_size) {

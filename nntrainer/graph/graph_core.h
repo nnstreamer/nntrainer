@@ -50,23 +50,13 @@ public:
    * @brief getter of number of nodes
    * @param[out] number of nodes
    */
-  unsigned int size() const {
-    if (Sorted.empty())
-      return adj.size();
-    else
-      return Sorted.size();
-  }
+  unsigned int size() const { return node_list.size(); }
 
   /**
    * @brief get if the graph is empty
    * @param[out] true if empty, else false
    */
-  bool empty() const {
-    if (Sorted.empty())
-      return adj.empty();
-    else
-      return Sorted.empty();
-  }
+  bool empty() const { return node_list.empty(); }
 
   /**
    * @brief     Swap function for the class
@@ -74,7 +64,6 @@ public:
   friend void swap(GraphCore &lhs, GraphCore &rhs) {
     using std::swap;
 
-    swap(lhs.adj, rhs.adj);
     swap(lhs.node_list, rhs.node_list);
     swap(lhs.Sorted, rhs.Sorted);
     swap(lhs.node_names, rhs.node_names);
@@ -85,7 +74,7 @@ public:
    * @brief     reset the graph
    */
   void reset() {
-    adj.clear();
+    node_list.clear();
     Sorted.clear();
     node_names.clear();
     def_name_count = 0;
@@ -221,24 +210,10 @@ public:
   }
 
   /**
-   * @brief add Edge between graph nodes
-   * @param[in] ith Node index : From
-   * @param[in] node GraphNode object to be added : To
+   * @brief     make adjancency list for the current graph
    */
-  void addEdge(unsigned int ith, const std::shared_ptr<GraphNode> &node);
-
-  /**
-   * @brief     make connection between nodes
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   */
-  int connectGraph();
-
-  /**
-   * @brief     remove all the edges from the graph
-   *
-   */
-  void removeEdges();
+  void
+  makeAdjacencyList(std::vector<std::list<std::shared_ptr<GraphNode>>> &adj);
 
   /**
    * @brief     Ensure that node has a name.
@@ -272,10 +247,6 @@ public:
   }
 
 private:
-  /// TODO: make this when needed. Till then, keep only nodelist
-  std::vector<std::list<std::shared_ptr<GraphNode>>>
-    adj; /**< adjacency list for graph */
-
   std::vector<std::shared_ptr<GraphNode>>
     node_list;                                    /**< Unordered Node List  */
   std::vector<std::shared_ptr<GraphNode>> Sorted; /**< Ordered Node List  */
@@ -292,8 +263,10 @@ private:
    * @param[in] visited temp list
    * @param[in] stack for Node list to visit.
    */
-  void topologicalSortUtil(unsigned int ith, std::vector<bool> &visited,
-                           std::stack<std::shared_ptr<GraphNode>> &Stack);
+  void
+  topologicalSortUtil(std::vector<std::list<std::shared_ptr<GraphNode>>> &adj,
+                      unsigned int ith, std::vector<bool> &visited,
+                      std::stack<std::shared_ptr<GraphNode>> &Stack);
 
   /**
    * @brief     make connection for the given node idx
