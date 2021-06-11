@@ -339,209 +339,81 @@ if __name__ == "__main__":
         # debug=["name", "summary", "output", "initial_weights"],
     )
 
-    lstm_layer_tc = lambda lstm_layer: partial(
+    lstm_layer_tc = lambda batch, time, return_sequences: partial(
         record,
         model=[
-            K.Input(batch_shape=(1, 1, 1)),
-            lstm_layer,
-            K.layers.Dense(1)
+            K.Input(shape=(time, 1)),
+            K.layers.LSTM(
+                time,
+                recurrent_activation="sigmoid",
+                activation="tanh",
+                return_sequences=return_sequences,
+            ),
+            K.layers.Dense(1),
         ],
         optimizer=opt.SGD(learning_rate=0.1),
-        iteration=1,
-        input_shape=(1,1,1),
-        label_shape=(1,1),
+        iteration=10,
+        input_shape=(batch, time, 1),
+        label_shape=(batch, time, 1),
         is_onehot=False,
-        loss_fn_str="mse"
+        loss_fn_str="mse",
     )
-    lstm = K.layers.LSTM(1, recurrent_activation='sigmoid', activation='tanh')
-    lstm_layer_tc(lstm)(file_name="lstm_basic.info", debug=["summary", "initial_weights", "dx", "output", "layer_name", "label","weights","gradients"],)
 
-    lstm_layer_return_sequence = lambda lstm_layer: partial(
-        record,
-        model=[
-            K.Input(batch_shape=(1, 2, 1)),
-            lstm_layer,
-            K.layers.Dense(1)
-        ],
-        optimizer=opt.SGD(learning_rate=0.1),
-        iteration=1,
-        input_shape=(1,2,1),
-        label_shape=(2,1),
-        is_onehot=False,
-        loss_fn_str="mse"
-    )
-    lstm = K.layers.LSTM(2, recurrent_activation='sigmoid', activation='tanh', return_sequences=True)
-    lstm_layer_return_sequence(lstm)(file_name="lstm_return_sequence.info", debug=["summary", "initial_weights", "dx", "output", "layer_name", "label","weights","gradients"],)    
+    lstm_layer_tc(1, 1, False)(file_name="lstm_basic.info")
+    lstm_layer_tc(1, 2, True)(file_name="lstm_return_sequence.info")
+    lstm_layer_tc(2, 2, True)(file_name="lstm_return_sequence_with_batch.info")
 
-    lstm_layer_return_sequence_with_batch = lambda lstm_layer: partial(
-        record,
-        model=[
-            K.Input(batch_shape=(2, 2, 1)),
-            lstm_layer,
-            K.layers.Dense(1)
-        ],
-        optimizer=opt.SGD(learning_rate=0.1),
-        iteration=1,
-        input_shape=(2,2,1),
-        label_shape=(2,2,1),
-        is_onehot=False,
-        loss_fn_str="mse"
-    )
-    lstm = K.layers.LSTM(2, recurrent_activation='sigmoid', activation='tanh', return_sequences=True)
-    lstm_layer_return_sequence_with_batch(lstm)(file_name="lstm_return_sequence_with_batch.info", debug=["summary", "initial_weights", "dx", "output", "layer_name", "label"],)
-
-    lstm_layer_return_sequence_with_batch_n = lambda lstm_layer: partial(
-        record,
-        model=[
-            K.Input(batch_shape=(2, 2, 1)),
-            lstm_layer,
-            K.layers.Dense(1)
-        ],
-        optimizer=opt.SGD(learning_rate=0.1),
-        iteration=2,
-        input_shape=(2,2,1),
-        label_shape=(2,2,1),
-        is_onehot=False,
-        loss_fn_str="mse"
-    )
-    lstm = K.layers.LSTM(2, recurrent_activation='sigmoid', activation='tanh', return_sequences=True)
-    lstm_layer_return_sequence_with_batch_n(lstm)(file_name="lstm_return_sequence_with_batch_n.info", debug=["summary", "initial_weights", "dx", "output", "layer_name", "label","weights","gradients"],)
-
-    multi_lstm_layer_return_sequence = partial(
-        record,
+    record(
+        file_name="multi_lstm_return_sequence.info",
         model=[
             K.Input(batch_shape=(1, 2, 1)),
-            K.layers.LSTM(2, recurrent_activation='sigmoid', activation='tanh', return_sequences=True),
-            K.layers.LSTM(2, recurrent_activation='sigmoid', activation='tanh'),
-            K.layers.Dense(1)
+            K.layers.LSTM(
+                2,
+                recurrent_activation="sigmoid",
+                activation="tanh",
+                return_sequences=True,
+            ),
+            K.layers.LSTM(2, recurrent_activation="sigmoid", activation="tanh"),
+            K.layers.Dense(1),
         ],
         optimizer=opt.SGD(learning_rate=0.1),
-        iteration=1,
-        input_shape=(1,2,1),
-        label_shape=(1,1,1),
+        iteration=10,
+        input_shape=(1, 2, 1),
+        label_shape=(1, 1, 1),
         is_onehot=False,
-        loss_fn_str="mse"
+        loss_fn_str="mse",
     )
-    multi_lstm_layer_return_sequence(file_name="multi_lstm_return_sequence.info", debug=["summary", "initial_weights", "dx", "output", "layer_name", "label","weights","gradients"],)    
 
-    multi_lstm_layer_return_sequence_with_batch_n = partial(
+    rnn_layer_tc = lambda batch, time, return_sequences: partial(
         record,
         model=[
-            K.Input(batch_shape=(2, 2, 1)),
-            K.layers.LSTM(2, recurrent_activation='sigmoid', activation='tanh', return_sequences=True),
-            K.layers.LSTM(2, recurrent_activation='sigmoid', activation='tanh'),
-            K.layers.Dense(1)
+            K.Input(shape=(time, 1)),
+            K.layers.SimpleRNN(2, return_sequences=return_sequences),
+            K.layers.Dense(1),
         ],
         optimizer=opt.SGD(learning_rate=0.1),
-        iteration=2,
-        input_shape=(2,2,1),
-        label_shape=(2,1),
+        iteration=10,
+        input_shape=(batch, time, 1),
+        label_shape=(batch, time, 1),
         is_onehot=False,
-        loss_fn_str="mse"
+        loss_fn_str="mse",
     )
-    multi_lstm_layer_return_sequence_with_batch_n(file_name="multi_lstm_return_sequence_with_batch_n.info", debug=["summary", "initial_weights", "dx", "output", "layer_name", "label","weights","gradients"],)    
+    rnn_layer_tc(1, 1, False)(file_name="rnn_basic.info")
+    rnn_layer_tc(1, 2, True)(file_name="rnn_return_sequences.info")
+    rnn_layer_tc(2, 2, True)(file_name="rnn_return_sequence_with_batch.info")
 
-
-    rnn_layer_tc = lambda rnn_layer: partial(
-        record,
-        model=[
-            K.Input(batch_shape=(1, 1, 1)),
-            rnn_layer,
-            K.layers.Dense(1)
-        ],
-        optimizer=opt.SGD(learning_rate=0.1),
-        iteration=1,
-        input_shape=(1,1,1),
-        label_shape=(1,1),
-        is_onehot=False,
-        loss_fn_str="mse"
-    )
-    rnn = K.layers.SimpleRNN(2)
-    rnn_layer_tc(rnn)(file_name="rnn_basic.info", debug=["summary", "initial_weights", "dx", "output", "layer_name", "label","weights","gradients"],)
-
-    rnn_layer_return_sequence_tc = lambda rnn_layer: partial(
-        record,
-        model=[
-            K.Input(batch_shape=(1, 2, 1)),
-            rnn_layer,
-            K.layers.Dense(1)
-        ],
-        optimizer=opt.SGD(learning_rate=0.1),
-        iteration=1,
-        input_shape=(1,2,1),
-        label_shape=(2,1),
-        is_onehot=False,
-        loss_fn_str="mse"
-    )
-
-    rnn = K.layers.SimpleRNN(2, return_sequences=True)
-    rnn_layer_return_sequence_tc(rnn)(file_name="rnn_return_sequences.info", debug=["summary", "initial_weights", "dx", "output", "layer_name", "label"],)
-
-    rnn_layer_return_sequence_with_batch = lambda rnn_layer: partial(
-        record,
-        model=[
-            K.Input(batch_shape=(2, 2, 1)),
-            rnn_layer,
-            K.layers.Dense(1)
-        ],
-        optimizer=opt.SGD(learning_rate=0.1),
-        iteration=1,
-        input_shape=(2,2,1),
-        label_shape=(2,2,1),
-        is_onehot=False,
-        loss_fn_str="mse"
-    )
-    rnn = K.layers.SimpleRNN(2, return_sequences=True)
-    rnn_layer_return_sequence_with_batch(rnn)(file_name="rnn_return_sequence_with_batch.info", debug=["summary", "initial_weights", "dx", "output", "layer_name", "label"],)
-
-
-    rnn_layer_return_sequence_with_batch_n = lambda rnn_layer: partial(
-        record,
-        model=[
-            K.Input(batch_shape=(2, 2, 1)),
-            rnn_layer,
-            K.layers.Dense(1)
-        ],
-        optimizer=opt.SGD(learning_rate=0.1),
-        iteration=2,
-        input_shape=(2,2,1),
-        label_shape=(2,2,1),
-        is_onehot=False,
-        loss_fn_str="mse"
-    )
-    rnn = K.layers.SimpleRNN(2, return_sequences=True)
-    rnn_layer_return_sequence_with_batch_n(rnn)(file_name="rnn_return_sequence_with_batch_n.info", debug=["summary", "initial_weights", "dx", "output", "layer_name", "label","weights","gradients"],)
-
-    multi_rnn_layer_return_sequence = partial(
-        record,
+    record(
+        file_name="multi_rnn_return_sequence.info",
         model=[
             K.Input(batch_shape=(1, 2, 1)),
             K.layers.SimpleRNN(2, return_sequences=True),
             K.layers.SimpleRNN(2),
-            K.layers.Dense(1)
+            K.layers.Dense(1),
         ],
         optimizer=opt.SGD(learning_rate=0.1),
-        iteration=1,
-        input_shape=(1,2,1),
-        label_shape=(1,1,1),
+        iteration=10,
+        input_shape=(1, 2, 1),
+        label_shape=(1, 1, 1),
         is_onehot=False,
-        loss_fn_str="mse"
+        loss_fn_str="mse",
     )
-    multi_rnn_layer_return_sequence(file_name="multi_rnn_return_sequence.info", debug=["summary", "initial_weights", "dx", "output", "layer_name", "label","weights","gradients"],)    
-
-    multi_rnn_layer_return_sequence_with_batch_n = partial(
-        record,
-        model=[
-            K.Input(batch_shape=(2, 2, 1)),
-            K.layers.SimpleRNN(2, return_sequences=True),
-            K.layers.SimpleRNN(2),
-            K.layers.Dense(1)
-        ],
-        optimizer=opt.SGD(learning_rate=0.1),
-        iteration=2,
-        input_shape=(2,2,1),
-        label_shape=(2,1),
-        is_onehot=False,
-        loss_fn_str="mse"
-    )
-    multi_rnn_layer_return_sequence_with_batch_n(file_name="multi_rnn_return_sequence_with_batch_n.info", debug=["summary", "initial_weights", "dx", "output", "layer_name", "label","weights","gradients"],)    

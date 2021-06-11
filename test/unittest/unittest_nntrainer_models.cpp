@@ -1072,19 +1072,6 @@ INI lstm_return_sequence_with_batch(
     I("outputlayer") + fc_base + "unit = 1" + "input_layers=lstm"
   }
 );
-
-INI lstm_return_sequence_with_batch_n(
-  "lstm_return_sequence_with_batch_n",
-  {
-    nn_base + "loss=mse | batch_size=2",
-    sgd_base + "learning_rate = 0.1",
-    I("input") + input_base + "input_shape=1:2:1",
-    I("lstm") + lstm_base +
-      "unit = 2" + "input_layers=input"+ "return_sequences=true",
-    I("outputlayer") + fc_base + "unit = 1" + "input_layers=lstm"
-  }
-);
-
 INI rnn_basic(
   "rnn_basic",
   {
@@ -1113,21 +1100,6 @@ INI multi_lstm_return_sequence(
   "multi_lstm_return_sequence",
   {
     nn_base + "loss=mse | batch_size=1",
-    sgd_base + "learning_rate = 0.1",
-    I("input") + input_base + "input_shape=1:2:1",
-    I("lstm") + lstm_base +
-      "unit = 2" + "input_layers=input"+ "return_sequences=true",
-    I("lstm2") + lstm_base +
-      "unit = 2" + "input_layers=lstm",
-    I("outputlayer") + fc_base + "unit = 1" + "input_layers=lstm2"
-  }
-);
-
-
-INI multi_lstm_return_sequence_with_batch_n(
-  "multi_lstm_return_sequence_with_batch_n",
-  {
-    nn_base + "loss=mse | batch_size=2",
     sgd_base + "learning_rate = 0.1",
     I("input") + input_base + "input_shape=1:2:1",
     I("lstm") + lstm_base +
@@ -1176,22 +1148,6 @@ INI multi_rnn_return_sequence(
   }
 );
 
-
-INI multi_rnn_return_sequence_with_batch_n(
-  "multi_rnn_return_sequence_with_batch_n",
-  {
-    nn_base + "loss=mse | batch_size=2",
-    sgd_base + "learning_rate = 0.1",
-    I("input") + input_base + "input_shape=1:2:1",
-    I("rnn") + rnn_base +
-      "unit = 2" + "input_layers=input"+ "return_sequences=true",
-    I("rnn2") + rnn_base +
-      "unit = 2" + "input_layers=rnn",
-    I("outputlayer") + fc_base + "unit = 1" + "input_layers=rnn2"
-  }
-);
-
-
 INSTANTIATE_TEST_CASE_P(
   nntrainerModelAutoTests, nntrainerModelTest, ::testing::Values(
     mkModelTc(fc_sigmoid_mse, "3:1:1:10", 10),
@@ -1235,19 +1191,14 @@ INSTANTIATE_TEST_CASE_P(
     // mkModelTc(fc_softmax_mse_distribute_validate, "3:1:5:3", 1),
     // mkModelTc(fc_softmax_cross_distribute_validate, "3:1:5:3", 1),
     // mkModelTc(fc_sigmoid_cross_distribute_validate, "3:1:5:3", 1)
-    mkModelTc(rnn_basic, "1:1:1:1", 1),
-    mkModelTc(rnn_return_sequences, "1:1:2:1", 1),
-    mkModelTc(lstm_basic, "1:1:1:1", 1),
-    mkModelTc(lstm_return_sequence, "1:1:2:1", 1),
-    mkModelTc(lstm_return_sequence_with_batch, "2:1:2:1", 1),
-    mkModelTc(lstm_return_sequence_with_batch_n, "2:1:2:1", 2),
-    mkModelTc(multi_lstm_return_sequence, "1:1:1:1", 1),
-    mkModelTc(multi_lstm_return_sequence_with_batch_n, "2:1:1:1", 2),
-    mkModelTc(rnn_return_sequence_with_batch, "2:1:2:1", 1),
-    mkModelTc(rnn_return_sequence_with_batch_n, "2:1:2:1", 2),
-    mkModelTc(multi_rnn_return_sequence, "1:1:1:1", 1),
-    mkModelTc(multi_rnn_return_sequence_with_batch_n, "2:1:1:1", 2)
-
+    mkModelTc(lstm_basic, "1:1:1:1", 10),
+    mkModelTc(lstm_return_sequence, "1:1:2:1", 10),
+    mkModelTc(lstm_return_sequence_with_batch, "2:1:2:1", 10),
+    mkModelTc(multi_lstm_return_sequence, "1:1:1:1", 10),
+    mkModelTc(rnn_basic, "1:1:1:1", 10),
+    mkModelTc(rnn_return_sequences, "1:1:2:1", 10),
+    mkModelTc(rnn_return_sequence_with_batch, "2:1:2:1", 10),
+    mkModelTc(multi_rnn_return_sequence, "1:1:1:1", 10)
 // / #if gtest_version <= 1.7.0
 ));
 /// #else gtest_version > 1.8.0

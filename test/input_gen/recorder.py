@@ -122,7 +122,7 @@ def prepare_data(model, input_shape, label_shape, writer_fn, is_onehot, **kwargs
             depth=label_shape[1],
         )
     else:
-        label=_rand_like(label_shape)
+        label=_rand_like(label_shape) / 10
 
     initial_weights = []
     for layer in iter_model(model):
@@ -174,6 +174,7 @@ def train_step(model, optimizer, loss_fn, initial_input, label, writer_fn, **kwa
         loss = loss_fn(label, outp[-1])
 
     for layer in iter_model(model):
+
         if isinstance(layer, MultiOutLayer):
             continue
 
@@ -185,6 +186,8 @@ def train_step(model, optimizer, loss_fn, initial_input, label, writer_fn, **kwa
             layer_input = [initial_input]
 
         gradients = tape.gradient(loss, layer.trainable_weights)
+        # if layer.name == 'target':
+            # print(tape.gradient(loss, layer.hi))
         optimizer.apply_gradients(zip(gradients, layer.trainable_weights))
 
         if isinstance(optimizer, tf.keras.optimizers.Adam):
