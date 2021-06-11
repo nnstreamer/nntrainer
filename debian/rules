@@ -17,9 +17,9 @@ ROOT_DIR:=$(shell pwd)
 export DEB_HOST_MULTIARCH ?= $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
 export DEB_HOST_ARCH ?= $(shell dpkg-architecture -qDEB_HOST_ARCH)
 ifdef unit_test
-	export ENABLE_REDUCE_TOLERANCE ?= true
-else
 	export ENABLE_REDUCE_TOLERANCE ?= false
+else
+	export ENABLE_REDUCE_TOLERANCE ?= true
 endif
 
 %:
