@@ -23,6 +23,7 @@
 #include <layer_factory.h>
 #include <loss_layer.h>
 #include <neuralnet.h>
+#include <output_layer.h>
 #include <weight.h>
 
 #include "nntrainer_test_util.h"
@@ -77,6 +78,24 @@ void verify(const nntrainer::Tensor &actual, const nntrainer::Tensor &expected,
 }
 
 /**
+ * @brief verify tensor to the reference and throw if not match to stop
+ *
+ * @param actual actual tensor vector
+ * @param expected reference tensor vector
+ * @param error_msg error msg to print if not match
+ */
+void verify(const std::vector<nntrainer::Tensor> &actual,
+            const std::vector<nntrainer::Tensor> &expected,
+            const std::string &error_msg) {
+  NNTR_THROW_IF(actual.size() != expected.size(), std::invalid_argument)
+    << error_msg;
+
+  for (size_t i = 0; i < actual.size(); ++i) {
+    verify(actual[i], expected[i], error_msg);
+  }
+}
+
+/**
  * @brief NodeWatcher has an operation Node. This class monitors data in and out
  * happening in the node.
  *
@@ -107,9 +126,13 @@ public:
       expected_weights.push_back(w.clone());
     }
 
-    expected_output =
-      nntrainer::Tensor(node->getObject()->getOutputDimension()[0]);
-    expected_dx = nntrainer::Tensor(node->getObject()->getInputDimension()[0]);
+    for (auto &out_dim : node->getObject()->getOutputDimension()) {
+      expected_output.emplace_back(out_dim);
+    }
+
+    for (auto &in_dim : node->getObject()->getInputDimension()) {
+      expected_dx.emplace_back(in_dim);
+    }
   }
 
   /**
@@ -193,8 +216,8 @@ public:
 
 private:
   NodeType node;
-  nntrainer::Tensor expected_output;
-  nntrainer::Tensor expected_dx;
+  std::vector<nntrainer::Tensor> expected_output;
+  std::vector<nntrainer::Tensor> expected_dx;
   std::vector<nntrainer::Weight> expected_weights;
 };
 
@@ -250,18 +273,29 @@ private:
 };
 
 void NodeWatcher::read(std::ifstream &in) {
-  expected_output.read(in);
-  expected_dx.read(in);
+  // log prints are commented on purpose
+  // std::cout << "[=======" << node->getName() << "==========]\n";
 
-  /// @note below is harrasing the fact the tensor shares same base memory
-  /// it should better be getGraidentRef() or somewhat equivalent
+  auto read_ = [&in](auto &target) {
+    // std::cout << target.getDim();
+    target.read(in);
+  };
+
+  // std::cout << "expected_output " << expected_output.size() << "\n";
+  std::for_each(expected_output.begin(), expected_output.end(), read_);
+  // std::cout << "expected_dx " << expected_dx.size() << "\n";
+  std::for_each(expected_dx.begin(), expected_dx.end(), read_);
+
   for (auto &i : expected_weights) {
-    if (i.getTrainable())
-      i.getGradient().read(in);
+    if (i.getTrainable()) {
+      // std::cout << "weight-" << i.getName() << ": " << i.getDim();
+      i.getGradientRef().read(in);
+    }
   }
 
   for (auto &i : expected_weights) {
-    i.getVariable().read(in);
+    // std::cout << "grad-" << i.getName() << ": " << i.getDim();
+    i.getVariableRef().read(in);
   }
 }
 
@@ -292,8 +326,9 @@ void NodeWatcher::forward(int iteration, NodeWatcher &next_node) {
 
   std::vector<nntrainer::Tensor> out = node->getObject()->getOutputs();
 
-  if (!next_node.node->getObject()->supportInPlace())
-    verify(out[0], expected_output, err_msg + " at output");
+  if (!next_node.node->getObject()->supportInPlace() &&
+      getNodeType() != nntrainer::OutputLayer::type)
+    verify(out, expected_output, err_msg + " at output");
 }
 
 nntrainer::sharedConstTensors
@@ -312,6 +347,11 @@ NodeWatcher::lossForward(nntrainer::sharedConstTensors pred,
 }
 
 void NodeWatcher::backward(int iteration, bool verify_deriv, bool verify_grad) {
+
+  if (getNodeType() == nntrainer::OutputLayer::type) {
+    return;
+  }
+
   std::stringstream ss;
   ss << "backward failed at " << node->getObject()->getName()
      << " at iteration " << iteration;
@@ -324,7 +364,7 @@ void NodeWatcher::backward(int iteration, bool verify_deriv, bool verify_grad) {
   }
 
   if (verify_deriv) {
-    verify(out[0], expected_dx, err_msg + " derivative");
+    verify(out, expected_dx, err_msg + " derivative");
   }
 
   verifyWeight(err_msg);
@@ -463,6 +503,10 @@ GraphWatcher::prepareData(std::ifstream &f,
 
 void GraphWatcher::readIteration(std::ifstream &f) {
   for (auto &i : nodes) {
+    if (i.getNodeType() == nntrainer::OutputLayer::type) {
+      continue;
+    }
+
     i.read(f);
   }
 
@@ -1017,8 +1061,8 @@ INI fc_sigmoid_cross_distribute_validate(
   }
 );
 
-INI addition_resnet_like_validate(
-  "addition_resnet_like_validate",
+INI addition_resnet_like(
+  "addition_resnet_like",
   {
     nn_base + "loss=mse | batch_size = 3",
     sgd_base + "learning_rate = 0.1",
@@ -1185,7 +1229,7 @@ INSTANTIATE_TEST_CASE_P(
     mkModelTc(preprocess_flip_validate, "3:1:1:10", 10),
 
     /**< Addition test */
-    mkModelTc(addition_resnet_like_validate, "3:1:1:10", 10),
+    mkModelTc(addition_resnet_like, "3:1:1:10", 10),
 
     /// #1192 time distribution inference bug
     // mkModelTc(fc_softmax_mse_distribute_validate, "3:1:5:3", 1),
