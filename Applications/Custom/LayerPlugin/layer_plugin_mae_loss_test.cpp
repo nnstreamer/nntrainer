@@ -11,26 +11,12 @@
  * @bug    No known bugs except for NYI items
  *
  */
+#include <tuple>
+
 #include <gtest/gtest.h>
 
-#include <fstream>
-#include <iostream>
-#include <string>
+#include <layer_plugin_common_test.h>
 
-#include <app_context.h>
-#include <layer.h>
-#include <layer_internal.h>
-
-static const char *NNTRAINER_PATH = std::getenv("NNTRAINER_PATH");
-
-TEST(MaeLossLayer, DlRegisterOpen_p) {
-  ASSERT_NE(NNTRAINER_PATH, nullptr)
-    << "NNTRAINER_PATH environment value must be set";
-  auto ac = nntrainer::AppContext();
-
-  ac.registerLayer("libmae_loss_layer.so", NNTRAINER_PATH);
-
-  auto layer = ac.createObject<nntrainer::LayerV1>("mae_loss");
-
-  EXPECT_EQ(layer->getType(), "mae_loss");
-}
+INSTANTIATE_TEST_CASE_P(
+  MaeLossLayer, LayerPluginCommonTest,
+  ::testing::Values(std::make_tuple("libmae_loss_layer.so", "mae_loss")));

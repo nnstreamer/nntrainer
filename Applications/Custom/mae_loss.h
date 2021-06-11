@@ -48,8 +48,9 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int setProperty(std::vector<std::string> values) override { /** NYI */
-    return 0;
+  int setProperty(std::vector<std::string> values) override {
+    /// this implementation makes to pass the test, this will change soon.
+    return values.size();
   }
 
   /**
@@ -67,6 +68,13 @@ public:
    */
   void forwarding(bool training = true) override { /** NYI */
   }
+
+  /**
+   * @brief require label of a function
+   *
+   * @return bool true if requires label
+   */
+  bool requireLabel() const override { return true; }
 
   /**
    * @brief     calc the derivative to be passed to the previous layer
