@@ -274,7 +274,7 @@ public:
             ExportMethods method = ExportMethods::METHOD_STRINGVECTOR) const {
     exporter.saveResult(props, method, this);
     layer->export_to(exporter, method);
-  };
+  }
 
   /**
    * @brief     read layer Weight & Bias data from file
