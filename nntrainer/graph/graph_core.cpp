@@ -102,6 +102,9 @@ void GraphCore::topologicalSort() {
     Sorted.push_back(dfs_stack.top());
     dfs_stack.pop();
   }
+
+  if (Sorted.size() != node_list.size())
+    throw std::runtime_error("Internal error in topologicalSort");
 }
 
 const std::shared_ptr<GraphNode> &
@@ -114,19 +117,6 @@ GraphCore::getNode(const std::string &name) const {
   std::stringstream ss;
   ss << "Cannot find graph node: " << name;
   throw std::invalid_argument(ss.str());
-}
-
-std::vector<std::shared_ptr<GraphNode>> GraphCore::getNodes() const {
-  std::vector<std::shared_ptr<GraphNode>> ret;
-  if (!Sorted.empty()) {
-    std::transform(Sorted.begin(), Sorted.end(), std::back_inserter(ret),
-                   [](auto const &elem) { return elem; });
-  } else {
-    std::transform(node_list.begin(), node_list.end(), std::back_inserter(ret),
-                   [](auto const &elem) { return elem; });
-  }
-
-  return ret;
 }
 
 void GraphCore::addNode(std::shared_ptr<GraphNode> node, bool ensure_name) {

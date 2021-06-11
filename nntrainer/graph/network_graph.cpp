@@ -62,20 +62,17 @@ int NetworkGraph::compile(const LossType loss_type) {
 
 void NetworkGraph::updateConnectionName(const std::string &from,
                                         const std::string &to) {
-  const std::vector<std::shared_ptr<GraphNode>> &node_list = graph.getNodes();
-  for (unsigned int i = 0; i < node_list.size(); ++i) {
-    auto &layer = node_list[i];
-    if (istrequal(layer->getName(), to))
+  for (auto const &gnode : graph) {
+    if (istrequal(gnode->getName(), to))
       continue;
-    LNODE(node_list[i])->updateInputLayers(from, to);
+    LNODE(gnode)->updateInputLayers(from, to);
   }
 }
 
 void NetworkGraph::addDefaultInputLayers() {
-  const std::vector<std::shared_ptr<GraphNode>> &node_list = graph.getNodes();
-  for (unsigned int i = 1; i < node_list.size(); ++i) {
-    auto layer = LNODE(node_list[i]);
-    auto prev_layer = LNODE(node_list[i - 1]);
+  for (auto iter = cbegin() + 1; iter != cend(); iter++) {
+    auto layer = *iter;
+    auto prev_layer = *(iter - 1);
     if (layer->getNumInputs() == 0) {
       layer->addInputLayers(prev_layer->getName());
     }
@@ -291,13 +288,11 @@ int NetworkGraph::addLossLayer(const LossType loss_type) {
 
 void NetworkGraph::setOutputLayers() {
 
-  const std::vector<std::shared_ptr<GraphNode>> &node_list = graph.getNodes();
-
   size_t last_layer_count = 0;
-  for (unsigned int idx = 0; idx < graph.size(); ++idx) {
-    auto layer_idx = LNODE(node_list[idx]);
-    for (unsigned int i = 0; i < graph.size(); ++i) {
-      auto layer_i = LNODE(node_list[i]);
+  for (auto const gnode_idx : graph) {
+    auto layer_idx = LNODE(gnode_idx);
+    for (auto const gnode_i : graph) {
+      auto layer_i = LNODE(gnode_i);
       if (istrequal(layer_i->getName(), layer_idx->getName()))
         continue;
       for (unsigned int j = 0; j < layer_i->getNumInputs(); ++j) {
@@ -334,8 +329,8 @@ void NetworkGraph::setOutputLayers() {
       "Error: Multiple last layers in the model not supported");
   }
 
-  for (unsigned int idx = 0; idx < graph.size(); ++idx) {
-    if (LNODE(node_list[idx])->getNumOutputs() == 0)
+  for (auto const &gnode : graph) {
+    if (LNODE(gnode)->getNumOutputs() == 0)
       throw std::runtime_error("There is un-connected node");
   }
 }
@@ -386,13 +381,14 @@ int NetworkGraph::realizeGraph() {
 
   addDefaultInputLayers();
 
-  /** This loop modifes the graph. Get the size of graph preemptively. */
-  size_t num_nodes = graph.size();
-  std::vector<std::shared_ptr<GraphNode>> node_list = graph.getNodes();
-
-  for (unsigned int i = 0; i < num_nodes; ++i) {
-    auto const &lnode = LNODE(node_list[i]);
-    LayerV1 &l = *lnode->getObject();
+  /**
+   * invariant: the new realized nodes are added to the end,
+   * otherwise this iteration becomes invalid. So, every iteration must be fresh
+   * iterator as vector resize invalidates all the iterators.
+   */
+  for (unsigned int i = 0; i < graph.size(); ++i) {
+    auto const &lnode = LNODE(*(cbegin() + i));
+    auto &l = *lnode->getObject();
     ml_logd("layer name: %s", lnode->getName().c_str());
 
     /** If a layer does not has input nodes, then it must have input dimension
@@ -434,29 +430,26 @@ int NetworkGraph::realizeGraph() {
     return ML_ERROR_INVALID_PARAMETER;
   }
 
-  num_nodes = graph.size();
-  node_list = graph.getNodes();
-
-  for (unsigned int i = 0; i < num_nodes; ++i) {
-    auto const &lnode = LNODE(node_list[i]);
+  /**
+   * invariant: the new realized nodes are added to the end,
+   * otherwise this iteration becomes invalid. So, every iteration must be fresh
+   * iterator as vector resize invalidates all the iterators.
+   */
+  for (unsigned int i = 0; i < graph.size(); ++i) {
+    auto const &lnode = LNODE(*(cbegin() + i));
     if (lnode->getType() != OutputLayer::type &&
         lnode->getType() != SplitLayer::type) {
       status = realizeMultiOutputType(lnode);
       NN_RETURN_STATUS();
     }
   }
-
-  num_nodes = graph.size();
-  node_list = graph.getNodes();
-
   /// @todo add check that input_layers <-> output_layers does match.
 
   return status;
 }
 
 void NetworkGraph::setBatchSize(unsigned int batch_size) {
-  auto const &node_list = graph.getNodes();
-  for (auto const &node : node_list) {
+  for (auto const &node : graph) {
     LNODE(node)->getObject()->setBatch(batch_size);
   }
 }
@@ -498,13 +491,10 @@ NetworkGraph::getUnsortedLayers(const std::string &input_layer,
   /// Further, this function must be removed. There should be rather
   /// getAllNames and getLayerByName instead of getUnsortedLayers.
 
-  auto const &unsortedNodes = graph.getNodes();
-
   /** count layers after output layer */
   unsigned int num_layers_remove_end = 0;
   if (!output_layer.empty()) {
-    for (auto iter = unsortedNodes.rbegin(); iter != unsortedNodes.rend();
-         iter++) {
+    for (auto iter = graph.crbegin(); iter != graph.crend(); iter++) {
       if ((*iter)->getName() != output_layer)
         num_layers_remove_end++;
       else
@@ -518,8 +508,8 @@ NetworkGraph::getUnsortedLayers(const std::string &input_layer,
   /** count layers before input layer */
   unsigned int num_layers_remove_start = 0;
   if (!input_layer.empty()) {
-    for (auto iter = unsortedNodes.begin();
-         iter != unsortedNodes.end() - num_layers_remove_end; iter++) {
+    for (auto iter = graph.cbegin();
+         iter != graph.cend() - num_layers_remove_end; iter++) {
       if ((*iter)->getName() != input_layer)
         num_layers_remove_start++;
       else
@@ -529,21 +519,15 @@ NetworkGraph::getUnsortedLayers(const std::string &input_layer,
 
   /** copy the graph and return */
   std::vector<std::shared_ptr<LayerNode>> ret;
-  std::transform(unsortedNodes.begin() + num_layers_remove_start,
-                 unsortedNodes.end() - num_layers_remove_end,
-                 std::back_inserter(ret),
+  std::transform(graph.cbegin() + num_layers_remove_start,
+                 graph.cend() - num_layers_remove_end, std::back_inserter(ret),
                  [](auto const &elem) { return LNODE(elem); });
 
   return ret;
 }
 
 std::vector<std::shared_ptr<LayerNode>> NetworkGraph::getLayerNodes() const {
-  auto nodes = graph.getNodes();
-  std::vector<std::shared_ptr<LayerNode>> ret;
-  std::transform(nodes.begin(), nodes.end(), std::back_inserter(ret),
-                 [](auto const &elem) { return LNODE(elem); });
-
-  return ret;
+  return std::vector<std::shared_ptr<LayerNode>>(cbegin(), cend());
 }
 
 void NetworkGraph::extendGraph(std::vector<std::shared_ptr<LayerNode>> ex_graph,
