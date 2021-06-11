@@ -20,8 +20,8 @@
 #include <list>
 #include <map>
 #include <memory>
-#include <set>
 #include <stack>
+#include <unordered_set>
 #include <vector>
 
 #include <graph_node.h>
@@ -201,19 +201,13 @@ public:
    * @retval    Graph Object copyed
    */
   GraphCore &copy(GraphCore &from) {
+    node_list.resize(from.node_list.size());
     if (this != &from) {
-      // FIXME: this assumes elements already in nodes/adj, solve that
-      // for (unsigned int i = 0; i < adj.size(); i++)
-      //   adj[i].front()->getObject()->copy(from.adj[i].front()->getObject());
+      // or (unsigned int i = 0; i < node_list.size(); i++)
+      //  node_list[i]->copy(from.node_list[i]);
     }
     return *this;
   }
-
-  /**
-   * @brief     make adjancency list for the current graph
-   */
-  void
-  makeAdjacencyList(std::vector<std::list<std::shared_ptr<GraphNode>>> &adj);
 
   /**
    * @brief     Ensure that node has a name.
@@ -252,8 +246,7 @@ private:
   std::vector<std::shared_ptr<GraphNode>> Sorted; /**< Ordered Node List  */
   bool sorted; /** if the node_list is sorted */
 
-  /// TODO: update with unordered_set
-  std::set<std::string>
+  std::unordered_set<std::string>
     node_names;       /**< Set containing all the names of nodes in the model */
   int def_name_count; /**< Count assigned to node names declared by default */
 
@@ -269,22 +262,16 @@ private:
                       std::stack<std::shared_ptr<GraphNode>> &Stack);
 
   /**
-   * @brief     make connection for the given node idx
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   */
-  void connectGraph(unsigned int adj_idx);
-
-  /**
-   * @brief     set output connections for all the nodes
-   */
-  void setOutputLayers();
-
-  /**
    * @brief Add given GraphNode to the Graph
    * @param[in] node shared_ptr of GraphNode
    */
   void addGraphNode(std::shared_ptr<GraphNode> node);
+
+  /**
+   * @brief     make adjancency list for the current graph
+   */
+  void
+  makeAdjacencyList(std::vector<std::list<std::shared_ptr<GraphNode>>> &adj);
 };
 
 } // namespace nntrainer
