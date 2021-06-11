@@ -102,15 +102,6 @@ public:
   const std::shared_ptr<GraphNode> &getNode(const std::string &name) const;
 
   /**
-   * @brief getter all the node nodes in the model
-   * @retval node nodes
-   * @note these node nodes will be in sorted order if the model is compiled,
-   * otherwise the order is the order of addition of node nodes in the model.
-   * TODO: deprecate this
-   */
-  std::vector<std::shared_ptr<GraphNode>> getNodes() const;
-
-  /**
    * @brief     join passed graph into the existing graph model
    * @param[in] graph graph to be added/to extend
    * @param[in] prefix prefix added to names of nodes from this graph
@@ -126,13 +117,15 @@ public:
   /**
    * @brief     get begin iterator for the forwarding
    * @retval    const iterator marking the begin of forwarding
-   * TODO:      iterate over node_list if sorted is not available
    */
   template <
     typename T = GraphNode,
     std::enable_if_t<std::is_base_of<GraphNode, T>::value, T> * = nullptr>
   inline graph_iterator<T> begin() {
-    return graph_iterator<T>(&(*Sorted.begin()));
+    if (Sorted.empty())
+      return graph_iterator<T>(&(*node_list.begin()));
+    else
+      return graph_iterator<T>(&(*Sorted.begin()));
   }
 
   /**
@@ -143,7 +136,10 @@ public:
     typename T = GraphNode,
     std::enable_if_t<std::is_base_of<GraphNode, T>::value, T> * = nullptr>
   inline graph_iterator<T> end() {
-    return graph_iterator<T>(&(*Sorted.end()));
+    if (Sorted.empty())
+      return graph_iterator<T>(&(*node_list.end()));
+    else
+      return graph_iterator<T>(&(*Sorted.end()));
   }
 
   /**
@@ -154,7 +150,10 @@ public:
     typename T = GraphNode,
     std::enable_if_t<std::is_base_of<GraphNode, T>::value, T> * = nullptr>
   inline graph_const_iterator<T> cbegin() const {
-    return graph_const_iterator<T>(&(*Sorted.cbegin()));
+    if (Sorted.empty())
+      return graph_const_iterator<T>(&(*node_list.cbegin()));
+    else
+      return graph_const_iterator<T>(&(*Sorted.cbegin()));
   }
 
   /**
@@ -165,7 +164,10 @@ public:
     typename T = GraphNode,
     std::enable_if_t<std::is_base_of<GraphNode, T>::value, T> * = nullptr>
   inline graph_const_iterator<T> cend() const {
-    return graph_const_iterator<T>(&(*Sorted.cend()));
+    if (Sorted.empty())
+      return graph_const_iterator<T>(&(*node_list.cend()));
+    else
+      return graph_const_iterator<T>(&(*Sorted.cend()));
   }
 
   /**
