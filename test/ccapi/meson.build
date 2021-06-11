@@ -11,4 +11,4 @@ exec = executable(
   install_dir: application_install_dir
 )
 
-test('unittest_ccapi', exec, timeout: 60, args: '--gtest_output=xml:@0@/@1@.xml'.format(meson.build_root(), target))
+test('unittest_ccapi', exec, timeout: 120, args: '--gtest_output=xml:@0@/@1@.xml'.format(meson.build_root(), target))
