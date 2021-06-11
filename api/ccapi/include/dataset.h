@@ -114,6 +114,6 @@ std::unique_ptr<Dataset> createDataset(DatasetType type, datagen_cb train,
 } // namespace ml
 
 #else
-#error "CPP versions c++14 or over are only supported"
+#error "CPP versions c++17 or over are only supported"
 #endif // __cpluscplus
 #endif // __ML_TRAIN_DATASET_H__

@@ -16,7 +16,7 @@
 #define __ML_TRAIN_LAYER_H__
 
 #if __cplusplus < MIN_CPP_VERSION
-#error "CPP versions c++14 or over are only supported"
+#error "CPP versions c++17 or over are only supported"
 #endif // __cpluscplus
 
 #include <memory>
