@@ -173,18 +173,6 @@ public:
    * @brief     get begin iterator for the graph
    * @retval    const reverse iterator
    */
-  graph_iterator<LayerNode> begin() { return graph.begin<LayerNode>(); }
-
-  /**
-   * @brief     get end iterator for the graph
-   * @retval    const reverse iterator
-   */
-  graph_iterator<LayerNode> end() { return graph.end<LayerNode>(); }
-
-  /**
-   * @brief     get begin iterator for the graph
-   * @retval    const reverse iterator
-   */
   graph_const_iterator<LayerNode> cbegin() const {
     return graph.cbegin<LayerNode>();
   }
