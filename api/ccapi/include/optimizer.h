@@ -135,6 +135,6 @@ SGD(const std::vector<std::string> &properties = {}) {
 } // namespace ml
 
 #else
-#error "CPP versions c++14 or over are only supported"
+#error "CPP versions c++17 or over are only supported"
 #endif // __cpluscplus
 #endif // __ML_TRAIN_OPTIMIZER_H__
