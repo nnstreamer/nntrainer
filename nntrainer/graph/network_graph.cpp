@@ -62,10 +62,11 @@ int NetworkGraph::compile(const LossType loss_type) {
 
 void NetworkGraph::updateConnectionName(const std::string &from,
                                         const std::string &to) {
-  for (auto const &gnode : graph) {
-    if (istrequal(gnode->getName(), to))
+  for (auto iter = cbegin(); iter != cend(); iter++) {
+    auto &lnode = *iter;
+    if (istrequal(lnode->getName(), to))
       continue;
-    LNODE(gnode)->updateInputLayers(from, to);
+    lnode->updateInputLayers(from, to);
   }
 }
 
@@ -303,10 +304,10 @@ int NetworkGraph::addLossLayer(const LossType loss_type) {
 void NetworkGraph::setOutputLayers() {
 
   size_t last_layer_count = 0;
-  for (auto const gnode_idx : graph) {
-    auto layer_idx = LNODE(gnode_idx);
-    for (auto const gnode_i : graph) {
-      auto layer_i = LNODE(gnode_i);
+  for (auto iter_idx = cbegin(); iter_idx != cend(); iter_idx++) {
+    auto &layer_idx = *iter_idx;
+    for (auto iter_i = cbegin(); iter_i != cend(); iter_i++) {
+      auto &layer_i = *iter_i;
       if (istrequal(layer_i->getName(), layer_idx->getName()))
         continue;
       for (unsigned int j = 0; j < layer_i->getNumInputs(); ++j) {
@@ -343,8 +344,8 @@ void NetworkGraph::setOutputLayers() {
       "Error: Multiple last layers in the model not supported");
   }
 
-  for (auto const &gnode : graph) {
-    if (LNODE(gnode)->getNumOutputs() == 0)
+  for (auto iter = cbegin(); iter != cend(); iter++) {
+    if ((*iter)->getNumOutputs() == 0)
       throw std::runtime_error("There is un-connected node");
   }
 }
@@ -463,8 +464,8 @@ int NetworkGraph::realizeGraph() {
 }
 
 void NetworkGraph::setBatchSize(unsigned int batch_size) {
-  for (auto const &node : graph) {
-    LNODE(node)->getObject()->setBatch(batch_size);
+  for (auto iter = cbegin(); iter != cend(); iter++) {
+    (*iter)->getObject()->setBatch(batch_size);
   }
 }
 
