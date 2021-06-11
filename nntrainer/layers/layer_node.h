@@ -176,12 +176,21 @@ public:
   unsigned int getNumOutputs() const { return output_layers.size(); }
 
   /**
-   * @brief Get the Input Layers object
+   * @brief     Get the Input Layers object
    *
    * @return const std::vector<std::string>&
    */
   const std::vector<std::string> &getInputLayers() const {
     return input_layers;
+  }
+
+  /**
+   * @brief     Get the input connections for this node
+   *
+   * @return list of name of the nodes which form input connections
+   */
+  const std::vector<std::string> &getInputConnections() const {
+    return getInputLayers();
   }
 
   /**

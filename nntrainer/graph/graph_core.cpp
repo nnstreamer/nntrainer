@@ -22,33 +22,19 @@
 
 namespace nntrainer {
 
-void GraphCore::removeEdges() {
-  /**
-   * remove all edges to save memory.
-   * NodeList is kept for now for O(1) access of nodes by idx.
-   */
-  for (unsigned int i = 0; i < adj.size(); ++i) {
-    /**
-     * As this resize is guaranteed to not insert new elements, create a
-     * default element needed by resize.
-     */
-    adj[i].resize(1);
-  }
-}
-
 void GraphCore::addGraphNode(std::shared_ptr<GraphNode> node) {
-  node->setIndex(adj.size());
-  adj.push_back(std::list<std::shared_ptr<GraphNode>>({node}));
+  node->setIndex(node_list.size());
+  node_list.push_back(node);
 }
 
 const std::shared_ptr<GraphNode> &GraphCore::getNode(unsigned int ith) const {
   if (ith >= size())
     throw std::invalid_argument("Exceed total number of nodes");
 
-  if (adj[ith].front()->getIndex() != ith)
+  if (node_list[ith]->getIndex() != ith)
     throw std::runtime_error("Graph internal index mismatch");
 
-  return adj[ith].front();
+  return node_list[ith];
 }
 
 const std::shared_ptr<GraphNode> &
@@ -59,27 +45,47 @@ GraphCore::getSortedNode(unsigned int ith) const {
   return Sorted[ith];
 }
 
+void GraphCore::makeAdjacencyList(
+  std::vector<std::list<std::shared_ptr<GraphNode>>> &adj) {
+  /** initialize the adj list */
+  for (auto &node : node_list) {
+    adj.push_back(std::list<std::shared_ptr<GraphNode>>({node}));
+  }
+
+  /** make the connections */
+  for (auto &node : node_list) {
+    for (auto const &in_conn : node->getInputConnections()) {
+      if (istrequal(in_conn, "__data__"))
+        continue;
+      unsigned int to_node_id = getNode(in_conn)->getIndex();
+      adj[to_node_id].push_back(node);
+    }
+  }
+}
+
 void GraphCore::topologicalSortUtil(
-  unsigned int ith, std::vector<bool> &visited,
-  std::stack<std::shared_ptr<GraphNode>> &Stack) {
+  std::vector<std::list<std::shared_ptr<GraphNode>>> &adj, unsigned int ith,
+  std::vector<bool> &visited,
+  std::stack<std::shared_ptr<GraphNode>> &dfs_stack) {
   visited[ith] = true;
 
   std::list<std::shared_ptr<GraphNode>>::iterator i;
   for (i = adj[ith].begin(); i != adj[ith].end(); ++i) {
     auto index = (*i)->getIndex();
     if (!visited[index])
-      topologicalSortUtil(index, visited, Stack);
+      topologicalSortUtil(adj, index, visited, dfs_stack);
   }
 
-  Stack.push(getNode(ith));
+  dfs_stack.push(getNode(ith));
 }
 
 void GraphCore::topologicalSort() {
-  std::stack<std::shared_ptr<GraphNode>> Stack;
-  std::vector<bool> visited(adj.size());
-  Sorted.clear();
+  std::vector<std::list<std::shared_ptr<GraphNode>>> adj;
+  std::stack<std::shared_ptr<GraphNode>> dfs_stack;
+  std::vector<bool> visited(node_list.size(), false);
 
-  std::fill(visited.begin(), visited.end(), false);
+  makeAdjacencyList(adj);
+  Sorted.clear();
 
   // Quite likely this is not needed - verify this
   // TODO : After make node list of graph, we have to find root. (That means it
@@ -88,20 +94,19 @@ void GraphCore::topologicalSort() {
 
   for (unsigned int i = 0; i < adj.size(); ++i) {
     if (visited[i] == false) {
-      topologicalSortUtil(i, visited, Stack);
+      topologicalSortUtil(adj, i, visited, dfs_stack);
     }
   }
 
-  while (Stack.empty() == false) {
-    Sorted.push_back(Stack.top());
-    Stack.pop();
+  while (dfs_stack.empty() == false) {
+    Sorted.push_back(dfs_stack.top());
+    dfs_stack.pop();
   }
 }
 
 const std::shared_ptr<GraphNode> &
 GraphCore::getNode(const std::string &name) const {
-  for (auto &lnode_list : adj) {
-    auto &lnode = lnode_list.front();
+  for (auto &lnode : node_list) {
     if (istrequal(lnode->getName(), name))
       return lnode;
   }
@@ -111,22 +116,14 @@ GraphCore::getNode(const std::string &name) const {
   throw std::invalid_argument(ss.str());
 }
 
-void GraphCore::addEdge(unsigned int ith,
-                        const std::shared_ptr<GraphNode> &node) {
-  if (ith >= adj.size())
-    throw std::invalid_argument("Exceed total number of nodes");
-
-  adj[ith].push_back(node);
-}
-
 std::vector<std::shared_ptr<GraphNode>> GraphCore::getNodes() const {
   std::vector<std::shared_ptr<GraphNode>> ret;
   if (!Sorted.empty()) {
     std::transform(Sorted.begin(), Sorted.end(), std::back_inserter(ret),
                    [](auto const &elem) { return elem; });
   } else {
-    std::transform(adj.begin(), adj.end(), std::back_inserter(ret),
-                   [](auto const &elem) { return elem.front(); });
+    std::transform(node_list.begin(), node_list.end(), std::back_inserter(ret),
+                   [](auto const &elem) { return elem; });
   }
 
   return ret;
@@ -186,21 +183,14 @@ void GraphCore::removeLastNode() {
   Sorted.pop_back();
 
   /// fix index after last node has been deleted.
-  auto after = adj.erase(adj.begin() + last_node->getIndex());
+  auto after = node_list.erase(node_list.begin() + last_node->getIndex());
   auto after_index = last_node->getIndex();
 
-  for (; after != adj.end(); ++after) {
-    after->front()->setIndex(after_index++);
+  for (; after != node_list.end(); ++after) {
+    (*after)->setIndex(after_index++);
   }
-
-  /**
-   * Remove all the connections for the current last layer as it will now only
-   */
-  /// TODO: sorted.back() is not necessarily the previous layer
-  last_node = Sorted.back();
-  adj[last_node->getIndex()].resize(1);
 }
 
-void GraphCore::addLossToSorted() { Sorted.push_back(adj.back().front()); }
+void GraphCore::addLossToSorted() { Sorted.push_back(node_list.back()); }
 
 } /* namespace nntrainer */
