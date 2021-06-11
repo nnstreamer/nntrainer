@@ -62,7 +62,6 @@ int NetworkGraph::compile(const LossType loss_type) {
 
 void NetworkGraph::updateConnectionName(const std::string &from,
                                         const std::string &to) {
-
   const std::vector<std::shared_ptr<GraphNode>> &node_list = graph.getNodes();
   for (unsigned int i = 0; i < node_list.size(); ++i) {
     auto &layer = node_list[i];
