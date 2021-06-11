@@ -15,7 +15,7 @@
 #include <memory>
 
 #include <app_context.h>
-#include <layer_internal.h>
+#include <layer_node.h>
 #include <manager.h>
 #include <nntrainer_test_util.h>
 
@@ -28,17 +28,19 @@ TEST(l2norm, simple_functions) {
   auto &app_context = nntrainer::AppContext::Global();
   app_context.registerFactory(nntrainer::createLayer<L2NormLayer>);
 
-  auto c =
-    app_context.createObject<nntrainer::Layer>("l2norm", {"input_shape=1:1:4"});
+  auto lnode =
+    nntrainer::createLayerNode(app_context.createObject<nntrainer::Layer>(
+      "l2norm", {"input_shape=1:1:4"}));
+  auto &c = lnode->getObject();
 
-  std::unique_ptr<L2NormLayer> layer(static_cast<L2NormLayer *>(c.release()));
+  std::shared_ptr<L2NormLayer> layer = std::static_pointer_cast<L2NormLayer>(c);
 
   nntrainer::Manager manager;
   manager.setInferenceInOutMemoryOptimization(false);
   layer->setInputBuffers(manager.trackLayerInputs(
-    layer->getType(), layer->getName(), layer->getInputDimension()));
+    lnode->getType(), lnode->getName(), layer->getInputDimension()));
   layer->setOutputBuffers(manager.trackLayerOutputs(
-    layer->getType(), layer->getName(), layer->getOutputDimension()));
+    lnode->getType(), lnode->getName(), layer->getOutputDimension()));
 
   manager.initializeTensors(true);
   manager.allocateTensors();

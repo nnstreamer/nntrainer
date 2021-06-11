@@ -16,7 +16,7 @@
 #include <memory>
 
 #include <app_context.h>
-#include <layer_internal.h>
+#include <layer_node.h>
 #include <manager.h>
 #include <nntrainer_test_util.h>
 
@@ -37,11 +37,13 @@ TEST(centering, simple_functions) {
   auto &app_context = nntrainer::AppContext::Global();
   app_context.registerFactory(nntrainer::createLayer<CenteringLayer>);
 
-  auto c = app_context.createObject<nntrainer::Layer>(
-    "centering", {"feature_path=feature.bin", "input_shape=1:1:4"});
+  auto lnode =
+    nntrainer::createLayerNode(app_context.createObject<nntrainer::Layer>(
+      "centering", {"feature_path=feature.bin", "input_shape=1:1:4"}));
+  auto &c = lnode->getObject();
 
-  std::shared_ptr<CenteringLayer> layer(
-    static_cast<CenteringLayer *>(c.release()));
+  std::shared_ptr<CenteringLayer> layer =
+    std::static_pointer_cast<CenteringLayer>(c);
 
   nntrainer::Manager manager;
 
@@ -50,9 +52,9 @@ TEST(centering, simple_functions) {
   layer->initialize(manager);
   layer->read(stub);
   layer->setInputBuffers(manager.trackLayerInputs(
-    layer->getType(), layer->getName(), layer->getInputDimension()));
+    lnode->getType(), lnode->getName(), layer->getInputDimension()));
   layer->setOutputBuffers(manager.trackLayerOutputs(
-    layer->getType(), layer->getName(), layer->getOutputDimension()));
+    lnode->getType(), lnode->getName(), layer->getOutputDimension()));
 
   manager.initializeTensors(true);
   manager.allocateTensors();

@@ -170,8 +170,7 @@ int Layer::setProperty(std::vector<std::string> values) {
     unsigned int type = parseLayerProperty(key);
 
     if (value.empty()) {
-      ml_logd("value is empty for layer: %s, key: %s, value: %s",
-              getName().c_str(), key.c_str(), value.c_str());
+      ml_logd("value is empty: key: %s, value: %s", key.c_str(), value.c_str());
       return ML_ERROR_INVALID_PARAMETER;
     }
 
@@ -179,8 +178,8 @@ int Layer::setProperty(std::vector<std::string> values) {
       /// @note this calls derived setProperty if available
       setProperty(static_cast<PropertyType>(type), value);
     } catch (...) {
-      ml_logd("value or key is not valid for layer: %s, key: %s, value: %s",
-              getName().c_str(), key.c_str(), value.c_str());
+      ml_logd("value or key is not valid, key: %s, value: %s", key.c_str(),
+              value.c_str());
       return ML_ERROR_INVALID_PARAMETER;
     }
   }
@@ -191,12 +190,6 @@ void Layer::setProperty(const PropertyType type, const std::string &value) {
   int status = ML_ERROR_NONE;
 
   switch (type) {
-  case PropertyType::name:
-    if (!value.empty()) {
-      status = setName(value);
-      throw_status(status);
-    }
-    break;
   case PropertyType::input_shape: {
     if (getNumInputs() != 1) {
       throw std::invalid_argument("input_shape keyword is only for one input");
@@ -265,14 +258,6 @@ void Layer::setProperty(const PropertyType type, const std::string &value) {
   }
 }
 
-int Layer::setName(std::string name_) {
-  if (name_.empty())
-    return ML_ERROR_INVALID_PARAMETER;
-
-  std::get<props::Name>(layer_props).set(name_);
-  return ML_ERROR_NONE;
-}
-
 template <typename T>
 void Layer::printIfValid(std::ostream &out, const PropertyType type,
                          const T target) {
@@ -338,12 +323,13 @@ void Layer::printPreset(std::ostream &out, PrintPreset preset) {
 }
 
 void Layer::print(std::ostream &out, unsigned int flags) {
+  /** @todo properly move print to LayerNode */
   if (flags & PRINT_INST_INFO) {
     out << "===================";
-    if (getName().empty())
-      printInstance(out, this);
-    else
-      out << "<" << getName() << ">" << std::endl;
+    // if (getName().empty())
+    //   printInstance(out, this);
+    // else
+    //   out << "<" << getName() << ">" << std::endl;
 
     out << "Layer Type: " << getType() << std::endl;
   }

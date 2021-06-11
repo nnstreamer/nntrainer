@@ -90,7 +90,9 @@ public:
    * @note      This name might be changed once this layer is added to the model
    * to keep the name unique to the model
    */
-  const std::string getName() const noexcept { return getLayer()->getName(); }
+  const std::string getName() const noexcept {
+    return std::get<props::Name>(props).get();
+  }
 
   /**
    * @brief     Get name of the layer
@@ -100,7 +102,7 @@ public:
    * @note      This name might be changed once this layer is added to the model
    * to keep the name unique to the model
    */
-  std::string getName() noexcept { return getLayer()->getName(); }
+  std::string getName() noexcept { return std::get<props::Name>(props).get(); }
 
   /**
    * Support all the interface requirements by GraphNode<nntrainer::Layer>
@@ -288,6 +290,11 @@ private:
   InitLayerContext init_context; /**< context to be built for/while
                                     initialization of the layer. This will also
                                     contain the properties of the layer. */
+  /**
+   * These properties are set for the layer by the user but are intercepted
+   * and used in the node which forms the basic element of the graph.
+   */
+  std::tuple<props::Name> props; /**< properties for the layer node */
 
   /**
    * @brief setProperty by PropertyType

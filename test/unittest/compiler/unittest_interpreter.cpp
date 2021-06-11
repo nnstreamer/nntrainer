@@ -18,6 +18,7 @@
 #include <ini_interpreter.h>
 #include <interpreter.h>
 #include <layer.h>
+#include <layer_node.h>
 
 #ifdef ENABLE_TFLITE_INTERPRETER
 #include <tflite_interpreter.h>
@@ -35,11 +36,9 @@ makeGraph(const std::vector<LayerReprentation> &layer_reps) {
 
   for (const auto &layer_representation : layer_reps) {
     /// @todo Use unique_ptr here
-    std::shared_ptr<nntrainer::Layer> nntr_layer =
-      ac.createObject<nntrainer::Layer>(layer_representation.first,
-                                        layer_representation.second);
-    std::shared_ptr<nntrainer::LayerNode> layer =
-      std::make_unique<nntrainer::LayerNode>(nntr_layer);
+    std::shared_ptr<nntrainer::LayerNode> layer = createLayerNode(
+      ac.createObject<nntrainer::Layer>(layer_representation.first),
+      layer_representation.second);
     graph->addLayer(layer);
   }
 

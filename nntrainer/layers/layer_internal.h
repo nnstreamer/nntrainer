@@ -64,7 +64,7 @@ public:
           WeightInitializer::WEIGHT_XAVIER_UNIFORM,
         WeightInitializer bias_initializer_ = WeightInitializer::WEIGHT_ZEROS,
         bool trainable_ = true) :
-    layer_props(props::Name()),
+    layer_props(),
     loss(0.0f),
     activation_type(activation_type_),
     weight_regularizer(weight_regularizer_),
@@ -376,18 +376,6 @@ public:
   virtual std::vector<Weight> getWeights() { return weights; }
 
   /**
-   * @brief     Set name of the layer
-   */
-  virtual int setName(std::string name);
-
-  /**
-   * @brief     Get name of the layer
-   */
-  virtual std::string getName() noexcept {
-    return std::get<props::Name>(layer_props).get();
-  }
-
-  /**
    * @brief Preset modes for printing summary for the layer
    */
   enum class PrintPreset {
@@ -629,7 +617,7 @@ protected:
     // clang-format on
   } PrintOption;
 
-  std::tuple<props::Name> layer_props; /**< supported properties of layer */
+  std::tuple<> layer_props; /**< supported properties of layer */
 
   /**
    * @brief     Input Tensors

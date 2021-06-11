@@ -209,8 +209,7 @@ class Layer;
  * Exporter::saveTflResult(const PropsType &props, const NodeType *self);
  */
 template <>
-void Exporter::saveTflResult(const std::tuple<props::Name> &props,
-                             const Layer *self);
+void Exporter::saveTflResult(const std::tuple<> &props, const Layer *self);
 
 class LayerNode;
 /**
@@ -218,7 +217,8 @@ class LayerNode;
  * Exporter::saveTflResult(const PropsType &props, const NodeType *self);
  */
 template <>
-void Exporter::saveTflResult(const std::tuple<> &props, const LayerNode *self);
+void Exporter::saveTflResult(const std::tuple<props::Name> &props,
+                             const LayerNode *self);
 
 class FullyConnectedLayer;
 /**

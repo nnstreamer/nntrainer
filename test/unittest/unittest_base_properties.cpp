@@ -17,6 +17,7 @@
 
 #include <base_properties.h>
 #include <fc_layer.h>
+#include <layer_node.h>
 #include <nntrainer_error.h>
 #include <node_exporter.h>
 #include <util_func.h>
@@ -199,9 +200,10 @@ TEST(BasicProperty, valid_p) {
   }
 
   { /**< export from layer */
-    auto layer = nntrainer::FullyConnectedLayer(1);
+    auto lnode =
+      nntrainer::LayerNode(std::make_shared<nntrainer::FullyConnectedLayer>(1));
     nntrainer::Exporter e;
-    layer.export_to(e);
+    lnode.export_to(e);
 
     auto result =
       std::move(e.getResult<nntrainer::ExportMethods::METHOD_STRINGVECTOR>());
