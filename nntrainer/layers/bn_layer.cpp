@@ -32,8 +32,6 @@
 
 namespace nntrainer {
 
-const std::string BatchNormalizationLayer::type = "batch_normalization";
-
 enum BNParams { mu, var, gamma, beta };
 
 /// @todo add multiple axis support

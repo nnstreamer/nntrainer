@@ -21,8 +21,6 @@
 
 namespace nntrainer {
 
-const std::string PreprocessFlipLayer::type = "preprocess_flip";
-
 const std::string PreprocessFlipLayer::flip_horizontal = "horizontal";
 const std::string PreprocessFlipLayer::flip_vertical = "vertical";
 const std::string PreprocessFlipLayer::flip_horizontal_vertical =

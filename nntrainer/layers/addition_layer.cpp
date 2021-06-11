@@ -20,8 +20,6 @@
 
 namespace nntrainer {
 
-const std::string AdditionLayer::type = "addition";
-
 int AdditionLayer::initialize(Manager &manager) {
   int status = ML_ERROR_NONE;
   if (getNumInputs() == 0) {

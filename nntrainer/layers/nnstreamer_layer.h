@@ -87,7 +87,7 @@ public:
    */
   void setProperty(const PropertyType type, const std::string &value = "");
 
-  static const std::string type;
+  inline static const std::string type = "backbone_nnstreamer";
 
 private:
   std::string modelfile;

@@ -25,8 +25,6 @@
 namespace simpleshot {
 namespace layers {
 
-const std::string CenteringLayer::type = "centering";
-
 CenteringLayer::CenteringLayer(const std::string &feature_path_) :
   LayerV1(),
   feature_path(feature_path_) {}

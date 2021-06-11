@@ -21,8 +21,6 @@
 
 namespace nntrainer {
 
-const std::string EmbeddingLayer::type = "embedding";
-
 enum EmbeddingParams { weight };
 
 int EmbeddingLayer::initialize(Manager &manager) {

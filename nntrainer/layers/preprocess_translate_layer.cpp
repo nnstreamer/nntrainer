@@ -26,8 +26,6 @@
 
 namespace nntrainer {
 
-const std::string PreprocessTranslateLayer::type = "preprocess_translate";
-
 int PreprocessTranslateLayer::initialize(Manager &manager) {
   output_dim = input_dim;
 

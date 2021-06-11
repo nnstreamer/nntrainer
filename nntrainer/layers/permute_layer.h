@@ -110,7 +110,7 @@ public:
    */
   const std::string getType() const override { return PermuteLayer::type; };
 
-  static const std::string type;
+  inline static const std::string type = "permute";
 
   using LayerV1::setProperty;
 

@@ -156,7 +156,7 @@ public:
    */
   static float no_op_prime(float x);
 
-  static const std::string type;
+  inline static const std::string type = "activation";
 
 private:
   ActiFunc

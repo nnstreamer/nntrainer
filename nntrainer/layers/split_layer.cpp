@@ -21,8 +21,6 @@
 
 namespace nntrainer {
 
-const std::string SplitLayer::type = "split";
-
 int SplitLayer::initialize(Manager &manager) {
   int status = ML_ERROR_NONE;
 

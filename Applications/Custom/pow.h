@@ -78,7 +78,7 @@ public:
    */
   const std::string getType() const { return PowLayer::type; }
 
-  static const std::string type;
+  inline static const std::string type = "pow";
 
 private:
   float exponent;

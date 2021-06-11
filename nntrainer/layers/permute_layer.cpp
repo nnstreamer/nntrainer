@@ -26,8 +26,6 @@ bool props::PermuteDims::isValid(const unsigned int &value) const {
   return 0 < value && value <= 3;
 }
 
-const std::string PermuteLayer::type = "permute";
-
 /**
  * @brief buildTransposeString based on array
  * @todo deprecate this

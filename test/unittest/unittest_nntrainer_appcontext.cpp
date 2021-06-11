@@ -146,7 +146,7 @@ public:
  */
 class CustomLayer : public nntrainer::LayerV1 {
 public:
-  static const std::string type;
+  inline static const std::string type = "identity_layer";
 
   int setProperty(std::vector<std::string> values) override { return 1; }
 
@@ -158,8 +158,6 @@ public:
 
   const std::string getType() const override { return CustomLayer::type; }
 };
-
-const std::string CustomLayer::type = "identity_layer";
 
 using AC = nntrainer::AppContext;
 

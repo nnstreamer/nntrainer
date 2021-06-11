@@ -18,7 +18,6 @@
 
 namespace custom {
 
-const std::string PowLayer::type = "pow";
 namespace PowUtil {
 
 /**

@@ -22,8 +22,6 @@
 
 namespace nntrainer {
 
-const std::string LSTMLayer::type = "lstm";
-
 enum LSTMParams { weight_xh, weight_hh, bias_h };
 
 #define NUM_GATE 4
