@@ -20,6 +20,7 @@ mae_loss_layer  = shared_library('mae_loss_layer',
 
 if get_option('enable-test')
   test_target = [
+    'layer_plugin_common_test.cpp',
     'layer_plugin_pow_test.cpp',
     'layer_plugin_mae_loss_test.cpp',
   ]
