@@ -158,18 +158,6 @@ public:
   std::vector<Weight> getWeights() override { return layerImpl->getWeights(); }
 
   /**
-   * @copydoc Layer::setName(std::string name)
-   */
-  int setName(std::string name) override {
-    return layerImpl->setName(std::move(name));
-  }
-
-  /**
-   * @copydoc Layer::getName()
-   */
-  std::string getName() noexcept override { return layerImpl->getName(); }
-
-  /**
    * @copydoc Layer::getType()
    */
   virtual const std::string getType() const override {

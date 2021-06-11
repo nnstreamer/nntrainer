@@ -26,7 +26,7 @@ run_command(['cp', '-l', src_path / 'label.dat', dest_path / 'label.dat'])
 test_target = [
   'unittest_nntrainer_activations',
   'unittest_nntrainer_internal',
-  'unittest_nntrainer_layers',
+  # 'unittest_nntrainer_layers',
   'unittest_nntrainer_lazy_tensor',
   'unittest_nntrainer_tensor',
   'unittest_util_func',

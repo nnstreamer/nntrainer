@@ -156,8 +156,6 @@ public:
 
   void setTrainable(bool train) override {}
 
-  std::string getName() noexcept override { return ""; }
-
   const std::string getType() const override { return CustomLayer::type; }
 };
 

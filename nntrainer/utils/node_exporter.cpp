@@ -46,13 +46,13 @@ Exporter::getResult<ExportMethods::METHOD_TFLITE>() noexcept {
 }
 
 template <>
-void Exporter::saveTflResult(const std::tuple<props::Name> &props,
-                             const Layer *self) {
+void Exporter::saveTflResult(const std::tuple<> &props, const Layer *self) {
   createIfNull(tf_node);
 }
 
 template <>
-void Exporter::saveTflResult(const std::tuple<> &props, const LayerNode *self) {
+void Exporter::saveTflResult(const std::tuple<props::Name> &props,
+                             const LayerNode *self) {
   createIfNull(tf_node);
   tf_node->setInOut(*self);
   tf_node->setInputs(self->getObject()->getInputRef());

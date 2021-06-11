@@ -24,7 +24,8 @@ LayerNode::LayerNode(std::shared_ptr<nntrainer::Layer> l, size_t idx) :
   index(idx),
   flatten(false),
   distribute(false),
-  activation_type(ActivationType::ACT_NONE) {
+  activation_type(ActivationType::ACT_NONE),
+  props(props::Name()) {
   if (layer->getType() == TimeDistLayer::type)
     distribute = true;
 }
@@ -90,6 +91,11 @@ void LayerNode::setProperty(const nntrainer::Layer::PropertyType type,
   using PropertyType = nntrainer::Layer::PropertyType;
 
   switch (type) {
+  case PropertyType::name:
+    if (!value.empty()) {
+      std::get<props::Name>(props).set(value);
+    }
+    break;
   case PropertyType::flatten:
     if (!value.empty()) {
       status = setBoolean(flatten, value);

@@ -163,8 +163,9 @@ void TimeDistLayer::forwarding(bool training) {
     }
   }
 
-  Var_Grad in_var(i_dim, true, false, dist_layer->getName() + ":input");
-  Var_Grad out_var(h_dim, true, false, dist_layer->getName() + ":output");
+  /** @todo use context->getName() once context is enabled */
+  Var_Grad in_var(i_dim, true, false, "dist_layer:input");
+  Var_Grad out_var(h_dim, true, false, "dist_layer:output");
 
   for (unsigned int i = 0; i < in_dim.height(); ++i) {
     //
@@ -221,8 +222,9 @@ void TimeDistLayer::calcDerivative() {
   TensorDim r_dim = {ret_dim[2], 1, 1, ret_dim[3]};
   TensorDim d_dim = {der_dim[2], 1, 1, der_dim[3]};
 
-  Var_Grad in_var(r_dim, true, false, dist_layer->getName() + ":input");
-  Var_Grad out_var(d_dim, true, false, dist_layer->getName() + ":output");
+  /** @todo use context->getName() once context is enabled */
+  Var_Grad in_var(r_dim, true, false, "dist_layer:input");
+  Var_Grad out_var(d_dim, true, false, "dist_layer:output");
 
   for (unsigned int i = 0; i < der_dim[0]; ++i) {
     Tensor ret_iter =
@@ -278,8 +280,9 @@ void TimeDistLayer::calcGradient() {
     Tensor d_iter =
       derivative_.getSharedDataTensor(d_dim, i * d_dim.batch() * d_dim.width());
 
-    Var_Grad in_var(i_dim, true, false, dist_layer->getName() + ":input");
-    Var_Grad out_var(d_dim, true, false, dist_layer->getName() + ":output");
+    /** @todo use context->getName() once context is enabled */
+    Var_Grad in_var(i_dim, true, false, "dist_layer:input");
+    Var_Grad out_var(d_dim, true, false, "dist_layer:output");
 
     in_var.initializeVariable(in_iter);
     out_var.initializeGradient(d_iter);
