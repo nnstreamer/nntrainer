@@ -302,7 +302,8 @@ if __name__ == "__main__":
     def addition_test():
         # x -> [a, b] -> c
         x = K.Input(shape=(2, 3, 5), name="x")
-        a0, b0 = MultiOutLayer(num_output=2)(x)
+        # because the sort order is x -> [b, a] -> c, b0 must out first.
+        b0, a0 = MultiOutLayer(num_output=2)(x)
         a1 = TL(
             K.layers.Conv2D(
                 filters=4, kernel_size=3, strides=2, padding="same", name="addition_a1"
@@ -333,7 +334,7 @@ if __name__ == "__main__":
         input_shape=(3, 2, 3, 5),
         label_shape=(3, 10),
         optimizer=opt.SGD(learning_rate=0.1),
-        iteration=1,
+        iteration=10,
         inputs=x,
         outputs=y,
         # debug=["name", "summary", "output", "initial_weights"],
