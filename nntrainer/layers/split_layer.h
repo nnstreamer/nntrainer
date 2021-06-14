@@ -34,7 +34,8 @@ public:
   template <typename... Args>
   SplitLayer(unsigned int split_dim = 1, Args... args) :
     Layer(args...),
-    split_dimension(split_dim) {}
+    split_dimension(split_dim),
+    leading_helper_dim(1) {}
 
   /**
    * @brief     Destructor of Split Layer
