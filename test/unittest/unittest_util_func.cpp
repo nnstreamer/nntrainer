@@ -30,14 +30,10 @@
 #include <util_func.h>
 
 TEST(nntrainer_util_func, sqrtFloat_01_p) {
-  int status = ML_ERROR_INVALID_PARAMETER;
-
   float x = 9871.0;
   float sx = nntrainer::sqrtFloat(x);
 
-  if (fabs(sx * sx - x) < tolerance)
-    status = ML_ERROR_NONE;
-  EXPECT_EQ(status, ML_ERROR_NONE);
+  EXPECT_NEAR(sx * sx, x, tolerance * 10);
 }
 
 TEST(nntrainer_util_func, logFloat_01_p) {
