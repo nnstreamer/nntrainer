@@ -387,9 +387,9 @@ void NeuralNetwork::saveModel() {
     << "model file not opened, file path: " << save_path
     << " reason: " << strerror(errno);
 
-  for (auto iter = model_graph.cbegin(); iter != model_graph.cend(); iter++)
-    (*iter)->getObject()->save(model_file);
-
+  for (auto iter = model_graph.cbegin(); iter != model_graph.cend(); iter++) {
+    (*iter)->save(model_file);
+  }
   model_file.write((char *)&epoch_idx, sizeof(epoch_idx));
   model_file.write((char *)&iter, sizeof(iter));
   model_file.close();
@@ -420,8 +420,9 @@ void NeuralNetwork::readModel() {
 
   std::ifstream model_file(save_path, std::ios::in | std::ios::binary);
 
-  for (auto iter = model_graph.cbegin(); iter != model_graph.cend(); iter++)
-    (*iter)->getObject()->read(model_file);
+  for (auto iter = model_graph.begin(); iter != model_graph.end(); iter++) {
+    (*iter)->read(model_file);
+  }
 
   checkedRead(model_file, (char *)&tmp.epoch_idx, sizeof(epoch_idx),
               "[NeuralNetwork::readModel] failed to read epoch_idx");

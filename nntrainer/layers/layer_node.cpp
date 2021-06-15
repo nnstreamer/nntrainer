@@ -16,7 +16,6 @@
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <time_dist.h>
-
 namespace nntrainer {
 
 LayerNode::LayerNode(std::shared_ptr<nntrainer::LayerV1> l, size_t idx) :
@@ -211,6 +210,26 @@ void LayerNode::updateInputLayers(const unsigned int idx,
   if (idx >= input_layers.size())
     throw std::out_of_range("Out of range for input_layers");
   input_layers[idx] = to;
+}
+
+void LayerNode::read(std::ifstream &file) {
+  if (LAYER_V2) {
+    for (unsigned int i = 0; i < run_context.getNumWeights(); ++i) {
+      run_context.getWeight(i).read(file);
+    }
+  } else {
+    getLayer()->read(file);
+  }
+}
+
+void LayerNode::save(std::ofstream &file) const {
+  if (LAYER_V2) {
+    for (unsigned int i = 0; i < run_context.getNumWeights(); ++i) {
+      run_context.getWeight(i).save(file);
+    }
+  } else {
+    getLayer()->save(file);
+  }
 }
 
 }; // namespace nntrainer
