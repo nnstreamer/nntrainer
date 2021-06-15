@@ -12,6 +12,8 @@
  * @todo   Add printPreset support
  */
 
+#define LAYER_V2 false
+
 #ifndef __LAYER_NODE_H__
 #define __LAYER_NODE_H__
 
@@ -260,6 +262,18 @@ public:
     exporter.saveResult(props, method, this);
     layer->export_to(exporter, method);
   };
+
+  /**
+   * @brief     read layer Weight & Bias data from file
+   * @param[in] file input file stream
+   */
+  void read(std::ifstream &file);
+
+  /**
+   * @brief     save layer Weight & Bias data from file
+   * @param[in] file output file stream
+   */
+  void save(std::ofstream &file) const;
 
 #ifdef PROFILE
   int event_key;
