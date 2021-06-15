@@ -197,17 +197,17 @@ void TimeDistLayer::forwarding(bool training) {
   hidden_.copy(transposeTensor(out));
 }
 
-void TimeDistLayer::copy(std::shared_ptr<Layer> l) {
-  Layer::copy(l);
+void TimeDistLayer::copy(std::shared_ptr<LayerV1> l) {
+  LayerV1::copy(l);
 
   std::shared_ptr<TimeDistLayer> from =
     std::static_pointer_cast<TimeDistLayer>(l);
   this->dist_layer = from->dist_layer;
 }
 
-void TimeDistLayer::setDistLayer(std::shared_ptr<Layer> l) {
+void TimeDistLayer::setDistLayer(std::shared_ptr<LayerV1> l) {
   dist_layer = l;
-  Layer::setActivation(l->getActivationType());
+  LayerV1::setActivation(l->getActivationType());
 };
 
 void TimeDistLayer::calcDerivative() {

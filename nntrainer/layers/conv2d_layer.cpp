@@ -453,8 +453,8 @@ void Conv2DLayer::calcGradient() {
   delBias = derivative.sum({0, 2, 3});
 }
 
-void Conv2DLayer::copy(std::shared_ptr<Layer> l) {
-  Layer::copy(l);
+void Conv2DLayer::copy(std::shared_ptr<LayerV1> l) {
+  LayerV1::copy(l);
 
   std::shared_ptr<Conv2DLayer> from = std::static_pointer_cast<Conv2DLayer>(l);
   this->filter_size = from->filter_size;
@@ -539,7 +539,7 @@ void Conv2DLayer::setProperty(const PropertyType type,
     }
     break;
   default:
-    Layer::setProperty(type, value);
+    LayerV1::setProperty(type, value);
     break;
   }
 }

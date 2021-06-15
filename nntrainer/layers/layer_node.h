@@ -38,7 +38,7 @@ public:
    * @brief     Constructor of LayerNode class
    *
    */
-  LayerNode(std::shared_ptr<nntrainer::Layer> l, size_t idx = 0);
+  LayerNode(std::shared_ptr<nntrainer::LayerV1> l, size_t idx = 0);
 
   /**
    * @brief     Destructor of LayerNode Class
@@ -112,13 +112,13 @@ public:
    * @brief     Get underlying object
    *
    */
-  std::shared_ptr<nntrainer::Layer> &getObject();
+  std::shared_ptr<nntrainer::LayerV1> &getObject();
 
   /**
    * @brief     Get underlying object
    *
    */
-  const std::shared_ptr<nntrainer::Layer> &getObject() const;
+  const std::shared_ptr<nntrainer::LayerV1> &getObject() const;
 
   /**
    * @brief     Get index of the node
@@ -272,7 +272,7 @@ public:
 
 private:
   // TODO: make this unique_ptr once getObject API is removed
-  std::shared_ptr<nntrainer::Layer>
+  std::shared_ptr<nntrainer::LayerV1>
     layer;      /**< The actual object in the graph node */
   size_t index; /**< index of each node */
 
@@ -306,7 +306,7 @@ private:
    * the particular layer
    * @exception std::invalid_argument invalid argument
    */
-  void setProperty(const nntrainer::Layer::PropertyType type,
+  void setProperty(const nntrainer::LayerV1::PropertyType type,
                    const std::string &value = "");
 
   /**
@@ -315,7 +315,7 @@ private:
    * @details this is layer inside the distribution layer if this layer node
    * is distributed.
    */
-  const std::shared_ptr<nntrainer::Layer> &getLayer() const;
+  const std::shared_ptr<nntrainer::LayerV1> &getLayer() const;
 
   /**
    * @brief   Get the effective layer managed by this layer node
@@ -323,7 +323,7 @@ private:
    * @details this is layer inside the distribution layer if this layer node
    * is distributed.
    */
-  std::shared_ptr<nntrainer::Layer> &getLayer();
+  std::shared_ptr<nntrainer::LayerV1> &getLayer();
 };
 
 /**
@@ -343,7 +343,7 @@ createLayerNode(const std::string &type,
  * @params[in] properties Properties of the layer
  */
 std::unique_ptr<LayerNode>
-createLayerNode(std::shared_ptr<nntrainer::Layer> layer,
+createLayerNode(std::shared_ptr<nntrainer::LayerV1> layer,
                 const std::vector<std::string> &properties = {});
 
 } // namespace nntrainer

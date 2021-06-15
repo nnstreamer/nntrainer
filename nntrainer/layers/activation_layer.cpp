@@ -92,7 +92,7 @@ int ActivationLayer::setActivation(
  * @param[in] ActivationType ActivationType ActivationType to be set
  */
 void ActivationLayer::setActivation(ActivationType acti_type) {
-  Layer::setActivation(acti_type);
+  LayerV1::setActivation(acti_type);
 
   acti_func.setActiFunc(acti_type);
 }

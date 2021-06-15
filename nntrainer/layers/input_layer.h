@@ -33,7 +33,7 @@ namespace nntrainer {
  * @class   Input Layer
  * @brief   Just Handle the Input of Network
  */
-class InputLayer : public Layer {
+class InputLayer : public LayerV1 {
 public:
   /**
    * @brief     Constructor of InputLayer
@@ -41,7 +41,7 @@ public:
   template <typename... Args>
   InputLayer(bool normalization = false, bool standardization = false,
              Args... args) :
-    Layer(args...),
+    LayerV1(args...),
     normalization(false),
     standardization(false) {
     trainable = false;
@@ -100,7 +100,7 @@ public:
    */
   const std::string getType() const override { return InputLayer::type; };
 
-  using Layer::setProperty;
+  using LayerV1::setProperty;
 
   /**
    * @copydoc Layer::setProperty(const PropertyType type, const std::string

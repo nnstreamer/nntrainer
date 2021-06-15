@@ -24,13 +24,13 @@ namespace nntrainer {
  * @class   Output Layer
  * @brief   Output Layer
  */
-class OutputLayer : public Layer {
+class OutputLayer : public LayerV1 {
 public:
   /**
    * @brief     Constructor of Output Layer
    */
   template <typename... Args>
-  OutputLayer(unsigned int num_output_ = 1, Args... args) : Layer(args...) {
+  OutputLayer(unsigned int num_output_ = 1, Args... args) : LayerV1(args...) {
     setNumOutputs(num_output_);
   }
 

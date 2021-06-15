@@ -125,7 +125,7 @@ void ConcatLayer::setProperty(const PropertyType type,
     }
   } break;
   default:
-    Layer::setProperty(type, value);
+    LayerV1::setProperty(type, value);
     break;
   }
 }

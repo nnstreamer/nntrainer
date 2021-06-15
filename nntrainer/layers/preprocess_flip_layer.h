@@ -26,14 +26,14 @@ namespace nntrainer {
  * @class   Preprocess FLip Layer
  * @brief   Preprocess FLip Layer
  */
-class PreprocessFlipLayer : public Layer {
+class PreprocessFlipLayer : public LayerV1 {
 public:
   /**
    * @brief     Constructor of Preprocess FLip Layer
    */
   template <typename... Args>
   PreprocessFlipLayer(Args... args) :
-    Layer(args...),
+    LayerV1(args...),
     flipdirection(FlipDirection::horizontal_and_vertical) {
     trainable = false;
   }
@@ -78,7 +78,7 @@ public:
    */
   void setTrainable(bool train) override;
 
-  using Layer::setProperty;
+  using LayerV1::setProperty;
 
   /**
    * @copydoc Layer::setProperty(const PropertyType type, const std::string

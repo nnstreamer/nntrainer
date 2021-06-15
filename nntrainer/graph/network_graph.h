@@ -130,7 +130,7 @@ public:
    * @param[in] layer name
    * @retval Layer
    */
-  std::shared_ptr<Layer> getLayer(const std::string &layer_name) {
+  std::shared_ptr<LayerV1> getLayer(const std::string &layer_name) {
     return getLayerNode(layer_name)->getObject();
   }
 
@@ -381,14 +381,15 @@ private:
    * @details   Ensures that the layer has a unique and a valid name. A valid
    * name pre-assigned to the layer can be changed if force_rename is enabled.
    */
-  void ensureName(std::shared_ptr<Layer> layer, const std::string &prefix = "",
+  void ensureName(std::shared_ptr<LayerV1> layer,
+                  const std::string &prefix = "",
                   const std::string &postfix = "", bool force_rename = false);
 
   /**
    * @brief Create new LayerNode and add into Graph
    * @param[in] layer shared_ptr of Layer
    */
-  void addLayerNode(std::shared_ptr<Layer> layer);
+  void addLayerNode(std::shared_ptr<LayerV1> layer);
 
   /**
    * @brief update input_layers, output_layers node name

@@ -24,13 +24,13 @@ namespace nntrainer {
  * @class   Addition Layer
  * @brief   Addition Layer
  */
-class AdditionLayer : public Layer {
+class AdditionLayer : public LayerV1 {
 public:
   /**
    * @brief     Constructor of Addition Layer
    */
   template <typename... Args>
-  AdditionLayer(unsigned int num_inputs_ = 1, Args... args) : Layer(args...) {
+  AdditionLayer(unsigned int num_inputs_ = 1, Args... args) : LayerV1(args...) {
     setNumInputs(num_inputs_);
   }
 
@@ -86,7 +86,7 @@ public:
    */
   const std::string getType() const override { return AdditionLayer::type; };
 
-  using Layer::setProperty;
+  using LayerV1::setProperty;
 
   /**
    * @copydoc Layer::setProperty(const PropertyType type, const std::string

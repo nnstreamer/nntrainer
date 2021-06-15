@@ -32,12 +32,12 @@ const std::string layerGetStrType(const LayerType &type);
 /**
  * @brief Layer factory creator with constructor
  */
-std::unique_ptr<Layer> createLayer(const std::string &type);
+std::unique_ptr<LayerV1> createLayer(const std::string &type);
 
 /**
  * @brief Loss Layer Factory creator with constructor
  */
-std::unique_ptr<Layer> createLoss(LossType type);
+std::unique_ptr<LayerV1> createLoss(LossType type);
 
 } /* namespace nntrainer */
 

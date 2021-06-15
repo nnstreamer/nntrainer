@@ -1256,7 +1256,7 @@ INSTANTIATE_TEST_CASE_P(
  */
 TEST(nntrainerModels, read_save_01_n) {
   nntrainer::NeuralNetwork NN;
-  std::shared_ptr<nntrainer::Layer> layer =
+  std::shared_ptr<nntrainer::LayerV1> layer =
     nntrainer::createLayer(nntrainer::InputLayer::type);
   layer->setProperty(
     {"input_shape=1:1:62720", "normalization=true", "bias_initializer=zeros"});

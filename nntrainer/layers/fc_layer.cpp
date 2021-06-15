@@ -75,7 +75,7 @@ int FullyConnectedLayer::initialize(Manager &manager) {
 
 void FullyConnectedLayer::export_to(Exporter &exporter,
                                     ExportMethods method) const {
-  Layer::export_to(exporter, method);
+  LayerV1::export_to(exporter, method);
   exporter.saveResult(fc_props, method, this);
 }
 
@@ -86,7 +86,7 @@ void FullyConnectedLayer::setProperty(const PropertyType type,
     from_string(value, std::get<props::Unit>(fc_props));
   } break;
   default:
-    Layer::setProperty(type, value);
+    LayerV1::setProperty(type, value);
     break;
   }
 }
@@ -104,8 +104,8 @@ void FullyConnectedLayer::forwarding(bool training) {
   loss = weightAt(static_cast<int>(FCParams::weight)).getRegularizationLoss();
 }
 
-void FullyConnectedLayer::copy(std::shared_ptr<Layer> l) {
-  Layer::copy(l);
+void FullyConnectedLayer::copy(std::shared_ptr<LayerV1> l) {
+  LayerV1::copy(l);
 
   std::shared_ptr<FullyConnectedLayer> from =
     std::static_pointer_cast<FullyConnectedLayer>(l);

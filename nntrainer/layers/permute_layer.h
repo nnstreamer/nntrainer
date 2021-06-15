@@ -46,7 +46,7 @@ public:
  * @class   PermuteLayer
  * @brief   Permute layer to transpose a tensor
  */
-class PermuteLayer : public Layer {
+class PermuteLayer : public LayerV1 {
 public:
   /**
    * @brief     Constructor of Permute Layer
@@ -54,7 +54,7 @@ public:
    */
   template <typename... Args>
   PermuteLayer(Args... args) :
-    Layer(args...),
+    LayerV1(args...),
     direction(),
     reverse_direction() {}
 
@@ -89,7 +89,7 @@ public:
    * @brief     copy layer
    * @param[in] l layer to copy
    */
-  void copy(std::shared_ptr<Layer> l) override;
+  void copy(std::shared_ptr<LayerV1> l) override;
 
   /**
    * @brief     initialize layer
@@ -112,7 +112,7 @@ public:
 
   static const std::string type;
 
-  using Layer::setProperty;
+  using LayerV1::setProperty;
 
   /**
    * @copydoc Layer::setProperty(std::vector<std::string> values);

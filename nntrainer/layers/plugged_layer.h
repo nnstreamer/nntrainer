@@ -27,7 +27,7 @@ namespace internal {
  * @brief PluggedLayer to wrap a layer from shared object file
  *
  */
-class PluggedLayer : public nntrainer::Layer {
+class PluggedLayer : public nntrainer::LayerV1 {
 public:
   /**
    * @brief Construct a new Plugged Layer object
@@ -140,7 +140,7 @@ public:
   /**
    * @copydoc Layer::copy(std::shared_ptr<Layer> l)
    */
-  void copy(std::shared_ptr<Layer> l) override { layerImpl->copy(l); }
+  void copy(std::shared_ptr<LayerV1> l) override { layerImpl->copy(l); }
 
   /**
    * @copydoc Layer::setTrainable(bool train)
@@ -247,7 +247,7 @@ public:
 private:
   /// @todo: migrate to ml::train::Layer
   // ml::train::Layer *layerImpl;
-  nntrainer::Layer *layerImpl;
+  nntrainer::LayerV1 *layerImpl;
   nntrainer::DestroyLayerFunc destroy_func;
 };
 } // namespace internal

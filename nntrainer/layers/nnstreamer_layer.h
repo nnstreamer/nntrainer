@@ -26,13 +26,13 @@ namespace nntrainer {
  * @class   NNStreamerLayer
  * @brief   nnstreamer layer
  */
-class NNStreamerLayer : public Layer {
+class NNStreamerLayer : public LayerV1 {
 public:
   /**
    * @brief     Constructor of NNStreamer Layer
    */
   NNStreamerLayer(std::string model = "") :
-    Layer(),
+    LayerV1(),
     modelfile(model),
     single(nullptr),
     in_res(nullptr),
@@ -62,7 +62,7 @@ public:
   /**
    * @copydoc Layer::copy(std::shared_ptr<layer> l)
    */
-  void copy(std::shared_ptr<Layer> l);
+  void copy(std::shared_ptr<LayerV1> l);
 
   /**
    * @copydoc Layer::initialize()
@@ -79,7 +79,7 @@ public:
    */
   const std::string getType() const { return NNStreamerLayer::type; };
 
-  using Layer::setProperty;
+  using LayerV1::setProperty;
 
   /**
    * @copydoc Layer::setProperty(const PropertyType type, const std::string
