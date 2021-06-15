@@ -113,8 +113,8 @@ void LossLayer::updateLoss(const Tensor &l) {
   loss = loss_sum / (float)l.batch();
 }
 
-void LossLayer::copy(std::shared_ptr<Layer> l) {
-  Layer::copy(l);
+void LossLayer::copy(std::shared_ptr<LayerV1> l) {
+  LayerV1::copy(l);
 
   std::shared_ptr<LossLayer> from = std::static_pointer_cast<LossLayer>(l);
   this->loss_type = from->loss_type;

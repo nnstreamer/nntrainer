@@ -41,6 +41,10 @@ public:
     app_context(app_context_),
     pathResolver(pathResolver_) {}
 
+  /**
+   * @brief Destroy the Ini Graph Interpreter object
+   *
+   */
   virtual ~IniGraphInterpreter(){};
 
   /**
@@ -63,8 +67,8 @@ private:
    * @param section section name
    * @return std::shared_ptr<Layer> layer
    */
-  std::shared_ptr<Layer> loadLayerConfig(dictionary *ini,
-                                         const std::string &section);
+  std::shared_ptr<LayerV1> loadLayerConfig(dictionary *ini,
+                                           const std::string &section);
 
   /**
    * @brief Create a Layer From Backbone Config
@@ -73,8 +77,8 @@ private:
    * @param section section name
    * @return std::shared_ptr<Layer> layer
    */
-  std::shared_ptr<Layer> loadBackboneConfigIni(dictionary *ini,
-                                               const std::string &section);
+  std::shared_ptr<LayerV1> loadBackboneConfigIni(dictionary *ini,
+                                                 const std::string &section);
 
   AppContext app_context;
   std::function<const std::string(std::string)> pathResolver;

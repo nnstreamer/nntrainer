@@ -130,7 +130,7 @@ void BatchNormalizationLayer::setProperty(const PropertyType type,
     }
     break;
   default:
-    Layer::setProperty(type, value);
+    LayerV1::setProperty(type, value);
     break;
   }
 }
@@ -201,8 +201,8 @@ void BatchNormalizationLayer::calcGradient() {
   dgamma = dev.sum(axes_to_reduce);
 }
 
-void BatchNormalizationLayer::copy(std::shared_ptr<Layer> l) {
-  Layer::copy(l);
+void BatchNormalizationLayer::copy(std::shared_ptr<LayerV1> l) {
+  LayerV1::copy(l);
 
   std::shared_ptr<BatchNormalizationLayer> from =
     std::static_pointer_cast<BatchNormalizationLayer>(l);

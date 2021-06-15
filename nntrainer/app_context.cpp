@@ -252,7 +252,7 @@ static void add_default_object(AppContext &ac) {
   ac.registerFactory(nntrainer::createLayer<PermuteLayer>, PermuteLayer::type,
                      LayerType::LAYER_PERMUTE);
 
-  ac.registerFactory(AppContext::unknownFactory<nntrainer::Layer>, "unknown",
+  ac.registerFactory(AppContext::unknownFactory<nntrainer::LayerV1>, "unknown",
                      LayerType::LAYER_UNKNOWN);
 }
 
@@ -344,15 +344,15 @@ int AppContext::registerLayer(const std::string &library_path,
     << func_tag << "custom layer must specify type name, but it is empty";
   pluggable->destroyfunc(layer);
 
-  FactoryType<nntrainer::Layer> factory_func =
+  FactoryType<nntrainer::LayerV1> factory_func =
     [pluggable](const PropsType &prop) {
-      std::unique_ptr<nntrainer::Layer> layer =
+      std::unique_ptr<nntrainer::LayerV1> layer =
         std::make_unique<internal::PluggedLayer>(pluggable);
 
       return layer;
     };
 
-  return registerFactory<nntrainer::Layer>(factory_func, type);
+  return registerFactory<nntrainer::LayerV1>(factory_func, type);
 }
 
 int AppContext::registerOptimizer(const std::string &library_path,

@@ -23,12 +23,12 @@ namespace nntrainer {
  * @class   TimeDistLayer
  * @brief   Time Distribution Layer
  */
-class TimeDistLayer : public Layer {
+class TimeDistLayer : public LayerV1 {
 public:
   /**
    * @brief     Constructor of Time Distribution Layer
    */
-  template <typename... Args> TimeDistLayer(Args... args) : Layer(args...) {
+  template <typename... Args> TimeDistLayer(Args... args) : LayerV1(args...) {
     for (unsigned int i = 0; i < 4; ++i) {
       positions[i] = nullptr;
     }
@@ -70,7 +70,7 @@ public:
    * @brief     copy layer
    * @param[in] l layer to copy
    */
-  void copy(std::shared_ptr<Layer> l) override;
+  void copy(std::shared_ptr<LayerV1> l) override;
 
   /**
    * @brief     initialize layer
@@ -83,7 +83,7 @@ public:
    * @brief     set distribute layer
    * @param[in] l layer to distribute along time
    */
-  void setDistLayer(std::shared_ptr<Layer> l);
+  void setDistLayer(std::shared_ptr<LayerV1> l);
 
   /**
    * @brief     get distribute layer type
@@ -95,7 +95,7 @@ public:
    * @brief     get distribute layer
    * @retval dist_layer std::shared_ptr<Layer>
    */
-  std::shared_ptr<Layer> &getDistLayer() { return dist_layer; };
+  std::shared_ptr<LayerV1> &getDistLayer() { return dist_layer; };
 
   /**
    * @copydoc Layer::requireLabe()
@@ -123,7 +123,7 @@ public:
    */
   void transposeInOut();
 
-  using Layer::setProperty;
+  using LayerV1::setProperty;
 
   /**
    * @copydoc Layer::setProperty(const PropertyType type, const std::string
@@ -149,7 +149,7 @@ private:
   /**
    * @brief Layer to be distributed through time
    */
-  std::shared_ptr<Layer> dist_layer;
+  std::shared_ptr<LayerV1> dist_layer;
 
   /**
    * @brief pointer value of each input/output tensors to compare position

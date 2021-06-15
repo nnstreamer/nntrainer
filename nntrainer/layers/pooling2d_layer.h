@@ -27,7 +27,7 @@ namespace nntrainer {
  * @class   Pooling 2D Layer
  * @brief   Pooling 2D Layer
  */
-class Pooling2DLayer : public Layer {
+class Pooling2DLayer : public LayerV1 {
 public:
   enum class PoolingType {
     max = 0,
@@ -47,7 +47,7 @@ public:
     const std::array<unsigned int, POOLING2D_DIM> &stride_ = {1, 1},
     const std::array<unsigned int, POOLING2D_DIM> &padding_ = {0, 0},
     Args... args) :
-    Layer(args...),
+    LayerV1(args...),
     pool_size(pool_size_),
     stride(stride_),
     padding(padding_),
@@ -103,9 +103,12 @@ public:
    * @brief     copy layer
    * @param[in] l layer to copy
    */
-  void copy(std::shared_ptr<Layer> l) override;
+  void copy(std::shared_ptr<LayerV1> l) override;
 
-  /* TO DO : support keras type of padding */
+  /**
+   * @brief Padding Type
+   *
+   */
   enum class PaddingType {
     full = 0,
     same = 1,
@@ -118,7 +121,7 @@ public:
    */
   const std::string getType() const override { return Pooling2DLayer::type; };
 
-  using Layer::setProperty;
+  using LayerV1::setProperty;
 
   /**
    * @copydoc Layer::setProperty(const PropertyType type, const std::string

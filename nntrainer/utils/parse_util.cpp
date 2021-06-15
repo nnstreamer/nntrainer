@@ -320,7 +320,7 @@ unsigned int parseLayerProperty(std::string property) {
     }
   }
 
-  return (unsigned int)Layer::PropertyType::unknown;
+  return (unsigned int)LayerV1::PropertyType::unknown;
 }
 
 std::string propToStr(unsigned int type) { return property_string[type]; }

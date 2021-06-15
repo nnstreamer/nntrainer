@@ -24,7 +24,7 @@ namespace nntrainer {
  * @class   LSTMLayer
  * @brief   LSTMLayer
  */
-class LSTMLayer : public Layer {
+class LSTMLayer : public LayerV1 {
 public:
   /**
    * @brief     Constructor of LSTMLayer
@@ -35,7 +35,7 @@ public:
     ActivationType hidden_state_activation_type_ = ActivationType::ACT_NONE,
     ActivationType recurrent_activation_type_ = ActivationType::ACT_NONE,
     bool sequence = false, Args... args) :
-    Layer(args...),
+    LayerV1(args...),
     unit(unit_),
     hidden_state_activation_type(hidden_state_activation_type_),
     recurrent_activation_type(recurrent_activation_type_),
@@ -85,7 +85,7 @@ public:
    * @brief     copy layer
    * @param[in] l layer to copy
    */
-  void copy(std::shared_ptr<Layer> l) override;
+  void copy(std::shared_ptr<LayerV1> l) override;
 
   /**
    * @brief     initialize layer
@@ -106,7 +106,7 @@ public:
    */
   void setRecurrentActivation(ActivationType activation);
 
-  using Layer::setProperty;
+  using LayerV1::setProperty;
 
   /**
    * @copydoc Layer::setProperty(const PropertyType type, const std::string

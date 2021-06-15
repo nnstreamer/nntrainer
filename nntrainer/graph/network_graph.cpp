@@ -88,7 +88,7 @@ void NetworkGraph::addDefaultInputLayers() {
   }
 }
 
-void NetworkGraph::addLayerNode(std::shared_ptr<Layer> layer) {
+void NetworkGraph::addLayerNode(std::shared_ptr<LayerV1> layer) {
   graph.addNode(std::make_unique<LayerNode>(layer, graph.size()));
 }
 
@@ -115,7 +115,7 @@ int NetworkGraph::realizeMultiInputType(
 
   // TODO: this can be addition or concat layer - add support
   std::shared_ptr<LayerNode> lnode = createLayerNode(AdditionLayer::type);
-  std::shared_ptr<Layer> layer = lnode->getObject();
+  std::shared_ptr<LayerV1> layer = lnode->getObject();
   graph.ensureName(*lnode, in_node->getName());
 
   lnode->setInputLayers(in_node->getInputLayers());
@@ -137,7 +137,7 @@ int NetworkGraph::realizeFlattenType(
   }
 
   std::shared_ptr<LayerNode> lnode = createLayerNode(FlattenLayer::type);
-  std::shared_ptr<Layer> layer = lnode->getObject();
+  std::shared_ptr<LayerV1> layer = lnode->getObject();
   graph.ensureName(*lnode, in_node->getName());
 
   lnode->setInputLayers({in_node->getName()});
@@ -151,7 +151,7 @@ int NetworkGraph::realizeFlattenType(
 
 int NetworkGraph::realizeActivationType(
   const std::shared_ptr<LayerNode> &in_node) {
-  Layer &current = *in_node->getObject();
+  LayerV1 &current = *in_node->getObject();
   int status = ML_ERROR_NONE;
 
   ActivationType act = current.getActivationType();
@@ -179,7 +179,7 @@ int NetworkGraph::realizeActivationType(
     lnode->setProperty({"distribute=true"});
   }
 
-  std::shared_ptr<Layer> layer = lnode->getObject();
+  std::shared_ptr<LayerV1> layer = lnode->getObject();
   layer->setActivation(act);
 
   lnode->setInputLayers({in_node->getName()});
@@ -203,7 +203,7 @@ int NetworkGraph::realizeMultiOutputType(
     return ML_ERROR_NONE;
 
   std::shared_ptr<LayerNode> lnode = createLayerNode(OutputLayer::type);
-  std::shared_ptr<Layer> layer = lnode->getObject();
+  std::shared_ptr<LayerV1> layer = lnode->getObject();
   graph.ensureName(*lnode, in_node->getName());
 
   lnode->setInputLayers({in_node->getName()});
@@ -275,7 +275,7 @@ int NetworkGraph::addLossLayer(const LossType loss_type) {
 
   auto const &updated_last_node = getSortedLayerNode(graph.size() - 1);
 
-  std::shared_ptr<Layer> layer = nntrainer::createLayer(LossLayer::type);
+  std::shared_ptr<LayerV1> layer = nntrainer::createLayer(LossLayer::type);
   std::shared_ptr<LayerNode> lnode = std::make_shared<LayerNode>(layer);
   status =
     std::dynamic_pointer_cast<LossLayer>(layer)->setLoss(updated_loss_type);
@@ -413,7 +413,7 @@ int NetworkGraph::realizeGraph() {
 
   for (unsigned int i = 0; i < num_nodes; ++i) {
     auto const &lnode = LNODE(node_list[i]);
-    Layer &l = *lnode->getObject();
+    LayerV1 &l = *lnode->getObject();
     ml_logd("layer name: %s", lnode->getName().c_str());
 
     /** If a layer does not has input nodes, then it must have input dimension

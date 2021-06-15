@@ -149,7 +149,7 @@ void NNStreamerLayer::setTrainable(bool train) {
     throw exception::not_supported(
       "NNStreamer layer does not support training");
 
-  Layer::setTrainable(false);
+  LayerV1::setTrainable(false);
 }
 
 void NNStreamerLayer::setProperty(const PropertyType type,
@@ -160,7 +160,7 @@ void NNStreamerLayer::setProperty(const PropertyType type,
       modelfile = value;
   } break;
   default:
-    Layer::setProperty(type, value);
+    LayerV1::setProperty(type, value);
     break;
   }
 }
@@ -195,8 +195,8 @@ void NNStreamerLayer::forwarding(bool training) {
             hidden_.getData());
 }
 
-void NNStreamerLayer::copy(std::shared_ptr<Layer> l) {
-  Layer::copy(l);
+void NNStreamerLayer::copy(std::shared_ptr<LayerV1> l) {
+  LayerV1::copy(l);
 
   std::shared_ptr<NNStreamerLayer> from =
     std::static_pointer_cast<NNStreamerLayer>(l);

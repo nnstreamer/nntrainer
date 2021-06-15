@@ -261,7 +261,7 @@ sharedConstTensors NeuralNetwork::forwarding(sharedConstTensors input,
   return forwarding(training);
 }
 
-void NeuralNetwork::backwarding(std::shared_ptr<Layer> layer, int iteration,
+void NeuralNetwork::backwarding(std::shared_ptr<LayerV1> layer, int iteration,
                                 bool calc_derivative) {
   /**
    * Do not change this order:
@@ -786,7 +786,7 @@ void NeuralNetwork::printPreset(std::ostream &out, unsigned int preset) {
   if (preset > ML_TRAIN_SUMMARY_TENSOR)
     return;
 
-  Layer::PrintPreset layer_preset = Layer::PrintPreset::PRINT_NONE;
+  LayerV1::PrintPreset layer_preset = LayerV1::PrintPreset::PRINT_NONE;
 
   ///@todo match flags with preset
   unsigned int flags = PRINT_INST_INFO | PRINT_GRAPH_INFO | PRINT_PROP |
@@ -794,11 +794,11 @@ void NeuralNetwork::printPreset(std::ostream &out, unsigned int preset) {
 
   switch (preset) {
   case ML_TRAIN_SUMMARY_TENSOR:
-    layer_preset = Layer::PrintPreset::PRINT_ALL;
+    layer_preset = LayerV1::PrintPreset::PRINT_ALL;
     break;
   case ML_TRAIN_SUMMARY_LAYER:
-    layer_preset = initialized ? Layer::PrintPreset::PRINT_SUMMARY
-                               : Layer::PrintPreset::PRINT_SUMMARY_META;
+    layer_preset = initialized ? LayerV1::PrintPreset::PRINT_SUMMARY
+                               : LayerV1::PrintPreset::PRINT_SUMMARY_META;
     break;
   case ML_TRAIN_SUMMARY_MODEL:
     break;
@@ -810,7 +810,7 @@ void NeuralNetwork::printPreset(std::ostream &out, unsigned int preset) {
 }
 
 void NeuralNetwork::print(std::ostream &out, unsigned int flags,
-                          Layer::PrintPreset layerPrintPreset) {
+                          LayerV1::PrintPreset layerPrintPreset) {
   if (flags & PRINT_INST_INFO) {
     out << "===================";
     printInstance(out, this);

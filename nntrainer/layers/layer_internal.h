@@ -47,7 +47,7 @@ namespace nntrainer {
  * @details nntrainer::Layer inherits ml::train::Layer but has been ommitted to
  * disallow static_cast between nntrainer::Layer and ml::train::Layer objects.
  */
-class Layer {
+class LayerV1 {
 
   /** model classes can call private methods which arent exposed to public */
   friend class NeuralNetwork;
@@ -57,13 +57,13 @@ public:
   /**
    * @brief     Constructor of Layer Class
    */
-  Layer(ActivationType activation_type_ = ActivationType::ACT_NONE,
-        WeightRegularizer weight_regularizer_ = WeightRegularizer::NONE,
-        const float weight_regularizer_constant_ = 1.0f,
-        WeightInitializer weight_initializer_ =
-          WeightInitializer::WEIGHT_XAVIER_UNIFORM,
-        WeightInitializer bias_initializer_ = WeightInitializer::WEIGHT_ZEROS,
-        bool trainable_ = true) :
+  LayerV1(ActivationType activation_type_ = ActivationType::ACT_NONE,
+          WeightRegularizer weight_regularizer_ = WeightRegularizer::NONE,
+          const float weight_regularizer_constant_ = 1.0f,
+          WeightInitializer weight_initializer_ =
+            WeightInitializer::WEIGHT_XAVIER_UNIFORM,
+          WeightInitializer bias_initializer_ = WeightInitializer::WEIGHT_ZEROS,
+          bool trainable_ = true) :
     layer_props(),
     loss(0.0f),
     activation_type(activation_type_),
@@ -79,19 +79,19 @@ public:
   /**
    * @brief     Destructor of Layer Class
    */
-  virtual ~Layer() = default;
+  virtual ~LayerV1() = default;
 
   /**
    *  @brief  Move constructor of Layer.
    *  @param[in] Layer &&
    */
-  Layer(Layer &&rhs) noexcept = default;
+  LayerV1(LayerV1 &&rhs) noexcept = default;
 
   /**
    * @brief  Move assignment operator.
    * @parma[in] rhs Layer to be moved.
    */
-  virtual Layer &operator=(Layer &&rhs) = default;
+  virtual LayerV1 &operator=(LayerV1 &&rhs) = default;
 
   /**
    * @brief Get the layer type
@@ -316,7 +316,7 @@ public:
    * @brief     Copy Layer
    * @param[in] l Layer to be copied
    */
-  virtual void copy(std::shared_ptr<Layer> l);
+  virtual void copy(std::shared_ptr<LayerV1> l);
 
   /**
    * @brief     check hyper parameter for the layer
@@ -722,14 +722,14 @@ private:
  * @brief   Overriding output stream for layers and it's derived class
  */
 template <typename T, typename std::enable_if_t<
-                        std::is_base_of<Layer, T>::value, T> * = nullptr>
+                        std::is_base_of<LayerV1, T>::value, T> * = nullptr>
 std::ostream &operator<<(std::ostream &out, T &l) {
-  l.printPreset(out, Layer::PrintPreset::PRINT_SUMMARY);
+  l.printPreset(out, LayerV1::PrintPreset::PRINT_SUMMARY);
   return out;
 }
 
-using CreateLayerFunc = nntrainer::Layer *(*)();
-using DestroyLayerFunc = void (*)(nntrainer::Layer *);
+using CreateLayerFunc = nntrainer::LayerV1 *(*)();
+using DestroyLayerFunc = void (*)(nntrainer::LayerV1 *);
 
 /**
  * @brief  Layer Pluggable struct that enables pluggable layer
@@ -752,9 +752,10 @@ extern "C" LayerPluggable ml_train_layer_pluggable;
  * @return std::unique_ptr<ml::train::Layer> created object
  */
 template <typename T,
-          std::enable_if_t<std::is_base_of<Layer, T>::value, T> * = nullptr>
-std::unique_ptr<Layer> createLayer(const std::vector<std::string> &props = {}) {
-  std::unique_ptr<Layer> ptr = std::make_unique<T>();
+          std::enable_if_t<std::is_base_of<LayerV1, T>::value, T> * = nullptr>
+std::unique_ptr<LayerV1>
+createLayer(const std::vector<std::string> &props = {}) {
+  std::unique_ptr<LayerV1> ptr = std::make_unique<T>();
 
   if (ptr->setProperty(props) != ML_ERROR_NONE) {
     throw std::invalid_argument("Set properties failed for layer");
@@ -768,7 +769,7 @@ std::unique_ptr<Layer> createLayer(const std::vector<std::string> &props = {}) {
  * @param   l Layer object
  * @return  Layer devel object
  */
-std::shared_ptr<Layer> getLayerDevel(std::shared_ptr<ml::train::Layer> l);
+std::shared_ptr<LayerV1> getLayerDevel(std::shared_ptr<ml::train::Layer> l);
 
 } // namespace nntrainer
 

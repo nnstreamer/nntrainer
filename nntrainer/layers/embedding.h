@@ -24,7 +24,7 @@ namespace nntrainer {
  * @class   EmbeddingLayer
  * @brief   EmbeddingLayer
  */
-class EmbeddingLayer : public Layer {
+class EmbeddingLayer : public LayerV1 {
 public:
   /**
    * @brief     Constructor of Embedding Layer
@@ -32,7 +32,7 @@ public:
   template <typename... Args>
   EmbeddingLayer(unsigned int in_dim_ = 0, unsigned int out_dim_ = 0,
                  unsigned int in_length_ = 0, Args... args) :
-    Layer(args...),
+    LayerV1(args...),
     in_dim(in_dim_),
     out_dim(out_dim_),
     in_length(in_length_) {}
@@ -73,7 +73,7 @@ public:
    * @brief     copy layer
    * @param[in] l layer to copy
    */
-  void copy(std::shared_ptr<Layer> l) override;
+  void copy(std::shared_ptr<LayerV1> l) override;
 
   /**
    * @brief     initialize layer
@@ -87,7 +87,7 @@ public:
    */
   const std::string getType() const override { return EmbeddingLayer::type; };
 
-  using Layer::setProperty;
+  using LayerV1::setProperty;
 
   /**
    * @copydoc Layer::setProperty(const PropertyType type, const std::string

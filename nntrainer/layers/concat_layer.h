@@ -24,13 +24,13 @@ namespace nntrainer {
  * @class   Concat Layer
  * @brief   Concat Layer
  */
-class ConcatLayer : public Layer {
+class ConcatLayer : public LayerV1 {
 public:
   /**
    * @brief     Constructor of Concat Layer
    */
   template <typename... Args>
-  ConcatLayer(unsigned int num_inputs_ = 1, Args... args) : Layer(args...) {
+  ConcatLayer(unsigned int num_inputs_ = 1, Args... args) : LayerV1(args...) {
     setNumInputs(num_inputs_);
   }
 
@@ -81,7 +81,7 @@ public:
    */
   void calcDerivative() override;
 
-  using Layer::setProperty;
+  using LayerV1::setProperty;
 
   /**
    * @copydoc Layer::setProperty(const PropertyType type, const std::string
