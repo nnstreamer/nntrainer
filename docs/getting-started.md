@@ -11,7 +11,7 @@ The following dependencies are needed to compile/build/run.
 * gcc/g++ >= 7 ( std=c++17 is used )
 * meson >= 0.50
 * libopenblas-dev and base
-* tensorflow-lite >=1.14.0
+* tensorflow-lite >= 2.3.0
 * libiniparser
 * libjsoncpp >=0.6.0 ( if you wand to use open AI )
 * libcurl3 >=7.47 ( if you wand to use open AI )
@@ -75,7 +75,7 @@ Alternatively, you may simply download binary packages from PPA:
 
 ```bash
 sudo apt-add-repository ppa:nnstreamer
-sudo apt install tensorflow-lite-dev
+sudo apt install tensorflow2-lite-dev
 ```
 
 #### Build .deb package
@@ -124,7 +124,7 @@ Install the required packages.
 
 ```bash
 sudo apt install meson ninja-build
-sudo apt install gcc g++ pkg-config libopenblas-dev libiniparser-dev libjsoncpp-dev libcurl3-dev tensorflow-lite-dev nnstreamer-dev libglib2.0-dev libgstreamer1.0-dev libgtest-dev
+sudo apt install gcc g++ pkg-config libopenblas-dev libiniparser-dev libjsoncpp-dev libcurl3-dev tensorflow2-lite-dev nnstreamer-dev libglib2.0-dev libgstreamer1.0-dev libgtest-dev ml-api-common-dev flatbuffers-compiler ml-inference-api-dev
 ```
 
 Build at the git repo root directory, this will install nntrainer and related files.
