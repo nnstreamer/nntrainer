@@ -15,7 +15,7 @@
 #ifndef __POW_LAYER_H__
 #define __POW_LAYER_H__
 
-/// @todo migrate these to API
+/// @todo migrate these to API(#987)
 #include <layer_internal.h>
 #include <manager.h>
 
@@ -23,26 +23,29 @@
 
 namespace custom {
 
-/// @todo inherit this to API
-// class PowLayer : public ml::train::Layer {
-class PowLayer : public nntrainer::Layer {
+/**
+ * @brief layer class that calculates f(x) = x ^ exponent (exponent is
+ * configurable by PowLayer::setProperty)
+ *
+ */
+class PowLayer : public nntrainer::LayerV1 {
 public:
   /**
    * @brief Construct a new Pow Layer object that does elementwise power
    *
-   * @param exponent_ exponent
+   * @param exponent_ exponentLayerV1
    */
-  PowLayer(float exponent_ = 1) : Layer(), exponent(exponent_) {}
+  PowLayer(float exponent_ = 1) : LayerV1(), exponent(exponent_) {}
 
-  /**
+  /**LayerV1
    * @brief Destroy the Pow Layer object
    *
    */
   ~PowLayer() {}
 
-  using nntrainer::Layer::setProperty;
+  using nntrainer::LayerV1::setProperty;
 
-  /**
+  /**LayerV1
    * @brief     set Property of layer, currently only "exponent is accepted"
    * @param[in] values values of property
    * @retval #ML_ERROR_NONE Successful.

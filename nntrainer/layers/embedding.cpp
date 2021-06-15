@@ -90,7 +90,7 @@ void EmbeddingLayer::setProperty(const PropertyType type,
     }
   } break;
   default:
-    Layer::setProperty(type, value);
+    LayerV1::setProperty(type, value);
     break;
   }
 }
@@ -127,8 +127,8 @@ void EmbeddingLayer::forwarding(bool training) {
     weightAt(static_cast<int>(EmbeddingParams::weight)).getRegularizationLoss();
 }
 
-void EmbeddingLayer::copy(std::shared_ptr<Layer> l) {
-  Layer::copy(l);
+void EmbeddingLayer::copy(std::shared_ptr<LayerV1> l) {
+  LayerV1::copy(l);
 
   std::shared_ptr<EmbeddingLayer> from =
     std::static_pointer_cast<EmbeddingLayer>(l);

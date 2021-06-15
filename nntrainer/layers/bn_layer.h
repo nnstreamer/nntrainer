@@ -37,7 +37,7 @@ namespace nntrainer {
  * @class   BatchNormalizationLayer
  * @brief   Batch Noramlization Layer
  */
-class BatchNormalizationLayer : public Layer {
+class BatchNormalizationLayer : public LayerV1 {
 public:
   /**
    * @brief     Constructor of Batch Noramlization Layer
@@ -51,7 +51,7 @@ public:
     WeightInitializer gamma_initializer = WeightInitializer::WEIGHT_ONES,
     WeightInitializer beta_initializer = WeightInitializer::WEIGHT_ONES,
     Args... args) :
-    Layer(args...),
+    LayerV1(args...),
     epsilon(epsilon),
     momentum(momentum),
     axis(axis),
@@ -94,7 +94,7 @@ public:
    * @brief     copy layer
    * @param[in] l layer to copy
    */
-  void copy(std::shared_ptr<Layer> l) override;
+  void copy(std::shared_ptr<LayerV1> l) override;
 
   /**
    * @brief     initialize layer
@@ -115,7 +115,7 @@ public:
    */
   bool supportInPlace() const override { return true; }
 
-  using Layer::setProperty;
+  using LayerV1::setProperty;
 
   /**
    * @copydoc Layer::setProperty(const PropertyType type, const std::string

@@ -80,7 +80,7 @@ void TfLiteLayer::setTrainable(bool train) {
   if (train)
     throw exception::not_supported("TfLite layer does not support training");
 
-  Layer::setTrainable(false);
+  LayerV1::setTrainable(false);
 }
 
 void TfLiteLayer::setProperty(const PropertyType type,
@@ -91,7 +91,7 @@ void TfLiteLayer::setProperty(const PropertyType type,
       modelfile = value;
   } break;
   default:
-    Layer::setProperty(type, value);
+    LayerV1::setProperty(type, value);
     break;
   }
 }
@@ -138,8 +138,8 @@ void TfLiteLayer::forwarding(bool training) {
 #endif
 }
 
-void TfLiteLayer::copy(std::shared_ptr<Layer> l) {
-  Layer::copy(l);
+void TfLiteLayer::copy(std::shared_ptr<LayerV1> l) {
+  LayerV1::copy(l);
 
   std::shared_ptr<TfLiteLayer> from = std::static_pointer_cast<TfLiteLayer>(l);
   this->modelfile = from->modelfile;

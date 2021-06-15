@@ -89,7 +89,7 @@ const std::string layerGetStrType(const LayerType &type) {
   throw std::runtime_error("Control should not reach here");
 }
 
-std::unique_ptr<Layer> createLayer(const LayerType &type) {
+std::unique_ptr<LayerV1> createLayer(const LayerType &type) {
   const std::string &s = layerGetStrType(type);
 
   return createLayer(s);
@@ -98,7 +98,7 @@ std::unique_ptr<Layer> createLayer(const LayerType &type) {
 /**
  * @brief Factory creator with constructor
  */
-std::unique_ptr<Layer> createLayer(const std::string &type) {
+std::unique_ptr<LayerV1> createLayer(const std::string &type) {
 
   if (istrequal(type, InputLayer::type))
     return std::make_unique<InputLayer>();
@@ -148,7 +148,7 @@ std::unique_ptr<Layer> createLayer(const std::string &type) {
 /**
  * @brief Factory creator with constructor
  */
-std::unique_ptr<Layer> createLoss(LossType type) {
+std::unique_ptr<LayerV1> createLoss(LossType type) {
   return std::make_unique<LossLayer>(type);
 }
 

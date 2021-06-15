@@ -28,7 +28,7 @@ constexpr const unsigned int CONV2D_DIM = 2;
  * @class   Convolution 2D Layer
  * @brief   Convolution 2D Layer
  */
-class Conv2DLayer : public Layer {
+class Conv2DLayer : public LayerV1 {
 public:
   /**
    * @brief     Constructor of Conv 2D Layer
@@ -40,7 +40,7 @@ public:
               const std::array<unsigned int, CONV2D_DIM> &padding_ = {0, 0},
               bool normalization_ = false, bool standardization_ = false,
               Args... args) :
-    Layer(args...),
+    LayerV1(args...),
     filter_size(filter_size_),
     kernel_size(kernel_size_),
     stride(stride_),
@@ -91,7 +91,7 @@ public:
    * @brief     copy layer
    * @param[in] l layer to copy
    */
-  void copy(std::shared_ptr<Layer> l) override;
+  void copy(std::shared_ptr<LayerV1> l) override;
 
   /* TO DO : support keras type of padding */
   /* enum class PaddingType { */
@@ -106,7 +106,7 @@ public:
    */
   const std::string getType() const override { return Conv2DLayer::type; };
 
-  using Layer::setProperty;
+  using LayerV1::setProperty;
 
   /**
    * @copydoc Layer::setProperty(const PropertyType type, const std::string

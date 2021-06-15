@@ -100,7 +100,7 @@ int SplitLayer::initialize(Manager &manager) {
 }
 
 void SplitLayer::setBatch(unsigned int batch) {
-  Layer::setBatch(batch);
+  LayerV1::setBatch(batch);
   input_reshape_helper.batch(batch * leading_helper_dim);
   output_reshape_helper.batch(batch * leading_helper_dim);
 }
@@ -169,7 +169,7 @@ void SplitLayer::setProperty(const PropertyType type,
     }
   } break;
   default:
-    Layer::setProperty(type, value);
+    LayerV1::setProperty(type, value);
     break;
   }
 }

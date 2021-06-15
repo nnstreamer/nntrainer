@@ -46,7 +46,7 @@ Exporter::getResult<ExportMethods::METHOD_TFLITE>() noexcept {
 }
 
 template <>
-void Exporter::saveTflResult(const std::tuple<> &props, const Layer *self) {
+void Exporter::saveTflResult(const std::tuple<> &props, const LayerV1 *self) {
   createIfNull(tf_node);
 }
 

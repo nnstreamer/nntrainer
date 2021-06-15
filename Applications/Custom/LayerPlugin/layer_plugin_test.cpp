@@ -30,7 +30,7 @@ TEST(AppContext, DlRegisterOpen_p) {
 
   ac.registerLayer("libpow_layer.so", NNTRAINER_PATH);
 
-  auto layer = ac.createObject<nntrainer::Layer>("pow");
+  auto layer = ac.createObject<nntrainer::LayerV1>("pow");
 
   EXPECT_EQ(layer->getType(), "pow");
 }
@@ -50,7 +50,7 @@ TEST(AppContext, DlRegisterDirectory_p) {
 
   ac.registerPluggableFromDirectory(NNTRAINER_PATH);
 
-  auto layer = ac.createObject<nntrainer::Layer>("pow");
+  auto layer = ac.createObject<nntrainer::LayerV1>("pow");
 
   EXPECT_EQ(layer->getType(), "pow");
 }

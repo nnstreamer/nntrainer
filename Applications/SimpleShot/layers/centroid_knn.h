@@ -29,13 +29,13 @@ namespace layers {
  * @brief Centroid KNN layer which takes centroid and do k-nearest neighbor
  * classification
  */
-class CentroidKNN : public nntrainer::Layer {
+class CentroidKNN : public nntrainer::LayerV1 {
 public:
   /**
    * @brief Construct a new NearestNeighbors Layer object that does elementwise
    * subtraction from mean feature vector
    */
-  CentroidKNN() : Layer(), num_class(0) {}
+  CentroidKNN() : LayerV1(), num_class(0) {}
 
   /**
    *  @brief  Move constructor.
@@ -55,7 +55,7 @@ public:
    */
   ~CentroidKNN() {}
 
-  using nntrainer::Layer::setProperty;
+  using nntrainer::LayerV1::setProperty;
 
   /**
    * @brief     set Property of layer,

@@ -37,7 +37,7 @@ makeGraph(const std::vector<LayerReprentation> &layer_reps) {
   for (const auto &layer_representation : layer_reps) {
     /// @todo Use unique_ptr here
     std::shared_ptr<nntrainer::LayerNode> layer = createLayerNode(
-      ac.createObject<nntrainer::Layer>(layer_representation.first),
+      ac.createObject<nntrainer::LayerV1>(layer_representation.first),
       layer_representation.second);
     graph->addLayer(layer);
   }
@@ -64,8 +64,8 @@ static void graphEqual(const nntrainer::GraphRepresentation &lhs,
                        const nntrainer::GraphRepresentation &rhs) {
   EXPECT_EQ(lhs.size(), rhs.size());
 
-  auto is_node_equal = [](const nntrainer::Layer &l,
-                          const nntrainer::Layer &r) {
+  auto is_node_equal = [](const nntrainer::LayerV1 &l,
+                          const nntrainer::LayerV1 &r) {
     nntrainer::Exporter lhs_export;
     nntrainer::Exporter rhs_export;
 

@@ -203,13 +203,13 @@ class Name;
 class Unit;
 } // namespace props
 
-class Layer;
+class LayerV1;
 /**
  * @copydoc template <typename PropsType, typename NodeType> void
  * Exporter::saveTflResult(const PropsType &props, const NodeType *self);
  */
 template <>
-void Exporter::saveTflResult(const std::tuple<> &props, const Layer *self);
+void Exporter::saveTflResult(const std::tuple<> &props, const LayerV1 *self);
 
 class LayerNode;
 /**

@@ -62,7 +62,7 @@ int CentroidKNN::setProperty(std::vector<std::string> values) {
     }
   }
 
-  return nntrainer::Layer::setProperty(unhandled_values);
+  return nntrainer::LayerV1::setProperty(unhandled_values);
 }
 
 int CentroidKNN::initialize(nntrainer::Manager &manager) {

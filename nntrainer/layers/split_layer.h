@@ -26,14 +26,14 @@ namespace nntrainer {
  * @class   Split Layer
  * @brief   Split Layer
  */
-class SplitLayer : public Layer {
+class SplitLayer : public LayerV1 {
 public:
   /**
    * @brief     Constructor of Split Layer
    */
   template <typename... Args>
   SplitLayer(unsigned int split_dim = 1, Args... args) :
-    Layer(args...),
+    LayerV1(args...),
     split_dimension(split_dim),
     leading_helper_dim(1) {}
 
@@ -89,7 +89,7 @@ public:
    */
   void setBatch(unsigned int batch) override;
 
-  using Layer::setProperty;
+  using LayerV1::setProperty;
 
   /**
    * @copydoc Layer::setProperty(const PropertyType type, const std::string

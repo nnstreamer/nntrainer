@@ -38,14 +38,14 @@ enum class LossType {
  * @class   LossLayer
  * @brief   loss layer
  */
-class LossLayer : public Layer {
+class LossLayer : public LayerV1 {
 public:
   /**
    * @brief     Constructor of Loss Layer
    */
   template <typename... Args>
   LossLayer(LossType loss_type_ = LossType::LOSS_UNKNOWN, Args... args) :
-    Layer(args...),
+    LayerV1(args...),
     loss_type(loss_type_) {}
 
   /**
@@ -79,7 +79,7 @@ public:
    * @brief     copy layer
    * @param[in] l layer to copy
    */
-  void copy(std::shared_ptr<Layer> l) override;
+  void copy(std::shared_ptr<LayerV1> l) override;
 
   /**
    * @brief     initialize layer

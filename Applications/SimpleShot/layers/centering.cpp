@@ -28,7 +28,7 @@ namespace layers {
 const std::string CenteringLayer::type = "centering";
 
 CenteringLayer::CenteringLayer(const std::string &feature_path_) :
-  Layer(),
+  LayerV1(),
   feature_path(feature_path_) {}
 
 int CenteringLayer::setProperty(std::vector<std::string> values) {
@@ -52,7 +52,7 @@ int CenteringLayer::setProperty(std::vector<std::string> values) {
     }
   }
 
-  return nntrainer::Layer::setProperty(unhandled_values);
+  return nntrainer::LayerV1::setProperty(unhandled_values);
 }
 
 int CenteringLayer::initialize(nntrainer::Manager &manager) {
