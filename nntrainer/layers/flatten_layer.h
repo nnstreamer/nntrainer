@@ -24,12 +24,12 @@ namespace nntrainer {
  * @class   Flatten Layer
  * @brief   Flatten Layer
  */
-class FlattenLayer : public Layer {
+class FlattenLayer : public LayerV1 {
 public:
   /**
    * @brief     Constructor of Flatten Layer
    */
-  template <typename... Args> FlattenLayer(Args... args) : Layer(args...) {
+  template <typename... Args> FlattenLayer(Args... args) : LayerV1(args...) {
     setTrainable(false);
   }
 

@@ -19,7 +19,7 @@
 
 namespace nntrainer {
 
-LayerNode::LayerNode(std::shared_ptr<nntrainer::Layer> l, size_t idx) :
+LayerNode::LayerNode(std::shared_ptr<nntrainer::LayerV1> l, size_t idx) :
   layer(l),
   index(idx),
   flatten(false),
@@ -37,14 +37,14 @@ std::unique_ptr<LayerNode>
 createLayerNode(const std::string &type,
                 const std::vector<std::string> &properties) {
   auto &ac = nntrainer::AppContext::Global();
-  return createLayerNode(ac.createObject<nntrainer::Layer>(type), properties);
+  return createLayerNode(ac.createObject<nntrainer::LayerV1>(type), properties);
 }
 
 /**
  * @brief Layer factory creator with constructor
  */
 std::unique_ptr<LayerNode>
-createLayerNode(std::shared_ptr<nntrainer::Layer> layer,
+createLayerNode(std::shared_ptr<nntrainer::LayerV1> layer,
                 const std::vector<std::string> &properties) {
   auto lnode = std::make_unique<LayerNode>(layer);
   if (lnode->setProperty(properties) != ML_ERROR_NONE)
@@ -75,7 +75,7 @@ int LayerNode::setProperty(std::vector<std::string> properties) {
 
     try {
       /// @note this calls derived setProperty if available
-      setProperty(static_cast<nntrainer::Layer::PropertyType>(type), value);
+      setProperty(static_cast<nntrainer::LayerV1::PropertyType>(type), value);
     } catch (...) {
       remainder.push_back(properties[i]);
     }
@@ -85,10 +85,10 @@ int LayerNode::setProperty(std::vector<std::string> properties) {
   return status;
 }
 
-void LayerNode::setProperty(const nntrainer::Layer::PropertyType type,
+void LayerNode::setProperty(const nntrainer::LayerV1::PropertyType type,
                             const std::string &value) {
   int status = ML_ERROR_NONE;
-  using PropertyType = nntrainer::Layer::PropertyType;
+  using PropertyType = nntrainer::LayerV1::PropertyType;
 
   switch (type) {
   case PropertyType::name:
@@ -108,8 +108,8 @@ void LayerNode::setProperty(const nntrainer::Layer::PropertyType type,
       throw_status(status);
       if (distribute) {
         auto &ac = nntrainer::AppContext::Global();
-        std::shared_ptr<nntrainer::Layer> dlayer =
-          ac.createObject<nntrainer::Layer>(TimeDistLayer::type);
+        std::shared_ptr<nntrainer::LayerV1> dlayer =
+          ac.createObject<nntrainer::LayerV1>(TimeDistLayer::type);
         std::dynamic_pointer_cast<TimeDistLayer>(dlayer)->setDistLayer(layer);
         layer = dlayer;
       }
@@ -171,9 +171,11 @@ ActivationType LayerNode::getActivationType() {
 
 const std::string LayerNode::getType() const { return getLayer()->getType(); }
 
-std::shared_ptr<nntrainer::Layer> &LayerNode::getObject() { return getLayer(); }
+std::shared_ptr<nntrainer::LayerV1> &LayerNode::getObject() {
+  return getLayer();
+}
 
-const std::shared_ptr<nntrainer::Layer> &LayerNode::getObject() const {
+const std::shared_ptr<nntrainer::LayerV1> &LayerNode::getObject() const {
   return getLayer();
 }
 
@@ -181,14 +183,14 @@ bool LayerNode::getTrainable() const noexcept {
   return getLayer()->getTrainable();
 }
 
-const std::shared_ptr<nntrainer::Layer> &LayerNode::getLayer() const {
+const std::shared_ptr<nntrainer::LayerV1> &LayerNode::getLayer() const {
   if (distribute)
     return std::dynamic_pointer_cast<TimeDistLayer>(layer)->getDistLayer();
   else
     return layer;
 }
 
-std::shared_ptr<nntrainer::Layer> &LayerNode::getLayer() {
+std::shared_ptr<nntrainer::LayerV1> &LayerNode::getLayer() {
   if (distribute)
     return std::dynamic_pointer_cast<TimeDistLayer>(layer)->getDistLayer();
   else

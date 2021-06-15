@@ -149,7 +149,7 @@ void LSTMLayer::setProperty(const PropertyType type, const std::string &value) {
     }
     break;
   default:
-    Layer::setProperty(type, value);
+    LayerV1::setProperty(type, value);
     break;
   }
   }
@@ -250,8 +250,8 @@ void LSTMLayer::forwarding(bool training) {
   }
 }
 
-void LSTMLayer::copy(std::shared_ptr<Layer> l) {
-  Layer::copy(l);
+void LSTMLayer::copy(std::shared_ptr<LayerV1> l) {
+  LayerV1::copy(l);
 
   std::shared_ptr<LSTMLayer> from = std::static_pointer_cast<LSTMLayer>(l);
   this->unit = from->unit;

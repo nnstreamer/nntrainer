@@ -29,7 +29,7 @@ TEST(centroid_knn, simple_functions) {
   app_context.registerFactory(nntrainer::createLayer<CentroidKNN>);
 
   auto lnode =
-    nntrainer::createLayerNode(app_context.createObject<nntrainer::Layer>(
+    nntrainer::createLayerNode(app_context.createObject<nntrainer::LayerV1>(
       "centroid_knn", {"num_class=5", "input_shape=1:1:3"}));
   auto &c = lnode->getObject();
 

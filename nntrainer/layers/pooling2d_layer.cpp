@@ -100,7 +100,7 @@ int Pooling2DLayer::initialize(Manager &manager) {
 }
 
 void Pooling2DLayer::setBatch(unsigned int batch) {
-  Layer::setBatch(batch);
+  LayerV1::setBatch(batch);
   if (pooling_type == PoolingType::max) {
     max_idx.reserve(batch * output_dim[0].getFeatureLen());
   } else if (pooling_type == PoolingType::global_max) {
@@ -247,8 +247,8 @@ int Pooling2DLayer::setSize(int *size, PropertyType type) {
   return status;
 }
 
-void Pooling2DLayer::copy(std::shared_ptr<Layer> l) {
-  Layer::copy(l);
+void Pooling2DLayer::copy(std::shared_ptr<LayerV1> l) {
+  LayerV1::copy(l);
 
   std::shared_ptr<Pooling2DLayer> from =
     std::static_pointer_cast<Pooling2DLayer>(l);
@@ -306,7 +306,7 @@ void Pooling2DLayer::setProperty(const PropertyType type,
     }
     break;
   default:
-    Layer::setProperty(type, value);
+    LayerV1::setProperty(type, value);
     break;
   }
 }

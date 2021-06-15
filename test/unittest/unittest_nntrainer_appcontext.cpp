@@ -144,7 +144,7 @@ public:
  *
  * @todo solidify the api signature
  */
-class CustomLayer : public nntrainer::Layer {
+class CustomLayer : public nntrainer::LayerV1 {
 public:
   static const std::string type;
 

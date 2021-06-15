@@ -29,13 +29,13 @@ namespace layers {
  * @brief centering layer that centers the feature
  *
  */
-class CenteringLayer : public nntrainer::Layer {
+class CenteringLayer : public nntrainer::LayerV1 {
 public:
   /**
    * @brief Construct a new Centering Layer object that does elementwise
    * subtraction from mean feature vector
    */
-  CenteringLayer() : Layer() {}
+  CenteringLayer() : LayerV1() {}
 
   /**
    * @brief Construct a new Centering Layer object
@@ -62,7 +62,7 @@ public:
    */
   ~CenteringLayer() {}
 
-  using nntrainer::Layer::setProperty;
+  using nntrainer::LayerV1::setProperty;
 
   /**
    * @brief     set Property of layer,

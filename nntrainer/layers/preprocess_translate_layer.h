@@ -30,14 +30,14 @@ namespace nntrainer {
  * @class   PreprocessTranslate Layer
  * @brief   Preprocess Translate Layer
  */
-class PreprocessTranslateLayer : public Layer {
+class PreprocessTranslateLayer : public LayerV1 {
 public:
   /**
    * @brief     Constructor of Preprocess Translate Layer
    */
   template <typename... Args>
   PreprocessTranslateLayer(Args... args) :
-    Layer(args...),
+    LayerV1(args...),
     translation_factor(0.0),
     epsilon(1e-5) {
     trainable = false;
@@ -90,7 +90,7 @@ public:
     return PreprocessTranslateLayer::type;
   }
 
-  using Layer::setProperty;
+  using LayerV1::setProperty;
 
   /**
    * @copydoc Layer::setProperty(const PropertyType type, const std::string

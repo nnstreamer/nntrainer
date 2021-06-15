@@ -88,7 +88,7 @@ int PowLayer::setProperty(std::vector<std::string> values) {
   }
 
   /// unhandled values are passed to the layer_internal.h
-  return nntrainer::Layer::setProperty(unhandled_values);
+  return nntrainer::LayerV1::setProperty(unhandled_values);
 }
 
 int PowLayer::initialize(nntrainer::Manager &manager) {
@@ -139,13 +139,13 @@ void PowLayer::calcDerivative() {
 
 #ifdef PLUGGABLE
 
-nntrainer::Layer *create_pow_layer() {
+nntrainer::LayerV1 *create_pow_layer() {
   auto layer = new PowLayer();
   std::cout << "power created\n";
   return layer;
 }
 
-void destory_pow_layer(nntrainer::Layer *layer) {
+void destory_pow_layer(nntrainer::LayerV1 *layer) {
   std::cout << "power deleted\n";
   delete layer;
 }

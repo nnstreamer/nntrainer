@@ -90,8 +90,8 @@ void PermuteLayer::calcDerivative() {
   hidden_grad.transpose(rdirection_str, input_grad);
 }
 
-void PermuteLayer::copy(std::shared_ptr<Layer> l) {
-  Layer::copy(l);
+void PermuteLayer::copy(std::shared_ptr<LayerV1> l) {
+  LayerV1::copy(l);
 
   std::shared_ptr<PermuteLayer> from =
     std::static_pointer_cast<PermuteLayer>(l);
@@ -103,14 +103,14 @@ void PermuteLayer::copy(std::shared_ptr<Layer> l) {
 }
 
 void PermuteLayer::export_to(Exporter &exporter, ExportMethods method) const {
-  Layer::export_to(exporter, method);
+  LayerV1::export_to(exporter, method);
   exporter.saveResult(std::forward_as_tuple(direction), method);
 }
 
 int PermuteLayer::setProperty(std::vector<std::string> values) {
   try {
     auto left_values = loadProperties(values, std::forward_as_tuple(direction));
-    Layer::setProperty(left_values);
+    LayerV1::setProperty(left_values);
   } catch (std::invalid_argument &e) {
     ml_loge("[PermuteLayer] failed to set property, reason: %s", e.what());
     return ML_ERROR_INVALID_PARAMETER;

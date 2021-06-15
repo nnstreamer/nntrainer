@@ -32,14 +32,14 @@
 
 namespace nntrainer {
 
-void Layer::setActivation(ActivationType acti) {
+void LayerV1::setActivation(ActivationType acti) {
   if (acti == ActivationType::ACT_UNKNOWN) {
     throw std::invalid_argument("Error:have to specify activation function");
   }
   activation_type = acti;
 }
 
-int Layer::checkValidation() {
+int LayerV1::checkValidation() {
   int status = ML_ERROR_NONE;
 
   if (activation_type == ActivationType::ACT_UNKNOWN) {
@@ -50,7 +50,7 @@ int Layer::checkValidation() {
   return status;
 }
 
-void Layer::setBatch(unsigned int batch) {
+void LayerV1::setBatch(unsigned int batch) {
   for (unsigned int idx = 0; idx < getNumInputs(); ++idx)
     input_dim[idx].setTensorDim(0, batch);
 
@@ -58,7 +58,7 @@ void Layer::setBatch(unsigned int batch) {
     output_dim[idx].setTensorDim(0, batch);
 }
 
-std::vector<Tensor> Layer::getOutputs() {
+std::vector<Tensor> LayerV1::getOutputs() {
   std::vector<Tensor> ret;
   for (unsigned int i = 0; i < getNumOutputs(); ++i) {
     ret.push_back(net_hidden[i]->getVariableRef());
@@ -66,7 +66,7 @@ std::vector<Tensor> Layer::getOutputs() {
   return ret;
 }
 
-std::vector<Tensor> Layer::getDerivatives() {
+std::vector<Tensor> LayerV1::getDerivatives() {
   std::vector<Tensor> ret;
   for (unsigned int i = 0; i < getNumInputs(); ++i) {
     ret.push_back(net_input[i]->getGradientRef());
@@ -74,7 +74,7 @@ std::vector<Tensor> Layer::getDerivatives() {
   return ret;
 }
 
-void Layer::copy(std::shared_ptr<Layer> l) {
+void LayerV1::copy(std::shared_ptr<LayerV1> l) {
   for (auto const &w : l->weights)
     weights.push_back(w.clone());
 
@@ -88,9 +88,9 @@ void Layer::copy(std::shared_ptr<Layer> l) {
   this->trainable = l->trainable;
 }
 
-sharedConstTensors Layer::forwarding_with_val(sharedConstTensors input,
-                                              sharedConstTensors label,
-                                              bool training) {
+sharedConstTensors LayerV1::forwarding_with_val(sharedConstTensors input,
+                                                sharedConstTensors label,
+                                                bool training) {
 
   if (getNumInputs() != input.size()) {
     std::stringstream ss;
@@ -120,7 +120,7 @@ sharedConstTensors Layer::forwarding_with_val(sharedConstTensors input,
   return out;
 }
 
-sharedConstTensors Layer::backwarding_with_val(sharedConstTensors label) {
+sharedConstTensors LayerV1::backwarding_with_val(sharedConstTensors label) {
 
   for (unsigned int i = 0; i < getNumOutputs(); ++i) {
     net_hidden[i]->getGradientRef() = label[i]->clone();
@@ -137,19 +137,19 @@ sharedConstTensors Layer::backwarding_with_val(sharedConstTensors label) {
   return out;
 }
 
-void Layer::read(std::ifstream &file) {
+void LayerV1::read(std::ifstream &file) {
   for (auto &weight : weights) {
     weight.getVariableRef().read(file);
   }
 }
 
-void Layer::save(std::ofstream &file) {
+void LayerV1::save(std::ofstream &file) {
   for (auto &weight : weights) {
     weight.getVariableRef().save(file);
   }
 }
 
-int Layer::setProperty(std::vector<std::string> values) {
+int LayerV1::setProperty(std::vector<std::string> values) {
   int status = ML_ERROR_NONE;
 
   try {
@@ -186,7 +186,7 @@ int Layer::setProperty(std::vector<std::string> values) {
   return status;
 }
 
-void Layer::setProperty(const PropertyType type, const std::string &value) {
+void LayerV1::setProperty(const PropertyType type, const std::string &value) {
   int status = ML_ERROR_NONE;
 
   switch (type) {
@@ -259,8 +259,8 @@ void Layer::setProperty(const PropertyType type, const std::string &value) {
 }
 
 template <typename T>
-void Layer::printIfValid(std::ostream &out, const PropertyType type,
-                         const T target) {
+void LayerV1::printIfValid(std::ostream &out, const PropertyType type,
+                           const T target) {
   try {
     setProperty(type);
   } catch (exception::not_supported &e) {
@@ -271,7 +271,7 @@ void Layer::printIfValid(std::ostream &out, const PropertyType type,
       << std::endl;
 }
 
-void Layer::printShapeInfo(std::ostream &out) {
+void LayerV1::printShapeInfo(std::ostream &out) {
   for (unsigned int idx = 0; idx < getNumInputs(); ++idx) {
     out << "input " << input_dim[idx];
     for (unsigned int i = 0; i < weights.size(); i++)
@@ -282,13 +282,13 @@ void Layer::printShapeInfo(std::ostream &out) {
   }
 }
 
-void Layer::printPropertiesMeta(std::ostream &out) {
+void LayerV1::printPropertiesMeta(std::ostream &out) {
   printIfValid(
     out, PropertyType::activation,
     static_cast<std::underlying_type<ActivationType>::type>(activation_type));
 }
 
-void Layer::printProperties(std::ostream &out) {
+void LayerV1::printProperties(std::ostream &out) {
   out << "Trainable: " << trainable << std::endl;
   printIfValid(out, PropertyType::weight_regularizer,
                static_cast<int>(weight_regularizer));
@@ -296,13 +296,13 @@ void Layer::printProperties(std::ostream &out) {
                weight_regularizer_constant);
 }
 
-void Layer::printMetric(std::ostream &out) {
+void LayerV1::printMetric(std::ostream &out) {
   if (loss > 0) {
     out << "Weight regularization loss: " << loss;
   }
 }
 
-void Layer::printPreset(std::ostream &out, PrintPreset preset) {
+void LayerV1::printPreset(std::ostream &out, PrintPreset preset) {
   unsigned int flags = 0;
   switch (preset) {
   case PrintPreset::PRINT_ALL:
@@ -322,7 +322,7 @@ void Layer::printPreset(std::ostream &out, PrintPreset preset) {
   print(out, flags);
 }
 
-void Layer::print(std::ostream &out, unsigned int flags) {
+void LayerV1::print(std::ostream &out, unsigned int flags) {
   /** @todo properly move print to LayerNode */
   if (flags & PRINT_INST_INFO) {
     out << "===================";
@@ -363,7 +363,7 @@ void Layer::print(std::ostream &out, unsigned int flags) {
   }
 };
 
-std::shared_ptr<Layer> getLayerDevel(std::shared_ptr<ml::train::Layer> l) {
+std::shared_ptr<LayerV1> getLayerDevel(std::shared_ptr<ml::train::Layer> l) {
   return std::static_pointer_cast<LayerNode>(l)->getObject();
 }
 

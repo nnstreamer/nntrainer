@@ -24,14 +24,14 @@ namespace nntrainer {
  * @class   RNNLayer
  * @brief   RNNLayer
  */
-class RNNLayer : public Layer {
+class RNNLayer : public LayerV1 {
 public:
   /**
    * @brief     Constructor of RNNLayer
    */
   template <typename... Args>
   RNNLayer(unsigned int unit_ = 0, bool sequence = false, Args... args) :
-    Layer(args...),
+    LayerV1(args...),
     unit(unit_),
     return_sequences(sequence){};
 
@@ -71,7 +71,7 @@ public:
    * @brief     copy layer
    * @param[in] l layer to copy
    */
-  void copy(std::shared_ptr<Layer> l) override;
+  void copy(std::shared_ptr<LayerV1> l) override;
 
   /**
    * @brief     initialize layer
@@ -85,7 +85,7 @@ public:
    */
   const std::string getType() const override { return RNNLayer::type; };
 
-  using Layer::setProperty;
+  using LayerV1::setProperty;
 
   /**
    * @copydoc Layer::setProperty(const PropertyType type, const std::string

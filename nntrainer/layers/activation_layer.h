@@ -25,7 +25,7 @@ namespace nntrainer {
  * @class   Activation Layer
  * @brief   Activation Layer
  */
-class ActivationLayer : public Layer {
+class ActivationLayer : public LayerV1 {
 
 public:
   /**
@@ -33,7 +33,7 @@ public:
    */
   template <typename... Args>
   ActivationLayer(ActivationType at = ActivationType::ACT_NONE, Args... args) :
-    Layer(args...) {
+    LayerV1(args...) {
     setTrainable(false);
     setActivation(at);
   }
