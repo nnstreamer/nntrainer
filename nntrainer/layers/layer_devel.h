@@ -19,23 +19,31 @@
  * @bug		No known bugs except for NYI items
  *
  */
-#ifndef __LAYER_H__
-#define __LAYER_H__
+#ifndef __LAYER_DEVEL_H__
+#define __LAYER_DEVEL_H__
 #ifdef __cplusplus
 
 #include <memory>
+#include <string>
 #include <vector>
 
-#include <layer_context.h>
-#include <node_exporter.h>
+namespace ml::train {
+class Layer;
+}
 
 namespace nntrainer {
+
+class InitContext;
+class RunContext;
+class Exporter;
+
+enum class ExportMethods;
 
 /**
  * @class   Layer Base class for layers
  * @brief   Base class for all layers
  *
- * @details nntrainer::Layer inherits ml::train::Layer but has been ommitted to
+ * @details nntrainer::Layer inherits ml::train::Layer but has been omitted to
  * disallow static_cast between nntrainer::Layer and ml::train::Layer objects.
  */
 class Layer {
@@ -104,7 +112,7 @@ public:
    * @note this shouldn't be virtual, this became virtual to support custom
    * layer. should be reverted after layer.h can fully support custom layer
    */
-  virtual int setProperty(std::vector<std::string> values);
+  virtual int setProperty(const std::vector<std::string> &values);
 
   /**
    * @brief this function helps exporting the layer in a predefined format,
@@ -113,9 +121,8 @@ public:
    * @param[in] exporter exporter that conatins exporting logic
    * @param[in] method enum value to identify how it should be exported to
    */
-  virtual void
-  export_to(Exporter &exporter,
-            ExportMethods method = ExportMethods::METHOD_STRINGVECTOR) const {}
+  virtual void exportTo(Exporter &exporter,
+                        const ExportMethods &method) const {};
 
   /**
    * @brief Set the batch for the layer
@@ -124,7 +131,7 @@ public:
    * @details Update the initialize context based on the updated batch size if
    * required
    */
-  virtual void setBatch(InitContext context, unsigned int batch) {}
+  virtual void setBatch(InitContext &context, unsigned int batch) {}
 
   /**
    * @brief Set the batch for the layer
@@ -132,7 +139,7 @@ public:
    * @param[in] batch Batch value to be set
    * @details Update the run context based on the updated batch size if required
    */
-  virtual void setBatch(RunContext context, unsigned int batch) {}
+  virtual void setBatch(RunContext &context, unsigned int batch) {}
 
   /**
    * @brief   If the current layer can support in-place
@@ -153,15 +160,16 @@ public:
   virtual bool requireLabel() const { return false; }
 };
 
-/**
- * @brief   Overriding output stream for layers and it's derived class
- */
-template <typename T, typename std::enable_if_t<
-                        std::is_base_of<Layer, T>::value, T> * = nullptr>
-std::ostream &operator<<(std::ostream &out, T &l) {
-  l.printPreset(out, Layer::PrintPreset::PRINT_SUMMARY);
-  return out;
-}
+/// @todo Decide where to put and how to implement(#986)
+// /**
+//  * @brief   Overriding output stream for layers and it's derived class
+//  */
+// template <typename T, typename std::enable_if_t<
+//                         std::is_base_of<Layer, T>::value, T> * = nullptr>
+// std::ostream &operator<<(std::ostream &out, T &l) {
+//   // l.printPreset(out, Layer::PrintPreset::PRINT_SUMMARY);
+//   return out;
+// }
 
 using CreateLayerFunc = nntrainer::Layer *(*)();
 using DestroyLayerFunc = void (*)(nntrainer::Layer *);
@@ -199,6 +207,7 @@ std::unique_ptr<Layer> createLayer(const std::vector<std::string> &props = {}) {
 
 /**
  * @brief   Get Layer devel from ml::train::Layer
+ * @todo    deprecate this(#986)
  *
  * @param   l Layer object
  * @return  Layer devel object
@@ -208,4 +217,4 @@ std::shared_ptr<Layer> getLayerDevel(std::shared_ptr<ml::train::Layer> l);
 } // namespace nntrainer
 
 #endif /* __cplusplus */
-#endif /* __LAYER_H__ */
+#endif /* __LAYER_DEVEL_H__ */
