@@ -29,13 +29,13 @@ namespace layers {
  * @brief This layer l2 normalize the feature
  *
  */
-class L2NormLayer : public nntrainer::Layer {
+class L2NormLayer : public nntrainer::LayerV1 {
 public:
   /**
    * @brief Construct a new L2norm Layer object
    * that normlizes given feature with l2norm
    */
-  L2NormLayer() : Layer() {}
+  L2NormLayer() : LayerV1() {}
 
   /**
    *  @brief  Move constructor.
@@ -55,7 +55,7 @@ public:
    */
   ~L2NormLayer() {}
 
-  using nntrainer::Layer::setProperty;
+  using nntrainer::LayerV1::setProperty;
 
   /**
    * @brief initializing nntrainer

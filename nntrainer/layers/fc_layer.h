@@ -26,14 +26,14 @@ namespace nntrainer {
  * @class   FullyConnecedLayer
  * @brief   fully connected layer
  */
-class FullyConnectedLayer : public Layer {
+class FullyConnectedLayer : public LayerV1 {
 public:
   /**
    * @brief     Constructor of Fully Connected Layer
    */
   template <typename... Args>
   FullyConnectedLayer(unsigned int unit_ = 0, Args... args) :
-    Layer(args...),
+    LayerV1(args...),
     fc_props(props::Unit(unit_)) {}
 
   /**
@@ -72,7 +72,7 @@ public:
    * @brief     copy layer
    * @param[in] l layer to copy
    */
-  void copy(std::shared_ptr<Layer> l) override;
+  void copy(std::shared_ptr<LayerV1> l) override;
 
   /**
    * @brief     initialize layer
@@ -95,7 +95,7 @@ public:
     return FullyConnectedLayer::type;
   };
 
-  using Layer::setProperty;
+  using LayerV1::setProperty;
 
   /**
    * @copydoc Layer::setProperty(const PropertyType type, const std::string

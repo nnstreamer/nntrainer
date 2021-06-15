@@ -542,9 +542,9 @@ private:
    * @param[in] flags bit combination of Neuralnet::PrintOption
    * @param[in] Layer::PrintPreset print preset when to print layer properties
    */
-  void print(
-    std::ostream &out, unsigned int flags = 0,
-    Layer::PrintPreset layerPrintPreset = Layer::PrintPreset::PRINT_SUMMARY);
+  void print(std::ostream &out, unsigned int flags = 0,
+             LayerV1::PrintPreset layerPrintPreset =
+               LayerV1::PrintPreset::PRINT_SUMMARY);
 
   /**
    * @brief     Set Loss
@@ -626,7 +626,7 @@ private:
    * @param[in] calc_derivative If the derivative for previous layer must be
    * calculated
    */
-  void backwarding(std::shared_ptr<Layer> layer, int iteration,
+  void backwarding(std::shared_ptr<LayerV1> layer, int iteration,
                    bool calc_derivative);
 };
 

@@ -92,8 +92,8 @@ int RNNLayer::initialize(Manager &manager) {
   // TODO : We could control with something like #define test to save memory
   hidden = std::make_shared<Var_Grad>(d, true, true, "RNN:temp_hidden");
 
-  if (Layer::activation_type == ActivationType::ACT_NONE) {
-    Layer::activation_type = ActivationType::ACT_TANH;
+  if (LayerV1::activation_type == ActivationType::ACT_NONE) {
+    LayerV1::activation_type = ActivationType::ACT_TANH;
     acti_func.setActiFunc(activation_type);
   }
 
@@ -114,7 +114,7 @@ void RNNLayer::setProperty(const PropertyType type, const std::string &value) {
   case PropertyType::activation:
     if (!value.empty()) {
       ActivationType acti_type = (ActivationType)parseType(value, TOKEN_ACTI);
-      Layer::activation_type = acti_type;
+      LayerV1::activation_type = acti_type;
       acti_func.setActiFunc(acti_type);
     }
     break;
@@ -125,7 +125,7 @@ void RNNLayer::setProperty(const PropertyType type, const std::string &value) {
     }
     break;
   default:
-    Layer::setProperty(type, value);
+    LayerV1::setProperty(type, value);
     break;
   }
   }
@@ -196,8 +196,8 @@ void RNNLayer::forwarding(bool training) {
   }
 }
 
-void RNNLayer::copy(std::shared_ptr<Layer> l) {
-  Layer::copy(l);
+void RNNLayer::copy(std::shared_ptr<LayerV1> l) {
+  LayerV1::copy(l);
 
   std::shared_ptr<RNNLayer> from = std::static_pointer_cast<RNNLayer>(l);
   this->unit = from->unit;

@@ -54,7 +54,7 @@ void PreprocessFlipLayer::setProperty(const PropertyType type,
     }
     break;
   default:
-    Layer::setProperty(type, value);
+    LayerV1::setProperty(type, value);
     break;
   }
 }
@@ -116,7 +116,7 @@ void PreprocessFlipLayer::setTrainable(bool train) {
     throw exception::not_supported(
       "Preprocessing layer does not support training");
 
-  Layer::setTrainable(false);
+  LayerV1::setTrainable(false);
 }
 
 } /* namespace nntrainer */

@@ -28,13 +28,13 @@ namespace nntrainer {
  * @class   TfLiteLayer
  * @brief   Tensorflow Lite layer
  */
-class TfLiteLayer : public Layer {
+class TfLiteLayer : public LayerV1 {
 public:
   /**
    * @brief     Constructor of NNStreamer Layer
    */
   TfLiteLayer(std::string model = "") :
-    Layer(),
+    LayerV1(),
     modelfile(model),
     interpreter(nullptr),
     model(nullptr) {
@@ -59,7 +59,7 @@ public:
   /**
    * @copydoc Layer::copy(std::shared_ptr<layer> l)
    */
-  void copy(std::shared_ptr<Layer> l) override;
+  void copy(std::shared_ptr<LayerV1> l) override;
 
   /**
    * @copydoc Layer::initialize()
@@ -76,7 +76,7 @@ public:
    */
   const std::string getType() const override { return TfLiteLayer::type; };
 
-  using Layer::setProperty;
+  using LayerV1::setProperty;
 
   /**
    * @copydoc Layer::setProperty(const PropertyType type, const std::string
@@ -92,6 +92,13 @@ private:
   std::unique_ptr<tflite::Interpreter> interpreter;
   std::unique_ptr<tflite::FlatBufferModel> model;
 
+  /**
+   * @brief Set the Dimensions object
+   *
+   * @param tensor_idx_list tensor index list
+   * @param dim dimension
+   * @param is_output check if output
+   */
   void setDimensions(const std::vector<int> &tensor_idx_list,
                      std::vector<TensorDim> &dim, bool is_output);
 };
