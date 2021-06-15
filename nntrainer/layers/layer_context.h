@@ -199,7 +199,9 @@ public:
    * @param idx Identifier of the weight
    * @return Tensor& Reference to the weight tensor
    */
-  Tensor &getWeight(unsigned int idx) { return weights[idx]->getVariableRef(); }
+  Tensor &getWeight(unsigned int idx) const {
+    return weights[idx]->getVariableRef();
+  }
 
   /**
    * @brief Get the Weight Gradient tensor object
@@ -299,7 +301,7 @@ public:
    *
    * @return unsigned int number of weight tensors
    */
-  unsigned int getNumWeights() { return weights.size(); }
+  unsigned int getNumWeights() const { return weights.size(); }
 
   /**
    * @brief Get the if the layer is trainable
