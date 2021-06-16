@@ -632,7 +632,7 @@ void Manager::deinitializeTensors() {
  */
 std::vector<Weight *>
 Manager::requestWeights(const GraphNode &node,
-                        std::vector<Weight::Spec> &weights_spec) {
+                        const std::vector<Weight::Spec> &weights_spec) {
   return _requestTensors<Weight>(node, weights_spec, weights_v2);
 }
 
@@ -642,7 +642,7 @@ Manager::requestWeights(const GraphNode &node,
  */
 std::vector<Var_Grad *>
 Manager::requestTensors(const GraphNode &node,
-                        std::vector<Var_Grad::Spec> &tensors_spec) {
+                        const std::vector<Var_Grad::Spec> &tensors_spec) {
   return _requestTensors<Var_Grad>(node, tensors_spec, tensors_v2);
 }
 
@@ -651,7 +651,7 @@ Manager::requestTensors(const GraphNode &node,
  */
 std::vector<Var_Grad *>
 Manager::requestInputs(const GraphNode &node,
-                       std::vector<TensorDim> &inputs_dim) {
+                       const std::vector<TensorDim> &inputs_dim) {
   unsigned int count = 0;
   std::vector<Var_Grad::Spec> inputs_spec;
   std::transform(
@@ -672,7 +672,7 @@ Manager::requestInputs(const GraphNode &node,
  */
 std::vector<Var_Grad *>
 Manager::requestOutputs(const GraphNode &node,
-                        std::vector<TensorDim> &outputs_dim) {
+                        const std::vector<TensorDim> &outputs_dim) {
   unsigned int count = 0;
   std::vector<Var_Grad::Spec> outputs_spec;
   std::transform(outputs_dim.begin(), outputs_dim.end(),

@@ -307,6 +307,30 @@ public:
    */
   friend std::ostream &operator<<(std::ostream &out, const LayerNode &l);
 
+  /**
+   * @brief   Get init layer context
+   *
+   * @retval  init layer context
+   */
+  const InitLayerContext &getInitContext() const { return init_context; }
+
+  /**
+   * @brief   Get run layer context
+   *
+   * @retval  run layer context
+   */
+  const RunLayerContext &getRunContext() const { return run_context; }
+
+  /**
+   * @brief   Set run layer context
+   *
+   * @param  context Updated run layer context
+   */
+  void updateRunContext(RunLayerContext &&context) {
+    // TODO: ensure props/trainable must match
+    run_context = std::move(context);
+  }
+
 private:
   // TODO: make this unique_ptr once getObject API is removed
   std::shared_ptr<nntrainer::LayerV1>
