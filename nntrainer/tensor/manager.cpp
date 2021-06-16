@@ -633,20 +633,7 @@ void Manager::deinitializeTensors() {
 std::vector<Weight *>
 Manager::requestWeights(const GraphNode &node,
                         std::vector<Weight::Spec> &weights_spec) {
-  std::vector<Weight *> ret;
-  std::vector<std::unique_ptr<Weight>> weights_list;
-  weights_list.reserve(weights_spec.size());
-
-  for (auto const &ws : std::as_const(weights_spec)) {
-    weights_list.emplace_back(std::make_unique<Weight>(ws));
-  }
-
-  weights_v2.emplace_back(std::move(weights_list));
-  std::transform(weights_list.begin(), weights_list.end(),
-                 std::back_inserter(ret),
-                 [](auto const &elem) { return elem.get(); });
-
-  return ret;
+  return _requestTensors<Weight>(node, weights_spec, weights_v2);
 }
 
 /**
@@ -656,20 +643,50 @@ Manager::requestWeights(const GraphNode &node,
 std::vector<Var_Grad *>
 Manager::requestTensors(const GraphNode &node,
                         std::vector<Var_Grad::Spec> &tensors_spec) {
-  std::vector<Var_Grad *> ret;
-  std::vector<std::unique_ptr<Var_Grad>> tensors_list;
-  tensors_list.reserve(tensors_spec.size());
+  return _requestTensors<Var_Grad>(node, tensors_spec, tensors_v2);
+}
 
-  for (auto const &ts : std::as_const(tensors_spec)) {
-    tensors_list.emplace_back(std::make_unique<Var_Grad>(ts));
-  }
+/**
+ * @brief     Create tensors with the given spec
+ */
+std::vector<Var_Grad *>
+Manager::requestInputs(const GraphNode &node,
+                       std::vector<TensorDim> &inputs_dim) {
+  unsigned int count = 0;
+  std::vector<Var_Grad::Spec> inputs_spec;
+  std::transform(
+    inputs_dim.begin(), inputs_dim.end(), std::back_inserter(inputs_spec),
+    [&count, &node](auto const &elem) {
+      // TODO: update after getName() updated to be a const function
+      // return std::make_tuple(elem, true, node.getName() +
+      // std::string("_input") + std::to_string(count++));
+      return std::make_tuple(elem, true,
+                             std::string("node.getName()") +
+                               std::string("_input") + std::to_string(count++));
+    });
+  return _requestTensors<Var_Grad>(node, inputs_spec, inputs_v2);
+}
 
-  tensors_v2.emplace_back(std::move(tensors_list));
-  std::transform(tensors_list.begin(), tensors_list.end(),
-                 std::back_inserter(ret),
-                 [](auto const &elem) { return elem.get(); });
-
-  return ret;
+/**
+ * @brief     Create tensors with the given spec
+ */
+std::vector<Var_Grad *>
+Manager::requestOutputs(const GraphNode &node,
+                        std::vector<TensorDim> &outputs_dim) {
+  unsigned int count = 0;
+  std::vector<Var_Grad::Spec> outputs_spec;
+  std::transform(outputs_dim.begin(), outputs_dim.end(),
+                 std::back_inserter(outputs_spec),
+                 [&count, &node](auto const &elem) {
+                   // TODO: update after getName() updated to be a const
+                   // function return std::make_tuple(elem, true, node.getName()
+                   // + std::string("_output") + std::to_string(count++));
+                   return std::make_tuple(elem, true,
+                                          std::string("node.getName()") +
+                                            std::string("_output") +
+                                            std::to_string(count++));
+                 });
+  return _requestTensors<Var_Grad>(node, outputs_spec, outputs_v2);
 }
 
 } // namespace nntrainer
