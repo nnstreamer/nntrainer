@@ -169,6 +169,7 @@ public:
   /**
    * @brief     Create tensors with the given spec
    *
+   * @param w   node Graph node to extract node identifiers/info
    * @param w   create tensors list
    */
   std::vector<Var_Grad *>
@@ -178,14 +179,16 @@ public:
   /**
    * @brief     Create tensors with the given spec
    *
+   * @param w   node Graph node to extract node identifiers/info
    * @param w   create tensors list
    */
   std::vector<Var_Grad *> requestInputs(const GraphNode &node,
-                                        std::vector<TensorDim> &inputs_spec);
+                                        std::vector<TensorDim> &inputs_dim);
 
   /**
    * @brief     Create tensors with the given spec
    *
+   * @param w   node Graph node to extract node identifiers/info
    * @param w   create tensors list
    */
   std::vector<Var_Grad *> requestOutputs(const GraphNode &node,
@@ -408,8 +411,9 @@ private:
   std::vector<std::vector<std::unique_ptr<Weight>>>
     weights_v2; /**< weights for the layers */
   std::vector<std::vector<std::unique_ptr<Var_Grad>>>
-    inouts_v2; /**<
-              inputs/outputs for the layers */
+    inputs_v2; /**< inputs for the layers */
+  std::vector<std::vector<std::unique_ptr<Var_Grad>>>
+    outputs_v2; /**< outputs for the layers */
   /** NOTE: these tensors maybe split based on their lifespan later */
   std::vector<std::vector<std::unique_ptr<Var_Grad>>>
     tensors_v2; /**< extra tensors required by the layers */
@@ -538,6 +542,33 @@ private:
    * @brief Initialize the tensors for training mode
    */
   void initializeTensorsTrain();
+
+  /**
+   * @brief     Create tensors with the given spec
+   *
+   * @param w   node Graph node to extract node identifiers/info
+   * @param w   create tensors list
+   * @param layer_objs_list list to store the created tensors
+   */
+  template <typename T>
+  static std::vector<T *> _requestTensors(
+    const GraphNode &node, std::vector<typename T::Spec> &tensors_spec,
+    std::vector<std::vector<std::unique_ptr<T>>> &layer_objs_list) {
+    std::vector<T *> ret;
+    std::vector<std::unique_ptr<T>> tensors_list;
+    tensors_list.reserve(tensors_spec.size());
+
+    for (auto const &ts : std::as_const(tensors_spec)) {
+      tensors_list.emplace_back(std::make_unique<T>(ts));
+    }
+
+    layer_objs_list.emplace_back(std::move(tensors_list));
+    std::transform(tensors_list.begin(), tensors_list.end(),
+                   std::back_inserter(ret),
+                   [](auto const &elem) { return elem.get(); });
+
+    return ret;
+  }
 };
 
 } // namespace nntrainer
