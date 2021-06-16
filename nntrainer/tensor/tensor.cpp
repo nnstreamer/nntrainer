@@ -497,8 +497,8 @@ void Tensor::createSharedDataTensor(const Tensor &src, Tensor &dest,
       src.src_tensor->tensor(), offset + src.src_tensor->offset());
 }
 
-Tensor Tensor::getSharedDataTensor(const TensorDim dim_,
-                                   unsigned int offset) const {
+Tensor Tensor::getSharedDataTensor(const TensorDim dim_, unsigned int offset,
+                                   bool reset_stride) const {
   Tensor ret = *this;
 
   if (dim_.getDataLen() + offset > dim.getDataLen())
@@ -506,7 +506,8 @@ Tensor Tensor::getSharedDataTensor(const TensorDim dim_,
       "Creating shared tensor of size bigger than tensor memory.");
 
   ret.dim = dim_;
-  ret.strides = ret.dim.computeStrides();
+  if (reset_stride)
+    ret.strides = ret.dim.computeStrides();
 
   /**
    * In this case, its the caller's responsibility to ensure that allocate() is
@@ -715,6 +716,7 @@ Tensor Tensor::dot(Tensor const &m, bool trans, bool trans_m) const {
 Tensor &Tensor::dot(Tensor const &m, Tensor &result, bool trans, bool trans_m,
                     float beta) const {
   if (m.dim.rank() > 2) {
+
     throw exception::not_supported("Error: support only for rank of dot "
                                    "matrix <= 2");
   }
@@ -967,6 +969,46 @@ void Tensor::copy(const float *buf) noexcept {
   }
 
   scopy(length(), buf, 1, getData(), 1);
+}
+
+void Tensor::copy_with_stride(const Tensor &from) {
+  if (from.length() != 0 && length() == from.length()) {
+    reshape(from.getDim());
+    for (unsigned int b = 0; b < from.batch(); ++b) {
+      unsigned int from_b = b * from.strides[0];
+      unsigned int t_b = b * from.channel() * from.height() * from.width();
+      for (unsigned int c = 0; c < from.channel(); ++c) {
+        unsigned int from_c = c * from.strides[1];
+        unsigned int t_c = c * from.height() * from.width();
+        for (unsigned int h = 0; h < from.height(); ++h) {
+          unsigned int from_h = h * from.strides[2];
+          unsigned int t_h = h * from.width();
+          for (unsigned int w = 0; w < from.width(); ++w) {
+            unsigned int from_w = w * from.strides[3];
+            getData()[t_b + t_c + t_h + w] =
+              from.getData()[from_b + from_c + from_h + from_w];
+          }
+        }
+      }
+    }
+  } else {
+    Tensor t = Tensor(from.getDim(), true);
+    for (unsigned int b = 0; b < from.batch(); ++b) {
+      unsigned int from_b = b * from.strides[0];
+      for (unsigned int c = 0; c < from.channel(); ++c) {
+        unsigned int from_c = c * from.strides[1];
+        for (unsigned int h = 0; h < from.height(); ++h) {
+          unsigned int from_h = h * from.strides[2];
+          for (unsigned int w = 0; w < from.width(); ++w) {
+            unsigned int from_w = w * from.strides[3];
+            t.setValue(b, c, h, w,
+                       from.getData()[from_b + from_c + from_h + from_w]);
+          }
+        }
+      }
+    }
+    swap(t, *this);
+  }
 }
 
 void Tensor::copy(const Tensor &from) {

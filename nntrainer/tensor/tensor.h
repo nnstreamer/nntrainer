@@ -739,6 +739,12 @@ public:
   void copy(const Tensor &from);
 
   /**
+   * @brief     Copy the Tensor
+   * @param[in] from Tensor to be copied
+   */
+  void copy_with_stride(const Tensor &from);
+
+  /**
    * @brief Get slice of the tensor, sliced by batch
    * @param[in] offset offset in batch to start the slice
    * @param[in] size size of the slice
@@ -759,7 +765,8 @@ public:
    * @note New size added with offset must be less than the size of the original
    * tensor.
    */
-  Tensor getSharedDataTensor(const TensorDim dim, unsigned int offset) const;
+  Tensor getSharedDataTensor(const TensorDim dim, unsigned int offset,
+                             bool reset_stride = true) const;
 
   /**
    * @brief make this tensor share memory with given tensor

@@ -9,6 +9,21 @@
  * @author Jijoong Moon <jijoong.moon@samsung.com>
  * @bug    No known bugs except for NYI items
  *
+ * h_prev --------d1------->[*]-------d0----->[+]---d0--> h
+ * dh_nx    |  |             |                 | d0      dh
+ *          | d14            | d2        d3    |
+ *          |  |             +-----[1-]------>[*]
+ *          | [*]<---+ d15   |d5               | d6
+ *          |  |     |rt     | zt              |gt
+ *          |  |    [sig]   [sig]            [tanh]
+ *          |  |     |d16    | d7              |d8
+ *          |  |    [+]      [+]              [+]
+ *          |  |    / \d16   |  \ d7          / \ d8
+ *          |  |  Wxhr Whhr Wxhz Whhz       Wxhg Whhg
+ *          |  |  |d17  |d13 |d12 |d11       |d10 | d9
+ *          +- |--+------|---+    |          |    |
+ *             +---------|--------|----------+    |
+ *   xs------------------+--------+---------------+
  */
 
 #include <cmath>
@@ -203,14 +218,18 @@ void GRULayer::forwarding(bool training) {
         hs_prev = h_prev.getBatchSlice(b, 1);
       }
 
-      xs.dot(weight_xh, zrg_t);
+      xs.dot(weight_xh, zrg_t); // x_z, x_r, x_g
 
       Tensor ztrt = zrg_t.getSharedDataTensor({unit * 2}, 0);
       Tensor ztrt_b = bias_h.getSharedDataTensor({unit * 2}, 0);
 
-      Tensor w_hh = weight_hh.getSharedDataTensor({unit * unit * 2}, 0);
-      Tensor w_g =
-        weight_hh.getSharedDataTensor({unit * unit}, unit * unit * 2);
+      Tensor w_hh;
+      w_hh.copy_with_stride(
+        weight_hh.getSharedDataTensor({1, 1, unit, unit * 2}, 0, false));
+      Tensor w_g;
+      w_g.copy_with_stride(
+        weight_hh.getSharedDataTensor({1, 1, unit, unit}, unit * 2, false));
+
       Tensor gt = zrg_t.getSharedDataTensor({unit}, unit * 2);
       Tensor gt_b = bias_h.getSharedDataTensor({unit}, unit * 2);
 
@@ -223,13 +242,15 @@ void GRULayer::forwarding(bool training) {
       recurrent_acti_func.run_fn(rt, rt);
       recurrent_acti_func.run_fn(zt, zt);
 
-      gt.add_i(rt.multiply(hs_prev).dot(w_g));
+      Tensor temp;
+      rt.multiply(hs_prev, temp);
+      gt.add_i(temp.dot(w_g));
       gt.add_i(gt_b);
       acti_func.run_fn(gt, gt);
 
       zt.multiply(hs_prev, hs);
-      Tensor a = zt.multiply(-1.0).add(1.0);
-      hs.add_i(gt.multiply(a));
+      temp = zt.multiply(-1.0).add(1.0);
+      hs.add_i(gt.multiply(temp));
     }
     h_prev.getBatchSlice(b, 1).copy(hs);
   }
@@ -279,7 +300,10 @@ void GRULayer::calcGradient() {
     weightAt(static_cast<int>(GRUParams::weight_hh)).getVariableRef();
 
   djdw_x.setZero();
-  djdw_h.setZero();
+  Tensor djdw_zr_h = Tensor({1, 1, unit, unit * 2}, true);
+  djdw_zr_h.setZero();
+  Tensor djdw_g_h = Tensor({1, 1, unit, unit}, true);
+  djdw_g_h.setZero();
   djdb_h.setZero();
 
   hidden->getGradientRef().setZero();
@@ -313,7 +337,6 @@ void GRULayer::calcGradient() {
 
     Tensor dh;
     Tensor hs_prev;
-    Tensor hs;
     Tensor xs;
     Tensor dzrg_ = zrg->getGradientRef().getBatchSlice(b, 1);
     Tensor zrg_ = zrg->getVariableRef().getBatchSlice(b, 1);
@@ -321,7 +344,6 @@ void GRULayer::calcGradient() {
     for (unsigned int t = deriv_t.height(); t-- > 0;) {
       dh = deriv_t.getSharedDataTensor({deriv_t.width()}, t * deriv_t.width());
       xs = xs_t.getSharedDataTensor({xs_t.width()}, t * xs_t.width());
-      hs = hs_t.getSharedDataTensor({hs_t.width()}, t * hs_t.width());
 
       Tensor dzrg_t =
         dzrg_.getSharedDataTensor({unit * NUM_GATE}, unit * t * NUM_GATE);
@@ -347,37 +369,55 @@ void GRULayer::calcGradient() {
       Tensor rt = zrg_t.getSharedDataTensor({unit}, unit);
       Tensor gt = zrg_t.getSharedDataTensor({unit}, unit * 2);
 
-      dh.multiply(hs_prev, dhz);
-      dhz.subtract_i(gt.multiply(dh));
+      zt.multiply(dh, dh_nx); // dh_nx = d1
+
+      dh.multiply(hs_prev, dhz);       // dhz = d2
+      dhz.subtract_i(gt.multiply(dh)); // dhz = d5
       zt.multiply(-1.0, dhg);
       dhg.add_i(1.0);
-      dhg.multiply_i(dh);
-      recurrent_acti_func.run_prime_fn(zt, dhz, dhz);
-      acti_func.run_prime_fn(gt, dhg, dhg);
+      dhg.multiply_i(dh); // dhg = d6
 
-      Tensor dhzr = dzrg_t.getSharedDataTensor({unit * 2}, 0);
-      Tensor djdw_zr_h = djdw_h.getSharedDataTensor({unit * unit * 2}, 0);
-      Tensor djdw_g_h =
-        djdw_h.getSharedDataTensor({unit * unit}, unit * unit * 2);
+      recurrent_acti_func.run_prime_fn(zt, dhz, dhz); // dhz = d7
+      acti_func.run_prime_fn(gt, dhg, dhg);           // dhg = d8
 
-      Tensor wg_hh =
-        weight_hh.getSharedDataTensor({unit * unit}, unit * unit * 2);
-      Tensor wzr_hh = weight_hh.getSharedDataTensor({unit * unit * 2}, 0);
+      Tensor dhzr = dzrg_t.getSharedDataTensor({unit * 2}, 0); // dhz+dhr
 
-      dhg.multiply(wg_hh, dh_nx);
-      hs_prev.multiply(dh_nx, dhr);
-      dh_nx.multiply_i(rt);
-      recurrent_acti_func.run_prime_fn(rt, dhr, dhr);
+      Tensor wg_hh;
+      wg_hh.copy_with_stride(
+        weight_hh.getSharedDataTensor({1, 1, unit, unit}, unit * 2, false));
+      Tensor wzr_hh;
+      wzr_hh.copy_with_stride(
+        weight_hh.getSharedDataTensor({1, 1, unit, unit * 2}, 0, false));
 
-      djdb_h.add_i(dzrg_t);
+      Tensor temp = Tensor({hs_t.width()});
+      temp.setZero();
+      dhg.dot(wg_hh, temp, false, true); // temp = d10
+      hs_prev.multiply(temp, dhr);       // dhr = d15
+      temp.multiply_i(rt);               // temp=d14
+      dh_nx.add_i(temp);                 //  dh_nx = d1 + d14
+      // reset temp : hs_prev * rt for djdw_g_h
+      hs_prev.multiply(rt, temp);
+      recurrent_acti_func.run_prime_fn(rt, dhr, dhr); // dhr = d16
+
+      djdb_h.add_i(dzrg_t); // dzrg_t = d7+d16+d8
 
       djdw_x.add_i(xs.dot(dzrg_t, true, false));
-      djdw_zr_h.add_i(hs_prev.dot(dhzr, true, false));
-      djdw_g_h.add_i(hs_prev.multiply(rt).dot(dhg, true, false));
 
-      dhzr.dot(wzr_hh, dh_nx, false, true);
-      dh_nx.add_i(zt.multiply(dh));
+      djdw_zr_h.add_i(hs_prev.dot(dhzr, true, false));
+      djdw_g_h.add_i(temp.dot(dhg, true, false));
+      dhzr.dot(wzr_hh, dh_nx, false, true, 1.0); // dh_nx = d1 + d14 + d12 + d17
     }
+  }
+  for (unsigned int h = 0; h < unit; ++h) {
+    float *data = djdw_zr_h.getAddress(h * unit * 2);
+    float *rdata = djdw_h.getAddress(h * unit * NUM_GATE);
+    std::copy(data, data + unit * 2, rdata);
+  }
+
+  for (unsigned int h = 0; h < unit; ++h) {
+    float *data = djdw_g_h.getAddress(h * unit);
+    float *rdata = djdw_h.getAddress(h * unit * NUM_GATE + unit * 2);
+    std::copy(data, data + unit, rdata);
   }
 }
 

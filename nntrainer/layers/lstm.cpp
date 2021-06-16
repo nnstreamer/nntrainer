@@ -328,7 +328,6 @@ void LSTMLayer::calcGradient() {
     Tensor xs;
     Tensor hs_prev;
     Tensor cs_prev;
-    Tensor hs;
     Tensor cs;
     Tensor dc;
     Tensor dfgio_ = fgio->getGradientRef().getBatchSlice(b, 1);
@@ -339,7 +338,6 @@ void LSTMLayer::calcGradient() {
       dc =
         derivc_t.getSharedDataTensor({derivc_t.width()}, t * derivc_t.width());
       xs = xs_t.getSharedDataTensor({xs_t.width()}, t * xs_t.width());
-      hs = hs_t.getSharedDataTensor({hs_t.width()}, t * hs_t.width());
       cs = cs_t.getSharedDataTensor({cs_t.width()}, t * cs_t.width());
 
       Tensor dfgio_t =

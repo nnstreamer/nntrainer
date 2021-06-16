@@ -1208,6 +1208,71 @@ INI multi_rnn_return_sequence_with_batch(
   }
 );
 
+INI gru_basic(
+  "gru_basic",
+  {
+    nn_base + "loss=mse | batch_size=1",
+    sgd_base + "learning_rate = 0.1",
+    I("input") + input_base + "input_shape=1:1:1",
+    I("gru") + gru_base +
+      "unit = 1" + "input_layers=input",
+    I("outputlayer") + fc_base + "unit = 1" + "input_layers=gru"
+  }
+);
+
+INI gru_return_sequence(
+  "gru_return_sequence",
+  {
+    nn_base + "loss=mse | batch_size=1",
+    sgd_base + "learning_rate = 0.1",
+    I("input") + input_base + "input_shape=1:2:1",
+    I("gru") + gru_base +
+      "unit = 2" + "input_layers=input"+ "return_sequences=true",
+    I("outputlayer") + fc_base + "unit = 1" + "input_layers=gru"
+  }
+);
+
+INI gru_return_sequence_with_batch(
+  "gru_return_sequence_with_batch",
+  {
+    nn_base + "loss=mse | batch_size=2",
+    sgd_base + "learning_rate = 0.1",
+    I("input") + input_base + "input_shape=1:2:1",
+    I("gru") + gru_base +
+      "unit = 2" + "input_layers=input"+ "return_sequences=true",
+    I("outputlayer") + fc_base + "unit = 1" + "input_layers=gru"
+  }
+);
+
+INI multi_gru_return_sequence(
+  "multi_gru_return_sequence",
+  {
+    nn_base + "loss=mse | batch_size=1",
+    sgd_base + "learning_rate = 0.1",
+    I("input") + input_base + "input_shape=1:2:1",
+    I("gru") + gru_base +
+      "unit = 2" + "input_layers=input"+ "return_sequences=true",
+    I("gru2") + gru_base +
+      "unit = 2" + "input_layers=gru",
+    I("outputlayer") + fc_base + "unit = 1" + "input_layers=gru2"
+  }
+);
+
+
+INI multi_gru_return_sequence_with_batch(
+  "multi_gru_return_sequence_with_batch",
+  {
+    nn_base + "loss=mse | batch_size=2",
+    sgd_base + "learning_rate = 0.1",
+    I("input") + input_base + "input_shape=1:2:1",
+    I("gru") + gru_base +
+      "unit = 2" + "input_layers=input"+ "return_sequences=true",
+    I("gru2") + gru_base +
+      "unit = 2" + "input_layers=gru",
+    I("outputlayer") + fc_base + "unit = 1" + "input_layers=gru2"
+  }
+);
+
 INSTANTIATE_TEST_CASE_P(
   nntrainerModelAutoTests, nntrainerModelTest, ::testing::Values(
     mkModelTc(fc_sigmoid_mse, "3:1:1:10", 10),
@@ -1260,7 +1325,12 @@ INSTANTIATE_TEST_CASE_P(
     mkModelTc(rnn_return_sequences, "1:1:2:1", 10),
     mkModelTc(rnn_return_sequence_with_batch, "2:1:2:1", 10),
     mkModelTc(multi_rnn_return_sequence, "1:1:1:1", 10),
-    mkModelTc(multi_rnn_return_sequence_with_batch, "2:1:1:1", 10)
+    mkModelTc(multi_rnn_return_sequence_with_batch, "2:1:1:1", 10),
+    mkModelTc(gru_basic, "1:1:1:1", 10),
+    mkModelTc(gru_return_sequence, "1:1:2:1", 10),
+    mkModelTc(gru_return_sequence_with_batch, "2:1:2:1", 10),
+    mkModelTc(multi_gru_return_sequence, "1:1:1:1", 10),
+    mkModelTc(multi_gru_return_sequence_with_batch, "2:1:1:1", 10)
 ), [](const testing::TestParamInfo<nntrainerModelTest::ParamType>& info){
  return std::get<0>(info.param).getName();
 });
