@@ -626,4 +626,50 @@ void Manager::deinitializeTensors() {
   tensors_initialized = false;
 }
 
+/**
+ * @brief     Create weights with the given spec
+ *
+ */
+std::vector<Weight *>
+Manager::requestWeights(const GraphNode &node,
+                        std::vector<Weight::Spec> &weights_spec) {
+  std::vector<Weight *> ret;
+  std::vector<std::unique_ptr<Weight>> weights_list;
+  weights_list.reserve(weights_spec.size());
+
+  for (auto const &ws : std::as_const(weights_spec)) {
+    weights_list.emplace_back(std::make_unique<Weight>(ws));
+  }
+
+  weights_v2.emplace_back(std::move(weights_list));
+  std::transform(weights_list.begin(), weights_list.end(),
+                 std::back_inserter(ret),
+                 [](auto const &elem) { return elem.get(); });
+
+  return ret;
+}
+
+/**
+ * @brief     Create weights with the given spec
+ *
+ */
+std::vector<Var_Grad *>
+Manager::requestTensors(const GraphNode &node,
+                        std::vector<Var_Grad::Spec> &tensors_spec) {
+  std::vector<Var_Grad *> ret;
+  std::vector<std::unique_ptr<Var_Grad>> tensors_list;
+  tensors_list.reserve(tensors_spec.size());
+
+  for (auto const &ts : std::as_const(tensors_spec)) {
+    tensors_list.emplace_back(std::make_unique<Var_Grad>(ts));
+  }
+
+  tensors_v2.emplace_back(std::move(tensors_list));
+  std::transform(tensors_list.begin(), tensors_list.end(),
+                 std::back_inserter(ret),
+                 [](auto const &elem) { return elem.get(); });
+
+  return ret;
+}
+
 } // namespace nntrainer
