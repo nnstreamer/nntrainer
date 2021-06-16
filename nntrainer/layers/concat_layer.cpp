@@ -99,6 +99,7 @@ void ConcatLayer::calcDerivative() {
     TensorDim in_dim = input_dim[idx];
 
     for (unsigned int b = 0; b < in_dim.batch(); ++b) {
+      // TODO: replace with tensor::copy/fill
       memcpy(
         net_input[idx]->getGradient().getAddress(b * in_dim.getFeatureLen()),
         net_hidden[0]->getGradient().getAddress(b * d.getFeatureLen() +

@@ -59,7 +59,12 @@ void AdditionLayer::forwarding(bool training) {
 void AdditionLayer::calcDerivative() {
 
   for (unsigned int i = 0; i < getNumInputs(); ++i) {
-    net_input[i]->getGradientRef() = net_hidden[0]->getGradientRef();
+    /**
+     * TODO: replace this with tensor assignment during optimization.
+     * Tensor assignement needs to make sure that the previous connected layers
+     * are not inplace
+     */
+    net_input[i]->getGradientRef().copy(net_hidden[0]->getGradientRef());
   }
 }
 
