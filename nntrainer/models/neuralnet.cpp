@@ -456,8 +456,8 @@ void NeuralNetwork::setBatchSize(unsigned int batch) {
 
 bool NeuralNetwork::validateInput(sharedConstTensors X) {
 
-  auto &first_layer = model_graph.getSortedLayerNode(0)->getObject();
-  auto input_dim = first_layer->getInputDimension();
+  auto const &first_layer_node = model_graph.getSortedLayerNode(0);
+  auto input_dim = first_layer_node->getInputDimensions();
   if (X.size() != input_dim.size()) {
     ml_loge("Error: provided number of inputs %d, required %d", (int)X.size(),
             (int)input_dim.size());

@@ -263,6 +263,30 @@ public:
   }
 
   /**
+   * @brief Get the input dimension
+   * @return TensorDim dimension of the input
+   */
+  const std::vector<TensorDim> getInputDimensions() const {
+    if (LAYER_V2) {
+      return init_context.getInputDimensions();
+    } else {
+      return getLayer()->getInputDimension();
+    }
+  }
+
+  /**
+   * @brief Get the output dimension
+   * @return TensorDim dimension of the output
+   */
+  const std::vector<TensorDim> getOutputDimensions() const {
+    if (LAYER_V2) {
+      return init_context.getOutputDimensions();
+    } else {
+      return getLayer()->getOutputDimension();
+    }
+  }
+
+  /**
    * @brief this function helps exporting the layer in a predefined format,
    * while workarounding issue caused by templated function type eraser
    *
