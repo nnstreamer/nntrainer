@@ -633,6 +633,9 @@ void NetworkGraph::addLayer(std::shared_ptr<LayerNode> layer) {
 }
 
 void NetworkGraph::inPlaceOptimize(Manager &manager) {
+  // TODO: update this after initial verification, this is deprecated for now.
+  return;
+
   for (auto iter = cbegin(); iter != cend(); iter++) {
     auto layer_node = *iter;
     auto &l = layer_node->getObject();
@@ -723,8 +726,21 @@ void NetworkGraph::inPlaceOptimize(Manager &manager) {
   }
 }
 
+void NetworkGraph::init2runContext(InitLayerContext &init_context,
+                                   RunLayerContext &run_context) {
+  // NOTE: this just create the wrappers and does not actually memory inside
+  // these wrappers
+  // TODO: create wrappers for weights - initialize is already done, so the
+  // object creation can be done
+  // TODO: create wrapper for the temporary tensors
+  // TODO: create wrappers for outputs
+  // TODO: create a new context with these new wrappers and then copy assign
+  // run_context
+}
+
 int NetworkGraph::initialize(std::shared_ptr<Manager> manager) {
   int status = ML_ERROR_NONE;
+  // TODO: don't delete adj list - use it here and make this more cleaner/faster
 
   for (unsigned int idx = 0; idx < graph.size(); ++idx) {
     bool first = idx == 0;
@@ -758,6 +774,7 @@ int NetworkGraph::initialize(std::shared_ptr<Manager> manager) {
           }
         }
 
+        // TODO: set init layer context init layer
         lptr->setInputDimension(
           in_layer_node->getObject()->getOutputDimension()[location], i);
       }
@@ -767,14 +784,18 @@ int NetworkGraph::initialize(std::shared_ptr<Manager> manager) {
      * Initialize all the layers, allocate output tensors for each layer
      * and add optimizer related weights for the layer
      */
+    // TODO: pass init context, this call will fill it
     status = lptr->initialize(*manager);
     NN_RETURN_STATUS();
 
+    // TODO: call init2runContext
     auto &in_out = manager->trackLayerOutputs(cur_type, lnode->getName(),
                                               lptr->getOutputDimension(),
                                               lptr->getInputDimension());
+    // TODO: remove this
     lptr->setOutputBuffers(in_out);
 
+    // TODO: fill runcontext of other guys as well
     /** Connect the output of the previous layers with the input of the current
      * layer */
     if (!first) {
@@ -794,6 +815,9 @@ int NetworkGraph::initialize(std::shared_ptr<Manager> manager) {
           getLayerNode(input_layers[i])->getObject()->net_hidden[location];
       }
     } else {
+      // TODO: remove this, input buffers are created by either by the dataset
+      // or given by the user in the inference. Same for the label. So, need not
+      // create these as a special case.
       auto &in_out = manager->trackLayerInputs(cur_type, lnode->getName(),
                                                lptr->getInputDimension(),
                                                lptr->getOutputDimension());

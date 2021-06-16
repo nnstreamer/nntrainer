@@ -268,6 +268,15 @@ public:
    */
   int initialize(std::shared_ptr<Manager> manager);
 
+  /**
+   * @brief Create run layer context from the given init layer context
+   *
+   * @param init_context Init layer context to create run context
+   * @param run_context Run layer context to be created
+   */
+  void init2runContext(InitLayerContext &init_context,
+                       RunLayerContext &run_context);
+
 private:
   std::map<std::string, std::string> sub_in_out; /** This is map to identify
                    input and output layer name of subgraph */
