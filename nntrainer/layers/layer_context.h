@@ -170,18 +170,17 @@ public:
 
   /**
    * @brief Construct a new Run Layer Context object
+   * @todo  Include properties like name/trainable later
    *
-   * @param props properties of the layer
    * @param w weights of the layer
    * @param in inputs of the layer
    * @param out outputs of the layer
    * @param t extra tensors of the layer
    */
-  RunLayerContext(std::tuple<props::Name> p, const std::vector<Weight *> &w,
+  RunLayerContext(const std::vector<Weight *> &w,
                   const std::vector<Var_Grad *> &in,
                   const std::vector<Var_Grad *> &out,
                   const std::vector<Var_Grad *> &t) :
-    props(p),
     weights(w),
     inputs(in),
     outputs(out),
