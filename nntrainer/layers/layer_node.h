@@ -273,7 +273,7 @@ public:
 private:
   // TODO: make this unique_ptr once getObject API is removed
   std::shared_ptr<nntrainer::LayerV1>
-    layer;      /**< The actual object in the graph node */
+    layer; /**< The actual object in the graph node */
   // TODO: possibly remove, two identifiers for the same  node (name and index)
   // can lead to issues later
   size_t index; /**< index of each node */
