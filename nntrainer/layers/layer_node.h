@@ -90,19 +90,9 @@ public:
    * @note      This name might be changed once this layer is added to the model
    * to keep the name unique to the model
    */
-  const std::string getName() const noexcept {
+  const std::string getName() const noexcept override {
     return std::get<props::Name>(props).get();
   }
-
-  /**
-   * @brief     Get name of the layer
-   *
-   * @retval    name of the layer
-   * @note      This name is unique to this layer in a model
-   * @note      This name might be changed once this layer is added to the model
-   * to keep the name unique to the model
-   */
-  std::string getName() noexcept { return std::get<props::Name>(props).get(); }
 
   /**
    * Support all the interface requirements by GraphNode<nntrainer::Layer>

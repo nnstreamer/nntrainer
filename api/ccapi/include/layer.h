@@ -133,7 +133,7 @@ public:
    * @note      This name might be changed once this layer is added to the model
    * to keep the name unique to the model
    */
-  virtual std::string getName() noexcept = 0;
+  virtual const std::string getName() const noexcept = 0;
 };
 
 /**
