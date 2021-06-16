@@ -72,7 +72,9 @@ public:
    *
    * @return std::vector<TensorDim>& Output dimensions
    */
-  std::vector<TensorDim> &getOutputDimensions() { return input_dim; }
+  const std::vector<TensorDim> &getOutputDimensions() const {
+    return output_dim;
+  }
 
   /**
    * @brief Set the Output Dimensions object
@@ -117,7 +119,6 @@ public:
     return tensors_spec.size() - 1;
   }
 
-private:
   /**
    * @brief Specification of the weight
    *
@@ -132,6 +133,21 @@ private:
    */
   typedef std::tuple<const TensorDim, bool, const std::string> TensorSpec;
 
+  /**
+   * @brief Get the current weights spec
+   *
+   * @return The current weights spec
+   */
+  const std::vector<WeightSpec> &getWeightsSpec() const { return weights_spec; }
+
+  /**
+   * @brief Get the current tensors spec
+   *
+   * @return The current tensors spec
+   */
+  const std::vector<TensorSpec> &getTensorsSpec() const { return tensors_spec; }
+
+private:
   std::vector<TensorDim> input_dim;  /**< Input dimensions for the layer */
   std::vector<TensorDim> output_dim; /**< Output dimensions for the layer */
 
@@ -157,6 +173,25 @@ public:
    *
    */
   RunLayerContext() = default;
+
+  /**
+   * @brief Construct a new Run Layer Context object
+   *
+   * @param props properties of the layer
+   * @param w weights of the layer
+   * @param in inputs of the layer
+   * @param out outputs of the layer
+   * @param t extra tensors of the layer
+   */
+  RunLayerContext(std::tuple<props::Name> p, const std::vector<Weight *> &w,
+                  const std::vector<Var_Grad *> &in,
+                  const std::vector<Var_Grad *> &out,
+                  const std::vector<Var_Grad *> &t) :
+    props(p),
+    weights(w),
+    inputs(in),
+    outputs(out),
+    tensors(t) {}
 
   /**
    * @brief Get the Weight tensor object
@@ -274,7 +309,8 @@ public:
   bool getTrainable() { return trainable; }
 
 private:
-  bool trainable; /**< if the layer is trainable */
+  std::tuple<props::Name> props; /**< props of the layer */
+  bool trainable;                /**< if the layer is trainable */
 
   std::vector<Weight *> weights;   /**< weights of the layer */
   std::vector<Var_Grad *> inputs;  /**< inputs of the layer */
