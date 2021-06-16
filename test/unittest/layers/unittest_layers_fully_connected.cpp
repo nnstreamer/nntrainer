@@ -2,7 +2,7 @@
 /**
  * Copyright (C) 2020 Jihoon Lee <jhoon.it.lee@samsung.com>
  *
- * @file unittest_layer_fully_connected.cpp
+ * @file unittest_layers_fully_connected.cpp
  * @date 15 June 2021
  * @brief Fully Connected Layer Test
  * @see	https://github.com/nnstreamer/nntrainer
