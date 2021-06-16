@@ -160,8 +160,10 @@ public:
   /**
    * @brief     Create weights with the given spec
    *
-   * @param w   node Graph node to extract node identifiers/info
-   * @param w   weights_spec Specficiation for the weights
+   * @param node Graph node to extract node identifiers/info
+   * @param weights_spec Specficiation for the weights
+   *
+   * @return created weights list
    */
   std::vector<Weight *>
   requestWeights(const GraphNode &node,
@@ -170,8 +172,10 @@ public:
   /**
    * @brief     Create tensors with the given spec
    *
-   * @param w   node Graph node to extract node identifiers/info
-   * @param w   create tensors list
+   * @param node Graph node to extract node identifiers/info
+   * @param tensors_spec Specficiation for the tensors
+   *
+   * @return created tensors list
    */
   std::vector<Var_Grad *>
   requestTensors(const GraphNode &node,
@@ -180,8 +184,10 @@ public:
   /**
    * @brief     Create tensors with the given spec
    *
-   * @param w   node Graph node to extract node identifiers/info
-   * @param w   create tensors list
+   * @param node Graph node to extract node identifiers/info
+   * @param inputs_dim Specficiation for the tensors
+   *
+   * @return created tensors list
    */
   std::vector<Var_Grad *>
   requestInputs(const GraphNode &node,
@@ -190,8 +196,10 @@ public:
   /**
    * @brief     Create tensors with the given spec
    *
-   * @param w   node Graph node to extract node identifiers/info
-   * @param w   create tensors list
+   * @param node Graph node to extract node identifiers/info
+   * @param outputs_dim Specficiation for the tensors
+   *
+   * @return created tensors list
    */
   std::vector<Var_Grad *>
   requestOutputs(const GraphNode &node,
@@ -554,7 +562,7 @@ private:
    * @param layer_objs_list list to store the created tensors
    */
   template <typename T>
-  static std::vector<T *> _requestTensors(
+  static std::vector<T *> requestTensors(
     const GraphNode &node, const std::vector<typename T::Spec> &tensors_spec,
     std::vector<std::vector<std::unique_ptr<T>>> &layer_objs_list) {
     std::vector<T *> ret;
