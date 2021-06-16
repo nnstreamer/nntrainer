@@ -61,23 +61,23 @@ public:
   virtual const std::string getType() const = 0;
 
   /**
-   * @brief     Initialize the layer
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   * @brief     Finalize creating the layer,
    * @details   Input dimensions will be provided set in the context. This
    * function must set output dimensions in the given context. Further, context
    * can be used to request weights for the layer, and any extra tensor required
    * for the operation of the layer.
+   * @note      After calling this it is not allowed to
+   * change properties.
    * @note      No memory allocation must be performed in the initialization
    * step. Any tensor memory required must be requested to the context which
    * will be made available during execution of the layer with the context.
    */
-  virtual int initalize(InitContext &context) = 0;
+  virtual void finalize(InitContext &context) = 0;
 
   /**
    * @brief     Forward Propagation of a layer
-   * @param[in] context Context of the layer
-   * @param[in] training true if training, false if inference
+   * @param     context Context of the layer
+   * @param     training true if training, false if inference
    * @note      Output must be set in the output tensors.
    * @details   context provides access to the weights (if any), inputs,
    * outputs, and tensors (if any) for the layer. Input and output dimensions
@@ -87,7 +87,7 @@ public:
 
   /**
    * @brief     calc the derivative to be passed to the previous layer
-   * @param[in] context Context of the layer
+   * @param     context Context of the layer
    * @note      Return derivatives must be set in input gradient tensors.
    * @details   context provides access to the weights (if any), inputs,
    * outputs, and tensors (if any) for the layer. Input and output dimensions
@@ -106,28 +106,25 @@ public:
 
   /**
    * @brief     set Property of layer
-   * @param[in] values values of property
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   * @note this shouldn't be virtual, this became virtual to support custom
-   * layer. should be reverted after layer.h can fully support custom layer
+   * @param     values values of property
+   * @throw std::invalid_argument invalid parameter.
    */
-  virtual int setProperty(const std::vector<std::string> &values);
+  virtual void setProperty(const std::vector<std::string> &values) = 0;
 
   /**
    * @brief this function helps exporting the layer in a predefined format,
    * while workarounding issue caused by templated function type eraser
    *
-   * @param[in] exporter exporter that conatins exporting logic
-   * @param[in] method enum value to identify how it should be exported to
+   * @param     exporter exporter that conatins exporting logic
+   * @param     method enum value to identify how it should be exported to
    */
-  virtual void exportTo(Exporter &exporter,
-                        const ExportMethods &method) const {};
+  virtual void exportTo(Exporter &exporter, const ExportMethods &method) const {
+  }
 
   /**
    * @brief Set the batch for the layer
-   * @param[in] context Context of the layer
-   * @param[in] batch Batch value to be set
+   * @param     context Context of the layer
+   * @param     batch Batch value to be set
    * @details Update the initialize context based on the updated batch size if
    * required
    */
@@ -135,8 +132,8 @@ public:
 
   /**
    * @brief Set the batch for the layer
-   * @param[in] context Context of the layer
-   * @param[in] batch Batch value to be set
+   * @param     context Context of the layer
+   * @param     batch Batch value to be set
    * @details Update the run context based on the updated batch size if required
    */
   virtual void setBatch(RunContext &context, unsigned int batch) {}
@@ -175,6 +172,20 @@ using CreateLayerFunc = nntrainer::Layer *(*)();
 using DestroyLayerFunc = void (*)(nntrainer::Layer *);
 
 /**
+ * @brief General Layer Factory function to register Layer
+ *
+ * @param props property representation
+ * @return std::unique_ptr<nntrainer::Layer> created object
+ */
+template <typename T,
+          std::enable_if_t<std::is_base_of<Layer, T>::value, T> * = nullptr>
+std::unique_ptr<Layer> createLayer(const std::vector<std::string> &props = {}) {
+  std::unique_ptr<Layer> ptr = std::make_unique<T>();
+  ptr->setProperty(props);
+  return ptr;
+}
+
+/**
  * @brief  Layer Pluggable struct that enables pluggable layer
  *
  */
@@ -187,23 +198,6 @@ typedef struct {
  * @brief pluggable layer must have this structure defined
  */
 extern "C" LayerPluggable ml_train_layer_pluggable;
-
-/**
- * @brief General Layer Factory function to register Layer
- *
- * @param props property representation
- * @return std::unique_ptr<ml::train::Layer> created object
- */
-template <typename T,
-          std::enable_if_t<std::is_base_of<Layer, T>::value, T> * = nullptr>
-std::unique_ptr<Layer> createLayer(const std::vector<std::string> &props = {}) {
-  std::unique_ptr<Layer> ptr = std::make_unique<T>();
-
-  if (ptr->setProperty(props) != ML_ERROR_NONE) {
-    throw std::invalid_argument("Set properties failed for layer");
-  }
-  return ptr;
-}
 
 /**
  * @brief   Get Layer devel from ml::train::Layer

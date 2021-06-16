@@ -24,6 +24,7 @@ layer_sources = [
   'common_properties.cpp',
   'split_layer.cpp',
   'permute_layer.cpp',
+  'layer_impl.cpp',
   'gru.cpp'
 ]
 
@@ -33,7 +34,7 @@ layer_headers = [
   'acti_func.h',
   'layer_node.h',
   'common_properties.h',
-  'loss_layer.h'
+  'loss_layer.h',
 ]
 
 layer_deps = []
