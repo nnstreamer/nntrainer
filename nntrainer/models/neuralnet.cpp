@@ -230,7 +230,10 @@ sharedConstTensors NeuralNetwork::forwarding(sharedConstTensors input,
     NNTR_THROW_IF(label.size() != layer.net_hidden.size(),
                   std::invalid_argument)
       << "label size does not match with the layer requirements"
-      << " layer: " << layer.getName() << " label size: " << label.size()
+      // TODO: update this to use layer node after #986
+      // << " layer: " << layer.getName() << " label size: " << label.size()
+      << " layer: "
+      << " label size: " << label.size()
       << " requirements size: " << layer.net_hidden.size();
 
     for (unsigned int i = 0; i < layer.net_hidden.size(); i++) {
