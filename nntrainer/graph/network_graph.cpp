@@ -366,7 +366,7 @@ int NetworkGraph::checkCompiledGraph() {
   for (auto iter = cbegin(); iter != cend(); iter++) {
     auto lnode = (*iter);
     if (lnode->getObject()->getType() == InputLayer::type) {
-      if (lnode->getObject()->getInputDimension().size() == 0) {
+      if (lnode->getInputDimensions().size() == 0) {
         ml_loge("InputDimension of first layer is not set");
         return ML_ERROR_INVALID_PARAMETER;
       }
@@ -474,15 +474,13 @@ sharedConstTensors NetworkGraph::forwarding(bool training) const {
 std::vector<TensorDim> NetworkGraph::getInputDimension() const {
   NNTR_THROW_IF(this->empty(), std::invalid_argument)
     << "[NetworkGraph] the graph has no node!";
-  return getSortedLayerNode(0)->getObject()->getInputDimension();
+  return getSortedLayerNode(0)->getInputDimensions();
 }
 
 std::vector<TensorDim> NetworkGraph::getOutputDimension() const {
   NNTR_THROW_IF(this->empty(), std::invalid_argument)
     << "[NetworkGraph] the graph has no node!";
-  return getSortedLayerNode(graph.size() - 1)
-    ->getObject()
-    ->getOutputDimension();
+  return getSortedLayerNode(graph.size() - 1)->getOutputDimensions();
 }
 
 std::vector<std::shared_ptr<LayerNode>>
@@ -732,8 +730,8 @@ int NetworkGraph::initialize(std::shared_ptr<Manager> manager) {
         }
 
         // TODO: set init layer context init layer
-        lptr->setInputDimension(
-          in_layer_node->getObject()->getOutputDimension()[location], i);
+        lptr->setInputDimension(in_layer_node->getOutputDimensions()[location],
+                                i);
       }
     }
 
