@@ -115,7 +115,7 @@ def _debug_print(
 # @brief generate data using uniform data from a function and save to the file.
 # @note one-hot label is supported for now, this could be extended if needed.
 def prepare_data(model, input_shape, label_shape, writer_fn, is_onehot, **kwargs):
-    initial_input = _rand_like(input_shape)
+    initial_input = _rand_like(input_shape) / 10
     if is_onehot:
         label = tf.one_hot(
             indices=np.random.randint(0, label_shape[1] - 1, label_shape[0]),

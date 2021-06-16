@@ -364,26 +364,28 @@ if __name__ == "__main__":
     lstm_layer_tc(1, 2, True)(file_name="lstm_return_sequence.info")
     lstm_layer_tc(2, 2, True)(file_name="lstm_return_sequence_with_batch.info")
 
-    record(
-        file_name="multi_lstm_return_sequence.info",
+    multi_lstm_layer_tc = lambda batch, time: partial(
+        record,
         model=[
-            K.Input(batch_shape=(1, 2, 1)),
+            K.Input(batch_shape=(batch, time, 1)),
             K.layers.LSTM(
-                2,
+                time,
                 recurrent_activation="sigmoid",
                 activation="tanh",
                 return_sequences=True,
             ),
-            K.layers.LSTM(2, recurrent_activation="sigmoid", activation="tanh"),
+            K.layers.LSTM(time, recurrent_activation="sigmoid", activation="tanh"),
             K.layers.Dense(1),
         ],
         optimizer=opt.SGD(learning_rate=0.1),
         iteration=10,
-        input_shape=(1, 2, 1),
-        label_shape=(1, 1, 1),
+        input_shape=(batch, time, 1),
+        label_shape=(batch, 1),
         is_onehot=False,
         loss_fn_str="mse",
     )
+    multi_lstm_layer_tc(1,2)(file_name="multi_lstm_return_sequence.info")
+    multi_lstm_layer_tc(2,2)(file_name="multi_lstm_return_sequence_with_batch.info")
 
     rnn_layer_tc = lambda batch, time, return_sequences: partial(
         record,
@@ -403,18 +405,24 @@ if __name__ == "__main__":
     rnn_layer_tc(1, 2, True)(file_name="rnn_return_sequences.info")
     rnn_layer_tc(2, 2, True)(file_name="rnn_return_sequence_with_batch.info")
 
-    record(
-        file_name="multi_rnn_return_sequence.info",
+    multi_rnn_layer_tc = lambda batch, time: partial(
+        record,
         model=[
-            K.Input(batch_shape=(1, 2, 1)),
-            K.layers.SimpleRNN(2, return_sequences=True),
-            K.layers.SimpleRNN(2),
+            K.Input(batch_shape=(batch, time, 1)),
+            K.layers.SimpleRNN(
+                time,
+                return_sequences=True,
+            ),
+            K.layers.SimpleRNN(time),
             K.layers.Dense(1),
         ],
         optimizer=opt.SGD(learning_rate=0.1),
         iteration=10,
-        input_shape=(1, 2, 1),
-        label_shape=(1, 1, 1),
+        input_shape=(batch, time, 1),
+        label_shape=(batch, 1),
         is_onehot=False,
         loss_fn_str="mse",
     )
+    multi_rnn_layer_tc(1,2)(file_name="multi_rnn_return_sequence.info")
+    multi_rnn_layer_tc(2,2)(file_name="multi_rnn_return_sequence_with_batch.info")
+    
