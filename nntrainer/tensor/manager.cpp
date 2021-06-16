@@ -633,7 +633,7 @@ void Manager::deinitializeTensors() {
 std::vector<Weight *>
 Manager::requestWeights(const GraphNode &node,
                         const std::vector<Weight::Spec> &weights_spec) {
-  return _requestTensors<Weight>(node, weights_spec, weights_v2);
+  return requestTensors<Weight>(node, weights_spec, weights_v2);
 }
 
 /**
@@ -643,7 +643,7 @@ Manager::requestWeights(const GraphNode &node,
 std::vector<Var_Grad *>
 Manager::requestTensors(const GraphNode &node,
                         const std::vector<Var_Grad::Spec> &tensors_spec) {
-  return _requestTensors<Var_Grad>(node, tensors_spec, tensors_v2);
+  return requestTensors<Var_Grad>(node, tensors_spec, tensors_v2);
 }
 
 /**
@@ -657,14 +657,11 @@ Manager::requestInputs(const GraphNode &node,
   std::transform(
     inputs_dim.begin(), inputs_dim.end(), std::back_inserter(inputs_spec),
     [&count, &node](auto const &elem) {
-      // TODO: update after getName() updated to be a const function
-      // return std::make_tuple(elem, true, node.getName() +
-      // std::string("_input") + std::to_string(count++));
       return std::make_tuple(elem, true,
-                             std::string("node.getName()") +
-                               std::string("_input") + std::to_string(count++));
+                             node.getName() + std::string("_input") +
+                               std::to_string(count++));
     });
-  return _requestTensors<Var_Grad>(node, inputs_spec, inputs_v2);
+  return requestTensors<Var_Grad>(node, inputs_spec, inputs_v2);
 }
 
 /**
@@ -675,18 +672,14 @@ Manager::requestOutputs(const GraphNode &node,
                         const std::vector<TensorDim> &outputs_dim) {
   unsigned int count = 0;
   std::vector<Var_Grad::Spec> outputs_spec;
-  std::transform(outputs_dim.begin(), outputs_dim.end(),
-                 std::back_inserter(outputs_spec),
-                 [&count, &node](auto const &elem) {
-                   // TODO: update after getName() updated to be a const
-                   // function return std::make_tuple(elem, true, node.getName()
-                   // + std::string("_output") + std::to_string(count++));
-                   return std::make_tuple(elem, true,
-                                          std::string("node.getName()") +
-                                            std::string("_output") +
-                                            std::to_string(count++));
-                 });
-  return _requestTensors<Var_Grad>(node, outputs_spec, outputs_v2);
+  std::transform(
+    outputs_dim.begin(), outputs_dim.end(), std::back_inserter(outputs_spec),
+    [&count, &node](auto const &elem) {
+      return std::make_tuple(elem, true,
+                             node.getName() + std::string("_output") +
+                               std::to_string(count++));
+    });
+  return requestTensors<Var_Grad>(node, outputs_spec, outputs_v2);
 }
 
 } // namespace nntrainer

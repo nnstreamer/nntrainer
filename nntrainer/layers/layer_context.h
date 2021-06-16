@@ -181,6 +181,7 @@ public:
                   const std::vector<Var_Grad *> &in,
                   const std::vector<Var_Grad *> &out,
                   const std::vector<Var_Grad *> &t) :
+    trainable(false),
     weights(w),
     inputs(in),
     outputs(out),
