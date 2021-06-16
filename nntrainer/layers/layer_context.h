@@ -120,25 +120,19 @@ public:
   }
 
   /**
-   * @brief Specification of the weight
-   *
-   */
-  typedef std::tuple<TensorDim, WeightInitializer, WeightRegularizer, float,
-                     bool, std::string>
-    WeightSpec;
-
-  /**
    * @brief Specification of the tensors
    *
    */
-  typedef std::tuple<const TensorDim, bool, const std::string> TensorSpec;
+  typedef Var_Grad::Spec TensorSpec;
 
   /**
    * @brief Get the current weights spec
    *
    * @return The current weights spec
    */
-  const std::vector<WeightSpec> &getWeightsSpec() const { return weights_spec; }
+  const std::vector<Weight::Spec> &getWeightsSpec() const {
+    return weights_spec;
+  }
 
   /**
    * @brief Get the current tensors spec
@@ -151,7 +145,7 @@ private:
   std::vector<TensorDim> input_dim;  /**< Input dimensions for the layer */
   std::vector<TensorDim> output_dim; /**< Output dimensions for the layer */
 
-  std::vector<WeightSpec> weights_spec; /**< Specification for the weights */
+  std::vector<Weight::Spec> weights_spec; /**< Specification for the weights */
   std::vector<TensorSpec>
     tensors_spec; /**< Specification for the var_grad (trainable/non-trainable
                      variables) */

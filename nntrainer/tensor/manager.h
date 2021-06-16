@@ -26,7 +26,6 @@
 #include <vector>
 
 #include <graph_node.h>
-#include <layer_context.h>
 #include <var_grad.h>
 #include <weight.h>
 
@@ -164,9 +163,8 @@ public:
    * @param w   node Graph node to extract node identifiers/info
    * @param w   weights_spec Specficiation for the weights
    */
-  std::vector<Weight *>
-  requestWeights(const GraphNode &node,
-                 std::vector<InitLayerContext::WeightSpec> &weights_spec);
+  std::vector<Weight *> requestWeights(const GraphNode &node,
+                                       std::vector<Weight::Spec> &weights_spec);
 
   /**
    * @brief     Create tensors with the given spec
@@ -175,7 +173,7 @@ public:
    */
   std::vector<Var_Grad *>
   requestTensors(const GraphNode &node,
-                 std::vector<InitLayerContext::TensorSpec> &tensors_spec);
+                 std::vector<Var_Grad::Spec> &tensors_spec);
 
   /**
    * @brief     Create tensors with the given spec
@@ -409,11 +407,11 @@ private:
 
   std::vector<std::vector<std::unique_ptr<Weight>>>
     weights_v2; /**< weights for the layers */
-  std::vector<std::vector<std::unique_ptr<Weight>>>
+  std::vector<std::vector<std::unique_ptr<Var_Grad>>>
     inouts_v2; /**<
               inputs/outputs for the layers */
   /** NOTE: these tensors maybe split based on their lifespan later */
-  std::vector<std::vector<std::unique_ptr<Weight>>>
+  std::vector<std::vector<std::unique_ptr<Var_Grad>>>
     tensors_v2; /**< extra tensors required by the layers */
 
   /**< Weights of all the layer in the model to be managed */
