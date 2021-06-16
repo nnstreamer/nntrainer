@@ -377,9 +377,10 @@ GraphWatcher::GraphWatcher(const std::string &config, const bool opt) :
   /** Disable gradient optimization as gradient is being matched for each layer
    */
   nn.setGradientMemoryOptimization(optimize);
-  nn.setDerivativeMemoryOptimization(optimize);
-  nn.setInPlaceLayerOptimization(optimize);
-  nn.setInferenceInOutMemoryOptimization(optimize);
+  // TODO: update to use optimize after #986
+  nn.setDerivativeMemoryOptimization(false);
+  nn.setInPlaceLayerOptimization(false);
+  nn.setInferenceInOutMemoryOptimization(false);
 
   if (nn.loadFromConfig(config)) {
     throw std::invalid_argument("load from config failed!");
