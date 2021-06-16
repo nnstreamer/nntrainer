@@ -25,17 +25,16 @@
 
 namespace nntrainer {
 
-template <typename T>
-using remove_cv_ref_t = std::remove_cv_t<std::remove_reference_t<T>>;
 /**
  * @brief property info to specialize functions based on this
  * @tparam T property type
  */
 template <typename T> struct prop_info {
-  using prop_type = remove_cv_ref_t<T>;          /** property type of T */
+  using prop_type = std::decay_t<T>;             /** property type of T */
   using tag_type = typename prop_type::prop_tag; /** Property tag of T */
-  using data_type = remove_cv_ref_t<decltype(
-    std::declval<prop_type>().get())>; /** Underlying datatype of T */
+  using data_type =
+    std::decay_t<decltype(std::declval<prop_type>().get())>; /** Underlying
+                                                                datatype of T */
 };
 
 /**
@@ -68,7 +67,7 @@ template <typename T, size_t size> struct prop_info<std::array<T, size>> {
  * @return constexpr const char* key
  */
 template <typename T> constexpr const char *getPropKey(T &&prop) {
-  return prop_info<remove_cv_ref_t<T>>::prop_type::key;
+  return prop_info<std::decay_t<T>>::prop_type::key;
 }
 
 /**
@@ -100,6 +99,12 @@ struct float_prop_tag {};
  *
  */
 struct str_prop_tag {};
+
+/**
+ * @brief property is treated as boolean
+ *
+ */
+struct bool_prop_tag {};
 
 /**
  * @brief base property class, inherit this to make a convenient property
@@ -300,6 +305,59 @@ template <typename Tag, typename DataType> struct str_converter {
    */
   static DataType from_string(const std::string &value);
 };
+
+/**
+ * @copydoc template <typename Tag, typename DataType> struct str_converter
+ */
+template <>
+std::string
+str_converter<str_prop_tag, std::string>::to_string(const std::string &value);
+
+/**
+ * @copydoc template <typename Tag, typename DataType> struct str_converter
+ */
+template <>
+std::string
+str_converter<str_prop_tag, std::string>::from_string(const std::string &value);
+
+/**
+ * @copydoc template <typename Tag, typename DataType> struct str_converter
+ */
+template <>
+std::string str_converter<uint_prop_tag, unsigned int>::to_string(
+  const unsigned int &value);
+
+/**
+ * @copydoc template <typename Tag, typename DataType> struct str_converter
+ */
+template <>
+unsigned int str_converter<uint_prop_tag, unsigned int>::from_string(
+  const std::string &value);
+
+/**
+ * @copydoc template <typename Tag, typename DataType> struct str_converter
+ */
+template <>
+std::string str_converter<bool_prop_tag, bool>::to_string(const bool &value);
+
+/**
+ * @copydoc template <typename Tag, typename DataType> struct str_converter
+ */
+template <>
+bool str_converter<bool_prop_tag, bool>::from_string(const std::string &value);
+
+/**
+ * @copydoc template <typename Tag, typename DataType> struct str_converter
+ */
+template <>
+std::string str_converter<float_prop_tag, float>::to_string(const float &value);
+
+/**
+ * @copydoc template <typename Tag, typename DataType> struct str_converter
+ */
+template <>
+float str_converter<float_prop_tag, float>::from_string(
+  const std::string &value);
 
 /**
  * @brief convert dispatcher (to string)

@@ -61,6 +61,30 @@ public:
 };
 
 /**
+ * @brief Property example to be used as a bool
+ *
+ */
+class MarkAsGoodBanana : public nntrainer::Property<bool> {
+public:
+  MarkAsGoodBanana(bool val = true) :
+    Property<bool>(val) {}                        /**< default value if any */
+  static constexpr const char *key = "mark_good"; /**< unique key to access */
+  using prop_tag = nntrainer::bool_prop_tag;      /**< property type */
+};
+
+/**
+ * @brief Property example to be used as a float
+ *
+ */
+class FreshnessOfBanana : public nntrainer::Property<float> {
+public:
+  FreshnessOfBanana(float val = 0.0) :
+    Property<float>(val) {}                       /**< default value if any */
+  static constexpr const char *key = "how_fresh"; /**< unique key to access */
+  using prop_tag = nntrainer::float_prop_tag;     /**< property type */
+};
+
+/**
  * @brief DimensionOfBanana property for example, this has to have batch size of
  * 1
  *
@@ -164,6 +188,32 @@ TEST(BasicProperty, valid_p) {
     nntrainer::from_string("3:4", q);
     EXPECT_EQ(q.get(), nntrainer::TensorDim(1, 1, 3, 4));
     EXPECT_EQ(nntrainer::to_string(q), "1:1:3:4");
+  }
+
+  { /**< from_string -> get / to_string, boolean */
+    MarkAsGoodBanana q;
+    nntrainer::from_string("true", q);
+    EXPECT_EQ(q.get(), true);
+    EXPECT_EQ(nntrainer::to_string(q), "true");
+  }
+
+  { /** set -> get / to_string, boolean*/
+    MarkAsGoodBanana q;
+    q.set(true);
+    EXPECT_EQ(q.get(), true);
+    EXPECT_EQ(nntrainer::to_string(q), "true");
+  }
+
+  { /**< from_string -> get / to_string, float */
+    FreshnessOfBanana q;
+    nntrainer::from_string("1.3245", q);
+    EXPECT_FLOAT_EQ(q.get(), 1.3245f);
+  }
+
+  { /** set -> get / to_string, float*/
+    FreshnessOfBanana q;
+    q.set(1.3245f);
+    EXPECT_FLOAT_EQ(q.get(), 1.3245f);
   }
 
   { /**< from_string -> get / to_string, uint vector prop */
@@ -287,6 +337,16 @@ TEST(BasicProperty, fromStringNotValid_06_n) {
 TEST(BasicProperty, fromStringNotValid_07_n) {
   DimensionOfBanana d;
   EXPECT_THROW(nntrainer::from_string(":2:3:5", d), std::invalid_argument);
+}
+
+TEST(BasicProperty, fromStringNotValid_08_n) {
+  MarkAsGoodBanana d;
+  EXPECT_THROW(nntrainer::from_string("no", d), std::invalid_argument);
+}
+
+TEST(BasicProperty, fromStringNotValid_09_n) {
+  FreshnessOfBanana d;
+  EXPECT_THROW(nntrainer::from_string("not_float", d), std::invalid_argument);
 }
 
 TEST(BasicProperty, fromStringVectorElementContainNotValidString_n) {
