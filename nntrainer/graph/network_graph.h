@@ -262,8 +262,8 @@ public:
    * @param init_context Init layer context to create run context
    * @param run_context Run layer context to be created
    */
-  void init2runContext(InitLayerContext &init_context,
-                       RunLayerContext &run_context);
+  static void updateRunContext(std::shared_ptr<Manager> &manager,
+                               const std::shared_ptr<LayerNode> &lnode);
 
 private:
   std::map<std::string, std::string> sub_in_out; /** This is map to identify

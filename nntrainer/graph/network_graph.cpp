@@ -695,16 +695,25 @@ void NetworkGraph::inPlaceOptimize(Manager &manager) {
   }
 }
 
-void NetworkGraph::init2runContext(InitLayerContext &init_context,
-                                   RunLayerContext &run_context) {
-  // NOTE: this just create the wrappers and does not actually memory inside
-  // these wrappers
-  // TODO: create wrappers for weights - initialize is already done, so the
-  // object creation can be done
-  // TODO: create wrapper for the temporary tensors
-  // TODO: create wrappers for outputs
-  // TODO: create a new context with these new wrappers and then copy assign
-  // run_context
+void NetworkGraph::updateRunContext(std::shared_ptr<Manager> &manager,
+                                    const std::shared_ptr<LayerNode> &lnode) {
+  /**
+   * using copy assignment allows setting run_context without adding more
+   * interfaces
+   */
+  const GraphNode &gnode = *lnode.get();
+  const InitLayerContext &init_context = lnode->getInitContext();
+  /**
+   * @todo must use existing properties like name/trainable of run_context to
+   * create the new run_context
+   */
+  // const RunLayerContext &run_context = lnode->getRunContext();
+
+  lnode->updateRunContext(RunLayerContext(
+    manager->requestWeights(gnode, init_context.getWeightsSpec()),
+    manager->requestInputs(gnode, init_context.getInputDimensions()),
+    manager->requestOutputs(gnode, init_context.getOutputDimensions()),
+    manager->requestTensors(gnode, init_context.getTensorsSpec())));
 }
 
 int NetworkGraph::initialize(std::shared_ptr<Manager> manager) {
@@ -751,13 +760,15 @@ int NetworkGraph::initialize(std::shared_ptr<Manager> manager) {
 
     /**
      * Initialize all the layers, allocate output tensors for each layer
-     * and add optimizer related weights for the layer
+     * init2and add optimizer related weights for the layer
      */
-    // TODO: pass init context, this call will fill it
+    // TODO: this call will fill the init context inside the layer
+    // lnode->initialize();
     status = lptr->initialize(*manager);
     NN_RETURN_STATUS();
 
-    // TODO: call init2runContext
+    updateRunContext(manager, lnode);
+    // TODO: remove this
     auto &in_out = manager->trackLayerOutputs(cur_type, lnode->getName(),
                                               lptr->getOutputDimension(),
                                               lptr->getInputDimension());
