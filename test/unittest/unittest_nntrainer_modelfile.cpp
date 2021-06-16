@@ -457,15 +457,13 @@ TEST(nntrainerIniTest, backbone_p_05) {
   for (size_t idx = 0; idx < flat_backbone.size(); idx++) {
     auto &backbone_lnode = flat_backbone[idx];
     auto &direct_lnode = flat_direct[idx];
-    auto &backbone_layer = backbone_lnode->getObject();
-    auto &direct_layer = direct_lnode->getObject();
-    EXPECT_EQ(backbone_layer->getType(), direct_layer->getType());
-    EXPECT_EQ(backbone_layer->getInputDimension(),
-              direct_layer->getInputDimension());
-    EXPECT_EQ(backbone_layer->getOutputDimension(),
-              direct_layer->getOutputDimension());
-    EXPECT_EQ(backbone_layer->getActivationType(),
-              direct_layer->getActivationType());
+    EXPECT_EQ(backbone_lnode->getType(), direct_lnode->getType());
+    EXPECT_EQ(backbone_lnode->getInputDimensions(),
+              direct_lnode->getInputDimensions());
+    EXPECT_EQ(backbone_lnode->getOutputDimensions(),
+              direct_lnode->getOutputDimensions());
+    EXPECT_EQ(backbone_lnode->getActivationType(),
+              direct_lnode->getActivationType());
     EXPECT_EQ(backbone_lnode->getName(), direct_lnode->getName());
   }
 }

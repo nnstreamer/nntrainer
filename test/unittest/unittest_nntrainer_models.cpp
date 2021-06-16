@@ -126,11 +126,11 @@ public:
       expected_weights.push_back(w.clone());
     }
 
-    for (auto &out_dim : node->getObject()->getOutputDimension()) {
+    for (auto &out_dim : node->getOutputDimensions()) {
       expected_output.emplace_back(out_dim);
     }
 
-    for (auto &in_dim : node->getObject()->getInputDimension()) {
+    for (auto &in_dim : node->getInputDimensions()) {
       expected_dx.emplace_back(in_dim);
     }
   }
