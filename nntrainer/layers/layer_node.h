@@ -277,7 +277,9 @@ public:
 private:
   // TODO: make this unique_ptr once getObject API is removed
   std::shared_ptr<nntrainer::LayerV1>
-    layer;      /**< The actual object in the graph node */
+    layer; /**< The actual object in the graph node */
+  // TODO: possibly remove, two identifiers for the same  node (name and index)
+  // can lead to issues later
   size_t index; /**< index of each node */
 
   /** TODO : move management of num_inputs to layer_node */
@@ -290,7 +292,10 @@ private:
 
   RunLayerContext
     run_context; /**< context required for running/execution of the layer. This
-                    will also contain the properties of the layer. */
+                    will also contain the properties of the layer. The
+                    properties will be copied upon final creation. Editing
+                    properties of the layer after init will not the properties
+                    in the context/graph unless intended. */
   InitLayerContext init_context; /**< context to be built for/while
                                     initialization of the layer. This will also
                                     contain the properties of the layer. */

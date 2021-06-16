@@ -25,6 +25,8 @@
 #include <memory>
 #include <vector>
 
+#include <graph_node.h>
+#include <layer_context.h>
 #include <var_grad.h>
 #include <weight.h>
 
@@ -109,7 +111,7 @@ public:
    */
   Manager(bool enable_gradient_memory_opt_ = true,
           bool enable_derivative_memory_opt_ = true,
-          bool enable_activation_memory_opt_ = true,
+          bool enable_activation_memory_opt_ = false,
           bool enable_inference_inout_memory_opt_ = false);
 
   /**
@@ -157,6 +159,41 @@ public:
   void trackWeights(std::vector<Weight> &ws);
 
   /**
+   * @brief     Create weights with the given spec
+   *
+   * @param w   node Graph node to extract node identifiers/info
+   * @param w   weights_spec Specficiation for the weights
+   */
+  std::vector<Weight *>
+  requestWeights(const GraphNode &node,
+                 std::vector<InitLayerContext::WeightSpec> &weights_spec);
+
+  /**
+   * @brief     Create tensors with the given spec
+   *
+   * @param w   create tensors list
+   */
+  std::vector<Var_Grad *>
+  requestTensors(const GraphNode &node,
+                 std::vector<InitLayerContext::TensorSpec> &tensors_spec);
+
+  /**
+   * @brief     Create tensors with the given spec
+   *
+   * @param w   create tensors list
+   */
+  std::vector<Var_Grad *> requestInputs(const GraphNode &node,
+                                        std::vector<TensorDim> &inputs_spec);
+
+  /**
+   * @brief     Create tensors with the given spec
+   *
+   * @param w   create tensors list
+   */
+  std::vector<Var_Grad *> requestOutputs(const GraphNode &node,
+                                         std::vector<TensorDim> &outputs_spec);
+
+  /**
    * @brief     Get weights tracked with nntrainer
    *
    * @retval    list of weight references
@@ -186,6 +223,9 @@ public:
    * @param opt True to enable, else false
    */
   void setInPlaceActivationOptimization(bool opt) {
+    if (opt)
+      throw exception::not_supported(
+        "Inplace activation optimization is temporarily disabled");
     enable_activation_memory_opt = opt;
   }
 
@@ -194,6 +234,9 @@ public:
    * @param opt True to enable, else false
    */
   void setInferenceInOutMemoryOptimization(bool opt) {
+    if (opt)
+      throw exception::not_supported(
+        "Inference memory optimization is temporarily disabled");
     enable_inference_inout_memory_opt = opt;
   }
 
@@ -363,6 +406,16 @@ public:
 
 private:
   // TODO: ensure that names of these weights are unique
+
+  std::vector<std::vector<std::unique_ptr<Weight>>>
+    weights_v2; /**< weights for the layers */
+  std::vector<std::vector<std::unique_ptr<Weight>>>
+    inouts_v2; /**<
+              inputs/outputs for the layers */
+  /** NOTE: these tensors maybe split based on their lifespan later */
+  std::vector<std::vector<std::unique_ptr<Weight>>>
+    tensors_v2; /**< extra tensors required by the layers */
+
   /**< Weights of all the layer in the model to be managed */
   std::vector<std::vector<std::reference_wrapper<Weight>>> weights;
 
