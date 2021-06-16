@@ -350,13 +350,9 @@ INSTANTIATE_TEST_CASE_P(
     mkIniTc("no_labelSet_n", {nw_base, adam, dataset + "-LabelData", input, out+"input_layers=inputlayer"}, ALLFAIL),
 
     mkIniTc("backbone_filemissing_n", {nw_base, adam, dataset + "-LabelData", input, out+"input_layers=inputlayer"}, ALLFAIL)
-/// #if gtest_version <= 1.7.0
-));
-/// #else gtest_version > 1.8.0
-// ), [](const testing::TestParamInfo<nntrainerIniTest::ParamType>& info){
-//  return std::get<0>(info.param);
-// });
-/// #end if */
+), [](const testing::TestParamInfo<nntrainerIniTest::ParamType>& info){
+ return std::get<0>(info.param);
+});
 // clang-format on
 
 /**
