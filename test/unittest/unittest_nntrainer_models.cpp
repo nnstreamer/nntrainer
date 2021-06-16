@@ -1242,13 +1242,9 @@ INSTANTIATE_TEST_CASE_P(
     mkModelTc(rnn_return_sequences, "1:1:2:1", 10),
     mkModelTc(rnn_return_sequence_with_batch, "2:1:2:1", 10),
     mkModelTc(multi_rnn_return_sequence, "1:1:1:1", 10)
-// / #if gtest_version <= 1.7.0
-));
-/// #else gtest_version > 1.8.0
-// ), [](const testing::TestParamInfo<nntrainerModelTest::ParamType>& info){
-//  return std::get<0>(info.param).getName();
-// });
-/// #end if */
+), [](const testing::TestParamInfo<nntrainerModelTest::ParamType>& info){
+ return std::get<0>(info.param).getName();
+});
 // clang-format on
 
 /**
