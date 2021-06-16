@@ -14,6 +14,8 @@
 #ifndef __VAR_GRAD_H__
 #define __VAR_GRAD_H__
 
+#include <tuple>
+
 #include <tensor.h>
 
 namespace nntrainer {
@@ -23,8 +25,13 @@ namespace nntrainer {
  * @brief   Variable with Gradient, and its corresponding trainable property
  */
 class Var_Grad {
-
 public:
+  /**
+   * @brief Specification of the Var_Grad
+   *
+   */
+  typedef std::tuple<const TensorDim, bool, const std::string> Spec;
+
   /**
    * @brief Var_Grad default constructor
    * @note Default variable is not trainable as gradient is 0 dim tensor
@@ -46,6 +53,18 @@ public:
    */
   explicit Var_Grad(const TensorDim &dim, bool train = true,
                     bool alloc_now = false, const std::string &name = "");
+
+  /**
+   * @brief Construct a new Var_Grad object
+   *
+   * @param spec Var_Grad specification
+   */
+  explicit Var_Grad(const Spec &spec) :
+    Var_Grad(std::get<0>(spec), // TensorDim
+             std::get<1>(spec), // Trainable
+             false,
+             std::get<2>(spec) // Name
+    ) {}
 
   /**
    * @brief Copy constructor for Var_Grad

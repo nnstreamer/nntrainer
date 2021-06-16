@@ -14,6 +14,8 @@
 #ifndef __WEIGHT_H__
 #define __WEIGHT_H__
 
+#include <tuple>
+
 #include <tensor.h>
 #include <var_grad.h>
 
@@ -48,8 +50,15 @@ enum class WeightInitializer {
  * @brief   Weight with gradient, and its corresponding trainable property
  */
 class Weight : public Var_Grad {
-
 public:
+  /**
+   * @brief Specification of the Weight
+   *
+   */
+  typedef std::tuple<TensorDim, WeightInitializer, WeightRegularizer, float,
+                     bool, std::string>
+    Spec;
+
   /**
    * @brief Weight default constructor
    */
@@ -76,6 +85,21 @@ public:
     const WeightRegularizer reg = WeightRegularizer::NONE,
     const float reg_const = 1.0f, bool train = true, bool alloc_now = false,
     std::string name = "");
+
+  /**
+   * @brief Construct a new Weight object
+   *
+   * @param spec Weight specification
+   */
+  explicit Weight(const Spec &spec) :
+    Weight(std::get<0>(spec), // TensorDim
+           std::get<1>(spec), // WeightInitializer
+           std::get<2>(spec), // WeightRegularizer
+           std::get<3>(spec), // WeightRegularizerConstant
+           std::get<4>(spec), // Trainable
+           false,
+           std::get<5>(spec) // Name
+    ) {}
 
   /**
    * @copydoc var_grad::initializeVariable(const Tensor &)
