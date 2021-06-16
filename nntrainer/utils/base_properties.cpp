@@ -33,6 +33,23 @@ std::string str_converter<str_prop_tag, std::string>::from_string(
 }
 
 template <>
+std::string str_converter<bool_prop_tag, bool>::to_string(const bool &value) {
+  return value ? "true" : "false";
+}
+
+template <>
+bool str_converter<bool_prop_tag, bool>::from_string(const std::string &value) {
+  if (value == "true") {
+    return true;
+  }
+  if (value == "false") {
+    return false;
+  }
+  std::string error_msg = "converting value to boolean failed, value: " + value;
+  throw std::invalid_argument(error_msg);
+}
+
+template <>
 std::string str_converter<int_prop_tag, int>::to_string(const int &value) {
   return std::to_string(value);
 }
@@ -52,6 +69,18 @@ template <>
 unsigned int str_converter<uint_prop_tag, unsigned int>::from_string(
   const std::string &value) {
   return std::stoul(value);
+}
+
+template <>
+std::string
+str_converter<float_prop_tag, float>::to_string(const float &value) {
+  return std::to_string(value);
+}
+
+template <>
+float str_converter<float_prop_tag, float>::from_string(
+  const std::string &value) {
+  return std::stof(value);
 }
 
 template <>
