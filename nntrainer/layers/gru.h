@@ -30,11 +30,14 @@ public:
    * @brief     Constructor of GRULayer
    */
   template <typename... Args>
-  GRULayer(unsigned int unit_ = 0,
-           ActivationType recurrent_activation_type_ = ActivationType::ACT_NONE,
-           bool sequence = false, Args... args) :
+  GRULayer(
+    unsigned int unit_ = 0,
+    ActivationType hidden_state_activation_type_ = ActivationType::ACT_NONE,
+    ActivationType recurrent_activation_type_ = ActivationType::ACT_NONE,
+    bool sequence = false, Args... args) :
     LayerV1(args...),
     unit(unit_),
+    hidden_state_activation_type(hidden_state_activation_type_),
     recurrent_activation_type(recurrent_activation_type_),
     return_sequences(sequence){};
 
