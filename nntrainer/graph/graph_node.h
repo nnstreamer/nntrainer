@@ -49,7 +49,7 @@ public:
    * @return std::string Name of the underlying object
    * @note name of each node in the graph must be unique
    */
-  virtual std::string getName() noexcept = 0;
+  virtual const std::string getName() const noexcept = 0;
 
   /**
    * @brief     Set the Name of the underlying object
