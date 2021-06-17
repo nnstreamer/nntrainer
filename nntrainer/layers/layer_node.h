@@ -429,6 +429,30 @@ public:
     run_context = std::move(context);
   }
 
+  /**
+   * @brief Set input dimension for the layer
+   *
+   * @param dim Input tensor dim
+   * @param idx Index of the dim
+   */
+  void setInputDimension(const TensorDim &dim, unsigned int idx) {
+    if (idx >= getNumInputs())
+      throw std::out_of_range("Setting dimensions out of bounds");
+    input_dim[idx] = dim;
+  }
+
+  /**
+   * @brief Finalize the layer
+   *
+   */
+  void finalize() {
+    /** Create init context right before finalize */
+    init_context = InitLayerContext(input_dim);
+#if LAYER_V2
+    layer->finalize(init_context);
+#endif
+  }
+
 private:
   // TODO: make this unique_ptr once getObject API is removed
   std::shared_ptr<nntrainer::LayerV1>
@@ -437,7 +461,6 @@ private:
   // can lead to issues later
   size_t index; /**< index of each node */
 
-  /** TODO : move management of num_inputs to layer_node */
   std::vector<std::string> input_layers;  /**< input layer names */
   std::vector<std::string> output_layers; /**< output layer names */
   bool flatten;    /**< flatten the output of this node */
@@ -445,15 +468,19 @@ private:
   ActivationType
     activation_type; /**< activation applied to the output of this node */
 
-  RunLayerContext
-    run_context; /**< context required for running/execution of the layer. This
-                    will also contain the properties of the layer. The
-                    properties will be copied upon final creation. Editing
-                    properties of the layer after init will not the properties
-                    in the context/graph unless intended. */
+  std::vector<TensorDim>
+    input_dim; /**< input dimension for the layer. This can be in partial state
+                  before the layer is initialized */
   InitLayerContext init_context; /**< context to be built for/while
                                     initialization of the layer. This will also
                                     contain the properties of the layer. */
+
+  RunLayerContext run_context; /**< context required for running/execution of
+                    the layer. This will also contain the properties of the
+                    layer. The properties will be copied upon final creation.
+                    Editing properties of the layer after init will not the
+                    properties in the context/graph unless intended. */
+
   /**
    * These properties are set for the layer by the user but are intercepted
    * and used in the node which forms the basic element of the graph.

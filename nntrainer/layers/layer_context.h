@@ -61,6 +61,13 @@ public:
   InitLayerContext() = default;
 
   /**
+   * @brief Construct a new Init Layer Context object
+   *
+   * @param dim Input dimensions for the layer
+   */
+  InitLayerContext(const std::vector<TensorDim> &dim) : input_dim(dim) {}
+
+  /**
    * @brief Get the Input Dimensions object
    *
    * @return const std::vector<TensorDim>& Input dimensions
