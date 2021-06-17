@@ -175,10 +175,11 @@ int NeuralNetwork::initialize() {
   // initialize optimizer and related variables
   if (opt) {
     opt->initialize();
-    for (unsigned int idx = 0; idx < n_layers; ++idx) {
-      auto const &lnode = model_graph.getSortedLayerNode(idx);
-      opt->addOptimizerVariable(lnode->getObject()->getWeightsRef());
-    }
+    std::function<std::vector<TensorDim>(const TensorDim &)> cb =
+      [this](const TensorDim &dim) {
+        return opt->getOptimizerVariableDim(dim);
+      };
+    manager->requestOptimizerVariable(cb, true);
   }
 
   // Allocate and initialize weights

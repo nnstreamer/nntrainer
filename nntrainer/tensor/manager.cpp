@@ -726,4 +726,38 @@ Manager::requestOutputs(const GraphNode &node,
   return requestTensors<Var_Grad>(node, outputs_spec, outputs_v2);
 }
 
+void Manager::requestOptimizerVariable(
+  std::function<std::vector<TensorDim>(const TensorDim &)> cb,
+  bool request_only_trainable) {
+  if (LAYER_V2) {
+    for (auto &weight_v2 : weights_v2) {
+      for (auto &w : weight_v2) {
+        if (request_only_trainable && !w->getTrainable()) {
+          continue;
+        }
+
+        std::vector<TensorDim> dims = cb(w->getDim());
+        for (auto &dim : dims) {
+          w->addOptimizerVariable(dim);
+        }
+      }
+    }
+  } else {
+    for (auto &weight : weights) {
+      for (auto &rw_w : weight) {
+        auto &w = rw_w.get();
+        if (request_only_trainable && !w.getTrainable()) {
+          continue;
+        }
+
+        const TensorDim &dim = w.getDim();
+        std::vector<TensorDim> dims = cb(dim);
+        for (auto &dim : dims) {
+          w.addOptimizerVariable(dim);
+        }
+      }
+    }
+  }
+}
+
 } // namespace nntrainer
