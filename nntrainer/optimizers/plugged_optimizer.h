@@ -139,13 +139,13 @@ public:
   void checkValidation() const override { optimizer_devel->checkValidation(); }
 
   /**
-   * @brief     Add extra variables per weight if the optimizer needs any.
-   * @param[in] params Weight list
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   * @brief     Get dimension of extra variables if the optimizer needs any.
+   * @param dim Dimension of tensor to be added as a optimizer variable
+   * @return    Vector of dimensions
    */
-  void addOptimizerVariable(std::vector<Weight> &params) override {
-    optimizer_devel->addOptimizerVariable(params);
+  virtual std::vector<TensorDim>
+  getOptimizerVariableDim(const TensorDim &dim) override {
+    return optimizer_devel->getOptimizerVariableDim(dim);
   }
 
   /**

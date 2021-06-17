@@ -110,7 +110,10 @@ public:
 
   int initialize() override { return 0; }
 
-  void addOptimizerVariable(std::vector<nntrainer::Weight> &params) override {}
+  std::vector<nntrainer::TensorDim>
+  getOptimizerVariableDim(const nntrainer::TensorDim &dim) override {
+    return std::vector<nntrainer::TensorDim>();
+  }
 
   void setProperty(const std::string &key, const std::string &value) override {}
 
@@ -133,7 +136,10 @@ public:
 
   double getLearningRate(size_t iteration) const override { return 1.0f; }
 
-  void addOptimizerVariable(std::vector<nntrainer::Weight> &params) override {}
+  std::vector<nntrainer::TensorDim>
+  getOptimizerVariableDim(const nntrainer::TensorDim &dim) override {
+    return std::vector<nntrainer::TensorDim>();
+  }
 
   void applyGradient(nntrainer::Weight &weight, double updated_lr,
                      int iteration) override {}
