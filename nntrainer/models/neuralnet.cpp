@@ -226,21 +226,21 @@ sharedConstTensors NeuralNetwork::forwarding(sharedConstTensors input,
     << " input_batch: " << input[0]->batch()
     << " label_batch: " << label[0]->batch() << " target_batch: " << batch_size;
 
-  auto fill_label = [&label](auto &layer) {
-    NNTR_THROW_IF(label.size() != layer.net_hidden.size(),
+  auto fill_label = [&label](auto const &layer_node) {
+    NNTR_THROW_IF(label.size() != layer_node->getNumOutputs(),
                   std::invalid_argument)
       << "label size does not match with the layer requirements"
-      << " layer: " << layer.getName() << " label size: " << label.size()
-      << " requirements size: " << layer.net_hidden.size();
+      << " layer: " << layer_node->getName() << " label size: " << label.size()
+      << " requirements size: " << layer_node->getNumOutputs();
 
-    for (unsigned int i = 0; i < layer.net_hidden.size(); i++) {
-      layer.net_hidden[i]->getGradientRef() = *label[i];
+    for (unsigned int i = 0; i < layer_node->getNumOutputs(); i++) {
+      layer_node->getOutputGrad(i) = *label[i];
     }
   };
 
-  auto clear_label = [](auto &layer) {
-    for (unsigned int i = 0; i < layer.net_hidden.size(); i++) {
-      layer.net_hidden[i]->getGradientRef() = Tensor();
+  auto clear_label = [](auto const &layer_node) {
+    for (unsigned int i = 0; i < layer_node->getNumOutputs(); i++) {
+      layer_node->getOutputGrad(i) = Tensor();
     }
   };
 
@@ -248,12 +248,11 @@ sharedConstTensors NeuralNetwork::forwarding(sharedConstTensors input,
   for (auto iter = model_graph.cbegin(); iter != model_graph.cend(); iter++) {
     auto &l = *iter->getObject();
     if (l.requireLabel()) {
-      label.empty() ? clear_label(l) : fill_label(l);
+      label.empty() ? clear_label(*iter) : fill_label(*iter);
     }
   }
 
-  auto &first_layer = model_graph.getSortedLayerNode(0)->getObject();
-  first_layer->net_input[0]->getVariableRef() = *input[0];
+  model_graph.getSortedLayerNode(0)->getInput(0) = *input[0].get();
 
   return forwarding(training);
 }
@@ -342,9 +341,9 @@ void NeuralNetwork::backwarding(int iteration) {
  *            No need to call at first Input Layer (No data to be updated)
  */
 void NeuralNetwork::backwarding(sharedConstTensors label, int iteration) {
-  auto &loss_layer =
-    model_graph.getSortedLayerNode(model_graph.size() - 1)->getObject();
-  loss_layer->net_hidden[0]->getGradientRef() = *label[0].get();
+  auto const &loss_layer_node =
+    model_graph.getSortedLayerNode(model_graph.size() - 1);
+  loss_layer_node->getOutputGrad(0) = *label[0].get();
 
   backwarding(iteration);
 }
@@ -498,10 +497,10 @@ sharedConstTensors NeuralNetwork::inference(sharedConstTensors X,
   forwarding(X, {}, false);
   END_PROFILE(profile::NN_FORWARD);
 
-  auto &last_layer =
-    model_graph.getSortedLayerNode(model_graph.size() - 1)->getObject();
-  for (unsigned int i = 0; i < last_layer->getNumOutputs(); ++i) {
-    out.push_back(MAKE_SHARED_TENSOR(last_layer->net_hidden[i]->getVariable()));
+  auto const &last_layer_node =
+    model_graph.getSortedLayerNode(model_graph.size() - 1);
+  for (unsigned int i = 0; i < last_layer_node->getNumOutputs(); ++i) {
+    out.push_back(MAKE_SHARED_TENSOR(last_layer_node->getOutput(i)));
   }
 
   if (free_mem)
@@ -583,13 +582,13 @@ int NeuralNetwork::train_run() {
     iter = 0;
   }
 
-  auto &first_layer = model_graph.getSortedLayerNode(0)->getObject();
-  auto &last_layer =
-    model_graph.getSortedLayerNode(model_graph.size() - 1)->getObject();
+  auto const &first_layer_node = model_graph.getSortedLayerNode(0);
+  auto const &last_layer_node =
+    model_graph.getSortedLayerNode(model_graph.size() - 1);
 
-  auto &output = last_layer->net_hidden[0]->getVariableRef();
-  auto &label = last_layer->net_hidden[0]->getGradientRef();
-  auto &in = first_layer->net_input[0]->getVariableRef();
+  auto &output = last_layer_node->getOutput(0);
+  auto &label = last_layer_node->getOutputGrad(0);
+  auto &in = first_layer_node->getInput(0);
 
   for (epoch_idx = epoch_idx + 1; epoch_idx <= epochs; ++epoch_idx) {
     training.loss = 0.0f;
