@@ -15,6 +15,7 @@
 #include <string>
 #include <vector>
 
+#include <common_properties.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <node_exporter.h>
@@ -23,7 +24,7 @@ namespace nntrainer {
 
 LayerImpl::LayerImpl() :
   finalized(false),
-  layer_impl_props(std::make_unique<std::tuple<>>()) {}
+  layer_impl_props(std::make_unique<std::tuple<props::Trainable>>()) {}
 
 void LayerImpl::finalize(InitContext &context) {
   NNTR_THROW_IF(finalized, nntrainer::exception::not_supported)
@@ -32,7 +33,9 @@ void LayerImpl::finalize(InitContext &context) {
   finalized = true;
 }
 
-void LayerImpl::setProperty(const std::vector<std::string> &values) {}
+void LayerImpl::setProperty(const std::vector<std::string> &values) {
+  loadProperties(values, *layer_impl_props);
+}
 
 void LayerImpl::exportTo(Exporter &exporter,
                          const ExportMethods &method) const {}
