@@ -363,7 +363,7 @@ void LayerV1::print(std::ostream &out, unsigned int flags) {
   }
 };
 
-std::shared_ptr<LayerV1> getLayerDevel(std::shared_ptr<ml::train::Layer> l) {
+std::shared_ptr<LayerV1> getLayerV1Devel(std::shared_ptr<ml::train::Layer> l) {
   return std::static_pointer_cast<LayerNode>(l)->getObject();
 }
 

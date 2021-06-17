@@ -727,22 +727,22 @@ std::ostream &operator<<(std::ostream &out, T &l) {
   return out;
 }
 
-using CreateLayerFunc = nntrainer::LayerV1 *(*)();
-using DestroyLayerFunc = void (*)(nntrainer::LayerV1 *);
+using CreateLayerV1Func = nntrainer::LayerV1 *(*)();
+using DestroyLayerV1Func = void (*)(nntrainer::LayerV1 *);
 
 /**
  * @brief  Layer Pluggable struct that enables pluggable layer
  *
  */
 typedef struct {
-  CreateLayerFunc createfunc;   /**< create layer function */
-  DestroyLayerFunc destroyfunc; /**< destory function */
-} LayerPluggable;
+  CreateLayerV1Func createfunc;   /**< create layer function */
+  DestroyLayerV1Func destroyfunc; /**< destory function */
+} LayerV1Pluggable;
 
 /**
  * @brief pluggable layer must have this structure defined
  */
-extern "C" LayerPluggable ml_train_layer_pluggable;
+extern "C" LayerV1Pluggable ml_train_layerv1_pluggable;
 
 /**
  * @brief General Layer Factory function to register Layer
@@ -768,7 +768,7 @@ createLayer(const std::vector<std::string> &props = {}) {
  * @param   l Layer object
  * @return  Layer devel object
  */
-std::shared_ptr<LayerV1> getLayerDevel(std::shared_ptr<ml::train::Layer> l);
+std::shared_ptr<LayerV1> getLayerV1Devel(std::shared_ptr<ml::train::Layer> l);
 
 } // namespace nntrainer
 

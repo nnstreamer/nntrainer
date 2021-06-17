@@ -316,8 +316,8 @@ const std::string AppContext::getWorkingPath(const std::string &path) {
   return getFullPath(path, working_path_base);
 }
 
-int AppContext::registerLayer(const std::string &library_path,
-                              const std::string &base_path) {
+int AppContext::registerLayerV1(const std::string &library_path,
+                                const std::string &base_path) {
   const std::string full_path = getFullPath(library_path, base_path);
 
   void *handle = dlopen(full_path.c_str(), RTLD_LAZY | RTLD_LOCAL);
@@ -326,9 +326,9 @@ int AppContext::registerLayer(const std::string &library_path,
   NNTR_THROW_IF(handle == nullptr, std::invalid_argument)
     << func_tag << "open plugin failed, reason: " << error_msg;
 
-  nntrainer::LayerPluggable *pluggable =
-    reinterpret_cast<nntrainer::LayerPluggable *>(
-      dlsym(handle, "ml_train_layer_pluggable"));
+  nntrainer::LayerV1Pluggable *pluggable =
+    reinterpret_cast<nntrainer::LayerV1Pluggable *>(
+      dlsym(handle, "ml_train_layerv1_pluggable"));
 
   error_msg = dlerror();
   auto close_dl = [handle] { dlclose(handle); };
@@ -408,7 +408,7 @@ AppContext::registerPluggableFromDirectory(const std::string &base_path) {
     if (endswith(entry->d_name, solib_suffix)) {
       if (endswith(entry->d_name, layerlib_suffix)) {
         try {
-          int key = registerLayer(entry->d_name, base_path);
+          int key = registerLayerV1(entry->d_name, base_path);
           keys.emplace_back(key);
         } catch (std::exception &e) {
           closedir(dir);
