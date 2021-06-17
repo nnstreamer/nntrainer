@@ -16,18 +16,37 @@
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <time_dist.h>
+
+#include <common_properties.h>
 namespace nntrainer {
 
 LayerNode::LayerNode(std::shared_ptr<nntrainer::LayerV1> l, size_t idx) :
-  layer(l),
+  LayerNode(nullptr, l, idx) {}
+
+LayerNode::LayerNode(std::unique_ptr<nntrainer::Layer> &&l, size_t idx) :
+  LayerNode(std::move(l), nullptr, idx) {}
+
+LayerNode::LayerNode(std::unique_ptr<nntrainer::Layer> &&layer_v2,
+                     std::shared_ptr<nntrainer::LayerV1> layer_v1, size_t idx) :
+  layerv1(layer_v1),
+  layer(std::move(layer_v2)),
   index(idx),
   flatten(false),
   distribute(false),
   activation_type(ActivationType::ACT_NONE),
-  props(props::Name()) {
-  if (layer->getType() == TimeDistLayer::type)
+  props(new std::tuple<props::Name>(props::Name())) {
+  if (layerv1 && layerv1->getType() == TimeDistLayer::type) {
     distribute = true;
+  } else if (layer && layer->getType() == TimeDistLayer::type) {
+    distribute = true;
+  }
 }
+
+/**
+ * @brief Destroy the Layer Node object
+ *
+ */
+LayerNode::~LayerNode() = default;
 
 /**
  * @brief Layer factory creator with constructor
@@ -92,7 +111,7 @@ void LayerNode::setProperty(const nntrainer::LayerV1::PropertyType type,
   switch (type) {
   case PropertyType::name:
     if (!value.empty()) {
-      std::get<props::Name>(props).set(value);
+      std::get<props::Name>(*props).set(value);
     }
     break;
   case PropertyType::flatten:
@@ -109,8 +128,8 @@ void LayerNode::setProperty(const nntrainer::LayerV1::PropertyType type,
         auto &ac = nntrainer::AppContext::Global();
         std::shared_ptr<nntrainer::LayerV1> dlayer =
           ac.createObject<nntrainer::LayerV1>(TimeDistLayer::type);
-        std::dynamic_pointer_cast<TimeDistLayer>(dlayer)->setDistLayer(layer);
-        layer = dlayer;
+        std::static_pointer_cast<TimeDistLayer>(dlayer)->setDistLayer(layerv1);
+        layerv1 = dlayer;
       }
     }
     break;
@@ -119,7 +138,7 @@ void LayerNode::setProperty(const nntrainer::LayerV1::PropertyType type,
       static const std::regex reg("\\,+");
       std::vector<std::string> split_layers = split(value, reg);
 
-      layer->setNumInputs(split_layers.size());
+      layerv1->setNumInputs(split_layers.size());
       input_layers = split_layers;
     }
     break;
@@ -128,13 +147,18 @@ void LayerNode::setProperty(const nntrainer::LayerV1::PropertyType type,
       static const std::regex reg("\\,+");
       std::vector<std::string> split_layers = split(value, reg);
 
-      layer->setNumOutputs(split_layers.size());
+      layerv1->setNumOutputs(split_layers.size());
       output_layers = split_layers;
     }
     break;
   default:
     throw std::invalid_argument("Unknown property.");
   }
+}
+
+const std::string LayerNode::getName() const noexcept {
+  auto &name = std::get<props::Name>(*props);
+  return name.empty() ? "" : name.get();
 }
 
 std::ostream &operator<<(std::ostream &out, const LayerNode &l) {
@@ -158,7 +182,7 @@ std::ostream &operator<<(std::ostream &out, const LayerNode &l) {
 
 std::string LayerNode::getDistLayerType() const {
   if (distribute)
-    return std::dynamic_pointer_cast<TimeDistLayer>(layer)->getDistLayerType();
+    return std::static_pointer_cast<TimeDistLayer>(layerv1)->getDistLayerType();
   else
     throw std::runtime_error(
       "Get distribution layer type for non-distributed layer");
@@ -184,16 +208,16 @@ bool LayerNode::getTrainable() const noexcept {
 
 const std::shared_ptr<nntrainer::LayerV1> &LayerNode::getLayer() const {
   if (distribute)
-    return std::dynamic_pointer_cast<TimeDistLayer>(layer)->getDistLayer();
+    return std::static_pointer_cast<TimeDistLayer>(layerv1)->getDistLayer();
   else
-    return layer;
+    return layerv1;
 }
 
 std::shared_ptr<nntrainer::LayerV1> &LayerNode::getLayer() {
   if (distribute)
-    return std::dynamic_pointer_cast<TimeDistLayer>(layer)->getDistLayer();
+    return std::static_pointer_cast<TimeDistLayer>(layerv1)->getDistLayer();
   else
-    return layer;
+    return layerv1;
 }
 
 void LayerNode::updateInputLayers(const std::string &from,
@@ -212,8 +236,18 @@ void LayerNode::updateInputLayers(const unsigned int idx,
   input_layers[idx] = to;
 }
 
+void LayerNode::exportTo(Exporter &exporter,
+                         const ExportMethods &method) const {
+  exporter.saveResult(*props, method, this);
+  if (layerv1 == nullptr) {
+    /// have layer_v2 implementation
+  } else {
+    getLayer()->export_to(exporter, method);
+  }
+}
+
 void LayerNode::read(std::ifstream &file) {
-  if (LAYER_V2) {
+  if (layerv1 == nullptr) {
     for (unsigned int i = 0; i < run_context.getNumWeights(); ++i) {
       run_context.getWeight(i).read(file);
     }
@@ -223,7 +257,7 @@ void LayerNode::read(std::ifstream &file) {
 }
 
 void LayerNode::save(std::ofstream &file) const {
-  if (LAYER_V2) {
+  if (layerv1 == nullptr) {
     for (unsigned int i = 0; i < run_context.getNumWeights(); ++i) {
       run_context.getWeight(i).save(file);
     }
