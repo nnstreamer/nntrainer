@@ -107,6 +107,12 @@ struct str_prop_tag {};
 struct bool_prop_tag {};
 
 /**
+ * @brief property is treated as enum class
+ *
+ */
+struct enum_class_prop_tag {};
+
+/**
  * @brief base property class, inherit this to make a convenient property
  *
  * @tparam T
