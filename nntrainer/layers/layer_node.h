@@ -166,6 +166,19 @@ public:
   unsigned int getNumOutputs() const { return output_layers.size(); }
 
   /**
+   * @brief Get the number of weights
+   *
+   * @return unsigned int number of weights
+   */
+  unsigned int getNumWeights() const {
+    if (LAYER_V2) {
+      return run_context.getNumWeights();
+    } else {
+      return getLayer()->getNumWeights();
+    }
+  }
+
+  /**
    * @brief     Get the Input Layers object
    *
    * @return const std::vector<std::string>&
@@ -269,6 +282,90 @@ public:
       return init_context.getOutputDimensions();
     } else {
       return getLayer()->getOutputDimension();
+    }
+  }
+
+  /**
+   * @brief Get the Weight tensor object
+   *
+   * @param idx Identifier of the weight
+   * @return Tensor& Reference to the weight tensor
+   */
+  Tensor &getWeight(unsigned int idx) {
+    if (LAYER_V2) {
+      return run_context.getWeight(idx);
+    } else {
+      return getLayer()->getWeightsRef()[idx].getVariableRef();
+    }
+  }
+
+  /**
+   * @brief Get the Weight Gradient tensor object
+   *
+   * @param idx Identifier of the weight
+   * @return Tensor& Reference to the weight grad tensor
+   */
+  Tensor &getWeightGrad(unsigned int idx) {
+    if (LAYER_V2) {
+      return run_context.getWeightGrad(idx);
+    } else {
+      return getLayer()->getWeightsRef()[idx].getGradientRef();
+    }
+  }
+
+  /**
+   * @brief Get the Input tensor object
+   *
+   * @param idx Identifier of the input
+   * @return Tensor& Reference to the input grad tensor
+   */
+  Tensor &getInput(unsigned int idx) {
+    if (LAYER_V2) {
+      return run_context.getInput(idx);
+    } else {
+      return getLayer()->getInputRef()[idx]->getVariableRef();
+    }
+  }
+
+  /**
+   * @brief Get the Input Grad tensor object
+   *
+   * @param idx Identifier of the input
+   * @return Tensor& Reference to the input grad tensor
+   */
+  Tensor &getInputGrad(unsigned int idx) {
+    if (LAYER_V2) {
+      return run_context.getInputGrad(idx);
+    } else {
+      return getLayer()->getInputRef()[idx]->getGradientRef();
+    }
+  }
+
+  /**
+   * @brief Get the Output tensor object
+   *
+   * @param idx Identifier of the output
+   * @return Tensor& Reference to the output tensor
+   */
+  Tensor &getOutput(unsigned int idx) {
+    if (LAYER_V2) {
+      return run_context.getOutput(idx);
+    } else {
+      return getLayer()->getOutputRef()[idx]->getVariableRef();
+    }
+  }
+
+  /**
+   * @brief Get the Output Grad tensor object
+   *
+   * @param idx Identifier of the output
+   * @return Tensor& Reference to the output grad tensor
+   */
+  Tensor &getOutputGrad(unsigned int idx) {
+    if (LAYER_V2) {
+      return run_context.getOutputGrad(idx);
+    } else {
+      return getLayer()->getOutputRef()[idx]->getGradientRef();
     }
   }
 

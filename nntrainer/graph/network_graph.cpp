@@ -478,9 +478,10 @@ sharedConstTensors NetworkGraph::forwarding(bool training) const {
   }
 
   std::vector<sharedConstTensor> out;
-  for (auto const &nh :
-       getSortedLayerNode(graph.size() - 1)->getObject()->net_hidden)
-    out.push_back(MAKE_SHARED_TENSOR(nh->getVariable()));
+  auto const &last_layer_node = getSortedLayerNode(graph.size() - 1);
+  for (unsigned int i = 0; i < last_layer_node->getNumOutputs(); ++i) {
+    out.push_back(MAKE_SHARED_TENSOR(last_layer_node->getOutput(i)));
+  }
 
   return out;
 }
