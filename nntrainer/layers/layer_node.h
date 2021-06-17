@@ -35,7 +35,10 @@ enum class ExportMethods;
 
 namespace props {
 class Name;
-}
+class Distribute;
+class Flatten;
+class ActivationType;
+} // namespace props
 
 /**
  * @class   LayerNode class
@@ -99,14 +102,13 @@ public:
 
   /**
    * @brief     set Property of layer
-   *
    * @param[in] properties values of property
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    * @details   This function accepts vector of properties in the format -
    *  { std::string property_name=property_val, ...}
    */
-  int setProperty(std::vector<std::string> properties);
+  int setProperty(std::vector<std::string> properties) override;
 
   /**
    * @brief     set name of layer
@@ -166,13 +168,13 @@ public:
    * @brief     get if the output of this layer must be flatten
    * @retval    flatten value
    */
-  bool getFlatten() const { return flatten; }
+  bool getFlatten() const noexcept;
 
   /**
    * @brief     get distribute for this layer
    * @retval dist to enable/disable distribute
    */
-  bool getDistribute() const noexcept { return distribute; }
+  bool getDistribute() const noexcept;
 
   /**
    * @brief     get distribute for this layer
@@ -494,8 +496,6 @@ private:
 
   std::vector<std::string> input_layers;  /**< input layer names */
   std::vector<std::string> output_layers; /**< output layer names */
-  bool flatten;    /**< flatten the output of this node */
-  bool distribute; /**< to enable itearting along with time distribution */
   ActivationType
     activation_type; /**< activation applied to the output of this node */
 
@@ -512,12 +512,12 @@ private:
                     Editing properties of the layer after init will not the
                     properties in the context/graph unless intended. */
 
+  using PropsType = std::tuple<props::Name, props::Flatten, props::Distribute>;
   /**
    * These properties are set for the layer by the user but are intercepted
    * and used in the node which forms the basic element of the graph.
    */
-  std::unique_ptr<std::tuple<props::Name>>
-    props; /**< properties for the layer node */
+  std::unique_ptr<PropsType> layer_node_props; /**< properties for the node */
 
   /**
    * @brief setProperty by PropertyType

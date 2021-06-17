@@ -203,6 +203,8 @@ void Exporter::saveTflResult(const PropsType &props, const NodeType *self) {
 namespace props {
 class Name;
 class Unit;
+class Flatten;
+class Distribute;
 } // namespace props
 
 class LayerV1;
@@ -219,8 +221,9 @@ class LayerNode;
  * Exporter::saveTflResult(const PropsType &props, const NodeType *self);
  */
 template <>
-void Exporter::saveTflResult(const std::tuple<props::Name> &props,
-                             const LayerNode *self);
+void Exporter::saveTflResult(
+  const std::tuple<props::Name, props::Flatten, props::Distribute> &props,
+  const LayerNode *self);
 
 class FullyConnectedLayer;
 /**
@@ -309,10 +312,12 @@ loadProperties(const std::vector<std::string> &string_vector, Tuple &&props) {
   auto callable = [&left](auto &&prop, size_t index) {
     std::string prop_key = getPropKey(prop);
 
-    for (auto iter = left.begin(); iter < left.end(); ++iter) {
+    for (auto iter = left.begin(); iter < left.end();) {
       if (istrequal(prop_key, iter->first) == true) {
         from_string(iter->second, prop);
         iter = left.erase(iter);
+      } else {
+        iter++;
       }
     }
   };
