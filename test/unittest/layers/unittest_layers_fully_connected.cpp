@@ -15,10 +15,11 @@
 
 #include <layers_common_tests.h>
 
-INSTANTIATE_TEST_CASE_P(
-  FullyConnected, LayerCreateDestroyTest,
-  ::testing::Values(
-    "golden1") /**< format of type, properties, num_batch, golden file name */);
+// INSTANTIATE_TEST_CASE_P(
+//   FullyConnected, LayerSemantics,
+//   ::testing::Values(
+//     "golden1") /**< format of type, properties, num_batch, golden file name
+//     */);
 
 INSTANTIATE_TEST_CASE_P(
   FullyConnected, LayerGoldenTest,
