@@ -207,9 +207,6 @@ public:
     if (!weights[idx]->getTrainable())
       throw std::invalid_argument(
         "Requesting gradient for a non-trainable weight.");
-    if (!trainable)
-      throw std::invalid_argument(
-        "Requesting gradient for a non-trainable layer.");
     return weights[idx]->getGradientRef();
   }
 
@@ -297,16 +294,8 @@ public:
    */
   unsigned int getNumWeights() const { return weights.size(); }
 
-  /**
-   * @brief Get the if the layer is trainable
-   *
-   * @return bool true if trainable, else false
-   */
-  bool getTrainable() { return trainable; }
-
 private:
   std::tuple<props::Name> props; /**< props of the layer */
-  bool trainable;                /**< if the layer is trainable */
 
   std::vector<Weight *> weights;   /**< weights of the layer */
   std::vector<Var_Grad *> inputs;  /**< inputs of the layer */

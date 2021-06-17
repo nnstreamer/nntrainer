@@ -67,6 +67,22 @@ public:
 };
 
 /**
+ * @brief trainable property, use this to set and check how if certain layer is
+ * trainable
+ *
+ */
+class Trainable : public nntrainer::Property<bool> {
+public:
+  /**
+   * @brief Construct a new Trainable object
+   *
+   */
+  Trainable(bool val = true) : nntrainer::Property<bool>(val) {}
+  static constexpr const char *key = "trainable";
+  using prop_tag = bool_prop_tag;
+};
+
+/**
  * @brief RAII class to define the connection spec
  *
  */
