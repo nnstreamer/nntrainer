@@ -41,7 +41,7 @@ static const std::string getModelsPath(const std::string &file_name) {
  * Watcher Classes                                      *
  ********************************************************/
 
-using NodeType = std::shared_ptr<const nntrainer::LayerNode>;
+using NodeType = std::shared_ptr<nntrainer::LayerNode>;
 using FlatGraphType = nntrainer::NeuralNetwork::FlatGraphType;
 using NetworkGraphType = nntrainer::NetworkGraph;
 
@@ -114,7 +114,7 @@ public:
    * @param node node to watch.
    */
   NodeWatcher(const NodeType &node) : node(node) {
-    unsigned int num_weights = node->getObject()->getNumWeights();
+    unsigned int num_weights = node->getNumWeights();
     try {
       node->getObject()->setTrainable(true);
     } catch (...) {
@@ -140,9 +140,9 @@ public:
    *
    */
   void readLayerWeight(std::ifstream &f) {
-    for (unsigned int i = 0; i < node->getObject()->getNumWeights(); ++i) {
+    for (unsigned int i = 0; i < node->getNumWeights(); ++i) {
       /// @note below is harrasing the fact the tensor shares same base memory
-      node->getObject()->weightAt(i).getVariable().read(f);
+      node->getWeight(i).read(f);
     }
   }
 
@@ -301,8 +301,7 @@ void NodeWatcher::read(std::ifstream &in) {
 
 void NodeWatcher::verifyWeight(const std::string &error_msg) {
   for (unsigned int i = 0; i < expected_weights.size(); ++i) {
-    verify(node->getObject()->weightAt(i).getVariable(),
-           expected_weights[i].getVariable(),
+    verify(node->getWeight(i), expected_weights[i].getVariable(),
            error_msg + " " + node->getObject()->weightAt(i).getName() +
              " weight");
   }
