@@ -379,7 +379,7 @@ int NetworkGraph::checkCompiledGraph() {
   /** Dimension of input layers must be known */
   for (auto iter = cbegin(); iter != cend(); iter++) {
     auto lnode = (*iter);
-    if (lnode->getObject()->getType() == InputLayer::type) {
+    if (lnode->getType() == InputLayer::type) {
       if (lnode->getInputDimensions().size() == 0) {
         ml_loge("InputDimension of first layer is not set");
         return ML_ERROR_INVALID_PARAMETER;
@@ -696,45 +696,64 @@ void NetworkGraph::inPlaceOptimize(Manager &manager) {
   }
 }
 
-void NetworkGraph::updateRunContext(std::shared_ptr<Manager> &manager,
-                                    const std::shared_ptr<LayerNode> &lnode) {
+std::vector<Var_Grad *>
+NetworkGraph::updateRunContext(std::shared_ptr<Manager> &manager,
+                               const std::shared_ptr<LayerNode> &lnode,
+                               const std::vector<Var_Grad *> &prev_inputs) {
   /**
    * using copy assignment allows setting run_context without adding more
    * interfaces
    */
   const GraphNode &gnode = *lnode.get();
   const InitLayerContext &init_context = lnode->getInitContext();
+  std::vector<Var_Grad *> inputs = prev_inputs;
+  if (inputs.empty())
+    inputs = manager->requestInputs(gnode, init_context.getInputDimensions());
+
+  const std::vector<Var_Grad *> &outputs =
+    manager->requestOutputs(gnode, init_context.getOutputDimensions());
+
   /**
    * @todo must use existing properties like name/trainable of run_context to
    * create the new run_context
    */
   // const RunLayerContext &run_context = lnode->getRunContext();
-
   lnode->updateRunContext(RunLayerContext(
-    manager->requestWeights(gnode, init_context.getWeightsSpec()),
-    manager->requestInputs(gnode, init_context.getInputDimensions()),
-    manager->requestOutputs(gnode, init_context.getOutputDimensions()),
-    manager->requestTensors(gnode, init_context.getTensorsSpec())));
+    manager->requestWeights(gnode, init_context.getWeightsSpec()), inputs,
+    outputs, manager->requestTensors(gnode, init_context.getTensorsSpec())));
+
+  return outputs;
 }
 
 int NetworkGraph::initialize(std::shared_ptr<Manager> manager) {
   int status = ML_ERROR_NONE;
-  // TODO: don't delete adj list - use it here and make this more cleaner/faster
+  /** this contains the map from name to input tensors for each node */
+  std::unordered_map<std::string, std::vector<Var_Grad *>> input_map;
+
+  /** check if the given config of node is of input node */
+  auto is_input_node = [](const std::string &type,
+                          const unsigned int idx) -> bool {
+    /** TODO: remove dependency on idx */
+    return type == InputLayer::type || idx == 0;
+  };
 
   for (unsigned int idx = 0; idx < graph.size(); ++idx) {
-    bool first = idx == 0;
     auto const &lnode = getSortedLayerNode(idx);
-    auto &lptr = lnode->getObject();
+    std::string cur_type = lnode->getType();
     ml_logd("layer name : %s", lnode->getName().c_str());
-    std::string cur_type = lptr->getType();
+
+#if !LAYER_V2
+    auto &lptr = lnode->getObject();
+#endif
 
     /**
      * Set input dimension for all the layers.
      * For input layer, as input dimension is known, set input tensor.
      */
-    if (!first) {
+    if (!is_input_node(cur_type, idx)) {
       std::string l_pre_type = getSortedLayerNode(idx - 1)->getType();
 
+      // TODO: move this to checkCompiledGraph
       if (istrequal(l_pre_type, ActivationLayer::type) &&
           istrequal(cur_type, ActivationLayer::type)) {
         ml_loge("double activation is not allowed");
@@ -753,9 +772,13 @@ int NetworkGraph::initialize(std::shared_ptr<Manager> manager) {
           }
         }
 
-        // TODO: set init layer context init layer
+#if LAYER_V2
+        lnode->setInputDimension(in_layer_node->getOutputDimensions()[location],
+                                 i);
+#else
         lptr->setInputDimension(in_layer_node->getOutputDimensions()[location],
                                 i);
+#endif
       }
     }
 
@@ -763,23 +786,53 @@ int NetworkGraph::initialize(std::shared_ptr<Manager> manager) {
      * Initialize all the layers, allocate output tensors for each layer
      * init2and add optimizer related weights for the layer
      */
-    // TODO: this call will fill the init context inside the layer
-    // lnode->initialize();
+#if LAYER_V2
+    lnode->finalize();
+#else
     status = lptr->initialize(*manager);
     NN_RETURN_STATUS();
+#endif
 
-    updateRunContext(manager, lnode);
-    // TODO: remove this
+#if LAYER_V2
+    std::vector<Var_Grad *> inputs = {};
+    if (!is_input_node(cur_type, idx)) {
+      if (input_map.find(lnode->getName()) == input_map.end())
+        throw std::runtime_error("Cannot find input buffers for the node");
+      inputs = input_map.at(lnode->getName());
+    }
+    const std::vector<Var_Grad *> &outputs =
+      updateRunContext(manager, lnode, inputs);
+#else
     auto &in_out = manager->trackLayerOutputs(cur_type, lnode->getName(),
                                               lptr->getOutputDimension(),
                                               lptr->getInputDimension());
-    // TODO: remove this
     lptr->setOutputBuffers(in_out);
+#endif
 
-    // TODO: fill runcontext of other guys as well
-    /** Connect the output of the previous layers with the input of the current
-     * layer */
-    if (!first) {
+#if LAYER_V2
+    auto &output_layers = lnode->getOutputLayers();
+    for (unsigned int i = 0; i < outputs.size(); ++i) {
+      auto out_layer_node = getLayerNode(output_layers[i]);
+      if (input_map.find(output_layers[i]) == input_map.end())
+        input_map.insert({output_layers[i], {}});
+
+      unsigned int j = 0;
+      for (; j < out_layer_node->getNumInputs(); ++j) {
+        if (out_layer_node->getInputLayers()[j] == lnode->getName()) {
+          break;
+        }
+      }
+
+      auto &in_map = input_map.at(output_layers[i]);
+      in_map.resize(out_layer_node->getNumInputs());
+      in_map[j] = outputs[i];
+    }
+#else
+    /**
+     * Connect the output of the previous layers with the input of the current
+     * layer
+     */
+    if (!is_input_node(cur_type, idx)) {
       auto &input_layers = lnode->getInputLayers();
       for (unsigned int i = 0; i < input_layers.size(); ++i) {
         auto in_layer_node = getLayerNode(input_layers[i]);
@@ -804,6 +857,7 @@ int NetworkGraph::initialize(std::shared_ptr<Manager> manager) {
                                                lptr->getOutputDimension());
       lptr->setInputBuffers(in_out);
     }
+#endif
   }
   return status;
 }

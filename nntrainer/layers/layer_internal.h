@@ -578,9 +578,8 @@ public:
    * @param[in] i axis
    */
   void setInputDimension(const TensorDim &d, unsigned int i) {
-    if (i > MAXDIM)
-      throw std::invalid_argument(
-        "axis must be greater than 0 and less then MAX_DIM : 4");
+    if (i >= getNumInputs())
+      throw std::out_of_range("Setting dimensions out of bounds");
     input_dim[i] = d;
   }
 
