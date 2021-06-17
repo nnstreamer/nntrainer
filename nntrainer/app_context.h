@@ -24,6 +24,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include <layer_devel.h>
 #include <layer_internal.h>
 #include <optimizer.h>
 
@@ -104,6 +105,7 @@ public:
    * @brief register a layer factory from a shared library
    * plugin must have **extern "C" LayerPluggable *ml_train_layer_pluggable**
    * defined else error
+   * @note change ml_train_layerv1_pluggable to ml_train_layer_pluggable
    *
    * @param library_path a file name of the library
    * @param base_path    base path to make a full path (optional)
@@ -111,8 +113,8 @@ public:
    * @throws std::invalid_parameter if library_path is invalid or library is
    * invalid
    */
-  int registerLayer(const std::string &library_path,
-                    const std::string &base_path = "");
+  int registerLayerV1(const std::string &library_path,
+                      const std::string &base_path = "");
 
   /**
    * @brief register a optimizer factory from a shared library
@@ -292,7 +294,8 @@ public:
   }
 
 private:
-  FactoryMap<ml::train::Optimizer, nntrainer::LayerV1> factory_map;
+  FactoryMap<ml::train::Optimizer, nntrainer::LayerV1, nntrainer::Layer>
+    factory_map;
   std::string working_path_base;
 };
 
