@@ -187,7 +187,7 @@ protected:
     status = opt->initialize();
     EXPECT_EQ(status, ML_ERROR_NONE);
 
-    EXPECT_NO_THROW(opt->addOptimizerVariable(layer.getWeightsRef()));
+    EXPECT_NO_THROW(opt->getOptimizerVariableDim(layer.getWeightsRef()));
 
     return status;
   }

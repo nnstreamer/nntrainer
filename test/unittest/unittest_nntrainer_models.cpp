@@ -302,8 +302,7 @@ void NodeWatcher::read(std::ifstream &in) {
 void NodeWatcher::verifyWeight(const std::string &error_msg) {
   for (unsigned int i = 0; i < expected_weights.size(); ++i) {
     verify(node->getWeight(i), expected_weights[i].getVariable(),
-           error_msg + " " + node->getObject()->weightAt(i).getName() +
-             " weight");
+           error_msg + " at weight " + std::to_string(i));
   }
 }
 
@@ -311,8 +310,8 @@ void NodeWatcher::verifyGrad(const std::string &error_msg) {
   for (unsigned int i = 0; i < expected_weights.size(); ++i) {
     auto weight = node->getObject()->weightAt(i);
     if (weight.getTrainable()) {
-      verify(weight.getGradient(), expected_weights[i].getGradient(),
-             error_msg + " " + weight.getName() + " grad");
+      verify(node->getWeightGrad(i), expected_weights[i].getGradient(),
+             error_msg + " at grad " + std::to_string(i));
     }
   }
 }

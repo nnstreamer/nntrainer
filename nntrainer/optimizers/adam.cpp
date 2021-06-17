@@ -26,17 +26,8 @@ const std::string Adam::type = "adam";
 
 enum AdamParams { wm, wv };
 
-void Adam::addOptimizerVariable(std::vector<Weight> &weight_list) {
-  for (auto &w : weight_list) {
-    w.clearOptimizerVariables();
-
-    // TODO: only trainable weights must be sent to optimizer
-    if (!w.getTrainable())
-      continue;
-
-    w.addOptimizerVariable(w.getDim()); /** Add wm */
-    w.addOptimizerVariable(w.getDim()); /** Add wv */
-  }
+std::vector<TensorDim> Adam::getOptimizerVariableDim(const TensorDim &dim) {
+  return {dim, dim};
 }
 
 double Adam::getLearningRate(size_t iteration) const {

@@ -386,13 +386,13 @@ public:
 
   /**
    * @brief     read layer Weight & Bias data from file
-   * @param[in] file input file stream
+   * @param file input file stream
    */
   void read(std::ifstream &file);
 
   /**
    * @brief     save layer Weight & Bias data from file
-   * @param[in] file output file stream
+   * @param file output file stream
    */
   void save(std::ofstream &file) const;
 

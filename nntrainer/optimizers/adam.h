@@ -58,9 +58,9 @@ public:
   void setProperty(const std::string &key, const std::string &value);
 
   /**
-   * @copydoc Optimizer::addOptimizerVariable(std::vector<Weight> &params)
+   * @copydoc Optimizer::getOptimizerVariableDim(const TensorDim &dim)
    */
-  void addOptimizerVariable(std::vector<Weight> &params);
+  std::vector<TensorDim> getOptimizerVariableDim(const TensorDim &dim) override;
 
   /**
    * @brief get beta1
