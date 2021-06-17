@@ -429,7 +429,7 @@ void NeuralNetwork::readModel() {
 
   std::ifstream model_file(save_path, std::ios::in | std::ios::binary);
 
-  for (auto iter = model_graph.begin(); iter != model_graph.end(); iter++) {
+  for (auto iter = model_graph.cbegin(); iter != model_graph.cend(); iter++) {
     (*iter)->read(model_file);
   }
 
