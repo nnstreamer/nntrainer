@@ -1,5 +1,6 @@
 test_target = [
   'layers_common_tests.cpp',
+  'unittest_layers_impl.cpp',
   'unittest_layers_fully_connected.cpp',
 ]
 

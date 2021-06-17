@@ -12,6 +12,32 @@
 
 #include <layers_common_tests.h>
 
-TEST_P(LayerGoldenTest, HelloWorld) { EXPECT_TRUE(true); }
+#include <layer_devel.h>
 
-TEST_P(LayerCreateDestroyTest, HelloWorld) { EXPECT_TRUE(true); }
+constexpr unsigned SAMPLE_TRIES = 10;
+
+LayerSemantics::~LayerSemantics() {}
+
+void LayerSemantics::SetUp() {
+  auto f = std::get<0>(GetParam());
+  layer = std::move(f({}));
+  std::tie(std::ignore, expected_type, valid_properties, invalid_properties,
+           options) = GetParam();
+}
+
+void LayerSemantics::TearDown() {}
+
+TEST_P(LayerSemantics, createFromAppContext_pn) {}
+
+TEST_P(LayerSemantics, setProperties_p) {
+  /// @todo check if setProperties does not collide with layerNode designated
+  /// properties
+}
+
+TEST_P(LayerSemantics, setPropertiesValidWithInvalid_n) {}
+
+TEST_P(LayerSemantics, setPropertiesValidInvalidOnly_n) {}
+
+TEST_P(LayerSemantics, finalizeTwice_p) {}
+
+TEST_P(LayerGoldenTest, HelloWorld) { EXPECT_TRUE(true); }
