@@ -31,6 +31,7 @@
 
 #include <activation_layer.h>
 #include <flatten_layer.h>
+#include <layer_node.h>
 #include <manager.h>
 #include <nntrainer_log.h>
 #include <rnn.h>
@@ -261,15 +262,28 @@ void Manager::initializeWeights() {
 
   unsigned int weight_offset = 0;
 
-  for (auto &l_w : weights) {
-    for (auto &w : l_w) {
-      Weight &weight = w.get();
-      auto dim = weight.getDim();
+  if (LAYER_V2) {
+    for (auto &l_w : weights_v2) {
+      for (auto &w : l_w) {
+        const auto &dim = w->getDim();
 
-      Tensor weight_prealloc = allocate_weight(dim, weight_offset);
-      weight_offset += dim.getDataLen();
+        Tensor weight_prealloc = allocate_weight(dim, weight_offset);
+        weight_offset += dim.getDataLen();
 
-      weight.initializeVariable(weight_prealloc);
+        w->initializeVariable(weight_prealloc);
+      }
+    }
+  } else {
+    for (auto &l_w : weights) {
+      for (auto &w : l_w) {
+        Weight &weight = w.get();
+        auto dim = weight.getDim();
+
+        Tensor weight_prealloc = allocate_weight(dim, weight_offset);
+        weight_offset += dim.getDataLen();
+
+        weight.initializeVariable(weight_prealloc);
+      }
     }
   }
 
@@ -280,24 +294,38 @@ void Manager::allocateWeights() {
   if (weights_allocated)
     return;
 
-  for (auto &l_w : weights) {
-    for (auto &w : l_w) {
-      Weight &weight = w.get();
-      weight.allocateVariable();
+  if (LAYER_V2) {
+    for (auto &l_w : weights_v2) {
+      for (auto &w : l_w) {
+        w->allocateVariable();
+      }
+    }
+  } else {
+    for (auto &l_w : weights) {
+      for (auto &w : l_w) {
+        Weight &weight = w.get();
+        weight.allocateVariable();
+      }
     }
   }
-
   weights_allocated = true;
 }
 
 void Manager::deallocateWeights() {
-  for (auto &l_w : weights) {
-    for (auto &w : l_w) {
-      Weight &weight = w.get();
-      weight.deallocateVariable();
+  if (LAYER_V2) {
+    for (auto &l_w : weights_v2) {
+      for (auto &w : l_w) {
+        w->deallocateVariable();
+      }
+    }
+  } else {
+    for (auto &l_w : weights) {
+      for (auto &w : l_w) {
+        Weight &weight = w.get();
+        weight.deallocateVariable();
+      }
     }
   }
-
   weights_allocated = false;
 }
 
@@ -306,10 +334,18 @@ void Manager::allocateGradients() {
   if (!shared_grad.uninitialized())
     shared_grad.allocate();
 
-  for (auto &l_w : weights) {
-    for (auto &w : l_w) {
-      Weight &weight = w.get();
-      weight.allocateGradient();
+  if (LAYER_V2) {
+    for (auto &l_w : weights_v2) {
+      for (auto &w : l_w) {
+        w->allocateGradient();
+      }
+    }
+  } else {
+    for (auto &l_w : weights) {
+      for (auto &w : l_w) {
+        Weight &weight = w.get();
+        weight.allocateGradient();
+      }
     }
   }
 }
@@ -317,10 +353,18 @@ void Manager::allocateGradients() {
 void Manager::deallocateGradients() {
   shared_grad.deallocate();
 
-  for (auto &l_w : weights) {
-    for (auto &w : l_w) {
-      Weight &weight = w.get();
-      weight.deallocateGradient();
+  if (LAYER_V2) {
+    for (auto &l_w : weights_v2) {
+      for (auto &w : l_w) {
+        w->deallocateGradient();
+      }
+    }
+  } else {
+    for (auto &l_w : weights) {
+      for (auto &w : l_w) {
+        Weight &weight = w.get();
+        weight.deallocateGradient();
+      }
     }
   }
 }

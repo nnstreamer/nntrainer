@@ -719,6 +719,7 @@ NetworkGraph::updateRunContext(std::shared_ptr<Manager> &manager,
    */
   // const RunLayerContext &run_context = lnode->getRunContext();
   lnode->updateRunContext(RunLayerContext(
+    // TODO: update weights spec for trainable based on layer trainable prop
     manager->requestWeights(gnode, init_context.getWeightsSpec()), inputs,
     outputs, manager->requestTensors(gnode, init_context.getTensorsSpec())));
 
