@@ -308,6 +308,7 @@ void Manager::allocateWeights() {
       }
     }
   }
+
   weights_allocated = true;
 }
 
@@ -326,6 +327,7 @@ void Manager::deallocateWeights() {
       }
     }
   }
+
   weights_allocated = false;
 }
 
@@ -563,41 +565,68 @@ void Manager::initializeTensorsInference() {
    * @note Label for the last layer is not initialized in inference.
    * @note Input for the first layer is not initialized in inference.
    */
-  bool use_first_last = 0;
-  for (unsigned int idx = 0; idx < in_outs.size(); idx++) {
-    auto &l_io = in_outs[idx];
-    unsigned int offset = 0;
-    bool is_first_layer = idx == 0;
+  if (!LAYER_V2) {
+    bool use_first_last = 0;
+    for (unsigned int idx = 0; idx < in_outs.size(); idx++) {
+      auto &l_io = in_outs[idx];
+      unsigned int offset = 0;
+      bool is_first_layer = idx == 0;
 
-    // For flatten layer, do not assign new memory
-    if (idx > 0 && is_flat_type[idx])
+      // For flatten layer, do not assign new memory
+      if (idx > 0 && is_flat_type[idx])
+        use_first_last = 1 - use_first_last;
+
+      // In inference mode, do not allocate the memory for the input of the
+      // first layer. These is the first entry in the in_outs. Inference() will
+      // override input tensors of the first layer
+      if (is_first_layer)
+        continue;
+
+      for (auto &io : l_io) {
+        Tensor shared_inout_cur = Tensor();
+        if (enable_inference_inout_memory_opt) {
+          // if optimized
+          if (use_first_last) {
+            // Create tensor with from the front of shared tensor
+            shared_inout_cur =
+              shared_inout.getSharedDataTensor(io->getDim(), offset);
+          } else {
+            // Create tensor with from the back of shared tensor
+            shared_inout_cur = shared_inout.getSharedDataTensor(
+              io->getDim(),
+              max_shared_inout - io->getDim().getDataLen() - offset);
+          }
+          offset += io->getDim().getDataLen();
+        }
+        io->initialize(shared_inout_cur, Tensor(), false);
+      }
       use_first_last = 1 - use_first_last;
+    }
+  } else {
+    // Inference Mode without optimizations
+    for (auto &layer_outs : outputs_v2) {
+      // TODO:For flatten layer, do not assign new memory
+
+      for (auto &outs : layer_outs) {
+        outs->initialize(Tensor(), Tensor(), false);
+      }
+    }
+
+    // Inference Mode without optimizations
+    for (auto &layer_ts : tensors_v2) {
+      for (auto &ts : layer_ts) {
+        ts->initialize(Tensor(), Tensor(), false);
+      }
+    }
 
     // In inference mode, do not allocate the memory for the input of the first
     // layer. These is the first entry in the in_outs. Inference() will override
     // input tensors of the first layer
-    if (is_first_layer)
+    for ([[maybe_unused]] auto &layer_ins : inputs_v2) {
+      // as inputs_v2 are only set for input layers, this can be skipped all the
+      // way
       continue;
-
-    for (auto &io : l_io) {
-      Tensor shared_inout_cur = Tensor();
-      if (enable_inference_inout_memory_opt) {
-        // if optimized
-        if (use_first_last) {
-          // Create tensor with from the front of shared tensor
-          shared_inout_cur =
-            shared_inout.getSharedDataTensor(io->getDim(), offset);
-        } else {
-          // Create tensor with from the back of shared tensor
-          shared_inout_cur = shared_inout.getSharedDataTensor(
-            io->getDim(),
-            max_shared_inout - io->getDim().getDataLen() - offset);
-        }
-        offset += io->getDim().getDataLen();
-      }
-      io->initialize(shared_inout_cur, Tensor(), false);
     }
-    use_first_last = 1 - use_first_last;
   }
 }
 
@@ -609,28 +638,51 @@ void Manager::initializeTensorsTrain() {
   if (max_derivative_size > 0 && enable_activation_memory_opt)
     shared_deriv = Tensor(TensorDim({max_derivative_size}), false);
 
-  for (unsigned int idx = 0; idx < in_outs.size(); idx++) {
-    auto &l_io = in_outs[idx];
-    unsigned int offset = 0;
-    bool is_last_layer = idx == in_outs.size() - 1;
+  if (!LAYER_V2) {
+    for (unsigned int idx = 0; idx < in_outs.size(); idx++) {
+      auto &l_io = in_outs[idx];
+      unsigned int offset = 0;
+      bool is_last_layer = idx == in_outs.size() - 1;
 
-    for (auto &io : l_io) {
-      // Last layer requires separate memory allocations for output and label
-      // (deriv)
-      if (enable_derivative_memory_opt && !is_last_layer) {
-        // Training Mode with optimizations
-        if (enable_activation_memory_opt &&
-            (is_rnn_type[idx] || is_act_type[idx])) {
-          io->initialize(
-            Tensor(), shared_deriv.getSharedDataTensor(io->getDim(), offset));
-          offset += io->getDim().getDataLen();
+      for (auto &io : l_io) {
+        // Last layer requires separate memory allocations for output and label
+        // (deriv)
+        if (enable_derivative_memory_opt && !is_last_layer) {
+          // Training Mode with optimizations
+          if (enable_activation_memory_opt &&
+              (is_rnn_type[idx] || is_act_type[idx])) {
+            io->initialize(
+              Tensor(), shared_deriv.getSharedDataTensor(io->getDim(), offset));
+            offset += io->getDim().getDataLen();
+          } else {
+            io->initializeShared();
+          }
+
         } else {
-          io->initializeShared();
+          // Training Mode without optimizations
+          io->initialize(Tensor(), Tensor(), true);
         }
+      }
+    }
+  } else {
+    // Training Mode without optimizations
+    for (auto &layer_outs : outputs_v2) {
+      for (auto &outs : layer_outs) {
+        outs->initialize(Tensor(), Tensor(), true);
+      }
+    }
 
-      } else {
-        // Training Mode without optimizations
-        io->initialize(Tensor(), Tensor(), true);
+    // Training Mode without optimizations
+    for (auto &layer_ts : tensors_v2) {
+      for (auto &ts : layer_ts) {
+        ts->initialize(Tensor(), Tensor(), true);
+      }
+    }
+
+    // Training Mode without optimizations
+    for (auto &layer_ins : inputs_v2) {
+      for (auto &ins : layer_ins) {
+        ins->initialize(Tensor(), Tensor(), true);
       }
     }
   }

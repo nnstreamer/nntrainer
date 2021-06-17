@@ -752,8 +752,6 @@ int NetworkGraph::initialize(std::shared_ptr<Manager> manager) {
      * For input layer, as input dimension is known, set input tensor.
      */
     if (!is_input_node(cur_type, idx)) {
-      std::string l_pre_type = getSortedLayerNode(idx - 1)->getType();
-
       auto &input_layers = lnode->getInputLayers();
       for (unsigned int i = 0; i < input_layers.size(); ++i) {
         auto in_layer_node = getLayerNode(input_layers[i]);
