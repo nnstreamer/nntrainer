@@ -26,6 +26,11 @@ class RunContext;
 class Exporter;
 
 enum class ExportMethods;
+
+namespace props {
+class Trainable;
+}
+
 /**
  * @class   An abstract class to ease developing a layer
  * @brief   An abstract class for all layers
@@ -63,8 +68,9 @@ public:
                         const ExportMethods &method) const override;
 
 private:
-  bool finalized;                                 /**< check if finalized */
-  std::unique_ptr<std::tuple<>> layer_impl_props; /**< layer_impl_props */
+  bool finalized; /**< check if finalized */
+  std::unique_ptr<std::tuple<props::Trainable>>
+    layer_impl_props; /**< layer_impl_props */
 };
 
 } // namespace nntrainer
