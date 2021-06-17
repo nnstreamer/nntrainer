@@ -28,7 +28,7 @@ TEST(AppContext, DlRegisterOpen_p) {
     << "NNTRAINER_PATH environment value must be set";
   auto ac = nntrainer::AppContext();
 
-  ac.registerLayer("libpow_layer.so", NNTRAINER_PATH);
+  ac.registerLayerV1("libpow_layer.so", NNTRAINER_PATH);
 
   auto layer = ac.createObject<nntrainer::LayerV1>("pow");
 
@@ -40,7 +40,7 @@ TEST(AppContext, DlRegisterWrongPath_n) {
     << "NNTRAINER_PATH environment value must be set";
   auto ac = nntrainer::AppContext();
 
-  EXPECT_THROW(ac.registerLayer("wrong_name.so"), std::invalid_argument);
+  EXPECT_THROW(ac.registerLayerV1("wrong_name.so"), std::invalid_argument);
 }
 
 TEST(AppContext, DlRegisterDirectory_p) {
@@ -68,7 +68,7 @@ TEST(AppContext, DefaultEnvironmentPath_p) {
   std::shared_ptr<ml::train::Layer> l = ml::train::createLayer("pow");
   EXPECT_EQ(l->getType(), "pow");
 
-  auto layer = nntrainer::getLayerDevel(l);
+  auto layer = nntrainer::getLayerV1Devel(l);
 
   std::ifstream input_file("does_not_exist");
   EXPECT_NO_THROW(layer->read(input_file));

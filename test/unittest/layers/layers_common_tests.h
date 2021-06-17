@@ -12,6 +12,8 @@
 #ifndef __LAYERS_COMMON_TESTS_H__
 #define __LAYERS_COMMON_TESTS_H__
 
+#include <gtest/gtest.h>
+
 #include <functional>
 #include <memory>
 #include <string>

@@ -34,7 +34,7 @@ public:
    *
    * @param pluggable LayerPluggable structure from the symbol
    */
-  PluggedLayer(const nntrainer::LayerPluggable *pluggable) :
+  PluggedLayer(const nntrainer::LayerV1Pluggable *pluggable) :
     /// @todo we won't need dynamic pointer cast here after api is fully
     /// implemented
     layerImpl(pluggable->createfunc()),
@@ -248,7 +248,7 @@ private:
   /// @todo: migrate to ml::train::Layer
   // ml::train::Layer *layerImpl;
   nntrainer::LayerV1 *layerImpl;
-  nntrainer::DestroyLayerFunc destroy_func;
+  nntrainer::DestroyLayerV1Func destroy_func;
 };
 } // namespace internal
 } // namespace nntrainer
