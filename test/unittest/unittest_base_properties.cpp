@@ -251,7 +251,7 @@ TEST(BasicProperty, valid_p) {
     auto lnode =
       nntrainer::LayerNode(std::make_shared<nntrainer::FullyConnectedLayer>(1));
     nntrainer::Exporter e;
-    lnode.export_to(e);
+    lnode.exportTo(e, nntrainer::ExportMethods::METHOD_STRINGVECTOR);
 
     auto result = e.getResult<nntrainer::ExportMethods::METHOD_STRINGVECTOR>();
     auto pair1 = std::pair<std::string, std::string>("unit", "1");

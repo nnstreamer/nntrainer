@@ -267,7 +267,7 @@ void IniGraphInterpreter::serialize(
     s.setEntry("type", ln->getType());
 
     Exporter e;
-    ln->export_to(e);
+    ln->exportTo(e, ExportMethods::METHOD_STRINGVECTOR);
 
     const auto key_val_pairs =
       e.getResult<ExportMethods::METHOD_STRINGVECTOR>();
