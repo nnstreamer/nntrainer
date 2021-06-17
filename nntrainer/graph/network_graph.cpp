@@ -753,13 +753,6 @@ int NetworkGraph::initialize(std::shared_ptr<Manager> manager) {
     if (!is_input_node(cur_type, idx)) {
       std::string l_pre_type = getSortedLayerNode(idx - 1)->getType();
 
-      // TODO: move this to checkCompiledGraph
-      if (istrequal(l_pre_type, ActivationLayer::type) &&
-          istrequal(cur_type, ActivationLayer::type)) {
-        ml_loge("double activation is not allowed");
-        return ML_ERROR_INVALID_PARAMETER;
-      }
-
       auto &input_layers = lnode->getInputLayers();
       for (unsigned int i = 0; i < input_layers.size(); ++i) {
         auto in_layer_node = getLayerNode(input_layers[i]);

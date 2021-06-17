@@ -318,8 +318,6 @@ INSTANTIATE_TEST_CASE_P(
     mkIniTc("unknown_loss_n", {nw_base + "loss = unknown", adam, input, out+"input_layers=inputlayer"}, COMPFAIL | INITFAIL),
     mkIniTc("activation_very_first_n", {nw_base, sgd, act_relu, input+"input_layers=activation_relu", out+"input_layers=inputlayer"}, COMPFAIL | INITFAIL),
     mkIniTc("bnlayer_very_first_n", {nw_base, sgd, batch_normal, input+"input_layers=bn", out+"input_layers=inputlayer"}, COMPFAIL | INITFAIL),
-    mkIniTc("act_layer_after_act_n", {nw_base, sgd, input, act_relu+"input_layers=inputlayer", out+"input_layers=activation_relu"}, INITFAIL),
-    mkIniTc("act_layer_after_act_bn_n", {nw_base, sgd, input, act_relu+"input_layers=inputlayer", batch_normal+"input_layers=activation_relu", out+"input_layers=bn" }, INITFAIL),
     mkIniTc("last_act_layer_relu_n", {nw_base, sgd, input, out+"input_layers=inputlayer", act_relu+"input_layers=fclayer" }, COMPFAIL | INITFAIL),
     mkIniTc("last_act_layer_relu2_n", {nw_base, sgd, input, out+"input_layers=inputlayer" + "-Activation", act_relu+"input_layers=fclayer" }, COMPFAIL | INITFAIL),
     mkIniTc("basic_conv2d_n", {nw_base, adam, conv2d + "input_shape = 1:1:62720"}, INITFAIL),
