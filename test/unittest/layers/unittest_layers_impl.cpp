@@ -31,11 +31,13 @@ public:
 
   inline static const std::string type = "mock_";
   const std::string getType() const override { return type; }
-  void finalize(InitContext &context) override { LayerImpl::finalize(context); }
-  void forwarding(RunContext &context, bool training = true) override {
+  void finalize(InitLayerContext &context) override {
+    LayerImpl::finalize(context);
+  }
+  void forwarding(RunLayerContext &context, bool training = true) override {
     /** do nothing */
   }
-  void calcDerivative(RunContext &context) override { /** do nothing */
+  void calcDerivative(RunLayerContext &context) override { /** do nothing */
   }
 
   void setProperty(const std::vector<std::string> &values) override {

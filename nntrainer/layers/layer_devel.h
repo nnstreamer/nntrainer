@@ -33,8 +33,8 @@ class Layer;
 
 namespace nntrainer {
 
-class InitContext;
-class RunContext;
+class InitLayerContext;
+class RunLayerContext;
 class Exporter;
 
 enum class ExportMethods;
@@ -61,7 +61,9 @@ public:
   virtual const std::string getType() const = 0;
 
   /**
-   * @brief     Finalize creating the layer,
+   * @brief     Finalize creating the layer
+   * @param     context Context of the layer
+   *
    * @details   Input dimensions will be provided set in the context. This
    * function must set output dimensions in the given context. Further, context
    * can be used to request weights for the layer, and any extra tensor required
@@ -72,18 +74,19 @@ public:
    * step. Any tensor memory required must be requested to the context which
    * will be made available during execution of the layer with the context.
    */
-  virtual void finalize(InitContext &context) = 0;
+  virtual void finalize(InitLayerContext &context) = 0;
 
   /**
    * @brief     Forward Propagation of a layer
    * @param     context Context of the layer
    * @param     training true if training, false if inference
+   *
    * @note      Output must be set in the output tensors.
    * @details   context provides access to the weights (if any), inputs,
    * outputs, and tensors (if any) for the layer. Input and output dimensions
    * can be access from the inputs/outputs tensors themselves.
    */
-  virtual void forwarding(RunContext &context, bool training = true) = 0;
+  virtual void forwarding(RunLayerContext &context, bool training) = 0;
 
   /**
    * @brief     calc the derivative to be passed to the previous layer
@@ -93,16 +96,16 @@ public:
    * outputs, and tensors (if any) for the layer. Input and output dimensions
    * can be access from the inputs/outputs tensors themselves.
    */
-  virtual void calcDerivative(RunContext &context) = 0;
+  virtual void calcDerivative(RunLayerContext &context) = 0;
 
   /**
    * @brief     Calculate the derivative of a layer
    * @details   context provides access to the weights (if any), inputs,
    * outputs, and tensors (if any) for the layer. Input and output dimensions
    * can be access from the inputs/outputs tensors themselves.
-   * @note      Gradinets must be set in weight gradient tensors.
+   * @note      Gradients must be set in weight gradient tensors.
    */
-  virtual void calcGradient(RunContext &context){};
+  virtual void calcGradient(RunLayerContext &context){};
 
   /**
    * @brief     set Property of layer
@@ -128,7 +131,7 @@ public:
    * @details Update the initialize context based on the updated batch size if
    * required
    */
-  virtual void setBatch(InitContext &context, unsigned int batch) {}
+  virtual void setBatch(InitLayerContext &context, unsigned int batch) {}
 
   /**
    * @brief Set the batch for the layer
@@ -136,7 +139,7 @@ public:
    * @param     batch Batch value to be set
    * @details Update the run context based on the updated batch size if required
    */
-  virtual void setBatch(RunContext &context, unsigned int batch) {}
+  virtual void setBatch(RunLayerContext &context, unsigned int batch) {}
 
   /**
    * @brief   If the current layer can support in-place

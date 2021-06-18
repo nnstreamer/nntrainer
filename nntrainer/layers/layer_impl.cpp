@@ -26,7 +26,7 @@ LayerImpl::LayerImpl() :
   finalized(false),
   layer_impl_props(std::make_unique<std::tuple<props::Trainable>>()) {}
 
-void LayerImpl::finalize(InitContext &context) {
+void LayerImpl::finalize(InitLayerContext &context) {
   NNTR_THROW_IF(finalized, nntrainer::exception::not_supported)
     << "[LayerImpl] "
     << "it is prohibited to finalize a layer twice";
