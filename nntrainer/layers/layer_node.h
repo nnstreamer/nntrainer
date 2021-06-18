@@ -212,7 +212,6 @@ public:
 
   /**
    * @brief Set the batch for the layer
-   * @param     context Context of the layer
    * @param     batch Batch value to be set
    * @details Update the run context based on the updated batch size if required
    */
