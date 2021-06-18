@@ -29,8 +29,10 @@ public:
   /**
    * @brief Specification of the Var_Grad
    *
+   * @details The tuple values are dimension, trainable property, and the name
+   * of the Var_Grad object.
    */
-  typedef std::tuple<const TensorDim, bool, const std::string> Spec;
+  typedef std::tuple<TensorDim, bool, const std::string> Spec;
 
   /**
    * @brief Var_Grad default constructor

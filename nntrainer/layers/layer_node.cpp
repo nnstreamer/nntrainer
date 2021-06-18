@@ -330,10 +330,13 @@ void LayerNode::calcGradient() { layer->calcGradient(run_context); }
  * @brief Set the batch for the layer
  */
 void LayerNode::setBatch(unsigned int batch) {
-  if (finalized)
+  if (finalized) {
+    run_context.setBatch(batch);
     layer->setBatch(run_context, batch);
-  else
+  } else {
+    init_context.setBatch(batch);
     layer->setBatch(init_context, batch);
+  }
 }
 
 /**
