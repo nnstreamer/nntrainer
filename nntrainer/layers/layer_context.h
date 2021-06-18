@@ -148,6 +148,28 @@ public:
    */
   const std::vector<TensorSpec> &getTensorsSpec() const { return tensors_spec; }
 
+  /**
+   * @brief Set the batch for the init context
+   *
+   * @param batch Updated batch size
+   */
+  void setBatch(unsigned int batch) {
+    for (auto &dim : input_dim)
+      dim.batch(batch);
+    for (auto &dim : output_dim)
+      dim.batch(batch);
+  }
+
+  /**
+   * @brief Update the dimensions for a requested tensor
+   *
+   * @param idx index of the tensor (identifier)
+   * @param batch Updated batch size
+   */
+  void updateTensorSpec(unsigned int idx, unsigned int batch) {
+    std::get<0>(tensors_spec[idx]).batch(batch);
+  }
+
 private:
   std::vector<TensorDim> input_dim;  /**< Input dimensions for the layer */
   std::vector<TensorDim> output_dim; /**< Output dimensions for the layer */
@@ -299,6 +321,28 @@ public:
    * @return unsigned int number of weight tensors
    */
   unsigned int getNumWeights() const { return weights.size(); }
+
+  /**
+   * @brief Set the batch for the run context
+   *
+   * @param batch Update batch size
+   */
+  void setBatch(unsigned int batch) {
+    for (auto &vg : inputs)
+      vg->setBatchSize(batch);
+    for (auto &vg : outputs)
+      vg->setBatchSize(batch);
+  }
+
+  /**
+   * @brief Update the dimensions for a requested tensor
+   *
+   * @param idx index of the tensor (identifier)
+   * @param batch Updated batch size
+   */
+  void updateTensors(unsigned int idx, unsigned int batch) {
+    tensors[idx]->setBatchSize(batch);
+  }
 
 private:
   std::tuple<props::Name> props; /**< props of the layer */

@@ -54,9 +54,11 @@ public:
   /**
    * @brief Specification of the Weight
    *
+   * @details The tuple values are dimension, initializer, regularizer,
+   * regularizer_constant, trainable property amd name of the Weight object.
    */
   typedef std::tuple<TensorDim, WeightInitializer, WeightRegularizer, float,
-                     bool, std::string>
+                     bool, const std::string>
     Spec;
 
   /**
