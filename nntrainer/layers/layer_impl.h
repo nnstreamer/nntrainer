@@ -21,8 +21,8 @@
 
 namespace nntrainer {
 
-class InitContext;
-class RunContext;
+class InitLayerContext;
+class RunLayerContext;
 class Exporter;
 
 enum class ExportMethods;
@@ -52,9 +52,9 @@ public:
   /**
    * @brief     finalize the layer
    * @throw     nntrainer::not_supported if try to initialize twice
-   * @copydoc   Layer::fianlize(InitContext &context)
+   * @copydoc   Layer::fianlize(InitLayerContext &context)
    */
-  virtual void finalize(InitContext &context) override;
+  virtual void finalize(InitLayerContext &context) override;
 
   /**
    * @copydoc Layer::setProperty(const std::vector<std::string> &values)

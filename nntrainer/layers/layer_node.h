@@ -65,6 +65,12 @@ public:
    */
   LayerNode(std::unique_ptr<nntrainer::Layer> &&l, size_t idx = 0);
 
+  /**
+   * @brief     Destructor of LayerNode Class
+   *
+   */
+  ~LayerNode();
+
 private:
   /**
    * @brief Construct a new Layer Node object
@@ -78,17 +84,6 @@ private:
             std::shared_ptr<nntrainer::LayerV1> layer_v1, size_t idx = 0);
 
 public:
-  /**
-   * @brief     Destructor of LayerNode Class
-   *
-   */
-  ~LayerNode();
-
-  /**
-   * @brief     Set the index for the node
-   */
-  void setIndex(size_t idx) { index = idx; }
-
   /**
    * Support all the interface requirements by ml::train::Layer
    */
@@ -107,17 +102,11 @@ public:
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    * @details   This function accepts vector of properties in the format -
    *  { std::string property_name=property_val, ...}
+   *
+   *  @todo update to new signature: void setProperty(const
+   * std::vector<std::string> &values)
    */
   int setProperty(std::vector<std::string> properties) override;
-
-  /**
-   * @brief     set name of layer
-   *
-   * @param[in] name Name of the layer
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   */
-  int setName(const std::string &name) { return setProperty({"name=" + name}); }
 
   /**
    * @brief     Get name of the layer
@@ -130,7 +119,122 @@ public:
   const std::string getName() const noexcept override;
 
   /**
-   * Support all the interface requirements by GraphNode<nntrainer::Layer>
+   * Support all the interface requirements by nntrainer::GraphNode
+   */
+
+  /**
+   * @brief     Get index of the node
+   *
+   * @return    Index of the node
+   */
+  size_t getIndex() const { return index; }
+
+  /**
+   * @brief     Set the index for the node
+   * @param     idx Index for the node
+   */
+  void setIndex(size_t idx) { index = idx; }
+
+  /**
+   * @brief     set name of layer
+   *
+   * @param[in] name Name of the layer
+   * @retval #ML_ERROR_NONE Successful.
+   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   *
+   * @todo update to new signature void setName(const std::string &name)
+   */
+  int setName(const std::string &name) { return setProperty({"name=" + name}); }
+
+  /**
+   * @brief     Get the input connections for this node
+   *
+   * @return list of name of the nodes which form input connections
+   */
+  const std::vector<std::string> &getInputConnections() const {
+    return getInputLayers();
+  }
+
+  /**
+   * Support all the interface requirements by nntrainer::Layer
+   */
+
+  /**
+   * @brief     Finalize creating the layer node
+   *
+   * @details   Input dimensions will be provided set in the context. This
+   * function must set output dimensions in the given context. Further, context
+   * can be used to request weights for the layer, and any extra tensor required
+   * for the operation of the layer.
+   * @note      After calling this it is not allowed to
+   * change properties.
+   * @note      No memory allocation must be performed in the initialization
+   * step. Any tensor memory required must be requested to the context which
+   * will be made available during execution of the layer with the context.
+   */
+  void finalize();
+
+  /**
+   * @brief     Forward Propagation of a layer
+   * @param     training true if training, false if inference
+   *
+   * @details   context provides access to the weights (if any), inputs,
+   * outputs, and tensors (if any) for the layer. Input and output dimensions
+   * can be access from the inputs/outputs tensors themselves.
+   */
+  void forwarding(bool training = true);
+
+  /**
+   * @brief     calc the derivative to be passed to the previous layer
+   *
+   * @details   context provides access to the weights (if any), inputs,
+   * outputs, and tensors (if any) for the layer. Input and output dimensions
+   * can be access from the inputs/outputs tensors themselves.
+   */
+  void calcDerivative();
+
+  /**
+   * @brief     Calculate the derivative of a layer
+   * @details   context provides access to the weights (if any), inputs,
+   * outputs, and tensors (if any) for the layer. Input and output dimensions
+   * can be access from the inputs/outputs tensors themselves.
+   */
+  void calcGradient();
+
+  /**
+   * @brief this function helps exporting the layer in a predefined format,
+   * while workarounding issue caused by templated function type eraser
+   *
+   * @param     exporter exporter that conatins exporting logic
+   * @param     method enum value to identify how it should be exported to
+   */
+  void exportTo(Exporter &exporter, const ExportMethods &method) const;
+
+  /**
+   * @brief Set the batch for the layer
+   * @param     context Context of the layer
+   * @param     batch Batch value to be set
+   * @details Update the run context based on the updated batch size if required
+   */
+  void setBatch(unsigned int batch);
+
+  /**
+   * @brief   If the current layer can support in-place
+   * @return  true if inplace, else false
+   */
+  bool supportInPlace() const;
+
+  /**
+   * @brief  check if this layer requires label to be passed
+   * @return true if requires a label when training, else false
+   * @note   if requireLabel() == true means, for now, that it is endpoint of a
+   * graph(numOutlayers == 0). label will be fed to the gradient of hidden if
+   * requireLabel is true
+   */
+  bool requireLabel() const;
+
+  /**
+   * Add rest of the helper interfaces required by other internal classes
    */
 
   /**
@@ -142,16 +246,9 @@ public:
 
   /**
    * @brief     Get underlying object
-   * @todo      remove this
    *
    */
   const std::shared_ptr<nntrainer::LayerV1> &getObject() const;
-
-  /**
-   * @brief     Get index of the node
-   *
-   */
-  size_t getIndex() const { return index; }
 
   /**
    * @brief     Get the trainable property of the underlying object
@@ -159,10 +256,6 @@ public:
    * @return boolean true if trainable, else false
    */
   bool getTrainable() const noexcept;
-
-  /**
-   * Support interfaces for the properties intercepted from layer
-   */
 
   /**
    * @brief     get if the output of this layer must be flatten
@@ -220,15 +313,6 @@ public:
    */
   const std::vector<std::string> &getInputLayers() const {
     return input_layers;
-  }
-
-  /**
-   * @brief     Get the input connections for this node
-   *
-   * @return list of name of the nodes which form input connections
-   */
-  const std::vector<std::string> &getInputConnections() const {
-    return getInputLayers();
   }
 
   /**
@@ -405,15 +489,6 @@ public:
   }
 
   /**
-   * @brief this function helps exporting the layer in a predefined format,
-   * while workarounding issue caused by templated function type eraser
-   *
-   * @param exporter exporter that conatins exporting logic
-   * @param method enum value to identify how it should be exported to
-   */
-  void exportTo(Exporter &exporter, const ExportMethods &method) const;
-
-  /**
    * @brief     read layer Weight & Bias data from file
    * @param file input file stream
    */
@@ -470,18 +545,6 @@ public:
     input_dim[idx] = dim;
   }
 
-  /**
-   * @brief Finalize the layer
-   *
-   */
-  void finalize() {
-    /** Create init context right before finalize */
-    init_context = InitLayerContext(input_dim);
-#if LAYER_V2
-    layer->finalize(init_context);
-#endif
-  }
-
 private:
   /// @todo remove this
   std::shared_ptr<nntrainer::LayerV1>
@@ -492,7 +555,8 @@ private:
 
   // TODO: possibly remove, two identifiers for the same node (name and
   // index) can lead to issues later
-  size_t index; /**< index of each node */
+  size_t index;   /**< index of each node */
+  bool finalized; /**< if the layer node has been finalized */
 
   std::vector<std::string> input_layers;  /**< input layer names */
   std::vector<std::string> output_layers; /**< output layer names */
