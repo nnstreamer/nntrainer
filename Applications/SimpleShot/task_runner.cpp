@@ -13,6 +13,7 @@
 #include <fstream>
 #include <iostream>
 #include <memory>
+#include <neuralnet.h>
 #include <sstream>
 #include <string>
 #include <unistd.h>
@@ -266,6 +267,8 @@ int main(int argc, char **argv) {
     return 1;
   }
 
+  model->setProperty({"save_path=simpleshot.bin"});
+
   if (model->setOptimizer(optimizer) != 0) {
     std::cerr << "failed to set optimizer" << std::endl;
     return 1;
@@ -285,6 +288,29 @@ int main(int argc, char **argv) {
     std::cerr << "train failed" << std::endl;
     return 1;
   }
+
+  model->saveModel(); // this saves to save_path
+
+  ////////// when inferencing in different code ///////////////
+
+  model->setProperty({"save_path=simpleshot.bin"});
+  model->readModel();
+
+  nntrainer::NeuralNetwork *nn_model =
+    static_cast<nntrainer::NeuralNetwork *>(model.get());
+
+  // prepare input image as a float *
+  // Tensor Tensor::Map(float *buf, unsigned int size, const TensorDim &d,
+  //  int offset) {
+  nntrainer::Tensor input_tensor =
+    nntrainer::Tensor::Map(buf, size, dimension, offset);
+
+  nntrainer::sharedConstTensors output =
+    nn_model->inference({MAKE_SHARED_TENSOR(input_tensor)});
+
+  const float *answer_buf = output.front()->getData();
+
+  /// do model inference
 
   std::cout << "successfully ran" << std::endl;
   return 0;
