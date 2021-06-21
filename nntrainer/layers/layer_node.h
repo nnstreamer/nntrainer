@@ -499,6 +499,25 @@ public:
    */
   void save(std::ofstream &file) const;
 
+  /**
+   * @brief     get loss for the layer
+   * @return    loss of the layer
+   *
+   * @todo      Update this for loss layer
+   */
+  float getLoss() const {
+    if (layerv1 == nullptr) {
+      float loss = 0.;
+      for (unsigned int idx = 0; idx < run_context.getNumWeights(); idx++) {
+        loss += run_context.getWeightRegularizationLoss(idx);
+      }
+
+      return loss;
+    } else {
+      return layerv1->getLoss();
+    }
+  }
+
 #ifdef PROFILE
   int event_key;
 #endif
