@@ -23,7 +23,7 @@ namespace custom {
 
 /**
  * @brief A sample loss layer which calculates mean absolute error from output
- * @todo update this to LayerV1
+ * @todo update this to LayerV2
  *
  */
 class MaeLossLayer final : public nntrainer::LayerV1 {
@@ -43,44 +43,37 @@ public:
   using nntrainer::LayerV1::setProperty;
 
   /**
-   * @brief     set Property of layer, currently only "exponent is accepted"
+   * @brief     set Property of layer
    * @param[in] values values of property
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int setProperty(std::vector<std::string> values) override {
-    /// this implementation makes to pass the test, this will change soon.
-    return values.size();
-  }
+  int setProperty(std::vector<std::string> values) override;
 
   /**
    * @brief initializing nntrainer
    *
    * @return int ML_ERROR_NONE if success
    */
-  int initialize(nntrainer::Manager &manager) override { /** NYI */
-    return 0;
-  }
+  int initialize(nntrainer::Manager &manager) override;
 
   /**
    * @brief nntrainer forwarding function
    * @param[in] training true if forwarding is on training
    */
-  void forwarding(bool training = true) override { /** NYI */
-  }
+  void forwarding(bool training = true) override;
 
   /**
    * @brief require label of a function
    *
    * @return bool true if requires label
    */
-  bool requireLabel() const override { return true; }
+  bool requireLabel() const override;
 
   /**
    * @brief     calc the derivative to be passed to the previous layer
    */
-  void calcDerivative() override { /** NYI */
-  }
+  void calcDerivative() override;
 
   /**
    * @brief Get the type, it must return MaeLossLayer::type
@@ -89,7 +82,7 @@ public:
    */
   const std::string getType() const override { return MaeLossLayer::type; }
 
-  static const std::string type;
+  inline static const std::string type = "mae_loss";
 };
 
 } // namespace custom
