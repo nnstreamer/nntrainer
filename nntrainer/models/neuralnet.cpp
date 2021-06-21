@@ -354,7 +354,7 @@ float NeuralNetwork::getLoss() {
   loss = 0.0f;
 
   for (auto iter = model_graph.cbegin(); iter != model_graph.cend(); iter++) {
-    loss += (*iter)->getObject()->getLoss();
+    loss += (*iter)->getLoss();
   }
   return loss;
 }
