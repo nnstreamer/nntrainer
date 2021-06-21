@@ -9,12 +9,18 @@
  * @author Jihoon Lee <jhoon.it.lee@samsung.com>
  * @bug    No known bugs except for NYI items
  *
+ * @details LayerImpl forms the base class for all the layer with weights and
+ * bias parameters. LayerImpl provides parsing of properties like Weight/bias
+ * initializer and regularizers. LayerImpl also provides checks for double calls
+ * to finalize function.
+ *
  */
 #ifndef __LAYER_IMPL_H__
 #define __LAYER_IMPL_H__
 #ifdef __cplusplus
 
 #include <layer_devel.h>
+#include <weight.h>
 
 #include <memory>
 #include <tuple>
@@ -52,7 +58,7 @@ public:
   /**
    * @brief     finalize the layer
    * @throw     nntrainer::not_supported if try to initialize twice
-   * @copydoc   Layer::fianlize(InitLayerContext &context)
+   * @copydoc   Layer::finalize(InitLayerContext &context)
    */
   virtual void finalize(InitLayerContext &context) override;
 
@@ -68,9 +74,24 @@ public:
                         const ExportMethods &method) const override;
 
 private:
+  /**
+   * @brief setProperty by type and value separated
+   * @param[in] type property type to be passed
+   * @param[in] value value to be passed
+   * @exception exception::not_supported     when property type is not valid for
+   * the particular layer
+   * @exception std::invalid_argument invalid argument
+   */
+  virtual void setProperty(const std::string &type, const std::string &value);
+
   bool finalized; /**< check if finalized */
   std::unique_ptr<std::tuple<props::Trainable>>
     layer_impl_props; /**< layer_impl_props */
+
+  WeightRegularizer weight_regularizer; /**< weight regularizer */
+  float weight_regularizer_constant;    /**< weight regularizer constant */
+  WeightInitializer weight_initializer; /**< initializer for the weights */
+  WeightInitializer bias_initializer;   /**< initializer for the bias */
 };
 
 } // namespace nntrainer
