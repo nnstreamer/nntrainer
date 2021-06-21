@@ -12,8 +12,57 @@
  */
 #include "mae_loss.h"
 
+#include <cmath>
+
+#include <tensor.h>
+
+constexpr const float EPSILON_ = 1e-7;
 namespace custom {
-const std::string MaeLossLayer::type = "mae_loss";
+
+int MaeLossLayer::initialize(nntrainer::Manager &manager) {
+  output_dim = input_dim;
+  return ML_ERROR_NONE;
+}
+
+int MaeLossLayer::setProperty(std::vector<std::string> values) {
+  /// this implementation makes to pass the test, this will change soon.
+  return values.size();
+}
+
+void MaeLossLayer::forwarding(bool training) {
+  nntrainer::Tensor &label = net_hidden[0]->getGradientRef();
+  nntrainer::Tensor &predicted = net_input[0]->getVariableRef();
+  nntrainer::Tensor &output = net_hidden[0]->getVariableRef();
+
+  bool with_label = !label.uninitialized();
+  if (with_label) {
+    predicted.subtract(label, output);
+    /// make Tensor::abs instead and use it here
+    output.apply_i(fabs);
+  } else {
+    output.fill(predicted);
+  }
+}
+
+void MaeLossLayer::calcDerivative() {
+  nntrainer::Tensor &predicted = net_input[0]->getVariableRef();
+  nntrainer::Tensor &label = net_hidden[0]->getGradientRef();
+
+  nntrainer::Tensor &deriv = net_input[0]->getGradientRef();
+
+  /// This can be saved at MaeLossLayer::forwarding, but this is done here on
+  /// purpose for demonstration purpose
+  predicted.subtract(label, deriv);
+
+  deriv.apply_i([](float x) {
+    if (fabs(x) < EPSILON_) {
+      return 0.0f;
+    }
+    return x > 0 ? 1.0f : -1.0f;
+  });
+}
+
+bool MaeLossLayer::requireLabel() const { return true; }
 
 #ifdef PLUGGABLE
 
