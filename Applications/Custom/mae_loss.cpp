@@ -38,7 +38,7 @@ void MaeLossLayer::forwarding(bool training) {
   if (with_label) {
     predicted.subtract(label, output);
     /// make Tensor::abs instead and use it here
-    output.apply_i(fabs);
+    output.apply_i([](float x) { return x > 0 ? x : -x; });
   } else {
     output.fill(predicted);
   }
