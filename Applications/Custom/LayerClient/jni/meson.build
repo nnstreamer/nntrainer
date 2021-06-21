@@ -6,9 +6,6 @@ layer_client_sources = [
   layer_example_mae_src
 ]
 
-ini_in_path = res_path / 'custom_layer_client.ini'
-ini_out_path = meson.build_root() / 'custom_layer_client.ini'
-
 run_command('cp', '-lr', res_path, nntr_app_resdir / 'LayerClient')
 
 e = executable('layer_client',
@@ -18,3 +15,6 @@ e = executable('layer_client',
   install: get_option('install-app'),
   install_dir: application_install_dir
 )
+
+test('app_layer_client_api', exe, args: 'model')
+test('app_layer_client_ini', exe, args: res_path / 'custom_layer_client.ini')

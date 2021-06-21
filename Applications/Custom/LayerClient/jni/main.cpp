@@ -21,6 +21,7 @@
 /// @todo Migrate this to api
 #include <app_context.h>
 
+#include <mae_loss.h>
 #include <pow.h>
 
 #define BATCH_SIZE 10
@@ -45,10 +46,10 @@ int constant_generator_cb(float **outVec, float **outLabel, bool *last,
     outVec[0][i] = 2.0f;
   }
 
-  outLabel[0][0] = 1.0f;
   for (i = 0; i < NUM_CLASS - 1; ++i) {
     outLabel[0][i] = 0.0f;
   }
+  outLabel[0][0] = 1.0f;
 
   if (count == 10) {
     *last = true;
@@ -114,8 +115,8 @@ static int ini_model_run(const std::string &ini_path) {
  * @return int 0 if successfully ran
  */
 int api_model_run() {
-  auto model = ml::train::createModel(ml::train::ModelType::NEURAL_NET,
-                                      {"loss=cross", "batch_size=10"});
+  auto model =
+    ml::train::createModel(ml::train::ModelType::NEURAL_NET, {"batch_size=10"});
 
   std::shared_ptr<ml::train::Dataset> dataset;
   std::shared_ptr<ml::train::Optimizer> optimizer;
@@ -150,13 +151,13 @@ int api_model_run() {
     /// creating array of layers same as in `custom_layer_client.ini`
     layers = std::vector<std::shared_ptr<ml::train::Layer>>{
       ml::train::layer::Input({"name=inputlayer", "input_shape=1:1:100"}),
-      ml::train::createLayer(
-        "pow", {"name=powlayer", "exponent=3", "input_layers=inputlayer"}),
+      ml::train::createLayer("pow", {"name=powlayer", "exponent=3"}),
       ml::train::layer::FullyConnected(
         {"name=outputlayer", "input_layers=powlayer", "unit=10",
-         "bias_initializer=zeros", "activation=softmax"})};
+         "bias_initializer=zeros", "activation=softmax"}),
+      ml::train::createLayer("mae_loss", {"name=mae_loss"})};
   } catch (nntrainer::exception::not_supported &e) {
-    std::cerr << "creating model failed";
+    std::cerr << "creating model failed " << e.what();
     return 1;
   }
 
@@ -200,6 +201,7 @@ int main(int argc, char *argv[]) {
     /// std::vector<std::string> ml::train::createLayer<T> is a templated
     /// function for generic usage
     app_context.registerFactory(nntrainer::createLayer<custom::PowLayer>);
+    app_context.registerFactory(nntrainer::createLayer<custom::MaeLossLayer>);
   } catch (std::invalid_argument &e) {
     std::cerr << "failed to register factory, reason: " << e.what()
               << std::endl;
