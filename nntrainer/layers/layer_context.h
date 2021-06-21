@@ -239,6 +239,19 @@ public:
   }
 
   /**
+   * @brief Get regularization loss for the weight
+   *
+   * @param idx Identifier of the weight
+   * @return float Value of the loss
+   */
+  float getWeightRegularizationLoss(unsigned int idx) const {
+    if (weights[idx]->getTrainable())
+      return weights[idx]->getRegularizationLoss();
+
+    return 0;
+  }
+
+  /**
    * @brief Get the Output tensor object
    *
    * @param idx Identifier of the output
