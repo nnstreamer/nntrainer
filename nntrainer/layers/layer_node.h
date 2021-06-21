@@ -10,6 +10,15 @@
  * @brief  This is the layer node for network graph
  *
  * @todo   Add printPreset support
+ *
+ * @details LayerNode provides a node wrapper around the Layer class to form a
+ * GraphNode. Each layer is wrapped with LayerNode in order to add it to a
+ * graph. Each LayerNode contains only 1 layer inside. LayerNode also intercepts
+ * certain properties of the layer which are either related to graph related
+ * connections (input_layers, output_layers, activation, flatten, distribute,
+ * name) or essential for the description of the layer (trainable, input_dims)
+ * iself. These properties, if needed by the layer object, are provided access
+ * to via LayerContext.
  */
 
 #ifndef __LAYER_NODE_H__
@@ -77,11 +86,11 @@ private:
    * @todo  deprecate this
    *
    * @param layer_v2 layer v2
-   * @param layer_v1 layer v1
+   * @param layerv1 layer v1
    * @param idx      idx
    */
   LayerNode(std::unique_ptr<nntrainer::Layer> &&layer_v2,
-            std::shared_ptr<nntrainer::LayerV1> layer_v1, size_t idx = 0);
+            std::shared_ptr<nntrainer::LayerV1> layerv1, size_t idx = 0);
 
 public:
   /**
