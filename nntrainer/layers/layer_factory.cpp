@@ -89,57 +89,51 @@ const std::string layerGetStrType(const LayerType &type) {
   throw std::runtime_error("Control should not reach here");
 }
 
-std::unique_ptr<LayerV1> createLayer(const LayerType &type) {
-  const std::string &s = layerGetStrType(type);
-
-  return createLayer(s);
-}
-
 /**
  * @brief Factory creator with constructor
  */
-std::unique_ptr<LayerV1> createLayer(const std::string &type) {
+std::unique_ptr<Layer> createLayer(const std::string &type) {
 
-  if (istrequal(type, InputLayer::type))
-    return std::make_unique<InputLayer>();
-  if (istrequal(type, OutputLayer::type))
-    return std::make_unique<OutputLayer>();
+  //  if (istrequal(type, InputLayer::type))
+  //    return std::make_unique<InputLayer>();
+  //  if (istrequal(type, OutputLayer::type))
+  //    return std::make_unique<OutputLayer>();
   if (istrequal(type, FullyConnectedLayer::type))
     return std::make_unique<FullyConnectedLayer>();
-  if (istrequal(type, BatchNormalizationLayer::type))
-    return std::make_unique<BatchNormalizationLayer>();
-  if (istrequal(type, Conv2DLayer::type))
-    return std::make_unique<Conv2DLayer>();
-  if (istrequal(type, Pooling2DLayer::type))
-    return std::make_unique<Pooling2DLayer>();
-  if (istrequal(type, FlattenLayer::type))
-    return std::make_unique<FlattenLayer>();
-  if (istrequal(type, ActivationLayer::type))
-    return std::make_unique<ActivationLayer>();
-  if (istrequal(type, AdditionLayer::type))
-    return std::make_unique<AdditionLayer>();
-  if (istrequal(type, ConcatLayer::type))
-    return std::make_unique<ConcatLayer>();
-  if (istrequal(type, LossLayer::type))
-    return std::make_unique<LossLayer>();
-#ifdef ENABLE_NNSTREAMER_BACKBONE
-  if (istrequal(type, NNStreamerLayer::type))
-    return std::make_unique<NNStreamerLayer>();
-#endif
-#ifdef ENABLE_TFLITE_BACKBONE
-  if (istrequal(type, TfLiteLayer::type))
-    return std::make_unique<TfLiteLayer>();
-#endif
-  if (istrequal(type, ConcatLayer::type))
-    return std::make_unique<ConcatLayer>();
-  if (istrequal(type, OutputLayer::type))
-    return std::make_unique<OutputLayer>();
-  if (istrequal(type, EmbeddingLayer::type))
-    return std::make_unique<EmbeddingLayer>();
-  if (istrequal(type, RNNLayer::type))
-    return std::make_unique<RNNLayer>();
-  if (istrequal(type, TimeDistLayer::type))
-    return std::make_unique<TimeDistLayer>();
+  //   if (istrequal(type, BatchNormalizationLayer::type))
+  //     return std::make_unique<BatchNormalizationLayer>();
+  //   if (istrequal(type, Conv2DLayer::type))
+  //     return std::make_unique<Conv2DLayer>();
+  //   if (istrequal(type, Pooling2DLayer::type))
+  //     return std::make_unique<Pooling2DLayer>();
+  //   if (istrequal(type, FlattenLayer::type))
+  //     return std::make_unique<FlattenLayer>();
+  //   if (istrequal(type, ActivationLayer::type))
+  //     return std::make_unique<ActivationLayer>();
+  //   if (istrequal(type, AdditionLayer::type))
+  //     return std::make_unique<AdditionLayer>();
+  //   if (istrequal(type, ConcatLayer::type))
+  //     return std::make_unique<ConcatLayer>();
+  //   if (istrequal(type, LossLayer::type))
+  //     return std::make_unique<LossLayer>();
+  // #ifdef ENABLE_NNSTREAMER_BACKBONE
+  //   if (istrequal(type, NNStreamerLayer::type))
+  //     return std::make_unique<NNStreamerLayer>();
+  // #endif
+  // #ifdef ENABLE_TFLITE_BACKBONE
+  //   if (istrequal(type, TfLiteLayer::type))
+  //     return std::make_unique<TfLiteLayer>();
+  // #endif
+  //   if (istrequal(type, ConcatLayer::type))
+  //     return std::make_unique<ConcatLayer>();
+  //   if (istrequal(type, OutputLayer::type))
+  //     return std::make_unique<OutputLayer>();
+  //   if (istrequal(type, EmbeddingLayer::type))
+  //     return std::make_unique<EmbeddingLayer>();
+  //   if (istrequal(type, RNNLayer::type))
+  //     return std::make_unique<RNNLayer>();
+  //   if (istrequal(type, TimeDistLayer::type))
+  //     return std::make_unique<TimeDistLayer>();
   std::stringstream ss;
   ss << "Unsupported type given, type: " << type;
   throw std::invalid_argument(ss.str().c_str());
@@ -148,8 +142,8 @@ std::unique_ptr<LayerV1> createLayer(const std::string &type) {
 /**
  * @brief Factory creator with constructor
  */
-std::unique_ptr<LayerV1> createLoss(LossType type) {
-  return std::make_unique<LossLayer>(type);
-}
+// std::unique_ptr<LayerV1> createLoss(LossType type) {
+//   return std::make_unique<LossLayer>(type);
+// }
 
 } // namespace nntrainer

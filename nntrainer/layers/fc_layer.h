@@ -82,6 +82,11 @@ public:
     return FullyConnectedLayer::type;
   };
 
+  /**
+   * @copydoc Layer::supportBackwarding()
+   */
+  bool supportBackwarding() const { return true; }
+
   using Layer::setProperty;
 
   /**
