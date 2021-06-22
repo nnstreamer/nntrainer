@@ -68,11 +68,39 @@ public:
   InitLayerContext(const std::vector<TensorDim> &dim) : input_dim(dim) {}
 
   /**
+   * @brief Get the number of inputs for the layer
+   *
+   * @return unsigned int number of inputs
+   */
+  unsigned int getNumInputs() const { return input_dim.size(); }
+
+  /**
    * @brief Get the Input Dimensions object
    *
    * @return const std::vector<TensorDim>& Input dimensions
    */
   const std::vector<TensorDim> &getInputDimensions() const { return input_dim; }
+
+  /**
+   * @brief Set the Dim Flag to retrieve effective dimension
+   *
+   * @param dim_flag_ dimension bit to calculate, rightmost is width
+   */
+  void setEffDimFlagInputDimension(unsigned int idx,
+                                   const std::bitset<MAXDIM> &dim_flag_) {
+    input_dim[idx].setEffDimFlag(dim_flag_);
+  }
+
+  /**
+   * @brief Set the dynamic Dim Flag to retrieve dynamic dimension (that can
+   * change during running)
+   *
+   * @param dim_flag_ dimension bit to calculate, rightmost is width
+   */
+  void setDynDimFlagInputDimension(unsigned int idx,
+                                   const std::bitset<MAXDIM> &dim_flag_) {
+    input_dim[idx].setDynDimFlag(dim_flag_);
+  }
 
   /**
    * @brief Get the Output Dimensions object
@@ -231,7 +259,7 @@ public:
    * @param idx Identifier of the weight
    * @return Tensor& Reference to the weight grad tensor
    */
-  Tensor &getWeightGrad(unsigned int idx) {
+  Tensor &getWeightGrad(unsigned int idx) const {
     if (!weights[idx]->hasGradient())
       throw std::invalid_argument(
         "Requesting gradient for a non-trainable weight.");
@@ -249,6 +277,16 @@ public:
       return weights[idx]->getRegularizationLoss();
 
     return 0;
+  }
+
+  /**
+   * @brief Get the Weight name
+   *
+   * @param idx Identifier of the weight
+   * @return name of the weight
+   */
+  const std::string &getWeightName(unsigned int idx) const {
+    return weights[idx]->getName();
   }
 
   /**
@@ -273,6 +311,14 @@ public:
   }
 
   /**
+   * @brief Get the incoming Derivative tensor object
+   *
+   * @param idx Identifier of the output
+   * @return Tensor& Reference to the output derivative tensor
+   */
+  Tensor &getIncomingDerivative(unsigned int idx) { return getOutputGrad(idx); }
+
+  /**
    * @brief Get the Input tensor object
    *
    * @param idx Identifier of the input
@@ -292,6 +338,14 @@ public:
         "Requesting gradient for a non-trainable tensor.");
     return inputs[idx]->getGradientRef();
   }
+
+  /**
+   * @brief Get the outgoing Derivative tensor object
+   *
+   * @param idx Identifier of the input
+   * @return Tensor& Reference to the input derivative tensor
+   */
+  Tensor &getOutgoingDerivative(unsigned int idx) { return getInputGrad(idx); }
 
   /**
    * @brief Get the Tensor object

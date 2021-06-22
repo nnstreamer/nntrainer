@@ -50,6 +50,25 @@ void Exporter::saveTflResult(const std::tuple<> &props, const LayerV1 *self) {
   createIfNull(tf_node);
 }
 
+static void saveTflWeights(TfOpNode *tf_node, const RunLayerContext &context,
+                           const std::string &transpose_direction = "0:2:1") {
+  for (unsigned int idx = 0; idx < context.getNumWeights(); idx++) {
+    const Tensor &w = context.getWeight(idx);
+    const Tensor &g = context.getWeightGrad(idx);
+    const std::string name = context.getWeightName(idx);
+    std::unique_ptr<Var_Grad> vg =
+      std::make_unique<Var_Grad>(w.getDim(), false, false, name);
+    if (w.getDim().rank() > 1) {
+      Tensor w_trans = w.transpose(transpose_direction);
+      vg->initialize(w_trans, g, false);
+    } else {
+      vg->initialize(w, g, false);
+    }
+
+    tf_node->appendInput(std::move(vg), true);
+  }
+}
+
 template <>
 void Exporter::saveTflResult(
   const std::tuple<props::Name, props::Flatten, props::Distribute,
@@ -59,21 +78,14 @@ void Exporter::saveTflResult(
   tf_node->setInOut(*self);
   tf_node->setInputs(self->getObject()->getInputRef());
   tf_node->setOutputs(self->getObject()->getOutputRef());
+
+  saveTflWeights(tf_node.get(), self->getRunContext(), "0:2:1");
 }
 
 template <>
 void Exporter::saveTflResult(const std::tuple<props::Unit> &props,
                              const FullyConnectedLayer *self) {
   createIfNull(tf_node);
-
-  auto &weights = self->getWeightsRef();
-
-  /// transpose weight [h, w] -> [w, h]
-  std::unique_ptr<Var_Grad> weight_vg =
-    std::make_unique<Var_Grad>(weights[0].cloneTransposeVariableOnly("0:2:1"));
-
-  tf_node->appendInput(std::move(weight_vg), true);
-  tf_node->appendInput(&weights[1], true);
 
   tf_node->setOpType(tflite::BuiltinOperator_FULLY_CONNECTED);
   /// we probably going to need flatbuffer inside exporter regarding this

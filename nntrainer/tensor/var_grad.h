@@ -157,7 +157,7 @@ public:
    *
    * @return std::string name
    */
-  std::string getName() const { return name; }
+  const std::string &getName() const { return name; }
 
   /**
    * @brief Get the variable tensor (by name)
