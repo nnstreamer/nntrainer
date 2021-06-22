@@ -34,12 +34,13 @@ public:
     unsigned int unit_ = 0,
     ActivationType hidden_state_activation_type_ = ActivationType::ACT_NONE,
     ActivationType recurrent_activation_type_ = ActivationType::ACT_NONE,
-    bool sequence = false, Args... args) :
+    bool sequence = false, float dropout = 0.0, Args... args) :
     LayerV1(args...),
     unit(unit_),
     hidden_state_activation_type(hidden_state_activation_type_),
     recurrent_activation_type(recurrent_activation_type_),
-    return_sequences(sequence){};
+    return_sequences(sequence),
+    dropout_rate(dropout){};
 
   /**
    * @brief     Destructor of LSTMLayer
@@ -172,6 +173,11 @@ private:
    * @brief     variable to set return sequences
    */
   bool return_sequences;
+
+  /**
+   * @brief     drop out rate
+   */
+  float dropout_rate;
 };
 } // namespace nntrainer
 
