@@ -16,8 +16,8 @@
 #ifdef __cplusplus
 
 #include <common_properties.h>
-#include <layer_internal.h>
-#include <node_exporter.h>
+#include <layer_context.h>
+#include <layer_impl.h>
 #include <tensor.h>
 
 namespace nntrainer {
@@ -26,20 +26,17 @@ namespace nntrainer {
  * @class   FullyConnecedLayer
  * @brief   fully connected layer
  */
-class FullyConnectedLayer : public LayerV1 {
+class FullyConnectedLayer : public LayerImpl {
 public:
   /**
    * @brief     Constructor of Fully Connected Layer
    */
-  template <typename... Args>
-  FullyConnectedLayer(unsigned int unit_ = 0, Args... args) :
-    LayerV1(args...),
-    fc_props(props::Unit(unit_)) {}
+  FullyConnectedLayer() : LayerImpl(), fc_props(props::Unit(0)) {}
 
   /**
    * @brief     Destructor of Fully Connected Layer
    */
-  ~FullyConnectedLayer(){};
+  ~FullyConnectedLayer() = default;
 
   /**
    *  @brief  Move constructor.
@@ -54,39 +51,29 @@ public:
   FullyConnectedLayer &operator=(FullyConnectedLayer &&rhs) = default;
 
   /**
-   * @copydoc Layer::forwarding(bool training)
+   * @copydoc Layer::finalize(InitLayerContext &context)
    */
-  void forwarding(bool training = true) override;
+  void finalize(InitLayerContext &context) override;
 
   /**
-   * @copydoc Layer::calcDerivative()
+   * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
    */
-  void calcDerivative() override;
+  void forwarding(RunLayerContext &context, bool training = true) override;
 
   /**
-   * @copydoc Layer::calcGradient()
+   * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
-  void calcGradient() override;
+  void calcDerivative(RunLayerContext &context) override;
 
   /**
-   * @brief     copy layer
-   * @param[in] l layer to copy
+   * @copydoc Layer::calcGradient(RunLayerContext &context)
    */
-  void copy(std::shared_ptr<LayerV1> l) override;
+  void calcGradient(RunLayerContext &context) override;
 
   /**
-   * @brief     initialize layer
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   * @copydoc Layer::exportTo(Exporter &exporter, ExportMethods method)
    */
-  int initialize(Manager &manager) override;
-
-  /**
-   * @copydoc Layer::export_to(Exporter &exporter, ExportMethods method)
-   */
-  void export_to(
-    Exporter &exporter,
-    ExportMethods method = ExportMethods::METHOD_STRINGVECTOR) const override;
+  void exportTo(Exporter &exporter, const ExportMethods &method) const override;
 
   /**
    * @copydoc Layer::getType()
@@ -95,19 +82,19 @@ public:
     return FullyConnectedLayer::type;
   };
 
-  using LayerV1::setProperty;
+  using Layer::setProperty;
 
   /**
    * @copydoc Layer::setProperty(const PropertyType type, const std::string
    * &value)
    */
-  void setProperty(const PropertyType type,
-                   const std::string &value = "") override;
+  void setProperty(const std::vector<std::string> &values) override;
 
   inline static const std::string type = "fully_connected";
 
 private:
   std::tuple<props::Unit> fc_props;
+  std::array<unsigned int, 2> weight_idx;
 };
 } // namespace nntrainer
 
