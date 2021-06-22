@@ -14,7 +14,7 @@
 #define __LAYER_FACTORY_H__
 #ifdef __cplusplus
 
-#include <layer_internal.h>
+#include <layer_devel.h>
 #include <loss_layer.h>
 
 namespace nntrainer {
@@ -32,12 +32,12 @@ const std::string layerGetStrType(const LayerType &type);
 /**
  * @brief Layer factory creator with constructor
  */
-std::unique_ptr<LayerV1> createLayer(const std::string &type);
+std::unique_ptr<Layer> createLayer(const std::string &type);
 
 /**
  * @brief Loss Layer Factory creator with constructor
  */
-std::unique_ptr<LayerV1> createLoss(LossType type);
+// std::unique_ptr<LayerV1> createLoss(LossType type);
 
 } /* namespace nntrainer */
 
