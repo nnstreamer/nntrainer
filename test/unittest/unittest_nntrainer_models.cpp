@@ -116,7 +116,7 @@ public:
   NodeWatcher(const NodeType &node) : node(node) {
     unsigned int num_weights = node->getNumWeights();
     try {
-      node->getObject()->setTrainable(true);
+      node->setProperty({"trainable=true"});
     } catch (...) {
       std::cout << "Cannot set layer " << node->getType() << " trainable";
     }

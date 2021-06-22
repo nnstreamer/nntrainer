@@ -73,11 +73,4 @@ int InputLayer::initialize(Manager &manager) {
   return status;
 }
 
-void InputLayer::setTrainable(bool train) {
-  if (train)
-    throw exception::not_supported("Input layer does not support training");
-
-  LayerV1::setTrainable(false);
-}
-
 } /* namespace nntrainer */

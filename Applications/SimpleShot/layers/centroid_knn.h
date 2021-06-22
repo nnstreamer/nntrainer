@@ -97,12 +97,9 @@ public:
   const std::string getType() const override { return CentroidKNN::type; }
 
   /**
-   * @brief get boolean if the function is trainable
-   *
-   * @retval true trainable
-   * @retval false not trainable
+   * @copydoc bool supportBackwarding() const
    */
-  bool getTrainable() noexcept override { return false; }
+  bool supportBackwarding() const override { return false; };
 
   inline static const std::string type = "centroid_knn";
 

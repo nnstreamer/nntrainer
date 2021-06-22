@@ -205,6 +205,7 @@ class Name;
 class Unit;
 class Flatten;
 class Distribute;
+class Trainable;
 } // namespace props
 
 class LayerV1;
@@ -222,7 +223,8 @@ class LayerNode;
  */
 template <>
 void Exporter::saveTflResult(
-  const std::tuple<props::Name, props::Flatten, props::Distribute> &props,
+  const std::tuple<props::Name, props::Flatten, props::Distribute,
+                   props::Trainable> &props,
   const LayerNode *self);
 
 class FullyConnectedLayer;

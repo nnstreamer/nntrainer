@@ -143,14 +143,9 @@ public:
   void copy(std::shared_ptr<LayerV1> l) override { layerImpl->copy(l); }
 
   /**
-   * @copydoc Layer::setTrainable(bool train)
+   * @copydoc bool supportBackwarding() const
    */
-  void setTrainable(bool train) override { layerImpl->setTrainable(train); }
-
-  /**
-   * @copydoc Layer::getTrainable()
-   */
-  bool getTrainable() noexcept override { return layerImpl->getTrainable(); }
+  bool supportBackwarding() const override { return false; };
 
   /**
    * @copydoc Layer::getWeights()

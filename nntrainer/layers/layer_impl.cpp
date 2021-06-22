@@ -25,7 +25,7 @@ namespace nntrainer {
 
 LayerImpl::LayerImpl() :
   finalized(false),
-  layer_impl_props(std::make_unique<std::tuple<props::Trainable>>()) {}
+  layer_impl_props(std::make_unique<std::tuple<>>()) {}
 
 void LayerImpl::finalize(InitLayerContext &context) {
   NNTR_THROW_IF(finalized, nntrainer::exception::not_supported)

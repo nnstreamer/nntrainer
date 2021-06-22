@@ -86,7 +86,9 @@ void NetworkGraph::addLayerNode(std::shared_ptr<LayerV1> layer) {
 
 void NetworkGraph::countNonTrainableLayersAtBegin() {
   for (auto iter = cbegin(); iter != cend(); iter++) {
-    if ((*iter)->getObject()->getTrainable()) {
+    // TODO: check if getTrainable() was set and if trainable weights exist,
+    // then throw
+    if ((*iter)->getTrainable() && (*iter)->supportBackwarding()) {
       skip_non_trainable_layers = iter - cbegin();
       return;
     }

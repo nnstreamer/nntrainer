@@ -33,10 +33,6 @@ class Exporter;
 
 enum class ExportMethods;
 
-namespace props {
-class Trainable;
-}
-
 /**
  * @class   An abstract class to ease developing a layer
  * @brief   An abstract class for all layers
@@ -84,9 +80,8 @@ private:
    */
   virtual void setProperty(const std::string &type, const std::string &value);
 
-  bool finalized; /**< check if finalized */
-  std::unique_ptr<std::tuple<props::Trainable>>
-    layer_impl_props; /**< layer_impl_props */
+  bool finalized;                                 /**< check if finalized */
+  std::unique_ptr<std::tuple<>> layer_impl_props; /**< layer_impl_props */
 
   WeightRegularizer weight_regularizer; /**< weight regularizer */
   float weight_regularizer_constant;    /**< weight regularizer constant */

@@ -48,6 +48,8 @@ public:
                 const ExportMethods &method) const override {
     LayerImpl::exportTo(exporter, method);
   }
+
+  bool supportBackwarding() const override { return true; }
 };
 } // namespace
 
