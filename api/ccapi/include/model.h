@@ -19,6 +19,7 @@
 #if __cplusplus >= MIN_CPP_VERSION
 
 #include <string>
+#include <type_traits>
 #include <vector>
 
 #include <nntrainer-api-common.h>
@@ -38,6 +39,30 @@ enum class ModelType {
   KNN,        /** k Nearest Neighbor */
   NEURAL_NET, /** Neural Network */
   UNKNOWN     /** Unknown */
+};
+
+/**
+ * @brief Model saving options
+ *
+ */
+enum class ModelSaveLoadFlags {
+  MODEL_SAVE_LOAD_FLAGS_INFERENCE_PARAMS =
+    ML_TRAIN_MODEL_SAVE_LOAD_FLAGS_INFERENCE_PARAMS, /**< params required for
+                                                        inferences, eg) model
+                                                        weights */
+  MODEL_SAVE_LOAD_FLAGS_TRAINING_PARAMS =
+    ML_TRAIN_MODEL_SAVE_LOAD_FLAGS_TRAINING_PARAMS, /**< params required for
+                                                       training, eg) optimizer
+                                                       weights */
+  MODEL_SAVE_LOAD_FLAGS_INFERENCE_CONFIG =
+    1 << 2, /**< inference related model_definitions, eg) graph */
+  MODEL_SAVE_LOAD_FLAGS_TRAINING_CONFIG =
+    1 << 3, /**< training related model_definitions, eg) optimizer */
+
+  MODEL_SAVE_LOAD_FLAGS_PARAMS =
+    (1 << 0) | (1 << 1), /**< INFERENCE_PARAMS | TRAINING_PARAMS */
+  MODEL_SAVE_LOAD_FLAGS_CONFIG =
+    (1 << 2) | (1 << 3) /**< INFERENCE_CONFIG | TRAINING_CONFIG */
 };
 
 /**
@@ -95,13 +120,36 @@ public:
 
   /**
    * @brief     save model and training parameters into file
+   * @todo      deprecate this
    */
-  virtual void saveModel() = 0;
+  [[deprecated("use saveModel(const std::string &path_prefix)")]] virtual void
+  saveModel() = 0;
+
+  /**
+   * @brief  load model states and training parameters from a file
+   * @param path_prefix path_prefix to save the model, if full path is not
+   * given, it should be saved inside working directory
+   * @param option option to save parameters
+   */
+  virtual void save(const std::string &path_prefix,
+                    ModelSaveLoadFlags option =
+                      ModelSaveLoadFlags::MODEL_SAVE_LOAD_FLAGS_PARAMS){};
 
   /**
    * @brief     read model and training parameters from file
+   * @todo      deprecate this
    */
   virtual void readModel() = 0;
+
+  /**
+   * @brief  load model with regard to the option
+   * @param path_prefix path_prefix to save the model, if full path is not
+   * given, it should be saved inside working directory
+   * @param option option to save parameters
+   */
+  virtual void load(const std::string &path_prefix,
+                    ModelSaveLoadFlags option =
+                      ModelSaveLoadFlags::MODEL_SAVE_LOAD_FLAGS_PARAMS){};
 
   /**
    * @brief     Run Model training and validation

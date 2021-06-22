@@ -164,6 +164,17 @@ typedef enum {
 } ml_train_summary_type_e;
 
 /**
+ * @brief Enumeration for the neural network
+ *
+ */
+typedef enum {
+  ML_TRAIN_MODEL_SAVE_LOAD_FLAGS_INFERENCE_PARAMS =
+    1 << 0, /**< params required for inference, For example, model weights */
+  ML_TRAIN_MODEL_SAVE_LOAD_FLAGS_TRAINING_PARAMS =
+    1 << 1, /**< params required for training, For example, optimizer weights */
+} ml_train_model_save_load_flags_e;
+
+/**
  * @}
  */
 #ifdef __cplusplus

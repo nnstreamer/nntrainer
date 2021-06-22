@@ -216,6 +216,49 @@ int ml_train_model_set_dataset(ml_train_model_h model,
                                ml_train_dataset_h dataset);
 
 /**
+ * @brief Save the model after training
+ * @details Use this function to save the current model.
+ * When calling with @a ML_TRAIN_MODEL_SAVE_LOAD_FLAGS_INFERENCE_PARAMS or
+ * ML_TRAIN_MODEL_SAVE_LOAD_FLAGS_TRAINING_PARAMS, the model must be compiled
+ * with @a ml_train_model_compile beforehand.
+ *
+ * @since_tizen 6.5
+ * @param[in] model The NNTrainer model handle to save
+ * @param[in] path_prefix  Path prefix to save the file. This function will save
+ * one or number of files using the given prefix. Note that this does not state
+ * the exact file name but prefix
+ * @param[in] option Option flag which part of model should be saved
+ * @return @c 0 on success, Otherwise a negative error value
+ * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_INVALID_PARAMETER Path is a directory without a prefix, or
+ * the given path is invalid or model is not compiled.
+ * @retval #ML_ERROR_NOT_SUPPORTED Given flag is not valid for the model.
+ */
+int ml_train_model_save(ml_train_model_h model, const char *path_prefix,
+                        ml_train_model_save_load_flags_e option);
+
+/**
+ * @brief Load the model
+ * @details Use this function to load the current model, model must be compiled
+ * When calling with @a ML_TRAIN_MODEL_SAVE_LOAD_FLAGS_INFERENCE_PARAMS or
+ * ML_TRAIN_MODEL_SAVE_LOAD_FLAGS_TRAINING_PARAMS, the model must be compiled
+ * with @a ml_train_model_compile beforehand.
+ *
+ * @since_tizen 6.5
+ * @param[in] model The NNTrainer model handle to load.
+ * @param[in] path_prefix  Path prefix to load the file. Note that this does not
+ * state the exact file name but prefix
+ * @param[in] option Option flag which part of model should be loaded.
+ * @return @c 0 on success, Otherwise a negative error value
+ * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_INVALID_PARAMETER Path is a directory without a prefix, or
+ * the given path is invalid.
+ * @retval #ML_ERROR_NOT_SUPPORTED Given flag is not valid for the model
+ */
+int ml_train_model_load(ml_train_model_h model, const char *path_prefix,
+                        ml_train_model_save_load_flags_e option);
+
+/**
  * @brief Creates a neural network layer.
  * @details Use this function to create neural network layer.
  * @since_tizen 6.0
