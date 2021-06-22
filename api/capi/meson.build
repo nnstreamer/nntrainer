@@ -16,6 +16,10 @@ capi_headers = []
 capi_headers += meson.current_source_dir() / 'include' / 'nntrainer.h'
 capi_headers += meson.current_source_dir() / '..' / 'nntrainer-api-common.h'
 
+if get_option('enable-tizen')
+  capi_headers += meson.current_source_dir() / 'include' / 'nntrainer-tizen-internal.h'
+endif
+
 capi_deps = [
   nntrainer_ccapi_dep,
   nnstreamer_capi_dep,

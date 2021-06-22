@@ -164,6 +164,16 @@ typedef enum {
 } ml_train_summary_type_e;
 
 /**
+ * @brief Enumeration for the neural network
+ *
+ */
+typedef enum {
+  ML_TRAIN_MODEL_FORMAT_BIN =
+    0, /**< raw bin file saves parameters required for inference and training
+          without any configurations*/
+} ml_train_model_format_e;
+
+/**
  * @}
  */
 #ifdef __cplusplus
