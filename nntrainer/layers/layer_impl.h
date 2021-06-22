@@ -69,6 +69,15 @@ public:
   virtual void exportTo(Exporter &exporter,
                         const ExportMethods &method) const override;
 
+protected:
+  bool finalized;                                 /**< check if finalized */
+  std::unique_ptr<std::tuple<>> layer_impl_props; /**< layer_impl_props */
+
+  WeightRegularizer weight_regularizer; /**< weight regularizer */
+  float weight_regularizer_constant;    /**< weight regularizer constant */
+  WeightInitializer weight_initializer; /**< initializer for the weights */
+  WeightInitializer bias_initializer;   /**< initializer for the bias */
+
 private:
   /**
    * @brief setProperty by type and value separated
@@ -79,14 +88,6 @@ private:
    * @exception std::invalid_argument invalid argument
    */
   virtual void setProperty(const std::string &type, const std::string &value);
-
-  bool finalized;                                 /**< check if finalized */
-  std::unique_ptr<std::tuple<>> layer_impl_props; /**< layer_impl_props */
-
-  WeightRegularizer weight_regularizer; /**< weight regularizer */
-  float weight_regularizer_constant;    /**< weight regularizer constant */
-  WeightInitializer weight_initializer; /**< initializer for the weights */
-  WeightInitializer bias_initializer;   /**< initializer for the bias */
 };
 
 } // namespace nntrainer
