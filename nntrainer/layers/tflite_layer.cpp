@@ -74,13 +74,6 @@ int TfLiteLayer::initialize(Manager &manager) {
   return ML_ERROR_NONE;
 }
 
-void TfLiteLayer::setTrainable(bool train) {
-  if (train)
-    throw exception::not_supported("TfLite layer does not support training");
-
-  LayerV1::setTrainable(false);
-}
-
 void TfLiteLayer::setProperty(const PropertyType type,
                               const std::string &value) {
   switch (type) {

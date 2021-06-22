@@ -39,9 +39,7 @@ public:
   PreprocessTranslateLayer(Args... args) :
     LayerV1(args...),
     translation_factor(0.0),
-    epsilon(1e-5) {
-    trainable = false;
-  }
+    epsilon(1e-5) {}
 
   /**
    * @brief     Destructor of Preprocess Translate Layer
@@ -79,9 +77,9 @@ public:
   void calcDerivative() override;
 
   /**
-   * @copydoc Layer::setTrainable(bool train)
+   * @copydoc bool supportBackwarding() const
    */
-  void setTrainable(bool train) override;
+  bool supportBackwarding() const override { return false; };
 
   /**
    * @copydoc Layer::getType()

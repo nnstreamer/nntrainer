@@ -158,6 +158,14 @@ public:
    * @return true if requires a label when training, else false
    */
   virtual bool requireLabel() const { return false; }
+
+  /**
+   * @brief  check if this layer supports backwarding
+   * @note   support backwarding primarily means that the layer can process the
+   * derivatives and return back the gradients to the previous layer.
+   * @return true if supports backwarding, else false
+   */
+  virtual bool supportBackwarding() const = 0;
 };
 
 /// @todo Decide where to put and how to implement(#986)
