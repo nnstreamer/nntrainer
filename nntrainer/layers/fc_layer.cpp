@@ -33,103 +33,94 @@ namespace nntrainer {
 
 enum FCParams { weight, bias };
 
-int FullyConnectedLayer::initialize(Manager &manager) {
+void FullyConnectedLayer::finalize(InitLayerContext &context) {
   auto unit = std::get<props::Unit>(fc_props).get();
-  int status = ML_ERROR_NONE;
 
-  if (getNumInputs() != 1) {
+  if (context.getNumInputs() != 1) {
     throw std::invalid_argument("Fully connected layer takes only one input");
   }
 
-  auto &in_dim = input_dim[0];
+  std::vector<TensorDim> output_dims(1);
+
   /// @todo fc actaully supports multidimensions. EffDimFlag shouldn't be fixed
   /// like this.
-  in_dim.setEffDimFlag(0b1001);
-  in_dim.setDynDimFlag(0b1000);
+  context.setEffDimFlagInputDimension(0, 0b1001);
+  context.setDynDimFlagInputDimension(0, 0b1000);
 
-  output_dim[0] = in_dim;
-  output_dim[0].width(unit);
+  /** set output dimensions */
+  auto const &in_dim = context.getInputDimensions()[0];
+  output_dims[0] = in_dim;
+  output_dims[0].width(unit);
+  context.setOutputDimensions(output_dims);
 
+  /** set weight specifications */
   TensorDim bias_dim(1, 1, 1, unit, 0b0001);
   TensorDim weight_dim(1, 1, in_dim.width(), unit, 0b0011);
 
-  if (weights.empty()) {
-    weights.reserve(2);
-    weights.emplace_back(weight_dim, weight_initializer, weight_regularizer,
-                         weight_regularizer_constant, true, false, "FC:weight");
-    weights.emplace_back(bias_dim, bias_initializer, WeightRegularizer::NONE,
-                         1.0f, true, false, "FC:bias");
-    manager.trackWeights(weights);
-  } else {
-    weights[FCParams::weight].reset(weight_dim, weight_initializer,
-                                    weight_regularizer,
-                                    weight_regularizer_constant, true);
-    weights[FCParams::bias].reset(bias_dim, bias_initializer,
-                                  WeightRegularizer::NONE, 1.0f, true);
-  }
+  weight_idx[FCParams::weight] =
+    context.requestWeight(weight_dim, weight_initializer, weight_regularizer,
+                          weight_regularizer_constant, "FC:weight", true);
 
-  return status;
+  weight_idx[FCParams::bias] = context.requestWeight(
+    bias_dim, bias_initializer, WeightRegularizer::NONE, 1.0f, "FC:bias", true);
+
+  // if (weights.empty()) {
+  //   weights.reserve(2);
+  //   weights.emplace_back(weight_dim, weight_initializer, weight_regularizer,
+  //                        weight_regularizer_constant, true, false,
+  //                        "FC:weight");
+  //   weights.emplace_back(bias_dim, bias_initializer, WeightRegularizer::NONE,
+  //                        1.0f, true, false, "FC:bias");
+  //   manager.trackWeights(weights);
+  // } else {
+  //   weights[FCParams::weight].reset(weight_dim, weight_initializer,
+  //                                   weight_regularizer,
+  //                                   weight_regularizer_constant, true);
+  //   weights[FCParams::bias].reset(bias_dim, bias_initializer,
+  //                                 WeightRegularizer::NONE, 1.0f, true);
+  // }
 }
 
-void FullyConnectedLayer::export_to(Exporter &exporter,
-                                    ExportMethods method) const {
-  LayerV1::export_to(exporter, method);
+void FullyConnectedLayer::exportTo(Exporter &exporter,
+                                   const ExportMethods &method) const {
+  Layer::exportTo(exporter, method);
   exporter.saveResult(fc_props, method, this);
 }
 
-void FullyConnectedLayer::setProperty(const PropertyType type,
-                                      const std::string &value) {
-  switch (type) {
-  case PropertyType::unit: {
-    from_string(value, std::get<props::Unit>(fc_props));
-  } break;
-  default:
-    LayerV1::setProperty(type, value);
-    break;
-  }
+void FullyConnectedLayer::setProperty(const std::vector<std::string> &values) {
+  auto remain_props = loadProperties(values, fc_props);
+  LayerImpl::setProperty(remain_props);
 }
 
-void FullyConnectedLayer::forwarding(bool training) {
-  Tensor &weight =
-    weightAt(static_cast<int>(FCParams::weight)).getVariableRef();
-  Tensor &bias = weightAt(static_cast<int>(FCParams::bias)).getVariableRef();
+void FullyConnectedLayer::forwarding(RunLayerContext &context, bool training) {
+  Tensor &weight = context.getWeight(weight_idx[FCParams::weight]);
+  Tensor &bias = context.getWeight(weight_idx[FCParams::bias]);
 
-  Tensor &hidden_ = net_hidden[0]->getVariableRef();
-  Tensor &input_ = net_input[0]->getVariableRef();
+  Tensor &hidden_ = context.getOutput(0);
+  Tensor &input_ = context.getInput(0);
+
   input_.dot(weight, hidden_);
   hidden_.add_i(bias);
-
-  loss = weightAt(static_cast<int>(FCParams::weight)).getRegularizationLoss();
 }
 
-void FullyConnectedLayer::copy(std::shared_ptr<LayerV1> l) {
-  LayerV1::copy(l);
+void FullyConnectedLayer::calcDerivative(RunLayerContext &context) {
+  Tensor &weight = context.getWeight(weight_idx[FCParams::weight]);
 
-  std::shared_ptr<FullyConnectedLayer> from =
-    std::static_pointer_cast<FullyConnectedLayer>(l);
-
-  std::get<props::Unit>(fc_props) = std::get<props::Unit>(from->fc_props);
-}
-
-void FullyConnectedLayer::calcDerivative() {
-  unsigned int weight_idx = static_cast<int>(FCParams::weight);
-  Tensor &weight = weightAt(weight_idx).getVariableRef();
-  Tensor &derivative_ = net_hidden[0]->getGradientRef();
-  Tensor &ret_ = net_input[0]->getGradientRef();
+  Tensor &derivative_ = context.getIncomingDerivative(0);
+  Tensor &ret_ = context.getOutgoingDerivative(0);
 
   ret_ = derivative_.dot(weight, ret_, false, true);
 }
 
-void FullyConnectedLayer::calcGradient() {
-  unsigned int weight_idx = static_cast<int>(FCParams::weight);
-  unsigned int bias_idx = static_cast<int>(FCParams::bias);
-  Tensor &djdw = weightAt(weight_idx).getGradientRef();
-  Tensor &djdb = weightAt(bias_idx).getGradientRef();
+void FullyConnectedLayer::calcGradient(RunLayerContext &context) {
+  Tensor &djdw = context.getWeightGrad(weight_idx[FCParams::weight]);
+  Tensor &djdb = context.getWeightGrad(weight_idx[FCParams::bias]);
 
-  Tensor &derivative_ = net_hidden[0]->getGradientRef();
+  Tensor &derivative_ = context.getIncomingDerivative(0);
+  Tensor &input_ = context.getInput(0);
 
   derivative_.sum({0, 1, 2}, djdb);
-  net_input[0]->getVariableRef().dot(derivative_, djdw, true, false);
+  input_.dot(derivative_, djdw, true, false);
 }
 
 } /* namespace nntrainer */
