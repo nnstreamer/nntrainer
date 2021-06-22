@@ -21,10 +21,13 @@
  */
 
 #include <array>
-#include <assert.h>
 #include <cstring>
 #include <databuffer.h>
 #include <iostream>
+#include <sstream>
+#include <string>
+
+#include <acti_func.h>
 #include <layer_internal.h>
 #include <neuralnet.h>
 #include <nntrainer_error.h>
@@ -32,8 +35,6 @@
 #include <optimizer_devel.h>
 #include <parse_util.h>
 #include <pooling2d_layer.h>
-#include <sstream>
-#include <string>
 
 #define NUM_SKIP_CHAR 3
 
@@ -89,18 +90,6 @@ unsigned int parseType(std::string ll, InputType t) {
    */
   std::array<std::string, 3> model_type_string = {"knn", "regression",
                                                   "neuralnet"};
-
-  /**
-   * @brief     Activation Type String from configure file
-   *            "tanh"  : tanh
-   *            "sigmoid" : sigmoid
-   *            "relu" : relu
-   *            "softmax" : softmax
-   *            "none" : none
-   *            "unknown" : unknown
-   */
-  std::array<std::string, 6> activation_string = {
-    "tanh", "sigmoid", "relu", "softmax", "none", "unknown"};
 
   /**
    * @brief     Weight Initialization Type String from configure file
@@ -161,9 +150,9 @@ unsigned int parseType(std::string ll, InputType t) {
     ret = (unsigned int)NetType::UNKNOWN;
     break;
   case TOKEN_ACTI:
-    for (i = 0; i < activation_string.size(); i++) {
-      if (!strncasecmp(activation_string[i].c_str(), ll.c_str(),
-                       activation_string[i].size())) {
+    for (i = 0; i < ActivationTypeStr.size(); i++) {
+      if (!strncasecmp(ActivationTypeStr[i].c_str(), ll.c_str(),
+                       ActivationTypeStr[i].size())) {
 
         return (i);
       }

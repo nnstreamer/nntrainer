@@ -32,23 +32,7 @@
 
 namespace nntrainer {
 
-void LayerV1::setActivation(ActivationType acti) {
-  if (acti == ActivationType::ACT_UNKNOWN) {
-    throw std::invalid_argument("Error:have to specify activation function");
-  }
-  activation_type = acti;
-}
-
-int LayerV1::checkValidation() {
-  int status = ML_ERROR_NONE;
-
-  if (activation_type == ActivationType::ACT_UNKNOWN) {
-    ml_loge("Error: Have to set activation for this layer");
-    return ML_ERROR_INVALID_PARAMETER;
-  }
-
-  return status;
-}
+int LayerV1::checkValidation() { return ML_ERROR_NONE; }
 
 void LayerV1::setBatch(unsigned int batch) {
   for (unsigned int idx = 0; idx < getNumInputs(); ++idx)
@@ -80,7 +64,6 @@ void LayerV1::copy(std::shared_ptr<LayerV1> l) {
 
   this->input_dim = l->input_dim;
   this->output_dim = l->output_dim;
-  this->activation_type = l->activation_type;
   this->loss = l->loss;
   this->weight_regularizer = l->weight_regularizer;
   this->weight_regularizer_constant = l->weight_regularizer_constant;
@@ -214,11 +197,6 @@ void LayerV1::setProperty(const PropertyType type, const std::string &value) {
       throw_status(status);
     }
   } break;
-  case PropertyType::activation:
-    if (!value.empty()) {
-      setActivation((ActivationType)parseType(value, TOKEN_ACTI));
-    }
-    break;
   case PropertyType::weight_regularizer:
     if (!value.empty()) {
       weight_regularizer =
@@ -283,9 +261,9 @@ void LayerV1::printShapeInfo(std::ostream &out) {
 }
 
 void LayerV1::printPropertiesMeta(std::ostream &out) {
-  printIfValid(
-    out, PropertyType::activation,
-    static_cast<std::underlying_type<ActivationType>::type>(activation_type));
+  // printIfValid(
+  //   out, PropertyType::activation,
+  //   static_cast<std::underlying_type<ActivationType>::type>(activation_type));
 }
 
 void LayerV1::printProperties(std::ostream &out) {

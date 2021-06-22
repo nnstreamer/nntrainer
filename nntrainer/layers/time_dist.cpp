@@ -205,7 +205,6 @@ void TimeDistLayer::copy(std::shared_ptr<LayerV1> l) {
 
 void TimeDistLayer::setDistLayer(std::shared_ptr<LayerV1> l) {
   dist_layer = l;
-  LayerV1::setActivation(l->getActivationType());
 };
 
 void TimeDistLayer::calcDerivative() {
