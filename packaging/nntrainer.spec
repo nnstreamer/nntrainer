@@ -214,6 +214,13 @@ Requires:        capi-machine-learning-training-devel = %{version}-%{release}
 %description -n capi-machine-learning-training-devel-static
 Static library of capi-machine-learning-training-devel package.
 
+%package tizen-internal-devel
+Summary:	Tizen internal headers for Tizen Machine Learning Training API
+Group:		Machine Learning/ML Framework
+Requires:	capi-machine-learning-training-devel = %{version}-%{release}
+%description tizen-internal-devel
+Tizen internal headers for Tizen Machine Learning Training API.
+
 %if 0%{?support_ccapi}
 %package -n ccapi-machine-learning-training
 Summary:         Tizen Native API for NNTrainer
@@ -471,6 +478,9 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 
 %files -n capi-machine-learning-training-devel-static
 %{_libdir}/libcapi-nntrainer.a
+
+%files tizen-internal-devel
+%{_includedir}/nntrainer/nntrainer-tizen-internal.h
 
 %if 0%{?support_ccapi}
 %files -n ccapi-machine-learning-training

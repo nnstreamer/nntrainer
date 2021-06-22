@@ -19,6 +19,7 @@
 #if __cplusplus >= MIN_CPP_VERSION
 
 #include <string>
+#include <type_traits>
 #include <vector>
 
 #include <nntrainer-api-common.h>
@@ -38,6 +39,21 @@ enum class ModelType {
   KNN,        /** k Nearest Neighbor */
   NEURAL_NET, /** Neural Network */
   UNKNOWN     /** Unknown */
+};
+
+/**
+ * @brief Model saving options
+ *
+ */
+enum class ModelFormat {
+  MODEL_FORMAT_BIN =
+    ML_TRAIN_MODEL_FORMAT_BIN, /**< raw bin file saves parameters required
+for inference and training without any configurations*/
+
+  /** Comment intended */
+  // MODEL_FORMAT_INI = 1, /**< ini file with save_path defined */
+  // MODEL_FORMAT_INI_WITH_BIN = 2, /**< ini file with save_path
+  // defined */
 };
 
 /**
@@ -95,13 +111,35 @@ public:
 
   /**
    * @brief     save model and training parameters into file
+   * @todo      deprecate this
    */
-  virtual void saveModel() = 0;
+  [[deprecated("use saveModel(const std::string &path_prefix, "
+               "ModelFormat format)")]] virtual void
+  saveModel() = 0;
+
+  /**
+   * @brief  load model states and training parameters from a file
+   * @param file_path file_path to save the model, if full path is not
+   * given, it should be saved inside working directory
+   * @param format format to save parameters
+   */
+  virtual void save(const std::string &file_path,
+                    ModelFormat format = ModelFormat::MODEL_FORMAT_BIN){};
 
   /**
    * @brief     read model and training parameters from file
+   * @todo      deprecate this
    */
   virtual void readModel() = 0;
+
+  /**
+   * @brief  load model with regard to the format
+   * @param file_path file_path to save the model, if full path is not
+   * given, it should be saved inside working directory
+   * @param format format to save parameters
+   */
+  virtual void load(const std::string &file_path,
+                    ModelFormat format = ModelFormat::MODEL_FORMAT_BIN){};
 
   /**
    * @brief     Run Model training and validation
