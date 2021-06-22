@@ -57,6 +57,20 @@ void ActivationLayer::calcDerivative() {
   ret = acti_func.run_prime_fn(in, ret, deriv);
 }
 
+void ActivationLayer::setProperty(const PropertyType type,
+                                  const std::string &value) {
+  switch (type) {
+  case PropertyType::activation: {
+    if (!value.empty()) {
+      acti_func.setActiFunc((ActivationType)parseType(value, TOKEN_ACTI));
+    }
+  } break;
+  default:
+    LayerV1::setProperty(type, value);
+    break;
+  }
+}
+
 int ActivationLayer::setActivation(
   std::function<Tensor &(Tensor const &, Tensor &)> const &activation_fn,
   std::function<Tensor &(Tensor &, Tensor &, Tensor const &)> const
@@ -82,17 +96,6 @@ int ActivationLayer::setActivation(
   acti_func.setActivation(activation_fn, activation_prime_fn);
 
   return ML_ERROR_NONE;
-}
-
-/**
- * @brief setActivation by preset ActivationType
- *
- * @param[in] ActivationType ActivationType ActivationType to be set
- */
-void ActivationLayer::setActivation(ActivationType acti_type) {
-  LayerV1::setActivation(acti_type);
-
-  acti_func.setActiFunc(acti_type);
 }
 
 }; // namespace nntrainer
