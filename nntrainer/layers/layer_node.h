@@ -278,6 +278,12 @@ public:
   bool getDistribute() const noexcept;
 
   /**
+   * @brief     get activation for this layer
+   * @retval dist to enable/disable distribute
+   */
+  ActivationType getActivationToBeRealized() const noexcept;
+
+  /**
    * @brief     get distribute for this layer
    * @retval dist to enable/disable distribute
    */
@@ -287,7 +293,7 @@ public:
    * @brief     Activation Type Getter
    * @retval    Activation Type.
    */
-  ActivationType getActivationType();
+  ActivationType getActivationType() const;
 
   /**
    * @brief     Get number of inputs
@@ -638,6 +644,13 @@ private:
    * is distributed.
    */
   std::shared_ptr<nntrainer::LayerV1> &getLayer();
+
+  /**
+   * @brief     Activation Setter
+   * @param[in] activation activation type
+   * @throw std::invalid_argument when ActivationType is unknown
+   */
+  void setActivation(ActivationType activation);
 };
 
 /**

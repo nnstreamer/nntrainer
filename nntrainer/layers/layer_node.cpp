@@ -10,6 +10,7 @@
  * @brief  This is the layer node for network graph
  */
 
+#include <activation_layer.h>
 #include <app_context.h>
 #include <layer_factory.h>
 #include <layer_node.h>
@@ -105,6 +106,21 @@ int LayerNode::setProperty(std::vector<std::string> properties) {
   int status = ML_ERROR_NONE;
   auto left_properties = loadProperties(properties, *layer_node_props);
 
+  /// note that setting distribute is only allowed for one time.
+  /// until we have layerNode::finalize and must not except timedist layer
+  if (getDistribute()) {
+    if (layerv1 == nullptr) {
+      layerv1 = nullptr;
+      /// logic for layer v2
+    } else if (layerv1->getType() != TimeDistLayer::type) {
+      auto &ac = nntrainer::AppContext::Global();
+      std::shared_ptr<nntrainer::LayerV1> dlayer =
+        ac.createObject<nntrainer::LayerV1>(TimeDistLayer::type);
+      std::static_pointer_cast<TimeDistLayer>(dlayer)->setDistLayer(layerv1);
+      layerv1 = dlayer;
+    }
+  }
+
   /// @todo: deprecate this in favor of loadProperties
   std::vector<std::string> remainder;
   for (unsigned int i = 0; i < left_properties.size(); ++i) {
@@ -130,20 +146,6 @@ int LayerNode::setProperty(std::vector<std::string> properties) {
     }
   }
 
-  /// note that setting distribute is only allowed for one time.
-  /// until we have layerNode::finalize and must not except timedist layer
-  if (getDistribute()) {
-    if (layerv1 == nullptr) {
-      /// logic for layer v2
-    } else {
-      auto &ac = nntrainer::AppContext::Global();
-      std::shared_ptr<nntrainer::LayerV1> dlayer =
-        ac.createObject<nntrainer::LayerV1>(TimeDistLayer::type);
-      std::static_pointer_cast<TimeDistLayer>(dlayer)->setDistLayer(layerv1);
-      layerv1 = dlayer;
-    }
-  }
-
   if (layerv1 == nullptr) {
     layer->setProperty(remainder);
   } else {
@@ -158,6 +160,14 @@ void LayerNode::setProperty(const nntrainer::LayerV1::PropertyType type,
                             const std::string &value) {
   using PropertyType = nntrainer::LayerV1::PropertyType;
   switch (type) {
+  case PropertyType::activation:
+    if (!value.empty()) {
+      setActivation((ActivationType)parseType(value, TOKEN_ACTI));
+      if (getType() == ActivationLayer::type)
+        throw std::invalid_argument(
+          "Set property delegated to activation layer");
+    }
+    break;
   case PropertyType::input_layers:
     if (!value.empty()) {
       static const std::regex reg("\\,+");
@@ -203,8 +213,20 @@ std::string LayerNode::getDistLayerType() const {
       "Get distribution layer type for non-distributed layer");
 }
 
-ActivationType LayerNode::getActivationType() {
-  return getLayer()->getActivationType();
+ActivationType LayerNode::getActivationType() const { return activation_type; }
+
+ActivationType LayerNode::getActivationToBeRealized() const noexcept {
+  if (getType() == ActivationLayer::type)
+    return ActivationType::ACT_NONE;
+  else
+    return activation_type;
+}
+
+void LayerNode::setActivation(ActivationType activation) {
+  if (activation == ActivationType::ACT_UNKNOWN) {
+    throw std::invalid_argument("Error:have to specify activation function");
+  }
+  activation_type = activation;
 }
 
 const std::string LayerNode::getType() const { return getLayer()->getType(); }
