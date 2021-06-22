@@ -130,12 +130,4 @@ void PreprocessTranslateLayer::calcDerivative() {
     "calcDerivative for preprocess layer is not supported");
 }
 
-void PreprocessTranslateLayer::setTrainable(bool train) {
-  if (train)
-    throw exception::not_supported(
-      "Preprocessing layer does not support training");
-
-  LayerV1::setTrainable(false);
-}
-
 } /* namespace nntrainer */

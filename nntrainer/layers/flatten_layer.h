@@ -29,9 +29,7 @@ public:
   /**
    * @brief     Constructor of Flatten Layer
    */
-  template <typename... Args> FlattenLayer(Args... args) : LayerV1(args...) {
-    setTrainable(false);
-  }
+  template <typename... Args> FlattenLayer(Args... args) : LayerV1(args...) {}
 
   /**
    * @brief     Destructor of Flatten Layer

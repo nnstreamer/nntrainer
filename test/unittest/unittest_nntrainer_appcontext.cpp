@@ -160,8 +160,6 @@ public:
 
   float getLoss() override { return 0.0f; }
 
-  void setTrainable(bool train) override {}
-
   const std::string getType() const override { return CustomLayer::type; }
 };
 

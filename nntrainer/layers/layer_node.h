@@ -263,6 +263,19 @@ public:
    *
    * @return boolean true if trainable, else false
    */
+  bool supportBackwarding() const noexcept {
+    return getLayer()->supportBackwarding();
+  }
+
+  /**
+   * Support interfaces for the properties intercepted from layer
+   */
+
+  /**
+   * @brief     Get the trainable property of the underlying object
+   *
+   * @return boolean true if trainable, else false
+   */
   bool getTrainable() const noexcept;
 
   /**
@@ -609,7 +622,8 @@ private:
                     Editing properties of the layer after init will not the
                     properties in the context/graph unless intended. */
 
-  using PropsType = std::tuple<props::Name, props::Flatten, props::Distribute>;
+  using PropsType = std::tuple<props::Name, props::Flatten, props::Distribute,
+                               props::Trainable>;
   /**
    * These properties are set for the layer by the user but are intercepted
    * and used in the node which forms the basic element of the graph.

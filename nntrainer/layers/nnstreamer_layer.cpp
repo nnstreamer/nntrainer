@@ -142,14 +142,6 @@ int NNStreamerLayer::initialize(Manager &manager) {
   return status;
 }
 
-void NNStreamerLayer::setTrainable(bool train) {
-  if (train)
-    throw exception::not_supported(
-      "NNStreamer layer does not support training");
-
-  LayerV1::setTrainable(false);
-}
-
 void NNStreamerLayer::setProperty(const PropertyType type,
                                   const std::string &value) {
   switch (type) {
