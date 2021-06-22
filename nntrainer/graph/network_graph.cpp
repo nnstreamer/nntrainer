@@ -143,10 +143,9 @@ int NetworkGraph::realizeFlattenType(
 
 int NetworkGraph::realizeActivationType(
   const std::shared_ptr<LayerNode> &in_node) {
-  LayerV1 &current = *in_node->getObject();
   int status = ML_ERROR_NONE;
 
-  ActivationType act = current.getActivationType();
+  ActivationType act = in_node->getActivationToBeRealized();
 
   if (act == ActivationType::ACT_NONE) {
     /// ActivationType::ACT_NONE does not need realization
@@ -172,7 +171,8 @@ int NetworkGraph::realizeActivationType(
   }
 
   std::shared_ptr<LayerV1> layer = lnode->getObject();
-  layer->setActivation(act);
+  lnode->setProperty({"activation=" + ActivationTypeStr[(unsigned int)act]});
+  in_node->setProperty({"activation=none"});
 
   lnode->setInputLayers({in_node->getName()});
   /** output layers for layer aobj will be set in setOutputLayers() */

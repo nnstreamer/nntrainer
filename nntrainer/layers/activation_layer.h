@@ -35,7 +35,7 @@ public:
   ActivationLayer(ActivationType at = ActivationType::ACT_NONE, Args... args) :
     LayerV1(args...) {
     setTrainable(false);
-    setActivation(at);
+    acti_func.setActiFunc(at);
   }
 
   /**
@@ -73,12 +73,14 @@ public:
    */
   void calcDerivative() override;
 
+  using LayerV1::setProperty;
+
   /**
-   * @brief setActivation by preset ActivationType
-   *
-   * @param[in] ActivationType
+   * @copydoc Layer::setProperty(const PropertyType type, const std::string
+   * &value)
    */
-  void setActivation(ActivationType acti_type) override;
+  void setProperty(const PropertyType type,
+                   const std::string &value = "") override;
 
   /**
    * @copydoc Layer::getType()

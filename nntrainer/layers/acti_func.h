@@ -33,6 +33,12 @@ enum class ActivationType {
 };
 
 /**
+ * @brief     Activation enum to string map
+ */
+const std::array<std::string, 6> ActivationTypeStr = {
+  "tanh", "sigmoid", "relu", "softmax", "none", "unknown"};
+
+/**
  * @class   ActiFunc Class
  * @brief   ActiFunc Class
  */

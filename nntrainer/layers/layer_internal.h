@@ -57,8 +57,7 @@ public:
   /**
    * @brief     Constructor of Layer Class
    */
-  LayerV1(ActivationType activation_type_ = ActivationType::ACT_NONE,
-          WeightRegularizer weight_regularizer_ = WeightRegularizer::NONE,
+  LayerV1(WeightRegularizer weight_regularizer_ = WeightRegularizer::NONE,
           const float weight_regularizer_constant_ = 1.0f,
           WeightInitializer weight_initializer_ =
             WeightInitializer::WEIGHT_XAVIER_UNIFORM,
@@ -66,7 +65,6 @@ public:
           bool trainable_ = true) :
     layer_props(),
     loss(0.0f),
-    activation_type(activation_type_),
     weight_regularizer(weight_regularizer_),
     weight_regularizer_constant(weight_regularizer_constant_),
     weight_initializer(weight_initializer_),
@@ -306,13 +304,6 @@ public:
    */
   virtual void setProperty(const PropertyType type,
                            const std::string &value = "");
-
-  /**
-   * @brief     Activation Type Getter
-   * @retval    Activation Type.
-   * @todo      This function will soon be removed
-   */
-  virtual ActivationType getActivationType() { return this->activation_type; }
 
   /**
    * @brief     Copy Layer
@@ -586,14 +577,6 @@ public:
   }
 
   /**
-   * @brief     Activation Setter
-   * @param[in] activation activation type
-   * @throw std::invalid_argument when ActivationType is unknown
-   * @todo      This function will soon be removed
-   */
-  virtual void setActivation(ActivationType activation);
-
-  /**
    * @brief   If the current layer can support in-place
    *
    * @return  true if inplace, else false
@@ -644,9 +627,6 @@ protected:
    * @brief     Loss value added by this layer
    */
   float loss;
-
-  // TODO: remove this from here
-  ActivationType activation_type;
 
   WeightRegularizer weight_regularizer;
 
