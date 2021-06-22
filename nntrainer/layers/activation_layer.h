@@ -34,7 +34,6 @@ public:
   template <typename... Args>
   ActivationLayer(ActivationType at = ActivationType::ACT_NONE, Args... args) :
     LayerV1(args...) {
-    setTrainable(false);
     acti_func.setActiFunc(at);
   }
 

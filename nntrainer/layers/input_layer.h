@@ -43,9 +43,7 @@ public:
              Args... args) :
     LayerV1(args...),
     normalization(false),
-    standardization(false) {
-    trainable = false;
-  }
+    standardization(false) {}
 
   /**
    * @brief     Destructor of InputLayer
@@ -91,9 +89,9 @@ public:
   int initialize(Manager &manager) override;
 
   /**
-   * @copydoc Layer::setTrainable(bool train)
+   * @copydoc bool supportBackwarding() const
    */
-  void setTrainable(bool train) override;
+  bool supportBackwarding() const override { return false; };
 
   /**
    * @copydoc Layer::getType()

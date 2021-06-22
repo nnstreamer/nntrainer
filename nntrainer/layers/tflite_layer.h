@@ -37,9 +37,7 @@ public:
     LayerV1(),
     modelfile(model),
     interpreter(nullptr),
-    model(nullptr) {
-    trainable = false;
-  }
+    model(nullptr) {}
 
   /**
    * @brief     Destructor of NNStreamer Layer
@@ -67,9 +65,9 @@ public:
   int initialize(Manager &manager) override;
 
   /**
-   * @copydoc Layer::setTrainable(bool train)
+   * @copydoc bool supportBackwarding() const
    */
-  void setTrainable(bool train) override;
+  bool supportBackwarding() const override { return false; };
 
   /**
    * @copydoc Layer::getType()

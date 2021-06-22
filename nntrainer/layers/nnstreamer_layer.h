@@ -40,9 +40,7 @@ public:
     in_data_cont(nullptr),
     out_data_cont(nullptr),
     in_data(nullptr),
-    out_data(nullptr) {
-    trainable = false;
-  }
+    out_data(nullptr) {}
 
   /**
    * @brief     Destructor of NNStreamer Layer
@@ -70,9 +68,9 @@ public:
   int initialize(Manager &manager);
 
   /**
-   * @copydoc Layer::setTrainable(bool train)
+   * @copydoc bool supportBackwarding() const
    */
-  void setTrainable(bool train);
+  bool supportBackwarding() const override { return false; };
 
   /**
    * @copydoc Layer::getType()

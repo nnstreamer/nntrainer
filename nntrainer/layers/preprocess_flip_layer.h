@@ -34,9 +34,7 @@ public:
   template <typename... Args>
   PreprocessFlipLayer(Args... args) :
     LayerV1(args...),
-    flipdirection(FlipDirection::horizontal_and_vertical) {
-    trainable = false;
-  }
+    flipdirection(FlipDirection::horizontal_and_vertical) {}
 
   /**
    * @brief     Destructor of Preprocess FLip Layer
@@ -74,9 +72,9 @@ public:
   void calcDerivative() override;
 
   /**
-   * @copydoc Layer::setTrainable(bool train)
+   * @copydoc bool supportBackwarding() const
    */
-  void setTrainable(bool train) override;
+  bool supportBackwarding() const override { return false; };
 
   using LayerV1::setProperty;
 

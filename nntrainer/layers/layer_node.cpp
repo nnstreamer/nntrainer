@@ -20,6 +20,7 @@
 
 #include <base_properties.h>
 #include <common_properties.h>
+
 namespace nntrainer {
 
 namespace props {
@@ -64,8 +65,8 @@ LayerNode::LayerNode(std::unique_ptr<nntrainer::Layer> &&layer_v2,
   index(idx),
   finalized(false),
   activation_type(ActivationType::ACT_NONE),
-  layer_node_props(
-    new PropsType(props::Name(), props::Flatten(), props::Distribute())) {
+  layer_node_props(new PropsType(props::Name(), props::Flatten(),
+                                 props::Distribute(), props::Trainable())) {
   if (layerv1 && layerv1->getType() == TimeDistLayer::type) {
     std::get<props::Distribute>(*layer_node_props).set(true);
   } else if (layer && layer->getType() == TimeDistLayer::type) {
@@ -121,9 +122,10 @@ int LayerNode::setProperty(std::vector<std::string> properties) {
     }
   }
 
-  /// @todo: deprecate this in favor of loadProperties
   std::vector<std::string> remainder;
+  /// @todo: deprecate this in favor of loadProperties
   for (unsigned int i = 0; i < left_properties.size(); ++i) {
+
     std::string key;
     std::string value;
 
@@ -240,7 +242,7 @@ const std::shared_ptr<nntrainer::LayerV1> &LayerNode::getObject() const {
 }
 
 bool LayerNode::getTrainable() const noexcept {
-  return getLayer()->getTrainable();
+  return std::get<props::Trainable>(*layer_node_props);
 }
 
 bool LayerNode::getFlatten() const noexcept {

@@ -98,12 +98,9 @@ public:
   void read(std::ifstream &file) override;
 
   /**
-   * @brief get boolean if the function is trainable
-   *
-   * @retval true trainable
-   * @retval false not trainable
+   * @copydoc bool supportBackwarding() const
    */
-  bool getTrainable() noexcept override { return false; }
+  bool supportBackwarding() const override { return false; };
 
   /**
    * @brief Get the Type object

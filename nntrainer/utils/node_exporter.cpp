@@ -52,7 +52,8 @@ void Exporter::saveTflResult(const std::tuple<> &props, const LayerV1 *self) {
 
 template <>
 void Exporter::saveTflResult(
-  const std::tuple<props::Name, props::Flatten, props::Distribute> &props,
+  const std::tuple<props::Name, props::Flatten, props::Distribute,
+                   props::Trainable> &props,
   const LayerNode *self) {
   createIfNull(tf_node);
   tf_node->setInOut(*self);
