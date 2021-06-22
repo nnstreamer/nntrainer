@@ -33,11 +33,12 @@ public:
   RNNLayer(
     unsigned int unit_ = 0,
     ActivationType hidden_state_activation_type_ = ActivationType::ACT_NONE,
-    bool sequence = false, Args... args) :
+    bool sequence = false, float dropout = 0.0, Args... args) :
     LayerV1(args...),
     unit(unit_),
     hidden_state_activation_type(hidden_state_activation_type_),
-    return_sequences(sequence){};
+    return_sequences(sequence),
+    dropout_rate(dropout){};
 
   /**
    * @brief     Destructor of RNNLayer
@@ -125,6 +126,11 @@ private:
    * @brief     opiont for return sequence
    */
   bool return_sequences;
+
+  /**
+   * @brief     drop out rate
+   */
+  float dropout_rate;
 
   /**
    * @brief     hidden variable for rnn

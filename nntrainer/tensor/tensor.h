@@ -515,6 +515,13 @@ public:
   Tensor &transpose(const std::string &direction, Tensor &out) const;
 
   /**
+   * @brief Calculate Drop Out Mask : x * 1.0/(1.0-rate)
+   * @param dropout drop out rate
+   * @retval Tensor& reference of drop out mask
+   */
+  Tensor dropout_mask(float dropout) const;
+
+  /**
    * @brief     sum all the Tensor elements according to the batch
    * @retval    Calculated Tensor(batch, 1, 1, 1)
    */

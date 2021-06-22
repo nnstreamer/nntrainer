@@ -122,6 +122,12 @@ void RNNLayer::setProperty(const PropertyType type, const std::string &value) {
       throw_status(status);
     }
     break;
+  case PropertyType::dropout:
+    if (!value.empty()) {
+      status = setFloat(dropout_rate, value);
+      throw_status(status);
+    }
+    break;
   default:
     LayerV1::setProperty(type, value);
     break;
@@ -159,6 +165,10 @@ void RNNLayer::forwarding(bool training) {
     for (unsigned int t = 0; t < islice.height(); ++t) {
       Tensor xs =
         islice.getSharedDataTensor({islice.width()}, t * islice.width());
+
+      if (dropout_rate > 0.0 && training) {
+        xs.multiply_i(xs.dropout_mask(dropout_rate));
+      }
 
       hs = oslice.getSharedDataTensor({oslice.width()}, t * oslice.width());
       if (t > 0) {

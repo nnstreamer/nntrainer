@@ -116,6 +116,7 @@ public:
    * - return_sequences : bool (type) - used only in lstm
    * - distribute : bool
    * - hidden_state_activation : string (type) - used only in lstm
+   * - drop_out : float (type) - drop out rate
    */
   /**
    * @brief     set Property of layer
