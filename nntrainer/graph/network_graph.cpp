@@ -265,7 +265,7 @@ int NetworkGraph::addLossLayer(const LossType loss_type) {
 
   auto const &updated_last_node = getSortedLayerNode(graph.size() - 1);
 
-  std::shared_ptr<LayerV1> layer = nntrainer::createLayer(LossLayer::type);
+  std::shared_ptr<Layer> layer = nntrainer::createLayer(LossLayer::type);
   std::shared_ptr<LayerNode> lnode = std::make_shared<LayerNode>(layer);
   status =
     std::dynamic_pointer_cast<LossLayer>(layer)->setLoss(updated_loss_type);
