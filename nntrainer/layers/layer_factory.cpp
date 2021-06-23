@@ -94,8 +94,8 @@ const std::string layerGetStrType(const LayerType &type) {
  */
 std::unique_ptr<Layer> createLayer(const std::string &type) {
 
-  //  if (istrequal(type, InputLayer::type))
-  //    return std::make_unique<InputLayer>();
+  if (istrequal(type, InputLayer::type))
+    return std::make_unique<InputLayer>();
   //  if (istrequal(type, OutputLayer::type))
   //    return std::make_unique<OutputLayer>();
   if (istrequal(type, FullyConnectedLayer::type))

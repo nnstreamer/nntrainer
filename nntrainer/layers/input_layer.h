@@ -24,7 +24,9 @@
 #define __INPUT_LAYER_H__
 #ifdef __cplusplus
 
-#include <layer_internal.h>
+#include <common_properties.h>
+#include <layer_context.h>
+#include <layer_devel.h>
 #include <tensor.h>
 
 namespace nntrainer {
@@ -33,22 +35,17 @@ namespace nntrainer {
  * @class   Input Layer
  * @brief   Just Handle the Input of Network
  */
-class InputLayer : public LayerV1 {
+class InputLayer : public Layer {
 public:
   /**
    * @brief     Constructor of InputLayer
    */
-  template <typename... Args>
-  InputLayer(bool normalization = false, bool standardization = false,
-             Args... args) :
-    LayerV1(args...),
-    normalization(false),
-    standardization(false) {}
+  InputLayer() : Layer(), normalization(false), standardization(false) {}
 
   /**
    * @brief     Destructor of InputLayer
    */
-  ~InputLayer() {}
+  ~InputLayer() = default;
 
   /**
    *  @brief  Move constructor of Pooling 2D Layer.
@@ -63,30 +60,19 @@ public:
   InputLayer &operator=(InputLayer &&rhs) = default;
 
   /**
-   * @brief     No Weight data for this Input Layer
+   * @copydoc Layer::finalize(InitLayerContext &context)
    */
-  void read(std::ifstream &file) override{};
+  void finalize(InitLayerContext &context) override;
 
   /**
-   * @brief     No Weight data for this Input Layer
+   * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
    */
-  void save(std::ofstream &file) override{};
+  void forwarding(RunLayerContext &context, bool training) override;
 
   /**
-   * @copydoc Layer::forwarding(bool training)
+   * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
-  void forwarding(bool training = true) override;
-  /**
-   * @copydoc Layer::calcDerivative()
-   */
-  void calcDerivative() override;
-
-  /**
-   * @brief     Initializer of Input Layer
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   */
-  int initialize(Manager &manager) override;
+  void calcDerivative(RunLayerContext &context) override;
 
   /**
    * @copydoc bool supportBackwarding() const
@@ -94,36 +80,39 @@ public:
   bool supportBackwarding() const override { return false; };
 
   /**
+   * @copydoc Layer::exportTo(Exporter &exporter, ExportMethods method)
+   */
+  void exportTo(Exporter &exporter,
+                const ExportMethods &method) const override {}
+
+  /**
    * @copydoc Layer::getType()
    */
   const std::string getType() const override { return InputLayer::type; };
 
-  using LayerV1::setProperty;
+  using Layer::setProperty;
 
   /**
    * @copydoc Layer::setProperty(const PropertyType type, const std::string
    * &value)
    */
-  void setProperty(const PropertyType type,
-                   const std::string &value = "") override;
+  void setProperty(const std::vector<std::string> &values) override;
 
   inline static const std::string type = "input";
 
 private:
-  bool normalization;
-  bool standardization;
+  bool normalization;   /**< normalize the input to be in range [0,1] */
+  bool standardization; /**< standardize the input to be mean 0 and std 1 */
 
   /**
-   * @brief     set normalization
-   * @param[in] enable boolean
+   * @brief setProperty by type and value separated
+   * @param[in] type property type to be passed
+   * @param[in] value value to be passed
+   * @exception exception::not_supported     when property type is not valid for
+   * the particular layer
+   * @exception std::invalid_argument invalid argument
    */
-  void setNormalization(bool enable) { this->normalization = enable; };
-
-  /**
-   * @brief     set standardization
-   * @param[in] enable boolean
-   */
-  void setStandardization(bool enable) { this->standardization = enable; };
+  void setProperty(const std::string &type, const std::string &value);
 };
 } // namespace nntrainer
 
