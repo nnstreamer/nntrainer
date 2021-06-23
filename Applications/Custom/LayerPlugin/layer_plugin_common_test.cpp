@@ -13,16 +13,17 @@
 #include <layer_plugin_common_test.h>
 
 #include <fstream>
+#include <layer_node.h>
 
 TEST_P(LayerPluginCommonTest, DlRegisterOpen_p) {
-  ac.registerLayer(plugin_lib_name, NNTRAINER_PATH);
+  ac.registerLayerV1(plugin_lib_name, NNTRAINER_PATH);
   auto layer = ac.createObject<nntrainer::LayerV1>(layer_type_name);
 
   EXPECT_EQ(layer->getType(), layer_type_name);
 }
 
 TEST_P(LayerPluginCommonTest, DlRegisterWrongPath_n) {
-  EXPECT_THROW(ac.registerLayer("wrong_name.so"), std::invalid_argument);
+  EXPECT_THROW(ac.registerLayerV1("wrong_name.so"), std::invalid_argument);
 }
 
 TEST_P(LayerPluginCommonTest, DlRegisterDirectory_p) {
@@ -42,24 +43,24 @@ TEST_P(LayerPluginCommonTest, DefaultEnvironmentPath_p) {
   std::shared_ptr<ml::train::Layer> l = ml::train::createLayer(layer_type_name);
   EXPECT_EQ(l->getType(), layer_type_name);
 
-  auto layer = nntrainer::getLayerDevel(l);
+  auto lnode = std::static_pointer_cast<nntrainer::LayerNode>(l);
+  auto layer = nntrainer::getLayerV1Devel(l);
 
   std::ifstream input_file("does_not_exist");
-  EXPECT_NO_THROW(layer->read(input_file));
+  EXPECT_NO_THROW(lnode->read(input_file));
   if (remove("does_not_exist")) {
     std::cerr << "failed to remove file\n";
   }
 
   std::ofstream output_file("does_not_exist");
-  EXPECT_NO_THROW(layer->save(output_file));
+  EXPECT_NO_THROW(lnode->save(output_file));
   if (remove("does_not_exist")) {
     std::cerr << "failed to remove file\n";
   }
 
-  EXPECT_NE(layer->setProperty({"invalid_values"}), ML_ERROR_NONE);
-  EXPECT_EQ(layer->checkValidation(), ML_ERROR_NONE);
-  EXPECT_EQ(layer->getOutputDimension()[0], nntrainer::TensorDim());
-  EXPECT_EQ(layer->getInputDimension()[0], nntrainer::TensorDim());
+  EXPECT_THROW(lnode->setProperty({"invalid_values"}), std::invalid_argument);
+  EXPECT_EQ(lnode->getOutputDimensions()[0], nntrainer::TensorDim());
+  EXPECT_EQ(lnode->getInputDimensions()[0], nntrainer::TensorDim());
 }
 
 TEST_P(LayerPluginCommonTest, DefaultEnvironmentPathLayerNotExist_n) {
