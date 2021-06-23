@@ -22,15 +22,40 @@
  */
 
 #include <input_layer.h>
+#include <layer_internal.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <parse_util.h>
 
 namespace nntrainer {
 
-void InputLayer::setProperty(const PropertyType type,
+void InputLayer::setProperty(const std::vector<std::string> &values) {
+  /// @todo: deprecate this in favor of loadProperties
+  for (unsigned int i = 0; i < values.size(); ++i) {
+    std::string key;
+    std::string value;
+    std::stringstream ss;
+
+    if (getKeyValue(values[i], key, value) != ML_ERROR_NONE) {
+      throw std::invalid_argument("Error parsing the property: " + values[i]);
+    }
+
+    if (value.empty()) {
+      ss << "value is empty: key: " << key << ", value: " << value;
+      throw std::invalid_argument(ss.str());
+    }
+
+    /// @note this calls derived setProperty if available
+    setProperty(key, value);
+  }
+}
+
+void InputLayer::setProperty(const std::string &type_str,
                              const std::string &value) {
+  using PropertyType = LayerV1::PropertyType;
   int status = ML_ERROR_NONE;
+  LayerV1::PropertyType type =
+    static_cast<LayerV1::PropertyType>(parseLayerProperty(type_str));
 
   switch (type) {
   case PropertyType::normalization:
@@ -46,14 +71,15 @@ void InputLayer::setProperty(const PropertyType type,
     }
     break;
   default:
-    LayerV1::setProperty(type, value);
-    break;
+    std::string msg =
+      "[Layer] Unknown Layer Property Key for value " + std::string(value);
+    throw exception::not_supported(msg);
   }
 }
 
-void InputLayer::forwarding(bool training) {
-  Tensor &hidden_ = net_hidden[0]->getVariableRef();
-  hidden_ = net_input[0]->getVariableRef();
+void InputLayer::forwarding(RunLayerContext &context, bool training) {
+  Tensor &hidden_ = context.getOutput(0);
+  hidden_ = context.getInput(0);
 
   if (normalization)
     hidden_.normalization_i();
@@ -61,16 +87,13 @@ void InputLayer::forwarding(bool training) {
     hidden_.standardization_i();
 }
 
-void InputLayer::calcDerivative() {
+void InputLayer::calcDerivative(RunLayerContext &context) {
   throw exception::not_supported(
     "calcDerivative for input layer is not supported");
 }
 
-int InputLayer::initialize(Manager &manager) {
-  int status = ML_ERROR_NONE;
-  output_dim = input_dim;
-
-  return status;
+void InputLayer::finalize(InitLayerContext &context) {
+  context.setOutputDimensions(context.getInputDimensions());
 }
 
 } /* namespace nntrainer */
