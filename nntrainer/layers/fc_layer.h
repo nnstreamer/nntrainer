@@ -109,7 +109,7 @@ public:
   /**
    * @copydoc Layer::scaleSize(float scalesize)
    */
-  void scaleSize(float scalesize) noexcept override;
+  void scaleSize(float scalesize) override;
 
 private:
   std::tuple<props::Unit> fc_props;

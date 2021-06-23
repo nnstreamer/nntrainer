@@ -431,7 +431,7 @@ public:
    * if the layer has already been initialized. It is recommended to re-init the
    * whole model as the neighboring layers will also need re-initialization.
    */
-  virtual void scaleSize(float scalesize) noexcept {}
+  virtual void scaleSize(float scalesize) {}
 
   /**
    * @brief Resets the input and output dimension for the layer
