@@ -33,8 +33,8 @@ void destory_mae_loss_layer(nntrainer::LayerV1 *layer) {
  * register a plugin layer
  */
 extern "C" {
-nntrainer::LayerPluggable ml_train_layer_pluggable{create_mae_loss_layer,
-                                                   destory_mae_loss_layer};
+nntrainer::LayerV1Pluggable ml_train_layerv1_pluggable{create_mae_loss_layer,
+                                                       destory_mae_loss_layer};
 }
 
 #endif
