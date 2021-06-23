@@ -32,7 +32,7 @@
 #include <layer.h>
 #include <layer_context.h>
 #include <layer_internal.h>
-#include <loss_layer.h>
+// #include <loss_layer.h>
 
 constexpr bool LAYER_V2 = true;
 
@@ -621,16 +621,16 @@ public:
    * @param type The loss type
    * @todo this interface will be removed when loss layer is updated for LayerV2
    */
-  void setLossType(LossType type) {
-    if (layerv1) {
-      if (getType() != LossLayer::type)
-        throw std::runtime_error("Setting loss type on non-loss layer");
-      std::dynamic_pointer_cast<LossLayer>(getLayer())->setLoss(type);
-    } else {
-      // TODO: set loss layer type for LayerV2
-      // will be handled when updating LossLayer for LayerV2
-    }
-  }
+  // void setLossType(LossType type) {
+  //   if (layerv1) {
+  //     // if (getType() != LossLayer::type)
+  //     //   throw std::runtime_error("Setting loss type on non-loss layer");
+  //     // std::dynamic_pointer_cast<LossLayer>(getLayer())->setLoss(type);
+  //   } else {
+  //     // TODO: set loss layer type for LayerV2
+  //     // will be handled when updating LossLayer for LayerV2
+  //   }
+  // }
 
 private:
   /// @todo remove this
