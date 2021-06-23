@@ -27,14 +27,15 @@
 #include <string>
 #include <vector>
 
+#include <tensor.h>
+#include <layer_context.h>
+
 namespace ml::train {
 class Layer;
 }
 
 namespace nntrainer {
 
-class InitLayerContext;
-class RunLayerContext;
 class Exporter;
 
 enum class ExportMethods;
@@ -105,7 +106,7 @@ public:
    * can be access from the inputs/outputs tensors themselves.
    * @note      Gradients must be set in weight gradient tensors.
    */
-  virtual void calcGradient(RunLayerContext &context){};
+  virtual void calcGradient(RunLayerContext &context) {}
 
   /**
    * @brief     set Property of layer

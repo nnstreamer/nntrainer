@@ -425,8 +425,52 @@ public:
    */
   Weight &getWeightObject(unsigned int idx) { return *weights[idx]; }
 
+  /**
+   * @brief   check if the label is available
+   *
+   * @param idx Identifier of the input
+   * @return true if label is available else false
+   */
+  bool isLabelAvailable(unsigned int idx) const {
+    return outputs[idx]->getGradientRef().uninitialized();
+  }
+
+  /**
+   * @brief   Get label tensor
+   *
+   * @param idx Identifier of the input
+   * @return Tensor& Reference to the label tensor
+   */
+  Tensor &getLabel(unsigned int idx) {
+    if (isLabelAvailable(idx))
+      return outputs[idx]->getGradientRef();
+    else
+      throw std::invalid_argument("Request tensor which does not exist");
+  }
+
+  /**
+   * @brief   update loss by the layer
+   *
+   * @param val updated loss value
+   * @note loss value is only used for loss layers. For non-loss layers, setting
+   * this value will have no change on the behavior of the model.
+   */
+  void setLoss(float val) {
+    loss = val;
+  }
+
+  /**
+   * @brief   update loss by the layer
+   *
+   * @return loss of the layer
+   */
+  float getLoss() const {
+    return loss;
+  }
+
 private:
   std::tuple<props::Name> props; /**< props of the layer */
+  float loss; /**< loss of the layer */
 
   std::vector<Weight *> weights;   /**< weights of the layer */
   std::vector<Var_Grad *> inputs;  /**< inputs of the layer */
