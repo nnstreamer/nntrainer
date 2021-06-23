@@ -208,7 +208,7 @@ getMergeableGraph(std::shared_ptr<const GraphRepresentation> graph,
   //   iniparser_getboolean(ini, (sec_name + ":Preload").c_str(), true);
 
   const std::string &trainable =
-    iniparser_getstring(ini, (sec_name + ":Trainable").c_str(), "false");
+    iniparser_getstring(ini, (sec_name + ":Trainable").c_str(), "true");
   double scale_size =
     iniparser_getdouble(ini, (sec_name + ":ScaleSize").c_str(), 1.0);
 

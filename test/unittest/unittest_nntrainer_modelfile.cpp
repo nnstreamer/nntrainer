@@ -474,7 +474,7 @@ TEST(nntrainerIniTest, backbone_p_06) {
   /** default trainable is false */
   auto graph = NN.getFlatGraph();
   for (auto &layer : graph)
-    EXPECT_EQ(layer->getTrainable(), false);
+    EXPECT_EQ(layer->getTrainable(), true);
 }
 
 /**

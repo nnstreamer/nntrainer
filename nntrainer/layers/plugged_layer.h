@@ -145,7 +145,9 @@ public:
   /**
    * @copydoc bool supportBackwarding() const
    */
-  bool supportBackwarding() const override { return false; };
+  bool supportBackwarding() const override {
+    return layerImpl->supportBackwarding();
+  };
 
   /**
    * @copydoc Layer::getWeights()
