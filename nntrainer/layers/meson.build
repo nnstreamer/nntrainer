@@ -1,3 +1,6 @@
+subdir('loss')
+nntrainer_inc += include_directories('loss')
+
 layer_sources = [
   'activation_layer.cpp',
   'addition_layer.cpp',
@@ -12,7 +15,6 @@ layer_sources = [
   'layer.cpp',
   'layer_factory.cpp',
   'layer_node.cpp',
-  'loss_layer.cpp',
   'pooling2d_layer.cpp',
   'preprocess_flip_layer.cpp',
   'preprocess_translate_layer.cpp',
@@ -26,7 +28,7 @@ layer_sources = [
   'permute_layer.cpp',
   'layer_impl.cpp',
   'gru.cpp',
-  'dropout.cpp'
+  'dropout.cpp',
 ]
 
 layer_headers = [
@@ -37,7 +39,6 @@ layer_headers = [
   'acti_func.h',
   'layer_node.h',
   'common_properties.h',
-  'loss_layer.h',
 ]
 
 layer_deps = []
