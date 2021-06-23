@@ -73,7 +73,7 @@ public:
    * @brief Default constructor for the Ini Section object
    *
    */
-  IniSection() = default;
+  IniSection() : section_name(""), entry{} {};
 
   /**
    * @brief Default destructor for the Ini Section object

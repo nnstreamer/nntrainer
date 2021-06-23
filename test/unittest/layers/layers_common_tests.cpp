@@ -30,7 +30,7 @@ void LayerSemantics::TearDown() {}
 
 TEST_P(LayerSemantics, createFromAppContext_pn) {
   auto ac = nntrainer::AppContext::Global(); /// copy intended
-  if (~(options & LayerCreateSetPropertyOptions::AVAILABLE_FROM_APP_CONTEXT)) {
+  if (!(options & LayerCreateSetPropertyOptions::AVAILABLE_FROM_APP_CONTEXT)) {
     EXPECT_THROW(ac.createObject<nntrainer::Layer>(expected_type),
                  std::invalid_argument);
     ac.registerFactory<nntrainer::Layer>(std::get<0>(GetParam()));

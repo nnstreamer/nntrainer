@@ -18,7 +18,7 @@
 
 namespace nntrainer {
 
-IniSection::IniSection(const std::string &name) : section_name(name) {}
+IniSection::IniSection(const std::string &name) : section_name(name), entry{} {}
 
 IniSection::IniSection(const std::string &section_name,
                        const std::string &entry_str) :

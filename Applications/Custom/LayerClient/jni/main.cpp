@@ -219,6 +219,9 @@ int main(int argc, char *argv[]) {
   } catch (std::invalid_argument &e) {
     std::cerr << "failed to run the model, reason: " << e.what() << std::endl;
     return 1;
+  } catch (std::regex_error &e) {
+    std::cerr << "failed to run the model, reaseon: " << e.what() << std::endl;
+    return 1;
   }
 
   /// should not reach here
