@@ -87,7 +87,7 @@ std::unique_ptr<LayerNode>
 createLayerNode(const std::string &type,
                 const std::vector<std::string> &properties) {
   auto &ac = nntrainer::AppContext::Global();
-  return createLayerNode(ac.createObject<nntrainer::LayerV1>(type), properties);
+  return createLayerNode(ac.createObject<nntrainer::Layer>(type), properties);
 }
 
 /**
@@ -97,6 +97,19 @@ std::unique_ptr<LayerNode>
 createLayerNode(std::shared_ptr<nntrainer::LayerV1> layer,
                 const std::vector<std::string> &properties) {
   auto lnode = std::make_unique<LayerNode>(layer);
+  if (lnode->setProperty(properties) != ML_ERROR_NONE)
+    throw std::invalid_argument("Error setting layer properties.");
+
+  return lnode;
+}
+
+/**
+ * @brief Layer factory creator with constructor
+ */
+std::unique_ptr<LayerNode>
+createLayerNode(std::unique_ptr<nntrainer::Layer> &&layer,
+                const std::vector<std::string> &properties) {
+  auto lnode = std::make_unique<LayerNode>(std::move(layer));
   if (lnode->setProperty(properties) != ML_ERROR_NONE)
     throw std::invalid_argument("Error setting layer properties.");
 
@@ -159,6 +172,32 @@ bool LayerNode::setProperty(const std::string &key, const std::string &value) {
 
   PropertyType type = static_cast<PropertyType>(parseLayerProperty(key));
   switch (type) {
+  case PropertyType::input_shape: {
+    if (getNumInputs() > 1) {
+      throw std::invalid_argument("input_shape keyword is only for one input");
+    }
+    if (getNumInputs() == 0)
+      input_dim.resize(1);
+
+    TensorDim &in_dim = input_dim[0];
+    if (!value.empty()) {
+      unsigned int cache_batch_size = 1;
+      /** cache original value of batch size */
+      if (in_dim.batch()) {
+        cache_batch_size = in_dim.batch();
+        in_dim.batch(1);
+      }
+      int status = in_dim.setTensorDim(value.c_str());
+      if (in_dim.batch() > 1) {
+        ml_logw("Batch size set with input dimension %d is ignored."
+                "Set batchsize property for the model to update batchsize.",
+                in_dim.batch());
+      }
+      /** set back to cache value of dimension */
+      in_dim.batch(cache_batch_size);
+      throw_status(status);
+    }
+  } break;
   case PropertyType::activation: {
     setActivation((ActivationType)parseType(value, TOKEN_ACTI));
     if (getType() == ActivationLayer::type) {
@@ -226,7 +265,12 @@ void LayerNode::setActivation(ActivationType activation) {
   activation_type = activation;
 }
 
-const std::string LayerNode::getType() const { return getLayer()->getType(); }
+const std::string LayerNode::getType() const {
+  if (layerv1)
+    return getLayer()->getType();
+  else
+    return layer->getType();
+}
 
 std::shared_ptr<nntrainer::LayerV1> &LayerNode::getObject() {
   return getLayer();
@@ -290,6 +334,8 @@ void LayerNode::exportTo(Exporter &exporter,
                          const ExportMethods &method) const {
   exporter.saveResult(*layer_node_props, method, this);
   if (layerv1 == nullptr) {
+    // TODO: update getLayer() for layerv2 and use getLayer()
+    layer->exportTo(exporter, method);
     /// have layer_v2 implementation
   } else {
     getLayer()->export_to(exporter, method);

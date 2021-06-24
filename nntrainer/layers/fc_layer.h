@@ -31,7 +31,7 @@ public:
   /**
    * @brief     Constructor of Fully Connected Layer
    */
-  FullyConnectedLayer() : LayerImpl(), fc_props(props::Unit(0)) {}
+  FullyConnectedLayer() : LayerImpl(), fc_props(props::Unit()) {}
 
   /**
    * @brief     Destructor of Fully Connected Layer
@@ -86,8 +86,6 @@ public:
    * @copydoc Layer::supportBackwarding()
    */
   bool supportBackwarding() const { return true; }
-
-  using Layer::setProperty;
 
   /**
    * @copydoc Layer::setProperty(const PropertyType type, const std::string
