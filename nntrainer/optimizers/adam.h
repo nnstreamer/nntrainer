@@ -36,10 +36,9 @@ public:
     epsilon(ep) {}
 
   /**
-   * @copydoc applyGradient(Weight &weight, int tensor_idx, double updated_lr,
-   * int iteration)
+   * @copydoc applyGradient(Weight &weight, int iteration)
    */
-  void applyGradient(Weight &weight, double updated_lr, int iteration);
+  void applyGradient(Weight &weight, int iteration);
 
   /**
    * @copydoc Optimizer::getType()

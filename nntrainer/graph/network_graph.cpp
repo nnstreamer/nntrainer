@@ -692,7 +692,7 @@ void NetworkGraph::inPlaceOptimize(Manager &manager) {
       manager.untrackLayerInOuts(prev_node->getName());
     }
   }
-  #endif
+#endif
 }
 
 std::vector<Var_Grad *>

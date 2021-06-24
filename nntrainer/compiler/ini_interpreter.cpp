@@ -210,7 +210,6 @@ getMergeableGraph(std::shared_ptr<const GraphRepresentation> graph,
   const std::string &trainable =
     iniparser_getstring(ini, (sec_name + ":Trainable").c_str(), "true");
 
-
   for (auto &lnode : g) {
     lnode->setProperty({"trainable=" + trainable});
     /** TODO #361: this needs update in model file to be of dictionary format */

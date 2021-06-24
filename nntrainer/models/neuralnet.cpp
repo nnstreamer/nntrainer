@@ -267,7 +267,7 @@ void NeuralNetwork::backwarding(std::shared_ptr<LayerNode> node, int iteration,
    * 2. calcDerivative
    * 3. applyGradient
    */
-  bool apply_gradient;
+  bool apply_gradient = true;
   /** If gradient optimization mode, then calculate gradient first */
   if (dynamic_training_opt.isGradientMode())
     node->calcGradient();
@@ -275,10 +275,10 @@ void NeuralNetwork::backwarding(std::shared_ptr<LayerNode> node, int iteration,
   /**
    * If optimization off, or gradient must be applied, then this will be true
    */
-  auto &layer = node->getObject();
-  apply_gradient = dynamic_training_opt.checkIfApply(
-    layer->getWeightsRef(), layer->net_input[0], layer->net_hidden[0], opt,
-    iteration);
+  // auto &layer = node->getObject();
+  // apply_gradient = dynamic_training_opt.checkIfApply(
+  //   layer->getWeightsRef(), layer->net_input[0], layer->net_hidden[0], opt,
+  //   iteration);
 
   /** If gradient must be applied and its not gradient mode, calculate gradient
    */
@@ -288,14 +288,15 @@ void NeuralNetwork::backwarding(std::shared_ptr<LayerNode> node, int iteration,
   if (calc_derivative)
     node->calcDerivative();
 
-  if (apply_gradient) {
-    if (node->getType() == TimeDistLayer::type) {
-      opt->applyGradients(std::dynamic_pointer_cast<TimeDistLayer>(layer)
-                            ->getDistLayer()
-                            ->getWeightsRef(),
-                          iteration);
-    } else {
-      opt->applyGradients(layer->getWeightsRef(), iteration);
+  if (apply_gradient && node->getTrainable()) {
+    // TODO: ask network_graph for weights of node and then remove
+    // getWeightObject() interface from layer_context
+    for (unsigned int idx = 0; idx < node->getNumWeights(); idx++) {
+      auto &weight = node->getWeightObject(idx);
+      if (weight.hasGradient()) {
+        weight.calcRegularizationGradient();
+        opt->applyGradient(weight, iteration);
+      }
     }
   }
 }
@@ -879,8 +880,8 @@ void NeuralNetwork::print(std::ostream &out, unsigned int flags,
   /** print layer properties */
   // TODO: get sorted layers if initialized
   // for (auto &layer : model_graph)
-    // TODO: either support printPreset in LayerNode or use exportTo
-    // layer->printPreset(out, layerPrintPreset);
+  // TODO: either support printPreset in LayerNode or use exportTo
+  // layer->printPreset(out, layerPrintPreset);
 
   /// @todo Add status to check neuralnet has been run. #290
 }

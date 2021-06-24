@@ -40,7 +40,7 @@ double Adam::getLearningRate(size_t iteration) const {
   return ll;
 }
 
-void Adam::applyGradient(Weight &weight, double updated_lr, int iteration) {
+void Adam::applyGradient(Weight &weight, int iteration) {
 
   Tensor &x_grad = weight.getGradientRef();
 
@@ -77,7 +77,7 @@ void Adam::applyGradient(Weight &weight, double updated_lr, int iteration) {
 
   x_grad = wv.apply(sqrtEps, x_grad);
   x_grad.multiply_i(wm);
-  weight.applyGradient(updated_lr);
+  weight.applyGradient(getLearningRate(iteration));
 }
 
 void Adam::setProperty(const std::string &key, const std::string &value) {

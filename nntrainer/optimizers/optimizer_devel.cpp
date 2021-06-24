@@ -22,25 +22,6 @@
 
 namespace nntrainer {
 
-void Optimizer::applyGradients(std::vector<Weight> &weight_list,
-                               int iteration) {
-
-  if (weight_list.empty())
-    return;
-
-  double ll = getLearningRate(iteration);
-
-  for (auto &weight : weight_list) {
-    if (!weight.hasGradient())
-      continue;
-
-    /** calculate regularization gradient before applying the gradient */
-    weight.calcRegularizationGradient();
-
-    applyGradient(weight, ll, iteration);
-  }
-}
-
 int Optimizer::setProperty(std::vector<std::string> values) {
   int status = ML_ERROR_NONE;
 

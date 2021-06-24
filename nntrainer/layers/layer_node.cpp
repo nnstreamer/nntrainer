@@ -334,8 +334,8 @@ void LayerNode::finalize() {
 void LayerNode::forwarding(bool training) {
   if (layerv1)
     layerv1->forwarding(training);
-      else
-  layer->forwarding(run_context, training);
+  else
+    layer->forwarding(run_context, training);
 }
 
 /**
@@ -387,7 +387,7 @@ bool LayerNode::requireLabel() const {
   if (layerv1)
     return getLayer()->requireLabel();
   else
-  return layer->requireLabel();
+    return layer->requireLabel();
 }
 
 }; // namespace nntrainer
