@@ -172,30 +172,6 @@ void LayerV1::setProperty(const PropertyType type, const std::string &value) {
   int status = ML_ERROR_NONE;
 
   switch (type) {
-  case PropertyType::input_shape: {
-    if (getNumInputs() != 1) {
-      throw std::invalid_argument("input_shape keyword is only for one input");
-    }
-
-    TensorDim &in_dim = input_dim[0];
-    if (!value.empty()) {
-      unsigned int cache_batch_size = 1;
-      /** cache original value of batch size */
-      if (in_dim.batch()) {
-        cache_batch_size = in_dim.batch();
-        in_dim.batch(1);
-      }
-      status = in_dim.setTensorDim(value.c_str());
-      if (in_dim.batch() > 1) {
-        ml_logw("Batch size set with input dimension %d is ignored."
-                "Set batchsize property for the model to update batchsize.",
-                in_dim.batch());
-      }
-      /** set back to cache value of dimension */
-      in_dim.batch(cache_batch_size);
-      throw_status(status);
-    }
-  } break;
   case PropertyType::weight_regularizer:
     if (!value.empty()) {
       weight_regularizer =
