@@ -44,3 +44,6 @@ __pycache__/
 
 # flatbuffer compiled header
 *_generated.h
+
+# dataset from prepare_dataset.sh
+cifar-100-binary/
