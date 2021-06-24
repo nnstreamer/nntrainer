@@ -209,20 +209,10 @@ getMergeableGraph(std::shared_ptr<const GraphRepresentation> graph,
 
   const std::string &trainable =
     iniparser_getstring(ini, (sec_name + ":Trainable").c_str(), "true");
-  double scale_size =
-    iniparser_getdouble(ini, (sec_name + ":ScaleSize").c_str(), 1.0);
 
-  NNTR_THROW_IF(scale_size <= 0.0, std::invalid_argument)
-    << FUNC_TAG
-    << "backbone cannot have non-positive scale_size. Current scale size: "
-    << scale_size;
 
   for (auto &lnode : g) {
     lnode->setProperty({"trainable=" + trainable});
-    lnode->getObject()->resetDimension();
-    if (scale_size != 1) {
-      lnode->getObject()->scaleSize(scale_size);
-    }
     /** TODO #361: this needs update in model file to be of dictionary format */
     // if (preload) {
     //   layer->weight_initializer = WeightInitializer::FILE_INITIALIZER;

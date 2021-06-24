@@ -106,11 +106,6 @@ public:
 
   inline static const std::string type = "fully_connected";
 
-  /**
-   * @copydoc Layer::scaleSize(float scalesize)
-   */
-  void scaleSize(float scalesize) noexcept override;
-
 private:
   std::tuple<props::Unit> fc_props;
 };

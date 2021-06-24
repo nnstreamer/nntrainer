@@ -250,12 +250,7 @@ static nntrainer::IniSection backbone_notrain("blockNT", "backbone = base.ini |"
 static nntrainer::IniSection backbone_train("blockT", "backbone = base.ini |"
                                                       "trainable = true");
 
-static nntrainer::IniSection backbone_scaled("blockT", "backbone = base.ini |"
-                                                       "ScaleSize = 0.5");
-
-static nntrainer::IniSection backbone_scaled_zero("blockT",
-                                                  "backbone = base.ini |"
-                                                  "ScaleSize = 0.00005");
+static nntrainer::IniSection backbone_scaled("blockT", "backbone = base.ini");
 
 static nntrainer::IniSection
   backbone_random_external("block1", "backbone = random.tflite");
@@ -548,140 +543,6 @@ TEST(nntrainerIniTest, backbone_p_10) {
 
 /**
  * @brief Ini file unittest with backbone
- * @note Input shape scaled verified for conv layer, and not for activation/bn
- * layers
- */
-TEST(nntrainerIniTest, backbone_p_11) {
-
-  ScopedIni base("base",
-                 {conv2d, batch_normal + "input_layers=conv2d", conv2d});
-
-  ScopedIni ini_scaled_half(
-    "backbone_p11_scaled_half",
-    {nw_base_mse, adam, input2d, backbone_scaled + "input_layers=inputlayer"});
-
-  ScopedIni ini_full(
-    "backbone_p11_full",
-    {nw_base_mse, adam, input2d, backbone_valid + "input_layers=inputlayer"});
-
-  nntrainer::NeuralNetwork NN_scaled_half, NN_full;
-
-  EXPECT_EQ(NN_full.loadFromConfig(ini_full.getIniName()), ML_ERROR_NONE);
-  EXPECT_EQ(NN_full.compile(), ML_ERROR_NONE);
-  EXPECT_EQ(NN_full.initialize(), ML_ERROR_NONE);
-
-  EXPECT_EQ(NN_scaled_half.loadFromConfig(ini_scaled_half.getIniName()),
-            ML_ERROR_NONE);
-  EXPECT_EQ(NN_scaled_half.compile(), ML_ERROR_NONE);
-  EXPECT_EQ(NN_scaled_half.initialize(), ML_ERROR_NONE);
-
-  EXPECT_EQ(NN_full.getInputDimension()[0].channel(),
-            NN_scaled_half.getInputDimension()[0].channel());
-  EXPECT_EQ(
-    (unsigned int)((float)NN_full.getOutputDimension()[0].channel() * 0.5),
-    NN_scaled_half.getOutputDimension()[0].channel());
-}
-
-/**
- * @brief Ini file unittest with backbone
- * @note Input shape scaled verified for fc layer, and not for activation/bn
- * layers
- */
-TEST(nntrainerIniTest, backbone_p_12) {
-  ScopedIni b("base", {out, batch_normal + "input_layers=fclayer"});
-  ScopedIni scaled_half(
-    "backbone_p12_scaled_half",
-    {{nw_base_mse, adam, input, backbone_scaled + "input_layers=inputlayer"}});
-  ScopedIni scaled_full(
-    "backbone_p12_scaled_full",
-    {nw_base_mse, adam, input, backbone_valid + "input_layers=inputlayer"});
-
-  nntrainer::NeuralNetwork NN_scaled_half, NN_full;
-
-  EXPECT_EQ(NN_full.loadFromConfig(scaled_full.getIniName()), ML_ERROR_NONE);
-  EXPECT_EQ(NN_full.compile(), ML_ERROR_NONE);
-  EXPECT_EQ(NN_full.initialize(), ML_ERROR_NONE);
-
-  EXPECT_EQ(NN_scaled_half.loadFromConfig(scaled_half.getIniName()),
-            ML_ERROR_NONE);
-  EXPECT_EQ(NN_scaled_half.compile(), ML_ERROR_NONE);
-  EXPECT_EQ(NN_scaled_half.initialize(), ML_ERROR_NONE);
-
-  EXPECT_EQ(NN_full.getInputDimension()[0].channel(),
-            NN_scaled_half.getInputDimension()[0].channel());
-  EXPECT_EQ(
-    (unsigned int)((float)NN_full.getOutputDimension()[0].width() * 0.5),
-    NN_scaled_half.getOutputDimension()[0].width());
-}
-
-/**
- * @brief Ini file unittest with backbone
- * @note Input shape from layers of backbone are striped off
- */
-TEST(nntrainerIniTest, backbone_p_13) {
-  ScopedIni base("base",
-                 {conv2d_shape, batch_normal + "input_layers=conv2d_shape",
-                  conv2d + "input_layers=bn"});
-
-  ScopedIni scaled_half(
-    "backbone_p13_scaled_half",
-    {nw_base_mse, adam, input2d, backbone_scaled + "input_layers=inputlayer"});
-
-  ScopedIni scaled_full(
-    "backbone_p13_full",
-    {nw_base_mse, adam, input2d, backbone_valid + "input_layers=inputlayer"});
-
-  nntrainer::NeuralNetwork NN_scaled_half, NN_full;
-
-  EXPECT_EQ(NN_full.loadFromConfig(scaled_full.getIniName()), ML_ERROR_NONE);
-  EXPECT_EQ(NN_full.compile(), ML_ERROR_NONE);
-  EXPECT_EQ(NN_full.initialize(), ML_ERROR_NONE);
-
-  EXPECT_EQ(NN_scaled_half.loadFromConfig(scaled_half.getIniName()),
-            ML_ERROR_NONE);
-  EXPECT_EQ(NN_scaled_half.compile(), ML_ERROR_NONE);
-  EXPECT_EQ(NN_scaled_half.initialize(), ML_ERROR_NONE);
-
-  EXPECT_EQ(NN_full.getInputDimension()[0].channel(),
-            NN_scaled_half.getInputDimension()[0].channel());
-  EXPECT_EQ(
-    (unsigned int)((float)NN_full.getOutputDimension()[0].channel() * 0.5),
-    NN_scaled_half.getOutputDimension()[0].channel());
-}
-
-/**
- * @brief Ini file unittest with backbone
- * @note Scaled size is at least 1
- */
-TEST(nntrainerIniTest, backbone_p_14) {
-  ScopedIni base("base", {conv2d_shape, conv2d + "input_layers=conv2d_shape"});
-
-  ScopedIni scaled_zero("backbone_p14_scaled_zero",
-                        {nw_base_mse, adam, input2d,
-                         backbone_scaled_zero + "input_layers=inputlayer"});
-
-  ScopedIni scaled_full(
-    "backbone_p14_full",
-    {nw_base_mse, adam, input2d, backbone_valid + "input_layers=inputlayer"});
-
-  nntrainer::NeuralNetwork NN_scaled_zero, NN_full;
-
-  EXPECT_EQ(NN_full.loadFromConfig(scaled_full.getIniName()), ML_ERROR_NONE);
-  EXPECT_EQ(NN_full.compile(), ML_ERROR_NONE);
-  EXPECT_EQ(NN_full.initialize(), ML_ERROR_NONE);
-
-  EXPECT_EQ(NN_scaled_zero.loadFromConfig(scaled_zero.getIniName()),
-            ML_ERROR_NONE);
-  EXPECT_EQ(NN_scaled_zero.compile(), ML_ERROR_NONE);
-  EXPECT_EQ(NN_scaled_zero.initialize(), ML_ERROR_NONE);
-
-  EXPECT_EQ(NN_full.getInputDimension()[0].channel(),
-            NN_scaled_zero.getInputDimension()[0].channel());
-  EXPECT_EQ(1u, NN_scaled_zero.getOutputDimension()[0].channel());
-}
-
-/**
- * @brief Ini file unittest with backbone
  * @note Input shape is provided in model file
  */
 TEST(nntrainerIniTest, backbone_n_15) {
@@ -695,28 +556,6 @@ TEST(nntrainerIniTest, backbone_n_15) {
   EXPECT_EQ(NN_full.initialize(), ML_ERROR_NOT_SUPPORTED);
 
   ScopedIni scaled("backbone_n15_scaled", {nw_base_mse, adam, backbone_scaled});
-
-  EXPECT_EQ(NN_scaled.loadFromConfig(scaled.getIniName()), ML_ERROR_NONE);
-  EXPECT_EQ(NN_scaled.compile(), ML_ERROR_INVALID_PARAMETER);
-  EXPECT_EQ(NN_scaled.initialize(), ML_ERROR_NOT_SUPPORTED);
-}
-
-/**
- * @brief Ini file unittest with backbone
- * @note Input shape is striped from backbone and not provided in model file
- */
-TEST(nntrainerIniTest, backbone_n_16) {
-  nntrainer::NeuralNetwork NN_scaled, NN_full;
-
-  ScopedIni base("base", {conv2d_shape, conv2d + "input_layers=conv2d_shape"});
-
-  ScopedIni full("backbone_n16_full", {nw_base_mse, adam, backbone_valid});
-
-  EXPECT_EQ(NN_full.loadFromConfig(full.getIniName()), ML_ERROR_NONE);
-  EXPECT_EQ(NN_full.compile(), ML_ERROR_INVALID_PARAMETER);
-  EXPECT_EQ(NN_full.initialize(), ML_ERROR_NOT_SUPPORTED);
-
-  ScopedIni scaled("backbone_n16_full", {nw_base_mse, adam, backbone_scaled});
 
   EXPECT_EQ(NN_scaled.loadFromConfig(scaled.getIniName()), ML_ERROR_NONE);
   EXPECT_EQ(NN_scaled.compile(), ML_ERROR_INVALID_PARAMETER);
