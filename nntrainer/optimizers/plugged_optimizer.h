@@ -82,12 +82,12 @@ public:
   }
 
   /**
-   * @brief     apply gradient to weight_list
-   * @param[in] params Weight list
+   * @brief     apply gradient to weight
+   * @param[in] params Weight
    * @param[in] iteration nth epoch number
    */
-  void applyGradients(std::vector<Weight> &params, int iteration) override {
-    optimizer_devel->applyGradients(params, iteration);
+  void applyGradient(Weight &param, int iteration) override {
+    optimizer_devel->applyGradient(param, iteration);
   }
 
   /**
@@ -154,20 +154,6 @@ public:
    */
   const std::string getType() const override {
     return optimizer_devel->getType();
-  }
-
-protected:
-  /**
-   * @brief     apply gradient to the given weight
-   * @param[in] weight Weight and gradient set to be updated
-   * @param[in] num_weights size of the array
-   * @param[in] iteration nth epoch number
-   * @note weight which is called upon can be assumed to be trainable
-   */
-  void applyGradient(Weight &weight, double updated_lr,
-                     int iteration) override {
-    throw std::runtime_error(
-      "this is a protected function and must not be called");
   }
 
 private:

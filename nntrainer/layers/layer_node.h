@@ -432,6 +432,20 @@ public:
   }
 
   /**
+   * @brief Get the Weight object
+   *
+   * @param idx Identifier of the weight
+   * @return Tensor& Reference to the weight tensor
+   */
+  Weight &getWeightObject(unsigned int idx) {
+    if (layerv1 == nullptr) {
+      return run_context.getWeightObject(idx);
+    } else {
+      return getLayer()->getWeightsRef()[idx];
+    }
+  }
+
+  /**
    * @brief Get the Weight tensor object
    *
    * @param idx Identifier of the weight

@@ -147,8 +147,10 @@ public:
    */
   virtual void applyGradient(unsigned int iteration,
                              std::shared_ptr<Optimizer> optimizer) {
-    if (optimizer)
-      optimizer->applyGradients(weights, iteration);
+    if (optimizer) {
+      for (auto &weight : weights)
+        optimizer->applyGradient(weight, iteration);
+    }
   }
 
   /**

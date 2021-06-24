@@ -31,10 +31,9 @@ public:
   SGD(float lr = 0.0001f, Args... args) : OptimizerImpl(lr, args...) {}
 
   /**
-   * @copydoc applyGradient(Weight &weight, double updated_lr,
-   * int iteration)
+   * @copydoc applyGradient(Weight &weight, int iteration)
    */
-  void applyGradient(Weight &weight, double updated_lr, int iteration);
+  void applyGradient(Weight &weight, int iteration);
 
   /**
    * @copydoc Optimizer::getType()
