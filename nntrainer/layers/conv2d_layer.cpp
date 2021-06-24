@@ -542,9 +542,4 @@ void Conv2DLayer::setProperty(const PropertyType type,
   }
 }
 
-void Conv2DLayer::scaleSize(float scalesize) noexcept {
-  filter_size = (unsigned int)(scalesize * (float)filter_size);
-  filter_size = std::max(filter_size, 1u);
-}
-
 } /* namespace nntrainer */
