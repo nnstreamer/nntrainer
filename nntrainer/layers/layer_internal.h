@@ -700,14 +700,6 @@ createLayer(const std::vector<std::string> &props = {}) {
   return ptr;
 }
 
-/**
- * @brief   Get Layer devel from ml::train::Layer
- *
- * @param   l Layer object
- * @return  Layer devel object
- */
-std::shared_ptr<LayerV1> getLayerV1Devel(std::shared_ptr<ml::train::Layer> l);
-
 } // namespace nntrainer
 
 #endif /* __cplusplus */

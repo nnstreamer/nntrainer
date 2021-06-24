@@ -199,9 +199,6 @@ std::ostream &operator<<(std::ostream &out, const LayerNode &l) {
 
   print_vector(l.input_layers, " input_layers");
   print_vector(l.output_layers, "output_layers");
-  /// comment intended here,
-  // print_vector(l.getObject()->input_layers, " input_layers");
-  // print_vector(l.getObject()->output_layers, "output_layers");
   return out;
 }
 
@@ -335,29 +332,46 @@ void LayerNode::finalize() {
  * @brief     Forward Propagation of a layer
  */
 void LayerNode::forwarding(bool training) {
+  if (layerv1)
+    layerv1->forwarding(training);
+      else
   layer->forwarding(run_context, training);
 }
 
 /**
  * @brief     calc the derivative to be passed to the previous layer
  */
-void LayerNode::calcDerivative() { layer->calcDerivative(run_context); }
+void LayerNode::calcDerivative() {
+  if (layerv1)
+    getLayer()->calcDerivative();
+  else
+    layer->calcDerivative(run_context);
+}
 
 /**
  * @brief     Calculate the derivative of a layer
  */
-void LayerNode::calcGradient() { layer->calcGradient(run_context); }
+void LayerNode::calcGradient() {
+  if (layerv1)
+    getLayer()->calcGradient();
+  else
+    layer->calcGradient(run_context);
+}
 
 /**
  * @brief Set the batch for the layer
  */
 void LayerNode::setBatch(unsigned int batch) {
-  if (finalized) {
-    run_context.setBatch(batch);
-    layer->setBatch(run_context, batch);
-  } else {
-    init_context.setBatch(batch);
-    layer->setBatch(init_context, batch);
+  if (layerv1)
+    layerv1->setBatch(batch);
+  else {
+    if (finalized) {
+      run_context.setBatch(batch);
+      layer->setBatch(run_context, batch);
+    } else {
+      init_context.setBatch(batch);
+      layer->setBatch(init_context, batch);
+    }
   }
 }
 
@@ -369,6 +383,11 @@ bool LayerNode::supportInPlace() const { return layer->supportInPlace(); }
 /**
  * @brief  check if this layer requires label to be passed
  */
-bool LayerNode::requireLabel() const { return layer->requireLabel(); }
+bool LayerNode::requireLabel() const {
+  if (layerv1)
+    return getLayer()->requireLabel();
+  else
+  return layer->requireLabel();
+}
 
 }; // namespace nntrainer

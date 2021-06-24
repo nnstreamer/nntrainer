@@ -44,7 +44,6 @@ TEST_P(LayerPluginCommonTest, DefaultEnvironmentPath_p) {
   EXPECT_EQ(l->getType(), layer_type_name);
 
   auto lnode = std::static_pointer_cast<nntrainer::LayerNode>(l);
-  auto layer = nntrainer::getLayerV1Devel(l);
 
   std::ifstream input_file("does_not_exist");
   EXPECT_NO_THROW(lnode->read(input_file));

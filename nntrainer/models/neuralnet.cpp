@@ -247,9 +247,9 @@ sharedConstTensors NeuralNetwork::forwarding(sharedConstTensors input,
 
   /// feed or clear label
   for (auto iter = model_graph.cbegin(); iter != model_graph.cend(); iter++) {
-    auto &l = *iter->getObject();
-    if (l.requireLabel()) {
-      label.empty() ? clear_label(*iter) : fill_label(*iter);
+    auto const &lnode = *iter;
+    if (lnode->requireLabel()) {
+      label.empty() ? clear_label(lnode) : fill_label(lnode);
     }
   }
 
@@ -258,7 +258,7 @@ sharedConstTensors NeuralNetwork::forwarding(sharedConstTensors input,
   return forwarding(training);
 }
 
-void NeuralNetwork::backwarding(std::shared_ptr<LayerV1> layer, int iteration,
+void NeuralNetwork::backwarding(std::shared_ptr<LayerNode> node, int iteration,
                                 bool calc_derivative) {
   /**
    * Do not change this order:
@@ -269,11 +269,12 @@ void NeuralNetwork::backwarding(std::shared_ptr<LayerV1> layer, int iteration,
   bool apply_gradient;
   /** If gradient optimization mode, then calculate gradient first */
   if (dynamic_training_opt.isGradientMode())
-    layer->calcGradient();
+    node->calcGradient();
 
   /**
    * If optimization off, or gradient must be applied, then this will be true
    */
+  auto &layer = node->getObject();
   apply_gradient = dynamic_training_opt.checkIfApply(
     layer->getWeightsRef(), layer->net_input[0], layer->net_hidden[0], opt,
     iteration);
@@ -281,13 +282,13 @@ void NeuralNetwork::backwarding(std::shared_ptr<LayerV1> layer, int iteration,
   /** If gradient must be applied and its not gradient mode, calculate gradient
    */
   if (!dynamic_training_opt.isGradientMode() && apply_gradient)
-    layer->calcGradient();
+    node->calcGradient();
 
   if (calc_derivative)
-    layer->calcDerivative();
+    node->calcDerivative();
 
   if (apply_gradient) {
-    if (layer->getType() == TimeDistLayer::type) {
+    if (node->getType() == TimeDistLayer::type) {
       opt->applyGradients(std::dynamic_pointer_cast<TimeDistLayer>(layer)
                             ->getDistLayer()
                             ->getWeightsRef(),
@@ -317,22 +318,22 @@ void NeuralNetwork::backwarding(int iteration) {
 
   auto const &lptr_begin = (*iter_begin);
 
-  if (lptr_begin->getObject()->requireLabel() == false)
+  if (lptr_begin->requireLabel() == false)
     throw std::runtime_error(
       "Error: last layer does not accept label, we can't train");
 
   auto iter = iter_begin;
   for (; iter != iter_end - 1; iter++) {
-    backwarding((*iter)->getObject(), iteration, true);
+    backwarding(*iter, iteration, true);
   }
 
   /**
    * The last trainable layer need not calculate the derivatives
    */
 #ifdef ENABLE_TEST
-  backwarding((*iter)->getObject(), iteration, true);
+  backwarding(*iter, iteration, true);
 #else
-  backwarding((*iter)->getObject(), iteration, false);
+  backwarding(*iter, iteration, false);
 #endif
 }
 
@@ -693,13 +694,6 @@ int NeuralNetwork::addLayer(NodeType layer) {
     return ML_ERROR_NOT_SUPPORTED;
   }
 
-  /** Validate the layer to be added */
-  status = layer->getObject()->checkValidation();
-  if (status != ML_ERROR_NONE) {
-    ml_loge("layer(%s) validation failed.", layer->getName().c_str());
-    return status;
-  }
-
   /** Insert the layer to the graph */
   model_graph.addLayer(layer);
 
@@ -842,9 +836,9 @@ void NeuralNetwork::print(std::ostream &out, unsigned int flags,
 
   /** print layer properties */
   // TODO: get sorted layers if initialized
-  auto layers = model_graph.getLayerNodes();
-  for (auto &layer : layers)
-    layer->getObject()->printPreset(out, layerPrintPreset);
+  // for (auto &layer : model_graph)
+    // TODO: either support printPreset in LayerNode or use exportTo
+    // layer->printPreset(out, layerPrintPreset);
 
   /// @todo Add status to check neuralnet has been run. #290
 }
