@@ -210,7 +210,6 @@ typedef struct {
  */
 extern "C" LayerPluggable ml_train_layer_pluggable;
 
-
 } // namespace nntrainer
 
 #endif /* __cplusplus */

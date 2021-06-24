@@ -357,6 +357,14 @@ public:
     tensors[idx]->setBatchSize(batch);
   }
 
+  /**
+   * @brief   Get weight object for the weights
+   *
+   * @param idx index of the weight (identifier)
+   * @return weight object
+   */
+  Weight &getWeightObject(unsigned int idx) { return *weights[idx]; }
+
 private:
   std::tuple<props::Name> props; /**< props of the layer */
 

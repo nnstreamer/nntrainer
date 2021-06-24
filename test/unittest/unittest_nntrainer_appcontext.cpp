@@ -119,8 +119,7 @@ public:
 
   void checkValidation() const override {}
 
-  void applyGradient(nntrainer::Weight &weight, double updated_lr,
-                     int iteration) override {}
+  void applyGradient(nntrainer::Weight &weight, int iteration) override {}
 };
 
 /**
@@ -141,8 +140,7 @@ public:
     return std::vector<nntrainer::TensorDim>();
   }
 
-  void applyGradient(nntrainer::Weight &weight, double updated_lr,
-                     int iteration) override {}
+  void applyGradient(nntrainer::Weight &weight, int iteration) override {}
 };
 
 /**

@@ -67,7 +67,8 @@ TEST(AppContext, DefaultEnvironmentPath_p) {
   /// error
   std::shared_ptr<ml::train::Layer> l = ml::train::createLayer("pow");
   EXPECT_EQ(l->getType(), "pow");
-  std::shared_ptr<nntrainer::LayerNode> lnode = std::static_pointer_cast<nntrainer::LayerNode>(l);
+  std::shared_ptr<nntrainer::LayerNode> lnode =
+    std::static_pointer_cast<nntrainer::LayerNode>(l);
 
   EXPECT_NO_THROW(lnode->getType());
   EXPECT_NE(lnode->setProperty({"invalid_values"}), ML_ERROR_NONE);
