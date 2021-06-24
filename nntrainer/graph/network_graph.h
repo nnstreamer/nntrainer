@@ -126,15 +126,6 @@ public:
   }
 
   /**
-   * @brief getter of Layer with layer name
-   * @param[in] layer name
-   * @retval Layer
-   */
-  std::shared_ptr<LayerV1> getLayer(const std::string &layer_name) {
-    return getLayerNode(layer_name)->getObject();
-  }
-
-  /**
    * @brief getter all the layer nodes in the model
    * @retval Layer nodes
    * @note these layer nodes will be in sorted order if the model is compiled,
