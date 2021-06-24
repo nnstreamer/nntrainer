@@ -142,8 +142,9 @@ std::unique_ptr<Layer> createLayer(const std::string &type) {
 /**
  * @brief Factory creator with constructor
  */
-// std::unique_ptr<LayerV1> createLoss(LossType type) {
-//   return std::make_unique<LossLayer>(type);
-// }
+std::unique_ptr<Layer> createLoss(LossType type) {
+  // FIXME: this is just temporary code for compiler to pass
+  return std::make_unique<FullyConnectedLayer>();
+}
 
 } // namespace nntrainer
