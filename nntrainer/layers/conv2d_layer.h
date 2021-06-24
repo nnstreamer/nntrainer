@@ -118,11 +118,6 @@ public:
 
   inline static const std::string type = "conv2d";
 
-  /**
-   * @copydoc Layer::scaleSize(float scalesize)
-   */
-  void scaleSize(float scalesize) noexcept override;
-
 private:
   unsigned int filter_size;
   std::array<unsigned int, CONV2D_DIM> kernel_size;

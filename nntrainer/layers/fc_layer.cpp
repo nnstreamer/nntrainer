@@ -132,10 +132,4 @@ void FullyConnectedLayer::calcGradient() {
   net_input[0]->getVariableRef().dot(derivative_, djdw, true, false);
 }
 
-void FullyConnectedLayer::scaleSize(float scalesize) {
-  auto &unit = std::get<props::Unit>(fc_props).get();
-  unit = (unsigned int)(scalesize * (float)unit);
-  unit = std::max(unit, 1u);
-}
-
 } /* namespace nntrainer */

@@ -189,18 +189,6 @@ public:
   }
 
   /**
-   * @copydoc Layer::scaleSize(float scalesize)
-   */
-  void scaleSize(float scalesize) noexcept override {
-    return layerImpl->scaleSize(scalesize);
-  }
-
-  /**
-   * @copydoc Layer::resetDimension()
-   */
-  void resetDimension() override { return layerImpl->resetDimension(); }
-
-  /**
    * @copydoc Layer::getOutputs()
    */
   std::vector<Tensor> getOutputs() override { return layerImpl->getOutputs(); }
