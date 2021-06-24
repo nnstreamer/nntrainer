@@ -248,9 +248,10 @@ TEST(BasicProperty, valid_p) {
   }
 
   { /**< export from layer */
-    auto lnode =
-      nntrainer::LayerNode(std::make_shared<nntrainer::FullyConnectedLayer>(1));
+    auto lnode = nntrainer::LayerNode(
+      std::move(std::make_unique<nntrainer::FullyConnectedLayer>()));
     nntrainer::Exporter e;
+    lnode.setProperty({"unit=1"});
     lnode.exportTo(e, nntrainer::ExportMethods::METHOD_STRINGVECTOR);
 
     auto result = e.getResult<nntrainer::ExportMethods::METHOD_STRINGVECTOR>();

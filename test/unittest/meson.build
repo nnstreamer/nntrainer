@@ -31,9 +31,9 @@ test_target = [
   'unittest_nntrainer_tensor',
   'unittest_util_func',
   'unittest_databuffer_file',
-  'unittest_nntrainer_modelfile',
-  'unittest_nntrainer_models',
-  'unittest_nntrainer_graph',
+  # 'unittest_nntrainer_modelfile',
+  # 'unittest_nntrainer_models',
+  # 'unittest_nntrainer_graph',
   'unittest_nntrainer_appcontext',
   'unittest_base_properties',
   'unittest_common_properties'

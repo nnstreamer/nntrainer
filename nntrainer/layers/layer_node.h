@@ -32,8 +32,9 @@
 #include <layer.h>
 #include <layer_context.h>
 #include <layer_internal.h>
+#include <loss_layer.h>
 
-constexpr bool LAYER_V2 = false;
+constexpr bool LAYER_V2 = true;
 
 namespace nntrainer {
 
@@ -374,7 +375,8 @@ public:
    */
   void addInputLayers(const std::string &in_layer) {
     input_layers.push_back(in_layer);
-    layerv1->setNumInputs(input_layers.size());
+    if (layerv1)
+      layerv1->setNumInputs(input_layers.size());
   }
 
   /**
@@ -384,7 +386,8 @@ public:
    */
   void addOutputLayers(const std::string &out_layer) {
     output_layers.push_back(out_layer);
-    layerv1->setNumOutputs(output_layers.size());
+    if (layerv1)
+      layerv1->setNumOutputs(output_layers.size());
   }
 
   /**
@@ -394,7 +397,8 @@ public:
    */
   void setInputLayers(const std::vector<std::string> &layers) {
     input_layers = layers;
-    layerv1->setNumInputs(layers.size());
+    if (layerv1)
+      layerv1->setNumInputs(layers.size());
   }
 
   /**
@@ -404,7 +408,8 @@ public:
    */
   void setOutputLayers(const std::vector<std::string> &layers) {
     output_layers = layers;
-    layerv1->setNumOutputs(layers.size());
+    if (layerv1)
+      layerv1->setNumOutputs(layers.size());
   }
 
   /**
@@ -605,6 +610,23 @@ public:
     input_dim[idx] = dim;
   }
 
+  /**
+   * @brief Set loss type for the layer underneath the node
+   *
+   * @param type The loss type
+   * @todo this interface will be removed when loss layer is updated for LayerV2
+   */
+  void setLossType(LossType type) {
+    if (layerv1) {
+      if (getType() != LossLayer::type)
+        throw std::runtime_error("Setting loss type on non-loss layer");
+      std::dynamic_pointer_cast<LossLayer>(getLayer())->setLoss(type);
+    } else {
+      // TODO: set loss layer type for LayerV2
+      // will be handled when updating LossLayer for LayerV2
+    }
+  }
+
 private:
   /// @todo remove this
   std::shared_ptr<nntrainer::LayerV1>
@@ -688,6 +710,16 @@ private:
 std::unique_ptr<LayerNode>
 createLayerNode(const std::string &type,
                 const std::vector<std::string> &properties = {});
+
+/**
+ * @brief LayerNode creator with constructor
+ *
+ * @params[in] layer Already constructed layer
+ * @params[in] properties Properties of the layer
+ */
+std::unique_ptr<LayerNode>
+createLayerNode(std::unique_ptr<nntrainer::Layer> &&layer,
+                const std::vector<std::string> &properties);
 
 /**
  * @brief LayerNode creator with constructor
