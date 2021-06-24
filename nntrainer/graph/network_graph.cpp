@@ -109,7 +109,6 @@ int NetworkGraph::realizeMultiInputType(
 
   // TODO: this can be addition or concat layer - add support
   std::shared_ptr<LayerNode> lnode = createLayerNode(AdditionLayer::type);
-  std::shared_ptr<LayerV1> layer = lnode->getObject();
   graph.ensureName(*lnode, in_node->getName());
 
   lnode->setInputLayers(in_node->getInputLayers());
@@ -131,7 +130,6 @@ int NetworkGraph::realizeFlattenType(
   }
 
   std::shared_ptr<LayerNode> lnode = createLayerNode(FlattenLayer::type);
-  std::shared_ptr<LayerV1> layer = lnode->getObject();
   graph.ensureName(*lnode, in_node->getName());
 
   lnode->setInputLayers({in_node->getName()});
@@ -172,7 +170,6 @@ int NetworkGraph::realizeActivationType(
     lnode->setProperty({"distribute=true"});
   }
 
-  std::shared_ptr<LayerV1> layer = lnode->getObject();
   lnode->setProperty({"activation=" + ActivationTypeStr[(unsigned int)act]});
   in_node->setProperty({"activation=none"});
 
@@ -197,7 +194,6 @@ int NetworkGraph::realizeMultiOutputType(
     return ML_ERROR_NONE;
 
   std::shared_ptr<LayerNode> lnode = createLayerNode(OutputLayer::type);
-  std::shared_ptr<LayerV1> layer = lnode->getObject();
   graph.ensureName(*lnode, in_node->getName());
 
   lnode->setInputLayers({in_node->getName()});
@@ -223,7 +219,7 @@ int NetworkGraph::addLossLayer(const LossType loss_type) {
   auto const &last_node = LNODE(graph.getSortedNode(graph.size() - 1));
   auto last_layer_node = getSortedLayerNode(graph.size() - 1);
 
-  if (last_layer_node->getObject()->requireLabel()) {
+  if (last_layer_node->requireLabel()) {
     return status;
   }
 
@@ -329,7 +325,7 @@ void NetworkGraph::setOutputLayers() {
       }
     }
 
-    if (layer_idx->getObject()->getNumOutputs() != layer_idx->getNumOutputs()) {
+    if (layer_idx->getOutputDimensions().size() != layer_idx->getNumOutputs()) {
       if (layer_idx->getNumOutputs() == 0) {
         /** No output layer inplies its the last layer */
         layer_idx->setOutputLayers({"__exit__"});
@@ -405,14 +401,13 @@ int NetworkGraph::realizeGraph() {
    */
   for (unsigned int i = 0; i < graph.size(); ++i) {
     auto const &lnode = LNODE(*(cbegin() + i));
-    auto &l = *lnode->getObject();
     ml_logd("layer name: %s", lnode->getName().c_str());
 
     /** If a layer does not has input nodes, then it must have input dimension
      */
     if (lnode->getNumInputs() == 0) {
-      for (unsigned int i = 0; i < l.getInputDimension().size(); ++i) {
-        if (l.getInputDimension()[i].getDataLen() == 0) {
+      for (unsigned int i = 0; i < lnode->getInputDimensions().size(); ++i) {
+        if (lnode->getInputDimensions()[i].getDataLen() == 0) {
           ml_loge("Input Dimension must be set");
           status = ML_ERROR_INVALID_PARAMETER;
           NN_RETURN_STATUS();
@@ -422,13 +417,13 @@ int NetworkGraph::realizeGraph() {
       lnode->setInputLayers({"__data__"});
     }
 
-    if (l.getType() != AdditionLayer::type &&
-        l.getType() != ConcatLayer::type) {
+    if (lnode->getType() != AdditionLayer::type &&
+        lnode->getType() != ConcatLayer::type) {
       status = realizeMultiInputType(lnode);
       NN_RETURN_STATUS();
     }
 
-    if (l.getType() != ActivationLayer::type) {
+    if (lnode->getType() != ActivationLayer::type) {
       status = realizeActivationType(lnode);
       NN_RETURN_STATUS();
     }
@@ -467,7 +462,7 @@ int NetworkGraph::realizeGraph() {
 
 void NetworkGraph::setBatchSize(unsigned int batch_size) {
   for (auto iter = cbegin(); iter != cend(); iter++) {
-    (*iter)->getObject()->setBatch(batch_size);
+    (*iter)->setBatch(batch_size);
   }
 }
 
@@ -475,7 +470,7 @@ sharedConstTensors NetworkGraph::forwarding(bool training) const {
   for (auto iter = cbegin(); iter != cend(); iter++) {
     auto const &ln = *iter;
     START_PROFILE(ln->event_key);
-    ln->getObject()->forwarding(training);
+    ln->forwarding(training);
     END_PROFILE(ln->event_key);
   }
 
@@ -608,6 +603,7 @@ void NetworkGraph::inPlaceOptimize(Manager &manager) {
   // TODO: update this after initial verification, this is deprecated for now.
   return;
 
+#if 0
   for (auto iter = cbegin(); iter != cend(); iter++) {
     auto layer_node = *iter;
     auto &l = layer_node->getObject();
@@ -640,11 +636,11 @@ void NetworkGraph::inPlaceOptimize(Manager &manager) {
         throw std::runtime_error("Internal error in the formed graph.");
 
       /** Previous layer cannot be input layer for in-place layer */
-      if (prev_layer->getType() == InputLayer::type)
+      if (prev_node->getType() == InputLayer::type)
         continue;
 
       /** Two layers cant work in-place consecutively */
-      if (prev_layer->supportInPlace())
+      if (prev_node->supportInPlace())
         continue;
 
       /** Share tensor with next layer */
@@ -696,6 +692,7 @@ void NetworkGraph::inPlaceOptimize(Manager &manager) {
       manager.untrackLayerInOuts(prev_node->getName());
     }
   }
+  #endif
 }
 
 std::vector<Var_Grad *>

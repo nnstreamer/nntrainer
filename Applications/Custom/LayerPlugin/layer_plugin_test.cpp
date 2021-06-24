@@ -67,26 +67,12 @@ TEST(AppContext, DefaultEnvironmentPath_p) {
   /// error
   std::shared_ptr<ml::train::Layer> l = ml::train::createLayer("pow");
   EXPECT_EQ(l->getType(), "pow");
+  std::shared_ptr<nntrainer::LayerNode> lnode = std::static_pointer_cast<nntrainer::LayerNode>(l);
 
-  auto layer = nntrainer::getLayerV1Devel(l);
-
-  std::ifstream input_file("does_not_exist");
-  EXPECT_NO_THROW(layer->read(input_file));
-  if (remove("does_not_exist")) {
-    std::cerr << "failed to remove file\n";
-  }
-
-  std::ofstream output_file("does_not_exist");
-  EXPECT_NO_THROW(layer->save(output_file));
-  if (remove("does_not_exist")) {
-    std::cerr << "failed to remove file\n";
-  }
-
-  EXPECT_NO_THROW(layer->getType());
-  EXPECT_NE(layer->setProperty({"invalid_values"}), ML_ERROR_NONE);
-  EXPECT_EQ(layer->checkValidation(), ML_ERROR_NONE);
-  EXPECT_EQ(layer->getOutputDimension()[0], nntrainer::TensorDim());
-  EXPECT_EQ(layer->getInputDimension()[0], nntrainer::TensorDim());
+  EXPECT_NO_THROW(lnode->getType());
+  EXPECT_NE(lnode->setProperty({"invalid_values"}), ML_ERROR_NONE);
+  EXPECT_EQ(lnode->getOutputDimensions()[0], nntrainer::TensorDim());
+  EXPECT_EQ(lnode->getInputDimensions()[0], nntrainer::TensorDim());
 }
 
 TEST(AppContext, DefaultEnvironmentPath_n) {

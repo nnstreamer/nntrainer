@@ -638,7 +638,7 @@ private:
    * @param[in] calc_derivative If the derivative for previous layer must be
    * calculated
    */
-  void backwarding(std::shared_ptr<LayerV1> layer, int iteration,
+  void backwarding(std::shared_ptr<LayerNode> node, int iteration,
                    bool calc_derivative);
 };
 
