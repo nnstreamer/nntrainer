@@ -210,14 +210,6 @@ typedef struct {
  */
 extern "C" LayerPluggable ml_train_layer_pluggable;
 
-/**
- * @brief   Get Layer devel from ml::train::Layer
- * @todo    deprecate this(#986)
- *
- * @param   l Layer object
- * @return  Layer devel object
- */
-std::shared_ptr<Layer> getLayerDevel(std::shared_ptr<ml::train::Layer> l);
 
 } // namespace nntrainer
 
