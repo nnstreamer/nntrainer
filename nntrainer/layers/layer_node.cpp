@@ -132,18 +132,14 @@ int LayerNode::setProperty(std::vector<std::string> properties) {
     status = getKeyValue(left_properties[i], key, value);
     NN_RETURN_STATUS();
 
-    unsigned int type = parseLayerProperty(key);
-
     if (value.empty()) {
       ml_logd("value is empty for layer: %s, key: %s, value: %s",
               getName().c_str(), key.c_str(), value.c_str());
       return ML_ERROR_INVALID_PARAMETER;
     }
 
-    try {
-      /// @note this calls derived setProperty if available
-      setProperty(static_cast<nntrainer::LayerV1::PropertyType>(type), value);
-    } catch (...) {
+    /// @note this calls derived setProperty if available
+    if (!setProperty(key, value)) {
       remainder.push_back(left_properties[i]);
     }
   }
@@ -158,29 +154,31 @@ int LayerNode::setProperty(std::vector<std::string> properties) {
   return status;
 }
 
-void LayerNode::setProperty(const nntrainer::LayerV1::PropertyType type,
-                            const std::string &value) {
+bool LayerNode::setProperty(const std::string &key, const std::string &value) {
   using PropertyType = nntrainer::LayerV1::PropertyType;
+
+  PropertyType type = static_cast<PropertyType>(parseLayerProperty(key));
   switch (type) {
-  case PropertyType::activation:
-    if (!value.empty()) {
-      setActivation((ActivationType)parseType(value, TOKEN_ACTI));
-      if (getType() == ActivationLayer::type)
-        throw std::invalid_argument(
-          "Set property delegated to activation layer");
+  case PropertyType::activation: {
+    setActivation((ActivationType)parseType(value, TOKEN_ACTI));
+    if (getType() == ActivationLayer::type) {
+      ml_logi("Set property delegated to activation layer");
+      return false;
     }
     break;
-  case PropertyType::input_layers:
-    if (!value.empty()) {
-      static const std::regex reg("\\,+");
-      std::vector<std::string> split_layers = split(value, reg);
-      layerv1->setNumInputs(split_layers.size());
-      input_layers = split_layers;
-    }
-    break;
-  default:
-    throw std::invalid_argument("Unknown property.");
   }
+  case PropertyType::input_layers: {
+    static const std::regex reg("\\,+");
+    std::vector<std::string> split_layers = split(value, reg);
+    layerv1->setNumInputs(split_layers.size());
+    input_layers = split_layers;
+    break;
+  }
+  default:
+    return false;
+  }
+
+  return true;
 }
 
 const std::string LayerNode::getName() const noexcept {

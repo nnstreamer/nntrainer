@@ -633,15 +633,13 @@ private:
   /**
    * @brief setProperty by PropertyType
    * @note By passing empty string, this can validate if @a type is valid
-   * @param[in] type property type to be passed
+   * @param[in] key property type to be passed
    * @param[in] value value to be passed, if empty string is passed, do nothing
    * but throws error when @a type is invalid
-   * @exception exception::not_supported     when property type is not valid for
-   * the particular layer
+   * @return true if the property can be captured, else false
    * @exception std::invalid_argument invalid argument
    */
-  void setProperty(const nntrainer::LayerV1::PropertyType type,
-                   const std::string &value = "");
+  bool setProperty(const std::string &key, const std::string &value);
 
   /**
    * @brief   Get the effective layer managed by this layer node
