@@ -121,17 +121,6 @@ protected:
   float decay_rate;         /** decay rate for learning rate */
   unsigned int decay_steps; /** decay steps for learning rate */
   bool continue_train; /** Continue training with previous tensors for adam */
-
-private:
-  /**
-   * @brief     apply gradient to the given weight
-   * @param[in] weight Weight and gradient set to be updated
-   * @param[in] num_weights size of the array
-   * @param[in] iteration nth epoch number
-   * @note weight which is called upon can be assumed to be trainable
-   */
-  virtual void applyGradient(Weight &weight, double updated_lr,
-                             int iteration) = 0;
 };
 
 } /* namespace nntrainer */

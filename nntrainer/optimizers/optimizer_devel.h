@@ -47,11 +47,11 @@ public:
   virtual double getLearningRate(size_t iteration) const = 0;
 
   /**
-   * @brief     apply gradient to weight_list
-   * @param[in] params Weight list
+   * @brief     apply gradient to weight
+   * @param[in] params Weight
    * @param[in] iteration nth epoch number
    */
-  virtual void applyGradients(std::vector<Weight> &params, int iteration);
+  virtual void applyGradient(Weight &param, int iteration) = 0;
 
   /**
    * @brief     set Optimizer Parameters
@@ -138,17 +138,6 @@ public:
    * @retval    Optimizer type
    */
   virtual const std::string getType() const = 0;
-
-private:
-  /**
-   * @brief     apply gradient to the given weight
-   * @param[in] weight Weight and gradient set to be updated
-   * @param[in] num_weights size of the array
-   * @param[in] iteration nth epoch number
-   * @note weight which is called upon can be assumed to be trainable
-   */
-  virtual void applyGradient(Weight &weight, double updated_lr,
-                             int iteration) = 0;
 };
 
 using CreateOptimizerFunc = ml::train::Optimizer *(*)();
