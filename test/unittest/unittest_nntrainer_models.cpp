@@ -684,10 +684,7 @@ INI fc_sigmoid_cross =
   INI("fc_sigmoid_cross") + fc_sigmoid_baseline + softmax_base + "model/loss=cross";
 
 INI fc_sigmoid_cross__1 =
-  INI("fc_sigmoid_cross__1") + fc_sigmoid_baseline + softmax_base + I("loss", cross_base);
-
-INI fc_sigmoid_cross__2 =
-  INI("fc_sigmoid_cross__2") + fc_sigmoid_baseline + I("loss", cross_softmax_base);
+  INI("fc_sigmoid_cross__1") + fc_sigmoid_baseline + I("loss", cross_softmax_base);
 
 INI fc_relu_baseline(
   "fc_relu",

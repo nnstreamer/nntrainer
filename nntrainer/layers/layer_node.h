@@ -139,8 +139,17 @@ public:
    *
    * @return list of name of the nodes which form input connections
    */
-  const std::vector<std::string> &getInputConnections() const {
+  const std::vector<std::string> &getInputConnections() const override {
     return getInputLayers();
+  }
+
+  /**
+   * @brief     Get the output connections for this node
+   *
+   * @return list of name of the nodes which form output connections
+   */
+  const std::vector<std::string> &getOutputConnections() const override {
+    return getOutputLayers();
   }
 
   /**

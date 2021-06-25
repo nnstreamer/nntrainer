@@ -165,20 +165,22 @@ void GraphCore::ensureName(GraphNode &node, const std::string &prefix,
   node_names.insert(name);
 }
 
-void GraphCore::removeLastNode() {
-  auto last_node = Sorted.back();
-
-  Sorted.pop_back();
-
-  /// fix index after last node has been deleted.
-  auto after = node_list.erase(node_list.begin() + last_node->getIndex());
-  auto after_index = last_node->getIndex();
-
-  for (; after != node_list.end(); ++after) {
-    (*after)->setIndex(after_index++);
-  }
+void GraphCore::replaceNode(std::shared_ptr<GraphNode> from,
+                            std::shared_ptr<GraphNode> to) {
+  unsigned int idx = from->getIndex();
+  to->setIndex(idx);
+  node_list[idx] = to;
 }
 
-void GraphCore::addLossToSorted() { Sorted.push_back(node_list.back()); }
+void GraphCore::realizeInputOutputNode() {
+  for (auto iter = cbegin(); iter != cend(); ++iter) {
+    if (iter->getInputConnections().size() == 0) {
+      input_list.push_back(*iter);
+    }
+    if (iter->getOutputConnections().size() == 0) {
+      output_list.push_back(*iter);
+    }
+  }
+}
 
 } /* namespace nntrainer */

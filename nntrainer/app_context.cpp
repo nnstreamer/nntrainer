@@ -33,7 +33,6 @@
 #include <bn_layer.h>
 #include <concat_layer.h>
 #include <conv2d_layer.h>
-#include <cross_entropy_loss_layer.h>
 #include <cross_entropy_sigmoid_loss_layer.h>
 #include <cross_entropy_softmax_loss_layer.h>
 #include <dropout.h>
@@ -262,9 +261,6 @@ static void add_default_object(AppContext &ac) {
   /** register losses */
   ac.registerFactory(nntrainer::createLayer<MSELossLayer>, MSELossLayer::type,
                      LayerType::LAYER_LOSS_MSE);
-  ac.registerFactory(nntrainer::createLayer<CrossEntropyLossLayer>,
-                     CrossEntropyLossLayer::type,
-                     LayerType::LAYER_LOSS_CROSS_ENTROPY);
   ac.registerFactory(nntrainer::createLayer<CrossEntropySoftmaxLossLayer>,
                      CrossEntropySoftmaxLossLayer::type,
                      LayerType::LAYER_LOSS_CROSS_ENTROPY_SOFTMAX);
