@@ -57,7 +57,6 @@ enum LayerType {
   LAYER_PERMUTE,                    /** Permute layer */
   LAYER_DROPOUT,                    /** DropOut Layer type */
   LAYER_LOSS_MSE = 500,             /** Mean Squared Error Loss Layer type */
-  LAYER_LOSS_CROSS_ENTROPY,         /** Cross Entropy Loss Layer type */
   LAYER_LOSS_CROSS_ENTROPY_SIGMOID, /** Cross Entropy with Sigmoid Loss Layer
                                        type */
   LAYER_LOSS_CROSS_ENTROPY_SOFTMAX, /** Cross Entropy with Softmax Loss Layer
@@ -366,14 +365,6 @@ namespace loss {
 inline std::unique_ptr<Layer>
 MSE(const std::vector<std::string> &properties = {}) {
   return createLayer(LayerType::LAYER_LOSS_MSE, properties);
-}
-
-/**
- * @brief Helper function to create cross entropy layer
- */
-inline std::unique_ptr<Layer>
-CrossEntropy(const std::vector<std::string> &properties = {}) {
-  return createLayer(LayerType::LAYER_LOSS_CROSS_ENTROPY, properties);
 }
 
 /**

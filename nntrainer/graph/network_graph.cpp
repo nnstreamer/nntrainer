@@ -48,18 +48,18 @@ int NetworkGraph::compile(const std::string &loss_type) {
   status = realizeGraph();
   NN_RETURN_STATUS();
 
-  graph.topologicalSort();
-
-  status = addLossLayer(loss_type);
-  NN_RETURN_STATUS();
+  graph.realizeInputOutputNode();
 
   try {
-    finalizeLossLayer();
+    status = addLossLayer(loss_type);
+    NN_RETURN_STATUS();
   } catch (const std::exception &e) {
     ml_loge("%s", e.what());
     status = ML_ERROR_INVALID_PARAMETER;
     NN_RETURN_STATUS();
   }
+
+  graph.topologicalSort();
 
   countNonTrainableLayersAtBegin();
 
@@ -221,87 +221,63 @@ int NetworkGraph::realizeMultiOutputType(
   return status;
 }
 
-/**
- * @fixme: the implementation assumes loss layer should always be at the last
- * layer and the there is only one loss, this assumption is not true
- */
-void NetworkGraph::finalizeLossLayer() {
-  auto loss_layer_node = getSortedLayerNode(graph.size() - 1);
-  std::string loss_type = loss_layer_node->getType();
-  if (graph.size() == 1) {
-    if (istrequal(loss_type, CrossEntropyLossLayer::type))
-      throw exception::not_supported(
-        "Cross Entropy layer only supported with softmax or sigmoid");
-    return;
-  }
+int NetworkGraph::addLossLayer(const std::string &loss_type_) {
+  for (unsigned int i = 0; i < graph.getNumOutputNodes(); ++i) {
+    auto output_layer_node = LNODE(graph.getOutputNode(i));
+    std::string loss_type = loss_type_;
 
-  if (istrequal(loss_type, CrossEntropyLossLayer::type)) {
-    /** @fixme the previous layer might not be the previous node in sorted list
-     */
-    auto prev_layer_node = getSortedLayerNode(graph.size() - 2);
-    auto type = prev_layer_node->getType();
+    if (output_layer_node->requireLabel())
+      continue;
 
-    if (type != "activation") {
-      throw exception::not_supported(
-        "Error: Cross Entropy need last layer to have softmax or sigmoid"
-        "activation.");
+    if (loss_type.empty())
+      continue;
+
+    auto second_to_last_layer_node = output_layer_node;
+    bool is_cross_entropy_loss =
+      istrequal(loss_type, CrossEntropyLossLayer::type);
+    if (is_cross_entropy_loss) {
+      auto type = output_layer_node->getType();
+
+      if (type != ActivationLayer::type) {
+        throw exception::not_supported(
+          "Error: Cross Entropy need last layer to have softmax or sigmoid"
+          "activation.");
+      }
+
+      switch (output_layer_node->getActivationType()) {
+      case ActivationType::ACT_SIGMOID:
+        loss_type = CrossEntropySigmoidLossLayer::type;
+        break;
+      case ActivationType::ACT_SOFTMAX:
+        loss_type = CrossEntropySoftmaxLossLayer::type;
+        break;
+      default:
+        throw exception::not_supported(
+          "Error: Cross Entropy not supported without softmax or sigmoid.");
+      }
+
+      second_to_last_layer_node =
+        LNODE(graph.getNode(output_layer_node->getInputLayers()[0]));
     }
 
-    /// @todo add remove node by it's name or address or equivalent
-    graph.removeLastNode(); // remove loss node
-    graph.removeLastNode(); // remove activation node
+    std::shared_ptr<LayerNode> lnode = createLayerNode(loss_type);
+    graph.ensureName(*lnode);
 
-    switch (prev_layer_node->getActivationType()) {
-    case ActivationType::ACT_SIGMOID:
-      loss_type = CrossEntropySigmoidLossLayer::type;
-      break;
-    case ActivationType::ACT_SOFTMAX:
-      loss_type = CrossEntropySoftmaxLossLayer::type;
-      break;
-    default:
-      throw exception::not_supported(
-        "Error: Cross Entropy not supported without softmax or sigmoid.");
+    if (second_to_last_layer_node->getDistribute()) {
+      lnode->setProperty({"distribute=true"});
     }
 
-    if (addLossLayer(loss_type) != ML_ERROR_NONE)
-      throw std::runtime_error("Error setting loss in the model");
+    second_to_last_layer_node->setOutputLayers({lnode->getName()});
+    lnode->setInputLayers({second_to_last_layer_node->getName()});
+
+    if (is_cross_entropy_loss) {
+      lnode->setIndex(output_layer_node->getIndex());
+      graph.replaceNode(output_layer_node, lnode);
+    } else {
+      graph.addNode(lnode, false);
+    }
+    graph.replaceOutputNode(i, lnode);
   }
-}
-
-/**
- * @fixme: the implementation assumes loss layer should always be at the last
- * layer and the there is only one loss, this assumption is not true
- */
-int NetworkGraph::addLossLayer(const std::string &loss_type) {
-  int status = ML_ERROR_NONE;
-  auto last_layer_node = getSortedLayerNode(graph.size() - 1);
-
-  if (loss_type.empty()) {
-    return status;
-  }
-
-  if (last_layer_node->requireLabel()) {
-    if (!istrequal(last_layer_node->getType(), loss_type))
-      status = ML_ERROR_INVALID_PARAMETER;
-    return status;
-  }
-
-  std::shared_ptr<LayerNode> lnode = createLayerNode(loss_type);
-  graph.ensureName(*lnode);
-
-  if (last_layer_node->getDistribute()) {
-    lnode->setProperty({"distribute=true"});
-  }
-
-  last_layer_node->setOutputLayers({lnode->getName()});
-  lnode->setInputLayers({last_layer_node->getName()});
-
-  /**
-   * As the loss layer is always the last, it could be added manually to Sorted
-   * for performance.
-   */
-  graph.addNode(lnode, false);
-  graph.addLossToSorted();
 
   return ML_ERROR_NONE;
 }
@@ -448,10 +424,12 @@ sharedConstTensors NetworkGraph::forwarding(bool training) const {
     END_PROFILE(ln->event_key);
   }
 
-  std::vector<sharedConstTensor> out;
-  auto const &last_layer_node = getSortedLayerNode(graph.size() - 1);
-  for (unsigned int i = 0; i < last_layer_node->getNumOutputs(); ++i) {
-    out.push_back(MAKE_SHARED_TENSOR(last_layer_node->getOutput(i)));
+  sharedConstTensors out;
+  for (unsigned int i = 0; i < graph.getNumOutputNodes(); ++i) {
+    auto const &output_layer_node = LNODE(graph.getOutputNode(i));
+    for (unsigned int j = 0; j < output_layer_node->getNumOutputs(); ++j) {
+      out.push_back(MAKE_SHARED_TENSOR(output_layer_node->getOutput(j)));
+    }
   }
 
   return out;

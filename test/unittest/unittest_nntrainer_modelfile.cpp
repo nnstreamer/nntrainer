@@ -83,7 +83,12 @@ private:
  */
 TEST_P(nntrainerIniTest, loadConfig) {
   std::cout << std::get<0>(GetParam()) << std::endl;
-  int status = NN.loadFromConfig(getIniName());
+  int status = ML_ERROR_NONE;
+  try {
+    status = NN.loadFromConfig(getIniName());
+  } catch (...) {
+    status = ML_ERROR_INVALID_PARAMETER;
+  }
 
   if (failAtLoad()) {
     EXPECT_NE(status, ML_ERROR_NONE);
@@ -97,8 +102,15 @@ TEST_P(nntrainerIniTest, loadConfig) {
  */
 TEST_P(nntrainerIniTest, loadConfigTwice_n) {
   std::cout << std::get<0>(GetParam()) << std::endl;
-  NN.loadFromConfig(getIniName());
-  int status = NN.loadFromConfig(getIniName());
+
+  int status = ML_ERROR_NONE;
+  try {
+    NN.loadFromConfig(getIniName());
+    status = NN.loadFromConfig(getIniName());
+  } catch (...) {
+    status = ML_ERROR_INVALID_PARAMETER;
+  }
+
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
@@ -107,7 +119,12 @@ TEST_P(nntrainerIniTest, loadConfigTwice_n) {
  */
 TEST_P(nntrainerIniTest, init) {
   std::cout << std::get<0>(GetParam()) << std::endl;
-  int status = NN.loadFromConfig(getIniName());
+  int status = ML_ERROR_NONE;
+  try {
+    status = NN.loadFromConfig(getIniName());
+  } catch (...) {
+    status = ML_ERROR_INVALID_PARAMETER;
+  }
 
   try {
     status = NN.compile();
@@ -345,15 +362,14 @@ INSTANTIATE_TEST_CASE_P(
      mkIniTc("buffer_size_smaller_than_batch_size2_p", {nw_base_cross, adam, input, out+"input_layers=inputlayer", dataset + "BufferSize=26"}, SUCCESS),
      mkIniTc("loss_layer1_p", {nw_base, adam, input + "-Activation", out + "-Activation", loss_mse}, SUCCESS),
      mkIniTc("loss_layer2_p", {nw_base, adam, input + "-Activation", out, loss_mse}, SUCCESS),
-     mkIniTc("loss_layer3_n", {nw_base, adam, input + "-Activation", out + "-Activation", loss_cross}, INITFAIL | COMPFAIL),
-     mkIniTc("loss_layer4_p", {nw_base, adam, input + "-Activation", out, loss_cross}, SUCCESS),
+     mkIniTc("loss_layer3_n", {nw_base, adam, input + "-Activation", out + "-Activation", loss_cross}, ALLFAIL),
      mkIniTc("loss_layer5_p", {nw_base, adam, input + "-Activation", out + "-Activation", loss_cross_sigmoid}, SUCCESS),
      mkIniTc("loss_layer6_p", {nw_base, adam, input + "-Activation", out, loss_cross_sigmoid}, SUCCESS),
      mkIniTc("loss_layer7_p", {nw_base, adam, input + "-Activation", out + "-Activation", loss_cross_softmax}, SUCCESS),
      mkIniTc("loss_layer8_p", {nw_base, adam, input + "-Activation", out, loss_cross_softmax}, SUCCESS),
 
   /**< half negative: init fail cases (1 positive and 4 negative cases) */
-    mkIniTc("unknown_loss_n", {nw_base_cross + "loss = unknown", adam, input, out+"input_layers=inputlayer"}, COMPFAIL | INITFAIL),
+    mkIniTc("unknown_loss_p", {nw_base_cross + "loss=", adam, input, out+"input_layers=inputlayer"}, SUCCESS),
     mkIniTc("cross_with_relu_n", {nw_base_cross, sgd, input, out+"input_layers=inputlayer", act_relu+"input_layers=fclayer" }, COMPFAIL | INITFAIL),
     mkIniTc("cross_with_relu2_n", {nw_base_cross, sgd, input, out+"input_layers=inputlayer" + "-Activation", act_relu+"input_layers=fclayer" }, COMPFAIL | INITFAIL),
     mkIniTc("mse_with_relu_p", {nw_base_mse, sgd, input, out+"input_layers=inputlayer", act_relu}, SUCCESS),
@@ -521,7 +537,7 @@ TEST(nntrainerIniTest, backbone_p_06) {
 TEST(nntrainerIniTest, backbone_p_07) {
   ScopedIni b("base", {conv2d});
   ScopedIni s("backbone_p7",
-              {nw_base_cross, adam, backbone_notrain, backbone_train});
+              {nw_base_mse, adam, backbone_notrain, backbone_train});
   nntrainer::NeuralNetwork NN;
 
   EXPECT_EQ(NN.loadFromConfig(s.getIniName()), ML_ERROR_NONE);
@@ -536,7 +552,7 @@ TEST(nntrainerIniTest, backbone_p_07) {
  * @brief Ini file unittest with backbone with normal backbone
  */
 TEST(nntrainerIniTest, backbone_n_08) {
-  ScopedIni s("backbone_n8", {nw_base_cross, adam, backbone_random_external});
+  ScopedIni s("backbone_n8", {nw_base_mse, adam, backbone_random_external});
 
   nntrainer::NeuralNetwork NN;
 
