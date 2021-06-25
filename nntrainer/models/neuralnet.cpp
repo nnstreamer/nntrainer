@@ -376,6 +376,8 @@ NeuralNetwork &NeuralNetwork::copy(NeuralNetwork &from) {
  * @brief     save model to file
  *            save Weight & Bias Data into file by calling save from layer
  *            save training parameters from the optimizer
+ * @todo      saving order is based on the topological sort and this may
+ *            not match with the ini order
  */
 void NeuralNetwork::saveModel() {
   if (!initialized)
@@ -406,6 +408,8 @@ void NeuralNetwork::saveModel() {
  * @brief     read model from file
  *            read Weight & Bias Data into file by calling save from layer
  *            read training parameters from the optimizer if continuing train
+ * @todo      reading order is based on the topological sort and this may
+ *            not match with the ini order
  */
 void NeuralNetwork::readModel() {
   if (!initialized)
@@ -510,14 +514,8 @@ sharedConstTensors NeuralNetwork::inference(sharedConstTensors X,
   allocate(false);
 
   START_PROFILE(profile::NN_FORWARD);
-  forwarding(X, {}, false);
+  out = forwarding(X, {}, false);
   END_PROFILE(profile::NN_FORWARD);
-
-  auto const &last_layer_node =
-    model_graph.getSortedLayerNode(model_graph.size() - 1);
-  for (unsigned int i = 0; i < last_layer_node->getNumOutputs(); ++i) {
-    out.push_back(MAKE_SHARED_TENSOR(last_layer_node->getOutput(i)));
-  }
 
   if (free_mem)
     /**

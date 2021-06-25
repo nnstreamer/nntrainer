@@ -47,15 +47,13 @@ void init_filter_nntrainer(void) __attribute__((constructor));
 void fini_filter_nntrainer(void) __attribute__((destructor));
 
 struct gNewDeletor {
-    template <typename T>
-    void operator()(T* ptr) const {
-        g_free(ptr);
-    }
+  template <typename T> void operator()(T *ptr) const { g_free(ptr); }
 };
 
 static std::unique_ptr<GstTensorInfo, gNewDeletor>
 to_nnst_tensor_dim(const nntrainer::TensorDim &dim) {
-  auto info = std::unique_ptr<GstTensorInfo, gNewDeletor>(g_new(GstTensorInfo, 1));
+  auto info =
+    std::unique_ptr<GstTensorInfo, gNewDeletor>(g_new(GstTensorInfo, 1));
   gst_tensor_info_init(info.get());
 
   info->type = _NNS_FLOAT32;

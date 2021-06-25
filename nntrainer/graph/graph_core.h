@@ -196,14 +196,12 @@ public:
                   const std::string &postfix = "", bool force_rename = false);
 
   /**
-   * @brief     Remove last node from the sorted list
+   * @brief   Replace graph node in node_list
+   * @param   from Graph node to be replaced
+   * @param   to Graph node to replace
    */
-  void removeLastNode();
-
-  /**
-   * @brief     Add last node (loss node) to the last of the sorted
-   */
-  void addLossToSorted();
+  void replaceNode(std::shared_ptr<GraphNode> from,
+                   std::shared_ptr<GraphNode> to);
 
   /**
    * @brief   getter of graph input nodes with index number
@@ -234,6 +232,20 @@ public:
    * @return  number of output nodes
    */
   unsigned int getNumOutputNodes() const { return output_list.size(); }
+
+  /**
+   * @brief       replace output node
+   * @param idx   output node index to be replaced
+   * @param node  graph node shared pointer to replace
+   */
+  void replaceOutputNode(unsigned int idx, std::shared_ptr<GraphNode> node) {
+    output_list[idx] = node;
+  }
+
+  /**
+   * @brief find which node is a input or output node in graph
+   */
+  void realizeInputOutputNode();
 
   /**
    * @brief     Verify if the node exists
