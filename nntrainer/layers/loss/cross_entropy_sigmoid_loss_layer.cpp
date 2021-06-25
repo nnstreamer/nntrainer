@@ -15,8 +15,8 @@
 
 #include <cross_entropy_sigmoid_loss_layer.h>
 
-#include <lazy_tensor.h>
 #include <acti_func.h>
+#include <lazy_tensor.h>
 #include <util_func.h>
 
 namespace nntrainer {

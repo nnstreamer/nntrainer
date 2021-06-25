@@ -83,7 +83,8 @@ int NeuralNetwork::setProperty(std::vector<std::string> values) {
       NN_RETURN_STATUS();
     } break;
     case PropertyType::loss_type: {
-      loss_type = (LossType)parseType(value, TOKEN_LOSS);
+      status = setLoss(value);
+      NN_RETURN_STATUS();
     } break;
     default:
       status = setTrainConfig({values[i]});
@@ -746,10 +747,7 @@ int NeuralNetwork::getLayer(const char *name,
 /**
  * @brief     Set loss type for the neural network.
  */
-int NeuralNetwork::setLoss(LossType loss_type) {
-  if (loss_type == LossType::LOSS_UNKNOWN)
-    return ML_ERROR_INVALID_PARAMETER;
-
+int NeuralNetwork::setLoss(const std::string &loss_type) {
   this->loss_type = loss_type;
   return ML_ERROR_NONE;
 }

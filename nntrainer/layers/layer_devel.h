@@ -27,8 +27,8 @@
 #include <string>
 #include <vector>
 
-#include <tensor.h>
 #include <layer_context.h>
+#include <tensor.h>
 
 namespace ml::train {
 class Layer;
