@@ -47,7 +47,7 @@ enum class WeightInitializer {
 
 /**
  * @class   Weight
- * @brief   Weight with gradient, and its corresponding trainable property
+ * @brief   Weight with gradient, and its corresponding need_gradient property
  */
 class Weight : public Var_Grad {
 public:
@@ -55,7 +55,7 @@ public:
    * @brief Specification of the Weight
    *
    * @details The tuple values are dimension, initializer, regularizer,
-   * regularizer_constant, trainable property amd name of the Weight object.
+   * regularizer_constant, need_gradient property amd name of the Weight object.
    */
   typedef std::tuple<TensorDim, WeightInitializer, WeightRegularizer, float,
                      bool, const std::string>
@@ -77,7 +77,7 @@ public:
    * @param init Initializer for the weight
    * @param reg Regularizer for the weight
    * @param reg_const Constant multiplier for regularizer
-   * @param train If the variable is trainable
+   * @param ng If the variable needs gradient
    * @param alloc_now The memory for the weight tensors be allocated upon init
    * @param name Name for this weight
    */
@@ -85,7 +85,7 @@ public:
     const TensorDim &dim,
     const WeightInitializer init = WeightInitializer::WEIGHT_XAVIER_UNIFORM,
     const WeightRegularizer reg = WeightRegularizer::NONE,
-    const float reg_const = 1.0f, bool train = true, bool alloc_now = false,
+    const float reg_const = 1.0f, bool ng = true, bool alloc_now = false,
     std::string name = "");
 
   /**
@@ -98,7 +98,7 @@ public:
            std::get<1>(spec), // WeightInitializer
            std::get<2>(spec), // WeightRegularizer
            std::get<3>(spec), // WeightRegularizerConstant
-           std::get<4>(spec), // Trainable
+           std::get<4>(spec), // need_gradient
            false,
            std::get<5>(spec) // Name
     ) {}
@@ -118,7 +118,7 @@ public:
    *
    * @param lhs Swap to
    * @param rhs Swap from
-   * @note Only swap gradient if trainable
+   * @note Only swap gradient if need gradient
    */
   friend void swap(Weight &lhs, Weight &rhs) noexcept {
     using std::swap;
@@ -178,17 +178,17 @@ public:
    * @param dim Variable and gradient tensor dimension
    * @param init Initializer for the weight
    * @param reg Regularizer for the weight
-   * @param train If the variable is trainable
+   * @param ng If the variable needs gradient
    *
    * @note New dimension must maintain the shape of the variable
    */
   void reset(const TensorDim &dim, const WeightInitializer init,
-             const WeightRegularizer reg, const float reg_const, bool train) {
+             const WeightRegularizer reg, const float reg_const, bool ng) {
     initializer = init;
     regularizer = reg;
     regularizer_constant = reg_const;
 
-    Var_Grad::reset(dim, train);
+    Var_Grad::reset(dim, ng);
   }
 
   /**

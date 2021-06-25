@@ -64,7 +64,7 @@ bool DynamicTrainingOptimization::checkIfApply(
   if (iteration < skip_n_iterations)
     return true;
 
-  if (!weight.getTrainable() || weight.getGradientRef().uninitialized())
+  if (!weight.hasGradient() || weight.getGradientRef().uninitialized())
     return true;
 
   float reduced_ratio = calc_ratio_op(weight, input, output, reduce_op);

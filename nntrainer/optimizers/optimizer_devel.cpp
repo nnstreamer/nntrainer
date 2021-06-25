@@ -31,7 +31,7 @@ void Optimizer::applyGradients(std::vector<Weight> &weight_list,
   double ll = getLearningRate(iteration);
 
   for (auto &weight : weight_list) {
-    if (!weight.getTrainable())
+    if (!weight.hasGradient())
       continue;
 
     /** calculate regularization gradient before applying the gradient */

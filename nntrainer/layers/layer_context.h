@@ -232,7 +232,7 @@ public:
    * @return Tensor& Reference to the weight grad tensor
    */
   Tensor &getWeightGrad(unsigned int idx) {
-    if (!weights[idx]->getTrainable())
+    if (!weights[idx]->hasGradient())
       throw std::invalid_argument(
         "Requesting gradient for a non-trainable weight.");
     return weights[idx]->getGradientRef();
@@ -245,7 +245,7 @@ public:
    * @return float Value of the loss
    */
   float getWeightRegularizationLoss(unsigned int idx) const {
-    if (weights[idx]->getTrainable())
+    if (weights[idx]->hasGradient())
       return weights[idx]->getRegularizationLoss();
 
     return 0;
@@ -266,7 +266,7 @@ public:
    * @return Tensor& Reference to the output grad tensor
    */
   Tensor &getOutputGrad(unsigned int idx) {
-    if (!outputs[idx]->getTrainable())
+    if (!outputs[idx]->hasGradient())
       throw std::invalid_argument(
         "Requesting gradient for a non-trainable tensor.");
     return outputs[idx]->getGradientRef();
@@ -287,7 +287,7 @@ public:
    * @return Tensor& Reference to the input grad tensor
    */
   Tensor &getInputGrad(unsigned int idx) {
-    if (!inputs[idx]->getTrainable())
+    if (!inputs[idx]->hasGradient())
       throw std::invalid_argument(
         "Requesting gradient for a non-trainable tensor.");
     return inputs[idx]->getGradientRef();
@@ -308,7 +308,7 @@ public:
    * @return Tensor& Reference to the tensor grad tensor
    */
   Tensor &getTensorGrad(unsigned int idx) {
-    if (!tensors[idx]->getTrainable())
+    if (!tensors[idx]->hasGradient())
       throw std::invalid_argument(
         "Requesting gradient for a non-trainable tensor.");
     return tensors[idx]->getGradientRef();
