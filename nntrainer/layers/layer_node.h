@@ -32,7 +32,6 @@
 #include <layer.h>
 #include <layer_context.h>
 #include <layer_internal.h>
-// #include <loss_layer.h>
 
 constexpr bool LAYER_V2 = true;
 
@@ -702,6 +701,16 @@ private:
    */
   void setActivation(ActivationType activation);
 };
+
+/**
+ * @brief LayerNode creator with constructor
+ *
+ * @params[in] type Type of the layer to be constructed
+ * @params[in] properties Properties of the layer
+ */
+std::unique_ptr<LayerNode>
+createLayerNode(const ml::train::LayerType &type,
+                const std::vector<std::string> &properties = {});
 
 /**
  * @brief LayerNode creator with constructor

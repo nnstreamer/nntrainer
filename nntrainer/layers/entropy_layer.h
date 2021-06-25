@@ -21,20 +21,6 @@
 namespace nntrainer {
 
 /**
- * @brief     Enumeration of loss function type
- */
-enum class LossType {
-  LOSS_MSE,             /** Mean Squared Error */
-  LOSS_ENTROPY,         /** Cross Entropy */
-  LOSS_NONE,            /** No loss for this model */
-  LOSS_ENTROPY_SIGMOID, /** Cross Entropy amalgamated with sigmoid for stability
-                         */
-  LOSS_ENTROPY_SOFTMAX, /** Cross Entropy amalgamated with softmax for stability
-                         */
-  LOSS_UNKNOWN          /** Unknown */
-};
-
-/**
  * @class   LossLayer
  * @brief   loss layer
  */

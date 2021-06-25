@@ -18,7 +18,6 @@
 
 #include <ini_wrapper.h>
 #include <layer.h>
-#include <layer_factory.h>
 #include <layer_node.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>

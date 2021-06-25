@@ -37,7 +37,7 @@ void CrossEntropySoftmaxLossLayer::forwarding(RunLayerContext &context,
     l = y2.multiply(hidden_.apply(logFloat)).sum_by_batch().multiply(-1);
 
     // update the loss value
-    updateLoss(context, l);
+    LossLayer::updateLoss(context, l);
   }
 }
 
