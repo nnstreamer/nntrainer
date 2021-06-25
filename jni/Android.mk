@@ -137,12 +137,14 @@ NNTRAINER_SRCS := $(NNTRAINER_ROOT)/nntrainer/models/neuralnet.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/tensor/blas_interface.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/layer.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/layer_node.cpp \
-                  $(NNTRAINER_ROOT)/nntrainer/layers/layer_factory.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/input_layer.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/output_layer.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/fc_layer.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/bn_layer.cpp \
-                  $(NNTRAINER_ROOT)/nntrainer/layers/loss_layer.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/layers/loss/loss_layer.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/layers/loss/mse_loss_layer.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/layers/loss/cross_entropy_sigmoid_loss_layer.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/layers/loss/cross_entropy_softmax_loss_layer.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/conv2d_layer.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/pooling2d_layer.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/activation_layer.cpp \
@@ -191,6 +193,7 @@ endif #ENABLE_TFLITE_BACKBONE
 NNTRAINER_INCLUDES := $(NNTRAINER_ROOT)/nntrainer \
                       $(NNTRAINER_ROOT)/nntrainer/dataset \
                       $(NNTRAINER_ROOT)/nntrainer/layers \
+                      $(NNTRAINER_ROOT)/nntrainer/layers/loss \
                       $(NNTRAINER_ROOT)/nntrainer/models \
                       $(NNTRAINER_ROOT)/nntrainer/tensor \
                       $(NNTRAINER_ROOT)/nntrainer/optimizers \

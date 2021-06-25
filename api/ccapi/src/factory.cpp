@@ -18,7 +18,6 @@
 #include <databuffer.h>
 #include <databuffer_factory.h>
 #include <layer.h>
-#include <layer_factory.h>
 #include <model.h>
 #include <neuralnet.h>
 #include <nntrainer_error.h>
@@ -30,9 +29,7 @@ namespace train {
 
 std::unique_ptr<Layer> createLayer(const LayerType &type,
                                    const std::vector<std::string> &properties) {
-  const std::string &t = nntrainer::layerGetStrType(type);
-
-  return createLayer(t, properties);
+  return nntrainer::createLayerNode(type, properties);
 }
 
 /**
@@ -40,10 +37,7 @@ std::unique_ptr<Layer> createLayer(const LayerType &type,
  */
 std::unique_ptr<Layer> createLayer(const std::string &type,
                                    const std::vector<std::string> &properties) {
-  std::unique_ptr<nntrainer::LayerNode> layer =
-    nntrainer::createLayerNode(type, properties);
-
-  return layer;
+  return nntrainer::createLayerNode(type, properties);
 }
 
 std::unique_ptr<Optimizer>

@@ -23,7 +23,6 @@
 #include <cross_entropy_softmax_loss_layer.h>
 #include <flatten_layer.h>
 #include <input_layer.h>
-#include <layer_factory.h>
 #include <network_graph.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
@@ -222,7 +221,7 @@ int NetworkGraph::addLossLayer(const std::string &loss_type) {
   auto last_layer_node = getSortedLayerNode(graph.size() - 1);
 
   if (last_layer_node->requireLabel()) {
-    if (last_layer_node->getType() != loss_type)
+    if (!istrequal(last_layer_node->getType(), loss_type))
       status = ML_ERROR_INVALID_PARAMETER;
     return status;
   }
@@ -242,7 +241,7 @@ int NetworkGraph::addLossLayer(const std::string &loss_type) {
 
   std::string updated_loss_type = loss_type;
 
-  if (updated_loss_type == CrossEntropyLossLayer::type) {
+  if (istrequal(updated_loss_type, CrossEntropyLossLayer::type)) {
     auto type = last_node->getType();
 
     if (type != "activation") {
@@ -269,9 +268,7 @@ int NetworkGraph::addLossLayer(const std::string &loss_type) {
 
   auto const &updated_last_node = getSortedLayerNode(graph.size() - 1);
 
-  // FIXME: fixme
   std::shared_ptr<LayerNode> lnode = createLayerNode(updated_loss_type);
-  // lnode->setLossType(updated_loss_type);
   graph.ensureName(*lnode);
 
   std::string input_str = updated_last_node->getName();
@@ -368,14 +365,6 @@ int NetworkGraph::checkCompiledGraph() {
   auto const &l = getSortedLayerNode(0);
   /** First layer cannot be activation, batch normalization or loss */
   const std::string &type = l->getType();
-  // FIXME: why such restriction exists
-  // if (istrequal(type, ActivationLayer::type) ||
-  //     istrequal(type, BatchNormalizationLayer::type) ||
-  //     istrequal(type, LossLayer::type)) {
-  //   ml_loge("%s cannot be the first layer, type: %s", l->getName().c_str(),
-  //           type.c_str());
-  //   return ML_ERROR_INVALID_PARAMETER;
-  // }
 
   /** Dimension of input layers must be known */
   for (auto iter = cbegin(); iter != cend(); iter++) {
