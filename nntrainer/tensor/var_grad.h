@@ -22,21 +22,21 @@ namespace nntrainer {
 
 /**
  * @class   Var_Grad
- * @brief   Variable with Gradient, and its corresponding trainable property
+ * @brief   Variable with Gradient, and its corresponding need_gradient property
  */
 class Var_Grad {
 public:
   /**
    * @brief Specification of the Var_Grad
    *
-   * @details The tuple values are dimension, trainable property, and the name
-   * of the Var_Grad object.
+   * @details The tuple values are dimension, need_gradient property, and the
+   * name of the Var_Grad object.
    */
   typedef std::tuple<TensorDim, bool, const std::string> Spec;
 
   /**
    * @brief Var_Grad default constructor
-   * @note Default variable is not trainable as gradient is 0 dim tensor
+   * @note Default variable is not need_gradient as gradient is 0 dim tensor
    */
   Var_Grad() = default;
 
@@ -49,11 +49,11 @@ public:
    * @brief Construct a new Var_Grad object
    *
    * @param dim Variable and gradient tensor dimension
-   * @param train If the variable is trainable
+   * @param ng If the variable is need_gradient
    * @param alloc_now The memory for the var_grad tensors be allocated upon init
    * @param name Name for this Var_Grad
    */
-  explicit Var_Grad(const TensorDim &dim, bool train = true,
+  explicit Var_Grad(const TensorDim &dim, bool ng = true,
                     bool alloc_now = false, const std::string &name = "");
 
   /**
@@ -63,7 +63,7 @@ public:
    */
   explicit Var_Grad(const Spec &spec) :
     Var_Grad(std::get<0>(spec), // TensorDim
-             std::get<1>(spec), // Trainable
+             std::get<1>(spec), // need_gradient
              false,
              std::get<2>(spec) // Name
     ) {}
@@ -103,7 +103,7 @@ public:
    *
    * @param var_preallocated if initialized, use this tensor for var
    * @param grad_preallocated if initialized, use this tensor for grad
-   * @param gtrain If all the variables should be trainable
+   * @param gtrain If the network is training or not
    */
   virtual void initialize(const Tensor &var_preallocated = Tensor(),
                           const Tensor &grad_preallocated = Tensor(),
@@ -139,18 +139,18 @@ public:
   TensorDim getDim() const { return dim; }
 
   /**
-   * @brief Get if the Var_Grad is trainable
+   * @brief Get if the Var_Grad is need_gradient
    *
-   * @retval true if trainable
-   * @retval false is not trainable
+   * @retval true if need_gradient
+   * @retval false is not need_gradient
    */
-  bool getTrainable() const { return trainable; }
+  bool needsGradient() const { return need_gradient; }
 
   /**
-   * @brief set if the Var_Grad is trainable
-   * @param train true if trainable, else false
+   * @brief set if the Var_Grad should need gradient
+   * @param ng true if needs gradient, else false
    */
-  void setTrainable(bool train);
+  void needsGradient(bool ng);
 
   /**
    * @brief Get the name of the Var_Grad
@@ -211,17 +211,17 @@ public:
    * @brief Reset the variable and gradient
    *
    * @param dim Variable and gradient tensor dimension
-   * @param train If the variable is trainable
+   * @param ng If the variable needs gradient
    *
    * @note New dimension must maintain the shape of the variable
    */
-  void reset(const TensorDim &tdim, bool train) {
+  void reset(const TensorDim &tdim, bool ng) {
     dim = tdim;
     if (!var->uninitialized())
       var->reshape(dim);
     if (!grad->uninitialized())
       grad->reshape(dim);
-    trainable = train;
+    need_gradient = ng;
     resetGradient();
   }
 
@@ -318,11 +318,20 @@ public:
    */
   void updateGradientByVariable(const Var_Grad &vg) { grad = vg.var; }
 
+  /**
+   * @brief If this variable has gradient
+   *
+   * @return true if the var_grad as gradient set, else false
+   * @note this is can return is the var_grad needs gradient but it not
+   * initialized
+   */
+  bool hasGradient() const { return need_gradient && !grad->uninitialized(); }
+
 protected:
   TensorDim dim;                /**< dimension of the tensor */
   std::shared_ptr<Tensor> var;  /**< variable to be updated and used */
   std::shared_ptr<Tensor> grad; /**< gradient for the variable */
-  bool trainable;               /**< if this variable is trainable */
+  bool need_gradient;           /**< if this variable needs gradient */
   bool alloc_now;   /**< if the tensor should be allocated instantly */
   std::string name; /**< name of the parameter */
 };
