@@ -185,7 +185,7 @@ int NetworkGraph::realizeActivationType(
   in_node->setProperty({"activation=none"});
 
   lnode->setInputLayers({in_node->getName()});
-  /** output layers for layer aobj will be set in setOutputLayers() */
+  /** output layers for layer obj will be set in setOutputLayers() */
 
   updateConnectionName(in_node->getName(), lnode->getName());
   graph.addNode(lnode, false);
@@ -308,7 +308,6 @@ int NetworkGraph::addLossLayer(const std::string &loss_type) {
 
 void NetworkGraph::setOutputLayers() {
 
-  size_t last_layer_count = 0;
   for (auto iter_idx = cbegin(); iter_idx != cend(); iter_idx++) {
     auto &layer_idx = *iter_idx;
     for (auto iter_i = cbegin(); iter_i != cend(); iter_i++) {
@@ -332,15 +331,6 @@ void NetworkGraph::setOutputLayers() {
         }
       }
     }
-
-    if (layer_idx->getNumOutputConnections() == 0) {
-      last_layer_count += 1;
-    }
-  }
-
-  if (last_layer_count != 1) {
-    throw std::invalid_argument(
-      "Error: Multiple last layers in the model not supported");
   }
 }
 
@@ -439,6 +429,7 @@ int NetworkGraph::realizeGraph() {
     }
   }
   /// @todo add check that input_layers <-> output_layers does match.
+  /// @todo check whether graph has a cycle or graph is seperated to subgraph
 
   return status;
 }
