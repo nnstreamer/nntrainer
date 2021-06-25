@@ -4,7 +4,6 @@
 /usr/include/nntrainer/nntrainer_logger.h
 /usr/include/nntrainer/acti_func.h
 /usr/include/nntrainer/common_properties.h
-/usr/include/nntrainer/loss_layer.h
 /usr/include/nntrainer/weight.h
 /usr/include/nntrainer/var_grad.h
 /usr/include/nntrainer/base_properties.h
@@ -15,7 +14,6 @@
 /usr/include/nntrainer/databuffer.h
 /usr/include/nntrainer/databuffer_factory.h
 /usr/include/nntrainer/layer_internal.h
-/usr/include/nntrainer/layer_factory.h
 /usr/include/nntrainer/neuralnet.h
 /usr/include/nntrainer/tensor.h
 /usr/include/nntrainer/tensor_dim.h

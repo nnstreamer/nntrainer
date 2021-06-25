@@ -31,7 +31,7 @@ void MSELossLayer::forwarding(RunLayerContext &context, bool training) {
     Tensor &y2 = context.getLabel(SINGLE_INOUT_IDX);
     Tensor residual = y2.subtract(y);
     l = residual.chain().multiply_i(residual).average().run();
-    updateLoss(context, l);
+    LossLayer::updateLoss(context, l);
   }
 }
 

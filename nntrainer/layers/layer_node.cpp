@@ -12,7 +12,6 @@
 
 #include <activation_layer.h>
 #include <app_context.h>
-#include <layer_factory.h>
 #include <layer_node.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
@@ -52,33 +51,21 @@ public:
 
 } // namespace props
 
-LayerNode::LayerNode(std::shared_ptr<nntrainer::LayerV1> l, size_t idx) :
-  LayerNode(nullptr, l, idx) {}
-
-LayerNode::LayerNode(std::unique_ptr<nntrainer::Layer> &&l, size_t idx) :
-  LayerNode(std::move(l), nullptr, idx) {}
-
-LayerNode::LayerNode(std::unique_ptr<nntrainer::Layer> &&layer_v2,
-                     std::shared_ptr<nntrainer::LayerV1> layer_v1, size_t idx) :
-  layerv1(layer_v1),
-  layer(std::move(layer_v2)),
-  index(idx),
-  finalized(false),
-  activation_type(ActivationType::ACT_NONE),
-  layer_node_props(new PropsType(props::Name(), props::Flatten(),
-                                 props::Distribute(), props::Trainable())) {
-  if (layerv1 && layerv1->getType() == TimeDistLayer::type) {
-    std::get<props::Distribute>(*layer_node_props).set(true);
-  } else if (layer && layer->getType() == TimeDistLayer::type) {
-    std::get<props::Distribute>(*layer_node_props).set(true);
-  }
-}
-
 /**
  * @brief Destroy the Layer Node object
  *
  */
 LayerNode::~LayerNode() = default;
+
+/**
+ * @brief Layer factory creator with constructor
+ */
+std::unique_ptr<LayerNode>
+createLayerNode(const ml::train::LayerType &type,
+                const std::vector<std::string> &properties) {
+  auto &ac = nntrainer::AppContext::Global();
+  return createLayerNode(ac.createObject<nntrainer::Layer>(type), properties);
+}
 
 /**
  * @brief Layer factory creator with constructor
@@ -114,6 +101,28 @@ createLayerNode(std::unique_ptr<nntrainer::Layer> &&layer,
     throw std::invalid_argument("Error setting layer properties.");
 
   return lnode;
+}
+
+LayerNode::LayerNode(std::shared_ptr<nntrainer::LayerV1> l, size_t idx) :
+  LayerNode(nullptr, l, idx) {}
+
+LayerNode::LayerNode(std::unique_ptr<nntrainer::Layer> &&l, size_t idx) :
+  LayerNode(std::move(l), nullptr, idx) {}
+
+LayerNode::LayerNode(std::unique_ptr<nntrainer::Layer> &&layer_v2,
+                     std::shared_ptr<nntrainer::LayerV1> layer_v1, size_t idx) :
+  layerv1(layer_v1),
+  layer(std::move(layer_v2)),
+  index(idx),
+  finalized(false),
+  activation_type(ActivationType::ACT_NONE),
+  layer_node_props(new PropsType(props::Name(), props::Flatten(),
+                                 props::Distribute(), props::Trainable())) {
+  if (layerv1 && layerv1->getType() == TimeDistLayer::type) {
+    std::get<props::Distribute>(*layer_node_props).set(true);
+  } else if (layer && layer->getType() == TimeDistLayer::type) {
+    std::get<props::Distribute>(*layer_node_props).set(true);
+  }
 }
 
 int LayerNode::setProperty(std::vector<std::string> properties) {
