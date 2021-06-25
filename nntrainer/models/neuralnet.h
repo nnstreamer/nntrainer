@@ -94,7 +94,7 @@ public:
     epoch_idx(0),
     iter(0),
     loss(0.0f),
-    loss_type(LossType::LOSS_NONE),
+    loss_type(std::string()),
     weight_initializer(WeightInitializer::WEIGHT_UNKNOWN),
     net_type(NetType::UNKNOWN),
     manager(std::make_shared<Manager>()),
@@ -402,7 +402,7 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int setLoss(LossType loss);
+  int setLoss(const std::string &loss);
 
   /**
    * @brief     Summarize the model
@@ -509,7 +509,7 @@ private:
 
   float loss; /**< loss */
 
-  LossType loss_type; /**< Loss Function type */
+  std::string loss_type; /**< Loss Function type */
 
   WeightInitializer weight_initializer; /**< Weight Initialization type */
 

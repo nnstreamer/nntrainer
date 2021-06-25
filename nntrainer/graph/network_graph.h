@@ -25,7 +25,6 @@
 #include <graph_core.h>
 #include <layer_internal.h>
 #include <layer_node.h>
-#include <loss_layer.h>
 
 namespace nntrainer {
 
@@ -46,7 +45,7 @@ public:
    * @param[in] loss_type loss for the graph
    * returns ML_ERROR_NONE on success, error on failure
    */
-  int compile(const LossType loss_type);
+  int compile(const std::string &loss_type);
 
   /**
    * @brief Create new LayerNode and add into Graph
@@ -336,7 +335,7 @@ private:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int addLossLayer(const LossType loss_type);
+  int addLossLayer(const std::string &loss_type);
 
   /**
    * @brief     set output connections for all the layers

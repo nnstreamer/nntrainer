@@ -229,7 +229,7 @@ public:
    * @brief Construct a new Run Layer Context object
    *
    */
-  RunLayerContext() = default;
+  RunLayerContext() : loss(0.0) {}
 
   /**
    * @brief Construct a new Run Layer Context object
@@ -240,10 +240,12 @@ public:
    * @param out outputs of the layer
    * @param t extra tensors of the layer
    */
-  RunLayerContext(const std::vector<Weight *> &w,
+  RunLayerContext(const std::string &name, float l,
+                  const std::vector<Weight *> &w,
                   const std::vector<Var_Grad *> &in,
                   const std::vector<Var_Grad *> &out,
                   const std::vector<Var_Grad *> &t) :
+    loss(l),
     weights(w),
     inputs(in),
     outputs(out),
@@ -455,22 +457,25 @@ public:
    * @note loss value is only used for loss layers. For non-loss layers, setting
    * this value will have no change on the behavior of the model.
    */
-  void setLoss(float val) {
-    loss = val;
-  }
+  void setLoss(float val) { loss = val; }
 
   /**
    * @brief   update loss by the layer
    *
    * @return loss of the layer
    */
-  float getLoss() const {
-    return loss;
-  }
+  float getLoss() const { return loss; }
+
+  /**
+   * @brief   get name by the layer
+   *
+   * @return name of the layer
+   */
+  const std::string &getName() const { return std::get<props::Name>(props); }
 
 private:
   std::tuple<props::Name> props; /**< props of the layer */
-  float loss; /**< loss of the layer */
+  float loss;                    /**< loss of the layer */
 
   std::vector<Weight *> weights;   /**< weights of the layer */
   std::vector<Var_Grad *> inputs;  /**< inputs of the layer */

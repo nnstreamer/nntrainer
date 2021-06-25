@@ -19,28 +19,12 @@
 
 namespace nntrainer {
 
-
-/**
- * @brief     Enumeration of loss function type
- */
-enum class LossType {
-  LOSS_MSE,             /** Mean Squared Error */
-  LOSS_ENTROPY,         /** Cross Entropy */
-  LOSS_NONE,            /** No loss for this model */
-  LOSS_ENTROPY_SIGMOID, /** Cross Entropy amalgamated with sigmoid for stability
-                         */
-  LOSS_ENTROPY_SOFTMAX, /** Cross Entropy amalgamated with softmax for stability
-                         */
-  LOSS_UNKNOWN          /** Unknown */
-};
-
 /**
  * @class   LossLayer
  * @brief   loss layer
  */
 class LossLayer : public Layer {
 public:
-
   /**
    * @brief     Destructor of Loss Layer
    */
@@ -76,7 +60,8 @@ protected:
    */
   void updateLoss(RunLayerContext &context, const Tensor &l);
 
-  Tensor l; /**< loss tensor to store intermediate value to calculate loss value */
+  Tensor
+    l; /**< loss tensor to store intermediate value to calculate loss value */
 };
 
 } // namespace nntrainer
