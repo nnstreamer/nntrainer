@@ -437,7 +437,6 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %{_includedir}/nntrainer/nntrainer_logger.h
 %{_includedir}/nntrainer/acti_func.h
 %{_includedir}/nntrainer/common_properties.h
-%{_includedir}/nntrainer/loss_layer.h
 %{_includedir}/nntrainer/weight.h
 %{_includedir}/nntrainer/var_grad.h
 %{_includedir}/nntrainer/base_properties.h
@@ -450,7 +449,6 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %{_includedir}/nntrainer/layer_context.h
 %{_includedir}/nntrainer/layer_devel.h
 %{_includedir}/nntrainer/layer_internal.h
-%{_includedir}/nntrainer/layer_factory.h
 %{_includedir}/nntrainer/neuralnet.h
 %{_includedir}/nntrainer/tensor.h
 %{_includedir}/nntrainer/tensor_dim.h

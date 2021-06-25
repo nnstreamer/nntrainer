@@ -51,7 +51,7 @@ void CrossEntropySigmoidLossLayer::forwarding(RunLayerContext &context,
     l = mid_term.subtract(end_term).average();
 
     // update the loss value
-    updateLoss(context, l);
+    LossLayer::updateLoss(context, l);
   }
 }
 

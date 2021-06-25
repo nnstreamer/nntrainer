@@ -20,7 +20,6 @@
 
 #include <input_layer.h>
 #include <layer.h>
-#include <layer_factory.h>
 #include <loss_layer.h>
 #include <neuralnet.h>
 #include <output_layer.h>

@@ -18,7 +18,6 @@
 #include <databuffer_file.h>
 #include <databuffer_func.h>
 #include <ini_interpreter.h>
-#include <layer_factory.h>
 #include <model_loader.h>
 #include <neuralnet.h>
 #include <nntrainer_error.h>
