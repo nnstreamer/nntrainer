@@ -206,6 +206,36 @@ public:
   void addLossToSorted();
 
   /**
+   * @brief   getter of graph input nodes with index number
+   * @param   idx
+   * @return  graph node of input node
+   */
+  const std::shared_ptr<GraphNode> &getInputNode(unsigned int idx) const {
+    return input_list[idx];
+  }
+
+  /**
+   * @brief   getter of number of input nodes
+   * @return  number of input nodes
+   */
+  unsigned int getNumInputNodes() const { return input_list.size(); }
+
+  /**
+   * @brief   getter of graph output nodes with index number
+   * @param   idx
+   * @return  graph node of output node
+   */
+  const std::shared_ptr<GraphNode> &getOutputNode(unsigned int idx) const {
+    return output_list[idx];
+  }
+
+  /**
+   * @brief   getter of number of output nodes
+   * @return  number of output nodes
+   */
+  unsigned int getNumOutputNodes() const { return output_list.size(); }
+
+  /**
    * @brief     Verify if the node exists
    */
   inline bool verifyNode(const std::string &name) {
@@ -215,6 +245,8 @@ public:
   }
 
 private:
+  std::vector<std::shared_ptr<GraphNode>> input_list;
+  std::vector<std::shared_ptr<GraphNode>> output_list;
   std::vector<std::shared_ptr<GraphNode>>
     node_list;                                    /**< Unordered Node List  */
   std::vector<std::shared_ptr<GraphNode>> Sorted; /**< Ordered Node List  */
