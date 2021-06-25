@@ -10,6 +10,8 @@
  * @author Jihoon Lee <jhoon.it.lee@samsung.com>
  * @bug    No known bugs except for NYI items
  */
+#include <chrono>
+#include <ctime>
 #include <iostream>
 #include <memory>
 #include <sstream>
@@ -257,25 +259,39 @@ UserDataType createFakeDataGenerator(unsigned int batch_size,
   return user_data;
 }
 
-UserDataType createRealDataGenerator() {
-  throw std::invalid_argument("reached here!");
+UserDataType createRealDataGenerator(const std::string &directory,
+                                     unsigned int batch_size,
+                                     unsigned int data_split) {
+  UserDataType user_data;
+  user_data.emplace_back(new nntrainer::resnet::Cifar100DataLoader(
+    directory + "/train.bin", batch_size, data_split));
+  user_data.emplace_back(new nntrainer::resnet::Cifar100DataLoader(
+    directory + "/test.bin", batch_size, data_split));
+
+  return user_data;
 }
 
 int main(int argc, char *argv[]) {
-  if (argc < 4) {
+  if (argc < 5) {
     std::cerr
-      << "usage: ./main [{data_directory}|\"fake\"] [batchsize] [data_split] \n"
+      << "usage: ./main [{data_directory}|\"fake\"] [batchsize] [data_split] "
+         "[epoch] \n"
       << "when \"fake\" is given, original data size is assumed 512 for both "
          "train and validation\n";
     return 1;
   }
 
+  auto start = std::chrono::system_clock::now();
+  std::time_t start_time = std::chrono::system_clock::to_time_t(start);
+  std::cout << "started computation at " << std::ctime(&start_time) << '\n';
+
   std::string data_dir = argv[1];
   unsigned int batch_size = std::stoul(argv[2]);
   unsigned int data_split = std::stoul(argv[3]);
+  unsigned int epoch = std::stoul(argv[4]);
 
   std::cout << "data_dir: " << data_dir << ' ' << "batch_size: " << batch_size
-            << " data_split: " << data_split << '\n';
+            << " data_split: " << data_split << " epoch: " << epoch << '\n';
 
   /// warning: the data loader will be destroyed at the end of this function,
   /// and passed as a pointer to the databuffer
@@ -285,7 +301,7 @@ int main(int argc, char *argv[]) {
     if (data_dir == "fake") {
       user_data = createFakeDataGenerator(batch_size, 512, data_split);
     } else {
-      user_data = createRealDataGenerator();
+      user_data = createRealDataGenerator(data_dir, batch_size, data_split);
     }
   } catch (std::exception &e) {
     std::cerr << "uncaught error while creating data generator! details: "
@@ -294,11 +310,18 @@ int main(int argc, char *argv[]) {
   }
 
   try {
-    createAndRun(1, 128, &user_data);
+    createAndRun(epoch, 128, &user_data);
   } catch (std::exception &e) {
     std::cerr << "uncaught error while running! details: " << e.what() << '\n';
     return 1;
   }
+  auto end = std::chrono::system_clock::now();
+
+  std::chrono::duration<double> elapsed_seconds = end - start;
+  std::time_t end_time = std::chrono::system_clock::to_time_t(end);
+
+  std::cout << "finished computation at " << std::ctime(&end_time)
+            << "elapsed time: " << elapsed_seconds.count() << "s\n";
 
   return 0;
 }
