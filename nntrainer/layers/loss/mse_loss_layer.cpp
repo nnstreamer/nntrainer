@@ -11,8 +11,8 @@
  *
  */
 
-#include <mse_loss_layer.h>
 #include <lazy_tensor.h>
+#include <mse_loss_layer.h>
 
 namespace nntrainer {
 
