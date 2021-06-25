@@ -22,5 +22,6 @@ option('capi-ml-inference-actual', type: 'string', value: 'capi-ml-inference',
 option('capi-ml-common-actual', type: 'string', value: 'capi-ml-common',
         description: 'backward compatible dependency name of capi-ml-common')
 
-# detect build os
+# test related option
 option('reduce-tolerance', type: 'boolean', value: true)
+option('enable-long-test', type: 'boolean', value: false)

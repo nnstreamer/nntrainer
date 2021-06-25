@@ -49,7 +49,7 @@ LOCAL_ARM_MODE := arm
 LOCAL_MODULE := nntrainer_resnet
 LOCAL_LDLIBS := -llog -landroid
 
-LOCAL_SRC_FILES := main.cpp
+LOCAL_SRC_FILES := main.cpp cifar_dataloader.cpp
 
 LOCAL_SHARED_LIBRARIES := nntrainer ccapi-nntrainer
 
