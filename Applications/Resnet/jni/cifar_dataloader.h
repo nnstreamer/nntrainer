@@ -11,6 +11,7 @@
  */
 #include <tensor_dim.h>
 
+#include <fstream>
 #include <random>
 #include <string>
 #include <vector>
@@ -107,6 +108,17 @@ public:
   void next(float **input, float **label, bool *last);
 
 private:
+  inline static constexpr int ImageSize = 3 * 32 * 32;
+  inline static constexpr int NumClass = 100;
+  inline static constexpr int SampleSize =
+    1 + 1 + 3 * 32 * 32; /**< 1 coarse label, 1 fine label, pixel size */
+
+  unsigned int batch;
+  unsigned int current_iteration;
+  unsigned int iteration_per_epoch;
+
+  std::mt19937 rng;
+  std::ifstream file;
   std::vector<unsigned int> idxes; /**< index information for one epoch */
 };
 
