@@ -42,17 +42,15 @@ namespace nntrainer {
 
 /**
  * @brief     Enumeration for input configuration file parsing
- *            0. LOSS    ( Loss Function Token )
- *            1. MODEL   ( Model Token )
- *            2. ACTI    ( Activation Token )
- *            3. WEIGHT_INIT  ( Weight Initializer Token )
- *            4. WEIGHT_REGULARIZER  ( Weight Decay Token )
- *            5. PADDING  ( Padding Token )
- *            6. POOLING  ( Pooling Token )
- *            7. UNKNOWN
+ *            0. MODEL   ( Model Token )
+ *            1. ACTI    ( Activation Token )
+ *            2. WEIGHT_INIT  ( Weight Initializer Token )
+ *            3. WEIGHT_REGULARIZER  ( Weight Decay Token )
+ *            4. PADDING  ( Padding Token )
+ *            5. POOLING  ( Pooling Token )
+ *            6. UNKNOWN
  */
 typedef enum {
-  TOKEN_LOSS,
   TOKEN_MODEL,
   TOKEN_ACTI,
   TOKEN_WEIGHT_INIT,

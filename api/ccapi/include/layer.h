@@ -44,18 +44,23 @@ enum LayerType {
   LAYER_ADDITION = ML_TRAIN_LAYER_TYPE_ADDITION, /** Addition Layer type */
   LAYER_CONCAT = ML_TRAIN_LAYER_TYPE_CONCAT,     /** Concat Layer type */
   LAYER_MULTIOUT = ML_TRAIN_LAYER_TYPE_MULTIOUT, /** Multi Output Layer type */
-  LAYER_LOSS,                                    /** Loss Layer type */
-  LAYER_PREPROCESS_FLIP,      /** Preprocess flip Layer type */
-  LAYER_PREPROCESS_TRANSLATE, /** Preprocess translate Layer type */
-  LAYER_BACKBONE_NNSTREAMER,  /** Backbone using NNStreamer */
-  LAYER_BACKBONE_TFLITE,      /** Backbone using TFLite */
-  LAYER_EMBEDDING,            /** Embedding Layer type */
-  LAYER_RNN,                  /** RNN Layer type */
-  LAYER_LSTM,                 /** LSTM Layer type */
-  LAYER_SPLIT,                /** Splite Layer type */
-  LAYER_GRU,                  /** GRU Layer type */
-  LAYER_TIME_DIST,            /** Time Distributed Layer type */
-  LAYER_PERMUTE,              /** Permute layer */
+  LAYER_PREPROCESS_FLIP,            /** Preprocess flip Layer type */
+  LAYER_PREPROCESS_TRANSLATE,       /** Preprocess translate Layer type */
+  LAYER_BACKBONE_NNSTREAMER,        /** Backbone using NNStreamer */
+  LAYER_BACKBONE_TFLITE,            /** Backbone using TFLite */
+  LAYER_EMBEDDING,                  /** Embedding Layer type */
+  LAYER_RNN,                        /** RNN Layer type */
+  LAYER_LSTM,                       /** LSTM Layer type */
+  LAYER_SPLIT,                      /** Splite Layer type */
+  LAYER_GRU,                        /** GRU Layer type */
+  LAYER_TIME_DIST,                  /** Time Distributed Layer type */
+  LAYER_PERMUTE,                    /** Permute layer */
+  LAYER_LOSS_MSE = 500,             /** Mean Squared Error Loss Layer type */
+  LAYER_LOSS_CROSS_ENTROPY,         /** Cross Entropy Loss Layer type */
+  LAYER_LOSS_CROSS_ENTROPY_SIGMOID, /** Cross Entropy with Sigmoid Loss Layer
+                                       type */
+  LAYER_LOSS_CROSS_ENTROPY_SOFTMAX, /** Cross Entropy with Softmax Loss Layer
+                                       type */
   LAYER_UNKNOWN = ML_TRAIN_LAYER_TYPE_UNKNOWN /** Unknown */
 };
 
@@ -351,13 +356,34 @@ namespace loss {
 /**
  * @brief Helper function to create mse layer
  */
-std::unique_ptr<Layer> MSE(const std::vector<std::string> &properties = {});
+inline std::unique_ptr<Layer>
+MSE(const std::vector<std::string> &properties = {}) {
+  return createLayer(LayerType::LAYER_LOSS_MSE, properties);
+}
 
 /**
  * @brief Helper function to create cross entropy layer
  */
-std::unique_ptr<Layer>
-CrossEntropy(const std::vector<std::string> &properties = {});
+inline std::unique_ptr<Layer>
+CrossEntropy(const std::vector<std::string> &properties = {}) {
+  return createLayer(LayerType::LAYER_LOSS_CROSS_ENTROPY, properties);
+}
+
+/**
+ * @brief Helper function to create cross entropy with sigmoid layer
+ */
+inline std::unique_ptr<Layer>
+CrossEntropySigmoid(const std::vector<std::string> &properties = {}) {
+  return createLayer(LayerType::LAYER_LOSS_CROSS_ENTROPY_SIGMOID, properties);
+}
+
+/**
+ * @brief Helper function to create cross entropy with softmax layer
+ */
+inline std::unique_ptr<Layer>
+CrossEntropySoftmax(const std::vector<std::string> &properties = {}) {
+  return createLayer(LayerType::LAYER_LOSS_CROSS_ENTROPY_SOFTMAX, properties);
+}
 
 } // namespace loss
 

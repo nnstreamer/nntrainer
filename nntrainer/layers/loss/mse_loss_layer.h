@@ -56,4 +56,3 @@ public:
 
 #endif /* __cplusplus */
 #endif /* __MSE_LOSS_LAYER_H__ */
-

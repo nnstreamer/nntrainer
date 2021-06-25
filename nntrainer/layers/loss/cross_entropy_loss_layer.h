@@ -39,20 +39,24 @@ public:
    * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
    */
   void forwarding(RunLayerContext &context, bool training) override {
-    return exception::not_supported("Cross Entropy not supported without softmax or sigmoid");
+    throw exception::not_supported(
+      "Cross Entropy not supported without softmax or sigmoid");
   }
 
   /**
    * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
   void calcDerivative(RunLayerContext &context) override {
-    return exception::not_supported("Cross Entropy not supported without softmax or sigmoid");
+    throw exception::not_supported(
+      "Cross Entropy not supported without softmax or sigmoid");
   }
 
   /**
    * @copydoc Layer::getType()
    */
-  const std::string getType() const override { return CrossEntropyLossLayer::type; };
+  const std::string getType() const override {
+    return CrossEntropyLossLayer::type;
+  };
 
   inline static const std::string type = "cross_entropy_loss";
 };
@@ -60,4 +64,3 @@ public:
 
 #endif /* __cplusplus */
 #endif /* __CROSS_ENTROPY_LOSS_LAYER_H__ */
-

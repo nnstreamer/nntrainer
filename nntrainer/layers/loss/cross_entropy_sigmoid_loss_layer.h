@@ -4,7 +4,8 @@
  *
  * @file   cross_entropy_sigmoid_loss_layer.h
  * @date   24 June 2021
- * @brief  This is Cross Entropy Sigmoid with Sigmoid Loss Layer Class of Neural Network
+ * @brief  This is Cross Entropy Sigmoid with Sigmoid Loss Layer Class of Neural
+ * Network
  * @see    https://github.com/nnstreamer/nntrainer
  * @author Parichay Kapoor <pk.kapoor@samsung.com>
  * @bug    No known bugs except for NYI items
@@ -48,7 +49,9 @@ public:
   /**
    * @copydoc Layer::getType()
    */
-  const std::string getType() const override { return CrossEntropySigmoidLossLayer::type; };
+  const std::string getType() const override {
+    return CrossEntropySigmoidLossLayer::type;
+  };
 
   inline static const std::string type = "cross_entropy_sigmoid_loss";
 };
@@ -56,4 +59,3 @@ public:
 
 #endif /* __cplusplus */
 #endif /* __CROSS_ENTROPY_SIGMOID_LOSS_LAYER_H__ */
-

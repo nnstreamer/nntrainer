@@ -33,13 +33,16 @@
 #include <bn_layer.h>
 #include <concat_layer.h>
 #include <conv2d_layer.h>
+#include <cross_entropy_loss_layer.h>
+#include <cross_entropy_sigmoid_loss_layer.h>
+#include <cross_entropy_softmax_loss_layer.h>
 #include <embedding.h>
 #include <fc_layer.h>
 #include <flatten_layer.h>
 #include <gru.h>
 #include <input_layer.h>
-#include <loss_layer.h>
 #include <lstm.h>
+#include <mse_loss_layer.h>
 #include <nntrainer_error.h>
 #include <output_layer.h>
 #include <parse_util.h>
@@ -223,8 +226,6 @@ static void add_default_object(AppContext &ac) {
                      LayerType::LAYER_MULTIOUT);
   ac.registerFactory(nntrainer::createLayer<ConcatLayer>, ConcatLayer::type,
                      LayerType::LAYER_CONCAT);
-  ac.registerFactory(nntrainer::createLayer<LossLayer>, LossLayer::type,
-                     LayerType::LAYER_LOSS);
   ac.registerFactory(nntrainer::createLayer<PreprocessFlipLayer>,
                      PreprocessFlipLayer::type,
                      LayerType::LAYER_PREPROCESS_FLIP);
@@ -254,6 +255,19 @@ static void add_default_object(AppContext &ac) {
                      LayerType::LAYER_SPLIT);
   ac.registerFactory(nntrainer::createLayer<PermuteLayer>, PermuteLayer::type,
                      LayerType::LAYER_PERMUTE);
+
+  /** register losses */
+  ac.registerFactory(nntrainer::createLayer<MSELossLayer>, MSELossLayer::type,
+                     LayerType::LAYER_LOSS_MSE);
+  ac.registerFactory(nntrainer::createLayer<CrossEntropyLossLayer>,
+                     CrossEntropyLossLayer::type,
+                     LayerType::LAYER_LOSS_CROSS_ENTROPY);
+  ac.registerFactory(nntrainer::createLayer<CrossEntropySoftmaxLossLayer>,
+                     CrossEntropySoftmaxLossLayer::type,
+                     LayerType::LAYER_LOSS_CROSS_ENTROPY_SOFTMAX);
+  ac.registerFactory(nntrainer::createLayer<CrossEntropySigmoidLossLayer>,
+                     CrossEntropySigmoidLossLayer::type,
+                     LayerType::LAYER_LOSS_CROSS_ENTROPY_SIGMOID);
 
   ac.registerFactory(AppContext::unknownFactory<nntrainer::LayerV1>, "unknown",
                      LayerType::LAYER_UNKNOWN);

@@ -74,14 +74,6 @@ unsigned int parseType(std::string ll, InputType t) {
   unsigned int i;
 
   /**
-   * @brief     Loss Function String from configure file
-   *            "mse"  : Mean Squared Error
-   *            "caterogical" : Categorical Cross Entropy
-   *            "none" : No Loss attached to the model
-   */
-  std::array<std::string, 3> loss_string = {"mse", "cross", "none"};
-
-  /**
    * @brief     Model Type String from configure file
    *            "knn"  : K Neearest Neighbor
    *            "regression" : Logistic Regression
@@ -130,15 +122,6 @@ unsigned int parseType(std::string ll, InputType t) {
                                                "global_average"};
 
   switch (t) {
-  case TOKEN_LOSS:
-    for (i = 0; i < loss_string.size(); i++) {
-      if (!strncasecmp(loss_string[i].c_str(), ll.c_str(),
-                       loss_string[i].size())) {
-        return (i);
-      }
-    }
-    ret = (unsigned int)LossType::LOSS_UNKNOWN;
-    break;
   case TOKEN_MODEL:
     for (i = 0; i < model_type_string.size(); i++) {
       if (!strncasecmp(model_type_string[i].c_str(), ll.c_str(),

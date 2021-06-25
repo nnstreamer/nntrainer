@@ -18,10 +18,12 @@
 #include <addition_layer.h>
 #include <bn_layer.h>
 #include <concat_layer.h>
+#include <cross_entropy_loss_layer.h>
+#include <cross_entropy_sigmoid_loss_layer.h>
+#include <cross_entropy_softmax_loss_layer.h>
 #include <flatten_layer.h>
 #include <input_layer.h>
 #include <layer_factory.h>
-#include <loss_layer.h>
 #include <network_graph.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
@@ -36,7 +38,7 @@
 
 namespace nntrainer {
 
-int NetworkGraph::compile(const LossType loss_type) {
+int NetworkGraph::compile(const std::string &loss_type) {
   int status = ML_ERROR_NONE;
 
   status = isCompilable();
@@ -214,16 +216,18 @@ int NetworkGraph::realizeMultiOutputType(
  * @fixme: the implementation assumes loss layer should always be at the last
  * layer and the there is only one loss, this assumption is not true
  */
-int NetworkGraph::addLossLayer(const LossType loss_type) {
+int NetworkGraph::addLossLayer(const std::string &loss_type) {
   int status = ML_ERROR_NONE;
   auto const &last_node = LNODE(graph.getSortedNode(graph.size() - 1));
   auto last_layer_node = getSortedLayerNode(graph.size() - 1);
 
   if (last_layer_node->requireLabel()) {
+    if (last_layer_node->getType() != loss_type)
+      status = ML_ERROR_INVALID_PARAMETER;
     return status;
   }
 
-  if (loss_type == LossType::LOSS_NONE) {
+  if (loss_type.empty()) {
     return status;
   }
 
@@ -236,9 +240,9 @@ int NetworkGraph::addLossLayer(const LossType loss_type) {
   /// @todo enable this
   /// if (num_layer_that_requires_label > 2) { return error; }
 
-  LossType updated_loss_type = loss_type;
+  std::string updated_loss_type = loss_type;
 
-  if (updated_loss_type == LossType::LOSS_ENTROPY) {
+  if (updated_loss_type == CrossEntropyLossLayer::type) {
     auto type = last_node->getType();
 
     if (type != "activation") {
@@ -252,10 +256,10 @@ int NetworkGraph::addLossLayer(const LossType loss_type) {
 
     switch (last_layer_node->getActivationType()) {
     case ActivationType::ACT_SIGMOID:
-      updated_loss_type = LossType::LOSS_ENTROPY_SIGMOID;
+      updated_loss_type = CrossEntropySigmoidLossLayer::type;
       break;
     case ActivationType::ACT_SOFTMAX:
-      updated_loss_type = LossType::LOSS_ENTROPY_SOFTMAX;
+      updated_loss_type = CrossEntropySoftmaxLossLayer::type;
       break;
     default:
       ml_loge("Error: Cross Entropy not supported without softmax or sigmoid.");
@@ -265,8 +269,9 @@ int NetworkGraph::addLossLayer(const LossType loss_type) {
 
   auto const &updated_last_node = getSortedLayerNode(graph.size() - 1);
 
-  std::shared_ptr<LayerNode> lnode = createLayerNode(LossLayer::type);
-  lnode->setLossType(updated_loss_type);
+  // FIXME: fixme
+  std::shared_ptr<LayerNode> lnode = createLayerNode(updated_loss_type);
+  // lnode->setLossType(updated_loss_type);
   graph.ensureName(*lnode);
 
   std::string input_str = updated_last_node->getName();
@@ -363,13 +368,14 @@ int NetworkGraph::checkCompiledGraph() {
   auto const &l = getSortedLayerNode(0);
   /** First layer cannot be activation, batch normalization or loss */
   const std::string &type = l->getType();
-  if (istrequal(type, ActivationLayer::type) ||
-      istrequal(type, BatchNormalizationLayer::type) ||
-      istrequal(type, LossLayer::type)) {
-    ml_loge("%s cannot be the first layer, type: %s", l->getName().c_str(),
-            type.c_str());
-    return ML_ERROR_INVALID_PARAMETER;
-  }
+  // FIXME: why such restriction exists
+  // if (istrequal(type, ActivationLayer::type) ||
+  //     istrequal(type, BatchNormalizationLayer::type) ||
+  //     istrequal(type, LossLayer::type)) {
+  //   ml_loge("%s cannot be the first layer, type: %s", l->getName().c_str(),
+  //           type.c_str());
+  //   return ML_ERROR_INVALID_PARAMETER;
+  // }
 
   /** Dimension of input layers must be known */
   for (auto iter = cbegin(); iter != cend(); iter++) {
@@ -713,8 +719,9 @@ NetworkGraph::updateRunContext(std::shared_ptr<Manager> &manager,
    * @todo must use existing properties like name/trainable of run_context to
    * create the new run_context
    */
-  // const RunLayerContext &run_context = lnode->getRunContext();
+  const RunLayerContext &run_context = lnode->getRunContext();
   lnode->updateRunContext(RunLayerContext(
+    run_context.getName(), run_context.getLoss(),
     // TODO: update weights spec for trainable based on layer trainable prop
     manager->requestWeights(gnode, init_context.getWeightsSpec()), inputs,
     outputs, manager->requestTensors(gnode, init_context.getTensorsSpec())));
