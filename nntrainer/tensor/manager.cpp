@@ -179,7 +179,7 @@ void Manager::trackWeights(std::vector<Weight> &ws) {
     layer_weights.emplace_back(std::ref(w));
     unsigned int len = w.getDim().getDataLen();
     weight_size += len;
-    if (w.getTrainable())
+    if (w.needsGradient())
       grad_size += len;
   }
 
@@ -392,7 +392,7 @@ void Manager::initializeGradients() {
       Weight &weight = w.get();
       auto dim = weight.getDim();
       Tensor grad_prealloc = Tensor();
-      if (weight.getTrainable()) {
+      if (weight.needsGradient()) {
         grad_prealloc = allocate_grad(dim, grad_offset);
         grad_offset += dim.getDataLen();
       }
@@ -784,7 +784,7 @@ void Manager::requestOptimizerVariable(
   if (LAYER_V2) {
     for (auto &weight_v2 : weights_v2) {
       for (auto &w : weight_v2) {
-        if (request_only_trainable && !w->getTrainable()) {
+        if (request_only_trainable && !w->needsGradient()) {
           continue;
         }
 
@@ -798,7 +798,7 @@ void Manager::requestOptimizerVariable(
     for (auto &weight : weights) {
       for (auto &rw_w : weight) {
         auto &w = rw_w.get();
-        if (request_only_trainable && !w.getTrainable()) {
+        if (request_only_trainable && !w.needsGradient()) {
           continue;
         }
 
