@@ -19,8 +19,13 @@
 #include <model.h>
 #include <optimizer.h>
 
+#include <cifar_dataloader.h>
+
 using LayerHandle = std::shared_ptr<ml::train::Layer>;
 using ModelHandle = std::unique_ptr<ml::train::Model>;
+
+using UserDataType =
+  std::vector<std::unique_ptr<nntrainer::resnet::DataLoader>>;
 
 /**
  * @brief make "key=value" from key and value
@@ -92,14 +97,10 @@ std::vector<LayerHandle> resnetBlock(const std::string &block_name,
       return createLayer("conv2d", props);
     };
 
-  auto create_batch_relu = [&with_name](const std::string &name) {
-    return createLayer("batch_normalization",
-                       {with_name(name), "activation=relu"});
-  };
-
   /** residual path */
   LayerHandle a1 = create_conv("a1", 3, downsample ? 2 : 1, 1, input_name);
-  LayerHandle a2 = create_batch_relu("a2");
+  LayerHandle a2 = createLayer(
+    "batch_normalization", {with_name("a2"), withKey("activation", "relu")});
   LayerHandle a3 = create_conv("a3", 3, 1, 1, scoped_name("a2"));
 
   /** skip path */
@@ -114,7 +115,9 @@ std::vector<LayerHandle> resnetBlock(const std::string &block_name,
     "Addition",
     {with_name("c1"), withKey("input_layers", {scoped_name("a3"), skip_name})});
 
-  LayerHandle c2 = create_batch_relu(""); /// use block_name itself.
+  LayerHandle c2 =
+    createLayer("batch_normalization",
+                {withKey("name", block_name), withKey("activation", "relu")});
 
   if (downsample) {
     return {a1, a2, a3, b1, c1, c2};
@@ -136,6 +139,8 @@ std::vector<LayerHandle> createResnet18Graph() {
   layers.push_back(
     createLayer("conv2d", {
                             withKey("name", "conv0"),
+                            withKey("input_shape", "3:32:32"),
+                            withKey("filters", 64),
                             withKey("kernel_size", {3, 3}),
                             withKey("stride", {1, 1}),
                             withKey("padding", {1, 1}),
@@ -176,10 +181,8 @@ std::vector<LayerHandle> createResnet18Graph() {
 
 /// @todo update createResnet18 to be more generic
 ModelHandle createResnet18() {
-  ModelHandle model =
-    ml::train::createModel(ml::train::ModelType::NEURAL_NET,
-                           {withKey("loss", "cross"),
-                            withKey("batch_size", 128), withKey("epochs", 60)});
+  ModelHandle model = ml::train::createModel(ml::train::ModelType::NEURAL_NET,
+                                             {withKey("loss", "cross")});
 
   for (auto layers : createResnet18Graph()) {
     model->addLayer(layers);
@@ -188,20 +191,112 @@ ModelHandle createResnet18() {
   return model;
 }
 
-ml_train_datagen_cb train_cb, valid_cb;
+int trainData_cb(float **input, float **label, bool *last, void *user_data) {
+  auto data = reinterpret_cast<
+    std::vector<std::unique_ptr<nntrainer::resnet::DataLoader>> *>(user_data);
 
-void create_and_run() {
+  data->at(0)->next(input, label, last);
+  return 0;
+}
+
+int validData_cb(float **input, float **label, bool *last, void *user_data) {
+  auto data = reinterpret_cast<
+    std::vector<std::unique_ptr<nntrainer::resnet::DataLoader>> *>(user_data);
+
+  data->at(1)->next(input, label, last);
+  return 0;
+}
+
+/// @todo maybe make num_class also a parameter
+void createAndRun(unsigned int epochs, unsigned int batch_size,
+                  UserDataType *user_data) {
   ModelHandle model = createResnet18();
+  model->setProperty(
+    {withKey("batch_size", batch_size), withKey("epochs", epochs)});
 
   auto optimizer = ml::train::createOptimizer("adam");
   model->setOptimizer(std::move(optimizer));
+
+  int status = model->compile();
+  if (status != ML_ERROR_NONE) {
+    throw std::invalid_argument("model compilation failed!");
+  }
+
+  status = model->initialize();
+  if (status != ML_ERROR_NONE) {
+    throw std::invalid_argument("model initialization failed!");
+  }
+
+  auto dataset = ml::train::createDataset(ml::train::DatasetType::GENERATOR,
+                                          trainData_cb, validData_cb);
+
+  std::vector<void *> dataset_props;
+  dataset_props.push_back((void *)"user_data");
+  dataset_props.push_back((void *)user_data);
+  dataset->setProperty(dataset_props);
+
+  model->setDataset(std::move(dataset));
+
+  model->train();
 }
 
-int main() {
+UserDataType createFakeDataGenerator(unsigned int batch_size,
+                                     unsigned int simulted_data_size,
+                                     unsigned int data_split) {
+  UserDataType user_data;
+  unsigned int simulated_data_size = 512;
+  /// this is for train
+  user_data.emplace_back(new nntrainer::resnet::RandomDataLoader(
+    {{batch_size, 3, 32, 32}}, {{batch_size, 1, 1, 100}},
+    simulated_data_size / data_split));
+  /// this is for validation
+  user_data.emplace_back(new nntrainer::resnet::RandomDataLoader(
+    {{batch_size, 3, 32, 32}}, {{batch_size, 1, 1, 100}},
+    simulated_data_size / data_split));
+
+  return user_data;
+}
+
+UserDataType createRealDataGenerator() {
+  throw std::invalid_argument("reached here!");
+}
+
+int main(int argc, char *argv[]) {
+  if (argc < 4) {
+    std::cerr
+      << "usage: ./main [{data_directory}|\"fake\"] [batchsize] [data_split] \n"
+      << "when \"fake\" is given, original data size is assumed 512 for both "
+         "train and validation\n";
+    return 1;
+  }
+
+  std::string data_dir = argv[1];
+  unsigned int batch_size = std::stoul(argv[2]);
+  unsigned int data_split = std::stoul(argv[3]);
+
+  std::cout << "data_dir: " << data_dir << ' ' << "batch_size: " << batch_size
+            << " data_split: " << data_split << '\n';
+
+  /// warning: the data loader will be destroyed at the end of this function,
+  /// and passed as a pointer to the databuffer
+  UserDataType user_data;
+
   try {
-    create_and_run();
+    if (data_dir == "fake") {
+      user_data = createFakeDataGenerator(batch_size, 512, data_split);
+    } else {
+      user_data = createRealDataGenerator();
+    }
   } catch (std::exception &e) {
-    std::cerr << "uncaught error! error: " << e.what();
+    std::cerr << "uncaught error while creating data generator! details: "
+              << e.what() << '\n';
+    return 1;
+  }
+
+  try {
+    createAndRun(1, 128, &user_data);
+  } catch (std::exception &e) {
+    std::cerr << "uncaught error while running! details: " << e.what() << '\n';
     return 1;
   }
 
