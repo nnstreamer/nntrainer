@@ -133,8 +133,7 @@ section2layer<PlainLayer>(dictionary *ini, const std::string &sec_name,
 
   auto properties = section2properties(ini, sec_name);
 
-  auto layer =
-    createLayerNode(ac.createObject<LayerV1>(layer_type), properties);
+  auto layer = createLayerNode(ac.createObject<Layer>(layer_type), properties);
   return layer;
 }
 

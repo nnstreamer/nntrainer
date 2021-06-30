@@ -58,7 +58,7 @@ public:
     return CrossEntropyLossLayer::type;
   };
 
-  inline static const std::string type = "cross_entropy_loss";
+  inline static const std::string type = "cross";
 };
 } // namespace nntrainer
 
