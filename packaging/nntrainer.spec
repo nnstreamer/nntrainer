@@ -191,7 +191,7 @@ HTML pages of lcov results of NNTrainer generated during rpmbuild
 %if %{with tizen}
 %package -n capi-machine-learning-training
 Summary:         Tizen Native API for NNTrainer
-Group:           Multimedia/Framework
+Group:           Machine Learning/ML Framework
 Requires:        %{name} = %{version}-%{release}
 %description -n capi-machine-learning-training
 Tizen Native API wrapper for NNTrainer.
@@ -202,7 +202,7 @@ You can train neural networks efficiently.
 
 %package -n capi-machine-learning-training-devel
 Summary:         Tizen Native API Devel Kit for NNTrainer
-Group:           Multimedia/Framework
+Group:           Machine Learning/ML Framework
 Requires:        capi-machine-learning-training = %{version}-%{release}
 Requires:        %{capi_machine_learning_common}-devel
 %description -n capi-machine-learning-training-devel
@@ -210,7 +210,7 @@ Developmental kit for Tizen Native NNTrainer API.
 
 %package -n capi-machine-learning-training-devel-static
 Summary:         Static library for Tizen Native API
-Group:           Multimedia/Framework
+Group:           Machine Learning/ML Framework
 Requires:        capi-machine-learning-training-devel = %{version}-%{release}
 %description -n capi-machine-learning-training-devel-static
 Static library of capi-machine-learning-training-devel package.
@@ -218,7 +218,7 @@ Static library of capi-machine-learning-training-devel package.
 %if 0%{?support_ccapi}
 %package -n ccapi-machine-learning-training
 Summary:         Tizen Native API for NNTrainer
-Group:           Multimedia/Framework
+Group:           Machine Learning/ML Framework
 Requires:        %{name} = %{version}-%{release}
 %description -n ccapi-machine-learning-training
 Tizen Native API wrapper for NNTrainer.
@@ -229,14 +229,14 @@ You can train neural networks efficiently.
 
 %package -n ccapi-machine-learning-training-devel
 Summary:         Tizen Native API Devel Kit for NNTrainer
-Group:           Multimedia/Framework
+Group:           Machine Learning/ML Framework
 Requires:        ccapi-machine-learning-training = %{version}-%{release}
 %description -n ccapi-machine-learning-training-devel
 Developmental kit for Tizen Native NNTrainer API.
 
 %package -n ccapi-machine-learning-training-devel-static
 Summary:         Static library for Tizen c++ API
-Group:           Multimedia/Framework
+Group:           Machine Learning/ML Framework
 Requires:        ccapi-machine-learning-training-devel = %{version}-%{release}
 %description -n ccapi-machine-learning-training-devel-static
 Static library of ccapi-machine-learning-training-devel package.
