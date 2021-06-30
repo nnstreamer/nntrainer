@@ -33,6 +33,8 @@
 #include <split_layer.h>
 #include <time_dist.h>
 
+#define LAYER_V2 1
+
 #define LNODE(x) std::static_pointer_cast<LayerNode>(x)
 
 namespace nntrainer {
@@ -83,6 +85,10 @@ void NetworkGraph::addDefaultInputLayers() {
 
 void NetworkGraph::addLayerNode(std::shared_ptr<LayerV1> layer) {
   graph.addNode(std::make_unique<LayerNode>(layer, graph.size()));
+}
+
+void NetworkGraph::addLayerNode(std::unique_ptr<Layer> layer) {
+  graph.addNode(std::make_unique<LayerNode>(std::move(layer), graph.size()));
 }
 
 void NetworkGraph::countNonTrainableLayersAtBegin() {
@@ -282,12 +288,6 @@ int NetworkGraph::addLossLayer(const std::string &loss_type) {
 
   lnode->setInputLayers({input_str});
 
-  /** Set output layers here as setOutputLayers will not be called after adding
-   * loss. */
-  if (lnode->getNumOutputs() == 0) {
-    lnode->setOutputLayers({"__exit__"});
-  }
-
   /**
    * As the loss layer is always the last, it could be added manually to Sorted
    * for performance.
@@ -324,26 +324,14 @@ void NetworkGraph::setOutputLayers() {
       }
     }
 
-    if (layer_idx->getOutputDimensions().size() != layer_idx->getNumOutputs()) {
-      if (layer_idx->getNumOutputs() == 0) {
-        /** No output layer inplies its the last layer */
-        layer_idx->setOutputLayers({"__exit__"});
-        last_layer_count += 1;
-      } else {
-        /** error for any other layer */
-        throw std::logic_error("Graph node has fewer edges than expected.");
-      }
+    if (layer_idx->getNumOutputs() == 0) {
+      last_layer_count += 1;
     }
   }
 
   if (last_layer_count != 1) {
     throw std::invalid_argument(
       "Error: Multiple last layers in the model not supported");
-  }
-
-  for (auto iter = cbegin(); iter != cend(); iter++) {
-    if ((*iter)->getNumOutputs() == 0)
-      throw std::runtime_error("There is un-connected node");
   }
 }
 
@@ -375,6 +363,12 @@ int NetworkGraph::checkCompiledGraph() {
         return ML_ERROR_INVALID_PARAMETER;
       }
     }
+  }
+
+  /** Only loss layer nodes can have no output connections */
+  for (auto iter = cbegin(); iter != cend(); iter++) {
+    if ((*iter)->getNumOutputs() == 0 && !(*iter)->requireLabel())
+      throw std::runtime_error("There is un-connected node");
   }
 
   return ML_ERROR_NONE;
@@ -793,9 +787,13 @@ int NetworkGraph::initialize(std::shared_ptr<Manager> manager) {
     lptr->setOutputBuffers(in_out);
 #endif
 
+    /** no need to update input_map for the last layer */
+    if (idx == graph.size() - 1)
+      break;
+
 #if LAYER_V2
     auto &output_layers = lnode->getOutputLayers();
-    for (unsigned int i = 0; i < outputs.size(); ++i) {
+    for (unsigned int i = 0; i < output_layers.size(); ++i) {
       auto out_layer_node = getLayerNode(output_layers[i]);
       if (input_map.find(output_layers[i]) == input_map.end())
         input_map.insert({output_layers[i], {}});

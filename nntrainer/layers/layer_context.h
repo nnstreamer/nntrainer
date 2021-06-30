@@ -233,6 +233,14 @@ public:
 
   /**
    * @brief Construct a new Run Layer Context object
+   *
+   */
+  RunLayerContext(const std::string &name) : RunLayerContext() {
+    std::get<props::Name>(props).set(name);
+  }
+
+  /**
+   * @brief Construct a new Run Layer Context object
    * @todo  Include properties like name/trainable later
    *
    * @param w weights of the layer
@@ -249,7 +257,9 @@ public:
     weights(w),
     inputs(in),
     outputs(out),
-    tensors(t) {}
+    tensors(t) {
+    std::get<props::Name>(props).set(name);
+  }
 
   /**
    * @brief Get the Weight tensor object

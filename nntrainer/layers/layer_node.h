@@ -31,6 +31,7 @@
 #include <graph_node.h>
 #include <layer.h>
 #include <layer_context.h>
+#include <layer_devel.h>
 #include <layer_internal.h>
 
 constexpr bool LAYER_V2 = true;
@@ -264,7 +265,10 @@ public:
    * @return boolean true if trainable, else false
    */
   bool supportBackwarding() const noexcept {
-    return getLayer()->supportBackwarding();
+    if (layerv1)
+      return getLayer()->supportBackwarding();
+    else
+      return layer->supportBackwarding();
   }
 
   /**
@@ -374,6 +378,7 @@ public:
    */
   void addInputLayers(const std::string &in_layer) {
     input_layers.push_back(in_layer);
+    resizeInputDimensions(input_layers.size());
     if (layerv1)
       layerv1->setNumInputs(input_layers.size());
   }
@@ -396,6 +401,7 @@ public:
    */
   void setInputLayers(const std::vector<std::string> &layers) {
     input_layers = layers;
+    resizeInputDimensions(input_layers.size());
     if (layerv1)
       layerv1->setNumInputs(layers.size());
   }
@@ -614,23 +620,6 @@ public:
     }
   }
 
-  /**
-   * @brief Set loss type for the layer underneath the node
-   *
-   * @param type The loss type
-   * @todo this interface will be removed when loss layer is updated for LayerV2
-   */
-  // void setLossType(LossType type) {
-  //   if (layerv1) {
-  //     // if (getType() != LossLayer::type)
-  //     //   throw std::runtime_error("Setting loss type on non-loss layer");
-  //     // std::dynamic_pointer_cast<LossLayer>(getLayer())->setLoss(type);
-  //   } else {
-  //     // TODO: set loss layer type for LayerV2
-  //     // will be handled when updating LossLayer for LayerV2
-  //   }
-  // }
-
 private:
   /// @todo remove this
   std::shared_ptr<nntrainer::LayerV1>
@@ -700,6 +689,19 @@ private:
    * @throw std::invalid_argument when ActivationType is unknown
    */
   void setActivation(ActivationType activation);
+
+  /**
+   * @brief     Resize the input dimensions
+   *
+   * @param size Number of input dimensions
+   */
+  void resizeInputDimensions(unsigned int size) {
+    auto cur_input_dim = init_context.getInputDimensions();
+    if (cur_input_dim.size() != size) {
+      cur_input_dim.resize(size);
+      init_context = InitLayerContext(cur_input_dim);
+    }
+  }
 };
 
 /**
