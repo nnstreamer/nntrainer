@@ -69,6 +69,7 @@ BuildRequires:	python3
 BuildRequires:	python3-numpy
 
 BuildRequires:	%{capi_machine_learning_common}-devel
+BuildRequires:	%{capi_machine_learning_inference}-devel
 
 %if 0%{?unit_test}
 BuildRequires:	ssat >= 1.1.0
@@ -98,10 +99,8 @@ BuildRequires:	pkgconfig(dlog)
 
 %if 0%{?support_nnstreamer_backbone}
 BuildRequires: nnstreamer-tensorflow2-lite
-BuildRequires: %{capi_machine_learning_inference}-devel
 
 Requires:	nnstreamer-tensorflow2-lite
-Requires:	%{capi_machine_learning_inference}
 %endif # support_nnstreamer_backbone
 
 %if 0%{?support_tflite_backbone}

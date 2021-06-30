@@ -163,7 +163,7 @@ if nnstreamer_capi_dep.found()
   endif
 endif
 
-ml_api_common_dep = dependency(get_option('capi-ml-common-actual'), required:true)
+ml_api_common_dep = dependency(get_option('capi-ml-common-actual'), required: true)
 
 if get_option('enable-nnstreamer-backbone')
   add_project_arguments('-DENABLE_NNSTREAMER_BACKBONE=1', language:['c','cpp'])

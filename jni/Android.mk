@@ -105,12 +105,19 @@ ifndef ML_API_COMMON_ROOT
 ifneq ($(MAKECMDGOALS),clean)
 
 ML_API_COMMON_ROOT := $(NDK_INCLUDES_OUT)/ml_api_common
-$(info $(shell ($(NNTRAINER_JNI_ROOT)/prepare_ml-api-common.sh $(ML_API_COMMON_ROOT))))
+$(info $(shell ($(NNTRAINER_JNI_ROOT)/prepare_ml-api.sh $(ML_API_COMMON_ROOT))))
 
 endif #MAKECMDGOALS
 endif #ML_API_COMMON_ROOT
 
 ML_API_COMMON_INCLUDES := $(ML_API_COMMON_ROOT)/include
+
+LOCAL_MODULE := ml-api-inference
+LOCAL_SRC_FILES := $(ML_API_COMMON_ROOT)/lib/arm64-v8a/libnnstreamer-native.so
+LOCAL_EXPORT_C_INCLUDES := $(ML_API_COMMON_ROOT)/include
+LOCAL_EXPORT_CFLAGS += -DUSE_BLAS=1
+
+include $(PREBUILT_SHARED_LIBRARY)
 
 include $(CLEAR_VARS)
 
@@ -270,7 +277,7 @@ CAPI_NNTRAINER_INCLUDES := $(NNTRAINER_ROOT)/nntrainer \
                       $(NNTRAINER_ROOT)/api/ccapi/include \
                       $(NNTRAINER_ROOT)/api/capi/include
 
-LOCAL_SHARED_LIBRARIES := ccapi-nntrainer
+LOCAL_SHARED_LIBRARIES := ccapi-nntrainer ml-api-inference
 
 LOCAL_ARM_NEON      := true
 LOCAL_CFLAGS        += -pthread -fexceptions
