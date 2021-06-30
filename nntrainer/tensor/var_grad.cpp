@@ -59,19 +59,4 @@ void Var_Grad::needsGradient(bool ng) {
   }
 }
 
-Var_Grad
-Var_Grad::cloneTransposeVariableOnly(const std::string &direction) const {
-  Var_Grad vg(*this);
-  /// @todo: make this clonable even when not allocated
-  NNTR_THROW_IF(var->isAllocated() == false, std::invalid_argument)
-    << "transpose clone is only allowed when variable is allocated, var name: "
-    << getName();
-
-  vg.var = std::make_shared<Tensor>(var->transpose(direction));
-  vg.dim = vg.var->getDim();
-  vg.grad.reset();
-
-  return vg;
-}
-
 } // namespace nntrainer
