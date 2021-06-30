@@ -90,11 +90,8 @@ public:
    */
   const std::string getType() const override { return InputLayer::type; };
 
-  using Layer::setProperty;
-
   /**
-   * @copydoc Layer::setProperty(const PropertyType type, const std::string
-   * &value)
+   * @copydoc Layer::setProperty(const std::vector<std::string> &values)
    */
   void setProperty(const std::vector<std::string> &values) override;
 

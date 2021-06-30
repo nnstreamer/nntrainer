@@ -30,44 +30,64 @@
 
 namespace nntrainer {
 
-/**
- * @brief     Initialize the layer
- *
- * @retval #ML_ERROR_NONE Successful.
- * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
- */
-int ActivationLayer::initialize(Manager &manager) {
+static constexpr size_t SINGLE_INOUT_IDX = 0;
 
-  output_dim = input_dim;
-
-  return ML_ERROR_NONE;
+void ActivationLayer::finalize(InitLayerContext &context) {
+  context.setOutputDimensions(context.getInputDimensions());
 }
 
-void ActivationLayer::forwarding(bool training) {
-  Tensor &hidden_ = net_hidden[0]->getVariableRef();
-  /// @note @a _act_fn is expected to work out of place and not modify @a input
-  acti_func.run_fn(net_input[0]->getVariableRef(), hidden_);
+void ActivationLayer::forwarding(RunLayerContext &context, bool training) {
+  Tensor &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
+  Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
+  acti_func.run_fn(input_, hidden_);
 }
 
-void ActivationLayer::calcDerivative() {
-  Tensor &deriv = net_hidden[0]->getGradientRef();
-  Tensor &ret = net_input[0]->getGradientRef();
-  Tensor &in = net_hidden[0]->getVariableRef();
+void ActivationLayer::calcDerivative(RunLayerContext &context) {
+  Tensor &deriv = context.getIncomingDerivative(SINGLE_INOUT_IDX);
+  Tensor &ret = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
+  Tensor &in = context.getOutput(SINGLE_INOUT_IDX);
+  // Tensor &deriv = net_hidden[0]->getGradientRef();
+  // Tensor &ret = net_input[0]->getGradientRef();
+  // Tensor &in = net_hidden[0]->getVariableRef();
 
   ret = acti_func.run_prime_fn(in, ret, deriv);
 }
 
-void ActivationLayer::setProperty(const PropertyType type,
+void ActivationLayer::setProperty(const std::vector<std::string> &values) {
+  /// @todo: deprecate this in favor of loadProperties
+  for (unsigned int i = 0; i < values.size(); ++i) {
+    std::string key;
+    std::string value;
+    std::stringstream ss;
+
+    if (getKeyValue(values[i], key, value) != ML_ERROR_NONE) {
+      throw std::invalid_argument("Error parsing the property: " + values[i]);
+    }
+
+    if (value.empty()) {
+      ss << "value is empty: key: " << key << ", value: " << value;
+      throw std::invalid_argument(ss.str());
+    }
+
+    /// @note this calls derived setProperty if available
+    setProperty(key, value);
+  }
+}
+
+void ActivationLayer::setProperty(const std::string &type_str,
                                   const std::string &value) {
+  using PropertyType = LayerV1::PropertyType;
+  LayerV1::PropertyType type =
+    static_cast<LayerV1::PropertyType>(parseLayerProperty(type_str));
+
   switch (type) {
   case PropertyType::activation: {
-    if (!value.empty()) {
-      acti_func.setActiFunc((ActivationType)parseType(value, TOKEN_ACTI));
-    }
+    acti_func.setActiFunc((ActivationType)parseType(value, TOKEN_ACTI));
   } break;
   default:
-    LayerV1::setProperty(type, value);
-    break;
+    std::string msg =
+      "[Layer] Unknown Layer Property Key for value " + std::string(value);
+    throw exception::not_supported(msg);
   }
 }
 

@@ -58,18 +58,14 @@ void InputLayer::setProperty(const std::string &type_str,
     static_cast<LayerV1::PropertyType>(parseLayerProperty(type_str));
 
   switch (type) {
-  case PropertyType::normalization:
-    if (!value.empty()) {
-      status = setBoolean(normalization, value);
-      throw_status(status);
-    }
-    break;
-  case PropertyType::standardization:
-    if (!value.empty()) {
-      status = setBoolean(standardization, value);
-      throw_status(status);
-    }
-    break;
+  case PropertyType::normalization: {
+    status = setBoolean(normalization, value);
+    throw_status(status);
+  } break;
+  case PropertyType::standardization: {
+    status = setBoolean(standardization, value);
+    throw_status(status);
+  } break;
   default:
     std::string msg =
       "[Layer] Unknown Layer Property Key for value " + std::string(value);
