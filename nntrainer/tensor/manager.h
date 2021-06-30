@@ -583,10 +583,10 @@ private:
       tensors_list.emplace_back(std::make_unique<T>(ts));
     }
 
-    layer_objs_list.emplace_back(std::move(tensors_list));
     std::transform(tensors_list.begin(), tensors_list.end(),
                    std::back_inserter(ret),
                    [](auto const &elem) { return elem.get(); });
+    layer_objs_list.emplace_back(std::move(tensors_list));
 
     return ret;
   }

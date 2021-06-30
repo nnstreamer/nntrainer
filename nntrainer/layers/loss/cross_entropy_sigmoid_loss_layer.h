@@ -53,7 +53,7 @@ public:
     return CrossEntropySigmoidLossLayer::type;
   };
 
-  inline static const std::string type = "cross_entropy_sigmoid_loss";
+  inline static const std::string type = "cross_sigmoid";
 };
 } // namespace nntrainer
 

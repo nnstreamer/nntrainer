@@ -269,7 +269,7 @@ static void add_default_object(AppContext &ac) {
                      CrossEntropySigmoidLossLayer::type,
                      LayerType::LAYER_LOSS_CROSS_ENTROPY_SIGMOID);
 
-  ac.registerFactory(AppContext::unknownFactory<nntrainer::LayerV1>, "unknown",
+  ac.registerFactory(AppContext::unknownFactory<nntrainer::Layer>, "unknown",
                      LayerType::LAYER_UNKNOWN);
 }
 

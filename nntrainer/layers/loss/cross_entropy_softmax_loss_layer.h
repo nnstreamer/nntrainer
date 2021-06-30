@@ -53,7 +53,7 @@ public:
     return CrossEntropySoftmaxLossLayer::type;
   };
 
-  inline static const std::string type = "cross_entropy_softmax_loss";
+  inline static const std::string type = "cross_softmax";
 };
 } // namespace nntrainer
 
