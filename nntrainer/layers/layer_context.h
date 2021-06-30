@@ -130,6 +130,9 @@ public:
    * @param name name of the weight
    * @param trainable if the weight is trainable (require gradient or not)
    * @return unsigned int index of the weight for its getter
+   *
+   * @todo Consider providing a guarantee that the returned indices will always
+   * start from 0 and will always be incremental.
    */
   unsigned int requestWeight(const TensorDim &dim, const WeightInitializer init,
                              const WeightRegularizer reg, const float reg_const,
@@ -146,6 +149,9 @@ public:
    * @param name name of the tensor
    * @param lifespan lifespan of the tensor
    * @return unsigned int index of the tensor for its getter
+   *
+   * @todo Consider providing a guarantee that the returned indices will always
+   * start from 0 and will always be incremental.
    */
   unsigned int requestTensor(const TensorDim &dim, const std::string &name,
                              bool trainable = false,
