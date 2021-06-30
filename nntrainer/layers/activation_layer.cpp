@@ -46,9 +46,6 @@ void ActivationLayer::calcDerivative(RunLayerContext &context) {
   Tensor &deriv = context.getIncomingDerivative(SINGLE_INOUT_IDX);
   Tensor &ret = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
   Tensor &in = context.getOutput(SINGLE_INOUT_IDX);
-  // Tensor &deriv = net_hidden[0]->getGradientRef();
-  // Tensor &ret = net_input[0]->getGradientRef();
-  // Tensor &in = net_hidden[0]->getVariableRef();
 
   ret = acti_func.run_prime_fn(in, ret, deriv);
 }

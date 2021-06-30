@@ -350,10 +350,6 @@ int NetworkGraph::isCompilable() {
 }
 
 int NetworkGraph::checkCompiledGraph() {
-  auto const &l = getSortedLayerNode(0);
-  /** First layer cannot be activation, batch normalization or loss */
-  const std::string &type = l->getType();
-
   /** Dimension of input layers must be known */
   for (auto iter = cbegin(); iter != cend(); iter++) {
     auto lnode = (*iter);
@@ -363,12 +359,6 @@ int NetworkGraph::checkCompiledGraph() {
         return ML_ERROR_INVALID_PARAMETER;
       }
     }
-  }
-
-  /** Only loss layer nodes can have no output connections */
-  for (auto iter = cbegin(); iter != cend(); iter++) {
-    if ((*iter)->getNumOutputs() == 0 && !(*iter)->requireLabel())
-      throw std::runtime_error("There is un-connected node");
   }
 
   return ML_ERROR_NONE;
