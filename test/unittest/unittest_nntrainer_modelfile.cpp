@@ -109,7 +109,11 @@ TEST_P(nntrainerIniTest, init) {
   std::cout << std::get<0>(GetParam()) << std::endl;
   int status = NN.loadFromConfig(getIniName());
 
-  status = NN.compile();
+  try {
+    status = NN.compile();
+  } catch (...) {
+    status = ML_ERROR_INVALID_PARAMETER;
+  }
 
   if (failAtComp()) {
     EXPECT_NE(status, ML_ERROR_NONE);
@@ -134,7 +138,11 @@ TEST_P(nntrainerIniTest, initTwice_n) {
   std::cout << std::get<0>(GetParam()) << std::endl;
   int status = NN.loadFromConfig(getIniName());
 
-  status = NN.compile();
+  try {
+    status = NN.compile();
+  } catch (...) {
+    status = ML_ERROR_INVALID_PARAMETER;
+  }
 
   if (failAtComp()) {
     EXPECT_NE(status, ML_ERROR_NONE);
@@ -155,7 +163,12 @@ TEST_P(nntrainerIniTest, initTwice_n) {
 TEST_P(nntrainerIniTest, initThreetime_n) {
   std::cout << std::get<0>(GetParam()) << std::endl;
   int status = NN.loadFromConfig(getIniName());
-  status = NN.compile();
+  try {
+    status = NN.compile();
+  } catch (...) {
+    status = ML_ERROR_INVALID_PARAMETER;
+  }
+
   status = NN.initialize();
   status = NN.initialize();
   status = NN.initialize();
@@ -300,55 +313,55 @@ INSTANTIATE_TEST_CASE_P(
     mkIniTc("basic2_p", {nw_base_mse, sgd, input + "-Activation", out+"input_layers=inputlayer" + "-Activation"}, SUCCESS),
     mkIniTc("basic3_p", {nw_base + "loss=cross_sigmoid", adam, input + "-Activation", out+"input_layers=inputlayer" + "-Activation"}, SUCCESS),
     mkIniTc("basic4_p", {nw_base + "loss=cross_softmax", adam, input + "-Activation", out+"input_layers=inputlayer" + "-Activation"}, SUCCESS),
-    // mkIniTc("basic_p", {nw_base_cross, adam, input, out+"input_layers=inputlayer"}, SUCCESS),
-    // mkIniTc("basic2_p", {nw_base_cross, sgd, input, out+"input_layers=inputlayer"}, SUCCESS)
-    // mkIniTc("basic_act_p", {nw_base_cross, sgd, input + "-Activation", act_relu+"input_layers=inputlayer", out+"input_layers=activation_relu" }, SUCCESS),
+    mkIniTc("basic5_p", {nw_base_cross, adam, input, out+"input_layers=inputlayer"}, SUCCESS),
+    mkIniTc("basic6_p", {nw_base_cross, sgd, input, out+"input_layers=inputlayer"}, SUCCESS),
+    mkIniTc("basic_act_p", {nw_base_cross, sgd, input + "-Activation", act_relu+"input_layers=inputlayer", out+"input_layers=activation_relu" }, SUCCESS),
     // mkIniTc("basic_bn_p", {nw_base_cross, sgd, input + "-Activation", batch_normal+"input_layers=inputlayer", act_relu+"input_layers=bn", out+"input_layers=activation_relu" }, SUCCESS),
     // mkIniTc("basic_bn2_p", {nw_base_cross, sgd, input + "-Activation", batch_normal + "Activation = relu"+"input_layers=inputlayer", out+"input_layers=bn" }, SUCCESS),
-    // mkIniTc("basic_dataset_p", {nw_base_cross, adam, dataset, input, out+"input_layers=inputlayer"}, SUCCESS),
-    // mkIniTc("basic_dataset2_p", {nw_base_cross, sgd, input, out+"input_layers=inputlayer", dataset}, SUCCESS),
-    // mkIniTc("basic_dataset3_p", {dataset, nw_base_cross, sgd, input, out+"input_layers=inputlayer"}, SUCCESS),
+    mkIniTc("basic_dataset_p", {nw_base_cross, adam, dataset, input, out+"input_layers=inputlayer"}, SUCCESS),
+    mkIniTc("basic_dataset2_p", {nw_base_cross, sgd, input, out+"input_layers=inputlayer", dataset}, SUCCESS),
+    mkIniTc("basic_dataset3_p", {dataset, nw_base_cross, sgd, input, out+"input_layers=inputlayer"}, SUCCESS),
     // mkIniTc("basic_conv2d_p", {nw_base_cross, adam, conv2d + "input_shape = 1:10:10"}, SUCCESS),
-    // mkIniTc("no_testSet_p", {nw_base_cross, adam, dataset + "-TestData", input, out+"input_layers=inputlayer"}, SUCCESS),
-    // mkIniTc("no_validSet_p", {nw_base_cross, adam, dataset + "-ValidData", input, out+"input_layers=inputlayer"}, SUCCESS),
-    // mkIniTc("no_bufferSize_p", {nw_base_cross, adam, dataset + "-BufferSize", input, out+"input_layers=inputlayer"}, SUCCESS),
-    // mkIniTc("buffer_size_smaller_than_batch_size_p", {nw_base_cross, adam, dataset + "BufferSize=26", input, out+"input_layers=inputlayer"}, SUCCESS),
-    // mkIniTc("buffer_size_smaller_than_batch_size2_p", {nw_base_cross, adam, input, out+"input_layers=inputlayer", dataset + "BufferSize=26"}, SUCCESS),
+    mkIniTc("no_testSet_p", {nw_base_cross, adam, dataset + "-TestData", input, out+"input_layers=inputlayer"}, SUCCESS),
+    mkIniTc("no_validSet_p", {nw_base_cross, adam, dataset + "-ValidData", input, out+"input_layers=inputlayer"}, SUCCESS),
+    mkIniTc("no_bufferSize_p", {nw_base_cross, adam, dataset + "-BufferSize", input, out+"input_layers=inputlayer"}, SUCCESS),
+    mkIniTc("buffer_size_smaller_than_batch_size_p", {nw_base_cross, adam, dataset + "BufferSize=26", input, out+"input_layers=inputlayer"}, SUCCESS),
+    mkIniTc("buffer_size_smaller_than_batch_size2_p", {nw_base_cross, adam, input, out+"input_layers=inputlayer", dataset + "BufferSize=26"}, SUCCESS),
 
-  /*// *< half negative: init fail cases (1 positive and 4 negative cases) */
-    // mkIniTc("unknown_loss_n", {nw_base_cross + "loss = unknown", adam, input, out+"input_layers=inputlayer"}, COMPFAIL | INITFAIL),
-    // mkIniTc("activation_very_first_n", {nw_base_cross, sgd, act_relu, input+"input_layers=activation_relu", out+"input_layers=inputlayer"}, COMPFAIL | INITFAIL),
-    // mkIniTc("bnlayer_very_first_n", {nw_base_cross, sgd, batch_normal, input+"input_layers=bn", out+"input_layers=inputlayer"}, COMPFAIL | INITFAIL),
-    // mkIniTc("last_act_layer_relu_n", {nw_base_cross, sgd, input, out+"input_layers=inputlayer", act_relu+"input_layers=fclayer" }, COMPFAIL | INITFAIL),
-    // mkIniTc("last_act_layer_relu2_n", {nw_base_cross, sgd, input, out+"input_layers=inputlayer" + "-Activation", act_relu+"input_layers=fclayer" }, COMPFAIL | INITFAIL),
+  /**< half negative: init fail cases (1 positive and 4 negative cases) */
+    mkIniTc("unknown_loss_n", {nw_base_cross + "loss = unknown", adam, input, out+"input_layers=inputlayer"}, COMPFAIL | INITFAIL),
+    mkIniTc("cross_with_relu_n", {nw_base_cross, sgd, input, out+"input_layers=inputlayer", act_relu+"input_layers=fclayer" }, COMPFAIL | INITFAIL),
+    mkIniTc("cross_with_relu2_n", {nw_base_cross, sgd, input, out+"input_layers=inputlayer" + "-Activation", act_relu+"input_layers=fclayer" }, COMPFAIL | INITFAIL),
+    mkIniTc("mse_with_relu_p", {nw_base_mse, sgd, input, out+"input_layers=inputlayer", act_relu}, SUCCESS),
+    mkIniTc("no_loss_with_relu_p", {nw_base, sgd, input, out+"input_layers=inputlayer", act_relu}, SUCCESS),
     // mkIniTc("basic_conv2d_n", {nw_base_cross, adam, conv2d + "input_shape = 1:1:62720"}, INITFAIL),
 
-  /*// *< negative: basic invalid scenarios (5 negative cases) */
+  /**< negative: basic invalid scenarios (5 negative cases) */
     mkIniTc("no_model_sec_name_n", {I(nw_base_cross, "-", "")}, ALLFAIL),
-    // mkIniTc("no_model_sec_n", {input, out+"input_layers=inputlayer"}, ALLFAIL),
+    mkIniTc("no_model_sec_n", {input, out+"input_layers=inputlayer"}, ALLFAIL),
     mkIniTc("empty_n", {}, ALLFAIL),
     mkIniTc("no_layers_n", {nw_base_cross, adam}, ALLFAIL),
-    mkIniTc("no_layers_2_n", {nw_base_cross, adam, dataset}, ALLFAIL)
-    // /// #391
-    // // mkIniTc("ini_has_empty_value_n", {nw_base_cross, adam + "epsilon = _", input, out}, ALLFAIL),
+    mkIniTc("no_layers_2_n", {nw_base_cross, adam, dataset}, ALLFAIL),
+    /// #391
+    // mkIniTc("ini_has_empty_value_n", {nw_base_cross, adam + "epsilon = _", input, out}, ALLFAIL),
 
-  /*// *< negative: property(hyperparam) validation (5 negative cases) */
-    // mkIniTc("wrong_opt_type_n", {nw_base_cross, adam + "Type = wrong_opt", input, out+"input_layers=inputlayer"}, ALLFAIL),
-    // mkIniTc("adam_minus_lr_n", {nw_base_cross, adam + "Learning_rate = -0.1", input, out+"input_layers=inputlayer"}, ALLFAIL),
-    // mkIniTc("sgd_minus_lr_n", {nw_base_cross, sgd + "Learning_rate = -0.1", input, out+"input_layers=inputlayer"}, ALLFAIL),
-    // mkIniTc("no_loss_p", {nw_base_cross + "-loss", adam, input, out+"input_layers=inputlayer"}, SUCCESS),
-    // mkIniTc("unknown_layer_type_n", {nw_base_cross, adam, input + "Type = asdf", out+"input_layers=inputlayer"}, ALLFAIL),
-    // mkIniTc("unknown_layer_type2_n", {nw_base_cross, adam, input, out + "Type = asdf"+"input_layers=inputlayer", I(out, "outlayer", "")}, ALLFAIL),
+  /**< negative: property(hyperparam) validation (5 negative cases) */
+    mkIniTc("wrong_opt_type_n", {nw_base_cross, adam + "Type = wrong_opt", input, out+"input_layers=inputlayer"}, ALLFAIL),
+    mkIniTc("adam_minus_lr_n", {nw_base_cross, adam + "Learning_rate = -0.1", input, out+"input_layers=inputlayer"}, ALLFAIL),
+    mkIniTc("sgd_minus_lr_n", {nw_base_cross, sgd + "Learning_rate = -0.1", input, out+"input_layers=inputlayer"}, ALLFAIL),
+    mkIniTc("no_loss_p", {nw_base_cross + "-loss", adam, input, out+"input_layers=inputlayer"}, SUCCESS),
+    mkIniTc("unknown_layer_type_n", {nw_base_cross, adam, input + "Type = asdf", out+"input_layers=inputlayer"}, ALLFAIL),
+    mkIniTc("unknown_layer_type2_n", {nw_base_cross, adam, input, out + "Type = asdf"+"input_layers=inputlayer", I(out, "outlayer", "")}, ALLFAIL),
 
-  /*// *< negative: little bit of tweeks to check determinancy (5 negative cases) */
-    // mkIniTc("wrong_nw_dataset_n", {nw_base_cross, adam, input, out+"input_layers=inputlayer", dataset + "-LabelData"}, ALLFAIL),
-    // mkIniTc("wrong_nw_dataset2_n", {nw_base_cross, adam, dataset + "-LabelData", input, out+"input_layers=inputlayer"}, ALLFAIL),
+  /**< negative: little bit of tweeks to check determinancy (5 negative cases) */
+    mkIniTc("wrong_nw_dataset_n", {nw_base_cross, adam, input, out+"input_layers=inputlayer", dataset + "-LabelData"}, ALLFAIL),
+    mkIniTc("wrong_nw_dataset2_n", {nw_base_cross, adam, dataset + "-LabelData", input, out+"input_layers=inputlayer"}, ALLFAIL),
 
-  /*// *< negative: dataset is not complete (5 negative cases) */
-    // mkIniTc("no_trainingSet_n", {nw_base_cross, adam, dataset + "-TrainData", input, out+"input_layers=inputlayer"}, ALLFAIL),
-    // mkIniTc("no_labelSet_n", {nw_base_cross, adam, dataset + "-LabelData", input, out+"input_layers=inputlayer"}, ALLFAIL),
+  /**< negative: dataset is not complete (5 negative cases) */
+    mkIniTc("no_trainingSet_n", {nw_base_cross, adam, dataset + "-TrainData", input, out+"input_layers=inputlayer"}, ALLFAIL),
+    mkIniTc("no_labelSet_n", {nw_base_cross, adam, dataset + "-LabelData", input, out+"input_layers=inputlayer"}, ALLFAIL),
 
-    // mkIniTc("backbone_filemissing_n", {nw_base_cross, adam, dataset + "-LabelData", input, out+"input_layers=inputlayer"}, ALLFAIL)
+    mkIniTc("backbone_filemissing_n", {nw_base_cross, adam, dataset + "-LabelData", input, out+"input_layers=inputlayer"}, ALLFAIL)
 ), [](const testing::TestParamInfo<nntrainerIniTest::ParamType>& info){
  return std::get<0>(info.param);
 });
