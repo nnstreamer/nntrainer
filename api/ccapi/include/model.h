@@ -144,6 +144,19 @@ public:
    */
   virtual int getLayer(const char *name, std::shared_ptr<Layer> *layer) = 0;
 
+  /// @todo uncomment this by opening TensorDim
+  /**
+   * @brief     get input dimension of a model
+   * @retval std::vector<TensorDim> input dimension
+   */
+  // virtual std::vector<TensorDim> getInputDimension() = 0;
+
+  /**
+   * @brief     get output dimension of a model
+   * @retval std::vector<TensorDim> output dimension
+   */
+  // virtual std::vector<TensorDim> getOutputDimension() = 0;
+
   /**
    * @brief     Summarize the model
    * @param out std::ostream to get the model summary
