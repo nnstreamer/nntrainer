@@ -16,7 +16,7 @@
 #ifdef __cplusplus
 
 #include <acti_func.h>
-#include <layer_internal.h>
+#include <layer_devel.h>
 #include <tensor.h>
 
 namespace nntrainer {
@@ -25,61 +25,46 @@ namespace nntrainer {
  * @class   Activation Layer
  * @brief   Activation Layer
  */
-class ActivationLayer : public LayerV1 {
+class ActivationLayer : public Layer {
 
 public:
   /**
    * @brief     Constructor of Activation Layer
    */
-  template <typename... Args>
-  ActivationLayer(ActivationType at = ActivationType::ACT_NONE, Args... args) :
-    LayerV1(args...) {
-    acti_func.setActiFunc(at);
+  ActivationLayer() : Layer() {
+    acti_func.setActiFunc(ActivationType::ACT_NONE);
   }
 
   /**
    * @brief     Destructor of Activation Layer
    */
-  ~ActivationLayer(){};
+  ~ActivationLayer() = default;
 
   /**
-   * @brief     Initialize the layer
-   *
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   * @copydoc Layer::finalize(InitLayerContext &context)
    */
-  int initialize(Manager &manager) override;
+  void finalize(InitLayerContext &context) override;
 
   /**
-   * @brief     Read Activation layer params. This is essentially noops for now.
-   * @param[in] file input stream file
+   * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
    */
-  void read(std::ifstream &file) override{/** noop */};
+  void forwarding(RunLayerContext &context, bool training) override;
 
   /**
-   * @brief     Save Activation layer params. This is essentially noops for now.
-   * @param[in] file output stream file
+   * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
-  void save(std::ofstream &file) override{/** noop */};
+  void calcDerivative(RunLayerContext &context) override;
 
   /**
-   * @copydoc Layer::forwarding(bool training)
+   * @copydoc bool supportBackwarding() const
    */
-  void forwarding(bool training = true) override;
+  bool supportBackwarding() const override { return true; };
 
   /**
-   * @copydoc Layer::calcDerivative()
+   * @copydoc Layer::exportTo(Exporter &exporter, ExportMethods method)
    */
-  void calcDerivative() override;
-
-  using LayerV1::setProperty;
-
-  /**
-   * @copydoc Layer::setProperty(const PropertyType type, const std::string
-   * &value)
-   */
-  void setProperty(const PropertyType type,
-                   const std::string &value = "") override;
+  void exportTo(Exporter &exporter,
+                const ExportMethods &method) const override {}
 
   /**
    * @copydoc Layer::getType()
@@ -87,75 +72,14 @@ public:
   const std::string getType() const override { return ActivationLayer::type; };
 
   /**
+   * @copydoc Layer::setProperty(const std::vector<std::string> &values)
+   */
+  void setProperty(const std::vector<std::string> &values) override;
+
+  /**
    * @copydoc Layer::supportInPlace()
    */
   bool supportInPlace() const override { return acti_func.supportInPlace(); }
-
-  /**
-   * @brief       Calculate softmax for Tensor Type
-   * @param[in] x Tensor
-   * @param[out] output output Tensor
-   * @retval      Tensor
-   */
-  static Tensor &softmax(Tensor const &x, Tensor &output);
-
-  /**
-   * @brief     derivative softmax function for Tensor Type
-   * @param[in] x Tensor
-   * @param[out] output output Tensor
-   * @param[in] derivative derivative Tensor from next layer
-   * @retVal    Tensor
-   */
-  static Tensor &softmaxPrime(Tensor const &x, Tensor &output,
-                              Tensor const &derivative = Tensor());
-
-  /**
-   * @brief     sigmoid activation function
-   * @param[in] x input
-   */
-  static float sigmoid(float x);
-
-  /**
-   * @brief     derivative sigmoid function
-   * @param[in] x input
-   */
-  static float sigmoidPrime(float x);
-
-  /**
-   * @brief     tanh function for float type
-   * @param[in] x input
-   */
-  static float tanhFloat(float x);
-
-  /**
-   * @brief     derivative tanh function
-   * @param[in] x input
-   */
-  static float tanhPrime(float x);
-
-  /**
-   * @brief     relu activation function
-   * @param[in] x input
-   */
-  static float relu(float x);
-
-  /**
-   * @brief     derivative relu function
-   * @param[in] x input
-   */
-  static float reluPrime(float x);
-
-  /**
-   * @brief     no_op function
-   * @param[in] x input
-   */
-  static float no_op(float x);
-
-  /**
-   * @brief     no_op function
-   * @param[in] x input
-   */
-  static float no_op_prime(float x);
 
   inline static const std::string type = "activation";
 
@@ -205,6 +129,16 @@ private:
   int setActivation(
     std::function<float(float const)> const &activation_fn,
     std::function<float(float const)> const &activation_prime_fn);
+
+  /**
+   * @brief setProperty by type and value separated
+   * @param[in] type property type to be passed
+   * @param[in] value value to be passed
+   * @exception exception::not_supported     when property type is not valid for
+   * the particular layer
+   * @exception std::invalid_argument invalid argument
+   */
+  void setProperty(const std::string &type, const std::string &value);
 };
 
 } // namespace nntrainer
