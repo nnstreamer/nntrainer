@@ -356,8 +356,7 @@ private:
    * @details   Ensures that the layer has a unique and a valid name. A valid
    * name pre-assigned to the layer can be changed if force_rename is enabled.
    */
-  void ensureName(std::shared_ptr<LayerV1> layer,
-                  const std::string &prefix = "",
+  void ensureName(std::shared_ptr<Layer> layer, const std::string &prefix = "",
                   const std::string &postfix = "", bool force_rename = false);
 
   /**
@@ -365,6 +364,12 @@ private:
    * @param[in] layer shared_ptr of Layer
    */
   void addLayerNode(std::shared_ptr<LayerV1> layer);
+
+  /**
+   * @brief Create new LayerNode and add into Graph
+   * @param[in] layer shared_ptr of Layer
+   */
+  void addLayerNode(std::unique_ptr<Layer> layer);
 
   /**
    * @brief update input_layers, output_layers node name

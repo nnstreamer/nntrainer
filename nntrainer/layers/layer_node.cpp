@@ -133,8 +133,11 @@ int LayerNode::setProperty(std::vector<std::string> properties) {
   /// until we have layerNode::finalize and must not except timedist layer
   if (getDistribute()) {
     if (layerv1 == nullptr) {
-      layerv1 = nullptr;
-      /// logic for layer v2
+      // auto &ac = nntrainer::AppContext::Global();
+      // std::unique_ptr<nntrainer::Layer> dlayer =
+      //   ac.createObject<nntrainer::Layer>(TimeDistLayer::type);
+      // dynamic_cast<TimeDistLayer*>(dlayer.get())->setDistLayer(std::move(layer));
+      // layer = std::move(dlayer);
     } else if (layerv1->getType() != TimeDistLayer::type) {
       auto &ac = nntrainer::AppContext::Global();
       std::shared_ptr<nntrainer::LayerV1> dlayer =
@@ -221,8 +224,7 @@ bool LayerNode::setProperty(const std::string &key, const std::string &value) {
   case PropertyType::input_layers: {
     static const std::regex reg("\\,+");
     std::vector<std::string> split_layers = split(value, reg);
-    layerv1->setNumInputs(split_layers.size());
-    input_layers = split_layers;
+    setInputLayers(split_layers);
     break;
   }
   default:
@@ -378,10 +380,10 @@ void LayerNode::save(std::ofstream &file) const {
  * @brief     Finalize creating the layer node
  */
 void LayerNode::finalize() {
-#if LAYER_V2
-  layer->finalize(init_context);
-#endif
+  if (layer)
+    layer->finalize(init_context);
   finalized = true;
+  run_context = RunLayerContext(getName());
 }
 
 /**
