@@ -507,9 +507,22 @@ void Manager::allocateInOuts() {
   if (!shared_inout.uninitialized())
     shared_inout.allocate();
 
-  for (auto &l_io : in_outs) {
-    for (auto &io : l_io) {
-      io->allocateVariable();
+  if (LAYER_V2) {
+    for (auto &li : inputs_v2) {
+      for (auto &in : li) {
+        in->allocateVariable();
+      }
+    }
+    for (auto &lo : outputs_v2) {
+      for (auto &out : lo) {
+        out->allocateVariable();
+      }
+    }
+  } else {
+    for (auto &l_io : in_outs) {
+      for (auto &io : l_io) {
+        io->allocateVariable();
+      }
     }
   }
 }
@@ -517,9 +530,22 @@ void Manager::allocateInOuts() {
 void Manager::deallocateInOuts() {
   shared_inout.deallocate();
 
-  for (auto &l_io : in_outs) {
-    for (auto &io : l_io) {
-      io->deallocateVariable();
+  if (LAYER_V2) {
+    for (auto &li : inputs_v2) {
+      for (auto &in : li) {
+        in->deallocateVariable();
+      }
+    }
+    for (auto &lo : outputs_v2) {
+      for (auto &out : lo) {
+        out->deallocateVariable();
+      }
+    }
+  } else {
+    for (auto &l_io : in_outs) {
+      for (auto &io : l_io) {
+        io->deallocateVariable();
+      }
     }
   }
 }
@@ -529,9 +555,22 @@ void Manager::allocateDerivatives() {
   if (!shared_deriv.uninitialized())
     shared_deriv.allocate();
 
-  for (auto &l_io : in_outs) {
-    for (auto &io : l_io) {
-      io->allocateGradient();
+  if (LAYER_V2) {
+    for (auto &li : inputs_v2) {
+      for (auto &in : li) {
+        in->allocateGradient();
+      }
+    }
+    for (auto &lo : outputs_v2) {
+      for (auto &out : lo) {
+        out->allocateGradient();
+      }
+    }
+  } else {
+    for (auto &l_io : in_outs) {
+      for (auto &io : l_io) {
+        io->allocateGradient();
+      }
     }
   }
 }
@@ -539,9 +578,22 @@ void Manager::allocateDerivatives() {
 void Manager::deallocateDerivatives() {
   shared_deriv.deallocate();
 
-  for (auto &l_io : in_outs) {
-    for (auto &io : l_io) {
-      io->deallocateGradient();
+  if (LAYER_V2) {
+    for (auto &li : inputs_v2) {
+      for (auto &in : li) {
+        in->deallocateGradient();
+      }
+    }
+    for (auto &lo : outputs_v2) {
+      for (auto &out : lo) {
+        out->deallocateGradient();
+      }
+    }
+  } else {
+    for (auto &l_io : in_outs) {
+      for (auto &io : l_io) {
+        io->deallocateGradient();
+      }
     }
   }
 }
