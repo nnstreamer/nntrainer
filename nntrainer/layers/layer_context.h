@@ -444,7 +444,7 @@ public:
    * @return true if label is available else false
    */
   bool isLabelAvailable(unsigned int idx) const {
-    return outputs[idx]->getGradientRef().uninitialized();
+    return !outputs[idx]->getGradientRef().uninitialized();
   }
 
   /**

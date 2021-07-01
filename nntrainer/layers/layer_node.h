@@ -447,6 +447,21 @@ public:
    * @param idx Identifier of the weight
    * @return Tensor& Reference to the weight tensor
    */
+  Weight getWeightWrapper(unsigned int idx) {
+    if (layerv1 == nullptr) {
+      return Weight(run_context.getWeight(idx),
+            run_context.getWeightGrad(idx), run_context.getWeightName(idx));
+    } else {
+      return getLayer()->getWeightsRef()[idx];
+    }
+  }
+
+  /**
+   * @brief Get the Weight object
+   *
+   * @param idx Identifier of the weight
+   * @return Tensor& Reference to the weight tensor
+   */
   Weight &getWeightObject(unsigned int idx) {
     if (layerv1 == nullptr) {
       return run_context.getWeightObject(idx);
@@ -480,6 +495,20 @@ public:
       return run_context.getWeightGrad(idx);
     } else {
       return getLayer()->getWeightsRef()[idx].getGradientRef();
+    }
+  }
+
+  /**
+   * @brief Get the Weight object name
+   *
+   * @param idx Identifier of the weight
+   * @return const std::string &Name of the weight
+   */
+  const std::string &getWeightName(unsigned int idx) {
+    if (layerv1 == nullptr) {
+      return run_context.getWeightName(idx);
+    } else {
+      return getLayer()->getWeightsRef()[idx].getName();
     }
   }
 
@@ -559,7 +588,7 @@ public:
    */
   float getLoss() const {
     if (layerv1 == nullptr) {
-      float loss = 0.;
+      float loss = run_context.getLoss();
       for (unsigned int idx = 0; idx < run_context.getNumWeights(); idx++) {
         loss += run_context.getWeightRegularizationLoss(idx);
       }

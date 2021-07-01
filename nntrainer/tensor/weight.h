@@ -103,6 +103,26 @@ public:
            std::get<5>(spec) // Name
     ) {}
 
+
+  /**
+   * @brief Construct a new Weight object
+   *
+   * @param v Already created variable object
+   * @param g Already created gradient object
+   * @param n Name for this Weight
+   *
+   * @note This is primarily used to created wrapper of variable extracted from
+   * context. If needed, add support for regularizer, and opt_vars.
+   *
+   * @note This API is not recommended for usage and must be used for internal uses only,
+   * as Weight does not own the tensors v and g,
+   * and can go invalid if the owner of these tensors free the tensors.
+   */
+  explicit Weight(const Tensor &v,
+      const Tensor &g, const std::string &n = ""):
+    Var_Grad(v, g, n) {}
+
+
   /**
    * @copydoc var_grad::initializeVariable(const Tensor &)
    */

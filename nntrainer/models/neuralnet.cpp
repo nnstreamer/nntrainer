@@ -229,19 +229,19 @@ sharedConstTensors NeuralNetwork::forwarding(sharedConstTensors input,
     << " label_batch: " << label[0]->batch() << " target_batch: " << batch_size;
 
   auto fill_label = [&label](auto const &layer_node) {
-    NNTR_THROW_IF(label.size() != layer_node->getNumOutputs(),
+    NNTR_THROW_IF(label.size() != layer_node->getOutputDimensions().size(),
                   std::invalid_argument)
       << "label size does not match with the layer requirements"
       << " layer: " << layer_node->getName() << " label size: " << label.size()
       << " requirements size: " << layer_node->getNumOutputs();
 
-    for (unsigned int i = 0; i < layer_node->getNumOutputs(); i++) {
+    for (unsigned int i = 0; i < layer_node->getOutputDimensions().size(); i++) {
       layer_node->getOutputGrad(i) = *label[i];
     }
   };
 
   auto clear_label = [](auto const &layer_node) {
-    for (unsigned int i = 0; i < layer_node->getNumOutputs(); i++) {
+    for (unsigned int i = 0; i < layer_node->getOutputDimensions().size(); i++) {
       layer_node->getOutputGrad(i) = Tensor();
     }
   };
