@@ -427,6 +427,8 @@ void LayerNode::setBatch(unsigned int batch) {
       run_context.setBatch(batch);
       layer->setBatch(run_context, batch);
     } else {
+      for (auto &dim : input_dim)
+        dim.batch(batch);
       init_context.setBatch(batch);
       layer->setBatch(init_context, batch);
     }
