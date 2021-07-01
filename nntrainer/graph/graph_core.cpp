@@ -55,8 +55,6 @@ void GraphCore::makeAdjacencyList(
   /** make the connections */
   for (auto &node : node_list) {
     for (auto const &in_conn : node->getInputConnections()) {
-      if (istrequal(in_conn, "__data__"))
-        continue;
       unsigned int to_node_id = getNode(in_conn)->getIndex();
       adj[to_node_id].push_back(node);
     }

@@ -313,16 +313,33 @@ public:
   ActivationType getActivationType() const;
 
   /**
+   * @brief     Get number of input connections
+   * @retval    number of inputs
+   */
+  unsigned int getNumInputConnections() const { return input_layers.size(); }
+
+  /**
+   * @brief     Get number of output connections
+   * @retval    number of outputs
+   */
+  unsigned int getNumOutputConnections() const { return output_layers.size(); }
+
+  /**
    * @brief     Get number of inputs
    * @retval    number of inputs
    */
-  unsigned int getNumInputs() const { return input_layers.size(); }
+  unsigned int getNumInputs() const { return input_dim.size(); }
 
   /**
    * @brief     Get number of outputs
    * @retval    number of outputs
    */
-  unsigned int getNumOutputs() const { return output_layers.size(); }
+  unsigned int getNumOutputs() const {
+    if (finalized)
+      return init_context.getOutputDimensions().size();
+    else
+      return getNumOutputConnections();
+  }
 
   /**
    * @brief Get the number of weights
@@ -449,8 +466,8 @@ public:
    */
   Weight getWeightWrapper(unsigned int idx) {
     if (layerv1 == nullptr) {
-      return Weight(run_context.getWeight(idx),
-            run_context.getWeightGrad(idx), run_context.getWeightName(idx));
+      return Weight(run_context.getWeight(idx), run_context.getWeightGrad(idx),
+                    run_context.getWeightName(idx));
     } else {
       return getLayer()->getWeightsRef()[idx];
     }
