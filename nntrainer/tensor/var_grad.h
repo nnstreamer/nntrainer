@@ -75,19 +75,18 @@ public:
    * @param g Already created gradient object
    * @param n Name for this Var_Grad
    *
-   * @note This API is not recommended for usage and must be used for internal uses only,
-   * as Var_Grad does not own the tensors v and g,
-   * and can go invalid if the owner of these tensors free the tensors.
+   * @note This API is not recommended for usage and must be used for internal
+   * uses only, as Var_Grad does not own the tensors v and g, and can go invalid
+   * if the owner of these tensors free the tensors.
    */
-  explicit Var_Grad(const Tensor &v,
-      const Tensor &g, const std::string &n = ""):
+  explicit Var_Grad(const Tensor &v, const Tensor &g,
+                    const std::string &n = "") :
     dim(v.getDim()),
     var(std::make_shared<Tensor>(v.getSharedDataTensor(dim, 0, false))),
     grad(std::make_shared<Tensor>(g.getSharedDataTensor(dim, 0, false))),
     trainable(!g.uninitialized()),
     alloc_now(v.isAllocated()),
-    name(n) {
-    }
+    name(n) {}
 
   /**
    * @brief Copy constructor for Var_Grad

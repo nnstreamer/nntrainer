@@ -77,7 +77,7 @@ void NetworkGraph::addDefaultInputLayers() {
   for (auto iter = cbegin() + 1; iter != cend(); iter++) {
     auto layer = *iter;
     auto prev_layer = *(iter - 1);
-    if (layer->getNumInputs() == 0) {
+    if (layer->getNumInputConnections() == 0) {
       layer->addInputLayers(prev_layer->getName());
     }
   }
@@ -111,7 +111,7 @@ int NetworkGraph::realizeMultiInputType(
    * Multi-input works with time distribution layer by itself
    *
    */
-  if (in_node->getNumInputs() <= 1)
+  if (in_node->getNumInputConnections() <= 1)
     return ML_ERROR_NONE;
 
   // TODO: this can be addition or concat layer - add support
@@ -197,7 +197,7 @@ int NetworkGraph::realizeMultiOutputType(
    *
    */
 
-  if (in_node->getNumOutputs() <= 1)
+  if (in_node->getNumOutputConnections() <= 1)
     return ML_ERROR_NONE;
 
   std::shared_ptr<LayerNode> lnode = createLayerNode(OutputLayer::type);
@@ -208,7 +208,7 @@ int NetworkGraph::realizeMultiOutputType(
 
   in_node->setOutputLayers({lnode->getName()});
 
-  for (unsigned int i = 0; i < in_node->getNumOutputs(); ++i) {
+  for (unsigned int i = 0; i < in_node->getNumOutputConnections(); ++i) {
     updateConnectionName(in_node->getName(), lnode->getName());
   }
 
@@ -307,10 +307,11 @@ void NetworkGraph::setOutputLayers() {
       auto &layer_i = *iter_i;
       if (istrequal(layer_i->getName(), layer_idx->getName()))
         continue;
-      for (unsigned int j = 0; j < layer_i->getNumInputs(); ++j) {
+      for (unsigned int j = 0; j < layer_i->getNumInputConnections(); ++j) {
         if (istrequal(layer_i->getInputLayers()[j], layer_idx->getName())) {
           bool already_exist = false;
-          for (unsigned int k = 0; k < layer_idx->getNumOutputs(); ++k) {
+          for (unsigned int k = 0; k < layer_idx->getNumOutputConnections();
+               ++k) {
             if (istrequal(layer_idx->getOutputLayers()[k],
                           layer_i->getName())) {
               already_exist = true;
@@ -324,7 +325,7 @@ void NetworkGraph::setOutputLayers() {
       }
     }
 
-    if (layer_idx->getNumOutputs() == 0) {
+    if (layer_idx->getNumOutputConnections() == 0) {
       last_layer_count += 1;
     }
   }
@@ -381,7 +382,7 @@ int NetworkGraph::realizeGraph() {
 
     /** If a layer does not has input nodes, then it must have input dimension
      */
-    if (lnode->getNumInputs() == 0) {
+    if (lnode->getNumInputConnections() == 0) {
       for (unsigned int i = 0; i < lnode->getInputDimensions().size(); ++i) {
         if (lnode->getInputDimensions()[i].getDataLen() == 0) {
           ml_loge("Input Dimension must be set");
@@ -389,8 +390,6 @@ int NetworkGraph::realizeGraph() {
           NN_RETURN_STATUS();
         }
       }
-
-      lnode->setInputLayers({"__data__"});
     }
 
     if (lnode->getType() != AdditionLayer::type &&
@@ -594,7 +593,7 @@ void NetworkGraph::inPlaceOptimize(Manager &manager) {
     if (l->supportInPlace()) {
       /** @note assumes layer to be optimized is only for single in/out tensor
        */
-      if (layer_node->getNumInputs() != 1)
+      if (layer_node->getNumInputConnections() != 1)
         throw std::runtime_error("Internal error in the formed graph");
 
       auto prev_node = getLayerNode(layer_node->getInputLayers()[0]);
@@ -733,7 +732,8 @@ int NetworkGraph::initialize(std::shared_ptr<Manager> manager) {
         auto in_layer_node = getLayerNode(input_layers[i]);
 
         unsigned int location = 0;
-        for (unsigned int j = 0; j < in_layer_node->getNumOutputs(); ++j) {
+        for (unsigned int j = 0; j < in_layer_node->getNumOutputConnections();
+             ++j) {
           if (in_layer_node->getOutputLayers()[j] == lnode->getName()) {
             location = j;
             break;
@@ -789,14 +789,14 @@ int NetworkGraph::initialize(std::shared_ptr<Manager> manager) {
         input_map.insert({output_layers[i], {}});
 
       unsigned int j = 0;
-      for (; j < out_layer_node->getNumInputs(); ++j) {
+      for (; j < out_layer_node->getNumInputConnections(); ++j) {
         if (out_layer_node->getInputLayers()[j] == lnode->getName()) {
           break;
         }
       }
 
       auto &in_map = input_map.at(output_layers[i]);
-      in_map.resize(out_layer_node->getNumInputs());
+      in_map.resize(out_layer_node->getNumInputConnections());
       in_map[j] = outputs[i];
     }
 #else
@@ -810,7 +810,8 @@ int NetworkGraph::initialize(std::shared_ptr<Manager> manager) {
         auto in_layer_node = getLayerNode(input_layers[i]);
 
         unsigned int location = 0;
-        for (unsigned int j = 0; j < in_layer_node->getNumOutputs(); ++j) {
+        for (unsigned int j = 0; j < in_layer_node->getNumOutputConnections();
+             ++j) {
           if (in_layer_node->getOutputLayers()[j] == lnode->getName()) {
             location = j;
             break;
