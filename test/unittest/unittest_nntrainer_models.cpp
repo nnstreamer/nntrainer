@@ -266,7 +266,7 @@ void NodeWatcher::forward(int iteration, NodeWatcher &next_node) {
   std::string err_msg = ss.str();
 
   std::vector<nntrainer::Tensor> out;
-  for (unsigned int idx = 0; idx < node->getNumOutputs(); idx ++) {
+  for (unsigned int idx = 0; idx < node->getNumOutputs(); idx++) {
     out.push_back(node->getOutput(idx));
   }
 
@@ -287,7 +287,7 @@ void NodeWatcher::backward(int iteration, bool verify_deriv, bool verify_grad) {
   std::string err_msg = ss.str();
 
   std::vector<nntrainer::Tensor> out;
-  for (unsigned int idx = 0; idx < node->getNumInputs(); idx ++) {
+  for (unsigned int idx = 0; idx < node->getNumInputs(); idx++) {
     out.push_back(node->getInputGrad(idx));
   }
 
@@ -1345,7 +1345,8 @@ INSTANTIATE_TEST_CASE_P(
 // TEST(nntrainerModels, read_save_01_n) {
 //   nntrainer::NeuralNetwork NN;
 //   std::shared_ptr<nntrainer::LayerNode> layer_node =
-//     nntrainer::createLayerNode(nntrainer::InputLayer::type, {"input_shape=1:1:62720", "normalization=true"});
+//     nntrainer::createLayerNode(nntrainer::InputLayer::type,
+//     {"input_shape=1:1:62720", "normalization=true"});
 //
 //   EXPECT_NO_THROW(NN.addLayer(layer_node));
 //   EXPECT_NO_THROW(NN.setProperty({"loss=mse"}));
