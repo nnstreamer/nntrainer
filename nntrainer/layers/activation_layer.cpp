@@ -45,9 +45,9 @@ void ActivationLayer::forwarding(RunLayerContext &context, bool training) {
 void ActivationLayer::calcDerivative(RunLayerContext &context) {
   Tensor &deriv = context.getIncomingDerivative(SINGLE_INOUT_IDX);
   Tensor &ret = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
-  Tensor &in = context.getOutput(SINGLE_INOUT_IDX);
+  Tensor &out = context.getOutput(SINGLE_INOUT_IDX);
 
-  ret = acti_func.run_prime_fn(in, ret, deriv);
+  ret = acti_func.run_prime_fn(out, ret, deriv);
 }
 
 void ActivationLayer::setProperty(const std::vector<std::string> &values) {
