@@ -14,6 +14,8 @@
 #include <util_func.h>
 #include <weight.h>
 
+#include <nntrainer_error.h>
+
 namespace nntrainer {
 
 Weight::Weight(const TensorDim &dim, const WeightInitializer init,
@@ -40,6 +42,26 @@ void Weight::runVariableInitializer() {
   Tensor &var_ref = getVariableRef();
   const TensorDim dim = var_ref.getDim();
 
+  unsigned int fan_in, fan_out;
+
+  /// @fixme: when unit is equal to one, this does not work, we need to rely on
+  /// effective dimension then actual numbers here. For now, some heuristics
+  /// added to infer what would be fan_in/fan_out
+  if (dim.batch() * dim.channel() * dim.height() == 1) {
+    fan_out = fan_in = dim.width();
+  } else if (dim.batch() * dim.channel() == 1) { /// fully connected layers
+    fan_in = dim.height();
+    fan_out = dim.width();
+  } else { /// convolution filters, @todo extend this to > 4
+    auto field_size = dim.height() * dim.width();
+
+    // this also handles below cases.
+    // 1. fan_in = fan_out = 1 as well.
+    // 2. batch == 1, channel == 1 and height == 1, theoretical rank of 1
+    fan_in = dim.channel() * field_size;
+    fan_out = dim.batch() * field_size;
+  }
+
   switch (initializer) {
   case WeightInitializer::WEIGHT_ZEROS:
     var_ref.setZero();
@@ -48,26 +70,25 @@ void Weight::runVariableInitializer() {
     var_ref.setValue(1.0f);
     break;
   case WeightInitializer::WEIGHT_LECUN_NORMAL:
-    var_ref.setRandNormal(0.0f, sqrtFloat(1.0f / dim.height()));
+    var_ref.setRandNormal(0.0f, sqrtFloat(1.0f / fan_in));
     break;
   case WeightInitializer::WEIGHT_XAVIER_NORMAL:
-    var_ref.setRandNormal(0.0f, sqrtFloat(2.0f / (dim.width() + dim.height())));
+    var_ref.setRandNormal(0.0f, sqrtFloat(2.0f / (fan_in + fan_out)));
     break;
   case WeightInitializer::WEIGHT_HE_NORMAL:
-    var_ref.setRandNormal(0.0f, sqrtFloat(2.0f / (dim.height())));
+    var_ref.setRandNormal(0.0f, sqrtFloat(2.0f / (fan_in)));
     break;
   case WeightInitializer::WEIGHT_LECUN_UNIFORM:
-    var_ref.setRandUniform(-1.0f * sqrtFloat(1.0f / dim.height()),
-                           sqrtFloat(1.0f / dim.height()));
+    var_ref.setRandUniform(-1.0f * sqrtFloat(1.0f / fan_in),
+                           sqrtFloat(1.0f / fan_in));
     break;
   case WeightInitializer::WEIGHT_XAVIER_UNIFORM:
-    var_ref.setRandUniform(-1.0f *
-                             sqrtFloat(6.0f / (dim.height() + dim.width())),
-                           sqrtFloat(6.0 / (dim.height() + dim.width())));
+    var_ref.setRandUniform(-1.0f * sqrtFloat(6.0f / (fan_in + fan_out)),
+                           sqrtFloat(6.0 / (fan_in + fan_out)));
     break;
   case WeightInitializer::WEIGHT_HE_UNIFORM:
-    var_ref.setRandUniform(-1.0f * sqrtFloat(6.0f / (dim.height())),
-                           sqrtFloat(6.0 / (dim.height())));
+    var_ref.setRandUniform(-1.0f * sqrtFloat(6.0f / (fan_in)),
+                           sqrtFloat(6.0 / (fan_in)));
     break;
   default:
     break;
