@@ -233,6 +233,25 @@ if __name__ == "__main__":
         loss_fn_str="cross_softmax",
     )
 
+    record(
+        file_name="conv_bn.info",
+        model=[
+            K.Input(shape=(2, 3, 5)),
+            K.layers.Conv2D(filters=2, kernel_size=(2, 2)),
+            K.layers.BatchNormalization(),
+            K.layers.Activation("relu"),
+            K.layers.Flatten(),
+            K.layers.Dense(10),
+            K.layers.Activation("softmax"),
+        ],
+        optimizer=opt.SGD(learning_rate=0.1),
+        iteration=10,
+        input_shape=(3, 2, 3, 5),
+        label_shape=(3, 10),
+        loss_fn_str="cross_softmax",
+        # debug=["summary", "initial_weights"]
+    )
+
     pool_layer_tc = lambda pool_layer: partial(
         record,
         model=[

@@ -92,15 +92,6 @@ class IdentityTransLayer(AbstractTransLayer):
 
 
 ##
-# @brief Translayer for batch normalization layer
-class BatchNormTransLayer(IdentityTransLayer):
-    def to_nntr_weights(self, tensorOrList):
-        x = tensorOrList
-        assert len(x) == 4
-        return [x[2], x[3], x[0], x[1]]
-
-
-##
 # @brief Translayer to translate channel last <-> channel first
 # @note This class relies on Permute layer. This should be skipped when
 # iterating through keras layer
@@ -145,6 +136,23 @@ CHANNEL_LAST_LAYERS = (
 )
 
 ##
+# @brief Translayer for batch normalization layer
+class BatchNormTransLayer(IdentityTransLayer):
+    def build(self, input_shape):
+        if len(input_shape) > 3:
+            self.tf_layer = ChannelLastTransLayer(self.tf_layer)
+        self.tf_layer.build(input_shape)
+
+    def call(self, input, training=None):
+        return self.tf_layer(input, training)
+
+    def to_nntr_weights(self, tensorOrList):
+        x = tensorOrList
+        assert len(x) == 4
+        return [x[2], x[3], x[0], x[1]]
+
+
+##
 # @brief Multiout wrapper layer, this class separate gradient
 # to calculate derivative properly
 # when calling, this returns [x] * @a num_output just like output Layer does in NNTrainer
@@ -154,7 +162,7 @@ class MultiOutLayer(IdentityTransLayer):
     # @brief init function
     # @param tf_layer tf_layer to get number of outputs
     # @param num_output explicit number to generate number of output
-    def __init__(self, tf_layer = None, *args, num_output, **kwargs):
+    def __init__(self, tf_layer=None, *args, num_output, **kwargs):
         if not tf_layer:
             tf_layer = K.layers.Layer()
 
@@ -174,6 +182,7 @@ class MultiOutLayer(IdentityTransLayer):
         tf_output = self.tf_layer(x, **additional_args)
 
         return [layer(tf_output) for layer in self.stub_layers]
+
 
 ##
 # @brief A factory function to attach translayer to existing layer
