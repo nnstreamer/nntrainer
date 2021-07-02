@@ -1,6 +1,9 @@
 test_target = [
-  'layers_common_tests.cpp',
+  'layers_standalone_common_tests.cpp',
+  'layers_dependent_common_tests.cpp',
   'unittest_layers_impl.cpp',
+  'unittest_layers_input.cpp',
+  'unittest_layers_loss.cpp',
   'unittest_layers_fully_connected.cpp',
 ]
 

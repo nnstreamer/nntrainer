@@ -52,13 +52,6 @@ public:
   virtual ~LayerImpl() = default;
 
   /**
-   * @brief     finalize the layer
-   * @throw     nntrainer::not_supported if try to initialize twice
-   * @copydoc   Layer::finalize(InitLayerContext &context)
-   */
-  virtual void finalize(InitLayerContext &context) override;
-
-  /**
    * @copydoc Layer::setProperty(const std::vector<std::string> &values)
    */
   virtual void setProperty(const std::vector<std::string> &values) override;
@@ -70,7 +63,6 @@ public:
                         const ExportMethods &method) const override;
 
 protected:
-  bool finalized;                                 /**< check if finalized */
   std::unique_ptr<std::tuple<>> layer_impl_props; /**< layer_impl_props */
 
   WeightRegularizer weight_regularizer; /**< weight regularizer */

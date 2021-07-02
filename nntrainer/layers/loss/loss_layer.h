@@ -40,7 +40,7 @@ public:
   /**
    * @copydoc Layer::setProperty(const std::vector<std::string> &values)
    */
-  virtual void setProperty(const std::vector<std::string> &values) override {}
+  virtual void setProperty(const std::vector<std::string> &values) override;
 
   /**
    * @copydoc Layer::supportBackwarding()
