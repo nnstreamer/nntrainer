@@ -607,7 +607,12 @@ public:
   void setInputDimension(const TensorDim &dim, unsigned int idx) {
     if (idx >= getNumInputs())
       throw std::out_of_range("Setting dimensions out of bounds");
-    input_dim[idx] = dim;
+
+    std::vector<TensorDim> input_dim = init_context.getInputDimensions();
+    if (input_dim[idx] != dim) {
+      input_dim[idx] = dim;
+      init_context = InitLayerContext(input_dim);
+    }
   }
 
   /**
@@ -645,9 +650,6 @@ private:
   ActivationType
     activation_type; /**< activation applied to the output of this node */
 
-  std::vector<TensorDim>
-    input_dim; /**< input dimension for the layer. This can be in partial state
-                  before the layer is initialized */
   InitLayerContext init_context; /**< context to be built for/while
                                     initialization of the layer. This will also
                                     contain the properties of the layer. */
