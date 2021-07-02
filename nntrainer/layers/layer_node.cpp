@@ -173,6 +173,7 @@ bool LayerNode::setProperty(const std::string &key, const std::string &value) {
   PropertyType type = static_cast<PropertyType>(parseLayerProperty(key));
   switch (type) {
   case PropertyType::input_shape: {
+    std::vector<TensorDim> input_dim = init_context.getInputDimensions();
     if (getNumInputs() > 1) {
       throw std::invalid_argument("input_shape keyword is only for one input");
     }
@@ -196,6 +197,8 @@ bool LayerNode::setProperty(const std::string &key, const std::string &value) {
       /** set back to cache value of dimension */
       in_dim.batch(cache_batch_size);
       throw_status(status);
+
+      init_context = InitLayerContext(input_dim);
     }
   } break;
   case PropertyType::activation: {
@@ -366,8 +369,6 @@ void LayerNode::save(std::ofstream &file) const {
  * @brief     Finalize creating the layer node
  */
 void LayerNode::finalize() {
-  /** Create init context right before finalize */
-  init_context = InitLayerContext(input_dim);
 #if LAYER_V2
   layer->finalize(init_context);
 #endif
