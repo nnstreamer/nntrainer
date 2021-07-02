@@ -36,9 +36,8 @@ using LayerFactoryType = std::function<std::unique_ptr<nntrainer::Layer>(
 using LayerSemanticsParamType =
   std::tuple<LayerFactoryType /** layer factory */,
              std::string /** Type of Layer */,
-             std::vector<std::string> /** Valid Properties */,
-             std::vector<std::string> /** Invalid Properties */,
-             unsigned int /** Options */
+             std::vector<std::string> /** Necessary Properties */,
+             unsigned int /** Options */, bool /** fail or succeed */
              >;
 
 /**
@@ -74,8 +73,8 @@ protected:
   std::unique_ptr<nntrainer::Layer> layer;
   std::string expected_type;
   std::vector<std::string> valid_properties;
-  std::vector<std::string> invalid_properties;
   unsigned int options;
+  bool must_fail;
 };
 
 /**

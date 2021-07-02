@@ -204,6 +204,26 @@ public:
     std::get<0>(tensors_spec[idx]).batch(batch);
   }
 
+  /**
+   * @brief Validate the context
+   *
+   * @return true if validated, else false
+   * @note this must be called before passing a context to a layer for finalize
+   */
+  bool validate() {
+    if (input_dim.empty()) {
+      return false;
+    }
+
+    for (auto const &dim : input_dim) {
+      if (dim.getDataLen() == 0) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
 private:
   std::vector<TensorDim> input_dim;  /**< Input dimensions for the layer */
   std::vector<TensorDim> output_dim; /**< Output dimensions for the layer */

@@ -2629,33 +2629,6 @@ TEST_F(nntrainer_SplitLayer, forwarding_backwarding_01_p) {
 }
 
 /**
- * @brief Layer Node
- */
-TEST(nntrainer_LayerNode, setDistribute_01_p) {
-  int status = ML_ERROR_NONE;
-
-  auto lnode = nntrainer::createLayerNode(nntrainer::FullyConnectedLayer::type);
-
-  EXPECT_EQ(false, lnode->getDistribute());
-
-  status = lnode->setProperty({"distribute=true"});
-  EXPECT_EQ(status, ML_ERROR_NONE);
-
-  EXPECT_EQ(true, lnode->getDistribute());
-}
-
-/**
- * @brief Layer Node
- */
-TEST(nntrainer_LayerNode, setFlatten_01_p) {
-  int status = ML_ERROR_NONE;
-
-  auto lnode = nntrainer::createLayerNode(nntrainer::FullyConnectedLayer::type);
-  status = lnode->setProperty({"flatten=true"});
-  EXPECT_EQ(status, ML_ERROR_NONE);
-}
-
-/**
  * @brief nntainer PermuteLayer test
  */
 class nntrainer_PermuteLayer

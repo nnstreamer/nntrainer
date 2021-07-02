@@ -25,4 +25,12 @@ void LossLayer::updateLoss(RunLayerContext &context, const Tensor &l) {
   context.setLoss(loss_sum / (float)l.batch());
 }
 
+/**
+ * @copydoc Layer::setProperty(const std::vector<std::string> &values)
+ */
+void LossLayer::setProperty(const std::vector<std::string> &values) {
+  NNTR_THROW_IF(!values.empty(), std::invalid_argument)
+    << "[Layer] Unknown Layer Properties count = " << values.size();
+}
+
 } /* namespace nntrainer */

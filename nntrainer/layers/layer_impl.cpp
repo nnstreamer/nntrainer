@@ -23,16 +23,7 @@
 
 namespace nntrainer {
 
-LayerImpl::LayerImpl() :
-  finalized(false),
-  layer_impl_props(std::make_unique<std::tuple<>>()) {}
-
-void LayerImpl::finalize(InitLayerContext &context) {
-  NNTR_THROW_IF(finalized, nntrainer::exception::not_supported)
-    << "[LayerImpl] "
-    << "it is prohibited to finalize a layer twice";
-  finalized = true;
-}
+LayerImpl::LayerImpl() : layer_impl_props(std::make_unique<std::tuple<>>()) {}
 
 void LayerImpl::setProperty(const std::vector<std::string> &values) {
   loadProperties(values, *layer_impl_props);

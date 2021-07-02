@@ -380,6 +380,13 @@ void LayerNode::save(std::ofstream &file) const {
  * @brief     Finalize creating the layer node
  */
 void LayerNode::finalize() {
+  /** Create init context right before finalize */
+  if (finalized)
+    throw std::runtime_error("Finalizing a layer which is already finalized");
+
+  if (!init_context.validate())
+    throw std::runtime_error("Invalid init context for finalizing the layer");
+
   if (layer)
     layer->finalize(init_context);
   finalized = true;

@@ -38,6 +38,14 @@ public:
   /**
    * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
    */
+  void finalize(InitLayerContext &context) override {
+    throw exception::not_supported(
+      "Cross Entropy not supported without softmax or sigmoid");
+  }
+
+  /**
+   * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
+   */
   void forwarding(RunLayerContext &context, bool training) override {
     throw exception::not_supported(
       "Cross Entropy not supported without softmax or sigmoid");
