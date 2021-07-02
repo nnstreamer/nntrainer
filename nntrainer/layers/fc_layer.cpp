@@ -63,22 +63,6 @@ void FullyConnectedLayer::finalize(InitLayerContext &context) {
 
   weight_idx[FCParams::bias] = context.requestWeight(
     bias_dim, bias_initializer, WeightRegularizer::NONE, 1.0f, "FC:bias", true);
-
-  // if (weights.empty()) {
-  //   weights.reserve(2);
-  //   weights.emplace_back(weight_dim, weight_initializer, weight_regularizer,
-  //                        weight_regularizer_constant, true, false,
-  //                        "FC:weight");
-  //   weights.emplace_back(bias_dim, bias_initializer, WeightRegularizer::NONE,
-  //                        1.0f, true, false, "FC:bias");
-  //   manager.trackWeights(weights);
-  // } else {
-  //   weights[FCParams::weight].reset(weight_dim, weight_initializer,
-  //                                   weight_regularizer,
-  //                                   weight_regularizer_constant, true);
-  //   weights[FCParams::bias].reset(bias_dim, bias_initializer,
-  //                                 WeightRegularizer::NONE, 1.0f, true);
-  // }
 }
 
 void FullyConnectedLayer::exportTo(Exporter &exporter,

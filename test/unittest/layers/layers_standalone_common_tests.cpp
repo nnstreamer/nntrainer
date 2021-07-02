@@ -1,0 +1,70 @@
+// SPDX-License-Identifier: Apache-2.0
+/**
+ * Copyright (C) 2020 Jihoon Lee <jhoon.it.lee@samsung.com>
+ *
+ * @file layer_common_tests.cpp
+ * @date 15 June 2021
+ * @brief Common test for nntrainer layers (Param Tests)
+ * @see	https://github.com/nnstreamer/nntrainer
+ * @author Jihoon Lee <jhoon.it.lee@samsung.com>
+ * @bug No known bugs except for NYI items
+ */
+
+#include <layers_common_tests.h>
+
+#include <layer_devel.h>
+
+constexpr unsigned SAMPLE_TRIES = 10;
+
+LayerSemantics::~LayerSemantics() {}
+
+void LayerSemantics::SetUp() {
+  auto f = std::get<0>(GetParam());
+  layer = std::move(f({}));
+  std::tie(std::ignore, expected_type, valid_properties, options, must_fail) =
+    GetParam();
+}
+
+void LayerSemantics::TearDown() {}
+
+TEST_P(LayerSemantics, setProperties_p) {
+  /// @todo check if setProperties does not collide with layerNode designated
+  /// properties
+}
+
+TEST_P(LayerSemantics, setProperties_n) {
+  /** must not crash */
+  EXPECT_THROW(layer->setProperty({"unknown_props=2"}), std::invalid_argument);
+}
+
+TEST_P(LayerSemantics, setPropertiesValidWithInvalid_n) {}
+
+TEST_P(LayerSemantics, setPropertiesValidInvalidOnly_n) {}
+
+TEST_P(LayerSemantics, finalizeOutputValidate_p) {
+  nntrainer::TensorDim in_dim({1, 1, 1, 1});
+  nntrainer::InitLayerContext init_context =
+    nntrainer::InitLayerContext({in_dim});
+  EXPECT_EQ(init_context.validate(), true);
+
+  // set necessary properties only
+  EXPECT_NO_THROW(layer->setProperty(valid_properties));
+
+  if (!must_fail) {
+    EXPECT_NO_THROW(layer->finalize(init_context));
+
+    EXPECT_GT(init_context.getOutputDimensions().size(), 0);
+
+    for (auto const &dim : init_context.getOutputDimensions())
+      EXPECT_GT(dim.getDataLen(), 0);
+    for (auto const &ws : init_context.getWeightsSpec())
+      EXPECT_GT(std::get<0>(ws).getDataLen(), 0);
+    for (auto const &ts : init_context.getTensorsSpec())
+      EXPECT_GT(std::get<0>(ts).getDataLen(), 0);
+  } else {
+    EXPECT_THROW(layer->finalize(init_context),
+                 nntrainer::exception::not_supported);
+  }
+}
+
+TEST_P(LayerGoldenTest, HelloWorld) { EXPECT_TRUE(true); }
