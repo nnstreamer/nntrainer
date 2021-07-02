@@ -32,7 +32,7 @@ public:
   inline static const std::string type = "mock_";
   const std::string getType() const override { return type; }
   void finalize(InitLayerContext &context) override {
-    LayerImpl::finalize(context);
+    context.setOutputDimensions(context.getInputDimensions());
   }
   void forwarding(RunLayerContext &context, bool training = true) override {
     /** do nothing */
@@ -54,7 +54,7 @@ public:
 } // namespace
 
 auto semantic_tc = LayerSemanticsParamType(nntrainer::createLayer<MockLayer>,
-                                           MockLayer::type, {}, {}, 0);
+                                           MockLayer::type, {}, 0, false);
 INSTANTIATE_TEST_CASE_P(LayerImpl, LayerSemantics,
                         ::testing::Values(semantic_tc));
 
