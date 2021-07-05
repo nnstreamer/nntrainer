@@ -186,6 +186,55 @@ TEST(InputSpecProperty, trailingOperator_n_02) {
   EXPECT_THROW(nntrainer::from_string("A+B++", actual), std::invalid_argument);
 }
 
+TEST(Padding2D, setPropertyValid_p) {
+  nntrainer::props::Padding2D p;
+  EXPECT_NO_THROW(p.set("same"));
+  EXPECT_EQ(p.get(), "same");
+
+  EXPECT_NO_THROW(p.set("Same"));
+  EXPECT_EQ(p.get(), "Same");
+
+  EXPECT_NO_THROW(p.set("valid"));
+  EXPECT_EQ(p.get(), "valid");
+
+  EXPECT_NO_THROW(p.set("1"));
+  EXPECT_EQ(p.get(), "1");
+
+  EXPECT_NO_THROW(p.set("0"));
+  EXPECT_EQ(p.get(), "0");
+
+  EXPECT_NO_THROW(p.set("1, 2"));
+  EXPECT_EQ(p.get(), "1, 2");
+
+  EXPECT_NO_THROW(p.set("1, 2, 3, 4"));
+  EXPECT_EQ(p.get(), "1, 2, 3, 4");
+}
+
+TEST(Padding2D, randomString_01_n) {
+  nntrainer::props::Padding2D p;
+  EXPECT_THROW(p.set("seme"), std::invalid_argument);
+}
+
+TEST(Padding2D, randomString_02_n) {
+  nntrainer::props::Padding2D p;
+  EXPECT_THROW(p.set("velid"), std::invalid_argument);
+}
+
+TEST(Padding2D, given_padding_of_three_n) {
+  nntrainer::props::Padding2D p;
+  EXPECT_THROW(p.set("1, 2, 3"), std::invalid_argument);
+}
+
+TEST(Padding2D, given_padding_is_negative_01_n) {
+  nntrainer::props::Padding2D p;
+  EXPECT_THROW(p.set("-1"), std::invalid_argument);
+}
+
+TEST(Padding2D, given_padding_is_negative_02_n) {
+  nntrainer::props::Padding2D p;
+  EXPECT_THROW(p.set("-1, 1"), std::invalid_argument);
+}
+
 /**
  * @brief Main gtest
  */
