@@ -83,10 +83,13 @@ public:
                     const std::string &n = "") :
     dim(v.getDim()),
     var(std::make_shared<Tensor>(v.getSharedDataTensor(dim, 0, false))),
-    grad(std::make_shared<Tensor>(g.getSharedDataTensor(dim, 0, false))),
+    grad(std::make_shared<Tensor>()),
     need_gradient(!g.uninitialized()),
     alloc_now(v.isAllocated()),
-    name(n) {}
+    name(n) {
+    if (trainable)
+      grad = std::make_shared<Tensor>(g.getSharedDataTensor(dim, 0, false));
+  }
 
   /**
    * @brief Copy constructor for Var_Grad

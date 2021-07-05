@@ -5,6 +5,7 @@ test_target = [
   'unittest_layers_input.cpp',
   'unittest_layers_loss.cpp',
   'unittest_layers_fully_connected.cpp',
+  'unittest_layers_batch_normalization.cpp',
 ]
 
 exe = executable(

@@ -1276,9 +1276,9 @@ INSTANTIATE_TEST_CASE_P(
   nntrainerModelAutoTests, nntrainerModelTest, ::testing::Values(
     mkModelTc(fc_sigmoid_mse, "3:1:1:10", 1),
     mkModelTc(fc_sigmoid_cross, "3:1:1:10", 1),
-    mkModelTc(fc_relu_mse, "3:1:1:2", 1)
-    // mkModelTc(fc_bn_sigmoid_cross, "3:1:1:10", 10),
-    // mkModelTc(fc_bn_sigmoid_mse, "3:1:1:10", 10),
+    mkModelTc(fc_relu_mse, "3:1:1:2", 1),
+    mkModelTc(fc_bn_sigmoid_cross, "3:1:1:10", 10),
+    mkModelTc(fc_bn_sigmoid_mse, "3:1:1:10", 10)
     // mkModelTc(mnist_conv_cross, "3:1:1:10", 10),
     // mkModelTc(mnist_conv_cross_one_input, "1:1:1:10", 10),
 

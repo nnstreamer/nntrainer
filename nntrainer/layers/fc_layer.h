@@ -96,8 +96,9 @@ public:
   inline static const std::string type = "fully_connected";
 
 private:
-  std::tuple<props::Unit> fc_props;
-  std::array<unsigned int, 2> weight_idx;
+  std::tuple<props::Unit>
+    fc_props; /**< fc layer properties : unit - number of output neurons */
+  std::array<unsigned int, 2> weight_idx; /**< indices of the weights */
 };
 } // namespace nntrainer
 
