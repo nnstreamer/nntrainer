@@ -28,6 +28,13 @@ bool Name::isValid(const std::string &v) const {
   return !v.empty() && std::regex_match(v, allowed);
 }
 
+bool DropOutSpec::isValid(const float &v) const {
+  if (v <= 0.0)
+    return false;
+  else
+    return true;
+}
+
 ConnectionSpec::ConnectionSpec(const std::vector<props::Name> &layer_ids_,
                                const std::string &op_type_) :
   op_type(op_type_),

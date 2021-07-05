@@ -228,6 +228,31 @@ public:
                                       const TensorDim &kernel);
 };
 
+/**
+ * @brief DropOutSpec property, this defines drop out specification of layer
+ *
+ */
+class DropOutSpec : public nntrainer::Property<float> {
+
+public:
+  /**
+   * @brief Construct a new DropOut object wit a default value 0.0
+   *
+   */
+  DropOutSpec(float value = 0.0) : nntrainer::Property<float>(value) {}
+  static constexpr const char *key = "dropout"; /**< unique key to access */
+  using prop_tag = float_prop_tag;              /**< property type */
+
+  /**
+   * @brief DropOutSpec validator
+   *
+   * @param v float to validate
+   * @retval true if it is greater or equal than 0.0
+   * @retval false if it is samller than 0.0
+   */
+  bool isValid(const float &v) const override;
+};
+
 } // namespace props
 } // namespace nntrainer
 
