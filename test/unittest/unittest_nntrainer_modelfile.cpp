@@ -121,7 +121,11 @@ TEST_P(nntrainerIniTest, init) {
     EXPECT_EQ(status, ML_ERROR_NONE);
   }
 
-  status = NN.initialize();
+  try {
+    status = NN.initialize();
+  } catch (...) {
+    status = ML_ERROR_INVALID_PARAMETER;
+  }
 
   if (failAtInit()) {
     EXPECT_NE(status, ML_ERROR_NONE);
@@ -150,8 +154,12 @@ TEST_P(nntrainerIniTest, initTwice_n) {
     EXPECT_EQ(status, ML_ERROR_NONE);
   }
 
-  status = NN.initialize();
-  status = NN.initialize();
+  try {
+    status = NN.initialize();
+    status = NN.initialize();
+  } catch (...) {
+    status = ML_ERROR_INVALID_PARAMETER;
+  }
 
   EXPECT_NE(status, ML_ERROR_NONE);
 }
@@ -169,9 +177,13 @@ TEST_P(nntrainerIniTest, initThreetime_n) {
     status = ML_ERROR_INVALID_PARAMETER;
   }
 
-  status = NN.initialize();
-  status = NN.initialize();
-  status = NN.initialize();
+  try {
+    status = NN.initialize();
+    status = NN.initialize();
+    status = NN.initialize();
+  } catch (...) {
+    status = ML_ERROR_INVALID_PARAMETER;
+  }
 
   EXPECT_NE(status, ML_ERROR_NONE);
 }
@@ -321,7 +333,7 @@ INSTANTIATE_TEST_CASE_P(
     mkIniTc("basic_dataset_p", {nw_base_cross, adam, dataset, input, out+"input_layers=inputlayer"}, SUCCESS),
     mkIniTc("basic_dataset2_p", {nw_base_cross, sgd, input, out+"input_layers=inputlayer", dataset}, SUCCESS),
     mkIniTc("basic_dataset3_p", {dataset, nw_base_cross, sgd, input, out+"input_layers=inputlayer"}, SUCCESS),
-    // mkIniTc("basic_conv2d_p", {nw_base_cross, adam, conv2d + "input_shape = 1:10:10"}, SUCCESS),
+    mkIniTc("basic_conv2d_p", {nw_base_cross, adam, conv2d + "input_shape = 1:10:10"}, SUCCESS),
     mkIniTc("no_testSet_p", {nw_base_cross, adam, dataset + "-TestData", input, out+"input_layers=inputlayer"}, SUCCESS),
     mkIniTc("no_validSet_p", {nw_base_cross, adam, dataset + "-ValidData", input, out+"input_layers=inputlayer"}, SUCCESS),
     mkIniTc("no_bufferSize_p", {nw_base_cross, adam, dataset + "-BufferSize", input, out+"input_layers=inputlayer"}, SUCCESS),
@@ -334,7 +346,7 @@ INSTANTIATE_TEST_CASE_P(
     mkIniTc("cross_with_relu2_n", {nw_base_cross, sgd, input, out+"input_layers=inputlayer" + "-Activation", act_relu+"input_layers=fclayer" }, COMPFAIL | INITFAIL),
     mkIniTc("mse_with_relu_p", {nw_base_mse, sgd, input, out+"input_layers=inputlayer", act_relu}, SUCCESS),
     mkIniTc("no_loss_with_relu_p", {nw_base, sgd, input, out+"input_layers=inputlayer", act_relu}, SUCCESS),
-    // mkIniTc("basic_conv2d_n", {nw_base_cross, adam, conv2d + "input_shape = 1:1:62720"}, INITFAIL),
+    mkIniTc("basic_conv2d_n", {nw_base_cross, adam, conv2d + "input_shape = 1:1:62720"}, INITFAIL),
 
   /**< negative: basic invalid scenarios (5 negative cases) */
     mkIniTc("no_model_sec_name_n", {I(nw_base_cross, "-", "")}, ALLFAIL),
