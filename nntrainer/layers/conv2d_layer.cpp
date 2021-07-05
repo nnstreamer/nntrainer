@@ -40,12 +40,14 @@ namespace {
  * @param[out] image image tensor to put
  */
 static void col2im(const Tensor &col_matrix, const TensorDim &kdim,
-                   const std::array<unsigned, CONV2D_DIM> &padding,
+                   const std::array<unsigned, 4> &padding,
                    const std::array<unsigned, CONV2D_DIM> &mstride,
                    const std::array<unsigned, CONV2D_DIM> &dilation,
                    Tensor &image) {
-  unsigned ph = padding[0];
-  unsigned pw = padding[1];
+  unsigned pt = padding[0];
+  unsigned pb = padding[1];
+  unsigned pl = padding[2];
+  unsigned pr = padding[3];
 
   unsigned k_height = kdim.height();
   unsigned k_width = kdim.width();
@@ -66,16 +68,16 @@ static void col2im(const Tensor &col_matrix, const TensorDim &kdim,
   unsigned wdilation = dilation[1];
 
   /// image considering padding
-  unsigned im_eff_height = im_height + 2 * ph;
-  unsigned im_eff_width = im_width + 2 * pw;
+  unsigned im_eff_height = im_height + pt + pb;
+  unsigned im_eff_width = im_width + pl + pr;
   image.setZero();
 
-  int h_stride_end = im_eff_height - eff_k_height - ph;
-  int w_stride_end = im_eff_width - eff_k_width - pw;
+  int h_stride_end = im_eff_height - eff_k_height - pb;
+  int w_stride_end = im_eff_width - eff_k_width - pr;
 
   unsigned col_w = 0;
-  for (int hs = -ph; hs <= h_stride_end; hs += hstride) {
-    for (int ws = -pw; ws <= w_stride_end; ws += wstride) {
+  for (int hs = -pt; hs <= h_stride_end; hs += hstride) {
+    for (int ws = -pl; ws <= w_stride_end; ws += wstride) {
       unsigned col_h = 0;
       int patch_height_end = hs + eff_k_height;
       int patch_width_end = ws + eff_k_width;
@@ -119,7 +121,7 @@ static void col2im(const Tensor &col_matrix, const TensorDim &kdim,
  * @note if out is initialized tensor, setting padding is skipped.
  */
 static void im2col(const Tensor &in, const TensorDim &kdim,
-                   const std::array<unsigned int, CONV2D_DIM> &padding,
+                   const std::array<unsigned int, 4> &padding,
                    const std::array<unsigned int, CONV2D_DIM> &mstride,
                    const std::array<unsigned int, CONV2D_DIM> &dilation,
                    Tensor &out) {
@@ -170,14 +172,16 @@ static void im2col(const Tensor &in, const TensorDim &kdim,
   */
 
   const int pad_value = 0;
-  unsigned int ph = padding[0];
-  unsigned int pw = padding[1];
+  unsigned pt = padding[0];
+  unsigned pb = padding[1];
+  unsigned pl = padding[2];
+  unsigned pr = padding[3];
 
   unsigned int channel = in.channel();
   int in_height = in.height();
   int in_width = in.width();
-  unsigned int height = in_height + ph * 2;
-  unsigned int width = in_width + pw * 2;
+  unsigned int height = in_height + pt + pb;
+  unsigned int width = in_width + pl + pr;
   unsigned int k_height = kdim.height();
   unsigned int k_width = kdim.width();
 
@@ -202,14 +206,14 @@ static void im2col(const Tensor &in, const TensorDim &kdim,
 
   float *out_data = out.getData();
 
-  int h_stride_end = height - eff_k_height - ph;
-  int w_stride_end = width - eff_k_width - pw;
+  int h_stride_end = height - eff_k_height - pb;
+  int w_stride_end = width - eff_k_width - pr;
 
   /// get a patch, size of kernel
   /// hs is height_strided, ws is width_strided
   unsigned int owidth = out.width();
   unsigned int base_im_w = 0;
-  for (int hs = -ph; hs <= h_stride_end; hs += mstride[0]) {
+  for (int hs = -pt; hs <= h_stride_end; hs += mstride[0]) {
     unsigned int base_im_h = 0;
     int patch_height_end = eff_k_height + hs;
     /// map the patch to a single line looping through channel
@@ -221,7 +225,7 @@ static void im2col(const Tensor &in, const TensorDim &kdim,
         }
 
         unsigned int im_w = base_im_w;
-        for (int ws = -pw; ws <= w_stride_end; ws += mstride[1]) {
+        for (int ws = -pl; ws <= w_stride_end; ws += mstride[1]) {
           unsigned int im_h = base_im_h;
           int patch_width_end = eff_k_width + ws;
 
@@ -264,6 +268,8 @@ int Conv2DLayer::initialize(Manager &manager) {
     TensorDim(filter_size, in_dim.channel(), kernel_size[0], kernel_size[1]);
   TensorDim bias_dim = TensorDim(1, filter_size, 1, 1);
 
+  padding = std::get<props::Padding2D>(conv_props).compute(in_dim, dim);
+
   if (weights.empty()) {
     weights.reserve(2);
     weights.emplace_back(dim, weight_initializer, weight_regularizer,
@@ -285,15 +291,13 @@ int Conv2DLayer::initialize(Manager &manager) {
   /// assymetric padding)
 
   // this output_dim must be the same with dimension of hidden
+  unsigned int eff_in_height = in_dim.height() + padding[0] + padding[1];
+  unsigned int eff_in_width = in_dim.width() + padding[2] + padding[3];
+
   out_dim.batch(in_dim.batch());
   out_dim.channel(filter_size);
-  out_dim.height(
-    (in_dim.height() - kernel_size[0] + 2 * padding[0]) / stride[0] + 1);
-  out_dim.width((in_dim.width() - kernel_size[1] + 2 * padding[1]) / stride[1] +
-                1);
-
-  unsigned int eff_in_height = in_dim.height() + padding[0] * 2;
-  unsigned int eff_in_width = in_dim.width() + padding[1] * 2;
+  out_dim.height((eff_in_height - kernel_size[0]) / stride[0] + 1);
+  out_dim.width((eff_in_width - kernel_size[1]) / stride[1] + 1);
 
   if (eff_in_height < kernel_size[0] || eff_in_width < kernel_size[1]) {
     ml_loge("Failed to initialize: in size + padding is smaller than effective "
@@ -304,7 +308,7 @@ int Conv2DLayer::initialize(Manager &manager) {
   unsigned int IM = std::numeric_limits<int>::max();
 
   if (eff_in_height - padding[0] - kernel_size[0] > IM ||
-      eff_in_width - padding[1] - kernel_size[1] > IM) {
+      eff_in_width - padding[2] - kernel_size[1] > IM) {
     ml_loge("Failed to initialize: Calculated patch end is over int max");
     return ML_ERROR_INVALID_PARAMETER;
   }
@@ -532,8 +536,7 @@ void Conv2DLayer::setProperty(const PropertyType type,
     break;
   case PropertyType::padding:
     if (!value.empty()) {
-      status = getValues(CONV2D_DIM, value, (int *)(padding.data()));
-      throw_status(status);
+      from_string(value, std::get<props::Padding2D>(conv_props));
     }
     break;
   default:

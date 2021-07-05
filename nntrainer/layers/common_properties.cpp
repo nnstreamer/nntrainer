@@ -93,8 +93,8 @@ bool Padding2D::isValid(const std::string &v) const {
   return false;
 }
 
-std::vector<unsigned int> Padding2D::compute(const TensorDim &input,
-                                             const TensorDim &kernel) {
+std::array<unsigned int, 4> Padding2D::compute(const TensorDim &input,
+                                               const TensorDim &kernel) {
   auto &padding_repr = get(); /// padding representation
   if (istrequal(padding_repr, "valid")) {
     return {0, 0, 0, 0};
