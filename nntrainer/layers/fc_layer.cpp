@@ -22,10 +22,10 @@
  */
 
 #include <fc_layer.h>
-#include <layer_internal.h>
 #include <lazy_tensor.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
+#include <node_exporter.h>
 #include <parse_util.h>
 #include <util_func.h>
 
@@ -67,7 +67,7 @@ void FullyConnectedLayer::finalize(InitLayerContext &context) {
 
 void FullyConnectedLayer::exportTo(Exporter &exporter,
                                    const ExportMethods &method) const {
-  Layer::exportTo(exporter, method);
+  LayerImpl::exportTo(exporter, method);
   exporter.saveResult(fc_props, method, this);
 }
 
