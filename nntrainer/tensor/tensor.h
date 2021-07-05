@@ -19,6 +19,7 @@
  * @author	Jijoong Moon <jijoong.moon@samsung.com>
  * @bug		No known bugs except for NYI items
  *
+ * @todo deprecate new tensor allocation for out of place operations.
  */
 
 #ifndef __TENSOR_H__
