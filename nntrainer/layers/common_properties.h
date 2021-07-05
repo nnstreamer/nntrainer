@@ -19,6 +19,9 @@
 #define __COMMON_PROPERTIES_H__
 
 namespace nntrainer {
+
+class TensorDim;
+
 namespace props {
 
 /**
@@ -187,6 +190,40 @@ public:
     "input_layers";                     /**< unique key to access */
   using prop_tag = connection_prop_tag; /**< property type */
   bool isValid(const ConnectionSpec &v) const override;
+};
+
+/**
+ * @brief Padding2D property, this is used to calculate padding2D
+ * @details Padding2D is saved as a string. Upon calling Padding2D::compute,
+ * returns std::vector<unsigned int> which has computed padding2Ds, below
+ * formats are accepted valid
+ * 1. "same" (case insensitive literal string)
+ * 2. "valid" (case insensitive literal string)
+ * 3. "padding2D_all", eg) padding=1
+ * 4. "padding2D_height, padding2D_width" eg) padding=1,1
+ * 5. "padding2D_top, padding2D_bottom, padding2D_left, padding2D_right" eg)
+ * padding=1,1,1,1
+ *
+ */
+class Padding2D final : public nntrainer::Property<std::string> {
+public:
+  /**
+   * @brief Construct a new Padding2D object
+   *
+   */
+  Padding2D(const std::string &value = "valid") :
+    nntrainer::Property<std::string>(value) {} /**< default value if any */
+  bool isValid(const std::string &v) const override;
+
+  /**
+   * @brief compute actual padding2D from the underlying data
+   *
+   * @param input input dimension
+   * @param kernel kernel dimension
+   * @return std::vector<unsigned int> list of unsigned padding
+   */
+  std::vector<unsigned int> compute(const TensorDim &input,
+                                    const TensorDim &kernel);
 };
 
 } // namespace props
