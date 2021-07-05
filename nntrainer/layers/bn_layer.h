@@ -132,15 +132,13 @@ private:
                     bn_layer::calcDerivative */
   Tensor invstd; /**<  inversed training std for backward pass */
 
-  Tensor deviation; /**< (input - current_average) */
-
   float epsilon;  /**< epsilon */
   float momentum; /**< momentum */
   int axis;       /**< Target axis, axis inferred at initialize when -1 */
 
   std::vector<unsigned int> axes_to_reduce;      /**< target axes to reduce */
   std::array<WeightInitializer, 4> initializers; /**< weight initializers */
-  std::array<unsigned int, 4> weight_idx;        /**< indices of the weights */
+  std::array<unsigned int, 5> wt_idx; /**< indices of the weights and tensors */
 
   /**
    * @brief setProperty by type and value separated

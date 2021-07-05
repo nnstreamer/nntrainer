@@ -518,6 +518,11 @@ void Manager::allocateInOuts() {
         out->allocateVariable();
       }
     }
+    for (auto &lt : tensors_v2) {
+      for (auto &t : lt) {
+        t->allocateVariable();
+      }
+    }
   } else {
     for (auto &l_io : in_outs) {
       for (auto &io : l_io) {
@@ -539,6 +544,11 @@ void Manager::deallocateInOuts() {
     for (auto &lo : outputs_v2) {
       for (auto &out : lo) {
         out->deallocateVariable();
+      }
+    }
+    for (auto &lt : tensors_v2) {
+      for (auto &t : lt) {
+        t->deallocateVariable();
       }
     }
   } else {
@@ -566,6 +576,11 @@ void Manager::allocateDerivatives() {
         out->allocateGradient();
       }
     }
+    for (auto &lt : tensors_v2) {
+      for (auto &t : lt) {
+        t->allocateGradient();
+      }
+    }
   } else {
     for (auto &l_io : in_outs) {
       for (auto &io : l_io) {
@@ -587,6 +602,11 @@ void Manager::deallocateDerivatives() {
     for (auto &lo : outputs_v2) {
       for (auto &out : lo) {
         out->deallocateGradient();
+      }
+    }
+    for (auto &lt : tensors_v2) {
+      for (auto &t : lt) {
+        t->deallocateGradient();
       }
     }
   } else {

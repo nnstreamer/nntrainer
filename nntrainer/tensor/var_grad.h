@@ -87,7 +87,7 @@ public:
     need_gradient(!g.uninitialized()),
     alloc_now(v.isAllocated()),
     name(n) {
-    if (trainable)
+    if (need_gradient)
       grad = std::make_shared<Tensor>(g.getSharedDataTensor(dim, 0, false));
   }
 

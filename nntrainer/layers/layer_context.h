@@ -23,6 +23,24 @@
 #include <weight.h>
 
 namespace nntrainer {
+/**
+ * @brief define the lifespan of the given tensor to reduce peak memory
+ *
+ */
+enum TensorLifespan {
+  FORWARD_FUNC_LIFESPAN,  /**< tensor must not be reset before during the
+                            forward function call, eg. temporary tensors
+                            needed during forward operations */
+  BACKWARD_FUNC_LIFESPAN, /**< tensor must not be reset before during the
+                            backward function call, eg. temporary tensors
+                            needed during backward operations */
+  ITERATION_LIFESPAN,     /**< tensor must not be reset until the owning layer
+                            finishes its execution in the current iteration,
+                            eg. hidden memory/cells of RNN */
+  EPOCH_LIFESPAN,         /**< tensor must not be reset before the epoch ends */
+  MAX_LIFESPAN, /**< tensor must not be reset until the end of the model
+                  execution, eg. layer weights */
+};
 
 /**
  * @class   Layer Context class for all layers
@@ -35,25 +53,6 @@ namespace nntrainer {
  */
 class InitLayerContext {
 public:
-  /**
-   * @brief define the lifespan of the given tensor to reduce peak memory
-   *
-   */
-  enum TensorLifespan {
-    FORWARD_FUNC_LIFESPAN,  /**< tensor must not be reset before during the
-                               forward function call, eg. temporary tensors
-                               needed during forward operations */
-    BACKWARD_FUNC_LIFESPAN, /**< tensor must not be reset before during the
-                               backward function call, eg. temporary tensors
-                               needed during backward operations */
-    ITERATION_LIFESPAN,     /**< tensor must not be reset until the owning layer
-                               finishes its execution in the current iteration,
-                               eg. hidden memory/cells of RNN */
-    EPOCH_LIFESPAN, /**< tensor must not be reset before the epoch ends */
-    MAX_LIFESPAN,   /**< tensor must not be reset until the end of the model
-                       execution, eg. layer weights */
-  };
-
   /**
    * @brief Construct a new Init Layer Context object
    *
@@ -334,7 +333,7 @@ public:
    * @return true if weight has gradient, else false
    */
   bool weightHasGradient(unsigned int idx) const {
-    return weights[idx]->getTrainable();
+    return weights[idx]->hasGradient();
   }
 
   /**

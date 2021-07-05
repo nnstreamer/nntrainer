@@ -33,7 +33,7 @@ namespace nntrainer {
 
 static constexpr size_t SINGLE_INOUT_IDX = 0;
 
-enum BNParams { mu, var, gamma, beta };
+enum BNParams { mu, var, gamma, beta, deviation };
 
 /// @todo add multiple axis support
 void BatchNormalizationLayer::finalize(InitLayerContext &context) {
@@ -61,18 +61,21 @@ void BatchNormalizationLayer::finalize(InitLayerContext &context) {
       axes_to_reduce.push_back(i);
   }
 
-  weight_idx[BNParams::mu] = context.requestWeight(
-    dim, initializers[BNParams::mu], WeightRegularizer::NONE, 1.0f,
-    "BN::moving_mean", false);
-  weight_idx[BNParams::var] = context.requestWeight(
+  wt_idx[BNParams::mu] = context.requestWeight(dim, initializers[BNParams::mu],
+                                               WeightRegularizer::NONE, 1.0f,
+                                               "BN::moving_mean", false);
+  wt_idx[BNParams::var] = context.requestWeight(
     dim, initializers[BNParams::var], WeightRegularizer::NONE, 1.0f,
     "BN::moving_variance", false);
-  weight_idx[BNParams::gamma] =
+  wt_idx[BNParams::gamma] =
     context.requestWeight(dim, initializers[BNParams::gamma],
                           WeightRegularizer::NONE, 1.0f, "BN::gamma", true);
-  weight_idx[BNParams::beta] =
+  wt_idx[BNParams::beta] =
     context.requestWeight(dim, initializers[BNParams::beta],
                           WeightRegularizer::NONE, 1.0f, "BN::beta", true);
+
+  wt_idx[BNParams::deviation] =
+    context.requestTensor(in_dim, "BN::deviation", false, ITERATION_LIFESPAN);
 }
 
 void BatchNormalizationLayer::setProperty(
@@ -139,13 +142,14 @@ void BatchNormalizationLayer::setProperty(const std::string &type_str,
 
 void BatchNormalizationLayer::forwarding(RunLayerContext &context,
                                          bool training) {
-  Tensor &mu = context.getWeight(weight_idx[BNParams::mu]);
-  Tensor &var = context.getWeight(weight_idx[BNParams::var]);
-  Tensor &gamma = context.getWeight(weight_idx[BNParams::gamma]);
-  Tensor &beta = context.getWeight(weight_idx[BNParams::beta]);
+  Tensor &mu = context.getWeight(wt_idx[BNParams::mu]);
+  Tensor &var = context.getWeight(wt_idx[BNParams::var]);
+  Tensor &gamma = context.getWeight(wt_idx[BNParams::gamma]);
+  Tensor &beta = context.getWeight(wt_idx[BNParams::beta]);
 
   Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
   Tensor &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
+  Tensor &deviation = context.getTensor(wt_idx[BNParams::deviation]);
 
   if (training) {
     /**
@@ -153,7 +157,7 @@ void BatchNormalizationLayer::forwarding(RunLayerContext &context,
      * and then register cmu as a temporary tensor
      */
     Tensor cmu = input_.average(axes_to_reduce);
-    deviation = input_.subtract(cmu);
+    input_.subtract(cmu, deviation);
 
     cvar = deviation.pow(2.0f).average(axes_to_reduce);
 
@@ -177,9 +181,10 @@ void BatchNormalizationLayer::forwarding(RunLayerContext &context,
 
 void BatchNormalizationLayer::calcDerivative(RunLayerContext &context) {
 
-  Tensor &gamma = context.getWeight(weight_idx[BNParams::gamma]);
+  Tensor &gamma = context.getWeight(wt_idx[BNParams::gamma]);
   Tensor &deriv = context.getIncomingDerivative(SINGLE_INOUT_IDX);
   Tensor &dx = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
+  Tensor &deviation = context.getTensor(wt_idx[BNParams::deviation]);
 
   int N = 1;
   const Tensor &input = context.getInput(SINGLE_INOUT_IDX);
@@ -200,9 +205,10 @@ void BatchNormalizationLayer::calcDerivative(RunLayerContext &context) {
 
 void BatchNormalizationLayer::calcGradient(RunLayerContext &context) {
 
-  Tensor &dgamma = context.getWeightGrad(weight_idx[BNParams::gamma]);
-  Tensor &dbeta = context.getWeightGrad(weight_idx[BNParams::beta]);
+  Tensor &dgamma = context.getWeightGrad(wt_idx[BNParams::gamma]);
+  Tensor &dbeta = context.getWeightGrad(wt_idx[BNParams::beta]);
   Tensor &deriv = context.getIncomingDerivative(SINGLE_INOUT_IDX);
+  Tensor &deviation = context.getTensor(wt_idx[BNParams::deviation]);
 
   dbeta = deriv.sum(axes_to_reduce);
   Tensor dev = deviation.multiply(invstd);
