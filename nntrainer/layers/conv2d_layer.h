@@ -15,10 +15,9 @@
 #define __CONV2D_LAYER_H_
 #ifdef __cplusplus
 
-#include <layer_internal.h>
-#include <manager.h>
 #include <memory.h>
-#include <tensor.h>
+
+#include <layer_impl.h>
 
 namespace nntrainer {
 
@@ -28,30 +27,25 @@ constexpr const unsigned int CONV2D_DIM = 2;
  * @class   Convolution 2D Layer
  * @brief   Convolution 2D Layer
  */
-class Conv2DLayer : public LayerV1 {
+class Conv2DLayer : public LayerImpl {
 public:
   /**
    * @brief     Constructor of Conv 2D Layer
    */
-  template <typename... Args>
   Conv2DLayer(unsigned int filter_size_ = 0,
               const std::array<unsigned int, CONV2D_DIM> &kernel_size_ = {0, 0},
               const std::array<unsigned int, CONV2D_DIM> &stride_ = {1, 1},
-              const std::array<unsigned int, CONV2D_DIM> &padding_ = {0, 0},
-              bool normalization_ = false, bool standardization_ = false,
-              Args... args) :
-    LayerV1(args...),
+              const std::array<unsigned int, CONV2D_DIM> &padding_ = {0, 0}) :
+    LayerImpl(),
     filter_size(filter_size_),
     kernel_size(kernel_size_),
     stride(stride_),
-    padding(padding_),
-    normalization(normalization_),
-    standardization(standardization_) {}
+    padding(padding_) {}
 
   /**
    * @brief     Destructor of Conv 2D Layer
    */
-  ~Conv2DLayer() {}
+  ~Conv2DLayer() = default;
 
   /**
    *  @brief  Move constructor of Conv 2D Layer.
@@ -66,32 +60,50 @@ public:
   Conv2DLayer &operator=(Conv2DLayer &&rhs) = default;
 
   /**
-   * @brief     initialize layer
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   * @copydoc Layer::finalize(InitLayerContext &context)
    */
-  int initialize(Manager &manager) override;
+  void finalize(InitLayerContext &context) override;
 
   /**
-   * @copydoc Layer::forwarding(bool training)
+   * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
    */
-  void forwarding(bool training = true) override;
+  void forwarding(RunLayerContext &context, bool training) override;
 
   /**
-   * @copydoc Layer::calcDerivative()
+   * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
-  void calcDerivative() override;
+  void calcDerivative(RunLayerContext &context) override;
 
   /**
-   * @copydoc Layer::calcGradient()
+   * @copydoc Layer::calcGradient(RunLayerContext &context)
    */
-  void calcGradient() override;
+  void calcGradient(RunLayerContext &context) override;
 
   /**
-   * @brief     copy layer
-   * @param[in] l layer to copy
+   * @copydoc Layer::exportTo(Exporter &exporter, ExportMethods method)
    */
-  void copy(std::shared_ptr<LayerV1> l) override;
+  void exportTo(Exporter &exporter,
+                const ExportMethods &method) const override {
+    Layer::exportTo(exporter, method);
+  }
+
+  /**
+   * @copydoc Layer::getType()
+   */
+  const std::string getType() const override { return Conv2DLayer::type; };
+
+  /**
+   * @copydoc Layer::supportBackwarding()
+   */
+  bool supportBackwarding() const { return true; }
+
+  using Layer::setProperty;
+
+  /**
+   * @copydoc Layer::setProperty(const PropertyType type, const std::string
+   * &value)
+   */
+  void setProperty(const std::vector<std::string> &values) override;
 
   /* TO DO : support keras type of padding */
   /* enum class PaddingType { */
@@ -101,20 +113,6 @@ public:
   /*   unknown = 3, */
   /* }; */
 
-  /**
-   * @copydoc Layer::getType()
-   */
-  const std::string getType() const override { return Conv2DLayer::type; };
-
-  using LayerV1::setProperty;
-
-  /**
-   * @copydoc Layer::setProperty(const PropertyType type, const std::string
-   * &value)
-   */
-  void setProperty(const PropertyType type,
-                   const std::string &value = "") override;
-
   inline static const std::string type = "conv2d";
 
 private:
@@ -122,26 +120,17 @@ private:
   std::array<unsigned int, CONV2D_DIM> kernel_size;
   std::array<unsigned int, CONV2D_DIM> stride;
   std::array<unsigned int, CONV2D_DIM> padding;
-
-  bool normalization;
-  bool standardization;
+  std::array<unsigned int, 5> wt_idx; /**< indices of the weights and tensors */
 
   /**
-   * @brief     set Parameter Size
-   * @param[in] * size : size arrary
-   * @param[in] type : Property type
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   * @brief setProperty by type and value separated
+   * @param[in] type property type to be passed
+   * @param[in] value value to be passed
+   * @exception exception::not_supported     when property type is not valid for
+   * the particular layer
+   * @exception std::invalid_argument invalid argument
    */
-  int setSize(int *size, PropertyType type);
-
-  /**
-   * @brief     set Parameter Size
-   * @param[in] f number of filters
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   */
-  int setFilter(int f);
+  void setProperty(const std::string &type, const std::string &value);
 };
 
 } // namespace nntrainer
