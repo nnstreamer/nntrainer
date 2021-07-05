@@ -12,6 +12,9 @@
 #include <gtest/gtest.h>
 
 #include <common_properties.h>
+#include <tensor_dim.h>
+
+#include <vector>
 
 /// @todo change this to typed param test
 /// <type, list of string, value pair, list of invalid string, value pair>
@@ -194,20 +197,32 @@ TEST(Padding2D, setPropertyValid_p) {
   EXPECT_NO_THROW(p.set("Same"));
   EXPECT_EQ(p.get(), "Same");
 
+  EXPECT_EQ(p.compute({32, 32}, {3, 3}),
+            std::vector<unsigned int>({1, 1, 1, 1}));
+
   EXPECT_NO_THROW(p.set("valid"));
   EXPECT_EQ(p.get(), "valid");
 
+  EXPECT_EQ(p.compute({32, 32}, {3, 3}),
+            std::vector<unsigned int>({0, 0, 0, 0}));
+
   EXPECT_NO_THROW(p.set("1"));
   EXPECT_EQ(p.get(), "1");
+  EXPECT_EQ(p.compute({32, 32}, {3, 3}),
+            std::vector<unsigned int>({1, 1, 1, 1}));
 
   EXPECT_NO_THROW(p.set("0"));
   EXPECT_EQ(p.get(), "0");
 
   EXPECT_NO_THROW(p.set("1, 2"));
   EXPECT_EQ(p.get(), "1, 2");
+  EXPECT_EQ(p.compute({32, 32}, {3, 3}),
+            std::vector<unsigned int>({1, 1, 2, 2}));
 
   EXPECT_NO_THROW(p.set("1, 2, 3, 4"));
   EXPECT_EQ(p.get(), "1, 2, 3, 4");
+  EXPECT_EQ(p.compute({32, 32}, {3, 3}),
+            std::vector<unsigned int>({1, 2, 3, 4}));
 }
 
 TEST(Padding2D, randomString_01_n) {
