@@ -95,7 +95,48 @@ bool Padding2D::isValid(const std::string &v) const {
 
 std::vector<unsigned int> Padding2D::compute(const TensorDim &input,
                                              const TensorDim &kernel) {
-  return std::vector<unsigned int>();
+  auto &padding_repr = get(); /// padding representation
+  if (istrequal(padding_repr, "valid")) {
+    return {0, 0, 0, 0};
+  }
+
+  if (istrequal(padding_repr, "same")) {
+    /// @note if we start to consider dilation, this calculation has to tuned
+    /// accordingly.
+    auto calculate_padding = [](unsigned input_, unsigned kernel_) {
+      NNTR_THROW_IF(input_ < kernel_, std::invalid_argument)
+        << "input smaller then kernel not supported, input size: " << input_
+        << " kernel size: " << kernel_ << " padding: same\n";
+      return kernel_ - 1;
+    };
+
+    auto pad_horizontal = calculate_padding(input.width(), kernel.width());
+    auto pad_vertical = calculate_padding(input.height(), kernel.height());
+
+    auto pad_top = pad_vertical / 2;
+    auto pad_left = pad_horizontal / 2;
+
+    return {pad_top, pad_vertical - pad_top, pad_left,
+            pad_horizontal - pad_left};
+  }
+
+  /// case 3, 4, 5: padding has a sequence of unsigned integer
+  std::vector<props::Padding_> paddings_;
+  from_string(padding_repr, paddings_);
+  std::vector<unsigned int> paddings(paddings_.begin(), paddings_.end());
+
+  switch (paddings.size()) {
+  case 1:
+    return {paddings[0], paddings[0], paddings[0], paddings[0]};
+  case 2:
+    return {paddings[0], paddings[0], paddings[1], paddings[1]};
+  case 4:
+    return {paddings[0], paddings[1], paddings[2], paddings[3]};
+  default:
+    throw std::logic_error("[padding] should not reach here");
+  }
+
+  throw std::logic_error("[padding] should not reach here");
 }
 
 std::string ConnectionSpec::NoneType = "";
