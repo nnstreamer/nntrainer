@@ -31,6 +31,8 @@
 
 namespace nntrainer {
 
+static constexpr size_t SINGLE_INOUT_IDX = 0;
+
 enum FCParams { weight, bias };
 
 void FullyConnectedLayer::finalize(InitLayerContext &context) {
@@ -80,8 +82,8 @@ void FullyConnectedLayer::forwarding(RunLayerContext &context, bool training) {
   Tensor &weight = context.getWeight(weight_idx[FCParams::weight]);
   Tensor &bias = context.getWeight(weight_idx[FCParams::bias]);
 
-  Tensor &hidden_ = context.getOutput(0);
-  Tensor &input_ = context.getInput(0);
+  Tensor &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
+  Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
 
   input_.dot(weight, hidden_);
   hidden_.add_i(bias);
@@ -90,8 +92,8 @@ void FullyConnectedLayer::forwarding(RunLayerContext &context, bool training) {
 void FullyConnectedLayer::calcDerivative(RunLayerContext &context) {
   Tensor &weight = context.getWeight(weight_idx[FCParams::weight]);
 
-  Tensor &derivative_ = context.getIncomingDerivative(0);
-  Tensor &ret_ = context.getOutgoingDerivative(0);
+  Tensor &derivative_ = context.getIncomingDerivative(SINGLE_INOUT_IDX);
+  Tensor &ret_ = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
 
   ret_ = derivative_.dot(weight, ret_, false, true);
 }

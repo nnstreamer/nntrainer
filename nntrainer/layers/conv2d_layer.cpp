@@ -27,7 +27,15 @@
 #include <util_func.h>
 
 namespace nntrainer {
+
+static constexpr size_t SINGLE_INOUT_IDX = 0;
 namespace {
+
+static TensorDim calcCol2ImOutputDim(const TensorDim &out,
+                                     const TensorDim &kdim) {
+
+  return TensorDim({kdim.getFeatureLen(), out.width() * out.height()});
+}
 
 /**
  * @brief     reconstruct image data from 2d column matrix
@@ -104,6 +112,33 @@ static void col2im(const Tensor &col_matrix, const TensorDim &kdim,
   }
 }
 
+static TensorDim
+calcIm2ColOutputDim(const TensorDim &in, const TensorDim &kdim,
+                    const std::array<unsigned int, CONV2D_DIM> &padding,
+                    const std::array<unsigned int, CONV2D_DIM> &mstride,
+                    const std::array<unsigned int, CONV2D_DIM> &dilation) {
+
+  unsigned int ph = padding[0];
+  unsigned int pw = padding[1];
+
+  int in_height = in.height();
+  int in_width = in.width();
+  unsigned int height = in_height + ph * 2;
+  unsigned int width = in_width + pw * 2;
+  unsigned int k_height = kdim.height();
+  unsigned int k_width = kdim.width();
+
+  /// effective kernel height considering dilation
+  unsigned int eff_k_height = (k_height - 1) * dilation[0] + 1;
+  /// effective kernel width considering dilation
+  unsigned int eff_k_width = (k_width - 1) * dilation[1] + 1;
+
+  unsigned int out_height = (height - eff_k_height) / mstride[0] + 1;
+  unsigned int out_width = (width - eff_k_width) / mstride[1] + 1;
+
+  return TensorDim({out_height * out_width, in.channel() * k_height * k_width});
+}
+
 /**
  * @brief     reform the data to 2d matrix
  * a region is sampled considering @a padding, @a mstride of unit @a kdim
@@ -116,8 +151,7 @@ static void col2im(const Tensor &col_matrix, const TensorDim &kdim,
  * @param[in] padding padding information
  * @param[in] mstride stride value : x, y direction
  * @param[in] dilation kernel dilation factor : x, y each
- * @param[out] out out tensor to put, if uninitialized, allocate a new tensor
- * and set padding
+ * @param[out] out out tensor, padding set each time for now
  * @note if out is initialized tensor, setting padding is skipped.
  */
 static void im2col(const Tensor &in, const TensorDim &kdim,
@@ -190,19 +224,8 @@ static void im2col(const Tensor &in, const TensorDim &kdim,
   /// effective kernel width considering dilation
   unsigned int eff_k_width = (k_width - 1) * dilation[1] + 1;
 
-  unsigned int out_height = (height - eff_k_height) / mstride[0] + 1;
+  [[maybe_unused]] unsigned int out_height = (height - eff_k_height) / mstride[0] + 1;
   unsigned int out_width = (width - eff_k_width) / mstride[1] + 1;
-
-  if (out.uninitialized()) {
-    out = Tensor(out_height * out_width, in.channel() * k_height * k_width);
-
-    if (pad_value == 0) {
-      out.setZero();
-    } else {
-      /// not reaching here, just preparing for non-zero pad_value
-      out.setValue(pad_value);
-    }
-  }
 
   float *out_data = out.getData();
 
@@ -248,21 +271,14 @@ static void im2col(const Tensor &in, const TensorDim &kdim,
 
 } // namespace
 
-enum ConvParams { weight, bias };
+enum ConvParams { weight, bias, im2col_result, col2im_result };
 
-int Conv2DLayer::initialize(Manager &manager) {
-  int status = ML_ERROR_NONE;
-
-  if (input_dim.size() != 1 || output_dim.size() != 1) {
-    throw std::invalid_argument("Convolution layer only takes one input");
+void Conv2DLayer::finalize(InitLayerContext &context) {
+  if (context.getNumInputs() != 1) {
+    throw std::invalid_argument("Convolution layer takes only one input");
   }
 
-  TensorDim &in_dim = input_dim[0];
-  TensorDim &out_dim = output_dim[0];
-
-  if (in_dim.getDataLen() == 1) {
-    ml_logw("Warning: the length of previous layer dimension is one");
-  }
+  const TensorDim &in_dim = context.getInputDimensions()[0];
 
   TensorDim dim =
     TensorDim(filter_size, in_dim.channel(), kernel_size[0], kernel_size[1]);
@@ -270,21 +286,12 @@ int Conv2DLayer::initialize(Manager &manager) {
 
   padding = std::get<props::Padding2D>(conv_props).compute(in_dim, dim);
 
-  if (weights.empty()) {
-    weights.reserve(2);
-    weights.emplace_back(dim, weight_initializer, weight_regularizer,
-                         weight_regularizer_constant, true, false,
-                         "Conv2d:filter");
-    weights.emplace_back(bias_dim, bias_initializer, WeightRegularizer::NONE,
-                         1.0f, true, false, "Conv2d:bias");
-    manager.trackWeights(weights);
-  } else {
-    weights[ConvParams::weight].reset(dim, weight_initializer,
-                                      weight_regularizer,
-                                      weight_regularizer_constant, true);
-    weights[ConvParams::bias].reset(bias_dim, bias_initializer,
-                                    WeightRegularizer::NONE, 1.0f, true);
-  }
+  wt_idx[ConvParams::weight] =
+    context.requestWeight(dim, weight_initializer, weight_regularizer,
+                          weight_regularizer_constant, "Conv2d:filter", true);
+  wt_idx[ConvParams::bias] =
+    context.requestWeight(bias_dim, bias_initializer, WeightRegularizer::NONE,
+                          1.0f, "Conv2d:bias", true);
 
   /// we don't have same padding for now but later, same padding don't apply
   /// when kernel size is even in current implementation (we need to handle
@@ -294,39 +301,42 @@ int Conv2DLayer::initialize(Manager &manager) {
   unsigned int eff_in_height = in_dim.height() + padding[0] + padding[1];
   unsigned int eff_in_width = in_dim.width() + padding[2] + padding[3];
 
+  TensorDim out_dim;
   out_dim.batch(in_dim.batch());
   out_dim.channel(filter_size);
   out_dim.height((eff_in_height - kernel_size[0]) / stride[0] + 1);
   out_dim.width((eff_in_width - kernel_size[1]) / stride[1] + 1);
+  context.setOutputDimensions({out_dim});
 
   if (eff_in_height < kernel_size[0] || eff_in_width < kernel_size[1]) {
-    ml_loge("Failed to initialize: in size + padding is smaller than effective "
-            "kernel");
-    return ML_ERROR_INVALID_PARAMETER;
+    throw std::invalid_argument(
+      "Failed to initialize: in size + padding is smaller than effective "
+      "kernel");
   }
 
   unsigned int IM = std::numeric_limits<int>::max();
 
   if (eff_in_height - padding[0] - kernel_size[0] > IM ||
       eff_in_width - padding[2] - kernel_size[1] > IM) {
-    ml_loge("Failed to initialize: Calculated patch end is over int max");
-    return ML_ERROR_INVALID_PARAMETER;
+    throw std::invalid_argument(
+      "Failed to initialize: Calculated patch end is over int max");
   }
 
-  return status;
+  wt_idx[ConvParams::im2col_result] = context.requestTensor(
+    calcIm2ColOutputDim(in_dim, dim, padding, stride, {1, 1}), "Conv2d:im2col",
+    false, ITERATION_LIFESPAN);
+  wt_idx[ConvParams::col2im_result] = context.requestTensor(
+    calcCol2ImOutputDim(out_dim, dim), "Conv2d:col2im", false, BACKWARD_FUNC_LIFESPAN);
 }
 
-void Conv2DLayer::forwarding(bool training) {
+void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
   int status = ML_ERROR_NONE;
 
-  if (getNumInputs() != 1)
-    throw std::invalid_argument("Convolution layer only takes one input");
+  Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
+  Tensor &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
 
-  Tensor &input_ = net_input[0]->getVariableRef();
-  Tensor &hidden_ = net_hidden[0]->getVariableRef();
-
-  Tensor &filter_kernel = weightAt(ConvParams::weight).getVariableRef();
-  Tensor &bias_kernel = weightAt(ConvParams::bias).getVariableRef();
+  Tensor &filter_kernel = context.getWeight(wt_idx[ConvParams::weight]);
+  Tensor &bias_kernel = context.getWeight(wt_idx[ConvParams::bias]);
 
   /** Calculate Convolution 2D
    *
@@ -364,17 +374,27 @@ void Conv2DLayer::forwarding(bool training) {
    *   -> [Channel ( = filter_size = output_dim.channel )]
    *       x [output_dim.height x output_dim.width]
    */
-  TensorDim &in_dim = input_dim[0];
-  TensorDim &out_dim = output_dim[0];
-  TensorDim filter_dim = filter_kernel.getDim();
+  const TensorDim &in_dim = input_.getDim();
+  const TensorDim &out_dim = hidden_.getDim();
+  const TensorDim &filter_dim = filter_kernel.getDim();
   TensorDim filter_dim_squeezed{filter_kernel.batch(),
                                 filter_kernel.getDim().getFeatureLen()};
 
   filter_kernel.reshape(filter_dim_squeezed);
 
-  /// @note allocating this at initialize phase will save initialization time
-  /// with extra memory overhead
-  Tensor im2col_result;
+  Tensor &im2col_result = context.getTensor(wt_idx[ConvParams::im2col_result]);
+  /**
+   * @todo im2col_result lifespan can be epoch and then setZero can be done
+   * just once at the start of training then every iteration
+   *
+   * @todo even better, allocate in_sub with pad, and set stride for in_sub
+   * appropriately
+   */
+  /**
+   * Below sets the pad area values to zero
+   * it is faster to do this way than seting selective area to zero
+   */
+  im2col_result.setZero();
   for (unsigned int b = 0; b < in_dim.batch(); ++b) {
     Tensor out = hidden_.getBatchSlice(b, 1);
     out.reshape({filter_size, out_dim.width() * out_dim.height()});
@@ -382,7 +402,6 @@ void Conv2DLayer::forwarding(bool training) {
     Tensor in_sub = input_.getBatchSlice(b, 1);
 
     im2col(in_sub, filter_dim, padding, stride, {1, 1}, im2col_result);
-
     filter_kernel.dot(im2col_result, out, false, true);
   }
 
@@ -391,14 +410,12 @@ void Conv2DLayer::forwarding(bool training) {
   if (status != ML_ERROR_NONE) {
     throw std::invalid_argument("[Conv2D] adding bias failed");
   }
-
-  loss = weightAt(ConvParams::weight).getRegularizationLoss();
 }
 
-void Conv2DLayer::calcDerivative() {
-  Tensor &derivative = net_hidden[0]->getGradientRef();
-  Tensor &input_derivative = net_input[0]->getGradientRef();
-  Tensor &filter_kernel = weightAt(ConvParams::weight).getVariableRef();
+void Conv2DLayer::calcDerivative(RunLayerContext &context) {
+  Tensor &derivative = context.getIncomingDerivative(SINGLE_INOUT_IDX);
+  Tensor &input_derivative = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
+  Tensor &filter_kernel = context.getWeight(wt_idx[ConvParams::weight]);
 
   TensorDim filter_dim = filter_kernel.getDim();
   TensorDim filter_dim_squeezed{filter_kernel.batch(),
@@ -409,7 +426,7 @@ void Conv2DLayer::calcDerivative() {
   /// for each batch
   /// filter_kernel^T X derivaitive  -> column matrix
   /// col2im(column matrix) to reconstruct the original image
-  Tensor col2im_result;
+  Tensor &col2im_result = context.getTensor(wt_idx[ConvParams::col2im_result]);
   for (unsigned int b = 0; b < derivative.batch(); ++b) {
     Tensor deriv_sub = derivative.getBatchSlice(b, 1);
     Tensor in_deriv_sub = input_derivative.getBatchSlice(b, 1);
@@ -422,12 +439,12 @@ void Conv2DLayer::calcDerivative() {
   filter_kernel.reshape(filter_dim);
 }
 
-void Conv2DLayer::calcGradient() {
-  Tensor &derivative = net_hidden[0]->getGradientRef();
-  Tensor &input_ = net_input[0]->getVariableRef();
+void Conv2DLayer::calcGradient(RunLayerContext &context) {
+  Tensor &derivative = context.getIncomingDerivative(SINGLE_INOUT_IDX);
+  Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
 
-  Tensor &delK = weightAt(ConvParams::weight).getGradientRef();
-  Tensor &delBias = weightAt(ConvParams::bias).getGradientRef();
+  Tensor &delK = context.getWeightGrad(wt_idx[ConvParams::weight]);
+  Tensor &delBias = context.getWeightGrad(wt_idx[ConvParams::bias]);
   delK.setZero();
 
   TensorDim filter_dim = delK.getDim();
@@ -435,7 +452,11 @@ void Conv2DLayer::calcGradient() {
 
   delK.reshape(filter_dim_squeezed);
 
-  Tensor im2col_result;
+  /**
+   * no need to set zero for im2col_result, as its lifespan is ITERATION,
+   * so its zero padded values will still be zero
+   */
+  Tensor &im2col_result = context.getTensor(wt_idx[ConvParams::im2col_result]);
   TensorDim out_dim_squeezed{filter_size,
                              derivative.width() * derivative.height()};
 
@@ -447,6 +468,11 @@ void Conv2DLayer::calcGradient() {
 
     Tensor in_sub = input_.getBatchSlice(b, 1);
 
+    /**
+     * @todo this result can be cached from the forward iteration at the
+     * expense of memory. In this case, memory of im2col_result must be saved for
+     * the whole batch. try this while benchmarking.
+     */
     im2col(in_sub, filter_dim, padding, stride, {1, 1}, im2col_result);
     deriv_sub.dot(im2col_result, delK, false, false, b == 0 ? 0 : 1);
   }
@@ -455,92 +481,60 @@ void Conv2DLayer::calcGradient() {
   delBias = derivative.sum({0, 2, 3});
 }
 
-void Conv2DLayer::copy(std::shared_ptr<LayerV1> l) {
-  LayerV1::copy(l);
+void Conv2DLayer::setProperty(const std::vector<std::string> &values) {
+  /// @todo: deprecate this in favor of loadProperties
+  for (unsigned int i = 0; i < values.size(); ++i) {
+    std::string key;
+    std::string value;
+    std::stringstream ss;
 
-  std::shared_ptr<Conv2DLayer> from = std::static_pointer_cast<Conv2DLayer>(l);
-  this->filter_size = from->filter_size;
-  for (unsigned int i = 0; i < CONV2D_DIM; ++i) {
-    this->kernel_size[i] = from->kernel_size[i];
-    this->stride[i] = from->stride[i];
-    this->padding[i] = from->padding[i];
+    if (getKeyValue(values[i], key, value) != ML_ERROR_NONE) {
+      throw std::invalid_argument("Error parsing the property: " + values[i]);
+    }
+
+    if (value.empty()) {
+      ss << "value is empty: key: " << key << ", value: " << value;
+      throw std::invalid_argument(ss.str());
+    }
+
+    /// @note this calls derived setProperty if available
+    setProperty(key, value);
   }
 }
 
-int Conv2DLayer::setSize(int *size, PropertyType type) {
-  int status = ML_ERROR_NONE;
-  switch (type) {
-  case PropertyType::kernel_size:
-    for (unsigned int i = 0; i < CONV2D_DIM; ++i) {
-      kernel_size[i] = size[i];
-    }
-    break;
-  case PropertyType::stride:
-    for (unsigned int i = 0; i < CONV2D_DIM; ++i) {
-      stride[i] = size[i];
-    }
-    break;
-  case PropertyType::padding:
-    for (unsigned int i = 0; i < CONV2D_DIM; ++i) {
-      padding[i] = size[i];
-    }
-    break;
-  default:
-    ml_loge("Error: Unknown Layer Property type");
-    status = ML_ERROR_INVALID_PARAMETER;
-    break;
-  }
-  return status;
-}
-
-int Conv2DLayer::setFilter(int f) {
-  int status = ML_ERROR_NONE;
-  if (f <= 0) {
-    ml_loge("Error: number of filters must be greater than 0");
-    status = ML_ERROR_INVALID_PARAMETER;
-  }
-  filter_size = f;
-  return status;
-}
-
-void Conv2DLayer::setProperty(const PropertyType type,
+void Conv2DLayer::setProperty(const std::string &type_str,
                               const std::string &value) {
+  using PropertyType = LayerV1::PropertyType;
   int status = ML_ERROR_NONE;
+  LayerV1::PropertyType type =
+    static_cast<LayerV1::PropertyType>(parseLayerProperty(type_str));
 
   switch (type) {
   case PropertyType::filters: {
-    if (!value.empty()) {
-      status = setUint(filter_size, value);
-      throw_status(status);
-    }
+    status = setUint(filter_size, value);
+    throw_status(status);
   } break;
   case PropertyType::kernel_size:
-    if (!value.empty()) {
-      status = getValues(CONV2D_DIM, value, (int *)(kernel_size.data()));
-      throw_status(status);
-      if (kernel_size[0] == 0 || kernel_size[1] == 0) {
-        throw std::invalid_argument(
-          "[Conv2DLayer] kernel_size must be greater than 0");
-      }
+    status = getValues(CONV2D_DIM, value, (int *)(kernel_size.data()));
+    throw_status(status);
+    if (kernel_size[0] == 0 || kernel_size[1] == 0) {
+      throw std::invalid_argument(
+        "[Conv2DLayer] kernel_size must be greater than 0");
     }
     break;
   case PropertyType::stride:
-    if (!value.empty()) {
-      status = getValues(CONV2D_DIM, value, (int *)(stride.data()));
-      throw_status(status);
-      if (stride[0] == 0 || stride[1] == 0) {
-        throw std::invalid_argument(
-          "[Conv2DLayer] stride must be greater than 0");
-      }
+    status = getValues(CONV2D_DIM, value, (int *)(stride.data()));
+    throw_status(status);
+    if (stride[0] == 0 || stride[1] == 0) {
+      throw std::invalid_argument(
+        "[Conv2DLayer] stride must be greater than 0");
     }
     break;
   case PropertyType::padding:
-    if (!value.empty()) {
-      from_string(value, std::get<props::Padding2D>(conv_props));
-    }
+    from_string(value, std::get<props::Padding2D>(conv_props));
     break;
   default:
-    LayerV1::setProperty(type, value);
+    LayerImpl::setProperty(type_str, value);
     break;
   }
 }
