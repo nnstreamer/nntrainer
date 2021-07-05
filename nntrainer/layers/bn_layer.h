@@ -28,8 +28,7 @@
 #include <functional>
 #include <vector>
 
-#include <layer_internal.h>
-#include <tensor.h>
+#include <layer_devel.h>
 
 namespace nntrainer {
 
@@ -37,21 +36,19 @@ namespace nntrainer {
  * @class   BatchNormalizationLayer
  * @brief   Batch Noramlization Layer
  */
-class BatchNormalizationLayer : public LayerV1 {
+class BatchNormalizationLayer : public Layer {
 public:
   /**
    * @brief     Constructor of Batch Noramlization Layer
    */
-  template <typename... Args>
   BatchNormalizationLayer(
     int axis = -1, float momentum = 0.99, float epsilon = 0.001,
     WeightInitializer moving_mean_initializer = WeightInitializer::WEIGHT_ZEROS,
     WeightInitializer moving_variance_initializer =
       WeightInitializer::WEIGHT_ZEROS,
     WeightInitializer gamma_initializer = WeightInitializer::WEIGHT_ONES,
-    WeightInitializer beta_initializer = WeightInitializer::WEIGHT_ONES,
-    Args... args) :
-    LayerV1(args...),
+    WeightInitializer beta_initializer = WeightInitializer::WEIGHT_ONES) :
+    Layer(),
     epsilon(epsilon),
     momentum(momentum),
     axis(axis),
@@ -76,53 +73,57 @@ public:
   BatchNormalizationLayer &operator=(BatchNormalizationLayer &&rhs) = default;
 
   /**
-   * @copydoc Layer::forwarding(bool training)
+   * @copydoc Layer::finalize(InitLayerContext &context)
    */
-  void forwarding(bool training = true) override;
+  void finalize(InitLayerContext &context) override;
 
   /**
-   * @copydoc Layer::calcDerivative()
+   * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
    */
-  void calcDerivative() override;
+  void forwarding(RunLayerContext &context, bool training) override;
 
   /**
-   * @copydoc Layer::calcGradient()
+   * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
-  void calcGradient() override;
+  void calcDerivative(RunLayerContext &context) override;
 
   /**
-   * @brief     copy layer
-   * @param[in] l layer to copy
+   * @copydoc Layer::calcGradient(RunLayerContext &context)
    */
-  void copy(std::shared_ptr<LayerV1> l) override;
+  void calcGradient(RunLayerContext &context) override;
 
   /**
-   * @brief     initialize layer
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   * @copydoc Layer::exportTo(Exporter &exporter, ExportMethods method)
    */
-  int initialize(Manager &manager) override;
+  void exportTo(Exporter &exporter,
+                const ExportMethods &method) const override {
+    Layer::exportTo(exporter, method);
+  }
 
   /**
    * @copydoc Layer::getType()
    */
   const std::string getType() const override {
     return BatchNormalizationLayer::type;
-  }
+  };
 
   /**
-   * @copydoc Layer::supportInPlace()
+   * @copydoc Layer::supportBackwarding()
    */
-  bool supportInPlace() const override { return true; }
+  bool supportBackwarding() const { return true; }
 
-  using LayerV1::setProperty;
+  using Layer::setProperty;
 
   /**
    * @copydoc Layer::setProperty(const PropertyType type, const std::string
    * &value)
    */
-  void setProperty(const PropertyType type,
-                   const std::string &value = "") override;
+  void setProperty(const std::vector<std::string> &values) override;
+
+  /**
+   * @copydoc Layer::supportInPlace()
+   */
+  bool supportInPlace() const override { return true; }
 
   inline static const std::string type = "batch_normalization";
 
@@ -139,6 +140,17 @@ private:
 
   std::vector<unsigned int> axes_to_reduce;      /**< target axes to reduce */
   std::array<WeightInitializer, 4> initializers; /**< weight initializers */
+  std::array<unsigned int, 4> weight_idx;        /**< indices of the weights */
+
+  /**
+   * @brief setProperty by type and value separated
+   * @param[in] type property type to be passed
+   * @param[in] value value to be passed
+   * @exception exception::not_supported     when property type is not valid for
+   * the particular layer
+   * @exception std::invalid_argument invalid argument
+   */
+  void setProperty(const std::string &type, const std::string &value);
 };
 
 } // namespace nntrainer

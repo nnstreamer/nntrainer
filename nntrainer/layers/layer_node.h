@@ -466,8 +466,14 @@ public:
    */
   Weight getWeightWrapper(unsigned int idx) {
     if (layerv1 == nullptr) {
-      return Weight(run_context.getWeight(idx), run_context.getWeightGrad(idx),
-                    run_context.getWeightName(idx));
+      if (run_context.weightHasGradient(idx)) {
+        return Weight(run_context.getWeight(idx),
+                      run_context.getWeightGrad(idx),
+                      run_context.getWeightName(idx));
+      } else {
+        return Weight(run_context.getWeight(idx), Tensor(),
+                      run_context.getWeightName(idx));
+      }
     } else {
       return getLayer()->getWeightsRef()[idx];
     }

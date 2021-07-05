@@ -328,6 +328,16 @@ public:
   }
 
   /**
+   * @brief check if the weight has gradient
+   *
+   * @param idx Identifier of the weight
+   * @return true if weight has gradient, else false
+   */
+  bool weightHasGradient(unsigned int idx) const {
+    return weights[idx]->getTrainable();
+  }
+
+  /**
    * @brief Get the Output tensor object
    *
    * @param idx Identifier of the output

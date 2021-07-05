@@ -21,7 +21,6 @@
  *
  */
 
-#include <assert.h>
 #include <bn_layer.h>
 #include <layer_internal.h>
 #include <lazy_tensor.h>
@@ -32,117 +31,127 @@
 
 namespace nntrainer {
 
+static constexpr size_t SINGLE_INOUT_IDX = 0;
+
 enum BNParams { mu, var, gamma, beta };
 
 /// @todo add multiple axis support
-int BatchNormalizationLayer::initialize(Manager &manager) {
-  int status = ML_ERROR_NONE;
-
-  if (getNumInputs() != 1) {
+void BatchNormalizationLayer::finalize(InitLayerContext &context) {
+  if (context.getNumInputs() != 1) {
     throw std::invalid_argument(
       "Only one input is allowed for batch normalization layer");
   }
 
-  output_dim[0] = input_dim[0];
+  std::vector<TensorDim> output_dims(1);
+
+  /** set output dimensions */
+  auto const &in_dim = context.getInputDimensions()[0];
+  context.setOutputDimensions(context.getInputDimensions());
+
   TensorDim dim;
 
   /// @note this logic cannot tell channel is actually 1 or it is just not used.
   if (axis == -1)
-    axis = input_dim[0].channel() > 1 ? 1 : 3;
+    axis = in_dim.channel() > 1 ? 1 : 3;
 
-  dim.setTensorDim(axis, input_dim[0].getTensorDim(axis));
+  dim.setTensorDim(axis, in_dim.getTensorDim(axis));
 
   for (int i = 0; i < 4; ++i) {
     if (axis != i)
       axes_to_reduce.push_back(i);
   }
 
-  weights.clear();
-  if (weights.empty()) {
-    weights.reserve(4);
-    weights.emplace_back(dim, initializers[BNParams::mu],
-                         WeightRegularizer::NONE, 1.0f, false, false,
-                         "BN::moving_mean");
-    weights.emplace_back(dim, initializers[BNParams::var],
-                         WeightRegularizer::NONE, 1.0f, false, false,
-                         "BN::moving_variance");
-    weights.emplace_back(dim, initializers[BNParams::gamma],
-                         WeightRegularizer::NONE, 1.0f, true, false,
-                         "BN::gamma");
-    weights.emplace_back(dim, initializers[BNParams::beta],
-                         WeightRegularizer::NONE, 1.0f, true, false,
-                         "BN::beta");
-    manager.trackWeights(weights);
-  } else {
-    weights[BNParams::mu].reset(dim, initializers[BNParams::mu],
-                                WeightRegularizer::NONE, 1.0f, false);
-    weights[BNParams::var].reset(dim, initializers[BNParams::var],
-                                 WeightRegularizer::NONE, 1.0f, false);
-    weights[BNParams::gamma].reset(dim, initializers[BNParams::gamma],
-                                   WeightRegularizer::NONE, 1.0f, true);
-    weights[BNParams::beta].reset(dim, initializers[BNParams::beta],
-                                  WeightRegularizer::NONE, 1.0f, true);
-  }
-
-  return status;
+  weight_idx[BNParams::mu] = context.requestWeight(
+    dim, initializers[BNParams::mu], WeightRegularizer::NONE, 1.0f,
+    "BN::moving_mean", false);
+  weight_idx[BNParams::var] = context.requestWeight(
+    dim, initializers[BNParams::var], WeightRegularizer::NONE, 1.0f,
+    "BN::moving_variance", false);
+  weight_idx[BNParams::gamma] =
+    context.requestWeight(dim, initializers[BNParams::gamma],
+                          WeightRegularizer::NONE, 1.0f, "BN::gamma", true);
+  weight_idx[BNParams::beta] =
+    context.requestWeight(dim, initializers[BNParams::beta],
+                          WeightRegularizer::NONE, 1.0f, "BN::beta", true);
 }
 
-void BatchNormalizationLayer::setProperty(const PropertyType type,
+void BatchNormalizationLayer::setProperty(
+  const std::vector<std::string> &values) {
+  /// @todo: deprecate this in favor of loadProperties
+  for (unsigned int i = 0; i < values.size(); ++i) {
+    std::string key;
+    std::string value;
+    std::stringstream ss;
+
+    if (getKeyValue(values[i], key, value) != ML_ERROR_NONE) {
+      throw std::invalid_argument("Error parsing the property: " + values[i]);
+    }
+
+    if (value.empty()) {
+      ss << "value is empty: key: " << key << ", value: " << value;
+      throw std::invalid_argument(ss.str());
+    }
+
+    /// @note this calls derived setProperty if available
+    setProperty(key, value);
+  }
+}
+
+void BatchNormalizationLayer::setProperty(const std::string &type_str,
                                           const std::string &value) {
+  using PropertyType = LayerV1::PropertyType;
   int status = ML_ERROR_NONE;
+  LayerV1::PropertyType type =
+    static_cast<LayerV1::PropertyType>(parseLayerProperty(type_str));
+
   switch (type) {
   case PropertyType::epsilon:
-    if (!value.empty()) {
-      status = setFloat(epsilon, value);
-      throw_status(status);
-    }
+    status = setFloat(epsilon, value);
+    throw_status(status);
     break;
   case PropertyType::moving_mean_initializer:
-    if (!value.empty()) {
-      initializers[BNParams::mu] =
-        (WeightInitializer)parseType(value, TOKEN_WEIGHT_INIT);
-    }
+    initializers[BNParams::mu] =
+      (WeightInitializer)parseType(value, TOKEN_WEIGHT_INIT);
     break;
   case PropertyType::moving_variance_initializer:
-    if (!value.empty()) {
-      initializers[BNParams::var] =
-        (WeightInitializer)parseType(value, TOKEN_WEIGHT_INIT);
-    }
+    initializers[BNParams::var] =
+      (WeightInitializer)parseType(value, TOKEN_WEIGHT_INIT);
     break;
   case PropertyType::beta_initializer:
-    if (!value.empty()) {
-      initializers[BNParams::beta] =
-        (WeightInitializer)parseType(value, TOKEN_WEIGHT_INIT);
-    }
+    initializers[BNParams::beta] =
+      (WeightInitializer)parseType(value, TOKEN_WEIGHT_INIT);
     break;
   case PropertyType::gamma_initializer:
-    if (!value.empty()) {
-      initializers[BNParams::gamma] =
-        (WeightInitializer)parseType(value, TOKEN_WEIGHT_INIT);
-    }
+    initializers[BNParams::gamma] =
+      (WeightInitializer)parseType(value, TOKEN_WEIGHT_INIT);
     break;
   case PropertyType::momentum:
-    if (!value.empty()) {
-      status = setFloat(momentum, value);
-      throw_status(status);
-    }
+    status = setFloat(momentum, value);
+    throw_status(status);
     break;
   default:
-    LayerV1::setProperty(type, value);
-    break;
+    std::string msg =
+      "[BatchNormalizationLayer] Unknown Layer Property Key for value " +
+      std::string(value);
+    throw exception::not_supported(msg);
   }
 }
 
-void BatchNormalizationLayer::forwarding(bool training) {
-  Tensor &mu = weightAt(BNParams::mu).getVariableRef();
-  Tensor &var = weightAt(BNParams::var).getVariableRef();
-  Tensor &gamma = weightAt(BNParams::gamma).getVariableRef();
-  Tensor &beta = weightAt(BNParams::beta).getVariableRef();
+void BatchNormalizationLayer::forwarding(RunLayerContext &context,
+                                         bool training) {
+  Tensor &mu = context.getWeight(weight_idx[BNParams::mu]);
+  Tensor &var = context.getWeight(weight_idx[BNParams::var]);
+  Tensor &gamma = context.getWeight(weight_idx[BNParams::gamma]);
+  Tensor &beta = context.getWeight(weight_idx[BNParams::beta]);
 
-  Tensor &input_ = net_input[0]->getVariableRef();
-  Tensor &hidden_ = net_hidden[0]->getVariableRef();
+  Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
+  Tensor &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
 
   if (training) {
+    /**
+     * @todo support average with preallocated tensors,
+     * and then register cmu as a temporary tensor
+     */
     Tensor cmu = input_.average(axes_to_reduce);
     deviation = input_.subtract(cmu);
 
@@ -166,14 +175,17 @@ void BatchNormalizationLayer::forwarding(bool training) {
   hidden_.add_i(beta);
 }
 
-void BatchNormalizationLayer::calcDerivative() {
+void BatchNormalizationLayer::calcDerivative(RunLayerContext &context) {
 
-  Tensor &gamma = weightAt(BNParams::gamma).getVariableRef();
-  Tensor &deriv = net_hidden[0]->getGradientRef();
+  Tensor &gamma = context.getWeight(weight_idx[BNParams::gamma]);
+  Tensor &deriv = context.getIncomingDerivative(SINGLE_INOUT_IDX);
+  Tensor &dx = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
 
   int N = 1;
+  const Tensor &input = context.getInput(SINGLE_INOUT_IDX);
+  const TensorDim &in_dim = input.getDim();
   for (auto &axis : axes_to_reduce) {
-    N *= input_dim[0].getTensorDim(axis);
+    N *= in_dim.getTensorDim(axis);
   }
 
   Tensor dx_1 = gamma.multiply(invstd);
@@ -182,29 +194,20 @@ void BatchNormalizationLayer::calcDerivative() {
   dx_2.subtract_i(deviation.divide(cvar).multiply(
     deviation.multiply(deriv).sum(axes_to_reduce)));
 
-  Tensor &dx = net_input[0]->getGradientRef();
   dx = dx_2.multiply(dx_1, dx);
   dx.divide_i(N);
 }
 
-void BatchNormalizationLayer::calcGradient() {
+void BatchNormalizationLayer::calcGradient(RunLayerContext &context) {
 
-  Tensor &dgamma = weightAt(BNParams::gamma).getGradientRef();
-  Tensor &dbeta = weightAt(BNParams::beta).getGradientRef();
-  Tensor &deriv = net_hidden[0]->getGradientRef();
+  Tensor &dgamma = context.getWeightGrad(weight_idx[BNParams::gamma]);
+  Tensor &dbeta = context.getWeightGrad(weight_idx[BNParams::beta]);
+  Tensor &deriv = context.getIncomingDerivative(SINGLE_INOUT_IDX);
 
   dbeta = deriv.sum(axes_to_reduce);
   Tensor dev = deviation.multiply(invstd);
   dev.multiply_i(deriv);
   dgamma = dev.sum(axes_to_reduce);
-}
-
-void BatchNormalizationLayer::copy(std::shared_ptr<LayerV1> l) {
-  LayerV1::copy(l);
-
-  std::shared_ptr<BatchNormalizationLayer> from =
-    std::static_pointer_cast<BatchNormalizationLayer>(l);
-  this->cvar.copy(from->cvar);
 }
 
 } /* namespace nntrainer */
