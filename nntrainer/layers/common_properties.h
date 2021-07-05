@@ -13,6 +13,7 @@
 
 #include <string>
 
+#include <array>
 #include <base_properties.h>
 
 #ifndef __COMMON_PROPERTIES_H__
@@ -214,16 +215,17 @@ public:
   Padding2D(const std::string &value = "valid") :
     nntrainer::Property<std::string>(value) {} /**< default value if any */
   bool isValid(const std::string &v) const override;
+  using prop_tag = str_prop_tag; /**< property type */
 
   /**
    * @brief compute actual padding2D from the underlying data
    *
    * @param input input dimension
    * @param kernel kernel dimension
-   * @return std::vector<unsigned int> list of unsigned padding
+   * @return std::array<unsigned int, 4> list of unsigned padding
    */
-  std::vector<unsigned int> compute(const TensorDim &input,
-                                    const TensorDim &kernel);
+  std::array<unsigned int, 4> compute(const TensorDim &input,
+                                      const TensorDim &kernel);
 };
 
 } // namespace props

@@ -775,7 +775,7 @@ INI conv_same_padding(
     sgd_base + "learning_rate = 0.1",
     I("input") + input_base + "input_shape=2:5:3",
     I("conv2d_c1") + conv_base +
-            "kernel_size = 3,3 | filters=4 | padding =1,1" + "input_layers=input",
+            "kernel_size = 3,3 | filters=4 | padding =same" + "input_layers=input",
     I("act_1") + sigmoid_base +"input_layers=conv2d_c1",
     I("flatten", "type=flatten")+"input_layers=act_1",
     I("outputlayer") + fc_base + "unit = 10" + "input_layers=flatten",
@@ -860,7 +860,7 @@ INI conv_same_padding_multi_stride(
     sgd_base + "learning_rate = 0.1",
     I("input") + input_base + "input_shape=2:5:3",
     I("conv2d_c1") + conv_base +
-            "kernel_size = 3,3 | filters=4 | stride=2,2 | padding=1,1" + "input_layers=input",
+            "kernel_size = 3,3 | filters=4 | stride=2,2 | padding=same" + "input_layers=input",
     I("act_1") + sigmoid_base +"input_layers=conv2d_c1",
     I("flatten", "type=flatten")+"input_layers=act_1",
     I("outputlayer") + fc_base + "unit = 10" + "input_layers=flatten",
