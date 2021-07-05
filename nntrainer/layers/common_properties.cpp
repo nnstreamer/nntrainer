@@ -14,6 +14,7 @@
 
 #include <nntrainer_error.h>
 #include <parse_util.h>
+#include <tensor_dim.h>
 
 #include <regex>
 #include <sstream>
@@ -56,6 +57,45 @@ bool ConnectionSpec::operator==(const ConnectionSpec &rhs) const {
 
 bool InputSpec::isValid(const ConnectionSpec &v) const {
   return v.getLayerIds().size() > 0;
+}
+
+/**
+ * @brief unsigned integer property, internally used to parse padding values
+ *
+ */
+class Padding_ : public nntrainer::Property<int> {
+public:
+  using prop_tag = int_prop_tag; /**< property type */
+};
+
+bool Padding2D::isValid(const std::string &v) const {
+
+  /// case 1, 2: padding has string literal
+  if (istrequal(v, "valid") || istrequal(v, "same")) {
+    return true;
+  }
+
+  std::vector<props::Padding_> paddings;
+  from_string(v, paddings);
+
+  /// case 3, 4, 5: padding has a sequence of unsigned integer
+  if (paddings.size() == 1 || paddings.size() == 2 || paddings.size() == 4) {
+    /// check if every padding is non-negative integer
+    for (const auto &padding : paddings) {
+      if (padding.get() < 0) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /// case else: false
+  return false;
+}
+
+std::vector<unsigned int> Padding2D::compute(const TensorDim &input,
+                                             const TensorDim &kernel) {
+  return std::vector<unsigned int>();
 }
 
 std::string ConnectionSpec::NoneType = "";
