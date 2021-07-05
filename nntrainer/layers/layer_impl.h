@@ -70,7 +70,6 @@ protected:
   WeightInitializer weight_initializer; /**< initializer for the weights */
   WeightInitializer bias_initializer;   /**< initializer for the bias */
 
-private:
   /**
    * @brief setProperty by type and value separated
    * @param[in] type property type to be passed

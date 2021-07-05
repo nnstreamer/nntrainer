@@ -127,7 +127,8 @@ TEST(nntrainer_Tensor, TensorWrap_p) {
 
 TEST(nntrainer_Tensor, TensorWrap_01_n) {
   float dat[] = {1, 2, 3};
-  EXPECT_THROW(nntrainer::Tensor::Map(dat, 3, {}), std::invalid_argument);
+  EXPECT_THROW(nntrainer::Tensor::Map(dat, 3, nntrainer::TensorDim({})),
+               std::invalid_argument);
 }
 
 TEST(nntrainer_Tensor, TensorWrap_02_n) {

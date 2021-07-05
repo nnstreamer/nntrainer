@@ -38,8 +38,8 @@ public:
    * @param eff_dim_flag_ effective dimension flag (1 means it's effective)
    * @param dyn_dim_flag_ dynamic dimension flag (1 means it's unspecified)
    */
-  TensorDim(const std::bitset<MAXDIM> &eff_dim_flag_ = 0b1111,
-            const std::bitset<MAXDIM> &dyn_dim_flag_ = 0b0000) :
+  explicit TensorDim(const std::bitset<MAXDIM> &eff_dim_flag_ = 0b1111,
+                     const std::bitset<MAXDIM> &dyn_dim_flag_ = 0b0000) :
     eff_dim_flag(eff_dim_flag_),
     dyn_dim_flag(dyn_dim_flag_) {
     for (size_t i = 0; i < MAXDIM; ++i) {
