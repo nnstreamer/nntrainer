@@ -25,7 +25,8 @@ layer_sources = [
   'split_layer.cpp',
   'permute_layer.cpp',
   'layer_impl.cpp',
-  'gru.cpp'
+  'gru.cpp',
+  'dropout.cpp'
 ]
 
 layer_headers = [

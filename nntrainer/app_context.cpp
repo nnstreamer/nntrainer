@@ -33,6 +33,7 @@
 #include <bn_layer.h>
 #include <concat_layer.h>
 #include <conv2d_layer.h>
+#include <dropout.h>
 #include <embedding.h>
 #include <fc_layer.h>
 #include <flatten_layer.h>
@@ -248,6 +249,8 @@ static void add_default_object(AppContext &ac) {
                      LayerType::LAYER_LSTM);
   ac.registerFactory(nntrainer::createLayer<GRULayer>, GRULayer::type,
                      LayerType::LAYER_GRU);
+  ac.registerFactory(nntrainer::createLayer<DropOutLayer>, DropOutLayer::type,
+                     LayerType::LAYER_DROPOUT);
   ac.registerFactory(nntrainer::createLayer<TimeDistLayer>, TimeDistLayer::type,
                      LayerType::LAYER_TIME_DIST);
   ac.registerFactory(nntrainer::createLayer<SplitLayer>, SplitLayer::type,
