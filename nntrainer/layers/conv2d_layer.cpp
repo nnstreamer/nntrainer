@@ -29,6 +29,7 @@
 namespace nntrainer {
 
 static constexpr size_t SINGLE_INOUT_IDX = 0;
+
 namespace {
 
 static TensorDim calcCol2ImOutputDim(const TensorDim &out,
