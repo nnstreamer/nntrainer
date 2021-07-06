@@ -7,6 +7,7 @@ test_target = [
   'unittest_layers_fully_connected.cpp',
   'unittest_layers_batch_normalization.cpp',
   'unittest_layers_convolution2d.cpp',
+  'unittest_layers_flatten.cpp',
 ]
 
 exe = executable(

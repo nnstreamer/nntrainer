@@ -38,7 +38,7 @@ Start with "[Model]"
      * mse : mean squared error
      * cross : cross entropy
         Only allowed with sigmoid and softmax activation function
-     * none : no loss for the model (this model will only support inference)
+     * skip this property if no loss is desired for the model (this model will only support inference)
 
 4. ```save_path = <string>```
 
