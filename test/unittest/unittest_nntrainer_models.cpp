@@ -902,7 +902,7 @@ INI pooling_max_same_padding(
     nn_base + "learning_rate=0.1 | optimizer=sgd | loss=cross | batch_size=3",
         I("input") + input_base + "input_shape=2:5:3",
     I("pooling_1") + pooling_base +
-            "pooling=max | pool_size = 3,3 | padding =1,1" + "input_layers=input",
+            "pooling=max | pool_size = 3,3 | padding =same" + "input_layers=input",
     I("act_1") + sigmoid_base + "input_layers=pooling_1",
     I("flatten", "type=flatten")+ "input_layers=act_1",
     I("outputlayer") + fc_base + "unit = 10" + "input_layers=flatten",
@@ -916,7 +916,7 @@ INI pooling_max_same_padding_multi_stride(
     nn_base + "learning_rate=0.1 | optimizer=sgd | loss=cross | batch_size=3",
         I("input") + input_base + "input_shape=2:3:5",
     I("pooling_1") + pooling_base +
-            "pooling=max | pool_size = 3,3 | padding =1,1 | stride=2,2" + "input_layers=input",
+            "pooling=max | pool_size = 3,3 | padding =1 | stride=2,2" + "input_layers=input",
     I("act_1") + sigmoid_base + "input_layers=pooling_1",
     I("flatten", "type=flatten")+ "input_layers=act_1",
     I("outputlayer") + fc_base + "unit = 10" + "input_layers=flatten",
@@ -930,7 +930,7 @@ INI pooling_max_valid_padding(
     nn_base + "learning_rate=0.1 | optimizer=sgd | loss=cross | batch_size=3",
         I("input") + input_base + "input_shape=2:5:3",
     I("pooling_1") + pooling_base +
-            "pooling=max | pool_size = 3,3 | padding =0,0" + "input_layers=input",
+            "pooling=max | pool_size = 3,3 | padding =valid" + "input_layers=input",
     I("act_1") + sigmoid_base + "input_layers=pooling_1",
     I("flatten", "type=flatten")+ "input_layers=act_1",
     I("outputlayer") + fc_base + "unit = 10" + "input_layers=flatten",
@@ -944,7 +944,7 @@ INI pooling_avg_same_padding(
     nn_base + "learning_rate=0.1 | optimizer=sgd | loss=cross | batch_size=3",
         I("input") + input_base + "input_shape=2:5:3",
     I("pooling_1") + pooling_base +
-            "pooling=average | pool_size = 3,3 | padding =1,1" + "input_layers=input",
+            "pooling=average | pool_size = 3,3 | padding =1,1,1,1" + "input_layers=input",
     I("act_1") + sigmoid_base + "input_layers=pooling_1",
     I("flatten", "type=flatten")+ "input_layers=act_1",
     I("outputlayer") + fc_base + "unit = 10" + "input_layers=flatten",
@@ -958,7 +958,7 @@ INI pooling_avg_valid_padding(
     nn_base + "learning_rate=0.1 | optimizer=sgd | loss=cross | batch_size=3",
         I("input") + input_base + "input_shape=2:5:3",
     I("pooling_1") + pooling_base +
-            "pooling=average | pool_size = 3,3 | padding =0,0" + "input_layers=input",
+            "pooling=average | pool_size = 3,3 | padding =valid" + "input_layers=input",
     I("act_1") + sigmoid_base + "input_layers=pooling_1",
     I("flatten", "type=flatten")+ "input_layers=act_1",
     I("outputlayer") + fc_base + "unit = 10" + "input_layers=flatten",
@@ -972,7 +972,7 @@ INI pooling_avg_same_padding_multi_stride(
     nn_base + "learning_rate=0.1 | optimizer=sgd | loss=cross | batch_size=3",
         I("input") + input_base + "input_shape=2:3:5",
     I("pooling_1") + pooling_base +
-            "pooling=average | pool_size = 3,3 | padding =1,1 | stride=2,2" + "input_layers=input",
+            "pooling=average | pool_size = 3,3 | padding =same | stride=2,2" + "input_layers=input",
     I("act_1") + sigmoid_base + "input_layers=pooling_1",
     I("flatten", "type=flatten")+ "input_layers=act_1",
     I("outputlayer") + fc_base + "unit = 10" + "input_layers=flatten",
