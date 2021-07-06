@@ -29,6 +29,8 @@
 
 namespace nntrainer {
 
+static constexpr size_t SINGLE_INOUT_IDX = 0;
+
 void InputLayer::setProperty(const std::vector<std::string> &values) {
   /// @todo: deprecate this in favor of loadProperties
   for (unsigned int i = 0; i < values.size(); ++i) {
@@ -74,8 +76,8 @@ void InputLayer::setProperty(const std::string &type_str,
 }
 
 void InputLayer::forwarding(RunLayerContext &context, bool training) {
-  Tensor &hidden_ = context.getOutput(0);
-  hidden_ = context.getInput(0);
+  Tensor &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
+  hidden_ = context.getInput(SINGLE_INOUT_IDX);
 
   if (normalization)
     hidden_.normalization_i();
