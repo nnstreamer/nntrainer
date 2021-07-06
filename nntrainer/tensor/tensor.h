@@ -714,6 +714,27 @@ public:
   }
 
   /**
+   * @brief     Set the element value
+   * @param[in] offset offset from start location
+   * @param[in] value value to be stored
+   *
+   * @todo      This is a temporary workout. Remove this once multiple datatypes
+   * are supported.
+   */
+  void setValueInt(unsigned int offset, int value) noexcept {
+    int *data_int = (int *)data.get();
+    data_int[offset] = value;
+  }
+
+  /**
+   * @brief     Get int interpretable tensor
+   *
+   * @todo      This is a temporary workout. Remove this once multiple datatypes
+   * are supported.
+   */
+  template <typename T> const int *getData() const { return (int *)data.get(); }
+
+  /**
    * @brief     Fill the Tensor elements with value
    * @param[in] value value to be stored
    */
@@ -876,11 +897,17 @@ public:
 
   /**
    * @brief     return Data pointer of Tensor
-   * @retval    float pointer
+   * @retval    template T pointer (float pointer as default)
    */
-  float *getData() { return data.get(); }
+  template <typename T = float> T *getData() { return (T *)data.get(); }
 
-  const float *getData() const { return data.get(); }
+  /**
+   * @brief     return Data pointer of Tensor
+   * @retval    template T pointer (float pointer as default)
+   */
+  template <typename T = float> const T *getData() const {
+    return (T *)data.get();
+  }
 
   /**
    * @brief     i data index

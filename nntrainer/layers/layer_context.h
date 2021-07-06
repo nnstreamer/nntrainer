@@ -467,7 +467,7 @@ public:
    * @param idx index of the tensor (identifier)
    * @param batch Updated batch size
    */
-  void updateTensors(unsigned int idx, unsigned int batch) {
+  void updateTensor(unsigned int idx, unsigned int batch) {
     tensors[idx]->setBatchSize(batch);
   }
 
