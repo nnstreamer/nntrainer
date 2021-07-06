@@ -15,8 +15,7 @@
 #define __FLATTEN_LAYER_H__
 #ifdef __cplusplus
 
-#include <layer_internal.h>
-#include <tensor.h>
+#include <layer_devel.h>
 
 namespace nntrainer {
 
@@ -24,17 +23,17 @@ namespace nntrainer {
  * @class   Flatten Layer
  * @brief   Flatten Layer
  */
-class FlattenLayer : public LayerV1 {
+class FlattenLayer : public Layer {
 public:
   /**
    * @brief     Constructor of Flatten Layer
    */
-  template <typename... Args> FlattenLayer(Args... args) : LayerV1(args...) {}
+  FlattenLayer() : Layer() {}
 
   /**
    * @brief     Destructor of Flatten Layer
    */
-  ~FlattenLayer(){};
+  ~FlattenLayer() = default;
 
   /**
    *  @brief  Move constructor of FlattenLayer.
@@ -49,33 +48,40 @@ public:
   FlattenLayer &operator=(FlattenLayer &&rhs) = default;
 
   /**
-   * @brief     initialize layer
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   * @copydoc Layer::finalize(InitLayerContext &context)
    */
-  int initialize(Manager &manager) override;
+  void finalize(InitLayerContext &context) override;
 
   /**
-   * @brief     Read Weight & Bias Data from file
-   * @param[in] file input stream file
+   * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
    */
-  void read(std::ifstream &file) override{};
+  void forwarding(RunLayerContext &context, bool training) override;
 
   /**
-   * @brief     Save Weight & Bias Data to file
-   * @param[in] file output stream file
+   * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
-  void save(std::ofstream &file) override{};
+  void calcDerivative(RunLayerContext &context) override;
 
   /**
-   * @copydoc Layer::forwarding(bool training)
+   * @copydoc Layer::setProperty(const std::vector<std::string> &values)
    */
-  void forwarding(bool training = true) override;
+  void setProperty(const std::vector<std::string> &values) override;
 
   /**
-   * @copydoc Layer::calcDerivative()
+   * @copydoc bool supportBackwarding() const
    */
-  void calcDerivative() override;
+  bool supportBackwarding() const override { return false; };
+
+  /**
+   * @copydoc Layer::supportInPlace()
+   */
+  bool supportInPlace() const override { return true; }
+
+  /**
+   * @copydoc Layer::exportTo(Exporter &exporter, ExportMethods method)
+   */
+  void exportTo(Exporter &exporter,
+                const ExportMethods &method) const override {}
 
   /**
    * @copydoc Layer::getType()

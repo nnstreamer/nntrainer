@@ -224,7 +224,8 @@ static void im2col(const Tensor &in, const TensorDim &kdim,
   /// effective kernel width considering dilation
   unsigned int eff_k_width = (k_width - 1) * dilation[1] + 1;
 
-  [[maybe_unused]] unsigned int out_height = (height - eff_k_height) / mstride[0] + 1;
+  [[maybe_unused]] unsigned int out_height =
+    (height - eff_k_height) / mstride[0] + 1;
   unsigned int out_width = (width - eff_k_width) / mstride[1] + 1;
 
   float *out_data = out.getData();
@@ -325,8 +326,9 @@ void Conv2DLayer::finalize(InitLayerContext &context) {
   wt_idx[ConvParams::im2col_result] = context.requestTensor(
     calcIm2ColOutputDim(in_dim, dim, padding, stride, {1, 1}), "Conv2d:im2col",
     false, ITERATION_LIFESPAN);
-  wt_idx[ConvParams::col2im_result] = context.requestTensor(
-    calcCol2ImOutputDim(out_dim, dim), "Conv2d:col2im", false, BACKWARD_FUNC_LIFESPAN);
+  wt_idx[ConvParams::col2im_result] =
+    context.requestTensor(calcCol2ImOutputDim(out_dim, dim), "Conv2d:col2im",
+                          false, BACKWARD_FUNC_LIFESPAN);
 }
 
 void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
@@ -470,8 +472,8 @@ void Conv2DLayer::calcGradient(RunLayerContext &context) {
 
     /**
      * @todo this result can be cached from the forward iteration at the
-     * expense of memory. In this case, memory of im2col_result must be saved for
-     * the whole batch. try this while benchmarking.
+     * expense of memory. In this case, memory of im2col_result must be saved
+     * for the whole batch. try this while benchmarking.
      */
     im2col(in_sub, filter_dim, padding, stride, {1, 1}, im2col_result);
     deriv_sub.dot(im2col_result, delK, false, false, b == 0 ? 0 : 1);

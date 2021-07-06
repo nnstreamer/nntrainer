@@ -12,43 +12,63 @@
  */
 
 #include <flatten_layer.h>
-#include <layer_internal.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
-#include <parse_util.h>
-#include <util_func.h>
 
 namespace nntrainer {
 
-int FlattenLayer::initialize(Manager &manager) {
-  if (getNumInputs() != 1) {
+static constexpr size_t SINGLE_INOUT_IDX = 0;
+
+void FlattenLayer::finalize(InitLayerContext &context) {
+  if (context.getNumInputs() != 1) {
     throw std::invalid_argument("input_shape keyword is only for one input");
   }
 
-  TensorDim &out_dim = output_dim[0];
-  int status = ML_ERROR_NONE;
-  if (input_dim[0].getDataLen() == 1) {
-    ml_logw("Warning: the length of previous layer dimension is one");
+  TensorDim out_dim;
+  const TensorDim &in_dim = context.getInputDimensions()[0];
+  if (in_dim.channel() == 1 && in_dim.height() == 1) {
+    ml_logw("Warning: the flatten layer is redundant");
   }
 
-  out_dim.batch(input_dim[0].batch());
+  out_dim.batch(in_dim.batch());
   out_dim.channel(1);
   out_dim.height(1);
-  out_dim.width(input_dim[0].getFeatureLen());
+  out_dim.width(in_dim.getFeatureLen());
 
-  return status;
+  context.setOutputDimensions({out_dim});
 }
 
-void FlattenLayer::forwarding(bool training) {
-  Tensor temp = net_input[0]->getVariableRef();
-  temp.reshape(net_hidden[0]->getDim());
-  net_hidden[0]->getVariableRef() = temp;
+void FlattenLayer::forwarding(RunLayerContext &context, bool training) {
+  /**
+   * Below is intentionally not a reference.
+   * Using refernce would change the shape of the output tensor for the previous
+   * layer.
+   */
+  Tensor temp = context.getInput(SINGLE_INOUT_IDX);
+  Tensor &out = context.getOutput(SINGLE_INOUT_IDX);
+
+  temp.reshape(out.getDim());
+  out = temp;
 }
 
-void FlattenLayer::calcDerivative() {
-  Tensor temp = net_hidden[0]->getGradientRef();
-  temp.reshape(net_input[0]->getDim());
-  net_input[0]->getGradientRef() = temp;
+void FlattenLayer::calcDerivative(RunLayerContext &context) {
+  /**
+   * Below is intentionally not a reference.
+   * Using refernce would change the shape of the output tensor for the previous
+   * layer.
+   */
+  Tensor temp = context.getIncomingDerivative(SINGLE_INOUT_IDX);
+  Tensor &ret_derivative = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
+
+  temp.reshape(ret_derivative.getDim());
+  ret_derivative = temp;
 }
 
+void FlattenLayer::setProperty(const std::vector<std::string> &values) {
+  if (!values.empty()) {
+    std::string msg = "[FlattenLayer] Unknown Layer Properties count " +
+                      std::to_string(values.size());
+    throw exception::not_supported(msg);
+  }
+}
 } /* namespace nntrainer */
