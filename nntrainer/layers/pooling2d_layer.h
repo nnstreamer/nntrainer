@@ -15,8 +15,11 @@
 #define __POOLING2D_LAYER_H__
 #ifdef __cplusplus
 
+#include <base_properties.h>
 #include <layer_internal.h>
 #include <tensor.h>
+
+#include <tuple>
 #include <vector>
 
 #define POOLING2D_DIM 2
@@ -45,12 +48,12 @@ public:
     PoolingType pooling_type_ = PoolingType::average,
     const std::array<unsigned int, POOLING2D_DIM> &pool_size_ = {0, 0},
     const std::array<unsigned int, POOLING2D_DIM> &stride_ = {1, 1},
-    const std::array<unsigned int, POOLING2D_DIM> &padding_ = {0, 0},
-    Args... args) :
+    const std::array<unsigned int, 4> &padding_ = {0, 0, 0, 0}, Args... args) :
     LayerV1(args...),
     pool_size(pool_size_),
     stride(stride_),
     padding(padding_),
+    pool2d_props(),
     pooling_type(pooling_type_) {}
 
   /**
@@ -106,17 +109,6 @@ public:
   void copy(std::shared_ptr<LayerV1> l) override;
 
   /**
-   * @brief PaddingType Class
-   * @todo support keras type of padding
-   */
-  enum class PaddingType {
-    full = 0,
-    same = 1,
-    valid = 2,
-    unknown = 3,
-  };
-
-  /**
    * @copydoc Layer::getType()
    */
   const std::string getType() const override { return Pooling2DLayer::type; };
@@ -141,7 +133,9 @@ public:
 private:
   std::array<unsigned int, POOLING2D_DIM> pool_size;
   std::array<unsigned int, POOLING2D_DIM> stride;
-  std::array<unsigned int, POOLING2D_DIM> padding;
+  std::array<unsigned int, 4> padding;
+  std::tuple<props::Padding2D> pool2d_props;
+
   std::vector<int>
     max_idx; /**< in case of max pool, idx that points to the first max item
                   in case of avearge pol, effective average counter

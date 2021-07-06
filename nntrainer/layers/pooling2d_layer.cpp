@@ -53,8 +53,16 @@ int Pooling2DLayer::initialize(Manager &manager) {
     }
     pool_size[0] = in_dim.height();
     pool_size[1] = in_dim.width();
+  }
 
-    if (padding[0] != 0 || padding[1] != 0) {
+  padding = std::get<props::Padding2D>(pool2d_props)
+              .compute(in_dim, {pool_size[0], pool_size[1]});
+
+  auto [pt, pb, pl, pr] = padding;
+
+  if (pooling_type == PoolingType::global_max ||
+      pooling_type == PoolingType::global_average) {
+    if (pt + pb + pl + pr != 0) {
       ml_loge("[Pooling2D] global_max, global_average does not accept padding");
       return ML_ERROR_INVALID_PARAMETER;
     }
@@ -65,8 +73,8 @@ int Pooling2DLayer::initialize(Manager &manager) {
     }
   }
 
-  unsigned int eff_in_height = in_dim.height() + padding[0] * 2;
-  unsigned int eff_in_width = in_dim.width() + padding[1] * 2;
+  unsigned int eff_in_height = in_dim.height() + pt + pb;
+  unsigned int eff_in_width = in_dim.width() + pl + pr;
 
   if (eff_in_height < pool_size[0] || eff_in_width < pool_size[1]) {
     ml_loge("[Pooling2D] Failed to initialize: in size + padding is smaller "
@@ -76,8 +84,8 @@ int Pooling2DLayer::initialize(Manager &manager) {
 
   unsigned int IM = std::numeric_limits<int>::max();
 
-  if (eff_in_height - padding[0] - pool_size[0] > IM ||
-      eff_in_width - padding[1] - pool_size[1] > IM) {
+  if (eff_in_height - pb - pool_size[0] > IM ||
+      eff_in_width - pr - pool_size[1] > IM) {
     ml_loge(
       "[Pooling2D] Failed to initialize: Calculated patch end is over int max");
     return ML_ERROR_INVALID_PARAMETER;
@@ -132,6 +140,8 @@ void Pooling2DLayer::calcDerivative() {
   unsigned int channel = input_dim[0].channel();
   int height = input_dim[0].height();
   int width = input_dim[0].width();
+
+  auto [pt, pb, pl, pr] = padding;
   unsigned int p_height = pool_size[0];
   unsigned int p_width = pool_size[1];
 
@@ -167,15 +177,15 @@ void Pooling2DLayer::calcDerivative() {
   } break;
   case PoolingType::global_average:
   case PoolingType::average: {
-    int heigth_stride_end = height - p_height + padding[0];
-    int width_stride_end = width - p_width + padding[1];
+    int heigth_stride_end = height - p_height + pb;
+    int width_stride_end = width - p_width + pr;
     auto iter = max_idx.begin();
     for (unsigned int b = 0; b < batch; ++b) {
       for (unsigned int i = 0; i < channel; ++i) {
         J = 0;
-        for (int j = -padding[0]; j <= heigth_stride_end; j += stride[0]) {
+        for (int j = -pt; j <= heigth_stride_end; j += stride[0]) {
           K = 0;
-          for (int k = -padding[1]; k <= width_stride_end; k += stride[1]) {
+          for (int k = -pl; k <= width_stride_end; k += stride[1]) {
             float del = deriv.getValue(b, i, J, K) / *iter;
             int patch_height_end =
               std::min(static_cast<int>(j + p_height), height);
@@ -295,12 +305,7 @@ void Pooling2DLayer::setProperty(const PropertyType type,
     break;
   case PropertyType::padding:
     if (!value.empty()) {
-      status = getValues(POOLING2D_DIM, value, (int *)(padding.data()));
-      throw_status(status);
-      if ((int)padding[0] < 0 || (int)padding[1] < 0) {
-        throw std::invalid_argument(
-          "[Pooling2d_layer] padding must be greater than 0");
-      }
+      from_string(value, std::get<props::Padding2D>(pool2d_props));
     }
     break;
   default:
@@ -312,12 +317,12 @@ void Pooling2DLayer::setProperty(const PropertyType type,
 Tensor Pooling2DLayer::pooling2d(Tensor &in, bool training, Tensor &output) {
 
   unsigned int channel = in.channel();
-  unsigned int pad_height = padding[0];
-  unsigned int pad_width = padding[1];
+  auto [pt, pb, pl, pr] = padding;
+
   int in_height = in.height();
   int in_width = in.width();
-  unsigned int height = in_height + pad_height * 2;
-  unsigned int width = in_width + pad_width * 2;
+  unsigned int height = in_height + pt + pb;
+  unsigned int width = in_width + pl + pr;
   unsigned int patch_height = pool_size[0];
   unsigned int patch_width = pool_size[1];
 
@@ -439,12 +444,12 @@ Tensor Pooling2DLayer::pooling2d(Tensor &in, bool training, Tensor &output) {
 
   unsigned int map_size = in_height * in_width;
 
-  int heigth_stride_end = height - patch_height - pad_height;
-  int width_stride_end = width - patch_width - pad_width;
+  int heigth_stride_end = height - patch_height - pb;
+  int width_stride_end = width - patch_width - pr;
   for (unsigned int i = 0; i < channel; ++i) {
     const float *in_data_channel_sliced = in_data + i * map_size;
-    for (int j = -pad_height; j <= heigth_stride_end; j += stride[0]) {
-      for (int k = -pad_width; k <= width_stride_end; k += stride[1]) {
+    for (int j = -pt; j <= heigth_stride_end; j += stride[0]) {
+      for (int k = -pl; k <= width_stride_end; k += stride[1]) {
         float pool_value = pool_fn(in_data_channel_sliced, j, k);
         *out_data = pool_value;
         out_data++;

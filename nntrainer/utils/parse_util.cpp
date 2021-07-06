@@ -190,15 +190,6 @@ unsigned int parseType(std::string ll, InputType t) {
     }
     ret = (unsigned int)WeightRegularizer::UNKNOWN;
     break;
-  case TOKEN_PADDING:
-    for (i = 0; i < padding_string.size(); i++) {
-      if (!strncasecmp(padding_string[i].c_str(), ll.c_str(),
-                       padding_string[i].size())) {
-        return (i);
-      }
-    }
-    ret = (unsigned int)Pooling2DLayer::PaddingType::unknown;
-    break;
   case TOKEN_POOLING:
     for (i = 0; i < pooling_string.size(); i++) {
       if (!strncasecmp(pooling_string[i].c_str(), ll.c_str(),
