@@ -1277,21 +1277,21 @@ INSTANTIATE_TEST_CASE_P(
     mkModelTc(conv_uneven_strides3, "3:1:1:10", 10),
     mkModelTc(conv_bn, "3:1:1:10", 10),
     mkModelTc(conv_same_padding_multi_stride, "3:1:1:10", 10),
-    mkModelTc(conv_no_loss_validate, "3:1:1:10", 1)
+    mkModelTc(conv_no_loss_validate, "3:1:1:10", 1),
 
     /**< single pooling layer test */
-    // mkModelTc(pooling_max_same_padding, "3:1:1:10", 10),
-    // mkModelTc(pooling_max_same_padding_multi_stride, "3:1:1:10", 10),
-    // mkModelTc(pooling_max_valid_padding, "3:1:1:10", 10),
-    // mkModelTc(pooling_avg_same_padding, "3:1:1:10", 10),
-    // mkModelTc(pooling_avg_same_padding_multi_stride, "3:1:1:10", 10),
-    // mkModelTc(pooling_avg_valid_padding, "3:1:1:10", 10),
-    // mkModelTc(pooling_global_avg, "3:1:1:10", 10),
-    // mkModelTc(pooling_global_max, "3:1:1:10", 10),
+    mkModelTc(pooling_max_same_padding, "3:1:1:10", 10),
+    mkModelTc(pooling_max_same_padding_multi_stride, "3:1:1:10", 10),
+    mkModelTc(pooling_max_valid_padding, "3:1:1:10", 10),
+    mkModelTc(pooling_avg_same_padding, "3:1:1:10", 10),
+    mkModelTc(pooling_avg_same_padding_multi_stride, "3:1:1:10", 10),
+    mkModelTc(pooling_avg_valid_padding, "3:1:1:10", 10),
+    mkModelTc(pooling_global_avg, "3:1:1:10", 10),
+    mkModelTc(pooling_global_max, "3:1:1:10", 10),
 
     /**< conv pool combined tests */
-    // mkModelTc(mnist_conv_cross, "3:1:1:10", 10),
-    // mkModelTc(mnist_conv_cross_one_input, "1:1:1:10", 10),
+    mkModelTc(mnist_conv_cross, "3:1:1:10", 10),
+    mkModelTc(mnist_conv_cross_one_input, "1:1:1:10", 10)
 
     /**< augmentation layer */
 #if defined(ENABLE_DATA_AUGMENTATION_OPENCV)

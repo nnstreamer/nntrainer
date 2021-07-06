@@ -430,12 +430,16 @@ void LayerNode::setBatch(unsigned int batch) {
   if (layerv1)
     layerv1->setBatch(batch);
   else {
+    run_context.setBatch(batch);
+    init_context.setBatch(batch);
+
     if (finalized) {
-      run_context.setBatch(batch);
-      layer->setBatch(run_context, batch);
-    } else {
-      init_context.setBatch(batch);
-      layer->setBatch(init_context, batch);
+      if (run_context.readyToUse()) {
+        layer->setBatch(run_context, batch);
+      } else {
+        /** run_context has not been created yet */
+        layer->setBatch(init_context, batch);
+      }
     }
   }
 }

@@ -15,23 +15,25 @@
 #define __POOLING2D_LAYER_H__
 #ifdef __cplusplus
 
-#include <base_properties.h>
-#include <layer_internal.h>
-#include <tensor.h>
-
 #include <tuple>
 #include <vector>
 
-#define POOLING2D_DIM 2
+#include <base_properties.h>
+#include <layer_devel.h>
 
 namespace nntrainer {
+
+constexpr const unsigned int POOLING2D_DIM = 2;
 
 /**
  * @class   Pooling 2D Layer
  * @brief   Pooling 2D Layer
  */
-class Pooling2DLayer : public LayerV1 {
+class Pooling2DLayer : public Layer {
 public:
+  /**
+   * @brief   Pooling operation type class
+   */
   enum class PoolingType {
     max = 0,
     average = 1,
@@ -41,15 +43,25 @@ public:
   };
 
   /**
+   * @brief PaddingType Class
+   * @todo support keras type of padding
+   */
+  enum class PaddingType {
+    full = 0,
+    same = 1,
+    valid = 2,
+    unknown = 3,
+  };
+
+  /**
    * @brief     Constructor of Pooling 2D Layer
    */
-  template <typename... Args>
   Pooling2DLayer(
     PoolingType pooling_type_ = PoolingType::average,
     const std::array<unsigned int, POOLING2D_DIM> &pool_size_ = {0, 0},
     const std::array<unsigned int, POOLING2D_DIM> &stride_ = {1, 1},
-    const std::array<unsigned int, 4> &padding_ = {0, 0, 0, 0}, Args... args) :
-    LayerV1(args...),
+    const std::array<unsigned int, POOLING2D_DIM * 2> &padding_ = {0, 0, 0, 0}) :
+    Layer(),
     pool_size(pool_size_),
     stride(stride_),
     padding(padding_),
@@ -59,7 +71,7 @@ public:
   /**
    * @brief     Destructor of Pooling 2D Layer
    */
-  ~Pooling2DLayer() {}
+  ~Pooling2DLayer() = default;
 
   /**
    *  @brief  Move constructor of Pooling 2D Layer.
@@ -74,66 +86,63 @@ public:
   Pooling2DLayer &operator=(Pooling2DLayer &&rhs) = default;
 
   /**
-   * @brief     initialize layer
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   * @copydoc Layer::finalize(InitLayerContext &context)
    */
-  int initialize(Manager &manager) override;
+  void finalize(InitLayerContext &context) override;
 
   /**
-   * @brief     Read Weight & Bias Data from file
-   * @param[in] file input stream file
+   * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
    */
-  void read(std::ifstream &file) override{};
+  void forwarding(RunLayerContext &context, bool training) override;
 
   /**
-   * @brief     Save Weight & Bias Data to file
-   * @param[in] file output stream file
+   * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
-  void save(std::ofstream &file) override{};
+  void calcDerivative(RunLayerContext &context) override;
 
   /**
-   * @copydoc Layer::forwarding(bool training)
+   * @copydoc Layer::exportTo(Exporter &exporter, ExportMethods method)
    */
-  void forwarding(bool training = true) override;
-
-  /**
-   * @copydoc Layer::calcDerivative()
-   */
-  void calcDerivative() override;
-
-  /**
-   * @brief     copy layer
-   * @param[in] l layer to copy
-   */
-  void copy(std::shared_ptr<LayerV1> l) override;
+  void exportTo(Exporter &exporter,
+                const ExportMethods &method) const override {
+    Layer::exportTo(exporter, method);
+  }
 
   /**
    * @copydoc Layer::getType()
    */
   const std::string getType() const override { return Pooling2DLayer::type; };
 
-  using LayerV1::setProperty;
+  /**
+   * @copydoc Layer::supportBackwarding()
+   */
+  bool supportBackwarding() const { return true; }
 
   /**
-   * @copydoc Layer::setProperty(const PropertyType type, const std::string
-   * &value)
+   * @copydoc Layer::setProperty(const std::vector<std::string> &values)
    */
-  void setProperty(const PropertyType type,
-                   const std::string &value = "") override;
-
-  /**
-   * @brief Set the batch for the layer
-   * @param batch Batch value to be set
-   */
-  void setBatch(unsigned int batch) override;
+  void setProperty(const std::vector<std::string> &values) override;
 
   inline static const std::string type = "pooling2d";
+
+  /**
+   * @copydoc Layer::setBatch(InitLayerContext &context, unsigned int batch)
+   */
+  void setBatch(InitLayerContext &context, unsigned int batch) override {
+    setBatch(context.getOutputDimensions()[0], batch);
+  }
+
+  /**
+   * @copydoc Layer::setBatch(RunLayerContext &context, unsigned int batch)
+   */
+  void setBatch(RunLayerContext &context, unsigned int batch) override {
+    setBatch(context.getOutput(0).getDim(), batch);
+  }
 
 private:
   std::array<unsigned int, POOLING2D_DIM> pool_size;
   std::array<unsigned int, POOLING2D_DIM> stride;
-  std::array<unsigned int, 4> padding;
+  std::array<unsigned int, POOLING2D_DIM * 2> padding;
   std::tuple<props::Padding2D> pool2d_props;
 
   std::vector<int>
@@ -156,24 +165,25 @@ private:
    * @brief     calculation convolution
    * @param[in] in input tensor (batch sliced)
    * @param[in] training check if training, if training this will memorize index
-   * @retval Tensor outoput tensor
    */
-  Tensor pooling2d(Tensor &in, bool training, Tensor &output);
+  void pooling2d(Tensor &in, bool training, Tensor &output);
 
   /**
-   * @brief     set Pooling Type
-   * @param[in] t pooling type
+   * @brief     Helper function to set batch
+   * @param output_dim output dimension
+   * @param batch batch size
    */
-  void setPoolingType(PoolingType t) { pooling_type = t; };
+  void setBatch(const TensorDim &output_dim, unsigned int batch);
 
   /**
-   * @brief     set Parameter Size
-   * @param[in] * size : size arrary
-   * @param[in] type : Property type
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   * @brief setProperty by type and value separated
+   * @param[in] type property type to be passed
+   * @param[in] value value to be passed
+   * @exception exception::not_supported     when property type is not valid for
+   * the particular layer
+   * @exception std::invalid_argument invalid argument
    */
-  int setSize(int *size, PropertyType type);
+  void setProperty(const std::string &type_str, const std::string &value);
 };
 
 } // namespace nntrainer
