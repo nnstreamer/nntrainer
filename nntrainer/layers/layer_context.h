@@ -525,6 +525,22 @@ public:
    */
   const std::string &getName() const { return std::get<props::Name>(props); }
 
+  /**
+   * @brief   check if run context is set and is ready to use
+   *
+   * @return true if ready, else false
+   */
+  bool readyToUse() const {
+    /**
+     * assumption:
+     * 1. there must be atleast 1 input
+     * 2. the setter set everything at once
+     */
+    if (inputs.empty())
+      return false;
+    return !inputs[0]->getVariable().uninitialized();
+  }
+
 private:
   std::tuple<props::Name> props; /**< props of the layer */
   float loss;                    /**< loss of the layer */

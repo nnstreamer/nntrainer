@@ -24,32 +24,22 @@
 
 namespace nntrainer {
 
-int Pooling2DLayer::initialize(Manager &manager) {
-  int status = ML_ERROR_NONE;
+static constexpr size_t SINGLE_INOUT_IDX = 0;
 
-  if (input_dim.size() != 1 || output_dim.size() != 1) {
-    ml_loge("[Pooling2D] pooling layer only takes one input");
-    return ML_ERROR_INVALID_PARAMETER;
+void Pooling2DLayer::finalize(InitLayerContext &context) {
+  if (context.getNumInputs() != 1) {
+    throw std::invalid_argument(
+      "[Pooling2D] pooling layer only takes one input");
   }
 
-  if (input_dim.size() != 1) {
-    ml_loge("[Pooling2D] pooling layer only accepts number of one layer");
-    return ML_ERROR_INVALID_PARAMETER;
-  }
-
-  TensorDim &in_dim = input_dim[0];
-  TensorDim &out_dim = output_dim[0];
-
-  if (in_dim.getDataLen() == 1) {
-    ml_logw("Warning: the length of previous layer dimension is one");
-  }
+  const TensorDim &in_dim = context.getInputDimensions()[SINGLE_INOUT_IDX];
+  TensorDim out_dim;
 
   if (pooling_type == PoolingType::global_max ||
       pooling_type == PoolingType::global_average) {
     if (pool_size[0] != 0 || pool_size[1] != 0) {
-      ml_loge(
+      throw std::invalid_argument(
         "[Pooling2D] global_max, global_average does not accept pool size");
-      return ML_ERROR_INVALID_PARAMETER;
     }
     pool_size[0] = in_dim.height();
     pool_size[1] = in_dim.width();
@@ -63,13 +53,13 @@ int Pooling2DLayer::initialize(Manager &manager) {
   if (pooling_type == PoolingType::global_max ||
       pooling_type == PoolingType::global_average) {
     if (pt + pb + pl + pr != 0) {
-      ml_loge("[Pooling2D] global_max, global_average does not accept padding");
-      return ML_ERROR_INVALID_PARAMETER;
+      throw std::invalid_argument(
+        "[Pooling2D] global_max, global_average does not accept padding");
     }
 
     if (stride[0] != 1 || stride[1] != 1) {
-      ml_loge("[Pooling2D] global_max, global_average does not accept stride");
-      return ML_ERROR_INVALID_PARAMETER;
+      throw std::invalid_argument(
+        "[Pooling2D] global_max, global_average does not accept stride");
     }
   }
 
@@ -77,48 +67,45 @@ int Pooling2DLayer::initialize(Manager &manager) {
   unsigned int eff_in_width = in_dim.width() + pl + pr;
 
   if (eff_in_height < pool_size[0] || eff_in_width < pool_size[1]) {
-    ml_loge("[Pooling2D] Failed to initialize: in size + padding is smaller "
-            "than effective kernel");
-    return ML_ERROR_INVALID_PARAMETER;
+    throw std::invalid_argument(
+      "[Pooling2D] Failed to initialize: in size + padding is smaller "
+      "than effective kernel");
   }
 
   unsigned int IM = std::numeric_limits<int>::max();
 
   if (eff_in_height - pb - pool_size[0] > IM ||
       eff_in_width - pr - pool_size[1] > IM) {
-    ml_loge(
+    throw std::invalid_argument(
       "[Pooling2D] Failed to initialize: Calculated patch end is over int max");
-    return ML_ERROR_INVALID_PARAMETER;
   }
 
   out_dim.batch(in_dim.batch());
   out_dim.channel(in_dim.channel());
   out_dim.height((eff_in_height - pool_size[0]) / stride[0] + 1);
   out_dim.width((eff_in_width - pool_size[1]) / stride[1] + 1);
+  context.setOutputDimensions({out_dim});
 
   if (pooling_type == PoolingType::global_max) {
     max_idx_global.reserve(out_dim.batch() * out_dim.getFeatureLen());
   } else {
     max_idx.reserve(in_dim.batch() * out_dim.getFeatureLen());
   }
-
-  return status;
 }
 
-void Pooling2DLayer::setBatch(unsigned int batch) {
-  LayerV1::setBatch(batch);
+void Pooling2DLayer::setBatch(const TensorDim &output_dim, unsigned int batch) {
   if (pooling_type == PoolingType::max) {
-    max_idx.reserve(batch * output_dim[0].getFeatureLen());
+    max_idx.reserve(batch * output_dim.getFeatureLen());
   } else if (pooling_type == PoolingType::global_max) {
-    max_idx_global.resize(batch * output_dim[0].getFeatureLen());
+    max_idx_global.resize(batch * output_dim.getFeatureLen());
   }
 }
 
-void Pooling2DLayer::forwarding(bool training) {
-  Tensor &input_ = net_input[0]->getVariableRef();
-  Tensor &hidden_ = net_hidden[0]->getVariableRef();
+void Pooling2DLayer::forwarding(RunLayerContext &context, bool training) {
+  Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
+  Tensor &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
 
-  TensorDim &in_dim = input_dim[0];
+  const TensorDim &in_dim = input_.getDim();
 
   if (training) {
     if (pooling_type == PoolingType::global_max) {
@@ -135,20 +122,21 @@ void Pooling2DLayer::forwarding(bool training) {
   }
 }
 
-void Pooling2DLayer::calcDerivative() {
-  unsigned int batch = input_dim[0].batch();
-  unsigned int channel = input_dim[0].channel();
-  int height = input_dim[0].height();
-  int width = input_dim[0].width();
+void Pooling2DLayer::calcDerivative(RunLayerContext &context) {
+  Tensor &deriv = context.getIncomingDerivative(SINGLE_INOUT_IDX);
+  Tensor &result = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
+
+  const TensorDim &in_dim = result.getDim();
+  unsigned int batch = in_dim.batch();
+  unsigned int channel = in_dim.channel();
+  int height = in_dim.height();
+  int width = in_dim.width();
 
   auto [pt, pb, pl, pr] = padding;
   unsigned int p_height = pool_size[0];
   unsigned int p_width = pool_size[1];
 
   unsigned int J, K;
-
-  Tensor &deriv = net_hidden[0]->getGradientRef();
-  Tensor &result = net_input[0]->getGradientRef();
 
   result.setZero();
   float *result_data = result.getData();
@@ -229,92 +217,68 @@ void Pooling2DLayer::calcDerivative() {
   }
 }
 
-int Pooling2DLayer::setSize(int *size, PropertyType type) {
-  int status = ML_ERROR_NONE;
-  switch (type) {
-  case PropertyType::pool_size:
-    for (int i = 0; i < POOLING2D_DIM; ++i) {
-      pool_size[i] = size[i];
+void Pooling2DLayer::setProperty(const std::vector<std::string> &values) {
+  /// @todo: deprecate this in favor of loadProperties
+  for (unsigned int i = 0; i < values.size(); ++i) {
+    std::string key;
+    std::string value;
+    std::stringstream ss;
+
+    if (getKeyValue(values[i], key, value) != ML_ERROR_NONE) {
+      throw std::invalid_argument("Error parsing the property: " + values[i]);
     }
-    break;
-  case PropertyType::stride:
-    for (int i = 0; i < POOLING2D_DIM; ++i) {
-      stride[i] = size[i];
+
+    if (value.empty()) {
+      ss << "value is empty: key: " << key << ", value: " << value;
+      throw std::invalid_argument(ss.str());
     }
-    break;
-  case PropertyType::padding:
-    for (int i = 0; i < POOLING2D_DIM; ++i) {
-      padding[i] = size[i];
-    }
-    break;
-  default:
-    ml_loge("Error: Unknown Layer Property type");
-    status = ML_ERROR_INVALID_PARAMETER;
-    break;
-  }
-  return status;
-}
 
-void Pooling2DLayer::copy(std::shared_ptr<LayerV1> l) {
-  LayerV1::copy(l);
-
-  std::shared_ptr<Pooling2DLayer> from =
-    std::static_pointer_cast<Pooling2DLayer>(l);
-
-  this->pooling_type = from->pooling_type;
-
-  for (unsigned int i = 0; i < POOLING2D_DIM; ++i) {
-    this->pool_size[i] = from->pool_size[i];
-    this->stride[i] = from->stride[i];
-    this->padding[i] = from->padding[i];
+    /// @note this calls derived setProperty if available
+    setProperty(key, value);
   }
 }
 
-void Pooling2DLayer::setProperty(const PropertyType type,
+void Pooling2DLayer::setProperty(const std::string &type_str,
                                  const std::string &value) {
+  using PropertyType = LayerV1::PropertyType;
   int status = ML_ERROR_NONE;
+  LayerV1::PropertyType type =
+    static_cast<LayerV1::PropertyType>(parseLayerProperty(type_str));
 
   switch (type) {
   case PropertyType::pooling:
-    if (!value.empty()) {
-      pooling_type = (PoolingType)parseType(value, TOKEN_POOLING);
-      if (pooling_type == PoolingType::unknown) {
-        throw std::invalid_argument("[Pooling2d_layer]: Unknown pooling type");
-      }
-      break;
+    pooling_type = (PoolingType)parseType(value, TOKEN_POOLING);
+    if (pooling_type == PoolingType::unknown) {
+      throw std::invalid_argument("[Pooling2d_layer]: Unknown pooling type");
     }
+    break;
   case PropertyType::pool_size:
-    if (!value.empty()) {
-      status = getValues(POOLING2D_DIM, value, (int *)(pool_size.data()));
-      throw_status(status);
-      if (pool_size[0] == 0 || pool_size[1] == 0) {
-        throw std::invalid_argument(
-          "[Pooling2d_layer] pool_size must be greater than 0");
-      }
+    status = getValues(POOLING2D_DIM, value, (int *)(pool_size.data()));
+    throw_status(status);
+    if (pool_size[0] == 0 || pool_size[1] == 0) {
+      throw std::invalid_argument(
+        "[Pooling2d_layer] pool_size must be greater than 0");
     }
     break;
   case PropertyType::stride:
-    if (!value.empty()) {
-      status = getValues(POOLING2D_DIM, value, (int *)(stride.data()));
-      throw_status(status);
-      if (stride[0] == 0 || stride[1] == 0) {
-        throw std::invalid_argument(
-          "[Pooling2d_layer] stride must be greater than 0");
-      }
+    status = getValues(POOLING2D_DIM, value, (int *)(stride.data()));
+    throw_status(status);
+    if (stride[0] == 0 || stride[1] == 0) {
+      throw std::invalid_argument(
+        "[Pooling2d_layer] stride must be greater than 0");
     }
     break;
   case PropertyType::padding:
-    if (!value.empty()) {
-      from_string(value, std::get<props::Padding2D>(pool2d_props));
-    }
+    from_string(value, std::get<props::Padding2D>(pool2d_props));
     break;
   default:
-    LayerV1::setProperty(type, value);
-    break;
+    std::string msg = "[Pooling2DLayer] Unknown Layer Property Key for value " +
+                      std::string(value);
+    throw exception::not_supported(msg);
   }
 }
 
-Tensor Pooling2DLayer::pooling2d(Tensor &in, bool training, Tensor &output) {
+void Pooling2DLayer::pooling2d(Tensor &in, bool training, Tensor &output) {
 
   unsigned int channel = in.channel();
   auto [pt, pb, pl, pr] = padding;
@@ -456,8 +420,6 @@ Tensor Pooling2DLayer::pooling2d(Tensor &in, bool training, Tensor &output) {
       }
     }
   }
-
-  return output;
 }
 
 } /* namespace nntrainer */
