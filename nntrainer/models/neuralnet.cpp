@@ -581,6 +581,8 @@ int NeuralNetwork::train(std::vector<std::string> values) {
 int NeuralNetwork::train_run() {
   int status = ML_ERROR_NONE;
 
+  // readModel()
+
   if (!continue_train) {
     epoch_idx = 0;
     iter = 0;

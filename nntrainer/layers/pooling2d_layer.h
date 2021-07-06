@@ -129,49 +129,32 @@ public:
    * @copydoc Layer::setBatch(InitLayerContext &context, unsigned int batch)
    */
   void setBatch(InitLayerContext &context, unsigned int batch) override {
-    setBatch(context.getOutputDimensions()[0], batch);
+    context.updateTensorSpec(pool_helper_idx, batch);
   }
 
   /**
    * @copydoc Layer::setBatch(RunLayerContext &context, unsigned int batch)
    */
   void setBatch(RunLayerContext &context, unsigned int batch) override {
-    setBatch(context.getOutput(0).getDim(), batch);
+    context.updateTensor(pool_helper_idx, batch);
   }
 
 private:
   std::array<unsigned int, POOLING2D_DIM> pool_size;
   std::array<unsigned int, POOLING2D_DIM> stride;
   std::array<unsigned int, POOLING2D_DIM> padding;
-  std::vector<int>
-    max_idx; /**< in case of max pool, idx that points to the first max item
-                  in case of avearge pol, effective average counter
-                  effective average counter is number of patches actually
-                  counted into when calculating the average
-                  // clang-format off
-                  eg) pooling of below
-                  x x x
-                  x 3 3
-                  x 3 3
-                  = 12 / 4 = 3
-                  // clang-format on
-              */
-  std::vector<std::vector<int>> max_idx_global;
+  unsigned int pool_helper_idx; /**< helper tensor idx */
   PoolingType pooling_type;
 
   /**
    * @brief     calculation convolution
    * @param[in] in input tensor (batch sliced)
    * @param[in] training check if training, if training this will memorize index
+   * @param[in] output output tensor (batch sliced)
+   * @param[in] pool_helper helper tensor (batch sliced)
    */
-  void pooling2d(Tensor &in, bool training, Tensor &output);
-
-  /**
-   * @brief     Helper function to set batch
-   * @param output_dim output dimension
-   * @param batch batch size
-   */
-  void setBatch(const TensorDim &output_dim, unsigned int batch);
+  void pooling2d(Tensor &in, bool training, Tensor &output,
+                 Tensor &pool_helper);
 
   /**
    * @brief setProperty by type and value separated

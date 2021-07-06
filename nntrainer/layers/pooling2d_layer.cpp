@@ -78,45 +78,41 @@ void Pooling2DLayer::finalize(InitLayerContext &context) {
   out_dim.width((eff_in_width - pool_size[1]) / stride[1] + 1);
   context.setOutputDimensions({out_dim});
 
-  if (pooling_type == PoolingType::global_max) {
-    max_idx_global.reserve(out_dim.batch() * out_dim.getFeatureLen());
-  } else {
-    max_idx.reserve(in_dim.batch() * out_dim.getFeatureLen());
-  }
-}
-
-void Pooling2DLayer::setBatch(const TensorDim &output_dim, unsigned int batch) {
-  if (pooling_type == PoolingType::max) {
-    max_idx.reserve(batch * output_dim.getFeatureLen());
-  } else if (pooling_type == PoolingType::global_max) {
-    max_idx_global.resize(batch * output_dim.getFeatureLen());
-  }
+  /**
+   * in case of max pool, idx that points to the first max item
+   * in case of avearge pool, effective average counter is number of patches
+   * actually counted into when calculating the average
+   * // clang-format off
+   * eg) pooling of below
+   * x x x
+   * x 3 3
+   * x 3 3
+   * = 12 / 4 = 3
+   * // clang-format on
+   */
+  pool_helper_idx = context.requestTensor(out_dim, "Pooling2d::helper_idx",
+                                          false, ITERATION_LIFESPAN);
 }
 
 void Pooling2DLayer::forwarding(RunLayerContext &context, bool training) {
   Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
   Tensor &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
+  Tensor &pool_helper = context.getTensor(pool_helper_idx);
 
   const TensorDim &in_dim = input_.getDim();
-
-  if (training) {
-    if (pooling_type == PoolingType::global_max) {
-      max_idx_global.clear();
-    } else {
-      max_idx.clear();
-    }
-  }
 
   for (unsigned int b = 0; b < in_dim.batch(); ++b) {
     Tensor in_sub = input_.getBatchSlice(b, 1);
     Tensor result = hidden_.getBatchSlice(b, 1);
-    pooling2d(in_sub, training, result);
+    Tensor helper = pool_helper.getBatchSlice(b, 1);
+    pooling2d(in_sub, training, result, helper);
   }
 }
 
 void Pooling2DLayer::calcDerivative(RunLayerContext &context) {
   Tensor &deriv = context.getIncomingDerivative(SINGLE_INOUT_IDX);
   Tensor &result = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
+  Tensor &pool_helper = context.getTensor(pool_helper_idx);
 
   const TensorDim &in_dim = result.getDim();
   unsigned int batch = in_dim.batch();
@@ -136,13 +132,13 @@ void Pooling2DLayer::calcDerivative(RunLayerContext &context) {
 
   switch (pooling_type) {
   case PoolingType::max: {
-    auto iter = max_idx.begin();
+    const int *iter = pool_helper.getData<int>();
     const float *deriv_data = deriv.getData();
     for (unsigned int b = 0; b < batch; ++b) {
       for (unsigned int c = 0; c < channel; ++c) {
         for (unsigned int i = 0; i < out_map_size; ++i) {
-          /// max_idx = -1 means the max idx was at the padding, so no need to
-          /// update
+          /// pool_helper = -1 means the max idx was at the padding, so no need
+          /// to update
           if (*iter != -1) {
             result_data[*iter] += *deriv_data;
           }
@@ -157,7 +153,7 @@ void Pooling2DLayer::calcDerivative(RunLayerContext &context) {
   case PoolingType::average: {
     int heigth_stride_end = height - p_height + padding[0];
     int width_stride_end = width - p_width + padding[1];
-    auto iter = max_idx.begin();
+    const int *iter = pool_helper.getData<int>();
     for (unsigned int b = 0; b < batch; ++b) {
       for (unsigned int i = 0; i < channel; ++i) {
         J = 0;
@@ -185,15 +181,15 @@ void Pooling2DLayer::calcDerivative(RunLayerContext &context) {
     }
   } break;
   case PoolingType::global_max: {
-    auto iter = max_idx_global.begin();
+    const int *iter = pool_helper.getData<int>();
     float *deriv_data = deriv.getData();
     unsigned int outer_loop = batch * channel;
     for (unsigned int _ = 0; _ < outer_loop; _++) {
       for (unsigned int i = 0; i < out_map_size; ++i) {
-        float der = *deriv_data / iter->size();
+        float der = *deriv_data / pool_helper.length();
 
-        for (auto &idx : *iter) {
-          result_data[idx] += der;
+        for (unsigned int idx = 0; idx < pool_helper.length(); idx++) {
+          result_data[iter[idx]] += der;
         }
 
         iter++;
@@ -273,7 +269,8 @@ void Pooling2DLayer::setProperty(const std::string &type_str,
   }
 }
 
-void Pooling2DLayer::pooling2d(Tensor &in, bool training, Tensor &output) {
+void Pooling2DLayer::pooling2d(Tensor &in, bool training, Tensor &output,
+                               Tensor &pool_helper) {
 
   unsigned int channel = in.channel();
   unsigned int pad_height = padding[0];
@@ -297,6 +294,7 @@ void Pooling2DLayer::pooling2d(Tensor &in, bool training, Tensor &output) {
    */
   std::function<float(const float *, int, int)> pool_fn;
 
+  unsigned int max_idx_count = 0;
   switch (pooling_type) {
   case PoolingType::max: {
     pool_fn = [&, this](const float *in_data, int start_h, int start_w) {
@@ -323,7 +321,7 @@ void Pooling2DLayer::pooling2d(Tensor &in, bool training, Tensor &output) {
       }
 
       if (training) {
-        max_idx.push_back(cur_max_idx);
+        pool_helper.setValueInt(max_idx_count++, cur_max_idx);
       }
 
       return max_val;
@@ -336,12 +334,7 @@ void Pooling2DLayer::pooling2d(Tensor &in, bool training, Tensor &output) {
       int end_w = start_w + patch_width;
 
       float max_val = std::numeric_limits<float>::lowest();
-
-      decltype(max_idx_global)::iterator indexor;
-      if (training) {
-        max_idx_global.emplace_back();
-        indexor = max_idx_global.end() - 1;
-      }
+      unsigned int orig_max_idx_count = max_idx_count;
 
       for (int h = start_h; h < end_h; ++h) {
         for (int w = start_w; w < end_w; ++w) {
@@ -349,14 +342,11 @@ void Pooling2DLayer::pooling2d(Tensor &in, bool training, Tensor &output) {
           float val = in_data[cur_idx];
           if (max_val < val) {
             max_val = val;
-            if (training) {
-              indexor->clear();
-              indexor->push_back(cur_idx);
-            }
-          } else if (max_val == val) {
-            if (training) {
-              indexor->push_back(cur_idx);
-            }
+            max_idx_count = orig_max_idx_count;
+          }
+
+          if (training && max_val == val) {
+            pool_helper.setValueInt(max_idx_count++, cur_idx);
           }
         }
       }
@@ -386,7 +376,7 @@ void Pooling2DLayer::pooling2d(Tensor &in, bool training, Tensor &output) {
       }
 
       if (training) {
-        max_idx.push_back(cnt);
+        pool_helper.setValueInt(max_idx_count++, cnt);
       }
       return total / cnt;
     };
