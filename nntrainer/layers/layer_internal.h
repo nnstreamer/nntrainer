@@ -226,27 +226,25 @@ public:
    *            15. pooling : max, average, global_max, global_average
    *            16. flatten : bool
    *            17. name : string (type)
-   *            18. num_inputs : unsigned int (minimum 1)
-   *            19. num_outputs : unsigned int (minimum 1)
-   *            20. momentum : float,
-   *            21. moving_mean_initializer : string (type),
-   *            22. moving_variance_initializer : string (type),
-   *            23. gamma_initializer : string (type),
-   *            24. beta_initializer" : string (type)
-   *            25. modelfile : model file for loading config for backbone layer
-   *            26. input_layers : string (type)
-   *            27. output_layers : string (type)
-   *            28. trainable :
-   *            29. flip_direction
-   *            30. random_translate
-   *            31. in_dim : int ( input dimension for embedding layer )
-   *            32. out_dim : int ( output dimesion for embedding layer )
-   *            33. in_length : int ( input length for embedding layer )
-   *            34. recurrent_activation :  string (type) - lstm
-   *            35. distribute : bool
-   *            36. split_dimension : string (type)
-   *            37. return_sequences :  bool (type) - lstm
-   *            39. hidden_state_activation :  string (type) - lstm
+   *            18. momentum : float,
+   *            19. moving_mean_initializer : string (type),
+   *            20. moving_variance_initializer : string (type),
+   *            21. gamma_initializer : string (type),
+   *            22. beta_initializer" : string (type)
+   *            23. modelfile : model file for loading config for backbone layer
+   *            24. input_layers : string (type)
+   *            25. output_layers : string (type)
+   *            26. trainable :
+   *            27. flip_direction
+   *            28. random_translate
+   *            29. in_dim : int ( input dimension for embedding layer )
+   *            30. out_dim : int ( output dimesion for embedding layer )
+   *            31. in_length : int ( input length for embedding layer )
+   *            32. recurrent_activation :  string (type) - lstm
+   *            33. distribute : bool
+   *            34. split_dimension : string (type)
+   *            35. return_sequences :  bool (type) - lstm
+   *            36. hidden_state_activation :  string (type) - lstm
    */
   enum class PropertyType {
     input_shape = 0,
@@ -267,27 +265,25 @@ public:
     pooling = 15,
     flatten = 16,
     name = 17,
-    num_inputs = 18,
-    num_outputs = 19,
-    momentum = 20,
-    moving_mean_initializer = 21,
-    moving_variance_initializer = 22,
-    gamma_initializer = 23,
-    beta_initializer = 24,
-    modelfile = 25, /** model file for loading config for backbone layer */
-    input_layers = 26,
-    output_layers = 27,
-    trainable = 28,
-    flip_direction = 29,
-    random_translate = 30,
-    in_dim = 31,
-    out_dim = 32,
-    in_length = 33,
-    recurrent_activation = 34,
-    distribute = 35,
-    split_dimension = 36,
-    return_sequences = 37,
-    hidden_state_activation = 38,
+    momentum = 18,
+    moving_mean_initializer = 19,
+    moving_variance_initializer = 20,
+    gamma_initializer = 21,
+    beta_initializer = 22,
+    modelfile = 23, /** model file for loading config for backbone layer */
+    input_layers = 24,
+    output_layers = 25,
+    trainable = 26,
+    flip_direction = 27,
+    random_translate = 28,
+    in_dim = 29,
+    out_dim = 30,
+    in_length = 31,
+    recurrent_activation = 32,
+    distribute = 33,
+    split_dimension = 34,
+    return_sequences = 35,
+    hidden_state_activation = 36,
     unknown
   };
 

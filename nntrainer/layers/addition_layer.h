@@ -86,15 +86,6 @@ public:
    */
   const std::string getType() const override { return AdditionLayer::type; };
 
-  using LayerV1::setProperty;
-
-  /**
-   * @copydoc Layer::setProperty(const PropertyType type, const std::string
-   * &value)
-   */
-  void setProperty(const PropertyType type,
-                   const std::string &value = "") override;
-
   inline static const std::string type = "addition";
 };
 
