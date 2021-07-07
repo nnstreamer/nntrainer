@@ -237,13 +237,13 @@ sharedConstTensors NeuralNetwork::forwarding(sharedConstTensors input,
       << " requirements size: " << layer_node->getNumOutputs();
 
     for (unsigned int i = 0; i < layer_node->getNumOutputs(); i++) {
-      layer_node->getOutputGrad(i) = *label[i];
+      layer_node->getOutputGradUnsafe(i) = *label[i];
     }
   };
 
   auto clear_label = [](auto const &layer_node) {
     for (unsigned int i = 0; i < layer_node->getNumOutputs(); i++) {
-      layer_node->getOutputGrad(i) = Tensor();
+      layer_node->getOutputGradUnsafe(i) = Tensor();
     }
   };
 

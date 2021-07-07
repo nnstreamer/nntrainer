@@ -325,6 +325,19 @@ public:
     if (!outputs[idx]->hasGradient())
       throw std::invalid_argument(
         "Requesting gradient for a non-trainable tensor.");
+    return getOutputGradUnsafe(idx);
+  }
+
+  /**
+   * @brief Get the Output Grad tensor object
+   *
+   * @param idx Identifier of the output
+   * @return Tensor& Reference to the output grad tensor
+   *
+   * @note recommended to NOT use this function as a layer developer but rather
+   * use getOutputGrad().
+   */
+  Tensor &getOutputGradUnsafe(unsigned int idx) {
     return outputs[idx]->getGradientRef();
   }
 
