@@ -59,23 +59,4 @@ void OutputLayer::calcDerivative() {
   }
 }
 
-void OutputLayer::setProperty(const PropertyType type,
-                              const std::string &value) {
-  int status = ML_ERROR_NONE;
-
-  switch (type) {
-  case PropertyType::num_outputs: {
-    if (!value.empty()) {
-      unsigned int num_outputs;
-      status = setUint(num_outputs, value);
-      throw_status(status);
-      setNumOutputs(num_outputs);
-    }
-  } break;
-  default:
-    LayerV1::setProperty(type, value);
-    break;
-  }
-}
-
 } /* namespace nntrainer */

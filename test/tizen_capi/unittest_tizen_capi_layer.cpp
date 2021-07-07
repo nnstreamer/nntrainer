@@ -286,13 +286,7 @@ INSTANTIATE_TEST_CASE_P(
          false),
     mkTc(ML_TRAIN_LAYER_TYPE_FLATTEN, {"name=flat"}, true),
     mkTc(ML_TRAIN_LAYER_TYPE_ACTIVATION, {"activation=relu"}, true),
-    mkTc(ML_TRAIN_LAYER_TYPE_ACTIVATION, {"activation=undef"}, false),
-    mkTc(ML_TRAIN_LAYER_TYPE_ADDITION, {"num_inputs=2"}, true),
-    mkTc(ML_TRAIN_LAYER_TYPE_ADDITION, {"num_inputs=0"}, false),
-    mkTc(ML_TRAIN_LAYER_TYPE_CONCAT, {"num_inputs=2"}, true),
-    mkTc(ML_TRAIN_LAYER_TYPE_CONCAT, {"num_inputs=0"}, false),
-    mkTc(ML_TRAIN_LAYER_TYPE_MULTIOUT, {"num_outputs=0"}, false),
-    mkTc(ML_TRAIN_LAYER_TYPE_MULTIOUT, {"num_outputs=2"}, true)));
+    mkTc(ML_TRAIN_LAYER_TYPE_ACTIVATION, {"activation=undef"}, false)));
 
 /**
  * @brief Main gtest

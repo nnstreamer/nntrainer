@@ -68,23 +68,4 @@ void AdditionLayer::calcDerivative() {
   }
 }
 
-void AdditionLayer::setProperty(const PropertyType type,
-                                const std::string &value) {
-  int status = ML_ERROR_NONE;
-
-  switch (type) {
-  case PropertyType::num_inputs: {
-    if (!value.empty()) {
-      unsigned int num_inputs;
-      status = setUint(num_inputs, value);
-      throw_status(status);
-      setNumInputs(num_inputs);
-    }
-  } break;
-  default:
-    LayerV1::setProperty(type, value);
-    break;
-  }
-}
-
 } /* namespace nntrainer */
