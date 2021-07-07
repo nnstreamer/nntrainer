@@ -152,7 +152,7 @@ static nntrainer::IniSection pooling2("pooling2", "Type = pooling2d |"
                                                   "padding = 0, 0 |"
                                                   "pooling=max");
 
-static nntrainer::IniSection out0("out0", "Type = output |"
+static nntrainer::IniSection out0("out0", "Type = multiout |"
                                           "input_layers = pooling2");
 
 static nntrainer::IniSection conv2d10("conv2d10", "Type = conv2d |"
@@ -177,7 +177,7 @@ static nntrainer::IniSection addition0("addition0",
                                        "Type=addition |"
                                        "input_layers = conv2d11, out0 ");
 
-static nntrainer::IniSection out1("out1", "Type = output |"
+static nntrainer::IniSection out1("out1", "Type = multiout |"
                                           "input_layers = addition0");
 
 static nntrainer::IniSection conv2d12("conv2d12", "Type = conv2d |"
