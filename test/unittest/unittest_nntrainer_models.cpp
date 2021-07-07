@@ -519,7 +519,9 @@ protected:
     auto param = GetParam();
 
     ini = std::get<0>(param);
+    /// remove the test number after double __
     name = ini.getName();
+    name = name.substr(0, name.find("__"));
     std::cout << "starting test case : " << name << "\n\n";
 
     label_dim = std::get<1>(param);
@@ -609,6 +611,9 @@ static std::string gru_base = "type = gru";
 static std::string pooling_base = "type = pooling2d | padding = 0,0";
 static std::string preprocess_flip_base = "type = preprocess_flip";
 static std::string preprocess_translate_base = "type = preprocess_translate";
+static std::string mse_base = "type = mse";
+static std::string cross_base = "type = cross";
+static std::string cross_softmax_base = "type = cross_softmax";
 
 static std::string adam_base = "optimizer=adam | beta1 = 0.9 | beta2 = 0.999 | "
                                "epsilon = 1e-7";
@@ -659,21 +664,33 @@ using INI = nntrainer::IniWrapper;
 
 // TODO: update some models to use loss at the end as a layer
 // and check for all cases
-INI fc_sigmoid_mse(
-  "fc_sigmoid_mse",
-  {nn_base + "loss=mse | batch_size = 3",
+
+INI fc_sigmoid_baseline(
+  "fc_sigmoid",
+  {nn_base + "batch_size = 3",
    sgd_base + "learning_rate = 1",
    I("input") + input_base + "input_shape = 1:1:3",
    I("dense") + fc_base + "unit = 5",
    I("act") + sigmoid_base,
-   I("dense_1") + fc_base + "unit = 10",
-   I("act_1") + softmax_base});
+   I("dense_1") + fc_base + "unit = 10"});
+
+INI fc_sigmoid_mse =
+  INI("fc_sigmoid_mse") + fc_sigmoid_baseline + softmax_base + "model/loss=mse";
+
+INI fc_sigmoid_mse__1 =
+  INI("fc_sigmoid_mse__1") + fc_sigmoid_baseline + softmax_base +  I("loss", mse_base);
 
 INI fc_sigmoid_cross =
-  INI("fc_sigmoid_cross") + fc_sigmoid_mse + "model/loss=cross";
+  INI("fc_sigmoid_cross") + fc_sigmoid_baseline + softmax_base + "model/loss=cross";
 
-INI fc_relu_mse(
-  "fc_relu_mse",
+INI fc_sigmoid_cross__1 =
+  INI("fc_sigmoid_cross__1") + fc_sigmoid_baseline + softmax_base + I("loss", cross_base);
+
+INI fc_sigmoid_cross__2 =
+  INI("fc_sigmoid_cross__2") + fc_sigmoid_baseline + I("loss", cross_softmax_base);
+
+INI fc_relu_baseline(
+  "fc_relu",
   {nn_base + "Loss=mse | batch_size = 3",
    sgd_base + "learning_rate = 0.1",
    I("input") + input_base + "input_shape = 1:1:3",
@@ -681,6 +698,12 @@ INI fc_relu_mse(
    I("act") + relu_base,
    I("dense_1") + fc_base + "unit = 2",
    I("act_1") + sigmoid_base + "input_layers=dense" + "input_layers=dense_1"});
+
+INI fc_relu_mse =
+  INI("fc_relu_mse") + fc_relu_baseline + "model/loss=mse";
+
+INI fc_relu_mse__1 =
+  INI("fc_relu_mse__1") + fc_relu_baseline + I("loss", mse_base);
 
 INI fc_bn_sigmoid_cross(
   "fc_bn_sigmoid_cross",
@@ -1264,8 +1287,11 @@ INI multi_gru_return_sequence_with_batch(
 INSTANTIATE_TEST_CASE_P(
   nntrainerModelAutoTests, nntrainerModelTest, ::testing::Values(
     mkModelTc(fc_sigmoid_mse, "3:1:1:10", 1),
+    mkModelTc(fc_sigmoid_mse__1, "3:1:1:10", 1),
     mkModelTc(fc_sigmoid_cross, "3:1:1:10", 1),
+    mkModelTc(fc_sigmoid_cross__1, "3:1:1:10", 1),
     mkModelTc(fc_relu_mse, "3:1:1:2", 1),
+    mkModelTc(fc_relu_mse__1, "3:1:1:2", 1),
     mkModelTc(fc_bn_sigmoid_cross, "3:1:1:10", 10),
     mkModelTc(fc_bn_sigmoid_mse, "3:1:1:10", 10),
 
