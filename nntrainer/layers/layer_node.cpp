@@ -210,7 +210,7 @@ bool LayerNode::setProperty(const std::string &key, const std::string &value) {
       in_dim.batch(cache_batch_size);
       throw_status(status);
 
-      init_context = InitLayerContext(input_dim);
+      init_context = InitLayerContext(input_dim, init_context.getNumOutputs());
     }
   } break;
   case PropertyType::activation: {

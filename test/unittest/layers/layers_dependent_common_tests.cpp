@@ -42,13 +42,16 @@ TEST_P(LayerSemantics, setPropertiesInvalid_n) {
 TEST_P(LayerSemantics, finalizeOutputValidateLayerNode_p) {
   auto lnode = nntrainer::createLayerNode(expected_type);
   lnode->setProperty({"input_shape=1:1:1", "name=test"});
+  // /** purpose is to set number of outputs to 1 */
+  // lnode->setOutputLayers({"dummy"});
   EXPECT_NO_THROW(lnode->setProperty(valid_properties));
 
   if (!must_fail) {
     EXPECT_NO_THROW(lnode->finalize());
 
     auto &init_context = lnode->getInitContext();
-    EXPECT_GT(init_context.getOutputDimensions().size(), 0);
+    EXPECT_EQ(init_context.getOutputDimensions().size(),
+              init_context.getNumOutputs());
 
     for (auto const &dim : init_context.getOutputDimensions())
       EXPECT_GT(dim.getDataLen(), 0);
