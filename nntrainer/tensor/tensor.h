@@ -969,10 +969,6 @@ public:
   const std::array<unsigned int, MAXDIM> getStrides() const noexcept {
     return strides;
   }
-
-  static constexpr float epsilon = 1e-5;
-
-private:
   /**
    * @brief Get linear index given the n-d index
    */
@@ -981,6 +977,9 @@ private:
     return (b * strides[0] + c * strides[1] + h * strides[2] + w * strides[3]);
   }
 
+  static constexpr float epsilon = 1e-5;
+
+private:
   struct BroadcastInfo;
 
   /**
