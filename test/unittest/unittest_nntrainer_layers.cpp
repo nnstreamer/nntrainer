@@ -2179,7 +2179,6 @@ class nntrainer_AdditionLayer
   : public nntrainer_abstractLayer<nntrainer::AdditionLayer> {
 protected:
   virtual void prepareLayer() {
-    setProperty("num_inputs=1");
     setInputDim("3:28:28");
     setBatch(32);
   }
@@ -2202,21 +2201,8 @@ TEST_F(nntrainer_AdditionLayer, checkValidation_01_p) {
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
-TEST_F(nntrainer_AdditionLayer, setProperty_01_p) {
-  setProperty("num_inputs=10");
-  status = layer.initialize(manager);
-  EXPECT_EQ(status, ML_ERROR_NONE);
-}
-
-TEST_F(nntrainer_AdditionLayer, setProperty_02_n) {
-  status = layer.setProperty({"num_inputs=0"});
-  EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
-}
-
 // Disabled until input_layer keyward is enabled.
 TEST_F(nntrainer_AdditionLayer, DISABLED_forwarding_02_n) {
-  setProperty("num_inputs=2");
-
   sharedTensor input = std::shared_ptr<nntrainer::Tensor>(
     new nntrainer::Tensor[1], std::default_delete<nntrainer::Tensor[]>());
   nntrainer::Tensor &in = *input;
@@ -2237,8 +2223,6 @@ TEST_F(nntrainer_AdditionLayer, DISABLED_forwarding_02_n) {
 }
 
 TEST_F(nntrainer_AdditionLayer, DISABLED_forwarding_03_p) {
-  setProperty("num_inputs=2");
-
   sharedTensor input = std::shared_ptr<nntrainer::Tensor>(
     new nntrainer::Tensor[2], std::default_delete<nntrainer::Tensor[]>());
   nntrainer::Tensor &in = *input;

@@ -102,8 +102,6 @@ public:
    * - pooling : max, average, global_max, global_average
    * - flatten : bool
    * - name : string (type)
-   * - num_inputs : unsigned int (minimum 1)
-   * - num_outputs : unsigned int (minimum 1)
    * - momentum : float,
    * - moving_mean_initializer : string (type),
    * - moving_variance_initializer : string (type),

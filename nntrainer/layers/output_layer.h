@@ -81,13 +81,6 @@ public:
   void calcDerivative() override;
 
   /**
-   * @copydoc Layer::setProperty(const PropertyType type, const std::string
-   * &value)
-   */
-  void setProperty(const PropertyType type,
-                   const std::string &value = "") override;
-
-  /**
    * @copydoc Layer::getType()
    */
   const std::string getType() const override { return OutputLayer::type; };
