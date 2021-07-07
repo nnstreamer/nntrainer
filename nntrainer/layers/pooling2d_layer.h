@@ -130,6 +130,9 @@ public:
    */
   void setBatch(InitLayerContext &context, unsigned int batch) override {
     context.updateTensorSpec(pool_helper_idx, batch);
+    if (pooling_type == PoolingType::global_max)
+      pool_helper_size.resize(batch *
+                              context.getInputDimensions()[0].channel());
   }
 
   /**
@@ -137,6 +140,8 @@ public:
    */
   void setBatch(RunLayerContext &context, unsigned int batch) override {
     context.updateTensor(pool_helper_idx, batch);
+    if (pooling_type == PoolingType::global_max)
+      pool_helper_size.resize(batch * context.getInput(0).channel());
   }
 
 private:
@@ -144,6 +149,9 @@ private:
   std::array<unsigned int, POOLING2D_DIM> stride;
   std::array<unsigned int, POOLING2D_DIM> padding;
   unsigned int pool_helper_idx; /**< helper tensor idx */
+  std::vector<unsigned int>
+    pool_helper_size; /**< helper size for each elements in the case of
+                         global_max pooling */
   PoolingType pooling_type;
 
   /**
@@ -152,9 +160,10 @@ private:
    * @param[in] training check if training, if training this will memorize index
    * @param[in] output output tensor (batch sliced)
    * @param[in] pool_helper helper tensor (batch sliced)
+   * @param[in] batch_idx idx of the batch
    */
-  void pooling2d(Tensor &in, bool training, Tensor &output,
-                 Tensor &pool_helper);
+  void pooling2d(Tensor &in, bool training, Tensor &output, Tensor &pool_helper,
+                 int batch_idx);
 
   /**
    * @brief setProperty by type and value separated
