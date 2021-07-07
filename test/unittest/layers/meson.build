@@ -11,6 +11,7 @@ test_target = [
   'unittest_layers_flatten.cpp',
   'unittest_layers_activation.cpp',
   'unittest_layers_addition.cpp',
+  'unittest_layers_multiout.cpp',
 ]
 
 exe = executable(

@@ -334,12 +334,7 @@ public:
    * @brief     Get number of outputs
    * @retval    number of outputs
    */
-  unsigned int getNumOutputs() const {
-    if (finalized)
-      return init_context.getOutputDimensions().size();
-    else
-      return getNumOutputConnections();
-  }
+  unsigned int getNumOutputs() const { return init_context.getNumOutputs(); }
 
   /**
    * @brief Get the number of weights
@@ -407,6 +402,8 @@ public:
    */
   void addOutputLayers(const std::string &out_layer) {
     output_layers.push_back(out_layer);
+    init_context =
+      InitLayerContext(init_context.getInputDimensions(), output_layers.size());
     if (layerv1)
       layerv1->setNumOutputs(output_layers.size());
   }
@@ -430,6 +427,8 @@ public:
    */
   void setOutputLayers(const std::vector<std::string> &layers) {
     output_layers = layers;
+    init_context = InitLayerContext(init_context.getInputDimensions(),
+                                    std::max(output_layers.size(), 1ul));
     if (layerv1)
       layerv1->setNumOutputs(layers.size());
   }
@@ -682,7 +681,7 @@ public:
     std::vector<TensorDim> input_dim = init_context.getInputDimensions();
     if (input_dim[idx] != dim) {
       input_dim[idx] = dim;
-      init_context = InitLayerContext(input_dim);
+      init_context = InitLayerContext(input_dim, init_context.getNumOutputs());
     }
   }
 
@@ -765,7 +764,8 @@ private:
     auto cur_input_dim = init_context.getInputDimensions();
     if (cur_input_dim.size() != size) {
       cur_input_dim.resize(size);
-      init_context = InitLayerContext(cur_input_dim);
+      init_context =
+        InitLayerContext(cur_input_dim, init_context.getNumOutputs());
     }
   }
 };
