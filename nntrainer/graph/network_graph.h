@@ -383,6 +383,14 @@ private:
    * @brief Calculate the number of non-trainable layers at the start
    */
   void countNonTrainableLayersAtBegin();
+
+  /**
+   * @brief finalize already added loss layers
+   *
+   * @details This involves verify if the requirements of the added loss layers
+   * match and merging loss layers with activation layers if needed.
+   */
+  void finalizeLossLayer();
 };
 
 } // namespace nntrainer
