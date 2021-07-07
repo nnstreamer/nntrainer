@@ -9,14 +9,14 @@
  * @bug         No known bugs except for NYI items
  * @brief       This is Multi Output Layer Class for Neural Network
  *
+ * @todo        Support inplace for this layer
  */
 
 #ifndef __OUTPUT_LAYER_H__
 #define __OUTPUT_LAYER_H__
 #ifdef __cplusplus
 
-#include <layer_internal.h>
-#include <tensor.h>
+#include <layer_devel.h>
 
 namespace nntrainer {
 
@@ -24,20 +24,17 @@ namespace nntrainer {
  * @class   Output Layer
  * @brief   Output Layer
  */
-class OutputLayer : public LayerV1 {
+class OutputLayer : public Layer {
 public:
   /**
    * @brief     Constructor of Output Layer
    */
-  template <typename... Args>
-  OutputLayer(unsigned int num_output_ = 1, Args... args) : LayerV1(args...) {
-    setNumOutputs(num_output_);
-  }
+  OutputLayer() : Layer() {}
 
   /**
    * @brief     Destructor of Output Layer
    */
-  ~OutputLayer(){};
+  ~OutputLayer() = default;
 
   /**
    *  @brief  Move constructor of OutputLayer.
@@ -52,33 +49,35 @@ public:
   OutputLayer &operator=(OutputLayer &&rhs) = default;
 
   /**
-   * @brief     initialize layer
-   * @param[in] last last layer
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   * @copydoc Layer::finalize(InitLayerContext &context)
    */
-  int initialize(Manager &manager) override;
+  void finalize(InitLayerContext &context) override;
 
   /**
-   * @brief     Read Weight & Bias Data from file
-   * @param[in] file input stream file
+   * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
    */
-  void read(std::ifstream &file) override{};
+  void forwarding(RunLayerContext &context, bool training) override;
 
   /**
-   * @brief     Save Weight & Bias Data to file
-   * @param[in] file output stream file
+   * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
-  void save(std::ofstream &file) override{};
+  void calcDerivative(RunLayerContext &context) override;
 
   /**
-   * @copydoc Layer::forwarding(bool training)
+   * @copydoc bool supportBackwarding() const
    */
-  void forwarding(bool training = true) override;
+  bool supportBackwarding() const override { return true; };
+
   /**
-   * @copydoc Layer::calcDerivative()
+   * @copydoc Layer::exportTo(Exporter &exporter, ExportMethods method)
    */
-  void calcDerivative() override;
+  void exportTo(Exporter &exporter,
+                const ExportMethods &method) const override {}
+
+  /**
+   * @copydoc Layer::setProperty(const std::vector<std::string> &values)
+   */
+  void setProperty(const std::vector<std::string> &values) override;
 
   /**
    * @copydoc Layer::getType()
