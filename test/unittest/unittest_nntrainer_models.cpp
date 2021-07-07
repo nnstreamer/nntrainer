@@ -1272,7 +1272,7 @@ INSTANTIATE_TEST_CASE_P(
     mkModelTc(pooling_avg_same_padding_multi_stride, "3:1:1:10", 10),
     mkModelTc(pooling_avg_valid_padding, "3:1:1:10", 10),
     mkModelTc(pooling_global_avg, "3:1:1:10", 10),
-    // mkModelTc(pooling_global_max, "3:1:1:10", 10),
+    mkModelTc(pooling_global_max, "3:1:1:10", 10),
 
     /**< conv pool combined tests */
     mkModelTc(mnist_conv_cross, "3:1:1:10", 10),
