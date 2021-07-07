@@ -17,7 +17,6 @@
 
 #include <acti_func.h>
 #include <layer_devel.h>
-#include <tensor.h>
 
 namespace nntrainer {
 

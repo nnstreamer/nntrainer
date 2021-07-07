@@ -15,8 +15,7 @@
 #define __ADDITION_LAYER_H__
 #ifdef __cplusplus
 
-#include <layer_internal.h>
-#include <tensor.h>
+#include <layer_devel.h>
 
 namespace nntrainer {
 
@@ -24,15 +23,12 @@ namespace nntrainer {
  * @class   Addition Layer
  * @brief   Addition Layer
  */
-class AdditionLayer : public LayerV1 {
+class AdditionLayer : public Layer {
 public:
   /**
    * @brief     Constructor of Addition Layer
    */
-  template <typename... Args>
-  AdditionLayer(unsigned int num_inputs_ = 1, Args... args) : LayerV1(args...) {
-    setNumInputs(num_inputs_);
-  }
+  AdditionLayer() : Layer() {}
 
   /**
    * @brief     Destructor of Addition Layer
@@ -52,34 +48,35 @@ public:
   AdditionLayer &operator=(AdditionLayer &&rhs) = default;
 
   /**
-   * @brief     initialize layer
-   * @param[in] last last layer
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   * @copydoc Layer::finalize(InitLayerContext &context)
    */
-  int initialize(Manager &manager) override;
+  void finalize(InitLayerContext &context) override;
 
   /**
-   * @brief     Read Weight & Bias Data from file
-   * @param[in] file input stream file
+   * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
    */
-  void read(std::ifstream &file) override{};
+  void forwarding(RunLayerContext &context, bool training) override;
 
   /**
-   * @brief     Save Weight & Bias Data to file
-   * @param[in] file output stream file
+   * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
-  void save(std::ofstream &file) override{};
+  void calcDerivative(RunLayerContext &context) override;
 
   /**
-   * @copydoc Layer::forwarding(bool training)
+   * @copydoc bool supportBackwarding() const
    */
-  void forwarding(bool training = true) override;
+  bool supportBackwarding() const override { return true; };
 
   /**
-   * @copydoc Layer::calcDerivative()
+   * @copydoc Layer::exportTo(Exporter &exporter, ExportMethods method)
    */
-  void calcDerivative() override;
+  void exportTo(Exporter &exporter,
+                const ExportMethods &method) const override {}
+
+  /**
+   * @copydoc Layer::setProperty(const std::vector<std::string> &values)
+   */
+  void setProperty(const std::vector<std::string> &values) override;
 
   /**
    * @copydoc Layer::getType()

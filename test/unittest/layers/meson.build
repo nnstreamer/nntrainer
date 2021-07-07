@@ -10,6 +10,7 @@ test_target = [
   'unittest_layers_pooling2d.cpp',
   'unittest_layers_flatten.cpp',
   'unittest_layers_activation.cpp',
+  'unittest_layers_addition.cpp',
 ]
 
 exe = executable(
