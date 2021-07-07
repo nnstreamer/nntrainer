@@ -20,52 +20,44 @@
 
 namespace nntrainer {
 
-int AdditionLayer::initialize(Manager &manager) {
-  int status = ML_ERROR_NONE;
-  if (getNumInputs() == 0) {
-    ml_loge("Error: number of inputs are not initialized");
-    return ML_ERROR_INVALID_PARAMETER;
-  }
+static constexpr size_t SINGLE_INOUT_IDX = 0;
 
-  for (unsigned int idx = 0; idx < getNumInputs(); ++idx) {
-    if (input_dim[idx].getDataLen() == 1) {
-      ml_logw("Warning: the length of previous layer dimension is one");
-    }
-  }
-
-  /** input dimension indicates the dimension for all the inputs to follow */
-  output_dim[0] = input_dim[0];
-
-  return status;
+void AdditionLayer::finalize(InitLayerContext &context) {
+  context.setOutputDimensions({context.getInputDimensions()[0]});
 }
 
-void AdditionLayer::forwarding(bool training) {
-  Tensor &hidden_ = net_hidden[0]->getVariableRef();
-  TensorDim &in_dim = input_dim[0];
+void AdditionLayer::forwarding(RunLayerContext &context, bool training) {
+  Tensor &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
 
   /** @todo check possibility for in-place of addition layer */
-  for (unsigned int idx = 0; idx < getNumInputs(); ++idx) {
-    if (in_dim != net_input[idx]->getDim())
-      throw std::invalid_argument("Error: addition layer requires same "
-                                  "shape from all input layers");
+  for (unsigned int idx = 0; idx < context.getNumInputs(); ++idx) {
+    const Tensor &input_ = context.getInput(idx);
     if (!idx) {
-      hidden_.fill(net_input[idx]->getVariableRef(), false);
+      hidden_.copy(input_);
     } else {
-      hidden_.add_i(net_input[idx]->getVariableRef());
+      hidden_.add_i(input_);
     }
   }
 }
 
-void AdditionLayer::calcDerivative() {
+void AdditionLayer::calcDerivative(RunLayerContext &context) {
 
-  for (unsigned int i = 0; i < getNumInputs(); ++i) {
+  for (unsigned int idx = 0; idx < context.getNumInputs(); ++idx) {
     /**
      * TODO: replace this with tensor assignment during optimization.
      * Tensor assignement needs to make sure that the previous connected layers
      * are not inplace
      */
-    net_input[i]->getGradientRef().copy(net_hidden[0]->getGradientRef());
+    context.getOutgoingDerivative(idx).copy(
+      context.getIncomingDerivative(SINGLE_INOUT_IDX));
   }
 }
 
+void AdditionLayer::setProperty(const std::vector<std::string> &values) {
+  if (!values.empty()) {
+    std::string msg = "[FlattenLayer] Unknown Layer Properties count " +
+                      std::to_string(values.size());
+    throw exception::not_supported(msg);
+  }
+}
 } /* namespace nntrainer */
