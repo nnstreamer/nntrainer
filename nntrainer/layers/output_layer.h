@@ -84,7 +84,7 @@ public:
    */
   const std::string getType() const override { return OutputLayer::type; };
 
-  inline static const std::string type = "output";
+  inline static const std::string type = "multiout";
 };
 
 } // namespace nntrainer
