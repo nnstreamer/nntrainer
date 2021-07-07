@@ -223,6 +223,14 @@ static nntrainer::IniSection dataset("DataSet", "BufferSize = 100 |"
                                                 "ValidData = valSet.dat |"
                                                 "LabelData = label.dat");
 
+static nntrainer::IniSection loss_cross("loss", "Type = cross");
+
+static nntrainer::IniSection loss_cross_softmax("loss", "Type = cross_softmax");
+
+static nntrainer::IniSection loss_cross_sigmoid("loss", "Type = cross_sigmoid");
+
+static nntrainer::IniSection loss_mse("loss", "Type = mse");
+
 static nntrainer::IniSection batch_normal("bn",
                                           "Type = batch_normalization |"
                                           "momentum = 1.2 |"
@@ -339,6 +347,14 @@ INSTANTIATE_TEST_CASE_P(
     mkIniTc("no_bufferSize_p", {nw_base_cross, adam, dataset + "-BufferSize", input, out+"input_layers=inputlayer"}, SUCCESS),
     mkIniTc("buffer_size_smaller_than_batch_size_p", {nw_base_cross, adam, dataset + "BufferSize=26", input, out+"input_layers=inputlayer"}, SUCCESS),
     mkIniTc("buffer_size_smaller_than_batch_size2_p", {nw_base_cross, adam, input, out+"input_layers=inputlayer", dataset + "BufferSize=26"}, SUCCESS),
+    mkIniTc("loss_layer1_p", {nw_base, adam, input + "-Activation", out + "-Activation", loss_mse}, SUCCESS),
+    mkIniTc("loss_layer2_p", {nw_base, adam, input + "-Activation", out, loss_mse}, SUCCESS),
+    mkIniTc("loss_layer3_n", {nw_base, adam, input + "-Activation", out + "-Activation", loss_cross}, INITFAIL | COMPFAIL),
+    mkIniTc("loss_layer4_p", {nw_base, adam, input + "-Activation", out, loss_cross}, SUCCESS),
+    mkIniTc("loss_layer5_p", {nw_base, adam, input + "-Activation", out + "-Activation", loss_cross_sigmoid}, SUCCESS),
+    mkIniTc("loss_layer6_p", {nw_base, adam, input + "-Activation", out, loss_cross_sigmoid}, SUCCESS),
+    mkIniTc("loss_layer7_p", {nw_base, adam, input + "-Activation", out + "-Activation", loss_cross_softmax}, SUCCESS),
+    mkIniTc("loss_layer8_p", {nw_base, adam, input + "-Activation", out, loss_cross_softmax}, SUCCESS),
 
   /**< half negative: init fail cases (1 positive and 4 negative cases) */
     mkIniTc("unknown_loss_n", {nw_base_cross + "loss = unknown", adam, input, out+"input_layers=inputlayer"}, COMPFAIL | INITFAIL),
