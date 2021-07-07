@@ -427,8 +427,9 @@ public:
    */
   void setOutputLayers(const std::vector<std::string> &layers) {
     output_layers = layers;
-    init_context = InitLayerContext(init_context.getInputDimensions(),
-                                    std::max(output_layers.size(), 1ul));
+    init_context =
+      InitLayerContext(init_context.getInputDimensions(),
+                       std::max((unsigned int)output_layers.size(), 1u));
     if (layerv1)
       layerv1->setNumOutputs(layers.size());
   }

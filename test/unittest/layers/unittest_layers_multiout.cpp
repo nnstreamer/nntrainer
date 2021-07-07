@@ -2,7 +2,7 @@
 /**
  * Copyright (C) 2021 Parichay Kapoor <pk.kapoor@samsung.com>
  *
- * @file unittest_layers_output.cpp
+ * @file unittest_layers_multiout.cpp
  * @date 7 July 2021
  * @brief Output Layer Test
  * @see	https://github.com/nnstreamer/nntrainer
@@ -18,7 +18,7 @@
 
 auto semantic_output =
   LayerSemanticsParamType(nntrainer::createLayer<nntrainer::OutputLayer>,
-                          nntrainer::OutputLayer::type, {}, {}, 0, false);
+                          nntrainer::OutputLayer::type, {}, 0, false);
 
 INSTANTIATE_TEST_CASE_P(Output, LayerSemantics,
                         ::testing::Values(semantic_output));
