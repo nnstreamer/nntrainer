@@ -57,14 +57,16 @@ public:
    * @brief Construct a new Init Layer Context object
    *
    */
-  InitLayerContext() = default;
+  InitLayerContext() : InitLayerContext({}, 1) {}
 
   /**
    * @brief Construct a new Init Layer Context object
    *
    * @param dim Input dimensions for the layer
    */
-  InitLayerContext(const std::vector<TensorDim> &dim) : input_dim(dim) {}
+  InitLayerContext(const std::vector<TensorDim> &dim, unsigned int num_out) :
+    input_dim(dim),
+    num_outputs(num_out) {}
 
   /**
    * @brief Get the number of inputs for the layer
@@ -72,6 +74,13 @@ public:
    * @return unsigned int number of inputs
    */
   unsigned int getNumInputs() const { return input_dim.size(); }
+
+  /**
+   * @brief Get the number of inputs for the layer
+   *
+   * @return unsigned int number of inputs
+   */
+  unsigned int getNumOutputs() const { return num_outputs; }
 
   /**
    * @brief Get the Input Dimensions object
@@ -116,6 +125,8 @@ public:
    * @param out_dim the output dimension to set to
    */
   void setOutputDimensions(const std::vector<TensorDim> &out_dim) {
+    if (out_dim.size() != num_outputs)
+      throw std::invalid_argument("Mismatch number of outputs");
     output_dim = out_dim;
   }
 
@@ -231,6 +242,8 @@ private:
   std::vector<TensorSpec>
     tensors_spec; /**< Specification for the var_grad (trainable/non-trainable
                      variables) */
+
+  unsigned int num_outputs; /**< number of outputs for the layer */
 };
 
 /**

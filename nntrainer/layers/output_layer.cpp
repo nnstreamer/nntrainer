@@ -21,41 +21,39 @@
 
 namespace nntrainer {
 
-int OutputLayer::initialize(Manager &manager) {
-  int status = ML_ERROR_NONE;
+static constexpr size_t SINGLE_INOUT_IDX = 0;
 
-  if (getNumInputs() == 0) {
-    ml_loge("Error: number of inputs are not initialized");
-    return ML_ERROR_INVALID_PARAMETER;
-  }
+void OutputLayer::finalize(InitLayerContext &context) {
+  std::vector<TensorDim> out_dims(context.getNumOutputs());
+  const TensorDim &in_dim = context.getInputDimensions()[0];
 
-  // TODO : get output dimensions and set accordingly.
-  //        for now, it's just copy of input dim.
-
-  for (unsigned int idx = 0; idx < getNumOutputs(); ++idx) {
-    output_dim[idx] = input_dim[0];
-  }
-
-  return status;
+  std::fill(out_dims.begin(), out_dims.end(), in_dim);
+  context.setOutputDimensions(out_dims);
 }
 
-void OutputLayer::forwarding(bool training) {
-  Tensor &input_ = net_input[0]->getVariableRef();
-  for (unsigned int idx = 0; idx < getNumOutputs(); ++idx) {
-    net_hidden[idx]->getVariableRef().fill(input_);
+void OutputLayer::forwarding(RunLayerContext &context, bool training) {
+  const Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
+  for (unsigned int idx = 0; idx < context.getNumOutputs(); ++idx) {
+    context.getOutput(idx).fill(input_);
   }
 }
 
-void OutputLayer::calcDerivative() {
-
-  Tensor &ret = net_input[0]->getGradientRef();
-
-  for (unsigned int idx = 0; idx < getNumOutputs(); ++idx) {
+void OutputLayer::calcDerivative(RunLayerContext &context) {
+  Tensor &ret = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
+  for (unsigned int idx = 0; idx < context.getNumOutputs(); ++idx) {
     if (idx == 0) {
-      ret.fill(net_hidden[idx]->getGradientRef(), false);
+      ret.copy(context.getIncomingDerivative(idx));
     } else {
-      ret.add_i(net_hidden[idx]->getGradientRef());
+      ret.add_i(context.getIncomingDerivative(idx));
     }
+  }
+}
+
+void OutputLayer::setProperty(const std::vector<std::string> &values) {
+  if (!values.empty()) {
+    std::string msg = "[FlattenLayer] Unknown Layer Properties count " +
+                      std::to_string(values.size());
+    throw exception::not_supported(msg);
   }
 }
 
