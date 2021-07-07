@@ -41,7 +41,7 @@ TEST_P(LayerSemantics, setPropertiesValidWithInvalid_n) {}
 
 TEST_P(LayerSemantics, setPropertiesValidInvalidOnly_n) {}
 
-TEST_P(LayerSemantics, finalizeOutputValidate_p) {
+TEST_P(LayerSemantics, finalizeValidate_p) {
   nntrainer::TensorDim in_dim({1, 1, 1, 1});
   nntrainer::InitLayerContext init_context =
     nntrainer::InitLayerContext({in_dim}, 1);
@@ -62,6 +62,38 @@ TEST_P(LayerSemantics, finalizeOutputValidate_p) {
       EXPECT_GT(std::get<0>(ws).getDataLen(), 0);
     for (auto const &ts : init_context.getTensorsSpec())
       EXPECT_GT(std::get<0>(ts).getDataLen(), 0);
+  } else {
+    EXPECT_THROW(layer->finalize(init_context),
+                 nntrainer::exception::not_supported);
+  }
+}
+
+TEST_P(LayerSemantics, getTypeValidate_p) {
+  std::string type;
+
+  EXPECT_NO_THROW(type = layer->getType());
+  EXPECT_GT(type.size(), 0);
+}
+
+TEST_P(LayerSemantics, gettersValidate_p) {
+  EXPECT_NO_THROW(layer->supportInPlace());
+  EXPECT_NO_THROW(layer->requireLabel());
+  EXPECT_NO_THROW(layer->supportBackwarding());
+}
+
+TEST_P(LayerSemantics, setBatchValidate_p) {
+  nntrainer::TensorDim in_dim({1, 1, 1, 1});
+  nntrainer::InitLayerContext init_context =
+    nntrainer::InitLayerContext({in_dim}, 1);
+  init_context.validate();
+
+  // set necessary properties only
+  EXPECT_NO_THROW(layer->setProperty(valid_properties));
+
+  if (!must_fail) {
+    EXPECT_NO_THROW(layer->finalize(init_context));
+    EXPECT_NO_THROW(layer->setBatch(
+      init_context, init_context.getInputDimensions()[0].batch() + 10));
   } else {
     EXPECT_THROW(layer->finalize(init_context),
                  nntrainer::exception::not_supported);
