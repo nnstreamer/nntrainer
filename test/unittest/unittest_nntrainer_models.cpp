@@ -656,6 +656,9 @@ using INI = nntrainer::IniWrapper;
  * Activation = softmax
  */
 // clang-format off
+
+// TODO: update some models to use loss at the end as a layer
+// and check for all cases
 INI fc_sigmoid_mse(
   "fc_sigmoid_mse",
   {nn_base + "loss=mse | batch_size = 3",
