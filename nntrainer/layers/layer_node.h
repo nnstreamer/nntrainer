@@ -328,7 +328,7 @@ public:
    * @brief     Get number of inputs
    * @retval    number of inputs
    */
-  unsigned int getNumInputs() const { return input_dim.size(); }
+  unsigned int getNumInputs() const { return init_context.getNumInputs(); }
 
   /**
    * @brief     Get number of outputs
@@ -462,7 +462,7 @@ public:
    * @brief Get the Weight object
    *
    * @param idx Identifier of the weight
-   * @return Tensor& Reference to the weight tensor
+   * @return Weight& Reference to the weight
    */
   Weight getWeightWrapper(unsigned int idx) {
     if (layerv1 == nullptr) {
@@ -580,6 +580,20 @@ public:
   Tensor &getOutputGrad(unsigned int idx) {
     if (layerv1 == nullptr) {
       return run_context.getOutputGrad(idx);
+    } else {
+      return getLayer()->getOutputRef()[idx]->getGradientRef();
+    }
+  }
+
+  /**
+   * @brief Get the Output Grad unsafe
+   *
+   * @param idx Identifier of the output
+   * @return Tensor& Reference to the output grad tensor
+   */
+  Tensor &getOutputGradUnsafe(unsigned int idx) {
+    if (layerv1 == nullptr) {
+      return run_context.getOutputGradUnsafe(idx);
     } else {
       return getLayer()->getOutputRef()[idx]->getGradientRef();
     }
