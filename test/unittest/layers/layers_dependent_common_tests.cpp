@@ -39,7 +39,7 @@ TEST_P(LayerSemantics, setPropertiesInvalid_n) {
   EXPECT_THROW(layer->setProperty({"unknown_props=2"}), std::invalid_argument);
 }
 
-TEST_P(LayerSemantics, finalizeOutputValidateLayerNode_p) {
+TEST_P(LayerSemantics, finalizeValidateLayerNode_p) {
   auto lnode = nntrainer::createLayerNode(expected_type);
   lnode->setProperty({"input_shape=1:1:1", "name=test"});
   // /** purpose is to set number of outputs to 1 */
@@ -59,6 +59,37 @@ TEST_P(LayerSemantics, finalizeOutputValidateLayerNode_p) {
       EXPECT_GT(std::get<0>(ws).getDataLen(), 0);
     for (auto const &ts : init_context.getTensorsSpec())
       EXPECT_GT(std::get<0>(ts).getDataLen(), 0);
+  } else {
+    EXPECT_THROW(lnode->finalize(), nntrainer::exception::not_supported);
+  }
+}
+
+TEST_P(LayerSemantics, getTypeValidateLayerNode_p) {
+  auto lnode = nntrainer::createLayerNode(expected_type);
+  std::string type;
+
+  EXPECT_NO_THROW(type = lnode->getType());
+  EXPECT_GT(type.size(), 0);
+}
+
+TEST_P(LayerSemantics, gettersValidateLayerNode_p) {
+  auto lnode = nntrainer::createLayerNode(expected_type);
+
+  EXPECT_NO_THROW(lnode->supportInPlace());
+  EXPECT_NO_THROW(lnode->requireLabel());
+  EXPECT_NO_THROW(lnode->supportBackwarding());
+}
+
+TEST_P(LayerSemantics, setBatchValidateLayerNode_p) {
+  auto lnode = nntrainer::createLayerNode(expected_type);
+  lnode->setProperty({"input_shape=1:1:1", "name=test"});
+  EXPECT_NO_THROW(lnode->setProperty(valid_properties));
+
+  if (!must_fail) {
+    EXPECT_NO_THROW(lnode->finalize());
+    auto &init_context = lnode->getInitContext();
+    EXPECT_NO_THROW(
+      lnode->setBatch(init_context.getInputDimensions()[0].batch() + 10));
   } else {
     EXPECT_THROW(lnode->finalize(), nntrainer::exception::not_supported);
   }
