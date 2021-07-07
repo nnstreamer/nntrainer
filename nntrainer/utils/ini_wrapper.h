@@ -281,6 +281,17 @@ public:
   }
 
   /**
+   * @brief update a single section using operator+=
+   *
+   * @param string format of `sectionkey / propkey=val | propkey=val| ..`
+   * @return IniWrapper& ini wrapper
+   */
+  IniWrapper &operator+=(const IniSection &section_) {
+    sections.push_back(section_);
+    return *this;
+  }
+
+  /**
    * @brief update a single section using operator +
    *
    * @param rhs string representatioin to merge
@@ -288,6 +299,16 @@ public:
    */
   IniWrapper operator+(const std::string &rhs) const {
     return IniWrapper(*this) += rhs;
+  }
+
+  /**
+   * @brief update a single section using operator +
+   *
+   * @param rhs string representatioin to merge
+   * @return IniWrapper ini wrapper
+   */
+  IniWrapper operator+(const IniSection &section_) const {
+    return IniWrapper(*this) += section_;
   }
 
   /**
