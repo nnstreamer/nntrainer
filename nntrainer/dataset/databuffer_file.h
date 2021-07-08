@@ -44,7 +44,7 @@ public:
   /**
    * @brief     Constructor
    */
-  DataBufferFromDataFile() : DataBuffer(DataBufferType::FILE) {}
+  DataBufferFromDataFile() : DataBuffer(DatasetType::FILE) {}
 
   /**
    * @brief     Destructor
@@ -63,7 +63,7 @@ public:
    * @param[in] BufferType training, validation, test
    * @retval    void
    */
-  void updateData(BufferType type);
+  void updateData(DatasetDataUsageType type);
 
   /**
    * @brief     set train data file name
@@ -72,7 +72,7 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int setDataFile(DataType type, std::string path);
+  int setDataFile(DatasetDataUsageType type, std::string path);
 
   /**
    * @brief     set feature size

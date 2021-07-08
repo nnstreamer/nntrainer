@@ -47,7 +47,7 @@ enum class DatasetType {
 /**
  * @brief     Enumeration of data type
  */
-enum class DatasetDataType {
+enum class DatasetDataUsageType {
   DATA_TRAIN = ML_TRAIN_DATASET_DATA_USAGE_TRAIN, /** data for training */
   DATA_VAL = ML_TRAIN_DATASET_DATA_USAGE_VALID,   /** data for validation */
   DATA_TEST = ML_TRAIN_DATASET_DATA_USAGE_TEST,   /** data for test */

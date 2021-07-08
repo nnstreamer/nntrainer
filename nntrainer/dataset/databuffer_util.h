@@ -12,26 +12,27 @@
  *
  */
 
-#define SET_VALIDATION(val)                                              \
-  do {                                                                   \
-    for (DataType i = DATA_TRAIN; i < DATA_UNKNOWN; i = DataType(i + 1)) \
-      validation[i] = val;                                               \
+#define SET_VALIDATION(val)                                               \
+  do {                                                                    \
+    validation[static_cast<int>(DatasetDataUsageType::DATA_TRAIN)] = val; \
+    validation[static_cast<int>(DatasetDataUsageType::DATA_VAL)] = val;   \
+    validation[static_cast<int>(DatasetDataUsageType::DATA_TEST)] = val;  \
   } while (0)
 
 #define NN_EXCEPTION_NOTI(val)                             \
   do {                                                     \
     switch (type) {                                        \
-    case BufferType::BUF_TRAIN: {                          \
+    case DatasetDataUsageType::DATA_TRAIN: {               \
       std::lock_guard<std::mutex> lgtrain(readyTrainData); \
       trainReadyFlag = val;                                \
       cv_train.notify_all();                               \
     } break;                                               \
-    case BufferType::BUF_VAL: {                            \
+    case DatasetDataUsageType::DATA_VAL: {                 \
       std::lock_guard<std::mutex> lgval(readyValData);     \
       valReadyFlag = val;                                  \
       cv_val.notify_all();                                 \
     } break;                                               \
-    case BufferType::BUF_TEST: {                           \
+    case DatasetDataUsageType::DATA_TEST: {                \
       std::lock_guard<std::mutex> lgtest(readyTestData);   \
       testReadyFlag = val;                                 \
       cv_test.notify_all();                                \

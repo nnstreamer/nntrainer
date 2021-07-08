@@ -85,23 +85,24 @@ int DataBufferFromCallback::init() {
   return ML_ERROR_NONE;
 }
 
-int DataBufferFromCallback::setGeneratorFunc(BufferType type, datagen_cb func) {
+int DataBufferFromCallback::setGeneratorFunc(DatasetDataUsageType type,
+                                             datagen_cb func) {
 
   int status = ML_ERROR_NONE;
   switch (type) {
-  case BufferType::BUF_TRAIN:
+  case DatasetDataUsageType::DATA_TRAIN:
     if (!func)
       return ML_ERROR_INVALID_PARAMETER;
     callback_train = func;
     if (func)
       validation[0] = true;
     break;
-  case BufferType::BUF_VAL:
+  case DatasetDataUsageType::DATA_VAL:
     callback_val = func;
     if (func)
       validation[1] = true;
     break;
-  case BufferType::BUF_TEST:
+  case DatasetDataUsageType::DATA_TEST:
     callback_test = func;
     if (func)
       validation[2] = true;
@@ -114,7 +115,7 @@ int DataBufferFromCallback::setGeneratorFunc(BufferType type, datagen_cb func) {
   return status;
 }
 
-void DataBufferFromCallback::updateData(BufferType type) {
+void DataBufferFromCallback::updateData(DatasetDataUsageType type) {
   int status = ML_ERROR_NONE;
 
   unsigned int buf_size = 0;
@@ -125,7 +126,7 @@ void DataBufferFromCallback::updateData(BufferType type) {
   datagen_cb callback;
 
   switch (type) {
-  case BufferType::BUF_TRAIN: {
+  case DatasetDataUsageType::DATA_TRAIN: {
     buf_size = train_bufsize;
     cur_size = &cur_train_bufsize;
     running = &train_running;
@@ -133,7 +134,7 @@ void DataBufferFromCallback::updateData(BufferType type) {
     datalabel = &train_data_label;
     callback = callback_train;
   } break;
-  case BufferType::BUF_VAL: {
+  case DatasetDataUsageType::DATA_VAL: {
     buf_size = val_bufsize;
     cur_size = &cur_val_bufsize;
     running = &val_running;
@@ -141,7 +142,7 @@ void DataBufferFromCallback::updateData(BufferType type) {
     datalabel = &val_data_label;
     callback = callback_val;
   } break;
-  case BufferType::BUF_TEST: {
+  case DatasetDataUsageType::DATA_TEST: {
     buf_size = test_bufsize;
     cur_size = &cur_test_bufsize;
     running = &test_running;

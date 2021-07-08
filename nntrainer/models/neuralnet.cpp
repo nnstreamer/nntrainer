@@ -600,16 +600,17 @@ int NeuralNetwork::train_run() {
 
   for (epoch_idx = epoch_idx + 1; epoch_idx <= epochs; ++epoch_idx) {
     training.loss = 0.0f;
-    status = data_buffer->run(nntrainer::BufferType::BUF_TRAIN);
+    status = data_buffer->run(nntrainer::DatasetDataUsageType::DATA_TRAIN);
     if (status != ML_ERROR_NONE) {
-      data_buffer->clear(BufferType::BUF_TRAIN);
+      data_buffer->clear(DatasetDataUsageType::DATA_TRAIN);
       return status;
     }
 
-    if (data_buffer->getValidation()[(int)nntrainer::BufferType::BUF_TEST]) {
-      status = data_buffer->run(nntrainer::BufferType::BUF_TEST);
+    if (data_buffer
+          ->getValidation()[(int)nntrainer::DatasetDataUsageType::DATA_TEST]) {
+      status = data_buffer->run(nntrainer::DatasetDataUsageType::DATA_TEST);
       if (status != ML_ERROR_NONE) {
-        data_buffer->clear(BufferType::BUF_TEST);
+        data_buffer->clear(DatasetDataUsageType::DATA_TEST);
         return status;
       }
     }
@@ -617,25 +618,25 @@ int NeuralNetwork::train_run() {
     int count = 0;
 
     while (true) {
-
-      if (data_buffer->getDataFromBuffer(nntrainer::BufferType::BUF_TRAIN,
-                                         in.getData(), label.getData())) {
+      if (data_buffer->getDataFromBuffer(
+            nntrainer::DatasetDataUsageType::DATA_TRAIN, in.getData(),
+            label.getData())) {
         try {
           forwarding(true);
           backwarding(iter++);
         } catch (std::exception &e) {
-          data_buffer->clear(nntrainer::BufferType::BUF_TRAIN);
+          data_buffer->clear(nntrainer::DatasetDataUsageType::DATA_TRAIN);
           ml_loge("Error: training error in #%d/%d. %s", epoch_idx, epochs,
                   e.what());
           throw;
         }
         std::cout << "#" << epoch_idx << "/" << epochs;
         float loss = getLoss();
-        data_buffer->displayProgress(count++, nntrainer::BufferType::BUF_TRAIN,
-                                     loss);
+        data_buffer->displayProgress(
+          count++, nntrainer::DatasetDataUsageType::DATA_TRAIN, loss);
         training.loss += loss;
       } else {
-        data_buffer->clear(nntrainer::BufferType::BUF_TRAIN);
+        data_buffer->clear(nntrainer::DatasetDataUsageType::DATA_TRAIN);
         break;
       }
     }
@@ -649,20 +650,22 @@ int NeuralNetwork::train_run() {
     std::cout << "#" << epoch_idx << "/" << epochs
               << " - Training Loss: " << training.loss;
 
-    if (data_buffer->getValidation()[(int)nntrainer::BufferType::BUF_VAL]) {
+    if (data_buffer
+          ->getValidation()[(int)nntrainer::DatasetDataUsageType::DATA_VAL]) {
       int right = 0;
       validation.loss = 0.0f;
       unsigned int tcases = 0;
 
-      status = data_buffer->run(nntrainer::BufferType::BUF_VAL);
+      status = data_buffer->run(nntrainer::DatasetDataUsageType::DATA_VAL);
       if (status != ML_ERROR_NONE) {
-        data_buffer->clear(BufferType::BUF_VAL);
+        data_buffer->clear(DatasetDataUsageType::DATA_VAL);
         return status;
       }
 
       while (true) {
-        if (data_buffer->getDataFromBuffer(nntrainer::BufferType::BUF_VAL,
-                                           in.getData(), label.getData())) {
+        if (data_buffer->getDataFromBuffer(
+              nntrainer::DatasetDataUsageType::DATA_VAL, in.getData(),
+              label.getData())) {
           forwarding(false);
           auto model_out = output.argmax();
           auto label_out = label.argmax();
@@ -673,7 +676,7 @@ int NeuralNetwork::train_run() {
           validation.loss += getLoss();
           tcases++;
         } else {
-          data_buffer->clear(nntrainer::BufferType::BUF_VAL);
+          data_buffer->clear(nntrainer::DatasetDataUsageType::DATA_VAL);
           break;
         }
       }
