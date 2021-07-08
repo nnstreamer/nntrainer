@@ -171,7 +171,14 @@ def train_step(model, optimizer, loss_fn, initial_input, label, writer_fn, **kwa
             input_indices = model.recorder__input_map[layer.name]
             inputs[layer.name] = [outp[i] for i in input_indices]
 
-        loss = loss_fn(label, outp[-1])
+        # loss = loss_fn(label, outp[-1])
+        loss = []
+        if kwargs.get('multi_out', None) != None:
+            multi_out = kwargs.get('multi_out', [])
+        else:
+            multi_out = [-1]
+        for i in multi_out:
+            loss.append(loss_fn(label, outp[i]))
 
     for layer in iter_model(model):
 
@@ -231,7 +238,9 @@ def train_step(model, optimizer, loss_fn, initial_input, label, writer_fn, **kwa
             **kwargs
         )
 
-    writer_fn(loss)
+    for l in loss:
+        writer_fn(l)
+
     _debug_print(loss=loss, **kwargs)
 
 

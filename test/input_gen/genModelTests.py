@@ -40,6 +40,51 @@ from transLayer import MultiOutLayer
 opt = tf.keras.optimizers
 
 if __name__ == "__main__":
+
+    def multiout_test():
+        # x -> [a, b] -> c
+        x = K.Input(shape=(2, 3, 5), name="x")
+        # because the sort order is x -> [b, a] -> c, b0 must out first.
+        b0, a0 = MultiOutLayer(num_output=2)(x)
+        a1 = TL(
+            K.layers.Conv2D(
+                filters=4, kernel_size=3, strides=2, padding="same", name="multiout_a1"
+            )
+        )(a0)
+        a2 = K.layers.Activation("relu", name="multiout_a2")(a1)
+        a3 = TL(
+            K.layers.Conv2D(
+                filters=4, kernel_size=3, padding="same", name="multiout_a3"
+            )
+        )(a2)
+        a4 = K.layers.Flatten(name="multiout_a4")(a3)
+        a5 = K.layers.Dense(10, name="multiout_a5")(a4)
+        a6 = K.layers.Activation("softmax", name="multiout_a6")(a5)
+        b1 = TL(
+            K.layers.Conv2D(
+                filters=4, kernel_size=1, strides=2, padding="same", name="multiout_b1"
+            )
+        )(b0)
+        b2 = K.layers.Flatten(name="multiout_b2")(b1)
+        b3 = K.layers.Dense(10, name="multiout_b3")(b2)
+        b4 = K.layers.Activation("softmax", name="multiout_b4")(b3)
+
+        return x, [x, b0, b1, b2, b3, b4, a0, a1, a2, a3, a4, a5, a6]
+
+    x, y = multiout_test()
+    record(
+        loss_fn_str="mse",
+        file_name="multiple_output_model.info",
+        input_shape=(3, 2, 3, 5),
+        label_shape=(3, 10),
+        optimizer=opt.SGD(learning_rate=0.1),
+        iteration=10,
+        inputs=x,
+        outputs=y,
+        multi_out=[5, 12],
+        # debug=["name", "summary", "output", "initial_weights"],
+    )
+
     ## please generate all test cases since golden data format can change anytime
     fc_sigmoid = [
         K.Input(shape=(3, 3)),

@@ -267,8 +267,8 @@ private:
 
   nntrainer::NeuralNetwork nn;
   WatchedFlatGraph nodes;
-  NodeWatcher loss_node;
-  float expected_loss;
+  std::vector<NodeWatcher> loss_nodes;
+  std::vector<float> expected_losses;
   bool optimize;
 };
 
@@ -368,7 +368,7 @@ void NodeWatcher::backward(int iteration, bool verify_deriv, bool verify_grad) {
 }
 
 GraphWatcher::GraphWatcher(const std::string &config, const bool opt) :
-  expected_loss(0.0),
+  expected_losses{},
   optimize(opt) {
   nn = nntrainer::NeuralNetwork();
 
@@ -398,13 +398,15 @@ GraphWatcher::GraphWatcher(const std::string &config, const bool opt) :
 
   NetworkGraphType model_graph = nn.getNetworkGraph();
 
-  for (auto it = model_graph.cbegin(); it != model_graph.cend() - 1; ++it) {
+  for (auto it = model_graph.cbegin(); it != model_graph.cend(); ++it) {
     auto const &lnode = *it;
-    nodes.push_back(NodeWatcher(lnode));
+    if (it->getType() == nntrainer::LossLayer::type) {
+      loss_nodes.push_back(NodeWatcher(lnode));
+      expected_losses.push_back(0);
+    } else {
+      nodes.push_back(NodeWatcher(lnode));
+    }
   }
-
-  loss_node =
-    NodeWatcher(model_graph.getSortedLayerNode(model_graph.size() - 1));
 }
 
 void GraphWatcher::compareFor(const std::string &reference,
@@ -430,13 +432,16 @@ void GraphWatcher::compareFor(const std::string &reference,
     readIteration(ref);
 
     nn.forwarding(input, label);
-    EXPECT_NEAR(expected_loss, loss_node.getLoss(), nntrainer::Tensor::epsilon);
+    for (unsigned int i = 0; i < loss_nodes.size(); ++i) {
+      EXPECT_NEAR(expected_losses[i], loss_nodes[i].getLoss(),
+                  nntrainer::Tensor::epsilon);
+    }
 
     for (auto it = nodes.begin(); it != nodes.end() - 1; ++it) {
       it->forward(iteration, *(it + 1));
     }
 
-    if (loss_node.getNodeType() == nntrainer::LossLayer::type) {
+    if (loss_nodes.size()) {
       nn.backwarding(label, iteration);
 
       for (auto it = nodes.rbegin(); it != nodes.rend() - 1; it++) {
@@ -468,7 +473,7 @@ void GraphWatcher::validateFor(const nntrainer::TensorDim &label_shape) {
 
   EXPECT_NO_THROW(nn.forwarding(input, label));
 
-  if (loss_node.getNodeType() == nntrainer::LossLayer::type) {
+  if (loss_nodes.size()) {
     EXPECT_NO_THROW(nn.backwarding(label, 0));
   }
 
@@ -508,7 +513,9 @@ void GraphWatcher::readIteration(std::ifstream &f) {
     i.read(f);
   }
 
-  f.read((char *)&expected_loss, sizeof(float));
+  for (unsigned int i = 0; i < expected_losses.size(); ++i) {
+    f.read((char *)&expected_losses[i], sizeof(float));
+  }
 }
 
 /********************************************************
@@ -1286,6 +1293,28 @@ INI multi_gru_return_sequence_with_batch(
   }
 );
 
+INI multiple_output_model(
+  "multiple_output_model",
+  {
+    nn_base + "loss=mse | batch_size = 3",
+    sgd_base + "learning_rate = 0.1",
+    I("x") + input_base + "input_shape = 2:3:5",
+    I("multiout_a1") + conv_base
+      + "filters=4 | kernel_size=3,3 | stride=2,2 | padding=1,1",
+    I("multiout_a2") + relu_base,
+    I("multiout_a3") + conv_base + "filters=4 | kernel_size=3,3 | padding=1,1",
+    I("multiout_a4", "type=flatten"),
+    I("multiout_a5") + fc_base + "unit=10",
+    I("multiout_a6") + softmax_base,
+    I("multiout_b1") + conv_base
+      + "filters=4 | kernel_size=1,1 | stride=2,2"
+      + "input_layers=x",
+    I("multiout_b2", "type=flatten"),
+    I("multiout_b3") + fc_base + "unit=10",
+    I("multiout_b4") + softmax_base,
+  }
+);
+
 INSTANTIATE_TEST_CASE_P(
   nntrainerModelAutoTests, nntrainerModelTest, ::testing::Values(
     mkModelTc(fc_sigmoid_mse, "3:1:1:10", 10),
@@ -1344,7 +1373,10 @@ INSTANTIATE_TEST_CASE_P(
     mkModelTc(gru_return_sequence, "1:1:2:1", 10),
     mkModelTc(gru_return_sequence_with_batch, "2:1:2:1", 10),
     mkModelTc(multi_gru_return_sequence, "1:1:1:1", 10),
-    mkModelTc(multi_gru_return_sequence_with_batch, "2:1:1:1", 10)
+    mkModelTc(multi_gru_return_sequence_with_batch, "2:1:1:1", 10),
+
+    /**< multi output test */
+    mkModelTc(multiple_output_model, "3:1:1:10", 10)
 ), [](const testing::TestParamInfo<nntrainerModelTest::ParamType>& info){
  return std::get<0>(info.param).getName();
 });
