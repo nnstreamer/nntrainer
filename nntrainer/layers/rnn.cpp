@@ -22,6 +22,8 @@
 
 namespace nntrainer {
 
+static constexpr size_t SINGLE_INOUT_IDX = 0;
+
 // - weight_xh ( input to hidden )
 //  : [1, 1, input_size, unit (hidden_size) ]
 // - weight_hh ( hidden to hidden )
@@ -30,59 +32,57 @@ namespace nntrainer {
 //  : [1, 1, 1, unit (hidden_size)]
 enum RNNParams { weight_xh, weight_hh, bias_h };
 
-int RNNLayer::initialize(Manager &manager) {
-  int status = ML_ERROR_NONE;
-  if (getNumInputs() != 1) {
+void RNNLayer::finalize(InitLayerContext &context) {
+  auto unit = std::get<props::Unit>(props).get();
+
+  if (context.getNumInputs() != 1) {
     throw std::invalid_argument("RNN layer takes only one input");
   }
 
-  // input_dim = [ batch, 1, time_iterantion, feature_size ]
+  TensorDim output_dim;
+  const TensorDim &input_dim = context.getInputDimensions()[0];
+
+  // input_dim = [ batch, 1, time_iteration, feature_size ]
   // outut_dim = [ batch, 1, time_iteration, hidden_size ( unit ) ]
-  output_dim[0] = input_dim[0];
-  output_dim[0].width(unit);
+  output_dim = input_dim;
+  output_dim.width(unit);
 
   if (!return_sequences) {
-    output_dim[0].height(1);
+    output_dim.height(1u);
   }
+
+  context.setOutputDimensions({output_dim});
 
   TensorDim bias_dim = TensorDim();
   bias_dim.setTensorDim(3, unit);
 
-  TensorDim dim_xh = output_dim[0];
-  dim_xh.height(input_dim[0].width());
+  TensorDim dim_xh = output_dim;
+  dim_xh.height(input_dim.width());
   dim_xh.batch(1);
 
-  TensorDim dim_hh = output_dim[0];
+  TensorDim dim_hh = output_dim;
   dim_hh.height(unit);
   dim_hh.batch(1);
 
-  if (weights.empty()) {
-    weights.reserve(3);
-    // weight_initializer can be set sepeartely. weight_xh initializer,
-    // weight_hh initializer kernel initializer & recurrent_initializer in keras
-    // for now, it is set same way.
-    weights.emplace_back(dim_xh, weight_initializer, weight_regularizer,
-                         weight_regularizer_constant, true, "RNN:weight_xh");
-    weights.emplace_back(dim_hh, weight_initializer, weight_regularizer,
-                         weight_regularizer_constant, true, "RNN:weight_hh");
-    weights.emplace_back(bias_dim, bias_initializer, WeightRegularizer::NONE,
-                         1.0f, true, "RNN:bias_h");
-    manager.trackWeights(weights);
-  } else {
-    weights[RNNParams::weight_xh].reset(dim_xh, weight_initializer,
-                                        weight_regularizer,
-                                        weight_regularizer_constant, true);
-    weights[RNNParams::weight_hh].reset(dim_hh, weight_initializer,
-                                        weight_regularizer,
-                                        weight_regularizer_constant, true);
-    weights[RNNParams::bias_h].reset(bias_dim, bias_initializer,
-                                     WeightRegularizer::NONE, 1.0f, true);
-  }
+  // weight_initializer can be set sepeartely. weight_xh initializer,
+  // weight_hh initializer kernel initializer & recurrent_initializer in keras
+  // for now, it is set same way.
 
-  bias_dim.batch(input_dim[0].batch());
+  weight_idx[RNNParams::weight_xh] =
+    context.requestWeight(dim_xh, weight_initializer, weight_regularizer,
+                          weight_regularizer_constant, "RNN:weight_xh", true);
+  weight_idx[RNNParams::weight_hh] =
+    context.requestWeight(dim_hh, weight_initializer, weight_regularizer,
+                          weight_regularizer_constant, "RNN:weight_hh", true);
+  weight_idx[RNNParams::bias_h] =
+    context.requestWeight(bias_dim, bias_initializer, WeightRegularizer::NONE,
+                          1.0f, "RNN:bias_h", true);
+
+  // override setBatch for this
+  bias_dim.batch(input_dim.batch());
   h_prev = Tensor(bias_dim);
 
-  TensorDim d = input_dim[0];
+  TensorDim d = input_dim;
   d.width(unit);
 
   // We do not need this if we reuse net_hidden[0]. But if we do, then the unit
@@ -94,54 +94,68 @@ int RNNLayer::initialize(Manager &manager) {
     hidden_state_activation_type = ActivationType::ACT_TANH;
     acti_func.setActiFunc(hidden_state_activation_type);
   }
-
-  return status;
 }
 
-void RNNLayer::setProperty(const PropertyType type, const std::string &value) {
+void RNNLayer::setProperty(const std::vector<std::string> &values) {
+  /// @todo: deprecate this in favor of loadProperties
+  auto remain_props = loadProperties(values, props);
+  for (unsigned int i = 0; i < remain_props.size(); ++i) {
+    std::string key;
+    std::string value;
+    std::stringstream ss;
+
+    if (getKeyValue(remain_props[i], key, value) != ML_ERROR_NONE) {
+      throw std::invalid_argument("Error parsing the property: " +
+                                  remain_props[i]);
+    }
+
+    if (value.empty()) {
+      ss << "value is empty: key: " << key << ", value: " << value;
+      throw std::invalid_argument(ss.str());
+    }
+
+    /// @note this calls derived setProperty if available
+    setProperty(key, value);
+  }
+}
+
+void RNNLayer::setProperty(const std::string &type_str,
+                           const std::string &value) {
+  using PropertyType = LayerV1::PropertyType;
   int status = ML_ERROR_NONE;
+  LayerV1::PropertyType type =
+    static_cast<LayerV1::PropertyType>(parseLayerProperty(type_str));
+
   // TODO : Add return_state property & api to get the hidden input
   switch (type) {
-  case PropertyType::unit: {
-    if (!value.empty()) {
-      status = setUint(unit, value);
-      throw_status(status);
-      output_dim[0].width(unit);
-    }
-    break;
-  case PropertyType::hidden_state_activation:
-    if (!value.empty()) {
-      ActivationType acti_type = (ActivationType)parseType(value, TOKEN_ACTI);
-      hidden_state_activation_type = acti_type;
-      acti_func.setActiFunc(acti_type);
-    }
-    break;
-  case PropertyType::return_sequences:
-    if (!value.empty()) {
-      status = setBoolean(return_sequences, value);
-      throw_status(status);
-    }
-    break;
+  case PropertyType::hidden_state_activation: {
+    ActivationType acti_type = (ActivationType)parseType(value, TOKEN_ACTI);
+    hidden_state_activation_type = acti_type;
+    acti_func.setActiFunc(acti_type);
+  } break;
+  case PropertyType::return_sequences: {
+    status = setBoolean(return_sequences, value);
+    throw_status(status);
+  } break;
   case PropertyType::dropout:
-    if (!value.empty()) {
-      status = setFloat(dropout_rate, value);
-      throw_status(status);
-    }
+    status = setFloat(dropout_rate, value);
+    throw_status(status);
     break;
   default:
-    LayerV1::setProperty(type, value);
+    LayerImpl::setProperty(type_str, value);
     break;
-  }
   }
 }
 
-void RNNLayer::forwarding(bool training) {
-  Tensor &weight_xh =
-    weightAt(static_cast<int>(RNNParams::weight_xh)).getVariableRef();
-  Tensor &weight_hh =
-    weightAt(static_cast<int>(RNNParams::weight_hh)).getVariableRef();
-  Tensor &bias_h =
-    weightAt(static_cast<int>(RNNParams::bias_h)).getVariableRef();
+void RNNLayer::exportTo(Exporter &exporter, const ExportMethods &method) const {
+  LayerImpl::exportTo(exporter, method);
+  exporter.saveResult(props, method, this);
+}
+
+void RNNLayer::forwarding(RunLayerContext &context, bool training) {
+  Tensor &weight_xh = context.getWeight(weight_idx[RNNParams::weight_xh]);
+  Tensor &weight_hh = context.getWeight(weight_idx[RNNParams::weight_hh]);
+  Tensor &bias_h = context.getWeight(weight_idx[RNNParams::bias_h]);
 
   hidden->getVariableRef().setZero();
 
@@ -151,14 +165,15 @@ void RNNLayer::forwarding(bool training) {
   h_prev.setZero();
 
   Tensor &hidden_ = hidden->getVariableRef();
-  Tensor &input_ = net_input[0]->getVariableRef();
+  Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
+  const TensorDim &input_dim = input_.getDim();
 
   Tensor temp;
   Tensor hs_prev;
   Tensor hs;
 
   // TODO : check merge b and t index
-  for (unsigned int b = 0; b < input_dim[0].batch(); ++b) {
+  for (unsigned int b = 0; b < input_dim.batch(); ++b) {
     Tensor islice = input_.getBatchSlice(b, 1);
     Tensor oslice = hidden_.getBatchSlice(b, 1);
 
@@ -191,72 +206,60 @@ void RNNLayer::forwarding(bool training) {
       h_prev.getBatchSlice(b, 1).copy(hs);
   }
 
+  Tensor &output = context.getOutput(SINGLE_INOUT_IDX);
   if (!return_sequences) {
     TensorDim d = hidden_.getDim();
-    for (unsigned int b = 0; b < input_dim[0].batch(); ++b) {
+    for (unsigned int b = 0; b < input_dim.batch(); ++b) {
       float *data = hidden_.getAddress(b * d.width() * d.height() +
                                        (d.height() - 1) * d.width());
-      float *rdata = net_hidden[0]->getVariableRef().getAddress(b * d.width());
+      float *rdata = output.getAddress(b * d.width());
       std::copy(data, data + d.width(), rdata);
     }
   } else {
-    net_hidden[0]->getVariableRef().copy(hidden_);
+    output.copy(hidden_);
   }
 }
 
-void RNNLayer::copy(std::shared_ptr<LayerV1> l) {
-  LayerV1::copy(l);
-
-  std::shared_ptr<RNNLayer> from = std::static_pointer_cast<RNNLayer>(l);
-  this->unit = from->unit;
-  this->hidden_state_activation_type = from->hidden_state_activation_type;
-  this->return_sequences = from->return_sequences;
-  this->acti_func = from->acti_func;
-}
-
-void RNNLayer::calcDerivative() {
+void RNNLayer::calcDerivative(RunLayerContext &context) {
   Tensor &derivative_ = hidden->getGradientRef();
-  Tensor &weight =
-    weightAt(static_cast<int>(RNNParams::weight_xh)).getVariableRef();
-  Tensor &ret_ = net_input[0]->getGradientRef();
+  Tensor &weight = context.getWeight(weight_idx[RNNParams::weight_xh]);
+  Tensor &ret_ = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
 
   derivative_.dot(weight, ret_, false, true);
 }
 
-void RNNLayer::calcGradient() {
-  Tensor &djdw_x =
-    weightAt(static_cast<int>(RNNParams::weight_xh)).getGradientRef();
-  Tensor &djdw_h =
-    weightAt(static_cast<int>(RNNParams::weight_hh)).getGradientRef();
-  Tensor &djdb_h =
-    weightAt(static_cast<int>(RNNParams::bias_h)).getGradientRef();
-  Tensor &weight_hh =
-    weightAt(static_cast<int>(RNNParams::weight_hh)).getVariableRef();
+void RNNLayer::calcGradient(RunLayerContext &context) {
+  Tensor &djdw_x = context.getWeightGrad(weight_idx[RNNParams::weight_xh]);
+  Tensor &djdw_h = context.getWeightGrad(weight_idx[RNNParams::weight_hh]);
+  Tensor &djdb_h = context.getWeightGrad(weight_idx[RNNParams::bias_h]);
+  Tensor &weight_hh = context.getWeight(weight_idx[RNNParams::weight_hh]);
 
   djdw_x.setZero();
   djdw_h.setZero();
   djdb_h.setZero();
 
   Tensor &derivative_ = hidden->getGradientRef();
+  Tensor &incoming_deriv = context.getOutputGrad(SINGLE_INOUT_IDX);
+  Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
+  const TensorDim &input_dim = input_.getDim();
 
   if (!return_sequences) {
     TensorDim d = derivative_.getDim();
-    for (unsigned int b = 0; b < input_dim[0].batch(); ++b) {
+    for (unsigned int b = 0; b < input_dim.batch(); ++b) {
       float *data = derivative_.getAddress(b * d.width() * d.height() +
                                            (d.height() - 1) * d.width());
-      float *rdata = net_hidden[0]->getGradientRef().getAddress(b * d.width());
+      float *rdata = incoming_deriv.getAddress(b * d.width());
       std::copy(rdata, rdata + d.width(), data);
     }
   } else {
-    derivative_.copy(net_hidden[0]->getGradientRef());
+    derivative_.copy(incoming_deriv);
   }
 
   Tensor &hidden_ = hidden->getVariableRef();
 
-  Tensor &input_ = net_input[0]->getVariableRef();
   Tensor dh_nx = Tensor(TensorDim(1, 1, 1, derivative_.width()));
 
-  for (unsigned int b = 0; b < input_dim[0].batch(); ++b) {
+  for (unsigned int b = 0; b < input_dim.batch(); ++b) {
     Tensor deriv_t = derivative_.getBatchSlice(b, 1);
     Tensor xs_t = input_.getBatchSlice(b, 1);
     Tensor hs_t = hidden_.getBatchSlice(b, 1);
