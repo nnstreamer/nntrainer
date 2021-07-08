@@ -6,7 +6,7 @@ compiler_headers = []
 
 if get_option('enable-tflite-interpreter')
   if not tflite_dep.found()
-    error('Tensorflow-Lite dependency not found')
+    error('Tensorflow2-Lite dependency not found')
   endif
   if not flatc_prog.found()
     error('flatc executable not found')
@@ -35,4 +35,3 @@ endforeach
 foreach h : compiler_headers
   nntrainer_headers += meson.current_source_dir() / h
 endforeach
-
