@@ -29,6 +29,6 @@ endif
 test('app_simpleshot_sample', e, args: [
   'conv4',
   'L2N',
-  'tractor:turtle:squirrel:willow_tree:sunflower_20shot_seed:456_train.dat','tractor:turtle:squirrel:willow_tree:sunflower_seed:456_test.dat',
+  'tractor-turtle-squirrel-willow_tree-sunflower_20shot_seed-456_train.dat','tractor-turtle-squirrel-willow_tree-sunflower_seed-456_test.dat',
   meson.current_source_dir()
 ], timeout: 60)
