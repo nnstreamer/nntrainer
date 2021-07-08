@@ -102,8 +102,8 @@ void FullyConnectedLayer::calcGradient(RunLayerContext &context) {
   Tensor &djdw = context.getWeightGrad(weight_idx[FCParams::weight]);
   Tensor &djdb = context.getWeightGrad(weight_idx[FCParams::bias]);
 
-  Tensor &derivative_ = context.getIncomingDerivative(0);
-  Tensor &input_ = context.getInput(0);
+  Tensor &derivative_ = context.getIncomingDerivative(SINGLE_INOUT_IDX);
+  Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
 
   derivative_.sum({0, 1, 2}, djdb);
   input_.dot(derivative_, djdw, true, false);
