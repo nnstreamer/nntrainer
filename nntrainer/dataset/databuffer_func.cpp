@@ -86,7 +86,7 @@ int DataBufferFromCallback::init() {
 }
 
 int DataBufferFromCallback::setGeneratorFunc(DatasetDataUsageType type,
-                                             datagen_cb func) {
+                                             datagen_cb func, void *user_data) {
 
   int status = ML_ERROR_NONE;
   switch (type) {
@@ -94,6 +94,7 @@ int DataBufferFromCallback::setGeneratorFunc(DatasetDataUsageType type,
     if (!func)
       return ML_ERROR_INVALID_PARAMETER;
     callback_train = func;
+    this->user_data = user_data;
     if (func)
       validation[0] = true;
     break;

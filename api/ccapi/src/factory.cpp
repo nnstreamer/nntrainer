@@ -139,18 +139,16 @@ createDataset(DatasetType type, const std::vector<std::string> &properties) {
 /**
  * @brief Factory creator with constructor for dataset
  */
-std::unique_ptr<Dataset> createDataset(DatasetType type, const char *train_file,
-                                       const char *valid_file,
-                                       const char *test_file) {
-  return nntrainer::createDataBuffer(type, train_file, valid_file, test_file);
+std::unique_ptr<Dataset> createDataset(DatasetType type, const char *file) {
+  return nntrainer::createDataBuffer(type, file);
 }
 
 /**
  * @brief Factory creator with constructor for dataset
  */
-std::unique_ptr<Dataset> createDataset(DatasetType type, datagen_cb train,
-                                       datagen_cb valid, datagen_cb test) {
-  return nntrainer::createDataBuffer(type, train, valid, test);
+std::unique_ptr<Dataset> createDataset(DatasetType type, datagen_cb cb,
+                                       void *user_data) {
+  return nntrainer::createDataBuffer(type, cb, user_data);
 }
 
 } // namespace train

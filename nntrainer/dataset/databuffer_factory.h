@@ -27,16 +27,13 @@ std::unique_ptr<DataBuffer> createDataBuffer(DatasetType type);
  * @brief Factory creator with constructor for databuffer with files
  */
 std::unique_ptr<DataBuffer> createDataBuffer(DatasetType type,
-                                             const char *train_file,
-                                             const char *valid_file = nullptr,
-                                             const char *test_file = nullptr);
+                                             const char *file);
 
 /**
  * @brief Factory creator with constructor for databuffer with callbacks
  */
-std::unique_ptr<DataBuffer> createDataBuffer(DatasetType type, datagen_cb train,
-                                             datagen_cb valid = nullptr,
-                                             datagen_cb test = nullptr);
+std::unique_ptr<DataBuffer> createDataBuffer(DatasetType type, datagen_cb cb,
+                                             void *user_data = nullptr);
 
 } /* namespace nntrainer */
 

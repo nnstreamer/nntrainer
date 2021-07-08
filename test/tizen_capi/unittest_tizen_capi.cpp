@@ -349,7 +349,7 @@ TEST(nntrainer_capi_nnmodel, train_01_p) {
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   /** Compare training statistics */
-  nntrainer_capi_model_comp_metrics(handle, 4.01373, 3.55134, 10.4167);
+  nntrainer_capi_model_comp_metrics(handle, 4.01373, 3.50392, 10.4167);
 
   status = ml_train_model_destroy(handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -745,7 +745,7 @@ TEST(nntrainer_capi_nnmodel, train_with_file_01_p) {
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   /** Compare training statistics */
-  nntrainer_capi_model_comp_metrics(model, 2.13067, 2.19975, 20.8333);
+  nntrainer_capi_model_comp_metrics(model, 2.12599992, 2.200589, 20.8333);
 
   status = ml_train_model_destroy(model);
   EXPECT_EQ(status, ML_ERROR_NONE);

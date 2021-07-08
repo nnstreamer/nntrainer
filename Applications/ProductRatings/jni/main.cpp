@@ -173,10 +173,12 @@ int main(int argc, char *argv[]) {
 
   srand(time(NULL));
 
-  std::shared_ptr<ml::train::Dataset> dataset;
+  std::shared_ptr<ml::train::Dataset> dataset_train, dataset_val;
   try {
-    dataset = createDataset(ml::train::DatasetType::GENERATOR, getBatch_train,
-                            getBatch_train);
+    dataset_train =
+      createDataset(ml::train::DatasetType::GENERATOR, getBatch_train);
+    dataset_val =
+      createDataset(ml::train::DatasetType::GENERATOR, getBatch_train);
   } catch (std::exception &e) {
     std::cerr << "Error creating dataset" << e.what() << std::endl;
     return 1;
@@ -218,7 +220,8 @@ int main(int argc, char *argv[]) {
   }
 
   if (training) {
-    NN.setDataset(dataset);
+    NN.setDataset(ml::train::DatasetDataUsageType::DATA_TRAIN, dataset_train);
+    NN.setDataset(ml::train::DatasetDataUsageType::DATA_VAL, dataset_val);
     try {
       NN.train({"batch_size=" + std::to_string(batch_size)});
     } catch (std::exception &e) {

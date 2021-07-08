@@ -24,6 +24,7 @@
 #define __NEURALNET_H__
 #ifdef __cplusplus
 
+#include <array>
 #include <map>
 #include <memory>
 #include <vector>
@@ -32,7 +33,6 @@
 #endif
 
 #include <app_context.h>
-#include <databuffer.h>
 #include <dynamic_training_optimization.h>
 #include <layer_node.h>
 #include <manager.h>
@@ -44,6 +44,12 @@
 #include <model.h>
 #include <nntrainer-api-common.h>
 
+namespace ml::train {
+class DataSet;
+enum class DatasetType;
+enum class DatasetDataUsageType;
+} // namespace ml::train
+
 namespace nntrainer {
 
 /**
@@ -51,6 +57,9 @@ namespace nntrainer {
  */
 using NetType = ml::train::ModelType;
 
+class DataBuffer;
+using DatasetType = ml::train::DatasetType;
+using DatasetDataUsageType = ml::train::DatasetDataUsageType;
 /**
  * @brief     Statistics from running or training a model
  */
@@ -89,7 +98,7 @@ public:
     weight_initializer(WeightInitializer::WEIGHT_UNKNOWN),
     net_type(NetType::UNKNOWN),
     manager(std::make_shared<Manager>()),
-    data_buffer(nullptr),
+    data_buffers({nullptr, nullptr, nullptr}),
     continue_train(false),
     initialized(false),
     compiled(false),
@@ -269,21 +278,23 @@ public:
 
   /**
    * @brief     Run NeuralNetwork train with callback function by user
+   * @param[in] dt datatype (usage) where it should be
    * @param[in] dataset set the dataset
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int setDataset(std::shared_ptr<ml::train::Dataset> dataset) {
-    return setDataBuffer(std::static_pointer_cast<DataBuffer>(dataset));
-  }
+  int setDataset(const DatasetDataUsageType &dt,
+                 std::shared_ptr<ml::train::Dataset> dataset);
 
   /**
    * @brief     Run NeuralNetwork train with callback function by user
+   * @param[in] dt datatype (usage) where it should be
    * @param[in] databuffer set the databuffer
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int setDataBuffer(std::shared_ptr<DataBuffer> data_buffer);
+  int setDataBuffer(const DatasetDataUsageType &dt,
+                    std::shared_ptr<DataBuffer> data_buffer);
 
   /**
    * @brief     add layer into neural network model
@@ -511,7 +522,8 @@ private:
 
   std::shared_ptr<Manager> manager; /**< nntrainer manager */
 
-  std::shared_ptr<DataBuffer> data_buffer; /**< Data Buffer to get Input */
+  std::array<std::shared_ptr<DataBuffer>, 3>
+    data_buffers; /**< Data Buffers to get Input */
 
   bool continue_train; /**< Continue train from the previous state of
    optimizer and iterations */
@@ -575,7 +587,7 @@ private:
     swap(lhs.save_path, rhs.save_path);
     swap(lhs.opt, rhs.opt);
     swap(lhs.net_type, rhs.net_type);
-    swap(lhs.data_buffer, rhs.data_buffer);
+    swap(lhs.data_buffers, rhs.data_buffers);
     swap(lhs.continue_train, rhs.continue_train);
     swap(lhs.initialized, rhs.initialized);
     swap(lhs.model_graph, rhs.model_graph);

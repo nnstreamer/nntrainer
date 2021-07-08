@@ -273,10 +273,12 @@ int main(int argc, char *argv[]) {
   /**
    * @brief     Data buffer Create & Initialization
    */
-  std::shared_ptr<ml::train::Dataset> dataset;
+  std::shared_ptr<ml::train::Dataset> dataset_train, dataset_val;
   try {
-    dataset = createDataset(ml::train::DatasetType::GENERATOR, getBatch_train,
-                            getBatch_val);
+    dataset_train =
+      createDataset(ml::train::DatasetType::GENERATOR, getBatch_train);
+    dataset_val =
+      createDataset(ml::train::DatasetType::GENERATOR, getBatch_val);
   } catch (...) {
     std::cerr << "Error creating dataset" << std::endl;
     return 1;
@@ -306,7 +308,8 @@ int main(int argc, char *argv[]) {
     std::cerr << "Error during readModel, reason: " << e.what() << std::endl;
     return 1;
   }
-  model->setDataset(dataset);
+  model->setDataset(ml::train::DatasetDataUsageType::DATA_TRAIN, dataset_train);
+  model->setDataset(ml::train::DatasetDataUsageType::DATA_VAL, dataset_val);
 
   /**
    * @brief     Neural Network Train & validation

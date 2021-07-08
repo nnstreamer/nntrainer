@@ -26,8 +26,7 @@
 #include <fstream>
 #include <sstream>
 
-#include <databuffer_file.h>
-#include <databuffer_func.h>
+#include <databuffer.h>
 #include <model_loader.h>
 #include <neuralnet.h>
 #include <nntrainer_error.h>
@@ -201,9 +200,11 @@ NeuralNetwork::~NeuralNetwork() {
   manager.reset();
   model_graph.reset();
 
-  if (data_buffer) {
-    data_buffer->clear();
-  }
+  std::for_each(data_buffers.begin(), data_buffers.end(), [](auto &buffers) {
+    if (buffers) {
+      buffers->clear();
+    }
+  });
 }
 
 /**
@@ -454,8 +455,15 @@ void NeuralNetwork::setBatchSize(unsigned int batch) {
   model_graph.setBatchSize(batch);
   manager->setBatchSize(batch);
 
-  if (data_buffer && data_buffer->setBatchSize(batch_size) != ML_ERROR_NONE)
-    throw std::invalid_argument("Error setting batchsize for the dataset");
+  for (auto &db : data_buffers) {
+    if (db != nullptr) {
+      int status = db->setBatchSize(batch_size);
+      if (status != ML_ERROR_NONE) {
+        ml_loge("[model] setting batchsize from data buffer failed");
+        throw_status(status);
+      }
+    }
+  }
 }
 
 bool NeuralNetwork::validateInput(sharedConstTensors X) {
@@ -522,6 +530,11 @@ sharedConstTensors NeuralNetwork::inference(sharedConstTensors X,
   return out;
 }
 
+int NeuralNetwork::setDataset(const DatasetDataUsageType &usage,
+                              std::shared_ptr<ml::train::Dataset> dataset) {
+  return setDataBuffer(usage, std::static_pointer_cast<DataBuffer>(dataset));
+}
+
 int NeuralNetwork::allocate(bool trainable) {
   // TODO: directly replace this
   manager->initializeTensors(trainable);
@@ -539,8 +552,9 @@ int NeuralNetwork::deallocate() {
 int NeuralNetwork::train(std::vector<std::string> values) {
   int status = ML_ERROR_NONE;
 
-  if (data_buffer == nullptr) {
-    ml_loge("Cannot initialize the model without the data buffer.");
+  if (data_buffers[static_cast<int>(DatasetDataUsageType::DATA_TRAIN)] ==
+      nullptr) {
+    ml_loge("Cannot initialize the model without the train data buffer.");
     return ML_ERROR_INVALID_PARAMETER;
   }
 
@@ -558,15 +572,26 @@ int NeuralNetwork::train(std::vector<std::string> values) {
   status = allocate(true);
   NN_RETURN_STATUS();
 
-  /** Setup data buffer properties */
-  status = data_buffer->setClassNum(getOutputDimension()[0].width());
-  NN_RETURN_STATUS();
+  auto initiate_data_buffer = [this](std::shared_ptr<DataBuffer> &db) {
+    /** @todo pass dedicated dimensions for inputs and labels */
+    int status = db->setClassNum(getOutputDimension()[0].width());
+    NN_RETURN_STATUS();
 
-  status = data_buffer->setFeatureSize(getInputDimension()[0]);
-  NN_RETURN_STATUS();
+    status = db->setFeatureSize(getInputDimension()[0]);
+    NN_RETURN_STATUS();
 
-  status = data_buffer->init();
-  NN_RETURN_STATUS();
+    status = db->init();
+    NN_RETURN_STATUS();
+
+    return status;
+  };
+
+  for (auto &db : data_buffers) {
+    if (db != nullptr) {
+      status = initiate_data_buffer(db);
+    }
+    NN_RETURN_STATUS();
+  }
 
   status = train_run();
 
@@ -598,19 +623,33 @@ int NeuralNetwork::train_run() {
   auto &label = last_layer_node->getOutputGrad(0);
   auto &in = first_layer_node->getInput(0);
 
+  /// below constant is needed after changing
+  /// databuffer having train, valid, test -> train buffer, valid buffer, test
+  /// buffer After the cahgne, only data train is used inside a databuffer.
+  /// RUN_CONSTANT is a stub value to deal with the situation
+  auto RUN_CONSTANT = DatasetDataUsageType::DATA_TRAIN;
+
+  auto &[train_buffer, valid_buffer, test_buffer] = data_buffers;
+
+  if (train_buffer == nullptr) {
+    ml_loge("[NeuralNetworks] there is no train dataset!");
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
   for (epoch_idx = epoch_idx + 1; epoch_idx <= epochs; ++epoch_idx) {
     training.loss = 0.0f;
-    status = data_buffer->run(nntrainer::DatasetDataUsageType::DATA_TRAIN);
+    status = train_buffer->run(RUN_CONSTANT);
     if (status != ML_ERROR_NONE) {
-      data_buffer->clear(DatasetDataUsageType::DATA_TRAIN);
+      train_buffer->clear(RUN_CONSTANT);
       return status;
     }
 
-    if (data_buffer
-          ->getValidation()[(int)nntrainer::DatasetDataUsageType::DATA_TEST]) {
-      status = data_buffer->run(nntrainer::DatasetDataUsageType::DATA_TEST);
+    /// @todo make this working, test buffer is running but doing nothing
+    if (test_buffer != nullptr &&
+        test_buffer->getValidation()[static_cast<int>(RUN_CONSTANT)]) {
+      status = test_buffer->run(nntrainer::DatasetDataUsageType::DATA_TEST);
       if (status != ML_ERROR_NONE) {
-        data_buffer->clear(DatasetDataUsageType::DATA_TEST);
+        test_buffer->clear(DatasetDataUsageType::DATA_TEST);
         return status;
       }
     }
@@ -618,25 +657,23 @@ int NeuralNetwork::train_run() {
     int count = 0;
 
     while (true) {
-      if (data_buffer->getDataFromBuffer(
-            nntrainer::DatasetDataUsageType::DATA_TRAIN, in.getData(),
-            label.getData())) {
+      if (train_buffer->getDataFromBuffer(RUN_CONSTANT, in.getData(),
+                                          label.getData())) {
         try {
           forwarding(true);
           backwarding(iter++);
         } catch (std::exception &e) {
-          data_buffer->clear(nntrainer::DatasetDataUsageType::DATA_TRAIN);
+          train_buffer->clear(RUN_CONSTANT);
           ml_loge("Error: training error in #%d/%d. %s", epoch_idx, epochs,
                   e.what());
           throw;
         }
         std::cout << "#" << epoch_idx << "/" << epochs;
         float loss = getLoss();
-        data_buffer->displayProgress(
-          count++, nntrainer::DatasetDataUsageType::DATA_TRAIN, loss);
+        train_buffer->displayProgress(count++, RUN_CONSTANT, loss);
         training.loss += loss;
       } else {
-        data_buffer->clear(nntrainer::DatasetDataUsageType::DATA_TRAIN);
+        train_buffer->clear(RUN_CONSTANT);
         break;
       }
     }
@@ -650,22 +687,21 @@ int NeuralNetwork::train_run() {
     std::cout << "#" << epoch_idx << "/" << epochs
               << " - Training Loss: " << training.loss;
 
-    if (data_buffer
-          ->getValidation()[(int)nntrainer::DatasetDataUsageType::DATA_VAL]) {
+    if (valid_buffer != nullptr &&
+        valid_buffer->getValidation()[static_cast<int>(RUN_CONSTANT)]) {
       int right = 0;
       validation.loss = 0.0f;
       unsigned int tcases = 0;
 
-      status = data_buffer->run(nntrainer::DatasetDataUsageType::DATA_VAL);
+      status = valid_buffer->run(RUN_CONSTANT);
       if (status != ML_ERROR_NONE) {
-        data_buffer->clear(DatasetDataUsageType::DATA_VAL);
+        valid_buffer->clear(RUN_CONSTANT);
         return status;
       }
 
       while (true) {
-        if (data_buffer->getDataFromBuffer(
-              nntrainer::DatasetDataUsageType::DATA_VAL, in.getData(),
-              label.getData())) {
+        if (valid_buffer->getDataFromBuffer(RUN_CONSTANT, in.getData(),
+                                            label.getData())) {
           forwarding(false);
           auto model_out = output.argmax();
           auto label_out = label.argmax();
@@ -676,7 +712,7 @@ int NeuralNetwork::train_run() {
           validation.loss += getLoss();
           tcases++;
         } else {
-          data_buffer->clear(nntrainer::DatasetDataUsageType::DATA_VAL);
+          valid_buffer->clear(RUN_CONSTANT);
           break;
         }
       }
@@ -746,8 +782,13 @@ int NeuralNetwork::setOptimizer(
   return ML_ERROR_NONE;
 }
 
-int NeuralNetwork::setDataBuffer(std::shared_ptr<DataBuffer> data_buffer) {
-  this->data_buffer = data_buffer;
+int NeuralNetwork::setDataBuffer(const DatasetDataUsageType &usage,
+                                 std::shared_ptr<DataBuffer> data_buffer) {
+  if (data_buffer == nullptr) {
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
+  this->data_buffers[static_cast<int>(usage)] = data_buffer;
 
   return ML_ERROR_NONE;
 }

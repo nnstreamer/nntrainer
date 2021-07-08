@@ -153,11 +153,13 @@ public:
 
   /**
    * @brief     Run Model train with callback function by user
+   * @param[in] usage usage of the dataset
    * @param[in] dataset set the dataset
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  virtual int setDataset(std::shared_ptr<Dataset> dataset) = 0;
+  virtual int setDataset(const ml::train::DatasetDataUsageType &usage,
+                         std::shared_ptr<Dataset> dataset) = 0;
 
   /**
    * @brief     add layer into neural network model

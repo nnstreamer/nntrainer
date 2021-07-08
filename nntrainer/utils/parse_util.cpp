@@ -23,6 +23,7 @@
 #include <array>
 #include <assert.h>
 #include <cstring>
+#include <databuffer.h>
 #include <iostream>
 #include <layer_internal.h>
 #include <neuralnet.h>

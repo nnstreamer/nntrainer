@@ -399,12 +399,12 @@ int main(int argc, char *argv[]) {
   for (unsigned int i = 0; i < count_val.remain; ++i)
     count_val.duplication[i] = i;
 
-  std::shared_ptr<nntrainer::DataBufferFromCallback> DB =
-    std::make_shared<nntrainer::DataBufferFromCallback>();
-  DB->setGeneratorFunc(nntrainer::DatasetDataUsageType::DATA_TRAIN,
-                       getBatch_train_file);
-  DB->setGeneratorFunc(nntrainer::DatasetDataUsageType::DATA_VAL,
-                       getBatch_val_file);
+  auto db_train = std::make_shared<nntrainer::DataBufferFromCallback>();
+  db_train->setGeneratorFunc(ml::train::DatasetDataUsageType::DATA_TRAIN,
+                             getBatch_train_file);
+  auto db_valid = std::make_shared<nntrainer::DataBufferFromCallback>();
+  db_valid->setGeneratorFunc(ml::train::DatasetDataUsageType::DATA_VAL,
+                             getBatch_val_file);
 
   /**
    * @brief     Neural Network Create & Initialization
@@ -427,7 +427,8 @@ int main(int argc, char *argv[]) {
 
   try {
     NN.readModel();
-    NN.setDataBuffer((DB));
+    NN.setDataBuffer(ml::train::DatasetDataUsageType::DATA_TRAIN, db_train);
+    NN.setDataBuffer(ml::train::DatasetDataUsageType::DATA_VAL, db_valid);
     NN.train();
     training_loss = NN.getTrainingLoss();
     validation_loss = NN.getValidationLoss();

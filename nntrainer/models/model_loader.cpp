@@ -193,9 +193,7 @@ int ModelLoader::loadDatasetConfigIni(dictionary *ini, NeuralNetwork &model) {
   int status = ML_ERROR_NONE;
 
   if (iniparser_find_entry(ini, "Dataset") == 0) {
-    model.data_buffer = nntrainer::createDataBuffer(DatasetType::GENERATOR);
-    status = model.data_buffer->setBatchSize(model.batch_size);
-    return status;
+    return ML_ERROR_NONE;
   }
 
   if (iniparser_find_entry(ini, "DataSet:Tflite")) {
@@ -203,10 +201,14 @@ int ModelLoader::loadDatasetConfigIni(dictionary *ini, NeuralNetwork &model) {
     return ML_ERROR_INVALID_PARAMETER;
   }
 
-  model.data_buffer = nntrainer::createDataBuffer(DatasetType::FILE);
-  std::shared_ptr<DataBufferFromDataFile> dbuffer =
-    std::static_pointer_cast<DataBufferFromDataFile>(model.data_buffer);
+  model.data_buffers[static_cast<int>(DatasetDataUsageType::DATA_TRAIN)] =
+    nntrainer::createDataBuffer(DatasetType::FILE);
+  model.data_buffers[static_cast<int>(DatasetDataUsageType::DATA_VAL)] =
+    nntrainer::createDataBuffer(DatasetType::FILE);
+  model.data_buffers[static_cast<int>(DatasetDataUsageType::DATA_TEST)] =
+    nntrainer::createDataBuffer(DatasetType::FILE);
 
+  unsigned int bufsize = iniparser_getint(ini, "DataSet:BufferSize", 1);
   std::function<int(const char *, DatasetDataUsageType, bool)> parse_and_set =
     [&](const char *key, DatasetDataUsageType dt, bool required) -> int {
     const char *path = iniparser_getstring(ini, key, NULL);
@@ -215,7 +217,17 @@ int ModelLoader::loadDatasetConfigIni(dictionary *ini, NeuralNetwork &model) {
       return required ? ML_ERROR_INVALID_PARAMETER : ML_ERROR_NONE;
     }
 
-    return dbuffer->setDataFile(dt, resolvePath(path));
+    auto dbuffer = std::static_pointer_cast<DataBufferFromDataFile>(
+      model.data_buffers[static_cast<int>(dt)]);
+
+    if (int status = dbuffer->setBufSize(bufsize)) {
+      return status;
+    }
+
+    /// setting data to data_train is intended for now. later the function
+    /// should be called without this enum
+    return dbuffer->setDataFile(DatasetDataUsageType::DATA_TRAIN,
+                                resolvePath(path));
   };
 
   status =
@@ -231,13 +243,6 @@ int ModelLoader::loadDatasetConfigIni(dictionary *ini, NeuralNetwork &model) {
   if (path != NULL) {
     ml_logi("setting labelData is deprecated!, it is essentially noop now!");
   }
-
-  status = model.data_buffer->setBatchSize(model.batch_size);
-  NN_RETURN_STATUS();
-
-  unsigned int bufsize = iniparser_getint(ini, "DataSet:BufferSize", 1);
-  status = model.data_buffer->setBufSize(bufsize);
-  NN_RETURN_STATUS();
 
   ml_logd("parsing dataset done");
   return status;

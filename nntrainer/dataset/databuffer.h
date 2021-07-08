@@ -186,10 +186,12 @@ public:
    * @brief     set function pointer for each type
    * @param[in] type Buffer Type
    * @param[in] call back function pointer
+   * @param[in] user_data user_data of the callback
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  virtual int setGeneratorFunc(DatasetDataUsageType type, datagen_cb func);
+  virtual int setGeneratorFunc(DatasetDataUsageType type, datagen_cb func,
+                               void *user_data = nullptr);
 
   /**
    * @brief     set train data file name
