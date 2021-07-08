@@ -301,13 +301,8 @@ bool DataBuffer::getDataFromBuffer(BufferType type, float *out, float *label) {
 
 int DataBuffer::setClassNum(unsigned int num) {
   int status = ML_ERROR_NONE;
-  if (num <= 0) {
+  if (num == 0) {
     ml_loge("Error: number of class should be bigger than 0");
-    SET_VALIDATION(false);
-    return ML_ERROR_INVALID_PARAMETER;
-  }
-  if (class_num != 0 && class_num != num) {
-    ml_loge("Error: number of class should be same with number of label label");
     SET_VALIDATION(false);
     return ML_ERROR_INVALID_PARAMETER;
   }

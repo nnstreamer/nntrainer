@@ -219,7 +219,6 @@ int main(int argc, char **argv) {
   std::string method = argv[2];
   std::string train_path = app_path + "/tasks/" + argv[3];
   std::string val_path = app_path + "/tasks/" + argv[4];
-  std::string label_path = app_path + "/tasks/labels.dat";
 
   try {
     app_context.registerFactory(
@@ -244,10 +243,9 @@ int main(int argc, char **argv) {
 
   std::shared_ptr<ml::train::Dataset> train_dataset;
   try {
-    train_dataset = ml::train::createDataset(ml::train::DatasetType::FILE,
-                                             {"train_data=" + train_path,
-                                              "val_data=" + val_path,
-                                              "label_data=" + label_path});
+    train_dataset = ml::train::createDataset(
+      ml::train::DatasetType::FILE,
+      {"train_data=" + train_path, "val_data=" + val_path});
   } catch (...) {
     std::cerr << "creating dataset failed";
     return 1;

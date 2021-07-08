@@ -46,13 +46,11 @@ enum class DatasetType {
 
 /**
  * @brief     Enumeration of data type
- * @todo      deperecate data label
  */
 enum class DatasetDataType {
   DATA_TRAIN = ML_TRAIN_DATASET_DATA_USAGE_TRAIN, /** data for training */
   DATA_VAL = ML_TRAIN_DATASET_DATA_USAGE_VALID,   /** data for validation */
   DATA_TEST = ML_TRAIN_DATASET_DATA_USAGE_TEST,   /** data for test */
-  DATA_LABEL,                                     /** label names */
   DATA_UNKNOWN                                    /** data not known */
 };
 

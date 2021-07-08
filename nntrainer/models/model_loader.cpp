@@ -224,8 +224,10 @@ int ModelLoader::loadDatasetConfigIni(dictionary *ini, NeuralNetwork &model) {
   NN_RETURN_STATUS();
   status = parse_and_set("DataSet:TestData", DATA_TEST, false);
   NN_RETURN_STATUS();
-  status = parse_and_set("Dataset:LabelData", DATA_LABEL, true);
-  NN_RETURN_STATUS();
+  const char *path = iniparser_getstring(ini, "Dataset:LabelData", NULL);
+  if (path != NULL) {
+    ml_logi("setting labelData is deprecated!, it is essentially noop now!");
+  }
 
   status = model.data_buffer->setBatchSize(model.batch_size);
   NN_RETURN_STATUS();

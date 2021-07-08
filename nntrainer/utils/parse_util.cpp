@@ -383,11 +383,10 @@ unsigned int parseDataProperty(std::string property) {
    * train_data = 0,
    * val_data = 1,
    * test_data = 2,
-   * label_data = 3,
-   * buffer_size = 4
+   * buffer_size = 3
    */
-  std::array<std::string, 5> property_string = {
-    "train_data", "val_data", "test_data", "label_data", "buffer_size"};
+  std::array<std::string, 5> property_string = {"train_data", "val_data",
+                                                "test_data", "buffer_size"};
 
   for (i = 0; i < property_string.size(); i++) {
     unsigned int size = (property_string[i].size() > property.size())
