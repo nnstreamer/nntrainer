@@ -56,7 +56,7 @@ std::condition_variable cv_train;
 std::condition_variable cv_val;
 std::condition_variable cv_test;
 
-DataBuffer::DataBuffer(DataBufferType type) :
+DataBuffer::DataBuffer(DatasetType type) :
   train_running(),
   val_running(),
   test_running(),
@@ -94,14 +94,14 @@ int DataBuffer::rangeRandom(int min, int max) {
   return dist(rng);
 }
 
-int DataBuffer::run(BufferType type) {
+int DataBuffer::run(DatasetDataUsageType type) {
   int status = ML_ERROR_NONE;
   switch (type) {
-  case BufferType::BUF_TRAIN:
+  case DatasetDataUsageType::DATA_TRAIN:
     if (trainReadyFlag == DATA_ERROR)
       return ML_ERROR_INVALID_PARAMETER;
 
-    if (validation[DATA_TRAIN]) {
+    if (validation[static_cast<int>(DatasetDataUsageType::DATA_TRAIN)]) {
       this->train_running = true;
       this->train_thread = std::thread(&DataBuffer::updateData, this, type);
       if (globalExceptionPtr) {
@@ -117,10 +117,10 @@ int DataBuffer::run(BufferType type) {
       return ML_ERROR_INVALID_PARAMETER;
     }
     break;
-  case BufferType::BUF_VAL:
+  case DatasetDataUsageType::DATA_VAL:
     if (valReadyFlag == DATA_ERROR)
       return ML_ERROR_INVALID_PARAMETER;
-    if (validation[DATA_VAL]) {
+    if (validation[static_cast<int>(DatasetDataUsageType::DATA_VAL)]) {
       this->val_running = true;
       this->val_thread = std::thread(&DataBuffer::updateData, this, type);
       if (globalExceptionPtr) {
@@ -136,11 +136,11 @@ int DataBuffer::run(BufferType type) {
       return ML_ERROR_INVALID_PARAMETER;
     }
     break;
-  case BufferType::BUF_TEST:
+  case DatasetDataUsageType::DATA_TEST:
     if (testReadyFlag == DATA_ERROR)
       return ML_ERROR_INVALID_PARAMETER;
 
-    if (validation[DATA_TEST]) {
+    if (validation[static_cast<int>(DatasetDataUsageType::DATA_TEST)]) {
       this->test_running = true;
       this->test_thread = std::thread(&DataBuffer::updateData, this, type);
       if (globalExceptionPtr) {
@@ -165,31 +165,34 @@ int DataBuffer::run(BufferType type) {
   return status;
 }
 
-int DataBuffer::clear(BufferType type) {
+int DataBuffer::clear(DatasetDataUsageType type) {
   int status = ML_ERROR_NONE;
   NN_EXCEPTION_NOTI(DATA_NOT_READY);
   switch (type) {
-  case BufferType::BUF_TRAIN: {
+  case DatasetDataUsageType::DATA_TRAIN: {
     train_running = false;
-    if (validation[DATA_TRAIN] && true == train_thread.joinable())
+    if (validation[static_cast<int>(DatasetDataUsageType::DATA_TRAIN)] &&
+        true == train_thread.joinable())
       train_thread.join();
     this->train_data.clear();
     this->train_data_label.clear();
     this->cur_train_bufsize = 0;
     this->rest_train = max_train;
   } break;
-  case BufferType::BUF_VAL: {
+  case DatasetDataUsageType::DATA_VAL: {
     val_running = false;
-    if (validation[DATA_VAL] && true == val_thread.joinable())
+    if (validation[static_cast<int>(DatasetDataUsageType::DATA_VAL)] &&
+        true == val_thread.joinable())
       val_thread.join();
     this->val_data.clear();
     this->val_data_label.clear();
     this->cur_val_bufsize = 0;
     this->rest_val = max_val;
   } break;
-  case BufferType::BUF_TEST: {
+  case DatasetDataUsageType::DATA_TEST: {
     test_running = false;
-    if (validation[DATA_TEST] && true == test_thread.joinable())
+    if (validation[static_cast<int>(DatasetDataUsageType::DATA_TEST)] &&
+        true == test_thread.joinable())
       test_thread.join();
     this->test_data.clear();
     this->test_data_label.clear();
@@ -208,8 +211,9 @@ int DataBuffer::clear() {
   unsigned int i;
 
   int status = ML_ERROR_NONE;
-  for (i = (int)BufferType::BUF_TRAIN; i <= (int)BufferType::BUF_TEST; ++i) {
-    BufferType type = static_cast<BufferType>(i);
+  for (i = (int)DatasetDataUsageType::DATA_TRAIN;
+       i <= (int)DatasetDataUsageType::DATA_TEST; ++i) {
+    DatasetDataUsageType type = static_cast<DatasetDataUsageType>(i);
     status = this->clear(type);
 
     if (status != ML_ERROR_NONE) {
@@ -221,7 +225,8 @@ int DataBuffer::clear() {
   return status;
 }
 
-bool DataBuffer::getDataFromBuffer(BufferType type, float *out, float *label) {
+bool DataBuffer::getDataFromBuffer(DatasetDataUsageType type, float *out,
+                                   float *label) {
 
   using QueueType = std::vector<std::vector<float>>;
 
@@ -256,7 +261,7 @@ bool DataBuffer::getDataFromBuffer(BufferType type, float *out, float *label) {
 
   /// facade that wait for the databuffer to be filled and pass it to outparam
   /// note that batch_size is passed as an argument because it can vary by
-  /// BufferType::BUF_TYPE later...
+  /// DatasetDataUsageType::BUF_TYPE later...
   auto fill_out_params =
     [&](std::mutex &ready_mutex, std::condition_variable &cv, DataStatus &flag,
         QueueType &data_q, QueueType &label_q, const unsigned int batch_size,
@@ -275,17 +280,17 @@ bool DataBuffer::getDataFromBuffer(BufferType type, float *out, float *label) {
     };
 
   switch (type) {
-  case BufferType::BUF_TRAIN:
+  case DatasetDataUsageType::DATA_TRAIN:
     if (!fill_out_params(readyTrainData, cv_train, trainReadyFlag, train_data,
                          train_data_label, batch_size, cur_train_bufsize))
       return false;
     break;
-  case BufferType::BUF_VAL:
+  case DatasetDataUsageType::DATA_VAL:
     if (!fill_out_params(readyValData, cv_val, valReadyFlag, val_data,
                          val_data_label, batch_size, cur_val_bufsize))
       return false;
     break;
-  case BufferType::BUF_TEST:
+  case DatasetDataUsageType::DATA_TEST:
     if (!fill_out_params(readyTestData, cv_test, testReadyFlag, test_data,
                          test_data_label, batch_size, cur_test_bufsize))
       return false;
@@ -380,17 +385,18 @@ int DataBuffer::setFeatureSize(TensorDim indim) {
   return status;
 }
 
-void DataBuffer::displayProgress(const int count, BufferType type, float loss) {
+void DataBuffer::displayProgress(const int count, DatasetDataUsageType type,
+                                 float loss) {
   int barWidth = 20;
   float max_size = max_train;
   switch (type) {
-  case BufferType::BUF_TRAIN:
+  case DatasetDataUsageType::DATA_TRAIN:
     max_size = max_train;
     break;
-  case BufferType::BUF_VAL:
+  case DatasetDataUsageType::DATA_VAL:
     max_size = max_val;
     break;
-  case BufferType::BUF_TEST:
+  case DatasetDataUsageType::DATA_TEST:
     max_size = max_test;
     break;
   default:
@@ -504,11 +510,7 @@ int DataBuffer::setProperty(const PropertyType type, std::string &value) {
   return status;
 }
 
-int DataBuffer::setGeneratorFunc(BufferType type, datagen_cb func) {
-  return ML_ERROR_NOT_SUPPORTED;
-}
-
-int DataBuffer::setDataFile(DataType type, std::string path) {
+int DataBuffer::setGeneratorFunc(DatasetDataUsageType type, datagen_cb func) {
   return ML_ERROR_NOT_SUPPORTED;
 }
 

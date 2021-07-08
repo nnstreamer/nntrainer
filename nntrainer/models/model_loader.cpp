@@ -193,7 +193,7 @@ int ModelLoader::loadDatasetConfigIni(dictionary *ini, NeuralNetwork &model) {
   int status = ML_ERROR_NONE;
 
   if (iniparser_find_entry(ini, "Dataset") == 0) {
-    model.data_buffer = nntrainer::createDataBuffer(DataBufferType::GENERATOR);
+    model.data_buffer = nntrainer::createDataBuffer(DatasetType::GENERATOR);
     status = model.data_buffer->setBatchSize(model.batch_size);
     return status;
   }
@@ -203,12 +203,12 @@ int ModelLoader::loadDatasetConfigIni(dictionary *ini, NeuralNetwork &model) {
     return ML_ERROR_INVALID_PARAMETER;
   }
 
-  model.data_buffer = nntrainer::createDataBuffer(DataBufferType::FILE);
+  model.data_buffer = nntrainer::createDataBuffer(DatasetType::FILE);
   std::shared_ptr<DataBufferFromDataFile> dbuffer =
     std::static_pointer_cast<DataBufferFromDataFile>(model.data_buffer);
 
-  std::function<int(const char *, DataType, bool)> parse_and_set =
-    [&](const char *key, DataType dt, bool required) -> int {
+  std::function<int(const char *, DatasetDataUsageType, bool)> parse_and_set =
+    [&](const char *key, DatasetDataUsageType dt, bool required) -> int {
     const char *path = iniparser_getstring(ini, key, NULL);
 
     if (path == NULL) {
@@ -218,11 +218,14 @@ int ModelLoader::loadDatasetConfigIni(dictionary *ini, NeuralNetwork &model) {
     return dbuffer->setDataFile(dt, resolvePath(path));
   };
 
-  status = parse_and_set("DataSet:TrainData", DATA_TRAIN, true);
+  status =
+    parse_and_set("DataSet:TrainData", DatasetDataUsageType::DATA_TRAIN, true);
   NN_RETURN_STATUS();
-  status = parse_and_set("DataSet:ValidData", DATA_VAL, false);
+  status =
+    parse_and_set("DataSet:ValidData", DatasetDataUsageType::DATA_VAL, false);
   NN_RETURN_STATUS();
-  status = parse_and_set("DataSet:TestData", DATA_TEST, false);
+  status =
+    parse_and_set("DataSet:TestData", DatasetDataUsageType::DATA_TEST, false);
   NN_RETURN_STATUS();
   const char *path = iniparser_getstring(ini, "Dataset:LabelData", NULL);
   if (path != NULL) {

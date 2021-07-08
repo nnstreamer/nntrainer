@@ -41,7 +41,7 @@ TEST(nntrainer_DataBuffer, setFeatureSize_01_p) {
   dim.setTensorDim("32:1:1:62720");
   status = data_buffer.setClassNum(10);
   EXPECT_EQ(status, ML_ERROR_NONE);
-  status = data_buffer.setDataFile(nntrainer::DATA_TRAIN,
+  status = data_buffer.setDataFile(nntrainer::DatasetDataUsageType::DATA_TRAIN,
                                    getTestResPath("trainingSet.dat"));
   EXPECT_EQ(status, ML_ERROR_NONE);
   status = data_buffer.setFeatureSize(dim);
@@ -80,13 +80,13 @@ TEST(nntrainer_DataBuffer, init_01_p) {
   EXPECT_EQ(status, ML_ERROR_NONE);
   status = data_buffer.setClassNum(10);
   EXPECT_EQ(status, ML_ERROR_NONE);
-  status = data_buffer.setDataFile(nntrainer::DATA_TRAIN,
+  status = data_buffer.setDataFile(nntrainer::DatasetDataUsageType::DATA_TRAIN,
                                    getTestResPath("trainingSet.dat"));
   EXPECT_EQ(status, ML_ERROR_NONE);
-  status =
-    data_buffer.setDataFile(nntrainer::DATA_VAL, getTestResPath("valSet.dat"));
+  status = data_buffer.setDataFile(nntrainer::DatasetDataUsageType::DATA_VAL,
+                                   getTestResPath("valSet.dat"));
   EXPECT_EQ(status, ML_ERROR_NONE);
-  status = data_buffer.setDataFile(nntrainer::DATA_TEST,
+  status = data_buffer.setDataFile(nntrainer::DatasetDataUsageType::DATA_TEST,
                                    getTestResPath("testSet.dat"));
   EXPECT_EQ(status, ML_ERROR_NONE);
   status = data_buffer.setFeatureSize(dim);
@@ -123,7 +123,7 @@ TEST(nntrainer_DataBuffer, setClassNum_02_n) {
 TEST(nntrainer_DataBuffer, setDataFile_01_p) {
   int status = ML_ERROR_NONE;
   nntrainer::DataBufferFromDataFile data_buffer;
-  status = data_buffer.setDataFile(nntrainer::DATA_TRAIN,
+  status = data_buffer.setDataFile(nntrainer::DatasetDataUsageType::DATA_TRAIN,
                                    getTestResPath("trainingSet.dat"));
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
@@ -134,7 +134,8 @@ TEST(nntrainer_DataBuffer, setDataFile_01_p) {
 TEST(nntrainer_DataBuffer, setDataFile_02_n) {
   int status = ML_ERROR_NONE;
   nntrainer::DataBufferFromDataFile data_buffer;
-  status = data_buffer.setDataFile(nntrainer::DATA_TRAIN, "./no_exist.dat");
+  status = data_buffer.setDataFile(nntrainer::DatasetDataUsageType::DATA_TRAIN,
+                                   "./no_exist.dat");
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 
@@ -150,24 +151,24 @@ TEST(nntrainer_DataBuffer, clear_01_p) {
   ASSERT_EQ(status, ML_ERROR_NONE);
   status = data_buffer.setClassNum(10);
   ASSERT_EQ(status, ML_ERROR_NONE);
-  status = data_buffer.setDataFile(nntrainer::DATA_TRAIN,
+  status = data_buffer.setDataFile(nntrainer::DatasetDataUsageType::DATA_TRAIN,
                                    getTestResPath("trainingSet.dat"));
   ASSERT_EQ(status, ML_ERROR_NONE);
-  status =
-    data_buffer.setDataFile(nntrainer::DATA_VAL, getTestResPath("valSet.dat"));
+  status = data_buffer.setDataFile(nntrainer::DatasetDataUsageType::DATA_VAL,
+                                   getTestResPath("valSet.dat"));
   ASSERT_EQ(status, ML_ERROR_NONE);
-  status = data_buffer.setDataFile(nntrainer::DATA_TEST,
+  status = data_buffer.setDataFile(nntrainer::DatasetDataUsageType::DATA_TEST,
                                    getTestResPath("testSet.dat"));
   ASSERT_EQ(status, ML_ERROR_NONE);
   status = data_buffer.setFeatureSize(dim);
   ASSERT_EQ(status, ML_ERROR_NONE);
   status = data_buffer.init();
   ASSERT_EQ(status, ML_ERROR_NONE);
-  status = data_buffer.run(nntrainer::BufferType::BUF_TRAIN);
+  status = data_buffer.run(nntrainer::DatasetDataUsageType::DATA_TRAIN);
   ASSERT_EQ(status, ML_ERROR_NONE);
-  status = data_buffer.run(nntrainer::BufferType::BUF_TEST);
+  status = data_buffer.run(nntrainer::DatasetDataUsageType::DATA_TEST);
   ASSERT_EQ(status, ML_ERROR_NONE);
-  status = data_buffer.run(nntrainer::BufferType::BUF_VAL);
+  status = data_buffer.run(nntrainer::DatasetDataUsageType::DATA_VAL);
   ASSERT_EQ(status, ML_ERROR_NONE);
   status = data_buffer.clear();
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -179,10 +180,10 @@ TEST(nntrainer_DataBuffer, clear_01_p) {
 TEST(nntrainer_DataBuffer, clear_02_p) {
   int status = ML_ERROR_NONE;
   nntrainer::DataBufferFromDataFile data_buffer;
-  status = data_buffer.setDataFile(nntrainer::DATA_TEST,
+  status = data_buffer.setDataFile(nntrainer::DatasetDataUsageType::DATA_TEST,
                                    getTestResPath("testSet.dat"));
   ASSERT_EQ(status, ML_ERROR_NONE);
-  status = data_buffer.clear(nntrainer::BufferType::BUF_TEST);
+  status = data_buffer.clear(nntrainer::DatasetDataUsageType::DATA_TEST);
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
@@ -192,10 +193,10 @@ TEST(nntrainer_DataBuffer, clear_02_p) {
 TEST(nntrainer_DataBuffer, clear_03_p) {
   int status = ML_ERROR_NONE;
   nntrainer::DataBufferFromDataFile data_buffer;
-  status = data_buffer.setDataFile(nntrainer::DATA_TEST,
+  status = data_buffer.setDataFile(nntrainer::DatasetDataUsageType::DATA_TEST,
                                    getTestResPath("testSet.dat"));
   ASSERT_EQ(status, ML_ERROR_NONE);
-  status = data_buffer.clear(nntrainer::BufferType::BUF_TEST);
+  status = data_buffer.clear(nntrainer::DatasetDataUsageType::DATA_TEST);
   EXPECT_EQ(status, ML_ERROR_NONE);
   status = data_buffer.clear();
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -207,22 +208,22 @@ TEST(nntrainer_DataBuffer, clear_03_p) {
 TEST(nntrainer_DataBuffer, clear_04_p) {
   int status = ML_ERROR_NONE;
   nntrainer::DataBufferFromDataFile data_buffer;
-  status = data_buffer.setDataFile(nntrainer::DATA_TEST,
+  status = data_buffer.setDataFile(nntrainer::DatasetDataUsageType::DATA_TEST,
                                    getTestResPath("testSet.dat"));
   ASSERT_EQ(status, ML_ERROR_NONE);
-  status = data_buffer.clear(nntrainer::BufferType::BUF_TEST);
+  status = data_buffer.clear(nntrainer::DatasetDataUsageType::DATA_TEST);
   EXPECT_EQ(status, ML_ERROR_NONE);
   status = data_buffer.clear();
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
 /**
- * @brief Data buffer clear BufferType::BUF_UNKNOWN
+ * @brief Data buffer clear BufferType::DATA_UNKNOWN
  */
 TEST(nntrainer_DataBuffer, clear_05_n) {
   int status = ML_ERROR_NONE;
   nntrainer::DataBufferFromDataFile data_buffer;
-  status = data_buffer.clear(nntrainer::BufferType::BUF_UNKNOWN);
+  status = data_buffer.clear(nntrainer::DatasetDataUsageType::DATA_UNKNOWN);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 }
 

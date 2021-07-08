@@ -38,32 +38,9 @@ namespace nntrainer {
 /**
  * @brief     Aliasing from ccapi ml::train
  */
-using DataBufferType = ml::train::DatasetType;
-using DatasetDataType = ml::train::DatasetDataType;
+using DatasetType = ml::train::DatasetType;
+using DatasetDataUsageType = ml::train::DatasetDataUsageType;
 using datagen_cb = ml::train::datagen_cb;
-
-/**
- * @brief     Enumeration of data type
- */
-typedef enum {
-  DATA_TRAIN =
-    (int)ml::train::DatasetDataType::DATA_TRAIN, /** data for training */
-  DATA_VAL =
-    (int)ml::train::DatasetDataType::DATA_VAL, /** data for validation */
-  DATA_TEST = (int)ml::train::DatasetDataType::DATA_TEST, /** data for test */
-  DATA_UNKNOWN =
-    (int)ml::train::DatasetDataType::DATA_UNKNOWN /** data not known */
-} DataType;
-
-/**
- * @brief     Enumeration of buffer type
- */
-enum class BufferType {
-  BUF_TRAIN = DATA_TRAIN,    /** BUF_TRAIN ( Buffer for training ) */
-  BUF_VAL = DATA_VAL,        /** BUF_VAL ( Buffer for validation ) */
-  BUF_TEST = DATA_TEST,      /** BUF_TEST ( Buffer for test ) */
-  BUF_UNKNOWN = DATA_UNKNOWN /** BUF_UNKNOWN ( unknown ) */
-};
 
 /**
  * @class   DataBuffer Data Buffers
@@ -75,7 +52,7 @@ public:
    * @brief     Create Buffer
    * @retval    DataBuffer
    */
-  DataBuffer(DataBufferType type);
+  DataBuffer(DatasetType type);
 
   /**
    * @brief     Initialize Buffer with data buffer private variables
@@ -89,7 +66,7 @@ public:
    * @param[in] BufferType training, validation, test
    * @retval    void
    */
-  virtual void updateData(BufferType type) = 0;
+  virtual void updateData(DatasetDataUsageType type) = 0;
 
   /**
    * @brief     function for thread ( training, validation, test )
@@ -97,7 +74,7 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  virtual int run(BufferType type);
+  virtual int run(DatasetDataUsageType type);
 
   /**
    * @brief     clear thread ( training, validation, test )
@@ -105,7 +82,7 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  virtual int clear(BufferType type);
+  virtual int clear(DatasetDataUsageType type);
 
   /**
    * @brief     clear all thread ( training, validation, test )
@@ -123,7 +100,7 @@ public:
    * allocated memory block should be passed
    * @retval    true/false
    */
-  bool getDataFromBuffer(BufferType type, float *out, float *label);
+  bool getDataFromBuffer(DatasetDataUsageType type, float *out, float *label);
 
   /**
    * @brief     set number of class
@@ -178,10 +155,10 @@ public:
   /**
    * @brief     Display Progress
    * @param[in] count calculated set ( batch_size size )
-   * @param[in] type buffer type ( BUF_TRAIN, BUF_VAL, BUF_TEST )
+   * @param[in] type buffer type ( DATA_TRAIN, DATA_VAL, DATA_TEST )
    * @retval void
    */
-  void displayProgress(const int count, BufferType type, float loss);
+  void displayProgress(const int count, DatasetDataUsageType type, float loss);
 
   /**
    * @brief     return validation of data set
@@ -207,23 +184,12 @@ public:
 
   /**
    * @brief     set function pointer for each type
-   * @param[in] type data type : DATA_TRAIN, DATA_VAL, DATA_TEST
-   * @param[in] call back function pointer
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   */
-  virtual int setGeneratorFunc(DatasetDataType type, datagen_cb func) {
-    return setGeneratorFunc((BufferType)type, func);
-  }
-
-  /**
-   * @brief     set function pointer for each type
    * @param[in] type Buffer Type
    * @param[in] call back function pointer
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  virtual int setGeneratorFunc(BufferType type, datagen_cb func);
+  virtual int setGeneratorFunc(DatasetDataUsageType type, datagen_cb func);
 
   /**
    * @brief     set train data file name
@@ -232,18 +198,9 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  virtual int setDataFile(DatasetDataType type, std::string path) {
-    return setDataFile((DataType)type, path);
+  virtual int setDataFile(DatasetDataUsageType type, std::string path) {
+    return setDataFile(type, path);
   }
-
-  /**
-   * @brief     set train data file name
-   * @param[in] type data type : DATA_TRAIN, DATA_VAL, DATA_TEST
-   * @param[in] path file path
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   */
-  virtual int setDataFile(DataType type, std::string path);
 
   /**
    * @brief property type of databuffer
@@ -367,7 +324,7 @@ protected:
   /**
    * @brief     The type of data buffer
    */
-  DataBufferType data_buffer_type;
+  DatasetType data_buffer_type;
 
   /** The user_data to be used for the data generator callback */
   void *user_data;

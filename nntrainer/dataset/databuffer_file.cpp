@@ -69,15 +69,18 @@ int DataBufferFromDataFile::init() {
   if (status != ML_ERROR_NONE)
     return status;
 
-  if (validation[DATA_TRAIN] && max_train < batch_size) {
+  if (validation[static_cast<int>(DatasetDataUsageType::DATA_TRAIN)] &&
+      max_train < batch_size) {
     max_train = batch_size;
   }
 
-  if (validation[DATA_VAL] && max_val < batch_size) {
+  if (validation[static_cast<int>(DatasetDataUsageType::DATA_VAL)] &&
+      max_val < batch_size) {
     max_val = batch_size;
   }
 
-  if (validation[DATA_TEST] && max_test < batch_size) {
+  if (validation[static_cast<int>(DatasetDataUsageType::DATA_TEST)] &&
+      max_test < batch_size) {
     max_test = batch_size;
   }
 
@@ -89,20 +92,23 @@ int DataBufferFromDataFile::init() {
   this->val_running = true;
   this->test_running = true;
 
-  if (validation[DATA_TRAIN] && max_train < train_bufsize) {
+  if (validation[static_cast<int>(DatasetDataUsageType::DATA_TRAIN)] &&
+      max_train < train_bufsize) {
     ml_logw("Warning: Total number of train is less than train buffer size. "
             "Train buffer size is set as total number of train");
     train_bufsize = batch_size;
   }
 
-  if (validation[DATA_VAL] && max_val < val_bufsize) {
+  if (validation[static_cast<int>(DatasetDataUsageType::DATA_VAL)] &&
+      max_val < val_bufsize) {
     ml_logw(
       "Warning: Total number of validation is less than validation buffer "
       "size. Validation buffer size is set as total number of validation");
     val_bufsize = batch_size;
   }
 
-  if (validation[DATA_TEST] && max_test < test_bufsize) {
+  if (validation[static_cast<int>(DatasetDataUsageType::DATA_TEST)] &&
+      max_test < test_bufsize) {
     ml_logw("Warning: Total number of test is less than test buffer size. Test "
             "buffer size is set as total number of test");
     test_bufsize = batch_size;
@@ -111,7 +117,7 @@ int DataBufferFromDataFile::init() {
   return ML_ERROR_NONE;
 }
 
-void DataBufferFromDataFile::updateData(BufferType type) {
+void DataBufferFromDataFile::updateData(DatasetDataUsageType type) {
   unsigned int max_size = 0;
   unsigned int buf_size = 0;
   unsigned int *rest_size = NULL;
@@ -121,7 +127,7 @@ void DataBufferFromDataFile::updateData(BufferType type) {
   std::vector<std::vector<float>> *datalabel = NULL;
   std::ifstream file;
   switch (type) {
-  case BufferType::BUF_TRAIN: {
+  case DatasetDataUsageType::DATA_TRAIN: {
     max_size = max_train;
     buf_size = train_bufsize;
     rest_size = &rest_train;
@@ -137,7 +143,7 @@ void DataBufferFromDataFile::updateData(BufferType type) {
     readyTrainData.unlock();
 
   } break;
-  case BufferType::BUF_VAL: {
+  case DatasetDataUsageType::DATA_VAL: {
     max_size = max_val;
     buf_size = val_bufsize;
     rest_size = &rest_val;
@@ -153,7 +159,7 @@ void DataBufferFromDataFile::updateData(BufferType type) {
     readyValData.unlock();
 
   } break;
-  case BufferType::BUF_TEST: {
+  case DatasetDataUsageType::DATA_TEST: {
     max_size = max_test;
     buf_size = test_bufsize;
     rest_size = &rest_test;
@@ -259,48 +265,50 @@ void DataBufferFromDataFile::updateData(BufferType type) {
   file.close();
 }
 
-int DataBufferFromDataFile::setDataFile(DataType type, std::string path) {
+int DataBufferFromDataFile::setDataFile(DatasetDataUsageType type,
+                                        std::string path) {
   int status = ML_ERROR_NONE;
   std::ifstream data_file(path.c_str());
 
   switch (type) {
-  case DATA_TRAIN: {
-    validation[type] = true;
+  case DatasetDataUsageType::DATA_TRAIN: {
+    validation[static_cast<int>(type)] = true;
     if (!data_file.good()) {
       ml_loge(
         "Error: Cannot open data file, Datafile is necessary for training");
-      validation[type] = false;
+      validation[static_cast<int>(type)] = false;
       return ML_ERROR_INVALID_PARAMETER;
     }
     train_name = path;
   } break;
-  case DATA_VAL: {
-    validation[type] = true;
+  case DatasetDataUsageType::DATA_VAL: {
+    validation[static_cast<int>(type)] = true;
     if (!data_file.good()) {
       ml_loge("Error: Cannot open validation data file. Cannot validate "
               "training result");
-      validation[type] = false;
+      validation[static_cast<int>(type)] = false;
       return ML_ERROR_INVALID_PARAMETER;
     }
     val_name = path;
   } break;
-  case DATA_TEST: {
-    validation[type] = true;
+  case DatasetDataUsageType::DATA_TEST: {
+    validation[static_cast<int>(type)] = true;
     if (!data_file.good()) {
       ml_loge("Error: Cannot open test data file. Cannot test training result");
-      validation[type] = false;
+      validation[static_cast<int>(type)] = false;
       return ML_ERROR_INVALID_PARAMETER;
     }
     test_name = path;
   } break;
-  case DATA_UNKNOWN:
+  case DatasetDataUsageType::DATA_UNKNOWN:
   default:
     ml_loge("Error: Not Supported Data Type");
     SET_VALIDATION(false);
     return ML_ERROR_INVALID_PARAMETER;
     break;
   }
-  ml_logd("datafile has set. type: %d, path: %s", type, path.c_str());
+  ml_logd("datafile has set. type: %d, path: %s", static_cast<int>(type),
+          path.c_str());
 
   return status;
 }
@@ -313,7 +321,7 @@ int DataBufferFromDataFile::setFeatureSize(TensorDim tdim) {
   if (status != ML_ERROR_NONE)
     return status;
 
-  if (validation[DATA_TRAIN]) {
+  if (validation[static_cast<int>(DatasetDataUsageType::DATA_TRAIN)]) {
     file_size = getFileSize(train_name);
     max_train = static_cast<unsigned int>(
       file_size /
@@ -325,7 +333,7 @@ int DataBufferFromDataFile::setFeatureSize(TensorDim tdim) {
     max_train = 0;
   }
 
-  if (validation[DATA_VAL]) {
+  if (validation[static_cast<int>(DatasetDataUsageType::DATA_VAL)]) {
     file_size = getFileSize(val_name);
     max_val = static_cast<unsigned int>(
       file_size /
@@ -337,7 +345,7 @@ int DataBufferFromDataFile::setFeatureSize(TensorDim tdim) {
     max_val = 0;
   }
 
-  if (validation[DATA_TEST]) {
+  if (validation[static_cast<int>(DatasetDataUsageType::DATA_TEST)]) {
     file_size = getFileSize(test_name);
     max_test = static_cast<unsigned int>(
       file_size /
@@ -356,18 +364,18 @@ int DataBufferFromDataFile::setProperty(const PropertyType type,
                                         std::string &value) {
   int status = ML_ERROR_NONE;
 
-  if (data_buffer_type != DataBufferType::FILE)
+  if (data_buffer_type != DatasetType::FILE)
     return ML_ERROR_INVALID_PARAMETER;
 
   switch (type) {
   case PropertyType::train_data:
-    status = this->setDataFile(DATA_TRAIN, value);
+    status = this->setDataFile(DatasetDataUsageType::DATA_TRAIN, value);
     break;
   case PropertyType::val_data:
-    status = this->setDataFile(DATA_VAL, value);
+    status = this->setDataFile(DatasetDataUsageType::DATA_VAL, value);
     break;
   case PropertyType::test_data:
-    status = this->setDataFile(DATA_TEST, value);
+    status = this->setDataFile(DatasetDataUsageType::DATA_TEST, value);
     break;
   default:
     status = DataBuffer::setProperty(type, value);
