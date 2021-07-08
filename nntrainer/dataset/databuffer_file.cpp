@@ -293,24 +293,6 @@ int DataBufferFromDataFile::setDataFile(DataType type, std::string path) {
     }
     test_name = path;
   } break;
-  case DATA_LABEL: {
-    std::string data;
-    validation[type] = true;
-    if (!data_file.good()) {
-      ml_loge("Error: Cannot open label file");
-      SET_VALIDATION(false);
-      return ML_ERROR_INVALID_PARAMETER;
-    }
-    while (data_file >> data) {
-      labels.push_back(data);
-    }
-    if (class_num != 0 && class_num != labels.size()) {
-      ml_loge("Error: number of label should be same with number class number");
-      SET_VALIDATION(false);
-      return ML_ERROR_INVALID_PARAMETER;
-    }
-    class_num = labels.size();
-  } break;
   case DATA_UNKNOWN:
   default:
     ml_loge("Error: Not Supported Data Type");
@@ -386,9 +368,6 @@ int DataBufferFromDataFile::setProperty(const PropertyType type,
     break;
   case PropertyType::test_data:
     status = this->setDataFile(DATA_TEST, value);
-    break;
-  case PropertyType::label_data:
-    status = this->setDataFile(DATA_LABEL, value);
     break;
   default:
     status = DataBuffer::setProperty(type, value);

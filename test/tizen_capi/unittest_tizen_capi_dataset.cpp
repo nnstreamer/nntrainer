@@ -151,15 +151,13 @@ TEST(nntrainer_capi_dataset, set_dataset_property_02_p) {
   std::string train_prop = "train_data=" + getTestResPath("trainingSet.dat");
   std::string val_prop = "val_data=" + getTestResPath("valSet.dat");
   std::string test_prop = "test_data=" + getTestResPath("testSet.dat");
-  std::string label_prop = "label_data=" + getTestResPath("label.dat");
 
   /** Multiple properties */
   status = ml_train_dataset_set_property(dataset, val_prop.c_str(),
                                          test_prop.c_str(), NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_train_dataset_set_property(dataset, label_prop.c_str(),
-                                         "buffer_size=100", NULL);
+  status = ml_train_dataset_set_property(dataset, "buffer_size=100", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   /** Overwrite properties */

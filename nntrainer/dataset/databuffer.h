@@ -50,8 +50,7 @@ typedef enum {
     (int)ml::train::DatasetDataType::DATA_TRAIN, /** data for training */
   DATA_VAL =
     (int)ml::train::DatasetDataType::DATA_VAL, /** data for validation */
-  DATA_TEST = (int)ml::train::DatasetDataType::DATA_TEST,   /** data for test */
-  DATA_LABEL = (int)ml::train::DatasetDataType::DATA_LABEL, /** label names */
+  DATA_TEST = (int)ml::train::DatasetDataType::DATA_TEST, /** data for test */
   DATA_UNKNOWN =
     (int)ml::train::DatasetDataType::DATA_UNKNOWN /** data not known */
 } DataType;
@@ -246,13 +245,16 @@ public:
    */
   virtual int setDataFile(DataType type, std::string path);
 
+  /**
+   * @brief property type of databuffer
+   *
+   */
   enum class PropertyType {
     train_data = 0,
     val_data = 1,
     test_data = 2,
-    label_data = 3,
-    buffer_size = 4,
-    unknown = 5
+    buffer_size = 3,
+    unknown = 4
   };
 
 protected:

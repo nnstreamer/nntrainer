@@ -731,9 +731,7 @@ TEST(nntrainer_capi_nnmodel, train_with_file_01_p) {
     getTestResPath("valSet.dat").c_str(), NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  const std::string label_prop = "label_data=" + getTestResPath("label.dat");
-  status = ml_train_dataset_set_property(dataset, label_prop.c_str(),
-                                         "buffer_size=100", NULL);
+  status = ml_train_dataset_set_property(dataset, "buffer_size=100", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_train_model_set_dataset(model, dataset);
