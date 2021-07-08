@@ -208,27 +208,7 @@ NeuralNetwork::~NeuralNetwork() {
   });
 }
 
-/**
- * @brief     forward propagation using layers object which has layer
- */
-sharedConstTensors NeuralNetwork::forwarding(bool training) {
-  return model_graph.forwarding(training);
-}
-
-/**
- * @brief     forward propagation using layers object which has layer
- */
-sharedConstTensors NeuralNetwork::forwarding(sharedConstTensors input,
-                                             sharedConstTensors label,
-                                             bool training) {
-
-  NNTR_THROW_IF(input[0]->batch() != batch_size ||
-                  (!label.empty() && label[0]->batch() != batch_size),
-                std::logic_error)
-    << "Error: mismatch in batchsize for data and model."
-    << " input_batch: " << input[0]->batch()
-    << " label_batch: " << label[0]->batch() << " target_batch: " << batch_size;
-
+void NeuralNetwork::setLabels(sharedConstTensors label) {
   auto fill_label = [&label](auto const &layer_node) {
     NNTR_THROW_IF(label.size() != layer_node->getNumOutputs(),
                   std::invalid_argument)
@@ -254,7 +234,30 @@ sharedConstTensors NeuralNetwork::forwarding(sharedConstTensors input,
       label.empty() ? clear_label(lnode) : fill_label(lnode);
     }
   }
+}
 
+/**
+ * @brief     forward propagation using layers object which has layer
+ */
+sharedConstTensors NeuralNetwork::forwarding(bool training) {
+  return model_graph.forwarding(training);
+}
+
+/**
+ * @brief     forward propagation using layers object which has layer
+ */
+sharedConstTensors NeuralNetwork::forwarding(sharedConstTensors input,
+                                             sharedConstTensors label,
+                                             bool training) {
+
+  NNTR_THROW_IF(input[0]->batch() != batch_size ||
+                  (!label.empty() && label[0]->batch() != batch_size),
+                std::logic_error)
+    << "Error: mismatch in batchsize for data and model."
+    << " input_batch: " << input[0]->batch()
+    << " label_batch: " << label[0]->batch() << " target_batch: " << batch_size;
+
+  setLabels(label);
   model_graph.getSortedLayerNode(0)->getInput(0) = *input[0].get();
 
   return forwarding(training);
@@ -346,10 +349,7 @@ void NeuralNetwork::backwarding(int iteration) {
  *            No need to call at first Input Layer (No data to be updated)
  */
 void NeuralNetwork::backwarding(sharedConstTensors label, int iteration) {
-  auto const &loss_layer_node =
-    model_graph.getSortedLayerNode(model_graph.size() - 1);
-  loss_layer_node->getOutputGrad(0) = *label[0].get();
-
+  setLabels(label);
   backwarding(iteration);
 }
 

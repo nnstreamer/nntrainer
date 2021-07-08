@@ -74,7 +74,7 @@ void DropOutLayer::calcDerivative(RunLayerContext &context) {
 void DropOutLayer::setProperty(const std::vector<std::string> &values) {
   auto remain_props = loadProperties(values, dropout_rate);
   if (!remain_props.empty()) {
-    std::string msg = "[FlattenLayer] Unknown Layer Properties count " +
+    std::string msg = "[DropOutLayer] Unknown Layer Properties count " +
                       std::to_string(values.size());
     throw exception::not_supported(msg);
   }
