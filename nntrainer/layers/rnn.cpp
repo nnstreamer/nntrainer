@@ -30,7 +30,7 @@ static constexpr size_t SINGLE_INOUT_IDX = 0;
 //  : [1, 1, unit (hidden_size) , unit (hidden_size)]
 // - bias_h ( hidden bias )
 //  : [1, 1, 1, unit (hidden_size)]
-enum RNNParams { weight_xh, weight_hh, bias_h };
+enum RNNParams { weight_xh, weight_hh, bias_h, hidden_state };
 
 void RNNLayer::finalize(InitLayerContext &context) {
   auto unit = std::get<props::Unit>(props).get();
@@ -68,32 +68,32 @@ void RNNLayer::finalize(InitLayerContext &context) {
   // weight_hh initializer kernel initializer & recurrent_initializer in keras
   // for now, it is set same way.
 
-  weight_idx[RNNParams::weight_xh] =
+  wt_idx[RNNParams::weight_xh] =
     context.requestWeight(dim_xh, weight_initializer, weight_regularizer,
                           weight_regularizer_constant, "RNN:weight_xh", true);
-  weight_idx[RNNParams::weight_hh] =
+  wt_idx[RNNParams::weight_hh] =
     context.requestWeight(dim_hh, weight_initializer, weight_regularizer,
                           weight_regularizer_constant, "RNN:weight_hh", true);
-  weight_idx[RNNParams::bias_h] =
+  wt_idx[RNNParams::bias_h] =
     context.requestWeight(bias_dim, bias_initializer, WeightRegularizer::NONE,
                           1.0f, "RNN:bias_h", true);
-
-  // override setBatch for this
-  bias_dim.batch(input_dim.batch());
-  h_prev = Tensor(bias_dim);
-
-  TensorDim d = input_dim;
-  d.width(unit);
 
   // We do not need this if we reuse net_hidden[0]. But if we do, then the unit
   // test will fail. Becuase it modifies the date during gradient calculation
   // TODO : We could control with something like #define test to save memory
-  hidden = std::make_shared<Var_Grad>(d, true, true, "RNN:temp_hidden");
+  TensorDim d = input_dim;
+  d.width(unit);
+  wt_idx[RNNParams::hidden_state] =
+    context.requestTensor(d, "RNN:hidden_state", true, ITERATION_LIFESPAN);
 
   if (hidden_state_activation_type == ActivationType::ACT_NONE) {
     hidden_state_activation_type = ActivationType::ACT_TANH;
     acti_func.setActiFunc(hidden_state_activation_type);
   }
+
+  if (!acti_func.supportInPlace())
+    throw exception::not_supported(
+      "Out of place activation functions not supported");
 }
 
 void RNNLayer::setProperty(const std::vector<std::string> &values) {
@@ -149,26 +149,15 @@ void RNNLayer::exportTo(Exporter &exporter, const ExportMethods &method) const {
 }
 
 void RNNLayer::forwarding(RunLayerContext &context, bool training) {
-  Tensor &weight_xh = context.getWeight(weight_idx[RNNParams::weight_xh]);
-  Tensor &weight_hh = context.getWeight(weight_idx[RNNParams::weight_hh]);
-  Tensor &bias_h = context.getWeight(weight_idx[RNNParams::bias_h]);
+  Tensor &weight_xh = context.getWeight(wt_idx[RNNParams::weight_xh]);
+  Tensor &weight_hh = context.getWeight(wt_idx[RNNParams::weight_hh]);
+  Tensor &bias_h = context.getWeight(wt_idx[RNNParams::bias_h]);
 
-  hidden->getVariableRef().setZero();
-
-  if (training) {
-    hidden->getGradientRef().setZero();
-  }
-  h_prev.setZero();
-
-  Tensor &hidden_ = hidden->getVariableRef();
+  Tensor &hidden_ = context.getTensor(wt_idx[RNNParams::hidden_state]);
   Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
   const TensorDim &input_dim = input_.getDim();
 
-  Tensor temp;
-  Tensor hs_prev;
-  Tensor hs;
-
-  // TODO : check merge b and t index
+  // TODO: swap b and t index with transpose
   for (unsigned int b = 0; b < input_dim.batch(); ++b) {
     Tensor islice = input_.getBatchSlice(b, 1);
     Tensor oslice = hidden_.getBatchSlice(b, 1);
@@ -176,26 +165,21 @@ void RNNLayer::forwarding(RunLayerContext &context, bool training) {
     for (unsigned int t = 0; t < islice.height(); ++t) {
       Tensor xs =
         islice.getSharedDataTensor({islice.width()}, t * islice.width());
-
-      hs = oslice.getSharedDataTensor({oslice.width()}, t * oslice.width());
-      if (t > 0) {
-        hs_prev = oslice.getSharedDataTensor({oslice.width()},
-                                             (t - 1) * oslice.width());
-      } else {
-        hs_prev = h_prev.getBatchSlice(b, 1);
-      }
-
-      hs_prev.dot(weight_hh, temp);
+      Tensor hs =
+        oslice.getSharedDataTensor({oslice.width()}, t * oslice.width());
 
       xs.dot(weight_xh, hs);
-      temp.add_i(bias_h);
+      hs.add_i(bias_h);
 
-      hs.add_i(temp);
-      // TODO : In-place calculation for activation
+      if (t > 0) {
+        Tensor hs_prev = oslice.getSharedDataTensor({oslice.width()},
+                                                    (t - 1) * oslice.width());
+        hs_prev.dot(weight_hh, hs, false, false, 1.0);
+      }
+
+      // In-place calculation for activation
       acti_func.run_fn(hs, hs);
     }
-    if (!training)
-      h_prev.getBatchSlice(b, 1).copy(hs);
   }
 
   Tensor &output = context.getOutput(SINGLE_INOUT_IDX);
@@ -213,27 +197,28 @@ void RNNLayer::forwarding(RunLayerContext &context, bool training) {
 }
 
 void RNNLayer::calcDerivative(RunLayerContext &context) {
-  Tensor &derivative_ = hidden->getGradientRef();
-  Tensor &weight = context.getWeight(weight_idx[RNNParams::weight_xh]);
+  Tensor &derivative_ = context.getTensorGrad(wt_idx[RNNParams::hidden_state]);
+  Tensor &weight = context.getWeight(wt_idx[RNNParams::weight_xh]);
   Tensor &ret_ = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
 
   derivative_.dot(weight, ret_, false, true);
 }
 
 void RNNLayer::calcGradient(RunLayerContext &context) {
-  Tensor &djdw_x = context.getWeightGrad(weight_idx[RNNParams::weight_xh]);
-  Tensor &djdw_h = context.getWeightGrad(weight_idx[RNNParams::weight_hh]);
-  Tensor &djdb_h = context.getWeightGrad(weight_idx[RNNParams::bias_h]);
-  Tensor &weight_hh = context.getWeight(weight_idx[RNNParams::weight_hh]);
+  Tensor &djdw_x = context.getWeightGrad(wt_idx[RNNParams::weight_xh]);
+  Tensor &djdw_h = context.getWeightGrad(wt_idx[RNNParams::weight_hh]);
+  Tensor &djdb_h = context.getWeightGrad(wt_idx[RNNParams::bias_h]);
+  Tensor &weight_hh = context.getWeight(wt_idx[RNNParams::weight_hh]);
+
+  Tensor &derivative_ = context.getTensorGrad(wt_idx[RNNParams::hidden_state]);
+  Tensor &incoming_deriv = context.getOutputGrad(SINGLE_INOUT_IDX);
+  Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
+  const TensorDim &input_dim = input_.getDim();
 
   djdw_x.setZero();
   djdw_h.setZero();
   djdb_h.setZero();
-
-  Tensor &derivative_ = hidden->getGradientRef();
-  Tensor &incoming_deriv = context.getOutputGrad(SINGLE_INOUT_IDX);
-  Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
-  const TensorDim &input_dim = input_.getDim();
+  derivative_.setZero();
 
   if (!return_sequences) {
     TensorDim d = derivative_.getDim();
@@ -247,46 +232,33 @@ void RNNLayer::calcGradient(RunLayerContext &context) {
     derivative_.copy(incoming_deriv);
   }
 
-  Tensor &hidden_ = hidden->getVariableRef();
-
-  Tensor dh_nx = Tensor(TensorDim(1, 1, 1, derivative_.width()));
+  Tensor &hidden_ = context.getTensor(wt_idx[RNNParams::hidden_state]);
 
   for (unsigned int b = 0; b < input_dim.batch(); ++b) {
     Tensor deriv_t = derivative_.getBatchSlice(b, 1);
     Tensor xs_t = input_.getBatchSlice(b, 1);
     Tensor hs_t = hidden_.getBatchSlice(b, 1);
-    dh_nx.setZero();
-
-    Tensor dh;
-    Tensor xs;
-    Tensor hs_prev;
-    Tensor hs;
 
     for (unsigned int t = deriv_t.height(); t-- > 0;) {
-      dh = deriv_t.getSharedDataTensor(TensorDim(1, 1, 1, deriv_t.width()),
-                                       t * deriv_t.width());
-      xs = xs_t.getSharedDataTensor(TensorDim(1, 1, 1, xs_t.width()),
-                                    t * xs_t.width());
-      hs = hs_t.getSharedDataTensor(TensorDim(1, 1, 1, hs_t.width()),
-                                    t * hs_t.width());
-      if (t == 0) {
-        hs_prev = Tensor(TensorDim(1, 1, 1, hs_t.width()));
-        hs_prev.setZero();
-      } else {
-        hs_prev = hs_t.getSharedDataTensor(TensorDim(1, 1, 1, hs_t.width()),
-                                           (t - 1) * hs_t.width());
-      }
-
-      if (t < deriv_t.height() - 1) {
-        dh.add_i(dh_nx);
-      }
+      Tensor dh = deriv_t.getSharedDataTensor(
+        TensorDim(1, 1, 1, deriv_t.width()), t * deriv_t.width());
+      Tensor xs = xs_t.getSharedDataTensor(TensorDim(1, 1, 1, xs_t.width()),
+                                           t * xs_t.width());
+      Tensor hs = hs_t.getSharedDataTensor(TensorDim(1, 1, 1, hs_t.width()),
+                                           t * hs_t.width());
 
       acti_func.run_prime_fn(hs, dh, dh);
-
       djdb_h.add_i(dh);
       xs.dot(dh, djdw_x, true, false, 1.0);
-      hs_prev.dot(dh, djdw_h, true, false, 1.0);
-      dh.dot(weight_hh, dh_nx, false, true);
+
+      if (t > 0) {
+        Tensor hs_prev = hs_t.getSharedDataTensor(
+          TensorDim(1, 1, 1, hs_t.width()), (t - 1) * hs_t.width());
+        Tensor dh_t_1 = deriv_t.getSharedDataTensor(
+          TensorDim(1, 1, 1, deriv_t.width()), (t - 1) * deriv_t.width());
+        hs_prev.dot(dh, djdw_h, true, false, 1.0);
+        dh.dot(weight_hh, dh_t_1, false, true, 1.0);
+      }
     }
   }
 }
