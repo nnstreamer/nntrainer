@@ -391,6 +391,56 @@ int ml_train_dataset_create_with_generator(ml_train_dataset_h *dataset,
                                            ml_train_datagen_cb test_cb);
 
 /**
+ * @brief Constructs the dataset.
+ * @details Use this function to create a dataset
+ * @since_tizen 6.5
+ * @remarks If the function succeeds, @a dataset must be released using
+ * ml_train_dataset_destroy(), if not added to a model. If added to a model, @a
+ * dataset is available until the model is released.
+ * @param[out] dataset The NNTrainer dataset handle.
+ * @return @c 0 on success. Otherwise a negative error value.
+ * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_NOT_SUPPORTED Not supported.
+ * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
+ */
+int ml_train_dataset_create(ml_train_dataset_h *dataset);
+
+/**
+ * @brief Add data generator callback to @a dataset
+ * @details Use this function to add a data generator callback which generates a
+ * single batch per call to the dataset.
+ * @param[in] dataset The NNTrainer dataset handle.
+ * @param[in] usage The phase where this generator should be used.
+ * @param[in] user_data user_data to be fed when @a cb is being called.
+ * @return @c 0 on success. Otherwise a negative error value.
+ * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_NOT_SUPPORTED Not supported.
+ * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
+ */
+int ml_train_dataset_add_generator(ml_train_dataset_h dataset,
+                                   ml_train_dataset_data_usage_e usage,
+                                   ml_train_datagen_cb cb, void *user_data);
+
+/**
+ * @brief Add data file to @a dataset
+ * @details Use this function to add a data file from where data is retrieved.
+ * @remarks %http://tizen.org/privilege/mediastorage is needed if @a dataset is
+ * saved to media storage.
+ * @remarks %http://tizen.org/privilege/externalstorage is needed if @a model is
+ * saved to external storage.
+ * @param[in] dataset The NNTrainer dataset handle.
+ * @param[in] usage The phase where this file should be used.
+ * @param[in] file file path.
+ * @return @c 0 on success. Otherwise a negative error value.
+ * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_NOT_SUPPORTED Not supported.
+ * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
+ */
+int ml_train_dataset_add_file(ml_train_dataset_h dataset,
+                              ml_train_dataset_data_usage_e usage,
+                              const char *file);
+
+/**
  * @brief Creates a dataset with files to feed to a neural network.
  * @details Use this function to create a neural network dataset using
  * files.
@@ -428,6 +478,9 @@ int ml_train_dataset_destroy(ml_train_dataset_h dataset);
 /**
  * @brief Sets the neural network dataset property.
  * @details Use this function to set dataset property.
+ * @remarks the same property is applied over train, valid, testsets that are
+ * added to the @a dataset, it is recommened to use @a
+ * ml_train_dataset_set_property_for_usage() instead.
  * @since_tizen 6.0
  * @param[in] dataset The NNTrainer dataset handle.
  * @param[in]  ... Property values with NULL for termination.
@@ -437,6 +490,22 @@ int ml_train_dataset_destroy(ml_train_dataset_h dataset);
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
  */
 int ml_train_dataset_set_property(ml_train_dataset_h dataset, ...);
+
+/**
+ * @brief Sets the neural network dataset property.
+ * @details Use this function to set dataset property for a specific usage.
+ * @since_tizen 6.5
+ * @param[in] dataset The NNTrainer dataset handle.
+ * @param[in] usage The usage to set the property.
+ * @param[in]  ... Property values with NULL for termination.
+ * @return @c 0 on success. Otherwise a negative error value.
+ * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_NOT_SUPPORTED Not supported.
+ * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
+ */
+int ml_train_dataset_set_property_for_usage(ml_train_dataset_h dataset,
+                                            ml_train_dataset_data_usage_e usage,
+                                            ...);
 
 /**
  * @}

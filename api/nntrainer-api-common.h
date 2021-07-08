@@ -152,6 +152,19 @@ typedef int (*ml_train_datagen_cb)(float **input, float **label, bool *last,
                                    void *user_data);
 
 /**
+ * @brief Enumeration for the dataset data type of NNTrainer.
+ * @since_tizen 6.5
+ */
+typedef enum {
+  ML_TRAIN_DATASET_DATA_USAGE_TRAIN =
+    0, /**< The given data is for used when training */
+  ML_TRAIN_DATASET_DATA_USAGE_VALID =
+    1, /**< The given data is for used when validating */
+  ML_TRAIN_DATASET_DATA_USAGE_TEST =
+    2, /**< The given data is for used when testing */
+} ml_train_dataset_data_usage_e;
+
+/**
  * @brief Enumeration for the neural network summary verbosity of NNTrainer.
  * @since_tizen 6.0
  */
