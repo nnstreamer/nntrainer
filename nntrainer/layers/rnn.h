@@ -103,7 +103,7 @@ public:
 private:
   std::tuple<props::Unit>
     props; /**< rnn layer properties : unit - number of output neurons */
-  std::array<unsigned int, 3> weight_idx; /**< indices of the weights */
+  std::array<unsigned int, 4> wt_idx; /**< indices of the weights */
 
   /**
    * @brief     activation type for recurrent : default is tanh
@@ -116,11 +116,6 @@ private:
   ActiFunc acti_func;
 
   /**
-   * @brief     To save hidden state variable ( batch, 1, 1, unit )
-   */
-  Tensor h_prev;
-
-  /**
    * @brief     opiont for return sequence
    */
   bool return_sequences;
@@ -130,10 +125,6 @@ private:
    */
   float dropout_rate;
 
-  /**
-   * @brief     hidden variable for rnn
-   */
-  std::shared_ptr<Var_Grad> hidden;
 
   /**
    * @brief setProperty by type and value separated
