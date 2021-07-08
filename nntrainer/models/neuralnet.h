@@ -112,6 +112,13 @@ public:
   ~NeuralNetwork();
 
   /**
+   * @brief     Set labels to the layers which require the label
+   * @todo      Set label with multiple labels
+   * @param     label label
+   */
+  void setLabels(sharedConstTensors label);
+
+  /**
    * @brief     Get Loss from the previous ran batch of data
    * @retval    loss value
    */
