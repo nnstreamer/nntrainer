@@ -285,10 +285,12 @@ int main(int argc, char *argv[]) {
   /**
    * @brief     Data buffer Create & Initialization
    */
-  std::shared_ptr<ml::train::Dataset> dataset;
+  std::shared_ptr<ml::train::Dataset> dataset_train, dataset_val;
   try {
-    dataset = createDataset(ml::train::DatasetType::GENERATOR, getBatch_train,
-                            getBatch_val);
+    dataset_train =
+      createDataset(ml::train::DatasetType::GENERATOR, getBatch_train);
+    dataset_val =
+      createDataset(ml::train::DatasetType::GENERATOR, getBatch_val);
   } catch (std::exception &e) {
     std::cerr << "Error creating dataset" << e.what() << std::endl;
     return 1;
@@ -310,7 +312,9 @@ int main(int argc, char *argv[]) {
     model->compile();
     model->initialize();
     model->readModel();
-    model->setDataset(dataset);
+    model->setDataset(ml::train::DatasetDataUsageType::DATA_TRAIN,
+                      dataset_train);
+    model->setDataset(ml::train::DatasetDataUsageType::DATA_VAL, dataset_val);
   } catch (std::exception &e) {
     std::cerr << "Error during init " << e.what() << std::endl;
     return 1;

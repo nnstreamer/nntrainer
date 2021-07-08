@@ -10,6 +10,7 @@
  * @author Jihoon Lee <jhoon.it.lee@samsung.com>
  * @bug    No known bugs except for NYI items
  */
+#include <array>
 #include <chrono>
 #include <ctime>
 #include <iostream>
@@ -26,8 +27,7 @@
 using LayerHandle = std::shared_ptr<ml::train::Layer>;
 using ModelHandle = std::unique_ptr<ml::train::Model>;
 
-using UserDataType =
-  std::vector<std::unique_ptr<nntrainer::resnet::DataLoader>>;
+using UserDataType = std::unique_ptr<nntrainer::resnet::DataLoader>;
 
 /**
  * @brief make "key=value" from key and value
@@ -194,24 +194,23 @@ ModelHandle createResnet18() {
 }
 
 int trainData_cb(float **input, float **label, bool *last, void *user_data) {
-  auto data = reinterpret_cast<
-    std::vector<std::unique_ptr<nntrainer::resnet::DataLoader>> *>(user_data);
+  auto data = reinterpret_cast<nntrainer::resnet::DataLoader *>(user_data);
 
-  data->at(0)->next(input, label, last);
+  data->next(input, label, last);
   return 0;
 }
 
 int validData_cb(float **input, float **label, bool *last, void *user_data) {
-  auto data = reinterpret_cast<
-    std::vector<std::unique_ptr<nntrainer::resnet::DataLoader>> *>(user_data);
+  auto data = reinterpret_cast<nntrainer::resnet::DataLoader *>(user_data);
 
-  data->at(1)->next(input, label, last);
+  data->next(input, label, last);
   return 0;
 }
 
 /// @todo maybe make num_class also a parameter
 void createAndRun(unsigned int epochs, unsigned int batch_size,
-                  UserDataType *user_data) {
+                  UserDataType &train_user_data,
+                  UserDataType &valid_user_data) {
   ModelHandle model = createResnet18();
   model->setProperty({withKey("batch_size", batch_size),
                       withKey("epochs", epochs),
@@ -230,46 +229,45 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
     throw std::invalid_argument("model initialization failed!");
   }
 
-  auto dataset = ml::train::createDataset(ml::train::DatasetType::GENERATOR,
-                                          trainData_cb, validData_cb);
+  auto dataset_train = ml::train::createDataset(
+    ml::train::DatasetType::GENERATOR, trainData_cb, train_user_data.get());
+  auto dataset_valid = ml::train::createDataset(
+    ml::train::DatasetType::GENERATOR, validData_cb, valid_user_data.get());
 
-  std::vector<void *> dataset_props;
-  dataset_props.push_back((void *)"user_data");
-  dataset_props.push_back((void *)user_data);
-  dataset->setProperty(dataset_props);
-
-  model->setDataset(std::move(dataset));
+  model->setDataset(ml::train::DatasetDataUsageType::DATA_TRAIN,
+                    std::move(dataset_train));
+  model->setDataset(ml::train::DatasetDataUsageType::DATA_VAL,
+                    std::move(dataset_valid));
 
   model->train();
 }
 
-UserDataType createFakeDataGenerator(unsigned int batch_size,
-                                     unsigned int simulted_data_size,
-                                     unsigned int data_split) {
-  UserDataType user_data;
-  unsigned int simulated_data_size = 512;
-  /// this is for train
-  user_data.emplace_back(new nntrainer::resnet::RandomDataLoader(
+std::array<UserDataType, 2>
+createFakeDataGenerator(unsigned int batch_size,
+                        unsigned int simulted_data_size,
+                        unsigned int data_split) {
+  constexpr unsigned int simulated_data_size = 512;
+
+  UserDataType train_data(new nntrainer::resnet::RandomDataLoader(
     {{batch_size, 3, 32, 32}}, {{batch_size, 1, 1, 100}},
     simulated_data_size / data_split));
-  /// this is for validation
-  user_data.emplace_back(new nntrainer::resnet::RandomDataLoader(
+  UserDataType valid_data(new nntrainer::resnet::RandomDataLoader(
     {{batch_size, 3, 32, 32}}, {{batch_size, 1, 1, 100}},
     simulated_data_size / data_split));
 
-  return user_data;
+  return {std::move(train_data), std::move(valid_data)};
 }
 
-UserDataType createRealDataGenerator(const std::string &directory,
-                                     unsigned int batch_size,
-                                     unsigned int data_split) {
-  UserDataType user_data;
-  user_data.emplace_back(new nntrainer::resnet::Cifar100DataLoader(
+std::array<UserDataType, 2>
+createRealDataGenerator(const std::string &directory, unsigned int batch_size,
+                        unsigned int data_split) {
+
+  UserDataType train_data(new nntrainer::resnet::Cifar100DataLoader(
     directory + "/train.bin", batch_size, data_split));
-  user_data.emplace_back(new nntrainer::resnet::Cifar100DataLoader(
+  UserDataType valid_data(new nntrainer::resnet::Cifar100DataLoader(
     directory + "/test.bin", batch_size, data_split));
 
-  return user_data;
+  return {std::move(train_data), std::move(valid_data)};
 }
 
 int main(int argc, char *argv[]) {
@@ -296,13 +294,13 @@ int main(int argc, char *argv[]) {
 
   /// warning: the data loader will be destroyed at the end of this function,
   /// and passed as a pointer to the databuffer
-  UserDataType user_data;
+  std::array<UserDataType, 2> user_datas;
 
   try {
     if (data_dir == "fake") {
-      user_data = createFakeDataGenerator(batch_size, 512, data_split);
+      user_datas = createFakeDataGenerator(batch_size, 512, data_split);
     } else {
-      user_data = createRealDataGenerator(data_dir, batch_size, data_split);
+      user_datas = createRealDataGenerator(data_dir, batch_size, data_split);
     }
   } catch (std::exception &e) {
     std::cerr << "uncaught error while creating data generator! details: "
@@ -310,8 +308,10 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
+  auto &[train_user_data, valid_user_data] = user_datas;
+
   try {
-    createAndRun(epoch, batch_size, &user_data);
+    createAndRun(epoch, batch_size, train_user_data, valid_user_data);
   } catch (std::exception &e) {
     std::cerr << "uncaught error while running! details: " << e.what() << '\n';
     return 1;

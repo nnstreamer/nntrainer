@@ -510,7 +510,8 @@ int DataBuffer::setProperty(const PropertyType type, std::string &value) {
   return status;
 }
 
-int DataBuffer::setGeneratorFunc(DatasetDataUsageType type, datagen_cb func) {
+int DataBuffer::setGeneratorFunc(DatasetDataUsageType type, datagen_cb func,
+                                 void *user_data) {
   return ML_ERROR_NOT_SUPPORTED;
 }
 

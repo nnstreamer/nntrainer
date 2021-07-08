@@ -79,13 +79,14 @@ static int ini_model_run(const std::string &ini_path) {
   std::shared_ptr<ml::train::Dataset> dataset;
   try {
     dataset = ml::train::createDataset(ml::train::DatasetType::GENERATOR,
-                                       constant_generator_cb, nullptr, nullptr);
+                                       constant_generator_cb);
   } catch (...) {
     std::cerr << "creating dataset failed";
     return 1;
   }
 
-  if (model->setDataset(dataset) != 0) {
+  if (model->setDataset(ml::train::DatasetDataUsageType::DATA_TRAIN, dataset) !=
+      0) {
     std::cerr << "failed to set datatset";
     return 1;
   }
@@ -124,13 +125,14 @@ int api_model_run() {
 
   try {
     dataset = ml::train::createDataset(ml::train::DatasetType::GENERATOR,
-                                       constant_generator_cb, nullptr, nullptr);
+                                       constant_generator_cb);
   } catch (...) {
     std::cerr << "creating dataset failed";
     return 1;
   }
 
-  if (model->setDataset(dataset) != 0) {
+  if (model->setDataset(ml::train::DatasetDataUsageType::DATA_TRAIN, dataset) !=
+      0) {
     std::cerr << "failed to set datatset";
     return 1;
   }

@@ -98,16 +98,13 @@ createDataset(DatasetType type,
 /**
  * @brief Factory creator with constructor for dataset
  */
-std::unique_ptr<Dataset> createDataset(DatasetType type, const char *train_file,
-                                       const char *valid_file = nullptr,
-                                       const char *test_file = nullptr);
+std::unique_ptr<Dataset> createDataset(DatasetType type, const char *file);
 
 /**
  * @brief Factory creator with constructor for dataset
  */
-std::unique_ptr<Dataset> createDataset(DatasetType type, datagen_cb train,
-                                       datagen_cb valid = nullptr,
-                                       datagen_cb test = nullptr);
+std::unique_ptr<Dataset> createDataset(DatasetType type, datagen_cb cb,
+                                       void *user_data = nullptr);
 
 } // namespace train
 } // namespace ml

@@ -170,10 +170,9 @@ int main(int argc, char *argv[]) {
 
   srand(time(NULL));
 
-  std::shared_ptr<nntrainer::DataBufferFromCallback> DB =
-    std::make_shared<nntrainer::DataBufferFromCallback>();
-  DB->setGeneratorFunc(nntrainer::DatasetDataUsageType::DATA_TRAIN,
-                       getBatch_train);
+  auto data_train = std::make_shared<nntrainer::DataBufferFromCallback>();
+  data_train->setGeneratorFunc(ml::train::DatasetDataUsageType::DATA_TRAIN,
+                               getBatch_train);
 
   /**
    * @brief     Create NN
@@ -195,7 +194,7 @@ int main(int argc, char *argv[]) {
   }
 
   if (training) {
-    NN.setDataBuffer((DB));
+    NN.setDataBuffer(ml::train::DatasetDataUsageType::DATA_TRAIN, data_train);
 
     try {
       NN.train();

@@ -204,7 +204,7 @@ TEST(nntrainer_ccapi, train_with_config_01_p) {
   EXPECT_NO_THROW(model->train());
 
   EXPECT_NEAR(model->getTrainingLoss(), 4.434051, tolerance);
-  EXPECT_NEAR(model->getValidationLoss(), 2.9646113, tolerance);
+  EXPECT_NEAR(model->getValidationLoss(), 2.910938, tolerance);
 }
 
 /**
@@ -237,12 +237,21 @@ TEST(nntrainer_ccapi, train_dataset_with_file_01_p) {
        "beta1=0.002", "beta2=0.001", "epsilon=1e-7"}));
   EXPECT_NO_THROW(model->setOptimizer(optimizer));
 
-  EXPECT_NO_THROW(dataset = ml::train::createDataset(
-                    ml::train::DatasetType::FILE,
-                    getTestResPath("trainingSet.dat").c_str(),
-                    getTestResPath("valSet.dat").c_str(), nullptr));
+  EXPECT_NO_THROW(
+    dataset = ml::train::createDataset(
+      ml::train::DatasetType::FILE, getTestResPath("trainingSet.dat").c_str()));
   EXPECT_EQ(dataset->setProperty({"buffer_size=100"}), ML_ERROR_NONE);
-  EXPECT_EQ(model->setDataset(dataset), ML_ERROR_NONE);
+  EXPECT_EQ(
+    model->setDataset(ml::train::DatasetDataUsageType::DATA_TRAIN, dataset),
+    ML_ERROR_NONE);
+
+  EXPECT_NO_THROW(
+    dataset = ml::train::createDataset(ml::train::DatasetType::FILE,
+                                       getTestResPath("valSet.dat").c_str()));
+  EXPECT_EQ(dataset->setProperty({"buffer_size=100"}), ML_ERROR_NONE);
+  EXPECT_EQ(
+    model->setDataset(ml::train::DatasetDataUsageType::DATA_VAL, dataset),
+    ML_ERROR_NONE);
 
   EXPECT_EQ(model->setProperty({"loss=cross", "batch_size=16", "epochs=2",
                                 "save_path=model.bin"}),
@@ -251,8 +260,8 @@ TEST(nntrainer_ccapi, train_dataset_with_file_01_p) {
   EXPECT_EQ(model->initialize(), ML_ERROR_NONE);
   EXPECT_NO_THROW(model->train());
 
-  EXPECT_NEAR(model->getTrainingLoss(), 2.1934659, tolerance);
-  EXPECT_NEAR(model->getValidationLoss(), 2.2051108, tolerance);
+  EXPECT_NEAR(model->getTrainingLoss(), 2.1866805, tolerance);
+  EXPECT_NEAR(model->getValidationLoss(), 2.18779993, tolerance);
 }
 
 /**
@@ -285,11 +294,19 @@ TEST(nntrainer_ccapi, train_dataset_with_generator_01_p) {
        "beta1=0.002", "beta2=0.001", "epsilon=1e-7"}));
   EXPECT_NO_THROW(model->setOptimizer(optimizer));
 
-  EXPECT_NO_THROW(
-    dataset = ml::train::createDataset(ml::train::DatasetType::GENERATOR,
-                                       getBatch_train, getBatch_val, nullptr));
+  EXPECT_NO_THROW(dataset = ml::train::createDataset(
+                    ml::train::DatasetType::GENERATOR, getBatch_train));
   EXPECT_EQ(dataset->setProperty({"buffer_size=100"}), ML_ERROR_NONE);
-  EXPECT_EQ(model->setDataset(dataset), ML_ERROR_NONE);
+  EXPECT_EQ(
+    model->setDataset(ml::train::DatasetDataUsageType::DATA_TRAIN, dataset),
+    ML_ERROR_NONE);
+
+  EXPECT_NO_THROW(dataset = ml::train::createDataset(
+                    ml::train::DatasetType::GENERATOR, getBatch_val));
+  EXPECT_EQ(dataset->setProperty({"buffer_size=100"}), ML_ERROR_NONE);
+  EXPECT_EQ(
+    model->setDataset(ml::train::DatasetDataUsageType::DATA_VAL, dataset),
+    ML_ERROR_NONE);
 
   EXPECT_EQ(model->setProperty({"loss=cross", "batch_size=16", "epochs=2",
                                 "save_path=model.bin"}),
@@ -332,12 +349,21 @@ TEST(nntrainer_ccapi, train_batch_size_update_after) {
        "beta1=0.002", "beta2=0.001", "epsilon=1e-7"}));
   EXPECT_NO_THROW(model->setOptimizer(optimizer));
 
-  EXPECT_NO_THROW(dataset = ml::train::createDataset(
-                    ml::train::DatasetType::FILE,
-                    getTestResPath("trainingSet.dat").c_str(),
-                    getTestResPath("valSet.dat").c_str(), nullptr));
+  EXPECT_NO_THROW(
+    dataset = ml::train::createDataset(
+      ml::train::DatasetType::FILE, getTestResPath("trainingSet.dat").c_str()));
   EXPECT_EQ(dataset->setProperty({"buffer_size=100"}), ML_ERROR_NONE);
-  EXPECT_EQ(model->setDataset(dataset), ML_ERROR_NONE);
+  EXPECT_EQ(
+    model->setDataset(ml::train::DatasetDataUsageType::DATA_TRAIN, dataset),
+    ML_ERROR_NONE);
+
+  EXPECT_NO_THROW(
+    dataset = ml::train::createDataset(ml::train::DatasetType::FILE,
+                                       getTestResPath("valSet.dat").c_str()));
+  EXPECT_EQ(dataset->setProperty({"buffer_size=100"}), ML_ERROR_NONE);
+  EXPECT_EQ(
+    model->setDataset(ml::train::DatasetDataUsageType::DATA_VAL, dataset),
+    ML_ERROR_NONE);
 
   EXPECT_EQ(model->setProperty({"loss=cross", "batch_size=16", "epochs=1"}),
             ML_ERROR_NONE);
@@ -364,8 +390,8 @@ TEST(nntrainer_ccapi, train_batch_size_update_after) {
   EXPECT_EQ(model->setProperty({"batch_size=4"}), ML_ERROR_NONE);
   EXPECT_NO_THROW(model->train());
 
-  EXPECT_NEAR(model->getTrainingLoss(), 1.9613363, tolerance);
-  EXPECT_NEAR(model->getValidationLoss(), 2.1835098, tolerance);
+  EXPECT_NEAR(model->getTrainingLoss(), 1.928810, tolerance);
+  EXPECT_NEAR(model->getValidationLoss(), 2.17899, tolerance);
 }
 
 /**

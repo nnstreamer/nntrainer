@@ -25,6 +25,7 @@
 #ifndef __NNTRAINER_INTERNAL_H__
 #define __NNTRAINER_INTERNAL_H__
 
+#include <array>
 #include <mutex>
 #include <string>
 #include <unordered_map>
@@ -101,7 +102,7 @@ typedef struct {
  */
 typedef struct {
   uint magic;
-  std::shared_ptr<ml::train::Dataset> dataset;
+  std::array<std::shared_ptr<ml::train::Dataset>, 3> dataset;
   bool in_use;
   std::mutex m;
 } ml_train_dataset;

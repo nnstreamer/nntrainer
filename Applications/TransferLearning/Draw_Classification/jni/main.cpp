@@ -454,7 +454,7 @@ int main(int argc, char *argv[]) {
   try {
     loadAllData(data_path, inputVector, labelVector);
   } catch (...) {
-    std::cout << "Failed loading input images." << std::endl;
+    std::cerr << "Failed loading input images." << std::endl;
 #if defined(__TIZEN__)
     set_feature_state(NOT_CHECKED_YET);
 #endif
@@ -471,8 +471,10 @@ int main(int argc, char *argv[]) {
 #endif
     return 1;
   }
-  if (status != ML_ERROR_NONE)
+  if (status != ML_ERROR_NONE) {
+    std::cerr << "failed train model\n";
     return 1;
+  }
 
   /** Test the trained model */
   try {
@@ -484,8 +486,10 @@ int main(int argc, char *argv[]) {
 #endif
     return 1;
   }
-  if (status != ML_ERROR_NONE)
+  if (status != ML_ERROR_NONE) {
+    std::cerr << "Failed testing model\n";
     return 1;
+  }
 
 #if defined(__TIZEN__)
   set_feature_state(NOT_CHECKED_YET);

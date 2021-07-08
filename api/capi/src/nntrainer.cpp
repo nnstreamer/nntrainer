@@ -22,6 +22,7 @@
  * @bug No known bugs except for NYI items
  */
 
+#include <array>
 #include <cstdarg>
 #include <cstring>
 #include <sstream>
@@ -143,7 +144,16 @@ static int ml_train_dataset_create(ml_train_dataset_h *dataset,
   nndataset->in_use = false;
 
   returnable f = [&]() {
-    nndataset->dataset = ml::train::createDataset(type, train, valid, test);
+    nndataset->dataset[ML_TRAIN_DATASET_DATA_USAGE_TRAIN] =
+      ml::train::createDataset(type, train);
+    if (valid != nullptr) {
+      nndataset->dataset[ML_TRAIN_DATASET_DATA_USAGE_VALID] =
+        ml::train::createDataset(type, valid);
+    }
+    if (test != nullptr) {
+      nndataset->dataset[ML_TRAIN_DATASET_DATA_USAGE_TEST] =
+        ml::train::createDataset(type, test);
+    }
     return ML_ERROR_NONE;
   };
 
@@ -492,12 +502,35 @@ int ml_train_model_set_dataset(ml_train_model_h model,
   }
 
   std::shared_ptr<ml::train::Model> m;
-  std::shared_ptr<ml::train::Dataset> d;
 
   m = nnmodel->model;
-  d = nndataset->dataset;
 
-  returnable f = [&]() { return m->setDataset(d); };
+  returnable f = [&]() {
+    auto &[train_set, valid_set, test_set] = nndataset->dataset;
+    int status = ML_ERROR_NONE;
+    status =
+      m->setDataset(ml::train::DatasetDataUsageType::DATA_TRAIN, train_set);
+    if (status != ML_ERROR_NONE) {
+      return status;
+    }
+
+    if (valid_set != nullptr) {
+      status =
+        m->setDataset(ml::train::DatasetDataUsageType::DATA_VAL, valid_set);
+      if (status != ML_ERROR_NONE) {
+        return status;
+      }
+    }
+
+    if (test_set != nullptr) {
+      status =
+        m->setDataset(ml::train::DatasetDataUsageType::DATA_TEST, test_set);
+      if (status != ML_ERROR_NONE) {
+        return status;
+      }
+    }
+    return status;
+  };
 
   status = nntrainer_exception_boundary(f);
   if (status == ML_ERROR_NONE) {
@@ -735,7 +768,7 @@ int ml_train_dataset_set_property(ml_train_dataset_h dataset, ...) {
   int status = ML_ERROR_NONE;
   ml_train_dataset *nndataset;
   void *data;
-  std::shared_ptr<ml::train::Dataset> d;
+  std::array<std::shared_ptr<ml::train::Dataset>, 3> db;
 
   check_feature_state();
 
@@ -755,10 +788,21 @@ int ml_train_dataset_set_property(ml_train_dataset_h dataset, ...) {
     ML_TRAIN_GET_VALID_DATASET_LOCKED(nndataset, dataset);
     ML_TRAIN_ADOPT_LOCK(nndataset, dataset_lock);
 
-    d = nndataset->dataset;
+    db = nndataset->dataset;
   }
 
-  returnable f = [&]() { return d->setProperty(arg_list); };
+  returnable f = [&]() {
+    int status = ML_ERROR_NONE;
+    for (auto &d : db) {
+      if (d != nullptr) {
+        status = d->setProperty(arg_list);
+        if (status != ML_ERROR_NONE) {
+          return status;
+        }
+      }
+    }
+    return status;
+  };
   status = nntrainer_exception_boundary(f);
 
   return status;
