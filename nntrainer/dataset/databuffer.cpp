@@ -94,7 +94,8 @@ int DataBuffer::rangeRandom(int min, int max) {
   return dist(rng);
 }
 
-int DataBuffer::run(DatasetDataUsageType type) {
+int DataBuffer::run() {
+  auto type = DatasetDataUsageType::DATA_TRAIN;
   int status = ML_ERROR_NONE;
   switch (type) {
   case DatasetDataUsageType::DATA_TRAIN:
@@ -103,7 +104,7 @@ int DataBuffer::run(DatasetDataUsageType type) {
 
     if (validation[static_cast<int>(DatasetDataUsageType::DATA_TRAIN)]) {
       this->train_running = true;
-      this->train_thread = std::thread(&DataBuffer::updateData, this, type);
+      this->train_thread = std::thread(&DataBuffer::updateData, this);
       if (globalExceptionPtr) {
         try {
           std::rethrow_exception(globalExceptionPtr);
@@ -122,7 +123,7 @@ int DataBuffer::run(DatasetDataUsageType type) {
       return ML_ERROR_INVALID_PARAMETER;
     if (validation[static_cast<int>(DatasetDataUsageType::DATA_VAL)]) {
       this->val_running = true;
-      this->val_thread = std::thread(&DataBuffer::updateData, this, type);
+      this->val_thread = std::thread(&DataBuffer::updateData, this);
       if (globalExceptionPtr) {
         try {
           std::rethrow_exception(globalExceptionPtr);
@@ -142,7 +143,7 @@ int DataBuffer::run(DatasetDataUsageType type) {
 
     if (validation[static_cast<int>(DatasetDataUsageType::DATA_TEST)]) {
       this->test_running = true;
-      this->test_thread = std::thread(&DataBuffer::updateData, this, type);
+      this->test_thread = std::thread(&DataBuffer::updateData, this);
       if (globalExceptionPtr) {
         try {
           std::rethrow_exception(globalExceptionPtr);
@@ -165,7 +166,8 @@ int DataBuffer::run(DatasetDataUsageType type) {
   return status;
 }
 
-int DataBuffer::clear(DatasetDataUsageType type) {
+int DataBuffer::clear() {
+  auto type = DatasetDataUsageType::DATA_TRAIN;
   int status = ML_ERROR_NONE;
   NN_EXCEPTION_NOTI(DATA_NOT_READY);
   switch (type) {
@@ -207,27 +209,8 @@ int DataBuffer::clear(DatasetDataUsageType type) {
   return status;
 }
 
-int DataBuffer::clear() {
-  unsigned int i;
-
-  int status = ML_ERROR_NONE;
-  for (i = (int)DatasetDataUsageType::DATA_TRAIN;
-       i <= (int)DatasetDataUsageType::DATA_TEST; ++i) {
-    DatasetDataUsageType type = static_cast<DatasetDataUsageType>(i);
-    status = this->clear(type);
-
-    if (status != ML_ERROR_NONE) {
-      ml_loge("Error: error occurred during clearing");
-      return status;
-    }
-  }
-
-  return status;
-}
-
-bool DataBuffer::getDataFromBuffer(DatasetDataUsageType type, float *out,
-                                   float *label) {
-
+bool DataBuffer::getDataFromBuffer(float *out, float *label) {
+  auto type = DatasetDataUsageType::DATA_TRAIN;
   using QueueType = std::vector<std::vector<float>>;
 
   auto wait_for_data_fill = [](std::mutex &ready_mutex,
@@ -385,8 +368,8 @@ int DataBuffer::setFeatureSize(TensorDim indim) {
   return status;
 }
 
-void DataBuffer::displayProgress(const int count, DatasetDataUsageType type,
-                                 float loss) {
+void DataBuffer::displayProgress(const int count, float loss) {
+  auto type = DatasetDataUsageType::DATA_TRAIN;
   int barWidth = 20;
   float max_size = max_train;
   switch (type) {
@@ -510,8 +493,11 @@ int DataBuffer::setProperty(const PropertyType type, std::string &value) {
   return status;
 }
 
-int DataBuffer::setGeneratorFunc(DatasetDataUsageType type, datagen_cb func,
-                                 void *user_data) {
+int DataBuffer::setGeneratorFunc(datagen_cb func, void *user_data) {
+  return ML_ERROR_NOT_SUPPORTED;
+}
+
+int DataBuffer::setDataFile(const std::string &path) {
   return ML_ERROR_NOT_SUPPORTED;
 }
 

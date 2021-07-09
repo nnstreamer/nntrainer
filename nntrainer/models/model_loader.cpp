@@ -224,10 +224,7 @@ int ModelLoader::loadDatasetConfigIni(dictionary *ini, NeuralNetwork &model) {
       return status;
     }
 
-    /// setting data to data_train is intended for now. later the function
-    /// should be called without this enum
-    return dbuffer->setDataFile(DatasetDataUsageType::DATA_TRAIN,
-                                resolvePath(path));
+    return dbuffer->setDataFile(resolvePath(path));
   };
 
   status =

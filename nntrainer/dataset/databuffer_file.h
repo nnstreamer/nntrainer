@@ -38,7 +38,7 @@ namespace nntrainer {
  * @class   DataBufferFromDataFile Data Buffer from Raw Data File
  * @brief   Data Buffer from reading raw data
  */
-class DataBufferFromDataFile : public DataBuffer {
+class DataBufferFromDataFile final : public DataBuffer {
 
 public:
   /**
@@ -60,19 +60,17 @@ public:
 
   /**
    * @brief     Update Data Buffer ( it is for child thread )
-   * @param[in] BufferType training, validation, test
    * @retval    void
    */
-  void updateData(DatasetDataUsageType type);
+  void updateData() override;
 
   /**
    * @brief     set train data file name
-   * @param[in] type data type : DATA_TRAIN, DATA_VAL, DATA_TEST
    * @param[in] path file path
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int setDataFile(DatasetDataUsageType type, std::string path);
+  int setDataFile(const std::string &path) override;
 
   /**
    * @brief     set feature size
@@ -81,15 +79,6 @@ public:
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
   int setFeatureSize(TensorDim indim);
-
-  /**
-   * @brief     set property
-   * @param[in] type type of property
-   * @param[in] value string value of property
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   */
-  int setProperty(const PropertyType type, std::string &value);
 
 private:
   /**

@@ -85,8 +85,8 @@ int DataBufferFromCallback::init() {
   return ML_ERROR_NONE;
 }
 
-int DataBufferFromCallback::setGeneratorFunc(DatasetDataUsageType type,
-                                             datagen_cb func, void *user_data) {
+int DataBufferFromCallback::setGeneratorFunc(datagen_cb func, void *user_data) {
+  auto type = DatasetDataUsageType::DATA_TRAIN;
 
   int status = ML_ERROR_NONE;
   switch (type) {
@@ -116,7 +116,8 @@ int DataBufferFromCallback::setGeneratorFunc(DatasetDataUsageType type,
   return status;
 }
 
-void DataBufferFromCallback::updateData(DatasetDataUsageType type) {
+void DataBufferFromCallback::updateData() {
+  auto type = DatasetDataUsageType::DATA_TRAIN;
   int status = ML_ERROR_NONE;
 
   unsigned int buf_size = 0;
