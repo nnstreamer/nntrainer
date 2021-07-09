@@ -78,15 +78,13 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int setFeatureSize(TensorDim indim);
+  int setFeatureSize(const TensorDim &indim) override;
 
 private:
   /**
    * @brief     raw data file names
    */
-  std::string train_name;
-  std::string val_name;
-  std::string test_name;
+  std::string file_name;
 };
 
 } // namespace nntrainer

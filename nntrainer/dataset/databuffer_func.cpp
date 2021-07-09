@@ -26,7 +26,6 @@
 #include <condition_variable>
 #include <cstring>
 #include <databuffer_func.h>
-#include <databuffer_util.h>
 #include <functional>
 #include <iomanip>
 #include <mutex>
@@ -38,19 +37,7 @@
 #include <stdlib.h>
 #include <thread>
 
-extern std::exception_ptr globalExceptionPtr;
-
 namespace nntrainer {
-
-extern std::mutex data_lock;
-
-extern std::mutex readyTrainData;
-extern std::mutex readyValData;
-extern std::mutex readyTestData;
-
-extern std::condition_variable cv_train;
-extern std::condition_variable cv_val;
-extern std::condition_variable cv_test;
 
 int DataBufferFromCallback::init() {
   int status = ML_ERROR_NONE;
@@ -59,112 +46,31 @@ int DataBufferFromCallback::init() {
   if (status != ML_ERROR_NONE)
     return status;
 
-  if (callback_train == nullptr)
+  if (callback == nullptr)
     return ML_ERROR_BAD_ADDRESS;
 
-  this->max_train = 0;
-  this->max_val = 0;
-  this->max_test = 0;
+  samples_per_epoch = 0;
 
-  if (train_bufsize > batch_size || train_bufsize == 0) {
-    train_bufsize = batch_size;
+  if (buf_size > batch_size || buf_size == 0) {
+    buf_size = batch_size;
   }
-
-  if (val_bufsize > batch_size || val_bufsize == 0) {
-    val_bufsize = batch_size;
-  }
-
-  if (test_bufsize > batch_size || test_bufsize == 0) {
-    test_bufsize = batch_size;
-  }
-
-  this->train_running = true;
-  this->val_running = true;
-  this->test_running = true;
 
   return ML_ERROR_NONE;
 }
 
 int DataBufferFromCallback::setGeneratorFunc(datagen_cb func, void *user_data) {
-  auto type = DatasetDataUsageType::DATA_TRAIN;
-
-  int status = ML_ERROR_NONE;
-  switch (type) {
-  case DatasetDataUsageType::DATA_TRAIN:
-    if (!func)
-      return ML_ERROR_INVALID_PARAMETER;
-    callback_train = func;
-    this->user_data = user_data;
-    if (func)
-      validation[0] = true;
-    break;
-  case DatasetDataUsageType::DATA_VAL:
-    callback_val = func;
-    if (func)
-      validation[1] = true;
-    break;
-  case DatasetDataUsageType::DATA_TEST:
-    callback_test = func;
-    if (func)
-      validation[2] = true;
-    break;
-  default:
-    status = ML_ERROR_INVALID_PARAMETER;
-    break;
-  }
-
-  return status;
+  if (!func)
+    return ML_ERROR_INVALID_PARAMETER;
+  callback = func;
+  this->user_data = user_data;
+  initialized = true;
+  return ML_ERROR_NONE;
 }
 
 void DataBufferFromCallback::updateData() {
-  auto type = DatasetDataUsageType::DATA_TRAIN;
   int status = ML_ERROR_NONE;
 
-  unsigned int buf_size = 0;
-  unsigned int *cur_size = NULL;
-  bool *running = NULL;
-  std::vector<std::vector<float>> *data = NULL;
-  std::vector<std::vector<float>> *datalabel = NULL;
-  datagen_cb callback;
-
-  switch (type) {
-  case DatasetDataUsageType::DATA_TRAIN: {
-    buf_size = train_bufsize;
-    cur_size = &cur_train_bufsize;
-    running = &train_running;
-    data = &train_data;
-    datalabel = &train_data_label;
-    callback = callback_train;
-  } break;
-  case DatasetDataUsageType::DATA_VAL: {
-    buf_size = val_bufsize;
-    cur_size = &cur_val_bufsize;
-    running = &val_running;
-    data = &val_data;
-    datalabel = &val_data_label;
-    callback = callback_val;
-  } break;
-  case DatasetDataUsageType::DATA_TEST: {
-    buf_size = test_bufsize;
-    cur_size = &cur_test_bufsize;
-    running = &test_running;
-    data = &test_data;
-    datalabel = &test_data_label;
-    callback = callback_test;
-  } break;
-  default:
-    break;
-  }
-
-  try {
-    if ((cur_size == NULL) || (running == NULL) || (data == NULL) ||
-        (datalabel == NULL))
-      throw std::runtime_error("Error: assigning error");
-  } catch (...) {
-    globalExceptionPtr = std::current_exception();
-    NN_EXCEPTION_NOTI(DATA_ERROR);
-    return;
-  }
+  setStateAndNotify(DataStatus::DATA_NOT_READY);
   bool endflag = false;
 
   float **vec_arr = (float **)malloc(sizeof(float *) * 1);
@@ -186,22 +92,22 @@ void DataBufferFromCallback::updateData() {
       throw std::runtime_error("Error: assigning error");
     }
   } catch (...) {
-    globalExceptionPtr = std::current_exception();
-    NN_EXCEPTION_NOTI(DATA_ERROR);
+    consumer_exception_ptr = std::current_exception();
+    setStateAndNotify(DataStatus::DATA_ERROR);
     return;
   }
 
   vec_arr[0] = vec;
   veclabel_arr[0] = veclabel;
 
-  while ((*running)) {
+  while (is_running) {
     endflag = false;
-    NN_EXCEPTION_NOTI(DATA_NOT_READY);
-    if (buf_size - (*cur_size) > 0) {
+    setStateAndNotify(DataStatus::DATA_NOT_READY);
+    if (buf_size - cur_bufsize > 0) {
       /** @todo Update to support multiple inputs later */
       status = callback(vec_arr, veclabel_arr, &endflag, user_data);
       if (endflag) {
-        NN_EXCEPTION_NOTI(DATA_END);
+        setStateAndNotify(DataStatus::DATA_END);
         free(vec);
         free(veclabel);
         free(vec_arr);
@@ -209,7 +115,7 @@ void DataBufferFromCallback::updateData() {
         return;
       }
       if (status != ML_ERROR_NONE) {
-        NN_EXCEPTION_NOTI(DATA_ERROR);
+        setStateAndNotify(DataStatus::DATA_ERROR);
         free(vec);
         free(veclabel);
         free(vec_arr);
@@ -237,14 +143,14 @@ void DataBufferFromCallback::updateData() {
         }
 
         data_lock.lock();
-        data->push_back(v);
-        datalabel->push_back(vl);
-        (*cur_size)++;
+        data_q.push_back(v);
+        label_q.push_back(vl);
+        cur_bufsize++;
         data_lock.unlock();
       }
     }
-    if (buf_size == (*cur_size)) {
-      NN_EXCEPTION_NOTI(DATA_READY);
+    if (buf_size == cur_bufsize) {
+      setStateAndNotify(DataStatus::DATA_READY);
     }
   }
 
@@ -252,11 +158,6 @@ void DataBufferFromCallback::updateData() {
   free(veclabel);
   free(vec_arr);
   free(veclabel_arr);
-}
-
-int DataBufferFromCallback::setProperty(const PropertyType type,
-                                        std::string &value) {
-  return DataBuffer::setProperty(type, value);
 }
 
 } /* namespace nntrainer */
