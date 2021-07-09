@@ -138,14 +138,19 @@ static int ml_train_dataset_create(ml_train_dataset_h *dataset,
   int status = ML_ERROR_NONE;
 
   check_feature_state();
+  if (dataset == NULL) {
+    return ML_ERROR_INVALID_PARAMETER;
+  }
 
   ml_train_dataset *nndataset = new ml_train_dataset;
   nndataset->magic = ML_NNTRAINER_MAGIC;
   nndataset->in_use = false;
 
   returnable f = [&]() {
-    nndataset->dataset[ML_TRAIN_DATASET_DATA_USAGE_TRAIN] =
-      ml::train::createDataset(type, train);
+    if (train != nullptr) {
+      nndataset->dataset[ML_TRAIN_DATASET_DATA_USAGE_TRAIN] =
+        ml::train::createDataset(type, train);
+    }
     if (valid != nullptr) {
       nndataset->dataset[ML_TRAIN_DATASET_DATA_USAGE_VALID] =
         ml::train::createDataset(type, valid);
@@ -165,6 +170,52 @@ static int ml_train_dataset_create(ml_train_dataset_h *dataset,
     *dataset = nndataset;
   }
 
+  return status;
+}
+
+/**
+ * @brief add ml::train::Dataset to @a dataset
+ *
+ * @tparam Args args needed to create the dataset
+ * @param dataset dataset handle
+ * @param usage target usage
+ * @param type dataset type
+ * @param args args needed to create the dataset
+ * @retval #ML_ERROR_NONE Successful
+ * @retval #ML_ERROR_INVALID_PARAMETER if parameter is invalid
+ */
+template <typename... Args>
+static int ml_train_dataset_add_(ml_train_dataset_h dataset,
+                                 ml_train_dataset_data_usage_e usage,
+                                 ml::train::DatasetType type, Args &&... args) {
+  check_feature_state();
+  std::shared_ptr<ml::train::Dataset> underlying_dataset;
+
+  returnable f = [&]() {
+    underlying_dataset =
+      ml::train::createDataset(type, std::forward<Args>(args)...);
+    return ML_ERROR_NONE;
+  };
+
+  int status = nntrainer_exception_boundary(f);
+  if (status != ML_ERROR_NONE) {
+    ml_loge("Failed to create dataset");
+    return status;
+  }
+
+  if (underlying_dataset == nullptr) {
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
+  ml_train_dataset *nndataset;
+  ML_TRAIN_VERIFY_VALID_HANDLE(dataset);
+
+  {
+    ML_TRAIN_GET_VALID_DATASET_LOCKED(nndataset, dataset);
+    ML_TRAIN_ADOPT_LOCK(nndataset, dataset_lock);
+
+    nndataset->dataset[usage] = underlying_dataset;
+  }
   return status;
 }
 
@@ -748,10 +799,42 @@ int ml_train_optimizer_set_property(ml_train_optimizer_h optimizer, ...) {
   return status;
 }
 
+int ml_train_dataset_create(ml_train_dataset_h *dataset) {
+  return ml_train_dataset_create(dataset, ml::train::DatasetType::UNKNOWN,
+                                 nullptr, nullptr, nullptr);
+}
+
+int ml_train_dataset_add_generator(ml_train_dataset_h dataset,
+                                   ml_train_dataset_data_usage_e usage,
+                                   ml_train_datagen_cb cb, void *user_data) {
+  check_feature_state();
+  if (cb == nullptr) {
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
+  return ml_train_dataset_add_(
+    dataset, usage, ml::train::DatasetType::GENERATOR, cb, user_data);
+}
+
+int ml_train_dataset_add_file(ml_train_dataset_h dataset,
+                              ml_train_dataset_data_usage_e usage,
+                              const char *file) {
+  check_feature_state();
+  if (file == nullptr) {
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
+  return ml_train_dataset_add_(dataset, usage, ml::train::DatasetType::FILE,
+                               file);
+}
+
 int ml_train_dataset_create_with_generator(ml_train_dataset_h *dataset,
                                            ml_train_datagen_cb train_cb,
                                            ml_train_datagen_cb valid_cb,
                                            ml_train_datagen_cb test_cb) {
+  if (train_cb == nullptr) {
+    return ML_ERROR_INVALID_PARAMETER;
+  }
   return ml_train_dataset_create(dataset, ml::train::DatasetType::GENERATOR,
                                  train_cb, valid_cb, test_cb);
 }
@@ -760,6 +843,9 @@ int ml_train_dataset_create_with_file(ml_train_dataset_h *dataset,
                                       const char *train_file,
                                       const char *valid_file,
                                       const char *test_file) {
+  if (train_file == nullptr) {
+    return ML_ERROR_INVALID_PARAMETER;
+  }
   return ml_train_dataset_create(dataset, ml::train::DatasetType::FILE,
                                  train_file, valid_file, test_file);
 }
