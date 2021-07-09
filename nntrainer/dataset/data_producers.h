@@ -85,7 +85,7 @@ public:
                               const std::vector<TensorDim> &label_dims) = 0;
 
   /**
-   * @brief get size of the iteration given input_dims, label_dims, if size
+   * @brief get size of total dataset given input_dims, label_dims, if size
    * cannot be determined, this function must return
    * DataProducer::SIZE_UNDEFINED;
    *
