@@ -764,48 +764,101 @@ int ml_train_dataset_create_with_file(ml_train_dataset_h *dataset,
                                  train_file, valid_file, test_file);
 }
 
-int ml_train_dataset_set_property(ml_train_dataset_h dataset, ...) {
+/**
+ * @brief set property for the specific data usage, main difference from @a
+ * ml_train_dataset_set_property_for_usage() is that this function returns @a
+ * ML_ERROR_NOT_SUPPORTED if dataset does not exist.
+ *
+ * @param[in] dataset dataset
+ * @param[in] usage usage
+ * @param[in] args argument
+ * @retval #ML_ERROR_NONE successful
+ * @retval #ML_ERROR_INVALID_PARAMETER when arg is invalid
+ * @retval #ML_ERROR_NOT_SUPPORTED when dataset did not exist
+ */
+static int
+ml_train_dataset_set_property_for_usage_(ml_train_dataset_h dataset,
+                                         ml_train_dataset_data_usage_e usage,
+                                         const std::vector<void *> &args) {
   int status = ML_ERROR_NONE;
   ml_train_dataset *nndataset;
-  void *data;
-  std::array<std::shared_ptr<ml::train::Dataset>, 3> db;
 
   check_feature_state();
 
   ML_TRAIN_VERIFY_VALID_HANDLE(dataset);
 
-  std::vector<void *> arg_list;
-  va_list arguments;
-  va_start(arguments, dataset);
-
-  while ((data = va_arg(arguments, void *))) {
-    arg_list.push_back(data);
-  }
-
-  va_end(arguments);
-
   {
     ML_TRAIN_GET_VALID_DATASET_LOCKED(nndataset, dataset);
     ML_TRAIN_ADOPT_LOCK(nndataset, dataset_lock);
 
-    db = nndataset->dataset;
+    auto &db = nndataset->dataset[usage];
+
+    returnable f = [&db, &args]() {
+      int status_ = ML_ERROR_NONE;
+      if (db == nullptr) {
+        status_ = ML_ERROR_NOT_SUPPORTED;
+        return status_;
+      }
+
+      status_ = db->setProperty(args);
+      return status_;
+    };
+
+    status = nntrainer_exception_boundary(f);
+  }
+  return status;
+}
+
+int ml_train_dataset_set_property(ml_train_dataset_h dataset, ...) {
+  std::vector<void *> arg_list;
+  va_list arguments;
+  va_start(arguments, dataset);
+
+  void *data;
+  while ((data = va_arg(arguments, void *))) {
+    arg_list.push_back(data);
+  }
+  va_end(arguments);
+
+  /// having status of ML_ERROR_NOT_SUPPORTED is not an error in this call.
+  int status = ml_train_dataset_set_property_for_usage_(
+    dataset, ML_TRAIN_DATASET_DATA_USAGE_TRAIN, arg_list);
+  if (status != ML_ERROR_NONE || status != ML_ERROR_NOT_SUPPORTED) {
+    return status;
   }
 
-  returnable f = [&]() {
-    int status = ML_ERROR_NONE;
-    for (auto &d : db) {
-      if (d != nullptr) {
-        status = d->setProperty(arg_list);
-        if (status != ML_ERROR_NONE) {
-          return status;
-        }
-      }
-    }
+  status = ml_train_dataset_set_property_for_usage_(
+    dataset, ML_TRAIN_DATASET_DATA_USAGE_VALID, arg_list);
+  if (status != ML_ERROR_NONE || status != ML_ERROR_NOT_SUPPORTED) {
     return status;
-  };
-  status = nntrainer_exception_boundary(f);
+  }
 
-  return status;
+  status = ml_train_dataset_set_property_for_usage_(
+    dataset, ML_TRAIN_DATASET_DATA_USAGE_TEST, arg_list);
+  if (status != ML_ERROR_NONE || status != ML_ERROR_NOT_SUPPORTED) {
+    return status;
+  }
+
+  return ML_ERROR_NONE;
+}
+
+int ml_train_dataset_set_property_for_usage(ml_train_dataset_h dataset,
+                                            ml_train_dataset_data_usage_e usage,
+                                            ...) {
+  std::vector<void *> arg_list;
+  va_list arguments;
+  va_start(arguments, usage);
+
+  void *data;
+  while ((data = va_arg(arguments, void *))) {
+    arg_list.push_back(data);
+  }
+  va_end(arguments);
+
+  int status =
+    ml_train_dataset_set_property_for_usage_(dataset, usage, arg_list);
+
+  return status != ML_ERROR_NONE ? ML_ERROR_INVALID_PARAMETER : ML_ERROR_NONE;
 }
 
 int ml_train_dataset_destroy(ml_train_dataset_h dataset) {
