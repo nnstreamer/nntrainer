@@ -623,12 +623,6 @@ int NeuralNetwork::train_run() {
   auto &label = last_layer_node->getOutputGrad(0);
   auto &in = first_layer_node->getInput(0);
 
-  /// below constant is needed after changing
-  /// databuffer having train, valid, test -> train buffer, valid buffer, test
-  /// buffer After the cahgne, only data train is used inside a databuffer.
-  /// RUN_CONSTANT is a stub value to deal with the situation
-  auto RUN_CONSTANT = DatasetDataUsageType::DATA_TRAIN;
-
   auto &[train_buffer, valid_buffer, test_buffer] = data_buffers;
 
   if (train_buffer == nullptr) {
@@ -638,18 +632,17 @@ int NeuralNetwork::train_run() {
 
   for (epoch_idx = epoch_idx + 1; epoch_idx <= epochs; ++epoch_idx) {
     training.loss = 0.0f;
-    status = train_buffer->run(RUN_CONSTANT);
+    status = train_buffer->run();
     if (status != ML_ERROR_NONE) {
-      train_buffer->clear(RUN_CONSTANT);
+      train_buffer->clear();
       return status;
     }
 
     /// @todo make this working, test buffer is running but doing nothing
-    if (test_buffer != nullptr &&
-        test_buffer->getValidation()[static_cast<int>(RUN_CONSTANT)]) {
-      status = test_buffer->run(nntrainer::DatasetDataUsageType::DATA_TEST);
+    if (test_buffer != nullptr && test_buffer->getValidation()[0]) {
+      status = test_buffer->run();
       if (status != ML_ERROR_NONE) {
-        test_buffer->clear(DatasetDataUsageType::DATA_TEST);
+        test_buffer->clear();
         return status;
       }
     }
@@ -657,23 +650,22 @@ int NeuralNetwork::train_run() {
     int count = 0;
 
     while (true) {
-      if (train_buffer->getDataFromBuffer(RUN_CONSTANT, in.getData(),
-                                          label.getData())) {
+      if (train_buffer->getDataFromBuffer(in.getData(), label.getData())) {
         try {
           forwarding(true);
           backwarding(iter++);
         } catch (std::exception &e) {
-          train_buffer->clear(RUN_CONSTANT);
+          train_buffer->clear();
           ml_loge("Error: training error in #%d/%d. %s", epoch_idx, epochs,
                   e.what());
           throw;
         }
         std::cout << "#" << epoch_idx << "/" << epochs;
         float loss = getLoss();
-        train_buffer->displayProgress(count++, RUN_CONSTANT, loss);
+        train_buffer->displayProgress(count++, loss);
         training.loss += loss;
       } else {
-        train_buffer->clear(RUN_CONSTANT);
+        train_buffer->clear();
         break;
       }
     }
@@ -687,21 +679,19 @@ int NeuralNetwork::train_run() {
     std::cout << "#" << epoch_idx << "/" << epochs
               << " - Training Loss: " << training.loss;
 
-    if (valid_buffer != nullptr &&
-        valid_buffer->getValidation()[static_cast<int>(RUN_CONSTANT)]) {
+    if (valid_buffer != nullptr && valid_buffer->getValidation()[0]) {
       int right = 0;
       validation.loss = 0.0f;
       unsigned int tcases = 0;
 
-      status = valid_buffer->run(RUN_CONSTANT);
+      status = valid_buffer->run();
       if (status != ML_ERROR_NONE) {
-        valid_buffer->clear(RUN_CONSTANT);
+        valid_buffer->clear();
         return status;
       }
 
       while (true) {
-        if (valid_buffer->getDataFromBuffer(RUN_CONSTANT, in.getData(),
-                                            label.getData())) {
+        if (valid_buffer->getDataFromBuffer(in.getData(), label.getData())) {
           forwarding(false);
           auto model_out = output.argmax();
           auto label_out = label.argmax();
@@ -712,7 +702,7 @@ int NeuralNetwork::train_run() {
           validation.loss += getLoss();
           tcases++;
         } else {
-          valid_buffer->clear(RUN_CONSTANT);
+          valid_buffer->clear();
           break;
         }
       }

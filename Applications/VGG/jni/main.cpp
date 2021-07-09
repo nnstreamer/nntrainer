@@ -400,11 +400,9 @@ int main(int argc, char *argv[]) {
     count_val.duplication[i] = i;
 
   auto db_train = std::make_shared<nntrainer::DataBufferFromCallback>();
-  db_train->setGeneratorFunc(ml::train::DatasetDataUsageType::DATA_TRAIN,
-                             getBatch_train_file);
+  db_train->setGeneratorFunc(getBatch_train_file);
   auto db_valid = std::make_shared<nntrainer::DataBufferFromCallback>();
-  db_valid->setGeneratorFunc(ml::train::DatasetDataUsageType::DATA_VAL,
-                             getBatch_val_file);
+  db_valid->setGeneratorFunc(getBatch_val_file);
 
   /**
    * @brief     Neural Network Create & Initialization

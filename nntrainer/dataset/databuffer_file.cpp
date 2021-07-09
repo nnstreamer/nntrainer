@@ -117,7 +117,8 @@ int DataBufferFromDataFile::init() {
   return ML_ERROR_NONE;
 }
 
-void DataBufferFromDataFile::updateData(DatasetDataUsageType type) {
+void DataBufferFromDataFile::updateData() {
+  auto type = DatasetDataUsageType::DATA_TRAIN;
   unsigned int max_size = 0;
   unsigned int buf_size = 0;
   unsigned int *rest_size = NULL;
@@ -265,8 +266,8 @@ void DataBufferFromDataFile::updateData(DatasetDataUsageType type) {
   file.close();
 }
 
-int DataBufferFromDataFile::setDataFile(DatasetDataUsageType type,
-                                        std::string path) {
+int DataBufferFromDataFile::setDataFile(const std::string &path) {
+  auto type = DatasetDataUsageType::DATA_TRAIN;
   int status = ML_ERROR_NONE;
   std::ifstream data_file(path.c_str());
 
@@ -355,31 +356,6 @@ int DataBufferFromDataFile::setFeatureSize(TensorDim tdim) {
     }
   } else {
     max_test = 0;
-  }
-
-  return status;
-}
-
-int DataBufferFromDataFile::setProperty(const PropertyType type,
-                                        std::string &value) {
-  int status = ML_ERROR_NONE;
-
-  if (data_buffer_type != DatasetType::FILE)
-    return ML_ERROR_INVALID_PARAMETER;
-
-  switch (type) {
-  case PropertyType::train_data:
-    status = this->setDataFile(DatasetDataUsageType::DATA_TRAIN, value);
-    break;
-  case PropertyType::val_data:
-    status = this->setDataFile(DatasetDataUsageType::DATA_VAL, value);
-    break;
-  case PropertyType::test_data:
-    status = this->setDataFile(DatasetDataUsageType::DATA_TEST, value);
-    break;
-  default:
-    status = DataBuffer::setProperty(type, value);
-    break;
   }
 
   return status;

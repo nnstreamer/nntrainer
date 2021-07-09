@@ -63,29 +63,19 @@ public:
 
   /**
    * @brief     Update Data Buffer ( it is for child thread )
-   * @param[in] BufferType training, validation, test
    * @retval    void
    */
-  virtual void updateData(DatasetDataUsageType type) = 0;
+  virtual void updateData() = 0;
 
   /**
    * @brief     function for thread ( training, validation, test )
-   * @param[in] BufferType training, validation, test
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  virtual int run(DatasetDataUsageType type);
+  virtual int run();
 
   /**
    * @brief     clear thread ( training, validation, test )
-   * @param[in] BufferType training, validation, test
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   */
-  virtual int clear(DatasetDataUsageType type);
-
-  /**
-   * @brief     clear all thread ( training, validation, test )
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
@@ -93,14 +83,13 @@ public:
 
   /**
    * @brief     get Data from Data Buffer using databuffer param
-   * @param[in] BufferType training, validation, test
    * @param[out] out feature data ( batch_size size ), a contiguous and
    * allocated memory block should be passed
    * @param[out] label label data ( batch_size size ), a contiguous and
    * allocated memory block should be passed
    * @retval    true/false
    */
-  bool getDataFromBuffer(DatasetDataUsageType type, float *out, float *label);
+  bool getDataFromBuffer(float *out, float *label);
 
   /**
    * @brief     set number of class
@@ -158,7 +147,7 @@ public:
    * @param[in] type buffer type ( DATA_TRAIN, DATA_VAL, DATA_TEST )
    * @retval void
    */
-  void displayProgress(const int count, DatasetDataUsageType type, float loss);
+  void displayProgress(const int count, float loss);
 
   /**
    * @brief     return validation of data set
@@ -184,25 +173,20 @@ public:
 
   /**
    * @brief     set function pointer for each type
-   * @param[in] type Buffer Type
    * @param[in] call back function pointer
    * @param[in] user_data user_data of the callback
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  virtual int setGeneratorFunc(DatasetDataUsageType type, datagen_cb func,
-                               void *user_data = nullptr);
+  virtual int setGeneratorFunc(datagen_cb func, void *user_data = nullptr);
 
   /**
    * @brief     set train data file name
-   * @param[in] type data type : DATA_TRAIN, DATA_VAL, DATA_TEST
    * @param[in] path file path
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  virtual int setDataFile(DatasetDataUsageType type, std::string path) {
-    return setDataFile(type, path);
-  }
+  virtual int setDataFile(const std::string &path);
 
   /**
    * @brief property type of databuffer

@@ -60,20 +60,16 @@ public:
 
   /**
    * @brief     set function pointer for each type
-   * @param[in] type Buffer Type
    * @param[in] call back function pointer
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int setGeneratorFunc(DatasetDataUsageType type, datagen_cb func,
-                       void *user_data = nullptr) override;
+  int setGeneratorFunc(datagen_cb func, void *user_data = nullptr) override;
 
   /**
    * @brief     Update Data Buffer ( it is for child thread )
-   * @param[in] DatasetDataUsageType training, validation, test
-   * @retval    void
    */
-  void updateData(DatasetDataUsageType type);
+  void updateData() override;
 
   /**
    * @brief     set property

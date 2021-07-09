@@ -45,9 +45,7 @@ std::unique_ptr<DataBuffer> createDataBuffer(DatasetType type,
 
   std::unique_ptr<DataBuffer> dataset = createDataBuffer(type);
 
-  NNTR_THROW_IF(file == nullptr ||
-                  dataset->setDataFile(DatasetDataUsageType::DATA_TRAIN,
-                                       file) != ML_ERROR_NONE,
+  NNTR_THROW_IF(file == nullptr || dataset->setDataFile(file) != ML_ERROR_NONE,
                 std::invalid_argument)
     << "invalid train file, path: " << (file ? file : "null");
 
@@ -65,8 +63,7 @@ std::unique_ptr<DataBuffer> createDataBuffer(DatasetType type, datagen_cb cb,
 
   std::unique_ptr<DataBuffer> dataset = createDataBuffer(type);
 
-  if (dataset->setGeneratorFunc(DatasetDataUsageType::DATA_TRAIN, cb,
-                                user_data) != ML_ERROR_NONE)
+  if (dataset->setGeneratorFunc(cb, user_data) != ML_ERROR_NONE)
     throw std::invalid_argument("Invalid train data generator");
 
   return dataset;
