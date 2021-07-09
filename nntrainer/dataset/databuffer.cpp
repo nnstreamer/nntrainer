@@ -26,7 +26,6 @@
 #include <condition_variable>
 #include <cstring>
 #include <databuffer.h>
-#include <databuffer_util.h>
 #include <functional>
 #include <iomanip>
 #include <mutex>
@@ -40,52 +39,24 @@
 #include <thread>
 #include <util_func.h>
 
-std::exception_ptr globalExceptionPtr = nullptr;
-
 namespace nntrainer {
 
 constexpr char USER_DATA[] = "user_data";
 
-std::mutex data_lock;
-
-std::mutex readyTrainData;
-std::mutex readyValData;
-std::mutex readyTestData;
-
-std::condition_variable cv_train;
-std::condition_variable cv_val;
-std::condition_variable cv_test;
-
 DataBuffer::DataBuffer(DatasetType type) :
-  train_running(),
-  val_running(),
-  test_running(),
-  train_thread(),
-  val_thread(),
-  test_thread(),
   data_buffer_type(type),
-  user_data(nullptr) {
-  SET_VALIDATION(false);
-  class_num = 0;
-  cur_train_bufsize = 0;
-  cur_val_bufsize = 0;
-  cur_test_bufsize = 0;
-  train_bufsize = 0;
-  val_bufsize = 0;
-  test_bufsize = 0;
-  max_train = 0;
-  max_val = 0;
-  max_test = 0;
-  rest_train = 0;
-  rest_val = 0;
-  rest_test = 0;
-  batch_size = 0;
-  train_running = false;
-  val_running = false;
-  test_running = false;
-  trainReadyFlag = DATA_NOT_READY;
-  valReadyFlag = DATA_NOT_READY;
-  testReadyFlag = DATA_NOT_READY;
+  batch_producer(),
+  data_q(),
+  label_q(),
+  queue_status(DataStatus::DATA_NOT_READY),
+  buf_size(0),
+  cur_bufsize(0),
+  class_num(0),
+  batch_size(0),
+  samples_per_epoch(0),
+  remaining_samples_per_epoch(0),
+  is_running(false),
+  initialized(false) {
   rng.seed(getSeed());
 };
 
@@ -95,122 +66,42 @@ int DataBuffer::rangeRandom(int min, int max) {
 }
 
 int DataBuffer::run() {
-  auto type = DatasetDataUsageType::DATA_TRAIN;
-  int status = ML_ERROR_NONE;
-  switch (type) {
-  case DatasetDataUsageType::DATA_TRAIN:
-    if (trainReadyFlag == DATA_ERROR)
-      return ML_ERROR_INVALID_PARAMETER;
+  if (queue_status == DataStatus::DATA_ERROR)
+    return ML_ERROR_INVALID_PARAMETER;
 
-    if (validation[static_cast<int>(DatasetDataUsageType::DATA_TRAIN)]) {
-      this->train_running = true;
-      this->train_thread = std::thread(&DataBuffer::updateData, this);
-      if (globalExceptionPtr) {
-        try {
-          std::rethrow_exception(globalExceptionPtr);
-        } catch (const std::exception &ex) {
-          std::cout << ex.what() << "\n";
-          return ML_ERROR_INVALID_PARAMETER;
-        }
+  if (initialized) {
+    this->is_running = true;
+    this->batch_producer = std::thread(&DataBuffer::updateData, this);
+    if (consumer_exception_ptr) {
+      try {
+        std::rethrow_exception(consumer_exception_ptr);
+      } catch (const std::exception &ex) {
+        std::cout << ex.what() << "\n";
+        return ML_ERROR_INVALID_PARAMETER;
       }
-    } else {
-      ml_loge("Error: Training Data Set is not valid");
-      return ML_ERROR_INVALID_PARAMETER;
     }
-    break;
-  case DatasetDataUsageType::DATA_VAL:
-    if (valReadyFlag == DATA_ERROR)
-      return ML_ERROR_INVALID_PARAMETER;
-    if (validation[static_cast<int>(DatasetDataUsageType::DATA_VAL)]) {
-      this->val_running = true;
-      this->val_thread = std::thread(&DataBuffer::updateData, this);
-      if (globalExceptionPtr) {
-        try {
-          std::rethrow_exception(globalExceptionPtr);
-        } catch (const std::exception &ex) {
-          std::cout << ex.what() << "\n";
-          return ML_ERROR_INVALID_PARAMETER;
-        }
-      }
-    } else {
-      ml_loge("Error: Validation Data Set is not valid");
-      return ML_ERROR_INVALID_PARAMETER;
-    }
-    break;
-  case DatasetDataUsageType::DATA_TEST:
-    if (testReadyFlag == DATA_ERROR)
-      return ML_ERROR_INVALID_PARAMETER;
-
-    if (validation[static_cast<int>(DatasetDataUsageType::DATA_TEST)]) {
-      this->test_running = true;
-      this->test_thread = std::thread(&DataBuffer::updateData, this);
-      if (globalExceptionPtr) {
-        try {
-          std::rethrow_exception(globalExceptionPtr);
-        } catch (const std::exception &ex) {
-          std::cout << ex.what() << "\n";
-          return ML_ERROR_INVALID_PARAMETER;
-        }
-      }
-    } else {
-      ml_loge("Error: Test Data Set is not valid");
-      return ML_ERROR_INVALID_PARAMETER;
-    }
-    break;
-  default:
-    ml_loge("Error: Not Supported Data Type");
-    status = ML_ERROR_INVALID_PARAMETER;
-    break;
+  } else {
+    ml_loge("Error: Training Data Set is not valid");
+    return ML_ERROR_INVALID_PARAMETER;
   }
 
-  return status;
+  return ML_ERROR_NONE;
 }
 
 int DataBuffer::clear() {
-  auto type = DatasetDataUsageType::DATA_TRAIN;
   int status = ML_ERROR_NONE;
-  NN_EXCEPTION_NOTI(DATA_NOT_READY);
-  switch (type) {
-  case DatasetDataUsageType::DATA_TRAIN: {
-    train_running = false;
-    if (validation[static_cast<int>(DatasetDataUsageType::DATA_TRAIN)] &&
-        true == train_thread.joinable())
-      train_thread.join();
-    this->train_data.clear();
-    this->train_data_label.clear();
-    this->cur_train_bufsize = 0;
-    this->rest_train = max_train;
-  } break;
-  case DatasetDataUsageType::DATA_VAL: {
-    val_running = false;
-    if (validation[static_cast<int>(DatasetDataUsageType::DATA_VAL)] &&
-        true == val_thread.joinable())
-      val_thread.join();
-    this->val_data.clear();
-    this->val_data_label.clear();
-    this->cur_val_bufsize = 0;
-    this->rest_val = max_val;
-  } break;
-  case DatasetDataUsageType::DATA_TEST: {
-    test_running = false;
-    if (validation[static_cast<int>(DatasetDataUsageType::DATA_TEST)] &&
-        true == test_thread.joinable())
-      test_thread.join();
-    this->test_data.clear();
-    this->test_data_label.clear();
-    this->cur_test_bufsize = 0;
-    this->rest_test = max_test;
-  } break;
-  default:
-    ml_loge("Error: Not Supported Data Type");
-    status = ML_ERROR_INVALID_PARAMETER;
-    break;
-  }
+  setStateAndNotify(DataStatus::DATA_NOT_READY);
+  is_running = false;
+  if (initialized && true == batch_producer.joinable())
+    batch_producer.join();
+  this->data_q.clear();
+  this->label_q.clear();
+  this->cur_bufsize = 0;
+  this->remaining_samples_per_epoch = samples_per_epoch;
   return status;
 }
 
 bool DataBuffer::getDataFromBuffer(float *out, float *label) {
-  auto type = DatasetDataUsageType::DATA_TRAIN;
   using QueueType = std::vector<std::vector<float>>;
 
   auto wait_for_data_fill = [](std::mutex &ready_mutex,
@@ -219,11 +110,11 @@ bool DataBuffer::getDataFromBuffer(float *out, float *label) {
                                QueueType &queue) {
     while (true) {
       std::unique_lock<std::mutex> ul(ready_mutex);
-      cv.wait(ul, [&]() -> bool { return flag; });
-      if (flag == DATA_ERROR || flag == DATA_END)
+      cv.wait(ul, [&]() -> bool { return flag != DataStatus::DATA_NOT_READY; });
+      if (flag == DataStatus::DATA_ERROR || flag == DataStatus::DATA_END)
         return queue.size() < batch_size ? false : true;
 
-      if (flag == DATA_READY && queue.size() >= batch_size)
+      if (flag == DataStatus::DATA_READY && queue.size() >= batch_size)
         return true;
     }
 
@@ -262,36 +153,15 @@ bool DataBuffer::getDataFromBuffer(float *out, float *label) {
       return true;
     };
 
-  switch (type) {
-  case DatasetDataUsageType::DATA_TRAIN:
-    if (!fill_out_params(readyTrainData, cv_train, trainReadyFlag, train_data,
-                         train_data_label, batch_size, cur_train_bufsize))
-      return false;
-    break;
-  case DatasetDataUsageType::DATA_VAL:
-    if (!fill_out_params(readyValData, cv_val, valReadyFlag, val_data,
-                         val_data_label, batch_size, cur_val_bufsize))
-      return false;
-    break;
-  case DatasetDataUsageType::DATA_TEST:
-    if (!fill_out_params(readyTestData, cv_test, testReadyFlag, test_data,
-                         test_data_label, batch_size, cur_test_bufsize))
-      return false;
-    break;
-  default:
-    ml_loge("Error: Not Supported Data Type");
-    return false;
-    break;
-  }
-
-  return true;
+  return fill_out_params(status_mutex, cv_status, queue_status, data_q, label_q,
+                         batch_size, cur_bufsize);
 }
 
 int DataBuffer::setClassNum(unsigned int num) {
   int status = ML_ERROR_NONE;
   if (num == 0) {
     ml_loge("Error: number of class should be bigger than 0");
-    SET_VALIDATION(false);
+    initialized = false;
     return ML_ERROR_INVALID_PARAMETER;
   }
   class_num = num;
@@ -300,9 +170,7 @@ int DataBuffer::setClassNum(unsigned int num) {
 
 int DataBuffer::setBufSize(unsigned int size) {
   int status = ML_ERROR_NONE;
-  train_bufsize = size;
-  val_bufsize = size;
-  test_bufsize = size;
+  buf_size = size;
   return status;
 }
 
@@ -310,7 +178,7 @@ int DataBuffer::setBatchSize(unsigned int size) {
   int status = ML_ERROR_NONE;
   if (size == 0) {
     ml_loge("Error: batch size must be greater than 0");
-    SET_VALIDATION(false);
+    initialized = false;
     return ML_ERROR_INVALID_PARAMETER;
   }
   batch_size = size;
@@ -320,79 +188,51 @@ int DataBuffer::setBatchSize(unsigned int size) {
 int DataBuffer::init() {
   if (batch_size == 0) {
     ml_loge("Error: batch size must be greater than 0");
-    SET_VALIDATION(false);
+    initialized = false;
     return ML_ERROR_INVALID_PARAMETER;
   }
 
-  /** for now, train_bufsize, val_bufsize and test_bufsize are same value */
-  if (train_bufsize < batch_size) {
-    if (train_bufsize > 1) {
+  if (buf_size < batch_size) {
+    if (buf_size > 1) {
       ml_logw("Dataset buffer size reset to be at least batch size");
     }
-    train_bufsize = batch_size;
-    val_bufsize = batch_size;
-    test_bufsize = batch_size;
+    buf_size = batch_size;
   }
 
   if (!class_num) {
     ml_loge("Error: number of class must be set");
-    SET_VALIDATION(false);
+    initialized = false;
     return ML_ERROR_INVALID_PARAMETER;
   }
 
   if (!this->input_dim.getFeatureLen()) {
     ml_loge("Error: feature size must be set");
-    SET_VALIDATION(false);
+    initialized = false;
     return ML_ERROR_INVALID_PARAMETER;
   }
 
-  this->cur_train_bufsize = 0;
-  this->cur_val_bufsize = 0;
-  this->cur_test_bufsize = 0;
+  this->cur_bufsize = 0;
 
-  readyTrainData.lock();
-  trainReadyFlag = DATA_NOT_READY;
-  readyTrainData.unlock();
-  readyValData.lock();
-  valReadyFlag = DATA_NOT_READY;
-  readyValData.unlock();
-  readyTestData.lock();
-  testReadyFlag = DATA_NOT_READY;
-  readyTestData.unlock();
+  setStateAndNotify(DataStatus::DATA_NOT_READY);
   return ML_ERROR_NONE;
 }
 
-int DataBuffer::setFeatureSize(TensorDim indim) {
+int DataBuffer::setFeatureSize(const TensorDim &indim) {
   int status = ML_ERROR_NONE;
   input_dim = indim;
   return status;
 }
 
 void DataBuffer::displayProgress(const int count, float loss) {
-  auto type = DatasetDataUsageType::DATA_TRAIN;
   int barWidth = 20;
-  float max_size = max_train;
-  switch (type) {
-  case DatasetDataUsageType::DATA_TRAIN:
-    max_size = max_train;
-    break;
-  case DatasetDataUsageType::DATA_VAL:
-    max_size = max_val;
-    break;
-  case DatasetDataUsageType::DATA_TEST:
-    max_size = max_test;
-    break;
-  default:
-    ml_loge("Error: Not Supported Data Type");
-    break;
-  }
+
   std::stringstream ssInt;
   ssInt << count * batch_size;
 
   std::string str = ssInt.str();
   int len = str.length();
 
-  if (max_size == 0) {
+  if (samples_per_epoch == 0) {
     int pad_left = (barWidth - len) / 2;
     int pad_right = barWidth - pad_left - len;
     std::string out_str =
@@ -403,10 +243,10 @@ void DataBuffer::displayProgress(const int count, float loss) {
               << " ( Training Loss: " << loss << " )\r";
   } else {
     float progress;
-    if (batch_size > max_size)
+    if (batch_size > samples_per_epoch)
       progress = 1.0;
     else
-      progress = (((float)(count * batch_size)) / max_size);
+      progress = (((float)(count * batch_size)) / (float)samples_per_epoch);
 
     int pos = barWidth * progress;
     std::cout << " [ ";
@@ -499,6 +339,12 @@ int DataBuffer::setGeneratorFunc(datagen_cb func, void *user_data) {
 
 int DataBuffer::setDataFile(const std::string &path) {
   return ML_ERROR_NOT_SUPPORTED;
+}
+
+void DataBuffer::setStateAndNotify(const DataStatus status) {
+  std::lock_guard<std::mutex> lgtrain(status_mutex);
+  queue_status = status;
+  cv_status.notify_all();
 }
 
 } /* namespace nntrainer */

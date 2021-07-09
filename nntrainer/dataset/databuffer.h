@@ -25,7 +25,9 @@
 #define __DATABUFFER_H__
 #ifdef __cplusplus
 
+#include <condition_variable>
 #include <memory>
+#include <mutex>
 #include <random>
 #include <thread>
 #include <vector>
@@ -39,7 +41,6 @@ namespace nntrainer {
  * @brief     Aliasing from ccapi ml::train
  */
 using DatasetType = ml::train::DatasetType;
-using DatasetDataUsageType = ml::train::DatasetDataUsageType;
 using datagen_cb = ml::train::datagen_cb;
 
 /**
@@ -121,25 +122,7 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  virtual int setFeatureSize(TensorDim indim);
-
-  /**
-   * @brief     set feature size
-   * @retval max_train
-   */
-  unsigned int getMaxTrain() { return max_train; }
-
-  /**
-   * @brief     set feature size
-   * @retval max_val
-   */
-  unsigned int getMaxVal() { return max_val; }
-
-  /**
-   * @brief     set feature size
-   * @retval max_test
-   */
-  unsigned int getMaxTest() { return max_test; }
+  virtual int setFeatureSize(const TensorDim &indim);
 
   /**
    * @brief     Display Progress
@@ -153,7 +136,7 @@ public:
    * @brief     return validation of data set
    * @retval validation
    */
-  bool *getValidation() { return validation; }
+  bool isValid() { return initialized; }
 
   /**
    * @brief     set property
@@ -202,100 +185,47 @@ public:
 
 protected:
   /**
-   * @brief Number of Data Set
-   */
-  static constexpr const unsigned int NBUFTYPE = 4;
-
-  /**
    * @brief state of the data buffer while getting the data
    */
-  typedef enum {
+  enum class DataStatus {
     DATA_NOT_READY = 0,
     DATA_READY = 1,
     DATA_END = 2,
     DATA_ERROR = 3,
-  } DataStatus;
+  };
 
   /**
-   * @brief     status of thread
+   * @brief Set the State And Notify to the condition variable waiting for it
+   *
+   * @param status status to change
    */
-  DataStatus trainReadyFlag;
-  DataStatus valReadyFlag;
-  DataStatus testReadyFlag;
+  void setStateAndNotify(const DataStatus status);
 
-  /**
-   * @brief     Data Queues for each data set
-   */
-  std::vector<std::vector<float>> train_data;
-  std::vector<std::vector<float>> train_data_label;
-  std::vector<std::vector<float>> val_data;
-  std::vector<std::vector<float>> val_data_label;
-  std::vector<std::vector<float>> test_data;
-  std::vector<std::vector<float>> test_data_label;
+  DatasetType data_buffer_type; /**< data buffer type */
 
-  /**
-   * @brief     feature size
-   */
-  TensorDim input_dim;
+  /** data queue and producer/consumer status related variables */
+  std::thread
+    batch_producer;        /** thread generates a single batches to the queue */
+  std::mutex data_lock;    /**< data queue mutex */
+  std::mutex status_mutex; /**< data status mutex */
+  std::condition_variable cv_status; /**< condition variable for status */
+  std::vector<std::vector<float>> data_q;
+  std::vector<std::vector<float>> label_q;
+  DataStatus queue_status;  /**< status of the queue */
+  unsigned int buf_size;    /**< queue size */
+  unsigned int cur_bufsize; /**<  number of data in the data queue */
 
-  /**
-   * @brief     number of class
-   */
-  unsigned int class_num;
+  TensorDim input_dim;     /**< feature size */
+  unsigned int class_num;  /**< number of class */
+  unsigned int batch_size; /**< batch size */
 
-  /**
-   * @brief     number of remain data for each data queue
-   */
-  unsigned int cur_train_bufsize;
-  unsigned int cur_val_bufsize;
-  unsigned int cur_test_bufsize;
+  /**< @todo below variable should be owned by databuffer that has fixed size */
+  unsigned int samples_per_epoch; /**< size of samples in the dataset */
+  unsigned int remaining_samples_per_epoch; /**< size of samples remaining in
+                                               current epoch */
 
-  /**
-   * @brief     queue size for each data set
-   */
-  unsigned int train_bufsize;
-  unsigned int val_bufsize;
-  unsigned int test_bufsize;
-
-  unsigned int max_train;
-  unsigned int max_val;
-  unsigned int max_test;
-
-  /**
-   * @brief     remain data set size
-   */
-  unsigned int rest_train;
-  unsigned int rest_val;
-  unsigned int rest_test;
-
-  /**
-   * @brief     batch size
-   */
-  unsigned int batch_size;
-
-  /**
-   * @brief     flags to check status
-   */
-  bool train_running;
-  bool val_running;
-  bool test_running;
-
-  /**
-   * @brief     ids to check duplication
-   */
-  std::vector<unsigned int> train_mark;
-  std::vector<unsigned int> val_mark;
-  std::vector<unsigned int> test_mark;
-
-  /**
-   * @brief     threads to generate data for queue
-   */
-  std::thread train_thread;
-  std::thread val_thread;
-  std::thread test_thread;
-
-  std::vector<std::string> labels;
-  bool validation[NBUFTYPE];
+  bool is_running;  /**< flag to check if running */
+  bool initialized; /**< check if current buffer is in valid state */
 
   /**
    * @brief     return random int value between min to max
@@ -307,10 +237,8 @@ protected:
 
   std::mt19937 rng;
 
-  /**
-   * @brief     The type of data buffer
-   */
-  DatasetType data_buffer_type;
+  std::exception_ptr consumer_exception_ptr; /**< exception ptr for consumer to
+                                                catch when producer is dead */
 
   /** The user_data to be used for the data generator callback */
   void *user_data;

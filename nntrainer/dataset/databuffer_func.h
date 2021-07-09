@@ -71,15 +71,6 @@ public:
    */
   void updateData() override;
 
-  /**
-   * @brief     set property
-   * @param[in] type type of property
-   * @param[in] value string value of property
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   */
-  int setProperty(const PropertyType type, std::string &value);
-
 private:
   /**
    *
@@ -90,9 +81,7 @@ private:
    * @retval true / false generate all data for this epoch
    *
    */
-  datagen_cb callback_train;
-  datagen_cb callback_val;
-  datagen_cb callback_test;
+  datagen_cb callback;
 };
 } // namespace nntrainer
 #endif /* __cplusplus */
