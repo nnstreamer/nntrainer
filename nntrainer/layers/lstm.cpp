@@ -22,6 +22,8 @@
 
 namespace nntrainer {
 
+static constexpr size_t SINGLE_INOUT_IDX = 0;
+
 enum LSTMParams { weight_xh, weight_hh, bias_h };
 
 #define NUM_GATE 4
@@ -32,61 +34,57 @@ enum LSTMParams { weight_xh, weight_hh, bias_h };
 //  : [1, 1, unit (hidden_size) , unit (hidden_size) x NUM_GATE] -> f, g, i, o
 // - bias_h ( hidden bias )
 //  : [1, 1, 1, unit (hidden_size) x NUM_GATE] -> f, g, i, o
-int LSTMLayer::initialize(Manager &manager) {
-  int status = ML_ERROR_NONE;
-  if (getNumInputs() != 1) {
+void LSTMLayer::finalize(InitLayerContext &context) {
+  auto unit = std::get<props::Unit>(props).get();
+
+  if (context.getNumInputs() != 1) {
     throw std::invalid_argument("LSTM layer takes only one input");
   }
+
+  TensorDim output_dim;
+  const TensorDim &input_dim = context.getInputDimensions()[0];
 
   // input_dim = [ batch, 1, time_iteration, feature_size ]
   // if return_sequences == False :
   //      output_dim = [ batch, 1, 1, hidden_size (unit)]
   // else:
   //      output_dim = [ batch, 1, time_iteration, hidden_size ( unit ) ]
-  output_dim[0] = input_dim[0];
-  output_dim[0].width(unit);
+  output_dim = input_dim;
+  output_dim.width(unit);
 
   if (!return_sequences) {
-    output_dim[0].height(1);
+    output_dim.height(1);
   }
+
+  context.setOutputDimensions({output_dim});
 
   TensorDim bias_dim = TensorDim();
   bias_dim.setTensorDim(3, unit * NUM_GATE);
 
-  TensorDim dim_xh = output_dim[0];
-  dim_xh.height(input_dim[0].width());
+  TensorDim dim_xh = output_dim;
+  dim_xh.height(input_dim.width());
   dim_xh.width(unit * NUM_GATE);
   dim_xh.batch(1);
 
-  TensorDim dim_hh = output_dim[0];
+  TensorDim dim_hh = output_dim;
   dim_hh.height(unit);
   dim_hh.width(unit * NUM_GATE);
   dim_hh.batch(1);
 
-  if (weights.empty()) {
-    weights.reserve(3);
-    // weight_initializer can be set sepeartely. weight_xh initializer,
-    // weight_hh initializer kernel initializer & recurrent_initializer in keras
-    // for now, it is set same way.
-    weights.emplace_back(dim_xh, weight_initializer, weight_regularizer,
-                         weight_regularizer_constant, true, "LSTM:weight_xh");
-    weights.emplace_back(dim_hh, weight_initializer, weight_regularizer,
-                         weight_regularizer_constant, true, "LSTM:weight_hh");
-    weights.emplace_back(bias_dim, bias_initializer, WeightRegularizer::NONE,
-                         1.0f, true, "LSTM:bias_h");
-    manager.trackWeights(weights);
-  } else {
-    weights[LSTMParams::weight_xh].reset(dim_xh, weight_initializer,
-                                         weight_regularizer,
-                                         weight_regularizer_constant, true);
-    weights[LSTMParams::weight_hh].reset(dim_hh, weight_initializer,
-                                         weight_regularizer,
-                                         weight_regularizer_constant, true);
-    weights[LSTMParams::bias_h].reset(bias_dim, bias_initializer,
-                                      WeightRegularizer::NONE, 1.0f, true);
-  }
+  // weight_initializer can be set sepeartely. weight_xh initializer,
+  // weight_hh initializer kernel initializer & recurrent_initializer in keras
+  // for now, it is set same way.
+  wt_idx[LSTMParams::weight_xh] =
+    context.requestWeight(dim_xh, weight_initializer, weight_regularizer,
+                          weight_regularizer_constant, "LSTM:weight_xh", true);
+  wt_idx[LSTMParams::weight_hh] =
+    context.requestWeight(dim_hh, weight_initializer, weight_regularizer,
+                          weight_regularizer_constant, "LSTM:weight_hh", true);
+  wt_idx[LSTMParams::bias_h] =
+    context.requestWeight(bias_dim, bias_initializer, WeightRegularizer::NONE,
+                          1.0f, "LSTM:bias_h", true);
 
-  TensorDim d = input_dim[0];
+  TensorDim d = input_dim;
   d.width(unit);
 
   mem_cell = std::make_shared<Var_Grad>(d, true, true, "LSTM:mem_cell");
@@ -96,10 +94,9 @@ int LSTMLayer::initialize(Manager &manager) {
 
   TensorDim cell_dim = TensorDim();
   cell_dim.setTensorDim(3, unit);
-  cell_dim.batch(input_dim[0].batch());
+  cell_dim.batch(input_dim.batch());
 
   h_prev = Tensor(cell_dim);
-
   c_prev = Tensor(cell_dim);
 
   if (hidden_state_activation_type == ActivationType::ACT_NONE) {
@@ -111,68 +108,75 @@ int LSTMLayer::initialize(Manager &manager) {
     recurrent_activation_type = ActivationType::ACT_SIGMOID;
     recurrent_acti_func.setActiFunc(recurrent_activation_type);
   }
-
-  return status;
 }
 
-void LSTMLayer::setProperty(const PropertyType type, const std::string &value) {
+void LSTMLayer::setProperty(const std::vector<std::string> &values) {
+  /// @todo: deprecate this in favor of loadProperties
+  auto remain_props = loadProperties(values, props);
+  for (unsigned int i = 0; i < remain_props.size(); ++i) {
+    std::string key;
+    std::string value;
+    std::stringstream ss;
+
+    if (getKeyValue(remain_props[i], key, value) != ML_ERROR_NONE) {
+      throw std::invalid_argument("Error parsing the property: " +
+                                  remain_props[i]);
+    }
+
+    if (value.empty()) {
+      ss << "value is empty: key: " << key << ", value: " << value;
+      throw std::invalid_argument(ss.str());
+    }
+
+    /// @note this calls derived setProperty if available
+    setProperty(key, value);
+  }
+}
+
+void LSTMLayer::setProperty(const std::string &type_str,
+                            const std::string &value) {
+  using PropertyType = LayerV1::PropertyType;
   int status = ML_ERROR_NONE;
+  LayerV1::PropertyType type =
+    static_cast<LayerV1::PropertyType>(parseLayerProperty(type_str));
+
   // TODO : Add return_state property & api to get the hidden input
   switch (type) {
-  case PropertyType::unit: {
-    if (!value.empty()) {
-      status = setUint(unit, value);
-      throw_status(status);
-      output_dim[0].width(unit);
-    }
-    break;
-  case PropertyType::hidden_state_activation:
-    if (!value.empty()) {
-      ActivationType acti_type = (ActivationType)parseType(value, TOKEN_ACTI);
-      hidden_state_activation_type = acti_type;
-      acti_func.setActiFunc(acti_type);
-    }
-    break;
-  case PropertyType::recurrent_activation:
-    if (!value.empty()) {
-      ActivationType acti_type = (ActivationType)parseType(value, TOKEN_ACTI);
-      recurrent_activation_type = acti_type;
-      recurrent_acti_func.setActiFunc(acti_type);
-    }
-    break;
-  case PropertyType::return_sequences:
-    if (!value.empty()) {
-      status = setBoolean(return_sequences, value);
-      throw_status(status);
-    }
-    break;
+  case PropertyType::hidden_state_activation: {
+    ActivationType acti_type = (ActivationType)parseType(value, TOKEN_ACTI);
+    hidden_state_activation_type = acti_type;
+    acti_func.setActiFunc(acti_type);
+  } break;
+  case PropertyType::recurrent_activation: {
+    ActivationType acti_type = (ActivationType)parseType(value, TOKEN_ACTI);
+    recurrent_activation_type = acti_type;
+    recurrent_acti_func.setActiFunc(acti_type);
+  } break;
+  case PropertyType::return_sequences: {
+    status = setBoolean(return_sequences, value);
+    throw_status(status);
+  } break;
   case PropertyType::dropout:
-    if (!value.empty()) {
-      status = setFloat(dropout_rate, value);
-      throw_status(status);
-    }
+    status = setFloat(dropout_rate, value);
+    throw_status(status);
     break;
   default:
-    LayerV1::setProperty(type, value);
+    LayerImpl::setProperty(type_str, value);
     break;
   }
-  }
 }
 
-void LSTMLayer::setRecurrentActivation(ActivationType activation) {
-  if (activation == ActivationType::ACT_UNKNOWN) {
-    throw std::invalid_argument("Error: have to specify activation function");
-  }
-  recurrent_activation_type = activation;
+void LSTMLayer::exportTo(Exporter &exporter,
+                         const ExportMethods &method) const {
+  LayerImpl::exportTo(exporter, method);
+  exporter.saveResult(props, method, this);
 }
 
-void LSTMLayer::forwarding(bool training) {
-  Tensor &weight_xh =
-    weightAt(static_cast<int>(LSTMParams::weight_xh)).getVariableRef();
-  Tensor &weight_hh =
-    weightAt(static_cast<int>(LSTMParams::weight_hh)).getVariableRef();
-  Tensor &bias_h =
-    weightAt(static_cast<int>(LSTMParams::bias_h)).getVariableRef();
+void LSTMLayer::forwarding(RunLayerContext &context, bool training) {
+  auto unit = std::get<props::Unit>(props).get();
+  Tensor &weight_xh = context.getWeight(wt_idx[LSTMParams::weight_xh]);
+  Tensor &weight_hh = context.getWeight(wt_idx[LSTMParams::weight_hh]);
+  Tensor &bias_h = context.getWeight(wt_idx[LSTMParams::bias_h]);
 
   mem_cell->getVariableRef().setZero();
   hidden->getVariableRef().setZero();
@@ -182,16 +186,14 @@ void LSTMLayer::forwarding(bool training) {
   c_prev.setZero();
 
   Tensor &hidden_ = hidden->getVariableRef();
-
-  Tensor &input_ = net_input[0]->getVariableRef();
+  Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
   Tensor &m_cell_ = mem_cell->getVariableRef();
+  const TensorDim &input_dim = input_.getDim();
 
   Tensor hs_prev;
   Tensor cs_prev;
-  Tensor hs;
-  Tensor cs;
 
-  for (unsigned int b = 0; b < input_dim[0].batch(); ++b) {
+  for (unsigned int b = 0; b < input_dim.batch(); ++b) {
     Tensor islice = input_.getBatchSlice(b, 1);
     Tensor oslice = hidden_.getBatchSlice(b, 1);
     Tensor cell = m_cell_.getBatchSlice(b, 1);
@@ -205,8 +207,9 @@ void LSTMLayer::forwarding(bool training) {
         xs.multiply_i(xs.dropout_mask(dropout_rate));
       }
 
-      hs = oslice.getSharedDataTensor({oslice.width()}, t * oslice.width());
-      cs = cell.getSharedDataTensor({cell.width()}, t * cell.width());
+      Tensor hs =
+        oslice.getSharedDataTensor({oslice.width()}, t * oslice.width());
+      Tensor cs = cell.getSharedDataTensor({cell.width()}, t * cell.width());
       Tensor fgio_t =
         fgio_.getSharedDataTensor({unit * NUM_GATE}, unit * t * NUM_GATE);
 
@@ -239,91 +242,72 @@ void LSTMLayer::forwarding(bool training) {
       acti_func.run_fn(cs, hs);
       hs.multiply_i(ho);
     }
-    // size of h_prev and hs size is same : unit.
-    // size of c_prev and cs is same : unit.
-    h_prev.getBatchSlice(b, 1).copy(hs);
-    c_prev.getBatchSlice(b, 1).copy(cs);
   }
 
+  Tensor &output = context.getOutput(SINGLE_INOUT_IDX);
   if (!return_sequences) {
     TensorDim d = hidden_.getDim();
-    for (unsigned int b = 0; b < input_dim[0].batch(); ++b) {
+    for (unsigned int b = 0; b < input_dim.batch(); ++b) {
       float *data = hidden_.getAddress(b * d.width() * d.height() +
                                        (d.height() - 1) * d.width());
-      float *rdata = net_hidden[0]->getVariableRef().getAddress(b * d.width());
+      float *rdata = output.getAddress(b * d.width());
       std::copy(data, data + d.width(), rdata);
     }
   } else {
     std::copy(hidden_.getData(), hidden_.getData() + hidden_.length(),
-              net_hidden[0]->getVariableRef().getData());
+              output.getData());
   }
 }
 
-void LSTMLayer::copy(std::shared_ptr<LayerV1> l) {
-  LayerV1::copy(l);
-
-  std::shared_ptr<LSTMLayer> from = std::static_pointer_cast<LSTMLayer>(l);
-  this->unit = from->unit;
-  this->hidden_state_activation_type = from->hidden_state_activation_type;
-  this->acti_func = from->acti_func;
-  this->recurrent_activation_type = from->recurrent_activation_type;
-  this->recurrent_acti_func = from->recurrent_acti_func;
-  this->return_sequences = from->return_sequences;
-}
-
-void LSTMLayer::calcDerivative() {
+void LSTMLayer::calcDerivative(RunLayerContext &context) {
   Tensor &derivative_ = fgio->getGradientRef();
-  Tensor &weight =
-    weightAt(static_cast<int>(LSTMParams::weight_xh)).getVariableRef();
-  Tensor &ret_ = net_input[0]->getGradientRef();
+  Tensor &weight = context.getWeight(wt_idx[LSTMParams::weight_xh]);
+  Tensor &ret_ = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
+
   derivative_.dot(weight, ret_, false, true);
 }
 
-void LSTMLayer::calcGradient() {
-  Tensor &djdw_x =
-    weightAt(static_cast<int>(LSTMParams::weight_xh)).getGradientRef();
-  Tensor &djdw_h =
-    weightAt(static_cast<int>(LSTMParams::weight_hh)).getGradientRef();
-  Tensor &djdb_h =
-    weightAt(static_cast<int>(LSTMParams::bias_h)).getGradientRef();
-  Tensor &weight_hh =
-    weightAt(static_cast<int>(LSTMParams::weight_hh)).getVariableRef();
+void LSTMLayer::calcGradient(RunLayerContext &context) {
+  auto unit = std::get<props::Unit>(props).get();
+  Tensor &djdw_x = context.getWeightGrad(wt_idx[LSTMParams::weight_xh]);
+  Tensor &djdw_h = context.getWeightGrad(wt_idx[LSTMParams::weight_hh]);
+  Tensor &djdb_h = context.getWeightGrad(wt_idx[LSTMParams::bias_h]);
+  Tensor &weight_hh = context.getWeight(wt_idx[LSTMParams::weight_hh]);
 
   djdw_x.setZero();
   djdw_h.setZero();
   djdb_h.setZero();
 
-  mem_cell->getGradientRef().setZero();
-  hidden->getGradientRef().setZero();
-  fgio->getGradientRef().setZero();
-
   Tensor derivative_ = hidden->getGradientRef();
+  Tensor &hidden_ = hidden->getVariableRef();
+  Tensor &incoming_deriv = context.getIncomingDerivative(SINGLE_INOUT_IDX);
+  Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
+  const TensorDim &input_dim = input_.getDim();
+  Tensor &m_cell_ = mem_cell->getVariableRef();
+  Tensor &dm_cell_ = mem_cell->getGradientRef();
+
+  dm_cell_.setZero();
+  derivative_.setZero();
+  fgio->getGradientRef().setZero();
 
   if (!return_sequences) {
     TensorDim d = derivative_.getDim();
-    for (unsigned int b = 0; b < input_dim[0].batch(); ++b) {
+    for (unsigned int b = 0; b < input_dim.batch(); ++b) {
       float *data = derivative_.getAddress(b * d.width() * d.height() +
                                            (d.height() - 1) * d.width());
-      float *rdata = net_hidden[0]->getGradientRef().getAddress(b * d.width());
+      float *rdata = incoming_deriv.getAddress(b * d.width());
       std::copy(rdata, rdata + d.width(), data);
     }
   } else {
-    std::copy(net_hidden[0]->getGradientRef().getData(),
-              net_hidden[0]->getGradientRef().getData() +
-                net_hidden[0]->getGradientRef().length(),
+    std::copy(incoming_deriv.getData(),
+              incoming_deriv.getData() + incoming_deriv.length(),
               derivative_.getData());
   }
-
-  Tensor &hidden_ = hidden->getVariableRef();
-
-  Tensor &input_ = net_input[0]->getVariableRef();
-  Tensor &m_cell_ = mem_cell->getVariableRef();
-  Tensor &dm_cell_ = mem_cell->getGradientRef();
 
   Tensor dh_nx = Tensor(derivative_.width());
   Tensor dc_nx = Tensor(derivative_.width());
 
-  for (unsigned int b = 0; b < input_dim[0].batch(); ++b) {
+  for (unsigned int b = 0; b < input_dim.batch(); ++b) {
     Tensor deriv_t = derivative_.getBatchSlice(b, 1);
     Tensor derivc_t = dm_cell_.getBatchSlice(b, 1);
     Tensor xs_t = input_.getBatchSlice(b, 1);

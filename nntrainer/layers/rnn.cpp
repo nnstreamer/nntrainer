@@ -219,7 +219,7 @@ void RNNLayer::calcGradient(RunLayerContext &context) {
   Tensor &weight_hh = context.getWeight(wt_idx[RNNParams::weight_hh]);
 
   Tensor &derivative_ = context.getTensorGrad(wt_idx[RNNParams::hidden_state]);
-  Tensor &incoming_deriv = context.getOutputGrad(SINGLE_INOUT_IDX);
+  Tensor &incoming_deriv = context.getIncomingDerivative(SINGLE_INOUT_IDX);
   Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
   const TensorDim &input_dim = input_.getDim();
 
