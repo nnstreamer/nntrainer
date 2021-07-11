@@ -15,8 +15,9 @@
 #define __GRU_H__
 #ifdef __cplusplus
 
-#include <layer_internal.h>
-#include <tensor.h>
+#include <acti_func.h>
+#include <common_properties.h>
+#include <layer_impl.h>
 
 namespace nntrainer {
 
@@ -24,19 +25,17 @@ namespace nntrainer {
  * @class   GRULayer
  * @brief   GRULayer
  */
-class GRULayer : public LayerV1 {
+class GRULayer : public LayerImpl {
 public:
   /**
    * @brief     Constructor of GRULayer
    */
-  template <typename... Args>
   GRULayer(
-    unsigned int unit_ = 0,
     ActivationType hidden_state_activation_type_ = ActivationType::ACT_NONE,
     ActivationType recurrent_activation_type_ = ActivationType::ACT_NONE,
-    bool sequence = false, float dropout = 0.0, Args... args) :
-    LayerV1(args...),
-    unit(unit_),
+    bool sequence = false, float dropout = 0.0) :
+    LayerImpl(),
+    props(props::Unit()),
     hidden_state_activation_type(hidden_state_activation_type_),
     acti_func(hidden_state_activation_type, true),
     recurrent_activation_type(recurrent_activation_type_),
@@ -62,54 +61,52 @@ public:
   GRULayer &operator=(GRULayer &&rhs) = default;
 
   /**
-   * @copydoc Layer::forwarding(bool training)
+   * @copydoc Layer::finalize(InitLayerContext &context)
    */
-  void forwarding(bool training = true) override;
+  void finalize(InitLayerContext &context) override;
 
   /**
-   * @copydoc Layer::calcDerivative()
+   * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
    */
-  void calcDerivative() override;
+  void forwarding(RunLayerContext &context, bool training) override;
 
   /**
-   * @copydoc Layer::calcGradient()
+   * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
-  void calcGradient() override;
+  void calcDerivative(RunLayerContext &context) override;
 
   /**
-   * @brief     copy layer
-   * @param[in] l layer to copy
+   * @copydoc Layer::calcGradient(RunLayerContext &context)
    */
-  void copy(std::shared_ptr<LayerV1> l) override;
+  void calcGradient(RunLayerContext &context) override;
 
   /**
-   * @brief     initialize layer
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   * @copydoc Layer::exportTo(Exporter &exporter, ExportMethods method)
    */
-  int initialize(Manager &manager) override;
+  void exportTo(Exporter &exporter, const ExportMethods &method) const override;
 
   /**
    * @copydoc Layer::getType()
    */
   const std::string getType() const override { return GRULayer::type; };
 
-  using LayerV1::setProperty;
+  /**
+   * @copydoc Layer::supportBackwarding()
+   */
+  bool supportBackwarding() const override { return true; }
 
   /**
    * @copydoc Layer::setProperty(const PropertyType type, const std::string
    * &value)
    */
-  void setProperty(const PropertyType type,
-                   const std::string &value = "") override;
+  void setProperty(const std::vector<std::string> &values) override;
 
-  static const std::string type;
+  inline static const std::string type = "gru";
 
 private:
-  /**
-   * @brief     hidden state size
-   */
-  unsigned int unit;
+  std::tuple<props::Unit>
+    props; /**< lstm layer properties : unit - number of output neurons */
+  std::array<unsigned int, 6> wt_idx; /**< indices of the weights */
 
   /**
    * @brief     activation type for hidden state : default is sigmoid
@@ -132,21 +129,6 @@ private:
   ActiFunc recurrent_acti_func;
 
   /**
-   * @brief     To save hidden state variable ( batch, 1, 1, unit )
-   */
-  Tensor h_prev;
-
-  /**
-   * @brief     To save intermediate gates
-   */
-  std::shared_ptr<Var_Grad> zrg;
-
-  /**
-   * @brief     hidden state
-   */
-  std::shared_ptr<Var_Grad> hidden;
-
-  /**
    * @brief     variable to set return sequences
    */
   bool return_sequences;
@@ -155,6 +137,16 @@ private:
    * @brief     drop out rate
    */
   float dropout_rate;
+
+  /**
+   * @brief setProperty by type and value separated
+   * @param[in] type property type to be passed
+   * @param[in] value value to be passed
+   * @exception exception::not_supported     when property type is not valid for
+   * the particular layer
+   * @exception std::invalid_argument invalid argument
+   */
+  void setProperty(const std::string &type, const std::string &value);
 };
 } // namespace nntrainer
 
