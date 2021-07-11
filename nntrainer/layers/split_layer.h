@@ -17,8 +17,7 @@
 #define __SPLIT_LAYER_H__
 #ifdef __cplusplus
 
-#include <layer_internal.h>
-#include <tensor.h>
+#include <layer_devel.h>
 
 namespace nntrainer {
 
@@ -26,14 +25,13 @@ namespace nntrainer {
  * @class   Split Layer
  * @brief   Split Layer
  */
-class SplitLayer : public LayerV1 {
+class SplitLayer : public Layer {
 public:
   /**
    * @brief     Constructor of Split Layer
    */
-  template <typename... Args>
-  SplitLayer(unsigned int split_dim = 1, Args... args) :
-    LayerV1(args...),
+  SplitLayer(unsigned int split_dim = 1) :
+    Layer(),
     split_dimension(split_dim),
     leading_helper_dim(1) {}
 
@@ -55,48 +53,35 @@ public:
   SplitLayer &operator=(SplitLayer &&rhs) = default;
 
   /**
-   * @brief     initialize layer
-   * @param[in] last last layer
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   * @copydoc Layer::finalize(InitLayerContext &context)
    */
-  int initialize(Manager &manager) override;
+  void finalize(InitLayerContext &context) override;
 
   /**
-   * @brief     Read Weight & Bias Data from file
-   * @param[in] file input stream file
+   * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
    */
-  void read(std::ifstream &file) override{};
+  void forwarding(RunLayerContext &context, bool training) override;
 
   /**
-   * @brief     Save Weight & Bias Data to file
-   * @param[in] file output stream file
+   * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
-  void save(std::ofstream &file) override{};
+  void calcDerivative(RunLayerContext &context) override;
 
   /**
-   * @copydoc Layer::forwarding(bool training)
+   * @copydoc bool supportBackwarding() const
    */
-  void forwarding(bool training = true) override;
+  bool supportBackwarding() const override { return true; };
 
   /**
-   * @copydoc Layer::calcDerivative()
+   * @copydoc Layer::exportTo(Exporter &exporter, ExportMethods method)
    */
-  void calcDerivative() override;
+  void exportTo(Exporter &exporter,
+                const ExportMethods &method) const override {}
 
   /**
-   * @copydoc Layer::setBatch(unsigned int batch)
+   * @copydoc Layer::setProperty(const std::vector<std::string> &values)
    */
-  void setBatch(unsigned int batch) override;
-
-  using LayerV1::setProperty;
-
-  /**
-   * @copydoc Layer::setProperty(const PropertyType type, const std::string
-   * &value)
-   */
-  void setProperty(const PropertyType type,
-                   const std::string &value = "") override;
+  void setProperty(const std::vector<std::string> &values) override;
 
   /**
    * @copydoc Layer::getType()
@@ -105,12 +90,46 @@ public:
 
   inline static const std::string type = "split";
 
+  /**
+   * @copydoc Layer::setBatch(InitLayerContext &context, unsigned int batch)
+   */
+  void setBatch(InitLayerContext &context, unsigned int batch) override {
+    setBatch(batch);
+  }
+
+  /**
+   * @copydoc Layer::setBatch(RunLayerContext &context, unsigned int batch)
+   */
+  void setBatch(RunLayerContext &context, unsigned int batch) override {
+    setBatch(batch);
+  }
+
 private:
   unsigned int split_dimension; /** dimension along which to split the input */
   unsigned int leading_helper_dim; /**< batch dimension of helper dimension not
                                 containing the actual batch */
   TensorDim input_reshape_helper;  /** helper dimension to reshape input */
   TensorDim output_reshape_helper; /** helper dimension to reshape outputs */
+
+  /**
+   * @brief setProperty by type and value separated
+   * @param[in] type property type to be passed
+   * @param[in] value value to be passed
+   * @exception exception::not_supported     when property type is not valid for
+   * the particular layer
+   * @exception std::invalid_argument invalid argument
+   */
+  void setProperty(const std::string &type, const std::string &value);
+
+  /**
+   * @brief set batch for the internal variables
+   *
+   * @param batch update batch size
+   */
+  void setBatch(unsigned int batch) {
+    input_reshape_helper.batch(batch * leading_helper_dim);
+    output_reshape_helper.batch(batch * leading_helper_dim);
+  }
 };
 
 } // namespace nntrainer
