@@ -18,6 +18,6 @@
 
 auto semantic_lstm =
   LayerSemanticsParamType(nntrainer::createLayer<nntrainer::LSTMLayer>,
-                          nntrainer::LSTMLayer::type, {"unit=1"}, {}, 0, false);
+                          nntrainer::LSTMLayer::type, {"unit=1"}, 0, false);
 
 INSTANTIATE_TEST_CASE_P(LSTM, LayerSemantics, ::testing::Values(semantic_lstm));
