@@ -21,8 +21,7 @@
 #include <opencv2/highgui/highgui.hpp>
 #endif
 
-#include <layer_internal.h>
-#include <tensor.h>
+#include <layer_devel.h>
 
 namespace nntrainer {
 
@@ -30,21 +29,20 @@ namespace nntrainer {
  * @class   PreprocessTranslate Layer
  * @brief   Preprocess Translate Layer
  */
-class PreprocessTranslateLayer : public LayerV1 {
+class PreprocessTranslateLayer : public Layer {
 public:
   /**
    * @brief     Constructor of Preprocess Translate Layer
    */
-  template <typename... Args>
-  PreprocessTranslateLayer(Args... args) :
-    LayerV1(args...),
+  PreprocessTranslateLayer() :
+    Layer(),
     translation_factor(0.0),
     epsilon(1e-5) {}
 
   /**
    * @brief     Destructor of Preprocess Translate Layer
    */
-  ~PreprocessTranslateLayer(){};
+  ~PreprocessTranslateLayer() = default;
 
   /**
    *  @brief  Move constructor of PreprocessLayer.
@@ -59,22 +57,19 @@ public:
   PreprocessTranslateLayer &operator=(PreprocessTranslateLayer &&rhs) = default;
 
   /**
-   * @brief     initialize layer
-   * @param[in] last last layer
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   * @copydoc Layer::finalize(InitLayerContext &context)
    */
-  int initialize(Manager &manager) override;
+  void finalize(InitLayerContext &context) override;
 
   /**
-   * @copydoc Layer::forwarding()
+   * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
    */
-  void forwarding(bool training = true) override;
+  void forwarding(RunLayerContext &context, bool training) override;
 
   /**
-   * @copydoc Layer::calcDerivative()
+   * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
-  void calcDerivative() override;
+  void calcDerivative(RunLayerContext &context) override;
 
   /**
    * @copydoc bool supportBackwarding() const
@@ -82,20 +77,22 @@ public:
   bool supportBackwarding() const override { return false; };
 
   /**
+   * @copydoc Layer::exportTo(Exporter &exporter, ExportMethods method)
+   */
+  void exportTo(Exporter &exporter,
+                const ExportMethods &method) const override {}
+
+  /**
    * @copydoc Layer::getType()
    */
   const std::string getType() const override {
     return PreprocessTranslateLayer::type;
-  }
-
-  using LayerV1::setProperty;
+  };
 
   /**
-   * @copydoc Layer::setProperty(const PropertyType type, const std::string
-   * &value)
+   * @copydoc Layer::setProperty(const std::vector<std::string> &values)
    */
-  void setProperty(const PropertyType type,
-                   const std::string &value = "") override;
+  void setProperty(const std::vector<std::string> &values) override;
 
   inline static const std::string type = "preprocess_translate";
 
@@ -110,8 +107,17 @@ private:
 #if defined(ENABLE_DATA_AUGMENTATION_OPENCV)
   cv::Mat affine_transform_mat;
   cv::Mat input_mat, output_mat;
-
 #endif
+
+  /**
+   * @brief setProperty by type and value separated
+   * @param[in] type property type to be passed
+   * @param[in] value value to be passed
+   * @exception exception::not_supported     when property type is not valid for
+   * the particular layer
+   * @exception std::invalid_argument invalid argument
+   */
+  void setProperty(const std::string &type, const std::string &value);
 };
 
 } // namespace nntrainer

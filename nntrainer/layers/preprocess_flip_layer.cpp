@@ -13,6 +13,7 @@
 
 #include <random>
 
+#include <layer_internal.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <parse_util.h>
@@ -26,55 +27,81 @@ const std::string PreprocessFlipLayer::flip_vertical = "vertical";
 const std::string PreprocessFlipLayer::flip_horizontal_vertical =
   "horizontal_and_vertical";
 
-int PreprocessFlipLayer::initialize(Manager &manager) {
-  output_dim = input_dim;
+void PreprocessFlipLayer::finalize(InitLayerContext &context) {
+  context.setOutputDimensions(context.getInputDimensions());
 
   rng.seed(getSeed());
   flip_dist = std::uniform_real_distribution<float>(0.0, 1.0);
-
-  return ML_ERROR_NONE;
 }
 
-void PreprocessFlipLayer::setProperty(const PropertyType type,
-                                      const std::string &value) {
-  switch (type) {
-  case PropertyType::flip_direction:
-    if (!value.empty()) {
-      if (istrequal(value, flip_horizontal)) {
-        flipdirection = FlipDirection::horizontal;
-      } else if (istrequal(value, flip_vertical)) {
-        flipdirection = FlipDirection::vertical;
-      } else if (istrequal(value, flip_horizontal_vertical)) {
-        flipdirection = FlipDirection::horizontal_and_vertical;
-      } else {
-        throw std::invalid_argument("Argument flip direction is invalid");
-      }
+void PreprocessFlipLayer::setProperty(const std::vector<std::string> &values) {
+  /// @todo: deprecate this in favor of loadProperties
+  for (unsigned int i = 0; i < values.size(); ++i) {
+    std::string key;
+    std::string value;
+    std::stringstream ss;
+
+    if (getKeyValue(values[i], key, value) != ML_ERROR_NONE) {
+      throw std::invalid_argument("Error parsing the property: " + values[i]);
     }
-    break;
-  default:
-    LayerV1::setProperty(type, value);
-    break;
+
+    if (value.empty()) {
+      ss << "value is empty: key: " << key << ", value: " << value;
+      throw std::invalid_argument(ss.str());
+    }
+
+    /// @note this calls derived setProperty if available
+    setProperty(key, value);
   }
 }
 
-void PreprocessFlipLayer::forwarding(bool training) {
+void PreprocessFlipLayer::setProperty(const std::string &type_str,
+                                      const std::string &value) {
+  using PropertyType = LayerV1::PropertyType;
+  LayerV1::PropertyType type =
+    static_cast<LayerV1::PropertyType>(parseLayerProperty(type_str));
+
+  switch (type) {
+  case PropertyType::flip_direction: {
+    if (istrequal(value, flip_horizontal)) {
+      flipdirection = FlipDirection::horizontal;
+    } else if (istrequal(value, flip_vertical)) {
+      flipdirection = FlipDirection::vertical;
+    } else if (istrequal(value, flip_horizontal_vertical)) {
+      flipdirection = FlipDirection::horizontal_and_vertical;
+    } else {
+      throw std::invalid_argument("Argument flip direction is invalid");
+    }
+  } break;
+  default:
+    std::string msg =
+      "[PreprocessFlipLayer] Unknown Layer Property Key for value " +
+      std::string(value);
+    throw exception::not_supported(msg);
+  }
+}
+
+void PreprocessFlipLayer::forwarding(RunLayerContext &context, bool training) {
   if (!training) {
-    for (unsigned int idx = 0; idx < input_dim.size(); idx++) {
-      net_hidden[idx]->getVariableRef() = net_input[idx]->getVariableRef();
+    for (unsigned int idx = 0; idx < context.getNumInputs(); idx++) {
+      /** TODO: tell the graph to not include this when not training */
+      context.getOutput(idx) = context.getInput(idx);
     }
 
     return;
   }
+
   using std::swap;
   bool fliph, flipw;
 
-  for (unsigned int idx = 0; idx < input_dim.size(); idx++) {
-    Tensor &hidden_ = net_hidden[idx]->getVariableRef();
-    Tensor &input_ = net_input[idx]->getVariableRef();
-    unsigned int width = input_dim[idx].width();
-    unsigned int height = input_dim[idx].height();
+  for (unsigned int idx = 0; idx < context.getNumInputs(); idx++) {
+    Tensor &hidden_ = context.getOutput(idx);
+    Tensor &input_ = context.getInput(idx);
+    const TensorDim input_dim = input_.getDim();
+    unsigned int width = input_dim.width();
+    unsigned int height = input_dim.height();
 
-    for (unsigned int b = 0; b < input_dim[idx].batch(); b++) {
+    for (unsigned int b = 0; b < input_dim.batch(); b++) {
       fliph = flipw = false;
       if (flip_dist(rng) < 0.5 && flipdirection != FlipDirection::vertical)
         flipw = true;
@@ -86,25 +113,26 @@ void PreprocessFlipLayer::forwarding(bool training) {
         continue;
 
       if (flipw) {
-        for (unsigned int c = 0; c < input_dim[idx].channel(); c++)
-          for (unsigned int h = 0; h < input_dim[idx].height(); h++)
-            for (unsigned int w = 0; w < input_dim[idx].width() / 2; w++)
+        for (unsigned int c = 0; c < input_dim.channel(); c++)
+          for (unsigned int h = 0; h < input_dim.height(); h++)
+            for (unsigned int w = 0; w < input_dim.width() / 2; w++)
               swap(*input_.getAddress(b, c, h, w),
                    *input_.getAddress(b, c, h, width - w - 1));
       }
       if (fliph) {
-        for (unsigned int c = 0; c < input_dim[idx].channel(); c++)
-          for (unsigned int h = 0; h < input_dim[idx].height() / 2; h++)
-            for (unsigned int w = 0; w < input_dim[idx].width(); w++)
+        for (unsigned int c = 0; c < input_dim.channel(); c++)
+          for (unsigned int h = 0; h < input_dim.height() / 2; h++)
+            for (unsigned int w = 0; w < input_dim.width(); w++)
               swap(*input_.getAddress(b, c, h, w),
                    *input_.getAddress(b, c, height - h - 1, w));
       }
     }
+    /** @todo enable inPlace support for this layer */
     hidden_ = input_;
   }
 }
 
-void PreprocessFlipLayer::calcDerivative() {
+void PreprocessFlipLayer::calcDerivative(RunLayerContext &context) {
   throw exception::not_supported(
     "calcDerivative for preprocess layer is not supported");
 }
