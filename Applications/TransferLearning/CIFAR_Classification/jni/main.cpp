@@ -421,10 +421,19 @@ int main(int argc, char *argv[]) {
    * @brief     Neural Network Create & Initialization
    */
   nntrainer::NeuralNetwork NN;
+  int status = ML_ERROR_NONE;
   try {
-    NN.loadFromConfig(config);
-    NN.compile();
-    NN.initialize();
+    status = NN.loadFromConfig(config);
+    if (status != ML_ERROR_NONE)
+      return status;
+
+    status = NN.compile();
+    if (status != ML_ERROR_NONE)
+      return status;
+
+    status = NN.initialize();
+    if (status != ML_ERROR_NONE)
+      return status;
   } catch (...) {
     std::cerr << "Error during init" << std::endl;
     return 1;

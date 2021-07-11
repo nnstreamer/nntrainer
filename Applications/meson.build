@@ -10,10 +10,10 @@ endif
 subdir('VGG/jni')
 subdir('ReinforcementLearning/DeepQ/jni')
 subdir('TransferLearning/CIFAR_Classification/jni')
-subdir('TransferLearning/Draw_Classification/jni')
-subdir('Custom')
+# subdir('TransferLearning/Draw_Classification/jni')
+# subdir('Custom')
 subdir('ProductRatings/jni')
 
 if get_option('enable-tflite-backbone')
-  subdir('SimpleShot')
+# subdir('SimpleShot')
 endif
