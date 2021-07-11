@@ -168,13 +168,6 @@ void GRULayer::setProperty(const PropertyType type, const std::string &value) {
   }
 }
 
-void GRULayer::setRecurrentActivation(ActivationType activation) {
-  if (activation == ActivationType::ACT_UNKNOWN) {
-    throw std::invalid_argument("Error: have to specify activation function");
-  }
-  recurrent_activation_type = activation;
-}
-
 void GRULayer::forwarding(bool training) {
   Tensor &weight_xh =
     weightAt(static_cast<int>(GRUParams::weight_xh)).getVariableRef();
