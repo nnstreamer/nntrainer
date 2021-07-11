@@ -15,8 +15,7 @@
 #define __EMBEDDING_H__
 #ifdef __cplusplus
 
-#include <layer_internal.h>
-#include <tensor.h>
+#include <layer_impl.h>
 
 namespace nntrainer {
 
@@ -24,23 +23,23 @@ namespace nntrainer {
  * @class   EmbeddingLayer
  * @brief   EmbeddingLayer
  */
-class EmbeddingLayer : public LayerV1 {
+class EmbeddingLayer : public LayerImpl {
 public:
   /**
    * @brief     Constructor of Embedding Layer
    */
-  template <typename... Args>
   EmbeddingLayer(unsigned int in_dim_ = 0, unsigned int out_dim_ = 0,
-                 unsigned int in_length_ = 0, Args... args) :
-    LayerV1(args...),
+                 unsigned int in_length_ = 0) :
+    LayerImpl(),
     in_dim(in_dim_),
     out_dim(out_dim_),
-    in_length(in_length_) {}
+    in_length(in_length_),
+    weight_idx(0) {}
 
   /**
    * @brief     Destructor of Embedding Layer
    */
-  ~EmbeddingLayer(){};
+  ~EmbeddingLayer() = default;
 
   /**
    *  @brief  Move constructor.
@@ -55,46 +54,50 @@ public:
   EmbeddingLayer &operator=(EmbeddingLayer &&rhs) = default;
 
   /**
-   * @copydoc Layer::forwarding(bool training)
+   * @copydoc Layer::finalize(InitLayerContext &context)
    */
-  void forwarding(bool training = true) override;
+  void finalize(InitLayerContext &context) override;
 
   /**
-   * @copydoc Layer::calcDerivative()
+   * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
    */
-  void calcDerivative() override;
+  void forwarding(RunLayerContext &context, bool training) override;
 
   /**
-   * @copydoc Layer::calcGradient()
+   * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
-  void calcGradient() override;
+  void calcDerivative(RunLayerContext &context) override;
 
   /**
-   * @brief     copy layer
-   * @param[in] l layer to copy
+   * @copydoc Layer::calcGradient(RunLayerContext &context)
    */
-  void copy(std::shared_ptr<LayerV1> l) override;
+  void calcGradient(RunLayerContext &context) override;
 
   /**
-   * @brief     initialize layer
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   * @copydoc Layer::exportTo(Exporter &exporter, ExportMethods method)
    */
-  int initialize(Manager &manager) override;
+  void exportTo(Exporter &exporter,
+                const ExportMethods &method) const override {
+    LayerImpl::exportTo(exporter, method);
+  }
 
   /**
    * @copydoc Layer::getType()
    */
   const std::string getType() const override { return EmbeddingLayer::type; };
 
-  using LayerV1::setProperty;
+  /**
+   * @copydoc Layer::supportBackwarding()
+   */
+  bool supportBackwarding() const { return true; }
+
+  using Layer::setProperty;
 
   /**
    * @copydoc Layer::setProperty(const PropertyType type, const std::string
    * &value)
    */
-  void setProperty(const PropertyType type,
-                   const std::string &value = "") override;
+  void setProperty(const std::vector<std::string> &values) override;
 
   inline static const std::string type = "embedding";
 
@@ -102,6 +105,17 @@ private:
   unsigned int in_dim;
   unsigned int out_dim;
   unsigned int in_length;
+  unsigned int weight_idx;
+
+  /**
+   * @brief setProperty by type and value separated
+   * @param[in] type property type to be passed
+   * @param[in] value value to be passed
+   * @exception exception::not_supported     when property type is not valid for
+   * the particular layer
+   * @exception std::invalid_argument invalid argument
+   */
+  void setProperty(const std::string &type_str, const std::string &value);
 };
 } // namespace nntrainer
 
