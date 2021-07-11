@@ -15,6 +15,7 @@ test_target = [
   'unittest_layers_rnn.cpp',
   'unittest_layers_lstm.cpp',
   'unittest_layers_gru.cpp',
+  'unittest_layers_preprocess.cpp',
 ]
 
 exe = executable(

@@ -1324,9 +1324,9 @@ INSTANTIATE_TEST_CASE_P(
 
     /**< augmentation layer */
 #if defined(ENABLE_DATA_AUGMENTATION_OPENCV)
-    // mkModelTc(preprocess_translate_validate, "3:1:1:10", 10),
+    mkModelTc(preprocess_translate_validate, "3:1:1:10", 10),
 #endif
-    // mkModelTc(preprocess_flip_validate, "3:1:1:10", 10),
+    mkModelTc(preprocess_flip_validate, "3:1:1:10", 10),
 
     /**< Addition test */
     mkModelTc(addition_resnet_like, "3:1:1:10", 10),

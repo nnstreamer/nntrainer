@@ -17,8 +17,7 @@
 
 #include <random>
 
-#include <layer_internal.h>
-#include <tensor.h>
+#include <layer_devel.h>
 
 namespace nntrainer {
 
@@ -26,20 +25,19 @@ namespace nntrainer {
  * @class   Preprocess FLip Layer
  * @brief   Preprocess FLip Layer
  */
-class PreprocessFlipLayer : public LayerV1 {
+class PreprocessFlipLayer : public Layer {
 public:
   /**
    * @brief     Constructor of Preprocess FLip Layer
    */
-  template <typename... Args>
-  PreprocessFlipLayer(Args... args) :
-    LayerV1(args...),
+  PreprocessFlipLayer() :
+    Layer(),
     flipdirection(FlipDirection::horizontal_and_vertical) {}
 
   /**
    * @brief     Destructor of Preprocess FLip Layer
    */
-  ~PreprocessFlipLayer(){};
+  ~PreprocessFlipLayer() = default;
 
   /**
    *  @brief  Move constructor of PreprocessLayer.
@@ -54,43 +52,42 @@ public:
   PreprocessFlipLayer &operator=(PreprocessFlipLayer &&rhs) = default;
 
   /**
-   * @brief     initialize layer
-   * @param[in] last last layer
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   * @copydoc Layer::finalize(InitLayerContext &context)
    */
-  int initialize(Manager &manager) override;
+  void finalize(InitLayerContext &context) override;
 
   /**
-   * @copydoc Layer::forwarding()
+   * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
    */
-  void forwarding(bool training = true) override;
+  void forwarding(RunLayerContext &context, bool training) override;
 
   /**
-   * @copydoc Layer::calcDerivative()
+   * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
-  void calcDerivative() override;
+  void calcDerivative(RunLayerContext &context) override;
 
   /**
    * @copydoc bool supportBackwarding() const
    */
   bool supportBackwarding() const override { return false; };
 
-  using LayerV1::setProperty;
-
   /**
-   * @copydoc Layer::setProperty(const PropertyType type, const std::string
-   * &value)
+   * @copydoc Layer::exportTo(Exporter &exporter, ExportMethods method)
    */
-  void setProperty(const PropertyType type,
-                   const std::string &value = "") override;
+  void exportTo(Exporter &exporter,
+                const ExportMethods &method) const override {}
 
   /**
    * @copydoc Layer::getType()
    */
   const std::string getType() const override {
     return PreprocessFlipLayer::type;
-  }
+  };
+
+  /**
+   * @copydoc Layer::setProperty(const std::vector<std::string> &values)
+   */
+  void setProperty(const std::vector<std::string> &values) override;
 
   inline static const std::string type = "preprocess_flip";
 
@@ -109,6 +106,16 @@ private:
   std::uniform_real_distribution<float>
     flip_dist;                 /**< uniform random distribution */
   FlipDirection flipdirection; /**< direction of flip */
+
+  /**
+   * @brief setProperty by type and value separated
+   * @param[in] type property type to be passed
+   * @param[in] value value to be passed
+   * @exception exception::not_supported     when property type is not valid for
+   * the particular layer
+   * @exception std::invalid_argument invalid argument
+   */
+  void setProperty(const std::string &type, const std::string &value);
 };
 
 } // namespace nntrainer
