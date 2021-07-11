@@ -261,7 +261,7 @@ void LSTMLayer::calcGradient(RunLayerContext &context) {
   djdw_h.setZero();
   djdb_h.setZero();
 
-  Tensor derivative_ = context.getTensorGrad(wt_idx[LSTMParams::hidden_state]);
+  Tensor &derivative_ = context.getTensorGrad(wt_idx[LSTMParams::hidden_state]);
   Tensor &hidden_ = context.getTensor(wt_idx[LSTMParams::hidden_state]);
   Tensor &incoming_deriv = context.getIncomingDerivative(SINGLE_INOUT_IDX);
   Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);

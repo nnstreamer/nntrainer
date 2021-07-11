@@ -37,9 +37,9 @@
 
 namespace nntrainer {
 
-const std::string GRULayer::type = "gru";
+static constexpr size_t SINGLE_INOUT_IDX = 0;
 
-enum GRUParams { weight_xh, weight_hh, bias_h };
+enum GRUParams { weight_xh, weight_hh, bias_h, hidden_state, zrg, h_prev };
 
 #define NUM_GATE 3
 
@@ -49,73 +49,71 @@ enum GRUParams { weight_xh, weight_hh, bias_h };
 //  : [1, 1, unit (hidden_size) , unit (hidden_size) x NUM_GATE] -> f, g, i, o
 // - bias_h ( hidden bias )
 //  : [1, 1, 1, unit (hidden_size) x NUM_GATE] -> f, g, i, o
-int GRULayer::initialize(Manager &manager) {
-  int status = ML_ERROR_NONE;
-  if (getNumInputs() != 1) {
+void GRULayer::finalize(InitLayerContext &context) {
+  auto unit = std::get<props::Unit>(props).get();
+
+  if (context.getNumInputs() != 1) {
     throw std::invalid_argument("GRU layer takes only one input");
   }
+
+  TensorDim output_dim;
+  const TensorDim &input_dim = context.getInputDimensions()[0];
 
   // input_dim = [ batch, 1, time_iteration, feature_size ]
   // if return_sequences == False :
   //      output_dim = [ batch, 1, 1, hidden_size (unit)]
   // else:
   //      output_dim = [ batch, 1, time_iteration, hidden_size ( unit ) ]
-  output_dim[0] = input_dim[0];
-  output_dim[0].width(unit);
+  output_dim = input_dim;
+  output_dim.width(unit);
 
   if (!return_sequences) {
-    output_dim[0].height(1);
+    output_dim.height(1);
   }
+
+  context.setOutputDimensions({output_dim});
 
   TensorDim bias_dim = TensorDim();
   bias_dim.setTensorDim(3, unit * NUM_GATE);
 
-  TensorDim dim_xh = output_dim[0];
-  dim_xh.height(input_dim[0].width());
+  TensorDim dim_xh = output_dim;
+  dim_xh.height(input_dim.width());
   dim_xh.width(unit * NUM_GATE);
   dim_xh.batch(1);
 
-  TensorDim dim_hh = output_dim[0];
+  TensorDim dim_hh = output_dim;
   dim_hh.height(unit);
   dim_hh.width(unit * NUM_GATE);
   dim_hh.batch(1);
 
-  if (weights.empty()) {
-    weights.reserve(3);
-    // weight_initializer can be set sepeartely. weight_xh initializer,
-    // weight_hh initializer kernel initializer & recurrent_initializer in keras
-    // for now, it is set same way.
-    weights.emplace_back(dim_xh, weight_initializer, weight_regularizer,
-                         weight_regularizer_constant, true, "GRU:weight_xh");
-    weights.emplace_back(dim_hh, weight_initializer, weight_regularizer,
-                         weight_regularizer_constant, true, "GRU:weight_hh");
-    weights.emplace_back(bias_dim, bias_initializer, WeightRegularizer::NONE,
-                         1.0f, true, "GRU:bias_h");
-    manager.trackWeights(weights);
-  } else {
-    weights[GRUParams::weight_xh].reset(dim_xh, weight_initializer,
-                                        weight_regularizer,
-                                        weight_regularizer_constant, true);
-    weights[GRUParams::weight_hh].reset(dim_hh, weight_initializer,
-                                        weight_regularizer,
-                                        weight_regularizer_constant, true);
-    weights[GRUParams::bias_h].reset(bias_dim, bias_initializer,
-                                     WeightRegularizer::NONE, 1.0f, true);
-  }
+  // weight_initializer can be set sepeartely. weight_xh initializer,
+  // weight_hh initializer kernel initializer & recurrent_initializer in keras
+  // for now, it is set same way.
+  wt_idx[GRUParams::weight_xh] =
+    context.requestWeight(dim_xh, weight_initializer, weight_regularizer,
+                          weight_regularizer_constant, "GRU:weight_xh", true);
+  wt_idx[GRUParams::weight_hh] =
+    context.requestWeight(dim_hh, weight_initializer, weight_regularizer,
+                          weight_regularizer_constant, "GRU:weight_hh", true);
+  wt_idx[GRUParams::bias_h] =
+    context.requestWeight(bias_dim, bias_initializer, WeightRegularizer::NONE,
+                          1.0f, "GRU:bias_h", true);
 
-  TensorDim d = input_dim[0];
+  TensorDim d = input_dim;
   d.width(unit);
 
-  hidden = std::make_shared<Var_Grad>(d, true, true, "GRU:output");
+  wt_idx[GRUParams::hidden_state] =
+    context.requestTensor(d, "GRU:hidden_state", true, ITERATION_LIFESPAN);
 
   d.width(unit * NUM_GATE);
-  zrg = std::make_shared<Var_Grad>(d, true, true, "GRU:zrg");
+  wt_idx[GRUParams::zrg] =
+    context.requestTensor(d, "GRU:zrg", true, ITERATION_LIFESPAN);
 
   TensorDim h_dim = TensorDim();
   h_dim.setTensorDim(3, unit);
-  h_dim.batch(input_dim[0].batch());
-
-  h_prev = Tensor(h_dim);
+  h_dim.batch(input_dim.batch());
+  wt_idx[GRUParams::h_prev] =
+    context.requestTensor(h_dim, "GRU:h_prev", false, FORWARD_FUNC_LIFESPAN);
 
   if (hidden_state_activation_type == ActivationType::ACT_NONE) {
     hidden_state_activation_type = ActivationType::ACT_TANH;
@@ -126,63 +124,80 @@ int GRULayer::initialize(Manager &manager) {
     recurrent_activation_type = ActivationType::ACT_SIGMOID;
     recurrent_acti_func.setActiFunc(recurrent_activation_type);
   }
-
-  return status;
 }
 
-void GRULayer::setProperty(const PropertyType type, const std::string &value) {
+void GRULayer::setProperty(const std::vector<std::string> &values) {
+  /// @todo: deprecate this in favor of loadProperties
+  auto remain_props = loadProperties(values, props);
+  for (unsigned int i = 0; i < remain_props.size(); ++i) {
+    std::string key;
+    std::string value;
+    std::stringstream ss;
+
+    if (getKeyValue(remain_props[i], key, value) != ML_ERROR_NONE) {
+      throw std::invalid_argument("Error parsing the property: " +
+                                  remain_props[i]);
+    }
+
+    if (value.empty()) {
+      ss << "value is empty: key: " << key << ", value: " << value;
+      throw std::invalid_argument(ss.str());
+    }
+
+    /// @note this calls derived setProperty if available
+    setProperty(key, value);
+  }
+}
+
+void GRULayer::setProperty(const std::string &type_str,
+                           const std::string &value) {
+  using PropertyType = LayerV1::PropertyType;
   int status = ML_ERROR_NONE;
+  LayerV1::PropertyType type =
+    static_cast<LayerV1::PropertyType>(parseLayerProperty(type_str));
+
   // TODO : Add return_state property & api to get the hidden input
   switch (type) {
-  case PropertyType::unit: {
-    if (!value.empty()) {
-      status = setUint(unit, value);
-      throw_status(status);
-      output_dim[0].width(unit);
-    }
-    break;
-  case PropertyType::hidden_state_activation:
-    if (!value.empty()) {
-      ActivationType acti_type = (ActivationType)parseType(value, TOKEN_ACTI);
-      hidden_state_activation_type = acti_type;
-      acti_func.setActiFunc(acti_type);
-    }
-    break;
-  case PropertyType::recurrent_activation:
-    if (!value.empty()) {
-      ActivationType acti_type = (ActivationType)parseType(value, TOKEN_ACTI);
-      recurrent_activation_type = acti_type;
-      recurrent_acti_func.setActiFunc(acti_type);
-    }
-    break;
-  case PropertyType::return_sequences:
-    if (!value.empty()) {
-      status = setBoolean(return_sequences, value);
-      throw_status(status);
-    }
-    break;
+  case PropertyType::hidden_state_activation: {
+    ActivationType acti_type = (ActivationType)parseType(value, TOKEN_ACTI);
+    hidden_state_activation_type = acti_type;
+    acti_func.setActiFunc(acti_type);
+  } break;
+  case PropertyType::recurrent_activation: {
+    ActivationType acti_type = (ActivationType)parseType(value, TOKEN_ACTI);
+    recurrent_activation_type = acti_type;
+    recurrent_acti_func.setActiFunc(acti_type);
+  } break;
+  case PropertyType::return_sequences: {
+    status = setBoolean(return_sequences, value);
+    throw_status(status);
+  } break;
   default:
-    LayerV1::setProperty(type, value);
+    LayerImpl::setProperty(type_str, value);
     break;
-  }
   }
 }
 
-void GRULayer::forwarding(bool training) {
-  Tensor &weight_xh =
-    weightAt(static_cast<int>(GRUParams::weight_xh)).getVariableRef();
-  Tensor &weight_hh =
-    weightAt(static_cast<int>(GRUParams::weight_hh)).getVariableRef();
-  Tensor &bias_h =
-    weightAt(static_cast<int>(GRUParams::bias_h)).getVariableRef();
+void GRULayer::exportTo(Exporter &exporter, const ExportMethods &method) const {
+  LayerImpl::exportTo(exporter, method);
+  exporter.saveResult(props, method, this);
+}
 
-  hidden->getVariableRef().setZero();
-  zrg->getVariableRef().setZero();
+void GRULayer::forwarding(RunLayerContext &context, bool training) {
+  auto unit = std::get<props::Unit>(props).get();
+  Tensor &weight_xh = context.getWeight(wt_idx[GRUParams::weight_xh]);
+  Tensor &weight_hh = context.getWeight(wt_idx[GRUParams::weight_hh]);
+  Tensor &bias_h = context.getWeight(wt_idx[GRUParams::bias_h]);
 
+  Tensor &hidden_ = context.getTensor(wt_idx[GRUParams::hidden_state]);
+  Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
+  Tensor &zrg = context.getTensor(wt_idx[GRUParams::zrg]);
+  Tensor &h_prev = context.getTensor(wt_idx[GRUParams::h_prev]);
+  const TensorDim &input_dim = input_.getDim();
+
+  hidden_.setZero();
+  zrg.setZero();
   h_prev.setZero();
-
-  Tensor &hidden_ = hidden->getVariableRef();
-  Tensor &input_ = net_input[0]->getVariableRef();
 
   Tensor hs_prev;
   Tensor hs;
@@ -192,10 +207,10 @@ void GRULayer::forwarding(bool training) {
   // gt = tanh((h_prev*rt).W_hr + W_xg.xs)
   // h_nx = (1-zt)*gt + zt*h_prev
 
-  for (unsigned int b = 0; b < input_dim[0].batch(); ++b) {
+  for (unsigned int b = 0; b < input_dim.batch(); ++b) {
     Tensor islice = input_.getBatchSlice(b, 1);
     Tensor oslice = hidden_.getBatchSlice(b, 1);
-    Tensor zrg_ = zrg->getVariableRef().getBatchSlice(b, 1);
+    Tensor zrg_ = zrg.getBatchSlice(b, 1);
 
     for (unsigned int t = 0; t < islice.height(); ++t) {
       Tensor xs =
@@ -245,83 +260,71 @@ void GRULayer::forwarding(bool training) {
       temp = zt.multiply(-1.0).add(1.0);
       hs.add_i(gt.multiply(temp));
     }
-    h_prev.getBatchSlice(b, 1).copy(hs);
   }
 
+  Tensor &output = context.getOutput(SINGLE_INOUT_IDX);
   if (!return_sequences) {
     TensorDim d = hidden_.getDim();
-    for (unsigned int b = 0; b < input_dim[0].batch(); ++b) {
-      Tensor dest = net_hidden[0]->getVariableRef().getSharedDataTensor(
-        {d.width()}, b * d.width());
+    for (unsigned int b = 0; b < input_dim.batch(); ++b) {
+      Tensor dest = output.getSharedDataTensor({d.width()}, b * d.width());
       Tensor src = hidden_.getSharedDataTensor(
         {d.width()}, b * d.width() * d.height() + (d.height() - 1) * d.width());
       dest.copy(src);
     }
   } else {
-    net_hidden[0]->getVariableRef().copy(hidden_);
+    output.copy(hidden_);
   }
 }
 
-void GRULayer::copy(std::shared_ptr<LayerV1> l) {
-  LayerV1::copy(l);
+void GRULayer::calcDerivative(RunLayerContext &context) {
+  Tensor &derivative_ = context.getTensorGrad(wt_idx[GRUParams::zrg]);
+  Tensor &weight = context.getWeight(wt_idx[GRUParams::weight_xh]);
+  Tensor &ret_ = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
 
-  std::shared_ptr<GRULayer> from = std::static_pointer_cast<GRULayer>(l);
-  this->unit = from->unit;
-  this->hidden_state_activation_type = from->hidden_state_activation_type;
-  this->acti_func = from->acti_func;
-  this->recurrent_activation_type = from->recurrent_activation_type;
-  this->recurrent_acti_func = from->recurrent_acti_func;
-  this->return_sequences = from->return_sequences;
-}
-
-void GRULayer::calcDerivative() {
-  Tensor &derivative_ = zrg->getGradientRef();
-  Tensor &weight =
-    weightAt(static_cast<int>(GRUParams::weight_xh)).getVariableRef();
-  Tensor &ret_ = net_input[0]->getGradientRef();
   derivative_.dot(weight, ret_, false, true);
 }
 
-void GRULayer::calcGradient() {
-  Tensor &djdw_x =
-    weightAt(static_cast<int>(GRUParams::weight_xh)).getGradientRef();
-  Tensor &djdw_h =
-    weightAt(static_cast<int>(GRUParams::weight_hh)).getGradientRef();
-  Tensor &djdb_h =
-    weightAt(static_cast<int>(GRUParams::bias_h)).getGradientRef();
-  Tensor &weight_hh =
-    weightAt(static_cast<int>(GRUParams::weight_hh)).getVariableRef();
+void GRULayer::calcGradient(RunLayerContext &context) {
+  auto unit = std::get<props::Unit>(props).get();
+  Tensor &djdw_x = context.getWeightGrad(wt_idx[GRUParams::weight_xh]);
+  Tensor &djdw_h = context.getWeightGrad(wt_idx[GRUParams::weight_hh]);
+  Tensor &djdb_h = context.getWeightGrad(wt_idx[GRUParams::bias_h]);
+  Tensor &weight_hh = context.getWeight(wt_idx[GRUParams::weight_hh]);
+
+  Tensor djdw_zr_h = Tensor({1, 1, unit, unit * 2}, true);
+  Tensor djdw_g_h = Tensor({1, 1, unit, unit}, true);
+  Tensor &derivative_ = context.getTensorGrad(wt_idx[GRUParams::hidden_state]);
+  Tensor &hidden_ = context.getTensor(wt_idx[GRUParams::hidden_state]);
+  Tensor &incoming_deriv = context.getIncomingDerivative(SINGLE_INOUT_IDX);
+  Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
+  Tensor &zrg = context.getTensor(wt_idx[GRUParams::zrg]);
+  Tensor &d_zrg = context.getTensorGrad(wt_idx[GRUParams::zrg]);
+  const TensorDim &input_dim = input_.getDim();
 
   djdw_x.setZero();
-  Tensor djdw_zr_h = Tensor({1, 1, unit, unit * 2}, true);
   djdw_zr_h.setZero();
-  Tensor djdw_g_h = Tensor({1, 1, unit, unit}, true);
   djdw_g_h.setZero();
   djdb_h.setZero();
 
-  hidden->getGradientRef().setZero();
-  zrg->getGradientRef().setZero();
-
-  Tensor derivative_ = hidden->getGradientRef();
+  derivative_.setZero();
+  d_zrg.setZero();
 
   if (!return_sequences) {
     TensorDim d = derivative_.getDim();
-    for (unsigned int b = 0; b < input_dim[0].batch(); ++b) {
+    for (unsigned int b = 0; b < input_dim.batch(); ++b) {
       Tensor dest = derivative_.getSharedDataTensor(
         {d.width()}, b * d.width() * d.height() + (d.height() - 1) * d.width());
-      Tensor src = net_hidden[0]->getGradientRef().getSharedDataTensor(
-        {d.width()}, b * d.width());
+      Tensor src =
+        incoming_deriv.getSharedDataTensor({d.width()}, b * d.width());
       dest.copy(src);
     }
   } else {
-    derivative_.copy(net_hidden[0]->getGradientRef());
+    derivative_.copy(incoming_deriv);
   }
 
-  Tensor &hidden_ = hidden->getVariableRef();
-  Tensor &input_ = net_input[0]->getVariableRef();
   Tensor dh_nx = Tensor({derivative_.width()});
 
-  for (unsigned int b = 0; b < input_dim[0].batch(); ++b) {
+  for (unsigned int b = 0; b < input_dim.batch(); ++b) {
     Tensor deriv_t = derivative_.getBatchSlice(b, 1);
     Tensor xs_t = input_.getBatchSlice(b, 1);
     Tensor hs_t = hidden_.getBatchSlice(b, 1);
@@ -331,8 +334,8 @@ void GRULayer::calcGradient() {
     Tensor dh;
     Tensor hs_prev;
     Tensor xs;
-    Tensor dzrg_ = zrg->getGradientRef().getBatchSlice(b, 1);
-    Tensor zrg_ = zrg->getVariableRef().getBatchSlice(b, 1);
+    Tensor dzrg_ = d_zrg.getBatchSlice(b, 1);
+    Tensor zrg_ = zrg.getBatchSlice(b, 1);
 
     for (unsigned int t = deriv_t.height(); t-- > 0;) {
       dh = deriv_t.getSharedDataTensor({deriv_t.width()}, t * deriv_t.width());
