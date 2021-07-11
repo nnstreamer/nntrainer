@@ -18,7 +18,7 @@
 
 auto semantic_concat =
   LayerSemanticsParamType(nntrainer::createLayer<nntrainer::ConcatLayer>,
-                          nntrainer::ConcatLayer::type, {}, {}, 0, false);
+                          nntrainer::ConcatLayer::type, {}, 0, false);
 
 INSTANTIATE_TEST_CASE_P(Concat, LayerSemantics,
                         ::testing::Values(semantic_concat));

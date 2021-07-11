@@ -2251,8 +2251,7 @@ protected:
 
   virtual void prepareLayer() {
     int status = setProperty("in_dim=50 |"
-                             "out_dim=8 |"
-                             "in_length=12");
+                             "out_dim=8");
     EXPECT_EQ(status, ML_ERROR_NONE);
     setBatch(3);
   }
