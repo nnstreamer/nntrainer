@@ -24,7 +24,7 @@ namespace nntrainer {
 
 static constexpr size_t SINGLE_INOUT_IDX = 0;
 
-enum LSTMParams { weight_xh, weight_hh, bias_h };
+enum LSTMParams { weight_xh, weight_hh, bias_h, hidden_state, mem_cell, fgio };
 
 #define NUM_GATE 4
 
@@ -87,17 +87,14 @@ void LSTMLayer::finalize(InitLayerContext &context) {
   TensorDim d = input_dim;
   d.width(unit);
 
-  mem_cell = std::make_shared<Var_Grad>(d, true, true, "LSTM:mem_cell");
-  hidden = std::make_shared<Var_Grad>(d, true, true, "LSTM:output");
+  wt_idx[LSTMParams::hidden_state] =
+    context.requestTensor(d, "LSTM:hidden_state", true, ITERATION_LIFESPAN);
+  wt_idx[LSTMParams::mem_cell] =
+    context.requestTensor(d, "LSTM:mem_cell", true, ITERATION_LIFESPAN);
+
   d.width(unit * NUM_GATE);
-  fgio = std::make_shared<Var_Grad>(d, true, true, "LSTM:fgio");
-
-  TensorDim cell_dim = TensorDim();
-  cell_dim.setTensorDim(3, unit);
-  cell_dim.batch(input_dim.batch());
-
-  h_prev = Tensor(cell_dim);
-  c_prev = Tensor(cell_dim);
+  wt_idx[LSTMParams::fgio] =
+    context.requestTensor(d, "LSTM:fgio", true, ITERATION_LIFESPAN);
 
   if (hidden_state_activation_type == ActivationType::ACT_NONE) {
     hidden_state_activation_type = ActivationType::ACT_TANH;
@@ -178,26 +175,21 @@ void LSTMLayer::forwarding(RunLayerContext &context, bool training) {
   Tensor &weight_hh = context.getWeight(wt_idx[LSTMParams::weight_hh]);
   Tensor &bias_h = context.getWeight(wt_idx[LSTMParams::bias_h]);
 
-  mem_cell->getVariableRef().setZero();
-  hidden->getVariableRef().setZero();
-  fgio->getVariableRef().setZero();
-
-  h_prev.setZero();
-  c_prev.setZero();
-
-  Tensor &hidden_ = hidden->getVariableRef();
+  Tensor &hidden_ = context.getTensor(wt_idx[LSTMParams::hidden_state]);
   Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
-  Tensor &m_cell_ = mem_cell->getVariableRef();
+  Tensor &m_cell_ = context.getTensor(wt_idx[LSTMParams::mem_cell]);
+  Tensor &fgio = context.getTensor(wt_idx[LSTMParams::fgio]);
   const TensorDim &input_dim = input_.getDim();
 
-  Tensor hs_prev;
-  Tensor cs_prev;
+  hidden_.setZero();
+  m_cell_.setZero();
+  fgio.setZero();
 
   for (unsigned int b = 0; b < input_dim.batch(); ++b) {
     Tensor islice = input_.getBatchSlice(b, 1);
     Tensor oslice = hidden_.getBatchSlice(b, 1);
     Tensor cell = m_cell_.getBatchSlice(b, 1);
-    Tensor fgio_ = fgio->getVariableRef().getBatchSlice(b, 1);
+    Tensor fgio_ = fgio.getBatchSlice(b, 1);
 
     for (unsigned int t = 0; t < islice.height(); ++t) {
       Tensor xs =
@@ -213,18 +205,14 @@ void LSTMLayer::forwarding(RunLayerContext &context, bool training) {
       Tensor fgio_t =
         fgio_.getSharedDataTensor({unit * NUM_GATE}, unit * t * NUM_GATE);
 
-      if (t > 0) {
-        hs_prev = oslice.getSharedDataTensor({oslice.width()},
-                                             (t - 1) * oslice.width());
-        cs_prev =
-          cell.getSharedDataTensor({cell.width()}, (t - 1) * cell.width());
-      } else {
-        hs_prev = h_prev.getBatchSlice(b, 1);
-        cs_prev = c_prev.getBatchSlice(b, 1);
-      }
-      hs_prev.dot(weight_hh, fgio_t);
-      fgio_t.add_i(xs.dot(weight_xh));
+      xs.dot(weight_xh, fgio_t);
       fgio_t.add_i(bias_h);
+
+      if (t > 0) {
+        Tensor hs_prev = oslice.getSharedDataTensor({oslice.width()},
+                                                    (t - 1) * oslice.width());
+        hs_prev.dot(weight_hh, fgio_t, false, false, 1.0);
+      }
 
       Tensor hi = fgio_t.getSharedDataTensor({unit}, 0);
       Tensor hf = fgio_t.getSharedDataTensor({unit}, unit);
@@ -236,7 +224,11 @@ void LSTMLayer::forwarding(RunLayerContext &context, bool training) {
       recurrent_acti_func.run_fn(ho, ho);
       acti_func.run_fn(hg, hg);
 
-      hf.multiply(cs_prev, cs);
+      if (t > 0) {
+        Tensor cs_prev =
+          cell.getSharedDataTensor({cell.width()}, (t - 1) * cell.width());
+        hf.multiply(cs_prev, cs);
+      }
       cs.add_i(hg.multiply(hi));
 
       acti_func.run_fn(cs, hs);
@@ -260,7 +252,7 @@ void LSTMLayer::forwarding(RunLayerContext &context, bool training) {
 }
 
 void LSTMLayer::calcDerivative(RunLayerContext &context) {
-  Tensor &derivative_ = fgio->getGradientRef();
+  Tensor &derivative_ = context.getTensorGrad(wt_idx[LSTMParams::fgio]);
   Tensor &weight = context.getWeight(wt_idx[LSTMParams::weight_xh]);
   Tensor &ret_ = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
 
@@ -278,17 +270,19 @@ void LSTMLayer::calcGradient(RunLayerContext &context) {
   djdw_h.setZero();
   djdb_h.setZero();
 
-  Tensor derivative_ = hidden->getGradientRef();
-  Tensor &hidden_ = hidden->getVariableRef();
+  Tensor derivative_ = context.getTensorGrad(wt_idx[LSTMParams::hidden_state]);
+  Tensor &hidden_ = context.getTensor(wt_idx[LSTMParams::hidden_state]);
   Tensor &incoming_deriv = context.getIncomingDerivative(SINGLE_INOUT_IDX);
   Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
   const TensorDim &input_dim = input_.getDim();
-  Tensor &m_cell_ = mem_cell->getVariableRef();
-  Tensor &dm_cell_ = mem_cell->getGradientRef();
+  Tensor &m_cell_ = context.getTensor(wt_idx[LSTMParams::mem_cell]);
+  Tensor &dm_cell_ = context.getTensorGrad(wt_idx[LSTMParams::mem_cell]);
+  Tensor &fgio = context.getTensor(wt_idx[LSTMParams::fgio]);
+  Tensor &d_fgio = context.getTensorGrad(wt_idx[LSTMParams::fgio]);
 
   dm_cell_.setZero();
   derivative_.setZero();
-  fgio->getGradientRef().setZero();
+  d_fgio.setZero();
 
   if (!return_sequences) {
     TensorDim d = derivative_.getDim();
@@ -323,8 +317,8 @@ void LSTMLayer::calcGradient(RunLayerContext &context) {
     Tensor cs_prev;
     Tensor cs;
     Tensor dc;
-    Tensor dfgio_ = fgio->getGradientRef().getBatchSlice(b, 1);
-    Tensor fgio_ = fgio->getVariableRef().getBatchSlice(b, 1);
+    Tensor dfgio_ = d_fgio.getBatchSlice(b, 1);
+    Tensor fgio_ = fgio.getBatchSlice(b, 1);
 
     for (unsigned int t = deriv_t.height(); t-- > 0;) {
       dh = deriv_t.getSharedDataTensor({deriv_t.width()}, t * deriv_t.width());
