@@ -28,12 +28,10 @@ public:
   /**
    * @brief     Constructor of Embedding Layer
    */
-  EmbeddingLayer(unsigned int in_dim_ = 0, unsigned int out_dim_ = 0,
-                 unsigned int in_length_ = 0) :
+  EmbeddingLayer(unsigned int in_dim_ = 0, unsigned int out_dim_ = 0) :
     LayerImpl(),
     in_dim(in_dim_),
     out_dim(out_dim_),
-    in_length(in_length_),
     weight_idx(0) {}
 
   /**
@@ -104,7 +102,6 @@ public:
 private:
   unsigned int in_dim;
   unsigned int out_dim;
-  unsigned int in_length;
   unsigned int weight_idx;
 
   /**
