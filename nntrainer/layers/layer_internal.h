@@ -239,13 +239,12 @@ public:
    *            28. random_translate
    *            29. in_dim : int ( input dimension for embedding layer )
    *            30. out_dim : int ( output dimesion for embedding layer )
-   *            31. in_length : int ( input length for embedding layer )
-   *            32. recurrent_activation :  string (type) - lstm
-   *            33. distribute : bool
-   *            34. split_dimension : string (type)
-   *            35. return_sequences :  bool (type) - lstm
-   *            36. hidden_state_activation :  string (type) - lstm
-   *            37. dropout :  float (type) - drop out rate
+   *            31. recurrent_activation :  string (type) - lstm
+   *            32. distribute : bool
+   *            33. split_dimension : string (type)
+   *            34. return_sequences :  bool (type) - lstm
+   *            35. hidden_state_activation :  string (type) - lstm
+   *            36. dropout :  float (type) - drop out rate
    */
   enum class PropertyType {
     input_shape = 0,
@@ -279,13 +278,12 @@ public:
     random_translate = 28,
     in_dim = 29,
     out_dim = 30,
-    in_length = 31,
-    recurrent_activation = 32,
-    distribute = 33,
-    split_dimension = 34,
-    return_sequences = 35,
-    hidden_state_activation = 36,
-    dropout = 37,
+    recurrent_activation = 31,
+    distribute = 32,
+    split_dimension = 33,
+    return_sequences = 34,
+    hidden_state_activation = 35,
+    dropout = 36,
     unknown
   };
 

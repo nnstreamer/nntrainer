@@ -38,7 +38,7 @@ void EmbeddingLayer::finalize(InitLayerContext &context) {
 
   TensorDim output_dim = input_dim;
 
-  output_dim.height(in_length);
+  output_dim.height(input_dim.width());
   output_dim.width(out_dim);
   context.setOutputDimensions({output_dim});
 
@@ -89,10 +89,6 @@ void EmbeddingLayer::setProperty(const std::string &type_str,
     status = setUint(out_dim, value);
     throw_status(status);
   } break;
-  case PropertyType::in_length: {
-    status = setUint(in_length, value);
-    throw_status(status);
-  } break;
   default:
     LayerImpl::setProperty(type_str, value);
     break;
@@ -107,7 +103,7 @@ void EmbeddingLayer::forwarding(RunLayerContext &context, bool training) {
   for (unsigned int b = 0; b < input_.batch(); ++b) {
     float *in_data = input_.getAddress(b * input_.getDim().getFeatureLen());
 
-    for (unsigned int i = 0; i < in_length; ++i) {
+    for (unsigned int i = 0; i < input_.width(); ++i) {
       if (in_data[i] > in_dim) {
         throw std::invalid_argument("input word index is greater than in_dim");
       }
@@ -149,7 +145,7 @@ void EmbeddingLayer::calcGradient(RunLayerContext &context) {
   for (unsigned int b = 0; b < input_.batch(); ++b) {
     float *in_data = input_.getAddress(b * input_.getDim().getFeatureLen());
 
-    for (unsigned int i = 0; i < in_length; ++i) {
+    for (unsigned int i = 0; i < input_.width(); ++i) {
       // Assume padding is 0 and index always start from 1.
       // If in_data[i] - 1 < 0, then it skips.
       if (in_data[i] - 1 < 0)
