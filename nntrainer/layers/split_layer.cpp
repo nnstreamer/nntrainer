@@ -21,27 +21,22 @@
 
 namespace nntrainer {
 
-int SplitLayer::initialize(Manager &manager) {
-  int status = ML_ERROR_NONE;
+static constexpr size_t SINGLE_INOUT_IDX = 0;
 
+void SplitLayer::finalize(InitLayerContext &context) {
   if (split_dimension < 1) {
-    ml_loge("Error: cannot split along the batch dimension");
-    return ML_ERROR_INVALID_PARAMETER;
+    throw std::invalid_argument(
+      "Error: cannot split along the batch dimension");
   }
 
   if (split_dimension >= MAXDIM) {
-    ml_loge("Error: split dimension exceeding the total number of dimensions");
-    return ML_ERROR_INVALID_PARAMETER;
+    throw std::invalid_argument(
+      "Error: split dimension exceeding the total number of dimensions");
   }
 
-  if (getNumInputs() == 0) {
-    ml_loge("Error: number of inputs are not initialized");
-    return ML_ERROR_INVALID_PARAMETER;
-  }
-
-  if (getNumInputs() > 1) {
-    ml_loge("Error: only a single input is supported with split layer");
-    return ML_ERROR_INVALID_PARAMETER;
+  if (context.getNumInputs() != 1) {
+    throw std::invalid_argument(
+      "Error: only a single input is supported with split layer");
   }
 
   /**
@@ -52,15 +47,19 @@ int SplitLayer::initialize(Manager &manager) {
    * 3. split_dimension = 2, output_dim = [b,c,1,w], num_outputs = h
    * 4. split_dimension = 3, output_dim = [b,c,h,1], num_outputs = w
    */
-  const TensorDim &in_dim = input_dim[0];
-  setNumOutputs(in_dim.getTensorDim(split_dimension));
+  const TensorDim &in_dim = context.getInputDimensions()[0];
+  if (in_dim.getTensorDim(split_dimension) != context.getNumOutputs())
+    throw std::invalid_argument(
+      "Split dimension cannot be split into given number of outputs");
 
   TensorDim d = in_dim;
   d.setTensorDim(split_dimension, 1);
 
-  for (unsigned int idx = 0; idx < getNumOutputs(); ++idx) {
-    output_dim[idx] = d;
+  std::vector<TensorDim> output_dim(context.getNumOutputs());
+  for (auto &out_dim : output_dim) {
+    out_dim = d;
   }
+  context.setOutputDimensions(output_dim);
 
   /**
    * Setup input_reshape_helper to which input will be reshaped in forwarding
@@ -93,23 +92,17 @@ int SplitLayer::initialize(Manager &manager) {
   output_reshape_helper.height(1);
 
   setBatch(in_dim.batch());
-
-  return status;
 }
 
-void SplitLayer::setBatch(unsigned int batch) {
-  LayerV1::setBatch(batch);
-  input_reshape_helper.batch(batch * leading_helper_dim);
-  output_reshape_helper.batch(batch * leading_helper_dim);
-}
+void SplitLayer::forwarding(RunLayerContext &context, bool training) {
+  Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
 
-void SplitLayer::forwarding(bool training) {
-  Tensor &input_ = net_input[0]->getVariableRef();
-
+  const TensorDim in_dim = input_.getDim();
   input_.reshape(input_reshape_helper);
 
-  for (unsigned int idx = 0; idx < getNumOutputs(); idx++) {
-    Tensor &output_ = net_hidden[idx]->getVariableRef();
+  for (unsigned int idx = 0; idx < context.getNumOutputs(); idx++) {
+    Tensor &output_ = context.getOutput(idx);
+    const TensorDim out_dim = output_.getDim();
     output_.reshape(output_reshape_helper);
 
     for (unsigned int batch = 0; batch < input_.batch(); batch++) {
@@ -122,19 +115,21 @@ void SplitLayer::forwarding(bool training) {
       dest_tensor.copy(source_tensor);
     }
 
-    output_.reshape(output_dim[idx]);
+    output_.reshape(out_dim);
   }
 
-  input_.reshape(input_dim[0]);
+  input_.reshape(in_dim);
 }
 
-void SplitLayer::calcDerivative() {
-  Tensor &input_ = net_input[0]->getGradientRef();
+void SplitLayer::calcDerivative(RunLayerContext &context) {
+  Tensor &input_ = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
 
+  const TensorDim in_dim = input_.getDim();
   input_.reshape(input_reshape_helper);
 
-  for (unsigned int idx = 0; idx < getNumOutputs(); idx++) {
-    Tensor &output_ = net_hidden[idx]->getGradientRef();
+  for (unsigned int idx = 0; idx < context.getNumOutputs(); idx++) {
+    Tensor &output_ = context.getIncomingDerivative(idx);
+    const TensorDim out_dim = output_.getDim();
     output_.reshape(output_reshape_helper);
 
     for (unsigned int batch = 0; batch < input_.batch(); batch++) {
@@ -147,28 +142,51 @@ void SplitLayer::calcDerivative() {
       dest_tensor.copy(source_tensor);
     }
 
-    output_.reshape(output_dim[idx]);
+    output_.reshape(out_dim);
   }
 
-  input_.reshape(input_dim[0]);
+  input_.reshape(in_dim);
 }
 
-void SplitLayer::setProperty(const PropertyType type,
+void SplitLayer::setProperty(const std::vector<std::string> &values) {
+  /// @todo: deprecate this in favor of loadProperties
+  for (unsigned int i = 0; i < values.size(); ++i) {
+    std::string key;
+    std::string value;
+    std::stringstream ss;
+
+    if (getKeyValue(values[i], key, value) != ML_ERROR_NONE) {
+      throw std::invalid_argument("Error parsing the property: " + values[i]);
+    }
+
+    if (value.empty()) {
+      ss << "value is empty: key: " << key << ", value: " << value;
+      throw std::invalid_argument(ss.str());
+    }
+
+    /// @note this calls derived setProperty if available
+    setProperty(key, value);
+  }
+}
+
+void SplitLayer::setProperty(const std::string &type_str,
                              const std::string &value) {
+  using PropertyType = LayerV1::PropertyType;
   int status = ML_ERROR_NONE;
+  LayerV1::PropertyType type =
+    static_cast<LayerV1::PropertyType>(parseLayerProperty(type_str));
 
   switch (type) {
   case PropertyType::split_dimension: {
-    if (!value.empty()) {
-      status = setUint(split_dimension, value);
-      NNTR_THROW_IF(split_dimension == 0, std::invalid_argument)
-        << "[Split] Batch dimension cannot be split dimension";
-      throw_status(status);
-    }
+    status = setUint(split_dimension, value);
+    NNTR_THROW_IF(split_dimension == 0, std::invalid_argument)
+      << "[Split] Batch dimension cannot be split dimension";
+    throw_status(status);
   } break;
   default:
-    LayerV1::setProperty(type, value);
-    break;
+    std::string msg =
+      "[SplitLayer] Unknown Layer Property Key for value " + std::string(value);
+    throw exception::not_supported(msg);
   }
 }
 
