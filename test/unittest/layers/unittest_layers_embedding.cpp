@@ -18,8 +18,7 @@
 
 auto semantic_embedding = LayerSemanticsParamType(
   nntrainer::createLayer<nntrainer::EmbeddingLayer>,
-  nntrainer::EmbeddingLayer::type, {"in_length=1", "out_dim=1", "in_dim=1"}, {},
-  0, false);
+  nntrainer::EmbeddingLayer::type, {"out_dim=1", "in_dim=1"}, 0, false);
 
 INSTANTIATE_TEST_CASE_P(Embedding, LayerSemantics,
                         ::testing::Values(semantic_embedding));
