@@ -18,6 +18,7 @@ test_target = [
   'unittest_layers_preprocess.cpp',
   'unittest_layers_split.cpp',
   'unittest_layers_embedding.cpp',
+  'unittest_layers_concat.cpp',
 ]
 
 exe = executable(
