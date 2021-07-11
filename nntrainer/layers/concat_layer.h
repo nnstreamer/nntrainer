@@ -15,8 +15,7 @@
 #define __CONCAT_LAYER_H__
 #ifdef __cplusplus
 
-#include <layer_internal.h>
-#include <tensor.h>
+#include <layer_devel.h>
 
 namespace nntrainer {
 
@@ -24,15 +23,12 @@ namespace nntrainer {
  * @class   Concat Layer
  * @brief   Concat Layer
  */
-class ConcatLayer : public LayerV1 {
+class ConcatLayer : public Layer {
 public:
   /**
    * @brief     Constructor of Concat Layer
    */
-  template <typename... Args>
-  ConcatLayer(unsigned int num_inputs_ = 1, Args... args) : LayerV1(args...) {
-    setNumInputs(num_inputs_);
-  }
+  ConcatLayer() : Layer() {}
 
   /**
    * @brief     Destructor of Concat Layer
@@ -52,39 +48,35 @@ public:
   ConcatLayer &operator=(ConcatLayer &&rhs) = default;
 
   /**
-   * @brief     initialize layer
-   * @param[in] last last layer
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   * @copydoc Layer::finalize(InitLayerContext &context)
    */
-  int initialize(Manager &manager) override;
+  void finalize(InitLayerContext &context) override;
 
   /**
-   * @brief     Read Weight & Bias Data from file
-   * @param[in] file input stream file
+   * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
    */
-  void read(std::ifstream &file) override{};
+  void forwarding(RunLayerContext &context, bool training) override;
 
   /**
-   * @brief     Save Weight & Bias Data to file
-   * @param[in] file output stream file
+   * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
-  void save(std::ofstream &file) override{};
-
-  /**
-   * @copydoc Layer::forwarding(bool training)
-   */
-  void forwarding(bool training = true) override;
-
-  /**
-   * @copydoc Layer::calcDerivative()
-   */
-  void calcDerivative() override;
+  void calcDerivative(RunLayerContext &context) override;
 
   /**
    * @copydoc Layer::getType()
    */
   const std::string getType() const override { return ConcatLayer::type; };
+
+  /**
+   * @copydoc Layer::supportBackwarding()
+   */
+  bool supportBackwarding() const { return true; }
+
+  /**
+   * @copydoc Layer::setProperty(const PropertyType type, const std::string
+   * &value)
+   */
+  void setProperty(const std::vector<std::string> &values) override;
 
   inline static const std::string type = "concat";
 };
