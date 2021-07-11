@@ -1344,12 +1344,12 @@ INSTANTIATE_TEST_CASE_P(
     mkModelTc(rnn_return_sequences, "1:1:2:1", 10),
     mkModelTc(rnn_return_sequence_with_batch, "2:1:2:1", 10),
     mkModelTc(multi_rnn_return_sequence, "1:1:1:1", 10),
-    mkModelTc(multi_rnn_return_sequence_with_batch, "2:1:1:1", 10)
-    // mkModelTc(gru_basic, "1:1:1:1", 10),
-    // mkModelTc(gru_return_sequence, "1:1:2:1", 10),
-    // mkModelTc(gru_return_sequence_with_batch, "2:1:2:1", 10),
-    // mkModelTc(multi_gru_return_sequence, "1:1:1:1", 10),
-    // mkModelTc(multi_gru_return_sequence_with_batch, "2:1:1:1", 10)
+    mkModelTc(multi_rnn_return_sequence_with_batch, "2:1:1:1", 10),
+    mkModelTc(gru_basic, "1:1:1:1", 10),
+    mkModelTc(gru_return_sequence, "1:1:2:1", 10),
+    mkModelTc(gru_return_sequence_with_batch, "2:1:2:1", 10),
+    mkModelTc(multi_gru_return_sequence, "1:1:1:1", 10),
+    mkModelTc(multi_gru_return_sequence_with_batch, "2:1:1:1", 10)
 ), [](const testing::TestParamInfo<nntrainerModelTest::ParamType>& info){
  return std::get<0>(info.param).getName();
 });
@@ -1358,23 +1358,23 @@ INSTANTIATE_TEST_CASE_P(
 /**
  * @brief Read or save the model before initialize
  */
-// TEST(nntrainerModels, read_save_01_n) {
-//   nntrainer::NeuralNetwork NN;
-//   std::shared_ptr<nntrainer::LayerNode> layer_node =
-//     nntrainer::createLayerNode(nntrainer::InputLayer::type,
-//     {"input_shape=1:1:62720", "normalization=true"});
-//
-//   EXPECT_NO_THROW(NN.addLayer(layer_node));
-//   EXPECT_NO_THROW(NN.setProperty({"loss=mse"}));
-//
-//   EXPECT_THROW(NN.readModel(), std::runtime_error);
-//   EXPECT_THROW(NN.saveModel(), std::runtime_error);
-//
-//   EXPECT_EQ(NN.compile(), ML_ERROR_NONE);
-//
-//   EXPECT_THROW(NN.readModel(), std::runtime_error);
-//   EXPECT_THROW(NN.saveModel(), std::runtime_error);
-// }
+TEST(nntrainerModels, read_save_01_n) {
+  nntrainer::NeuralNetwork NN;
+  std::shared_ptr<nntrainer::LayerNode> layer_node =
+    nntrainer::createLayerNode(nntrainer::InputLayer::type,
+                               {"input_shape=1:1:62720", "normalization=true"});
+
+  EXPECT_NO_THROW(NN.addLayer(layer_node));
+  EXPECT_NO_THROW(NN.setProperty({"loss=mse"}));
+
+  EXPECT_THROW(NN.readModel(), std::runtime_error);
+  EXPECT_THROW(NN.saveModel(), std::runtime_error);
+
+  EXPECT_EQ(NN.compile(), ML_ERROR_NONE);
+
+  EXPECT_THROW(NN.readModel(), std::runtime_error);
+  EXPECT_THROW(NN.saveModel(), std::runtime_error);
+}
 
 /**
  * @brief Main gtest
