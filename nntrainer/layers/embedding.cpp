@@ -21,83 +21,88 @@
 
 namespace nntrainer {
 
+static constexpr size_t SINGLE_INOUT_IDX = 0;
+
 enum EmbeddingParams { weight };
 
-int EmbeddingLayer::initialize(Manager &manager) {
-  int status = ML_ERROR_NONE;
-  if (getNumInputs() != 1) {
+void EmbeddingLayer::finalize(InitLayerContext &context) {
+  if (context.getNumInputs() != 1) {
     throw std::invalid_argument("Embedding layer takes only one input");
   }
 
-  if (input_dim[0].channel() != 1) {
+  const TensorDim &input_dim = context.getInputDimensions()[SINGLE_INOUT_IDX];
+  if (input_dim.channel() != 1) {
     throw std::invalid_argument(
       "Embedding layer takes only one for channel size");
   }
 
-  output_dim[0] = input_dim[0];
+  TensorDim output_dim = input_dim;
 
-  output_dim[0].height(in_length);
-  output_dim[0].width(out_dim);
-  input_dim[0].width(in_length);
-  input_dim[0].height(1);
+  output_dim.height(in_length);
+  output_dim.width(out_dim);
+  context.setOutputDimensions({output_dim});
 
-  TensorDim dim = output_dim[0];
-
+  TensorDim dim = output_dim;
   dim.height(in_dim);
   dim.width(out_dim);
   dim.batch(1);
 
-  if (weights.empty()) {
-    weights.reserve(1);
-    weights.emplace_back(dim, weight_initializer, weight_regularizer,
-                         weight_regularizer_constant, true, "Embedding");
-    manager.trackWeights(weights);
-  } else {
-    weights[EmbeddingParams::weight].reset(dim, weight_initializer,
-                                           weight_regularizer,
-                                           weight_regularizer_constant, true);
-  }
-
-  return status;
+  weight_idx =
+    context.requestWeight(dim, weight_initializer, weight_regularizer,
+                          weight_regularizer_constant, "Embedding", true);
 }
 
-void EmbeddingLayer::setProperty(const PropertyType type,
+void EmbeddingLayer::setProperty(const std::vector<std::string> &values) {
+  /// @todo: deprecate this in favor of loadProperties
+  for (unsigned int i = 0; i < values.size(); ++i) {
+    std::string key;
+    std::string value;
+    std::stringstream ss;
+
+    if (getKeyValue(values[i], key, value) != ML_ERROR_NONE) {
+      throw std::invalid_argument("Error parsing the property: " + values[i]);
+    }
+
+    if (value.empty()) {
+      ss << "value is empty: key: " << key << ", value: " << value;
+      throw std::invalid_argument(ss.str());
+    }
+
+    /// @note this calls derived setProperty if available
+    setProperty(key, value);
+  }
+}
+
+void EmbeddingLayer::setProperty(const std::string &type_str,
                                  const std::string &value) {
+  using PropertyType = LayerV1::PropertyType;
   int status = ML_ERROR_NONE;
+  LayerV1::PropertyType type =
+    static_cast<LayerV1::PropertyType>(parseLayerProperty(type_str));
+
   switch (type) {
   case PropertyType::in_dim: {
-    if (!value.empty()) {
-      status = setUint(in_dim, value);
-      throw_status(status);
-      input_dim[0].width(in_dim);
-    }
+    status = setUint(in_dim, value);
+    throw_status(status);
   } break;
   case PropertyType::out_dim: {
-    if (!value.empty()) {
-      status = setUint(out_dim, value);
-      throw_status(status);
-      output_dim[0].width(out_dim);
-    }
+    status = setUint(out_dim, value);
+    throw_status(status);
   } break;
   case PropertyType::in_length: {
-    if (!value.empty()) {
-      status = setUint(in_length, value);
-      throw_status(status);
-      output_dim[0].height(in_length);
-      input_dim[0].height(in_length);
-    }
+    status = setUint(in_length, value);
+    throw_status(status);
   } break;
   default:
-    LayerV1::setProperty(type, value);
+    LayerImpl::setProperty(type_str, value);
     break;
   }
 }
 
-void EmbeddingLayer::forwarding(bool training) {
-  Tensor &weight =
-    weightAt(static_cast<int>(EmbeddingParams::weight)).getVariableRef();
-  Tensor &hidden_ = net_hidden[0]->getVariableRef();
-  Tensor &input_ = net_input[0]->getVariableRef();
+void EmbeddingLayer::forwarding(RunLayerContext &context, bool training) {
+  Tensor &weight = context.getWeight(weight_idx);
+  Tensor &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
+  Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
 
   for (unsigned int b = 0; b < input_.batch(); ++b) {
     float *in_data = input_.getAddress(b * input_.getDim().getFeatureLen());
@@ -120,22 +125,9 @@ void EmbeddingLayer::forwarding(bool training) {
       std::copy(weight_data, weight_data + out_dim, out_data);
     }
   }
-
-  loss =
-    weightAt(static_cast<int>(EmbeddingParams::weight)).getRegularizationLoss();
 }
 
-void EmbeddingLayer::copy(std::shared_ptr<LayerV1> l) {
-  LayerV1::copy(l);
-
-  std::shared_ptr<EmbeddingLayer> from =
-    std::static_pointer_cast<EmbeddingLayer>(l);
-  this->in_dim = from->in_dim;
-  this->out_dim = from->out_dim;
-  this->in_length = from->in_length;
-}
-
-void EmbeddingLayer::calcDerivative() {
+void EmbeddingLayer::calcDerivative(RunLayerContext &context) {
   // Uncomment this after fixing issues backwarding of first layer. (Issues
   // #1017)
   // throw exception::not_supported(
@@ -143,11 +135,10 @@ void EmbeddingLayer::calcDerivative() {
   return; // intended
 }
 
-void EmbeddingLayer::calcGradient() {
-  Tensor &djdw =
-    weightAt(static_cast<int>(EmbeddingParams::weight)).getGradientRef();
-  Tensor &derivative_ = net_hidden[0]->getGradientRef();
-  Tensor &input_ = net_input[0]->getVariableRef();
+void EmbeddingLayer::calcGradient(RunLayerContext &context) {
+  Tensor &djdw = context.getWeightGrad(weight_idx);
+  Tensor &derivative_ = context.getIncomingDerivative(SINGLE_INOUT_IDX);
+  Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
 
   djdw.setZero();
 
