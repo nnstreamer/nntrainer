@@ -74,14 +74,6 @@ public:
   void calcGradient() override;
 
   /**
-   * @brief     Activation Type Getter
-   * @retval    Activation Type.
-   */
-  ActivationType getRecurrentActivationType() {
-    return this->recurrent_activation_type;
-  }
-
-  /**
    * @brief     copy layer
    * @param[in] l layer to copy
    */
@@ -98,13 +90,6 @@ public:
    * @copydoc Layer::getType()
    */
   const std::string getType() const override { return GRULayer::type; };
-
-  /**
-   * @brief     Activation Setter
-   * @param[in] activation activation type
-   * @throw std::invalid_argument when ActivationType is unknown
-   */
-  void setRecurrentActivation(ActivationType activation);
 
   using LayerV1::setProperty;
 
