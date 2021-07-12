@@ -16,6 +16,6 @@ subdir('Custom')
 subdir('ProductRatings/jni')
 
 if get_option('enable-tflite-backbone')
-# subdir('SimpleShot')
+  subdir('SimpleShot')
 endif
 

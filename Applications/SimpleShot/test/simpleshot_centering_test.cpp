@@ -38,7 +38,7 @@ TEST(centering, simple_functions) {
   app_context.registerFactory(nntrainer::createLayer<CenteringLayer>);
 
   auto lnode =
-    nntrainer::createLayerNode(app_context.createObject<nntrainer::LayerV1>(
+    nntrainer::createLayerNode(app_context.createObject<nntrainer::Layer>(
       "centering", {"feature_path=feature.bin", "input_shape=1:1:4"}));
   auto &c = lnode->getObject();
 

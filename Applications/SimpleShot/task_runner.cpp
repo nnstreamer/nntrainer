@@ -126,7 +126,7 @@ std::unique_ptr<ml::train::Model> createModel(const std::string &backbone,
                                               const std::string &variant = "UN",
                                               const int num_classes = 5) {
   auto model = ml::train::createModel(ml::train::ModelType::NEURAL_NET,
-                                      {"loss=mse", "batch_size=1", "epochs=1"});
+                                      {"batch_size=1", "epochs=1"});
 
   LayerHandle backbone_layer = ml::train::layer::BackboneTFLite(
     {"name=backbone", "modelfile=" + getModelFilePath(backbone, app_path),

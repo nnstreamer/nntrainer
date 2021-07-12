@@ -23,7 +23,7 @@ if get_option('enable-test')
     sources: simpleshot_sources,
     include_directories: simpleshot_inc,
   )
-  subdir('test')
+  # subdir('test')
 endif
 
 test('app_simpleshot_sample', e, args: [
