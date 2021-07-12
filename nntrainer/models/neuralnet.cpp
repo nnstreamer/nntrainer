@@ -430,10 +430,17 @@ void NeuralNetwork::readModel() {
     (*iter)->read(model_file);
   }
 
-  checkedRead(model_file, (char *)&tmp.epoch_idx, sizeof(epoch_idx),
-              "[NeuralNetwork::readModel] failed to read epoch_idx");
-  checkedRead(model_file, (char *)&tmp.iter, sizeof(iter),
-              "[NeuralNetwork::readModel] failed to read iteration");
+  try {
+    /// this is assuming that the failure is allowed at the end of the file
+    /// read. so, after this line, additional read shouldn't be called
+    checkedRead(model_file, (char *)&tmp.epoch_idx, sizeof(epoch_idx),
+                "[NeuralNetwork::readModel] failed to read epoch_idx");
+    checkedRead(model_file, (char *)&tmp.iter, sizeof(iter),
+                "[NeuralNetwork::readModel] failed to read iteration");
+  } catch (...) {
+    model_file.close();
+    std::cerr << "failed to read epoch idx, proceeding with default index\n";
+  }
 
   model_file.close();
   ml_logi("read modelfile: %s", save_path.c_str());
@@ -610,6 +617,7 @@ int NeuralNetwork::train_run() {
     int count = 0;
 
     while (true) {
+
       if (data_buffer->getDataFromBuffer(nntrainer::BufferType::BUF_TRAIN,
                                          in.getData(), label.getData())) {
         try {
@@ -843,8 +851,9 @@ void NeuralNetwork::print(std::ostream &out, unsigned int flags,
   /** print layer properties */
   // TODO: get sorted layers if initialized
   auto layers = model_graph.getLayerNodes();
-  for (auto &layer : layers)
+  for (auto &layer : layers) {
     layer->getObject()->printPreset(out, layerPrintPreset);
+  }
 
   /// @todo Add status to check neuralnet has been run. #290
 }

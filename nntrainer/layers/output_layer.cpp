@@ -42,7 +42,7 @@ int OutputLayer::initialize(Manager &manager) {
 void OutputLayer::forwarding(bool training) {
   Tensor &input_ = net_input[0]->getVariableRef();
   for (unsigned int idx = 0; idx < getNumOutputs(); ++idx) {
-    net_hidden[idx]->getVariableRef() = input_;
+    net_hidden[idx]->getVariableRef().fill(input_);
   }
 }
 
