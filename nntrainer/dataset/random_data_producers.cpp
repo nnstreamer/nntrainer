@@ -89,7 +89,7 @@ void RandomDataOneHotProducer::setProperty(
     << "There are unparsed properties, size: " << left.size();
 }
 
-DataProducer::Gernerator
+DataProducer::Generator
 RandomDataOneHotProducer::finalize(const std::vector<TensorDim> &input_dims,
                                    const std::vector<TensorDim> &label_dims) {
   /** check if the given producer is ready to finalize */
@@ -129,7 +129,7 @@ RandomDataOneHotProducer::finalize(const std::vector<TensorDim> &input_dims,
   return [rng, sz, input_dims, label_dims, min_ = min_.get(), max_ = max_.get(),
           current_iteration = 0ULL,
           label_chooser = std::move(label_chooser_)]() mutable {
-    if (current_iteration++ == sz) {
+    if (current_iteration++ == sz / input_dims[0].batch()) {
       current_iteration = 0;
       return DataProducer::Iteration(true, {}, {});
     }

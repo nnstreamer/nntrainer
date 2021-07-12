@@ -11,11 +11,22 @@
  */
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <data_producer_common_tests.h>
 
 void DataProducerSemantics::SetUp() {
   auto [producerFactory, properties, input_dims_, label_dims_, validator_,
         result_] = GetParam();
+
+  /** check if input_dims, label_dims not empty and have the same batch */
+  ASSERT_FALSE(input_dims_.empty());
+  ASSERT_FALSE(label_dims_.empty());
+  auto b = input_dims_[0].batch();
+
+  ASSERT_TRUE(std::all_of(input_dims_.begin(), input_dims_.end(),
+                          [b](const auto &dim) { return b == dim.batch(); }));
+  ASSERT_TRUE(std::all_of(label_dims_.begin(), label_dims_.end(),
+                          [b](const auto &dim) { return b == dim.batch(); }));
 
   producer = producerFactory(properties);
   input_dims = std::move(input_dims_);
@@ -65,7 +76,9 @@ TEST_P(DataProducerSemantics, fetch_one_epoch_or_10_iteration_pn) {
     sz = 10;
   }
 
-  for (unsigned i = 0; i < sz; ++i) {
+  auto num_iterations = sz / input_dims[0].batch();
+
+  for (unsigned i = 0; i < num_iterations; ++i) {
     auto [last, ins, labels] = generator();
 
     ASSERT_FALSE(last) << " reached last at iteration: " << i << '\n';

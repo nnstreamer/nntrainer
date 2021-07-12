@@ -32,7 +32,7 @@ void FuncDataProducer::setProperty(const std::vector<std::string> &properties) {
     << "properties is not empty, size: " << properties.size();
 }
 
-DataProducer::Gernerator
+DataProducer::Generator
 FuncDataProducer::finalize(const std::vector<TensorDim> &input_dims,
                            const std::vector<TensorDim> &label_dims) {
   NNTR_THROW_IF(!this->cb, std::invalid_argument)

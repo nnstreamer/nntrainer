@@ -2,7 +2,7 @@
 /**
  * Copyright (C) 2021 Jihoon Lee <jhoon.it.lee@samsung.com>
  *
- * @file unittest_func_data_producers.cpp
+ * @file unittest_func_data_producer.cpp
  * @date 12 July 2021
  * @brief Function data producers (Param Tests)
  * @see	https://github.com/nnstreamer/nntrainer
@@ -17,8 +17,8 @@
 #include <tensor.h>
 
 namespace {
-std::vector<nntrainer::TensorDim> input_shapes = {{3, 2, 4, 5}, {1, 2, 3, 4}};
-std::vector<nntrainer::TensorDim> label_shapes = {{3, 1, 1, 10}, {1, 1, 1, 2}};
+std::vector<nntrainer::TensorDim> input_shapes = {{3, 2, 4, 5}, {3, 2, 3, 4}};
+std::vector<nntrainer::TensorDim> label_shapes = {{3, 1, 1, 10}, {3, 1, 1, 2}};
 int user_data = 0;
 
 int getBatch(float **outVec, float **outLabel, bool *last, void *user_data) {
