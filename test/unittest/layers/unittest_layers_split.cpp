@@ -2,7 +2,7 @@
 /**
  * Copyright (C) 2021 Parichay Kapoor <pk.kapoor@samsung.com>
  *
- * @file unittest_layers_fully_connected.cpp
+ * @file unittest_layers_split.cpp
  * @date 12 June 2021
  * @brief Split Layer Test
  * @see	https://github.com/nnstreamer/nntrainer
