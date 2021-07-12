@@ -15,8 +15,7 @@
 #define __TENSORFLOW_LITE_H__
 #ifdef __cplusplus
 
-#include <layer_internal.h>
-#include <tensor.h>
+#include <layer_devel.h>
 
 #include <tensorflow/contrib/lite/interpreter.h>
 #include <tensorflow/contrib/lite/kernels/register.h>
@@ -28,13 +27,13 @@ namespace nntrainer {
  * @class   TfLiteLayer
  * @brief   Tensorflow Lite layer
  */
-class TfLiteLayer : public LayerV1 {
+class TfLiteLayer : public Layer {
 public:
   /**
    * @brief     Constructor of NNStreamer Layer
    */
   TfLiteLayer(std::string model = "") :
-    LayerV1(),
+    Layer(),
     modelfile(model),
     interpreter(nullptr),
     model(nullptr) {}
@@ -45,43 +44,35 @@ public:
   ~TfLiteLayer() = default;
 
   /**
-   * @copydoc Layer::forwarding(bool training)
+   * @copydoc Layer::finalize(InitLayerContext &context)
    */
-  void forwarding(bool training = true) override;
+  void finalize(InitLayerContext &context) override;
 
   /**
-   * @copydoc Layer::calcDerivative()
+   * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
    */
-  void calcDerivative() override;
+  void forwarding(RunLayerContext &context, bool training) override;
 
   /**
-   * @copydoc Layer::copy(std::shared_ptr<layer> l)
+   * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
-  void copy(std::shared_ptr<LayerV1> l) override;
-
-  /**
-   * @copydoc Layer::initialize()
-   */
-  int initialize(Manager &manager) override;
-
-  /**
-   * @copydoc bool supportBackwarding() const
-   */
-  bool supportBackwarding() const override { return false; };
+  void calcDerivative(RunLayerContext &context) override;
 
   /**
    * @copydoc Layer::getType()
    */
   const std::string getType() const override { return TfLiteLayer::type; };
 
-  using LayerV1::setProperty;
+  /**
+   * @copydoc Layer::supportBackwarding()
+   */
+  bool supportBackwarding() const { return false; }
 
   /**
    * @copydoc Layer::setProperty(const PropertyType type, const std::string
    * &value)
    */
-  void setProperty(const PropertyType type,
-                   const std::string &value = "") override;
+  void setProperty(const std::vector<std::string> &values) override;
 
   inline static const std::string type = "backbone_tflite";
 
@@ -99,6 +90,16 @@ private:
    */
   void setDimensions(const std::vector<int> &tensor_idx_list,
                      std::vector<TensorDim> &dim, bool is_output);
+
+  /**
+   * @brief setProperty by type and value separated
+   * @param[in] type property type to be passed
+   * @param[in] value value to be passed
+   * @exception exception::not_supported     when property type is not valid for
+   * the particular layer
+   * @exception std::invalid_argument invalid argument
+   */
+  void setProperty(const std::string &type_str, const std::string &value);
 };
 
 } // namespace nntrainer
