@@ -19,23 +19,19 @@
 constexpr const float EPSILON_ = 1e-7;
 namespace custom {
 
-int MaeLossLayer::initialize(nntrainer::Manager &manager) {
-  output_dim = input_dim;
-  return ML_ERROR_NONE;
-}
+static constexpr size_t SINGLE_INOUT_IDX = 0;
 
 int MaeLossLayer::setProperty(std::vector<std::string> values) {
   /// this implementation makes to pass the test, this will change soon.
   return values.size();
 }
 
-void MaeLossLayer::forwarding(bool training) {
-  nntrainer::Tensor &label = net_hidden[0]->getGradientRef();
-  nntrainer::Tensor &predicted = net_input[0]->getVariableRef();
-  nntrainer::Tensor &output = net_hidden[0]->getVariableRef();
+void MaeLossLayer::forwarding(nntrainer::RunLayerContext &context, bool training) {
+  nntrainer::Tensor &predicted = context.getInput(SINGLE_INOUT_IDX);
+  nntrainer::Tensor &output = context.getOutput(SINGLE_INOUT_IDX);
 
-  bool with_label = !label.uninitialized();
-  if (with_label) {
+  if (context.isLabelAvailable(SINGLE_INOUT_IDX)) {
+    nntrainer::Tensor &label = context.getLabel(SINGLE_INOUT_IDX);
     predicted.subtract(label, output);
     /// make Tensor::abs instead and use it here
     output.apply_i([](float x) { return x > 0 ? x : -x; });
@@ -44,11 +40,11 @@ void MaeLossLayer::forwarding(bool training) {
   }
 }
 
-void MaeLossLayer::calcDerivative() {
-  nntrainer::Tensor &predicted = net_input[0]->getVariableRef();
-  nntrainer::Tensor &label = net_hidden[0]->getGradientRef();
+void MaeLossLayer::calcDerivative(RunLayerContext &context) {
+  nntrainer::Tensor &predicted = context.getInput(SINGLE_INOUT_IDX);
+  nntrainer::Tensor &label = context.getLabel(SINGLE_INOUT_IDX);
 
-  nntrainer::Tensor &deriv = net_input[0]->getGradientRef();
+  nntrainer::Tensor &deriv = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
 
   /// This can be saved at MaeLossLayer::forwarding, but this is done here on
   /// purpose for demonstration purpose
@@ -62,17 +58,16 @@ void MaeLossLayer::calcDerivative() {
   });
 }
 
-bool MaeLossLayer::requireLabel() const { return true; }
 
 #ifdef PLUGGABLE
 
-nntrainer::LayerV1 *create_mae_loss_layer() {
+nntrainer::Layer *create_mae_loss_layer() {
   auto layer = new MaeLossLayer();
   std::cout << "mae loss layer created\n";
   return layer;
 }
 
-void destory_mae_loss_layer(nntrainer::LayerV1 *layer) {
+void destory_mae_loss_layer(nntrainer::Layer *layer) {
   std::cout << "mae loss layer destroyed\n";
   delete layer;
 }
@@ -82,8 +77,8 @@ void destory_mae_loss_layer(nntrainer::LayerV1 *layer) {
  * register a plugin layer
  */
 extern "C" {
-nntrainer::LayerV1Pluggable ml_train_layerv1_pluggable{create_mae_loss_layer,
-                                                       destory_mae_loss_layer};
+nntrainer::LayerPluggable ml_train_layer_pluggable{create_mae_loss_layer,
+                                                   destory_mae_loss_layer};
 }
 
 #endif

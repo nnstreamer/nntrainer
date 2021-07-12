@@ -12,7 +12,7 @@ subdir('Resnet/jni')
 subdir('ReinforcementLearning/DeepQ/jni')
 subdir('TransferLearning/CIFAR_Classification/jni')
 subdir('TransferLearning/Draw_Classification/jni')
-# subdir('Custom')
+subdir('Custom')
 subdir('ProductRatings/jni')
 
 if get_option('enable-tflite-backbone')
