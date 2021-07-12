@@ -15,10 +15,9 @@
 #ifndef __POW_LAYER_H__
 #define __POW_LAYER_H__
 
-/// @todo migrate these to API(#987)
-#include <layer_internal.h>
-#include <manager.h>
-#include <tensor.h>
+#include <layer_context.h>
+#include <layer_devel.h>
+#include <node_exporter.h>
 
 namespace custom {
 
@@ -27,55 +26,56 @@ namespace custom {
  * configurable by PowLayer::setProperty)
  *
  */
-class PowLayer final : public nntrainer::LayerV1 {
+class PowLayer final : public nntrainer::Layer {
 public:
   /**
    * @brief Construct a new Pow Layer object that does elementwise power
    *
-   * @param exponent_ exponentLayerV1
+   * @param exponent_ exponent
    */
-  PowLayer(float exponent_ = 1) : LayerV1(), exponent(exponent_) {}
+  PowLayer(float exponent_ = 1) : Layer(), exponent(exponent_) {}
 
-  /**LayerV1
+  /**
    * @brief Destroy the Pow Layer object
    *
    */
   ~PowLayer() {}
 
-  using nntrainer::LayerV1::setProperty;
-
-  /**LayerV1
-   * @brief     set Property of layer, currently only "exponent is accepted"
-   * @param[in] values values of property
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+  /**
+   * @copydoc Layer::finalize(InitLayerContext &context)
    */
-  int setProperty(std::vector<std::string> values) override;
+  void finalize(nntrainer::InitLayerContext &context) override;
 
   /**
-   * @brief initializing nntrainer
-   *
-   * @return int ML_ERROR_NONE if success
+   * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
    */
-  int initialize(nntrainer::Manager &manager) override;
+  void forwarding(nntrainer::RunLayerContext &context, bool training) override;
 
   /**
-   * @brief nntrainer forwarding function
-   * @param[in] training true if forwarding is on training
+   * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
-  void forwarding(bool training = true) override;
+  void calcDerivative(nntrainer::RunLayerContext &context) override;
 
   /**
-   * @brief     calc the derivative to be passed to the previous layer
+   * @copydoc bool supportBackwarding() const
    */
-  void calcDerivative() override;
+  bool supportBackwarding() const override { return true; };
 
   /**
-   * @brief Get the Type object, this must return PowLayer::type
-   *
-   * @return const std::string
+   * @copydoc Layer::exportTo(Exporter &exporter, ExportMethods method)
    */
-  const std::string getType() const override { return PowLayer::type; }
+  void exportTo(nntrainer::Exporter &exporter,
+                const nntrainer::ExportMethods &method) const override {}
+
+  /**
+   * @copydoc Layer::getType()
+   */
+  const std::string getType() const override { return PowLayer::type; };
+
+  /**
+   * @copydoc Layer::setProperty(const std::vector<std::string> &values)
+   */
+  void setProperty(const std::vector<std::string> &values) override;
 
   inline static const std::string type = "pow";
 

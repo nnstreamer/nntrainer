@@ -14,73 +14,79 @@
 #define __MAE_LOSS_LAYER_H__
 #include <string>
 
-/// @todo migrate these to API and ensure those headers are exposed to devel
-#include <layer_internal.h>
-#include <manager.h>
-#include <tensor.h>
+#include <layer_context.h>
+#include <layer_devel.h>
+#include <node_exporter.h>
 
 namespace custom {
 
 /**
  * @brief A sample loss layer which calculates mean absolute error from output
- * @todo update this to LayerV2
  *
  */
-class MaeLossLayer final : public nntrainer::LayerV1 {
+class MaeLossLayer final : public nntrainer::Layer {
 public:
   /**
-   * @brief Construct a new Pow Layer object that does elementwise power
+   * @brief Construct a new MAE Layer object that does elementwise power
    *
    */
-  MaeLossLayer() : LayerV1() {}
+  MaeLossLayer() : Layer() {}
 
   /**
-   * @brief Destroy the Pow Layer object
+   * @brief Destroy the MAE Layer object
    *
    */
   ~MaeLossLayer() {}
 
-  using nntrainer::LayerV1::setProperty;
+  /**
+   * @copydoc Layer::finalize(InitLayerContext &context)
+   */
+  void finalize(nntrainer::InitLayerContext &context) override {
+    context.setOutputDimensions(context.getInputDimensions());
+    /** NYI */
+  }
 
   /**
-   * @brief     set Property of layer
-   * @param[in] values values of property
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
    */
-  int setProperty(std::vector<std::string> values) override;
+  void forwarding(nntrainer::RunLayerContext &context, bool training) override
 
   /**
-   * @brief initializing nntrainer
-   *
-   * @return int ML_ERROR_NONE if success
+   * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
-  int initialize(nntrainer::Manager &manager) override;
+  void calcDerivative(nntrainer::RunLayerContext &context) override
 
   /**
-   * @brief nntrainer forwarding function
-   * @param[in] training true if forwarding is on training
+   * @copydoc bool supportBackwarding() const
    */
-  void forwarding(bool training = true) override;
+  bool supportBackwarding() const override { return true; };
 
   /**
-   * @brief require label of a function
-   *
-   * @return bool true if requires label
+   * @copydoc Layer::exportTo(Exporter &exporter, ExportMethods method)
    */
-  bool requireLabel() const override;
+  void exportTo(nntrainer::Exporter &exporter,
+                const nntrainer::ExportMethods &method) const override {}
 
   /**
-   * @brief     calc the derivative to be passed to the previous layer
+   * @copydoc Layer::getType()
    */
-  void calcDerivative() override;
+  const std::string getType() const override { return MaeLossLayer::type; };
 
   /**
-   * @brief Get the type, it must return MaeLossLayer::type
-   *
-   * @return const std::string get type
+   * @copydoc Layer::setProperty(const std::vector<std::string> &values)
    */
-  const std::string getType() const override { return MaeLossLayer::type; }
+  void setProperty(const std::vector<std::string> &values) override {
+    if (!values.empty()) {
+      std::string msg = "[MaeLossLayer] Unknown Layer Properties count " +
+                        std::to_string(values.size());
+      throw std::invalid_argument(msg);
+    }
+  }
+
+  /**
+   * @copydoc Layer::requireLabel()
+   */
+  bool MaeLossLayer::requireLabel() const { return true; }
 
   inline static const std::string type = "mae_loss";
 };
