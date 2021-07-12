@@ -333,8 +333,8 @@ const std::string AppContext::getWorkingPath(const std::string &path) {
   return getFullPath(path, working_path_base);
 }
 
-int AppContext::registerLayerV1(const std::string &library_path,
-                                const std::string &base_path) {
+int AppContext::registerLayer(const std::string &library_path,
+                              const std::string &base_path) {
   const std::string full_path = getFullPath(library_path, base_path);
 
   void *handle = dlopen(full_path.c_str(), RTLD_LAZY | RTLD_LOCAL);
@@ -343,9 +343,9 @@ int AppContext::registerLayerV1(const std::string &library_path,
   NNTR_THROW_IF(handle == nullptr, std::invalid_argument)
     << func_tag << "open plugin failed, reason: " << error_msg;
 
-  nntrainer::LayerV1Pluggable *pluggable =
-    reinterpret_cast<nntrainer::LayerV1Pluggable *>(
-      dlsym(handle, "ml_train_layerv1_pluggable"));
+  nntrainer::LayerPluggable *pluggable =
+    reinterpret_cast<nntrainer::LayerPluggable *>(
+      dlsym(handle, "ml_train_layer_pluggable"));
 
   error_msg = dlerror();
   auto close_dl = [handle] { dlclose(handle); };
@@ -361,15 +361,15 @@ int AppContext::registerLayerV1(const std::string &library_path,
     << func_tag << "custom layer must specify type name, but it is empty";
   pluggable->destroyfunc(layer);
 
-  FactoryType<nntrainer::LayerV1> factory_func =
+  FactoryType<nntrainer::Layer> factory_func =
     [pluggable](const PropsType &prop) {
-      std::unique_ptr<nntrainer::LayerV1> layer =
+      std::unique_ptr<nntrainer::Layer> layer =
         std::make_unique<internal::PluggedLayer>(pluggable);
 
       return layer;
     };
 
-  return registerFactory<nntrainer::LayerV1>(factory_func, type);
+  return registerFactory<nntrainer::Layer>(factory_func, type);
 }
 
 int AppContext::registerOptimizer(const std::string &library_path,
@@ -425,7 +425,7 @@ AppContext::registerPluggableFromDirectory(const std::string &base_path) {
     if (endswith(entry->d_name, solib_suffix)) {
       if (endswith(entry->d_name, layerlib_suffix)) {
         try {
-          int key = registerLayerV1(entry->d_name, base_path);
+          int key = registerLayer(entry->d_name, base_path);
           keys.emplace_back(key);
         } catch (std::exception &e) {
           closedir(dir);
