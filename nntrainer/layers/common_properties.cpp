@@ -35,6 +35,19 @@ bool DropOutSpec::isValid(const float &v) const {
     return true;
 }
 
+bool FilePath::isValid(const std::string &v) {
+  std::ifstream file(v, std::ios::binary | std::ios::ate);
+  return file.good();
+}
+
+void FilePath::set(const std::string &v) {
+  Property<std::string>::set(v);
+  std::ifstream file(v, std::ios::binary | std::ios::ate);
+  cached_pos_size = file.tellg();
+}
+
+std::ifstream::pos_type FilePath::file_size() { return cached_pos_size; }
+
 ConnectionSpec::ConnectionSpec(const std::vector<props::Name> &layer_ids_,
                                const std::string &op_type_) :
   op_type(op_type_),

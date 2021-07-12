@@ -15,6 +15,7 @@
 
 #include <array>
 #include <base_properties.h>
+#include <fstream>
 
 #ifndef __COMMON_PROPERTIES_H__
 #define __COMMON_PROPERTIES_H__
@@ -251,6 +252,40 @@ public:
   bool isValid(const float &v) const override;
 };
 
+/**
+ * @brief Props containing file path value
+ *
+ */
+class FilePath : public Property<std::string> {
+public:
+  static constexpr const char *key = "path"; /**< unique key to access */
+  using prop_tag = str_prop_tag;             /**< property type */
+
+  /**
+   * @brief check if given value is valid
+   *
+   * @param v value to check
+   * @return bool true if valid
+   */
+  bool isValid(const std::string &v);
+
+  /**
+   * @brief setter
+   *
+   * @param v value to set
+   */
+  void set(const std::string &v);
+
+  /**
+   * @brief return file size
+   *
+   * @return std::ifstream::pos_type size of the file
+   */
+  std::ifstream::pos_type file_size();
+
+private:
+  std::ifstream::pos_type cached_pos_size;
+};
 } // namespace props
 } // namespace nntrainer
 

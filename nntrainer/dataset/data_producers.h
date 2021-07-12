@@ -47,7 +47,7 @@ public:
    * iteration, at the end of the iteration, it's responsibility of @a this to
    * shuffle.
    */
-  using Gernerator = std::function<Iteration(void)>;
+  using Generator = std::function<Iteration(void)>;
 
   constexpr inline static unsigned long long SIZE_UNDEFINED =
     std::numeric_limits<unsigned long long>::max();
@@ -81,8 +81,8 @@ public:
    * call
    *
    */
-  virtual Gernerator finalize(const std::vector<TensorDim> &input_dims,
-                              const std::vector<TensorDim> &label_dims) = 0;
+  virtual Generator finalize(const std::vector<TensorDim> &input_dims,
+                             const std::vector<TensorDim> &label_dims) = 0;
 
   /**
    * @brief get size of total dataset given input_dims, label_dims, if size

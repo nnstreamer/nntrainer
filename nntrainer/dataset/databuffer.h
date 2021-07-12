@@ -26,12 +26,14 @@
 #ifdef __cplusplus
 
 #include <condition_variable>
+#include <future>
 #include <memory>
 #include <mutex>
 #include <random>
 #include <thread>
 #include <vector>
 
+#include <data_producers.h>
 #include <dataset.h>
 #include <tensor_dim.h>
 

@@ -62,7 +62,7 @@ public:
    * @copydoc DataProducer::finalize(const std::vector<TensorDim>, const
    * std::vector<TensorDim>)
    */
-  virtual DataProducer::Gernerator
+  virtual DataProducer::Generator
   finalize(const std::vector<TensorDim> &input_dims,
            const std::vector<TensorDim> &label_dims) override;
 
