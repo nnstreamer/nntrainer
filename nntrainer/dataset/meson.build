@@ -3,7 +3,8 @@ dataset_sources = [
   'databuffer_factory.cpp',
   'databuffer_file.cpp',
   'databuffer_func.cpp',
-  'random_data_producers.cpp'
+  'random_data_producers.cpp',
+  'func_data_producer.cpp',
 ]
 
 dataset_headers = [

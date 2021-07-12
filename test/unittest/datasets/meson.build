@@ -4,7 +4,8 @@ test_target = []
 
 producer_targets = [
   'data_producer_common_tests.cpp',
-  'unittest_random_data_producers.cpp'
+  'unittest_random_data_producers.cpp',
+  'unittest_func_data_producers.cpp'
 ]
 
 test_target += producer_targets
