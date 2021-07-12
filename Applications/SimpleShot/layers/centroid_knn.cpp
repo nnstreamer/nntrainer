@@ -28,94 +28,73 @@
 namespace simpleshot {
 namespace layers {
 
-int CentroidKNN::setProperty(std::vector<std::string> values) {
+static constexpr size_t SINGLE_INOUT_IDX = 0;
+
+enum KNNParams { map, num_samples };
+
+void CentroidKNN::setProperty(const std::vector<std::string> &values) {
   util::Entry e;
 
-  std::vector<std::string> unhandled_values;
-
   for (auto &val : values) {
-    try {
-      e = util::getKeyValue(val);
-    } catch (std::invalid_argument &e) {
-      std::cerr << e.what() << std::endl;
-      return ML_ERROR_INVALID_PARAMETER;
-    }
+    e = util::getKeyValue(val);
 
     if (e.key == "num_class") {
-      try {
-        num_class = std::stoul(e.value);
-        if (num_class == 0) {
-          std::cerr << "[CentroidKNN] num_class cannot be zero" << std::endl;
-          return ML_ERROR_INVALID_PARAMETER;
-        }
-      } catch (std::invalid_argument &e) {
-        std::cerr << e.what() << std::endl;
-        return ML_ERROR_INVALID_PARAMETER;
-      } catch (std::out_of_range &e) {
-        std::cerr << e.what() << std::endl;
-        return ML_ERROR_INVALID_PARAMETER;
+      num_class = std::stoul(e.value);
+      if (num_class == 0) {
+        throw std::invalid_argument("[CentroidKNN] num_class cannot be zero");
       }
     } else {
-      unhandled_values.push_back(val);
+      std::string msg = "[CentroidKNN] Unknown Layer Properties count " + val;
+      throw nntrainer::exception::not_supported(msg);
     }
   }
-
-  return nntrainer::LayerV1::setProperty(unhandled_values);
 }
 
-int CentroidKNN::initialize(nntrainer::Manager &manager) {
-  if (input_dim[0].channel() != 1 || input_dim[0].height() != 1) {
+void CentroidKNN::finalize(nntrainer::InitLayerContext &context) {
+  auto const &input_dim = context.getInputDimensions()[0];
+  if (input_dim.channel() != 1 || input_dim.height() != 1) {
     ml_logw("centroid nearest layer is designed for flattend feature for now, "
             "please check");
   }
 
   if (num_class == 0) {
-    ml_loge("Error: num_class must be a positive non-zero integer");
-    return ML_ERROR_INVALID_PARAMETER;
+    throw std::invalid_argument(
+      "Error: num_class must be a positive non-zero integer");
   }
 
-  output_dim[0] = nntrainer::TensorDim({num_class});
+  auto output_dim = nntrainer::TensorDim({num_class});
+  context.setOutputDimensions({output_dim});
 
   /// weight is a distance map that contains centroid of features of each class
-  auto map_dim =
-    nntrainer::TensorDim({num_class, input_dim[0].getFeatureLen()});
+  auto map_dim = nntrainer::TensorDim({num_class, input_dim.getFeatureLen()});
 
   /// samples seen for the current run to calculate the centroid
   auto samples_seen = nntrainer::TensorDim({num_class});
 
-  if (weights.empty()) {
-    weights.reserve(2);
-    weights.emplace_back(map_dim, nntrainer::WeightInitializer::WEIGHT_ZEROS,
-                         nntrainer::WeightRegularizer::NONE, 1.0f, false,
-                         "centroidNN:map");
-    weights.emplace_back(samples_seen,
-                         nntrainer::WeightInitializer::WEIGHT_ZEROS,
-                         nntrainer::WeightRegularizer::NONE, 1.0f, false,
-                         "centroidNN:num_samples");
-    manager.trackWeights(weights);
-  } else {
-    weights[0].reset(map_dim, nntrainer::WeightInitializer::WEIGHT_ZEROS,
-                     nntrainer::WeightRegularizer::NONE, 1.0f, false);
-    weights[1].reset(samples_seen, nntrainer::WeightInitializer::WEIGHT_ZEROS,
-                     nntrainer::WeightRegularizer::NONE, 1.0f, false);
-  }
+  weight_idx[KNNParams::map] = context.requestWeight(
+    map_dim, nntrainer::WeightInitializer::WEIGHT_ZEROS,
+    nntrainer::WeightRegularizer::NONE, 1.0f, "centroidNN:map", false);
 
-  return ML_ERROR_NONE;
+  weight_idx[KNNParams::num_samples] = context.requestWeight(
+    samples_seen, nntrainer::WeightInitializer::WEIGHT_ZEROS,
+    nntrainer::WeightRegularizer::NONE, 1.0f, "centroidNN:num_samples", false);
 }
 
-void CentroidKNN::forwarding(bool training) {
-  auto &hidden_ = net_hidden[0]->getVariableRef();
-  auto &input_ = net_input[0]->getVariableRef();
-  auto &label = net_hidden[0]->getGradientRef();
+void CentroidKNN::forwarding(nntrainer::RunLayerContext &context,
+                             bool training) {
+  auto &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
+  auto &input_ = context.getInput(SINGLE_INOUT_IDX);
+  auto &label = context.getLabel(SINGLE_INOUT_IDX);
+  const auto &input_dim = input_.getDim();
 
   if (training && label.uninitialized()) {
     throw std::invalid_argument(
       "[CentroidKNN] forwarding requires label feeded");
   }
 
-  auto &map = weightAt(0).getVariableRef();
-  auto &num_samples = weightAt(1).getVariableRef();
-  auto feature_len = input_dim[0].getFeatureLen();
+  auto &map = context.getWeight(weight_idx[KNNParams::map]);
+  auto &num_samples = context.getWeight(weight_idx[KNNParams::num_samples]);
+  auto feature_len = input_dim.getFeatureLen();
 
   auto get_distance = [](const nntrainer::Tensor &a,
                          const nntrainer::Tensor &b) {
@@ -160,7 +139,7 @@ void CentroidKNN::forwarding(bool training) {
   }
 }
 
-void CentroidKNN::calcDerivative() {
+void CentroidKNN::calcDerivative(nntrainer::RunLayerContext &context) {
   throw std::invalid_argument("[CentroidKNN::calcDerivative] This Layer "
                               "does not support backward propagation");
 }
