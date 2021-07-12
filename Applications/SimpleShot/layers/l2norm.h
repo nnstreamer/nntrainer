@@ -16,11 +16,9 @@
 #define __L2NORM__H_
 #include <string>
 
-/// @todo migrate these to API
-#include <layer_internal.h>
-#include <manager.h>
-
-#include <tensor.h>
+#include <layer_context.h>
+#include <layer_devel.h>
+#include <node_exporter.h>
 
 namespace simpleshot {
 namespace layers {
@@ -29,13 +27,13 @@ namespace layers {
  * @brief Layer class that l2normalizes a feature vector
  *
  */
-class L2NormLayer : public nntrainer::LayerV1 {
+class L2NormLayer : public nntrainer::Layer {
 public:
   /**
    * @brief Construct a new L2norm Layer object
    * that normlizes given feature with l2norm
    */
-  L2NormLayer() : LayerV1() {}
+  L2NormLayer() : Layer() {}
 
   /**
    *  @brief  Move constructor.
@@ -55,36 +53,41 @@ public:
    */
   ~L2NormLayer() {}
 
-  using nntrainer::LayerV1::setProperty;
+  /**
+   * @copydoc Layer::finalize(InitLayerContext &context)
+   */
+  void finalize(nntrainer::InitLayerContext &context) override;
 
   /**
-   * @brief initializing nntrainer
-   *
-   * @return int ML_ERROR_NONE if success
+   * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
    */
-  int initialize(nntrainer::Manager &manager) override;
+  void forwarding(nntrainer::RunLayerContext &context, bool training) override;
 
   /**
-   * @brief nntrainer forwarding function
+   * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
-  void forwarding(bool training = true) override;
-
-  /**
-   * @brief     calc the derivative to be passed to the previous layer
-   */
-  void calcDerivative() override;
-
-  /**
-   * @brief Get the Type object
-   *
-   * @return const std::string
-   */
-  const std::string getType() const override { return L2NormLayer::type; }
+  void calcDerivative(nntrainer::RunLayerContext &context) override;
 
   /**
    * @copydoc bool supportBackwarding() const
    */
   bool supportBackwarding() const override { return false; };
+
+  /**
+   * @copydoc Layer::exportTo(Exporter &exporter, ExportMethods method)
+   */
+  void exportTo(nntrainer::Exporter &exporter,
+                const nntrainer::ExportMethods &method) const override {}
+
+  /**
+   * @copydoc Layer::getType()
+   */
+  const std::string getType() const override { return L2NormLayer::type; };
+
+  /**
+   * @copydoc Layer::setProperty(const std::vector<std::string> &values)
+   */
+  void setProperty(const std::vector<std::string> &values) override;
 
   inline static const std::string type = "l2norm";
 };

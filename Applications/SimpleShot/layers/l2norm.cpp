@@ -18,33 +18,47 @@
 
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
-#include <tensor.h>
 
 #include <l2norm.h>
 
 namespace simpleshot {
 namespace layers {
 
-int L2NormLayer::initialize(nntrainer::Manager &manager) {
-  if (input_dim[0].channel() != 1 || input_dim[0].height() != 1) {
-    ml_logw("l2norm layer is designed for channel and height is 1 for now, "
-            "please check");
-  }
-  output_dim[0] = input_dim[0];
+static constexpr size_t SINGLE_INOUT_IDX = 0;
 
-  return ML_ERROR_NONE;
+void L2NormLayer::finalize(nntrainer::InitLayerContext &context) {
+  const auto &input_dim = context.getInputDimensions()[0];
+  if (context.getNumInputs() != 1)
+    throw std::invalid_argument(
+      "l2norm layer is designed for a single input only");
+  if (input_dim.channel() != 1 || input_dim.height() != 1) {
+    throw std::invalid_argument(
+      "l2norm layer is designed for channel and height is 1 for now, "
+      "please check");
+  }
+
+  context.setOutputDimensions(context.getInputDimensions());
 }
 
-void L2NormLayer::forwarding(bool training) {
-  auto &hidden_ = net_hidden[0]->getVariableRef();
-  auto &input_ = net_input[0]->getVariableRef();
+void L2NormLayer::forwarding(nntrainer::RunLayerContext &context,
+                             bool training) {
+  auto &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
+  auto &input_ = context.getInput(SINGLE_INOUT_IDX);
 
   input_.multiply(1 / input_.l2norm(), hidden_);
 }
 
-void L2NormLayer::calcDerivative() {
+void L2NormLayer::calcDerivative(nntrainer::RunLayerContext &context) {
   throw std::invalid_argument("[L2Norm::calcDerivative] This Layer "
                               "does not support backward propagation");
+}
+
+void L2NormLayer::setProperty(const std::vector<std::string> &values) {
+  if (!values.empty()) {
+    std::string msg = "[FlattenLayer] Unknown Layer Properties count " +
+                      std::to_string(values.size());
+    throw nntrainer::exception::not_supported(msg);
+  }
 }
 
 } // namespace layers
