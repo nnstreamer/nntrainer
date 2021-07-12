@@ -58,3 +58,4 @@ unittest_inc = include_directories('.')
 
 subdir('compiler')
 subdir('layers')
+subdir('datasets')
