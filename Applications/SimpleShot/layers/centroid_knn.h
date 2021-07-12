@@ -16,11 +16,9 @@
 #define __NEAREST_NEIGHBORS_H__
 #include <string>
 
-/// @todo migrate these to API
-#include <layer_internal.h>
-#include <manager.h>
-
-#include <tensor.h>
+#include <layer_context.h>
+#include <layer_devel.h>
+#include <node_exporter.h>
 
 namespace simpleshot {
 namespace layers {
@@ -29,13 +27,13 @@ namespace layers {
  * @brief Centroid KNN layer which takes centroid and do k-nearest neighbor
  * classification
  */
-class CentroidKNN : public nntrainer::LayerV1 {
+class CentroidKNN : public nntrainer::Layer {
 public:
   /**
    * @brief Construct a new NearestNeighbors Layer object that does elementwise
    * subtraction from mean feature vector
    */
-  CentroidKNN() : LayerV1(), num_class(0) {}
+  CentroidKNN() : Layer(), num_class(0) {}
 
   /**
    *  @brief  Move constructor.
@@ -53,30 +51,7 @@ public:
    * @brief Destroy the NearestNeighbors Layer object
    *
    */
-  ~CentroidKNN() {}
-
-  using nntrainer::LayerV1::setProperty;
-
-  /**
-   * @brief     set Property of layer,
-   * @param[in] values values of property
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   */
-  int setProperty(std::vector<std::string> values) override;
-
-  /**
-   * @brief initializing nntrainer
-   *
-   * @return int ML_ERROR_NONE if success
-   */
-  int initialize(nntrainer::Manager &manager) override;
-
-  /**
-   * @brief nntrainer forwarding function,
-   * returns distance vector of shape (num_class, )
-   */
-  void forwarding(bool training = true) override;
+  ~CentroidKNN() = default;
 
   /**
    * @copydoc Layer::requireLabel()
@@ -84,27 +59,46 @@ public:
   bool requireLabel() const override { return true; }
 
   /**
-   * @brief     calc the derivative to be passed to the previous layer
-   * essentially noop and pass whatever it got.
+   * @copydoc Layer::finalize(InitLayerContext &context)
    */
-  void calcDerivative() override;
+  void finalize(nntrainer::InitLayerContext &context) override;
 
   /**
-   * @brief Get the Type object
-   *
-   * @return const std::string
+   * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
    */
-  const std::string getType() const override { return CentroidKNN::type; }
+  void forwarding(nntrainer::RunLayerContext &context, bool training) override;
+
+  /**
+   * @copydoc Layer::calcDerivative(RunLayerContext &context)
+   */
+  void calcDerivative(nntrainer::RunLayerContext &context) override;
 
   /**
    * @copydoc bool supportBackwarding() const
    */
   bool supportBackwarding() const override { return false; };
 
+  /**
+   * @copydoc Layer::exportTo(Exporter &exporter, ExportMethods method)
+   */
+  void exportTo(nntrainer::Exporter &exporter,
+                const nntrainer::ExportMethods &method) const override {}
+
+  /**
+   * @copydoc Layer::getType()
+   */
+  const std::string getType() const override { return CentroidKNN::type; };
+
+  /**
+   * @copydoc Layer::setProperty(const std::vector<std::string> &values)
+   */
+  void setProperty(const std::vector<std::string> &values) override;
+
   inline static const std::string type = "centroid_knn";
 
 private:
   unsigned int num_class;
+  std::array<unsigned int, 2> weight_idx; /**< indices of the weights */
 };
 } // namespace layers
 } // namespace simpleshot
