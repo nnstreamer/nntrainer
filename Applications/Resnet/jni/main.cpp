@@ -122,7 +122,7 @@ std::vector<LayerHandle> resnetBlock(const std::string &block_name,
                 {withKey("name", block_name), withKey("activation", "relu")});
 
   if (downsample) {
-    return {a1, a2, a3, b1, c1, c2};
+    return {b1, a1, a2, a3, c1, c2};
   } else {
     return {a1, a2, a3, c1, c2};
   }
@@ -162,8 +162,8 @@ std::vector<LayerHandle> createResnet18Graph() {
   blocks.push_back(resnetBlock("conv2_1", "conv2_0", 128, 3, false));
   blocks.push_back(resnetBlock("conv3_0", "conv2_1", 256, 3, true));
   blocks.push_back(resnetBlock("conv3_1", "conv3_0", 256, 3, false));
-  blocks.push_back(resnetBlock("conv4_0", "conv3_1", 256, 3, true));
-  blocks.push_back(resnetBlock("conv4_1", "conv4_0", 256, 3, false));
+  blocks.push_back(resnetBlock("conv4_0", "conv3_1", 512, 3, true));
+  blocks.push_back(resnetBlock("conv4_1", "conv4_0", 512, 3, false));
 
   for (auto &block : blocks) {
     layers.insert(layers.end(), block.begin(), block.end());
@@ -213,10 +213,11 @@ int validData_cb(float **input, float **label, bool *last, void *user_data) {
 void createAndRun(unsigned int epochs, unsigned int batch_size,
                   UserDataType *user_data) {
   ModelHandle model = createResnet18();
-  model->setProperty(
-    {withKey("batch_size", batch_size), withKey("epochs", epochs)});
+  model->setProperty({withKey("batch_size", batch_size),
+                      withKey("epochs", epochs),
+                      withKey("save_path", "resnet_full.bin")});
 
-  auto optimizer = ml::train::createOptimizer("adam");
+  auto optimizer = ml::train::createOptimizer("adam", {"learning_rate=0.001"});
   model->setOptimizer(std::move(optimizer));
 
   int status = model->compile();
@@ -310,7 +311,7 @@ int main(int argc, char *argv[]) {
   }
 
   try {
-    createAndRun(epoch, 128, &user_data);
+    createAndRun(epoch, batch_size, &user_data);
   } catch (std::exception &e) {
     std::cerr << "uncaught error while running! details: " << e.what() << '\n';
     return 1;

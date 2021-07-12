@@ -46,7 +46,8 @@ void fillLabel(float *data, unsigned int length, unsigned int label) {
  * @param iteration_per_epoch iteration per epoch
  * @return bool true if iteration has finished
  */
-bool setIteration(unsigned int &iteration, unsigned int iteration_per_epoch) {
+bool updateIteration(unsigned int &iteration,
+                     unsigned int iteration_per_epoch) {
   if (iteration++ == iteration_per_epoch) {
     iteration = 0;
     return true;
@@ -90,7 +91,7 @@ void RandomDataLoader::next(float **input, float **label, bool *last) {
     }
   };
 
-  if (setIteration(iteration, iteration_for_one_epoch)) {
+  if (updateIteration(iteration, iteration_for_one_epoch)) {
     *last = true;
     return;
   }
@@ -150,17 +151,19 @@ void Cifar100DataLoader::next(float **input, float **label, bool *last) {
     for (unsigned int i = 0; i < Cifar100DataLoader::ImageSize; ++i) {
       uint8_t data;
       file.read(reinterpret_cast<char *>(&data), sizeof(uint8_t));
-      *input_ = data;
+      *input_ = data / 255.f;
       input_++;
     }
   };
 
   unsigned int idx_pos = current_iteration * batch;
-  if (setIteration(current_iteration, iteration_per_epoch)) {
+  if (updateIteration(current_iteration, iteration_per_epoch)) {
     *last = true;
     std::shuffle(idxes.begin(), idxes.end(), rng);
     return;
   }
+
+  *last = false;
   unsigned int idx_pos_end =
     current_iteration * batch; // iteration increased by 1
 
