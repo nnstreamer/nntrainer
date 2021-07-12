@@ -2,9 +2,9 @@
 /**
  * Copyright (C) 2021 Jihoon Lee <jhoon.it.lee@samsung.com>
  *
- * @file data_producer_common_tests.cpp
+ * @file unittest_random_data_producers.cpp
  * @date 12 July 2021
- * @brief Common test for nntrainer dataset producers (Param Tests)
+ * @brief Random data producers test (Param Tests)
  * @see	https://github.com/nnstreamer/nntrainer
  * @author Jihoon Lee <jhoon.it.lee@samsung.com>
  * @bug No known bugs except for NYI items

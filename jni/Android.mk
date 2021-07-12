@@ -129,6 +129,8 @@ NNTRAINER_SRCS := $(NNTRAINER_ROOT)/nntrainer/models/neuralnet.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/dataset/databuffer_factory.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/dataset/databuffer_func.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/dataset/databuffer_file.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/dataset/func_data_producer.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/dataset/random_data_producers.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/tensor/tensor.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/tensor/lazy_tensor.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/tensor/manager.cpp \

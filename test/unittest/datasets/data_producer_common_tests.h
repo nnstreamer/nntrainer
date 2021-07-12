@@ -33,8 +33,9 @@ using DataProducerValidatorType =
  *
  */
 enum class DataProducerSemanticsExpectedResult {
-  SUCCESS = 0,          /**< SUCCESS */
-  FAIL_AT_FINALIZE = 1, /**< FAIL AT FINALIZE */
+  SUCCESS = 0,                /**< SUCCESS */
+  FAIL_AT_FINALIZE = 1,       /**< FAIL AT FINALIZE */
+  FAIL_AT_GENERATOR_CALL = 2, /**< FAIL AT GENERATOR CALL */
 };
 
 using DataProducerSemanticsParamType =

@@ -39,6 +39,19 @@ TEST_P(DataProducerSemantics, finalize_pn) {
   }
 }
 
+TEST_P(DataProducerSemantics, error_once_or_not_pn) {
+  if (result == DataProducerSemanticsExpectedResult::FAIL_AT_FINALIZE) {
+    return; // skip this test
+  }
+
+  auto generator = producer->finalize(input_dims, label_dims);
+  if (result == DataProducerSemanticsExpectedResult::FAIL_AT_GENERATOR_CALL) {
+    EXPECT_ANY_THROW(generator());
+  } else {
+    EXPECT_NO_THROW(generator());
+  }
+}
+
 TEST_P(DataProducerSemantics, fetch_one_epoch_or_10_iteration_pn) {
   if (result != DataProducerSemanticsExpectedResult::SUCCESS) {
     return; // skip this test
@@ -49,7 +62,7 @@ TEST_P(DataProducerSemantics, fetch_one_epoch_or_10_iteration_pn) {
   bool has_fixed_size = sz != nntrainer::DataProducer::SIZE_UNDEFINED;
 
   if (!has_fixed_size) {
-    sz = 5;
+    sz = 10;
   }
 
   for (unsigned i = 0; i < sz; ++i) {

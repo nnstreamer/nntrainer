@@ -93,7 +93,7 @@ DataProducer::Gernerator
 RandomDataOneHotProducer::finalize(const std::vector<TensorDim> &input_dims,
                                    const std::vector<TensorDim> &label_dims) {
   /** check if the given producer is ready to finalize */
-  auto &[min_, max_, sz] = *rd_one_hot_props;
+  auto &[min_, max_, _] = *rd_one_hot_props;
 
   /// @todo expand this to non onehot case
   NNTR_THROW_IF(std::any_of(label_dims.begin(), label_dims.end(),
@@ -122,7 +122,7 @@ RandomDataOneHotProducer::finalize(const std::vector<TensorDim> &input_dims,
 
   std::mt19937 rng;
   rng.seed(getSeed());
-  sz = size(input_dims, input_dims);
+  auto sz = size(input_dims, input_dims);
   /** DataProducer::Generator */
   return [rng, sz, input_dims, label_dims, min_ = min_.get(), max_ = max_.get(),
           current_iteration = 0ULL,
