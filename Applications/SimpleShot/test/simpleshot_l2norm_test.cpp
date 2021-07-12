@@ -29,7 +29,7 @@ TEST(l2norm, simple_functions) {
   app_context.registerFactory(nntrainer::createLayer<L2NormLayer>);
 
   auto lnode =
-    nntrainer::createLayerNode(app_context.createObject<nntrainer::LayerV1>(
+    nntrainer::createLayerNode(app_context.createObject<nntrainer::Layer>(
       "l2norm", {"input_shape=1:1:4"}));
   auto &c = lnode->getObject();
 
