@@ -18,7 +18,7 @@
 
 auto semantic_tflite = LayerSemanticsParamType(
   nntrainer::createLayer<nntrainer::TfLiteLayer>, nntrainer::TfLiteLayer::type,
-  {"modelfile=../test/test_models/models/add.tflite"}, {}, 0, false);
+  {"modelfile=../test/test_models/models/add.tflite"}, 0, false);
 
 INSTANTIATE_TEST_CASE_P(TfLite, LayerSemantics,
                         ::testing::Values(semantic_tflite));
