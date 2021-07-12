@@ -802,7 +802,7 @@ int NetworkGraph::initialize(std::shared_ptr<Manager> manager) {
 
       unsigned int j = 0;
       for (; j < out_layer_node->getNumInputConnections(); ++j) {
-        if (out_layer_node->getInputLayers()[j] == lnode->getName()) {
+        if (istrequal(out_layer_node->getInputLayers()[j], lnode->getName())) {
           break;
         }
       }
