@@ -14,10 +14,8 @@
 #ifndef __PLUGGED_LAYER_H__
 #define __PLUGGED_LAYER_H__
 
-#include <layer.h>
-
-#include <layer_internal.h>
-#include <manager.h>
+#include <layer_context.h>
+#include <layer_devel.h>
 #include <nntrainer_error.h>
 
 namespace nntrainer {
@@ -27,16 +25,14 @@ namespace internal {
  * @brief PluggedLayer to wrap a layer from shared object file
  *
  */
-class PluggedLayer : public nntrainer::LayerV1 {
+class PluggedLayer : public nntrainer::Layer {
 public:
   /**
    * @brief Construct a new Plugged Layer object
    *
    * @param pluggable LayerPluggable structure from the symbol
    */
-  PluggedLayer(const nntrainer::LayerV1Pluggable *pluggable) :
-    /// @todo we won't need dynamic pointer cast here after api is fully
-    /// implemented
+  PluggedLayer(const nntrainer::LayerPluggable *pluggable) :
     layerImpl(pluggable->createfunc()),
     destroy_func(pluggable->destroyfunc) {
     NNTR_THROW_IF(layerImpl == nullptr, std::invalid_argument)
@@ -65,175 +61,86 @@ public:
   PluggedLayer &operator=(PluggedLayer &&rhs) = default;
 
   /**
-   * @copydoc Layer::initialize(Manager &manager)
-   */
-  int initialize(Manager &manager) override {
-    return layerImpl->initialize(manager);
-  }
-
-  /**
-   * @copydoc Layer::forwarding(bool training)
-   */
-  void forwarding(bool training = true) override {
-    layerImpl->forwarding(training);
-  }
-
-  /**
-   * @copydoc Layer::calcDerivative()
-   */
-  void calcDerivative() override { layerImpl->calcDerivative(); }
-
-  /**
-   * @copydoc Layer::calcGradient()
-   */
-  void calcGradient() override { layerImpl->calcGradient(); }
-
-  /**
-   * @copydoc Layer::applyGradient(unsigned int, std::shared_ptr<Optimizer>)
-   */
-  void applyGradient(unsigned int iteration,
-                     std::shared_ptr<Optimizer> optimizer) override {
-    layerImpl->applyGradient(iteration, std::move(optimizer));
-  }
-
-  /**
-   * @copydoc Layer::read(std::ifstream &file)
-   */
-  void read(std::ifstream &file) override { layerImpl->read(file); }
-
-  /**
-   * @copydoc Layer::save(std::ofstream &file)
-   */
-  void save(std::ofstream &file) override { layerImpl->save(file); }
-
-  /**
-   * @copydoc Layer::setProperty(std::vector<std::string> values)
-   */
-  int setProperty(std::vector<std::string> values) override {
-    return layerImpl->setProperty(std::move(values));
-  }
-
-  /**
-   * @copydoc Layer::checkValidation()
-   */
-  int checkValidation() override { return layerImpl->checkValidation(); }
-
-  /**
-   * @copydoc Layer::getOutputDimension()
-   */
-  std::vector<TensorDim> getOutputDimension() override {
-    return layerImpl->getOutputDimension();
-  }
-
-  /**
-   * @copydoc Layer::getInputDimension()
-   */
-  std::vector<TensorDim> getInputDimension() override {
-    return layerImpl->getInputDimension();
-  }
-
-  /**
-   * @copydoc Layer::getLoss()
-   */
-  float getLoss() override { return layerImpl->getLoss(); }
-
-  /**
-   * @copydoc Layer::copy(std::shared_ptr<Layer> l)
-   */
-  void copy(std::shared_ptr<LayerV1> l) override { layerImpl->copy(l); }
-
-  /**
-   * @copydoc bool supportBackwarding() const
-   */
-  bool supportBackwarding() const override {
-    return layerImpl->supportBackwarding();
-  };
-
-  /**
-   * @copydoc Layer::getWeights()
-   */
-  std::vector<Weight> getWeights() override { return layerImpl->getWeights(); }
-
-  /**
    * @copydoc Layer::getType()
    */
-  virtual const std::string getType() const override {
-    return layerImpl->getType();
+  const std::string getType() const override { return layerImpl->getType(); }
+
+  /**
+   * @copydoc Layer::finalize(InitLayerContext &context)
+   */
+  void finalize(InitLayerContext &context) override {
+    layerImpl->finalize(context);
   }
 
   /**
-   * @copydoc Layer::printPreset(std::ostream &out, PrintPreset preset)
+   * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
    */
-  void printPreset(std::ostream &out,
-                   PrintPreset preset = PrintPreset::PRINT_SUMMARY) override {
-    return layerImpl->printPreset(out, preset);
+  void forwarding(RunLayerContext &context, bool training) override {
+    layerImpl->forwarding(context, training);
   }
 
   /**
-   * @copydoc Layer::weightAt(const unsigned int position)
+   * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
-  Weight &weightAt(const unsigned int position) override {
-    return layerImpl->weightAt(position);
+  void calcDerivative(RunLayerContext &context) override {
+    layerImpl->calcDerivative(context);
   }
 
   /**
-   * @copydoc Layer::getNumWeights()
+   * @copydoc Layer::calcGradient(RunLayerContext &context)
    */
-  unsigned int getNumWeights() override { return layerImpl->getNumWeights(); }
-
-  /**
-   * @copydoc Layer::setBatch(unsigned int batch)
-   */
-  void setBatch(unsigned int batch) override {
-    return layerImpl->setBatch(batch);
+  void calcGradient(RunLayerContext &context) override {
+    layerImpl->calcGradient(context);
   }
 
   /**
-   * @copydoc Layer::getOutputs()
+   * @copydoc Layer::setProperty(const PropertyType type, const std::string
+   * &value)
    */
-  std::vector<Tensor> getOutputs() override { return layerImpl->getOutputs(); }
-
-  /**
-   * @copydoc Layer::getDerivatives()
-   */
-  std::vector<Tensor> getDerivatives() override {
-    return layerImpl->getDerivatives();
+  void setProperty(const std::vector<std::string> &values) override {
+    layerImpl->setProperty(values);
   }
 
   /**
-   * @copydoc Layer::getWeightsRef()
+   * @copydoc Layer::exportTo(Exporter &exporter, ExportMethods method)
    */
-  std::vector<Weight> &getWeightsRef() override {
-    return layerImpl->getWeightsRef();
+  void exportTo(Exporter &exporter,
+                const ExportMethods &method) const override {
+    layerImpl->exportTo(exporter, method);
   }
 
   /**
-   * @copydoc Layer::setInputBuffers(std::vector<std::shared_ptr<VarGrad>>
-   * inputs)
+   * @copydoc Layer::setBatch(InitLayerContext &context, unsigned int batch)
    */
-  void setInputBuffers(std::vector<std::shared_ptr<Var_Grad>> inputs) override {
-    return layerImpl->setInputBuffers(std::move(inputs));
+  void setBatch(InitLayerContext &context, unsigned int batch) override {
+    layerImpl->setBatch(context, batch);
   }
 
   /**
-   * @copydoc Layer::setOutputBuffers(std::vector<std::shared_ptr<Var_Grad>>
-   * outputs)
+   * @copydoc Layer::setBatch(RunLayerContext &context, unsigned int batch)
    */
-  void
-  setOutputBuffers(std::vector<std::shared_ptr<Var_Grad>> outputs) override {
-    return layerImpl->setOutputBuffers(std::move(outputs));
+  void setBatch(RunLayerContext &context, unsigned int batch) override {
+    layerImpl->setBatch(context, batch);
   }
 
-#ifdef ENABLE_TEST
-  unsigned int getNumInputs() override { return layerImpl->getNumInputs(); }
-  unsigned int getNumOutputs() override { return layerImpl->getNumOutputs(); }
-#endif
+  /**
+   * @copydoc Layer::supportInPlace()
+   */
+  bool supportInPlace() const override { return layerImpl->supportInPlace(); }
+
+  /**
+   * @copydoc Layer::requireLabel()
+   */
+  bool requireLabel() const { return layerImpl->requireLabel(); }
+
+  /**
+   * @copydoc Layer::supportBackwarding()
+   */
+  bool supportBackwarding() const { return layerImpl->supportBackwarding(); }
 
 private:
-  /// @todo: migrate to ml::train::Layer
-  // ml::train::Layer *layerImpl;
-  nntrainer::LayerV1 *layerImpl;
-  nntrainer::DestroyLayerV1Func destroy_func;
+  nntrainer::Layer *layerImpl;
+  nntrainer::DestroyLayerFunc destroy_func;
 };
 } // namespace internal
 } // namespace nntrainer
