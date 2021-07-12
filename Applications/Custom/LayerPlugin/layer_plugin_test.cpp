@@ -28,9 +28,9 @@ TEST(AppContext, DlRegisterOpen_p) {
     << "NNTRAINER_PATH environment value must be set";
   auto ac = nntrainer::AppContext();
 
-  ac.registerLayerV1("libpow_layer.so", NNTRAINER_PATH);
+  ac.registerLayer("libpow_layer.so", NNTRAINER_PATH);
 
-  auto layer = ac.createObject<nntrainer::LayerV1>("pow");
+  auto layer = ac.createObject<nntrainer::Layer>("pow");
 
   EXPECT_EQ(layer->getType(), "pow");
 }
@@ -40,7 +40,7 @@ TEST(AppContext, DlRegisterWrongPath_n) {
     << "NNTRAINER_PATH environment value must be set";
   auto ac = nntrainer::AppContext();
 
-  EXPECT_THROW(ac.registerLayerV1("wrong_name.so"), std::invalid_argument);
+  EXPECT_THROW(ac.registerLayer("wrong_name.so"), std::invalid_argument);
 }
 
 TEST(AppContext, DlRegisterDirectory_p) {
@@ -50,7 +50,7 @@ TEST(AppContext, DlRegisterDirectory_p) {
 
   ac.registerPluggableFromDirectory(NNTRAINER_PATH);
 
-  auto layer = ac.createObject<nntrainer::LayerV1>("pow");
+  auto layer = ac.createObject<nntrainer::Layer>("pow");
 
   EXPECT_EQ(layer->getType(), "pow");
 }

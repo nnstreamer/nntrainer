@@ -13,17 +13,16 @@
 #include "mae_loss.h"
 
 namespace custom {
-const std::string MaeLossLayer::type = "mae_loss";
 
 #ifdef PLUGGABLE
 
-nntrainer::LayerV1 *create_mae_loss_layer() {
+nntrainer::Layer *create_mae_loss_layer() {
   auto layer = new MaeLossLayer();
   std::cout << "mae loss layer created\n";
   return layer;
 }
 
-void destory_mae_loss_layer(nntrainer::LayerV1 *layer) {
+void destory_mae_loss_layer(nntrainer::Layer *layer) {
   std::cout << "mae loss layer destroyed\n";
   delete layer;
 }
@@ -33,8 +32,8 @@ void destory_mae_loss_layer(nntrainer::LayerV1 *layer) {
  * register a plugin layer
  */
 extern "C" {
-nntrainer::LayerV1Pluggable ml_train_layerv1_pluggable{create_mae_loss_layer,
-                                                       destory_mae_loss_layer};
+nntrainer::LayerPluggable ml_train_layer_pluggable{create_mae_loss_layer,
+                                                   destory_mae_loss_layer};
 }
 
 #endif
