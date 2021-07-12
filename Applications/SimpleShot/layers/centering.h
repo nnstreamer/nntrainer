@@ -16,11 +16,9 @@
 #define __CENTERING_H__
 #include <string>
 
-/// @todo migrate these to API
-#include <layer_internal.h>
-#include <manager.h>
-
-#include <tensor.h>
+#include <layer_context.h>
+#include <layer_devel.h>
+#include <node_exporter.h>
 
 namespace simpleshot {
 namespace layers {
@@ -30,12 +28,12 @@ namespace layers {
  * subtraction from mean feature vector
  *
  */
-class CenteringLayer : public nntrainer::LayerV1 {
+class CenteringLayer : public nntrainer::Layer {
 public:
   /**
    * @brief Construct a new Centering Layer object
    */
-  CenteringLayer() : LayerV1() {}
+  CenteringLayer() : Layer() {}
 
   /**
    * @brief Construct a new Centering Layer object
@@ -62,40 +60,20 @@ public:
    */
   ~CenteringLayer() {}
 
-  using nntrainer::LayerV1::setProperty;
+  /**
+   * @copydoc Layer::finalize(InitLayerContext &context)
+   */
+  void finalize(nntrainer::InitLayerContext &context) override;
 
   /**
-   * @brief     set Property of layer,
-   * feature_path: feature *.bin that contains mean feature vector that will be
-   * used for the model.
-   * @param[in] values values of property
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
    */
-  int setProperty(std::vector<std::string> values) override;
+  void forwarding(nntrainer::RunLayerContext &context, bool training) override;
 
   /**
-   * @brief initializing nntrainer
-   *
-   * @return int ML_ERROR_NONE if success
+   * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
-  int initialize(nntrainer::Manager &manager) override;
-
-  /**
-   * @brief nntrainer forwarding function
-   */
-  void forwarding(bool training = true) override;
-
-  /**
-   * @brief     calc the derivative to be passed to the previous layer
-   */
-  void calcDerivative() override;
-
-  /**
-   * @brief     read layer Weight & Bias data from file
-   * @param[in] file input file stream
-   */
-  void read(std::ifstream &file) override;
+  void calcDerivative(nntrainer::RunLayerContext &context) override;
 
   /**
    * @copydoc bool supportBackwarding() const
@@ -103,11 +81,20 @@ public:
   bool supportBackwarding() const override { return false; };
 
   /**
-   * @brief Get the Type object
-   *
-   * @return const std::string
+   * @copydoc Layer::exportTo(Exporter &exporter, ExportMethods method)
    */
-  const std::string getType() const override { return CenteringLayer::type; }
+  void exportTo(nntrainer::Exporter &exporter,
+                const nntrainer::ExportMethods &method) const override {}
+
+  /**
+   * @copydoc Layer::getType()
+   */
+  const std::string getType() const override { return CenteringLayer::type; };
+
+  /**
+   * @copydoc Layer::setProperty(const std::vector<std::string> &values)
+   */
+  void setProperty(const std::vector<std::string> &values) override;
 
   inline static const std::string type = "centering";
 
