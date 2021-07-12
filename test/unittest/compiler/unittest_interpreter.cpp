@@ -64,13 +64,13 @@ static void graphEqual(const nntrainer::GraphRepresentation &lhs,
                        const nntrainer::GraphRepresentation &rhs) {
   EXPECT_EQ(lhs.size(), rhs.size());
 
-  auto is_node_equal = [](const nntrainer::LayerV1 &l,
-                          const nntrainer::LayerV1 &r) {
+  auto is_node_equal = [](const nntrainer::LayerNode &l,
+                          const nntrainer::LayerNode &r) {
     nntrainer::Exporter lhs_export;
     nntrainer::Exporter rhs_export;
 
-    l.export_to(lhs_export);
-    r.export_to(rhs_export);
+    l.exportTo(lhs_export, nntrainer::ExportMethods::METHOD_STRINGVECTOR);
+    r.exportTo(rhs_export, nntrainer::ExportMethods::METHOD_STRINGVECTOR);
 
     /*** fixme, there is one caveat that order matters in this form */
     EXPECT_EQ(
@@ -83,7 +83,9 @@ static void graphEqual(const nntrainer::GraphRepresentation &lhs,
     auto rhs_iter = rhs.cbegin();
     for (; lhs_iter != lhs.cend(), rhs_iter != rhs.cend();
          lhs_iter++, rhs_iter++) {
-      is_node_equal(*lhs_iter->getObject(), *rhs_iter->getObject());
+      auto lhs = *lhs_iter;
+      auto rhs = *rhs_iter;
+      is_node_equal(*lhs.get(), *rhs.get());
     }
   }
 }
@@ -125,12 +127,12 @@ protected:
 TEST_P(nntrainerInterpreterTest, graphEqual) {
   std::cerr << "testing " << file_path << '\n';
 
-  int status = reference->compile(nntrainer::LossType::LOSS_NONE);
+  int status = reference->compile("");
   EXPECT_EQ(status, ML_ERROR_NONE);
   auto g = interpreter->deserialize(file_path);
 
   /// @todo: change this to something like graph::finalize
-  status = g->compile(nntrainer::LossType::LOSS_NONE);
+  status = g->compile("");
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   /// @todo: make a proper graph equal
@@ -150,7 +152,7 @@ TEST_P(nntrainerInterpreterTest, graphSerializeAfterDeserialize) {
   auto out_file_path = file_path + ".out";
 
   /// @todo: change this to something like graph::finalize
-  int status = g->compile(nntrainer::LossType::LOSS_NONE);
+  int status = g->compile("");
   EXPECT_EQ(status, ML_ERROR_NONE);
   interpreter->serialize(g, out_file_path);
   auto new_g = interpreter->deserialize(out_file_path);

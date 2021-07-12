@@ -16,19 +16,19 @@
 #include <layer_node.h>
 
 TEST_P(LayerPluginCommonTest, DlRegisterOpen_p) {
-  ac.registerLayerV1(plugin_lib_name, NNTRAINER_PATH);
-  auto layer = ac.createObject<nntrainer::LayerV1>(layer_type_name);
+  ac.registerLayer(plugin_lib_name, NNTRAINER_PATH);
+  auto layer = ac.createObject<nntrainer::Layer>(layer_type_name);
 
   EXPECT_EQ(layer->getType(), layer_type_name);
 }
 
 TEST_P(LayerPluginCommonTest, DlRegisterWrongPath_n) {
-  EXPECT_THROW(ac.registerLayerV1("wrong_name.so"), std::invalid_argument);
+  EXPECT_THROW(ac.registerLayer("wrong_name.so"), std::invalid_argument);
 }
 
 TEST_P(LayerPluginCommonTest, DlRegisterDirectory_p) {
   ac.registerPluggableFromDirectory(NNTRAINER_PATH);
-  auto layer = ac.createObject<nntrainer::LayerV1>(layer_type_name);
+  auto layer = ac.createObject<nntrainer::Layer>(layer_type_name);
   EXPECT_EQ(layer->getType(), layer_type_name);
 }
 
@@ -58,8 +58,8 @@ TEST_P(LayerPluginCommonTest, DefaultEnvironmentPath_p) {
   }
 
   EXPECT_THROW(lnode->setProperty({"invalid_values"}), std::invalid_argument);
-  EXPECT_EQ(lnode->getOutputDimensions()[0], nntrainer::TensorDim());
-  EXPECT_EQ(lnode->getInputDimensions()[0], nntrainer::TensorDim());
+  EXPECT_EQ(lnode->getOutputDimensions().size(), 0);
+  EXPECT_EQ(lnode->getInputDimensions().size(), 0);
 }
 
 TEST_P(LayerPluginCommonTest, DefaultEnvironmentPathLayerNotExist_n) {
