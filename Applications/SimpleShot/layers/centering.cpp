@@ -25,42 +25,35 @@
 namespace simpleshot {
 namespace layers {
 
+static constexpr size_t SINGLE_INOUT_IDX = 0;
+
 CenteringLayer::CenteringLayer(const std::string &feature_path_) :
-  LayerV1(),
+  Layer(),
   feature_path(feature_path_) {}
 
-int CenteringLayer::setProperty(std::vector<std::string> values) {
+void CenteringLayer::setProperty(const std::vector<std::string> &values) {
   const std::string FEATURE_PATH("feature_path");
   util::Entry e;
 
-  std::vector<std::string> unhandled_values;
-
   for (auto &val : values) {
-    try {
-      e = util::getKeyValue(val);
-    } catch (std::invalid_argument &e) {
-      std::cerr << e.what() << std::endl;
-      return ML_ERROR_INVALID_PARAMETER;
-    }
+    e = util::getKeyValue(val);
 
     if (e.key == FEATURE_PATH) {
       feature_path = e.value;
     } else {
-      unhandled_values.push_back(val);
+      std::string msg =
+        "[CenteringLayer] Unknown Layer Properties count " + val;
+      throw nntrainer::exception::not_supported(msg);
     }
   }
-
-  return nntrainer::LayerV1::setProperty(unhandled_values);
 }
 
-int CenteringLayer::initialize(nntrainer::Manager &manager) {
-  output_dim[0] = input_dim[0];
+void CenteringLayer::finalize(nntrainer::InitLayerContext &context) {
+  context.setOutputDimensions(context.getInputDimensions());
 
-  return ML_ERROR_NONE;
-}
-
-void CenteringLayer::read(std::ifstream &file) {
-  mean_feature_vector = nntrainer::Tensor(input_dim[0]);
+  /** TODO: update this to requestTensor once it support init with file */
+  const auto &input_dim = context.getInputDimensions()[SINGLE_INOUT_IDX];
+  mean_feature_vector = nntrainer::Tensor(input_dim);
   std::ifstream f(feature_path, std::ios::in | std::ios::binary);
   if (!f.good()) {
     throw std::invalid_argument(
@@ -69,15 +62,18 @@ void CenteringLayer::read(std::ifstream &file) {
   mean_feature_vector.read(f);
 }
 
-void CenteringLayer::forwarding(bool training) {
-  std::cout << net_input[0]->getVariableRef().getDim();
-  std::cout << net_hidden[0]->getVariableRef().getDim();
+void CenteringLayer::forwarding(nntrainer::RunLayerContext &context,
+                                bool training) {
+  auto &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
+  auto &input_ = context.getInput(SINGLE_INOUT_IDX);
+
+  std::cout << input_.getDim();
+  std::cout << hidden_.getDim();
   std::cout << mean_feature_vector.getDim();
-  net_input[0]->getVariableRef().add(mean_feature_vector,
-                                     net_hidden[0]->getVariableRef(), -1);
+  input_.add(mean_feature_vector, hidden_, -1);
 }
 
-void CenteringLayer::calcDerivative() {
+void CenteringLayer::calcDerivative(nntrainer::RunLayerContext &context) {
   throw std::invalid_argument("[CenteringLayer::calcDerivative] This Layer "
                               "does not support backward propagation");
 }
