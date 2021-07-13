@@ -208,7 +208,10 @@ int ModelLoader::loadDatasetConfigIni(dictionary *ini, NeuralNetwork &model) {
   model.data_buffers[static_cast<int>(DatasetDataUsageType::DATA_TEST)] =
     nntrainer::createDataBuffer(DatasetType::FILE);
 
-  unsigned int bufsize = iniparser_getint(ini, "DataSet:BufferSize", 1);
+  /// @todo ini bufferSize -> buffer_size to unify
+  std::string bufsizepros("buffer_size=");
+  bufsizepros += iniparser_getstring(ini, "DataSet:BufferSize", "1");
+
   std::function<int(const char *, DatasetDataUsageType, bool)> parse_and_set =
     [&](const char *key, DatasetDataUsageType dt, bool required) -> int {
     const char *path = iniparser_getstring(ini, key, NULL);
@@ -220,9 +223,7 @@ int ModelLoader::loadDatasetConfigIni(dictionary *ini, NeuralNetwork &model) {
     auto dbuffer = std::static_pointer_cast<DataBufferFromDataFile>(
       model.data_buffers[static_cast<int>(dt)]);
 
-    if (int status = dbuffer->setBufSize(bufsize)) {
-      return status;
-    }
+    dbuffer->setProperty({bufsizepros});
 
     return dbuffer->setDataFile(resolvePath(path));
   };

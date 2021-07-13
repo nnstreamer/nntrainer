@@ -21,6 +21,7 @@
  *
  */
 
+#include <base_properties.h>
 #include <cassert>
 #include <climits>
 #include <condition_variable>
@@ -31,6 +32,7 @@
 #include <mutex>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
+#include <node_exporter.h>
 #include <parse_util.h>
 #include <sstream>
 #include <stdexcept>
@@ -40,6 +42,24 @@
 #include <util_func.h>
 
 namespace nntrainer {
+
+/**
+ * @brief Props containing buffer size value
+ *
+ */
+class PropsBufferSize : public Property<unsigned int> {
+public:
+  /**
+   * @brief Construct a new props min object with a default value
+   *
+   * @param value default value
+   */
+  PropsBufferSize(unsigned int value = 1) :
+    nntrainer::Property<unsigned int>(value) {}
+  bool isValid(const unsigned int &v) { return v > 0; }
+  static constexpr const char *key = "buffer_size"; /**< unique key to access */
+  using prop_tag = uint_prop_tag;                   /**< property type */
+};
 
 constexpr char USER_DATA[] = "user_data";
 
@@ -57,9 +77,16 @@ DataBuffer::DataBuffer(DatasetType type) :
   remaining_samples_per_epoch(0),
   is_running(false),
   initialized(false),
-  user_data(nullptr) {
+  db_props(new Props()) {
   rng.seed(getSeed());
 };
+
+DataBuffer::DataBuffer(std::unique_ptr<DataProducer> &&producer_) :
+  db_props(new Props()) {
+  rng.seed(getSeed());
+}
+
+DataBuffer::~DataBuffer(){};
 
 int DataBuffer::rangeRandom(int min, int max) {
   std::uniform_int_distribution<int> dist(min, max);
@@ -166,12 +193,6 @@ int DataBuffer::setClassNum(unsigned int num) {
     return ML_ERROR_INVALID_PARAMETER;
   }
   class_num = num;
-  return status;
-}
-
-int DataBuffer::setBufSize(unsigned int size) {
-  int status = ML_ERROR_NONE;
-  buf_size = size;
   return status;
 }
 
@@ -289,49 +310,16 @@ int DataBuffer::setProperty(std::vector<void *> values) {
     }
   }
 
-  status = setProperty(properties);
+  setProperty(properties);
 
   return status;
 }
 
-int DataBuffer::setProperty(std::vector<std::string> values) {
-  int status = ML_ERROR_NONE;
+void DataBuffer::setProperty(const std::vector<std::string> &values) {
+  auto left = loadProperties(values, *db_props);
 
-  for (unsigned int i = 0; i < values.size(); ++i) {
-    std::string key;
-    std::string value;
-    status = getKeyValue(values[i], key, value);
-    NN_RETURN_STATUS();
-
-    unsigned int type = parseDataProperty(key);
-    if (value.empty())
-      return ML_ERROR_INVALID_PARAMETER;
-
-    status = setProperty(static_cast<PropertyType>(type), value);
-    NN_RETURN_STATUS();
-  }
-
-  return status;
-}
-
-int DataBuffer::setProperty(const PropertyType type, std::string &value) {
-  int status = ML_ERROR_NONE;
-  unsigned int size = 0;
-
-  switch (type) {
-  case PropertyType::buffer_size:
-    status = setUint(size, value);
-    NN_RETURN_STATUS();
-    status = this->setBufSize(size);
-    NN_RETURN_STATUS();
-    break;
-  default:
-    ml_loge("Error: Unknown Data Buffer Property Key");
-    status = ML_ERROR_INVALID_PARAMETER;
-    break;
-  }
-
-  return status;
+  NNTR_THROW_IF(!left.empty(), std::invalid_argument)
+    << "[DataBuffer] Failed to set property";
 }
 
 int DataBuffer::setGeneratorFunc(datagen_cb func, void *user_data) {
