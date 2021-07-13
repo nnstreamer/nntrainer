@@ -77,11 +77,13 @@ DataBuffer::DataBuffer(DatasetType type) :
   remaining_samples_per_epoch(0),
   is_running(false),
   initialized(false),
+  producer(nullptr),
   db_props(new Props()) {
   rng.seed(getSeed());
 };
 
 DataBuffer::DataBuffer(std::unique_ptr<DataProducer> &&producer_) :
+  producer(std::move(producer_)),
   db_props(new Props()) {
   rng.seed(getSeed());
 }
@@ -239,6 +241,51 @@ int DataBuffer::init() {
   return ML_ERROR_NONE;
 }
 
+std::future<std::shared_ptr<BatchQueue>>
+DataBuffer::startFetchWorker(const std::vector<TensorDim> &input_dims,
+                             const std::vector<TensorDim> &label_dims) {
+  NNTR_THROW_IF(!producer, std::invalid_argument) << "producer does not exist";
+  auto bq = std::make_shared<BatchQueue>(std::get<PropsBufferSize>(*db_props));
+  auto generator = producer->finalize(input_dims, label_dims);
+  bq_view = bq;
+
+  return std::async(std::launch::async, [bq, generator] {
+    while (true) {
+      auto iteration = generator();
+      auto last = std::get<0>(iteration);
+      bq->wait_and_push(std::move(iteration));
+      if (last == true) {
+        break;
+      }
+    }
+    return bq;
+  });
+}
+
+std::unique_ptr<DataProducer::Iteration> DataBuffer::fetch() {
+  NNTR_THROW_IF(!producer, std::runtime_error) << "producer does not exist";
+  auto bq = bq_view.lock();
+  NNTR_THROW_IF(!bq, std::runtime_error)
+    << "Cannot fetch, either fetcher is not running or fetcher has ended and "
+       "invalidated";
+  auto iteration = bq->wait_and_pop();
+  NNTR_THROW_IF(!iteration, std::runtime_error)
+    << "fetched iteration is null, should not happen at all cases";
+
+  /// if last equals true, resets bq_view
+  if (std::get<0>(*iteration) == true) {
+    bq_view.reset();
+  }
+  return iteration;
+}
+
+DataProducer::Generator
+DataBuffer::batcher(const std::vector<TensorDim> &input_dims,
+                    const std::vector<TensorDim> &label_dims) {
+  NNTR_THROW_IF(!producer, std::invalid_argument) << "producer does not exist";
+  return producer->finalize(input_dims, label_dims);
+}
+
 int DataBuffer::setFeatureSize(const TensorDim &indim) {
   int status = ML_ERROR_NONE;
   input_dim = indim;
@@ -317,9 +364,12 @@ int DataBuffer::setProperty(std::vector<void *> values) {
 
 void DataBuffer::setProperty(const std::vector<std::string> &values) {
   auto left = loadProperties(values, *db_props);
-
-  NNTR_THROW_IF(!left.empty(), std::invalid_argument)
-    << "[DataBuffer] Failed to set property";
+  if (producer) {
+    producer->setProperty(left);
+  } else {
+    NNTR_THROW_IF(!left.empty(), std::invalid_argument)
+      << "[DataBuffer] Failed to set property";
+  }
 }
 
 int DataBuffer::setGeneratorFunc(datagen_cb func, void *user_data) {

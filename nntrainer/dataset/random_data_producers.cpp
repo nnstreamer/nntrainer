@@ -52,19 +52,21 @@ public:
 
 /**
  * @brief Props containing number of samples
+ * A random data producer has theoretical size. number of samples is used to set
+ * theoretical size of the random data producer's data size
  *
  */
-class PropsDataSize : public Property<unsigned int> {
+class PropsNumSamples : public Property<unsigned int> {
 public:
   /**
    * @brief Construct a new props data size object with a default value
    *
    * @param value default value
    */
-  PropsDataSize(unsigned int value = 512) :
+  PropsNumSamples(unsigned int value = 512) :
     nntrainer::Property<unsigned int>(value) {}
-  static constexpr const char *key = "size"; /**< unique key to access */
-  using prop_tag = uint_prop_tag;            /**< property type */
+  static constexpr const char *key = "num_samples"; /**< unique key to access */
+  using prop_tag = uint_prop_tag;                   /**< property type */
 };
 
 RandomDataOneHotProducer::RandomDataOneHotProducer() :
@@ -76,10 +78,10 @@ const std::string RandomDataOneHotProducer::getType() const {
   return RandomDataOneHotProducer::type;
 }
 
-unsigned long long
+unsigned int
 RandomDataOneHotProducer::size(const std::vector<TensorDim> &input_dims,
                                const std::vector<TensorDim> &label_dims) const {
-  return std::get<PropsDataSize>(*rd_one_hot_props).get();
+  return std::get<PropsNumSamples>(*rd_one_hot_props).get();
 }
 
 void RandomDataOneHotProducer::setProperty(

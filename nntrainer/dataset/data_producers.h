@@ -49,8 +49,8 @@ public:
    */
   using Generator = std::function<Iteration(void)>;
 
-  constexpr inline static unsigned long long SIZE_UNDEFINED =
-    std::numeric_limits<unsigned long long>::max();
+  constexpr inline static unsigned int SIZE_UNDEFINED =
+    std::numeric_limits<unsigned int>::max();
 
   /**
    * @brief Destroy the Data Loader object
@@ -94,9 +94,8 @@ public:
    *
    * @return size calculated size
    */
-  virtual unsigned long long
-  size(const std::vector<TensorDim> &input_dims,
-       const std::vector<TensorDim> &label_dims) const {
+  virtual unsigned int size(const std::vector<TensorDim> &input_dims,
+                            const std::vector<TensorDim> &label_dims) const {
     return SIZE_UNDEFINED;
   }
 };

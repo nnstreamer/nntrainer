@@ -59,9 +59,8 @@ public:
   /**
    * @copydoc DataProducer::size()
    */
-  unsigned long long
-  size(const std::vector<TensorDim> &input_dims,
-       const std::vector<TensorDim> &label_dims) const override;
+  unsigned int size(const std::vector<TensorDim> &input_dims,
+                    const std::vector<TensorDim> &label_dims) const override;
 
   /**
    * @copydoc DataProducer::setProeprty(const std::vector<std::string>

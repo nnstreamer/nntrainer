@@ -49,13 +49,13 @@ DataProducerValidatorType random_onehot_validator(float min, float max) {
 }
 auto random_onehot_success = DataProducerSemanticsParamType(
   createDataProducer<nntrainer::RandomDataOneHotProducer>,
-  {"min=0", "max=1", "size=10"}, {{3, 2, 4, 5}}, {{3, 1, 1, 10}},
+  {"min=0", "max=1", "num_samples=10"}, {{3, 2, 4, 5}}, {{3, 1, 1, 10}},
   random_onehot_validator(0, 1), DataProducerSemanticsExpectedResult::SUCCESS);
 
 auto random_onehot_min_over_max = DataProducerSemanticsParamType(
   createDataProducer<nntrainer::RandomDataOneHotProducer>,
-  {"min=2", "max=1", "size=10"}, {{3, 2, 4, 5}}, {{3, 1, 1, 10}}, nullptr,
-  DataProducerSemanticsExpectedResult::FAIL_AT_FINALIZE);
+  {"min=2", "max=1", "num_samples=10"}, {{3, 2, 4, 5}}, {{3, 1, 1, 10}},
+  nullptr, DataProducerSemanticsExpectedResult::FAIL_AT_FINALIZE);
 
 auto random_onehot_invalid_label_shape = DataProducerSemanticsParamType(
   createDataProducer<nntrainer::RandomDataOneHotProducer>, {}, {{3, 2, 4, 5}},
