@@ -18,6 +18,16 @@ mae_loss_layer  = shared_library('mae_loss_layer',
   cpp_args: '-DPLUGGABLE'
 )
 
+pow_layer_dep = declare_dependency(
+  link_with: pow_layer,
+  include_directories: layer_example_inc
+  )
+
+mae_loss_layer_dep = declare_dependency(
+  link_with: mae_loss_layer,
+  include_directories: layer_example_inc
+  )
+
 if get_option('enable-test')
   test_target = [
     'layer_plugin_common_test.cpp',
@@ -31,7 +41,10 @@ if get_option('enable-test')
     gtest_main_dep,
     nntrainer_dep,
     nntrainer_ccapi_dep,
-    nntrainer_testutil_dep
+    nntrainer_testutil_dep,
+    pow_layer_dep,
+    mae_loss_layer_dep,
+    nntrainer_layer_common_standalone_tests_dep
   ],
   install: get_option('enable-test'),
   install_dir: application_install_dir)
