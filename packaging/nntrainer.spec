@@ -446,6 +446,8 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %{_includedir}/nntrainer/graph_node.h
 %{_includedir}/nntrainer/databuffer.h
 %{_includedir}/nntrainer/databuffer_factory.h
+%{_includedir}/nntrainer/layer_context.h
+%{_includedir}/nntrainer/layer_devel.h
 %{_includedir}/nntrainer/layer_internal.h
 %{_includedir}/nntrainer/layer_factory.h
 %{_includedir}/nntrainer/neuralnet.h

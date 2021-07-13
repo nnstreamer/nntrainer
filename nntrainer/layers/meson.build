@@ -29,6 +29,8 @@ layer_sources = [
 ]
 
 layer_headers = [
+  'layer_context.h',
+  'layer_devel.h',
   'layer_factory.h',
   'layer_internal.h',
   'acti_func.h',
