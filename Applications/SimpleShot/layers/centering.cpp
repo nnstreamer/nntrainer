@@ -67,9 +67,6 @@ void CenteringLayer::forwarding(nntrainer::RunLayerContext &context,
   auto &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
   auto &input_ = context.getInput(SINGLE_INOUT_IDX);
 
-  std::cout << input_.getDim();
-  std::cout << hidden_.getDim();
-  std::cout << mean_feature_vector.getDim();
   input_.add(mean_feature_vector, hidden_, -1);
 }
 
