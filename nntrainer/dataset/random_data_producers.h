@@ -24,7 +24,7 @@ namespace nntrainer {
 
 class PropsMin;
 class PropsMax;
-class PropsDataSize;
+class PropsNumSamples;
 
 /**
  * @brief RandomDataProducer which generates a onehot vector as a label
@@ -54,9 +54,8 @@ public:
   /**
    * @copydoc DataProducer::size()
    */
-  unsigned long long
-  size(const std::vector<TensorDim> &input_dims,
-       const std::vector<TensorDim> &label_dims) const override;
+  unsigned int size(const std::vector<TensorDim> &input_dims,
+                    const std::vector<TensorDim> &label_dims) const override;
 
   /**
    * @copydoc DataProducer::setProeprty(const std::vector<std::string>
@@ -73,7 +72,7 @@ public:
            const std::vector<TensorDim> &label_dims) override;
 
 private:
-  using Props = std::tuple<PropsMin, PropsMax, PropsDataSize>;
+  using Props = std::tuple<PropsMin, PropsMax, PropsNumSamples>;
   std::unique_ptr<Props> rd_one_hot_props;
 };
 

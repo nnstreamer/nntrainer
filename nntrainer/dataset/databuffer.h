@@ -33,6 +33,7 @@
 #include <thread>
 #include <vector>
 
+#include <batch_queue.h>
 #include <data_producers.h>
 #include <dataset.h>
 #include <tensor_dim.h>
@@ -80,10 +81,49 @@ public:
   virtual int init();
 
   /**
+   * @brief prepare iteration a head of time with a dedicated worker. The
+   * iteration prepared can be retrieved with @a fetch();
+   * @remark the batch dimension of input_dims / label_dims must be same for
+   * all.
+   * @param input_dims dimension of input_dims
+   * @param label_dims dimension of label_dims
+   * @return std::future<std::shared_ptr<BatchQueue>> Buffer Queue object,
+   * release this pointer after calling @a fetch() is done to invalidate
+   * subsequent call of @a fetch()
+   */
+  std::future<std::shared_ptr<BatchQueue>>
+  startFetchWorker(const std::vector<TensorDim> &input_dims,
+                   const std::vector<TensorDim> &label_dims);
+
+  /**
+   * @brief Get the Iteration object
+   * @note  the first element of returned Iteration denotes whether current
+   * epoch has ended.
+   *
+   * @throw std::invalid_argument if @a startFetchWorker hasn't been called or
+   * the return value of startFetchWorker has been invalidated.
+   * @return std::unique_ptr<DataProducer::Iteration> iteration
+   */
+  std::unique_ptr<DataProducer::Iteration> fetch();
+
+  /**
+   * @brief Get the Generator object and the generator object returns a batch
+   * upon call
+   * @remark the batch dimension of input_dims / label_dims must be same for
+   * all.
+   *
+   * @param input_dims dimension of input_dims
+   * @param label_dims dimension of label_dims
+   * @return DataProducer::Generator which generates an iteration
+   */
+  DataProducer::Generator batcher(const std::vector<TensorDim> &input_dims,
+                                  const std::vector<TensorDim> &label_dims);
+
+  /**
    * @brief     Update Data Buffer ( it is for child thread )
    * @retval    void
    */
-  virtual void updateData() = 0;
+  virtual void updateData(){};
 
   /**
    * @brief     function for thread ( training, validation, test )
@@ -116,14 +156,6 @@ public:
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
   int setClassNum(unsigned int n);
-
-  /**
-   * @brief     set buffer size
-   * @param[in] buffer size
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   */
-  int setBufSize(unsigned int n);
 
   /**
    * @brief     set batch size
@@ -257,8 +289,12 @@ protected:
   std::exception_ptr consumer_exception_ptr; /**< exception ptr for consumer to
                                                 catch when producer is dead */
 
+  /******************* v2 members ********************/
+  std::shared_ptr<DataProducer> producer;
+  std::weak_ptr<BatchQueue> bq_view;
   using Props = std::tuple<PropsBufferSize>;
   std::unique_ptr<Props> db_props;
+
   /** The user_data to be used for the data generator callback */
   void *user_data;
 };

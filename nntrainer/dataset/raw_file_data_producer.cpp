@@ -33,7 +33,7 @@ const std::string RawFileDataProducer::getType() const {
   return RawFileDataProducer::type;
 }
 
-unsigned long long
+unsigned int
 RawFileDataProducer::size(const std::vector<TensorDim> &input_dims,
                           const std::vector<TensorDim> &label_dims) const {
   auto size_accumulator = [](const unsigned int &a, const TensorDim &b) {
