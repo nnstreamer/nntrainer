@@ -158,7 +158,7 @@ This contains corresponding header files and .pc pkgconfig file.
 
 %package devel-static
 Summary:        Static library for nntrainer-devel package
-Requires:       devel = %{version}-%{release}
+Requires:       nntrainer-devel = %{version}-%{release}
 %description devel-static
 Static library package of nntrainer-devel
 
@@ -252,8 +252,8 @@ NNSteamer tensor filter for nntrainer to support inference.
 
 %package -n nnstreamer-nntrainer-devel-static
 Summary: NNStreamer NNTrainer support
-Requires: devel-static = %{version}-%{release}
-Requires:	nnstreamer-nntrainer
+Requires: nntrainer-devel-static = %{version}-%{release}
+Requires:	nnstreamer-nntrainer = %{version}-%{release}
 %description -n nnstreamer-nntrainer-devel-static
 NNSteamer tensor filter static package for nntrainer to support inference.
 %endif #nnstreamer_filter
