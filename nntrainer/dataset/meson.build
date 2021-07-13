@@ -1,4 +1,5 @@
 dataset_sources = [
+  'batch_queue.cpp',
   'databuffer.cpp',
   'databuffer_factory.cpp',
   'databuffer_file.cpp',

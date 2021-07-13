@@ -6,7 +6,8 @@ producer_targets = [
   'data_producer_common_tests.cpp',
   'unittest_random_data_producers.cpp',
   'unittest_func_data_producer.cpp',
-  'unittest_raw_file_data_producer.cpp'
+  'unittest_raw_file_data_producer.cpp',
+  'unittest_batch_queue.cpp'
 ]
 
 test_target += producer_targets
