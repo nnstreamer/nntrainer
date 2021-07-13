@@ -12,8 +12,8 @@
  *
  */
 
-#ifndef __L2NORM__H_
-#define __L2NORM__H_
+#ifndef __L2NORM_H__
+#define __L2NORM_H__
 #include <string>
 
 #include <layer_context.h>
