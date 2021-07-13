@@ -241,7 +241,7 @@ TEST(nntrainer_ccapi, train_dataset_with_file_01_p) {
   EXPECT_NO_THROW(
     dataset = ml::train::createDataset(
       ml::train::DatasetType::FILE, getTestResPath("trainingSet.dat").c_str()));
-  EXPECT_EQ(dataset->setProperty({"buffer_size=100"}), ML_ERROR_NONE);
+  EXPECT_NO_THROW(dataset->setProperty({"buffer_size=100"}));
   EXPECT_EQ(
     model->setDataset(ml::train::DatasetDataUsageType::DATA_TRAIN, dataset),
     ML_ERROR_NONE);
@@ -249,7 +249,7 @@ TEST(nntrainer_ccapi, train_dataset_with_file_01_p) {
   EXPECT_NO_THROW(
     dataset = ml::train::createDataset(ml::train::DatasetType::FILE,
                                        getTestResPath("valSet.dat").c_str()));
-  EXPECT_EQ(dataset->setProperty({"buffer_size=100"}), ML_ERROR_NONE);
+  EXPECT_NO_THROW(dataset->setProperty({"buffer_size=100"}));
   EXPECT_EQ(
     model->setDataset(ml::train::DatasetDataUsageType::DATA_VAL, dataset),
     ML_ERROR_NONE);
@@ -296,14 +296,14 @@ TEST(nntrainer_ccapi, train_dataset_with_generator_01_p) {
 
   EXPECT_NO_THROW(dataset = ml::train::createDataset(
                     ml::train::DatasetType::GENERATOR, getBatch_train));
-  EXPECT_EQ(dataset->setProperty({"buffer_size=100"}), ML_ERROR_NONE);
+  EXPECT_NO_THROW(dataset->setProperty({"buffer_size=100"}));
   EXPECT_EQ(
     model->setDataset(ml::train::DatasetDataUsageType::DATA_TRAIN, dataset),
     ML_ERROR_NONE);
 
   EXPECT_NO_THROW(dataset = ml::train::createDataset(
                     ml::train::DatasetType::GENERATOR, getBatch_val));
-  EXPECT_EQ(dataset->setProperty({"buffer_size=100"}), ML_ERROR_NONE);
+  EXPECT_NO_THROW(dataset->setProperty({"buffer_size=100"}));
   EXPECT_EQ(
     model->setDataset(ml::train::DatasetDataUsageType::DATA_VAL, dataset),
     ML_ERROR_NONE);
@@ -351,7 +351,7 @@ TEST(nntrainer_ccapi, train_batch_size_update_after) {
   EXPECT_NO_THROW(
     dataset = ml::train::createDataset(
       ml::train::DatasetType::FILE, getTestResPath("trainingSet.dat").c_str()));
-  EXPECT_EQ(dataset->setProperty({"buffer_size=100"}), ML_ERROR_NONE);
+  EXPECT_NO_THROW(dataset->setProperty({"buffer_size=100"}));
   EXPECT_EQ(
     model->setDataset(ml::train::DatasetDataUsageType::DATA_TRAIN, dataset),
     ML_ERROR_NONE);
@@ -359,7 +359,7 @@ TEST(nntrainer_ccapi, train_batch_size_update_after) {
   EXPECT_NO_THROW(
     dataset = ml::train::createDataset(ml::train::DatasetType::FILE,
                                        getTestResPath("valSet.dat").c_str()));
-  EXPECT_EQ(dataset->setProperty({"buffer_size=100"}), ML_ERROR_NONE);
+  EXPECT_NO_THROW(dataset->setProperty({"buffer_size=100"}));
   EXPECT_EQ(
     model->setDataset(ml::train::DatasetDataUsageType::DATA_VAL, dataset),
     ML_ERROR_NONE);

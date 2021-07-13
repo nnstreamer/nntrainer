@@ -68,12 +68,10 @@ public:
   /**
    * @brief     set property
    * @param[in] values values of property
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    * @details   Properties (values) is in the format -
    *  { std::string property_name, std::string property_val, ...}
    */
-  virtual int setProperty(std::vector<std::string> values) = 0;
+  virtual void setProperty(const std::vector<std::string> &values) = 0;
 
   /**
    * @brief     set property to allow setting non-string values such as

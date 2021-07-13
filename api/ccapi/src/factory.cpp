@@ -85,8 +85,7 @@ std::unique_ptr<Dataset>
 createDataset(DatasetType type, const std::vector<std::string> &properties) {
   std::unique_ptr<Dataset> dataset = nntrainer::createDataBuffer(type);
 
-  if (dataset->setProperty(properties) != ML_ERROR_NONE)
-    throw std::invalid_argument("Set properties failed for dataset");
+  dataset->setProperty(properties);
 
   return dataset;
 }
