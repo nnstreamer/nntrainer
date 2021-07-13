@@ -125,6 +125,7 @@ include $(CLEAR_VARS)
 NNTRAINER_SRCS := $(NNTRAINER_ROOT)/nntrainer/models/neuralnet.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/models/model_loader.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/models/dynamic_training_optimization.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/dataset/batch_queue.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/dataset/databuffer.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/dataset/databuffer_factory.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/dataset/databuffer_func.cpp \
