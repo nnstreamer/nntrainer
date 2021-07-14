@@ -301,9 +301,6 @@ static std::string add_tflite =
 static nntrainer::IniSection backbone_valid_external =
   nntrainer::IniSection("block1", add_tflite + "| Input_Shape = 1:1:1");
 
-static nntrainer::IniSection backbone_valid_external_no_shape("block1",
-                                                              add_tflite);
-
 static int SUCCESS = 0;
 static int LOADFAIL = initest::LOAD;
 static int COMPFAIL = initest::COMP;
@@ -396,7 +393,7 @@ INSTANTIATE_TEST_CASE_P(
 /**
  * @brief Ini file unittest with backbone with wrong file
  */
-TEST(nntrainerIniTest, DISABLED_backbone_n_01) {
+TEST(nntrainerIniTest, backbone_n_01) {
   ScopedIni s{"backbone_n1", {nw_base_cross, adam, backbone_random}};
   nntrainer::NeuralNetwork NN;
 
@@ -406,7 +403,7 @@ TEST(nntrainerIniTest, DISABLED_backbone_n_01) {
 /**
  * @brief Ini file unittest with backbone with empty backbone
  */
-TEST(nntrainerIniTest, DISABLED_backbone_n_02) {
+TEST(nntrainerIniTest, backbone_n_02) {
   ScopedIni b{"base", {nw_base_cross}};
   ScopedIni s{"backbone_n2", {nw_base_cross, adam, backbone_valid}};
   nntrainer::NeuralNetwork NN;
@@ -417,7 +414,7 @@ TEST(nntrainerIniTest, DISABLED_backbone_n_02) {
 /**
  * @brief Ini file unittest with backbone with normal backbone
  */
-TEST(nntrainerIniTest, DISABLED_backbone_p_03) {
+TEST(nntrainerIniTest, backbone_p_03) {
   ScopedIni b{"base", {nw_base_cross, batch_normal}};
   ScopedIni s{"backbone_p3", {nw_base_cross, adam, backbone_valid}};
   nntrainer::NeuralNetwork NN;
@@ -428,7 +425,7 @@ TEST(nntrainerIniTest, DISABLED_backbone_p_03) {
 /**
  * @brief Ini file unittest with backbone without model parameters
  */
-TEST(nntrainerIniTest, DISABLED_backbone_p_04) {
+TEST(nntrainerIniTest, backbone_p_04) {
   ScopedIni b{"base", {flatten, conv2d}};
   ScopedIni s{"backbone_p4", {nw_base_cross, adam, backbone_valid}};
   nntrainer::NeuralNetwork NN;
@@ -439,7 +436,7 @@ TEST(nntrainerIniTest, DISABLED_backbone_p_04) {
 /**
  * @brief Ini file unittest matching model with and without backbone
  */
-TEST(nntrainerIniTest, DISABLED_backbone_p_05) {
+TEST(nntrainerIniTest, backbone_p_05) {
 
   /** Create a backbone.ini */
   ScopedIni b("base", {nw_base_cross, conv2d});
@@ -505,7 +502,7 @@ TEST(nntrainerIniTest, DISABLED_backbone_p_05) {
 /**
  * @brief Ini file unittest matching model with and without trainable
  */
-TEST(nntrainerIniTest, DISABLED_backbone_p_06) {
+TEST(nntrainerIniTest, backbone_p_06) {
   ScopedIni b("base", {flatten, conv2d});
   ScopedIni s("backbone_p6", {nw_base_cross, adam, backbone_valid});
   nntrainer::NeuralNetwork NN;
@@ -521,7 +518,7 @@ TEST(nntrainerIniTest, DISABLED_backbone_p_06) {
 /**
  * @brief Ini file unittest matching model with and without trainable
  */
-TEST(nntrainerIniTest, DISABLED_backbone_p_07) {
+TEST(nntrainerIniTest, backbone_p_07) {
   ScopedIni b("base", {conv2d});
   ScopedIni s("backbone_p7",
               {nw_base_cross, adam, backbone_notrain, backbone_train});
@@ -538,7 +535,7 @@ TEST(nntrainerIniTest, DISABLED_backbone_p_07) {
 /**
  * @brief Ini file unittest with backbone with normal backbone
  */
-TEST(nntrainerIniTest, DISABLED_backbone_n_08) {
+TEST(nntrainerIniTest, backbone_n_08) {
   ScopedIni s("backbone_n8", {nw_base_cross, adam, backbone_random_external});
 
   nntrainer::NeuralNetwork NN;
@@ -555,7 +552,7 @@ TEST(nntrainerIniTest, DISABLED_backbone_n_08) {
 /**
  * @brief Ini file unittest with backbone with normal backbone
  */
-TEST(nntrainerIniTest, DISABLED_backbone_p_09) {
+TEST(nntrainerIniTest, backbone_p_09) {
   ScopedIni s("backbone_p9",
               {nw_base_mse + "-batch_size", adam, backbone_valid_external});
   nntrainer::NeuralNetwork NN;
@@ -570,48 +567,30 @@ TEST(nntrainerIniTest, DISABLED_backbone_p_09) {
 }
 
 /**
- * @brief Ini file unittest with backbone with normal backbone
- */
-// Enable after sepearet memory assign and initialization of graph
-TEST(nntrainerIniTest, DISABLED_backbone_p_10) {
-  ScopedIni s("backbone_p10",
-              {nw_base_mse, adam, backbone_valid_external_no_shape});
-  nntrainer::NeuralNetwork NN;
-
-#if defined(ENABLE_NNSTREAMER_BACKBONE) || defined(ENABLE_TFLITE_BACKBONE)
-  EXPECT_EQ(NN.loadFromConfig(s.getIniName()), ML_ERROR_NONE);
-  EXPECT_EQ(NN.compile(), ML_ERROR_INVALID_PARAMETER);
-  EXPECT_EQ(NN.initialize(), ML_ERROR_NOT_SUPPORTED);
-#else
-  EXPECT_EQ(NN.loadFromConfig(s.getIniName()), ML_ERROR_NOT_SUPPORTED);
-#endif
-}
-
-/**
  * @brief Ini file unittest with backbone
  * @note Input shape is provided in model file
  */
-TEST(nntrainerIniTest, DISABLED_backbone_n_15) {
+TEST(nntrainerIniTest, backbone_n_15) {
   ScopedIni base("base", {conv2d, conv2d});
 
   ScopedIni full("backbone_n15_scaled", {nw_base_mse, adam, backbone_valid});
 
   nntrainer::NeuralNetwork NN_scaled, NN_full;
   EXPECT_EQ(NN_full.loadFromConfig(full.getIniName()), ML_ERROR_NONE);
-  EXPECT_EQ(NN_full.compile(), ML_ERROR_INVALID_PARAMETER);
-  EXPECT_EQ(NN_full.initialize(), ML_ERROR_NOT_SUPPORTED);
+  EXPECT_EQ(NN_full.compile(), ML_ERROR_NONE);
+  EXPECT_THROW(NN_full.initialize(), std::invalid_argument);
 
   ScopedIni scaled("backbone_n15_scaled", {nw_base_mse, adam, backbone_scaled});
 
   EXPECT_EQ(NN_scaled.loadFromConfig(scaled.getIniName()), ML_ERROR_NONE);
-  EXPECT_EQ(NN_scaled.compile(), ML_ERROR_INVALID_PARAMETER);
-  EXPECT_EQ(NN_scaled.initialize(), ML_ERROR_NOT_SUPPORTED);
+  EXPECT_EQ(NN_scaled.compile(), ML_ERROR_NONE);
+  EXPECT_THROW(NN_scaled.initialize(), std::invalid_argument);
 }
 /**
  * @brief Ini file unittest with backbone
  * @note Input shape is striped from backbone and not provided in model file
  */
-TEST(nntrainerIniTest, DISABLED_backbone_p_17) {
+TEST(nntrainerIniTest, backbone_p_17) {
   nntrainer::NeuralNetwork NN_scaled, NN_full;
 
   ScopedIni base("base", {conv2d_shape, conv2d + "input_layers=conv2d_shape"});
@@ -637,7 +616,7 @@ TEST(nntrainerIniTest, DISABLED_backbone_p_17) {
  * @brief Ini file unittest with backbone
  * @note Output layer name not found, epmty backbone
  */
-TEST(nntrainerIniTest, DISABLED_backbone_n_18) {
+TEST(nntrainerIniTest, backbone_n_18) {
   nntrainer::NeuralNetwork NN;
 
   ScopedIni base("base", {input2d, conv2d + "input_layers=inputlayer",
@@ -654,7 +633,7 @@ TEST(nntrainerIniTest, DISABLED_backbone_n_18) {
  * @brief Ini file unittest with backbone
  * @note Input layer name not found, epmty backbone
  */
-TEST(nntrainerIniTest, DISABLED_backbone_n_19) {
+TEST(nntrainerIniTest, backbone_n_19) {
   nntrainer::NeuralNetwork NN;
 
   ScopedIni base("base", {input2d, conv2d + "input_layers=inputlayer",
@@ -672,7 +651,7 @@ TEST(nntrainerIniTest, DISABLED_backbone_n_19) {
  * @brief Ini file unittest with backbone
  * @note input and output layer specified are found
  */
-TEST(nntrainerIniTest, DISABLED_backbone_p_20) {
+TEST(nntrainerIniTest, backbone_p_20) {
   nntrainer::NeuralNetwork NN;
 
   ScopedIni base("base",
@@ -694,7 +673,7 @@ TEST(nntrainerIniTest, DISABLED_backbone_p_20) {
  * it should be referred relative to the .ini
  *
  */
-TEST(nntrainerIniTest, DISABLED_backbone_relative_to_ini_p) {
+TEST(nntrainerIniTest, backbone_relative_to_ini_p) {
   ScopedIni b{getResPath("base"), {nw_base_cross, batch_normal}};
   ScopedIni s{getResPath("original"),
               {nw_base_cross + "loss=mse", adam, input,
@@ -712,7 +691,7 @@ TEST(nntrainerIniTest, DISABLED_backbone_relative_to_ini_p) {
  * it should be referred relative to the .ini
  *
  */
-TEST(nntrainerIniTest, DISABLED_backbone_from_different_directory_n) {
+TEST(nntrainerIniTest, backbone_from_different_directory_n) {
   ScopedIni b{"base", {nw_base_cross, batch_normal}};
   ScopedIni s{getResPath("original"),
               {nw_base_cross + "loss=mse", adam, input,
@@ -728,7 +707,7 @@ TEST(nntrainerIniTest, DISABLED_backbone_from_different_directory_n) {
  * it should be referred relative to the .ini
  *
  */
-TEST(nntrainerIniTest, DISABLED_backbone_based_on_working_directory_p) {
+TEST(nntrainerIniTest, backbone_based_on_working_directory_p) {
   ScopedIni b{getResPath("base", {"test"}), {nw_base_cross, batch_normal}};
   ScopedIni s{getResPath("original"),
               {nw_base_cross + "loss=mse", adam, input,
