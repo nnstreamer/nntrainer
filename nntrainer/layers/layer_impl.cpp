@@ -23,7 +23,12 @@
 
 namespace nntrainer {
 
-LayerImpl::LayerImpl() : layer_impl_props(std::make_unique<std::tuple<>>()) {}
+LayerImpl::LayerImpl() :
+  layer_impl_props(std::make_unique<std::tuple<>>()),
+  weight_regularizer(WeightRegularizer::NONE),
+  weight_regularizer_constant(1.0f),
+  weight_initializer(WeightInitializer::WEIGHT_XAVIER_UNIFORM),
+  bias_initializer(WeightInitializer::WEIGHT_ZEROS) {}
 
 void LayerImpl::setProperty(const std::vector<std::string> &values) {
   loadProperties(values, *layer_impl_props);
