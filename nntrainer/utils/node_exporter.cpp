@@ -76,8 +76,9 @@ void Exporter::saveTflResult(
   const LayerNode *self) {
   createIfNull(tf_node);
   tf_node->setInOut(*self);
-  tf_node->setInputs(self->getObject()->getInputRef());
-  tf_node->setOutputs(self->getObject()->getOutputRef());
+  /** TODO: update to use run_context format for set inputs/outputs */
+  // tf_node->setInputs(self->getObject()->getInputRef());
+  // tf_node->setOutputs(self->getObject()->getOutputRef());
 
   saveTflWeights(tf_node.get(), self->getRunContext(), "0:2:1");
 }

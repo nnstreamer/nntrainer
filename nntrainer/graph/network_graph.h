@@ -23,8 +23,8 @@
 #include <vector>
 
 #include <graph_core.h>
-#include <layer_internal.h>
 #include <layer_node.h>
+#include <manager.h>
 
 namespace nntrainer {
 
@@ -358,12 +358,6 @@ private:
    */
   void ensureName(std::shared_ptr<Layer> layer, const std::string &prefix = "",
                   const std::string &postfix = "", bool force_rename = false);
-
-  /**
-   * @brief Create new LayerNode and add into Graph
-   * @param[in] layer shared_ptr of Layer
-   */
-  void addLayerNode(std::shared_ptr<LayerV1> layer);
 
   /**
    * @brief Create new LayerNode and add into Graph
