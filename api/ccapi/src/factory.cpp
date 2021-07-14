@@ -82,7 +82,15 @@ std::unique_ptr<Model> createModel(ModelType type,
 std::unique_ptr<Dataset>
 createDataset(DatasetType type, const std::vector<std::string> &properties) {
   std::unique_ptr<Dataset> dataset = nntrainer::createDataBuffer(type);
+  dataset->setProperty(properties);
 
+  return dataset;
+}
+
+std::unique_ptr<Dataset>
+createDataset(DatasetType type, const char *file,
+              const std::vector<std::string> &properties) {
+  std::unique_ptr<Dataset> dataset = nntrainer::createDataBuffer(type, file);
   dataset->setProperty(properties);
 
   return dataset;
@@ -91,16 +99,14 @@ createDataset(DatasetType type, const std::vector<std::string> &properties) {
 /**
  * @brief Factory creator with constructor for dataset
  */
-std::unique_ptr<Dataset> createDataset(DatasetType type, const char *file) {
-  return nntrainer::createDataBuffer(type, file);
-}
+std::unique_ptr<Dataset>
+createDataset(DatasetType type, datagen_cb cb, void *user_data,
+              const std::vector<std::string> &properties) {
+  std::unique_ptr<Dataset> dataset =
+    nntrainer::createDataBuffer(type, cb, user_data);
+  dataset->setProperty(properties);
 
-/**
- * @brief Factory creator with constructor for dataset
- */
-std::unique_ptr<Dataset> createDataset(DatasetType type, datagen_cb cb,
-                                       void *user_data) {
-  return nntrainer::createDataBuffer(type, cb, user_data);
+  return dataset;
 }
 
 } // namespace train

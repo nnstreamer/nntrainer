@@ -208,13 +208,6 @@ int ModelLoader::loadDatasetConfigIni(dictionary *ini, NeuralNetwork &model) {
     return ML_ERROR_INVALID_PARAMETER;
   }
 
-  model.data_buffers[static_cast<int>(DatasetDataUsageType::DATA_TRAIN)] =
-    nntrainer::createDataBuffer(DatasetType::FILE);
-  model.data_buffers[static_cast<int>(DatasetDataUsageType::DATA_VAL)] =
-    nntrainer::createDataBuffer(DatasetType::FILE);
-  model.data_buffers[static_cast<int>(DatasetDataUsageType::DATA_TEST)] =
-    nntrainer::createDataBuffer(DatasetType::FILE);
-
   /// @todo ini bufferSize -> buffer_size to unify
   std::string bufsizepros("buffer_size=");
   bufsizepros += iniparser_getstring(ini, "DataSet:BufferSize", "1");
@@ -227,12 +220,16 @@ int ModelLoader::loadDatasetConfigIni(dictionary *ini, NeuralNetwork &model) {
       return required ? ML_ERROR_INVALID_PARAMETER : ML_ERROR_NONE;
     }
 
-    auto dbuffer = std::static_pointer_cast<DataBufferFromDataFile>(
-      model.data_buffers[static_cast<int>(dt)]);
+    try {
+      model.data_buffers[static_cast<int>(dt)] =
+        createDataBuffer(DatasetType::FILE, resolvePath(path).c_str());
+      model.data_buffers[static_cast<int>(dt)]->setProperty({bufsizepros});
+    } catch (...) {
+      ml_loge("path is not valid, path: %s", resolvePath(path).c_str());
+      return ML_ERROR_INVALID_PARAMETER;
+    }
 
-    dbuffer->setProperty({bufsizepros});
-
-    return dbuffer->setDataFile(resolvePath(path));
+    return ML_ERROR_NONE;
   };
 
   status =

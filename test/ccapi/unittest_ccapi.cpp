@@ -151,9 +151,9 @@ TEST(ccapi_dataset, construct_01_n) {
 /**
  * @brief Neural Network Dataset Contruct Test
  */
-TEST(ccapi_dataset, construct_02_p) {
-  EXPECT_NO_THROW(ml::train::createDataset(ml::train::DatasetType::GENERATOR));
-  EXPECT_NO_THROW(ml::train::createDataset(ml::train::DatasetType::FILE));
+TEST(ccapi_dataset, construct_02_n) {
+  EXPECT_THROW(ml::train::createDataset(ml::train::DatasetType::GENERATOR),
+               std::invalid_argument);
 }
 
 static nntrainer::IniSection model_base("Model", "Type = NeuralNetwork"
