@@ -220,7 +220,7 @@ public:
    * @param v value to set
    * @throw std::invalid_argument if argument is not valid
    */
-  void set(const T &v) {
+  virtual void set(const T &v) {
     NNTR_THROW_IF(isValid(v) == false, std::invalid_argument)
       << "argument is not valid";
     value = std::make_unique<T>(v);

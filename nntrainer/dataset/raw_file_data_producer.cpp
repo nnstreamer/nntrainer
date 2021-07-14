@@ -27,6 +27,9 @@
 namespace nntrainer {
 
 RawFileDataProducer::RawFileDataProducer() : raw_file_props(new PropTypes()) {}
+
+RawFileDataProducer::RawFileDataProducer(const std::string &path) :
+  raw_file_props(new PropTypes(props::FilePath(path))) {}
 RawFileDataProducer::~RawFileDataProducer() {}
 
 const std::string RawFileDataProducer::getType() const {
@@ -113,13 +116,12 @@ RawFileDataProducer::finalize(const std::vector<TensorDim> &input_dims,
 
   auto file =
     std::make_shared<std::ifstream>(path_prop.get(), std::ios::binary);
-  auto iter = idxes_.begin();
 
   return [batch, input_dims, label_dims, rng = rng_, idxes = std::move(idxes_),
-          file, iter]() mutable -> DataProducer::Iteration {
-    if (std::distance(iter, idxes.end()) < static_cast<std::ptrdiff_t>(batch)) {
+          file, current_idx = 0]() mutable -> DataProducer::Iteration {
+    if (idxes.size() - current_idx < batch) {
       std::shuffle(idxes.begin(), idxes.end(), rng);
-      iter = idxes.begin();
+      current_idx = 0;
       return DataProducer::Iteration(true, {}, {});
     }
 
@@ -136,7 +138,7 @@ RawFileDataProducer::finalize(const std::vector<TensorDim> &input_dims,
     }
 
     for (unsigned int b = 0; b < batch; ++b) {
-      file->seekg(*iter, std::ios_base::beg);
+      file->seekg(idxes[current_idx], std::ios_base::beg);
       for (auto &input : inputs) {
         Tensor input_slice = input.getBatchSlice(b, 1);
         input_slice.read(*file);
@@ -146,7 +148,7 @@ RawFileDataProducer::finalize(const std::vector<TensorDim> &input_dims,
         label_slice.read(*file);
       }
 
-      iter++;
+      current_idx++;
     }
 
     return DataProducer::Iteration(false, inputs, labels);

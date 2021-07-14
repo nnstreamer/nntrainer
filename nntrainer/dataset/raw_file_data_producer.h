@@ -37,11 +37,18 @@ class RawFileDataProducer final : public DataProducer {
 public:
   inline static constexpr unsigned int pixel_size =
     sizeof(float); /**< @todo make this a configurable type */
+
+  /**
+   * @brief Construct a new Raw File Data Producer object
+   *
+   */
+  RawFileDataProducer();
+
   /**
    * @brief Construct a new RawFileDataProducer object
    *
    */
-  RawFileDataProducer();
+  RawFileDataProducer(const std::string &path);
 
   /**
    * @brief Destroy the RawFileDataProducer object

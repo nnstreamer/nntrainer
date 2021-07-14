@@ -12,9 +12,10 @@
 
 #include <databuffer_factory.h>
 
-#include <databuffer_file.h>
-#include <databuffer_func.h>
+#include <data_producers.h>
+#include <func_data_producer.h>
 #include <nntrainer_error.h>
+#include <raw_file_data_producer.h>
 
 namespace nntrainer {
 
@@ -22,14 +23,19 @@ namespace nntrainer {
  * @brief Factory creator with constructor
  */
 std::unique_ptr<DataBuffer> createDataBuffer(DatasetType type) {
+
+  std::unique_ptr<DataProducer> dp;
   switch (type) {
   case DatasetType::FILE:
-    return std::make_unique<DataBufferFromDataFile>();
+    dp = std::make_unique<RawFileDataProducer>();
+    break;
   case DatasetType::UNKNOWN:
     [[fallthrough]];
   default:
     throw std::invalid_argument("Unsupported constructor type for the dataset");
   }
+
+  return std::make_unique<DataBuffer>(std::move(dp));
 }
 
 /**
@@ -40,9 +46,11 @@ std::unique_ptr<DataBuffer> createDataBuffer(DatasetType type,
   NNTR_THROW_IF(file == nullptr, std::invalid_argument)
     << "file shall not be null, use empty constructor instead";
 
+  std::unique_ptr<DataProducer> dp;
   switch (type) {
   case DatasetType::FILE:
-    return std::make_unique<DataBufferFromDataFile>(file);
+    dp = std::make_unique<RawFileDataProducer>(file);
+    break;
   case DatasetType::UNKNOWN:
     [[fallthrough]];
   default:
@@ -50,6 +58,8 @@ std::unique_ptr<DataBuffer> createDataBuffer(DatasetType type,
       "Unsupported constructor type for the dataset of type: " +
       static_cast<int>(type));
   };
+
+  return std::make_unique<DataBuffer>(std::move(dp));
 }
 
 /**
@@ -57,9 +67,12 @@ std::unique_ptr<DataBuffer> createDataBuffer(DatasetType type,
  */
 std::unique_ptr<DataBuffer> createDataBuffer(DatasetType type, datagen_cb cb,
                                              void *user_data) {
+
+  std::unique_ptr<DataProducer> dp;
   switch (type) {
   case DatasetType::GENERATOR:
-    return std::make_unique<DataBufferFromCallback>(cb, user_data);
+    dp = std::make_unique<FuncDataProducer>(cb, user_data);
+    break;
   case DatasetType::UNKNOWN:
     [[fallthrough]];
   default:
@@ -67,6 +80,8 @@ std::unique_ptr<DataBuffer> createDataBuffer(DatasetType type, datagen_cb cb,
       "Unsupported constructor type for the dataset of type: " +
       static_cast<int>(type));
   };
+
+  return std::make_unique<DataBuffer>(std::move(dp));
 }
 
 } // namespace nntrainer
