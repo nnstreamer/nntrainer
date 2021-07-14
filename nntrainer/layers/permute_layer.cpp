@@ -22,6 +22,8 @@
 
 namespace nntrainer {
 
+static constexpr size_t SINGLE_INOUT_IDX = 0;
+
 bool props::PermuteDims::isValid(const unsigned int &value) const {
   return 0 < value && value <= 3;
 }
@@ -40,7 +42,7 @@ buildTrasposeString(const std::array<props::PermuteDims, 3> &arr) {
   return ss.str();
 }
 
-int PermuteLayer::initialize(Manager &manager) {
+void PermuteLayer::finalize(InitLayerContext &context) {
   auto initiate_direction = [this] {
     std::bitset<3> check_transpose; /**< check if transpose contains all axis */
 
@@ -59,62 +61,37 @@ int PermuteLayer::initialize(Manager &manager) {
     rdirection_str = buildTrasposeString(direction);
   };
 
-  auto initiate_dimension = [this] {
-    output_dim[0] = input_dim[0].transpose(direction_str);
-  };
-
-  try {
-    initiate_direction();
-    initiate_dimension();
-  } catch (std::exception &e) {
-    ml_loge("[Permute] Initiation failed, reason: %s", e.what());
-    return ML_ERROR_INVALID_PARAMETER;
-  }
-
-  return ML_ERROR_NONE;
+  initiate_direction();
+  context.setOutputDimensions(
+    {context.getInputDimensions()[SINGLE_INOUT_IDX].transpose(direction_str)});
 }
 
-void PermuteLayer::forwarding(bool training) {
-  auto &input_ = net_input[0]->getVariableRef();
-  auto &hidden_ = net_hidden[0]->getVariableRef();
+void PermuteLayer::forwarding(RunLayerContext &context, bool training) {
+  Tensor &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
+  Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
 
   input_.transpose(direction_str, hidden_);
 }
 
-void PermuteLayer::calcDerivative() {
-  auto &input_grad = net_input[0]->getGradientRef();
-  auto &hidden_grad = net_hidden[0]->getGradientRef();
+void PermuteLayer::calcDerivative(RunLayerContext &context) {
+  Tensor &hidden_grad = context.getIncomingDerivative(SINGLE_INOUT_IDX);
+  Tensor &input_grad = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
 
   hidden_grad.transpose(rdirection_str, input_grad);
 }
 
-void PermuteLayer::copy(std::shared_ptr<LayerV1> l) {
-  LayerV1::copy(l);
-
-  std::shared_ptr<PermuteLayer> from =
-    std::static_pointer_cast<PermuteLayer>(l);
-
-  direction = from->direction;
-  direction_str = from->direction_str;
-  reverse_direction = from->reverse_direction;
-  rdirection_str = from->rdirection_str;
-}
-
-void PermuteLayer::export_to(Exporter &exporter, ExportMethods method) const {
-  LayerV1::export_to(exporter, method);
+void PermuteLayer::exportTo(Exporter &exporter,
+                            const ExportMethods &method) const {
   exporter.saveResult(std::forward_as_tuple(direction), method);
 }
 
-int PermuteLayer::setProperty(std::vector<std::string> values) {
-  try {
-    auto left_values = loadProperties(values, std::forward_as_tuple(direction));
-    LayerV1::setProperty(left_values);
-  } catch (std::invalid_argument &e) {
-    ml_loge("[PermuteLayer] failed to set property, reason: %s", e.what());
-    return ML_ERROR_INVALID_PARAMETER;
+void PermuteLayer::setProperty(const std::vector<std::string> &values) {
+  auto left_values = loadProperties(values, std::forward_as_tuple(direction));
+  if (!left_values.empty()) {
+    std::string msg = "[PermuteLayer] Unknown properties set with count" +
+                      std::to_string(values.size());
+    throw exception::not_supported(msg);
   }
-
-  return ML_ERROR_NONE;
 }
 
 } // namespace nntrainer
