@@ -118,7 +118,10 @@ public:
    * if the owner of these tensors free the tensors.
    */
   explicit Weight(const Tensor &v, const Tensor &g, const std::string &n = "") :
-    Var_Grad(v, g, n) {}
+    Var_Grad(v, g, n),
+    initializer(WeightInitializer::WEIGHT_XAVIER_UNIFORM),
+    regularizer(WeightRegularizer::NONE),
+    regularizer_constant(1.0f) {}
 
   /**
    * @copydoc var_grad::initializeVariable(const Tensor &)
