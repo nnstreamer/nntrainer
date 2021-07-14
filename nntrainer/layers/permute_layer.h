@@ -10,6 +10,7 @@
  * @author Jihoon Lee <jhoon.it.lee@samsung.com>
  * @bug    No known bugs except for NYI items
  */
+
 #ifndef __PERMUTE_LAYER_H__
 #define __PERMUTE_LAYER_H__
 
@@ -17,7 +18,7 @@
 #include <string>
 
 #include <base_properties.h>
-#include <layer_internal.h>
+#include <layer_devel.h>
 #include <node_exporter.h>
 namespace nntrainer {
 
@@ -46,17 +47,13 @@ public:
  * @class   PermuteLayer
  * @brief   Permute layer to transpose a tensor
  */
-class PermuteLayer : public LayerV1 {
+class PermuteLayer : public Layer {
 public:
   /**
    * @brief     Constructor of Permute Layer
    * @param     direction direction to permute
    */
-  template <typename... Args>
-  PermuteLayer(Args... args) :
-    LayerV1(args...),
-    direction(),
-    reverse_direction() {}
+  PermuteLayer() : Layer(), direction(), reverse_direction() {}
 
   /**
    * @brief     Destructor of Permute Layer
@@ -76,48 +73,42 @@ public:
   PermuteLayer &operator=(PermuteLayer &&rhs) = default;
 
   /**
-   * @copydoc Layer::forwarding(bool training)
+   * @copydoc Layer::finalize(InitLayerContext &context)
    */
-  void forwarding(bool training = true) override;
+  void finalize(InitLayerContext &context) override;
 
   /**
-   * @copydoc Layer::calcDerivative()
+   * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
    */
-  void calcDerivative() override;
+  void forwarding(RunLayerContext &context, bool training) override;
 
   /**
-   * @brief     copy layer
-   * @param[in] l layer to copy
+   * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
-  void copy(std::shared_ptr<LayerV1> l) override;
+  void calcDerivative(RunLayerContext &context) override;
 
   /**
-   * @brief     initialize layer
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   * @copydoc Layer::exportTo(Exporter &exporter, ExportMethods method)
    */
-  int initialize(Manager &manager) override;
-
-  /**
-   * @copydoc Layer::export_to(Exporter &exporter, ExportMethods method)
-   */
-  void export_to(
-    Exporter &exporter,
-    ExportMethods method = ExportMethods::METHOD_STRINGVECTOR) const override;
+  void exportTo(Exporter &exporter, const ExportMethods &method) const override;
 
   /**
    * @copydoc Layer::getType()
    */
   const std::string getType() const override { return PermuteLayer::type; };
 
-  inline static const std::string type = "permute";
-
-  using LayerV1::setProperty;
+  /**
+   * @copydoc Layer::supportBackwarding()
+   */
+  bool supportBackwarding() const { return true; }
 
   /**
-   * @copydoc Layer::setProperty(std::vector<std::string> values);
+   * @copydoc Layer::setProperty(const PropertyType type, const std::string
+   * &value)
    */
-  int setProperty(std::vector<std::string> values) override;
+  void setProperty(const std::vector<std::string> &values) override;
+
+  inline static const std::string type = "permute";
 
 private:
   std::string

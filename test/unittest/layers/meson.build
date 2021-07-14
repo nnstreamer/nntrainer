@@ -44,6 +44,7 @@ test_target = [
   'unittest_layers_embedding.cpp',
   'unittest_layers_concat.cpp',
   'unittest_layers_tflite.cpp',
+  'unittest_layers_permute.cpp',
 ]
 
 exe = executable(
