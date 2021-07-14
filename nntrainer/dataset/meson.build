@@ -2,8 +2,6 @@ dataset_sources = [
   'batch_queue.cpp',
   'databuffer.cpp',
   'databuffer_factory.cpp',
-  'databuffer_file.cpp',
-  'databuffer_func.cpp',
   'random_data_producers.cpp',
   'func_data_producer.cpp',
   'raw_file_data_producer.cpp'
