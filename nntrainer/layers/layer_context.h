@@ -152,6 +152,20 @@ public:
   }
 
   /**
+   * @brief Request a new weight for the layer
+   *
+   * @param spec tensor spec
+   * @return unsigned int index of the weight for its getter
+   *
+   * @todo Consider providing a guarantee that the returned indices will always
+   * start from 0 and will always be incremental.
+   */
+  unsigned int requestWeight(const Weight::Spec &spec) {
+    weights_spec.emplace_back(spec);
+    return weights_spec.size() - 1;
+  }
+
+  /**
    * @brief Request a new tensor for the layer
    *
    * @param dim dimension of the tensor
@@ -177,6 +191,20 @@ public:
   typedef Var_Grad::Spec TensorSpec;
 
   /**
+   * @brief Request a new tensor for the layer
+   *
+   * @param spec tensor spec
+   * @return unsigned int index of the tensor for its getter
+   *
+   * @todo Consider providing a guarantee that the returned indices will always
+   * start from 0 and will always be incremental.
+   */
+  unsigned int requestTensor(const TensorSpec &spec) {
+    tensors_spec.emplace_back(spec);
+    return tensors_spec.size() - 1;
+  }
+
+  /**
    * @brief Get the current weights spec
    *
    * @return The current weights spec
@@ -198,6 +226,13 @@ public:
    * @return The current tensors spec
    */
   const std::vector<TensorSpec> &getTensorsSpec() const { return tensors_spec; }
+
+  /**
+   * @brief Get the number of requested tensors objects
+   *
+   * @return unsigned int number of requested tensors
+   */
+  unsigned int getNumTensors() const { return tensors_spec.size(); }
 
   /**
    * @brief Set the batch for the init context
@@ -449,6 +484,26 @@ public:
   }
 
   /**
+   * @brief check if the tensor has gradient
+   *
+   * @param idx Identifier of the tensor
+   * @return true if tensor has gradient, else false
+   */
+  bool tensorHasGradient(unsigned int idx) const {
+    return tensors[idx]->hasGradient();
+  }
+
+  /**
+   * @brief Get the tensor name
+   *
+   * @param idx Identifier of the tensor
+   * @return name of the tensor
+   */
+  const std::string &getTensorName(unsigned int idx) const {
+    return tensors[idx]->getName();
+  }
+
+  /**
    * @brief Get the number of Outputs tensor objects
    *
    * @return unsigned int number of output tensors
@@ -468,6 +523,13 @@ public:
    * @return unsigned int number of weight tensors
    */
   unsigned int getNumWeights() const { return weights.size(); }
+
+  /**
+   * @brief Get the number of requested tensors objects
+   *
+   * @return unsigned int number of requested tensors
+   */
+  unsigned int getNumTensors() const { return tensors.size(); }
 
   /**
    * @brief Set the batch for the run context

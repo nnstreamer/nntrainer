@@ -15,8 +15,7 @@
 #define __TIME_DIST_H__
 #ifdef __cplusplus
 
-#include <layer_internal.h>
-#include <tensor.h>
+#include <layer_devel.h>
 
 namespace nntrainer {
 
@@ -24,12 +23,12 @@ namespace nntrainer {
  * @class   TimeDistLayer
  * @brief   Time Distribution Layer
  */
-class TimeDistLayer : public LayerV1 {
+class TimeDistLayer : public Layer {
 public:
   /**
    * @brief     Constructor of Time Distribution Layer
    */
-  template <typename... Args> TimeDistLayer(Args... args) : LayerV1(args...) {
+  TimeDistLayer() : Layer() {
     for (unsigned int i = 0; i < 4; ++i) {
       positions[i] = nullptr;
     }
@@ -53,90 +52,31 @@ public:
   TimeDistLayer &operator=(TimeDistLayer &&rhs) = default;
 
   /**
-   * @copydoc Layer::forwarding(bool training)
+   * @copydoc Layer::finalize(InitLayerContext &context)
    */
-  void forwarding(bool training = true) override;
+  void finalize(InitLayerContext &context) override;
 
   /**
-   * @copydoc Layer::calcDerivative()
+   * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
    */
-  void calcDerivative() override;
+  void forwarding(RunLayerContext &context, bool training) override;
 
   /**
-   * @copydoc Layer::calcGradient()
+   * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
-  void calcGradient() override;
+  void calcDerivative(RunLayerContext &context) override;
 
   /**
-   * @brief     copy layer
-   * @param[in] l layer to copy
+   * @copydoc Layer::calcGradient(RunLayerContext &context)
    */
-  void copy(std::shared_ptr<LayerV1> l) override;
+  void calcGradient(RunLayerContext &context) override;
 
   /**
-   * @brief     initialize layer
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   * @copydoc Layer::exportTo(Exporter &exporter, ExportMethods method)
    */
-  int initialize(Manager &manager) override;
-
-  /**
-   * @brief     set distribute layer
-   * @param[in] l layer to distribute along time
-   */
-  void setDistLayer(std::shared_ptr<LayerV1> l);
-
-  /**
-   * @brief     get distribute layer type
-   * @retval layer type
-   */
-  std::string getDistLayerType() { return dist_layer->getType(); }
-
-  /**
-   * @brief     get distribute layer
-   * @retval dist_layer std::shared_ptr<Layer>
-   */
-  std::shared_ptr<LayerV1> &getDistLayer() { return dist_layer; };
-
-  /**
-   * @copydoc Layer::requireLabe()
-   */
-  bool requireLabel() const override { return dist_layer->requireLabel(); }
-
-  /**
-   * @brief     get transposed Tensor according to time iteration axis
-   *            [b, 1, h, w] to [h, 1, b, w]
-   * @param[in] m Tensor
-   * @retval Tensor transposed Tensor
-   */
-  Tensor transposeTensor(Tensor &m);
-
-  /**
-   * @brief  calculate the pointer of each input and output tensors
-   */
-  void setPosition();
-
-  /**
-   * @brief  Transpose Input and Output Tensors to avoid duplicatation becuase
-   * of memory optimization
-   * It transpose the net_input.getVariableRef, net_input.getGradientRef,
-   * net_hidden.getVariableRef and net_hidden.getGradientRef.
-   */
-  void transposeInOut();
-
-  using LayerV1::setProperty;
-
-  /**
-   * @copydoc Layer::setProperty(const PropertyType type, const std::string
-   * &value)
-   */
-  void setProperty(const PropertyType type,
-                   const std::string &value = "") override {
-    /**
-     * @note assumption: name of the dist_layer is set via setName() and not
-     * with setProperty()
-     */
-    dist_layer->setProperty(type, value);
+  void exportTo(Exporter &exporter,
+                const ExportMethods &method) const override {
+    dist_layer->exportTo(exporter, method);
   }
 
   /**
@@ -144,18 +84,150 @@ public:
    */
   const std::string getType() const override { return TimeDistLayer::type; };
 
+  /**
+   * @copydoc Layer::supportBackwarding()
+   */
+  bool supportBackwarding() const { return dist_layer->supportBackwarding(); }
+
+  /**
+   * @copydoc Layer::setBatch(InitLayerContext &context, unsigned int batch)
+   */
+  void setBatch(InitLayerContext &context, unsigned int batch) override;
+
+  /**
+   * @copydoc Layer::setBatch(RunLayerContext &context, unsigned int batch)
+   */
+  void setBatch(RunLayerContext &context, unsigned int batch) override;
+
+  /**
+   * @copydoc Layer::setProperty(const PropertyType type, const std::string
+   * &value)
+   */
+  void setProperty(const std::vector<std::string> &values) override {
+    /**
+     * @note assumption: name of the dist_layer is set via setName() and not
+     * with setProperty()
+     */
+    if (!values.empty())
+      dist_layer->setProperty(values);
+  }
+
+  /**
+   * @copydoc Layer::supportInPlace()
+   */
+  virtual bool supportInPlace() const { return false; }
+
+  /**
+   * @copydoc Layer::requireLabel()
+   */
+  virtual bool requireLabel() const { return dist_layer->requireLabel(); }
+
+  /**
+   * @brief     set distribute layer
+   * @param[in] l layer to distribute along time
+   */
+  void setDistLayer(std::unique_ptr<Layer> &&l) { dist_layer = std::move(l); }
+
+  /**
+   * @brief     get distribute layer
+   * @retval dist_layer std::shared_ptr<Layer>
+   */
+  Layer *getDistLayer() { return dist_layer.get(); };
+
+  /**
+   * @brief     get distribute layer
+   * @retval dist_layer std::shared_ptr<Layer>
+   */
+  const Layer *getDistLayer() const { return dist_layer.get(); };
+
   inline static const std::string type = "time_dist";
 
 private:
   /**
    * @brief Layer to be distributed through time
    */
-  std::shared_ptr<LayerV1> dist_layer;
+  std::unique_ptr<Layer> dist_layer;
+  std::vector<Weight> weights_wrapper;
+  std::vector<Var_Grad> tensors_wrapper;
 
   /**
    * @brief pointer value of each input/output tensors to compare position
    */
   float *positions[4];
+
+  /**
+   * @brief  Transpose Input and Output Tensors to avoid duplicatation becuase
+   * of memory optimization
+   * It transpose the net_input.getVariableRef, net_input.getGradientRef,
+   * net_hidden.getVariableRef and net_hidden.getGradientRef.
+   *
+   * @param context Run layer context
+   */
+  void transposeInOut(RunLayerContext &context);
+
+  /**
+   * @brief     get transposed Tensor according to time iteration axis
+   *            [b, 1, h, w] to [h, 1, b, w]
+   * @param[in] m Tensor
+   * @retval Tensor transposed Tensor
+   */
+  static Tensor transposeTensor(Tensor &m);
+
+  /**
+   * @brief  calculate the pointer of each input and output tensors
+   *
+   * @param context Run layer context
+   */
+  void setPosition(RunLayerContext &context);
+
+  /**
+   * @brief Fill weights from the given context
+   *
+   * @param context The given context
+   */
+  void fillWeightsFromContext(RunLayerContext &context);
+
+  /**
+   * @brief Get the Weights for Context object
+   *
+   * @return std::vector<Weight *> The list of weights
+   */
+  std::vector<Weight *> getWeightsForContext();
+
+  /**
+   * @brief Fill tensors from the given context
+   *
+   * @param context The given context
+   */
+  void fillTensorsFromContext(RunLayerContext &context);
+
+  /**
+   * @brief Get the Tensors for Context object
+   *
+   * @return std::vector<Var_Grad *> The list of tensors
+   */
+  std::vector<Var_Grad *> getTensorsForContext();
+
+  /**
+   * @brief Clean the values filled from context
+   *
+   * @note This is necessary to ensure that all the references to the stored
+   * tensors are cleared for the memory to be released after run is complete.
+   *
+   */
+  void clearFromContext() {
+    weights_wrapper.clear();
+    tensors_wrapper.clear();
+  }
+
+  /**
+   * @brief Fill init context from the given dist context
+   *
+   * @param context context to be set/filled
+   * @param dist_context context from which to be filled
+   */
+  void fillLayerInitContext(InitLayerContext &context,
+                            const InitLayerContext &dist_context);
 };
 } // namespace nntrainer
 
