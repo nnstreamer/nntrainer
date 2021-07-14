@@ -329,32 +329,32 @@ mkIniTc(const char *name, const nntrainer::IniWrapper::Sections vec, int flag) {
 INSTANTIATE_TEST_CASE_P(
   nntrainerIniAutoTests, nntrainerIniTest, ::testing::Values(
   /**< positive: basic valid scenarios (2 positive and 3 negative cases) */
-    mkIniTc("basic_p", {nw_base_mse, adam, input + "-Activation", out+"input_layers=inputlayer" + "-Activation"}, SUCCESS),
-    mkIniTc("basic2_p", {nw_base_mse, sgd, input + "-Activation", out+"input_layers=inputlayer" + "-Activation"}, SUCCESS),
-    mkIniTc("basic3_p", {nw_base + "loss=cross_sigmoid", adam, input + "-Activation", out+"input_layers=inputlayer" + "-Activation"}, SUCCESS),
-    mkIniTc("basic4_p", {nw_base + "loss=cross_softmax", adam, input + "-Activation", out+"input_layers=inputlayer" + "-Activation"}, SUCCESS),
-    mkIniTc("basic5_p", {nw_base_cross, adam, input, out+"input_layers=inputlayer"}, SUCCESS),
-    mkIniTc("basic6_p", {nw_base_cross, sgd, input, out+"input_layers=inputlayer"}, SUCCESS),
-    mkIniTc("basic_act_p", {nw_base_cross, sgd, input + "-Activation", act_relu+"input_layers=inputlayer", out+"input_layers=activation_relu" }, SUCCESS),
-    mkIniTc("basic_bn_p", {nw_base_cross, sgd, input + "-Activation", batch_normal+"input_layers=inputlayer", act_relu+"input_layers=bn", out+"input_layers=activation_relu" }, SUCCESS),
-    mkIniTc("basic_bn2_p", {nw_base_cross, sgd, input + "-Activation", batch_normal + "Activation = relu"+"input_layers=inputlayer", out+"input_layers=bn" }, SUCCESS),
-    mkIniTc("basic_dataset_p", {nw_base_cross, adam, dataset, input, out+"input_layers=inputlayer"}, SUCCESS),
-    mkIniTc("basic_dataset2_p", {nw_base_cross, sgd, input, out+"input_layers=inputlayer", dataset}, SUCCESS),
-    mkIniTc("basic_dataset3_p", {dataset, nw_base_cross, sgd, input, out+"input_layers=inputlayer"}, SUCCESS),
-    mkIniTc("basic_conv2d_p", {nw_base_cross, adam, conv2d + "input_shape = 1:10:10"}, SUCCESS),
-    mkIniTc("no_testSet_p", {nw_base_cross, adam, dataset + "-TestData", input, out+"input_layers=inputlayer"}, SUCCESS),
-    mkIniTc("no_validSet_p", {nw_base_cross, adam, dataset + "-ValidData", input, out+"input_layers=inputlayer"}, SUCCESS),
-    mkIniTc("no_bufferSize_p", {nw_base_cross, adam, dataset + "-BufferSize", input, out+"input_layers=inputlayer"}, SUCCESS),
-    mkIniTc("buffer_size_smaller_than_batch_size_p", {nw_base_cross, adam, dataset + "BufferSize=26", input, out+"input_layers=inputlayer"}, SUCCESS),
-    mkIniTc("buffer_size_smaller_than_batch_size2_p", {nw_base_cross, adam, input, out+"input_layers=inputlayer", dataset + "BufferSize=26"}, SUCCESS),
-    mkIniTc("loss_layer1_p", {nw_base, adam, input + "-Activation", out + "-Activation", loss_mse}, SUCCESS),
-    mkIniTc("loss_layer2_p", {nw_base, adam, input + "-Activation", out, loss_mse}, SUCCESS),
-    mkIniTc("loss_layer3_n", {nw_base, adam, input + "-Activation", out + "-Activation", loss_cross}, INITFAIL | COMPFAIL),
-    mkIniTc("loss_layer4_p", {nw_base, adam, input + "-Activation", out, loss_cross}, SUCCESS),
-    mkIniTc("loss_layer5_p", {nw_base, adam, input + "-Activation", out + "-Activation", loss_cross_sigmoid}, SUCCESS),
-    mkIniTc("loss_layer6_p", {nw_base, adam, input + "-Activation", out, loss_cross_sigmoid}, SUCCESS),
-    mkIniTc("loss_layer7_p", {nw_base, adam, input + "-Activation", out + "-Activation", loss_cross_softmax}, SUCCESS),
-    mkIniTc("loss_layer8_p", {nw_base, adam, input + "-Activation", out, loss_cross_softmax}, SUCCESS),
+     mkIniTc("basic_p", {nw_base_mse, adam, input + "-Activation", out+"input_layers=inputlayer" + "-Activation"}, SUCCESS),
+     mkIniTc("basic2_p", {nw_base_mse, sgd, input + "-Activation", out+"input_layers=inputlayer" + "-Activation"}, SUCCESS),
+     mkIniTc("basic3_p", {nw_base + "loss=cross_sigmoid", adam, input + "-Activation", out+"input_layers=inputlayer" + "-Activation"}, SUCCESS),
+     mkIniTc("basic4_p", {nw_base + "loss=cross_softmax", adam, input + "-Activation", out+"input_layers=inputlayer" + "-Activation"}, SUCCESS),
+     mkIniTc("basic5_p", {nw_base_cross, adam, input, out+"input_layers=inputlayer"}, SUCCESS),
+     mkIniTc("basic6_p", {nw_base_cross, sgd, input, out+"input_layers=inputlayer"}, SUCCESS),
+     mkIniTc("basic_act_p", {nw_base_cross, sgd, input + "-Activation", act_relu+"input_layers=inputlayer", out+"input_layers=activation_relu" }, SUCCESS),
+     mkIniTc("basic_bn_p", {nw_base_cross, sgd, input + "-Activation", batch_normal+"input_layers=inputlayer", act_relu+"input_layers=bn", out+"input_layers=activation_relu" }, SUCCESS),
+     mkIniTc("basic_bn2_p", {nw_base_cross, sgd, input + "-Activation", batch_normal + "Activation = relu"+"input_layers=inputlayer", out+"input_layers=bn" }, SUCCESS),
+     mkIniTc("basic_dataset_p", {nw_base_cross, adam, dataset, input, out+"input_layers=inputlayer"}, SUCCESS),
+     mkIniTc("basic_dataset2_p", {nw_base_cross, sgd, input, out+"input_layers=inputlayer", dataset}, SUCCESS),
+     mkIniTc("basic_dataset3_p", {dataset, nw_base_cross, sgd, input, out+"input_layers=inputlayer"}, SUCCESS),
+     mkIniTc("basic_conv2d_p", {nw_base_cross, adam, conv2d + "input_shape = 1:10:10"}, SUCCESS),
+     mkIniTc("no_testSet_p", {nw_base_cross, adam, dataset + "-TestData", input, out+"input_layers=inputlayer"}, SUCCESS),
+     mkIniTc("no_validSet_p", {nw_base_cross, adam, dataset + "-ValidData", input, out+"input_layers=inputlayer"}, SUCCESS),
+     mkIniTc("no_bufferSize_p", {nw_base_cross, adam, dataset + "-BufferSize", input, out+"input_layers=inputlayer"}, SUCCESS),
+     mkIniTc("buffer_size_smaller_than_batch_size_p", {nw_base_cross, adam, dataset + "BufferSize=26", input, out+"input_layers=inputlayer"}, SUCCESS),
+     mkIniTc("buffer_size_smaller_than_batch_size2_p", {nw_base_cross, adam, input, out+"input_layers=inputlayer", dataset + "BufferSize=26"}, SUCCESS),
+     mkIniTc("loss_layer1_p", {nw_base, adam, input + "-Activation", out + "-Activation", loss_mse}, SUCCESS),
+     mkIniTc("loss_layer2_p", {nw_base, adam, input + "-Activation", out, loss_mse}, SUCCESS),
+     mkIniTc("loss_layer3_n", {nw_base, adam, input + "-Activation", out + "-Activation", loss_cross}, INITFAIL | COMPFAIL),
+     mkIniTc("loss_layer4_p", {nw_base, adam, input + "-Activation", out, loss_cross}, SUCCESS),
+     mkIniTc("loss_layer5_p", {nw_base, adam, input + "-Activation", out + "-Activation", loss_cross_sigmoid}, SUCCESS),
+     mkIniTc("loss_layer6_p", {nw_base, adam, input + "-Activation", out, loss_cross_sigmoid}, SUCCESS),
+     mkIniTc("loss_layer7_p", {nw_base, adam, input + "-Activation", out + "-Activation", loss_cross_softmax}, SUCCESS),
+     mkIniTc("loss_layer8_p", {nw_base, adam, input + "-Activation", out, loss_cross_softmax}, SUCCESS),
 
   /**< half negative: init fail cases (1 positive and 4 negative cases) */
     mkIniTc("unknown_loss_n", {nw_base_cross + "loss = unknown", adam, input, out+"input_layers=inputlayer"}, COMPFAIL | INITFAIL),
@@ -746,7 +746,7 @@ TEST(nntrainerIniTest, DISABLED_backbone_based_on_working_directory_p) {
 /**
  * @brief Ini file unittest with distributed layer
  */
-TEST(nntrainerIniTest, DISABLED_distribute_p_01) {
+TEST(nntrainerIniTest, distribute_p_01) {
   ScopedIni s{
     "distribute_p1",
     {nw_base_cross, adam,
