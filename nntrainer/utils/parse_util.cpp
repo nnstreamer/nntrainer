@@ -22,7 +22,6 @@
 
 #include <array>
 #include <cstring>
-#include <databuffer.h>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -339,32 +338,6 @@ unsigned int parseNetProperty(std::string property) {
   }
 
   return (unsigned int)NeuralNetwork::PropertyType::unknown;
-}
-
-unsigned int parseDataProperty(std::string property) {
-  unsigned int i;
-
-  /**
-   * @brief     Data Properties
-   * train_data = 0,
-   * val_data = 1,
-   * test_data = 2,
-   * buffer_size = 3
-   */
-  std::array<std::string, 5> property_string = {"train_data", "val_data",
-                                                "test_data", "buffer_size"};
-
-  for (i = 0; i < property_string.size(); i++) {
-    unsigned int size = (property_string[i].size() > property.size())
-                          ? property_string[i].size()
-                          : property.size();
-
-    if (!strncasecmp(property_string[i].c_str(), property.c_str(), size)) {
-      return (i);
-    }
-  }
-
-  return (unsigned int)DataBuffer::PropertyType::unknown;
 }
 
 int setUint(unsigned int &val, const std::string &str) {

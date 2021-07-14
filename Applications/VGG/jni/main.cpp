@@ -17,13 +17,12 @@
 #include <iostream>
 #include <sstream>
 #include <stdlib.h>
-
-#include "databuffer.h"
-#include "databuffer_func.h"
-#include "neuralnet.h"
-#include "nntrainer_error.h"
-#include "tensor.h"
 #include <vector>
+
+#include <databuffer.h>
+#include <neuralnet.h>
+#include <nntrainer_error.h>
+#include <tensor.h>
 
 /**
  * @brief     Data size for each category
@@ -399,10 +398,10 @@ int main(int argc, char *argv[]) {
   for (unsigned int i = 0; i < count_val.remain; ++i)
     count_val.duplication[i] = i;
 
-  auto db_train = std::make_shared<nntrainer::DataBufferFromCallback>();
-  db_train->setGeneratorFunc(getBatch_train_file);
-  auto db_valid = std::make_shared<nntrainer::DataBufferFromCallback>();
-  db_valid->setGeneratorFunc(getBatch_val_file);
+  auto db_train = ml::train::createDataset(ml::train::DatasetType::GENERATOR,
+                                           getBatch_train_file);
+  auto db_valid = ml::train::createDataset(ml::train::DatasetType::GENERATOR,
+                                           getBatch_val_file);
 
   /**
    * @brief     Neural Network Create & Initialization
@@ -425,8 +424,10 @@ int main(int argc, char *argv[]) {
 
   try {
     NN.readModel();
-    NN.setDataBuffer(ml::train::DatasetDataUsageType::DATA_TRAIN, db_train);
-    NN.setDataBuffer(ml::train::DatasetDataUsageType::DATA_VAL, db_valid);
+    NN.setDataset(ml::train::DatasetDataUsageType::DATA_TRAIN,
+                  std::move(db_train));
+    NN.setDataset(ml::train::DatasetDataUsageType::DATA_VAL,
+                  std::move(db_valid));
     NN.train();
     training_loss = NN.getTrainingLoss();
     validation_loss = NN.getValidationLoss();

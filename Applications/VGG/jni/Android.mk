@@ -31,6 +31,13 @@ include $(PREBUILT_SHARED_LIBRARY)
 
 include $(CLEAR_VARS)
 
+LOCAL_MODULE := ccapi-nntrainer
+LOCAL_SRC_FILES := $(NNTRAINER_ROOT)/libs/$(TARGET_ARCH_ABI)/libccapi-nntrainer.so
+
+include $(PREBUILT_SHARED_LIBRARY)
+
+include $(CLEAR_VARS)
+
 LOCAL_MODULE := app_utils
 LOCAL_SRC_FILES := $(NNTRAINER_ROOT)/Applications/utils/libs/$(TARGET_ARCH_ABI)/libapp_utils.so
 APP_UTILS_INCLUDES := $(NNTRAINER_ROOT)/Applications/utils/jni/includes
@@ -52,7 +59,7 @@ LOCAL_LDLIBS := -llog -landroid
 
 LOCAL_SRC_FILES := main.cpp
 
-LOCAL_SHARED_LIBRARIES := nntrainer app_utils
+LOCAL_SHARED_LIBRARIES := nntrainer app_utils ccapi-nntrainer
 
 LOCAL_C_INCLUDES += $(NNTRAINER_INCLUDES) $(APP_UTILS_INCLUDES)
 
