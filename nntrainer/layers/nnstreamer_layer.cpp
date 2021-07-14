@@ -14,6 +14,7 @@
  * nnstreamer data
  */
 
+#include <layer_internal.h>
 #include <lazy_tensor.h>
 #include <nnstreamer_layer.h>
 #include <nntrainer_error.h>
@@ -22,6 +23,8 @@
 #include <util_func.h>
 
 namespace nntrainer {
+
+static constexpr size_t SINGLE_INOUT_IDX = 0;
 
 int NNStreamerLayer::nnst_info_to_tensor_dim(ml_tensors_info_h &out_res,
                                              TensorDim &dim) {
@@ -62,7 +65,10 @@ int NNStreamerLayer::nnst_info_to_tensor_dim(ml_tensors_info_h &out_res,
 
 NNStreamerLayer::~NNStreamerLayer() { finalizeError(ML_ERROR_NONE); }
 
-int NNStreamerLayer::finalizeError(int status) {
+void NNStreamerLayer::finalizeError(int status) {
+  if (status == ML_ERROR_NONE)
+    return;
+
   if (in_res) {
     ml_tensors_info_destroy(in_res);
     in_res = nullptr;
@@ -88,77 +94,94 @@ int NNStreamerLayer::finalizeError(int status) {
     single = nullptr;
   }
 
-  return status;
+  throw std::invalid_argument("[NNStreamerLayer] Finalizing the layer failed.");
 }
 
-int NNStreamerLayer::initialize(Manager &manager) {
+void NNStreamerLayer::finalize(InitLayerContext &context) {
   int status = ML_ERROR_NONE;
-  TensorDim in_dim;
+  TensorDim in_dim, output_dim;
+  const TensorDim &input_dim = context.getInputDimensions()[SINGLE_INOUT_IDX];
 
   status = ml_single_open(&single, modelfile.c_str(), NULL, NULL,
                           ML_NNFW_TYPE_ANY, ML_NNFW_HW_AUTO);
-  if (status != ML_ERROR_NONE)
-    return finalizeError(status);
+  finalizeError(status);
 
   /* input tensor in filter */
   status = ml_single_get_input_info(single, &in_res);
-  if (status != ML_ERROR_NONE)
-    return finalizeError(status);
+  finalizeError(status);
 
   status = nnst_info_to_tensor_dim(in_res, in_dim);
-  if (status != ML_ERROR_NONE)
-    return finalizeError(status);
+  finalizeError(status);
 
-  if (input_dim[0].getTensorDim(0) != 0 && input_dim[0] != in_dim) {
+  if (input_dim != in_dim) {
     ml_loge("Set tensor info does not match info from the framework");
-    return finalizeError(ML_ERROR_INVALID_PARAMETER);
-  } else {
-    input_dim[0] = in_dim;
+    finalizeError(ML_ERROR_INVALID_PARAMETER);
   }
 
   /* input tensor in filter */
   status = ml_single_get_output_info(single, &out_res);
-  if (status != ML_ERROR_NONE)
-    return finalizeError(status);
+  finalizeError(status);
 
-  status = nnst_info_to_tensor_dim(out_res, output_dim[0]);
-  if (status != ML_ERROR_NONE)
-    return finalizeError(status);
+  status = nnst_info_to_tensor_dim(out_res, output_dim);
+  finalizeError(status);
 
   /* generate input data container */
   status = ml_tensors_data_create(in_res, &in_data_cont);
-  if (status != ML_ERROR_NONE)
-    return finalizeError(status);
+  finalizeError(status);
 
   size_t in_data_size;
   status =
     ml_tensors_data_get_tensor_data(in_data_cont, 0, &in_data, &in_data_size);
-  if (status != ML_ERROR_NONE)
-    return finalizeError(status);
+  finalizeError(status);
 
-  if (in_data_size != input_dim[0].getDataLen() * sizeof(float))
-    return finalizeError(ML_ERROR_INVALID_PARAMETER);
+  if (in_data_size != input_dim.getDataLen() * sizeof(float))
+    finalizeError(ML_ERROR_INVALID_PARAMETER);
 
-  return status;
+  context.setOutputDimensions({output_dim});
 }
 
-void NNStreamerLayer::setProperty(const PropertyType type,
-                                  const std::string &value) {
-  switch (type) {
-  case PropertyType::modelfile: {
-    if (!value.empty())
-      modelfile = value;
-  } break;
-  default:
-    LayerV1::setProperty(type, value);
-    break;
+void NNStreamerLayer::setProperty(const std::vector<std::string> &values) {
+  /// @todo: deprecate this in favor of loadProperties
+  for (unsigned int i = 0; i < values.size(); ++i) {
+    std::string key;
+    std::string value;
+    std::stringstream ss;
+
+    if (getKeyValue(values[i], key, value) != ML_ERROR_NONE) {
+      throw std::invalid_argument("Error parsing the property: " + values[i]);
+    }
+
+    if (value.empty()) {
+      ss << "value is empty: key: " << key << ", value: " << value;
+      throw std::invalid_argument(ss.str());
+    }
+
+    /// @note this calls derived setProperty if available
+    setProperty(key, value);
   }
 }
 
-void NNStreamerLayer::forwarding(bool training) {
+void NNStreamerLayer::setProperty(const std::string &type_str,
+                                  const std::string &value) {
+  using PropertyType = LayerV1::PropertyType;
+  LayerV1::PropertyType type =
+    static_cast<LayerV1::PropertyType>(parseLayerProperty(type_str));
+
+  switch (type) {
+  case PropertyType::modelfile: {
+    modelfile = value;
+  } break;
+  default:
+    std::string msg = "[TfLiteLayer] Unknown Layer Property Key for value " +
+                      std::string(value);
+    throw exception::not_supported(msg);
+  }
+}
+
+void NNStreamerLayer::forwarding(RunLayerContext &context, bool training) {
   size_t data_size;
-  Tensor &input = net_input[0]->getVariableRef();
-  Tensor &hidden_ = net_hidden[0]->getVariableRef();
+  Tensor &input = context.getInput(SINGLE_INOUT_IDX);
+  Tensor &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
 
   std::copy(input.getData(), input.getData() + input.length(),
             (float *)in_data);
@@ -185,15 +208,7 @@ void NNStreamerLayer::forwarding(bool training) {
             hidden_.getData());
 }
 
-void NNStreamerLayer::copy(std::shared_ptr<LayerV1> l) {
-  LayerV1::copy(l);
-
-  std::shared_ptr<NNStreamerLayer> from =
-    std::static_pointer_cast<NNStreamerLayer>(l);
-  this->modelfile = from->modelfile;
-}
-
-void NNStreamerLayer::calcDerivative() {
+void NNStreamerLayer::calcDerivative(RunLayerContext &context) {
   throw exception::not_supported(
     "calcDerivative is not supported for nnstreamer layer");
 }

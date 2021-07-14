@@ -15,10 +15,9 @@
 #define __NNSTREAMER_LAYER_H__
 #ifdef __cplusplus
 
-#include <layer_internal.h>
+#include <layer_devel.h>
 #include <nnstreamer-single.h>
 #include <nnstreamer.h>
-#include <tensor.h>
 
 namespace nntrainer {
 
@@ -26,13 +25,13 @@ namespace nntrainer {
  * @class   NNStreamerLayer
  * @brief   nnstreamer layer
  */
-class NNStreamerLayer : public LayerV1 {
+class NNStreamerLayer : public Layer {
 public:
   /**
    * @brief     Constructor of NNStreamer Layer
    */
   NNStreamerLayer(std::string model = "") :
-    LayerV1(),
+    Layer(),
     modelfile(model),
     single(nullptr),
     in_res(nullptr),
@@ -48,42 +47,41 @@ public:
   ~NNStreamerLayer();
 
   /**
-   * @copydoc Layer::forwarding(bool training)
+   * @copydoc Layer::finalize(InitLayerContext &context)
    */
-  void forwarding(bool training = true) override;
+  void finalize(InitLayerContext &context) override;
 
   /**
-   * @copydoc Layer::calcDerivative()
+   * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
    */
-  void calcDerivative();
+  void forwarding(RunLayerContext &context, bool training) override;
 
   /**
-   * @copydoc Layer::copy(std::shared_ptr<layer> l)
+   * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
-  void copy(std::shared_ptr<LayerV1> l);
+  void calcDerivative(RunLayerContext &context) override;
 
   /**
-   * @copydoc Layer::initialize()
+   * @copydoc Layer::exportTo(Exporter &exporter, ExportMethods method)
    */
-  int initialize(Manager &manager);
-
-  /**
-   * @copydoc bool supportBackwarding() const
-   */
-  bool supportBackwarding() const override { return false; };
+  void exportTo(Exporter &exporter,
+                const ExportMethods &method) const override {}
 
   /**
    * @copydoc Layer::getType()
    */
-  const std::string getType() const { return NNStreamerLayer::type; };
+  const std::string getType() const override { return NNStreamerLayer::type; };
 
-  using LayerV1::setProperty;
+  /**
+   * @copydoc Layer::supportBackwarding()
+   */
+  bool supportBackwarding() const { return false; }
 
   /**
    * @copydoc Layer::setProperty(const PropertyType type, const std::string
    * &value)
    */
-  void setProperty(const PropertyType type, const std::string &value = "");
+  void setProperty(const std::vector<std::string> &values) override;
 
   inline static const std::string type = "backbone_nnstreamer";
 
@@ -97,9 +95,8 @@ private:
   /**
    * @brief     finalize the layer with the given status
    * @param[in] status status to return
-   * @retval return status received as argument
    */
-  int finalizeError(int status);
+  void finalizeError(int status);
 
   /**
    * @brief    convert nnstreamer's tensor_info to nntrainer's tensor_dim
@@ -109,6 +106,16 @@ private:
    */
   static int nnst_info_to_tensor_dim(ml_tensors_info_h &out_res,
                                      TensorDim &dim);
+
+  /**
+   * @brief setProperty by type and value separated
+   * @param[in] type property type to be passed
+   * @param[in] value value to be passed
+   * @exception exception::not_supported     when property type is not valid for
+   * the particular layer
+   * @exception std::invalid_argument invalid argument
+   */
+  void setProperty(const std::string &type_str, const std::string &value);
 };
 } // namespace nntrainer
 
