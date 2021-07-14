@@ -91,10 +91,6 @@ void NetworkGraph::addDefaultInputLayers() {
   }
 }
 
-void NetworkGraph::addLayerNode(std::shared_ptr<LayerV1> layer) {
-  graph.addNode(std::make_unique<LayerNode>(layer, graph.size()));
-}
-
 void NetworkGraph::addLayerNode(std::unique_ptr<Layer> layer) {
   graph.addNode(std::make_unique<LayerNode>(std::move(layer), graph.size()));
 }
