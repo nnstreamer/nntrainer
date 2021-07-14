@@ -36,6 +36,8 @@
 #include <nntrainer_log.h>
 #include <rnn.h>
 
+static constexpr bool LAYER_V2 = true;
+
 namespace nntrainer {
 MMapedMemory::MMapedMemory(size_t size, bool allocate_fd_) :
   fd(-1),
