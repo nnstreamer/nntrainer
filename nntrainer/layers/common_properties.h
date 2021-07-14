@@ -258,6 +258,17 @@ public:
  */
 class FilePath : public Property<std::string> {
 public:
+  /**
+   * @brief Construct a new File Path object
+   */
+  FilePath() : Property<std::string>() {}
+
+  /**
+   * @brief Construct a new File Path object
+   *
+   * @param path path to set
+   */
+  FilePath(const std::string &path) { set(path); }
   static constexpr const char *key = "path"; /**< unique key to access */
   using prop_tag = str_prop_tag;             /**< property type */
 
@@ -267,7 +278,7 @@ public:
    * @param v value to check
    * @return bool true if valid
    */
-  bool isValid(const std::string &v);
+  bool isValid(const std::string &v) const override;
 
   /**
    * @brief setter

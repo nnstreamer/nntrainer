@@ -54,8 +54,7 @@ public:
    *
    * @param value default value
    */
-  PropsBufferSize(unsigned int value = 1) :
-    nntrainer::Property<unsigned int>(value) {}
+  PropsBufferSize(unsigned int value = 1) { set(value); }
   bool isValid(const unsigned int &v) { return v > 0; }
   static constexpr const char *key = "buffer_size"; /**< unique key to access */
   using prop_tag = uint_prop_tag;                   /**< property type */
@@ -251,11 +250,17 @@ DataBuffer::startFetchWorker(const std::vector<TensorDim> &input_dims,
 
   return std::async(std::launch::async, [bq, generator] {
     while (true) {
-      auto iteration = generator();
-      auto last = std::get<0>(iteration);
-      bq->wait_and_push(std::move(iteration));
-      if (last == true) {
-        break;
+      try {
+        /// @note add dimension check in debug mode
+        auto iteration = generator();
+        auto last = std::get<0>(iteration);
+        bq->wait_and_push(std::move(iteration));
+        if (last == true) {
+          break;
+        }
+      } catch (std::exception &e) {
+        bq->wait_and_push({true, {}, {}});
+        throw;
       }
     }
     return bq;
