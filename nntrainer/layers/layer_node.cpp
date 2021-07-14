@@ -372,4 +372,100 @@ bool LayerNode::supportInPlace() const { return getLayer()->supportInPlace(); }
  */
 bool LayerNode::requireLabel() const { return getLayer()->requireLabel(); }
 
+/**
+ * @brief   Print Options when printing layer info
+ */
+typedef enum {
+  // clang-format off
+  PRINT_INST_INFO  = (1 << 0), /**< Option to print type & instance address info */
+  PRINT_SHAPE_INFO = (1 << 1), /**< Option to print shape information, invalid before initiation*/
+  PRINT_PROP       = (1 << 2), /**< Option to print properties */
+  PRINT_PROP_META  = (1 << 3), /**< Option to print properties that describe meta info
+                                 e.g) layer activation type for non-activation layer. */
+  PRINT_WEIGHTS    = (1 << 4), /**< Option to print weights */
+  PRINT_METRIC     = (1 << 5)  /**< Option to print metrics (currently loss only) */
+  // clang-format on
+} PrintOption;
+
+void LayerNode::printPreset(std::ostream &out, LayerV1::PrintPreset preset) {
+  using PrintPreset = LayerV1::PrintPreset;
+  unsigned int flags = 0;
+
+  switch (preset) {
+  case PrintPreset::PRINT_ALL:
+    flags = PRINT_WEIGHTS | PRINT_METRIC;
+    /// fall through intended
+  case PrintPreset::PRINT_SUMMARY_META:
+    flags |= PRINT_PROP_META;
+    /// fall through intended
+  case PrintPreset::PRINT_SUMMARY:
+    flags |= PRINT_INST_INFO | PRINT_SHAPE_INFO | PRINT_PROP | PRINT_PROP_META;
+    break;
+  case PrintPreset::PRINT_NONE:
+    return;
+  default:
+    throw ::std::invalid_argument("undefined preset given");
+  }
+  print(out, flags);
+}
+
+void LayerNode::printShapeInfo(std::ostream &out) {
+  for (unsigned int idx = 0; idx < init_context.getNumInputs(); ++idx) {
+    out << "input " << init_context.getInputDimensions()[idx];
+  }
+  for (unsigned int i = 0; i < init_context.getNumWeights(); i++) {
+    out << "weight" << std::get<0>(init_context.getWeightsSpec()[i]);
+  }
+  for (unsigned int idx = 0; idx < init_context.getNumOutputs(); ++idx) {
+    out << "output " << init_context.getOutputDimensions()[idx];
+  }
+}
+
+void LayerNode::printMetric(std::ostream &out) {
+  out << "Layer loss value: " << getLoss();
+}
+
+void LayerNode::print(std::ostream &out, unsigned int flags) {
+  /** @todo properly move print to LayerNode */
+  if (flags & PRINT_INST_INFO) {
+    out << "===================";
+    if (getName().empty())
+      printInstance(out, this);
+    else
+      out << "<" << getName() << ">" << std::endl;
+
+    out << "Layer Type: " << getType() << std::endl;
+  }
+
+  if (flags & PRINT_SHAPE_INFO) {
+    out << "======shape information: " << std::endl;
+    printShapeInfo(out);
+  }
+
+  if (flags & PRINT_PROP_META) {
+    out << "======meta properties: " << std::endl;
+    /** @todo print local and layer properties with node_exporter */
+  }
+
+  if (flags & PRINT_PROP) {
+    out << "======properties: " << std::endl;
+    /** @todo print local and layer properties with node_exporter */
+  }
+
+  if (flags & PRINT_WEIGHTS) {
+    out << "======weights: " << std::endl;
+    for (unsigned int idx = 0; idx < init_context.getNumWeights(); idx++) {
+      out << '[' << std::get<5>(init_context.getWeightsSpec()[idx]) << ']'
+          << std::endl;
+      if (run_context.readyToUse())
+        out << run_context.getWeight(idx);
+    }
+  }
+
+  if (flags & PRINT_METRIC) {
+    out << "======metrics: " << std::endl;
+    printMetric(out);
+  }
+};
+
 }; // namespace nntrainer
