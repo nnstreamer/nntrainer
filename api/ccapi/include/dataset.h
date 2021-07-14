@@ -1,4 +1,3 @@
-
 // SPDX-License-Identifier: Apache-2.0
 /**
  * Copyright (C) 2020 Parichay Kapoor <pk.kapoor@samsung.com>
@@ -87,23 +86,40 @@ public:
 };
 
 /**
- * @brief Factory creator with constructor for dataset
+ * @brief Create a Dataset object with given arguements
+ *
+ * @param type dataset type
+ * @param properties property representations
+ * @return std::unique_ptr<Dataset> created dataset
  */
 std::unique_ptr<Dataset>
 createDataset(DatasetType type,
               const std::vector<std::string> &properties = {});
 
 /**
- * @brief Factory creator with constructor for dataset
+ * @brief Create a Dataset object
+ *
+ * @param type dataset type
+ * @param path path to a file or folder
+ * @param properties property representations
+ * @return std::unique_ptr<Dataset> created dataset
  */
-std::unique_ptr<Dataset> createDataset(DatasetType type, const char *file);
+std::unique_ptr<Dataset>
+createDataset(DatasetType type, const char *path,
+              const std::vector<std::string> &properties = {});
 
 /**
- * @brief Factory creator with constructor for dataset
+ * @brief Create a Dataset object
+ *
+ * @param type dataset type
+ * @param cb callback
+ * @param user_data user data
+ * @param properties property representations
+ * @return std::unique_ptr<Dataset> created dataset
  */
-std::unique_ptr<Dataset> createDataset(DatasetType type, datagen_cb cb,
-                                       void *user_data = nullptr);
-
+std::unique_ptr<Dataset>
+createDataset(DatasetType type, datagen_cb cb, void *user_data = nullptr,
+              const std::vector<std::string> &properties = {});
 } // namespace train
 } // namespace ml
 
