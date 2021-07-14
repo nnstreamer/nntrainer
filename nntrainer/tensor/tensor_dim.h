@@ -151,6 +151,27 @@ public:
   }
 
   /**
+   * @brief Get the Dim Flag to retrieve effective dimension
+   * @note eg) if dimension 4:1:10:1 should be squeezed to 4:10,
+   *       set this to 0b1010, rightmost is width
+   *
+   * @return dim_flag_ dimension bit to calculate, rightmost is width
+   */
+  const std::bitset<MAXDIM> &getEffDimFlag() const { return eff_dim_flag; }
+
+  /**
+   * @brief Get the dynamic Dim Flag to retrieve dynamic dimension (that can
+   * change during running)
+   * @note eg) if dimension 4:1:10:1 should be squeezed to dynamic to batch,
+   *       set this to 0b1000, rightmost is width
+   * @note when setting dynamic dimension, the calculation must remain
+   * independent of the dynamic dimension. Please check this :)
+   *
+   * @return dim_flag_ dimension bit to calculate, rightmost is width
+   */
+  const std::bitset<MAXDIM> &getDynDimFlag() const { return dyn_dim_flag; }
+
+  /**
    * @brief  swap variable of Conv2D Layer
    * @parma[out] lhs Optimizer
    * @parma[in] rhs Optimizer

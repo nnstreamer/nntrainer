@@ -1317,9 +1317,9 @@ INSTANTIATE_TEST_CASE_P(
     mkModelTc(addition_resnet_like, "3:1:1:10", 10),
 
     /// #1192 time distribution inference bug
-    // mkModelTc(fc_softmax_mse_distribute_validate, "3:1:5:3", 1),
-    // mkModelTc(fc_softmax_cross_distribute_validate, "3:1:5:3", 1),
-    // mkModelTc(fc_sigmoid_cross_distribute_validate, "3:1:5:3", 1)
+    mkModelTc(fc_softmax_mse_distribute_validate, "3:1:5:3", 1),
+    mkModelTc(fc_softmax_cross_distribute_validate, "3:1:5:3", 1),
+    mkModelTc(fc_sigmoid_cross_distribute_validate, "3:1:5:3", 1),
     mkModelTc(lstm_basic, "1:1:1:1", 10),
     mkModelTc(lstm_return_sequence, "1:1:2:1", 10),
     mkModelTc(lstm_return_sequence_with_batch, "2:1:2:1", 10),

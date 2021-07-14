@@ -163,14 +163,14 @@ int NetworkGraph::realizeActivationType(
     return ML_ERROR_NONE;
   }
 
-  if (in_node->getType() == ActivationLayer::type) {
-    ml_loge("It is not allowed to realize ativation layer, possibly layer is "
-            "added right after activation");
+  if (act == ActivationType::ACT_UNKNOWN) {
+    ml_loge("cannot realize unknown activation type");
     return ML_ERROR_INVALID_PARAMETER;
   }
 
-  if (act == ActivationType::ACT_UNKNOWN) {
-    ml_loge("cannot realize unknown activation type");
+  if (in_node->getType() == ActivationLayer::type) {
+    ml_loge("It is not allowed to realize activation layer, possibly layer is "
+            "added right after activation");
     return ML_ERROR_INVALID_PARAMETER;
   }
 

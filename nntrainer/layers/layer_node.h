@@ -264,12 +264,6 @@ public:
   ActivationType getActivationToBeRealized() const noexcept;
 
   /**
-   * @brief     get distribute for this layer
-   * @retval dist to enable/disable distribute
-   */
-  std::string getDistLayerType() const;
-
-  /**
    * @brief     Activation Type Getter
    * @retval    Activation Type.
    */

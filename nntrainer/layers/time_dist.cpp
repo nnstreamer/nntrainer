@@ -12,7 +12,6 @@
  */
 
 #include <layer_internal.h>
-#include <lazy_tensor.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <parse_util.h>
@@ -21,25 +20,32 @@
 
 namespace nntrainer {
 
+static constexpr size_t SINGLE_INOUT_IDX = 0;
+
 static void reshape(Tensor &m) {
   TensorDim d = m.getDim();
   m.reshape({d[2], d[1], d[0], d[3]});
 }
 
-void TimeDistLayer::setPosition() {
-  positions[0] = net_input[0]->getVariableRef().getData();
-  positions[1] = net_input[0]->getGradientRef().getData();
-  positions[2] = net_hidden[0]->getVariableRef().getData();
-  positions[3] = net_hidden[0]->getGradientRef().getData();
+void TimeDistLayer::setPosition(RunLayerContext &context) {
+  positions[0] = context.getInput(SINGLE_INOUT_IDX).getData();
+  positions[2] = context.getOutput(SINGLE_INOUT_IDX).getData();
+  /** TODO: use mode of execution here */
+  try {
+    positions[1] = context.getOutgoingDerivative(SINGLE_INOUT_IDX).getData();
+    positions[3] = context.getIncomingDerivative(SINGLE_INOUT_IDX).getData();
+  } catch (...) {
+    /** in case of training, these tensors will not exist */
+  }
 }
 
-void TimeDistLayer::transposeInOut() {
+void TimeDistLayer::transposeInOut(RunLayerContext &context) {
   // Position[0] : net_input.variable
-  Tensor &input_ = net_input[0]->getVariableRef();
+  Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
   input_.copy(transposeTensor(input_));
 
   // Position[1] : net_input.gradient
-  Tensor &ret_ = net_input[0]->getGradientRef();
+  Tensor &ret_ = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
   if (ret_.getData() != positions[0]) {
     ret_.copy(transposeTensor(ret_));
   } else {
@@ -47,7 +53,7 @@ void TimeDistLayer::transposeInOut() {
   }
 
   // Position[2] : net_hidden.variable
-  Tensor &hval_ = net_hidden[0]->getVariableRef();
+  Tensor &hval_ = context.getOutput(SINGLE_INOUT_IDX);
   if (hval_.getData() != positions[0] && hval_.getData() != positions[1]) {
     hval_.copy(transposeTensor(hval_));
   } else {
@@ -57,7 +63,7 @@ void TimeDistLayer::transposeInOut() {
   // Position[3] : net_hidden.gradient
   bool trans = true;
 
-  Tensor &derivative_ = net_hidden[0]->getGradientRef();
+  Tensor &derivative_ = context.getIncomingDerivative(SINGLE_INOUT_IDX);
   for (unsigned int i = 0; i < 3; ++i) {
     if (derivative_.getData() == positions[i]) {
       trans = false;
@@ -93,10 +99,8 @@ Tensor TimeDistLayer::transposeTensor(Tensor &m) {
   return in;
 }
 
-int TimeDistLayer::initialize(Manager &manager) {
-  int status = ML_ERROR_NONE;
-
-  if (getNumInputs() != 1) {
+void TimeDistLayer::finalize(InitLayerContext &context) {
+  if (context.getNumInputs() != 1) {
     throw std::invalid_argument("Time distributed layer takes only one input");
   }
 
@@ -104,42 +108,95 @@ int TimeDistLayer::initialize(Manager &manager) {
     throw std::invalid_argument("distributed layer is not set properly");
   }
 
-  if (input_dim[0].channel() != 1) {
+  const TensorDim &input_dim = context.getInputDimensions()[0];
+  if (input_dim.channel() != 1) {
     throw std::invalid_argument(
       "only 1 channel is allow for time distributed layer");
   }
 
-  TensorDim dist_dim = input_dim[0];
+  /**
+   * simulate an InitLayerContext, and then replicate its effect onto the
+   * actual context
+   */
+  TensorDim dist_dim = input_dim;
   dist_dim.height(1);
+  InitLayerContext dist_context({dist_dim}, context.getNumOutputs());
 
-  dist_layer->setInputDimension({dist_dim});
-
-  // Set the weight of dist_layer
-  // Input & Output Buffer is set by manager of model.
   // During forwarding and backwarding, it set the input and output buffer of
   // dist_layer properly
   // dist_layer will use forwarding_with_val and backwarding_with_val
-  dist_layer->initialize(manager);
+  dist_layer->finalize(dist_context);
 
-  output_dim[0] = dist_layer->getOutputDimension()[0];
+  TensorDim output_dim = dist_context.getOutputDimensions()[0];
+  // input_dim.height is number of time iteration
+  output_dim.height(input_dim.height());
+  context.setOutputDimensions({output_dim});
 
-  // input_dim[0].height is number of time iteration
-  output_dim[0].height(input_dim[0].height());
-
-  return status;
+  /** real setting of context */
+  fillLayerInitContext(context, dist_context);
 }
 
-void TimeDistLayer::forwarding(bool training) {
-  setPosition();
+void TimeDistLayer::fillWeightsFromContext(RunLayerContext &context) {
+  weights_wrapper.resize(context.getNumWeights());
 
-  Tensor &hidden_ = net_hidden[0]->getVariableRef();
-  Tensor &input_ = net_input[0]->getVariableRef();
+  /** create weights */
+  for (unsigned int idx = 0; idx < context.getNumWeights(); idx++) {
+    if (context.weightHasGradient(idx)) {
+      weights_wrapper[idx] =
+        Weight(context.getWeight(idx), context.getWeightGrad(idx),
+               context.getWeightName(idx));
+    } else {
+      weights_wrapper[idx] =
+        Weight(context.getWeight(idx), Tensor(), context.getWeightName(idx));
+    }
+  }
+}
+
+void TimeDistLayer::fillTensorsFromContext(RunLayerContext &context) {
+  tensors_wrapper.resize(context.getNumTensors());
+
+  /** create tensors */
+  for (unsigned int idx = 0; idx < context.getNumTensors(); idx++) {
+    if (context.tensorHasGradient(idx)) {
+      tensors_wrapper[idx] =
+        Var_Grad(context.getTensor(idx), context.getTensorGrad(idx),
+                 context.getTensorName(idx));
+    } else {
+      tensors_wrapper[idx] =
+        Var_Grad(context.getTensor(idx), Tensor(), context.getTensorName(idx));
+    }
+  }
+}
+
+std::vector<Weight *> TimeDistLayer::getWeightsForContext() {
+  /** create weights for context */
+  std::vector<Weight *> weights_for_context;
+  for (auto &w : weights_wrapper)
+    weights_for_context.push_back(&w);
+
+  return weights_for_context;
+}
+
+std::vector<Var_Grad *> TimeDistLayer::getTensorsForContext() {
+  /** create tensors for context */
+  std::vector<Var_Grad *> tensors_for_context;
+  for (auto &t : tensors_wrapper)
+    tensors_for_context.push_back(&t);
+
+  return tensors_for_context;
+}
+
+void TimeDistLayer::forwarding(RunLayerContext &context, bool training) {
+  setPosition(context);
+
+  Tensor &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
+  Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
   // input_.dim = [ b, 1, h, w ]
 
-  Tensor hidden_g, h_g;
+  Tensor h_g;
 
-  TensorDim ho_dim = hidden_.getDim();
-  TensorDim in_dim = input_.getDim();
+  const TensorDim &ho_dim = hidden_.getDim();
+  const TensorDim &in_dim = input_.getDim();
 
   // TODO: This transposed Input Tensor could be resued for backwarding
   Tensor in = transposeTensor(input_);
@@ -154,16 +211,20 @@ void TimeDistLayer::forwarding(bool training) {
   h_dim.channel(1);
   h_dim.height(1);
 
-  if (dist_layer->getType() == "loss") {
-    hidden_g = net_hidden[0]->getGradientRef();
-    if (!hidden_g.uninitialized()) {
-      h_g = transposeTensor(hidden_g);
-    }
+  if (dist_layer->requireLabel() &&
+      context.isLabelAvailable(SINGLE_INOUT_IDX)) {
+    Tensor &hidden_g = context.getLabel(SINGLE_INOUT_IDX);
+    h_g = transposeTensor(hidden_g);
   }
 
-  /** @todo use context->getName() once context is enabled */
-  Var_Grad in_var(i_dim, true, false, "dist_layer:input");
-  Var_Grad out_var(h_dim, true, false, "dist_layer:output");
+  Var_Grad in_var(i_dim, false, false, context.getName() + ":input");
+  Var_Grad out_var(h_dim,
+                   dist_layer->requireLabel() &&
+                     context.isLabelAvailable(SINGLE_INOUT_IDX),
+                   false, context.getName() + ":output");
+
+  fillWeightsFromContext(context);
+  fillTensorsFromContext(context);
 
   for (unsigned int i = 0; i < in_dim.height(); ++i) {
     //
@@ -180,38 +241,29 @@ void TimeDistLayer::forwarding(bool training) {
     in_var.initializeVariable(in_iter);
     out_var.initializeVariable(out_iter);
 
-    if (dist_layer->getType() == "loss") {
+    if (dist_layer->requireLabel() &&
+        context.isLabelAvailable(SINGLE_INOUT_IDX)) {
       label_iter =
         h_g.getSharedDataTensor(h_dim, i * ho_dim.batch() * ho_dim.width());
       out_var.initializeGradient(label_iter);
     }
 
-    dist_layer->setInputBuffers({std::make_shared<Var_Grad>(in_var)});
-    dist_layer->setOutputBuffers({std::make_shared<Var_Grad>(out_var)});
+    RunLayerContext dist_context(context.getName(), context.getLoss(),
+                                 getWeightsForContext(), {&in_var}, {&out_var},
+                                 getTensorsForContext());
 
-    dist_layer->forwarding();
+    dist_layer->forwarding(dist_context, training);
   }
 
   hidden_.copy(transposeTensor(out));
+  clearFromContext();
 }
 
-void TimeDistLayer::copy(std::shared_ptr<LayerV1> l) {
-  LayerV1::copy(l);
-
-  std::shared_ptr<TimeDistLayer> from =
-    std::static_pointer_cast<TimeDistLayer>(l);
-  this->dist_layer = from->dist_layer;
-}
-
-void TimeDistLayer::setDistLayer(std::shared_ptr<LayerV1> l) {
-  dist_layer = l;
-};
-
-void TimeDistLayer::calcDerivative() {
-  Tensor &derivative_ = net_hidden[0]->getGradientRef();
-  Tensor &hval_ = net_hidden[0]->getVariableRef();
-  Tensor &ret_ = net_input[0]->getGradientRef();
-  Tensor &input_ = net_input[0]->getVariableRef();
+void TimeDistLayer::calcDerivative(RunLayerContext &context) {
+  Tensor &derivative_ = context.getIncomingDerivative(SINGLE_INOUT_IDX);
+  Tensor &hval_ = context.getOutput(SINGLE_INOUT_IDX);
+  Tensor &ret_ = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
+  Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
 
   TensorDim der_dim = derivative_.getDim();
   TensorDim ret_dim = ret_.getDim();
@@ -219,9 +271,11 @@ void TimeDistLayer::calcDerivative() {
   TensorDim r_dim = {ret_dim[2], 1, 1, ret_dim[3]};
   TensorDim d_dim = {der_dim[2], 1, 1, der_dim[3]};
 
-  /** @todo use context->getName() once context is enabled */
-  Var_Grad in_var(r_dim, true, false, "dist_layer:input");
-  Var_Grad out_var(d_dim, true, false, "dist_layer:output");
+  Var_Grad in_var(r_dim, true, false, context.getName() + ":input");
+  Var_Grad out_var(d_dim, true, false, context.getName() + ":output");
+
+  fillWeightsFromContext(context);
+  fillTensorsFromContext(context);
 
   for (unsigned int i = 0; i < der_dim[0]; ++i) {
     Tensor ret_iter =
@@ -238,10 +292,11 @@ void TimeDistLayer::calcDerivative() {
     out_var.initializeGradient(d_iter);
     out_var.initializeVariable(hval_iter);
 
-    dist_layer->setInputBuffers({std::make_shared<Var_Grad>(in_var)});
-    dist_layer->setOutputBuffers({std::make_shared<Var_Grad>(out_var)});
+    RunLayerContext dist_context(context.getName(), context.getLoss(),
+                                 getWeightsForContext(), {&in_var}, {&out_var},
+                                 getTensorsForContext());
 
-    dist_layer->calcDerivative();
+    dist_layer->calcDerivative(dist_context);
   }
 
   ret_.copy(transposeTensor(ret_));
@@ -251,19 +306,20 @@ void TimeDistLayer::calcDerivative() {
   hval_.reshape({der_dim[2], 1, der_dim[0], der_dim[3]});
   derivative_.reshape({der_dim[2], 1, der_dim[0], der_dim[3]});
   input_.reshape({ret_dim[2], 1, ret_dim[0], ret_dim[3]});
+  clearFromContext();
 }
 
-void TimeDistLayer::calcGradient() {
+void TimeDistLayer::calcGradient(RunLayerContext &context) {
   // Even if the dist_layer->getNumWeights() == 0, We do transpose here
   // for the calculation of derivatives and overwrite original tensors.
   // And use them in calcDerivatives() without transpose.
-  transposeInOut();
+  transposeInOut(context);
 
-  if (dist_layer->getNumWeights() == 0)
+  if (context.getNumWeights() == 0)
     return;
 
-  Tensor &input_ = net_input[0]->getVariableRef();
-  Tensor &derivative_ = net_hidden[0]->getGradientRef();
+  Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
+  Tensor &derivative_ = context.getIncomingDerivative(SINGLE_INOUT_IDX);
 
   TensorDim der_dim = derivative_.getDim();
   TensorDim in_dim = input_.getDim();
@@ -271,23 +327,95 @@ void TimeDistLayer::calcGradient() {
   TensorDim i_dim = {in_dim[2], 1, 1, in_dim[3]};
   TensorDim d_dim = {der_dim[2], 1, 1, der_dim[3]};
 
+  fillWeightsFromContext(context);
+  fillTensorsFromContext(context);
+
   for (unsigned int i = 0; i < der_dim[0]; ++i) {
     Tensor in_iter =
       input_.getSharedDataTensor(i_dim, i * i_dim.batch() * i_dim.width());
     Tensor d_iter =
       derivative_.getSharedDataTensor(d_dim, i * d_dim.batch() * d_dim.width());
 
-    /** @todo use context->getName() once context is enabled */
-    Var_Grad in_var(i_dim, true, false, "dist_layer:input");
-    Var_Grad out_var(d_dim, true, false, "dist_layer:output");
+    Var_Grad in_var(i_dim, true, false, context.getName() + ":input");
+    Var_Grad out_var(d_dim, true, false, context.getName() + ":output");
 
     in_var.initializeVariable(in_iter);
     out_var.initializeGradient(d_iter);
 
-    dist_layer->setInputBuffers({std::make_shared<Var_Grad>(in_var)});
-    dist_layer->setOutputBuffers({std::make_shared<Var_Grad>(out_var)});
+    RunLayerContext dist_context(context.getName(), context.getLoss(),
+                                 getWeightsForContext(), {&in_var}, {&out_var},
+                                 getTensorsForContext());
 
-    dist_layer->calcGradient();
+    dist_layer->calcGradient(dist_context);
+  }
+  clearFromContext();
+}
+
+void TimeDistLayer::fillLayerInitContext(InitLayerContext &context,
+                                         const InitLayerContext &dist_context) {
+  /** real set the input flags */
+  auto const &input_dims = context.getInputDimensions();
+  for (unsigned int idx = 0; idx < dist_context.getNumInputs(); idx++) {
+    context.setDynDimFlagInputDimension(idx, input_dims[idx].getDynDimFlag());
+    context.setEffDimFlagInputDimension(idx, input_dims[idx].getEffDimFlag());
+  }
+
+  /** real request of tensors */
+  for (auto const &ts : dist_context.getTensorsSpec())
+    context.requestTensor(ts);
+
+  /** real request of weights */
+  for (auto const &ws : dist_context.getWeightsSpec())
+    context.requestWeight(ws);
+}
+
+void TimeDistLayer::setBatch(RunLayerContext &context, unsigned int batch) {
+  if (context.getNumTensors() > 0) {
+    const TensorDim &out_dim = context.getOutput(SINGLE_INOUT_IDX).getDim();
+    const TensorDim &in_dim = context.getInput(SINGLE_INOUT_IDX).getDim();
+
+    TensorDim i_dim = {in_dim[2], 1, 1, in_dim[3]};
+    TensorDim o_dim = {out_dim[2], 1, 1, out_dim[3]};
+
+    Var_Grad in_var(i_dim, true, false, context.getName() + ":input");
+    Var_Grad out_var(o_dim, true, false, context.getName() + ":output");
+
+    fillWeightsFromContext(context);
+    fillTensorsFromContext(context);
+
+    RunLayerContext dist_context(context.getName(), context.getLoss(),
+                                 getWeightsForContext(), {&in_var}, {&out_var},
+                                 getTensorsForContext());
+
+    dist_layer->setBatch(dist_context, batch);
+
+    for (unsigned int idx = 0; idx < dist_context.getNumTensors(); idx++) {
+      context.updateTensor(idx, dist_context.getTensor(idx).getDim().batch());
+    }
+
+    clearFromContext();
+  }
+}
+
+void TimeDistLayer::setBatch(InitLayerContext &context, unsigned int batch) {
+  TensorDim input_dim = context.getInputDimensions()[SINGLE_INOUT_IDX];
+  input_dim.height(1);
+  InitLayerContext dist_context({input_dim}, context.getNumOutputs());
+
+  TensorDim output_dim = context.getOutputDimensions()[0];
+  // input_dim.height is number of time iteration
+  output_dim.height(1);
+  dist_context.setOutputDimensions({output_dim});
+
+  /** create dist_context using the context */
+  fillLayerInitContext(dist_context, context);
+  if (context.getNumTensors() > 0) {
+    dist_layer->setBatch(dist_context, batch);
+
+    auto const &tensors_spec = dist_context.getTensorsSpec();
+    for (unsigned int idx = 0; idx < dist_context.getNumTensors(); idx++) {
+      context.updateTensorSpec(idx, std::get<0>(tensors_spec[idx]).batch());
+    }
   }
 }
 
