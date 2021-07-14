@@ -319,7 +319,8 @@ void LayerNode::finalize() {
     throw std::runtime_error("Finalizing a layer which is already finalized");
 
   if (!init_context.validate())
-    throw std::runtime_error("Invalid init context for finalizing the layer");
+    throw std::invalid_argument(
+      "Invalid init context for finalizing the layer");
 
   if (layer)
     layer->finalize(init_context);
