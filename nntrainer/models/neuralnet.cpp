@@ -878,10 +878,8 @@ void NeuralNetwork::print(std::ostream &out, unsigned int flags,
   }
 
   /** print layer properties */
-  // TODO: get sorted layers if initialized
-  // for (auto &layer : model_graph)
-  // TODO: either support printPreset in LayerNode or use exportTo
-  // layer->printPreset(out, layerPrintPreset);
+  for (auto iter = model_graph.cbegin(); iter != model_graph.cend(); iter++)
+    (*iter)->printPreset(out, layerPrintPreset);
 
   /// @todo Add status to check neuralnet has been run. #290
 }

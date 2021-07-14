@@ -33,6 +33,7 @@
 #include <layer.h>
 #include <layer_context.h>
 #include <layer_devel.h>
+#include <layer_internal.h>
 
 namespace nntrainer {
 
@@ -570,6 +571,15 @@ public:
     }
   }
 
+  /**
+   * @brief print using PrintPreset
+   *
+   * @param out oustream
+   * @param preset preset to be used
+   */
+  void printPreset(std::ostream &out, LayerV1::PrintPreset preset =
+                                        LayerV1::PrintPreset::PRINT_SUMMARY);
+
 private:
   std::unique_ptr<nntrainer::Layer>
     layer; /**< The actual object in the graph node */
@@ -649,6 +659,27 @@ private:
         InitLayerContext(cur_input_dim, init_context.getNumOutputs());
     }
   }
+
+  /**
+   * @brief anchor point to override if PRINT_SHAPE_INFO is enabled for
+   * Layer::print()
+   */
+  void printShapeInfo(std::ostream &out);
+
+  /**
+   * @brief anchor point to override if PRINT_METRIC is enabled for
+   * Layer::print()
+   */
+  void printMetric(std::ostream &out);
+
+  /**
+   * @brief     Print layer related information. Do not override without clear
+   * reason. It is recommended to override printShapeInfo, printPropertiesMeta,
+   * printProperties, printMetric instead
+   * @param[in] out outstream
+   * @param[in] flags combination of LayerPrintOption
+   */
+  void print(std::ostream &out, unsigned int flags = 0);
 };
 
 /**
