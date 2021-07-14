@@ -35,7 +35,7 @@ bool DropOutSpec::isValid(const float &v) const {
     return true;
 }
 
-bool FilePath::isValid(const std::string &v) {
+bool FilePath::isValid(const std::string &v) const {
   std::ifstream file(v, std::ios::binary | std::ios::ate);
   return file.good();
 }

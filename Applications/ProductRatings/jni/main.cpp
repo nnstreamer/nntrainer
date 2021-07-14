@@ -179,7 +179,7 @@ int main(int argc, char *argv[]) {
     dataset_val =
       createDataset(ml::train::DatasetType::GENERATOR, getBatch_train);
   } catch (std::exception &e) {
-    std::cerr << "Error creating dataset" << e.what() << std::endl;
+    std::cerr << "Error creating dataset " << e.what() << std::endl;
     return 1;
   }
 

@@ -651,6 +651,9 @@ int NeuralNetwork::train_run() {
   auto &label = last_layer_node->getOutputGrad(0);
   auto &in = first_layer_node->getInput(0);
 
+  auto in_dims = first_layer_node->getInputDimensions();
+  auto label_dims = last_layer_node->getOutputDimensions();
+
   auto &[train_buffer, valid_buffer, test_buffer] = data_buffers;
 
   if (train_buffer == nullptr) {
@@ -660,43 +663,37 @@ int NeuralNetwork::train_run() {
 
   for (epoch_idx = epoch_idx + 1; epoch_idx <= epochs; ++epoch_idx) {
     training.loss = 0.0f;
-    status = train_buffer->run();
-    if (status != ML_ERROR_NONE) {
-      train_buffer->clear();
-      return status;
-    }
+    auto future_bq = train_buffer->startFetchWorker(in_dims, label_dims);
 
-    /// @todo make this working, test buffer is running but doing nothing
-    if (test_buffer != nullptr && test_buffer->isValid()) {
-      status = test_buffer->run();
-      if (status != ML_ERROR_NONE) {
-        test_buffer->clear();
-        return status;
-      }
-    }
+    // /// @todo make this working, test buffer is running but doing nothing
+    // if (test_buffer != nullptr && test_buffer->isValid()) {
+    //   status = test_buffer->run();
+    //   if (status != ML_ERROR_NONE) {
+    //     test_buffer->clear();
+    //     return status;
+    //   }
+    // }
 
     int count = 0;
 
     while (true) {
-      if (train_buffer->getDataFromBuffer(in.getData(), label.getData())) {
-        try {
-          forwarding(true);
-          backwarding(iter++);
-        } catch (std::exception &e) {
-          train_buffer->clear();
-          ml_loge("Error: training error in #%d/%d. %s", epoch_idx, epochs,
-                  e.what());
-          throw;
-        }
-        std::cout << "#" << epoch_idx << "/" << epochs;
-        float loss = getLoss();
-        train_buffer->displayProgress(count++, loss);
-        training.loss += loss;
-      } else {
-        train_buffer->clear();
+      auto [last, ins, labels] = *train_buffer->fetch();
+      if (last) {
         break;
       }
+      /// @todo multiple input support
+      in = ins[0];
+      label = labels[0];
+
+      forwarding(true);
+      backwarding(iter++);
+
+      std::cout << "#" << epoch_idx << "/" << epochs;
+      float loss = getLoss();
+      train_buffer->displayProgress(count++, loss);
+      training.loss += loss;
     }
+    future_bq.get();
 
     if (count == 0)
       throw std::runtime_error("No training data");
@@ -707,33 +704,32 @@ int NeuralNetwork::train_run() {
     std::cout << "#" << epoch_idx << "/" << epochs
               << " - Training Loss: " << training.loss;
 
-    if (valid_buffer != nullptr && valid_buffer->isValid()) {
+    if (valid_buffer != nullptr) {
       int right = 0;
       validation.loss = 0.0f;
       unsigned int tcases = 0;
 
-      status = valid_buffer->run();
-      if (status != ML_ERROR_NONE) {
-        valid_buffer->clear();
-        return status;
-      }
-
+      auto future_val_bq = valid_buffer->startFetchWorker(in_dims, label_dims);
       while (true) {
-        if (valid_buffer->getDataFromBuffer(in.getData(), label.getData())) {
-          forwarding(false);
-          auto model_out = output.argmax();
-          auto label_out = label.argmax();
-          for (unsigned int b = 0; b < batch_size; b++) {
-            if (model_out[b] == label_out[b])
-              right++;
-          }
-          validation.loss += getLoss();
-          tcases++;
-        } else {
-          valid_buffer->clear();
+        auto [last, ins, labels] = *valid_buffer->fetch();
+        if (last) {
           break;
         }
+        /// @todo multiple input support
+        in = ins[0];
+        label = labels[0];
+
+        forwarding(false);
+        auto model_out = output.argmax();
+        auto label_out = label.argmax();
+        for (unsigned int b = 0; b < batch_size; b++) {
+          if (model_out[b] == label_out[b])
+            right++;
+        }
+        validation.loss += getLoss();
+        tcases++;
       }
+      future_val_bq.get();
 
       if (tcases == 0) {
         ml_loge("Error : 0 test cases");
