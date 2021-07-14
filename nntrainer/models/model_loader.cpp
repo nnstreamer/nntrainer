@@ -15,8 +15,6 @@
 
 #include <adam.h>
 #include <databuffer_factory.h>
-#include <databuffer_file.h>
-#include <databuffer_func.h>
 #include <ini_interpreter.h>
 #include <model_loader.h>
 #include <neuralnet.h>

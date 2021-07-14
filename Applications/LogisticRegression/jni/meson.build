@@ -3,7 +3,7 @@ run_command('cp', '-lr', res_path, nntr_app_resdir / 'LogisticRegression')
 
 e = executable('nntrainer_logistic',
   'main.cpp',
-  dependencies: [iniparser_dep, nntrainer_dep],
+  dependencies: [iniparser_dep, nntrainer_dep, nntrainer_ccapi_dep],
   install: get_option('install-app'),
   install_dir: application_install_dir
 )

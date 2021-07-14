@@ -285,7 +285,7 @@ public:
    *
    * @param v value to set
    */
-  void set(const std::string &v);
+  void set(const std::string &v) override;
 
   /**
    * @brief return file size

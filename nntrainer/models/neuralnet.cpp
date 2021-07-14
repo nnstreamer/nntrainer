@@ -201,12 +201,6 @@ int NeuralNetwork::initialize() {
 NeuralNetwork::~NeuralNetwork() {
   manager.reset();
   model_graph.reset();
-
-  std::for_each(data_buffers.begin(), data_buffers.end(), [](auto &buffers) {
-    if (buffers) {
-      buffers->clear();
-    }
-  });
 }
 
 void NeuralNetwork::setLabels(sharedConstTensors label) {
@@ -464,16 +458,6 @@ void NeuralNetwork::setBatchSize(unsigned int batch) {
 
   model_graph.setBatchSize(batch);
   manager->setBatchSize(batch);
-
-  for (auto &db : data_buffers) {
-    if (db != nullptr) {
-      int status = db->setBatchSize(batch_size);
-      if (status != ML_ERROR_NONE) {
-        ml_loge("[model] setting batchsize from data buffer failed");
-        throw_status(status);
-      }
-    }
-  }
 }
 
 bool NeuralNetwork::validateInput(sharedConstTensors X) {
@@ -598,28 +582,8 @@ int NeuralNetwork::train(std::vector<std::string> values) {
   status = allocate(true);
   NN_RETURN_STATUS();
 
-  auto initiate_data_buffer = [this](std::shared_ptr<DataBuffer> &db) {
-    /** @todo pass dedicated dimensions for inputs and labels */
-    int status = db->setClassNum(getOutputDimension()[0].width());
-    NN_RETURN_STATUS();
-
-    status = db->setFeatureSize(getInputDimension()[0]);
-    NN_RETURN_STATUS();
-
-    status = db->init();
-    NN_RETURN_STATUS();
-
-    return status;
-  };
-
-  for (auto &db : data_buffers) {
-    if (db != nullptr) {
-      status = initiate_data_buffer(db);
-    }
-    NN_RETURN_STATUS();
-  }
-
   status = train_run();
+  NN_RETURN_STATUS();
 
   /**
    * Free the memory needed for training before exiting.

@@ -32,7 +32,6 @@
 #include <time.h>
 
 #include <databuffer.h>
-#include <databuffer_func.h>
 #include <neuralnet.h>
 #include <tensor.h>
 
@@ -170,8 +169,8 @@ int main(int argc, char *argv[]) {
 
   srand(time(NULL));
 
-  auto data_train = std::make_shared<nntrainer::DataBufferFromCallback>();
-  data_train->setGeneratorFunc(getBatch_train);
+  auto data_train =
+    ml::train::createDataset(ml::train::DatasetType::GENERATOR, getBatch_train);
 
   /**
    * @brief     Create NN
@@ -193,7 +192,8 @@ int main(int argc, char *argv[]) {
   }
 
   if (training) {
-    NN.setDataBuffer(ml::train::DatasetDataUsageType::DATA_TRAIN, data_train);
+    NN.setDataset(ml::train::DatasetDataUsageType::DATA_TRAIN,
+                  std::move(data_train));
 
     try {
       NN.train();
