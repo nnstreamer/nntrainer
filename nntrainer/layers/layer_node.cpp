@@ -104,16 +104,19 @@ LayerNode::LayerNode(std::unique_ptr<nntrainer::Layer> &&l, size_t idx) :
 
 int LayerNode::setProperty(std::vector<std::string> properties) {
   int status = ML_ERROR_NONE;
+  bool already_distributed =
+    !std::get<props::Distribute>(*layer_node_props).empty() &&
+    std::get<props::Distribute>(*layer_node_props).get();
   auto left_properties = loadProperties(properties, *layer_node_props);
 
   /// note that setting distribute is only allowed for one time.
   /// until we have layerNode::finalize and must not except timedist layer
-  if (getDistribute()) {
-    // auto &ac = nntrainer::AppContext::Global();
-    // std::unique_ptr<nntrainer::Layer> dlayer =
-    //   ac.createObject<nntrainer::Layer>(TimeDistLayer::type);
-    // dynamic_cast<TimeDistLayer*>(dlayer.get())->setDistLayer(std::move(layer));
-    // layer = std::move(dlayer);
+  if (getDistribute() && !already_distributed) {
+    auto &ac = nntrainer::AppContext::Global();
+    std::unique_ptr<nntrainer::Layer> dlayer =
+      ac.createObject<nntrainer::Layer>(TimeDistLayer::type);
+    dynamic_cast<TimeDistLayer *>(dlayer.get())->setDistLayer(std::move(layer));
+    layer = std::move(dlayer);
   }
 
   std::vector<std::string> remainder;
@@ -219,15 +222,6 @@ std::ostream &operator<<(std::ostream &out, const LayerNode &l) {
   return out;
 }
 
-std::string LayerNode::getDistLayerType() const {
-  // if (getDistribute())
-  //   return
-  //   std::static_pointer_cast<TimeDistLayer>(layerv1)->getDistLayerType();
-  // else
-  throw std::runtime_error(
-    "Get distribution layer type for non-distributed layer");
-}
-
 ActivationType LayerNode::getActivationType() const { return activation_type; }
 
 ActivationType LayerNode::getActivationToBeRealized() const noexcept {
@@ -267,17 +261,17 @@ bool LayerNode::getDistribute() const noexcept {
 }
 
 const nntrainer::Layer *LayerNode::getLayer() const {
-  // if (getDistribute())
-  //   return ((TimeDistLayer *)(layer.get()))->getDistLayer();
-  // else
-  return layer.get();
+  if (getDistribute())
+    return ((TimeDistLayer *)(layer.get()))->getDistLayer();
+  else
+    return layer.get();
 }
 
 nntrainer::Layer *LayerNode::getLayer() {
-  // if (getDistribute())
-  //   return ((TimeDistLayer *)(layer.get()))->getDistLayer();
-  // else
-  return layer.get();
+  if (getDistribute())
+    return ((TimeDistLayer *)(layer.get()))->getDistLayer();
+  else
+    return layer.get();
 }
 
 void LayerNode::updateInputLayers(const std::string &from,
@@ -359,10 +353,10 @@ void LayerNode::setBatch(unsigned int batch) {
 
   if (finalized) {
     if (run_context.readyToUse()) {
-      layer->setBatch(run_context, batch);
+      getLayer()->setBatch(run_context, batch);
     } else {
       /** run_context has not been created yet */
-      layer->setBatch(init_context, batch);
+      getLayer()->setBatch(init_context, batch);
     }
   }
 }
