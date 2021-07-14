@@ -31,6 +31,7 @@
 #include <vector>
 
 #include <databuffer.h>
+#include <nntrainer_error.h>
 
 namespace nntrainer {
 
@@ -45,6 +46,14 @@ public:
    * @brief     Constructor
    */
   DataBufferFromDataFile() : DataBuffer(DatasetType::FILE) {}
+
+  /**
+   * @brief     Constructor
+   */
+  DataBufferFromDataFile(const std::string &path) : DataBufferFromDataFile() {
+    NNTR_THROW_IF(setDataFile(path) != ML_ERROR_NONE, std::invalid_argument)
+      << "invalid train file, path: " << path;
+  }
 
   /**
    * @brief     Destructor

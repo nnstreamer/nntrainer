@@ -47,6 +47,15 @@ public:
   DataBufferFromCallback() : DataBuffer(DatasetType::GENERATOR) {}
 
   /**
+   * @brief Construct a new Data Buffer From Callback object
+   *
+   */
+  DataBufferFromCallback(datagen_cb func, void *user_data = nullptr) :
+    DataBuffer(DatasetType::GENERATOR) {
+    setGeneratorFunc(func, user_data);
+  }
+
+  /**
    * @brief     Destructor
    */
   ~DataBufferFromCallback() = default;
