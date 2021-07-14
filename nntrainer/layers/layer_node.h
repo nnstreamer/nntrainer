@@ -28,13 +28,11 @@
 #include <tuple>
 #include <vector>
 
+#include <acti_func.h>
 #include <graph_node.h>
 #include <layer.h>
 #include <layer_context.h>
 #include <layer_devel.h>
-#include <layer_internal.h>
-
-constexpr bool LAYER_V2 = true;
 
 namespace nntrainer {
 
@@ -59,14 +57,7 @@ public:
   /**
    * @brief Default constructor
    */
-  LayerNode() : LayerNode(std::shared_ptr<nntrainer::LayerV1>(nullptr)) {}
-
-  /**
-   * @brief Constructor of LayerNode class
-   * @todo  deprecate this
-   *
-   */
-  LayerNode(std::shared_ptr<nntrainer::LayerV1> l, size_t idx = 0);
+  LayerNode() : LayerNode(nullptr, 0) {}
 
   /**
    * @brief Constructor of LayerNode class for v2
@@ -80,18 +71,6 @@ public:
    *
    */
   ~LayerNode();
-
-private:
-  /**
-   * @brief Construct a new Layer Node object
-   * @todo  deprecate this
-   *
-   * @param layer_v2 layer v2
-   * @param layerv1 layer v1
-   * @param idx      idx
-   */
-  LayerNode(std::unique_ptr<nntrainer::Layer> &&layer_v2,
-            std::shared_ptr<nntrainer::LayerV1> layerv1, size_t idx = 0);
 
 public:
   /**
@@ -247,28 +226,12 @@ public:
    */
 
   /**
-   * @brief     Get underlying object
-   * @todo      remove this
-   *
-   */
-  std::shared_ptr<nntrainer::LayerV1> &getObject();
-
-  /**
-   * @brief     Get underlying object
-   *
-   */
-  const std::shared_ptr<nntrainer::LayerV1> &getObject() const;
-
-  /**
    * @brief     Get the trainable property of the underlying object
    *
    * @return boolean true if trainable, else false
    */
   bool supportBackwarding() const noexcept {
-    if (layerv1)
-      return getLayer()->supportBackwarding();
-    else
-      return layer->supportBackwarding();
+    return getLayer()->supportBackwarding();
   }
 
   /**
@@ -341,13 +304,7 @@ public:
    *
    * @return unsigned int number of weights
    */
-  unsigned int getNumWeights() const {
-    if (layerv1 == nullptr) {
-      return run_context.getNumWeights();
-    } else {
-      return getLayer()->getNumWeights();
-    }
-  }
+  unsigned int getNumWeights() const { return init_context.getNumWeights(); }
 
   /**
    * @brief     Get the Input Layers object
@@ -391,8 +348,6 @@ public:
   void addInputLayers(const std::string &in_layer) {
     input_layers.push_back(in_layer);
     resizeInputDimensions(input_layers.size());
-    if (layerv1)
-      layerv1->setNumInputs(input_layers.size());
   }
 
   /**
@@ -404,8 +359,6 @@ public:
     output_layers.push_back(out_layer);
     init_context =
       InitLayerContext(init_context.getInputDimensions(), output_layers.size());
-    if (layerv1)
-      layerv1->setNumOutputs(output_layers.size());
   }
 
   /**
@@ -416,8 +369,6 @@ public:
   void setInputLayers(const std::vector<std::string> &layers) {
     input_layers = layers;
     resizeInputDimensions(input_layers.size());
-    if (layerv1)
-      layerv1->setNumInputs(layers.size());
   }
 
   /**
@@ -430,8 +381,6 @@ public:
     init_context =
       InitLayerContext(init_context.getInputDimensions(),
                        std::max((unsigned int)output_layers.size(), 1u));
-    if (layerv1)
-      layerv1->setNumOutputs(layers.size());
   }
 
   /**
@@ -439,11 +388,7 @@ public:
    * @return TensorDim dimension of the input
    */
   const std::vector<TensorDim> getInputDimensions() const {
-    if (layerv1 == nullptr) {
-      return init_context.getInputDimensions();
-    } else {
-      return getLayer()->getInputDimension();
-    }
+    return init_context.getInputDimensions();
   }
 
   /**
@@ -451,11 +396,7 @@ public:
    * @return TensorDim dimension of the output
    */
   const std::vector<TensorDim> getOutputDimensions() const {
-    if (layerv1 == nullptr) {
-      return init_context.getOutputDimensions();
-    } else {
-      return getLayer()->getOutputDimension();
-    }
+    return init_context.getOutputDimensions();
   }
 
   /**
@@ -465,17 +406,12 @@ public:
    * @return Weight& Reference to the weight
    */
   Weight getWeightWrapper(unsigned int idx) {
-    if (layerv1 == nullptr) {
-      if (run_context.weightHasGradient(idx)) {
-        return Weight(run_context.getWeight(idx),
-                      run_context.getWeightGrad(idx),
-                      run_context.getWeightName(idx));
-      } else {
-        return Weight(run_context.getWeight(idx), Tensor(),
-                      run_context.getWeightName(idx));
-      }
+    if (run_context.weightHasGradient(idx)) {
+      return Weight(run_context.getWeight(idx), run_context.getWeightGrad(idx),
+                    run_context.getWeightName(idx));
     } else {
-      return getLayer()->getWeightsRef()[idx];
+      return Weight(run_context.getWeight(idx), Tensor(),
+                    run_context.getWeightName(idx));
     }
   }
 
@@ -486,11 +422,7 @@ public:
    * @return Tensor& Reference to the weight tensor
    */
   Weight &getWeightObject(unsigned int idx) {
-    if (layerv1 == nullptr) {
-      return run_context.getWeightObject(idx);
-    } else {
-      return getLayer()->getWeightsRef()[idx];
-    }
+    return run_context.getWeightObject(idx);
   }
 
   /**
@@ -499,13 +431,7 @@ public:
    * @param idx Identifier of the weight
    * @return Tensor& Reference to the weight tensor
    */
-  Tensor &getWeight(unsigned int idx) {
-    if (layerv1 == nullptr) {
-      return run_context.getWeight(idx);
-    } else {
-      return getLayer()->getWeightsRef()[idx].getVariableRef();
-    }
-  }
+  Tensor &getWeight(unsigned int idx) { return run_context.getWeight(idx); }
 
   /**
    * @brief Get the Weight Gradient tensor object
@@ -514,11 +440,7 @@ public:
    * @return Tensor& Reference to the weight grad tensor
    */
   Tensor &getWeightGrad(unsigned int idx) {
-    if (layerv1 == nullptr) {
-      return run_context.getWeightGrad(idx);
-    } else {
-      return getLayer()->getWeightsRef()[idx].getGradientRef();
-    }
+    return run_context.getWeightGrad(idx);
   }
 
   /**
@@ -528,11 +450,7 @@ public:
    * @return const std::string &Name of the weight
    */
   const std::string &getWeightName(unsigned int idx) {
-    if (layerv1 == nullptr) {
-      return run_context.getWeightName(idx);
-    } else {
-      return getLayer()->getWeightsRef()[idx].getName();
-    }
+    return run_context.getWeightName(idx);
   }
 
   /**
@@ -541,13 +459,7 @@ public:
    * @param idx Identifier of the input
    * @return Tensor& Reference to the input grad tensor
    */
-  Tensor &getInput(unsigned int idx) {
-    if (layerv1 == nullptr) {
-      return run_context.getInput(idx);
-    } else {
-      return getLayer()->getInputRef()[idx]->getVariableRef();
-    }
-  }
+  Tensor &getInput(unsigned int idx) { return run_context.getInput(idx); }
 
   /**
    * @brief Get the Input Grad tensor object
@@ -556,11 +468,7 @@ public:
    * @return Tensor& Reference to the input grad tensor
    */
   Tensor &getInputGrad(unsigned int idx) {
-    if (layerv1 == nullptr) {
-      return run_context.getInputGrad(idx);
-    } else {
-      return getLayer()->getInputRef()[idx]->getGradientRef();
-    }
+    return run_context.getInputGrad(idx);
   }
 
   /**
@@ -569,13 +477,7 @@ public:
    * @param idx Identifier of the output
    * @return Tensor& Reference to the output tensor
    */
-  Tensor &getOutput(unsigned int idx) {
-    if (layerv1 == nullptr) {
-      return run_context.getOutput(idx);
-    } else {
-      return getLayer()->getOutputRef()[idx]->getVariableRef();
-    }
-  }
+  Tensor &getOutput(unsigned int idx) { return run_context.getOutput(idx); }
 
   /**
    * @brief Get the Output Grad tensor object
@@ -584,11 +486,7 @@ public:
    * @return Tensor& Reference to the output grad tensor
    */
   Tensor &getOutputGrad(unsigned int idx) {
-    if (layerv1 == nullptr) {
-      return run_context.getOutputGrad(idx);
-    } else {
-      return getLayer()->getOutputRef()[idx]->getGradientRef();
-    }
+    return run_context.getOutputGrad(idx);
   }
 
   /**
@@ -598,11 +496,7 @@ public:
    * @return Tensor& Reference to the output grad tensor
    */
   Tensor &getOutputGradUnsafe(unsigned int idx) {
-    if (layerv1 == nullptr) {
-      return run_context.getOutputGradUnsafe(idx);
-    } else {
-      return getLayer()->getOutputRef()[idx]->getGradientRef();
-    }
+    return run_context.getOutputGradUnsafe(idx);
   }
 
   /**
@@ -624,16 +518,12 @@ public:
    * @todo      Update this for loss layer
    */
   float getLoss() const {
-    if (layerv1 == nullptr) {
-      float loss = run_context.getLoss();
-      for (unsigned int idx = 0; idx < run_context.getNumWeights(); idx++) {
-        loss += run_context.getWeightRegularizationLoss(idx);
-      }
-
-      return loss;
-    } else {
-      return layerv1->getLoss();
+    float loss = run_context.getLoss();
+    for (unsigned int idx = 0; idx < run_context.getNumWeights(); idx++) {
+      loss += run_context.getWeightRegularizationLoss(idx);
     }
+
+    return loss;
   }
 
 #ifdef PROFILE
@@ -687,10 +577,6 @@ public:
   }
 
 private:
-  /// @todo remove this
-  std::shared_ptr<nntrainer::LayerV1>
-    layerv1; /**< The actual object in the graph node */
-
   std::unique_ptr<nntrainer::Layer>
     layer; /**< The actual object in the graph node */
 
@@ -739,7 +625,7 @@ private:
    * @details this is layer inside the distribution layer if this layer node
    * is distributed.
    */
-  const std::shared_ptr<nntrainer::LayerV1> &getLayer() const;
+  const nntrainer::Layer *getLayer() const;
 
   /**
    * @brief   Get the effective layer managed by this layer node
@@ -747,7 +633,7 @@ private:
    * @details this is layer inside the distribution layer if this layer node
    * is distributed.
    */
-  std::shared_ptr<nntrainer::LayerV1> &getLayer();
+  nntrainer::Layer *getLayer();
 
   /**
    * @brief     Activation Setter
@@ -800,16 +686,6 @@ createLayerNode(const std::string &type,
 std::unique_ptr<LayerNode>
 createLayerNode(std::unique_ptr<nntrainer::Layer> &&layer,
                 const std::vector<std::string> &properties);
-
-/**
- * @brief LayerNode creator with constructor
- *
- * @params[in] layer Already constructed layer
- * @params[in] properties Properties of the layer
- */
-std::unique_ptr<LayerNode>
-createLayerNode(std::shared_ptr<nntrainer::LayerV1> layer,
-                const std::vector<std::string> &properties = {});
 
 } // namespace nntrainer
 #endif // __LAYER_NODE_H__

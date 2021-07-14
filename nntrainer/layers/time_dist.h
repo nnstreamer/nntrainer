@@ -15,6 +15,7 @@
 #define __TIME_DIST_H__
 #ifdef __cplusplus
 
+#include <layer_internal.h>
 #include <tensor.h>
 
 namespace nntrainer {

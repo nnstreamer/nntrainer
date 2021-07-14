@@ -186,6 +186,13 @@ public:
   }
 
   /**
+   * @brief Get the number of requested weights
+   *
+   * @return The current number of requested weights
+   */
+  unsigned int getNumWeights() const { return weights_spec.size(); }
+
+  /**
    * @brief Get the current tensors spec
    *
    * @return The current tensors spec
