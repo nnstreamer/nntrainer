@@ -103,8 +103,7 @@ public:
   bool supportBackwarding() const { return true; }
 
   /**
-   * @copydoc Layer::setProperty(const PropertyType type, const std::string
-   * &value)
+   * @copydoc Layer::setProperty(const std::vector<std::string> &values)
    */
   void setProperty(const std::vector<std::string> &values) override;
 
