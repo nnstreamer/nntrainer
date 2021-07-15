@@ -253,13 +253,13 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  if (model->setDataset(ml::train::DatasetDataUsageType::DATA_TRAIN,
+  if (model->setDataset(ml::train::DatasetModeType::MODE_TRAIN,
                         train_dataset)) {
     std::cerr << "failed to set train dataset" << std::endl;
     return 1;
   };
 
-  if (model->setDataset(ml::train::DatasetDataUsageType::DATA_VAL,
+  if (model->setDataset(ml::train::DatasetModeType::MODE_VALID,
                         valid_dataset)) {
     std::cerr << "failed to set valid dataset" << std::endl;
     return 1;

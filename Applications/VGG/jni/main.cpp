@@ -424,10 +424,8 @@ int main(int argc, char *argv[]) {
 
   try {
     NN.readModel();
-    NN.setDataset(ml::train::DatasetDataUsageType::DATA_TRAIN,
-                  std::move(db_train));
-    NN.setDataset(ml::train::DatasetDataUsageType::DATA_VAL,
-                  std::move(db_valid));
+    NN.setDataset(ml::train::DatasetModeType::MODE_TRAIN, std::move(db_train));
+    NN.setDataset(ml::train::DatasetModeType::MODE_VALID, std::move(db_valid));
     NN.train();
     training_loss = NN.getTrainingLoss();
     validation_loss = NN.getValidationLoss();

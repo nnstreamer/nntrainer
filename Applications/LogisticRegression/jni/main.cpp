@@ -192,7 +192,7 @@ int main(int argc, char *argv[]) {
   }
 
   if (training) {
-    NN.setDataset(ml::train::DatasetDataUsageType::DATA_TRAIN,
+    NN.setDataset(ml::train::DatasetModeType::MODE_TRAIN,
                   std::move(data_train));
 
     try {

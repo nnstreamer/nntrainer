@@ -44,13 +44,13 @@ enum class DatasetType {
 };
 
 /**
- * @brief     Enumeration of data type
+ * @brief     Enumeration of data mode type
  */
-enum class DatasetDataUsageType {
-  DATA_TRAIN = ML_TRAIN_DATASET_DATA_USAGE_TRAIN, /** data for training */
-  DATA_VAL = ML_TRAIN_DATASET_DATA_USAGE_VALID,   /** data for validation */
-  DATA_TEST = ML_TRAIN_DATASET_DATA_USAGE_TEST,   /** data for test */
-  DATA_UNKNOWN                                    /** data not known */
+enum class DatasetModeType {
+  MODE_TRAIN = ML_TRAIN_DATASET_MODE_TRAIN, /** data for training */
+  MODE_VALID = ML_TRAIN_DATASET_MODE_VALID, /** data for validation */
+  MODE_TEST = ML_TRAIN_DATASET_MODE_TEST,   /** data for test */
+  MODE_UNKNOWN                              /** data not known */
 };
 
 /**

@@ -308,8 +308,8 @@ int main(int argc, char *argv[]) {
     std::cerr << "Error during readModel, reason: " << e.what() << std::endl;
     return 1;
   }
-  model->setDataset(ml::train::DatasetDataUsageType::DATA_TRAIN, dataset_train);
-  model->setDataset(ml::train::DatasetDataUsageType::DATA_VAL, dataset_val);
+  model->setDataset(ml::train::DatasetModeType::MODE_TRAIN, dataset_train);
+  model->setDataset(ml::train::DatasetModeType::MODE_VALID, dataset_val);
 
   /**
    * @brief     Neural Network Train & validation
