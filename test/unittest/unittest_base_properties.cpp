@@ -50,7 +50,7 @@ public:
 class QualityOfBanana : public nntrainer::Property<std::string> {
 public:
   QualityOfBanana() : nntrainer::Property<std::string>() {}
-  QualityOfBanana(const char *value) : Property<std::string>(value) {}
+  QualityOfBanana(const char *value) { set(value); }
   static constexpr const char *key = "quality_banana";
   using prop_tag = nntrainer::str_prop_tag;
 
@@ -66,8 +66,7 @@ public:
  */
 class MarkAsGoodBanana : public nntrainer::Property<bool> {
 public:
-  MarkAsGoodBanana(bool val = true) :
-    Property<bool>(val) {}                        /**< default value if any */
+  MarkAsGoodBanana(bool val = true) { set(val); } /**< default value if any */
   static constexpr const char *key = "mark_good"; /**< unique key to access */
   using prop_tag = nntrainer::bool_prop_tag;      /**< property type */
 };
@@ -78,10 +77,9 @@ public:
  */
 class FreshnessOfBanana : public nntrainer::Property<float> {
 public:
-  FreshnessOfBanana(float val = 0.0) :
-    Property<float>(val) {}                       /**< default value if any */
-  static constexpr const char *key = "how_fresh"; /**< unique key to access */
-  using prop_tag = nntrainer::float_prop_tag;     /**< property type */
+  FreshnessOfBanana(float val = 0.0) { set(val); } /**< default value if any */
+  static constexpr const char *key = "how_fresh";  /**< unique key to access */
+  using prop_tag = nntrainer::float_prop_tag;      /**< property type */
 };
 
 /**
@@ -95,9 +93,18 @@ public:
   using prop_tag = nntrainer::dimension_prop_tag;
 
   bool isValid(const nntrainer::TensorDim &dim) const override {
-    std::cerr << dim;
     return dim.batch() == 1;
   }
+};
+
+/**
+ * @brief Pointer of banana property
+ *
+ */
+class PtrOfBanana : public nntrainer::Property<int *> {
+public:
+  static constexpr const char *key = "ptr_banana";
+  using prop_tag = nntrainer::ptr_prop_tag;
 };
 } // namespace
 
@@ -202,6 +209,28 @@ TEST(BasicProperty, valid_p) {
     q.set(true);
     EXPECT_EQ(q.get(), true);
     EXPECT_EQ(nntrainer::to_string(q), "true");
+  }
+
+  { /**< from_string -> get / to_string, ptr */
+    PtrOfBanana pb;
+    int a = 1;
+    std::ostringstream ss;
+    ss << &a;
+    nntrainer::from_string(ss.str(), pb);
+    EXPECT_EQ(pb.get(), &a);
+    EXPECT_EQ(*pb.get(), a);
+    EXPECT_EQ(nntrainer::to_string(pb), ss.str());
+  }
+
+  { /** set -> get / to_string, boolean*/
+    PtrOfBanana pb;
+    int a = 1;
+    pb.set(&a);
+    EXPECT_EQ(pb.get(), &a);
+    EXPECT_EQ(*pb.get(), 1);
+    std::ostringstream ss;
+    ss << &a;
+    EXPECT_EQ(nntrainer::to_string(pb), ss.str());
   }
 
   { /**< from_string -> get / to_string, float */

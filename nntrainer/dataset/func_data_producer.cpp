@@ -13,13 +13,26 @@
 
 #include <func_data_producer.h>
 
+#include <base_properties.h>
 #include <nntrainer_error.h>
+#include <node_exporter.h>
 
 namespace nntrainer {
 
+/**
+ * @brief User data props
+ *
+ */
+class PropsUserData final : public Property<void *> {
+public:
+  static constexpr const char *key = "user_data";
+  PropsUserData(void *user_data) { set(user_data); }
+  using prop_tag = ptr_prop_tag;
+};
+
 FuncDataProducer::FuncDataProducer(datagen_cb datagen_cb, void *user_data_) :
   cb(datagen_cb),
-  user_data(user_data_) {}
+  user_data_prop(new PropsUserData(user_data_)) {}
 
 FuncDataProducer::~FuncDataProducer() {}
 
@@ -28,7 +41,8 @@ const std::string FuncDataProducer::getType() const {
 }
 
 void FuncDataProducer::setProperty(const std::vector<std::string> &properties) {
-  NNTR_THROW_IF(!properties.empty(), std::invalid_argument)
+  auto left = loadProperties(properties, std::tie(*user_data_prop));
+  NNTR_THROW_IF(!left.empty(), std::invalid_argument)
     << "properties is not empty, size: " << properties.size();
 }
 
@@ -43,8 +57,8 @@ FuncDataProducer::finalize(const std::vector<TensorDim> &input_dims,
   auto label_data = std::shared_ptr<float *>(new float *[label_dims.size()],
                                              std::default_delete<float *[]>());
 
-  return [cb = this->cb, ud = this->user_data, input_dims, label_dims,
-          input_data, label_data]() -> DataProducer::Iteration {
+  return [cb = this->cb, ud = this->user_data_prop->get(), input_dims,
+          label_dims, input_data, label_data]() -> DataProducer::Iteration {
     std::vector<Tensor> inputs;
     inputs.reserve(input_dims.size());
 
