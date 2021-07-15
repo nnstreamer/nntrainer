@@ -12,10 +12,10 @@
  */
 
 #include <cmath>
-#include <layer_internal.h>
 #include <lazy_tensor.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
+#include <node_exporter.h>
 #include <parse_util.h>
 #include <rnn.h>
 #include <util_func.h>
@@ -121,10 +121,10 @@ void RNNLayer::setProperty(const std::vector<std::string> &values) {
 
 void RNNLayer::setProperty(const std::string &type_str,
                            const std::string &value) {
-  using PropertyType = LayerV1::PropertyType;
+  using PropertyType = nntrainer::Layer::PropertyType;
   int status = ML_ERROR_NONE;
-  LayerV1::PropertyType type =
-    static_cast<LayerV1::PropertyType>(parseLayerProperty(type_str));
+  nntrainer::Layer::PropertyType type =
+    static_cast<nntrainer::Layer::PropertyType>(parseLayerProperty(type_str));
 
   // TODO : Add return_state property & api to get the hidden input
   switch (type) {

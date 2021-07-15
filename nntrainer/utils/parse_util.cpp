@@ -28,7 +28,6 @@
 #include <string>
 
 #include <acti_func.h>
-#include <layer_internal.h>
 #include <neuralnet.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
@@ -280,7 +279,7 @@ unsigned int parseLayerProperty(std::string property) {
     }
   }
 
-  return (unsigned int)LayerV1::PropertyType::unknown;
+  return (unsigned int)Layer::PropertyType::unknown;
 }
 
 std::string propToStr(unsigned int type) { return property_string[type]; }

@@ -51,6 +51,85 @@ class Layer {
 
 public:
   /**
+   * @brief     Property Enumeration
+   *            0. input shape : string
+   *            1. normalization : bool
+   *            2. standardization : bool
+   *            3. activation : string (type)
+   *            4. epsilon : float
+   *            5. weight_regularizer : string (type)
+   *            6. weight_regularizer_constant : float
+   *            7. unit : int
+   *            8. weight_initializer : string (type)
+   *            9. bias initializer : string (type)
+   *            10. filter_size : int
+   *            11. kernel_size : ( n , m )
+   *            12. stride : ( n, m )
+   *            13. padding : ( n, m )
+   *            14. pool_size : ( n,m )
+   *            15. pooling : max, average, global_max, global_average
+   *            16. flatten : bool
+   *            17. name : string (type)
+   *            18. momentum : float,
+   *            19. moving_mean_initializer : string (type),
+   *            20. moving_variance_initializer : string (type),
+   *            21. gamma_initializer : string (type),
+   *            22. beta_initializer" : string (type)
+   *            23. modelfile : model file for loading config for backbone layer
+   *            24. input_layers : string (type)
+   *            25. output_layers : string (type)
+   *            26. trainable :
+   *            27. flip_direction
+   *            28. random_translate
+   *            29. in_dim : int ( input dimension for embedding layer )
+   *            30. out_dim : int ( output dimesion for embedding layer )
+   *            31. recurrent_activation :  string (type) - lstm
+   *            32. distribute : bool
+   *            33. split_dimension : string (type)
+   *            34. return_sequences :  bool (type) - lstm
+   *            35. hidden_state_activation :  string (type) - lstm
+   */
+  enum class PropertyType {
+    input_shape = 0,
+    normalization = 1,
+    standardization = 2,
+    activation = 3,
+    epsilon = 4,
+    weight_regularizer = 5,
+    weight_regularizer_constant = 6,
+    unit = 7,
+    weight_initializer = 8,
+    bias_initializer = 9,
+    filters = 10,
+    kernel_size = 11,
+    stride = 12,
+    padding = 13,
+    pool_size = 14,
+    pooling = 15,
+    flatten = 16,
+    name = 17,
+    momentum = 18,
+    moving_mean_initializer = 19,
+    moving_variance_initializer = 20,
+    gamma_initializer = 21,
+    beta_initializer = 22,
+    modelfile = 23, /** model file for loading config for backbone layer */
+    input_layers = 24,
+    output_layers = 25,
+    trainable = 26,
+    flip_direction = 27,
+    random_translate = 28,
+    in_dim = 29,
+    out_dim = 30,
+    recurrent_activation = 31,
+    distribute = 32,
+    split_dimension = 33,
+    return_sequences = 34,
+    hidden_state_activation = 35,
+    unknown
+  };
+
+  /**
    * @brief     Destructor of Layer Class
    */
   virtual ~Layer() = default;

@@ -15,6 +15,7 @@
 #include <layer_node.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
+#include <node_exporter.h>
 #include <time_dist.h>
 
 #include <base_properties.h>
@@ -147,7 +148,7 @@ int LayerNode::setProperty(std::vector<std::string> properties) {
 }
 
 bool LayerNode::setProperty(const std::string &key, const std::string &value) {
-  using PropertyType = nntrainer::LayerV1::PropertyType;
+  using PropertyType = nntrainer::Layer::PropertyType;
 
   PropertyType type = static_cast<PropertyType>(parseLayerProperty(key));
   switch (type) {
@@ -387,8 +388,7 @@ typedef enum {
   // clang-format on
 } PrintOption;
 
-void LayerNode::printPreset(std::ostream &out, LayerV1::PrintPreset preset) {
-  using PrintPreset = LayerV1::PrintPreset;
+void LayerNode::printPreset(std::ostream &out, PrintPreset preset) {
   unsigned int flags = 0;
 
   switch (preset) {
