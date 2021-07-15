@@ -163,36 +163,6 @@ void DataBuffer::displayProgress(const int count, float loss) {
   std::cout.flush();
 }
 
-int DataBuffer::setProperty(std::vector<void *> values) {
-  int status = ML_ERROR_NONE;
-  std::vector<std::string> properties;
-
-  for (unsigned int i = 0; i < values.size(); ++i) {
-    char *key_ptr = (char *)values[i];
-    std::string key = key_ptr;
-    std::string value;
-
-    /** Handle the user_data as a special case */
-    if (key == USER_DATA) {
-      /** This ensures that a valid user_data element is passed by the user */
-      if (i + 1 >= values.size())
-        return ML_ERROR_INVALID_PARAMETER;
-
-      this->user_data = values[i + 1];
-
-      /** As values of i+1 is consumed, increase i by 1 */
-      i++;
-    } else {
-      properties.push_back(key);
-      continue;
-    }
-  }
-
-  setProperty(properties);
-
-  return status;
-}
-
 void DataBuffer::setProperty(const std::vector<std::string> &values) {
   auto left = loadProperties(values, *db_props);
   if (producer) {

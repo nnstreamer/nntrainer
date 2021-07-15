@@ -122,15 +122,6 @@ public:
    */
   void setProperty(const std::vector<std::string> &values) override;
 
-  /**
-   * @brief     set property to allow setting user_data for cb
-   * @todo   deprecate
-   * @param[in] values values of property
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   */
-  int setProperty(std::vector<void *> values);
-
 protected:
   std::shared_ptr<DataProducer> producer;
   std::weak_ptr<BatchQueue> bq_view;

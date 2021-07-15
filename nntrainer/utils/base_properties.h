@@ -117,6 +117,12 @@ struct bool_prop_tag {};
 struct enum_class_prop_tag {};
 
 /**
+ * @brief property treated as a raw pointer
+ *
+ */
+struct ptr_prop_tag {};
+
+/**
  * @brief base property class, inherit this to make a convenient property
  *
  * @tparam T
@@ -314,6 +320,39 @@ template <typename Tag, typename DataType> struct str_converter {
    * @return DataType converted type
    */
   static DataType from_string(const std::string &value);
+};
+
+/**
+ * @brief str converter which serializes a pointer and returns back to a ptr
+ *
+ * @tparam DataType pointer type
+ */
+template <typename DataType> struct str_converter<ptr_prop_tag, DataType> {
+
+  /**
+   * @brief convert underlying value to string
+   *
+   * @param value value to convert to string
+   * @return std::string string
+   */
+  static std::string to_string(const DataType &value) {
+    std::ostringstream ss;
+    ss << value;
+    return ss.str();
+  }
+
+  /**
+   * @brief convert string to underlying value
+   *
+   * @param value value to convert to string
+   * @return DataType converted type
+   */
+  static DataType from_string(const std::string &value) {
+    std::stringstream ss(value);
+    uintptr_t addr = static_cast<uintptr_t>(std::stoull(value, 0, 16));
+    std::cerr << "value: " << value << " addr: " << addr;
+    return reinterpret_cast<DataType>(addr);
+  }
 };
 
 /**

@@ -23,6 +23,8 @@
 
 namespace nntrainer {
 
+class PropsUserData;
+
 using datagen_cb = ml::train::datagen_cb;
 
 /**
@@ -68,7 +70,7 @@ public:
 
 private:
   datagen_cb cb;
-  void *user_data;
+  std::unique_ptr<PropsUserData> user_data_prop;
 };
 
 } // namespace nntrainer
