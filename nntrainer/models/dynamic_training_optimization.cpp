@@ -15,7 +15,6 @@
 #include <vector>
 
 #include <dynamic_training_optimization.h>
-#include <layer_internal.h>
 #include <tensor.h>
 #include <util_func.h>
 

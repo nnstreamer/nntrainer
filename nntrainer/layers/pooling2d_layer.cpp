@@ -14,7 +14,6 @@
 #include <cstring>
 #include <limits>
 
-#include <layer_internal.h>
 #include <lazy_tensor.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
@@ -231,10 +230,10 @@ void Pooling2DLayer::setProperty(const std::vector<std::string> &values) {
 
 void Pooling2DLayer::setProperty(const std::string &type_str,
                                  const std::string &value) {
-  using PropertyType = LayerV1::PropertyType;
+  using PropertyType = nntrainer::Layer::PropertyType;
   int status = ML_ERROR_NONE;
-  LayerV1::PropertyType type =
-    static_cast<LayerV1::PropertyType>(parseLayerProperty(type_str));
+  nntrainer::Layer::PropertyType type =
+    static_cast<nntrainer::Layer::PropertyType>(parseLayerProperty(type_str));
 
   switch (type) {
   case PropertyType::pooling:

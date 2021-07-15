@@ -779,7 +779,7 @@ void NeuralNetwork::printPreset(std::ostream &out, unsigned int preset) {
   if (preset > ML_TRAIN_SUMMARY_TENSOR)
     return;
 
-  LayerV1::PrintPreset layer_preset = LayerV1::PrintPreset::PRINT_NONE;
+  LayerNode::PrintPreset layer_preset = LayerNode::PrintPreset::PRINT_NONE;
 
   ///@todo match flags with preset
   unsigned int flags = PRINT_INST_INFO | PRINT_GRAPH_INFO | PRINT_PROP |
@@ -787,11 +787,11 @@ void NeuralNetwork::printPreset(std::ostream &out, unsigned int preset) {
 
   switch (preset) {
   case ML_TRAIN_SUMMARY_TENSOR:
-    layer_preset = LayerV1::PrintPreset::PRINT_ALL;
+    layer_preset = LayerNode::PrintPreset::PRINT_ALL;
     break;
   case ML_TRAIN_SUMMARY_LAYER:
-    layer_preset = initialized ? LayerV1::PrintPreset::PRINT_SUMMARY
-                               : LayerV1::PrintPreset::PRINT_SUMMARY_META;
+    layer_preset = initialized ? LayerNode::PrintPreset::PRINT_SUMMARY
+                               : LayerNode::PrintPreset::PRINT_SUMMARY_META;
     break;
   case ML_TRAIN_SUMMARY_MODEL:
     break;
@@ -803,7 +803,7 @@ void NeuralNetwork::printPreset(std::ostream &out, unsigned int preset) {
 }
 
 void NeuralNetwork::print(std::ostream &out, unsigned int flags,
-                          LayerV1::PrintPreset layerPrintPreset) {
+                          LayerNode::PrintPreset layerPrintPreset) {
   if (flags & PRINT_INST_INFO) {
     out << "===================";
     printInstance(out, this);

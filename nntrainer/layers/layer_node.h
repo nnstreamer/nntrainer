@@ -33,7 +33,6 @@
 #include <layer.h>
 #include <layer_context.h>
 #include <layer_devel.h>
-#include <layer_internal.h>
 
 namespace nntrainer {
 
@@ -73,7 +72,6 @@ public:
    */
   ~LayerNode();
 
-public:
   /**
    * Support all the interface requirements by ml::train::Layer
    */
@@ -572,13 +570,24 @@ public:
   }
 
   /**
+   * @brief Preset modes for printing summary for the layer
+   */
+  enum class PrintPreset {
+    PRINT_NONE = 0,     /**< Print nothing */
+    PRINT_SUMMARY,      /**< Print preset including summary information */
+    PRINT_SUMMARY_META, /**< Print summary preset that includes meta information
+                         */
+    PRINT_ALL           /**< Print everything possible */
+  };
+
+  /**
    * @brief print using PrintPreset
    *
    * @param out oustream
    * @param preset preset to be used
    */
-  void printPreset(std::ostream &out, LayerV1::PrintPreset preset =
-                                        LayerV1::PrintPreset::PRINT_SUMMARY);
+  void printPreset(std::ostream &out,
+                   PrintPreset preset = PrintPreset::PRINT_SUMMARY);
 
 private:
   std::unique_ptr<nntrainer::Layer>

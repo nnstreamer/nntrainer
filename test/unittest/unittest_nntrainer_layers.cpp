@@ -23,7 +23,6 @@
 #include <fc_layer.h>
 #include <flatten_layer.h>
 #include <input_layer.h>
-#include <layer_internal.h>
 #include <layer_node.h>
 #include <loss_layer.h>
 #include <lstm.h>
@@ -260,7 +259,7 @@ TEST_F(nntrainer_InputLayer, initialize_01_p) {
 
 TEST_F(nntrainer_InputLayer, set_property_01_n) {
   EXPECT_THROW(
-    layer.setProperty(nntrainer::LayerV1::PropertyType::input_shape, "0:3:2:1"),
+    layer.setProperty(nntrainer::Layer::PropertyType::input_shape, "0:3:2:1"),
     std::invalid_argument);
 }
 
@@ -907,7 +906,7 @@ protected:
   sharedTensor label;
   std::vector<nntrainer::Tensor> new_w;
   std::vector<nntrainer::Tensor> grad;
-  std::vector<std::shared_ptr<nntrainer::LayerV1>> layers;
+  std::vector<std::shared_ptr<nntrainer::Layer>> layers;
   nntrainer::LossType loss_type = nntrainer::LossType::LOSS_UNKNOWN;
 };
 
@@ -1363,7 +1362,7 @@ protected:
 
 TEST_F(nntrainer_Conv2DLayer, print_01_p) {
   std::stringstream ss, ss2;
-  layer.printPreset(ss, nntrainer::LayerV1::PrintPreset::PRINT_ALL);
+  layer.printPreset(ss, nntrainer::Layer::PrintPreset::PRINT_ALL);
   ss2 << layer;
   EXPECT_GT(ss.str().size(), 100u);
   EXPECT_GT(ss2.str().size(), 100u);
@@ -2083,13 +2082,13 @@ TEST(nntrainer_LossLayer, setProperty_through_vector_n) {
 TEST(nntrainer_LossLayer, setProperty_individual_01_n) {
   nntrainer::LossLayer layer;
   EXPECT_THROW(
-    layer.setProperty(nntrainer::LayerV1::PropertyType::filters, "1:2"),
+    layer.setProperty(nntrainer::Layer::PropertyType::filters, "1:2"),
     nntrainer::exception::not_supported);
 }
 
 TEST(nntrainer_LossLayer, setProperty_individual_02_n) {
   nntrainer::LossLayer layer;
-  EXPECT_THROW(layer.setProperty(nntrainer::LayerV1::PropertyType::filters,
+  EXPECT_THROW(layer.setProperty(nntrainer::Layer::PropertyType::filters,
                                  "invalid_string"),
                nntrainer::exception::not_supported);
 }

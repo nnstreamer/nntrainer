@@ -14,7 +14,6 @@
  * nnstreamer data
  */
 
-#include <layer_internal.h>
 #include <lazy_tensor.h>
 #include <nnstreamer_layer.h>
 #include <nntrainer_error.h>
@@ -163,9 +162,9 @@ void NNStreamerLayer::setProperty(const std::vector<std::string> &values) {
 
 void NNStreamerLayer::setProperty(const std::string &type_str,
                                   const std::string &value) {
-  using PropertyType = LayerV1::PropertyType;
-  LayerV1::PropertyType type =
-    static_cast<LayerV1::PropertyType>(parseLayerProperty(type_str));
+  using PropertyType = nntrainer::Layer::PropertyType;
+  nntrainer::Layer::PropertyType type =
+    static_cast<nntrainer::Layer::PropertyType>(parseLayerProperty(type_str));
 
   switch (type) {
   case PropertyType::modelfile: {

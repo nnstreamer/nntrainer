@@ -15,7 +15,6 @@
 #define __LOSS_LAYER_H__
 #ifdef __cplusplus
 
-#include <layer_internal.h>
 #include <tensor.h>
 
 namespace nntrainer {
