@@ -22,7 +22,6 @@
 #include <time.h>
 
 #include <dataset.h>
-#include <layer_internal.h>
 #include <ml-api-common.h>
 #include <neuralnet.h>
 #include <tensor.h>

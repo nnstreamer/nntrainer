@@ -208,14 +208,6 @@ class Distribute;
 class Trainable;
 } // namespace props
 
-class LayerV1;
-/**
- * @copydoc template <typename PropsType, typename NodeType> void
- * Exporter::saveTflResult(const PropsType &props, const NodeType *self);
- */
-template <>
-void Exporter::saveTflResult(const std::tuple<> &props, const LayerV1 *self);
-
 class LayerNode;
 /**
  * @copydoc template <typename PropsType, typename NodeType> void

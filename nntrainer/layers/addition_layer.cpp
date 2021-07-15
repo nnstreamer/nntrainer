@@ -12,7 +12,6 @@
  */
 
 #include <addition_layer.h>
-#include <layer_internal.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <parse_util.h>

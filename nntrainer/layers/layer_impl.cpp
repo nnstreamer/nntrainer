@@ -16,7 +16,6 @@
 #include <vector>
 
 #include <common_properties.h>
-#include <layer_internal.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <node_exporter.h>
@@ -55,12 +54,14 @@ void LayerImpl::setProperty(const std::vector<std::string> &values) {
 
 void LayerImpl::setProperty(const std::string &type_str,
                             const std::string &value) {
+  using PropertyType = nntrainer::Layer::PropertyType;
+
   int status = ML_ERROR_NONE;
-  LayerV1::PropertyType type =
-    static_cast<LayerV1::PropertyType>(parseLayerProperty(type_str));
+  nntrainer::Layer::PropertyType type =
+    static_cast<nntrainer::Layer::PropertyType>(parseLayerProperty(type_str));
 
   switch (type) {
-  case LayerV1::PropertyType::weight_regularizer:
+  case PropertyType::weight_regularizer:
     if (!value.empty()) {
       weight_regularizer =
         (WeightRegularizer)parseType(value, TOKEN_WEIGHT_REGULARIZER);
@@ -69,19 +70,19 @@ void LayerImpl::setProperty(const std::string &type_str,
       }
     }
     break;
-  case LayerV1::PropertyType::weight_regularizer_constant:
+  case PropertyType::weight_regularizer_constant:
     if (!value.empty()) {
       status = setFloat(weight_regularizer_constant, value);
       throw_status(status);
     }
     break;
-  case LayerV1::PropertyType::weight_initializer:
+  case PropertyType::weight_initializer:
     if (!value.empty()) {
       weight_initializer =
         (WeightInitializer)parseType(value, TOKEN_WEIGHT_INIT);
     }
     break;
-  case LayerV1::PropertyType::bias_initializer:
+  case PropertyType::bias_initializer:
     if (!value.empty()) {
       bias_initializer = (WeightInitializer)parseType(value, TOKEN_WEIGHT_INIT);
     }

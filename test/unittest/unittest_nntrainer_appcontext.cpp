@@ -148,15 +148,11 @@ public:
  *
  * @todo solidify the api signature
  */
-class CustomLayer : public nntrainer::LayerV1 {
+class CustomLayer : public nntrainer::Layer {
 public:
   inline static const std::string type = "identity_layer";
 
-  int setProperty(std::vector<std::string> values) override { return 1; }
-
-  int checkValidation() override { return 1; }
-
-  float getLoss() override { return 0.0f; }
+  void setProperty(const std::vector<std::string> &values) override {}
 
   const std::string getType() const override { return CustomLayer::type; }
 };

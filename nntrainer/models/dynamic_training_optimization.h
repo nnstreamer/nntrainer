@@ -39,7 +39,8 @@
 #include <random>
 #include <vector>
 
-#include <layer_internal.h>
+#include <layer_devel.h>
+#include <optimizer_devel.h>
 #include <tensor.h>
 
 namespace nntrainer {

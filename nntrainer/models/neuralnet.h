@@ -555,8 +555,8 @@ private:
    * @param[in] Layer::PrintPreset print preset when to print layer properties
    */
   void print(std::ostream &out, unsigned int flags = 0,
-             LayerV1::PrintPreset layerPrintPreset =
-               LayerV1::PrintPreset::PRINT_SUMMARY);
+             LayerNode::PrintPreset layerPrintPreset =
+               LayerNode::PrintPreset::PRINT_SUMMARY);
 
   /**
    * @brief     Set Loss

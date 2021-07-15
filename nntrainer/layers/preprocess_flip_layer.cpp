@@ -13,7 +13,6 @@
 
 #include <random>
 
-#include <layer_internal.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <parse_util.h>
@@ -57,9 +56,9 @@ void PreprocessFlipLayer::setProperty(const std::vector<std::string> &values) {
 
 void PreprocessFlipLayer::setProperty(const std::string &type_str,
                                       const std::string &value) {
-  using PropertyType = LayerV1::PropertyType;
-  LayerV1::PropertyType type =
-    static_cast<LayerV1::PropertyType>(parseLayerProperty(type_str));
+  using PropertyType = nntrainer::Layer::PropertyType;
+  nntrainer::Layer::PropertyType type =
+    static_cast<nntrainer::Layer::PropertyType>(parseLayerProperty(type_str));
 
   switch (type) {
   case PropertyType::flip_direction: {

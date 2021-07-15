@@ -135,7 +135,6 @@ NNTRAINER_SRCS := $(NNTRAINER_ROOT)/nntrainer/models/neuralnet.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/tensor/weight.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/tensor/tensor_dim.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/tensor/blas_interface.cpp \
-                  $(NNTRAINER_ROOT)/nntrainer/layers/layer.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/layer_node.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/input_layer.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/output_layer.cpp \

@@ -24,8 +24,8 @@
 #include <unordered_map>
 #include <vector>
 
+#include <layer.h>
 #include <layer_devel.h>
-#include <layer_internal.h>
 #include <optimizer.h>
 
 #include <nntrainer_error.h>
@@ -293,8 +293,7 @@ public:
   }
 
 private:
-  FactoryMap<ml::train::Optimizer, nntrainer::LayerV1, nntrainer::Layer>
-    factory_map;
+  FactoryMap<ml::train::Optimizer, nntrainer::Layer> factory_map;
   std::string working_path_base;
 };
 
