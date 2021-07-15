@@ -219,8 +219,8 @@ int main(int argc, char *argv[]) {
   }
 
   if (training) {
-    NN.setDataset(ml::train::DatasetDataUsageType::DATA_TRAIN, dataset_train);
-    NN.setDataset(ml::train::DatasetDataUsageType::DATA_VAL, dataset_val);
+    NN.setDataset(ml::train::DatasetModeType::MODE_TRAIN, dataset_train);
+    NN.setDataset(ml::train::DatasetModeType::MODE_VALID, dataset_val);
     try {
       NN.train({"batch_size=" + std::to_string(batch_size)});
     } catch (std::exception &e) {

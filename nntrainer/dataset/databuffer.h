@@ -109,7 +109,7 @@ public:
   /**
    * @brief     Display Progress
    * @param[in] count calculated set ( batch_size size )
-   * @param[in] type buffer type ( DATA_TRAIN, DATA_VAL, DATA_TEST )
+   * @param[in] type buffer type ( MODE_TRAIN, MODE_VALID, MODE_TEST )
    * @retval void
    */
   void displayProgress(const int count, float loss);

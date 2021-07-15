@@ -177,13 +177,13 @@ typedef int (*ml_train_datagen_cb)(float **input, float **label, bool *last,
  * @since_tizen 6.5
  */
 typedef enum {
-  ML_TRAIN_DATASET_DATA_USAGE_TRAIN =
+  ML_TRAIN_DATASET_MODE_TRAIN =
     0, /**< The given data is for used when training */
-  ML_TRAIN_DATASET_DATA_USAGE_VALID =
+  ML_TRAIN_DATASET_MODE_VALID =
     1, /**< The given data is for used when validating */
-  ML_TRAIN_DATASET_DATA_USAGE_TEST =
+  ML_TRAIN_DATASET_MODE_TEST =
     2, /**< The given data is for used when testing */
-} ml_train_dataset_data_usage_e;
+} ml_train_dataset_mode_e;
 
 /**
  * @brief Enumeration for the neural network summary verbosity of NNTrainer.

@@ -540,9 +540,9 @@ std::vector<float *> NeuralNetwork::inference(std::vector<float *> &input) {
   return output;
 }
 
-int NeuralNetwork::setDataset(const DatasetDataUsageType &usage,
+int NeuralNetwork::setDataset(const DatasetModeType &mode,
                               std::shared_ptr<ml::train::Dataset> dataset) {
-  return setDataBuffer(usage, std::static_pointer_cast<DataBuffer>(dataset));
+  return setDataBuffer(mode, std::static_pointer_cast<DataBuffer>(dataset));
 }
 
 int NeuralNetwork::allocate(bool trainable) {
@@ -562,8 +562,7 @@ int NeuralNetwork::deallocate() {
 int NeuralNetwork::train(std::vector<std::string> values) {
   int status = ML_ERROR_NONE;
 
-  if (data_buffers[static_cast<int>(DatasetDataUsageType::DATA_TRAIN)] ==
-      nullptr) {
+  if (data_buffers[static_cast<int>(DatasetModeType::MODE_TRAIN)] == nullptr) {
     ml_loge("Cannot initialize the model without the train data buffer.");
     return ML_ERROR_INVALID_PARAMETER;
   }
@@ -753,13 +752,13 @@ int NeuralNetwork::setOptimizer(
   return ML_ERROR_NONE;
 }
 
-int NeuralNetwork::setDataBuffer(const DatasetDataUsageType &usage,
+int NeuralNetwork::setDataBuffer(const DatasetModeType &mode,
                                  std::shared_ptr<DataBuffer> data_buffer) {
   if (data_buffer == nullptr) {
     return ML_ERROR_INVALID_PARAMETER;
   }
 
-  this->data_buffers[static_cast<int>(usage)] = data_buffer;
+  this->data_buffers[static_cast<int>(mode)] = data_buffer;
 
   return ML_ERROR_NONE;
 }
