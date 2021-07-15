@@ -308,9 +308,8 @@ int main(int argc, char *argv[]) {
     model->compile();
     model->initialize();
     model->readModel();
-    model->setDataset(ml::train::DatasetDataUsageType::DATA_TRAIN,
-                      dataset_train);
-    model->setDataset(ml::train::DatasetDataUsageType::DATA_VAL, dataset_val);
+    model->setDataset(ml::train::DatasetModeType::MODE_TRAIN, dataset_train);
+    model->setDataset(ml::train::DatasetModeType::MODE_VALID, dataset_val);
   } catch (std::exception &e) {
     std::cerr << "Error during init " << e.what() << std::endl;
     return 1;

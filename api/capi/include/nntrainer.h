@@ -441,6 +441,7 @@ int ml_train_dataset_create(ml_train_dataset_h *dataset);
  * single element per call to the dataset.
  * @since_tizen 6.5
  * @param[in] dataset The NNTrainer dataset handle.
+ * @param[in] mode The phase where this generator should be used.
  * @param[in] usage The phase where this generator should be used.
  * @param[in] cb Callback to be used for the generator.
  * @param[in] user_data user_data to be fed when @a cb is being called.
@@ -450,7 +451,7 @@ int ml_train_dataset_create(ml_train_dataset_h *dataset);
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
  */
 int ml_train_dataset_add_generator(ml_train_dataset_h dataset,
-                                   ml_train_dataset_data_usage_e usage,
+                                   ml_train_dataset_mode_e mode,
                                    ml_train_datagen_cb cb, void *user_data);
 
 /**
@@ -463,7 +464,7 @@ int ml_train_dataset_add_generator(ml_train_dataset_h dataset,
  * privilege %http://tizen.org/privilege/externalstorage. If you can access both
  * storage, you must add all privilege
  * @param[in] dataset The NNTrainer dataset handle.
- * @param[in] usage The phase where this file should be used.
+ * @param[in] mode The phase where this file should be used.
  * @param[in] file file path.
  * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
@@ -472,8 +473,7 @@ int ml_train_dataset_add_generator(ml_train_dataset_h dataset,
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
  */
 int ml_train_dataset_add_file(ml_train_dataset_h dataset,
-                              ml_train_dataset_data_usage_e usage,
-                              const char *file);
+                              ml_train_dataset_mode_e mode, const char *file);
 
 /**
  * @deprecated Deprecated since 6.5. Use ml_train_dataset_create() instead
@@ -517,8 +517,8 @@ int ml_train_dataset_destroy(ml_train_dataset_h dataset);
  * @details Use this function to set dataset property.
  * @since_tizen 6.0
  * @remarks the same property is applied over train, valid, testsets that are
- * added to the @a dataset, it is recommened to use @c
- * ml_train_dataset_set_property_for_usage() instead.
+ * added to the @a dataset, it is recommened to use @a
+ * ml_train_dataset_set_property_for_mode() instead.
  * @param[in] dataset The NNTrainer dataset handle.
  * @param[in]  ... Property values with NULL for termination.
  * @return @c 0 on success. Otherwise a negative error value.
@@ -531,19 +531,18 @@ int ml_train_dataset_set_property(ml_train_dataset_h dataset,
 
 /**
  * @brief Sets the neural network dataset property.
- * @details Use this function to set dataset property for a specific usage.
+ * @details Use this function to set dataset property for a specific mode.
  * @since_tizen 6.5
  * @param[in] dataset The NNTrainer dataset handle.
- * @param[in] usage The usage to set the property.
+ * @param[in] mode The mode to set the property.
  * @param[in]  ... Property values with NULL for termination.
  * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
  * @retval #ML_ERROR_NOT_SUPPORTED Not supported.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
  */
-int ml_train_dataset_set_property_for_usage(ml_train_dataset_h dataset,
-                                            ml_train_dataset_data_usage_e usage,
-                                            ...);
+int ml_train_dataset_set_property_for_mode(ml_train_dataset_h dataset,
+                                           ml_train_dataset_mode_e mode, ...);
 
 /**
  * @brief Saves the model.

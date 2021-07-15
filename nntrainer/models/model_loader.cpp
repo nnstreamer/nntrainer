@@ -210,8 +210,8 @@ int ModelLoader::loadDatasetConfigIni(dictionary *ini, NeuralNetwork &model) {
   std::string bufsizepros("buffer_size=");
   bufsizepros += iniparser_getstring(ini, "DataSet:BufferSize", "1");
 
-  std::function<int(const char *, DatasetDataUsageType, bool)> parse_and_set =
-    [&](const char *key, DatasetDataUsageType dt, bool required) -> int {
+  std::function<int(const char *, DatasetModeType, bool)> parse_and_set =
+    [&](const char *key, DatasetModeType dt, bool required) -> int {
     const char *path = iniparser_getstring(ini, key, NULL);
 
     if (path == NULL) {
@@ -231,13 +231,12 @@ int ModelLoader::loadDatasetConfigIni(dictionary *ini, NeuralNetwork &model) {
   };
 
   status =
-    parse_and_set("DataSet:TrainData", DatasetDataUsageType::DATA_TRAIN, true);
+    parse_and_set("DataSet:TrainData", DatasetModeType::MODE_TRAIN, true);
   NN_RETURN_STATUS();
   status =
-    parse_and_set("DataSet:ValidData", DatasetDataUsageType::DATA_VAL, false);
+    parse_and_set("DataSet:ValidData", DatasetModeType::MODE_VALID, false);
   NN_RETURN_STATUS();
-  status =
-    parse_and_set("DataSet:TestData", DatasetDataUsageType::DATA_TEST, false);
+  status = parse_and_set("DataSet:TestData", DatasetModeType::MODE_TEST, false);
   NN_RETURN_STATUS();
   const char *path = iniparser_getstring(ini, "Dataset:LabelData", NULL);
   if (path != NULL) {

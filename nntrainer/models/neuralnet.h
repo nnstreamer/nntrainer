@@ -47,7 +47,7 @@
 namespace ml::train {
 class DataSet;
 enum class DatasetType;
-enum class DatasetDataUsageType;
+enum class DatasetModeType;
 } // namespace ml::train
 
 namespace nntrainer {
@@ -59,7 +59,7 @@ using NetType = ml::train::ModelType;
 
 class DataBuffer;
 using DatasetType = ml::train::DatasetType;
-using DatasetDataUsageType = ml::train::DatasetDataUsageType;
+using DatasetModeType = ml::train::DatasetModeType;
 /**
  * @brief     Statistics from running or training a model
  */
@@ -293,22 +293,22 @@ public:
 
   /**
    * @brief     Run NeuralNetwork train with callback function by user
-   * @param[in] dt datatype (usage) where it should be
+   * @param[in] dt datatype (mode) where it should be
    * @param[in] dataset set the dataset
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int setDataset(const DatasetDataUsageType &dt,
+  int setDataset(const DatasetModeType &dt,
                  std::shared_ptr<ml::train::Dataset> dataset);
 
   /**
    * @brief     Run NeuralNetwork train with callback function by user
-   * @param[in] dt datatype (usage) where it should be
+   * @param[in] dt datatype (mode) where it should be
    * @param[in] databuffer set the databuffer
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int setDataBuffer(const DatasetDataUsageType &dt,
+  int setDataBuffer(const DatasetModeType &dt,
                     std::shared_ptr<DataBuffer> data_buffer);
 
   /**

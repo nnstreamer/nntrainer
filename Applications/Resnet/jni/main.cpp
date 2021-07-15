@@ -234,9 +234,9 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
   auto dataset_valid = ml::train::createDataset(
     ml::train::DatasetType::GENERATOR, validData_cb, valid_user_data.get());
 
-  model->setDataset(ml::train::DatasetDataUsageType::DATA_TRAIN,
+  model->setDataset(ml::train::DatasetModeType::MODE_TRAIN,
                     std::move(dataset_train));
-  model->setDataset(ml::train::DatasetDataUsageType::DATA_VAL,
+  model->setDataset(ml::train::DatasetModeType::MODE_VALID,
                     std::move(dataset_valid));
 
   model->train();

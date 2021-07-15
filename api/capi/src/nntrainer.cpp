@@ -148,15 +148,15 @@ static int ml_train_dataset_create(ml_train_dataset_h *dataset,
 
   returnable f = [&]() {
     if (train != nullptr) {
-      nndataset->dataset[ML_TRAIN_DATASET_DATA_USAGE_TRAIN] =
+      nndataset->dataset[ML_TRAIN_DATASET_MODE_TRAIN] =
         ml::train::createDataset(type, train);
     }
     if (valid != nullptr) {
-      nndataset->dataset[ML_TRAIN_DATASET_DATA_USAGE_VALID] =
+      nndataset->dataset[ML_TRAIN_DATASET_MODE_VALID] =
         ml::train::createDataset(type, valid);
     }
     if (test != nullptr) {
-      nndataset->dataset[ML_TRAIN_DATASET_DATA_USAGE_TEST] =
+      nndataset->dataset[ML_TRAIN_DATASET_MODE_TEST] =
         ml::train::createDataset(type, test);
     }
     return ML_ERROR_NONE;
@@ -178,7 +178,7 @@ static int ml_train_dataset_create(ml_train_dataset_h *dataset,
  *
  * @tparam Args args needed to create the dataset
  * @param dataset dataset handle
- * @param usage target usage
+ * @param mode target mode
  * @param type dataset type
  * @param args args needed to create the dataset
  * @retval #ML_ERROR_NONE Successful
@@ -186,7 +186,7 @@ static int ml_train_dataset_create(ml_train_dataset_h *dataset,
  */
 template <typename... Args>
 static int ml_train_dataset_add_(ml_train_dataset_h dataset,
-                                 ml_train_dataset_data_usage_e usage,
+                                 ml_train_dataset_mode_e mode,
                                  ml::train::DatasetType type, Args &&... args) {
   check_feature_state();
   std::shared_ptr<ml::train::Dataset> underlying_dataset;
@@ -214,7 +214,7 @@ static int ml_train_dataset_add_(ml_train_dataset_h dataset,
     ML_TRAIN_GET_VALID_DATASET_LOCKED(nndataset, dataset);
     ML_TRAIN_ADOPT_LOCK(nndataset, dataset_lock);
 
-    nndataset->dataset[usage] = underlying_dataset;
+    nndataset->dataset[mode] = underlying_dataset;
   }
   return status;
 }
@@ -559,23 +559,20 @@ int ml_train_model_set_dataset(ml_train_model_h model,
   returnable f = [&]() {
     auto &[train_set, valid_set, test_set] = nndataset->dataset;
     int status = ML_ERROR_NONE;
-    status =
-      m->setDataset(ml::train::DatasetDataUsageType::DATA_TRAIN, train_set);
+    status = m->setDataset(ml::train::DatasetModeType::MODE_TRAIN, train_set);
     if (status != ML_ERROR_NONE) {
       return status;
     }
 
     if (valid_set != nullptr) {
-      status =
-        m->setDataset(ml::train::DatasetDataUsageType::DATA_VAL, valid_set);
+      status = m->setDataset(ml::train::DatasetModeType::MODE_VALID, valid_set);
       if (status != ML_ERROR_NONE) {
         return status;
       }
     }
 
     if (test_set != nullptr) {
-      status =
-        m->setDataset(ml::train::DatasetDataUsageType::DATA_TEST, test_set);
+      status = m->setDataset(ml::train::DatasetModeType::MODE_TEST, test_set);
       if (status != ML_ERROR_NONE) {
         return status;
       }
@@ -811,26 +808,25 @@ int ml_train_dataset_create(ml_train_dataset_h *dataset) {
 }
 
 int ml_train_dataset_add_generator(ml_train_dataset_h dataset,
-                                   ml_train_dataset_data_usage_e usage,
+                                   ml_train_dataset_mode_e mode,
                                    ml_train_datagen_cb cb, void *user_data) {
   check_feature_state();
   if (cb == nullptr) {
     return ML_ERROR_INVALID_PARAMETER;
   }
 
-  return ml_train_dataset_add_(
-    dataset, usage, ml::train::DatasetType::GENERATOR, cb, user_data);
+  return ml_train_dataset_add_(dataset, mode, ml::train::DatasetType::GENERATOR,
+                               cb, user_data);
 }
 
 int ml_train_dataset_add_file(ml_train_dataset_h dataset,
-                              ml_train_dataset_data_usage_e usage,
-                              const char *file) {
+                              ml_train_dataset_mode_e mode, const char *file) {
   check_feature_state();
   if (file == nullptr) {
     return ML_ERROR_INVALID_PARAMETER;
   }
 
-  return ml_train_dataset_add_(dataset, usage, ml::train::DatasetType::FILE,
+  return ml_train_dataset_add_(dataset, mode, ml::train::DatasetType::FILE,
                                file);
 }
 
@@ -857,21 +853,21 @@ int ml_train_dataset_create_with_file(ml_train_dataset_h *dataset,
 }
 
 /**
- * @brief set property for the specific data usage, main difference from @a
- * ml_train_dataset_set_property_for_usage() is that this function returns @a
+ * @brief set property for the specific data mode, main difference from @a
+ * ml_train_dataset_set_property_for_mode() is that this function returns @a
  * ML_ERROR_NOT_SUPPORTED if dataset does not exist.
  *
  * @param[in] dataset dataset
- * @param[in] usage usage
+ * @param[in] mode mode
  * @param[in] args argument
  * @retval #ML_ERROR_NONE successful
  * @retval #ML_ERROR_INVALID_PARAMETER when arg is invalid
  * @retval #ML_ERROR_NOT_SUPPORTED when dataset did not exist
  */
 static int
-ml_train_dataset_set_property_for_usage_(ml_train_dataset_h dataset,
-                                         ml_train_dataset_data_usage_e usage,
-                                         const std::vector<void *> &args) {
+ml_train_dataset_set_property_for_mode_(ml_train_dataset_h dataset,
+                                        ml_train_dataset_mode_e mode,
+                                        const std::vector<void *> &args) {
   int status = ML_ERROR_NONE;
   ml_train_dataset *nndataset;
 
@@ -883,7 +879,7 @@ ml_train_dataset_set_property_for_usage_(ml_train_dataset_h dataset,
     ML_TRAIN_GET_VALID_DATASET_LOCKED(nndataset, dataset);
     ML_TRAIN_ADOPT_LOCK(nndataset, dataset_lock);
 
-    auto &db = nndataset->dataset[usage];
+    auto &db = nndataset->dataset[mode];
 
     returnable f = [&db, &args]() {
       int status_ = ML_ERROR_NONE;
@@ -913,20 +909,20 @@ int ml_train_dataset_set_property(ml_train_dataset_h dataset, ...) {
   va_end(arguments);
 
   /// having status of ML_ERROR_NOT_SUPPORTED is not an error in this call.
-  int status = ml_train_dataset_set_property_for_usage_(
-    dataset, ML_TRAIN_DATASET_DATA_USAGE_TRAIN, arg_list);
+  int status = ml_train_dataset_set_property_for_mode_(
+    dataset, ML_TRAIN_DATASET_MODE_TRAIN, arg_list);
   if (status != ML_ERROR_NONE && status != ML_ERROR_NOT_SUPPORTED) {
     return status;
   }
 
-  status = ml_train_dataset_set_property_for_usage_(
-    dataset, ML_TRAIN_DATASET_DATA_USAGE_VALID, arg_list);
+  status = ml_train_dataset_set_property_for_mode_(
+    dataset, ML_TRAIN_DATASET_MODE_VALID, arg_list);
   if (status != ML_ERROR_NONE && status != ML_ERROR_NOT_SUPPORTED) {
     return status;
   }
 
-  status = ml_train_dataset_set_property_for_usage_(
-    dataset, ML_TRAIN_DATASET_DATA_USAGE_TEST, arg_list);
+  status = ml_train_dataset_set_property_for_mode_(
+    dataset, ML_TRAIN_DATASET_MODE_TEST, arg_list);
   if (status != ML_ERROR_NONE && status != ML_ERROR_NOT_SUPPORTED) {
     return status;
   }
@@ -934,12 +930,11 @@ int ml_train_dataset_set_property(ml_train_dataset_h dataset, ...) {
   return ML_ERROR_NONE;
 }
 
-int ml_train_dataset_set_property_for_usage(ml_train_dataset_h dataset,
-                                            ml_train_dataset_data_usage_e usage,
-                                            ...) {
+int ml_train_dataset_set_property_for_mode(ml_train_dataset_h dataset,
+                                           ml_train_dataset_mode_e mode, ...) {
   std::vector<void *> arg_list;
   va_list arguments;
-  va_start(arguments, usage);
+  va_start(arguments, mode);
 
   void *data;
   while ((data = va_arg(arguments, void *))) {
@@ -947,8 +942,7 @@ int ml_train_dataset_set_property_for_usage(ml_train_dataset_h dataset,
   }
   va_end(arguments);
 
-  int status =
-    ml_train_dataset_set_property_for_usage_(dataset, usage, arg_list);
+  int status = ml_train_dataset_set_property_for_mode_(dataset, mode, arg_list);
 
   return status != ML_ERROR_NONE ? ML_ERROR_INVALID_PARAMETER : ML_ERROR_NONE;
 }

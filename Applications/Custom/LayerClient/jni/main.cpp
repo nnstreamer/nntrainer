@@ -85,8 +85,7 @@ static int ini_model_run(const std::string &ini_path) {
     return 1;
   }
 
-  if (model->setDataset(ml::train::DatasetDataUsageType::DATA_TRAIN, dataset) !=
-      0) {
+  if (model->setDataset(ml::train::DatasetModeType::MODE_TRAIN, dataset) != 0) {
     std::cerr << "failed to set datatset";
     return 1;
   }
@@ -131,8 +130,7 @@ int api_model_run() {
     return 1;
   }
 
-  if (model->setDataset(ml::train::DatasetDataUsageType::DATA_TRAIN, dataset) !=
-      0) {
+  if (model->setDataset(ml::train::DatasetModeType::MODE_TRAIN, dataset) != 0) {
     std::cerr << "failed to set datatset";
     return 1;
   }
