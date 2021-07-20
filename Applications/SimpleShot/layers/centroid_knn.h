@@ -33,7 +33,7 @@ public:
    * @brief Construct a new NearestNeighbors Layer object that does elementwise
    * subtraction from mean feature vector
    */
-  CentroidKNN() : Layer(), num_class(0) {}
+  CentroidKNN() : Layer(), num_class(0), weight_idx({0}) {}
 
   /**
    *  @brief  Move constructor.

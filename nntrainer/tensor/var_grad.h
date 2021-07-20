@@ -38,7 +38,7 @@ public:
    * @brief Var_Grad default constructor
    * @note Default variable is not need_gradient as gradient is 0 dim tensor
    */
-  Var_Grad() = default;
+  Var_Grad() : Var_Grad(TensorDim()) {}
 
   /**
    * @brief Var_Grad default destructor

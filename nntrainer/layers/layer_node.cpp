@@ -116,7 +116,12 @@ int LayerNode::setProperty(std::vector<std::string> properties) {
     auto &ac = nntrainer::AppContext::Global();
     std::unique_ptr<nntrainer::Layer> dlayer =
       ac.createObject<nntrainer::Layer>(TimeDistLayer::type);
-    dynamic_cast<TimeDistLayer *>(dlayer.get())->setDistLayer(std::move(layer));
+    if (dlayer.get() == nullptr)
+      throw std::invalid_argument("Error creating time distribution layer");
+    auto *time_dist_layer = dynamic_cast<TimeDistLayer *>(dlayer.get());
+    if (time_dist_layer == nullptr)
+      throw std::invalid_argument("Error casting to time distribution layer");
+    time_dist_layer->setDistLayer(std::move(layer));
     layer = std::move(dlayer);
   }
 

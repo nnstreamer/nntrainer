@@ -35,6 +35,7 @@ public:
     bool ret_sequence = false, float dropout = 0.0) :
     LayerImpl(),
     props(props::Unit()),
+    wt_idx({0}),
     hidden_state_activation_type(hidden_state_activation_type_),
     acti_func(hidden_state_activation_type, true),
     return_sequences(ret_sequence),
