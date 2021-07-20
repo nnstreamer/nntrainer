@@ -21,12 +21,8 @@ namespace custom {
 
 static constexpr size_t SINGLE_INOUT_IDX = 0;
 
-int MaeLossLayer::setProperty(std::vector<std::string> values) {
-  /// this implementation makes to pass the test, this will change soon.
-  return values.size();
-}
-
-void MaeLossLayer::forwarding(nntrainer::RunLayerContext &context, bool training) {
+void MaeLossLayer::forwarding(nntrainer::RunLayerContext &context,
+                              bool training) {
   nntrainer::Tensor &predicted = context.getInput(SINGLE_INOUT_IDX);
   nntrainer::Tensor &output = context.getOutput(SINGLE_INOUT_IDX);
 
@@ -40,7 +36,7 @@ void MaeLossLayer::forwarding(nntrainer::RunLayerContext &context, bool training
   }
 }
 
-void MaeLossLayer::calcDerivative(RunLayerContext &context) {
+void MaeLossLayer::calcDerivative(nntrainer::RunLayerContext &context) {
   nntrainer::Tensor &predicted = context.getInput(SINGLE_INOUT_IDX);
   nntrainer::Tensor &label = context.getLabel(SINGLE_INOUT_IDX);
 
@@ -57,7 +53,6 @@ void MaeLossLayer::calcDerivative(RunLayerContext &context) {
     return x > 0 ? 1.0f : -1.0f;
   });
 }
-
 
 #ifdef PLUGGABLE
 

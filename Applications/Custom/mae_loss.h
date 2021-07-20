@@ -49,12 +49,12 @@ public:
   /**
    * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
    */
-  void forwarding(nntrainer::RunLayerContext &context, bool training) override
+  void forwarding(nntrainer::RunLayerContext &context, bool training) override;
 
   /**
    * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
-  void calcDerivative(nntrainer::RunLayerContext &context) override
+  void calcDerivative(nntrainer::RunLayerContext &context) override;
 
   /**
    * @copydoc bool supportBackwarding() const
@@ -86,7 +86,7 @@ public:
   /**
    * @copydoc Layer::requireLabel()
    */
-  bool MaeLossLayer::requireLabel() const { return true; }
+  bool requireLabel() const { return true; }
 
   inline static const std::string type = "mae_loss";
 };

@@ -125,7 +125,6 @@ private:
    */
   float dropout_rate;
 
-
   /**
    * @brief setProperty by type and value separated
    * @param[in] type property type to be passed

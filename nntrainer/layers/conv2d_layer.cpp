@@ -114,17 +114,19 @@ static void col2im(const Tensor &col_matrix, const TensorDim &kdim,
 
 static TensorDim
 calcIm2ColOutputDim(const TensorDim &in, const TensorDim &kdim,
-                    const std::array<unsigned int, CONV2D_DIM> &padding,
+                    const std::array<unsigned int, CONV2D_DIM * 2> &padding,
                     const std::array<unsigned int, CONV2D_DIM> &mstride,
                     const std::array<unsigned int, CONV2D_DIM> &dilation) {
 
-  unsigned int ph = padding[0];
-  unsigned int pw = padding[1];
+  unsigned pt = padding[0];
+  unsigned pb = padding[1];
+  unsigned pl = padding[2];
+  unsigned pr = padding[3];
 
   int in_height = in.height();
   int in_width = in.width();
-  unsigned int height = in_height + ph * 2;
-  unsigned int width = in_width + pw * 2;
+  unsigned int height = in_height + pt + pb;
+  unsigned int width = in_width + pl + pr;
   unsigned int k_height = kdim.height();
   unsigned int k_width = kdim.width();
 
@@ -205,7 +207,6 @@ static void im2col(const Tensor &in, const TensorDim &kdim,
   //   }
   */
 
-  const int pad_value = 0;
   unsigned pt = padding[0];
   unsigned pb = padding[1];
   unsigned pl = padding[2];
