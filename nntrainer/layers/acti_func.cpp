@@ -34,6 +34,9 @@ int ActiFunc::setActivation(
   std::function<Tensor &(Tensor const &, Tensor &)> const &activation_fn,
   std::function<Tensor &(Tensor &, Tensor &, Tensor const &)> const
     &activation_prime_fn) {
+  if (in_place)
+    return ML_ERROR_INVALID_PARAMETER;
+
   _act_fn = activation_fn;
   _act_prime_fn = activation_prime_fn;
 
@@ -44,13 +47,26 @@ int ActiFunc::setActivation(
   std::function<Tensor &(Tensor const &, Tensor &)> const &activation_fn,
   std::function<Tensor &(Tensor &, Tensor &)> const &activation_prime_fn) {
   _act_fn = activation_fn;
-  _act_prime_fn = [activation_prime_fn](Tensor &x, Tensor &ret_derivative,
-                                        Tensor const &derivative) -> Tensor & {
-    x = activation_prime_fn(x, x);
-    ret_derivative = derivative.multiply(x, ret_derivative);
+  if (!in_place) {
+    _act_prime_fn =
+      [activation_prime_fn](Tensor &x, Tensor &ret_derivative,
+                            Tensor const &derivative) -> Tensor & {
+      /** @todo update this based on supportInPlace */
+      ret_derivative = activation_prime_fn(x, ret_derivative);
+      ret_derivative.multiply_i(derivative);
 
-    return ret_derivative;
-  };
+      return ret_derivative;
+    };
+  } else {
+    _act_prime_fn =
+      [activation_prime_fn](Tensor &x, Tensor &ret_derivative,
+                            Tensor const &derivative) -> Tensor & {
+      x = activation_prime_fn(x, x);
+      ret_derivative = derivative.multiply(x, ret_derivative);
+
+      return ret_derivative;
+    };
+  }
 
   return ML_ERROR_NONE;
 }
@@ -61,13 +77,26 @@ int ActiFunc::setActivation(
   _act_fn = [activation_fn](Tensor const &x, Tensor &hidden) -> Tensor & {
     return x.apply(activation_fn, hidden);
   };
-  _act_prime_fn = [activation_prime_fn](Tensor &x, Tensor &ret_derivative,
-                                        Tensor const &derivative) -> Tensor & {
-    x = x.apply(activation_prime_fn, x);
-    ret_derivative = derivative.multiply(x, ret_derivative);
+  if (!in_place) {
+    _act_prime_fn =
+      [activation_prime_fn](Tensor &x, Tensor &ret_derivative,
+                            Tensor const &derivative) -> Tensor & {
+      /** @todo update this based on supportInPlace */
+      x.apply(activation_prime_fn, ret_derivative);
+      ret_derivative.multiply_i(derivative);
 
-    return ret_derivative;
-  };
+      return ret_derivative;
+    };
+  } else {
+    _act_prime_fn =
+      [activation_prime_fn](Tensor &x, Tensor &ret_derivative,
+                            Tensor const &derivative) -> Tensor & {
+      x = x.apply(activation_prime_fn, x);
+      ret_derivative = derivative.multiply(x, ret_derivative);
+
+      return ret_derivative;
+    };
+  }
 
   return ML_ERROR_NONE;
 }

@@ -37,6 +37,7 @@ public:
     LayerV1(args...),
     unit(unit_),
     hidden_state_activation_type(hidden_state_activation_type_),
+    acti_func(hidden_state_activation_type, true),
     return_sequences(sequence),
     dropout_rate(dropout){};
 
