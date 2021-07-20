@@ -909,19 +909,19 @@ int ml_train_dataset_set_property(ml_train_dataset_h dataset, ...) {
   /// having status of ML_ERROR_NOT_SUPPORTED is not an error in this call.
   int status = ml_train_dataset_set_property_for_usage_(
     dataset, ML_TRAIN_DATASET_DATA_USAGE_TRAIN, arg_list);
-  if (status != ML_ERROR_NONE || status != ML_ERROR_NOT_SUPPORTED) {
+  if (status != ML_ERROR_NONE && status != ML_ERROR_NOT_SUPPORTED) {
     return status;
   }
 
   status = ml_train_dataset_set_property_for_usage_(
     dataset, ML_TRAIN_DATASET_DATA_USAGE_VALID, arg_list);
-  if (status != ML_ERROR_NONE || status != ML_ERROR_NOT_SUPPORTED) {
+  if (status != ML_ERROR_NONE && status != ML_ERROR_NOT_SUPPORTED) {
     return status;
   }
 
   status = ml_train_dataset_set_property_for_usage_(
     dataset, ML_TRAIN_DATASET_DATA_USAGE_TEST, arg_list);
-  if (status != ML_ERROR_NONE || status != ML_ERROR_NOT_SUPPORTED) {
+  if (status != ML_ERROR_NONE && status != ML_ERROR_NOT_SUPPORTED) {
     return status;
   }
 
