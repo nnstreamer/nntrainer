@@ -56,7 +56,8 @@ DataBuffer::DataBuffer(DatasetType type) :
   samples_per_epoch(0),
   remaining_samples_per_epoch(0),
   is_running(false),
-  initialized(false) {
+  initialized(false),
+  user_data(nullptr) {
   rng.seed(getSeed());
 };
 
