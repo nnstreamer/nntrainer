@@ -53,7 +53,8 @@ public:
     momentum(momentum),
     axis(axis),
     initializers{moving_variance_initializer, moving_variance_initializer,
-                 gamma_initializer, beta_initializer} {}
+                 gamma_initializer, beta_initializer},
+    wt_idx({0}) {}
 
   /**
    * @brief     Destructor of BatchNormalizationLayer

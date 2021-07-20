@@ -42,7 +42,8 @@ public:
     filter_size(filter_size_),
     kernel_size(kernel_size_),
     stride(stride_),
-    padding(padding_) {}
+    padding(padding_),
+    wt_idx({0}) {}
 
   /**
    * @brief     Destructor of Conv 2D Layer

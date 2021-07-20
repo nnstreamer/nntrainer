@@ -67,6 +67,7 @@ public:
     stride(stride_),
     padding(padding_),
     pool2d_props(),
+    pool_helper_idx(0),
     pooling_type(pooling_type_) {}
 
   /**
