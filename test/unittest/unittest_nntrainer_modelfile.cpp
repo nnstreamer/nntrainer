@@ -378,13 +378,13 @@ INSTANTIATE_TEST_CASE_P(
     mkIniTc("unknown_layer_type2_n", {nw_base_cross, adam, input, out + "Type = asdf"+"input_layers=inputlayer", I(out, "outlayer", "")}, ALLFAIL),
 
   /**< negative: little bit of tweeks to check determinancy (5 negative cases) */
-    mkIniTc("wrong_nw_dataset_n", {nw_base_cross, adam, input, out+"input_layers=inputlayer", dataset + "-LabelData"}, ALLFAIL),
-    mkIniTc("wrong_nw_dataset2_n", {nw_base_cross, adam, dataset + "-LabelData", input, out+"input_layers=inputlayer"}, ALLFAIL),
+    mkIniTc("wrong_nw_dataset_n", {nw_base_cross, adam, input, out+"input_layers=inputlayer", dataset + "-TrainData"}, ALLFAIL),
+    mkIniTc("wrong_nw_dataset2_n", {nw_base_cross, adam, dataset + "-TrainData", input, out+"input_layers=inputlayer"}, ALLFAIL),
 
   /**< negative: dataset is not complete (5 negative cases) */
     mkIniTc("no_trainingSet_n", {nw_base_cross, adam, dataset + "-TrainData", input, out+"input_layers=inputlayer"}, ALLFAIL),
 
-    mkIniTc("backbone_filemissing_n", {nw_base_cross, adam, dataset + "-LabelData", input, out+"input_layers=inputlayer"}, ALLFAIL)
+    mkIniTc("backbone_filemissing_n", {nw_base_cross, adam, backbone_random, out+"input_layers=inputlayer"}, ALLFAIL)
 ), [](const testing::TestParamInfo<nntrainerIniTest::ParamType>& info){
  return std::get<0>(info.param);
 });

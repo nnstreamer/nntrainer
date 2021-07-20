@@ -88,6 +88,7 @@ public:
    *            33. split_dimension : string (type)
    *            34. return_sequences :  bool (type) - lstm
    *            35. hidden_state_activation :  string (type) - lstm
+   *            36. dropout : bool
    */
   enum class PropertyType {
     input_shape = 0,
@@ -126,6 +127,7 @@ public:
     split_dimension = 33,
     return_sequences = 34,
     hidden_state_activation = 35,
+    dropout = 36,
     unknown
   };
 

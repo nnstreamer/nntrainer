@@ -35,7 +35,9 @@ public:
   Conv2DLayer(unsigned int filter_size_ = 0,
               const std::array<unsigned int, CONV2D_DIM> &kernel_size_ = {0, 0},
               const std::array<unsigned int, CONV2D_DIM> &stride_ = {1, 1},
-              const std::array<unsigned int, CONV2D_DIM * 2> &padding_ = {0, 0, 0, 0}) :
+              const std::array<unsigned int, CONV2D_DIM * 2> &padding_ = {0, 0,
+                                                                          0,
+                                                                          0}) :
     LayerImpl(),
     filter_size(filter_size_),
     kernel_size(kernel_size_),

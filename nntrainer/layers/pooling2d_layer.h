@@ -60,7 +60,8 @@ public:
     PoolingType pooling_type_ = PoolingType::average,
     const std::array<unsigned int, POOLING2D_DIM> &pool_size_ = {0, 0},
     const std::array<unsigned int, POOLING2D_DIM> &stride_ = {1, 1},
-    const std::array<unsigned int, POOLING2D_DIM * 2> &padding_ = {0, 0, 0, 0}) :
+    const std::array<unsigned int, POOLING2D_DIM * 2> &padding_ = {0, 0, 0,
+                                                                   0}) :
     Layer(),
     pool_size(pool_size_),
     stride(stride_),
