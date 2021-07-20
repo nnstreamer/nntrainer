@@ -41,8 +41,14 @@ class ActiFunc {
 public:
   /**
    * @brief     Constructor of ActiFunc
+   *
+   * @todo      Update in_place to true after manager supports it
    */
-  ActiFunc(ActivationType at = ActivationType::ACT_NONE) { setActiFunc(at); }
+  ActiFunc(ActivationType at = ActivationType::ACT_NONE,
+           bool in_place_ = false) :
+    in_place(in_place_) {
+    setActiFunc(at);
+  }
 
   /**
    * @brief     Destructor of ActiFunc
@@ -194,6 +200,7 @@ private:
 
   ActivationType
     activation_type; /**< type of the activaiton represented by this */
+  bool in_place;     /**< if this class should operate in_place */
 };
 
 } // namespace nntrainer
