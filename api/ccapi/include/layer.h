@@ -55,7 +55,7 @@ enum LayerType {
   LAYER_GRU,                        /** GRU Layer type */
   LAYER_TIME_DIST,                  /** Time Distributed Layer type */
   LAYER_PERMUTE,                    /** Permute layer */
-  LAYER_DROPOUT,              /** DropOut Layer type */
+  LAYER_DROPOUT,                    /** DropOut Layer type */
   LAYER_LOSS_MSE = 500,             /** Mean Squared Error Loss Layer type */
   LAYER_LOSS_CROSS_ENTROPY,         /** Cross Entropy Loss Layer type */
   LAYER_LOSS_CROSS_ENTROPY_SIGMOID, /** Cross Entropy with Sigmoid Loss Layer
