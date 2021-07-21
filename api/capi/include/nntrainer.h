@@ -234,15 +234,17 @@ int ml_train_model_set_dataset(ml_train_model_h model,
  * @param[out] info The tensors information handle.
  * @return @c 0 on successs. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_NOT_SUPPORTED Not supported.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
+ * @retval #ML_ERROR_OUT_OF_MEMORY Failed to allocate required memory.
  */
 int ml_train_model_get_input_tensors_info(ml_train_model_h model,
                                           ml_tensors_info_h *info);
 
 /**
  * @brief Get output tensors information information of the model
- * @details Use this function to get output tensors information information of
- * the model. destroy @a info with @a ml_tensors_info_destroy() after use.
+ * @details Use this function to get output tensors information of the model.
+ * destroy @a info with @a ml_tensors_info_destroy() after use.
  * @remarks @a model must be compiled before calling this function.
  * @remarks the returned @a info is newly created so it does not reflect future
  * changes in the model
@@ -251,7 +253,9 @@ int ml_train_model_get_input_tensors_info(ml_train_model_h model,
  * @param[out] info The tensors information handle.
  * @return @c 0 on successs. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_NOT_SUPPORTED Not supported.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
+ * @retval #ML_ERROR_OUT_OF_MEMORY Failed to allocate required memory.
  */
 int ml_train_model_get_output_tensors_info(ml_train_model_h model,
                                            ml_tensors_info_h *info);

@@ -361,6 +361,9 @@ public:
    * @retval std::vector<TensorDim> input dimension
    */
   std::vector<TensorDim> getInputDimension() {
+    if (!compiled) {
+      throw std::logic_error("model should be compiled before get dimension");
+    }
     return model_graph.getInputDimension();
   }
 
@@ -369,6 +372,9 @@ public:
    * @retval std::vector<TensorDim> output dimension
    */
   std::vector<TensorDim> getOutputDimension() {
+    if (!compiled) {
+      throw std::logic_error("model should be compiled before get dimension");
+    }
     return model_graph.getOutputDimension();
   }
 
