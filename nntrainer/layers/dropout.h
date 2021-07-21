@@ -16,9 +16,8 @@
 #ifdef __cplusplus
 
 #include <common_properties.h>
-#include <layer_internal.h>
+#include <layer_devel.h>
 #include <node_exporter.h>
-#include <tensor.h>
 
 namespace nntrainer {
 
@@ -26,17 +25,14 @@ namespace nntrainer {
  * @class   DropOut Layer
  * @brief   DropOut Layer
  */
-class DropOutLayer : public LayerV1 {
+class DropOutLayer : public Layer {
 public:
   /**
    * @brief     Constructor of DropOut Layer
    */
-  template <typename... Args>
-  DropOutLayer(float dropout = 0.0, Args... args) :
-    LayerV1(args...),
-    dropout_rate(props::DropOutSpec(dropout)) {
-    setTrainable(false);
-  }
+  DropOutLayer(float dropout = 0.0) :
+    Layer(),
+    dropout_rate(props::DropOutSpec(dropout)) {}
 
   /**
    * @brief     Destructor of DropOut Layer
@@ -56,61 +52,54 @@ public:
   DropOutLayer &operator=(DropOutLayer &&rhs) = default;
 
   /**
-   * @brief     initialize layer
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   * @copydoc Layer::finalize(InitLayerContext &context)
    */
-  int initialize(Manager &manager) override;
+  void finalize(InitLayerContext &context) override;
 
   /**
-   * @brief     Read Weight & Bias Data from file
-   * @param[in] file input stream file
+   * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
    */
-  void read(std::ifstream &file) override{};
+  void forwarding(RunLayerContext &context, bool training) override;
 
   /**
-   * @brief     Save Weight & Bias Data to file
-   * @param[in] file output stream file
+   * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
-  void save(std::ofstream &file) override{};
+  void calcDerivative(RunLayerContext &context) override;
 
   /**
-   * @copydoc Layer::forwarding(bool training)
+   * @copydoc Layer::exportTo(Exporter &exporter, ExportMethods method)
    */
-  void forwarding(bool training = true) override;
-
-  /**
-   * @copydoc Layer::calcDerivative()
-   */
-  void calcDerivative() override;
-
-  /**
-   * @copydoc Layer::supportInPlace()
-   */
-  bool supportInPlace() const override { return true; }
-
-  /**
-   * @copydoc Layer::setProperty(std::vector<std::string> values)
-   */
-  int setProperty(std::vector<std::string> values) override;
-
-  /**
-   * @copydoc Layer::export_to(Exporter &exporter, ExportMethods method)
-   */
-  void export_to(
-    Exporter &exporter,
-    ExportMethods method = ExportMethods::METHOD_STRINGVECTOR) const override{};
+  void exportTo(Exporter &exporter,
+                const ExportMethods &method) const override {}
 
   /**
    * @copydoc Layer::getType()
    */
   const std::string getType() const override { return DropOutLayer::type; };
 
+  /**
+   * @copydoc Layer::supportBackwarding()
+   */
+  bool supportBackwarding() const { return true; }
+
+  /**
+   * @copydoc Layer::setProperty(const PropertyType type, const std::string
+   * &value)
+   */
+  void setProperty(const std::vector<std::string> &values) override;
+
+  /**
+   * @copydoc Layer::supportInPlace()
+   *
+   * @todo Enable in-place support once supported by manager
+   */
+  bool supportInPlace() const override { return false; }
+
   inline static const std::string type = "dropout";
 
 private:
   std::tuple<props::DropOutSpec> dropout_rate;
-  std::vector<std::shared_ptr<Tensor>> mask;
+  std::vector<unsigned int> mask_idx;
 };
 
 } // namespace nntrainer

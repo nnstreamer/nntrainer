@@ -33,10 +33,10 @@
 #include <bn_layer.h>
 #include <concat_layer.h>
 #include <conv2d_layer.h>
-#include <dropout.h>
 #include <cross_entropy_loss_layer.h>
 #include <cross_entropy_sigmoid_loss_layer.h>
 #include <cross_entropy_softmax_loss_layer.h>
+#include <dropout.h>
 #include <embedding.h>
 #include <fc_layer.h>
 #include <flatten_layer.h>

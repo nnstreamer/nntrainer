@@ -39,7 +39,7 @@ public:
     hidden_state_activation_type(hidden_state_activation_type_),
     acti_func(hidden_state_activation_type, true),
     return_sequences(ret_sequence),
-    dropout_rate(dropout){}
+    dropout_rate(dropout) {}
 
   /**
    * @brief     Destructor of RNNLayer
