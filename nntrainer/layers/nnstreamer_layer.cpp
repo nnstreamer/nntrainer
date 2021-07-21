@@ -93,7 +93,9 @@ void NNStreamerLayer::finalizeError(int status) {
     single = nullptr;
   }
 
-  throw std::invalid_argument("[NNStreamerLayer] Finalizing the layer failed.");
+  if (status != ML_ERROR_NONE)
+    throw std::invalid_argument(
+      "[NNStreamerLayer] Finalizing the layer failed.");
 }
 
 void NNStreamerLayer::finalize(InitLayerContext &context) {

@@ -242,19 +242,19 @@ public:
    *
    * @return boolean true if trainable, else false
    */
-  bool getTrainable() const noexcept;
+  bool getTrainable() const;
 
   /**
    * @brief     get if the output of this layer must be flatten
    * @retval    flatten value
    */
-  bool getFlatten() const noexcept;
+  bool getFlatten() const;
 
   /**
    * @brief     get distribute for this layer
    * @retval dist to enable/disable distribute
    */
-  bool getDistribute() const noexcept;
+  bool getDistribute() const;
 
   /**
    * @brief     get activation for this layer
