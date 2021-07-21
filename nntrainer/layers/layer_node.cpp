@@ -246,11 +246,11 @@ void LayerNode::setActivation(ActivationType activation) {
 
 const std::string LayerNode::getType() const { return getLayer()->getType(); }
 
-bool LayerNode::getTrainable() const noexcept {
+bool LayerNode::getTrainable() const {
   return std::get<props::Trainable>(*layer_node_props);
 }
 
-bool LayerNode::getFlatten() const noexcept {
+bool LayerNode::getFlatten() const {
   auto &flatten = std::get<props::Flatten>(*layer_node_props);
   if (flatten.empty()) {
     return false;
@@ -258,7 +258,7 @@ bool LayerNode::getFlatten() const noexcept {
   return flatten.get();
 }
 
-bool LayerNode::getDistribute() const noexcept {
+bool LayerNode::getDistribute() const {
   auto &distribute = std::get<props::Distribute>(*layer_node_props);
   if (distribute.empty()) {
     return false;

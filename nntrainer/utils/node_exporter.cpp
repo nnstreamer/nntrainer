@@ -24,7 +24,7 @@ namespace nntrainer {
  * @brief Construct a new Exporter object
  *
  */
-Exporter::Exporter() : stored_result(nullptr), is_exported(false){};
+Exporter::Exporter() : stored_result(nullptr), is_exported(false) {}
 
 /**
  * @brief Destroy the Exporter object
