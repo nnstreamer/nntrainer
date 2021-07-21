@@ -968,6 +968,122 @@ int ml_train_dataset_destroy(ml_train_dataset_h dataset) {
   return status;
 }
 
+int ml_train_model_get_input_tensors_info(ml_train_model_h model,
+                                          ml_tensors_info_h *info) {
+  int status = ML_ERROR_NONE;
+  ml_train_model *nnmodel;
+  std::shared_ptr<ml::train::Model> m;
+  returnable f;
+
+  check_feature_state();
+
+  if (!info) {
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
+  ML_TRAIN_GET_VALID_MODEL_LOCKED(nnmodel, model);
+  ML_TRAIN_ADOPT_LOCK(nnmodel, model_lock);
+  m = nnmodel->model;
+  if (m == NULL) {
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
+  std::vector<ml::train::TensorDim> dims;
+  f = [&]() {
+    dims = m->getInputDimension();
+    return ML_ERROR_NONE;
+  };
+  status = nntrainer_exception_boundary(f);
+  if (status != ML_ERROR_NONE) {
+    return status;
+  }
+
+  status = ml_tensors_info_create(info);
+  if (status != ML_ERROR_NONE) {
+    return status;
+  }
+
+  status = ml_tensors_info_set_count(*info, dims.size());
+  if (status != ML_ERROR_NONE) {
+    ml_tensors_info_destroy(info);
+    return status;
+  }
+
+  for (unsigned int i = 0; i < dims.size(); ++i) {
+    status = ml_tensors_info_set_tensor_type(*info, i, ML_TENSOR_TYPE_FLOAT32);
+    if (status != ML_ERROR_NONE) {
+      ml_tensors_info_destroy(info);
+      return status;
+    }
+
+    status = ml_tensors_info_set_tensor_dimension(*info, i, dims[i].getDim());
+    if (status != ML_ERROR_NONE) {
+      ml_tensors_info_destroy(info);
+      return status;
+    }
+  }
+
+  return status;
+}
+
+int ml_train_model_get_output_tensors_info(ml_train_model_h model,
+                                           ml_tensors_info_h *info) {
+  int status = ML_ERROR_NONE;
+  ml_train_model *nnmodel;
+  std::shared_ptr<ml::train::Model> m;
+  returnable f;
+
+  check_feature_state();
+
+  if (!info) {
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
+  ML_TRAIN_GET_VALID_MODEL_LOCKED(nnmodel, model);
+  ML_TRAIN_ADOPT_LOCK(nnmodel, model_lock);
+  m = nnmodel->model;
+  if (m == NULL) {
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
+  std::vector<ml::train::TensorDim> dims;
+  f = [&]() {
+    dims = m->getOutputDimension();
+    return ML_ERROR_NONE;
+  };
+  status = nntrainer_exception_boundary(f);
+  if (status != ML_ERROR_NONE) {
+    return status;
+  }
+
+  status = ml_tensors_info_create(info);
+  if (status != ML_ERROR_NONE) {
+    return status;
+  }
+
+  status = ml_tensors_info_set_count(*info, dims.size());
+  if (status != ML_ERROR_NONE) {
+    ml_tensors_info_destroy(info);
+    return status;
+  }
+
+  for (unsigned int i = 0; i < dims.size(); ++i) {
+    status = ml_tensors_info_set_tensor_type(*info, i, ML_TENSOR_TYPE_FLOAT32);
+    if (status != ML_ERROR_NONE) {
+      ml_tensors_info_destroy(info);
+      return status;
+    }
+
+    status = ml_tensors_info_set_tensor_dimension(*info, i, dims[i].getDim());
+    if (status != ML_ERROR_NONE) {
+      ml_tensors_info_destroy(info);
+      return status;
+    }
+  }
+
+  return status;
+}
+
 #ifdef __cplusplus
 }
 #endif

@@ -968,6 +968,236 @@ TEST(nntrainer_capi_summary, summary_02_n) {
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
+TEST(nntrainer_capi_nnmodel, get_input_output_dimension_01_p) {
+  ml_train_model_h handle = NULL;
+  ml_tensors_info_h input_info, output_info;
+
+  unsigned int input_count, output_count;
+  const unsigned int MAXDIM = 4;
+  unsigned int input_dim_expected[MAXDIM] = {32, 1, 1, 62720};
+  unsigned int output_dim_expected[MAXDIM] = {32, 1, 1, 10};
+  unsigned int dim[MAXDIM];
+
+  int status = ML_ERROR_NONE;
+
+  ScopedIni s("test_get_input_dimension_01_p",
+              {model_base, optimizer, dataset, inputlayer, outputlayer});
+  status = ml_train_model_construct_with_conf(s.getIniName().c_str(), &handle);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = ml_train_model_compile(handle, NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_model_get_input_tensors_info(handle, &input_info);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_tensors_info_get_count(input_info, &input_count);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  EXPECT_EQ(input_count, 1ul);
+
+  ml_tensors_info_get_tensor_dimension(input_info, 0, dim);
+  for (unsigned int i = 0; i < MAXDIM; ++i) {
+    EXPECT_EQ(dim[i], input_dim_expected[i]);
+  }
+
+  status = ml_train_model_get_output_tensors_info(handle, &output_info);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_tensors_info_get_count(output_info, &output_count);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  EXPECT_EQ(output_count, 1ul);
+
+  ml_tensors_info_get_tensor_dimension(output_info, 0, dim);
+  for (unsigned int i = 0; i < MAXDIM; ++i) {
+    EXPECT_EQ(dim[i], output_dim_expected[i]);
+  }
+
+  status = ml_tensors_info_destroy(input_info);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = ml_tensors_info_destroy(output_info);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_model_destroy(handle);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+TEST(nntrainer_capi_nnmodel, get_input_output_dimension_02_p) {
+  ml_train_model_h handle = NULL;
+  ml_tensors_info_h input_info, output_info;
+
+  unsigned int input_count, output_count;
+  const unsigned int MAXDIM = 4;
+  unsigned int input_dim_expected[MAXDIM] = {32, 1, 1, 62720};
+  unsigned int output_dim_expected[MAXDIM] = {32, 1, 1, 10};
+  unsigned int dim[MAXDIM];
+
+  int status = ML_ERROR_NONE;
+
+  ScopedIni s("test_get_input_dimension_02_p",
+              {model_base, optimizer, dataset, inputlayer, outputlayer});
+  status = ml_train_model_construct_with_conf(s.getIniName().c_str(), &handle);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = ml_train_model_compile(handle, NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_model_get_input_tensors_info(handle, &input_info);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_model_get_output_tensors_info(handle, &output_info);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_model_destroy(handle);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_tensors_info_get_count(input_info, &input_count);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  EXPECT_EQ(input_count, 1ul);
+
+  ml_tensors_info_get_tensor_dimension(input_info, 0, dim);
+  for (unsigned int i = 0; i < MAXDIM; ++i) {
+    EXPECT_EQ(dim[i], input_dim_expected[i]);
+  }
+
+  status = ml_tensors_info_get_count(output_info, &output_count);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  EXPECT_EQ(output_count, 1ul);
+
+  ml_tensors_info_get_tensor_dimension(output_info, 0, dim);
+  for (unsigned int i = 0; i < MAXDIM; ++i) {
+    EXPECT_EQ(dim[i], output_dim_expected[i]);
+  }
+
+  status = ml_tensors_info_destroy(input_info);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = ml_tensors_info_destroy(output_info);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+TEST(nntrainer_capi_nnmodel, get_input_output_dimension_03_n) {
+  ml_train_model_h handle = NULL;
+  ml_tensors_info_h input_info, output_info;
+
+  int status = ML_ERROR_NONE;
+
+  ScopedIni s("test_get_input_dimension_03_n",
+              {model_base, optimizer, dataset, inputlayer, outputlayer});
+  status = ml_train_model_construct_with_conf(s.getIniName().c_str(), &handle);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  EXPECT_THROW(ml_train_model_get_input_tensors_info(handle, &input_info),
+               std::invalid_argument);
+  EXPECT_THROW(ml_train_model_get_output_tensors_info(handle, &output_info),
+               std::invalid_argument);
+
+  status = ml_tensors_info_destroy(input_info);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = ml_tensors_info_destroy(output_info);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+TEST(nntrainer_capi_nnmodel, get_input_output_dimension_04_n) {
+  ml_train_model_h handle = NULL;
+  ml_tensors_info_h input_info, output_info;
+
+  int status = ML_ERROR_NONE;
+
+  EXPECT_EQ(ml_train_model_get_input_tensors_info(handle, &input_info),
+            ML_ERROR_INVALID_PARAMETER);
+  EXPECT_EQ(ml_train_model_get_output_tensors_info(handle, &output_info),
+            ML_ERROR_INVALID_PARAMETER);
+
+  status = ml_tensors_info_destroy(input_info);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = ml_tensors_info_destroy(output_info);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+TEST(nntrainer_capi_nnmodel, get_input_output_dimension_05_n) {
+  ml_train_model_h handle = NULL;
+  ml_tensors_info_h input_info, output_info;
+
+  int status = ML_ERROR_NONE;
+
+  ScopedIni s("test_get_input_dimension_05_n",
+              {model_base, optimizer, dataset, inputlayer, outputlayer});
+  status = ml_train_model_construct_with_conf(s.getIniName().c_str(), &handle);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = ml_train_model_compile(handle, NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_model_destroy(handle);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  EXPECT_EQ(ml_train_model_get_input_tensors_info(handle, &input_info),
+            ML_ERROR_INVALID_PARAMETER);
+  EXPECT_EQ(ml_train_model_get_output_tensors_info(handle, &output_info),
+            ML_ERROR_INVALID_PARAMETER);
+
+  status = ml_tensors_info_destroy(input_info);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = ml_tensors_info_destroy(output_info);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
+TEST(nntrainer_capi_nnmodel, get_input_output_dimension_06_n) {
+  ml_train_model_h handle = NULL;
+  ml_tensors_info_h input_info, output_info;
+
+  unsigned int input_count, output_count;
+  const unsigned int MAXDIM = 4;
+  unsigned int input_dim_expected[MAXDIM] = {32, 1, 1, 62720};
+  unsigned int output_dim_expected[MAXDIM] = {32, 1, 1, 10};
+  unsigned int dim[MAXDIM];
+
+  int status = ML_ERROR_NONE;
+
+  ScopedIni s("test_get_input_dimension_06_n",
+              {model_base, optimizer, dataset, inputlayer, outputlayer});
+  status = ml_train_model_construct_with_conf(s.getIniName().c_str(), &handle);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = ml_train_model_compile(handle, NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_model_get_input_tensors_info(handle, &input_info);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_tensors_info_get_count(input_info, &input_count);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  EXPECT_EQ(input_count, 1ul);
+
+  ml_tensors_info_get_tensor_dimension(input_info, 0, dim);
+  for (unsigned int i = 0; i < MAXDIM; ++i) {
+    EXPECT_NE(dim[i], input_dim_expected[i] - 1);
+    EXPECT_NE(dim[i], input_dim_expected[i] + 1);
+  }
+
+  status = ml_train_model_get_output_tensors_info(handle, &output_info);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_tensors_info_get_count(output_info, &output_count);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  EXPECT_EQ(output_count, 1ul);
+
+  ml_tensors_info_get_tensor_dimension(output_info, 0, dim);
+  for (unsigned int i = 0; i < MAXDIM; ++i) {
+    EXPECT_NE(dim[i], output_dim_expected[i] - 1);
+    EXPECT_NE(dim[i], output_dim_expected[i] + 1);
+  }
+
+  status = ml_tensors_info_destroy(input_info);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+  status = ml_tensors_info_destroy(output_info);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_model_destroy(handle);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+}
+
 /**
  * @brief Main gtest
  */

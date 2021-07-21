@@ -93,7 +93,9 @@ DataProducer::Gernerator
 RandomDataOneHotProducer::finalize(const std::vector<TensorDim> &input_dims,
                                    const std::vector<TensorDim> &label_dims) {
   /** check if the given producer is ready to finalize */
-  auto &[min_, max_, _] = *rd_one_hot_props;
+  nntrainer::PropsMin min_;
+  nntrainer::PropsMax max_;
+  std::tie(min_, max_, std::ignore) = *rd_one_hot_props;
 
   /// @todo expand this to non onehot case
   NNTR_THROW_IF(std::any_of(label_dims.begin(), label_dims.end(),

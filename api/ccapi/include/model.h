@@ -27,6 +27,7 @@
 #include <dataset.h>
 #include <layer.h>
 #include <optimizer.h>
+#include <tensor_dim.h>
 
 /** Define more aliases for the model in the API */
 namespace ml {
@@ -184,18 +185,17 @@ public:
    */
   virtual int getLayer(const char *name, std::shared_ptr<Layer> *layer) = 0;
 
-  /// @todo uncomment this by opening TensorDim
   /**
    * @brief     get input dimension of a model
-   * @retval std::vector<TensorDim> input dimension
+   * @retval    std::vector<ml::train::TensorDim> input dimension
    */
-  // virtual std::vector<TensorDim> getInputDimension() = 0;
+  virtual std::vector<ml::train::TensorDim> getInputDimension() = 0;
 
   /**
    * @brief     get output dimension of a model
-   * @retval std::vector<TensorDim> output dimension
+   * @retval    std::vector<ml::train::TensorDim> output dimension
    */
-  // virtual std::vector<TensorDim> getOutputDimension() = 0;
+  virtual std::vector<ml::train::TensorDim> getOutputDimension() = 0;
 
   /**
    * @brief     Summarize the model
