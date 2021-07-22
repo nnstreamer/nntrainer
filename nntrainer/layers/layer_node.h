@@ -238,9 +238,7 @@ public:
    *
    * @return boolean true if trainable, else false
    */
-  bool supportBackwarding() const noexcept {
-    return getLayer()->supportBackwarding();
-  }
+  bool supportBackwarding() const { return getLayer()->supportBackwarding(); }
 
   /**
    * Support interfaces for the properties intercepted from layer
@@ -269,7 +267,7 @@ public:
    * @brief     get activation for this layer
    * @retval dist to enable/disable distribute
    */
-  ActivationType getActivationToBeRealized() const noexcept;
+  ActivationType getActivationToBeRealized() const;
 
   /**
    * @brief     Activation Type Getter
