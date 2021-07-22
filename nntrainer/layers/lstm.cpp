@@ -24,7 +24,15 @@ namespace nntrainer {
 
 static constexpr size_t SINGLE_INOUT_IDX = 0;
 
-enum LSTMParams { weight_xh, weight_hh, bias_h, hidden_state, mem_cell, fgio };
+enum LSTMParams {
+  weight_xh,
+  weight_hh,
+  bias_h,
+  hidden_state,
+  mem_cell,
+  fgio,
+  dropout_mask
+};
 
 #define NUM_GATE 4
 
@@ -51,6 +59,11 @@ void LSTMLayer::finalize(InitLayerContext &context) {
   //      output_dim = [ batch, 1, time_iteration, hidden_size ( unit ) ]
   output_dim = input_dim;
   output_dim.width(unit);
+
+  if (dropout_rate > epsilon) {
+    wt_idx[LSTMParams::dropout_mask] = context.requestTensor(
+      output_dim, "LSTM:dropout_mask", true, ITERATION_LIFESPAN);
+  }
 
   if (!return_sequences) {
     output_dim.height(1);
@@ -195,10 +208,6 @@ void LSTMLayer::forwarding(RunLayerContext &context, bool training) {
       Tensor xs =
         islice.getSharedDataTensor({islice.width()}, t * islice.width());
 
-      if (dropout_rate > 0.0 && training) {
-        xs.multiply_i(xs.dropout_mask(dropout_rate));
-      }
-
       Tensor hs =
         oslice.getSharedDataTensor({oslice.width()}, t * oslice.width());
       Tensor cs = cell.getSharedDataTensor({cell.width()}, t * cell.width());
@@ -233,6 +242,15 @@ void LSTMLayer::forwarding(RunLayerContext &context, bool training) {
 
       acti_func.run_fn(cs, hs);
       hs.multiply_i(ho);
+
+      if (dropout_rate > epsilon && training) {
+        Tensor mask_ = context.getTensor(wt_idx[LSTMParams::dropout_mask])
+                         .getBatchSlice(b, 1);
+        Tensor msk =
+          mask_.getSharedDataTensor({mask_.width()}, t * mask_.width());
+        msk = hs.dropout_mask(dropout_rate);
+        hs.multiply_i(msk);
+      }
     }
   }
 
@@ -296,6 +314,10 @@ void LSTMLayer::calcGradient(RunLayerContext &context) {
     std::copy(incoming_deriv.getData(),
               incoming_deriv.getData() + incoming_deriv.length(),
               derivative_.getData());
+  }
+
+  if (dropout_rate > epsilon) {
+    derivative_.multiply_i(context.getTensor(wt_idx[LSTMParams::dropout_mask]));
   }
 
   Tensor dh_nx = Tensor(derivative_.width());
