@@ -122,10 +122,10 @@ RandomDataOneHotProducer::finalize(const std::vector<TensorDim> &input_dims,
 
   std::mt19937 rng;
   rng.seed(getSeed());
-
+  sz = size(input_dims, input_dims);
   /** DataProducer::Generator */
-  return [rng, sz = size(input_dims, input_dims), input_dims, label_dims,
-          min_ = min_.get(), max_ = max_.get(), current_iteration = 0ULL,
+  return [rng, sz, input_dims, label_dims, min_ = min_.get(), max_ = max_.get(),
+          current_iteration = 0ULL,
           label_chooser = std::move(label_chooser_)]() mutable {
     if (current_iteration++ == sz) {
       current_iteration = 0;
