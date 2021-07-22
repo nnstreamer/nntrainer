@@ -32,7 +32,8 @@ public:
    */
   DropOutLayer(float dropout = 0.0) :
     Layer(),
-    dropout_rate(props::DropOutSpec(dropout)) {}
+    dropout_rate(props::DropOutSpec(dropout)),
+    epsilon(1e-3) {}
 
   /**
    * @brief     Destructor of DropOut Layer
@@ -100,6 +101,7 @@ public:
 private:
   std::tuple<props::DropOutSpec> dropout_rate;
   std::vector<unsigned int> mask_idx;
+  float epsilon;
 };
 
 } // namespace nntrainer

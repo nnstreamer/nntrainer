@@ -30,7 +30,7 @@ static constexpr size_t SINGLE_INOUT_IDX = 0;
 //  : [1, 1, unit (hidden_size) , unit (hidden_size)]
 // - bias_h ( hidden bias )
 //  : [1, 1, 1, unit (hidden_size)]
-enum RNNParams { weight_xh, weight_hh, bias_h, hidden_state };
+enum RNNParams { weight_xh, weight_hh, bias_h, hidden_state, dropout_mask };
 
 void RNNLayer::finalize(InitLayerContext &context) {
   auto unit = std::get<props::Unit>(props).get();
@@ -46,6 +46,11 @@ void RNNLayer::finalize(InitLayerContext &context) {
   // outut_dim = [ batch, 1, time_iteration, hidden_size ( unit ) ]
   output_dim = input_dim;
   output_dim.width(unit);
+
+  if (dropout_rate > epsilon) {
+    wt_idx[RNNParams::dropout_mask] = context.requestTensor(
+      output_dim, "RNN:dropout_mask", true, ITERATION_LIFESPAN);
+  }
 
   if (!return_sequences) {
     output_dim.height(1u);
@@ -172,10 +177,6 @@ void RNNLayer::forwarding(RunLayerContext &context, bool training) {
       Tensor hs =
         oslice.getSharedDataTensor({oslice.width()}, t * oslice.width());
 
-      if (dropout_rate > 0.0 && training) {
-        xs.multiply_i(xs.dropout_mask(dropout_rate));
-      }
-
       xs.dot(weight_xh, hs);
       hs.add_i(bias_h);
 
@@ -187,6 +188,15 @@ void RNNLayer::forwarding(RunLayerContext &context, bool training) {
 
       // In-place calculation for activation
       acti_func.run_fn(hs, hs);
+
+      if (dropout_rate > epsilon && training) {
+        Tensor mask_ = context.getTensor(wt_idx[RNNParams::dropout_mask])
+                         .getBatchSlice(b, 1);
+        Tensor msk =
+          mask_.getSharedDataTensor({mask_.width()}, t * mask_.width());
+        msk = hs.dropout_mask(dropout_rate);
+        hs.multiply_i(msk);
+      }
     }
   }
 
@@ -238,6 +248,10 @@ void RNNLayer::calcGradient(RunLayerContext &context) {
     }
   } else {
     derivative_.copy(incoming_deriv);
+  }
+
+  if (dropout_rate > epsilon) {
+    derivative_.multiply_i(context.getTensor(wt_idx[RNNParams::dropout_mask]));
   }
 
   Tensor &hidden_ = context.getTensor(wt_idx[RNNParams::hidden_state]);

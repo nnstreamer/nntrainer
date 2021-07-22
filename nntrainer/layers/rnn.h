@@ -39,7 +39,8 @@ public:
     hidden_state_activation_type(hidden_state_activation_type_),
     acti_func(hidden_state_activation_type, true),
     return_sequences(ret_sequence),
-    dropout_rate(dropout) {}
+    dropout_rate(dropout),
+    epsilon(1e-3) {}
 
   /**
    * @brief     Destructor of RNNLayer
@@ -104,7 +105,7 @@ public:
 private:
   std::tuple<props::Unit>
     props; /**< rnn layer properties : unit - number of output neurons */
-  std::array<unsigned int, 4> wt_idx; /**< indices of the weights */
+  std::array<unsigned int, 5> wt_idx; /**< indices of the weights */
 
   /**
    * @brief     activation type for recurrent : default is tanh
@@ -125,6 +126,8 @@ private:
    * @brief     drop out rate
    */
   float dropout_rate;
+
+  float epsilon;
 
   /**
    * @brief setProperty by type and value separated
