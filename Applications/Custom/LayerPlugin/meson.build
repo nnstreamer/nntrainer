@@ -18,6 +18,16 @@ mae_loss_layer  = shared_library('mae_loss_layer',
   cpp_args: '-DPLUGGABLE'
 )
 
+# build command for librnnt_loss_layer.so
+rnnt_loss_layer  = shared_library('rnnt_loss_layer',
+  layer_example_rnnt_src,
+  dependencies: [nntrainer_dep, nntrainer_ccapi_dep],
+  include_directories: layer_example_inc,
+  install: true,
+  install_dir: application_install_dir,
+  cpp_args: '-DPLUGGABLE'
+)
+
 pow_layer_dep = declare_dependency(
   link_with: pow_layer,
   include_directories: layer_example_inc
@@ -28,11 +38,17 @@ mae_loss_layer_dep = declare_dependency(
   include_directories: layer_example_inc
   )
 
+rnnt_loss_layer_dep = declare_dependency(
+  link_with: rnnt_loss_layer,
+  include_directories: layer_example_inc
+  )
+
 if get_option('enable-test')
   test_target = [
     'layer_plugin_common_test.cpp',
     'layer_plugin_pow_test.cpp',
     'layer_plugin_mae_loss_test.cpp',
+    'layer_plugin_rnnt_loss_test.cpp'
   ]
 
   exe = executable(
@@ -44,6 +60,7 @@ if get_option('enable-test')
     nntrainer_testutil_dep,
     pow_layer_dep,
     mae_loss_layer_dep,
+    rnnt_loss_layer_dep,    
     nntrainer_layer_common_standalone_tests_dep
   ],
   install: get_option('enable-test'),
