@@ -62,7 +62,13 @@ int NNStreamerLayer::nnst_info_to_tensor_dim(ml_tensors_info_h &out_res,
   return status;
 }
 
-NNStreamerLayer::~NNStreamerLayer() { finalizeError(ML_ERROR_NONE); }
+NNStreamerLayer::~NNStreamerLayer() {
+  try {
+    finalizeError(ML_ERROR_NONE);
+  } catch (std::exception &e) {
+    std::cerr << "failed in destructor, reason: " << e.what();
+  }
+}
 
 void NNStreamerLayer::finalizeError(int status) {
   if (status == ML_ERROR_NONE)

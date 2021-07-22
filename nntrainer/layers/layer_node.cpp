@@ -230,7 +230,7 @@ std::ostream &operator<<(std::ostream &out, const LayerNode &l) {
 
 ActivationType LayerNode::getActivationType() const { return activation_type; }
 
-ActivationType LayerNode::getActivationToBeRealized() const noexcept {
+ActivationType LayerNode::getActivationToBeRealized() const {
   if (getType() == ActivationLayer::type)
     return ActivationType::ACT_NONE;
   else
