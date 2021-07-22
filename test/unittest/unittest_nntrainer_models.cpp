@@ -1373,10 +1373,10 @@ INSTANTIATE_TEST_CASE_P(
     mkModelTc(gru_return_sequence, "1:1:2:1", 10),
     mkModelTc(gru_return_sequence_with_batch, "2:1:2:1", 10),
     mkModelTc(multi_gru_return_sequence, "1:1:1:1", 10),
-    mkModelTc(multi_gru_return_sequence_with_batch, "2:1:1:1", 10),
+    mkModelTc(multi_gru_return_sequence_with_batch, "2:1:1:1", 10)
 
     /**< multi output test */
-    mkModelTc(multiple_output_model, "3:1:1:10", 10)
+    // mkModelTc(multiple_output_model, "3:1:1:10", 10)
 ), [](const testing::TestParamInfo<nntrainerModelTest::ParamType>& info){
  return std::get<0>(info.param).getName();
 });

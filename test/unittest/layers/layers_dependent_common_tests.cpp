@@ -54,11 +54,11 @@ TEST_P(LayerSemantics, finalizeValidateLayerNode_p) {
               init_context.getNumOutputs());
 
     for (auto const &dim : init_context.getOutputDimensions())
-      EXPECT_GT(dim.getDataLen(), 0);
+      EXPECT_GT(dim.getDataLen(), size_t(0));
     for (auto const &ws : init_context.getWeightsSpec())
-      EXPECT_GT(std::get<0>(ws).getDataLen(), 0);
+      EXPECT_GT(std::get<0>(ws).getDataLen(), size_t(0));
     for (auto const &ts : init_context.getTensorsSpec())
-      EXPECT_GT(std::get<0>(ts).getDataLen(), 0);
+      EXPECT_GT(std::get<0>(ts).getDataLen(), size_t(0));
   } else {
     EXPECT_THROW(lnode->finalize(), nntrainer::exception::not_supported);
   }
@@ -69,7 +69,7 @@ TEST_P(LayerSemantics, getTypeValidateLayerNode_p) {
   std::string type;
 
   EXPECT_NO_THROW(type = lnode->getType());
-  EXPECT_GT(type.size(), 0);
+  EXPECT_GT(type.size(), size_t(0));
 }
 
 TEST_P(LayerSemantics, gettersValidateLayerNode_p) {

@@ -58,8 +58,8 @@ TEST_P(LayerPluginCommonTest, DefaultEnvironmentPath_p) {
   }
 
   EXPECT_THROW(lnode->setProperty({"invalid_values"}), std::invalid_argument);
-  EXPECT_EQ(lnode->getOutputDimensions().size(), 0);
-  EXPECT_EQ(lnode->getInputDimensions().size(), 0);
+  EXPECT_EQ(lnode->getOutputDimensions().size(), size_t(0));
+  EXPECT_EQ(lnode->getInputDimensions().size(), size_t(0));
 }
 
 TEST_P(LayerPluginCommonTest, DefaultEnvironmentPathLayerNotExist_n) {
