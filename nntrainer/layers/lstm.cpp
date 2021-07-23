@@ -62,7 +62,7 @@ void LSTMLayer::finalize(InitLayerContext &context) {
 
   if (dropout_rate > epsilon) {
     wt_idx[LSTMParams::dropout_mask] = context.requestTensor(
-      output_dim, "LSTM:dropout_mask", true, ITERATION_LIFESPAN);
+      output_dim, "LSTM:dropout_mask", false, ITERATION_LIFESPAN);
   }
 
   if (!return_sequences) {

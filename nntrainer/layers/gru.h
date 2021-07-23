@@ -42,7 +42,8 @@ public:
     recurrent_activation_type(recurrent_activation_type_),
     recurrent_acti_func(recurrent_activation_type, true),
     return_sequences(sequence),
-    dropout_rate(dropout) {}
+    dropout_rate(dropout),
+    epsilon(1e-3) {}
 
   /**
    * @brief     Destructor of GRULayer
@@ -107,7 +108,7 @@ public:
 private:
   std::tuple<props::Unit>
     props; /**< lstm layer properties : unit - number of output neurons */
-  std::array<unsigned int, 6> wt_idx; /**< indices of the weights */
+  std::array<unsigned int, 7> wt_idx; /**< indices of the weights */
 
   /**
    * @brief     activation type for hidden state : default is sigmoid
@@ -138,6 +139,11 @@ private:
    * @brief     drop out rate
    */
   float dropout_rate;
+
+  /**
+   * @brief     to pretect overflow
+   */
+  float epsilon;
 
   /**
    * @brief setProperty by type and value separated

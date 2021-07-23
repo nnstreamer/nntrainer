@@ -127,6 +127,9 @@ private:
    */
   float dropout_rate;
 
+  /**
+   * @brief     to pretect overflow
+   */
   float epsilon;
 
   /**
