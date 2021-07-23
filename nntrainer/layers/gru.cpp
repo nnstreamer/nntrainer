@@ -39,7 +39,15 @@ namespace nntrainer {
 
 static constexpr size_t SINGLE_INOUT_IDX = 0;
 
-enum GRUParams { weight_xh, weight_hh, bias_h, hidden_state, zrg, h_prev };
+enum GRUParams {
+  weight_xh,
+  weight_hh,
+  bias_h,
+  hidden_state,
+  zrg,
+  h_prev,
+  dropout_mask
+};
 
 #define NUM_GATE 3
 
@@ -66,6 +74,11 @@ void GRULayer::finalize(InitLayerContext &context) {
   //      output_dim = [ batch, 1, time_iteration, hidden_size ( unit ) ]
   output_dim = input_dim;
   output_dim.width(unit);
+
+  if (dropout_rate > epsilon) {
+    wt_idx[GRUParams::dropout_mask] = context.requestTensor(
+      output_dim, "GRU:dropout_mask", false, ITERATION_LIFESPAN);
+  }
 
   if (!return_sequences) {
     output_dim.height(1);
@@ -267,6 +280,15 @@ void GRULayer::forwarding(RunLayerContext &context, bool training) {
       zt.multiply(hs_prev, hs);
       temp = zt.multiply(-1.0).add(1.0);
       hs.add_i(gt.multiply(temp));
+
+      if (dropout_rate > epsilon && training) {
+        Tensor mask_ = context.getTensor(wt_idx[GRUParams::dropout_mask])
+                         .getBatchSlice(b, 1);
+        Tensor msk =
+          mask_.getSharedDataTensor({mask_.width()}, t * mask_.width());
+        msk = hs.dropout_mask(dropout_rate);
+        hs.multiply_i(msk);
+      }
     }
   }
 
@@ -328,6 +350,10 @@ void GRULayer::calcGradient(RunLayerContext &context) {
     }
   } else {
     derivative_.copy(incoming_deriv);
+  }
+
+  if (dropout_rate > epsilon) {
+    derivative_.multiply_i(context.getTensor(wt_idx[GRUParams::dropout_mask]));
   }
 
   Tensor dh_nx = Tensor({derivative_.width()});
