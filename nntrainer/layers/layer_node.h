@@ -33,6 +33,7 @@
 #include <layer.h>
 #include <layer_context.h>
 #include <layer_devel.h>
+#include <weight.h>
 
 namespace nntrainer {
 

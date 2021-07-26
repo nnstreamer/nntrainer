@@ -19,10 +19,13 @@
 #include <common_properties.h>
 #include <tensor.h>
 #include <tensor_dim.h>
-#include <var_grad.h>
-#include <weight.h>
+#include <tensor_wrap_specs.h>
 
 namespace nntrainer {
+
+class Weight;
+class Var_Grad;
+
 /**
  * @brief define the lifespan of the given tensor to reduce peak memory
  *
@@ -162,7 +165,7 @@ public:
    * @todo Consider providing a guarantee that the returned indices will always
    * start from 0 and will always be incremental.
    */
-  unsigned int requestWeight(const Weight::Spec &spec) {
+  unsigned int requestWeight(const WeightSpec &spec) {
     weights_spec.emplace_back(spec);
     return weights_spec.size() - 1;
   }
@@ -190,7 +193,7 @@ public:
    * @brief Specification of the tensors
    *
    */
-  typedef Var_Grad::Spec TensorSpec;
+  typedef VarGradSpec TensorSpec;
 
   /**
    * @brief Request a new tensor for the layer
@@ -211,9 +214,7 @@ public:
    *
    * @return The current weights spec
    */
-  const std::vector<Weight::Spec> &getWeightsSpec() const {
-    return weights_spec;
-  }
+  const std::vector<WeightSpec> &getWeightsSpec() const { return weights_spec; }
 
   /**
    * @brief Get the number of requested weights
@@ -282,7 +283,7 @@ private:
   std::vector<TensorDim> input_dim;  /**< Input dimensions for the layer */
   std::vector<TensorDim> output_dim; /**< Output dimensions for the layer */
 
-  std::vector<Weight::Spec> weights_spec; /**< Specification for the weights */
+  std::vector<WeightSpec> weights_spec; /**< Specification for the weights */
   std::vector<TensorSpec>
     tensors_spec; /**< Specification for the var_grad (trainable/non-trainable
                      variables) */
@@ -343,9 +344,7 @@ public:
    * @param idx Identifier of the weight
    * @return Tensor& Reference to the weight tensor
    */
-  Tensor &getWeight(unsigned int idx) const {
-    return weights[idx]->getVariableRef();
-  }
+  Tensor &getWeight(unsigned int idx) const;
 
   /**
    * @brief Get the Weight Gradient tensor object
@@ -353,12 +352,7 @@ public:
    * @param idx Identifier of the weight
    * @return Tensor& Reference to the weight grad tensor
    */
-  Tensor &getWeightGrad(unsigned int idx) const {
-    if (!weights[idx]->hasGradient())
-      throw std::invalid_argument(
-        "Requesting gradient for a non-trainable weight.");
-    return weights[idx]->getGradientRef();
-  }
+  Tensor &getWeightGrad(unsigned int idx) const;
 
   /**
    * @brief Get the Weight name
@@ -366,9 +360,7 @@ public:
    * @param idx Identifier of the weight
    * @return name of the weight
    */
-  const std::string &getWeightName(unsigned int idx) const {
-    return weights[idx]->getName();
-  }
+  const std::string &getWeightName(unsigned int idx) const;
 
   /**
    * @brief check if the weight has gradient
@@ -376,9 +368,7 @@ public:
    * @param idx Identifier of the weight
    * @return true if weight has gradient, else false
    */
-  bool weightHasGradient(unsigned int idx) const {
-    return weights[idx]->hasGradient();
-  }
+  bool weightHasGradient(unsigned int idx) const;
 
   /**
    * @brief Get the Output tensor object
@@ -386,7 +376,7 @@ public:
    * @param idx Identifier of the output
    * @return Tensor& Reference to the output tensor
    */
-  Tensor &getOutput(unsigned int idx) { return outputs[idx]->getVariableRef(); }
+  Tensor &getOutput(unsigned int idx);
 
   /**
    * @brief Get the Output Grad tensor object
@@ -394,12 +384,7 @@ public:
    * @param idx Identifier of the output
    * @return Tensor& Reference to the output grad tensor
    */
-  Tensor &getOutputGrad(unsigned int idx) {
-    if (!outputs[idx]->hasGradient())
-      throw std::invalid_argument(
-        "Requesting gradient for a non-trainable tensor.");
-    return getOutputGradUnsafe(idx);
-  }
+  Tensor &getOutputGrad(unsigned int idx);
 
   /**
    * @brief Get the Output Grad tensor object
@@ -410,9 +395,7 @@ public:
    * @note recommended to NOT use this function as a layer developer but rather
    * use getOutputGrad().
    */
-  Tensor &getOutputGradUnsafe(unsigned int idx) {
-    return outputs[idx]->getGradientRef();
-  }
+  Tensor &getOutputGradUnsafe(unsigned int idx);
 
   /**
    * @brief Get the incoming Derivative tensor object
@@ -420,7 +403,7 @@ public:
    * @param idx Identifier of the output
    * @return Tensor& Reference to the output derivative tensor
    */
-  Tensor &getIncomingDerivative(unsigned int idx) { return getOutputGrad(idx); }
+  Tensor &getIncomingDerivative(unsigned int idx);
 
   /**
    * @brief Get the Input tensor object
@@ -428,7 +411,7 @@ public:
    * @param idx Identifier of the input
    * @return Tensor& Reference to the input grad tensor
    */
-  Tensor &getInput(unsigned int idx) { return inputs[idx]->getVariableRef(); }
+  Tensor &getInput(unsigned int idx);
 
   /**
    * @brief Get the Input Grad tensor object
@@ -436,12 +419,7 @@ public:
    * @param idx Identifier of the input
    * @return Tensor& Reference to the input grad tensor
    */
-  Tensor &getInputGrad(unsigned int idx) {
-    if (!inputs[idx]->hasGradient())
-      throw std::invalid_argument(
-        "Requesting gradient for a non-trainable tensor.");
-    return inputs[idx]->getGradientRef();
-  }
+  Tensor &getInputGrad(unsigned int idx);
 
   /**
    * @brief Get the outgoing Derivative tensor object
@@ -449,7 +427,7 @@ public:
    * @param idx Identifier of the input
    * @return Tensor& Reference to the input derivative tensor
    */
-  Tensor &getOutgoingDerivative(unsigned int idx) { return getInputGrad(idx); }
+  Tensor &getOutgoingDerivative(unsigned int idx);
 
   /**
    * @brief Get the Tensor object
@@ -457,7 +435,7 @@ public:
    * @param idx Identifier of the tensor
    * @return Tensor& Reference to the tensor
    */
-  Tensor &getTensor(unsigned int idx) { return tensors[idx]->getVariableRef(); }
+  Tensor &getTensor(unsigned int idx);
 
   /**
    * @brief Get the Tensor Grad object
@@ -465,12 +443,7 @@ public:
    * @param idx Identifier of the tensor
    * @return Tensor& Reference to the tensor grad tensor
    */
-  Tensor &getTensorGrad(unsigned int idx) {
-    if (!tensors[idx]->hasGradient())
-      throw std::invalid_argument(
-        "Requesting gradient for a non-trainable tensor.");
-    return tensors[idx]->getGradientRef();
-  }
+  Tensor &getTensorGrad(unsigned int idx);
 
   /**
    * @brief check if the tensor has gradient
@@ -478,9 +451,7 @@ public:
    * @param idx Identifier of the tensor
    * @return true if tensor has gradient, else false
    */
-  bool tensorHasGradient(unsigned int idx) const {
-    return tensors[idx]->hasGradient();
-  }
+  bool tensorHasGradient(unsigned int idx) const;
 
   /**
    * @brief Get the tensor name
@@ -488,9 +459,7 @@ public:
    * @param idx Identifier of the tensor
    * @return name of the tensor
    */
-  const std::string &getTensorName(unsigned int idx) const {
-    return tensors[idx]->getName();
-  }
+  const std::string &getTensorName(unsigned int idx) const;
 
   /**
    * @brief Get the number of Outputs tensor objects
@@ -525,12 +494,7 @@ public:
    *
    * @param batch Update batch size
    */
-  void setBatch(unsigned int batch) {
-    for (auto &vg : inputs)
-      vg->setBatchSize(batch);
-    for (auto &vg : outputs)
-      vg->setBatchSize(batch);
-  }
+  void setBatch(unsigned int batch);
 
   /**
    * @brief Update the dimensions for a requested tensor
@@ -538,9 +502,7 @@ public:
    * @param idx index of the tensor (identifier)
    * @param batch Updated batch size
    */
-  void updateTensor(unsigned int idx, unsigned int batch) {
-    tensors[idx]->setBatchSize(batch);
-  }
+  void updateTensor(unsigned int idx, unsigned int batch);
 
   /**
    * @brief   Get weight object for the weights
@@ -548,7 +510,7 @@ public:
    * @param idx index of the weight (identifier)
    * @return weight object
    */
-  Weight &getWeightObject(unsigned int idx) { return *weights[idx]; }
+  Weight &getWeightObject(unsigned int idx);
 
   /**
    * @brief   check if the label is available
@@ -556,9 +518,7 @@ public:
    * @param idx Identifier of the input
    * @return true if label is available else false
    */
-  bool isLabelAvailable(unsigned int idx) const {
-    return !outputs[idx]->getGradientRef().uninitialized();
-  }
+  bool isLabelAvailable(unsigned int idx) const;
 
   /**
    * @brief   Get label tensor
@@ -566,12 +526,7 @@ public:
    * @param idx Identifier of the input
    * @return Tensor& Reference to the label tensor
    */
-  Tensor &getLabel(unsigned int idx) {
-    if (isLabelAvailable(idx))
-      return outputs[idx]->getGradientRef();
-    else
-      throw std::invalid_argument("Request tensor which does not exist");
-  }
+  Tensor &getLabel(unsigned int idx);
 
   /**
    * @brief   update loss by the layer
@@ -615,16 +570,7 @@ public:
    *
    * @return true if ready, else false
    */
-  bool readyToUse() const {
-    /**
-     * assumption:
-     * 1. there must be atleast 1 input
-     * 2. the setter set everything at once
-     */
-    if (inputs.empty())
-      return false;
-    return !inputs[0]->getVariable().uninitialized();
-  }
+  bool readyToUse() const;
 
 private:
   std::tuple<props::Name> props; /**< props of the layer */
@@ -641,12 +587,7 @@ private:
    * @param idx Identifier of the weight
    * @return float Value of the loss
    */
-  float getWeightRegularizationLoss(unsigned int idx) const {
-    if (weights[idx]->hasGradient())
-      return weights[idx]->getRegularizationLoss();
-
-    return 0;
-  }
+  float getWeightRegularizationLoss(unsigned int idx) const;
 };
 
 } // namespace nntrainer

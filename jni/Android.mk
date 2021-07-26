@@ -140,6 +140,7 @@ NNTRAINER_SRCS := $(NNTRAINER_ROOT)/nntrainer/models/neuralnet.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/tensor/tensor_dim.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/tensor/blas_interface.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/layer_node.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/layers/layer_context.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/input_layer.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/multiout_layer.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/fc_layer.cpp \
@@ -173,7 +174,6 @@ NNTRAINER_SRCS := $(NNTRAINER_ROOT)/nntrainer/models/neuralnet.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/optimizers/optimizer_impl.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/optimizers/adam.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/optimizers/sgd.cpp \
-                  $(NNTRAINER_ROOT)/nntrainer/optimizers/optimizer_factory.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/utils/util_func.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/utils/ini_wrapper.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/utils/parse_util.cpp \

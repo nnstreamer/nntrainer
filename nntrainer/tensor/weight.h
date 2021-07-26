@@ -17,33 +17,10 @@
 #include <tuple>
 
 #include <tensor.h>
+#include <tensor_wrap_specs.h>
 #include <var_grad.h>
 
 namespace nntrainer {
-
-/**
- * @brief     Enumeration of Weight Regularizer
- */
-enum class WeightRegularizer {
-  L2NORM, /**< L2 norm regularization */
-  NONE,   /**< no regularization */
-  UNKNOWN /**< Unknown */
-};
-
-/**
- * @brief     Enumeration of Weight Initialization Type
- */
-enum class WeightInitializer {
-  WEIGHT_ZEROS,          /** Zero initialization */
-  WEIGHT_ONES,           /** One initialization */
-  WEIGHT_LECUN_NORMAL,   /** LeCun normal initialization */
-  WEIGHT_LECUN_UNIFORM,  /** uniform initialization */
-  WEIGHT_XAVIER_NORMAL,  /** Xavier normal initialization */
-  WEIGHT_XAVIER_UNIFORM, /** Xavier uniform initialization */
-  WEIGHT_HE_NORMAL,      /** He normal initialization */
-  WEIGHT_HE_UNIFORM,     /** He uniform initialization */
-  WEIGHT_UNKNOWN         /** Unknown */
-};
 
 /**
  * @class   Weight
@@ -57,9 +34,7 @@ public:
    * @details The tuple values are dimension, initializer, regularizer,
    * regularizer_constant, need_gradient property amd name of the Weight object.
    */
-  typedef std::tuple<TensorDim, WeightInitializer, WeightRegularizer, float,
-                     bool, const std::string>
-    Spec;
+  typedef WeightSpec Spec;
 
   /**
    * @brief Weight default constructor
@@ -264,7 +239,7 @@ public:
    * @brief     Get loss from the regularization of the weight
    */
   float getRegularizationLoss() {
-    if (isWeightRegularizerL2Norm())
+    if (hasGradient() && isWeightRegularizerL2Norm())
       return regularizer_constant * 0.5f * var->l2norm();
 
     return 0;
