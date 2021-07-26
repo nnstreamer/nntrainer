@@ -198,6 +198,14 @@ public:
   virtual std::vector<ml::train::TensorDim> getOutputDimension() = 0;
 
   /**
+   * @brief     Run the inference of the model
+   * @param[in] input inputs as a list of each input data
+   * @retval list of output as float *
+   * @note The output memory must not be freed by the caller
+   */
+  virtual std::vector<float *> inference(std::vector<float *> input) = 0;
+
+  /**
    * @brief     Summarize the model
    * @param out std::ostream to get the model summary
    * @param verbosity verbosity of the summary

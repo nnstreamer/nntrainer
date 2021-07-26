@@ -284,6 +284,14 @@ public:
   sharedConstTensors inference(sharedConstTensors X, bool free_mem = true);
 
   /**
+   * @brief     Run the inference of the model
+   * @param[in] input inputs as a list of each input data
+   * @retval list of output as float *
+   * @note The output memory must not be freed by the caller
+   */
+  std::vector<float *> inference(std::vector<float *> input);
+
+  /**
    * @brief     Run NeuralNetwork train with callback function by user
    * @param[in] dt datatype (usage) where it should be
    * @param[in] dataset set the dataset
