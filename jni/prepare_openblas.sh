@@ -11,7 +11,7 @@
 # usage: ./prepare_openblas.sh target
 
 TARGET=$1
-FILE_PREFIX=openblas
+TAR_PREFIX=openblas
 TAR_NAME=${TAR_PREFIX}-0.2.20.tar.gz
 URL="https://github.com/nnstreamer/nnstreamer-android-resource/raw/master/external/${TAR_NAME}"
 
