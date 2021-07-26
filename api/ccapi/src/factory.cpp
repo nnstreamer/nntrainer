@@ -22,7 +22,6 @@
 #include <neuralnet.h>
 #include <nntrainer_error.h>
 #include <optimizer.h>
-#include <optimizer_factory.h>
 
 namespace ml {
 namespace train {
@@ -44,8 +43,7 @@ std::unique_ptr<Optimizer>
 createOptimizer(const OptimizerType &type,
                 const std::vector<std::string> &properties) {
   auto &ac = nntrainer::AppContext::Global();
-  const std::string &t = nntrainer::optimizerIntToStrType(type);
-  return ac.createObject<Optimizer>(t, properties);
+  return ac.createObject<Optimizer>(type, properties);
 }
 
 /**

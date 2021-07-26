@@ -24,11 +24,12 @@
 
 #include <fstream>
 
+#include <app_context.h>
 #include <databuffer_file.h>
 #include <databuffer_func.h>
 #include <neuralnet.h>
 #include <nntrainer_error.h>
-#include <optimizer_factory.h>
+#include <optimizer.h>
 #include <util_func.h>
 
 #include <nntrainer_test_util.h>
@@ -37,25 +38,28 @@
  * @brief Optimizer create
  */
 TEST(nntrainer_Optimizer, create_01_p) {
-  std::shared_ptr<nntrainer::Optimizer> op;
-  EXPECT_NO_THROW(op = nntrainer::createOptimizer("adam"));
+  std::unique_ptr<ml::train::Optimizer> op;
+  auto &ac = nntrainer::AppContext::Global();
+  EXPECT_NO_THROW(op = ac.createObject<ml::train::Optimizer>("adam", {}));
 }
 
 /**
  * @brief Optimizer create
  */
 TEST(nntrainer_Optimizer, setType_02_p) {
-  std::shared_ptr<nntrainer::Optimizer> op;
-  EXPECT_NO_THROW(op = nntrainer::createOptimizer("sgd"));
+  std::unique_ptr<ml::train::Optimizer> op;
+  auto &ac = nntrainer::AppContext::Global();
+  EXPECT_NO_THROW(op = ac.createObject<ml::train::Optimizer>("sgd", {}));
 }
 
 /**
  * @brief Optimizer create
  */
 TEST(nntrainer_Optimizer, setType_03_n) {
-  std::shared_ptr<nntrainer::Optimizer> op;
-  EXPECT_THROW(op = nntrainer::createOptimizer("non-existing type"),
-               std::invalid_argument);
+  std::unique_ptr<ml::train::Optimizer> op;
+  auto &ac = nntrainer::AppContext::Global();
+  EXPECT_ANY_THROW(
+    op = ac.createObject<ml::train::Optimizer>("non-existing type", {}));
 }
 
 TEST(nntrainer_throw_if, throw_invalid_arg_p) {

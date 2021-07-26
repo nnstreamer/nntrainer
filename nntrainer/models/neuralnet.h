@@ -403,6 +403,12 @@ public:
   bool empty() const { return model_graph.empty(); }
 
   /**
+   * @brief get the number of nodes in the model
+   * @param[out] number of nodes
+   */
+  size_t size() const { return model_graph.size(); }
+
+  /**
    * @brief     get network graph
    * @retval NetowrkGraphType
    */

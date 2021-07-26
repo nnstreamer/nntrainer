@@ -452,7 +452,6 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %{_includedir}/nntrainer/tensor.h
 %{_includedir}/nntrainer/optimizer_devel.h
 %{_includedir}/nntrainer/optimizer_impl.h
-%{_includedir}/nntrainer/optimizer_factory.h
 %{_includedir}/nntrainer/profiler.h
 %{_includedir}/nntrainer/dynamic_training_optimization.h
 %{_includedir}/nntrainer/layer_node.h
