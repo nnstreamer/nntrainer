@@ -52,6 +52,17 @@ include $(PREBUILT_SHARED_LIBRARY)
 
 include $(CLEAR_VARS)
 
+ML_API_COMMON_INCLUDES := $(ML_API_COMMON_ROOT)/include
+
+LOCAL_MODULE := ml-api-inference
+LOCAL_SRC_FILES := $(ML_API_COMMON_ROOT)/lib/arm64-v8a/libnnstreamer-native.so
+LOCAL_EXPORT_C_INCLUDES := $(ML_API_COMMON_ROOT)/include
+LOCAL_EXPORT_CFLAGS += -DUSE_BLAS=1
+
+include $(PREBUILT_SHARED_LIBRARY)
+
+include $(CLEAR_VARS)
+
 LOCAL_MODULE := app_utils
 LOCAL_SRC_FILES := $(NNTRAINER_ROOT)/Applications/utils/libs/$(TARGET_ARCH_ABI)/libapp_utils.so
 APP_UTILS_INCLUDES := $(NNTRAINER_ROOT)/Applications/utils/jni/includes
