@@ -95,7 +95,7 @@ public:
     iter(0),
     loss(0.0f),
     loss_type(std::string()),
-    weight_initializer(WeightInitializer::WEIGHT_UNKNOWN),
+    weight_initializer(TensorInitializer::NONE),
     net_type(NetType::UNKNOWN),
     manager(std::make_shared<Manager>()),
     data_buffers({nullptr, nullptr, nullptr}),
@@ -538,7 +538,7 @@ private:
 
   std::string loss_type; /**< Loss Function type */
 
-  WeightInitializer weight_initializer; /**< Weight Initialization type */
+  TensorInitializer weight_initializer; /**< Weight Initialization type */
 
   std::string save_path; /**< Model path to save / read */
 

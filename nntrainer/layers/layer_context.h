@@ -149,7 +149,7 @@ public:
    * @todo Consider providing a guarantee that the returned indices will always
    * start from 0 and will always be incremental.
    */
-  unsigned int requestWeight(const TensorDim &dim, const WeightInitializer init,
+  unsigned int requestWeight(const TensorDim &dim, const TensorInitializer init,
                              const WeightRegularizer reg, const float reg_const,
                              std::string name, bool trainable = true) {
     weights_spec.emplace_back(dim, init, reg, reg_const, trainable, name);

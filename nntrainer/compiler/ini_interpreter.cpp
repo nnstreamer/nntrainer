@@ -212,8 +212,8 @@ getMergeableGraph(std::shared_ptr<const GraphRepresentation> graph,
     lnode->setProperty({"trainable=" + trainable});
     /** TODO #361: this needs update in model file to be of dictionary format */
     // if (preload) {
-    //   layer->weight_initializer = WeightInitializer::FILE_INITIALIZER;
-    //   layer->bias_initializer = WeightInitializer::FILE_INITIALIZER;
+    //   layer->weight_initializer = TensorInitializer::FILE_INITIALIZER;
+    //   layer->bias_initializer = TensorInitializer::FILE_INITIALIZER;
     //   layer->initializer_file = backbone.save_path;
     // }
   }

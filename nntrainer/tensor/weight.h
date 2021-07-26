@@ -41,7 +41,7 @@ public:
    */
   Weight() :
     Var_Grad(),
-    initializer(WeightInitializer::WEIGHT_UNKNOWN),
+    initializer(TensorInitializer::NONE),
     regularizer(WeightRegularizer::UNKNOWN),
     regularizer_constant(1.0f) {}
 
@@ -58,7 +58,7 @@ public:
    */
   explicit Weight(
     const TensorDim &dim,
-    const WeightInitializer init = WeightInitializer::WEIGHT_XAVIER_UNIFORM,
+    const TensorInitializer init = TensorInitializer::XAVIER_UNIFORM,
     const WeightRegularizer reg = WeightRegularizer::NONE,
     const float reg_const = 1.0f, bool ng = true, bool alloc_now = false,
     std::string name = "");
@@ -70,7 +70,7 @@ public:
    */
   explicit Weight(const Spec &spec) :
     Weight(std::get<0>(spec), // TensorDim
-           std::get<1>(spec), // WeightInitializer
+           std::get<1>(spec), // TensorInitializer
            std::get<2>(spec), // WeightRegularizer
            std::get<3>(spec), // WeightRegularizerConstant
            std::get<4>(spec), // need_gradient
@@ -94,7 +94,7 @@ public:
    */
   explicit Weight(const Tensor &v, const Tensor &g, const std::string &n = "") :
     Var_Grad(v, g, n),
-    initializer(WeightInitializer::WEIGHT_XAVIER_UNIFORM),
+    initializer(TensorInitializer::XAVIER_UNIFORM),
     regularizer(WeightRegularizer::NONE),
     regularizer_constant(1.0f) {}
 
@@ -177,7 +177,7 @@ public:
    *
    * @note New dimension must maintain the shape of the variable
    */
-  void reset(const TensorDim &dim, const WeightInitializer init,
+  void reset(const TensorDim &dim, const TensorInitializer init,
              const WeightRegularizer reg, const float reg_const, bool ng) {
     initializer = init;
     regularizer = reg;
@@ -275,7 +275,7 @@ public:
   }
 
 private:
-  WeightInitializer initializer; /**< initializer for this variable */
+  TensorInitializer initializer; /**< initializer for this variable */
   WeightRegularizer regularizer; /**< regularizer for this variable */
   float regularizer_constant;    /**< constant factor for regularization */
 

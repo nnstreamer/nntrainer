@@ -113,19 +113,19 @@ void BatchNormalizationLayer::setProperty(const std::string &type_str,
     break;
   case PropertyType::moving_mean_initializer:
     initializers[BNParams::mu] =
-      (WeightInitializer)parseType(value, TOKEN_WEIGHT_INIT);
+      (TensorInitializer)parseType(value, TOKEN_WEIGHT_INIT);
     break;
   case PropertyType::moving_variance_initializer:
     initializers[BNParams::var] =
-      (WeightInitializer)parseType(value, TOKEN_WEIGHT_INIT);
+      (TensorInitializer)parseType(value, TOKEN_WEIGHT_INIT);
     break;
   case PropertyType::beta_initializer:
     initializers[BNParams::beta] =
-      (WeightInitializer)parseType(value, TOKEN_WEIGHT_INIT);
+      (TensorInitializer)parseType(value, TOKEN_WEIGHT_INIT);
     break;
   case PropertyType::gamma_initializer:
     initializers[BNParams::gamma] =
-      (WeightInitializer)parseType(value, TOKEN_WEIGHT_INIT);
+      (TensorInitializer)parseType(value, TOKEN_WEIGHT_INIT);
     break;
   case PropertyType::momentum:
     status = setFloat(momentum, value);

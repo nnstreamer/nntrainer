@@ -67,8 +67,8 @@ protected:
 
   WeightRegularizer weight_regularizer; /**< weight regularizer */
   float weight_regularizer_constant;    /**< weight regularizer constant */
-  WeightInitializer weight_initializer; /**< initializer for the weights */
-  WeightInitializer bias_initializer;   /**< initializer for the bias */
+  TensorInitializer weight_initializer; /**< initializer for the weights */
+  TensorInitializer bias_initializer;   /**< initializer for the bias */
 
   /**
    * @brief setProperty by type and value separated
