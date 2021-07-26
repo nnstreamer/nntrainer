@@ -32,18 +32,18 @@ enum class WeightRegularizer {
 
 /**
  * @brief     Enumeration of Weight Initialization Type
- * @todo      Update to TensorInitializer
+ * @todo      support intialization from file
  */
-enum class WeightInitializer {
-  WEIGHT_ZEROS,          /** Zero initialization */
-  WEIGHT_ONES,           /** One initialization */
-  WEIGHT_LECUN_NORMAL,   /** LeCun normal initialization */
-  WEIGHT_LECUN_UNIFORM,  /** uniform initialization */
-  WEIGHT_XAVIER_NORMAL,  /** Xavier normal initialization */
-  WEIGHT_XAVIER_UNIFORM, /** Xavier uniform initialization */
-  WEIGHT_HE_NORMAL,      /** He normal initialization */
-  WEIGHT_HE_UNIFORM,     /** He uniform initialization */
-  WEIGHT_UNKNOWN         /** Unknown */
+enum class TensorInitializer {
+  ZEROS,          /** Zero initialization */
+  ONES,           /** One initialization */
+  LECUN_NORMAL,   /** LeCun normal initialization */
+  LECUN_UNIFORM,  /** uniform initialization */
+  XAVIER_NORMAL,  /** Xavier normal initialization */
+  XAVIER_UNIFORM, /** Xavier uniform initialization */
+  HE_NORMAL,      /** He normal initialization */
+  HE_UNIFORM,     /** He uniform initialization */
+  NONE            /** No initialization */
 };
 
 /**
@@ -52,7 +52,7 @@ enum class WeightInitializer {
  * @details The tuple values are dimension, initializer, regularizer,
  * regularizer_constant, need_gradient property amd name of the tensor object.
  */
-typedef std::tuple<TensorDim, WeightInitializer, WeightRegularizer, float, bool,
+typedef std::tuple<TensorDim, TensorInitializer, WeightRegularizer, float, bool,
                    const std::string>
   WeightSpec;
 

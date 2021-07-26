@@ -27,8 +27,8 @@ LayerImpl::LayerImpl() :
   layer_impl_props(std::make_unique<std::tuple<>>()),
   weight_regularizer(WeightRegularizer::NONE),
   weight_regularizer_constant(1.0f),
-  weight_initializer(WeightInitializer::WEIGHT_XAVIER_UNIFORM),
-  bias_initializer(WeightInitializer::WEIGHT_ZEROS) {}
+  weight_initializer(TensorInitializer::XAVIER_UNIFORM),
+  bias_initializer(TensorInitializer::ZEROS) {}
 
 void LayerImpl::setProperty(const std::vector<std::string> &values) {
   loadProperties(values, *layer_impl_props);
@@ -80,12 +80,12 @@ void LayerImpl::setProperty(const std::string &type_str,
   case PropertyType::weight_initializer:
     if (!value.empty()) {
       weight_initializer =
-        (WeightInitializer)parseType(value, TOKEN_WEIGHT_INIT);
+        (TensorInitializer)parseType(value, TOKEN_WEIGHT_INIT);
     }
     break;
   case PropertyType::bias_initializer:
     if (!value.empty()) {
-      bias_initializer = (WeightInitializer)parseType(value, TOKEN_WEIGHT_INIT);
+      bias_initializer = (TensorInitializer)parseType(value, TOKEN_WEIGHT_INIT);
     }
     break;
   default:
