@@ -26,6 +26,7 @@ layer_sources = [
   'layer_impl.cpp',
   'gru.cpp',
   'dropout.cpp',
+  'layer_context.cpp'
 ]
 
 layer_headers = [

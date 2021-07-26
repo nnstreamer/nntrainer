@@ -17,6 +17,7 @@
 #include <tuple>
 
 #include <tensor.h>
+#include <tensor_wrap_specs.h>
 
 namespace nntrainer {
 
@@ -32,7 +33,7 @@ public:
    * @details The tuple values are dimension, need_gradient property, and the
    * name of the Var_Grad object.
    */
-  typedef std::tuple<TensorDim, bool, const std::string> Spec;
+  typedef VarGradSpec Spec;
 
   /**
    * @brief Var_Grad default constructor

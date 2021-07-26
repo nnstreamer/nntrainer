@@ -17,6 +17,7 @@
 /usr/include/nntrainer/layer_devel.h
 /usr/include/nntrainer/neuralnet.h
 /usr/include/nntrainer/tensor.h
+/usr/include/nntrainer/tensor_wrap_specs.h
 /usr/include/nntrainer/optimizer_devel.h
 /usr/include/nntrainer/optimizer_impl.h
 /usr/include/nntrainer/profiler.h

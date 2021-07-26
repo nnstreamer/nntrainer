@@ -16,6 +16,7 @@
 #include <parse_util.h>
 #include <time_dist.h>
 #include <util_func.h>
+#include <weight.h>
 
 namespace nntrainer {
 
