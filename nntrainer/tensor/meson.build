@@ -9,10 +9,7 @@ tensor_sources = [
 ]
 
 tensor_headers = [
-  'manager.h',
   'tensor.h',
-  'weight.h',
-  'var_grad.h',
   'tensor_wrap_specs.h'
 ]
 

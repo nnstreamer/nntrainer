@@ -32,9 +32,7 @@ layer_sources = [
 layer_headers = [
   'layer_context.h',
   'layer_devel.h',
-  'acti_func.h',
-  'layer_node.h',
-  'layer_devel.h',
+  'layer_impl.h',
   'common_properties.h',
 ]
 
