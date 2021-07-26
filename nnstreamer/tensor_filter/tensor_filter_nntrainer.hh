@@ -23,6 +23,10 @@
 #include <nnstreamer_plugin_api.h>
 #include <nnstreamer_plugin_api_filter.h>
 
+#include <neuralnet.h>
+#include <tensor.h>
+#include <tensor_dim.h>
+
 /**
  * @brief	Internal data structure for nntrainer
  */
@@ -113,7 +117,7 @@ private:
   /// model->compile                     (available)
   /// model->initialize                  (available)
   /// model->readModel                   (available)
-  /// model->inference                   (n/a)
+  /// model->inference                   (available)
   /// model->getInputDimension           (n/a)
   /// model->getOutputDimension          (n/a)
   /// possibly required for optimization
