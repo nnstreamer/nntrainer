@@ -203,7 +203,7 @@ public:
    * @retval list of output as float *
    * @note The output memory must not be freed by the caller
    */
-  virtual std::vector<float *> inference(std::vector<float *> input) = 0;
+  virtual std::vector<float *> inference(std::vector<float *> &input) = 0;
 
   /**
    * @brief     Summarize the model

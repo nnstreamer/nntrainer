@@ -289,7 +289,7 @@ public:
    * @retval list of output as float *
    * @note The output memory must not be freed by the caller
    */
-  std::vector<float *> inference(std::vector<float *> input);
+  std::vector<float *> inference(std::vector<float *> &input);
 
   /**
    * @brief     Run NeuralNetwork train with callback function by user
