@@ -11,12 +11,13 @@
  */
 #include <array>
 #include <memory>
+#include <regex>
 #include <sstream>
 #include <string>
 #include <vector>
 
 #include <nntrainer_error.h>
-#include <parse_util.h>
+#include <props_util.h>
 #include <tensor_dim.h>
 
 #ifndef __BASE_PROPERTIES_H__

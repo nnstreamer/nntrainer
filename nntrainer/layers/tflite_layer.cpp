@@ -12,6 +12,7 @@
 
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
+#include <parse_util.h>
 #include <tflite_layer.h>
 
 namespace nntrainer {
