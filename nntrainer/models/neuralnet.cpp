@@ -531,6 +531,28 @@ sharedConstTensors NeuralNetwork::inference(sharedConstTensors X,
   return out;
 }
 
+std::vector<float *> NeuralNetwork::inference(std::vector<float *> input) {
+  sharedConstTensors input_tensors;
+  auto const &in_dim = getInputDimension();
+
+  input_tensors.reserve(input.size());
+  for (unsigned int idx = 0; idx < in_dim.size(); idx++) {
+    input_tensors.emplace_back(MAKE_SHARED_TENSOR(
+      Tensor::Map(input[idx], in_dim[idx].getDataLen(), in_dim[idx], 0)));
+  }
+
+  sharedConstTensors output_tensors = inference(input_tensors, false);
+  std::vector<float *> output;
+  output.reserve(output_tensors.size());
+
+  for (auto &out : output_tensors) {
+    auto out_t = *out.get();
+    output.push_back(out_t.getData());
+  }
+
+  return output;
+}
+
 int NeuralNetwork::setDataset(const DatasetDataUsageType &usage,
                               std::shared_ptr<ml::train::Dataset> dataset) {
   return setDataBuffer(usage, std::static_pointer_cast<DataBuffer>(dataset));
