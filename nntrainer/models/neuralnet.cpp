@@ -531,7 +531,7 @@ sharedConstTensors NeuralNetwork::inference(sharedConstTensors X,
   return out;
 }
 
-std::vector<float *> NeuralNetwork::inference(std::vector<float *> input) {
+std::vector<float *> NeuralNetwork::inference(std::vector<float *> &input) {
   sharedConstTensors input_tensors;
   auto const &in_dim = getInputDimension();
 

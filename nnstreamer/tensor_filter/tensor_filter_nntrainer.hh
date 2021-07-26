@@ -24,7 +24,6 @@
 #include <nnstreamer_plugin_api_filter.h>
 
 #include <neuralnet.h>
-#include <tensor.h>
 #include <tensor_dim.h>
 
 /**
@@ -99,13 +98,6 @@ public:
    */
   int run(const GstTensorMemory *input, GstTensorMemory *output);
 
-  /**
-   * @brief free output tensor
-   *
-   * @param data reference to the output data to free
-   */
-  void freeOutputTensor(void *data);
-
 private:
   void loadModel();
 
@@ -124,5 +116,4 @@ private:
   /// model->forwarding                  (n/a)
   /// model->allocate                    (n/a)
   std::unique_ptr<nntrainer::NeuralNetwork> model;
-  std::map<void *, std::shared_ptr<nntrainer::Tensor>> outputTensorMap;
 };

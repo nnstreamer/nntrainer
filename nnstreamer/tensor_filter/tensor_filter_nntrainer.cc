@@ -43,9 +43,21 @@
 
 static const gchar *nntrainer_accl_support[] = {NULL};
 
+/**
+ * @brief   startup constructor
+ *
+ */
 void init_filter_nntrainer(void) __attribute__((constructor));
+
+/**
+ * @brief   startdown destructor
+ *
+ */
 void fini_filter_nntrainer(void) __attribute__((destructor));
 
+/**
+ * @brief   Wrapper for glib deletor
+ */
 struct gNewDeletor {
   template <typename T> void operator()(T *ptr) const { g_free(ptr); }
 };
@@ -98,21 +110,21 @@ int NNTrainerInference::run(const GstTensorMemory *input,
 #if (DBG)
   gint64 start_time = g_get_real_time();
 #endif
-  std::shared_ptr<nntrainer::Tensor> out;
 
   auto input_dims = getInputDimension();
-  nntrainer::sharedConstTensors inputs;
+  auto output_dims = getOutputDimension();
+
+  std::vector<float *> inputs;
   inputs.reserve(input_dims.size());
 
-  for (size_t idx = 0; idx < input_dims.size(); idx ++)
+  for (size_t idx = 0; idx < input_dims.size(); idx++)
     // do not allocate new, but instead use tensor::Map
-    inputs.emplace_back(MAKE_SHARED_TENSOR(nntrainer::Tensor::Map(
-      static_cast<float *>(input[idx].data), input[idx].size, input_dims[idx], 0)));
+    inputs.emplace_back(static_cast<float *>(input[idx].data));
 
-  nntrainer::sharedConstTensors outputs;
+  std::vector<float *> outputs;
 
   try {
-    outputs = model->inference(inputs, false);
+    outputs = model->inference(inputs);
   } catch (std::exception &e) {
     ml_loge("%s %s", typeid(e).name(), e.what());
     return -2;
@@ -121,17 +133,12 @@ int NNTrainerInference::run(const GstTensorMemory *input,
     return -3;
   }
 
-  GstTensorMemory *output_mem = output;
-  for (auto &o : outputs) {
-    if (o == nullptr) {
+  for (size_t idx = 0; idx < output_dims.size(); idx++) {
+    if (outputs[idx] == nullptr) {
       return -1;
     }
 
-    out = std::const_pointer_cast<nntrainer::Tensor>(o);
-    output_mem->data = out->getData();
-
-    outputTensorMap.insert(std::make_pair(output_mem->data, out));
-    output_mem++;
+    output[idx].data = static_cast<void *>(outputs[idx]);
   }
 
 #if (DBG)
@@ -139,16 +146,6 @@ int NNTrainerInference::run(const GstTensorMemory *input,
   g_message("Run() is finished: %" G_GINT64_FORMAT, (stop_time - start_time));
 #endif
   return 0;
-}
-
-void NNTrainerInference::freeOutputTensor(void *data) {
-  if (data != nullptr) {
-    std::map<void *, std::shared_ptr<nntrainer::Tensor>>::iterator it =
-      outputTensorMap.find(data);
-    if (it != outputTensorMap.end()) {
-      outputTensorMap.erase(data);
-    }
-  }
 }
 
 static void nntrainer_close(const GstTensorFilterProperties *prop,
@@ -248,13 +245,7 @@ static int nntrainer_setInputDim(const GstTensorFilterProperties *prop,
   return 0;
 }
 
-static void nntrainer_destroyNotify(void **private_data, void *data) {
-  NNTrainerInference *nntrainer =
-    static_cast<NNTrainerInference *>(*private_data);
-  if (nntrainer) {
-    nntrainer->freeOutputTensor(data);
-  }
-}
+static void nntrainer_destroyNotify(void **private_data, void *data) {}
 
 static int nntrainer_checkAvailability(accl_hw hw) {
   if (g_strv_contains(nntrainer_accl_support, get_accl_hw_str(hw)))
