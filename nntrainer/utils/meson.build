@@ -8,9 +8,8 @@ util_sources = [
 ]
 
 util_headers = [
-  'profiler.h',
   'base_properties.h',
-  'parse_util.h',
+  'props_util.h',
   'node_exporter.h'
 ]
 

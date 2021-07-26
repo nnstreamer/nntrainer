@@ -5,10 +5,7 @@ nntrainer_inc = [
 
 nntrainer_sources = []
 nntrainer_headers = [
-  'app_context.h',
   'nntrainer_error.h',
-  'nntrainer_log.h',
-  'nntrainer_logger.h'
 ]
 
 # Dependencies

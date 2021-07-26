@@ -8,7 +8,8 @@ optimizer_sources = [
 
 optimizer_headers = [
   'optimizer_devel.h',
-  'optimizer_impl.h'
+  'optimizer_impl.h',
+  'optimizer_context.h'
 ]
 
 foreach s : optimizer_sources

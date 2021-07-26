@@ -50,7 +50,7 @@ enum class WeightInitializer {
  * @brief Specification of the Weight as a tensor wrapper
  *
  * @details The tuple values are dimension, initializer, regularizer,
- * regularizer_constant, need_gradient property amd name of the Weight object.
+ * regularizer_constant, need_gradient property amd name of the tensor object.
  */
 typedef std::tuple<TensorDim, WeightInitializer, WeightRegularizer, float, bool,
                    const std::string>
@@ -60,7 +60,7 @@ typedef std::tuple<TensorDim, WeightInitializer, WeightRegularizer, float, bool,
  * @brief Specification of the Var_Grad (trainable tensor) as a tensor wrapper
  *
  * @details The tuple values are dimension, need_gradient property, and the
- * name of the Var_Grad object.
+ * name of the tensor object.
  */
 typedef std::tuple<TensorDim, bool, const std::string> VarGradSpec;
 

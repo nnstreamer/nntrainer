@@ -4,10 +4,7 @@ model_sources = [
   'dynamic_training_optimization.cpp'
 ]
 
-model_headers = [
-  'neuralnet.h',
-  'dynamic_training_optimization.h'
-]
+model_headers = []
 
 foreach s : model_sources
   nntrainer_sources += meson.current_source_dir() / s

@@ -1,29 +1,23 @@
-/usr/include/nntrainer/app_context.h
+# node exporter and its dependencies
 /usr/include/nntrainer/nntrainer_error.h
-/usr/include/nntrainer/nntrainer_log.h
-/usr/include/nntrainer/nntrainer_logger.h
-/usr/include/nntrainer/acti_func.h
 /usr/include/nntrainer/common_properties.h
-/usr/include/nntrainer/weight.h
-/usr/include/nntrainer/var_grad.h
 /usr/include/nntrainer/base_properties.h
+/usr/include/nntrainer/props_util.h
 /usr/include/nntrainer/node_exporter.h
-/usr/include/nntrainer/parse_util.h
-/usr/include/nntrainer/graph_core.h
-/usr/include/nntrainer/graph_node.h
-/usr/include/nntrainer/databuffer.h
-/usr/include/nntrainer/databuffer_factory.h
-/usr/include/nntrainer/layer_context.h
-/usr/include/nntrainer/layer_devel.h
-/usr/include/nntrainer/neuralnet.h
+# tensor headers
 /usr/include/nntrainer/tensor.h
 /usr/include/nntrainer/tensor_wrap_specs.h
+# todo: update dataset headers
+/usr/include/nntrainer/databuffer.h
+/usr/include/nntrainer/databuffer_factory.h
+# layer headers
+/usr/include/nntrainer/layer_context.h
+/usr/include/nntrainer/layer_devel.h
+/usr/include/nntrainer/layer_impl.h
+# optimizer headers
+/usr/include/nntrainer/optimizer_context.h
 /usr/include/nntrainer/optimizer_devel.h
 /usr/include/nntrainer/optimizer_impl.h
-/usr/include/nntrainer/profiler.h
-/usr/include/nntrainer/dynamic_training_optimization.h
-/usr/include/nntrainer/layer_node.h
-/usr/include/nntrainer/manager.h
-/usr/include/nntrainer/network_graph.h
+# pkg config and static binary
 /usr/lib/*/pkgconfig/nntrainer.pc
 /usr/lib/*/libnntrainer.a
