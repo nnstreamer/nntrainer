@@ -4,6 +4,7 @@ include $(CLEAR_VARS)
 
 ENABLE_TFLITE_BACKBONE := 1
 ENABLE_TFLITE_INTERPRETER := 1
+ENABLE_BLAS := 1
 
 NEED_TF_LITE := 0
 
@@ -95,9 +96,9 @@ LOCAL_SRC_FILES := $(OPENBLAS_ROOT)/lib/libopenblas.a
 LOCAL_EXPORT_C_INCLUDES := $(OPENBLAS_ROOT)/include
 LOCAL_EXPORT_CFLAGS += -DUSE_BLAS=1
 
+include $(PREBUILT_STATIC_LIBRARY)
 include $(CLEAR_VARS)
 
-include $(PREBUILT_STATIC_LIBRARY)
 endif #ENABLE_BLAS
 
 ## prepare ml common api if nothing present
