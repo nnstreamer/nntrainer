@@ -33,6 +33,11 @@
 #include <nnstreamer.h>
 #include <nntrainer-api-common.h>
 
+#ifndef TIZEN_DEPRECATED_API
+#define TIZEN_DEPRECATED_API \
+  __attribute__((__visibility__("default"), deprecated))
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
@@ -363,6 +368,7 @@ int ml_train_optimizer_destroy(ml_train_optimizer_h optimizer);
 int ml_train_optimizer_set_property(ml_train_optimizer_h optimizer, ...);
 
 /**
+ * @deprecated Deprecated since 6.5. Use ml_train_dataset_create() instead
  * @brief Creates a dataset with generators to feed to a neural network.
  * @details Use this function to create a neural network dataset using
  * generators. The generators will provide data representing a single input
@@ -385,10 +391,10 @@ int ml_train_optimizer_set_property(ml_train_optimizer_h optimizer, ...);
  * @retval #ML_ERROR_NOT_SUPPORTED Not supported.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
  */
-int ml_train_dataset_create_with_generator(ml_train_dataset_h *dataset,
-                                           ml_train_datagen_cb train_cb,
-                                           ml_train_datagen_cb valid_cb,
-                                           ml_train_datagen_cb test_cb);
+int ml_train_dataset_create_with_generator(
+  ml_train_dataset_h *dataset, ml_train_datagen_cb train_cb,
+  ml_train_datagen_cb valid_cb,
+  ml_train_datagen_cb test_cb) TIZEN_DEPRECATED_API;
 
 /**
  * @brief Constructs the dataset.
@@ -441,6 +447,7 @@ int ml_train_dataset_add_file(ml_train_dataset_h dataset,
                               const char *file);
 
 /**
+ * @deprecated Deprecated since 6.5. Use ml_train_dataset_create() instead
  * @brief Creates a dataset with files to feed to a neural network.
  * @details Use this function to create a neural network dataset using
  * files.
@@ -457,10 +464,9 @@ int ml_train_dataset_add_file(ml_train_dataset_h dataset,
  * @retval #ML_ERROR_NOT_SUPPORTED Not supported.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
  */
-int ml_train_dataset_create_with_file(ml_train_dataset_h *dataset,
-                                      const char *train_file,
-                                      const char *valid_file,
-                                      const char *test_file);
+int ml_train_dataset_create_with_file(
+  ml_train_dataset_h *dataset, const char *train_file, const char *valid_file,
+  const char *test_file) TIZEN_DEPRECATED_API;
 
 /**
  * @brief Frees the neural network dataset.
@@ -476,6 +482,8 @@ int ml_train_dataset_create_with_file(ml_train_dataset_h *dataset,
 int ml_train_dataset_destroy(ml_train_dataset_h dataset);
 
 /**
+ * @deprecated Deprecated since 6.5. Use
+ * ml_train_dataset_set_property_for_mode() instead
  * @brief Sets the neural network dataset property.
  * @details Use this function to set dataset property.
  * @remarks the same property is applied over train, valid, testsets that are
@@ -489,7 +497,8 @@ int ml_train_dataset_destroy(ml_train_dataset_h dataset);
  * @retval #ML_ERROR_NOT_SUPPORTED Not supported.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
  */
-int ml_train_dataset_set_property(ml_train_dataset_h dataset, ...);
+int ml_train_dataset_set_property(ml_train_dataset_h dataset,
+                                  ...) TIZEN_DEPRECATED_API;
 
 /**
  * @brief Sets the neural network dataset property.
