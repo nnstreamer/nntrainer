@@ -22,7 +22,6 @@
 #include <neuralnet.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
-#include <optimizer_factory.h>
 #include <parse_util.h>
 #include <sgd.h>
 #include <time_dist.h>
@@ -132,7 +131,9 @@ int ModelLoader::loadModelConfigIni(dictionary *ini, NeuralNetwork &model) {
     "Warning: create [ Optimizer ] section in ini to specify optimizers.");
 
   try {
-    model.opt = nntrainer::createOptimizer(opt_type);
+    std::shared_ptr<ml::train::Optimizer> optimizer =
+      app_context.createObject<ml::train::Optimizer>(opt_type, {});
+    model.setOptimizer(optimizer);
   } catch (std::exception &e) {
     ml_loge("%s %s", typeid(e).name(), e.what());
     return ML_ERROR_INVALID_PARAMETER;

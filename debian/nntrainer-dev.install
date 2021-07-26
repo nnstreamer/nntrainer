@@ -19,7 +19,6 @@
 /usr/include/nntrainer/tensor.h
 /usr/include/nntrainer/optimizer_devel.h
 /usr/include/nntrainer/optimizer_impl.h
-/usr/include/nntrainer/optimizer_factory.h
 /usr/include/nntrainer/profiler.h
 /usr/include/nntrainer/dynamic_training_optimization.h
 /usr/include/nntrainer/layer_node.h
