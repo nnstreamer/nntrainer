@@ -48,7 +48,7 @@ function _cleanup_ml_api {
   rm -rf ${FILE_PREFIX}
   # cleanup all files other than ml_api and tizen_error
   find include ! \( -name '*.h' \) -type f -exec rm -f {} +
-  find lib ! \( -name 'libnnstreamer-native.so' \) -type f -exec rm -f {} +
+  find lib ! \( -name 'libnnstreamer-native.so' -or -name 'libgstreamer_android.so' \) -type f -exec rm -f {} +
 }
 
 [ ! -d "${FILE_PREFIX}" ] && _download_ml_api && _extract_ml_api \

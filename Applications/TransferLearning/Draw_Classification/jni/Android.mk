@@ -11,7 +11,6 @@ ifndef NNTRAINER_ROOT
 NNTRAINER_ROOT := $(LOCAL_PATH)/../../../../
 endif
 
- ML_API_COMMON_INCLUDES := ${NNTRAINER_ROOT}/ml_api_common/include
 NNTRAINER_INCLUDES := $(NNTRAINER_ROOT)/nntrainer \
 	$(NNTRAINER_ROOT)/nntrainer/dataset \
 	$(NNTRAINER_ROOT)/nntrainer/layers \
@@ -22,10 +21,36 @@ NNTRAINER_INCLUDES := $(NNTRAINER_ROOT)/nntrainer \
 	$(NNTRAINER_ROOT)/nntrainer/utils \
 	$(NNTRAINER_ROOT)/api \
 	$(NNTRAINER_ROOT)/api/ccapi/include \
-	$(NNTRAINER_ROOT)/api/capi/include \
-	${ML_API_COMMON_INCLUDES}
+	$(NNTRAINER_ROOT)/api/capi/include
 
 NNTRAINER_APPLICATION := $(NNTRAINER_ROOT)/Applications
+
+ML_API_COMMON_ROOT := ${NNTRAINER_ROOT}/ml_api_common
+
+include $(CLEAR_VARS)
+
+LOCAL_MODULE := gstreamer
+LOCAL_SRC_FILES := ${ML_API_COMMON_ROOT}/lib/arm64-v8a/libgstreamer_android.so
+
+include $(PREBUILT_SHARED_LIBRARY)
+
+include $(CLEAR_VARS)
+
+LOCAL_MODULE := ml-api-inference
+LOCAL_SRC_FILES :=  ${ML_API_COMMON_ROOT}/lib/arm64-v8a/libnnstreamer-native.so
+LOCAL_SHARED_LIBRARIES := gstreamer
+LOCAL_EXPORT_C_INCLUDES := $(ML_API_COMMON_ROOT)/include
+LOCAL_EXPORT_CFLAGS += -DUSE_BLAS=1
+
+include $(PREBUILT_SHARED_LIBRARY)
+
+include $(CLEAR_VARS)
+
+LOCAL_MODULE := app_utils
+LOCAL_SRC_FILES := $(NNTRAINER_ROOT)/Applications/utils/libs/$(TARGET_ARCH_ABI)/libapp_utils.so
+APP_UTILS_INCLUDES := $(NNTRAINER_ROOT)/Applications/utils/jni/includes
+
+include $(PREBUILT_SHARED_LIBRARY)
 
 include $(CLEAR_VARS)
 
@@ -46,26 +71,7 @@ include $(CLEAR_VARS)
 
 LOCAL_MODULE := capi-nntrainer
 LOCAL_SRC_FILES := $(NNTRAINER_ROOT)/libs/$(TARGET_ARCH_ABI)/libcapi-nntrainer.so
-LOCAL_SHARED_LIBRARIES := ccapi-nntrainer
-
-include $(PREBUILT_SHARED_LIBRARY)
-
-include $(CLEAR_VARS)
-
-ML_API_COMMON_INCLUDES := $(ML_API_COMMON_ROOT)/include
-
-LOCAL_MODULE := ml-api-inference
-LOCAL_SRC_FILES := $(ML_API_COMMON_ROOT)/lib/arm64-v8a/libnnstreamer-native.so
-LOCAL_EXPORT_C_INCLUDES := $(ML_API_COMMON_ROOT)/include
-LOCAL_EXPORT_CFLAGS += -DUSE_BLAS=1
-
-include $(PREBUILT_SHARED_LIBRARY)
-
-include $(CLEAR_VARS)
-
-LOCAL_MODULE := app_utils
-LOCAL_SRC_FILES := $(NNTRAINER_ROOT)/Applications/utils/libs/$(TARGET_ARCH_ABI)/libapp_utils.so
-APP_UTILS_INCLUDES := $(NNTRAINER_ROOT)/Applications/utils/jni/includes
+LOCAL_SHARED_LIBRARIES := ccapi-nntrainer ml-api-inference
 
 include $(PREBUILT_SHARED_LIBRARY)
 
