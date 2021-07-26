@@ -104,15 +104,10 @@ int NNTrainerInference::run(const GstTensorMemory *input,
   nntrainer::sharedConstTensors inputs;
   inputs.reserve(input_dims.size());
 
-  const GstTensorMemory *input_mem = input;
-  unsigned int offset = 0;
-  for (auto &id : input_dims) {
+  for (size_t idx = 0; idx < input_dims.size(); idx ++)
     // do not allocate new, but instead use tensor::Map
     inputs.emplace_back(MAKE_SHARED_TENSOR(nntrainer::Tensor::Map(
-      static_cast<float *>(input_mem->data), input_mem->size, id, offset)));
-    input_mem++;
-    offset += input_mem->size;
-  }
+      static_cast<float *>(input[idx].data), input[idx].size, input_dims[idx], 0)));
 
   nntrainer::sharedConstTensors outputs;
 
