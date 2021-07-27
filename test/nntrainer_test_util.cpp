@@ -59,8 +59,8 @@ void replaceString(const std::string &from, const std::string &to,
     s = init_config;
   }
   while ((start_pos = s.find(from, start_pos)) != std::string::npos) {
-    s.replace(start_pos, from.length(), to);
-    start_pos += to.length();
+    s.replace(start_pos, from.size(), to);
+    start_pos += to.size();
   }
 
   std::ofstream data_file(file.c_str());

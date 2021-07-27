@@ -133,14 +133,14 @@ protected:
 
   void matchOutput(const nntrainer::Tensor &result,
                    const nntrainer::Tensor &golden) {
-    matchOutput(result.getData(), golden.getData(), result.length());
+    matchOutput(result.getData(), golden.getData(), result.size());
   }
 
   void matchOutput(const float *result, const char *expected,
                    const nntrainer::TensorDim &dim) {
     nntrainer::Tensor golden(dim);
     loadFile(expected, golden);
-    matchOutput(result, golden.getData(), golden.length());
+    matchOutput(result, golden.getData(), golden.size());
   }
 
   void matchOutput(const nntrainer::Tensor &result, const char *expected) {
@@ -423,13 +423,13 @@ TEST_F(nntrainer_PreprocessFlipLayer, forwarding_01_p) {
 
   in.setRandNormal(0.0f, 10.0f);
 
-  while (out_flip.uninitialized() || (out_flip == in)) {
+  while (out_flip.empty() || (out_flip == in)) {
     EXPECT_NO_THROW(out_flip =
                       *layer.forwarding_with_val({MAKE_SHARED_TENSOR(in)})[0]);
   }
   EXPECT_NE(out_flip, in);
 
-  while (out_orig.uninitialized() || (out_orig != in)) {
+  while (out_orig.empty() || (out_orig != in)) {
     EXPECT_NO_THROW(
       out_orig = *layer.forwarding_with_val({MAKE_SHARED_TENSOR(out_flip)})[0]);
   }
@@ -447,13 +447,13 @@ TEST_F(nntrainer_PreprocessFlipLayer, forwarding_02_p) {
 
   in.setRandNormal(0.0f, 10.0f);
 
-  while (out_flip.uninitialized() || (out_flip == in)) {
+  while (out_flip.empty() || (out_flip == in)) {
     EXPECT_NO_THROW(out_flip =
                       *layer.forwarding_with_val({MAKE_SHARED_TENSOR(in)})[0]);
   }
   EXPECT_NE(out_flip, in);
 
-  while (out_orig.uninitialized() || (out_orig != in)) {
+  while (out_orig.empty() || (out_orig != in)) {
     EXPECT_NO_THROW(
       out_orig = *layer.forwarding_with_val({MAKE_SHARED_TENSOR(out_flip)})[0]);
   }
@@ -471,13 +471,13 @@ TEST_F(nntrainer_PreprocessFlipLayer, forwarding_03_p) {
 
   in.setRandNormal(0.0f, 10.0f);
 
-  while (out_flip.uninitialized() || (out_flip == in)) {
+  while (out_flip.empty() || (out_flip == in)) {
     EXPECT_NO_THROW(out_flip =
                       *layer.forwarding_with_val({MAKE_SHARED_TENSOR(in)})[0]);
   }
   EXPECT_NE(out_flip, in);
 
-  while (out_orig.uninitialized() || (out_orig != in)) {
+  while (out_orig.empty() || (out_orig != in)) {
     EXPECT_NO_THROW(
       out_orig = *layer.forwarding_with_val({MAKE_SHARED_TENSOR(out_flip)})[0]);
   }
@@ -495,13 +495,13 @@ TEST_F(nntrainer_PreprocessFlipLayer, forwarding_04_p) {
 
   in.setRandNormal(0.0f, 10.0f);
 
-  while (out_flip.uninitialized() || (out_flip == in)) {
+  while (out_flip.empty() || (out_flip == in)) {
     EXPECT_NO_THROW(out_flip =
                       *layer.forwarding_with_val({MAKE_SHARED_TENSOR(in)})[0]);
   }
   EXPECT_NE(out_flip, in);
 
-  while (out_orig.uninitialized() || (out_orig != in)) {
+  while (out_orig.empty() || (out_orig != in)) {
     EXPECT_NO_THROW(
       out_orig = *layer.forwarding_with_val({MAKE_SHARED_TENSOR(out_flip)})[0]);
   }
@@ -671,7 +671,7 @@ TEST(nntrainer_FullyConnectedLayer_init_name, initialize_05_n) {
 
   /** no name is set */
   layer_name = layer0.getName();
-  EXPECT_EQ(layer_name.length(), 0u);
+  EXPECT_EQ(layer_name.size(), 0u);
 
   /** Set empty name */
   status = layer0.setProperty({"name="});
@@ -1815,7 +1815,7 @@ TEST_F(nntrainer_Pooling2DLayer, backwarding_01_p) {
 
   nntrainer::Tensor grad(out.getDim());
 
-  for (unsigned int i = 0; i < grad.length(); ++i) {
+  for (unsigned int i = 0; i < grad.size(); ++i) {
     grad.getData()[i] = 1.0;
   }
 
@@ -1838,7 +1838,7 @@ TEST_F(nntrainer_Pooling2DLayer, backwarding_02_p) {
 
   sharedTensor grad = MAKE_SHARED_TENSOR(out.getDim());
 
-  for (unsigned int i = 0; i < grad->length(); ++i) {
+  for (unsigned int i = 0; i < grad->size(); ++i) {
     grad->getData()[i] = 1.0;
   }
 

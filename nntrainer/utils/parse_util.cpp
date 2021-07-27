@@ -151,7 +151,7 @@ unsigned int parseType(std::string ll, InputType t) {
         return (i);
       }
     }
-    ret = (unsigned int)TensorInitializer::NONE;
+    ret = (unsigned int)Tensor::Initializer::NONE;
     break;
   case TOKEN_WEIGHT_REGULARIZER:
     for (i = 0; i < weight_regularizer_string.size(); i++) {

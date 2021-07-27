@@ -335,7 +335,7 @@ void Manager::deallocateWeights() {
 
 void Manager::allocateGradients() {
   /** Allocate the source tensors for shared memories */
-  if (!shared_grad.uninitialized())
+  if (!shared_grad.empty())
     shared_grad.allocate();
 
   if (LAYER_V2) {
@@ -506,7 +506,7 @@ void Manager::untrackLayerInOuts(const std::string &layer_name) {
 
 void Manager::allocateInOuts() {
   /** Allocate the source tensors for shared memories */
-  if (!shared_inout.uninitialized())
+  if (!shared_inout.empty())
     shared_inout.allocate();
 
   if (LAYER_V2) {
@@ -564,7 +564,7 @@ void Manager::deallocateInOuts() {
 
 void Manager::allocateDerivatives() {
   /** Allocate the source tensors for shared memories */
-  if (!shared_deriv.uninitialized())
+  if (!shared_deriv.empty())
     shared_deriv.allocate();
 
   if (LAYER_V2) {

@@ -299,7 +299,7 @@ void DataBuffer::displayProgress(const int count, float loss) {
   ssInt << count * batch_size;
 
   std::string str = ssInt.str();
-  int len = str.length();
+  int len = str.size();
 
   if (samples_per_epoch == 0) {
     int pad_left = (barWidth - len) / 2;

@@ -64,9 +64,9 @@ void verify(const nntrainer::Tensor &actual, const nntrainer::Tensor &expected,
       nntrainer::Tensor diff = actual.subtract(expected);
       const float *diff_data = diff.getData();
       std::cout << "\033[1;33mdifference\033[0m " << diff;
-      std::cout << "number of data: " << diff.length() << std::endl;
+      std::cout << "number of data: " << diff.size() << std::endl;
       std::cout << "\033[4;33mMAX DIFF: "
-                << *std::max_element(diff_data, diff_data + diff.length())
+                << *std::max_element(diff_data, diff_data + diff.size())
                 << "\033[0m\n";
     }
     std::stringstream ss;

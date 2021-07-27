@@ -98,7 +98,7 @@ void GenericProfileListener::report(std::ostream &out) const {
   for (auto &entry : time_taken) {
     auto title = profiler->eventToStr(entry.first);
     column_size[0] =
-      std::max(column_size[0], static_cast<unsigned int>(title.length()));
+      std::max(column_size[0], static_cast<unsigned int>(title.size()));
   }
   auto total_col_size =
     std::accumulate(column_size.begin(), column_size.end(), 0);

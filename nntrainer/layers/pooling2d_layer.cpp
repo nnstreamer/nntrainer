@@ -291,7 +291,7 @@ void Pooling2DLayer::pooling2d(Tensor &in, bool training, Tensor &output,
   unsigned int patch_height = pool_size[0];
   unsigned int patch_width = pool_size[1];
 
-  NNTR_THROW_IF(output.uninitialized(), std::invalid_argument)
+  NNTR_THROW_IF(output.empty(), std::invalid_argument)
     << "[Pooling2D] output is uninitialized, this is not supported";
 
   /**

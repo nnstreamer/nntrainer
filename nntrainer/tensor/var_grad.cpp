@@ -32,13 +32,13 @@ Var_Grad::Var_Grad(const TensorDim &dim, bool ng, bool alloc_now_,
 }
 
 void Var_Grad::initializeVariable(const Tensor &preallocated) {
-  if (!preallocated.uninitialized()) {
+  if (!preallocated.empty()) {
     var->makeSharedDataTensor(preallocated);
   }
 }
 
 void Var_Grad::initializeGradient(const Tensor &preallocated) {
-  if (!preallocated.uninitialized()) {
+  if (!preallocated.empty()) {
     /**
      * Making a new tensor is intentional here as this tensor is not shared
      * with other layers but the internal memory is.
@@ -53,7 +53,7 @@ void Var_Grad::initializeShared() { grad->makeSharedDataTensor(*var.get()); }
 
 void Var_Grad::needsGradient(bool ng) {
   need_gradient = ng;
-  if (need_gradient && grad->uninitialized()) {
+  if (need_gradient && grad->empty()) {
     bool alloc_now_ = var->isAllocated();
     grad = std::make_shared<Tensor>(var->getDim(), alloc_now_);
   }

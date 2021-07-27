@@ -264,7 +264,7 @@ void LSTMLayer::forwarding(RunLayerContext &context, bool training) {
       std::copy(data, data + d.width(), rdata);
     }
   } else {
-    std::copy(hidden_.getData(), hidden_.getData() + hidden_.length(),
+    std::copy(hidden_.getData(), hidden_.getData() + hidden_.size(),
               output.getData());
   }
 }
@@ -312,7 +312,7 @@ void LSTMLayer::calcGradient(RunLayerContext &context) {
     }
   } else {
     std::copy(incoming_deriv.getData(),
-              incoming_deriv.getData() + incoming_deriv.length(),
+              incoming_deriv.getData() + incoming_deriv.size(),
               derivative_.getData());
   }
 

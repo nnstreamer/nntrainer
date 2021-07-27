@@ -43,11 +43,11 @@ public:
    */
   BatchNormalizationLayer(
     int axis = -1, float momentum = 0.99, float epsilon = 0.001,
-    TensorInitializer moving_mean_initializer = TensorInitializer::ZEROS,
-    TensorInitializer moving_variance_initializer =
-      TensorInitializer::ZEROS,
-    TensorInitializer gamma_initializer = TensorInitializer::ONES,
-    TensorInitializer beta_initializer = TensorInitializer::ONES) :
+    Tensor::Initializer moving_mean_initializer = Tensor::Initializer::ZEROS,
+    Tensor::Initializer moving_variance_initializer =
+      Tensor::Initializer::ZEROS,
+    Tensor::Initializer gamma_initializer = Tensor::Initializer::ONES,
+    Tensor::Initializer beta_initializer = Tensor::Initializer::ONES) :
     Layer(),
     epsilon(epsilon),
     momentum(momentum),
@@ -137,8 +137,8 @@ private:
   float momentum; /**< momentum */
   int axis;       /**< Target axis, axis inferred at initialize when -1 */
 
-  std::vector<unsigned int> axes_to_reduce;      /**< target axes to reduce */
-  std::array<TensorInitializer, 4> initializers; /**< weight initializers */
+  std::vector<unsigned int> axes_to_reduce;        /**< target axes to reduce */
+  std::array<Tensor::Initializer, 4> initializers; /**< weight initializers */
   std::array<unsigned int, 5> wt_idx; /**< indices of the weights and tensors */
 
   /**

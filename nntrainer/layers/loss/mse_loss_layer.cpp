@@ -42,7 +42,7 @@ void MSELossLayer::calcDerivative(RunLayerContext &context) {
 
   y.subtract(y2, ret_derivative);
   ret_derivative.multiply_i(2);
-  if (ret_derivative.divide_i(y.length()) != ML_ERROR_NONE) {
+  if (ret_derivative.divide_i(y.size()) != ML_ERROR_NONE) {
     throw std::runtime_error(
       "[MSELossLayer::calcDerivative] Error when calculating loss");
   }

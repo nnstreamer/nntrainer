@@ -41,7 +41,7 @@ public:
    */
   Weight() :
     Var_Grad(),
-    initializer(TensorInitializer::NONE),
+    initializer(Tensor::Initializer::NONE),
     regularizer(WeightRegularizer::UNKNOWN),
     regularizer_constant(1.0f) {}
 
@@ -58,7 +58,7 @@ public:
    */
   explicit Weight(
     const TensorDim &dim,
-    const TensorInitializer init = TensorInitializer::XAVIER_UNIFORM,
+    const Tensor::Initializer init = Tensor::Initializer::XAVIER_UNIFORM,
     const WeightRegularizer reg = WeightRegularizer::NONE,
     const float reg_const = 1.0f, bool ng = true, bool alloc_now = false,
     std::string name = "");
@@ -70,7 +70,7 @@ public:
    */
   explicit Weight(const Spec &spec) :
     Weight(std::get<0>(spec), // TensorDim
-           std::get<1>(spec), // TensorInitializer
+           std::get<1>(spec), // Tensor::Initializer
            std::get<2>(spec), // WeightRegularizer
            std::get<3>(spec), // WeightRegularizerConstant
            std::get<4>(spec), // need_gradient
@@ -94,7 +94,7 @@ public:
    */
   explicit Weight(const Tensor &v, const Tensor &g, const std::string &n = "") :
     Var_Grad(v, g, n),
-    initializer(TensorInitializer::XAVIER_UNIFORM),
+    initializer(Tensor::Initializer::XAVIER_UNIFORM),
     regularizer(WeightRegularizer::NONE),
     regularizer_constant(1.0f) {}
 
@@ -159,9 +159,9 @@ public:
    */
   Weight clone() const {
     Weight w(*this);
-    if (!this->var->uninitialized())
+    if (!this->var->empty())
       w.var = std::make_shared<Tensor>(this->var->clone());
-    if (!this->grad->uninitialized())
+    if (!this->grad->empty())
       w.grad = std::make_shared<Tensor>(this->grad->clone());
 
     return w;
@@ -177,7 +177,7 @@ public:
    *
    * @note New dimension must maintain the shape of the variable
    */
-  void reset(const TensorDim &dim, const TensorInitializer init,
+  void reset(const TensorDim &dim, const Tensor::Initializer init,
              const WeightRegularizer reg, const float reg_const, bool ng) {
     initializer = init;
     regularizer = reg;
@@ -275,9 +275,9 @@ public:
   }
 
 private:
-  TensorInitializer initializer; /**< initializer for this variable */
-  WeightRegularizer regularizer; /**< regularizer for this variable */
-  float regularizer_constant;    /**< constant factor for regularization */
+  Tensor::Initializer initializer; /**< initializer for this variable */
+  WeightRegularizer regularizer;   /**< regularizer for this variable */
+  float regularizer_constant;      /**< constant factor for regularization */
 
   std::vector<Tensor> opt_vars;        /**< optimizer variables */
   std::vector<TensorDim> opt_vars_dim; /**< optimizer variables dimensions */

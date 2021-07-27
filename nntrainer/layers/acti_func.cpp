@@ -193,7 +193,7 @@ Tensor &ActiFunc::softmaxPrime(Tensor const &x, Tensor &output,
   unsigned int width = x.width();
   bool is_derivative = true;
 
-  if (output.uninitialized())
+  if (output.empty())
     output = Tensor(x.getDim());
 
   const float *xp = x.getData();
