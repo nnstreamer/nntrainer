@@ -234,10 +234,12 @@ public:
    *
    * @note New dimension must maintain the shape of the variable
    */
-  void reset(const TensorDim &tdim, bool ng) {
+  void reset(const TensorDim &tdim, Tensor::Initializer init, bool ng) {
     dim = tdim;
     if (!var->empty())
       var->reshape(dim);
+    var->initialize(init);
+
     if (!grad->empty())
       grad->reshape(dim);
     need_gradient = ng;
