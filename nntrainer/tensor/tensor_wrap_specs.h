@@ -43,10 +43,11 @@ typedef std::tuple<TensorDim, Tensor::Initializer, WeightRegularizer, float,
 /**
  * @brief Specification of the Var_Grad (trainable tensor) as a tensor wrapper
  *
- * @details The tuple values are dimension, need_gradient property, and the
- * name of the tensor object.
+ * @details The tuple values are dimension, initializer, need_gradient property,
+ * and the name of the tensor object.
  */
-typedef std::tuple<TensorDim, bool, const std::string> VarGradSpec;
+typedef std::tuple<TensorDim, Tensor::Initializer, bool, const std::string>
+  VarGradSpec;
 
 } // namespace nntrainer
 

@@ -18,15 +18,15 @@
 
 namespace nntrainer {
 
-Var_Grad::Var_Grad(const TensorDim &dim, bool ng, bool alloc_now_,
-                   const std::string &name) :
+Var_Grad::Var_Grad(const TensorDim &dim, const Tensor::Initializer init,
+                   bool ng, bool alloc_now_, const std::string &name) :
   dim(dim),
   need_gradient(ng),
   alloc_now(alloc_now_),
   name(name) {
-  var = std::make_shared<Tensor>(dim, alloc_now);
+  var = std::make_shared<Tensor>(dim, alloc_now, init);
   if (need_gradient)
-    grad = std::make_shared<Tensor>(dim, alloc_now);
+    grad = std::make_shared<Tensor>(dim, alloc_now, Tensor::Initializer::ZEROS);
   else
     grad = std::make_shared<Tensor>();
 }
@@ -45,8 +45,11 @@ void Var_Grad::initializeGradient(const Tensor &preallocated) {
      */
     grad->makeSharedDataTensor(preallocated);
   }
-  if (alloc_now)
-    resetGradient();
+  /**
+   * No need to reset gradient here. With shared memory, each gradient setting
+   * their own memory to zero is inefficient. Rather, the preallocated memory
+   * must be created with zero initializer.
+   */
 }
 
 void Var_Grad::initializeShared() { grad->makeSharedDataTensor(*var.get()); }

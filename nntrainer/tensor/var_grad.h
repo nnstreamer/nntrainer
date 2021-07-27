@@ -54,8 +54,10 @@ public:
    * @param alloc_now The memory for the var_grad tensors be allocated upon init
    * @param name Name for this Var_Grad
    */
-  explicit Var_Grad(const TensorDim &dim, bool ng = true,
-                    bool alloc_now = false, const std::string &name = "");
+  explicit Var_Grad(const TensorDim &dim,
+                    const Tensor::Initializer init = Tensor::Initializer::NONE,
+                    bool ng = true, bool alloc_now = false,
+                    const std::string &name = "");
 
   /**
    * @brief Construct a new Var_Grad object
@@ -65,8 +67,9 @@ public:
   explicit Var_Grad(const Spec &spec) :
     Var_Grad(std::get<0>(spec), // TensorDim
              std::get<1>(spec), // need_gradient
+             std::get<2>(spec), // need_gradient
              false,
-             std::get<2>(spec) // Name
+             std::get<3>(spec) // Name
     ) {}
 
   /**
@@ -203,8 +206,8 @@ public:
    * @brief Reset the gradient to 0
    */
   void resetGradient() {
-    if (grad->isAllocated())
-      grad->setZero();
+    /** zero the gradient */
+    grad->initialize();
   }
 
   /**
@@ -291,10 +294,7 @@ public:
   /**
    * @brief Allocate memory for the gradient
    */
-  void allocateGradient() {
-    grad->allocate();
-    resetGradient();
-  }
+  void allocateGradient() { grad->allocate(); }
 
   /**
    * @brief Allocate memory for the variable and gradient
@@ -339,7 +339,7 @@ public:
    *
    * @return true if the var_grad as gradient set, else false
    * @note this is can return is the var_grad needs gradient but it not
-   * initialized
+   * empty
    */
   bool hasGradient() const { return need_gradient && !grad->empty(); }
 

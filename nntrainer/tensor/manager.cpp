@@ -426,8 +426,9 @@ Manager::trackLayerInOuts(const std::string &layer_type,
   in_out.reserve(inout_dim.size());
 
   for (auto const &dim : inout_dim) {
-    in_out.emplace_back(std::make_shared<Var_Grad>(
-      dim, true, false, layer_name + std::to_string(cnt++)));
+    in_out.emplace_back(
+      std::make_shared<Var_Grad>(dim, Tensor::Initializer::NONE, true, false,
+                                 layer_name + std::to_string(cnt++)));
     if (is_act_layer || is_rnn_layer)
       inout_derivative_size += dim.getDataLen();
   }
@@ -827,7 +828,7 @@ Manager::requestInputs(const GraphNode &node,
   std::transform(
     inputs_dim.begin(), inputs_dim.end(), std::back_inserter(inputs_spec),
     [&count, &node](auto const &elem) {
-      return std::make_tuple(elem, true,
+      return std::make_tuple(elem, Tensor::Initializer::NONE, true,
                              node.getName() + std::string("_input") +
                                std::to_string(count++));
     });
@@ -845,7 +846,7 @@ Manager::requestOutputs(const GraphNode &node,
   std::transform(
     outputs_dim.begin(), outputs_dim.end(), std::back_inserter(outputs_spec),
     [&count, &node](auto const &elem) {
-      return std::make_tuple(elem, true,
+      return std::make_tuple(elem, Tensor::Initializer::NONE, true,
                              node.getName() + std::string("_output") +
                                std::to_string(count++));
     });
