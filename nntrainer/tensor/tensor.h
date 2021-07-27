@@ -207,9 +207,10 @@ public:
 
   friend void swap(Tensor &lhs, Tensor &rhs) noexcept {
     std::swap(lhs.dim, rhs.dim);
-    std::swap(lhs.data, rhs.data);
     std::swap(lhs.strides, rhs.strides);
     std::swap(lhs.is_contiguous, rhs.is_contiguous);
+    std::swap(lhs.initializer, rhs.initializer);
+    std::swap(lhs.data, rhs.data);
   }
 
   /**
@@ -659,11 +660,6 @@ public:
   void standardization_i();
 
   /**
-   * @brief     Fill the Tensor elements with zero
-   */
-  void setZero();
-
-  /**
    * @brief Apply instantly to the element
    *
    * @param f function to apply
@@ -768,6 +764,11 @@ public:
   void setValue(float value);
 
   /**
+   * @brief     Fill the Tensor elements with zero
+   */
+  void setZero();
+
+  /**
    * @brief     Set the tensor with random normal distribution
    * @param[in] mean mean of the distribution
    * @param[in] std standard deviation of the distribution
@@ -780,6 +781,20 @@ public:
    * @param[in] max maximum value for the distribution
    */
   void setRandUniform(float min = -0.05f, float max = 0.05f);
+
+  /**
+   * @brief     Initialize the memory of the given tensor
+   */
+  void initialize();
+
+  /**
+   * @brief     Initialize the memory of the given tensor
+   * @param     init Initiailizer to use for the initialization
+   */
+  void initialize(Initializer init) {
+    initializer = init;
+    initialize();
+  }
 
   /**
    * @brief     Copy the Tensor
