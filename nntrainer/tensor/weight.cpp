@@ -21,7 +21,7 @@ namespace nntrainer {
 Weight::Weight(const TensorDim &dim, const Tensor::Initializer init,
                const WeightRegularizer reg, const float reg_const, bool train,
                bool alloc_now_, std::string name) :
-  Var_Grad(dim, train, alloc_now_, name),
+  Var_Grad(dim, init, train, alloc_now_, name),
   initializer(init),
   regularizer(reg),
   regularizer_constant(reg_const) {

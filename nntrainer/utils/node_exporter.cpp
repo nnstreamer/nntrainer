@@ -57,8 +57,8 @@ static void saveTflWeights(TfOpNode *tf_node, const RunLayerContext &context,
     const Tensor &w = context.getWeight(idx);
     const Tensor &g = context.getWeightGrad(idx);
     const std::string name = context.getWeightName(idx);
-    std::unique_ptr<Var_Grad> vg =
-      std::make_unique<Var_Grad>(w.getDim(), false, false, name);
+    std::unique_ptr<Var_Grad> vg = std::make_unique<Var_Grad>(
+      w.getDim(), Tensor::Initializer::NONE, false, false, name);
     if (w.getDim().rank() > 1) {
       Tensor w_trans = w.transpose(transpose_direction);
       vg->initialize(w_trans, g, false);

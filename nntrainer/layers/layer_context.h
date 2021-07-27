@@ -186,7 +186,7 @@ public:
   unsigned int requestTensor(const TensorDim &dim, const std::string &name,
                              bool trainable = false,
                              TensorLifespan lifespan = ITERATION_LIFESPAN) {
-    tensors_spec.emplace_back(dim, trainable, name);
+    tensors_spec.emplace_back(dim, Tensor::Initializer::NONE, trainable, name);
     return tensors_spec.size() - 1;
   }
 
