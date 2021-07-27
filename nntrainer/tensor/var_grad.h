@@ -85,7 +85,7 @@ public:
     dim(v.getDim()),
     var(std::make_shared<Tensor>(v.getSharedDataTensor(dim, 0, false))),
     grad(std::make_shared<Tensor>()),
-    need_gradient(!g.uninitialized()),
+    need_gradient(!g.empty()),
     alloc_now(v.isAllocated()),
     name(n) {
     if (need_gradient)
@@ -233,9 +233,9 @@ public:
    */
   void reset(const TensorDim &tdim, bool ng) {
     dim = tdim;
-    if (!var->uninitialized())
+    if (!var->empty())
       var->reshape(dim);
-    if (!grad->uninitialized())
+    if (!grad->empty())
       grad->reshape(dim);
     need_gradient = ng;
     resetGradient();
@@ -249,9 +249,9 @@ public:
   void setBatchSize(unsigned int batch) {
     dim.batch(batch);
 
-    if (!var->uninitialized())
+    if (!var->empty())
       var->updateBatch(batch);
-    if (!grad->uninitialized())
+    if (!grad->empty())
       grad->updateBatch(batch);
   }
 
@@ -341,7 +341,7 @@ public:
    * @note this is can return is the var_grad needs gradient but it not
    * initialized
    */
-  bool hasGradient() const { return need_gradient && !grad->uninitialized(); }
+  bool hasGradient() const { return need_gradient && !grad->empty(); }
 
 protected:
   TensorDim dim;                /**< dimension of the tensor */

@@ -190,8 +190,7 @@ void NNStreamerLayer::forwarding(RunLayerContext &context, bool training) {
   Tensor &input = context.getInput(SINGLE_INOUT_IDX);
   Tensor &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
 
-  std::copy(input.getData(), input.getData() + input.length(),
-            (float *)in_data);
+  std::copy(input.getData(), input.getData() + input.size(), (float *)in_data);
 
   int status = ml_single_invoke(single, in_data_cont, &out_data_cont);
   if (status != ML_ERROR_NONE)
@@ -205,7 +204,7 @@ void NNStreamerLayer::forwarding(RunLayerContext &context, bool training) {
     throw std::runtime_error("Failed to forward nnstreamer backbone");
   }
 
-  if (data_size != hidden_.getSize()) {
+  if (data_size != hidden_.bytes()) {
     ml_tensors_data_destroy(out_data_cont);
     out_data_cont = nullptr;
     throw std::runtime_error("Output size mismatch from nnstreamer backbone.");

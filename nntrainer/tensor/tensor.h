@@ -55,14 +55,39 @@ class SrcSharedTensor;
 class Tensor {
 public:
   /**
+   * @brief     Enumeration of Weight Initialization Type
+   * @todo      support intialization from file
+   */
+  enum class Initializer {
+    ZEROS,          /** Zero initialization */
+    ONES,           /** One initialization */
+    LECUN_NORMAL,   /** LeCun normal initialization */
+    LECUN_UNIFORM,  /** uniform initialization */
+    XAVIER_NORMAL,  /** Xavier normal initialization */
+    XAVIER_UNIFORM, /** Xavier uniform initialization */
+    HE_NORMAL,      /** He normal initialization */
+    HE_UNIFORM,     /** He uniform initialization */
+    NONE            /** No initialization */
+  };
+
+  /**
    * @brief     Basic Constructor of Tensor
    */
   Tensor() :
     dim(TensorDim()),
     strides(dim.computeStrides()),
     is_contiguous(true),
+    initializer(Initializer::NONE),
     data(nullptr),
     src_tensor() {}
+
+  /**
+   * @brief     Constructor of Tensor with dimension, possibly lazily
+   * @param d Tensor dim for this tensor
+   * @param alloc_now If the memory of the tensor must be allocated
+   */
+  Tensor(const TensorDim &d, bool alloc_now,
+         Initializer init = Initializer::NONE);
 
   /**
    * @brief     Constructor of Tensor with dimension/buf
@@ -71,41 +96,6 @@ public:
    * @note Memory for this tensor is instantaneously allocated
    */
   Tensor(const TensorDim &d, const float *buf = nullptr);
-
-  /**
-   * @brief     Constructor of Tensor with dimension, possibly lazily
-   * @param d Tensor dim for this tensor
-   * @param alloc_now If the memory of the tensor must be allocated
-   */
-  Tensor(const TensorDim &d, bool alloc_now);
-
-  /**
-   * @brief Construct a new Tensor object from a buffer
-   * This will not copy buffer to a new tensor but directly uses it
-   *
-   * @param buf buffer
-   * @param size buffer size in bytes
-   * @param d tensor dim
-   * @param offset offset to be used from current
-   * @return Tensor object
-   * @throws std::invalid_argument if buf is null
-   */
-  static Tensor Map(float *buf, unsigned int size, const TensorDim &d,
-                    int offset = 0);
-
-  /**
-   * @brief Construct a new Tensor object from a buffer
-   * This will shared the buf
-   *
-   * @param buf buffer
-   * @param size buffer size in bytes
-   * @param d tensor dim
-   * @param offset offset to be used
-   * @return Tensor object
-   * @throws std::invalid_argument if buf is null
-   */
-  static Tensor Map(std::shared_ptr<float> buf, unsigned int size,
-                    const TensorDim &d, int offset = 0);
 
   /**
    * @brief     Constructor of Tensor
@@ -186,6 +176,34 @@ public:
    * @parma[in] rhs Tensor to be moved.
    */
   Tensor &operator=(Tensor &&rhs) noexcept = default;
+
+  /**
+   * @brief Construct a new Tensor object from a buffer
+   * This will not copy buffer to a new tensor but directly uses it
+   *
+   * @param buf buffer
+   * @param size buffer size in bytes
+   * @param d tensor dim
+   * @param offset offset to be used from current
+   * @return Tensor object
+   * @throws std::invalid_argument if buf is null
+   */
+  static Tensor Map(float *buf, unsigned int size, const TensorDim &d,
+                    int offset = 0);
+
+  /**
+   * @brief Construct a new Tensor object from a buffer
+   * This will shared the buf
+   *
+   * @param buf buffer
+   * @param size buffer size in bytes
+   * @param d tensor dim
+   * @param offset offset to be used
+   * @return Tensor object
+   * @throws std::invalid_argument if buf is null
+   */
+  static Tensor Map(std::shared_ptr<float> buf, unsigned int size,
+                    const TensorDim &d, int offset = 0);
 
   friend void swap(Tensor &lhs, Tensor &rhs) noexcept {
     std::swap(lhs.dim, rhs.dim);
@@ -692,22 +710,22 @@ public:
   void print(std::ostream &out) const;
 
   /**
-   * @brief     Get length of current _data
-   * @retval    unsigned int length of the current _data
+   * @brief     Get size of current tensor
+   * @retval    unsigned int size of the current tensor
    */
-  unsigned int length() const { return dim.getDataLen(); }
+  unsigned int size() const { return dim.getDataLen(); }
 
   /**
-   * @brief     Get if the tensor has not been initialized
-   * @retval    true if not initialized
+   * @brief     Get if the tensor is empty
+   * @retval    true if the tensor is empty
    */
-  bool uninitialized() const { return length() == 0; }
+  bool empty() const { return size() == 0; }
 
   /**
-   * @brief     Get size of the data
+   * @brief     Get size of the data in bytes
    * @retval    size_t Size in bytes
    */
-  size_t getSize() const { return length() * sizeof(float); }
+  size_t bytes() const { return size() * sizeof(float); }
 
   /**
    * @brief     Set the element value
@@ -959,10 +977,10 @@ public:
    * so, only stride is overriden to @a this
    *
    * @param from Tensor to fill the data from
-   * @param initialize if uninitialized, initialize with from.getDim()
+   * @param allocate if unallocated, allocate with from.getDim()
    * @throws std::invalid_argument if dimension and stride does not match
    */
-  void fill(const Tensor &from, bool initialize = false);
+  void fill(const Tensor &from, bool allocate = false);
 
   /**
    * @brief     return current stride of tensor.
@@ -983,6 +1001,22 @@ public:
   static constexpr float epsilon = 1e-5;
 
 private:
+  /**< handle the data as a std::shared_ptr<float> type */
+  TensorDim dim;
+  std::array<unsigned int, TensorDim::MAXDIM> strides;
+  bool is_contiguous;
+  Tensor::Initializer initializer;
+
+  std::shared_ptr<float> data;
+
+  /**<
+   * When using shared_data with tensor, this stores the ptr of the source
+   * tensor which handles the full memory. If tensor data is already allocated,
+   * this does not affect the tensor. If the tensor data is not allocated, and
+   * src_ptr is valid, this tensor will use the memory allocated by the src_ptr
+   */
+  std::shared_ptr<SrcSharedTensor> src_tensor;
+
   struct BroadcastInfo;
 
   /**
@@ -1026,21 +1060,6 @@ private:
    * @return BroadcastInfo Loopinfo needed to run external loop
    */
   BroadcastInfo computeBroadcastInfo(const Tensor &m) const;
-
-  /**< handle the data as a std::shared_ptr<float> type */
-  TensorDim dim;
-  std::array<unsigned int, TensorDim::MAXDIM> strides;
-  bool is_contiguous;
-
-  std::shared_ptr<float> data;
-
-  /**<
-   * When using shared_data with tensor, this stores the ptr of the source
-   * tensor which handles the full memory. If tensor data is already allocated,
-   * this does not affect the tensor. If the tensor data is not allocated, and
-   * src_ptr is valid, this tensor will use the memory allocated by the src_ptr
-   */
-  std::shared_ptr<SrcSharedTensor> src_tensor;
 
   /**
    * @brief Set the Dist object

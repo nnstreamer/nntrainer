@@ -264,7 +264,7 @@ public:
     auto &str_map = std::get<StrIndexType<T>>(index);
 
     std::string lower_key;
-    lower_key.resize(key.length());
+    lower_key.resize(key.size());
 
     std::transform(key.begin(), key.end(), lower_key.begin(),
                    [](unsigned char c) { return std::tolower(c); });

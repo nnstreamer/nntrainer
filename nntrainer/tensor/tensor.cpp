@@ -56,7 +56,7 @@
 
 #define CREATE_IF_EMPTY_DIMS(tensor, ...) \
   do {                                    \
-    if (tensor.uninitialized())           \
+    if (tensor.empty())                   \
       tensor = Tensor(__VA_ARGS__);       \
   } while (0);
 namespace nntrainer {
@@ -89,25 +89,22 @@ static auto rng = [] {
   return rng;
 }();
 
-Tensor::Tensor(const TensorDim &d, const float *buf) : Tensor() {
+Tensor::Tensor(const TensorDim &d, bool alloc_now, Tensor::Initializer init) :
+  Tensor() {
   if (d.getDataLen() != 0) {
     dim = d;
     strides = d.computeStrides();
-
-    allocate();
-
-    if (buf != nullptr)
-      copy(buf);
-  }
-}
-
-Tensor::Tensor(const TensorDim &d, bool alloc_now) : Tensor() {
-  if (d.getDataLen() != 0) {
-    dim = d;
-    strides = d.computeStrides();
+    initializer = init;
 
     if (alloc_now)
       allocate();
+  }
+}
+
+Tensor::Tensor(const TensorDim &d, const float *buf) : Tensor(d, true) {
+  if (d.getDataLen() != 0) {
+    if (buf != nullptr)
+      copy(buf);
   }
 }
 
@@ -207,9 +204,9 @@ bool Tensor::operator==(const Tensor &rhs) const {
   if (this->dim != rhs.dim)
     return false;
 
-  size_t len = length();
+  size_t len = size();
 
-  if (len != rhs.length())
+  if (len != rhs.size())
     return false;
 
   const float *data = getData();
@@ -226,7 +223,7 @@ bool Tensor::operator==(const Tensor &rhs) const {
 
 template <typename T> void Tensor::setDist(T dist) {
   float *data = getData();
-  unsigned int len = length();
+  unsigned int len = size();
   for (unsigned int i = 0; i < len; ++i) {
     data[i] = dist(rng);
   }
@@ -270,7 +267,7 @@ int Tensor::multiply_i(float const &value) {
   /// @note this is not depending on multiply_i as there is an optimized
   /// version for multiply_i
   float *data = getData();
-  unsigned int len = length();
+  unsigned int len = size();
 
   sscal(len, value, data, 1);
   return ML_ERROR_NONE;
@@ -547,7 +544,7 @@ void Tensor::apply_broadcast(
   /// might be changed
   if (dim == m.dim) {
     BroadcastInfo e;
-    e.buffer_size = length();
+    e.buffer_size = size();
     e.strides[3] = 1;
     v_func(e, getData(), m.getData(), output.getData());
     return;
@@ -879,7 +876,7 @@ Tensor Tensor::dropout_mask(float dropout) const {
 
   float *mask = result.getData();
   float *random = rand_temp.getData();
-  for (unsigned int i = 0; i < length(); ++i) {
+  for (unsigned int i = 0; i < size(); ++i) {
     if (random[i] >= dropout)
       mask[i] = mask[i] * scale;
     else
@@ -891,7 +888,7 @@ Tensor Tensor::dropout_mask(float dropout) const {
 int Tensor::apply_i(std::function<float(float)> f) {
   float *data = getData();
 
-  std::transform(data, data + length(), data, f);
+  std::transform(data, data + size(), data, f);
 
   return ML_ERROR_NONE;
 }
@@ -913,7 +910,7 @@ Tensor &Tensor::apply(std::function<float(float)> f, Tensor &output) const {
       "[Tensor::apply] output dimension does not match");
   }
 
-  std::transform(data, data + length(), rdata, f);
+  std::transform(data, data + size(), rdata, f);
 
   return output;
 }
@@ -929,7 +926,7 @@ void Tensor::print(std::ostream &out) const {
   printInstance(out, this);
   const float *data = getData();
 
-  unsigned int len = length();
+  unsigned int len = size();
   out << "data addr: " << data << '\n';
   out << dim;
 
@@ -986,11 +983,11 @@ void Tensor::copy(const float *buf) noexcept {
     return;
   }
 
-  scopy(length(), buf, 1, getData(), 1);
+  scopy(size(), buf, 1, getData(), 1);
 }
 
 void Tensor::copy_with_stride(const Tensor &from) {
-  if (from.length() != 0 && length() == from.length()) {
+  if (from.size() != 0 && size() == from.size()) {
     reshape(from.getDim());
     for (unsigned int b = 0; b < from.batch(); ++b) {
       unsigned int from_b = b * from.strides[0];
@@ -1035,7 +1032,7 @@ void Tensor::copy(const Tensor &from) {
     throw std::runtime_error("Cannot copy non-contiguous tensor");
   }
 
-  if (from.length() != 0 && length() == from.length()) {
+  if (from.size() != 0 && size() == from.size()) {
     reshape(from.getDim());
     copy(from.getData());
   } else {
@@ -1060,8 +1057,8 @@ void Tensor::reshape(const TensorDim &d) {
   strides = d.computeStrides();
 }
 
-void Tensor::fill(const Tensor &from, bool initialize) {
-  if (initialize && this->uninitialized()) {
+void Tensor::fill(const Tensor &from, bool alloc) {
+  if (alloc && this->empty()) {
     this->copy(from);
     return;
   }
@@ -1086,12 +1083,12 @@ void Tensor::fill(const Tensor &from, bool initialize) {
 }
 
 void Tensor::save(std::ofstream &file) {
-  checkedWrite(file, (char *)getData(), getSize(),
+  checkedWrite(file, (char *)getData(), bytes(),
                "[Tensor::save] operation failed");
 }
 
 void Tensor::read(std::ifstream &file) {
-  checkedRead(file, (char *)getData(), getSize(),
+  checkedRead(file, (char *)getData(), bytes(),
               "[Tensor::read] operation failed");
 }
 
@@ -1136,10 +1133,10 @@ Tensor Tensor::average() const {
 
 void Tensor::setValue(float val) {
   float *data = getData();
-  std::fill(data, data + length(), val);
+  std::fill(data, data + size(), val);
 }
 
-void Tensor::setZero() { sscal(length(), 0, getData(), 1); }
+void Tensor::setZero() { sscal(size(), 0, getData(), 1); }
 
 std::vector<unsigned int> Tensor::argmax() const {
   const float *data = getData();
@@ -1159,14 +1156,14 @@ std::vector<unsigned int> Tensor::argmax() const {
 }
 
 float Tensor::l2norm() const {
-  unsigned int len = length();
+  unsigned int len = size();
   const float *data = getData();
 
   return snrm2(len, data, 1);
 }
 
 float Tensor::max_abs() const {
-  unsigned int len = length();
+  unsigned int len = size();
   const float *data = getData();
 
   unsigned int idx = isamax(len, data, 1);
@@ -1174,7 +1171,7 @@ float Tensor::max_abs() const {
 }
 
 Tensor &Tensor::normalization(Tensor &output) const {
-  if (output.uninitialized())
+  if (output.empty())
     output = Tensor(dim);
 
   output.copy(*this);
@@ -1186,7 +1183,7 @@ Tensor &Tensor::normalization(Tensor &output) const {
 void Tensor::normalization_i() {
   const float *data = getData();
 
-  auto bounds = std::minmax_element(data, data + length());
+  auto bounds = std::minmax_element(data, data + size());
   const float min = *bounds.first;
   const float max = *bounds.second;
 
@@ -1202,7 +1199,7 @@ void Tensor::normalization_i() {
 LazyTensor Tensor::chain() const { return LazyTensor(*this); }
 
 Tensor &Tensor::standardization(Tensor &output) const {
-  if (output.uninitialized())
+  if (output.empty())
     output = Tensor(dim);
 
   output.copy(*this);
@@ -1231,7 +1228,7 @@ void Tensor::standardization_i() {
 }
 
 Tensor::BroadcastInfo Tensor::computeBroadcastInfo(const Tensor &m) const {
-  if (m.length() > this->length())
+  if (m.size() > this->size())
     throw exception::not_supported("broadcasting *this is not supported");
 
   const TensorDim m_dim = m.getDim();

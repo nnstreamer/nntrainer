@@ -230,7 +230,7 @@ Weight &RunLayerContext::getWeightObject(unsigned int idx) {
  * @return true if label is available else false
  */
 bool RunLayerContext::isLabelAvailable(unsigned int idx) const {
-  return !outputs[idx]->getGradientRef().uninitialized();
+  return !outputs[idx]->getGradientRef().empty();
 }
 
 /**
@@ -259,7 +259,7 @@ bool RunLayerContext::readyToUse() const {
    */
   if (inputs.empty())
     return false;
-  return !inputs[0]->getVariable().uninitialized();
+  return !inputs[0]->getVariable().empty();
 }
 
 } // namespace nntrainer

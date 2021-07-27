@@ -2680,7 +2680,7 @@ TEST(nntrainer_Tensor, DISABLED_equation_test_01_p) {
   float *data2 = ret2.getData();
   EXPECT_EQ(ret1, ret2);
 
-  for (unsigned int i = 0; i < ret1.length(); ++i) {
+  for (unsigned int i = 0; i < ret1.size(); ++i) {
     EXPECT_FLOAT_EQ(data1[i], data2[i]);
   }
 }

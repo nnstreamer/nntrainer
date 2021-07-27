@@ -64,7 +64,7 @@ bool DynamicTrainingOptimization::checkIfApply(
   if (iteration < skip_n_iterations)
     return true;
 
-  if (!weight.hasGradient() || weight.getGradientRef().uninitialized())
+  if (!weight.hasGradient() || weight.getGradientRef().empty())
     return true;
 
   float reduced_ratio = calc_ratio_op(weight, input, output, reduce_op);
@@ -129,7 +129,7 @@ float DynamicTrainingOptimization::reduceByMax(Tensor const &ratio) {
  */
 float DynamicTrainingOptimization::reduceByNorm(Tensor const &ratio) {
   float l2norm = ratio.l2norm();
-  return l2norm / std::sqrt(ratio.length());
+  return l2norm / std::sqrt(ratio.size());
 }
 
 /**< Different types of reduce operations */

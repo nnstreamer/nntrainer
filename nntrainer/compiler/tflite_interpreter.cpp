@@ -164,12 +164,11 @@ public:
 
     auto update_buffers = [&buffer_map](const std::vector<Tensor> &tensors) {
       for (auto &t : tensors) {
-        NNTR_THROW_IF(t.uninitialized() || !t.isAllocated(),
-                      std::invalid_argument)
+        NNTR_THROW_IF(t.empty() || !t.isAllocated(), std::invalid_argument)
           << FUNC_TAG << "Buffered tensor must be allocated";
 
         const float *buf = t.getData();
-        buffer_map.addDataWhenNotFound(buf, {t.getSize(), buf});
+        buffer_map.addDataWhenNotFound(buf, {t.bytes(), buf});
       }
     };
 
@@ -329,7 +328,7 @@ buildTensors(const TfOpIdxMap &map, flatbuffers::FlatBufferBuilder &fbb) {
     auto tensor = var->getVariableRef();
 
     unsigned int buffer_idx = 1;
-    if (!tensor.uninitialized() && tensor.isAllocated()) {
+    if (!tensor.empty() && tensor.isAllocated()) {
       buffer_idx = buffer_map.getIndex(var->getVariableRef().getData());
     }
 

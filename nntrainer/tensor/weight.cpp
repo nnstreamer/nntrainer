@@ -18,14 +18,14 @@
 
 namespace nntrainer {
 
-Weight::Weight(const TensorDim &dim, const TensorInitializer init,
+Weight::Weight(const TensorDim &dim, const Tensor::Initializer init,
                const WeightRegularizer reg, const float reg_const, bool train,
                bool alloc_now_, std::string name) :
   Var_Grad(dim, train, alloc_now_, name),
   initializer(init),
   regularizer(reg),
   regularizer_constant(reg_const) {
-  if (initializer == TensorInitializer::NONE)
+  if (initializer == Tensor::Initializer::NONE)
     throw std::invalid_argument("Weight initializer unknown");
   if (regularizer == WeightRegularizer::UNKNOWN)
     throw std::invalid_argument("Weight regularizer unknown");
@@ -63,30 +63,30 @@ void Weight::runVariableInitializer() {
   }
 
   switch (initializer) {
-  case TensorInitializer::ZEROS:
+  case Tensor::Initializer::ZEROS:
     var_ref.setZero();
     break;
-  case TensorInitializer::ONES:
+  case Tensor::Initializer::ONES:
     var_ref.setValue(1.0f);
     break;
-  case TensorInitializer::LECUN_NORMAL:
+  case Tensor::Initializer::LECUN_NORMAL:
     var_ref.setRandNormal(0.0f, sqrtFloat(1.0f / fan_in));
     break;
-  case TensorInitializer::XAVIER_NORMAL:
+  case Tensor::Initializer::XAVIER_NORMAL:
     var_ref.setRandNormal(0.0f, sqrtFloat(2.0f / (fan_in + fan_out)));
     break;
-  case TensorInitializer::HE_NORMAL:
+  case Tensor::Initializer::HE_NORMAL:
     var_ref.setRandNormal(0.0f, sqrtFloat(2.0f / (fan_in)));
     break;
-  case TensorInitializer::LECUN_UNIFORM:
+  case Tensor::Initializer::LECUN_UNIFORM:
     var_ref.setRandUniform(-1.0f * sqrtFloat(1.0f / fan_in),
                            sqrtFloat(1.0f / fan_in));
     break;
-  case TensorInitializer::XAVIER_UNIFORM:
+  case Tensor::Initializer::XAVIER_UNIFORM:
     var_ref.setRandUniform(-1.0f * sqrtFloat(6.0f / (fan_in + fan_out)),
                            sqrtFloat(6.0 / (fan_in + fan_out)));
     break;
-  case TensorInitializer::HE_UNIFORM:
+  case Tensor::Initializer::HE_UNIFORM:
     var_ref.setRandUniform(-1.0f * sqrtFloat(6.0f / (fan_in)),
                            sqrtFloat(6.0 / (fan_in)));
     break;

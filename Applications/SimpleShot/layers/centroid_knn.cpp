@@ -72,11 +72,11 @@ void CentroidKNN::finalize(nntrainer::InitLayerContext &context) {
   auto samples_seen = nntrainer::TensorDim({num_class});
 
   weight_idx[KNNParams::map] = context.requestWeight(
-    map_dim, nntrainer::TensorInitializer::ZEROS,
+    map_dim, nntrainer::Tensor::Initializer::ZEROS,
     nntrainer::WeightRegularizer::NONE, 1.0f, "centroidNN:map", false);
 
   weight_idx[KNNParams::num_samples] = context.requestWeight(
-    samples_seen, nntrainer::TensorInitializer::ZEROS,
+    samples_seen, nntrainer::Tensor::Initializer::ZEROS,
     nntrainer::WeightRegularizer::NONE, 1.0f, "centroidNN:num_samples", false);
 }
 
@@ -87,7 +87,7 @@ void CentroidKNN::forwarding(nntrainer::RunLayerContext &context,
   auto &label = context.getLabel(SINGLE_INOUT_IDX);
   const auto &input_dim = input_.getDim();
 
-  if (training && label.uninitialized()) {
+  if (training && label.empty()) {
     throw std::invalid_argument(
       "[CentroidKNN] forwarding requires label feeded");
   }

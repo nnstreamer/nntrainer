@@ -62,7 +62,7 @@ void CrossEntropySigmoidLossLayer::calcDerivative(RunLayerContext &context) {
 
   y.apply(ActiFunc::sigmoid, ret_derivative);
   ret_derivative.subtract_i(y2);
-  if (ret_derivative.divide_i(ret_derivative.length()) != ML_ERROR_NONE) {
+  if (ret_derivative.divide_i(ret_derivative.size()) != ML_ERROR_NONE) {
     throw std::runtime_error("[CrossEntropySigmoidLossLayer::calcDerivative] "
                              "Error when calculating loss");
   }
