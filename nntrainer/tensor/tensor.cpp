@@ -239,6 +239,62 @@ void Tensor::setRandUniform(float min, float max) {
     std::uniform_real_distribution<float>(min, max));
 }
 
+void Tensor::initialize() {
+  if (empty() || !isAllocated())
+    return;
+
+  unsigned int fan_in, fan_out;
+
+  /// @fixme: when unit is equal to one, this does not work, we need to rely on
+  /// effective dimension then actual numbers here. For now, some heuristics
+  /// added to infer what would be fan_in/fan_out
+  if (dim.batch() * dim.channel() * dim.height() == 1) {
+    fan_out = fan_in = dim.width();
+  } else if (dim.batch() * dim.channel() == 1) { /// fc layer - 2-D tensor
+    fan_in = dim.height();
+    fan_out = dim.width();
+  } else { /// conv2d filters - 4d tensor, @todo extend this to > 4
+    auto field_size = dim.height() * dim.width();
+
+    // this also handles below cases.
+    // 1. fan_in = fan_out = 1 as well.
+    // 2. batch == 1, channel == 1 and height == 1, theoretical rank of 1
+    fan_in = dim.channel() * field_size;
+    fan_out = dim.batch() * field_size;
+  }
+
+  switch (initializer) {
+  case Tensor::Initializer::ZEROS:
+    setZero();
+    break;
+  case Tensor::Initializer::ONES:
+    setValue(1.0f);
+    break;
+  case Tensor::Initializer::LECUN_NORMAL:
+    setRandNormal(0.0f, sqrtFloat(1.0f / fan_in));
+    break;
+  case Tensor::Initializer::XAVIER_NORMAL:
+    setRandNormal(0.0f, sqrtFloat(2.0f / (fan_in + fan_out)));
+    break;
+  case Tensor::Initializer::HE_NORMAL:
+    setRandNormal(0.0f, sqrtFloat(2.0f / (fan_in)));
+    break;
+  case Tensor::Initializer::LECUN_UNIFORM:
+    setRandUniform(-1.0f * sqrtFloat(1.0f / fan_in), sqrtFloat(1.0f / fan_in));
+    break;
+  case Tensor::Initializer::XAVIER_UNIFORM:
+    setRandUniform(-1.0f * sqrtFloat(6.0f / (fan_in + fan_out)),
+                   sqrtFloat(6.0 / (fan_in + fan_out)));
+    break;
+  case Tensor::Initializer::HE_UNIFORM:
+    setRandUniform(-1.0f * sqrtFloat(6.0f / (fan_in)),
+                   sqrtFloat(6.0 / (fan_in)));
+    break;
+  default:
+    break;
+  }
+}
+
 Tensor::Tensor(
   std::vector<std::vector<std::vector<std::vector<float>>>> const &d) {
 
