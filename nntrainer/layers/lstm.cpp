@@ -62,7 +62,8 @@ void LSTMLayer::finalize(InitLayerContext &context) {
 
   if (dropout_rate > epsilon) {
     wt_idx[LSTMParams::dropout_mask] = context.requestTensor(
-      output_dim, "LSTM:dropout_mask", false, ITERATION_LIFESPAN);
+      output_dim, "LSTM:dropout_mask", Tensor::Initializer::NONE, false,
+      ITERATION_LIFESPAN);
   }
 
   if (!return_sequences) {
@@ -101,13 +102,14 @@ void LSTMLayer::finalize(InitLayerContext &context) {
   d.width(unit);
 
   wt_idx[LSTMParams::hidden_state] =
-    context.requestTensor(d, "LSTM:hidden_state", true, ITERATION_LIFESPAN);
-  wt_idx[LSTMParams::mem_cell] =
-    context.requestTensor(d, "LSTM:mem_cell", true, ITERATION_LIFESPAN);
+    context.requestTensor(d, "LSTM:hidden_state", Tensor::Initializer::NONE,
+                          true, ITERATION_LIFESPAN);
+  wt_idx[LSTMParams::mem_cell] = context.requestTensor(
+    d, "LSTM:mem_cell", Tensor::Initializer::NONE, true, ITERATION_LIFESPAN);
 
   d.width(unit * NUM_GATE);
-  wt_idx[LSTMParams::fgio] =
-    context.requestTensor(d, "LSTM:fgio", true, ITERATION_LIFESPAN);
+  wt_idx[LSTMParams::fgio] = context.requestTensor(
+    d, "LSTM:fgio", Tensor::Initializer::NONE, true, ITERATION_LIFESPAN);
 
   if (hidden_state_activation_type == ActivationType::ACT_NONE) {
     hidden_state_activation_type = ActivationType::ACT_TANH;

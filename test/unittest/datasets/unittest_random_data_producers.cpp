@@ -20,7 +20,7 @@ DataProducerValidatorType random_onehot_validator(float min, float max) {
   /// input validator: every value is in range of min, max
   auto input_valid = [min, max](const nntrainer::Tensor &t) {
     auto data = t.getData();
-    for (unsigned int i = 0; i < t.length(); ++i) {
+    for (unsigned int i = 0; i < t.size(); ++i) {
       if (*data < min || max < *data) {
         return false;
       }

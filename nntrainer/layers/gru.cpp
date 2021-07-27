@@ -77,7 +77,8 @@ void GRULayer::finalize(InitLayerContext &context) {
 
   if (dropout_rate > epsilon) {
     wt_idx[GRUParams::dropout_mask] = context.requestTensor(
-      output_dim, "GRU:dropout_mask", false, ITERATION_LIFESPAN);
+      output_dim, "GRU:dropout_mask", Tensor::Initializer::NONE, false,
+      ITERATION_LIFESPAN);
   }
 
   if (!return_sequences) {
@@ -115,18 +116,19 @@ void GRULayer::finalize(InitLayerContext &context) {
   TensorDim d = input_dim;
   d.width(unit);
 
-  wt_idx[GRUParams::hidden_state] =
-    context.requestTensor(d, "GRU:hidden_state", true, ITERATION_LIFESPAN);
+  wt_idx[GRUParams::hidden_state] = context.requestTensor(
+    d, "GRU:hidden_state", Tensor::Initializer::NONE, true, ITERATION_LIFESPAN);
 
   d.width(unit * NUM_GATE);
-  wt_idx[GRUParams::zrg] =
-    context.requestTensor(d, "GRU:zrg", true, ITERATION_LIFESPAN);
+  wt_idx[GRUParams::zrg] = context.requestTensor(
+    d, "GRU:zrg", Tensor::Initializer::NONE, true, ITERATION_LIFESPAN);
 
   TensorDim h_dim = TensorDim();
   h_dim.setTensorDim(3, unit);
   h_dim.batch(input_dim.batch());
   wt_idx[GRUParams::h_prev] =
-    context.requestTensor(h_dim, "GRU:h_prev", false, FORWARD_FUNC_LIFESPAN);
+    context.requestTensor(h_dim, "GRU:h_prev", Tensor::Initializer::NONE, false,
+                          FORWARD_FUNC_LIFESPAN);
 
   if (hidden_state_activation_type == ActivationType::ACT_NONE) {
     hidden_state_activation_type = ActivationType::ACT_TANH;

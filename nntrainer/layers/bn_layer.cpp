@@ -74,7 +74,8 @@ void BatchNormalizationLayer::finalize(InitLayerContext &context) {
                           WeightRegularizer::NONE, 1.0f, "BN::beta", true);
 
   wt_idx[BNParams::deviation] =
-    context.requestTensor(in_dim, "BN::deviation", false, ITERATION_LIFESPAN);
+    context.requestTensor(in_dim, "BN::deviation", Tensor::Initializer::NONE,
+                          false, ITERATION_LIFESPAN);
 }
 
 void BatchNormalizationLayer::setProperty(

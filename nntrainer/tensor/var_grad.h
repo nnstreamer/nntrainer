@@ -66,7 +66,7 @@ public:
    */
   explicit Var_Grad(const Spec &spec) :
     Var_Grad(std::get<0>(spec), // TensorDim
-             std::get<1>(spec), // need_gradient
+             std::get<1>(spec), // initializer
              std::get<2>(spec), // need_gradient
              false,
              std::get<3>(spec) // Name

@@ -183,10 +183,12 @@ public:
    * @todo Consider providing a guarantee that the returned indices will always
    * start from 0 and will always be incremental.
    */
-  unsigned int requestTensor(const TensorDim &dim, const std::string &name,
-                             bool trainable = false,
-                             TensorLifespan lifespan = ITERATION_LIFESPAN) {
-    tensors_spec.emplace_back(dim, Tensor::Initializer::NONE, trainable, name);
+  unsigned int
+  requestTensor(const TensorDim &dim, const std::string &name,
+                const Tensor::Initializer init = Tensor::Initializer::NONE,
+                bool trainable = false,
+                TensorLifespan lifespan = ITERATION_LIFESPAN) {
+    tensors_spec.emplace_back(dim, init, trainable, name);
     return tensors_spec.size() - 1;
   }
 

@@ -99,11 +99,13 @@ void Pooling2DLayer::finalize(InitLayerContext &context) {
    */
   if (pooling_type == PoolingType::global_max) {
     pool_helper_idx = context.requestTensor(in_dim, "Pooling2d::helper_idx",
-                                            false, ITERATION_LIFESPAN);
+                                            Tensor::Initializer::NONE, false,
+                                            ITERATION_LIFESPAN);
     pool_helper_size.resize(in_dim.batch() * in_dim.channel());
   } else {
     pool_helper_idx = context.requestTensor(out_dim, "Pooling2d::helper_idx",
-                                            false, ITERATION_LIFESPAN);
+                                            Tensor::Initializer::NONE, false,
+                                            ITERATION_LIFESPAN);
   }
 }
 
