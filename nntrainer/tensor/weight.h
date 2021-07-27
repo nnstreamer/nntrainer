@@ -41,7 +41,6 @@ public:
    */
   Weight() :
     Var_Grad(),
-    initializer(Tensor::Initializer::NONE),
     regularizer(WeightRegularizer::UNKNOWN),
     regularizer_constant(1.0f) {}
 
@@ -94,14 +93,8 @@ public:
    */
   explicit Weight(const Tensor &v, const Tensor &g, const std::string &n = "") :
     Var_Grad(v, g, n),
-    initializer(Tensor::Initializer::XAVIER_UNIFORM),
     regularizer(WeightRegularizer::NONE),
     regularizer_constant(1.0f) {}
-
-  /**
-   * @copydoc var_grad::initializeVariable(const Tensor &)
-   */
-  void initializeVariable(const Tensor &preallocated = Tensor());
 
   /**
    * @copydoc var_grad::initializeGradient(const Tensor &)
@@ -118,7 +111,6 @@ public:
   friend void swap(Weight &lhs, Weight &rhs) noexcept {
     using std::swap;
     swap(static_cast<Var_Grad &>(lhs), static_cast<Var_Grad &>(rhs));
-    swap(lhs.initializer, rhs.initializer);
     swap(lhs.regularizer, rhs.regularizer);
   }
 
@@ -179,11 +171,10 @@ public:
    */
   void reset(const TensorDim &dim, const Tensor::Initializer init,
              const WeightRegularizer reg, const float reg_const, bool ng) {
-    initializer = init;
     regularizer = reg;
     regularizer_constant = reg_const;
 
-    Var_Grad::reset(dim, ng);
+    Var_Grad::reset(dim, init, ng);
   }
 
   /**
@@ -213,17 +204,13 @@ public:
   /**
    * @brief Allocate and initialize the weight variable, if needed
    */
-  void allocateVariable() {
-    Var_Grad::allocateVariable();
-    runVariableInitializer();
-  }
+  void allocateVariable() { Var_Grad::allocateVariable(); }
 
   /**
    * @brief Allocate and initialize the weight gradient, if needed
    */
   void allocateGradient() {
     Var_Grad::allocateGradient();
-    resetGradient();
     allocateOptimizerVariables();
   }
 
@@ -275,17 +262,11 @@ public:
   }
 
 private:
-  Tensor::Initializer initializer; /**< initializer for this variable */
-  WeightRegularizer regularizer;   /**< regularizer for this variable */
-  float regularizer_constant;      /**< constant factor for regularization */
+  WeightRegularizer regularizer; /**< regularizer for this variable */
+  float regularizer_constant;    /**< constant factor for regularization */
 
   std::vector<Tensor> opt_vars;        /**< optimizer variables */
   std::vector<TensorDim> opt_vars_dim; /**< optimizer variables dimensions */
-
-  /**
-   * @brief Initialize the weight with the initializer
-   */
-  void runVariableInitializer();
 
   /**
    * @brief Allocate optimizer related variables for the given weights

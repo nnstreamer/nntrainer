@@ -153,10 +153,12 @@ void Tensor::allocate() {
     data = std::shared_ptr<float>(src_tensor->tensor()->data,
                                   src_tensor->tensor()->data.get() +
                                     src_tensor->offset());
+    /** as this memory is shared, do NOT initialize */
   } else {
     /// allocate new memory for the tensor data
     data = std::shared_ptr<float>(new float[dim.getDataLen()],
                                   std::default_delete<float[]>());
+    initialize();
   }
 }
 
@@ -541,9 +543,11 @@ void Tensor::createSharedDataTensor(const Tensor &src, Tensor &dest,
    * @note src.data and src.src_tensor CAN co-exist. src.src_tensor is stored
    * if the batch size of src is updated and needs reallocation.
    */
-  if (src.data)
-    dest.data = std::shared_ptr<float>(src.data, src.data.get() + offset);
-  else if (!src.src_tensor)
+  dest.data = nullptr;
+  if (src.data) {
+    dest.src_tensor = std::make_shared<SrcSharedTensor>(&src, offset);
+    dest.allocate();
+  } else if (!src.src_tensor)
     dest.src_tensor = std::make_shared<SrcSharedTensor>(&src, offset);
   else
     dest.src_tensor = std::make_shared<SrcSharedTensor>(
