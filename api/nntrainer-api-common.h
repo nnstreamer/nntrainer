@@ -37,7 +37,28 @@ typedef enum {
   ML_TRAIN_LAYER_TYPE_ADDITION,   /**< Addition Layer (Since 6.5) */
   ML_TRAIN_LAYER_TYPE_CONCAT,     /**< Concat Layer (Since 6.5) */
   ML_TRAIN_LAYER_TYPE_MULTIOUT,   /**< MultiOut Layer (Since 6.5) */
-  ML_TRAIN_LAYER_TYPE_UNKNOWN = 999 /**< Unknown Layer */
+  ML_TRAIN_LAYER_TYPE_PREPROCESS_FLIP, /**< Preprocess flip Layer (Since 6.5) */
+  ML_TRAIN_LAYER_TYPE_PREPROCESS_TRANSLATE, /**< Preprocess translate Layer
+                                               (Since 6.5) */
+  ML_TRAIN_LAYER_TYPE_PREPROCESS_L2NORM,   /**< Preprocess L2Normalization Layer
+                                              (Since 6.5) */
+  ML_TRAIN_LAYER_TYPE_EMBEDDING,           /** Embedding Layer (Since 6.5) */
+  ML_TRAIN_LAYER_TYPE_RNN,                 /** RNN Layer (Since 6.5) */
+  ML_TRAIN_LAYER_TYPE_LSTM,                /** LSTM Layer (Since 6.5) */
+  ML_TRAIN_LAYER_TYPE_SPLIT,               /** Splite Layer (Since 6.5) */
+  ML_TRAIN_LAYER_TYPE_GRU,                 /** GRU Layer (Since 6.5) */
+  ML_TRAIN_LAYER_TYPE_PERMUTE,             /** Permute layer (Since 6.5) */
+  ML_TRAIN_LAYER_TYPE_DROPOUT,             /** DropOut Layer (Since 6.5) */
+  ML_TRAIN_LAYER_TYPE_BACKBONE_NNSTREAMER, /**< Backbone using NNStreamer
+                                              (Since 6.5) */
+  ML_TRAIN_LAYER_TYPE_CENTROID_KNN, /**< Centroid KNN Layer (Since 6.5) */
+  ML_TRAIN_LAYER_TYPE_LOSS_MSE =
+    500, /**< Mean Squared Error Loss Layer type (Since 6.5) */
+  ML_TRAIN_LAYER_TYPE_LOSS_CROSS_ENTROPY_SIGMOID, /**< Cross Entropy with
+                                       Sigmoid Loss Layer type (Since 6.5) */
+  ML_TRAIN_LAYER_TYPE_LOSS_CROSS_ENTROPY_SOFTMAX, /**< Cross Entropy with
+                                       Softmax Loss Layer type (Since 6.5) */
+  ML_TRAIN_LAYER_TYPE_UNKNOWN = 999               /**< Unknown Layer */
 } ml_train_layer_type_e;
 
 /**
