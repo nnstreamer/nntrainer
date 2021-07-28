@@ -218,10 +218,12 @@ int ml_train_model_set_dataset(ml_train_model_h model,
                                ml_train_dataset_h dataset);
 
 /**
- * @brief Get input dimensions information of the model
- * @details Use this function to get input dimensions information of the model.
- * destroy @a dimensions with @a ml_tensors_info_destroy() after use.
- * @a model must be compiled before calling this function.
+ * @brief Get input tensors information information of the model
+ * @details Use this function to get input tensors information of the model.
+ * destroy @a info with @a ml_tensors_info_destroy() after use.
+ * @remarks @a model must be compiled before calling this function.
+ * @remarks the returned @a info is newly created so it does not reflect future
+ * changes in the model
  *
  * @param[in] model The NNTrainer model handle.
  * @param[out] info The tensors information handle.
@@ -229,14 +231,16 @@ int ml_train_model_set_dataset(ml_train_model_h model,
  * @retval #ML_ERROR_NONE Successful.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
  */
-int ml_train_model_get_input_dimensions(ml_train_model_h model,
-                                        ml_tensors_info_h *info);
+int ml_train_model_get_input_tensors_info(ml_train_model_h model,
+                                          ml_tensors_info_h *info);
 
 /**
- * @brief Get output dimensions information of the model
- * @details Use this function to get output dimensions information of the model.
- * destroy @a dimensions with @a ml_tensors_info_destroy() after use.
- * @a model must be compiled before calling this function.
+ * @brief Get output tensors information information of the model
+ * @details Use this function to get output tensors information information of
+ * the model. destroy @a info with @a ml_tensors_info_destroy() after use.
+ * @remarks @a model must be compiled before calling this function.
+ * @remarks the returned @a info is newly created so it does not reflect future
+ * changes in the model
  *
  * @param[in] model The NNTrainer model handle.
  * @param[out] info The tensors information handle.
@@ -244,8 +248,8 @@ int ml_train_model_get_input_dimensions(ml_train_model_h model,
  * @retval #ML_ERROR_NONE Successful.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
  */
-int ml_train_model_get_output_dimensions(ml_train_model_h model,
-                                         ml_tensors_info_h *info);
+int ml_train_model_get_output_tensors_info(ml_train_model_h model,
+                                           ml_tensors_info_h *info);
 
 /**
  * @brief Creates a neural network layer.
