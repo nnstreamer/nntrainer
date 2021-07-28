@@ -43,8 +43,8 @@
 #include <input_layer.h>
 #include <lstm.h>
 #include <mse_loss_layer.h>
+#include <multiout_layer.h>
 #include <nntrainer_error.h>
-#include <output_layer.h>
 #include <parse_util.h>
 #include <permute_layer.h>
 #include <plugged_layer.h>
@@ -222,7 +222,7 @@ static void add_default_object(AppContext &ac) {
                      ActivationLayer::type, LayerType::LAYER_ACTIVATION);
   ac.registerFactory(nntrainer::createLayer<AdditionLayer>, AdditionLayer::type,
                      LayerType::LAYER_ADDITION);
-  ac.registerFactory(nntrainer::createLayer<OutputLayer>, OutputLayer::type,
+  ac.registerFactory(nntrainer::createLayer<MultiOutLayer>, MultiOutLayer::type,
                      LayerType::LAYER_MULTIOUT);
   ac.registerFactory(nntrainer::createLayer<ConcatLayer>, ConcatLayer::type,
                      LayerType::LAYER_CONCAT);

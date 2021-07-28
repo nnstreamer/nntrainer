@@ -77,7 +77,8 @@ TEST_P(DataProducerSemantics, fetch_one_epoch_or_10_iteration_pn) {
 
   if (has_fixed_size) {
     {
-      auto [last, ins, labels] = generator();
+      auto result = generator();
+      bool last = std::get<0>(result);
       EXPECT_TRUE(last);
     }
 

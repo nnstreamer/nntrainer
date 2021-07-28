@@ -14,11 +14,11 @@
 #include <gtest/gtest.h>
 
 #include <layers_common_tests.h>
-#include <output_layer.h>
+#include <multiout_layer.h>
 
 auto semantic_output =
-  LayerSemanticsParamType(nntrainer::createLayer<nntrainer::OutputLayer>,
-                          nntrainer::OutputLayer::type, {}, 0, false);
+  LayerSemanticsParamType(nntrainer::createLayer<nntrainer::MultiOutLayer>,
+                          nntrainer::MultiOutLayer::type, {}, 0, false);
 
 INSTANTIATE_TEST_CASE_P(Output, LayerSemantics,
                         ::testing::Values(semantic_output));

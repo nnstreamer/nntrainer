@@ -2,7 +2,7 @@
 /**
  * Copyright (C) 2020 Jijoong Moon <jijoong.moon@samsung.com>
  *
- * @file        output_layer.h
+ * @file        multiout_layer.h
  * @date        05 Nov 2020
  * @see         https://github.com/nnstreamer/nntrainer
  * @author      Jijoong Moon <jijoong.moon@samsung.com>
@@ -12,8 +12,8 @@
  * @todo        Support inplace for this layer
  */
 
-#ifndef __OUTPUT_LAYER_H__
-#define __OUTPUT_LAYER_H__
+#ifndef __MULTIOUT_LAYER_H__
+#define __MULTIOUT_LAYER_H__
 #ifdef __cplusplus
 
 #include <layer_devel.h>
@@ -21,32 +21,32 @@
 namespace nntrainer {
 
 /**
- * @class   Output Layer
- * @brief   Output Layer
+ * @class   Multiout Layer
+ * @brief   Multiout Layer
  */
-class OutputLayer : public Layer {
+class MultiOutLayer : public Layer {
 public:
   /**
-   * @brief     Constructor of Output Layer
+   * @brief     Constructor of Multiout Layer
    */
-  OutputLayer() : Layer() {}
+  MultiOutLayer() : Layer() {}
 
   /**
-   * @brief     Destructor of Output Layer
+   * @brief     Destructor of Multiout Layer
    */
-  ~OutputLayer() = default;
+  ~MultiOutLayer() = default;
 
   /**
-   *  @brief  Move constructor of OutputLayer.
-   *  @param[in] OutputLayer &&
+   *  @brief  Move constructor of MultiOutLayer.
+   *  @param[in] MultiOutLayer &&
    */
-  OutputLayer(OutputLayer &&rhs) noexcept = default;
+  MultiOutLayer(MultiOutLayer &&rhs) noexcept = default;
 
   /**
    * @brief  Move assignment operator.
-   * @parma[in] rhs OutputLayer to be moved.
+   * @parma[in] rhs MultiOutLayer to be moved.
    */
-  OutputLayer &operator=(OutputLayer &&rhs) = default;
+  MultiOutLayer &operator=(MultiOutLayer &&rhs) = default;
 
   /**
    * @copydoc Layer::finalize(InitLayerContext &context)
@@ -82,7 +82,7 @@ public:
   /**
    * @copydoc Layer::getType()
    */
-  const std::string getType() const override { return OutputLayer::type; };
+  const std::string getType() const override { return MultiOutLayer::type; };
 
   inline static const std::string type = "multiout";
 };
@@ -90,4 +90,4 @@ public:
 } // namespace nntrainer
 
 #endif /* __cplusplus */
-#endif /* __OUTPUT_LAYER_H__ */
+#endif /* __MULTIOUT_LAYER_H__ */
