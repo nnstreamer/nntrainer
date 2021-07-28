@@ -630,7 +630,7 @@ TEST(nntrainerIniTest, backbone_p_17) {
 
 /**
  * @brief Ini file unittest with backbone
- * @note Output layer name not found, epmty backbone
+ * @note Multi Output layer name not found, epmty backbone
  */
 TEST(nntrainerIniTest, backbone_n_18) {
   nntrainer::NeuralNetwork NN;

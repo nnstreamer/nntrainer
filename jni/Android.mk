@@ -138,7 +138,7 @@ NNTRAINER_SRCS := $(NNTRAINER_ROOT)/nntrainer/models/neuralnet.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/tensor/blas_interface.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/layer_node.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/input_layer.cpp \
-                  $(NNTRAINER_ROOT)/nntrainer/layers/output_layer.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/layers/multiout_layer.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/fc_layer.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/bn_layer.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/loss/loss_layer.cpp \

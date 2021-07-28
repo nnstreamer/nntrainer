@@ -23,10 +23,10 @@
 #include <cross_entropy_softmax_loss_layer.h>
 #include <flatten_layer.h>
 #include <input_layer.h>
+#include <multiout_layer.h>
 #include <network_graph.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
-#include <output_layer.h>
 #include <parse_util.h>
 #include <profiler.h>
 #include <rnn.h>
@@ -204,7 +204,7 @@ int NetworkGraph::realizeMultiOutputType(
   if (in_node->getNumOutputConnections() <= 1)
     return ML_ERROR_NONE;
 
-  std::shared_ptr<LayerNode> lnode = createLayerNode(OutputLayer::type);
+  std::shared_ptr<LayerNode> lnode = createLayerNode(MultiOutLayer::type);
   graph.ensureName(*lnode, in_node->getName());
 
   lnode->setInputLayers({in_node->getName()});
@@ -398,7 +398,7 @@ int NetworkGraph::realizeGraph() {
    */
   for (unsigned int i = 0; i < graph.size(); ++i) {
     auto const &lnode = LNODE(*(cbegin() + i));
-    if (lnode->getType() != OutputLayer::type &&
+    if (lnode->getType() != MultiOutLayer::type &&
         lnode->getType() != SplitLayer::type) {
       status = realizeMultiOutputType(lnode);
       NN_RETURN_STATUS();

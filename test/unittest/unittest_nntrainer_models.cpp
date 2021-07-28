@@ -20,8 +20,8 @@
 
 #include <input_layer.h>
 #include <layer.h>
+#include <multiout_layer.h>
 #include <neuralnet.h>
-#include <output_layer.h>
 #include <weight.h>
 
 #include "nntrainer_test_util.h"
@@ -271,13 +271,13 @@ void NodeWatcher::forward(int iteration, NodeWatcher &next_node) {
   }
 
   if (!next_node.node->supportInPlace() &&
-      getNodeType() != nntrainer::OutputLayer::type)
+      getNodeType() != nntrainer::MultiOutLayer::type)
     verify(out, expected_output, err_msg + " at output");
 }
 
 void NodeWatcher::backward(int iteration, bool verify_deriv, bool verify_grad) {
 
-  if (getNodeType() == nntrainer::OutputLayer::type) {
+  if (getNodeType() == nntrainer::MultiOutLayer::type) {
     return;
   }
 
@@ -492,7 +492,7 @@ GraphWatcher::prepareData(std::ifstream &f,
 
 void GraphWatcher::readIteration(std::ifstream &f) {
   for (auto &i : nodes) {
-    if (i.getNodeType() == nntrainer::OutputLayer::type) {
+    if (i.getNodeType() == nntrainer::MultiOutLayer::type) {
       continue;
     }
 
