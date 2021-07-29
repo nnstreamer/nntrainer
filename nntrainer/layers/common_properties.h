@@ -56,6 +56,41 @@ public:
 };
 
 /**
+ * @brief Tensor Shape property, TensorShape is an identifier of an object
+ *
+ */
+class TensorShape : public nntrainer::Property<nntrainer::TensorDim> {
+public:
+  /**
+   * @brief Construct a new TensorShape object
+   *
+   */
+  TensorShape() : nntrainer::Property<nntrainer::TensorDim>(){};
+
+  /**
+   * @brief Construct a new TensorShape object
+   * @param value default value of a TensorDim
+   *
+   */
+  TensorShape(const nntrainer::TensorDim &dim) :
+    nntrainer::Property<nntrainer::TensorDim>(dim){};
+
+  static constexpr const char *key =
+    "tensor_shape"; /**< unique key to access */
+
+  using prop_tag = dimension_prop_tag; /**< property type */
+
+  /**
+   * @brief TensorShape validator
+   *
+   * @param v string to validate
+   * @retval true if it contains unsigned int numbers and/or ':'
+   * @retval false if it is empty or contains non-valid character
+   */
+  bool isValid(const std::string &v) const;
+};
+
+/**
  * @brief unit property, unit is used to measure how many weights are there
  *
  */
@@ -68,6 +103,84 @@ public:
 
   bool isValid(const unsigned int &v) const override { return v > 0; }
 };
+
+/**
+ * @brief TensorsSpec property, this defines tensors shape of output
+ *
+ */
+class TensorsSpec {
+public:
+  TensorsSpec(){};
+  /**
+   * @brief Construct a new Tensors Spec object
+   *
+   * @param shapes_ tensors dimension
+   */
+  TensorsSpec(const std::vector<TensorShape> &shapes_) : shapes(shapes_){};
+
+  /**
+   * @brief Construct a new Tensors Spec object
+   *
+   * @param rsh rhs to copy
+   */
+  TensorsSpec(const TensorsSpec &rhs) = default;
+
+  /**
+   * @brief Copy assignment operator
+   *
+   * @param rsh rhs to copy
+   * &return TensorsSpec&
+   */
+  TensorsSpec &operator=(const TensorsSpec &rhs) = default;
+
+  /**
+   * @brief Move Construct Tensors Spec object
+   *
+   * @param rhs rhs to move
+   */
+  TensorsSpec(TensorsSpec &&rhs) noexcept = default;
+
+  /**
+   * @brief Move assign a Tensors spec operator
+   *
+   * @param rhs rhs to move
+   * @return TensorsSpec&
+   */
+  TensorsSpec &operator=(TensorsSpec &&rhs) noexcept = default;
+
+  /**
+   * @brief Get the Tensors Shape Object
+   *
+   * @return const std::vector<TensorShape>
+   */
+  const std::vector<TensorShape> &getTensorsShape() const { return shapes; }
+
+  /**
+   * @brief Get the number of Tensors Shape
+   *
+   * @return size_t the number of Tensors Shape
+   */
+  const size_t getNumTensors() const { return shapes.size(); }
+
+  /**
+   *
+   * @brief operator==
+   *
+   * @param rhs right side to compare
+   * @return true if equal
+   * @return false if not equal
+   */
+  bool operator==(const TensorsSpec &rhs) const;
+
+private:
+  std::vector<TensorShape> shapes;
+};
+
+/**
+ * @brief tensors shape prop tag type
+ *
+ */
+struct tensors_shape_prop_tag {};
 
 /**
  * @brief trainable property, use this to set and check how if certain layer is
@@ -190,6 +303,37 @@ public:
     "input_layers";                     /**< unique key to access */
   using prop_tag = connection_prop_tag; /**< property type */
   bool isValid(const ConnectionSpec &v) const override;
+};
+
+/**
+ * @brief OutputSpec property, this defines Output Tensors
+ *
+ */
+class OutputSpec : public nntrainer::Property<TensorsSpec> {
+public:
+  /**
+   * @brief Construct a new Output Spec object
+   *
+   */
+  OutputSpec() : nntrainer::Property<TensorsSpec>() {}
+
+  /**
+   * @brief Construct a new Output Spec object
+   *
+   * @param value default value of a Output spec
+   */
+  OutputSpec(const TensorsSpec &value) :
+    nntrainer::Property<TensorsSpec>(value) {} /**< default value if any */
+  static constexpr const char *key =
+    "output_shape";                        /**< unique key to access */
+  using prop_tag = tensors_shape_prop_tag; /**< property type */
+
+  /**
+   * @brief Check validation
+   *
+   * @param bool true if valid, false if it is not valid
+   */
+  bool isValid(const TensorsSpec &v) const override;
 };
 
 /**

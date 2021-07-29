@@ -250,6 +250,74 @@ TEST(Padding2D, given_padding_is_negative_02_n) {
   EXPECT_THROW(p.set("-1, 1"), std::invalid_argument);
 }
 
+TEST(TensorShapeProperty, setPropertyValid_p) {
+  nntrainer::props::TensorShape n;
+  EXPECT_NO_THROW(from_string("1:1:1:1", n));
+
+  EXPECT_EQ(to_string(n), "1:1:1:1");
+
+  EXPECT_NO_THROW(from_string("1:1", n));
+  EXPECT_EQ(n.get(), nntrainer::TensorDim("1:1"));
+  EXPECT_THROW(from_string(":", n), std::invalid_argument);
+}
+
+TEST(TensorShapeProperty, setPropertyValid_01_n) {
+  nntrainer::props::TensorShape n;
+  EXPECT_THROW(from_string("1:0:0:1", n), std::invalid_argument);
+
+  EXPECT_THROW(from_string("1:-1:1:1", n), std::invalid_argument);
+
+  EXPECT_THROW(from_string("1:-1:1:1", n), std::invalid_argument);
+}
+
+TEST(OutputSpecProperty, setPropertyValid_p) {
+  using namespace nntrainer::props;
+  {
+    OutputSpec expected(
+      TensorsSpec({TensorShape(nntrainer::TensorDim("1:1:1:1")),
+                   TensorShape(nntrainer::TensorDim("2:2:2:2")),
+                   TensorShape(nntrainer::TensorDim("3:3:3:3"))}));
+
+    OutputSpec actual;
+    nntrainer::from_string("1:1:1:1, 2:2:2:2, 3:3:3:3", actual);
+    EXPECT_EQ(actual, expected);
+    EXPECT_EQ("1:1:1:1,2:2:2:2,3:3:3:3", nntrainer::to_string(actual));
+  }
+  {
+    OutputSpec expected(
+      TensorsSpec({TensorShape(nntrainer::TensorDim("1:1:1:1"))}));
+
+    OutputSpec actual;
+    nntrainer::from_string("1:1:1:1", actual);
+    EXPECT_EQ(actual, expected);
+    EXPECT_EQ("1:1:1:1", nntrainer::to_string(actual));
+  }
+}
+
+TEST(OutputSpecProperty, emptyString_n_01) {
+  using namespace nntrainer::props;
+  InputSpec actual;
+  EXPECT_THROW(nntrainer::from_string("", actual), std::invalid_argument);
+}
+
+TEST(OutputSpecProperty, noSeperator_n_01) {
+  using namespace nntrainer::props;
+  OutputSpec actual;
+  EXPECT_THROW(nntrainer::from_string("1:1:1 2:2:2", actual),
+               std::invalid_argument);
+}
+
+TEST(OutputSpecProperty, noSeperator_n_02) {
+  using namespace nntrainer::props;
+  OutputSpec actual;
+  EXPECT_THROW(nntrainer::from_string("1::1,2:2:2", actual),
+               std::invalid_argument);
+  EXPECT_THROW(nntrainer::from_string("1:1:1,2::2", actual),
+               std::invalid_argument);
+  EXPECT_THROW(nntrainer::from_string(",", actual), std::invalid_argument);
+  EXPECT_THROW(nntrainer::from_string("", actual), std::invalid_argument);
+}
+
 /**
  * @brief Main gtest
  */

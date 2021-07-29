@@ -48,6 +48,38 @@ void FilePath::set(const std::string &v) {
 
 std::ifstream::pos_type FilePath::file_size() { return cached_pos_size; }
 
+bool TensorShape::isValid(const std::string &v) const {
+  // Tensor dimension does not allow the 0 & number of dimension shuld be less
+  // than MAXDIM 4. Also the white space will be ignored.
+
+  static std::regex allowed("[1-9:]:[1-9:]*");
+  auto is_valid = [](const std::string &value) {
+    auto values = split(value, std::regex("\\s*\\:\\s*"));
+    if (values.size() > TensorDim::MAXDIM)
+      return false;
+    // check if the values is nothing ( 1::1 )
+    for (auto item : values) {
+      if (item.empty())
+        return false;
+    }
+    return true;
+  };
+
+  return std::regex_match(v, allowed) && is_valid(v);
+}
+
+bool TensorsSpec::operator==(const TensorsSpec &rhs) const {
+  for (unsigned int i = 0; i < shapes.size(); ++i) {
+    if (!istrequal(to_string(shapes[i]), to_string(rhs.getTensorsShape()[i])))
+      return false;
+  }
+  return true;
+}
+
+bool OutputSpec::isValid(const TensorsSpec &v) const {
+  return v.getTensorsShape().size() > 0;
+}
+
 ConnectionSpec::ConnectionSpec(const std::vector<props::Name> &layer_ids_,
                                const std::string &op_type_) :
   op_type(op_type_),
@@ -240,6 +272,57 @@ str_converter<props::connection_prop_tag, props::ConnectionSpec>::from_string(
   props::Name n;
   n.set(value); // explicitly trigger validation using set method
   return props::ConnectionSpec({n});
+}
+
+template <>
+std::string
+str_converter<props::tensors_shape_prop_tag, props::TensorsSpec>::to_string(
+  const props::TensorsSpec &value) {
+
+  std::stringstream ss;
+  auto last_iter = value.getTensorsShape().end() - 1;
+  for (auto iter = value.getTensorsShape().begin(); iter != last_iter; ++iter) {
+    for (unsigned int i = 0; i < TensorDim::MAXDIM - 1; ++i)
+      ss << (*iter).get().getTensorDim(i) << ":";
+    ss << (*iter).get().getTensorDim(TensorDim::MAXDIM - 1) << ",";
+  }
+  for (unsigned int i = 0; i < TensorDim::MAXDIM - 1; ++i)
+    ss << (*last_iter).get().getTensorDim(i) << ":";
+  ss << (*last_iter).get().getTensorDim(TensorDim::MAXDIM - 1);
+
+  return ss.str();
+}
+
+template <>
+props::TensorsSpec
+str_converter<props::tensors_shape_prop_tag, props::TensorsSpec>::from_string(
+  const std::string &value) {
+
+  auto values = split(value, std::regex("\\s*\\,\\s*"));
+  auto generate_TensorShape_vector = [](const auto &values) {
+    props::TensorShape ts;
+    std::vector<props::TensorShape> shapes_;
+    shapes_.reserve(values.size());
+
+    for (auto &item : values) {
+      if (!ts.isValid(item)) {
+        break;
+      }
+      TensorDim dim(item);
+      props::TensorShape s(dim);
+      shapes_.emplace_back(s);
+    }
+
+    return shapes_;
+  };
+
+  auto shapes = generate_TensorShape_vector(values);
+
+  NNTR_THROW_IF((shapes.size() != values.size()), std::invalid_argument)
+    << "size of tensors spec should equal to values : " << shapes.size()
+    << " vs." << values.size();
+
+  return props::TensorsSpec(shapes);
 }
 
 } // namespace nntrainer

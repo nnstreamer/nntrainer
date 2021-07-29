@@ -89,6 +89,7 @@ public:
    *            34. return_sequences :  bool (type) - lstm
    *            35. hidden_state_activation :  string (type) - lstm
    *            36. dropout : bool
+   *            37. output_shape : bool
    */
   enum class PropertyType {
     input_shape = 0,
@@ -128,6 +129,7 @@ public:
     return_sequences = 34,
     hidden_state_activation = 35,
     dropout = 36,
+    output_shape = 37,
     unknown
   };
 

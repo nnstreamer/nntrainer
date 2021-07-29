@@ -126,9 +126,10 @@ LayerNode::LayerNode(std::unique_ptr<nntrainer::Layer> &&l, size_t idx) :
   activation_type(ActivationType::ACT_NONE),
   layer_node_props(new PropsType(props::Name(), props::Flatten(),
                                  props::Distribute(), props::Trainable(),
-                                 props::Loss())) {
+                                 props::Loss(), props::OutputSpec())) {
   if (layer && layer->getType() == TimeDistLayer::type) {
     std::get<props::Distribute>(*layer_node_props).set(true);
+    // NYI
   }
 }
 
@@ -138,6 +139,14 @@ int LayerNode::setProperty(std::vector<std::string> properties) {
     !std::get<props::Distribute>(*layer_node_props).empty() &&
     std::get<props::Distribute>(*layer_node_props).get();
   auto left_properties = loadProperties(properties, *layer_node_props);
+
+  size_t num_output_tensors = getNumOutputTensors();
+
+  if (num_output_tensors > 1) {
+    init_context =
+      InitLayerContext(init_context.getInputDimensions(),
+                       std::max((unsigned int)num_output_tensors, 1u));
+  }
 
   /// note that setting distribute is only allowed for one time.
   /// until we have layerNode::finalize and must not except timedist layer
@@ -186,6 +195,16 @@ bool LayerNode::setProperty(const std::string &key, const std::string &value) {
 
   PropertyType type = static_cast<PropertyType>(parseLayerProperty(key));
   switch (type) {
+  case PropertyType::output_shape: {
+    std::vector<TensorDim> output_dim = init_context.getOutputDimensions();
+    if (getNumOutputs() == 0)
+      output_dim.resize(1);
+
+    // for (auto iter = output_dim.cbegin();iter!= output_dim.cend();iter++){
+    // NYI
+    // }
+
+  } break;
   case PropertyType::input_shape: {
     std::vector<TensorDim> input_dim = init_context.getInputDimensions();
     if (getNumInputs() > 1) {
@@ -285,6 +304,15 @@ bool LayerNode::getFlatten() const {
     return false;
   }
   return flatten.get();
+}
+
+unsigned int LayerNode::getNumOutputTensors() const {
+  auto &output = std::get<props::OutputSpec>(*layer_node_props);
+  if (output.empty()) {
+    return 1;
+  } else {
+    return output.get().getNumTensors();
+  }
 }
 
 bool LayerNode::getDistribute() const {

@@ -302,6 +302,12 @@ public:
   unsigned int getNumOutputs() const { return init_context.getNumOutputs(); }
 
   /**
+   * @brief     Get number of output tensors
+   * @retval    number of output tensors
+   */
+  unsigned int getNumOutputTensors() const;
+
+  /**
    * @brief Get the number of weights
    *
    * @return unsigned int number of weights
@@ -613,8 +619,9 @@ private:
                     Editing properties of the layer after init will not the
                     properties in the context/graph unless intended. */
 
-  using PropsType = std::tuple<props::Name, props::Flatten, props::Distribute,
-                               props::Trainable, props::Loss>;
+  using PropsType =
+    std::tuple<props::Name, props::Flatten, props::Distribute, props::Trainable,
+               props::Loss, props::OutputSpec>;
   /**
    * These properties are set for the layer by the user but are intercepted
    * and used in the node which forms the basic element of the graph.

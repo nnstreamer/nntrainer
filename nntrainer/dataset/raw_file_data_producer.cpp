@@ -46,12 +46,12 @@ RawFileDataProducer::size(const std::vector<TensorDim> &input_dims,
                                 sample_size, size_accumulator);
 
   auto path_prop = std::get<props::FilePath>(*raw_file_props);
-  auto file_size = path_prop.file_size();
 
   /// checking alignment is a good way to make check if a file is valid,
   /// unfortunately, our test dataset does not have this property
   /// (trainingSet.dat, valSet.dat, testSet.dat) after checking, we can
   /// uncomment below line.
+  // auto file_size = path_prop.file_size();
   // NNTR_THROW_IF((file_size % sample_size * RawFileDataProducer::pixel_size !=
   // 0),
   //               std::invalid_argument)

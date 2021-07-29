@@ -102,8 +102,18 @@ TensorDim str_converter<dimension_prop_tag, TensorDim>::from_string(
     tokens.push_back(token);
   }
 
-  NNTR_THROW_IF(tokens.size() > ml::train::TensorDim::MAXDIM,
-                std::invalid_argument)
+  static std::regex allowed("[1-9:]*");
+  auto check_num_tensors = [](const std::string &value) {
+    auto values = split(value, std::regex("\\s*\\:\\s*"));
+    if (values.size() > TensorDim::MAXDIM || !std::regex_match(value, allowed))
+      return false;
+    return true;
+  };
+
+  NNTR_THROW_IF(!check_num_tensors(value), std::invalid_argument)
+    << "Not allow negative or zero value";
+
+  NNTR_THROW_IF(tokens.size() > TensorDim::MAXDIM, std::invalid_argument)
     << "More than 4 axes is not supported, target string: " << value;
 
   TensorDim target;
