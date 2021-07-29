@@ -28,13 +28,13 @@ void TfLiteLayer::setDimensions(const std::vector<int> &tensor_idx_list,
         "Data type other than float32 not supported");
 
     unsigned int num_dims = interpreter->tensor(tensor_idx)->dims->size;
-    if (num_dims > MAXDIM)
+    if (num_dims > ml::train::TensorDim::MAXDIM)
       throw exception::not_supported("Number of dimensions exceed the support");
 
     /** This puts the unused dimensions to the outer dimensions */
     for (size_t dim_idx = 0; dim_idx < num_dims; dim_idx++)
       dim[i].setTensorDim(
-        MAXDIM - dim_idx - 1,
+        ml::train::TensorDim::MAXDIM - dim_idx - 1,
         interpreter->tensor(tensor_idx)->dims->data[num_dims - dim_idx - 1]);
   }
 }

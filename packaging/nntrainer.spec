@@ -450,7 +450,6 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %{_includedir}/nntrainer/layer_devel.h
 %{_includedir}/nntrainer/neuralnet.h
 %{_includedir}/nntrainer/tensor.h
-%{_includedir}/nntrainer/tensor_dim.h
 %{_includedir}/nntrainer/optimizer_devel.h
 %{_includedir}/nntrainer/optimizer_impl.h
 %{_includedir}/nntrainer/optimizer_factory.h
@@ -493,6 +492,7 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %{_includedir}/nntrainer/layer.h
 %{_includedir}/nntrainer/optimizer.h
 %{_includedir}/nntrainer/dataset.h
+%{_includedir}/nntrainer/tensor_dim.h
 %{_libdir}/pkgconfig/ccapi-ml-training.pc
 
 %files -n ccapi-machine-learning-training-devel-static

@@ -17,6 +17,9 @@
 #include <vector>
 
 namespace nntrainer::resnet {
+
+using TensorDim = ml::train::TensorDim;
+
 /**
  * @brief DataLoader interface used to load cifar data
  *

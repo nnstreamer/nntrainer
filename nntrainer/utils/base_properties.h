@@ -17,6 +17,7 @@
 
 #include <nntrainer_error.h>
 #include <parse_util.h>
+#include <tensor_dim.h>
 
 #ifndef __BASE_PROPERTIES_H__
 #define __BASE_PROPERTIES_H__
@@ -24,6 +25,8 @@
 /** base and predefined structures */
 
 namespace nntrainer {
+
+using TensorDim = ml::train::TensorDim;
 
 /**
  * @brief property info to specialize functions based on this

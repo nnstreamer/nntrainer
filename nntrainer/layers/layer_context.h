@@ -94,8 +94,9 @@ public:
    *
    * @param dim_flag_ dimension bit to calculate, rightmost is width
    */
-  void setEffDimFlagInputDimension(unsigned int idx,
-                                   const std::bitset<MAXDIM> &dim_flag_) {
+  void
+  setEffDimFlagInputDimension(unsigned int idx,
+                              const std::bitset<TensorDim::MAXDIM> &dim_flag_) {
     input_dim[idx].setEffDimFlag(dim_flag_);
   }
 
@@ -105,8 +106,9 @@ public:
    *
    * @param dim_flag_ dimension bit to calculate, rightmost is width
    */
-  void setDynDimFlagInputDimension(unsigned int idx,
-                                   const std::bitset<MAXDIM> &dim_flag_) {
+  void
+  setDynDimFlagInputDimension(unsigned int idx,
+                              const std::bitset<TensorDim::MAXDIM> &dim_flag_) {
     input_dim[idx].setDynDimFlag(dim_flag_);
   }
 
