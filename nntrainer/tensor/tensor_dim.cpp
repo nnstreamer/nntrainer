@@ -22,7 +22,8 @@
 #include <parse_util.h>
 #include <tensor_dim.h>
 
-namespace nntrainer {
+namespace ml {
+namespace train {
 
 TensorDim::TensorDim(const std::string &shape) : TensorDim() {
   if (setTensorDim(shape) != ML_ERROR_NONE) {
@@ -99,7 +100,7 @@ int TensorDim::setTensorDim(const std::string &input_shape) {
 TensorDim TensorDim::transpose(const std::string &direction) const {
   int dirs[MAXDIM - 1];
 
-  int status = getValues(3, direction, dirs);
+  int status = nntrainer::getValues(3, direction, dirs);
   NNTR_THROW_IF(status != ML_ERROR_NONE, std::invalid_argument)
     << "parsing direction failed";
 
@@ -185,4 +186,5 @@ std::ostream &operator<<(std::ostream &out, TensorDim const &d) {
   return out;
 }
 
-} /* namespace nntrainer */
+} /* namespace train */
+} /* namespace ml */

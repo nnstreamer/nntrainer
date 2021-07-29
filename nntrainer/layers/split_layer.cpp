@@ -28,7 +28,7 @@ void SplitLayer::finalize(InitLayerContext &context) {
       "Error: cannot split along the batch dimension");
   }
 
-  if (split_dimension >= MAXDIM) {
+  if (split_dimension >= ml::train::TensorDim::MAXDIM) {
     throw std::invalid_argument(
       "Error: split dimension exceeding the total number of dimensions");
   }
@@ -78,7 +78,8 @@ void SplitLayer::finalize(InitLayerContext &context) {
 
   input_reshape_helper.height(in_dim.getTensorDim(split_dimension));
 
-  for (unsigned int idx = split_dimension + 1; idx < MAXDIM; ++idx) {
+  for (unsigned int idx = split_dimension + 1;
+       idx < ml::train::TensorDim::MAXDIM; ++idx) {
     input_reshape_helper.width(input_reshape_helper.width() *
                                in_dim.getTensorDim(idx));
   }

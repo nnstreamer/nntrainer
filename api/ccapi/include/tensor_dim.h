@@ -22,9 +22,8 @@
 #include <bitset>
 #include <vector>
 
-namespace nntrainer {
-
-constexpr const size_t MAXDIM = 4;
+namespace ml {
+namespace train {
 
 /**
  * @brief Tensor Dimension. This class is used to save dimension information
@@ -32,6 +31,8 @@ constexpr const size_t MAXDIM = 4;
  */
 class TensorDim {
 public:
+  static constexpr const size_t MAXDIM = 4;
+
   /**
    * @brief Construct a new Tensor Dim object
    *
@@ -427,7 +428,8 @@ dynamic dimension size */
  */
 std::ostream &operator<<(std::ostream &out, TensorDim const &d);
 
-} /* namespace nntrainer */
+} /* namespace train */
+} /* namespace ml */
 
 #endif /* __cplusplus */
 #endif /* __TENSOR_DIM_H__ */

@@ -21,8 +21,6 @@
 
 namespace nntrainer {
 
-class TensorDim;
-
 namespace props {
 
 /**

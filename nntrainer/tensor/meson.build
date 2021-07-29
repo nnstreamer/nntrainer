@@ -11,7 +11,6 @@ tensor_sources = [
 tensor_headers = [
   'manager.h',
   'tensor.h',
-  'tensor_dim.h',
   'weight.h',
   'var_grad.h'
 ]

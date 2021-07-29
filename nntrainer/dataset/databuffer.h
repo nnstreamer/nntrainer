@@ -42,6 +42,7 @@ namespace nntrainer {
  */
 using DatasetType = ml::train::DatasetType;
 using datagen_cb = ml::train::datagen_cb;
+using TensorDim = ml::train::TensorDim;
 
 /**
  * @class   DataBuffer Data Buffers

@@ -71,8 +71,8 @@ TEST(AppContext, DefaultEnvironmentPath_p) {
 
   EXPECT_NO_THROW(lnode->getType());
   EXPECT_NE(lnode->setProperty({"invalid_values"}), ML_ERROR_NONE);
-  EXPECT_EQ(lnode->getOutputDimensions()[0], nntrainer::TensorDim());
-  EXPECT_EQ(lnode->getInputDimensions()[0], nntrainer::TensorDim());
+  EXPECT_EQ(lnode->getOutputDimensions()[0], TensorDim());
+  EXPECT_EQ(lnode->getInputDimensions()[0], TensorDim());
 }
 
 TEST(AppContext, DefaultEnvironmentPath_n) {

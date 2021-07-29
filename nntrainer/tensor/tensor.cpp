@@ -79,7 +79,7 @@ struct Tensor::BroadcastInfo {
   unsigned int buffer_size; /**< virtual size of the buffer */
   int buffer_axis;          /**< the smallest axis that should be looped.
                                  -1 means no loop needed*/
-  std::array<unsigned int, MAXDIM>
+  std::array<unsigned int, TensorDim::MAXDIM>
     strides; /**< modified strides for the loop */
 };
 
@@ -1099,7 +1099,7 @@ void Tensor::read(std::ifstream &file) {
  * @brief Calculate average value according to the axis.
  */
 Tensor Tensor::average(unsigned int axis) const {
-  if (axis >= MAXDIM)
+  if (axis >= TensorDim::MAXDIM)
     throw std::out_of_range(
       "negative axis or axis more then MAXDIM is invalid");
 
@@ -1116,7 +1116,7 @@ Tensor Tensor::average(const std::vector<unsigned int> &axes) const {
 
   TensorDim ret_shape;
   for (const auto &idx : axes) {
-    if (idx >= MAXDIM) {
+    if (idx >= TensorDim::MAXDIM) {
       throw std::out_of_range("axis more then MAXDIM is invalid");
     }
     ret_shape.setTensorDim(idx, dim.getTensorDim(idx));
@@ -1239,7 +1239,7 @@ Tensor::BroadcastInfo Tensor::computeBroadcastInfo(const Tensor &m) const {
   BroadcastInfo e;
 
   /// checking if given Tensor's can be broadcasted
-  for (unsigned int i = 0; i < MAXDIM; ++i) {
+  for (unsigned int i = 0; i < TensorDim::MAXDIM; ++i) {
     if (dim.getTensorDim(i) == m_dim.getTensorDim(i)) {
       e.strides[i] = m.strides[i];
       continue;

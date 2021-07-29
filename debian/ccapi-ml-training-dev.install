@@ -2,5 +2,6 @@
 /usr/include/nntrainer/layer.h
 /usr/include/nntrainer/optimizer.h
 /usr/include/nntrainer/dataset.h
+/usr/include/nntrainer/tensor_dim.h
 /usr/lib/*/pkgconfig/ccapi-ml-training.pc
 /usr/lib/*/libccapi-*.a

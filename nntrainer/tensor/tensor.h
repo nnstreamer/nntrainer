@@ -43,6 +43,8 @@
 
 namespace nntrainer {
 
+using TensorDim = ml::train::TensorDim;
+
 class LazyTensor;
 class SrcSharedTensor;
 
@@ -966,7 +968,8 @@ public:
    * @brief     return current stride of tensor.
    * @retval    int[MAXDIM] strides
    */
-  const std::array<unsigned int, MAXDIM> getStrides() const noexcept {
+  const std::array<unsigned int, TensorDim::MAXDIM> getStrides() const
+    noexcept {
     return strides;
   }
   /**
@@ -1026,7 +1029,7 @@ private:
 
   /**< handle the data as a std::shared_ptr<float> type */
   TensorDim dim;
-  std::array<unsigned int, MAXDIM> strides;
+  std::array<unsigned int, TensorDim::MAXDIM> strides;
   bool is_contiguous;
 
   std::shared_ptr<float> data;

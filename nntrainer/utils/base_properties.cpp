@@ -11,7 +11,6 @@
  */
 #include <base_properties.h>
 #include <parse_util.h>
-#include <tensor_dim.h>
 
 #include <regex>
 #include <sstream>
@@ -103,7 +102,8 @@ TensorDim str_converter<dimension_prop_tag, TensorDim>::from_string(
     tokens.push_back(token);
   }
 
-  NNTR_THROW_IF(tokens.size() > MAXDIM, std::invalid_argument)
+  NNTR_THROW_IF(tokens.size() > ml::train::TensorDim::MAXDIM,
+                std::invalid_argument)
     << "More than 4 axes is not supported, target string: " << value;
 
   TensorDim target;
