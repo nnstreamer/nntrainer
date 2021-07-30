@@ -36,6 +36,7 @@
 #include <layer.h>
 #include <model.h>
 #include <optimizer.h>
+#include <tensor_dim.h>
 
 #include <nntrainer_log.h>
 

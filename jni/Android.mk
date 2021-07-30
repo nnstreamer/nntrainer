@@ -287,7 +287,7 @@ CAPI_NNTRAINER_INCLUDES := $(NNTRAINER_ROOT)/nntrainer \
                       $(NNTRAINER_ROOT)/api/ccapi/include \
                       $(NNTRAINER_ROOT)/api/capi/include
 
-LOCAL_SHARED_LIBRARIES := ccapi-nntrainer ml-api-inference
+LOCAL_SHARED_LIBRARIES := ccapi-nntrainer ml-api-inference nntrainer
 
 LOCAL_ARM_NEON      := true
 LOCAL_CFLAGS        += -pthread -fexceptions

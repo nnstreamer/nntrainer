@@ -40,15 +40,7 @@ public:
    * @param dyn_dim_flag_ dynamic dimension flag (1 means it's unspecified)
    */
   explicit TensorDim(const std::bitset<MAXDIM> &eff_dim_flag_ = 0b1111,
-                     const std::bitset<MAXDIM> &dyn_dim_flag_ = 0b0000) :
-    eff_dim_flag(eff_dim_flag_),
-    dyn_dim_flag(dyn_dim_flag_) {
-    for (size_t i = 0; i < MAXDIM; ++i) {
-      dim[i] = 0;
-    }
-    len = 0;
-    feature_len = 0;
-  }
+                     const std::bitset<MAXDIM> &dyn_dim_flag_ = 0b0000);
 
   /**
    * @brief Construct a new Tensor Dim object
@@ -57,20 +49,7 @@ public:
    *
    * formats of {w}, {h, w}, {c, h, w}, {b, c, h, w} are accepted
    */
-  TensorDim(std::initializer_list<unsigned int> dims) : TensorDim() {
-    int shift_size = MAXDIM - dims.size();
-
-    if (shift_size < 0) {
-      throw std::invalid_argument("[TensorDim] max dimension is 4");
-    }
-
-    unsigned int cnt = 0;
-
-    for (auto &i : dims) {
-      setTensorDim(shift_size + cnt, i);
-      cnt += 1;
-    }
-  }
+  TensorDim(std::initializer_list<unsigned int> dims);
 
   /**
    * @brief Construct a new Tensor Dim object
@@ -84,15 +63,7 @@ public:
    */
   TensorDim(unsigned int b, unsigned int c, unsigned int h, unsigned int w,
             const std::bitset<MAXDIM> &eff_dim_flag_ = 0b1111,
-            const std::bitset<MAXDIM> &dyn_dim_flag_ = 0b0000) :
-    TensorDim(eff_dim_flag_, dyn_dim_flag_) {
-    setTensorDim(0, b);
-    setTensorDim(1, c);
-    setTensorDim(2, h);
-    setTensorDim(3, w);
-    feature_len = c * h * w;
-    len = b * feature_len;
-  }
+            const std::bitset<MAXDIM> &dyn_dim_flag_ = 0b0000);
 
   /**
    * @brief Copy construct a new tensor dim
@@ -133,9 +104,7 @@ public:
    *
    * @param dim_flag_ dimension bit to calculate, rightmost is width
    */
-  void setEffDimFlag(const std::bitset<MAXDIM> &dim_flag_) {
-    eff_dim_flag = dim_flag_;
-  }
+  void setEffDimFlag(const std::bitset<MAXDIM> &dim_flag_);
 
   /**
    * @brief Set the dynamic Dim Flag to retrieve dynamic dimension (that can
@@ -147,9 +116,7 @@ public:
    *
    * @param dim_flag_ dimension bit to calculate, rightmost is width
    */
-  void setDynDimFlag(const std::bitset<MAXDIM> &dim_flag_) {
-    dyn_dim_flag = dim_flag_;
-  }
+  void setDynDimFlag(const std::bitset<MAXDIM> &dim_flag_);
 
   /**
    * @brief Get the Dim Flag to retrieve effective dimension
@@ -158,7 +125,7 @@ public:
    *
    * @return dim_flag_ dimension bit to calculate, rightmost is width
    */
-  const std::bitset<MAXDIM> &getEffDimFlag() const { return eff_dim_flag; }
+  const std::bitset<MAXDIM> &getEffDimFlag() const;
 
   /**
    * @brief Get the dynamic Dim Flag to retrieve dynamic dimension (that can
@@ -170,105 +137,98 @@ public:
    *
    * @return dim_flag_ dimension bit to calculate, rightmost is width
    */
-  const std::bitset<MAXDIM> &getDynDimFlag() const { return dyn_dim_flag; }
+  const std::bitset<MAXDIM> &getDynDimFlag() const;
 
   /**
    * @brief  swap variable of Conv2D Layer
    * @parma[out] lhs Optimizer
    * @parma[in] rhs Optimizer
    */
-  friend void swap(TensorDim &lhs, TensorDim &rhs) noexcept {
-    std::swap_ranges(std::begin(lhs.dim), std::begin(lhs.dim) + MAXDIM,
-                     std::begin(rhs.dim));
-    std::swap(lhs.len, rhs.len);
-    std::swap(lhs.feature_len, rhs.feature_len);
-    std::swap(lhs.eff_dim_flag, rhs.eff_dim_flag);
-    std::swap(lhs.dyn_dim_flag, rhs.dyn_dim_flag);
-  }
+  friend void swap(TensorDim &lhs, TensorDim &rhs) noexcept;
 
   /**
    * @brief get batch (axis 0)
    *
    * @return unsigned int batch size
    */
-  unsigned int batch() const { return dim[0]; };
+  unsigned int batch() const;
 
   /**
    * @brief get channel (axis 1)
    *
    * @return unsigned int channel size
    */
-  unsigned int channel() const { return dim[1]; };
+  unsigned int channel() const;
 
   /**
    * @brief get height (axis 2)
    *
    * @return unsigned int height size
    */
-  unsigned int height() const { return dim[2]; };
+  unsigned int height() const;
 
   /**
    * @brief get width (axis 3)
    *
    * @return unsigned int width size
    */
-  unsigned int width() const { return dim[3]; };
+  unsigned int width() const;
 
   /**
    * @brief Get the Data Len object
    *
    * @return unsigned int get length of the data
    */
-  unsigned int getDataLen() const { return len; };
+  unsigned int getDataLen() const;
 
   /**
    * @brief Get the Feature Len object
    *
    * @return unsigned int get feature length
    */
-  unsigned int getFeatureLen() const { return feature_len; };
+  unsigned int getFeatureLen() const;
 
   /**
    * @brief set batch (axis 0)
    *
    * @param b batch to set
    */
-  void batch(unsigned int b) { setTensorDim(0, b); }
+  void batch(unsigned int b);
 
   /**
    * @brief set channel (axis 1)
    *
    * @param c channel to set
    */
-  void channel(unsigned int c) { setTensorDim(1, c); }
+  void channel(unsigned int c);
 
   /**
    * @brief set height (axis 2)
    *
    * @param h height to set
    */
-  void height(unsigned int h) { setTensorDim(2, h); }
+  void height(unsigned int h);
 
   /**
    * @brief set width (axis 3)
    *
    * @param w width to set
    */
-  void width(unsigned int w) { setTensorDim(3, w); }
+  void width(unsigned int w);
 
   /**
    * @brief Get the Dim object
    *
    * @return const unsigned int* array of size[MAXDIM]
    */
-  const unsigned int *getDim() const { return dim; }
+  const unsigned int *getDim() const;
 
   /**
    * @brief Get the Num Dim object
    *
    * @return unsigned int fixed value of MAXDIM
    */
-  unsigned int getNumDim() const { return MAXDIM; }
+  unsigned int getNumDim() const;
 
   /**
    * @brief calculate tranposed dimension
@@ -337,7 +297,7 @@ public:
    * @retval true not equal
    * @retval false equal
    */
-  bool operator!=(const TensorDim &rhs) const { return !(*this == rhs); }
+  bool operator!=(const TensorDim &rhs) const;
 
   /**
    * @brief check if given tensor dimension is empty
@@ -345,7 +305,7 @@ public:
    * @retval true empty
    * @retval false not empty
    */
-  bool isEmpty() const { return len == 0; }
+  bool isEmpty() const;
 
   /**
    * @brief get index rank (dimension of 1 is considered not valid here)
@@ -375,9 +335,7 @@ public:
    *
    * @return std::array <int, MAXDIM>
    */
-  std::array<unsigned int, MAXDIM> computeStrides() const {
-    return {dim[1] * dim[2] * dim[3], dim[2] * dim[3], dim[3], 1};
-  }
+  std::array<unsigned int, MAXDIM> computeStrides() const;
 
   /**
    * @brief reverse the dimensions inplace
@@ -399,7 +357,7 @@ public:
    * @retval true any of dyn_dim_flag is set
    * @retval false none of dyn_dim_flag is set
    */
-  bool is_dynamic() const { return dyn_dim_flag.any(); }
+  bool is_dynamic() const;
 
 private:
   /**

@@ -25,6 +25,44 @@
 namespace ml {
 namespace train {
 
+TensorDim::TensorDim(const std::bitset<MAXDIM> &eff_dim_flag_,
+                     const std::bitset<MAXDIM> &dyn_dim_flag_) :
+  eff_dim_flag(eff_dim_flag_),
+  dyn_dim_flag(dyn_dim_flag_) {
+  for (size_t i = 0; i < MAXDIM; ++i) {
+    dim[i] = 0;
+  }
+  len = 0;
+  feature_len = 0;
+}
+
+TensorDim::TensorDim(std::initializer_list<unsigned int> dims) : TensorDim() {
+  int shift_size = MAXDIM - dims.size();
+
+  if (shift_size < 0) {
+    throw std::invalid_argument("[TensorDim] max dimension is 4");
+  }
+
+  unsigned int cnt = 0;
+
+  for (auto &i : dims) {
+    setTensorDim(shift_size + cnt, i);
+    cnt += 1;
+  }
+}
+
+TensorDim::TensorDim(unsigned int b, unsigned int c, unsigned int h,
+                     unsigned int w, const std::bitset<MAXDIM> &eff_dim_flag_,
+                     const std::bitset<MAXDIM> &dyn_dim_flag_) :
+  TensorDim(eff_dim_flag_, dyn_dim_flag_) {
+  setTensorDim(0, b);
+  setTensorDim(1, c);
+  setTensorDim(2, h);
+  setTensorDim(3, w);
+  feature_len = c * h * w;
+  len = b * feature_len;
+}
+
 TensorDim::TensorDim(const std::string &shape) : TensorDim() {
   if (setTensorDim(shape) != ML_ERROR_NONE) {
     throw std::invalid_argument("[TensorDim] Setting TensorDim failed");
@@ -97,6 +135,55 @@ int TensorDim::setTensorDim(const std::string &input_shape) {
   return status;
 }
 
+void TensorDim::setEffDimFlag(const std::bitset<MAXDIM> &dim_flag_) {
+  eff_dim_flag = dim_flag_;
+}
+
+void TensorDim::setDynDimFlag(const std::bitset<MAXDIM> &dim_flag_) {
+  dyn_dim_flag = dim_flag_;
+}
+
+const std::bitset<TensorDim::MAXDIM> &TensorDim::getEffDimFlag() const {
+  return eff_dim_flag;
+}
+
+const std::bitset<TensorDim::MAXDIM> &TensorDim::getDynDimFlag() const {
+  return dyn_dim_flag;
+}
+
+void swap(TensorDim &lhs, TensorDim &rhs) noexcept {
+  std::swap_ranges(std::begin(lhs.dim), std::begin(lhs.dim) + TensorDim::MAXDIM,
+                   std::begin(rhs.dim));
+  std::swap(lhs.len, rhs.len);
+  std::swap(lhs.feature_len, rhs.feature_len);
+  std::swap(lhs.eff_dim_flag, rhs.eff_dim_flag);
+  std::swap(lhs.dyn_dim_flag, rhs.dyn_dim_flag);
+}
+
+unsigned int TensorDim::batch() const { return dim[0]; };
+
+unsigned int TensorDim::channel() const { return dim[1]; };
+
+unsigned int TensorDim::height() const { return dim[2]; };
+
+unsigned int TensorDim::width() const { return dim[3]; };
+
+unsigned int TensorDim::getDataLen() const { return len; };
+
+unsigned int TensorDim::getFeatureLen() const { return feature_len; };
+
+void TensorDim::batch(unsigned int b) { setTensorDim(0, b); }
+
+void TensorDim::channel(unsigned int c) { setTensorDim(1, c); }
+
+void TensorDim::height(unsigned int h) { setTensorDim(2, h); }
+
+void TensorDim::width(unsigned int w) { setTensorDim(3, w); }
+
+const unsigned int *TensorDim::getDim() const { return dim; }
+
+unsigned int TensorDim::getNumDim() const { return MAXDIM; }
+
 TensorDim TensorDim::transpose(const std::string &direction) const {
   int dirs[MAXDIM - 1];
 
@@ -132,6 +219,12 @@ bool TensorDim::operator==(const TensorDim &rhs) const {
   return true;
 }
 
+bool TensorDim::operator!=(const TensorDim &rhs) const {
+  return !(*this == rhs);
+}
+
+bool TensorDim::isEmpty() const { return len == 0; }
+
 unsigned int TensorDim::rank() const {
   unsigned int rank = 0;
   for (unsigned int i = 0; i < MAXDIM; i++) {
@@ -153,6 +246,10 @@ const unsigned int &TensorDim::operator[](const unsigned int index) const {
     throw std::out_of_range(
       "[TensorDim] Tensor Dimension index should be between 0 and 4");
   return dim[index];
+}
+
+std::array<unsigned int, TensorDim::MAXDIM> TensorDim::computeStrides() const {
+  return {dim[1] * dim[2] * dim[3], dim[2] * dim[3], dim[3], 1};
 }
 
 void TensorDim::reverse() { std::reverse(dim, dim + MAXDIM); }
@@ -179,6 +276,8 @@ std::vector<int> TensorDim::getEffectiveDimension(bool dynamic) const {
 
   return eff_dim;
 }
+
+bool TensorDim::is_dynamic() const { return dyn_dim_flag.any(); }
 
 std::ostream &operator<<(std::ostream &out, TensorDim const &d) {
   out << "Shape: " << d.batch() << ":" << d.channel() << ":" << d.height()
