@@ -2,7 +2,8 @@ optimizer_sources = [
   'adam.cpp',
   'optimizer_devel.cpp',
   'optimizer_impl.cpp',
-  'sgd.cpp'
+  'sgd.cpp',
+  'optimizer_context.cpp'
 ]
 
 optimizer_headers = [

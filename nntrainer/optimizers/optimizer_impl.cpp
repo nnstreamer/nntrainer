@@ -24,7 +24,26 @@
 
 namespace nntrainer {
 
-int OptimizerImpl::initialize() { return ML_ERROR_NONE; }
+void OptimizerImpl::setProperty(const std::vector<std::string> &values) {
+  /// @todo: deprecate this in favor of loadProperties
+  for (unsigned int i = 0; i < values.size(); ++i) {
+    std::string key;
+    std::string value;
+    std::stringstream ss;
+
+    if (getKeyValue(values[i], key, value) != ML_ERROR_NONE) {
+      throw std::invalid_argument("Error parsing the property: " + values[i]);
+    }
+
+    if (value.empty()) {
+      ss << "value is empty: key: " << key << ", value: " << value;
+      throw std::invalid_argument(ss.str());
+    }
+
+    /// @note this calls derived setProperty if available
+    setProperty(key, value);
+  }
+}
 
 void OptimizerImpl::setProperty(const std::string &key,
                                 const std::string &value) {
@@ -45,8 +64,7 @@ void OptimizerImpl::setProperty(const std::string &key,
     status = setBoolean(continue_train, value);
     break;
   default:
-    Optimizer::setProperty(key, value);
-    status = ML_ERROR_NONE;
+    status = ML_ERROR_INVALID_PARAMETER;
     break;
   }
 
@@ -62,4 +80,5 @@ double OptimizerImpl::getLearningRate(size_t iteration) const {
 
   return ll;
 }
+
 } // namespace nntrainer

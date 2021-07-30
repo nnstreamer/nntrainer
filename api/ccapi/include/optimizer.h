@@ -71,12 +71,10 @@ public:
   /**
    * @brief     set Optimizer Parameters
    * @param[in] values Optimizer Parameter list
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    * @details   This function accepts vector of properties in the format -
    *  { std::string property_name, void * property_val, ...}
    */
-  virtual int setProperty(std::vector<std::string> values) = 0;
+  virtual void setProperty(const std::vector<std::string> &values) = 0;
 };
 
 /**
@@ -105,9 +103,7 @@ std::unique_ptr<Optimizer>
 createOptimizer(const std::vector<std::string> &props = {}) {
   std::unique_ptr<Optimizer> ptr = std::make_unique<T>();
 
-  if (ptr->setProperty(props) != ML_ERROR_NONE) {
-    throw std::invalid_argument("Set properties failed for optimizer");
-  }
+  ptr->setProperty(props);
   return ptr;
 }
 

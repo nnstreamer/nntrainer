@@ -106,20 +106,14 @@ public:
 
   double getLearningRate(size_t iteration) const override { return 1.0f; }
 
-  int setProperty(std::vector<std::string> values) override { return 1; }
-
-  int initialize() override { return 0; }
+  void setProperty(const std::vector<std::string> &values) override {}
 
   std::vector<nntrainer::TensorDim>
   getOptimizerVariableDim(const nntrainer::TensorDim &dim) override {
     return std::vector<nntrainer::TensorDim>();
   }
 
-  void setProperty(const std::string &key, const std::string &value) override {}
-
-  void checkValidation() const override {}
-
-  void applyGradient(nntrainer::Weight &weight, int iteration) override {}
+  void applyGradient(nntrainer::RunOptimizerContext &context) override {}
 };
 
 /**
@@ -131,8 +125,6 @@ public:
   /** Minimal custom optimizer example which define only necessary functions */
   const std::string getType() const override { return "identity_optimizer"; }
 
-  int initialize() override { return 0; }
-
   double getLearningRate(size_t iteration) const override { return 1.0f; }
 
   std::vector<nntrainer::TensorDim>
@@ -140,7 +132,7 @@ public:
     return std::vector<nntrainer::TensorDim>();
   }
 
-  void applyGradient(nntrainer::Weight &weight, int iteration) override {}
+  void applyGradient(nntrainer::RunOptimizerContext &context) override {}
 };
 
 /**
