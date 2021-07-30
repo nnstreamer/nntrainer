@@ -93,10 +93,8 @@ public:
    * @details   This function accepts vector of properties in the format -
    *  { std::string property_name=property_val, ...}
    *
-   *  @todo update to new signature: void setProperty(const
-   * std::vector<std::string> &values)
    */
-  int setProperty(std::vector<std::string> properties) override;
+  void setProperty(const std::vector<std::string> &properties) override;
 
   /**
    * @brief     Get name of the layer
@@ -129,12 +127,8 @@ public:
    * @brief     set name of layer
    *
    * @param[in] name Name of the layer
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   *
-   * @todo update to new signature void setName(const std::string &name)
    */
-  int setName(const std::string &name) { return setProperty({"name=" + name}); }
+  void setName(const std::string &name) { setProperty({"name=" + name}); }
 
   /**
    * @brief     Get the input connections for this node

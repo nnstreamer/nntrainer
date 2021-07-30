@@ -711,7 +711,10 @@ int ml_train_layer_set_property(ml_train_layer_h layer, ...) {
     l = nnlayer->layer;
   }
 
-  returnable f = [&]() { return l->setProperty(arg_list); };
+  returnable f = [&]() {
+    l->setProperty(arg_list);
+    return ML_ERROR_NONE;
+  };
   status = nntrainer_exception_boundary(f);
 
   return status;
