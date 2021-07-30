@@ -251,7 +251,7 @@ TEST(nntrainerAppContextObjs, callingUnknownFactoryOptimizerWithKey_n) {
 
   EXPECT_EQ(num, 999);
   EXPECT_THROW(ac.createObject<ml::train::Optimizer>("unknown"),
-               std::runtime_error);
+               std::invalid_argument);
 }
 
 TEST(nntrainerAppContextObjs, callingUnknownFactoryOptimizerWithIntKey_n) {
@@ -262,7 +262,8 @@ TEST(nntrainerAppContextObjs, callingUnknownFactoryOptimizerWithIntKey_n) {
     999);
 
   EXPECT_EQ(num, 999);
-  EXPECT_THROW(ac.createObject<ml::train::Optimizer>(num), std::runtime_error);
+  EXPECT_THROW(ac.createObject<ml::train::Optimizer>(num),
+               std::invalid_argument);
 }
 
 /**

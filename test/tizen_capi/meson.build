@@ -3,8 +3,7 @@ unittest_tizen_deps = [
   nntrainer_test_deps,
 ]
 
-# unittest_name_list = ['', '_layer', '_optimizer', '_dataset']
-unittest_name_list = ['_optimizer', '_dataset']
+unittest_name_list = ['', '_layer', '_optimizer', '_dataset']
 unittest_prefix = 'unittest_tizen_capi'
 
 foreach test_name : unittest_name_list
