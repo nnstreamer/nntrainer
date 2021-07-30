@@ -58,7 +58,7 @@ public:
    * @note name of each node in the graph must be unique, and caller must ensure
    * that
    */
-  virtual int setName(const std::string &name) = 0;
+  virtual void setName(const std::string &name) = 0;
 
   /**
    * @brief     Get the Type of the underlying object

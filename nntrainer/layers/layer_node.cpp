@@ -113,9 +113,8 @@ std::unique_ptr<LayerNode>
 createLayerNode(std::unique_ptr<nntrainer::Layer> &&layer,
                 const std::vector<std::string> &properties) {
   auto lnode = std::make_unique<LayerNode>(std::move(layer));
-  if (lnode->setProperty(properties) != ML_ERROR_NONE)
-    throw std::invalid_argument("Error setting layer properties.");
 
+  lnode->setProperty(properties);
   return lnode;
 }
 
@@ -132,8 +131,7 @@ LayerNode::LayerNode(std::unique_ptr<nntrainer::Layer> &&l, size_t idx) :
   }
 }
 
-int LayerNode::setProperty(std::vector<std::string> properties) {
-  int status = ML_ERROR_NONE;
+void LayerNode::setProperty(const std::vector<std::string> &properties) {
   bool already_distributed =
     !std::get<props::Distribute>(*layer_node_props).empty() &&
     std::get<props::Distribute>(*layer_node_props).get();
@@ -160,14 +158,16 @@ int LayerNode::setProperty(std::vector<std::string> properties) {
 
     std::string key;
     std::string value;
+    std::stringstream ss;
 
-    status = getKeyValue(left_properties[i], key, value);
-    NN_RETURN_STATUS();
+    if (getKeyValue(left_properties[i], key, value) != ML_ERROR_NONE) {
+      throw std::invalid_argument("Error parsing the property: " +
+                                  left_properties[i]);
+    }
 
     if (value.empty()) {
-      ml_logd("value is empty for layer: %s, key: %s, value: %s",
-              getName().c_str(), key.c_str(), value.c_str());
-      return ML_ERROR_INVALID_PARAMETER;
+      ss << "value is empty: key: " << key << ", value: " << value;
+      throw std::invalid_argument(ss.str());
     }
 
     /// @note this calls derived setProperty if available
@@ -177,8 +177,6 @@ int LayerNode::setProperty(std::vector<std::string> properties) {
   }
 
   layer->setProperty(remainder);
-
-  return status;
 }
 
 bool LayerNode::setProperty(const std::string &key, const std::string &value) {

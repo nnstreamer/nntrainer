@@ -129,7 +129,7 @@ public:
    * @details   This function accepts vector of properties in the format -
    *  { std::string property_name, void * property_val, ...}
    */
-  virtual int setProperty(std::vector<std::string> values) = 0;
+  virtual void setProperty(const std::vector<std::string> &values) = 0;
 
   /**
    * @brief     Get name of the layer
@@ -166,9 +166,7 @@ template <typename T,
 std::unique_ptr<Layer> createLayer(const std::vector<std::string> &props = {}) {
   std::unique_ptr<Layer> ptr = std::make_unique<T>();
 
-  if (ptr->setProperty(props) != ML_ERROR_NONE) {
-    throw std::invalid_argument("Set properties failed for layer");
-  }
+  ptr->setProperty(props);
   return ptr;
 }
 
