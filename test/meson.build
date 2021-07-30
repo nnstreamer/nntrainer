@@ -35,7 +35,7 @@ if get_option('enable-capi')
 endif
 
 if get_option('enable-ccapi')
-  # subdir('ccapi')
+  subdir('ccapi')
 endif
 
 if get_option('enable-nnstreamer-tensor-filter')

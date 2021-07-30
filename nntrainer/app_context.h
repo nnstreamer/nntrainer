@@ -289,7 +289,7 @@ public:
    */
   template <typename T>
   static PtrType<T> unknownFactory(const PropsType &props) {
-    throw std::runtime_error("cannot create unknown object");
+    throw std::invalid_argument("cannot create unknown object");
   }
 
 private:

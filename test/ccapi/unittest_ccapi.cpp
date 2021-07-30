@@ -83,7 +83,7 @@ TEST(ccapi_layer, construct_02_p) {
   EXPECT_EQ(layer->getType(), "concat");
 
   EXPECT_NO_THROW(layer = ml::train::layer::MultiOut());
-  EXPECT_EQ(layer->getType(), "output");
+  EXPECT_EQ(layer->getType(), "multiout");
 
 #ifdef ENABLE_NNSTREAMER_BACKBONE
   EXPECT_NO_THROW(layer = ml::train::layer::BackboneNNStreamer());
@@ -115,10 +115,13 @@ TEST(ccapi_layer, construct_03_p) {
   std::shared_ptr<ml::train::Layer> layer;
 
   EXPECT_NO_THROW(layer = ml::train::loss::MSE());
-  EXPECT_EQ(layer->getType(), "loss");
+  EXPECT_EQ(layer->getType(), "mse");
 
-  EXPECT_NO_THROW(layer = ml::train::loss::CrossEntropy());
-  EXPECT_EQ(layer->getType(), "loss");
+  EXPECT_NO_THROW(layer = ml::train::loss::CrossEntropySigmoid());
+  EXPECT_EQ(layer->getType(), "cross_sigmoid");
+
+  EXPECT_NO_THROW(layer = ml::train::loss::CrossEntropySoftmax());
+  EXPECT_EQ(layer->getType(), "cross_softmax");
 }
 
 /**
@@ -175,7 +178,6 @@ static nntrainer::IniSection dataset("Dataset", "BufferSize=100"
 static nntrainer::IniSection inputlayer("inputlayer",
                                         "Type = input"
                                         "| Input_Shape = 1:1:62720"
-                                        "| bias_initializer = zeros"
                                         "| Normalization = true"
                                         "| Activation = sigmoid");
 
@@ -219,9 +221,8 @@ TEST(nntrainer_ccapi, train_dataset_with_file_01_p) {
   EXPECT_NO_THROW(model =
                     ml::train::createModel(ml::train::ModelType::NEURAL_NET));
 
-  EXPECT_NO_THROW(layer = ml::train::layer::Input({"input_shape=1:1:62720",
-                                                   "normalization=true",
-                                                   "bias_initializer=zeros"}));
+  EXPECT_NO_THROW(layer = ml::train::layer::Input(
+                    {"input_shape=1:1:62720", "normalization=true"}));
   EXPECT_NO_THROW(model->addLayer(layer));
 
   EXPECT_NO_THROW(
@@ -276,9 +277,8 @@ TEST(nntrainer_ccapi, train_dataset_with_generator_01_p) {
   EXPECT_NO_THROW(model =
                     ml::train::createModel(ml::train::ModelType::NEURAL_NET));
 
-  EXPECT_NO_THROW(layer = ml::train::layer::Input({"input_shape=1:1:62720",
-                                                   "normalization=true",
-                                                   "bias_initializer=zeros"}));
+  EXPECT_NO_THROW(layer = ml::train::layer::Input(
+                    {"input_shape=1:1:62720", "normalization=true"}));
   EXPECT_NO_THROW(model->addLayer(layer));
 
   EXPECT_NO_THROW(
@@ -331,9 +331,8 @@ TEST(nntrainer_ccapi, train_batch_size_update_after) {
   EXPECT_NO_THROW(model =
                     ml::train::createModel(ml::train::ModelType::NEURAL_NET));
 
-  EXPECT_NO_THROW(layer = ml::train::layer::Input({"input_shape=1:1:62720",
-                                                   "normalization=true",
-                                                   "bias_initializer=zeros"}));
+  EXPECT_NO_THROW(layer = ml::train::layer::Input(
+                    {"input_shape=1:1:62720", "normalization=true"}));
   EXPECT_NO_THROW(model->addLayer(layer));
 
   EXPECT_NO_THROW(
