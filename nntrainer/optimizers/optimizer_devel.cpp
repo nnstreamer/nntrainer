@@ -15,60 +15,19 @@
 #include <fstream>
 #include <iostream>
 
-#include <nntrainer_log.h>
+#include <nntrainer_error.h>
 #include <optimizer_devel.h>
 #include <parse_util.h>
 #include <util_func.h>
 
 namespace nntrainer {
 
-int Optimizer::setProperty(std::vector<std::string> values) {
-  int status = ML_ERROR_NONE;
-
-  for (unsigned int i = 0; i < values.size(); ++i) {
-    std::string key;
-    std::string value;
-
-    status = getKeyValue(values[i], key, value);
-    NN_RETURN_STATUS();
-
-    if (value.empty()) {
-      return ML_ERROR_INVALID_PARAMETER;
-    }
-
-    try {
-      /// @note this calls derived setProperty if available
-      setProperty(key, value);
-    } catch (...) {
-      return ML_ERROR_INVALID_PARAMETER;
-    }
+void Optimizer::setProperty(const std::vector<std::string> &values) {
+  if (!values.empty()) {
+    std::string msg = "[OptimizerDevel] Unknown properties count " +
+                      std::to_string(values.size());
+    throw exception::not_supported(msg);
   }
-
-  try {
-    checkValidation();
-  } catch (...) {
-    return ML_ERROR_INVALID_PARAMETER;
-  }
-  return status;
-}
-
-void Optimizer::checkValidation() const {
-  if (getLearningRate() <= 0.0f)
-    throw std::invalid_argument("Learning rate must be positive");
-}
-
-void Optimizer::setProperty(const std::string &key, const std::string &value) {
-  int status = ML_ERROR_NONE;
-  unsigned int type = parseOptProperty(key);
-
-  switch (type) {
-  default:
-    ml_loge("Error: Unknown Optimizer Property Key");
-    status = ML_ERROR_INVALID_PARAMETER;
-    break;
-  }
-
-  throw_status(status);
 }
 
 void Optimizer::read(std::ifstream &file) {

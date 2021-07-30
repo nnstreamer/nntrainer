@@ -792,7 +792,10 @@ int ml_train_optimizer_set_property(ml_train_optimizer_h optimizer, ...) {
     opt = nnopt->optimizer;
   }
 
-  returnable f = [&]() { return opt->setProperty(arg_list); };
+  returnable f = [&]() {
+    opt->setProperty(arg_list);
+    return ML_ERROR_NONE;
+  };
 
   status = nntrainer_exception_boundary(f);
 

@@ -17,6 +17,7 @@
 #include <dynamic_training_optimization.h>
 #include <tensor.h>
 #include <util_func.h>
+#include <weight.h>
 
 namespace nntrainer {
 DynamicTrainingOptimization::DynamicTrainingOptimization(int threshold_,

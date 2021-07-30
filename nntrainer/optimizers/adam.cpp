@@ -40,9 +40,9 @@ double Adam::getLearningRate(size_t iteration) const {
   return ll;
 }
 
-void Adam::applyGradient(Weight &weight, int iteration) {
+void Adam::applyGradient(RunOptimizerContext &context) {
 
-  Tensor &x_grad = weight.getGradientRef();
+  Tensor &x_grad = context.getGradient();
 
   // This is implementation of adam from original paper.
   // This is not deleted intentionally.
@@ -66,8 +66,8 @@ void Adam::applyGradient(Weight &weight, int iteration) {
     return 1 / (sqrtDouble(f) + this->epsilon);
   };
 
-  Tensor &wm = weight.getOptimizerVariableRef(AdamParams::wm);
-  Tensor &wv = weight.getOptimizerVariableRef(AdamParams::wv);
+  Tensor &wm = context.getOptimizerVariable(AdamParams::wm);
+  Tensor &wv = context.getOptimizerVariable(AdamParams::wv);
 
   wm.multiply_i(beta1);
   wm.add_i(x_grad, 1.0f - beta1);
@@ -77,7 +77,7 @@ void Adam::applyGradient(Weight &weight, int iteration) {
 
   x_grad = wv.apply(sqrtEps, x_grad);
   x_grad.multiply_i(wm);
-  weight.applyGradient(getLearningRate(iteration));
+  context.applyGradient(getLearningRate(context.getIteration()));
 }
 
 void Adam::setProperty(const std::string &key, const std::string &value) {

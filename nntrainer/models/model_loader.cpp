@@ -180,8 +180,15 @@ int ModelLoader::loadModelConfigIni(dictionary *ini, NeuralNetwork &model) {
     }
   }
 
-  status = model.opt->setProperty(optimizer_prop);
-  NN_RETURN_STATUS();
+  try {
+    model.opt->setProperty(optimizer_prop);
+  } catch (std::exception &e) {
+    ml_loge("%s %s", typeid(e).name(), e.what());
+    return ML_ERROR_INVALID_PARAMETER;
+  } catch (...) {
+    ml_loge("Settings properties to optimizer failed.");
+    return ML_ERROR_INVALID_PARAMETER;
+  }
 
   return status;
 }

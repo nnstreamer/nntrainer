@@ -83,11 +83,10 @@ public:
 
   /**
    * @brief     apply gradient to weight
-   * @param[in] params Weight
-   * @param[in] iteration nth epoch number
+   * @param[in] context Optimizer context
    */
-  void applyGradient(Weight &param, int iteration) override {
-    optimizer_devel->applyGradient(param, iteration);
+  void applyGradient(RunOptimizerContext &context) override {
+    optimizer_devel->applyGradient(context);
   }
 
   /**
@@ -96,22 +95,8 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int setProperty(std::vector<std::string> values) override {
-    return optimizer_devel->setProperty(values);
-  }
-
-  /**
-   * @brief setProperty individually
-   * @note By passing empty string, this can validate if @a type is valid
-   * @param[in] key key to be passed as string
-   * @param[in] value value to be passed, if empty string is passed, do nothing
-   * but throws error when @a type is invalid
-   * @exception exception::not_supported     when string type is not valid for
-   * the particular layer
-   * @exception std::invalid_argument invalid argument
-   */
-  void setProperty(const std::string &key, const std::string &value) override {
-    optimizer_devel->setProperty(key, value);
+  void setProperty(const std::vector<std::string> &values) override {
+    optimizer_devel->setProperty(values);
   }
 
   /**
@@ -119,7 +104,7 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int initialize() override { return optimizer_devel->initialize(); }
+  void initialize() override { optimizer_devel->initialize(); }
 
   /**
    * @brief     Read Training optimizer paramters from file
@@ -132,11 +117,6 @@ public:
    * @param[in] file output stream file
    */
   void save(std::ofstream &file) override { optimizer_devel->save(file); }
-
-  /**
-   * @brief     validate the optimizer
-   */
-  void checkValidation() const override { optimizer_devel->checkValidation(); }
 
   /**
    * @brief     Get dimension of extra variables if the optimizer needs any.

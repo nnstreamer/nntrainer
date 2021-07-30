@@ -31,6 +31,7 @@
 #include <neuralnet.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
+#include <optimizer_context.h>
 #include <parse_util.h>
 #include <profiler.h>
 #include <time_dist.h>
@@ -295,11 +296,13 @@ void NeuralNetwork::backwarding(std::shared_ptr<LayerNode> node, int iteration,
   if (apply_gradient && node->getTrainable()) {
     // TODO: ask network_graph for weights of node and then remove
     // getWeightObject() interface from layer_context
+    RunOptimizerContext opt_context;
     for (unsigned int idx = 0; idx < node->getNumWeights(); idx++) {
       auto &weight = node->getWeightObject(idx);
       if (weight.hasGradient()) {
         weight.calcRegularizationGradient();
-        opt->applyGradient(weight, iteration);
+        opt_context = RunOptimizerContext(&weight, iteration);
+        opt->applyGradient(opt_context);
       }
     }
   }

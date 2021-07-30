@@ -36,9 +36,9 @@ public:
     epsilon(ep) {}
 
   /**
-   * @copydoc applyGradient(Weight &weight, int iteration)
+   * @copydoc applyGradient(RunOptimizerContext &context)
    */
-  void applyGradient(Weight &weight, int iteration);
+  void applyGradient(RunOptimizerContext &context);
 
   /**
    * @copydoc Optimizer::getType()
@@ -49,12 +49,6 @@ public:
    * @copydoc   getLearningRate(int iteration)
    */
   double getLearningRate(size_t iteration) const;
-
-  /**
-   * @copydoc setProperty(const std::string &key,
-                           const std::string &value)
-   */
-  void setProperty(const std::string &key, const std::string &value);
 
   /**
    * @copydoc Optimizer::getOptimizerVariableDim(const TensorDim &dim)
@@ -82,6 +76,12 @@ private:
   double beta1;   /** momentum for grad */
   double beta2;   /** momentum for grad**2 */
   double epsilon; /** epsilon to protect overflow */
+
+  /**
+   * @copydoc LayerImpl::setProperty(const std::string &key,
+                           const std::string &value)
+   */
+  void setProperty(const std::string &key, const std::string &value);
 };
 } /* namespace nntrainer */
 

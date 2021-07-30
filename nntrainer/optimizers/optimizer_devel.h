@@ -19,8 +19,8 @@
 #include <memory>
 
 #include <optimizer.h>
+#include <optimizer_context.h>
 #include <tensor.h>
-#include <weight.h>
 
 namespace nntrainer {
 
@@ -48,18 +48,15 @@ public:
 
   /**
    * @brief     apply gradient to weight
-   * @param[in] params Weight
-   * @param[in] iteration nth epoch number
+   * @param[in] context Optimizer context
    */
-  virtual void applyGradient(Weight &param, int iteration) = 0;
+  virtual void applyGradient(RunOptimizerContext &context) = 0;
 
   /**
    * @brief     set Optimizer Parameters
    * @param[in] values Optimizer Parameter list
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  virtual int setProperty(std::vector<std::string> values);
+  virtual void setProperty(const std::vector<std::string> &values);
 
   /**
    * @brief     Default allowed properties
@@ -89,24 +86,9 @@ public:
   };
 
   /**
-   * @brief setProperty individually
-   * @note By passing empty string, this can validate if @a type is valid
-   * @param[in] key key to be passed as string
-   * @param[in] value value to be passed, if empty string is passed, do nothing
-   * but throws error when @a type is invalid
-   * @exception exception::not_supported     when string type is not valid for
-   * the particular layer
-   * @exception std::invalid_argument invalid argument
-   */
-  virtual void setProperty(const std::string &key,
-                           const std::string &value) = 0;
-
-  /**
    * @brief     initialize optimizer.
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  virtual int initialize() = 0;
+  virtual void initialize(){};
 
   /**
    * @brief     Read Training optimizer paramters from file
@@ -119,11 +101,6 @@ public:
    * @param[in] file output stream file
    */
   virtual void save(std::ofstream &file);
-
-  /**
-   * @brief     validate the optimizer
-   */
-  virtual void checkValidation() const;
 
   /**
    * @brief     Get dimension of extra variables if the optimizer needs any.

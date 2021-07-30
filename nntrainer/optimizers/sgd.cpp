@@ -15,8 +15,8 @@
 
 namespace nntrainer {
 
-void SGD::applyGradient(Weight &weight, int iteration) {
-  weight.applyGradient(getLearningRate(iteration));
+void SGD::applyGradient(RunOptimizerContext &context) {
+  context.applyGradient(getLearningRate(context.getIteration()));
 }
 
 } // namespace nntrainer
