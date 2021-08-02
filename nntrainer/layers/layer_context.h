@@ -361,19 +361,6 @@ public:
   }
 
   /**
-   * @brief Get regularization loss for the weight
-   *
-   * @param idx Identifier of the weight
-   * @return float Value of the loss
-   */
-  float getWeightRegularizationLoss(unsigned int idx) const {
-    if (weights[idx]->hasGradient())
-      return weights[idx]->getRegularizationLoss();
-
-    return 0;
-  }
-
-  /**
    * @brief Get the Weight name
    *
    * @param idx Identifier of the weight
@@ -599,8 +586,22 @@ public:
    * @brief   update loss by the layer
    *
    * @return loss of the layer
+   * @note does not includes the regularization loss.
    */
   float getLoss() const { return loss; }
+
+  /**
+   * @brief   get regularization loss of the layer
+   *
+   * @return regularization loss of the layer
+   */
+  float getRegularizationLoss() const {
+    float loss_ = 0;
+    for (unsigned int idx = 0; idx < getNumWeights(); idx++) {
+      loss_ += getWeightRegularizationLoss(idx);
+    }
+    return loss_;
+  }
 
   /**
    * @brief   get name by the layer
@@ -633,6 +634,19 @@ private:
   std::vector<Var_Grad *> inputs;  /**< inputs of the layer */
   std::vector<Var_Grad *> outputs; /**< outputs of the layer */
   std::vector<Var_Grad *> tensors; /**< tensors of the layer */
+
+  /**
+   * @brief Get regularization loss for the weight
+   *
+   * @param idx Identifier of the weight
+   * @return float Value of the loss
+   */
+  float getWeightRegularizationLoss(unsigned int idx) const {
+    if (weights[idx]->hasGradient())
+      return weights[idx]->getRegularizationLoss();
+
+    return 0;
+  }
 };
 
 } // namespace nntrainer

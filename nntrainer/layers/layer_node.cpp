@@ -10,6 +10,8 @@
  * @brief  This is the layer node for network graph
  */
 
+#include <cmath>
+
 #include <activation_layer.h>
 #include <app_context.h>
 #include <layer_node.h>
@@ -48,6 +50,31 @@ public:
   bool isValid(const bool &v) const {
     return empty() || !get();
   } /**< distribute=true can be set strictly one time */
+};
+
+/**
+ * @brief Loss property, this defines loss specification of layer
+ *
+ */
+class Loss : public Property<float> {
+
+public:
+  /**
+   * @brief Construct a new loss object with a default value 0.0
+   *
+   */
+  Loss(float value = 0.0) : nntrainer::Property<float>(value) {}
+  static constexpr const char *key = "loss"; /**< unique key to access */
+  using prop_tag = float_prop_tag;           /**< property type */
+
+  /**
+   * @brief LossSpec validator
+   *
+   * @param v float to validate
+   * @retval true if it is greater or equal than 0.0
+   * @retval false if it is samller than 0.0
+   */
+  bool isValid(const float &v) const override { return !std::isnan(v); }
 };
 
 } // namespace props
@@ -97,7 +124,8 @@ LayerNode::LayerNode(std::unique_ptr<nntrainer::Layer> &&l, size_t idx) :
   finalized(false),
   activation_type(ActivationType::ACT_NONE),
   layer_node_props(new PropsType(props::Name(), props::Flatten(),
-                                 props::Distribute(), props::Trainable())) {
+                                 props::Distribute(), props::Trainable(),
+                                 props::Loss())) {
   if (layer && layer->getType() == TimeDistLayer::type) {
     std::get<props::Distribute>(*layer_node_props).set(true);
   }
@@ -338,6 +366,8 @@ void LayerNode::finalize() {
  * @brief     Forward Propagation of a layer
  */
 void LayerNode::forwarding(bool training) {
+  std::get<props::Loss>(*layer_node_props)
+    .set(run_context.getRegularizationLoss());
   layer->forwarding(run_context, training);
 }
 
@@ -377,6 +407,20 @@ bool LayerNode::supportInPlace() const { return getLayer()->supportInPlace(); }
  * @brief  check if this layer requires label to be passed
  */
 bool LayerNode::requireLabel() const { return getLayer()->requireLabel(); }
+
+/**
+ * @brief     get loss for the layer
+ * @return    loss of the layer
+ */
+float LayerNode::getLoss() const {
+  /** add loss only for loss layers */
+  if (requireLabel())
+    std::get<props::Loss>(*layer_node_props)
+      .set(std::get<props::Loss>(*layer_node_props).get() +
+           run_context.getLoss());
+
+  return std::get<props::Loss>(*layer_node_props).get();
+}
 
 /**
  * @brief   Print Options when printing layer info

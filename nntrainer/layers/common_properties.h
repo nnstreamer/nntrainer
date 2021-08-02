@@ -235,7 +235,7 @@ class DropOutSpec : public nntrainer::Property<float> {
 
 public:
   /**
-   * @brief Construct a new DropOut object wit a default value 0.0
+   * @brief Construct a new DropOut object with a default value 0.0
    *
    */
   DropOutSpec(float value = 0.0) : nntrainer::Property<float>(value) {}

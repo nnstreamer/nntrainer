@@ -46,6 +46,7 @@ class Name;
 class Distribute;
 class Flatten;
 class ActivationType;
+class Loss;
 } // namespace props
 
 /**
@@ -514,17 +515,8 @@ public:
   /**
    * @brief     get loss for the layer
    * @return    loss of the layer
-   *
-   * @todo      Update this for loss layer
    */
-  float getLoss() const {
-    float loss = run_context.getLoss();
-    for (unsigned int idx = 0; idx < run_context.getNumWeights(); idx++) {
-      loss += run_context.getWeightRegularizationLoss(idx);
-    }
-
-    return loss;
-  }
+  float getLoss() const;
 
 #ifdef PROFILE
   int event_key;
@@ -621,12 +613,13 @@ private:
                     properties in the context/graph unless intended. */
 
   using PropsType = std::tuple<props::Name, props::Flatten, props::Distribute,
-                               props::Trainable>;
+                               props::Trainable, props::Loss>;
   /**
    * These properties are set for the layer by the user but are intercepted
    * and used in the node which forms the basic element of the graph.
    */
   std::unique_ptr<PropsType> layer_node_props; /**< properties for the node */
+  float regularization_loss;
 
   /**
    * @brief setProperty by PropertyType
