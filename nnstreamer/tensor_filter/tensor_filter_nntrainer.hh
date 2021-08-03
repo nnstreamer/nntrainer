@@ -23,7 +23,7 @@
 #include <nnstreamer_plugin_api.h>
 #include <nnstreamer_plugin_api_filter.h>
 
-#include <neuralnet.h>
+#include <model.h>
 #include <tensor_dim.h>
 
 /**
@@ -76,7 +76,7 @@ public:
    *
    * @return const std::vector<nntrainer::TensorDim> input dimensions
    */
-  const std::vector<nntrainer::TensorDim> getInputDimension() {
+  const std::vector<ml::train::TensorDim> getInputDimension() {
     return model->getInputDimension();
   }
 
@@ -85,7 +85,7 @@ public:
    *
    * @return const std::vector<nntrainer::TensorDim> output dimensions
    */
-  const std::vector<nntrainer::TensorDim> getOutputDimension() {
+  const std::vector<ml::train::TensorDim> getOutputDimension() {
     return model->getOutputDimension();
   }
 
@@ -102,18 +102,5 @@ private:
   void loadModel();
 
   std::string model_config;
-  ///@todo change this to ccapi
-  /// required method
-  /// model->loadFromConfig              (available)
-  /// model->setProperty                 (available)
-  /// model->compile                     (available)
-  /// model->initialize                  (available)
-  /// model->readModel                   (available)
-  /// model->inference                   (available)
-  /// model->getInputDimension           (n/a)
-  /// model->getOutputDimension          (n/a)
-  /// possibly required for optimization
-  /// model->forwarding                  (n/a)
-  /// model->allocate                    (n/a)
-  std::unique_ptr<nntrainer::NeuralNetwork> model;
+  std::unique_ptr<ml::train::Model> model;
 };
