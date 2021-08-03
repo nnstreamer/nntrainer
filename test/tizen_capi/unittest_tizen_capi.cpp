@@ -1081,32 +1081,20 @@ TEST(nntrainer_capi_nnmodel, get_input_output_dimension_03_n) {
   status = ml_train_model_construct_with_conf(s.getIniName().c_str(), &handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  EXPECT_THROW(ml_train_model_get_input_tensors_info(handle, &input_info),
-               std::invalid_argument);
-  EXPECT_THROW(ml_train_model_get_output_tensors_info(handle, &output_info),
-               std::invalid_argument);
-
-  status = ml_tensors_info_destroy(input_info);
-  EXPECT_EQ(status, ML_ERROR_NONE);
-  status = ml_tensors_info_destroy(output_info);
-  EXPECT_EQ(status, ML_ERROR_NONE);
+  EXPECT_EQ(ml_train_model_get_input_tensors_info(handle, &input_info),
+            ML_ERROR_INVALID_PARAMETER);
+  EXPECT_EQ(ml_train_model_get_output_tensors_info(handle, &output_info),
+            ML_ERROR_INVALID_PARAMETER);
 }
 
 TEST(nntrainer_capi_nnmodel, get_input_output_dimension_04_n) {
   ml_train_model_h handle = NULL;
   ml_tensors_info_h input_info, output_info;
 
-  int status = ML_ERROR_NONE;
-
   EXPECT_EQ(ml_train_model_get_input_tensors_info(handle, &input_info),
             ML_ERROR_INVALID_PARAMETER);
   EXPECT_EQ(ml_train_model_get_output_tensors_info(handle, &output_info),
             ML_ERROR_INVALID_PARAMETER);
-
-  status = ml_tensors_info_destroy(input_info);
-  EXPECT_EQ(status, ML_ERROR_NONE);
-  status = ml_tensors_info_destroy(output_info);
-  EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
 TEST(nntrainer_capi_nnmodel, get_input_output_dimension_05_n) {
@@ -1129,11 +1117,6 @@ TEST(nntrainer_capi_nnmodel, get_input_output_dimension_05_n) {
             ML_ERROR_INVALID_PARAMETER);
   EXPECT_EQ(ml_train_model_get_output_tensors_info(handle, &output_info),
             ML_ERROR_INVALID_PARAMETER);
-
-  status = ml_tensors_info_destroy(input_info);
-  EXPECT_EQ(status, ML_ERROR_NONE);
-  status = ml_tensors_info_destroy(output_info);
-  EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
 TEST(nntrainer_capi_nnmodel, get_input_output_dimension_06_n) {
