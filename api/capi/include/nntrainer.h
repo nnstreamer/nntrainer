@@ -228,7 +228,7 @@ int ml_train_model_set_dataset(ml_train_model_h model,
                                ml_train_dataset_h dataset);
 
 /**
- * @brief Gets input tensors information information of the model.
+ * @brief Gets input tensors information of the model.
  * @details Use this function to get input tensors information of the model.
  * destroy @a info with @c ml_tensors_info_destroy() after use.
  * @since_tizen 6.5
@@ -250,7 +250,7 @@ int ml_train_model_get_input_tensors_info(ml_train_model_h model,
                                           ml_tensors_info_h *info);
 
 /**
- * @brief Gets output tensors information information of the model.
+ * @brief Gets output tensors information of the model.
  * @details Use this function to get output tensors information of the model.
  * destroy @a info with @c ml_tensors_info_destroy() after use.
  * @since_tizen 6.5
