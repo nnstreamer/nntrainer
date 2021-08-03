@@ -13,7 +13,7 @@ gst_dep = dependency('gstreamer-'+gst_api_version)
 
 nntrainer_prefix = get_option('prefix')
 
-nnstreamer_filter_nntrainer_deps = [glib_dep, gmodule_dep, gst_dep, nntrainer_dep, nnstreamer_dep]
+nnstreamer_filter_nntrainer_deps = [glib_dep, gmodule_dep, gst_dep, nntrainer_ccapi_dep, nnstreamer_dep]
 
 nnstreamer_libdir = nntrainer_prefix / get_option('libdir')
 subplugin_install_prefix = nnstreamer_libdir / 'nnstreamer'

@@ -21,7 +21,6 @@
 #include <sstream>
 #include <unistd.h>
 
-#include <neuralnet.h>
 #include <nntrainer_error.h>
 
 #include "tensor_filter_nntrainer.hh"
@@ -38,8 +37,6 @@
 #ifndef DBG
 #define DBG FALSE
 #endif
-
-#define NUM_DIM 4
 
 static const gchar *nntrainer_accl_support[] = {NULL};
 
@@ -63,20 +60,20 @@ struct gNewDeletor {
 };
 
 static std::unique_ptr<GstTensorInfo, gNewDeletor>
-to_nnst_tensor_dim(const nntrainer::TensorDim &dim) {
+to_nnst_tensor_dim(const ml::train::TensorDim &dim) {
   auto info =
     std::unique_ptr<GstTensorInfo, gNewDeletor>(g_new(GstTensorInfo, 1));
   gst_tensor_info_init(info.get());
 
   info->type = _NNS_FLOAT32;
-  for (unsigned int i = 0; i < NUM_DIM; ++i) {
-    info->dimension[i] = dim.getTensorDim(NUM_DIM - i - 1);
+  for (unsigned int i = 0; i < ml::train::TensorDim::MAXDIM; ++i) {
+    info->dimension[i] = dim.getTensorDim(ml::train::TensorDim::MAXDIM - i - 1);
   }
 
   return info;
 }
 
-static nntrainer::TensorDim to_nntr_tensor_dim(const GstTensorInfo *info) {
+static ml::train::TensorDim to_nntr_tensor_dim(const GstTensorInfo *info) {
   const tensor_dim &d = info->dimension;
   return {d[3], d[2], d[1], d[0]};
 }
@@ -97,7 +94,7 @@ void NNTrainerInference::loadModel() {
 #if (DBG)
   gint64 start_time = g_get_real_time();
 #endif
-  model = std::make_unique<nntrainer::NeuralNetwork>();
+  model = ml::train::createModel(ml::train::ModelType::NEURAL_NET);
   model->loadFromConfig(model_config);
 #if (DBG)
   gint64 stop_time = g_get_real_time();
