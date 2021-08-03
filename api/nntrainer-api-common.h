@@ -42,13 +42,13 @@ typedef enum {
                                                (Since 6.5) */
   ML_TRAIN_LAYER_TYPE_PREPROCESS_L2NORM,   /**< Preprocess L2Normalization Layer
                                               (Since 6.5) */
-  ML_TRAIN_LAYER_TYPE_EMBEDDING,           /** Embedding Layer (Since 6.5) */
-  ML_TRAIN_LAYER_TYPE_RNN,                 /** RNN Layer (Since 6.5) */
-  ML_TRAIN_LAYER_TYPE_LSTM,                /** LSTM Layer (Since 6.5) */
-  ML_TRAIN_LAYER_TYPE_SPLIT,               /** Splite Layer (Since 6.5) */
-  ML_TRAIN_LAYER_TYPE_GRU,                 /** GRU Layer (Since 6.5) */
-  ML_TRAIN_LAYER_TYPE_PERMUTE,             /** Permute layer (Since 6.5) */
-  ML_TRAIN_LAYER_TYPE_DROPOUT,             /** DropOut Layer (Since 6.5) */
+  ML_TRAIN_LAYER_TYPE_EMBEDDING,           /**< Embedding Layer (Since 6.5) */
+  ML_TRAIN_LAYER_TYPE_RNN,                 /**< RNN Layer (Since 6.5) */
+  ML_TRAIN_LAYER_TYPE_LSTM,                /**< LSTM Layer (Since 6.5) */
+  ML_TRAIN_LAYER_TYPE_SPLIT,               /**< Split Layer (Since 6.5) */
+  ML_TRAIN_LAYER_TYPE_GRU,                 /**< GRU Layer (Since 6.5) */
+  ML_TRAIN_LAYER_TYPE_PERMUTE,             /**< Permute layer (Since 6.5) */
+  ML_TRAIN_LAYER_TYPE_DROPOUT,             /**< Dropout Layer (Since 6.5) */
   ML_TRAIN_LAYER_TYPE_BACKBONE_NNSTREAMER, /**< Backbone using NNStreamer
                                               (Since 6.5) */
   ML_TRAIN_LAYER_TYPE_CENTROID_KNN, /**< Centroid KNN Layer (Since 6.5) */
@@ -198,7 +198,8 @@ typedef enum {
 } ml_train_summary_type_e;
 
 /**
- * @brief Enumeration for the neural network
+ * @brief Enumeration for the neural network.
+ * @since_tizen 6.5
  *
  */
 typedef enum {
