@@ -227,8 +227,10 @@ int ml_train_model_set_dataset(ml_train_model_h model,
  * @details Use this function to get input tensors information of the model.
  * destroy @a info with @a ml_tensors_info_destroy() after use.
  * @remarks @a model must be compiled before calling this function.
- * @remarks the returned @a info is newly created so it does not reflect future
- * changes in the model
+ * @remarks The returned @a info is newly created so it does not reflect future
+ * changes in the model.
+ * @remarks On returning error, info must shall not be destroyed with @a
+ * ml_tensors_info_destory()
  *
  * @param[in] model The NNTrainer model handle.
  * @param[out] info The tensors information handle.
@@ -248,6 +250,8 @@ int ml_train_model_get_input_tensors_info(ml_train_model_h model,
  * @remarks @a model must be compiled before calling this function.
  * @remarks the returned @a info is newly created so it does not reflect future
  * changes in the model
+ * @remarks On returning error, info must shall not be destroyed with @a
+ * ml_tensors_info_destory()
  *
  * @param[in] model The NNTrainer model handle.
  * @param[out] info The tensors information handle.
