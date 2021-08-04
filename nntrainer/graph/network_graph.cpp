@@ -681,10 +681,8 @@ int NetworkGraph::initialize(std::shared_ptr<Manager> manager) {
   std::unordered_map<std::string, std::vector<Var_Grad *>> input_map;
 
   /** check if the given config of node is of input node */
-  auto is_input_node = [](const std::string &type,
-                          const unsigned int idx) -> bool {
-    /** TODO: remove dependency on idx */
-    return type == InputLayer::type || idx == 0;
+  auto is_input_node = [](const std::shared_ptr<LayerNode> &node) -> bool {
+    return node->getInputConnections().empty();
   };
 
   for (unsigned int idx = 0; idx < graph.size(); ++idx) {
@@ -696,7 +694,7 @@ int NetworkGraph::initialize(std::shared_ptr<Manager> manager) {
      * Set input dimension for all the layers.
      * For input layer, as input dimension is known, set input tensor.
      */
-    if (!is_input_node(cur_type, idx)) {
+    if (!is_input_node(lnode)) {
       auto &input_layers = lnode->getInputLayers();
       for (unsigned int i = 0; i < input_layers.size(); ++i) {
         auto in_layer_node = getLayerNode(input_layers[i]);
@@ -706,6 +704,11 @@ int NetworkGraph::initialize(std::shared_ptr<Manager> manager) {
           std::find(in_layer_out_connect.begin(), in_layer_out_connect.end(),
                     lnode->getName()) -
           in_layer_out_connect.begin();
+
+#ifdef DEBUG
+        if (location == in_layer_out_connect.size())
+          throw std::runtime_error("Invalid connection between nodes.");
+#endif
 
         lnode->setInputDimension(in_layer_node->getOutputDimensions()[location],
                                  i);
@@ -719,7 +722,7 @@ int NetworkGraph::initialize(std::shared_ptr<Manager> manager) {
     lnode->finalize();
 
     std::vector<Var_Grad *> inputs = {};
-    if (!is_input_node(cur_type, idx)) {
+    if (!is_input_node(lnode)) {
       if (input_map.find(lnode->getName()) == input_map.end())
         throw std::runtime_error("Cannot find input buffers for the node");
       inputs = input_map.at(lnode->getName());
