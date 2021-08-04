@@ -86,9 +86,9 @@ public:
   };
 
   /**
-   * @brief     initialize optimizer.
+   * @brief     finalize optimizer.
    */
-  virtual void initialize(){};
+  virtual void finalize(){};
 
   /**
    * @brief     Read Training optimizer paramters from file
