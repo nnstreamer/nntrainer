@@ -33,8 +33,6 @@
 #include <split_layer.h>
 #include <time_dist.h>
 
-#define LAYER_V2 1
-
 #define LNODE(x) std::static_pointer_cast<LayerNode>(x)
 
 namespace nntrainer {
@@ -665,7 +663,7 @@ NetworkGraph::updateRunContext(std::shared_ptr<Manager> &manager,
     manager->requestOutputs(gnode, init_context.getOutputDimensions());
 
   /**
-   * @todo must use existing properties like name/trainable of run_context to
+   * @note must use existing properties like name/trainable of run_context to
    * create the new run_context
    */
   const RunLayerContext &run_context = lnode->getRunContext();
@@ -695,10 +693,6 @@ int NetworkGraph::initialize(std::shared_ptr<Manager> manager) {
     std::string cur_type = lnode->getType();
     ml_logd("layer name : %s", lnode->getName().c_str());
 
-#if !LAYER_V2
-    auto &lptr = lnode->getObject();
-#endif
-
     /**
      * Set input dimension for all the layers.
      * For input layer, as input dimension is known, set input tensor.
@@ -717,13 +711,8 @@ int NetworkGraph::initialize(std::shared_ptr<Manager> manager) {
           }
         }
 
-#if LAYER_V2
         lnode->setInputDimension(in_layer_node->getOutputDimensions()[location],
                                  i);
-#else
-        lptr->setInputDimension(in_layer_node->getOutputDimensions()[location],
-                                i);
-#endif
       }
     }
 
@@ -731,14 +720,8 @@ int NetworkGraph::initialize(std::shared_ptr<Manager> manager) {
      * Initialize all the layers, allocate output tensors for each layer
      * init2and add optimizer related weights for the layer
      */
-#if LAYER_V2
     lnode->finalize();
-#else
-    status = lptr->initialize(*manager);
-    NN_RETURN_STATUS();
-#endif
 
-#if LAYER_V2
     std::vector<Var_Grad *> inputs = {};
     if (!is_input_node(cur_type, idx)) {
       if (input_map.find(lnode->getName()) == input_map.end())
@@ -747,18 +730,11 @@ int NetworkGraph::initialize(std::shared_ptr<Manager> manager) {
     }
     const std::vector<Var_Grad *> &outputs =
       updateRunContext(manager, lnode, inputs);
-#else
-    auto &in_out = manager->trackLayerOutputs(cur_type, lnode->getName(),
-                                              lptr->getOutputDimension(),
-                                              lptr->getInputDimension());
-    lptr->setOutputBuffers(in_out);
-#endif
 
     /** no need to update input_map for the last layer */
     if (idx == graph.size() - 1)
       break;
 
-#if LAYER_V2
     auto &output_layers = lnode->getOutputLayers();
     for (unsigned int i = 0; i < output_layers.size(); ++i) {
       auto out_layer_node = getLayerNode(output_layers[i]);
@@ -776,38 +752,6 @@ int NetworkGraph::initialize(std::shared_ptr<Manager> manager) {
       in_map.resize(out_layer_node->getNumInputConnections());
       in_map[j] = outputs[i];
     }
-#else
-    /**
-     * Connect the output of the previous layers with the input of the current
-     * layer
-     */
-    if (!is_input_node(cur_type, idx)) {
-      auto &input_layers = lnode->getInputLayers();
-      for (unsigned int i = 0; i < input_layers.size(); ++i) {
-        auto in_layer_node = getLayerNode(input_layers[i]);
-
-        unsigned int location = 0;
-        for (unsigned int j = 0; j < in_layer_node->getNumOutputConnections();
-             ++j) {
-          if (in_layer_node->getOutputLayers()[j] == lnode->getName()) {
-            location = j;
-            break;
-          }
-        }
-
-        lptr->net_input[i] =
-          getLayerNode(input_layers[i])->getObject()->net_hidden[location];
-      }
-    } else {
-      // TODO: remove this, input buffers are created by either by the dataset
-      // or given by the user in the inference. Same for the label. So, need not
-      // create these as a special case.
-      auto &in_out = manager->trackLayerInputs(cur_type, lnode->getName(),
-                                               lptr->getInputDimension(),
-                                               lptr->getOutputDimension());
-      lptr->setInputBuffers(in_out);
-    }
-#endif
   }
   return status;
 }
