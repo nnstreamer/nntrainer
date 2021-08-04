@@ -21,7 +21,7 @@ nntrainer_base_deps=[
   thread_dep
 ]
 
-if build_platform == 'tizen'
+if get_option('platform') == 'tizen'
   nntrainer_base_deps += dependency('dlog')
 endif
 

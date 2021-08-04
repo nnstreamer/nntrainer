@@ -3,7 +3,7 @@ res_path = meson.current_source_dir() / '..' / 'res'
 mnist_sources = [
   'main.cpp'
 ]
-if build_platform == 'tizen'
+if get_option('platform') == 'tizen'
   if not gtest_dep.found()
     error('Gtest dependency not found for VGG application')
   endif
