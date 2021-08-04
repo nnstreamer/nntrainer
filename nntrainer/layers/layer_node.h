@@ -59,14 +59,14 @@ public:
   /**
    * @brief Default constructor
    */
-  LayerNode() : LayerNode(nullptr, 0) {}
+  LayerNode() : LayerNode(nullptr) {}
 
   /**
    * @brief Constructor of LayerNode class for v2
    * @param l layer to wrap with, the ownership is transferred to layer node
    *
    */
-  LayerNode(std::unique_ptr<nntrainer::Layer> &&l, size_t idx = 0);
+  LayerNode(std::unique_ptr<nntrainer::Layer> &&l);
 
   /**
    * @brief     Destructor of LayerNode Class
@@ -109,19 +109,6 @@ public:
   /**
    * Support all the interface requirements by nntrainer::GraphNode
    */
-
-  /**
-   * @brief     Get index of the node
-   *
-   * @return    Index of the node
-   */
-  size_t getIndex() const { return index; }
-
-  /**
-   * @brief     Set the index for the node
-   * @param     idx Index for the node
-   */
-  void setIndex(size_t idx) { index = idx; }
 
   /**
    * @brief     set name of layer
@@ -363,7 +350,17 @@ public:
    * @param layers Name of the layers
    */
   void setInputLayers(const std::vector<std::string> &layers) {
-    input_layers = layers;
+    auto to_lower = [](const std::string &str) -> std::string {
+      std::string ret = str;
+      ;
+      std::transform(ret.begin(), ret.end(), ret.begin(),
+                     [](unsigned char c) { return std::tolower(c); });
+      return ret;
+    };
+
+    input_layers.reserve(layers.size());
+    for (auto const &name : layers)
+      input_layers.push_back(to_lower(name));
     resizeInputDimensions(input_layers.size());
   }
 
@@ -587,9 +584,6 @@ private:
   std::unique_ptr<nntrainer::Layer>
     layer; /**< The actual object in the graph node */
 
-  // TODO: possibly remove, two identifiers for the same node (name and
-  // index) can lead to issues later
-  size_t index;   /**< index of each node */
   bool finalized; /**< if the layer node has been finalized */
 
   std::vector<std::string> input_layers;  /**< input layer names */

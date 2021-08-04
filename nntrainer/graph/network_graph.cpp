@@ -90,7 +90,7 @@ void NetworkGraph::addDefaultInputLayers() {
 }
 
 void NetworkGraph::addLayerNode(std::unique_ptr<Layer> layer) {
-  graph.addNode(std::make_unique<LayerNode>(std::move(layer), graph.size()));
+  graph.addNode(std::make_unique<LayerNode>(std::move(layer)));
 }
 
 void NetworkGraph::countNonTrainableLayersAtBegin() {
@@ -269,7 +269,6 @@ int NetworkGraph::addLossLayer(const std::string &loss_type_) {
     lnode->setInputLayers({second_to_last_layer_node->getName()});
 
     if (is_cross_entropy_loss) {
-      lnode->setIndex(output_layer_node->getIndex());
       graph.replaceNode(output_layer_node, lnode);
     } else {
       graph.addNode(lnode, false);
@@ -702,14 +701,11 @@ int NetworkGraph::initialize(std::shared_ptr<Manager> manager) {
       for (unsigned int i = 0; i < input_layers.size(); ++i) {
         auto in_layer_node = getLayerNode(input_layers[i]);
 
-        unsigned int location = 0;
-        for (unsigned int j = 0; j < in_layer_node->getNumOutputConnections();
-             ++j) {
-          if (in_layer_node->getOutputLayers()[j] == lnode->getName()) {
-            location = j;
-            break;
-          }
-        }
+        auto const &in_layer_out_connect = in_layer_node->getOutputLayers();
+        unsigned int location =
+          std::find(in_layer_out_connect.begin(), in_layer_out_connect.end(),
+                    lnode->getName()) -
+          in_layer_out_connect.begin();
 
         lnode->setInputDimension(in_layer_node->getOutputDimensions()[location],
                                  i);

@@ -32,18 +32,6 @@ public:
   virtual ~GraphNode() = default;
 
   /**
-   * @brief     Get index of the node
-   *
-   */
-  virtual size_t getIndex() const = 0;
-
-  /**
-   * @brief     Set index of the node
-   *
-   */
-  virtual void setIndex(size_t) = 0;
-
-  /**
    * @brief     Get the Name of the underlying object
    *
    * @return std::string Name of the underlying object

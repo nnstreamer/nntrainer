@@ -21,6 +21,7 @@
 #include <map>
 #include <memory>
 #include <stack>
+#include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
@@ -65,6 +66,7 @@ public:
     using std::swap;
 
     swap(lhs.node_list, rhs.node_list);
+    swap(lhs.node_map, rhs.node_map);
     swap(lhs.Sorted, rhs.Sorted);
     swap(lhs.node_names, rhs.node_names);
     swap(lhs.def_name_count, rhs.def_name_count);
@@ -75,6 +77,7 @@ public:
    */
   void reset() {
     node_list.clear();
+    node_map.clear();
     Sorted.clear();
     node_names.clear();
     def_name_count = 0;
@@ -261,6 +264,7 @@ private:
   std::vector<std::shared_ptr<GraphNode>> output_list;
   std::vector<std::shared_ptr<GraphNode>>
     node_list;                                    /**< Unordered Node List  */
+  std::unordered_map<std::string, int> node_map;  /**< Unordered Node map  */
   std::vector<std::shared_ptr<GraphNode>> Sorted; /**< Ordered Node List  */
   bool sorted; /** if the node_list is sorted */
 
@@ -290,6 +294,14 @@ private:
    */
   void
   makeAdjacencyList(std::vector<std::list<std::shared_ptr<GraphNode>>> &adj);
+
+  /**
+   * @brief     Get index of the node with given name
+   *
+   * @param     name Name of the node
+   * @return    internal index of the node
+   */
+  unsigned int getNodeIdx(const std::string &name);
 };
 
 } // namespace nntrainer
