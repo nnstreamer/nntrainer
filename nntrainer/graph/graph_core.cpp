@@ -114,7 +114,6 @@ void GraphCore::ensureName(GraphNode &node, const std::string &prefix_,
                            const std::string &postfix_, bool force_rename) {
   auto to_lower = [](const std::string &str) -> std::string {
     std::string ret = str;
-    ;
     std::transform(ret.begin(), ret.end(), ret.begin(),
                    [](unsigned char c) { return std::tolower(c); });
     return ret;
