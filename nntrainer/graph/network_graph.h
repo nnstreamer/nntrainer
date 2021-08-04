@@ -98,15 +98,6 @@ public:
   }
 
   /**
-   * @brief getter of LayerNode with index number
-   * @param[in] index
-   * @ret LayerNode
-   */
-  std::shared_ptr<LayerNode> getLayerNode(unsigned int ith) const {
-    return std::static_pointer_cast<LayerNode>(graph.getNode(ith));
-  }
-
-  /**
    * @brief getter of Sorted LayerNode with index number
    * @param[in] index
    * @ret LayerNode

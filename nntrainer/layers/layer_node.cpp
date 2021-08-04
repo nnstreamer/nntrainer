@@ -118,9 +118,8 @@ createLayerNode(std::unique_ptr<nntrainer::Layer> &&layer,
   return lnode;
 }
 
-LayerNode::LayerNode(std::unique_ptr<nntrainer::Layer> &&l, size_t idx) :
+LayerNode::LayerNode(std::unique_ptr<nntrainer::Layer> &&l) :
   layer(std::move(l)),
-  index(idx),
   finalized(false),
   activation_type(ActivationType::ACT_NONE),
   layer_node_props(new PropsType(props::Name(), props::Flatten(),

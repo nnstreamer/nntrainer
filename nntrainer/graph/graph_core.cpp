@@ -23,26 +23,17 @@
 namespace nntrainer {
 
 void GraphCore::addGraphNode(std::shared_ptr<GraphNode> node) {
-  node->setIndex(node_list.size());
   node_list.push_back(node);
+  node_map[node->getName()] = node_list.size() - 1;
 }
 
 const std::shared_ptr<GraphNode> &GraphCore::getNode(unsigned int ith) const {
-  if (ith >= size())
-    throw std::invalid_argument("Exceed total number of nodes");
-
-  if (node_list[ith]->getIndex() != ith)
-    throw std::runtime_error("Graph internal index mismatch");
-
-  return node_list[ith];
+  return node_list.at(ith);
 }
 
 const std::shared_ptr<GraphNode> &
 GraphCore::getSortedNode(unsigned int ith) const {
-  if (ith >= Sorted.size())
-    throw std::invalid_argument("Exceed total number of nodes");
-
-  return Sorted[ith];
+  return Sorted.at(ith);
 }
 
 void GraphCore::makeAdjacencyList(
@@ -55,7 +46,7 @@ void GraphCore::makeAdjacencyList(
   /** make the connections */
   for (auto &node : node_list) {
     for (auto const &in_conn : node->getInputConnections()) {
-      unsigned int to_node_id = getNode(in_conn)->getIndex();
+      unsigned int to_node_id = getNodeIdx(in_conn);
       adj[to_node_id].push_back(node);
     }
   }
@@ -69,7 +60,7 @@ void GraphCore::topologicalSortUtil(
 
   std::list<std::shared_ptr<GraphNode>>::iterator i;
   for (i = adj[ith].begin(); i != adj[ith].end(); ++i) {
-    auto index = (*i)->getIndex();
+    auto index = getNodeIdx((*i)->getName());
     if (!visited[index])
       topologicalSortUtil(adj, index, visited, dfs_stack);
   }
@@ -107,14 +98,7 @@ void GraphCore::topologicalSort() {
 
 const std::shared_ptr<GraphNode> &
 GraphCore::getNode(const std::string &name) const {
-  for (auto &lnode : node_list) {
-    if (istrequal(lnode->getName(), name))
-      return lnode;
-  }
-
-  std::stringstream ss;
-  ss << "Cannot find graph node: " << name;
-  throw std::invalid_argument(ss.str());
+  return node_list.at(node_map.at(name));
 }
 
 void GraphCore::addNode(std::shared_ptr<GraphNode> node, bool ensure_name) {
@@ -126,14 +110,26 @@ void GraphCore::addNode(std::shared_ptr<GraphNode> node, bool ensure_name) {
   addGraphNode(node);
 }
 
-void GraphCore::ensureName(GraphNode &node, const std::string &prefix,
-                           const std::string &postfix, bool force_rename) {
-  std::string orig_name = node.getName();
+void GraphCore::ensureName(GraphNode &node, const std::string &prefix_,
+                           const std::string &postfix_, bool force_rename) {
+  auto to_lower = [](const std::string &str) -> std::string {
+    std::string ret = str;
+    ;
+    std::transform(ret.begin(), ret.end(), ret.begin(),
+                   [](unsigned char c) { return std::tolower(c); });
+    return ret;
+  };
+
+  std::string orig_name = to_lower(node.getName());
+  std::string prefix = to_lower(prefix_);
+  std::string postfix = to_lower(postfix_);
+
   bool orig_name_empty = orig_name.empty();
   /** If node already has name which is unique and valid, and force is
    * disabled, then nothing to do.
    */
   if (!orig_name_empty && !force_rename && !verifyNode(orig_name)) {
+    node.setName(orig_name);
     node_names.insert(orig_name);
     return;
   }
@@ -167,9 +163,15 @@ void GraphCore::ensureName(GraphNode &node, const std::string &prefix,
 
 void GraphCore::replaceNode(std::shared_ptr<GraphNode> from,
                             std::shared_ptr<GraphNode> to) {
-  unsigned int idx = from->getIndex();
-  to->setIndex(idx);
-  node_list[idx] = to;
+  if (node_map.find(from->getName()) == node_map.end())
+    throw std::invalid_argument("Graph node to be replaced is missing");
+  if (node_map.find(to->getName()) != node_map.end())
+    throw std::invalid_argument("Nodes in the graph must be unique");
+
+  unsigned int from_idx = getNodeIdx(from->getName());
+  node_list[from_idx] = to;
+  node_map.erase(from->getName());
+  node_map[to->getName()] = from_idx;
 }
 
 void GraphCore::realizeInputOutputNode() {
@@ -181,6 +183,10 @@ void GraphCore::realizeInputOutputNode() {
       output_list.push_back(*iter);
     }
   }
+}
+
+unsigned int GraphCore::getNodeIdx(const std::string &name) {
+  return node_map.at(name);
 }
 
 } /* namespace nntrainer */
