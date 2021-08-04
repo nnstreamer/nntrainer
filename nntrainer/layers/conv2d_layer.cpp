@@ -288,12 +288,12 @@ void Conv2DLayer::finalize(InitLayerContext &context) {
 
   padding = std::get<props::Padding2D>(conv_props).compute(in_dim, dim);
 
-  wt_idx[ConvParams::weight] =
-    context.requestWeight(dim, weight_initializer, weight_regularizer,
-                          weight_regularizer_constant, "Conv2d:filter", true);
+  wt_idx[ConvParams::weight] = context.requestWeight(
+    dim, weight_initializer, weight_regularizer, weight_regularizer_constant,
+    context.getName() + ":filter", true);
   wt_idx[ConvParams::bias] =
     context.requestWeight(bias_dim, bias_initializer, WeightRegularizer::NONE,
-                          1.0f, "Conv2d:bias", true);
+                          1.0f, context.getName() + ":bias", true);
 
   /// we don't have same padding for now but later, same padding don't apply
   /// when kernel size is even in current implementation (we need to handle
@@ -325,10 +325,11 @@ void Conv2DLayer::finalize(InitLayerContext &context) {
   }
 
   wt_idx[ConvParams::im2col_result] = context.requestTensor(
-    calcIm2ColOutputDim(in_dim, dim, padding, stride, {1, 1}), "Conv2d:im2col",
-    Tensor::Initializer::NONE, false, ITERATION_LIFESPAN);
+    calcIm2ColOutputDim(in_dim, dim, padding, stride, {1, 1}),
+    context.getName() + ":im2col", Tensor::Initializer::NONE, false,
+    ITERATION_LIFESPAN);
   wt_idx[ConvParams::col2im_result] = context.requestTensor(
-    calcCol2ImOutputDim(out_dim, dim), "Conv2d:col2im",
+    calcCol2ImOutputDim(out_dim, dim), context.getName() + ":col2im",
     Tensor::Initializer::NONE, false, BACKWARD_FUNC_LIFESPAN);
 }
 

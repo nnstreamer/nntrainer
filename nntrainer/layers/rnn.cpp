@@ -49,8 +49,8 @@ void RNNLayer::finalize(InitLayerContext &context) {
 
   if (dropout_rate > epsilon) {
     wt_idx[RNNParams::dropout_mask] = context.requestTensor(
-      output_dim, "RNN:dropout_mask", Tensor::Initializer::NONE, false,
-      ITERATION_LIFESPAN);
+      output_dim, context.getName() + ":dropout_mask",
+      Tensor::Initializer::NONE, false, ITERATION_LIFESPAN);
   }
 
   if (!return_sequences) {
@@ -74,23 +74,24 @@ void RNNLayer::finalize(InitLayerContext &context) {
   // weight_hh initializer kernel initializer & recurrent_initializer in keras
   // for now, it is set same way.
 
-  wt_idx[RNNParams::weight_xh] =
-    context.requestWeight(dim_xh, weight_initializer, weight_regularizer,
-                          weight_regularizer_constant, "RNN:weight_xh", true);
-  wt_idx[RNNParams::weight_hh] =
-    context.requestWeight(dim_hh, weight_initializer, weight_regularizer,
-                          weight_regularizer_constant, "RNN:weight_hh", true);
+  wt_idx[RNNParams::weight_xh] = context.requestWeight(
+    dim_xh, weight_initializer, weight_regularizer, weight_regularizer_constant,
+    context.getName() + ":weight_xh", true);
+  wt_idx[RNNParams::weight_hh] = context.requestWeight(
+    dim_hh, weight_initializer, weight_regularizer, weight_regularizer_constant,
+    context.getName() + ":weight_hh", true);
   wt_idx[RNNParams::bias_h] =
     context.requestWeight(bias_dim, bias_initializer, WeightRegularizer::NONE,
-                          1.0f, "RNN:bias_h", true);
+                          1.0f, context.getName() + ":bias_h", true);
 
   // We do not need this if we reuse net_hidden[0]. But if we do, then the unit
   // test will fail. Becuase it modifies the date during gradient calculation
   // TODO : We could control with something like #define test to save memory
   TensorDim d = input_dim;
   d.width(unit);
-  wt_idx[RNNParams::hidden_state] = context.requestTensor(
-    d, "RNN:hidden_state", Tensor::Initializer::NONE, true, ITERATION_LIFESPAN);
+  wt_idx[RNNParams::hidden_state] =
+    context.requestTensor(d, context.getName() + ":hidden_state",
+                          Tensor::Initializer::NONE, true, ITERATION_LIFESPAN);
 
   if (hidden_state_activation_type == ActivationType::ACT_NONE) {
     hidden_state_activation_type = ActivationType::ACT_TANH;

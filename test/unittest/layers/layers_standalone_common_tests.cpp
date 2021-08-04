@@ -44,7 +44,7 @@ TEST_P(LayerSemantics, setPropertiesValidInvalidOnly_n) {}
 TEST_P(LayerSemantics, finalizeValidate_p) {
   nntrainer::TensorDim in_dim({1, 1, 1, 1});
   nntrainer::InitLayerContext init_context =
-    nntrainer::InitLayerContext({in_dim}, 1);
+    nntrainer::InitLayerContext({in_dim}, 1, "layer");
   EXPECT_EQ(init_context.validate(), true);
 
   // set necessary properties only
@@ -84,7 +84,7 @@ TEST_P(LayerSemantics, gettersValidate_p) {
 TEST_P(LayerSemantics, setBatchValidate_p) {
   nntrainer::TensorDim in_dim({1, 1, 1, 1});
   nntrainer::InitLayerContext init_context =
-    nntrainer::InitLayerContext({in_dim}, 1);
+    nntrainer::InitLayerContext({in_dim}, 1, "layer");
   init_context.validate();
 
   // set necessary properties only
