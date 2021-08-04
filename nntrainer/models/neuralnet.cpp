@@ -175,7 +175,7 @@ int NeuralNetwork::initialize() {
 
   // initialize optimizer and related variables
   if (opt) {
-    opt->initialize();
+    opt->finalize();
     std::function<std::vector<TensorDim>(const TensorDim &)> cb =
       [this](const TensorDim &dim) {
         return opt->getOptimizerVariableDim(dim);

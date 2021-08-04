@@ -100,11 +100,9 @@ public:
   }
 
   /**
-   * @brief     initialize optimizer.
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+   * @brief     finalize optimizer.
    */
-  void initialize() override { optimizer_devel->initialize(); }
+  void finalize() override { optimizer_devel->finalize(); }
 
   /**
    * @brief     Read Training optimizer paramters from file
