@@ -8,7 +8,7 @@ if not nnstreamer_capi_dep.found()
   error('nnstreamer capi dependency not found for tizen')
 endif
 
-if get_option('enable-tizen') and get_option('enable-tizen-feature-check')
+if get_option('platform') == 'tizen' and get_option('enable-tizen-feature-check')
   capi_src += meson.current_source_dir() / 'src' / 'nntrainer-capi-tizen-feature-check.cpp'
 endif
 
@@ -16,7 +16,7 @@ capi_headers = []
 capi_headers += meson.current_source_dir() / 'include' / 'nntrainer.h'
 capi_headers += meson.current_source_dir() / '..' / 'nntrainer-api-common.h'
 
-if get_option('enable-tizen')
+if get_option('platform') == 'tizen'
   capi_headers += meson.current_source_dir() / 'include' / 'nntrainer-tizen-internal.h'
 endif
 
@@ -25,7 +25,7 @@ capi_deps = [
   nnstreamer_capi_dep,
 ]
 
-if get_option('enable-tizen')
+if get_option('platform') == 'tizen'
   message('CAPI is in Tizen mode')
 
   tizen_deps = [

@@ -14,11 +14,9 @@ add_project_arguments('-DMIN_CPP_VERSION=201703L', language:['c','cpp'])
 
 cc = meson.get_compiler('c')
 cxx = meson.get_compiler('cpp')
-build_platform = ''
 
-if get_option('enable-tizen')
+if get_option('platform') == 'tizen'
   # Pass __TIZEN__ to the compiler
-  build_platform = 'tizen'
   add_project_arguments('-D__TIZEN__=1', language:['c','cpp'])
 
   if get_option('enable-tizen-feature-check')
@@ -108,7 +106,7 @@ endif
 
 if get_option('enable-blas')
   add_project_arguments('-DUSE_BLAS=1', language:['c','cpp'])
-  if build_platform == 'tizen'
+  if get_option('platform') == 'tizen' or get_option('platform') == 'yocto'
     blas_dep = dependency('openblas')
   else
     blas_dep = dependency('blas-openblas', required:false)
@@ -142,14 +140,31 @@ endif
 libm_dep = cxx.find_library('m') # cmath library
 libdl_dep = cxx.find_library('dl') # DL library
 thread_dep = dependency('threads') # pthread for tensorflow-lite
+
 iniparser_dep = dependency('iniparser', required : false, version : '>=4.1') # iniparser
 if not iniparser_dep.found()
   message('falling back to find libiniparser library and header files')
   libiniparser_dep = cxx.find_library('iniparser')
+  sysroot = run_command(
+    cxx.cmd_array() + ['-print-sysroot']
+    ).stdout().split('\n')[0]
+
+  if sysroot.startswith('/')
+    sysroot_inc_cflags_template = '-I@0@/usr/include@1@'
+    sysroot_inc = sysroot_inc_cflags_template.format(sysroot, '')
+    add_project_arguments(sysroot_inc, language: ['c', 'cpp'])
+    sysroot_inc_cflags_iniparser = sysroot_inc_cflags_template.format(sysroot,
+      '/iniparser')
+  else
+    sysroot_inc_cflags_iniparser = '-I/usr/include/iniparser'
+  endif
+
   if libiniparser_dep.found() and cxx.has_header('iniparser.h', \
-        args : '-I/usr/include/iniparser')
+        args : sysroot_inc_cflags_iniparser)
     iniparser_dep = declare_dependency (dependencies : libiniparser_dep,
-      compile_args : '-I/usr/include/iniparser')
+      compile_args : sysroot_inc_cflags_iniparser)
+  else
+    error('Failed to resolve dependency on iniparser')
   endif
 endif
 

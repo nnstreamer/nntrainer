@@ -267,7 +267,7 @@ NNSteamer tensor filter static package for nntrainer to support inference.
 %endif #tizen
 
 ## Define build options
-%define enable_tizen -Denable-tizen=false
+%define platform -Dplatform=tizen
 %define enable_tizen_feature_check -Denable-tizen-feature-check=true
 %define install_app -Dinstall-app=true
 %define enable_ccapi -Denable-ccapi=false
@@ -284,7 +284,7 @@ NNSteamer tensor filter static package for nntrainer to support inference.
 %endif
 
 %if %{with tizen}
-%define enable_tizen -Denable-tizen=true
+%define platform -Dplatform=tizen
 
 %if 0%{?support_ccapi}
 %define enable_ccapi -Denable-ccapi=true
@@ -342,7 +342,7 @@ ln -sf %{_libdir}/pkgconfig/capi-nnstreamer.pc %{_libdir}/pkgconfig/capi-ml-comm
 mkdir -p build
 meson --buildtype=plain --prefix=%{_prefix} --sysconfdir=%{_sysconfdir} \
       --libdir=%{_libdir} --bindir=%{nntrainerapplicationdir} \
-      --includedir=%{_includedir} %{install_app} %{enable_tizen} \
+      --includedir=%{_includedir} %{install_app} %{platform} \
       %{enable_tizen_feature_check} %{enable_cblas} %{enable_ccapi} \
       %{enable_gym} %{enable_nnstreamer_tensor_filter} %{enable_profile} \
       %{enable_nnstreamer_backbone} %{enable_tflite_backbone} \
