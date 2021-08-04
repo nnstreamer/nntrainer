@@ -70,11 +70,22 @@ public:
   virtual const std::vector<std::string> &getOutputConnections() const = 0;
 
   /**
-   * @brief     Copy the graph
-   * @param[in] from Graph Object to copy
-   * @retval    Graph Object copyed
+   * @brief     get the execution order/location of this node
+   *
+   * @retval    the execution order/location of this node
+   * @details   The two values represents the value for forward and backward
+   * respectively
    */
-  // virtual GraphNode &copy(const GraphNode &from) = 0;
+  virtual std::pair<unsigned int, unsigned int> getExecLoc() const = 0;
+
+  /**
+   * @brief     set the execution order/location of this node
+   *
+   * @param     exec_loc the execution order/location of this node
+   * @details   The two values represents the value for forward and backward
+   * respectively
+   */
+  virtual void setExecLoc(std::pair<unsigned int, unsigned int> exec_loc) = 0;
 };
 
 /**

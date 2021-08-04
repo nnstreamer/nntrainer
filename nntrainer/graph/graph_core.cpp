@@ -89,6 +89,8 @@ void GraphCore::topologicalSort() {
 
   while (dfs_stack.empty() == false) {
     Sorted.push_back(dfs_stack.top());
+    Sorted.back()->setExecLoc(
+      {Sorted.size(), (node_list.size() * 2) - Sorted.size() + 1});
     dfs_stack.pop();
   }
 

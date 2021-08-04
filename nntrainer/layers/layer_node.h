@@ -136,6 +136,22 @@ public:
   }
 
   /**
+   * @brief     get the execution order/location of this node
+   *
+   * @retval    the execution order/location of this node
+   */
+  std::pair<unsigned int, unsigned int> getExecLoc() const { return exec_loc; }
+
+  /**
+   * @brief     set the execution order/location of this node
+   *
+   * @param     exec_loc the execution order/location of this node
+   */
+  virtual void setExecLoc(std::pair<unsigned int, unsigned int> exec_loc_) {
+    exec_loc = exec_loc_;
+  }
+
+  /**
    * Support all the interface requirements by nntrainer::Layer
    */
 
@@ -608,6 +624,8 @@ private:
    */
   std::unique_ptr<PropsType> layer_node_props; /**< properties for the node */
   float regularization_loss;
+  std::pair<int, int> exec_loc; /**< order/location of execution for this node
+                                   in forward and backward */
 
   /**
    * @brief setProperty by PropertyType

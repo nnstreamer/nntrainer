@@ -829,7 +829,7 @@ Manager::requestInputs(const GraphNode &node,
     inputs_dim.begin(), inputs_dim.end(), std::back_inserter(inputs_spec),
     [&count, &node](auto const &elem) {
       return std::make_tuple(elem, Tensor::Initializer::NONE, true,
-                             node.getName() + std::string("_input") +
+                             node.getName() + std::string(":input") +
                                std::to_string(count++));
     });
   return requestTensors<Var_Grad>(node, inputs_spec, inputs_v2);
@@ -847,7 +847,7 @@ Manager::requestOutputs(const GraphNode &node,
     outputs_dim.begin(), outputs_dim.end(), std::back_inserter(outputs_spec),
     [&count, &node](auto const &elem) {
       return std::make_tuple(elem, Tensor::Initializer::NONE, true,
-                             node.getName() + std::string("_output") +
+                             node.getName() + std::string(":output") +
                                std::to_string(count++));
     });
   return requestTensors<Var_Grad>(node, outputs_spec, outputs_v2);
