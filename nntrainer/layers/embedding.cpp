@@ -46,9 +46,9 @@ void EmbeddingLayer::finalize(InitLayerContext &context) {
   dim.width(out_dim);
   dim.batch(1);
 
-  weight_idx =
-    context.requestWeight(dim, weight_initializer, weight_regularizer,
-                          weight_regularizer_constant, "Embedding", true);
+  weight_idx = context.requestWeight(
+    dim, weight_initializer, weight_regularizer, weight_regularizer_constant,
+    context.getName() + ":Embedding", true);
 }
 
 void EmbeddingLayer::setProperty(const std::vector<std::string> &values) {

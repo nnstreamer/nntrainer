@@ -67,9 +67,13 @@ public:
    *
    * @param dim Input dimensions for the layer
    */
-  InitLayerContext(const std::vector<TensorDim> &dim, unsigned int num_out) :
+  InitLayerContext(const std::vector<TensorDim> &dim, unsigned int num_out,
+                   const std::string &n = "") :
     input_dim(dim),
-    num_outputs(num_out) {}
+    num_outputs(num_out),
+    name(n) {}
+
+  const std::string &getName() const { return name; }
 
   /**
    * @brief Get the number of inputs for the layer
@@ -279,6 +283,9 @@ public:
       }
     }
 
+    if (name.empty())
+      return false;
+
     return true;
   }
 
@@ -292,6 +299,7 @@ private:
                      variables) */
 
   unsigned int num_outputs; /**< number of outputs for the layer */
+  std::string name;         /**< name of the layer */
 };
 
 /**

@@ -27,8 +27,9 @@ void DropOutLayer::finalize(InitLayerContext &context) {
 
   mask_idx.reserve(input_dims.size());
   for (auto &t : input_dims) {
-    mask_idx.push_back(context.requestTensor(
-      t, "DropoutMask", Tensor::Initializer::NONE, false, ITERATION_LIFESPAN));
+    mask_idx.push_back(context.requestTensor(t, context.getName() + ":Mask",
+                                             Tensor::Initializer::NONE, false,
+                                             ITERATION_LIFESPAN));
   }
 }
 

@@ -98,14 +98,14 @@ void Pooling2DLayer::finalize(InitLayerContext &context) {
    * // clang-format on
    */
   if (pooling_type == PoolingType::global_max) {
-    pool_helper_idx = context.requestTensor(in_dim, "Pooling2d::helper_idx",
-                                            Tensor::Initializer::NONE, false,
-                                            ITERATION_LIFESPAN);
+    pool_helper_idx = context.requestTensor(
+      in_dim, context.getName() + ":helper_idx", Tensor::Initializer::NONE,
+      false, ITERATION_LIFESPAN);
     pool_helper_size.resize(in_dim.batch() * in_dim.channel());
   } else {
-    pool_helper_idx = context.requestTensor(out_dim, "Pooling2d::helper_idx",
-                                            Tensor::Initializer::NONE, false,
-                                            ITERATION_LIFESPAN);
+    pool_helper_idx = context.requestTensor(
+      out_dim, context.getName() + ":helper_idx", Tensor::Initializer::NONE,
+      false, ITERATION_LIFESPAN);
   }
 }
 

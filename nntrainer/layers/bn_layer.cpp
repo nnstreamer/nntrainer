@@ -60,22 +60,22 @@ void BatchNormalizationLayer::finalize(InitLayerContext &context) {
       axes_to_reduce.push_back(i);
   }
 
-  wt_idx[BNParams::mu] = context.requestWeight(dim, initializers[BNParams::mu],
-                                               WeightRegularizer::NONE, 1.0f,
-                                               "BN::moving_mean", false);
+  wt_idx[BNParams::mu] = context.requestWeight(
+    dim, initializers[BNParams::mu], WeightRegularizer::NONE, 1.0f,
+    context.getName() + ":moving_mean", false);
   wt_idx[BNParams::var] = context.requestWeight(
     dim, initializers[BNParams::var], WeightRegularizer::NONE, 1.0f,
     "BN::moving_variance", false);
-  wt_idx[BNParams::gamma] =
-    context.requestWeight(dim, initializers[BNParams::gamma],
-                          WeightRegularizer::NONE, 1.0f, "BN::gamma", true);
-  wt_idx[BNParams::beta] =
-    context.requestWeight(dim, initializers[BNParams::beta],
-                          WeightRegularizer::NONE, 1.0f, "BN::beta", true);
+  wt_idx[BNParams::gamma] = context.requestWeight(
+    dim, initializers[BNParams::gamma], WeightRegularizer::NONE, 1.0f,
+    context.getName() + ":gamma", true);
+  wt_idx[BNParams::beta] = context.requestWeight(
+    dim, initializers[BNParams::beta], WeightRegularizer::NONE, 1.0f,
+    context.getName() + ":beta", true);
 
   wt_idx[BNParams::deviation] =
-    context.requestTensor(in_dim, "BN::deviation", Tensor::Initializer::NONE,
-                          false, ITERATION_LIFESPAN);
+    context.requestTensor(in_dim, context.getName() + ":deviation",
+                          Tensor::Initializer::NONE, false, ITERATION_LIFESPAN);
 }
 
 void BatchNormalizationLayer::setProperty(
