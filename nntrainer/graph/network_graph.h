@@ -38,7 +38,11 @@ public:
   /**
    * @brief     Constructor of NeuralNetwork Graph Class
    */
-  NetworkGraph() : graph(), skip_non_trainable_layers(0), compiled(false) {}
+  NetworkGraph() :
+    tensor_manager(std::make_shared<Manager>()),
+    graph(),
+    skip_non_trainable_layers(0),
+    compiled(false) {}
 
   /**
    * @brief     Compile the graph
@@ -92,7 +96,7 @@ public:
    * @brief     reset the graph
    */
   void reset() {
-
+    tensor_manager->reset();
     graph.reset();
     skip_non_trainable_layers = 0;
   }
@@ -214,9 +218,8 @@ public:
 
   /**
    * @brief     Optimize the graph memory utilization for in-place operations
-   * @param     manager Memory manager
    */
-  void inPlaceOptimize(Manager &manager);
+  void inPlaceOptimize();
 
   /**
    * @brief     Copy the graph
@@ -230,12 +233,9 @@ public:
   }
 
   /**
-   * @brief initialize network graph, with given manager
-   * @note this is taken from neuralnet, This might need some changes
-   *
-   * @param manager manager to allocate tensors
+   * @brief initialize network graph
    */
-  int initialize(std::shared_ptr<Manager> manager);
+  int initialize();
 
   /**
    * @brief Create run layer context from the given init layer context
@@ -248,9 +248,97 @@ public:
                    const std::shared_ptr<LayerNode> &lnode,
                    const std::vector<Var_Grad *> &inputs);
 
+  /** Interface for manager */
+
+  /**
+   * @brief Enable gradient memory sharing based optimization
+   * @param opt True to enable, else false
+   */
+  void setGradientMemoryOptimization(bool opt) {
+    tensor_manager->setGradientMemoryOptimization(opt);
+  }
+
+  /**
+   * @brief Enable derivative memory sharing based optimization
+   * @param opt True to enable, else false
+   */
+  void setDerivativeMemoryOptimization(bool opt) {
+    tensor_manager->setDerivativeMemoryOptimization(opt);
+  }
+
+  /**
+   * @brief Enable derivative memory sharing based optimization
+   * @param opt True to enable, else false
+   */
+  void setInPlaceActivationOptimization(bool opt) {
+    tensor_manager->setInPlaceActivationOptimization(opt);
+  }
+
+  /**
+   * @brief Enable inout memory sharing based optimization for inference
+   * @param opt True to enable, else false
+   */
+  void setInferenceInOutMemoryOptimization(bool opt) {
+    tensor_manager->setInferenceInOutMemoryOptimization(opt);
+  }
+
+  /**
+   * @brief Allocate and initialize the weight variable
+   */
+  void initializeWeights() { tensor_manager->initializeWeights(); }
+
+  /**
+   * @brief Initialize the inputs/outputs/derivatives/gradients for the layers
+   * @param[in] training If true, initialize derivates/gradients, else, do not.
+   */
+  void initializeTensors(bool training) {
+    tensor_manager->initializeTensors(training);
+  }
+
+  /**
+   * @brief Allocate memory for all the managed tensors
+   */
+  void allocateTensors() { tensor_manager->allocateTensors(); }
+
+  /**
+   * @brief Deallocate memory for all the managed tensors
+   */
+  void deallocateTensors(bool dealloc_weights = false) {
+    tensor_manager->deallocateTensors(dealloc_weights);
+  }
+
+  /**
+   * @brief Allocate memory for all the managed weights
+   */
+  void allocateWeights() { tensor_manager->allocateWeights(); }
+
+  /**
+   * @brief Deallocate memory for all the weights
+   */
+  void deallocateWeights() { tensor_manager->deallocateWeights(); }
+
+  /**
+   * @brief     Create optimizer variable for every weights
+   *
+   * @param cb  Call back function which will return vector of dimension
+   * @param request_only_trainable true when only request trainable weight
+   */
+  void requestOptimizerVariable(
+    std::function<std::vector<TensorDim>(const TensorDim &)> cb,
+    bool request_only_trainable = true) {
+    for (auto const &w : tensor_manager->getWeights()) {
+      const TensorDim &dim = w->getDim();
+      std::vector<TensorDim> dims = cb(dim);
+      for (auto &dim : dims) {
+        w->addOptimizerVariable(dim);
+      }
+    }
+  }
+
 private:
   std::map<std::string, std::string> sub_in_out; /** This is map to identify
                    input and output layer name of subgraph */
+  std::shared_ptr<Manager> tensor_manager;       /**< tensors manager */
 
   GraphCore graph; /** core graph object */
   unsigned int

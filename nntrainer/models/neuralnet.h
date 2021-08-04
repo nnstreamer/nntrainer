@@ -35,7 +35,6 @@
 #include <app_context.h>
 #include <dynamic_training_optimization.h>
 #include <layer_node.h>
-#include <manager.h>
 #include <ml-api-common.h>
 #include <network_graph.h>
 #include <optimizer_devel.h>
@@ -97,7 +96,6 @@ public:
     loss_type(std::string()),
     weight_initializer(Tensor::Initializer::NONE),
     net_type(NetType::UNKNOWN),
-    manager(std::make_shared<Manager>()),
     data_buffers({nullptr, nullptr, nullptr}),
     continue_train(false),
     initialized(false),
@@ -454,7 +452,7 @@ public:
    * @note This optimization has no performance overhead.
    */
   void setGradientMemoryOptimization(bool opt) {
-    manager->setGradientMemoryOptimization(opt);
+    model_graph.setGradientMemoryOptimization(opt);
   }
 
   /**
@@ -463,7 +461,7 @@ public:
    * @note This optimization has no performance overhead.
    */
   void setDerivativeMemoryOptimization(bool opt) {
-    manager->setDerivativeMemoryOptimization(opt);
+    model_graph.setDerivativeMemoryOptimization(opt);
     if (opt == false)
       setInPlaceLayerOptimization(false);
   }
@@ -475,7 +473,7 @@ public:
    */
   void setInPlaceLayerOptimization(bool opt) {
     in_place_optimization = opt;
-    manager->setInPlaceActivationOptimization(opt);
+    model_graph.setInPlaceActivationOptimization(opt);
   }
 
   /**
@@ -484,7 +482,7 @@ public:
    * @note This optimization has no performance overhead.
    */
   void setInferenceInOutMemoryOptimization(bool opt) {
-    manager->setInferenceInOutMemoryOptimization(opt);
+    model_graph.setInferenceInOutMemoryOptimization(opt);
   }
 
   /**
@@ -546,8 +544,6 @@ private:
                     layer, do not use this directly */
 
   NetType net_type; /**< Network Type */
-
-  std::shared_ptr<Manager> manager; /**< nntrainer manager */
 
   std::array<std::shared_ptr<DataBuffer>, 3>
     data_buffers; /**< Data Buffers to get Input */
@@ -620,7 +616,6 @@ private:
     swap(lhs.model_graph, rhs.model_graph);
     swap(lhs.compiled, rhs.compiled);
     swap(lhs.loadedFromConfig, rhs.loadedFromConfig);
-    swap(lhs.manager, rhs.manager);
   }
 
   /**

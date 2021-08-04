@@ -170,7 +170,7 @@ int NeuralNetwork::initialize() {
 
   setBatchSize();
 
-  status = model_graph.initialize(manager);
+  status = model_graph.initialize();
   NN_RETURN_STATUS();
 
   // initialize optimizer and related variables
@@ -180,15 +180,15 @@ int NeuralNetwork::initialize() {
       [this](const TensorDim &dim) {
         return opt->getOptimizerVariableDim(dim);
       };
-    manager->requestOptimizerVariable(cb, true);
+    model_graph.requestOptimizerVariable(cb, true);
   }
 
   // Allocate and initialize weights
-  manager->initializeWeights();
-  manager->allocateWeights();
+  model_graph.initializeWeights();
+  model_graph.allocateWeights();
 
   if (in_place_optimization) {
-    model_graph.inPlaceOptimize(*manager);
+    model_graph.inPlaceOptimize();
   }
 
   initialized = true;
@@ -198,10 +198,7 @@ int NeuralNetwork::initialize() {
 /**
  * @brief     free layers
  */
-NeuralNetwork::~NeuralNetwork() {
-  manager.reset();
-  model_graph.reset();
-}
+NeuralNetwork::~NeuralNetwork() { model_graph.reset(); }
 
 void NeuralNetwork::setLabels(sharedConstTensors label) {
   auto fill_label = [&label](auto const &layer_node) {
@@ -457,7 +454,6 @@ void NeuralNetwork::setBatchSize(unsigned int batch) {
   batch_size = batch;
 
   model_graph.setBatchSize(batch);
-  manager->setBatchSize(batch);
 }
 
 bool NeuralNetwork::validateInput(sharedConstTensors X) {
@@ -513,7 +509,7 @@ sharedConstTensors NeuralNetwork::inference(sharedConstTensors X,
      * Note that this does not free the weights for the model.
      * Weights of the model will be freed when the model is destroyed.
      */
-    manager->deallocateTensors(false);
+    model_graph.deallocateTensors(false);
 
   return out;
 }
@@ -547,14 +543,14 @@ int NeuralNetwork::setDataset(const DatasetModeType &mode,
 
 int NeuralNetwork::allocate(bool trainable) {
   // TODO: directly replace this
-  manager->initializeTensors(trainable);
+  model_graph.initializeTensors(trainable);
 
-  manager->allocateTensors();
+  model_graph.allocateTensors();
   return ML_ERROR_NONE;
 }
 
 int NeuralNetwork::deallocate() {
-  manager->deallocateTensors(true);
+  model_graph.deallocateTensors(true);
 
   return ML_ERROR_NONE;
 }
@@ -589,7 +585,7 @@ int NeuralNetwork::train(std::vector<std::string> values) {
    * Note that this does not free the weights for the model.
    * Weights of the model will be freed when the model is destroyed.
    */
-  manager->deallocateTensors(false);
+  model_graph.deallocateTensors(false);
   return status;
 }
 

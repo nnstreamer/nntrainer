@@ -411,6 +411,7 @@ void NetworkGraph::setBatchSize(unsigned int batch_size) {
   for (auto iter = cbegin(); iter != cend(); iter++) {
     (*iter)->setBatch(batch_size);
   }
+  tensor_manager->setBatchSize(batch_size);
 }
 
 sharedConstTensors NetworkGraph::forwarding(bool training) const {
@@ -548,7 +549,7 @@ void NetworkGraph::addLayer(std::shared_ptr<LayerNode> layer) {
   graph.addNode(layer);
 }
 
-void NetworkGraph::inPlaceOptimize(Manager &manager) {
+void NetworkGraph::inPlaceOptimize() {
   // TODO: update this after initial verification, this is deprecated for now.
   return;
 
@@ -645,7 +646,7 @@ void NetworkGraph::inPlaceOptimize(Manager &manager) {
 }
 
 std::vector<Var_Grad *>
-NetworkGraph::updateRunContext(std::shared_ptr<Manager> &manager,
+NetworkGraph::updateRunContext(std::shared_ptr<Manager> &tensor_manager,
                                const std::shared_ptr<LayerNode> &lnode,
                                const std::vector<Var_Grad *> &prev_inputs) {
   /**
@@ -656,10 +657,11 @@ NetworkGraph::updateRunContext(std::shared_ptr<Manager> &manager,
   const InitLayerContext &init_context = lnode->getInitContext();
   std::vector<Var_Grad *> inputs = prev_inputs;
   if (inputs.empty())
-    inputs = manager->requestInputs(gnode, init_context.getInputDimensions());
+    inputs =
+      tensor_manager->requestInputs(gnode, init_context.getInputDimensions());
 
   const std::vector<Var_Grad *> &outputs =
-    manager->requestOutputs(gnode, init_context.getOutputDimensions());
+    tensor_manager->requestOutputs(gnode, init_context.getOutputDimensions());
 
   /**
    * @note must use existing properties like name/trainable of run_context to
@@ -669,13 +671,14 @@ NetworkGraph::updateRunContext(std::shared_ptr<Manager> &manager,
   lnode->updateRunContext(RunLayerContext(
     run_context.getName(), run_context.getLoss(),
     // TODO: update weights spec for trainable based on layer trainable prop
-    manager->requestWeights(gnode, init_context.getWeightsSpec()), inputs,
-    outputs, manager->requestTensors(gnode, init_context.getTensorsSpec())));
+    tensor_manager->requestWeights(gnode, init_context.getWeightsSpec()),
+    inputs, outputs,
+    tensor_manager->requestTensors(gnode, init_context.getTensorsSpec())));
 
   return outputs;
 }
 
-int NetworkGraph::initialize(std::shared_ptr<Manager> manager) {
+int NetworkGraph::initialize() {
   int status = ML_ERROR_NONE;
   /** this contains the map from name to input tensors for each node */
   std::unordered_map<std::string, std::vector<Var_Grad *>> input_map;
@@ -728,7 +731,7 @@ int NetworkGraph::initialize(std::shared_ptr<Manager> manager) {
       inputs = input_map.at(lnode->getName());
     }
     const std::vector<Var_Grad *> &outputs =
-      updateRunContext(manager, lnode, inputs);
+      updateRunContext(tensor_manager, lnode, inputs);
 
     /** no need to update input_map for the last layer */
     if (idx == graph.size() - 1)

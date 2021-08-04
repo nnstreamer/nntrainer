@@ -853,38 +853,20 @@ Manager::requestOutputs(const GraphNode &node,
   return requestTensors<Var_Grad>(node, outputs_spec, outputs_v2);
 }
 
-void Manager::requestOptimizerVariable(
-  std::function<std::vector<TensorDim>(const TensorDim &)> cb,
-  bool request_only_trainable) {
+std::vector<Weight *> Manager::getWeights() {
+  std::vector<Weight *> all_weights;
+
   if (LAYER_V2) {
     for (auto &weight_v2 : weights_v2) {
       for (auto &w : weight_v2) {
-        if (request_only_trainable && !w->needsGradient()) {
-          continue;
-        }
-
-        std::vector<TensorDim> dims = cb(w->getDim());
-        for (auto &dim : dims) {
-          w->addOptimizerVariable(dim);
-        }
+        all_weights.push_back(w.get());
       }
     }
   } else {
-    for (auto &weight : weights) {
-      for (auto &rw_w : weight) {
-        auto &w = rw_w.get();
-        if (request_only_trainable && !w.needsGradient()) {
-          continue;
-        }
-
-        const TensorDim &dim = w.getDim();
-        std::vector<TensorDim> dims = cb(dim);
-        for (auto &dim : dims) {
-          w.addOptimizerVariable(dim);
-        }
-      }
-    }
+    throw std::runtime_error("Using deprecated code. Upgrade to LayerV2");
   }
+
+  return all_weights;
 }
 
 } // namespace nntrainer

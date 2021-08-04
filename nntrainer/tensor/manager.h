@@ -206,14 +206,11 @@ public:
                  const std::vector<TensorDim> &outputs_spec);
 
   /**
-   * @brief     Create optimizer variable for every weights
+   * @brief     Get all the weights
    *
-   * @param cb  Call back function which will return vector of dimension
-   * @param request_only_trainable true when only request trainable weight
+   * @return    return all the weights
    */
-  void requestOptimizerVariable(
-    std::function<std::vector<TensorDim>(const TensorDim &)> cb,
-    bool request_only_trainable = true);
+  std::vector<Weight *> getWeights();
 
   /**
    * @brief     Get weights tracked with nntrainer
