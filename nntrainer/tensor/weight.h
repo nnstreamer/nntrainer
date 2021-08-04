@@ -24,7 +24,7 @@ namespace nntrainer {
 
 /**
  * @class   Weight
- * @brief   Weight with gradient, and its corresponding need_gradient property
+ * @brief   Weight extends over Var_Grad with regularization & optimizer updates
  */
 class Weight : public Var_Grad {
 public:

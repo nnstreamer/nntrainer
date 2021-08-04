@@ -23,6 +23,7 @@
 
 #include <functional>
 #include <memory>
+#include <unordered_map>
 #include <vector>
 
 #include <graph_node.h>
@@ -424,7 +425,11 @@ public:
   void deallocateWeights();
 
 private:
-  // TODO: ensure that names of these weights are unique
+  // std::vector<std::unique_ptr<Weight>> weights; /**< weights for the network
+  // */
+  /** @todo: split this based on the lifespan later */
+  // std::vector<std::unique_ptr<Var_Grad>> tensors; /**< inputs/outputs/tensors
+  // for the network */
 
   std::vector<std::vector<std::unique_ptr<Weight>>>
     weights_v2; /**< weights for the layers */
@@ -432,9 +437,13 @@ private:
     inputs_v2; /**< inputs for the layers */
   std::vector<std::vector<std::unique_ptr<Var_Grad>>>
     outputs_v2; /**< outputs for the layers */
-  /** NOTE: these tensors maybe split based on their lifespan later */
   std::vector<std::vector<std::unique_ptr<Var_Grad>>>
     tensors_v2; /**< extra tensors required by the layers */
+
+  std::unordered_map<std::string, std::pair<unsigned int, unsigned int>>
+    tensor_exec_loc; /**< stores the order/location at which a given tensor is
+                        going to be executed when the network is forwarded and
+                        abackwarded */
 
   /**< Weights of all the layer in the model to be managed */
   std::vector<std::vector<std::reference_wrapper<Weight>>> weights;
@@ -569,7 +578,7 @@ private:
    * @param layer_objs_list list to store the created tensors
    */
   template <typename T>
-  static std::vector<T *> requestTensors(
+  std::vector<T *> requestTensors(
     const GraphNode &node, const std::vector<typename T::Spec> &tensors_spec,
     std::vector<std::vector<std::unique_ptr<T>>> &layer_objs_list) {
     std::vector<T *> ret;
@@ -578,6 +587,17 @@ private:
 
     for (auto const &ts : std::as_const(tensors_spec)) {
       tensors_list.emplace_back(std::make_unique<T>(ts));
+      auto const &ts_name = tensors_list.back()->getName();
+      /**
+       * @todo maybe requesting tensor with same name should mean reusing the
+       * tensor than giving the error
+       */
+      if (tensor_exec_loc.find(ts_name) != tensor_exec_loc.end())
+        throw std::invalid_argument("Requesting tensor " + ts_name +
+                                    " with same name");
+      /**
+       * @todo set the exec_loc based on the set lifespan */
+      tensor_exec_loc[ts_name] = node.getExecLoc();
     }
 
     std::transform(tensors_list.begin(), tensors_list.end(),
