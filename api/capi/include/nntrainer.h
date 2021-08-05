@@ -79,13 +79,15 @@ typedef void *ml_train_dataset_h;
 /**
  * @brief Constructs the neural network model.
  * @details Use this function to create neural network model.
+ * Privilege is needed if @a model contains @c save_path pointing to either
+ * media storage or external storage.
  * @since_tizen 6.0
  * @remarks If the function succeeds, @a model must be released using
  * ml_train_model_destroy().
- * @remarks %http://tizen.org/privilege/mediastorage is needed if @a model is
- * saved to media storage.
- * @remarks %http://tizen.org/privilege/externalstorage is needed if @a model is
- * saved to external storage.
+ * @privlevel
+ * @privilege %http://tizen.org/privilege/mediastorage
+ * @privilege %http://tizen.org/privilege/externalstorage
+ *
  * @param[out] model The NNTrainer model handle from the given description.
  * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
@@ -235,7 +237,7 @@ int ml_train_model_set_dataset(ml_train_model_h model,
  * @remarks @a model must be compiled before calling this function.
  * @remarks The returned @a info is newly created so it does not reflect future
  * changes in the model.
- * @remarks On returning error, info must shall not be destroyed with @c
+ * @remarks On returning error, info must not be destroyed with @c
  * ml_tensors_info_destory()
  *
  * @param[in] model The NNTrainer model handle.
@@ -257,7 +259,7 @@ int ml_train_model_get_input_tensors_info(ml_train_model_h model,
  * @remarks @a model must be compiled before calling this function.
  * @remarks the returned @a info is newly created so it does not reflect future
  * changes in the model
- * @remarks On returning error, info must shall not be destroyed with @c
+ * @remarks On returning error, info must not be destroyed with @c
  * ml_tensors_info_destory()
  *
  * @param[in] model The NNTrainer model handle.
@@ -451,11 +453,11 @@ int ml_train_dataset_add_generator(ml_train_dataset_h dataset,
 /**
  * @brief Adds data file to @a dataset.
  * @details Use this function to add a data file from where data is retrieved.
+ * Privilege is needed if @a dataset is saved to either media storage or
+ * external storage.
  * @since_tizen 6.5
- * @previliege %http://tizen.org/privilege/mediastorage is needed if @a dataset
- * is saved to media storage.
- * @previliege %http://tizen.org/privilege/externalstorage is needed if @a
- * dataset is saved to external storage.
+ * @privilege %http://tizen.org/privilege/mediastorage
+ * @privilege %http://tizen.org/privilege/externalstorage
  * @param[in] dataset The NNTrainer dataset handle.
  * @param[in] usage The phase where this file should be used.
  * @param[in] file file path.
@@ -540,7 +542,7 @@ int ml_train_dataset_set_property_for_usage(ml_train_dataset_h dataset,
 
 /**
  * @brief Saves the model.
- * @details Use this function to save the current model. @a format.
+ * @details Use this function to save the current model. @a format
  * describes various formats in which various selections of the
  * parameters of the models can be saved. Some formats may save
  * parameters required for training. Some other formats may save model
