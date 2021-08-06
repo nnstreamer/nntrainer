@@ -87,8 +87,8 @@ typedef void *ml_train_dataset_h;
  * @remarks If you want to access only internal storage by using this function,
  * you should add privilege %http://tizen.org/privilege/mediastorage. Or, if you
  * want to access only external storage by using this function, you should add
- * privilege %http://tizen.org/privilege/externalstorage. If you can access both
- * storage, you must add all privilege
+ * privilege %http://tizen.org/privilege/externalstorage. If you want to access
+ * both storage, you must add all the privileges.
  *
  * @param[out] model The NNTrainer model handle from the given description.
  * @return @c 0 on success. Otherwise a negative error value.
@@ -240,7 +240,7 @@ int ml_train_model_set_dataset(ml_train_model_h model,
  * @remarks @a model must be compiled before calling this function.
  * @remarks The returned @a info is newly created so it does not reflect future
  * changes in the model.
- * @remarks On returning error, info must not be destroyed with @c
+ * @remarks On returning error, info must not be destroyed with
  * ml_tensors_info_destory()
  *
  * @param[in] model The NNTrainer model handle.
@@ -262,7 +262,7 @@ int ml_train_model_get_input_tensors_info(ml_train_model_h model,
  * @remarks @a model must be compiled before calling this function.
  * @remarks the returned @a info is newly created so it does not reflect future
  * changes in the model
- * @remarks On returning error, info must not be destroyed with @c
+ * @remarks On returning error, info must not be destroyed with
  * ml_tensors_info_destory()
  *
  * @param[in] model The NNTrainer model handle.
@@ -281,7 +281,7 @@ int ml_train_model_get_output_tensors_info(ml_train_model_h model,
  * @details Use this function to create neural network layer.
  * @since_tizen 6.0
  * @remarks If the function succeeds, @a layer must be released using
- * @c ml_train_layer_destroy(), if not added to a model. If added to a model, @a
+ * ml_train_layer_destroy(), if not added to a model. If added to a model, @a
  * layer is available until the model is released.
  * @param[out] layer The NNTrainer layer handle from the given description.
  * @param[in]  type The NNTrainer layer type
@@ -462,6 +462,7 @@ int ml_train_dataset_add_generator(ml_train_dataset_h dataset,
  * want to access only external storage by using this function, you should add
  * privilege %http://tizen.org/privilege/externalstorage. If you can access both
  * storage, you must add all privilege
+ *
  * @param[in] dataset The NNTrainer dataset handle.
  * @param[in] mode The phase where this file should be used.
  * @param[in] file file path.
@@ -516,7 +517,7 @@ int ml_train_dataset_destroy(ml_train_dataset_h dataset);
  * @details Use this function to set dataset property.
  * @since_tizen 6.0
  * @remarks the same property is applied over train, valid, testsets that are
- * added to the @a dataset, it is recommened to use @c
+ * added to the @a dataset, it is recommened to use
  * ml_train_dataset_set_property_for_mode() instead.
  * @param[in] dataset The NNTrainer dataset handle.
  * @param[in]  ... Property values with NULL for termination.
@@ -552,6 +553,11 @@ int ml_train_dataset_set_property_for_mode(ml_train_dataset_h dataset,
  * configurations. Unless stated otherwise, ml_train_model_compile() has to
  * be called upon the @a model before calling this function.
  * @since_tizen 6.5
+ * @remarks If you want to access only internal storage by using this function,
+ * you should add privilege %http://tizen.org/privilege/mediastorage. Or, if you
+ * want to access only external storage by using this function, you should add
+ * privilege %http://tizen.org/privilege/externalstorage. If you want to access
+ * both storage, you must add all the privileges.
  *
  * @param[in] model The NNTrainer model handle to save.
  * @param[in] file_path File path to save the file.
@@ -559,6 +565,7 @@ int ml_train_dataset_set_property_for_mode(ml_train_dataset_h dataset,
  * save.
  * @return @c 0 on success, Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_PERMISSION_DENIED Permission denied.
  * @retval #ML_ERROR_INVALID_PARAMETER The given @a file_path is
  * invalid or taken, or @a model is not compiled.
  * @see #ml_train_model_format_e to check which part of the model is
@@ -576,7 +583,11 @@ int ml_train_model_save(ml_train_model_h model, const char *file_path,
  * configurations. Unless stated otherwise, ml_train_model_compile() has to
  * be called upon the @a model before calling this function.
  * @since_tizen 6.5
- *
+ * @remarks If you want to access only internal storage by using this function,
+ * you should add privilege %http://tizen.org/privilege/mediastorage. Or, if you
+ * want to access only external storage by using this function, you should add
+ * privilege %http://tizen.org/privilege/externalstorage. If you want to access
+ * both storage, you must add all the privileges.
  *
  * @param[in] model The NNTrainer model handle to load.
  * @param[in] file_path File path to load the file.
@@ -584,6 +595,7 @@ int ml_train_model_save(ml_train_model_h model, const char *file_path,
  * load.
  * @return @c 0 on success, Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_PERMISSION_DENIED Permission denied.
  * @retval #ML_ERROR_INVALID_PARAMETER The given @a file_path is
  * invalid or @a model is not in valid state to load.
  * @see #ml_train_model_format_e to check which part of the model is
