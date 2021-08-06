@@ -235,7 +235,7 @@ int ml_train_model_set_dataset(ml_train_model_h model,
 /**
  * @brief Gets input tensors information of the model.
  * @details Use this function to get input tensors information of the model.
- * destroy @a info with @c ml_tensors_info_destroy() after use.
+ * destroy @a info with ml_tensors_info_destroy() after use.
  * @since_tizen 6.5
  * @remarks @a model must be compiled before calling this function.
  * @remarks The returned @a info is newly created so it does not reflect future
@@ -392,7 +392,7 @@ int ml_train_optimizer_destroy(ml_train_optimizer_h optimizer);
 int ml_train_optimizer_set_property(ml_train_optimizer_h optimizer, ...);
 
 /**
- * @deprecated Deprecated since 6.5. Use ml_train_dataset_create() instead
+ * @deprecated Deprecated since 6.5. Use ml_train_dataset_create() instead.
  * @brief Creates a dataset with generators to feed to a neural network.
  * @details Use this function to create a neural network dataset using
  * generators. The generators will provide data representing a single input
@@ -442,7 +442,6 @@ int ml_train_dataset_create(ml_train_dataset_h *dataset);
  * @since_tizen 6.5
  * @param[in] dataset The NNTrainer dataset handle.
  * @param[in] mode The phase where this generator should be used.
- * @param[in] usage The phase where this generator should be used.
  * @param[in] cb Callback to be used for the generator.
  * @param[in] user_data user_data to be fed when @a cb is being called.
  * @return @c 0 on success. Otherwise a negative error value.
@@ -476,7 +475,7 @@ int ml_train_dataset_add_file(ml_train_dataset_h dataset,
                               ml_train_dataset_mode_e mode, const char *file);
 
 /**
- * @deprecated Deprecated since 6.5. Use ml_train_dataset_create() instead
+ * @deprecated Deprecated since 6.5. Use ml_train_dataset_create() instead.
  * @brief Creates a dataset with files to feed to a neural network.
  * @details Use this function to create a neural network dataset using
  * files.
@@ -512,12 +511,12 @@ int ml_train_dataset_destroy(ml_train_dataset_h dataset);
 
 /**
  * @deprecated Deprecated since 6.5. Use
- * @c ml_train_dataset_set_property_for_mode() instead
+ * ml_train_dataset_set_property_for_mode() instead.
  * @brief Sets the neural network dataset property.
  * @details Use this function to set dataset property.
  * @since_tizen 6.0
  * @remarks the same property is applied over train, valid, testsets that are
- * added to the @a dataset, it is recommened to use @a
+ * added to the @a dataset, it is recommened to use @c
  * ml_train_dataset_set_property_for_mode() instead.
  * @param[in] dataset The NNTrainer dataset handle.
  * @param[in]  ... Property values with NULL for termination.
@@ -550,7 +549,7 @@ int ml_train_dataset_set_property_for_mode(ml_train_dataset_h dataset,
  * describes various formats in which various selections of the
  * parameters of the models can be saved. Some formats may save
  * parameters required for training. Some other formats may save model
- * configurations. Unless stated otherwise, @c ml_train_model_compile() has to
+ * configurations. Unless stated otherwise, ml_train_model_compile() has to
  * be called upon the @a model before calling this function.
  * @since_tizen 6.5
  *
@@ -562,7 +561,7 @@ int ml_train_dataset_set_property_for_mode(ml_train_dataset_h dataset,
  * @retval #ML_ERROR_NONE Successful.
  * @retval #ML_ERROR_INVALID_PARAMETER The given @a file_path is
  * invalid or taken, or @a model is not compiled.
- * @see @c ml_train_model_format_e to check which part of the model is
+ * @see #ml_train_model_format_e to check which part of the model is
  * saved.
  */
 int ml_train_model_save(ml_train_model_h model, const char *file_path,
@@ -574,7 +573,7 @@ int ml_train_model_save(ml_train_model_h model, const char *file_path,
  * describes various formats in which various selections of the
  * parameters of the models can be loaded. Some formats may load
  * parameters required for training. Some other formats may load model
- * configurations. Unless stated otherwise, @c ml_train_model_compile() has to
+ * configurations. Unless stated otherwise, ml_train_model_compile() has to
  * be called upon the @a model before calling this function.
  * @since_tizen 6.5
  *
@@ -587,7 +586,7 @@ int ml_train_model_save(ml_train_model_h model, const char *file_path,
  * @retval #ML_ERROR_NONE Successful.
  * @retval #ML_ERROR_INVALID_PARAMETER The given @a file_path is
  * invalid or @a model is not in valid state to load.
- * @see @c ml_train_model_format_e to check which part of the model is
+ * @see #ml_train_model_format_e to check which part of the model is
  * loaded.
  */
 int ml_train_model_load(ml_train_model_h model, const char *file_path,
