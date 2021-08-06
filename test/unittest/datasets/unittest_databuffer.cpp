@@ -52,7 +52,8 @@ TEST(DataBuffer, fetch_p) {
       EXPECT_EQ(labels.size(), 1u);
       EXPECT_EQ(labels[0].getDim(), nntrainer::TensorDim({3, 1, 1, 1}));
     }
-    auto [last, inputs, labels] = *db.fetch();
+    bool last;
+    std::tie(last, std::ignore, std::ignore) = *db.fetch();
     EXPECT_TRUE(last);
 
     future_bq.get();
@@ -66,7 +67,8 @@ TEST(DataBuffer, fetch_p) {
 
   { /// remainder is over batchsize so return last
     auto future_bq = db.startFetchWorker({{11, 1, 1, 2}}, {{11, 1, 1, 1}});
-    auto [last, inputs, labels] = *db.fetch();
+    bool last;
+    std::tie(last, std::ignore, std::ignore) = *db.fetch();
     EXPECT_TRUE(last);
     future_bq.get();
   }
