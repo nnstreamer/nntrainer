@@ -58,8 +58,7 @@ RawFileDataProducer::size(const std::vector<TensorDim> &input_dims,
   //   << " Given file does not align with the given sample size, sample size: "
   //   << sample_size << " file_size: " << file_size;
 
-  return path_prop.file_size() /
-         (sample_size * RawFileDataProducer::pixel_size);
+  return file_size / (sample_size * RawFileDataProducer::pixel_size);
 }
 
 void RawFileDataProducer::setProperty(

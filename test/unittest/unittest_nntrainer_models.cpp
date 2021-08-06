@@ -593,15 +593,15 @@ TEST_P(nntrainerModelTest, model_test_validate) {
 /**
  * @brief helper function to make model testcase
  *
- * @param const char * name of the ini and test. the tester generates name.ini
- * and try to read name.info
  * @param nntrainer::IniWrapper::Sections ini data
  * @param nntrainer::TensorDim label dimension
  * @param int Iteration
  */
 auto mkModelTc(const nntrainer::IniWrapper &ini, const std::string &label_dim,
                const unsigned int iteration) {
-  return std::make_tuple(ini, nntrainer::TensorDim(label_dim), iteration);
+  return std::tuple<const nntrainer::IniWrapper, const nntrainer::TensorDim,
+                    const unsigned int>(ini, nntrainer::TensorDim(label_dim),
+                                        iteration);
 }
 
 /********************************************************
@@ -1289,7 +1289,7 @@ INI multi_gru_return_sequence_with_batch(
 INI multiple_output_model(
   "multiple_output_model",
   {
-    nn_base + "loss=mse | batch_size = 3",
+    nn_base + "loss=mse | batch_size=3",
     sgd_base + "learning_rate = 0.1",
     I("x") + input_base + "input_shape = 2:3:5",
     I("multiout_a1") + conv_base
@@ -1304,79 +1304,81 @@ INI multiple_output_model(
       + "input_layers=x",
     I("multiout_b2", "type=flatten"),
     I("multiout_b3") + fc_base + "unit=10",
-    I("multiout_b4") + softmax_base,
+    I("multiout_b4") + softmax_base
   }
 );
 
 INSTANTIATE_TEST_CASE_P(
-  nntrainerModelAutoTests, nntrainerModelTest, ::testing::Values(
-    mkModelTc(fc_sigmoid_mse, "3:1:1:10", 1),
-    mkModelTc(fc_sigmoid_mse__1, "3:1:1:10", 1),
-    mkModelTc(fc_sigmoid_cross, "3:1:1:10", 1),
-    mkModelTc(fc_sigmoid_cross__1, "3:1:1:10", 1),
-    mkModelTc(fc_relu_mse, "3:1:1:2", 1),
-    mkModelTc(fc_relu_mse__1, "3:1:1:2", 1),
-    mkModelTc(fc_bn_sigmoid_cross, "3:1:1:10", 10),
-    mkModelTc(fc_bn_sigmoid_mse, "3:1:1:10", 10),
+  nntrainerModelAutoTests, nntrainerModelTest, ::testing::ValuesIn(
+    {
+      mkModelTc(fc_sigmoid_mse, "3:1:1:10", 1),
+      mkModelTc(fc_sigmoid_mse__1, "3:1:1:10", 1),
+      mkModelTc(fc_sigmoid_cross, "3:1:1:10", 1),
+      mkModelTc(fc_sigmoid_cross__1, "3:1:1:10", 1),
+      mkModelTc(fc_relu_mse, "3:1:1:2", 1),
+      mkModelTc(fc_relu_mse__1, "3:1:1:2", 1),
+      mkModelTc(fc_bn_sigmoid_cross, "3:1:1:10", 10),
+      mkModelTc(fc_bn_sigmoid_mse, "3:1:1:10", 10),
 
-    /**< single conv2d layer test */
-    mkModelTc(conv_1x1, "3:1:1:10", 10),
-    mkModelTc(conv_input_matches_kernel, "3:1:1:10", 10),
-    mkModelTc(conv_basic, "3:1:1:10", 10),
-    mkModelTc(conv_same_padding, "3:1:1:10", 10),
-    mkModelTc(conv_multi_stride, "3:1:1:10", 10),
-    mkModelTc(conv_uneven_strides, "3:1:1:10", 10),
-    mkModelTc(conv_uneven_strides2, "3:1:1:10", 10),
-    mkModelTc(conv_uneven_strides3, "3:1:1:10", 10),
-    mkModelTc(conv_bn, "3:1:1:10", 10),
-    mkModelTc(conv_same_padding_multi_stride, "3:1:1:10", 10),
-    mkModelTc(conv_no_loss_validate, "3:1:1:10", 1),
+      /**< single conv2d layer test */
+      mkModelTc(conv_1x1, "3:1:1:10", 10),
+      mkModelTc(conv_input_matches_kernel, "3:1:1:10", 10),
+      mkModelTc(conv_basic, "3:1:1:10", 10),
+      mkModelTc(conv_same_padding, "3:1:1:10", 10),
+      mkModelTc(conv_multi_stride, "3:1:1:10", 10),
+      mkModelTc(conv_uneven_strides, "3:1:1:10", 10),
+      mkModelTc(conv_uneven_strides2, "3:1:1:10", 10),
+      mkModelTc(conv_uneven_strides3, "3:1:1:10", 10),
+      mkModelTc(conv_bn, "3:1:1:10", 10),
+      mkModelTc(conv_same_padding_multi_stride, "3:1:1:10", 10),
+      mkModelTc(conv_no_loss_validate, "3:1:1:10", 1),
 
-    /**< single pooling layer test */
-    mkModelTc(pooling_max_same_padding, "3:1:1:10", 10),
-    mkModelTc(pooling_max_same_padding_multi_stride, "3:1:1:10", 10),
-    mkModelTc(pooling_max_valid_padding, "3:1:1:10", 10),
-    mkModelTc(pooling_avg_same_padding, "3:1:1:10", 10),
-    mkModelTc(pooling_avg_same_padding_multi_stride, "3:1:1:10", 10),
-    mkModelTc(pooling_avg_valid_padding, "3:1:1:10", 10),
-    mkModelTc(pooling_global_avg, "3:1:1:10", 10),
-    mkModelTc(pooling_global_max, "3:1:1:10", 10),
+      /**< single pooling layer test */
+      mkModelTc(pooling_max_same_padding, "3:1:1:10", 10),
+      mkModelTc(pooling_max_same_padding_multi_stride, "3:1:1:10", 10),
+      mkModelTc(pooling_max_valid_padding, "3:1:1:10", 10),
+      mkModelTc(pooling_avg_same_padding, "3:1:1:10", 10),
+      mkModelTc(pooling_avg_same_padding_multi_stride, "3:1:1:10", 10),
+      mkModelTc(pooling_avg_valid_padding, "3:1:1:10", 10),
+      mkModelTc(pooling_global_avg, "3:1:1:10", 10),
+      mkModelTc(pooling_global_max, "3:1:1:10", 10),
 
-    /**< conv pool combined tests */
-    mkModelTc(mnist_conv_cross, "3:1:1:10", 10),
-    mkModelTc(mnist_conv_cross_one_input, "1:1:1:10", 10),
+      /**< conv pool combined tests */
+      mkModelTc(mnist_conv_cross, "3:1:1:10", 10),
+      mkModelTc(mnist_conv_cross_one_input, "1:1:1:10", 10),
 
-    /**< augmentation layer */
-#if defined(ENABLE_DATA_AUGMENTATION_OPENCV)
-    mkModelTc(preprocess_translate_validate, "3:1:1:10", 10),
-#endif
-    mkModelTc(preprocess_flip_validate, "3:1:1:10", 10),
+      /**< augmentation layer */
+  #if defined(ENABLE_DATA_AUGMENTATION_OPENCV)
+      mkModelTc(preprocess_translate_validate, "3:1:1:10", 10),
+  #endif
+      mkModelTc(preprocess_flip_validate, "3:1:1:10", 10),
 
-    /**< Addition test */
-    mkModelTc(addition_resnet_like, "3:1:1:10", 10),
+      /**< Addition test */
+      mkModelTc(addition_resnet_like, "3:1:1:10", 10),
 
-    /// #1192 time distribution inference bug
-    mkModelTc(fc_softmax_mse_distribute_validate, "3:1:5:3", 1),
-    mkModelTc(fc_softmax_cross_distribute_validate, "3:1:5:3", 1),
-    mkModelTc(fc_sigmoid_cross_distribute_validate, "3:1:5:3", 1),
-    mkModelTc(lstm_basic, "1:1:1:1", 10),
-    mkModelTc(lstm_return_sequence, "1:1:2:1", 10),
-    mkModelTc(lstm_return_sequence_with_batch, "2:1:2:1", 10),
-    mkModelTc(multi_lstm_return_sequence, "1:1:1:1", 10),
-    mkModelTc(multi_lstm_return_sequence_with_batch, "2:1:1:1", 10),
-    mkModelTc(rnn_basic, "1:1:1:1", 10),
-    mkModelTc(rnn_return_sequences, "1:1:2:1", 10),
-    mkModelTc(rnn_return_sequence_with_batch, "2:1:2:1", 10),
-    mkModelTc(multi_rnn_return_sequence, "1:1:1:1", 10),
-    mkModelTc(multi_rnn_return_sequence_with_batch, "2:1:1:1", 10),
-    mkModelTc(gru_basic, "1:1:1:1", 10),
-    mkModelTc(gru_return_sequence, "1:1:2:1", 10),
-    mkModelTc(gru_return_sequence_with_batch, "2:1:2:1", 10),
-    mkModelTc(multi_gru_return_sequence, "1:1:1:1", 10),
-    mkModelTc(multi_gru_return_sequence_with_batch, "2:1:1:1", 10)
+      /// #1192 time distribution inference bug
+      mkModelTc(fc_softmax_mse_distribute_validate, "3:1:5:3", 1),
+      mkModelTc(fc_softmax_cross_distribute_validate, "3:1:5:3", 1),
+      mkModelTc(fc_sigmoid_cross_distribute_validate, "3:1:5:3", 1),
+      mkModelTc(lstm_basic, "1:1:1:1", 10),
+      mkModelTc(lstm_return_sequence, "1:1:2:1", 10),
+      mkModelTc(lstm_return_sequence_with_batch, "2:1:2:1", 10),
+      mkModelTc(multi_lstm_return_sequence, "1:1:1:1", 10),
+      mkModelTc(multi_lstm_return_sequence_with_batch, "2:1:1:1", 10),
+      mkModelTc(rnn_basic, "1:1:1:1", 10),
+      mkModelTc(rnn_return_sequences, "1:1:2:1", 10),
+      mkModelTc(rnn_return_sequence_with_batch, "2:1:2:1", 10),
+      mkModelTc(multi_rnn_return_sequence, "1:1:1:1", 10),
+      mkModelTc(multi_rnn_return_sequence_with_batch, "2:1:1:1", 10),
+      mkModelTc(gru_basic, "1:1:1:1", 10),
+      mkModelTc(gru_return_sequence, "1:1:2:1", 10),
+      mkModelTc(gru_return_sequence_with_batch, "2:1:2:1", 10),
+      mkModelTc(multi_gru_return_sequence, "1:1:1:1", 10),
+      mkModelTc(multi_gru_return_sequence_with_batch, "2:1:1:1", 10),
 
-    /**< multi output test */
-    // mkModelTc(multiple_output_model, "3:1:1:10", 10)
+      /**< multi output test */
+      mkModelTc(multiple_output_model, "3:1:1:10", 10)
+    }
 ), [](const testing::TestParamInfo<nntrainerModelTest::ParamType>& info){
  return std::get<0>(info.param).getName();
 });
