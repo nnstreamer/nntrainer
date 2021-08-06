@@ -94,6 +94,7 @@ typedef void *ml_train_dataset_h;
  * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
  * @retval #ML_ERROR_NOT_SUPPORTED Not supported.
+ * @retval #ML_ERROR_PERMISSION_DENIED Permission denied.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
  */
 int ml_train_model_construct(ml_train_model_h *model);
@@ -455,8 +456,6 @@ int ml_train_dataset_add_generator(ml_train_dataset_h dataset,
 /**
  * @brief Adds data file to @a dataset.
  * @details Use this function to add a data file from where data is retrieved.
- * Privilege is needed if @a dataset is saved to either media storage or
- * external storage.
  * @since_tizen 6.5
  * @remarks If you want to access only internal storage by using this function,
  * you should add privilege %http://tizen.org/privilege/mediastorage. Or, if you
@@ -469,6 +468,7 @@ int ml_train_dataset_add_generator(ml_train_dataset_h dataset,
  * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
  * @retval #ML_ERROR_NOT_SUPPORTED Not supported.
+ * @retval #ML_ERROR_PERMISSION_DENIED Permission denied.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
  */
 int ml_train_dataset_add_file(ml_train_dataset_h dataset,
