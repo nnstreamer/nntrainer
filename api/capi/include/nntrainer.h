@@ -84,9 +84,11 @@ typedef void *ml_train_dataset_h;
  * @since_tizen 6.0
  * @remarks If the function succeeds, @a model must be released using
  * ml_train_model_destroy().
- * @privlevel
- * @privilege %http://tizen.org/privilege/mediastorage
- * @privilege %http://tizen.org/privilege/externalstorage
+ * @remarks If you want to access only internal storage by using this function,
+ * you should add privilege %http://tizen.org/privilege/mediastorage. Or, if you
+ * want to access only external storage by using this function, you should add
+ * privilege %http://tizen.org/privilege/externalstorage. If you can access both
+ * storage, you must add all privilege
  *
  * @param[out] model The NNTrainer model handle from the given description.
  * @return @c 0 on success. Otherwise a negative error value.
@@ -456,8 +458,11 @@ int ml_train_dataset_add_generator(ml_train_dataset_h dataset,
  * Privilege is needed if @a dataset is saved to either media storage or
  * external storage.
  * @since_tizen 6.5
- * @privilege %http://tizen.org/privilege/mediastorage
- * @privilege %http://tizen.org/privilege/externalstorage
+ * @remarks If you want to access only internal storage by using this function,
+ * you should add privilege %http://tizen.org/privilege/mediastorage. Or, if you
+ * want to access only external storage by using this function, you should add
+ * privilege %http://tizen.org/privilege/externalstorage. If you can access both
+ * storage, you must add all privilege
  * @param[in] dataset The NNTrainer dataset handle.
  * @param[in] usage The phase where this file should be used.
  * @param[in] file file path.
@@ -510,7 +515,7 @@ int ml_train_dataset_destroy(ml_train_dataset_h dataset);
  * @c ml_train_dataset_set_property_for_mode() instead
  * @brief Sets the neural network dataset property.
  * @details Use this function to set dataset property.
- * @since_tizen 6.5
+ * @since_tizen 6.0
  * @remarks the same property is applied over train, valid, testsets that are
  * added to the @a dataset, it is recommened to use @c
  * ml_train_dataset_set_property_for_usage() instead.
