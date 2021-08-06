@@ -442,7 +442,6 @@ int ml_train_dataset_create(ml_train_dataset_h *dataset);
  * @since_tizen 6.5
  * @param[in] dataset The NNTrainer dataset handle.
  * @param[in] mode The phase where this generator should be used.
- * @param[in] usage The phase where this generator should be used.
  * @param[in] cb Callback to be used for the generator.
  * @param[in] user_data user_data to be fed when @a cb is being called.
  * @return @c 0 on success. Otherwise a negative error value.
@@ -517,7 +516,7 @@ int ml_train_dataset_destroy(ml_train_dataset_h dataset);
  * @details Use this function to set dataset property.
  * @since_tizen 6.0
  * @remarks the same property is applied over train, valid, testsets that are
- * added to the @a dataset, it is recommened to use @a
+ * added to the @a dataset, it is recommened to use @c
  * ml_train_dataset_set_property_for_mode() instead.
  * @param[in] dataset The NNTrainer dataset handle.
  * @param[in]  ... Property values with NULL for termination.
