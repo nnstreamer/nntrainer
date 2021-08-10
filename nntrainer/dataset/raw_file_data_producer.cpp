@@ -40,6 +40,8 @@ unsigned int
 RawFileDataProducer::size(const std::vector<TensorDim> &input_dims,
                           const std::vector<TensorDim> &label_dims) const {
   auto size_accumulator = [](const unsigned int &a, const TensorDim &b) {
+    /// @bug this must be getDataLen(), as this function will be removed, not
+    /// fixed on purpose
     return a + b.getFeatureLen();
   };
 
@@ -155,5 +157,70 @@ RawFileDataProducer::finalize(const std::vector<TensorDim> &input_dims,
 
     return DataProducer::Iteration(false, inputs, labels);
   };
+}
+
+DataProducer::Generator_sample
+RawFileDataProducer::finalize_sample(const std::vector<TensorDim> &input_dims,
+                                     const std::vector<TensorDim> &label_dims) {
+  auto sz = size(input_dims, label_dims);
+  auto path_prop = std::get<props::FilePath>(*raw_file_props);
+
+  /****************** Prepare states ****************/
+  auto idxes_ = std::vector<unsigned int>();
+  idxes_.reserve(sz);
+  /// idxes point to the file position in bytes where a sample starts
+  std::generate_n(std::back_inserter(idxes_), sz,
+                  [sz, current = 0ULL]() mutable {
+                    auto c = current;
+                    current += sz * RawFileDataProducer::pixel_size;
+                    return c;
+                  });
+
+  static thread_local std::ifstream file_(path_prop.get(), std::ios::binary);
+
+  return [idxes = std::move(idxes_), sz](unsigned int idx,
+                                         std::vector<Tensor *> &inputs,
+                                         std::vector<Tensor *> &labels) {
+    NNTR_THROW_IF(idx >= sz, std::range_error)
+      << "given index is out of bound, index: " << idx << " size: " << sz;
+
+    file_.seekg(idxes[idx], std::ios_base::beg);
+    for (auto &input : inputs) {
+      input->read(file_);
+    }
+    for (auto &label : labels) {
+      label->read(file_);
+    }
+
+    return idx == sz - 1;
+  };
+}
+
+unsigned int RawFileDataProducer::size_sample(
+  const std::vector<TensorDim> &input_dims,
+  const std::vector<TensorDim> &label_dims) const {
+  auto size_accumulator = [](const unsigned int &a, const TensorDim &b) {
+    return a + b.getFeatureLen();
+  };
+
+  auto sample_size =
+    std::accumulate(input_dims.begin(), input_dims.end(), 0u, size_accumulator);
+  sample_size = std::accumulate(label_dims.begin(), label_dims.end(),
+                                sample_size, size_accumulator);
+
+  auto path_prop = std::get<props::FilePath>(*raw_file_props);
+  auto file_size = path_prop.file_size();
+
+  /// checking alignment is a good way to make check if a file is valid,
+  /// unfortunately, our test dataset does not have this property
+  /// (trainingSet.dat, valSet.dat, testSet.dat) after checking, we can
+  /// uncomment below line.
+  // NNTR_THROW_IF((file_size % sample_size * RawFileDataProducer::pixel_size !=
+  // 0),
+  //               std::invalid_argument)
+  //   << " Given file does not align with the given sample size, sample size: "
+  //   << sample_size << " file_size: " << file_size;
+
+  return file_size / (sample_size * RawFileDataProducer::pixel_size);
 }
 } // namespace nntrainer

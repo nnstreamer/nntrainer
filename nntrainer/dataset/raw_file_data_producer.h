@@ -87,6 +87,22 @@ public:
   finalize(const std::vector<TensorDim> &input_dims,
            const std::vector<TensorDim> &label_dims) override;
 
+  /**
+   * @copydoc DataProducer::finalize_sample(const std::vector<TensorDim>, const
+   * std::vector<TensorDim>)
+   */
+  DataProducer::Generator_sample
+  finalize_sample(const std::vector<TensorDim> &input_dims,
+                  const std::vector<TensorDim> &label_dims) override;
+
+  /**
+   * @copydoc DataProducer::size_sample(const std::vector<TensorDim>, const
+   * std::vector<TensorDim>)
+   */
+  unsigned int
+  size_sample(const std::vector<TensorDim> &input_dims,
+              const std::vector<TensorDim> &label_dims) const override;
+
 private:
   using PropTypes = std::tuple<props::FilePath>;
   std::unique_ptr<PropTypes> raw_file_props;
