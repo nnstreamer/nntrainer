@@ -27,6 +27,20 @@ namespace nntrainer {
 class GraphNode {
 public:
   /**
+   * @brief Provides the time/order at which the node will be executed.
+   * @details This time will be finalized once the graph has been calculated.
+   * The three times given indicate the order with which the below three
+   * operations for each node are executed:
+   * 1. Forwarding
+   * 2. calcGradient
+   * 3. calcDerivative
+   * One constraint the three times is that they must be sorted in ascending
+   * order. This ensures that the operations are executed in the order of their
+   * listing.
+   */
+  typedef std::tuple<unsigned int, unsigned int, unsigned int> ExecutionOrder;
+
+  /**
    * @brief     Destructor of Layer Class
    */
   virtual ~GraphNode() = default;
@@ -76,16 +90,16 @@ public:
    * @details   The two values represents the value for forward and backward
    * respectively
    */
-  virtual std::pair<unsigned int, unsigned int> getExecLoc() const = 0;
+  virtual ExecutionOrder getExecutionOrder() const = 0;
 
   /**
    * @brief     set the execution order/location of this node
    *
-   * @param     exec_loc the execution order/location of this node
+   * @param     exec_order the execution order/location of this node
    * @details   The two values represents the value for forward and backward
    * respectively
    */
-  virtual void setExecLoc(std::pair<unsigned int, unsigned int> exec_loc) = 0;
+  virtual void setExecutionOrder(ExecutionOrder exec_order_) = 0;
 };
 
 /**

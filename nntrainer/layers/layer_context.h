@@ -27,25 +27,6 @@ class Weight;
 class Var_Grad;
 
 /**
- * @brief define the lifespan of the given tensor to reduce peak memory
- *
- */
-enum TensorLifespan {
-  FORWARD_FUNC_LIFESPAN,  /**< tensor must not be reset before during the
-                            forward function call, eg. temporary tensors
-                            needed during forward operations */
-  BACKWARD_FUNC_LIFESPAN, /**< tensor must not be reset before during the
-                            backward function call, eg. temporary tensors
-                            needed during backward operations */
-  ITERATION_LIFESPAN,     /**< tensor must not be reset until the owning layer
-                            finishes its execution in the current iteration,
-                            eg. hidden memory/cells of RNN */
-  EPOCH_LIFESPAN,         /**< tensor must not be reset before the epoch ends */
-  MAX_LIFESPAN, /**< tensor must not be reset until the end of the model
-                  execution, eg. layer weights */
-};
-
-/**
  * @class   Layer Context class for all layers
  * @brief   Class for Layer context
  *
@@ -73,6 +54,11 @@ public:
     num_outputs(num_out),
     name(n) {}
 
+  /**
+   * @brief   get name by the layer
+   *
+   * @return name of the layer
+   */
   const std::string &getName() const { return name; }
 
   /**
@@ -192,7 +178,7 @@ public:
                 const Tensor::Initializer init = Tensor::Initializer::NONE,
                 bool trainable = false,
                 TensorLifespan lifespan = ITERATION_LIFESPAN) {
-    tensors_spec.emplace_back(dim, init, trainable, name);
+    tensors_spec.emplace_back(dim, init, trainable, name, lifespan);
     return tensors_spec.size() - 1;
   }
 

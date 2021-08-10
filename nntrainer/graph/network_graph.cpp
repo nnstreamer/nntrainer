@@ -60,6 +60,7 @@ int NetworkGraph::compile(const std::string &loss_type) {
   graph.topologicalSort();
 
   countNonTrainableLayersAtBegin();
+  setExecutionOrder();
 
   status = checkCompiledGraph();
   NN_RETURN_STATUS();
@@ -67,6 +68,21 @@ int NetworkGraph::compile(const std::string &loss_type) {
   compiled = true;
 
   return status;
+}
+
+void NetworkGraph::setExecutionOrder() {
+  auto node_count = graph.size();
+  /** @todo: remove backwarding count for non-trainble layers */
+  for (auto iter = cbegin(); iter != cend(); iter++) {
+    auto &node = *iter;
+    auto order_idx = iter - cbegin();
+    auto forward_order = order_idx;
+    auto calc_gradient_order = (node_count * 3) - (order_idx * 2) + 1;
+    /** calc derivative is called right after calc_gradient */
+    auto calc_derivative_order = calc_gradient_order + 1;
+    node->setExecutionOrder(
+      {forward_order, calc_gradient_order, calc_derivative_order});
+  }
 }
 
 void NetworkGraph::updateConnectionName(const std::string &from,

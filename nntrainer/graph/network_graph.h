@@ -464,6 +464,16 @@ private:
    * match and merging loss layers with activation layers if needed.
    */
   void finalizeLossLayer();
+
+  /**
+   * @brief Set the order of execution for all the nodes in the graph
+   *
+   * @details This sets the order of execution using the order from the
+   * topological sort. The order of forwarding matches the topological sort. The
+   * order for backwarding is in the exact reverse order. The calcDerivative()
+   * is expected to be called right after calcGradient().
+   */
+  void setExecutionOrder();
 };
 
 } // namespace nntrainer

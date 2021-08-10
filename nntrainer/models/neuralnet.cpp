@@ -198,15 +198,7 @@ int NeuralNetwork::initialize() {
 /**
  * @brief     free layers
  */
-NeuralNetwork::~NeuralNetwork() {
-  model_graph.reset();
-
-  std::for_each(data_buffers.begin(), data_buffers.end(), [](auto &buffers) {
-    if (buffers) {
-      buffers->clear();
-    }
-  });
-}
+NeuralNetwork::~NeuralNetwork() { model_graph.reset(); }
 
 void NeuralNetwork::setLabels(sharedConstTensors label) {
   auto fill_label = [&label](auto const &layer_node) {

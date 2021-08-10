@@ -140,15 +140,15 @@ public:
    *
    * @retval    the execution order/location of this node
    */
-  std::pair<unsigned int, unsigned int> getExecLoc() const { return exec_loc; }
+  ExecutionOrder getExecutionOrder() const { return exec_order; }
 
   /**
    * @brief     set the execution order/location of this node
    *
-   * @param     exec_loc the execution order/location of this node
+   * @param     exec_order the execution order/location of this node
    */
-  virtual void setExecLoc(std::pair<unsigned int, unsigned int> exec_loc_) {
-    exec_loc = exec_loc_;
+  void setExecutionOrder(ExecutionOrder exec_order_) {
+    exec_order = exec_order_;
   }
 
   /**
@@ -624,8 +624,8 @@ private:
    */
   std::unique_ptr<PropsType> layer_node_props; /**< properties for the node */
   float regularization_loss;
-  std::pair<int, int> exec_loc; /**< order/location of execution for this node
-                                   in forward and backward */
+  ExecutionOrder exec_order; /**< order/location of execution for this node
+                                   in forward and backwarding operations */
 
   /**
    * @brief setProperty by PropertyType
