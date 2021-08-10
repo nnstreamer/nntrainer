@@ -27,6 +27,7 @@
 #include <vector>
 
 #include <graph_node.h>
+#include <memory_pool.h>
 #include <var_grad.h>
 #include <weight.h>
 
@@ -444,6 +445,7 @@ private:
     tensor_exec_order; /**< stores the order/location at which a given tensor is
                         going to be executed when the network is forwarded and
                         backwarded */
+  // std::unordered_map<Tensor &, unsigned int> tensor_map;
 
   /**< Weights of all the layer in the model to be managed */
   std::vector<std::vector<std::reference_wrapper<Weight>>> weights;
