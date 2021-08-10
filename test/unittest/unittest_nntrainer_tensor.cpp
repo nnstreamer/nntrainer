@@ -2734,6 +2734,155 @@ TEST(nntrainer_Tensor, DISABLED_fill_different_buffer_size_n) {
   EXPECT_TRUE(false);
 }
 
+TEST(nntrainer_Tensor, empty_01) {
+  nntrainer::Tensor t;
+
+  EXPECT_TRUE(t.empty());
+}
+
+TEST(nntrainer_Tensor, empty_02) {
+  nntrainer::Tensor t({1, 2, 3, 4}, false);
+
+  EXPECT_FALSE(t.empty());
+}
+
+TEST(nntrainer_Tensor, empty_03) {
+  nntrainer::Tensor t({1, 2, 3, 4}, true);
+
+  EXPECT_FALSE(t.empty());
+}
+
+TEST(nntrainer_Tensor, allocate_01_n) {
+  nntrainer::Tensor t;
+  EXPECT_FALSE(t.isAllocated());
+
+  t.allocate();
+  EXPECT_FALSE(t.isAllocated());
+}
+
+TEST(nntrainer_Tensor, allocate_02_p) {
+  nntrainer::Tensor t({1, 2, 3, 4}, false);
+  EXPECT_FALSE(t.isAllocated());
+
+  t.allocate();
+  EXPECT_TRUE(t.isAllocated());
+}
+
+TEST(nntrainer_Tensor, allocate_03_p) {
+  nntrainer::Tensor t({1, 2, 3, 4}, true);
+  EXPECT_TRUE(t.isAllocated());
+
+  t.allocate();
+  EXPECT_TRUE(t.isAllocated());
+}
+
+TEST(nntrainer_Tensor, initialize_01_p) {
+  nntrainer::Tensor t({1, 2, 3, 4}, true, nntrainer::Tensor::Initializer::ONES);
+
+  nntrainer::Tensor golden(1, 2, 3, 4);
+  golden.setValue(1);
+
+  EXPECT_EQ(golden, t);
+}
+
+TEST(nntrainer_Tensor, initialize_02_p) {
+  nntrainer::Tensor t({1, 2, 3, 4}, true);
+
+  nntrainer::Tensor golden(1, 2, 3, 4);
+  golden.setValue(1);
+
+  EXPECT_NE(golden, t);
+
+  t.initialize(nntrainer::Tensor::Initializer::ONES);
+  EXPECT_EQ(golden, t);
+}
+
+TEST(nntrainer_Tensor, initialize_03_p) {
+  nntrainer::Tensor t({1, 2, 3, 4}, false,
+                      nntrainer::Tensor::Initializer::ONES);
+  t.allocate();
+
+  nntrainer::Tensor golden(1, 2, 3, 4);
+  golden.setValue(1);
+
+  EXPECT_EQ(golden, t);
+}
+
+TEST(nntrainer_Tensor, initialize_04_p) {
+  nntrainer::Tensor t({1, 2, 3, 4}, false);
+  t.initialize(nntrainer::Tensor::Initializer::ONES);
+  t.allocate();
+
+  nntrainer::Tensor golden(1, 2, 3, 4);
+  golden.setValue(1);
+
+  EXPECT_EQ(golden, t);
+}
+
+TEST(nntrainer_Tensor, initialize_05_p) {
+  nntrainer::Tensor t({1, 2, 3, 4}, false);
+  t.allocate();
+
+  nntrainer::Tensor golden(1, 2, 3, 4);
+  golden.setValue(1.f);
+
+  /**
+   * Ideally, it should be NE, but it can be equal due to no initialization
+   * EXPECT_NE(golden, t);
+   */
+
+  t.initialize(nntrainer::Tensor::Initializer::ONES);
+  EXPECT_EQ(golden, t);
+}
+
+TEST(nntrainer_Tensor, initialize_06_n) {
+  nntrainer::Tensor t({1, 2, 3, 4}, true, nntrainer::Tensor::Initializer::ONES);
+  nntrainer::Tensor golden({1, 2, 3, 4}, true,
+                           nntrainer::Tensor::Initializer::ZEROS);
+
+  EXPECT_NE(golden, t);
+
+  golden.initialize(nntrainer::Tensor::Initializer::ONES);
+  EXPECT_EQ(golden, t);
+}
+
+TEST(nntrainer_Tensor, initialize_07_p) {
+  nntrainer::Tensor t({1, 2, 3, 4}, true, nntrainer::Tensor::Initializer::ONES);
+
+  nntrainer::Tensor golden(1, 2, 3, 4);
+  golden.setValue(1);
+
+  EXPECT_EQ(golden, t);
+
+  t.setValue(0, 0, 0, 0, 0);
+  t.setValue(0, 0, 0, t.size() - 1, 0);
+  EXPECT_NE(golden, t);
+
+  t.initialize();
+  EXPECT_EQ(golden, t);
+}
+
+TEST(nntrainer_Tensor, initialize_08_p) {
+  nntrainer::Tensor t({1, 2, 3, 4}, true, nntrainer::Tensor::Initializer::ONES);
+
+  nntrainer::Tensor golden(1, 2, 3, 4);
+  golden.setValue(1);
+
+  EXPECT_EQ(golden, t);
+
+  t.initialize(nntrainer::Tensor::Initializer::HE_NORMAL);
+  EXPECT_NE(golden, t);
+
+  t.initialize();
+  EXPECT_NE(golden, t);
+
+  t.initialize(nntrainer::Tensor::Initializer::ONES);
+  EXPECT_EQ(golden, t);
+
+  t.initialize();
+  EXPECT_EQ(golden, t);
+}
+
 int main(int argc, char **argv) {
   int result = -1;
 
