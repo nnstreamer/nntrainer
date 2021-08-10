@@ -440,10 +440,10 @@ private:
   std::vector<std::vector<std::unique_ptr<Var_Grad>>>
     tensors_v2; /**< extra tensors required by the layers */
 
-  std::unordered_map<std::string, std::pair<unsigned int, unsigned int>>
-    tensor_exec_loc; /**< stores the order/location at which a given tensor is
+  std::unordered_map<std::string, GraphNode::ExecutionOrder>
+    tensor_exec_order; /**< stores the order/location at which a given tensor is
                         going to be executed when the network is forwarded and
-                        abackwarded */
+                        backwarded */
 
   /**< Weights of all the layer in the model to be managed */
   std::vector<std::vector<std::reference_wrapper<Weight>>> weights;
@@ -592,12 +592,13 @@ private:
        * @todo maybe requesting tensor with same name should mean reusing the
        * tensor than giving the error
        */
-      if (tensor_exec_loc.find(ts_name) != tensor_exec_loc.end())
+      if (tensor_exec_order.find(ts_name) != tensor_exec_order.end())
         throw std::invalid_argument("Requesting tensor " + ts_name +
                                     " with same name");
       /**
-       * @todo set the exec_loc based on the set lifespan */
-      tensor_exec_loc[ts_name] = node.getExecLoc();
+       * @todo set the exec_order based on the set lifespan from the spec
+       */
+      tensor_exec_order[ts_name] = node.getExecutionOrder();
     }
 
     std::transform(tensors_list.begin(), tensors_list.end(),

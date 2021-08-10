@@ -31,6 +31,25 @@ enum class WeightRegularizer {
 };
 
 /**
+ * @brief define the lifespan of the given tensor to reduce peak memory
+ *
+ */
+enum TensorLifespan {
+  FORWARD_FUNC_LIFESPAN,  /**< tensor must not be reset before during the
+                            forward function call, eg. temporary tensors
+                            needed during forward operations */
+  BACKWARD_FUNC_LIFESPAN, /**< tensor must not be reset before during the
+                            backward function call, eg. temporary tensors
+                            needed during backward operations */
+  ITERATION_LIFESPAN,     /**< tensor must not be reset until the owning layer
+                            finishes its execution in the current iteration,
+                            eg. hidden memory/cells of RNN */
+  EPOCH_LIFESPAN,         /**< tensor must not be reset before the epoch ends */
+  MAX_LIFESPAN, /**< tensor must not be reset until the end of the model
+                  execution, eg. layer weights */
+};
+
+/**
  * @brief Specification of the Weight as a tensor wrapper
  *
  * @details The tuple values are dimension, initializer, regularizer,
@@ -44,9 +63,10 @@ typedef std::tuple<TensorDim, Tensor::Initializer, WeightRegularizer, float,
  * @brief Specification of the Var_Grad (trainable tensor) as a tensor wrapper
  *
  * @details The tuple values are dimension, initializer, need_gradient property,
- * and the name of the tensor object.
+ * the name, and lifespan of the Var_Grad object.
  */
-typedef std::tuple<TensorDim, Tensor::Initializer, bool, const std::string>
+typedef std::tuple<TensorDim, Tensor::Initializer, bool, const std::string,
+                   TensorLifespan>
   VarGradSpec;
 
 } // namespace nntrainer
