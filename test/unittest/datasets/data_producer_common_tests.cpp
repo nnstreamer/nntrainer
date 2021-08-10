@@ -188,7 +188,7 @@ TEST_P(DataProducerSemantics_samples, error_once_or_not_pn) {
       generator(0, std::get<0>(sample_data), std::get<1>(sample_data)));
   } else {
     EXPECT_NO_THROW(
-      generator(0, std::get<1>(sample_data), std::get<1>(sample_data)));
+      generator(0, std::get<0>(sample_data), std::get<1>(sample_data)));
   }
 }
 
@@ -210,7 +210,7 @@ TEST_P(DataProducerSemantics_samples, fetch_one_epoch_or_10_iteration_pn) {
   for (unsigned i = 0; i < sz; ++i) {
     auto last = generator(i, input_view, label_view);
 
-    if (i == sz - 1) {
+    if (i == sz - 1 && has_fixed_size) {
       EXPECT_TRUE(last);
     } else {
       ASSERT_FALSE(last) << " reached last at iteration: " << i << '\n';

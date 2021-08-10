@@ -162,14 +162,14 @@ void Tensor::allocate() {
   }
 }
 
-Tensor Tensor::Map(float *buf, unsigned int size, const TensorDim &d,
+Tensor Tensor::Map(float *buf, unsigned int bytes, const TensorDim &d,
                    int offset) {
   if (d.getDataLen() == 0 || buf == nullptr) {
     throw std::invalid_argument(
       "[Tensor::Map] empty tensor dim is not allowed");
   }
 
-  if (d.getDataLen() + offset > size) {
+  if (d.getDataLen() * sizeof(float) + offset > bytes) {
     throw std::invalid_argument(
       "Creating shared tensor of size bigger than tensor memory.");
   }
@@ -190,7 +190,7 @@ Tensor Tensor::Map(std::shared_ptr<float> buf, unsigned int size,
       "[Tensor::Map] empty tensor dim is not allowed");
   }
 
-  if (d.getDataLen() + offset > size) {
+  if (d.getDataLen() * sizeof(float) + offset > size) {
     throw std::invalid_argument(
       "Creating shared tensor of size bigger than tensor memory.");
   }
@@ -558,12 +558,12 @@ void Tensor::createSharedDataTensor(const Tensor &src, Tensor &dest,
 Tensor Tensor::getSharedDataTensor(const TensorDim dim_, unsigned int offset,
                                    bool reset_stride) const {
   Tensor ret = *this;
+  ret.dim = dim_;
 
-  if (dim_.getDataLen() + offset > dim.getDataLen())
+  if (ret.bytes() + offset > bytes())
     throw std::invalid_argument(
       "Creating shared tensor of size bigger than tensor memory.");
 
-  ret.dim = dim_;
   if (reset_stride)
     ret.strides = ret.dim.computeStrides();
 

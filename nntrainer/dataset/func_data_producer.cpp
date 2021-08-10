@@ -90,4 +90,38 @@ FuncDataProducer::finalize(const std::vector<TensorDim> &input_dims,
     }
   };
 }
+
+DataProducer::Generator_sample
+FuncDataProducer::finalize_sample(const std::vector<TensorDim> &input_dims,
+                                  const std::vector<TensorDim> &label_dims) {
+  NNTR_THROW_IF(!this->cb, std::invalid_argument)
+    << "given callback is nullptr!";
+
+  auto input_data = std::shared_ptr<float *>(new float *[input_dims.size()],
+                                             std::default_delete<float *[]>());
+  auto label_data = std::shared_ptr<float *>(new float *[label_dims.size()],
+                                             std::default_delete<float *[]>());
+
+  return [cb = this->cb, ud = this->user_data_prop->get(), input_data,
+          label_data](unsigned int idx, std::vector<Tensor *> &inputs,
+                      std::vector<Tensor *> &labels) -> bool {
+    float **input_data_raw = input_data.get();
+    float **label_data_raw = label_data.get();
+
+    for (unsigned int i = 0; i < inputs.size(); ++i) {
+      *(input_data_raw + i) = inputs[i]->getData();
+    }
+
+    for (unsigned int i = 0; i < labels.size(); ++i) {
+      *(label_data_raw + i) = labels[i]->getData();
+    }
+
+    bool last = false;
+    int status = cb(input_data_raw, label_data_raw, &last, ud);
+    NNTR_THROW_IF(status != ML_ERROR_NONE, std::invalid_argument)
+      << "[DataProducer] Callback returned error: " << status << '\n';
+
+    return last;
+  };
+}
 } // namespace nntrainer

@@ -106,12 +106,14 @@ void SplitLayer::forwarding(RunLayerContext &context, bool training) {
     output_.reshape(output_reshape_helper);
 
     for (unsigned int batch = 0; batch < input_.batch(); batch++) {
-      const Tensor source_tensor = Tensor::Map(
-        input_.getAddress(batch, 0, idx, 0), input_reshape_helper.width(),
-        {1, 1, 1, input_reshape_helper.width()});
-      Tensor dest_tensor = Tensor::Map(
-        output_.getAddress(batch, 0, 0, 0), output_reshape_helper.width(),
-        {1, 1, 1, output_reshape_helper.width()});
+      const Tensor source_tensor =
+        Tensor::Map(input_.getAddress(batch, 0, idx, 0),
+                    input_reshape_helper.width() * sizeof(float),
+                    {1, 1, 1, input_reshape_helper.width()});
+      Tensor dest_tensor =
+        Tensor::Map(output_.getAddress(batch, 0, 0, 0),
+                    output_reshape_helper.width() * sizeof(float),
+                    {1, 1, 1, output_reshape_helper.width()});
       dest_tensor.copy(source_tensor);
     }
 
@@ -133,12 +135,14 @@ void SplitLayer::calcDerivative(RunLayerContext &context) {
     output_.reshape(output_reshape_helper);
 
     for (unsigned int batch = 0; batch < input_.batch(); batch++) {
-      Tensor dest_tensor = Tensor::Map(input_.getAddress(batch, 0, idx, 0),
-                                       input_reshape_helper.width(),
-                                       {1, 1, 1, input_reshape_helper.width()});
-      const Tensor source_tensor = Tensor::Map(
-        output_.getAddress(batch, 0, 0, 0), output_reshape_helper.width(),
-        {1, 1, 1, output_reshape_helper.width()});
+      Tensor dest_tensor =
+        Tensor::Map(input_.getAddress(batch, 0, idx, 0),
+                    input_reshape_helper.width() * sizeof(float),
+                    {1, 1, 1, input_reshape_helper.width()});
+      const Tensor source_tensor =
+        Tensor::Map(output_.getAddress(batch, 0, 0, 0),
+                    output_reshape_helper.width() * sizeof(float),
+                    {1, 1, 1, output_reshape_helper.width()});
       dest_tensor.copy(source_tensor);
     }
 

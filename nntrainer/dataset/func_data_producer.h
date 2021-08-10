@@ -58,15 +58,23 @@ public:
    * @copydoc DataProducer::setProeprty(const std::vector<std::string>
    * &properties)
    */
-  virtual void setProperty(const std::vector<std::string> &properties) override;
+  void setProperty(const std::vector<std::string> &properties) override;
 
   /**
    * @copydoc DataProducer::finalize(const std::vector<TensorDim>, const
    * std::vector<TensorDim>)
    */
-  virtual DataProducer::Generator
+  DataProducer::Generator
   finalize(const std::vector<TensorDim> &input_dims,
            const std::vector<TensorDim> &label_dims) override;
+
+  /**
+   * @copydoc DataProducer::finalize_sample(const std::vector<TensorDim>, const
+   * std::vector<TensorDim>)
+   */
+  DataProducer::Generator_sample
+  finalize_sample(const std::vector<TensorDim> &input_dims,
+                  const std::vector<TensorDim> &label_dims) override;
 
 private:
   datagen_cb cb;

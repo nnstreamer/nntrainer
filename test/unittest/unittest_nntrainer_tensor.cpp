@@ -108,11 +108,11 @@ TEST(nntrainer_TensorDim, setTensorDim_04_p) {
   EXPECT_EQ(d.width(), 7u);
 }
 
-TEST(nntrainer_Tensor, TensorWrap_p) {
+TEST(nntrainer_Tensor, TensorMap_p) {
   float dat[] = {1, 2, 3};
 
   {
-    nntrainer::Tensor a = nntrainer::Tensor::Map(dat, 3, {3});
+    nntrainer::Tensor a = nntrainer::Tensor::Map(dat, 3 * sizeof(float), {3});
     /// check if a.getData() has same address with dat
     EXPECT_EQ(dat, a.getData());
     {
