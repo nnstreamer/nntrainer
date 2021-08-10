@@ -252,30 +252,28 @@ Manager::AllocFunc Manager::getAllocFunc(bool is_weight) {
  * @brief Allocate and initialize the weight variable
  */
 void Manager::initializeWeights() {
-  if (total_weight_size == 0) {
-    ml_logw("Nothing done on initialize because there is no weight registered");
-    return;
-  }
 
   if (weights_initialized)
     return;
 
-  AllocFunc allocate_weight = getAllocFunc(true);
-
-  unsigned int weight_offset = 0;
-
   if (LAYER_V2) {
     for (auto &l_w : weights_v2) {
       for (auto &w : l_w) {
-        const auto &dim = w->getDim();
-
-        Tensor weight_prealloc = allocate_weight(dim, weight_offset);
-        weight_offset += dim.getDataLen();
-
-        w->initializeVariable(weight_prealloc);
+        w->initializeVariable();
+        // tensor_map(&w->getVariableRef(), requestMemory(w.getDim().size(), 0,
+        // MAX));
       }
     }
   } else {
+    if (total_weight_size == 0) {
+      ml_logw(
+        "Nothing done on initialize because there is no weight registered");
+      return;
+    }
+
+    AllocFunc allocate_weight = getAllocFunc(true);
+
+    unsigned int weight_offset = 0;
     for (auto &l_w : weights) {
       for (auto &w : l_w) {
         Weight &weight = w.get();
@@ -377,28 +375,39 @@ void Manager::deallocateGradients() {
  * @brief Initialize the weight gradients
  */
 void Manager::initializeGradients() {
-  if (total_weight_size == 0) {
-    ml_logw("Nothing done on initialize because there is no weight registered");
-    return;
-  }
-
-  AllocFunc allocate_grad = getAllocFunc(false);
-
-  unsigned int grad_offset = 0;
-
-  for (auto &l_w : weights) {
-    if (enable_gradient_memory_opt) {
-      grad_offset = 0;
-    }
-    for (auto &w : l_w) {
-      Weight &weight = w.get();
-      auto dim = weight.getDim();
-      Tensor grad_prealloc = Tensor();
-      if (weight.needsGradient()) {
-        grad_prealloc = allocate_grad(dim, grad_offset);
-        grad_offset += dim.getDataLen();
+  if (LAYER_V2) {
+    for (auto &l_w : weights_v2) {
+      for (auto &w : l_w) {
+        w->initializeGradient();
+        // auto exec_order = tensor_exec_order[w.getName()];
+        // tensor_map(&w->getGradientRef(), requestMemory(w.getDim().size(),
+        //       std::get<1>(exec_order), std::get<2>(exec_order) + 1));
       }
-      weight.initializeGradient(grad_prealloc);
+    }
+  } else {
+    if (total_weight_size == 0) {
+      ml_logw(
+        "Nothing done on initialize because there is no weight registered");
+      return;
+    }
+
+    AllocFunc allocate_grad = getAllocFunc(false);
+
+    unsigned int grad_offset = 0;
+    for (auto &l_w : weights) {
+      if (enable_gradient_memory_opt) {
+        grad_offset = 0;
+      }
+      for (auto &w : l_w) {
+        Weight &weight = w.get();
+        auto dim = weight.getDim();
+        Tensor grad_prealloc = Tensor();
+        if (weight.needsGradient()) {
+          grad_prealloc = allocate_grad(dim, grad_offset);
+          grad_offset += dim.getDataLen();
+        }
+        weight.initializeGradient(grad_prealloc);
+      }
     }
   }
 }
@@ -808,7 +817,7 @@ Manager::requestWeights(const GraphNode &node,
 }
 
 /**
- * @brief     Create weights with the given spec
+ * @brief     Create weight4 with the given spec
  *
  */
 std::vector<Var_Grad *>
