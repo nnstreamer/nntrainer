@@ -214,8 +214,8 @@ DataProducer::Generator_sample RandomDataOneHotProducer::finalize_sample(
   auto sz = size(input_dims, input_dims);
 
   /** DataProducer::Generator_sample */
-  return [rng, sz, input_dims, label_dims, min_ = min_.get(), max_ = max_.get(),
-          current_iteration = 0ULL, label_chooser = std::move(label_chooser_)](
+  return [rng, sz, min_ = min_.get(), max_ = max_.get(),
+          label_chooser = std::move(label_chooser_)](
            unsigned int idx, std::vector<Tensor *> &inputs,
            std::vector<Tensor *> &labels) mutable -> bool {
     auto populate_input = [&](Tensor *t) { t->setRandUniform(min_, max_); };
