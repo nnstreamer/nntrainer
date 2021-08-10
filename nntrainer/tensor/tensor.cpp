@@ -144,7 +144,7 @@ private:
 };
 
 void Tensor::allocate() {
-  if (data)
+  if (empty() || data)
     /// already allocated
     return;
 
