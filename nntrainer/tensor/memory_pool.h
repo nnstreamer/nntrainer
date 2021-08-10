@@ -50,7 +50,6 @@ public:
    *
    * @param planner The memory planner to be used for finalizing the layout
    *
-   * @return The total memory requirement using this memory planner
    * @return The efficiency of the memory layer with the given memory planner
    *
    * @details The efficiency of the planner is calculated as the ratio of the

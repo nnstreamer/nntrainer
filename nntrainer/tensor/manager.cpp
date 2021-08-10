@@ -817,7 +817,7 @@ Manager::requestWeights(const GraphNode &node,
 }
 
 /**
- * @brief     Create weight4 with the given spec
+ * @brief     Create weights with the given spec
  *
  */
 std::vector<Var_Grad *>
