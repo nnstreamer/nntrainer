@@ -182,13 +182,13 @@ public:
    * This will not copy buffer to a new tensor but directly uses it
    *
    * @param buf buffer
-   * @param size buffer size in bytes
+   * @param bytes buffer size in bytes
    * @param d tensor dim
    * @param offset offset to be used from current
    * @return Tensor object
    * @throws std::invalid_argument if buf is null
    */
-  static Tensor Map(float *buf, unsigned int size, const TensorDim &d,
+  static Tensor Map(float *buf, unsigned int bytes, const TensorDim &d,
                     int offset = 0);
 
   /**
@@ -932,6 +932,9 @@ public:
    * updateBatch and then allocate again to avoid such issues.
    */
   void updateBatch(unsigned int batch) {
+    if (dim.batch() == batch) {
+      return;
+    }
     dim.batch(batch);
     if (isAllocated())
       reallocate();
