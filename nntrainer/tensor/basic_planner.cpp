@@ -24,11 +24,13 @@ namespace nntrainer {
  * @details The basic memory planner does not incorporate any memory sharing.
  * This planner allocates independent memory for all the required memories
  * without considering their memory validity.
+ *
  */
 size_t BasicPlanner::planLayout(
   const std::vector<size_t> &memory_size,
   const std::vector<std::pair<unsigned int, unsigned int>> &memory_validity,
-  std::vector<size_t> &memory_offset) {
+  std::vector<size_t> &memory_offset) const {
+  memory_offset.resize(memory_size.size());
   size_t csum = 0;
   for (unsigned int idx = 0; idx < memory_size.size(); idx++) {
 
