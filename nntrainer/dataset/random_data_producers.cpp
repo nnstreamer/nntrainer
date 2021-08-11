@@ -177,7 +177,7 @@ RandomDataOneHotProducer::finalize(const std::vector<TensorDim> &input_dims,
 
 DataProducer::Generator_sample RandomDataOneHotProducer::finalize_sample(
   const std::vector<TensorDim> &input_dims,
-  const std::vector<TensorDim> &label_dims) {
+  const std::vector<TensorDim> &label_dims, void *user_data) {
   /** check if the given producer is ready to finalize */
   nntrainer::PropsMin min_;
   nntrainer::PropsMax max_;

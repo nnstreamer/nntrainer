@@ -93,7 +93,8 @@ FuncDataProducer::finalize(const std::vector<TensorDim> &input_dims,
 
 DataProducer::Generator_sample
 FuncDataProducer::finalize_sample(const std::vector<TensorDim> &input_dims,
-                                  const std::vector<TensorDim> &label_dims) {
+                                  const std::vector<TensorDim> &label_dims,
+                                  void *user_data) {
   NNTR_THROW_IF(!this->cb, std::invalid_argument)
     << "given callback is nullptr!";
 

@@ -161,7 +161,8 @@ RawFileDataProducer::finalize(const std::vector<TensorDim> &input_dims,
 
 DataProducer::Generator_sample
 RawFileDataProducer::finalize_sample(const std::vector<TensorDim> &input_dims,
-                                     const std::vector<TensorDim> &label_dims) {
+                                     const std::vector<TensorDim> &label_dims,
+                                     void *user_data) {
   auto sz = size(input_dims, label_dims);
   auto path_prop = std::get<props::FilePath>(*raw_file_props);
 
