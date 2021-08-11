@@ -2,7 +2,7 @@
 /**
  * Copyright (C) 2021 Jihoon Lee <jhoon.it.lee@samsung.com>
  *
- * @file   data_producers.h
+ * @file   data_producer.h
  * @date   09 July 2021
  * @brief  This file contains data producer interface
  * @see    https://github.com/nnstreamer/nntrainer
@@ -10,8 +10,8 @@
  * @bug    No known bugs except for NYI items
  *
  */
-#ifndef __DATA_PRODUCERS_H__
-#define __DATA_PRODUCERS_H__
+#ifndef __DATA_PRODUCER_H__
+#define __DATA_PRODUCER_H__
 
 #include <functional>
 #include <limits>
@@ -175,4 +175,4 @@ public:
   virtual bool isMultiThreadSafe() const { return false; }
 };
 } // namespace nntrainer
-#endif // __DATA_PRODUCERS_H__
+#endif // __DATA_PRODUCER_H__

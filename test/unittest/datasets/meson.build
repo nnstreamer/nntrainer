@@ -8,7 +8,8 @@ producer_targets = [
   'unittest_func_data_producer.cpp',
   'unittest_raw_file_data_producer.cpp',
   'unittest_batch_queue.cpp',
-  'unittest_databuffer.cpp'
+  'unittest_databuffer.cpp',
+  'unittest_data_iteration.cpp'
 ]
 
 test_target += producer_targets

@@ -16,7 +16,7 @@
 
 #include <vector>
 
-#include <data_producers.h>
+#include <data_producer.h>
 #include <tensor.h>
 #include <tensor_dim.h>
 

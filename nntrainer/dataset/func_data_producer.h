@@ -13,7 +13,7 @@
 #ifndef __FUNC_DATA_PRODUCER_H__
 #define __FUNC_DATA_PRODUCER_H__
 
-#include <data_producers.h>
+#include <data_producer.h>
 
 #include <dataset.h>
 
