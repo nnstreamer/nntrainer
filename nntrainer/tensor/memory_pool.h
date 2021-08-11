@@ -9,7 +9,7 @@
  * @bug    No known bugs except for NYI items
  * @brief  This is Memory Pool Class
  *
- * @todo   Support an external allocator for different backends
+ * @todo   Support an external allocator for different backends and alignment
  * @todo   Support releaseMemory(token) - this need not release actual memory
  * until deallocate
  * @todo   Support maximum memory size for the memory pool as an argument

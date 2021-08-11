@@ -4,7 +4,7 @@
  *
  * @file unittest_memory_planning.cpp
  * @date 11 August 2021
- * @brief Activation Layer Test
+ * @brief Memory Planner Test
  * @see	https://github.com/nnstreamer/nntrainer
  * @author Parichay Kapoor <pk.kapoor@samsung.com>
  * @bug No known bugs except for NYI items
