@@ -10,9 +10,10 @@
  * @brief  Tests for memory planning
  */
 
-#include <bitset>
 #include <random>
 #include <vector>
+
+#include <gtest/gtest.h>
 
 #include <basic_planner.h>
 #include <memory_planner_validate.h>

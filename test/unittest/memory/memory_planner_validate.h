@@ -7,7 +7,6 @@
  * @see    https://github.com/nnstreamer/nntrainer
  * @author Parichay Kapoor <pk.kapoor@samsung.com>
  * @bug    No known bugs except for NYI items
- memory_planner_validate.h
  */
 
 #ifndef __MEMORY_PLANNER_VALIDATE_H__

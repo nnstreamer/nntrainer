@@ -1,6 +1,6 @@
 memory_test_inc = include_directories('./')
 
-nntrainer_memory_planner_tests_lib = shared_library(
+nntrainer_memory_planner_tests_lib = static_library(
   'nntrainer_memory_planner_validation',
   'memory_planner_validate.cpp',
   dependencies: [nntrainer_dep, gtest_dep], # nntrainer_devel_dep
@@ -15,8 +15,10 @@ nntrainer_memory_tests_dep = declare_dependency(
 test_target = [
   'memory_planner_validate.cpp',
   'unittest_memory_planner.cpp',
+  'unittest_memory_pool.cpp'
 ]
 
+# memory unittests
 exe = executable(
   'unittest_memory', test_target,
   dependencies: [
