@@ -34,7 +34,7 @@
 #include <vector>
 
 #include <batch_queue.h>
-#include <data_producers.h>
+#include <data_producer.h>
 #include <dataset.h>
 #include <tensor_dim.h>
 

@@ -127,6 +127,7 @@ NNTRAINER_SRCS := $(NNTRAINER_ROOT)/nntrainer/models/neuralnet.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/models/dynamic_training_optimization.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/dataset/batch_queue.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/dataset/databuffer.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/dataset/data_iteration.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/dataset/databuffer_factory.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/dataset/func_data_producer.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/dataset/random_data_producers.cpp \
