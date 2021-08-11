@@ -26,24 +26,33 @@ namespace nntrainer {
  * @details Basic planner performs no memory optimization and provides no memory
  * sharing
  */
-class BasicPlanner {
+class BasicPlanner : public MemoryPlanner {
 public:
   /**
    * @brief BasicPlanner destructor
    *
    */
-  BasicPlanner() = default;
+  ~BasicPlanner() = default;
 
   /**
    * @copydoc MemoryPlanner::planLayout(
    * const std::vector<size_t> &memory_size,
    * const std::vector<std::pair<unsigned int, unsigned int>> &memory_validity,
    * std::vector<size_t> &memory_offset);
+   *
    */
   size_t planLayout(
     const std::vector<size_t> &memory_size,
     const std::vector<std::pair<unsigned int, unsigned int>> &memory_validity,
-    std::vector<size_t> &memory_offset);
+    std::vector<size_t> &memory_offset) const;
+
+  /**
+   * @copydoc MemoryPlanner::getType() const
+   *
+   */
+  const std::string &getType() const { return type; }
+
+  inline static const std::string type = "basic_planner";
 };
 
 } // namespace nntrainer

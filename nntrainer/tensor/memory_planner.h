@@ -14,6 +14,7 @@
 #ifndef __MEMORY_PLANNER_H__
 #define __MEMORY_PLANNER_H__
 
+#include <string>
 #include <vector>
 
 namespace nntrainer {
@@ -28,7 +29,7 @@ public:
    * @brief MemoryPlanner destructor
    *
    */
-  virtual ~MemoryPlanner();
+  virtual ~MemoryPlanner() = default;
 
   /**
    * @brief Plan the layout for the memory allocation
@@ -45,7 +46,14 @@ public:
   virtual size_t planLayout(
     const std::vector<size_t> &memory_size,
     const std::vector<std::pair<unsigned int, unsigned int>> &memory_validity,
-    std::vector<size_t> &memory_offset) = 0;
+    std::vector<size_t> &memory_offset) const = 0;
+
+  /**
+   * @brief Get type of the planner
+   *
+   * @return The type of the planner
+   */
+  virtual const std::string &getType() const = 0;
 };
 
 } // namespace nntrainer
