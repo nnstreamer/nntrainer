@@ -70,11 +70,12 @@ public:
 
   /**
    * @copydoc DataProducer::finalize_sample(const std::vector<TensorDim>, const
-   * std::vector<TensorDim>)
+   * std::vector<TensorDim>, void* user_data)
    */
   DataProducer::Generator_sample
   finalize_sample(const std::vector<TensorDim> &input_dims,
-                  const std::vector<TensorDim> &label_dims) override;
+                  const std::vector<TensorDim> &label_dims,
+                  void *user_data = nullptr) override;
 
 private:
   datagen_cb cb;

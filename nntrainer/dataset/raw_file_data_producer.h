@@ -93,7 +93,8 @@ public:
    */
   DataProducer::Generator_sample
   finalize_sample(const std::vector<TensorDim> &input_dims,
-                  const std::vector<TensorDim> &label_dims) override;
+                  const std::vector<TensorDim> &label_dims,
+                  void *user_data = nullptr) override;
 
   /**
    * @copydoc DataProducer::size_sample(const std::vector<TensorDim>, const

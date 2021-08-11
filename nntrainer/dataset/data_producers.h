@@ -121,12 +121,14 @@ public:
    * the batch dimension and assume it to be one.
    * @param input_dims input dimensions.
    * @param label_dims label dimensions.
-   * @return Generator generator is a function taht generates a sample upon
+   * @param user_data user data to be used when finalize.
+   * @return Generator generator is a function that generates a sample upon
    * call.
    */
   virtual Generator_sample
   finalize_sample(const std::vector<TensorDim> &input_dims,
-                  const std::vector<TensorDim> &label_dims) {
+                  const std::vector<TensorDim> &label_dims,
+                  void *user_data = nullptr) {
     return Generator_sample();
   }
 
@@ -166,6 +168,7 @@ public:
 
   /**
    * @brief denote if given producer is thread safe and can be parallelized.
+   * @note if size() == SIZE_UNDEFIEND, thread safe shall be false
    *
    * @return bool true if thread safe.
    */
