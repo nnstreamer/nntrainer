@@ -13,7 +13,7 @@
 #ifndef __RANDOM_DATA_PRODUCER_H__
 #define __RANDOM_DATA_PRODUCER_H__
 
-#include <data_producers.h>
+#include <data_producer.h>
 
 #include <memory>
 #include <random>

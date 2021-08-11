@@ -12,7 +12,7 @@
 
 #include <databuffer_factory.h>
 
-#include <data_producers.h>
+#include <data_producer.h>
 #include <func_data_producer.h>
 #include <nntrainer_error.h>
 #include <raw_file_data_producer.h>
