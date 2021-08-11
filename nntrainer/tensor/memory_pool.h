@@ -41,6 +41,7 @@ public:
    * @param end_time The end of the validity interval of this memory
    *
    * @return The token to get the pointer for this memory after allocation
+   * @note start_time is inclusive, but end_time is exclusive
    */
   unsigned int requestMemory(size_t bytes, unsigned int start_time,
                              unsigned int end_time);
