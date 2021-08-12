@@ -823,7 +823,7 @@ public:
    * shape
    *
    * @param dim new dimension to be set for this tensor
-   * @param offset offset to be used from the start of the data in sizeof(float)
+   * @param offset offset to be used from the start of the data in element
    * @note The new tensor will share the same data as the current tensor but
    * can have different size.
    * @note New size added with offset must be less than the size of the original
