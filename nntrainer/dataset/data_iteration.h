@@ -132,6 +132,11 @@ public:
    */
   Sample(const Iteration &iter, unsigned int batch);
 
+  Sample(const Sample &rhs) = delete;
+  Sample &operator=(const Sample &rhs) = delete;
+  Sample(Sample &&rhs) = default;
+  Sample &operator=(Sample &&rhs) = default;
+
   /**
    * @brief Get the Input Reference object
    *
