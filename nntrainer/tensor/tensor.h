@@ -73,11 +73,12 @@ public:
   /**
    * @brief     Basic Constructor of Tensor
    */
-  Tensor() :
+  Tensor(std::string name_ = "") :
     dim(TensorDim()),
     strides(dim.computeStrides()),
     is_contiguous(true),
     initializer(Initializer::NONE),
+    name(name_),
     data(nullptr),
     src_tensor() {}
 
@@ -85,9 +86,11 @@ public:
    * @brief     Constructor of Tensor with dimension, possibly lazily
    * @param d Tensor dim for this tensor
    * @param alloc_now If the memory of the tensor must be allocated
+   * @param init Initializer for the tensor
+   * @param name Name of the tensor
    */
   Tensor(const TensorDim &d, bool alloc_now,
-         Initializer init = Initializer::NONE);
+         Initializer init = Initializer::NONE, std::string name = "");
 
   /**
    * @brief     Constructor of Tensor with dimension/buf
@@ -211,6 +214,7 @@ public:
     std::swap(lhs.is_contiguous, rhs.is_contiguous);
     std::swap(lhs.initializer, rhs.initializer);
     std::swap(lhs.data, rhs.data);
+    std::swap(lhs.name, rhs.name);
   }
 
   /**
@@ -830,7 +834,8 @@ public:
    * tensor.
    */
   Tensor getSharedDataTensor(const TensorDim dim, unsigned int offset,
-                             bool reset_stride = true) const;
+                             bool reset_stride = true,
+                             const std::string &name_ = "") const;
 
   /**
    * @brief make this tensor share memory with given tensor
@@ -1016,6 +1021,20 @@ public:
     return (b * strides[0] + c * strides[1] + h * strides[2] + w * strides[3]);
   }
 
+  /**
+   * @brief   Get name of the tensor
+   *
+   * @return name of the tensor
+   */
+  void setName(const std::string &name_) { name = name_; }
+
+  /**
+   * @brief   Get name of the tensor
+   *
+   * @return name of the tensor
+   */
+  const std::string &getName() const { return name; }
+
   static constexpr float epsilon = 1e-5;
 
 private:
@@ -1024,6 +1043,7 @@ private:
   std::array<unsigned int, TensorDim::MAXDIM> strides;
   bool is_contiguous;
   Tensor::Initializer initializer;
+  std::string name; /**< name of the tensor */
 
   std::shared_ptr<float> data;
 
