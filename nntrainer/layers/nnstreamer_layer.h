@@ -99,6 +99,11 @@ private:
   void finalizeError(int status);
 
   /**
+   * @brief     release the layer resources
+   */
+  void release() noexcept;
+
+  /**
    * @brief    convert nnstreamer's tensor_info to nntrainer's tensor_dim
    * @param[in] out_res nnstreamer's tensor_info
    * @param[out] dim nntrainer's tensor_dim
