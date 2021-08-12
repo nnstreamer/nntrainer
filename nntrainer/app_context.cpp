@@ -112,8 +112,8 @@ std::string getPluginPathConf(const std::string &suffix) {
   NNTR_THROW_IF_CLEANUP(path == nullptr, std::invalid_argument, freedict)
     << func_tag << "plugins layer failed";
 
-  freedict();
   std::string ret{path};
+  freedict();
   return ret;
 }
 
