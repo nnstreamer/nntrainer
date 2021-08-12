@@ -204,6 +204,20 @@ public:
    */
   ScopedView<Iteration> requestFilled();
 
+  /**
+   * @brief get slot size, slot size is number of batches inside the queue
+   *
+   * @return unsigned int num slot
+   */
+  unsigned int slots() { return iterations.size(); }
+
+  /**
+   * @brief get size of batch for one iteration
+   *
+   * @return unsigned int size of batch
+   */
+  unsigned int batch() { return iterations.front().get().batch(); }
+
 private:
   /**
    * @brief A wrapper object around @c Iteration which marks filled when filling
