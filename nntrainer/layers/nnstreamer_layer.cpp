@@ -62,18 +62,9 @@ int NNStreamerLayer::nnst_info_to_tensor_dim(ml_tensors_info_h &out_res,
   return status;
 }
 
-NNStreamerLayer::~NNStreamerLayer() {
-  try {
-    finalizeError(ML_ERROR_NONE);
-  } catch (std::exception &e) {
-    std::cerr << "failed in destructor, reason: " << e.what();
-  }
-}
+NNStreamerLayer::~NNStreamerLayer() { release(); }
 
-void NNStreamerLayer::finalizeError(int status) {
-  if (status == ML_ERROR_NONE)
-    return;
-
+void NNStreamerLayer::release() noexcept {
   if (in_res) {
     ml_tensors_info_destroy(in_res);
     in_res = nullptr;
@@ -98,6 +89,13 @@ void NNStreamerLayer::finalizeError(int status) {
     ml_single_close(single);
     single = nullptr;
   }
+}
+
+void NNStreamerLayer::finalizeError(int status) {
+  if (status == ML_ERROR_NONE)
+    return;
+
+  release();
 
   if (status != ML_ERROR_NONE)
     throw std::invalid_argument(

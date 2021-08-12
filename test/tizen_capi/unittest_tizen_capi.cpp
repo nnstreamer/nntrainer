@@ -1085,6 +1085,9 @@ TEST(nntrainer_capi_nnmodel, get_input_output_dimension_03_n) {
             ML_ERROR_INVALID_PARAMETER);
   EXPECT_EQ(ml_train_model_get_output_tensors_info(handle, &output_info),
             ML_ERROR_INVALID_PARAMETER);
+
+  status = ml_train_model_destroy(handle);
+  EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
 TEST(nntrainer_capi_nnmodel, get_input_output_dimension_04_n) {
@@ -1112,6 +1115,7 @@ TEST(nntrainer_capi_nnmodel, get_input_output_dimension_05_n) {
 
   status = ml_train_model_destroy(handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
+  handle = NULL;
 
   EXPECT_EQ(ml_train_model_get_input_tensors_info(handle, &input_info),
             ML_ERROR_INVALID_PARAMETER);
