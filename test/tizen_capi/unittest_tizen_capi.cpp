@@ -19,6 +19,7 @@
  * @author      Jijoong Moon <jijoong.moon@samsung.com>
  * @bug         No known bugs
  */
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #include <gtest/gtest.h>
 
 #include <nntrainer.h>

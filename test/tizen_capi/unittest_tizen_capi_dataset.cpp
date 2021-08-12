@@ -9,6 +9,7 @@
  * @author      Parichay Kapoor <pk.kapoor@samsung.com>
  * @bug         No known bugs
  */
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #include <gtest/gtest.h>
 
 #include <nntrainer.h>
@@ -100,6 +101,7 @@ TEST(nntrainer_capi_dataset, create_destroy_05_p) {
 
   status = ml_train_dataset_destroy(dataset);
   EXPECT_EQ(status, ML_ERROR_NONE);
+  dataset = nullptr;
 
   status = ml_train_dataset_destroy(dataset);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
@@ -422,6 +424,9 @@ TEST(nntrainer_capi_dataset, set_dataset_01_n) {
 
   status = ml_train_model_set_dataset(model, NULL);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
+
+  status = ml_train_model_destroy(model);
+  EXPECT_EQ(status, ML_ERROR_NONE);
 }
 
 /**

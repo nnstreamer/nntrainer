@@ -24,6 +24,8 @@
  *              Classifier : One Fully Connected Layer
  *
  */
+///@todo update below
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 
 #if defined(NNSTREAMER_AVAILABLE) && defined(ENABLE_TEST)
 #define APP_VALIDATE
