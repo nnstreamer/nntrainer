@@ -68,4 +68,80 @@ bool BatchQueue::isEmpty() const {
   return q.empty();
 }
 
+IterationQueue::IterationQueue(
+  unsigned int num_slots, const std::vector<ml::train::TensorDim> &input_dims,
+  const std::vector<ml::train::TensorDim> &label_dims) {
+  iterations.reserve(num_slots);
+  for (decltype(num_slots) i = 0; i < num_slots; ++i) {
+    iterations.emplace_back(input_dims, label_dims, this);
+    empty_q.push(&iterations.back());
+  }
+}
+
+ScopedView<Sample> IterationQueue::requestEmpty() {
+  if (being_filled == nullptr) {
+    being_filled = empty_q.front();
+    empty_q.pop();
+    current_iterator = being_filled->get().begin();
+  } else {
+    current_iterator++;
+  }
+
+  auto view = ScopedView<Sample>(&(*current_iterator),
+                                 [this] { being_filled->markSampleFilled(); });
+
+  if (current_iterator + 1 == being_filled->get().end()) {
+    being_filled = nullptr;
+  }
+
+  return view;
+}
+
+ScopedView<Iteration> IterationQueue::requestFilled() {
+  auto iteration = filled_q.front();
+  filled_q.pop();
+  return ScopedView<Iteration>(&iteration->get(),
+                               [this, iteration] { markEmpty(iteration); });
+}
+
+IterationQueue::MarkableIteration::MarkableIteration(
+  const std::vector<ml::train::TensorDim> &input_dims,
+  const std::vector<ml::train::TensorDim> &label_dims, IterationQueue *iq) :
+  iteration(input_dims, label_dims),
+  iq(iq),
+  num_observed(0) {}
+
+IterationQueue::MarkableIteration::MarkableIteration(MarkableIteration &&rhs) :
+  iteration(std::move(rhs.iteration)),
+  iq(rhs.iq),
+  num_observed(rhs.num_observed) {}
+
+IterationQueue::MarkableIteration &IterationQueue::MarkableIteration::
+operator=(MarkableIteration &&rhs) {
+  if (this == &rhs) {
+    return *this;
+  }
+  std::swap(iteration, rhs.iteration);
+  std::swap(iq, rhs.iq);
+  std::swap(num_observed, rhs.num_observed);
+  return *this;
+}
+
+void IterationQueue::markFilled(MarkableIteration *iteration) /** noexcept */ {
+  filled_q.push(iteration);
+}
+
+void IterationQueue::markEmpty(MarkableIteration *iteration) /** noexcept */ {
+  empty_q.push(iteration);
+}
+
+void IterationQueue::MarkableIteration::markSampleFilled() {
+  std::lock_guard notify_lock_guard(notify_mutex);
+  num_observed++;
+  if (num_observed == iteration.batch()) {
+    iq->markFilled(this);
+    num_observed = 0;
+  }
+}
+
 } // namespace nntrainer

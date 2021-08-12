@@ -35,7 +35,7 @@ public:
   /**
    * @brief Construct a new Iteration object
    * @note the batch dimension must be the same for all given dimensions and the
-   * first input must not be empty
+   * there must be at least one input
    *
    * @param input_dims input dimension
    * @param label_dims label dimension
@@ -102,7 +102,7 @@ public:
    *
    * @return std::vector<Sample>::const_iterator
    */
-  std::vector<Sample>::const_iterator begin() const { return samples.end(); }
+  std::vector<Sample>::const_iterator begin() const { return samples.begin(); }
 
   /**
    * @brief get sample iterator end

@@ -23,24 +23,6 @@ namespace nntrainer {
 namespace {
 
 /**
- * @brief return allocated tensors from dimensions
- *
- * @param dims dimensions
- * @return std::vector<Tensor> allocated tensors
- */
-std::vector<Tensor>
-tensorsFromDims(const std::vector<ml::train::TensorDim> &dims) {
-  std::vector<Tensor> t;
-  t.reserve(dims.size());
-
-  for (auto &dim : dims) {
-    t.emplace_back(dim);
-  }
-
-  return t;
-}
-
-/**
  * @brief check if all the dimension has the same batch, this is required
  * assumption for the creation of Iteration
  *
@@ -95,8 +77,8 @@ std::vector<Sample> unpackIteration(Iteration &iter) {
 
 Iteration::Iteration(const std::vector<ml::train::TensorDim> &input_dims,
                      const std::vector<ml::train::TensorDim> &label_dims) :
-  inputs(tensorsFromDims(input_dims)),
-  labels(tensorsFromDims(label_dims)) {
+  inputs(input_dims.begin(), input_dims.end()),
+  labels(label_dims.begin(), label_dims.end()) {
 
   NNTR_THROW_IF(!isBatchSame(input_dims, label_dims), std::invalid_argument)
     << "check batch size is all the same for all the input and label";
