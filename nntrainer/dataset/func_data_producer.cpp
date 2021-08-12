@@ -104,17 +104,17 @@ FuncDataProducer::finalize_sample(const std::vector<TensorDim> &input_dims,
                                              std::default_delete<float *[]>());
 
   return [cb = this->cb, ud = this->user_data_prop->get(), input_data,
-          label_data](unsigned int idx, std::vector<Tensor *> &inputs,
-                      std::vector<Tensor *> &labels) -> bool {
+          label_data](unsigned int idx, std::vector<Tensor> &inputs,
+                      std::vector<Tensor> &labels) -> bool {
     float **input_data_raw = input_data.get();
     float **label_data_raw = label_data.get();
 
     for (unsigned int i = 0; i < inputs.size(); ++i) {
-      *(input_data_raw + i) = inputs[i]->getData();
+      *(input_data_raw + i) = inputs[i].getData();
     }
 
     for (unsigned int i = 0; i < labels.size(); ++i) {
-      *(label_data_raw + i) = labels[i]->getData();
+      *(label_data_raw + i) = labels[i].getData();
     }
 
     bool last = false;
