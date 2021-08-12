@@ -88,8 +88,9 @@ static auto rng = [] {
   return rng;
 }();
 
-Tensor::Tensor(const TensorDim &d, bool alloc_now, Tensor::Initializer init) :
-  Tensor() {
+Tensor::Tensor(const TensorDim &d, bool alloc_now, Tensor::Initializer init,
+               std::string name_) :
+  Tensor(name_) {
   if (d.getDataLen() != 0) {
     dim = d;
     strides = d.computeStrides();
@@ -557,9 +558,12 @@ void Tensor::createSharedDataTensor(const Tensor &src, Tensor &dest,
 }
 
 Tensor Tensor::getSharedDataTensor(const TensorDim dim_, unsigned int offset,
-                                   bool reset_stride) const {
+                                   bool reset_stride,
+                                   const std::string &name_) const {
   Tensor ret = *this;
   ret.dim = dim_;
+  if (!name_.empty())
+    ret.name = name_;
 
   if (dim_.getDataLen() + offset > dim.getDataLen())
     throw std::invalid_argument(
