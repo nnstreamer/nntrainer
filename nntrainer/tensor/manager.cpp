@@ -257,12 +257,10 @@ void Manager::initializeWeights() {
     return;
 
   if (LAYER_V2) {
-    for (auto &l_w : weights_v2) {
-      for (auto &w : l_w) {
-        w->initializeVariable();
-        // tensor_map(&w->getVariableRef(), requestMemory(w.getDim().size(), 0,
-        // MAX));
-      }
+    for (auto &w : weights_v2) {
+      w->initializeVariable();
+      // tensor_map(&w->getVariableRef(), requestMemory(w.getDim().size(), 0,
+      // MAX));
     }
   } else {
     if (total_weight_size == 0) {
@@ -295,10 +293,8 @@ void Manager::allocateWeights() {
     return;
 
   if (LAYER_V2) {
-    for (auto &l_w : weights_v2) {
-      for (auto &w : l_w) {
-        w->allocateVariable();
-      }
+    for (auto &w : weights_v2) {
+      w->allocateVariable();
     }
   } else {
     for (auto &l_w : weights) {
@@ -314,10 +310,8 @@ void Manager::allocateWeights() {
 
 void Manager::deallocateWeights() {
   if (LAYER_V2) {
-    for (auto &l_w : weights_v2) {
-      for (auto &w : l_w) {
-        w->deallocateVariable();
-      }
+    for (auto &w : weights_v2) {
+      w->deallocateVariable();
     }
   } else {
     for (auto &l_w : weights) {
@@ -337,10 +331,8 @@ void Manager::allocateGradients() {
     shared_grad.allocate();
 
   if (LAYER_V2) {
-    for (auto &l_w : weights_v2) {
-      for (auto &w : l_w) {
-        w->allocateGradient();
-      }
+    for (auto &w : weights_v2) {
+      w->allocateGradient();
     }
   } else {
     for (auto &l_w : weights) {
@@ -356,10 +348,8 @@ void Manager::deallocateGradients() {
   shared_grad.deallocate();
 
   if (LAYER_V2) {
-    for (auto &l_w : weights_v2) {
-      for (auto &w : l_w) {
-        w->deallocateGradient();
-      }
+    for (auto &w : weights_v2) {
+      w->deallocateGradient();
     }
   } else {
     for (auto &l_w : weights) {
@@ -376,13 +366,11 @@ void Manager::deallocateGradients() {
  */
 void Manager::initializeGradients() {
   if (LAYER_V2) {
-    for (auto &l_w : weights_v2) {
-      for (auto &w : l_w) {
-        w->initializeGradient();
-        // auto exec_order = tensor_exec_order[w.getName()];
-        // tensor_map(&w->getGradientRef(), requestMemory(w.getDim().size(),
-        //       std::get<1>(exec_order), std::get<2>(exec_order) + 1));
-      }
+    for (auto &w : weights_v2) {
+      w->initializeGradient();
+      // auto exec_order = tensor_exec_order[w.getName()];
+      // tensor_map(&w->getGradientRef(), requestMemory(w.getDim().size(),
+      //       std::get<1>(exec_order), std::get<2>(exec_order) + 1));
     }
   } else {
     if (total_weight_size == 0) {
@@ -520,20 +508,14 @@ void Manager::allocateInOuts() {
     shared_inout.allocate();
 
   if (LAYER_V2) {
-    for (auto &li : inputs_v2) {
-      for (auto &in : li) {
-        in->allocateVariable();
-      }
+    for (auto &in : inputs_v2) {
+      in->allocateVariable();
     }
-    for (auto &lo : outputs_v2) {
-      for (auto &out : lo) {
-        out->allocateVariable();
-      }
+    for (auto &out : outputs_v2) {
+      out->allocateVariable();
     }
-    for (auto &lt : tensors_v2) {
-      for (auto &t : lt) {
-        t->allocateVariable();
-      }
+    for (auto &t : tensors_v2) {
+      t->allocateVariable();
     }
   } else {
     for (auto &l_io : in_outs) {
@@ -548,20 +530,14 @@ void Manager::deallocateInOuts() {
   shared_inout.deallocate();
 
   if (LAYER_V2) {
-    for (auto &li : inputs_v2) {
-      for (auto &in : li) {
-        in->deallocateVariable();
-      }
+    for (auto &in : inputs_v2) {
+      in->deallocateVariable();
     }
-    for (auto &lo : outputs_v2) {
-      for (auto &out : lo) {
-        out->deallocateVariable();
-      }
+    for (auto &out : outputs_v2) {
+      out->deallocateVariable();
     }
-    for (auto &lt : tensors_v2) {
-      for (auto &t : lt) {
-        t->deallocateVariable();
-      }
+    for (auto &t : tensors_v2) {
+      t->deallocateVariable();
     }
   } else {
     for (auto &l_io : in_outs) {
@@ -578,20 +554,14 @@ void Manager::allocateDerivatives() {
     shared_deriv.allocate();
 
   if (LAYER_V2) {
-    for (auto &li : inputs_v2) {
-      for (auto &in : li) {
-        in->allocateGradient();
-      }
+    for (auto &in : inputs_v2) {
+      in->allocateGradient();
     }
-    for (auto &lo : outputs_v2) {
-      for (auto &out : lo) {
-        out->allocateGradient();
-      }
+    for (auto &out : outputs_v2) {
+      out->allocateGradient();
     }
-    for (auto &lt : tensors_v2) {
-      for (auto &t : lt) {
-        t->allocateGradient();
-      }
+    for (auto &t : tensors_v2) {
+      t->allocateGradient();
     }
   } else {
     for (auto &l_io : in_outs) {
@@ -606,20 +576,14 @@ void Manager::deallocateDerivatives() {
   shared_deriv.deallocate();
 
   if (LAYER_V2) {
-    for (auto &li : inputs_v2) {
-      for (auto &in : li) {
-        in->deallocateGradient();
-      }
+    for (auto &in : inputs_v2) {
+      in->deallocateGradient();
     }
-    for (auto &lo : outputs_v2) {
-      for (auto &out : lo) {
-        out->deallocateGradient();
-      }
+    for (auto &out : outputs_v2) {
+      out->deallocateGradient();
     }
-    for (auto &lt : tensors_v2) {
-      for (auto &t : lt) {
-        t->deallocateGradient();
-      }
+    for (auto &t : tensors_v2) {
+      t->deallocateGradient();
     }
   } else {
     for (auto &l_io : in_outs) {
@@ -688,25 +652,19 @@ void Manager::initializeTensorsInference() {
     }
   } else {
     // Inference Mode without optimizations
-    for (auto &layer_outs : outputs_v2) {
-      // TODO:For flatten layer, do not assign new memory
-
-      for (auto &outs : layer_outs) {
-        outs->initialize(Tensor(), Tensor(), false);
-      }
+    for (auto &outs : outputs_v2) {
+      outs->initialize(Tensor(), Tensor(), false);
     }
 
     // Inference Mode without optimizations
-    for (auto &layer_ts : tensors_v2) {
-      for (auto &ts : layer_ts) {
-        ts->initialize(Tensor(), Tensor(), false);
-      }
+    for (auto &ts : tensors_v2) {
+      ts->initialize(Tensor(), Tensor(), false);
     }
 
     // In inference mode, do not allocate the memory for the input of the first
     // layer. These is the first entry in the in_outs. Inference() will override
     // input tensors of the first layer
-    for ([[maybe_unused]] auto &layer_ins : inputs_v2) {
+    for ([[maybe_unused]] auto &ins : inputs_v2) {
       // as inputs_v2 are only set for input layers, this can be skipped all the
       // way
       continue;
@@ -750,24 +708,18 @@ void Manager::initializeTensorsTrain() {
     }
   } else {
     // Training Mode without optimizations
-    for (auto &layer_outs : outputs_v2) {
-      for (auto &outs : layer_outs) {
-        outs->initialize(Tensor(), Tensor(), true);
-      }
+    for (auto &outs : outputs_v2) {
+      outs->initialize(Tensor(), Tensor(), true);
     }
 
     // Training Mode without optimizations
-    for (auto &layer_ts : tensors_v2) {
-      for (auto &ts : layer_ts) {
-        ts->initialize(Tensor(), Tensor(), true);
-      }
+    for (auto &ts : tensors_v2) {
+      ts->initialize(Tensor(), Tensor(), true);
     }
 
     // Training Mode without optimizations
-    for (auto &layer_ins : inputs_v2) {
-      for (auto &ins : layer_ins) {
-        ins->initialize(Tensor(), Tensor(), true);
-      }
+    for (auto &ins : inputs_v2) {
+      ins->initialize(Tensor(), Tensor(), true);
     }
   }
 }
@@ -868,10 +820,8 @@ std::vector<Weight *> Manager::getWeights() {
   std::vector<Weight *> all_weights;
 
   if (LAYER_V2) {
-    for (auto &weight_v2 : weights_v2) {
-      for (auto &w : weight_v2) {
-        all_weights.push_back(w.get());
-      }
+    for (auto &w : weights_v2) {
+      all_weights.push_back(w.get());
     }
   } else {
     throw std::runtime_error("Using deprecated code. Upgrade to LayerV2");
