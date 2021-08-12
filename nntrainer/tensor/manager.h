@@ -432,13 +432,13 @@ private:
   // std::vector<std::unique_ptr<Var_Grad>> tensors; /**< inputs/outputs/tensors
   // for the network */
 
-  std::vector<std::vector<std::unique_ptr<Weight>>>
+  std::vector<std::unique_ptr<Weight>>
     weights_v2; /**< weights for the layers */
-  std::vector<std::vector<std::unique_ptr<Var_Grad>>>
+  std::vector<std::unique_ptr<Var_Grad>>
     inputs_v2; /**< inputs for the layers */
-  std::vector<std::vector<std::unique_ptr<Var_Grad>>>
+  std::vector<std::unique_ptr<Var_Grad>>
     outputs_v2; /**< outputs for the layers */
-  std::vector<std::vector<std::unique_ptr<Var_Grad>>>
+  std::vector<std::unique_ptr<Var_Grad>>
     tensors_v2; /**< extra tensors required by the layers */
 
   std::unordered_map<std::string, GraphNode::ExecutionOrder>
@@ -580,16 +580,16 @@ private:
    * @param layer_objs_list list to store the created tensors
    */
   template <typename T>
-  std::vector<T *> requestTensors(
-    const GraphNode &node, const std::vector<typename T::Spec> &tensors_spec,
-    std::vector<std::vector<std::unique_ptr<T>>> &layer_objs_list) {
+  std::vector<T *>
+  requestTensors(const GraphNode &node,
+                 const std::vector<typename T::Spec> &tensors_spec,
+                 std::vector<std::unique_ptr<T>> &layer_objs_list) {
     std::vector<T *> ret;
-    std::vector<std::unique_ptr<T>> tensors_list;
-    tensors_list.reserve(tensors_spec.size());
+    size_t current_size = layer_objs_list.size();
 
     for (auto const &ts : std::as_const(tensors_spec)) {
-      tensors_list.emplace_back(std::make_unique<T>(ts));
-      auto const &ts_name = tensors_list.back()->getName();
+      layer_objs_list.emplace_back(std::make_unique<T>(ts));
+      auto const &ts_name = layer_objs_list.back()->getName();
       /**
        * @todo maybe requesting tensor with same name should mean reusing the
        * tensor than giving the error
@@ -603,10 +603,9 @@ private:
       tensor_exec_order[ts_name] = node.getExecutionOrder();
     }
 
-    std::transform(tensors_list.begin(), tensors_list.end(),
-                   std::back_inserter(ret),
+    std::transform(layer_objs_list.begin() + current_size,
+                   layer_objs_list.end(), std::back_inserter(ret),
                    [](auto const &elem) { return elem.get(); });
-    layer_objs_list.emplace_back(std::move(tensors_list));
 
     return ret;
   }
