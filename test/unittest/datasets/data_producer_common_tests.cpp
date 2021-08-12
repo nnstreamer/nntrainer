@@ -17,10 +17,8 @@
 #include <tuple>
 #include <vector>
 
-static std::tuple<std::vector<nntrainer::Tensor *> /** inputs_view */,
-                  std::vector<nntrainer::Tensor *> /** labels_view */,
-                  std::shared_ptr<std::vector<nntrainer::Tensor>> /** inputs */,
-                  std::shared_ptr<std::vector<nntrainer::Tensor>> /** labels */>
+static std::tuple<std::vector<nntrainer::Tensor> /** inputs */,
+                  std::vector<nntrainer::Tensor> /** labels */>
 createSample(const std::vector<nntrainer::TensorDim> &input_dims,
              const std::vector<nntrainer::TensorDim> &label_dims) {
   using namespace nntrainer;
@@ -30,31 +28,19 @@ createSample(const std::vector<nntrainer::TensorDim> &input_dims,
     return t;
   };
 
-  auto populate_view = [](Tensor &t) { return &t; };
+  std::vector<Tensor> inputs;
+  inputs.reserve(input_dims.size());
 
-  auto inputs = std::make_shared<std::vector<Tensor>>();
-  inputs->reserve(input_dims.size());
-
-  auto labels = std::make_shared<std::vector<Tensor>>();
-  labels->reserve(label_dims.size());
+  std::vector<Tensor> labels;
+  labels.reserve(label_dims.size());
 
   std::transform(input_dims.begin(), input_dims.end(),
-                 std::back_inserter(*inputs), populate_tensor);
+                 std::back_inserter(inputs), populate_tensor);
 
   std::transform(label_dims.begin(), label_dims.end(),
-                 std::back_inserter(*labels), populate_tensor);
+                 std::back_inserter(labels), populate_tensor);
 
-  std::vector<Tensor *> input_view;
-  input_view.reserve(input_dims.size());
-  std::transform(inputs->begin(), inputs->end(), std::back_inserter(input_view),
-                 populate_view);
-
-  std::vector<Tensor *> label_view;
-  label_view.reserve(label_dims.size());
-  std::transform(labels->begin(), labels->end(), std::back_inserter(label_view),
-                 populate_view);
-
-  return {input_view, label_view, inputs, labels};
+  return {inputs, labels};
 }
 
 /** batchwise producer tests */
@@ -205,10 +191,9 @@ TEST_P(DataProducerSemantics_samples, fetch_one_epoch_or_10_iteration_pn) {
     sz = 10;
   }
 
-  auto [input_view, label_view, inputs, labels] =
-    createSample(input_dims, label_dims);
+  auto [inputs, labels] = createSample(input_dims, label_dims);
   for (unsigned i = 0; i < sz; ++i) {
-    auto last = generator(i, input_view, label_view);
+    auto last = generator(i, inputs, labels);
 
     if (i == sz - 1 && has_fixed_size) {
       EXPECT_TRUE(last);
@@ -217,7 +202,7 @@ TEST_P(DataProducerSemantics_samples, fetch_one_epoch_or_10_iteration_pn) {
     }
 
     if (validator) {
-      ASSERT_TRUE(validator(*inputs, *labels))
+      ASSERT_TRUE(validator(inputs, labels))
         << " failed validation for iteration: " << i << '\n';
     }
   }

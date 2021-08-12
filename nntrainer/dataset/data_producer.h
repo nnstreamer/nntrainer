@@ -71,10 +71,9 @@ public:
    * and should be used, or passed at will of caller
    *
    */
-  using Generator_sample =
-    std::function<bool(unsigned int, /** index */
-                       std::vector<Tensor *> & /** inputs */,
-                       std::vector<Tensor *> & /** labels */)>;
+  using Generator_sample = std::function<bool(
+    unsigned int, /** index */
+    std::vector<Tensor> & /** inputs */, std::vector<Tensor> & /** labels */)>;
 
   constexpr inline static unsigned int SIZE_UNDEFINED =
     std::numeric_limits<unsigned int>::max();
