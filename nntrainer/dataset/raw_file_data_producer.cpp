@@ -180,17 +180,17 @@ RawFileDataProducer::finalize_sample(const std::vector<TensorDim> &input_dims,
   static thread_local std::ifstream file_(path_prop.get(), std::ios::binary);
 
   return [idxes = std::move(idxes_), sz](unsigned int idx,
-                                         std::vector<Tensor *> &inputs,
-                                         std::vector<Tensor *> &labels) {
+                                         std::vector<Tensor> &inputs,
+                                         std::vector<Tensor> &labels) {
     NNTR_THROW_IF(idx >= sz, std::range_error)
       << "given index is out of bound, index: " << idx << " size: " << sz;
 
     file_.seekg(idxes[idx], std::ios_base::beg);
     for (auto &input : inputs) {
-      input->read(file_);
+      input.read(file_);
     }
     for (auto &label : labels) {
-      label->read(file_);
+      label.read(file_);
     }
 
     return idx == sz - 1;
