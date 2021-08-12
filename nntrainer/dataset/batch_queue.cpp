@@ -70,7 +70,11 @@ bool BatchQueue::isEmpty() const {
 
 IterationQueue::IterationQueue(
   unsigned int num_slots, const std::vector<ml::train::TensorDim> &input_dims,
-  const std::vector<ml::train::TensorDim> &label_dims) {
+  const std::vector<ml::train::TensorDim> &label_dims) :
+  being_filled(nullptr) {
+  NNTR_THROW_IF(num_slots == 0, std::invalid_argument)
+    << "number of slots must be more then zero";
+
   iterations.reserve(num_slots);
   for (decltype(num_slots) i = 0; i < num_slots; ++i) {
     iterations.emplace_back(input_dims, label_dims, this);
@@ -80,6 +84,10 @@ IterationQueue::IterationQueue(
 
 ScopedView<Sample> IterationQueue::requestEmpty() {
   if (being_filled == nullptr) {
+    if (empty_q.empty()) {
+      throw std::invalid_argument(
+        "empty_q empty"); /// this is temporary measure
+    }
     being_filled = empty_q.front();
     empty_q.pop();
     current_iterator = being_filled->get().begin();
@@ -88,7 +96,9 @@ ScopedView<Sample> IterationQueue::requestEmpty() {
   }
 
   auto view = ScopedView<Sample>(&(*current_iterator),
-                                 [this] { being_filled->markSampleFilled(); });
+                                 [current_being_filed = this->being_filled] {
+                                   current_being_filed->markSampleFilled();
+                                 });
 
   if (current_iterator + 1 == being_filled->get().end()) {
     being_filled = nullptr;
@@ -98,6 +108,10 @@ ScopedView<Sample> IterationQueue::requestEmpty() {
 }
 
 ScopedView<Iteration> IterationQueue::requestFilled() {
+  if (filled_q.empty()) {
+    throw std::invalid_argument("filled_q empty"); /// this is temporary measure
+  }
+
   auto iteration = filled_q.front();
   filled_q.pop();
   return ScopedView<Iteration>(&iteration->get(),
