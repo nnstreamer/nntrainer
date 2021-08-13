@@ -28,37 +28,38 @@ extern "C" {
  */
 typedef enum {
   ML_TRAIN_LAYER_TYPE_INPUT = 0,  /**< Input Layer */
-  ML_TRAIN_LAYER_TYPE_FC,         /**< Fully Connected Layer */
-  ML_TRAIN_LAYER_TYPE_BN,         /**< Batch Normalization Layer (Since 6.5) */
-  ML_TRAIN_LAYER_TYPE_CONV2D,     /**< Convolution 2D Layer (Since 6.5) */
-  ML_TRAIN_LAYER_TYPE_POOLING2D,  /**< Pooling 2D Layer (Since 6.5) */
-  ML_TRAIN_LAYER_TYPE_FLATTEN,    /**< Flatten Layer (Since 6.5) */
-  ML_TRAIN_LAYER_TYPE_ACTIVATION, /**< Activation Layer (Since 6.5) */
-  ML_TRAIN_LAYER_TYPE_ADDITION,   /**< Addition Layer (Since 6.5) */
-  ML_TRAIN_LAYER_TYPE_CONCAT,     /**< Concat Layer (Since 6.5) */
-  ML_TRAIN_LAYER_TYPE_MULTIOUT,   /**< MultiOut Layer (Since 6.5) */
-  ML_TRAIN_LAYER_TYPE_PREPROCESS_FLIP, /**< Preprocess flip Layer (Since 6.5) */
-  ML_TRAIN_LAYER_TYPE_PREPROCESS_TRANSLATE, /**< Preprocess translate Layer
-                                               (Since 6.5) */
-  ML_TRAIN_LAYER_TYPE_PREPROCESS_L2NORM,   /**< Preprocess L2Normalization Layer
+  ML_TRAIN_LAYER_TYPE_FC = 1,     /**< Fully Connected Layer */
+  ML_TRAIN_LAYER_TYPE_BN = 2,     /**< Batch Normalization Layer (Since 6.5) */
+  ML_TRAIN_LAYER_TYPE_CONV2D = 3, /**< Convolution 2D Layer (Since 6.5) */
+  ML_TRAIN_LAYER_TYPE_POOLING2D = 4,  /**< Pooling 2D Layer (Since 6.5) */
+  ML_TRAIN_LAYER_TYPE_FLATTEN = 5,    /**< Flatten Layer (Since 6.5) */
+  ML_TRAIN_LAYER_TYPE_ACTIVATION = 6, /**< Activation Layer (Since 6.5) */
+  ML_TRAIN_LAYER_TYPE_ADDITION = 7,   /**< Addition Layer (Since 6.5) */
+  ML_TRAIN_LAYER_TYPE_CONCAT = 8,     /**< Concat Layer (Since 6.5) */
+  ML_TRAIN_LAYER_TYPE_MULTIOUT = 9,   /**< MultiOut Layer (Since 6.5) */
+  ML_TRAIN_LAYER_TYPE_EMBEDDING = 10, /**< Embedding Layer (Since 6.5) */
+  ML_TRAIN_LAYER_TYPE_RNN = 11,       /**< RNN Layer (Since 6.5) */
+  ML_TRAIN_LAYER_TYPE_LSTM = 12,      /**< LSTM Layer (Since 6.5) */
+  ML_TRAIN_LAYER_TYPE_SPLIT = 13,     /**< Split Layer (Since 6.5) */
+  ML_TRAIN_LAYER_TYPE_GRU = 14,       /**< GRU Layer (Since 6.5) */
+  ML_TRAIN_LAYER_TYPE_PERMUTE = 15,   /**< Permute layer (Since 6.5) */
+  ML_TRAIN_LAYER_TYPE_DROPOUT = 16,   /**< Dropout Layer (Since 6.5) */
+  ML_TRAIN_LAYER_TYPE_BACKBONE_NNSTREAMER = 17, /**< Backbone using NNStreamer
                                               (Since 6.5) */
-  ML_TRAIN_LAYER_TYPE_EMBEDDING,           /**< Embedding Layer (Since 6.5) */
-  ML_TRAIN_LAYER_TYPE_RNN,                 /**< RNN Layer (Since 6.5) */
-  ML_TRAIN_LAYER_TYPE_LSTM,                /**< LSTM Layer (Since 6.5) */
-  ML_TRAIN_LAYER_TYPE_SPLIT,               /**< Split Layer (Since 6.5) */
-  ML_TRAIN_LAYER_TYPE_GRU,                 /**< GRU Layer (Since 6.5) */
-  ML_TRAIN_LAYER_TYPE_PERMUTE,             /**< Permute layer (Since 6.5) */
-  ML_TRAIN_LAYER_TYPE_DROPOUT,             /**< Dropout Layer (Since 6.5) */
-  ML_TRAIN_LAYER_TYPE_BACKBONE_NNSTREAMER, /**< Backbone using NNStreamer
-                                              (Since 6.5) */
-  ML_TRAIN_LAYER_TYPE_CENTROID_KNN, /**< Centroid KNN Layer (Since 6.5) */
+  ML_TRAIN_LAYER_TYPE_CENTROID_KNN = 18, /**< Centroid KNN Layer (Since 6.5) */
+  ML_TRAIN_LAYER_TYPE_PREPROCESS_FLIP =
+    300, /**< Preprocess flip Layer (Since 6.5) */
+  ML_TRAIN_LAYER_TYPE_PREPROCESS_TRANSLATE = 301, /**< Preprocess translate
+                                               Layer (Since 6.5) */
+  ML_TRAIN_LAYER_TYPE_PREPROCESS_L2NORM = 302, /**< Preprocess L2Normalization
+                                            Layer (Since 6.5) */
   ML_TRAIN_LAYER_TYPE_LOSS_MSE =
     500, /**< Mean Squared Error Loss Layer type (Since 6.5) */
-  ML_TRAIN_LAYER_TYPE_LOSS_CROSS_ENTROPY_SIGMOID, /**< Cross Entropy with
+  ML_TRAIN_LAYER_TYPE_LOSS_CROSS_ENTROPY_SIGMOID = 501, /**< Cross Entropy with
                                        Sigmoid Loss Layer type (Since 6.5) */
-  ML_TRAIN_LAYER_TYPE_LOSS_CROSS_ENTROPY_SOFTMAX, /**< Cross Entropy with
+  ML_TRAIN_LAYER_TYPE_LOSS_CROSS_ENTROPY_SOFTMAX = 502, /**< Cross Entropy with
                                        Softmax Loss Layer type (Since 6.5) */
-  ML_TRAIN_LAYER_TYPE_UNKNOWN = 999               /**< Unknown Layer */
+  ML_TRAIN_LAYER_TYPE_UNKNOWN = 999                     /**< Unknown Layer */
 } ml_train_layer_type_e;
 
 /**
@@ -67,7 +68,7 @@ typedef enum {
  */
 typedef enum {
   ML_TRAIN_OPTIMIZER_TYPE_ADAM = 0, /**< Adam Optimizer */
-  ML_TRAIN_OPTIMIZER_TYPE_SGD, /**< Stochastic Gradient Descent Optimizer */
+  ML_TRAIN_OPTIMIZER_TYPE_SGD = 1, /**< Stochastic Gradient Descent Optimizer */
   ML_TRAIN_OPTIMIZER_TYPE_UNKNOWN = 999 /**< Unknown Optimizer */
 } ml_train_optimizer_type_e;
 
@@ -192,8 +193,9 @@ typedef enum {
 typedef enum {
   ML_TRAIN_SUMMARY_MODEL = 0, /**< Overview of model
                                    summary with one-line layer information */
-  ML_TRAIN_SUMMARY_LAYER, /**< Detailed model summary with layer properties */
-  ML_TRAIN_SUMMARY_TENSOR /**< Model summary layer's including weight
+  ML_TRAIN_SUMMARY_LAYER =
+    1, /**< Detailed model summary with layer properties */
+  ML_TRAIN_SUMMARY_TENSOR = 2 /**< Model summary layer's including weight
                              information */
 } ml_train_summary_type_e;
 
