@@ -246,7 +246,7 @@ bool istrequal(const std::string &a, const std::string &b);
  * @param e1 enum value
  * @param e2 enum value
  *
- * @return enum value after performing AND operation
+ * @return enum value after performing logical AND operation
  */
 template <typename T, typename C = int>
 bool enum_class_logical_and(T e1, T e2) {
@@ -262,7 +262,7 @@ bool enum_class_logical_and(T e1, T e2) {
  * @param e1 enum value
  * @param e2 enum value
  *
- * @return enum value after performing AND operation
+ * @return enum value after performing OR operation
  */
 template <typename T, typename C = int> T enum_class_or(T e1, T e2) {
   C i1 = static_cast<int>(e1);
