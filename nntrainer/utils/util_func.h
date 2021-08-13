@@ -22,6 +22,7 @@
 
 #ifndef __UTIL_FUNC_H__
 #define __UTIL_FUNC_H__
+
 #ifdef __cplusplus
 
 #include <cstring>
@@ -30,6 +31,7 @@
 
 #include <nntrainer_error.h>
 #include <tensor.h>
+
 namespace nntrainer {
 
 #define NN_RETURN_STATUS()         \
@@ -237,6 +239,38 @@ std::vector<std::string> split(const std::string &s, const std::regex &reg);
  * @retval false if string is case-insensitive not equal
  */
 bool istrequal(const std::string &a, const std::string &b);
+
+/**
+ * @brief Perform INT_LOGICAL_AND operation on enum class value
+ *
+ * @param e1 enum value
+ * @param e2 enum value
+ *
+ * @return enum value after performing AND operation
+ */
+template <typename T, typename C = int>
+bool enum_class_logical_and(T e1, T e2) {
+  C i1 = static_cast<int>(e1);
+  C i2 = static_cast<int>(e2);
+
+  return (i1 & i2) != 0;
+}
+
+/**
+ * @brief Perform INT_OR operation on enum class value
+ *
+ * @param e1 enum value
+ * @param e2 enum value
+ *
+ * @return enum value after performing AND operation
+ */
+template <typename T, typename C = int> T enum_class_or(T e1, T e2) {
+  C i1 = static_cast<int>(e1);
+  C i2 = static_cast<int>(e2);
+
+  return static_cast<T>(i1 | i2);
+}
+
 } /* namespace nntrainer */
 
 #endif /* __cplusplus */

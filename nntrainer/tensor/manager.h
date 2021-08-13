@@ -426,12 +426,6 @@ public:
   void deallocateWeights();
 
 private:
-  // std::vector<std::unique_ptr<Weight>> weights; /**< weights for the network
-  // */
-  /** @todo: split this based on the lifespan later */
-  // std::vector<std::unique_ptr<Var_Grad>> tensors; /**< inputs/outputs/tensors
-  // for the network */
-
   std::vector<std::unique_ptr<Weight>>
     weights_v2; /**< weights for the layers */
   std::vector<std::unique_ptr<Var_Grad>>
@@ -441,11 +435,21 @@ private:
   std::vector<std::unique_ptr<Var_Grad>>
     tensors_v2; /**< extra tensors required by the layers */
 
-  std::unordered_map<std::string, GraphNode::ExecutionOrder>
+  /** @todo: combine the list of the weights/var_grad to a common list */
+  // std::vector<std::unique_ptr<Var_Grad>> tensors; /**< inputs/outputs/tensors
+  // for the network */
+
+  /** TODO: kept for now, possibly remove this after for offloading is
+   * implemented */
+  std::unordered_map<std::string, std::vector<unsigned int>>
     tensor_exec_order; /**< stores the order/location at which a given tensor is
-                        going to be executed when the network is forwarded and
-                        backwarded */
-  // std::unordered_map<Tensor &, unsigned int> tensor_map;
+                          going to be used when the network is forwarded and
+                          backwarded */
+
+  std::unordered_map<std::string, TensorLifespan>
+    tensor_lifespan_map; /**< map from tensor name to its lifespan */
+  std::unordered_map<std::string, int>
+    tensor_token_map; /**< map from tensor to its memory token */
 
   /**< Weights of all the layer in the model to be managed */
   std::vector<std::vector<std::reference_wrapper<Weight>>> weights;
@@ -590,17 +594,12 @@ private:
     for (auto const &ts : std::as_const(tensors_spec)) {
       layer_objs_list.emplace_back(std::make_unique<T>(ts));
       auto const &ts_name = layer_objs_list.back()->getName();
-      /**
-       * @todo maybe requesting tensor with same name should mean reusing the
-       * tensor than giving the error
-       */
+
       if (tensor_exec_order.find(ts_name) != tensor_exec_order.end())
         throw std::invalid_argument("Requesting tensor " + ts_name +
                                     " with same name");
-      /**
-       * @todo set the exec_order based on the set lifespan from the spec
-       */
-      tensor_exec_order[ts_name] = node.getExecutionOrder();
+
+      tensor_exec_order[ts_name] = {};
     }
 
     std::transform(layer_objs_list.begin() + current_size,
@@ -609,6 +608,14 @@ private:
 
     return ret;
   }
+
+  /**
+   * @brief     Expand the lifespan of the tensor with the given name
+   *
+   * @param name The name of the tensor
+   * @param lifespan The lifespan to be expanded to
+   */
+  inline void expand_lifespan(const std::string &name, TensorLifespan lifespan);
 };
 
 } // namespace nntrainer

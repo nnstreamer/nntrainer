@@ -175,7 +175,7 @@ public:
   requestTensor(const TensorDim &dim, const std::string &name,
                 const Tensor::Initializer init = Tensor::Initializer::NONE,
                 bool trainable = false,
-                TensorLifespan lifespan = ITERATION_LIFESPAN) {
+                TensorLifespan lifespan = TensorLifespan::ITERATION_LIFESPAN) {
     tensors_spec.emplace_back(dim, init, trainable, name, lifespan);
     return tensors_spec.size() - 1;
   }
