@@ -781,8 +781,8 @@ Manager::requestWeights(const GraphNode &node,
     tensor_exec_order[gname].push_back(std::get<1>(exec_order));
 
     /** set tensor lifespan */
-    expand_lifespan(vname, TensorLifespan::MAX_LIFESPAN);
-    expand_lifespan(gname, TensorLifespan::BACKWARD_FUNC_LIFESPAN);
+    expandLifespan(vname, TensorLifespan::MAX_LIFESPAN);
+    expandLifespan(gname, TensorLifespan::BACKWARD_FUNC_LIFESPAN);
   }
 
   return ret;
@@ -819,8 +819,8 @@ Manager::requestTensors(const GraphNode &node,
     }
 
     /** set tensor lifespan */
-    expand_lifespan(vname, tspan);
-    expand_lifespan(gname, tspan);
+    expandLifespan(vname, tspan);
+    expandLifespan(gname, tspan);
   }
 
   return ret;
@@ -831,21 +831,42 @@ Manager::requestTensors(const GraphNode &node,
  */
 std::vector<Var_Grad *>
 Manager::requestInputs(const GraphNode &node,
-                       const std::vector<TensorDim> &inputs_dim) {
-  unsigned int count = 0;
+                       const std::vector<TensorDim> &inputs_dim,
+                       const std::vector<std::string> &outputs_name) {
+
   auto const &tspan = TensorLifespan::ITERATION_LIFESPAN;
-  std::vector<Var_Grad::Spec> inputs_spec;
+  std::vector<Var_Grad *> ret;
 
-  std::transform(
-    inputs_dim.begin(), inputs_dim.end(), std::back_inserter(inputs_spec),
-    [&count, &node, &tspan](auto const &elem) {
-      return std::make_tuple(elem, Tensor::Initializer::NONE, true,
-                             node.getName() + std::string(":input") +
-                               std::to_string(count++),
-                             tspan);
-    });
+  if (outputs_name.empty()) {
+    unsigned int count = 0;
+    std::vector<Var_Grad::Spec> inputs_spec;
 
-  auto ret = requestTensors<Var_Grad>(node, inputs_spec, inputs_v2);
+    std::transform(
+      inputs_dim.begin(), inputs_dim.end(), std::back_inserter(inputs_spec),
+      [&count, &node, &tspan](auto const &elem) {
+        return std::make_tuple(elem, Tensor::Initializer::NONE, true,
+                               node.getName() + std::string(":input") +
+                                 std::to_string(count++),
+                               tspan);
+      });
+
+    ret = requestTensors<Var_Grad>(node, inputs_spec, inputs_v2);
+  } else {
+    ret.reserve(inputs_dim.size());
+
+    /**
+     * Find already allocated output which must match the name and dimensions
+     */
+    for (unsigned int idx = 0; idx < inputs_dim.size(); idx++) {
+      auto output_loc = name_map.at(outputs_name.at(idx));
+      Var_Grad *vg = outputs_v2.at(output_loc).get();
+      if (vg->getDim() != inputs_dim[idx])
+        throw std::invalid_argument(
+          "Dimension mismatch for the requested input");
+      ret.push_back(vg);
+    }
+  }
+
   const auto &exec_order = node.getExecutionOrder();
   for (auto const &in : ret) {
     auto const &vname = in->getName();
@@ -859,8 +880,8 @@ Manager::requestInputs(const GraphNode &node,
     tensor_exec_order[gname].push_back(std::get<2>(exec_order));
 
     /** set tensor lifespan */
-    expand_lifespan(vname, tspan);
-    expand_lifespan(gname, tspan);
+    expandLifespan(vname, tspan);
+    expandLifespan(gname, tspan);
   }
 
   return ret;
@@ -905,17 +926,47 @@ Manager::requestOutputs(const GraphNode &node,
     tensor_exec_order[vname].push_back(std::get<2>(exec_order));
 
     /** set tensor lifespan */
-    expand_lifespan(vname, tspan);
-    expand_lifespan(gname, tspan);
+    expandLifespan(vname, tspan);
+    expandLifespan(gname, tspan);
   }
 
   return ret;
 }
 
-void Manager::expand_lifespan(const std::string &name,
-                              TensorLifespan lifespan) {
+void Manager::expandLifespan(const std::string &name, TensorLifespan lifespan) {
   tensor_lifespan_map[name] =
     enum_class_or<TensorLifespan>(tensor_lifespan_map[name], lifespan);
+}
+
+/**
+ * @brief     Create tensors with the given spec
+ */
+std::vector<Var_Grad *> Manager::requestAllocatedOutputsAsInputs(
+  const GraphNode &node, const std::vector<TensorDim> &inputs_dim,
+  const std::vector<std::string> &outputs_name) {
+
+  auto const &tspan = TensorLifespan::ITERATION_LIFESPAN;
+  std::vector<Var_Grad *> ret;
+
+  /** add the execution order and lifespan for the returning tensors */
+  const auto &exec_order = node.getExecutionOrder();
+  for (auto const &in : ret) {
+    auto const &vname = in->getName();
+    auto const &gname = in->getGradientName();
+
+    /** usage for inputs */
+    tensor_exec_order[vname].push_back(std::get<0>(exec_order));
+    tensor_exec_order[vname].push_back(std::get<1>(exec_order));
+
+    /** usage for inputs gradients (outgoing derivatives) */
+    tensor_exec_order[gname].push_back(std::get<2>(exec_order));
+
+    /** set tensor lifespan */
+    expandLifespan(vname, tspan);
+    expandLifespan(gname, tspan);
+  }
+
+  return ret;
 }
 
 std::vector<Weight *> Manager::getWeights() {

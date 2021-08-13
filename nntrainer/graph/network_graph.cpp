@@ -672,12 +672,21 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
                  std::back_inserter(input_dims),
                  [](const Var_Grad *vg) { return vg->getDim(); });
 
+  /** finalize the layer and get the final context */
   auto init_context = lnode->finalize(input_dims);
 
-  std::vector<Var_Grad *> inputs = prev_inputs;
-  if (inputs.empty())
-    inputs =
-      tensor_manager->requestInputs(gnode, init_context.getInputDimensions());
+  /**
+   * Request manager for either a pre-allocated output as input or a newly
+   * allocated input. This is necesary for manager to know when this input node
+   * is going to be used.
+   */
+  std::vector<std::string> input_names;
+  input_names.reserve(prev_inputs.size());
+  std::transform(prev_inputs.begin(), prev_inputs.end(),
+                 std::back_inserter(input_names),
+                 [](auto const &vg) { return vg->getName(); });
+  const std::vector<Var_Grad *> &inputs = tensor_manager->requestInputs(
+    gnode, init_context.getInputDimensions(), input_names);
 
   const std::vector<Var_Grad *> &outputs =
     tensor_manager->requestOutputs(gnode, init_context.getOutputDimensions());
@@ -693,7 +702,10 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
 
 int NetworkGraph::initialize() {
   int status = ML_ERROR_NONE;
-  /** this contains the map from name to input tensors for each node */
+  /**
+   * this contains the map from node name to its input tensor names
+   * @note: these input tensors have already been allocated
+   */
   std::unordered_map<std::string, std::vector<Var_Grad *>> input_map;
 
   /** check if the given config of node is of input node */
@@ -701,7 +713,7 @@ int NetworkGraph::initialize() {
     return node->getInputConnections().empty();
   };
 
-  std::vector<Var_Grad *> inputs;
+  std::vector<Var_Grad *> inputs = {};
   for (unsigned int idx = 0; idx < graph.size(); ++idx) {
     auto const &lnode = getSortedLayerNode(idx);
     ml_logd("layer name : %s", lnode->getName().c_str());

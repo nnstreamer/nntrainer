@@ -188,12 +188,20 @@ public:
    *
    * @param node Graph node to extract node identifiers/info
    * @param inputs_dim Specficiation for the tensors
+   * @param outputs_name Name of the already requested output tensors
    *
    * @return created tensors list
+   *
+   * @details create Var_Grads to be used as input of GraphNode with the
+   * inputs_dim as their spec. If the outputs_name is provided, the returned
+   * Var_Grad share tensors with the already allocated Var_Grad for outputs,
+   * named with outputs_name. In this case, the input_dim and the shape of the
+   * output_tensors must match. If the outputs_name are empty, then new tensors
+   * will be allocated.
    */
   std::vector<Var_Grad *>
-  requestInputs(const GraphNode &node,
-                const std::vector<TensorDim> &inputs_dim);
+  requestInputs(const GraphNode &node, const std::vector<TensorDim> &inputs_dim,
+                const std::vector<std::string> &outputs_name = {});
 
   /**
    * @brief     Create tensors with the given spec
@@ -206,6 +214,19 @@ public:
   std::vector<Var_Grad *>
   requestOutputs(const GraphNode &node,
                  const std::vector<TensorDim> &outputs_spec);
+
+  /**
+   * @brief     Create tensors with the given spec and name
+   *
+   * @param node Graph node to extract node identifiers/info
+   * @param tensors_dim Specficiation for the tensors
+   *
+   * @return created tensors list
+   */
+  std::vector<Var_Grad *>
+  requestAllocatedOutputsAsInputs(const GraphNode &node,
+                                  const std::vector<TensorDim> &tensors_dim,
+                                  const std::vector<std::string> &outputs_name);
 
   /**
    * @brief     Get all the weights
@@ -451,6 +472,9 @@ private:
   std::unordered_map<std::string, int>
     tensor_token_map; /**< map from tensor to its memory token */
 
+  std::unordered_map<std::string, int>
+    name_map; /**< map from output name to its location */
+
   /**< Weights of all the layer in the model to be managed */
   std::vector<std::vector<std::reference_wrapper<Weight>>> weights;
 
@@ -600,6 +624,7 @@ private:
                                     " with same name");
 
       tensor_exec_order[ts_name] = {};
+      name_map[ts_name] = layer_objs_list.size() - 1;
     }
 
     std::transform(layer_objs_list.begin() + current_size,
@@ -615,7 +640,7 @@ private:
    * @param name The name of the tensor
    * @param lifespan The lifespan to be expanded to
    */
-  inline void expand_lifespan(const std::string &name, TensorLifespan lifespan);
+  inline void expandLifespan(const std::string &name, TensorLifespan lifespan);
 };
 
 } // namespace nntrainer
