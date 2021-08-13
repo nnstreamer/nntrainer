@@ -180,11 +180,18 @@ public:
   void needsGradient(bool ng);
 
   /**
-   * @brief Get the name of the Var_Grad
+   * @brief Get the name of the variable
    *
-   * @return std::string name
+   * @return std::string name of the variable
    */
   const std::string &getName() const { return var->getName(); }
+
+  /**
+   * @brief Get the name of the gradient
+   *
+   * @return std::string name of the gradient
+   */
+  const std::string &getGradientName() const { return grad->getName(); }
 
   /**
    * @brief Get the variable tensor

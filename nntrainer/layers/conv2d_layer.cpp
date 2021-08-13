@@ -340,10 +340,10 @@ void Conv2DLayer::finalize(InitLayerContext &context) {
   wt_idx[ConvParams::im2col_result] = context.requestTensor(
     calcIm2ColOutputDim(in_dim, dim, padding, stride, {1, 1}),
     context.getName() + ":im2col", Tensor::Initializer::NONE, false,
-    ITERATION_LIFESPAN);
+    TensorLifespan::ITERATION_LIFESPAN);
   wt_idx[ConvParams::col2im_result] = context.requestTensor(
     calcCol2ImOutputDim(out_dim, dim), context.getName() + ":col2im",
-    Tensor::Initializer::NONE, false, BACKWARD_FUNC_LIFESPAN);
+    Tensor::Initializer::NONE, false, TensorLifespan::BACKWARD_FUNC_LIFESPAN);
 }
 
 void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {

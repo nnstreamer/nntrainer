@@ -69,7 +69,7 @@ void RNNLayer::finalize(InitLayerContext &context) {
   if (dropout_rate > epsilon) {
     wt_idx[RNNParams::dropout_mask] = context.requestTensor(
       output_dim, context.getName() + ":dropout_mask",
-      Tensor::Initializer::NONE, false, ITERATION_LIFESPAN);
+      Tensor::Initializer::NONE, false, TensorLifespan::ITERATION_LIFESPAN);
   }
 
   if (!return_sequences) {
@@ -108,9 +108,9 @@ void RNNLayer::finalize(InitLayerContext &context) {
   // TODO : We could control with something like #define test to save memory
   TensorDim d = input_dim;
   d.width(unit);
-  wt_idx[RNNParams::hidden_state] =
-    context.requestTensor(d, context.getName() + ":hidden_state",
-                          Tensor::Initializer::NONE, true, ITERATION_LIFESPAN);
+  wt_idx[RNNParams::hidden_state] = context.requestTensor(
+    d, context.getName() + ":hidden_state", Tensor::Initializer::NONE, true,
+    TensorLifespan::ITERATION_LIFESPAN);
 
   if (hidden_state_activation_type.get() == ActivationType::ACT_NONE) {
     hidden_state_activation_type.set(ActivationType::ACT_TANH);

@@ -34,19 +34,20 @@ enum class WeightRegularizer {
  * @brief define the lifespan of the given tensor to reduce peak memory
  *
  */
-enum TensorLifespan {
-  FORWARD_FUNC_LIFESPAN,  /**< tensor must not be reset before during the
+enum class TensorLifespan {
+  ZERO_LIFESPAN = 0b0, /**< tensor with no lifespan, will not be allocated */
+  FORWARD_FUNC_LIFESPAN = 0b01,  /**< tensor must not be reset before during the
                             forward function call, eg. temporary tensors
                             needed during forward operations */
-  BACKWARD_FUNC_LIFESPAN, /**< tensor must not be reset before during the
+  BACKWARD_FUNC_LIFESPAN = 0b10, /**< tensor must not be reset before during the
                             backward function call, eg. temporary tensors
                             needed during backward operations */
-  ITERATION_LIFESPAN,     /**< tensor must not be reset until the owning layer
-                            finishes its execution in the current iteration,
-                            eg. hidden memory/cells of RNN */
-  EPOCH_LIFESPAN,         /**< tensor must not be reset before the epoch ends */
-  MAX_LIFESPAN, /**< tensor must not be reset until the end of the model
-                  execution, eg. layer weights */
+  ITERATION_LIFESPAN = 0b11,     /**< tensor must not be reset until the owning
+                            layer     finishes its execution in the current
+                            iteration,     eg. hidden memory/cells of RNN */
+  EPOCH_LIFESPAN = 0b111, /**< tensor must not be reset before the epoch ends */
+  MAX_LIFESPAN = 0b1111,  /**< tensor must not be reset until the end of the
+                   model  execution, eg. layer weights */
 };
 
 /**

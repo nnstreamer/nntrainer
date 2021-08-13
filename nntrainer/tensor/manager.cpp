@@ -35,6 +35,7 @@
 #include <manager.h>
 #include <nntrainer_log.h>
 #include <rnn.h>
+#include <util_func.h>
 
 static constexpr bool LAYER_V2 = true;
 
@@ -765,7 +766,26 @@ void Manager::deinitializeTensors() {
 std::vector<Weight *>
 Manager::requestWeights(const GraphNode &node,
                         const std::vector<Weight::Spec> &weights_spec) {
-  return requestTensors<Weight>(node, weights_spec, weights_v2);
+  auto ret = requestTensors<Weight>(node, weights_spec, weights_v2);
+  const auto &exec_order = node.getExecutionOrder();
+  for (auto const &w : ret) {
+    auto const &vname = w->getName();
+    auto const &gname = w->getGradientName();
+
+    /** usage for weights */
+    tensor_exec_order[vname].push_back(std::get<0>(exec_order));
+    tensor_exec_order[vname].push_back(std::get<1>(exec_order));
+    tensor_exec_order[vname].push_back(std::get<2>(exec_order));
+
+    /** usage for its gradient only in calcGradient */
+    tensor_exec_order[gname].push_back(std::get<1>(exec_order));
+
+    /** set tensor lifespan */
+    expand_lifespan(vname, TensorLifespan::MAX_LIFESPAN);
+    expand_lifespan(gname, TensorLifespan::BACKWARD_FUNC_LIFESPAN);
+  }
+
+  return ret;
 }
 
 /**
@@ -775,7 +795,35 @@ Manager::requestWeights(const GraphNode &node,
 std::vector<Var_Grad *>
 Manager::requestTensors(const GraphNode &node,
                         const std::vector<Var_Grad::Spec> &tensors_spec) {
-  return requestTensors<Var_Grad>(node, tensors_spec, tensors_v2);
+  auto ret = requestTensors<Var_Grad>(node, tensors_spec, tensors_v2);
+  const auto &exec_order = node.getExecutionOrder();
+  for (unsigned int idx = 0; idx < ret.size(); idx++) {
+    auto const &t = ret[idx];
+    auto const &vname = t->getName();
+    auto const &gname = t->getGradientName();
+    auto const &tspan = std::get<4>(tensors_spec[idx]);
+
+    /** usage for tensors */
+    if (enum_class_logical_and<TensorLifespan>(
+          tspan, TensorLifespan::FORWARD_FUNC_LIFESPAN))
+      tensor_exec_order[vname].push_back(std::get<0>(exec_order));
+
+    /** usage for tensors gradient in backwarding */
+    if (enum_class_logical_and<TensorLifespan>(
+          tspan, TensorLifespan::BACKWARD_FUNC_LIFESPAN)) {
+      tensor_exec_order[vname].push_back(std::get<1>(exec_order));
+      tensor_exec_order[gname].push_back(std::get<1>(exec_order));
+
+      tensor_exec_order[vname].push_back(std::get<2>(exec_order));
+      tensor_exec_order[gname].push_back(std::get<2>(exec_order));
+    }
+
+    /** set tensor lifespan */
+    expand_lifespan(vname, tspan);
+    expand_lifespan(gname, tspan);
+  }
+
+  return ret;
 }
 
 /**
@@ -785,16 +833,37 @@ std::vector<Var_Grad *>
 Manager::requestInputs(const GraphNode &node,
                        const std::vector<TensorDim> &inputs_dim) {
   unsigned int count = 0;
+  auto const &tspan = TensorLifespan::ITERATION_LIFESPAN;
   std::vector<Var_Grad::Spec> inputs_spec;
+
   std::transform(
     inputs_dim.begin(), inputs_dim.end(), std::back_inserter(inputs_spec),
-    [&count, &node](auto const &elem) {
+    [&count, &node, &tspan](auto const &elem) {
       return std::make_tuple(elem, Tensor::Initializer::NONE, true,
                              node.getName() + std::string(":input") +
                                std::to_string(count++),
-                             ITERATION_LIFESPAN);
+                             tspan);
     });
-  return requestTensors<Var_Grad>(node, inputs_spec, inputs_v2);
+
+  auto ret = requestTensors<Var_Grad>(node, inputs_spec, inputs_v2);
+  const auto &exec_order = node.getExecutionOrder();
+  for (auto const &in : ret) {
+    auto const &vname = in->getName();
+    auto const &gname = in->getGradientName();
+
+    /** usage for inputs */
+    tensor_exec_order[vname].push_back(std::get<0>(exec_order));
+    tensor_exec_order[vname].push_back(std::get<1>(exec_order));
+
+    /** usage for inputs gradients (outgoing derivatives) */
+    tensor_exec_order[gname].push_back(std::get<2>(exec_order));
+
+    /** set tensor lifespan */
+    expand_lifespan(vname, tspan);
+    expand_lifespan(gname, tspan);
+  }
+
+  return ret;
 }
 
 /**
@@ -804,16 +873,49 @@ std::vector<Var_Grad *>
 Manager::requestOutputs(const GraphNode &node,
                         const std::vector<TensorDim> &outputs_dim) {
   unsigned int count = 0;
+  auto const &tspan = TensorLifespan::ITERATION_LIFESPAN;
   std::vector<Var_Grad::Spec> outputs_spec;
+
   std::transform(
     outputs_dim.begin(), outputs_dim.end(), std::back_inserter(outputs_spec),
-    [&count, &node](auto const &elem) {
+    [&count, &node, &tspan](auto const &elem) {
       return std::make_tuple(elem, Tensor::Initializer::NONE, true,
                              node.getName() + std::string(":output") +
                                std::to_string(count++),
-                             ITERATION_LIFESPAN);
+                             tspan);
     });
-  return requestTensors<Var_Grad>(node, outputs_spec, outputs_v2);
+
+  auto ret = requestTensors<Var_Grad>(node, outputs_spec, outputs_v2);
+  const auto &exec_order = node.getExecutionOrder();
+  for (auto const &out : ret) {
+    auto const &vname = out->getName();
+    auto const &gname = out->getGradientName();
+
+    /** usage for outputs */
+    tensor_exec_order[vname].push_back(std::get<0>(exec_order));
+
+    /** usage for outputs gradients (incoming derivatives) */
+    tensor_exec_order[gname].push_back(std::get<1>(exec_order));
+    tensor_exec_order[gname].push_back(std::get<2>(exec_order));
+
+    /**
+     * TODO: below is needed only for activation layer as of now -
+     * check if this can be worked around
+     */
+    tensor_exec_order[vname].push_back(std::get<2>(exec_order));
+
+    /** set tensor lifespan */
+    expand_lifespan(vname, tspan);
+    expand_lifespan(gname, tspan);
+  }
+
+  return ret;
+}
+
+void Manager::expand_lifespan(const std::string &name,
+                              TensorLifespan lifespan) {
+  tensor_lifespan_map[name] =
+    enum_class_or<TensorLifespan>(tensor_lifespan_map[name], lifespan);
 }
 
 std::vector<Weight *> Manager::getWeights() {
