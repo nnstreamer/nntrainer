@@ -55,7 +55,7 @@ public:
    * @param value default value
    */
   PropsBufferSize(unsigned int value = 1) { set(value); }
-  bool isValid(const unsigned int &v) { return v > 0; }
+  bool isValid(const unsigned int &v) const override { return v > 0; }
   static constexpr const char *key = "buffer_size"; /**< unique key to access */
   using prop_tag = uint_prop_tag;                   /**< property type */
 };
@@ -64,7 +64,8 @@ constexpr char USER_DATA[] = "user_data";
 
 DataBuffer::DataBuffer(std::unique_ptr<DataProducer> &&producer_) :
   producer(std::move(producer_)),
-  db_props(new Props()) {}
+  db_props(new Props()),
+  user_data(nullptr) {}
 
 DataBuffer::~DataBuffer(){};
 
