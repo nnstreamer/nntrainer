@@ -30,6 +30,7 @@
 #include <vector>
 
 #include <activation_layer.h>
+#include <basic_planner.h>
 #include <flatten_layer.h>
 #include <layer_node.h>
 #include <manager.h>
@@ -249,6 +250,12 @@ Manager::AllocFunc Manager::getAllocFunc(bool is_weight) {
   return allocate_func;
 }
 
+std::pair<unsigned int, unsigned int>
+Manager::getValidity(const std::string &name) {
+  /** @todo calculate validity based on lifespan and usage */
+  return {0, std::numeric_limits<unsigned>::max()};
+}
+
 /**
  * @brief Allocate and initialize the weight variable
  */
@@ -260,9 +267,11 @@ void Manager::initializeWeights() {
   if (LAYER_V2) {
     for (auto &w : weights_v2) {
       w->initializeVariable();
-      // tensor_map(&w->getVariableRef(), requestMemory(w.getDim().size(), 0,
-      // MAX));
+      auto const &t_validity = getValidity(w->getName());
+      tensor_token_map[w->getName()] = pool.requestMemory(
+        w->getVariableRef().bytes(), t_validity.first, t_validity.second);
     }
+    pool.planLayout(BasicPlanner());
   } else {
     if (total_weight_size == 0) {
       ml_logw(
@@ -294,8 +303,10 @@ void Manager::allocateWeights() {
     return;
 
   if (LAYER_V2) {
+    pool.allocate();
     for (auto &w : weights_v2) {
-      w->allocateVariable();
+      w->getVariableRef().setData(
+        pool.getMemory(tensor_token_map[w->getName()]), true);
     }
   } else {
     for (auto &l_w : weights) {
@@ -312,8 +323,11 @@ void Manager::allocateWeights() {
 void Manager::deallocateWeights() {
   if (LAYER_V2) {
     for (auto &w : weights_v2) {
+      /** this just nullifies the set pointer to avoid access to released memory
+       */
       w->deallocateVariable();
     }
+    pool.deallocate();
   } else {
     for (auto &l_w : weights) {
       for (auto &w : l_w) {
