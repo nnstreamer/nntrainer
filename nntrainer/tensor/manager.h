@@ -475,6 +475,8 @@ private:
   std::unordered_map<std::string, int>
     name_map; /**< map from output name to its location */
 
+  MemoryPool pool; /**< memory pool for the tensors */
+
   /**< Weights of all the layer in the model to be managed */
   std::vector<std::vector<std::reference_wrapper<Weight>>> weights;
 
@@ -641,6 +643,16 @@ private:
    * @param lifespan The lifespan to be expanded to
    */
   inline void expandLifespan(const std::string &name, TensorLifespan lifespan);
+
+  /**
+   * @brief     Get validity for the given tensor
+   *
+   * @param name Name of the tensor
+   * @return validity for the given tensor
+   * @details the validity will be created using the lifespan and execution
+   * order
+   */
+  std::pair<unsigned int, unsigned int> getValidity(const std::string &name);
 };
 
 } // namespace nntrainer

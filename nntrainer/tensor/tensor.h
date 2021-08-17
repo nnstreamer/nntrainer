@@ -1035,6 +1035,18 @@ public:
    */
   const std::string &getName() const { return name; }
 
+  /**
+   * @brief Set the memory buffer for the tensor
+   *
+   * @param buf the memory buffer
+   * @param init intialize the buffer
+   */
+  void setData(void *buf, bool init = false) {
+    data = std::shared_ptr<float>((float *)buf, [](void *) {});
+    if (init)
+      initialize();
+  }
+
   static constexpr float epsilon = 1e-5;
 
 private:

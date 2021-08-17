@@ -250,6 +250,24 @@ size_t MemoryPool::calcMinMemoryRequirement() {
                         return val1.second < val2.second;
                       });
   unsigned int last_interval = max_interval.second;
+  /**
+   * as weights stay valid for max duration, ignore this value and get the real
+   * max value
+   */
+  if (last_interval == std::numeric_limits<unsigned int>::max()) {
+    max_interval = *std::max_element(
+      memory_validity.begin(), memory_validity.end(),
+      [last_interval](auto const &val1, auto const &val2) {
+        return ((val2.second != last_interval) && (val1.second < val2.second));
+      });
+    last_interval = max_interval.second;
+    /**
+     * if the second largest number is also numeric_limit, implies that all the
+     * elements are max values. In this case, last_interval is set to 1
+     */
+    if (last_interval == std::numeric_limits<unsigned int>::max())
+      last_interval = 1;
+  }
 
   std::vector<size_t> interval_req(last_interval + 1, 0);
   /**
@@ -260,7 +278,8 @@ size_t MemoryPool::calcMinMemoryRequirement() {
    */
   for (unsigned int idx = 0; idx < memory_size.size(); idx++) {
     for (unsigned int interval = memory_validity[idx].first;
-         interval < memory_validity[idx].second; interval++) {
+         interval < std::min(memory_validity[idx].second, last_interval);
+         interval++) {
       interval_req[interval] += memory_size[idx];
     }
   }
