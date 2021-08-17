@@ -48,6 +48,9 @@ RawFileDataProducer::size(const std::vector<TensorDim> &input_dims,
   sample_size = std::accumulate(label_dims.begin(), label_dims.end(),
                                 sample_size, size_accumulator);
 
+  NNTR_THROW_IF(sample_size == 0, std::invalid_argument)
+    << "The feature size of input_dims and label_dims are zeros";
+
   auto path_prop = std::get<props::FilePath>(*raw_file_props);
   auto file_size = path_prop.file_size();
 

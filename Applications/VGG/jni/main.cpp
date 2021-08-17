@@ -398,10 +398,16 @@ int main(int argc, char *argv[]) {
   for (unsigned int i = 0; i < count_val.remain; ++i)
     count_val.duplication[i] = i;
 
-  auto db_train = ml::train::createDataset(ml::train::DatasetType::GENERATOR,
-                                           getBatch_train_file);
-  auto db_valid = ml::train::createDataset(ml::train::DatasetType::GENERATOR,
-                                           getBatch_val_file);
+  std::unique_ptr<ml::train::Dataset> db_train, db_valid;
+  try {
+    db_train = ml::train::createDataset(ml::train::DatasetType::GENERATOR,
+                                        getBatch_train_file);
+    db_valid = ml::train::createDataset(ml::train::DatasetType::GENERATOR,
+                                        getBatch_val_file);
+  } catch (std::invalid_argument &e) {
+    std::cerr << "failed to createDataset, reason: " << e.what() << std::endl;
+    return 1;
+  }
 
   /**
    * @brief     Neural Network Create & Initialization

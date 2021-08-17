@@ -313,6 +313,7 @@ Tensor::Tensor(
   data = std::shared_ptr<float>(new float[dim.getDataLen()],
                                 std::default_delete<float[]>());
   is_contiguous = true;
+  initializer = Initializer::NONE;
 
   for (unsigned int i = 0; i < dim.batch(); ++i)
     for (unsigned int j = 0; j < dim.channel(); ++j)
