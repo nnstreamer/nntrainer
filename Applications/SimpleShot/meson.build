@@ -1,7 +1,6 @@
 simpleshot_sources = [
   'simpleshot_utils.cpp',
   'layers/centering.cpp',
-  'layers/l2norm.cpp',
 ]
 
 simpleshot_inc = include_directories([

@@ -52,6 +52,7 @@
 #include <plugged_optimizer.h>
 #include <pooling2d_layer.h>
 #include <preprocess_flip_layer.h>
+#include <preprocess_l2norm_layer.h>
 #include <preprocess_translate_layer.h>
 #include <rnn.h>
 #include <split_layer.h>
@@ -261,6 +262,9 @@ static void add_default_object(AppContext &ac) {
   ac.registerFactory(nntrainer::createLayer<PreprocessTranslateLayer>,
                      PreprocessTranslateLayer::type,
                      LayerType::LAYER_PREPROCESS_TRANSLATE);
+  ac.registerFactory(nntrainer::createLayer<PreprocessL2NormLayer>,
+                     PreprocessL2NormLayer::type,
+                     LayerType::LAYER_PREPROCESS_L2NORM);
 
   /** register losses */
   ac.registerFactory(nntrainer::createLayer<MSELossLayer>, MSELossLayer::type,
