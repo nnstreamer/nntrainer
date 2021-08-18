@@ -64,10 +64,14 @@ class BackboneLayer {};
  *
  * @param ini ini handler
  * @param sec_name section name
+ * @param pathResolver path resolver of ini. If relative path is given to ini,
+ * it is priortized to be interpreted relative to ini file. So this resolver is
+ * required @see ModelLoader::resolvePath for detail.
  * @return std::vector<std::string> list of properties
  */
-std::vector<std::string> section2properties(dictionary *ini,
-                                            const std::string &sec_name) {
+std::vector<std::string> section2properties(
+  dictionary *ini, const std::string &sec_name,
+  std::function<const std::string(std::string)> &pathResolver) {
   int num_entries = iniparser_getsecnkeys(ini, sec_name.c_str());
   NNTR_THROW_IF(num_entries < 1, std::invalid_argument)
     << "there are no entries in the layer section: " << sec_name;
@@ -94,6 +98,11 @@ std::vector<std::string> section2properties(dictionary *ini,
     NNTR_THROW_IF(value == UNKNOWN_STR || value.empty(), std::invalid_argument)
       << "parsing property failed key: " << key << " value: " << value;
 
+    /// @todo systemetically manage those props
+    if (istrequal(prop_key, "model_path")) {
+      value = pathResolver(value);
+    }
+
     ml_logd("parsed properties: %s=%s", prop_key.c_str(), value.c_str());
     properties.push_back(prop_key + "=" + value);
   }
@@ -111,37 +120,39 @@ std::vector<std::string> section2properties(dictionary *ini,
  * @param sec_name section name
  * @param ac app context to search for the layer
  * @param backbone_file full path of backbone file (defaulted to be omitted)
+ * @param pathResolver if path is given and need resolving, called here
  * @return std::shared_ptr<Layer> return layer object
  */
 template <typename T>
 std::shared_ptr<LayerNode>
 section2layer(dictionary *ini, const std::string &sec_name,
-              const AppContext &ac, const std::string &backbone_file = "") {
+              const AppContext &ac, const std::string &backbone_file,
+              std::function<const std::string(std::string)> &pathResolver) {
   throw std::invalid_argument("supported only with a tag for now");
 }
 
 template <>
-std::shared_ptr<LayerNode>
-section2layer<PlainLayer>(dictionary *ini, const std::string &sec_name,
-                          const AppContext &ac,
-                          const std::string &backbone_file) {
+std::shared_ptr<LayerNode> section2layer<PlainLayer>(
+  dictionary *ini, const std::string &sec_name, const AppContext &ac,
+  const std::string &backbone_file,
+  std::function<const std::string(std::string)> &pathResolver) {
 
   const std::string &layer_type =
     iniparser_getstring(ini, (sec_name + ":Type").c_str(), UNKNOWN_STR);
   NNTR_THROW_IF(layer_type == UNKNOWN_STR, std::invalid_argument)
     << FUNC_TAG << "section type is invalid for section name: " << sec_name;
 
-  auto properties = section2properties(ini, sec_name);
+  auto properties = section2properties(ini, sec_name, pathResolver);
 
   auto layer = createLayerNode(ac.createObject<Layer>(layer_type), properties);
   return layer;
 }
 
 template <>
-std::shared_ptr<LayerNode>
-section2layer<BackboneLayer>(dictionary *ini, const std::string &sec_name,
-                             const AppContext &ac,
-                             const std::string &backbone_file) {
+std::shared_ptr<LayerNode> section2layer<BackboneLayer>(
+  dictionary *ini, const std::string &sec_name, const AppContext &ac,
+  const std::string &backbone_file,
+  std::function<const std::string(std::string)> &pathResolver) {
   std::string type;
 
 #if defined(ENABLE_NNSTREAMER_BACKBONE)
@@ -160,8 +171,8 @@ section2layer<BackboneLayer>(dictionary *ini, const std::string &sec_name,
     << "This nntrainer does not support external section: " << sec_name
     << " backbone: " << backbone_file;
 
-  auto properties = section2properties(ini, sec_name);
-  properties.push_back("modelfile=" + backbone_file);
+  auto properties = section2properties(ini, sec_name, pathResolver);
+  properties.push_back("model_path=" + backbone_file);
 
   auto layer = createLayerNode(type, properties);
 
@@ -332,11 +343,11 @@ IniGraphInterpreter::deserialize(const std::string &in) {
       }
 
       if (backbone_path == UNKNOWN_STR) {
-        layer = section2layer<PlainLayer>(ini, sec_name, app_context);
+        layer = section2layer<PlainLayer>(ini, sec_name, app_context, "",
+                                          pathResolver);
       } else {
-        /// @todo deprecate this as well with #1072
-        layer =
-          section2layer<BackboneLayer>(ini, sec_name, app_context, backbone);
+        layer = section2layer<BackboneLayer>(ini, sec_name, app_context,
+                                             backbone, pathResolver);
       }
 
       graph->addLayer(layer);

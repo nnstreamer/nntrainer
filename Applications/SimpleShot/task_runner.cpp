@@ -129,7 +129,7 @@ std::unique_ptr<ml::train::Model> createModel(const std::string &backbone,
                                       {"batch_size=1", "epochs=1"});
 
   LayerHandle backbone_layer = ml::train::layer::BackboneTFLite(
-    {"name=backbone", "modelfile=" + getModelFilePath(backbone, app_path),
+    {"name=backbone", "model_path=" + getModelFilePath(backbone, app_path),
      "input_shape=32:32:3", "trainable=false"});
   model->addLayer(backbone_layer);
 

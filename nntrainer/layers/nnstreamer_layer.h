@@ -19,7 +19,11 @@
 #include <nnstreamer-single.h>
 #include <nnstreamer.h>
 
+#include <tuple>
+
 namespace nntrainer {
+
+class PropsNNSModelPath;
 
 /**
  * @class   NNStreamerLayer
@@ -30,16 +34,7 @@ public:
   /**
    * @brief     Constructor of NNStreamer Layer
    */
-  NNStreamerLayer(std::string model = "") :
-    Layer(),
-    modelfile(model),
-    single(nullptr),
-    in_res(nullptr),
-    out_res(nullptr),
-    in_data_cont(nullptr),
-    out_data_cont(nullptr),
-    in_data(nullptr),
-    out_data(nullptr) {}
+  NNStreamerLayer();
 
   /**
    * @brief     Destructor of NNStreamer Layer
@@ -75,7 +70,7 @@ public:
   /**
    * @copydoc Layer::supportBackwarding()
    */
-  bool supportBackwarding() const { return false; }
+  bool supportBackwarding() const override { return false; }
 
   /**
    * @copydoc Layer::setProperty(const PropertyType type, const std::string
@@ -86,7 +81,8 @@ public:
   inline static const std::string type = "backbone_nnstreamer";
 
 private:
-  std::string modelfile;
+  using PropsType = std::tuple<PropsNNSModelPath>;
+  std::unique_ptr<PropsType> nnstreamer_layer_props;
   ml_single_h single;
   ml_tensors_info_h in_res, out_res;
   ml_tensors_data_h in_data_cont, out_data_cont;
@@ -111,16 +107,6 @@ private:
    */
   static int nnst_info_to_tensor_dim(ml_tensors_info_h &out_res,
                                      TensorDim &dim);
-
-  /**
-   * @brief setProperty by type and value separated
-   * @param[in] type property type to be passed
-   * @param[in] value value to be passed
-   * @exception exception::not_supported     when property type is not valid for
-   * the particular layer
-   * @exception std::invalid_argument invalid argument
-   */
-  void setProperty(const std::string &type_str, const std::string &value);
 };
 } // namespace nntrainer
 

@@ -13,15 +13,51 @@
  * @todo: support transposing the data to support NCHW nntrainer data to NHWC
  * nnstreamer data
  */
+#include <fstream>
 
-#include <lazy_tensor.h>
+#include <common_properties.h>
 #include <nnstreamer_layer.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
+#include <node_exporter.h>
 #include <parse_util.h>
 #include <util_func.h>
-
 namespace nntrainer {
+
+/**
+ * @brief NNSModelPath property
+ *
+ */
+class PropsNNSModelPath : public Property<std::string> {
+public:
+  static constexpr const char *key = "model_path"; /**< unique key to access */
+  using prop_tag = str_prop_tag;                   /**< property type */
+
+  /**
+   * @brief check is valid
+   *
+   * @param v value to check
+   * @return bool true if valid
+   */
+  bool isValid(const std::string &v) const override;
+};
+bool PropsNNSModelPath::isValid(const std::string &v) const {
+  /// @note this might not be good validation strategy, as it can support
+  /// directory or even not initiated path??
+  std::ifstream file(v, std::ios::binary | std::ios::ate);
+  return file.good();
+}
+
+NNStreamerLayer::NNStreamerLayer() :
+  Layer(),
+  nnstreamer_layer_props(new PropsType(PropsNNSModelPath())),
+  single(nullptr),
+  in_res(nullptr),
+  out_res(nullptr),
+  in_data_cont(nullptr),
+  out_data_cont(nullptr),
+  in_data(nullptr),
+  out_data(nullptr) {}
 
 static constexpr size_t SINGLE_INOUT_IDX = 0;
 
@@ -107,8 +143,9 @@ void NNStreamerLayer::finalize(InitLayerContext &context) {
   TensorDim in_dim, output_dim;
   const TensorDim &input_dim = context.getInputDimensions()[SINGLE_INOUT_IDX];
 
-  status = ml_single_open(&single, modelfile.c_str(), NULL, NULL,
-                          ML_NNFW_TYPE_ANY, ML_NNFW_HW_AUTO);
+  status = ml_single_open(
+    &single, std::get<PropsNNSModelPath>(*nnstreamer_layer_props).get().c_str(),
+    NULL, NULL, ML_NNFW_TYPE_ANY, ML_NNFW_HW_AUTO);
   finalizeError(status);
 
   /* input tensor in filter */
@@ -146,41 +183,9 @@ void NNStreamerLayer::finalize(InitLayerContext &context) {
 }
 
 void NNStreamerLayer::setProperty(const std::vector<std::string> &values) {
-  /// @todo: deprecate this in favor of loadProperties
-  for (unsigned int i = 0; i < values.size(); ++i) {
-    std::string key;
-    std::string value;
-    std::stringstream ss;
-
-    if (getKeyValue(values[i], key, value) != ML_ERROR_NONE) {
-      throw std::invalid_argument("Error parsing the property: " + values[i]);
-    }
-
-    if (value.empty()) {
-      ss << "value is empty: key: " << key << ", value: " << value;
-      throw std::invalid_argument(ss.str());
-    }
-
-    /// @note this calls derived setProperty if available
-    setProperty(key, value);
-  }
-}
-
-void NNStreamerLayer::setProperty(const std::string &type_str,
-                                  const std::string &value) {
-  using PropertyType = nntrainer::Layer::PropertyType;
-  nntrainer::Layer::PropertyType type =
-    static_cast<nntrainer::Layer::PropertyType>(parseLayerProperty(type_str));
-
-  switch (type) {
-  case PropertyType::modelfile: {
-    modelfile = value;
-  } break;
-  default:
-    std::string msg = "[TfLiteLayer] Unknown Layer Property Key for value " +
-                      std::string(value);
-    throw exception::not_supported(msg);
-  }
+  auto left_values = loadProperties(values, *nnstreamer_layer_props);
+  NNTR_THROW_IF(!left_values.empty(), std::invalid_argument)
+    << "There are unparsed properties, " << left_values.front();
 }
 
 void NNStreamerLayer::forwarding(RunLayerContext &context, bool training) {

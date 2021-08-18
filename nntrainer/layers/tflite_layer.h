@@ -23,6 +23,8 @@
 
 namespace nntrainer {
 
+class PropsTflModelPath;
+
 /**
  * @class   TfLiteLayer
  * @brief   Tensorflow Lite layer
@@ -32,16 +34,12 @@ public:
   /**
    * @brief     Constructor of NNStreamer Layer
    */
-  TfLiteLayer(std::string model = "") :
-    Layer(),
-    modelfile(model),
-    interpreter(nullptr),
-    model(nullptr) {}
+  TfLiteLayer();
 
   /**
    * @brief     Destructor of NNStreamer Layer
    */
-  ~TfLiteLayer() = default;
+  ~TfLiteLayer();
 
   /**
    * @copydoc Layer::finalize(InitLayerContext &context)
@@ -77,7 +75,8 @@ public:
   inline static const std::string type = "backbone_tflite";
 
 private:
-  std::string modelfile;
+  using PropsType = std::tuple<PropsTflModelPath>;
+  std::unique_ptr<PropsType> tfl_layer_props;
   std::unique_ptr<tflite::Interpreter> interpreter;
   std::unique_ptr<tflite::FlatBufferModel> model;
 
