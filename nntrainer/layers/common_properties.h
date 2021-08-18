@@ -297,6 +297,21 @@ public:
 private:
   std::ifstream::pos_type cached_pos_size;
 };
+
+/**
+ * @brief Number of class
+ * @todo deprecate this
+ */
+class NumClass final : public nntrainer::Property<unsigned int> {
+public:
+  using prop_tag = uint_prop_tag;                 /**< property type */
+  static constexpr const char *key = "num_class"; /**< unique key to access */
+
+  /**
+   * @copydoc nntrainer::Property<unsigned int>::isValid(const unsigned int &v);
+   */
+  bool isValid(const unsigned int &v) const override;
+};
 } // namespace props
 } // namespace nntrainer
 

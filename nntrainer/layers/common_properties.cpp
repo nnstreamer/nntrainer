@@ -48,6 +48,8 @@ void FilePath::set(const std::string &v) {
 
 std::ifstream::pos_type FilePath::file_size() { return cached_pos_size; }
 
+bool NumClass::isValid(const unsigned int &v) const { return v > 0; }
+
 ConnectionSpec::ConnectionSpec(const std::vector<props::Name> &layer_ids_,
                                const std::string &op_type_) :
   op_type(op_type_),

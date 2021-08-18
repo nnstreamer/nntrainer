@@ -163,6 +163,7 @@ NNTRAINER_SRCS := $(NNTRAINER_ROOT)/nntrainer/models/neuralnet.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/time_dist.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/dropout.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/permute_layer.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/layers/centroid_knn.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/acti_func.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/split_layer.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/common_properties.cpp \
