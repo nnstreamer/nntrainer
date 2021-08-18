@@ -118,6 +118,12 @@ public:
    */
   void setEndSample(std::vector<Sample>::iterator sample_iterator);
 
+  /**
+   * @brief Set the End Sample to the original end
+   *
+   */
+  void setEndSample();
+
 private:
   std::vector<Tensor> inputs, labels;
   std::vector<Sample> samples;
