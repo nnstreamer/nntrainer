@@ -60,13 +60,11 @@ std::vector<Tensor> sliceTensor(const std::vector<Tensor> &batched_tensors,
   return sliced_tensor;
 };
 
-std::vector<Sample> unpackIteration(Iteration &iter) {
-  auto b = iter.batch();
-
+std::vector<Sample> unpackIteration(Iteration &iter, unsigned int batch) {
   std::vector<Sample> samples;
-  samples.reserve(b);
+  samples.reserve(batch);
 
-  for (decltype(b) i = 0; i < b; ++i) {
+  for (decltype(batch) i = 0; i < batch; ++i) {
     samples.emplace_back(iter, i);
   }
 
@@ -83,7 +81,14 @@ Iteration::Iteration(const std::vector<ml::train::TensorDim> &input_dims,
   NNTR_THROW_IF(!isBatchSame(input_dims, label_dims), std::invalid_argument)
     << "check batch size is all the same for all the input and label";
 
-  samples = unpackIteration(*this);
+  samples = unpackIteration(*this, input_dims.front().batch());
+  end_iterator = samples.end();
+}
+
+unsigned int Iteration::batch() { return std::distance(begin(), end()); }
+
+void Iteration::setEndSample(std::vector<Sample>::iterator sample_iterator) {
+  end_iterator = sample_iterator;
 }
 
 Sample::Sample(const Iteration &iter, unsigned int batch) :
