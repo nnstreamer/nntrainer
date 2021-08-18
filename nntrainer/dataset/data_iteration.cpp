@@ -91,6 +91,8 @@ void Iteration::setEndSample(std::vector<Sample>::iterator sample_iterator) {
   end_iterator = sample_iterator;
 }
 
+void Iteration::setEndSample() { end_iterator = samples.end(); }
+
 Sample::Sample(const Iteration &iter, unsigned int batch) :
   inputs(sliceTensor(iter.getInputsRef(), batch)),
   labels(sliceTensor(iter.getLabelsRef(), batch)) {}
