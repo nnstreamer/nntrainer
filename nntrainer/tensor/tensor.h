@@ -547,7 +547,7 @@ public:
    * @brief     sum all the Tensor elements according to the batch
    * @retval    Calculated Tensor(batch, 1, 1, 1)
    */
-  Tensor sum_by_batch();
+  Tensor sum_by_batch() const;
 
   /**
    * @brief     sum all the Tensor elements according to the axis
