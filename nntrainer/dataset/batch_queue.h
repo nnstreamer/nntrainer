@@ -15,6 +15,7 @@
 #ifndef __BATCH_QUEUE_H__
 #define __BATCH_QUEUE_H__
 
+#include <atomic>
 #include <condition_variable>
 #include <functional>
 #include <memory>
@@ -182,10 +183,13 @@ public:
    *
    * @param data_ reference of the underlying data
    * @param on_notify_ callback to be called on exit
+   * @param on_error_ callback to be called on error
    */
-  ScopedView(T *data_, std::function<void(void)> &&on_notify_ = nullptr) :
+  ScopedView(T *data_, std::function<void(void)> &&on_notify_ = nullptr,
+             std::function<void(void)> &&on_error_ = nullptr) :
     data(data_),
-    on_notify(std::forward<std::function<void(void)>>(on_notify_)) {}
+    on_notify(std::forward<std::function<void(void)>>(on_notify_)),
+    on_error(std::forward<std::function<void(void)>>(on_error_)) {}
 
   ScopedView(const ScopedView &rhs) = delete;
   ScopedView &operator=(const ScopedView &rhs) = delete;
@@ -207,7 +211,9 @@ public:
   ~ScopedView() {
     try {
       if (std::uncaught_exceptions()) {
-        /// NYI, add on_error handler here
+        if (on_error) {
+          on_error();
+        }
       } else {
         if (on_notify) {
           on_notify();
@@ -236,6 +242,7 @@ private:
   T *data; /**< underlying data pointer */
   std::function<void(void)>
     on_notify; /**< called when destroyed without error */
+  std::function<void(void)> on_error; /**< called when destroyed with error */
 };
 
 /**
@@ -314,7 +321,7 @@ public:
    *
    * @return unsigned int size of batch
    */
-  unsigned int batch() { return iterations.front().get().batch(); }
+  unsigned int batch() { return batch_size; }
 
   /**
    * @brief notifyEndOfRequest, when the producing by requestEmpty has finished.
@@ -344,6 +351,12 @@ private:
     MarkableIteration(const std::vector<ml::train::TensorDim> &input_dims,
                       const std::vector<ml::train::TensorDim> &label_dims,
                       IterationQueue *iq);
+
+    /**
+     * @brief reset num observation and internal batch size of iteration
+     *
+     */
+    void reset();
 
     /**
      * @brief Construct a new Markable Iteration object
@@ -430,8 +443,9 @@ private:
   std::condition_variable_any
     notify_emptied_cv;  /**< conditional variable to wait based on the
                            num_being_filled */
-  FlowState flow_state; /**< flow state of the queue */
+  std::atomic<FlowState> flow_state; /**< flow state of the queue */
 
+  unsigned int batch_size;
   ViewQueue<MarkableIteration> empty_q;  /**< iterations to be filled */
   ViewQueue<MarkableIteration> filled_q; /**< iterations to be served */
 };

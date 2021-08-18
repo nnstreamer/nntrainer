@@ -309,7 +309,7 @@ TEST_P(IterQueueScenarios,
        produceAndConsumAsyncForDeterminedSizeConsumerRunningFirst_p) {
 
   auto producer = std::async(std::launch::async, [this]() {
-    sleep(1);
+    std::this_thread::sleep_for(50ms);
     for (unsigned int i = 0u; i < 384u; ++i) {
       produceSample(i);
     }
@@ -337,7 +337,7 @@ TEST_P(IterQueueScenarios,
   });
 
   auto consumer = std::async(std::launch::async, [this]() {
-    sleep(1);
+    std::this_thread::sleep_for(50ms);
     for (unsigned int i = 0u; i < 384u / iq->batch(); ++i) {
       consumeIteration();
     }
@@ -359,7 +359,7 @@ TEST_P(IterQueueScenarios,
   });
 
   auto consumer = std::async(std::launch::async, [this]() {
-    sleep(1);
+    std::this_thread::sleep_for(50ms);
     while (consumeIteration()) {
     }
   });
@@ -373,7 +373,7 @@ TEST_P(IterQueueScenarios,
 TEST_P(IterQueueScenarios,
        produceAndConsumAsyncForUnknownSizeConsumerRunningFirst_p) {
   auto producer = std::async(std::launch::async, [this]() {
-    sleep(1);
+    std::this_thread::sleep_for(50ms);
     for (unsigned int i = 0u; i < 384u; ++i) {
       produceSample(i);
     }
@@ -451,7 +451,7 @@ TEST_P(IterQueueScenarios, caseOneNotifyAfterConsumingIsFinished_p) {
     for (unsigned int i = 0u; i < 384u; ++i) {
       produceSample(i);
     }
-    sleep(1);
+    std::this_thread::sleep_for(50ms);
     iq->notifyEndOfRequestEmpty();
   });
 
@@ -507,7 +507,7 @@ TEST_P(IterQueueScenarios, caseThreeNotifyAfterTheLastBufferIsBeingFilled_p) {
 
     notify_result =
       std::async(std::launch::async, [this] { iq->notifyEndOfRequestEmpty(); });
-    std::this_thread::sleep_for(500ms);
+    std::this_thread::sleep_for(50ms);
     /// delaying destroying scoped_views to simulate samples are in
     /// the state of being filled
   }
@@ -545,7 +545,7 @@ TEST_P(IterQueueScenarios, caseFourNotifyAfterTheLastBufferIsBeingServed_p) {
     sum_from_consumer += getSum(inputs, labels);
     EXPECT_FALSE(consumeIteration());
 
-    std::this_thread::sleep_for(500ms);
+    std::this_thread::sleep_for(50ms);
     /// delay here to delay destroying iter_view to simulate
     /// notifyEndOfRequestEmpty() is being called during destroying the last
     /// buffer
@@ -565,14 +565,62 @@ TEST_P(IterQueueScenarios, notifyEndAndTryRequestEmpty_n) {
   EXPECT_ANY_THROW(iq->requestEmpty());
 }
 
-TEST_P(IterQueueScenarios,
-       DISABLED_ScopedViewSampleHandlesThrowWhileFillingFails_n) {
-  /// NYI
+TEST_P(IterQueueScenarios, ScopedViewSampleHandlesThrowWhileFillingFails_n) {
+  std::future<void> notify_result;
+
+  std::promise<void> ready_promise, t1_ready_promise, t2_ready_promise;
+  std::shared_future<void> ready_future(ready_promise.get_future());
+  auto request_fail = std::async(std::launch::async, [&, this] {
+    t1_ready_promise.set_value();
+    ready_future.wait();
+    auto sample_view = iq->requestEmpty();
+    throw std::invalid_argument("while filling, it failed");
+  });
+
+  auto try_consume = std::async(std::launch::async, [&, this] {
+    t2_ready_promise.set_value();
+    ready_future.wait();
+    auto iter_view = iq->requestFilled();
+    EXPECT_TRUE(iter_view.isEmpty());
+  });
+
+  t1_ready_promise.get_future().wait();
+  t2_ready_promise.get_future().wait();
+  ready_promise.set_value();
+
+  EXPECT_THROW(request_fail.get(), std::invalid_argument);
+  iq->notifyEndOfRequestEmpty();
+  try_consume.wait();
 }
 
-TEST_P(IterQueueScenarios,
-       DISABLED_ScopedViewIterationHandlesThrowWhileFillingFails_n) {
-  /// NYI
+TEST_P(IterQueueScenarios, ScopedViewIterationHandlesThrowWhileFillingFails_n) {
+  std::future<void> notify_result;
+
+  std::promise<void> ready_promise, t1_ready_promise, t2_ready_promise;
+  std::shared_future<void> ready_future(ready_promise.get_future());
+  auto feed_data = std::async(std::launch::async, [&, this] {
+    t1_ready_promise.set_value();
+    ready_future.wait();
+    for (unsigned i = 0; i < iq->batch(); ++i) {
+      auto sample_view = iq->requestEmpty();
+    }
+  });
+
+  auto consume_fail = std::async(std::launch::async, [&, this] {
+    t2_ready_promise.set_value();
+    ready_future.wait();
+    auto iter_view = iq->requestFilled();
+    throw std::invalid_argument("while using, it failed");
+  });
+
+  t1_ready_promise.get_future().wait();
+  t2_ready_promise.get_future().wait();
+  ready_promise.set_value();
+
+  EXPECT_THROW(consume_fail.get(), std::invalid_argument);
+  feed_data.wait();
+  EXPECT_ANY_THROW(iq->requestEmpty());
+  EXPECT_TRUE(iq->requestFilled().isEmpty());
 }
 
 IterQueueTestParamType multi_slot_multi_batch = {
