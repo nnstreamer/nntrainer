@@ -33,35 +33,41 @@ namespace train {
  * @brief     Enumeration of layer type
  */
 enum LayerType {
-  LAYER_IN = ML_TRAIN_LAYER_TYPE_INPUT, /** Input Layer type */
-  LAYER_FC = ML_TRAIN_LAYER_TYPE_FC,    /** Fully Connected Layer type */
-  LAYER_BN = ML_TRAIN_LAYER_TYPE_BN,    /** Batch Normalization Layer type */
-  LAYER_CONV2D = ML_TRAIN_LAYER_TYPE_CONV2D, /** Convolution 2D Layer type */
-  LAYER_POOLING2D = ML_TRAIN_LAYER_TYPE_POOLING2D, /** Pooling 2D Layer type */
-  LAYER_FLATTEN = ML_TRAIN_LAYER_TYPE_FLATTEN,     /** Flatten Layer type */
+  LAYER_IN = ML_TRAIN_LAYER_TYPE_INPUT, /**< Input Layer type */
+  LAYER_FC = ML_TRAIN_LAYER_TYPE_FC,    /**< Fully Connected Layer type */
+  LAYER_BN = ML_TRAIN_LAYER_TYPE_BN,    /**< Batch Normalization Layer type */
+  LAYER_CONV2D = ML_TRAIN_LAYER_TYPE_CONV2D, /**< Convolution 2D Layer type */
+  LAYER_POOLING2D = ML_TRAIN_LAYER_TYPE_POOLING2D, /**< Pooling 2D Layer type */
+  LAYER_FLATTEN = ML_TRAIN_LAYER_TYPE_FLATTEN,     /**< Flatten Layer type */
   LAYER_ACTIVATION =
-    ML_TRAIN_LAYER_TYPE_ACTIVATION,              /** Activation Layer type */
-  LAYER_ADDITION = ML_TRAIN_LAYER_TYPE_ADDITION, /** Addition Layer type */
-  LAYER_CONCAT = ML_TRAIN_LAYER_TYPE_CONCAT,     /** Concat Layer type */
-  LAYER_MULTIOUT = ML_TRAIN_LAYER_TYPE_MULTIOUT, /** Multi Output Layer type */
-  LAYER_PREPROCESS_FLIP,            /** Preprocess flip Layer type */
-  LAYER_PREPROCESS_TRANSLATE,       /** Preprocess translate Layer type */
-  LAYER_BACKBONE_NNSTREAMER,        /** Backbone using NNStreamer */
-  LAYER_BACKBONE_TFLITE,            /** Backbone using TFLite */
-  LAYER_EMBEDDING,                  /** Embedding Layer type */
-  LAYER_RNN,                        /** RNN Layer type */
-  LAYER_LSTM,                       /** LSTM Layer type */
-  LAYER_SPLIT,                      /** Splite Layer type */
-  LAYER_GRU,                        /** GRU Layer type */
-  LAYER_TIME_DIST,                  /** Time Distributed Layer type */
-  LAYER_PERMUTE,                    /** Permute layer */
-  LAYER_DROPOUT,                    /** DropOut Layer type */
-  LAYER_LOSS_MSE = 500,             /** Mean Squared Error Loss Layer type */
-  LAYER_LOSS_CROSS_ENTROPY_SIGMOID, /** Cross Entropy with Sigmoid Loss Layer
+    ML_TRAIN_LAYER_TYPE_ACTIVATION,              /**< Activation Layer type */
+  LAYER_ADDITION = ML_TRAIN_LAYER_TYPE_ADDITION, /**< Addition Layer type */
+  LAYER_CONCAT = ML_TRAIN_LAYER_TYPE_CONCAT,     /**< Concat Layer type */
+  LAYER_MULTIOUT = ML_TRAIN_LAYER_TYPE_MULTIOUT, /**< Multi Output Layer type */
+  LAYER_EMBEDDING = ML_TRAIN_LAYER_TYPE_EMBEDDING, /**< Embedding Layer type */
+  LAYER_RNN = ML_TRAIN_LAYER_TYPE_RNN,             /**< RNN Layer type */
+  LAYER_LSTM = ML_TRAIN_LAYER_TYPE_LSTM,           /**< LSTM Layer type */
+  LAYER_SPLIT = ML_TRAIN_LAYER_TYPE_SPLIT,         /**< Splite Layer type */
+  LAYER_GRU = ML_TRAIN_LAYER_TYPE_GRU,             /**< GRU Layer type */
+  LAYER_PERMUTE = ML_TRAIN_LAYER_TYPE_PERMUTE,     /**< Permute layer */
+  LAYER_DROPOUT = ML_TRAIN_LAYER_TYPE_DROPOUT,     /**< DropOut Layer type */
+  LAYER_BACKBONE_NNSTREAMER =
+    ML_TRAIN_LAYER_TYPE_BACKBONE_NNSTREAMER, /**< Backbone using NNStreamer */
+  LAYER_CENTROID_KNN =
+    ML_TRAIN_LAYER_TYPE_CENTROID_KNN, /**< Centroid KNN Layer */
+  LAYER_TIME_DIST,                    /**< Time Distributed Layer type */
+  LAYER_PREPROCESS_FLIP =
+    ML_TRAIN_LAYER_TYPE_PREPROCESS_FLIP, /**< Preprocess flip Layer type */
+  LAYER_PREPROCESS_TRANSLATE =
+    ML_TRAIN_LAYER_TYPE_PREPROCESS_TRANSLATE, /**< Preprocess translate Layer
+                                                 type */
+  LAYER_BACKBONE_TFLITE,                      /**< Backbone using TFLite */
+  LAYER_LOSS_MSE = 500,             /**< Mean Squared Error Loss Layer type */
+  LAYER_LOSS_CROSS_ENTROPY_SIGMOID, /**< Cross Entropy with Sigmoid Loss Layer
                                        type */
-  LAYER_LOSS_CROSS_ENTROPY_SOFTMAX, /** Cross Entropy with Softmax Loss Layer
+  LAYER_LOSS_CROSS_ENTROPY_SOFTMAX, /**< Cross Entropy with Softmax Loss Layer
                                        type */
-  LAYER_UNKNOWN = ML_TRAIN_LAYER_TYPE_UNKNOWN /** Unknown */
+  LAYER_UNKNOWN = ML_TRAIN_LAYER_TYPE_UNKNOWN /**< Unknown */
 };
 
 /**

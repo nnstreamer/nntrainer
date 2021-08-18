@@ -10,12 +10,59 @@
  * @bug    No known bugs except for NYI items
  */
 
+#include <base_properties.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
+#include <node_exporter.h>
 #include <parse_util.h>
 #include <tflite_layer.h>
+#include <util_func.h>
 
 namespace nntrainer {
+
+/**
+ * @brief TflModelPath property
+ *
+ */
+class PropsTflModelPath : public Property<std::string> {
+public:
+  static constexpr const char *key = "model_path"; /**< unique key to access */
+  using prop_tag = str_prop_tag;                   /**< property type */
+
+  static constexpr const char ending[] = ".tflite";
+  static constexpr unsigned int ending_len = 7;
+  /**
+   * @brief check is valid
+   *
+   * @param v value to check
+   * @return bool true if valid
+   */
+  bool isValid(const std::string &v) const override;
+};
+
+bool PropsTflModelPath::isValid(const std::string &v) const {
+  if (v.size() < ending_len) {
+    return false;
+  }
+  std::string ext(v.end() - ending_len, v.end());
+  std::for_each(ext.end() - ending_len, ext.end(),
+                [](char &c) { c = ::tolower(c); });
+
+  /// check if path ends with .tflite
+  if (!endswith(ext, ending)) {
+    return false;
+  }
+  std::ifstream file(v, std::ios::binary | std::ios::ate);
+  return file.good();
+}
+
+TfLiteLayer::TfLiteLayer() :
+  Layer(),
+  tfl_layer_props(new PropsType(PropsTflModelPath())),
+  interpreter(nullptr),
+  model(nullptr) {}
+
+TfLiteLayer::~TfLiteLayer() {}
 
 void TfLiteLayer::setDimensions(const std::vector<int> &tensor_idx_list,
                                 std::vector<TensorDim> &dim, bool is_output) {
@@ -43,7 +90,8 @@ void TfLiteLayer::setDimensions(const std::vector<int> &tensor_idx_list,
 void TfLiteLayer::finalize(InitLayerContext &context) {
   tflite::ops::builtin::BuiltinOpResolver resolver;
 
-  model = tflite::FlatBufferModel::BuildFromFile(modelfile.c_str());
+  model = tflite::FlatBufferModel::BuildFromFile(
+    std::get<PropsTflModelPath>(*tfl_layer_props).get().c_str());
   if (!model)
     throw std::invalid_argument("Failed to build tflite model");
 
@@ -72,41 +120,9 @@ void TfLiteLayer::finalize(InitLayerContext &context) {
 }
 
 void TfLiteLayer::setProperty(const std::vector<std::string> &values) {
-  /// @todo: deprecate this in favor of loadProperties
-  for (unsigned int i = 0; i < values.size(); ++i) {
-    std::string key;
-    std::string value;
-    std::stringstream ss;
-
-    if (getKeyValue(values[i], key, value) != ML_ERROR_NONE) {
-      throw std::invalid_argument("Error parsing the property: " + values[i]);
-    }
-
-    if (value.empty()) {
-      ss << "value is empty: key: " << key << ", value: " << value;
-      throw std::invalid_argument(ss.str());
-    }
-
-    /// @note this calls derived setProperty if available
-    setProperty(key, value);
-  }
-}
-
-void TfLiteLayer::setProperty(const std::string &type_str,
-                              const std::string &value) {
-  using PropertyType = nntrainer::Layer::PropertyType;
-  nntrainer::Layer::PropertyType type =
-    static_cast<nntrainer::Layer::PropertyType>(parseLayerProperty(type_str));
-
-  switch (type) {
-  case PropertyType::modelfile: {
-    modelfile = value;
-  } break;
-  default:
-    std::string msg = "[TfLiteLayer] Unknown Layer Property Key for value " +
-                      std::string(value);
-    throw exception::not_supported(msg);
-  }
+  auto left_values = loadProperties(values, *tfl_layer_props);
+  NNTR_THROW_IF(!left_values.empty(), std::invalid_argument)
+    << "There are unparsed properties, " << left_values.front();
 }
 
 void TfLiteLayer::forwarding(RunLayerContext &context, bool training) {
