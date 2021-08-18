@@ -82,6 +82,7 @@ IterationQueue::IterationQueue(
     iterations.emplace_back(input_dims, label_dims, this);
     empty_q.push(&iterations.back());
   }
+  batch_size = iterations.front().get().batch();
 }
 
 IterationQueue::~IterationQueue() {
@@ -99,12 +100,15 @@ IterationQueue::~IterationQueue() {
 
 ScopedView<Sample> IterationQueue::requestEmpty() {
   std::unique_lock lg(empty_mutex);
-  NNTR_THROW_IF(flow_state != FlowState::FLOW_STATE_OPEN, std::invalid_argument)
-    << "Calling requestEmpty() after notifyEndOfRequestEmpty() breaks "
-       "invariant";
+  auto current_flow_state = flow_state.load();
+  NNTR_THROW_IF(current_flow_state != FlowState::FLOW_STATE_OPEN,
+                std::invalid_argument)
+    << "the queue expect state of "
+    << static_cast<unsigned>(FlowState::FLOW_STATE_OPEN) << " but met "
+    << static_cast<unsigned>(current_flow_state);
 
   /// below is useful information when debugging iteration queue, but there will
-  /// be to much log if we turn the log on. so leaving it as a comment for now.
+  /// be too much log if we turn the log on. so leaving it as a comment for now.
   // std::cout << "[requestEmpty] empty_q.size(): " << empty_q.size()
   // << " being_filled: " << num_being_filled
   // << " filled_q.size():  " << filled_q.size() << '\n';
@@ -112,16 +116,24 @@ ScopedView<Sample> IterationQueue::requestEmpty() {
   if (being_filled == nullptr ||
       current_iterator + 1 == being_filled->get().end()) {
     being_filled = empty_q.waitAndPop();
+    being_filled->reset();
     num_being_filled++;
     current_iterator = being_filled->get().begin();
   } else {
     current_iterator++;
   }
 
-  auto view = ScopedView<Sample>(&(*current_iterator),
-                                 [current_being_filed = this->being_filled] {
-                                   current_being_filed->markSampleFilled();
-                                 });
+  auto view =
+    ScopedView<Sample>(&(*current_iterator),
+                       [current_being_filed = this->being_filled] {
+                         current_being_filed->markSampleFilled();
+                       },
+                       [this, current_being_filled = this->being_filled] {
+                         std::unique_lock lg(empty_mutex);
+                         this->markEmpty(current_being_filled);
+                         num_being_filled--;
+                         notify_emptied_cv.notify_all();
+                       });
   return view;
 }
 
@@ -129,49 +141,68 @@ ScopedView<Iteration> IterationQueue::requestFilled() {
   std::unique_lock lock(filled_mutex);
 
   /// below is useful information when debugging iteration queue, but there will
-  /// be to much log if we turn the log on. so leaving it as a comment for now.
+  /// be too much log if we turn the log on. so leaving it as a comment for now.
   // std::cout << "[requestFilled] empty_q.size(): " << empty_q.size()
   // << " num being filled: " << num_being_filled
   // << " filled_q.size(): " << filled_q.size() << '\n';
-  if (flow_state == FlowState::FLOW_STATE_STOPPED) {
+  if (flow_state.load() == FlowState::FLOW_STATE_STOPPED) {
     return ScopedView<Iteration>(nullptr);
   }
 
   auto iteration = filled_q.waitAndPop();
   if (iteration == nullptr) {
-    NNTR_THROW_IF(flow_state != FlowState::FLOW_STATE_STOP_REQUESTED,
-                  std::runtime_error)
+    auto stop_request_state = FlowState::FLOW_STATE_STOP_REQUESTED;
+    bool exchange_result = flow_state.compare_exchange_strong(
+      stop_request_state, FlowState::FLOW_STATE_STOPPED);
+    NNTR_THROW_IF(!exchange_result, std::runtime_error)
       << "the queue has either already stopped or running, but trying stopping "
          "without requesting stop, queue size: "
       << iterations.size() << " num currently empty: " << empty_q.size()
       << " num being filled: " << num_being_filled
       << " filled_q.size(): " << filled_q.size();
 
-    flow_state = FlowState::FLOW_STATE_STOPPED;
     return ScopedView<Iteration>(nullptr);
   }
 
-  return ScopedView<Iteration>(&iteration->get(),
-                               [this, iteration] { markEmpty(iteration); });
+  return ScopedView<Iteration>(
+    &iteration->get(), [this, iteration] { markEmpty(iteration); },
+    [this, iteration] {
+      std::unique_lock lock(filled_mutex);
+      flow_state.store(FlowState::FLOW_STATE_STOPPED);
+      markEmpty(iteration);
+    });
 }
 
 void IterationQueue::notifyEndOfRequestEmpty() {
   std::unique_lock lg(empty_mutex);
-  NNTR_THROW_IF(flow_state != FlowState::FLOW_STATE_OPEN, std::invalid_argument)
-    << "notifyEndOfRequestEmpty() must be called once";
-
+  NNTR_THROW_IF(flow_state.exchange(FlowState::FLOW_STATE_STOP_REQUESTED) !=
+                  FlowState::FLOW_STATE_OPEN,
+                std::invalid_argument)
+    << "the queue expect state of "
+    << static_cast<unsigned>(FlowState::FLOW_STATE_STOP_REQUESTED)
+    << " but met " << static_cast<unsigned>(flow_state.load());
   /// below is useful information when debugging iteration queue, but there will
-  /// be to much log if we turn the log on. so leaving it as a comment for now.
+  /// be too much log if we turn the log on. so leaving it as a comment for now.
   // std::cout << "[notifyEnd] empty_q.size(): " << empty_q.size()
   //           << " num being filled: " << num_being_filled
   //           << " filled_q.size(): " << filled_q.size() << '\n';
 
-  flow_state = FlowState::FLOW_STATE_STOP_REQUESTED;
   if (being_filled) {
     being_filled->setEndSample(current_iterator + 1);
   }
   notify_emptied_cv.wait(lg, [this] { return num_being_filled == 0; });
   filled_q.push(nullptr);
+}
+
+void IterationQueue::markFilled(MarkableIteration *iteration) {
+  std::unique_lock lg(empty_mutex);
+  num_being_filled--;
+  filled_q.push(iteration);
+  notify_emptied_cv.notify_all();
+}
+
+void IterationQueue::markEmpty(MarkableIteration *iteration) {
+  empty_q.push(iteration);
 }
 
 IterationQueue::MarkableIteration::MarkableIteration(
@@ -186,6 +217,12 @@ IterationQueue::MarkableIteration::MarkableIteration(MarkableIteration &&rhs) :
   iteration(std::move(rhs.iteration)),
   iq(rhs.iq) {}
 
+void IterationQueue::MarkableIteration::reset() {
+  std::lock_guard notify_lock_guard(notify_mutex);
+  num_observed = 0;
+  iteration.setEndSample();
+}
+
 IterationQueue::MarkableIteration &IterationQueue::MarkableIteration::
 operator=(MarkableIteration &&rhs) {
   if (this == &rhs) {
@@ -196,17 +233,6 @@ operator=(MarkableIteration &&rhs) {
   std::swap(iq, rhs.iq);
   std::swap(num_observed, rhs.num_observed);
   return *this;
-}
-
-void IterationQueue::markFilled(MarkableIteration *iteration) /** noexcept */ {
-  std::unique_lock lg(empty_mutex);
-  num_being_filled--;
-  filled_q.push(iteration);
-  notify_emptied_cv.notify_all();
-}
-
-void IterationQueue::markEmpty(MarkableIteration *iteration) /** noexcept */ {
-  empty_q.push(iteration);
 }
 
 void IterationQueue::MarkableIteration::markSampleFilled() {
