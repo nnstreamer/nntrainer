@@ -12,28 +12,27 @@
  *
  */
 
-#ifndef __NEAREST_NEIGHBORS_H__
-#define __NEAREST_NEIGHBORS_H__
+#ifndef __CENTROID_KNN_H__
+#define __CENTROID_KNN_H__
 #include <string>
 
+#include <common_properties.h>
 #include <layer_context.h>
 #include <layer_devel.h>
-#include <node_exporter.h>
 
-namespace simpleshot {
-namespace layers {
+namespace nntrainer {
 
 /**
  * @brief Centroid KNN layer which takes centroid and do k-nearest neighbor
  * classification
  */
-class CentroidKNN : public nntrainer::Layer {
+class CentroidKNN : public Layer {
 public:
   /**
    * @brief Construct a new NearestNeighbors Layer object that does elementwise
    * subtraction from mean feature vector
    */
-  CentroidKNN() : Layer(), num_class(0), weight_idx({0}) {}
+  CentroidKNN();
 
   /**
    *  @brief  Move constructor.
@@ -45,13 +44,13 @@ public:
    * @brief  Move assignment operator.
    * @parma[in] rhs CentroidKNN to be moved.
    */
-  CentroidKNN &operator=(CentroidKNN &&rhs) = default;
+  CentroidKNN &operator=(CentroidKNN &&rhs) noexcept = default;
 
   /**
    * @brief Destroy the NearestNeighbors Layer object
    *
    */
-  ~CentroidKNN() = default;
+  ~CentroidKNN();
 
   /**
    * @copydoc Layer::requireLabel()
@@ -97,10 +96,9 @@ public:
   inline static const std::string type = "centroid_knn";
 
 private:
-  unsigned int num_class;
+  std::tuple<props::NumClass> centroid_knn_props;
   std::array<unsigned int, 2> weight_idx; /**< indices of the weights */
 };
-} // namespace layers
-} // namespace simpleshot
+} // namespace nntrainer
 
-#endif /** __NEAREST_NEIGHBORS_H__ */
+#endif /** __CENTROID_KNN_H__ */

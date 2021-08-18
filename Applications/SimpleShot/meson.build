@@ -1,6 +1,5 @@
 simpleshot_sources = [
   'simpleshot_utils.cpp',
-  'layers/centroid_knn.cpp',
   'layers/centering.cpp',
   'layers/l2norm.cpp',
 ]

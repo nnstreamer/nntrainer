@@ -26,6 +26,7 @@ layer_sources = [
   'layer_impl.cpp',
   'gru.cpp',
   'dropout.cpp',
+  'centroid_knn.cpp',
   'layer_context.cpp'
 ]
 

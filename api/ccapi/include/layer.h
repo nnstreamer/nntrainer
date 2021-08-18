@@ -318,6 +318,14 @@ TimeDistLayer(const std::vector<std::string> &properties = {}) {
 }
 
 /**
+ * @brief Helper function to create Centroid KNN Layer
+ */
+inline std::unique_ptr<Layer>
+CentroidKNN(const std::vector<std::string> &properties = {}) {
+  return createLayer(LayerType::LAYER_CENTROID_KNN, properties);
+}
+
+/**
  * @brief Helper function to create activation layer
  */
 inline std::unique_ptr<Layer>

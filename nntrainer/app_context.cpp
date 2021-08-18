@@ -31,6 +31,7 @@
 #include <activation_layer.h>
 #include <addition_layer.h>
 #include <bn_layer.h>
+#include <centroid_knn.h>
 #include <concat_layer.h>
 #include <conv2d_layer.h>
 #include <cross_entropy_sigmoid_loss_layer.h>
@@ -226,12 +227,7 @@ static void add_default_object(AppContext &ac) {
                      LayerType::LAYER_MULTIOUT);
   ac.registerFactory(nntrainer::createLayer<ConcatLayer>, ConcatLayer::type,
                      LayerType::LAYER_CONCAT);
-  ac.registerFactory(nntrainer::createLayer<PreprocessFlipLayer>,
-                     PreprocessFlipLayer::type,
-                     LayerType::LAYER_PREPROCESS_FLIP);
-  ac.registerFactory(nntrainer::createLayer<PreprocessTranslateLayer>,
-                     PreprocessTranslateLayer::type,
-                     LayerType::LAYER_PREPROCESS_TRANSLATE);
+
 #ifdef ENABLE_NNSTREAMER_BACKBONE
   ac.registerFactory(nntrainer::createLayer<NNStreamerLayer>,
                      NNStreamerLayer::type,
@@ -257,6 +253,16 @@ static void add_default_object(AppContext &ac) {
                      LayerType::LAYER_SPLIT);
   ac.registerFactory(nntrainer::createLayer<PermuteLayer>, PermuteLayer::type,
                      LayerType::LAYER_PERMUTE);
+  ac.registerFactory(nntrainer::createLayer<CentroidKNN>, CentroidKNN::type,
+                     LayerType::LAYER_CENTROID_KNN);
+
+  /** proprocess layers */
+  ac.registerFactory(nntrainer::createLayer<PreprocessFlipLayer>,
+                     PreprocessFlipLayer::type,
+                     LayerType::LAYER_PREPROCESS_FLIP);
+  ac.registerFactory(nntrainer::createLayer<PreprocessTranslateLayer>,
+                     PreprocessTranslateLayer::type,
+                     LayerType::LAYER_PREPROCESS_TRANSLATE);
 
   /** register losses */
   ac.registerFactory(nntrainer::createLayer<MSELossLayer>, MSELossLayer::type,

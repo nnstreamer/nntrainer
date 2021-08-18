@@ -17,37 +17,30 @@
 #include <regex>
 #include <sstream>
 
+#include <centroid_knn.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
+#include <node_exporter.h>
 #include <tensor.h>
 #include <weight.h>
 
-#include <centroid_knn.h>
-#include <simpleshot_utils.h>
-
-namespace simpleshot {
-namespace layers {
+namespace nntrainer {
 
 static constexpr size_t SINGLE_INOUT_IDX = 0;
 
 enum KNNParams { map, num_samples };
 
+CentroidKNN::CentroidKNN() :
+  Layer(),
+  centroid_knn_props(props::NumClass()),
+  weight_idx({0}) {}
+
+CentroidKNN::~CentroidKNN() {}
+
 void CentroidKNN::setProperty(const std::vector<std::string> &values) {
-  util::Entry e;
-
-  for (auto &val : values) {
-    e = util::getKeyValue(val);
-
-    if (e.key == "num_class") {
-      num_class = std::stoul(e.value);
-      if (num_class == 0) {
-        throw std::invalid_argument("[CentroidKNN] num_class cannot be zero");
-      }
-    } else {
-      std::string msg = "[CentroidKNN] Unknown Layer Properties count " + val;
-      throw nntrainer::exception::not_supported(msg);
-    }
-  }
+  auto left = loadProperties(values, centroid_knn_props);
+  NNTR_THROW_IF(!left.empty(), std::invalid_argument)
+    << "[Centroid KNN] there are unparsed properties " << left.front();
 }
 
 void CentroidKNN::finalize(nntrainer::InitLayerContext &context) {
@@ -57,10 +50,7 @@ void CentroidKNN::finalize(nntrainer::InitLayerContext &context) {
             "please check");
   }
 
-  if (num_class == 0) {
-    throw std::invalid_argument(
-      "Error: num_class must be a positive non-zero integer");
-  }
+  auto num_class = std::get<props::NumClass>(centroid_knn_props);
 
   auto output_dim = nntrainer::TensorDim({num_class});
   context.setOutputDimensions({output_dim});
@@ -121,7 +111,8 @@ void CentroidKNN::forwarding(nntrainer::RunLayerContext &context,
     }
   }
 
-  for (unsigned int i = 0; i < num_class; ++i) {
+  for (unsigned int i = 0; i < std::get<props::NumClass>(centroid_knn_props);
+       ++i) {
     auto saved_feature =
       map.getSharedDataTensor({feature_len}, i * feature_len);
     // nntrainer::Tensor::Map(map.getData(), {feature_len}, i * feature_len);
@@ -145,6 +136,4 @@ void CentroidKNN::calcDerivative(nntrainer::RunLayerContext &context) {
   throw std::invalid_argument("[CentroidKNN::calcDerivative] This Layer "
                               "does not support backward propagation");
 }
-
-} // namespace layers
-} // namespace simpleshot
+} // namespace nntrainer

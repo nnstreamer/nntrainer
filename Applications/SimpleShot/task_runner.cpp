@@ -22,7 +22,6 @@
 #include <nntrainer-api-common.h>
 
 #include "layers/centering.h"
-#include "layers/centroid_knn.h"
 #include "layers/l2norm.h"
 
 namespace simpleshot {
@@ -225,8 +224,6 @@ int main(int argc, char **argv) {
       nntrainer::createLayer<simpleshot::layers::CenteringLayer>);
     app_context.registerFactory(
       nntrainer::createLayer<simpleshot::layers::L2NormLayer>);
-    app_context.registerFactory(
-      nntrainer::createLayer<simpleshot::layers::CentroidKNN>);
   } catch (std::exception &e) {
     std::cerr << "registering factory failed: " << e.what();
     return 1;

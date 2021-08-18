@@ -23,8 +23,8 @@ auto semantic_activation_l2norm = LayerSemanticsParamType(
   simpleshot::layers::L2NormLayer::type, {}, 0, false);
 
 auto semantic_activation_centroid_knn = LayerSemanticsParamType(
-  nntrainer::createLayer<simpleshot::layers::CentroidKNN>,
-  simpleshot::layers::CentroidKNN::type, {"num_class=1"}, 0, false);
+  nntrainer::createLayer<nntrainer::CentroidKNN>, nntrainer::CentroidKNN::type,
+  {"num_class=1"}, 0, false);
 
 auto semantic_activation_centering = LayerSemanticsParamType(
   nntrainer::createLayer<simpleshot::layers::CenteringLayer>,
