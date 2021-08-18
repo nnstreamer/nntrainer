@@ -15,12 +15,13 @@
 
 #include <centering.h>
 #include <centroid_knn.h>
-#include <l2norm.h>
 #include <layers_common_tests.h>
+#include <preprocess_l2norm_layer.h>
 
+/// @todo move below test to the main repo
 auto semantic_activation_l2norm = LayerSemanticsParamType(
-  nntrainer::createLayer<simpleshot::layers::L2NormLayer>,
-  simpleshot::layers::L2NormLayer::type, {}, 0, false);
+  nntrainer::createLayer<nntrainer::PreprocessL2NormLayer>,
+  nntrainer::PreprocessL2NormLayer::type, {}, 0, false);
 
 auto semantic_activation_centroid_knn = LayerSemanticsParamType(
   nntrainer::createLayer<nntrainer::CentroidKNN>, nntrainer::CentroidKNN::type,

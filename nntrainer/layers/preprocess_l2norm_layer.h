@@ -1,8 +1,9 @@
+
 // SPDX-License-Identifier: Apache-2.0
 /**
  * Copyright (C) 2020 Jihoon Lee <jhoon.it.lee@samsung.com>
  *
- * @file   l2norm.h
+ * @file   preprocess_l2norm_layer.h
  * @date   09 Jan 2021
  * @brief  This file contains the simple l2norm layer which normalizes
  * the given feature
@@ -12,61 +13,60 @@
  *
  */
 
-#ifndef __L2NORM_H__
-#define __L2NORM_H__
+#ifndef __PREPROCESS_L2NORM_LAYER_H__
+#define __PREPROCESS_L2NORM_LAYER_H__
 #include <string>
 
 #include <layer_context.h>
 #include <layer_devel.h>
 #include <node_exporter.h>
 
-namespace simpleshot {
-namespace layers {
+namespace nntrainer {
 
 /**
  * @brief Layer class that l2normalizes a feature vector
  *
  */
-class L2NormLayer : public nntrainer::Layer {
+class PreprocessL2NormLayer : public Layer {
 public:
   /**
    * @brief Construct a new L2norm Layer object
    * that normlizes given feature with l2norm
    */
-  L2NormLayer() : Layer() {}
+  PreprocessL2NormLayer() : Layer() {}
 
   /**
    *  @brief  Move constructor.
-   *  @param[in] L2NormLayer &&
+   *  @param[in] PreprocessL2NormLayer &&
    */
-  L2NormLayer(L2NormLayer &&rhs) noexcept = default;
+  PreprocessL2NormLayer(PreprocessL2NormLayer &&rhs) noexcept = default;
 
   /**
    * @brief  Move assignment operator.
-   * @parma[in] rhs L2NormLayer to be moved.
+   * @parma[in] rhs PreprocessL2NormLayer to be moved.
    */
-  L2NormLayer &operator=(L2NormLayer &&rhs) = default;
+  PreprocessL2NormLayer &operator=(PreprocessL2NormLayer &&rhs) = default;
 
   /**
    * @brief Destroy the Centering Layer object
    *
    */
-  ~L2NormLayer() {}
+  ~PreprocessL2NormLayer() {}
 
   /**
    * @copydoc Layer::finalize(InitLayerContext &context)
    */
-  void finalize(nntrainer::InitLayerContext &context) override;
+  void finalize(InitLayerContext &context) override;
 
   /**
    * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
    */
-  void forwarding(nntrainer::RunLayerContext &context, bool training) override;
+  void forwarding(RunLayerContext &context, bool training) override;
 
   /**
    * @copydoc Layer::calcDerivative(RunLayerContext &context)
    */
-  void calcDerivative(nntrainer::RunLayerContext &context) override;
+  void calcDerivative(RunLayerContext &context) override;
 
   /**
    * @copydoc bool supportBackwarding() const
@@ -76,22 +76,23 @@ public:
   /**
    * @copydoc Layer::exportTo(Exporter &exporter, ExportMethods method)
    */
-  void exportTo(nntrainer::Exporter &exporter,
-                const nntrainer::ExportMethods &method) const override {}
+  void exportTo(Exporter &exporter,
+                const ExportMethods &method) const override {}
 
   /**
    * @copydoc Layer::getType()
    */
-  const std::string getType() const override { return L2NormLayer::type; };
+  const std::string getType() const override {
+    return PreprocessL2NormLayer::type;
+  };
 
   /**
    * @copydoc Layer::setProperty(const std::vector<std::string> &values)
    */
   void setProperty(const std::vector<std::string> &values) override;
 
-  inline static const std::string type = "l2norm";
+  inline static const std::string type = "preprocess_l2norm";
 };
-} // namespace layers
-} // namespace simpleshot
+} // namespace nntrainer
 
-#endif /* __L2NORM__H_ */
+#endif // __PREPROCESS_L2NORM_LAYER_H__

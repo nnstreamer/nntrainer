@@ -156,6 +156,7 @@ NNTRAINER_SRCS := $(NNTRAINER_ROOT)/nntrainer/models/neuralnet.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/concat_layer.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/preprocess_flip_layer.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/preprocess_translate_layer.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/layers/preprocess_l2norm_layer.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/embedding.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/rnn.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/lstm.cpp \

@@ -22,7 +22,6 @@
 #include <nntrainer-api-common.h>
 
 #include "layers/centering.h"
-#include "layers/l2norm.h"
 
 namespace simpleshot {
 
@@ -142,8 +141,8 @@ std::unique_ptr<ml::train::Model> createModel(const std::string &backbone,
     if (variant_ == "UN") {
       /// left empty intended
     } else if (variant_ == "L2N") {
-      LayerHandle l2 =
-        ml::train::createLayer("l2norm", {"name=l2norm", "trainable=false"});
+      LayerHandle l2 = ml::train::createLayer(
+        "preprocess_l2norm", {"name=l2norm", "trainable=false"});
       v.push_back(l2);
     } else if (variant_ == "CL2N") {
       LayerHandle centering = ml::train::createLayer(
@@ -222,8 +221,6 @@ int main(int argc, char **argv) {
   try {
     app_context.registerFactory(
       nntrainer::createLayer<simpleshot::layers::CenteringLayer>);
-    app_context.registerFactory(
-      nntrainer::createLayer<simpleshot::layers::L2NormLayer>);
   } catch (std::exception &e) {
     std::cerr << "registering factory failed: " << e.what();
     return 1;

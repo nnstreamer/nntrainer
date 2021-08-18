@@ -15,6 +15,7 @@ layer_sources = [
   'pooling2d_layer.cpp',
   'preprocess_flip_layer.cpp',
   'preprocess_translate_layer.cpp',
+  'preprocess_l2norm_layer.cpp',
   'embedding.cpp',
   'rnn.cpp',
   'acti_func.cpp',
