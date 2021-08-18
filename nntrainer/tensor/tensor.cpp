@@ -644,7 +644,7 @@ void Tensor::apply_broadcast_util(
  * This is to sum the Tensor data according to the dim.batch().
  * Therefore the result has M(dim.batch(), 1, 1, 1) dimension.
  */
-Tensor Tensor::sum_by_batch() {
+Tensor Tensor::sum_by_batch() const {
   Tensor ret(dim.batch(), 1, 1, 1);
   unsigned int feat_len = dim.getFeatureLen();
   unsigned int batch = dim.batch();
