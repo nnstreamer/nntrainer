@@ -53,7 +53,7 @@ public:
    *
    * @return unsigned int batch size
    */
-  unsigned int batch() { return inputs.front().batch(); }
+  unsigned int batch();
 
   /**
    * @brief Get the Input Reference object
@@ -95,25 +95,33 @@ public:
    *
    * @return std::vector<Sample>::iterator
    */
-  std::vector<Sample>::iterator end() { return samples.end(); }
+  std::vector<Sample>::iterator end() { return end_iterator; }
 
   /**
    * @brief get sample iterator begin
    *
    * @return std::vector<Sample>::const_iterator
    */
-  std::vector<Sample>::const_iterator begin() const { return samples.begin(); }
+  std::vector<Sample>::const_iterator begin() const { return end_iterator; }
 
   /**
    * @brief get sample iterator end
    *
    * @return std::vector<Sample>::const_iterator
    */
-  std::vector<Sample>::const_iterator end() const { return samples.end(); }
+  std::vector<Sample>::const_iterator end() const { return end_iterator; }
+
+  /**
+   * @brief set end of the sample which will be used to calculate the batch size
+   * @note @a iteration must be non-inclusive
+   *
+   */
+  void setEndSample(std::vector<Sample>::iterator sample_iterator);
 
 private:
   std::vector<Tensor> inputs, labels;
   std::vector<Sample> samples;
+  std::vector<Sample>::iterator end_iterator; /**< actual end iterator */
 };
 
 /**
