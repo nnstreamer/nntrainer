@@ -158,7 +158,6 @@ ScopedView<Iteration> IterationQueue::requestFilled() {
       << " num being filled: " << num_being_filled
       << " filled_q.size(): " << filled_q.size();
 
-    flow_state = FlowState::FLOW_STATE_STOPPED;
     return ScopedView<Iteration>(nullptr);
   }
 
