@@ -17,6 +17,7 @@
 
 #include <dataset.h>
 
+#include <fstream>
 #include <memory>
 #include <string>
 #include <vector>
@@ -105,6 +106,7 @@ public:
               const std::vector<TensorDim> &label_dims) const override;
 
 private:
+  std::ifstream file;
   using PropTypes = std::tuple<props::FilePath>;
   std::unique_ptr<PropTypes> raw_file_props;
 };
