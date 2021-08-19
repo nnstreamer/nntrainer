@@ -205,8 +205,8 @@ TEST(nntrainer_ccapi, train_with_config_01_p) {
   EXPECT_EQ(model->initialize(), ML_ERROR_NONE);
   EXPECT_NO_THROW(model->train());
 
-  EXPECT_NEAR(model->getTrainingLoss(), 4.1389656, tolerance);
-  EXPECT_NEAR(model->getValidationLoss(), 3.668904, tolerance);
+  EXPECT_NEAR(model->getTrainingLoss(), 4.13896, tolerance);
+  EXPECT_NEAR(model->getValidationLoss(), 3.64587, tolerance);
 }
 
 /**
@@ -259,8 +259,8 @@ TEST(nntrainer_ccapi, train_dataset_with_file_01_p) {
   EXPECT_EQ(model->initialize(), ML_ERROR_NONE);
   EXPECT_NO_THROW(model->train());
 
-  EXPECT_NEAR(model->getTrainingLoss(), 2.171251, tolerance);
-  EXPECT_NEAR(model->getValidationLoss(), 2.2015938, tolerance);
+  EXPECT_NEAR(model->getTrainingLoss(), 2.1782395, tolerance);
+  EXPECT_NEAR(model->getValidationLoss(), 2.2059061, tolerance);
 }
 
 /**
@@ -368,10 +368,9 @@ TEST(nntrainer_ccapi, train_batch_size_update_after) {
   /** Update batch size after initialize */
   EXPECT_EQ(model->initialize(), ML_ERROR_NONE);
   EXPECT_EQ(model->setProperty({"batch_size=8"}), ML_ERROR_NONE);
-
   EXPECT_NO_THROW(model->train());
 
-  /** Update batch size after train */
+  // /** Update batch size after train */
   EXPECT_EQ(model->setProperty({"batch_size=16"}), ML_ERROR_NONE);
   EXPECT_NO_THROW(model->train());
 
@@ -383,8 +382,8 @@ TEST(nntrainer_ccapi, train_batch_size_update_after) {
   EXPECT_EQ(model->setProperty({"batch_size=4"}), ML_ERROR_NONE);
   EXPECT_NO_THROW(model->train());
 
-  EXPECT_NEAR(model->getTrainingLoss(), 1.897739, tolerance);
-  EXPECT_NEAR(model->getValidationLoss(), 2.15521, tolerance);
+  EXPECT_NEAR(model->getTrainingLoss(), 1.9332184, tolerance);
+  EXPECT_NEAR(model->getValidationLoss(), 2.179843, tolerance);
 }
 
 /**
