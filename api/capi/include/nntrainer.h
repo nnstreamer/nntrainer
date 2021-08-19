@@ -565,6 +565,7 @@ int ml_train_dataset_set_property_for_mode(ml_train_dataset_h dataset,
  * save.
  * @return @c 0 on success, Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_NOT_SUPPORTED Not supported.
  * @retval #ML_ERROR_PERMISSION_DENIED Permission denied.
  * @retval #ML_ERROR_INVALID_PARAMETER The given @a file_path is
  * invalid or taken, or @a model is not compiled.
@@ -595,6 +596,7 @@ int ml_train_model_save(ml_train_model_h model, const char *file_path,
  * load.
  * @return @c 0 on success, Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_NOT_SUPPORTED Not supported.
  * @retval #ML_ERROR_PERMISSION_DENIED Permission denied.
  * @retval #ML_ERROR_INVALID_PARAMETER The given @a file_path is
  * invalid or @a model is not in valid state to load.
