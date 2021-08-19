@@ -8,7 +8,7 @@ layer_client_sources = [
 
 run_command('cp', '-lr', res_path, nntr_app_resdir / 'LayerClient')
 
-e = executable('layer_client',
+exe = executable('layer_client',
   layer_client_sources,
   include_directories: layer_example_inc,
   dependencies: [app_utils_dep, iniparser_dep, nntrainer_dep, nntrainer_ccapi_dep],
