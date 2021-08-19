@@ -47,7 +47,7 @@ public:
    */
   ~FuncDataProducer();
 
-  inline static const std::string type = "batch_callback";
+  inline static const std::string type = "callback";
 
   /**
    * @copydoc DataProducer::getType()
