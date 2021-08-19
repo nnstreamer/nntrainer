@@ -163,34 +163,44 @@ DataProducer::Generator_sample
 RawFileDataProducer::finalize_sample(const std::vector<TensorDim> &input_dims,
                                      const std::vector<TensorDim> &label_dims,
                                      void *user_data) {
-  auto sz = size(input_dims, label_dims);
+  auto sz = size_sample(input_dims, label_dims);
   auto path_prop = std::get<props::FilePath>(*raw_file_props);
+
+  auto size_accumulator = [](const unsigned int &a, const TensorDim &b) {
+    return a + b.getFeatureLen();
+  };
+
+  auto sample_size =
+    std::accumulate(input_dims.begin(), input_dims.end(), 0u, size_accumulator);
+  sample_size = std::accumulate(label_dims.begin(), label_dims.end(),
+                                sample_size, size_accumulator);
 
   /****************** Prepare states ****************/
   auto idxes_ = std::vector<unsigned int>();
   idxes_.reserve(sz);
   /// idxes point to the file position in bytes where a sample starts
   std::generate_n(std::back_inserter(idxes_), sz,
-                  [sz, current = 0ULL]() mutable {
+                  [sample_size, current = 0ULL]() mutable {
                     auto c = current;
-                    current += sz * RawFileDataProducer::pixel_size;
+                    current += sample_size * RawFileDataProducer::pixel_size;
                     return c;
                   });
 
-  static thread_local std::ifstream file_(path_prop.get(), std::ios::binary);
-
-  return [idxes = std::move(idxes_), sz](unsigned int idx,
-                                         std::vector<Tensor> &inputs,
-                                         std::vector<Tensor> &labels) {
+  /// as we are passing the reference of file, this means created lamabda is
+  /// tightly couple with the file, this is not desirable but working fine for
+  /// now...
+  file = std::ifstream(path_prop.get(), std::ios::binary);
+  return [idxes = std::move(idxes_), sz, this](unsigned int idx,
+                                               std::vector<Tensor> &inputs,
+                                               std::vector<Tensor> &labels) {
     NNTR_THROW_IF(idx >= sz, std::range_error)
       << "given index is out of bound, index: " << idx << " size: " << sz;
-
-    file_.seekg(idxes[idx], std::ios_base::beg);
+    file.seekg(idxes[idx], std::ios_base::beg);
     for (auto &input : inputs) {
-      input.read(file_);
+      input.read(file);
     }
     for (auto &label : labels) {
-      label.read(file_);
+      label.read(file);
     }
 
     return idx == sz - 1;
