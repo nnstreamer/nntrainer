@@ -65,7 +65,9 @@ constexpr char USER_DATA[] = "user_data";
 DataBuffer::DataBuffer(std::unique_ptr<DataProducer> &&producer_) :
   producer(std::move(producer_)),
   db_props(new Props()),
-  user_data(nullptr) {}
+  user_data(nullptr) {
+  rng.seed(getSeed());
+}
 
 DataBuffer::~DataBuffer(){};
 
@@ -96,6 +98,62 @@ DataBuffer::startFetchWorker(const std::vector<TensorDim> &input_dims,
   });
 }
 
+std::future<std::shared_ptr<IterationQueue>>
+DataBuffer::startFetchWorker_sample(const std::vector<TensorDim> &input_dims,
+                                    const std::vector<TensorDim> &label_dims,
+                                    bool shuffle) {
+  NNTR_THROW_IF(!producer, std::runtime_error) << "producer does not exist";
+  NNTR_THROW_IF(input_dims.empty(), std::runtime_error)
+    << "There must be at least one input";
+
+  auto q_size = std::get<PropsBufferSize>(*db_props);
+  auto iq = std::make_shared<IterationQueue>(q_size, input_dims, label_dims);
+  auto generator = producer->finalize_sample(input_dims, label_dims);
+  auto size = producer->size_sample(input_dims, label_dims);
+  iq_view = iq;
+
+  /// case of generator
+  if (size == DataProducer::SIZE_UNDEFINED) {
+    return std::async(std::launch::async, [iq, generator] {
+      for (unsigned int i = 0; i < DataProducer::SIZE_UNDEFINED; ++i) {
+        /// below loop can be parallelized
+        auto sample_view = iq->requestEmpty();
+        NNTR_THROW_IF(sample_view.isEmpty(), std::runtime_error)
+          << "[Databuffer] Cannot fill empty buffer";
+        auto &sample = sample_view.get();
+        bool last = generator(i, sample.getInputsRef(), sample.getLabelsRef());
+        if (last) {
+          break;
+        }
+      }
+      iq->notifyEndOfRequestEmpty();
+      return iq;
+    });
+  }
+
+  std::vector<unsigned int> idxes_;
+  if (shuffle == true) {
+    idxes_.resize(size);
+    std::iota(idxes_.begin(), idxes_.end(), 0);
+    std::shuffle(idxes_.begin(), idxes_.end(), rng);
+  }
+
+  return std::async(std::launch::async,
+                    [iq, generator, size, idxes = std::move(idxes_), shuffle] {
+                      for (unsigned int i = 0; i < size; ++i) {
+                        /// below loop can be parallelized
+                        auto sample_view = iq->requestEmpty();
+                        NNTR_THROW_IF(sample_view.isEmpty(), std::runtime_error)
+                          << "[Databuffer] Cannot fill empty buffer";
+                        auto &sample = sample_view.get();
+                        generator(shuffle ? idxes[i] : i, sample.getInputsRef(),
+                                  sample.getLabelsRef());
+                      }
+                      iq->notifyEndOfRequestEmpty();
+                      return iq;
+                    });
+}
+
 std::unique_ptr<DataProducer::Iteration> DataBuffer::fetch() {
   NNTR_THROW_IF(!producer, std::runtime_error) << "producer does not exist";
   auto bq = bq_view.lock();
@@ -113,11 +171,29 @@ std::unique_ptr<DataProducer::Iteration> DataBuffer::fetch() {
   return iteration;
 }
 
+ScopedView<Iteration> DataBuffer::fetch_sample() {
+  NNTR_THROW_IF(!producer, std::runtime_error) << "producer does not exist";
+  auto iq = iq_view.lock();
+  NNTR_THROW_IF(!iq, std::runtime_error)
+    << "Cannot fetch, either fetcher is not running or fetcher has ended and "
+       "invalidated";
+  return iq->requestFilled();
+}
+
 DataProducer::Generator
 DataBuffer::batcher(const std::vector<TensorDim> &input_dims,
                     const std::vector<TensorDim> &label_dims) {
   NNTR_THROW_IF(!producer, std::invalid_argument) << "producer does not exist";
   return producer->finalize(input_dims, label_dims);
+}
+
+std::tuple<DataProducer::Generator_sample /** generator */,
+           unsigned int /** size */>
+DataBuffer::getGenerator(const std::vector<TensorDim> &input_dims,
+                         const std::vector<TensorDim> &label_dims) {
+  NNTR_THROW_IF(!producer, std::invalid_argument) << "producer does not exist";
+  return {producer->finalize_sample(input_dims, label_dims),
+          producer->size_sample(input_dims, label_dims)};
 }
 
 void DataBuffer::displayProgress(const int count, float loss) {
@@ -171,5 +247,10 @@ void DataBuffer::setProperty(const std::vector<std::string> &values) {
     NNTR_THROW_IF(!left.empty(), std::invalid_argument)
       << "[DataBuffer] Failed to set property";
   }
+}
+
+const std::string DataBuffer::getType() const {
+  NNTR_THROW_IF(!producer, std::invalid_argument) << "producer is empty";
+  return producer->getType();
 }
 } /* namespace nntrainer */
