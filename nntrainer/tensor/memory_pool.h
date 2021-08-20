@@ -126,7 +126,7 @@ private:
    * @brief Calculate the minimum memory requirement for the given memory
    * requests
    *
-   * @returns the minimum memory requirement in bytes
+   * @return the minimum memory requirement in bytes
    *
    * @note This will be theoretical minimum memory requirement ensuring that the
    * memory usages at the same time do not overlap with their validity. This
