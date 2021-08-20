@@ -112,21 +112,43 @@ DataBuffer::startFetchWorker_sample(const std::vector<TensorDim> &input_dims,
   auto size = producer->size_sample(input_dims, label_dims);
   iq_view = iq;
 
+  class NotifyOnDestruct {
+  public:
+    NotifyOnDestruct(IterationQueue *iq) : iq(iq) {}
+    ~NotifyOnDestruct() {
+      try {
+        iq->notifyEndOfRequestEmpty();
+      } catch (std::exception &e) {
+        ml_loge("failed to notify end of request, reason: %s", e.what());
+      }
+    }
+
+  private:
+    IterationQueue *iq = iq;
+  };
+
   /// case of generator
   if (size == DataProducer::SIZE_UNDEFINED) {
     return std::async(std::launch::async, [iq, generator] {
+      auto notifier = NotifyOnDestruct(iq.get());
       for (unsigned int i = 0; i < DataProducer::SIZE_UNDEFINED; ++i) {
         /// below loop can be parallelized
         auto sample_view = iq->requestEmpty();
         NNTR_THROW_IF(sample_view.isEmpty(), std::runtime_error)
           << "[Databuffer] Cannot fill empty buffer";
         auto &sample = sample_view.get();
-        bool last = generator(i, sample.getInputsRef(), sample.getLabelsRef());
-        if (last) {
-          break;
+        try {
+          bool last =
+            generator(i, sample.getInputsRef(), sample.getLabelsRef());
+          if (last) {
+            break;
+          }
+        } catch (std::exception &e) {
+          ml_loge("Fetching sample failed, Error: %s", e.what());
+          throw;
         }
       }
-      iq->notifyEndOfRequestEmpty();
+
       return iq;
     });
   }
@@ -138,20 +160,26 @@ DataBuffer::startFetchWorker_sample(const std::vector<TensorDim> &input_dims,
     std::shuffle(idxes_.begin(), idxes_.end(), rng);
   }
 
-  return std::async(std::launch::async,
-                    [iq, generator, size, idxes = std::move(idxes_), shuffle] {
-                      for (unsigned int i = 0; i < size; ++i) {
-                        /// below loop can be parallelized
-                        auto sample_view = iq->requestEmpty();
-                        NNTR_THROW_IF(sample_view.isEmpty(), std::runtime_error)
-                          << "[Databuffer] Cannot fill empty buffer";
-                        auto &sample = sample_view.get();
-                        generator(shuffle ? idxes[i] : i, sample.getInputsRef(),
-                                  sample.getLabelsRef());
-                      }
-                      iq->notifyEndOfRequestEmpty();
-                      return iq;
-                    });
+  return std::async(std::launch::async, [iq, generator, size,
+                                         idxes = std::move(idxes_), shuffle] {
+    auto notifier = NotifyOnDestruct(iq.get());
+    for (unsigned int i = 0; i < size; ++i) {
+      /// below loop can be parallelized
+      auto sample_view = iq->requestEmpty();
+      NNTR_THROW_IF(sample_view.isEmpty(), std::runtime_error)
+        << "[Databuffer] Cannot fill empty buffer";
+      auto &sample = sample_view.get();
+      try {
+        generator(shuffle ? idxes[i] : i, sample.getInputsRef(),
+                  sample.getLabelsRef());
+      } catch (std::exception &e) {
+        ml_loge("Fetching sample failed, Error: %s", e.what());
+        throw;
+      }
+    }
+
+    return iq;
+  });
 }
 
 std::unique_ptr<DataProducer::Iteration> DataBuffer::fetch() {
