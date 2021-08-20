@@ -137,25 +137,48 @@ void replaceString(const std::string &from, const std::string &to,
                    const std::string n, std::string str);
 
 /**
- * @brief      get data which size is batch for train
- * @param[out] outVec
- * @param[out] outLabel
- * @param[out] last if the data is finished
- * @param[in] user_data private data for the callback
- * @retval status for handling error
+ * @brief UserData which stores information used to feed data from data callback
+ *
  */
-int getBatch_train(float **outVec, float **outLabel, bool *last,
-                   void *user_data);
+class DataInformation {
+public:
+  /**
+   * @brief Construct a new Data Information object
+   *
+   * @param num_samples number of data
+   * @param filename file name to read from
+   */
+  DataInformation(unsigned int num_samples, const std::string &filename);
+  unsigned int count;
+  unsigned int num_samples;
+  std::ifstream file;
+  std::vector<unsigned int> idxes;
+  std::mt19937 rng;
+};
 
 /**
- * @brief      get data which size is batch for val
+ * @brief Create a user data for training
+ *
+ * @return DataInformation
+ */
+DataInformation createTrainData();
+
+/**
+ * @brief Create a user data for validataion
+ *
+ * @return DataInformation
+ */
+DataInformation createValidData();
+
+/**
+ * @brief      get data which size is batch
  * @param[out] outVec
  * @param[out] outLabel
  * @param[out] last if the data is finished
  * @param[in] user_data private data for the callback
  * @retval status for handling error
  */
-int getBatch_val(float **outVec, float **outLabel, bool *last, void *user_data);
+int getSample(float **outVec, float **outLabel, bool *last, void *user_data);
 
 /**
  * @brief Get the Res Path object

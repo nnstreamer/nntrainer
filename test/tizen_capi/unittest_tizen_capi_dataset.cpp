@@ -125,14 +125,14 @@ TEST(nntrainer_capi_dataset, create_destroy_06_n) {
 TEST(nntrainer_capi_dataset, create_destroy_07_p) {
   ml_train_dataset_h dataset;
   int status;
-  status = ml_train_dataset_create_with_generator(&dataset, getBatch_train,
-                                                  NULL, NULL);
+  status =
+    ml_train_dataset_create_with_generator(&dataset, getSample, NULL, NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
   status = ml_train_dataset_destroy(dataset);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_train_dataset_create_with_generator(&dataset, getBatch_train,
-                                                  getBatch_val, getBatch_val);
+  status = ml_train_dataset_create_with_generator(&dataset, getSample,
+                                                  getSample, getSample);
   EXPECT_EQ(status, ML_ERROR_NONE);
   status = ml_train_dataset_destroy(dataset);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -147,19 +147,19 @@ TEST(nntrainer_cpi_dataset, add_generator_01_p) {
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_train_dataset_add_generator(dataset, ML_TRAIN_DATASET_MODE_TRAIN,
-                                          getBatch_train, NULL);
+                                          getSample, NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_train_dataset_add_generator(dataset, ML_TRAIN_DATASET_MODE_TRAIN,
-                                          getBatch_val, NULL);
+                                          getSample, NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_train_dataset_add_generator(dataset, ML_TRAIN_DATASET_MODE_VALID,
-                                          getBatch_train, NULL);
+                                          getSample, NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_train_dataset_add_generator(dataset, ML_TRAIN_DATASET_MODE_TEST,
-                                          getBatch_train, NULL);
+                                          getSample, NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_train_dataset_destroy(dataset);
@@ -267,8 +267,8 @@ TEST(nntrainer_capi_dataset, set_dataset_property_01_p) {
   ml_train_dataset_h dataset;
   int status;
 
-  status = ml_train_dataset_create_with_generator(&dataset, getBatch_train,
-                                                  NULL, NULL);
+  status =
+    ml_train_dataset_create_with_generator(&dataset, getSample, NULL, NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_train_dataset_set_property(dataset, "buffer_size=10", NULL);
@@ -303,8 +303,8 @@ TEST(nntrainer_capi_dataset, set_dataset_property_03_n) {
   ml_train_dataset_h dataset;
   int status;
 
-  status = ml_train_dataset_create_with_generator(&dataset, getBatch_train,
-                                                  NULL, NULL);
+  status =
+    ml_train_dataset_create_with_generator(&dataset, getSample, NULL, NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_train_dataset_set_property(dataset, "user_data=10", NULL);
@@ -324,8 +324,8 @@ TEST(nntrainer_capi_dataset, set_dataset_property_04_p) {
   ml_train_dataset_h dataset;
   int status = ML_ERROR_NONE;
 
-  status = ml_train_dataset_create_with_generator(&dataset, getBatch_train,
-                                                  NULL, NULL);
+  status =
+    ml_train_dataset_create_with_generator(&dataset, getSample, NULL, NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status =
@@ -350,20 +350,22 @@ TEST(nntrainer_capi_dataset, set_dataset_property_for_mode_01_p) {
     dataset, ML_TRAIN_DATASET_MODE_TRAIN, "buffer_size=1", NULL);
   EXPECT_EQ(status, ML_ERROR_INVALID_PARAMETER);
 
+  auto train_data = createTrainData();
+  auto valid_data = createValidData();
   status = ml_train_dataset_add_generator(dataset, ML_TRAIN_DATASET_MODE_TRAIN,
-                                          getBatch_val, nullptr);
+                                          getSample, &train_data);
   status = ml_train_dataset_set_property_for_mode(
     dataset, ML_TRAIN_DATASET_MODE_TRAIN, "buffer_size=1", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_train_dataset_add_generator(dataset, ML_TRAIN_DATASET_MODE_VALID,
-                                          getBatch_val, nullptr);
+                                          getSample, &valid_data);
   status = ml_train_dataset_set_property_for_mode(
     dataset, ML_TRAIN_DATASET_MODE_VALID, "buffer_size=1", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_train_dataset_add_generator(dataset, ML_TRAIN_DATASET_MODE_TEST,
-                                          getBatch_val, nullptr);
+                                          getSample, &train_data);
   status = ml_train_dataset_set_property_for_mode(
     dataset, ML_TRAIN_DATASET_MODE_TEST, "buffer_size=1", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -379,9 +381,8 @@ TEST(nntrainer_capi_dataset,
      set_dataset_property_for_mode_does_not_exist_valid_n) {
   ml_train_dataset_h dataset;
   int status = ML_ERROR_NONE;
-
-  status = ml_train_dataset_create_with_generator(&dataset, getBatch_train,
-                                                  nullptr, getBatch_train);
+  status = ml_train_dataset_create_with_generator(&dataset, getSample, nullptr,
+                                                  getSample);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_train_dataset_set_property_for_mode(
@@ -400,8 +401,8 @@ TEST(nntrainer_capi_dataset,
   ml_train_dataset_h dataset;
   int status = ML_ERROR_NONE;
 
-  status = ml_train_dataset_create_with_generator(&dataset, getBatch_train,
-                                                  nullptr, nullptr);
+  status = ml_train_dataset_create_with_generator(&dataset, getSample, nullptr,
+                                                  nullptr);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_train_dataset_set_property_for_mode(

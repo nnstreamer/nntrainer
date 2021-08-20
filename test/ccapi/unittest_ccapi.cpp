@@ -291,14 +291,16 @@ TEST(nntrainer_ccapi, train_dataset_with_generator_01_p) {
        "beta1=0.002", "beta2=0.001", "epsilon=1e-7"}));
   EXPECT_NO_THROW(model->setOptimizer(optimizer));
 
+  auto train_data = createTrainData();
+  auto valid_data = createValidData();
   EXPECT_NO_THROW(dataset = ml::train::createDataset(
-                    ml::train::DatasetType::GENERATOR, getBatch_train));
+                    ml::train::DatasetType::GENERATOR, getSample, &train_data));
   EXPECT_NO_THROW(dataset->setProperty({"buffer_size=100"}));
   EXPECT_EQ(model->setDataset(ml::train::DatasetModeType::MODE_TRAIN, dataset),
             ML_ERROR_NONE);
 
   EXPECT_NO_THROW(dataset = ml::train::createDataset(
-                    ml::train::DatasetType::GENERATOR, getBatch_val));
+                    ml::train::DatasetType::GENERATOR, getSample, &valid_data));
   EXPECT_NO_THROW(dataset->setProperty({"buffer_size=100"}));
   EXPECT_EQ(model->setDataset(ml::train::DatasetModeType::MODE_VALID, dataset),
             ML_ERROR_NONE);
@@ -309,8 +311,8 @@ TEST(nntrainer_ccapi, train_dataset_with_generator_01_p) {
   EXPECT_EQ(model->initialize(), ML_ERROR_NONE);
   EXPECT_NO_THROW(model->train());
 
-  EXPECT_NEAR(model->getTrainingLoss(), 2.2109976, tolerance);
-  EXPECT_NEAR(model->getValidationLoss(), 1.995334, tolerance);
+  EXPECT_NEAR(model->getTrainingLoss(), 2.238682, tolerance);
+  EXPECT_NEAR(model->getValidationLoss(), 2.0042247, tolerance);
 }
 
 /**
