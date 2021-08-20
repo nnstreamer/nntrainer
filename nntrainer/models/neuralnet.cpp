@@ -635,14 +635,8 @@ int NeuralNetwork::train_run() {
   for (epoch_idx = epoch_idx + 1; epoch_idx <= epochs; ++epoch_idx) {
     training.loss = 0.0f;
 
-    std::future<std::shared_ptr<BatchQueue>> future_bq;
-    std::future<std::shared_ptr<IterationQueue>> future_iq;
-    if (train_buffer->getType() == "callback") {
-      future_bq = train_buffer->startFetchWorker(in_dims, label_dims);
-    } else {
-      future_iq =
-        train_buffer->startFetchWorker_sample(in_dims, label_dims, true);
-    }
+    std::future<std::shared_ptr<IterationQueue>> future_iq =
+      train_buffer->startFetchWorker_sample(in_dims, label_dims, true);
 
     // /// @todo make this working, test buffer is running but doing nothing
     // if (test_buffer != nullptr && test_buffer->isValid()) {
@@ -656,30 +650,19 @@ int NeuralNetwork::train_run() {
     int count = 0;
 
     while (true) {
-      ScopedView<Iteration> iter_view(nullptr);
-      if (train_buffer->getType() == "callback") {
-
-        auto [last, ins, labels] = *train_buffer->fetch();
-        /// @todo multiple input support
-        if (last) {
-          break;
-        }
-        in = ins[0];
-        label = labels[0];
-      } else {
-        iter_view = train_buffer->fetch_sample();
-        if (iter_view.isEmpty()) {
-          break;
-        }
-        auto &iter = iter_view.get();
-        if (iter.batch() != batch_size) {
-          /// this is partial batch scenario
-          continue;
-        }
-        /// @todo multiple input support
-        in = iter.getInputsRef().front();
-        label = iter.getLabelsRef().front();
+      ScopedView<Iteration> iter_view = train_buffer->fetch_sample();
+      if (iter_view.isEmpty()) {
+        break;
       }
+      auto &iteration = iter_view.get();
+      if (iteration.batch() != batch_size) {
+        /// this is partial batch scenario
+        continue;
+      }
+      /// @todo multiple input support
+      in = iteration.getInputsRef().front();
+      label = iteration.getLabelsRef().front();
+
       forwarding(true);
       backwarding(iter++);
 
@@ -689,11 +672,7 @@ int NeuralNetwork::train_run() {
       training.loss += loss;
     }
 
-    if (train_buffer->getType() == "callback") {
-      future_bq.get();
-    } else {
-      future_iq.get();
-    }
+    future_iq.get();
 
     if (count == 0)
       throw std::runtime_error("No training data");
@@ -710,40 +689,23 @@ int NeuralNetwork::train_run() {
       int right = 0;
       validation.loss = 0.0f;
       unsigned int tcases = 0;
-      std::future<std::shared_ptr<BatchQueue>> future_bq;
-      std::future<std::shared_ptr<IterationQueue>> future_iq;
 
-      if (valid_buffer->getType() == "callback") {
-        future_bq = valid_buffer->startFetchWorker(in_dims, label_dims);
-      } else {
-        future_iq =
-          valid_buffer->startFetchWorker_sample(in_dims, label_dims, false);
-      }
+      std::future<std::shared_ptr<IterationQueue>> future_iq =
+        valid_buffer->startFetchWorker_sample(in_dims, label_dims, false);
 
       while (true) {
-        ScopedView<Iteration> iter_view(nullptr);
-        if (valid_buffer->getType() == "callback") {
-          auto [last, ins, labels] = *valid_buffer->fetch();
-          if (last) {
-            break;
-          }
-          /// @todo multiple input support
-          in = ins[0];
-          label = labels[0];
-        } else {
-          iter_view = valid_buffer->fetch_sample();
-          if (iter_view.isEmpty()) {
-            break;
-          }
-          auto &iter = iter_view.get();
-          if (iter.batch() != batch_size) {
-            /// this is partial batch scenario
-            continue;
-          }
-          /// @todo multiple input support
-          in = iter.getInputsRef().front();
-          label = iter.getLabelsRef().front();
+        ScopedView<Iteration> iter_view = valid_buffer->fetch_sample();
+        if (iter_view.isEmpty()) {
+          break;
         }
+        auto &iter = iter_view.get();
+        if (iter.batch() != batch_size) {
+          /// this is partial batch scenario
+          continue;
+        }
+        /// @todo multiple input support
+        in = iter.getInputsRef().front();
+        label = iter.getLabelsRef().front();
 
         forwarding(false);
         auto model_out = output.argmax();
@@ -756,11 +718,7 @@ int NeuralNetwork::train_run() {
         tcases++;
       }
 
-      if (valid_buffer->getType() == "callback") {
-        future_bq.get();
-      } else {
-        future_iq.get();
-      }
+      future_iq.get();
 
       if (tcases == 0) {
         ml_loge("Error : 0 test cases");
