@@ -76,7 +76,7 @@ public:
    * @note we assume that the caller checks if the exec_order and lifespan are
    * compatible.
    */
-  Tensor *requestPreallocatedTensor(const TensorDim dim,
+  Tensor *requestPrerequestedTensor(const TensorDim dim,
                                     const std::vector<unsigned int> &exec_order,
 
                                     TensorLifespan lifespan,
@@ -126,7 +126,24 @@ public:
   void expand_lifespan(const std::string &name,
                        const std::vector<unsigned int> &exec_order);
 
+  /**
+   * @brief Get the maximum real memory requirement
+   *
+   * @return The real memory requirement with this strategy in bytes
+   */
+  size_t size() { return mem_pool.size(); }
+
+  /**
+   * @brief Get the minimum theoretical memory requirement
+   *
+   * @return The theoretical memory requirement with this strategy in bytes
+   */
+  size_t minMemoryRequirement() { return mem_pool.minMemoryRequirement(); }
+
 private:
+  /**
+   * @brief Spec for storing each request of tensor from tensor pool
+   */
   struct requestSpec {
     std::unique_ptr<Tensor> tensor;       /**< tensor object itself */
     std::vector<unsigned int> exec_order; /**< tensor exec order list */
@@ -137,6 +154,15 @@ private:
   std::unordered_map<std::string, requestSpec>
     pool;              /**< list of requested tensors */
   MemoryPool mem_pool; /**< memory pool for the tensors */
+
+  /**
+   * @brief     Check if the lifespan leads to long term valitidy
+   *
+   * @param lifespan Lifespan for the tensor
+   *
+   * @return true if the tensor should be valid for long term, else false
+   */
+  bool isTensorLongTerm(const TensorLifespan &lifespan);
 };
 
 } // namespace nntrainer

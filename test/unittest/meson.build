@@ -36,7 +36,8 @@ test_target = [
   'unittest_nntrainer_graph',
   'unittest_nntrainer_appcontext',
   'unittest_base_properties',
-  'unittest_common_properties'
+  'unittest_common_properties',
+  'unittest_nntrainer_tensor_pool'
 ]
 
 if get_option('enable-profile')
