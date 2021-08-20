@@ -795,11 +795,22 @@ TEST(nntrainer_capi_nnmodel, train_with_generator_01_p) {
   status = ml_train_model_set_optimizer(model, optimizer);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_train_dataset_create_with_generator(&dataset, getBatch_train,
-                                                  getBatch_val, NULL);
+  auto train_data = createTrainData();
+  auto valid_data = createValidData();
+
+  status = ml_train_dataset_create_with_generator(&dataset, getSample,
+                                                  getSample, NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_train_dataset_set_property(dataset, "buffer_size=100", NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_dataset_set_property_for_mode(
+    dataset, ML_TRAIN_DATASET_MODE_TRAIN, "user_data", &train_data, NULL);
+  EXPECT_EQ(status, ML_ERROR_NONE);
+
+  status = ml_train_dataset_set_property_for_mode(
+    dataset, ML_TRAIN_DATASET_MODE_VALID, "user_data", &valid_data, NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   status = ml_train_model_set_dataset(model, dataset);
@@ -813,7 +824,7 @@ TEST(nntrainer_capi_nnmodel, train_with_generator_01_p) {
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   /** Compare training statistics */
-  nntrainer_capi_model_comp_metrics(model, 2.17921, 1.96506, 60.4167);
+  nntrainer_capi_model_comp_metrics(model, 2.2063899, 1.983489, 64.583297);
 
   status = ml_train_model_destroy(model);
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -822,29 +833,24 @@ TEST(nntrainer_capi_nnmodel, train_with_generator_01_p) {
 static int constant_generator_cb(float **outVec, float **outLabel, bool *last,
                                  void *user_data) {
   static int count = 0;
-
-  unsigned int batch_size = 9;
   unsigned int feature_size = 100;
   unsigned int num_class = 10;
-  unsigned int data_size = batch_size * feature_size;
 
-  for (unsigned int i = 0; i < data_size; ++i) {
+  for (unsigned int i = 0; i < feature_size; ++i) {
     outVec[0][i] = 0.0f;
   }
 
-  for (unsigned int i = 0; i < batch_size; ++i) {
-    outLabel[0][i * num_class] = 1.0f;
-    for (unsigned int j = 1; j < num_class; ++j) {
-      outLabel[0][i * num_class + j] = 0.0f;
-    }
+  outLabel[0][0] = 1.0f;
+  for (unsigned int j = 1; j < num_class; ++j) {
+    outLabel[0][j] = 0.0f;
   }
 
-  if (count == 10) {
+  count++;
+  if (count == 9) {
     *last = true;
     count = 0;
   } else {
     *last = false;
-    count++;
   }
 
   return ML_ERROR_NONE;

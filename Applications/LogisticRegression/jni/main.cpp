@@ -24,12 +24,12 @@
  * (test.txt)
  */
 
+#include <algorithm>
 #include <cmath>
 #include <fstream>
 #include <iostream>
+#include <random>
 #include <sstream>
-#include <stdlib.h>
-#include <time.h>
 
 #include <databuffer.h>
 #include <neuralnet.h>
@@ -46,6 +46,8 @@ const unsigned int batch_size = 16;
 const unsigned int feature_size = 2;
 
 const unsigned int total_val_data_size = 10;
+
+constexpr unsigned int SEED = 0;
 
 bool training = false;
 
@@ -69,13 +71,12 @@ float stepFunction(float x) {
 /**
  * @brief     get idth Data
  * @param[in] F file stream
- * @param[out] outVec feature data
- * @param[out] outLabel label data
+ * @param[out] input feature data
+ * @param[out] label label data
  * @param[in] id id th
  * @retval boolean true if there is no error
  */
-bool getData(std::ifstream &F, std::vector<float> &outVec,
-             std::vector<float> &outLabel, unsigned int id) {
+bool getData(std::ifstream &F, float *input, float *label, unsigned int id) {
   std::string temp;
   F.clear();
   F.seekg(0, std::ios_base::beg);
@@ -94,55 +95,41 @@ bool getData(std::ifstream &F, std::vector<float> &outVec,
   float x;
   for (unsigned int j = 0; j < feature_size; ++j) {
     buffer >> x;
-    outVec[j] = x;
+    input[j] = x;
   }
   buffer >> x;
-  outLabel[0] = x;
+  label[0] = x;
 
   return true;
 }
 
+std::mt19937 rng;
+std::vector<unsigned int> train_idxes;
+
 /**
- * @brief     get Data as much as batch size
+ * @brief     get a single data
  * @param[out] outVec feature data
  * @param[out] outLabel label data
  * @param[out] last end of data
  * @param[in] user_data user data
  * @retval int 0 if there is no error
  */
-int getBatch_train(float **outVec, float **outLabel, bool *last,
-                   void *user_data) {
+int getSample_train(float **outVec, float **outLabel, bool *last,
+                    void *user_data) {
   std::ifstream dataFile(data_file);
-  unsigned int data_size = total_train_data_size;
-  unsigned int count = 0;
 
-  if (data_size - train_count < batch_size) {
+  if (!getData(dataFile, *outVec, *outLabel, train_idxes.at(train_count))) {
+    return -1;
+  }
+  train_count++;
+  if (train_count < total_train_data_size) {
+    *last = false;
+  } else {
     *last = true;
     train_count = 0;
-    return 0;
+    std::shuffle(train_idxes.begin(), train_idxes.end(), rng);
   }
 
-  for (unsigned int i = train_count; i < train_count + batch_size; ++i) {
-
-    std::vector<float> o;
-    std::vector<float> l;
-    o.resize(feature_size);
-    l.resize(1);
-
-    if (!getData(dataFile, o, l, i)) {
-      return -1;
-    };
-
-    for (unsigned int j = 0; j < feature_size; ++j)
-      outVec[0][count * feature_size + j] = o[j];
-    outLabel[0][count] = l[0];
-
-    count++;
-  }
-
-  dataFile.close();
-  *last = false;
-  train_count += batch_size;
   return 0;
 }
 
@@ -160,6 +147,10 @@ int main(int argc, char *argv[]) {
     exit(1);
   }
 
+  train_idxes.resize(total_train_data_size);
+  std::iota(train_idxes.begin(), train_idxes.end(), 0);
+  rng.seed(SEED);
+
   const std::vector<std::string> args(argv + 1, argv + argc);
   std::string config = args[1];
   data_file = args[2];
@@ -169,8 +160,8 @@ int main(int argc, char *argv[]) {
 
   srand(time(NULL));
 
-  auto data_train =
-    ml::train::createDataset(ml::train::DatasetType::GENERATOR, getBatch_train);
+  auto data_train = ml::train::createDataset(ml::train::DatasetType::GENERATOR,
+                                             getSample_train);
 
   /**
    * @brief     Create NN
@@ -217,7 +208,7 @@ int main(int argc, char *argv[]) {
       o.resize(feature_size);
       l.resize(1);
 
-      getData(dataFile, o, l, j);
+      getData(dataFile, o.data(), l.data(), j);
 
       try {
         float answer =
