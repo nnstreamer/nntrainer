@@ -17,9 +17,8 @@
 #include <cmath>
 #include <fstream>
 #include <iostream>
+#include <random>
 #include <sstream>
-#include <stdlib.h>
-#include <time.h>
 
 #include <dataset.h>
 #include <ml-api-common.h>
@@ -27,6 +26,8 @@
 #include <tensor.h>
 
 std::string data_file;
+
+constexpr unsigned int SEED = 0;
 
 const unsigned int total_train_data_size = 25;
 
@@ -60,13 +61,12 @@ float stepFunction(float x) {
 /**
  * @brief     get idth Data
  * @param[in] F file stream
- * @param[out] outVec feature data
- * @param[out] outLabel label data
+ * @param[out] input feature data
+ * @param[out] label label data
  * @param[in] id id th
  * @retval boolean true if there is no error
  */
-bool getData(std::ifstream &F, std::vector<float> &outVec,
-             std::vector<float> &outLabel, unsigned int id) {
+bool getData(std::ifstream &F, float *input, float *label, unsigned int id) {
   std::string temp;
   F.clear();
   F.seekg(0, std::ios_base::beg);
@@ -78,18 +78,17 @@ bool getData(std::ifstream &F, std::vector<float> &outVec,
 
   F.putback(c);
 
-  if (!std::getline(F, temp)) {
+  if (!std::getline(F, temp))
     return false;
-  }
 
   std::istringstream buffer(temp);
   float x;
   for (unsigned int j = 0; j < feature_size; ++j) {
     buffer >> x;
-    outVec[j] = x;
+    input[j] = x;
   }
   buffer >> x;
-  outLabel[0] = x;
+  label[0] = x;
 
   return true;
 }
@@ -103,50 +102,34 @@ template <typename T> void loadFile(const char *filename, T &t) {
   file.close();
 }
 
+std::mt19937 rng;
+std::vector<unsigned int> train_idxes;
+
 /**
- * @brief     get Data as much as batch size
+ * @brief     get a single data
  * @param[out] outVec feature data
  * @param[out] outLabel label data
  * @param[out] last end of data
  * @param[in] user_data user data
  * @retval int 0 if there is no error
  */
-int getBatch_train(float **outVec, float **outLabel, bool *last,
-                   void *user_data) {
+int getSample_train(float **outVec, float **outLabel, bool *last,
+                    void *user_data) {
   std::ifstream dataFile(data_file);
-  unsigned int data_size = total_train_data_size;
-  unsigned int count = 0;
-
-  if (data_size - train_count < batch_size) {
+  if (!getData(dataFile, *outVec, *outLabel, train_idxes.at(train_count))) {
+    return -1;
+  }
+  train_count++;
+  if (train_count < total_train_data_size) {
+    *last = false;
+  } else {
     *last = true;
     train_count = 0;
-    return 0;
+    std::shuffle(train_idxes.begin(), train_idxes.end(), rng);
   }
 
-  std::vector<float> o;
-  std::vector<float> l;
-  o.resize(feature_size);
-  l.resize(1);
-
-  for (unsigned int i = train_count; i < train_count + batch_size; ++i) {
-    if (!getData(dataFile, o, l, i)) {
-      return -1;
-    }
-
-    for (unsigned int j = 0; j < feature_size; ++j) {
-      outVec[0][count * feature_size + j] = o[j];
-    }
-    outLabel[0][count] = l[0];
-
-    count++;
-  }
-
-  dataFile.close();
-  *last = false;
-  train_count += batch_size;
   return 0;
 }
-
 /**
  * @brief     create NN
  *            back propagation of NN
@@ -170,14 +153,16 @@ int main(int argc, char *argv[]) {
   if (!args[0].compare("train"))
     training = true;
 
-  srand(time(NULL));
+  train_idxes.resize(total_train_data_size);
+  std::iota(train_idxes.begin(), train_idxes.end(), 0);
+  rng.seed(SEED);
 
   std::shared_ptr<ml::train::Dataset> dataset_train, dataset_val;
   try {
     dataset_train =
-      createDataset(ml::train::DatasetType::GENERATOR, getBatch_train);
+      createDataset(ml::train::DatasetType::GENERATOR, getSample_train);
     dataset_val =
-      createDataset(ml::train::DatasetType::GENERATOR, getBatch_train);
+      createDataset(ml::train::DatasetType::GENERATOR, getSample_train);
   } catch (std::exception &e) {
     std::cerr << "Error creating dataset " << e.what() << std::endl;
     return 1;
@@ -186,7 +171,6 @@ int main(int argc, char *argv[]) {
   /**
    * @brief     Create NN
    */
-  std::vector<std::vector<float>> inputVector, outputVector;
   nntrainer::NeuralNetwork NN;
   /**
    * @brief     Initialize NN with configuration file path
@@ -257,7 +241,7 @@ int main(int argc, char *argv[]) {
       o.resize(feature_size);
       l.resize(1);
 
-      getData(dataFile, o, l, j);
+      getData(dataFile, o.data(), l.data(), j);
 
       try {
         float answer =

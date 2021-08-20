@@ -24,8 +24,6 @@
  *              Classifier : One Fully Connected Layer
  *
  */
-///@todo update below
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 
 #if defined(NNSTREAMER_AVAILABLE) && defined(ENABLE_TEST)
 #define APP_VALIDATE
@@ -149,12 +147,6 @@ void loadAllData(const std::string &data_path, float input_data[][INPUT_SIZE],
  */
 int getBatch_train(float **input, float **label, bool *last, void *user_data) {
   static unsigned int iteration = 0;
-  if (iteration >= EPOCH_SIZE) {
-    *last = true;
-    iteration = 0;
-    return ML_ERROR_NONE;
-  }
-
   for (int idx = 0; idx < INPUT_SIZE; idx++) {
     input[0][idx] = inputVector[iteration][idx];
   }
@@ -163,8 +155,13 @@ int getBatch_train(float **input, float **label, bool *last, void *user_data) {
     label[0][idx] = labelVector[iteration][idx];
   }
 
-  *last = false;
   iteration += 1;
+  if (iteration < EPOCH_SIZE) {
+    *last = false;
+  } else {
+    *last = true;
+    iteration = 0;
+  }
   return ML_ERROR_NONE;
 }
 
@@ -191,14 +188,22 @@ int trainModel(const char *config) {
   }
 
   /** Set the dataset from generator */
-  status = ml_train_dataset_create_with_generator(&dataset, getBatch_train,
-                                                  NULL, NULL);
+  status = ml_train_dataset_create(&dataset);
   if (status != ML_ERROR_NONE) {
     ml_train_model_destroy(handle);
     return status;
   }
 
-  status = ml_train_dataset_set_property(dataset, "buffer_size=100", NULL);
+  status = ml_train_dataset_add_generator(dataset, ML_TRAIN_DATASET_MODE_TRAIN,
+                                          getBatch_train, nullptr);
+  if (status != ML_ERROR_NONE) {
+    ml_train_dataset_destroy(dataset);
+    ml_train_model_destroy(handle);
+    return status;
+  }
+
+  status = ml_train_dataset_set_property_for_mode(
+    dataset, ML_TRAIN_DATASET_MODE_TRAIN, "buffer_size=100", NULL);
   if (status != ML_ERROR_NONE) {
     ml_train_dataset_destroy(dataset);
     ml_train_model_destroy(handle);

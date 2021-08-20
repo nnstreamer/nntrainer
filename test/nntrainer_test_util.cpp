@@ -33,10 +33,6 @@
 #define batch_size 16
 #define feature_size 62720
 
-static bool *duplicate;
-static bool *valduplicate;
-static bool alloc_train = false;
-static bool alloc_val = false;
 static std::mt19937 rng(0);
 
 /**
@@ -69,17 +65,6 @@ void replaceString(const std::string &from, const std::string &to,
 }
 
 /**
- * @brief     Generate Random integer value between min to max
- * @param[in] min : minimum value
- * @param[in] max : maximum value
- * @retval    min < random value < max
- */
-static int rangeRandom(int min, int max) {
-  std::uniform_int_distribution<int> dist(min, max);
-  return dist(rng);
-}
-
-/**
  * @brief     load data at specific position of file
  * @param[in] F  ifstream (input file)
  * @param[out] outVec
@@ -87,8 +72,8 @@ static int rangeRandom(int min, int max) {
  * @param[in] id th data to get
  * @retval true/false false : end of data
  */
-static bool getData(std::ifstream &F, std::vector<float> &outVec,
-                    std::vector<float> &outLabel, unsigned int id) {
+static bool getData(std::ifstream &F, float *outVec, float *outLabel,
+                    unsigned int id) {
   F.clear();
   F.seekg(0, std::ios_base::end);
   uint64_t file_length = F.tellg();
@@ -100,12 +85,46 @@ static bool getData(std::ifstream &F, std::vector<float> &outVec,
     return false;
   }
   F.seekg(position, std::ios::beg);
-  for (unsigned int i = 0; i < feature_size; i++)
-    F.read((char *)&outVec[i], sizeof(float));
-  for (unsigned int i = 0; i < num_class; i++)
-    F.read((char *)&outLabel[i], sizeof(float));
+  F.read((char *)outVec, sizeof(float) * feature_size);
+  F.read((char *)outLabel, sizeof(float) * num_class);
 
   return true;
+}
+
+DataInformation::DataInformation(unsigned int num_samples,
+                                 const std::string &filename) :
+  count(0),
+  num_samples(num_samples),
+  file(filename, std::ios::in | std::ios::binary),
+  idxes(num_samples) {
+  std::iota(idxes.begin(), idxes.end(), 0);
+  std::shuffle(idxes.begin(), idxes.end(), rng);
+  rng.seed(0);
+  if (!file.good()) {
+    throw std::invalid_argument("given file is not good, filename: " +
+                                filename);
+  }
+}
+
+static auto getDataSize = [](const std::string &file_name) {
+  std::ifstream f(file_name, std::ios::in | std::ios::binary);
+  NNTR_THROW_IF(!f.good(), std::invalid_argument)
+    << "cannot find " << file_name;
+  f.seekg(0, std::ios::end);
+  long file_size = f.tellg();
+  return static_cast<unsigned int>(
+    file_size / ((num_class + feature_size) * sizeof(float)));
+};
+
+std::string train_filename = getResPath("trainingSet.dat", {"test"});
+std::string valid_filename = getResPath("trainingSet.dat", {"test"});
+
+DataInformation createTrainData() {
+  return DataInformation(getDataSize(train_filename), train_filename);
+}
+
+DataInformation createValidData() {
+  return DataInformation(getDataSize(valid_filename), valid_filename);
 }
 
 /**
@@ -116,163 +135,19 @@ static bool getData(std::ifstream &F, std::vector<float> &outVec,
  * @param[in] user_data private data for the callback
  * @retval status for handling error
  */
-int getBatch_train(float **outVec, float **outLabel, bool *last,
-                   void *user_data) {
-  std::vector<int> memI;
-  std::vector<int> memJ;
-  unsigned int count = 0;
-  unsigned int data_size = 0;
-  *last = true;
+int getSample(float **outVec, float **outLabel, bool *last, void *user_data) {
+  auto data = reinterpret_cast<DataInformation *>(user_data);
 
-  std::string filename = getResPath("trainingSet.dat", {"test"});
-  std::ifstream F(filename, std::ios::in | std::ios::binary);
-
-  if (F.good()) {
-    F.seekg(0, std::ios::end);
-    long file_size = F.tellg();
-    data_size = static_cast<unsigned int>(
-      file_size / ((num_class + feature_size) * sizeof(float)));
-  }
-
-  if (!alloc_train) {
-    duplicate = (bool *)malloc(sizeof(bool) * data_size);
-    if (duplicate == nullptr) {
-      ml_loge("[test_util] allocationg memory failed");
-      alloc_train = false;
-      *last = false;
-      F.close();
-      return ML_ERROR_BAD_ADDRESS;
-    }
-
-    for (unsigned int i = 0; i < data_size; ++i) {
-      duplicate[i] = false;
-    }
-    alloc_train = true;
-  }
-
-  for (unsigned int i = 0; i < data_size; i++) {
-    if (!duplicate[i])
-      count++;
-  }
-
-  if (count < batch_size) {
-    free(duplicate);
-    alloc_train = false;
+  getData(data->file, *outVec, *outLabel, data->idxes.at(data->count));
+  data->count++;
+  if (data->count < data->num_samples) {
+    *last = false;
+  } else {
     *last = true;
-    return ML_ERROR_NONE;
+    data->count = 0;
+    std::shuffle(data->idxes.begin(), data->idxes.end(), data->rng);
   }
 
-  count = 0;
-  while (count < batch_size) {
-    int nomI = rangeRandom(0, data_size - 1);
-    if (!duplicate[nomI]) {
-      memI.push_back(nomI);
-      duplicate[nomI] = true;
-      count++;
-    }
-  }
-
-  for (unsigned int i = 0; i < count; i++) {
-    std::vector<float> o;
-    std::vector<float> l;
-
-    o.resize(feature_size);
-    l.resize(num_class);
-
-    getData(F, o, l, memI[i]);
-
-    for (unsigned int j = 0; j < feature_size; ++j)
-      outVec[0][i * feature_size + j] = o[j];
-    for (unsigned int j = 0; j < num_class; ++j)
-      outLabel[0][i * num_class + j] = l[j];
-  }
-
-  F.close();
-  *last = false;
-  return ML_ERROR_NONE;
-}
-
-/**
- * @brief      get data which size is batch for validation
- * @param[out] outVec
- * @param[out] outLabel
- * @param[out] last if the data is finished
- * @param[in] user_data private data for the callback
- * @retval status for handling error
- */
-int getBatch_val(float **outVec, float **outLabel, bool *last,
-                 void *user_data) {
-
-  std::vector<int> memI;
-  std::vector<int> memJ;
-  unsigned int count = 0;
-  unsigned int data_size = 0;
-  *last = true;
-
-  std::string filename = getResPath("trainingSet.dat", {"test"});
-  std::ifstream F(filename, std::ios::in | std::ios::binary);
-
-  if (F.good()) {
-    F.seekg(0, std::ios::end);
-    long file_size = F.tellg();
-    data_size = static_cast<unsigned int>(
-      file_size / ((num_class + feature_size) * sizeof(float)));
-  }
-
-  if (!alloc_val) {
-    valduplicate = (bool *)malloc(sizeof(bool) * data_size);
-    if (valduplicate == nullptr) {
-      ml_loge("[test_util] allocationg memory failed");
-      alloc_val = false;
-      *last = false;
-      F.close();
-      return ML_ERROR_BAD_ADDRESS;
-    }
-    for (unsigned int i = 0; i < data_size; ++i) {
-      valduplicate[i] = false;
-    }
-    alloc_val = true;
-  }
-
-  for (unsigned int i = 0; i < data_size; i++) {
-    if (!valduplicate[i])
-      count++;
-  }
-
-  if (count < batch_size) {
-    free(valduplicate);
-    alloc_val = false;
-    *last = true;
-    return ML_ERROR_NONE;
-  }
-
-  count = 0;
-  while (count < batch_size) {
-    int nomI = rangeRandom(0, data_size - 1);
-    if (!valduplicate[nomI]) {
-      memI.push_back(nomI);
-      valduplicate[nomI] = true;
-      count++;
-    }
-  }
-
-  for (unsigned int i = 0; i < count; i++) {
-    std::vector<float> o;
-    std::vector<float> l;
-
-    o.resize(feature_size);
-    l.resize(num_class);
-
-    getData(F, o, l, memI[i]);
-
-    for (unsigned int j = 0; j < feature_size; ++j)
-      outVec[0][i * feature_size + j] = o[j];
-    for (unsigned int j = 0; j < num_class; ++j)
-      outLabel[0][i * num_class + j] = l[j];
-  }
-
-  F.close();
-  *last = false;
   return ML_ERROR_NONE;
 }
 

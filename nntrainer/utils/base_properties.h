@@ -350,7 +350,6 @@ template <typename DataType> struct str_converter<ptr_prop_tag, DataType> {
   static DataType from_string(const std::string &value) {
     std::stringstream ss(value);
     uintptr_t addr = static_cast<uintptr_t>(std::stoull(value, 0, 16));
-    std::cerr << "value: " << value << " addr: " << addr;
     return reinterpret_cast<DataType>(addr);
   }
 };

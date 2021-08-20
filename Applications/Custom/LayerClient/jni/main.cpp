@@ -40,7 +40,7 @@ int constant_generator_cb(float **outVec, float **outLabel, bool *last,
                           void *user_data) {
   static int count = 0;
   unsigned int i;
-  unsigned int data_size = BATCH_SIZE * FEATURE_SIZE;
+  unsigned int data_size = FEATURE_SIZE;
 
   for (i = 0; i < data_size; ++i) {
     outVec[0][i] = 2.0f;
@@ -51,12 +51,12 @@ int constant_generator_cb(float **outVec, float **outLabel, bool *last,
   }
   outLabel[0][0] = 1.0f;
 
+  count++;
   if (count == 10) {
     *last = true;
     count = 0;
   } else {
     *last = false;
-    count++;
   }
 
   return ML_ERROR_NONE;

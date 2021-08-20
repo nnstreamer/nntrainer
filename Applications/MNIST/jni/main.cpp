@@ -23,15 +23,16 @@
 #define APP_VALIDATE
 #endif
 
+#include <algorithm>
 #include <climits>
 #include <cmath>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
-#include <queue>
+#include <memory>
+#include <random>
 #include <sstream>
-#include <stdlib.h>
-#include <time.h>
+#include <vector>
 
 #if defined(APP_VALIDATE)
 #include <gtest/gtest.h>
@@ -45,6 +46,8 @@
 
 #define VALIDATION false
 
+constexpr unsigned int SEED = 0;
+
 #if VALIDATION
 /**
  * @brief     Data size for each category
@@ -55,8 +58,6 @@ const unsigned int total_val_data_size = 32;
 
 const unsigned int total_test_data_size = 32;
 
-const unsigned int buffer_size = 32;
-
 const unsigned int batch_size = 32;
 
 #else
@@ -66,8 +67,6 @@ const unsigned int total_train_data_size = 100;
 const unsigned int total_val_data_size = 100;
 
 const unsigned int total_test_data_size = 100;
-
-const unsigned int buffer_size = 100;
 
 const unsigned int batch_size = 32;
 
@@ -112,13 +111,12 @@ float stepFunction(float x) {
 /**
  * @brief     load data at specific position of file
  * @param[in] F  ifstream (input file)
- * @param[out] outVec
- * @param[out] outLabel
+ * @param[out] input input
+ * @param[out] label label
  * @param[in] id th data to get
  * @retval true/false false : end of data
  */
-bool getData(std::ifstream &F, std::vector<float> &outVec,
-             std::vector<float> &outLabel, unsigned int id) {
+bool getData(std::ifstream &F, float *input, float *label, unsigned int id) {
   F.clear();
   F.seekg(0, std::ios_base::end);
   uint64_t file_length = F.tellg();
@@ -129,119 +127,75 @@ bool getData(std::ifstream &F, std::vector<float> &outVec,
     return false;
   }
   F.seekg(position, std::ios::beg);
-  for (unsigned int i = 0; i < feature_size; i++)
-    F.read((char *)&outVec[i], sizeof(float));
-  for (unsigned int i = 0; i < total_label_size; i++)
-    F.read((char *)&outLabel[i], sizeof(float));
+  F.read((char *)input, sizeof(float) * feature_size);
+  F.read((char *)label, sizeof(float) * total_label_size);
 
   return true;
 }
 
 /**
- * @brief      get data which size is batch for train
- * @param[out] outVec
- * @param[out] outLabel
- * @param[out] last if the data is finished
- * @param[in] user_data private data for the callback
- * @retval status for handling error
+ * @brief UserData which stores information used to feed data from data callback
+ *
  */
-int getBatch_train(float **outVec, float **outLabel, bool *last,
-                   void *user_data) {
-  std::vector<int> memI;
-  std::vector<int> memJ;
-  unsigned int count = 0;
-  int data_size = total_train_data_size;
+class DataInformation {
+public:
+  /**
+   * @brief Construct a new Data Information object
+   *
+   * @param num_samples number of data
+   * @param filename file name to read from
+   */
+  DataInformation(unsigned int num_samples, const std::string &filename);
+  unsigned int count;
+  unsigned int num_samples;
+  std::ifstream file;
+  std::vector<unsigned int> idxes;
+  std::mt19937 rng;
+};
 
-  std::ifstream F(filename, std::ios::in | std::ios::binary);
-
-#if VALIDATION
-  if (data_size - train_count < batch_size) {
-#else
-  if (data_size * total_label_size - train_count < batch_size) {
-#endif
-    *last = true;
-    train_count = 0;
-    return ML_ERROR_NONE;
+DataInformation::DataInformation(unsigned int num_samples,
+                                 const std::string &filename) :
+  count(0),
+  num_samples(num_samples),
+  file(filename, std::ios::in | std::ios::binary),
+  idxes(num_samples) {
+  std::iota(idxes.begin(), idxes.end(), 0);
+  rng.seed(SEED);
+  std::shuffle(idxes.begin(), idxes.end(), rng);
+  if (!file.good()) {
+    throw std::invalid_argument("given file is not good, filename: " +
+                                filename);
   }
-
-  count = 0;
-  for (unsigned int i = train_count; i < train_count + batch_size; i++) {
-    std::vector<float> o;
-    std::vector<float> l;
-
-    o.resize(feature_size);
-    l.resize(total_label_size);
-
-    getData(F, o, l, i);
-
-    for (unsigned int j = 0; j < feature_size; ++j)
-      outVec[0][count * feature_size + j] = o[j];
-    for (unsigned int j = 0; j < total_label_size; ++j)
-      outLabel[0][count * total_label_size + j] = l[j];
-    count++;
-  }
-
-  F.close();
-  *last = false;
-  train_count += batch_size;
-  return ML_ERROR_NONE;
 }
 
 /**
- * @brief      get data which size is batch for validation
- * @param[out] outVec
- * @param[out] outLabel
+ * @brief      get data which size is batch for train
+ * @param[out] outInput input vectors
+ * @param[out] outLabel label vectors
  * @param[out] last if the data is finished
  * @param[in] user_data private data for the callback
  * @retval status for handling error
  */
-int getBatch_val(float **outVec, float **outLabel, bool *last,
-                 void *user_data) {
+int getSample(float **outVec, float **outLabel, bool *last, void *user_data) {
+  auto data = reinterpret_cast<DataInformation *>(user_data);
 
-  std::vector<int> memI;
-  std::vector<int> memJ;
-  unsigned int count = 0;
-  int data_size = total_val_data_size;
-
-  std::ifstream F(filename, std::ios::in | std::ios::binary);
-
-#if VALIDATION
-  if (data_size - val_count < batch_size) {
-#else
-  if (data_size * total_label_size - val_count < batch_size) {
-#endif
+  getData(data->file, *outVec, *outLabel, data->idxes.at(data->count));
+  data->count++;
+  if (data->count < data->num_samples) {
+    *last = false;
+  } else {
     *last = true;
-    val_count = 0;
-    return ML_ERROR_NONE;
+    data->count = 0;
+    std::shuffle(data->idxes.begin(), data->idxes.end(), data->rng);
   }
 
-  count = 0;
-  for (unsigned int i = val_count; i < val_count + batch_size; i++) {
-    std::vector<float> o;
-    std::vector<float> l;
-
-    o.resize(feature_size);
-    l.resize(total_label_size);
-
-    getData(F, o, l, i);
-
-    for (unsigned int j = 0; j < feature_size; ++j)
-      outVec[0][count * feature_size + j] = o[j];
-    for (unsigned int j = 0; j < total_label_size; ++j)
-      outLabel[0][count * total_label_size + j] = l[j];
-    count++;
-  }
-
-  F.close();
-  *last = false;
-  val_count += batch_size;
   return ML_ERROR_NONE;
 }
 
 #if defined(APP_VALIDATE)
 TEST(MNIST_training, verify_accuracy) {
-  EXPECT_FLOAT_EQ(training_loss, 2.3031187);
-  EXPECT_FLOAT_EQ(validation_loss, 2.2951343);
+  EXPECT_FLOAT_EQ(training_loss, 2.5698349);
+  EXPECT_FLOAT_EQ(validation_loss, 2.5551746);
 }
 #endif
 
@@ -255,8 +209,9 @@ int main(int argc, char *argv[]) {
   int status = 0;
 #ifdef APP_VALIDATE
   status = remove("mnist_model.bin");
-  if (status != 0)
+  if (status != 0) {
     std::cout << "Pre-existing model file doesn't exist.\n";
+  }
 #endif
   if (argc < 3) {
     std::cout << "./nntrainer_mnist mnist.ini dataset.dat\n";
@@ -267,26 +222,28 @@ int main(int argc, char *argv[]) {
   std::string config = args[0];
   filename = args[1];
 
-  std::ifstream f(filename);
-  if (!f.good()) {
-    std::cout << "dataset is not good, filename: " << filename << '\n';
-    exit(1);
+  std::unique_ptr<DataInformation> train_user_data;
+  std::unique_ptr<DataInformation> valid_user_data;
+  try {
+    train_user_data =
+      std::make_unique<DataInformation>(total_train_data_size, filename);
+    valid_user_data =
+      std::make_unique<DataInformation>(total_val_data_size, filename);
+  } catch (std::invalid_argument &e) {
+    std::cerr << "Error creating userdata for the data callback " << e.what()
+              << std::endl;
+    return 1;
   }
-
-  srand(time(NULL));
-  std::vector<std::vector<float>> inputVector, outputVector;
-  std::vector<std::vector<float>> inputValVector, outputValVector;
-  std::vector<std::vector<float>> inputTestVector, outputTestVector;
 
   /**
    * @brief     Data buffer Create & Initialization
    */
   std::shared_ptr<ml::train::Dataset> dataset_train, dataset_val;
   try {
-    dataset_train =
-      createDataset(ml::train::DatasetType::GENERATOR, getBatch_train);
-    dataset_val =
-      createDataset(ml::train::DatasetType::GENERATOR, getBatch_val);
+    dataset_train = createDataset(ml::train::DatasetType::GENERATOR, getSample,
+                                  train_user_data.get());
+    dataset_val = createDataset(ml::train::DatasetType::GENERATOR, getSample,
+                                valid_user_data.get());
   } catch (std::exception &e) {
     std::cerr << "Error creating dataset" << e.what() << std::endl;
     return 1;
