@@ -48,26 +48,7 @@ DataProducerValidatorType random_onehot_validator(float min, float max) {
   return f;
 }
 
-auto random_onehot_success = DataProducerSemanticsParamType(
-  createDataProducer<nntrainer::RandomDataOneHotProducer>,
-  {"min=0", "max=1", "num_samples=10"}, {{3, 2, 4, 5}}, {{3, 1, 1, 10}},
-  random_onehot_validator(0, 1), DataProducerSemanticsExpectedResult::SUCCESS);
-
-auto random_onehot_min_over_max = DataProducerSemanticsParamType(
-  createDataProducer<nntrainer::RandomDataOneHotProducer>,
-  {"min=2", "max=1", "num_samples=10"}, {{3, 2, 4, 5}}, {{3, 1, 1, 10}},
-  nullptr, DataProducerSemanticsExpectedResult::FAIL_AT_FINALIZE);
-
-auto random_onehot_invalid_label_shape = DataProducerSemanticsParamType(
-  createDataProducer<nntrainer::RandomDataOneHotProducer>, {}, {{3, 2, 4, 5}},
-  {{3, 1, 2, 10}}, nullptr,
-  DataProducerSemanticsExpectedResult::FAIL_AT_FINALIZE);
-
-INSTANTIATE_TEST_CASE_P(RandomOneHot, DataProducerSemantics,
-                        ::testing::Values(random_onehot_success,
-                                          random_onehot_min_over_max));
-
-auto random_onehot_success_sample_one_batch = DataProducerSemanticsParamType(
+auto random_onehot_success_one_batch = DataProducerSemanticsParamType(
   createDataProducer<nntrainer::RandomDataOneHotProducer>,
   {"min=0", "max=1", "num_samples=10"}, {{1, 2, 4, 5}}, {{1, 1, 1, 10}},
   random_onehot_validator(0, 1), DataProducerSemanticsExpectedResult::SUCCESS);
@@ -79,19 +60,19 @@ auto random_onehot_success_multi_batch_will_be_ignored =
     random_onehot_validator(0, 1),
     DataProducerSemanticsExpectedResult::SUCCESS);
 
-auto random_onehot_min_over_max_sample = DataProducerSemanticsParamType(
+auto random_onehot_min_over_max = DataProducerSemanticsParamType(
   createDataProducer<nntrainer::RandomDataOneHotProducer>,
   {"min=2", "max=1", "num_samples=10"}, {{1, 2, 4, 5}}, {{1, 1, 1, 10}},
   nullptr, DataProducerSemanticsExpectedResult::FAIL_AT_FINALIZE);
 
-auto random_onehot_invalid_label_shape_sample = DataProducerSemanticsParamType(
+auto random_onehot_invalid_label_shape = DataProducerSemanticsParamType(
   createDataProducer<nntrainer::RandomDataOneHotProducer>, {}, {{1, 2, 4, 5}},
   {{1, 1, 2, 10}}, nullptr,
   DataProducerSemanticsExpectedResult::FAIL_AT_FINALIZE);
 
 INSTANTIATE_TEST_CASE_P(
-  RandomOneHot, DataProducerSemantics_samples,
-  ::testing::Values(random_onehot_success_sample_one_batch,
+  RandomOneHot, DataProducerSemantics,
+  ::testing::Values(random_onehot_success_one_batch,
                     random_onehot_success_multi_batch_will_be_ignored,
-                    random_onehot_min_over_max_sample,
-                    random_onehot_invalid_label_shape_sample));
+                    random_onehot_min_over_max,
+                    random_onehot_invalid_label_shape));

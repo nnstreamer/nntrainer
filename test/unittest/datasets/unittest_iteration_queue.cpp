@@ -227,7 +227,7 @@ TEST_P(IterQueueScenarios,
 
   auto producer = std::async(std::launch::async, [this]() {
     std::this_thread::sleep_for(50ms);
-    for (unsigned int i = 0u; i < DATA_SIZE; ++i) {
+    for (unsigned int i = 0u; i < DATA_SIXE; ++i) {
       produceSample(i);
     }
   });

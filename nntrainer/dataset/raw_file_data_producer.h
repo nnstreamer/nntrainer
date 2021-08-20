@@ -65,12 +65,6 @@ public:
   const std::string getType() const override;
 
   /**
-   * @copydoc DataProducer::size()
-   */
-  unsigned int size(const std::vector<TensorDim> &input_dims,
-                    const std::vector<TensorDim> &label_dims) const override;
-
-  /**
    * @copydoc DataProducer::setProeprty(const std::vector<std::string>
    * &properties)
    */
@@ -79,31 +73,17 @@ public:
   /**
    * @copydoc DataProducer::finalize(const std::vector<TensorDim>, const
    * std::vector<TensorDim>)
-   * @remark current implementation drops remainder that are less than the
-   * batchsize, if we don't want the behavior, there needs some refactoring
-   * across data processing places because we are assuming fixed batchsize at
-   * this point
    */
-  DataProducer::Generator
-  finalize(const std::vector<TensorDim> &input_dims,
-           const std::vector<TensorDim> &label_dims) override;
+  DataProducer::Generator finalize(const std::vector<TensorDim> &input_dims,
+                                   const std::vector<TensorDim> &label_dims,
+                                   void *user_data = nullptr) override;
 
   /**
-   * @copydoc DataProducer::finalize_sample(const std::vector<TensorDim>, const
+   * @copydoc DataProducer::size(const std::vector<TensorDim>, const
    * std::vector<TensorDim>)
    */
-  DataProducer::Generator_sample
-  finalize_sample(const std::vector<TensorDim> &input_dims,
-                  const std::vector<TensorDim> &label_dims,
-                  void *user_data = nullptr) override;
-
-  /**
-   * @copydoc DataProducer::size_sample(const std::vector<TensorDim>, const
-   * std::vector<TensorDim>)
-   */
-  unsigned int
-  size_sample(const std::vector<TensorDim> &input_dims,
-              const std::vector<TensorDim> &label_dims) const override;
+  unsigned int size(const std::vector<TensorDim> &input_dims,
+                    const std::vector<TensorDim> &label_dims) const override;
 
 private:
   std::ifstream file;

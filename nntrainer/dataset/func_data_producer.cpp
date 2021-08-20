@@ -48,53 +48,8 @@ void FuncDataProducer::setProperty(const std::vector<std::string> &properties) {
 
 DataProducer::Generator
 FuncDataProducer::finalize(const std::vector<TensorDim> &input_dims,
-                           const std::vector<TensorDim> &label_dims) {
-  NNTR_THROW_IF(!this->cb, std::invalid_argument)
-    << "given callback is nullptr!";
-
-  auto input_data = std::shared_ptr<float *>(new float *[input_dims.size()],
-                                             std::default_delete<float *[]>());
-  auto label_data = std::shared_ptr<float *>(new float *[label_dims.size()],
-                                             std::default_delete<float *[]>());
-
-  return [cb = this->cb, ud = this->user_data_prop->get(), input_dims,
-          label_dims, input_data, label_data]() -> DataProducer::Iteration {
-    std::vector<Tensor> inputs;
-    inputs.reserve(input_dims.size());
-
-    float **input_data_raw = input_data.get();
-    float **label_data_raw = label_data.get();
-
-    for (unsigned int i = 0; i < input_dims.size(); ++i) {
-      inputs.emplace_back(input_dims[i]);
-      *(input_data_raw + i) = inputs.back().getData();
-    }
-
-    std::vector<Tensor> labels;
-    labels.reserve(label_dims.size());
-
-    for (unsigned int i = 0; i < label_dims.size(); ++i) {
-      labels.emplace_back(label_dims[i]);
-      *(label_data_raw + i) = labels.back().getData();
-    }
-
-    bool last = false;
-    int status = cb(input_data_raw, label_data_raw, &last, ud);
-    NNTR_THROW_IF(status != ML_ERROR_NONE, std::invalid_argument)
-      << "[DataProducer] Callback returned error: " << status << '\n';
-
-    if (last) {
-      return {true, {}, {}};
-    } else {
-      return {false, inputs, labels};
-    }
-  };
-}
-
-DataProducer::Generator_sample
-FuncDataProducer::finalize_sample(const std::vector<TensorDim> &input_dims,
-                                  const std::vector<TensorDim> &label_dims,
-                                  void *user_data) {
+                           const std::vector<TensorDim> &label_dims,
+                           void *user_data) {
   NNTR_THROW_IF(!this->cb, std::invalid_argument)
     << "given callback is nullptr!";
 
