@@ -71,45 +71,18 @@ DataBuffer::DataBuffer(std::unique_ptr<DataProducer> &&producer_) :
 
 DataBuffer::~DataBuffer(){};
 
-std::future<std::shared_ptr<BatchQueue>>
-DataBuffer::startFetchWorker(const std::vector<TensorDim> &input_dims,
-                             const std::vector<TensorDim> &label_dims) {
-  NNTR_THROW_IF(!producer, std::invalid_argument) << "producer does not exist";
-  auto bq = std::make_shared<BatchQueue>(std::get<PropsBufferSize>(*db_props));
-  auto generator = producer->finalize(input_dims, label_dims);
-  bq_view = bq;
-
-  return std::async(std::launch::async, [bq, generator] {
-    while (true) {
-      try {
-        /// @note add dimension check in debug mode
-        auto iteration = generator();
-        auto last = std::get<0>(iteration);
-        bq->wait_and_push(std::move(iteration));
-        if (last == true) {
-          break;
-        }
-      } catch (std::exception &e) {
-        bq->wait_and_push({true, {}, {}});
-        throw;
-      }
-    }
-    return bq;
-  });
-}
-
 std::future<std::shared_ptr<IterationQueue>>
-DataBuffer::startFetchWorker_sample(const std::vector<TensorDim> &input_dims,
-                                    const std::vector<TensorDim> &label_dims,
-                                    bool shuffle) {
+DataBuffer::startFetchWorker(const std::vector<TensorDim> &input_dims,
+                             const std::vector<TensorDim> &label_dims,
+                             bool shuffle) {
   NNTR_THROW_IF(!producer, std::runtime_error) << "producer does not exist";
   NNTR_THROW_IF(input_dims.empty(), std::runtime_error)
     << "There must be at least one input";
 
   auto q_size = std::get<PropsBufferSize>(*db_props);
   auto iq = std::make_shared<IterationQueue>(q_size, input_dims, label_dims);
-  auto generator = producer->finalize_sample(input_dims, label_dims);
-  auto size = producer->size_sample(input_dims, label_dims);
+  auto generator = producer->finalize(input_dims, label_dims);
+  auto size = producer->size(input_dims, label_dims);
   iq_view = iq;
 
   class NotifyOnDestruct {
@@ -183,24 +156,7 @@ DataBuffer::startFetchWorker_sample(const std::vector<TensorDim> &input_dims,
   });
 }
 
-std::unique_ptr<DataProducer::Iteration> DataBuffer::fetch() {
-  NNTR_THROW_IF(!producer, std::runtime_error) << "producer does not exist";
-  auto bq = bq_view.lock();
-  NNTR_THROW_IF(!bq, std::runtime_error)
-    << "Cannot fetch, either fetcher is not running or fetcher has ended and "
-       "invalidated";
-  auto iteration = bq->wait_and_pop();
-  NNTR_THROW_IF(!iteration, std::runtime_error)
-    << "fetched iteration is null, should not happen at all cases";
-
-  /// if last equals true, resets bq_view
-  if (std::get<0>(*iteration) == true) {
-    bq_view.reset();
-  }
-  return iteration;
-}
-
-ScopedView<Iteration> DataBuffer::fetch_sample() {
+ScopedView<Iteration> DataBuffer::fetch() {
   NNTR_THROW_IF(!producer, std::runtime_error) << "producer does not exist";
   auto iq = iq_view.lock();
   NNTR_THROW_IF(!iq, std::runtime_error)
@@ -209,20 +165,12 @@ ScopedView<Iteration> DataBuffer::fetch_sample() {
   return iq->requestFilled();
 }
 
-DataProducer::Generator
-DataBuffer::batcher(const std::vector<TensorDim> &input_dims,
-                    const std::vector<TensorDim> &label_dims) {
-  NNTR_THROW_IF(!producer, std::invalid_argument) << "producer does not exist";
-  return producer->finalize(input_dims, label_dims);
-}
-
-std::tuple<DataProducer::Generator_sample /** generator */,
-           unsigned int /** size */>
+std::tuple<DataProducer::Generator /** generator */, unsigned int /** size */>
 DataBuffer::getGenerator(const std::vector<TensorDim> &input_dims,
                          const std::vector<TensorDim> &label_dims) {
   NNTR_THROW_IF(!producer, std::invalid_argument) << "producer does not exist";
-  return {producer->finalize_sample(input_dims, label_dims),
-          producer->size_sample(input_dims, label_dims)};
+  return {producer->finalize(input_dims, label_dims),
+          producer->size(input_dims, label_dims)};
 }
 
 void DataBuffer::displayProgress(const int count, float loss) {

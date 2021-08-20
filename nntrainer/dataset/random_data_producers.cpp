@@ -83,12 +83,6 @@ bool RandomDataOneHotProducer::isMultiThreadSafe() const {
   return false;
 }
 
-unsigned int
-RandomDataOneHotProducer::size(const std::vector<TensorDim> &input_dims,
-                               const std::vector<TensorDim> &label_dims) const {
-  return std::get<PropsNumSamples>(*rd_one_hot_props).get();
-}
-
 void RandomDataOneHotProducer::setProperty(
   const std::vector<std::string> &properties) {
   auto left = loadProperties(properties, *rd_one_hot_props);
@@ -98,86 +92,8 @@ void RandomDataOneHotProducer::setProperty(
 
 DataProducer::Generator
 RandomDataOneHotProducer::finalize(const std::vector<TensorDim> &input_dims,
-                                   const std::vector<TensorDim> &label_dims) {
-  /** check if the given producer is ready to finalize */
-  nntrainer::PropsMin min_;
-  nntrainer::PropsMax max_;
-  std::tie(min_, max_, std::ignore) = *rd_one_hot_props;
-
-  /// @todo expand this to non onehot case
-  NNTR_THROW_IF(std::any_of(label_dims.begin(), label_dims.end(),
-                            [](const TensorDim &dim) {
-                              return dim.channel() != 1 || dim.height() != 1;
-                            }),
-                std::invalid_argument)
-    << "Label dimension containing channel or height not allowed";
-
-  NNTR_THROW_IF(min_.get() > max_.get(), std::invalid_argument)
-    << "Min value is bigger then max value, min: " << min_.get()
-    << "max: " << max_.get();
-
-  NNTR_THROW_IF(size(input_dims, label_dims) == 0, std::invalid_argument)
-    << "size is zero, dataproducer does not provide anything";
-
-  /** prepare states for the generator */
-  std::vector<std::uniform_int_distribution<unsigned int>> label_chooser_;
-  label_chooser_.reserve(label_dims.size());
-  std::transform(label_dims.begin(), label_dims.end(),
-                 std::back_inserter(label_chooser_),
-                 [this](const TensorDim &label_dim) {
-                   return std::uniform_int_distribution<unsigned int>(
-                     0, label_dim.width() - 1);
-                 });
-
-  std::mt19937 rng;
-  rng.seed(getSeed());
-  auto sz = size(input_dims, input_dims);
-  /** DataProducer::Generator */
-  return [rng, sz, input_dims, label_dims, min_ = min_.get(), max_ = max_.get(),
-          current_iteration = 0ULL,
-          label_chooser = std::move(label_chooser_)]() mutable {
-    if (current_iteration++ == sz / input_dims[0].batch()) {
-      current_iteration = 0;
-      return DataProducer::Iteration(true, {}, {});
-    }
-
-    auto populate_tensor = [&](const TensorDim &input_dim) {
-      Tensor t(input_dim);
-      t.setRandUniform(min_, max_);
-
-      return t;
-    };
-
-    auto populate_label =
-      [&](const TensorDim &label_dim,
-          std::uniform_int_distribution<unsigned int> &label_dist_) {
-        Tensor t(label_dim);
-        t.setZero();
-        for (unsigned int b = 0; b < t.batch(); ++b) {
-          t.setValue(b, 0, 0, label_dist_(rng), 1);
-        }
-        return t;
-      };
-
-    std::vector<Tensor> inputs;
-    inputs.reserve(input_dims.size());
-
-    std::vector<Tensor> labels;
-    labels.reserve(label_dims.size());
-
-    std::transform(input_dims.begin(), input_dims.end(),
-                   std::back_inserter(inputs), populate_tensor);
-
-    std::transform(label_dims.begin(), label_dims.end(), label_chooser.begin(),
-                   std::back_inserter(labels), populate_label);
-
-    return DataProducer::Iteration(false, inputs, labels);
-  };
-}
-
-DataProducer::Generator_sample RandomDataOneHotProducer::finalize_sample(
-  const std::vector<TensorDim> &input_dims,
-  const std::vector<TensorDim> &label_dims, void *user_data) {
+                                   const std::vector<TensorDim> &label_dims,
+                                   void *user_data) {
   /** check if the given producer is ready to finalize */
   nntrainer::PropsMin min_;
   nntrainer::PropsMax max_;
@@ -213,7 +129,7 @@ DataProducer::Generator_sample RandomDataOneHotProducer::finalize_sample(
   rng.seed(getSeed());
   auto sz = size(input_dims, input_dims);
 
-  /** DataProducer::Generator_sample */
+  /** DataProducer::Generator */
   return [rng, sz, min_ = min_.get(), max_ = max_.get(),
           label_chooser = std::move(label_chooser_)](
            unsigned int idx, std::vector<Tensor> &inputs,
@@ -235,9 +151,9 @@ DataProducer::Generator_sample RandomDataOneHotProducer::finalize_sample(
   };
 }
 
-unsigned int RandomDataOneHotProducer::size_sample(
-  const std::vector<TensorDim> &input_dims,
-  const std::vector<TensorDim> &label_dims) const {
+unsigned int
+RandomDataOneHotProducer::size(const std::vector<TensorDim> &input_dims,
+                               const std::vector<TensorDim> &label_dims) const {
   return std::get<PropsNumSamples>(*rd_one_hot_props).get();
 }
 } // namespace nntrainer

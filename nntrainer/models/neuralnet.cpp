@@ -620,7 +620,7 @@ int NeuralNetwork::train_run() {
     training.loss = 0.0f;
 
     std::future<std::shared_ptr<IterationQueue>> future_iq =
-      train_buffer->startFetchWorker_sample(in_dims, label_dims, true);
+      train_buffer->startFetchWorker(in_dims, label_dims, true);
 
     // /// @todo make this working, test buffer is running but doing nothing
     // if (test_buffer != nullptr && test_buffer->isValid()) {
@@ -634,13 +634,13 @@ int NeuralNetwork::train_run() {
     int count = 0;
 
     while (true) {
-      ScopedView<Iteration> iter_view = train_buffer->fetch_sample();
+      ScopedView<Iteration> iter_view = train_buffer->fetch();
       if (iter_view.isEmpty()) {
         break;
       }
       auto &iteration = iter_view.get();
       if (iteration.batch() != batch_size) {
-        /// this is partial batch scenario
+        /// @todo support partial batch
         continue;
       }
       /// @todo multiple input support
@@ -673,16 +673,16 @@ int NeuralNetwork::train_run() {
       unsigned int tcases = 0;
 
       std::future<std::shared_ptr<IterationQueue>> future_iq =
-        valid_buffer->startFetchWorker_sample(in_dims, label_dims, false);
+        valid_buffer->startFetchWorker(in_dims, label_dims, false);
 
       while (true) {
-        ScopedView<Iteration> iter_view = valid_buffer->fetch_sample();
+        ScopedView<Iteration> iter_view = valid_buffer->fetch();
         if (iter_view.isEmpty()) {
           break;
         }
         auto &iter = iter_view.get();
         if (iter.batch() != batch_size) {
-          /// this is partial batch scenario
+          /// @todo support partial batch
           continue;
         }
         /// @todo multiple input support
