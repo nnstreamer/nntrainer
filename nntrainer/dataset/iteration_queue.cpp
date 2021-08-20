@@ -2,7 +2,7 @@
 /**
  * Copyright (C) 2021 Jihoon Lee <jhoon.it.lee@samsung.com>
  *
- * @file   batch_queue.cpp
+ * @file   iteration_queue.cpp
  * @date   13 July 2021
  * @brief  This file contains thread safe queue
  * @see    https://github.com/nnstreamer/nntrainer
@@ -10,8 +10,8 @@
  * @bug    No known bugs except for NYI items
  *
  */
-#include <batch_queue.h>
 #include <chrono>
+#include <iteration_queue.h>
 
 #include <mutex>
 #include <nntrainer_error.h>
@@ -20,55 +20,6 @@
 using namespace std::literals::chrono_literals;
 
 namespace nntrainer {
-
-BatchQueue::BatchQueue(unsigned int queue_capacity_) :
-  queue_capacity(queue_capacity_) {
-  NNTR_THROW_IF(queue_capacity == 0, std::invalid_argument)
-    << "queue capacity of zero not supported!";
-}
-
-BatchQueue::BatchQueue(const BatchQueue &rhs) :
-  queue_capacity(rhs.queue_capacity) {}
-
-BatchQueue &BatchQueue::operator=(const BatchQueue &rhs) {
-  if (this == &rhs) {
-    return *this;
-  }
-  this->queue_capacity = rhs.queue_capacity;
-  return *this;
-}
-
-void BatchQueue::wait_and_push(T &&data) noexcept {
-  std::unique_lock<std::shared_mutex> lk(q_mutex);
-  q_writer_cv.wait(lk, [this] { return q.size() != queue_capacity; });
-  q.push(std::make_unique<T>(data));
-  lk.unlock();
-  q_reader_cv.notify_one();
-}
-
-std::unique_ptr<BatchQueue::T> BatchQueue::wait_and_pop() noexcept {
-  std::unique_lock<std::shared_mutex> lk(q_mutex);
-  q_reader_cv.wait(lk, [this] { return !q.empty(); });
-
-  /// @note this invalidates q.front(), but it is okay because it is locked and
-  /// popped right away
-  auto ptr = std::move(q.front());
-  q.pop();
-  lk.unlock();
-  q_writer_cv.notify_one();
-
-  return ptr;
-}
-
-bool BatchQueue::isFull() const {
-  std::shared_lock<std::shared_mutex> lk(q_mutex);
-  return queue_capacity == q.size();
-}
-
-bool BatchQueue::isEmpty() const {
-  std::shared_lock<std::shared_mutex> lk(q_mutex);
-  return q.empty();
-}
 
 IterationQueue::IterationQueue(
   unsigned int num_slots, const std::vector<ml::train::TensorDim> &input_dims,
@@ -177,11 +128,11 @@ ScopedView<Iteration> IterationQueue::requestFilled() {
 
 void IterationQueue::notifyEndOfRequestEmpty() {
   std::unique_lock lg(empty_mutex);
-  NNTR_THROW_IF(flow_state.exchange(FlowState::FLOW_STATE_STOP_REQUESTED) !=
-                  FlowState::FLOW_STATE_OPEN,
-                std::invalid_argument)
-    << "the queue expect state of "
-    << static_cast<unsigned>(FlowState::FLOW_STATE_STOP_REQUESTED)
+  auto open_state = FlowState::FLOW_STATE_OPEN;
+  bool exchange_result = flow_state.compare_exchange_strong(
+    open_state, FlowState::FLOW_STATE_STOP_REQUESTED);
+  NNTR_THROW_IF(!exchange_result, std::invalid_argument)
+    << "the queue expect state of " << static_cast<unsigned>(open_state)
     << " but met " << static_cast<unsigned>(flow_state.load());
   /// below is useful information when debugging iteration queue, but there will
   /// be too much log if we turn the log on. so leaving it as a comment for now.

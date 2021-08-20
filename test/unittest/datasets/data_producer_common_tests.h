@@ -48,37 +48,8 @@ using DataProducerSemanticsParamType =
 
 /**
  * @brief Dataset Producer Semantics Tests
- * @todo remove this
  */
 class DataProducerSemantics
-  : public ::testing::TestWithParam<DataProducerSemanticsParamType> {
-public:
-  /**
-   * @brief SetUp test cases here
-   *
-   */
-  virtual void SetUp();
-
-  /**
-   * @brief do here if any memory needs to be released
-   *
-   */
-  virtual void TearDown();
-
-protected:
-  std::unique_ptr<nntrainer::DataProducer>
-    producer;                                   /**< producer to be tested */
-  std::vector<nntrainer::TensorDim> input_dims; /**< input dims */
-  std::vector<nntrainer::TensorDim> label_dims; /**< output dims */
-  DataProducerValidatorType validator;          /**< result validator */
-  DataProducerSemanticsExpectedResult result;   /**< expected result */
-};
-
-/**
- * @brief Dataset Producer Semantics Tests
- * @todo remove suffix
- */
-class DataProducerSemantics_samples
   : public ::testing::TestWithParam<DataProducerSemanticsParamType> {
 public:
   /**

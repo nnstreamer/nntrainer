@@ -33,9 +33,9 @@
 #include <tuple>
 #include <vector>
 
-#include <batch_queue.h>
 #include <data_producer.h>
 #include <dataset.h>
+#include <iteration_queue.h>
 #include <tensor_dim.h>
 
 namespace nntrainer {
@@ -74,41 +74,15 @@ public:
    * all.
    * @param input_dims dimension of input_dims
    * @param label_dims dimension of label_dims
-   * @return std::future<std::shared_ptr<BatchQueue>> Buffer Queue object,
-   * release this pointer after calling @a fetch() is done to invalidate
-   * subsequent call of @a fetch()
-   */
-  std::future<std::shared_ptr<BatchQueue>>
-  startFetchWorker(const std::vector<TensorDim> &input_dims,
-                   const std::vector<TensorDim> &label_dims);
-
-  /**
-   * @brief prepare iteration a head of time with a dedicated worker. The
-   * iteration prepared can be retrieved with @a fetch();
-   * @remark the batch dimension of input_dims / label_dims must be same for
-   * all.
-   * @param input_dims dimension of input_dims
-   * @param label_dims dimension of label_dims
    * @param shuffle shuffle when fetching
    * @return std::future<std::shared_ptr<IterationQueue>> Buffer Queue object,
    * release this pointer after calling @a fetch() is done to invalidate
    * subsequent call of @a fetch()
    */
   std::future<std::shared_ptr<IterationQueue>>
-  startFetchWorker_sample(const std::vector<TensorDim> &input_dims,
-                          const std::vector<TensorDim> &label_dims,
-                          bool shuffle = true);
-
-  /**
-   * @brief Get the Iteration object
-   * @note  the first element of returned Iteration denotes whether current
-   * epoch has ended.
-   *
-   * @throw std::invalid_argument if @a startFetchWorker hasn't been called or
-   * the return value of startFetchWorker has been invalidated.
-   * @return std::unique_ptr<DataProducer::Iteration> iteration
-   */
-  std::unique_ptr<DataProducer::Iteration> fetch();
+  startFetchWorker(const std::vector<TensorDim> &input_dims,
+                   const std::vector<TensorDim> &label_dims,
+                   bool shuffle = true);
 
   /**
    * @brief Get the Iteration object
@@ -119,7 +93,7 @@ public:
    * @return ScopedView<DataProducer::Iteration> the resource is released to the
    * databuffer when the returned ~ScopedView<Iteration> is called
    */
-  ScopedView<Iteration> fetch_sample();
+  ScopedView<Iteration> fetch();
 
   /**
    * @brief Get the Generator object and the generator object returns a batch
@@ -131,20 +105,7 @@ public:
    * @param label_dims dimension of label_dims
    * @return DataProducer::Generator which generates an iteration
    */
-  DataProducer::Generator batcher(const std::vector<TensorDim> &input_dims,
-                                  const std::vector<TensorDim> &label_dims);
-
-  /**
-   * @brief Get the Generator object and the generator object returns a batch
-   * upon call
-   * @remark the batch dimension of input_dims / label_dims must be same for
-   * all.
-   *
-   * @param input_dims dimension of input_dims
-   * @param label_dims dimension of label_dims
-   * @return DataProducer::Generator which generates an iteration
-   */
-  std::tuple<DataProducer::Generator_sample /**< callback */,
+  std::tuple<DataProducer::Generator /**< callback */,
              unsigned int /**< size */>
   getGenerator(const std::vector<TensorDim> &input_dims,
                const std::vector<TensorDim> &label_dims);
@@ -174,7 +135,6 @@ public:
 
 protected:
   std::shared_ptr<DataProducer> producer;
-  std::weak_ptr<BatchQueue> bq_view;
   std::weak_ptr<IterationQueue> iq_view;
   using Props = std::tuple<PropsBufferSize>;
   std::unique_ptr<Props> db_props;

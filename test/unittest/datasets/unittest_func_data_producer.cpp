@@ -114,7 +114,3 @@ auto func_nullptr = DataProducerSemanticsParamType(
 INSTANTIATE_TEST_CASE_P(Func, DataProducerSemantics,
                         ::testing::Values(func_success, func_error,
                                           func_nullptr));
-
-INSTANTIATE_TEST_CASE_P(Func, DataProducerSemantics_samples,
-                        ::testing::Values(func_success, func_error,
-                                          func_nullptr));
