@@ -18,8 +18,10 @@ export DEB_HOST_MULTIARCH ?= $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
 export DEB_HOST_ARCH ?= $(shell dpkg-architecture -qDEB_HOST_ARCH)
 ifdef unit_test
 	export ENABLE_REDUCE_TOLERANCE ?= false
+	export ENABLE_SANITIZE ?= address
 else
 	export ENABLE_REDUCE_TOLERANCE ?= true
+	export ENABLE_SANITIZE ?= none
 endif
 
 %:
@@ -32,8 +34,9 @@ override_dh_auto_configure:
 	mkdir -p build
 	meson --buildtype=plain --prefix=/usr --sysconfdir=/etc \
 		--libdir=lib/$(DEB_HOST_MULTIARCH) --bindir=lib/nntrainer/bin \
-		--includedir=include -Dinstall-app=true \
-		-Dreduce-tolerance=$(ENABLE_REDUCE_TOLERANCE) build
+		--includedir=include -Dinstall-app=true build \
+		-Dreduce-tolerance=$(ENABLE_REDUCE_TOLERANCE) \
+		-Db_sanitize=$(ENABLE_SANITIZE)
 
 override_dh_auto_build:
 	ninja -C build
