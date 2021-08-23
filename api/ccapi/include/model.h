@@ -48,13 +48,12 @@ enum class ModelType {
  */
 enum class ModelFormat {
   MODEL_FORMAT_BIN =
-    ML_TRAIN_MODEL_FORMAT_BIN, /**< raw bin file saves parameters required
+    ML_TRAIN_MODEL_FORMAT_BIN, /**< raw bin file saves model weights required
 for inference and training without any configurations*/
-
-  /** Comment intended */
-  // MODEL_FORMAT_INI = 1, /**< ini file with save_path defined */
-  // MODEL_FORMAT_INI_WITH_BIN = 2, /**< ini file with save_path
-  // defined */
+  MODEL_FORMAT_INI = ML_TRAIN_MODEL_FORMAT_INI, /**< ini file */
+  MODEL_FORMAT_INI_WITH_BIN =
+    ML_TRAIN_MODEL_FORMAT_INI_WITH_BIN, /**< ini file with save_path defined
+                                           where the binaray will be saved */
 };
 
 /**

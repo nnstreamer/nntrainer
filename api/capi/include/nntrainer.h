@@ -581,8 +581,11 @@ int ml_train_model_save(ml_train_model_h model, const char *file_path,
  * describes various formats in which various selections of the
  * parameters of the models can be loaded. Some formats may load
  * parameters required for training. Some other formats may load model
- * configurations. Unless stated otherwise, ml_train_model_compile() has to
- * be called upon the @a model before calling this function.
+ * configurations. Unless stated otherwise, loading model configuration requires
+ * a freshly constructed model with ml_train_model_construct() without
+ * ml_train_model_compile(), loading model parameter requires
+ * ml_train_model_compile() to be called upon the @a model before calling this
+ * function.
  * @since_tizen 6.5
  * @remarks If you want to access only internal storage by using this function,
  * you should add privilege %http://tizen.org/privilege/mediastorage. Or, if you
