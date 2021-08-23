@@ -423,10 +423,25 @@ int NetworkGraph::realizeGraph() {
 
 void NetworkGraph::setBatchSize(unsigned int batch_size) {
   this->batch_size = batch_size;
+  auto allocated = tensor_manager->isAllocated();
+
+  if (allocated)
+    tensor_manager->deallocateTensors();
+
   for (auto iter = cbegin(); iter != cend(); iter++) {
     (*iter)->setBatch(batch_size);
+    const InitLayerContext &init_context = (*iter)->getInitContext();
+    // resize tensors spec
+    for (auto const &ts : init_context.getTensorsSpec()) {
+      tensor_manager->setBatchSize(std::get<3>(ts), batch_size);
+      tensor_manager->setBatchSize(std::get<3>(ts) + Var_Grad::grad_suffix,
+                                   batch_size);
+    }
   }
   tensor_manager->setBatchSize(batch_size);
+
+  if (allocated)
+    tensor_manager->allocateTensors();
 }
 
 sharedConstTensors NetworkGraph::forwarding(bool training) const {

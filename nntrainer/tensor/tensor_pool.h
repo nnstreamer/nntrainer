@@ -57,9 +57,11 @@ public:
    * @note we assume that the caller checks if the exec_order and lifespan are
    * compatible.
    */
-  Tensor *requestTensor(const TensorDim dim,
-                        const std::vector<unsigned int> &exec_order,
-                        TensorLifespan lifespan, const std::string &name);
+  Tensor *
+  requestTensor(const TensorDim &dim,
+                const std::vector<unsigned int> &exec_order,
+                TensorLifespan lifespan, const std::string &name,
+                const Tensor::Initializer &init = Tensor::Initializer::NONE);
 
   /**
    * @brief     Request tensor which has been already requested with the given
@@ -76,11 +78,10 @@ public:
    * @note we assume that the caller checks if the exec_order and lifespan are
    * compatible.
    */
-  Tensor *requestPrerequestedTensor(const TensorDim dim,
-                                    const std::vector<unsigned int> &exec_order,
-
-                                    TensorLifespan lifespan,
-                                    const std::string &name);
+  Tensor *requestPrerequestedTensor(
+    const TensorDim &dim, const std::vector<unsigned int> &exec_order,
+    TensorLifespan lifespan, const std::string &name,
+    const Tensor::Initializer &init = Tensor::Initializer::NONE);
 
   /**
    * @brief finalize the requested tensors
@@ -143,6 +144,7 @@ public:
 private:
   /**
    * @brief Spec for storing each request of tensor from tensor pool
+   * @todo move tensor initialization from tensor class to requestSpec
    */
   struct requestSpec {
     std::unique_ptr<Tensor> tensor;       /**< tensor object itself */

@@ -42,10 +42,7 @@ static constexpr bool LAYER_V2 = true;
 
 namespace nntrainer {
 MMapedMemory::MMapedMemory(size_t size, bool allocate_fd_) :
-  fd(-1),
-  buf(nullptr),
-  buf_size(0),
-  allocate_fd(allocate_fd_) {
+  fd(-1), buf(nullptr), buf_size(0), allocate_fd(allocate_fd_) {
 
 #ifndef __ANDROID__
   if (allocate_fd) {
@@ -134,6 +131,7 @@ Manager::Manager(bool enable_gradient_memory_opt_,
                  bool enable_derivative_memory_opt_,
                  bool enable_activation_memory_opt_,
                  bool enable_inference_inout_memory_opt_) :
+  max_exec_order(0),
   total_weight_size(0),
   total_grad_size(0),
   max_grad_size(0),
@@ -265,13 +263,7 @@ void Manager::initializeWeights() {
     return;
 
   if (LAYER_V2) {
-    for (auto &w : weights_v2) {
-      w->initializeVariable();
-      auto const &t_validity = getValidity(w->getName());
-      tensor_token_map[w->getName()] = pool.requestMemory(
-        w->getVariableRef().bytes(), t_validity.first, t_validity.second);
-    }
-    pool.planLayout(BasicPlanner());
+    weight_pool.finalize(BasicPlanner(), 0, max_exec_order);
   } else {
     if (total_weight_size == 0) {
       ml_logw(
@@ -303,11 +295,7 @@ void Manager::allocateWeights() {
     return;
 
   if (LAYER_V2) {
-    pool.allocate();
-    for (auto &w : weights_v2) {
-      w->getVariableRef().setData(
-        pool.getMemory(tensor_token_map[w->getName()]), true);
-    }
+    weight_pool.allocate();
   } else {
     for (auto &l_w : weights) {
       for (auto &w : l_w) {
@@ -322,12 +310,7 @@ void Manager::allocateWeights() {
 
 void Manager::deallocateWeights() {
   if (LAYER_V2) {
-    for (auto &w : weights_v2) {
-      /** this just nullifies the set pointer to avoid access to released memory
-       */
-      w->deallocateVariable();
-    }
-    pool.deallocate();
+    weight_pool.deallocate();
   } else {
     for (auto &l_w : weights) {
       for (auto &w : l_w) {
@@ -347,8 +330,10 @@ void Manager::allocateGradients() {
 
   if (LAYER_V2) {
     for (auto &w : weights_v2) {
-      w->allocateGradient();
+      w->allocateOptimizerVariables();
     }
+    if (tensor_pool.minMemoryRequirement() > 0)
+      tensor_pool.allocate();
   } else {
     for (auto &l_w : weights) {
       for (auto &w : l_w) {
@@ -364,8 +349,9 @@ void Manager::deallocateGradients() {
 
   if (LAYER_V2) {
     for (auto &w : weights_v2) {
-      w->deallocateGradient();
+      w->deallocateOptimizerVariables();
     }
+    tensor_pool.deallocate();
   } else {
     for (auto &l_w : weights) {
       for (auto &w : l_w) {
@@ -381,12 +367,7 @@ void Manager::deallocateGradients() {
  */
 void Manager::initializeGradients() {
   if (LAYER_V2) {
-    for (auto &w : weights_v2) {
-      w->initializeGradient();
-      // auto exec_order = tensor_exec_order[w.getName()];
-      // tensor_map(&w->getGradientRef(), requestMemory(w.getDim().size(),
-      //       std::get<1>(exec_order), std::get<2>(exec_order) + 1));
-    }
+    tensor_pool.finalize(BasicPlanner(), 0, max_exec_order);
   } else {
     if (total_weight_size == 0) {
       ml_logw(
@@ -780,24 +761,48 @@ void Manager::deinitializeTensors() {
 std::vector<Weight *>
 Manager::requestWeights(const GraphNode &node,
                         const std::vector<Weight::Spec> &weights_spec) {
-  auto ret = requestTensors<Weight>(node, weights_spec, weights_v2);
   const auto &exec_order = node.getExecutionOrder();
-  for (auto const &w : ret) {
-    auto const &vname = w->getName();
-    auto const &gname = w->getGradientName();
+  std::vector<unsigned int> var_exec_order({std::get<0>(exec_order),
+                                            std::get<1>(exec_order),
+                                            std::get<2>(exec_order)});
+  std::vector<unsigned int> grad_exec_order({std::get<1>(exec_order)});
+  max_exec_order =
+    std::max(max_exec_order,
+             *std::max_element(var_exec_order.begin(), var_exec_order.end()));
 
-    /** usage for weights */
-    tensor_exec_order[vname].push_back(std::get<0>(exec_order));
-    tensor_exec_order[vname].push_back(std::get<1>(exec_order));
-    tensor_exec_order[vname].push_back(std::get<2>(exec_order));
+  TensorLifespan var_ls = TensorLifespan::MAX_LIFESPAN;
+  TensorLifespan grad_ls = TensorLifespan::BACKWARD_FUNC_LIFESPAN;
 
-    /** usage for its gradient only in calcGradient */
-    tensor_exec_order[gname].push_back(std::get<1>(exec_order));
+  std::vector<Weight *> ret;
+  size_t current_size = weights_v2.size();
 
-    /** set tensor lifespan */
-    expandLifespan(vname, TensorLifespan::MAX_LIFESPAN);
-    expandLifespan(gname, TensorLifespan::BACKWARD_FUNC_LIFESPAN);
+  for (auto const &ws : std::as_const(weights_spec)) {
+    Tensor *var =
+      weight_pool.requestTensor(std::get<0>(ws), /// tensor dim
+                                var_exec_order, var_ls,
+                                std::get<5>(ws), /// name
+                                std::get<1>(ws)  /// tensor initializer
+      );
+
+    Tensor *grad = nullptr;
+    if (std::get<4>(ws) /** need gradient */)
+      grad = tensor_pool.requestTensor(
+        std::get<0>(ws), /// tensor dim
+        grad_exec_order, grad_ls,
+        std::get<5>(ws) + Var_Grad::grad_suffix, /// name
+        Tensor::Initializer::ZEROS               /// tensor initializer
+      );
+
+    weights_v2.emplace_back(std::make_unique<Weight>(
+      var, grad,
+      std::get<2>(ws), /// weight regularizer
+      std::get<3>(ws)  /// weight regularization constant
+      ));
   }
+
+  std::transform(weights_v2.begin() + current_size, weights_v2.end(),
+                 std::back_inserter(ret),
+                 [](auto const &elem) { return elem.get(); });
 
   return ret;
 }

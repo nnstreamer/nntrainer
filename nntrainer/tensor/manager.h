@@ -27,7 +27,7 @@
 #include <vector>
 
 #include <graph_node.h>
-#include <memory_pool.h>
+#include <tensor_pool.h>
 #include <var_grad.h>
 #include <weight.h>
 
@@ -366,6 +366,8 @@ public:
    */
   void initializeTensors(bool training);
 
+  bool isAllocated() const { return tensors_allocated; }
+
   /**
    * @brief Set the batch size for the inputs/outputs of the layers
    */
@@ -379,26 +381,27 @@ public:
     }
 
     /**
-     * All the tensors must be deallocated first and then allocated.
-     * Deallocating and allocating tensors one by one can potentially lead to
-     * high requirement of the peak memory requirement.
+     * All the tensors must be deallocated first by the called and then
+     * allocated by the caller.
      */
-
-    if (tensors_allocated) {
-      deallocateTensors();
-      if (model_training)
-        deallocateDerivatives();
-    }
 
     for (auto &in_out : in_outs)
       for (auto &vg : in_out)
         vg->setBatchSize(batch);
 
-    if (tensors_allocated) {
-      allocateInOuts();
-      if (model_training)
-        allocateDerivatives();
-    }
+    for (auto &in : inputs_v2)
+      in->setBatchSize(batch);
+    for (auto &out : outputs_v2)
+      out->setBatchSize(batch);
+  }
+
+  /**
+   * @brief Set the batch size for the given tensor
+   *
+   * @note this only works for tensors_v2 for now
+   */
+  void setBatchSize(const std::string &name, unsigned int batch) {
+    tensors_v2.at(name_map.at(name))->setBatchSize(batch);
   }
 
   /**
@@ -473,9 +476,11 @@ private:
     tensor_token_map; /**< map from tensor to its memory token */
 
   std::unordered_map<std::string, int>
-    name_map; /**< map from output name to its location */
+    name_map;                  /**< map from output name to its location */
+  unsigned int max_exec_order; /**< max execution for a node */
 
-  MemoryPool pool; /**< memory pool for the tensors */
+  TensorPool weight_pool; /**< tensor pool to request tensors */
+  TensorPool tensor_pool; /**< tensor pool to request tensors */
 
   /**< Weights of all the layer in the model to be managed */
   std::vector<std::vector<std::reference_wrapper<Weight>>> weights;
