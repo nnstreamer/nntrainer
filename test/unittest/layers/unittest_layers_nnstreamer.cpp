@@ -19,7 +19,7 @@
 auto semantic_nnstreamer = LayerSemanticsParamType(
   nntrainer::createLayer<nntrainer::NNStreamerLayer>,
   nntrainer::NNStreamerLayer::type,
-  {"modelfile=../test/test_models/models/add.tflite"}, 0, false);
+  {"model_path=../test/test_models/models/add.tflite"}, 0, false);
 
 INSTANTIATE_TEST_CASE_P(NNStreamer, LayerSemantics,
                         ::testing::Values(semantic_nnstreamer));
