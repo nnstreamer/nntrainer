@@ -26,8 +26,7 @@ static constexpr size_t SINGLE_INOUT_IDX = 0;
 void CrossEntropySoftmaxLossLayer::forwarding(RunLayerContext &context,
                                               bool training) {
   Tensor &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
-  // TODO: try Tensor & - it should work
-  Tensor y = context.getInput(SINGLE_INOUT_IDX);
+  Tensor &y = context.getInput(SINGLE_INOUT_IDX);
 
   // fill the output
   hidden_ = y.apply(ActiFunc::softmax, hidden_);
