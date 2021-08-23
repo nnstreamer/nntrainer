@@ -137,7 +137,7 @@ Tensor &ActiFunc::run_prime_fn(Tensor &in, Tensor &ret, Tensor const &deriv) {
 }
 
 bool ActiFunc::supportInPlace() const {
-  bool support_in_place = true;
+  bool support_in_place = in_place;
   if (activation_type == ActivationType::ACT_SOFTMAX)
     support_in_place = false;
 

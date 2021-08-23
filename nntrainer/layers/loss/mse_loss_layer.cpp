@@ -20,8 +20,7 @@ static constexpr size_t SINGLE_INOUT_IDX = 0;
 
 void MSELossLayer::forwarding(RunLayerContext &context, bool training) {
   Tensor &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
-  // TODO: try Tensor & - it should work
-  Tensor y = context.getInput(SINGLE_INOUT_IDX);
+  Tensor &y = context.getInput(SINGLE_INOUT_IDX);
   Tensor l;
 
   // fill the output
