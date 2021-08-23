@@ -94,6 +94,16 @@ public:
   }
 
   /**
+   * @brief Construct a new Var_Grad object
+   *
+   * @param v ptr to already created variable tensor
+   * @param g ptr to already created gradient tensor
+   */
+  explicit Var_Grad(Tensor *v, Tensor *g) :
+    var(std::shared_ptr<Tensor>(v, [](void *) {})),
+    grad(std::shared_ptr<Tensor>(g, [](void *) {})) {}
+
+  /**
    * @brief Copy constructor for Var_Grad
    *
    * @param rhs Var_Grad to construct from
@@ -346,7 +356,13 @@ public:
    * @note this is can return is the var_grad needs gradient but it not
    * empty
    */
-  bool hasGradient() const { return !grad->empty(); }
+  bool hasGradient() const {
+    if (!grad)
+      return false;
+    if (var->isAllocated())
+      return grad->isAllocated();
+    return !grad->empty();
+  }
 
   inline static const std::string grad_suffix = ":grad";
 

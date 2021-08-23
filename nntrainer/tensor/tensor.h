@@ -1047,6 +1047,13 @@ public:
       initialize();
   }
 
+  /**
+   * @brief Get initializer for the tensor
+   *
+   * @return initializer of the tensor
+   */
+  Tensor::Initializer getInitializer() const { return initializer; }
+
   static constexpr float epsilon = 1e-5;
 
 private:

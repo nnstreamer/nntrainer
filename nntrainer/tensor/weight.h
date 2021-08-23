@@ -97,6 +97,20 @@ public:
     regularizer_constant(1.0f) {}
 
   /**
+   * @brief Construct a new Weight object
+   *
+   * @param v ptr to already created variable tensor
+   * @param g ptr to already created gradient tensor
+   * @param reg Regularizer for the weight
+   * @param reg_const Constant multiplier for regularizer
+   */
+  explicit Weight(Tensor *v, Tensor *g, const WeightRegularizer reg,
+                  const float reg_const) :
+    Var_Grad(v, g),
+    regularizer(reg),
+    regularizer_constant(reg_const) {}
+
+  /**
    * @copydoc var_grad::initializeGradient(const Tensor &)
    */
   void initializeGradient(const Tensor &preallocated = Tensor());
@@ -261,17 +275,22 @@ public:
     deallocateVariable();
   }
 
+  /**
+   * @brief Allocate optimizer related variables for the given weights
+   */
+  void allocateOptimizerVariables();
+
+  /**
+   * @brief Allocate optimizer related variables for the given weights
+   */
+  void deallocateOptimizerVariables() { opt_vars.clear(); }
+
 private:
   WeightRegularizer regularizer; /**< regularizer for this variable */
   float regularizer_constant;    /**< constant factor for regularization */
 
   std::vector<Tensor> opt_vars;        /**< optimizer variables */
   std::vector<TensorDim> opt_vars_dim; /**< optimizer variables dimensions */
-
-  /**
-   * @brief Allocate optimizer related variables for the given weights
-   */
-  void allocateOptimizerVariables();
 };
 
 } // namespace nntrainer

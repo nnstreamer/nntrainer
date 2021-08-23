@@ -28,10 +28,11 @@ namespace nntrainer {
  * @note we assume that the caller checks if the exec_order and lifespan are
  * compatible.
  */
-Tensor *TensorPool::requestTensor(const TensorDim dim,
+Tensor *TensorPool::requestTensor(const TensorDim &dim,
                                   const std::vector<unsigned int> &exec_order,
                                   TensorLifespan lifespan,
-                                  const std::string &name) {
+                                  const std::string &name,
+                                  const Tensor::Initializer &init) {
   if (pool.find(name) != pool.end())
     throw std::invalid_argument("Cannot request tensor with same name");
 
@@ -41,9 +42,8 @@ Tensor *TensorPool::requestTensor(const TensorDim dim,
   if (name.empty())
     throw std::invalid_argument("Cannot request tensor with empty name");
 
-  pool[name] = {
-    std::make_unique<Tensor>(dim, false, Tensor::Initializer::NONE, name),
-    exec_order, lifespan, 0};
+  pool[name] = {std::make_unique<Tensor>(dim, false, init, name), exec_order,
+                lifespan, 0};
 
   return pool[name].tensor.get();
 }
@@ -57,15 +57,19 @@ Tensor *TensorPool::requestTensor(const TensorDim dim,
  * compatible.
  */
 Tensor *TensorPool::requestPrerequestedTensor(
-  const TensorDim dim, const std::vector<unsigned int> &exec_order,
-
-  TensorLifespan lifespan, const std::string &name) {
+  const TensorDim &dim, const std::vector<unsigned int> &exec_order,
+  TensorLifespan lifespan, const std::string &name,
+  const Tensor::Initializer &init) {
   if (pool.find(name) == pool.end())
     throw std::invalid_argument("Requested tensor not found");
 
   auto &spec = pool[name];
   if (spec.tensor->getDim() != dim)
     throw std::invalid_argument("Request tensor dimension mismatch");
+
+  if (init != Tensor::Initializer::NONE &&
+      spec.tensor->getInitializer() != init)
+    throw std::invalid_argument("Request tensor initialization mismatch");
 
   spec.exec_order.insert(spec.exec_order.end(), exec_order.begin(),
                          exec_order.end());
@@ -145,6 +149,7 @@ void TensorPool::allocate() {
   for (auto &entry : pool) {
     auto &spec = entry.second;
     spec.tensor->setData(mem_pool.getMemory(spec.token));
+    spec.tensor->initialize();
   }
 }
 
