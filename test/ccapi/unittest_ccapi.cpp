@@ -405,6 +405,23 @@ TEST(nntrainer_ccapi, train_with_config_02_n) {
   EXPECT_EQ(model->train(), ML_ERROR_INVALID_PARAMETER);
 }
 
+TEST(nntrainer_ccapi, save_ini_p) {
+  std::unique_ptr<ml::train::Model> model;
+  model = ml::train::createModel(ml::train::ModelType::NEURAL_NET);
+  ScopedIni s("simple_ini", {model_base + "batch_size = 16", optimizer,
+                             dataset + "-BufferSize", inputlayer, outputlayer});
+  EXPECT_EQ(model->loadFromConfig(s.getIniName()), ML_ERROR_NONE);
+  EXPECT_EQ(model->compile(), ML_ERROR_NONE);
+  EXPECT_EQ(model->initialize(), ML_ERROR_NONE);
+  auto saved_ini_name = s.getIniName() + "_saved";
+  model->save(saved_ini_name, ml::train::ModelFormat::MODEL_FORMAT_INI);
+
+  if (remove(saved_ini_name.c_str())) {
+    std::cerr << "remove ini " << saved_ini_name
+              << "failed, reason: " << strerror(errno);
+  }
+}
+
 /**
  * @brief Main gtest
  */

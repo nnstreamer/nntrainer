@@ -27,6 +27,7 @@
 #include <sstream>
 
 #include <databuffer.h>
+#include <ini_interpreter.h>
 #include <model_loader.h>
 #include <neuralnet.h>
 #include <nntrainer_error.h>
@@ -372,8 +373,17 @@ void NeuralNetwork::save(const std::string &file_path,
     model_file.close();
     break;
   }
-  case ml::train::ModelFormat::MODEL_FORMAT_INI:
-    [[fallthrough]]; // NYI
+  case ml::train::ModelFormat::MODEL_FORMAT_INI: {
+    IniGraphInterpreter interpreter;
+
+    /// @note this is to ensure permission checks are done
+    checkedOpenStream<std::ofstream>(file_path, std::ios::out);
+    /// @todo serialize model props
+    /// @todo serialize dataset props
+    /// @todo serialize optimizer props
+    interpreter.serialize(model_graph, file_path);
+    break;
+  }
   default:
     throw nntrainer::exception::not_supported(
       "saving with given format is not supported yet");

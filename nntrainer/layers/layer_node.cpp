@@ -71,12 +71,19 @@ public:
 
   /**
    * @brief LossSpec validator
-   *
+   * @todo  detect when loss becomes Nan is useful. But it will need dedicated
+   * throw
    * @param v float to validate
-   * @retval true if it is greater or equal than 0.0
-   * @retval false if it is samller than 0.0
+   * @retval true if is valid number
+   * @retval false if it is nan
    */
-  bool isValid(const float &v) const override { return !std::isnan(v); }
+  bool isValid(const float &v) const override {
+    if (std::isnan(v)) {
+      ml_logw("loss value is NAN");
+    }
+
+    return true;
+  }
 };
 
 } // namespace props
@@ -124,8 +131,8 @@ LayerNode::LayerNode(std::unique_ptr<nntrainer::Layer> &&l) :
   finalized(false),
   activation_type(ActivationType::ACT_NONE),
   layer_node_props(new PropsType(props::Name(), props::Flatten(),
-                                 props::Distribute(), props::Trainable(),
-                                 props::Loss())),
+                                 props::Distribute(), props::Trainable())),
+  loss(new props::Loss()),
   regularization_loss(0.0f),
   exec_order({0, 0, 0}) {
   if (layer && layer->getType() == TimeDistLayer::type) {
@@ -373,8 +380,7 @@ void LayerNode::finalize() {
  * @brief     Forward Propagation of a layer
  */
 void LayerNode::forwarding(bool training) {
-  std::get<props::Loss>(*layer_node_props)
-    .set(run_context.getRegularizationLoss());
+  loss->set(run_context.getRegularizationLoss());
   layer->forwarding(run_context, training);
 }
 
@@ -422,11 +428,9 @@ bool LayerNode::requireLabel() const { return getLayer()->requireLabel(); }
 float LayerNode::getLoss() const {
   /** add loss only for loss layers */
   if (requireLabel())
-    std::get<props::Loss>(*layer_node_props)
-      .set(std::get<props::Loss>(*layer_node_props).get() +
-           run_context.getLoss());
+    loss->set(*loss + run_context.getLoss());
 
-  return std::get<props::Loss>(*layer_node_props).get();
+  return *loss;
 }
 
 /**

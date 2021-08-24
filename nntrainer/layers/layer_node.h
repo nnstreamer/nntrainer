@@ -617,12 +617,13 @@ private:
                     properties in the context/graph unless intended. */
 
   using PropsType = std::tuple<props::Name, props::Flatten, props::Distribute,
-                               props::Trainable, props::Loss>;
+                               props::Trainable>;
   /**
    * These properties are set for the layer by the user but are intercepted
    * and used in the node which forms the basic element of the graph.
    */
   std::unique_ptr<PropsType> layer_node_props; /**< properties for the node */
+  std::unique_ptr<props::Loss> loss;           /**< loss */
   float regularization_loss;
   ExecutionOrder exec_order; /**< order/location of execution for this node
                                    in forward and backwarding operations */

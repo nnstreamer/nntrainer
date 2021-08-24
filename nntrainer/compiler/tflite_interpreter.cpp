@@ -236,12 +236,11 @@ private:
   std::vector<int> outputs;
 };
 
-TfOpNodes
-buildOpNodes(std::shared_ptr<const GraphRepresentation> representation) {
+TfOpNodes buildOpNodes(const GraphRepresentation &representation) {
   TfOpNodes nodes;
   /// @todo, look ahead of layers to get nodes that can be fused
   /// we will need to have a dedicated builder
-  for (auto iter = representation->cbegin(); iter != representation->cend();
+  for (auto iter = representation.cbegin(); iter != representation.cend();
        iter++) {
     const auto &ln = *iter;
     Exporter e;
@@ -429,9 +428,8 @@ buildSubGraphs(const TfOpNodes &nodes, const TfOpIdxMap &map,
 
 } // namespace
 
-void TfliteInterpreter::serialize(
-  std::shared_ptr<const GraphRepresentation> representation,
-  const std::string &out) {
+void TfliteInterpreter::serialize(const GraphRepresentation &representation,
+                                  const std::string &out) {
   /// @todo check if graph is finalized & initialized and ready to serialize.
   /// 1. The graph must have weights, input dims, output dims set
   flatbuffers::FlatBufferBuilder fbb;
