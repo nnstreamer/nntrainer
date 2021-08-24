@@ -298,7 +298,7 @@ int main(int argc, char *argv[]) {
      * @brief     Neural Network Create & Initialization
      */
     model = createModel(ml::train::ModelType::NEURAL_NET);
-    model->loadFromConfig(config);
+    model->load(config, ml::train::ModelFormat::MODEL_FORMAT_INI_WITH_BIN);
   } catch (std::exception &e) {
     std::cerr << "Error during loadFromConfig " << e.what() << std::endl;
     return 1;
@@ -307,7 +307,6 @@ int main(int argc, char *argv[]) {
   try {
     model->compile();
     model->initialize();
-    model->readModel();
     model->setDataset(ml::train::DatasetModeType::MODE_TRAIN, dataset_train);
     model->setDataset(ml::train::DatasetModeType::MODE_VALID, dataset_val);
   } catch (std::exception &e) {

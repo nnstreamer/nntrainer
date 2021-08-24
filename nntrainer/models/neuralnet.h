@@ -101,6 +101,7 @@ public:
     initialized(false),
     compiled(false),
     loadedFromConfig(false),
+    load_path(""),
     app_context(app_context_),
     in_place_optimization(in_place_opt) {}
 
@@ -146,7 +147,7 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int loadFromConfig(std::string config);
+  int loadFromConfig(const std::string &config);
 
   /**
    * @brief     Compile the graph in the model
@@ -244,14 +245,20 @@ public:
   void backwarding(int iteration);
 
   /**
-   * @brief     save model and training parameters into file
+   * @copydoc Model::save(const std::string &file_path, ml::train::ModelFormat
+   * format);
    */
-  void saveModel();
+  void save(const std::string &file_path,
+            ml::train::ModelFormat format =
+              ml::train::ModelFormat::MODEL_FORMAT_BIN) override;
 
   /**
-   * @brief     read model and training parameters from file
+   * @copydoc Model::load(const std::string &file_path, ml::train::ModelFormat
+   * format);
    */
-  void readModel();
+  void load(const std::string &file_path,
+            ml::train::ModelFormat format =
+              ml::train::ModelFormat::MODEL_FORMAT_BIN) override;
 
   /**
    * @brief     get Epochs
@@ -557,6 +564,8 @@ private:
 
   bool loadedFromConfig; /**< Check if config is loaded to prevent load twice */
 
+  std::string load_path; /**< path to load weights when initialize  */
+
   RunStats validation; /** validation statistics of the model */
   RunStats training;   /** training statistics of the model */
   RunStats testing;    /** testing statistics of the model */
@@ -616,6 +625,7 @@ private:
     swap(lhs.model_graph, rhs.model_graph);
     swap(lhs.compiled, rhs.compiled);
     swap(lhs.loadedFromConfig, rhs.loadedFromConfig);
+    swap(lhs.load_path, rhs.load_path);
   }
 
   /**

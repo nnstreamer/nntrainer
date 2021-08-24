@@ -160,6 +160,8 @@ int main(int argc, char *argv[]) {
     exit(1);
   }
 
+  const std::string weight_path = "logistic_model.bin";
+
   const std::vector<std::string> args(argv + 1, argv + argc);
   std::string config = args[1];
   data_file = args[2];
@@ -196,16 +198,16 @@ int main(int argc, char *argv[]) {
                   std::move(data_train));
 
     try {
-      NN.train();
+      NN.train({"save_path=" + weight_path});
     } catch (...) {
       std::cerr << "Error during train" << std::endl;
       return 0;
     }
   } else {
     try {
-      NN.readModel();
+      NN.load(weight_path, ml::train::ModelFormat::MODEL_FORMAT_BIN);
     } catch (std::exception &e) {
-      std::cerr << "Error during readModel: " << e.what() << "\n";
+      std::cerr << "Error during loading weights: " << e.what() << "\n";
       return 1;
     }
     std::ifstream dataFile(data_file);

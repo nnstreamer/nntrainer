@@ -414,7 +414,7 @@ int main(int argc, char *argv[]) {
    */
   nntrainer::NeuralNetwork NN;
   try {
-    NN.loadFromConfig(config);
+    NN.load(config, ml::train::ModelFormat::MODEL_FORMAT_INI_WITH_BIN);
   } catch (...) {
     std::cerr << "Error during loadFromConfig" << std::endl;
     return 0;
@@ -429,7 +429,6 @@ int main(int argc, char *argv[]) {
   }
 
   try {
-    NN.readModel();
     NN.setDataset(ml::train::DatasetModeType::MODE_TRAIN, std::move(db_train));
     NN.setDataset(ml::train::DatasetModeType::MODE_VALID, std::move(db_valid));
     NN.train();
