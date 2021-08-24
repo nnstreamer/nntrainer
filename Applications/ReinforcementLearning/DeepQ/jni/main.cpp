@@ -250,6 +250,7 @@ int main(int argc, char **argv) {
     std::cout << "./DeepQ Config.ini\n";
     exit(0);
   }
+  const std::string weight_file = "model_deepq.bin";
   const std::vector<std::string> args(argv + 1, argv + argc);
   std::string config = args[0];
 
@@ -295,16 +296,12 @@ int main(int argc, char **argv) {
    * @brief     Read Model Data if any
    */
   try {
-    mainNet.readModel();
+    mainNet.load(weight_file, ml::train::ModelFormat::MODEL_FORMAT_BIN);
+    targetNet.load(weight_file, ml::train::ModelFormat::MODEL_FORMAT_BIN);
   } catch (...) {
-    std::cerr << "Error during readModel\n";
+    std::cerr << "Error during readBin\n";
     return 1;
   }
-
-  /**
-   * @brief     Sync targetNet
-   */
-  targetNet.copy(mainNet);
 
   /**
    * @brief     Run Episode
@@ -524,15 +521,12 @@ int main(int argc, char **argv) {
         std::cerr << "Error during getLoss: " << e.what() << "\n";
         return 1;
       }
-      /**
-       * @brief     copy targetNetwork
-       */
 
-      targetNet.copy(mainNet);
       try {
-        mainNet.saveModel();
+        targetNet.load(weight_file, ml::train::ModelFormat::MODEL_FORMAT_BIN);
+        mainNet.save(weight_file, ml::train::ModelFormat::MODEL_FORMAT_BIN);
       } catch (std::exception &e) {
-        std::cerr << "Error during saveModel: " << e.what() << "\n";
+        std::cerr << "Error during saveBin: " << e.what() << "\n";
         return 1;
       }
     }

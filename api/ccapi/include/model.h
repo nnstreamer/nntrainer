@@ -73,7 +73,7 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  virtual int loadFromConfig(std::string config) = 0;
+  virtual int loadFromConfig(const std::string &config) = 0;
 
   /**
    * @brief     Minimal set of properties that must be supported by the model
@@ -110,27 +110,13 @@ public:
   virtual int initialize() = 0;
 
   /**
-   * @brief     save model and training parameters into file
-   * @todo      deprecate this
-   */
-  [[deprecated("use saveModel(const std::string &path_prefix, "
-               "ModelFormat format)")]] virtual void
-  saveModel() = 0;
-
-  /**
    * @brief  load model states and training parameters from a file
    * @param file_path file_path to save the model, if full path is not
    * given, it should be saved inside working directory
    * @param format format to save parameters
    */
   virtual void save(const std::string &file_path,
-                    ModelFormat format = ModelFormat::MODEL_FORMAT_BIN){};
-
-  /**
-   * @brief     read model and training parameters from file
-   * @todo      deprecate this
-   */
-  virtual void readModel() = 0;
+                    ModelFormat format = ModelFormat::MODEL_FORMAT_BIN) = 0;
 
   /**
    * @brief  load model with regard to the format
@@ -139,7 +125,7 @@ public:
    * @param format format to save parameters
    */
   virtual void load(const std::string &file_path,
-                    ModelFormat format = ModelFormat::MODEL_FORMAT_BIN){};
+                    ModelFormat format = ModelFormat::MODEL_FORMAT_BIN) = 0;
 
   /**
    * @brief     Run Model training and validation

@@ -423,9 +423,8 @@ int main(int argc, char *argv[]) {
   nntrainer::NeuralNetwork NN;
   int status = ML_ERROR_NONE;
   try {
-    status = NN.loadFromConfig(config);
-    if (status != ML_ERROR_NONE)
-      return status;
+    NN.load(config, ml::train::ModelFormat::MODEL_FORMAT_INI);
+    // NN.load(weight_path, ml::train::ModelFormat::MODEL_FORMAT_BIN);
 
     status = NN.compile();
     if (status != ML_ERROR_NONE)
@@ -436,12 +435,6 @@ int main(int argc, char *argv[]) {
       return status;
   } catch (...) {
     std::cerr << "Error during init" << std::endl;
-    return 1;
-  }
-  try {
-    NN.readModel();
-  } catch (std::exception &e) {
-    std::cerr << "Error during readModel reason: " << e.what() << std::endl;
     return 1;
   }
 

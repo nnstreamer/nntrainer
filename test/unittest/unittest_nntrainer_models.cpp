@@ -1396,13 +1396,13 @@ TEST(nntrainerModels, read_save_01_n) {
   EXPECT_NO_THROW(NN.addLayer(layer_node));
   EXPECT_NO_THROW(NN.setProperty({"loss=mse"}));
 
-  EXPECT_THROW(NN.readModel(), std::runtime_error);
-  EXPECT_THROW(NN.saveModel(), std::runtime_error);
+  EXPECT_THROW(NN.load("model.bin"), std::runtime_error);
+  EXPECT_THROW(NN.save("model.bin"), std::runtime_error);
 
   EXPECT_EQ(NN.compile(), ML_ERROR_NONE);
 
-  EXPECT_THROW(NN.readModel(), std::runtime_error);
-  EXPECT_THROW(NN.saveModel(), std::runtime_error);
+  EXPECT_THROW(NN.load("model.bin"), std::runtime_error);
+  EXPECT_THROW(NN.save("model.bin"), std::runtime_error);
 }
 
 /**

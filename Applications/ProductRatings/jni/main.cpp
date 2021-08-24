@@ -163,6 +163,8 @@ int main(int argc, char *argv[]) {
     exit(1);
   }
 
+  std::string weight_path = "product_ratings_model.bin";
+
   const std::vector<std::string> args(argv + 1, argv + argc);
   std::string config = args[1];
   data_file = args[2];
@@ -209,7 +211,6 @@ int main(int argc, char *argv[]) {
       std::cerr << "Error during initialize" << std::endl;
       return 1;
     }
-    NN.readModel();
 
     std::cout << "Input dimension: " << NN.getInputDimension()[0];
 
@@ -243,9 +244,9 @@ int main(int argc, char *argv[]) {
     }
   } else {
     try {
-      NN.readModel();
+      NN.load(weight_path, ml::train::ModelFormat::MODEL_FORMAT_BIN);
     } catch (std::exception &e) {
-      std::cerr << "Error during readModel: " << e.what() << "\n";
+      std::cerr << "Error during loading weights: " << e.what() << "\n";
       return 1;
     }
     std::ifstream dataFile(data_file);
