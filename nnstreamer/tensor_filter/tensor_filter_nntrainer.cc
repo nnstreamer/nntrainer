@@ -83,7 +83,6 @@ NNTrainerInference::NNTrainerInference(const std::string &model_config_) :
   loadModel();
   model->compile();
   model->initialize();
-  model->readModel();
 }
 
 const char *NNTrainerInference::getModelConfig() {
@@ -95,7 +94,7 @@ void NNTrainerInference::loadModel() {
   gint64 start_time = g_get_real_time();
 #endif
   model = ml::train::createModel(ml::train::ModelType::NEURAL_NET);
-  model->loadFromConfig(model_config);
+  model->load(model_config, ml::train::ModelFormat::MODEL_FORMAT_INI_WITH_BIN);
 #if (DBG)
   gint64 stop_time = g_get_real_time();
   g_message("Model is loaded: %" G_GINT64_FORMAT, (stop_time - start_time));

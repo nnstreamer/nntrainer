@@ -290,7 +290,7 @@ int main(int argc, char *argv[]) {
    */
   try {
     model = createModel(ml::train::ModelType::NEURAL_NET);
-    model->loadFromConfig(config);
+    model->load(config, ml::train::ModelFormat::MODEL_FORMAT_INI_WITH_BIN);
   } catch (...) {
     std::cerr << "Error during loadFromConfig" << std::endl;
     return 1;
@@ -300,12 +300,6 @@ int main(int argc, char *argv[]) {
     model->initialize();
   } catch (...) {
     std::cerr << "Error during init" << std::endl;
-    return 1;
-  }
-  try {
-    model->readModel();
-  } catch (std::exception &e) {
-    std::cerr << "Error during readModel, reason: " << e.what() << std::endl;
     return 1;
   }
   model->setDataset(ml::train::DatasetModeType::MODE_TRAIN, dataset_train);
