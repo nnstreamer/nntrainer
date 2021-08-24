@@ -30,6 +30,7 @@
 #include <vector>
 
 #include <ml-api-common.h>
+#include <nntrainer_error.h>
 #include <props_util.h>
 
 namespace nntrainer {
@@ -125,16 +126,6 @@ unsigned int parseNetProperty(std::string property);
  */
 unsigned int parseDataProperty(std::string property);
 
-/**
- * @brief     print instance info. as <Type at (address)>
- * @param[in] std::ostream &out, T&& t
- * @param[in] t pointer to the instance
- */
-template <typename T,
-          typename std::enable_if_t<std::is_pointer<T>::value, T> * = nullptr>
-void printInstance(std::ostream &out, const T &t) {
-  out << '<' << typeid(*t).name() << " at " << t << '>' << std::endl;
-}
 } /* namespace nntrainer */
 
 #endif /* __cplusplus */

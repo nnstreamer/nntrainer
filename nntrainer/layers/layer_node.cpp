@@ -20,6 +20,7 @@
 #include <node_exporter.h>
 #include <parse_util.h>
 #include <time_dist.h>
+#include <util_func.h>
 
 #include <base_properties.h>
 #include <common_properties.h>
