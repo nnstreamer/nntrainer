@@ -252,12 +252,11 @@ getMergeableGraph(std::shared_ptr<const GraphRepresentation> graph,
 
 } // namespace
 
-void IniGraphInterpreter::serialize(
-  std::shared_ptr<const GraphRepresentation> representation,
-  const std::string &out) {
+void IniGraphInterpreter::serialize(const GraphRepresentation &representation,
+                                    const std::string &out) {
 
   std::vector<IniSection> sections;
-  for (auto iter = representation->cbegin(); iter != representation->cend();
+  for (auto iter = representation.cbegin(); iter != representation.cend();
        iter++) {
     const auto &ln = *iter;
 

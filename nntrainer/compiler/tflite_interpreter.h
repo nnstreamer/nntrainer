@@ -40,7 +40,7 @@ public:
   /**
    * @copydoc GraphInterpreter::serialize(const std::string &out)
    */
-  void serialize(std::shared_ptr<const GraphRepresentation> representation,
+  void serialize(const GraphRepresentation &representation,
                  const std::string &out) override;
 
   /**

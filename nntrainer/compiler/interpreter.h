@@ -61,9 +61,8 @@ public:
    * @param representation graph representation
    * @param out output file name
    */
-  virtual void
-  serialize(std::shared_ptr<const GraphRepresentation> representation,
-            const std::string &out) = 0;
+  virtual void serialize(const GraphRepresentation &representation,
+                         const std::string &out) = 0;
 
   /**
    * @brief deserialize graph from a stream
