@@ -24,8 +24,11 @@
 #define __UTIL_FUNC_H__
 #ifdef __cplusplus
 
-#include <tensor.h>
+#include <cstring>
+#include <sstream>
 
+#include <nntrainer_error.h>
+#include <tensor.h>
 namespace nntrainer {
 
 /**
@@ -152,6 +155,43 @@ void writeString(std::ofstream &file, const std::string &str,
  * @retval false @a target does not ends with @a suffix
  */
 bool endswith(const std::string &target, const std::string &suffix);
+
+/**
+ * @brief     print instance info. as <Type at (address)>
+ * @param[in] std::ostream &out, T&& t
+ * @param[in] t pointer to the instance
+ */
+template <typename T,
+          typename std::enable_if_t<std::is_pointer<T>::value, T> * = nullptr>
+void printInstance(std::ostream &out, const T &t) {
+  out << '<' << typeid(*t).name() << " at " << t << '>' << std::endl;
+}
+
+/**
+ * @brief creat a stream, and if !stream.good() throw appropriate error code
+ * depending on @c errno
+ *
+ * @tparam T return type
+ * @param path path
+ * @param mode mode to open path
+ * @return T created stream
+ */
+template <typename T>
+T checkedOpenStream(const std::string &path, std::ios_base::openmode mode) {
+  T model_file(path, mode);
+  if (!model_file.good()) {
+    std::stringstream ss;
+    ss << "[parseutil] requested file not opened, file path: " << path
+       << " reason: " << std::strerror(errno);
+    if (errno == EPERM || errno == EACCES) {
+      throw nntrainer::exception::permission_denied(ss.str().c_str());
+    } else {
+      throw std::invalid_argument(ss.str().c_str());
+    }
+  }
+
+  return model_file;
+}
 
 } /* namespace nntrainer */
 
