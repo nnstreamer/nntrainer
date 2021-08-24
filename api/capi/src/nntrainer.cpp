@@ -66,6 +66,9 @@ template <typename F> static int nntrainer_exception_boundary(F &&func) {
   } catch (nntrainer::exception::not_supported &e) {
     ml_loge("%s %s", typeid(e).name(), e.what());
     return ML_ERROR_INVALID_PARAMETER;
+  } catch (nntrainer::exception::permission_denied &e) {
+    ml_loge("%s %s", typeid(e).name(), e.what());
+    return ML_ERROR_PERMISSION_DENIED;
   } catch (std::invalid_argument &e) {
     ml_loge("%s %s", typeid(e).name(), e.what());
     return ML_ERROR_INVALID_PARAMETER;

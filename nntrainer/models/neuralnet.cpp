@@ -362,11 +362,8 @@ void NeuralNetwork::save(const std::string &file_path,
   /// not delegating for now as required logics are managable for now.
   switch (format) {
   case ml::train::ModelFormat::MODEL_FORMAT_BIN: {
-    std::ofstream model_file(file_path, std::ios::out | std::ios::binary);
-    /// @todo, if errno == EACCESS or EPERM, throw PERMISSION DENIED error
-    NNTR_THROW_IF(!model_file.good(), std::invalid_argument)
-      << "model file not opened, file path: " << file_path
-      << " reason: " << strerror(errno);
+    auto model_file = checkedOpenStream<std::ofstream>(
+      file_path, std::ios::out | std::ios::binary);
     for (auto iter = model_graph.cbegin(); iter != model_graph.cend(); iter++) {
       (*iter)->save(model_file);
     }
@@ -393,12 +390,9 @@ void NeuralNetwork::load(const std::string &file_path,
       << "Cannot load if not initialized yet, path: " << file_path
       << " format: " << static_cast<unsigned>(format);
 
-    std::ifstream model_file(file_path, std::ios::in | std::ios::binary);
-    /// @todo, if errno == EACCESS or EPERM, throw PERMISSION DENIED error
-    NNTR_THROW_IF(!model_file.good(), std::invalid_argument)
-      << "model file not opened, file path: " << file_path
-      << " reason: " << strerror(errno);
-
+    auto model_file = checkedOpenStream<std::ifstream>(
+      file_path, std::ios::in | std::ios::binary);
+    std::cerr << file_path << '\n';
     for (auto iter = model_graph.cbegin(); iter != model_graph.cend(); iter++) {
       (*iter)->read(model_file);
     }
@@ -421,7 +415,8 @@ void NeuralNetwork::load(const std::string &file_path,
     int ret = loadFromConfig(file_path);
     throw_status(ret);
     if (!save_path.empty()) {
-      /// @todo checkedOpenhere
+      checkedOpenStream<std::ifstream>(save_path,
+                                       std::ios::in | std::ios::binary);
       load_path = save_path;
     }
     break;

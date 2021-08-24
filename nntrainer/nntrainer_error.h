@@ -57,8 +57,13 @@ public:
    * @brief Construct a new Error Notification object
    *
    */
-  explicit ErrorNotification() : cleanup_func([] {}) {}
+  explicit ErrorNotification() : cleanup_func() {}
 
+  /**
+   * @brief Construct a new Error Notification object
+   *
+   * @param cleanup_func_ clean up function
+   */
   explicit ErrorNotification(std::function<void()> cleanup_func_) :
     cleanup_func(cleanup_func_) {}
 
@@ -68,14 +73,24 @@ public:
    *
    */
   ~ErrorNotification() noexcept(false) {
-    cleanup_func();
+    if (cleanup_func) {
+      cleanup_func();
+    }
     throw Err(ss.str().c_str());
   }
 
+  /**
+   * @brief Error notification stream wrapper
+   *
+   * @tparam T anything that will be delegated to the move
+   * @param out out stream
+   * @param e anything to pass to the stream
+   * @return ErrorNotification<Err>&& self
+   */
   template <typename T>
   friend ErrorNotification<Err> &&operator<<(ErrorNotification<Err> &&out,
                                              T &&e) {
-    out.ss << e;
+    out.ss << std::forward<T>(e);
     return std::move(out);
   }
 
@@ -90,6 +105,13 @@ private:
  * @note this could be either intended or not yet implemented
  */
 struct not_supported : public std::invalid_argument {
+  using invalid_argument::invalid_argument;
+};
+
+/**
+ * @brief derived class of invalid argument to represent permission is denied
+ */
+struct permission_denied : public std::invalid_argument {
   using invalid_argument::invalid_argument;
 };
 
