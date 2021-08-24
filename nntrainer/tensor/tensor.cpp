@@ -560,7 +560,7 @@ Tensor Tensor::getSharedDataTensor(const TensorDim dim_, unsigned int offset,
   Tensor ret = *this;
   ret.dim = dim_;
 
-  if (ret.bytes() + offset > bytes())
+  if (dim_.getDataLen() + offset > dim.getDataLen())
     throw std::invalid_argument(
       "Creating shared tensor of size bigger than tensor memory.");
 

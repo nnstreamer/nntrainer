@@ -424,8 +424,6 @@ void NeuralNetwork::readModel() {
   if (!initialized)
     throw std::runtime_error("Cannot save the model before initialize.");
 
-  NeuralNetwork tmp(*this);
-
   std::ifstream model_file(save_path, std::ios::in | std::ios::binary);
 
   for (auto iter = model_graph.cbegin(); iter != model_graph.cend(); iter++) {
@@ -435,9 +433,9 @@ void NeuralNetwork::readModel() {
   try {
     /// this is assuming that the failure is allowed at the end of the file
     /// read. so, after this line, additional read shouldn't be called
-    checkedRead(model_file, (char *)&tmp.epoch_idx, sizeof(epoch_idx),
+    checkedRead(model_file, (char *)&epoch_idx, sizeof(epoch_idx),
                 "[NeuralNetwork::readModel] failed to read epoch_idx");
-    checkedRead(model_file, (char *)&tmp.iter, sizeof(iter),
+    checkedRead(model_file, (char *)&iter, sizeof(iter),
                 "[NeuralNetwork::readModel] failed to read iteration");
   } catch (...) {
     model_file.close();
@@ -446,8 +444,6 @@ void NeuralNetwork::readModel() {
 
   model_file.close();
   ml_logi("read modelfile: %s", save_path.c_str());
-
-  swap(tmp, *this);
 }
 
 void NeuralNetwork::setBatchSize(unsigned int batch) {
@@ -520,8 +516,8 @@ std::vector<float *> NeuralNetwork::inference(std::vector<float *> &input) {
 
   input_tensors.reserve(input.size());
   for (unsigned int idx = 0; idx < in_dim.size(); idx++) {
-    input_tensors.emplace_back(MAKE_SHARED_TENSOR(
-      Tensor::Map(input[idx], in_dim[idx].getDataLen(), in_dim[idx], 0)));
+    input_tensors.emplace_back(MAKE_SHARED_TENSOR(Tensor::Map(
+      input[idx], in_dim[idx].getDataLen() * sizeof(float), in_dim[idx], 0)));
   }
 
   sharedConstTensors output_tensors = inference(input_tensors, false);
