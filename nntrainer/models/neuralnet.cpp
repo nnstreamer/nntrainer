@@ -47,7 +47,7 @@
 
 namespace nntrainer {
 
-int NeuralNetwork::loadFromConfig(std::string config) {
+int NeuralNetwork::loadFromConfig(const std::string &config) {
   if (loadedFromConfig == true) {
     ml_loge("cannnot do loadFromConfig twice");
     return ML_ERROR_INVALID_PARAMETER;
@@ -192,6 +192,11 @@ int NeuralNetwork::initialize() {
   }
 
   initialized = true;
+
+  if (!load_path.empty()) {
+    load(load_path, ml::train::ModelFormat::MODEL_FORMAT_BIN);
+  }
+
   return status;
 }
 
@@ -347,6 +352,91 @@ void NeuralNetwork::backwarding(sharedConstTensors label, int iteration) {
   backwarding(iteration);
 }
 
+void NeuralNetwork::save(const std::string &file_path,
+                         ml::train::ModelFormat format) {
+  NNTR_THROW_IF(!initialized, std::runtime_error)
+    << "Cannot save model if not initialized yet, path: " << file_path
+    << " format: " << static_cast<unsigned>(format);
+
+  /// @todo this switch case should be delegating the function call only. It's
+  /// not delegating for now as required logics are managable for now.
+  switch (format) {
+  case ml::train::ModelFormat::MODEL_FORMAT_BIN: {
+    std::ofstream model_file(file_path, std::ios::out | std::ios::binary);
+    /// @todo, if errno == EACCESS or EPERM, throw PERMISSION DENIED error
+    NNTR_THROW_IF(!model_file.good(), std::invalid_argument)
+      << "model file not opened, file path: " << file_path
+      << " reason: " << strerror(errno);
+    for (auto iter = model_graph.cbegin(); iter != model_graph.cend(); iter++) {
+      (*iter)->save(model_file);
+    }
+    model_file.write((char *)&epoch_idx, sizeof(epoch_idx));
+    model_file.write((char *)&iter, sizeof(iter));
+    model_file.close();
+    break;
+  }
+  case ml::train::ModelFormat::MODEL_FORMAT_INI:
+    [[fallthrough]]; // NYI
+  default:
+    throw nntrainer::exception::not_supported(
+      "saving with given format is not supported yet");
+  }
+}
+
+void NeuralNetwork::load(const std::string &file_path,
+                         ml::train::ModelFormat format) {
+  /// @todo this switch case should be delegating the function call only. It's
+  /// not delegating for now as required logics are managable for now.
+  switch (format) {
+  case ml::train::ModelFormat::MODEL_FORMAT_BIN: {
+    NNTR_THROW_IF(!initialized, std::runtime_error)
+      << "Cannot load if not initialized yet, path: " << file_path
+      << " format: " << static_cast<unsigned>(format);
+
+    std::ifstream model_file(file_path, std::ios::in | std::ios::binary);
+    /// @todo, if errno == EACCESS or EPERM, throw PERMISSION DENIED error
+    NNTR_THROW_IF(!model_file.good(), std::invalid_argument)
+      << "model file not opened, file path: " << file_path
+      << " reason: " << strerror(errno);
+
+    for (auto iter = model_graph.cbegin(); iter != model_graph.cend(); iter++) {
+      (*iter)->read(model_file);
+    }
+
+    try {
+      /// this is assuming that the failure is allowed at the end of the file
+      /// read. so, after this line, additional read shouldn't be called
+      checkedRead(model_file, (char *)&epoch_idx, sizeof(epoch_idx),
+                  "[NeuralNetwork::readModel] failed to read epoch_idx");
+      checkedRead(model_file, (char *)&iter, sizeof(iter),
+                  "[NeuralNetwork::readModel] failed to read iteration");
+    } catch (...) {
+      std::cerr << "failed to read epoch idx, proceeding with default index\n";
+    }
+
+    ml_logi("read modelfile: %s", file_path.c_str());
+    break;
+  }
+  case ml::train::ModelFormat::MODEL_FORMAT_INI_WITH_BIN: {
+    int ret = loadFromConfig(file_path);
+    throw_status(ret);
+    if (!save_path.empty()) {
+      /// @todo checkedOpenhere
+      load_path = save_path;
+    }
+    break;
+  }
+  case ml::train::ModelFormat::MODEL_FORMAT_INI: {
+    int ret = loadFromConfig(file_path);
+    throw_status(ret);
+    break;
+  }
+  default:
+    throw nntrainer::exception::not_supported(
+      "loading with given format is not supported yet");
+  }
+}
+
 float NeuralNetwork::getLoss() {
   loss = 0.0f;
 
@@ -367,83 +457,6 @@ NeuralNetwork &NeuralNetwork::copy(NeuralNetwork &from) {
     model_graph.copy(from.model_graph);
   }
   return *this;
-}
-
-/**
- * @brief     save model to file
- *            save Weight & Bias Data into file by calling save from layer
- *            save training parameters from the optimizer
- * @todo      saving order is based on the topological sort and this may
- *            not match with the ini order
- */
-void NeuralNetwork::saveModel() {
-  if (!initialized)
-    throw std::runtime_error("Cannot save the model before initialize.");
-
-  if (save_path == std::string()) {
-    return;
-  }
-
-  if (!initialized)
-    throw std::runtime_error("Cannot save the model before initialize.");
-
-  std::ofstream model_file(save_path, std::ios::out | std::ios::binary);
-
-  NNTR_THROW_IF(!model_file.good(), std::invalid_argument)
-    << "model file not opened, file path: " << save_path
-    << " reason: " << strerror(errno);
-
-  for (auto iter = model_graph.cbegin(); iter != model_graph.cend(); iter++) {
-    (*iter)->save(model_file);
-  }
-  model_file.write((char *)&epoch_idx, sizeof(epoch_idx));
-  model_file.write((char *)&iter, sizeof(iter));
-  model_file.close();
-}
-
-/**
- * @brief     read model from file
- *            read Weight & Bias Data into file by calling save from layer
- *            read training parameters from the optimizer if continuing train
- * @todo      reading order is based on the topological sort and this may
- *            not match with the ini order
- */
-void NeuralNetwork::readModel() {
-  if (!initialized)
-    throw std::runtime_error("Cannot read the model before initialize.");
-
-  if (save_path == std::string()) {
-    return;
-  }
-
-  if (!isFileExist(save_path)) {
-    ml_logd("skipping reading model, path is not valid: %s", save_path.c_str());
-    return;
-  }
-
-  if (!initialized)
-    throw std::runtime_error("Cannot save the model before initialize.");
-
-  std::ifstream model_file(save_path, std::ios::in | std::ios::binary);
-
-  for (auto iter = model_graph.cbegin(); iter != model_graph.cend(); iter++) {
-    (*iter)->read(model_file);
-  }
-
-  try {
-    /// this is assuming that the failure is allowed at the end of the file
-    /// read. so, after this line, additional read shouldn't be called
-    checkedRead(model_file, (char *)&epoch_idx, sizeof(epoch_idx),
-                "[NeuralNetwork::readModel] failed to read epoch_idx");
-    checkedRead(model_file, (char *)&iter, sizeof(iter),
-                "[NeuralNetwork::readModel] failed to read iteration");
-  } catch (...) {
-    model_file.close();
-    std::cerr << "failed to read epoch idx, proceeding with default index\n";
-  }
-
-  model_file.close();
-  ml_logi("read modelfile: %s", save_path.c_str());
 }
 
 void NeuralNetwork::setBatchSize(unsigned int batch) {
@@ -654,7 +667,9 @@ int NeuralNetwork::train_run() {
       throw std::runtime_error("No training data");
 
     training.loss /= count;
-    saveModel();
+    if (!save_path.empty()) {
+      save(save_path, ml::train::ModelFormat::MODEL_FORMAT_BIN);
+    }
 
     std::cout << "#" << epoch_idx << "/" << epochs
               << " - Training Loss: " << training.loss;

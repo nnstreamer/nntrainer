@@ -91,7 +91,8 @@ void LayerImpl::setProperty(const std::string &type_str,
     break;
   default:
     std::string msg =
-      "[Layer] Unknown Layer Property Key for value " + std::string(value);
+      "[Layer] Unknown Layer Property Key for value, key: " + type_str +
+      " value: " + value;
     throw exception::not_supported(msg);
   }
 }
