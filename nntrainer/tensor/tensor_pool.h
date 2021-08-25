@@ -77,6 +77,9 @@ public:
    * @note returns empty tensor which will be filled when allocate is called.
    * @note we assume that the caller checks if the exec_order and lifespan are
    * compatible.
+   *
+   * @note This interface is separated from requestTensor to reduce bugs related
+   * to unintentional tensor sharing.
    */
   Tensor *requestPrerequestedTensor(
     const TensorDim &dim, const std::vector<unsigned int> &exec_order,

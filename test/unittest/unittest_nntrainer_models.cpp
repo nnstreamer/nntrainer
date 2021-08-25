@@ -485,7 +485,11 @@ void GraphWatcher::validateFor(const nntrainer::TensorDim &label_shape) {
   label_tensor->setRandNormal();
   nntrainer::sharedConstTensors label = {label_tensor};
 
-  EXPECT_NO_THROW(nn.forwarding(input, label));
+  if (loss_nodes.size()) {
+    EXPECT_NO_THROW(nn.forwarding(input, label));
+  } else {
+    EXPECT_NO_THROW(nn.forwarding(input, {}));
+  }
 
   if (loss_nodes.size()) {
     EXPECT_NO_THROW(nn.backwarding(label, 0));

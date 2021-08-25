@@ -30,19 +30,4 @@ Weight::Weight(const TensorDim &dim, const Tensor::Initializer init,
     throw std::invalid_argument("Weight regularizer unknown");
 }
 
-void Weight::initializeGradient(const Tensor &preallocated) {
-  // Use self variable to initialize itself
-  Var_Grad::initializeGradient(preallocated);
-  if (var->isAllocated())
-    allocateOptimizerVariables();
-}
-
-void Weight::allocateOptimizerVariables() {
-  // Allocate optimizer parameters
-  for (auto const &dim : opt_vars_dim) {
-    opt_vars.emplace_back(dim);
-    opt_vars.back().setZero();
-  }
-}
-
 } // namespace nntrainer

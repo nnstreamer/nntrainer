@@ -132,6 +132,8 @@ int NeuralNetwork::initialize() {
 
   // initialize optimizer and related variables
   if (opt) {
+    /** TODO: update request of optimizer to be of same format as
+     * Layer::requestTensor */
     opt->finalize();
     std::function<std::vector<TensorDim>(const TensorDim &)> cb =
       [this](const TensorDim &dim) {
@@ -162,31 +164,71 @@ int NeuralNetwork::initialize() {
  */
 NeuralNetwork::~NeuralNetwork() { model_graph.reset(); }
 
-void NeuralNetwork::setLabels(sharedConstTensors label) {
-  auto fill_label = [&label](auto const &layer_node) {
-    NNTR_THROW_IF(label.size() != layer_node->getNumOutputs(),
-                  std::invalid_argument)
-      << "label size does not match with the layer requirements"
-      << " layer: " << layer_node->getName() << " label size: " << label.size()
-      << " requirements size: " << layer_node->getNumOutputs();
+static void setLabels(const std::vector<Tensor> &data,
+                      const std::vector<Var_Grad *> &label_list) {
 
-    for (unsigned int i = 0; i < layer_node->getNumOutputs(); i++) {
-      layer_node->getOutputGradUnsafe(i) = *label[i];
-    }
-  };
-
-  auto clear_label = [](auto const &layer_node) {
-    for (unsigned int i = 0; i < layer_node->getNumOutputs(); i++) {
-      layer_node->getOutputGradUnsafe(i) = Tensor();
-    }
-  };
+  NNTR_THROW_IF(!data.empty() && data.size() != label_list.size(),
+                std::invalid_argument)
+    << "label size does not match with the network requirements"
+    << " label size: " << data.size()
+    << " requirements size: " << label_list.size();
 
   /// feed or clear label
-  for (auto iter = model_graph.cbegin(); iter != model_graph.cend(); iter++) {
-    auto const &lnode = *iter;
-    if (lnode->requireLabel()) {
-      label.empty() ? clear_label(lnode) : fill_label(lnode);
-    }
+  for (unsigned int idx = 0; idx < data.size(); idx++) {
+    if (data.empty())
+      label_list[idx]->initializeGradient();
+    else if (data.size() == 1)
+      label_list[idx]->initializeGradient(data[0]);
+    else
+      label_list[idx]->initializeGradient(data[idx]);
+  }
+}
+
+static void setInputs(const std::vector<Tensor> &data,
+                      const std::vector<Var_Grad *> &input_list) {
+
+  NNTR_THROW_IF(data.size() != input_list.size(), std::invalid_argument)
+    << "input size does not match with the network requirements"
+    << " input size: " << data.size()
+    << " requirements size: " << input_list.size();
+
+  /// feed or clear label
+  for (unsigned int idx = 0; idx < input_list.size(); idx++) {
+    input_list[idx]->initializeVariable(data[idx]);
+  }
+}
+
+static void setLabels(sharedConstTensors &data,
+                      const std::vector<Var_Grad *> &label_list) {
+
+  NNTR_THROW_IF(data.size() > 1 && data.size() != label_list.size(),
+                std::invalid_argument)
+    << "label size does not match with the network requirements"
+    << " label size: " << data.size()
+    << " requirements size: " << label_list.size();
+
+  /// feed or clear label
+  for (unsigned int idx = 0; idx < label_list.size(); idx++) {
+    if (data.empty())
+      label_list[idx]->initializeGradient();
+    else if (data.size() == 1)
+      label_list[idx]->initializeGradient(*data[0]);
+    else
+      label_list[idx]->initializeGradient(*data[idx]);
+  }
+}
+
+static void setInputs(sharedConstTensors &data,
+                      const std::vector<Var_Grad *> &input_list) {
+
+  NNTR_THROW_IF(data.size() != input_list.size(), std::invalid_argument)
+    << "input size does not match with the network requirements"
+    << " input size: " << data.size()
+    << " requirements size: " << input_list.size();
+
+  /// feed or clear label
+  for (unsigned int idx = 0; idx < data.size(); idx++) {
+    input_list[idx]->initializeVariable(*data[idx]);
   }
 }
 
@@ -212,8 +254,8 @@ sharedConstTensors NeuralNetwork::forwarding(sharedConstTensors input,
     << " label_batch: " << label[0]->batch()
     << " target_batch: " << current_batch;
 
-  setLabels(label);
-  model_graph.getSortedLayerNode(0)->getInput(0) = *input[0].get();
+  setLabels(label, model_graph.getLabelList());
+  setInputs(input, model_graph.getInputList());
 
   return forwarding(training);
 }
@@ -306,7 +348,7 @@ void NeuralNetwork::backwarding(int iteration) {
  *            No need to call at first Input Layer (No data to be updated)
  */
 void NeuralNetwork::backwarding(sharedConstTensors label, int iteration) {
-  setLabels(label);
+  setLabels(label, model_graph.getLabelList());
   backwarding(iteration);
 }
 
@@ -551,6 +593,8 @@ int NeuralNetwork::setDataset(const DatasetModeType &mode,
 }
 
 int NeuralNetwork::allocate(bool trainable) {
+  model_graph.deallocateTensors(false);
+
   // TODO: directly replace this
   model_graph.initializeTensors(trainable);
 
@@ -616,9 +660,8 @@ int NeuralNetwork::train_run() {
   auto batch_size = std::get<props::TrainingBatchSize>(model_flex_props);
 
   auto &output = last_layer_node->getOutput(0);
-  auto &label = last_layer_node->getOutputGrad(0);
-  auto &in = first_layer_node->getInput(0);
 
+  /** @todo use model_graph.getInputDimensions() and getOutputDimensions() */
   auto in_dims = first_layer_node->getInputDimensions();
   auto label_dims = last_layer_node->getOutputDimensions();
 
@@ -639,9 +682,10 @@ int NeuralNetwork::train_run() {
    * @param on_epoch_end function that will recieve reference to stat,
    * buffer which will be called on the epoch end
    */
-  auto run_epoch = [this, &in, &label, &in_dims, &label_dims, batch_size](
+  auto run_epoch = [this, &in_dims, &label_dims, &output, batch_size](
                      DataBuffer *buffer, bool shuffle,
-                     auto &&on_iteration_fetch, auto &&on_epoch_end) {
+                     auto &&on_iteration_fetch, auto &&on_iteration_update_stat,
+                     auto &&on_epoch_end) {
     /// @todo managing metrics must be handled here as well!! for now it is
     /// handled in individual callbacks
     RunStats stat;
@@ -657,11 +701,14 @@ int NeuralNetwork::train_run() {
         /// @todo support partial batch
         continue;
       }
-      /// @todo multiple input support
-      in = iteration.getInputsRef().front();
-      label = iteration.getLabelsRef().front();
+
+      auto const &labels = iteration.getLabelsRef();
+      setLabels(labels, model_graph.getLabelList());
+      auto const &inputs = iteration.getInputsRef();
+      setInputs(inputs, model_graph.getInputList());
 
       on_iteration_fetch(stat, *buffer);
+      on_iteration_update_stat(stat, {output}, labels);
     }
     future_iq.get();
     on_epoch_end(stat, *buffer);
@@ -679,8 +726,14 @@ int NeuralNetwork::train_run() {
 
     std::cout << "#" << epoch_idx << "/" << getEpochs();
     auto loss = getLoss();
-    stat.loss += loss;
-    buffer.displayProgress(stat.num_iterations++, loss);
+    buffer.displayProgress(stat.num_iterations, loss);
+  };
+
+  auto update_train_stat = [this](RunStats &stat,
+                                  const std::vector<Tensor> &outputs,
+                                  const std::vector<Tensor> &labels) {
+    stat.loss += getLoss();
+    stat.num_iterations++;
   };
 
   auto train_epoch_end = [this](RunStats &stat, DataBuffer &buffer) {
@@ -694,17 +747,23 @@ int NeuralNetwork::train_run() {
               << " - Training Loss: " << stat.loss;
   };
 
-  auto eval_for_iteration = [this, &output, &label,
-                             batch_size](RunStats &stat, DataBuffer &buffer) {
+  auto eval_for_iteration = [this, batch_size](RunStats &stat,
+                                               DataBuffer &buffer) {
     forwarding(false);
-    auto model_out = output.argmax();
-    auto label_out = label.argmax();
+  };
+
+  auto update_eval_stat = [this, batch_size, &update_train_stat](
+                            RunStats &stat, const std::vector<Tensor> &outputs,
+                            const std::vector<Tensor> &labels) {
+    auto model_out = outputs[0].argmax();
+    auto label_out = labels[0].argmax();
+
     for (unsigned int b = 0; b < batch_size; b++) {
       if (model_out[b] == label_out[b])
         stat.num_correct_predictions++;
     }
-    stat.num_iterations++;
-    stat.loss += getLoss();
+
+    update_train_stat(stat, outputs, labels);
   };
 
   auto eval_epoch_end = [this, batch_size, max_acc = 0.0f,
@@ -732,19 +791,19 @@ int NeuralNetwork::train_run() {
 
   auto epochs = getEpochs();
   for (epoch_idx = epoch_idx + 1; epoch_idx <= epochs; ++epoch_idx) {
-    training =
-      run_epoch(train_buffer.get(), true, train_for_iteration, train_epoch_end);
+    training = run_epoch(train_buffer.get(), true, train_for_iteration,
+                         update_train_stat, train_epoch_end);
     if (valid_buffer) {
       validation = run_epoch(valid_buffer.get(), false, eval_for_iteration,
-                             eval_epoch_end);
+                             update_eval_stat, eval_epoch_end);
     }
     std::cout << '\n';
   }
 
   if (test_buffer) {
     std::cout << "Evaluation with test data...\n";
-    testing =
-      run_epoch(test_buffer.get(), false, eval_for_iteration, eval_epoch_end);
+    testing = run_epoch(test_buffer.get(), false, eval_for_iteration,
+                        update_eval_stat, eval_epoch_end);
   }
 
   return status;

@@ -104,6 +104,12 @@ public:
    */
   size_t minMemoryRequirement();
 
+  /**
+   * @brief Clear the memory pool
+   *
+   */
+  void clear();
+
 private:
   /**
    * @brief Validate the provided layout

@@ -87,6 +87,7 @@ Tensor *TensorPool::requestPrerequestedTensor(
  */
 void TensorPool::finalize(const MemoryPlanner &planner,
                           unsigned int start_order, unsigned int end_order) {
+  mem_pool.clear();
   unsigned int bytes_requested = 0;
   for (auto &spec : pool) {
     spec.token = 0;
