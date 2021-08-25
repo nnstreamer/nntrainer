@@ -489,8 +489,10 @@ void LayerNode::print(std::ostream &out, unsigned int flags) {
   }
 
   if (flags & PRINT_SHAPE_INFO) {
-    out << "======shape information: " << std::endl;
-    printShapeInfo(out);
+    if (init_context.validate()) {
+      out << "======shape information: " << std::endl;
+      printShapeInfo(out);
+    }
   }
 
   if (flags & PRINT_PROP_META) {
@@ -504,12 +506,14 @@ void LayerNode::print(std::ostream &out, unsigned int flags) {
   }
 
   if (flags & PRINT_WEIGHTS) {
-    out << "======weights: " << std::endl;
-    for (unsigned int idx = 0; idx < init_context.getNumWeights(); idx++) {
-      out << '[' << std::get<5>(init_context.getWeightsSpec()[idx]) << ']'
-          << std::endl;
-      if (run_context.readyToUse())
-        out << run_context.getWeight(idx);
+    if (init_context.validate()) {
+      out << "======weights: " << std::endl;
+      for (unsigned int idx = 0; idx < init_context.getNumWeights(); idx++) {
+        out << '[' << std::get<5>(init_context.getWeightsSpec()[idx]) << ']'
+            << std::endl;
+        if (run_context.readyToUse())
+          out << run_context.getWeight(idx);
+      }
     }
   }
 
