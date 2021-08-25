@@ -223,10 +223,24 @@ static void add_default_object(AppContext &ac) {
                      ActivationLayer::type, LayerType::LAYER_ACTIVATION);
   ac.registerFactory(nntrainer::createLayer<AdditionLayer>, AdditionLayer::type,
                      LayerType::LAYER_ADDITION);
-  ac.registerFactory(nntrainer::createLayer<MultiOutLayer>, MultiOutLayer::type,
-                     LayerType::LAYER_MULTIOUT);
   ac.registerFactory(nntrainer::createLayer<ConcatLayer>, ConcatLayer::type,
                      LayerType::LAYER_CONCAT);
+  ac.registerFactory(nntrainer::createLayer<MultiOutLayer>, MultiOutLayer::type,
+                     LayerType::LAYER_MULTIOUT);
+  ac.registerFactory(nntrainer::createLayer<EmbeddingLayer>,
+                     EmbeddingLayer::type, LayerType::LAYER_EMBEDDING);
+  ac.registerFactory(nntrainer::createLayer<RNNLayer>, RNNLayer::type,
+                     LayerType::LAYER_RNN);
+  ac.registerFactory(nntrainer::createLayer<LSTMLayer>, LSTMLayer::type,
+                     LayerType::LAYER_LSTM);
+  ac.registerFactory(nntrainer::createLayer<SplitLayer>, SplitLayer::type,
+                     LayerType::LAYER_SPLIT);
+  ac.registerFactory(nntrainer::createLayer<GRULayer>, GRULayer::type,
+                     LayerType::LAYER_GRU);
+  ac.registerFactory(nntrainer::createLayer<PermuteLayer>, PermuteLayer::type,
+                     LayerType::LAYER_PERMUTE);
+  ac.registerFactory(nntrainer::createLayer<DropOutLayer>, DropOutLayer::type,
+                     LayerType::LAYER_DROPOUT);
 
 #ifdef ENABLE_NNSTREAMER_BACKBONE
   ac.registerFactory(nntrainer::createLayer<NNStreamerLayer>,
@@ -237,22 +251,6 @@ static void add_default_object(AppContext &ac) {
   ac.registerFactory(nntrainer::createLayer<TfLiteLayer>, TfLiteLayer::type,
                      LayerType::LAYER_BACKBONE_TFLITE);
 #endif
-  ac.registerFactory(nntrainer::createLayer<EmbeddingLayer>,
-                     EmbeddingLayer::type, LayerType::LAYER_EMBEDDING);
-  ac.registerFactory(nntrainer::createLayer<RNNLayer>, RNNLayer::type,
-                     LayerType::LAYER_RNN);
-  ac.registerFactory(nntrainer::createLayer<LSTMLayer>, LSTMLayer::type,
-                     LayerType::LAYER_LSTM);
-  ac.registerFactory(nntrainer::createLayer<GRULayer>, GRULayer::type,
-                     LayerType::LAYER_GRU);
-  ac.registerFactory(nntrainer::createLayer<DropOutLayer>, DropOutLayer::type,
-                     LayerType::LAYER_DROPOUT);
-  ac.registerFactory(nntrainer::createLayer<TimeDistLayer>, TimeDistLayer::type,
-                     LayerType::LAYER_TIME_DIST);
-  ac.registerFactory(nntrainer::createLayer<SplitLayer>, SplitLayer::type,
-                     LayerType::LAYER_SPLIT);
-  ac.registerFactory(nntrainer::createLayer<PermuteLayer>, PermuteLayer::type,
-                     LayerType::LAYER_PERMUTE);
   ac.registerFactory(nntrainer::createLayer<CentroidKNN>, CentroidKNN::type,
                      LayerType::LAYER_CENTROID_KNN);
 
@@ -267,12 +265,15 @@ static void add_default_object(AppContext &ac) {
   /** register losses */
   ac.registerFactory(nntrainer::createLayer<MSELossLayer>, MSELossLayer::type,
                      LayerType::LAYER_LOSS_MSE);
-  ac.registerFactory(nntrainer::createLayer<CrossEntropySoftmaxLossLayer>,
-                     CrossEntropySoftmaxLossLayer::type,
-                     LayerType::LAYER_LOSS_CROSS_ENTROPY_SOFTMAX);
   ac.registerFactory(nntrainer::createLayer<CrossEntropySigmoidLossLayer>,
                      CrossEntropySigmoidLossLayer::type,
                      LayerType::LAYER_LOSS_CROSS_ENTROPY_SIGMOID);
+  ac.registerFactory(nntrainer::createLayer<CrossEntropySoftmaxLossLayer>,
+                     CrossEntropySoftmaxLossLayer::type,
+                     LayerType::LAYER_LOSS_CROSS_ENTROPY_SOFTMAX);
+
+  ac.registerFactory(nntrainer::createLayer<TimeDistLayer>, TimeDistLayer::type,
+                     LayerType::LAYER_TIME_DIST);
 
   ac.registerFactory(AppContext::unknownFactory<nntrainer::Layer>, "unknown",
                      LayerType::LAYER_UNKNOWN);

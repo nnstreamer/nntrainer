@@ -50,7 +50,7 @@ void MultiOutLayer::calcDerivative(RunLayerContext &context) {
 
 void MultiOutLayer::setProperty(const std::vector<std::string> &values) {
   if (!values.empty()) {
-    std::string msg = "[FlattenLayer] Unknown Layer Properties count " +
+    std::string msg = "[MultioutLayer] Unknown Layer Properties count " +
                       std::to_string(values.size());
     throw exception::not_supported(msg);
   }
