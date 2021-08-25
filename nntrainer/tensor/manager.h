@@ -188,6 +188,31 @@ public:
    * @brief     Create tensors with the given spec
    *
    * @param node Graph node to extract node identifiers/info
+   * @param tensors_spec Specficiation for the tensors
+   *
+   * @return created tensors list
+   */
+  std::vector<Tensor *> requestWeightOptimizerVariables(
+    const std::vector<TensorDim> &dims, const std::string &name,
+    const TensorLifespan &lifespan,
+    Tensor::Initializer initializer = Tensor::Initializer::NONE) {
+    auto const &exec_order = weight_pool.getExecutionOrder(name);
+
+    std::vector<Tensor *> ret;
+    ret.reserve(dims.size());
+
+    for (unsigned int idx = 0; idx < dims.size(); idx++)
+      ret.push_back(tensor_pool.requestTensor(
+        dims[idx], exec_order, lifespan, name + ":opt" + std::to_string(idx),
+        initializer));
+
+    return ret;
+  }
+
+  /**
+   * @brief     Create tensors with the given spec
+   *
+   * @param node Graph node to extract node identifiers/info
    * @param inputs_dim Specficiation for the tensors
    * @param outputs_name Name of the already requested output tensors
    *
@@ -288,7 +313,7 @@ public:
    * @note This only allocates weights and does not handle training related
    * memory for weights
    */
-  void initializeWeights();
+  void initializeWeights(unsigned int max_exec_order);
 
   /**
    * @brief Reset the manager state
@@ -365,7 +390,7 @@ public:
    * will require full allocation than reusing memory allocated with inference
    * mode.
    */
-  void initializeTensors(bool training);
+  void initializeTensors(bool training, unsigned int max_exec_order);
 
   /**
    * @brief   Check if the manager has allocated tensors
@@ -611,12 +636,12 @@ private:
   /**
    * @brief Initialize the tensors for inference mode
    */
-  void initializeTensorsInference();
+  void initializeTensorsInference(unsigned int);
 
   /**
    * @brief Initialize the tensors for training mode
    */
-  void initializeTensorsTrain();
+  void initializeTensorsTrain(unsigned int);
 
   /**
    * @brief     Create tensors with the given spec

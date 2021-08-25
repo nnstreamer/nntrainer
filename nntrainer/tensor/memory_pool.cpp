@@ -287,4 +287,16 @@ size_t MemoryPool::calcMinMemoryRequirement() {
   return *std::max_element(interval_req.begin(), interval_req.end());
 }
 
+void MemoryPool::clear() {
+  if (mem_pool != nullptr)
+    throw std::invalid_argument("Cannot clear allocated memory pool");
+
+  memory_size.clear();
+  memory_validity.clear();
+  memory_offset.clear();
+
+  pool_size = 0;
+  min_pool_size = 0;
+}
+
 } // namespace nntrainer

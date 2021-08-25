@@ -101,7 +101,12 @@ public:
    */
   explicit Var_Grad(Tensor *v, Tensor *g) :
     var(std::shared_ptr<Tensor>(v, [](void *) {})),
-    grad(std::shared_ptr<Tensor>(g, [](void *) {})) {}
+    grad(std::shared_ptr<Tensor>(g, [](void *) {})) {
+    if (!v)
+      var = std::make_shared<Tensor>();
+    if (!g)
+      grad = std::make_shared<Tensor>();
+  }
 
   /**
    * @brief Copy constructor for Var_Grad

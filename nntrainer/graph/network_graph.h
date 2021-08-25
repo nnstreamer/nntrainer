@@ -292,14 +292,23 @@ public:
   /**
    * @brief Allocate and initialize the weight variable
    */
-  void initializeWeights() { tensor_manager->initializeWeights(); }
+  void initializeWeights() {
+    tensor_manager->initializeWeights(
+      std::get<0>((*(cend() - 1))->getExecutionOrder()));
+  }
 
   /**
    * @brief Initialize the inputs/outputs/derivatives/gradients for the layers
    * @param[in] training If true, initialize derivates/gradients, else, do not.
    */
   void initializeTensors(bool training) {
-    tensor_manager->initializeTensors(training);
+    if (!training)
+      tensor_manager->initializeTensors(
+        training, std::get<0>((*(cend() - 1))->getExecutionOrder()));
+    else
+      /** @todo update this to skip non-trainable layers */
+      tensor_manager->initializeTensors(
+        training, std::get<1>((*(cbegin()))->getExecutionOrder()));
   }
 
   /**
@@ -336,11 +345,25 @@ public:
     for (auto const &w : tensor_manager->getWeights()) {
       const TensorDim &dim = w->getDim();
       std::vector<TensorDim> dims = cb(dim);
-      for (auto &dim : dims) {
-        w->addOptimizerVariable(dim);
-      }
+      w->setOptimizerVariables(tensor_manager->requestWeightOptimizerVariables(
+        dims, w->getName(), TensorLifespan::MAX_LIFESPAN,
+        Tensor::Initializer::ZEROS));
     }
   }
+
+  /**
+   * @brief Get the Input List for the graph
+   *
+   * @return const std::vector<Var_Grad *>& lists of inputs
+   */
+  const std::vector<Var_Grad *> &getInputList() { return input_list; };
+
+  /**
+   * @brief Get the Label List for the graph
+   *
+   * @return const std::vector<Var_Grad *>& lists of labels
+   */
+  const std::vector<Var_Grad *> &getLabelList() { return label_list; };
 
 private:
   std::map<std::string, std::string> sub_in_out; /** This is map to identify
@@ -353,6 +376,8 @@ private:
                                   at the start of the graph */
   bool compiled;               /**< if the model graph is compiled */
   unsigned int batch_size;     /**< current batch_size */
+  std::vector<Var_Grad *> label_list; /**< var_grads for the labels */
+  std::vector<Var_Grad *> input_list; /**< var_grads for the inputs */
 
   /**
    * @brief     topological sort

@@ -429,7 +429,7 @@ void NetworkGraph::setBatchSize(unsigned int batch_size) {
   auto allocated = tensor_manager->isAllocated();
 
   if (allocated)
-    tensor_manager->deallocateTensors();
+    deallocateTensors();
 
   for (auto iter = cbegin(); iter != cend(); iter++) {
     (*iter)->setBatch(batch_size);
@@ -446,10 +446,11 @@ void NetworkGraph::setBatchSize(unsigned int batch_size) {
       }
     }
   }
+  /// resize input and output spec
   tensor_manager->setBatchSize(batch_size);
 
   if (allocated)
-    tensor_manager->allocateTensors();
+    allocateTensors();
 }
 
 sharedConstTensors NetworkGraph::forwarding(bool training) const {
@@ -712,6 +713,21 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
   const std::vector<Var_Grad *> &outputs =
     tensor_manager->requestOutputs(gnode, init_context.getOutputDimensions());
 
+  /**
+   * @note cache the labels and input var_grads to be able to fill them when
+   * running the graph.
+   */
+  if (gnode.getInputConnections().empty())
+    input_list.insert(input_list.end(), inputs.begin(), inputs.end());
+  /** @todo check compatibility of requireLabel() and
+   * getOutputConnections().empty() */
+  if (lnode->requireLabel())
+    label_list.insert(label_list.end(), outputs.begin(), outputs.end());
+
+  /**
+   * @note must use existing properties like name/trainable of run_context to
+   * create the new run_context
+   */
   lnode->configureRunContext(
     // TODO: update weights spec for trainable based on layer trainable prop
     tensor_manager->requestWeights(gnode, init_context.getWeightsSpec()),

@@ -111,11 +111,6 @@ public:
     regularizer_constant(reg_const) {}
 
   /**
-   * @copydoc var_grad::initializeGradient(const Tensor &)
-   */
-  void initializeGradient(const Tensor &preallocated = Tensor());
-
-  /**
    * @brief Swap for weight
    *
    * @param lhs Swap to
@@ -194,18 +189,14 @@ public:
   /**
    * @brief Clear optimizer variables
    */
-  void clearOptimizerVariables() {
-    opt_vars.clear();
-    opt_vars_dim.clear();
-  }
+  void clearOptimizerVariables() { opt_vars.clear(); }
 
   /**
    * @brief Add optimizer variables
    * @param dim Optimizer variable dimension
    */
-  void addOptimizerVariable(const TensorDim &dim) {
-    opt_vars_dim.emplace_back(dim);
-    // TODO: Move this out when an optimizer does not initialize with 0.
+  void setOptimizerVariables(std::vector<Tensor *> tensors) {
+    opt_vars = tensors;
   }
 
   /**
@@ -213,7 +204,7 @@ public:
    * @param idx Index of the optimizer variable to get
    * @retval Reference of the optimizer variable
    */
-  Tensor &getOptimizerVariableRef(unsigned int idx) { return opt_vars[idx]; }
+  Tensor &getOptimizerVariableRef(unsigned int idx) { return *opt_vars[idx]; }
 
   /**
    * @brief Allocate and initialize the weight variable, if needed
@@ -223,10 +214,7 @@ public:
   /**
    * @brief Allocate and initialize the weight gradient, if needed
    */
-  void allocateGradient() {
-    Var_Grad::allocateGradient();
-    allocateOptimizerVariables();
-  }
+  void allocateGradient() { Var_Grad::allocateGradient(); }
 
   /**
    * @brief     check if weight regularizer type is l2norm
@@ -262,10 +250,7 @@ public:
   /**
    * @brief Deallocate memory for the gradient of the weight
    */
-  void deallocateGradient() {
-    Var_Grad::deallocateGradient();
-    opt_vars.clear();
-  }
+  void deallocateGradient() { Var_Grad::deallocateGradient(); }
 
   /**
    * @brief Deallocate the weight gardient and variable
@@ -275,22 +260,11 @@ public:
     deallocateVariable();
   }
 
-  /**
-   * @brief Allocate optimizer related variables for the given weights
-   */
-  void allocateOptimizerVariables();
-
-  /**
-   * @brief Allocate optimizer related variables for the given weights
-   */
-  void deallocateOptimizerVariables() { opt_vars.clear(); }
-
 private:
   WeightRegularizer regularizer; /**< regularizer for this variable */
   float regularizer_constant;    /**< constant factor for regularization */
 
-  std::vector<Tensor> opt_vars;        /**< optimizer variables */
-  std::vector<TensorDim> opt_vars_dim; /**< optimizer variables dimensions */
+  std::vector<Tensor *> opt_vars; /**< optimizer variables */
 };
 
 } // namespace nntrainer

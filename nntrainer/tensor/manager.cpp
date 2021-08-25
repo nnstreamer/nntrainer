@@ -260,13 +260,13 @@ Manager::getValidity(const std::string &name) {
 /**
  * @brief Allocate and initialize the weight variable
  */
-void Manager::initializeWeights() {
+void Manager::initializeWeights(unsigned int max_exec_order_) {
 
   if (weights_initialized)
     return;
 
   if (LAYER_V2) {
-    weight_pool.finalize(BasicPlanner(), 0, max_exec_order);
+    weight_pool.finalize(BasicPlanner(), 0, max_exec_order_);
   } else {
     if (total_weight_size == 0) {
       ml_logw(
@@ -327,11 +327,7 @@ void Manager::deallocateWeights() {
 }
 
 void Manager::allocateGradients() {
-  if (LAYER_V2) {
-    for (auto &w : weights_v2) {
-      w->allocateOptimizerVariables();
-    }
-  } else {
+  if (!LAYER_V2) {
     /** Allocate the source tensors for shared memories */
     if (!shared_grad.empty())
       shared_grad.allocate();
@@ -345,11 +341,7 @@ void Manager::allocateGradients() {
 }
 
 void Manager::deallocateGradients() {
-  if (LAYER_V2) {
-    for (auto &w : weights_v2) {
-      w->deallocateOptimizerVariables();
-    }
-  } else {
+  if (!LAYER_V2) {
     shared_grad.deallocate();
     for (auto &l_w : weights) {
       for (auto &w : l_w) {
@@ -499,14 +491,7 @@ void Manager::allocateInOuts() {
   if (!shared_inout.empty())
     shared_inout.allocate();
 
-  if (LAYER_V2) {
-    for (auto &in : inputs_v2) {
-      in->allocateVariable();
-    }
-    for (auto &out : outputs_v2) {
-      out->allocateVariable();
-    }
-  } else {
+  if (!LAYER_V2) {
     for (auto &l_io : in_outs) {
       for (auto &io : l_io) {
         io->allocateVariable();
@@ -518,17 +503,7 @@ void Manager::allocateInOuts() {
 void Manager::deallocateInOuts() {
   shared_inout.deallocate();
 
-  if (LAYER_V2) {
-    for (auto &in : inputs_v2) {
-      in->deallocateVariable();
-    }
-    for (auto &out : outputs_v2) {
-      out->deallocateVariable();
-    }
-    // for (auto &t : tensors_v2) {
-    //   t->deallocateVariable();
-    // }
-  } else {
+  if (!LAYER_V2) {
     for (auto &l_io : in_outs) {
       for (auto &io : l_io) {
         io->deallocateVariable();
@@ -542,17 +517,7 @@ void Manager::allocateDerivatives() {
   if (!shared_deriv.empty())
     shared_deriv.allocate();
 
-  if (LAYER_V2) {
-    for (auto &in : inputs_v2) {
-      in->allocateGradient();
-    }
-    for (auto &out : outputs_v2) {
-      out->allocateGradient();
-    }
-    // for (auto &t : tensors_v2) {
-    //   t->allocateGradient();
-    // }
-  } else {
+  if (!LAYER_V2) {
     for (auto &l_io : in_outs) {
       for (auto &io : l_io) {
         io->allocateGradient();
@@ -564,17 +529,7 @@ void Manager::allocateDerivatives() {
 void Manager::deallocateDerivatives() {
   shared_deriv.deallocate();
 
-  if (LAYER_V2) {
-    for (auto &in : inputs_v2) {
-      in->deallocateGradient();
-    }
-    for (auto &out : outputs_v2) {
-      out->deallocateGradient();
-    }
-    // for (auto &t : tensors_v2) {
-    //   t->deallocateGradient();
-    // }
-  } else {
+  if (!LAYER_V2) {
     for (auto &l_io : in_outs) {
       for (auto &io : l_io) {
         io->deallocateGradient();
@@ -583,7 +538,7 @@ void Manager::deallocateDerivatives() {
   }
 }
 
-void Manager::initializeTensorsInference() {
+void Manager::initializeTensorsInference(unsigned int max_exec_order_) {
   // @todo Do not count memory of the input tensor of the input layer and
   // output tensor of the last layer in the estimate of max_shared_inout as it
   // is not used
@@ -640,28 +595,11 @@ void Manager::initializeTensorsInference() {
       use_first_last = 1 - use_first_last;
     }
   } else {
-    // Inference Mode without optimizations
-    for (auto &outs : outputs_v2) {
-      outs->initialize(Tensor(), Tensor(), false);
-    }
-
-    // Inference Mode without optimizations
-    // for (auto &ts : tensors_v2) {
-    //   ts->initialize(Tensor(), Tensor(), false);
-    // }
-
-    // In inference mode, do not allocate the memory for the input of the first
-    // layer. These is the first entry in the in_outs. Inference() will override
-    // input tensors of the first layer
-    for ([[maybe_unused]] auto &ins : inputs_v2) {
-      // as inputs_v2 are only set for input layers, this can be skipped all the
-      // way
-      continue;
-    }
+    tensor_pool.finalize(BasicPlanner(), 0, max_exec_order_);
   }
 }
 
-void Manager::initializeTensorsTrain() {
+void Manager::initializeTensorsTrain(unsigned int max_exec_order_) {
   // Initialize gradients
   initializeGradients();
 
@@ -695,32 +633,20 @@ void Manager::initializeTensorsTrain() {
       }
     }
   } else {
-    tensor_pool.finalize(BasicPlanner(), 0, max_exec_order);
-
-    // Training Mode without optimizations
-    for (auto &outs : outputs_v2) {
-      outs->initialize(Tensor(), Tensor(), true);
-    }
-
-    // Training Mode without optimizations
-    // for (auto &ts : tensors_v2) {
-    //   ts->initialize(Tensor(), Tensor(), true);
-    // }
-
-    // Training Mode without optimizations
-    for (auto &ins : inputs_v2) {
-      ins->initialize(Tensor(), Tensor(), true);
-    }
+    tensor_pool.finalize(BasicPlanner(), 0, max_exec_order_);
   }
 }
 
 /**
  * @brief Initialize the inputs/outputs/gradients/derivatives for the layer
  */
-void Manager::initializeTensors(bool training) {
+void Manager::initializeTensors(bool training, unsigned int max_exec_order_) {
   // If weights not initialized, initialize weights as well
   if (!weights_initialized)
-    initializeWeights();
+    initializeWeights(max_exec_order_);
+
+  if (tensors_allocated)
+    throw std::invalid_argument("Cannot initialize allocated tensors");
 
   if (tensors_initialized && model_training == training)
     return;
@@ -730,9 +656,9 @@ void Manager::initializeTensors(bool training) {
 
   model_training = training;
   if (model_training)
-    initializeTensorsTrain();
+    initializeTensorsTrain(max_exec_order_);
   else
-    initializeTensorsInference();
+    initializeTensorsInference(max_exec_order_);
   tensors_initialized = true;
 }
 
@@ -740,6 +666,8 @@ void Manager::initializeTensors(bool training) {
  * @brief Deinitialize the inputs/outputs/gradients/derivatives for the layers
  */
 void Manager::deinitializeTensors() {
+
+  deallocateTensors(false);
 
   shared_deriv = Tensor();
   shared_inout = Tensor();
@@ -845,10 +773,8 @@ Manager::requestTensors(const GraphNode &node,
                *std::max_element(var_exec_order.begin(), var_exec_order.end()));
 
     Tensor *grad = nullptr;
-    // TODO: change to enum_class_and
     if (std::get<2>(ts) /** need gradient */ &&
-        enum_class_or(tspan, TensorLifespan::FORWARD_FUNC_LIFESPAN) !=
-          TensorLifespan::FORWARD_FUNC_LIFESPAN)
+        tspan > TensorLifespan::FORWARD_FUNC_LIFESPAN)
       grad = tensor_pool.requestTensor(
         std::get<0>(ts), /// tensor dim
         grad_exec_order, tspan,
@@ -873,56 +799,63 @@ std::vector<Var_Grad *>
 Manager::requestInputs(const GraphNode &node,
                        const std::vector<TensorDim> &inputs_dim,
                        const std::vector<std::string> &outputs_name) {
-
-  auto const &tspan = TensorLifespan::ITERATION_LIFESPAN;
-  std::vector<Var_Grad *> ret;
-
-  if (outputs_name.empty()) {
-    unsigned int count = 0;
-    std::vector<Var_Grad::Spec> inputs_spec;
-
-    std::transform(
-      inputs_dim.begin(), inputs_dim.end(), std::back_inserter(inputs_spec),
-      [&count, &node, &tspan](auto const &elem) {
-        return std::make_tuple(elem, Tensor::Initializer::NONE, true,
-                               node.getName() + std::string(":input") +
-                                 std::to_string(count++),
-                               tspan);
-      });
-
-    ret = requestTensors<Var_Grad>(node, inputs_spec, inputs_v2);
-  } else {
-    ret.reserve(inputs_dim.size());
-
-    /**
-     * Find already allocated output which must match the name and dimensions
-     */
-    for (unsigned int idx = 0; idx < inputs_dim.size(); idx++) {
-      auto output_loc = name_map.at(outputs_name.at(idx));
-      Var_Grad *vg = outputs_v2.at(output_loc).get();
-      if (vg->getDim() != inputs_dim[idx])
-        throw std::invalid_argument(
-          "Dimension mismatch for the requested input");
-      ret.push_back(vg);
-    }
-  }
-
   const auto &exec_order = node.getExecutionOrder();
-  for (auto const &in : ret) {
-    auto const &vname = in->getName();
-    auto const &gname = in->getGradientName();
+  std::vector<unsigned int> var_exec_order(
+    {std::get<0>(exec_order), std::get<2>(exec_order)});
+  std::vector<unsigned int> grad_exec_order(
+    {std::get<1>(exec_order), std::get<2>(exec_order)});
+  max_exec_order =
+    std::max(max_exec_order,
+             *std::max_element(var_exec_order.begin(), var_exec_order.end()));
 
-    /** usage for inputs */
-    tensor_exec_order[vname].push_back(std::get<0>(exec_order));
-    tensor_exec_order[vname].push_back(std::get<1>(exec_order));
+  TensorLifespan var_ls = TensorLifespan::ITERATION_LIFESPAN;
+  TensorLifespan grad_ls = TensorLifespan::ITERATION_LIFESPAN;
 
-    /** usage for inputs gradients (outgoing derivatives) */
-    tensor_exec_order[gname].push_back(std::get<2>(exec_order));
+  std::vector<Var_Grad *> ret;
+  size_t current_size = inputs_v2.size();
 
-    /** set tensor lifespan */
-    expandLifespan(vname, tspan);
-    expandLifespan(gname, tspan);
+  for (unsigned int idx = 0; idx < inputs_dim.size(); idx++) {
+    auto const &dim = inputs_dim[idx];
+    Tensor *var = nullptr, *grad = nullptr;
+    if (!outputs_name.empty()) {
+      var = tensor_pool.requestPrerequestedTensor(
+        dim, /// tensor dim
+        var_exec_order, var_ls,
+        outputs_name[idx],        /// name
+        Tensor::Initializer::NONE /// tensor initializer
+      );
+
+      grad = tensor_pool.requestPrerequestedTensor(
+        dim, /// tensor dim
+        grad_exec_order, grad_ls,
+        outputs_name[idx] + Var_Grad::grad_suffix, /// name
+        Tensor::Initializer::ZEROS                 /// tensor initializer
+      );
+    } else if (!node.getInputConnections().empty()) {
+      /** skip requesting tensor for input */
+      const std::string &var_name =
+        node.getName() + std::string(":input") + std::to_string(idx);
+      var = tensor_pool.requestTensor(
+        dim, /// tensor dim
+        var_exec_order, var_ls,
+        var_name,                 /// name
+        Tensor::Initializer::NONE /// tensor initializer
+      );
+
+      grad = tensor_pool.requestTensor(
+        dim, /// tensor dim
+        grad_exec_order, grad_ls,
+        var_name + Var_Grad::grad_suffix, /// name
+        Tensor::Initializer::ZEROS        /// tensor initializer
+      );
+    }
+
+    inputs_v2.emplace_back(std::make_unique<Var_Grad>(var, grad));
   }
+
+  std::transform(inputs_v2.begin() + current_size, inputs_v2.end(),
+                 std::back_inserter(ret),
+                 [](auto const &elem) { return elem.get(); });
 
   return ret;
 }
@@ -933,42 +866,48 @@ Manager::requestInputs(const GraphNode &node,
 std::vector<Var_Grad *>
 Manager::requestOutputs(const GraphNode &node,
                         const std::vector<TensorDim> &outputs_dim) {
-  unsigned int count = 0;
-  auto const &tspan = TensorLifespan::ITERATION_LIFESPAN;
-  std::vector<Var_Grad::Spec> outputs_spec;
-
-  std::transform(
-    outputs_dim.begin(), outputs_dim.end(), std::back_inserter(outputs_spec),
-    [&count, &node, &tspan](auto const &elem) {
-      return std::make_tuple(elem, Tensor::Initializer::NONE, true,
-                             node.getName() + std::string(":output") +
-                               std::to_string(count++),
-                             tspan);
-    });
-
-  auto ret = requestTensors<Var_Grad>(node, outputs_spec, outputs_v2);
   const auto &exec_order = node.getExecutionOrder();
-  for (auto const &out : ret) {
-    auto const &vname = out->getName();
-    auto const &gname = out->getGradientName();
+  std::vector<unsigned int> var_exec_order(
+    {std::get<0>(exec_order), std::get<2>(exec_order)});
+  std::vector<unsigned int> grad_exec_order(
+    {std::get<1>(exec_order), std::get<2>(exec_order)});
+  max_exec_order =
+    std::max(max_exec_order,
+             *std::max_element(var_exec_order.begin(), var_exec_order.end()));
 
-    /** usage for outputs */
-    tensor_exec_order[vname].push_back(std::get<0>(exec_order));
+  TensorLifespan var_ls = TensorLifespan::ITERATION_LIFESPAN;
+  TensorLifespan grad_ls = TensorLifespan::ITERATION_LIFESPAN;
 
-    /** usage for outputs gradients (incoming derivatives) */
-    tensor_exec_order[gname].push_back(std::get<1>(exec_order));
-    tensor_exec_order[gname].push_back(std::get<2>(exec_order));
+  std::vector<Var_Grad *> ret;
+  size_t current_size = outputs_v2.size();
 
-    /**
-     * TODO: below is needed only for activation layer as of now -
-     * check if this can be worked around
-     */
-    tensor_exec_order[vname].push_back(std::get<2>(exec_order));
+  unsigned int count = 0;
+  for (auto const &dim : std::as_const(outputs_dim)) {
+    const std::string &var_name =
+      node.getName() + std::string(":output") + std::to_string(count++);
+    Tensor *var =
+      tensor_pool.requestTensor(dim, /// tensor dim
+                                var_exec_order, var_ls,
+                                var_name,                 /// name
+                                Tensor::Initializer::NONE /// tensor initializer
+      );
 
-    /** set tensor lifespan */
-    expandLifespan(vname, tspan);
-    expandLifespan(gname, tspan);
+    Tensor *grad = nullptr;
+    /** skip requesting tensor for label */
+    if (!node.getOutputConnections().empty())
+      grad = tensor_pool.requestTensor(
+        dim, /// tensor dim
+        grad_exec_order, grad_ls,
+        var_name + Var_Grad::grad_suffix, /// name
+        Tensor::Initializer::ZEROS        /// tensor initializer
+      );
+
+    outputs_v2.emplace_back(std::make_unique<Var_Grad>(var, grad));
   }
+
+  std::transform(outputs_v2.begin() + current_size, outputs_v2.end(),
+                 std::back_inserter(ret),
+                 [](auto const &elem) { return elem.get(); });
 
   return ret;
 }
