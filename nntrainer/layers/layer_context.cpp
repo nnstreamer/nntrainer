@@ -181,12 +181,35 @@ Tensor &RunLayerContext::getTensor(unsigned int idx) {
 }
 
 /**
+ * @brief Get the Tensor object
+ *
+ * @param idx Identifier of the tensor
+ * @return Tensor& Reference to the tensor
+ */
+const Tensor &RunLayerContext::getTensor(unsigned int idx) const {
+  return tensors[idx]->getVariableRef();
+}
+
+/**
  * @brief Get the Tensor Grad object
  *
  * @param idx Identifier of the tensor
  * @return Tensor& Reference to the tensor grad tensor
  */
 Tensor &RunLayerContext::getTensorGrad(unsigned int idx) {
+  if (!tensors[idx]->hasGradient())
+    throw std::invalid_argument(
+      "Requesting gradient for a non-trainable tensor.");
+  return tensors[idx]->getGradientRef();
+}
+
+/**
+ * @brief Get the Tensor Grad object
+ *
+ * @param idx Identifier of the tensor
+ * @return Tensor& Reference to the tensor grad tensor
+ */
+const Tensor &RunLayerContext::getTensorGrad(unsigned int idx) const {
   if (!tensors[idx]->hasGradient())
     throw std::invalid_argument(
       "Requesting gradient for a non-trainable tensor.");

@@ -561,6 +561,18 @@ public:
   }
 
   /**
+   * @brief   check if run layer context is available
+   *
+   * @retval  bool true if context is available else false
+   */
+  bool isRunContextAvailable() const {
+    if (!run_context)
+      return false;
+
+    return true;
+  }
+
+  /**
    * @brief Set the Run Context object with given tensor packs
    *
    * @param weights weights

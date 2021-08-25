@@ -26,6 +26,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include <basic_planner.h>
 #include <graph_node.h>
 #include <tensor_pool.h>
 #include <var_grad.h>
@@ -366,6 +367,11 @@ public:
    */
   void initializeTensors(bool training);
 
+  /**
+   * @brief   Check if the manager has allocated tensors
+   *
+   * @return true if tensors allocated, else false
+   */
   bool isAllocated() const { return tensors_allocated; }
 
   /**
@@ -412,11 +418,15 @@ public:
       allocateWeights();
 
     if (!tensors_allocated) {
+      tensor_pool.finalize(BasicPlanner(), 0, max_exec_order);
       if (model_training)
         allocateGradients();
       allocateInOuts();
       if (model_training)
         allocateDerivatives();
+
+      if (tensor_pool.minMemoryRequirement() > 0)
+        tensor_pool.allocate();
       tensors_allocated = true;
     }
   }
@@ -435,6 +445,7 @@ public:
       if (model_training)
         deallocateDerivatives();
 
+      tensor_pool.deallocate();
       tensors_allocated = false;
     }
   }
