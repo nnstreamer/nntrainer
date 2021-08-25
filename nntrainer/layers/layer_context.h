@@ -429,12 +429,28 @@ public:
   Tensor &getTensor(unsigned int idx);
 
   /**
+   * @brief Get the Tensor object
+   *
+   * @param idx Identifier of the tensor
+   * @return Tensor& Reference to the tensor
+   */
+  const Tensor &getTensor(unsigned int idx) const;
+
+  /**
    * @brief Get the Tensor Grad object
    *
    * @param idx Identifier of the tensor
    * @return Tensor& Reference to the tensor grad tensor
    */
   Tensor &getTensorGrad(unsigned int idx);
+
+  /**
+   * @brief Get the Tensor Grad object
+   *
+   * @param idx Identifier of the tensor
+   * @return Tensor& Reference to the tensor grad tensor
+   */
+  const Tensor &getTensorGrad(unsigned int idx) const;
 
   /**
    * @brief check if the tensor has gradient
