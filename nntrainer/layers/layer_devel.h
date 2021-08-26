@@ -128,6 +128,7 @@ public:
     return_sequences = 34,
     hidden_state_activation = 35,
     dropout = 36,
+    num_inputs = 37,
     unknown
   };
 

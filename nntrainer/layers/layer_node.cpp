@@ -228,6 +228,10 @@ bool LayerNode::setProperty(const std::string &key, const std::string &value) {
     setInputLayers(split_layers);
     break;
   }
+  case PropertyType::num_inputs: {
+    ml_logw("Deprecated property: %s", key.c_str());
+    break;
+  }
   default:
     return false;
   }

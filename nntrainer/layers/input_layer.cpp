@@ -67,6 +67,12 @@ void InputLayer::setProperty(const std::string &type_str,
     status = setBoolean(standardization, value);
     throw_status(status);
   } break;
+  case PropertyType::weight_initializer: {
+    ml_logw("Deprecated property: %s", type_str.c_str());
+  } break;
+  case PropertyType::bias_initializer: {
+    ml_logw("Deprecated property: %s", type_str.c_str());
+  } break;
   default:
     std::string msg =
       "[InputLayer] Unknown Layer Property Key for value " + std::string(value);
