@@ -23,7 +23,7 @@ enum class ExecutionMode {
   TRAIN,     /** Training mode, label is necessary */
   INFERENCE, /** Inference mode, label is optional */
   VALIDATE   /** Validate mode, label is necessary */
-}
+};
 
 }; // namespace nntrainer
 

@@ -123,6 +123,11 @@ void TensorPool::finalize(const MemoryPlanner &planner,
      */
     spec.token = mem_pool.requestMemory(spec.tensor->bytes(), validity_start,
                                         validity_end + 1);
+#ifdef DEBUG
+    if (spec.token == 0)
+      throw std::runtime_error("Received invalid token from memory pool");
+#endif
+
     bytes_requested += spec.tensor->bytes();
   }
 

@@ -121,6 +121,8 @@ public:
     using std::swap;
     swap(static_cast<Var_Grad &>(lhs), static_cast<Var_Grad &>(rhs));
     swap(lhs.regularizer, rhs.regularizer);
+    swap(lhs.regularizer_constant, rhs.regularizer_constant);
+    swap(lhs.opt_vars, rhs.opt_vars);
   }
 
   /**
@@ -169,24 +171,6 @@ public:
   }
 
   /**
-   * @brief Reset the weight
-   *
-   * @param dim Variable and gradient tensor dimension
-   * @param init Initializer for the weight
-   * @param reg Regularizer for the weight
-   * @param ng If the variable needs gradient
-   *
-   * @note New dimension must maintain the shape of the variable
-   */
-  void reset(const TensorDim &dim, const Tensor::Initializer init,
-             const WeightRegularizer reg, const float reg_const, bool ng) {
-    regularizer = reg;
-    regularizer_constant = reg_const;
-
-    Var_Grad::reset(dim, init, ng);
-  }
-
-  /**
    * @brief Clear optimizer variables
    */
   void clearOptimizerVariables() { opt_vars.clear(); }
@@ -205,16 +189,6 @@ public:
    * @retval Reference of the optimizer variable
    */
   Tensor &getOptimizerVariableRef(unsigned int idx) { return *opt_vars[idx]; }
-
-  /**
-   * @brief Allocate and initialize the weight variable, if needed
-   */
-  void allocateVariable() { Var_Grad::allocateVariable(); }
-
-  /**
-   * @brief Allocate and initialize the weight gradient, if needed
-   */
-  void allocateGradient() { Var_Grad::allocateGradient(); }
 
   /**
    * @brief     check if weight regularizer type is l2norm
@@ -246,19 +220,6 @@ public:
    * @brief     Apply the gradient to the weight
    */
   void applyGradient(double lr) { var->add_i(*grad.get(), -lr); }
-
-  /**
-   * @brief Deallocate memory for the gradient of the weight
-   */
-  void deallocateGradient() { Var_Grad::deallocateGradient(); }
-
-  /**
-   * @brief Deallocate the weight gardient and variable
-   */
-  void deallocate() {
-    deallocateGradient();
-    deallocateVariable();
-  }
 
 private:
   WeightRegularizer regularizer; /**< regularizer for this variable */

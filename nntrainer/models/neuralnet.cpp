@@ -142,8 +142,7 @@ int NeuralNetwork::initialize() {
     model_graph.requestOptimizerVariable(cb, true);
   }
 
-  // Allocate and initialize weights
-  model_graph.initializeWeights();
+  // Allocate weights
   model_graph.allocateWeights();
 
   if (in_place_optimization) {
@@ -162,7 +161,7 @@ int NeuralNetwork::initialize() {
 /**
  * @brief     free layers
  */
-NeuralNetwork::~NeuralNetwork() { model_graph.reset(); }
+NeuralNetwork::~NeuralNetwork() = default;
 
 static void setLabels(const std::vector<Tensor> &data,
                       const std::vector<Var_Grad *> &label_list) {
@@ -187,14 +186,18 @@ static void setLabels(const std::vector<Tensor> &data,
 static void setInputs(const std::vector<Tensor> &data,
                       const std::vector<Var_Grad *> &input_list) {
 
-  NNTR_THROW_IF(data.size() != input_list.size(), std::invalid_argument)
+  NNTR_THROW_IF(data.size() > 1 && data.size() != input_list.size(),
+                std::invalid_argument)
     << "input size does not match with the network requirements"
     << " input size: " << data.size()
     << " requirements size: " << input_list.size();
 
   /// feed or clear label
   for (unsigned int idx = 0; idx < input_list.size(); idx++) {
-    input_list[idx]->initializeVariable(data[idx]);
+    if (data.empty())
+      input_list[idx]->initializeVariable();
+    else
+      input_list[idx]->initializeVariable(data[idx]);
   }
 }
 
@@ -532,7 +535,7 @@ sharedConstTensors NeuralNetwork::inference(sharedConstTensors X,
   if (!validateInput(X))
     throw std::invalid_argument("Input validation failed.");
 
-  allocate(false);
+  allocate(ExecutionMode::INFERENCE);
 
   START_PROFILE(profile::NN_FORWARD);
   out = forwarding(X, {}, false);
@@ -545,6 +548,10 @@ sharedConstTensors NeuralNetwork::inference(sharedConstTensors X,
      * Weights of the model will be freed when the model is destroyed.
      */
     model_graph.deallocateTensors(false);
+
+  /** Clear the set inputs and labels */
+  setLabels({}, model_graph.getLabelList());
+  setInputs({}, model_graph.getInputList());
 
   return out;
 }
@@ -578,13 +585,10 @@ int NeuralNetwork::setDataset(const DatasetModeType &mode,
   return setDataBuffer(mode, std::static_pointer_cast<DataBuffer>(dataset));
 }
 
-int NeuralNetwork::allocate(bool trainable) {
-  model_graph.deallocateTensors(false);
+int NeuralNetwork::allocate(ExecutionMode mode) {
+  model_graph.deallocateTensors();
+  model_graph.allocateTensors(mode);
 
-  // TODO: directly replace this
-  model_graph.initializeTensors(trainable);
-
-  model_graph.allocateTensors();
   return ML_ERROR_NONE;
 }
 
@@ -613,7 +617,7 @@ int NeuralNetwork::train(const std::vector<std::string> &values) {
   model_graph.setBatchSize(
     std::get<props::TrainingBatchSize>(model_flex_props));
 
-  status = allocate(true);
+  status = allocate(ExecutionMode::TRAIN);
   NN_RETURN_STATUS();
 
   status = train_run();
@@ -791,6 +795,10 @@ int NeuralNetwork::train_run() {
     testing = run_epoch(test_buffer.get(), false, eval_for_iteration,
                         update_eval_stat, eval_epoch_end);
   }
+
+  /** Clear the set inputs and labels */
+  setLabels({}, model_graph.getLabelList());
+  setInputs({}, model_graph.getInputList());
 
   return status;
 }

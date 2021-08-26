@@ -139,23 +139,6 @@ public:
   Var_Grad &operator=(Var_Grad &&rhs) = default;
 
   /**
-   * @brief Allocate and initialize the weight variable
-   *
-   * @param var_preallocated if initialized, use this tensor for var
-   * @param grad_preallocated if initialized, use this tensor for grad
-   * @param gtrain If the network is training or not
-   */
-  virtual void initialize(const Tensor &var_preallocated = Tensor(),
-                          const Tensor &grad_preallocated = Tensor(),
-                          bool gtrain = true) {
-    initializeVariable(var_preallocated);
-    if (gtrain)
-      initializeGradient(grad_preallocated);
-    else
-      grad = std::make_shared<Tensor>(grad->getName());
-  }
-
-  /**
    * @brief Initialize the variable
    * @param preallocated if initialized, use this tensor for variable memory
    */
@@ -168,31 +151,11 @@ public:
   virtual void initializeGradient(const Tensor &preallocated = Tensor());
 
   /**
-   * @brief Allocate and initialize the variable and grad
-   * @note Variable and grad share the memory in this case
-   */
-  virtual void initializeShared();
-
-  /**
    * @brief Get the TensorDim
    *
    * @return TensorDim Dimension
    */
   TensorDim getDim() const { return var->getDim(); }
-
-  /**
-   * @brief Get if the Var_Grad is need_gradient
-   *
-   * @retval true if need_gradient
-   * @retval false is not need_gradient
-   */
-  bool needsGradient() const { return hasGradient(); }
-
-  /**
-   * @brief set if the Var_Grad should need gradient
-   * @param ng true if needs gradient, else false
-   */
-  void needsGradient(bool ng);
 
   /**
    * @brief Get the name of the variable
@@ -228,42 +191,6 @@ public:
   void resetGradient() {
     /** zero the gradient */
     grad->initialize();
-  }
-
-  /**
-   * @brief Clone the currnet object
-   *
-   * @return Cloned copy
-   */
-  Var_Grad clone() const {
-    Var_Grad vg(*this);
-
-    /// @fixme even if var is not allocated, cloned var will have allocated
-    /// memory
-    vg.var = std::make_shared<Tensor>(this->var->clone());
-    vg.grad = std::make_shared<Tensor>(this->grad->clone());
-
-    return vg;
-  };
-
-  /**
-   * @brief Reset the variable and gradient
-   *
-   * @param dim Variable and gradient tensor dimension
-   * @param ng If the variable needs gradient
-   *
-   * @note New dimension must maintain the shape of the variable
-   */
-  void reset(const TensorDim &dim, Tensor::Initializer init, bool ng) {
-    if (!var->empty())
-      var->reshape(dim);
-    var->initialize(init);
-
-    if (ng && !grad->empty())
-      grad->reshape(dim);
-    else
-      grad = std::make_shared<Tensor>(grad->getName());
-    resetGradient();
   }
 
   /**
@@ -305,54 +232,6 @@ public:
    * @return Tensor Gradient tensor
    */
   const Tensor &getGradientRef() const { return *grad.get(); }
-
-  /**
-   * @brief Allocate memory for the variable
-   */
-  void allocateVariable() { var->allocate(); }
-
-  /**
-   * @brief Allocate memory for the gradient
-   */
-  void allocateGradient() { grad->allocate(); }
-
-  /**
-   * @brief Allocate memory for the variable and gradient
-   */
-  void allocate() {
-    allocateVariable();
-    allocateGradient();
-  }
-
-  /**
-   * @brief Deallocate memory for the variable and gradient
-   */
-  void deallocate() {
-    deallocateVariable();
-    deallocateGradient();
-  }
-
-  /**
-   * @brief Deallocate memory for the variable
-   */
-  void deallocateVariable() { var->deallocate(); }
-
-  /**
-   * @brief Deallocate memory for the gradient
-   */
-  void deallocateGradient() { grad->deallocate(); }
-
-  /**
-   * @brief Update the variable to use the variable from the given param
-   * @param vg Var_Grad whose variable must be updated with
-   */
-  void updateVariableByVariable(const Var_Grad &vg) { var = vg.var; }
-
-  /**
-   * @brief Update the gradient to use the variable from the given param
-   * @param vg Var_Grad whose variable must be updated with
-   */
-  void updateGradientByVariable(const Var_Grad &vg) { grad = vg.var; }
 
   /**
    * @brief If this variable has gradient

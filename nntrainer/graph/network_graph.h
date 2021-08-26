@@ -22,6 +22,7 @@
 #include <stack>
 #include <vector>
 
+#include <execution_mode.h>
 #include <graph_core.h>
 #include <layer_node.h>
 #include <manager.h>
@@ -43,7 +44,14 @@ public:
     graph(),
     skip_non_trainable_layers(0),
     compiled(false),
-    batch_size(0) {}
+    batch_size(0),
+    exec_mode(ExecutionMode::TRAIN) {}
+
+  /**
+   * @brief   Destructor of the NeuralNetwork Graph class
+   *
+   */
+  ~NetworkGraph() = default;
 
   /**
    * @brief     Compile the graph
@@ -91,15 +99,6 @@ public:
 
     swap(lhs.graph, rhs.graph);
     swap(lhs.skip_non_trainable_layers, rhs.skip_non_trainable_layers);
-  }
-
-  /**
-   * @brief     reset the graph
-   */
-  void reset() {
-    tensor_manager->reset();
-    graph.reset();
-    skip_non_trainable_layers = 0;
   }
 
   /**
@@ -258,67 +257,20 @@ public:
   /** Interface for manager */
 
   /**
-   * @brief Enable gradient memory sharing based optimization
-   * @param opt True to enable, else false
-   */
-  void setGradientMemoryOptimization(bool opt) {
-    tensor_manager->setGradientMemoryOptimization(opt);
-  }
-
-  /**
-   * @brief Enable derivative memory sharing based optimization
-   * @param opt True to enable, else false
-   */
-  void setDerivativeMemoryOptimization(bool opt) {
-    tensor_manager->setDerivativeMemoryOptimization(opt);
-  }
-
-  /**
-   * @brief Enable derivative memory sharing based optimization
-   * @param opt True to enable, else false
-   */
-  void setInPlaceActivationOptimization(bool opt) {
-    tensor_manager->setInPlaceActivationOptimization(opt);
-  }
-
-  /**
-   * @brief Enable inout memory sharing based optimization for inference
-   * @param opt True to enable, else false
-   */
-  void setInferenceInOutMemoryOptimization(bool opt) {
-    tensor_manager->setInferenceInOutMemoryOptimization(opt);
-  }
-
-  /**
-   * @brief Allocate and initialize the weight variable
-   */
-  void initializeWeights() {
-    /**
-     * get the order of execution/usage order for the forwarding of the last
-     * layer and pass that as the max_exec_order ensuring that all weights with
-     * usage less than the max_exec_order are allocated.
-     *
-     * @note usage order of backwarding is not considered because weight has a
-     * separate memory pool for now. Later, if it shares pool with other
-     * tensors, then this must max of backward usage order.
-     */
-    tensor_manager->initializeWeights(
-      std::get<0>((*(cend() - 1))->getExecutionOrder()));
-  }
-
-  /**
-   * @brief Initialize the inputs/outputs/derivatives/gradients for the layers
+   * @brief Allocate memory for all the managed tensors
+   *
    * @param[in] training If true, initialize derivates/gradients, else, do not.
    */
-  void initializeTensors(bool training) {
-    if (!training)
+  void allocateTensors(ExecutionMode exec_mode_) {
+    exec_mode = exec_mode_;
+    if (exec_mode == ExecutionMode::INFERENCE)
       /**
        * get the order of execution/usage order for the forwarding of the last
        * layer and pass that as the max_exec_order ensuring that all tensors
        * with usage less than the max_exec_order are allocated.
        */
-      tensor_manager->initializeTensors(
-        training, std::get<0>((*(cend() - 1))->getExecutionOrder()));
+      tensor_manager->allocateTensors(
+        std::get<0>((*(cend() - 1))->getExecutionOrder()));
     else
       /** @todo update this to skip non-trainable layers */
       /**
@@ -327,14 +279,9 @@ public:
        * and pass that as the max_exec_order ensuring that all tensors with
        * usage less than the max_exec_order are allocated.
        */
-      tensor_manager->initializeTensors(
-        training, std::get<1>((*(cbegin()))->getExecutionOrder()));
+      tensor_manager->allocateTensors(
+        std::get<1>((*(cbegin()))->getExecutionOrder()));
   }
-
-  /**
-   * @brief Allocate memory for all the managed tensors
-   */
-  void allocateTensors() { tensor_manager->allocateTensors(); }
 
   /**
    * @brief Deallocate memory for all the managed tensors
@@ -346,7 +293,10 @@ public:
   /**
    * @brief Allocate memory for all the managed weights
    */
-  void allocateWeights() { tensor_manager->allocateWeights(); }
+  void allocateWeights() {
+    tensor_manager->allocateWeights(
+      std::get<0>((*(cend() - 1))->getExecutionOrder()));
+  }
 
   /**
    * @brief Deallocate memory for all the weights
@@ -398,6 +348,8 @@ private:
   unsigned int batch_size;     /**< current batch_size */
   std::vector<Var_Grad *> label_list; /**< var_grads for the labels */
   std::vector<Var_Grad *> input_list; /**< var_grads for the inputs */
+  ExecutionMode exec_mode; /**< execution mode with which the graph has been
+                              currently set or previously set */
 
   /**
    * @brief     topological sort
