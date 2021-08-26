@@ -67,34 +67,32 @@ int NeuralNetwork::loadFromConfig(const std::string &config) {
   return ML_ERROR_NONE;
 }
 
-int NeuralNetwork::setProperty(std::vector<std::string> values) {
+void NeuralNetwork::setProperty(const std::vector<std::string> &values) {
   int status = ML_ERROR_NONE;
 
   for (unsigned int i = 0; i < values.size(); ++i) {
     std::string key;
     std::string value;
     status = getKeyValue(values[i], key, value);
-    NN_RETURN_STATUS();
+    throw_status(status);
 
     unsigned int type = parseNetProperty(key);
 
     switch (static_cast<PropertyType>(type)) {
     case PropertyType::loss: {
       status = setFloat(loss, value);
-      NN_RETURN_STATUS();
+      throw_status(status);
     } break;
     case PropertyType::loss_type: {
       status = setLoss(value);
-      NN_RETURN_STATUS();
+      throw_status(status);
     } break;
     default:
       status = setTrainConfig({values[i]});
-      NN_RETURN_STATUS();
+      throw_status(status);
       break;
     }
   }
-
-  return status;
 }
 
 int NeuralNetwork::setTrainConfig(std::vector<std::string> values) {

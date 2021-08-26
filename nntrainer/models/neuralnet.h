@@ -175,7 +175,7 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int setProperty(std::vector<std::string> values);
+  void setProperty(const std::vector<std::string> &values) override;
 
   /**
    * @brief     Initialize Network. This should be called after set all

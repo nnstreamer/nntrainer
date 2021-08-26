@@ -252,9 +252,8 @@ TEST(nntrainer_ccapi, train_dataset_with_file_01_p) {
   EXPECT_EQ(model->setDataset(ml::train::DatasetModeType::MODE_VALID, dataset),
             ML_ERROR_NONE);
 
-  EXPECT_EQ(model->setProperty({"loss=cross", "batch_size=16", "epochs=2",
-                                "save_path=model.bin"}),
-            ML_ERROR_NONE);
+  EXPECT_NO_THROW(model->setProperty(
+    {"loss=cross", "batch_size=16", "epochs=2", "save_path=model.bin"}));
   EXPECT_EQ(model->compile(), ML_ERROR_NONE);
   EXPECT_EQ(model->initialize(), ML_ERROR_NONE);
   EXPECT_NO_THROW(model->train());
@@ -304,9 +303,8 @@ TEST(nntrainer_ccapi, train_dataset_with_generator_01_p) {
   EXPECT_EQ(model->setDataset(ml::train::DatasetModeType::MODE_VALID, dataset),
             ML_ERROR_NONE);
 
-  EXPECT_EQ(model->setProperty({"loss=cross", "batch_size=16", "epochs=2",
-                                "save_path=model.bin"}),
-            ML_ERROR_NONE);
+  EXPECT_NO_THROW(model->setProperty(
+    {"loss=cross", "batch_size=16", "epochs=2", "save_path=model.bin"}));
   EXPECT_EQ(model->compile(), ML_ERROR_NONE);
   EXPECT_EQ(model->initialize(), ML_ERROR_NONE);
   EXPECT_NO_THROW(model->train());
@@ -358,29 +356,29 @@ TEST(nntrainer_ccapi, train_batch_size_update_after) {
   EXPECT_EQ(model->setDataset(ml::train::DatasetModeType::MODE_VALID, dataset),
             ML_ERROR_NONE);
 
-  EXPECT_EQ(model->setProperty({"loss=cross", "batch_size=16", "epochs=1"}),
-            ML_ERROR_NONE);
+  EXPECT_NO_THROW(
+    model->setProperty({"loss=cross", "batch_size=16", "epochs=1"}));
 
   /** Update batch size after compile */
   EXPECT_EQ(model->compile(), ML_ERROR_NONE);
-  EXPECT_EQ(model->setProperty({"batch_size=128"}), ML_ERROR_NONE);
+  EXPECT_NO_THROW(model->setProperty({"batch_size=128"}));
 
   /** Update batch size after initialize */
   EXPECT_EQ(model->initialize(), ML_ERROR_NONE);
-  EXPECT_EQ(model->setProperty({"batch_size=8"}), ML_ERROR_NONE);
+  EXPECT_NO_THROW(model->setProperty({"batch_size=8"}));
 
   EXPECT_NO_THROW(model->train());
 
   /** Update batch size after train */
-  EXPECT_EQ(model->setProperty({"batch_size=16"}), ML_ERROR_NONE);
+  EXPECT_NO_THROW(model->setProperty({"batch_size=16"}));
   EXPECT_NO_THROW(model->train());
 
   /** Update batch size after train */
-  EXPECT_EQ(model->setProperty({"batch_size=32"}), ML_ERROR_NONE);
+  EXPECT_NO_THROW(model->setProperty({"batch_size=32"}));
   EXPECT_NO_THROW(model->train());
 
   /** Update batch size after train */
-  EXPECT_EQ(model->setProperty({"batch_size=4"}), ML_ERROR_NONE);
+  EXPECT_NO_THROW(model->setProperty({"batch_size=4"}));
   EXPECT_NO_THROW(model->train());
 
   EXPECT_NEAR(model->getTrainingLoss(), 1.897739, tolerance);
