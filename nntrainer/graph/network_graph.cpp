@@ -450,7 +450,7 @@ void NetworkGraph::setBatchSize(unsigned int batch_size) {
   tensor_manager->setBatchSize(batch_size);
 
   if (allocated)
-    allocateTensors();
+    allocateTensors(exec_mode);
 }
 
 sharedConstTensors NetworkGraph::forwarding(bool training) const {

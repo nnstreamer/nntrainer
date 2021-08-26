@@ -42,6 +42,12 @@ public:
   GraphCore() : sorted(false), def_name_count(0) {}
 
   /**
+   * @brief     Destructor of Graph Core Class
+   *
+   */
+  ~GraphCore() = default;
+
+  /**
    * @brief Add the given node into Graph
    * @param[in] node shared_ptr of node
    */
@@ -70,17 +76,6 @@ public:
     swap(lhs.Sorted, rhs.Sorted);
     swap(lhs.node_names, rhs.node_names);
     swap(lhs.def_name_count, rhs.def_name_count);
-  }
-
-  /**
-   * @brief     reset the graph
-   */
-  void reset() {
-    node_list.clear();
-    node_map.clear();
-    Sorted.clear();
-    node_names.clear();
-    def_name_count = 0;
   }
 
   /**

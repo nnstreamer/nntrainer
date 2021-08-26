@@ -35,6 +35,7 @@
 
 #include <app_context.h>
 #include <dynamic_training_optimization.h>
+#include <execution_mode.h>
 #include <layer_node.h>
 #include <ml-api-common.h>
 #include <model_common_properties.h>
@@ -164,11 +165,11 @@ public:
   /**
    * @brief     Allocate memory for the model. This should be called after
    * initialize.
-   * @param[in] trainable Assign memory for inference or train mode
+   * @param[in] exec_mode allocate memory based on the given execution mode
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int allocate(bool trainable = true);
+  int allocate(ExecutionMode mode = ExecutionMode::TRAIN);
 
   /**
    * @brief     Deallocate memory for the model.
@@ -435,43 +436,9 @@ public:
   virtual void printPreset(std::ostream &out, unsigned int preset);
 
   /**
-   * @brief Enable gradient memory sharing based optimization
-   * @param opt True to enable, else false
-   * @note This optimization has no performance overhead.
+   * @brief     Update batch size of the model as well as its layers/dataset
    */
-  void setGradientMemoryOptimization(bool opt) {
-    model_graph.setGradientMemoryOptimization(opt);
-  }
-
-  /**
-   * @brief Enable derivative memory sharing based optimization
-   * @param opt True to enable, else false
-   * @note This optimization has no performance overhead.
-   */
-  void setDerivativeMemoryOptimization(bool opt) {
-    model_graph.setDerivativeMemoryOptimization(opt);
-    if (opt == false)
-      setInPlaceLayerOptimization(false);
-  }
-
-  /**
-   * @brief Enable in-place layer operations
-   * @param opt True to enable, else false
-   * @note This optimization has no performance overhead.
-   */
-  void setInPlaceLayerOptimization(bool opt) {
-    in_place_optimization = opt;
-    model_graph.setInPlaceActivationOptimization(opt);
-  }
-
-  /**
-   * @brief Enable inout memory sharing based optimization for inference
-   * @param opt True to enable, else false
-   * @note This optimization has no performance overhead.
-   */
-  void setInferenceInOutMemoryOptimization(bool opt) {
-    model_graph.setInferenceInOutMemoryOptimization(opt);
-  }
+  void setBatchSize() { setBatchSize(batch_size); }
 
   /**
    * @brief Enable dynamic fine-tuning optimization

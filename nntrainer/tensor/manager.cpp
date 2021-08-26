@@ -29,16 +29,11 @@
 #include <unistd.h>
 #include <vector>
 
-#include <activation_layer.h>
 #include <basic_planner.h>
-#include <flatten_layer.h>
 #include <layer_node.h>
 #include <manager.h>
 #include <nntrainer_log.h>
-#include <rnn.h>
 #include <util_func.h>
-
-static constexpr bool LAYER_V2 = true;
 
 namespace nntrainer {
 MMapedMemory::MMapedMemory(size_t size, bool allocate_fd_) :
@@ -130,424 +125,40 @@ MMapedMemory::~MMapedMemory() noexcept {
   ml_logd("[MMapedMemory] buf released");
 }
 
-Manager::Manager(bool enable_gradient_memory_opt_,
-                 bool enable_derivative_memory_opt_,
-                 bool enable_activation_memory_opt_,
-                 bool enable_inference_inout_memory_opt_) :
-  max_exec_order(0),
-  total_weight_size(0),
-  total_grad_size(0),
-  max_grad_size(0),
-  max_derivative_size(0),
-  max_shared_inout(0),
-  weights_initialized(false),
-  tensors_initialized(false),
-  weights_allocated(false),
-  tensors_allocated(false),
-  model_training(false),
-  enable_gradient_memory_opt(enable_gradient_memory_opt_),
-  enable_derivative_memory_opt(enable_derivative_memory_opt_),
-  enable_activation_memory_opt(enable_activation_memory_opt_),
-  enable_inference_inout_memory_opt(enable_inference_inout_memory_opt_),
-  use_shared_memory(false) {}
-
-/**
- * @brief Destructor
- */
-Manager::~Manager() { reset(); }
-
-/**
- * @brief     Add weight to be tracked and updated with nntrainer
- */
-void Manager::trackWeight(std::reference_wrapper<Weight> w) {
-  /// @warning this does not track the weight size etcs.. This might break when
-  /// use_shared_memory = true
-  std::vector<std::reference_wrapper<Weight>> temp = {w};
-  weights.emplace_back(temp);
-  weights_initialized = false;
-}
-
-/**
- * @brief     Add weights to be tracked and updated with nntrainer
- */
-void Manager::trackWeights(std::vector<Weight> &ws) {
-  if (weights_initialized || tensors_initialized)
-    throw std::runtime_error("Cannot track more weights after initialize.");
-
-  std::vector<std::reference_wrapper<Weight>> layer_weights;
-  layer_weights.reserve(ws.size());
-
-  unsigned int weight_size = 0;
-  unsigned int grad_size = 0;
-
-  for (auto &w : ws) {
-    layer_weights.emplace_back(std::ref(w));
-    unsigned int len = w.getDim().getDataLen();
-    weight_size += len;
-    if (w.needsGradient())
-      grad_size += len;
-  }
-
-  weights.push_back(layer_weights);
-
-  total_weight_size += weight_size;
-  total_grad_size += grad_size;
-  max_grad_size = std::max(max_grad_size, grad_size);
-  weights_initialized = false;
-}
-
-Manager::AllocFunc Manager::getAllocFunc(bool is_weight) {
-  AllocFunc allocate_none = [](const TensorDim &dim, unsigned int) {
-    return Tensor();
-  };
-
-  AllocFunc allocate_func = allocate_none;
-
-  if (use_shared_memory) {
-    /**< use_shared_memory has been deprecated */
-
-    /// this creates memory and sets to @a memory and returns AllocFunc
-    auto get_allocfunc =
-      [allocate_none](const unsigned int weight_size,
-                      std::unique_ptr<MMapedMemory> &memory) -> AllocFunc {
-      if (weight_size == 0) {
-        return allocate_none;
-      }
-
-      if (weight_size >=
-          std::numeric_limits<unsigned int>::max() / sizeof(float)) {
-        throw std::invalid_argument(
-          "weights exceed maximum size supported for shared memory");
-      }
-      unsigned int byte_size = weight_size * sizeof(float);
-      memory = std::make_unique<MMapedMemory>(byte_size, true);
-      return [&memory, byte_size](const TensorDim &dim, size_t offset) {
-        return Tensor::Map(memory->typedBuffer<float>(), byte_size, dim,
-                           offset);
-      };
-    };
-
-    if (is_weight) {
-      /** For weights */
-      allocate_func = get_allocfunc(total_weight_size, weight_mmaped_memory);
-    } else {
-      /** for gradients */
-      unsigned int grad_size =
-        enable_gradient_memory_opt ? max_grad_size : total_grad_size;
-      allocate_func = get_allocfunc(grad_size, grad_mmaped_memory);
-    }
-  } else if (!is_weight) {
-    /** only for gradients */
-    if (max_grad_size > 0 && enable_gradient_memory_opt) {
-      // create a lazily allocated shared_grad
-      shared_grad = Tensor(TensorDim({max_grad_size}), false);
-
-      allocate_func = [this](const TensorDim &dim, unsigned int offset) {
-        return shared_grad.getSharedDataTensor(dim, offset);
-      };
-    }
-  }
-
-  return allocate_func;
-}
-
-std::pair<unsigned int, unsigned int>
-Manager::getValidity(const std::string &name) {
-  /** @todo calculate validity based on lifespan and usage */
-  return {0, std::numeric_limits<unsigned>::max()};
-}
-
-/**
- * @brief Allocate and initialize the weight variable
- */
-void Manager::initializeWeights(unsigned int max_exec_order_) {
-
-  if (weights_initialized)
-    return;
-
-  if (LAYER_V2) {
+void Manager::allocateWeights(unsigned int max_exec_order_) {
+  if (!weight_pool.isAllocated()) {
     weight_pool.finalize(BasicPlanner(), 0, max_exec_order_);
-  } else {
-    if (total_weight_size == 0) {
-      ml_logw(
-        "Nothing done on initialize because there is no weight registered");
-      return;
-    }
-
-    AllocFunc allocate_weight = getAllocFunc(true);
-
-    unsigned int weight_offset = 0;
-    for (auto &l_w : weights) {
-      for (auto &w : l_w) {
-        Weight &weight = w.get();
-        auto dim = weight.getDim();
-
-        Tensor weight_prealloc = allocate_weight(dim, weight_offset);
-        weight_offset += dim.getDataLen();
-
-        weight.initializeVariable(weight_prealloc);
-      }
-    }
-  }
-
-  weights_initialized = true;
-}
-
-void Manager::allocateWeights() {
-  if (weights_allocated)
-    return;
-
-  if (LAYER_V2) {
     weight_pool.allocate();
-  } else {
-    for (auto &l_w : weights) {
-      for (auto &w : l_w) {
-        Weight &weight = w.get();
-        weight.allocateVariable();
-      }
-    }
-  }
-
-  weights_allocated = true;
-}
-
-void Manager::deallocateWeights() {
-  if (LAYER_V2) {
-    weight_pool.deallocate();
-  } else {
-    for (auto &l_w : weights) {
-      for (auto &w : l_w) {
-        Weight &weight = w.get();
-        weight.deallocateVariable();
-      }
-    }
-  }
-
-  weights_allocated = false;
-}
-
-void Manager::allocateGradients() {
-  if (!LAYER_V2) {
-    /** Allocate the source tensors for shared memories */
-    if (!shared_grad.empty())
-      shared_grad.allocate();
-    for (auto &l_w : weights) {
-      for (auto &w : l_w) {
-        Weight &weight = w.get();
-        weight.allocateGradient();
-      }
-    }
   }
 }
 
-void Manager::deallocateGradients() {
-  if (!LAYER_V2) {
-    shared_grad.deallocate();
-    for (auto &l_w : weights) {
-      for (auto &w : l_w) {
-        Weight &weight = w.get();
-        weight.deallocateGradient();
-      }
-    }
+void Manager::deallocateWeights() { weight_pool.deallocate(); }
+
+/**
+ * @brief Allocate memory for all the managed tensors
+ */
+void Manager::allocateTensors(unsigned int max_exec_order_) {
+  allocateWeights(max_exec_order_);
+
+  if (!tensor_pool.isAllocated()) {
+    tensor_pool.finalize(BasicPlanner(), 0, max_exec_order_);
+    if (tensor_pool.minMemoryRequirement() > 0)
+      tensor_pool.allocate();
   }
 }
 
 /**
- * @brief Initialize the weight gradients
+ * @brief Deallocate memory for all the managed tensors
  */
-void Manager::initializeGradients() {
-  if (!LAYER_V2) {
-    if (total_weight_size == 0) {
-      ml_logw(
-        "Nothing done on initialize because there is no weight registered");
-      return;
-    }
+void Manager::deallocateTensors(bool dealloc_weights) {
+  if (dealloc_weights)
+    deallocateWeights();
 
-    AllocFunc allocate_grad = getAllocFunc(false);
-
-    unsigned int grad_offset = 0;
-    for (auto &l_w : weights) {
-      if (enable_gradient_memory_opt) {
-        grad_offset = 0;
-      }
-      for (auto &w : l_w) {
-        Weight &weight = w.get();
-        auto dim = weight.getDim();
-        Tensor grad_prealloc = Tensor();
-        if (weight.needsGradient()) {
-          grad_prealloc = allocate_grad(dim, grad_offset);
-          grad_offset += dim.getDataLen();
-        }
-        weight.initializeGradient(grad_prealloc);
-      }
-    }
-  }
+  tensor_pool.deallocate();
 }
 
-/**
- * @brief Track the inputs/ouputs of the layer
- * still derivative memory needs to be allocated
- */
-std::vector<std::shared_ptr<Var_Grad>> &
-Manager::trackLayerInOuts(const std::string &layer_type,
-                          const std::string &layer_name,
-                          const std::vector<TensorDim> &inout_dim) {
-  if (tensors_initialized)
-    throw std::runtime_error(
-      "Cannot track more inputs/outputs after initialize.");
-
-  int cnt = 0;
-  bool is_act_layer = layer_type == ActivationLayer::type;
-  bool is_flat_layer = layer_type == FlattenLayer::type;
-  bool is_rnn_layer = layer_type == RNNLayer::type;
-
-  unsigned int inout_derivative_size = 0;
-
-  std::vector<std::shared_ptr<Var_Grad>> in_out;
-  in_out.reserve(inout_dim.size());
-
-  for (auto const &dim : inout_dim) {
-    in_out.emplace_back(
-      std::make_shared<Var_Grad>(dim, Tensor::Initializer::NONE, true, false,
-                                 layer_name + std::to_string(cnt++)));
-    if (is_act_layer || is_rnn_layer)
-      inout_derivative_size += dim.getDataLen();
-  }
-
-  in_outs.push_back(in_out);
-  is_act_type.push_back(is_act_layer);
-  is_rnn_type.push_back(is_rnn_layer);
-  is_flat_type.push_back(is_flat_layer);
-
-  max_derivative_size = std::max(max_derivative_size, inout_derivative_size);
-  return in_outs.back();
-}
-
-std::vector<std::shared_ptr<Var_Grad>> &
-Manager::trackLayerOutputs(const std::string &layer_type,
-                           const std::string &layer_name,
-                           const std::vector<TensorDim> &output_dim,
-                           const std::vector<TensorDim> &input_dim) {
-  if (enable_inference_inout_memory_opt && input_dim.empty()) {
-    throw std::invalid_argument(
-      "Input dimensions are required with inference memory opt.");
-  } else if (enable_inference_inout_memory_opt) {
-    unsigned int shared_inout = 0;
-
-    for (auto const &dim : output_dim)
-      shared_inout += dim.getDataLen();
-
-    for (auto const &dim : input_dim)
-      shared_inout += dim.getDataLen();
-
-    max_shared_inout = std::max(max_shared_inout, shared_inout);
-  }
-
-  return trackLayerInOuts(layer_type, layer_name + ":Output", output_dim);
-}
-
-std::vector<std::shared_ptr<Var_Grad>> &
-Manager::trackLayerInputs(const std::string &layer_type,
-                          const std::string &layer_name,
-                          const std::vector<TensorDim> &input_dim,
-                          const std::vector<TensorDim> &output_dim) {
-  if (enable_inference_inout_memory_opt && output_dim.empty()) {
-    throw std::invalid_argument(
-      "Output dimensions are required with inference memory opt.");
-  } else if (enable_inference_inout_memory_opt) {
-    unsigned int shared_inout = 0;
-
-    for (auto const &dim : output_dim)
-      shared_inout += dim.getDataLen();
-
-    for (auto const &dim : input_dim)
-      shared_inout += dim.getDataLen();
-
-    max_shared_inout = std::max(max_shared_inout, shared_inout);
-  }
-
-  return trackLayerInOuts(layer_type, layer_name + ":Input", input_dim);
-}
-
-void Manager::untrackVariable(const std::string &var_name) {
-  for (unsigned int cnt = 0; cnt < in_outs.size(); cnt++) {
-    if (!in_outs[cnt].empty() && in_outs[cnt][0]->getName() == var_name) {
-      in_outs.erase(in_outs.begin() + cnt);
-      is_act_type.erase(is_act_type.begin() + cnt);
-      is_rnn_type.erase(is_rnn_type.begin() + cnt);
-      is_flat_type.erase(is_flat_type.begin() + cnt);
-      break;
-    }
-  }
-}
-
-void Manager::untrackLayerInOuts(const std::string &layer_name) {
-  untrackVariable(layer_name + ":Input" + std::to_string(0));
-  untrackVariable(layer_name + ":Output" + std::to_string(0));
-}
-
-void Manager::allocateInOuts() {
-  /** Allocate the source tensors for shared memories */
-  if (!shared_inout.empty())
-    shared_inout.allocate();
-
-  if (!LAYER_V2) {
-    for (auto &l_io : in_outs) {
-      for (auto &io : l_io) {
-        io->allocateVariable();
-      }
-    }
-  }
-}
-
-void Manager::deallocateInOuts() {
-  shared_inout.deallocate();
-
-  if (!LAYER_V2) {
-    for (auto &l_io : in_outs) {
-      for (auto &io : l_io) {
-        io->deallocateVariable();
-      }
-    }
-  }
-}
-
-void Manager::allocateDerivatives() {
-  /** Allocate the source tensors for shared memories */
-  if (!shared_deriv.empty())
-    shared_deriv.allocate();
-
-  if (!LAYER_V2) {
-    for (auto &l_io : in_outs) {
-      for (auto &io : l_io) {
-        io->allocateGradient();
-      }
-    }
-  }
-}
-
-void Manager::deallocateDerivatives() {
-  shared_deriv.deallocate();
-
-  if (!LAYER_V2) {
-    for (auto &l_io : in_outs) {
-      for (auto &io : l_io) {
-        io->deallocateGradient();
-      }
-    }
-  }
-}
-
+#ifdef LAYER_V1
 void Manager::initializeTensorsInference(unsigned int max_exec_order_) {
-  // @todo Do not count memory of the input tensor of the input layer and
-  // output tensor of the last layer in the estimate of max_shared_inout as it
-  // is not used
-
-  // Initialize shared input/output memory for inference
-  // @note Memory for label is not allocated here as inference doesnt has label
-  if (enable_inference_inout_memory_opt)
-    shared_inout = Tensor(TensorDim({max_shared_inout}), false);
-
   /**
    * A single buffer (shared_inout) provides memory for inputs and outputs of a
    * layer. Further, the output of layer i shares memory with input with layer
@@ -557,45 +168,46 @@ void Manager::initializeTensorsInference(unsigned int max_exec_order_) {
    * @note Label for the last layer is not initialized in inference.
    * @note Input for the first layer is not initialized in inference.
    */
-  if (!LAYER_V2) {
-    bool use_first_last = 0;
-    for (unsigned int idx = 0; idx < in_outs.size(); idx++) {
-      auto &l_io = in_outs[idx];
-      unsigned int offset = 0;
-      bool is_first_layer = idx == 0;
+  // Initialize shared input/output memory for inference
+  // @note Memory for label is not allocated here as inference doesnt has label
+  if (enable_inference_inout_memory_opt)
+    shared_inout = Tensor(TensorDim({max_shared_inout}), false);
 
-      // For flatten layer, do not assign new memory
-      if (idx > 0 && is_flat_type[idx])
-        use_first_last = 1 - use_first_last;
+  bool use_first_last = 0;
+  for (unsigned int idx = 0; idx < in_outs.size(); idx++) {
+    auto &l_io = in_outs[idx];
+    unsigned int offset = 0;
+    bool is_first_layer = idx == 0;
 
-      // In inference mode, do not allocate the memory for the input of the
-      // first layer. These is the first entry in the in_outs. Inference() will
-      // override input tensors of the first layer
-      if (is_first_layer)
-        continue;
-
-      for (auto &io : l_io) {
-        Tensor shared_inout_cur = Tensor();
-        if (enable_inference_inout_memory_opt) {
-          // if optimized
-          if (use_first_last) {
-            // Create tensor with from the front of shared tensor
-            shared_inout_cur =
-              shared_inout.getSharedDataTensor(io->getDim(), offset);
-          } else {
-            // Create tensor with from the back of shared tensor
-            shared_inout_cur = shared_inout.getSharedDataTensor(
-              io->getDim(),
-              max_shared_inout - io->getDim().getDataLen() - offset);
-          }
-          offset += io->getDim().getDataLen();
-        }
-        io->initialize(shared_inout_cur, Tensor(), false);
-      }
+    // For flatten layer, do not assign new memory
+    if (idx > 0 && is_flat_type[idx])
       use_first_last = 1 - use_first_last;
+
+    // In inference mode, do not allocate the memory for the input of the
+    // first layer. These is the first entry in the in_outs. Inference() will
+    // override input tensors of the first layer
+    if (is_first_layer)
+      continue;
+
+    for (auto &io : l_io) {
+      Tensor shared_inout_cur = Tensor();
+      if (enable_inference_inout_memory_opt) {
+        // if optimized
+        if (use_first_last) {
+          // Create tensor with from the front of shared tensor
+          shared_inout_cur =
+            shared_inout.getSharedDataTensor(io->getDim(), offset);
+        } else {
+          // Create tensor with from the back of shared tensor
+          shared_inout_cur = shared_inout.getSharedDataTensor(
+            io->getDim(),
+            max_shared_inout - io->getDim().getDataLen() - offset);
+        }
+        offset += io->getDim().getDataLen();
+      }
+      io->initialize(shared_inout_cur, Tensor(), false);
     }
-  } else {
-    tensor_pool.finalize(BasicPlanner(), 0, max_exec_order_);
+    use_first_last = 1 - use_first_last;
   }
 }
 
@@ -603,78 +215,36 @@ void Manager::initializeTensorsTrain(unsigned int max_exec_order_) {
   // Initialize gradients
   initializeGradients();
 
-  if (!LAYER_V2) {
-    // Initialize shared derivative memory
-    if (max_derivative_size > 0 && enable_activation_memory_opt)
-      shared_deriv = Tensor(TensorDim({max_derivative_size}), false);
-    for (unsigned int idx = 0; idx < in_outs.size(); idx++) {
-      auto &l_io = in_outs[idx];
-      unsigned int offset = 0;
-      bool is_last_layer = idx == in_outs.size() - 1;
+  // Initialize shared derivative memory
+  if (max_derivative_size > 0 && enable_activation_memory_opt)
+    shared_deriv = Tensor(TensorDim({max_derivative_size}), false);
+  for (unsigned int idx = 0; idx < in_outs.size(); idx++) {
+    auto &l_io = in_outs[idx];
+    unsigned int offset = 0;
+    bool is_last_layer = idx == in_outs.size() - 1;
 
-      for (auto &io : l_io) {
-        // Last layer requires separate memory allocations for output and label
-        // (deriv)
-        if (enable_derivative_memory_opt && !is_last_layer) {
-          // Training Mode with optimizations
-          if (enable_activation_memory_opt &&
-              (is_rnn_type[idx] || is_act_type[idx])) {
-            io->initialize(
-              Tensor(), shared_deriv.getSharedDataTensor(io->getDim(), offset));
-            offset += io->getDim().getDataLen();
-          } else {
-            io->initializeShared();
-          }
-
+    for (auto &io : l_io) {
+      // Last layer requires separate memory allocations for output and label
+      // (deriv)
+      if (enable_derivative_memory_opt && !is_last_layer) {
+        // Training Mode with optimizations
+        if (enable_activation_memory_opt &&
+            (is_rnn_type[idx] || is_act_type[idx])) {
+          io->initialize(
+            Tensor(), shared_deriv.getSharedDataTensor(io->getDim(), offset));
+          offset += io->getDim().getDataLen();
         } else {
-          // Training Mode without optimizations
-          io->initialize(Tensor(), Tensor(), true);
+          io->initializeShared();
         }
+
+      } else {
+        // Training Mode without optimizations
+        io->initialize(Tensor(), Tensor(), true);
       }
     }
-  } else {
-    tensor_pool.finalize(BasicPlanner(), 0, max_exec_order_);
   }
 }
-
-/**
- * @brief Initialize the inputs/outputs/gradients/derivatives for the layer
- */
-void Manager::initializeTensors(bool training, unsigned int max_exec_order_) {
-  // If weights not initialized, initialize weights as well
-  if (!weights_initialized)
-    initializeWeights(max_exec_order_);
-
-  if (tensors_allocated)
-    throw std::invalid_argument("Cannot initialize allocated tensors");
-
-  if (tensors_initialized && model_training == training)
-    return;
-
-  if (tensors_initialized)
-    deinitializeTensors();
-
-  model_training = training;
-  if (model_training)
-    initializeTensorsTrain(max_exec_order_);
-  else
-    initializeTensorsInference(max_exec_order_);
-  tensors_initialized = true;
-}
-
-/**
- * @brief Deinitialize the inputs/outputs/gradients/derivatives for the layers
- */
-void Manager::deinitializeTensors() {
-
-  deallocateTensors(false);
-
-  shared_deriv = Tensor();
-  shared_inout = Tensor();
-  shared_grad = Tensor();
-
-  tensors_initialized = false;
-}
+#endif
 
 /**
  * @brief     Create weights with the given spec
@@ -688,9 +258,6 @@ Manager::requestWeights(const GraphNode &node,
                                             std::get<1>(exec_order),
                                             std::get<2>(exec_order)});
   std::vector<unsigned int> grad_exec_order({std::get<1>(exec_order)});
-  max_exec_order =
-    std::max(max_exec_order,
-             *std::max_element(var_exec_order.begin(), var_exec_order.end()));
 
   TensorLifespan var_ls = TensorLifespan::MAX_LIFESPAN;
   TensorLifespan grad_ls = TensorLifespan::BACKWARD_FUNC_LIFESPAN;
@@ -768,9 +335,6 @@ Manager::requestTensors(const GraphNode &node,
                                 std::get<3>(ts), /// name
                                 std::get<1>(ts)  /// tensor initializer
       );
-    max_exec_order =
-      std::max(max_exec_order,
-               *std::max_element(var_exec_order.begin(), var_exec_order.end()));
 
     Tensor *grad = nullptr;
     if (std::get<2>(ts) /** need gradient */ &&
@@ -804,9 +368,6 @@ Manager::requestInputs(const GraphNode &node,
     {std::get<0>(exec_order), std::get<2>(exec_order)});
   std::vector<unsigned int> grad_exec_order(
     {std::get<1>(exec_order), std::get<2>(exec_order)});
-  max_exec_order =
-    std::max(max_exec_order,
-             *std::max_element(var_exec_order.begin(), var_exec_order.end()));
 
   TensorLifespan var_ls = TensorLifespan::ITERATION_LIFESPAN;
   TensorLifespan grad_ls = TensorLifespan::ITERATION_LIFESPAN;
@@ -882,9 +443,6 @@ Manager::requestOutputs(const GraphNode &node,
     {std::get<0>(exec_order), std::get<2>(exec_order)});
   std::vector<unsigned int> grad_exec_order(
     {std::get<1>(exec_order), std::get<2>(exec_order)});
-  max_exec_order =
-    std::max(max_exec_order,
-             *std::max_element(var_exec_order.begin(), var_exec_order.end()));
 
   TensorLifespan var_ls = TensorLifespan::ITERATION_LIFESPAN;
   TensorLifespan grad_ls = TensorLifespan::ITERATION_LIFESPAN;
@@ -923,38 +481,22 @@ Manager::requestOutputs(const GraphNode &node,
   return ret;
 }
 
-void Manager::expandLifespan(const std::string &name, TensorLifespan lifespan) {
-  tensor_lifespan_map[name] =
-    enum_class_or<TensorLifespan>(tensor_lifespan_map[name], lifespan);
-}
-
 /**
  * @brief     Create tensors with the given spec
+ *
  */
-std::vector<Var_Grad *> Manager::requestAllocatedOutputsAsInputs(
-  const GraphNode &node, const std::vector<TensorDim> &inputs_dim,
-  const std::vector<std::string> &outputs_name) {
+std::vector<Tensor *> Manager::requestWeightOptimizerVariables(
+  const std::vector<TensorDim> &dims, const std::string &name,
+  const TensorLifespan &lifespan, Tensor::Initializer initializer) {
+  auto const &exec_order = weight_pool.getExecutionOrder(name);
 
-  auto const &tspan = TensorLifespan::ITERATION_LIFESPAN;
-  std::vector<Var_Grad *> ret;
+  std::vector<Tensor *> ret;
+  ret.reserve(dims.size());
 
-  /** add the execution order and lifespan for the returning tensors */
-  const auto &exec_order = node.getExecutionOrder();
-  for (auto const &in : ret) {
-    auto const &vname = in->getName();
-    auto const &gname = in->getGradientName();
-
-    /** usage for inputs */
-    tensor_exec_order[vname].push_back(std::get<0>(exec_order));
-    tensor_exec_order[vname].push_back(std::get<1>(exec_order));
-
-    /** usage for inputs gradients (outgoing derivatives) */
-    tensor_exec_order[gname].push_back(std::get<2>(exec_order));
-
-    /** set tensor lifespan */
-    expandLifespan(vname, tspan);
-    expandLifespan(gname, tspan);
-  }
+  for (unsigned int idx = 0; idx < dims.size(); idx++)
+    ret.push_back(tensor_pool.requestTensor(dims[idx], exec_order, lifespan,
+                                            name + ":opt" + std::to_string(idx),
+                                            initializer));
 
   return ret;
 }
@@ -962,12 +504,8 @@ std::vector<Var_Grad *> Manager::requestAllocatedOutputsAsInputs(
 std::vector<Weight *> Manager::getWeights() {
   std::vector<Weight *> all_weights;
 
-  if (LAYER_V2) {
-    for (auto &w : weights_v2) {
-      all_weights.push_back(w.get());
-    }
-  } else {
-    throw std::runtime_error("Using deprecated code. Upgrade to LayerV2");
+  for (auto &w : weights_v2) {
+    all_weights.push_back(w.get());
   }
 
   return all_weights;

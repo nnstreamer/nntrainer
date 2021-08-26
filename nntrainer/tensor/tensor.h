@@ -940,9 +940,11 @@ public:
     if (dim.batch() == batch) {
       return;
     }
-    dim.batch(batch);
+
     if (isAllocated())
-      reallocate();
+      throw std::invalid_argument(
+        "Cannot update batch for an allocated tensor");
+    dim.batch(batch);
   }
 
   /**
@@ -1042,9 +1044,13 @@ public:
    * @param init intialize the buffer
    */
   void setData(void *buf, bool init = false) {
-    data = std::shared_ptr<float>((float *)buf, [](void *) {});
-    if (init)
-      initialize();
+    if (buf) {
+      data = std::shared_ptr<float>((float *)buf, [](void *) {});
+      if (init)
+        initialize();
+    } else {
+      data = nullptr;
+    }
   }
 
   /**

@@ -46,6 +46,7 @@ public:
    *
    * @return The token to get the pointer for this memory after allocation
    * @note start_time is inclusive, but end_time is exclusive
+   * @note The value of the return token starts from 1.
    */
   unsigned int requestMemory(size_t bytes, unsigned int start_time,
                              unsigned int end_time);
@@ -109,6 +110,13 @@ public:
    *
    */
   void clear();
+
+  /**
+   * @brief Is the memory pool allocated
+   *
+   * @return true if the memory is allocated, else false
+   */
+  bool isAllocated() const;
 
 private:
   /**
