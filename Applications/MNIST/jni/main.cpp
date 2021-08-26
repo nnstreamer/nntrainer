@@ -315,10 +315,11 @@ int main(int argc, char *argv[]) {
   }
 
 #if defined(APP_VALIDATE)
-  status = model->setProperty({"epochs=5"});
-  if (status != ML_ERROR_NONE) {
-    std::cerr << "Error setting the number of epochs" << std::endl;
-    return 0;
+  try {
+    model->setProperty({"epochs=5"});
+  } catch (...) {
+    std::cerr << "Error during setting epochs\n";
+    return -1;
   }
 #endif
 

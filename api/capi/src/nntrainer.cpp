@@ -316,7 +316,10 @@ int ml_train_model_compile(ml_train_model_h model, ...) {
     m = nnmodel->model;
   }
 
-  f = [&]() { return m->setProperty(arg_list); };
+  f = [&]() {
+    m->setProperty(arg_list);
+    return ML_ERROR_NONE;
+  };
   status = nntrainer_exception_boundary(f);
   if (status != ML_ERROR_NONE)
     return status;

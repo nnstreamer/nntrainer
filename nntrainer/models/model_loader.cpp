@@ -95,10 +95,15 @@ int ModelLoader::loadModelConfigIni(dictionary *ini, NeuralNetwork &model) {
     parseProperties(ini, "Model",
                     {"optimizer", "learning_rate", "decay_steps", "decay_rate",
                      "beta1", "beta2", "epsilon", "type", "save_path"});
-
-  status = model.setProperty(properties);
-  if (status != ML_ERROR_NONE)
-    return status;
+  try {
+    model.setProperty(properties);
+  } catch (std::exception &e) {
+    ml_loge("%s %s", typeid(e).name(), e.what());
+    return ML_ERROR_INVALID_PARAMETER;
+  } catch (...) {
+    ml_loge("Creating the optimizer failed");
+    return ML_ERROR_INVALID_PARAMETER;
+  }
 
   /** handle save_path as a special case for model_file_context */
   const std::string &save_path =

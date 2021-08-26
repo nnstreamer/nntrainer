@@ -70,8 +70,7 @@ std::unique_ptr<Model> createModel(ModelType type,
     throw std::invalid_argument("This type of model is not yet supported");
   }
 
-  if (model->setProperty(properties) != ML_ERROR_NONE)
-    throw std::invalid_argument("Set properties failed for model");
+  model->setProperty(properties);
 
   return model;
 }

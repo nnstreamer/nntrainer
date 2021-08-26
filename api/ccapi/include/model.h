@@ -92,7 +92,7 @@ public:
    * @details   This function accepts vector of properties in the format -
    *  { std::string property_name, void * property_val, ...}
    */
-  virtual int setProperty(std::vector<std::string> values) = 0;
+  virtual void setProperty(const std::vector<std::string> &values) = 0;
 
   /**
    * @brief     Compile Network. This should be called before initialize
