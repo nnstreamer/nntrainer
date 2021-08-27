@@ -279,8 +279,13 @@ public:
        * and pass that as the max_exec_order ensuring that all tensors with
        * usage less than the max_exec_order are allocated.
        */
+#ifdef ENABLE_TEST
+      tensor_manager->allocateTensors(
+        std::get<2>((*(cbegin()))->getExecutionOrder()));
+#else
       tensor_manager->allocateTensors(
         std::get<1>((*(cbegin()))->getExecutionOrder()));
+#endif
   }
 
   /**
