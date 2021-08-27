@@ -106,7 +106,7 @@ DataBuffer::startFetchWorker(const std::vector<TensorDim> &input_dims,
       auto notifier = NotifyOnDestruct(iq.get());
       for (unsigned int i = 0; i < DataProducer::SIZE_UNDEFINED; ++i) {
         /// below loop can be parallelized
-        auto sample_view = iq->requestEmpty();
+        auto sample_view = iq->requestEmptySlot();
         NNTR_THROW_IF(sample_view.isEmpty(), std::runtime_error)
           << "[Databuffer] Cannot fill empty buffer";
         auto &sample = sample_view.get();
@@ -138,7 +138,7 @@ DataBuffer::startFetchWorker(const std::vector<TensorDim> &input_dims,
     auto notifier = NotifyOnDestruct(iq.get());
     for (unsigned int i = 0; i < size; ++i) {
       /// below loop can be parallelized
-      auto sample_view = iq->requestEmpty();
+      auto sample_view = iq->requestEmptySlot();
       NNTR_THROW_IF(sample_view.isEmpty(), std::runtime_error)
         << "[Databuffer] Cannot fill empty buffer";
       auto &sample = sample_view.get();
@@ -161,7 +161,7 @@ ScopedView<Iteration> DataBuffer::fetch() {
   NNTR_THROW_IF(!iq, std::runtime_error)
     << "Cannot fetch, either fetcher is not running or fetcher has ended and "
        "invalidated";
-  return iq->requestFilled();
+  return iq->requestFilledSlot();
 }
 
 std::tuple<DataProducer::Generator /** generator */, unsigned int /** size */>

@@ -59,27 +59,16 @@ RawFileDataProducer::finalize(const std::vector<TensorDim> &input_dims,
   sample_size = std::accumulate(label_dims.begin(), label_dims.end(),
                                 sample_size, size_accumulator);
 
-  /****************** Prepare states ****************/
-  auto idxes_ = std::vector<unsigned int>();
-  idxes_.reserve(sz);
-  /// idxes point to the file position in bytes where a sample starts
-  std::generate_n(std::back_inserter(idxes_), sz,
-                  [sample_size, current = 0ULL]() mutable {
-                    auto c = current;
-                    current += sample_size * RawFileDataProducer::pixel_size;
-                    return c;
-                  });
-
   /// as we are passing the reference of file, this means created lamabda is
   /// tightly couple with the file, this is not desirable but working fine for
   /// now...
   file = std::ifstream(path_prop.get(), std::ios::binary);
-  return [idxes = std::move(idxes_), sz, this](unsigned int idx,
-                                               std::vector<Tensor> &inputs,
-                                               std::vector<Tensor> &labels) {
+  return [sample_size, sz, this](unsigned int idx, std::vector<Tensor> &inputs,
+                                 std::vector<Tensor> &labels) {
     NNTR_THROW_IF(idx >= sz, std::range_error)
       << "given index is out of bound, index: " << idx << " size: " << sz;
-    file.seekg(idxes[idx], std::ios_base::beg);
+    file.seekg(idx * sample_size * RawFileDataProducer::pixel_size,
+               std::ios_base::beg);
     for (auto &input : inputs) {
       input.read(file);
     }
