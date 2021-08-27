@@ -177,11 +177,11 @@ private:
  * @brief Iteration queue that owns the buffer for input / labels
  * @details
  *
- * - requestEmpty() will give a ScopedView<sample>
+ * - requestEmptySlot() will give a ScopedView<sample>
  *     Destructing the returned object will notify the iteration that is done
  * filling the sample. Once iteration is done filling, it will internally call
  * IterationQueue::markFilled();
- * - requestFilled() will give a ScopedView<Iteration>
+ * - requestFilledSlot() will give a ScopedView<Iteration>
  *     Destructing this will notify the queue that is done used (internally
  * calls IterationQueue::markEmpty())
  *
@@ -224,7 +224,7 @@ public:
    * if there is no more data coming. Destroying the returned object will
    * signal the queue that the sample is filled.
    */
-  ScopedView<Sample> requestEmpty();
+  ScopedView<Sample> requestEmptySlot();
 
   /**
    * @brief request filled iteration from the queue.
@@ -235,7 +235,7 @@ public:
    * signal the queue that the sample is done using.
    *
    */
-  ScopedView<Iteration> requestFilled();
+  ScopedView<Iteration> requestFilledSlot();
 
   /**
    * @brief get slot size, slot size is number of batches inside the queue
@@ -252,10 +252,11 @@ public:
   unsigned int batch() { return batch_size; }
 
   /**
-   * @brief notifyEndOfRequest, when the producing by requestEmpty has finished.
+   * @brief notifyEndOfRequest, when the producing by requestEmptySlot has
+   * finished.
    * @note It is important that the owner of this class must ensure that there
-   * will be no more requestEmpty call after this. This means that, in case of
-   * multiple workers, the manager of the worker(producer) must know every
+   * will be no more requestEmptySlot call after this. This means that, in case
+   * of multiple workers, the manager of the worker(producer) must know every
    * producer has finished. and call this function other than each worker call
    * this function.
    *

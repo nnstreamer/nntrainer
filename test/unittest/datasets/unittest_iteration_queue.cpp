@@ -59,7 +59,7 @@ public:
   virtual void
   produceSample(unsigned int size,
                 const std::chrono::milliseconds *duration = nullptr) {
-    auto sample_view = iq->requestEmpty();
+    auto sample_view = iq->requestEmptySlot();
     if (sample_view.isEmpty()) {
       throw std::runtime_error("sample_view is empty!");
     }
@@ -91,7 +91,7 @@ public:
   }
 
   virtual bool consumeIteration() {
-    auto iter_view = iq->requestFilled();
+    auto iter_view = iq->requestFilledSlot();
     if (iter_view.isEmpty()) {
       return false;
     }
@@ -227,7 +227,7 @@ TEST_P(IterQueueScenarios,
 
   auto producer = std::async(std::launch::async, [this]() {
     std::this_thread::sleep_for(50ms);
-    for (unsigned int i = 0u; i < DATA_SIXE; ++i) {
+    for (unsigned int i = 0u; i < DATA_SIZE; ++i) {
       produceSample(i);
     }
   });
@@ -330,7 +330,7 @@ TEST_P(IterQueueScenarios, produceAndConsumPartiallyFilledBatch_p) {
 
   iq->notifyEndOfRequestEmpty();
   {
-    auto iter_view = iq->requestFilled();
+    auto iter_view = iq->requestFilledSlot();
     if (iter_view.isEmpty()) {
       throw std::invalid_argument("iter view is empty!");
     }
@@ -416,7 +416,7 @@ TEST_P(IterQueueScenarios, caseThreeNotifyAfterTheLastBufferIsBeingFilled_p) {
     std::queue<nntrainer::ScopedView<nntrainer::Sample>> scoped_views;
     unsigned int number_of_producing = iq->batch() * iq->slots();
     for (unsigned int i = 0; i < number_of_producing; ++i) {
-      scoped_views.push(iq->requestEmpty());
+      scoped_views.push(iq->requestEmptySlot());
       if (scoped_views.back().isEmpty()) {
         throw std::runtime_error("sample was empty");
       }
@@ -455,7 +455,7 @@ TEST_P(IterQueueScenarios, caseFourNotifyAfterTheLastBufferIsBeingServed_p) {
     EXPECT_TRUE(consumeIteration());
   }
   {
-    auto iter_view = iq->requestFilled();
+    auto iter_view = iq->requestFilledSlot();
     notify_result =
       std::async(std::launch::async, [this] { iq->notifyEndOfRequestEmpty(); });
     if (iter_view.isEmpty()) {
@@ -487,7 +487,7 @@ TEST_P(IterQueueScenarios, notifyEndTwice_n) {
 
 TEST_P(IterQueueScenarios, notifyEndAndTryRequestEmpty_n) {
   iq->notifyEndOfRequestEmpty();
-  EXPECT_ANY_THROW(iq->requestEmpty());
+  EXPECT_ANY_THROW(iq->requestEmptySlot());
 }
 
 TEST_P(IterQueueScenarios, ScopedViewSampleHandlesThrowWhileFillingFails_n) {
@@ -498,14 +498,14 @@ TEST_P(IterQueueScenarios, ScopedViewSampleHandlesThrowWhileFillingFails_n) {
   auto request_fail = std::async(std::launch::async, [&, this] {
     t1_ready_promise.set_value();
     ready_future.wait();
-    auto sample_view = iq->requestEmpty();
+    auto sample_view = iq->requestEmptySlot();
     throw std::invalid_argument("while filling, it failed");
   });
 
   auto try_consume = std::async(std::launch::async, [&, this] {
     t2_ready_promise.set_value();
     ready_future.wait();
-    auto iter_view = iq->requestFilled();
+    auto iter_view = iq->requestFilledSlot();
     EXPECT_TRUE(iter_view.isEmpty());
   });
 
@@ -527,14 +527,14 @@ TEST_P(IterQueueScenarios, ScopedViewIterationHandlesThrowWhileFillingFails_n) {
     t1_ready_promise.set_value();
     ready_future.wait();
     for (unsigned i = 0; i < iq->batch(); ++i) {
-      auto sample_view = iq->requestEmpty();
+      auto sample_view = iq->requestEmptySlot();
     }
   });
 
   auto consume_fail = std::async(std::launch::async, [&, this] {
     t2_ready_promise.set_value();
     ready_future.wait();
-    auto iter_view = iq->requestFilled();
+    auto iter_view = iq->requestFilledSlot();
     throw std::invalid_argument("while using, it failed");
   });
 
@@ -544,8 +544,8 @@ TEST_P(IterQueueScenarios, ScopedViewIterationHandlesThrowWhileFillingFails_n) {
 
   EXPECT_THROW(consume_fail.get(), std::invalid_argument);
   feed_data.wait();
-  EXPECT_ANY_THROW(iq->requestEmpty());
-  EXPECT_TRUE(iq->requestFilled().isEmpty());
+  EXPECT_ANY_THROW(iq->requestEmptySlot());
+  EXPECT_TRUE(iq->requestFilledSlot().isEmpty());
 }
 
 IterQueueTestParamType multi_slot_multi_batch = {

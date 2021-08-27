@@ -51,7 +51,7 @@ IterationQueue::~IterationQueue() {
   }
 }
 
-ScopedView<Sample> IterationQueue::requestEmpty() {
+ScopedView<Sample> IterationQueue::requestEmptySlot() {
   std::scoped_lock lg(empty_mutex);
   auto current_flow_state = flow_state.load();
   NNTR_THROW_IF(current_flow_state != FlowState::FLOW_STATE_OPEN,
@@ -62,7 +62,7 @@ ScopedView<Sample> IterationQueue::requestEmpty() {
 
   /// below is useful information when debugging iteration queue, but there will
   /// be too much log if we turn the log on. so leaving it as a comment for now.
-  // std::cout << "[requestEmpty] empty_q.size(): " << empty_q.size()
+  // std::cout << "[requestEmptySlot] empty_q.size(): " << empty_q.size()
   // << " being_filled: " << num_being_filled
   // << " filled_q.size():  " << filled_q.size() << '\n';
 
@@ -90,12 +90,12 @@ ScopedView<Sample> IterationQueue::requestEmpty() {
   return view;
 }
 
-ScopedView<Iteration> IterationQueue::requestFilled() {
+ScopedView<Iteration> IterationQueue::requestFilledSlot() {
   std::scoped_lock lock(filled_mutex);
 
   /// below is useful information when debugging iteration queue, but there will
   /// be too much log if we turn the log on. so leaving it as a comment for now.
-  // std::cout << "[requestFilled] empty_q.size(): " << empty_q.size()
+  // std::cout << "[requestFilledSlot] empty_q.size(): " << empty_q.size()
   // << " num being filled: " << num_being_filled
   // << " filled_q.size(): " << filled_q.size() << '\n';
   if (flow_state.load() == FlowState::FLOW_STATE_STOPPED) {
@@ -129,6 +129,12 @@ ScopedView<Iteration> IterationQueue::requestFilled() {
 void IterationQueue::notifyEndOfRequestEmpty() {
   std::unique_lock lg(empty_mutex);
   auto open_state = FlowState::FLOW_STATE_OPEN;
+
+  /// we have to defined ordering of having stop_requested -> push nullptr to
+  /// filled_q -> stopped so when the case of changing to stopped it has to push
+  /// nullptr to empty_q, and filled_q to wake them up and stop. this has
+  /// potential cases that weren't considered. let's change this to a simpler
+  /// mechanisms to wait on conditional variable.
   bool exchange_result = flow_state.compare_exchange_strong(
     open_state, FlowState::FLOW_STATE_STOP_REQUESTED);
   NNTR_THROW_IF(!exchange_result, std::invalid_argument)
