@@ -441,7 +441,8 @@ void NetworkGraph::setBatchSize(unsigned int batch_size) {
         tensor_manager->setBatchSize(ts.getName(), ts.getDim().batch());
         if (context.tensorHasGradient(idx)) {
           auto const &ts_grad = context.getTensorGrad(idx);
-          tensor_manager->setBatchSize(ts_grad.getName(), ts.getDim().batch());
+          tensor_manager->setBatchSize(ts_grad.getName(),
+                                       ts_grad.getDim().batch());
         }
       }
     }
