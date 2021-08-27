@@ -1126,6 +1126,50 @@ int ml_train_model_get_output_tensors_info(ml_train_model_h model,
   return status;
 }
 
+int ml_train_model_save(ml_train_model_h model, const char *file_path,
+                        ml_train_model_format_e format) {
+  int status = ML_ERROR_NONE;
+  ml_train_model *nnmodel;
+  std::shared_ptr<ml::train::Model> m;
+
+  {
+    ML_TRAIN_GET_VALID_MODEL_LOCKED(nnmodel, model);
+    ML_TRAIN_ADOPT_LOCK(nnmodel, model_lock);
+
+    m = nnmodel->model;
+  }
+
+  returnable f = [&]() {
+    m->save(file_path, static_cast<ml::train::ModelFormat>(format));
+    return ML_ERROR_NONE;
+  };
+
+  status = nntrainer_exception_boundary(f);
+  return status;
+}
+
+int ml_train_model_load(ml_train_model_h model, const char *file_path,
+                        ml_train_model_format_e format) {
+  int status = ML_ERROR_NONE;
+  ml_train_model *nnmodel;
+  std::shared_ptr<ml::train::Model> m;
+
+  {
+    ML_TRAIN_GET_VALID_MODEL_LOCKED(nnmodel, model);
+    ML_TRAIN_ADOPT_LOCK(nnmodel, model_lock);
+
+    m = nnmodel->model;
+  }
+
+  returnable f = [&]() {
+    m->load(file_path, static_cast<ml::train::ModelFormat>(format));
+    return ML_ERROR_NONE;
+  };
+
+  status = nntrainer_exception_boundary(f);
+  return status;
+}
+
 #ifdef __cplusplus
 }
 #endif
