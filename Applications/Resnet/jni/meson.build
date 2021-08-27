@@ -21,7 +21,6 @@ e = executable('nntrainer_resnet18',
   install_dir: application_install_dir
 )
 
-
 if get_option('enable-long-test')
   testenv = environment()
   testenv.set('OPENBLAS_NUM_THREADS', '4')
