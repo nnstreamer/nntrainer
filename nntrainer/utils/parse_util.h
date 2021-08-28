@@ -35,13 +35,6 @@
 
 namespace nntrainer {
 
-#define NN_RETURN_STATUS()         \
-  do {                             \
-    if (status != ML_ERROR_NONE) { \
-      return status;               \
-    }                              \
-  } while (0)
-
 /**
  * @brief     Enumeration for input configuration file parsing
  *            0. MODEL   ( Model Token )
@@ -61,28 +54,6 @@ typedef enum {
   TOKEN_UNKNOWN
 } InputType;
 
-/**
- * @brief convert integer based status to throw
- *
- * @param status status to throw
- */
-inline void throw_status(int status) {
-  switch (status) {
-  case ML_ERROR_NONE:
-    break;
-  case ML_ERROR_INVALID_PARAMETER:
-    throw std::invalid_argument("invalid argument from c style throw");
-  case ML_ERROR_OUT_OF_MEMORY:
-    throw std::bad_alloc();
-  case ML_ERROR_TIMED_OUT:
-    throw std::runtime_error("Timed out from c style throw");
-  case ML_ERROR_PERMISSION_DENIED:
-    throw std::runtime_error("permission denied from c style throw");
-  case ML_ERROR_UNKNOWN:
-  default:
-    throw std::runtime_error("unknown error from c style throw");
-  }
-}
 /**
  * @brief     Parsing Layer Property
  * @param[in] property string to be parsed

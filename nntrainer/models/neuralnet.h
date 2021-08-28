@@ -490,14 +490,11 @@ public:
 
 private:
   using FlexiblePropTypes =
-    std::tuple<props::Epochs, props::BatchSize, props::SavePath>;
+    std::tuple<props::Epochs, props::TrainingBatchSize, props::SavePath, props::ContinueTrain>;
   using RigidPropTypes = std::tuple<props::LossType>;
 
   RigidPropTypes model_props;         /**< model props */
   FlexiblePropTypes model_flex_props; /**< model train props */
-  props::ContinueTrain
-    continue_train; /**< true if epochs and iteration should be retained during
-                       separate model run */
   std::string load_path; /**< path to load weights when initialize  */
 
   /**

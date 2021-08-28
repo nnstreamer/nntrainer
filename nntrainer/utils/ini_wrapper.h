@@ -336,6 +336,7 @@ public:
    * @param ini_name ini name to svae
    */
   void save_ini(const std::string &ini_name);
+
   /**
    * @brief erase ini
    *

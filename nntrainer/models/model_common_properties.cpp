@@ -23,7 +23,7 @@ bool LossType::isValid(const std::string &value) const {
   return istrequal(value, "cross") || istrequal(value, "mse");
 }
 
-BatchSize::BatchSize(unsigned int value) { set(value); }
+TrainingBatchSize::TrainingBatchSize(unsigned int value) { set(value); }
 
 ContinueTrain::ContinueTrain(bool value) { set(value); }
 

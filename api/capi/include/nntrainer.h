@@ -553,6 +553,8 @@ int ml_train_dataset_set_property_for_mode(ml_train_dataset_h dataset,
  * configurations. Unless stated otherwise, ml_train_model_compile() has to
  * be called upon the @a model before calling this function.
  * @since_tizen 6.5
+ * @remarks Saved ini, if any, is not guaranteed to be identical to the original
+ * ini that maybe used to load the model.
  * @remarks If you want to access only internal storage by using this function,
  * you should add privilege %http://tizen.org/privilege/mediastorage. Or, if you
  * want to access only external storage by using this function, you should add

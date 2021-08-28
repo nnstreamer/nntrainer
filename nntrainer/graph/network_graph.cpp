@@ -32,6 +32,7 @@
 #include <rnn.h>
 #include <split_layer.h>
 #include <time_dist.h>
+#include <util_func.h>
 
 #define LNODE(x) std::static_pointer_cast<LayerNode>(x)
 
