@@ -120,7 +120,7 @@ int NNTrainerInference::run(const GstTensorMemory *input,
   std::vector<float *> outputs;
 
   try {
-    outputs = model->inference(inputs);
+    outputs = model->inference(inputs, batch_size);
   } catch (std::exception &e) {
     ml_loge("%s %s", typeid(e).name(), e.what());
     return -2;
@@ -211,12 +211,14 @@ static int nntrainer_setInputDim(const GstTensorFilterProperties *prop,
   auto num_input = in_info->num_tensors;
   g_return_val_if_fail(num_input != 0, -EINVAL);
 
+  auto batch_size = in_info->info[0].dimension[3];
+
   /// this does not allocate the memory for the inference, so setting batch here
   /// does not have a large effect on the first inference call as of now.
   /// we can make a call to nntrainer->allocate();
   /// which would wrap around NeuralNetwork::allocate(false);
   /// However, it might not be a good choice in therms of migrating to api.
-  nntrainer->setBatchSize(in_info->info[0].dimension[3]);
+  nntrainer->setBatchSize(batch_size);
 
   auto model_inputs = nntrainer->getInputDimension();
   /// check number of in
@@ -224,6 +226,7 @@ static int nntrainer_setInputDim(const GstTensorFilterProperties *prop,
 
   /// check each in dimension matches
   for (unsigned int i = 0; i < num_input; ++i) {
+    model_inputs[i].batch(batch_size);
     g_return_val_if_fail(in_info->info[i].type == _NNS_FLOAT32, -EINVAL);
     g_return_val_if_fail(
       model_inputs[i] == to_nntr_tensor_dim(in_info->info + i), -EINVAL);
@@ -234,6 +237,7 @@ static int nntrainer_setInputDim(const GstTensorFilterProperties *prop,
   /// set gstTensorInfo
   out_info->num_tensors = model_outputs.size();
   for (unsigned int i = 0; i < out_info->num_tensors; ++i) {
+    model_outputs[i].batch(batch_size);
     gst_tensor_info_copy(out_info->info + i,
                          to_nnst_tensor_dim(model_outputs[i]).get());
   }

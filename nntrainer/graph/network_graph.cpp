@@ -424,6 +424,7 @@ int NetworkGraph::realizeGraph() {
 }
 
 void NetworkGraph::setBatchSize(unsigned int batch_size) {
+  this->batch_size = batch_size;
   for (auto iter = cbegin(); iter != cend(); iter++) {
     (*iter)->setBatch(batch_size);
   }
@@ -454,6 +455,8 @@ std::vector<TensorDim> NetworkGraph::getInputDimension() const {
     << "[NetworkGraph] the graph has no node!";
   return getSortedLayerNode(0)->getInputDimensions();
 }
+
+unsigned int NetworkGraph::getBatchSize() const { return batch_size; }
 
 std::vector<TensorDim> NetworkGraph::getOutputDimension() const {
   NNTR_THROW_IF(this->empty(), std::invalid_argument)

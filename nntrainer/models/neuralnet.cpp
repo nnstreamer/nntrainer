@@ -32,11 +32,10 @@
 #include <neuralnet.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
+#include <node_exporter.h>
 #include <optimizer_context.h>
 #include <parse_util.h>
 #include <profiler.h>
-#include <time_dist.h>
-#include <unordered_set>
 #include <util_func.h>
 
 /**
@@ -47,6 +46,21 @@
 #define ML_TRAIN_SUMMARY_MODEL_VALID_ACCURACY 103
 
 namespace nntrainer {
+
+NeuralNetwork::NeuralNetwork(AppContext app_context_, bool in_place_opt) :
+  model_props(props::LossType()),
+  model_flex_props(props::Epochs(), props::BatchSize(), props::SavePath()),
+  continue_train(false),
+  load_path(std::string()),
+  epoch_idx(0),
+  iter(0),
+  loss(0.0f),
+  data_buffers({nullptr, nullptr, nullptr}),
+  initialized(false),
+  compiled(false),
+  loadedFromConfig(false),
+  app_context(app_context_),
+  in_place_optimization(in_place_opt) {}
 
 int NeuralNetwork::loadFromConfig(const std::string &config) {
   if (loadedFromConfig == true) {
@@ -68,80 +82,22 @@ int NeuralNetwork::loadFromConfig(const std::string &config) {
 }
 
 void NeuralNetwork::setProperty(const std::vector<std::string> &values) {
-  int status = ML_ERROR_NONE;
-
-  for (unsigned int i = 0; i < values.size(); ++i) {
-    std::string key;
-    std::string value;
-    status = getKeyValue(values[i], key, value);
-    throw_status(status);
-
-    unsigned int type = parseNetProperty(key);
-
-    switch (static_cast<PropertyType>(type)) {
-    case PropertyType::loss: {
-      status = setFloat(loss, value);
-      throw_status(status);
-    } break;
-    case PropertyType::loss_type: {
-      status = setLoss(value);
-      throw_status(status);
-    } break;
-    default:
-      status = setTrainConfig({values[i]});
-      throw_status(status);
-      break;
-    }
-  }
+  auto left_props = loadProperties(values, model_props);
+  setTrainConfig(left_props);
 }
 
-int NeuralNetwork::setTrainConfig(std::vector<std::string> values) {
-  int status = ML_ERROR_NONE;
-
-  for (unsigned int i = 0; i < values.size(); ++i) {
-    std::string key;
-    std::string value;
-    status = getKeyValue(values[i], key, value);
-    NN_RETURN_STATUS();
-
-    unsigned int type = parseNetProperty(key);
-
-    switch (static_cast<PropertyType>(type)) {
-    case PropertyType::epochs: {
-      status = setUint(epochs, value);
-      NN_RETURN_STATUS();
-    } break;
-    case PropertyType::save_path: {
-      save_path = value;
-    } break;
-    case PropertyType::continue_train: {
-      bool cont_train;
-      status = setBoolean(cont_train, value);
-      NN_RETURN_STATUS();
-      continue_train = cont_train;
-      opt->setProperty({values[i]});
-    } break;
-    case PropertyType::batch_size: {
-      status = setUint(batch_size, value);
-      NN_RETURN_STATUS();
-      if (initialized)
-        setBatchSize();
-      /** TODO: increase buffer size if it is smaller than batch size.
-       * also if this is set with default batch size, then make it
-       * smaller/larger
-       */
-    } break;
-    default:
-      ml_loge("Error: Unknown Network Property Key");
-      status = ML_ERROR_INVALID_PARAMETER;
-      return status;
-    }
-  }
-
-  return status;
+void NeuralNetwork::setTrainConfig(const std::vector<std::string> &values) {
+  auto left_props = loadProperties(values, model_flex_props);
+  NNTR_THROW_IF(left_props.size(), std::invalid_argument)
+    << "Model has unparsed properties, size: " << left_props.size()
+    << " of first element: " << left_props.front();
 }
 
 int NeuralNetwork::compile() {
+  std::string loss_type = std::get<props::LossType>(model_props).empty()
+                            ? std::string()
+                            : std::get<props::LossType>(model_props);
+
   int status = model_graph.compile(loss_type);
   NN_RETURN_STATUS();
 
@@ -167,7 +123,7 @@ int NeuralNetwork::initialize() {
 
   ml_logd("initializing neural network, layer size: %d", n_layers);
 
-  setBatchSize();
+  model_graph.setBatchSize(std::get<props::BatchSize>(model_flex_props));
 
   status = model_graph.initialize();
   NN_RETURN_STATUS();
@@ -245,13 +201,14 @@ sharedConstTensors NeuralNetwork::forwarding(bool training) {
 sharedConstTensors NeuralNetwork::forwarding(sharedConstTensors input,
                                              sharedConstTensors label,
                                              bool training) {
-
-  NNTR_THROW_IF(input[0]->batch() != batch_size ||
-                  (!label.empty() && label[0]->batch() != batch_size),
+  auto current_batch = model_graph.getBatchSize();
+  NNTR_THROW_IF(input[0]->batch() != current_batch ||
+                  (!label.empty() && label[0]->batch() != current_batch),
                 std::logic_error)
     << "Error: mismatch in batchsize for data and model."
     << " input_batch: " << input[0]->batch()
-    << " label_batch: " << label[0]->batch() << " target_batch: " << batch_size;
+    << " label_batch: " << label[0]->batch()
+    << " target_batch: " << current_batch;
 
   setLabels(label);
   model_graph.getSortedLayerNode(0)->getInput(0) = *input[0].get();
@@ -371,17 +328,9 @@ void NeuralNetwork::save(const std::string &file_path,
     model_file.close();
     break;
   }
-  case ml::train::ModelFormat::MODEL_FORMAT_INI: {
-    IniGraphInterpreter interpreter;
-
-    /// @note this is to ensure permission checks are done
-    checkedOpenStream<std::ofstream>(file_path, std::ios::out);
-    /// @todo serialize model props
-    /// @todo serialize dataset props
-    /// @todo serialize optimizer props
-    interpreter.serialize(model_graph, file_path);
+  case ml::train::ModelFormat::MODEL_FORMAT_INI:
+    saveModelIni(file_path);
     break;
-  }
   default:
     throw nntrainer::exception::not_supported(
       "saving with given format is not supported yet");
@@ -422,6 +371,7 @@ void NeuralNetwork::load(const std::string &file_path,
   case ml::train::ModelFormat::MODEL_FORMAT_INI_WITH_BIN: {
     int ret = loadFromConfig(file_path);
     throw_status(ret);
+    auto &save_path = std::get<props::SavePath>(model_flex_props);
     if (!save_path.empty()) {
       checkedOpenStream<std::ifstream>(save_path,
                                        std::ios::in | std::ios::binary);
@@ -453,7 +403,8 @@ void NeuralNetwork::setLoss(float l) { loss = l; }
 
 NeuralNetwork &NeuralNetwork::copy(NeuralNetwork &from) {
   if (this != &from) {
-    batch_size = from.batch_size;
+    model_props = from.model_props;
+    model_flex_props = from.model_flex_props;
     loss = from.loss;
     opt = from.opt;
 
@@ -462,10 +413,15 @@ NeuralNetwork &NeuralNetwork::copy(NeuralNetwork &from) {
   return *this;
 }
 
-void NeuralNetwork::setBatchSize(unsigned int batch) {
-  batch_size = batch;
+void NeuralNetwork::saveModelIni(const std::string &file_path) {
+  IniGraphInterpreter interpreter;
 
-  model_graph.setBatchSize(batch);
+  /// @note this is to ensure permission checks are done
+  checkedOpenStream<std::ofstream>(file_path, std::ios::out);
+  /// @todo serialize model props
+  /// @todo serialize dataset props
+  /// @todo serialize optimizer props
+  interpreter.serialize(model_graph, file_path);
 }
 
 bool NeuralNetwork::validateInput(sharedConstTensors X) {
@@ -497,12 +453,8 @@ bool NeuralNetwork::validateInput(sharedConstTensors X) {
 
 sharedConstTensors NeuralNetwork::inference(sharedConstTensors X,
                                             bool free_mem) {
-  if (batch_size != X[0]->batch()) {
-    /**
-     * Note that inference resets batch_size of the previous train configuration
-     * Next train must set its batch_size if inference is run with this model.
-     */
-    setBatchSize(X[0]->batch());
+  if (model_graph.getBatchSize() != X[0]->batch()) {
+    model_graph.setBatchSize(X[0]->batch());
   }
 
   sharedConstTensors out;
@@ -526,14 +478,17 @@ sharedConstTensors NeuralNetwork::inference(sharedConstTensors X,
   return out;
 }
 
-std::vector<float *> NeuralNetwork::inference(std::vector<float *> &input) {
+std::vector<float *> NeuralNetwork::inference(std::vector<float *> &input,
+                                              unsigned int batch_size) {
   sharedConstTensors input_tensors;
-  auto const &in_dim = getInputDimension();
+  auto in_dim = getInputDimension();
 
   input_tensors.reserve(input.size());
   for (unsigned int idx = 0; idx < in_dim.size(); idx++) {
+    in_dim[idx].batch(batch_size);
     input_tensors.emplace_back(MAKE_SHARED_TENSOR(Tensor::Map(
-      input[idx], in_dim[idx].getDataLen() * sizeof(float), in_dim[idx], 0)));
+      input[idx], in_dim[idx].getDataLen() * sizeof(float),
+      in_dim[idx], 0)));
   }
 
   sharedConstTensors output_tensors = inference(input_tensors, false);
@@ -567,7 +522,7 @@ int NeuralNetwork::deallocate() {
   return ML_ERROR_NONE;
 }
 
-int NeuralNetwork::train(std::vector<std::string> values) {
+int NeuralNetwork::train(const std::vector<std::string> &values) {
   int status = ML_ERROR_NONE;
 
   if (data_buffers[static_cast<int>(DatasetModeType::MODE_TRAIN)] == nullptr) {
@@ -580,11 +535,10 @@ int NeuralNetwork::train(std::vector<std::string> values) {
     return ML_ERROR_INVALID_PARAMETER;
   }
 
-  status = setTrainConfig(values);
-  NN_RETURN_STATUS();
+  setTrainConfig(values);
 
   /** set batch size just before training */
-  setBatchSize(batch_size);
+  model_graph.setBatchSize(std::get<props::BatchSize>(model_flex_props));
 
   status = allocate(true);
   NN_RETURN_STATUS();
@@ -607,9 +561,7 @@ int NeuralNetwork::train(std::vector<std::string> values) {
 int NeuralNetwork::train_run() {
   int status = ML_ERROR_NONE;
 
-  // readModel()
-
-  if (!continue_train) {
+  if (!continue_train.get()) {
     epoch_idx = 0;
     iter = 0;
   }
@@ -617,6 +569,8 @@ int NeuralNetwork::train_run() {
   auto const &first_layer_node = model_graph.getSortedLayerNode(0);
   auto const &last_layer_node =
     model_graph.getSortedLayerNode(model_graph.size() - 1);
+
+  auto batch_size = std::get<props::BatchSize>(model_flex_props);
 
   auto &output = last_layer_node->getOutput(0);
   auto &label = last_layer_node->getOutputGrad(0);
@@ -642,7 +596,7 @@ int NeuralNetwork::train_run() {
    * @param on_epoch_end function that will recieve reference to stat,
    * buffer which will be called on the epoch end
    */
-  auto run_epoch = [this, &in, &label, &in_dims, &label_dims](
+  auto run_epoch = [this, &in, &label, &in_dims, &label_dims, batch_size](
                      DataBuffer *buffer, bool shuffle,
                      auto &&on_iteration_fetch, auto &&on_epoch_end) {
     /// @todo managing metrics must be handled here as well!! for now it is
@@ -680,7 +634,7 @@ int NeuralNetwork::train_run() {
     forwarding(true);
     backwarding(iter++);
 
-    std::cout << "#" << epoch_idx << "/" << epochs;
+    std::cout << "#" << epoch_idx << "/" << getEpochs();
     auto loss = getLoss();
     stat.loss += loss;
     buffer.displayProgress(stat.num_iterations++, loss);
@@ -688,15 +642,16 @@ int NeuralNetwork::train_run() {
 
   auto train_epoch_end = [this](RunStats &stat, DataBuffer &buffer) {
     stat.loss /= static_cast<float>(stat.num_iterations);
+    auto &save_path = std::get<props::SavePath>(model_flex_props);
     if (!save_path.empty()) {
       save(save_path, ml::train::ModelFormat::MODEL_FORMAT_BIN);
     }
 
-    std::cout << "#" << epoch_idx << "/" << epochs
+    std::cout << "#" << epoch_idx << "/" << getEpochs()
               << " - Training Loss: " << stat.loss;
   };
 
-  auto eval_for_iteration = [this, &output, &label](RunStats &stat,
+  auto eval_for_iteration = [this, &output, &label, batch_size](RunStats &stat,
                                                     DataBuffer &buffer) {
     forwarding(false);
     auto model_out = output.argmax();
@@ -709,7 +664,7 @@ int NeuralNetwork::train_run() {
     stat.loss += getLoss();
   };
 
-  auto eval_epoch_end = [this](RunStats &stat, DataBuffer &buffer) {
+  auto eval_epoch_end = [this, batch_size](RunStats &stat, DataBuffer &buffer) {
     stat.loss /= static_cast<float>(stat.num_iterations);
     stat.accuracy = stat.num_correct_predictions /
                     static_cast<float>(stat.num_iterations * batch_size) *
@@ -718,6 +673,7 @@ int NeuralNetwork::train_run() {
               << "% - Validation Loss : " << validation.loss << " ]";
   };
 
+  auto epochs = getEpochs();
   for (epoch_idx = epoch_idx + 1; epoch_idx <= epochs; ++epoch_idx) {
     training =
       run_epoch(train_buffer.get(), true, train_for_iteration, train_epoch_end);
@@ -734,6 +690,26 @@ int NeuralNetwork::train_run() {
   }
 
   return status;
+}
+
+void swap(NeuralNetwork &lhs, NeuralNetwork &rhs) {
+  {
+    using std::swap;
+
+    swap(lhs.model_props, rhs.model_props);
+    swap(lhs.model_flex_props, rhs.model_flex_props);
+    swap(lhs.continue_train, rhs.continue_train);
+    swap(lhs.load_path, rhs.load_path);
+    swap(lhs.epoch_idx, rhs.epoch_idx);
+    swap(lhs.iter, rhs.iter);
+    swap(lhs.loss, rhs.loss);
+    swap(lhs.opt, rhs.opt);
+    swap(lhs.data_buffers, rhs.data_buffers);
+    swap(lhs.initialized, rhs.initialized);
+    swap(lhs.model_graph, rhs.model_graph);
+    swap(lhs.compiled, rhs.compiled);
+    swap(lhs.loadedFromConfig, rhs.loadedFromConfig);
+  }
 }
 
 int NeuralNetwork::addLayer(NodeType layer) {
@@ -793,14 +769,6 @@ int NeuralNetwork::getLayer(const char *name,
                             std::shared_ptr<ml::train::Layer> *layer) {
   *layer = std::static_pointer_cast<ml::train::Layer>(
     model_graph.getLayerNode(std::string(name)));
-  return ML_ERROR_NONE;
-}
-
-/**
- * @brief     Set loss type for the neural network.
- */
-int NeuralNetwork::setLoss(const std::string &loss_type) {
-  this->loss_type = loss_type;
   return ML_ERROR_NONE;
 }
 
@@ -891,14 +859,4 @@ void NeuralNetwork::print(std::ostream &out, unsigned int flags,
 
   /// @todo Add status to check neuralnet has been run. #290
 }
-
-void NeuralNetwork::setSavePath(const std::string &path) {
-  save_path = app_context.getWorkingPath(path);
-  if (!isFileExist(save_path)) {
-    ml_logw("[NeuralNetworks] save path does not exist, file will be newly "
-            "created, path: %s",
-            save_path.c_str());
-  }
-}
-
 } /* namespace nntrainer */

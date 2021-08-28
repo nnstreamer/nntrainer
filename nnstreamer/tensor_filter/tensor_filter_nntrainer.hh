@@ -65,11 +65,7 @@ public:
    *
    * @param batch batch size
    */
-  void setBatchSize(unsigned int batch) {
-    std::stringstream ss;
-    ss << "batch_size=" << batch;
-    model->setProperty({ss.str()});
-  }
+  void setBatchSize(unsigned int batch) { batch_size = batch; }
 
   /**
    * @brief Get the Input Dimension object
@@ -100,6 +96,8 @@ public:
 
 private:
   void loadModel();
+
+  unsigned int batch_size;
 
   std::string model_config;
   std::unique_ptr<ml::train::Model> model;

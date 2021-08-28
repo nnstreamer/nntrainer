@@ -42,7 +42,8 @@ public:
     tensor_manager(std::make_shared<Manager>()),
     graph(),
     skip_non_trainable_layers(0),
-    compiled(false) {}
+    compiled(false),
+    batch_size(0) {}
 
   /**
    * @brief     Compile the graph
@@ -217,6 +218,13 @@ public:
   std::vector<TensorDim> getInputDimension() const;
 
   /**
+   * @brief Get the Batch Size object of current model
+   *
+   * @return unsigned int
+   */
+  unsigned int getBatchSize() const;
+
+  /**
    * @brief     Optimize the graph memory utilization for in-place operations
    */
   void inPlaceOptimize();
@@ -345,6 +353,7 @@ private:
     skip_non_trainable_layers; /**< denotes the number of non-trainable layers
                                   at the start of the graph */
   bool compiled;               /**< if the model graph is compiled */
+  unsigned int batch_size;     /**< current batch_size */
 
   /**
    * @brief     topological sort

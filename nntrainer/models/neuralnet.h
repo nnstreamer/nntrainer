@@ -27,6 +27,7 @@
 #include <array>
 #include <map>
 #include <memory>
+#include <tuple>
 #include <vector>
 #ifdef PROFILE
 #include <chrono>
@@ -36,6 +37,7 @@
 #include <dynamic_training_optimization.h>
 #include <layer_node.h>
 #include <ml-api-common.h>
+#include <model_common_properties.h>
 #include <network_graph.h>
 #include <optimizer_devel.h>
 #include <tensor.h>
@@ -94,23 +96,7 @@ public:
    * @brief     Constructor of NeuralNetwork Class
    */
   NeuralNetwork(AppContext app_context_ = AppContext(AppContext::Global()),
-                bool in_place_opt = true) :
-    batch_size(1),
-    epochs(1),
-    epoch_idx(0),
-    iter(0),
-    loss(0.0f),
-    loss_type(std::string()),
-    weight_initializer(Tensor::Initializer::NONE),
-    net_type(NetType::UNKNOWN),
-    data_buffers({nullptr, nullptr, nullptr}),
-    continue_train(false),
-    initialized(false),
-    compiled(false),
-    loadedFromConfig(false),
-    load_path(""),
-    app_context(app_context_),
-    in_place_optimization(in_place_opt) {}
+                bool in_place_opt = true);
 
   /**
    * @brief     Destructor of NeuralNetwork Class
@@ -162,19 +148,6 @@ public:
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
   int compile();
-
-  /**
-   * @brief     Property Enumeration
-   */
-  enum class PropertyType {
-    loss = 0,
-    loss_type = 1,
-    batch_size = 2,
-    epochs = 3,
-    save_path = 4,
-    continue_train = 5,
-    unknown = 6
-  };
 
   /**
    * @brief     set Property of Network
@@ -271,7 +244,9 @@ public:
    * @brief     get Epochs
    * @retval    epochs
    */
-  unsigned int getEpochs() { return epochs; };
+  unsigned int getEpochs() {
+    return std::get<props::Epochs>(model_flex_props);
+  };
 
   /**
    * @brief     Copy Neural Network
@@ -286,7 +261,7 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int train(std::vector<std::string> values = {});
+  int train(const std::vector<std::string> &values = {}) override;
 
   /**
    * @brief     Run NeuralNetwork inference
@@ -298,10 +273,12 @@ public:
   /**
    * @brief     Run the inference of the model
    * @param[in] input inputs as a list of each input data
+   * @param[in] batch batch size of current input
    * @retval list of output as float *
    * @note The output memory must not be freed by the caller
    */
-  std::vector<float *> inference(std::vector<float *> &input);
+  std::vector<float *> inference(std::vector<float *> &input,
+                                 unsigned int batch);
 
   /**
    * @brief     Run NeuralNetwork train with callback function by user
@@ -436,14 +413,6 @@ public:
                               const std::string &output_layer = "");
 
   /**
-   * @brief     Set loss type for the neural network.
-   * @param[in] loss Type of the loss.
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   */
-  int setLoss(const std::string &loss);
-
-  /**
    * @brief     Summarize the model
    * @param out std::ostream to get the model summary
    * @param verbosity verbosity of the summary
@@ -500,11 +469,6 @@ public:
   }
 
   /**
-   * @brief     Update batch size of the model as well as its layers/dataset
-   */
-  void setBatchSize() { setBatchSize(batch_size); }
-
-  /**
    * @brief Enable dynamic fine-tuning optimization
    * @param threshold Comparison limit to decide if weight updated or not
    * @param mode dynamic fine-tuning optimization mode. Supported modes are
@@ -525,6 +489,17 @@ public:
   void disableDynamicFineTuning() { dynamic_training_opt.disable(); }
 
 private:
+  using FlexiblePropTypes =
+    std::tuple<props::Epochs, props::BatchSize, props::SavePath>;
+  using RigidPropTypes = std::tuple<props::LossType>;
+
+  RigidPropTypes model_props;         /**< model props */
+  FlexiblePropTypes model_flex_props; /**< model train props */
+  props::ContinueTrain
+    continue_train; /**< true if epochs and iteration should be retained during
+                       separate model run */
+  std::string load_path; /**< path to load weights when initialize  */
+
   /**
    * @brief   Print Options when printing layer info
    */
@@ -538,40 +513,23 @@ private:
     // clang-format on
   } PrintOption;
 
-  unsigned int batch_size; /**< batch size */
-
-  unsigned int epochs; /**< Maximum Epochs */
-
   unsigned int epoch_idx; /**< Number of epoch_idx  */
 
   unsigned int iter; /**< iterations trained */
 
   float loss; /**< loss */
 
-  std::string loss_type; /**< Loss Function type */
-
-  Tensor::Initializer weight_initializer; /**< Weight Initialization type */
-
-  std::string save_path; /**< Model path to save / read */
-
   std::shared_ptr<Optimizer> opt; /**< Optimizer; this gets copied into each
                     layer, do not use this directly */
 
-  NetType net_type; /**< Network Type */
-
   std::array<std::shared_ptr<DataBuffer>, 3>
     data_buffers; /**< Data Buffers to get Input */
-
-  bool continue_train; /**< Continue train from the previous state of
-   optimizer and iterations */
 
   bool initialized; /**< Network is initialized */
 
   bool compiled; /**< Network is compiled */
 
   bool loadedFromConfig; /**< Check if config is loaded to prevent load twice */
-
-  std::string load_path; /**< path to load weights when initialize  */
 
   RunStats validation; /** validation statistics of the model */
   RunStats training;   /** training statistics of the model */
@@ -586,6 +544,13 @@ private:
 
   DynamicTrainingOptimization dynamic_training_opt; /**< Dynamic fine-tuning
    optimization mode. supported modes are "max" and "norm" */
+
+  /**
+   * @brief save model in ini
+   *
+   * @param file_path file path
+   */
+  void saveModelIni(const std::string &file_path);
 
   /**
    * @brief print function for neuralnet
@@ -613,27 +578,7 @@ private:
   /**
    * @brief     Swap function for the class
    */
-  friend void swap(NeuralNetwork &lhs, NeuralNetwork &rhs) {
-    using std::swap;
-
-    swap(lhs.batch_size, rhs.batch_size);
-    swap(lhs.epochs, rhs.epochs);
-    swap(lhs.epoch_idx, rhs.epoch_idx);
-    swap(lhs.iter, rhs.iter);
-    swap(lhs.loss, rhs.loss);
-    swap(lhs.loss_type, rhs.loss_type);
-    swap(lhs.weight_initializer, rhs.weight_initializer);
-    swap(lhs.save_path, rhs.save_path);
-    swap(lhs.opt, rhs.opt);
-    swap(lhs.net_type, rhs.net_type);
-    swap(lhs.data_buffers, rhs.data_buffers);
-    swap(lhs.continue_train, rhs.continue_train);
-    swap(lhs.initialized, rhs.initialized);
-    swap(lhs.model_graph, rhs.model_graph);
-    swap(lhs.compiled, rhs.compiled);
-    swap(lhs.loadedFromConfig, rhs.loadedFromConfig);
-    swap(lhs.load_path, rhs.load_path);
-  }
+  friend void swap(NeuralNetwork &lhs, NeuralNetwork &rhs);
 
   /**
    * @brief     set Property/Configuration of Network for training after the
@@ -642,12 +587,7 @@ private:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int setTrainConfig(std::vector<std::string> values);
-
-  /**
-   * @brief     Update batch size of the model as well as its layers/dataset
-   */
-  void setBatchSize(unsigned int batch_size);
+  void setTrainConfig(const std::vector<std::string> &values);
 
   /**
    * @brief print metrics function for neuralnet
@@ -655,13 +595,6 @@ private:
    * @param[in] flags verbosity from ml_train_summary_type_e
    */
   void printMetrics(std::ostream &out, unsigned int flags = 0);
-
-  /**
-   * @brief Set the Save Path
-   *
-   * @param path path to set as a save path
-   */
-  void setSavePath(const std::string &path);
 
   /**
    * @brief     Match the given tensor shape with input shape of the model
