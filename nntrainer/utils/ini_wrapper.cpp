@@ -12,9 +12,11 @@
  */
 #include <ini_wrapper.h>
 
+#include <regex>
+
 #include <nntrainer_error.h>
 #include <parse_util.h>
-#include <regex>
+#include <util_func.h>
 
 namespace nntrainer {
 
@@ -116,15 +118,12 @@ void IniWrapper::updateSections(const Sections &sections_) {
 void IniWrapper::save_ini() { save_ini(getIniName()); }
 
 void IniWrapper::save_ini(const std::string &ini_name) {
-  std::ofstream out(ini_name.c_str(), std::ios_base::out);
-  NNTR_THROW_IF(!out.good(), std::runtime_error) << "cannot open ini";
+  auto out = checkedOpenStream<std::ofstream>(ini_name, std::ios_base::app);
 
   for (auto &it : sections) {
     it.print(out);
     out << std::endl;
   }
-
-  out.close();
 }
 
 } // namespace nntrainer

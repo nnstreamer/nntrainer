@@ -28,13 +28,13 @@
 
 #include <databuffer.h>
 #include <ini_interpreter.h>
+#include <ini_wrapper.h>
 #include <model_loader.h>
 #include <neuralnet.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <node_exporter.h>
 #include <optimizer_context.h>
-#include <parse_util.h>
 #include <profiler.h>
 #include <util_func.h>
 
@@ -49,8 +49,8 @@ namespace nntrainer {
 
 NeuralNetwork::NeuralNetwork(AppContext app_context_, bool in_place_opt) :
   model_props(props::LossType()),
-  model_flex_props(props::Epochs(), props::BatchSize(), props::SavePath()),
-  continue_train(false),
+  model_flex_props(props::Epochs(), props::TrainingBatchSize(),
+                   props::SavePath(), props::ContinueTrain()),
   load_path(std::string()),
   epoch_idx(0),
   iter(0),
@@ -123,7 +123,8 @@ int NeuralNetwork::initialize() {
 
   ml_logd("initializing neural network, layer size: %d", n_layers);
 
-  model_graph.setBatchSize(std::get<props::BatchSize>(model_flex_props));
+  model_graph.setBatchSize(
+    std::get<props::TrainingBatchSize>(model_flex_props));
 
   status = model_graph.initialize();
   NN_RETURN_STATUS();
@@ -414,11 +415,27 @@ NeuralNetwork &NeuralNetwork::copy(NeuralNetwork &from) {
 }
 
 void NeuralNetwork::saveModelIni(const std::string &file_path) {
-  IniGraphInterpreter interpreter;
+  NNTR_THROW_IF(isFileExist(file_path), std::invalid_argument)
+    << "There is already a file, overriding to the exisiting file is not "
+       "permitted, path: "
+    << file_path;
 
-  /// @note this is to ensure permission checks are done
-  checkedOpenStream<std::ofstream>(file_path, std::ios::out);
-  /// @todo serialize model props
+  IniSection model_section("model");
+  model_section.setEntry("type", "NeuralNetwork");
+
+  Exporter e;
+  e.saveResult(model_props, ExportMethods::METHOD_STRINGVECTOR, this);
+  e.saveResult(model_flex_props, ExportMethods::METHOD_STRINGVECTOR, this);
+
+  const auto key_val_pairs = e.getResult<ExportMethods::METHOD_STRINGVECTOR>();
+  for (const auto &pair : *key_val_pairs) {
+    model_section.setEntry(pair.first, pair.second);
+  }
+
+  IniWrapper wrapper("model_saver", {model_section});
+  wrapper.save_ini(file_path);
+
+  IniGraphInterpreter interpreter;
   /// @todo serialize dataset props
   /// @todo serialize optimizer props
   interpreter.serialize(model_graph, file_path);
@@ -487,8 +504,7 @@ std::vector<float *> NeuralNetwork::inference(std::vector<float *> &input,
   for (unsigned int idx = 0; idx < in_dim.size(); idx++) {
     in_dim[idx].batch(batch_size);
     input_tensors.emplace_back(MAKE_SHARED_TENSOR(Tensor::Map(
-      input[idx], in_dim[idx].getDataLen() * sizeof(float),
-      in_dim[idx], 0)));
+      input[idx], in_dim[idx].getDataLen() * sizeof(float), in_dim[idx], 0)));
   }
 
   sharedConstTensors output_tensors = inference(input_tensors, false);
@@ -538,7 +554,8 @@ int NeuralNetwork::train(const std::vector<std::string> &values) {
   setTrainConfig(values);
 
   /** set batch size just before training */
-  model_graph.setBatchSize(std::get<props::BatchSize>(model_flex_props));
+  model_graph.setBatchSize(
+    std::get<props::TrainingBatchSize>(model_flex_props));
 
   status = allocate(true);
   NN_RETURN_STATUS();
@@ -561,7 +578,7 @@ int NeuralNetwork::train(const std::vector<std::string> &values) {
 int NeuralNetwork::train_run() {
   int status = ML_ERROR_NONE;
 
-  if (!continue_train.get()) {
+  if (!std::get<props::ContinueTrain>(model_flex_props)) {
     epoch_idx = 0;
     iter = 0;
   }
@@ -570,7 +587,7 @@ int NeuralNetwork::train_run() {
   auto const &last_layer_node =
     model_graph.getSortedLayerNode(model_graph.size() - 1);
 
-  auto batch_size = std::get<props::BatchSize>(model_flex_props);
+  auto batch_size = std::get<props::TrainingBatchSize>(model_flex_props);
 
   auto &output = last_layer_node->getOutput(0);
   auto &label = last_layer_node->getOutputGrad(0);
@@ -651,8 +668,8 @@ int NeuralNetwork::train_run() {
               << " - Training Loss: " << stat.loss;
   };
 
-  auto eval_for_iteration = [this, &output, &label, batch_size](RunStats &stat,
-                                                    DataBuffer &buffer) {
+  auto eval_for_iteration = [this, &output, &label,
+                             batch_size](RunStats &stat, DataBuffer &buffer) {
     forwarding(false);
     auto model_out = output.argmax();
     auto label_out = label.argmax();
@@ -698,7 +715,6 @@ void swap(NeuralNetwork &lhs, NeuralNetwork &rhs) {
 
     swap(lhs.model_props, rhs.model_props);
     swap(lhs.model_flex_props, rhs.model_flex_props);
-    swap(lhs.continue_train, rhs.continue_train);
     swap(lhs.load_path, rhs.load_path);
     swap(lhs.epoch_idx, rhs.epoch_idx);
     swap(lhs.iter, rhs.iter);

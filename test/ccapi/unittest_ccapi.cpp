@@ -413,12 +413,12 @@ TEST(nntrainer_ccapi, save_ini_p) {
   EXPECT_EQ(model->compile(), ML_ERROR_NONE);
   EXPECT_EQ(model->initialize(), ML_ERROR_NONE);
   auto saved_ini_name = s.getIniName() + "_saved";
-  model->save(saved_ini_name, ml::train::ModelFormat::MODEL_FORMAT_INI);
-
   if (remove(saved_ini_name.c_str())) {
     std::cerr << "remove ini " << saved_ini_name
               << "failed, reason: " << strerror(errno);
   }
+
+  model->save(saved_ini_name, ml::train::ModelFormat::MODEL_FORMAT_INI);
 }
 
 /**

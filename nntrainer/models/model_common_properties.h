@@ -66,7 +66,7 @@ public:
  * @brief model batch size property
  *
  */
-class BatchSize : public PositiveIntegerProperty {
+class TrainingBatchSize : public PositiveIntegerProperty {
 public:
   static constexpr const char *key = "batch_size"; /**< unique key to access */
   using prop_tag = uint_prop_tag;                  /**< property type */
@@ -76,7 +76,7 @@ public:
    *
    * @param value value to set, defaults to 1
    */
-  BatchSize(unsigned int value = 1);
+  TrainingBatchSize(unsigned int value = 1);
 };
 
 /**
