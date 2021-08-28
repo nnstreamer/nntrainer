@@ -62,12 +62,19 @@ using DatasetModeType = ml::train::DatasetModeType;
 /**
  * @brief     Statistics from running or training a model
  */
-typedef struct RunStats_ {
-  float accuracy; /** accuracy of the model */
-  float loss;     /** loss of the model */
+struct RunStats {
+  float accuracy;     /** accuracy of the model */
+  float loss;         /** loss of the model */
+  int num_iterations; /** number of iterations done on this stat */
+  unsigned int
+    num_correct_predictions; /** number of right sample on this run */
 
-  RunStats_() : accuracy(0), loss(0) {}
-} RunStats;
+  RunStats() :
+    accuracy(0),
+    loss(0),
+    num_iterations(0),
+    num_correct_predictions(0) {}
+};
 
 /**
  * @class   NeuralNetwork Class
