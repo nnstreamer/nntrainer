@@ -149,7 +149,7 @@ public:
    * @param rhs right side to copy from
    */
   Property(const Property &rhs) {
-    if (this != &rhs) {
+    if (this != &rhs && rhs.value) {
       value = std::make_unique<T>(*rhs.value);
     }
   }
@@ -161,7 +161,7 @@ public:
    * @return Property& this
    */
   Property &operator=(const Property &rhs) {
-    if (this != &rhs) {
+    if (this != &rhs && rhs.value) {
       value = std::make_unique<T>(*rhs.value);
     }
     return *this;
@@ -254,6 +254,26 @@ private:
   std::unique_ptr<T> value; /**< underlying data */
 };
 
+/**
+ * @brief abstract class for positive integer
+ *
+ */
+class PositiveIntegerProperty : public Property<unsigned int> {
+public:
+  /**
+   * @brief Destroy the Positive Integer Property object
+   *
+   */
+  virtual ~PositiveIntegerProperty() = default;
+
+  /**
+   * @brief isValid override, check if value > 0
+   *
+   * @param value value to check
+   * @retval true if value > 0
+   */
+  virtual bool isValid(const unsigned int &value) const override;
+};
 /**
  * @brief meta function to cast tag to it's base
  * @code below is the test spec for the cast
