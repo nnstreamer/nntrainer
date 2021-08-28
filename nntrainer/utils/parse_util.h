@@ -112,20 +112,6 @@ unsigned int parseType(std::string ll, InputType t);
  */
 unsigned int parseOptProperty(std::string property);
 
-/**
- * @brief     Parsing Network Property
- * @param[in] property string to be parsed
- * @retval    int enumerated type
- */
-unsigned int parseNetProperty(std::string property);
-
-/**
- * @brief     Parsing Data Buffer Property
- * @param[in] property string to be parsed
- * @retval    int enumerated type
- */
-unsigned int parseDataProperty(std::string property);
-
 } /* namespace nntrainer */
 
 #endif /* __cplusplus */

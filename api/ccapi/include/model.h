@@ -135,7 +135,7 @@ public:
    * @details   This function accepts vector of properties in the format -
    *  { std::string property_name, void * property_val, ...}
    */
-  virtual int train(std::vector<std::string> values = {}) = 0;
+  virtual int train(const std::vector<std::string> &values = {}) = 0;
 
   /**
    * @brief     Run Model train with callback function by user
@@ -185,10 +185,12 @@ public:
   /**
    * @brief     Run the inference of the model
    * @param[in] input inputs as a list of each input data
+   * @param[in] batch batch size of current input
    * @retval list of output as float *
    * @note The output memory must not be freed by the caller
    */
-  virtual std::vector<float *> inference(std::vector<float *> &input) = 0;
+  virtual std::vector<float *> inference(std::vector<float *> &input,
+                                         unsigned int batch) = 0;
 
   /**
    * @brief     Summarize the model

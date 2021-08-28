@@ -109,7 +109,7 @@ int ModelLoader::loadModelConfigIni(dictionary *ini, NeuralNetwork &model) {
   const std::string &save_path =
     iniparser_getstring(ini, "Model:Save_path", unknown);
   if (save_path != unknown) {
-    model.setSavePath(resolvePath(save_path));
+    model.setProperty({"save_path=" + resolvePath(save_path)});
   }
 
   /**

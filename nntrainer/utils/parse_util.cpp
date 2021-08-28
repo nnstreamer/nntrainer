@@ -296,11 +296,9 @@ unsigned int parseOptProperty(std::string property) {
    * beta1 = 3,
    * beta2 = 4,
    * epsilon = 5,
-   * continue_train = 6,
    */
   std::array<std::string, 7> property_string = {
-    "learning_rate", "decay_rate", "decay_steps",   "beta1",
-    "beta2",         "epsilon",    "continue_train"};
+    "learning_rate", "decay_rate", "decay_steps", "beta1", "beta2", "epsilon"};
 
   for (i = 0; i < property_string.size(); i++) {
     unsigned int size = (property_string[i].size() > property.size())
@@ -313,33 +311,6 @@ unsigned int parseOptProperty(std::string property) {
   }
 
   return (unsigned int)Optimizer::PropertyType::unknown;
-}
-
-unsigned int parseNetProperty(std::string property) {
-  unsigned int i;
-
-  /**
-   * @brief     Network Properties
-   * loss_val = 0,
-   * loss = 1,
-   * batch_size = 2,
-   * epochs = 3,
-   * save_path = 4
-   */
-  std::array<std::string, 5> property_string = {
-    "loss_val", "loss", "batch_size", "epochs", "save_path"};
-
-  for (i = 0; i < property_string.size(); i++) {
-    unsigned int size = (property_string[i].size() > property.size())
-                          ? property_string[i].size()
-                          : property.size();
-
-    if (!strncasecmp(property_string[i].c_str(), property.c_str(), size)) {
-      return (i);
-    }
-  }
-
-  return (unsigned int)NeuralNetwork::PropertyType::unknown;
 }
 
 int setUint(unsigned int &val, const std::string &str) {
