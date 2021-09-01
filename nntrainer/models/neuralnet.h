@@ -53,6 +53,9 @@ enum class DatasetModeType;
 
 namespace nntrainer {
 
+class Exporter;
+enum class ExportMethods;
+
 /**
  * @brief     Enumeration of Network Type
  */
@@ -352,6 +355,15 @@ public:
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
   int getLayer(const char *name, NodeType *layer);
+
+  /**
+   * @brief this function helps exporting the layer in a predefined format,
+   * while workarounding issue caused by templated function type eraser
+   *
+   * @param     exporter exporter that conatins exporting logic
+   * @param     method enum value to identify how it should be exported to
+   */
+  void exportTo(Exporter &exporter, const ExportMethods &method) const;
 
   /**
    * @brief     get input dimension of neural network

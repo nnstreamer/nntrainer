@@ -21,7 +21,6 @@
 #include <layer_node.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
-#include <node_exporter.h>
 #include <parse_util.h>
 #include <time_dist.h>
 #include <util_func.h>
@@ -260,18 +259,8 @@ void IniGraphInterpreter::serialize(const GraphRepresentation &representation,
        iter++) {
     const auto &ln = *iter;
 
-    IniSection s(ln->getName());
+    IniSection s = IniSection::FromExportable(ln->getName(), *ln);
     s.setEntry("type", ln->getType());
-
-    Exporter e;
-    ln->exportTo(e, ExportMethods::METHOD_STRINGVECTOR);
-
-    const auto key_val_pairs =
-      e.getResult<ExportMethods::METHOD_STRINGVECTOR>();
-
-    for (const auto &pair : *key_val_pairs) {
-      s.setEntry(pair.first, pair.second);
-    }
 
     sections.push_back(s);
   }

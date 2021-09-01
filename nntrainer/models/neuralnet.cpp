@@ -420,17 +420,8 @@ void NeuralNetwork::saveModelIni(const std::string &file_path) {
        "permitted, path: "
     << file_path;
 
-  IniSection model_section("model");
+  IniSection model_section = IniSection::FromExportable("model", *this);
   model_section.setEntry("type", "NeuralNetwork");
-
-  Exporter e;
-  e.saveResult(model_props, ExportMethods::METHOD_STRINGVECTOR, this);
-  e.saveResult(model_flex_props, ExportMethods::METHOD_STRINGVECTOR, this);
-
-  const auto key_val_pairs = e.getResult<ExportMethods::METHOD_STRINGVECTOR>();
-  for (const auto &pair : *key_val_pairs) {
-    model_section.setEntry(pair.first, pair.second);
-  }
 
   IniWrapper wrapper("model_saver", {model_section});
   wrapper.save_ini(file_path);
@@ -834,6 +825,12 @@ void NeuralNetwork::printPreset(std::ostream &out, unsigned int preset) {
   }
 
   print(out, flags, layer_preset);
+}
+
+void NeuralNetwork::exportTo(Exporter &exporter,
+                             const ExportMethods &method) const {
+  exporter.saveResult(model_props, method, this);
+  exporter.saveResult(model_flex_props, method, this);
 }
 
 void NeuralNetwork::print(std::ostream &out, unsigned int flags,
