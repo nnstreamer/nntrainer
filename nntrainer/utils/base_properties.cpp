@@ -86,6 +86,18 @@ float str_converter<float_prop_tag, float>::from_string(
 }
 
 template <>
+std::string
+str_converter<double_prop_tag, double>::to_string(const double &value) {
+  return std::to_string(value);
+}
+
+template <>
+double
+str_converter<double_prop_tag, double>::from_string(const std::string &value) {
+  return std::stod(value);
+}
+
+template <>
 std::string str_converter<dimension_prop_tag, TensorDim>::to_string(
   const TensorDim &dimension) {
   std::stringstream ss;

@@ -99,6 +99,12 @@ struct dimension_prop_tag {};
 struct float_prop_tag {};
 
 /**
+ * @brief property is treated as double
+ *
+ */
+struct double_prop_tag {};
+
+/**
  * @brief property is treated as string
  *
  */
@@ -426,6 +432,20 @@ std::string str_converter<float_prop_tag, float>::to_string(const float &value);
 template <>
 float str_converter<float_prop_tag, float>::from_string(
   const std::string &value);
+
+/**
+ * @copydoc template <typename Tag, typename DataType> struct str_converter
+ */
+template <>
+std::string
+str_converter<double_prop_tag, double>::to_string(const double &value);
+
+/**
+ * @copydoc template <typename Tag, typename DataType> struct str_converter
+ */
+template <>
+double
+str_converter<double_prop_tag, double>::from_string(const std::string &value);
 
 /**
  * @brief convert dispatcher (to string)

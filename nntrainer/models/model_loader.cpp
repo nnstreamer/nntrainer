@@ -146,41 +146,23 @@ int ModelLoader::loadModelConfigIni(dictionary *ini, NeuralNetwork &model) {
   }
 
   std::vector<std::string> optimizer_prop = {};
-  optimizer_prop.push_back(
-    {"learning_rate=" +
-     std::string(iniparser_getstring(
-       ini, "Model:Learning_rate",
-       std::to_string(model.opt->getLearningRate()).c_str()))});
 
-  if (model.opt->getType() == SGD::type || model.opt->getType() == Adam::type) {
-    std::shared_ptr<OptimizerImpl> opt_impl =
-      std::static_pointer_cast<OptimizerImpl>(model.opt);
-
-    optimizer_prop.push_back(
-      {"decay_steps=" + std::string(iniparser_getstring(
-                          ini, "Model:Decay_steps",
-                          std::to_string(opt_impl->getDecaySteps()).c_str()))});
-    optimizer_prop.push_back(
-      {"decay_rate=" + std::string(iniparser_getstring(
-                         ini, "Model:Decay_rate",
-                         std::to_string(opt_impl->getDecayRate()).c_str()))});
-
-    if (opt_impl->getType() == "adam") {
-      std::shared_ptr<Adam> opt_adam = std::static_pointer_cast<Adam>(opt_impl);
-
-      optimizer_prop.push_back(
-        {"beta1=" +
-         std::string(iniparser_getstring(
-           ini, "Model:Beta1", std::to_string(opt_adam->getBeta1()).c_str()))});
-      optimizer_prop.push_back(
-        {"beta2=" +
-         std::string(iniparser_getstring(
-           ini, "Model:Beta2", std::to_string(opt_adam->getBeta2()).c_str()))});
-      optimizer_prop.push_back(
-        {"epsilon=" + std::string(iniparser_getstring(
-                        ini, "Model:Epsilon",
-                        std::to_string(opt_adam->getEpsilon()).c_str()))});
+  /** push only if ini_key exist as prop_key=ini_value */
+  auto maybe_push = [ini](std::vector<std::string> &prop_vector,
+                          const std::string &ini_key,
+                          const std::string &prop_key) {
+    constexpr const char *LOCAL_UNKNOWN = "unknown";
+    std::string ini_value =
+      iniparser_getstring(ini, ini_key.c_str(), LOCAL_UNKNOWN);
+    if (!istrequal(ini_value, LOCAL_UNKNOWN)) {
+      prop_vector.push_back(prop_key + "=" + ini_value);
     }
+  };
+
+  const std::vector<std::string> deprecated_optimizer_keys = {
+    "learning_rate", "decay_rate", "decay_steps", "beta1", "beta2", "epsilon"};
+  for (const auto &key : deprecated_optimizer_keys) {
+    maybe_push(optimizer_prop, "Model:" + key, key);
   }
 
   try {

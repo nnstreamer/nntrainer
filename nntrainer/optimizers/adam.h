@@ -14,9 +14,43 @@
 #define __ADAM_H__
 #ifdef __cplusplus
 
+#include <tuple>
+
+#include <base_properties.h>
 #include <optimizer_impl.h>
 
 namespace nntrainer {
+
+/**
+ * @brief Beta 1 props
+ *
+ */
+class PropsB1 : public Property<double> {
+public:
+  static constexpr const char *key = "beta1"; /**< unique key to access */
+  using prop_tag = double_prop_tag;           /**< property type */
+};
+
+/**
+ * @brief Beta 2 props
+ *
+ */
+class PropsB2 : public Property<double> {
+public:
+  static constexpr const char *key = "beta2"; /**< unique key to access */
+  using prop_tag = double_prop_tag;           /**< property type */
+};
+
+/**
+ * @brief epsilon props
+ * @todo move this to common props
+ *
+ */
+class PropsEpsilon : public Property<double> {
+public:
+  static constexpr const char *key = "epsilon"; /**< unique key to access */
+  using prop_tag = double_prop_tag;             /**< property type */
+};
 
 /**
  * @class   Adam optimizer class
@@ -25,15 +59,16 @@ namespace nntrainer {
 class Adam : public OptimizerImpl {
 public:
   /**
-   * @brief     Constructor of Optimizer Class
+   * @brief Construct a new Adam object
+   *
    */
-  template <typename... Args>
-  Adam(float lr = 0.001f, double b1 = 0.9f, double b2 = 0.999f,
-       double ep = 1.0e-7f, Args... args) :
-    OptimizerImpl(lr, args...),
-    beta1(b1),
-    beta2(b2),
-    epsilon(ep) {}
+  Adam();
+
+  /**
+   * @brief Destroy the Adam object
+   *
+   */
+  ~Adam();
 
   /**
    * @copydoc applyGradient(RunOptimizerContext &context)
@@ -56,32 +91,20 @@ public:
   std::vector<TensorDim> getOptimizerVariableDim(const TensorDim &dim) override;
 
   /**
-   * @brief get beta1
+   * @copydoc Optimizer::exportTo(Exporter &exporter, const ExportMethods&
+   * method)
    */
-  double getBeta1() { return beta1; };
-
-  /**
-   * @brief get beta2
-   */
-  double getBeta2() { return beta2; };
-
-  /**
-   * @brief get epsilon
-   */
-  double getEpsilon() { return epsilon; }
+  void exportTo(Exporter &exporter, const ExportMethods &method) const override;
 
   inline static const std::string type = "adam";
 
-private:
-  double beta1;   /** momentum for grad */
-  double beta2;   /** momentum for grad**2 */
-  double epsilon; /** epsilon to protect overflow */
-
   /**
-   * @copydoc LayerImpl::setProperty(const std::string &key,
-                           const std::string &value)
+   * @copydoc Optimizer::setProperty(const std::vector<std::string> &values)
    */
-  void setProperty(const std::string &key, const std::string &value);
+  virtual void setProperty(const std::vector<std::string> &values) override;
+
+private:
+  std::tuple<PropsB1, PropsB2, PropsEpsilon> adam_props;
 };
 } /* namespace nntrainer */
 

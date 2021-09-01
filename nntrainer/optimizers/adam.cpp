@@ -17,10 +17,21 @@
 #include <adam.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
-#include <parse_util.h>
+#include <node_exporter.h>
 #include <util_func.h>
 
 namespace nntrainer {
+
+Adam::Adam() : adam_props(PropsB1(), PropsB2(), PropsEpsilon()) {
+  /** default properties */
+  setProperty({"learning_rate=0.001"});
+  auto &[b1, b2, eps] = adam_props;
+  b1.set(0.9f);
+  b2.set(0.999f);
+  eps.set(1.0e-7f);
+}
+
+Adam::~Adam() {}
 
 enum AdamParams { wm, wv };
 
@@ -28,7 +39,19 @@ std::vector<TensorDim> Adam::getOptimizerVariableDim(const TensorDim &dim) {
   return {dim, dim};
 }
 
+void Adam::exportTo(Exporter &exporter, const ExportMethods &method) const {
+  exporter.saveResult(adam_props, method, this);
+  OptimizerImpl::exportTo(exporter, method);
+}
+
+void Adam::setProperty(const std::vector<std::string> &values) {
+  auto left = loadProperties(values, adam_props);
+  OptimizerImpl::setProperty(left);
+}
+
 double Adam::getLearningRate(size_t iteration) const {
+  auto &beta1 = std::get<PropsB1>(adam_props).get();
+  auto &beta2 = std::get<PropsB2>(adam_props).get();
   double ll = OptimizerImpl::getLearningRate(iteration);
 
   std::function<float(double)> biasCorrection = [&](float f) {
@@ -41,8 +64,11 @@ double Adam::getLearningRate(size_t iteration) const {
 }
 
 void Adam::applyGradient(RunOptimizerContext &context) {
-
   Tensor &x_grad = context.getGradient();
+
+  auto &beta1 = std::get<PropsB1>(adam_props).get();
+  auto &beta2 = std::get<PropsB2>(adam_props).get();
+  auto &epsilon = std::get<PropsEpsilon>(adam_props).get();
 
   // This is implementation of adam from original paper.
   // This is not deleted intentionally.
@@ -62,8 +88,8 @@ void Adam::applyGradient(RunOptimizerContext &context) {
   //                  .add(epsilon);
   // x.add_i(wm.divide(denom), -ll / biasCorrection1);
 
-  std::function<double(double)> sqrtEps = [&](double f) {
-    return 1 / (sqrtDouble(f) + this->epsilon);
+  std::function<double(double)> sqrtEps = [epsilon](double f) {
+    return 1 / (sqrtDouble(f) + epsilon);
   };
 
   Tensor &wm = context.getOptimizerVariable(AdamParams::wm);
@@ -78,29 +104,6 @@ void Adam::applyGradient(RunOptimizerContext &context) {
   x_grad = wv.apply(sqrtEps, x_grad);
   x_grad.multiply_i(wm);
   context.applyGradient(getLearningRate(context.getIteration()));
-}
-
-void Adam::setProperty(const std::string &key, const std::string &value) {
-  int status = ML_ERROR_NONE;
-  PropertyType type = static_cast<PropertyType>(parseOptProperty(key));
-
-  switch (type) {
-  case PropertyType::beta1:
-    status = setDouble(beta1, value);
-    break;
-  case PropertyType::beta2:
-    status = setDouble(beta2, value);
-    break;
-  case PropertyType::epsilon:
-    status = setDouble(epsilon, value);
-    break;
-  default:
-    OptimizerImpl::setProperty(key, value);
-    status = ML_ERROR_NONE;
-    break;
-  }
-
-  throw_status(status);
 }
 
 } // namespace nntrainer
