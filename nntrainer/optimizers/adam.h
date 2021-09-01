@@ -101,7 +101,7 @@ public:
   /**
    * @copydoc Optimizer::setProperty(const std::vector<std::string> &values)
    */
-  virtual void setProperty(const std::vector<std::string> &values) override;
+  void setProperty(const std::vector<std::string> &values) override;
 
 private:
   std::tuple<PropsB1, PropsB2, PropsEpsilon> adam_props;

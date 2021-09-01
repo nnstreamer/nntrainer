@@ -423,7 +423,10 @@ void NeuralNetwork::saveModelIni(const std::string &file_path) {
   IniSection model_section = IniSection::FromExportable("model", *this);
   model_section.setEntry("type", "NeuralNetwork");
 
-  IniWrapper wrapper("model_saver", {model_section});
+  IniSection optimizer_section = IniSection::FromExportable("optimizer", *opt);
+  optimizer_section.setEntry("type", opt->getType());
+
+  IniWrapper wrapper("model_saver", {model_section, optimizer_section});
   wrapper.save_ini(file_path);
 
   IniGraphInterpreter interpreter;

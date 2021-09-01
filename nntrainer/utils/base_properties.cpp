@@ -88,7 +88,9 @@ float str_converter<float_prop_tag, float>::from_string(
 template <>
 std::string
 str_converter<double_prop_tag, double>::to_string(const double &value) {
-  return std::to_string(value);
+  std::ostringstream ss;
+  ss << value;
+  return ss.str();
 }
 
 template <>
