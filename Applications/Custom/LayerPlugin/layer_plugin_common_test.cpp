@@ -45,18 +45,6 @@ TEST_P(LayerPluginCommonTest, DefaultEnvironmentPath_p) {
 
   auto lnode = std::static_pointer_cast<nntrainer::LayerNode>(l);
 
-  std::ifstream input_file("does_not_exist");
-  EXPECT_NO_THROW(lnode->read(input_file));
-  if (remove("does_not_exist")) {
-    std::cerr << "failed to remove file\n";
-  }
-
-  std::ofstream output_file("does_not_exist");
-  EXPECT_NO_THROW(lnode->save(output_file));
-  if (remove("does_not_exist")) {
-    std::cerr << "failed to remove file\n";
-  }
-
   EXPECT_THROW(lnode->setProperty({"invalid_values"}), std::invalid_argument);
   EXPECT_EQ(lnode->getOutputDimensions().size(), size_t(0));
   EXPECT_EQ(lnode->getInputDimensions().size(), size_t(0));
