@@ -25,10 +25,10 @@ namespace nntrainer {
 class SGD : public OptimizerImpl {
 public:
   /**
-   * @brief     Constructor of Optimizer Class
+   * @brief Construct a new SGD object
+   *
    */
-  template <typename... Args>
-  SGD(float lr = 0.0001f, Args... args) : OptimizerImpl(lr, args...) {}
+  SGD();
 
   /**
    * @copydoc applyGradient(RunOptimizerContext &context)

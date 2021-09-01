@@ -76,13 +76,6 @@ std::string propToStr(const unsigned int type);
  */
 unsigned int parseType(std::string ll, InputType t);
 
-/**
- * @brief     Parsing Optimizer Property
- * @param[in] property string to be parsed
- * @retval    int enumerated type
- */
-unsigned int parseOptProperty(std::string property);
-
 } /* namespace nntrainer */
 
 #endif /* __cplusplus */

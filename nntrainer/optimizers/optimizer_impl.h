@@ -16,9 +16,43 @@
 #define __OPTIMIZER_IMPL_H__
 #ifdef __cplusplus
 
+#include <tuple>
+
+#include <base_properties.h>
 #include <optimizer_devel.h>
 
 namespace nntrainer {
+
+/**
+ * @brief Learning Rate props
+ *
+ */
+class PropsLR : public Property<float> {
+public:
+  static constexpr const char *key =
+    "learning_rate";               /**< unique key to access */
+  using prop_tag = float_prop_tag; /**< property type */
+};
+
+/**
+ * @brief Decay rate property
+ *
+ */
+class PropsDecayRate : public Property<float> {
+public:
+  static constexpr const char *key = "decay_rate"; /**< unique key to access */
+  using prop_tag = float_prop_tag;                 /**< property type */
+};
+
+/**
+ * @brief decay steps property
+ *
+ */
+class PropsDecaySteps : public PositiveIntegerProperty {
+public:
+  static constexpr const char *key = "decay_steps"; /**< unique key to access */
+  using prop_tag = uint_prop_tag;                   /**< property type */
+};
 
 /**
  * @class   Optimizer Base class for optimizers
@@ -28,15 +62,10 @@ class OptimizerImpl : public Optimizer {
 
 public:
   /**
-   * @brief     Default Constructor of Optimizer Class
+   * @brief Construct a new Optimizer Impl object
+   *
    */
-  OptimizerImpl(float lr, float decay_rate = 1.0f, unsigned int decay_steps = 0,
-                float continue_train = false) :
-    Optimizer(),
-    learning_rate(lr),
-    decay_rate(decay_rate),
-    decay_steps(decay_steps),
-    continue_train(continue_train) {}
+  OptimizerImpl();
 
   /**
    * @brief  copy constructor
@@ -60,25 +89,7 @@ public:
    * @brief  Move assignment operator.
    * @parma[in] rhs OptimizerImpl to be moved.
    */
-  OptimizerImpl &operator=(OptimizerImpl &&rhs) = default;
-
-  /**
-   * @brief     get Learning Rate
-   * @retval    Learning rate in float
-   */
-  float getLearningRate() const { return learning_rate; };
-
-  /**
-   * @brief     get Decay Rate for learning rate decay
-   * @retval    decay rate
-   */
-  float getDecayRate() const { return decay_rate; };
-
-  /**
-   * @brief     get Decay Steps for learning rate decay
-   * @retval    decay steps
-   */
-  float getDecaySteps() const { return decay_steps; };
+  OptimizerImpl &operator=(OptimizerImpl &&rhs) noexcept = default;
 
   /**
    * @brief     get Learning Rate for the given iteration
@@ -88,9 +99,15 @@ public:
   double getLearningRate(size_t iteration) const;
 
   /**
-   * @copydoc Layer::setProperty(const std::vector<std::string> &values)
+   * @copydoc Optimizer::setProperty(const std::vector<std::string> &values)
    */
   virtual void setProperty(const std::vector<std::string> &values);
+
+  /**
+   * @copydoc Optimizer::exportTo(Exporter &exporter, const ExportMethods&
+   * method)
+   */
+  void exportTo(Exporter &exporter, const ExportMethods &method) const override;
 
   /**
    * @brief     Get dimension of extra variables if the optimizer needs any.
@@ -103,22 +120,7 @@ public:
   }
 
 protected:
-  float learning_rate;      /**< learning rate */
-  float decay_rate;         /** decay rate for learning rate */
-  unsigned int decay_steps; /** decay steps for learning rate */
-  bool continue_train; /** Continue training with previous tensors for adam */
-
-  /**
-   * @brief setProperty individually
-   * @note By passing empty string, this can validate if @a type is valid
-   * @param[in] key key to be passed as string
-   * @param[in] value value to be passed, if empty string is passed, do nothing
-   * but throws error when @a type is invalid
-   * @exception exception::not_supported     when string type is not valid for
-   * the particular layer
-   * @exception std::invalid_argument invalid argument
-   */
-  virtual void setProperty(const std::string &key, const std::string &value);
+  std::tuple<PropsLR, PropsDecayRate, PropsDecaySteps> optimizer_impl_props;
 };
 
 } /* namespace nntrainer */

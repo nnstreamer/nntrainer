@@ -285,34 +285,6 @@ unsigned int parseLayerProperty(std::string property) {
 
 std::string propToStr(unsigned int type) { return property_string[type]; }
 
-unsigned int parseOptProperty(std::string property) {
-  unsigned int i;
-
-  /**
-   * @brief     Optimizer Properties
-   * learning_rate = 0,
-   * decay_rate = 1,
-   * decay_steps = 2
-   * beta1 = 3,
-   * beta2 = 4,
-   * epsilon = 5,
-   */
-  std::array<std::string, 7> property_string = {
-    "learning_rate", "decay_rate", "decay_steps", "beta1", "beta2", "epsilon"};
-
-  for (i = 0; i < property_string.size(); i++) {
-    unsigned int size = (property_string[i].size() > property.size())
-                          ? property_string[i].size()
-                          : property.size();
-
-    if (!strncasecmp(property_string[i].c_str(), property.c_str(), size)) {
-      return (i);
-    }
-  }
-
-  return (unsigned int)Optimizer::PropertyType::unknown;
-}
-
 int setUint(unsigned int &val, const std::string &str) {
   int status = ML_ERROR_NONE;
   try {

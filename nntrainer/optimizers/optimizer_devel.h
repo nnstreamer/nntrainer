@@ -24,6 +24,9 @@
 
 namespace nntrainer {
 
+class Exporter;
+enum class ExportMethods;
+
 /**
  * @class   Optimizer Base class for optimizers
  * @brief   Base class for all optimizers
@@ -59,31 +62,14 @@ public:
   virtual void setProperty(const std::vector<std::string> &values);
 
   /**
-   * @brief     Default allowed properties
-   * Available for all optimizers
-   * - learning_rate : float
+   * @brief this function helps exporting the optimizer in a predefined format,
+   * while workarounding issue caused by templated function type eraser
    *
-   * Available for SGD and Adam optimizers
-   * - decay_rate : float,
-   * - decay_steps : float,
-   *
-   * Available for Adam optimizer
-   * - beta1 : float,
-   * - beta2 : float,
-   * - epsilon : float,
-   *
-   * @todo: convert to string
+   * @param     exporter exporter that conatins exporting logic
+   * @param     method enum value to identify how it should be exported to
    */
-  enum class PropertyType {
-    learning_rate = 0,
-    decay_rate = 1,
-    decay_steps = 2,
-    beta1 = 3,
-    beta2 = 4,
-    epsilon = 5,
-    continue_train = 6,
-    unknown = 7,
-  };
+  virtual void exportTo(Exporter &exporter, const ExportMethods &method) const {
+  }
 
   /**
    * @brief     finalize optimizer.

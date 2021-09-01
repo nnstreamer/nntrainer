@@ -18,63 +18,32 @@
 #include <cmath>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
+#include <node_exporter.h>
 #include <optimizer_impl.h>
-#include <parse_util.h>
 #include <util_func.h>
 
 namespace nntrainer {
 
+OptimizerImpl::OptimizerImpl() :
+  optimizer_impl_props(PropsLR(), PropsDecayRate(), PropsDecaySteps()) {}
+
 void OptimizerImpl::setProperty(const std::vector<std::string> &values) {
-  /// @todo: deprecate this in favor of loadProperties
-  for (unsigned int i = 0; i < values.size(); ++i) {
-    std::string key;
-    std::string value;
-    std::stringstream ss;
-
-    if (getKeyValue(values[i], key, value) != ML_ERROR_NONE) {
-      throw std::invalid_argument("Error parsing the property: " + values[i]);
-    }
-
-    if (value.empty()) {
-      ss << "value is empty: key: " << key << ", value: " << value;
-      throw std::invalid_argument(ss.str());
-    }
-
-    /// @note this calls derived setProperty if available
-    setProperty(key, value);
-  }
+  auto left = loadProperties(values, optimizer_impl_props);
+  NNTR_THROW_IF(left.size(), std::invalid_argument)
+    << "[OptimizerImpl] There are unparsed properties";
 }
 
-void OptimizerImpl::setProperty(const std::string &key,
-                                const std::string &value) {
-  int status = ML_ERROR_NONE;
-  PropertyType type = static_cast<PropertyType>(parseOptProperty(key));
-
-  switch (type) {
-  case PropertyType::learning_rate:
-    status = setFloat(learning_rate, value);
-    break;
-  case PropertyType::decay_steps:
-    status = setUint(decay_steps, value);
-    break;
-  case PropertyType::decay_rate:
-    status = setFloat(decay_rate, value);
-    break;
-  case PropertyType::continue_train:
-    status = setBoolean(continue_train, value);
-    break;
-  default:
-    status = ML_ERROR_INVALID_PARAMETER;
-    break;
-  }
-
-  throw_status(status);
+void OptimizerImpl::exportTo(Exporter &exporter,
+                             const ExportMethods &method) const {
+  exporter.saveResult(optimizer_impl_props, method, this);
 }
 
 double OptimizerImpl::getLearningRate(size_t iteration) const {
-  double ll = learning_rate;
 
-  if (decay_steps != 0) {
+  auto &[float_lr, decay_rate, decay_steps] = optimizer_impl_props;
+  double ll = float_lr;
+
+  if (!decay_steps.empty() && !decay_rate.empty()) {
     ll = ll * pow(decay_rate, (iteration / (float)decay_steps));
   }
 
