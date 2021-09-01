@@ -77,11 +77,13 @@ public:
   IniSection() : section_name(""), entry{} {};
 
   /**
-   * @brief Construct a new Ini Section object which implements object::exportTo
+   * @brief Construct a new Ini Section object from which implements
+   * object::exportTo
    *
    * @tparam Exportable object with member object::exportTo
    * @param section_name section name
    * @param exportable exportable object
+   * @return IniSection created section
    */
   template <typename Exportable>
   static IniSection FromExportable(const std::string &section_name,
@@ -93,7 +95,7 @@ public:
       e.getResult<ExportMethods::METHOD_STRINGVECTOR>();
 
     if (!key_val_pairs) {
-      throw std::invalid_argument("returend pairs are nullptr!");
+      throw std::invalid_argument("returned pairs are nullptr!");
     }
 
     for (const auto &pair : *key_val_pairs) {
