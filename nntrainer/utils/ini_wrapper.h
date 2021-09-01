@@ -16,8 +16,9 @@
 #include <iostream>
 #include <map>
 #include <string>
-
 #include <vector>
+
+#include <node_exporter.h>
 
 #ifndef __INI_WRAPPER_H__
 #define __INI_WRAPPER_H__
@@ -74,6 +75,32 @@ public:
    *
    */
   IniSection() : section_name(""), entry{} {};
+
+  /**
+   * @brief Construct a new Ini Section object which implements object::exportTo
+   *
+   * @tparam Exportable object with member object::exportTo
+   * @param section_name section name
+   * @param exportable exportable object
+   */
+  template <typename Exportable>
+  static IniSection FromExportable(const std::string &section_name,
+                                   const Exportable &exportable) {
+    IniSection s(section_name);
+    Exporter e;
+    exportable.exportTo(e, ExportMethods::METHOD_STRINGVECTOR);
+    const auto key_val_pairs =
+      e.getResult<ExportMethods::METHOD_STRINGVECTOR>();
+
+    if (!key_val_pairs) {
+      throw std::invalid_argument("returend pairs are nullptr!");
+    }
+
+    for (const auto &pair : *key_val_pairs) {
+      s.setEntry(pair.first, pair.second);
+    }
+    return s;
+  }
 
   /**
    * @brief Default destructor for the Ini Section object
