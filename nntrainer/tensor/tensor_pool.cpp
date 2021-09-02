@@ -33,7 +33,7 @@ Tensor *TensorPool::requestTensor(const TensorDim &dim,
                                   TensorLifespan lifespan,
                                   const std::string &name,
                                   const Tensor::Initializer &init) {
-  if (pool.find(name) != pool.end())
+  if (name_map.find(name) != name_map.end())
     throw std::invalid_argument("Cannot request tensor with same name");
 
   if (dim.getDataLen() == 0)
@@ -42,10 +42,11 @@ Tensor *TensorPool::requestTensor(const TensorDim &dim,
   if (name.empty())
     throw std::invalid_argument("Cannot request tensor with empty name");
 
-  pool[name] = {std::make_unique<Tensor>(dim, false, init, name), exec_order,
-                lifespan, 0};
+  pool.push_back({std::make_unique<Tensor>(dim, false, init, name), exec_order,
+                  lifespan, 0});
+  name_map[name] = pool.size() - 1;
 
-  return pool[name].tensor.get();
+  return pool.back().tensor.get();
 }
 
 /**
@@ -60,10 +61,10 @@ Tensor *TensorPool::requestPrerequestedTensor(
   const TensorDim &dim, const std::vector<unsigned int> &exec_order,
   TensorLifespan lifespan, const std::string &name,
   const Tensor::Initializer &init) {
-  if (pool.find(name) == pool.end())
+  if (name_map.find(name) == name_map.end())
     throw std::invalid_argument("Requested tensor not found");
 
-  auto &spec = pool[name];
+  auto &spec = pool[name_map[name]];
   if (spec.tensor->getDim() != dim)
     throw std::invalid_argument("Request tensor dimension mismatch");
 
@@ -75,7 +76,7 @@ Tensor *TensorPool::requestPrerequestedTensor(
                          exec_order.end());
   spec.lifespan = enum_class_or<TensorLifespan>(spec.lifespan, lifespan);
 
-  return pool[name].tensor.get();
+  return spec.tensor.get();
 }
 
 /**
@@ -87,8 +88,8 @@ Tensor *TensorPool::requestPrerequestedTensor(
 void TensorPool::finalize(const MemoryPlanner &planner,
                           unsigned int start_order, unsigned int end_order) {
   unsigned int bytes_requested = 0;
-  for (auto &entry : pool) {
-    auto &spec = entry.second;
+  for (auto &spec : pool) {
+    spec.token = 0;
 
     if (spec.exec_order.empty())
       continue;
@@ -133,10 +134,10 @@ void TensorPool::finalize(const MemoryPlanner &planner,
  * @brief Set the batch size for the inputs/outputs of the layers
  */
 void TensorPool::setBatchSize(const std::string &name, unsigned int batch) {
-  if (pool.find(name) == pool.end())
+  if (name_map.find(name) == name_map.end())
     throw std::invalid_argument("Requested tensor not found");
 
-  pool[name].tensor->updateBatch(batch);
+  pool[name_map[name]].tensor->updateBatch(batch);
 }
 
 /**
@@ -146,10 +147,12 @@ void TensorPool::allocate() {
   mem_pool.allocate();
 
   /** set the pointers using the token for all the tensors */
-  for (auto &entry : pool) {
-    auto &spec = entry.second;
-    spec.tensor->setData(mem_pool.getMemory(spec.token));
-    spec.tensor->initialize();
+  for (auto &spec : pool) {
+    /** get data for the tensors which were requested */
+    if (spec.token > 0) {
+      spec.tensor->setData(mem_pool.getMemory(spec.token));
+      spec.tensor->initialize();
+    }
   }
 }
 
@@ -160,8 +163,7 @@ void TensorPool::deallocate() {
   mem_pool.deallocate();
 
   /** nullify the data pointers for the tensors */
-  for (auto &entry : pool) {
-    auto &spec = entry.second;
+  for (auto &spec : pool) {
     spec.tensor->setData(nullptr);
   }
 }
@@ -172,10 +174,10 @@ void TensorPool::deallocate() {
  */
 void TensorPool::expand_lifespan(const std::string &name,
                                  TensorLifespan lifespan) {
-  if (pool.find(name) == pool.end())
+  if (name_map.find(name) == name_map.end())
     throw std::invalid_argument("Requested tensor not found");
 
-  auto &spec = pool[name];
+  auto &spec = pool[name_map[name]];
   spec.lifespan = enum_class_or<TensorLifespan>(spec.lifespan, lifespan);
 }
 
@@ -185,10 +187,10 @@ void TensorPool::expand_lifespan(const std::string &name,
  */
 void TensorPool::expand_lifespan(const std::string &name,
                                  const std::vector<unsigned int> &exec_order) {
-  if (pool.find(name) == pool.end())
+  if (name_map.find(name) == name_map.end())
     throw std::invalid_argument("Requested tensor not found");
 
-  auto &spec = pool[name];
+  auto &spec = pool[name_map[name]];
   spec.exec_order.insert(spec.exec_order.end(), exec_order.begin(),
                          exec_order.end());
 }

@@ -422,6 +422,9 @@ int NetworkGraph::realizeGraph() {
 }
 
 void NetworkGraph::setBatchSize(unsigned int batch_size) {
+  if (!input_list.empty() and input_list[0]->getDim().batch() == batch_size)
+    return;
+
   this->batch_size = batch_size;
   auto allocated = tensor_manager->isAllocated();
 
