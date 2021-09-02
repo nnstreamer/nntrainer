@@ -128,6 +128,15 @@ public:
                        const std::vector<unsigned int> &exec_order);
 
   /**
+   * @brief     Get execution order for the given tensor
+   *
+   * @return The execution order of the tensor
+   */
+  const std::vector<unsigned int> &getExecutionOrder(const std::string &name) {
+    return pool[name_map.at(name)].exec_order;
+  }
+
+  /**
    * @brief Get the maximum real memory requirement
    *
    * @return The real memory requirement with this strategy in bytes
@@ -141,6 +150,23 @@ public:
    */
   size_t minMemoryRequirement() { return mem_pool.minMemoryRequirement(); }
 
+  /**
+   * @brief Is the tensor pool allocated
+   *
+   * @return true if the tensors are allocated, else false
+   */
+  bool isAllocated() const { return mem_pool.isAllocated(); }
+
+  /**
+   * @brief Get the tensor of the given name
+   *
+   * @return ptr to the tensor with the given
+   * @throws if no tensor is found with the given name
+   */
+  Tensor *getTensor(const std::string &name) {
+    return pool[name_map.at(name)].tensor.get();
+  }
+
 private:
   /**
    * @brief Spec for storing each request of tensor from tensor pool
@@ -153,8 +179,13 @@ private:
     unsigned int token;                   /**< tensor memory token */
   };
 
-  std::unordered_map<std::string, requestSpec>
-    pool;              /**< list of requested tensors */
+  /**
+   * note: unordered_map is not directly used for pool to ensure initialization
+   * of weights
+   */
+  std::vector<requestSpec> pool; /**< list of requested tensors */
+  std::unordered_map<std::string, unsigned int>
+    name_map;          /**< indexing of requested tensors */
   MemoryPool mem_pool; /**< memory pool for the tensors */
 
   /**
