@@ -8,7 +8,8 @@ tensor_sources = [
   'weight.cpp',
   'basic_planner.cpp',
   'memory_pool.cpp',
-  'tensor_pool.cpp'
+  'tensor_pool.cpp',
+  'optimized_v1_planner.cpp'
 ]
 
 tensor_headers = [
