@@ -9,6 +9,7 @@
  * @bug	   No known bugs except for NYI items
  * @brief  This is Flatten Layer Class for Neural Network
  *
+ * @todo Update flatten to work in-place properly.
  */
 
 #include <flatten_layer.h>
@@ -47,8 +48,9 @@ void FlattenLayer::forwarding(RunLayerContext &context, bool training) {
   Tensor temp = context.getInput(SINGLE_INOUT_IDX);
   Tensor &out = context.getOutput(SINGLE_INOUT_IDX);
 
-  temp.reshape(out.getDim());
-  out = temp;
+  auto const &shape = out.getDim();
+  out.copy(temp);
+  out.reshape(shape);
 }
 
 void FlattenLayer::calcDerivative(RunLayerContext &context) {
@@ -60,8 +62,9 @@ void FlattenLayer::calcDerivative(RunLayerContext &context) {
   Tensor temp = context.getIncomingDerivative(SINGLE_INOUT_IDX);
   Tensor &ret_derivative = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
 
-  temp.reshape(ret_derivative.getDim());
-  ret_derivative = temp;
+  auto const &shape = ret_derivative.getDim();
+  ret_derivative.copy(temp);
+  ret_derivative.reshape(shape);
 }
 
 void FlattenLayer::setProperty(const std::vector<std::string> &values) {
