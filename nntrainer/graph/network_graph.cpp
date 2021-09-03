@@ -77,7 +77,7 @@ void NetworkGraph::setExecutionOrder() {
     auto &node = *iter;
     auto order_idx = iter - cbegin();
     auto forward_order = order_idx;
-    auto calc_gradient_order = max_count - ((order_idx+1) * 2);
+    auto calc_gradient_order = max_count - ((order_idx + 1) * 2);
     /** calc derivative is called right after calc_gradient */
     auto calc_derivative_order = calc_gradient_order + 1;
     node->setExecutionOrder(

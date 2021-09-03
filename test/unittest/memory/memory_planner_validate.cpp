@@ -108,28 +108,14 @@ static bool validateIntervalOverlap(
       });
     valid_intervals.erase(expired_intervals, valid_intervals.end());
 
-    /** get the max of the existing intervals */
-    size_t max_allocated = 0;
-    if (!valid_intervals.empty()) {
-      auto max_idx = *std::max_element(
-        valid_intervals.begin(), valid_intervals.end(),
-        [memory_offset, memory_size](auto const &v1, auto const &v2) {
-          return memory_offset[v1] + memory_size[v1] <
-                 memory_offset[v2] + memory_size[v2];
-        });
-      max_allocated = memory_offset[max_idx] + memory_size[max_idx];
+    /** this allocation must not overlap with any existing valid allocations */
+    auto new_mem_start = memory_offset[idx];
+    auto new_mem_end = memory_offset[idx] + memory_size[idx];
+    for (auto const &vi : valid_intervals) {
+      auto vi_mem_start = memory_offset[vi];
+      auto vi_mem_end = memory_offset[vi] + memory_size[vi];
+      EXPECT_TRUE(vi_mem_start >= new_mem_end || vi_mem_end <= new_mem_start);
     }
-
-    /** the memory planner must allocate after the max_allocated */
-    EXPECT_GE(memory_offset[idx], max_allocated);
-    /**
-     * if feeling confident about the planner, then it must allocate
-     * from exactly the max_allocated location
-     *
-     * @note this still does not guarantee the most optimal allocation
-     * @note this can be disabled for some of the planners
-     */
-    EXPECT_EQ(memory_offset[idx], max_allocated);
 
     valid_intervals.push_back(idx);
   }

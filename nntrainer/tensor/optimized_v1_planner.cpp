@@ -12,7 +12,6 @@
  */
 
 #include <algorithm>
-#include <queue>
 #include <vector>
 
 #include <optimized_v1_planner.h>
@@ -34,7 +33,7 @@ struct MemoryRequest {
    * @brief Constructor for the Memory Request
    *
    */
-  MemoryRequest(size_t s, std::pair<unsigned int, unsigned int> valid,
+  MemoryRequest(size_t s, const std::pair<unsigned int, unsigned int> &valid,
                 unsigned int idx) :
     start(valid.first),
     end(valid.second),
@@ -87,36 +86,45 @@ size_t OptimizedV1Planner::planLayout(
               //   return v1.end > v2.end;
             });
 
-  /** all the memories in use sorted by their assigned offset */
-  auto cmp = [](const MemoryRequest *v1, const MemoryRequest *v2) -> bool {
-    return v1->offset < v2->offset;
-  };
-  std::priority_queue<MemoryRequest *, std::vector<MemoryRequest *>,
-                      decltype(cmp)>
-    pq(cmp);
+  /** all the memories in use sorted by their assigned offset and size */
+  std::vector<MemoryRequest *> sorted_req;
 
   /** iterate over the sorted requests and start allocation of the requests */
+  memory_offset.resize(memory_size.size());
   size_t memory_req = 0;
   for (auto &req : requests) {
     /** remove expired memories and update offset */
-    while (!pq.empty() && pq.top()->end <= req.start)
-      pq.pop();
+    while (!sorted_req.empty() && sorted_req.back()->end <= req.start)
+      sorted_req.pop_back();
 
-    /** get the offset based on the max valid offset */
+    /** if there exists an expired memory with same size (not at the edge),
+     * reuse it */
+    bool replace_and_fill = false;
+    for (int idx = sorted_req.size() - 1; idx >= 0; idx--) {
+      auto const &sr = sorted_req[idx];
+      /** TODO: reuse if memory size not exactly match */
+      if (sr->end <= req.start && sr->size == req.size) {
+        req.offset = sr->offset;
+        memory_offset[req.loc] = req.offset;
+        sorted_req[idx] = &req;
+        replace_and_fill = true;
+        break;
+      }
+    }
+    if (replace_and_fill) {
+      continue;
+    }
+
     size_t offset = 0;
-    if (!pq.empty())
-      offset = pq.top()->offset + pq.top()->size;
+    if (!sorted_req.empty())
+      offset = sorted_req.back()->offset + sorted_req.back()->size;
 
     /** assign offset to the new request and push to queue */
     req.offset = offset;
+    memory_offset[req.loc] = offset;
     memory_req = std::max(memory_req, req.offset + req.size);
-    pq.push(&req);
+    sorted_req.push_back(&req);
   }
-
-  /** set the memory offset in the return array */
-  memory_offset.resize(memory_size.size());
-  for (auto const &req : requests)
-    memory_offset[req.loc] = req.offset;
 
   return memory_req;
 }
