@@ -278,6 +278,20 @@ public:
                                  unsigned int batch);
 
   /**
+   * @brief     Enable the memory optimizations for the network
+   *
+   */
+  void enableMemoryOptimizations() { model_graph.setMemoryOptimizations(true); }
+
+  /**
+   * @brief     Enable the memory optimizations for the network
+   *
+   */
+  void disableMemoryOptimizations() {
+    model_graph.setMemoryOptimizations(false);
+  }
+
+  /**
    * @brief     Run NeuralNetwork train with callback function by user
    * @param[in] dt datatype (mode) where it should be
    * @param[in] dataset set the dataset

@@ -383,6 +383,8 @@ GraphWatcher::GraphWatcher(const std::string &config, const bool opt) :
 
   /** Disable memory optimization as memory being matched for each layer
    */
+  if (!opt)
+    nn.disableMemoryOptimizations();
 
   if (nn.loadFromConfig(config)) {
     throw std::invalid_argument("load from config failed!");

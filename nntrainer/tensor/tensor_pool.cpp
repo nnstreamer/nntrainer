@@ -14,6 +14,7 @@
  */
 
 #include <memory_pool.h>
+#include <nntrainer_log.h>
 #include <tensor.h>
 #include <tensor_pool.h>
 #include <tensor_wrap_specs.h>
@@ -132,8 +133,10 @@ void TensorPool::finalize(const MemoryPlanner &planner,
   }
 
   /** 4. finalizeLayout for the memory pool. */
-  if (bytes_requested > 0)
-    mem_pool.planLayout(planner);
+  if (bytes_requested > 0) {
+    double efficiency = mem_pool.planLayout(planner);
+    ml_logd("Memory layout efficiency = %lf", efficiency);
+  }
 }
 
 /**
