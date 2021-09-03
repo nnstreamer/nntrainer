@@ -109,35 +109,6 @@ static void col2im(const Tensor &col_matrix, const TensorDim &kdim,
   }
 }
 
-static TensorDim
-calcIm2ColOutputDim(const TensorDim &in, const TensorDim &kdim,
-                    const std::array<unsigned int, CONV2D_DIM * 2> &padding,
-                    const std::array<props::Stride, CONV2D_DIM> &mstride,
-                    const std::array<unsigned int, CONV2D_DIM> &dilation) {
-
-  unsigned pt = padding[0];
-  unsigned pb = padding[1];
-  unsigned pl = padding[2];
-  unsigned pr = padding[3];
-
-  int in_height = in.height();
-  int in_width = in.width();
-  unsigned int height = in_height + pt + pb;
-  unsigned int width = in_width + pl + pr;
-  unsigned int k_height = kdim.height();
-  unsigned int k_width = kdim.width();
-
-  /// effective kernel height considering dilation
-  unsigned int eff_k_height = (k_height - 1) * dilation[0] + 1;
-  /// effective kernel width considering dilation
-  unsigned int eff_k_width = (k_width - 1) * dilation[1] + 1;
-
-  unsigned int out_height = (height - eff_k_height) / mstride[0] + 1;
-  unsigned int out_width = (width - eff_k_width) / mstride[1] + 1;
-
-  return TensorDim({out_height * out_width, in.channel() * k_height * k_width});
-}
-
 /**
  * @brief     reform the data to 2d matrix
  * a region is sampled considering @a padding, @a mstride of unit @a kdim
@@ -219,11 +190,11 @@ static void im2col(const Tensor &in, const TensorDim &kdim,
   /// effective kernel width considering dilation
   unsigned int eff_k_width = (k_width - 1) * dilation[1] + 1;
 
-  /// out_height is not used for the optimized loop. But leaving the formula for
-  /// completeness
-  // unsigned int out_height = (height - eff_k_height) / mstride[0] + 1;
+  unsigned int out_height = (height - eff_k_height) / mstride[0] + 1;
   unsigned int out_width = (width - eff_k_width) / mstride[1] + 1;
 
+  out.reshape(
+    TensorDim({out_height * out_width, in.channel() * k_height * k_width}));
   float *out_data = out.getData();
 
   int h_stride_end = height - eff_k_height - pt;
@@ -268,7 +239,7 @@ static void im2col(const Tensor &in, const TensorDim &kdim,
 
 } // namespace
 
-enum ConvParams { weight, bias, im2col_result, col2im_result };
+enum ConvParams { weight, bias, inter_result };
 
 Conv2DLayer::Conv2DLayer(
   const std::array<unsigned int, CONV2D_DIM * 2> &padding_) :
@@ -337,13 +308,19 @@ void Conv2DLayer::finalize(InitLayerContext &context) {
       "Failed to initialize: Calculated patch end is over int max");
   }
 
-  wt_idx[ConvParams::im2col_result] = context.requestTensor(
-    calcIm2ColOutputDim(in_dim, dim, padding, stride, {1, 1}),
-    context.getName() + ":im2col", Tensor::Initializer::NONE, false,
-    TensorLifespan::ITERATION_LIFESPAN);
-  wt_idx[ConvParams::col2im_result] = context.requestTensor(
-    calcCol2ImOutputDim(out_dim, dim), context.getName() + ":col2im",
-    Tensor::Initializer::NONE, false, TensorLifespan::BACKWARD_FUNC_LIFESPAN);
+  /**
+   * @note: although col2im and im2col dims are different, the size of their
+   * memories is same. If requested separately, both im2col and col2im result
+   * memories will be valid in backwarding but used mutually exclusively.
+   * So, requested both commonly.
+   *
+   * @todo: the request has been split to forward and backward to allow reusing
+   * this memory in between. This requires another setZero() in backwarding
+   * which will be expensive.
+   */
+  wt_idx[ConvParams::inter_result] = context.requestTensor(
+    calcCol2ImOutputDim(out_dim, dim), context.getName() + ":inter_result",
+    Tensor::Initializer::NONE, false, TensorLifespan::ITERATION_LIFESPAN);
 }
 
 void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
@@ -402,7 +379,7 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
 
   filter_kernel.reshape(filter_dim_squeezed);
 
-  Tensor &im2col_result = context.getTensor(wt_idx[ConvParams::im2col_result]);
+  Tensor &im2col_result = context.getTensor(wt_idx[ConvParams::inter_result]);
   /**
    * @todo im2col_result lifespan can be epoch and then setZero can be done
    * just once at the start of training then every iteration
@@ -449,7 +426,9 @@ void Conv2DLayer::calcDerivative(RunLayerContext &context) {
   /// for each batch
   /// filter_kernel^T X derivaitive  -> column matrix
   /// col2im(column matrix) to reconstruct the original image
-  Tensor &col2im_result = context.getTensor(wt_idx[ConvParams::col2im_result]);
+  Tensor &col2im_result = context.getTensor(wt_idx[ConvParams::inter_result]);
+  col2im_result.reshape(calcCol2ImOutputDim(derivative.getDim(), filter_dim));
+
   for (unsigned int b = 0; b < derivative.batch(); ++b) {
     Tensor deriv_sub = derivative.getBatchSlice(b, 1);
     Tensor in_deriv_sub = input_derivative.getBatchSlice(b, 1);
@@ -482,7 +461,7 @@ void Conv2DLayer::calcGradient(RunLayerContext &context) {
    * no need to set zero for im2col_result, as its lifespan is ITERATION,
    * so its zero padded values will still be zero
    */
-  Tensor &im2col_result = context.getTensor(wt_idx[ConvParams::im2col_result]);
+  Tensor &im2col_result = context.getTensor(wt_idx[ConvParams::inter_result]);
   TensorDim out_dim_squeezed{filter_size,
                              derivative.width() * derivative.height()};
 
