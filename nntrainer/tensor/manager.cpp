@@ -29,10 +29,12 @@
 #include <unistd.h>
 #include <vector>
 
+#include <activation_layer.h>
 #include <basic_planner.h>
 #include <layer_node.h>
 #include <manager.h>
 #include <nntrainer_log.h>
+#include <optimized_v1_planner.h>
 #include <util_func.h>
 
 namespace nntrainer {
@@ -254,10 +256,13 @@ std::vector<Weight *>
 Manager::requestWeights(const GraphNode &node,
                         const std::vector<Weight::Spec> &weights_spec) {
   const auto &exec_order = node.getExecutionOrder();
-  std::vector<unsigned int> var_exec_order({std::get<0>(exec_order),
-                                            std::get<1>(exec_order),
-                                            std::get<2>(exec_order)});
-  std::vector<unsigned int> grad_exec_order({std::get<1>(exec_order)});
+  std::vector<unsigned int> var_exec_order(
+    {std::get<0>(exec_order), /** forwarding */
+     std::get<1>(exec_order), /** calcGradient */
+     std::get<2>(exec_order) /** calcDerivative */});
+  std::vector<unsigned int> grad_exec_order(
+    {std::get<1>(exec_order), /** calcGradient */
+    std::get<2>(exec_order) /** calcDerivative as gradient is applied after calcDerivative */ });
 
   TensorLifespan var_ls = TensorLifespan::MAX_LIFESPAN;
   TensorLifespan grad_ls = TensorLifespan::BACKWARD_FUNC_LIFESPAN;
@@ -365,9 +370,10 @@ Manager::requestInputs(const GraphNode &node,
                        const std::vector<std::string> &outputs_name) {
   const auto &exec_order = node.getExecutionOrder();
   std::vector<unsigned int> var_exec_order(
-    {std::get<0>(exec_order), std::get<2>(exec_order)});
+    {std::get<0>(exec_order), /** forwarding */
+     std::get<1>(exec_order) /** calcGradient */});
   std::vector<unsigned int> grad_exec_order(
-    {std::get<1>(exec_order), std::get<2>(exec_order)});
+    {std::get<2>(exec_order) /** calcDerivative */});
 
   TensorLifespan var_ls = TensorLifespan::ITERATION_LIFESPAN;
   TensorLifespan grad_ls = TensorLifespan::ITERATION_LIFESPAN;
@@ -440,9 +446,13 @@ Manager::requestOutputs(const GraphNode &node,
                         const std::vector<TensorDim> &outputs_dim) {
   const auto &exec_order = node.getExecutionOrder();
   std::vector<unsigned int> var_exec_order(
-    {std::get<0>(exec_order), std::get<2>(exec_order)});
+    {std::get<0>(exec_order)}); /** forwarding */
+  if (node.getType() == ActivationLayer::type)
+    /** TODO: if removing this reduces memory consumption, resolve this */
+    var_exec_order.push_back(std::get<2>(exec_order)); /** calcDerivative */
   std::vector<unsigned int> grad_exec_order(
-    {std::get<1>(exec_order), std::get<2>(exec_order)});
+    {std::get<1>(exec_order), /** calcGradient */
+     std::get<2>(exec_order) /** calcDerivative */});
 
   TensorLifespan var_ls = TensorLifespan::ITERATION_LIFESPAN;
   TensorLifespan grad_ls = TensorLifespan::ITERATION_LIFESPAN;

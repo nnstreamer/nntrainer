@@ -115,7 +115,7 @@ void TensorPool::finalize(const MemoryPlanner &planner,
     if (validity_end < start_order || validity_start > end_order)
       continue;
     validity_start = std::max(validity_start, start_order);
-    validity_end = std::max(validity_end, end_order);
+    validity_end = std::min(validity_end, end_order);
 
     /**
      * 3. requestMemory for all the tensors and set their tokens
