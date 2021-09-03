@@ -15,6 +15,10 @@
 #include <memory_planner_validate.h>
 
 #include <basic_planner.h>
+#include <optimized_v1_planner.h>
 
 INSTANTIATE_TEST_CASE_P(BasicPlanner, MemoryPlannerValidate,
                         ::testing::Values(nntrainer::BasicPlanner::type));
+
+INSTANTIATE_TEST_CASE_P(OptimizedV1Planner, MemoryPlannerValidate,
+                        ::testing::Values(nntrainer::OptimizedV1Planner::type));
