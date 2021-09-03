@@ -309,6 +309,15 @@ public:
   void deallocateWeights() { tensor_manager->deallocateWeights(); }
 
   /**
+   * @brief     Enable the memory optimizations for the network
+   *
+   * @param val true to enable, else false
+   */
+  void setMemoryOptimizations(bool val) {
+    tensor_manager->setOptimizations(val);
+  }
+
+  /**
    * @brief     Create optimizer variable for every weights
    *
    * @param cb  Call back function which will return vector of dimension

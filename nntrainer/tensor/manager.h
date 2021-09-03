@@ -111,7 +111,7 @@ public:
   /**
    * @brief     Constructor of Manager
    */
-  Manager() = default;
+  Manager() : enable_optimizations(true) {}
 
   /**
    * @brief Construct a new Manager object (deleted)
@@ -289,6 +289,13 @@ public:
    */
   void deallocateWeights();
 
+  /**
+   * @brief Set optimizations for manager
+   *
+   * @param val true to enable, else false
+   */
+  void setOptimizations(bool val) { enable_optimizations = val; }
+
 private:
   /** @todo: merge this list to one */
   std::vector<std::unique_ptr<Weight>>
@@ -302,6 +309,18 @@ private:
 
   TensorPool weight_pool; /**< tensor pool to request tensors */
   TensorPool tensor_pool; /**< tensor pool to request tensors */
+
+  bool enable_optimizations; /**< to enable memory optimizations */
+
+  /**
+   * @brief Finalize the given tensor pool
+   *
+   * @param pool Tensor pool to finalize
+   * @param start Start execution order
+   * @param end End execution order
+   */
+  void finalizeTensorPool(TensorPool &pool, unsigned int start,
+                          unsigned int end);
 };
 
 } // namespace nntrainer

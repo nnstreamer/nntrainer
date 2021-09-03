@@ -129,7 +129,7 @@ MMapedMemory::~MMapedMemory() noexcept {
 
 void Manager::allocateWeights(unsigned int max_exec_order_) {
   if (!weight_pool.isAllocated()) {
-    weight_pool.finalize(BasicPlanner(), 0, max_exec_order_);
+    finalizeTensorPool(weight_pool, 0, max_exec_order_);
     weight_pool.allocate();
   }
 }
@@ -143,7 +143,7 @@ void Manager::allocateTensors(unsigned int max_exec_order_) {
   allocateWeights(max_exec_order_);
 
   if (!tensor_pool.isAllocated()) {
-    tensor_pool.finalize(BasicPlanner(), 0, max_exec_order_);
+    finalizeTensorPool(tensor_pool, 0, max_exec_order_);
     if (tensor_pool.minMemoryRequirement() > 0)
       tensor_pool.allocate();
   }
@@ -519,6 +519,14 @@ std::vector<Weight *> Manager::getWeights() {
   }
 
   return all_weights;
+}
+
+void Manager::finalizeTensorPool(TensorPool &pool, unsigned int start,
+                                 unsigned int end) {
+  if (enable_optimizations)
+    pool.finalize(OptimizedV1Planner(), start, end);
+  else
+    pool.finalize(BasicPlanner(), start, end);
 }
 
 } // namespace nntrainer

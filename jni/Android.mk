@@ -142,6 +142,7 @@ NNTRAINER_SRCS := $(NNTRAINER_ROOT)/nntrainer/models/neuralnet.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/tensor/tensor_pool.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/tensor/memory_pool.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/tensor/basic_planner.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/tensor/optimized_v1_planner.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/tensor/blas_interface.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/layer_node.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/layer_context.cpp \

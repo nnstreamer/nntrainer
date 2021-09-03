@@ -71,7 +71,7 @@ double MemoryPool::planLayout(const MemoryPlanner &planner) {
   if (pool_size < min_pool_size || !validateLayout())
     throw std::runtime_error("Planned layout is not feasible");
 
-  return double(pool_size) / double(min_pool_size);
+  return double(min_pool_size) / double(pool_size);
 }
 
 /**
