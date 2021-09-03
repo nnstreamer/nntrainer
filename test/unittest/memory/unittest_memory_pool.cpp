@@ -480,8 +480,13 @@ TEST_P(MemoryPlannerValidate, validate_memory_no_overlap) {
   }
 
   EXPECT_NO_THROW(pool.planLayout(*planner.get()));
-  EXPECT_EQ(pool.size(),
-            std::accumulate(memory_size.begin(), memory_size.end(), 0u));
+  if (planner->getType() == nntrainer::BasicPlanner::type) {
+    EXPECT_EQ(pool.size(),
+              std::accumulate(memory_size.begin(), memory_size.end(), 0u));
+  } else {
+    EXPECT_EQ(pool.size(),
+              *std::max_element(memory_size.begin(), memory_size.end()));
+  }
   EXPECT_NO_THROW(pool.allocate());
 
   for (unsigned int idx = 0; idx < MEM_QUANT; idx++)
@@ -523,8 +528,15 @@ TEST_P(MemoryPlannerValidate, validate_memory_partial_overlap) {
   }
 
   EXPECT_NO_THROW(pool.planLayout(*planner.get()));
-  EXPECT_EQ(pool.size(),
-            std::accumulate(memory_size.begin(), memory_size.end(), 0u));
+  if (planner->getType() == nntrainer::BasicPlanner::type) {
+    EXPECT_EQ(pool.size(),
+              std::accumulate(memory_size.begin(), memory_size.end(), 0u));
+  } else {
+    EXPECT_GE(pool.size(),
+              *std::max_element(memory_size.begin(), memory_size.end()));
+    EXPECT_LE(pool.size(),
+              std::accumulate(memory_size.begin(), memory_size.end(), 0u));
+  }
   EXPECT_NO_THROW(pool.allocate());
 
   for (unsigned int idx = 0; idx < MEM_QUANT; idx++)
