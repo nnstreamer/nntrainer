@@ -55,6 +55,19 @@ public:
 };
 
 /**
+ * @brief Input Layer name property which saves a single connection
+ * (practically, std::vector<InputLayers> is used)
+ *
+ */
+class InputLayer : public Name {
+public:
+  InputLayer() : Name(){};
+  InputLayer(const std::string &name) : Name(name) {}
+  static constexpr const char *key = "input_layers";
+  using prop_tag = str_prop_tag;
+};
+
+/**
  * @brief Loss property, this defines loss specification of layer
  *
  */
@@ -131,7 +144,7 @@ LayerNode::LayerNode(std::unique_ptr<nntrainer::Layer> &&l) :
   finalized(false),
   activation_type(ActivationType::ACT_NONE),
   layer_node_props(new PropsType(props::Name(), props::Flatten(),
-                                 props::Distribute(), props::Trainable())),
+                                 props::Distribute(), props::Trainable(), {})),
   loss(new props::Loss()),
   regularization_loss(0.0f),
   exec_order({0, 0, 0}) {
@@ -230,12 +243,6 @@ bool LayerNode::setProperty(const std::string &key, const std::string &value) {
     }
     break;
   }
-  case PropertyType::input_layers: {
-    static const std::regex reg("\\,+");
-    std::vector<std::string> split_layers = split(value, reg);
-    setInputLayers(split_layers);
-    break;
-  }
   case PropertyType::num_inputs: {
     ml_logw("Deprecated property: %s", key.c_str());
     break;
@@ -253,22 +260,37 @@ const std::string LayerNode::getName() const noexcept {
 }
 
 std::ostream &operator<<(std::ostream &out, const LayerNode &l) {
+
+  auto &input_layers =
+    std::get<std::vector<props::InputLayer>>(*l.layer_node_props);
+
   out << "[" << l.getName() << '/' << l.getType() << "]\n";
-  auto print_vector = [&out](const std::vector<std::string> &layers,
-                             const std::string &title) {
+  auto print_vector = [&out](const auto &layers, const std::string &title) {
     out << title << "[" << layers.size() << "] ";
     for (auto &layer : layers) {
-      out << layer << ' ';
+      out << static_cast<std::string>(layer) << ' ';
     }
     out << '\n';
   };
 
-  print_vector(l.input_layers, " input_layers");
+  print_vector(input_layers, " input_layers");
   print_vector(l.output_layers, "output_layers");
   return out;
 }
 
 ActivationType LayerNode::getActivationType() const { return activation_type; }
+
+unsigned int LayerNode::getNumInputConnections() const {
+  auto &input_layers =
+    std::get<std::vector<props::InputLayer>>(*layer_node_props);
+  return input_layers.size();
+}
+
+const std::vector<std::string> LayerNode::getInputLayers() const {
+  auto &input_layers =
+    std::get<std::vector<props::InputLayer>>(*layer_node_props);
+  return std::vector<std::string>(input_layers.begin(), input_layers.end());
+}
 
 ActivationType LayerNode::getActivationToBeRealized() const {
   if (getType() == ActivationLayer::type)
@@ -322,18 +344,33 @@ nntrainer::Layer *LayerNode::getLayer() {
 
 void LayerNode::updateInputLayers(const std::string &from,
                                   const std::string &to) {
-  for (unsigned int idx = 0; idx < input_layers.size(); ++idx) {
-    if (istrequal(input_layers[idx], from)) {
-      input_layers[idx] = to;
+  auto &input_layers =
+    std::get<std::vector<props::InputLayer>>(*layer_node_props);
+  for (auto &input_layer : input_layers) {
+    if (istrequal(input_layer, from)) {
+      input_layer.set(to);
     }
   }
 }
 
 void LayerNode::updateInputLayers(const unsigned int idx,
                                   const std::string &to) {
-  if (idx >= input_layers.size())
-    throw std::out_of_range("Out of range for input_layers");
-  input_layers[idx] = to;
+  auto &input_layers =
+    std::get<std::vector<props::InputLayer>>(*layer_node_props);
+
+  input_layers.at(idx).set(to);
+}
+
+void LayerNode::addInputLayers(const std::string &in_layer) {
+  auto &input_layers =
+    std::get<std::vector<props::InputLayer>>(*layer_node_props);
+  input_layers.emplace_back(in_layer);
+}
+
+void LayerNode::setInputLayers(const std::vector<std::string> &layers) {
+  auto &input_layers =
+    std::get<std::vector<props::InputLayer>>(*layer_node_props);
+  input_layers = std::vector<props::InputLayer>(layers.begin(), layers.end());
 }
 
 void LayerNode::exportTo(Exporter &exporter,
@@ -366,9 +403,9 @@ void LayerNode::finalize() {
 
   init_context = InitLayerContext(init_context.getInputDimensions(),
                                   init_context.getNumOutputs(), getName());
-  if (!init_context.validate())
-    throw std::invalid_argument(
-      "Invalid init context for finalizing the layer");
+  NNTR_THROW_IF(!init_context.validate(), std::invalid_argument)
+    << "Invalid init context, name: " << getName()
+    << " initContext num inputs: " << init_context.getNumInputs();
 
   if (layer)
     layer->finalize(init_context);
@@ -433,6 +470,18 @@ float LayerNode::getLoss() const {
   return *loss;
 }
 
+void LayerNode::setInputDimension(const TensorDim &dim, unsigned int idx) {
+  NNTR_THROW_IF(idx >= getNumInputs(), std::out_of_range)
+    << "Setting dimensions out of bounds, idx: " << idx
+    << " size: " << getNumInputs() << " name: " << getName();
+
+  std::vector<TensorDim> input_dim = init_context.getInputDimensions();
+  if (input_dim[idx] != dim) {
+    input_dim[idx] = dim;
+    init_context = InitLayerContext(input_dim, init_context.getNumOutputs());
+  }
+}
+
 /**
  * @brief   Print Options when printing layer info
  */
@@ -467,6 +516,15 @@ void LayerNode::printPreset(std::ostream &out, PrintPreset preset) {
     throw ::std::invalid_argument("undefined preset given");
   }
   print(out, flags);
+}
+
+void LayerNode::resizeInputDimensions(unsigned int size) {
+  auto cur_input_dim = init_context.getInputDimensions();
+  if (cur_input_dim.size() != size) {
+    cur_input_dim.resize(size);
+    init_context =
+      InitLayerContext(cur_input_dim, init_context.getNumOutputs());
+  }
 }
 
 void LayerNode::printShapeInfo(std::ostream &out) {

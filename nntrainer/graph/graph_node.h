@@ -74,7 +74,7 @@ public:
    *
    * @return list of name of the nodes which form input connections
    */
-  virtual const std::vector<std::string> &getInputConnections() const = 0;
+  virtual const std::vector<std::string> getInputConnections() const = 0;
 
   /**
    * @brief     Get the output connections for this node

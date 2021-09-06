@@ -110,7 +110,7 @@ TEST(InputSpecProperty, setPropertyValid_p) {
     InputSpec actual;
     nntrainer::from_string("A, B, C", actual);
     EXPECT_EQ(actual, expected);
-    EXPECT_EQ("A,B,C", nntrainer::to_string(actual));
+    EXPECT_EQ("a,b,c", nntrainer::to_string(actual));
   }
 
   {
@@ -119,17 +119,17 @@ TEST(InputSpecProperty, setPropertyValid_p) {
 
     InputSpec actual;
     nntrainer::from_string("A+ B +C", actual);
-    EXPECT_EQ("A+B+C", nntrainer::to_string(actual));
+    EXPECT_EQ("a+b+c", nntrainer::to_string(actual));
 
     EXPECT_EQ(actual, expected);
   }
 
   {
-    InputSpec expected(ConnectionSpec({Name("A")}, ConnectionSpec::NoneType));
+    InputSpec expected(ConnectionSpec({Name("a")}, ConnectionSpec::NoneType));
 
     InputSpec actual;
-    nntrainer::from_string("A", actual);
-    EXPECT_EQ("A", nntrainer::to_string(actual));
+    nntrainer::from_string("a", actual);
+    EXPECT_EQ("a", nntrainer::to_string(actual));
 
     EXPECT_EQ(actual, expected);
   }

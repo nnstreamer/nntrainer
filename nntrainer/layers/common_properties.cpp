@@ -23,6 +23,21 @@
 
 namespace nntrainer {
 namespace props {
+
+Name::Name() : nntrainer::Property<std::string>() {}
+
+Name::Name(const std::string &value) { set(value); }
+
+void Name::set(const std::string &value) {
+  auto to_lower = [](const std::string &str) {
+    std::string ret = str;
+    std::transform(ret.begin(), ret.end(), ret.begin(),
+                   [](unsigned char c) { return std::tolower(c); });
+    return ret;
+  };
+  nntrainer::Property<std::string>::set(to_lower(value));
+}
+
 bool Name::isValid(const std::string &v) const {
   static std::regex allowed("[a-zA-Z0-9][-_./a-zA-Z0-9]*");
   return !v.empty() && std::regex_match(v, allowed);

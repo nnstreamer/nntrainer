@@ -48,6 +48,7 @@ class Distribute;
 class Flatten;
 class ActivationType;
 class Loss;
+class InputLayer;
 } // namespace props
 
 /**
@@ -122,7 +123,7 @@ public:
    *
    * @return list of name of the nodes which form input connections
    */
-  const std::vector<std::string> &getInputConnections() const override {
+  const std::vector<std::string> getInputConnections() const override {
     return getInputLayers();
   }
 
@@ -278,7 +279,7 @@ public:
    * @brief     Get number of input connections
    * @retval    number of inputs
    */
-  unsigned int getNumInputConnections() const { return input_layers.size(); }
+  unsigned int getNumInputConnections() const;
 
   /**
    * @brief     Get number of output connections
@@ -308,11 +309,9 @@ public:
   /**
    * @brief     Get the Input Layers object
    *
-   * @return const std::vector<std::string>&
+   * @return const std::vector<std::string>
    */
-  const std::vector<std::string> &getInputLayers() const {
-    return input_layers;
-  }
+  const std::vector<std::string> getInputLayers() const;
 
   /**
    * @brief Get the Output Layers object
@@ -344,10 +343,7 @@ public:
    *
    * @param in_layer Name to be added
    */
-  void addInputLayers(const std::string &in_layer) {
-    input_layers.push_back(in_layer);
-    resizeInputDimensions(input_layers.size());
-  }
+  void addInputLayers(const std::string &in_layer);
 
   /**
    * @brief Add name to the output layers
@@ -365,19 +361,7 @@ public:
    *
    * @param layers Name of the layers
    */
-  void setInputLayers(const std::vector<std::string> &layers) {
-    auto to_lower = [](const std::string &str) -> std::string {
-      std::string ret = str;
-      std::transform(ret.begin(), ret.end(), ret.begin(),
-                     [](unsigned char c) { return std::tolower(c); });
-      return ret;
-    };
-
-    input_layers.reserve(layers.size());
-    for (auto const &name : layers)
-      input_layers.push_back(to_lower(name));
-    resizeInputDimensions(input_layers.size());
-  }
+  void setInputLayers(const std::vector<std::string> &layers);
 
   /**
    * @brief Set the Output Layers object
@@ -564,16 +548,7 @@ public:
    * @param dim Input tensor dim
    * @param idx Index of the dim
    */
-  void setInputDimension(const TensorDim &dim, unsigned int idx) {
-    if (idx >= getNumInputs())
-      throw std::out_of_range("Setting dimensions out of bounds");
-
-    std::vector<TensorDim> input_dim = init_context.getInputDimensions();
-    if (input_dim[idx] != dim) {
-      input_dim[idx] = dim;
-      init_context = InitLayerContext(input_dim, init_context.getNumOutputs());
-    }
-  }
+  void setInputDimension(const TensorDim &dim, unsigned int idx);
 
   /**
    * @brief Preset modes for printing summary for the layer
@@ -595,13 +570,19 @@ public:
   void printPreset(std::ostream &out,
                    PrintPreset preset = PrintPreset::PRINT_SUMMARY);
 
+  /**
+   * @brief     Resize the input dimensions
+   *
+   * @param size Number of input dimensions
+   */
+  void resizeInputDimensions(unsigned int size);
+
 private:
   std::unique_ptr<nntrainer::Layer>
     layer; /**< The actual object in the graph node */
 
   bool finalized; /**< if the layer node has been finalized */
 
-  std::vector<std::string> input_layers;  /**< input layer names */
   std::vector<std::string> output_layers; /**< output layer names */
   ActivationType
     activation_type; /**< activation applied to the output of this node */
@@ -616,8 +597,9 @@ private:
                     Editing properties of the layer after init will not the
                     properties in the context/graph unless intended. */
 
-  using PropsType = std::tuple<props::Name, props::Flatten, props::Distribute,
-                               props::Trainable>;
+  using PropsType =
+    std::tuple<props::Name, props::Flatten, props::Distribute, props::Trainable,
+               std::vector<props::InputLayer>>;
   /**
    * These properties are set for the layer by the user but are intercepted
    * and used in the node which forms the basic element of the graph.
@@ -661,20 +643,6 @@ private:
    * @throw std::invalid_argument when ActivationType is unknown
    */
   void setActivation(ActivationType activation);
-
-  /**
-   * @brief     Resize the input dimensions
-   *
-   * @param size Number of input dimensions
-   */
-  void resizeInputDimensions(unsigned int size) {
-    auto cur_input_dim = init_context.getInputDimensions();
-    if (cur_input_dim.size() != size) {
-      cur_input_dim.resize(size);
-      init_context =
-        InitLayerContext(cur_input_dim, init_context.getNumOutputs());
-    }
-  }
 
   /**
    * @brief anchor point to override if PRINT_SHAPE_INFO is enabled for

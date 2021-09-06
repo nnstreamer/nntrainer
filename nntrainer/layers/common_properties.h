@@ -34,16 +34,24 @@ public:
    * @brief Construct a new Name object without a default value
    *
    */
-  Name() : nntrainer::Property<std::string>() {}
+  Name();
 
   /**
    * @brief Construct a new Name object with a default value
    *
    * @param value value to contrusct the property
    */
-  Name(const std::string &value) : nntrainer::Property<std::string>(value) {}
+  Name(const std::string &value);
+
   static constexpr const char *key = "name"; /**< unique key to access */
   using prop_tag = str_prop_tag;             /**< property type */
+
+  /**
+   * @brief Name setter
+   *
+   * @param value value to set
+   */
+  void set(const std::string &value) override;
 
   /**
    * @brief name validator
@@ -59,14 +67,10 @@ public:
  * @brief unit property, unit is used to measure how many weights are there
  *
  */
-class Unit : public nntrainer::Property<unsigned int> {
+class Unit : public PositiveIntegerProperty {
 public:
-  Unit(unsigned int value = 1) :
-    nntrainer::Property<unsigned int>(value) {} /**< default value if any */
-  static constexpr const char *key = "unit";    /**< unique key to access */
-  using prop_tag = uint_prop_tag;               /**< property type */
-
-  bool isValid(const unsigned int &v) const override { return v > 0; }
+  static constexpr const char *key = "unit"; /**< unique key to access */
+  using prop_tag = uint_prop_tag;            /**< property type */
 };
 
 /**
