@@ -30,10 +30,7 @@ public:
   /**
    * @brief     Constructor of Split Layer
    */
-  SplitLayer(unsigned int split_dim = 1) :
-    Layer(),
-    split_dimension(split_dim),
-    leading_helper_dim(1) {}
+  SplitLayer();
 
   /**
    * @brief     Destructor of Split Layer
@@ -75,8 +72,7 @@ public:
   /**
    * @copydoc Layer::exportTo(Exporter &exporter, ExportMethods method)
    */
-  void exportTo(Exporter &exporter,
-                const ExportMethods &method) const override {}
+  void exportTo(Exporter &exporter, const ExportMethods &method) const override;
 
   /**
    * @copydoc Layer::setProperty(const std::vector<std::string> &values)
@@ -105,21 +101,11 @@ public:
   }
 
 private:
-  unsigned int split_dimension; /** dimension along which to split the input */
   unsigned int leading_helper_dim; /**< batch dimension of helper dimension not
                                 containing the actual batch */
   TensorDim input_reshape_helper;  /** helper dimension to reshape input */
   TensorDim output_reshape_helper; /** helper dimension to reshape outputs */
-
-  /**
-   * @brief setProperty by type and value separated
-   * @param[in] type property type to be passed
-   * @param[in] value value to be passed
-   * @exception exception::not_supported     when property type is not valid for
-   * the particular layer
-   * @exception std::invalid_argument invalid argument
-   */
-  void setProperty(const std::string &type, const std::string &value);
+  std::tuple<props::SplitDimension> split_props;
 
   /**
    * @brief set batch for the internal variables

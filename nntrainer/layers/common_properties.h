@@ -242,6 +242,28 @@ public:
 };
 
 /**
+ * @brief SplitDimension property, dimension along which to split the input
+ *
+ */
+class SplitDimension : public nntrainer::PositiveIntegerProperty {
+public:
+  static constexpr const char *key =
+    "split_dimension";            /**< unique key to access */
+  using prop_tag = uint_prop_tag; /**< property type */
+
+  /**
+   * @brief check if given value is valid
+   *
+   * @param v value to check
+   * @retval true if it is greater than 0 and smaller than
+   * ml::train::TensorDim::MAXDIM
+   * @retval false if it is samller than 0 or greate than
+   * ml::train::TensorDim::MAXDIM
+   */
+  bool isValid(const unsigned int &value) const override;
+};
+
+/**
  * @brief Padding2D property, this is used to calculate padding2D
  * @details Padding2D is saved as a string. Upon calling Padding2D::compute,
  * returns std::vector<unsigned int> which has computed padding2Ds, below
