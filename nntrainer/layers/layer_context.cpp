@@ -15,6 +15,20 @@
 #include <weight.h>
 
 namespace nntrainer {
+RunLayerContext::RunLayerContext(const std::string &name, float l,
+                                 const std::vector<Weight *> &w,
+                                 const std::vector<Var_Grad *> &in,
+                                 const std::vector<Var_Grad *> &out,
+                                 const std::vector<Var_Grad *> &t) :
+  loss(l),
+  weights(w),
+  inputs(in),
+  outputs(out),
+  tensors(t) {
+  std::get<props::Name>(props).set(name);
+  NNTR_THROW_IF(!readyToUse(), std::invalid_argument)
+    << "run context is not ready to use upon creation";
+}
 
 /**
  * @brief Get the Weight tensor object

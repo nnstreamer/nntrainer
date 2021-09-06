@@ -58,11 +58,6 @@ class InputLayer;
 class LayerNode final : public ml::train::Layer, public GraphNode {
 public:
   /**
-   * @brief Default constructor
-   */
-  LayerNode() : LayerNode(nullptr) {}
-
-  /**
    * @brief Constructor of LayerNode class for v2
    * @param l layer to wrap with, the ownership is transferred to layer node
    *
@@ -159,17 +154,17 @@ public:
   /**
    * @brief     Finalize creating the layer node
    *
-   * @details   Input dimensions will be provided set in the context. This
-   * function must set output dimensions in the given context. Further, context
-   * can be used to request weights for the layer, and any extra tensor required
-   * for the operation of the layer.
+   * @param   input_dims input dimension provided to be used to set output
+   * dimensions. if empty function This function must set output dimensions in
+   * the given context. Further, context can be used to request weights for the
+   * layer, and any extra tensor required for the operation of the layer.
    * @note      After calling this it is not allowed to
    * change properties.
    * @note      No memory allocation must be performed in the initialization
    * step. Any tensor memory required must be requested to the context which
    * will be made available during execution of the layer with the context.
    */
-  void finalize();
+  InitLayerContext finalize(const std::vector<TensorDim> &input_dims = {});
 
   /**
    * @brief     Forward Propagation of a layer
@@ -291,20 +286,32 @@ public:
    * @brief     Get number of inputs
    * @retval    number of inputs
    */
-  unsigned int getNumInputs() const { return init_context.getNumInputs(); }
+  unsigned int getNumInputs() const {
+    NNTR_THROW_IF(!run_context, std::runtime_error)
+      << __func__ << " layer needs to be finalized first!";
+    return run_context->getNumInputs();
+  }
 
   /**
    * @brief     Get number of outputs
    * @retval    number of outputs
    */
-  unsigned int getNumOutputs() const { return init_context.getNumOutputs(); }
+  unsigned int getNumOutputs() const {
+    NNTR_THROW_IF(!run_context, std::runtime_error)
+      << __func__ << " layer needs to be finalized first!";
+    return run_context->getNumOutputs();
+  }
 
   /**
    * @brief Get the number of weights
    *
    * @return unsigned int number of weights
    */
-  unsigned int getNumWeights() const { return init_context.getNumWeights(); }
+  unsigned int getNumWeights() const {
+    NNTR_THROW_IF(!run_context, std::runtime_error)
+      << __func__ << " layer needs to be finalized first!";
+    return run_context->getNumWeights();
+  }
 
   /**
    * @brief     Get the Input Layers object
@@ -352,8 +359,6 @@ public:
    */
   void addOutputLayers(const std::string &out_layer) {
     output_layers.push_back(out_layer);
-    init_context =
-      InitLayerContext(init_context.getInputDimensions(), output_layers.size());
   }
 
   /**
@@ -370,27 +375,26 @@ public:
    */
   void setOutputLayers(const std::vector<std::string> &layers) {
     output_layers = layers;
-    init_context =
-      InitLayerContext(init_context.getInputDimensions(),
-                       std::max((unsigned int)output_layers.size(), 1u));
   }
+
+  /**
+   * @brief check if input shape property is set
+   *
+   * @return bool true if input shape property has set
+   */
+  bool hasInputShapeProperty() const;
 
   /**
    * @brief Get the input dimension
    * @return TensorDim dimension of the input
    */
-  const std::vector<TensorDim> getInputDimensions() const {
-    return init_context.getInputDimensions();
-  }
+  const std::vector<TensorDim> getInputDimensions() const;
 
   /**
    * @brief Get the output dimension
    * @return TensorDim dimension of the output
    */
-  const std::vector<TensorDim> getOutputDimensions() const {
-    return init_context.getOutputDimensions();
-  }
-
+  const std::vector<TensorDim> getOutputDimensions() const;
   /**
    * @brief Get the Weight object
    *
@@ -398,12 +402,15 @@ public:
    * @return Weight& Reference to the weight
    */
   Weight getWeightWrapper(unsigned int idx) {
-    if (run_context.weightHasGradient(idx)) {
-      return Weight(run_context.getWeight(idx), run_context.getWeightGrad(idx),
-                    run_context.getWeightName(idx));
+    NNTR_THROW_IF(!run_context, std::runtime_error)
+      << __func__ << " layer needs to be finalized first!";
+    if (run_context->weightHasGradient(idx)) {
+      return Weight(run_context->getWeight(idx),
+                    run_context->getWeightGrad(idx),
+                    run_context->getWeightName(idx));
     } else {
-      return Weight(run_context.getWeight(idx), Tensor(),
-                    run_context.getWeightName(idx));
+      return Weight(run_context->getWeight(idx), Tensor(),
+                    run_context->getWeightName(idx));
     }
   }
 
@@ -414,7 +421,9 @@ public:
    * @return Tensor& Reference to the weight tensor
    */
   Weight &getWeightObject(unsigned int idx) {
-    return run_context.getWeightObject(idx);
+    NNTR_THROW_IF(!run_context, std::runtime_error)
+      << __func__ << " layer needs to be finalized first!";
+    return run_context->getWeightObject(idx);
   }
 
   /**
@@ -423,7 +432,11 @@ public:
    * @param idx Identifier of the weight
    * @return Tensor& Reference to the weight tensor
    */
-  Tensor &getWeight(unsigned int idx) { return run_context.getWeight(idx); }
+  Tensor &getWeight(unsigned int idx) {
+    NNTR_THROW_IF(!run_context, std::runtime_error)
+      << __func__ << " layer needs to be finalized first!";
+    return run_context->getWeight(idx);
+  }
 
   /**
    * @brief Get the Weight Gradient tensor object
@@ -432,7 +445,9 @@ public:
    * @return Tensor& Reference to the weight grad tensor
    */
   Tensor &getWeightGrad(unsigned int idx) {
-    return run_context.getWeightGrad(idx);
+    NNTR_THROW_IF(!run_context, std::runtime_error)
+      << __func__ << " layer needs to be finalized first!";
+    return run_context->getWeightGrad(idx);
   }
 
   /**
@@ -442,7 +457,9 @@ public:
    * @return const std::string &Name of the weight
    */
   const std::string &getWeightName(unsigned int idx) {
-    return run_context.getWeightName(idx);
+    NNTR_THROW_IF(!run_context, std::runtime_error)
+      << __func__ << " layer needs to be finalized first!";
+    return run_context->getWeightName(idx);
   }
 
   /**
@@ -451,7 +468,11 @@ public:
    * @param idx Identifier of the input
    * @return Tensor& Reference to the input grad tensor
    */
-  Tensor &getInput(unsigned int idx) { return run_context.getInput(idx); }
+  Tensor &getInput(unsigned int idx) {
+    NNTR_THROW_IF(!run_context, std::runtime_error)
+      << __func__ << " layer needs to be finalized first!";
+    return run_context->getInput(idx);
+  }
 
   /**
    * @brief Get the Input Grad tensor object
@@ -460,7 +481,9 @@ public:
    * @return Tensor& Reference to the input grad tensor
    */
   Tensor &getInputGrad(unsigned int idx) {
-    return run_context.getInputGrad(idx);
+    NNTR_THROW_IF(!run_context, std::runtime_error)
+      << __func__ << " layer needs to be finalized first!";
+    return run_context->getInputGrad(idx);
   }
 
   /**
@@ -469,7 +492,11 @@ public:
    * @param idx Identifier of the output
    * @return Tensor& Reference to the output tensor
    */
-  Tensor &getOutput(unsigned int idx) { return run_context.getOutput(idx); }
+  Tensor &getOutput(unsigned int idx) {
+    NNTR_THROW_IF(!run_context, std::runtime_error)
+      << __func__ << " layer needs to be finalized first!";
+    return run_context->getOutput(idx);
+  }
 
   /**
    * @brief Get the Output Grad tensor object
@@ -478,7 +505,9 @@ public:
    * @return Tensor& Reference to the output grad tensor
    */
   Tensor &getOutputGrad(unsigned int idx) {
-    return run_context.getOutputGrad(idx);
+    NNTR_THROW_IF(!run_context, std::runtime_error)
+      << __func__ << " layer needs to be finalized first!";
+    return run_context->getOutputGrad(idx);
   }
 
   /**
@@ -488,7 +517,7 @@ public:
    * @return Tensor& Reference to the output grad tensor
    */
   Tensor &getOutputGradUnsafe(unsigned int idx) {
-    return run_context.getOutputGradUnsafe(idx);
+    return run_context->getOutputGradUnsafe(idx);
   }
 
   /**
@@ -519,36 +548,28 @@ public:
   friend std::ostream &operator<<(std::ostream &out, const LayerNode &l);
 
   /**
-   * @brief   Get init layer context
-   *
-   * @retval  init layer context
-   */
-  const InitLayerContext &getInitContext() const { return init_context; }
-
-  /**
    * @brief   Get run layer context
    *
    * @retval  run layer context
    */
-  const RunLayerContext &getRunContext() const { return run_context; }
-
-  /**
-   * @brief   Set run layer context
-   *
-   * @param  context Updated run layer context
-   */
-  void updateRunContext(RunLayerContext &&context) {
-    // TODO: ensure props/trainable must match
-    run_context = std::move(context);
+  const RunLayerContext &getRunContext() const {
+    NNTR_THROW_IF(!run_context, std::runtime_error)
+      << __func__ << " layer needs to be finalized first!";
+    return *run_context;
   }
 
   /**
-   * @brief Set input dimension for the layer
+   * @brief Set the Run Context object with given tensor packs
    *
-   * @param dim Input tensor dim
-   * @param idx Index of the dim
+   * @param weights weights
+   * @param inputs inputs
+   * @param outputs outputs
+   * @param tensors tensors
    */
-  void setInputDimension(const TensorDim &dim, unsigned int idx);
+  void configureRunContext(const std::vector<Weight *> &weights,
+                           const std::vector<Var_Grad *> &inputs,
+                           const std::vector<Var_Grad *> &outputs,
+                           const std::vector<Var_Grad *> &tensors);
 
   /**
    * @brief Preset modes for printing summary for the layer
@@ -570,36 +591,27 @@ public:
   void printPreset(std::ostream &out,
                    PrintPreset preset = PrintPreset::PRINT_SUMMARY);
 
-  /**
-   * @brief     Resize the input dimensions
-   *
-   * @param size Number of input dimensions
-   */
-  void resizeInputDimensions(unsigned int size);
-
 private:
   std::unique_ptr<nntrainer::Layer>
     layer; /**< The actual object in the graph node */
-
-  bool finalized; /**< if the layer node has been finalized */
 
   std::vector<std::string> output_layers; /**< output layer names */
   ActivationType
     activation_type; /**< activation applied to the output of this node */
 
-  InitLayerContext init_context; /**< context to be built for/while
-                                    initialization of the layer. This will also
-                                    contain the properties of the layer. */
-
-  RunLayerContext run_context; /**< context required for running/execution of
-                    the layer. This will also contain the properties of the
-                    layer. The properties will be copied upon final creation.
-                    Editing properties of the layer after init will not the
-                    properties in the context/graph unless intended. */
+  std::unique_ptr<RunLayerContext>
+    run_context; /**< context required for running/execution of the layer. This
+will also contain the properties of the layer. The properties will be copied
+upon final creation. Editing properties of the layer after init will not the
+properties in the context/graph unless intended. */
 
   using PropsType =
     std::tuple<props::Name, props::Flatten, props::Distribute, props::Trainable,
                std::vector<props::InputLayer>>;
+
+  std::vector<TensorDim>
+    input_shapes; /**< input shapes, @see LayerNode::finalize() to know how this
+                     is interpreted */
   /**
    * These properties are set for the layer by the user but are intercepted
    * and used in the node which forms the basic element of the graph.

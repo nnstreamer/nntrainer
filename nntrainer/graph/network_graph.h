@@ -248,13 +248,12 @@ public:
   /**
    * @brief Create run layer context from the given init layer context
    *
-   * @param init_context Init layer context to create run context
-   * @param run_context Run layer context to be created
+   * @param lnode layer node to finalize and set run context
+   * @param prev_inputs previous input information
    */
-  static std::vector<Var_Grad *>
-  updateRunContext(std::shared_ptr<Manager> &manager,
-                   const std::shared_ptr<LayerNode> &lnode,
-                   const std::vector<Var_Grad *> &inputs);
+  std::vector<Var_Grad *>
+  finalizeContext(const std::shared_ptr<LayerNode> &lnode,
+                  const std::vector<Var_Grad *> &prev_inputs);
 
   /** Interface for manager */
 
