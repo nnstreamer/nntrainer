@@ -298,6 +298,24 @@ public:
    */
   void setOptimizations(bool val) { enable_optimizations = val; }
 
+  /**
+   * @brief Update the dependency on external tensors
+   */
+  void updateExternalTensors() {
+    weight_pool.updateExternalTensors();
+    tensor_pool.updateExternalTensors();
+  }
+
+  /**
+   * @brief Update externally dependent tensors
+   *
+   * @param name Name of the tensor
+   * @param t External tensor
+   */
+  void setExternalTensor(const std::string &name, const Tensor &t) {
+    tensor_pool.setExternalTensor(name, t);
+  }
+
 private:
   /** @todo: merge this list to one */
   std::vector<std::unique_ptr<Weight>>

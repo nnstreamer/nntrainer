@@ -51,6 +51,20 @@ Tensor *TensorPool::requestTensor(const TensorDim &dim,
 }
 
 /**
+ * @brief     Request tensor with the given spec
+ *
+ * @note returns empty tensor which will be filled when allocate is called.
+ * @note we assume that the caller checks if the exec_order and lifespan are
+ * compatible.
+ */
+Tensor *
+TensorPool::requestExternallyAllocateTensor(const TensorDim &dim,
+                                            const std::string &name,
+                                            const Tensor::Initializer &init) {
+  return requestTensor(dim, {}, TensorLifespan::ZERO_LIFESPAN, name, init);
+}
+
+/**
  * @brief     Request tensor which has been already requested with the given
  * spec
  *
@@ -78,9 +92,15 @@ Tensor *TensorPool::requestPrerequestedTensor(
       spec.tensor->getInitializer() != init)
     throw std::invalid_argument("Request tensor initialization mismatch");
 
-  spec.exec_order.insert(spec.exec_order.end(), exec_order.begin(),
-                         exec_order.end());
-  spec.lifespan = enum_class_or<TensorLifespan>(spec.lifespan, lifespan);
+  /**
+   * cannot expand lifespan of zero lifespan tensor
+   * it works for externally allocated tensors as well
+   */
+  if (spec.lifespan != TensorLifespan::ZERO_LIFESPAN) {
+    spec.exec_order.insert(spec.exec_order.end(), exec_order.begin(),
+                           exec_order.end());
+    spec.lifespan = enum_class_or<TensorLifespan>(spec.lifespan, lifespan);
+  }
 
   /** @note requestTensor invalidates spec reference */
   Tensor *ret = requestTensor(dim, exec_order, lifespan, name, init);
@@ -102,7 +122,8 @@ void TensorPool::finalize(const MemoryPlanner &planner,
   unsigned int bytes_requested = 0;
   for (auto &spec : pool) {
     /** do not include dependent tensors in planning layout */
-    if (spec.dependent || spec.exec_order.empty())
+    if (spec.dependent || spec.exec_order.empty() ||
+        spec.lifespan == TensorLifespan::ZERO_LIFESPAN)
       continue;
 
     spec.token = 0;
@@ -205,6 +226,10 @@ void TensorPool::expand_lifespan(const std::string &name,
     parent_spec_idx = pool[parent_spec_idx].token;
 
   auto &spec = pool[parent_spec_idx];
+
+  if (spec.lifespan != TensorLifespan::ZERO_LIFESPAN)
+    throw std::invalid_argument("Cannot extend tensor lifespan from ZERO");
+
   spec.lifespan = enum_class_or<TensorLifespan>(spec.lifespan, lifespan);
 }
 

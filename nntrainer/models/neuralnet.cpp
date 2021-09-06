@@ -163,64 +163,6 @@ int NeuralNetwork::initialize() {
  */
 NeuralNetwork::~NeuralNetwork() = default;
 
-static void setLabels(const std::vector<Tensor> &data,
-                      const std::vector<Var_Grad *> &label_list) {
-
-  NNTR_THROW_IF(data.size() > 1 && data.size() != label_list.size(),
-                std::invalid_argument)
-    << "label size does not match with the network requirements"
-    << " label size: " << data.size()
-    << " requirements size: " << label_list.size();
-
-  /// feed or clear label
-  for (unsigned int idx = 0; idx < label_list.size(); idx++) {
-    if (data.empty())
-      label_list[idx]->initializeGradient();
-    else if (data.size() == 1)
-      label_list[idx]->initializeGradient(data[0]);
-    else
-      label_list[idx]->initializeGradient(data[idx]);
-  }
-}
-
-static void setInputs(const std::vector<Tensor> &data,
-                      const std::vector<Var_Grad *> &input_list) {
-
-  NNTR_THROW_IF(data.size() > 1 && data.size() != input_list.size(),
-                std::invalid_argument)
-    << "input size does not match with the network requirements"
-    << " input size: " << data.size()
-    << " requirements size: " << input_list.size();
-
-  /// feed or clear label
-  for (unsigned int idx = 0; idx < input_list.size(); idx++) {
-    if (data.empty())
-      input_list[idx]->initializeVariable();
-    else
-      input_list[idx]->initializeVariable(data[idx]);
-  }
-}
-
-static void setLabels(sharedConstTensors &data,
-                      const std::vector<Var_Grad *> &label_list) {
-
-  std::vector<Tensor> labels;
-  std::transform(data.begin(), data.end(), std::back_inserter(labels),
-                 [](auto const &val) { return *val.get(); });
-
-  setLabels(labels, label_list);
-}
-
-static void setInputs(sharedConstTensors &data,
-                      const std::vector<Var_Grad *> &input_list) {
-
-  std::vector<Tensor> inputs;
-  std::transform(data.begin(), data.end(), std::back_inserter(inputs),
-                 [](auto const &val) { return *val.get(); });
-
-  setInputs(inputs, input_list);
-}
-
 /**
  * @brief     forward propagation using layers object which has layer
  */
@@ -243,8 +185,7 @@ sharedConstTensors NeuralNetwork::forwarding(sharedConstTensors input,
     << " label_batch: " << label[0]->batch()
     << " target_batch: " << current_batch;
 
-  setLabels(label, model_graph.getLabelList());
-  setInputs(input, model_graph.getInputList());
+  model_graph.setInputsLabels(input, label);
 
   return forwarding(training);
 }
@@ -329,16 +270,6 @@ void NeuralNetwork::backwarding(int iteration) {
 #else
   backwarding(*iter, iteration, false);
 #endif
-}
-
-/**
- * @brief     back propagation
- *            Call backwarding function of layer in reverse order
- *            No need to call at first Input Layer (No data to be updated)
- */
-void NeuralNetwork::backwarding(sharedConstTensors label, int iteration) {
-  setLabels(label, model_graph.getLabelList());
-  backwarding(iteration);
 }
 
 void NeuralNetwork::save(const std::string &file_path,
@@ -550,8 +481,7 @@ sharedConstTensors NeuralNetwork::inference(sharedConstTensors X,
     model_graph.deallocateTensors(false);
 
   /** Clear the set inputs and labels */
-  setLabels({}, model_graph.getLabelList());
-  setInputs({}, model_graph.getInputList());
+  model_graph.setInputsLabels({}, {});
 
   return out;
 }
@@ -693,9 +623,8 @@ int NeuralNetwork::train_run() {
       }
 
       auto const &labels = iteration.getLabelsRef();
-      setLabels(labels, model_graph.getLabelList());
       auto const &inputs = iteration.getInputsRef();
-      setInputs(inputs, model_graph.getInputList());
+      model_graph.setInputsLabels(inputs, labels);
 
       on_iteration_fetch(stat, *buffer);
       on_iteration_update_stat(stat, {output}, labels);
@@ -797,8 +726,7 @@ int NeuralNetwork::train_run() {
   }
 
   /** Clear the set inputs and labels */
-  setLabels({}, model_graph.getLabelList());
-  setInputs({}, model_graph.getInputList());
+  model_graph.setInputsLabels({}, {});
 
   return status;
 }

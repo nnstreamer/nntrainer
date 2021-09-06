@@ -450,7 +450,7 @@ void GraphWatcher::compareFor(const std::string &reference,
     it->forward(iteration, true);
 
     if (loss_nodes.size()) {
-      nn.backwarding(label, iteration);
+      nn.backwarding(iteration);
 
       for (auto it = nodes.rbegin(); it != nodes.rend(); it++) {
         if (it == nodes.rend() - 1) {
@@ -462,7 +462,7 @@ void GraphWatcher::compareFor(const std::string &reference,
         }
       }
     } else {
-      EXPECT_THROW(nn.backwarding(label, iteration), std::runtime_error);
+      EXPECT_THROW(nn.backwarding(iteration), std::runtime_error);
     }
   }
 
@@ -489,7 +489,7 @@ void GraphWatcher::validateFor(const nntrainer::TensorDim &label_shape) {
   }
 
   if (loss_nodes.size()) {
-    EXPECT_NO_THROW(nn.backwarding(label, 0));
+    EXPECT_NO_THROW(nn.backwarding(0));
   }
 
   /**

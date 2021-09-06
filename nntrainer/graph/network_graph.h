@@ -336,18 +336,21 @@ public:
   }
 
   /**
-   * @brief Get the Input List for the graph
+   * @brief Feed inputs and labels to the graph
    *
-   * @return const std::vector<Var_Grad *>& lists of inputs
+   * @param inputs Input data
+   * @param labels Label data
    */
-  const std::vector<Var_Grad *> &getInputList() { return input_list; };
+  void setInputsLabels(const std::vector<Tensor> &inputs,
+                       const std::vector<Tensor> &labels);
 
   /**
-   * @brief Get the Label List for the graph
+   * @brief Feed inputs and labels to the graph
    *
-   * @return const std::vector<Var_Grad *>& lists of labels
+   * @param inputs Input data
+   * @param labels Label data
    */
-  const std::vector<Var_Grad *> &getLabelList() { return label_list; };
+  void setInputsLabels(sharedConstTensors &inputs, sharedConstTensors &labels);
 
 private:
   std::map<std::string, std::string> sub_in_out; /** This is map to identify
@@ -360,8 +363,10 @@ private:
                                   at the start of the graph */
   bool compiled;               /**< if the model graph is compiled */
   unsigned int batch_size;     /**< current batch_size */
-  std::vector<Var_Grad *> label_list; /**< var_grads for the labels */
-  std::vector<Var_Grad *> input_list; /**< var_grads for the inputs */
+  // std::vector<Var_Grad *> label_list; /**< var_grads for the labels */
+  // std::vector<Var_Grad *> input_list; /**< var_grads for the inputs */
+  std::vector<std::string> label_list; /**< var_grads for the labels */
+  std::vector<std::string> input_list; /**< var_grads for the inputs */
   ExecutionMode exec_mode; /**< execution mode with which the graph has been
                               currently set or previously set */
 
@@ -493,6 +498,15 @@ private:
    * is expected to be called right after calcGradient().
    */
   void setExecutionOrder();
+
+  /**
+   * @brief Set external data to the given tensors with name
+   *
+   * @param data External data
+   * @param names Names of the tensor to set the data to
+   */
+  void setExternalTensors(const std::vector<Tensor> &data,
+                          const std::vector<std::string> names);
 };
 
 } // namespace nntrainer

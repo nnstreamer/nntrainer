@@ -335,7 +335,7 @@ TEST(TensorPool, allocate_deallocate_03_p) {
 
   EXPECT_NO_THROW(
     t1 = pool.requestTensor(nntrainer::TensorDim({1}), {0},
-                            nntrainer::TensorLifespan::ZERO_LIFESPAN, "abc"));
+                            nntrainer::TensorLifespan::MAX_LIFESPAN, "abc"));
   EXPECT_NE(t1, nullptr);
   EXPECT_FALSE(t1->isAllocated());
 

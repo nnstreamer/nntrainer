@@ -47,6 +47,7 @@ makeGraph(const std::vector<LayerRepresentation> &layer_reps) {
     graph->addLayer(layer);
   }
 
+  graph->setMemoryOptimizations(false);
   return graph;
 }
 
@@ -174,7 +175,13 @@ auto fc1 = LayerRepresentation("fully_connected", {"name=fc1", "unit=2"});
 auto flatten = LayerRepresentation("flatten", {"name=flat"});
 
 #ifdef ENABLE_TFLITE_INTERPRETER
-TEST(nntrainerInterpreterTflite, simple_fc) {
+
+/**
+ * TODO: update tflite interpreter after the change of semantics that tensors
+ * are different between input and output of a layer but the underlying data
+ * is same. Once the interpreter is updated, this test can be enabled.
+ */
+TEST(nntrainerInterpreterTflite, DISABLED_simple_fc) {
 
   nntrainer::TfliteInterpreter interpreter;
 
@@ -227,12 +234,7 @@ TEST(nntrainerInterpreterTflite, simple_fc) {
   nntrainer::Tensor ans(nntrainer::TensorDim({1, 1, 1, 2}));
   ans.setValue(7.0f);
 
-  /**
-   * TODO: update tflite interpreter after the change of semantics that tensors
-   * are different between input and output of a layer but the underlying data
-   * is same. Once the interpreter is updated, this test can be enabled.
-   */
-  // EXPECT_EQ(out, ans);
+  EXPECT_EQ(out, ans);
 
   if (remove("test.tflite")) {
     std::cerr << "remove ini "
