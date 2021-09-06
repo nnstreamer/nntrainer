@@ -22,17 +22,14 @@ namespace nntrainer {
 /**
  * @class   EmbeddingLayer
  * @brief   EmbeddingLayer
+ * @todo    Support setBatch for EmbeddingLayer
  */
 class EmbeddingLayer : public LayerImpl {
 public:
   /**
    * @brief     Constructor of Embedding Layer
    */
-  EmbeddingLayer(unsigned int in_dim_ = 0, unsigned int out_dim_ = 0) :
-    LayerImpl(),
-    in_dim(in_dim_),
-    out_dim(out_dim_),
-    weight_idx(0) {}
+  EmbeddingLayer();
 
   /**
    * @brief     Destructor of Embedding Layer
@@ -74,10 +71,7 @@ public:
   /**
    * @copydoc Layer::exportTo(Exporter &exporter, ExportMethods method)
    */
-  void exportTo(Exporter &exporter,
-                const ExportMethods &method) const override {
-    LayerImpl::exportTo(exporter, method);
-  }
+  void exportTo(Exporter &exporter, const ExportMethods &method) const override;
 
   /**
    * @copydoc Layer::getType()
@@ -100,19 +94,8 @@ public:
   inline static const std::string type = "embedding";
 
 private:
-  unsigned int in_dim;
-  unsigned int out_dim;
+  std::tuple<props::InDim, props::OutDim> embedding_props;
   unsigned int weight_idx;
-
-  /**
-   * @brief setProperty by type and value separated
-   * @param[in] type property type to be passed
-   * @param[in] value value to be passed
-   * @exception exception::not_supported     when property type is not valid for
-   * the particular layer
-   * @exception std::invalid_argument invalid argument
-   */
-  void setProperty(const std::string &type_str, const std::string &value);
 };
 } // namespace nntrainer
 

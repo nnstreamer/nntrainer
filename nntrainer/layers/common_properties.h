@@ -277,6 +277,27 @@ public:
 };
 
 /**
+ * @brief InDim property, in dim is the size of vocabulary in the text data
+ *
+ */
+class InDim : public nntrainer::PositiveIntegerProperty {
+public:
+  static constexpr const char *key = "in_dim"; /**< unique key to access */
+  using prop_tag = uint_prop_tag;              /**< property type */
+};
+
+/**
+ * @brief OutDim property, out dim is the size of the vector space
+ *  in which words will be embedded
+ *
+ */
+class OutDim : public nntrainer::PositiveIntegerProperty {
+public:
+  static constexpr const char *key = "out_dim"; /**< unique key to access */
+  using prop_tag = uint_prop_tag;               /**< property type */
+};
+
+/**
  * @brief DropOutSpec property, this defines drop out specification of layer
  *
  */
