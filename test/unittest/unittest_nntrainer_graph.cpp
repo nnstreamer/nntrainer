@@ -114,7 +114,7 @@ TEST_P(nntrainerGraphTest, loadConfig) {
     output.setValue(i, 0, 0, 3, 1.0);
 
   NN.forwarding({MAKE_SHARED_TENSOR(input)}, {MAKE_SHARED_TENSOR(output)});
-  NN.backwarding({MAKE_SHARED_TENSOR(output)}, 1);
+  NN.backwarding(1);
 }
 
 static nntrainer::IniSection nw_base("model", "Type = NeuralNetwork | "

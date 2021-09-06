@@ -426,7 +426,7 @@ void NetworkGraph::setBatchSize(unsigned int batch_size) {
     return;
 
   this->batch_size = batch_size;
-  if (!input_list.empty() and input_list[0]->getDim().batch() == batch_size)
+  if (!input_list.empty() && getInputDimension()[0].batch() == batch_size)
     return;
 
   auto allocated = tensor_manager->isAllocated();
@@ -718,7 +718,8 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
    * In-Place optimizations
    */
   std::vector<std::string> inputs_name;
-  if (lnode->getType() == FlattenLayer::type)
+  if (lnode->getType() == FlattenLayer::type ||
+      lnode->getType() == InputLayer::type)
     std::transform(inputs.begin(), inputs.end(),
                    std::back_inserter(inputs_name),
                    [](const Var_Grad *val) { return val->getName(); });
@@ -736,11 +737,14 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
    * running the graph.
    */
   if (gnode.getInputConnections().empty())
-    input_list.insert(input_list.end(), inputs.begin(), inputs.end());
+    std::transform(inputs.begin(), inputs.end(), std::back_inserter(input_list),
+                   [](auto const &val) { return val->getName(); });
   /** @todo check compatibility of requireLabel() and
    * getOutputConnections().empty() */
   if (lnode->requireLabel())
-    label_list.insert(label_list.end(), outputs.begin(), outputs.end());
+    std::transform(outputs.begin(), outputs.end(),
+                   std::back_inserter(label_list),
+                   [](auto const &val) { return val->getGradientName(); });
 
   lnode->configureRunContext(
     // TODO: update weights spec for trainable based on layer trainable prop
@@ -808,6 +812,54 @@ int NetworkGraph::initialize() {
     }
   }
   return status;
+}
+
+void NetworkGraph::setExternalTensors(const std::vector<Tensor> &data,
+                                      const std::vector<std::string> names) {
+
+  /// feed or clear label
+  for (unsigned int idx = 0; idx < names.size(); idx++) {
+    if (data.empty())
+      tensor_manager->setExternalTensor(names[idx], Tensor());
+    else if (data.size() == 1)
+      tensor_manager->setExternalTensor(names[idx], data[0]);
+    else
+      tensor_manager->setExternalTensor(names[idx], data[idx]);
+  }
+}
+
+void NetworkGraph::setInputsLabels(const std::vector<Tensor> &inputs,
+                                   const std::vector<Tensor> &labels) {
+
+  NNTR_THROW_IF(labels.size() > 1 && labels.size() != label_list.size(),
+                std::invalid_argument)
+    << "label size does not match with the network requirements"
+    << " label size: " << labels.size()
+    << " requirements size: " << label_list.size();
+
+  NNTR_THROW_IF(inputs.size() > 1 && inputs.size() != input_list.size(),
+                std::invalid_argument)
+    << "input size does not match with the network requirements"
+    << " input size: " << inputs.size()
+    << " requirements size: " << input_list.size();
+
+  setExternalTensors(inputs, input_list);
+  setExternalTensors(labels, label_list);
+  tensor_manager->updateExternalTensors();
+}
+
+void NetworkGraph::setInputsLabels(sharedConstTensors &inputs,
+                                   sharedConstTensors &labels) {
+
+  std::vector<Tensor> ins;
+  std::transform(inputs.begin(), inputs.end(), std::back_inserter(ins),
+                 [](auto const &val) { return *val.get(); });
+
+  std::vector<Tensor> labs;
+  std::transform(labels.begin(), labels.end(), std::back_inserter(labs),
+                 [](auto const &val) { return *val.get(); });
+
+  setInputsLabels(ins, labs);
 }
 
 } /* namespace nntrainer */

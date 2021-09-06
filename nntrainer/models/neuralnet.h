@@ -210,13 +210,6 @@ public:
 
   /**
    * @brief     Backward Propagation of the neural network
-   * @param[in] label List of Label Tensors for the model
-   * @param[in] iteration Iteration Number for the optimizer
-   */
-  void backwarding(sharedConstTensors label, int iteration);
-
-  /**
-   * @brief     Backward Propagation of the neural network
    * @param[in] iteration Iteration Number for the optimizer
    */
   void backwarding(int iteration);

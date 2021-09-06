@@ -65,6 +65,22 @@ public:
                 const Tensor::Initializer &init = Tensor::Initializer::NONE);
 
   /**
+   * @brief     Request tensor with the given name which will be allocated
+   * externally
+   *
+   * @param dim Tensor dimensions
+   * @param name Name of this tensor
+   * @param init Initializer of the tensor
+   *
+   * @return ptr to the created tensor
+   *
+   * @note returns empty tensor which must be filled by the caller before use.
+   */
+  Tensor *requestExternallyAllocateTensor(
+    const TensorDim &dim, const std::string &name,
+    const Tensor::Initializer &init = Tensor::Initializer::NONE);
+
+  /**
    * @brief     Request tensor which has been already requested with the given
    * spec
    *
@@ -172,6 +188,34 @@ public:
    */
   Tensor *getTensor(const std::string &name) {
     return pool[name_map.at(name)].tensor.get();
+  }
+
+  /**
+   * @brief Update externally dependent tensors
+   *
+   * @param name Name of the tensor
+   * @param t External tensor
+   *
+   * @note Update externally dependent tensors data ptrs from their parents
+   */
+  void setExternalTensor(const std::string &name, const Tensor &t) {
+    auto &spec = pool[name_map.at(name)];
+    if (spec.lifespan != TensorLifespan::ZERO_LIFESPAN)
+      throw std::invalid_argument(
+        "Cannot set external tensor for non-zero lifespan");
+
+    spec.tensor->setData(t.getData());
+  }
+
+  /**
+   * @brief Update externally dependent tensors
+   *
+   * @note Update externally dependent tensors data ptrs from their parents
+   */
+  void updateExternalTensors() {
+    for (auto &spec : pool)
+      if (spec.dependent)
+        spec.tensor->setData(pool[spec.token].tensor->getData());
   }
 
 private:

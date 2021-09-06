@@ -44,6 +44,7 @@ void Var_Grad::initializeVariable(const Tensor &preallocated) {
     var->setData(preallocated.getData());
   else
     var = std::make_shared<Tensor>(preallocated);
+  // var = std::make_shared<Tensor>(preallocated);
   /** intentionally not initialized tensor memory for shared tensors */
 }
 

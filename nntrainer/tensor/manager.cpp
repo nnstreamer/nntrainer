@@ -403,7 +403,6 @@ Manager::requestInputs(const GraphNode &node,
         Tensor::Initializer::ZEROS                 /// tensor initializer
       );
     } else if (!node.getInputConnections().empty()) {
-      /** skip requesting tensor for input */
       var = tensor_pool.requestTensor(
         dim, /// tensor dim
         var_exec_order, var_ls,
@@ -417,6 +416,28 @@ Manager::requestInputs(const GraphNode &node,
         var_name + Var_Grad::grad_suffix, /// name
         Tensor::Initializer::ZEROS        /// tensor initializer
       );
+    } else {
+      /** requesting externally allocated tensor for input */
+      var = tensor_pool.requestExternallyAllocateTensor(
+        dim,                      /// tensor dim
+        var_name,                 /// name
+        Tensor::Initializer::NONE /// tensor initializer
+      );
+
+#ifdef ENABLE_TEST
+      grad = tensor_pool.requestTensor(
+        dim, /// tensor dim
+        grad_exec_order, grad_ls,
+        var_name + Var_Grad::grad_suffix, /// name
+        Tensor::Initializer::ZEROS        /// tensor initializer
+      );
+#else
+      grad = tensor_pool.requestExternallyAllocateTensor(
+        dim,                              /// tensor dim
+        var_name + Var_Grad::grad_suffix, /// name
+        Tensor::Initializer::ZEROS        /// tensor initializer
+      );
+#endif
     }
 
     /**
@@ -477,7 +498,7 @@ Manager::requestOutputs(const GraphNode &node,
       );
 
       /** skip requesting tensor for label */
-      if (!node.getOutputConnections().empty())
+      if (!node.getOutputConnections().empty()) {
         grad = tensor_pool.requestPrerequestedTensor(
           dim, /// tensor dim
           grad_exec_order, grad_ls,
@@ -485,6 +506,14 @@ Manager::requestOutputs(const GraphNode &node,
           inputs_name[idx] + Var_Grad::grad_suffix, /// shared name
           Tensor::Initializer::ZEROS                /// tensor initializer
         );
+      } else {
+        /** requesting externally allocated tensor for label */
+        grad = tensor_pool.requestExternallyAllocateTensor(
+          dim,                              /// tensor dim
+          var_name + Var_Grad::grad_suffix, /// name
+          Tensor::Initializer::ZEROS        /// tensor initializer
+        );
+      }
     } else {
       var = tensor_pool.requestTensor(
         dim, /// tensor dim
@@ -493,14 +522,21 @@ Manager::requestOutputs(const GraphNode &node,
         Tensor::Initializer::NONE /// tensor initializer
       );
 
-      /** skip requesting tensor for label */
-      if (!node.getOutputConnections().empty())
+      if (!node.getOutputConnections().empty()) {
         grad = tensor_pool.requestTensor(
           dim, /// tensor dim
           grad_exec_order, grad_ls,
           var_name + Var_Grad::grad_suffix, /// name
           Tensor::Initializer::ZEROS        /// tensor initializer
         );
+      } else {
+        /** requesting externally allocated tensor for label */
+        grad = tensor_pool.requestExternallyAllocateTensor(
+          dim,                              /// tensor dim
+          var_name + Var_Grad::grad_suffix, /// name
+          Tensor::Initializer::ZEROS        /// tensor initializer
+        );
+      }
     }
 
     outputs_v2.emplace_back(std::make_unique<Var_Grad>(var, grad));
