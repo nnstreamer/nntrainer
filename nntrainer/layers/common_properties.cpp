@@ -43,6 +43,10 @@ bool Name::isValid(const std::string &v) const {
   return !v.empty() && std::regex_match(v, allowed);
 }
 
+Normalization::Normalization(bool value) { set(value); }
+
+Standardization::Standardization(bool value) { set(value); }
+
 bool DropOutSpec::isValid(const float &v) const {
   if (v <= 0.0)
     return false;

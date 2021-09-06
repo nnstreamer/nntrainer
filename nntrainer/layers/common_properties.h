@@ -103,6 +103,38 @@ public:
 };
 
 /**
+ * @brief Normalization property, normalize the input to be in range [0, 1] if
+ * true
+ *
+ */
+class Normalization : public nntrainer::Property<bool> {
+public:
+  /**
+   * @brief Construct a new Normalization object
+   *
+   */
+  Normalization(bool value = false);
+  static constexpr const char *key = "normalization";
+  using prop_tag = bool_prop_tag;
+};
+
+/**
+ * @brief Standardization property, standardization standardize the input
+ * to be mean 0 and std 1 if true
+ *
+ */
+class Standardization : public nntrainer::Property<bool> {
+public:
+  /**
+   * @brief Construct a new Standardization object
+   *
+   */
+  Standardization(bool value = false);
+  static constexpr const char *key = "standardization";
+  using prop_tag = bool_prop_tag;
+};
+
+/**
  * @brief RAII class to define the connection spec
  *
  */
