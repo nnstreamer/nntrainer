@@ -50,7 +50,7 @@ static bool validateNoOverlap(const std::vector<size_t> &memory_size,
 
   /** This ensures that there are no unnecessary gaps in between */
   EXPECT_EQ(mem_overlap.size(),
-            std::accumulate(mem_overlap.begin(), mem_overlap.end(), 0));
+            std::accumulate(mem_overlap.begin(), mem_overlap.end(), 0u));
 
   return true;
 }
@@ -102,7 +102,7 @@ TEST_P(MemoryPlannerValidate, full_overlap) {
     planner->planLayout(memory_size, memory_validity, memory_offset);
 
   EXPECT_EQ(pool_size,
-            std::accumulate(memory_size.begin(), memory_size.end(), 0));
+            std::accumulate(memory_size.begin(), memory_size.end(), 0u));
   EXPECT_TRUE(validateNoOverlap(memory_size, memory_offset, pool_size));
   EXPECT_TRUE(validateOverflow(memory_size, memory_offset, pool_size));
 }
@@ -131,7 +131,7 @@ TEST_P(MemoryPlannerValidate, none_overlap) {
   EXPECT_TRUE(validateOverflow(memory_size, memory_offset, pool_size));
   if (planner->getType() == nntrainer::BasicPlanner::type) {
     EXPECT_EQ(pool_size,
-              std::accumulate(memory_size.begin(), memory_size.end(), 0));
+              std::accumulate(memory_size.begin(), memory_size.end(), 0u));
     EXPECT_TRUE(validateNoOverlap(memory_size, memory_offset, pool_size));
   } else {
     EXPECT_EQ(pool_size,
@@ -167,7 +167,7 @@ TEST_P(MemoryPlannerValidate, partial_overlap) {
   EXPECT_TRUE(validateOverflow(memory_size, memory_offset, pool_size));
   if (planner->getType() == nntrainer::BasicPlanner::type) {
     EXPECT_EQ(pool_size,
-              std::accumulate(memory_size.begin(), memory_size.end(), 0));
+              std::accumulate(memory_size.begin(), memory_size.end(), 0u));
     EXPECT_TRUE(validateNoOverlap(memory_size, memory_offset, pool_size));
   } else {
     EXPECT_EQ(pool_size,
