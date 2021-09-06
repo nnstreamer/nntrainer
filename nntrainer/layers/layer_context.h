@@ -40,19 +40,17 @@ public:
   /**
    * @brief Construct a new Init Layer Context object
    *
-   */
-  InitLayerContext() : InitLayerContext({}, 1) {}
-
-  /**
-   * @brief Construct a new Init Layer Context object
-   *
    * @param dim Input dimensions for the layer
    */
   InitLayerContext(const std::vector<TensorDim> &dim, unsigned int num_out,
-                   const std::string &n = "") :
+                   const std::string &n) :
     input_dim(dim),
     num_outputs(num_out),
-    name(n) {}
+    name(n) {
+    NNTR_THROW_IF(!validate(), std::invalid_argument)
+      << "Invalid init context name: " << name
+      << " num inputs: " << getNumInputs();
+  }
 
   /**
    * @brief   get name by the layer
@@ -269,8 +267,9 @@ public:
       }
     }
 
-    if (name.empty())
+    if (name.empty()) {
       return false;
+    }
 
     return true;
   }
@@ -301,20 +300,6 @@ class RunLayerContext {
 public:
   /**
    * @brief Construct a new Run Layer Context object
-   *
-   */
-  RunLayerContext() : loss(0.0) {}
-
-  /**
-   * @brief Construct a new Run Layer Context object
-   *
-   */
-  RunLayerContext(const std::string &name) : RunLayerContext() {
-    std::get<props::Name>(props).set(name);
-  }
-
-  /**
-   * @brief Construct a new Run Layer Context object
    * @todo  Include properties like name/trainable later
    *
    * @param w weights of the layer
@@ -326,14 +311,7 @@ public:
                   const std::vector<Weight *> &w,
                   const std::vector<Var_Grad *> &in,
                   const std::vector<Var_Grad *> &out,
-                  const std::vector<Var_Grad *> &t) :
-    loss(l),
-    weights(w),
-    inputs(in),
-    outputs(out),
-    tensors(t) {
-    std::get<props::Name>(props).set(name);
-  }
+                  const std::vector<Var_Grad *> &t);
 
   /**
    * @brief Get the Weight tensor object

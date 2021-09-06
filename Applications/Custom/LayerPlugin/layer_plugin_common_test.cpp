@@ -46,8 +46,8 @@ TEST_P(LayerPluginCommonTest, DefaultEnvironmentPath_p) {
   auto lnode = std::static_pointer_cast<nntrainer::LayerNode>(l);
 
   EXPECT_THROW(lnode->setProperty({"invalid_values"}), std::invalid_argument);
-  EXPECT_EQ(lnode->getOutputDimensions().size(), size_t(0));
-  EXPECT_EQ(lnode->getInputDimensions().size(), size_t(0));
+  EXPECT_THROW(lnode->getOutputDimensions(), std::runtime_error);
+  EXPECT_THROW(lnode->getInputDimensions(), std::runtime_error);
 }
 
 TEST_P(LayerPluginCommonTest, DefaultEnvironmentPathLayerNotExist_n) {

@@ -141,8 +141,9 @@ createLayerNode(std::unique_ptr<nntrainer::Layer> &&layer,
 
 LayerNode::LayerNode(std::unique_ptr<nntrainer::Layer> &&l) :
   layer(std::move(l)),
-  finalized(false),
   activation_type(ActivationType::ACT_NONE),
+  run_context(nullptr),
+  input_shapes(),
   layer_node_props(new PropsType(props::Name(), props::Flatten(),
                                  props::Distribute(), props::Trainable(), {})),
   loss(new props::Loss()),
@@ -207,11 +208,11 @@ bool LayerNode::setProperty(const std::string &key, const std::string &value) {
   PropertyType type = static_cast<PropertyType>(parseLayerProperty(key));
   switch (type) {
   case PropertyType::input_shape: {
-    std::vector<TensorDim> input_dim = init_context.getInputDimensions();
-    if (getNumInputs() > 1) {
+    std::vector<TensorDim> input_dim = input_shapes;
+    if (input_shapes.size() > 1) {
       throw std::invalid_argument("input_shape keyword is only for one input");
     }
-    if (getNumInputs() == 0)
+    if (input_shapes.empty())
       input_dim.resize(1);
 
     TensorDim &in_dim = input_dim[0];
@@ -231,8 +232,7 @@ bool LayerNode::setProperty(const std::string &key, const std::string &value) {
       /** set back to cache value of dimension */
       in_dim.batch(cache_batch_size);
       throw_status(status);
-
-      init_context = InitLayerContext(input_dim, init_context.getNumOutputs());
+      input_shapes = std::move(input_dim);
     }
   } break;
   case PropertyType::activation: {
@@ -373,6 +373,36 @@ void LayerNode::setInputLayers(const std::vector<std::string> &layers) {
   input_layers = std::vector<props::InputLayer>(layers.begin(), layers.end());
 }
 
+bool LayerNode::hasInputShapeProperty() const { return !input_shapes.empty(); }
+
+const std::vector<TensorDim> LayerNode::getInputDimensions() const {
+  NNTR_THROW_IF(!run_context, std::runtime_error)
+    << __func__ << " layer needs to be finalized first!";
+  auto sz = run_context->getNumInputs();
+  std::vector<TensorDim> dims;
+  dims.reserve(sz);
+
+  for (auto i = 0u; i < sz; ++i) {
+    dims.push_back(run_context->getInput(i).getDim());
+  }
+
+  return dims;
+}
+
+const std::vector<TensorDim> LayerNode::getOutputDimensions() const {
+  NNTR_THROW_IF(!run_context, std::runtime_error)
+    << __func__ << " layer needs to be finalized first!";
+  auto sz = run_context->getNumOutputs();
+  std::vector<TensorDim> dims;
+  dims.reserve(sz);
+
+  for (auto i = 0u; i < sz; ++i) {
+    dims.push_back(run_context->getOutput(i).getDim());
+  }
+
+  return dims;
+}
+
 void LayerNode::exportTo(Exporter &exporter,
                          const ExportMethods &method) const {
   exporter.saveResult(*layer_node_props, method, this);
@@ -382,69 +412,93 @@ void LayerNode::exportTo(Exporter &exporter,
 }
 
 void LayerNode::read(std::ifstream &file) {
-  for (unsigned int i = 0; i < run_context.getNumWeights(); ++i) {
-    run_context.getWeight(i).read(file);
+  NNTR_THROW_IF(!run_context, std::runtime_error)
+    << __func__ << " layer needs to be finalized first!";
+  for (unsigned int i = 0; i < run_context->getNumWeights(); ++i) {
+    run_context->getWeight(i).read(file);
   }
 }
 
 void LayerNode::save(std::ofstream &file) const {
-  for (unsigned int i = 0; i < run_context.getNumWeights(); ++i) {
-    run_context.getWeight(i).save(file);
+  NNTR_THROW_IF(!run_context, std::runtime_error)
+    << __func__ << " layer needs to be finalized first!";
+  for (unsigned int i = 0; i < run_context->getNumWeights(); ++i) {
+    run_context->getWeight(i).save(file);
   }
 }
 
 /**
  * @brief     Finalize creating the layer node
  */
-void LayerNode::finalize() {
+InitLayerContext LayerNode::finalize(const std::vector<TensorDim> &input_dims) {
+  std::vector<TensorDim> actual_input_dims;
+  auto &prop_dims = input_shapes;
+  if (!input_dims.empty()) {
+    actual_input_dims = input_dims;
+    if (!prop_dims.empty()) {
+      /// if prop_dims exist, check if it's same with given input_dims
+      NNTR_THROW_IF(input_dims != prop_dims, std::invalid_argument)
+        << "calculated input dimension is different from given input_shape "
+           "property";
+    }
+  } else {
+    actual_input_dims = prop_dims;
+  }
+
+  NNTR_THROW_IF(input_dims.size() < getNumInputConnections(),
+                std::invalid_argument)
+    << "number of input dimensions must be equal or larger "
+    << "than number of input connections, node name: " << getName()
+    << " num input dims: " << input_dims.size()
+    << " num connections: " << getNumInputConnections();
+
   /** Create init context right before finalize */
-  if (finalized)
+  if (run_context)
     throw std::runtime_error("Finalizing a layer which is already finalized");
 
-  init_context = InitLayerContext(init_context.getInputDimensions(),
-                                  init_context.getNumOutputs(), getName());
-  NNTR_THROW_IF(!init_context.validate(), std::invalid_argument)
-    << "Invalid init context, name: " << getName()
-    << " initContext num inputs: " << init_context.getNumInputs();
+  auto num_outputs = output_layers.size();
+  if (output_layers.empty()) {
+    num_outputs = 1;
+  }
 
-  if (layer)
-    layer->finalize(init_context);
-  finalized = true;
-  run_context = RunLayerContext(getName());
+  auto init_context =
+    InitLayerContext(actual_input_dims, num_outputs, getName());
+
+  layer->finalize(init_context);
+  return init_context;
 }
 
 /**
  * @brief     Forward Propagation of a layer
  */
 void LayerNode::forwarding(bool training) {
-  loss->set(run_context.getRegularizationLoss());
-  layer->forwarding(run_context, training);
+  loss->set(run_context->getRegularizationLoss());
+  layer->forwarding(*run_context, training);
 }
 
 /**
  * @brief     calc the derivative to be passed to the previous layer
  */
-void LayerNode::calcDerivative() { layer->calcDerivative(run_context); }
+void LayerNode::calcDerivative() { layer->calcDerivative(*run_context); }
 
 /**
  * @brief     Calculate the derivative of a layer
  */
-void LayerNode::calcGradient() { layer->calcGradient(run_context); }
+void LayerNode::calcGradient() { layer->calcGradient(*run_context); }
 
 /**
  * @brief Set the batch for the layer
  */
 void LayerNode::setBatch(unsigned int batch) {
-  run_context.setBatch(batch);
-  init_context.setBatch(batch);
+  /** @todo we won't going to need Layer::setBatch(InitLayerContext), remove it
+   */
+  for (auto &input_shape : input_shapes) {
+    input_shape.batch(batch);
+  }
 
-  if (finalized) {
-    if (run_context.readyToUse()) {
-      getLayer()->setBatch(run_context, batch);
-    } else {
-      /** run_context has not been created yet */
-      getLayer()->setBatch(init_context, batch);
-    }
+  if (run_context) {
+    run_context->setBatch(batch);
+    getLayer()->setBatch(*run_context, batch);
   }
 }
 
@@ -465,21 +519,17 @@ bool LayerNode::requireLabel() const { return getLayer()->requireLabel(); }
 float LayerNode::getLoss() const {
   /** add loss only for loss layers */
   if (requireLabel())
-    loss->set(*loss + run_context.getLoss());
+    loss->set(*loss + run_context->getLoss());
 
   return *loss;
 }
 
-void LayerNode::setInputDimension(const TensorDim &dim, unsigned int idx) {
-  NNTR_THROW_IF(idx >= getNumInputs(), std::out_of_range)
-    << "Setting dimensions out of bounds, idx: " << idx
-    << " size: " << getNumInputs() << " name: " << getName();
-
-  std::vector<TensorDim> input_dim = init_context.getInputDimensions();
-  if (input_dim[idx] != dim) {
-    input_dim[idx] = dim;
-    init_context = InitLayerContext(input_dim, init_context.getNumOutputs());
-  }
+void LayerNode::configureRunContext(const std::vector<Weight *> &weights,
+                                    const std::vector<Var_Grad *> &inputs,
+                                    const std::vector<Var_Grad *> &outputs,
+                                    const std::vector<Var_Grad *> &tensors) {
+  run_context = std::make_unique<RunLayerContext>(getName(), 0.0f, weights,
+                                                  inputs, outputs, tensors);
 }
 
 /**
@@ -518,24 +568,15 @@ void LayerNode::printPreset(std::ostream &out, PrintPreset preset) {
   print(out, flags);
 }
 
-void LayerNode::resizeInputDimensions(unsigned int size) {
-  auto cur_input_dim = init_context.getInputDimensions();
-  if (cur_input_dim.size() != size) {
-    cur_input_dim.resize(size);
-    init_context =
-      InitLayerContext(cur_input_dim, init_context.getNumOutputs());
-  }
-}
-
 void LayerNode::printShapeInfo(std::ostream &out) {
-  for (unsigned int idx = 0; idx < init_context.getNumInputs(); ++idx) {
-    out << "input " << init_context.getInputDimensions()[idx];
+  for (unsigned int idx = 0; idx < getNumInputs(); ++idx) {
+    out << "input " << run_context->getInput(idx).getDim();
   }
-  for (unsigned int i = 0; i < init_context.getNumWeights(); i++) {
-    out << "weight" << std::get<0>(init_context.getWeightsSpec()[i]);
+  for (unsigned int idx = 0; idx < getNumWeights(); idx++) {
+    out << "weight " << run_context->getWeight(idx).getDim();
   }
-  for (unsigned int idx = 0; idx < init_context.getNumOutputs(); ++idx) {
-    out << "output " << init_context.getOutputDimensions()[idx];
+  for (unsigned int idx = 0; idx < getNumOutputs(); ++idx) {
+    out << "output " << run_context->getOutput(idx).getDim();
   }
 }
 
@@ -556,7 +597,7 @@ void LayerNode::print(std::ostream &out, unsigned int flags) {
   }
 
   if (flags & PRINT_SHAPE_INFO) {
-    if (init_context.validate()) {
+    if (run_context) {
       out << "======shape information: " << std::endl;
       printShapeInfo(out);
     }
@@ -573,13 +614,10 @@ void LayerNode::print(std::ostream &out, unsigned int flags) {
   }
 
   if (flags & PRINT_WEIGHTS) {
-    if (init_context.validate()) {
+    if (run_context) {
       out << "======weights: " << std::endl;
-      for (unsigned int idx = 0; idx < init_context.getNumWeights(); idx++) {
-        out << '[' << std::get<5>(init_context.getWeightsSpec()[idx]) << ']'
-            << std::endl;
-        if (run_context.readyToUse())
-          out << run_context.getWeight(idx);
+      for (unsigned int idx = 0; idx < getNumWeights(); idx++) {
+        out << run_context->getWeight(idx);
       }
     }
   }
