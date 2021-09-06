@@ -384,10 +384,13 @@ Manager::requestInputs(const GraphNode &node,
   for (unsigned int idx = 0; idx < inputs_dim.size(); idx++) {
     auto const &dim = inputs_dim[idx];
     Tensor *var = nullptr, *grad = nullptr;
+    const std::string &var_name =
+      node.getName() + std::string(":input") + std::to_string(idx);
     if (!outputs_name.empty()) {
       var = tensor_pool.requestPrerequestedTensor(
         dim, /// tensor dim
         var_exec_order, var_ls,
+        var_name,                 /// name
         outputs_name[idx],        /// name
         Tensor::Initializer::NONE /// tensor initializer
       );
@@ -395,13 +398,12 @@ Manager::requestInputs(const GraphNode &node,
       grad = tensor_pool.requestPrerequestedTensor(
         dim, /// tensor dim
         grad_exec_order, grad_ls,
+        var_name + Var_Grad::grad_suffix,          /// name
         outputs_name[idx] + Var_Grad::grad_suffix, /// name
         Tensor::Initializer::ZEROS                 /// tensor initializer
       );
     } else if (!node.getInputConnections().empty()) {
       /** skip requesting tensor for input */
-      const std::string &var_name =
-        node.getName() + std::string(":input") + std::to_string(idx);
       var = tensor_pool.requestTensor(
         dim, /// tensor dim
         var_exec_order, var_ls,
@@ -443,7 +445,8 @@ Manager::requestInputs(const GraphNode &node,
  */
 std::vector<Var_Grad *>
 Manager::requestOutputs(const GraphNode &node,
-                        const std::vector<TensorDim> &outputs_dim) {
+                        const std::vector<TensorDim> &outputs_dim,
+                        const std::vector<std::string> &inputs_name) {
   const auto &exec_order = node.getExecutionOrder();
   std::vector<unsigned int> var_exec_order(
     {std::get<0>(exec_order)}); /** forwarding */
@@ -460,26 +463,45 @@ Manager::requestOutputs(const GraphNode &node,
   std::vector<Var_Grad *> ret;
   size_t current_size = outputs_v2.size();
 
-  unsigned int count = 0;
-  for (auto const &dim : std::as_const(outputs_dim)) {
+  for (unsigned int idx = 0; idx < outputs_dim.size(); idx++) {
+    auto const &dim = outputs_dim[idx];
+    Tensor *var = nullptr, *grad = nullptr;
     const std::string &var_name =
-      node.getName() + std::string(":output") + std::to_string(count++);
-    Tensor *var =
-      tensor_pool.requestTensor(dim, /// tensor dim
-                                var_exec_order, var_ls,
-                                var_name,                 /// name
-                                Tensor::Initializer::NONE /// tensor initializer
+      node.getName() + std::string(":output") + std::to_string(idx);
+    if (!inputs_name.empty()) {
+      var = tensor_pool.requestPrerequestedTensor(
+        dim, /// tensor dim
+        var_exec_order, var_ls, var_name,
+        inputs_name[idx],         /// name
+        Tensor::Initializer::NONE /// tensor initializer
       );
 
-    Tensor *grad = nullptr;
-    /** skip requesting tensor for label */
-    if (!node.getOutputConnections().empty())
-      grad = tensor_pool.requestTensor(
+      /** skip requesting tensor for label */
+      if (!node.getOutputConnections().empty())
+        grad = tensor_pool.requestPrerequestedTensor(
+          dim, /// tensor dim
+          grad_exec_order, grad_ls,
+          var_name + Var_Grad::grad_suffix,         /// name
+          inputs_name[idx] + Var_Grad::grad_suffix, /// shared name
+          Tensor::Initializer::ZEROS                /// tensor initializer
+        );
+    } else {
+      var = tensor_pool.requestTensor(
         dim, /// tensor dim
-        grad_exec_order, grad_ls,
-        var_name + Var_Grad::grad_suffix, /// name
-        Tensor::Initializer::ZEROS        /// tensor initializer
+        var_exec_order, var_ls,
+        var_name,                 /// name
+        Tensor::Initializer::NONE /// tensor initializer
       );
+
+      /** skip requesting tensor for label */
+      if (!node.getOutputConnections().empty())
+        grad = tensor_pool.requestTensor(
+          dim, /// tensor dim
+          grad_exec_order, grad_ls,
+          var_name + Var_Grad::grad_suffix, /// name
+          Tensor::Initializer::ZEROS        /// tensor initializer
+        );
+    }
 
     outputs_v2.emplace_back(std::make_unique<Var_Grad>(var, grad));
   }

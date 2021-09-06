@@ -70,12 +70,12 @@ public:
   /**
    * @copydoc bool supportBackwarding() const
    */
-  bool supportBackwarding() const override { return false; };
+  bool supportBackwarding() const override { return true; };
 
   /**
    * @copydoc Layer::supportInPlace()
    */
-  bool supportInPlace() const override { return false; }
+  bool supportInPlace() const override { return true; }
 
   /**
    * @copydoc Layer::exportTo(Exporter &exporter, ExportMethods method)

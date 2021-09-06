@@ -44,7 +44,7 @@ Tensor *TensorPool::requestTensor(const TensorDim &dim,
     throw std::invalid_argument("Cannot request tensor with empty name");
 
   pool.push_back({std::make_unique<Tensor>(dim, false, init, name), exec_order,
-                  lifespan, 0});
+                  lifespan, 0, false});
   name_map[name] = pool.size() - 1;
 
   return pool.back().tensor.get();
@@ -61,12 +61,17 @@ Tensor *TensorPool::requestTensor(const TensorDim &dim,
 Tensor *TensorPool::requestPrerequestedTensor(
   const TensorDim &dim, const std::vector<unsigned int> &exec_order,
   TensorLifespan lifespan, const std::string &name,
-  const Tensor::Initializer &init) {
-  if (name_map.find(name) == name_map.end())
-    throw std::invalid_argument("Requested tensor not found");
+  const std::string &shared_name, const Tensor::Initializer &init) {
+  if (name_map.find(shared_name) == name_map.end())
+    throw std::invalid_argument("Requested shared tensor not found");
 
-  auto &spec = pool[name_map[name]];
-  if (spec.tensor->getDim() != dim)
+  /** find the parent non-dependent node where the spec is stored */
+  int parent_spec_idx = name_map[shared_name];
+  while (pool[parent_spec_idx].dependent == true)
+    parent_spec_idx = pool[parent_spec_idx].token;
+  auto &spec = pool[parent_spec_idx];
+
+  if (spec.tensor->getDim().getDataLen() != dim.getDataLen())
     throw std::invalid_argument("Request tensor dimension mismatch");
 
   if (init != Tensor::Initializer::NONE &&
@@ -77,7 +82,12 @@ Tensor *TensorPool::requestPrerequestedTensor(
                          exec_order.end());
   spec.lifespan = enum_class_or<TensorLifespan>(spec.lifespan, lifespan);
 
-  return spec.tensor.get();
+  /** @note requestTensor invalidates spec reference */
+  Tensor *ret = requestTensor(dim, exec_order, lifespan, name, init);
+  pool.back().token = name_map[shared_name];
+  pool.back().dependent = true;
+
+  return ret;
 }
 
 /**
@@ -91,10 +101,11 @@ void TensorPool::finalize(const MemoryPlanner &planner,
   mem_pool.clear();
   unsigned int bytes_requested = 0;
   for (auto &spec : pool) {
-    spec.token = 0;
-
-    if (spec.exec_order.empty())
+    /** do not include dependent tensors in planning layout */
+    if (spec.dependent || spec.exec_order.empty())
       continue;
+
+    spec.token = 0;
 
     /** 1. create the validity ranges for the all the requested tensors */
     unsigned int validity_start =
@@ -158,9 +169,12 @@ void TensorPool::allocate() {
   /** set the pointers using the token for all the tensors */
   for (auto &spec : pool) {
     /** get data for the tensors which were requested */
-    if (spec.token > 0) {
+    if (!spec.dependent && spec.token > 0) {
       spec.tensor->setData(mem_pool.getMemory(spec.token));
       spec.tensor->initialize();
+    } else if (spec.dependent) {
+      spec.tensor->setData(pool[spec.token].tensor->getData());
+      /** initialize is intentionally skipped here */
     }
   }
 }
@@ -186,7 +200,11 @@ void TensorPool::expand_lifespan(const std::string &name,
   if (name_map.find(name) == name_map.end())
     throw std::invalid_argument("Requested tensor not found");
 
-  auto &spec = pool[name_map[name]];
+  int parent_spec_idx = name_map[name];
+  while (pool[parent_spec_idx].dependent == true)
+    parent_spec_idx = pool[parent_spec_idx].token;
+
+  auto &spec = pool[parent_spec_idx];
   spec.lifespan = enum_class_or<TensorLifespan>(spec.lifespan, lifespan);
 }
 
@@ -199,7 +217,11 @@ void TensorPool::expand_lifespan(const std::string &name,
   if (name_map.find(name) == name_map.end())
     throw std::invalid_argument("Requested tensor not found");
 
-  auto &spec = pool[name_map[name]];
+  int parent_spec_idx = name_map[name];
+  while (pool[parent_spec_idx].dependent == true)
+    parent_spec_idx = pool[parent_spec_idx].token;
+
+  auto &spec = pool[parent_spec_idx];
   spec.exec_order.insert(spec.exec_order.end(), exec_order.begin(),
                          exec_order.end());
 }

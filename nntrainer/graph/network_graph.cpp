@@ -714,8 +714,22 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
   const std::vector<Var_Grad *> &inputs = tensor_manager->requestInputs(
     gnode, init_context.getInputDimensions(), input_names);
 
-  const std::vector<Var_Grad *> &outputs =
-    tensor_manager->requestOutputs(gnode, init_context.getOutputDimensions());
+  /**
+   * In-Place optimizations
+   */
+  std::vector<std::string> inputs_name;
+  if (lnode->getType() == FlattenLayer::type)
+    std::transform(inputs.begin(), inputs.end(),
+                   std::back_inserter(inputs_name),
+                   [](const Var_Grad *val) { return val->getName(); });
+
+  /**
+   * Request manager for either a pre-allocated input as output or a newly
+   * allocated input. This is necesary for manager to know when this output node
+   * is going to be used with in-place optimizations.
+   */
+  const std::vector<Var_Grad *> &outputs = tensor_manager->requestOutputs(
+    gnode, init_context.getOutputDimensions(), inputs_name);
 
   /**
    * @note cache the labels and input var_grads to be able to fill them when
