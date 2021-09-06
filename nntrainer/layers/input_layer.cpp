@@ -24,6 +24,7 @@
 #include <input_layer.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
+#include <node_exporter.h>
 #include <parse_util.h>
 #include <util_func.h>
 
@@ -31,69 +32,35 @@ namespace nntrainer {
 
 static constexpr size_t SINGLE_INOUT_IDX = 0;
 
+InputLayer::InputLayer() :
+  Layer(),
+  input_props(props::Normalization(), props::Standardization()) {}
+
 void InputLayer::setProperty(const std::vector<std::string> &values) {
-  /// @todo: deprecate this in favor of loadProperties
-  for (unsigned int i = 0; i < values.size(); ++i) {
-    std::string key;
-    std::string value;
-    std::stringstream ss;
-
-    if (getKeyValue(values[i], key, value) != ML_ERROR_NONE) {
-      throw std::invalid_argument("Error parsing the property: " + values[i]);
-    }
-
-    if (value.empty()) {
-      ss << "value is empty: key: " << key << ", value: " << value;
-      throw std::invalid_argument(ss.str());
-    }
-
-    /// @note this calls derived setProperty if available
-    setProperty(key, value);
-  }
-}
-
-void InputLayer::setProperty(const std::string &type_str,
-                             const std::string &value) {
-  using PropertyType = nntrainer::Layer::PropertyType;
-  int status = ML_ERROR_NONE;
-  nntrainer::Layer::PropertyType type =
-    static_cast<nntrainer::Layer::PropertyType>(parseLayerProperty(type_str));
-
-  switch (type) {
-  case PropertyType::normalization: {
-    status = setBoolean(normalization, value);
-    throw_status(status);
-  } break;
-  case PropertyType::standardization: {
-    status = setBoolean(standardization, value);
-    throw_status(status);
-  } break;
-  case PropertyType::weight_initializer: {
-    ml_logw("Deprecated property: %s", type_str.c_str());
-  } break;
-  case PropertyType::bias_initializer: {
-    ml_logw("Deprecated property: %s", type_str.c_str());
-  } break;
-  default:
-    std::string msg =
-      "[InputLayer] Unknown Layer Property Key for value " + std::string(value);
-    throw exception::not_supported(msg);
-  }
+  auto remain_props = loadProperties(values, input_props);
+  NNTR_THROW_IF(!remain_props.empty(), std::invalid_argument)
+    << "[InputLayer] Unknown Layer Properties count " +
+         std::to_string(values.size());
 }
 
 void InputLayer::forwarding(RunLayerContext &context, bool training) {
   Tensor &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
   hidden_ = context.getInput(SINGLE_INOUT_IDX);
 
-  if (normalization)
+  if (std::get<props::Normalization>(input_props))
     hidden_.normalization_i();
-  if (standardization)
+  if (std::get<props::Standardization>(input_props))
     hidden_.standardization_i();
 }
 
 void InputLayer::calcDerivative(RunLayerContext &context) {
   throw exception::not_supported(
     "calcDerivative for input layer is not supported");
+}
+
+void InputLayer::exportTo(Exporter &exporter,
+                          const ExportMethods &method) const {
+  exporter.saveResult(input_props, method, this);
 }
 
 void InputLayer::finalize(InitLayerContext &context) {

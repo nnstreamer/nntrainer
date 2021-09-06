@@ -89,16 +89,6 @@ private:
    */
   void setDimensions(const std::vector<int> &tensor_idx_list,
                      std::vector<TensorDim> &dim, bool is_output);
-
-  /**
-   * @brief setProperty by type and value separated
-   * @param[in] type property type to be passed
-   * @param[in] value value to be passed
-   * @exception exception::not_supported     when property type is not valid for
-   * the particular layer
-   * @exception std::invalid_argument invalid argument
-   */
-  void setProperty(const std::string &type_str, const std::string &value);
 };
 
 } // namespace nntrainer

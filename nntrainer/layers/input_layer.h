@@ -40,7 +40,7 @@ public:
   /**
    * @brief     Constructor of InputLayer
    */
-  InputLayer() : Layer(), normalization(false), standardization(false) {}
+  InputLayer();
 
   /**
    * @brief     Destructor of InputLayer
@@ -82,8 +82,7 @@ public:
   /**
    * @copydoc Layer::exportTo(Exporter &exporter, ExportMethods method)
    */
-  void exportTo(Exporter &exporter,
-                const ExportMethods &method) const override {}
+  void exportTo(Exporter &exporter, const ExportMethods &method) const override;
 
   /**
    * @copydoc Layer::getType()
@@ -98,18 +97,7 @@ public:
   inline static const std::string type = "input";
 
 private:
-  bool normalization;   /**< normalize the input to be in range [0,1] */
-  bool standardization; /**< standardize the input to be mean 0 and std 1 */
-
-  /**
-   * @brief setProperty by type and value separated
-   * @param[in] type property type to be passed
-   * @param[in] value value to be passed
-   * @exception exception::not_supported     when property type is not valid for
-   * the particular layer
-   * @exception std::invalid_argument invalid argument
-   */
-  void setProperty(const std::string &type, const std::string &value);
+  std::tuple<props::Normalization, props::Standardization> input_props;
 };
 } // namespace nntrainer
 
