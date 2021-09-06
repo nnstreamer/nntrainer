@@ -719,6 +719,7 @@ int NetworkGraph::initialize() {
      */
     if (!is_input_node(lnode)) {
       auto &input_layers = lnode->getInputLayers();
+      lnode->resizeInputDimensions(input_layers.size());
       for (unsigned int i = 0; i < input_layers.size(); ++i) {
         auto in_layer_node = getLayerNode(input_layers[i]);
 
