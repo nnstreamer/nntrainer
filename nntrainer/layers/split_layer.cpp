@@ -14,6 +14,7 @@
 #include <cstring>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
+#include <node_exporter.h>
 #include <parse_util.h>
 #include <split_layer.h>
 #include <util_func.h>
@@ -22,21 +23,18 @@ namespace nntrainer {
 
 static constexpr size_t SINGLE_INOUT_IDX = 0;
 
+SplitLayer::SplitLayer() :
+  Layer(),
+  leading_helper_dim(1),
+  split_props(props::SplitDimension()) {}
+
 void SplitLayer::finalize(InitLayerContext &context) {
-  if (split_dimension < 1) {
-    throw std::invalid_argument(
-      "Error: cannot split along the batch dimension");
-  }
-
-  if (split_dimension >= ml::train::TensorDim::MAXDIM) {
-    throw std::invalid_argument(
-      "Error: split dimension exceeding the total number of dimensions");
-  }
-
   if (context.getNumInputs() != 1) {
     throw std::invalid_argument(
       "Error: only a single input is supported with split layer");
   }
+
+  unsigned int split_dimension = std::get<props::SplitDimension>(split_props);
 
   /**
    * The split is only done along the split_dimension dimension.
@@ -152,46 +150,16 @@ void SplitLayer::calcDerivative(RunLayerContext &context) {
   input_.reshape(in_dim);
 }
 
-void SplitLayer::setProperty(const std::vector<std::string> &values) {
-  /// @todo: deprecate this in favor of loadProperties
-  for (unsigned int i = 0; i < values.size(); ++i) {
-    std::string key;
-    std::string value;
-    std::stringstream ss;
-
-    if (getKeyValue(values[i], key, value) != ML_ERROR_NONE) {
-      throw std::invalid_argument("Error parsing the property: " + values[i]);
-    }
-
-    if (value.empty()) {
-      ss << "value is empty: key: " << key << ", value: " << value;
-      throw std::invalid_argument(ss.str());
-    }
-
-    /// @note this calls derived setProperty if available
-    setProperty(key, value);
-  }
+void SplitLayer::exportTo(Exporter &exporter,
+                          const ExportMethods &method) const {
+  exporter.saveResult(split_props, method, this);
 }
 
-void SplitLayer::setProperty(const std::string &type_str,
-                             const std::string &value) {
-  using PropertyType = nntrainer::Layer::PropertyType;
-  int status = ML_ERROR_NONE;
-  nntrainer::Layer::PropertyType type =
-    static_cast<nntrainer::Layer::PropertyType>(parseLayerProperty(type_str));
-
-  switch (type) {
-  case PropertyType::split_dimension: {
-    status = setUint(split_dimension, value);
-    NNTR_THROW_IF(split_dimension == 0, std::invalid_argument)
-      << "[Split] Batch dimension cannot be split dimension";
-    throw_status(status);
-  } break;
-  default:
-    std::string msg =
-      "[SplitLayer] Unknown Layer Property Key for value " + std::string(value);
-    throw exception::not_supported(msg);
-  }
+void SplitLayer::setProperty(const std::vector<std::string> &values) {
+  auto remain_props = loadProperties(values, split_props);
+  NNTR_THROW_IF(!remain_props.empty(), std::invalid_argument)
+    << "[SplitLayer] Unknown Layer Properties count " +
+         std::to_string(values.size());
 }
 
 } /* namespace nntrainer */

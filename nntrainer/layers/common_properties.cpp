@@ -100,6 +100,10 @@ bool InputSpec::isValid(const ConnectionSpec &v) const {
   return v.getLayerIds().size() > 0;
 }
 
+bool SplitDimension::isValid(const unsigned int &value) const {
+  return value > 0 && value < ml::train::TensorDim::MAXDIM;
+}
+
 /**
  * @brief unsigned integer property, internally used to parse padding values
  *
