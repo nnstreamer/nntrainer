@@ -15,6 +15,7 @@
 #include <lazy_tensor.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
+#include <node_exporter.h>
 #include <parse_util.h>
 #include <util_func.h>
 
@@ -23,6 +24,11 @@ namespace nntrainer {
 static constexpr size_t SINGLE_INOUT_IDX = 0;
 
 enum EmbeddingParams { weight };
+
+EmbeddingLayer::EmbeddingLayer() :
+  LayerImpl(),
+  embedding_props(props::InDim(), props::OutDim()),
+  weight_idx(0) {}
 
 void EmbeddingLayer::finalize(InitLayerContext &context) {
   if (context.getNumInputs() != 1) {
@@ -34,6 +40,9 @@ void EmbeddingLayer::finalize(InitLayerContext &context) {
     throw std::invalid_argument(
       "Embedding layer takes only one for channel size");
   }
+
+  unsigned int in_dim = std::get<props::InDim>(embedding_props);
+  unsigned int out_dim = std::get<props::OutDim>(embedding_props);
 
   TensorDim output_dim = input_dim;
 
@@ -52,49 +61,15 @@ void EmbeddingLayer::finalize(InitLayerContext &context) {
 }
 
 void EmbeddingLayer::setProperty(const std::vector<std::string> &values) {
-  /// @todo: deprecate this in favor of loadProperties
-  for (unsigned int i = 0; i < values.size(); ++i) {
-    std::string key;
-    std::string value;
-    std::stringstream ss;
-
-    if (getKeyValue(values[i], key, value) != ML_ERROR_NONE) {
-      throw std::invalid_argument("Error parsing the property: " + values[i]);
-    }
-
-    if (value.empty()) {
-      ss << "value is empty: key: " << key << ", value: " << value;
-      throw std::invalid_argument(ss.str());
-    }
-
-    /// @note this calls derived setProperty if available
-    setProperty(key, value);
-  }
-}
-
-void EmbeddingLayer::setProperty(const std::string &type_str,
-                                 const std::string &value) {
-  using PropertyType = nntrainer::Layer::PropertyType;
-  int status = ML_ERROR_NONE;
-  nntrainer::Layer::PropertyType type =
-    static_cast<nntrainer::Layer::PropertyType>(parseLayerProperty(type_str));
-
-  switch (type) {
-  case PropertyType::in_dim: {
-    status = setUint(in_dim, value);
-    throw_status(status);
-  } break;
-  case PropertyType::out_dim: {
-    status = setUint(out_dim, value);
-    throw_status(status);
-  } break;
-  default:
-    LayerImpl::setProperty(type_str, value);
-    break;
-  }
+  auto remain_props = loadProperties(values, embedding_props);
+  LayerImpl::setProperty(remain_props);
 }
 
 void EmbeddingLayer::forwarding(RunLayerContext &context, bool training) {
+  /// @todo get input and output dimension from input_ and hidden itself
+  unsigned int in_dim = std::get<props::InDim>(embedding_props);
+  unsigned int out_dim = std::get<props::OutDim>(embedding_props);
+
   Tensor &weight = context.getWeight(weight_idx);
   Tensor &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
   Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
@@ -131,6 +106,8 @@ void EmbeddingLayer::calcDerivative(RunLayerContext &context) {
 }
 
 void EmbeddingLayer::calcGradient(RunLayerContext &context) {
+  unsigned int out_dim = std::get<props::OutDim>(embedding_props);
+
   Tensor &djdw = context.getWeightGrad(weight_idx);
   Tensor &derivative_ = context.getIncomingDerivative(SINGLE_INOUT_IDX);
   Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
@@ -159,6 +136,12 @@ void EmbeddingLayer::calcGradient(RunLayerContext &context) {
                      std::plus<float>());
     }
   }
+}
+
+void EmbeddingLayer::exportTo(Exporter &exporter,
+                              const ExportMethods &method) const {
+  LayerImpl::exportTo(exporter, method);
+  exporter.saveResult(embedding_props, method, this);
 }
 
 } // namespace nntrainer
