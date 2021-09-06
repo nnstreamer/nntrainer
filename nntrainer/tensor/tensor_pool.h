@@ -50,6 +50,7 @@ public:
    * @param exec_order The execution orders for this tensors
    * @param lifespan Lifespan of this tensor
    * @param name Name of this tensor
+   * @param init Initializer of the tensor
    *
    * @return ptr to the created tensor
    *
@@ -71,6 +72,8 @@ public:
    * @param exec_order The execution orders for this tensors
    * @param lifespan Lifespan of this tensor
    * @param name Name of this tensor
+   * @param shared_name Name of the preallocated tensor
+   * @param init Initializer of the tensor
    *
    * @return ptr to the tensor
    *
@@ -84,6 +87,7 @@ public:
   Tensor *requestPrerequestedTensor(
     const TensorDim &dim, const std::vector<unsigned int> &exec_order,
     TensorLifespan lifespan, const std::string &name,
+    const std::string &shared_name,
     const Tensor::Initializer &init = Tensor::Initializer::NONE);
 
   /**
@@ -180,6 +184,7 @@ private:
     std::vector<unsigned int> exec_order; /**< tensor exec order list */
     TensorLifespan lifespan;              /**< tensor lifespan */
     unsigned int token;                   /**< tensor memory token */
+    bool dependent; /**< if dependent on another tensor for memory */
   };
 
   /**

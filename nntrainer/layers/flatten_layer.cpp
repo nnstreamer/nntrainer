@@ -39,33 +39,9 @@ void FlattenLayer::finalize(InitLayerContext &context) {
   context.setOutputDimensions({out_dim});
 }
 
-void FlattenLayer::forwarding(RunLayerContext &context, bool training) {
-  /**
-   * Below is intentionally not a reference.
-   * Using refernce would change the shape of the output tensor for the previous
-   * layer.
-   */
-  Tensor temp = context.getInput(SINGLE_INOUT_IDX);
-  Tensor &out = context.getOutput(SINGLE_INOUT_IDX);
+void FlattenLayer::forwarding(RunLayerContext &context, bool training) {}
 
-  auto const &shape = out.getDim();
-  out.copy(temp);
-  out.reshape(shape);
-}
-
-void FlattenLayer::calcDerivative(RunLayerContext &context) {
-  /**
-   * Below is intentionally not a reference.
-   * Using refernce would change the shape of the output tensor for the previous
-   * layer.
-   */
-  Tensor temp = context.getIncomingDerivative(SINGLE_INOUT_IDX);
-  Tensor &ret_derivative = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
-
-  auto const &shape = ret_derivative.getDim();
-  ret_derivative.copy(temp);
-  ret_derivative.reshape(shape);
-}
+void FlattenLayer::calcDerivative(RunLayerContext &context) {}
 
 void FlattenLayer::setProperty(const std::vector<std::string> &values) {
   if (!values.empty()) {

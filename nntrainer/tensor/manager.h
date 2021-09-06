@@ -205,12 +205,14 @@ public:
    *
    * @param node Graph node to extract node identifiers/info
    * @param outputs_dim Specficiation for the tensors
+   * @param inputs_name Name of the inputs tensors which for tensor sharing
    *
    * @return created tensors list
    */
   std::vector<Var_Grad *>
   requestOutputs(const GraphNode &node,
-                 const std::vector<TensorDim> &outputs_spec);
+                 const std::vector<TensorDim> &outputs_dim,
+                 const std::vector<std::string> &inputs_name = {});
 
   /**
    * @brief     Get all the weights
