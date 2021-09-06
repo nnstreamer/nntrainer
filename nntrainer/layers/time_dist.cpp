@@ -120,7 +120,7 @@ void TimeDistLayer::finalize(InitLayerContext &context) {
    */
   TensorDim dist_dim = input_dim;
   dist_dim.height(1);
-  InitLayerContext dist_context({dist_dim}, context.getNumOutputs());
+  InitLayerContext dist_context({dist_dim}, context.getNumOutputs(), getType());
 
   // During forwarding and backwarding, it set the input and output buffer of
   // dist_layer properly
@@ -407,7 +407,8 @@ void TimeDistLayer::setBatch(RunLayerContext &context, unsigned int batch) {
 void TimeDistLayer::setBatch(InitLayerContext &context, unsigned int batch) {
   TensorDim input_dim = context.getInputDimensions()[SINGLE_INOUT_IDX];
   input_dim.height(1);
-  InitLayerContext dist_context({input_dim}, context.getNumOutputs());
+  InitLayerContext dist_context({input_dim}, context.getNumOutputs(),
+                                getType());
 
   TensorDim output_dim = context.getOutputDimensions()[0];
   // input_dim.height is number of time iteration

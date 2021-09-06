@@ -47,9 +47,7 @@ TEST_P(LayerSemantics, finalizeValidateLayerNode_p) {
   EXPECT_NO_THROW(lnode->setProperty(valid_properties));
 
   if (!must_fail) {
-    EXPECT_NO_THROW(lnode->finalize());
-
-    auto &init_context = lnode->getInitContext();
+    nntrainer::InitLayerContext init_context = lnode->finalize();
     EXPECT_EQ(init_context.getOutputDimensions().size(),
               init_context.getNumOutputs());
 
@@ -87,9 +85,6 @@ TEST_P(LayerSemantics, setBatchValidateLayerNode_p) {
 
   if (!must_fail) {
     EXPECT_NO_THROW(lnode->finalize());
-    auto &init_context = lnode->getInitContext();
-    EXPECT_NO_THROW(
-      lnode->setBatch(init_context.getInputDimensions()[0].batch() + 10));
   } else {
     EXPECT_THROW(lnode->finalize(), nntrainer::exception::not_supported);
   }

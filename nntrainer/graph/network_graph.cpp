@@ -342,9 +342,9 @@ int NetworkGraph::checkCompiledGraph() {
   /** Dimension of input layers must be known */
   for (auto iter = cbegin(); iter != cend(); iter++) {
     auto lnode = (*iter);
-    if (lnode->getType() == InputLayer::type) {
-      if (lnode->getInputDimensions().size() == 0) {
-        ml_loge("InputDimension of first layer is not set");
+    if (lnode->getNumInputConnections() == 0) {
+      if (!lnode->hasInputShapeProperty()) {
+        ml_loge("Layer with no inbound connection need input_shape property");
         return ML_ERROR_INVALID_PARAMETER;
       }
     }
@@ -371,12 +371,10 @@ int NetworkGraph::realizeGraph() {
     /** If a layer does not has input nodes, then it must have input dimension
      */
     if (lnode->getNumInputConnections() == 0) {
-      for (unsigned int i = 0; i < lnode->getInputDimensions().size(); ++i) {
-        if (lnode->getInputDimensions()[i].getDataLen() == 0) {
-          ml_loge("Input Dimension must be set");
-          status = ML_ERROR_INVALID_PARAMETER;
-          NN_RETURN_STATUS();
-        }
+      if (!lnode->hasInputShapeProperty()) {
+        ml_loge("Input Dimension must be set");
+        status = ML_ERROR_INVALID_PARAMETER;
+        NN_RETURN_STATUS();
       }
     }
 
@@ -407,8 +405,8 @@ int NetworkGraph::realizeGraph() {
 
   /**
    * invariant: the new realized nodes are added to the end,
-   * otherwise this iteration becomes invalid. So, every iteration must be fresh
-   * iterator as vector resize invalidates all the iterators.
+   * otherwise this iteration becomes invalid. So, every iteration must be
+   * fresh iterator as vector resize invalidates all the iterators.
    */
   for (unsigned int i = 0; i < graph.size(); ++i) {
     auto const &lnode = LNODE(*(cbegin() + i));
@@ -519,7 +517,8 @@ void NetworkGraph::extendGraph(std::vector<std::shared_ptr<LayerNode>> ex_graph,
 
   /**
    * The input_layers for ex_graph[0] here is provided to the backbone by the
-   * ini file and is overwritten here by the model loader for connection making.
+   * ini file and is overwritten here by the model loader for connection
+   * making.
    *
    * This loop intends to connect a new backbone to be added with an old
    * backbone.
@@ -666,15 +665,17 @@ void NetworkGraph::inPlaceOptimize() {
 }
 
 std::vector<Var_Grad *>
-NetworkGraph::updateRunContext(std::shared_ptr<Manager> &tensor_manager,
-                               const std::shared_ptr<LayerNode> &lnode,
-                               const std::vector<Var_Grad *> &prev_inputs) {
-  /**
-   * using copy assignment allows setting run_context without adding more
-   * interfaces
-   */
+NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
+                              const std::vector<Var_Grad *> &prev_inputs) {
   const GraphNode &gnode = *lnode.get();
-  const InitLayerContext &init_context = lnode->getInitContext();
+  std::vector<TensorDim> input_dims;
+  input_dims.reserve(prev_inputs.size());
+  std::transform(prev_inputs.begin(), prev_inputs.end(),
+                 std::back_inserter(input_dims),
+                 [](const Var_Grad *vg) { return vg->getDim(); });
+
+  auto init_context = lnode->finalize(input_dims);
+
   std::vector<Var_Grad *> inputs = prev_inputs;
   if (inputs.empty())
     inputs =
@@ -683,17 +684,11 @@ NetworkGraph::updateRunContext(std::shared_ptr<Manager> &tensor_manager,
   const std::vector<Var_Grad *> &outputs =
     tensor_manager->requestOutputs(gnode, init_context.getOutputDimensions());
 
-  /**
-   * @note must use existing properties like name/trainable of run_context to
-   * create the new run_context
-   */
-  const RunLayerContext &run_context = lnode->getRunContext();
-  lnode->updateRunContext(RunLayerContext(
-    run_context.getName(), run_context.getLoss(),
+  lnode->configureRunContext(
     // TODO: update weights spec for trainable based on layer trainable prop
     tensor_manager->requestWeights(gnode, init_context.getWeightsSpec()),
     inputs, outputs,
-    tensor_manager->requestTensors(gnode, init_context.getTensorsSpec())));
+    tensor_manager->requestTensors(gnode, init_context.getTensorsSpec()));
 
   return outputs;
 }
@@ -708,9 +703,9 @@ int NetworkGraph::initialize() {
     return node->getInputConnections().empty();
   };
 
+  std::vector<Var_Grad *> inputs;
   for (unsigned int idx = 0; idx < graph.size(); ++idx) {
     auto const &lnode = getSortedLayerNode(idx);
-    std::string cur_type = lnode->getType();
     ml_logd("layer name : %s", lnode->getName().c_str());
 
     /**
@@ -718,41 +713,16 @@ int NetworkGraph::initialize() {
      * For input layer, as input dimension is known, set input tensor.
      */
     if (!is_input_node(lnode)) {
-      auto &input_layers = lnode->getInputLayers();
-      lnode->resizeInputDimensions(input_layers.size());
-      for (unsigned int i = 0; i < input_layers.size(); ++i) {
-        auto in_layer_node = getLayerNode(input_layers[i]);
-
-        auto const &in_layer_out_connect = in_layer_node->getOutputLayers();
-        unsigned int location =
-          std::find(in_layer_out_connect.begin(), in_layer_out_connect.end(),
-                    lnode->getName()) -
-          in_layer_out_connect.begin();
-
-#ifdef DEBUG
-        if (location == in_layer_out_connect.size())
-          throw std::runtime_error("Invalid connection between nodes.");
-#endif
-
-        lnode->setInputDimension(in_layer_node->getOutputDimensions()[location],
-                                 i);
-      }
+      if (input_map.find(lnode->getName()) == input_map.end())
+        throw std::runtime_error("Cannot find input buffers for the node");
+      inputs = input_map.at(lnode->getName());
     }
 
     /**
      * Initialize all the layers, allocate output tensors for each layer
      * init2and add optimizer related weights for the layer
      */
-    lnode->finalize();
-
-    std::vector<Var_Grad *> inputs = {};
-    if (!is_input_node(lnode)) {
-      if (input_map.find(lnode->getName()) == input_map.end())
-        throw std::runtime_error("Cannot find input buffers for the node");
-      inputs = input_map.at(lnode->getName());
-    }
-    const std::vector<Var_Grad *> &outputs =
-      updateRunContext(tensor_manager, lnode, inputs);
+    const std::vector<Var_Grad *> &outputs = finalizeContext(lnode, inputs);
 
     /** no need to update input_map for the last layer */
     if (idx == graph.size() - 1)
