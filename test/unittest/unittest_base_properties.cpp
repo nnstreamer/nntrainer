@@ -106,6 +106,38 @@ public:
   static constexpr const char *key = "ptr_banana";
   using prop_tag = nntrainer::ptr_prop_tag;
 };
+
+/**
+ * @brief Enuminformation of BananaType;
+ *
+ */
+struct BananaEnumInfo {
+  /**
+   * @brief underlying enum
+   *
+   */
+  enum class Enum {
+    Cavendish = 0,
+    Plantain = 1,
+    Manzano = 2,
+  };
+
+  static constexpr std::initializer_list<Enum> EnumList = {
+    Enum::Cavendish, Enum::Plantain, Enum::Manzano};
+
+  static constexpr const char *EnumStr[] = {"Cavendish", "Plantain", "Manzano"};
+};
+
+/**
+ * @brief Type of Banana (enum based)
+ *
+ */
+class BananaType : public nntrainer::EnumProperty<BananaEnumInfo> {
+public:
+  using prop_tag = nntrainer::enum_class_prop_tag;
+  static constexpr const char *key = "banana_type";
+};
+
 } // namespace
 
 TEST(BasicProperty, tagCast) {
@@ -243,6 +275,26 @@ TEST(BasicProperty, valid_p) {
     FreshnessOfBanana q;
     q.set(1.3245f);
     EXPECT_FLOAT_EQ(q.get(), 1.3245f);
+  }
+
+  { /**< enum type test from_string -> get */
+    BananaType t;
+    nntrainer::from_string("CAVENDISH", t);
+    EXPECT_EQ(t.get(), BananaEnumInfo::Enum::Cavendish);
+    nntrainer::from_string("Plantain", t);
+    EXPECT_EQ(t.get(), BananaEnumInfo::Enum::Plantain);
+    nntrainer::from_string("manzano", t);
+    EXPECT_EQ(t.get(), BananaEnumInfo::Enum::Manzano);
+  }
+
+  { /**< enum type test set -> to_string */
+    BananaType t;
+    t.set(BananaEnumInfo::Enum::Cavendish);
+    EXPECT_EQ("Cavendish", nntrainer::to_string(t));
+    t.set(BananaEnumInfo::Enum::Plantain);
+    EXPECT_EQ("Plantain", nntrainer::to_string(t));
+    t.set(BananaEnumInfo::Enum::Manzano);
+    EXPECT_EQ("Manzano", nntrainer::to_string(t));
   }
 
   { /**< from_string -> get / to_string, uint vector prop */

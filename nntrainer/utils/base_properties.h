@@ -261,6 +261,17 @@ private:
 };
 
 /**
+ * @brief enum property
+ *
+ * @tparam T underlying type info to query enum_info
+ */
+template <typename EnumInfo>
+class EnumProperty : public Property<typename EnumInfo::Enum> {
+public:
+  static EnumInfo enum_info_;
+};
+
+/**
  * @brief abstract class for positive integer
  *
  */
@@ -346,6 +357,43 @@ template <typename Tag, typename DataType> struct str_converter {
    * @return DataType converted type
    */
   static DataType from_string(const std::string &value);
+};
+
+/**
+ * @brief str converter specialization for enum classes
+ *
+ * @tparam EnumInfo enum informations
+ */
+template <typename EnumInfo>
+struct str_converter<enum_class_prop_tag, EnumInfo> {
+
+  /**
+   * @copydoc template <typename Tag, typename DataType> struct str_converter
+   */
+  static std::string to_string(const typename EnumInfo::Enum &value) {
+    constexpr auto size = EnumInfo::EnumList.size();
+    constexpr const auto data = std::data(EnumInfo::EnumList);
+    for (unsigned i = 0; i < size; ++i) {
+      if (data[i] == value) {
+        return EnumInfo::EnumStr[i];
+      }
+    }
+    throw std::invalid_argument("Cannot find value in the enum list");
+  }
+
+  /**
+   * @copydoc template <typename Tag, typename DataType> struct str_converter
+   */
+  static typename EnumInfo::Enum from_string(const std::string &value) {
+    constexpr auto size = EnumInfo::EnumList.size();
+    constexpr const auto data = std::data(EnumInfo::EnumList);
+    for (unsigned i = 0; i < size; ++i) {
+      if (istrequal(EnumInfo::EnumStr[i], value.c_str())) {
+        return data[i];
+      }
+    }
+    throw std::invalid_argument("No matching enum for value: " + value);
+  }
 };
 
 /**
@@ -458,10 +506,16 @@ template <typename T> std::string to_string(const T &property) {
   using info = prop_info<T>;
   using tag_type =
     typename tag_cast<typename info::tag_type, int_prop_tag, uint_prop_tag,
-                      dimension_prop_tag, float_prop_tag, str_prop_tag>::type;
+                      dimension_prop_tag, float_prop_tag, str_prop_tag,
+                      enum_class_prop_tag>::type;
   using data_type = typename info::data_type;
 
-  return str_converter<tag_type, data_type>::to_string(property.get());
+  if constexpr (std::is_same_v<tag_type, enum_class_prop_tag>) {
+    return str_converter<tag_type, decltype(T::enum_info_)>::to_string(
+      property.get());
+  } else {
+    return str_converter<tag_type, data_type>::to_string(property.get());
+  }
 }
 
 /**
@@ -508,10 +562,16 @@ template <typename T> void from_string(const std::string &str, T &property) {
   using info = prop_info<T>;
   using tag_type =
     typename tag_cast<typename info::tag_type, int_prop_tag, uint_prop_tag,
-                      dimension_prop_tag, float_prop_tag, str_prop_tag>::type;
+                      dimension_prop_tag, float_prop_tag, str_prop_tag,
+                      enum_class_prop_tag>::type;
   using data_type = typename info::data_type;
 
-  property.set(str_converter<tag_type, data_type>::from_string(str));
+  if constexpr (std::is_same_v<tag_type, enum_class_prop_tag>) {
+    property.set(
+      str_converter<tag_type, decltype(T::enum_info_)>::from_string(str));
+  } else {
+    property.set(str_converter<tag_type, data_type>::from_string(str));
+  }
 }
 
 /**
