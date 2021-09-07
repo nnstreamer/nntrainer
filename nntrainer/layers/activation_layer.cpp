@@ -43,6 +43,7 @@ void ActivationLayer::finalize(InitLayerContext &context) {
     << "activation has not been set!";
   acti_func.setActiFunc(act.get());
   context.setOutputDimensions(context.getInputDimensions());
+  acti_func.executeInPlace(context.executeInPlace());
 }
 
 void ActivationLayer::forwarding(RunLayerContext &context, bool training) {

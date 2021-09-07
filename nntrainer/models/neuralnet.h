@@ -100,8 +100,7 @@ public:
   /**
    * @brief     Constructor of NeuralNetwork Class
    */
-  NeuralNetwork(AppContext app_context_ = AppContext(AppContext::Global()),
-                bool in_place_opt = true);
+  NeuralNetwork(AppContext app_context_ = AppContext(AppContext::Global()));
 
   /**
    * @brief     Destructor of NeuralNetwork Class
@@ -528,9 +527,6 @@ private:
   AppContext app_context; /** Configurations bound to current app */
 
   NetworkGraph model_graph; /** Network Model Graph */
-
-  bool in_place_optimization; /**< Run batch normalization, activation, etc
-                                 layers in-place */
 
   DynamicTrainingOptimization dynamic_training_opt; /**< Dynamic fine-tuning
    optimization mode. supported modes are "max" and "norm" */

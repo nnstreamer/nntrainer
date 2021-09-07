@@ -52,7 +52,7 @@
 
 namespace nntrainer {
 
-NeuralNetwork::NeuralNetwork(AppContext app_context_, bool in_place_opt) :
+NeuralNetwork::NeuralNetwork(AppContext app_context_) :
   model_props(props::LossType(), {}, {}),
   model_flex_props(props::Epochs(), props::TrainingBatchSize(),
                    props::SavePath(), props::ContinueTrain(),
@@ -65,8 +65,7 @@ NeuralNetwork::NeuralNetwork(AppContext app_context_, bool in_place_opt) :
   initialized(false),
   compiled(false),
   loadedFromConfig(false),
-  app_context(app_context_),
-  in_place_optimization(in_place_opt) {}
+  app_context(app_context_) {}
 
 int NeuralNetwork::loadFromConfig(const std::string &config) {
   if (loadedFromConfig == true) {
@@ -185,10 +184,6 @@ int NeuralNetwork::initialize() {
 
   // Allocate weights
   model_graph.allocateWeights();
-
-  if (in_place_optimization) {
-    model_graph.inPlaceOptimize();
-  }
 
   initialized = true;
 

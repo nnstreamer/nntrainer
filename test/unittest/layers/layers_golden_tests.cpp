@@ -65,7 +65,8 @@ static InitLayerContext createInitContext(Layer *layer,
   std::vector<shape_parser_> parsed;
   from_string(input_shape_str, parsed);
 
-  InitLayerContext context({parsed.begin(), parsed.end()}, 1, "golden_test");
+  InitLayerContext context({parsed.begin(), parsed.end()}, 1, false,
+                           "golden_test");
   layer->finalize(context);
 
   return context;
@@ -132,7 +133,7 @@ static RunLayerContext prepareRunContext(const TensorPacks &packs) {
   };
 
   auto rc =
-    RunLayerContext("golden", true, 0.0f, create_view(weights),
+    RunLayerContext("golden", true, 0.0f, false, create_view(weights),
                     create_view(ins), create_view(outs), create_view(tensors));
 
   auto num_outputs = rc.getNumOutputs();

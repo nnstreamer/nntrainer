@@ -1125,6 +1125,17 @@ void Tensor::copy(const Tensor &from) {
   }
 }
 
+void Tensor::copyData(const Tensor &from) {
+  // todo: enable copy to non-contiguous tensor
+  if (!is_contiguous) {
+    throw std::runtime_error("Cannot copy non-contiguous tensor");
+  }
+
+  if (size() != from.size())
+    throw std::invalid_argument("Size of tensor to copy must match");
+  copy(from.getData());
+}
+
 Tensor Tensor::clone() const {
   Tensor t;
   t.copy(*this);

@@ -62,6 +62,8 @@ int NetworkGraph::compile(const std::string &loss_type) {
   countNonTrainableLayersAtBegin();
   setExecutionOrder();
 
+  inPlaceOptimize();
+
   status = checkCompiledGraph();
   NN_RETURN_STATUS();
 
@@ -602,100 +604,32 @@ void NetworkGraph::addLayer(std::shared_ptr<LayerNode> layer) {
   graph.addNode(layer);
 }
 
-void NetworkGraph::inPlaceOptimize() {
-  // TODO: update this after initial verification, this is deprecated for now.
-  return;
+bool NetworkGraph::canExecuteInPlace(const std::shared_ptr<LayerNode> &lnode) {
+  if (!optimize_memory || !lnode->supportInPlace())
+    return false;
 
-#if 0
-  for (auto iter = cbegin(); iter != cend(); iter++) {
-    auto layer_node = *iter;
-    auto &l = layer_node->getObject();
-    std::string l_type = l->getType();
+  if (lnode->getType() == FlattenLayer::type ||
+      lnode->getType() == InputLayer::type)
+    return true;
 
-    /**
-     * @todo concat/multi-output layer can be made in-place but with special
-     * handling where these layers can become no-op.
-     * consider this optimization for later
-     */
-
-    if (l->supportInPlace()) {
-      /** @note assumes layer to be optimized is only for single in/out tensor
-       */
-      if (layer_node->getNumInputConnections() != 1)
-        throw std::runtime_error("Internal error in the formed graph");
-
-      auto prev_node = getLayerNode(layer_node->getInputLayers()[0]);
-      auto &prev_layer =
-        getLayerNode(layer_node->getInputLayers()[0])->getObject();
-
-      unsigned int loc;
-      auto layer_name = layer_node->getName();
-      auto &output_layers = prev_node->getOutputLayers();
-      for (loc = 0; loc < output_layers.size(); ++loc)
-        if (output_layers[loc] == layer_name)
-          break;
-
-      if (loc == output_layers.size())
-        throw std::runtime_error("Internal error in the formed graph.");
-
-      /** Previous layer cannot be input layer for in-place layer */
-      if (prev_node->getType() == InputLayer::type)
-        continue;
-
-      /** Two layers cant work in-place consecutively */
-      if (prev_node->supportInPlace())
-        continue;
-
-      /** Share tensor with next layer */
-      /**
-       * Assume two layers, L1 and L2, with I and O corresponding to the layer
-       * outputs. Assume L2 to be the layer, needing in-place optimization.
-       */
-      if (l_type == BatchNormalizationLayer::type) {
-        /**
-         * With batch normalization, neither input nor output of the layer are
-         * requried for calculatin gradient and derivative. Just input
-         * derivative is required. In this scenraio, L2 is assumed to be batch
-         * normalization layer, and L1 is assumed to be a non-in-place layer.
-         * Hence, L1 layer's output and L2 layer's input var_grad are modified.
-         */
-        auto &inplace_shared_vg_ptr = l->net_hidden[0];
-        l->net_input[0] = inplace_shared_vg_ptr;             /// I2 = O2
-        prev_layer->net_hidden[loc] = inplace_shared_vg_ptr; /// O1 = O2
-      } else if (l_type == ActivationLayer::type) {
-        /**
-         * For activation layer, output of the layer and input derivative, both
-         * , are requried for calculating the gradient and derivative. In this
-         * scenraio, L2 is assumed to be activation layer, and L1 is assumed to
-         * be a non-in-place layer.
-         * Hence, L1 layer's output and L2 layer's input var_grad are
-         * differently. L1 layer operates out of place and share the memory for
-         * its output (O1.V) and input derivative (O1.G). L2 layer operates
-         * in-place and use a common shared derivative memory for their
-         * derivatives (handled in manager.cpp).
-         */
-        /**
-         * @note As this updates the tensors used in the prev_layer->net_hidden
-         * (O1), the tensors inside l->net_input (I2) are automatically updated
-         * as they share the same var_grad object.
-         */
-        auto &inplace_shared_vg = *l->net_hidden[0].get();
-        prev_layer->net_hidden[loc]->updateVariableByVariable(
-          inplace_shared_vg); /// O1.G = O2.V
-        prev_layer->net_hidden[loc]->updateGradientByVariable(
-          inplace_shared_vg); /// O1.V = O2.V
-      } else {
-        std::stringstream ss;
-        ss << l_type;
-        ss << " layer is not supported for in-place optimization";
-        throw std::runtime_error(ss.str());
-      }
-
-      /** Untrack the memory for this layer */
-      manager.untrackLayerInOuts(prev_node->getName());
+  if (lnode->getType() == ActivationLayer::type) {
+    auto const &input_layers = lnode->getInputLayers();
+    for (unsigned int i = 0; i < input_layers.size(); ++i) {
+      auto const &in_layer_node = getLayerNode(input_layers[i]);
+      if (in_layer_node->executeInPlace())
+        return false;
     }
+    return true;
   }
-#endif
+
+  return false;
+}
+
+void NetworkGraph::inPlaceOptimize() {
+  for (unsigned int idx = 0; idx < graph.size(); ++idx) {
+    auto const &lnode = getSortedLayerNode(idx);
+    lnode->executeInPlace(canExecuteInPlace(lnode));
+  }
 }
 
 std::vector<Var_Grad *>
@@ -724,15 +658,13 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
   const std::vector<Var_Grad *> &inputs = tensor_manager->requestInputs(
     gnode, init_context.getInputDimensions(), input_names);
 
-  /**
-   * In-Place optimizations
-   */
+  /** In-Place optimizations */
   std::vector<std::string> inputs_name;
-  if (lnode->getType() == FlattenLayer::type ||
-      lnode->getType() == InputLayer::type)
+  if (lnode->executeInPlace()) {
     std::transform(inputs.begin(), inputs.end(),
                    std::back_inserter(inputs_name),
                    [](const Var_Grad *val) { return val->getName(); });
+  }
 
   /**
    * Request manager for either a pre-allocated input as output or a newly

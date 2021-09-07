@@ -43,8 +43,9 @@ public:
    * @param dim Input dimensions for the layer
    */
   InitLayerContext(const std::vector<TensorDim> &dim, unsigned int num_out,
-                   const std::string &n) :
+                   bool in_place_ = true, const std::string &n = "") :
     input_dim(dim),
+    in_place(in_place_),
     num_outputs(num_out),
     name(n) {
     NNTR_THROW_IF(!validate(), std::invalid_argument)
@@ -262,9 +263,17 @@ public:
     return true;
   }
 
+  /**
+   * @brief   check if the layer is expected to run in-place
+   *
+   * @return true if in-place, else false
+   */
+  bool executeInPlace() const { return in_place; }
+
 private:
   std::vector<TensorDim> input_dim;  /**< Input dimensions for the layer */
   std::vector<TensorDim> output_dim; /**< Output dimensions for the layer */
+  bool in_place; /**< if the layer is expected to run in-place */
 
   std::vector<WeightSpec> weights_spec; /**< Specification for the weights */
   std::vector<TensorSpec>
@@ -291,15 +300,33 @@ class RunLayerContext {
 public:
   /**
    * @brief Construct a new Run Layer Context object
-   * @todo  Include properties like name/trainable later
    *
+   */
+  RunLayerContext() : loss(0.0), in_place(false) {}
+
+  /**
+   * @brief Construct a new Run Layer Context object
+   *
+   */
+  RunLayerContext(const std::string &name, bool in_place_) : RunLayerContext() {
+    in_place = in_place_;
+    std::get<props::Name>(props).set(name);
+  }
+
+  /**
+   * @brief Construct a new Run Layer Context object
+   *
+   * @param name name of the layer
+   * @param trainable if the layer is trainable
+   * @param l loss of the layer
+   * @param in_place_ execution in-place of the layer
    * @param w weights of the layer
    * @param in inputs of the layer
    * @param out outputs of the layer
    * @param t extra tensors of the layer
    */
   RunLayerContext(const std::string &name, bool trainable, float l,
-                  const std::vector<Weight *> &w,
+                  bool in_place_, const std::vector<Weight *> &w,
                   const std::vector<Var_Grad *> &in,
                   const std::vector<Var_Grad *> &out,
                   const std::vector<Var_Grad *> &t);
@@ -612,9 +639,17 @@ public:
    */
   bool validate(bool skip_input = false, bool skip_label = false);
 
+  /**
+   * @brief   check if the layer is expected to run in-place
+   *
+   * @return true if in-place, else false
+   */
+  bool executeInPlace() const { return in_place; }
+
 private:
   std::tuple<props::Name, props::Trainable> props; /**< props of the layer */
   float loss;                                      /**< loss of the layer */
+  bool in_place; /**< if the layer is expected to run in-place */
 
   std::vector<Weight *> weights;   /**< weights of the layer */
   std::vector<Var_Grad *> inputs;  /**< inputs of the layer */

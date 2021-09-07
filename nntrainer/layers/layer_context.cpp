@@ -18,11 +18,13 @@
 
 namespace nntrainer {
 RunLayerContext::RunLayerContext(const std::string &name, bool trainable,
-                                 float l, const std::vector<Weight *> &w,
+                                 float l, bool in_place_,
+                                 const std::vector<Weight *> &w,
                                  const std::vector<Var_Grad *> &in,
                                  const std::vector<Var_Grad *> &out,
                                  const std::vector<Var_Grad *> &t) :
   loss(l),
+  in_place(in_place_),
   weights(w),
   inputs(in),
   outputs(out),

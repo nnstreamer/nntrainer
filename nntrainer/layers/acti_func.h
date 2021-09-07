@@ -36,11 +36,9 @@ class ActiFunc {
 public:
   /**
    * @brief     Constructor of ActiFunc
-   *
-   * @todo      Update in_place to true after manager supports it
    */
   ActiFunc(ActivationType at = ActivationType::ACT_NONE,
-           bool in_place_ = false) :
+           bool in_place_ = true) :
     in_place(in_place_) {
     setActiFunc(at);
   }
@@ -188,6 +186,19 @@ public:
   int setActivation(
     std::function<float(float const)> const &activation_fn,
     std::function<float(float const)> const &activation_prime_fn);
+
+  /**
+   * @brief   Notify that this layer will execute in-place
+   *
+   * @param val True if execute in-place, else false
+   */
+  void executeInPlace(bool val) {
+    if (val && !supportInPlace())
+      throw std::runtime_error(
+        "Error setting activation layer to work in-place");
+
+    in_place = val;
+  }
 
 private:
   std::function<Tensor &(Tensor const &, Tensor &)> _act_fn;

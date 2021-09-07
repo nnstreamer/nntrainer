@@ -116,6 +116,7 @@ void ActiFunc::setActiFunc(ActivationType acti_type) {
     this->setActivation(sigmoid, sigmoidPrime);
     break;
   case ActivationType::ACT_SOFTMAX:
+    in_place = false;
     this->setActivation(softmax, softmaxPrime);
     break;
   case ActivationType::ACT_RELU:
