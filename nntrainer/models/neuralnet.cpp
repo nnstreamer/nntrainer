@@ -421,18 +421,37 @@ void NeuralNetwork::saveModelIni(const std::string &file_path) {
        "permitted, path: "
     << file_path;
 
+  std::vector<IniSection> sections;
+
   IniSection model_section = IniSection::FromExportable("model", *this);
   model_section.setEntry("type", "NeuralNetwork");
+  sections.push_back(model_section);
 
-  IniSection optimizer_section = IniSection::FromExportable("optimizer", *opt);
-  optimizer_section.setEntry("type", opt->getType());
+  auto add_section_if_any = [&sections](const std::string &section_name,
+                                        auto obj_ptr, auto pred) {
+    if (pred(obj_ptr)) {
+      IniSection s = IniSection::FromExportable(section_name, *obj_ptr);
+      s.setEntry("type", obj_ptr->getType());
+      sections.push_back(s);
+    }
+  };
 
-  IniWrapper wrapper("model_saver", {model_section, optimizer_section});
+  add_section_if_any("optimizer", opt,
+                     [](const auto &obj) { return static_cast<bool>(obj); });
+
+  auto &[train_buffer, valid_buffer, test_buffer] = data_buffers;
+  auto data_buffer_valid = [](const auto &buffer) {
+    return buffer && buffer->isSerializable(ExportMethods::METHOD_STRINGVECTOR);
+  };
+
+  add_section_if_any("train_set", train_buffer, data_buffer_valid);
+  add_section_if_any("valid_set", valid_buffer, data_buffer_valid);
+  add_section_if_any("test_set", test_buffer, data_buffer_valid);
+
+  IniWrapper wrapper("model_saver", sections);
   wrapper.save_ini(file_path);
 
   IniGraphInterpreter interpreter;
-  /// @todo serialize dataset props
-  /// @todo serialize optimizer props
   interpreter.serialize(model_graph, file_path);
 }
 

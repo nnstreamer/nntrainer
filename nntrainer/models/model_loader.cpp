@@ -182,55 +182,103 @@ int ModelLoader::loadModelConfigIni(dictionary *ini, NeuralNetwork &model) {
  * @brief     load dataset config from ini
  */
 int ModelLoader::loadDatasetConfigIni(dictionary *ini, NeuralNetwork &model) {
-  int status = ML_ERROR_NONE;
+  /************ helper functors **************/
+  auto try_parse_datasetsection_for_backward_compatibility = [&]() -> int {
+    int status = ML_ERROR_NONE;
+    if (iniparser_find_entry(ini, "Dataset") == 0) {
+      return ML_ERROR_NONE;
+    }
 
-  if (iniparser_find_entry(ini, "Dataset") == 0) {
-    return ML_ERROR_NONE;
-  }
+    ml_logw("Using dataset section is deprecated, please consider using "
+            "train_set, valid_set, test_set sections");
 
-  if (iniparser_find_entry(ini, "DataSet:Tflite")) {
-    ml_loge("Error: Tflite dataset is not yet implemented!");
-    return ML_ERROR_INVALID_PARAMETER;
-  }
+    /// @note DataSet:BufferSize is parsed for backward compatibility
+    std::string bufsizepros("buffer_size=");
+    bufsizepros +=
+      iniparser_getstring(ini, "DataSet:BufferSize",
+                          iniparser_getstring(ini, "DataSet:buffer_size", "1"));
 
-  /// @todo ini bufferSize -> buffer_size to unify
-  std::string bufsizepros("buffer_size=");
-  bufsizepros += iniparser_getstring(ini, "DataSet:BufferSize", "1");
+    auto parse_and_set = [&](const char *key, DatasetModeType dt,
+                             bool required) -> int {
+      const char *path = iniparser_getstring(ini, key, NULL);
 
-  std::function<int(const char *, DatasetModeType, bool)> parse_and_set =
-    [&](const char *key, DatasetModeType dt, bool required) -> int {
-    const char *path = iniparser_getstring(ini, key, NULL);
+      if (path == NULL) {
+        return required ? ML_ERROR_INVALID_PARAMETER : ML_ERROR_NONE;
+      }
 
-    if (path == NULL) {
-      return required ? ML_ERROR_INVALID_PARAMETER : ML_ERROR_NONE;
+      try {
+        model.data_buffers[static_cast<int>(dt)] =
+          createDataBuffer(DatasetType::FILE, resolvePath(path).c_str());
+        model.data_buffers[static_cast<int>(dt)]->setProperty({bufsizepros});
+      } catch (...) {
+        ml_loge("path is not valid, path: %s", resolvePath(path).c_str());
+        return ML_ERROR_INVALID_PARAMETER;
+      }
+
+      return ML_ERROR_NONE;
+    };
+
+    status =
+      parse_and_set("DataSet:TrainData", DatasetModeType::MODE_TRAIN, true);
+    NN_RETURN_STATUS();
+    status =
+      parse_and_set("DataSet:ValidData", DatasetModeType::MODE_VALID, false);
+    NN_RETURN_STATUS();
+    status =
+      parse_and_set("DataSet:TestData", DatasetModeType::MODE_TEST, false);
+    NN_RETURN_STATUS();
+    const char *path = iniparser_getstring(ini, "Dataset:LabelData", NULL);
+    if (path != NULL) {
+      ml_logi("setting labelData is deprecated!, it is essentially noop now!");
+    }
+
+    ml_logd("parsing dataset done");
+    return status;
+  };
+
+  auto parse_buffer_section = [ini, this,
+                               &model](const std::string &section_name,
+                                       DatasetModeType type) -> int {
+    if (iniparser_find_entry(ini, section_name.c_str()) == 0) {
+      return ML_ERROR_NONE;
+    }
+    const char *db_type =
+      iniparser_getstring(ini, (section_name + ":type").c_str(), unknown);
+    auto &db = model.data_buffers[static_cast<int>(type)];
+
+    /// @todo delegate this to app context (currently there is only file
+    /// databuffer so file is directly used)
+    if (!istrequal(db_type, "file")) {
+      ml_loge("databuffer type is unknonw, type: %s", db_type);
+      return ML_ERROR_INVALID_PARAMETER;
     }
 
     try {
-      model.data_buffers[static_cast<int>(dt)] =
-        createDataBuffer(DatasetType::FILE, resolvePath(path).c_str());
-      model.data_buffers[static_cast<int>(dt)]->setProperty({bufsizepros});
-    } catch (...) {
-      ml_loge("path is not valid, path: %s", resolvePath(path).c_str());
+      db = createDataBuffer(DatasetType::FILE);
+      const std::vector<std::string> properties =
+        parseProperties(ini, section_name, {"type"});
+
+      db->setProperty(properties);
+    } catch (std::exception &e) {
+      ml_loge("error while creating and setting dataset, %s", e.what());
       return ML_ERROR_INVALID_PARAMETER;
     }
 
     return ML_ERROR_NONE;
   };
 
-  status =
-    parse_and_set("DataSet:TrainData", DatasetModeType::MODE_TRAIN, true);
+  /************ start of the procedure **************/
+  int status = ML_ERROR_NONE;
+  status = try_parse_datasetsection_for_backward_compatibility();
   NN_RETURN_STATUS();
-  status =
-    parse_and_set("DataSet:ValidData", DatasetModeType::MODE_VALID, false);
-  NN_RETURN_STATUS();
-  status = parse_and_set("DataSet:TestData", DatasetModeType::MODE_TEST, false);
-  NN_RETURN_STATUS();
-  const char *path = iniparser_getstring(ini, "Dataset:LabelData", NULL);
-  if (path != NULL) {
-    ml_logi("setting labelData is deprecated!, it is essentially noop now!");
-  }
 
-  ml_logd("parsing dataset done");
+  status = parse_buffer_section("train_set", DatasetModeType::MODE_TRAIN);
+  NN_RETURN_STATUS();
+  status = parse_buffer_section("valid_set", DatasetModeType::MODE_VALID);
+  NN_RETURN_STATUS();
+  status = parse_buffer_section("test", DatasetModeType::MODE_TEST);
+  NN_RETURN_STATUS();
+
   return status;
 }
 

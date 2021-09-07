@@ -24,6 +24,8 @@
 namespace nntrainer {
 
 class PropsUserData;
+class Exporter;
+enum class ExportMethods;
 
 using datagen_cb = ml::train::datagen_cb;
 
@@ -67,6 +69,11 @@ public:
   DataProducer::Generator finalize(const std::vector<TensorDim> &input_dims,
                                    const std::vector<TensorDim> &label_dims,
                                    void *user_data = nullptr) override;
+
+  /**
+   * @copydoc DataProducer::exportTo(Exporter &exporter, ExportMethods method)
+   */
+  void exportTo(Exporter &exporter, const ExportMethods &method) const override;
 
 private:
   datagen_cb cb;
