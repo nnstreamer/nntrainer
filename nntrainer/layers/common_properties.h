@@ -345,6 +345,26 @@ public:
 };
 
 /**
+ * @brief TranslationFactor property, this defines how far the image is
+ * translated
+ *
+ */
+class RandomTranslate : public nntrainer::Property<float> {
+
+public:
+  static constexpr const char *key =
+    "random_translate";            /**< unique key to access */
+  using prop_tag = float_prop_tag; /**< property type */
+
+  /**
+   * @brief setter
+   *
+   * @param value value to set
+   */
+  void set(const float &value) override;
+};
+
+/**
  * @brief Props containing file path value
  *
  */

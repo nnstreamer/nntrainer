@@ -16,6 +16,7 @@
 
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
+#include <node_exporter.h>
 #include <parse_util.h>
 #include <preprocess_translate_layer.h>
 #include <util_func.h>
@@ -26,20 +27,26 @@
 #endif
 
 namespace nntrainer {
+PreprocessTranslateLayer::PreprocessTranslateLayer() :
+  Layer(),
+  epsilon(1e-5),
+  preprocess_translate_props(props::RandomTranslate()) {}
 
 void PreprocessTranslateLayer::finalize(InitLayerContext &context) {
   context.setOutputDimensions(context.getInputDimensions());
   const TensorDim input_dim_0 = context.getInputDimensions()[0];
+  float random_translate =
+    std::get<props::RandomTranslate>(preprocess_translate_props);
 
   rng.seed(getSeed());
 
   // Made for 3 channel input
-  if (translation_factor > epsilon) {
+  if (random_translate > epsilon) {
     if (input_dim_0.channel() > 3)
       throw exception::not_supported(
         "Preprocess translate layer not supported for over 3 channels");
-    translate_dist = std::uniform_real_distribution<float>(-translation_factor,
-                                                           translation_factor);
+    translate_dist = std::uniform_real_distribution<float>(-random_translate,
+                                                           random_translate);
 
 #if defined(ENABLE_DATA_AUGMENTATION_OPENCV)
     affine_transform_mat = cv::Mat::zeros(2, 3, CV_32FC1);
@@ -59,45 +66,10 @@ void PreprocessTranslateLayer::finalize(InitLayerContext &context) {
 
 void PreprocessTranslateLayer::setProperty(
   const std::vector<std::string> &values) {
-  /// @todo: deprecate this in favor of loadProperties
-  for (unsigned int i = 0; i < values.size(); ++i) {
-    std::string key;
-    std::string value;
-    std::stringstream ss;
-
-    if (getKeyValue(values[i], key, value) != ML_ERROR_NONE) {
-      throw std::invalid_argument("Error parsing the property: " + values[i]);
-    }
-
-    if (value.empty()) {
-      ss << "value is empty: key: " << key << ", value: " << value;
-      throw std::invalid_argument(ss.str());
-    }
-
-    /// @note this calls derived setProperty if available
-    setProperty(key, value);
-  }
-}
-
-void PreprocessTranslateLayer::setProperty(const std::string &type_str,
-                                           const std::string &value) {
-  using PropertyType = nntrainer::Layer::PropertyType;
-  int status = ML_ERROR_NONE;
-  nntrainer::Layer::PropertyType type =
-    static_cast<nntrainer::Layer::PropertyType>(parseLayerProperty(type_str));
-
-  switch (type) {
-  case PropertyType::random_translate: {
-    status = setFloat(translation_factor, value);
-    translation_factor = std::abs(translation_factor);
-    throw_status(status);
-  } break;
-  default:
-    std::string msg =
-      "[PreprocessTranslateLayer] Unknown Layer Property Key for value " +
-      std::string(value);
-    throw exception::not_supported(msg);
-  }
+  auto remain_props = loadProperties(values, preprocess_translate_props);
+  NNTR_THROW_IF(!remain_props.empty(), std::invalid_argument)
+    << "[PreprocessTranslateLayer] Unknown Layer Properties count " +
+         std::to_string(values.size());
 }
 
 void PreprocessTranslateLayer::forwarding(RunLayerContext &context,
@@ -115,8 +87,10 @@ void PreprocessTranslateLayer::forwarding(RunLayerContext &context,
     Tensor &hidden_ = context.getOutput(idx);
     Tensor &input_ = context.getInput(idx);
     const TensorDim input_dim = input_.getDim();
+    float random_translate =
+      std::get<props::RandomTranslate>(preprocess_translate_props);
 
-    if (translation_factor < epsilon) {
+    if (random_translate < epsilon) {
       hidden_ = input_;
       continue;
     }
@@ -156,6 +130,11 @@ void PreprocessTranslateLayer::forwarding(RunLayerContext &context,
 void PreprocessTranslateLayer::calcDerivative(RunLayerContext &context) {
   throw exception::not_supported(
     "calcDerivative for preprocess layer is not supported");
+}
+
+void PreprocessTranslateLayer::exportTo(Exporter &exporter,
+                                        const ExportMethods &method) const {
+  exporter.saveResult(preprocess_translate_props, method, this);
 }
 
 } /* namespace nntrainer */

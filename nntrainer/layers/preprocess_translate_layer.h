@@ -34,10 +34,7 @@ public:
   /**
    * @brief     Constructor of Preprocess Translate Layer
    */
-  PreprocessTranslateLayer() :
-    Layer(),
-    translation_factor(0.0),
-    epsilon(1e-5) {}
+  PreprocessTranslateLayer();
 
   /**
    * @brief     Destructor of Preprocess Translate Layer
@@ -79,8 +76,7 @@ public:
   /**
    * @copydoc Layer::exportTo(Exporter &exporter, ExportMethods method)
    */
-  void exportTo(Exporter &exporter,
-                const ExportMethods &method) const override {}
+  void exportTo(Exporter &exporter, const ExportMethods &method) const override;
 
   /**
    * @copydoc Layer::getType()
@@ -97,27 +93,17 @@ public:
   inline static const std::string type = "preprocess_translate";
 
 private:
-  float translation_factor;
   float epsilon;
 
   std::mt19937 rng; /**< random number generator */
   std::uniform_real_distribution<float>
     translate_dist; /**< uniform random distribution */
+  std::tuple<props::RandomTranslate> preprocess_translate_props;
 
 #if defined(ENABLE_DATA_AUGMENTATION_OPENCV)
   cv::Mat affine_transform_mat;
   cv::Mat input_mat, output_mat;
 #endif
-
-  /**
-   * @brief setProperty by type and value separated
-   * @param[in] type property type to be passed
-   * @param[in] value value to be passed
-   * @exception exception::not_supported     when property type is not valid for
-   * the particular layer
-   * @exception std::invalid_argument invalid argument
-   */
-  void setProperty(const std::string &type, const std::string &value);
 };
 
 } // namespace nntrainer
