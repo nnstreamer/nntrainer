@@ -21,6 +21,7 @@
 #include <lazy_tensor.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
+#include <node_exporter.h>
 #include <parse_util.h>
 #include <profiler.h>
 #include <util_func.h>
@@ -49,7 +50,7 @@ static TensorDim calcCol2ImOutputDim(const TensorDim &out,
  */
 static void col2im(const Tensor &col_matrix, const TensorDim &kdim,
                    const std::array<unsigned, 4> &padding,
-                   const std::array<unsigned, CONV2D_DIM> &mstride,
+                   const std::array<props::Stride, CONV2D_DIM> &mstride,
                    const std::array<unsigned, CONV2D_DIM> &dilation,
                    Tensor &image) {
   unsigned pt = padding[0];
@@ -115,7 +116,7 @@ static void col2im(const Tensor &col_matrix, const TensorDim &kdim,
 static TensorDim
 calcIm2ColOutputDim(const TensorDim &in, const TensorDim &kdim,
                     const std::array<unsigned int, CONV2D_DIM * 2> &padding,
-                    const std::array<unsigned int, CONV2D_DIM> &mstride,
+                    const std::array<props::Stride, CONV2D_DIM> &mstride,
                     const std::array<unsigned int, CONV2D_DIM> &dilation) {
 
   unsigned pt = padding[0];
@@ -158,7 +159,7 @@ calcIm2ColOutputDim(const TensorDim &in, const TensorDim &kdim,
  */
 static void im2col(const Tensor &in, const TensorDim &kdim,
                    const std::array<unsigned int, 4> &padding,
-                   const std::array<unsigned int, CONV2D_DIM> &mstride,
+                   const std::array<props::Stride, CONV2D_DIM> &mstride,
                    const std::array<unsigned int, CONV2D_DIM> &dilation,
                    Tensor &out) {
   /// for channel last mode, this is deprecated for now, leaving here on
@@ -275,12 +276,25 @@ static void im2col(const Tensor &in, const TensorDim &kdim,
 
 enum ConvParams { weight, bias, im2col_result, col2im_result };
 
+Conv2DLayer::Conv2DLayer(
+  const std::array<unsigned int, CONV2D_DIM * 2> &padding_) :
+  LayerImpl(),
+  padding(padding_),
+  conv_props(props::FilterSize(), std::array<props::KernelSize, CONV2D_DIM>(),
+             std::array<props::Stride, CONV2D_DIM>(), props::Padding2D()),
+  wt_idx({0}) {}
+
 void Conv2DLayer::finalize(InitLayerContext &context) {
   if (context.getNumInputs() != 1) {
     throw std::invalid_argument("Convolution layer takes only one input");
   }
 
   const TensorDim &in_dim = context.getInputDimensions()[0];
+
+  unsigned int filter_size = std::get<props::FilterSize>(conv_props);
+  auto &kernel_size =
+    std::get<std::array<props::KernelSize, CONV2D_DIM>>(conv_props);
+  auto &stride = std::get<std::array<props::Stride, CONV2D_DIM>>(conv_props);
 
   TensorDim dim =
     TensorDim(filter_size, in_dim.channel(), kernel_size[0], kernel_size[1]);
@@ -335,6 +349,9 @@ void Conv2DLayer::finalize(InitLayerContext &context) {
 
 void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
   int status = ML_ERROR_NONE;
+
+  unsigned int filter_size = std::get<props::FilterSize>(conv_props);
+  auto &stride = std::get<std::array<props::Stride, CONV2D_DIM>>(conv_props);
 
   Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
   Tensor &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
@@ -417,6 +434,9 @@ void Conv2DLayer::forwarding(RunLayerContext &context, bool training) {
 }
 
 void Conv2DLayer::calcDerivative(RunLayerContext &context) {
+  unsigned int filter_size = std::get<props::FilterSize>(conv_props);
+  auto &stride = std::get<std::array<props::Stride, CONV2D_DIM>>(conv_props);
+
   Tensor &derivative = context.getIncomingDerivative(SINGLE_INOUT_IDX);
   Tensor &input_derivative = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
   Tensor &filter_kernel = context.getWeight(wt_idx[ConvParams::weight]);
@@ -444,6 +464,9 @@ void Conv2DLayer::calcDerivative(RunLayerContext &context) {
 }
 
 void Conv2DLayer::calcGradient(RunLayerContext &context) {
+  unsigned int filter_size = std::get<props::FilterSize>(conv_props);
+  auto &stride = std::get<std::array<props::Stride, CONV2D_DIM>>(conv_props);
+
   Tensor &derivative = context.getIncomingDerivative(SINGLE_INOUT_IDX);
   Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
 
@@ -485,62 +508,15 @@ void Conv2DLayer::calcGradient(RunLayerContext &context) {
   delBias = derivative.sum({0, 2, 3});
 }
 
-void Conv2DLayer::setProperty(const std::vector<std::string> &values) {
-  /// @todo: deprecate this in favor of loadProperties
-  for (unsigned int i = 0; i < values.size(); ++i) {
-    std::string key;
-    std::string value;
-    std::stringstream ss;
-
-    if (getKeyValue(values[i], key, value) != ML_ERROR_NONE) {
-      throw std::invalid_argument("Error parsing the property: " + values[i]);
-    }
-
-    if (value.empty()) {
-      ss << "value is empty: key: " << key << ", value: " << value;
-      throw std::invalid_argument(ss.str());
-    }
-
-    /// @note this calls derived setProperty if available
-    setProperty(key, value);
-  }
+void Conv2DLayer::exportTo(Exporter &exporter,
+                           const ExportMethods &method) const {
+  LayerImpl::exportTo(exporter, method);
+  exporter.saveResult(conv_props, method, this);
 }
 
-void Conv2DLayer::setProperty(const std::string &type_str,
-                              const std::string &value) {
-  using PropertyType = nntrainer::Layer::PropertyType;
-  int status = ML_ERROR_NONE;
-  nntrainer::Layer::PropertyType type =
-    static_cast<nntrainer::Layer::PropertyType>(parseLayerProperty(type_str));
-
-  switch (type) {
-  case PropertyType::filters: {
-    status = setUint(filter_size, value);
-    throw_status(status);
-  } break;
-  case PropertyType::kernel_size:
-    status = getValues(CONV2D_DIM, value, (int *)(kernel_size.data()));
-    throw_status(status);
-    if (kernel_size[0] == 0 || kernel_size[1] == 0) {
-      throw std::invalid_argument(
-        "[Conv2DLayer] kernel_size must be greater than 0");
-    }
-    break;
-  case PropertyType::stride:
-    status = getValues(CONV2D_DIM, value, (int *)(stride.data()));
-    throw_status(status);
-    if (stride[0] == 0 || stride[1] == 0) {
-      throw std::invalid_argument(
-        "[Conv2DLayer] stride must be greater than 0");
-    }
-    break;
-  case PropertyType::padding:
-    from_string(value, std::get<props::Padding2D>(conv_props));
-    break;
-  default:
-    LayerImpl::setProperty(type_str, value);
-    break;
-  }
+void Conv2DLayer::setProperty(const std::vector<std::string> &values) {
+  auto remain_props = loadProperties(values, conv_props);
+  LayerImpl::setProperty(remain_props);
 }
 
 } /* namespace nntrainer */
