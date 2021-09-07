@@ -15,7 +15,6 @@
 
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
-#include <parse_util.h>
 #include <permute_layer.h>
 #include <tensor.h>
 #include <tensor_dim.h>
