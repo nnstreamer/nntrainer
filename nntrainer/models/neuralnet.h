@@ -502,7 +502,8 @@ public:
 
 private:
   using FlexiblePropTypes =
-    std::tuple<props::Epochs, props::TrainingBatchSize, props::SavePath, props::ContinueTrain>;
+    std::tuple<props::Epochs, props::TrainingBatchSize, props::SavePath,
+               props::ContinueTrain, props::SaveBestPath>;
   using RigidPropTypes = std::tuple<props::LossType>;
 
   RigidPropTypes model_props;         /**< model props */
