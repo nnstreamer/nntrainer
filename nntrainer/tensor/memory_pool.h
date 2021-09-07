@@ -38,6 +38,12 @@ public:
   MemoryPool() : mem_pool(nullptr), pool_size(0), min_pool_size(0) {}
 
   /**
+   * @brief MemoryPool destructor
+   *
+   */
+  ~MemoryPool() { deallocate(); }
+
+  /**
    * @brief Request Memory from memory pool
    *
    * @param bytes The size of the memory requested in bytes
