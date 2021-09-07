@@ -49,6 +49,7 @@ class Flatten;
 class ActivationType;
 class Loss;
 class InputLayer;
+class InputShape;
 } // namespace props
 
 /**
@@ -607,11 +608,7 @@ properties in the context/graph unless intended. */
 
   using PropsType =
     std::tuple<props::Name, props::Flatten, props::Distribute, props::Trainable,
-               std::vector<props::InputLayer>>;
-
-  std::vector<TensorDim>
-    input_shapes; /**< input shapes, @see LayerNode::finalize() to know how this
-                     is interpreted */
+               std::vector<props::InputLayer>, std::vector<props::InputShape>>;
   /**
    * These properties are set for the layer by the user but are intercepted
    * and used in the node which forms the basic element of the graph.
