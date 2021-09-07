@@ -99,6 +99,35 @@ public:
   }
 };
 
+/**
+ * @brief Input shape property which saves a single tensor shape
+ * (practically, std::array<InputShape> is used)
+ *
+ */
+class InputShape : public Property<TensorDim> {
+
+public:
+  static constexpr const char *key = "input_shape"; /**< unique key to access */
+  using prop_tag = dimension_prop_tag;              /**< property type */
+
+  /**
+   * @brief Input shape setter
+   *
+   * @param value value to set
+   */
+  void set(const TensorDim &value) override {
+    TensorDim ret = value;
+    ret.setDynDimFlag(0b1000);
+    if (ret.batch() != 1) {
+      ml_logw("Batch size set with input dimension %u is ignored."
+              "Use batchsize property for the model to update batchsize.",
+              ret.batch());
+      ret.batch(1);
+    }
+    Property<TensorDim>::set(ret);
+  }
+};
+
 } // namespace props
 
 /**
@@ -143,9 +172,9 @@ LayerNode::LayerNode(std::unique_ptr<nntrainer::Layer> &&l) :
   layer(std::move(l)),
   activation_type(ActivationType::ACT_NONE),
   run_context(nullptr),
-  input_shapes(),
   layer_node_props(new PropsType(props::Name(), props::Flatten(),
-                                 props::Distribute(), props::Trainable(), {})),
+                                 props::Distribute(), props::Trainable(), {},
+                                 {})),
   loss(new props::Loss()),
   regularization_loss(0.0f),
   exec_order({0, 0, 0}) {
@@ -207,34 +236,6 @@ bool LayerNode::setProperty(const std::string &key, const std::string &value) {
 
   PropertyType type = static_cast<PropertyType>(parseLayerProperty(key));
   switch (type) {
-  case PropertyType::input_shape: {
-    std::vector<TensorDim> input_dim = input_shapes;
-    if (input_shapes.size() > 1) {
-      throw std::invalid_argument("input_shape keyword is only for one input");
-    }
-    if (input_shapes.empty())
-      input_dim.resize(1);
-
-    TensorDim &in_dim = input_dim[0];
-    if (!value.empty()) {
-      unsigned int cache_batch_size = 1;
-      /** cache original value of batch size */
-      if (in_dim.batch()) {
-        cache_batch_size = in_dim.batch();
-        in_dim.batch(1);
-      }
-      int status = in_dim.setTensorDim(value.c_str());
-      if (in_dim.batch() > 1) {
-        ml_logw("Batch size set with input dimension %d is ignored."
-                "Set batchsize property for the model to update batchsize.",
-                in_dim.batch());
-      }
-      /** set back to cache value of dimension */
-      in_dim.batch(cache_batch_size);
-      throw_status(status);
-      input_shapes = std::move(input_dim);
-    }
-  } break;
   case PropertyType::activation: {
     setActivation((ActivationType)parseType(value, TOKEN_ACTI));
     if (getType() == ActivationLayer::type) {
@@ -373,7 +374,14 @@ void LayerNode::setInputLayers(const std::vector<std::string> &layers) {
   input_layers = std::vector<props::InputLayer>(layers.begin(), layers.end());
 }
 
-bool LayerNode::hasInputShapeProperty() const { return !input_shapes.empty(); }
+bool LayerNode::hasInputShapeProperty() const {
+  auto &input_shapes =
+    std::get<std::vector<props::InputShape>>(*layer_node_props);
+
+  return !input_shapes.empty() &&
+         std::all_of(input_shapes.begin(), input_shapes.end(),
+                     [](const auto &input) { return !input.empty(); });
+}
 
 const std::vector<TensorDim> LayerNode::getInputDimensions() const {
   NNTR_THROW_IF(!run_context, std::runtime_error)
@@ -432,17 +440,28 @@ void LayerNode::save(std::ofstream &file) const {
  */
 InitLayerContext LayerNode::finalize(const std::vector<TensorDim> &input_dims) {
   std::vector<TensorDim> actual_input_dims;
-  auto &prop_dims = input_shapes;
+  auto &prop_dims = std::get<std::vector<props::InputShape>>(*layer_node_props);
+
   if (!input_dims.empty()) {
     actual_input_dims = input_dims;
-    if (!prop_dims.empty()) {
+    if (hasInputShapeProperty()) {
+      std::vector<TensorDim> acutal_prop_dims(prop_dims.begin(),
+                                              prop_dims.end());
       /// if prop_dims exist, check if it's same with given input_dims
-      NNTR_THROW_IF(input_dims != prop_dims, std::invalid_argument)
+      NNTR_THROW_IF(input_dims != acutal_prop_dims, std::invalid_argument)
         << "calculated input dimension is different from given input_shape "
            "property";
     }
   } else {
-    actual_input_dims = prop_dims;
+    NNTR_THROW_IF(!hasInputShapeProperty(), std::invalid_argument)
+      << "if input dims not given, input shapes must be given by the user as "
+         "property";
+    NNTR_THROW_IF(prop_dims.size() != 1, std::invalid_argument)
+      << "input shapes must be one if connection is not given but given "
+         "dimesions size of: "
+      << prop_dims.size();
+    actual_input_dims =
+      std::vector<TensorDim>(prop_dims.begin(), prop_dims.end());
   }
 
   NNTR_THROW_IF(input_dims.size() < getNumInputConnections(),
@@ -492,8 +511,12 @@ void LayerNode::calcGradient() { layer->calcGradient(*run_context); }
 void LayerNode::setBatch(unsigned int batch) {
   /** @todo we won't going to need Layer::setBatch(InitLayerContext), remove it
    */
-  for (auto &input_shape : input_shapes) {
-    input_shape.batch(batch);
+  if (hasInputShapeProperty()) {
+    auto &input_shapes =
+      std::get<std::vector<props::InputShape>>(*layer_node_props);
+    for (auto &input_shape : input_shapes) {
+      input_shape.get().batch(batch);
+    }
   }
 
   if (run_context) {
