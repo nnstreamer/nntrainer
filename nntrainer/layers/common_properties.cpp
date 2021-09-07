@@ -54,6 +54,10 @@ bool DropOutSpec::isValid(const float &v) const {
     return true;
 }
 
+void RandomTranslate::set(const float &value) {
+  Property<float>::set(std::abs(value));
+}
+
 bool FilePath::isValid(const std::string &v) const {
   std::ifstream file(v, std::ios::binary | std::ios::ate);
   return file.good();
