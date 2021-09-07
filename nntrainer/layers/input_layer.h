@@ -80,6 +80,11 @@ public:
   bool supportBackwarding() const override { return false; };
 
   /**
+   * @copydoc Layer::supportInPlace()
+   */
+  bool supportInPlace() const override { return true; }
+
+  /**
    * @copydoc Layer::exportTo(Exporter &exporter, ExportMethods method)
    */
   void exportTo(Exporter &exporter, const ExportMethods &method) const override;

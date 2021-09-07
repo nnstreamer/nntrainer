@@ -39,9 +39,19 @@ void FlattenLayer::finalize(InitLayerContext &context) {
   context.setOutputDimensions({out_dim});
 }
 
-void FlattenLayer::forwarding(RunLayerContext &context, bool training) {}
+void FlattenLayer::forwarding(RunLayerContext &context, bool training) {
+  if (!context.executeInPlace()) {
+    context.getOutput(SINGLE_INOUT_IDX)
+      .copyData(context.getInput(SINGLE_INOUT_IDX));
+  }
+}
 
-void FlattenLayer::calcDerivative(RunLayerContext &context) {}
+void FlattenLayer::calcDerivative(RunLayerContext &context) {
+  if (!context.executeInPlace()) {
+    context.getOutgoingDerivative(SINGLE_INOUT_IDX)
+      .copyData(context.getIncomingDerivative(SINGLE_INOUT_IDX));
+  }
+}
 
 void FlattenLayer::setProperty(const std::vector<std::string> &values) {
   if (!values.empty()) {

@@ -217,6 +217,25 @@ public:
   bool supportInPlace() const;
 
   /**
+   * @brief   Notify that this layer will execute in-place
+   *
+   * @param va; True if execute in-place, else false
+   */
+  void executeInPlace(bool val) {
+    if (val && !supportInPlace())
+      throw std::runtime_error("Error setting layer to work in-place");
+
+    inplace = val;
+  }
+
+  /**
+   * @brief   Get if the layer is going to execute in-place
+   *
+   * @return if layer will execute in-place, return true, else false
+   */
+  bool executeInPlace() const { return inplace; }
+
+  /**
    * @brief  check if this layer requires label to be passed
    * @return true if requires a label when training, else false
    * @note   if requireLabel() == true means, for now, that it is endpoint of a
@@ -644,6 +663,9 @@ private:
   std::unique_ptr<nntrainer::Layer>
     layer; /**< The actual object in the graph node */
 
+  bool inplace; /**< store if the current layer is going to operate in-place */
+
+  std::vector<std::string> input_layers;  /**< input layer names */
   std::vector<std::string> output_layers; /**< output layer names */
 
   std::unique_ptr<RunLayerContext>

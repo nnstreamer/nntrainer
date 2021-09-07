@@ -119,7 +119,8 @@ void TimeDistLayer::finalize(InitLayerContext &context) {
    */
   TensorDim dist_dim = input_dim;
   dist_dim.height(1);
-  InitLayerContext dist_context({dist_dim}, context.getNumOutputs(), getType());
+  InitLayerContext dist_context({dist_dim}, context.getNumOutputs(),
+                                context.executeInPlace(), context.getName());
 
   // During forwarding and backwarding, it set the input and output buffer of
   // dist_layer properly
@@ -249,8 +250,9 @@ void TimeDistLayer::forwarding(RunLayerContext &context, bool training) {
     }
 
     RunLayerContext dist_context(context.getName(), context.getTrainable(),
-                                 context.getLoss(), getWeightsForContext(),
-                                 {&in_var}, {&out_var}, getTensorsForContext());
+                                 context.getLoss(), context.executeInPlace(),
+                                 getWeightsForContext(), {&in_var}, {&out_var},
+                                 getTensorsForContext());
 
     dist_layer->forwarding(dist_context, training);
   }
@@ -295,8 +297,9 @@ void TimeDistLayer::calcDerivative(RunLayerContext &context) {
     out_var.initializeVariable(hval_iter);
 
     RunLayerContext dist_context(context.getName(), context.getTrainable(),
-                                 context.getLoss(), getWeightsForContext(),
-                                 {&in_var}, {&out_var}, getTensorsForContext());
+                                 context.getLoss(), context.executeInPlace(),
+                                 getWeightsForContext(), {&in_var}, {&out_var},
+                                 getTensorsForContext());
 
     dist_layer->calcDerivative(dist_context);
   }
@@ -347,8 +350,9 @@ void TimeDistLayer::calcGradient(RunLayerContext &context) {
     out_var.initializeGradient(d_iter);
 
     RunLayerContext dist_context(context.getName(), context.getTrainable(),
-                                 context.getLoss(), getWeightsForContext(),
-                                 {&in_var}, {&out_var}, getTensorsForContext());
+                                 context.getLoss(), context.executeInPlace(),
+                                 getWeightsForContext(), {&in_var}, {&out_var},
+                                 getTensorsForContext());
 
     dist_layer->calcGradient(dist_context);
   }
@@ -390,8 +394,9 @@ void TimeDistLayer::setBatch(RunLayerContext &context, unsigned int batch) {
     fillTensorsFromContext(context);
 
     RunLayerContext dist_context(context.getName(), context.getTrainable(),
-                                 context.getLoss(), getWeightsForContext(),
-                                 {&in_var}, {&out_var}, getTensorsForContext());
+                                 context.getLoss(), context.executeInPlace(),
+                                 getWeightsForContext(), {&in_var}, {&out_var},
+                                 getTensorsForContext());
 
     dist_layer->setBatch(dist_context, batch);
 

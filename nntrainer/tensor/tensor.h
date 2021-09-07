@@ -831,8 +831,16 @@ public:
   /**
    * @brief     Copy the Tensor
    * @param[in] from Tensor to be copied
+   *
+   * @note copy can reshape the tensor to match the shape
    */
   void copy(const Tensor &from);
+
+  /**
+   * @brief     Copy the Tensor
+   * @param[in] from Tensor to be copied
+   */
+  void copyData(const Tensor &from);
 
   /**
    * @brief     Copy the Tensor

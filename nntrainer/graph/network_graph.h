@@ -45,6 +45,7 @@ public:
     skip_non_trainable_layers(0),
     compiled(false),
     batch_size(0),
+    optimize_memory(true),
     exec_mode(ExecutionMode::TRAIN) {}
 
   /**
@@ -235,11 +236,6 @@ public:
   unsigned int getBatchSize() const;
 
   /**
-   * @brief     Optimize the graph memory utilization for in-place operations
-   */
-  void inPlaceOptimize();
-
-  /**
    * @brief     Copy the graph
    * @param[in] from Graph Object to copy
    * @retval    Graph Object copyed
@@ -333,6 +329,7 @@ public:
    */
   void setMemoryOptimizations(bool val) {
     tensor_manager->setOptimizations(val);
+    optimize_memory = val;
   }
 
   /**
@@ -398,6 +395,7 @@ private:
   std::vector<TensorDim> label_dims;    /**< graph label dimensions */
   std::vector<TensorDim> input_dims;    /**< graph input dimensions */
 
+  bool optimize_memory;    /**< optimize memory */
   ExecutionMode exec_mode; /**< execution mode with which the graph has been
                               currently set or previously set */
 
@@ -529,6 +527,20 @@ private:
    */
   void setExternalTensors(const std::vector<Tensor> &data,
                           const std::vector<std::string> names);
+
+  /**
+   * @brief     Optimize the graph memory utilization for in-place operations
+   */
+  void inPlaceOptimize();
+
+  /**
+   * @brief     Check if the given node can execute in-place
+   *
+   * @param lnode node to check for in-place execution
+   *
+   * @return true if can operate in-place, else false
+   */
+  bool canExecuteInPlace(const std::shared_ptr<LayerNode> &lnode);
 };
 
 } // namespace nntrainer
