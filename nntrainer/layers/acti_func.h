@@ -16,21 +16,10 @@
 #define __ACTI_FUNC_H__
 #ifdef __cplusplus
 
+#include <common_properties.h>
 #include <tensor.h>
 
 namespace nntrainer {
-
-/**
- * @brief     Enumeration of activation function type
- */
-enum class ActivationType {
-  ACT_TANH,    /** tanh */
-  ACT_SIGMOID, /** sigmoid */
-  ACT_RELU,    /** ReLU */
-  ACT_SOFTMAX, /** softmax */
-  ACT_NONE,    /** no op */
-  ACT_UNKNOWN  /** unknown */
-};
 
 /**
  * @brief     Activation enum to string map

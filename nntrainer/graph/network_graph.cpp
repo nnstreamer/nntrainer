@@ -196,7 +196,9 @@ int NetworkGraph::realizeActivationType(
     lnode->setProperty({"distribute=true"});
   }
 
-  lnode->setProperty({"activation=" + ActivationTypeStr[(unsigned int)act]});
+  props::Activation act_prop;
+  act_prop.set(act);
+  lnode->setProperty({"activation=" + to_string(act_prop)});
   in_node->setProperty({"activation=none"});
 
   lnode->setInputLayers({in_node->getName()});
@@ -297,7 +299,6 @@ int NetworkGraph::addLossLayer(const std::string &loss_type_) {
 }
 
 void NetworkGraph::setOutputLayers() {
-
   for (auto iter_idx = cbegin(); iter_idx != cend(); iter_idx++) {
     auto &layer_idx = *iter_idx;
     for (auto iter_i = cbegin(); iter_i != cend(); iter_i++) {
@@ -354,15 +355,14 @@ int NetworkGraph::checkCompiledGraph() {
 }
 
 int NetworkGraph::realizeGraph() {
-
   int status = ML_ERROR_NONE;
 
   addDefaultInputLayers();
 
   /**
    * invariant: the new realized nodes are added to the end,
-   * otherwise this iteration becomes invalid. So, every iteration must be fresh
-   * iterator as vector resize invalidates all the iterators.
+   * otherwise this iteration becomes invalid. So, every iteration must be
+   * fresh iterator as vector resize invalidates all the iterators.
    */
   for (unsigned int i = 0; i < graph.size(); ++i) {
     auto const &lnode = LNODE(*(cbegin() + i));
@@ -511,7 +511,6 @@ std::vector<std::shared_ptr<LayerNode>> NetworkGraph::getLayerNodes() const {
 
 void NetworkGraph::extendGraph(std::vector<std::shared_ptr<LayerNode>> ex_graph,
                                std::string &prefix) {
-
   if (compiled)
     throw std::runtime_error("Cannot modify graph after compile");
 

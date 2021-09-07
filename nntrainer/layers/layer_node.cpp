@@ -28,7 +28,6 @@
 namespace nntrainer {
 
 namespace props {
-class ActivationType;
 
 /**
  * @brief Flatten property, true if needs flatten layer afterwards
@@ -49,9 +48,6 @@ public:
   Distribute() : Property<bool>() {}
   static constexpr const char *key = "distribute";
   using prop_tag = bool_prop_tag;
-  bool isValid(const bool &v) const {
-    return empty() || !get();
-  } /**< distribute=true can be set strictly one time */
 };
 
 /**
@@ -170,11 +166,11 @@ createLayerNode(std::unique_ptr<nntrainer::Layer> &&layer,
 
 LayerNode::LayerNode(std::unique_ptr<nntrainer::Layer> &&l) :
   layer(std::move(l)),
-  activation_type(ActivationType::ACT_NONE),
   run_context(nullptr),
-  layer_node_props(new PropsType(props::Name(), props::Flatten(),
-                                 props::Distribute(), props::Trainable(), {},
-                                 {})),
+  layer_node_props(new PropsType(props::Name(), props::Distribute(),
+                                 props::Trainable(), {}, {})),
+  layer_node_props_realization(
+    new RealizationPropsType(props::Flatten(), props::Activation())),
   loss(new props::Loss()),
   regularization_loss(0.0f),
   exec_order({0, 0, 0}) {
@@ -184,75 +180,10 @@ LayerNode::LayerNode(std::unique_ptr<nntrainer::Layer> &&l) :
 }
 
 void LayerNode::setProperty(const std::vector<std::string> &properties) {
-  bool already_distributed =
-    !std::get<props::Distribute>(*layer_node_props).empty() &&
-    std::get<props::Distribute>(*layer_node_props).get();
   auto left_properties = loadProperties(properties, *layer_node_props);
-
-  /// note that setting distribute is only allowed for one time.
-  /// until we have layerNode::finalize and must not except timedist layer
-  if (getDistribute() && !already_distributed) {
-    auto &ac = nntrainer::AppContext::Global();
-    std::unique_ptr<nntrainer::Layer> dlayer =
-      ac.createObject<nntrainer::Layer>(TimeDistLayer::type);
-    if (dlayer.get() == nullptr)
-      throw std::invalid_argument("Error creating time distribution layer");
-    auto *time_dist_layer = dynamic_cast<TimeDistLayer *>(dlayer.get());
-    if (time_dist_layer == nullptr)
-      throw std::invalid_argument("Error casting to time distribution layer");
-    time_dist_layer->setDistLayer(std::move(layer));
-    layer = std::move(dlayer);
-  }
-
-  std::vector<std::string> remainder;
-  /// @todo: deprecate this in favor of loadProperties
-  for (unsigned int i = 0; i < left_properties.size(); ++i) {
-
-    std::string key;
-    std::string value;
-    std::stringstream ss;
-
-    if (getKeyValue(left_properties[i], key, value) != ML_ERROR_NONE) {
-      throw std::invalid_argument("Error parsing the property: " +
-                                  left_properties[i]);
-    }
-
-    if (value.empty()) {
-      ss << "value is empty: key: " << key << ", value: " << value;
-      throw std::invalid_argument(ss.str());
-    }
-
-    /// @note this calls derived setProperty if available
-    if (!setProperty(key, value)) {
-      remainder.push_back(left_properties[i]);
-    }
-  }
-
-  layer->setProperty(remainder);
-}
-
-bool LayerNode::setProperty(const std::string &key, const std::string &value) {
-  using PropertyType = nntrainer::Layer::PropertyType;
-
-  PropertyType type = static_cast<PropertyType>(parseLayerProperty(key));
-  switch (type) {
-  case PropertyType::activation: {
-    setActivation((ActivationType)parseType(value, TOKEN_ACTI));
-    if (getType() == ActivationLayer::type) {
-      ml_logi("Set property delegated to activation layer");
-      return false;
-    }
-    break;
-  }
-  case PropertyType::num_inputs: {
-    ml_logw("Deprecated property: %s", key.c_str());
-    break;
-  }
-  default:
-    return false;
-  }
-
-  return true;
+  left_properties =
+    loadProperties(left_properties, *layer_node_props_realization);
+  layer->setProperty(left_properties);
 }
 
 const std::string LayerNode::getName() const noexcept {
@@ -279,7 +210,14 @@ std::ostream &operator<<(std::ostream &out, const LayerNode &l) {
   return out;
 }
 
-ActivationType LayerNode::getActivationType() const { return activation_type; }
+ActivationType LayerNode::getActivationType() const {
+  auto &act_prop = std::get<props::Activation>(*layer_node_props_realization);
+  if (act_prop.empty()) {
+    return ActivationType::ACT_NONE;
+  }
+
+  return act_prop;
+}
 
 unsigned int LayerNode::getNumInputConnections() const {
   auto &input_layers =
@@ -297,14 +235,7 @@ ActivationType LayerNode::getActivationToBeRealized() const {
   if (getType() == ActivationLayer::type)
     return ActivationType::ACT_NONE;
   else
-    return activation_type;
-}
-
-void LayerNode::setActivation(ActivationType activation) {
-  if (activation == ActivationType::ACT_UNKNOWN) {
-    throw std::invalid_argument("Error:have to specify activation function");
-  }
-  activation_type = activation;
+    return getActivationType();
 }
 
 const std::string LayerNode::getType() const { return getLayer()->getType(); }
@@ -314,7 +245,7 @@ bool LayerNode::getTrainable() const {
 }
 
 bool LayerNode::getFlatten() const {
-  auto &flatten = std::get<props::Flatten>(*layer_node_props);
+  auto &flatten = std::get<props::Flatten>(*layer_node_props_realization);
   if (flatten.empty()) {
     return false;
   }
@@ -330,15 +261,15 @@ bool LayerNode::getDistribute() const {
 }
 
 const nntrainer::Layer *LayerNode::getLayer() const {
-  if (getDistribute())
-    return ((TimeDistLayer *)(layer.get()))->getDistLayer();
+  if (run_context && getDistribute())
+    return static_cast<TimeDistLayer *>(layer.get())->getDistLayer();
   else
     return layer.get();
 }
 
 nntrainer::Layer *LayerNode::getLayer() {
-  if (getDistribute())
-    return ((TimeDistLayer *)(layer.get()))->getDistLayer();
+  if (run_context && getDistribute())
+    return static_cast<TimeDistLayer *>(layer.get())->getDistLayer();
   else
     return layer.get();
 }
@@ -439,9 +370,14 @@ void LayerNode::save(std::ofstream &file) const {
  * @brief     Finalize creating the layer node
  */
 InitLayerContext LayerNode::finalize(const std::vector<TensorDim> &input_dims) {
+  /** Create init context right before finalize */
+  if (run_context)
+    throw std::runtime_error("Finalizing a layer which is already finalized");
+
   std::vector<TensorDim> actual_input_dims;
   auto &prop_dims = std::get<std::vector<props::InputShape>>(*layer_node_props);
 
+  /** prepare input dimensions */
   if (!input_dims.empty()) {
     actual_input_dims = input_dims;
     if (hasInputShapeProperty()) {
@@ -456,6 +392,7 @@ InitLayerContext LayerNode::finalize(const std::vector<TensorDim> &input_dims) {
     NNTR_THROW_IF(!hasInputShapeProperty(), std::invalid_argument)
       << "if input dims not given, input shapes must be given by the user as "
          "property";
+    /// arguably, below check can go away
     NNTR_THROW_IF(prop_dims.size() != 1, std::invalid_argument)
       << "input shapes must be one if connection is not given but given "
          "dimesions size of: "
@@ -474,6 +411,25 @@ InitLayerContext LayerNode::finalize(const std::vector<TensorDim> &input_dims) {
   /** Create init context right before finalize */
   if (run_context)
     throw std::runtime_error("Finalizing a layer which is already finalized");
+
+  /** manipulate layers if required */
+  if (getType() == ActivationLayer::type) {
+    auto &act_prop = std::get<props::Activation>(*layer_node_props_realization);
+    if (!act_prop.empty()) {
+      layer->setProperty({"activation=" + to_string(act_prop)});
+    }
+  }
+  if (getType() != TimeDistLayer::type && getDistribute()) {
+    std::unique_ptr<TimeDistLayer> dlayer(new TimeDistLayer());
+    NNTR_THROW_IF(!dlayer, std::invalid_argument)
+      << "Error creating time distribution layer";
+    dlayer->setDistLayer(std::move(layer));
+    layer = std::move(dlayer);
+  }
+
+  /// remove flatten and activation since it's already realized
+  layer_node_props_realization = std::make_unique<RealizationPropsType>(
+    props::Flatten(), props::Activation());
 
   auto num_outputs = output_layers.size();
   if (output_layers.empty()) {

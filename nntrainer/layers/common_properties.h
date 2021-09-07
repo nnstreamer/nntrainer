@@ -10,17 +10,30 @@
  * @author Jihoon Lee <jhoon.it.lee@samsung.com>
  * @bug    No known bugs except for NYI items
  */
-
-#include <string>
-
-#include <array>
-#include <base_properties.h>
-#include <fstream>
-
 #ifndef __COMMON_PROPERTIES_H__
 #define __COMMON_PROPERTIES_H__
 
+#include <array>
+#include <fstream>
+#include <string>
+
+#include <base_properties.h>
+
 namespace nntrainer {
+
+/**
+ * @brief     Enumeration of activation function type
+ * @note      Upon changing this enum, ActivationTypeInfo must be changed
+ * accordingly
+ */
+enum class ActivationType {
+  ACT_TANH,    /** tanh */
+  ACT_SIGMOID, /** sigmoid */
+  ACT_RELU,    /** ReLU */
+  ACT_SOFTMAX, /** softmax */
+  ACT_NONE,    /** no op */
+  ACT_UNKNOWN  /** unknown */
+};
 
 namespace props {
 
@@ -315,6 +328,30 @@ public:
    * @copydoc nntrainer::Property<unsigned int>::isValid(const unsigned int &v);
    */
   bool isValid(const unsigned int &v) const override;
+};
+
+/******** below section is for enumerations ***************/
+/**
+ * @brief     Enumeration of activation function type
+ */
+struct ActivationTypeInfo {
+  using Enum = nntrainer::ActivationType;
+  static constexpr std::initializer_list<Enum> EnumList = {
+    Enum::ACT_TANH,    Enum::ACT_SIGMOID, Enum::ACT_RELU,
+    Enum::ACT_SOFTMAX, Enum::ACT_NONE,    Enum::ACT_UNKNOWN};
+
+  static constexpr const char *EnumStr[] = {"tanh",    "sigmoid", "relu",
+                                            "softmax", "none",    "unknown"};
+};
+
+/**
+ * @brief Activation Enumeration Information
+ *
+ */
+class Activation final : public EnumProperty<ActivationTypeInfo> {
+public:
+  using prop_tag = enum_class_prop_tag;
+  static constexpr const char *key = "activation";
 };
 } // namespace props
 } // namespace nntrainer
