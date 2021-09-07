@@ -22,11 +22,6 @@
 
 namespace nntrainer {
 
-namespace props {
-class ActivationType;
-
-} // namespace props
-
 /**
  * @class   Activation Layer
  * @brief   Activation Layer

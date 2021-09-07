@@ -409,6 +409,13 @@ TEST(nntrainer_ccapi, save_ini_p) {
   model = ml::train::createModel(ml::train::ModelType::NEURAL_NET);
   ScopedIni s("simple_ini", {model_base + "batch_size = 16", optimizer,
                              dataset + "-BufferSize", inputlayer, outputlayer});
+
+  std::shared_ptr<ml::train::Dataset> dataset = ml::train::createDataset(
+    ml::train::DatasetType::FILE, getTestResPath("trainingSet.dat").c_str());
+  EXPECT_NO_THROW(dataset->setProperty({"buffer_size=100"}));
+  EXPECT_EQ(model->setDataset(ml::train::DatasetModeType::MODE_TRAIN, dataset),
+            ML_ERROR_NONE);
+
   EXPECT_EQ(model->loadFromConfig(s.getIniName()), ML_ERROR_NONE);
   EXPECT_EQ(model->compile(), ML_ERROR_NONE);
   EXPECT_EQ(model->initialize(), ML_ERROR_NONE);

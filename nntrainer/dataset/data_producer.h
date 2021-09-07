@@ -23,6 +23,9 @@
 #include <tensor_dim.h>
 namespace nntrainer {
 
+class Exporter;
+enum class ExportMethods;
+
 /**
  * @brief DataProducer interface used to abstract data provider
  *
@@ -103,6 +106,16 @@ public:
   virtual unsigned int size(const std::vector<TensorDim> &input_dims,
                             const std::vector<TensorDim> &label_dims) const {
     return SIZE_UNDEFINED;
+  }
+
+  /**
+   * @brief this function helps exporting the dataproducer in a predefined
+   * format, while workarounding issue caused by templated function type eraser
+   *
+   * @param     exporter exporter that conatins exporting logic
+   * @param     method enum value to identify how it should be exported to
+   */
+  virtual void exportTo(Exporter &exporter, const ExportMethods &method) const {
   }
 
   /**

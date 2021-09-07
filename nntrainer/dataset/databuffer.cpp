@@ -24,16 +24,14 @@
 #include <base_properties.h>
 #include <cassert>
 #include <climits>
-#include <condition_variable>
 #include <cstring>
 #include <databuffer.h>
+#include <func_data_producer.h>
 #include <functional>
 #include <iomanip>
-#include <mutex>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <node_exporter.h>
-#include <parse_util.h>
 #include <sstream>
 #include <stdexcept>
 #include <stdio.h>
@@ -228,5 +226,28 @@ void DataBuffer::setProperty(const std::vector<std::string> &values) {
 const std::string DataBuffer::getType() const {
   NNTR_THROW_IF(!producer, std::invalid_argument) << "producer is empty";
   return producer->getType();
+}
+
+void DataBuffer::exportTo(Exporter &exporter,
+                          const ExportMethods &method) const {
+  if (producer) {
+    producer->exportTo(exporter, method);
+  }
+  exporter.saveResult(*db_props, method, this);
+}
+
+bool DataBuffer::isSerializable(const ExportMethods &method) const {
+  if (method != ExportMethods::METHOD_STRINGVECTOR) {
+    return false;
+  }
+  if (!producer) {
+    return false;
+  }
+
+  /// @todo this should be query from producer->isSerializable
+  if (producer->getType() == FuncDataProducer::type) {
+    return false;
+  }
+  return true;
 }
 } /* namespace nntrainer */

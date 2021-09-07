@@ -85,6 +85,11 @@ public:
   unsigned int size(const std::vector<TensorDim> &input_dims,
                     const std::vector<TensorDim> &label_dims) const override;
 
+  /**
+   * @copydoc DataProducer::exportTo(Exporter &exporter, ExportMethods method)
+   */
+  void exportTo(Exporter &exporter, const ExportMethods &method) const override;
+
 private:
   std::ifstream file;
   using PropTypes = std::tuple<props::FilePath>;

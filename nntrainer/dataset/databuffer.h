@@ -40,6 +40,9 @@
 
 namespace nntrainer {
 
+class Exporter;
+enum class ExportMethods;
+
 /**
  * @brief     Aliasing from ccapi ml::train
  */
@@ -132,6 +135,24 @@ public:
    * @return const std::string type
    */
   const std::string getType() const;
+
+  /**
+   * @brief this function helps exporting the dataset in a predefined format,
+   * while workarounding issue caused by templated function type eraser
+   *
+   * @param     exporter exporter that conatins exporting logic
+   * @param     method enum value to identify how it should be exported to
+   */
+  void exportTo(Exporter &exporter, const ExportMethods &method) const;
+
+  /**
+   * @brief check if given databuffer is exportable, this is needed because some
+   * data producer, mainly FuncDataProducer, cannot be serialized
+   *
+   * @param method proposed method
+   * @return bool true if serializable
+   */
+  bool isSerializable(const ExportMethods &method) const;
 
 protected:
   std::shared_ptr<DataProducer> producer;

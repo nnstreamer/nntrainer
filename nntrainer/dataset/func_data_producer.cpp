@@ -80,4 +80,8 @@ FuncDataProducer::finalize(const std::vector<TensorDim> &input_dims,
     return last;
   };
 }
+
+void FuncDataProducer::exportTo(Exporter &exporter,
+                                const ExportMethods &method) const {}
+
 } // namespace nntrainer
