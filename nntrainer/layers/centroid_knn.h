@@ -11,7 +11,6 @@
  * @bug    No known bugs except for NYI items
  *
  */
-
 #ifndef __CENTROID_KNN_H__
 #define __CENTROID_KNN_H__
 #include <string>

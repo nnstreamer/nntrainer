@@ -15,10 +15,17 @@
 #define __ACTIVATION_LAYER_H__
 #ifdef __cplusplus
 
+#include <memory>
+
 #include <acti_func.h>
 #include <layer_devel.h>
 
 namespace nntrainer {
+
+namespace props {
+class ActivationType;
+
+} // namespace props
 
 /**
  * @class   Activation Layer
@@ -30,9 +37,7 @@ public:
   /**
    * @brief     Constructor of Activation Layer
    */
-  ActivationLayer() : Layer() {
-    acti_func.setActiFunc(ActivationType::ACT_NONE);
-  }
+  ActivationLayer();
 
   /**
    * @brief     Destructor of Activation Layer
@@ -62,8 +67,7 @@ public:
   /**
    * @copydoc Layer::exportTo(Exporter &exporter, ExportMethods method)
    */
-  void exportTo(Exporter &exporter,
-                const ExportMethods &method) const override {}
+  void exportTo(Exporter &exporter, const ExportMethods &method) const override;
 
   /**
    * @copydoc Layer::getType()
@@ -83,61 +87,11 @@ public:
   inline static const std::string type = "activation";
 
 private:
-  ActiFunc
-    acti_func; /**< activation function designating the activation operation */
+  using PropTypes = std::tuple<props::Activation>;
 
-  /**
-   * @brief setActivation by custom activation function
-   * @note  apply derivative as this activation_prime_fn does not utilize
-   * derivative
-   * @param[in] std::function<Tensor(Tensor const &, Tensor &)> activation_fn
-   * activation function to be used
-   * @param[in] std::function<Tensor(Tensor const &, Tensor &)>
-   * activation_prime_fn activation_prime_function to be used
-   * @retval #ML_ERROR_NONE when successful
-   */
-  int setActivation(
-    std::function<Tensor &(Tensor const &, Tensor &)> const &activation_fn,
-    std::function<Tensor &(Tensor &, Tensor &)> const &activation_prime_fn);
+  std::unique_ptr<PropTypes> activation_props; /**< activation props */
 
-  /**
-   * @brief setActivation by custom activation function
-   * @note  derivative not applied here as this activation_prime_fn applies
-   * derivative itself
-   * @param[in] std::function<Tensor(Tensor const &, Tensor &)> activation_fn
-   * activation function to be used
-   * @param[in] std::function<Tensor(Tensor const &, Tensor &, Tensor const &)>
-   * activation_prime_fn activation_prime_function to be used
-   * @retval #ML_ERROR_NONE when successful
-   */
-  int setActivation(
-    std::function<Tensor &(Tensor const &, Tensor &)> const &activation_fn,
-    std::function<Tensor &(Tensor &, Tensor &, Tensor const &)> const
-      &activation_prime_fn);
-
-  /**
-   * @brief setActivation by custom activation function
-   * @note  apply derivative as this activation_prime_fn does not utilize
-   * derivative
-   * @param[in] std::function<float(float const &)> activation_fn activation
-   *            function to be used
-   * @param[in] std::function<float(float const &)> activation_prime_fn
-   *            activation_prime_function to be used
-   * @retval #ML_ERROR_NONE when successful
-   */
-  int setActivation(
-    std::function<float(float const)> const &activation_fn,
-    std::function<float(float const)> const &activation_prime_fn);
-
-  /**
-   * @brief setProperty by type and value separated
-   * @param[in] type property type to be passed
-   * @param[in] value value to be passed
-   * @exception exception::not_supported     when property type is not valid for
-   * the particular layer
-   * @exception std::invalid_argument invalid argument
-   */
-  void setProperty(const std::string &type, const std::string &value);
+  ActiFunc acti_func; /**< activation function from activation type */
 };
 
 } // namespace nntrainer

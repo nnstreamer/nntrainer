@@ -9,6 +9,9 @@
  * @author Jihoon Lee <jhoon.it.lee@samsung.com>
  * @bug No known bugs except for NYI items
  */
+#ifndef __BASE_PROPERTIES_H__
+#define __BASE_PROPERTIES_H__
+
 #include <array>
 #include <memory>
 #include <regex>
@@ -19,9 +22,6 @@
 #include <nntrainer_error.h>
 #include <props_util.h>
 #include <tensor_dim.h>
-
-#ifndef __BASE_PROPERTIES_H__
-#define __BASE_PROPERTIES_H__
 
 /** base and predefined structures */
 

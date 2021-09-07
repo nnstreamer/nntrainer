@@ -28,7 +28,6 @@
 #include <tuple>
 #include <vector>
 
-#include <acti_func.h>
 #include <graph_node.h>
 #include <layer.h>
 #include <layer_context.h>
@@ -46,10 +45,10 @@ namespace props {
 class Name;
 class Distribute;
 class Flatten;
-class ActivationType;
 class Loss;
 class InputLayer;
 class InputShape;
+class Activation;
 } // namespace props
 
 /**
@@ -597,8 +596,6 @@ private:
     layer; /**< The actual object in the graph node */
 
   std::vector<std::string> output_layers; /**< output layer names */
-  ActivationType
-    activation_type; /**< activation applied to the output of this node */
 
   std::unique_ptr<RunLayerContext>
     run_context; /**< context required for running/execution of the layer. This
@@ -607,28 +604,26 @@ upon final creation. Editing properties of the layer after init will not the
 properties in the context/graph unless intended. */
 
   using PropsType =
-    std::tuple<props::Name, props::Flatten, props::Distribute, props::Trainable,
+    std::tuple<props::Name, props::Distribute, props::Trainable,
                std::vector<props::InputLayer>, std::vector<props::InputShape>>;
+
+  using RealizationPropsType = std::tuple<props::Flatten, props::Activation>;
+  /** these realization properties results in addition of new layers, hence
+   * skipped in generation of model architecture as the correspondingly layer
+   * itself is added. Distribute is also a property which is realized, but as it
+   * doesn't add new layer, it is saved. */
+
   /**
    * These properties are set for the layer by the user but are intercepted
    * and used in the node which forms the basic element of the graph.
    */
   std::unique_ptr<PropsType> layer_node_props; /**< properties for the node */
-  std::unique_ptr<props::Loss> loss;           /**< loss */
+  std::unique_ptr<RealizationPropsType>
+    layer_node_props_realization;    /**< properties for the node */
+  std::unique_ptr<props::Loss> loss; /**< loss */
   float regularization_loss;
   ExecutionOrder exec_order; /**< order/location of execution for this node
                                    in forward and backwarding operations */
-
-  /**
-   * @brief setProperty by PropertyType
-   * @note By passing empty string, this can validate if @a type is valid
-   * @param[in] key property type to be passed
-   * @param[in] value value to be passed, if empty string is passed, do nothing
-   * but throws error when @a type is invalid
-   * @return true if the property can be captured, else false
-   * @exception std::invalid_argument invalid argument
-   */
-  bool setProperty(const std::string &key, const std::string &value);
 
   /**
    * @brief   Get the effective layer managed by this layer node
@@ -645,13 +640,6 @@ properties in the context/graph unless intended. */
    * is distributed.
    */
   nntrainer::Layer *getLayer();
-
-  /**
-   * @brief     Activation Setter
-   * @param[in] activation activation type
-   * @throw std::invalid_argument when ActivationType is unknown
-   */
-  void setActivation(ActivationType activation);
 
   /**
    * @brief anchor point to override if PRINT_SHAPE_INFO is enabled for
