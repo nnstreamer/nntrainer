@@ -18,7 +18,6 @@
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <node_exporter.h>
-#include <parse_util.h>
 #include <pooling2d_layer.h>
 #include <util_func.h>
 
