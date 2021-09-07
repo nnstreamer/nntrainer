@@ -264,6 +264,43 @@ public:
 };
 
 /**
+ * @brief FilterSize property, filter size is used to measure how many filters
+ * are there
+ *
+ */
+class FilterSize : public nntrainer::PositiveIntegerProperty {
+public:
+  static constexpr const char *key = "filters"; /**< unique key to access */
+  using prop_tag = uint_prop_tag;               /**< property type */
+};
+
+/**
+ * @brief KernelSize property, kernel size is used to measure the filter size
+ *
+ */
+class KernelSize : public nntrainer::PositiveIntegerProperty {
+public:
+  static constexpr const char *key = "kernel_size"; /**< unique key to access */
+  using prop_tag = uint_prop_tag;                   /**< property type */
+};
+
+/**
+ * @brief Stride property, stride is used to measure how much it will be slide
+ * the filter
+ *
+ */
+class Stride : public nntrainer::PositiveIntegerProperty {
+public:
+  /**
+   * @brief Construct a new Stride object with a default value 1
+   *
+   */
+  Stride(unsigned int value = 1);
+  static constexpr const char *key = "stride"; /**< unique key to access */
+  using prop_tag = uint_prop_tag;              /**< property type */
+};
+
+/**
  * @brief Padding2D property, this is used to calculate padding2D
  * @details Padding2D is saved as a string. Upon calling Padding2D::compute,
  * returns std::vector<unsigned int> which has computed padding2Ds, below
@@ -285,7 +322,8 @@ public:
   Padding2D(const std::string &value = "valid") :
     nntrainer::Property<std::string>(value) {} /**< default value if any */
   bool isValid(const std::string &v) const override;
-  using prop_tag = str_prop_tag; /**< property type */
+  static constexpr const char *key = "padding"; /**< unique key to access */
+  using prop_tag = str_prop_tag;                /**< property type */
 
   /**
    * @brief compute actual padding2D from the underlying data

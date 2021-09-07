@@ -108,6 +108,8 @@ bool SplitDimension::isValid(const unsigned int &value) const {
   return value > 0 && value < ml::train::TensorDim::MAXDIM;
 }
 
+Stride::Stride(unsigned int value) { set(value); }
+
 /**
  * @brief unsigned integer property, internally used to parse padding values
  *

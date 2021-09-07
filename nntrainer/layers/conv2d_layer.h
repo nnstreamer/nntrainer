@@ -32,18 +32,8 @@ public:
   /**
    * @brief     Constructor of Conv 2D Layer
    */
-  Conv2DLayer(unsigned int filter_size_ = 0,
-              const std::array<unsigned int, CONV2D_DIM> &kernel_size_ = {0, 0},
-              const std::array<unsigned int, CONV2D_DIM> &stride_ = {1, 1},
-              const std::array<unsigned int, CONV2D_DIM * 2> &padding_ = {0, 0,
-                                                                          0,
-                                                                          0}) :
-    LayerImpl(),
-    filter_size(filter_size_),
-    kernel_size(kernel_size_),
-    stride(stride_),
-    padding(padding_),
-    wt_idx({0}) {}
+  Conv2DLayer(const std::array<unsigned int, CONV2D_DIM * 2> &padding_ = {
+                0, 0, 0, 0});
 
   /**
    * @brief     Destructor of Conv 2D Layer
@@ -85,10 +75,7 @@ public:
   /**
    * @copydoc Layer::exportTo(Exporter &exporter, ExportMethods method)
    */
-  void exportTo(Exporter &exporter,
-                const ExportMethods &method) const override {
-    Layer::exportTo(exporter, method);
-  }
+  void exportTo(Exporter &exporter, const ExportMethods &method) const override;
 
   /**
    * @copydoc Layer::getType()
@@ -119,23 +106,12 @@ public:
   inline static const std::string type = "conv2d";
 
 private:
-  unsigned int filter_size;
-  std::array<unsigned int, CONV2D_DIM> kernel_size;
-  std::array<unsigned int, CONV2D_DIM> stride;
   std::array<unsigned int, CONV2D_DIM * 2> padding;
-  std::tuple<props::Padding2D> conv_props;
+  std::tuple<props::FilterSize, std::array<props::KernelSize, CONV2D_DIM>,
+             std::array<props::Stride, CONV2D_DIM>, props::Padding2D>
+    conv_props;
 
   std::array<unsigned int, 5> wt_idx; /**< indices of the weights and tensors */
-
-  /**
-   * @brief setProperty by type and value separated
-   * @param[in] type property type to be passed
-   * @param[in] value value to be passed
-   * @exception exception::not_supported     when property type is not valid for
-   * the particular layer
-   * @exception std::invalid_argument invalid argument
-   */
-  void setProperty(const std::string &type, const std::string &value);
 };
 
 } // namespace nntrainer
