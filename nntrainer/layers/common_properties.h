@@ -486,6 +486,29 @@ public:
   using prop_tag = enum_class_prop_tag;
   static constexpr const char *key = "activation";
 };
+
+/**
+ * @brief     Enumeration of flip direction
+ */
+struct FlipDirectionInfo {
+  enum class Enum { horizontal, vertical, horizontal_and_vertical };
+  static constexpr std::initializer_list<Enum> EnumList = {
+    Enum::horizontal, Enum::vertical, Enum::horizontal_and_vertical};
+
+  static constexpr const char *EnumStr[] = {"horizontal", "vertical",
+                                            "horizontal_and_vertical"};
+};
+
+/**
+ * @brief FlipDirection Enumeration Information
+ *
+ */
+class FlipDirection final : public EnumProperty<FlipDirectionInfo> {
+public:
+  using prop_tag = enum_class_prop_tag;
+  static constexpr const char *key = "flip_direction";
+};
+
 } // namespace props
 } // namespace nntrainer
 
