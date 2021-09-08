@@ -695,8 +695,8 @@ int NeuralNetwork::train_run() {
         save(save_best_path);
       }
     }
-    std::cout << " >> [ Accuracy: " << validation.accuracy
-              << "% - Validation Loss : " << validation.loss << " ]";
+    std::cout << " >> [ Accuracy: " << stat.accuracy
+              << "% - Validation Loss : " << stat.loss << " ]";
   };
 
   auto epochs = getEpochs();
