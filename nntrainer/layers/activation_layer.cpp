@@ -69,6 +69,10 @@ void ActivationLayer::setProperty(const std::vector<std::string> &values) {
   auto left = loadProperties(values, *activation_props);
   NNTR_THROW_IF(!left.empty(), std::invalid_argument)
     << "Failed to set property";
+
+  auto &act = std::get<props::Activation>(*activation_props);
+  if (!act.empty())
+    acti_func.setActiFunc(act.get());
 }
 
 }; // namespace nntrainer
