@@ -30,9 +30,7 @@ public:
   /**
    * @brief     Constructor of Preprocess FLip Layer
    */
-  PreprocessFlipLayer() :
-    Layer(),
-    flipdirection(FlipDirection::horizontal_and_vertical) {}
+  PreprocessFlipLayer();
 
   /**
    * @brief     Destructor of Preprocess FLip Layer
@@ -74,8 +72,7 @@ public:
   /**
    * @copydoc Layer::exportTo(Exporter &exporter, ExportMethods method)
    */
-  void exportTo(Exporter &exporter,
-                const ExportMethods &method) const override {}
+  void exportTo(Exporter &exporter, const ExportMethods &method) const override;
 
   /**
    * @copydoc Layer::getType()
@@ -92,30 +89,10 @@ public:
   inline static const std::string type = "preprocess_flip";
 
 private:
-  /** String names for the flip direction */
-  static const std::string flip_horizontal;
-  static const std::string flip_vertical;
-  static const std::string flip_horizontal_vertical;
-
-  /**
-   * @brief Direction of the flip for data
-   */
-  enum class FlipDirection { horizontal, vertical, horizontal_and_vertical };
-
   std::mt19937 rng; /**< random number generator */
   std::uniform_real_distribution<float>
-    flip_dist;                 /**< uniform random distribution */
-  FlipDirection flipdirection; /**< direction of flip */
-
-  /**
-   * @brief setProperty by type and value separated
-   * @param[in] type property type to be passed
-   * @param[in] value value to be passed
-   * @exception exception::not_supported     when property type is not valid for
-   * the particular layer
-   * @exception std::invalid_argument invalid argument
-   */
-  void setProperty(const std::string &type, const std::string &value);
+    flip_dist; /**< uniform random distribution */
+  std::tuple<props::FlipDirection> preprocess_flip_props;
 };
 
 } // namespace nntrainer
