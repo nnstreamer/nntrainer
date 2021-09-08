@@ -608,14 +608,51 @@ bool NetworkGraph::canExecuteInPlace(const std::shared_ptr<LayerNode> &lnode) {
   if (!optimize_memory || !lnode->supportInPlace())
     return false;
 
-  if (lnode->getType() == FlattenLayer::type ||
-      lnode->getType() == InputLayer::type)
+  /** layers which behave as a no-op - flatten */
+  auto no_op = [](const std::shared_ptr<LayerNode> &lnode) {
+    return lnode->getType() == FlattenLayer::type;
+  };
+
+  /**
+   * layers whose backwarding is not dependent on input/output but only its
+   * derivatives and weights, if any - batch normalization
+   */
+  auto io_independent_backwarding =
+    [](const std::shared_ptr<LayerNode> &lnode) {
+      return lnode->getType() == BatchNormalizationLayer::type;
+    };
+
+  /**
+   * 1. if the layer is a no-op, then it can operate in-place as it is not
+   * modifying its input/output tensors and does not need to check its
+   * neighboring nodes for dependency.
+   * 2. if the layer is not supporting backwarding, there is no dependency
+   * requirement with other nodes for backwarding.
+   */
+  if (no_op(lnode) || !lnode->supportBackwarding())
     return true;
 
-  if (lnode->getType() == ActivationLayer::type) {
+  /**
+   * This is a generic case where the layer can support in-place but will modify
+   * its input in-place. This includes layers like activation, etc. Apply checks
+   * below to ensure that the layers can work in-place:
+   * - if all the input layers are no-op or dont support backwarding, then this
+   * layer work in-place without any restriction
+   * - if any of the input layer is already operating in-place (where it
+   *   modifies its input in-place), then this layer cannot operate in-place.
+   *
+   * @todo @note This logic is prone to change as more layers are allowed to
+   * work in-place such as multi-out layer, concat layer, split layer, addition
+   * layer, dropout layer, etc.
+   */
+  if (lnode->getType() == ActivationLayer::type ||
+      lnode->getType() == BatchNormalizationLayer::type) {
     auto const &input_layers = lnode->getInputLayers();
     for (unsigned int i = 0; i < input_layers.size(); ++i) {
       auto const &in_layer_node = getLayerNode(input_layers[i]);
+      if (no_op(in_layer_node) || !in_layer_node->supportBackwarding() ||
+          io_independent_backwarding(in_layer_node))
+        continue;
       if (in_layer_node->executeInPlace())
         return false;
     }

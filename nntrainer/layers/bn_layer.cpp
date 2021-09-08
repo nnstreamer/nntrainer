@@ -32,7 +32,17 @@ namespace nntrainer {
 
 static constexpr size_t SINGLE_INOUT_IDX = 0;
 
-enum BNParams { mu, var, gamma, beta, deviation, invstd, cvar, t_reduced };
+enum BNParams {
+  mu,
+  var,
+  gamma,
+  beta,
+  deviation,
+  invstd,
+  cvar,
+  t_reduced,
+  t_full
+};
 
 BatchNormalizationLayer::BatchNormalizationLayer(int axis_) :
   Layer(),
@@ -110,6 +120,15 @@ void BatchNormalizationLayer::finalize(InitLayerContext &context) {
     dim, context.getName() + ":invstd", Tensor::Initializer::NONE, false,
     TensorLifespan::ITERATION_LIFESPAN);
   /**
+   * Temporary tensor to store the full sized tensors in order to allow batch
+   * norm to execute in-place. Running in-place leads to same memory footprint
+   * for this layer in its backwarding, but reduces the peak memory requirement
+   * as the output of this layer need not be stored all the time.
+   */
+  wt_idx[BNParams::t_full] = context.requestTensor(
+    in_dim, context.getName() + ":tesnor_full", Tensor::Initializer::NONE,
+    false, TensorLifespan::BACKWARD_FUNC_LIFESPAN);
+  /**
    * caches variance + epsilon as well.
    */
   wt_idx[BNParams::cvar] = context.requestTensor(
@@ -117,7 +136,6 @@ void BatchNormalizationLayer::finalize(InitLayerContext &context) {
     TensorLifespan::ITERATION_LIFESPAN);
   /**
    * Temporary tensor to store the reduced tensors along the axes_to_reduce.
-   * This is further used to cache variance + epsilon as well.
    */
   wt_idx[BNParams::t_reduced] = context.requestTensor(
     dim, context.getName() + ":tensor_reduced", Tensor::Initializer::NONE,
@@ -190,7 +208,7 @@ void BatchNormalizationLayer::calcDerivative(RunLayerContext &context) {
   Tensor &cvar = context.getTensor(wt_idx[BNParams::cvar]);
 
   Tensor &t_reduced = context.getTensor(wt_idx[BNParams::t_reduced]);
-  Tensor &t_full = dx;
+  Tensor &t_full = context.getTensor(wt_idx[BNParams::t_full]);
 
   deviation.multiply(deriv, t_full);
   t_full.average(axes_to_reduce, t_reduced);

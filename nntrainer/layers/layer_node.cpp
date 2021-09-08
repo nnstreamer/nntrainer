@@ -186,6 +186,13 @@ void LayerNode::setProperty(const std::vector<std::string> &properties) {
   left_properties =
     loadProperties(left_properties, *layer_node_props_realization);
   layer->setProperty(left_properties);
+
+  if (getType() == ActivationLayer::type) {
+    auto &act_prop = std::get<props::Activation>(*layer_node_props_realization);
+    if (!act_prop.empty()) {
+      layer->setProperty({"activation=" + to_string(act_prop)});
+    }
+  }
 }
 
 const std::string LayerNode::getName() const noexcept {
@@ -440,12 +447,6 @@ InitLayerContext LayerNode::finalize(const std::vector<TensorDim> &input_dims) {
     throw std::runtime_error("Finalizing a layer which is already finalized");
 
   /** manipulate layers if required */
-  if (getType() == ActivationLayer::type) {
-    auto &act_prop = std::get<props::Activation>(*layer_node_props_realization);
-    if (!act_prop.empty()) {
-      layer->setProperty({"activation=" + to_string(act_prop)});
-    }
-  }
   if (getType() != TimeDistLayer::type && getDistribute()) {
     std::unique_ptr<TimeDistLayer> dlayer(new TimeDistLayer());
     NNTR_THROW_IF(!dlayer, std::invalid_argument)

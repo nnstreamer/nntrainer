@@ -30,8 +30,8 @@
 #include <vector>
 
 #include <activation_layer.h>
-#include <bn_layer.h>
 #include <basic_planner.h>
+#include <bn_layer.h>
 #include <layer_node.h>
 #include <manager.h>
 #include <nntrainer_log.h>
@@ -404,7 +404,7 @@ Manager::requestInputs(const GraphNode &node,
 
   /** batch normalization layer uses input in forwarding only */
   if (node.getType() == BatchNormalizationLayer::type)
-    var_exec_order = {std::get<0>(exec_order)}; /** forwarding */
+    var_exec_order = {forwarding_order};
 
   TensorLifespan var_ls = TensorLifespan::ITERATION_LIFESPAN;
   TensorLifespan grad_ls = TensorLifespan::ITERATION_LIFESPAN;

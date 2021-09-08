@@ -108,7 +108,7 @@ public:
   /**
    * @copydoc Layer::supportInPlace()
    */
-  bool supportInPlace() const override { return false; }
+  bool supportInPlace() const override { return true; }
 
   inline static const std::string type = "batch_normalization";
 
@@ -117,7 +117,7 @@ private:
   float divider; /**< size of the axes of the reduced */
 
   std::vector<unsigned int> axes_to_reduce; /**< target axes to reduce */
-  std::array<unsigned int, 8> wt_idx; /**< indices of the weights and tensors */
+  std::array<unsigned int, 9> wt_idx; /**< indices of the weights and tensors */
   std::tuple<props::Epsilon, props::BNPARAMS_MU_INIT, props::BNPARAMS_VAR_INIT,
              props::BNPARAMS_BETA_INIT, props::BNPARAMS_GAMMA_INIT,
              props::Momentum>
