@@ -65,7 +65,7 @@ void BatchNormalizationLayer::finalize(InitLayerContext &context) {
     context.getName() + ":moving_mean", false);
   wt_idx[BNParams::var] = context.requestWeight(
     dim, initializers[BNParams::var], WeightRegularizer::NONE, 1.0f,
-    "BN::moving_variance", false);
+    context.getName() + ":moving_variance", false);
   wt_idx[BNParams::gamma] = context.requestWeight(
     dim, initializers[BNParams::gamma], WeightRegularizer::NONE, 1.0f,
     context.getName() + ":gamma", true);
