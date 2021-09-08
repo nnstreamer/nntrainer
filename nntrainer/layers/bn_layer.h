@@ -44,15 +44,14 @@ public:
   BatchNormalizationLayer(
     int axis = -1, float momentum = 0.99, float epsilon = 0.001,
     Tensor::Initializer moving_mean_initializer = Tensor::Initializer::ZEROS,
-    Tensor::Initializer moving_variance_initializer =
-      Tensor::Initializer::ZEROS,
+    Tensor::Initializer moving_variance_initializer = Tensor::Initializer::ONES,
     Tensor::Initializer gamma_initializer = Tensor::Initializer::ONES,
-    Tensor::Initializer beta_initializer = Tensor::Initializer::ONES) :
+    Tensor::Initializer beta_initializer = Tensor::Initializer::ZEROS) :
     Layer(),
     epsilon(epsilon),
     momentum(momentum),
     axis(axis),
-    initializers{moving_variance_initializer, moving_variance_initializer,
+    initializers{moving_mean_initializer, moving_variance_initializer,
                  gamma_initializer, beta_initializer},
     wt_idx({0}) {}
 
