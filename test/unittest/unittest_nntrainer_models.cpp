@@ -509,6 +509,19 @@ void GraphWatcher::readIteration(std::ifstream &f) {
  ********************************************************/
 
 /**
+ * @brief Test Option for the unittest models
+ *
+ */
+typedef enum {
+  COMPARE = 1 << 0,           /**< Set this to compare the numbers */
+  SAVE_AND_LOAD_INI = 1 << 1, /**< Set this to check if saving and constructing
+                                 a new model works okay (without weights) */
+
+  MINIMUM = 0,                      /**< Minimum */
+  ALL = COMPARE | SAVE_AND_LOAD_INI /**< Set every option */
+} ModelTestOption;
+
+/**
  * @brief nntrainerModelTest fixture for parametrized test
  *
  * @param nntrainer::IniWrapper ini data
@@ -517,8 +530,10 @@ void GraphWatcher::readIteration(std::ifstream &f) {
  */
 class nntrainerModelTest
   : public ::testing::TestWithParam<
-      std::tuple<const nntrainer::IniWrapper, const nntrainer::TensorDim,
-                 const unsigned int>> {
+      std::tuple<const nntrainer::IniWrapper /**< Model Architecture */,
+                 const nntrainer::TensorDim /**< InputDimension */,
+                 const unsigned int /**< Number of Iterations */,
+                 ModelTestOption /**< Options which test to run */>> {
 
 protected:
   nntrainerModelTest() : iteration(0), name("") {}
@@ -529,53 +544,66 @@ protected:
     /// remove the test number after double __
     name = ini.getName();
     name = name.substr(0, name.find("__"));
-    std::cout << "starting test case : " << name << "\n\n";
 
     label_dim = std::get<1>(param);
     iteration = std::get<2>(param);
+    options = std::get<3>(param);
     ini.save_ini();
   }
 
   virtual void TearDown() { ini.erase_ini(); }
 
   std::string getIniName() { return ini.getIniName(); }
+  std::string getName() { return name; }
   std::string getGoldenName() { return name + ".info"; }
   int getIteration() { return iteration; };
   nntrainer::TensorDim getLabelDim() { return label_dim; }
+
+  bool shouldCompare() { return options & ModelTestOption::COMPARE; }
+  bool shouldSaveLoadIniTest() {
+    return options & ModelTestOption::SAVE_AND_LOAD_INI;
+  }
 
 private:
   nntrainer::TensorDim label_dim;
   int iteration;
   std::string name;
   nntrainer::IniWrapper ini;
+  ModelTestOption options;
 };
 
 /**
  * @brief check given ini is failing/suceeding at unoptimized running
  */
 TEST_P(nntrainerModelTest, model_test) {
-  /** Check model with all optimizations off */
-  if (getIniName().find("validate") == std::string::npos) {
-    GraphWatcher g_unopt(getIniName(), false);
-    g_unopt.compareFor(getGoldenName(), getLabelDim(), getIteration());
-
-    /// add stub test for tcm
-    EXPECT_EQ(std::get<0>(GetParam()), std::get<0>(GetParam()));
+  if (!shouldCompare()) {
+    std::cout << "[ SKIPPED  ] option not enabled \n";
+    return;
   }
+  /** Check model with all optimizations off */
+
+  GraphWatcher g_unopt(getIniName(), false);
+  g_unopt.compareFor(getGoldenName(), getLabelDim(), getIteration());
+
+  /// add stub test for tcm
+  EXPECT_EQ(std::get<0>(GetParam()), std::get<0>(GetParam()));
 }
 
 /**
  * @brief check given ini is failing/suceeding at optimized running
  */
 TEST_P(nntrainerModelTest, model_test_optimized) {
-  /** Check model with all optimizations on */
-  if (getIniName().find("validate") == std::string::npos) {
-    GraphWatcher g_opt(getIniName(), true);
-    g_opt.compareFor(getGoldenName(), getLabelDim(), getIteration());
-
-    /// add stub test for tcm
-    EXPECT_EQ(std::get<0>(GetParam()), std::get<0>(GetParam()));
+  if (!shouldCompare()) {
+    std::cout << "[ SKIPPED  ] option not enabled \n";
+    return;
   }
+  /** Check model with all optimizations on */
+
+  GraphWatcher g_opt(getIniName(), true);
+  g_opt.compareFor(getGoldenName(), getLabelDim(), getIteration());
+
+  /// add stub test for tcm
+  EXPECT_EQ(std::get<0>(GetParam()), std::get<0>(GetParam()));
 }
 
 /**
@@ -590,18 +618,72 @@ TEST_P(nntrainerModelTest, model_test_validate) {
   EXPECT_EQ(std::get<0>(GetParam()), std::get<0>(GetParam()));
 }
 
+TEST_P(nntrainerModelTest, model_test_save_load_compare) {
+  if (!shouldSaveLoadIniTest() || !shouldCompare()) {
+    std::cout << "[ SKIPPED  ] option not enabled \n";
+    return;
+  }
+
+  auto nn = nntrainer::NeuralNetwork();
+  EXPECT_NO_THROW(nn.loadFromConfig(getIniName()));
+  EXPECT_NO_THROW(nn.compile());
+  EXPECT_NO_THROW(nn.initialize());
+
+  auto saved_ini_name = getName() + "_saved.ini";
+  if (remove(saved_ini_name.c_str())) {
+    /// do nothing
+  }
+  EXPECT_NO_THROW(
+    nn.save(saved_ini_name, ml::train::ModelFormat::MODEL_FORMAT_INI));
+
+  GraphWatcher g(saved_ini_name, false);
+  g.compareFor(getGoldenName(), getLabelDim(), getIteration());
+  if (remove(saved_ini_name.c_str())) {
+    std::cerr << "remove ini " << saved_ini_name
+              << "failed, reason: " << strerror(errno);
+  }
+}
+
+TEST_P(nntrainerModelTest, model_test_save_load_verify) {
+  if (!shouldSaveLoadIniTest()) {
+    std::cout << "[ SKIPPED  ] option not enabled \n";
+    return;
+  }
+
+  auto nn = nntrainer::NeuralNetwork();
+
+  EXPECT_NO_THROW(nn.loadFromConfig(getIniName()));
+  EXPECT_NO_THROW(nn.compile());
+  EXPECT_NO_THROW(nn.initialize());
+
+  auto saved_ini_name = getName() + "_saved.ini";
+  if (remove(saved_ini_name.c_str())) {
+    /// do nothing
+  }
+  nn.save(saved_ini_name, ml::train::ModelFormat::MODEL_FORMAT_INI);
+
+  GraphWatcher g(saved_ini_name, true);
+  g.validateFor(getLabelDim());
+  if (remove(saved_ini_name.c_str())) {
+    std::cerr << "remove ini " << saved_ini_name
+              << "failed, reason: " << strerror(errno);
+  }
+}
+
 /**
  * @brief helper function to make model testcase
  *
  * @param nntrainer::IniWrapper::Sections ini data
  * @param nntrainer::TensorDim label dimension
  * @param int Iteration
+ * @param options options
  */
 auto mkModelTc(const nntrainer::IniWrapper &ini, const std::string &label_dim,
-               const unsigned int iteration) {
+               const unsigned int iteration,
+               ModelTestOption options = ModelTestOption::ALL) {
   return std::tuple<const nntrainer::IniWrapper, const nntrainer::TensorDim,
-                    const unsigned int>(ini, nntrainer::TensorDim(label_dim),
-                                        iteration);
+                    const unsigned int, ModelTestOption>(
+    ini, nntrainer::TensorDim(label_dim), iteration, options);
 }
 
 /********************************************************
@@ -883,8 +965,8 @@ INI conv_same_padding_multi_stride(
   }
 );
 
-INI conv_no_loss_validate(
-  "conv_no_loss_validate",
+INI conv_no_loss(
+  "conv_no_loss",
   {
     nn_base + "batch_size=3",
     sgd_base + "learning_rate = 0.1",
@@ -1026,8 +1108,8 @@ INI preprocess_flip_validate(
   }
 );
 
-INI preprocess_translate_validate(
-  "preprocess_translate_validate",
+INI preprocess_translate(
+  "preprocess_translate",
   {
     nn_base + "loss=cross | batch_size=3",
     sgd_base + "learning_rate = 0.1",
@@ -1045,8 +1127,8 @@ INI preprocess_translate_validate(
 
 INI mnist_conv_cross_one_input = INI("mnist_conv_cross_one_input") + mnist_conv_cross + "model/batch_size=1";
 
-INI fc_softmax_mse_distribute_validate(
-  "fc_softmax_mse_distribute_validate",
+INI fc_softmax_mse_distribute(
+  "fc_softmax_mse_distribute",
   {
     nn_base + "loss=mse | batch_size = 3",
     sgd_base + "learning_rate = 1",
@@ -1055,8 +1137,8 @@ INI fc_softmax_mse_distribute_validate(
   }
 );
 
-INI fc_softmax_cross_distribute_validate(
-  "fc_softmax_cross_distribute_validate",
+INI fc_softmax_cross_distribute(
+  "fc_softmax_cross_distribute",
   {
     nn_base + "loss=cross | batch_size = 3",
     sgd_base + "learning_rate = 1",
@@ -1065,8 +1147,8 @@ INI fc_softmax_cross_distribute_validate(
   }
 );
 
-INI fc_sigmoid_cross_distribute_validate(
-  "fc_sigmoid_mse_distribute_validate",
+INI fc_sigmoid_cross_distribute(
+  "fc_sigmoid_cross_distribute",
   {
     nn_base + "loss=cross | batch_size = 3",
     sgd_base + "learning_rate = 1",
@@ -1311,73 +1393,74 @@ INI multiple_output_model(
 INSTANTIATE_TEST_CASE_P(
   nntrainerModelAutoTests, nntrainerModelTest, ::testing::ValuesIn(
     {
-      mkModelTc(fc_sigmoid_mse, "3:1:1:10", 1),
-      mkModelTc(fc_sigmoid_mse__1, "3:1:1:10", 1),
-      mkModelTc(fc_sigmoid_cross, "3:1:1:10", 1),
-      mkModelTc(fc_sigmoid_cross__1, "3:1:1:10", 1),
-      mkModelTc(fc_relu_mse, "3:1:1:2", 1),
-      mkModelTc(fc_relu_mse__1, "3:1:1:2", 1),
-      mkModelTc(fc_bn_sigmoid_cross, "3:1:1:10", 10),
-      mkModelTc(fc_bn_sigmoid_mse, "3:1:1:10", 10),
+      mkModelTc(fc_sigmoid_mse, "3:1:1:10", 10, ModelTestOption::ALL),
+      mkModelTc(fc_sigmoid_mse__1, "3:1:1:10", 1, ModelTestOption::ALL),
+      mkModelTc(fc_sigmoid_cross, "3:1:1:10", 10, ModelTestOption::ALL),
+      mkModelTc(fc_sigmoid_cross__1, "3:1:1:10", 1, ModelTestOption::ALL),
+      mkModelTc(fc_relu_mse, "3:1:1:2", 10, ModelTestOption::ALL),
+      mkModelTc(fc_relu_mse__1, "3:1:1:2", 1, ModelTestOption::ALL),
+      /// @todo bn with custom initializer
+      mkModelTc(fc_bn_sigmoid_cross, "3:1:1:10", 10, ModelTestOption::ALL),
+      mkModelTc(fc_bn_sigmoid_mse, "3:1:1:10", 10, ModelTestOption::ALL),
 
       /**< single conv2d layer test */
-      mkModelTc(conv_1x1, "3:1:1:10", 10),
-      mkModelTc(conv_input_matches_kernel, "3:1:1:10", 10),
-      mkModelTc(conv_basic, "3:1:1:10", 10),
-      mkModelTc(conv_same_padding, "3:1:1:10", 10),
-      mkModelTc(conv_multi_stride, "3:1:1:10", 10),
-      mkModelTc(conv_uneven_strides, "3:1:1:10", 10),
-      mkModelTc(conv_uneven_strides2, "3:1:1:10", 10),
-      mkModelTc(conv_uneven_strides3, "3:1:1:10", 10),
-      mkModelTc(conv_bn, "3:1:1:10", 10),
-      mkModelTc(conv_same_padding_multi_stride, "3:1:1:10", 10),
-      mkModelTc(conv_no_loss_validate, "3:1:1:10", 1),
+      mkModelTc(conv_1x1, "3:1:1:10", 10, ModelTestOption::COMPARE),
+      mkModelTc(conv_input_matches_kernel, "3:1:1:10", 10, ModelTestOption::COMPARE),
+      mkModelTc(conv_basic, "3:1:1:10", 10, ModelTestOption::COMPARE),
+      mkModelTc(conv_same_padding, "3:1:1:10", 10, ModelTestOption::COMPARE),
+      mkModelTc(conv_multi_stride, "3:1:1:10", 10, ModelTestOption::COMPARE),
+      mkModelTc(conv_uneven_strides, "3:1:1:10", 10, ModelTestOption::COMPARE),
+      mkModelTc(conv_uneven_strides2, "3:1:1:10", 10, ModelTestOption::COMPARE),
+      mkModelTc(conv_uneven_strides3, "3:1:1:10", 10, ModelTestOption::COMPARE),
+      mkModelTc(conv_bn, "3:1:1:10", 10, ModelTestOption::COMPARE),
+      mkModelTc(conv_same_padding_multi_stride, "3:1:1:10", 10, ModelTestOption::COMPARE),
+      mkModelTc(conv_no_loss, "3:1:1:10", 1, ModelTestOption::MINIMUM),
 
       /**< single pooling layer test */
-      mkModelTc(pooling_max_same_padding, "3:1:1:10", 10),
-      mkModelTc(pooling_max_same_padding_multi_stride, "3:1:1:10", 10),
-      mkModelTc(pooling_max_valid_padding, "3:1:1:10", 10),
-      mkModelTc(pooling_avg_same_padding, "3:1:1:10", 10),
-      mkModelTc(pooling_avg_same_padding_multi_stride, "3:1:1:10", 10),
-      mkModelTc(pooling_avg_valid_padding, "3:1:1:10", 10),
-      mkModelTc(pooling_global_avg, "3:1:1:10", 10),
-      mkModelTc(pooling_global_max, "3:1:1:10", 10),
+      mkModelTc(pooling_max_same_padding, "3:1:1:10", 10, ModelTestOption::COMPARE),
+      mkModelTc(pooling_max_same_padding_multi_stride, "3:1:1:10", 10, ModelTestOption::COMPARE),
+      mkModelTc(pooling_max_valid_padding, "3:1:1:10", 10, ModelTestOption::COMPARE),
+      mkModelTc(pooling_avg_same_padding, "3:1:1:10", 10, ModelTestOption::COMPARE),
+      mkModelTc(pooling_avg_same_padding_multi_stride, "3:1:1:10", 10, ModelTestOption::COMPARE),
+      mkModelTc(pooling_avg_valid_padding, "3:1:1:10", 10, ModelTestOption::COMPARE),
+      mkModelTc(pooling_global_avg, "3:1:1:10", 10, ModelTestOption::COMPARE),
+      mkModelTc(pooling_global_max, "3:1:1:10", 10, ModelTestOption::COMPARE),
 
       /**< conv pool combined tests */
-      mkModelTc(mnist_conv_cross, "3:1:1:10", 10),
-      mkModelTc(mnist_conv_cross_one_input, "1:1:1:10", 10),
+      mkModelTc(mnist_conv_cross, "3:1:1:10", 10, ModelTestOption::COMPARE),
+      mkModelTc(mnist_conv_cross_one_input, "1:1:1:10", 10, ModelTestOption::COMPARE),
 
       /**< augmentation layer */
   #if defined(ENABLE_DATA_AUGMENTATION_OPENCV)
-      mkModelTc(preprocess_translate_validate, "3:1:1:10", 10),
+      mkModelTc(preprocess_translate, "3:1:1:10", 10, ModelTestOption::MINIMUM),
   #endif
-      mkModelTc(preprocess_flip_validate, "3:1:1:10", 10),
+      mkModelTc(preprocess_flip_validate, "3:1:1:10", 10, ModelTestOption::MINIMUM),
 
       /**< Addition test */
-      mkModelTc(addition_resnet_like, "3:1:1:10", 10),
+      mkModelTc(addition_resnet_like, "3:1:1:10", 10, ModelTestOption::COMPARE),
 
       /// #1192 time distribution inference bug
-      mkModelTc(fc_softmax_mse_distribute_validate, "3:1:5:3", 1),
-      mkModelTc(fc_softmax_cross_distribute_validate, "3:1:5:3", 1),
-      mkModelTc(fc_sigmoid_cross_distribute_validate, "3:1:5:3", 1),
-      mkModelTc(lstm_basic, "1:1:1:1", 10),
-      mkModelTc(lstm_return_sequence, "1:1:2:1", 10),
-      mkModelTc(lstm_return_sequence_with_batch, "2:1:2:1", 10),
-      mkModelTc(multi_lstm_return_sequence, "1:1:1:1", 10),
-      mkModelTc(multi_lstm_return_sequence_with_batch, "2:1:1:1", 10),
-      mkModelTc(rnn_basic, "1:1:1:1", 10),
-      mkModelTc(rnn_return_sequences, "1:1:2:1", 10),
-      mkModelTc(rnn_return_sequence_with_batch, "2:1:2:1", 10),
-      mkModelTc(multi_rnn_return_sequence, "1:1:1:1", 10),
-      mkModelTc(multi_rnn_return_sequence_with_batch, "2:1:1:1", 10),
-      mkModelTc(gru_basic, "1:1:1:1", 10),
-      mkModelTc(gru_return_sequence, "1:1:2:1", 10),
-      mkModelTc(gru_return_sequence_with_batch, "2:1:2:1", 10),
-      mkModelTc(multi_gru_return_sequence, "1:1:1:1", 10),
-      mkModelTc(multi_gru_return_sequence_with_batch, "2:1:1:1", 10),
+      mkModelTc(fc_softmax_mse_distribute, "3:1:5:3", 1, ModelTestOption::MINIMUM),
+      mkModelTc(fc_softmax_cross_distribute, "3:1:5:3", 1, ModelTestOption::MINIMUM),
+      mkModelTc(fc_sigmoid_cross_distribute, "3:1:5:3", 1, ModelTestOption::MINIMUM),
+      mkModelTc(lstm_basic, "1:1:1:1", 10, ModelTestOption::COMPARE),
+      mkModelTc(lstm_return_sequence, "1:1:2:1", 10, ModelTestOption::COMPARE),
+      mkModelTc(lstm_return_sequence_with_batch, "2:1:2:1", 10, ModelTestOption::COMPARE),
+      mkModelTc(multi_lstm_return_sequence, "1:1:1:1", 10, ModelTestOption::COMPARE),
+      mkModelTc(multi_lstm_return_sequence_with_batch, "2:1:1:1", 10, ModelTestOption::COMPARE),
+      mkModelTc(rnn_basic, "1:1:1:1", 10, ModelTestOption::COMPARE),
+      mkModelTc(rnn_return_sequences, "1:1:2:1", 10, ModelTestOption::COMPARE),
+      mkModelTc(rnn_return_sequence_with_batch, "2:1:2:1", 10, ModelTestOption::COMPARE),
+      mkModelTc(multi_rnn_return_sequence, "1:1:1:1", 10, ModelTestOption::COMPARE),
+      mkModelTc(multi_rnn_return_sequence_with_batch, "2:1:1:1", 10, ModelTestOption::COMPARE),
+      mkModelTc(gru_basic, "1:1:1:1", 10, ModelTestOption::COMPARE),
+      mkModelTc(gru_return_sequence, "1:1:2:1", 10, ModelTestOption::COMPARE),
+      mkModelTc(gru_return_sequence_with_batch, "2:1:2:1", 10, ModelTestOption::COMPARE),
+      mkModelTc(multi_gru_return_sequence, "1:1:1:1", 10, ModelTestOption::COMPARE),
+      mkModelTc(multi_gru_return_sequence_with_batch, "2:1:1:1", 10, ModelTestOption::COMPARE),
 
       /**< multi output test */
-      mkModelTc(multiple_output_model, "3:1:1:10", 10)
+      mkModelTc(multiple_output_model, "3:1:1:10", 10, ModelTestOption::COMPARE)
     }
 ), [](const testing::TestParamInfo<nntrainerModelTest::ParamType>& info){
  return std::get<0>(info.param).getName();
