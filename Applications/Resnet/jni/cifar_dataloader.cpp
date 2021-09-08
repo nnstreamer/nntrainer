@@ -133,7 +133,7 @@ Cifar100DataLoader::Cifar100DataLoader(const std::string &path, int batch_size,
   std::shuffle(idxes.begin(), idxes.end(), rng);
 
   /// @note this truncates the remaining data of less than the batch size
-  iteration_per_epoch = data_size / batch_size;
+  iteration_per_epoch = data_size;
 }
 
 void Cifar100DataLoader::next(float **input, float **label, bool *last) {
@@ -156,23 +156,14 @@ void Cifar100DataLoader::next(float **input, float **label, bool *last) {
     }
   };
 
-  unsigned int idx_pos = current_iteration * batch;
-  if (updateIteration(current_iteration, iteration_per_epoch)) {
+  fill_one_sample(*input, *label, idxes[current_iteration]);
+  current_iteration++;
+  if (current_iteration < iteration_per_epoch) {
+    *last = false;
+  } else {
     *last = true;
+    current_iteration = 0;
     std::shuffle(idxes.begin(), idxes.end(), rng);
-    return;
-  }
-
-  *last = false;
-  unsigned int idx_pos_end =
-    current_iteration * batch; // iteration increased by 1
-
-  float *cur_input_tensor = *input;
-  float *cur_label_tensor = *label;
-  for (unsigned int i = idx_pos; i < idx_pos_end; ++i) {
-    fill_one_sample(cur_input_tensor, cur_label_tensor, idxes[i]);
-    cur_input_tensor += Cifar100DataLoader::ImageSize;
-    cur_label_tensor += Cifar100DataLoader::NumClass;
   }
 }
 
