@@ -26,6 +26,7 @@ TEST(DataBuffer, getGenerator_p) {
   auto [generator, size] = db.getGenerator({{3, 1, 1, 2}}, {{3, 1, 1, 1}});
 
   EXPECT_EQ(size, 3u);
+  EXPECT_NE(generator, nullptr);
 }
 
 TEST(DataBuffer, fetchIteration_p) {

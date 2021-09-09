@@ -405,13 +405,18 @@ find . -name "CMakeCXXCompilerId*.gcda" -delete
 #find . -path "/build/*.j
 
 # Generate report
-lcov -t 'NNTrainer Unit Test Coverage' -o unittest.info -c -d . -b %{_builddir}/%{name}-%{version}/build --include "*/nntrainer/*" --include "*/api/*" --exclude "*/tensorflow/*" --exclude "*/nntrainer_logger.cpp"
-
-# Exclude generated files
-lcov -r unittest.info "*/test/*" "*/meson*/*" -o unittest-filtered.info
+lcov -t 'NNTrainer Unit Test Coverage' -o unittest.info -c -d . -b %{_builddir}/%{name}-%{version}/build \
+    --include "*/nntrainer/*" \
+    --include "*/api/*" \
+    --exclude "*/tensorflow*" \
+    --exclude "*/Applications/*" \
+    --exclude "*/test/*" \
+    --exclude "*/meson*/*" \
+    --exclude "*/nntrainer_logger.cpp" \
+    --exclude "*/tf_schema_generated.h"
 
 # Visualize the report
-genhtml -o result unittest-filtered.info -t "nntrainer %{version}-%{release} ${VCS}" --ignore-errors source -p ${RPM_BUILD_DIR}
+genhtml -o result unittest.info -t "nntrainer %{version}-%{release} ${VCS}" --ignore-errors source -p ${RPM_BUILD_DIR}
 
 mkdir -p %{buildroot}%{_datadir}/nntrainer/unittest/
 cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
