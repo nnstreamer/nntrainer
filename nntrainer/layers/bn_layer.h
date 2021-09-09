@@ -41,19 +41,7 @@ public:
   /**
    * @brief     Constructor of Batch Noramlization Layer
    */
-  BatchNormalizationLayer(
-    int axis = -1, float momentum = 0.99, float epsilon = 0.001,
-    Tensor::Initializer moving_mean_initializer = Tensor::Initializer::ZEROS,
-    Tensor::Initializer moving_variance_initializer = Tensor::Initializer::ONES,
-    Tensor::Initializer gamma_initializer = Tensor::Initializer::ONES,
-    Tensor::Initializer beta_initializer = Tensor::Initializer::ZEROS) :
-    Layer(),
-    epsilon(epsilon),
-    momentum(momentum),
-    axis(axis),
-    initializers{moving_mean_initializer, moving_variance_initializer,
-                 gamma_initializer, beta_initializer},
-    wt_idx({0}) {}
+  BatchNormalizationLayer(int axis_ = -1);
 
   /**
    * @brief     Destructor of BatchNormalizationLayer
@@ -95,10 +83,7 @@ public:
   /**
    * @copydoc Layer::exportTo(Exporter &exporter, ExportMethods method)
    */
-  void exportTo(Exporter &exporter,
-                const ExportMethods &method) const override {
-    Layer::exportTo(exporter, method);
-  }
+  void exportTo(Exporter &exporter, const ExportMethods &method) const override;
 
   /**
    * @copydoc Layer::getType()
@@ -132,23 +117,14 @@ private:
                     bn_layer::calcDerivative */
   Tensor invstd; /**<  inversed training std for backward pass */
 
-  float epsilon;  /**< epsilon */
-  float momentum; /**< momentum */
-  int axis;       /**< Target axis, axis inferred at initialize when -1 */
+  int axis; /**< Target axis, axis inferred at initialize when -1 */
 
-  std::vector<unsigned int> axes_to_reduce;        /**< target axes to reduce */
-  std::array<Tensor::Initializer, 4> initializers; /**< weight initializers */
+  std::vector<unsigned int> axes_to_reduce; /**< target axes to reduce */
   std::array<unsigned int, 5> wt_idx; /**< indices of the weights and tensors */
-
-  /**
-   * @brief setProperty by type and value separated
-   * @param[in] type property type to be passed
-   * @param[in] value value to be passed
-   * @exception exception::not_supported     when property type is not valid for
-   * the particular layer
-   * @exception std::invalid_argument invalid argument
-   */
-  void setProperty(const std::string &type, const std::string &value);
+  std::tuple<props::Epsilon, props::BNPARAMS_MU_INIT, props::BNPARAMS_VAR_INIT,
+             props::BNPARAMS_BETA_INIT, props::BNPARAMS_GAMMA_INIT,
+             props::Momentum>
+    bn_props;
 };
 
 } // namespace nntrainer

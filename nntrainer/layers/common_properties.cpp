@@ -106,6 +106,16 @@ bool InputSpec::isValid(const ConnectionSpec &v) const {
   return v.getLayerIds().size() > 0;
 }
 
+Epsilon::Epsilon(float value) { set(value); }
+
+bool Epsilon::isValid(const float &value) const { return value > 0.0f; }
+
+Momentum::Momentum(float value) { set(value); }
+
+bool Momentum::isValid(const float &value) const {
+  return value > 0.0f && value < 1.0f;
+}
+
 bool SplitDimension::isValid(const unsigned int &value) const {
   return value > 0 && value < ml::train::TensorDim::MAXDIM;
 }
@@ -203,6 +213,18 @@ HiddenStateActivation::HiddenStateActivation(ActivationTypeInfo::Enum value) {
 RecurrentActivation::RecurrentActivation(ActivationTypeInfo::Enum value) {
   set(value);
 };
+
+BNPARAMS_MU_INIT::BNPARAMS_MU_INIT(Tensor::Initializer value) { set(value); }
+
+BNPARAMS_VAR_INIT::BNPARAMS_VAR_INIT(Tensor::Initializer value) { set(value); }
+
+BNPARAMS_GAMMA_INIT::BNPARAMS_GAMMA_INIT(Tensor::Initializer value) {
+  set(value);
+}
+
+BNPARAMS_BETA_INIT::BNPARAMS_BETA_INIT(Tensor::Initializer value) {
+  set(value);
+}
 
 } // namespace props
 
