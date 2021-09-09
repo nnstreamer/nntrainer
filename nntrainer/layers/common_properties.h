@@ -18,6 +18,7 @@
 #include <string>
 
 #include <base_properties.h>
+#include <tensor.h>
 
 namespace nntrainer {
 
@@ -239,6 +240,57 @@ public:
     "input_layers";                     /**< unique key to access */
   using prop_tag = connection_prop_tag; /**< property type */
   bool isValid(const ConnectionSpec &v) const override;
+};
+
+/**
+ * @brief Epsilon property, this is used to avoid divide by zero
+ *
+ */
+class Epsilon : public nntrainer::Property<float> {
+
+public:
+  /**
+   * @brief Construct a new Epsilon object with a default value 0.001
+   *
+   */
+  Epsilon(float value = 0.001);
+  static constexpr const char *key = "epsilon"; /**< unique key to access */
+  using prop_tag = float_prop_tag;              /**< property type */
+
+  /**
+   * @brief Epsilon validator
+   *
+   * @param value float to validate
+   * @retval true if it is greater or equal than 0.0
+   * @retval false if it is samller than 0.0
+   */
+  bool isValid(const float &value) const override;
+};
+
+/**
+ * @brief Momentum property, moving average in batch normalization layer
+ *
+ */
+class Momentum : public nntrainer::Property<float> {
+
+public:
+  /**
+   * @brief Construct a new Momentum object with a default value 0.99
+   *
+   */
+  Momentum(float value = 0.99);
+  static constexpr const char *key = "momentum"; /**< unique key to access */
+  using prop_tag = float_prop_tag;               /**< property type */
+
+  /**
+   * @brief Momentum validator
+   *
+   * @param value float to validate
+   * @retval true if it is greater than 0.0 and smaller than 1.0
+   * @retval false if it is samller or equal than 0.0
+   * or greater or equal than 1.0
+   */
+  bool isValid(const float &value) const override;
 };
 
 /**
@@ -556,6 +608,78 @@ public:
     ActivationTypeInfo::Enum value = ActivationTypeInfo::Enum::ACT_NONE);
   using prop_tag = enum_class_prop_tag;
   static constexpr const char *key = "recurrent_activation";
+};
+
+/**
+ * @brief     Enumeration of tensor initialization type
+ */
+struct InitializerInfo {
+  using Enum = Tensor::Initializer;
+  static constexpr std::initializer_list<Enum> EnumList = {
+    Enum::ZEROS,         Enum::ONES,          Enum::LECUN_NORMAL,
+    Enum::LECUN_UNIFORM, Enum::XAVIER_NORMAL, Enum::XAVIER_UNIFORM,
+    Enum::HE_NORMAL,     Enum::HE_UNIFORM,    Enum::NONE};
+
+  static constexpr const char *EnumStr[] = {
+    "zeros",         "ones",          "lecun_normal",
+    "lecun_uniform", "xavier_normal", "xavier_uniform",
+    "he_normal",     "he_uniform",    "none"};
+};
+
+/**
+ * @brief BNPARAMS_MU_INIT Initialization Enumeration Information
+ *
+ */
+class BNPARAMS_MU_INIT final : public EnumProperty<InitializerInfo> {
+public:
+  /**
+   * @brief Construct a BNPARAMS_MU_INIT object
+   */
+  BNPARAMS_MU_INIT(Tensor::Initializer value = Tensor::Initializer::ZEROS);
+  using prop_tag = enum_class_prop_tag;
+  static constexpr const char *key = "moving_mean_initializer";
+};
+
+/**
+ * @brief BNPARAMS_VAR_INIT Initialization Enumeration Information
+ *
+ */
+class BNPARAMS_VAR_INIT final : public EnumProperty<InitializerInfo> {
+public:
+  /**
+   * @brief Construct a BNPARAMS_VAR_INIT object
+   */
+  BNPARAMS_VAR_INIT(Tensor::Initializer value = Tensor::Initializer::ONES);
+  using prop_tag = enum_class_prop_tag;
+  static constexpr const char *key = "moving_variance_initializer";
+};
+
+/**
+ * @brief BNPARAMS_GAMMA_INIT Initialization Enumeration Information
+ *
+ */
+class BNPARAMS_GAMMA_INIT final : public EnumProperty<InitializerInfo> {
+public:
+  /**
+   * @brief Construct a BNPARAMS_GAMMA_INIT object
+   */
+  BNPARAMS_GAMMA_INIT(Tensor::Initializer value = Tensor::Initializer::ONES);
+  using prop_tag = enum_class_prop_tag;
+  static constexpr const char *key = "gamma_initializer";
+};
+
+/**
+ * @brief BNPARAMS_BETA_INIT Initialization Enumeration Information
+ *
+ */
+class BNPARAMS_BETA_INIT final : public EnumProperty<InitializerInfo> {
+public:
+  /**
+   * @brief Construct a BNPARAMS_BETA_INIT object
+   */
+  BNPARAMS_BETA_INIT(Tensor::Initializer value = Tensor::Initializer::ZEROS);
+  using prop_tag = enum_class_prop_tag;
+  static constexpr const char *key = "beta_initializer";
 };
 
 /**
