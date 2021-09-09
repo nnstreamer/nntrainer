@@ -93,5 +93,3 @@ TEST_P(LayerSemantics, setBatchValidate_p) {
                  nntrainer::exception::not_supported);
   }
 }
-
-TEST_P(LayerGoldenTest, HelloWorld) { EXPECT_TRUE(true); }

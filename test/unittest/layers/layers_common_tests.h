@@ -79,28 +79,35 @@ protected:
   bool must_fail;
 };
 
+using LayerGoldenTestParamType =
+  std::tuple<LayerFactoryType /**< Layer creator */,
+             std::vector<std::string> /**< Properties */,
+             const char *, /**< Input Tensor dimensions representation */
+             const char * /**< Golden file name */>;
+
 /**
  * @brief Golden Layer Test with designated format
- * @note NYI
- *
- * 1. type
- * 2. properties for the layer
- * 3. batch size
- * 4. golden file name
  */
-class LayerGoldenTest : public ::testing::TestWithParam<const char *> {
+class LayerGoldenTest
+  : public ::testing::TestWithParam<LayerGoldenTestParamType> {
 public:
+  /**
+   * @brief Destroy the Layer Semantics object
+   *
+   */
+  virtual ~LayerGoldenTest();
+
   /**
    * @brief SetUp test cases here
    *
    */
-  virtual void SetUp(){};
+  virtual void SetUp();
 
   /**
    * @brief do here if any memory needs to be released
    *
    */
-  virtual void TearDown(){};
+  virtual void TearDown();
 };
 
 #endif // __LAYERS_COMMON_TESTS_H__
