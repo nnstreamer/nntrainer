@@ -17,6 +17,7 @@
 #include <lazy_tensor.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
+#include <node_exporter.h>
 #include <parse_util.h>
 #include <pooling2d_layer.h>
 #include <util_func.h>
@@ -24,6 +25,15 @@
 namespace nntrainer {
 
 static constexpr size_t SINGLE_INOUT_IDX = 0;
+
+Pooling2DLayer::Pooling2DLayer(
+  const std::array<unsigned int, POOLING2D_DIM * 2> &padding_) :
+  Layer(),
+  padding(padding_),
+  pooling2d_props(props::PoolingType(), std::vector<props::PoolSize>(),
+                  std::array<props::Stride, POOLING2D_DIM>(),
+                  props::Padding2D()),
+  pool_helper_idx(0) {}
 
 void Pooling2DLayer::finalize(InitLayerContext &context) {
   if (context.getNumInputs() != 1) {
@@ -34,23 +44,29 @@ void Pooling2DLayer::finalize(InitLayerContext &context) {
   const TensorDim &in_dim = context.getInputDimensions()[SINGLE_INOUT_IDX];
   TensorDim out_dim;
 
-  if (pooling_type == PoolingType::global_max ||
-      pooling_type == PoolingType::global_average) {
-    if (pool_size[0] != 0 || pool_size[1] != 0) {
-      throw std::invalid_argument(
-        "[Pooling2D] global_max, global_average does not accept pool size");
-    }
-    pool_size[0] = in_dim.height();
-    pool_size[1] = in_dim.width();
+  auto &pool_size = std::get<std::vector<props::PoolSize>>(pooling2d_props);
+  NNTR_THROW_IF(!(pool_size.empty() || pool_size.size() == 2),
+                std::invalid_argument)
+    << "[Pooling2D] the number of pool size should be 0 or 2";
+  auto &stride =
+    std::get<std::array<props::Stride, POOLING2D_DIM>>(pooling2d_props);
+  auto &pooling_type = std::get<props::PoolingType>(pooling2d_props).get();
+
+  if (pooling_type == props::PoolingTypeInfo::Enum::global_max ||
+      pooling_type == props::PoolingTypeInfo::Enum::global_average) {
+    NNTR_THROW_IF(!pool_size.empty(), std::invalid_argument)
+      << "[Pooling2D] global_max, global_average does not accept pool size";
+    pool_size.emplace_back(props::PoolSize(in_dim.height()));
+    pool_size.emplace_back(props::PoolSize(in_dim.width()));
   }
 
-  padding = std::get<props::Padding2D>(pool2d_props)
+  padding = std::get<props::Padding2D>(pooling2d_props)
               .compute(in_dim, {pool_size[0], pool_size[1]});
 
   auto [pt, pb, pl, pr] = padding;
 
-  if (pooling_type == PoolingType::global_max ||
-      pooling_type == PoolingType::global_average) {
+  if (pooling_type == props::PoolingTypeInfo::Enum::global_max ||
+      pooling_type == props::PoolingTypeInfo::Enum::global_average) {
     if (pt + pb + pl + pr != 0) {
       throw std::invalid_argument(
         "[Pooling2D] global_max, global_average does not accept padding");
@@ -97,7 +113,7 @@ void Pooling2DLayer::finalize(InitLayerContext &context) {
    * = 12 / 4 = 3
    * // clang-format on
    */
-  if (pooling_type == PoolingType::global_max) {
+  if (pooling_type == props::PoolingTypeInfo::Enum::global_max) {
     pool_helper_idx = context.requestTensor(
       in_dim, context.getName() + ":helper_idx", Tensor::Initializer::NONE,
       false, ITERATION_LIFESPAN);
@@ -125,6 +141,11 @@ void Pooling2DLayer::forwarding(RunLayerContext &context, bool training) {
 }
 
 void Pooling2DLayer::calcDerivative(RunLayerContext &context) {
+  auto &pool_size = std::get<std::vector<props::PoolSize>>(pooling2d_props);
+  auto &stride =
+    std::get<std::array<props::Stride, POOLING2D_DIM>>(pooling2d_props);
+  auto &pooling_type = std::get<props::PoolingType>(pooling2d_props).get();
+
   Tensor &deriv = context.getIncomingDerivative(SINGLE_INOUT_IDX);
   Tensor &result = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
   Tensor &pool_helper = context.getTensor(pool_helper_idx);
@@ -148,7 +169,7 @@ void Pooling2DLayer::calcDerivative(RunLayerContext &context) {
   unsigned int in_map_size = height * width;
 
   switch (pooling_type) {
-  case PoolingType::max: {
+  case props::PoolingTypeInfo::Enum::max: {
     const int *iter = pool_helper.getData<int>();
     const float *deriv_data = deriv.getData();
     for (unsigned int b = 0; b < batch; ++b) {
@@ -166,8 +187,8 @@ void Pooling2DLayer::calcDerivative(RunLayerContext &context) {
       }
     }
   } break;
-  case PoolingType::global_average:
-  case PoolingType::average: {
+  case props::PoolingTypeInfo::Enum::global_average:
+  case props::PoolingTypeInfo::Enum::average: {
     int heigth_stride_end = height - p_height + pb;
     int width_stride_end = width - p_width + pr;
     const int *iter = pool_helper.getData<int>();
@@ -197,7 +218,7 @@ void Pooling2DLayer::calcDerivative(RunLayerContext &context) {
       }
     }
   } break;
-  case PoolingType::global_max: {
+  case props::PoolingTypeInfo::Enum::global_max: {
     float *deriv_data = deriv.getData();
     for (unsigned int b = 0; b < batch; b++) {
       for (unsigned int c = 0; c < channel; c++) {
@@ -219,69 +240,25 @@ void Pooling2DLayer::calcDerivative(RunLayerContext &context) {
   }
 }
 
-void Pooling2DLayer::setProperty(const std::vector<std::string> &values) {
-  /// @todo: deprecate this in favor of loadProperties
-  for (unsigned int i = 0; i < values.size(); ++i) {
-    std::string key;
-    std::string value;
-    std::stringstream ss;
-
-    if (getKeyValue(values[i], key, value) != ML_ERROR_NONE) {
-      throw std::invalid_argument("Error parsing the property: " + values[i]);
-    }
-
-    if (value.empty()) {
-      ss << "value is empty: key: " << key << ", value: " << value;
-      throw std::invalid_argument(ss.str());
-    }
-
-    /// @note this calls derived setProperty if available
-    setProperty(key, value);
-  }
+void Pooling2DLayer::exportTo(Exporter &exporter,
+                              const ExportMethods &method) const {
+  exporter.saveResult(pooling2d_props, method, this);
 }
 
-void Pooling2DLayer::setProperty(const std::string &type_str,
-                                 const std::string &value) {
-  using PropertyType = nntrainer::Layer::PropertyType;
-  int status = ML_ERROR_NONE;
-  nntrainer::Layer::PropertyType type =
-    static_cast<nntrainer::Layer::PropertyType>(parseLayerProperty(type_str));
-
-  switch (type) {
-  case PropertyType::pooling:
-    pooling_type = (PoolingType)parseType(value, TOKEN_POOLING);
-    if (pooling_type == PoolingType::unknown) {
-      throw std::invalid_argument("[Pooling2d_layer]: Unknown pooling type");
-    }
-    break;
-  case PropertyType::pool_size:
-    status = getValues(POOLING2D_DIM, value, (int *)(pool_size.data()));
-    throw_status(status);
-    if (pool_size[0] == 0 || pool_size[1] == 0) {
-      throw std::invalid_argument(
-        "[Pooling2d_layer] pool_size must be greater than 0");
-    }
-    break;
-  case PropertyType::stride:
-    status = getValues(POOLING2D_DIM, value, (int *)(stride.data()));
-    throw_status(status);
-    if (stride[0] == 0 || stride[1] == 0) {
-      throw std::invalid_argument(
-        "[Pooling2d_layer] stride must be greater than 0");
-    }
-    break;
-  case PropertyType::padding:
-    from_string(value, std::get<props::Padding2D>(pool2d_props));
-    break;
-  default:
-    std::string msg = "[Pooling2DLayer] Unknown Layer Property Key for value " +
-                      std::string(value);
-    throw exception::not_supported(msg);
-  }
+void Pooling2DLayer::setProperty(const std::vector<std::string> &values) {
+  auto remain_props = loadProperties(values, pooling2d_props);
+  NNTR_THROW_IF(!remain_props.empty(), std::invalid_argument)
+    << "[Pooling2dLayer] Unknown Layer Properties count " +
+         std::to_string(values.size());
 }
 
 void Pooling2DLayer::pooling2d(Tensor &in, bool training, Tensor &output,
                                Tensor &pool_helper, int batch_idx) {
+
+  auto &pool_size = std::get<std::vector<props::PoolSize>>(pooling2d_props);
+  auto &stride =
+    std::get<std::array<props::Stride, POOLING2D_DIM>>(pooling2d_props);
+  auto &pooling_type = std::get<props::PoolingType>(pooling2d_props).get();
 
   unsigned int channel = in.channel();
   auto [pt, pb, pl, pr] = padding;
@@ -307,7 +284,7 @@ void Pooling2DLayer::pooling2d(Tensor &in, bool training, Tensor &output,
 
   unsigned int max_idx_count = 0;
   switch (pooling_type) {
-  case PoolingType::max: {
+  case props::PoolingTypeInfo::Enum::max: {
     pool_fn = [&, this](const float *in_data, int channel_idx, int start_h,
                         int start_w) {
       int end_h = start_h + patch_height;
@@ -340,7 +317,7 @@ void Pooling2DLayer::pooling2d(Tensor &in, bool training, Tensor &output,
     };
     break;
   }
-  case PoolingType::global_max: {
+  case props::PoolingTypeInfo::Enum::global_max: {
     pool_fn = [&, this](const float *in_data, int channel_idx, int start_h,
                         int start_w) {
       int end_h = start_h + patch_height;
@@ -370,8 +347,8 @@ void Pooling2DLayer::pooling2d(Tensor &in, bool training, Tensor &output,
     };
     break;
   }
-  case PoolingType::global_average:
-  case PoolingType::average: {
+  case props::PoolingTypeInfo::Enum::global_average:
+  case props::PoolingTypeInfo::Enum::average: {
     pool_fn = [&, this](const float *in_data, int channel_idx, int start_h,
                         int start_w) {
       int end_h = start_h + patch_height;
@@ -398,7 +375,7 @@ void Pooling2DLayer::pooling2d(Tensor &in, bool training, Tensor &output,
     };
     break;
   }
-  case PoolingType::unknown:
+  case props::PoolingTypeInfo::Enum::unknown:
   default:
     throw std::invalid_argument("unknown pooling type given");
     break;

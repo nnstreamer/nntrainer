@@ -108,6 +108,8 @@ bool SplitDimension::isValid(const unsigned int &value) const {
   return value > 0 && value < ml::train::TensorDim::MAXDIM;
 }
 
+PoolSize::PoolSize(unsigned int value) { set(value); }
+
 Stride::Stride(unsigned int value) { set(value); }
 
 /**
