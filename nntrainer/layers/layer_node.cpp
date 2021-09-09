@@ -528,7 +528,15 @@ void LayerNode::setBatch(unsigned int batch) {
 /**
  * @brief   If the current layer can support in-place
  */
-bool LayerNode::supportInPlace() const { return getLayer()->supportInPlace(); }
+bool LayerNode::supportInPlace() const {
+  ///@note below is a quick fix, we need to have a guard that this shouldn't be
+  /// query until realizeProps has been finalized ( which means we will need
+  /// another end point to fixate this property )
+  if (getDistribute()) {
+    return false;
+  }
+  return layer->supportInPlace();
+}
 
 /**
  * @brief  check if this layer requires label to be passed
