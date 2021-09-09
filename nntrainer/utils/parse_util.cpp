@@ -168,7 +168,7 @@ unsigned int parseType(std::string ll, InputType t) {
         return (i);
       }
     }
-    ret = (unsigned int)Pooling2DLayer::PoolingType::unknown;
+    ret = (unsigned int)props::PoolingTypeInfo::Enum::unknown;
     break;
   case TOKEN_UNKNOWN:
   default:

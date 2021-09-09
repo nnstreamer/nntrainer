@@ -285,6 +285,27 @@ public:
 };
 
 /**
+ * @brief PoolSize property, pool size is used to measure the pooling size
+ *
+ */
+class PoolSize : public nntrainer::PositiveIntegerProperty {
+public:
+  /**
+   * @brief Construct a new PoolSize object
+   *
+   */
+  PoolSize() {}
+
+  /**
+   * @brief Construct a new PoolSize object with default value
+   *
+   */
+  PoolSize(unsigned int value);
+  static constexpr const char *key = "pool_size"; /**< unique key to access */
+  using prop_tag = uint_prop_tag;                 /**< property type */
+};
+
+/**
  * @brief Stride property, stride is used to measure how much it will be slide
  * the filter
  *
@@ -485,6 +506,38 @@ class Activation final : public EnumProperty<ActivationTypeInfo> {
 public:
   using prop_tag = enum_class_prop_tag;
   static constexpr const char *key = "activation";
+};
+
+/**
+ * @brief     Enumeration of pooling type
+ */
+struct PoolingTypeInfo {
+  /**
+   * @brief   Pooling operation type class
+   */
+  enum class Enum {
+    max = 0,
+    average = 1,
+    global_max = 2,
+    global_average = 3,
+    unknown = 4
+  };
+  static constexpr std::initializer_list<Enum> EnumList = {
+    Enum::max, Enum::average, Enum::global_max, Enum::global_average,
+    Enum::unknown};
+
+  static constexpr const char *EnumStr[] = {"max", "average", "global_max",
+                                            "global_average", "unknown"};
+};
+
+/**
+ * @brief Pooling Type Enumeration Information
+ *
+ */
+class PoolingType final : public EnumProperty<PoolingTypeInfo> {
+public:
+  using prop_tag = enum_class_prop_tag;
+  static constexpr const char *key = "pooling";
 };
 
 /**

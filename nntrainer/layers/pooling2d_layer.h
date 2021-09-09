@@ -32,17 +32,6 @@ constexpr const unsigned int POOLING2D_DIM = 2;
 class Pooling2DLayer : public Layer {
 public:
   /**
-   * @brief   Pooling operation type class
-   */
-  enum class PoolingType {
-    max = 0,
-    average = 1,
-    global_max = 2,
-    global_average = 3,
-    unknown = 4,
-  };
-
-  /**
    * @brief PaddingType Class
    * @todo support keras type of padding
    */
@@ -56,19 +45,8 @@ public:
   /**
    * @brief     Constructor of Pooling 2D Layer
    */
-  Pooling2DLayer(
-    PoolingType pooling_type_ = PoolingType::average,
-    const std::array<unsigned int, POOLING2D_DIM> &pool_size_ = {0, 0},
-    const std::array<unsigned int, POOLING2D_DIM> &stride_ = {1, 1},
-    const std::array<unsigned int, POOLING2D_DIM * 2> &padding_ = {0, 0, 0,
-                                                                   0}) :
-    Layer(),
-    pool_size(pool_size_),
-    stride(stride_),
-    padding(padding_),
-    pool2d_props(),
-    pool_helper_idx(0),
-    pooling_type(pooling_type_) {}
+  Pooling2DLayer(const std::array<unsigned int, POOLING2D_DIM * 2> &padding_ = {
+                   0, 0, 0, 0});
 
   /**
    * @brief     Destructor of Pooling 2D Layer
@@ -105,10 +83,7 @@ public:
   /**
    * @copydoc Layer::exportTo(Exporter &exporter, ExportMethods method)
    */
-  void exportTo(Exporter &exporter,
-                const ExportMethods &method) const override {
-    Layer::exportTo(exporter, method);
-  }
+  void exportTo(Exporter &exporter, const ExportMethods &method) const override;
 
   /**
    * @copydoc Layer::getType()
@@ -132,7 +107,9 @@ public:
    */
   void setBatch(InitLayerContext &context, unsigned int batch) override {
     context.updateTensorSpec(pool_helper_idx, batch);
-    if (pooling_type == PoolingType::global_max)
+    props::PoolingTypeInfo::Enum pooling_type =
+      std::get<props::PoolingType>(pooling2d_props).get();
+    if (pooling_type == props::PoolingTypeInfo::Enum::global_max)
       pool_helper_size.resize(batch *
                               context.getInputDimensions()[0].channel());
   }
@@ -142,21 +119,22 @@ public:
    */
   void setBatch(RunLayerContext &context, unsigned int batch) override {
     context.updateTensor(pool_helper_idx, batch);
-    if (pooling_type == PoolingType::global_max)
+    props::PoolingTypeInfo::Enum pooling_type =
+      std::get<props::PoolingType>(pooling2d_props).get();
+    if (pooling_type == props::PoolingTypeInfo::Enum::global_max)
       pool_helper_size.resize(batch * context.getInput(0).channel());
   }
 
 private:
-  std::array<unsigned int, POOLING2D_DIM> pool_size;
-  std::array<unsigned int, POOLING2D_DIM> stride;
   std::array<unsigned int, POOLING2D_DIM * 2> padding;
-  std::tuple<props::Padding2D> pool2d_props;
+  std::tuple<props::PoolingType, std::vector<props::PoolSize>,
+             std::array<props::Stride, POOLING2D_DIM>, props::Padding2D>
+    pooling2d_props;
 
   unsigned int pool_helper_idx; /**< helper tensor idx */
   std::vector<unsigned int>
     pool_helper_size; /**< helper size for each elements in the case of
                          global_max pooling */
-  PoolingType pooling_type;
 
   /**
    * @brief     calculation convolution
@@ -168,16 +146,6 @@ private:
    */
   void pooling2d(Tensor &in, bool training, Tensor &output, Tensor &pool_helper,
                  int batch_idx);
-
-  /**
-   * @brief setProperty by type and value separated
-   * @param[in] type property type to be passed
-   * @param[in] value value to be passed
-   * @exception exception::not_supported     when property type is not valid for
-   * the particular layer
-   * @exception std::invalid_argument invalid argument
-   */
-  void setProperty(const std::string &type_str, const std::string &value);
 };
 
 } // namespace nntrainer
