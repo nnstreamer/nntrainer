@@ -29,6 +29,7 @@ nntrainer_layer_common_dependent_tests_dep = declare_dependency(
 test_target = [
   layer_common_test_dependent_files,
   layer_common_test_standalone_files,
+  'layers_golden_tests.cpp',
   'unittest_layers_impl.cpp',
   'unittest_layers_input.cpp',
   'unittest_layers_loss.cpp',

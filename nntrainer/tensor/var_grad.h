@@ -64,11 +64,11 @@ public:
    *
    * @param spec Var_Grad specification
    */
-  explicit Var_Grad(const Spec &spec) :
+  explicit Var_Grad(const Spec &spec, bool alloc_now = false) :
     Var_Grad(std::get<0>(spec), // TensorDim
              std::get<1>(spec), // initializer
              std::get<2>(spec), // need_gradient
-             false,
+             alloc_now,
              std::get<3>(spec) // Name
     ) {}
 

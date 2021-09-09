@@ -24,7 +24,13 @@ auto semantic_fc = LayerSemanticsParamType(
 INSTANTIATE_TEST_CASE_P(FullyConnected, LayerSemantics,
                         ::testing::Values(semantic_fc));
 
-INSTANTIATE_TEST_CASE_P(
-  FullyConnected, LayerGoldenTest,
-  ::testing::Values(
-    "golden1") /**< format of type, properties, num_batch, golden file name */);
+auto fc_basic_plain = LayerGoldenTestParamType(
+  nntrainer::createLayer<nntrainer::FullyConnectedLayer>, {"unit=5"},
+  "3:1:1:10", "fc_golden_plain.nnlayergolden");
+auto fc_basic_single_batch = LayerGoldenTestParamType(
+  nntrainer::createLayer<nntrainer::FullyConnectedLayer>, {"unit=4"},
+  "1:1:1:10", "fc_golden_single_batch.nnlayergolden");
+
+INSTANTIATE_TEST_CASE_P(FullyConnected, LayerGoldenTest,
+                        ::testing::Values(fc_basic_plain,
+                                          fc_basic_single_batch));
