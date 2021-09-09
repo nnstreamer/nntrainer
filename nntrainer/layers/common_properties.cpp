@@ -47,8 +47,8 @@ Normalization::Normalization(bool value) { set(value); }
 
 Standardization::Standardization(bool value) { set(value); }
 
-bool DropOutSpec::isValid(const float &v) const {
-  if (v <= 0.0)
+bool DropOutRate::isValid(const float &v) const {
+  if (v < 0.0)
     return false;
   else
     return true;
@@ -70,6 +70,8 @@ void FilePath::set(const std::string &v) {
 }
 
 std::ifstream::pos_type FilePath::file_size() { return cached_pos_size; }
+
+ReturnSequences::ReturnSequences(bool value) { set(value); }
 
 bool NumClass::isValid(const unsigned int &v) const { return v > 0; }
 
@@ -193,6 +195,14 @@ std::array<unsigned int, 4> Padding2D::compute(const TensorDim &input,
 }
 
 std::string ConnectionSpec::NoneType = "";
+
+HiddenStateActivation::HiddenStateActivation(ActivationTypeInfo::Enum value) {
+  set(value);
+};
+
+RecurrentActivation::RecurrentActivation(ActivationTypeInfo::Enum value) {
+  set(value);
+};
 
 } // namespace props
 

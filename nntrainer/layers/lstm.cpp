@@ -36,6 +36,16 @@ enum LSTMParams {
 
 #define NUM_GATE 4
 
+LSTMLayer::LSTMLayer() :
+  LayerImpl(),
+  lstm_props(props::Unit(), props::HiddenStateActivation(),
+             props::RecurrentActivation(), props::ReturnSequences(),
+             props::DropOutRate()),
+  wt_idx({0}),
+  acti_func(ActivationType::ACT_NONE, true),
+  recurrent_acti_func(ActivationType::ACT_NONE, true),
+  epsilon(1e-3) {}
+
 // - weight_xh ( input to hidden )
 //  : [1, 1, input_size, unit (hidden_size) x NUM_GATE] -> f, g, i, o
 // - weight_hh ( hidden to hidden )
@@ -43,7 +53,13 @@ enum LSTMParams {
 // - bias_h ( hidden bias )
 //  : [1, 1, 1, unit (hidden_size) x NUM_GATE] -> f, g, i, o
 void LSTMLayer::finalize(InitLayerContext &context) {
-  auto unit = std::get<props::Unit>(props).get();
+  auto unit = std::get<props::Unit>(lstm_props).get();
+  auto &hidden_state_activation_type =
+    std::get<props::HiddenStateActivation>(lstm_props);
+  auto &recurrent_activation_type =
+    std::get<props::RecurrentActivation>(lstm_props);
+  bool return_sequences = std::get<props::ReturnSequences>(lstm_props);
+  float dropout_rate = std::get<props::DropOutRate>(lstm_props);
 
   if (context.getNumInputs() != 1) {
     throw std::invalid_argument("LSTM layer takes only one input");
@@ -113,81 +129,33 @@ void LSTMLayer::finalize(InitLayerContext &context) {
     context.requestTensor(d, context.getName() + ":fgio",
                           Tensor::Initializer::NONE, true, ITERATION_LIFESPAN);
 
-  if (hidden_state_activation_type == ActivationType::ACT_NONE) {
-    hidden_state_activation_type = ActivationType::ACT_TANH;
-    acti_func.setActiFunc(hidden_state_activation_type);
+  if (hidden_state_activation_type.get() == ActivationType::ACT_NONE) {
+    hidden_state_activation_type.set(ActivationType::ACT_TANH);
+    acti_func.setActiFunc(hidden_state_activation_type.get());
   }
 
-  if (recurrent_activation_type == ActivationType::ACT_NONE) {
-    recurrent_activation_type = ActivationType::ACT_SIGMOID;
-    recurrent_acti_func.setActiFunc(recurrent_activation_type);
+  if (recurrent_activation_type.get() == ActivationType::ACT_NONE) {
+    recurrent_activation_type.set(ActivationType::ACT_SIGMOID);
+    recurrent_acti_func.setActiFunc(recurrent_activation_type.get());
   }
 }
 
 void LSTMLayer::setProperty(const std::vector<std::string> &values) {
-  /// @todo: deprecate this in favor of loadProperties
-  auto remain_props = loadProperties(values, props);
-  for (unsigned int i = 0; i < remain_props.size(); ++i) {
-    std::string key;
-    std::string value;
-    std::stringstream ss;
-
-    if (getKeyValue(remain_props[i], key, value) != ML_ERROR_NONE) {
-      throw std::invalid_argument("Error parsing the property: " +
-                                  remain_props[i]);
-    }
-
-    if (value.empty()) {
-      ss << "value is empty: key: " << key << ", value: " << value;
-      throw std::invalid_argument(ss.str());
-    }
-
-    /// @note this calls derived setProperty if available
-    setProperty(key, value);
-  }
-}
-
-void LSTMLayer::setProperty(const std::string &type_str,
-                            const std::string &value) {
-  using PropertyType = nntrainer::Layer::PropertyType;
-  int status = ML_ERROR_NONE;
-  nntrainer::Layer::PropertyType type =
-    static_cast<nntrainer::Layer::PropertyType>(parseLayerProperty(type_str));
-
-  // TODO : Add return_state property & api to get the hidden input
-  switch (type) {
-  case PropertyType::hidden_state_activation: {
-    ActivationType acti_type = (ActivationType)parseType(value, TOKEN_ACTI);
-    hidden_state_activation_type = acti_type;
-    acti_func.setActiFunc(acti_type);
-  } break;
-  case PropertyType::recurrent_activation: {
-    ActivationType acti_type = (ActivationType)parseType(value, TOKEN_ACTI);
-    recurrent_activation_type = acti_type;
-    recurrent_acti_func.setActiFunc(acti_type);
-  } break;
-  case PropertyType::return_sequences: {
-    status = setBoolean(return_sequences, value);
-    throw_status(status);
-  } break;
-  case PropertyType::dropout:
-    status = setFloat(dropout_rate, value);
-    throw_status(status);
-    break;
-  default:
-    LayerImpl::setProperty(type_str, value);
-    break;
-  }
+  auto remain_props = loadProperties(values, lstm_props);
+  LayerImpl::setProperty(remain_props);
 }
 
 void LSTMLayer::exportTo(Exporter &exporter,
                          const ExportMethods &method) const {
   LayerImpl::exportTo(exporter, method);
-  exporter.saveResult(props, method, this);
+  exporter.saveResult(lstm_props, method, this);
 }
 
 void LSTMLayer::forwarding(RunLayerContext &context, bool training) {
-  auto unit = std::get<props::Unit>(props).get();
+  auto unit = std::get<props::Unit>(lstm_props).get();
+  bool return_sequences = std::get<props::ReturnSequences>(lstm_props);
+  float dropout_rate = std::get<props::DropOutRate>(lstm_props);
+
   Tensor &weight_xh = context.getWeight(wt_idx[LSTMParams::weight_xh]);
   Tensor &weight_hh = context.getWeight(wt_idx[LSTMParams::weight_hh]);
   Tensor &bias_h = context.getWeight(wt_idx[LSTMParams::bias_h]);
@@ -282,7 +250,10 @@ void LSTMLayer::calcDerivative(RunLayerContext &context) {
 }
 
 void LSTMLayer::calcGradient(RunLayerContext &context) {
-  auto unit = std::get<props::Unit>(props).get();
+  auto unit = std::get<props::Unit>(lstm_props).get();
+  bool return_sequences = std::get<props::ReturnSequences>(lstm_props);
+  float dropout_rate = std::get<props::DropOutRate>(lstm_props);
+
   Tensor &djdw_x = context.getWeightGrad(wt_idx[LSTMParams::weight_xh]);
   Tensor &djdw_h = context.getWeightGrad(wt_idx[LSTMParams::weight_hh]);
   Tensor &djdb_h = context.getWeightGrad(wt_idx[LSTMParams::bias_h]);

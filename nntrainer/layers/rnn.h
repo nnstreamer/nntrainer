@@ -30,17 +30,7 @@ public:
   /**
    * @brief     Constructor of RNNLayer
    */
-  RNNLayer(
-    ActivationType hidden_state_activation_type_ = ActivationType::ACT_NONE,
-    bool ret_sequence = false, float dropout = 0.0) :
-    LayerImpl(),
-    props(props::Unit()),
-    wt_idx({0}),
-    hidden_state_activation_type(hidden_state_activation_type_),
-    acti_func(hidden_state_activation_type, true),
-    return_sequences(ret_sequence),
-    dropout_rate(dropout),
-    epsilon(1e-3) {}
+  RNNLayer();
 
   /**
    * @brief     Destructor of RNNLayer
@@ -103,14 +93,17 @@ public:
   inline static const std::string type = "rnn";
 
 private:
-  std::tuple<props::Unit>
-    props; /**< rnn layer properties : unit - number of output neurons */
-  std::array<unsigned int, 5> wt_idx; /**< indices of the weights */
-
   /**
-   * @brief     activation type for recurrent : default is tanh
-   */
-  ActivationType hidden_state_activation_type;
+   * Unit: number of output neurons
+   * HiddenStateActivation: activation type for hidden state. default is tanh
+   * ReturnSequence: option for return sequence
+   * DropOutRate: dropout rate
+   *
+   * */
+  std::tuple<props::Unit, props::HiddenStateActivation, props::ReturnSequences,
+             props::DropOutRate>
+    rnn_props;
+  std::array<unsigned int, 5> wt_idx; /**< indices of the weights */
 
   /**
    * @brief     activation function for h_t : default is tanh
@@ -118,29 +111,9 @@ private:
   ActiFunc acti_func;
 
   /**
-   * @brief     opiont for return sequence
-   */
-  bool return_sequences;
-
-  /**
-   * @brief     drop out rate
-   */
-  float dropout_rate;
-
-  /**
    * @brief     to pretect overflow
    */
   float epsilon;
-
-  /**
-   * @brief setProperty by type and value separated
-   * @param[in] type property type to be passed
-   * @param[in] value value to be passed
-   * @exception exception::not_supported     when property type is not valid for
-   * the particular layer
-   * @exception std::invalid_argument invalid argument
-   */
-  void setProperty(const std::string &type, const std::string &value);
 };
 } // namespace nntrainer
 

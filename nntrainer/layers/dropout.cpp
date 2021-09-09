@@ -34,7 +34,7 @@ void DropOutLayer::finalize(InitLayerContext &context) {
 }
 
 void DropOutLayer::forwarding(RunLayerContext &context, bool training) {
-  auto &rate_ = std::get<props::DropOutSpec>(dropout_rate).get();
+  auto &rate_ = std::get<props::DropOutRate>(dropout_rate).get();
 
   // Assume it is in-place calculation. It means input and output share mem
   // buffer. So if the training is false, the output is the same with input. In
@@ -57,7 +57,7 @@ void DropOutLayer::forwarding(RunLayerContext &context, bool training) {
 
 void DropOutLayer::calcDerivative(RunLayerContext &context) {
   // Assume it is in-place calculation
-  auto &rate_ = std::get<props::DropOutSpec>(dropout_rate).get();
+  auto &rate_ = std::get<props::DropOutRate>(dropout_rate).get();
   if (rate_ > epsilon) {
     for (unsigned int i = 0; i < context.getNumInputs(); ++i) {
       Tensor &derivative_ = context.getIncomingDerivative(i);
