@@ -32,7 +32,7 @@ public:
    */
   DropOutLayer(float dropout = 0.0) :
     Layer(),
-    dropout_rate(props::DropOutSpec(dropout)),
+    dropout_rate(props::DropOutRate(dropout)),
     epsilon(1e-3) {}
 
   /**
@@ -99,7 +99,7 @@ public:
   inline static const std::string type = "dropout";
 
 private:
-  std::tuple<props::DropOutSpec> dropout_rate;
+  std::tuple<props::DropOutRate> dropout_rate;
   std::vector<unsigned int> mask_idx;
   float epsilon;
 };

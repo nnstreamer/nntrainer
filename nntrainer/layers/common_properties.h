@@ -379,22 +379,22 @@ public:
 };
 
 /**
- * @brief DropOutSpec property, this defines drop out specification of layer
+ * @brief DropOutRate property, this defines drop out specification of layer
  *
  */
-class DropOutSpec : public nntrainer::Property<float> {
+class DropOutRate : public nntrainer::Property<float> {
 
 public:
   /**
-   * @brief Construct a new DropOut object with a default value 0.0
+   * @brief Construct a new DropOutRate object with a default value 0.0
    *
    */
-  DropOutSpec(float value = 0.0) : nntrainer::Property<float>(value) {}
+  DropOutRate(float value = 0.0) : nntrainer::Property<float>(value) {}
   static constexpr const char *key = "dropout"; /**< unique key to access */
   using prop_tag = float_prop_tag;              /**< property type */
 
   /**
-   * @brief DropOutSpec validator
+   * @brief DropOutRate validator
    *
    * @param v float to validate
    * @retval true if it is greater or equal than 0.0
@@ -470,6 +470,22 @@ private:
 };
 
 /**
+ * @brief return sequence property, used to check
+ * whether return only the last output. Return last output if true.
+ *
+ */
+class ReturnSequences : public nntrainer::Property<bool> {
+public:
+  /**
+   * @brief Construct a new ReturnSequences object
+   *
+   */
+  ReturnSequences(bool value = false);
+  static constexpr const char *key = "return_sequences";
+  using prop_tag = bool_prop_tag;
+};
+
+/**
  * @brief Number of class
  * @todo deprecate this
  */
@@ -506,6 +522,40 @@ class Activation final : public EnumProperty<ActivationTypeInfo> {
 public:
   using prop_tag = enum_class_prop_tag;
   static constexpr const char *key = "activation";
+};
+
+/**
+ * @brief HiddenStateActivation Enumeration Information
+ *
+ */
+class HiddenStateActivation final : public EnumProperty<ActivationTypeInfo> {
+public:
+  /**
+   * @brief Construct a new HiddenStateActivation object with default value
+   * ActivationTypeInfo::Enum::ACT_NONE
+   *
+   */
+  HiddenStateActivation(
+    ActivationTypeInfo::Enum value = ActivationTypeInfo::Enum::ACT_NONE);
+  using prop_tag = enum_class_prop_tag;
+  static constexpr const char *key = "hidden_state_activation";
+};
+
+/**
+ * @brief RecurrentActivation Enumeration Information
+ *
+ */
+class RecurrentActivation final : public EnumProperty<ActivationTypeInfo> {
+public:
+  /**
+   * @brief Construct a new RecurrentActivation object with default value
+   * ActivationTypeInfo::Enum::ACT_NONE
+   *
+   */
+  RecurrentActivation(
+    ActivationTypeInfo::Enum value = ActivationTypeInfo::Enum::ACT_NONE);
+  using prop_tag = enum_class_prop_tag;
+  static constexpr const char *key = "recurrent_activation";
 };
 
 /**

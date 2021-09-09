@@ -32,8 +32,20 @@ static constexpr size_t SINGLE_INOUT_IDX = 0;
 //  : [1, 1, 1, unit (hidden_size)]
 enum RNNParams { weight_xh, weight_hh, bias_h, hidden_state, dropout_mask };
 
+RNNLayer::RNNLayer() :
+  LayerImpl(),
+  rnn_props(props::Unit(), props::HiddenStateActivation(),
+            props::ReturnSequences(), props::DropOutRate()),
+  wt_idx({0}),
+  acti_func(ActivationType::ACT_NONE, true),
+  epsilon(1e-3) {}
+
 void RNNLayer::finalize(InitLayerContext &context) {
-  auto unit = std::get<props::Unit>(props).get();
+  auto unit = std::get<props::Unit>(rnn_props).get();
+  auto &hidden_state_activation_type =
+    std::get<props::HiddenStateActivation>(rnn_props);
+  bool return_sequences = std::get<props::ReturnSequences>(rnn_props);
+  float dropout_rate = std::get<props::DropOutRate>(rnn_props);
 
   if (context.getNumInputs() != 1) {
     throw std::invalid_argument("RNN layer takes only one input");
@@ -93,9 +105,9 @@ void RNNLayer::finalize(InitLayerContext &context) {
     context.requestTensor(d, context.getName() + ":hidden_state",
                           Tensor::Initializer::NONE, true, ITERATION_LIFESPAN);
 
-  if (hidden_state_activation_type == ActivationType::ACT_NONE) {
-    hidden_state_activation_type = ActivationType::ACT_TANH;
-    acti_func.setActiFunc(hidden_state_activation_type);
+  if (hidden_state_activation_type.get() == ActivationType::ACT_NONE) {
+    hidden_state_activation_type.set(ActivationType::ACT_TANH);
+    acti_func.setActiFunc(hidden_state_activation_type.get());
   }
 
   if (!acti_func.supportInPlace())
@@ -104,62 +116,19 @@ void RNNLayer::finalize(InitLayerContext &context) {
 }
 
 void RNNLayer::setProperty(const std::vector<std::string> &values) {
-  /// @todo: deprecate this in favor of loadProperties
-  auto remain_props = loadProperties(values, props);
-  for (unsigned int i = 0; i < remain_props.size(); ++i) {
-    std::string key;
-    std::string value;
-    std::stringstream ss;
-
-    if (getKeyValue(remain_props[i], key, value) != ML_ERROR_NONE) {
-      throw std::invalid_argument("Error parsing the property: " +
-                                  remain_props[i]);
-    }
-
-    if (value.empty()) {
-      ss << "value is empty: key: " << key << ", value: " << value;
-      throw std::invalid_argument(ss.str());
-    }
-
-    /// @note this calls derived setProperty if available
-    setProperty(key, value);
-  }
-}
-
-void RNNLayer::setProperty(const std::string &type_str,
-                           const std::string &value) {
-  using PropertyType = nntrainer::Layer::PropertyType;
-  int status = ML_ERROR_NONE;
-  nntrainer::Layer::PropertyType type =
-    static_cast<nntrainer::Layer::PropertyType>(parseLayerProperty(type_str));
-
-  // TODO : Add return_state property & api to get the hidden input
-  switch (type) {
-  case PropertyType::hidden_state_activation: {
-    ActivationType acti_type = (ActivationType)parseType(value, TOKEN_ACTI);
-    hidden_state_activation_type = acti_type;
-    acti_func.setActiFunc(acti_type);
-  } break;
-  case PropertyType::return_sequences: {
-    status = setBoolean(return_sequences, value);
-    throw_status(status);
-  } break;
-  case PropertyType::dropout:
-    status = setFloat(dropout_rate, value);
-    throw_status(status);
-    break;
-  default:
-    LayerImpl::setProperty(type_str, value);
-    break;
-  }
+  auto remain_props = loadProperties(values, rnn_props);
+  LayerImpl::setProperty(remain_props);
 }
 
 void RNNLayer::exportTo(Exporter &exporter, const ExportMethods &method) const {
   LayerImpl::exportTo(exporter, method);
-  exporter.saveResult(props, method, this);
+  exporter.saveResult(rnn_props, method, this);
 }
 
 void RNNLayer::forwarding(RunLayerContext &context, bool training) {
+  bool return_sequences = std::get<props::ReturnSequences>(rnn_props);
+  float dropout_rate = std::get<props::DropOutRate>(rnn_props);
+
   Tensor &weight_xh = context.getWeight(wt_idx[RNNParams::weight_xh]);
   Tensor &weight_hh = context.getWeight(wt_idx[RNNParams::weight_hh]);
   Tensor &bias_h = context.getWeight(wt_idx[RNNParams::bias_h]);
@@ -225,6 +194,9 @@ void RNNLayer::calcDerivative(RunLayerContext &context) {
 }
 
 void RNNLayer::calcGradient(RunLayerContext &context) {
+  bool return_sequences = std::get<props::ReturnSequences>(rnn_props);
+  float dropout_rate = std::get<props::DropOutRate>(rnn_props);
+
   Tensor &djdw_x = context.getWeightGrad(wt_idx[RNNParams::weight_xh]);
   Tensor &djdw_h = context.getWeightGrad(wt_idx[RNNParams::weight_hh]);
   Tensor &djdb_h = context.getWeightGrad(wt_idx[RNNParams::bias_h]);
