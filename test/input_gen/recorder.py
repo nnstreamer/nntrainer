@@ -23,7 +23,7 @@ with warnings.catch_warnings():
 
 from transLayer import attach_trans_layer, MultiOutLayer
 
-__all__ = ["record"]
+__all__ = ["record", "record_single"]
 
 tf.compat.v1.enable_eager_execution()
 # Fix the seeds across frameworks
@@ -61,6 +61,7 @@ def _get_writer(file):
                 item.numpy().tofile(file)
             except AttributeError:
                 pass
+
         return items
 
     return write_fn
@@ -193,8 +194,6 @@ def train_step(model, optimizer, loss_fn, initial_input, label, writer_fn, **kwa
             layer_input = [initial_input]
 
         gradients = tape.gradient(loss, layer.trainable_weights)
-        # if layer.name == 'target':
-            # print(tape.gradient(loss, layer.hi))
         optimizer.apply_gradients(zip(gradients, layer.trainable_weights))
 
         if isinstance(optimizer, tf.keras.optimizers.Adam):
@@ -390,3 +389,41 @@ def record(
             train_step(model, optimizer, loss_fn, initial_input, label, write, **kwargs)
 
         # self.inference_step(initial_input, label, write)
+
+
+##
+# @brief record a single layer
+def record_single(layer, input_shape, file_name):
+    layer = attach_trans_layer(layer)
+    inputs = _rand_like(input_shape)
+
+    with tf.GradientTape(persistent=True) as tape:
+        tape.watch(inputs)
+        outputs = layer(inputs)
+        dy_constant = outputs * 2 # set incoming derivative to 2 instead of 1
+
+    weights = layer.weights.copy()
+    gradients = tape.gradient(dy_constant, layer.trainable_weights)
+    derivatives = tape.gradient(dy_constant, inputs)
+
+    try:
+        gradients = layer.to_nntr_trainable_weights(gradients)
+    except AttributeError:
+        pass
+
+    with open(file_name, "wb") as f:
+        writer = _get_writer(f)
+
+        def write_tensor(*tensors):
+            for tensor in tensors:
+                # print(tensor)
+                writer(tf.size(tensor), tensor)
+
+        ## @todo inputs outputs derivatives can be more than one
+        write_tensor(*weights)
+        write_tensor(inputs)
+        write_tensor(outputs)
+        write_tensor(*gradients)
+        write_tensor(derivatives)
+
+

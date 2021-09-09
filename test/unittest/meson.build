@@ -9,6 +9,7 @@ unzip_target = [
   ['valset.tar.gz', ''],
   ['testset.tar.gz', ''],
   ['unittest_layers.tar.gz', 'unittest_layers'],
+  ['unittest_layers_v2.tar.gz', 'unittest_layers'],
   ['unittest_models.tar.gz', 'unittest_models'],
 ]
 
