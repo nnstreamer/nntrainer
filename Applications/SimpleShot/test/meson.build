@@ -1,4 +1,5 @@
 test_target = [
+  layer_common_test_standalone_files,
   # 'simpleshot_utils_test.cpp',
   # 'simpleshot_centering_test.cpp',
   # 'simpleshot_l2norm_test.cpp',
@@ -13,8 +14,8 @@ exe = executable(
       nntrainer_dep,
       nntrainer_ccapi_dep,
       nntrainer_testutil_dep,
-      nntrainer_layer_common_standalone_tests_dep
       ],
+  include_directories: layer_common_test_inc,
   install: get_option('enable-test'),
   install_dir: application_install_dir
 )

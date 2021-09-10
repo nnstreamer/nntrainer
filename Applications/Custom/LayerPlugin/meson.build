@@ -45,6 +45,7 @@ rnnt_loss_layer_dep = declare_dependency(
 
 if get_option('enable-test')
   test_target = [
+    layer_common_test_standalone_files,
     'layer_plugin_common_test.cpp',
     'layer_plugin_pow_test.cpp',
     'layer_plugin_mae_loss_test.cpp',
@@ -52,20 +53,20 @@ if get_option('enable-test')
   ]
 
   exe = executable(
-  'app_layer_plugin_test', test_target,
-  dependencies: [
-    gtest_main_dep,
-    nntrainer_dep,
-    nntrainer_ccapi_dep,
-    nntrainer_testutil_dep,
-    pow_layer_dep,
-    mae_loss_layer_dep,
-    rnnt_loss_layer_dep,    
-    nntrainer_layer_common_standalone_tests_dep
-  ],
-  install: get_option('enable-test'),
-  install_dir: application_install_dir)
-
+    'app_layer_plugin_test', test_target,
+    dependencies: [
+      gtest_main_dep,
+      nntrainer_dep,
+      nntrainer_ccapi_dep,
+      nntrainer_testutil_dep,
+      pow_layer_dep,
+      mae_loss_layer_dep,
+      rnnt_loss_layer_dep,
+    ],
+    install: get_option('enable-test'),
+    install_dir: application_install_dir,
+    include_directories: layer_common_test_inc
+  )
   testenv = environment()
   testenv.set('NNTRAINER_PATH', meson.current_build_dir())
   test('app_plugin_test', exe, env: testenv)

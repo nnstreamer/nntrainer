@@ -1,4 +1,6 @@
 layer_common_test_inc = include_directories('./')
+layer_common_test_standalone_files = files('layers_standalone_common_tests.cpp')
+layer_common_test_dependent_files = files('layers_dependent_common_tests.cpp')
 
 nntrainer_layer_common_standalone_tests_lib = shared_library(
   'nntrainer_layer_common_standalone_tests',
@@ -15,7 +17,7 @@ nntrainer_layer_common_standalone_tests_dep = declare_dependency(
 nntrainer_layer_common_dependent_tests_lib = shared_library(
   'nntrainer_layer_common_dependent_tests',
   'layers_dependent_common_tests.cpp',
-  dependencies: [nntrainer_dep, gtest_dep, nntrainer_layer_common_standalone_tests_dep], # nntrainer_devel_dep
+  dependencies: [nntrainer_dep, gtest_dep], # nntrainer_devel_dep
   include_directories: layer_common_test_inc
 )
 
@@ -25,6 +27,8 @@ nntrainer_layer_common_dependent_tests_dep = declare_dependency(
   )
 
 test_target = [
+  layer_common_test_dependent_files,
+  layer_common_test_standalone_files,
   'unittest_layers_impl.cpp',
   'unittest_layers_input.cpp',
   'unittest_layers_loss.cpp',

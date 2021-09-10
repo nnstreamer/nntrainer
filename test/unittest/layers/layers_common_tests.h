@@ -17,13 +17,10 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <tuple>
 #include <vector>
 
-#include <gtest/gtest.h>
-
-namespace nntrainer {
-class Layer;
-}
+#include <layer_devel.h>
 
 typedef enum {
   AVAILABLE_FROM_APP_CONTEXT =
@@ -55,19 +52,24 @@ public:
    * @brief Destroy the Layer Semantics object
    *
    */
-  virtual ~LayerSemantics();
+  virtual ~LayerSemantics() {}
 
   /**
    * @brief SetUp test cases here
    *
    */
-  virtual void SetUp();
+  virtual void SetUp() {
+    auto f = std::get<0>(GetParam());
+    layer = std::move(f({}));
+    std::tie(std::ignore, expected_type, valid_properties, options, must_fail) =
+      GetParam();
+  }
 
   /**
    * @brief do here if any memory needs to be released
    *
    */
-  virtual void TearDown();
+  virtual void TearDown() {}
 
 protected:
   std::unique_ptr<nntrainer::Layer> layer;
