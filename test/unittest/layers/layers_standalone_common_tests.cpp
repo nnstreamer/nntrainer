@@ -16,17 +16,6 @@
 
 constexpr unsigned SAMPLE_TRIES = 10;
 
-LayerSemantics::~LayerSemantics() {}
-
-void LayerSemantics::SetUp() {
-  auto f = std::get<0>(GetParam());
-  layer = std::move(f({}));
-  std::tie(std::ignore, expected_type, valid_properties, options, must_fail) =
-    GetParam();
-}
-
-void LayerSemantics::TearDown() {}
-
 TEST_P(LayerSemantics, setProperties_p) {
   /// @todo check if setProperties does not collide with layerNode designated
   /// properties
