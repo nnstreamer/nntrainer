@@ -52,6 +52,14 @@ LSTMLayer::LSTMLayer() :
 // - bias_h ( hidden bias )
 //  : [1, 1, 1, unit (hidden_size) x NUM_GATE] -> f, g, i, o
 void LSTMLayer::finalize(InitLayerContext &context) {
+  auto &weight_regularizer =
+    std::get<props::WeightRegularizer>(*layer_impl_props);
+  auto &weight_regularizer_constant =
+    std::get<props::WeightRegularizerConstant>(*layer_impl_props);
+  auto &weight_initializer =
+    std::get<props::WeightInitializer>(*layer_impl_props);
+  auto &bias_initializer = std::get<props::BiasInitializer>(*layer_impl_props);
+
   auto unit = std::get<props::Unit>(lstm_props).get();
   auto &hidden_state_activation_type =
     std::get<props::HiddenStateActivation>(lstm_props);

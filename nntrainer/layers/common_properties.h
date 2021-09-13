@@ -19,6 +19,7 @@
 
 #include <base_properties.h>
 #include <tensor.h>
+#include <tensor_wrap_specs.h>
 
 namespace nntrainer {
 
@@ -552,6 +553,32 @@ public:
   bool isValid(const unsigned int &v) const override;
 };
 
+/**
+ * @brief WeightRegularizerConstant property, this defines how much regularize
+ * the weight
+ *
+ */
+class WeightRegularizerConstant : public nntrainer::Property<float> {
+
+public:
+  /**
+   * @brief Construct a new WeightRegularizerConstant object
+   *
+   */
+  WeightRegularizerConstant(float value = 1.0f);
+  static constexpr const char *key =
+    "weight_regularizer_constant"; /**< unique key to access */
+  using prop_tag = float_prop_tag; /**< property type */
+
+  /**
+   * @brief check if given value is valid
+   *
+   * @param value value to check
+   * @return bool true if valid
+   */
+  bool isValid(const float &value) const override;
+};
+
 /******** below section is for enumerations ***************/
 /**
  * @brief     Enumeration of activation function type
@@ -627,6 +654,35 @@ struct InitializerInfo {
 };
 
 /**
+ * @brief WeightInitializer Initialization Enumeration Information
+ *
+ */
+class WeightInitializer final : public EnumProperty<InitializerInfo> {
+public:
+  /**
+   * @brief Construct a WeightInitializer object
+   */
+  WeightInitializer(
+    Tensor::Initializer value = Tensor::Initializer::XAVIER_UNIFORM);
+  using prop_tag = enum_class_prop_tag;
+  static constexpr const char *key = "weight_initializer";
+};
+
+/**
+ * @brief BiasInitializer Initialization Enumeration Information
+ *
+ */
+class BiasInitializer final : public EnumProperty<InitializerInfo> {
+public:
+  /**
+   * @brief Construct a BiasInitializer object
+   */
+  BiasInitializer(Tensor::Initializer value = Tensor::Initializer::ZEROS);
+  using prop_tag = enum_class_prop_tag;
+  static constexpr const char *key = "bias_initializer";
+};
+
+/**
  * @brief BNPARAMS_MU_INIT Initialization Enumeration Information
  *
  */
@@ -680,6 +736,41 @@ public:
   BNPARAMS_BETA_INIT(Tensor::Initializer value = Tensor::Initializer::ZEROS);
   using prop_tag = enum_class_prop_tag;
   static constexpr const char *key = "beta_initializer";
+};
+
+/**
+ * @brief     Enumeration of tensor regularization type
+ */
+struct RegularizerInfo {
+  using Enum = nntrainer::WeightRegularizer;
+  static constexpr std::initializer_list<Enum> EnumList = {
+    Enum::L2NORM, Enum::NONE, Enum::UNKNOWN};
+
+  static constexpr const char *EnumStr[] = {"l2norm", "none", "unknown"};
+};
+
+/**
+ * @brief WeightRegularizer Regularization Enumeration Information
+ *
+ */
+class WeightRegularizer final : public EnumProperty<RegularizerInfo> {
+public:
+  /**
+   * @brief Construct a WeightRegularizer object
+   */
+  WeightRegularizer(
+    nntrainer::WeightRegularizer value = nntrainer::WeightRegularizer::NONE);
+  using prop_tag = enum_class_prop_tag;
+  static constexpr const char *key = "weight_regularizer";
+
+  /**
+   * @brief WeightRegularizer validator
+   *
+   * @param value nntrainer::WeightRegularizer to validate
+   * @retval true if value is not nntrainer::WeightRegularizer::UNKNOWN
+   * @retval false if value is nntrainer::WeightRegularizer::UNKNOWN
+   */
+  bool isValid(const nntrainer::WeightRegularizer &value) const override;
 };
 
 /**

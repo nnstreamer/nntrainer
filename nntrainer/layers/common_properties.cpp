@@ -206,6 +206,14 @@ std::array<unsigned int, 4> Padding2D::compute(const TensorDim &input,
 
 std::string ConnectionSpec::NoneType = "";
 
+WeightRegularizerConstant::WeightRegularizerConstant(float value) {
+  set(value);
+}
+
+bool WeightRegularizerConstant::isValid(const float &value) const {
+  return value >= 0.0f;
+}
+
 HiddenStateActivation::HiddenStateActivation(ActivationTypeInfo::Enum value) {
   set(value);
 };
@@ -213,6 +221,10 @@ HiddenStateActivation::HiddenStateActivation(ActivationTypeInfo::Enum value) {
 RecurrentActivation::RecurrentActivation(ActivationTypeInfo::Enum value) {
   set(value);
 };
+
+WeightInitializer::WeightInitializer(Tensor::Initializer value) { set(value); }
+
+BiasInitializer::BiasInitializer(Tensor::Initializer value) { set(value); }
 
 BNPARAMS_MU_INIT::BNPARAMS_MU_INIT(Tensor::Initializer value) { set(value); }
 
@@ -226,6 +238,14 @@ BNPARAMS_BETA_INIT::BNPARAMS_BETA_INIT(Tensor::Initializer value) {
   set(value);
 }
 
+WeightRegularizer::WeightRegularizer(nntrainer::WeightRegularizer value) {
+  set(value);
+}
+
+bool WeightRegularizer::isValid(
+  const nntrainer::WeightRegularizer &value) const {
+  return value != nntrainer::WeightRegularizer::UNKNOWN;
+}
 } // namespace props
 
 static const std::vector<std::pair<char, std::string>>

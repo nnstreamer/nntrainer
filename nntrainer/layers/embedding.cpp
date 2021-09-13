@@ -40,6 +40,13 @@ void EmbeddingLayer::finalize(InitLayerContext &context) {
       "Embedding layer takes only one for channel size");
   }
 
+  auto &weight_regularizer =
+    std::get<props::WeightRegularizer>(*layer_impl_props);
+  auto &weight_regularizer_constant =
+    std::get<props::WeightRegularizerConstant>(*layer_impl_props);
+  auto &weight_initializer =
+    std::get<props::WeightInitializer>(*layer_impl_props);
+
   unsigned int in_dim = std::get<props::InDim>(embedding_props);
   unsigned int out_dim = std::get<props::OutDim>(embedding_props);
 
