@@ -9,6 +9,9 @@
  * @author Jihoon Lee <jhoon.it.lee@samsung.com>
  * @bug No known bugs except for NYI items
  */
+#ifndef __NODE_EXPORTER_H__
+#define __NODE_EXPORTER_H__
+
 #include <memory>
 #include <regex>
 #include <string>
@@ -19,9 +22,6 @@
 #include <base_properties.h>
 #include <nntrainer_error.h>
 #include <util_func.h>
-
-#ifndef __NODE_EXPORTER_H__
-#define __NODE_EXPORTER_H__
 
 namespace nntrainer {
 
@@ -197,7 +197,8 @@ private:
 template <typename PropsType, typename NodeType>
 void Exporter::saveTflResult(const PropsType &props, const NodeType *self) {
   NNTR_THROW_IF(true, nntrainer::exception::not_supported)
-    << "given node cannot be converted to tfnode";
+    << "given node cannot be converted to tfnode, type: "
+    << typeid(self).name();
 }
 
 #ifdef ENABLE_TFLITE_INTERPRETER
@@ -207,6 +208,12 @@ class Unit;
 class Flatten;
 class Distribute;
 class Trainable;
+class InputLayer;
+class InputShape;
+class WeightRegularizer;
+class WeightRegularizerConstant;
+class WeightInitializer;
+class BiasInitializer;
 } // namespace props
 
 class LayerNode;
@@ -216,9 +223,22 @@ class LayerNode;
  */
 template <>
 void Exporter::saveTflResult(
-  const std::tuple<props::Name, props::Flatten, props::Distribute,
-                   props::Trainable> &props,
+  const std::tuple<props::Name, props::Distribute, props::Trainable,
+                   std::vector<props::InputLayer>,
+                   std::vector<props::InputShape>> &props,
   const LayerNode *self);
+
+class LayerImpl;
+
+/**
+ * @copydoc template <typename PropsType, typename NodeType> void
+ * Exporter::saveTflResult(const PropsType &props, const NodeType *self);
+ */
+template <>
+void Exporter::saveTflResult(
+  const std::tuple<props::WeightRegularizer, props::WeightRegularizerConstant,
+                   props::WeightInitializer, props::BiasInitializer> &props,
+  const LayerImpl *self);
 
 class FullyConnectedLayer;
 /**

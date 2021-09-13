@@ -1,6 +1,6 @@
 test_target = [
   'unittest_compiler',
-  # 'unittest_interpreter'
+  'unittest_interpreter'
 ]
 
 foreach target: test_target

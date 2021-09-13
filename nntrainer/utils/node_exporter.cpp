@@ -14,6 +14,7 @@
 #ifdef ENABLE_TFLITE_INTERPRETER
 #include <common_properties.h>
 #include <fc_layer.h>
+#include <node_exporter.h>
 #include <tf_schema_generated.h>
 #include <tflite_opnode.h>
 #endif
@@ -42,6 +43,7 @@ Exporter::getResult<ExportMethods::METHOD_STRINGVECTOR>() noexcept {
 template <>
 std::unique_ptr<TfOpNode>
 Exporter::getResult<ExportMethods::METHOD_TFLITE>() noexcept {
+  tf_node->finalize();
   return std::move(tf_node);
 }
 
@@ -51,43 +53,44 @@ void Exporter::saveTflResult(const std::tuple<> &props,
   createIfNull(tf_node);
 }
 
-static void saveTflWeights(TfOpNode *tf_node, const RunLayerContext &context,
-                           const std::string &transpose_direction = "0:2:1") {
-  for (unsigned int idx = 0; idx < context.getNumWeights(); idx++) {
-    const Tensor &w = context.getWeight(idx);
-    const Tensor &g = context.getWeightGrad(idx);
-    const std::string name = context.getWeightName(idx);
-    std::unique_ptr<Var_Grad> vg = std::make_unique<Var_Grad>(
-      w.getDim(), Tensor::Initializer::NONE, false, false, name);
-    if (w.getDim().rank() > 1) {
-      Tensor w_trans = w.transpose(transpose_direction);
-      vg->initialize(w_trans, g, false);
-    } else {
-      vg->initialize(w, g, false);
-    }
-
-    tf_node->appendInput(std::move(vg), true);
-  }
+template <>
+void Exporter::saveTflResult(
+  const std::tuple<props::Name, props::Distribute, props::Trainable,
+                   std::vector<props::InputLayer>,
+                   std::vector<props::InputShape>> &props,
+  const LayerNode *self) {
+  createIfNull(tf_node);
+  tf_node->setLayerNode(*self);
 }
 
 template <>
 void Exporter::saveTflResult(
-  const std::tuple<props::Name, props::Flatten, props::Distribute,
-                   props::Trainable> &props,
-  const LayerNode *self) {
-  createIfNull(tf_node);
-  tf_node->setInOut(*self);
-  /** TODO: update to use run_context format for set inputs/outputs */
-  // tf_node->setInputs(self->getObject()->getInputRef());
-  // tf_node->setOutputs(self->getObject()->getOutputRef());
-
-  saveTflWeights(tf_node.get(), self->getRunContext(), "0:2:1");
+  const std::tuple<props::WeightRegularizer, props::WeightRegularizerConstant,
+                   props::WeightInitializer, props::BiasInitializer> &props,
+  const LayerImpl *self) { /// layer impl has nothing to serialize so do nothing
 }
 
 template <>
 void Exporter::saveTflResult(const std::tuple<props::Unit> &props,
                              const FullyConnectedLayer *self) {
   createIfNull(tf_node);
+
+  auto weight_transform = [](std::vector<const Tensor *> &weights) {
+    std::vector<Tensor> new_weights;
+    new_weights.reserve(weights.size());
+
+    // std::cerr << "weights! " << weights.size() << ' ' <<
+    // new_weights.capacity() << std::endl; std::transform(weights.begin(),
+    // weights.end(),
+    //                std::back_inserter(new_weights),
+    //                [](const Tensor *t) { return t->clone(); });
+    // std::cerr << "22\n";
+    new_weights.push_back(weights[0]->transpose("0:2:1"));
+    new_weights.push_back(*weights[1]);
+    // std::cerr << "33\n";
+    return new_weights;
+  };
+  tf_node->setWeightTransformFn(weight_transform);
 
   tf_node->setOpType(tflite::BuiltinOperator_FULLY_CONNECTED);
   /// we probably going to need flatbuffer inside exporter regarding this

@@ -9,6 +9,10 @@
  * @author Jihoon Lee <jhoon.it.lee@samsung.com>
  * @bug No known bugs except for NYI items
  */
+
+#ifndef __INI_INTERPRETER_H__
+#define __INI_INTERPRETER_H__
+
 #include <iostream>
 #include <memory>
 #include <string>
@@ -17,9 +21,6 @@
 
 #include <app_context.h>
 #include <interpreter.h>
-
-#ifndef __INI_INTERPRETER_H__
-#define __INI_INTERPRETER_H__
 
 namespace nntrainer {
 

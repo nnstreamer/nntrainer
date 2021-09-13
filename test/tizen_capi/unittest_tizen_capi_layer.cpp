@@ -247,7 +247,6 @@ TEST_P(nntrainerCapiLayerTester, layer_create_and_set_property) {
 
   status = 0;
   for (auto &i : props) {
-    std::cout << i << std::endl;
     int ret = ml_train_layer_set_property(handle, i, NULL);
     if (ret != ML_ERROR_NONE) {
       std::cerr << "setting property failed at: " << i << '\n';

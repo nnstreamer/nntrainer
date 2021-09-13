@@ -93,6 +93,10 @@ Tensor &RunLayerContext::getOutput(unsigned int idx) {
   return outputs[idx]->getVariableRef();
 }
 
+const Tensor &RunLayerContext::getOutput(unsigned int idx) const {
+  return outputs[idx]->getVariableRef();
+}
+
 /**
  * @brief Get the Output Grad tensor object
  *
@@ -136,6 +140,10 @@ Tensor &RunLayerContext::getIncomingDerivative(unsigned int idx) {
  * @return Tensor& Reference to the input grad tensor
  */
 Tensor &RunLayerContext::getInput(unsigned int idx) {
+  return inputs[idx]->getVariableRef();
+}
+
+const Tensor &RunLayerContext::getInput(unsigned int idx) const {
   return inputs[idx]->getVariableRef();
 }
 

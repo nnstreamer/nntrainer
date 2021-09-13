@@ -27,11 +27,6 @@
 #include <node_exporter.h>
 #include <tensor.h>
 #include <tflite_opnode.h>
-#include <var_grad.h>
-#include <weight.h>
-
-#define UNUSED(x) x __attribute__((unused))
-#define WILL(x) ;
 
 static constexpr const char *FUNC_TAG = "[TFLITE INTERPRETER] ";
 
@@ -162,29 +157,24 @@ public:
     buffer_map.addDataWhenNotFound(
       empty_buffer, {0, empty_buffer}); /// this represents empty buffer
 
-    auto update_buffers = [&buffer_map](const std::vector<Tensor> &tensors) {
-      for (auto &t : tensors) {
-        NNTR_THROW_IF(t.empty() || !t.isAllocated(), std::invalid_argument)
-          << FUNC_TAG << "Buffered tensor must be allocated";
-
-        const float *buf = t.getData();
-        buffer_map.addDataWhenNotFound(buf, {t.bytes(), buf});
-      }
-    };
-
-    auto &variable_map = getIndexMap<const Var_Grad *>();
+    auto &variable_map = getIndexMap<const Tensor *>();
     auto update_variables =
-      [&variable_map](const TfOpNode::Variables &variables) {
+      [&variable_map, &buffer_map](const TfOpNode::Variables &variables) {
         for (auto &variable : variables) {
           variable_map.addDataWhenNotFound(variable);
+
+          if (!variable->empty() && variable->isAllocated()) {
+            const float *buf = variable->getData();
+            buffer_map.addDataWhenNotFound(buf, {variable->bytes(), buf});
+          }
         }
       };
 
     for (auto &op_node : nodes) {
       update_opcode(op_node->getOpType());
       update_variables(op_node->getInputs());
+      update_variables(op_node->getWeights());
       update_variables(op_node->getOutputs());
-      update_buffers(op_node->getBuffer());
     }
 
     auto update_model_io_to =
@@ -226,10 +216,11 @@ private:
   float empty_buffer[0]; /**< reserved unintialized tensor points to this
                             buffer */
 
-  std::tuple<BidirectionalIndexMap<const float *, Buffer>,   /**< buffer map */
+  std::tuple<BidirectionalIndexMap<const float *, Buffer>,   /**< buffer map
+                                                              */
              BidirectionalIndexMap<tflite::BuiltinOperator>, /**< opcode map
                                                               */
-             BidirectionalIndexMap<const Var_Grad *>>        /**< tensor map */
+             BidirectionalIndexMap<const Tensor *>>          /**< tensor map */
     maps;
 
   std::vector<int> inputs;
@@ -305,13 +296,13 @@ flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<tflite::Tensor>>>
 buildTensors(const TfOpIdxMap &map, flatbuffers::FlatBufferBuilder &fbb) {
   /// @todo: the actual (suqeezed) tensor dimension must be known before
   /// coming here. For now, it is directly guessed for the fc layer
-  const auto &variables = map.getIndexMap<const Var_Grad *>().getData();
+  const auto &variables = map.getIndexMap<const Tensor *>().getData();
   const auto &buffer_map = map.getIndexMap<const float *, TfOpIdxMap::Buffer>();
 
   std::vector<flatbuffers::Offset<tflite::Tensor>> fb_tensors;
   fb_tensors.reserve(variables.size());
 
-  auto create_tensor = [&fbb, &buffer_map](const Var_Grad *var) {
+  auto create_tensor = [&fbb, &buffer_map](const Tensor *var) {
     auto dim = var->getDim();
     bool need_shape_signature = dim.is_dynamic();
     std::vector<int32_t> eff_dim = dim.getEffectiveDimension();
@@ -323,12 +314,12 @@ buildTensors(const TfOpIdxMap &map, flatbuffers::FlatBufferBuilder &fbb) {
       shape_sig = fbb.CreateVector(dyn_dim);
     }
 
-    auto name = fbb.CreateString(var->getName());
-    auto tensor = var->getVariableRef();
+    /// change this var->getName when tensor have it's own name
+    auto name = fbb.CreateString("nntrainer_converted");
 
     unsigned int buffer_idx = 1;
-    if (!tensor.empty() && tensor.isAllocated()) {
-      buffer_idx = buffer_map.getIndex(var->getVariableRef().getData());
+    if (!var->empty() && var->isAllocated()) {
+      buffer_idx = buffer_map.getIndex(var->getData());
     }
 
     tflite::TensorBuilder builder(fbb);
@@ -354,12 +345,12 @@ buildOperators(const TfOpNodes &nodes, const TfOpIdxMap &map,
 
   /// this lambda maps variables to list of indexes in the map
   auto variables_to_idx_vector = [&map](const TfOpNode::Variables &v) {
-    auto &variable_map = map.getIndexMap<const Var_Grad *>();
+    auto &variable_map = map.getIndexMap<const Tensor *>();
     std::vector<int> idx_vector;
     idx_vector.reserve(v.size());
 
     std::transform(v.begin(), v.end(), std::back_inserter(idx_vector),
-                   [&variable_map](const Var_Grad *variable) {
+                   [&variable_map](const Tensor *variable) {
                      return variable_map.getIndex(variable);
                    });
     return idx_vector;
@@ -371,6 +362,10 @@ buildOperators(const TfOpNodes &nodes, const TfOpIdxMap &map,
 
     auto op_code = index_map.getIndex(node.getOpType());
     auto inputs = variables_to_idx_vector(node.getInputs());
+    auto weights = variables_to_idx_vector(node.getWeights());
+
+    /// weights are part of input in tflite
+    inputs.insert(inputs.end(), weights.begin(), weights.end());
 
     auto outputs = variables_to_idx_vector(node.getOutputs());
 

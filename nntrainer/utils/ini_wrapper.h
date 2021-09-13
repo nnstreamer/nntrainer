@@ -10,6 +10,8 @@
  * @author Jihoon Lee <jhoon.it.lee@samsung.com>
  * @bug No known bugs except for NYI items
  */
+#ifndef __INI_WRAPPER_H__
+#define __INI_WRAPPER_H__
 
 #include <cstring>
 #include <fstream>
@@ -19,9 +21,6 @@
 #include <vector>
 
 #include <node_exporter.h>
-
-#ifndef __INI_WRAPPER_H__
-#define __INI_WRAPPER_H__
 
 namespace nntrainer {
 

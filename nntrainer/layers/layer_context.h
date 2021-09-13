@@ -140,7 +140,7 @@ public:
   unsigned int requestWeight(const TensorDim &dim,
                              const Tensor::Initializer init,
                              const WeightRegularizer reg, const float reg_const,
-                             std::string name, bool trainable = true) {
+                             const std::string &name, bool trainable = true) {
     weights_spec.emplace_back(dim, init, reg, reg_const, trainable, name);
     return weights_spec.size() - 1;
   }
@@ -354,6 +354,14 @@ public:
   Tensor &getOutput(unsigned int idx);
 
   /**
+   * @brief Get the Output tensor object
+   *
+   * @param idx Identifier of the output
+   * @return Tensor& Reference to the output tensor
+   */
+  const Tensor &getOutput(unsigned int idx) const;
+
+  /**
    * @brief Get the Output Grad tensor object
    *
    * @param idx Identifier of the output
@@ -387,6 +395,14 @@ public:
    * @return Tensor& Reference to the input grad tensor
    */
   Tensor &getInput(unsigned int idx);
+
+  /**
+   * @brief Get the Input tensor object
+   *
+   * @param idx Identifier of the input
+   * @return Tensor& Reference to the input grad tensor
+   */
+  const Tensor &getInput(unsigned int idx) const;
 
   /**
    * @brief Get the Input Grad tensor object
@@ -441,14 +457,14 @@ public:
    *
    * @return unsigned int number of output tensors
    */
-  unsigned int getNumOutputs() { return outputs.size(); }
+  unsigned int getNumOutputs() const { return outputs.size(); }
 
   /**
    * @brief Get the number of inputs tensor objects
    *
    * @return unsigned int number of input tensors
    */
-  unsigned int getNumInputs() { return inputs.size(); }
+  unsigned int getNumInputs() const { return inputs.size(); }
 
   /**
    * @brief Get the number of weights tensor objects
