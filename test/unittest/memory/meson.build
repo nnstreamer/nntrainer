@@ -13,14 +13,14 @@ nntrainer_memory_tests_dep = declare_dependency(
   )
 
 test_target = [
+  'memory_planner_validate.cpp',
   'unittest_memory_planner.cpp',
 ]
 
 exe = executable(
   'unittest_memory', test_target,
   dependencies: [
-    nntrainer_test_main_deps,
-    nntrainer_memory_tests_dep
+    nntrainer_test_main_deps
   ],
   install: get_option('enable-test'),
   install_dir: application_install_dir

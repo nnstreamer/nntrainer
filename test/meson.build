@@ -17,16 +17,16 @@ nntrainer_testutil_dep = declare_dependency(
 )
 
 nntrainer_test_deps = [
+  gtest_dep,
   nntrainer_dep,
-  nntrainer_testutil_dep,
-  gtest_dep
+  nntrainer_testutil_dep
 ]
 
 # this is depedency is for the gtest with main included
 nntrainer_test_main_deps = [
+  gtest_main_dep,
   nntrainer_dep,
-  nntrainer_testutil_dep,
-  gtest_main_dep
+  nntrainer_testutil_dep
 ]
 
 if get_option('enable-capi')
