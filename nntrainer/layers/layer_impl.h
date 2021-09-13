@@ -63,22 +63,10 @@ public:
                         const ExportMethods &method) const override;
 
 protected:
-  std::unique_ptr<std::tuple<>> layer_impl_props; /**< layer_impl_props */
-
-  WeightRegularizer weight_regularizer;   /**< weight regularizer */
-  float weight_regularizer_constant;      /**< weight regularizer constant */
-  Tensor::Initializer weight_initializer; /**< initializer for the weights */
-  Tensor::Initializer bias_initializer;   /**< initializer for the bias */
-
-  /**
-   * @brief setProperty by type and value separated
-   * @param[in] type property type to be passed
-   * @param[in] value value to be passed
-   * @exception exception::not_supported     when property type is not valid for
-   * the particular layer
-   * @exception std::invalid_argument invalid argument
-   */
-  virtual void setProperty(const std::string &type, const std::string &value);
+  std::unique_ptr<
+    std::tuple<props::WeightRegularizer, props::WeightRegularizerConstant,
+               props::WeightInitializer, props::BiasInitializer>>
+    layer_impl_props; /**< layer_impl_props */
 };
 
 } // namespace nntrainer

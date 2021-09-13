@@ -337,7 +337,11 @@ TEST(BasicProperty, valid_p) {
 
     auto result = e.getResult<nntrainer::ExportMethods::METHOD_STRINGVECTOR>();
     auto pair1 = std::pair<std::string, std::string>("unit", "1");
-    EXPECT_EQ(result->at(1), pair1);
+    for (unsigned int i = 0; i < (*result).size(); ++i) {
+      if (result->at(i).first == "unit") {
+        EXPECT_EQ(result->at(i), pair1);
+      }
+    }
   }
 
   { /**< load from layer */

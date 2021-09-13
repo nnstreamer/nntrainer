@@ -291,6 +291,14 @@ void Conv2DLayer::finalize(InitLayerContext &context) {
 
   const TensorDim &in_dim = context.getInputDimensions()[0];
 
+  auto &weight_regularizer =
+    std::get<props::WeightRegularizer>(*layer_impl_props);
+  auto &weight_regularizer_constant =
+    std::get<props::WeightRegularizerConstant>(*layer_impl_props);
+  auto &weight_initializer =
+    std::get<props::WeightInitializer>(*layer_impl_props);
+  auto &bias_initializer = std::get<props::BiasInitializer>(*layer_impl_props);
+
   unsigned int filter_size = std::get<props::FilterSize>(conv_props);
   auto &kernel_size =
     std::get<std::array<props::KernelSize, CONV2D_DIM>>(conv_props);
