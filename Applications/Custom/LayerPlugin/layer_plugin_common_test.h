@@ -10,6 +10,8 @@
  * @bug    No known bugs except for NYI items
  *
  */
+#ifndef __LAYER_PLUGIN_COMMON_TEST_H__
+#define __LAYER_PLUGIN_COMMON_TEST_H__
 #include <string>
 #include <tuple>
 
@@ -18,9 +20,6 @@
 /// @todo check if below headers are part of devel header
 #include <app_context.h>
 #include <layer.h>
-
-#ifndef __LAYER_PLUGIN_COMMON_TEST_H__
-#define __LAYER_PLUGIN_COMMON_TEST_H__
 
 static const char *NNTRAINER_PATH = std::getenv("NNTRAINER_PATH");
 

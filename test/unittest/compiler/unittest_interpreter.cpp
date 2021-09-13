@@ -22,16 +22,20 @@
 
 #ifdef ENABLE_TFLITE_INTERPRETER
 #include <tflite_interpreter.h>
+
+#include <tensorflow/contrib/lite/interpreter.h>
+#include <tensorflow/contrib/lite/kernels/register.h>
+#include <tensorflow/contrib/lite/model.h>
 #endif
 
 #include <nntrainer_test_util.h>
 
-using LayerReprentation = std::pair<std::string, std::vector<std::string>>;
+using LayerRepresentation = std::pair<std::string, std::vector<std::string>>;
 
 auto &ac = nntrainer::AppContext::Global();
 
 static std::shared_ptr<nntrainer::GraphRepresentation>
-makeGraph(const std::vector<LayerReprentation> &layer_reps) {
+makeGraph(const std::vector<LayerRepresentation> &layer_reps) {
   auto graph = std::make_shared<nntrainer::GraphRepresentation>();
 
   for (const auto &layer_representation : layer_reps) {
@@ -125,7 +129,7 @@ protected:
  *
  */
 TEST_P(nntrainerInterpreterTest, graphEqual) {
-  std::cerr << "testing " << file_path << '\n';
+  std::cout << "testing " << file_path << '\n';
 
   int status = reference->compile("");
   EXPECT_EQ(status, ML_ERROR_NONE);
@@ -154,7 +158,7 @@ TEST_P(nntrainerInterpreterTest, graphSerializeAfterDeserialize) {
   /// @todo: change this to something like graph::finalize
   int status = g->compile("");
   EXPECT_EQ(status, ML_ERROR_NONE);
-  interpreter->serialize(g, out_file_path);
+  interpreter->serialize(*g, out_file_path);
   auto new_g = interpreter->deserialize(out_file_path);
 
   graphEqual(*g, *new_g);
@@ -162,30 +166,75 @@ TEST_P(nntrainerInterpreterTest, graphSerializeAfterDeserialize) {
   EXPECT_EQ(remove(out_file_path.c_str()), 0) << strerror(errno);
 }
 
-auto fc0 = LayerReprentation("fully_connected",
-                             {"name=fc0", "unit=2", "input_shape=1:1:10"});
-auto fc1 = LayerReprentation("fully_connected", {"name=fc1", "unit=2"});
+auto fc0 = LayerRepresentation("fully_connected",
+                               {"name=fc0", "unit=2", "input_shape=1:1:100"});
+auto fc1 = LayerRepresentation("fully_connected", {"name=fc1", "unit=2"});
 
-auto flatten = LayerReprentation("flatten", {"name=flat"});
+auto flatten = LayerRepresentation("flatten", {"name=flat"});
 
-// #ifdef ENABLE_TFLITE_INTERPRETER
-// TEST(flatbuffer, playground) {
+#ifdef ENABLE_TFLITE_INTERPRETER
+TEST(nntrainerInterpreterTflite, simple_fc) {
 
-//   auto manager = std::make_shared<nntrainer::Manager>();
+  nntrainer::TfliteInterpreter interpreter;
 
-//   nntrainer::TfliteInterpreter interpreter;
-//   auto g = makeGraph({fc0, fc1});
-//   EXPECT_EQ(g->compile(nntrainer::LossType::LOSS_NONE), ML_ERROR_NONE);
-//   EXPECT_EQ(g->initialize(manager), ML_ERROR_NONE);
+  auto fc0_zeroed = LayerRepresentation(
+    "fully_connected", {"name=fc0", "unit=2", "input_shape=1:1:1",
+                        "bias_initializer=ones", "weight_initializer=ones"});
 
-//   manager->initializeWeights();
-//   manager->allocateWeights();
+  auto fc1_zeroed = LayerRepresentation(
+    "fully_connected",
+    {"name=fc1", "unit=2", "bias_initializer=ones", "weight_initializer=ones"});
 
-//   interpreter.serialize(g, "test.tflite");
+  auto g = makeGraph({fc0_zeroed, fc1_zeroed});
+  EXPECT_EQ(g->compile(""), ML_ERROR_NONE);
+  EXPECT_EQ(g->initialize(), ML_ERROR_NONE);
 
-//   manager->deallocateWeights();
-// }
-// #endif
+  g->initializeWeights();
+  g->allocateWeights();
+  interpreter.serialize(*g, "test.tflite");
+  g->deallocateTensors();
+
+  tflite::ops::builtin::BuiltinOpResolver resolver;
+  std::unique_ptr<tflite::Interpreter> tf_interpreter;
+  std::unique_ptr<tflite::FlatBufferModel> model =
+    tflite::FlatBufferModel::BuildFromFile("test.tflite");
+  EXPECT_NE(model, nullptr);
+  tflite::InterpreterBuilder(*model, resolver)(&tf_interpreter);
+  EXPECT_NE(tf_interpreter, nullptr);
+
+  EXPECT_EQ(tf_interpreter->AllocateTensors(), kTfLiteOk);
+
+  nntrainer::Tensor in(nntrainer::TensorDim({1, 1, 1, 1}));
+  in.setValue(2.0f);
+  nntrainer::Tensor out(nntrainer::TensorDim({1, 1, 1, 2}));
+
+  auto in_indices = tf_interpreter->inputs();
+  for (size_t idx = 0; idx < in_indices.size(); idx++) {
+    tf_interpreter->tensor(in_indices[idx])->data.raw =
+      reinterpret_cast<char *>(in.getData());
+  }
+
+  auto out_indices = tf_interpreter->outputs();
+  for (size_t idx = 0; idx < out_indices.size(); idx++) {
+    tf_interpreter->tensor(out_indices[idx])->data.raw =
+      reinterpret_cast<char *>(out.getData());
+  }
+
+  int status = tf_interpreter->Invoke();
+  EXPECT_EQ(status, TfLiteStatus::kTfLiteOk);
+
+  nntrainer::Tensor ans(nntrainer::TensorDim({1, 1, 1, 2}));
+  ans.setValue(7.0f);
+
+  EXPECT_EQ(out, ans);
+
+  if (remove("test.tflite")) {
+    std::cerr << "remove ini "
+              << "test.tflite"
+              << "failed, reason: " << strerror(errno);
+  }
+}
+#endif
 /**
  * @brief make ini test case from given parameter
  */
@@ -199,9 +248,7 @@ mkTc(std::shared_ptr<nntrainer::GraphRepresentation> graph, const char *file,
 // clang-format off
 INSTANTIATE_TEST_CASE_P(nntrainerAutoInterpreterTest, nntrainerInterpreterTest,
                         ::testing::Values(
-  // mkTc(makeGraph({fc0, flatten}), "simple_fc.ini", ini_interpreter),
-  // mkTc(makeGraph({fc0, flatten}), "simple_fc_backbone.ini", ini_interpreter)
-  mkTc(makeGraph({fc0}), "simple_fc.ini", ini_interpreter),
-  mkTc(makeGraph({fc0}), "simple_fc_backbone.ini", ini_interpreter)
+  mkTc(makeGraph({fc0, flatten}), "simple_fc.ini", ini_interpreter),
+  mkTc(makeGraph({fc0, flatten}), "simple_fc_backbone.ini", ini_interpreter)
 ));
 // clang-format on

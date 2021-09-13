@@ -13,15 +13,17 @@
 #ifndef __TFLITE_OPNODE_H__
 #define __TFLITE_OPNODE_H__
 
+#include <functional>
 #include <utility>
 #include <vector>
 
+#include <tensor.h>
 #include <tf_schema_generated.h>
 
-#include <layer_node.h>
-#include <var_grad.h>
-
 namespace nntrainer {
+
+class LayerNode;
+class RunLayerContext;
 /**
  * @brief tensorflow operational node representation. This class contains,
  * information to build operation flatbuffer
@@ -29,61 +31,37 @@ namespace nntrainer {
  */
 class TfOpNode {
 public:
-  using Variables = std::vector<const Var_Grad *>;
+  using Variables = std::vector<const Tensor *>;
+
+  using TransformFn =
+    std::function<std::vector<Tensor>(std::vector<const Tensor *> &)>;
 
   /**
    * @brief Construct a new Tf object
    *
    */
-  TfOpNode() = default;
+  TfOpNode();
 
   /**
-   * @brief Check and set if layer has model in/out
+   * @brief finalize tf op node will be transfored to required variables
+   * in this phase, weights are merged into inputs
    *
-   * @param layer layer to check
    */
-  void setInOut(const LayerNode &layer);
+  void finalize();
 
   /**
-   * @brief Set the Inputs object from layer
+   * @brief Set common informations from layer node
    *
-   * @param inputs_ input to be inserted
+   * @param layer node layer node
    */
-  void setInputs(const std::vector<std::shared_ptr<Var_Grad>> &inputs_);
+  void setLayerNode(const LayerNode &layer);
 
   /**
-   * @brief Set the Outputs object
+   * @brief Set the Weight Transform Fn object
    *
-   * @param outputs_ output to be inserted
+   * @param fn fn will be called before get
    */
-  void setOutputs(const std::vector<std::shared_ptr<Var_Grad>> &outputs_);
-
-  /**
-   * @brief append input to the node with ownership
-   *
-   * @param variable variable to be appended to the input, if it is unique_ptr,
-   * it implies ownership has to be kept in the op node.
-   * @param keep_buffer true if buffer has to be saved to the tflite file
-   */
-  void appendInput(std::unique_ptr<Var_Grad> &&variable,
-                   bool keep_buffer = false);
-
-  /**
-   * @brief append non-owing input to the node
-   *
-   * @param variable variable to be appended
-   * @param keep_buffer true if buffer has to be saved to be tflite file
-   * @throw std::invalid_argument if underlying tensor does not have internal
-   * storage
-   */
-  void appendInput(const Var_Grad *variable, bool keep_buffer = false);
-
-  /**
-   * @brief Set the Weights object
-   *
-   * @param weights_ set weights from the object
-   */
-  void setWeights(const std::vector<Weight> &weights_);
+  void setWeightTransformFn(TransformFn fn);
 
   /**
    * @brief Set the Op Type object
@@ -110,6 +88,20 @@ public:
   Variables &getInputs() { return inputs; }
 
   /**
+   * @brief Get the weights object
+   *
+   * @return const Variables& weights
+   */
+  const Variables &getWeights() const { return weights; }
+
+  /**
+   * @brief Get the weights object
+   *
+   * @return Variables& weights
+   */
+  Variables &getWeights() { return weights; }
+
+  /**
    * @brief Get the Inputs object
    *
    * @return const Variables& inputs
@@ -129,13 +121,6 @@ public:
    * @return const Variables& outputs
    */
   const Variables &getOutputs() const { return outputs; }
-
-  /**
-   * @brief Get the Buffer object
-   *
-   * @return const std::vector<Tensor> buffer
-   */
-  const std::vector<Tensor> getBuffer() const;
 
   /**
    * @brief check if this op node is model input
@@ -174,18 +159,18 @@ private:
   Variables outputs; /**< output variables */
   Variables weights; /**< weight variables */
 
+  TransformFn weight_transform; /**< weight transforms */
+
   bool is_input;  /**< true if given input is input; */
   bool is_output; /**< true if given output is output; */
 
-  tflite::BuiltinOperator op_type;
-
-  std::vector<std::unique_ptr<Var_Grad>>
+  std::vector<Tensor>
     node_owned_variable; /**< when node should be transformed it's own type, it
                           * needs to be owned by someone, so @a TfOpNode owns
-                          * those orphaned var_grad until the instance is
+                          * those orphaned tensors until the instance is
                           * destroyed */
 
-  std::vector<Tensor> buffers; /**< buffers to be recorded */
+  tflite::BuiltinOperator op_type;
 
   /// retrieve this from export_to
   flatbuffers::Offset<void> builtin_ops;
