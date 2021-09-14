@@ -114,8 +114,8 @@ void RNNLayer::finalize(InitLayerContext &context) {
 
   if (hidden_state_activation_type.get() == ActivationType::ACT_NONE) {
     hidden_state_activation_type.set(ActivationType::ACT_TANH);
-    acti_func.setActiFunc(hidden_state_activation_type.get());
   }
+  acti_func.setActiFunc(hidden_state_activation_type.get());
 
   if (!acti_func.supportInPlace())
     throw exception::not_supported(
