@@ -1407,31 +1407,31 @@ INSTANTIATE_TEST_CASE_P(
       mkModelTc(fc_bn_sigmoid_mse, "3:1:1:10", 10, ModelTestOption::ALL),
 
       /**< single conv2d layer test */
-      mkModelTc(conv_1x1, "3:1:1:10", 10, ModelTestOption::COMPARE),
-      mkModelTc(conv_input_matches_kernel, "3:1:1:10", 10, ModelTestOption::COMPARE),
-      mkModelTc(conv_basic, "3:1:1:10", 10, ModelTestOption::COMPARE),
-      mkModelTc(conv_same_padding, "3:1:1:10", 10, ModelTestOption::COMPARE),
-      mkModelTc(conv_multi_stride, "3:1:1:10", 10, ModelTestOption::COMPARE),
-      mkModelTc(conv_uneven_strides, "3:1:1:10", 10, ModelTestOption::COMPARE),
-      mkModelTc(conv_uneven_strides2, "3:1:1:10", 10, ModelTestOption::COMPARE),
-      mkModelTc(conv_uneven_strides3, "3:1:1:10", 10, ModelTestOption::COMPARE),
-      mkModelTc(conv_bn, "3:1:1:10", 10, ModelTestOption::COMPARE),
-      mkModelTc(conv_same_padding_multi_stride, "3:1:1:10", 10, ModelTestOption::COMPARE),
+      mkModelTc(conv_1x1, "3:1:1:10", 10, ModelTestOption::ALL),
+      mkModelTc(conv_input_matches_kernel, "3:1:1:10", 10, ModelTestOption::ALL),
+      mkModelTc(conv_basic, "3:1:1:10", 10, ModelTestOption::ALL),
+      mkModelTc(conv_same_padding, "3:1:1:10", 10, ModelTestOption::ALL),
+      mkModelTc(conv_multi_stride, "3:1:1:10", 10, ModelTestOption::ALL),
+      mkModelTc(conv_uneven_strides, "3:1:1:10", 10, ModelTestOption::ALL),
+      mkModelTc(conv_uneven_strides2, "3:1:1:10", 10, ModelTestOption::ALL),
+      mkModelTc(conv_uneven_strides3, "3:1:1:10", 10, ModelTestOption::ALL),
+      mkModelTc(conv_bn, "3:1:1:10", 10, ModelTestOption::ALL),
+      mkModelTc(conv_same_padding_multi_stride, "3:1:1:10", 10, ModelTestOption::ALL),
       mkModelTc(conv_no_loss, "3:1:1:10", 1, ModelTestOption::MINIMUM),
 
       /**< single pooling layer test */
-      mkModelTc(pooling_max_same_padding, "3:1:1:10", 10, ModelTestOption::COMPARE),
-      mkModelTc(pooling_max_same_padding_multi_stride, "3:1:1:10", 10, ModelTestOption::COMPARE),
-      mkModelTc(pooling_max_valid_padding, "3:1:1:10", 10, ModelTestOption::COMPARE),
-      mkModelTc(pooling_avg_same_padding, "3:1:1:10", 10, ModelTestOption::COMPARE),
-      mkModelTc(pooling_avg_same_padding_multi_stride, "3:1:1:10", 10, ModelTestOption::COMPARE),
-      mkModelTc(pooling_avg_valid_padding, "3:1:1:10", 10, ModelTestOption::COMPARE),
-      mkModelTc(pooling_global_avg, "3:1:1:10", 10, ModelTestOption::COMPARE),
-      mkModelTc(pooling_global_max, "3:1:1:10", 10, ModelTestOption::COMPARE),
+      mkModelTc(pooling_max_same_padding, "3:1:1:10", 10, ModelTestOption::ALL),
+      mkModelTc(pooling_max_same_padding_multi_stride, "3:1:1:10", 10, ModelTestOption::ALL),
+      mkModelTc(pooling_max_valid_padding, "3:1:1:10", 10, ModelTestOption::ALL),
+      mkModelTc(pooling_avg_same_padding, "3:1:1:10", 10, ModelTestOption::ALL),
+      mkModelTc(pooling_avg_same_padding_multi_stride, "3:1:1:10", 10, ModelTestOption::ALL),
+      mkModelTc(pooling_avg_valid_padding, "3:1:1:10", 10, ModelTestOption::ALL),
+      mkModelTc(pooling_global_avg, "3:1:1:10", 10, ModelTestOption::ALL),
+      mkModelTc(pooling_global_max, "3:1:1:10", 10, ModelTestOption::ALL),
 
       /**< conv pool combined tests */
-      mkModelTc(mnist_conv_cross, "3:1:1:10", 10, ModelTestOption::COMPARE),
-      mkModelTc(mnist_conv_cross_one_input, "1:1:1:10", 10, ModelTestOption::COMPARE),
+      mkModelTc(mnist_conv_cross, "3:1:1:10", 10, ModelTestOption::ALL),
+      mkModelTc(mnist_conv_cross_one_input, "1:1:1:10", 10, ModelTestOption::ALL),
 
       /**< augmentation layer */
   #if defined(ENABLE_DATA_AUGMENTATION_OPENCV)
@@ -1440,30 +1440,30 @@ INSTANTIATE_TEST_CASE_P(
       mkModelTc(preprocess_flip_validate, "3:1:1:10", 10, ModelTestOption::MINIMUM),
 
       /**< Addition test */
-      mkModelTc(addition_resnet_like, "3:1:1:10", 10, ModelTestOption::COMPARE),
+      mkModelTc(addition_resnet_like, "3:1:1:10", 10, ModelTestOption::COMPARE), // Todo: Enable option to ALL
 
       /// #1192 time distribution inference bug
       mkModelTc(fc_softmax_mse_distribute, "3:1:5:3", 1, ModelTestOption::MINIMUM),
       mkModelTc(fc_softmax_cross_distribute, "3:1:5:3", 1, ModelTestOption::MINIMUM),
       mkModelTc(fc_sigmoid_cross_distribute, "3:1:5:3", 1, ModelTestOption::MINIMUM),
-      mkModelTc(lstm_basic, "1:1:1:1", 10, ModelTestOption::COMPARE),
-      mkModelTc(lstm_return_sequence, "1:1:2:1", 10, ModelTestOption::COMPARE),
-      mkModelTc(lstm_return_sequence_with_batch, "2:1:2:1", 10, ModelTestOption::COMPARE),
-      mkModelTc(multi_lstm_return_sequence, "1:1:1:1", 10, ModelTestOption::COMPARE),
-      mkModelTc(multi_lstm_return_sequence_with_batch, "2:1:1:1", 10, ModelTestOption::COMPARE),
-      mkModelTc(rnn_basic, "1:1:1:1", 10, ModelTestOption::COMPARE),
-      mkModelTc(rnn_return_sequences, "1:1:2:1", 10, ModelTestOption::COMPARE),
-      mkModelTc(rnn_return_sequence_with_batch, "2:1:2:1", 10, ModelTestOption::COMPARE),
-      mkModelTc(multi_rnn_return_sequence, "1:1:1:1", 10, ModelTestOption::COMPARE),
-      mkModelTc(multi_rnn_return_sequence_with_batch, "2:1:1:1", 10, ModelTestOption::COMPARE),
-      mkModelTc(gru_basic, "1:1:1:1", 10, ModelTestOption::COMPARE),
-      mkModelTc(gru_return_sequence, "1:1:2:1", 10, ModelTestOption::COMPARE),
-      mkModelTc(gru_return_sequence_with_batch, "2:1:2:1", 10, ModelTestOption::COMPARE),
-      mkModelTc(multi_gru_return_sequence, "1:1:1:1", 10, ModelTestOption::COMPARE),
-      mkModelTc(multi_gru_return_sequence_with_batch, "2:1:1:1", 10, ModelTestOption::COMPARE),
+      mkModelTc(lstm_basic, "1:1:1:1", 10, ModelTestOption::ALL),
+      mkModelTc(lstm_return_sequence, "1:1:2:1", 10, ModelTestOption::ALL),
+      mkModelTc(lstm_return_sequence_with_batch, "2:1:2:1", 10, ModelTestOption::ALL),
+      mkModelTc(multi_lstm_return_sequence, "1:1:1:1", 10, ModelTestOption::ALL),
+      mkModelTc(multi_lstm_return_sequence_with_batch, "2:1:1:1", 10, ModelTestOption::ALL),
+      mkModelTc(rnn_basic, "1:1:1:1", 10, ModelTestOption::ALL),
+      mkModelTc(rnn_return_sequences, "1:1:2:1", 10, ModelTestOption::ALL),
+      mkModelTc(rnn_return_sequence_with_batch, "2:1:2:1", 10, ModelTestOption::ALL),
+      mkModelTc(multi_rnn_return_sequence, "1:1:1:1", 10, ModelTestOption::ALL),
+      mkModelTc(multi_rnn_return_sequence_with_batch, "2:1:1:1", 10, ModelTestOption::ALL),
+      mkModelTc(gru_basic, "1:1:1:1", 10, ModelTestOption::ALL),
+      mkModelTc(gru_return_sequence, "1:1:2:1", 10, ModelTestOption::ALL),
+      mkModelTc(gru_return_sequence_with_batch, "2:1:2:1", 10, ModelTestOption::ALL),
+      mkModelTc(multi_gru_return_sequence, "1:1:1:1", 10, ModelTestOption::ALL),
+      mkModelTc(multi_gru_return_sequence_with_batch, "2:1:1:1", 10, ModelTestOption::ALL),
 
       /**< multi output test */
-      mkModelTc(multiple_output_model, "3:1:1:10", 10, ModelTestOption::COMPARE)
+      mkModelTc(multiple_output_model, "3:1:1:10", 10, ModelTestOption::COMPARE) // Todo: Enable option to ALL
     }
 ), [](const testing::TestParamInfo<nntrainerModelTest::ParamType>& info){
  return std::get<0>(info.param).getName();
