@@ -819,8 +819,8 @@ TEST(nntrainer_capi_nnmodel, train_with_generator_01_p) {
   status = ml_train_model_compile(model, "loss=cross", "batch_size=16", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_train_model_run(model, "epochs=2",
-                              "save_path=capi_tizen_model.bin", NULL);
+  status = ml_train_model_run(
+    model, "epochs=2 | save_path=capi_tizen_model.bin", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
   /** Compare training statistics */

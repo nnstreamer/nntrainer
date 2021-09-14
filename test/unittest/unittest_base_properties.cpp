@@ -349,7 +349,7 @@ TEST(BasicProperty, valid_p) {
       std::make_tuple(NumBanana(), QualityOfBanana(), DimensionOfBanana());
 
     auto v = nntrainer::loadProperties(
-      {"num_banana=2", "quality_banana=thisisgood", "num_banana=42",
+      {"num_banana=2 | quality_banana=thisisgood | num_banana=42",
        "banana_size=2:2:3", "not_used=key"},
       props);
 
