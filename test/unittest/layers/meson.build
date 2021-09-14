@@ -43,14 +43,27 @@ test_target = [
   'unittest_layers_rnn.cpp',
   'unittest_layers_lstm.cpp',
   'unittest_layers_gru.cpp',
-  'unittest_layers_preprocess.cpp',
+  'unittest_layers_preprocess_flip.cpp',
   'unittest_layers_split.cpp',
   'unittest_layers_embedding.cpp',
   'unittest_layers_concat.cpp',
-  'unittest_layers_tflite.cpp',
   'unittest_layers_permute.cpp',
-  'unittest_layers_nnstreamer.cpp',
 ]
+
+if get_option('enable-tflite-backbone')
+  test_target += 'unittest_layers_tflite.cpp'
+endif
+
+if opencv_dep.found()
+  test_target += 'unittest_layers_preprocess_translate.cpp'
+endif
+
+if get_option('enable-nnstreamer-backbone')
+  if get_option('platform') != 'tizen'
+    # ml singleshot api cannot be tested inside tizen because of feature issue
+    test_target += 'unittest_layers_nnstreamer.cpp'
+  endif
+endif
 
 exe = executable(
   'unittest_layers', test_target,

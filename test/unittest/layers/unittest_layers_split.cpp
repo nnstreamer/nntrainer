@@ -16,9 +16,9 @@
 #include <layers_common_tests.h>
 #include <split_layer.h>
 
-auto semantic_split =
-  LayerSemanticsParamType(nntrainer::createLayer<nntrainer::SplitLayer>,
-                          nntrainer::SplitLayer::type, {}, 0, false);
+auto semantic_split = LayerSemanticsParamType(
+  nntrainer::createLayer<nntrainer::SplitLayer>, nntrainer::SplitLayer::type,
+  {"split_dimension=3"}, 0, false);
 
 INSTANTIATE_TEST_CASE_P(Split, LayerSemantics,
                         ::testing::Values(semantic_split));

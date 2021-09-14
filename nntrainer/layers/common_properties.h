@@ -823,6 +823,8 @@ struct FlipDirectionInfo {
  */
 class FlipDirection final : public EnumProperty<FlipDirectionInfo> {
 public:
+  FlipDirection(FlipDirectionInfo::Enum value =
+                  FlipDirectionInfo::Enum::horizontal_and_vertical);
   using prop_tag = enum_class_prop_tag;
   static constexpr const char *key = "flip_direction";
 };

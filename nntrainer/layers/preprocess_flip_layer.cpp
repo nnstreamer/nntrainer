@@ -40,8 +40,8 @@ void PreprocessFlipLayer::setProperty(const std::vector<std::string> &values) {
 }
 
 void PreprocessFlipLayer::forwarding(RunLayerContext &context, bool training) {
-  props::FlipDirection flipdirection =
-    std::get<props::FlipDirection>(preprocess_flip_props);
+  props::FlipDirectionInfo::Enum flipdirection =
+    std::get<props::FlipDirection>(preprocess_flip_props).get();
 
   if (!training) {
     for (unsigned int idx = 0; idx < context.getNumInputs(); idx++) {

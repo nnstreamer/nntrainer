@@ -82,12 +82,12 @@ void PreprocessTranslateLayer::forwarding(RunLayerContext &context,
     return;
   }
 
+  float random_translate =
+    std::get<props::RandomTranslate>(preprocess_translate_props);
   for (unsigned int idx = 0; idx < context.getNumInputs(); idx++) {
     Tensor &hidden_ = context.getOutput(idx);
     Tensor &input_ = context.getInput(idx);
     const TensorDim input_dim = input_.getDim();
-    float random_translate =
-      std::get<props::RandomTranslate>(preprocess_translate_props);
 
     if (random_translate < epsilon) {
       hidden_ = input_;
