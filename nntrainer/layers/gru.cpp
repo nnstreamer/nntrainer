@@ -157,13 +157,13 @@ void GRULayer::finalize(InitLayerContext &context) {
 
   if (hidden_state_activation_type.get() == ActivationType::ACT_NONE) {
     hidden_state_activation_type.set(ActivationType::ACT_TANH);
-    acti_func.setActiFunc(hidden_state_activation_type.get());
   }
+  acti_func.setActiFunc(hidden_state_activation_type.get());
 
   if (recurrent_activation_type.get() == ActivationType::ACT_NONE) {
     recurrent_activation_type.set(ActivationType::ACT_SIGMOID);
-    recurrent_acti_func.setActiFunc(recurrent_activation_type.get());
   }
+  recurrent_acti_func.setActiFunc(recurrent_activation_type.get());
 }
 
 void GRULayer::setProperty(const std::vector<std::string> &values) {
