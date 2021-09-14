@@ -10,6 +10,7 @@
  * @bug No known bugs except for NYI items
  */
 #include <memory>
+#include <regex>
 #include <string>
 #include <tuple>
 #include <utility>
@@ -289,11 +290,17 @@ iterate_prop(Callable &&c, std::tuple<Ts...> &tup) {
 template <typename Tuple>
 std::vector<std::string>
 loadProperties(const std::vector<std::string> &string_vector, Tuple &&props) {
+  std::vector<std::string> string_vector_splited;
+  string_vector_splited.reserve(string_vector.size());
+  for (auto &item : string_vector) {
+    auto splited = split(item, std::regex("\\|"));
+    string_vector_splited.insert(string_vector_splited.end(), splited.begin(),
+                                 splited.end());
+  }
 
   std::vector<std::pair<std::string, std::string>> left;
-  left.reserve(string_vector.size());
-
-  std::transform(string_vector.begin(), string_vector.end(),
+  left.reserve(string_vector_splited.size());
+  std::transform(string_vector_splited.begin(), string_vector_splited.end(),
                  std::back_inserter(left), [](const std::string &property) {
                    std::string key, value;
                    int status = getKeyValue(property, key, value);

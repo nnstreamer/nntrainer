@@ -93,7 +93,7 @@ TEST(nntrainer_capi_nnopt, setOptimizer_02_p) {
   status = ml_train_optimizer_create(&handle, ML_TRAIN_OPTIMIZER_TYPE_ADAM);
   EXPECT_EQ(status, ML_ERROR_NONE);
   status = ml_train_optimizer_set_property(
-    handle, "learning_rate=0.0001", "decay_rate=0.96", "decay_steps=1000",
+    handle, "learning_rate=0.0001 | decay_rate=0.96", "decay_steps=1000",
     "beta1=0.002", "beta2=0.001", "epsilon=1e-7", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
   status = ml_train_optimizer_destroy(handle);

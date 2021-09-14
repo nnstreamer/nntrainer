@@ -70,11 +70,10 @@ TEST(nntrainer_capi_nnlayer, setproperty_01_p) {
   status = ml_train_layer_set_property(handle, "input_shape=1:1:6270", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_train_layer_set_property(handle, "normalization=true", NULL);
+  status = ml_train_layer_set_property(
+    handle, "normalization=true | standardization=true", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_train_layer_set_property(handle, "standardization=true", NULL);
-  EXPECT_EQ(status, ML_ERROR_NONE);
   status = ml_train_layer_destroy(handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
@@ -90,11 +89,10 @@ TEST(nntrainer_capi_nnlayer, setproperty_02_p) {
   status = ml_train_layer_set_property(handle, "unit=10", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_train_layer_set_property(handle, "bias_initializer=zeros", NULL);
+  status = ml_train_layer_set_property(
+    handle, "bias_initializer=zeros | activation=sigmoid", NULL);
   EXPECT_EQ(status, ML_ERROR_NONE);
 
-  status = ml_train_layer_set_property(handle, "activation =sigmoid", NULL);
-  EXPECT_EQ(status, ML_ERROR_NONE);
   status = ml_train_layer_destroy(handle);
   EXPECT_EQ(status, ML_ERROR_NONE);
 }
