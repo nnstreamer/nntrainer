@@ -413,7 +413,9 @@ lcov -t 'NNTrainer Unit Test Coverage' -o unittest.info -c -d . -b %{_builddir}/
     --exclude "*/test/*" \
     --exclude "*/meson*/*" \
     --exclude "*/nntrainer_logger.cpp" \
-    --exclude "*/tf_schema_generated.h"
+    --exclude "*/tf_schema_generated.h" \
+    --exclude "*/nnstreamer_layer.*"
+# nnstreamer layer is untestable here
 
 # Visualize the report
 genhtml -o result unittest.info -t "nntrainer %{version}-%{release} ${VCS}" --ignore-errors source -p ${RPM_BUILD_DIR}

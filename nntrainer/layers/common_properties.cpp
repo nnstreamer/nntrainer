@@ -246,6 +246,8 @@ bool WeightRegularizer::isValid(
   const nntrainer::WeightRegularizer &value) const {
   return value != nntrainer::WeightRegularizer::UNKNOWN;
 }
+
+FlipDirection::FlipDirection(FlipDirectionInfo::Enum value) { set(value); }
 } // namespace props
 
 static const std::vector<std::pair<char, std::string>>
