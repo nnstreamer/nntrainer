@@ -536,7 +536,10 @@ class nntrainerModelTest
                  ModelTestOption /**< Options which test to run */>> {
 
 protected:
-  nntrainerModelTest() : iteration(0), name("") {}
+  nntrainerModelTest() :
+    iteration(0),
+    name(""),
+    options(ModelTestOption::MINIMUM) {}
   virtual void SetUp() {
     auto param = GetParam();
 
