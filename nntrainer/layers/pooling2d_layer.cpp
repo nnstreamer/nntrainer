@@ -53,8 +53,11 @@ void Pooling2DLayer::finalize(InitLayerContext &context) {
 
   if (pooling_type == props::PoolingTypeInfo::Enum::global_max ||
       pooling_type == props::PoolingTypeInfo::Enum::global_average) {
-    NNTR_THROW_IF(!pool_size.empty(), std::invalid_argument)
-      << "[Pooling2D] global_max, global_average does not accept pool size";
+    if (!pool_size.empty()) {
+      ml_logw(
+        "[Pooling2D] global_max, global_average does not accept pool size");
+      pool_size.clear();
+    }
     pool_size.emplace_back(props::PoolSize(in_dim.height()));
     pool_size.emplace_back(props::PoolSize(in_dim.width()));
   }
