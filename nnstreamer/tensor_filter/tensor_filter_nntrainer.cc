@@ -79,6 +79,7 @@ static ml::train::TensorDim to_nntr_tensor_dim(const GstTensorInfo *info) {
 }
 
 NNTrainerInference::NNTrainerInference(const std::string &model_config_) :
+  batch_size(1),
   model_config(model_config_) {
   loadModel();
   model->compile();
