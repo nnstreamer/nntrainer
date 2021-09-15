@@ -69,8 +69,6 @@ exe = executable(
   'unittest_layers', test_target,
   dependencies: [
     nntrainer_test_main_deps,
-    nntrainer_layer_common_standalone_tests_dep,
-    nntrainer_layer_common_dependent_tests_dep
   ],
   install: get_option('enable-test'),
   install_dir: application_install_dir
