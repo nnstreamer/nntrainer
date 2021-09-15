@@ -162,6 +162,8 @@ TEST(BasicProperty, tagCast) {
 }
 
 TEST(BasicProperty, propInfo) {
+  EXPECT_EQ(1, 1); /**< this is to prevent no assert tc from TCM */
+
   { /**< prop_info test */
     using prop_type = nntrainer::prop_info<QualityOfBanana>::prop_type;
     ::testing::StaticAssertTypeEq<prop_type, QualityOfBanana>();
