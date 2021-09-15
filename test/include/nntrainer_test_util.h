@@ -34,7 +34,6 @@
 #include <neuralnet.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
-#include <parse_util.h>
 #include <tensor.h>
 
 /** tolerance is reduced for packaging, but CI runs at full tolerance */

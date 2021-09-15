@@ -24,6 +24,7 @@
 #include <fstream>
 #include <random>
 
+#include <nntrainer_log.h>
 #include <util_func.h>
 
 namespace nntrainer {
@@ -37,8 +38,6 @@ static std::uniform_real_distribution<float> dist(-0.5, 0.5);
 
 unsigned int getSeed() { return 0; }
 
-float random() { return dist(rng); }
-
 float sqrtFloat(float x) { return sqrt(x); };
 
 double sqrtDouble(double x) { return sqrt(x); };
@@ -46,63 +45,6 @@ double sqrtDouble(double x) { return sqrt(x); };
 float logFloat(float x) { return log(x + 1.0e-20); }
 
 float exp_util(float x) { return exp(x); }
-
-// This is 2D zero pad
-// TODO : Optimize for multi dimention padding
-void zero_pad(int batch, Tensor const &in, unsigned int const *padding,
-              Tensor &output) {
-  unsigned int c = in.channel();
-  unsigned int h = in.height();
-  unsigned int w = in.width();
-
-  unsigned int height_p = h + padding[0] * 2;
-  unsigned int width_p = w + padding[1] * 2;
-
-  unsigned int height_p_h = h + padding[0];
-  unsigned int width_p_h = w + padding[1];
-
-  output = Tensor(1, c, height_p, width_p);
-  output.setZero();
-
-  for (unsigned int j = 0; j < c; ++j) {
-    for (unsigned int k = 0; k < padding[0]; ++k) {
-      for (unsigned int l = 0; l < width_p; ++l) {
-        output.setValue(0, j, k, l, 0.0f);
-        output.setValue(0, j, k + height_p_h, l, 0.0f);
-      }
-    }
-
-    for (unsigned int l = 0; l < padding[1]; ++l) {
-      for (unsigned int k = padding[0]; k < h; ++k) {
-        output.setValue(0, j, k, l, 0.0f);
-        output.setValue(0, j, k, l + width_p_h, 0.0f);
-      }
-    }
-  }
-
-  for (unsigned int j = 0; j < c; ++j) {
-    for (unsigned int k = 0; k < h; ++k) {
-      for (unsigned int l = 0; l < w; ++l) {
-        output.setValue(0, j, k + padding[0], l + padding[1],
-                        in.getValue(batch, j, k, l));
-      }
-    }
-  }
-}
-
-// This is strip pad and return original tensor
-void strip_pad(Tensor const &in, unsigned int const *padding, Tensor &output,
-               unsigned int batch) {
-
-  for (unsigned int j = 0; j < in.channel(); ++j) {
-    for (unsigned int k = 0; k < output.height(); ++k) {
-      for (unsigned int l = 0; l < output.width(); ++l) {
-        output.setValue(batch, j, k, l,
-                        in.getValue(0, j, k + padding[0], l + padding[1]));
-      }
-    }
-  }
-}
 
 Tensor rotate_180(Tensor in) {
   Tensor output(in.getDim());
@@ -172,6 +114,85 @@ bool endswith(const std::string &target, const std::string &suffix) {
   }
   size_t spos = target.size() - suffix.size();
   return target.substr(spos) == suffix;
+}
+
+int getKeyValue(const std::string &input_str, std::string &key,
+                std::string &value) {
+  int status = ML_ERROR_NONE;
+  auto input_trimmed = input_str;
+
+  std::vector<std::string> list;
+  static const std::regex words_regex("[^\\s=]+");
+  input_trimmed.erase(
+    std::remove(input_trimmed.begin(), input_trimmed.end(), ' '),
+    input_trimmed.end());
+  auto words_begin = std::sregex_iterator(input_trimmed.begin(),
+                                          input_trimmed.end(), words_regex);
+  auto words_end = std::sregex_iterator();
+  int nwords = std::distance(words_begin, words_end);
+  if (nwords != 2) {
+    ml_loge("Error: input string must be 'key = value' format, %s given",
+            input_trimmed.c_str());
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
+  for (std::sregex_iterator i = words_begin; i != words_end; ++i) {
+    list.push_back((*i).str());
+  }
+
+  key = list[0];
+  value = list[1];
+
+  return status;
+}
+
+int getValues(int n_str, std::string str, int *value) {
+  int status = ML_ERROR_NONE;
+  static const std::regex words_regex("[^\\s.,:;!?]+");
+  str.erase(std::remove(str.begin(), str.end(), ' '), str.end());
+  auto words_begin = std::sregex_iterator(str.begin(), str.end(), words_regex);
+  auto words_end = std::sregex_iterator();
+
+  int num = std::distance(words_begin, words_end);
+  if (num != n_str) {
+    ml_loge("Number of Data is not match");
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+  int cn = 0;
+  for (std::sregex_iterator i = words_begin; i != words_end; ++i) {
+    value[cn] = std::stoi((*i).str());
+    cn++;
+  }
+  return status;
+}
+
+std::vector<std::string> split(const std::string &s, const std::regex &reg) {
+  std::vector<std::string> out;
+  const int NUM_SKIP_CHAR = 3;
+  char char_to_remove[NUM_SKIP_CHAR] = {' ', '[', ']'};
+  std::string str = s;
+  for (unsigned int i = 0; i < NUM_SKIP_CHAR; ++i) {
+    str.erase(std::remove(str.begin(), str.end(), char_to_remove[i]),
+              str.end());
+  }
+  std::regex_token_iterator<std::string::iterator> end;
+  std::regex_token_iterator<std::string::iterator> iter(str.begin(), str.end(),
+                                                        reg, -1);
+
+  while (iter != end) {
+    out.push_back(*iter);
+    ++iter;
+  }
+  return out;
+}
+
+bool istrequal(const std::string &a, const std::string &b) {
+  if (a.size() != b.size())
+    return false;
+
+  return std::equal(a.begin(), a.end(), b.begin(), [](char a_, char b_) {
+    return tolower(a_) == tolower(b_);
+  });
 }
 
 } // namespace nntrainer

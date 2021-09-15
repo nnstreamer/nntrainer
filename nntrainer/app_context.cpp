@@ -46,7 +46,6 @@
 #include <mse_loss_layer.h>
 #include <multiout_layer.h>
 #include <nntrainer_error.h>
-#include <parse_util.h>
 #include <permute_layer.h>
 #include <plugged_layer.h>
 #include <plugged_optimizer.h>

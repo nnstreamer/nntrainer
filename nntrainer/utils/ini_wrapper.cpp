@@ -15,7 +15,6 @@
 #include <regex>
 
 #include <nntrainer_error.h>
-#include <parse_util.h>
 #include <util_func.h>
 
 namespace nntrainer {

@@ -24,7 +24,6 @@
 #include <lazy_tensor.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
-#include <parse_util.h>
 #include <tensor.h>
 #include <util_func.h>
 
