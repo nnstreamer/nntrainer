@@ -158,25 +158,34 @@ bool Padding2D::isValid(const std::string &v) const {
   return false;
 }
 
-std::array<unsigned int, 4> Padding2D::compute(const TensorDim &input,
-                                               const TensorDim &kernel) {
+std::array<unsigned int, 4>
+Padding2D::compute(const TensorDim &input, const TensorDim &kernel,
+                   const std::array<unsigned int, 2> &strides) {
   auto &padding_repr = get(); /// padding representation
+
   if (istrequal(padding_repr, "valid")) {
     return {0, 0, 0, 0};
   }
 
+  /// in the case of same padding, padding is distributed to each side if
+  /// possible. otherwise pad_all_side / 2 is allocated to top | left and rest
+  /// are assigned to the other side
   if (istrequal(padding_repr, "same")) {
     /// @note if we start to consider dilation, this calculation has to tuned
     /// accordingly.
-    auto calculate_padding = [](unsigned input_, unsigned kernel_) {
-      NNTR_THROW_IF(input_ < kernel_, std::invalid_argument)
-        << "input smaller then kernel not supported, input size: " << input_
-        << " kernel size: " << kernel_ << " padding: same\n";
-      return kernel_ - 1;
+
+    auto calculate_padding = [](unsigned input_, unsigned kernel_,
+                                unsigned stride) {
+      /// ceil(input / stride)
+      auto out = (input_ + stride - 1) / stride;
+      auto req_input = (out - 1) * stride + kernel_;
+      return req_input >= input_ ? req_input - input_ : 0;
     };
 
-    auto pad_horizontal = calculate_padding(input.width(), kernel.width());
-    auto pad_vertical = calculate_padding(input.height(), kernel.height());
+    auto pad_horizontal =
+      calculate_padding(input.width(), kernel.width(), strides[0]);
+    auto pad_vertical =
+      calculate_padding(input.height(), kernel.height(), strides[1]);
 
     auto pad_top = pad_vertical / 2;
     auto pad_left = pad_horizontal / 2;

@@ -53,10 +53,7 @@ static void col2im(const Tensor &col_matrix, const TensorDim &kdim,
                    const std::array<props::Stride, CONV2D_DIM> &mstride,
                    const std::array<unsigned, CONV2D_DIM> &dilation,
                    Tensor &image) {
-  unsigned pt = padding[0];
-  unsigned pb = padding[1];
-  unsigned pl = padding[2];
-  unsigned pr = padding[3];
+  auto [pt, pb, pl, pr] = padding;
 
   unsigned k_height = kdim.height();
   unsigned k_width = kdim.width();
@@ -81,8 +78,8 @@ static void col2im(const Tensor &col_matrix, const TensorDim &kdim,
   unsigned im_eff_width = im_width + pl + pr;
   image.setZero();
 
-  int h_stride_end = im_eff_height - eff_k_height - pb;
-  int w_stride_end = im_eff_width - eff_k_width - pr;
+  int h_stride_end = im_eff_height - eff_k_height - pt;
+  int w_stride_end = im_eff_width - eff_k_width - pl;
 
   unsigned col_w = 0;
   for (int hs = -pt; hs <= h_stride_end; hs += hstride) {
@@ -208,10 +205,7 @@ static void im2col(const Tensor &in, const TensorDim &kdim,
   //   }
   */
 
-  unsigned pt = padding[0];
-  unsigned pb = padding[1];
-  unsigned pl = padding[2];
-  unsigned pr = padding[3];
+  auto [pt, pb, pl, pr] = padding;
 
   unsigned int channel = in.channel();
   int in_height = in.height();
@@ -226,14 +220,15 @@ static void im2col(const Tensor &in, const TensorDim &kdim,
   /// effective kernel width considering dilation
   unsigned int eff_k_width = (k_width - 1) * dilation[1] + 1;
 
-  [[maybe_unused]] unsigned int out_height =
-    (height - eff_k_height) / mstride[0] + 1;
+  /// out_height is not used for the optimized loop. But leaving the formula for
+  /// completeness
+  // unsigned int out_height = (height - eff_k_height) / mstride[0] + 1;
   unsigned int out_width = (width - eff_k_width) / mstride[1] + 1;
 
   float *out_data = out.getData();
 
-  int h_stride_end = height - eff_k_height - pb;
-  int w_stride_end = width - eff_k_width - pr;
+  int h_stride_end = height - eff_k_height - pt;
+  int w_stride_end = width - eff_k_width - pl;
 
   /// get a patch, size of kernel
   /// hs is height_strided, ws is width_strided
@@ -308,7 +303,8 @@ void Conv2DLayer::finalize(InitLayerContext &context) {
     TensorDim(filter_size, in_dim.channel(), kernel_size[0], kernel_size[1]);
   TensorDim bias_dim = TensorDim(1, filter_size, 1, 1);
 
-  padding = std::get<props::Padding2D>(conv_props).compute(in_dim, dim);
+  padding = std::get<props::Padding2D>(conv_props)
+              .compute(in_dim, dim, {stride[0], stride[1]});
 
   wt_idx[ConvParams::weight] = context.requestWeight(
     dim, weight_initializer, weight_regularizer, weight_regularizer_constant,
@@ -316,10 +312,6 @@ void Conv2DLayer::finalize(InitLayerContext &context) {
   wt_idx[ConvParams::bias] =
     context.requestWeight(bias_dim, bias_initializer, WeightRegularizer::NONE,
                           1.0f, context.getName() + ":bias", true);
-
-  /// we don't have same padding for now but later, same padding don't apply
-  /// when kernel size is even in current implementation (we need to handle
-  /// assymetric padding)
 
   // this output_dim must be the same with dimension of hidden
   unsigned int eff_in_height = in_dim.height() + padding[0] + padding[1];
