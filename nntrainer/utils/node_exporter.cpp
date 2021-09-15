@@ -35,14 +35,13 @@ Exporter::~Exporter() = default;
 
 template <>
 std::unique_ptr<std::vector<std::pair<std::string, std::string>>>
-Exporter::getResult<ExportMethods::METHOD_STRINGVECTOR>() noexcept {
+Exporter::getResult<ExportMethods::METHOD_STRINGVECTOR>() {
   return std::move(stored_result);
 }
 
 #ifdef ENABLE_TFLITE_INTERPRETER
 template <>
-std::unique_ptr<TfOpNode>
-Exporter::getResult<ExportMethods::METHOD_TFLITE>() noexcept {
+std::unique_ptr<TfOpNode> Exporter::getResult<ExportMethods::METHOD_TFLITE>() {
   tf_node->finalize();
   return std::move(tf_node);
 }

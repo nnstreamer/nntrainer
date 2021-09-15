@@ -275,7 +275,7 @@ int ModelLoader::loadDatasetConfigIni(dictionary *ini, NeuralNetwork &model) {
   NN_RETURN_STATUS();
   status = parse_buffer_section("valid_set", DatasetModeType::MODE_VALID);
   NN_RETURN_STATUS();
-  status = parse_buffer_section("test", DatasetModeType::MODE_TEST);
+  status = parse_buffer_section("test_set", DatasetModeType::MODE_TEST);
   NN_RETURN_STATUS();
 
   return status;

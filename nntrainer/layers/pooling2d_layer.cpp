@@ -159,7 +159,8 @@ void Pooling2DLayer::calcDerivative(RunLayerContext &context) {
   int height = in_dim.height();
   int width = in_dim.width();
 
-  auto [pt, pb, pl, pr] = padding;
+  auto pt = padding[0];
+  auto pl = padding[2];
   unsigned int p_height = pool_size[0];
   unsigned int p_width = pool_size[1];
 
