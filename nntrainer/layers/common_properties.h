@@ -404,10 +404,12 @@ public:
    *
    * @param input input dimension
    * @param kernel kernel dimension
+   * @param stride stride
    * @return std::array<unsigned int, 4> list of unsigned padding
    */
-  std::array<unsigned int, 4> compute(const TensorDim &input,
-                                      const TensorDim &kernel);
+  std::array<unsigned int, 4>
+  compute(const TensorDim &input, const TensorDim &kernel,
+          const std::array<unsigned int, 2> &strides);
 };
 
 /**

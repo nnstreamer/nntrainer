@@ -62,8 +62,9 @@ void Pooling2DLayer::finalize(InitLayerContext &context) {
     pool_size.emplace_back(props::PoolSize(in_dim.width()));
   }
 
-  padding = std::get<props::Padding2D>(pooling2d_props)
-              .compute(in_dim, {pool_size[0], pool_size[1]});
+  padding =
+    std::get<props::Padding2D>(pooling2d_props)
+      .compute(in_dim, {pool_size[0], pool_size[1]}, {stride[0], stride[1]});
 
   auto [pt, pb, pl, pr] = padding;
 
@@ -191,8 +192,8 @@ void Pooling2DLayer::calcDerivative(RunLayerContext &context) {
   } break;
   case props::PoolingTypeInfo::Enum::global_average:
   case props::PoolingTypeInfo::Enum::average: {
-    int heigth_stride_end = height - p_height + pb;
-    int width_stride_end = width - p_width + pr;
+    int heigth_stride_end = height - p_height + pt;
+    int width_stride_end = width - p_width + pl;
     const int *iter = pool_helper.getData<int>();
     for (unsigned int b = 0; b < batch; ++b) {
       for (unsigned int i = 0; i < channel; ++i) {
@@ -388,8 +389,8 @@ void Pooling2DLayer::pooling2d(Tensor &in, bool training, Tensor &output,
 
   unsigned int map_size = in_height * in_width;
 
-  int heigth_stride_end = height - patch_height - pb;
-  int width_stride_end = width - patch_width - pr;
+  int heigth_stride_end = height - patch_height - pt;
+  int width_stride_end = width - patch_width - pl;
   for (unsigned int i = 0; i < channel; ++i) {
     const float *in_data_channel_sliced = in_data + i * map_size;
     for (int j = -pt; j <= heigth_stride_end; j += stride[0]) {
