@@ -20,8 +20,8 @@
 #include <vector>
 
 #include <nntrainer_error.h>
-#include <props_util.h>
 #include <tensor_dim.h>
+#include <util_func.h>
 
 /** base and predefined structures */
 

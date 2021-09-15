@@ -17,7 +17,6 @@
 
 #include <nntrainer_error.h>
 #include <optimizer_devel.h>
-#include <parse_util.h>
 #include <util_func.h>
 
 namespace nntrainer {

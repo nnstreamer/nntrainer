@@ -17,7 +17,7 @@
 
 #include <base_properties.h>
 #include <nntrainer_error.h>
-#include <props_util.h>
+#include <util_func.h>
 
 #ifndef __NODE_EXPORTER_H__
 #define __NODE_EXPORTER_H__

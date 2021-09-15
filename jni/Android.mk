@@ -180,7 +180,6 @@ NNTRAINER_SRCS := $(NNTRAINER_ROOT)/nntrainer/models/neuralnet.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/optimizers/sgd.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/utils/util_func.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/utils/ini_wrapper.cpp \
-                  $(NNTRAINER_ROOT)/nntrainer/utils/parse_util.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/utils/profiler.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/utils/node_exporter.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/utils/base_properties.cpp \

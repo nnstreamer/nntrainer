@@ -1,5 +1,4 @@
 util_sources = [
-  'parse_util.cpp',
   'util_func.cpp',
   'profiler.cpp',
   'ini_wrapper.cpp',
@@ -9,7 +8,6 @@ util_sources = [
 
 util_headers = [
   'base_properties.h',
-  'props_util.h',
   'node_exporter.h'
 ]
 

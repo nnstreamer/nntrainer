@@ -30,7 +30,6 @@
 #include <nntrainer_error.h>
 #include <nntrainer_test_util.h>
 #include <optimizer_factory.h>
-#include <parse_util.h>
 #include <permute_layer.h>
 #include <pooling2d_layer.h>
 #include <preprocess_flip_layer.h>

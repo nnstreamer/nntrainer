@@ -20,7 +20,6 @@
 #include <neuralnet.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
-#include <parse_util.h>
 #include <sgd.h>
 #include <time_dist.h>
 #include <util_func.h>

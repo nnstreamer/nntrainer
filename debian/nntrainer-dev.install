@@ -2,7 +2,6 @@
 /usr/include/nntrainer/nntrainer_error.h
 /usr/include/nntrainer/common_properties.h
 /usr/include/nntrainer/base_properties.h
-/usr/include/nntrainer/props_util.h
 /usr/include/nntrainer/node_exporter.h
 # tensor headers
 /usr/include/nntrainer/tensor.h

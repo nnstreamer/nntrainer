@@ -26,7 +26,6 @@
 #include <nntrainer_log.h>
 #include <nntrainer_logger.h>
 #include <nntrainer_test_util.h>
-#include <parse_util.h>
 #include <util_func.h>
 
 TEST(nntrainer_util_func, sqrtFloat_01_p) {
@@ -100,33 +99,33 @@ TEST(nntrainer_util_func, writeString_n) {
   EXPECT_THROW(nntrainer::writeString(file, str), std::runtime_error);
 }
 
-TEST(nntrainer_parse_util, throw_status_no_error_p) {
+TEST(nntrainer_util_func, throw_status_no_error_p) {
   EXPECT_NO_THROW(nntrainer::throw_status(ML_ERROR_NONE));
 }
 
-TEST(nntrainer_parse_util, throw_status_invalid_argument_n) {
+TEST(nntrainer_util_func, throw_status_invalid_argument_n) {
   EXPECT_THROW(nntrainer::throw_status(ML_ERROR_INVALID_PARAMETER),
                std::invalid_argument);
 }
 
-TEST(nntrainer_parse_util, throw_status_out_of_memory_n) {
+TEST(nntrainer_util_func, throw_status_out_of_memory_n) {
   EXPECT_THROW(nntrainer::throw_status(ML_ERROR_OUT_OF_MEMORY), std::bad_alloc);
 }
 
-TEST(nntrainer_parse_util, throw_status_timed_out_n) {
+TEST(nntrainer_util_func, throw_status_timed_out_n) {
   EXPECT_THROW(nntrainer::throw_status(ML_ERROR_TIMED_OUT), std::runtime_error);
 }
 
-TEST(nntrainer_parse_util, throw_status_permission_denied_n) {
+TEST(nntrainer_util_func, throw_status_permission_denied_n) {
   EXPECT_THROW(nntrainer::throw_status(ML_ERROR_PERMISSION_DENIED),
                std::runtime_error);
 }
 
-TEST(nntrainer_parse_util, throw_status_unknown_error_n) {
+TEST(nntrainer_util_func, throw_status_unknown_error_n) {
   EXPECT_THROW(nntrainer::throw_status(ML_ERROR_UNKNOWN), std::runtime_error);
 }
 
-TEST(nntrainer_parse_util, throw_status_default_n) {
+TEST(nntrainer_util_func, throw_status_default_n) {
   EXPECT_THROW(nntrainer::throw_status(-12345), std::runtime_error);
 }
 

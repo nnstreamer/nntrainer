@@ -18,7 +18,6 @@
 #include <graph_core.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
-#include <parse_util.h>
 
 namespace nntrainer {
 

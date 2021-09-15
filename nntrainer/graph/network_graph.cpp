@@ -27,7 +27,6 @@
 #include <network_graph.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
-#include <parse_util.h>
 #include <profiler.h>
 #include <rnn.h>
 #include <split_layer.h>

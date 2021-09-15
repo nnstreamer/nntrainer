@@ -25,6 +25,7 @@
 #ifdef __cplusplus
 
 #include <cstring>
+#include <regex>
 #include <sstream>
 
 #include <nntrainer_error.h>
@@ -68,11 +69,6 @@ inline void throw_status(int status) {
 unsigned int getSeed();
 
 /**
- * @brief     random function
- */
-float random();
-
-/**
  * @brief     sqrt function for float type
  * @param[in] x float
  */
@@ -97,26 +93,6 @@ float logFloat(float x);
  * @param[in] x float
  */
 float exp_util(float x);
-
-/**
- * @brief     apply padding
- * @param[in] batch batch index
- * @param[in] x input
- * @param[in] padding 2D padding size
- * @param[out] padded output
- */
-void zero_pad(int batch, Tensor const &in, unsigned int const *padding,
-              Tensor &output);
-
-/**
- * @brief     strip padding
- * @param[in] x input
- * @param[in] padding 2D padding size
- * @param[in] output output tensor
- * @param[in] batch batch index
- */
-void strip_pad(Tensor const &in, unsigned int const *padding, Tensor &output,
-               unsigned int batch);
 
 /**
  * @brief     rotate 180 dgree
@@ -223,6 +199,44 @@ T checkedOpenStream(const std::string &path, std::ios_base::openmode mode) {
   return model_file;
 }
 
+/**
+ * @brief     parse string and return key & value
+ * @param[in] input_str input string to split with '='
+ * @param[out] key key
+ * @param[out] value value
+ * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+ */
+int getKeyValue(const std::string &input_str, std::string &key,
+                std::string &value);
+
+/**
+ * @brief     parse string and stored to int
+ * @param[in] n_str number of data
+ * @param[in] str string to parse
+ * @param[in] value int value to stored
+ * @retval #ML_ERROR_NONE Successful.
+ * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
+ */
+int getValues(int n_str, std::string str, int *value);
+
+/**
+ * @brief     split string into vector with delimiter regex
+ * @param[in] str string
+ * @param[in] reg regular expression to use as delimiter
+ * @retval    output string vector
+ */
+std::vector<std::string> split(const std::string &s, const std::regex &reg);
+
+/**
+ * @brief Cast insensitive string comparison
+ *
+ * @param a first string to compare
+ * @param b second string to compare
+ * @retval true if string is case-insensitive equal
+ * @retval false if string is case-insensitive not equal
+ */
+bool istrequal(const std::string &a, const std::string &b);
 } /* namespace nntrainer */
 
 #endif /* __cplusplus */

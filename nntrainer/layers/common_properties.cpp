@@ -13,7 +13,6 @@
 #include <common_properties.h>
 
 #include <nntrainer_error.h>
-#include <parse_util.h>
 #include <tensor_dim.h>
 
 #include <regex>
