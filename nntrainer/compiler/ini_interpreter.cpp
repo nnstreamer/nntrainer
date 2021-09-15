@@ -38,6 +38,9 @@ static constexpr const char *UNKNOWN_STR = "UNKNOWN";
 static constexpr const char *NONE_STR = "NONE";
 static constexpr const char *MODEL_STR = "model";
 static constexpr const char *DATASET_STR = "dataset";
+static constexpr const char *TRAINSET_STR = "train_set";
+static constexpr const char *VALIDSET_STR = "valid_set";
+static constexpr const char *TESTSET_STR = "test_set";
 static constexpr const char *OPTIMIZER_STR = "optimizer";
 
 namespace nntrainer {
@@ -302,6 +305,9 @@ IniGraphInterpreter::deserialize(const std::string &in) {
       std::string sec_name(sec_name_);
 
       if (istrequal(sec_name, MODEL_STR) || istrequal(sec_name, DATASET_STR) ||
+          istrequal(sec_name, TRAINSET_STR) ||
+          istrequal(sec_name, VALIDSET_STR) ||
+          istrequal(sec_name, TESTSET_STR) ||
           istrequal(sec_name, OPTIMIZER_STR)) {
         /// dedicated sections so skip
         continue;

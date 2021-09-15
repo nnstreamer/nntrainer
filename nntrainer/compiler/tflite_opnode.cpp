@@ -17,7 +17,17 @@
 
 namespace nntrainer {
 
-TfOpNode::TfOpNode(){};
+TfOpNode::TfOpNode() :
+  inputs(),
+  outputs(),
+  weights(),
+  weight_transform(nullptr),
+  is_input(false),
+  is_output(false),
+  node_owned_variable(),
+  op_type(tflite::BuiltinOperator_ADD),
+  builtin_ops(),
+  builtin_option_type(tflite::BuiltinOptions_NONE){};
 
 void TfOpNode::setLayerNode(const LayerNode &layer) {
   is_input = layer.getNumInputConnections() == 0;

@@ -160,7 +160,7 @@ public:
    */
   template <ExportMethods methods,
             typename T = typename return_type<methods>::type>
-  std::unique_ptr<T> getResult() noexcept;
+  std::unique_ptr<T> getResult();
 
 private:
   /**

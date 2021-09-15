@@ -333,6 +333,18 @@ void NeuralNetwork::save(const std::string &file_path,
   case ml::train::ModelFormat::MODEL_FORMAT_INI:
     saveModelIni(file_path);
     break;
+
+  case ml::train::ModelFormat::MODEL_FORMAT_INI_WITH_BIN: {
+    auto old_save_path = std::get<props::SavePath>(model_flex_props);
+    auto bin_file_name =
+      file_path.substr(0, file_path.find_last_of('.')) + ".bin";
+
+    std::get<props::SavePath>(model_flex_props).set(bin_file_name);
+    save(file_path, ml::train::ModelFormat::MODEL_FORMAT_INI);
+    save(bin_file_name, ml::train::ModelFormat::MODEL_FORMAT_BIN);
+    std::get<props::SavePath>(model_flex_props) = old_save_path;
+    break;
+  }
   default:
     throw nntrainer::exception::not_supported(
       "saving with given format is not supported yet");
