@@ -75,7 +75,7 @@ public:
   /**
    * @copydoc Layer::supportInPlace()
    */
-  bool supportInPlace() const override { return true; }
+  bool supportInPlace() const override { return false; }
 
   /**
    * @copydoc Layer::exportTo(Exporter &exporter, ExportMethods method)

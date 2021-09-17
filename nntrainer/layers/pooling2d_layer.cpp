@@ -47,6 +47,7 @@ void Pooling2DLayer::finalize(InitLayerContext &context) {
   NNTR_THROW_IF(!(pool_size.empty() || pool_size.size() == 2),
                 std::invalid_argument)
     << "[Pooling2D] the number of pool size should be 0 or 2";
+  /** @todo update default value of pooling stride to be pool size */
   auto &stride =
     std::get<std::array<props::Stride, POOLING2D_DIM>>(pooling2d_props);
   auto &pooling_type = std::get<props::PoolingType>(pooling2d_props).get();
@@ -92,8 +93,8 @@ void Pooling2DLayer::finalize(InitLayerContext &context) {
 
   unsigned int IM = std::numeric_limits<int>::max();
 
-  if (eff_in_height - pb - pool_size[0] > IM ||
-      eff_in_width - pr - pool_size[1] > IM) {
+  if (eff_in_height - pt - pool_size[0] > IM ||
+      eff_in_width - pl - pool_size[1] > IM) {
     throw std::invalid_argument(
       "[Pooling2D] Failed to initialize: Calculated patch end is over int max");
   }
@@ -390,11 +391,11 @@ void Pooling2DLayer::pooling2d(Tensor &in, bool training, Tensor &output,
 
   unsigned int map_size = in_height * in_width;
 
-  int heigth_stride_end = height - patch_height - pt;
+  int height_stride_end = height - patch_height - pt;
   int width_stride_end = width - patch_width - pl;
   for (unsigned int i = 0; i < channel; ++i) {
     const float *in_data_channel_sliced = in_data + i * map_size;
-    for (int j = -pt; j <= heigth_stride_end; j += stride[0]) {
+    for (int j = -pt; j <= height_stride_end; j += stride[0]) {
       for (int k = -pl; k <= width_stride_end; k += stride[1]) {
         float pool_value = pool_fn(in_data_channel_sliced, i, j, k);
         *out_data = pool_value;
