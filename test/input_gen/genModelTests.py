@@ -404,6 +404,90 @@ if __name__ == "__main__":
         # debug=["name", "summary", "output", "initial_weights"],
     )
 
+
+    def resnet18(num_class, input_shape):
+        def block(x, filters, kernel_size, downsample = False):
+            # because the sort order is x -> [b, a] -> c, b0 must out first.
+            b0, a0 = MultiOutLayer(num_output=2)(x)
+            a1 = TL(K.layers.Conv2D(kernel_size=kernel_size,
+                    strides= (1 if not downsample else 2),
+                    filters=filters,
+                    padding="same"))(a0)
+            a2 = TL(K.layers.BatchNormalization())(a1)
+            a3 = TL(K.layers.ReLU())(a2)
+            a4 = TL(K.layers.Conv2D(kernel_size=kernel_size,
+                    strides=1,
+                    filters=filters,
+                    padding="same"))(a3)
+
+            if downsample:
+                b1 = TL(K.layers.Conv2D(kernel_size=1,
+                        strides=2,
+                        filters=filters,
+                        padding="same"))(b0)
+            else:
+                b1 = b0
+            o1 = K.layers.Add()([a4, b1])
+            o2 = TL(K.layers.BatchNormalization())(o1)
+            o3 = K.layers.Activation("relu")(o2)
+
+            if (downsample):
+                ret_array = [a0, a1, a2, a3, a4, b0, b1, o1, o2, o3]
+            else:
+                ret_array = [a0, a1, a2, a3, a4, b0, o1, o2, o3]
+            return ret_array
+            
+
+        # x -> [a, b] -> c
+        x = K.Input(shape=input_shape, name="x")
+        out_nodes = [x]
+        # initial section of resnet
+        conv0 = TL(K.layers.Conv2D(
+                filters=64, kernel_size=3, strides=1, padding="same"))
+        bn0 = TL(K.layers.BatchNormalization())
+        act0 = K.layers.Activation("relu")
+
+        out_nodes.append(conv0(out_nodes[-1]))
+        out_nodes.append(bn0(out_nodes[-1]))
+        out_nodes.append(act0(out_nodes[-1]))
+
+        # Add all the resnet blocks
+        out_nodes.extend(block(out_nodes[-1], 64, 3, False))
+        out_nodes.extend(block(out_nodes[-1], 64, 3, False))
+        out_nodes.extend(block(out_nodes[-1], 128, 3, True))
+        out_nodes.extend(block(out_nodes[-1], 128, 3, False))
+        out_nodes.extend(block(out_nodes[-1], 256, 3, True))
+        out_nodes.extend(block(out_nodes[-1], 256, 3, False))
+        out_nodes.extend(block(out_nodes[-1], 512, 3, True))
+        out_nodes.extend(block(out_nodes[-1], 512, 3, False))
+
+        # add the suffix part
+        pool0 = TL(K.layers.AveragePooling2D(pool_size=4))
+        flat0 = K.layers.Flatten()
+        dense0 = K.layers.Dense(num_class)
+        sm0 = K.layers.Activation("softmax")
+
+        out_nodes.append(pool0(out_nodes[-1]))
+        out_nodes.append(flat0(out_nodes[-1]))
+        out_nodes.append(dense0(out_nodes[-1]))
+        out_nodes.append(sm0(out_nodes[-1]))
+
+        return x, out_nodes
+
+    x, y = resnet18(100, (3,32,32))
+    record(
+        loss_fn_str="cross_softmax",
+        file_name="ResNet18.info",
+        input_shape=(2, 3, 32, 32),
+        label_shape=(2, 100),
+        optimizer=opt.SGD(learning_rate=0.1),
+        iteration=2,
+        inputs=x,
+        outputs=y,
+        record_only_outputs=True
+        # debug=["file_shape_generation", "name"],
+    )
+
     lstm_layer_tc = lambda batch, time, return_sequences: partial(
         record,
         model=[

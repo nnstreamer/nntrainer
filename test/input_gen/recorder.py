@@ -73,7 +73,8 @@ def _rand_like(tensorOrShape, scale=1):
     except AttributeError:
         shape = tensorOrShape
 
-    t = np.random.randint(-10, 10, shape).astype(dtype=np.float32)
+    # for relu based models, range of 0 to x is better than -x to x
+    t = np.random.randint(0, 10, shape).astype(dtype=np.float32)
     return tf.convert_to_tensor(t) * scale
 
 
