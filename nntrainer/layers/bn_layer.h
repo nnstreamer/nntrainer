@@ -108,7 +108,7 @@ public:
   /**
    * @copydoc Layer::supportInPlace()
    */
-  bool supportInPlace() const override { return true; }
+  bool supportInPlace() const override { return false; }
 
   inline static const std::string type = "batch_normalization";
 
