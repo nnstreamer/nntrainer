@@ -66,7 +66,10 @@ void verify(const nntrainer::Tensor &actual, const nntrainer::Tensor &expected,
       std::cout << "\033[1;33mdifference\033[0m " << diff;
       std::cout << "number of data: " << diff.size() << std::endl;
       std::cout << "\033[4;33mMAX DIFF: "
-                << *std::max_element(diff_data, diff_data + diff.size())
+                << *std::max_element(diff_data, diff_data + diff.size(),
+                                     [](auto v1, auto v2) {
+                                       return std::fabs(v1) < std::fabs(v2);
+                                     })
                 << "\033[0m\n";
     }
     std::stringstream ss;
@@ -199,12 +202,19 @@ public:
    *
    * @return LayerType
    */
-  std::string getNodeType() { return node->getType(); }
+  std::string getType() { return node->getType(); }
+
+  /**
+   * @brief get Node type
+   *
+   * @return LayerType
+   */
+  std::string getName() { return node->getName(); }
 
   /**
    * @brief is loss type
    *
-   * @return true if loss type node, else false\
+   * @return true if loss type node, else false
    */
   bool isLossType() { return node->requireLabel(); }
 
@@ -275,8 +285,8 @@ void NodeWatcher::verifyGrad(const std::string &error_msg) {
 
 void NodeWatcher::forward(int iteration, bool verify_forward) {
   std::stringstream ss;
-  ss << "forward failed at " << node->getName() << " at iteration "
-     << iteration;
+  ss << "forward failed at " << node->getName() << ", " << node->getType()
+     << " at iteration " << iteration;
   std::string err_msg = ss.str();
 
   std::vector<nntrainer::Tensor> out;
@@ -284,19 +294,19 @@ void NodeWatcher::forward(int iteration, bool verify_forward) {
     out.push_back(node->getOutput(idx));
   }
 
-  if (verify_forward && getNodeType() != nntrainer::MultiOutLayer::type)
+  if (verify_forward && getType() != nntrainer::MultiOutLayer::type)
     verify(out, expected_output, err_msg + " at output");
 }
 
 void NodeWatcher::backward(int iteration, bool verify_deriv, bool verify_grad) {
 
-  if (getNodeType() == nntrainer::MultiOutLayer::type) {
+  if (getType() == nntrainer::MultiOutLayer::type) {
     return;
   }
 
   std::stringstream ss;
-  ss << "backward failed at " << node->getName() << " at iteration "
-     << iteration;
+  ss << "backward failed at " << node->getName() << ", " << node->getType()
+     << " at iteration " << iteration;
   std::string err_msg = ss.str();
 
   std::vector<nntrainer::Tensor> out;
@@ -510,7 +520,7 @@ GraphWatcher::prepareData(std::ifstream &f,
 
 void GraphWatcher::readIteration(std::ifstream &f) {
   for (auto &i : nodes) {
-    if (i.getNodeType() == nntrainer::MultiOutLayer::type) {
+    if (i.getType() == nntrainer::MultiOutLayer::type) {
       continue;
     }
 
@@ -534,8 +544,7 @@ typedef enum {
   COMPARE = 1 << 0,           /**< Set this to compare the numbers */
   SAVE_AND_LOAD_INI = 1 << 1, /**< Set this to check if saving and constructing
                                  a new model works okay (without weights) */
-
-  MINIMUM = 0,                      /**< Minimum */
+  NO_THROW_RUN = 0, /**< no comparison, only validate execution without throw */
   ALL = COMPARE | SAVE_AND_LOAD_INI /**< Set every option */
 } ModelTestOption;
 
@@ -557,7 +566,7 @@ protected:
   nntrainerModelTest() :
     iteration(0),
     name(""),
-    options(ModelTestOption::MINIMUM) {}
+    options(ModelTestOption::NO_THROW_RUN) {}
   virtual void SetUp() {
     auto param = GetParam();
 
@@ -580,7 +589,9 @@ protected:
   int getIteration() { return iteration; };
   nntrainer::TensorDim getLabelDim() { return label_dim; }
 
-  bool shouldCompare() { return options & ModelTestOption::COMPARE; }
+  bool shouldCompare() {
+    return (options & ModelTestOption::COMPARE) == ModelTestOption::COMPARE;
+  }
   bool shouldSaveLoadIniTest() {
     return options & ModelTestOption::SAVE_AND_LOAD_INI;
   }
@@ -1411,6 +1422,93 @@ INI multiple_output_model(
   }
 );
 
+/**
+ * @brief helper function to make model testcase
+ *
+ * @param nntrainer::TensorDim label dimension
+ * @param int Iteration
+ * @param options options
+ */
+auto mkResNet18Tc(const unsigned int iteration,
+               ModelTestOption options = ModelTestOption::ALL) {
+  unsigned int batch_size = 2;
+  unsigned int num_class = 100;
+  unsigned int count = 0;
+  nntrainer::IniWrapper::Sections layers;
+
+  /** get unique name for a layer */
+  auto getName = [&count]() -> std::string {
+    if (count == 21)
+      std::cout << "mimatch" << std::endl;
+    return "layer" + std::to_string(++count);
+    };
+  auto getPreviousName = [&count]() -> std::string { return "layer" + std::to_string(count); };
+
+  /** add blocks */
+  auto addBlock = [&count, &layers, &getName, &getPreviousName] (
+    unsigned int filters, unsigned int kernel_size, bool downsample) {
+    std::string filter_str = "filters=" + std::to_string(filters);
+    std::string kernel_str = "kernel_size=" + std::to_string(kernel_size) + "," + std::to_string(kernel_size);
+    std::string kernel1_str = "kernel_size=1,1";
+    std::string stride1_str = "stride=1,1";
+    std::string stride2_str = "stride=2,2";
+    std::string padding_str = "padding=same";
+    std::string input_name = getPreviousName();
+    std::string in_layer_str = "input_layers=" + input_name;
+    std::string stride_str = stride1_str;
+    if (downsample)
+      stride_str = stride2_str;
+
+    /** skip connection */
+    std::string b1_name = input_name;
+    if (downsample) {
+      b1_name = getName();
+      layers.push_back(I(b1_name) + conv_base + filter_str +
+      kernel1_str + stride_str + padding_str + in_layer_str);
+    }
+
+    /** main connection */
+    layers.push_back(I(getName()) + conv_base + filter_str +
+    kernel_str + stride_str + padding_str + in_layer_str);
+    layers.push_back(I(getName()) + bn_base);
+    layers.push_back(I(getName()) + relu_base);
+    std::string a1_name = getName();
+    layers.push_back(I(a1_name) + conv_base + filter_str +
+    kernel_str + stride1_str + padding_str);
+
+    /** add the two connections */
+    layers.push_back(I(getName()) + "type=addition" + ("input_layers=" + b1_name + "," + a1_name));
+    layers.push_back(I(getName()) + bn_base);
+    layers.push_back(I(getName()) + relu_base);
+  };
+
+  layers.push_back(nn_base + ("loss=cross | batch_size = " + std::to_string(batch_size)));
+  layers.push_back(sgd_base + "learning_rate = 0.1");
+  /** prefix for resnet model */
+  layers.push_back(I(getName()) + input_base + "input_shape = 3:32:32");
+  layers.push_back(I(getName()) + conv_base + "kernel_size=3,3 | filters=64 | padding=same");
+  layers.push_back(I(getName()) + bn_base);
+  layers.push_back(I(getName()) + relu_base);
+  /** add all the blocks */
+  addBlock(64, 3, false);
+  addBlock(64, 3, false);
+  addBlock(128, 3, true);
+  addBlock(128, 3, false);
+  addBlock(256, 3, true);
+  addBlock(256, 3, false);
+  addBlock(512, 3, true);
+  addBlock(512, 3, false);
+  /** add suffix for resnet model */
+  layers.push_back(I(getName()) + pooling_base + "pooling = average | pool_size=4,4");
+  layers.push_back(I(getName()) + "type=flatten");
+  layers.push_back(I(getName()) + fc_base + "unit=100");
+  layers.push_back(I(getName()) + softmax_base);
+
+  return std::tuple<const nntrainer::IniWrapper, const nntrainer::TensorDim,
+                    const unsigned int, ModelTestOption>(
+    nntrainer::IniWrapper("ResNet18", layers), nntrainer::TensorDim({batch_size, 1,1, num_class}), iteration, options);
+}
+
 INSTANTIATE_TEST_CASE_P(
   nntrainerModelAutoTests, nntrainerModelTest, ::testing::ValuesIn(
     {
@@ -1435,7 +1533,7 @@ INSTANTIATE_TEST_CASE_P(
       mkModelTc(conv_uneven_strides3, "3:1:1:10", 10, ModelTestOption::ALL),
       mkModelTc(conv_bn, "3:1:1:10", 10, ModelTestOption::ALL),
       mkModelTc(conv_same_padding_multi_stride, "3:1:1:10", 10, ModelTestOption::ALL),
-      mkModelTc(conv_no_loss, "3:1:1:10", 1, ModelTestOption::MINIMUM),
+      mkModelTc(conv_no_loss, "3:1:1:10", 1, ModelTestOption::NO_THROW_RUN),
 
       /**< single pooling layer test */
       mkModelTc(pooling_max_same_padding, "3:1:1:10", 10, ModelTestOption::ALL),
@@ -1453,17 +1551,17 @@ INSTANTIATE_TEST_CASE_P(
 
       /**< augmentation layer */
   #if defined(ENABLE_DATA_AUGMENTATION_OPENCV)
-      mkModelTc(preprocess_translate, "3:1:1:10", 10, ModelTestOption::MINIMUM),
+      mkModelTc(preprocess_translate, "3:1:1:10", 10, ModelTestOption::NO_THROW_RUN),
   #endif
-      mkModelTc(preprocess_flip_validate, "3:1:1:10", 10, ModelTestOption::MINIMUM),
+      mkModelTc(preprocess_flip_validate, "3:1:1:10", 10, ModelTestOption::NO_THROW_RUN),
 
       /**< Addition test */
       mkModelTc(addition_resnet_like, "3:1:1:10", 10, ModelTestOption::COMPARE), // Todo: Enable option to ALL
 
       /// #1192 time distribution inference bug
-      mkModelTc(fc_softmax_mse_distribute, "3:1:5:3", 1, ModelTestOption::MINIMUM),
-      mkModelTc(fc_softmax_cross_distribute, "3:1:5:3", 1, ModelTestOption::MINIMUM),
-      mkModelTc(fc_sigmoid_cross_distribute, "3:1:5:3", 1, ModelTestOption::MINIMUM),
+      mkModelTc(fc_softmax_mse_distribute, "3:1:5:3", 1, ModelTestOption::NO_THROW_RUN),
+      mkModelTc(fc_softmax_cross_distribute, "3:1:5:3", 1, ModelTestOption::NO_THROW_RUN),
+      mkModelTc(fc_sigmoid_cross_distribute, "3:1:5:3", 1, ModelTestOption::NO_THROW_RUN),
       mkModelTc(lstm_basic, "1:1:1:1", 10, ModelTestOption::ALL),
       mkModelTc(lstm_return_sequence, "1:1:2:1", 10, ModelTestOption::ALL),
       mkModelTc(lstm_return_sequence_with_batch, "2:1:2:1", 10, ModelTestOption::ALL),
@@ -1482,6 +1580,9 @@ INSTANTIATE_TEST_CASE_P(
 
       /**< multi output test */
       mkModelTc(multiple_output_model, "3:1:1:10", 10, ModelTestOption::COMPARE) // Todo: Enable option to ALL
+      /** resnet model */
+      // this must match training (verify only forwarding output values) for 2 iterations with tolerance 1.2e-4
+      // mkResNet18Tc(2, ModelTestOption::COMPARE)
     }
 ), [](const testing::TestParamInfo<nntrainerModelTest::ParamType>& info){
  return std::get<0>(info.param).getName();
