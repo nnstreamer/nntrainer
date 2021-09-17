@@ -1120,6 +1120,14 @@ private:
     deallocate();
     allocate();
   }
+
+  /**
+   * @brief Merge the given two axis for tensor at second axis inplace
+   *
+   * @param axis1 first axis to merge
+   * @param axis2 second axis to merge
+   */
+  void merge_axis(unsigned int axis1, unsigned int axis2);
 }; // namespace nntrainer
 
 /**
