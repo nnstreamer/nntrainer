@@ -16,6 +16,11 @@ openblas/
 tensorflow-1.13.1
 tensorflow-2.3.0
 
+# data files for applications
+Applications/**/data
+cifar-100-binary*
+Applications/**/*.bin
+
 # CTag
 /tags
 /TAGS
@@ -38,6 +43,9 @@ tensorflow-2.3.0
 *.a
 *.o.d
 
+# log files
+*.log
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -45,6 +53,3 @@ __pycache__/
 
 # flatbuffer compiled header
 *_generated.h
-
-# dataset from prepare_dataset.sh
-cifar-100-binary/
