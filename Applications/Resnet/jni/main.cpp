@@ -85,30 +85,31 @@ std::vector<LayerHandle> resnetBlock(const std::string &block_name,
     return withKey("name", scoped_name(layer_name));
   };
 
-  auto create_conv =
-    [&with_name, filters](const std::string &name, int kernel_size, int stride,
-                          int padding, const std::string &input_layer) {
-      std::vector<std::string> props{
-        with_name(name),
-        withKey("stride", {stride, stride}),
-        withKey("filters", filters),
-        withKey("kernel_size", {kernel_size, kernel_size}),
-        withKey("padding", {padding, padding}),
-        withKey("input_layers", input_layer)};
+  auto create_conv = [&with_name, filters](const std::string &name,
+                                           int kernel_size, int stride,
+                                           const std::string &padding,
+                                           const std::string &input_layer) {
+    std::vector<std::string> props{
+      with_name(name),
+      withKey("stride", {stride, stride}),
+      withKey("filters", filters),
+      withKey("kernel_size", {kernel_size, kernel_size}),
+      withKey("padding", padding),
+      withKey("input_layers", input_layer)};
 
-      return createLayer("conv2d", props);
-    };
+    return createLayer("conv2d", props);
+  };
 
   /** residual path */
-  LayerHandle a1 = create_conv("a1", 3, downsample ? 2 : 1, 1, input_name);
+  LayerHandle a1 = create_conv("a1", 3, downsample ? 2 : 1, "same", input_name);
   LayerHandle a2 = createLayer(
     "batch_normalization", {with_name("a2"), withKey("activation", "relu")});
-  LayerHandle a3 = create_conv("a3", 3, 1, 1, scoped_name("a2"));
+  LayerHandle a3 = create_conv("a3", 3, 1, "same", scoped_name("a2"));
 
   /** skip path */
   LayerHandle b1 = nullptr;
   if (downsample) {
-    b1 = create_conv("b1", 1, 2, 0, input_name);
+    b1 = create_conv("b1", 1, 2, "same", input_name);
   }
 
   const std::string skip_name = b1 ? scoped_name("b1") : input_name;
@@ -138,14 +139,16 @@ std::vector<LayerHandle> createResnet18Graph() {
 
   std::vector<LayerHandle> layers;
 
+  layers.push_back(createLayer(
+    "input", {withKey("name", "input0"), withKey("input_shape", "3:32:32")}));
+
   layers.push_back(
     createLayer("conv2d", {
                             withKey("name", "conv0"),
-                            withKey("input_shape", "3:32:32"),
                             withKey("filters", 64),
                             withKey("kernel_size", {3, 3}),
                             withKey("stride", {1, 1}),
-                            withKey("padding", {1, 1}),
+                            withKey("padding", "same"),
                             withKey("bias_initializer", "zeros"),
                             withKey("weight_initializer", "xavier_uniform"),
                           }));
