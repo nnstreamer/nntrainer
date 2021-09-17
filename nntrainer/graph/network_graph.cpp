@@ -432,9 +432,7 @@ void NetworkGraph::setBatchSize(unsigned int batch_size) {
 sharedConstTensors NetworkGraph::forwarding(bool training) const {
   for (auto iter = cbegin(); iter != cend(); iter++) {
     auto const &ln = *iter;
-    START_PROFILE(ln->event_key);
     ln->forwarding(training);
-    END_PROFILE(ln->event_key);
   }
 
   sharedConstTensors out;

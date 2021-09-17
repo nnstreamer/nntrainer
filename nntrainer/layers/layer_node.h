@@ -539,7 +539,9 @@ public:
   float getLoss() const;
 
 #ifdef PROFILE
-  int event_key;
+  int forward_event_key;
+  int calc_deriv_event_key;
+  int calc_grad_event_key;
 #endif
 
   /**

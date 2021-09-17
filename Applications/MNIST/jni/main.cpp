@@ -42,6 +42,10 @@
 #include <ml-api-common.h>
 #include <model.h>
 
+#ifdef PROFILE
+#include <profiler.h> // disable including this in android as profiler is not exposed yet to devel header
+#endif
+
 #define TRAINING true
 
 #define VALIDATION false
@@ -218,6 +222,11 @@ int main(int argc, char *argv[]) {
     exit(0);
   }
 
+#ifdef PROFILE
+  nntrainer::profile::GenericProfileListener listener(
+    &nntrainer::profile::Profiler::Global());
+#endif
+
   const std::vector<std::string> args(argv + 1, argv + argc);
   std::string config = args[0];
   filename = args[1];
@@ -291,6 +300,10 @@ int main(int argc, char *argv[]) {
     std::cerr << "Error during train " << e.what() << std::endl;
     return 0;
   }
+
+#ifdef PROFILE
+  std::cout << listener;
+#endif
 
 #if defined(APP_VALIDATE)
   try {

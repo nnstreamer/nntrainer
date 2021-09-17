@@ -18,6 +18,7 @@
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
 #include <node_exporter.h>
+#include <profiler.h>
 #include <time_dist.h>
 #include <util_func.h>
 
@@ -25,6 +26,9 @@
 #include <common_properties.h>
 
 namespace nntrainer {
+static constexpr const char *FORWARD_SUFFIX = ":forward";
+static constexpr const char *CALC_DERIV_SUFFIX = ":calcDeriv";
+static constexpr const char *CALC_GRAD_SUFFIX = ":calcGrad";
 
 namespace props {
 
@@ -439,6 +443,17 @@ InitLayerContext LayerNode::finalize(const std::vector<TensorDim> &input_dims) {
     InitLayerContext(actual_input_dims, num_outputs, getName());
 
   layer->finalize(init_context);
+
+#ifdef PROFILE
+  auto profile_name = [this](const char *suffix) {
+    return getName() + suffix + "(" + getType() + ")";
+  };
+#endif
+
+  REGISTER_EVENT(profile_name(FORWARD_SUFFIX), forward_event_key);
+  REGISTER_EVENT(profile_name(CALC_DERIV_SUFFIX), calc_deriv_event_key);
+  REGISTER_EVENT(profile_name(CALC_GRAD_SUFFIX), calc_grad_event_key);
+
   return init_context;
 }
 
@@ -447,18 +462,28 @@ InitLayerContext LayerNode::finalize(const std::vector<TensorDim> &input_dims) {
  */
 void LayerNode::forwarding(bool training) {
   loss->set(run_context->getRegularizationLoss());
+  START_PROFILE(forward_event_key);
   layer->forwarding(*run_context, training);
+  END_PROFILE(forward_event_key);
 }
 
 /**
  * @brief     calc the derivative to be passed to the previous layer
  */
-void LayerNode::calcDerivative() { layer->calcDerivative(*run_context); }
+void LayerNode::calcDerivative() {
+  START_PROFILE(calc_deriv_event_key);
+  layer->calcDerivative(*run_context);
+  END_PROFILE(calc_deriv_event_key);
+}
 
 /**
  * @brief     Calculate the derivative of a layer
  */
-void LayerNode::calcGradient() { layer->calcGradient(*run_context); }
+void LayerNode::calcGradient() {
+  START_PROFILE(calc_grad_event_key);
+  layer->calcGradient(*run_context);
+  END_PROFILE(calc_grad_event_key);
+}
 
 /**
  * @brief Set the batch for the layer
