@@ -123,14 +123,14 @@ const std::string getcwd_() {
 using LayerHandle = std::shared_ptr<ml::train::Layer>;
 
 /**
- * @brief Create a Model with given backbone and varient setup
- *
- * @param backbone either conv4 or resnet50, hardcoded tflite path will be
- * selected
- * @param app_path designated app path to search the backbone file
- * @param variant "one of UN, L2N, CL2N"
- * @return std::unique_ptr<ml::train::Model>
- */
+* @brief find model name by using strcmp
+*
+* @param backbone name
+
+* @return int to identify the backbone
+*/
+
+
 int find_model_name(std::string backbone)
 {
 	
@@ -148,8 +148,19 @@ int find_model_name(std::string backbone)
 }
 
 
-int new_classes;
-int earlier_classes;
+int new_classes; //new classes to be added
+int earlier_classes; //earlier classes present
+
+
+/**
+* @brief Create a Model with given backbone and varient setup
+*
+* @param backbone either conv4 or resnet50, hardcoded tflite path will be
+* selected
+* @param app_path designated app path to search the backbone file
+* @param variant "one of UN, L2N, CL2N"
+* @return std::unique_ptr<ml::train::Model>
+*/
 
 
 std::unique_ptr<ml::train::Model> createModel(const std::string &backbone,
@@ -246,20 +257,31 @@ std::unique_ptr<ml::train::Model> createModel(const std::string &backbone,
 }
 } // namespace simpleshot
 
-/**
- * @brief main runner
- *
- * @return int
- */
 
 
 
+  /**
+  * @brief Check whether file exist or not
+  *
+  * @param file name
+
+  * @return true or false
+  */
 
 
 bool isFileExist(std::string file_name) {
   std::ifstream infile(file_name);
   return infile.good();
 }
+
+
+/**
+* @brief appends label in allLabels.txt file(file that maintains all added classes string labels)
+*
+* @param label path of newly added classes
+
+* @return int whether new classes are added or not
+*/
 
 int append_label(std::string label_path)
 {
@@ -416,6 +438,12 @@ int append_label(std::string label_path)
 		
 }
 
+
+/**
+* @brief main runner
+*
+* @return int
+*/
 
 
 int main(int argc, char **argv) {

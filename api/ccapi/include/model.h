@@ -122,12 +122,19 @@ public:
                     ModelFormat format = ModelFormat::MODEL_FORMAT_BIN) = 0;
 
   /**
-   * @brief     read model and training parameters from file
-   * @todo      deprecate this
-   */
+  * @brief     get centroid feature vector of class
+  * @retval    Tensor Class Object (Centroid feature vector of simpleshot class)
+  */
  
 
   virtual nntrainer::Tensor getCentroids()=0;
+
+  /**
+  * @brief     Predict the class of validation set
+  * @param[in] number of earlier classes present
+  * @param[in] number of total classes after addition of new classes
+  * @param[in] label path of simpleshot classes (Label list of classes)
+  */
 
   virtual void predict(int earlier_classes, int tot_classes, std::string label_path)=0;
   

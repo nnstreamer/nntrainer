@@ -750,6 +750,12 @@ int NeuralNetwork::train_run() {
   return status;
 }
 
+
+/**
+* @brief     get Centroids
+*            get the centroid feature vector of simpleshot classes which is added
+*/
+
 nntrainer::Tensor NeuralNetwork:: getCentroids()
 {
 
@@ -898,6 +904,12 @@ nntrainer::Tensor NeuralNetwork:: getCentroids()
 
   
 }
+
+
+/**
+* @brief     predict
+*   Predict the accuracy of validation set using nearest neighbour with centroid tensors
+*/
 
 void  NeuralNetwork::predict(int earlier_classes, int tot_class, std::string label_path)
 {

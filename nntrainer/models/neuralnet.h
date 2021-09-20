@@ -94,7 +94,7 @@ public:
   using FlatGraphType =
     std::vector<NodeType>; /** topological sorted, iterable 1-D list of nodes */
   using NetworkGraphType = nntrainer::NetworkGraph;
-  nntrainer::Tensor centroid_tensor;
+  nntrainer::Tensor centroid_tensor;  /** Tensor to store the centroid feature vector of all classes*/
 
   /**
    * @brief     Constructor of NeuralNetwork Class
@@ -237,7 +237,20 @@ public:
               ml::train::ModelFormat::MODEL_FORMAT_BIN) override;
 
 
+
+  /**
+  * @brief     get centroid feature vector of class
+  * @retval    Tensor Class Object (Centroid feature vector of simpleshot class)
+  */
+
   nntrainer::Tensor getCentroids();
+
+  /**
+  * @brief     Predict the class of validation set
+  * @param[in] number of earlier classes present
+  * @param[in] number of total classes after addition of new classes
+  * @param[in] label path of simpleshot classes (Label list of classes)
+  */
 
   void predict(int earlier_classes, int tot_classes, std::string label_path);
 
