@@ -22,6 +22,9 @@
 #include <type_traits>
 #include <vector>
 
+#include <tensor.h>
+
+
 #include <nntrainer-api-common.h>
 
 #include <dataset.h>
@@ -118,6 +121,16 @@ public:
   virtual void save(const std::string &file_path,
                     ModelFormat format = ModelFormat::MODEL_FORMAT_BIN) = 0;
 
+  /**
+   * @brief     read model and training parameters from file
+   * @todo      deprecate this
+   */
+ 
+
+  virtual nntrainer::Tensor getCentroids()=0;
+
+  virtual void predict(int earlier_classes, int tot_classes, std::string label_path)=0;
+  
   /**
    * @brief  load model with regard to the format
    * @param file_path file_path to save the model, if full path is not

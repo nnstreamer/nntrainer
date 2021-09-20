@@ -94,6 +94,7 @@ public:
   using FlatGraphType =
     std::vector<NodeType>; /** topological sorted, iterable 1-D list of nodes */
   using NetworkGraphType = nntrainer::NetworkGraph;
+  nntrainer::Tensor centroid_tensor;
 
   /**
    * @brief     Constructor of NeuralNetwork Class
@@ -234,6 +235,11 @@ public:
   void save(const std::string &file_path,
             ml::train::ModelFormat format =
               ml::train::ModelFormat::MODEL_FORMAT_BIN) override;
+
+
+  nntrainer::Tensor getCentroids();
+
+  void predict(int earlier_classes, int tot_classes, std::string label_path);
 
   /**
    * @copydoc Model::load(const std::string &file_path, ml::train::ModelFormat
