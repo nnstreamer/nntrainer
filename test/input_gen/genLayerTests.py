@@ -48,8 +48,13 @@ if __name__ == "__main__":
     record_single(fc, (3, 1, 1, 10), "fc_golden_plain")
     fc = K.layers.Dense(4)
     record_single(fc, (1, 1, 1, 10), "fc_golden_single_batch")
+    bn = K.layers.BatchNormalization()
+    record_single(bn, (2, 4, 2, 3), "bn_golden_channels_training", {"training": True})
+    ## @todo add test for inference
+    record_single(bn, (2, 4, 2, 3), "bn_golden_channels_inference", {"training": False})
+    bn = K.layers.BatchNormalization()
+    record_single(bn, (2, 10), "bn_golden_width_training", {"training": True})
+    record_single(bn, (2, 10), "bn_golden_width_inference", {"training": False})
 
-# inspect_file("fc_golden.nnlayergolden")
-
-
+# inspect_file("bn_golden_width_training.nnlayergolden")
 

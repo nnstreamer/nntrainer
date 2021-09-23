@@ -22,3 +22,14 @@ auto semantic_bn = LayerSemanticsParamType(
 
 INSTANTIATE_TEST_CASE_P(BatchNormalization, LayerSemantics,
                         ::testing::Values(semantic_bn));
+
+auto bn_basic_channels = LayerGoldenTestParamType(
+  nntrainer::createLayer<nntrainer::BatchNormalizationLayer>, {}, "2:4:2:3",
+  "bn_golden_channels_training.nnlayergolden");
+
+auto bn_basic_width = LayerGoldenTestParamType(
+  nntrainer::createLayer<nntrainer::BatchNormalizationLayer>, {}, "2:1:1:10",
+  "bn_golden_width_training.nnlayergolden");
+
+INSTANTIATE_TEST_CASE_P(BatchNormalization, LayerGoldenTest,
+                        ::testing::Values(bn_basic_channels, bn_basic_width));
