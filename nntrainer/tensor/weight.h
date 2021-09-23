@@ -67,13 +67,13 @@ public:
    *
    * @param spec Weight specification
    */
-  explicit Weight(const Spec &spec) :
+  explicit Weight(const Spec &spec, bool alloc_now = false) :
     Weight(std::get<0>(spec), // TensorDim
            std::get<1>(spec), // Tensor::Initializer
            std::get<2>(spec), // WeightRegularizer
            std::get<3>(spec), // WeightRegularizerConstant
            std::get<4>(spec), // need_gradient
-           false,
+           alloc_now,
            std::get<5>(spec) // Name
     ) {}
 

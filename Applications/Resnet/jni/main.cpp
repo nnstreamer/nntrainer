@@ -18,6 +18,10 @@
 #include <sstream>
 #include <vector>
 
+#if defined(ENABLE_TEST)
+#include <gtest/gtest.h>
+#endif
+
 #include <layer.h>
 #include <model.h>
 #include <optimizer.h>
@@ -28,6 +32,10 @@ using LayerHandle = std::shared_ptr<ml::train::Layer>;
 using ModelHandle = std::unique_ptr<ml::train::Model>;
 
 using UserDataType = std::unique_ptr<nntrainer::resnet::DataLoader>;
+
+/** cache loss values post training for test */
+float training_loss = 0.0;
+float validation_loss = 0.0;
 
 /**
  * @brief make "key=value" from key and value
@@ -85,30 +93,31 @@ std::vector<LayerHandle> resnetBlock(const std::string &block_name,
     return withKey("name", scoped_name(layer_name));
   };
 
-  auto create_conv =
-    [&with_name, filters](const std::string &name, int kernel_size, int stride,
-                          int padding, const std::string &input_layer) {
-      std::vector<std::string> props{
-        with_name(name),
-        withKey("stride", {stride, stride}),
-        withKey("filters", filters),
-        withKey("kernel_size", {kernel_size, kernel_size}),
-        withKey("padding", {padding, padding}),
-        withKey("input_layers", input_layer)};
+  auto create_conv = [&with_name, filters](const std::string &name,
+                                           int kernel_size, int stride,
+                                           const std::string &padding,
+                                           const std::string &input_layer) {
+    std::vector<std::string> props{
+      with_name(name),
+      withKey("stride", {stride, stride}),
+      withKey("filters", filters),
+      withKey("kernel_size", {kernel_size, kernel_size}),
+      withKey("padding", padding),
+      withKey("input_layers", input_layer)};
 
-      return createLayer("conv2d", props);
-    };
+    return createLayer("conv2d", props);
+  };
 
   /** residual path */
-  LayerHandle a1 = create_conv("a1", 3, downsample ? 2 : 1, 1, input_name);
+  LayerHandle a1 = create_conv("a1", 3, downsample ? 2 : 1, "same", input_name);
   LayerHandle a2 = createLayer(
     "batch_normalization", {with_name("a2"), withKey("activation", "relu")});
-  LayerHandle a3 = create_conv("a3", 3, 1, 1, scoped_name("a2"));
+  LayerHandle a3 = create_conv("a3", 3, 1, "same", scoped_name("a2"));
 
   /** skip path */
   LayerHandle b1 = nullptr;
   if (downsample) {
-    b1 = create_conv("b1", 1, 2, 0, input_name);
+    b1 = create_conv("b1", 1, 2, "same", input_name);
   }
 
   const std::string skip_name = b1 ? scoped_name("b1") : input_name;
@@ -138,14 +147,16 @@ std::vector<LayerHandle> createResnet18Graph() {
 
   std::vector<LayerHandle> layers;
 
+  layers.push_back(createLayer(
+    "input", {withKey("name", "input0"), withKey("input_shape", "3:32:32")}));
+
   layers.push_back(
     createLayer("conv2d", {
                             withKey("name", "conv0"),
-                            withKey("input_shape", "3:32:32"),
                             withKey("filters", 64),
                             withKey("kernel_size", {3, 3}),
                             withKey("stride", {1, 1}),
-                            withKey("padding", {1, 1}),
+                            withKey("padding", "same"),
                             withKey("bias_initializer", "zeros"),
                             withKey("weight_initializer", "xavier_uniform"),
                           }));
@@ -207,6 +218,13 @@ int validData_cb(float **input, float **label, bool *last, void *user_data) {
   return 0;
 }
 
+#if defined(ENABLE_TEST)
+TEST(Resnet_Training, verify_accuracy) {
+  EXPECT_FLOAT_EQ(training_loss, 4.389328);
+  EXPECT_FLOAT_EQ(validation_loss, 11.611803);
+}
+#endif
+
 /// @todo maybe make num_class also a parameter
 void createAndRun(unsigned int epochs, unsigned int batch_size,
                   UserDataType &train_user_data,
@@ -240,6 +258,10 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
                     std::move(dataset_valid));
 
   model->train();
+#if defined(ENABLE_TEST)
+  training_loss = model->getTrainingLoss();
+  validation_loss = model->getValidationLoss();
+#endif
 }
 
 std::array<UserDataType, 2>
@@ -324,5 +346,21 @@ int main(int argc, char *argv[]) {
   std::cout << "finished computation at " << std::ctime(&end_time)
             << "elapsed time: " << elapsed_seconds.count() << "s\n";
 
-  return 0;
+  int status = 0;
+#if defined(ENABLE_TEST)
+  try {
+    testing::InitGoogleTest(&argc, argv);
+  } catch (...) {
+    std::cerr << "Error duing InitGoogleTest" << std::endl;
+    return 0;
+  }
+
+  try {
+    status = RUN_ALL_TESTS();
+  } catch (...) {
+    std::cerr << "Error duing RUN_ALL_TSETS()" << std::endl;
+  }
+#endif
+
+  return status;
 }
