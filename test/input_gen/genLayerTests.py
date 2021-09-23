@@ -7,10 +7,14 @@
 # @date 13 Se 2020
 # @brief Generate *.nnlayergolden file
 # *.nnlayergolden file is expected to contain following information **in order**
-# ## TBA ##
+# - Initial Weights
+# - inputs
+# - outputs
+# - *gradients
+# - weights
+# - derivatives
 #
-#
-# @author Jihoon lee <jhoon.it.lee@samsung.com>
+# @author Jihoon Lee <jhoon.it.lee@samsung.com>
 
 from multiprocessing.sharedctypes import Value
 import warnings
@@ -25,28 +29,25 @@ with warnings.catch_warnings():
     import tensorflow as tf
     from tensorflow.python import keras as K
 
-from transLayer import attach_trans_layer as TL
-
-
 ##
 # @brief inpsect if file is created correctly
 # @note this just checks if offset is corretly set, The result have to inspected
 # manually
 def inspect_file(file_name):
-    import struct
     with open(file_name, "rb") as f:
         while True:
-            sz = int.from_bytes(f.read(4), byteorder='little')
+            sz = int.from_bytes(f.read(4), byteorder="little")
             if not sz:
                 break
             print("size: ", sz)
-            print(np.fromfile(f, dtype='float32', count=sz))
+            print(np.fromfile(f, dtype="float32", count=sz))
+
 
 if __name__ == "__main__":
     fc = K.layers.Dense(5)
-    record_single(fc, (3, 1, 1, 10), "fc_golden_plain.nnlayergolden")
+    record_single(fc, (3, 1, 1, 10), "fc_golden_plain")
     fc = K.layers.Dense(4)
-    record_single(fc, (1, 1, 1, 10), "fc_golden_single_batch.nnlayergolden")
+    record_single(fc, (1, 1, 1, 10), "fc_golden_single_batch")
 
 # inspect_file("fc_golden.nnlayergolden")
 

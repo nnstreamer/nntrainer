@@ -99,7 +99,7 @@ def _debug_print(
     debug=None,
     print_option={"end": "\n"},
     print_format=_debug_default_formatter,
-    **data
+    **data,
 ):
     if not debug:
         return
@@ -124,7 +124,7 @@ def prepare_data(model, input_shape, label_shape, writer_fn, is_onehot, **kwargs
             depth=label_shape[1],
         )
     else:
-        label=_rand_like(label_shape) / 10
+        label = _rand_like(label_shape) / 10
 
     initial_weights = []
     for layer in iter_model(model):
@@ -139,7 +139,7 @@ def prepare_data(model, input_shape, label_shape, writer_fn, is_onehot, **kwargs
         initial_input=initial_input,
         label=label,
         initial_weights=initial_weights,
-        **kwargs
+        **kwargs,
     )
 
     return initial_input, label
@@ -175,8 +175,8 @@ def train_step(model, optimizer, loss_fn, initial_input, label, writer_fn, **kwa
 
         # loss = loss_fn(label, outp[-1])
         loss = []
-        if kwargs.get('multi_out', None) != None:
-            multi_out = kwargs.get('multi_out', [])
+        if kwargs.get("multi_out", None) != None:
+            multi_out = kwargs.get("multi_out", [])
         else:
             multi_out = [-1]
         for i in multi_out:
@@ -216,7 +216,7 @@ def train_step(model, optimizer, loss_fn, initial_input, label, writer_fn, **kwa
             *layer_output,  # output of forward
             *dx,  # output of backward
             *gradients,  # weight gradient output from backward
-            *weights  # updated weight after optimization
+            *weights,  # updated weight after optimization
         )
 
         _debug_print(name=layer.name, print_format=value_only_formatter, **kwargs)
@@ -235,7 +235,7 @@ def train_step(model, optimizer, loss_fn, initial_input, label, writer_fn, **kwa
             weights=weights,
             gradients=gradients,
             dx_shape=[i.shape for i in dx],
-            **kwargs
+            **kwargs,
         )
 
     for l in loss:
@@ -367,13 +367,15 @@ def record(
     inputs=None,
     outputs=None,
     is_onehot=True,
-    **kwargs
+    **kwargs,
 ):
     if os.path.isfile(file_name):
         print("Warning: the file %s is being truncated and overwritten" % file_name)
 
     loss_fn = _get_loss_fn(loss_fn_str)
-    model = generate_recordable_model(loss_fn_str, model, inputs, outputs, is_onehot, **kwargs)
+    model = generate_recordable_model(
+        loss_fn_str, model, inputs, outputs, is_onehot, **kwargs
+    )
 
     with open(file_name, "wb") as f:
         write = _get_writer(f)
@@ -385,7 +387,7 @@ def record(
             _debug_print(
                 iteration="\033[1;33m[%d/%d]\033[0m" % (_ + 1, iteration),
                 print_format=value_only_formatter,
-                **kwargs
+                **kwargs,
             )
             train_step(model, optimizer, loss_fn, initial_input, label, write, **kwargs)
 
@@ -394,14 +396,16 @@ def record(
 
 ##
 # @brief record a single layer
-def record_single(layer, input_shape, file_name):
+def record_single(layer, input_shape, test_name, call_args={}):
     layer = attach_trans_layer(layer)
+    layer.build(input_shape)
     inputs = _rand_like(input_shape)
 
+    initial_weights = [tf.Variable(i) for i in layer.weights]
     with tf.GradientTape(persistent=True) as tape:
         tape.watch(inputs)
-        outputs = layer(inputs)
-        dy_constant = outputs * 2 # set incoming derivative to 2 instead of 1
+        outputs = layer.call(inputs, **call_args)
+        dy_constant = outputs * 2  # set incoming derivative to 2 instead of 1
 
     weights = layer.weights.copy()
     gradients = tape.gradient(dy_constant, layer.trainable_weights)
@@ -412,7 +416,7 @@ def record_single(layer, input_shape, file_name):
     except AttributeError:
         pass
 
-    with open(file_name, "wb") as f:
+    with open(test_name + ".nnlayergolden", "wb") as f:
         writer = _get_writer(f)
 
         def write_tensor(*tensors):
@@ -421,10 +425,11 @@ def record_single(layer, input_shape, file_name):
                 writer(tf.size(tensor), tensor)
 
         ## @todo inputs outputs derivatives can be more than one
-        write_tensor(*weights)
+        ## @note please update genLayerTests.py comments when updating below
+        write_tensor(*initial_weights)
         write_tensor(inputs)
         write_tensor(outputs)
         write_tensor(*gradients)
+        write_tensor(*weights)
         write_tensor(derivatives)
-
 

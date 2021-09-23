@@ -147,16 +147,20 @@ static RunLayerContext prepareRunContext(const TensorPacks &packs) {
 
 static void compareRunContext(RunLayerContext &rc, std::ifstream &file) {
   file.seekg(0, std::ios::beg);
-  auto compare_tensors = [&file](unsigned length, auto tensor_getter,
-                                 auto pred) {
+  auto compare_tensors = [&file](unsigned length, auto tensor_getter, auto pred,
+                                 const std::string &name) {
     for (unsigned i = 0; i < length; ++i) {
       if (!pred(i)) {
         continue;
       }
       const auto &tensor = tensor_getter(i);
       auto answer = tensor.clone();
-      sizeCheckedReadTensor(answer, file);
-      EXPECT_EQ(tensor, answer);
+      sizeCheckedReadTensor(answer, file, name + " at " + std::to_string(i));
+
+      if (name == "initial_weights") {
+        continue;
+      }
+      EXPECT_EQ(tensor, answer) << name << " at " << std::to_string(i);
     }
   };
 
@@ -166,17 +170,23 @@ static void compareRunContext(RunLayerContext &rc, std::ifstream &file) {
   };
 
   compare_tensors(rc.getNumWeights(),
-                  [&rc](unsigned idx) { return rc.getWeight(idx); }, always);
+                  [&rc](unsigned idx) { return rc.getWeight(idx); }, always,
+                  "initial_weights");
   compare_tensors(rc.getNumInputs(),
-                  [&rc](unsigned idx) { return rc.getInput(idx); }, always);
+                  [&rc](unsigned idx) { return rc.getInput(idx); }, always,
+                  "inputs");
   compare_tensors(rc.getNumOutputs(),
-                  [&rc](unsigned idx) { return rc.getOutput(idx); }, always);
+                  [&rc](unsigned idx) { return rc.getOutput(idx); }, always,
+                  "outputs");
   compare_tensors(rc.getNumWeights(),
                   [&rc](unsigned idx) { return rc.getWeightGrad(idx); },
-                  only_trainable);
+                  only_trainable, "gradients");
+  compare_tensors(rc.getNumWeights(),
+                  [&rc](unsigned idx) { return rc.getWeight(idx); }, always,
+                  "weights");
   compare_tensors(rc.getNumInputs(),
                   [&rc](unsigned idx) { return rc.getOutgoingDerivative(idx); },
-                  always);
+                  always, "derivatives");
 }
 
 LayerGoldenTest::~LayerGoldenTest() {}

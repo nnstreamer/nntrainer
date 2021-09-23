@@ -31,6 +31,11 @@ class AbstractTransLayer(K.layers.Layer):
         self.call.__func__.__signature__ = signature(self.tf_layer.call)
         self.has_training = "training" in inspect.getfullargspec(self.call).args
 
+    def build(self, input_shape):
+        if not self.built:
+            self.tf_layer.build(input_shape)
+            super().build(input_shape)
+
     ##
     # @brief call function
     # @param nntr_input input with nntrainer layout
@@ -41,7 +46,7 @@ class AbstractTransLayer(K.layers.Layer):
         if self.has_training:
             additional_args["training"] = training
 
-        tf_output = self.tf_layer(tf_input, **additional_args)
+        tf_output = self.tf_layer.call(tf_input, **additional_args)
         return self.to_nntr_tensor(tf_output)
 
     ##
@@ -108,6 +113,22 @@ class ChannelLastTransLayer(AbstractTransLayer):
         self.to_tf_layer_ = K.layers.Permute(ChannelLastTransLayer.TO_CHANNELS_LAST)
         self.to_nntr_layer_ = K.layers.Permute(ChannelLastTransLayer.TO_CHANNELS_FIRST)
 
+    def build(self, input_shape):
+        if self.built:
+            return
+
+        if isinstance(input_shape, tf.TensorShape):
+            input_shape_list_ = input_shape.as_list()
+        else:
+            input_shape_list_ = input_shape
+        transposed_list_ = [None] * 4
+
+        for idx, i in enumerate((0,) + ChannelLastTransLayer.TO_CHANNELS_LAST):
+            transposed_list_[idx] = input_shape_list_[i]
+
+        transposed_input_shape = tf.TensorShape(transposed_list_)
+        super().build(transposed_input_shape)
+
     def to_tf_tensor(self, tensor):
         return self.to_tf_layer_(tensor)
 
@@ -139,12 +160,16 @@ CHANNEL_LAST_LAYERS = (
 # @brief Translayer for batch normalization layer
 class BatchNormTransLayer(IdentityTransLayer):
     def build(self, input_shape):
+        if self.built:
+            return
+
         if len(input_shape) > 3:
             self.tf_layer = ChannelLastTransLayer(self.tf_layer)
-        self.tf_layer.build(input_shape)
+
+        super().build(input_shape)
 
     def call(self, input, training=None):
-        return self.tf_layer(input, training)
+        return self.tf_layer.call(input, training)
 
     def to_nntr_weights(self, tensorOrList):
         x = tensorOrList
@@ -179,7 +204,7 @@ class MultiOutLayer(IdentityTransLayer):
         if self.has_training:
             additional_args["training"] = training
 
-        tf_output = self.tf_layer(x, **additional_args)
+        tf_output = self.tf_layer.call(x, **additional_args)
 
         return [layer(tf_output) for layer in self.stub_layers]
 
