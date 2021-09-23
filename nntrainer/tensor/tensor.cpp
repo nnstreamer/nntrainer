@@ -740,9 +740,9 @@ Tensor Tensor::sum(const std::vector<unsigned int> &axes, float alpha) const {
   return sum(axes, ret, alpha);
 }
 
-void Tensor::merge_axis(unsigned int axis1, unsigned int axis2) {
+void Tensor::mergeAxis(unsigned int axis1, unsigned int axis2) {
   if (axis2 != axis1 + 1)
-    throw std::invalid_argument("Axis to be merged must be continuous.");
+    throw std::invalid_argument("axis2 must be axis1 + 1 for merging.");
 
   dim.setTensorDim(axis2, dim.getTensorDim(axis1) * dim.getTensorDim(axis2));
   dim.setTensorDim(axis1, 1);
@@ -761,7 +761,7 @@ Tensor &Tensor::sum(const std::vector<unsigned int> &axes, Tensor &output,
     std::vector<unsigned int> new_axes = {axes[0]};
     for (unsigned int i = 1; i < axes.size(); ++i) {
       if (axes[i] == axes[i - 1] + 1) {
-        new_reshaped.merge_axis(axes[i - 1], axes[i]);
+        new_reshaped.mergeAxis(axes[i - 1], axes[i]);
         new_axes.back() = axes[i];
       } else {
         new_axes.push_back(axes[i]);
