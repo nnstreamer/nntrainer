@@ -18,6 +18,10 @@
 #include <sstream>
 #include <vector>
 
+#if defined(ENABLE_TEST)
+#include <gtest/gtest.h>
+#endif
+
 #include <layer.h>
 #include <model.h>
 #include <optimizer.h>
@@ -28,6 +32,10 @@ using LayerHandle = std::shared_ptr<ml::train::Layer>;
 using ModelHandle = std::unique_ptr<ml::train::Model>;
 
 using UserDataType = std::unique_ptr<nntrainer::resnet::DataLoader>;
+
+/** cache loss values post training for test */
+float training_loss = 0.0;
+float validation_loss = 0.0;
 
 /**
  * @brief make "key=value" from key and value
@@ -210,6 +218,13 @@ int validData_cb(float **input, float **label, bool *last, void *user_data) {
   return 0;
 }
 
+#if defined(ENABLE_TEST)
+TEST(Resnet_Training, verify_accuracy) {
+  EXPECT_FLOAT_EQ(training_loss, 4.389328);
+  EXPECT_FLOAT_EQ(validation_loss, 11.611803);
+}
+#endif
+
 /// @todo maybe make num_class also a parameter
 void createAndRun(unsigned int epochs, unsigned int batch_size,
                   UserDataType &train_user_data,
@@ -243,6 +258,10 @@ void createAndRun(unsigned int epochs, unsigned int batch_size,
                     std::move(dataset_valid));
 
   model->train();
+#if defined(ENABLE_TEST)
+  training_loss = model->getTrainingLoss();
+  validation_loss = model->getValidationLoss();
+#endif
 }
 
 std::array<UserDataType, 2>
@@ -327,5 +346,21 @@ int main(int argc, char *argv[]) {
   std::cout << "finished computation at " << std::ctime(&end_time)
             << "elapsed time: " << elapsed_seconds.count() << "s\n";
 
-  return 0;
+  int status = 0;
+#if defined(ENABLE_TEST)
+  try {
+    testing::InitGoogleTest(&argc, argv);
+  } catch (...) {
+    std::cerr << "Error duing InitGoogleTest" << std::endl;
+    return 0;
+  }
+
+  try {
+    status = RUN_ALL_TESTS();
+  } catch (...) {
+    std::cerr << "Error duing RUN_ALL_TSETS()" << std::endl;
+  }
+#endif
+
+  return status;
 }

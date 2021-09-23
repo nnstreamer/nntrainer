@@ -1127,7 +1127,7 @@ private:
    * @param axis1 first axis to merge
    * @param axis2 second axis to merge
    */
-  void merge_axis(unsigned int axis1, unsigned int axis2);
+  void mergeAxis(unsigned int axis1, unsigned int axis2);
 }; // namespace nntrainer
 
 /**
