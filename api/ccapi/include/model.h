@@ -24,7 +24,6 @@
 
 #include <tensor.h>
 
-
 #include <nntrainer-api-common.h>
 
 #include <dataset.h>
@@ -122,22 +121,24 @@ public:
                     ModelFormat format = ModelFormat::MODEL_FORMAT_BIN) = 0;
 
   /**
-  * @brief     get centroid feature vector of class
-  * @retval    Tensor Class Object (Centroid feature vector of simpleshot class)
-  */
- 
+   * @brief     get centroid feature vector of class
+   * @retval    nntrainer::Tensor Centroid feature vector of simpleshot newly
+   * added classes
+   */
 
-  virtual nntrainer::Tensor getCentroids()=0;
+  virtual nntrainer::Tensor getCentroids() = 0;
 
   /**
-  * @brief     Predict the class of validation set
-  * @param[in] number of earlier classes present
-  * @param[in] number of total classes after addition of new classes
-  * @param[in] label path of simpleshot classes (Label list of classes)
-  */
+   * @brief     Predict the class of validation set
+   * @param[in] earlier_classes number of earlier classes present
+   * @param[in] tot_classes number of total classes after addition of new
+   * classes
+   * @param[in] label_path path of simpleshot classes or Label list of classes
+   */
 
-  virtual void predict(int earlier_classes, int tot_classes, std::string label_path)=0;
-  
+  virtual void predict(int earlier_classes, int tot_classes,
+                       std::string label_path) = 0;
+
   /**
    * @brief  load model with regard to the format
    * @param file_path file_path to save the model, if full path is not

@@ -750,214 +750,60 @@ int NeuralNetwork::train_run() {
   return status;
 }
 
-
 /**
-* @brief     get Centroids
-*            get the centroid feature vector of simpleshot classes which is added
-*/
+ * @brief     get Centroids function computes the centroid feature vector of
+ * simpleshot classes which is added
+ */
 
-nntrainer::Tensor NeuralNetwork:: getCentroids()
-{
+nntrainer::Tensor NeuralNetwork::getCentroids() {
 
-		  int status = ML_ERROR_NONE;
-		  std::vector<std::string> values;
+  int status = ML_ERROR_NONE;
+  std::vector<std::string> values;
 
-		  setTrainConfig(values);
+  setTrainConfig(values);
 
-		  /** set batch size just before training */
-		  model_graph.setBatchSize(
-		    std::get<props::TrainingBatchSize>(model_flex_props));
+  /** set batch size just before training */
+  model_graph.setBatchSize(
+    std::get<props::TrainingBatchSize>(model_flex_props));
 
-		  status = allocate(true);
+  status = allocate(true);
 
+  if (!std::get<props::ContinueTrain>(model_flex_props)) {
+    epoch_idx = 0;
+    iter = 0;
+  }
 
-		  
-		  if (!std::get<props::ContinueTrain>(model_flex_props)) {
-			  epoch_idx = 0;
-			  iter = 0;
-			}
-		  
-			auto const &first_layer_node = model_graph.getSortedLayerNode(0);
-			auto const &last_layer_node =
-			  model_graph.getSortedLayerNode(model_graph.size() - 1);
-		  
-			  
-		  
-			auto batch_size = std::get<props::TrainingBatchSize>(model_flex_props);
-		  
-			//auto &output = last_layer_node->getOutput(0);
-			auto &label = last_layer_node->getOutputGrad(0);
-			auto &in = first_layer_node->getInput(0);
-		  
-			auto in_dims = first_layer_node->getInputDimensions();
-			auto label_dims = last_layer_node->getOutputDimensions();
-		  
-			auto &[train_buffer, valid_buffer, test_buffer] = data_buffers;
-		  
-			if (train_buffer == nullptr) {
-			  ml_loge("[NeuralNetworks] there is no train dataset!");
-			 
-			}
-		  
-			/**
-			 * @brief run a single epoch with given callback, @a auto is used instead of
-			 * std::function for performance measure
-			 * @param buffer buffer to run
-			 * @param shuffle whether to shuffle or not
-			 * @param on_iteration_fetch function that will recieve reference to stat,
-			 * buffer which will be called every time data is fetched and set
-			 * @param on_epoch_end function that will recieve reference to stat,
-			 * buffer which will be called on the epoch end
-			 */
-			auto run_epoch = [this, &in, &label, &in_dims, &label_dims, batch_size](
-							   DataBuffer *buffer, bool shuffle,
-							   auto &&on_iteration_fetch, auto &&on_epoch_end) {
-			  /// @todo managing metrics must be handled here as well!! for now it is
-			  /// handled in individual callbacks
-			  RunStats stat;
-			  std::future<std::shared_ptr<IterationQueue>> future_iq =
-				buffer->startFetchWorker(in_dims, label_dims, shuffle);
-			  while (true) {
-				ScopedView<Iteration> iter_view = buffer->fetch();
-				if (iter_view.isEmpty()) {
-				  break;
-				}
-				auto &iteration = iter_view.get();
-				if (iteration.batch() != batch_size) {
-				  /// @todo support partial batch
-				  continue;
-				}
-				/// @todo multiple input support
-				in = iteration.getInputsRef().front();
-				label = iteration.getLabelsRef().front();
-		  
-				on_iteration_fetch(stat, *buffer);
-			  }
-			  future_iq.get();
-			  on_epoch_end(stat, *buffer);
-		  
-			  if (stat.num_iterations == 0) {
-				throw std::runtime_error("No data came while buffer ran");
-			  }
-		  
-			  return stat;
-			};
-		  
-			auto train_for_iteration = [this](RunStats &stat, DataBuffer &buffer) {
-			  forwarding(true);
-			  backwarding(iter++);
-		  
-			  std::cout << "#" << epoch_idx << "/" << getEpochs();
-			  auto loss = getLoss();
-			  stat.loss += loss;
-			  buffer.displayProgress(stat.num_iterations++, loss);
-			};
-		  
-			auto train_epoch_end = [this](RunStats &stat, DataBuffer &buffer) {
-			  stat.loss /= static_cast<float>(stat.num_iterations);
-			  auto &save_path = std::get<props::SavePath>(model_flex_props);
-			  if (!save_path.empty()) {
-				save(save_path, ml::train::ModelFormat::MODEL_FORMAT_BIN);
-			  }
-		  
-			  std::cout << "#" << epoch_idx << "/" << getEpochs()
-						<< " - Training Loss: " << stat.loss;
-			};
+  auto const &first_layer_node = model_graph.getSortedLayerNode(0);
+  auto const &last_layer_node =
+    model_graph.getSortedLayerNode(model_graph.size() - 1);
 
+  auto batch_size = std::get<props::TrainingBatchSize>(model_flex_props);
 
+  auto &label = last_layer_node->getOutputGrad(0);
+  auto &in = first_layer_node->getInput(0);
 
-   auto epochs = getEpochs();
+  auto in_dims = first_layer_node->getInputDimensions();
+  auto label_dims = last_layer_node->getOutputDimensions();
 
-	 
-	 for (epoch_idx = epoch_idx + 1; epoch_idx <= epochs; ++epoch_idx) {
-		 training =
-		   run_epoch(train_buffer.get(), true, train_for_iteration, train_epoch_end);
-		
-		 std::cout << '\n';
-	   }
+  auto &[train_buffer, valid_buffer, test_buffer] = data_buffers;
 
+  if (train_buffer == nullptr) {
+    ml_loge("[NeuralNetworks] there is no train dataset!");
+  }
 
-	 std::vector<std::shared_ptr<LayerNode>> v= model_graph.getLayerNodes();
-	   
-					 for(auto l: v)
-					   {
-						  if(std::strcmp(l->getName().c_str(),"knn")==0)
-						   {
-						   
-							 centroid_tensor=l->getWeight(0);
-							 break;
-						   }
-					   }
-	 
-	 
-	 
-
-    if(status==0) std::cout<<"Centroid Tensor :-> "<<centroid_tensor<<"\n";
-		 
-		
-		  
-	return centroid_tensor; 
-
-		  
-
-		 
-
-  
-}
-
-
-/**
-* @brief     predict
-*   Predict the accuracy of validation set using nearest neighbour with centroid tensors
-*/
-
-void  NeuralNetwork::predict(int earlier_classes, int tot_class, std::string label_path)
-{
-
-        int status = ML_ERROR_NONE;
-		  std::vector<std::string> values;
-
-		  setTrainConfig(values);
-
-		  /** set batch size just before training */
-		  model_graph.setBatchSize(
-		    std::get<props::TrainingBatchSize>(model_flex_props));
-
-		  status = allocate(true);
-
-
-		  if(status==0) std::cout<<"Data buffer is Set\n";
-		  
-	  auto const &first_layer_node = model_graph.getSortedLayerNode(0);
-	  auto const &last_layer_node =
-		model_graph.getSortedLayerNode(model_graph.size() - 1);
-	
-		
-	
-	  auto batch_size = std::get<props::TrainingBatchSize>(model_flex_props);
-	
-	  auto &output = last_layer_node->getOutput(0);
-	  auto &label = last_layer_node->getOutputGrad(0);
-	  auto &in = first_layer_node->getInput(0);
-	
-	  auto in_dims = first_layer_node->getInputDimensions();
-	  auto label_dims = last_layer_node->getOutputDimensions();
-	
-	  auto &[train_buffer, valid_buffer, test_buffer] = data_buffers;
-
-
-
-
-	 
-		
-
-	  
-
-
-
-	auto run_epoch = [this, &in, &label, &in_dims, &label_dims, batch_size](
+  /**
+   * @brief run a single epoch with given callback, @a auto is used instead of
+   * std::function for performance measure
+   * @param buffer buffer to run
+   * @param shuffle whether to shuffle or not
+   * @param on_iteration_fetch function that will recieve reference to stat,
+   * buffer which will be called every time data is fetched and set
+   * @param on_epoch_end function that will recieve reference to stat,
+   * buffer which will be called on the epoch end
+   */
+  auto run_epoch = [this, &in, &label, &in_dims, &label_dims, batch_size](
                      DataBuffer *buffer, bool shuffle,
-                     auto &&on_iteration_fetch, auto &&on_epoch_end, int earlier_classes, int tot_class, std::string label_path) {
+                     auto &&on_iteration_fetch, auto &&on_epoch_end) {
     /// @todo managing metrics must be handled here as well!! for now it is
     /// handled in individual callbacks
     RunStats stat;
@@ -977,114 +823,9 @@ void  NeuralNetwork::predict(int earlier_classes, int tot_class, std::string lab
       in = iteration.getInputsRef().front();
       label = iteration.getLabelsRef().front();
 
-
-	  
-	 
-	  
-			//read tensor file
-	  
-			  nntrainer::Tensor saved_tensor(1,1,tot_class,192);
-	  
-	  
-			  std::ifstream file_read("tensor.bin", std::ios::in | std::ios::binary);
-	  
-			  saved_tensor.read( file_read);
-			  const float *data = saved_tensor.getData();
-	  
-			  //Making centroid tensor
-	  
-			  std::vector<nntrainer::Tensor> V;
-	  
-			  //std::cout<<"Tensor for Centroids\n";
-	  
-			  for(int i=0;i<tot_class;i++)
-				  {
-					  nntrainer::Tensor t0(1,1,1,192);
-					  V.push_back(t0);
-	  
-				  }
-	  
-			  int x=0;
-	  
-			  
-			  //std::cout<<"Setting Tensor value for Centroids\n";
-	  
-			  for(auto i=V.begin();i!=V.end();i++)
-			  {
-	  
-				  for(int j=192*x;j<192*x+192;j++)
-				  {
-					 (*i).setValue(0,0,0,j%192,data[j]);
-				  }
-				  x++;
-				  
-			  }
-	  
-			  //std::cout<<"Set Values of Tensor\n";
-	  
-	  
-	  
-	  
-			  //open and map labels 
-	  
-			  
-			  std::string all_class_label_path="allLabels.txt";
-	  
-			  std::map<int,std::string> all_labels_map;
-	  
-			  std::fstream all_labels_file;
-			  all_labels_file.open(all_class_label_path, std::ios::in);
-				  
-			  int class_cnt=0;
-	  
-	  
-			  if (all_labels_file.is_open()){	//checking whether the file is open
-						  std::string tp;
-			  
-						  while(std::getline(all_labels_file, tp)){ //read data from file object and put it into string.
-							  //std::cout << tp << "\n"; //print the data of the string
-							  all_labels_map.insert(std::pair<int,std::string>(class_cnt,tp));
-							  class_cnt++;
-							  }
-					  all_labels_file.close(); 
-	  
-				  }
-	  
-			  int flag=0;
-	  
-			  std::map<int,std::string> label_map;
-	  
-			  if(earlier_classes==tot_class) flag=1;
-			  else
-			  {
-			  
-					  std::fstream label_file;
-					  label_file.open(label_path,std::ios::in);
-			  
-					  class_cnt=0;
-			  
-					  if (label_file.is_open()){   //checking whether the file is open
-						  std::string tp;
-						  
-						  while(std::getline(label_file, tp)){ //read data from file object and put it into string.
-							  //std::cout << tp << "\n"; //print the data of the string
-							 
-							 label_map.insert(std::pair<int,std::string>(class_cnt,tp));
-							 class_cnt++;
-						  }
-						  label_file.close(); 
-			  
-					  }
-	  
-			  }
-			  
-			  
-
-      on_iteration_fetch(stat, *buffer, V, all_labels_map,label_map,tot_class,flag);
+      on_iteration_fetch(stat, *buffer);
     }
     future_iq.get();
-
-	
     on_epoch_end(stat, *buffer);
 
     if (stat.num_iterations == 0) {
@@ -1094,70 +835,274 @@ void  NeuralNetwork::predict(int earlier_classes, int tot_class, std::string lab
     return stat;
   };
 
+  auto train_for_iteration = [this](RunStats &stat, DataBuffer &buffer) {
+    forwarding(true);
+    backwarding(iter++);
 
-
-  auto eval_for_iteration = [this, &output, &label,
-                             batch_size](RunStats &stat, DataBuffer &buffer, std::vector<nntrainer::Tensor> &V, std::map<int,std::string> &all_labels_map,std::map<int,std::string> &label_map, int tot_class, int flag ) {
-    forwarding(false);
-	//secondlast
-	 auto const &second_last= model_graph.getSortedLayerNode(1);
-	 auto &second_last_output= second_last->getInput(0);
-
-	  //get distance
-	  
-	  auto get_distance = [](const nntrainer::Tensor &a,
-							   const nntrainer::Tensor &b) {
-		  return -a.subtract(b).l2norm();
-		};
-
-
-	 
-		  
-		  
-		  
-						
-		  
-				nntrainer::Tensor t(1,1,1,tot_class);
-						
-				int x=0;
-
-				
-				for(auto i=V.begin();i!=V.end();i++)
-						  {
-							  t.setValue(0,0,0,x,get_distance(second_last_output, *i));
-							  x++;
-						  
-						  }
-
-				
-
-		  
-             auto dum_out=t.argmax();
-
-			 auto label_out = label.argmax();
-	          for (unsigned int b = 0; b < batch_size; b++) {
-
-				
-
-				 std::string s1=all_labels_map[dum_out[b]];
-				 std::string s2=all_labels_map[label_out[b]];
-				 if(flag==0) s2=label_map[label_out[b]];
-				
-				
-			  	std::cout <<"Class of Image: "<<s1<<" Actual Class: " <<s2<<std::endl;;
-				 
-
-				if (std::strcmp(s1.c_str(),s2.c_str())==0)
-              		stat.num_correct_predictions++;
-	          }
-
-	
-
-	
-    
-    stat.num_iterations++;
-    stat.loss += getLoss();
+    std::cout << "#" << epoch_idx << "/" << getEpochs();
+    auto loss = getLoss();
+    stat.loss += loss;
+    buffer.displayProgress(stat.num_iterations++, loss);
   };
+
+  auto train_epoch_end = [this](RunStats &stat, DataBuffer &buffer) {
+    stat.loss /= static_cast<float>(stat.num_iterations);
+    auto &save_path = std::get<props::SavePath>(model_flex_props);
+    if (!save_path.empty()) {
+      save(save_path, ml::train::ModelFormat::MODEL_FORMAT_BIN);
+    }
+
+    std::cout << "#" << epoch_idx << "/" << getEpochs()
+              << " - Training Loss: " << stat.loss;
+  };
+
+  auto epochs = getEpochs();
+
+  for (epoch_idx = epoch_idx + 1; epoch_idx <= epochs; ++epoch_idx) {
+    training =
+      run_epoch(train_buffer.get(), true, train_for_iteration, train_epoch_end);
+
+    std::cout << '\n';
+  }
+
+  std::vector<std::shared_ptr<LayerNode>> v = model_graph.getLayerNodes();
+
+  for (auto l : v) {
+    if (std::strcmp(l->getName().c_str(), "knn") == 0) {
+
+      centroid_tensor = l->getWeight(0);
+      break;
+    }
+  }
+
+  if (status == 0)
+    std::cout << "Centroid Tensor :-> " << centroid_tensor << "\n";
+
+  return centroid_tensor;
+}
+
+/**
+ * @brief  predict function Predicts the accuracy of validation set using
+ * nearest neighbour with centroid tensors
+ */
+
+void NeuralNetwork::predict(int earlier_classes, int tot_class,
+                            std::string label_path) {
+
+  int status = ML_ERROR_NONE;
+  std::vector<std::string> values;
+
+  setTrainConfig(values);
+
+  /** set batch size just before training */
+  model_graph.setBatchSize(
+    std::get<props::TrainingBatchSize>(model_flex_props));
+
+  status = allocate(true);
+
+  if (status == 0)
+    std::cout << "Data buffer is Set\n";
+
+  auto const &first_layer_node = model_graph.getSortedLayerNode(0);
+  auto const &last_layer_node =
+    model_graph.getSortedLayerNode(model_graph.size() - 1);
+
+  auto batch_size = std::get<props::TrainingBatchSize>(model_flex_props);
+
+  auto &output = last_layer_node->getOutput(0);
+  auto &label = last_layer_node->getOutputGrad(0);
+  auto &in = first_layer_node->getInput(0);
+
+  auto in_dims = first_layer_node->getInputDimensions();
+  auto label_dims = last_layer_node->getOutputDimensions();
+
+  auto &[train_buffer, valid_buffer, test_buffer] = data_buffers;
+
+  /**
+   * @brief run a single epoch with given callback, @a auto is used instead of
+   * std::function for performance measure
+   * @param buffer buffer to run
+   * @param shuffle whether to shuffle or not
+   * @param on_iteration_fetch function that will recieve reference to stat,
+   * buffer which will be called every time data is fetched and set
+   * @param on_epoch_end function that will recieve reference to stat,
+   * buffer which will be called on the epoch end
+   * @param earlier_classes earlier classes which were already present
+   * @param tot_class total number of classes including earlier classes and
+   * newly added classes
+   * @param label_path label of all the classes present
+   */
+
+  auto run_epoch = [this, &in, &label, &in_dims, &label_dims,
+                    batch_size](DataBuffer *buffer, bool shuffle,
+                                auto &&on_iteration_fetch, auto &&on_epoch_end,
+                                int earlier_classes, int tot_class,
+                                std::string label_path) {
+    /// @todo managing metrics must be handled here as well!! for now it is
+    /// handled in individual callbacks
+    RunStats stat;
+    std::future<std::shared_ptr<IterationQueue>> future_iq =
+      buffer->startFetchWorker(in_dims, label_dims, shuffle);
+    while (true) {
+      ScopedView<Iteration> iter_view = buffer->fetch();
+      if (iter_view.isEmpty()) {
+        break;
+      }
+      auto &iteration = iter_view.get();
+      if (iteration.batch() != batch_size) {
+        /// @todo support partial batch
+        continue;
+      }
+      /// @todo multiple input support
+      in = iteration.getInputsRef().front();
+      label = iteration.getLabelsRef().front();
+
+      /// read tensor file
+
+      nntrainer::Tensor saved_tensor(1, 1, tot_class, 192);
+
+      std::ifstream file_read("tensor.bin", std::ios::in | std::ios::binary);
+
+      saved_tensor.read(file_read);
+      const float *data = saved_tensor.getData();
+
+      /// Making centroid tensor
+
+      std::vector<nntrainer::Tensor> V;
+
+      for (int i = 0; i < tot_class; i++) {
+        nntrainer::Tensor t0(1, 1, 1, 192);
+        V.push_back(t0);
+      }
+
+      int x = 0;
+
+      for (auto i = V.begin(); i != V.end(); i++) {
+
+        for (int j = 192 * x; j < 192 * x + 192; j++) {
+          (*i).setValue(0, 0, 0, j % 192, data[j]);
+        }
+        x++;
+      }
+
+      /// open and map labels
+
+      std::string all_class_label_path = "allLabels.txt";
+
+      std::map<int, std::string> all_labels_map;
+
+      std::fstream all_labels_file;
+      all_labels_file.open(all_class_label_path, std::ios::in);
+
+      int class_cnt = 0;
+
+      /// checking whether the file is open
+
+      if (all_labels_file.is_open()) {
+        std::string tp;
+
+        while (std::getline(all_labels_file, tp)) {
+          /// read data from file object and put it into string.
+          all_labels_map.insert(std::pair<int, std::string>(class_cnt, tp));
+          class_cnt++;
+        }
+        all_labels_file.close();
+      }
+
+      int flag = 0;
+
+      std::map<int, std::string> label_map;
+
+      if (earlier_classes == tot_class)
+        flag = 1;
+      else {
+
+        std::fstream label_file;
+        label_file.open(label_path, std::ios::in);
+
+        class_cnt = 0;
+
+        /// checking whether the file is open
+
+        if (label_file.is_open()) {
+          std::string tp;
+
+          while (std::getline(label_file, tp)) {
+            /// read data from file object and put it into string.
+
+            label_map.insert(std::pair<int, std::string>(class_cnt, tp));
+            class_cnt++;
+          }
+          label_file.close();
+        }
+      }
+
+      on_iteration_fetch(stat, *buffer, V, all_labels_map, label_map, tot_class,
+                         flag);
+    }
+
+    future_iq.get();
+
+    on_epoch_end(stat, *buffer);
+
+    if (stat.num_iterations == 0) {
+      throw std::runtime_error("No data came while buffer ran");
+    }
+
+    return stat;
+  };
+
+  auto eval_for_iteration =
+    [this, &output, &label, batch_size](
+      RunStats &stat, DataBuffer &buffer, std::vector<nntrainer::Tensor> &V,
+      std::map<int, std::string> &all_labels_map,
+      std::map<int, std::string> &label_map, int tot_class, int flag) {
+      forwarding(false);
+      /// secondlast
+      auto const &second_last = model_graph.getSortedLayerNode(1);
+      auto &second_last_output = second_last->getInput(0);
+
+      /**
+    * @brief get distance calculates the L2 squared distance between two tensors
+
+    * @param a Tensor a
+    * @param b Tensor b
+    */
+
+      auto get_distance = [](const nntrainer::Tensor &a,
+                             const nntrainer::Tensor &b) {
+        return -a.subtract(b).l2norm();
+      };
+
+      nntrainer::Tensor t(1, 1, 1, tot_class);
+
+      int x = 0;
+
+      for (auto i = V.begin(); i != V.end(); i++) {
+        t.setValue(0, 0, 0, x, get_distance(second_last_output, *i));
+        x++;
+      }
+
+      auto dum_out = t.argmax();
+
+      auto label_out = label.argmax();
+      for (unsigned int b = 0; b < batch_size; b++) {
+
+        std::string s1 = all_labels_map[dum_out[b]];
+        std::string s2 = all_labels_map[label_out[b]];
+        if (flag == 0)
+          s2 = label_map[label_out[b]];
+
+        std::cout << "Class of Image: " << s1 << " Actual Class: " << s2
+                  << std::endl;
+
+        if (std::strcmp(s1.c_str(), s2.c_str()) == 0)
+          stat.num_correct_predictions++;
+      }
+
+      stat.num_iterations++;
+      stat.loss += getLoss();
+    };
 
   auto eval_epoch_end = [this, batch_size, max_acc = 0.0f,
                          min_loss = std::numeric_limits<float>::max()](
@@ -1182,22 +1127,13 @@ void  NeuralNetwork::predict(int earlier_classes, int tot_class, std::string lab
               << "% - Validation Loss : " << stat.loss << " ]";
   };
 
-
-
-	if (valid_buffer) {
-      validation = run_epoch(valid_buffer.get(), false, eval_for_iteration,
-                             eval_epoch_end,earlier_classes,tot_class,label_path);
-    }
-    std::cout << '\n';
-
-
-  
-
-	
-  
+  if (valid_buffer) {
+    validation =
+      run_epoch(valid_buffer.get(), false, eval_for_iteration, eval_epoch_end,
+                earlier_classes, tot_class, label_path);
+  }
+  std::cout << '\n';
 }
-
-
 
 void swap(NeuralNetwork &lhs, NeuralNetwork &rhs) {
   {
