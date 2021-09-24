@@ -295,6 +295,9 @@ private:
  * structures with memory allocated or support to allocate any new memory, but
  * rather only support storing specifications based on which memory will be
  * allocated later.
+ *
+ * @todo Check the caller of the getTensor() and set restrictions on the tensors
+ * to be accessed based on which function is requesting it.
  */
 class RunLayerContext {
 public:
@@ -307,7 +310,7 @@ public:
    * @param out outputs of the layer
    * @param t extra tensors of the layer
    */
-  RunLayerContext(const std::string &name, float l,
+  RunLayerContext(const std::string &name, bool trainable, float l,
                   const std::vector<Weight *> &w,
                   const std::vector<Var_Grad *> &in,
                   const std::vector<Var_Grad *> &out,
@@ -573,6 +576,13 @@ public:
   const std::string &getName() const { return std::get<props::Name>(props); }
 
   /**
+   * @brief   get trainable by the layer
+   *
+   * @return trainable of the layer
+   */
+  bool getTrainable() const { return std::get<props::Trainable>(props); }
+
+  /**
    * @brief   check if run context is set and is ready to use
    *
    * @return true if ready, else false
@@ -580,8 +590,8 @@ public:
   bool readyToUse() const;
 
 private:
-  std::tuple<props::Name> props; /**< props of the layer */
-  float loss;                    /**< loss of the layer */
+  std::tuple<props::Name, props::Trainable> props; /**< props of the layer */
+  float loss;                                      /**< loss of the layer */
 
   std::vector<Weight *> weights;   /**< weights of the layer */
   std::vector<Var_Grad *> inputs;  /**< inputs of the layer */

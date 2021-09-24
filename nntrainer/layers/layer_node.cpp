@@ -485,7 +485,8 @@ void LayerNode::calcDerivative() {
  */
 void LayerNode::calcGradient() {
   START_PROFILE(calc_grad_event_key);
-  layer->calcGradient(*run_context);
+  if (getTrainable())
+    layer->calcGradient(*run_context);
   END_PROFILE(calc_grad_event_key);
 }
 
@@ -537,8 +538,8 @@ void LayerNode::configureRunContext(const std::vector<Weight *> &weights,
                                     const std::vector<Var_Grad *> &inputs,
                                     const std::vector<Var_Grad *> &outputs,
                                     const std::vector<Var_Grad *> &tensors) {
-  run_context = std::make_unique<RunLayerContext>(getName(), 0.0f, weights,
-                                                  inputs, outputs, tensors);
+  run_context = std::make_unique<RunLayerContext>(
+    getName(), getTrainable(), 0.0f, weights, inputs, outputs, tensors);
 }
 
 /**
