@@ -184,13 +184,15 @@ public:
 
   /**
    * @brief     Run the inference of the model
-   * @param[in] input inputs as a list of each input data
    * @param[in] batch batch size of current input
+   * @param[in] input inputs as a list of each input data
+   * @param[in] label labels as a list of each label data
    * @retval list of output as float *
    * @note The output memory must not be freed by the caller
    */
-  virtual std::vector<float *> inference(std::vector<float *> &input,
-                                         unsigned int batch) = 0;
+  virtual std::vector<float *> inference(unsigned int batch,
+                                         std::vector<float *> &input,
+                                         std::vector<float *> &label) = 0;
 
   /**
    * @brief     Summarize the model
@@ -199,6 +201,12 @@ public:
    */
   virtual void summarize(std::ostream &out,
                          ml_train_summary_type_e verbosity) = 0;
+
+  /**
+   * @brief     Get Loss
+   * @retval    loss value
+   */
+  virtual float getLoss() = 0;
 
   /**
    * @brief     Get Loss from the previous epoch of training data

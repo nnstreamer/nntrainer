@@ -458,6 +458,12 @@ bool NeuralNetwork::validateInput(sharedConstTensors X) {
 
 sharedConstTensors NeuralNetwork::inference(sharedConstTensors X,
                                             bool free_mem) {
+  return inference(X, {}, free_mem);
+}
+
+sharedConstTensors NeuralNetwork::inference(sharedConstTensors X,
+                                            sharedConstTensors label,
+                                            bool free_mem) {
   if (model_graph.getBatchSize() != X[0]->batch()) {
     model_graph.setBatchSize(X[0]->batch());
   }
@@ -469,7 +475,7 @@ sharedConstTensors NeuralNetwork::inference(sharedConstTensors X,
   allocate(ExecutionMode::INFERENCE);
 
   START_PROFILE(profile::NN_FORWARD);
-  out = forwarding(X, {}, false);
+  out = forwarding(X, label, false);
   END_PROFILE(profile::NN_FORWARD);
 
   if (free_mem)
@@ -486,9 +492,10 @@ sharedConstTensors NeuralNetwork::inference(sharedConstTensors X,
   return out;
 }
 
-std::vector<float *> NeuralNetwork::inference(std::vector<float *> &input,
-                                              unsigned int batch_size) {
-  sharedConstTensors input_tensors;
+std::vector<float *> NeuralNetwork::inference(unsigned int batch_size,
+                                              std::vector<float *> &input,
+                                              std::vector<float *> &label) {
+  sharedConstTensors input_tensors, output_tensors;
   auto in_dim = getInputDimension();
 
   input_tensors.reserve(input.size());
@@ -498,7 +505,21 @@ std::vector<float *> NeuralNetwork::inference(std::vector<float *> &input,
       input[idx], in_dim[idx].getDataLen() * sizeof(float), in_dim[idx], 0)));
   }
 
-  sharedConstTensors output_tensors = inference(input_tensors, false);
+  if (!label.empty()) {
+    sharedConstTensors label_tensors;
+    auto label_dim = getOutputDimension();
+    label_tensors.reserve(label.size());
+    for (unsigned int idx = 0; idx < label_dim.size(); idx++) {
+      label_dim[idx].batch(batch_size);
+      label_tensors.emplace_back(MAKE_SHARED_TENSOR(
+        Tensor::Map(label[idx], label_dim[idx].getDataLen() * sizeof(float),
+                    label_dim[idx], 0)));
+    }
+    output_tensors = inference(input_tensors, label_tensors, false);
+  } else {
+    output_tensors = inference(input_tensors, false);
+  }
+
   std::vector<float *> output;
   output.reserve(output_tensors.size());
 
@@ -572,7 +593,6 @@ int NeuralNetwork::train_run() {
     epoch_idx = 0;
     iter = 0;
   }
-
   auto const &first_layer_node = model_graph.getSortedLayerNode(0);
   auto const &last_layer_node =
     model_graph.getSortedLayerNode(model_graph.size() - 1);
@@ -644,6 +664,7 @@ int NeuralNetwork::train_run() {
     backwarding(iter++);
 
     std::cout << "#" << epoch_idx << "/" << getEpochs();
+    ml_logi("# %d / %d", epoch_idx, getEpochs());
     auto loss = getLoss();
     buffer.displayProgress(stat.num_iterations, loss);
   };
@@ -664,6 +685,7 @@ int NeuralNetwork::train_run() {
 
     std::cout << "#" << epoch_idx << "/" << getEpochs()
               << " - Training Loss: " << stat.loss;
+    ml_logi("# %d / %d - Training Loss: %f", epoch_idx, getEpochs(), stat.loss);
   };
 
   auto eval_for_iteration = [this, batch_size](RunStats &stat,
@@ -706,6 +728,8 @@ int NeuralNetwork::train_run() {
     }
     std::cout << " >> [ Accuracy: " << stat.accuracy
               << "% - Validation Loss : " << stat.loss << " ]";
+    ml_logi("[ Accuracy: %.2f %% - Validataion Loss: %.5f", stat.accuracy,
+            stat.loss);
   };
 
   auto epochs = getEpochs();

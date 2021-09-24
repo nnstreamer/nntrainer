@@ -261,14 +261,25 @@ public:
   sharedConstTensors inference(sharedConstTensors X, bool free_mem = true);
 
   /**
+   * @brief     Run NeuralNetwork inference
+   * @param[in] X input tensor
+   * @param[in] label label tensor
+   * @retval shared_ptr<const Tensor>
+   */
+  sharedConstTensors inference(sharedConstTensors X, sharedConstTensors label,
+                               bool free_mem = true);
+
+  /**
    * @brief     Run the inference of the model
-   * @param[in] input inputs as a list of each input data
    * @param[in] batch batch size of current input
+   * @param[in] input inputs as a list of each input data
+   * @param[in] label labels as a list of each label data
    * @retval list of output as float *
    * @note The output memory must not be freed by the caller
    */
-  std::vector<float *> inference(std::vector<float *> &input,
-                                 unsigned int batch);
+  std::vector<float *> inference(unsigned int batch,
+                                 std::vector<float *> &input,
+                                 std::vector<float *> &label);
 
   /**
    * @brief     Enable the memory optimizations for the network
