@@ -79,11 +79,23 @@ protected:
   bool must_fail;
 };
 
+typedef enum {
+  SKIP_CALC_GRAD = 1 << 0,  /**< skip calculating gradient and compare */
+  SKIP_CALC_DERIV = 1 << 1, /**< skip calculating derivative and compare */
+
+  FORWARD_MODE_INFERENCE =
+    1 << 2, /**< set if layer should be forwarded with inference mode */
+
+  DEFAULT =
+    0, /**< default set up, compare forward, backward in training mode */
+} LayerGoldenTestParamOptions;
+
 using LayerGoldenTestParamType =
   std::tuple<LayerFactoryType /**< Layer creator */,
              std::vector<std::string> /**< Properties */,
              const char *, /**< Input Tensor dimensions representation */
-             const char * /**< Golden file name */>;
+             const char * /**< Golden file name */,
+             int /**< LayerGoldenTestParamOptions */>;
 
 /**
  * @brief Golden Layer Test with designated format
@@ -108,6 +120,28 @@ public:
    *
    */
   virtual void TearDown();
+
+  /**
+   * @brief check if given test suite should be forwarded with inference mode
+   * enabled
+   *
+   * @return bool layer should be forwarded with inference
+   */
+  bool shouldForwardWithInferenceMode();
+
+  /**
+   * @brief check if given test suite should skip calculating derivative
+   *
+   * @return bool true if should skip calculating derivative
+   */
+  bool shouldSkipCalcDeriv();
+
+  /**
+   * @brief check if given test suite should skip calculating Gradient
+   *
+   * @return bool true if should skip calculating Gradient
+   */
+  bool shouldSkipCalcGrad();
 };
 
 #endif // __LAYERS_COMMON_TESTS_H__

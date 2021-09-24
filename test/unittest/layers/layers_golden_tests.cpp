@@ -145,10 +145,11 @@ static RunLayerContext prepareRunContext(const TensorPacks &packs) {
   return rc;
 }
 
-static void compareRunContext(RunLayerContext &rc, std::ifstream &file) {
+static void compareRunContext(RunLayerContext &rc, std::ifstream &file,
+                              bool skip_grad, bool skip_deriv) {
   file.seekg(0, std::ios::beg);
   auto compare_tensors = [&file](unsigned length, auto tensor_getter, auto pred,
-                                 const std::string &name) {
+                                 bool skip_compare, const std::string &name) {
     for (unsigned i = 0; i < length; ++i) {
       if (!pred(i)) {
         continue;
@@ -157,36 +158,38 @@ static void compareRunContext(RunLayerContext &rc, std::ifstream &file) {
       auto answer = tensor.clone();
       sizeCheckedReadTensor(answer, file, name + " at " + std::to_string(i));
 
-      if (name == "initial_weights") {
+      if (skip_compare) {
         continue;
       }
       EXPECT_EQ(tensor, answer) << name << " at " << std::to_string(i);
     }
   };
 
-  auto always = [](unsigned idx) { return true; };
-  auto only_trainable = [&rc](unsigned idx) {
+  auto always_read = [](unsigned idx) { return true; };
+  auto only_read_trainable = [&rc](unsigned idx) {
     return rc.weightHasGradient(idx);
   };
 
+  constexpr bool skip_compare = true;
+
   compare_tensors(rc.getNumWeights(),
-                  [&rc](unsigned idx) { return rc.getWeight(idx); }, always,
-                  "initial_weights");
+                  [&rc](unsigned idx) { return rc.getWeight(idx); },
+                  always_read, skip_compare, "initial_weights");
   compare_tensors(rc.getNumInputs(),
-                  [&rc](unsigned idx) { return rc.getInput(idx); }, always,
-                  "inputs");
+                  [&rc](unsigned idx) { return rc.getInput(idx); }, always_read,
+                  !skip_compare, "inputs");
   compare_tensors(rc.getNumOutputs(),
-                  [&rc](unsigned idx) { return rc.getOutput(idx); }, always,
-                  "outputs");
+                  [&rc](unsigned idx) { return rc.getOutput(idx); },
+                  always_read, !skip_compare, "outputs");
   compare_tensors(rc.getNumWeights(),
                   [&rc](unsigned idx) { return rc.getWeightGrad(idx); },
-                  only_trainable, "gradients");
+                  only_read_trainable, skip_grad, "gradients");
   compare_tensors(rc.getNumWeights(),
-                  [&rc](unsigned idx) { return rc.getWeight(idx); }, always,
-                  "weights");
+                  [&rc](unsigned idx) { return rc.getWeight(idx); },
+                  always_read, !skip_compare, "weights");
   compare_tensors(rc.getNumInputs(),
                   [&rc](unsigned idx) { return rc.getOutgoingDerivative(idx); },
-                  always, "derivatives");
+                  always_read, skip_deriv, "derivatives");
 }
 
 LayerGoldenTest::~LayerGoldenTest() {}
@@ -194,6 +197,21 @@ LayerGoldenTest::~LayerGoldenTest() {}
 void LayerGoldenTest::SetUp() {}
 
 void LayerGoldenTest::TearDown() {}
+
+bool LayerGoldenTest::shouldForwardWithInferenceMode() {
+  return std::get<int>(GetParam()) &
+         LayerGoldenTestParamOptions::FORWARD_MODE_INFERENCE;
+}
+
+bool LayerGoldenTest::shouldSkipCalcDeriv() {
+  return std::get<int>(GetParam()) &
+         LayerGoldenTestParamOptions::SKIP_CALC_DERIV;
+}
+
+bool LayerGoldenTest::shouldSkipCalcGrad() {
+  return std::get<int>(GetParam()) &
+         LayerGoldenTestParamOptions::SKIP_CALC_GRAD;
+}
 
 TEST_P(LayerGoldenTest, run) {
   auto f = std::get<0>(GetParam());
@@ -206,11 +224,18 @@ TEST_P(LayerGoldenTest, run) {
   auto tensors = prepareTensors(ic, golden_file);
   auto rc = prepareRunContext(tensors);
 
-  layer->forwarding(rc, true);
-  layer->calcGradient(rc);
-  layer->calcDerivative(rc);
+  bool skip_calc_grad = shouldSkipCalcGrad();
+  bool skip_calc_deriv = shouldSkipCalcDeriv();
 
-  compareRunContext(rc, golden_file);
+  layer->forwarding(rc, !shouldForwardWithInferenceMode());
+  if (!skip_calc_grad) {
+    layer->calcGradient(rc);
+  }
+  if (!skip_calc_deriv) {
+    layer->calcDerivative(rc);
+  }
+
+  compareRunContext(rc, golden_file, skip_calc_grad, skip_calc_deriv);
 
   EXPECT_TRUE(true); // stub test for tcm
 }

@@ -26,10 +26,12 @@ INSTANTIATE_TEST_CASE_P(FullyConnected, LayerSemantics,
 
 auto fc_basic_plain = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::FullyConnectedLayer>, {"unit=5"},
-  "3:1:1:10", "fc_golden_plain.nnlayergolden");
+  "3:1:1:10", "fc_golden_plain.nnlayergolden",
+  LayerGoldenTestParamOptions::DEFAULT);
 auto fc_basic_single_batch = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::FullyConnectedLayer>, {"unit=4"},
-  "1:1:1:10", "fc_golden_single_batch.nnlayergolden");
+  "1:1:1:10", "fc_golden_single_batch.nnlayergolden",
+  LayerGoldenTestParamOptions::DEFAULT);
 
 INSTANTIATE_TEST_CASE_P(FullyConnected, LayerGoldenTest,
                         ::testing::Values(fc_basic_plain,
