@@ -17,6 +17,7 @@
  * @brief	This is Neural Network Class
  * @see		https://github.com/nnstreamer/nntrainer
  * @author	Jijoong Moon <jijoong.moon@samsung.com>
+ * @author Priyank Mohan Verma <p1.verma@samsung.com>
  * @bug		No known bugs except for NYI items
  *
  */

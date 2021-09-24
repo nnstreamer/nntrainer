@@ -3,10 +3,11 @@
  * Copyright (C) 2020 Jihoon Lee <jhoon.it.lee@samsung.com>
  *
  * @file   task_runner.cpp
- * @date   23 Sep 2021
+ * @date   08 Jan 2021
  * @brief  task runner for adding new classes at runtime for simpleshot learning
  * demonstration
  * @see    https://github.com/nnstreamer/nntrainer
+ * @author Jihoon Lee <jhoon.it.lee@samsung.com>
  * @author Priyank Mohan Verma <p1.verma@samsung.com>
  * @bug    No known bugs except for NYI items
  */
@@ -55,7 +56,6 @@ const std::string getModelFilePath(const std::string &model,
   } else if (model == "conv4") {
     model_path = conv4_model_path;
   } else if (model == "facenet") {
-    std::cout << facenet_model_path << std::endl;
     model_path = facenet_model_path;
   }
 
@@ -124,20 +124,28 @@ using LayerHandle = std::shared_ptr<ml::train::Layer>;
 /**
  * @brief find model name by using strcmp
  * @param backbone name
- * @return int to identify the backbone
+ * @return std::pair<std::string,std::string> to identify the model name and
+ * input_shape
  */
 
-int find_model_name(std::string backbone) {
+std::pair<std::string, std::string> findModelName(std::string backbone) {
 
-  const char *a = backbone.c_str();
+  const char *backbone_name = backbone.c_str();
 
-  if (std::strcmp(a, "conv4") == 0 || std::strcmp(a, "resnet50") == 0)
-    return 0;
+  std::pair<std::string, std::string> model_parameter;
 
-  if (std::strcmp(a, "facenet") == 0)
-    return 1;
+  std::string model_name = "name=" + backbone;
 
-  return -1;
+  if (std::strcmp(backbone_name, "conv4") == 0 ||
+      std::strcmp(backbone_name, "resnet50") == 0) {
+    model_parameter = {model_name, "input_shape=32:32:3"};
+  } else if (std::strcmp(backbone_name, "facenet") == 0) {
+    model_parameter = {model_name, "input_shape=112:112:3"};
+  } else {
+    model_parameter = {"-1", "-1"};
+  }
+
+  return model_parameter;
 }
 
 int new_classes;     /**< an integer value new classes to be added */
@@ -163,27 +171,17 @@ createModel(const std::string &backbone, const std::string &app_path,
 
   /// Find backbone model name to be created
 
-  int model_name = find_model_name(backbone);
-  LayerHandle backbone_layer;
-
-  switch (model_name) {
-  case 0:
-    backbone_layer = ml::train::layer::BackboneTFLite(
-      {"name=backbone", "model_path=" + getModelFilePath(backbone, app_path),
-       "input_shape=32:32:3", "trainable=false"});
-    break;
-
-  case 1:
-    backbone_layer = ml::train::layer::BackboneTFLite(
-      {"name=backbone", "model_path=" + getModelFilePath(backbone, app_path),
-       "input_shape=112:112:3", "trainable=false"});
-
-    break;
-
-  default:
-    std::cout << "Wrong Model Name\n";
-    break;
+  std::pair<std::string, std::string> model_parameter = findModelName(backbone);
+  if (strcmp(model_parameter.first.c_str(), "-1") == 0) {
+    std::stringstream ss;
+    ss << "not supported model name given, model type: " << backbone;
+    throw std::invalid_argument(ss.str().c_str());
   }
+
+  LayerHandle backbone_layer = ml::train::layer::BackboneTFLite(
+    {model_parameter.first,
+     "model_path=" + getModelFilePath(backbone, app_path),
+     model_parameter.second, "trainable=false"});
 
   /// Creating Model Layers
 
@@ -236,7 +234,7 @@ createModel(const std::string &backbone, const std::string &app_path,
 /**
  * @brief Check whether file exist or not
  * @param file_name name of file
- * @return bool
+ * @return bool true if exists else false if it doesn't exists
  */
 
 bool isFileExist(std::string file_name) {
@@ -248,10 +246,11 @@ bool isFileExist(std::string file_name) {
  * @brief appends label in allLabels.txt file that maintains all added classes
  * string labels
  * @param label_path string label path of newly added classes
- * @return int
+ * @return int 1 for new classes appended in allLabels.txt and 0 if no new
+ * classes are added to allLabels.txt
  */
 
-int append_label(std::string label_path) {
+int appendLabel(std::string label_path) {
 
   int class_cnt = 0;
   int flag = 0;
@@ -324,9 +323,9 @@ int append_label(std::string label_path) {
     class_cnt = 0;
 
     if (all_labels_file.is_open()) {
-      /
-        // checking whether the file is open
-        std::string tp;
+
+      // checking whether the file is open
+      std::string tp;
 
       while (std::getline(all_labels_file, tp)) {
         /// read data from file object and put it into string
@@ -434,7 +433,7 @@ int main(int argc, char **argv) {
 
   /// append_label to allLabels.txt
 
-  int flag = append_label(label_path);
+  int flag = appendLabel(label_path);
 
   /// if new classes is zero so to avoid error
   if (flag == 1) {

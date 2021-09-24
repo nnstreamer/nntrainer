@@ -7,6 +7,7 @@
  * @see	   https://github.com/nnstreamer/nntrainer
  * @author Jijoong Moon <jijoong.moon@samsung.com>
  * @author Parichay Kapoor <pk.kapoor@samsung.com>
+ * @author Priyank Mohan Verma <p1.verma@samsung.com>
  * @bug	   No known bugs except for NYI items
  * @brief  This is model interface for c++ API
  *
