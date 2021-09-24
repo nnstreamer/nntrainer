@@ -119,9 +119,10 @@ int NNTrainerInference::run(const GstTensorMemory *input,
     inputs.emplace_back(static_cast<float *>(input[idx].data));
 
   std::vector<float *> outputs;
+  std::vector<float *> labels;
 
   try {
-    outputs = model->inference(inputs, batch_size);
+    outputs = model->inference(batch_size, inputs, labels);
   } catch (std::exception &e) {
     ml_loge("%s %s", typeid(e).name(), e.what());
     return -2;
