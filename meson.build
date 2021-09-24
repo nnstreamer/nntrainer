@@ -1,5 +1,5 @@
 project('nntrainer', 'c', 'cpp',
-  version: '0.0.1',
+  version: '0.3.0',
   license: ['apache-2.0'],
   meson_version: '>=0.50.0',
   default_options: [
