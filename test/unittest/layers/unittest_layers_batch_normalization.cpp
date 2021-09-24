@@ -23,13 +23,30 @@ auto semantic_bn = LayerSemanticsParamType(
 INSTANTIATE_TEST_CASE_P(BatchNormalization, LayerSemantics,
                         ::testing::Values(semantic_bn));
 
-auto bn_basic_channels = LayerGoldenTestParamType(
-  nntrainer::createLayer<nntrainer::BatchNormalizationLayer>, {}, "2:4:2:3",
-  "bn_golden_channels_training.nnlayergolden");
+auto bn_inference_option = LayerGoldenTestParamOptions::SKIP_CALC_GRAD |
+                           LayerGoldenTestParamOptions::SKIP_CALC_DERIV |
+                           LayerGoldenTestParamOptions::FORWARD_MODE_INFERENCE;
 
-auto bn_basic_width = LayerGoldenTestParamType(
+auto bn_basic_channels_training = LayerGoldenTestParamType(
+  nntrainer::createLayer<nntrainer::BatchNormalizationLayer>, {}, "2:4:2:3",
+  "bn_golden_channels_training.nnlayergolden",
+  LayerGoldenTestParamOptions::DEFAULT);
+
+auto bn_basic_channels_inference = LayerGoldenTestParamType(
+  nntrainer::createLayer<nntrainer::BatchNormalizationLayer>, {}, "2:4:2:3",
+  "bn_golden_channels_inference.nnlayergolden", bn_inference_option);
+
+auto bn_basic_width_training = LayerGoldenTestParamType(
   nntrainer::createLayer<nntrainer::BatchNormalizationLayer>, {}, "2:1:1:10",
-  "bn_golden_width_training.nnlayergolden");
+  "bn_golden_width_training.nnlayergolden",
+  LayerGoldenTestParamOptions::DEFAULT);
+
+auto bn_basic_width_inference = LayerGoldenTestParamType(
+  nntrainer::createLayer<nntrainer::BatchNormalizationLayer>, {}, "2:1:1:10",
+  "bn_golden_width_inference.nnlayergolden", bn_inference_option);
 
 INSTANTIATE_TEST_CASE_P(BatchNormalization, LayerGoldenTest,
-                        ::testing::Values(bn_basic_channels, bn_basic_width));
+                        ::testing::Values(bn_basic_channels_training,
+                                          bn_basic_channels_inference,
+                                          bn_basic_width_training,
+                                          bn_basic_width_inference));
