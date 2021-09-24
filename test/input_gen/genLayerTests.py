@@ -45,16 +45,39 @@ def inspect_file(file_name):
 
 if __name__ == "__main__":
     fc = K.layers.Dense(5)
-    record_single(fc, (3, 1, 1, 10), "fc_golden_plain")
+    record_single(fc, (3, 1, 1, 10), "fc_plain")
     fc = K.layers.Dense(4)
-    record_single(fc, (1, 1, 1, 10), "fc_golden_single_batch")
+    record_single(fc, (1, 1, 1, 10), "fc_single_batch")
     bn = K.layers.BatchNormalization()
-    record_single(bn, (2, 4, 2, 3), "bn_golden_channels_training", {"training": True})
-    ## @todo add test for inference
-    record_single(bn, (2, 4, 2, 3), "bn_golden_channels_inference", {"training": False})
+    record_single(bn, (2, 4, 2, 3), "bn_channels_training", {"training": True})
+    record_single(bn, (2, 4, 2, 3), "bn_channels_inference", {"training": False})
     bn = K.layers.BatchNormalization()
-    record_single(bn, (2, 10), "bn_golden_width_training", {"training": True})
-    record_single(bn, (2, 10), "bn_golden_width_inference", {"training": False})
+    record_single(bn, (2, 10), "bn_width_training", {"training": True})
+    record_single(bn, (2, 10), "bn_width_inference", {"training": False})
 
-# inspect_file("bn_golden_width_training.nnlayergolden")
+    conv = K.layers.Conv2D(3, 2)
+    record_single(conv, (1, 1, 4, 4), "conv_sb_minimum")
+    record_single(conv, (3, 1, 4, 4), "conv_mb_minimum")
+
+    conv = K.layers.Conv2D(2, 3, padding="same")
+    record_single(conv, (1, 1, 4, 4), "conv_sb_same_remain")
+    record_single(conv, (3, 1, 4, 4), "conv_mb_same_remain")
+
+    conv = K.layers.Conv2D(2, 3, strides=2, padding="same")
+    record_single(conv, (1, 3, 4, 4), "conv_sb_same_uneven_remain")
+    record_single(conv, (3, 3, 4, 4), "conv_mb_same_uneven_remain")
+
+    conv = K.layers.Conv2D(2, 3, strides=2, padding="valid")
+    record_single(conv, (1, 3, 7, 7), "conv_sb_valid_drop_last")
+    record_single(conv, (3, 3, 7, 7), "conv_mb_valid_drop_last")
+
+    conv = K.layers.Conv2D(3, 2, strides=3)
+    record_single(conv, (1, 2, 5, 5), "conv_sb_no_overlap")
+    record_single(conv, (3, 2, 5, 5), "conv_mb_no_overlap")
+
+    conv = K.layers.Conv2D(3, 1, strides=2)
+    record_single(conv, (1, 2, 5, 5), "conv_sb_1x1_kernel")
+    record_single(conv, (3, 2, 5, 5), "conv_mb_1x1_kernel")
+
+inspect_file("conv_sb_no_overlap.nnlayergolden")
 
