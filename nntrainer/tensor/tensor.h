@@ -597,6 +597,7 @@ public:
    */
   Tensor &sum(const std::vector<unsigned int> &axes, Tensor &output,
               float alpha = 1.0) const;
+
   /**
    * @brief     Averaging the Tensor elements according to the axis
    *            0 : batch direction
@@ -606,6 +607,12 @@ public:
    * @retval    Calculated Tensor
    */
   Tensor average(unsigned int axis) const;
+  /**
+   * @brief     Averaging the Tensor elements according to the axis
+   *
+   * @retval    Calculated Tensor
+   */
+  Tensor &average(unsigned int axis, Tensor &output) const;
 
   /**
    * @brief average all the Tensor by multiple axes
@@ -616,10 +623,25 @@ public:
   Tensor average(const std::vector<unsigned int> &axes) const;
 
   /**
+   * @brief average all the Tensor by multiple axes
+   *
+   * @param axes axes to sum along
+   * @param output output tensor
+   * @return Tensor
+   */
+  Tensor &average(const std::vector<unsigned int> &axes, Tensor &output) const;
+
+  /**
    * @brief     Averaging the Tensor elements by all axis
    * @retval    Calculated Tensor
    */
   Tensor average() const;
+
+  /**
+   * @brief     Averaging the Tensor elements by all axis
+   * @retval    Calculated Tensor
+   */
+  Tensor &average(Tensor &output) const;
 
   /**
    * @brief     Anchor a starting point to defer following evaluation

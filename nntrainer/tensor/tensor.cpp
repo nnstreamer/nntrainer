@@ -1180,20 +1180,36 @@ void Tensor::read(std::ifstream &file) {
  * @brief Calculate average value according to the axis.
  */
 Tensor Tensor::average(unsigned int axis) const {
+  Tensor t;
+  return average(axis, t);
+}
+
+/**
+ * @brief Calculate average value according to the axis.
+ */
+Tensor &Tensor::average(unsigned int axis, Tensor &output) const {
   if (axis >= TensorDim::MAXDIM)
     throw std::out_of_range(
       "negative axis or axis more then MAXDIM is invalid");
 
   unsigned int axis_size = dim.getDim()[axis];
   if (axis_size == 1)
-    return this->clone();
+    output.copy(*this);
+  else
+    this->sum(axis, output, 1.0 / ((float)axis_size));
 
-  return this->sum(axis, 1.0 / ((float)axis_size));
+  return output;
 }
 
 Tensor Tensor::average(const std::vector<unsigned int> &axes) const {
+  Tensor t;
+  return average(axes, t);
+}
+
+Tensor &Tensor::average(const std::vector<unsigned int> &axes,
+                        Tensor &output) const {
   if (axes.empty())
-    return this->average();
+    return this->average(output);
 
   TensorDim ret_shape;
   for (const auto &idx : axes) {
@@ -1203,7 +1219,7 @@ Tensor Tensor::average(const std::vector<unsigned int> &axes) const {
     ret_shape.setTensorDim(idx, dim.getTensorDim(idx));
   }
 
-  return this->sum(axes, 1.0 / (float)ret_shape.getDataLen());
+  return this->sum(axes, output, 1.0 / (float)ret_shape.getDataLen());
 }
 
 /**
@@ -1213,6 +1229,15 @@ Tensor Tensor::average() const {
   Tensor result = *this;
   result.reshape({1, 1, 1, dim.getDataLen()});
   return result.average(3);
+}
+
+/**
+ * @brief Calculate average value according to the axis.
+ */
+Tensor &Tensor::average(Tensor &output) const {
+  Tensor result = *this;
+  result.reshape({1, 1, 1, dim.getDataLen()});
+  return result.average(3, output);
 }
 
 void Tensor::setValue(float val) {

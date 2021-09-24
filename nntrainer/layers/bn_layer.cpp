@@ -32,11 +32,22 @@ namespace nntrainer {
 
 static constexpr size_t SINGLE_INOUT_IDX = 0;
 
-enum BNParams { mu, var, gamma, beta, deviation };
+enum BNParams {
+  mu,
+  var,
+  gamma,
+  beta,
+  deviation,
+  invstd,
+  t_full_fw,
+  t_full_bw,
+  t_reduced
+};
 
 BatchNormalizationLayer::BatchNormalizationLayer(int axis_) :
   Layer(),
   axis(axis_),
+  divider(0),
   wt_idx({0}),
   bn_props(props::Epsilon(), props::BNPARAMS_MU_INIT(),
            props::BNPARAMS_VAR_INIT(), props::BNPARAMS_BETA_INIT(),
@@ -66,11 +77,21 @@ void BatchNormalizationLayer::finalize(InitLayerContext &context) {
   if (axis == -1)
     axis = in_dim.channel() > 1 ? 1 : 3;
 
+  /**
+   * @todo This can be speedup by employing transpose for convolution. With
+   * transpose, the channel dimension can be made last, and the remaining
+   * dimensions can be squeezed. This would allow the sum and average to be
+   * faster, and no temporary allocations inside them.
+   */
+
   dim.setTensorDim(axis, in_dim.getTensorDim(axis));
 
+  divider = 1;
   for (int i = 0; i < 4; ++i) {
-    if (axis != i)
+    if (axis != i) {
       axes_to_reduce.push_back(i);
+      divider *= in_dim.getTensorDim(i);
+    }
   }
 
   wt_idx[BNParams::mu] =
@@ -86,9 +107,33 @@ void BatchNormalizationLayer::finalize(InitLayerContext &context) {
     context.requestWeight(dim, bnparams_beta, WeightRegularizer::NONE, 1.0f,
                           context.getName() + ":beta", true);
 
+  /**
+   * caches the deviation -> input - avg(input)
+   * @todo check if avoiding this storage and adding dependency on input (no
+   * more in-place calculation) can save memory during memory optimization.
+   */
   wt_idx[BNParams::deviation] = context.requestTensor(
     in_dim, context.getName() + ":deviation", Tensor::Initializer::NONE, false,
     TensorLifespan::ITERATION_LIFESPAN);
+  /** caches the inverse standard deviation */
+  wt_idx[BNParams::invstd] = context.requestTensor(
+    dim, context.getName() + ":invstd", Tensor::Initializer::NONE, false,
+    TensorLifespan::ITERATION_LIFESPAN);
+  /**
+   * Temporary tensor to store the reduced tensors along the axes_to_reduce.
+   * This is further used to cache variance + epsilon as well.
+   */
+  wt_idx[BNParams::t_reduced] = context.requestTensor(
+    dim, context.getName() + ":tensor_reduced", Tensor::Initializer::NONE,
+    false, TensorLifespan::ITERATION_LIFESPAN);
+  /** Temporary tensor to store the full sized tensors in forwarding. */
+  wt_idx[BNParams::t_full_fw] = context.requestTensor(
+    in_dim, context.getName() + ":tensor_full_fw", Tensor::Initializer::NONE,
+    false, TensorLifespan::FORWARD_FUNC_LIFESPAN);
+  /** Temporary tensor to store the full sized tensors in backwarding. */
+  wt_idx[BNParams::t_full_bw] = context.requestTensor(
+    in_dim, context.getName() + ":tensor_full_back", Tensor::Initializer::NONE,
+    false, TensorLifespan::BACKWARD_FUNC_LIFESPAN);
 }
 
 void BatchNormalizationLayer::setProperty(
@@ -112,20 +157,23 @@ void BatchNormalizationLayer::forwarding(RunLayerContext &context,
   Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
   Tensor &hidden_ = context.getOutput(SINGLE_INOUT_IDX);
   Tensor &deviation = context.getTensor(wt_idx[BNParams::deviation]);
+  Tensor &invstd = context.getTensor(wt_idx[BNParams::invstd]);
+
+  /** @todo these are not needed for inference, support optimizing these */
+  Tensor &t_reduced = context.getTensor(wt_idx[BNParams::t_reduced]);
+  Tensor &t_full = context.getTensor(wt_idx[BNParams::t_full_fw]);
+  Tensor cvar = t_reduced; /** cache the variance in this tensor for backward */
 
   if (training) {
-    /**
-     * @todo support average with preallocated tensors,
-     * and then register cmu as a temporary tensor
-     */
-    Tensor cmu = input_.average(axes_to_reduce);
-    input_.subtract(cmu, deviation);
-
-    Tensor t1 = deviation.pow(2.0f);
-    cvar = t1.average(axes_to_reduce);
+    input_.average(axes_to_reduce, t_reduced);
+    input_.subtract(t_reduced, deviation);
 
     mu.multiply_i(momentum);
-    mu.add_i(cmu, 1 - momentum);
+    mu.add_i(t_reduced, 1 - momentum);
+
+    t_full = deviation.pow(2.0f);
+    t_full.average(axes_to_reduce, cvar);
+
     var.multiply_i(momentum);
     var.add_i(cvar, 1 - momentum);
 
@@ -133,6 +181,7 @@ void BatchNormalizationLayer::forwarding(RunLayerContext &context,
     cvar.pow(-0.5f, invstd);
   } else {
     input_.subtract(mu, deviation);
+    /** @todo do below 2 lines only for first iteration */
     var.add(epsilon, invstd);
     invstd.pow_i(-0.5f);
   }
@@ -148,30 +197,49 @@ void BatchNormalizationLayer::calcDerivative(RunLayerContext &context) {
   Tensor &deriv = context.getIncomingDerivative(SINGLE_INOUT_IDX);
   Tensor &dx = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
   Tensor &deviation = context.getTensor(wt_idx[BNParams::deviation]);
+  Tensor &invstd = context.getTensor(wt_idx[BNParams::invstd]);
 
-  Tensor dx_1 = gamma.multiply(invstd);
-  Tensor dx_2 = deriv.subtract(deriv.average(axes_to_reduce));
+  Tensor &t_reduced = context.getTensor(wt_idx[BNParams::t_reduced]);
+  Tensor &t_full = context.getTensor(wt_idx[BNParams::t_full_bw]);
+  Tensor cvar = t_reduced;
 
-  Tensor t1 = deviation.multiply(deriv);
-  Tensor t2 = t1.average(axes_to_reduce);
-  deviation.divide_i(cvar);
-  deviation.multiply_i(t2);
-  dx_2.subtract_i(deviation);
+  if (context.getTrainable()) {
+    /**
+     * This implementation depends on the pre-calculated dbeta calculated.
+     */
+    Tensor &dbeta = context.getWeightGrad(wt_idx[BNParams::beta]);
+    t_reduced = dbeta.divide(divider);
+  } else {
+    t_reduced = deriv.average(axes_to_reduce);
+  }
 
-  dx_2.multiply(dx_1, dx);
+  deriv.subtract(t_reduced, dx);
+
+  deviation.multiply(deriv, t_full);
+  t_full.average(axes_to_reduce, t_reduced);
+  t_reduced.divide_i(cvar);
+  deviation.multiply_i(t_reduced);
+  dx.subtract_i(deviation);
+
+  if (context.getTrainable()) {
+    /**
+     * This calculates dgamma tensor.
+     */
+    Tensor &dgamma = context.getWeightGrad(wt_idx[BNParams::gamma]);
+    t_full.multiply_i(invstd);
+    t_full.sum(axes_to_reduce, dgamma);
+  }
+
+  invstd.multiply_i(gamma);
+  dx.multiply_i(invstd);
 }
 
 void BatchNormalizationLayer::calcGradient(RunLayerContext &context) {
-
-  Tensor &dgamma = context.getWeightGrad(wt_idx[BNParams::gamma]);
+  /** dgamma is calculated in calcDerivative. dbeta is calculated here */
   Tensor &dbeta = context.getWeightGrad(wt_idx[BNParams::beta]);
   Tensor &deriv = context.getIncomingDerivative(SINGLE_INOUT_IDX);
-  Tensor &deviation = context.getTensor(wt_idx[BNParams::deviation]);
 
   deriv.sum(axes_to_reduce, dbeta);
-  Tensor dev = deviation.multiply(deriv);
-  dev.multiply_i(invstd);
-  dev.sum(axes_to_reduce, dgamma);
 }
 
 void BatchNormalizationLayer::exportTo(Exporter &exporter,

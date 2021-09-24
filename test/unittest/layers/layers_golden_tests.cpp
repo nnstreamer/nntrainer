@@ -131,8 +131,8 @@ static RunLayerContext prepareRunContext(const TensorPacks &packs) {
   };
 
   auto rc =
-    RunLayerContext("golden", 0.0f, create_view(weights), create_view(ins),
-                    create_view(outs), create_view(tensors));
+    RunLayerContext("golden", true, 0.0f, create_view(weights),
+                    create_view(ins), create_view(outs), create_view(tensors));
 
   auto num_outputs = rc.getNumOutputs();
 

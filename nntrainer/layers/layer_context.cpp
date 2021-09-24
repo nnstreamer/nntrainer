@@ -15,8 +15,8 @@
 #include <weight.h>
 
 namespace nntrainer {
-RunLayerContext::RunLayerContext(const std::string &name, float l,
-                                 const std::vector<Weight *> &w,
+RunLayerContext::RunLayerContext(const std::string &name, bool trainable,
+                                 float l, const std::vector<Weight *> &w,
                                  const std::vector<Var_Grad *> &in,
                                  const std::vector<Var_Grad *> &out,
                                  const std::vector<Var_Grad *> &t) :
@@ -26,6 +26,7 @@ RunLayerContext::RunLayerContext(const std::string &name, float l,
   outputs(out),
   tensors(t) {
   std::get<props::Name>(props).set(name);
+  std::get<props::Trainable>(props).set(trainable);
   NNTR_THROW_IF(!readyToUse(), std::invalid_argument)
     << "run context is not ready to use upon creation";
 }
