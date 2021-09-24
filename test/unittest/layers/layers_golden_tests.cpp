@@ -227,6 +227,11 @@ TEST_P(LayerGoldenTest, run) {
   bool skip_calc_grad = shouldSkipCalcGrad();
   bool skip_calc_deriv = shouldSkipCalcDeriv();
 
+  for (int i = 0; i < 4; ++i) {
+    /// warm layer multiple times
+    layer->forwarding(rc, !shouldForwardWithInferenceMode());
+  }
+
   layer->forwarding(rc, !shouldForwardWithInferenceMode());
   if (!skip_calc_grad) {
     layer->calcGradient(rc);

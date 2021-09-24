@@ -402,6 +402,10 @@ def record_single(layer, input_shape, test_name, call_args={}):
     inputs = _rand_like(input_shape)
 
     initial_weights = [tf.Variable(i) for i in layer.weights]
+
+    for _ in range(4):
+        layer.call(inputs, **call_args) # warm layer multiple times
+
     with tf.GradientTape(persistent=True) as tape:
         tape.watch(inputs)
         outputs = layer.call(inputs, **call_args)
