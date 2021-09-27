@@ -33,7 +33,7 @@ Weight::Weight(const TensorDim &dim, const Tensor::Initializer init,
 void Weight::initializeGradient(const Tensor &preallocated) {
   // Use self variable to initialize itself
   Var_Grad::initializeGradient(preallocated);
-  if (alloc_now)
+  if (var->isAllocated())
     allocateOptimizerVariables();
 }
 

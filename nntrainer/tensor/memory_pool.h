@@ -7,9 +7,13 @@
  * @see    https://github.com/nnstreamer/nntrainer
  * @author Parichay Kapoor <pk.kapoor@samsung.com>
  * @bug    No known bugs except for NYI items
- * @brief  This is Memory Pool Class for
+ * @brief  This is Memory Pool Class
  *
- * @todo   Support an external allocator for different backends
+ * @todo   Support an external allocator for different backends and alignment
+ * @todo   Support releaseMemory(token) - this need not release actual memory
+ * until deallocate
+ * @todo   Support maximum memory size for the memory pool as an argument
+ * @todo support late memory request without optimization
  */
 
 #ifndef __MEMORY_POOL_H__
@@ -84,28 +88,63 @@ public:
    * @brief Free all the allocated memory
    *
    */
-  void free();
+  void deallocate();
 
   /**
    * @brief Get the maximum real memory requirement
    *
-   * @return The real memory requirement with this strategy
+   * @return The real memory requirement with this strategy in bytes
    */
   size_t size();
 
   /**
    * @brief Get the minimum theoretical memory requirement
    *
-   * @return The theoretical memory requirement with this strategy
+   * @return The theoretical memory requirement with this strategy in bytes
    */
-  size_t minMemReq();
+  size_t minMemoryRequirement();
 
 private:
+  /**
+   * @brief Validate the provided layout
+   */
+  bool validateLayout();
+
+  /**
+   * @brief Validate the provided layout does not overflow outside the given
+   * size of the memory pool
+   */
+  bool validateOverflow();
+
   /**
    * @brief Validate the provided layout so that no two memories to be used at
    * overlap interval has overlapping memories
    */
-  bool validateLayout();
+  bool validateOverlap();
+
+  /**
+   * @brief Calculate the minimum memory requirement for the given memory
+   * requests
+   *
+   * @returns the minimum memory requirement in bytes
+   *
+   * @note This will be theoretical minimum memory requirement ensuring that the
+   * memory usages at the same time do not overlap with their validity. This
+   * does not consider about the fragmentation which comes from the actual
+   * memory layout.
+   */
+  size_t calcMinMemoryRequirement();
+
+  /**
+   * @brief Get sorted permuation for the memory requests
+   *
+   * @return sorted permutation
+   *
+   * @details Performs sorting based on the memory overlap using memory offset
+   * as the start and the memory offset + memory size as the end of the
+   * interval.
+   */
+  std::vector<unsigned int> getSortedPermutation();
 
   std::vector<size_t> memory_size; /**< various sizes memory requested */
   std::vector<std::pair<unsigned int, unsigned int>>

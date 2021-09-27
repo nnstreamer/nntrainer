@@ -19,20 +19,20 @@
 namespace nntrainer {
 
 Var_Grad::Var_Grad(const TensorDim &dim, const Tensor::Initializer init,
-                   bool ng, bool alloc_now_, const std::string &name) :
-  dim(dim),
-  need_gradient(ng),
-  alloc_now(alloc_now_),
-  name(name) {
-  var = std::make_shared<Tensor>(dim, alloc_now, init);
+                   bool need_gradient, bool alloc_now,
+                   const std::string &name) {
+  var = std::make_shared<Tensor>(dim, alloc_now, init, name);
+
+  std::string grad_name = name + grad_suffix;
   if (need_gradient)
     /**
      * @todo gradient initializer should be none, and then they should be set
      * zero right before using by the user itself.
      */
-    grad = std::make_shared<Tensor>(dim, alloc_now, Tensor::Initializer::ZEROS);
+    grad = std::make_shared<Tensor>(dim, alloc_now, Tensor::Initializer::ZEROS,
+                                    grad_name);
   else
-    grad = std::make_shared<Tensor>();
+    grad = std::make_shared<Tensor>(grad_name);
 }
 
 void Var_Grad::initializeVariable(const Tensor &preallocated) {
@@ -60,12 +60,11 @@ void Var_Grad::initializeGradient(const Tensor &preallocated) {
 
 void Var_Grad::initializeShared() { grad->makeSharedDataTensor(*var.get()); }
 
-void Var_Grad::needsGradient(bool ng) {
-  need_gradient = ng;
+void Var_Grad::needsGradient(bool need_gradient) {
   if (need_gradient && grad->empty()) {
-    bool alloc_now_ = var->isAllocated();
     grad =
-      std::make_shared<Tensor>(dim, alloc_now_, Tensor::Initializer::ZEROS);
+      std::make_shared<Tensor>(var->getDim(), var->isAllocated(),
+                               Tensor::Initializer::ZEROS, grad->getName());
   }
 }
 

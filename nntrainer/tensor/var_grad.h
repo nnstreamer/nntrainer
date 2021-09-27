@@ -85,14 +85,12 @@ public:
    */
   explicit Var_Grad(const Tensor &v, const Tensor &g,
                     const std::string &n = "") :
-    dim(v.getDim()),
-    var(std::make_shared<Tensor>(v.getSharedDataTensor(dim, 0, false))),
-    grad(std::make_shared<Tensor>()),
-    need_gradient(!g.empty()),
-    alloc_now(v.isAllocated()),
-    name(n) {
-    if (need_gradient)
-      grad = std::make_shared<Tensor>(g.getSharedDataTensor(dim, 0, false));
+    var(
+      std::make_shared<Tensor>(v.getSharedDataTensor(v.getDim(), 0, false, n))),
+    grad(std::make_shared<Tensor>(n + grad_suffix)) {
+    if (!g.empty())
+      grad = std::make_shared<Tensor>(
+        g.getSharedDataTensor(v.getDim(), 0, false, n + grad_suffix));
   }
 
   /**
@@ -139,7 +137,7 @@ public:
     if (gtrain)
       initializeGradient(grad_preallocated);
     else
-      grad = std::make_shared<Tensor>();
+      grad = std::make_shared<Tensor>(grad->getName());
   }
 
   /**
@@ -165,7 +163,7 @@ public:
    *
    * @return TensorDim Dimension
    */
-  TensorDim getDim() const { return dim; }
+  TensorDim getDim() const { return var->getDim(); }
 
   /**
    * @brief Get if the Var_Grad is need_gradient
@@ -173,7 +171,7 @@ public:
    * @retval true if need_gradient
    * @retval false is not need_gradient
    */
-  bool needsGradient() const { return need_gradient; }
+  bool needsGradient() const { return hasGradient(); }
 
   /**
    * @brief set if the Var_Grad should need gradient
@@ -186,17 +184,17 @@ public:
    *
    * @return std::string name
    */
-  const std::string &getName() const { return name; }
+  const std::string &getName() const { return var->getName(); }
 
   /**
-   * @brief Get the variable tensor (by name)
+   * @brief Get the variable tensor
    *
    * @return Tensor Variable tensor
    */
   Tensor getVariable() const { return *var.get(); }
 
   /**
-   * @brief Get the Gradient tensor (by name)
+   * @brief Get the Gradient tensor
    *
    * @return Tensor Gradient tensor
    */
@@ -234,15 +232,15 @@ public:
    *
    * @note New dimension must maintain the shape of the variable
    */
-  void reset(const TensorDim &tdim, Tensor::Initializer init, bool ng) {
-    dim = tdim;
+  void reset(const TensorDim &dim, Tensor::Initializer init, bool ng) {
     if (!var->empty())
       var->reshape(dim);
     var->initialize(init);
 
-    if (!grad->empty())
+    if (ng && !grad->empty())
       grad->reshape(dim);
-    need_gradient = ng;
+    else
+      grad = std::make_shared<Tensor>(grad->getName());
     resetGradient();
   }
 
@@ -252,8 +250,6 @@ public:
    * @param batch batch size
    */
   void setBatchSize(unsigned int batch) {
-    dim.batch(batch);
-
     if (!var->empty())
       var->updateBatch(batch);
     if (!grad->empty())
@@ -343,15 +339,13 @@ public:
    * @note this is can return is the var_grad needs gradient but it not
    * empty
    */
-  bool hasGradient() const { return need_gradient && !grad->empty(); }
+  bool hasGradient() const { return !grad->empty(); }
+
+  inline static const std::string grad_suffix = ":grad";
 
 protected:
-  TensorDim dim;                /**< dimension of the tensor */
   std::shared_ptr<Tensor> var;  /**< variable to be updated and used */
   std::shared_ptr<Tensor> grad; /**< gradient for the variable */
-  bool need_gradient;           /**< if this variable needs gradient */
-  bool alloc_now;   /**< if the tensor should be allocated instantly */
-  std::string name; /**< name of the parameter */
 };
 
 } // namespace nntrainer

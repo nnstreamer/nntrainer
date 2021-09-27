@@ -24,6 +24,9 @@ namespace nntrainer {
  */
 unsigned int MemoryPool::requestMemory(size_t bytes, unsigned int start_time,
                                        unsigned int end_time) {
+  if (bytes == 0)
+    throw std::invalid_argument("Requesting memory of 0 size");
+
   if (mem_pool != nullptr)
     throw std::invalid_argument(
       "Deallocate memory pool before requesting more memory");
@@ -79,9 +82,13 @@ void MemoryPool::allocate() {
   if (pool_size == 0)
     throw std::runtime_error("Allocating memory pool with size 0");
 
+  if (mem_pool != nullptr)
+    throw std::runtime_error("Memory pool is already allocated");
+
   mem_pool = malloc(pool_size);
   if (mem_pool == nullptr)
-    throw std::runtime_error("Allocation memory failed");
+    throw std::runtime_error(
+      "Failed to allocate memory: " + std::to_string(pool_size) + "bytes");
 }
 
 /**
@@ -102,6 +109,8 @@ void *MemoryPool::getMemory(unsigned int idx) {
 void MemoryPool::deallocate() {
   if (mem_pool != nullptr)
     free(mem_pool);
+
+  mem_pool = nullptr;
 }
 
 /**
@@ -165,7 +174,7 @@ template <typename T> static bool overlap(T s1, T e1, T s2, T e2) {
     throw std::invalid_argument("Invalid range for intervals in MemoryPool");
 #endif
 
-  return !(e1 <= s2 || e2 <= s1)
+  return !(e1 <= s2 || e2 <= s1);
 }
 
 /**

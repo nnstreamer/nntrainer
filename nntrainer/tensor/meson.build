@@ -6,7 +6,8 @@ tensor_sources = [
   'tensor_dim.cpp',
   'var_grad.cpp',
   'weight.cpp',
-  'basic_planner.cpp'
+  'basic_planner.cpp',
+  'memory_pool.cpp'
 ]
 
 tensor_headers = [
