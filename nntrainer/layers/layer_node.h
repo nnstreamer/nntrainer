@@ -561,11 +561,11 @@ public:
   }
 
   /**
-   * @brief   check if run layer context is available
+   * @brief   check if layer is finalized
    *
-   * @retval  bool true if context is available else false
+   * @retval  bool true if the layer is finalized else false
    */
-  bool isRunContextAvailable() const {
+  bool isFinalized() const {
     if (!run_context)
       return false;
 

@@ -269,7 +269,7 @@ public:
   void setBatchSize(unsigned int batch) {
     if (!var->empty())
       var->updateBatch(batch);
-    if (!grad->empty())
+    if (grad && !grad->empty())
       grad->updateBatch(batch);
   }
 

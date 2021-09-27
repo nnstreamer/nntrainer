@@ -407,7 +407,7 @@ public:
    * @note this only works for tensors_v2 for now
    */
   void setBatchSize(const std::string &name, unsigned int batch) {
-    tensors_v2.at(name_map.at(name))->setBatchSize(batch);
+    tensor_pool.setBatchSize(name, batch);
   }
 
   /**

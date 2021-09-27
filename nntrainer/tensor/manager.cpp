@@ -42,7 +42,10 @@ static constexpr bool LAYER_V2 = true;
 
 namespace nntrainer {
 MMapedMemory::MMapedMemory(size_t size, bool allocate_fd_) :
-  fd(-1), buf(nullptr), buf_size(0), allocate_fd(allocate_fd_) {
+  fd(-1),
+  buf(nullptr),
+  buf_size(0),
+  allocate_fd(allocate_fd_) {
 
 #ifndef __ANDROID__
   if (allocate_fd) {
@@ -503,9 +506,6 @@ void Manager::allocateInOuts() {
     for (auto &out : outputs_v2) {
       out->allocateVariable();
     }
-    // for (auto &t : tensors_v2) {
-    //   t->allocateVariable();
-    // }
   } else {
     for (auto &l_io : in_outs) {
       for (auto &io : l_io) {
