@@ -41,7 +41,7 @@ unsigned int MemoryPool::requestMemory(size_t bytes, unsigned int start_time,
   /** invalidate min_pool_size if already there */
   min_pool_size = 0;
 
-  return memory_size.size() - 1;
+  return memory_size.size();
 }
 
 /**
@@ -99,7 +99,7 @@ void *MemoryPool::getMemory(unsigned int idx) {
   if (mem_pool == nullptr)
     throw std::invalid_argument("Getting memory before allocation");
 
-  return static_cast<char *>(mem_pool) + memory_offset.at(idx);
+  return static_cast<char *>(mem_pool) + memory_offset.at(idx - 1);
 }
 
 /**

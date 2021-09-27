@@ -422,7 +422,7 @@ int NetworkGraph::realizeGraph() {
 }
 
 void NetworkGraph::setBatchSize(unsigned int batch_size) {
-  if (!input_list.empty() and input_list[0]->getDim().batch() == batch_size)
+  if (batch_size == this->batch_size)
     return;
 
   this->batch_size = batch_size;
@@ -433,14 +433,16 @@ void NetworkGraph::setBatchSize(unsigned int batch_size) {
 
   for (auto iter = cbegin(); iter != cend(); iter++) {
     (*iter)->setBatch(batch_size);
-    if ((*iter)->isRunContextAvailable()) {
+    if ((*iter)->isFinalized()) {
       const RunLayerContext &context = (*iter)->getRunContext();
       // resize tensors spec
       for (unsigned int idx = 0; idx < context.getNumTensors(); idx++) {
         auto const &ts = context.getTensor(idx);
-        tensor_manager->setBatchSize(ts.getName(), batch_size);
-        auto const &ts_grad = context.getTensorGrad(idx);
-        tensor_manager->setBatchSize(ts_grad.getName(), batch_size);
+        tensor_manager->setBatchSize(ts.getName(), ts.getDim().batch());
+        if (context.tensorHasGradient(idx)) {
+          auto const &ts_grad = context.getTensorGrad(idx);
+          tensor_manager->setBatchSize(ts_grad.getName(), ts.getDim().batch());
+        }
       }
     }
   }

@@ -151,13 +151,6 @@ public:
   size_t minMemoryRequirement() { return mem_pool.minMemoryRequirement(); }
 
   /**
-   * @brief Is the tensor pool allocated
-   *
-   * @return true if the tensors are allocated, else false
-   */
-  bool isAllocated() const { return mem_pool.isAllocated(); }
-
-  /**
    * @brief Get the tensor of the given name
    *
    * @return ptr to the tensor with the given
