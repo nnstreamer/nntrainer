@@ -465,8 +465,8 @@ void GraphWatcher::compareFor(const std::string &reference,
   }
 
   /**
-   * This inference is to ensure that inference runs with/without optimizations
-   * for various kinds of models
+   * This inference is to ensure that inference runs with/without
+   * optimizations for various kinds of models
    */
   EXPECT_NO_THROW(nn.inference(input, false));
 }

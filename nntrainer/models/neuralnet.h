@@ -436,11 +436,6 @@ public:
   virtual void printPreset(std::ostream &out, unsigned int preset);
 
   /**
-   * @brief     Update batch size of the model as well as its layers/dataset
-   */
-  void setBatchSize() { setBatchSize(batch_size); }
-
-  /**
    * @brief Enable dynamic fine-tuning optimization
    * @param threshold Comparison limit to decide if weight updated or not
    * @param mode dynamic fine-tuning optimization mode. Supported modes are
