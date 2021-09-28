@@ -293,6 +293,15 @@ public:
    * @brief Allocate and initialize the weight variable
    */
   void initializeWeights() {
+    /**
+     * get the order of execution/usage order for the forwarding of the last
+     * layer and pass that as the max_exec_order ensuring that all weights with
+     * usage less than the max_exec_order are allocated.
+     *
+     * @note usage order of backwarding is not considered because weight has a
+     * separate memory pool for now. Later, if it shares pool with other
+     * tensors, then this must max of backward usage order.
+     */
     tensor_manager->initializeWeights(
       std::get<0>((*(cend() - 1))->getExecutionOrder()));
   }
@@ -303,10 +312,21 @@ public:
    */
   void initializeTensors(bool training) {
     if (!training)
+      /**
+       * get the order of execution/usage order for the forwarding of the last
+       * layer and pass that as the max_exec_order ensuring that all tensors
+       * with usage less than the max_exec_order are allocated.
+       */
       tensor_manager->initializeTensors(
         training, std::get<0>((*(cend() - 1))->getExecutionOrder()));
     else
       /** @todo update this to skip non-trainable layers */
+      /**
+       * get the order of execution/usage order for the backwarding of the first
+       * layer (as that will be the last layer to executed in the backwarding)
+       * and pass that as the max_exec_order ensuring that all tensors with
+       * usage less than the max_exec_order are allocated.
+       */
       tensor_manager->initializeTensors(
         training, std::get<1>((*(cbegin()))->getExecutionOrder()));
   }
