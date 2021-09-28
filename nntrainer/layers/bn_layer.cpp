@@ -32,7 +32,7 @@ namespace nntrainer {
 
 static constexpr size_t SINGLE_INOUT_IDX = 0;
 
-enum BNParams { mu, var, gamma, beta, deviation, invstd, t_full_bw, t_reduced };
+enum BNParams { mu, var, gamma, beta, deviation, invstd, cvar, t_reduced };
 
 BatchNormalizationLayer::BatchNormalizationLayer(int axis_) :
   Layer(),
@@ -110,15 +110,17 @@ void BatchNormalizationLayer::finalize(InitLayerContext &context) {
     dim, context.getName() + ":invstd", Tensor::Initializer::NONE, false,
     TensorLifespan::ITERATION_LIFESPAN);
   /**
+   * caches variance + epsilon as well.
+   */
+  wt_idx[BNParams::cvar] = context.requestTensor(
+    dim, context.getName() + ":cvar", Tensor::Initializer::NONE, false,
+    TensorLifespan::ITERATION_LIFESPAN);
+  /**
    * Temporary tensor to store the reduced tensors along the axes_to_reduce.
    * This is further used to cache variance + epsilon as well.
    */
   wt_idx[BNParams::t_reduced] = context.requestTensor(
     dim, context.getName() + ":tensor_reduced", Tensor::Initializer::NONE,
-    false, TensorLifespan::ITERATION_LIFESPAN);
-  /** Temporary tensor to store the full sized tensors in backwarding. */
-  wt_idx[BNParams::t_full_bw] = context.requestTensor(
-    in_dim, context.getName() + ":tensor_full_back", Tensor::Initializer::NONE,
     false, TensorLifespan::BACKWARD_FUNC_LIFESPAN);
 }
 
@@ -149,7 +151,7 @@ void BatchNormalizationLayer::forwarding(RunLayerContext &context,
   Tensor &t_reduced = context.getTensor(wt_idx[BNParams::t_reduced]);
   /** use hidden_ as temporary tensor before setting the result in hidden */
   Tensor t_full = hidden_;
-  Tensor cvar = t_reduced; /** cache the variance in this tensor for backward */
+  Tensor &cvar = context.getTensor(wt_idx[BNParams::cvar]);
 
   if (training) {
     input_.average(axes_to_reduce, t_reduced);
@@ -185,28 +187,15 @@ void BatchNormalizationLayer::calcDerivative(RunLayerContext &context) {
   Tensor &dx = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
   Tensor &deviation = context.getTensor(wt_idx[BNParams::deviation]);
   Tensor &invstd = context.getTensor(wt_idx[BNParams::invstd]);
+  Tensor &cvar = context.getTensor(wt_idx[BNParams::cvar]);
 
   Tensor &t_reduced = context.getTensor(wt_idx[BNParams::t_reduced]);
-  Tensor &t_full = context.getTensor(wt_idx[BNParams::t_full_bw]);
-  Tensor cvar = t_reduced;
-
-  if (context.getTrainable()) {
-    /**
-     * This implementation depends on the pre-calculated dbeta calculated.
-     */
-    Tensor &dbeta = context.getWeightGrad(wt_idx[BNParams::beta]);
-    t_reduced = dbeta.divide(divider);
-  } else {
-    t_reduced = deriv.average(axes_to_reduce);
-  }
-
-  deriv.subtract(t_reduced, dx);
+  Tensor &t_full = dx;
 
   deviation.multiply(deriv, t_full);
   t_full.average(axes_to_reduce, t_reduced);
   t_reduced.divide_i(cvar);
   deviation.multiply_i(t_reduced);
-  dx.subtract_i(deviation);
 
   if (context.getTrainable()) {
     /**
@@ -215,7 +204,18 @@ void BatchNormalizationLayer::calcDerivative(RunLayerContext &context) {
     Tensor &dgamma = context.getWeightGrad(wt_idx[BNParams::gamma]);
     t_full.multiply_i(invstd);
     t_full.sum(axes_to_reduce, dgamma);
+
+    /**
+     * This implementation depends on the pre-calculated dbeta calculated.
+     */
+    Tensor &dbeta = context.getWeightGrad(wt_idx[BNParams::beta]);
+    dbeta.divide(divider, t_reduced);
+  } else {
+    deriv.average(axes_to_reduce, t_reduced);
   }
+
+  deriv.subtract(t_reduced, dx);
+  dx.subtract_i(deviation);
 
   invstd.multiply_i(gamma);
   dx.multiply_i(invstd);
