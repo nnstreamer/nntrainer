@@ -724,10 +724,6 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
   if (lnode->requireLabel())
     label_list.insert(label_list.end(), outputs.begin(), outputs.end());
 
-  /**
-   * @note must use existing properties like name/trainable of run_context to
-   * create the new run_context
-   */
   lnode->configureRunContext(
     // TODO: update weights spec for trainable based on layer trainable prop
     tensor_manager->requestWeights(gnode, init_context.getWeightsSpec()),

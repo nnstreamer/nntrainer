@@ -167,14 +167,14 @@ NeuralNetwork::~NeuralNetwork() { model_graph.reset(); }
 static void setLabels(const std::vector<Tensor> &data,
                       const std::vector<Var_Grad *> &label_list) {
 
-  NNTR_THROW_IF(!data.empty() && data.size() != label_list.size(),
+  NNTR_THROW_IF(data.size() > 1 && data.size() != label_list.size(),
                 std::invalid_argument)
     << "label size does not match with the network requirements"
     << " label size: " << data.size()
     << " requirements size: " << label_list.size();
 
   /// feed or clear label
-  for (unsigned int idx = 0; idx < data.size(); idx++) {
+  for (unsigned int idx = 0; idx < label_list.size(); idx++) {
     if (data.empty())
       label_list[idx]->initializeGradient();
     else if (data.size() == 1)
@@ -201,35 +201,21 @@ static void setInputs(const std::vector<Tensor> &data,
 static void setLabels(sharedConstTensors &data,
                       const std::vector<Var_Grad *> &label_list) {
 
-  NNTR_THROW_IF(data.size() > 1 && data.size() != label_list.size(),
-                std::invalid_argument)
-    << "label size does not match with the network requirements"
-    << " label size: " << data.size()
-    << " requirements size: " << label_list.size();
+  std::vector<Tensor> labels;
+  std::transform(data.begin(), data.end(), std::back_inserter(labels),
+                 [](auto const &val) { return *val.get(); });
 
-  /// feed or clear label
-  for (unsigned int idx = 0; idx < label_list.size(); idx++) {
-    if (data.empty())
-      label_list[idx]->initializeGradient();
-    else if (data.size() == 1)
-      label_list[idx]->initializeGradient(*data[0]);
-    else
-      label_list[idx]->initializeGradient(*data[idx]);
-  }
+  setLabels(labels, label_list);
 }
 
 static void setInputs(sharedConstTensors &data,
                       const std::vector<Var_Grad *> &input_list) {
 
-  NNTR_THROW_IF(data.size() != input_list.size(), std::invalid_argument)
-    << "input size does not match with the network requirements"
-    << " input size: " << data.size()
-    << " requirements size: " << input_list.size();
+  std::vector<Tensor> inputs;
+  std::transform(data.begin(), data.end(), std::back_inserter(inputs),
+                 [](auto const &val) { return *val.get(); });
 
-  /// feed or clear label
-  for (unsigned int idx = 0; idx < data.size(); idx++) {
-    input_list[idx]->initializeVariable(*data[idx]);
-  }
+  setInputs(inputs, input_list);
 }
 
 /**

@@ -383,12 +383,16 @@ public:
   void untrackLayerInOuts(const std::string &layer_name);
 
   /**
-   * @brief Initialize the inputs/outputs/derivatives/gradients for the layers
-   * @param[in] training If true, initialize derivates/gradients, else, do not.
-   * @note The memory allocation strategy varies based on the training. The
-   * memory allocated for inference mode is not compatible with training, and
-   * will require full allocation than reusing memory allocated with inference
-   * mode.
+   * @brief Initialize the all the requested tensors
+   *
+   * @param[in] training If model will be training or not
+   * @param[in] max_exec_order The maximum order of execution to determine
+   * memory layout
+   *
+   * @note Any requested tensor which is not used inside the max_exec_order is
+   * not initialized and will not be allocated. The initialization uses a memory
+   * planner to plan the layout of all the tensors which are used at least once
+   * before the max_exec_order.
    */
   void initializeTensors(bool training, unsigned int max_exec_order);
 

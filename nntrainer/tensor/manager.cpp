@@ -850,9 +850,20 @@ Manager::requestInputs(const GraphNode &node,
       );
     }
 
-    inputs_v2.emplace_back(std::make_unique<Var_Grad>(var, grad));
+    /**
+     * TODO: This a temporary fix to handle external tensors due to rebase.
+     * This is properly fixed with #1544 using
+     * context.requestExternallyAllocatedTensor().
+     */
+    if (var && grad)
+      inputs_v2.emplace_back(std::make_unique<Var_Grad>(var, grad));
+    else
+      inputs_v2.emplace_back(std::make_unique<Var_Grad>(
+        dim, Tensor::Initializer::NONE, true, false,
+        node.getName() + std::string(":input") + std::to_string(idx)));
   }
 
+  ret.reserve(inputs_dim.size());
   std::transform(inputs_v2.begin() + current_size, inputs_v2.end(),
                  std::back_inserter(ret),
                  [](auto const &elem) { return elem.get(); });
