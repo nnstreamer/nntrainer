@@ -465,6 +465,10 @@ void LayerNode::forwarding(bool training) {
   START_PROFILE(forward_event_key);
   layer->forwarding(*run_context, training);
   END_PROFILE(forward_event_key);
+
+  /** add loss only for loss layers */
+  if (requireLabel())
+    loss->set(*loss + run_context->getLoss());
 }
 
 /**
@@ -527,13 +531,7 @@ bool LayerNode::requireLabel() const { return getLayer()->requireLabel(); }
  * @brief     get loss for the layer
  * @return    loss of the layer
  */
-float LayerNode::getLoss() const {
-  /** add loss only for loss layers */
-  if (requireLabel())
-    loss->set(*loss + run_context->getLoss());
-
-  return *loss;
-}
+float LayerNode::getLoss() const { return *loss; }
 
 void LayerNode::configureRunContext(const std::vector<Weight *> &weights,
                                     const std::vector<Var_Grad *> &inputs,
