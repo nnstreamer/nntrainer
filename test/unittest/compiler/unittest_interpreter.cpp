@@ -189,7 +189,6 @@ TEST(nntrainerInterpreterTflite, simple_fc) {
   EXPECT_EQ(g->compile(""), ML_ERROR_NONE);
   EXPECT_EQ(g->initialize(), ML_ERROR_NONE);
 
-  g->initializeWeights();
   g->allocateWeights();
   interpreter.serialize(*g, "test.tflite");
   g->deallocateTensors();

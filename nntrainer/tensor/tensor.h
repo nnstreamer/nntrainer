@@ -1043,7 +1043,7 @@ public:
    * @param buf the memory buffer
    * @param init intialize the buffer
    */
-  void setData(void *buf, bool init = false) {
+  void setData(const void *buf, bool init = false) {
     if (buf) {
       data = std::shared_ptr<float>((float *)buf, [](void *) {});
       if (init)

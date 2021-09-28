@@ -40,7 +40,10 @@ void Var_Grad::initializeVariable(const Tensor &preallocated) {
    * Making a new tensor is intentional here as this tensor is not shared
    * with other layers but the internal memory is.
    */
-  var = std::make_shared<Tensor>(preallocated);
+  if (var)
+    var->setData(preallocated.getData());
+  else
+    var = std::make_shared<Tensor>(preallocated);
   /** intentionally not initialized tensor memory for shared tensors */
 }
 
@@ -49,7 +52,18 @@ void Var_Grad::initializeGradient(const Tensor &preallocated) {
    * Making a new tensor is intentional here as this tensor is not shared
    * with other layers but the internal memory is.
    */
-  grad = std::make_shared<Tensor>(preallocated);
+  /**
+   * This is a temporary fix till requestExternallyAllocatedTensors is enabled
+   * from #1544.
+   */
+  if (grad) {
+    if (grad->empty())
+      grad = std::make_shared<Tensor>(
+        preallocated.getSharedDataTensor(preallocated.getDim(), 0));
+    else
+      grad->setData(preallocated.getData());
+  } else
+    grad = std::make_shared<Tensor>(preallocated);
   /** intentionally not initialized tensor memory for shared tensors */
 }
 
