@@ -32,17 +32,7 @@ namespace nntrainer {
 
 static constexpr size_t SINGLE_INOUT_IDX = 0;
 
-enum BNParams {
-  mu,
-  var,
-  gamma,
-  beta,
-  deviation,
-  invstd,
-  t_full_fw,
-  t_full_bw,
-  t_reduced
-};
+enum BNParams { mu, var, gamma, beta, deviation, invstd, t_full_bw, t_reduced };
 
 BatchNormalizationLayer::BatchNormalizationLayer(int axis_) :
   Layer(),
@@ -126,10 +116,6 @@ void BatchNormalizationLayer::finalize(InitLayerContext &context) {
   wt_idx[BNParams::t_reduced] = context.requestTensor(
     dim, context.getName() + ":tensor_reduced", Tensor::Initializer::NONE,
     false, TensorLifespan::ITERATION_LIFESPAN);
-  /** Temporary tensor to store the full sized tensors in forwarding. */
-  wt_idx[BNParams::t_full_fw] = context.requestTensor(
-    in_dim, context.getName() + ":tensor_full_fw", Tensor::Initializer::NONE,
-    false, TensorLifespan::FORWARD_FUNC_LIFESPAN);
   /** Temporary tensor to store the full sized tensors in backwarding. */
   wt_idx[BNParams::t_full_bw] = context.requestTensor(
     in_dim, context.getName() + ":tensor_full_back", Tensor::Initializer::NONE,
@@ -161,7 +147,8 @@ void BatchNormalizationLayer::forwarding(RunLayerContext &context,
 
   /** @todo these are not needed for inference, support optimizing these */
   Tensor &t_reduced = context.getTensor(wt_idx[BNParams::t_reduced]);
-  Tensor &t_full = context.getTensor(wt_idx[BNParams::t_full_fw]);
+  /** use hidden_ as temporary tensor before setting the result in hidden */
+  Tensor t_full = hidden_;
   Tensor cvar = t_reduced; /** cache the variance in this tensor for backward */
 
   if (training) {
