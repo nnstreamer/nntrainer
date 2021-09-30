@@ -178,9 +178,9 @@ TEST(TensorPool, set_batch_01_p) {
   EXPECT_NE(t1, nullptr);
   EXPECT_FALSE(t1->isAllocated());
 
-  EXPECT_EQ(t1->batch(), 1);
+  EXPECT_EQ(t1->batch(), 1u);
   EXPECT_NO_THROW(pool.setBatchSize("abc", 10));
-  EXPECT_EQ(t1->batch(), 10);
+  EXPECT_EQ(t1->batch(), 10u);
 }
 
 /**
@@ -197,7 +197,7 @@ TEST(TensorPool, set_batch_02_n) {
   EXPECT_FALSE(t1->isAllocated());
 
   EXPECT_THROW(pool.setBatchSize("not_exist", 10), std::invalid_argument);
-  EXPECT_EQ(t1->batch(), 1);
+  EXPECT_EQ(t1->batch(), 1u);
 }
 
 /**
@@ -222,7 +222,7 @@ TEST(TensorPool, finalize_01_p) {
   EXPECT_NE(t1, t2);
 
   EXPECT_NO_THROW(pool.finalize(nntrainer::BasicPlanner(), 0, 2));
-  EXPECT_EQ(pool.minMemoryRequirement(), 0);
+  EXPECT_EQ(pool.minMemoryRequirement(), 0u);
 
   EXPECT_FALSE(t1->isAllocated());
   EXPECT_FALSE(t2->isAllocated());
@@ -315,7 +315,7 @@ TEST(TensorPool, allocate_deallocate_02_n) {
  */
 TEST(TensorPool, validate_memory) {
   nntrainer::TensorPool pool;
-  nntrainer::Tensor *t1, *t2;
+  nntrainer::Tensor *t1 = nullptr, *t2 = nullptr;
 
   EXPECT_NO_THROW(
     t1 = pool.requestTensor(nntrainer::TensorDim({100}), {0},
