@@ -37,8 +37,9 @@ TEST_P(LayerSemantics, DISABLED_setPropertiesValidInvalidOnly_n) {
 
 TEST_P(LayerSemantics, finalizeValidate_p) {
   nntrainer::TensorDim in_dim({1, 1, 1, 1});
+  std::vector<nntrainer::TensorDim> input_dims(num_inputs, in_dim);
   nntrainer::InitLayerContext init_context =
-    nntrainer::InitLayerContext({in_dim}, 1, "layer");
+    nntrainer::InitLayerContext(input_dims, 1, "layer");
   EXPECT_EQ(init_context.validate(), true);
 
   // set necessary properties only
@@ -77,9 +78,10 @@ TEST_P(LayerSemantics, gettersValidate_p) {
 
 TEST_P(LayerSemantics, setBatchValidate_p) {
   nntrainer::TensorDim in_dim({1, 1, 1, 1});
+  std::vector<nntrainer::TensorDim> input_dims(num_inputs, in_dim);
   nntrainer::InitLayerContext init_context =
-    nntrainer::InitLayerContext({in_dim}, 1, "layer");
-  init_context.validate();
+    nntrainer::InitLayerContext(input_dims, 1, "layer");
+  EXPECT_EQ(init_context.validate(), true);
 
   // set necessary properties only
   EXPECT_NO_THROW(layer->setProperty(valid_properties));

@@ -21,18 +21,18 @@
 /// @todo move below test to the main repo
 auto semantic_activation_l2norm = LayerSemanticsParamType(
   nntrainer::createLayer<nntrainer::PreprocessL2NormLayer>,
-  nntrainer::PreprocessL2NormLayer::type, {}, 0, false);
+  nntrainer::PreprocessL2NormLayer::type, {}, 0, false, 1);
 
 auto semantic_activation_centroid_knn = LayerSemanticsParamType(
   nntrainer::createLayer<nntrainer::CentroidKNN>, nntrainer::CentroidKNN::type,
-  {"num_class=1"}, 0, false);
+  {"num_class=1"}, 0, false, 1);
 
 auto semantic_activation_centering = LayerSemanticsParamType(
   nntrainer::createLayer<simpleshot::layers::CenteringLayer>,
   simpleshot::layers::CenteringLayer::type,
   {"feature_path=../Applications/SimpleShot/backbones/"
    "conv4_60classes_feature_vector.bin"},
-  0, false);
+  0, false, 1);
 
 INSTANTIATE_TEST_CASE_P(L2NormLayer, LayerSemantics,
                         ::testing::Values(semantic_activation_l2norm));

@@ -54,7 +54,7 @@ public:
 } // namespace
 
 auto semantic_tc = LayerSemanticsParamType(nntrainer::createLayer<MockLayer>,
-                                           MockLayer::type, {}, 0, false);
+                                           MockLayer::type, {}, 0, false, 1);
 INSTANTIATE_TEST_CASE_P(LayerImpl, LayerSemantics,
                         ::testing::Values(semantic_tc));
 

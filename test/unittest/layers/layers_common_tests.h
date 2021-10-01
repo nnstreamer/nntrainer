@@ -34,7 +34,8 @@ using LayerSemanticsParamType =
   std::tuple<LayerFactoryType /** layer factory */,
              std::string /** Type of Layer */,
              std::vector<std::string> /** Necessary Properties */,
-             unsigned int /** Options */, bool /** fail or succeed */
+             unsigned int /** Options */, bool /** fail or succeed */,
+             unsigned int /** number of inputs */
              >;
 
 /**
@@ -61,8 +62,10 @@ public:
   virtual void SetUp() {
     auto f = std::get<0>(GetParam());
     layer = std::move(f({}));
-    std::tie(std::ignore, expected_type, valid_properties, options, must_fail) =
-      GetParam();
+    std::tie(std::ignore, expected_type, valid_properties, options, must_fail,
+             num_inputs) = GetParam();
+
+    num_inputs = std::max(1u, num_inputs);
   }
 
   /**
@@ -77,6 +80,7 @@ protected:
   std::vector<std::string> valid_properties;
   unsigned int options;
   bool must_fail;
+  unsigned int num_inputs;
 };
 
 typedef enum {

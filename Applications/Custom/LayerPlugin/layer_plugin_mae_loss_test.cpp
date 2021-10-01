@@ -25,7 +25,7 @@ INSTANTIATE_TEST_CASE_P(
 
 auto semantic_mae =
   LayerSemanticsParamType(nntrainer::createLayer<custom::MaeLossLayer>,
-                          custom::MaeLossLayer::type, {}, 0, false);
+                          custom::MaeLossLayer::type, {}, 0, false, 1);
 
 INSTANTIATE_TEST_CASE_P(MaeLossLayer, LayerSemantics,
                         ::testing::Values(semantic_mae));

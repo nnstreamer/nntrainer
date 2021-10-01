@@ -25,7 +25,7 @@ INSTANTIATE_TEST_CASE_P(PowLayer, LayerPluginCommonTest,
 
 auto semantic_pow =
   LayerSemanticsParamType(nntrainer::createLayer<custom::PowLayer>,
-                          custom::PowLayer::type, {}, 0, false);
+                          custom::PowLayer::type, {}, 0, false, 1);
 
 INSTANTIATE_TEST_CASE_P(PowLayer, LayerSemantics,
                         ::testing::Values(semantic_pow));

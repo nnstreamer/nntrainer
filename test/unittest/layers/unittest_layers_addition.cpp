@@ -18,7 +18,12 @@
 
 auto semantic_addition =
   LayerSemanticsParamType(nntrainer::createLayer<nntrainer::AdditionLayer>,
-                          nntrainer::AdditionLayer::type, {}, 0, false);
+                          nntrainer::AdditionLayer::type, {}, 0, false, 1);
+
+auto semantic_addition_multi =
+  LayerSemanticsParamType(nntrainer::createLayer<nntrainer::AdditionLayer>,
+                          nntrainer::AdditionLayer::type, {}, 0, false, 2);
 
 INSTANTIATE_TEST_CASE_P(Addition, LayerSemantics,
-                        ::testing::Values(semantic_addition));
+                        ::testing::Values(semantic_addition,
+                                          semantic_addition_multi));

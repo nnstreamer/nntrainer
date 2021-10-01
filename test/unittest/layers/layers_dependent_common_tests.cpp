@@ -41,9 +41,17 @@ TEST_P(LayerSemantics, setPropertiesInvalid_n) {
 
 TEST_P(LayerSemantics, finalizeValidateLayerNode_p) {
   auto lnode = nntrainer::createLayerNode(expected_type);
-  lnode->setProperty({"input_shape=1:1:1", "name=test"});
-  // /** purpose is to set number of outputs to 1 */
-  // lnode->setOutputLayers({"dummy"});
+  std::vector<std::string> props = {"name=test"};
+  std::string input_shape = "input_shape=1:1:1";
+  std::string input_layers = "input_layers=a";
+  for (auto idx = 1u; idx < num_inputs; idx++) {
+    input_shape += ",1:1:1";
+    input_layers += ",a";
+  }
+  props.push_back(input_shape);
+  props.push_back(input_layers);
+  lnode->setProperty(props);
+
   EXPECT_NO_THROW(lnode->setProperty(valid_properties));
 
   if (!must_fail) {
@@ -80,7 +88,17 @@ TEST_P(LayerSemantics, gettersValidateLayerNode_p) {
 
 TEST_P(LayerSemantics, setBatchValidateLayerNode_p) {
   auto lnode = nntrainer::createLayerNode(expected_type);
-  lnode->setProperty({"input_shape=1:1:1", "name=test"});
+  std::vector<std::string> props = {"name=test"};
+  std::string input_shape = "input_shape=1:1:1";
+  std::string input_layers = "input_layers=a";
+  for (auto idx = 1u; idx < num_inputs; idx++) {
+    input_shape += ",1:1:1";
+    input_layers += ",a";
+  }
+  props.push_back(input_shape);
+  props.push_back(input_layers);
+  lnode->setProperty(props);
+
   EXPECT_NO_THROW(lnode->setProperty(valid_properties));
 
   if (!must_fail) {

@@ -18,7 +18,7 @@
 
 auto semantic_conv2d = LayerSemanticsParamType(
   nntrainer::createLayer<nntrainer::Conv2DLayer>, nntrainer::Conv2DLayer::type,
-  {"filters=1", "kernel_size=1,1", "padding=1,1"}, 0, false);
+  {"filters=1", "kernel_size=1,1", "padding=1,1"}, 0, false, 1);
 
 INSTANTIATE_TEST_CASE_P(Convolution2D, LayerSemantics,
                         ::testing::Values(semantic_conv2d));

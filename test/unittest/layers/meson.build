@@ -49,6 +49,7 @@ test_target = [
   'unittest_layers_embedding.cpp',
   'unittest_layers_concat.cpp',
   'unittest_layers_permute.cpp',
+  'unittest_layers_attention.cpp',
 ]
 
 if get_option('enable-tflite-backbone')

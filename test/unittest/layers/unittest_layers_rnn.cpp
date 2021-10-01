@@ -18,6 +18,6 @@
 
 auto semantic_rnn =
   LayerSemanticsParamType(nntrainer::createLayer<nntrainer::RNNLayer>,
-                          nntrainer::RNNLayer::type, {"unit=1"}, 0, false);
+                          nntrainer::RNNLayer::type, {"unit=1"}, 0, false, 1);
 
 INSTANTIATE_TEST_CASE_P(RNN, LayerSemantics, ::testing::Values(semantic_rnn));
