@@ -457,6 +457,41 @@ void NetworkGraph::setBatchSize(unsigned int batch_size) {
     allocateTensors(exec_mode);
 }
 
+void NetworkGraph::zeroGradOnFirstAccess(LayerNode *node) {
+  auto &rc = node->getRunContext();
+  auto calc_derivative_exec_order = std::get<1>(node->getExecutionOrder());
+  auto num_weight = rc.getNumWeights();
+  for (unsigned i = 0; i < num_weight; ++i) {
+    if (!rc.weightHasGradient(i)) {
+      continue;
+    }
+
+    auto &grad = rc.getWeightGrad(i);
+    if (tensor_manager->isFirstAccess(grad.getName(),
+                                      calc_derivative_exec_order)) {
+      grad.initialize();
+    }
+  }
+}
+
+void NetworkGraph::applyGradientsOnLastAccess(
+  LayerNode *node, std::function<void(Weight &)> apply_func) {
+  auto &rc = node->getRunContext();
+  auto cacl_gradient_exec_order = std::get<2>(node->getExecutionOrder());
+  auto num_weight = rc.getNumWeights();
+  for (unsigned i = 0; i < num_weight; ++i) {
+    if (!rc.weightHasGradient(i)) {
+      continue;
+    }
+
+    auto &grad = rc.getWeightGrad(i);
+    if (tensor_manager->isLastAccess(grad.getName(),
+                                     cacl_gradient_exec_order)) {
+      apply_func(rc.getWeightObject(i));
+    }
+  }
+}
+
 sharedConstTensors NetworkGraph::forwarding(bool training) const {
   for (auto iter = cbegin(); iter != cend(); iter++) {
     auto const &ln = *iter;

@@ -528,6 +528,14 @@ Manager::requestOutputs(const GraphNode &node,
   return ret;
 }
 
+std::pair<unsigned int, unsigned int>
+Manager::getMinMaxTensorExecutionOrder(const std::string &name) {
+  auto orders = tensor_pool.getExecutionOrder(name);
+  auto [min_, max_] = std::minmax_element(orders.begin(), orders.end());
+  return {*min_, *max_};
+}
+
+
 /**
  * @brief     Create tensors with the given spec
  *
