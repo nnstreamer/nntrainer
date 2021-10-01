@@ -194,10 +194,16 @@ void NeuralNetwork::backwarding(std::shared_ptr<LayerNode> node, int iteration,
                                 bool calc_derivative) {
   /**
    * Do not change this order:
+   * 0. zeroGradOnFirstAccess
    * 1. calcGradient
    * 2. calcDerivative
+   * 3. applyGradientsOnLastAccess
    */
-  [[maybe_unused]] bool apply_gradient = true;
+
+  /// try zeroing the gradient at the first shared weight access
+  model_graph.zeroGradOnFirstAccess(node.get());
+
+  bool apply_gradient = true;
   /** If gradient optimization mode, then calculate gradient first */
   if (dynamic_training_opt.isGradientMode())
     node->calcGradient();
@@ -223,16 +229,13 @@ void NeuralNetwork::backwarding(std::shared_ptr<LayerNode> node, int iteration,
     node->calcDerivative();
 
   if (apply_gradient) {
-    // TODO: ask network_graph for weights of node and then remove
-    // getWeightObject() interface from layer_context
-    for (unsigned int idx = 0; idx < node->getNumWeights(); idx++) {
-      auto &weight = node->getWeightObject(idx);
-      if (weight.hasGradient()) {
-        weight.calcRegularizationGradient();
-        RunOptimizerContext opt_context(&weight, iteration);
-        opt->applyGradient(opt_context);
-      }
-    }
+    /// Apply gradient only at the end of the last shared weight access
+    model_graph.applyGradientsOnLastAccess(
+      node.get(), [iteration, opt_ = opt.get()](Weight &w) {
+        w.calcRegularizationGradient();
+        RunOptimizerContext opt_context(&w, iteration);
+        opt_->applyGradient(opt_context);
+      });
   }
 }
 

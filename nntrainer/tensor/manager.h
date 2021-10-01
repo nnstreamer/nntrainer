@@ -223,6 +223,41 @@ public:
   std::vector<Weight *> getWeights();
 
   /**
+   * @brief Get the Min Max of a tensor execution order
+   *
+   * @param name name of the tensor
+   * @return std::pair<unsigned int, unsigned int>
+   */
+  std::pair<unsigned int, unsigned int>
+  getMinMaxTensorExecutionOrder(const std::string &name);
+
+  /**
+   * @brief check if given execution order is the first access
+   *
+   * @param name tensor name
+   * @param current_execution current execution
+   * @return bool true if given execution order first access
+   */
+  bool isFirstAccess(const std::string &name, unsigned current_execution) {
+    /** NYI!! */
+    /// @todo add cache machanism, eg) sort at finalizing requesting
+    return false;
+  }
+
+  /**
+   * @brief check if given execution order is the last access
+   *
+   * @param name tensor name
+   * @param current_execution current execution
+   * @return bool ture if given execution order is the last access
+   */
+  bool isLastAccess(const std::string &name, unsigned current_execution) {
+    /** NYI!! */
+    /// @todo add cache machanism, eg) sort at finalizing requesting
+    return true;
+  }
+
+  /*
    * @brief   Check if the manager has allocated tensors
    *
    * @return true if tensors allocated, else false
