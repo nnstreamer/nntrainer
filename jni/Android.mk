@@ -159,6 +159,7 @@ NNTRAINER_SRCS := $(NNTRAINER_ROOT)/nntrainer/models/neuralnet.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/activation_layer.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/flatten_layer.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/addition_layer.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/layers/attention_layer.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/concat_layer.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/preprocess_flip_layer.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/preprocess_translate_layer.cpp \

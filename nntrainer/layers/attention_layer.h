@@ -87,7 +87,8 @@ public:
   inline static const std::string type = "attention";
 
 private:
-  ActiFunc sm; /** softmax activation operation */
+  ActiFunc sm;                        /** softmax activation operation */
+  std::array<unsigned int, 4> wt_idx; /**< indices of the weights and tensors */
 };
 
 } // namespace nntrainer
