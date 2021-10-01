@@ -2,7 +2,7 @@
 /**
  * Copyright (C) 2021 Parichay Kapoor <pk.kapoor@samsung.com>
  *
- * @file unittest_layers_addition.cpp
+ * @file unittest_layers_attention.cpp
  * @date 1 October 2021
  * @brief Attention Layer Test
  * @see	https://github.com/nnstreamer/nntrainer
@@ -20,5 +20,5 @@ auto semantic_attention =
   LayerSemanticsParamType(nntrainer::createLayer<nntrainer::AttentionLayer>,
                           nntrainer::AttentionLayer::type, {}, 0, false, 2);
 
-INSTANTIATE_TEST_CASE_P(Addition, LayerSemantics,
+INSTANTIATE_TEST_CASE_P(Attention, LayerSemantics,
                         ::testing::Values(semantic_attention));
