@@ -272,13 +272,13 @@ public:
       tensor_manager->allocateTensors(
         std::get<0>((*(cend() - 1))->getExecutionOrder()));
     else
-      /** @todo update this to skip non-trainable layers */
-      /**
-       * get the order of execution/usage order for the backwarding of the first
-       * layer (as that will be the last layer to executed in the backwarding)
-       * and pass that as the max_exec_order ensuring that all tensors with
-       * usage less than the max_exec_order are allocated.
-       */
+    /** @todo update this to skip non-trainable layers */
+    /**
+     * get the order of execution/usage order for the backwarding of the first
+     * layer (as that will be the last layer to executed in the backwarding)
+     * and pass that as the max_exec_order ensuring that all tensors with
+     * usage less than the max_exec_order are allocated.
+     */
 #ifdef ENABLE_TEST
       tensor_manager->allocateTensors(
         std::get<2>((*(cbegin()))->getExecutionOrder()));

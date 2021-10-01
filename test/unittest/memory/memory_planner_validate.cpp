@@ -82,7 +82,21 @@ static bool validateIntervalOverlap(
   const std::vector<size_t> &memory_size,
   const std::vector<size_t> &memory_offset) {
   std::vector<unsigned int> valid_intervals;
+  std::vector<unsigned int> sorted_by_validity(memory_size.size());
+
+  /** sort the intervals by their validity for comparison */
   for (unsigned int idx = 0; idx < memory_size.size(); idx++) {
+    sorted_by_validity[idx] = idx;
+  }
+  std::sort(
+    sorted_by_validity.begin(), sorted_by_validity.end(),
+    [&memory_validity](auto const &idx1, auto const &idx2) -> unsigned int {
+      if (memory_validity[idx1].first == memory_validity[idx2].first)
+        return memory_validity[idx1].second < memory_validity[idx2].second;
+      return memory_validity[idx1].first < memory_validity[idx2].first;
+    });
+
+  for (unsigned int idx : sorted_by_validity) {
     /**
      * intervals which have finished before the start of the current intervals
      * must be popped
