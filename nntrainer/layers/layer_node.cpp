@@ -379,6 +379,8 @@ InitLayerContext LayerNode::finalize(const std::vector<TensorDim> &input_dims) {
 
   std::vector<TensorDim> actual_input_dims;
   auto &prop_dims = std::get<std::vector<props::InputShape>>(*layer_node_props);
+  auto &prop_in_layers =
+    std::get<std::vector<props::InputLayer>>(*layer_node_props);
 
   /** prepare input dimensions */
   if (!input_dims.empty()) {
@@ -396,7 +398,9 @@ InitLayerContext LayerNode::finalize(const std::vector<TensorDim> &input_dims) {
       << "if input dims not given, input shapes must be given by the user as "
          "property";
     /// arguably, below check can go away
-    NNTR_THROW_IF(prop_dims.size() != 1, std::invalid_argument)
+    NNTR_THROW_IF((prop_dims.size() != prop_in_layers.size()) &&
+                    (prop_dims.size() != 1 || !prop_in_layers.empty()),
+                  std::invalid_argument)
       << "input shapes must be one if connection is not given but given "
          "dimesions size of: "
       << prop_dims.size();
@@ -404,7 +408,7 @@ InitLayerContext LayerNode::finalize(const std::vector<TensorDim> &input_dims) {
       std::vector<TensorDim>(prop_dims.begin(), prop_dims.end());
   }
 
-  NNTR_THROW_IF(input_dims.size() < getNumInputConnections(),
+  NNTR_THROW_IF(actual_input_dims.size() < getNumInputConnections(),
                 std::invalid_argument)
     << "number of input dimensions must be equal or larger "
     << "than number of input connections, node name: " << getName()
