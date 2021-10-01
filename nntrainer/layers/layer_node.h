@@ -49,6 +49,7 @@ class Loss;
 class InputLayer;
 class InputShape;
 class Activation;
+class SharedFrom;
 } // namespace props
 
 /**
@@ -251,6 +252,13 @@ public:
    * @retval    flatten value
    */
   bool getFlatten() const;
+
+  /**
+   * @brief Get the Shared From property of the layer node
+   *
+   * @return std::string node name where the weights are borrowed
+   */
+  std::string getSharedFrom() const;
 
   /**
    * @brief     get distribute for this layer
@@ -630,7 +638,8 @@ properties in the context/graph unless intended. */
 
   using PropsType =
     std::tuple<props::Name, props::Distribute, props::Trainable,
-               std::vector<props::InputLayer>, std::vector<props::InputShape>>;
+               std::vector<props::InputLayer>, std::vector<props::InputShape>,
+               props::SharedFrom>;
 
   using RealizationPropsType = std::tuple<props::Flatten, props::Activation>;
   /** these realization properties results in addition of new layers, hence

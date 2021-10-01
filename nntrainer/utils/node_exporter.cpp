@@ -56,7 +56,7 @@ template <>
 void Exporter::saveTflResult(
   const std::tuple<props::Name, props::Distribute, props::Trainable,
                    std::vector<props::InputLayer>,
-                   std::vector<props::InputShape>> &props,
+                   std::vector<props::InputShape>, props::SharedFrom> &props,
   const LayerNode *self) {
   createIfNull(tf_node);
   tf_node->setLayerNode(*self);

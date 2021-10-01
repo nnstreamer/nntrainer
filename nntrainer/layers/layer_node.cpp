@@ -127,6 +127,12 @@ public:
   }
 };
 
+class SharedFrom : public Name {
+public:
+  static constexpr const char *key = "shared_from"; /**< unique key to access */
+  using prop_tag = str_prop_tag;                    /**< property type */
+};
+
 } // namespace props
 
 /**
@@ -171,7 +177,8 @@ LayerNode::LayerNode(std::unique_ptr<nntrainer::Layer> &&l) :
   layer(std::move(l)),
   run_context(nullptr),
   layer_node_props(new PropsType(props::Name(), props::Distribute(),
-                                 props::Trainable(), {}, {})),
+                                 props::Trainable(), {}, {},
+                                 props::SharedFrom())),
   layer_node_props_realization(
     new RealizationPropsType(props::Flatten(), props::Activation())),
   loss(new props::Loss()),
@@ -253,6 +260,11 @@ bool LayerNode::getFlatten() const {
     return false;
   }
   return flatten.get();
+}
+
+std::string LayerNode::getSharedFrom() const {
+  auto &shared_from = std::get<props::SharedFrom>(*layer_node_props);
+  return shared_from.empty() ? "" : shared_from.get();
 }
 
 bool LayerNode::getDistribute() const {
