@@ -30,6 +30,7 @@
 
 #include <activation_layer.h>
 #include <addition_layer.h>
+#include <attention_layer.h>
 #include <bn_layer.h>
 #include <centroid_knn.h>
 #include <concat_layer.h>
@@ -241,6 +242,8 @@ static void add_default_object(AppContext &ac) {
                      LayerType::LAYER_PERMUTE);
   ac.registerFactory(nntrainer::createLayer<DropOutLayer>, DropOutLayer::type,
                      LayerType::LAYER_DROPOUT);
+  ac.registerFactory(nntrainer::createLayer<AttentionLayer>,
+                     AttentionLayer::type, LayerType::LAYER_ATTENTION);
 
 #ifdef ENABLE_NNSTREAMER_BACKBONE
   ac.registerFactory(nntrainer::createLayer<NNStreamerLayer>,
