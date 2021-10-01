@@ -65,6 +65,7 @@ enum LayerType {
     ML_TRAIN_LAYER_TYPE_PREPROCESS_L2NORM, /**< Preprocess l2norm Layer
                                                  type */
   LAYER_BACKBONE_TFLITE,                   /**< Backbone using TFLite */
+  LAYER_ATTENTION,                         /**< Attention Layer type */
   LAYER_LOSS_MSE = 500,             /**< Mean Squared Error Loss Layer type */
   LAYER_LOSS_CROSS_ENTROPY_SIGMOID, /**< Cross Entropy with Sigmoid Loss Layer
                                        type */

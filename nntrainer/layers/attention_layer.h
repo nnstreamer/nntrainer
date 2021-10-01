@@ -1,0 +1,96 @@
+// SPDX-License-Identifier: Apache-2.0
+/**
+ * Copyright (C) 2020 Parichay Kapoor <pk.kapoor@samsung.com>
+ *
+ * @file   attention_layer.h
+ * @date   1 October 2021
+ * @see    https://github.com/nnstreamer/nntrainer
+ * @author Parichay Kapoor <pk.kapoor@samsung.com>
+ * @bug    No known bugs except for NYI items
+ * @brief  This is Attention Layer Class for Neural Network
+ *
+ */
+
+#ifndef __ATTENTION_LAYER_H__
+#define __ATTENTION_LAYER_H__
+#ifdef __cplusplus
+
+#include <acti_func.h>
+#include <layer_devel.h>
+
+namespace nntrainer {
+
+/**
+ * @class   Attention Layer
+ * @brief   Attention Layer
+ */
+class AttentionLayer : public Layer {
+public:
+  /**
+   * @brief     Constructor of Attention Layer
+   */
+  AttentionLayer() : Layer() {}
+
+  /**
+   * @brief     Destructor of Attention Layer
+   */
+  ~AttentionLayer() {}
+
+  /**
+   *  @brief  Move constructor of AttentionLayer.
+   *  @param[in] AttentionLayer &&
+   */
+  AttentionLayer(AttentionLayer &&rhs) noexcept = default;
+
+  /**
+   * @brief  Move assignment operator.
+   * @parma[in] rhs AttentionLayer to be moved.
+   */
+  AttentionLayer &operator=(AttentionLayer &&rhs) = default;
+
+  /**
+   * @copydoc Layer::finalize(InitLayerContext &context)
+   */
+  void finalize(InitLayerContext &context) override;
+
+  /**
+   * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
+   */
+  void forwarding(RunLayerContext &context, bool training) override;
+
+  /**
+   * @copydoc Layer::calcDerivative(RunLayerContext &context)
+   */
+  void calcDerivative(RunLayerContext &context) override;
+
+  /**
+   * @copydoc bool supportBackwarding() const
+   */
+  bool supportBackwarding() const override { return true; };
+
+  /**
+   * @copydoc Layer::exportTo(Exporter &exporter, ExportMethods method)
+   */
+  void exportTo(Exporter &exporter,
+                const ExportMethods &method) const override {}
+
+  /**
+   * @copydoc Layer::setProperty(const std::vector<std::string> &values)
+   */
+  void setProperty(const std::vector<std::string> &values) override;
+
+  /**
+   * @copydoc Layer::getType()
+   */
+  const std::string getType() const override { return AttentionLayer::type; };
+
+  inline static const std::string type = "attention";
+
+private:
+  ActiFunc sm; /** softmax activation operation */
+};
+
+} // namespace nntrainer
+
+#endif /* __cplusplus */
+#endif /* __ATTENTION_LAYER_H__ */
