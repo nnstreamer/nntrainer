@@ -21,19 +21,19 @@
 
 auto semantic_loss_cross_sigmoid = LayerSemanticsParamType(
   nntrainer::createLayer<nntrainer::CrossEntropySigmoidLossLayer>,
-  nntrainer::CrossEntropySigmoidLossLayer::type, {}, 0, false);
+  nntrainer::CrossEntropySigmoidLossLayer::type, {}, 0, false, 1);
 
 auto semantic_loss_cross_softmax = LayerSemanticsParamType(
   nntrainer::createLayer<nntrainer::CrossEntropySoftmaxLossLayer>,
-  nntrainer::CrossEntropySoftmaxLossLayer::type, {}, 0, false);
+  nntrainer::CrossEntropySoftmaxLossLayer::type, {}, 0, false, 1);
 
 auto semantic_loss_mse =
   LayerSemanticsParamType(nntrainer::createLayer<nntrainer::MSELossLayer>,
-                          nntrainer::MSELossLayer::type, {}, 0, false);
+                          nntrainer::MSELossLayer::type, {}, 0, false, 1);
 
 auto semantic_loss_cross = LayerSemanticsParamType(
   nntrainer::createLayer<nntrainer::CrossEntropyLossLayer>,
-  nntrainer::CrossEntropyLossLayer::type, {}, 0, true);
+  nntrainer::CrossEntropyLossLayer::type, {}, 0, true, 1);
 
 INSTANTIATE_TEST_CASE_P(LossCross, LayerSemantics,
                         ::testing::Values(semantic_loss_cross,

@@ -18,7 +18,7 @@
 
 auto semantic_output =
   LayerSemanticsParamType(nntrainer::createLayer<nntrainer::MultiOutLayer>,
-                          nntrainer::MultiOutLayer::type, {}, 0, false);
+                          nntrainer::MultiOutLayer::type, {}, 0, false, 1);
 
 INSTANTIATE_TEST_CASE_P(Output, LayerSemantics,
                         ::testing::Values(semantic_output));

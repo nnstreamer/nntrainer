@@ -25,7 +25,7 @@ INSTANTIATE_TEST_CASE_P(
 
 auto semantic_rnnt =
   LayerSemanticsParamType(nntrainer::createLayer<custom::RNNTLossLayer>,
-                          custom::RNNTLossLayer::type, {}, 0, false);
+                          custom::RNNTLossLayer::type, {}, 0, false, 1);
 
 INSTANTIATE_TEST_CASE_P(RNNTLossLayer, LayerSemantics,
                         ::testing::Values(semantic_rnnt));

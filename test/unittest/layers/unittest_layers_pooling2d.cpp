@@ -16,22 +16,23 @@
 #include <layers_common_tests.h>
 #include <pooling2d_layer.h>
 
-auto semantic_pooling2d_max = LayerSemanticsParamType(
-  nntrainer::createLayer<nntrainer::Pooling2DLayer>,
-  nntrainer::Pooling2DLayer::type, {"pooling=max", "pool_size=1,1"}, 0, false);
+auto semantic_pooling2d_max =
+  LayerSemanticsParamType(nntrainer::createLayer<nntrainer::Pooling2DLayer>,
+                          nntrainer::Pooling2DLayer::type,
+                          {"pooling=max", "pool_size=1,1"}, 0, false, 1);
 
 auto semantic_pooling2d_avg =
   LayerSemanticsParamType(nntrainer::createLayer<nntrainer::Pooling2DLayer>,
                           nntrainer::Pooling2DLayer::type,
-                          {"pooling=average", "pool_size=1,1"}, 0, false);
+                          {"pooling=average", "pool_size=1,1"}, 0, false, 1);
 
 auto semantic_pooling2d_global_avg = LayerSemanticsParamType(
   nntrainer::createLayer<nntrainer::Pooling2DLayer>,
-  nntrainer::Pooling2DLayer::type, {"pooling=global_average"}, 0, false);
+  nntrainer::Pooling2DLayer::type, {"pooling=global_average"}, 0, false, 1);
 
 auto semantic_pooling2d_global_max = LayerSemanticsParamType(
   nntrainer::createLayer<nntrainer::Pooling2DLayer>,
-  nntrainer::Pooling2DLayer::type, {"pooling=global_max"}, 0, false);
+  nntrainer::Pooling2DLayer::type, {"pooling=global_max"}, 0, false, 1);
 
 INSTANTIATE_TEST_CASE_P(Pooling2DMax, LayerSemantics,
                         ::testing::Values(semantic_pooling2d_max,

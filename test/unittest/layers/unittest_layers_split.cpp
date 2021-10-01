@@ -18,7 +18,7 @@
 
 auto semantic_split = LayerSemanticsParamType(
   nntrainer::createLayer<nntrainer::SplitLayer>, nntrainer::SplitLayer::type,
-  {"split_dimension=3"}, 0, false);
+  {"split_dimension=3"}, 0, false, 1);
 
 INSTANTIATE_TEST_CASE_P(Split, LayerSemantics,
                         ::testing::Values(semantic_split));

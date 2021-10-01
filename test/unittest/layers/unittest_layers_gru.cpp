@@ -18,6 +18,6 @@
 
 auto semantic_gru =
   LayerSemanticsParamType(nntrainer::createLayer<nntrainer::GRULayer>,
-                          nntrainer::GRULayer::type, {"unit=1"}, 0, false);
+                          nntrainer::GRULayer::type, {"unit=1"}, 0, false, 1);
 
 INSTANTIATE_TEST_CASE_P(GRU, LayerSemantics, ::testing::Values(semantic_gru));

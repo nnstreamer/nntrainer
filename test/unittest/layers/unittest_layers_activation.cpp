@@ -18,23 +18,23 @@
 
 auto semantic_activation_relu = LayerSemanticsParamType(
   nntrainer::createLayer<nntrainer::ActivationLayer>,
-  nntrainer::ActivationLayer::type, {"activation=relu"}, 0, false);
+  nntrainer::ActivationLayer::type, {"activation=relu"}, 0, false, 1);
 
 auto semantic_activation_sigmoid = LayerSemanticsParamType(
   nntrainer::createLayer<nntrainer::ActivationLayer>,
-  nntrainer::ActivationLayer::type, {"activation=sigmoid"}, 0, false);
+  nntrainer::ActivationLayer::type, {"activation=sigmoid"}, 0, false, 1);
 
 auto semantic_activation_softmax = LayerSemanticsParamType(
   nntrainer::createLayer<nntrainer::ActivationLayer>,
-  nntrainer::ActivationLayer::type, {"activation=softmax"}, 0, false);
+  nntrainer::ActivationLayer::type, {"activation=softmax"}, 0, false, 1);
 
 auto semantic_activation_tanh = LayerSemanticsParamType(
   nntrainer::createLayer<nntrainer::ActivationLayer>,
-  nntrainer::ActivationLayer::type, {"activation=tanh"}, 0, false);
+  nntrainer::ActivationLayer::type, {"activation=tanh"}, 0, false, 1);
 
 auto semantic_activation_none = LayerSemanticsParamType(
   nntrainer::createLayer<nntrainer::ActivationLayer>,
-  nntrainer::ActivationLayer::type, {"activation=none"}, 0, false);
+  nntrainer::ActivationLayer::type, {"activation=none"}, 0, false, 1);
 
 INSTANTIATE_TEST_CASE_P(Activation, LayerSemantics,
                         ::testing::Values(semantic_activation_relu,
