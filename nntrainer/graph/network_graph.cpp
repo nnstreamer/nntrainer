@@ -617,6 +617,9 @@ void NetworkGraph::extendGraph(std::vector<std::shared_ptr<LayerNode>> ex_graph,
   /** This allows connecting a layer to the backbone */
   sub_in_out.insert(
     std::make_pair(prefix, graph.getNode(graph.size() - 1)->getName()));
+
+  /** @todo Update shared_from node name as well */
+  /** @todo Add test for this */
 }
 
 void NetworkGraph::addLayer(std::shared_ptr<LayerNode> layer) {

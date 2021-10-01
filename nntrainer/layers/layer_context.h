@@ -327,6 +327,7 @@ public:
   /**
    * @brief Get the Weight Gradient tensor object
    *
+   * @note this method returns the fresh gradient to be filled
    * @param idx Identifier of the weight
    * @return Tensor& Reference to the weight grad tensor
    */

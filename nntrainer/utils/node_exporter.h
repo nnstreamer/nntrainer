@@ -214,6 +214,7 @@ class WeightRegularizer;
 class WeightRegularizerConstant;
 class WeightInitializer;
 class BiasInitializer;
+class SharedFrom;
 } // namespace props
 
 class LayerNode;
@@ -225,7 +226,7 @@ template <>
 void Exporter::saveTflResult(
   const std::tuple<props::Name, props::Distribute, props::Trainable,
                    std::vector<props::InputLayer>,
-                   std::vector<props::InputShape>> &props,
+                   std::vector<props::InputShape>, props::SharedFrom> &props,
   const LayerNode *self);
 
 class LayerImpl;
