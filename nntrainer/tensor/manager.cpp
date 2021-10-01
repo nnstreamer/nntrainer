@@ -254,7 +254,8 @@ void Manager::initializeTensorsTrain(unsigned int max_exec_order_) {
  */
 std::vector<Weight *>
 Manager::requestWeights(const GraphNode &node,
-                        const std::vector<Weight::Spec> &weights_spec) {
+                        const std::vector<Weight::Spec> &weights_spec,
+                        bool trainable) {
   const auto [forwarding_order, calcGradient_order, calcDerivative_order] =
     node.getExecutionOrder();
   std::vector<unsigned int> var_exec_order(
@@ -269,27 +270,18 @@ Manager::requestWeights(const GraphNode &node,
   size_t current_size = weights_v2.size();
 
   for (auto const &ws : std::as_const(weights_spec)) {
-    Tensor *var =
-      weight_pool.requestTensor(std::get<0>(ws), /// tensor dim
-                                var_exec_order, var_ls,
-                                std::get<5>(ws), /// name
-                                std::get<1>(ws)  /// tensor initializer
-      );
+    auto &[dim, t_initializer, w_reg, w_reg_const, need_gradient, name] = ws;
+    Tensor *var = weight_pool.requestTensor(dim, var_exec_order, var_ls, name,
+                                            t_initializer);
 
     Tensor *grad = nullptr;
-    if (std::get<4>(ws) /** need gradient */)
-      grad = tensor_pool.requestTensor(
-        std::get<0>(ws), /// tensor dim
-        grad_exec_order, grad_ls,
-        std::get<5>(ws) + Var_Grad::grad_suffix, /// name
-        Tensor::Initializer::ZEROS               /// tensor initializer
-      );
+    if (trainable && need_gradient)
+      grad = tensor_pool.requestTensor(dim, grad_exec_order, grad_ls,
+                                       name + Var_Grad::grad_suffix,
+                                       Tensor::Initializer::ZEROS);
 
-    weights_v2.emplace_back(std::make_unique<Weight>(
-      var, grad,
-      std::get<2>(ws), /// weight regularizer
-      std::get<3>(ws)  /// weight regularization constant
-      ));
+    weights_v2.emplace_back(
+      std::make_unique<Weight>(var, grad, w_reg, w_reg_const));
   }
 
   std::transform(weights_v2.begin() + current_size, weights_v2.end(),

@@ -148,12 +148,13 @@ public:
    *
    * @param node Graph node to extract node identifiers/info
    * @param weights_spec Specficiation for the weights
+   * @param trainable make the weight trainable if true
    *
    * @return created weights list
    */
   std::vector<Weight *>
   requestWeights(const GraphNode &node,
-                 const std::vector<Weight::Spec> &weights_spec);
+                 const std::vector<Weight::Spec> &weights_spec, bool trainable);
 
   /**
    * @brief     Create tensors with the given spec

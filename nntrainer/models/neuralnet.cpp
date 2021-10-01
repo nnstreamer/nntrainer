@@ -196,15 +196,18 @@ void NeuralNetwork::backwarding(std::shared_ptr<LayerNode> node, int iteration,
    * Do not change this order:
    * 1. calcGradient
    * 2. calcDerivative
-   * 3. applyGradient
    */
-  bool apply_gradient = true;
+  [[maybe_unused]] bool apply_gradient = true;
   /** If gradient optimization mode, then calculate gradient first */
   if (dynamic_training_opt.isGradientMode())
     node->calcGradient();
 
   /**
    * If optimization off, or gradient must be applied, then this will be true
+   * @todo This apply gradient should be passed to the each weight and later be
+   * queried when updating gradient at once. (after moving apply_gradient out of
+   * this function)
+   *
    */
   // auto &layer = node->getObject();
   // apply_gradient = dynamic_training_opt.checkIfApply(
@@ -219,15 +222,14 @@ void NeuralNetwork::backwarding(std::shared_ptr<LayerNode> node, int iteration,
   if (calc_derivative)
     node->calcDerivative();
 
-  if (apply_gradient && node->getTrainable()) {
+  if (apply_gradient) {
     // TODO: ask network_graph for weights of node and then remove
     // getWeightObject() interface from layer_context
-    RunOptimizerContext opt_context;
     for (unsigned int idx = 0; idx < node->getNumWeights(); idx++) {
       auto &weight = node->getWeightObject(idx);
       if (weight.hasGradient()) {
         weight.calcRegularizationGradient();
-        opt_context = RunOptimizerContext(&weight, iteration);
+        RunOptimizerContext opt_context(&weight, iteration);
         opt->applyGradient(opt_context);
       }
     }
