@@ -70,6 +70,8 @@ enum LayerType {
                                        type */
   LAYER_LOSS_CROSS_ENTROPY_SOFTMAX, /**< Cross Entropy with Softmax Loss Layer
                                        type */
+  LAYER_LOSS_CONSTANT_DERIVATIVE,   /**< Synthetic loss layer to feed constant
+                                       derivative */
   LAYER_UNKNOWN = ML_TRAIN_LAYER_TYPE_UNKNOWN /**< Unknown */
 };
 

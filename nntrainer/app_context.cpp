@@ -33,6 +33,7 @@
 #include <bn_layer.h>
 #include <centroid_knn.h>
 #include <concat_layer.h>
+#include <constant_derivative_loss_layer.h>
 #include <conv2d_layer.h>
 #include <cross_entropy_sigmoid_loss_layer.h>
 #include <cross_entropy_softmax_loss_layer.h>
@@ -274,6 +275,9 @@ static void add_default_object(AppContext &ac) {
   ac.registerFactory(nntrainer::createLayer<CrossEntropySoftmaxLossLayer>,
                      CrossEntropySoftmaxLossLayer::type,
                      LayerType::LAYER_LOSS_CROSS_ENTROPY_SOFTMAX);
+  ac.registerFactory(nntrainer::createLayer<ConstantDerivativeLossLayer>,
+                     ConstantDerivativeLossLayer::type,
+                     LayerType::LAYER_LOSS_CONSTANT_DERIVATIVE);
 
   ac.registerFactory(nntrainer::createLayer<TimeDistLayer>, TimeDistLayer::type,
                      LayerType::LAYER_TIME_DIST);
