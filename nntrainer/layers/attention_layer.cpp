@@ -53,8 +53,8 @@ void AttentionLayer::forwarding(RunLayerContext &context, bool training) {
   Tensor &value = context.getInput(AttentionParams::value);
 
   Tensor &output = context.getOutput(SINGLE_INOUT_IDX);
-  Tensor &weights = context.getTensor(wt_idx[AttentionParams::score]);
-  Tensor &score = context.getTensor(wt_idx[AttentionParams::weights]);
+  Tensor &weights = context.getTensor(wt_idx[AttentionParams::weights]);
+  Tensor &score = context.getTensor(wt_idx[AttentionParams::score]);
 
   for (unsigned int b = 0; b < query.batch(); b++) {
     /** @todo try using transpose to speedup the operation */
@@ -71,7 +71,7 @@ void AttentionLayer::forwarding(RunLayerContext &context, bool training) {
 }
 
 void AttentionLayer::calcDerivative(RunLayerContext &context) {
-  Tensor &derivative_ = context.getIncomingDerivative(SINGLE_INOUT_IDX);
+  Tensor &derivative = context.getIncomingDerivative(SINGLE_INOUT_IDX);
   Tensor &query = context.getInput(AttentionParams::query);
   Tensor &value = context.getInput(AttentionParams::value);
 
@@ -79,13 +79,29 @@ void AttentionLayer::calcDerivative(RunLayerContext &context) {
   Tensor &dvalue = context.getOutgoingDerivative(AttentionParams::value);
   Tensor &weights = context.getTensor(wt_idx[AttentionParams::weights]);
 
-  Tensor t1;
-  sm.run_prime_fn(weights, t1, derivative_);
+  for (unsigned int b = 0; b < query.batch(); b++) {
+    /** @todo try using transpose to speedup the operation */
+    Tensor query_b = query.getBatchSlice(b, 1);
+    Tensor value_b = value.getBatchSlice(b, 1);
+    Tensor weights_b = weights.getBatchSlice(b, 1);
 
-  Tensor t2 = value.dot(t1);
-  dquery = t2.dot(value).dot(derivative_);
+    Tensor dquery_b = dquery.getBatchSlice(b, 1);
+    Tensor dvalue_b = dvalue.getBatchSlice(b, 1);
+    Tensor deriv_b = derivative.getBatchSlice(b, 1);
 
-  dvalue = t2.dot(query).add(weights).dot(derivative_);
+    Tensor dweight = deriv_b.dot(value_b, false, true);
+
+    Tensor t1;
+    sm.run_prime_fn(weights_b, t1, dweight);
+
+    Tensor t2 = t1.dot(value_b);
+    t2.dot(value_b, false, true).dot(deriv_b, dquery_b);
+
+    Tensor p1 = t1.dot(query_b).dot(value_b, false, true);
+    Tensor p2 = p1.add(weights_b); 
+    p2.dot(deriv_b, dvalue_b, true, false);
+  }
+
 }
 
 void AttentionLayer::setProperty(const std::vector<std::string> &values) {

@@ -192,7 +192,6 @@ Tensor &ActiFunc::softmaxPrime(Tensor const &x, Tensor &output,
   unsigned int channel = x.channel();
   unsigned int height = x.height();
   unsigned int width = x.width();
-  bool is_derivative = true;
 
   if (output.empty())
     output = Tensor(x.getDim());
@@ -200,11 +199,6 @@ Tensor &ActiFunc::softmaxPrime(Tensor const &x, Tensor &output,
   const float *xp = x.getData();
   const float *d = derivative.getData();
   float *pp = output.getData();
-
-  /** @todo update default tensorDim to be 0 and not 1 */
-  if (derivative.getDim() == TensorDim()) {
-    is_derivative = false;
-  }
 
   for (unsigned int k = 0; k < batch; ++k) {
     int K = k * channel * height * width;
@@ -221,7 +215,7 @@ Tensor &ActiFunc::softmaxPrime(Tensor const &x, Tensor &output,
             } else {
               val = -xp[I + l] * xp[I + j];
             }
-            if (is_derivative)
+            if (!derivative.empty())
               val *= d[I + l];
             sum += val;
           }
