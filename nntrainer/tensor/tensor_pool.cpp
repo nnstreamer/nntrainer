@@ -77,7 +77,8 @@ Tensor *TensorPool::requestPrerequestedTensor(
   TensorLifespan lifespan, const std::string &name,
   const std::string &shared_name, const Tensor::Initializer &init) {
   if (name_map.find(shared_name) == name_map.end())
-    throw std::invalid_argument("Requested shared tensor not found");
+    throw std::invalid_argument("Requested shared tensor not found, name: " +
+                                shared_name);
 
   /** find the parent non-dependent node where the spec is stored */
   int parent_spec_idx = name_map[shared_name];
