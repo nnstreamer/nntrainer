@@ -39,10 +39,7 @@
 
 namespace nntrainer {
 MMapedMemory::MMapedMemory(size_t size, bool allocate_fd_) :
-  fd(-1),
-  buf(nullptr),
-  buf_size(0),
-  allocate_fd(allocate_fd_) {
+  fd(-1), buf(nullptr), buf_size(0), allocate_fd(allocate_fd_) {
 
 #ifndef __ANDROID__
   if (allocate_fd) {
@@ -252,10 +249,9 @@ void Manager::initializeTensorsTrain(unsigned int max_exec_order_) {
  * @brief     Create weights with the given spec
  *
  */
-std::vector<Weight *>
-Manager::requestWeights(const GraphNode &node,
-                        const std::vector<Weight::Spec> &weights_spec,
-                        bool trainable) {
+std::vector<Weight *> Manager::requestWeights(
+  const GraphNode &node, const std::vector<Weight::Spec> &weights_spec,
+  bool trainable, const std::vector<std::string> &shared_names) {
   const auto [forwarding_order, calcGradient_order, calcDerivative_order] =
     node.getExecutionOrder();
   std::vector<unsigned int> var_exec_order(
@@ -271,17 +267,23 @@ Manager::requestWeights(const GraphNode &node,
 
   for (auto const &ws : std::as_const(weights_spec)) {
     auto &[dim, t_initializer, w_reg, w_reg_const, need_gradient, name] = ws;
-    Tensor *var = weight_pool.requestTensor(dim, var_exec_order, var_ls, name,
-                                            t_initializer);
 
-    Tensor *grad = nullptr;
-    if (trainable && need_gradient)
-      grad = tensor_pool.requestTensor(dim, grad_exec_order, grad_ls,
-                                       name + Var_Grad::grad_suffix,
-                                       Tensor::Initializer::ZEROS);
+    if (!shared_names.empty()) {
+      /** @todo add case when shared names are given */
 
-    weights_v2.emplace_back(
-      std::make_unique<Weight>(var, grad, w_reg, w_reg_const));
+    } else {
+      Tensor *var = weight_pool.requestTensor(dim, var_exec_order, var_ls, name,
+                                              t_initializer);
+
+      Tensor *grad = nullptr;
+      if (trainable && need_gradient)
+        grad = tensor_pool.requestTensor(dim, grad_exec_order, grad_ls,
+                                         name + Var_Grad::grad_suffix,
+                                         Tensor::Initializer::ZEROS);
+
+      weights_v2.emplace_back(
+        std::make_unique<Weight>(var, grad, w_reg, w_reg_const));
+    }
   }
 
   std::transform(weights_v2.begin() + current_size, weights_v2.end(),
