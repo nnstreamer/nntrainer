@@ -154,6 +154,7 @@ NNTRAINER_SRCS := $(NNTRAINER_ROOT)/nntrainer/models/neuralnet.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/loss/mse_loss_layer.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/loss/cross_entropy_sigmoid_loss_layer.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/loss/cross_entropy_softmax_loss_layer.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/layers/loss/constant_derivative_loss_layer.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/conv2d_layer.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/pooling2d_layer.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/activation_layer.cpp \

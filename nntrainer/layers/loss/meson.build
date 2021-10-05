@@ -2,7 +2,8 @@ loss_layer_sources = [
   'loss_layer.cpp',
   'mse_loss_layer.cpp',
   'cross_entropy_sigmoid_loss_layer.cpp',
-  'cross_entropy_softmax_loss_layer.cpp'
+  'cross_entropy_softmax_loss_layer.cpp',
+  'constant_derivative_loss_layer.cpp'
 ]
 
 loss_layer_headers = []
