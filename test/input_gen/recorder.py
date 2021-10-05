@@ -399,7 +399,10 @@ def record(
 def record_single(layer, input_shape, test_name, call_args={}):
     layer = attach_trans_layer(layer)
     layer.build(input_shape)
-    inputs = _rand_like(input_shape)
+    if isinstance(input_shape, list):
+        inputs = [_rand_like(in_shape) for in_shape in input_shape]
+    else:
+        inputs = _rand_like(input_shape)
 
     initial_weights = [tf.Variable(i) for i in layer.weights]
 
@@ -407,7 +410,10 @@ def record_single(layer, input_shape, test_name, call_args={}):
         layer.call(inputs, **call_args) # warm layer multiple times
 
     with tf.GradientTape(persistent=True) as tape:
-        tape.watch(inputs)
+        if isinstance(inputs, list):
+            list([tape.watch(inp) for inp in inputs])
+        else:
+            tape.watch(inputs)
         outputs = layer.call(inputs, **call_args)
         dy_constant = outputs * 2  # set incoming derivative to 2 instead of 1
 
@@ -423,17 +429,19 @@ def record_single(layer, input_shape, test_name, call_args={}):
     with open(test_name + ".nnlayergolden", "wb") as f:
         writer = _get_writer(f)
 
-        def write_tensor(*tensors):
+        def write_tensor(tensors):
+            if not isinstance(tensors, list):
+                tensors = [tensors]
             for tensor in tensors:
-                # print(tensor)
+                print(tf.size(tensor))
                 writer(tf.size(tensor), tensor)
 
         ## @todo inputs outputs derivatives can be more than one
         ## @note please update genLayerTests.py comments when updating below
-        write_tensor(*initial_weights)
+        write_tensor(initial_weights)
         write_tensor(inputs)
         write_tensor(outputs)
-        write_tensor(*gradients)
-        write_tensor(*weights)
+        write_tensor(gradients)
+        write_tensor(weights)
         write_tensor(derivatives)
 

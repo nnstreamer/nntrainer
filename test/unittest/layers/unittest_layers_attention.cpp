@@ -22,3 +22,11 @@ auto semantic_attention =
 
 INSTANTIATE_TEST_CASE_P(Attention, LayerSemantics,
                         ::testing::Values(semantic_attention));
+
+auto attention_shared_kv = LayerGoldenTestParamType(
+  nntrainer::createLayer<nntrainer::AttentionLayer>, {}, "1:1:3:10,1:1:3:10",
+  "attention_golden_shared_kv.nnlayergolden",
+  LayerGoldenTestParamOptions::DEFAULT);
+
+INSTANTIATE_TEST_CASE_P(Attention, LayerGoldenTest,
+                        ::testing::Values(attention_shared_kv));

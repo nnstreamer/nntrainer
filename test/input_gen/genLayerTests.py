@@ -79,5 +79,9 @@ if __name__ == "__main__":
     record_single(conv, (1, 2, 5, 5), "conv_sb_1x1_kernel")
     record_single(conv, (3, 2, 5, 5), "conv_mb_1x1_kernel")
 
+    attention = K.layers.Attention()
+    record_single(attention, [(1, 2, 2), (1, 2, 2)],
+        "attention_golden_shared_kv", {"training": False})
+
 inspect_file("conv_sb_no_overlap.nnlayergolden")
 
