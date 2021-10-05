@@ -156,7 +156,7 @@ public:
    * @return The execution order of the tensor
    */
   const std::vector<unsigned int> &getExecutionOrder(const std::string &name) {
-    return pool[name_map.at(name)].exec_order;
+    return getSourceSpec(name).exec_order;
   }
 
   /**
@@ -222,14 +222,23 @@ private:
   /**
    * @brief Spec for storing each request of tensor from tensor pool
    * @todo move tensor initialization from tensor class to requestSpec
+   * @todo s/RequestSpec/requestSpec/
    */
   struct requestSpec {
     std::unique_ptr<Tensor> tensor;       /**< tensor object itself */
     std::vector<unsigned int> exec_order; /**< tensor exec order list */
     TensorLifespan lifespan;              /**< tensor lifespan */
-    unsigned int token;                   /**< tensor memory token */
-    bool dependent; /**< if dependent on another tensor for memory */
+    unsigned int token; /**< tensor memory token or index to source spec */
+    bool dependent;     /**< if dependent on another tensor for memory */
   };
+
+  /**
+   * @brief Get the view of source Spec from the name
+   *
+   * @param name name to get source spec
+   * @return requestSpec spec
+   */
+  requestSpec &getSourceSpec(const std::string &name);
 
   /**
    * note: unordered_map is not directly used for pool to ensure initialization

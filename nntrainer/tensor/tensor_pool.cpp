@@ -76,16 +76,8 @@ Tensor *TensorPool::requestPrerequestedTensor(
   const TensorDim &dim, const std::vector<unsigned int> &exec_order,
   TensorLifespan lifespan, const std::string &name,
   const std::string &shared_name, const Tensor::Initializer &init) {
-  if (name_map.find(shared_name) == name_map.end())
-    throw std::invalid_argument("Requested shared tensor not found, name: " +
-                                shared_name);
 
-  /** find the parent non-dependent node where the spec is stored */
-  int parent_spec_idx = name_map[shared_name];
-  while (pool[parent_spec_idx].dependent == true)
-    parent_spec_idx = pool[parent_spec_idx].token;
-  auto &spec = pool[parent_spec_idx];
-
+  auto &spec = getSourceSpec(shared_name);
   if (spec.tensor->getDim().getDataLen() != dim.getDataLen())
     throw std::invalid_argument("Request tensor dimension mismatch");
 
@@ -104,6 +96,8 @@ Tensor *TensorPool::requestPrerequestedTensor(
   }
 
   /** @note requestTensor invalidates spec reference */
+  /// maybe bug: we should never access exec_order, lifespan of ret, we should
+  /// only access pool[parent_spec_idx]
   Tensor *ret = requestTensor(dim, exec_order, lifespan, name, init);
   pool.back().token = name_map[shared_name];
   pool.back().dependent = true;
@@ -250,6 +244,19 @@ void TensorPool::expand_lifespan(const std::string &name,
   auto &spec = pool[parent_spec_idx];
   spec.exec_order.insert(spec.exec_order.end(), exec_order.begin(),
                          exec_order.end());
+}
+
+TensorPool::requestSpec &TensorPool::getSourceSpec(const std::string &name) {
+  unsigned parent_spec_idx;
+  try {
+    parent_spec_idx = name_map.at(name);
+  } catch (...) {
+    throw std::invalid_argument("finding spec idx failed, name: " + name);
+  }
+  while (pool[parent_spec_idx].dependent == true)
+    parent_spec_idx = pool[parent_spec_idx].token;
+
+  return pool.at(parent_spec_idx);
 }
 
 /**
