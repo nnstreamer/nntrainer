@@ -784,10 +784,33 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
                    std::back_inserter(label_list),
                    [](auto const &val) { return val->getGradientName(); });
 
+  /** create shared weight names if requested */
+  std::vector<std::string> shared_weight_names;
+  if (auto shared_node_str = lnode->getSharedFrom(); !shared_node_str.empty()) {
+    auto shared_node = getLayerNode(shared_node_str).get();
+    NNTR_THROW_IF(shared_node == nullptr, std::invalid_argument)
+      << "shared_node requested but it is not registered in the graph, name: "
+      << shared_node_str << " requested from " << lnode->getName();
+    NNTR_THROW_IF(shared_node->getType() != lnode->getType(),
+                  std::invalid_argument)
+      << " shared_node and lnode type mismatch, source node type: "
+      << shared_node->getType() << " depedent node type: " << lnode->getType()
+      << " depedent node name: " << lnode->getName();
+    NNTR_THROW_IF(!shared_node->isFinalized(), std::invalid_argument)
+      << "shared node must be prior to the dependent node and it should be "
+         "finalized beforehand, shared node name: "
+      << shared_node_str << " dependent node name: " << lnode->getName();
+    auto num_weight = shared_node->getNumWeights();
+    shared_weight_names.reserve(num_weight);
+    for (auto i = 0u; i < num_weight; ++i) {
+      shared_weight_names.emplace_back(shared_node->getWeightName(i));
+    }
+  }
+
   lnode->configureRunContext(
     // TODO: update weights spec for trainable based on layer trainable prop
     tensor_manager->requestWeights(gnode, init_context.getWeightsSpec(),
-                                   lnode->getTrainable()),
+                                   lnode->getTrainable(), shared_weight_names),
     inputs, outputs,
     tensor_manager->requestTensors(gnode, init_context.getTensorsSpec()));
 
