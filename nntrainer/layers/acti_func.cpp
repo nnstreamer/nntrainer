@@ -148,17 +148,19 @@ Tensor &ActiFunc::softmax(Tensor const &t, Tensor &output) {
   /**
    * shiftx_logit = logit - max_batch(logit)
    * softmax = exp(shiftx_logit) / (sum(exp(shiftx_logit)))
+   *
+   * @note softmax is applied on the last dimension
    */
-  unsigned int batch = t.batch();
+  unsigned int fixed_dim = t.getDim().getDataLen() / t.width();
   float *dp;
   float *rp;
 
   Tensor divisor = t.clone();
 
   dp = divisor.getData();
-  unsigned int feat_len = t.getDim().getFeatureLen();
+  unsigned int feat_len = t.width();
 
-  for (unsigned int k = 0; k < batch; k++) {
+  for (unsigned int k = 0; k < fixed_dim; k++) {
     int index = k * feat_len;
     // find max and subtract it
     float m = *std::max_element(dp + index, dp + index + feat_len);
@@ -171,14 +173,14 @@ Tensor &ActiFunc::softmax(Tensor const &t, Tensor &output) {
   // take exp
   output = divisor.apply(exp_util, output);
   rp = output.getData();
-  // take sum over batch
-  Tensor sum = output.sum_by_batch();
+  // take sum over the last dimension
+  Tensor sum = output.sum(3);
 
-  for (unsigned int k = 0; k < batch; k++) {
+  for (unsigned int k = 0; k < fixed_dim; k++) {
     int index = k * feat_len;
-    std::transform(rp + index, rp + index + feat_len, rp + index,
-                   std::bind(std::divides<float>(), std::placeholders::_1,
-                             sum.getValue(k, 0, 0, 0)));
+    std::transform(
+      rp + index, rp + index + feat_len, rp + index,
+      std::bind(std::divides<float>(), std::placeholders::_1, sum.getValue(k)));
   }
 
   return output;

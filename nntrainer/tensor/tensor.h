@@ -258,6 +258,12 @@ public:
   }
 
   /**
+   * @brief     return value at specific location
+   * @param[in] idx location
+   */
+  float getValue(unsigned int idx) const noexcept { return getData()[idx]; }
+
+  /**
    * @brief Get the Value thinking that it is padded
    * for example, for the tensor (virtually padded) below,
    * getValue(0, 0, 2, 2, 1, 1, .0f) will return 5
