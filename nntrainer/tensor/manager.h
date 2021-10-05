@@ -238,11 +238,7 @@ public:
    * @param current_execution current execution
    * @return bool true if given execution order first access
    */
-  bool isFirstAccess(const std::string &name, unsigned current_execution) {
-    /** NYI!! */
-    /// @todo add cache machanism, eg) sort at finalizing requesting
-    return false;
-  }
+  bool isFirstAccess(const std::string &name, unsigned current_execution);
 
   /**
    * @brief check if given execution order is the last access
@@ -251,11 +247,7 @@ public:
    * @param current_execution current execution
    * @return bool ture if given execution order is the last access
    */
-  bool isLastAccess(const std::string &name, unsigned current_execution) {
-    /** NYI!! */
-    /// @todo add cache machanism, eg) sort at finalizing requesting
-    return true;
-  }
+  bool isLastAccess(const std::string &name, unsigned current_execution);
 
   /*
    * @brief   Check if the manager has allocated tensors
