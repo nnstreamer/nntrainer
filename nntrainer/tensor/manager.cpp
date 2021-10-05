@@ -535,6 +535,17 @@ Manager::getMinMaxTensorExecutionOrder(const std::string &name) {
   return {*min_, *max_};
 }
 
+bool Manager::isFirstAccess(const std::string &name,
+                            unsigned current_execution) {
+  /// @todo add cache machanism, eg) sort at finalizing requesting
+  return getMinMaxTensorExecutionOrder(name).first == current_execution;
+}
+
+bool Manager::isLastAccess(const std::string &name,
+                           unsigned current_execution) {
+  /// @todo add cache machanism, eg) sort at finalizing requesting
+  return getMinMaxTensorExecutionOrder(name).second == current_execution;
+}
 
 /**
  * @brief     Create tensors with the given spec
