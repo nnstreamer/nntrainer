@@ -36,7 +36,7 @@ void AttentionLayer::finalize(InitLayerContext &context) {
   wt_idx[AttentionParams::value] = value;
 
   auto weights_dim = query_dim;
-  weights_dim.width(value_dim.width());
+  weights_dim.width(value_dim.height());
   wt_idx[AttentionParams::weights] = context.requestTensor(
     weights_dim, context.getName() + ":weights", Tensor::Initializer::NONE,
     false, TensorLifespan::ITERATION_LIFESPAN);
@@ -53,12 +53,21 @@ void AttentionLayer::forwarding(RunLayerContext &context, bool training) {
   Tensor &value = context.getInput(AttentionParams::value);
 
   Tensor &output = context.getOutput(SINGLE_INOUT_IDX);
-  Tensor &weights = context.getTensor(wt_idx[AttentionParams::weights]);
+  Tensor &weights = context.getTensor(wt_idx[AttentionParams::score]);
   Tensor &score = context.getTensor(wt_idx[AttentionParams::weights]);
 
-  query.dot(value, score, false, true);
-  sm.run_fn(score, weights);
-  weights.dot(value, output);
+  for (unsigned int b = 0; b < query.batch(); b++) {
+    /** @todo try using transpose to speedup the operation */
+    Tensor query_b = query.getBatchSlice(b, 1);
+    Tensor value_b = value.getBatchSlice(b, 1);
+    Tensor score_b = score.getBatchSlice(b, 1);
+    Tensor weights_b = weights.getBatchSlice(b, 1);
+    Tensor output_b = output.getBatchSlice(b, 1);
+
+    query_b.dot(value_b, score_b, false, true);
+    sm.run_fn(score_b, weights_b);
+    weights_b.dot(value_b, output_b);
+  }
 }
 
 void AttentionLayer::calcDerivative(RunLayerContext &context) {
