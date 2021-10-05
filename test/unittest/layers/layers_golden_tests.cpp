@@ -103,6 +103,7 @@ static TensorPacks prepareTensors(const InitLayerContext &context,
       weights.emplace_back(spec, true);
       sizeCheckedReadTensor(weights.back().getVariableRef(), file,
                             weights.back().getName());
+      weights.back().getGradientRef().setZero();
     }
     return weights;
   };

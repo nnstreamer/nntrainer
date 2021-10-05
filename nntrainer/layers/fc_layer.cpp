@@ -103,7 +103,7 @@ void FullyConnectedLayer::calcDerivative(RunLayerContext &context) {
   Tensor &derivative_ = context.getIncomingDerivative(SINGLE_INOUT_IDX);
   Tensor &ret_ = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
 
-  ret_ = derivative_.dot(weight, ret_, false, true);
+  derivative_.dot(weight, ret_, false, true);
 }
 
 void FullyConnectedLayer::calcGradient(RunLayerContext &context) {
@@ -113,8 +113,10 @@ void FullyConnectedLayer::calcGradient(RunLayerContext &context) {
   Tensor &derivative_ = context.getIncomingDerivative(SINGLE_INOUT_IDX);
   Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
 
-  derivative_.sum({0, 1, 2}, djdb);
-  input_.dot(derivative_, djdw, true, false);
+  /// @todo optimize below by adding beta to Tensor::sum
+  Tensor t = derivative_.sum({0, 1, 2});
+  djdb.add_i(t);
+  input_.dot(derivative_, djdw, true, false, 1.0f);
 }
 
 } /* namespace nntrainer */
