@@ -92,8 +92,8 @@ void PowLayer::forwarding(nntrainer::RunLayerContext &context, bool training) {
 #endif
 
   /// net hidden are used to save var,
-  context.getOutput(SINGLE_INOUT_IDX) =
-    context.getInput(SINGLE_INOUT_IDX).pow(exponent);
+  context.getInput(SINGLE_INOUT_IDX)
+    .pow(exponent, context.getOutput(SINGLE_INOUT_IDX));
 
 #ifdef DEBUG
   std::cout << "input: " << context.getInput(SINGLE_INOUT_IDX);
@@ -112,7 +112,7 @@ void PowLayer::calcDerivative(nntrainer::RunLayerContext &context) {
     context.getIncomingDerivative(SINGLE_INOUT_IDX);
   nntrainer::Tensor &dx = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
 
-  dx = derivative_.multiply(exponent);
+  derivative_.multiply(exponent, dx);
 
 #ifdef DEBUG
   std::cout << "input: " << context.getOutput(SINGLE_INOUT_IDX);

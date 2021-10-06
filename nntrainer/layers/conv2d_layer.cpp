@@ -504,7 +504,7 @@ void Conv2DLayer::calcGradient(RunLayerContext &context) {
   }
 
   delK.reshape(filter_dim);
-  delBias = derivative.sum({0, 2, 3});
+  derivative.sum({0, 2, 3}, delBias);
 }
 
 void Conv2DLayer::exportTo(Exporter &exporter,

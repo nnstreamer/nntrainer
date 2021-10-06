@@ -10,6 +10,8 @@
  * @brief  This is the layer context for each layer
  */
 
+#include <functional>
+
 #include <layer_context.h>
 #include <var_grad.h>
 #include <weight.h>
@@ -29,6 +31,9 @@ RunLayerContext::RunLayerContext(const std::string &name, bool trainable,
   std::get<props::Trainable>(props).set(trainable);
   NNTR_THROW_IF(!readyToUse(), std::invalid_argument)
     << "run context is not ready to use upon creation";
+
+  if (!validate())
+    throw std::invalid_argument("Creating invalid run context");
 }
 
 /**
@@ -112,6 +117,16 @@ Tensor &RunLayerContext::getOutputGrad(unsigned int idx) {
 }
 
 /**
+ * @brief check if the output has gradient
+ *
+ * @param idx Identifier of the output
+ * @return true if output has gradient, else false
+ */
+bool RunLayerContext::outputHasGradient(unsigned int idx) const {
+  return outputs[idx]->hasGradient();
+}
+
+/**
  * @brief Get the Output Grad tensor object
  *
  * @param idx Identifier of the output
@@ -159,6 +174,16 @@ Tensor &RunLayerContext::getInputGrad(unsigned int idx) {
     throw std::invalid_argument(
       "Requesting gradient for a non-trainable tensor.");
   return inputs[idx]->getGradientRef();
+}
+
+/**
+ * @brief check if the input has gradient
+ *
+ * @param idx Identifier of the input
+ * @return true if output has gradient, else false
+ */
+bool RunLayerContext::inputHasGradient(unsigned int idx) const {
+  return inputs[idx]->hasGradient();
 }
 
 /**
@@ -306,6 +331,80 @@ bool RunLayerContext::readyToUse() const {
   if (inputs.empty())
     return false;
   return !inputs[0]->getVariable().empty();
+}
+
+/**
+ * @brief   validates the run context after run
+ *
+ * @return true if ready, else false
+ */
+bool RunLayerContext::validate(bool skip_input, bool skip_label) {
+  /**
+   * @note a common mistake when using run_context is re-assigning the tensor
+   * references which leads to nasty bugs. This validation ensures that the
+   * tensors are not set mistakenly by verifying their unique names
+   */
+#ifdef ENABLE_TEST
+  if (tensor_map.empty() || !tensor_map[inputs[0]->getName()]) {
+    auto filler = [this](const auto &vec) {
+      for (auto const &val : vec) {
+        tensor_map[val->getName()] = val->getVariableRef().getData();
+        tensor_map[val->getGradientName()] = val->getGradientRef().getData();
+      }
+    };
+
+    /** fill the tensor map for the first validation */
+    filler(weights);
+    filler(inputs);
+    filler(outputs);
+    filler(tensors);
+  } else {
+    auto matcher = [this](const Var_Grad *val, bool skip_grad = false) {
+      if (val->getName().empty() ||
+          (val->hasGradient() && val->getGradientName().empty()))
+        return false;
+
+      if (tensor_map.find(val->getName()) == tensor_map.end())
+        /**
+         * Disabled because of in-place input layer. Enable this later.
+         * tensor_map[val->getName()] != val->getVariableRef().getData())
+         */
+        return false;
+
+      if (skip_grad &&
+          (tensor_map.find(val->getGradientName()) == tensor_map.end()))
+        return false;
+
+      return true;
+    };
+
+    auto matcher_w = [this, matcher](const std::vector<Weight *> &vec) {
+      auto ret = true;
+      for (auto const &val : vec)
+        ret &= matcher(val);
+      return ret;
+    };
+
+    auto matcher_vw = [this, matcher](const std::vector<Var_Grad *> &vec,
+                                      bool skip_grad = false) {
+      auto ret = true;
+      for (auto const &val : vec)
+        ret &= matcher(val, skip_grad);
+      return ret;
+    };
+
+    /** match the tensor map from the next validations */
+
+    auto ret = matcher_w(weights) & matcher_vw(tensors) &
+               matcher_vw(outputs, skip_label);
+    if (!skip_input)
+      ret &= matcher_vw(inputs);
+
+    return ret;
+  }
+#endif
+
+  return true;
 }
 
 } // namespace nntrainer
