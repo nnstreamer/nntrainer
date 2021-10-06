@@ -127,7 +127,24 @@ int NeuralNetwork::initialize() {
   model_graph.setBatchSize(
     std::get<props::TrainingBatchSize>(model_flex_props));
 
-  status = model_graph.initialize();
+  auto &input_layer_prop =
+    std::get<std::vector<props::InputLayer>>(model_props);
+  auto &label_layer_prop =
+    std::get<std::vector<props::LabelLayer>>(model_props);
+
+  std::vector<std::string> input_layers;
+  std::vector<std::string> label_layers;
+
+  if (!input_layer_prop.empty()) {
+    input_layers = std::vector<std::string>(input_layer_prop.begin(),
+                                            input_layer_prop.end());
+  }
+  if (!label_layer_prop.empty()) {
+    label_layers = std::vector<std::string>(label_layer_prop.begin(),
+                                            label_layer_prop.end());
+  }
+
+  status = model_graph.initialize(input_layers, label_layers);
   NN_RETURN_STATUS();
 
   // initialize optimizer and related variables
