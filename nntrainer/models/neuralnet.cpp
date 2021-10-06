@@ -48,7 +48,7 @@
 namespace nntrainer {
 
 NeuralNetwork::NeuralNetwork(AppContext app_context_, bool in_place_opt) :
-  model_props(props::LossType()),
+  model_props(props::LossType(), {}, {}),
   model_flex_props(props::Epochs(), props::TrainingBatchSize(),
                    props::SavePath(), props::ContinueTrain(),
                    props::SaveBestPath()),

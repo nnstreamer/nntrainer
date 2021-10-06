@@ -54,19 +54,6 @@ public:
 };
 
 /**
- * @brief Input Layer name property which saves a single connection
- * (practically, std::vector<InputLayers> is used)
- *
- */
-class InputLayer : public Name {
-public:
-  InputLayer() : Name(){};
-  InputLayer(const std::string &name) : Name(name) {}
-  static constexpr const char *key = "input_layers";
-  using prop_tag = str_prop_tag;
-};
-
-/**
  * @brief Loss property, this defines loss specification of layer
  *
  */
