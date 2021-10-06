@@ -496,17 +496,19 @@ sharedConstTensors NetworkGraph::forwarding(bool training) const {
 }
 
 std::vector<TensorDim> NetworkGraph::getInputDimension() const {
-  NNTR_THROW_IF(this->empty(), std::invalid_argument)
-    << "[NetworkGraph] the graph has no node!";
-  return getSortedLayerNode(0)->getInputDimensions();
+  NNTR_THROW_IF(input_dims.empty(), std::invalid_argument)
+    << "[NetworkGraph] the graph has no node identified as input!";
+  return input_dims;
 }
 
 unsigned int NetworkGraph::getBatchSize() const { return batch_size; }
 
 std::vector<TensorDim> NetworkGraph::getOutputDimension() const {
-  NNTR_THROW_IF(this->empty(), std::invalid_argument)
-    << "[NetworkGraph] the graph has no node!";
-  return getSortedLayerNode(graph.size() - 1)->getOutputDimensions();
+  NNTR_THROW_IF(label_dims.empty(), std::invalid_argument)
+    << "[NetworkGraph] the graph has no node identified as output!";
+  /// for now, outputting label_dims works, later label dim will be different
+  /// from output dimension
+  return label_dims;
 }
 
 std::vector<std::shared_ptr<LayerNode>>
@@ -857,6 +859,7 @@ int NetworkGraph::initialize(
       << num_input;
 
     input_list.push_back(node->getInput(0).getName());
+    input_dims.push_back(node->getInputDimensions()[0]);
   };
 
   auto is_label_node = [](LayerNode *node) { return node->requireLabel(); };
@@ -872,6 +875,7 @@ int NetworkGraph::initialize(
       << num_label;
 
     label_list.push_back(node->getOutputGrad(0).getName());
+    label_dims.push_back(node->getOutputDimensions()[0]);
   };
 
   auto identify_external_tensors = [this](const std::vector<std::string> &names,
