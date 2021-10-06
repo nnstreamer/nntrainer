@@ -511,6 +511,8 @@ GraphWatcher::prepareData(std::ifstream &f,
 
   in.read(f);
   lb.read(f);
+  in.setName("input");
+  lb.setName("label");
 
   for (auto &i : nodes) {
     i.readLayerWeight(f);

@@ -680,7 +680,7 @@ Tensor &Tensor::sum(unsigned int axis, Tensor &ret, float alpha) const {
 
   if (dim.getDim()[axis] == 1 and alpha == 1.0) {
     CREATE_IF_EMPTY_DIMS(ret, dim);
-    ret.copy(*this);
+    ret.copy(this->getData());
     return ret;
   }
 
@@ -1128,6 +1128,7 @@ void Tensor::copy(const Tensor &from) {
 Tensor Tensor::clone() const {
   Tensor t;
   t.copy(*this);
+  t.name = name;
   return t;
 }
 

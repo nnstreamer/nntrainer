@@ -160,7 +160,7 @@ void BatchNormalizationLayer::forwarding(RunLayerContext &context,
     mu.multiply_i(momentum);
     mu.add_i(t_reduced, 1 - momentum);
 
-    t_full = deviation.pow(2.0f);
+    deviation.pow(2.0f, t_full);
     t_full.average(axes_to_reduce, cvar);
 
     var.multiply_i(momentum);

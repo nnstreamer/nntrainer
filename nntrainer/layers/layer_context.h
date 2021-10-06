@@ -384,6 +384,14 @@ public:
   Tensor &getOutputGradUnsafe(unsigned int idx);
 
   /**
+   * @brief check if the weight has gradient
+   *
+   * @param idx Identifier of the weight
+   * @return true if weight has gradient, else false
+   */
+  bool outputHasGradient(unsigned int idx) const;
+
+  /**
    * @brief Get the incoming Derivative tensor object
    *
    * @param idx Identifier of the output
@@ -414,6 +422,14 @@ public:
    * @return Tensor& Reference to the input grad tensor
    */
   Tensor &getInputGrad(unsigned int idx);
+
+  /**
+   * @brief check if the weight has gradient
+   *
+   * @param idx Identifier of the weight
+   * @return true if weight has gradient, else false
+   */
+  bool inputHasGradient(unsigned int idx) const;
 
   /**
    * @brief Get the outgoing Derivative tensor object
@@ -589,6 +605,16 @@ public:
    */
   bool readyToUse() const;
 
+  /**
+   * @brief   validates the run context after run
+   *
+   * @param skip_input  skip verifying the input
+   * @param skip_label  skip verifying the label
+   *
+   * @return true if ready, else false
+   */
+  bool validate(bool skip_input = false, bool skip_label = false);
+
 private:
   std::tuple<props::Name, props::Trainable> props; /**< props of the layer */
   float loss;                                      /**< loss of the layer */
@@ -597,6 +623,11 @@ private:
   std::vector<Var_Grad *> inputs;  /**< inputs of the layer */
   std::vector<Var_Grad *> outputs; /**< outputs of the layer */
   std::vector<Var_Grad *> tensors; /**< tensors of the layer */
+
+#ifdef ENABLE_TEST
+  std::map<std::string, const void *>
+    tensor_map; /**< map of tensor name to tensor address */
+#endif
 
   /**
    * @brief Get regularization loss for the weight
