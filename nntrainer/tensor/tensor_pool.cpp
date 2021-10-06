@@ -96,8 +96,8 @@ Tensor *TensorPool::requestPrerequestedTensor(
   }
 
   /** @note requestTensor invalidates spec reference */
-  /// maybe bug: we should never access exec_order, lifespan of ret, we should
-  /// only access pool[parent_spec_idx]
+  /// @note: for the dependent tensor, it only contains its own exec order, and
+  /// thus not contain the whole exec_order
   Tensor *ret = requestTensor(dim, exec_order, lifespan, name, init);
   pool.back().token = name_map[shared_name];
   pool.back().dependent = true;

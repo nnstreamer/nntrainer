@@ -147,14 +147,6 @@ public:
   void setBatchSize(unsigned int batch_size);
 
   /**
-   * @brief try zero gradient at the start of gradient access
-   * @note if it is not the start of gradient access, this is noop
-   *
-   * @param node node to try gradient to zero
-   */
-  void zeroGradOnFirstAccess(LayerNode *node);
-
-  /**
    * @brief try apply gradient at the last of gradient access
    * @note if it is not the last of the gradient access, this is noop
    *
@@ -162,7 +154,7 @@ public:
    * @param apply_func apply function
    */
   void applyGradientsOnLastAccess(LayerNode *node,
-                         std::function<void(Weight &)> apply_func);
+                                  std::function<void(Weight &)> apply_func);
 
   /**
    * @brief     forwarding network graph

@@ -481,6 +481,14 @@ public:
   bool tensorHasGradient(unsigned int idx) const;
 
   /**
+   * @brief check if the weight is burrowed from others so it is dependent
+   *
+   * @param idx index
+   * @return bool true if weight is burrowed from outside
+   */
+  bool isWeightDependent(unsigned int idx) const;
+
+  /**
    * @brief Get the tensor name
    *
    * @param idx Identifier of the tensor
