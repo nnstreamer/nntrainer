@@ -255,14 +255,12 @@ void Manager::initializeTensorsTrain(unsigned int max_exec_order_) {
 std::vector<Weight *>
 Manager::requestWeights(const GraphNode &node,
                         const std::vector<Weight::Spec> &weights_spec) {
-  const auto &exec_order = node.getExecutionOrder();
+  const auto [forwarding_order, calcGradient_order, calcDerivative_order] =
+    node.getExecutionOrder();
   std::vector<unsigned int> var_exec_order(
-    {std::get<0>(exec_order), /** forwarding */
-     std::get<1>(exec_order), /** calcGradient */
-     std::get<2>(exec_order) /** calcDerivative */});
+    {forwarding_order, calcGradient_order, calcDerivative_order});
   std::vector<unsigned int> grad_exec_order(
-    {std::get<1>(exec_order), /** calcGradient */
-    std::get<2>(exec_order) /** calcDerivative as gradient is applied after calcDerivative */ });
+    {calcGradient_order, calcDerivative_order});
 
   TensorLifespan var_ls = TensorLifespan::MAX_LIFESPAN;
   TensorLifespan grad_ls = TensorLifespan::BACKWARD_FUNC_LIFESPAN;
@@ -308,7 +306,8 @@ Manager::requestWeights(const GraphNode &node,
 std::vector<Var_Grad *>
 Manager::requestTensors(const GraphNode &node,
                         const std::vector<Var_Grad::Spec> &tensors_spec) {
-  const auto &exec_order = node.getExecutionOrder();
+  const auto [forwarding_order, calcGradient_order, calcDerivative_order] =
+    node.getExecutionOrder();
 
   std::vector<Var_Grad *> ret;
   size_t current_size = tensors_v2.size();
@@ -321,16 +320,16 @@ Manager::requestTensors(const GraphNode &node,
     /** usage for tensors */
     if (enum_class_logical_and<TensorLifespan>(
           tspan, TensorLifespan::FORWARD_FUNC_LIFESPAN))
-      var_exec_order.push_back(std::get<0>(exec_order));
+      var_exec_order.push_back(forwarding_order);
 
     /** usage for tensors gradient in backwarding */
     if (enum_class_logical_and<TensorLifespan>(
           tspan, TensorLifespan::BACKWARD_FUNC_LIFESPAN)) {
-      var_exec_order.push_back(std::get<1>(exec_order));
-      grad_exec_order.push_back(std::get<1>(exec_order));
+      var_exec_order.push_back(calcGradient_order);
+      grad_exec_order.push_back(calcGradient_order);
 
-      var_exec_order.push_back(std::get<2>(exec_order));
-      grad_exec_order.push_back(std::get<2>(exec_order));
+      var_exec_order.push_back(calcDerivative_order);
+      grad_exec_order.push_back(calcDerivative_order);
     }
 
     Tensor *var =
@@ -368,12 +367,11 @@ std::vector<Var_Grad *>
 Manager::requestInputs(const GraphNode &node,
                        const std::vector<TensorDim> &inputs_dim,
                        const std::vector<std::string> &outputs_name) {
-  const auto &exec_order = node.getExecutionOrder();
+  const auto [forwarding_order, calcGradient_order, calcDerivative_order] =
+    node.getExecutionOrder();
   std::vector<unsigned int> var_exec_order(
-    {std::get<0>(exec_order), /** forwarding */
-     std::get<1>(exec_order) /** calcGradient */});
-  std::vector<unsigned int> grad_exec_order(
-    {std::get<2>(exec_order) /** calcDerivative */});
+    {forwarding_order, calcGradient_order});
+  std::vector<unsigned int> grad_exec_order({calcDerivative_order});
 
   TensorLifespan var_ls = TensorLifespan::ITERATION_LIFESPAN;
   TensorLifespan grad_ls = TensorLifespan::ITERATION_LIFESPAN;
@@ -440,17 +438,7 @@ Manager::requestInputs(const GraphNode &node,
 #endif
     }
 
-    /**
-     * TODO: This a temporary fix to handle external tensors due to rebase.
-     * This is properly fixed with #1544 using
-     * context.requestExternallyAllocatedTensor().
-     */
-    if (var && grad)
-      inputs_v2.emplace_back(std::make_unique<Var_Grad>(var, grad));
-    else
-      inputs_v2.emplace_back(std::make_unique<Var_Grad>(
-        dim, Tensor::Initializer::NONE, true, false,
-        node.getName() + std::string(":input") + std::to_string(idx)));
+    inputs_v2.emplace_back(std::make_unique<Var_Grad>(var, grad));
   }
 
   ret.reserve(inputs_dim.size());
@@ -468,15 +456,14 @@ std::vector<Var_Grad *>
 Manager::requestOutputs(const GraphNode &node,
                         const std::vector<TensorDim> &outputs_dim,
                         const std::vector<std::string> &inputs_name) {
-  const auto &exec_order = node.getExecutionOrder();
-  std::vector<unsigned int> var_exec_order(
-    {std::get<0>(exec_order)}); /** forwarding */
+  const auto [forwarding_order, calcGradient_order, calcDerivative_order] =
+    node.getExecutionOrder();
+  std::vector<unsigned int> var_exec_order({forwarding_order});
   if (node.getType() == ActivationLayer::type)
     /** TODO: if removing this reduces memory consumption, resolve this */
-    var_exec_order.push_back(std::get<2>(exec_order)); /** calcDerivative */
+    var_exec_order.push_back(calcDerivative_order);
   std::vector<unsigned int> grad_exec_order(
-    {std::get<1>(exec_order), /** calcGradient */
-     std::get<2>(exec_order) /** calcDerivative */});
+    {calcGradient_order, calcDerivative_order});
 
   TensorLifespan var_ls = TensorLifespan::ITERATION_LIFESPAN;
   TensorLifespan grad_ls = TensorLifespan::ITERATION_LIFESPAN;
