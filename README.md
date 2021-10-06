@@ -68,7 +68,7 @@ This component defines layers which consist of a neural network model. Layers ha
  | input | Input | Input Layer.  This is not always required. |
  | batch_normalization | Batch Normalization Layer | Batch Normalization Layer. |
  | loss layer | loss layer | hidden from users |
- | activation | activaiton layer | set by layer property |
+ | activation | activation layer | set by layer property |
 
 ### Supported Optimizers
 
@@ -97,8 +97,8 @@ NNTrainer provides
  |:-------:|:---:|:---|
  | tanh | tanh function | set as layer property |
  | sigmoid | sigmoid function | set as layer property |
- | relu | relu function | set as layer propery |
- | softmax | softmax function | set as layer propery |
+ | relu | relu function | set as layer property |
+ | softmax | softmax function | set as layer property |
  | weight_initializer | Weight Initialization | Xavier(Normal/Uniform), LeCun(Normal/Uniform),  HE(Normal/Unifor) |
  | weight_regularizer | weight decay ( L2Norm only ) | needs set weight_regularizer_param & type |
  | learnig_rate_decay | learning rate decay | need to set step |
@@ -106,7 +106,7 @@ NNTrainer provides
 ### Tensor
 
 Tensor is responsible for calculation of a layer. It executes several operations such as addition, division, multiplication, dot production, data averaging and so on. In order to accelerate  calculation speed, CBLAS (C-Basic Linear Algebra: CPU) and CUBLAS (CUDA: Basic Linear Algebra) for PC (Especially NVIDIA GPU) are implemented for some of the operations. Later, these calculations will be optimized.
-Currently, we supports lazy calculation mode to reduce complexity for copying tensors during calculations.
+Currently, we support lazy calculation mode to reduce complexity for copying tensors during calculations.
 
  | Keyword | Description |
  |:-------:|:---:|
@@ -136,11 +136,11 @@ Currently, we provide [C APIs](https://github.com/nnstreamer/nntrainer/blob/mast
 #### [Custom Shortcut Application](https://github.com/nnstreamer/nntrainer/tree/main/Applications/Tizen_native/CustomShortcut)
 
 
-A demo application which enable user defined custom shortcut on galaxy watch.
+A demo application which enables user defined custom shortcut on galaxy watch.
 
 #### [MNIST Example](https://github.com/nnstreamer/nntrainer/tree/main/Applications/MNIST)
 
-An example to train mnist dataset. It consists two convolution 2d layer, 2 pooling 2d layer, flatten layer and fully connected layer.
+An example to train mnist dataset. It consists of two convolution 2d layer, 2 pooling 2d layer, flatten layer and fully connected layer.
 
 #### [Reinforcement Learning Example](https://github.com/nnstreamer/nntrainer/tree/main/Applications/ReinforcementLearning/DeepQ)
 
@@ -152,7 +152,7 @@ Transfer learning examples with for image classification using the Cifar 10 data
 
 #### ~Tizen CAPI Example~
 
-An example to demonstrate c api for Tizen. It is same transfer learing but written with tizen c api.~
+An example to demonstrate c api for Tizen. It is same transfer learning but written with tizen c api.~
 Deleted instead moved to a [test](https://github.com/nnstreamer/nntrainer/blob/master/test/tizen_capi/unittest_tizen_capi.cpp)
 
 #### [KNN Example](https://github.com/nnstreamer/nntrainer/tree/main/Applications/KNN)
