@@ -227,6 +227,10 @@ bool RunLayerContext::tensorHasGradient(unsigned int idx) const {
   return tensors[idx]->hasGradient();
 }
 
+bool RunLayerContext::isWeightDependent(unsigned int idx) const {
+  return weights[idx]->isDependent();
+}
+
 /**
  * @brief Get the tensor name
  *

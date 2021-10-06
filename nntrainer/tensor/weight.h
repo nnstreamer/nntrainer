@@ -91,8 +91,9 @@ public:
    * uses only, as Weight does not own the tensors v and g, and can go invalid
    * if the owner of these tensors free the tensors.
    */
-  explicit Weight(const Tensor &v, const Tensor &g, const std::string &n = "") :
-    Var_Grad(v, g, n),
+  explicit Weight(const Tensor &v, const Tensor &g, const std::string &n = "",
+                  bool is_dependent = false) :
+    Var_Grad(v, g, n, is_dependent),
     regularizer(WeightRegularizer::NONE),
     regularizer_constant(1.0f) {}
 
@@ -105,8 +106,8 @@ public:
    * @param reg_const Constant multiplier for regularizer
    */
   explicit Weight(Tensor *v, Tensor *g, const WeightRegularizer reg,
-                  const float reg_const) :
-    Var_Grad(v, g),
+                  const float reg_const, bool is_dependent = false) :
+    Var_Grad(v, g, is_dependent),
     regularizer(reg),
     regularizer_constant(reg_const) {}
 
@@ -222,9 +223,8 @@ public:
   void applyGradient(double lr) { var->add_i(*grad.get(), -lr); }
 
 private:
-  WeightRegularizer regularizer; /**< regularizer for this variable */
-  float regularizer_constant;    /**< constant factor for regularization */
-
+  WeightRegularizer regularizer;  /**< regularizer for this variable */
+  float regularizer_constant;     /**< constant factor for regularization */
   std::vector<Tensor *> opt_vars; /**< optimizer variables */
 };
 

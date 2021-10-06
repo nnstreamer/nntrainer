@@ -194,14 +194,10 @@ void NeuralNetwork::backwarding(std::shared_ptr<LayerNode> node, int iteration,
                                 bool calc_derivative) {
   /**
    * Do not change this order:
-   * 0. zeroGradOnFirstAccess
    * 1. calcGradient
    * 2. calcDerivative
    * 3. applyGradientsOnLastAccess
    */
-
-  /// try zeroing the gradient at the first shared weight access
-  model_graph.zeroGradOnFirstAccess(node.get());
 
   bool apply_gradient = true;
   /** If gradient optimization mode, then calculate gradient first */

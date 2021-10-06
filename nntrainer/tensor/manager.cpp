@@ -39,7 +39,10 @@
 
 namespace nntrainer {
 MMapedMemory::MMapedMemory(size_t size, bool allocate_fd_) :
-  fd(-1), buf(nullptr), buf_size(0), allocate_fd(allocate_fd_) {
+  fd(-1),
+  buf(nullptr),
+  buf_size(0),
+  allocate_fd(allocate_fd_) {
 
 #ifndef __ANDROID__
   if (allocate_fd) {
@@ -270,8 +273,8 @@ std::vector<Weight *> Manager::requestWeights(
       weights_spec.at(i);
 
     Tensor *var = nullptr, *grad = nullptr;
-
-    if (!shared_names.empty()) {
+    bool is_dependent = !shared_names.empty();
+    if (is_dependent) {
       const auto &shared_name = shared_names.at(i);
       /** case when shared names are given */
       var = weight_pool.requestPrerequestedTensor(
@@ -302,7 +305,7 @@ std::vector<Weight *> Manager::requestWeights(
     }
 
     weights_v2.emplace_back(
-      std::make_unique<Weight>(var, grad, w_reg, w_reg_const));
+      std::make_unique<Weight>(var, grad, w_reg, w_reg_const, is_dependent));
   }
 
   std::transform(weights_v2.begin() + current_size, weights_v2.end(),

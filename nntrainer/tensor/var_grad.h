@@ -78,13 +78,15 @@ public:
    * @param v Already created variable object
    * @param g Already created gradient object
    * @param n Name for this Var_Grad
+   * @param is_dependent true if the var grad is dependent
    *
    * @note This API is not recommended for usage and must be used for internal
    * uses only, as Var_Grad does not own the tensors v and g, and can go invalid
    * if the owner of these tensors free the tensors.
    */
-  explicit Var_Grad(const Tensor &v, const Tensor &g,
-                    const std::string &n = "") :
+  explicit Var_Grad(const Tensor &v, const Tensor &g, const std::string &n = "",
+                    bool is_dependent = false) :
+    is_dependent(is_dependent),
     var(
       std::make_shared<Tensor>(v.getSharedDataTensor(v.getDim(), 0, false, n))),
     grad(std::make_shared<Tensor>(n + grad_suffix)) {
@@ -98,8 +100,10 @@ public:
    *
    * @param v ptr to already created variable tensor
    * @param g ptr to already created gradient tensor
+   * @param is_dependent true if the given var grad is dependent
    */
-  explicit Var_Grad(Tensor *v, Tensor *g) :
+  explicit Var_Grad(Tensor *v, Tensor *g, bool is_dependent = false) :
+    is_dependent(is_dependent),
     var(std::shared_ptr<Tensor>(v, [](void *) {})),
     grad(std::shared_ptr<Tensor>(g, [](void *) {})) {
     if (!v)
@@ -248,9 +252,19 @@ public:
     return !grad->empty();
   }
 
+  /**
+   * @brief check if given weight is dependent to other weight
+   *
+   * @return bool return true if the weight is dependent to others
+   */
+  bool isDependent() const { return is_dependent; }
+
   inline static const std::string grad_suffix = ":grad";
 
 protected:
+  bool is_dependent; /**< check if the weight tensor is burrowed from somewhere
+                        thus it is dependent */
+
   std::shared_ptr<Tensor> var;  /**< variable to be updated and used */
   std::shared_ptr<Tensor> grad; /**< gradient for the variable */
 };
