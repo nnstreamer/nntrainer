@@ -756,20 +756,6 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
   const std::vector<Var_Grad *> &outputs = tensor_manager->requestOutputs(
     gnode, init_context.getOutputDimensions(), inputs_name);
 
-  /**
-   * @note cache the labels and input var_grads to be able to fill them when
-   * running the graph.
-   */
-  if (gnode.getInputConnections().empty())
-    std::transform(inputs.begin(), inputs.end(), std::back_inserter(input_list),
-                   [](auto const &val) { return val->getName(); });
-  /** @todo check compatibility of requireLabel() and
-   * getOutputConnections().empty() */
-  if (lnode->requireLabel())
-    std::transform(outputs.begin(), outputs.end(),
-                   std::back_inserter(label_list),
-                   [](auto const &val) { return val->getGradientName(); });
-
   /** create shared weight names if requested */
   std::vector<std::string> shared_weight_names;
   if (auto shared_node_str = lnode->getSharedFrom(); !shared_node_str.empty()) {
@@ -803,7 +789,9 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
   return outputs;
 }
 
-int NetworkGraph::initialize() {
+int NetworkGraph::initialize(
+  const std::vector<std::string> &model_input_names,
+  const std::vector<std::string> &model_label_names) {
   int status = ML_ERROR_NONE;
   /**
    * this contains the map from node name to its input tensor names
@@ -812,7 +800,7 @@ int NetworkGraph::initialize() {
   std::unordered_map<std::string, std::vector<Var_Grad *>> input_map;
 
   /** check if the given config of node is of input node */
-  auto is_input_node = [](const std::shared_ptr<LayerNode> &node) -> bool {
+  auto is_input_node = [](const LayerNode *node) -> bool {
     return node->getInputConnections().empty();
   };
 
@@ -825,7 +813,7 @@ int NetworkGraph::initialize() {
      * Set input dimension for all the layers.
      * For input layer, as input dimension is known, set input tensor.
      */
-    if (!is_input_node(lnode)) {
+    if (!is_input_node(lnode.get())) {
       if (input_map.find(lnode->getName()) == input_map.end())
         throw std::runtime_error("Cannot find input buffers for the node");
       inputs = input_map.at(lnode->getName());
@@ -859,6 +847,72 @@ int NetworkGraph::initialize() {
       in_map[j] = outputs[i];
     }
   }
+
+  /**** identify model input / output to be set externally later ****/
+  auto identify_as_model_input = [this](LayerNode *node) {
+    auto num_input = node->getNumInputs();
+    NNTR_THROW_IF(num_input != 1, std::invalid_argument)
+      << "Input layer is supposed to have exactly one input, but more then "
+         "one input detected, num inputs: "
+      << num_input;
+
+    input_list.push_back(node->getInput(0).getName());
+  };
+
+  auto is_label_node = [](LayerNode *node) { return node->requireLabel(); };
+
+  auto identify_as_model_label = [this](LayerNode *node) {
+    /// @todo change this as lnode->getNumLabels of sorts
+    auto num_label = node->getNumOutputs();
+    NNTR_THROW_IF(!node->getOutputConnections().empty(), std::invalid_argument)
+      << "label layer is supposed to be a leaf for now";
+    NNTR_THROW_IF(num_label != 1, std::invalid_argument)
+      << "label layer is supposed to have exactly one label, but more then "
+         "one label detected, num labels: "
+      << num_label;
+
+    label_list.push_back(node->getOutputGrad(0).getName());
+  };
+
+  auto identify_external_tensors = [this](const std::vector<std::string> &names,
+                                          auto &&pred, auto &&identify) {
+    if (names.empty()) {
+      std::vector<nntrainer::TensorDim> old_dims;
+      for (unsigned int i = 0; i < graph.size(); ++i) {
+        auto lnode = getSortedLayerNode(i).get();
+        if (!pred(lnode)) {
+          continue;
+        }
+        /// when name is empty, we identify everything as the node, all of them
+        /// must be having identical dimensions
+        identify(lnode);
+      }
+    } else {
+      for (auto &name : names) {
+        auto lnode = getLayerNode(name).get();
+        NNTR_THROW_IF(!pred(lnode), std::invalid_argument)
+          << "given node is not of that kind, name: " << name;
+        identify(lnode);
+      }
+      unsigned int num_node_of_kind = 0;
+      for (unsigned int i = 0; i < graph.size(); ++i) {
+        auto lnode = getSortedLayerNode(i).get();
+        if (!pred(lnode)) {
+          continue;
+        }
+        num_node_of_kind++;
+      }
+      NNTR_THROW_IF(num_node_of_kind != names.size(), std::invalid_argument)
+        << "names given but there are not identified node of the kind, num "
+           "node of kind: "
+        << num_node_of_kind << " identifier size: " << names.size();
+    }
+  };
+
+  identify_external_tensors(model_input_names, is_input_node,
+                            identify_as_model_input);
+  identify_external_tensors(model_label_names, is_label_node,
+                            identify_as_model_label);
   return status;
 }
 
