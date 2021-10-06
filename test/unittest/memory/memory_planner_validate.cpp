@@ -229,7 +229,7 @@ TEST_P(MemoryPlannerValidate, partial_overlap) {
     EXPECT_GE(pool_size,
               *std::max_element(memory_size.begin(), memory_size.end()));
     EXPECT_LE(pool_size,
-              std::accumulate(memory_size.begin(), memory_size.end(), 0));
+              std::accumulate(memory_size.begin(), memory_size.end(), 0u));
     EXPECT_TRUE(
       validateIntervalOverlap(memory_validity, memory_size, memory_offset));
   }
