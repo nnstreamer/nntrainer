@@ -95,6 +95,7 @@ public:
    * @brief     Swap function for the class
    */
   friend void swap(NetworkGraph &lhs, NetworkGraph &rhs) {
+    /// @fixme this swap function need maintenance
     using std::swap;
 
     swap(lhs.graph, rhs.graph);
@@ -382,8 +383,11 @@ private:
   unsigned int batch_size;     /**< current batch_size */
   // std::vector<Var_Grad *> label_list; /**< var_grads for the labels */
   // std::vector<Var_Grad *> input_list; /**< var_grads for the inputs */
-  std::vector<std::string> label_list; /**< var_grads for the labels */
-  std::vector<std::string> input_list; /**< var_grads for the inputs */
+  std::vector<std::string> label_list; /**< identifier for the model labels */
+  std::vector<std::string> input_list; /**< identifier for the model inputs */
+  std::vector<TensorDim> label_dims;   /**< graph label dimensions */
+  std::vector<TensorDim> input_dims;   /**< graph input dimensions */
+
   ExecutionMode exec_mode; /**< execution mode with which the graph has been
                               currently set or previously set */
 
