@@ -581,6 +581,32 @@ public:
   bool isValid(const float &value) const override;
 };
 
+/**
+ * @brief Input Layer name property which saves a single connection
+ * (practically, std::vector<InputLayers> is used)
+ *
+ */
+class InputLayer : public Name {
+public:
+  InputLayer();
+  InputLayer(const std::string &name);
+  static constexpr const char *key = "input_layers";
+  using prop_tag = str_prop_tag;
+};
+
+/**
+ * @brief label Layer name property which saves a single
+ * connection (practically, std::vector<LabelLayers> is used)
+ *
+ */
+class LabelLayer : public Name {
+public:
+  LabelLayer();
+  LabelLayer(const std::string &name);
+  static constexpr const char *key = "label_layers";
+  using prop_tag = str_prop_tag;
+};
+
 /******** below section is for enumerations ***************/
 /**
  * @brief     Enumeration of activation function type

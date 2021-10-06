@@ -34,6 +34,7 @@
 #endif
 
 #include <app_context.h>
+#include <common_properties.h>
 #include <dynamic_training_optimization.h>
 #include <execution_mode.h>
 #include <layer_node.h>
@@ -477,7 +478,9 @@ private:
   using FlexiblePropTypes =
     std::tuple<props::Epochs, props::TrainingBatchSize, props::SavePath,
                props::ContinueTrain, props::SaveBestPath>;
-  using RigidPropTypes = std::tuple<props::LossType>;
+  using RigidPropTypes =
+    std::tuple<props::LossType, std::vector<props::InputLayer>,
+               std::vector<props::LabelLayer>>;
 
   RigidPropTypes model_props;         /**< model props */
   FlexiblePropTypes model_flex_props; /**< model train props */
