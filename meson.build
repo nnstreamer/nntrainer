@@ -120,6 +120,10 @@ if get_option('enable-profile')
   add_project_arguments('-DPROFILE=1', language:['c', 'cpp'])
 endif
 
+if get_option('enable-debug')
+  add_project_arguments('-DDEBUG=1', language:['c', 'cpp'])
+endif
+
 if get_option('use_gym')
    add_project_arguments('-DUSE_GYM=1', language:['c','cpp'])
 endif

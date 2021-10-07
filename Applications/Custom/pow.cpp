@@ -98,7 +98,7 @@ void PowLayer::forwarding(nntrainer::RunLayerContext &context, bool training) {
 #ifdef DEBUG
   std::cout << "input: " << context.getInput(SINGLE_INOUT_IDX);
   std::cout << "output: " << context.getOutput(SINGLE_INOUT_IDX);
-  PowUtil::pause();
+  /// PowUtil::pause();
 #endif
 }
 
@@ -117,7 +117,7 @@ void PowLayer::calcDerivative(nntrainer::RunLayerContext &context) {
 #ifdef DEBUG
   std::cout << "input: " << context.getOutput(SINGLE_INOUT_IDX);
   std::cout << "output: " << context.getInput(SINGLE_INOUT_IDX);
-  PowUtil::pause();
+  /// PowUtil::pause();
 #endif
 }
 

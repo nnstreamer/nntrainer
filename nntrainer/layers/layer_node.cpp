@@ -466,7 +466,7 @@ void LayerNode::forwarding(bool training) {
   layer->forwarding(*run_context, training);
   END_PROFILE(forward_event_key);
 
-#ifdef ENABLE_TEST
+#ifdef DEBUG
   if (!run_context->validate(getNumInputConnections() == 0, !requireLabel()))
     throw std::runtime_error("Running forwarding() layer " + getName() +
                              " invalidated the context.");
@@ -485,7 +485,7 @@ void LayerNode::calcDerivative() {
   layer->calcDerivative(*run_context);
   END_PROFILE(calc_deriv_event_key);
 
-#ifdef ENABLE_TEST
+#ifdef DEBUG
   if (!run_context->validate(getNumInputConnections() == 0, !requireLabel()))
     throw std::runtime_error("Running calcDerivative() layer " + getName() +
                              " invalidated the context.");
@@ -501,7 +501,7 @@ void LayerNode::calcGradient() {
     layer->calcGradient(*run_context);
   END_PROFILE(calc_grad_event_key);
 
-#ifdef ENABLE_TEST
+#ifdef DEBUG
   if (!run_context->validate(getNumInputConnections() == 0, !requireLabel()))
     throw std::runtime_error("Running calcGradient() layer " + getName() +
                              " invalidated the context.");

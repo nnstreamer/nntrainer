@@ -217,7 +217,7 @@ void IterationQueue::MarkableIteration::setEndSample(
   if (old_batch != new_batch && num_observed == new_batch) {
 #if DEBUG
     NNTR_THROW_IF_CLEANUP(iq->empty_mutex.try_lock(), std::runtime_error,
-                          [iq] { iq->empty_mutex.unlock(); })
+                          [this] { iq->empty_mutex.unlock(); })
       << "iteration queue must be locked already but empty_mutex is not "
          "locked.";
 #endif

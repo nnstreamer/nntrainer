@@ -624,7 +624,7 @@ private:
   std::vector<Var_Grad *> outputs; /**< outputs of the layer */
   std::vector<Var_Grad *> tensors; /**< tensors of the layer */
 
-#ifdef ENABLE_TEST
+#ifdef DEBUG
   std::map<std::string, const void *>
     tensor_map; /**< map of tensor name to tensor address */
 #endif
