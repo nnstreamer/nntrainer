@@ -79,9 +79,13 @@ if __name__ == "__main__":
     record_single(conv, (1, 2, 5, 5), "conv_sb_1x1_kernel")
     record_single(conv, (3, 2, 5, 5), "conv_mb_1x1_kernel")
 
+    # use float data to generate input here
     attention = K.layers.Attention()
-    record_single(attention, [(1, 2, 2), (1, 2, 2)],
-        "attention_golden_shared_kv", {"training": False})
+    record_single(attention, [(1, 5, 7), (1, 3, 7)],
+                 "attention_shared_kv", {}, input_type='float')
+    attention = K.layers.Attention()
+    record_single(attention, [(2, 5, 7), (2, 3, 7)],
+                 "attention_shared_kv_batched", {}, input_type='float')
 
 inspect_file("conv_sb_no_overlap.nnlayergolden")
 
