@@ -8,7 +8,8 @@ util_sources = [
 
 util_headers = [
   'base_properties.h',
-  'node_exporter.h'
+  'node_exporter.h',
+  'util_func.h',
 ]
 
 foreach s : util_sources
