@@ -344,7 +344,7 @@ bool RunLayerContext::validate(bool skip_input, bool skip_label) {
    * references which leads to nasty bugs. This validation ensures that the
    * tensors are not set mistakenly by verifying their unique names
    */
-#ifdef ENABLE_TEST
+#ifdef DEBUG
   if (tensor_map.empty() || !tensor_map[inputs[0]->getName()]) {
     auto filler = [this](const auto &vec) {
       for (auto const &val : vec) {
@@ -379,14 +379,13 @@ bool RunLayerContext::validate(bool skip_input, bool skip_label) {
     };
 
     auto matcher_w = [this, matcher](const std::vector<Weight *> &vec) {
-      auto ret = true;
-      for (auto const &val : vec)
-        ret &= matcher(val);
-      return ret;
+      return std::all_of(vec.begin(), vec.end(), matcher);
     };
 
     auto matcher_vw = [this, matcher](const std::vector<Var_Grad *> &vec,
                                       bool skip_grad = false) {
+      return std::all_of(vec.begin(), vec.end(),
+                         std::bind(matcher, std::placeholders::_1, skip_grad));
       auto ret = true;
       for (auto const &val : vec)
         ret &= matcher(val, skip_grad);

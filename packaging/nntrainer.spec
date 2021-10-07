@@ -277,10 +277,16 @@ NNSteamer tensor filter static package for nntrainer to support inference.
 %define enable_profile -Denable-profile=false
 %define capi_ml_pkg_dep_resolution -Dcapi-ml-inference-actual=%{?capi_ml_inference_pkg_name} -Dcapi-ml-common-actual=%{?capi_ml_common_pkg_name}
 %define enable_reduce_tolerance -Dreduce-tolerance=true
+%define enable_debug -Denable-debug=false
 
 # enable full tolerance on the CI
 %if 0%{?unit_test}
 %define enable_reduce_tolerance -Dreduce-tolerance=false
+%endif
+
+# enable debug on the CI for build
+%if 0%{?unit_test}
+%define enable_debug -Denable-debug=true
 %endif
 
 %if %{with tizen}
@@ -347,7 +353,7 @@ meson --buildtype=plain --prefix=%{_prefix} --sysconfdir=%{_sysconfdir} \
       %{enable_gym} %{enable_nnstreamer_tensor_filter} %{enable_profile} \
       %{enable_nnstreamer_backbone} %{enable_tflite_backbone} \
       %{enable_tflite_interpreter} %{capi_ml_pkg_dep_resolution} \
-      %{enable_reduce_tolerance} build
+      %{enable_reduce_tolerance} %{enable_debug} build
 
 ninja -C build %{?_smp_mflags}
 

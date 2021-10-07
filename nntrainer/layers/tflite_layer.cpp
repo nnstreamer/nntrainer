@@ -143,14 +143,14 @@ void TfLiteLayer::forwarding(RunLayerContext &context, bool training) {
 #ifdef DEBUG
   std::vector<TensorDim> out_tf_dim;
   setDimensions(interpreter->outputs(), out_tf_dim, true);
-  if (out_tf_dim.size() != output_dim.size()) {
+  if (out_tf_dim.size() != context.getNumOutputs()) {
     throw std::invalid_argument(
       "[TfliteLayer::forward] number of output dimension does not match");
   }
 
   for (unsigned int i = 0; i < out_tf_dim.size(); ++i) {
-    if (output_dim[i] != out_tf_dim[i]) {
-      throw std::invalid_argumetns(
+    if (context.getOutput(i).getDim() != out_tf_dim[i]) {
+      throw std::invalid_argument(
         "[TfliteLayer::forward] output dimension does not match");
     }
   }

@@ -12,6 +12,7 @@
  */
 
 #include <basic_planner.h>
+#include <nntrainer_error.h>
 
 namespace nntrainer {
 
