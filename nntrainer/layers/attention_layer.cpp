@@ -93,15 +93,11 @@ void AttentionLayer::calcDerivative(RunLayerContext &context) {
 
     Tensor t1;
     sm.run_prime_fn(weights_b, t1, dweight);
+    t1.dot(value_b, dquery_b);
 
-    Tensor t2 = t1.dot(value_b);
-    t2.dot(value_b, false, true).dot(deriv_b, dquery_b);
-
-    Tensor p1 = t1.dot(query_b).dot(value_b, false, true);
-    Tensor p2 = p1.add(weights_b); 
-    p2.dot(deriv_b, dvalue_b, true, false);
+    weights_b.dot(deriv_b, dvalue_b, true, false);
+    t1.dot(query_b, dvalue_b, true, false, 1.0);
   }
-
 }
 
 void AttentionLayer::setProperty(const std::vector<std::string> &values) {

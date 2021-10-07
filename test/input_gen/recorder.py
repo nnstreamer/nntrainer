@@ -67,14 +67,17 @@ def _get_writer(file):
     return write_fn
 
 
-def _rand_like(tensorOrShape, scale=1):
+def _rand_like(tensorOrShape, scale=1, rand='int'):
     try:
         shape = tensorOrShape.shape
     except AttributeError:
         shape = tensorOrShape
 
     # for relu based models, range of 0 to x is better than -x to x
-    t = np.random.randint(0, 10, shape).astype(dtype=np.float32)
+    if rand == 'int':
+        t = np.random.randint(0, 10, shape).astype(dtype=np.float32)
+    else:
+        t = np.random.rand(*shape).astype(dtype=np.float32)
     return tf.convert_to_tensor(t) * scale
 
 
@@ -396,13 +399,13 @@ def record(
 
 ##
 # @brief record a single layer
-def record_single(layer, input_shape, test_name, call_args={}):
+def record_single(layer, input_shape, test_name, call_args={}, input_type='int'):
     layer = attach_trans_layer(layer)
     layer.build(input_shape)
     if isinstance(input_shape, list):
-        inputs = [_rand_like(in_shape) for in_shape in input_shape]
+        inputs = [_rand_like(in_shape, 1, input_type) for in_shape in input_shape]
     else:
-        inputs = _rand_like(input_shape)
+        inputs = _rand_like(input_shape, 1, input_type)
 
     initial_weights = [tf.Variable(i) for i in layer.weights]
 
