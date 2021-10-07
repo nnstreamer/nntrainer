@@ -463,6 +463,9 @@ cp -r result %{buildroot}%{_datadir}/nntrainer/unittest/
 %{_includedir}/nntrainer/optimizer_devel.h
 %{_includedir}/nntrainer/optimizer_impl.h
 %{_libdir}/pkgconfig/nntrainer.pc
+# update this to enable external applications
+# @todo filter out headers that should be hidden
+%{_includedir}/nntrainer/util_func.h
 
 %files devel-static
 %{_libdir}/libnntrainer*.a
