@@ -52,6 +52,13 @@ public:
   TensorDim(std::initializer_list<unsigned int> dims);
 
   /**
+   * @brief Construct a new Tensor Dim object without batch dimension
+   *
+   * @param shapes shapes without batch dimension
+   */
+  TensorDim(const std::array<unsigned int, 3> &shapes);
+
+  /**
    * @brief Construct a new Tensor Dim object
    *
    * @param b batch

@@ -51,6 +51,9 @@ TensorDim::TensorDim(std::initializer_list<unsigned int> dims) : TensorDim() {
   }
 }
 
+TensorDim::TensorDim(const std::array<unsigned int, 3> &shapes) :
+  TensorDim({shapes[0], shapes[1], shapes[2]}) {}
+
 TensorDim::TensorDim(unsigned int b, unsigned int c, unsigned int h,
                      unsigned int w, const std::bitset<MAXDIM> &eff_dim_flag_,
                      const std::bitset<MAXDIM> &dyn_dim_flag_) :
