@@ -32,6 +32,12 @@ auto attention_shared_kv_batched = LayerGoldenTestParamType(
   "attention_shared_kv_batched.nnlayergolden",
   LayerGoldenTestParamOptions::DEFAULT);
 
+auto attention_batched = LayerGoldenTestParamType(
+  nntrainer::createLayer<nntrainer::AttentionLayer>, {},
+  "2:1:5:7,2:1:3:7,2:1:3:7", "attention_batched.nnlayergolden",
+  LayerGoldenTestParamOptions::DEFAULT);
+
 INSTANTIATE_TEST_CASE_P(Attention, LayerGoldenTest,
                         ::testing::Values(attention_shared_kv,
-                                          attention_shared_kv_batched));
+                                          attention_shared_kv_batched,
+                                          attention_batched));
