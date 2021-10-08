@@ -99,7 +99,10 @@ void NetworkGraph::addDefaultInputLayers() {
   for (auto iter = cbegin() + 1; iter != cend(); iter++) {
     auto layer = *iter;
     auto prev_layer = *(iter - 1);
-    if (layer->getNumInputConnections() == 0) {
+    if (layer->getNumInputConnections() == 0 &&
+        !layer->hasInputShapeProperty()) {
+      ml_logd("default input added %s->%s", prev_layer->getName().c_str(),
+              layer->getName().c_str());
       layer->addInputLayers(prev_layer->getName());
     }
   }
@@ -806,8 +809,8 @@ int NetworkGraph::initialize(
     return node->getInputConnections().empty();
   };
 
-  std::vector<Var_Grad *> inputs = {};
   for (unsigned int idx = 0; idx < graph.size(); ++idx) {
+    std::vector<Var_Grad *> inputs = {};
     auto const &lnode = getSortedLayerNode(idx);
     ml_logd("layer name : %s", lnode->getName().c_str());
 
