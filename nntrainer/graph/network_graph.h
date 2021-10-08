@@ -256,7 +256,7 @@ public:
    * @param model_input_names model input names if empty list given, all of node
    * that can be inputs will be identified in the sort order
    * @param model_label_names model label names if empty list given, all of node
-   * that can be inputs will be identified in the sort order
+   * that can be labels will be identified in the sort order
    * @return int ML_ERROR_NONE if successful
    */
   int initialize(const std::vector<std::string> &model_input_names = {},
@@ -381,8 +381,9 @@ private:
                                   at the start of the graph */
   bool compiled;               /**< if the model graph is compiled */
   unsigned int batch_size;     /**< current batch_size */
-  // std::vector<Var_Grad *> label_list; /**< var_grads for the labels */
-  // std::vector<Var_Grad *> input_list; /**< var_grads for the inputs */
+
+  /// @note *_list and *_dims must be synced at all times. Consider put it as a
+  /// structure
   std::vector<std::string> label_list; /**< identifier for the model labels */
   std::vector<std::string> input_list; /**< identifier for the model inputs */
   std::vector<TensorDim> label_dims;   /**< graph label dimensions */

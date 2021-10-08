@@ -874,6 +874,7 @@ int NetworkGraph::initialize(
          "one label detected, num labels: "
       << num_label;
 
+    /// @todo implement and use getLabel(0) instead.
     label_list.push_back(node->getOutputGrad(0).getName());
     label_dims.push_back(node->getOutputDimensions()[0]);
   };
@@ -881,7 +882,6 @@ int NetworkGraph::initialize(
   auto identify_external_tensors = [this](const std::vector<std::string> &names,
                                           auto &&pred, auto &&identify) {
     if (names.empty()) {
-      std::vector<nntrainer::TensorDim> old_dims;
       for (unsigned int i = 0; i < graph.size(); ++i) {
         auto lnode = getSortedLayerNode(i).get();
         if (!pred(lnode)) {
