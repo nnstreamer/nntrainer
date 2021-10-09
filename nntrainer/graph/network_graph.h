@@ -423,14 +423,6 @@ private:
   int realizeGraph();
 
   /**
-   * @brief     check and add Multi Input Layer : addition or concat Layer
-   * @param[in] in_node layernode
-   * @retval #ML_ERROR_NONE Successful.
-   * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
-   */
-  int realizeMultiInputType(const std::shared_ptr<LayerNode> &in_node);
-
-  /**
    * @brief     check and add Multi output Layer : output Layer
    * @param[in] in_node layernode
    * @retval #ML_ERROR_NONE Successful.

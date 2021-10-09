@@ -125,29 +125,6 @@ void NetworkGraph::countNonTrainableLayersAtBegin() {
   skip_non_trainable_layers = graph.size();
 }
 
-int NetworkGraph::realizeMultiInputType(
-  const std::shared_ptr<LayerNode> &in_node) {
-  int status = ML_ERROR_NONE;
-  /**
-   * Multi-input works with time distribution layer by itself
-   *
-   */
-  if (in_node->getNumInputConnections() <= 1)
-    return ML_ERROR_NONE;
-
-  // TODO: this can be addition or concat layer - add support
-  std::shared_ptr<LayerNode> lnode = createLayerNode(AdditionLayer::type);
-  graph.ensureName(*lnode, in_node->getName());
-
-  lnode->setInputLayers(in_node->getInputLayers());
-  in_node->setInputLayers({lnode->getName()});
-  /** output layers for layer obj will be set in setOutputLayers() */
-
-  graph.addNode(lnode, false);
-
-  return status;
-}
-
 int NetworkGraph::realizeFlattenType(
   const std::shared_ptr<LayerNode> &in_node) {
   if (in_node->getType() == FlattenLayer::type) {
@@ -378,12 +355,6 @@ int NetworkGraph::realizeGraph() {
         status = ML_ERROR_INVALID_PARAMETER;
         NN_RETURN_STATUS();
       }
-    }
-
-    if (lnode->getType() != AdditionLayer::type &&
-        lnode->getType() != ConcatLayer::type) {
-      status = realizeMultiInputType(lnode);
-      NN_RETURN_STATUS();
     }
 
     if (lnode->getType() != ActivationLayer::type) {
