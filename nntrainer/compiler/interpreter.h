@@ -41,12 +41,12 @@
 
 #include <memory>
 #include <string>
-
-#include <layer_node.h>
+#include <vector>
 
 namespace nntrainer {
 
 class NetworkGraph;
+class LayerNode;
 using GraphRepresentation = std::vector<std::shared_ptr<LayerNode>>;
 
 /**
