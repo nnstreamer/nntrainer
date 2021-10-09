@@ -42,8 +42,7 @@
 #include <network_graph.h>
 
 namespace nntrainer {
-
-using GraphRepresentation = NetworkGraph;
+using GraphRepresentation = std::vector<std::shared_ptr<LayerNode>>;
 using ExecutableGraph = NetworkGraph;
 
 /**

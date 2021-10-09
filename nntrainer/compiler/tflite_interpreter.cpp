@@ -455,14 +455,13 @@ void TfliteInterpreter::serialize(const GraphRepresentation &representation,
   builder2file(fbb, out);
 }
 
-std::shared_ptr<GraphRepresentation>
-TfliteInterpreter::deserialize(const std::string &in) {
+GraphRepresentation TfliteInterpreter::deserialize(const std::string &in) {
   /// ======== list of things to consider ========
   /// we need to reconstruct some properties from the shape
   /// eg) units are not saved as a property
 
   /** NYI! */
-  return nullptr;
+  return {};
 }
 
 } // namespace nntrainer
