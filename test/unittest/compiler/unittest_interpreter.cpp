@@ -181,7 +181,7 @@ auto flatten = LayerRepresentation("flatten", {"name=flat"});
  * are different between input and output of a layer but the underlying data
  * is same. Once the interpreter is updated, this test can be enabled.
  */
-TEST(nntrainerInterpreterTflite, DISABLED_simple_fc) {
+TEST(nntrainerInterpreterTflite, simple_fc) {
 
   nntrainer::TfliteInterpreter interpreter;
 
@@ -197,8 +197,8 @@ TEST(nntrainerInterpreterTflite, DISABLED_simple_fc) {
   EXPECT_EQ(g->compile(""), ML_ERROR_NONE);
   EXPECT_EQ(g->initialize(), ML_ERROR_NONE);
 
-  g->allocateWeights();
-  // g->allocateTensors(nntrainer::ExecutionMode::INFERENCE);
+  // g->allocateWeights();
+  g->allocateTensors(nntrainer::ExecutionMode::INFERENCE);
   interpreter.serialize(*g, "test.tflite");
   g->deallocateTensors();
 

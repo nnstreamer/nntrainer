@@ -157,31 +157,31 @@ public:
     buffer_map.addDataWhenNotFound(
       empty_buffer, {0, empty_buffer}); /// this represents empty buffer
 
-    auto &variable_map = getIndexMap<const Tensor *>();
-    auto update_variables =
-      [&variable_map, &buffer_map](const TfOpNode::Variables &variables) {
-        for (auto &variable : variables) {
-          variable_map.addDataWhenNotFound(variable);
-
-          if (!variable->empty() && variable->isAllocated()) {
-            const float *buf = variable->getData();
-            buffer_map.addDataWhenNotFound(buf, {variable->bytes(), buf});
-          }
+    auto &variable_map = getIndexMap<const float *, const Tensor *>();
+    auto update_variables = [&variable_map,
+                             &buffer_map](const TfOpNode::Variables &variables,
+                                          bool update_buffer) {
+      for (auto &variable : variables) {
+        const float *buf = variable->getData();
+        variable_map.addDataWhenNotFound(buf, variable);
+        if (update_buffer) {
+          buffer_map.addDataWhenNotFound(buf, {variable->bytes(), buf});
         }
-      };
+      }
+    };
 
     for (auto &op_node : nodes) {
       update_opcode(op_node->getOpType());
-      update_variables(op_node->getInputs());
-      update_variables(op_node->getWeights());
-      update_variables(op_node->getOutputs());
+      update_variables(op_node->getInputs(), false);
+      update_variables(op_node->getWeights(), true);
+      update_variables(op_node->getOutputs(), false);
     }
 
     auto update_model_io_to =
       [&variable_map](const TfOpNode::Variables &variables,
                       std::vector<int> &v) {
         for (auto &variable : variables) {
-          auto index = variable_map.getIndex(variable);
+          auto index = variable_map.getIndex(variable->getData());
           v.push_back(index);
         }
       };
@@ -220,7 +220,8 @@ private:
                                                               */
              BidirectionalIndexMap<tflite::BuiltinOperator>, /**< opcode map
                                                               */
-             BidirectionalIndexMap<const Tensor *>>          /**< tensor map */
+             BidirectionalIndexMap<const float *, const Tensor *>> /**< tensor
+                                                                      map */
     maps;
 
   std::vector<int> inputs;
@@ -296,7 +297,8 @@ flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<tflite::Tensor>>>
 buildTensors(const TfOpIdxMap &map, flatbuffers::FlatBufferBuilder &fbb) {
   /// @todo: the actual (suqeezed) tensor dimension must be known before
   /// coming here. For now, it is directly guessed for the fc layer
-  const auto &variables = map.getIndexMap<const Tensor *>().getData();
+  const auto &variables =
+    map.getIndexMap<const float *, const Tensor *>().getData();
   const auto &buffer_map = map.getIndexMap<const float *, TfOpIdxMap::Buffer>();
 
   std::vector<flatbuffers::Offset<tflite::Tensor>> fb_tensors;
@@ -315,11 +317,14 @@ buildTensors(const TfOpIdxMap &map, flatbuffers::FlatBufferBuilder &fbb) {
     }
 
     /// change this var->getName when tensor have it's own name
-    auto name = fbb.CreateString("nntrainer_converted");
+    auto name = fbb.CreateString("nntrainer_converted" + var->getName());
 
     unsigned int buffer_idx = 1;
-    if (!var->empty() && var->isAllocated()) {
+    try {
       buffer_idx = buffer_map.getIndex(var->getData());
+    } catch (...) {
+      /// @todo change the logic to not rely on throw
+      /// do nothing
     }
 
     tflite::TensorBuilder builder(fbb);
@@ -345,13 +350,13 @@ buildOperators(const TfOpNodes &nodes, const TfOpIdxMap &map,
 
   /// this lambda maps variables to list of indexes in the map
   auto variables_to_idx_vector = [&map](const TfOpNode::Variables &v) {
-    auto &variable_map = map.getIndexMap<const Tensor *>();
+    auto &variable_map = map.getIndexMap<const float *, const Tensor *>();
     std::vector<int> idx_vector;
     idx_vector.reserve(v.size());
 
     std::transform(v.begin(), v.end(), std::back_inserter(idx_vector),
                    [&variable_map](const Tensor *variable) {
-                     return variable_map.getIndex(variable);
+                     return variable_map.getIndex(variable->getData());
                    });
     return idx_vector;
   };
