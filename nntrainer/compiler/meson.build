@@ -1,5 +1,6 @@
 compiler_sources = [
-  'ini_interpreter.cpp'
+  'ini_interpreter.cpp',
+  'flatten_realizer.cpp'
 ]
 
 compiler_headers = []
