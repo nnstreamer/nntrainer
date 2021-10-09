@@ -21,6 +21,7 @@
 #include <layer.h>
 #include <layer_node.h>
 #include <network_graph.h>
+#include <node_exporter.h>
 
 #ifdef ENABLE_TFLITE_INTERPRETER
 #include <tflite_interpreter.h>
@@ -30,33 +31,13 @@
 #include <tensorflow/contrib/lite/model.h>
 #endif
 
-#include <nntrainer_test_util.h>
+#include <app_context.h>
+#include <compiler_test_util.h>
 
 using LayerRepresentation = std::pair<std::string, std::vector<std::string>>;
 
-auto &ac = nntrainer::AppContext::Global();
-
-static nntrainer::GraphRepresentation
-makeGraph(const std::vector<LayerRepresentation> &layer_reps) {
-  nntrainer::GraphRepresentation graph_rep;
-
-  for (const auto &layer_representation : layer_reps) {
-    /// @todo Use unique_ptr here
-    std::shared_ptr<nntrainer::LayerNode> layer = createLayerNode(
-      ac.createObject<nntrainer::Layer>(layer_representation.first),
-      layer_representation.second);
-    graph_rep.push_back(layer);
-  }
-
-  return graph_rep;
-}
-
-const std::string pathResolver(const std::string &path) {
-  return getResPath(path, {"test", "test_models", "models"});
-}
-
-auto ini_interpreter =
-  std::make_shared<nntrainer::IniGraphInterpreter>(ac, pathResolver);
+auto ini_interpreter = std::make_shared<nntrainer::IniGraphInterpreter>(
+  nntrainer::AppContext::Global(), compilerPathResolver);
 
 /**
  * @brief prototypical version of checking graph is equal
@@ -115,7 +96,7 @@ protected:
     auto params = GetParam();
 
     reference = std::get<0>(params);
-    file_path = pathResolver(std::get<1>(params));
+    file_path = compilerPathResolver(std::get<1>(params));
     interpreter = std::move(std::get<2>(params));
   }
 
