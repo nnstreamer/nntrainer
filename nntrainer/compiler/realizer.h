@@ -16,10 +16,9 @@
 #include <memory>
 #include <vector>
 
-namespace nntrainer {
+#include <compiler_fwd.h>
 
-class LayerNode;
-using GraphRepresentation = std::vector<std::shared_ptr<LayerNode>>;
+namespace nntrainer {
 
 /**
  * @brief Graph realizer class
@@ -35,7 +34,7 @@ public:
 
   /**
    * @brief graph realizer creates a new graph based on the reference
-   *
+   * @todo consider void GraphRepresentation &
    */
   virtual GraphRepresentation realize(const GraphRepresentation &reference) = 0;
 };

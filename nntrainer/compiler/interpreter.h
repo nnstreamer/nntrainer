@@ -43,11 +43,9 @@
 #include <string>
 #include <vector>
 
-namespace nntrainer {
+#include <compiler_fwd.h>
 
-class NetworkGraph;
-class LayerNode;
-using GraphRepresentation = std::vector<std::shared_ptr<LayerNode>>;
+namespace nntrainer {
 
 /**
  * @brief Pure virtual class for the Graph Interpreter

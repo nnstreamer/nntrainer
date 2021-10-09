@@ -39,11 +39,10 @@
 
 #include <memory>
 
+#include <compiler_fwd.h>
 #include <network_graph.h>
 
 namespace nntrainer {
-using GraphRepresentation = std::vector<std::shared_ptr<LayerNode>>;
-using ExecutableGraph = NetworkGraph;
 
 /**
  * @brief Pure virtual class for the Graph Compiler
