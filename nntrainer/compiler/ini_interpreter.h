@@ -58,30 +58,9 @@ public:
   /**
    * @copydoc GraphInterpreter::deserialize(const std::string &in)
    */
-  std::shared_ptr<GraphRepresentation>
-  deserialize(const std::string &in) override;
+  GraphRepresentation deserialize(const std::string &in) override;
 
 private:
-  /**
-   * @brief Create a Layer From Section object
-   *
-   * @param ini ini if throw, ini will be freed.
-   * @param section section name
-   * @return std::shared_ptr<Layer> layer
-   */
-  std::shared_ptr<Layer> loadLayerConfig(dictionary *ini,
-                                         const std::string &section);
-
-  /**
-   * @brief Create a Layer From Backbone Config
-   *
-   * @param ini ini if throw, ini will be freed.
-   * @param section section name
-   * @return std::shared_ptr<Layer> layer
-   */
-  std::shared_ptr<Layer> loadBackboneConfigIni(dictionary *ini,
-                                               const std::string &section);
-
   AppContext app_context;
   std::function<const std::string(std::string)> pathResolver;
 };

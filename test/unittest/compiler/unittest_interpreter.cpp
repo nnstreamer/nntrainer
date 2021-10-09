@@ -20,6 +20,7 @@
 #include <interpreter.h>
 #include <layer.h>
 #include <layer_node.h>
+#include <network_graph.h>
 
 #ifdef ENABLE_TFLITE_INTERPRETER
 #include <tflite_interpreter.h>
@@ -35,20 +36,19 @@ using LayerRepresentation = std::pair<std::string, std::vector<std::string>>;
 
 auto &ac = nntrainer::AppContext::Global();
 
-static std::shared_ptr<nntrainer::GraphRepresentation>
+static nntrainer::GraphRepresentation
 makeGraph(const std::vector<LayerRepresentation> &layer_reps) {
-  auto graph = std::make_shared<nntrainer::GraphRepresentation>();
+  nntrainer::GraphRepresentation graph_rep;
 
   for (const auto &layer_representation : layer_reps) {
     /// @todo Use unique_ptr here
     std::shared_ptr<nntrainer::LayerNode> layer = createLayerNode(
       ac.createObject<nntrainer::Layer>(layer_representation.first),
       layer_representation.second);
-    graph->addLayer(layer);
+    graph_rep.push_back(layer);
   }
 
-  graph->setMemoryOptimizations(false);
-  return graph;
+  return graph_rep;
 }
 
 const std::string pathResolver(const std::string &path) {
@@ -107,7 +107,7 @@ static void graphEqual(const nntrainer::GraphRepresentation &lhs,
  */
 class nntrainerInterpreterTest
   : public ::testing::TestWithParam<
-      std::tuple<std::shared_ptr<nntrainer::GraphRepresentation>, const char *,
+      std::tuple<nntrainer::GraphRepresentation, const char *,
                  std::shared_ptr<nntrainer::GraphInterpreter>>> {
 
 protected:
@@ -119,7 +119,7 @@ protected:
     interpreter = std::move(std::get<2>(params));
   }
 
-  std::shared_ptr<nntrainer::GraphRepresentation> reference;
+  nntrainer::GraphRepresentation reference;
   std::shared_ptr<nntrainer::GraphInterpreter> interpreter;
   std::string file_path;
 };
@@ -133,19 +133,19 @@ protected:
 TEST_P(nntrainerInterpreterTest, graphEqual) {
   std::cout << "testing " << file_path << '\n';
 
-  int status = reference->compile("");
-  EXPECT_EQ(status, ML_ERROR_NONE);
+  // int status = reference->compile("");
+  // EXPECT_EQ(status, ML_ERROR_NONE);
   auto g = interpreter->deserialize(file_path);
 
   /// @todo: change this to something like graph::finalize
-  status = g->compile("");
-  EXPECT_EQ(status, ML_ERROR_NONE);
+  // status = g->compile("");
+  // EXPECT_EQ(status, ML_ERROR_NONE);
 
   /// @todo: make a proper graph equal
   /// 1. having same number of nodes
   /// 2. layer name is identical (this is too strict though)
   /// 3. attributes of layer is identical
-  graphEqual(*g, *reference);
+  graphEqual(g, reference);
 }
 
 /**
@@ -158,12 +158,12 @@ TEST_P(nntrainerInterpreterTest, graphSerializeAfterDeserialize) {
   auto out_file_path = file_path + ".out";
 
   /// @todo: change this to something like graph::finalize
-  int status = g->compile("");
-  EXPECT_EQ(status, ML_ERROR_NONE);
-  interpreter->serialize(*g, out_file_path);
+  // int status = g->compile("");
+  // EXPECT_EQ(status, ML_ERROR_NONE);
+  interpreter->serialize(g, out_file_path);
   auto new_g = interpreter->deserialize(out_file_path);
 
-  graphEqual(*g, *new_g);
+  graphEqual(g, new_g);
 
   EXPECT_EQ(remove(out_file_path.c_str()), 0) << strerror(errno);
 }
@@ -194,13 +194,18 @@ TEST(nntrainerInterpreterTflite, simple_fc) {
     {"name=fc1", "unit=2", "bias_initializer=ones", "weight_initializer=ones"});
 
   auto g = makeGraph({fc0_zeroed, fc1_zeroed});
-  EXPECT_EQ(g->compile(""), ML_ERROR_NONE);
-  EXPECT_EQ(g->initialize(), ML_ERROR_NONE);
 
-  // g->allocateWeights();
-  g->allocateTensors(nntrainer::ExecutionMode::INFERENCE);
-  interpreter.serialize(*g, "test.tflite");
-  g->deallocateTensors();
+  nntrainer::NetworkGraph ng;
+
+  for (auto &node : g) {
+    ng.addLayer(node);
+  }
+  EXPECT_EQ(ng.compile(""), ML_ERROR_NONE);
+  EXPECT_EQ(ng.initialize(), ML_ERROR_NONE);
+
+  ng.allocateTensors(nntrainer::ExecutionMode::INFERENCE);
+  interpreter.serialize(g, "test.tflite");
+  ng.deallocateTensors();
 
   tflite::ops::builtin::BuiltinOpResolver resolver;
   std::unique_ptr<tflite::Interpreter> tf_interpreter;
@@ -246,9 +251,9 @@ TEST(nntrainerInterpreterTflite, simple_fc) {
 /**
  * @brief make ini test case from given parameter
  */
-static std::tuple<std::shared_ptr<nntrainer::GraphRepresentation>, const char *,
+static std::tuple<nntrainer::GraphRepresentation, const char *,
                   std::shared_ptr<nntrainer::GraphInterpreter>>
-mkTc(std::shared_ptr<nntrainer::GraphRepresentation> graph, const char *file,
+mkTc(nntrainer::GraphRepresentation graph, const char *file,
      std::shared_ptr<nntrainer::GraphInterpreter> interpreter) {
   return std::make_tuple(graph, file, interpreter);
 }

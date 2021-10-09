@@ -42,11 +42,12 @@
 #include <memory>
 #include <string>
 
-#include <network_graph.h>
+#include <layer_node.h>
 
 namespace nntrainer {
 
-using GraphRepresentation = NetworkGraph;
+class NetworkGraph;
+using GraphRepresentation = std::vector<std::shared_ptr<LayerNode>>;
 
 /**
  * @brief Pure virtual class for the Graph Interpreter
@@ -65,13 +66,31 @@ public:
                          const std::string &out) = 0;
 
   /**
+   * @brief serialize graph to a stream
+   *
+   * @param representation graph representation
+   * @param out output file name
+   */
+  virtual void serialize_v1(const NetworkGraph &representation,
+                            const std::string &out){};
+
+  /**
+   * @brief graph representation
+   *
+   * @param in input file name
+   * @return std::shared_ptr<NetworkGraph>
+   */
+  virtual std::shared_ptr<NetworkGraph> deserialize_v1(const std::string &in) {
+    return nullptr;
+  }
+
+  /**
    * @brief deserialize graph from a stream
    *
    * @param in input file name
    * @return GraphRepresentation graph representation
    */
-  virtual std::shared_ptr<GraphRepresentation>
-  deserialize(const std::string &in) = 0;
+  virtual GraphRepresentation deserialize(const std::string &in) = 0;
 };
 
 } // namespace nntrainer

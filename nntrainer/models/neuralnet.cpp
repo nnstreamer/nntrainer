@@ -444,7 +444,12 @@ void NeuralNetwork::saveModelIni(const std::string &file_path) {
   wrapper.save_ini(file_path);
 
   IniGraphInterpreter interpreter;
-  interpreter.serialize(model_graph, file_path);
+
+  for (auto iter = model_graph.cbegin(); iter != model_graph.cend(); iter++) {
+    GraphRepresentation g;
+    g.push_back(*iter);
+    interpreter.serialize(g, file_path);
+  }
 }
 
 bool NeuralNetwork::validateInput(sharedConstTensors X) {

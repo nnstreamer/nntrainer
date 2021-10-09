@@ -394,7 +394,11 @@ int ModelLoader::loadFromIni(std::string ini_file, NeuralNetwork &model,
     std::unique_ptr<GraphInterpreter> ini_interpreter =
       std::make_unique<nntrainer::IniGraphInterpreter>(app_context,
                                                        path_resolver);
-    model.model_graph = *ini_interpreter->deserialize(ini_file);
+    auto graph_representation = ini_interpreter->deserialize(ini_file);
+
+    for (auto &node : graph_representation) {
+      model.model_graph.addLayer(node);
+    }
     ml_logd("parsing graph finished");
 
     if (model.empty()) {

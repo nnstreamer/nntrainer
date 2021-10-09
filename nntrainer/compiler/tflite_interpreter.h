@@ -46,8 +46,7 @@ public:
   /**
    * @copydoc GraphInterpreter::deserialize(const std::string &in)
    */
-  std::shared_ptr<GraphRepresentation>
-  deserialize(const std::string &in) override;
+  GraphRepresentation deserialize(const std::string &in) override;
 
 private:
   AppContext app_context;
