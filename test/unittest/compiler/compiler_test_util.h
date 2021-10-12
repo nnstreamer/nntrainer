@@ -39,4 +39,15 @@ makeGraph(const std::vector<LayerRepresentation> &layer_reps);
  */
 const std::string compilerPathResolver(const std::string &path);
 
+/**
+ * @brief prototypical version of checking graph is equal
+ *
+ * @param lhs compiled(later, finalized) graph to be compared
+ * @param rhs compiled(later, finalized) graph to be compared
+ * @retval true graph is equal
+ * @retval false graph is not equal
+ */
+void graphEqual(const nntrainer::GraphRepresentation &lhs,
+                const nntrainer::GraphRepresentation &rhs);
+
 #endif // __COMPILER_TEST_UTIL_H__
