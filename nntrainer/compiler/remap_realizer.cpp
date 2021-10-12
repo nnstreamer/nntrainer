@@ -27,7 +27,9 @@ RemapRealizer::~RemapRealizer() {}
 GraphRepresentation
 RemapRealizer::realize(const GraphRepresentation &reference) {
   GraphRepresentation processed(reference.begin(), reference.end());
+
   for (auto &node : processed) {
+    /// @note while remap realization, the graph is invalid.
     node->remapIdentifiers(remap_fn);
   }
   return processed;

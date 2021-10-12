@@ -41,14 +41,20 @@ class RecurrentRealizer final : public GraphRealizer {
 public:
   /**
    * @brief Construct a new Recurrent Realizer object
+   * @note
+   * There are three types of input_layers in recurrent realizer
+   * 1. input_layers: input layers
+   * 2. external_input_layers: input_layers being renamed to
+   * 3. recurrent_input: Override it's input layers to recurrent output for the
+   * steps, where steps > 0
    *
    * @param properties
    *        unroll_for = <int> // define timestep of unrolloing
    *        return_sequences = <bool> // return sequences
    *        input_layers = <vector<std::string>> // internal input name
-   *        input_layers = <vector<std::string>> // internal output name
+   *        output_layers = <vector<std::string>> // internal output name
    *        recurrent_inputs = <vector<std::string>> // start of the loop
-   *        recurrent_ouptut = <vector<std::string>> // end of the loop
+   *        recurrent_ouptuts = <vector<std::string>> // end of the loop
    * @param external_input_layers input layer from outer side
    */
   RecurrentRealizer(const std::vector<std::string> &properties,
