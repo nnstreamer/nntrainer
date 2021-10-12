@@ -40,44 +40,6 @@ auto ini_interpreter = std::make_shared<nntrainer::IniGraphInterpreter>(
   nntrainer::AppContext::Global(), compilerPathResolver);
 
 /**
- * @brief prototypical version of checking graph is equal
- *
- * @param lhs compiled(later, finalized) graph to be compared
- * @param rhs compiled(later, finalized) graph to be compared
- * @retval true graph is equal
- * @retval false graph is not equal
- */
-static void graphEqual(const nntrainer::GraphRepresentation &lhs,
-                       const nntrainer::GraphRepresentation &rhs) {
-  EXPECT_EQ(lhs.size(), rhs.size());
-
-  auto is_node_equal = [](const nntrainer::LayerNode &l,
-                          const nntrainer::LayerNode &r) {
-    nntrainer::Exporter lhs_export;
-    nntrainer::Exporter rhs_export;
-
-    l.exportTo(lhs_export, nntrainer::ExportMethods::METHOD_STRINGVECTOR);
-    r.exportTo(rhs_export, nntrainer::ExportMethods::METHOD_STRINGVECTOR);
-
-    /*** fixme, there is one caveat that order matters in this form */
-    EXPECT_EQ(
-      *lhs_export.getResult<nntrainer::ExportMethods::METHOD_STRINGVECTOR>(),
-      *rhs_export.getResult<nntrainer::ExportMethods::METHOD_STRINGVECTOR>());
-  };
-
-  if (lhs.size() == rhs.size()) {
-    auto lhs_iter = lhs.cbegin();
-    auto rhs_iter = rhs.cbegin();
-    for (; lhs_iter != lhs.cend(), rhs_iter != rhs.cend();
-         lhs_iter++, rhs_iter++) {
-      auto lhs = *lhs_iter;
-      auto rhs = *rhs_iter;
-      is_node_equal(*lhs.get(), *rhs.get());
-    }
-  }
-}
-
-/**
  * @brief nntrainer Interpreter Test setup
  *
  * @note Proposing an evolutional path of current test
