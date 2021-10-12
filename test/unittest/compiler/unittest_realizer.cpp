@@ -57,10 +57,14 @@ TEST(RecurrentRealizer, recurrent_p) {
                        "recurrent_input=fc_1", "recurrent_output=fc_2"},
                       {"outter_input"});
 
-  LayerRepresentation input1 = {"fully_connected",
-                                {"name=layer1", "flatten=true"}};
+  LayerRepresentation input1 = {
+    "fully_connected", {"name=fc1", "flatten=true", "input_layers=fc1,fc1"}};
 
-  realizeAndEqual(r, {input1}, {input1});
+  LayerRepresentation expected1 = {"fully_connected",
+                                   {"name=outter_input", "flatten=true",
+                                    "input_layers=outter_input,outter_input"}};
+
+  realizeAndEqual(r, {input1}, {expected1});
 }
 
 TEST(RemapRealizer, remap_p) {
