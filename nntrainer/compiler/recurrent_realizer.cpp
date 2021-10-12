@@ -18,6 +18,7 @@
 #include <nntrainer_error.h>
 #include <node_exporter.h>
 #include <remap_realizer.h>
+#include <util_func.h>
 namespace nntrainer {
 
 namespace props {
@@ -41,7 +42,17 @@ UnrollFor::UnrollFor(const unsigned &value) { set(value); }
  */
 class RecurrentInput final : public Name {
 public:
+  /**
+   * @brief Construct a new Recurrent Input object
+   *
+   */
   RecurrentInput();
+
+  /**
+   * @brief Construct a new Recurrent Input object
+   *
+   * @param name name
+   */
   RecurrentInput(const std::string &name);
   static constexpr const char *key = "recurrent_input";
   using prop_tag = str_prop_tag;
@@ -56,7 +67,17 @@ RecurrentInput::RecurrentInput(const std::string &name) { set(name); };
  */
 class RecurrentOutput final : public Name {
 public:
+  /**
+   * @brief Construct a new Recurrent Output object
+   *
+   */
   RecurrentOutput();
+
+  /**
+   * @brief Construct a new Recurrent Output object
+   *
+   * @param name name
+   */
   RecurrentOutput(const std::string &name);
   static constexpr const char *key = "recurrent_output";
   using prop_tag = str_prop_tag;
@@ -128,6 +149,11 @@ RecurrentRealizer::realize(const GraphRepresentation &reference) {
     }
   };
 
+  /**
+   * @brief maps input place holder to given name otherwise scopped to suffix
+   * "/0"
+   *
+   */
   auto step1_connect_external_input =
     [this](const GraphRepresentation &reference_) {
       RemapRealizer input_mapper([this](std::string &id) {
@@ -141,6 +167,10 @@ RecurrentRealizer::realize(const GraphRepresentation &reference) {
       return input_mapper.realize(reference_);
     };
 
+  /**
+   * @brief Create a single time step. Used inside step2_unroll.
+   *
+   */
   auto create_step = [this](const GraphRepresentation &reference_,
                             unsigned idx) {
     GraphRepresentation step;
@@ -178,6 +208,10 @@ RecurrentRealizer::realize(const GraphRepresentation &reference) {
     return step;
   };
 
+  /**
+   * @brief unroll the graph by calling create_step()
+   *
+   */
   auto step2_unroll = [this, create_step](const GraphRepresentation &reference_,
                                           unsigned unroll_for_) {
     GraphRepresentation processed(reference_.begin(), reference_.end());
@@ -191,14 +225,69 @@ RecurrentRealizer::realize(const GraphRepresentation &reference) {
     return processed;
   };
 
-  /// @todo if return sequence is true, remap identifier and concat output
-  /// layers else remap last loop identifier
+  /**
+   * @brief case when return sequence is not true, only last output is renamed
+   *
+   */
+  auto naive_output = [this](const GraphRepresentation &reference_,
+                             unsigned unroll_for) {
+    /// last output's index is removed so that it can be directly an output
+    auto suffix = "/" + std::to_string(unroll_for - 1);
+    RemapRealizer r([suffix](std::string &name) {
+      if (endswith(name, suffix)) {
+        auto pos = name.find_last_of('/');
+        if (pos != std::string::npos) {
+          name = name.substr(0, pos);
+        }
+      }
+    });
 
+    return r.realize(reference_);
+  };
+
+  /**
+   * @brief case when return sequence is true, concat layer is added to
+   * aggregate all the output
+   *
+   */
+  auto concat_output = [this](const GraphRepresentation &reference_,
+                              unsigned unroll_for) {
+    GraphRepresentation processed(reference_.begin(), reference_.end());
+    auto output_layers =
+      std::get<std::vector<props::OutputLayer>>(*recurrent_props);
+
+    for (auto &output : output_layers) {
+      std::vector<props::Name> names;
+      for (unsigned int i = 0; i < unroll_for; ++i) {
+        names.push_back(output.get() + "/" + std::to_string(i));
+      }
+      /// @todo have axis in concat layer
+      auto node = createLayerNode(
+        "concat", {"name=" + output.get(), "input_layers=" + to_string(names)});
+      processed.push_back(std::move(node));
+    }
+
+    return processed;
+  };
+
+  /**
+   * @brief set output name
+   *
+   */
+  auto step3_connect_output =
+    [this, naive_output, concat_output](const GraphRepresentation &reference_,
+                                        unsigned unroll_for) {
+      bool return_sequence =
+        std::get<props::ReturnSequences>(*recurrent_props).get();
+      return return_sequence ? concat_output(reference_, unroll_for)
+                             : naive_output(reference_, unroll_for);
+    };
+
+  auto unroll_for = std::get<props::UnrollFor>(*recurrent_props).get();
   step0_verify_and_prepare();
   auto processed = step1_connect_external_input(reference);
-  processed =
-    step2_unroll(processed, std::get<props::UnrollFor>(*recurrent_props));
-  return processed;
+  processed = step2_unroll(processed, unroll_for);
+  return step3_connect_output(processed, unroll_for);
 }
 
 } // namespace nntrainer
