@@ -16,6 +16,7 @@
 
 #include <flatten_realizer.h>
 #include <realizer.h>
+#include <recurrent_realizer.h>
 
 #include <compiler_test_util.h>
 
@@ -36,7 +37,7 @@ static void realizeAndEqual(GraphRealizer &realizer,
   graphEqual(processed, expected_graph);
 }
 
-TEST(flattenRealizer, flatten_p) {
+TEST(FlattenRealizer, flatten_p) {
   FlattenRealizer fr;
 
   LayerRepresentation input1 = {"fully_connected",
@@ -46,4 +47,17 @@ TEST(flattenRealizer, flatten_p) {
   LayerRepresentation expected2 = {"flatten", {"name=layer1"}};
 
   realizeAndEqual(fr, {input1}, {expected1, expected2});
+}
+
+TEST(RecurrentRealizer, recurrent_p) {
+
+  RecurrentRealizer r({"unroll_for=3", "return_sequences=true",
+                       "input_layers=fc1", "output_layers=fc2",
+                       "recurrent_input=fc_1", "recurrent_output=fc_2"},
+                      {"outter_input"});
+
+  LayerRepresentation input1 = {"fully_connected",
+                                {"name=layer1", "flatten=true"}};
+
+  realizeAndEqual(r, {input1}, {input1});
 }
