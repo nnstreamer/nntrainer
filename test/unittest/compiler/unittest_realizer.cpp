@@ -53,18 +53,28 @@ TEST(FlattenRealizer, flatten_p) {
 TEST(RecurrentRealizer, recurrent_p) {
 
   RecurrentRealizer r({"unroll_for=3", "return_sequences=true",
-                       "input_layers=fc1", "output_layers=fc2",
-                       "recurrent_input=fc_1", "recurrent_output=fc_2"},
-                      {"outter_input"});
+                       "input_layers=initial_source", "output_layers=fc2",
+                       "recurrent_input=fc_in", "recurrent_output=fc_out"},
+                      {"out_source"});
 
-  LayerRepresentation input1 = {
-    "fully_connected", {"name=fc1", "flatten=true", "input_layers=fc1,fc1"}};
+  std::vector<LayerRepresentation> before = {
+    {"fully_connected", {"name=fc_in", "input_layers=initial_source"}},
+    {"fully_connected", {"name=fc_out", "input_layers=fc_in"}}};
 
-  LayerRepresentation expected1 = {"fully_connected",
-                                   {"name=outter_input", "flatten=true",
-                                    "input_layers=outter_input,outter_input"}};
+  std::vector<LayerRepresentation> expected = {
+    {"fully_connected", {"name=fc_in/0", "input_layers=out_source"}},
+    {"fully_connected", {"name=fc_out/0", "input_layers=fc_in/0"}},
+    {"fully_connected",
+     {"name=fc_in/1", "input_layers=fc_out/0", "shared_from=fc_in/0"}},
+    {"fully_connected",
+     {"name=fc_out/1", "input_layers=fc_in/1", "shared_from=fc_out/0"}},
+    {"fully_connected",
+     {"name=fc_in/2", "input_layers=fc_out/1", "shared_from=fc_in/0"}},
+    {"fully_connected",
+     {"name=fc_out/2", "input_layers=fc_in/2", "shared_from=fc_out/0"}},
+  };
 
-  realizeAndEqual(r, {input1}, {expected1});
+  realizeAndEqual(r, before, expected);
 }
 
 TEST(RemapRealizer, remap_p) {
