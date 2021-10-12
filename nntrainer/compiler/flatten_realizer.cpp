@@ -12,6 +12,7 @@
 #include <flatten_realizer.h>
 
 #include <layer_node.h>
+#include <flatten_layer.h>
 
 namespace nntrainer {
 

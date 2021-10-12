@@ -14,10 +14,42 @@
 #include <app_context.h>
 #include <nntrainer_test_util.h>
 
+#include <gtest/gtest.h>
+
 static auto &ac = nntrainer::AppContext::Global();
 
 const std::string compilerPathResolver(const std::string &path) {
   return getResPath(path, {"test", "test_models", "models"});
+}
+
+void graphEqual(const nntrainer::GraphRepresentation &lhs,
+                const nntrainer::GraphRepresentation &rhs) {
+  EXPECT_EQ(lhs.size(), rhs.size());
+
+  auto is_node_equal = [](const nntrainer::LayerNode &l,
+                          const nntrainer::LayerNode &r) {
+    nntrainer::Exporter lhs_export;
+    nntrainer::Exporter rhs_export;
+
+    l.exportTo(lhs_export, nntrainer::ExportMethods::METHOD_STRINGVECTOR);
+    r.exportTo(rhs_export, nntrainer::ExportMethods::METHOD_STRINGVECTOR);
+
+    /*** fixme, there is one caveat that order matters in this form */
+    EXPECT_EQ(
+      *lhs_export.getResult<nntrainer::ExportMethods::METHOD_STRINGVECTOR>(),
+      *rhs_export.getResult<nntrainer::ExportMethods::METHOD_STRINGVECTOR>());
+  };
+
+  if (lhs.size() == rhs.size()) {
+    auto lhs_iter = lhs.cbegin();
+    auto rhs_iter = rhs.cbegin();
+    for (; lhs_iter != lhs.cend(), rhs_iter != rhs.cend();
+         lhs_iter++, rhs_iter++) {
+      auto lhs = *lhs_iter;
+      auto rhs = *rhs_iter;
+      is_node_equal(*lhs.get(), *rhs.get());
+    }
+  }
 }
 
 nntrainer::GraphRepresentation
