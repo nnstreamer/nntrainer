@@ -17,6 +17,7 @@
 #include <flatten_realizer.h>
 #include <realizer.h>
 #include <recurrent_realizer.h>
+#include <remap_realizer.h>
 
 #include <compiler_test_util.h>
 
@@ -60,4 +61,18 @@ TEST(RecurrentRealizer, recurrent_p) {
                                 {"name=layer1", "flatten=true"}};
 
   realizeAndEqual(r, {input1}, {input1});
+}
+
+TEST(RemapRealizer, remap_p) {
+
+  RemapRealizer r([](std::string &name) { name = "scoped/" + name; });
+
+  LayerRepresentation input1 = {
+    "fully_connected", {"name=layer1", "flatten=true", "input_layers=1,2"}};
+
+  LayerRepresentation expected1 = {
+    "fully_connected",
+    {"name=scoped/layer1", "flatten=true", "input_layers=scoped/1,scoped/2"}};
+
+  realizeAndEqual(r, {input1}, {expected1});
 }

@@ -624,6 +624,13 @@ public:
   void printPreset(std::ostream &out,
                    PrintPreset preset = PrintPreset::PRINT_SUMMARY);
 
+  /**
+   * @brief remap identifier inside layer node
+   *
+   * @param remap_fn function to remap
+   */
+  void remapIdentifiers(std::function<void(std::string &)> remap_fn);
+
 private:
   std::unique_ptr<nntrainer::Layer>
     layer; /**< The actual object in the graph node */
