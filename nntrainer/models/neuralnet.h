@@ -283,20 +283,6 @@ public:
                                  std::vector<float *> &label);
 
   /**
-   * @brief     Enable the memory optimizations for the network
-   *
-   */
-  void enableMemoryOptimizations() { model_graph.setMemoryOptimizations(true); }
-
-  /**
-   * @brief     Enable the memory optimizations for the network
-   *
-   */
-  void disableMemoryOptimizations() {
-    model_graph.setMemoryOptimizations(false);
-  }
-
-  /**
    * @brief     Run NeuralNetwork train with callback function by user
    * @param[in] dt datatype (mode) where it should be
    * @param[in] dataset set the dataset
@@ -477,7 +463,8 @@ public:
 private:
   using FlexiblePropTypes =
     std::tuple<props::Epochs, props::TrainingBatchSize, props::SavePath,
-               props::ContinueTrain, props::SaveBestPath>;
+               props::ContinueTrain, props::SaveBestPath,
+               props::MemoryOptimization>;
   using RigidPropTypes =
     std::tuple<props::LossType, std::vector<props::InputLayer>,
                std::vector<props::LabelLayer>>;

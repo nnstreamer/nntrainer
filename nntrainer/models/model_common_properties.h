@@ -108,6 +108,24 @@ public:
   ContinueTrain(bool value = false);
 };
 
+/**
+ * @brief model optimization property
+ *
+ */
+class MemoryOptimization : public Property<bool> {
+public:
+  static constexpr const char *key =
+    "memory_optimization";        /**< unique key to access */
+  using prop_tag = bool_prop_tag; /**< property type */
+
+  /**
+   * @brief Constructor
+   *
+   * @param value value to set, defaults to true
+   */
+  MemoryOptimization(bool value = true);
+};
+
 } // namespace nntrainer::props
 
 #endif
