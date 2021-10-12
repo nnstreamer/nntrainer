@@ -27,4 +27,6 @@ TrainingBatchSize::TrainingBatchSize(unsigned int value) { set(value); }
 
 ContinueTrain::ContinueTrain(bool value) { set(value); }
 
+MemoryOptimization::MemoryOptimization(bool value) { set(value); }
+
 } // namespace nntrainer::props

@@ -51,7 +51,7 @@ NeuralNetwork::NeuralNetwork(AppContext app_context_, bool in_place_opt) :
   model_props(props::LossType(), {}, {}),
   model_flex_props(props::Epochs(), props::TrainingBatchSize(),
                    props::SavePath(), props::ContinueTrain(),
-                   props::SaveBestPath()),
+                   props::SaveBestPath(), props::MemoryOptimization()),
   load_path(std::string()),
   epoch_idx(0),
   iter(0),
@@ -99,6 +99,8 @@ int NeuralNetwork::compile() {
                             ? std::string()
                             : std::get<props::LossType>(model_props);
 
+  model_graph.setMemoryOptimizations(
+    std::get<props::MemoryOptimization>(model_flex_props));
   int status = model_graph.compile(loss_type);
   NN_RETURN_STATUS();
 
