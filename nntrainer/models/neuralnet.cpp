@@ -27,6 +27,7 @@
 #include <sstream>
 
 #include <databuffer.h>
+#include <flatten_realizer.h>
 #include <ini_interpreter.h>
 #include <ini_wrapper.h>
 #include <model_loader.h>
@@ -99,8 +100,25 @@ int NeuralNetwork::compile() {
                             ? std::string()
                             : std::get<props::LossType>(model_props);
 
+  /// @todo make NetworkGraph compiled at the construction instead of having
+  /// graph.compile(), neuralnetwork have ownership of list of layer nodes,
+  /// which will be passed at compile time.
+  GraphRepresentation rep;
+  rep.reserve(model_graph.size());
+  for (auto iter = model_graph.cbegin(); iter != model_graph.cend(); iter++) {
+    rep.push_back(*iter);
+  }
+
+  FlattenRealizer fr;
+  rep = fr.realize(rep);
+
+  model_graph = NetworkGraph();
   model_graph.setMemoryOptimizations(
     std::get<props::MemoryOptimization>(model_flex_props));
+  for (auto &node : rep) {
+    model_graph.addLayer(node);
+  }
+
   int status = model_graph.compile(loss_type);
   NN_RETURN_STATUS();
 
