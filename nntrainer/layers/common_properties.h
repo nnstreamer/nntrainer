@@ -595,6 +595,19 @@ public:
 };
 
 /**
+ * @brief Output Layer name property which saves a single connection
+ * (practically, std::vector<InputLayers> is used)
+ *
+ */
+class OutputLayer : public Name {
+public:
+  OutputLayer();
+  OutputLayer(const std::string &name);
+  static constexpr const char *key = "output_layers";
+  using prop_tag = str_prop_tag;
+};
+
+/**
  * @brief label Layer name property which saves a single
  * connection (practically, std::vector<LabelLayers> is used)
  *

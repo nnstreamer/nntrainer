@@ -76,7 +76,8 @@ bool NumClass::isValid(const unsigned int &v) const { return v > 0; }
 
 ConnectionSpec::ConnectionSpec(const std::vector<props::Name> &layer_ids_,
                                const std::string &op_type_) :
-  op_type(op_type_), layer_ids(layer_ids_) {
+  op_type(op_type_),
+  layer_ids(layer_ids_) {
   NNTR_THROW_IF((op_type != ConnectionSpec::NoneType && layer_ids.size() < 2),
                 std::invalid_argument)
     << "connection type is not none but has only a single or empty layer id, "
@@ -93,8 +94,8 @@ ConnectionSpec::ConnectionSpec(const std::vector<props::Name> &layer_ids_,
 ConnectionSpec::ConnectionSpec(const ConnectionSpec &rhs) = default;
 ConnectionSpec &ConnectionSpec::operator=(const ConnectionSpec &rhs) = default;
 ConnectionSpec::ConnectionSpec(ConnectionSpec &&rhs) noexcept = default;
-ConnectionSpec &
-ConnectionSpec::operator=(ConnectionSpec &&rhs) noexcept = default;
+ConnectionSpec &ConnectionSpec::
+operator=(ConnectionSpec &&rhs) noexcept = default;
 
 bool ConnectionSpec::operator==(const ConnectionSpec &rhs) const {
   return op_type == rhs.op_type && layer_ids == rhs.layer_ids;
@@ -223,6 +224,9 @@ bool WeightRegularizerConstant::isValid(const float &value) const {
 
 InputLayer::InputLayer() : Name() {}
 InputLayer::InputLayer(const std::string &name) : Name(name) {}
+
+OutputLayer::OutputLayer() : Name() {}
+OutputLayer::OutputLayer(const std::string &name) : Name(name) {}
 
 LabelLayer::LabelLayer() : Name() {}
 LabelLayer::LabelLayer(const std::string &name) : Name(name) {}

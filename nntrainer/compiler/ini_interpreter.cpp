@@ -348,6 +348,8 @@ GraphRepresentation IniGraphInterpreter::deserialize(const std::string &in) {
 
       graph.push_back(layer);
     }
+    /// @todo if graph Model Type is of recurrent_wrapper, parse model and
+    /// realize before return
   } catch (...) {
     /** clean up and rethrow */
     freedict();
