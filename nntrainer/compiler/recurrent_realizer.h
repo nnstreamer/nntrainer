@@ -46,7 +46,7 @@ public:
    *        unroll_for = <int> // define timestep of unrolloing
    *        return_sequences = <bool> // return sequences
    *        input_layers = <vector<std::string>> // internal input name
-   *        input_layers = <vector<std::string>> // internal output name
+   *        output_layers = <vector<std::string>> // internal output name
    *        recurrent_inputs = <vector<std::string>> // start of the loop
    *        recurrent_ouptut = <vector<std::string>> // end of the loop
    * @param external_input_layers input layer from outer side
