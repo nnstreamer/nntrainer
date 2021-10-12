@@ -125,27 +125,6 @@ void NetworkGraph::countNonTrainableLayersAtBegin() {
   skip_non_trainable_layers = graph.size();
 }
 
-int NetworkGraph::realizeFlattenType(
-  const std::shared_ptr<LayerNode> &in_node) {
-  if (in_node->getType() == FlattenLayer::type) {
-    ml_loge(
-      "It is not allowed to realize flatten layer, possibly flatten layer is "
-      "added right after flatten");
-    return ML_ERROR_INVALID_PARAMETER;
-  }
-
-  std::shared_ptr<LayerNode> lnode = createLayerNode(FlattenLayer::type);
-  graph.ensureName(*lnode, in_node->getName());
-
-  lnode->setInputLayers({in_node->getName()});
-  /** output layers for layer obj will be set in setOutputLayers() */
-
-  updateConnectionName(in_node->getName(), lnode->getName());
-  graph.addNode(lnode, false);
-
-  return ML_ERROR_NONE;
-}
-
 int NetworkGraph::realizeActivationType(
   const std::shared_ptr<LayerNode> &in_node) {
   int status = ML_ERROR_NONE;
@@ -359,12 +338,6 @@ int NetworkGraph::realizeGraph() {
 
     if (lnode->getType() != ActivationLayer::type) {
       status = realizeActivationType(lnode);
-      NN_RETURN_STATUS();
-    }
-
-    // Flatten in TimeDistLayer is not supported.
-    if (lnode->getFlatten() && !lnode->getDistribute()) {
-      status = realizeFlattenType(lnode);
       NN_RETURN_STATUS();
     }
   }

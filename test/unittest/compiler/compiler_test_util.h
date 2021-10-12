@@ -41,7 +41,8 @@ const std::string compilerPathResolver(const std::string &path);
 
 /**
  * @brief prototypical version of checking graph is equal
- *
+ * @note  This check assumes that graph have the exact same order, each node has
+ * the exact same configuration
  * @param lhs compiled(later, finalized) graph to be compared
  * @param rhs compiled(later, finalized) graph to be compared
  * @retval true graph is equal
