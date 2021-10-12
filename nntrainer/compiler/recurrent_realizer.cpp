@@ -115,11 +115,16 @@ RecurrentRealizer::~RecurrentRealizer() {}
 GraphRepresentation
 RecurrentRealizer::realize(const GraphRepresentation &reference) {
   auto step0_verify_and_prepare = [this, &reference]() {
-    // std::unordered_map<std::string, LayerNode *> node_map;
     for (auto &node : reference) {
       NNTR_THROW_IF(node->getNumInputConnections() == 0, std::invalid_argument)
         << "every node must have input connection defined";
-      // node_map.insert_or_assign(node->getName(), node.get());
+
+      auto &input = std::get<props::RecurrentInput>(*recurrent_props);
+      if (node->getName() == input.get()) {
+        NNTR_THROW_IF(node->getNumInputConnections() != 1,
+                      std::invalid_argument)
+          << "recurrent input must have single connection: " << input.get();
+      }
     }
   };
 
@@ -128,22 +133,71 @@ RecurrentRealizer::realize(const GraphRepresentation &reference) {
       RemapRealizer input_mapper([this](std::string &id) {
         if (auto iter = id_map.find(id); iter != id_map.end()) {
           id = iter->second;
+        } else {
+          id += "/0";
         }
       });
 
       return input_mapper.realize(reference_);
     };
-  /// @todo remap identifier input_layers -> external_input_layers
 
-  /// @todo copy the layers to loop and remap with numbers
-  ///       1. define layer node copy in this context
-  ///       2. copy and remap layers to be looped
+  auto create_step = [this](const GraphRepresentation &reference_,
+                            unsigned idx) {
+    GraphRepresentation step;
+    auto &input = std::get<props::RecurrentInput>(*recurrent_props);
+    auto &output = std::get<props::RecurrentOutput>(*recurrent_props);
+    step.reserve(reference_.size());
+
+    auto replace_idx = [](std::string &name, unsigned idx) {
+      auto pos = name.find_last_of('/');
+      if (pos != std::string::npos) {
+        name.replace(pos + 1, std::string::npos, std::to_string(idx));
+      }
+    };
+    for (auto &node : reference_) {
+      auto new_node = node->cloneConfiguration();
+
+      /// 1. remap identifiers to $name/$idx
+      new_node->remapIdentifiers([this, idx, replace_idx](std::string &id) {
+        if (auto iter = id_map.find(id); iter == id_map.end()) {
+          replace_idx(id, idx);
+        }
+      });
+
+      /// 2. override first output name to $name/$idx - 1
+      if (node->getName() == input.get() + "/0") {
+        std::string output_name = output.get() + "/" + std::to_string(idx - 1);
+        new_node->setProperty({"input_layers=" + output_name});
+      }
+
+      /// 3. set shared_from
+      new_node->setProperty({"shared_from=" + node->getName()});
+
+      step.push_back(std::move(new_node));
+    }
+    return step;
+  };
+
+  auto step2_unroll = [this, create_step](const GraphRepresentation &reference_,
+                                          unsigned unroll_for_) {
+    GraphRepresentation processed(reference_.begin(), reference_.end());
+    processed.reserve(reference_.size() * unroll_for_);
+
+    for (unsigned int i = 1; i < unroll_for_; ++i) {
+      auto step = create_step(reference_, i);
+      processed.insert(processed.end(), step.begin(), step.end());
+    }
+
+    return processed;
+  };
 
   /// @todo if return sequence is true, remap identifier and concat output
   /// layers else remap last loop identifier
 
   step0_verify_and_prepare();
   auto processed = step1_connect_external_input(reference);
+  processed =
+    step2_unroll(processed, std::get<props::UnrollFor>(*recurrent_props));
   return processed;
 }
 
