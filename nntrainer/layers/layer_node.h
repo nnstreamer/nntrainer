@@ -631,6 +631,15 @@ public:
    */
   void remapIdentifiers(std::function<void(std::string &)> remap_fn);
 
+  /**
+   * @brief create the same node with same properties and types
+   *
+   * @note this must be done before finalize() as finalize has some potential to
+   * change some properties
+   * @return LayerNode newly created node
+   */
+  std::unique_ptr<LayerNode> cloneConfiguration();
+
 private:
   std::unique_ptr<nntrainer::Layer>
     layer; /**< The actual object in the graph node */

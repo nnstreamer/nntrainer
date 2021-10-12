@@ -621,6 +621,22 @@ void LayerNode::remapIdentifiers(std::function<void(std::string &)> remap_fn) {
   }
 }
 
+std::unique_ptr<LayerNode> LayerNode::cloneConfiguration() {
+  NNTR_THROW_IF(isFinalized(), std::invalid_argument)
+    << "It is prohibited to clone configuration";
+  Exporter e;
+  exportTo(e, ExportMethods::METHOD_STRINGVECTOR);
+  auto props = e.getResult<ExportMethods::METHOD_STRINGVECTOR>();
+
+  std::vector<std::string> key_val_props;
+  key_val_props.reserve(props->size());
+  for (auto &entry : *props) {
+    key_val_props.push_back(entry.first + "=" + entry.second);
+  }
+
+  return createLayerNode(getType(), key_val_props);
+}
+
 void LayerNode::printShapeInfo(std::ostream &out) {
   for (unsigned int idx = 0; idx < getNumInputs(); ++idx) {
     out << "input " << run_context->getInput(idx).getDim();
