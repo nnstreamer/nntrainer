@@ -599,6 +599,32 @@ void LayerNode::printPreset(std::ostream &out, PrintPreset preset) {
   print(out, flags);
 }
 
+void LayerNode::remapIdentifiers(std::function<void(std::string &)> remap_fn) {
+  NNTR_THROW_IF(isFinalized(), std::invalid_argument)
+    << "cannot remap identifiers after finalized";
+
+  auto &name = std::get<props::Name>(*layer_node_props);
+  if (!name.empty()) {
+    remap_fn(name.get());
+  }
+
+  auto &shared_from = std::get<props::SharedFrom>(*layer_node_props);
+  if (!shared_from.empty()) {
+    remap_fn(shared_from.get());
+  }
+
+  auto &input_layers =
+    std::get<std::vector<props::InputLayer>>(*layer_node_props);
+
+  for (auto &input_layer : input_layers) {
+    remap_fn(input_layer);
+  }
+
+  for (auto &output_layer : output_layers) {
+    remap_fn(output_layer);
+  }
+}
+
 void LayerNode::printShapeInfo(std::ostream &out) {
   for (unsigned int idx = 0; idx < getNumInputs(); ++idx) {
     out << "input " << run_context->getInput(idx).getDim();
