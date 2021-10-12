@@ -381,14 +381,15 @@ GraphWatcher::GraphWatcher(const std::string &config, const bool opt) :
   optimize(opt) {
   nn = nntrainer::NeuralNetwork();
 
-  /** Disable memory optimization as memory being matched for each layer
-   */
-  if (!opt)
-    nn.disableMemoryOptimizations();
-
   if (nn.loadFromConfig(config)) {
     throw std::invalid_argument("load from config failed!");
   };
+
+  /** Disable memory optimization as memory being matched for each layer
+   */
+  if (!opt) {
+    nn.setProperty({"memory_optimization=false"});
+  }
 
   if (nn.compile()) {
     throw std::invalid_argument("initiation failed");
