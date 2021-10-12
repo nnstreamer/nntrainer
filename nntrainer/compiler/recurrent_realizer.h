@@ -18,8 +18,8 @@
 #include <memory>
 #include <string>
 #include <tuple>
-#include <vector>
 #include <unordered_map>
+#include <vector>
 
 namespace nntrainer {
 
@@ -33,7 +33,8 @@ class RecurrentOutput;
 } // namespace props
 
 /**
- * @brief Recurrent Realizer which unrolls graph from given graph representation
+ * @brief Recurrent Realizer which unrolls graph from given graph
+ * representation
  *
  */
 class RecurrentRealizer final : public GraphRealizer {
@@ -79,12 +80,13 @@ public:
 private:
   using PropTypes =
     std::tuple<std::vector<props::InputLayer>, std::vector<props::OutputLayer>,
-               props::RecurrentInput,
-               props::RecurrentOutput, props::ReturnSequences,
-               props::UnrollFor>;
+               props::RecurrentInput, props::RecurrentOutput,
+               props::ReturnSequences, props::UnrollFor>;
 
-  std::unique_ptr<PropTypes> recurrent_props;     /**< recurrent properties */
-  std::unordered_map<std::string, std::string> id_map; /**< external input layers */
+  std::unique_ptr<PropTypes> recurrent_props; /**< recurrent properties */
+
+  std::unordered_map<std::string, std::string>
+    id_map; /**< mapping from input layers -> external layers */
 };
 
 } // namespace nntrainer

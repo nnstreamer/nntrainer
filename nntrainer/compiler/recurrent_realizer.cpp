@@ -10,14 +10,14 @@
  * @author Jihoon Lee <jhoon.it.lee@samsung.com>
  * @bug No known bugs except for NYI items
  */
-
 #include <recurrent_realizer.h>
 
 #include <common_properties.h>
-
+#include <input_layer.h>
+#include <layer_node.h>
 #include <nntrainer_error.h>
 #include <node_exporter.h>
-
+#include <remap_realizer.h>
 namespace nntrainer {
 
 namespace props {
@@ -74,11 +74,9 @@ RecurrentRealizer::RecurrentRealizer(
   auto left = loadProperties(properties, *recurrent_props);
 
   auto throw_if_empty = [](auto &&prop) {
-    if (prop.empty()) {
-      throw std::invalid_argument(
-        "there is unfilled property for recurrent realizer, key: " +
-        std::string(getPropKey(prop)));
-    }
+    NNTR_THROW_IF(prop.empty(), std::invalid_argument)
+      << "there is unfilled property for recurrent realizer, key: "
+      << getPropKey(prop);
   };
 
   throw_if_empty(std::get<0>(*recurrent_props));
@@ -106,6 +104,9 @@ RecurrentRealizer::RecurrentRealizer(
 
 RecurrentRealizer::RecurrentRealizer(
   const char *ini_path, const std::vector<std::string> &external_input_layers) {
+  /// @todo delegate to RecurrentRealizer(
+  // const std::vector<std::string> &properties,
+  // const std::vector<std::string> &external_input_layers)
   /// NYI!
 }
 
@@ -113,6 +114,25 @@ RecurrentRealizer::~RecurrentRealizer() {}
 
 GraphRepresentation
 RecurrentRealizer::realize(const GraphRepresentation &reference) {
+  auto step0_verify_and_prepare = [this, &reference]() {
+    // std::unordered_map<std::string, LayerNode *> node_map;
+    for (auto &node : reference) {
+      NNTR_THROW_IF(node->getNumInputConnections() == 0, std::invalid_argument)
+        << "every node must have input connection defined";
+      // node_map.insert_or_assign(node->getName(), node.get());
+    }
+  };
+
+  auto step1_connect_external_input =
+    [this](const GraphRepresentation &reference_) {
+      RemapRealizer input_mapper([this](std::string &id) {
+        if (auto iter = id_map.find(id); iter != id_map.end()) {
+          id = iter->second;
+        }
+      });
+
+      return input_mapper.realize(reference_);
+    };
   /// @todo remap identifier input_layers -> external_input_layers
 
   /// @todo copy the layers to loop and remap with numbers
@@ -120,10 +140,11 @@ RecurrentRealizer::realize(const GraphRepresentation &reference) {
   ///       2. copy and remap layers to be looped
 
   /// @todo if return sequence is true, remap identifier and concat output
-  /// layers
+  /// layers else remap last loop identifier
 
-  /// NYI!
-  return reference;
+  step0_verify_and_prepare();
+  auto processed = step1_connect_external_input(reference);
+  return processed;
 }
 
 } // namespace nntrainer
