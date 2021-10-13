@@ -445,8 +445,9 @@ public:
    *
    */
   DropOutRate(float value = 0.0) : nntrainer::Property<float>(value) {}
-  static constexpr const char *key = "dropout"; /**< unique key to access */
-  using prop_tag = float_prop_tag;              /**< property type */
+  static constexpr const char *key =
+    "dropout_rate";                /**< unique key to access */
+  using prop_tag = float_prop_tag; /**< property type */
 
   /**
    * @brief DropOutRate validator
@@ -588,7 +589,17 @@ public:
  */
 class InputLayer : public Name {
 public:
+  /**
+   * @brief Construct InputLayer object
+   *
+   */
   InputLayer();
+
+  /**
+   * @brief Construct InputLayer with the given name
+   *
+   * @param name Name for the input_layers
+   */
   InputLayer(const std::string &name);
   static constexpr const char *key = "input_layers";
   using prop_tag = str_prop_tag;
@@ -601,7 +612,17 @@ public:
  */
 class LabelLayer : public Name {
 public:
+  /**
+   * @brief Construct LabelLayer object
+   *
+   */
   LabelLayer();
+
+  /**
+   * @brief Construct LabelLayer with the given name
+   *
+   * @param name Name for the input_layers
+   */
   LabelLayer(const std::string &name);
   static constexpr const char *key = "label_layers";
   using prop_tag = str_prop_tag;
