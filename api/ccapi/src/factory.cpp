@@ -19,6 +19,7 @@
 #include <databuffer_factory.h>
 #include <layer.h>
 #include <model.h>
+#include <module.h>
 #include <neuralnet.h>
 #include <nntrainer_error.h>
 #include <optimizer.h>
@@ -106,6 +107,12 @@ createDataset(DatasetType type, datagen_cb cb, void *user_data,
   dataset->setProperty(properties);
 
   return dataset;
+}
+
+std::unique_ptr<Module>
+createModule(ModuleType type, const std::vector<std::string> &properties = {}) {
+  /// NYI
+  return nullptr;
 }
 
 } // namespace train
