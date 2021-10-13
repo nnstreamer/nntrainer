@@ -763,6 +763,7 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
 
   /** create shared weight names if requested */
   std::vector<std::string> shared_weight_names;
+  std::vector<std::string> shared_tensor_names;
   if (auto shared_node_str = lnode->getSharedFrom(); !shared_node_str.empty()) {
     auto shared_node = getLayerNode(shared_node_str).get();
     NNTR_THROW_IF(shared_node == nullptr, std::invalid_argument)
@@ -782,6 +783,16 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
     for (auto i = 0u; i < num_weight; ++i) {
       shared_weight_names.emplace_back(shared_node->getWeightName(i));
     }
+
+    auto &rc = shared_node->getRunContext();
+
+    /// @fixme tensor should be only shared if context explicitly requested to
+    /// do so. This has to be added to the part of tensor spec, other wise it
+    /// will break many things
+    auto num_tensors = rc.getNumTensors();
+    for (auto i = 0u; i < num_tensors; ++i) {
+      shared_tensor_names.emplace_back(rc.getTensorName(i));
+    }
   }
 
   lnode->configureRunContext(
@@ -789,7 +800,8 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
     tensor_manager->requestWeights(gnode, init_context.getWeightsSpec(),
                                    lnode->getTrainable(), shared_weight_names),
     inputs, outputs,
-    tensor_manager->requestTensors(gnode, init_context.getTensorsSpec()));
+    tensor_manager->requestTensors(gnode, init_context.getTensorsSpec(),
+                                   shared_tensor_names));
 
   return outputs;
 }
