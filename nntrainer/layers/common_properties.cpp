@@ -212,6 +212,44 @@ Padding2D::compute(const TensorDim &input, const TensorDim &kernel,
   throw std::logic_error("[padding] should not reach here");
 }
 
+bool Padding1D::isValid(const std::string &v) const {
+
+  /// case 1, 2: padding has string literal
+  if (istrequal(v, "valid") || istrequal(v, "same")) {
+    return true;
+  }
+
+  std::vector<props::Padding_> paddings;
+  from_string(v, paddings);
+
+  /// case 3, 4: padding has a sequence of unsigned integer
+  if (paddings.size() == 1 || paddings.size() == 2) {
+    /// check if every padding is non-negative integer
+    for (const auto &padding : paddings) {
+      if (padding.get() < 0) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /// case else: false
+  return false;
+}
+
+std::array<unsigned int, 2> Padding1D::compute(const TensorDim &input,
+                                               const TensorDim &kernel,
+                                               const unsigned int &strides) {
+  auto &padding_repr = get(); /// padding representation
+
+  if (istrequal(padding_repr, "valid")) {
+    return {0, 0};
+  }
+
+  // NYI
+  return {0, 0};
+}
+
 std::string ConnectionSpec::NoneType = "";
 
 WeightRegularizerConstant::WeightRegularizerConstant(float value) {
