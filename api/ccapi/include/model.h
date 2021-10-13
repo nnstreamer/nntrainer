@@ -43,6 +43,14 @@ enum class ModelType {
 };
 
 /**
+ * @brief     Enumeration to state type of reference of layers
+ */
+enum class ReferenceLayersType {
+  BACKBONE,  /** backbone */
+  RECURRENT, /** recurrent */
+};
+
+/**
  * @brief Model saving options
  *
  */
@@ -153,6 +161,25 @@ public:
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
   virtual int addLayer(std::shared_ptr<Layer> layer) = 0;
+
+  /**
+   * @brief add refering to reference layers.
+   * @note This method does add the provided layers itself but adds a deep copy
+   * of the passed layers to the model. The layers passed to this function can
+   * be reused later.
+   *
+   * @param reference a group of layers being referred to.
+   * @param type type of reference layers
+   * @param scope scope of added layers, identifier will be added
+   * @param external_input_layers external input layers which input layers will
+   * be remapped
+   * @param type_properties type dependent properties
+   */
+  virtual void addWithReferenceLayers(
+    const std::vector<std::shared_ptr<Layer>> &reference,
+    ReferenceLayersType type, const std::string &scope,
+    const std::vector<std::string> &external_input_layers,
+    const std::vector<std::string> &type_properties = {}) = 0;
 
   /**
    * @brief     set optimizer for the neural network model
