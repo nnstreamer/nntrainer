@@ -37,6 +37,8 @@
 #include <node_exporter.h>
 #include <optimizer_context.h>
 #include <profiler.h>
+#include <recurrent_realizer.h>
+#include <remap_realizer.h>
 #include <util_func.h>
 
 /**
@@ -918,6 +920,45 @@ void NeuralNetwork::printPreset(std::ostream &out, unsigned int preset) {
   }
 
   print(out, flags, layer_preset);
+}
+
+void NeuralNetwork::addWithReferenceLayers(
+  const std::vector<std::shared_ptr<ml::train::Layer>> &reference,
+  ml::train::ReferenceLayersType type, const std::string &scope,
+  const std::vector<std::string> &external_input_layers,
+  const std::vector<std::string> &type_properties) {
+  std::vector<std::shared_ptr<LayerNode>> nodes;
+  nodes.reserve(reference.size());
+  for (auto &node : reference) {
+    auto lnode = static_cast<LayerNode *>(node.get());
+    nodes.push_back(lnode->cloneConfiguration());
+  }
+
+  std::vector<std::unique_ptr<GraphRealizer>> realizers;
+  if (type == ml::train::ReferenceLayersType::RECURRENT) {
+    realizers.emplace_back(
+      new RecurrentRealizer(type_properties, external_input_layers));
+  }
+
+  if (!scope.empty()) {
+    realizers.emplace_back(
+      new RemapRealizer([&scope, &external_input_layers](std::string &name) {
+        for (auto &i : external_input_layers) {
+          if (istrequal(i, name)) {
+            return;
+          }
+        }
+        name = scope + "/" + name;
+      }));
+  }
+
+  for (auto &realizer : realizers) {
+    nodes = realizer->realize(nodes);
+  }
+
+  for (auto &node : nodes) {
+    addLayer(node);
+  }
 }
 
 void NeuralNetwork::exportTo(Exporter &exporter,

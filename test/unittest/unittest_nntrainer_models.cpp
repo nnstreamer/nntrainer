@@ -1614,6 +1614,64 @@ TEST(nntrainerModels, read_save_01_n) {
   EXPECT_THROW(NN.save("model.bin"), std::runtime_error);
 }
 
+TEST(nntrainerModels, loadFromLayersBackbone_p) {
+  std::vector<std::shared_ptr<ml::train::Layer>> reference;
+  reference.emplace_back(ml::train::layer::FullyConnected({"name=fc1"}));
+  reference.emplace_back(ml::train::layer::FullyConnected({"name=layer1"}));
+
+  nntrainer::NeuralNetwork nn;
+  EXPECT_NO_THROW(nn.addWithReferenceLayers(
+    reference, ml::train::ReferenceLayersType::BACKBONE, "backbone",
+    {"out_source"}));
+
+  auto graph = nn.getFlatGraph();
+  for (unsigned int i = 0; i < graph.size(); ++i) {
+    EXPECT_EQ(graph.at(i)->getName(), "backbone/" + reference.at(i)->getName());
+  };
+}
+
+TEST(nntrainerModels, loadFromLayersRecurrent_p) {
+  std::vector<std::shared_ptr<ml::train::Layer>> reference;
+  reference.emplace_back(
+    ml::train::layer::FullyConnected({"name=fc1", "input_layers=init"}));
+  reference.emplace_back(
+    ml::train::layer::FullyConnected({"name=fc2", "input_layers=fc1"}));
+
+  nntrainer::NeuralNetwork nn;
+  EXPECT_NO_THROW(nn.addWithReferenceLayers(
+    reference, ml::train::ReferenceLayersType::RECURRENT, "recurrent",
+    {"out_source"},
+    {
+      "unroll_for=3",
+      "return_sequences=true",
+      "input_layers=init",
+      "output_layers=fc2",
+      "recurrent_input=fc1",
+      "recurrent_output=fc2",
+    }));
+
+  std::vector<std::string> expected_node_names = {
+    "recurrent/fc1/0", "recurrent/fc2/0", "recurrent/fc1/1", "recurrent/fc2/1",
+    "recurrent/fc1/2", "recurrent/fc2/2", "recurrent/fc2"};
+  std::vector<std::string> expected_input_layers = {
+    "out_source" /**< input substituted with external_input */,
+    "recurrent/fc1/0",
+    "recurrent/fc2/0",
+    "recurrent/fc1/1",
+    "recurrent/fc2/1",
+    "recurrent/fc1/2",
+    "recurrent/fc2/0" /**< out source's first input */,
+  };
+
+  auto graph = nn.getFlatGraph();
+  for (unsigned int i = 0; i < graph.size(); ++i) {
+    EXPECT_EQ(graph.at(i)->getName(), expected_node_names.at(i)) << "at " << i;
+    EXPECT_EQ(graph.at(i)->getInputLayers().front(),
+              expected_input_layers.at(i))
+      << "at " << i;
+  };
+}
+
 /**
  * @brief Main gtest
  */
