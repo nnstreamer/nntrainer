@@ -321,15 +321,17 @@ std::vector<Weight *> Manager::requestWeights(
  */
 std::vector<Var_Grad *>
 Manager::requestTensors(const GraphNode &node,
-                        const std::vector<Var_Grad::Spec> &tensors_spec) {
+                        const std::vector<Var_Grad::Spec> &tensors_spec,
+                        const std::vector<std::string> &shared_names) {
   const auto [forwarding_order, calcGradient_order, calcDerivative_order] =
     node.getExecutionOrder();
 
   std::vector<Var_Grad *> ret;
   size_t current_size = tensors_v2.size();
 
-  for (auto const &ts : std::as_const(tensors_spec)) {
-    auto const &tspan = std::get<4>(ts);
+  for (unsigned int i = 0; i < tensors_spec.size(); ++i) {
+    auto const &[dim, t_init, need_grad, name, tspan] = tensors_spec.at(i);
+
     std::vector<unsigned int> var_exec_order;
     std::vector<unsigned int> grad_exec_order;
 
@@ -348,23 +350,33 @@ Manager::requestTensors(const GraphNode &node,
       grad_exec_order.push_back(calcDerivative_order);
     }
 
-    Tensor *var =
-      tensor_pool.requestTensor(std::get<0>(ts), /// tensor dim
-                                var_exec_order,
-                                tspan,           /// lifespan
-                                std::get<3>(ts), /// name
-                                std::get<1>(ts)  /// tensor initializer
-      );
+    bool is_dependent = !shared_names.empty();
+    Tensor *var = nullptr, *grad = nullptr;
 
-    Tensor *grad = nullptr;
-    if (std::get<2>(ts) /** need gradient */ &&
-        tspan > TensorLifespan::FORWARD_FUNC_LIFESPAN)
-      grad = tensor_pool.requestTensor(
-        std::get<0>(ts), /// tensor dim
-        grad_exec_order, tspan,
-        std::get<3>(ts) + Var_Grad::grad_suffix, /// name
-        Tensor::Initializer::ZEROS               /// tensor initializer
-      );
+    if (is_dependent) {
+      [[maybe_unused]] const auto &shared_name = shared_names.at(i);
+      var = tensor_pool.requestPrerequestedTensor(dim, var_exec_order, tspan,
+                                                  name, shared_name, t_init);
+      if (need_grad && tspan > TensorLifespan::FORWARD_FUNC_LIFESPAN) {
+        grad = tensor_pool.requestPrerequestedTensor(
+          dim, grad_exec_order, tspan,
+          name + Var_Grad::grad_suffix, /// name
+          shared_name,
+          Tensor::Initializer::ZEROS /// tensor initializer
+        );
+      }
+
+    } else {
+      var = tensor_pool.requestTensor(dim, var_exec_order, tspan, name, t_init);
+
+      if (need_grad && tspan > TensorLifespan::FORWARD_FUNC_LIFESPAN) {
+        grad = tensor_pool.requestTensor(
+          dim, grad_exec_order, tspan,
+          name + Var_Grad::grad_suffix, /// name
+          Tensor::Initializer::ZEROS    /// tensor initializer
+        );
+      }
+    }
 
     tensors_v2.emplace_back(std::make_unique<Var_Grad>(var, grad));
   }

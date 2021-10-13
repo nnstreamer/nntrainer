@@ -164,12 +164,14 @@ public:
    *
    * @param node Graph node to extract node identifiers/info
    * @param tensors_spec Specficiation for the tensors
+   * @param shared_names if tensor is shared, name is needed
    *
    * @return created tensors list
    */
   std::vector<Var_Grad *>
   requestTensors(const GraphNode &node,
-                 const std::vector<Var_Grad::Spec> &tensors_spec);
+                 const std::vector<Var_Grad::Spec> &tensors_spec,
+                 const std::vector<std::string> &shared_names = {});
 
   /**
    * @brief     Create tensors with the given spec
@@ -252,7 +254,7 @@ public:
    */
   bool isLastAccess(const std::string &name, unsigned current_execution);
 
-  /*
+  /**
    * @brief   Check if the manager has allocated tensors
    *
    * @return true if tensors allocated, else false
