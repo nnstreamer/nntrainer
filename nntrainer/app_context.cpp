@@ -35,6 +35,7 @@
 #include <centroid_knn.h>
 #include <concat_layer.h>
 #include <constant_derivative_loss_layer.h>
+#include <conv1d_layer.h>
 #include <conv2d_layer.h>
 #include <cross_entropy_sigmoid_loss_layer.h>
 #include <cross_entropy_softmax_loss_layer.h>
@@ -217,6 +218,8 @@ static void add_default_object(AppContext &ac) {
                      BatchNormalizationLayer::type, LayerType::LAYER_BN);
   ac.registerFactory(nntrainer::createLayer<Conv2DLayer>, Conv2DLayer::type,
                      LayerType::LAYER_CONV2D);
+  ac.registerFactory(nntrainer::createLayer<Conv1DLayer>, Conv1DLayer::type,
+                     LayerType::LAYER_CONV1D);
   ac.registerFactory(nntrainer::createLayer<Pooling2DLayer>,
                      Pooling2DLayer::type, LayerType::LAYER_POOLING2D);
   ac.registerFactory(nntrainer::createLayer<FlattenLayer>, FlattenLayer::type,

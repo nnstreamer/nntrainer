@@ -413,6 +413,42 @@ public:
 };
 
 /**
+ * @brief Padding1D property, this is used to calculate padding2D
+ * @details Padding1D is saved as a string. Upon calling Padding1D::compute,
+ * returns std::vector<unsigned int> which has computed padding1Ds, below
+ * formats are accepted valid
+ * 1. "same" (case insensitive literal string)
+ * 2. "valid" (case insensitive literal string)
+ * 3. "padding1d_all", eg) padding=1
+ * 4. "padding1d_left, padding1d_right" eg) padding=1,1
+ *
+ */
+class Padding1D final : public nntrainer::Property<std::string> {
+public:
+  /**
+   * @brief Construct a new Padding1D object
+   *
+   */
+  Padding1D(const std::string &value = "valid") :
+    nntrainer::Property<std::string>(value) {} /**< default value if any */
+  bool isValid(const std::string &v) const override;
+  static constexpr const char *key = "padding1d"; /**< unique key to access */
+  using prop_tag = str_prop_tag;                  /**< property type */
+
+  /**
+   * @brief compute actual padding1d from the underlying data
+   *
+   * @param input input dimension
+   * @param kernel kernel dimension
+   * @param stride stride
+   * @return std::array<unsigned int, 4> list of unsigned padding
+   */
+  std::array<unsigned int, 2> compute(const TensorDim &input,
+                                      const TensorDim &kernel,
+                                      const unsigned int &strides);
+};
+
+/**
  * @brief InDim property, in dim is the size of vocabulary in the text data
  *
  */
