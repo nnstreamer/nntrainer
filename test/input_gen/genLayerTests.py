@@ -113,5 +113,28 @@ if __name__ == "__main__":
                          return_state=False)
     record_single(lstm, (3, 4, 7), "lstm_multi_step_seq_act")
 
-inspect_file("lstm_single_step_seq.nnlayergolden")
+    gru = K.layers.GRU(units=5,
+                         recurrent_activation="sigmoid",
+                         activation="tanh",
+                         return_sequences=False,
+                         return_state=False)
+    record_single(gru, (3, 1, 7), "gru_single_step")
+    record_single(gru, (3, 4, 7), "gru_multi_step")
+
+    gru = K.layers.GRU(units=5,
+                         recurrent_activation="sigmoid",
+                         activation="tanh",
+                         return_sequences=True,
+                         return_state=False)
+    record_single(gru, (3, 1, 7), "gru_single_step_seq")
+    record_single(gru, (3, 4, 7), "gru_multi_step_seq", input_type='float')
+
+    gru = K.layers.GRU(units=5,
+                         recurrent_activation="tanh",
+                         activation="sigmoid",
+                         return_sequences=True,
+                         return_state=False)
+    record_single(gru, (3, 4, 7), "gru_multi_step_seq_act")
+
+inspect_file("gru_single_step_seq.nnlayergolden")
 
