@@ -114,6 +114,10 @@ public:
   }
 };
 
+/**
+ * @brief properties for shared from
+ *
+ */
 class SharedFrom : public Name {
 public:
   static constexpr const char *key = "shared_from"; /**< unique key to access */
@@ -356,6 +360,10 @@ void LayerNode::read(std::ifstream &file) {
   NNTR_THROW_IF(!run_context, std::runtime_error)
     << __func__ << " layer needs to be finalized first!";
   for (unsigned int i = 0; i < run_context->getNumWeights(); ++i) {
+    /// @note dependent weights are only be read at the source
+    if (run_context->isWeightDependent(i)) {
+      continue;
+    }
     run_context->getWeight(i).read(file);
   }
 }
@@ -363,7 +371,11 @@ void LayerNode::read(std::ifstream &file) {
 void LayerNode::save(std::ofstream &file) const {
   NNTR_THROW_IF(!run_context, std::runtime_error)
     << __func__ << " layer needs to be finalized first!";
+  /// @note dependent weights are only be saved at the source
   for (unsigned int i = 0; i < run_context->getNumWeights(); ++i) {
+    if (run_context->isWeightDependent(i)) {
+      continue;
+    }
     run_context->getWeight(i).save(file);
   }
 }
