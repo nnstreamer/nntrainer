@@ -370,6 +370,14 @@ public:
    */
   void setInputsLabels(sharedConstTensors &inputs, sharedConstTensors &labels);
 
+  /**
+   * @brief Get the Output Tensors list for the graph
+   *
+   * @return std::vector<Tensor> List of output tensors
+   * @note this tensor list is analogous to the label list
+   */
+  std::vector<Tensor> getOutputTensors() const;
+
 private:
   std::map<std::string, std::string> sub_in_out; /** This is map to identify
                    input and output layer name of subgraph */
@@ -384,10 +392,11 @@ private:
 
   /// @note *_list and *_dims must be synced at all times. Consider put it as a
   /// structure
-  std::vector<std::string> label_list; /**< identifier for the model labels */
-  std::vector<std::string> input_list; /**< identifier for the model inputs */
-  std::vector<TensorDim> label_dims;   /**< graph label dimensions */
-  std::vector<TensorDim> input_dims;   /**< graph input dimensions */
+  std::vector<std::string> label_list;  /**< identifier for the model labels */
+  std::vector<std::string> input_list;  /**< identifier for the model inputs */
+  std::vector<std::string> output_list; /**< identifier for the model outputs */
+  std::vector<TensorDim> label_dims;    /**< graph label dimensions */
+  std::vector<TensorDim> input_dims;    /**< graph input dimensions */
 
   ExecutionMode exec_mode; /**< execution mode with which the graph has been
                               currently set or previously set */

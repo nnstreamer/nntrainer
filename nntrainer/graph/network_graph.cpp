@@ -402,6 +402,12 @@ void NetworkGraph::setBatchSize(unsigned int batch_size) {
 
   if (allocated)
     allocateTensors(exec_mode);
+
+  /** update input and label dimensions */
+  for (unsigned int idx = 0; idx < input_list.size(); idx++)
+    input_dims[idx] = tensor_manager->getTensor(input_list[idx])->getDim();
+  for (unsigned int idx = 0; idx < label_list.size(); idx++)
+    label_dims[idx] = tensor_manager->getTensor(label_list[idx])->getDim();
 }
 
 void NetworkGraph::applyGradientsOnLastAccess(
@@ -834,6 +840,7 @@ int NetworkGraph::initialize(
       << num_label;
 
     /// @todo implement and use getLabel(0) instead.
+    output_list.push_back(node->getOutput(0).getName());
     label_list.push_back(node->getOutputGrad(0).getName());
     label_dims.push_back(node->getOutputDimensions()[0]);
   };
@@ -925,6 +932,16 @@ void NetworkGraph::setInputsLabels(sharedConstTensors &inputs,
                  [](auto const &val) { return *val.get(); });
 
   setInputsLabels(ins, labs);
+}
+
+std::vector<Tensor> NetworkGraph::getOutputTensors() const {
+  std::vector<Tensor> output_tensors;
+  output_tensors.reserve(output_list.size());
+
+  for (auto const &name : output_list)
+    output_tensors.push_back(*tensor_manager->getTensor(name));
+
+  return output_tensors;
 }
 
 } /* namespace nntrainer */
