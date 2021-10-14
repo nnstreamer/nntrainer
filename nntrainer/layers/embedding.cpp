@@ -104,11 +104,8 @@ void EmbeddingLayer::forwarding(RunLayerContext &context, bool training) {
 }
 
 void EmbeddingLayer::calcDerivative(RunLayerContext &context) {
-  // Uncomment this after fixing issues backwarding of first layer. (Issues
-  // #1017)
-  // throw exception::not_supported(
-  //   "calcDerivative for Embedding layer is not supported");
-  return; // intended
+  throw exception::not_supported(
+    "calcDerivative for Embedding layer is not supported");
 }
 
 void EmbeddingLayer::calcGradient(RunLayerContext &context) {

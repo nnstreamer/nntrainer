@@ -299,14 +299,14 @@ void NeuralNetwork::backwarding(int iteration) {
 
   auto iter = iter_begin;
   for (; iter != iter_end - 1; iter++) {
-    backwarding(*iter, iteration, true);
+    backwarding(*iter, iteration, (*iter)->supportBackwarding());
   }
 
   /**
    * The last trainable layer need not calculate the derivatives
    */
 #ifdef ENABLE_TEST
-  backwarding(*iter, iteration, true);
+  backwarding(*iter, iteration, (*iter)->supportBackwarding());
 #else
   backwarding(*iter, iteration, false);
 #endif

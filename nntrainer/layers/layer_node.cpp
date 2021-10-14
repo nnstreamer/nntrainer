@@ -242,7 +242,15 @@ ActivationType LayerNode::getActivationToBeRealized() const {
 const std::string LayerNode::getType() const { return getLayer()->getType(); }
 
 bool LayerNode::getTrainable() const {
-  return std::get<props::Trainable>(*layer_node_props);
+  if (run_context)
+    /**
+     * if a layer does not contain any weights, it will be treated as a
+     * non-trainable layer.
+     */
+    return std::get<props::Trainable>(*layer_node_props) &
+           (run_context->getNumWeights() > 0);
+  else
+    return std::get<props::Trainable>(*layer_node_props);
 }
 
 bool LayerNode::getFlatten() const {

@@ -81,7 +81,7 @@ public:
   /**
    * @copydoc Layer::supportBackwarding()
    */
-  bool supportBackwarding() const { return true; }
+  bool supportBackwarding() const { return false; }
 
   using Layer::setProperty;
 
