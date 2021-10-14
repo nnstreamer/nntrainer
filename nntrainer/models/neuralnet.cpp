@@ -30,6 +30,7 @@
 #include <flatten_realizer.h>
 #include <ini_interpreter.h>
 #include <ini_wrapper.h>
+#include <input_realizer.h>
 #include <model_loader.h>
 #include <neuralnet.h>
 #include <nntrainer_error.h>
@@ -940,13 +941,13 @@ void NeuralNetwork::addWithReferenceLayers(
   std::vector<std::unique_ptr<GraphRealizer>> realizers;
   realizers.emplace_back(new SliceRealizer(start_layers, end_layers));
 
+  if (!input_layers.empty()) {
+    realizers.emplace_back(new InputRealizer(start_layers, input_layers));
+  }
+
   if (type == ml::train::ReferenceLayersType::RECURRENT) {
     realizers.emplace_back(
       new RecurrentRealizer(type_properties, input_layers));
-  }
-
-  if (input_layers.empty()) {
-    /// @todo add input setter realizer
   }
 
   if (!scope.empty()) {

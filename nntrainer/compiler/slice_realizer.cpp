@@ -94,6 +94,7 @@ SliceRealizer::realize(const GraphRepresentation &reference) {
     auto iter = cur_end_layers.find(name);
     return iter != cur_end_layers.end();
   };
+
   while (!dfs_stack.empty()) {
     auto &node_info = mp.at(dfs_stack.back());
     auto &path = node_info.path;
