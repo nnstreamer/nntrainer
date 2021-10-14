@@ -211,15 +211,6 @@ public:
    * @brief Set the batch for the layer
    * @param     context Context of the layer
    * @param     batch Batch value to be set
-   * @details Update the initialize context based on the updated batch size if
-   * required
-   */
-  virtual void setBatch(InitLayerContext &context, unsigned int batch) {}
-
-  /**
-   * @brief Set the batch for the layer
-   * @param     context Context of the layer
-   * @param     batch Batch value to be set
    * @details Update the run context based on the updated batch size if required
    */
   virtual void setBatch(RunLayerContext &context, unsigned int batch) {}

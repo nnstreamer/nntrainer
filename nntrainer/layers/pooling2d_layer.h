@@ -103,18 +103,6 @@ public:
   inline static const std::string type = "pooling2d";
 
   /**
-   * @copydoc Layer::setBatch(InitLayerContext &context, unsigned int batch)
-   */
-  void setBatch(InitLayerContext &context, unsigned int batch) override {
-    context.updateTensorSpec(pool_helper_idx, batch);
-    props::PoolingTypeInfo::Enum pooling_type =
-      std::get<props::PoolingType>(pooling2d_props).get();
-    if (pooling_type == props::PoolingTypeInfo::Enum::global_max)
-      pool_helper_size.resize(batch *
-                              context.getInputDimensions()[0].channel());
-  }
-
-  /**
    * @copydoc Layer::setBatch(RunLayerContext &context, unsigned int batch)
    */
   void setBatch(RunLayerContext &context, unsigned int batch) override {

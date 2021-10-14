@@ -90,11 +90,6 @@ public:
   bool supportBackwarding() const { return dist_layer->supportBackwarding(); }
 
   /**
-   * @copydoc Layer::setBatch(InitLayerContext &context, unsigned int batch)
-   */
-  void setBatch(InitLayerContext &context, unsigned int batch) override;
-
-  /**
    * @copydoc Layer::setBatch(RunLayerContext &context, unsigned int batch)
    */
   void setBatch(RunLayerContext &context, unsigned int batch) override;

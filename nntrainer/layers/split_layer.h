@@ -87,13 +87,6 @@ public:
   inline static const std::string type = "split";
 
   /**
-   * @copydoc Layer::setBatch(InitLayerContext &context, unsigned int batch)
-   */
-  void setBatch(InitLayerContext &context, unsigned int batch) override {
-    setBatch(batch);
-  }
-
-  /**
    * @copydoc Layer::setBatch(RunLayerContext &context, unsigned int batch)
    */
   void setBatch(RunLayerContext &context, unsigned int batch) override {

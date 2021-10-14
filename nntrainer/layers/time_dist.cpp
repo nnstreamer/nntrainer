@@ -403,27 +403,4 @@ void TimeDistLayer::setBatch(RunLayerContext &context, unsigned int batch) {
   }
 }
 
-void TimeDistLayer::setBatch(InitLayerContext &context, unsigned int batch) {
-  TensorDim input_dim = context.getInputDimensions()[SINGLE_INOUT_IDX];
-  input_dim.height(1);
-  InitLayerContext dist_context({input_dim}, context.getNumOutputs(),
-                                getType());
-
-  TensorDim output_dim = context.getOutputDimensions()[0];
-  // input_dim.height is number of time iteration
-  output_dim.height(1);
-  dist_context.setOutputDimensions({output_dim});
-
-  /** create dist_context using the context */
-  fillLayerInitContext(dist_context, context);
-  if (context.getNumTensors() > 0) {
-    dist_layer->setBatch(dist_context, batch);
-
-    auto const &tensors_spec = dist_context.getTensorsSpec();
-    for (unsigned int idx = 0; idx < dist_context.getNumTensors(); idx++) {
-      context.updateTensorSpec(idx, std::get<0>(tensors_spec[idx]).batch());
-    }
-  }
-}
-
 } /* namespace nntrainer */
