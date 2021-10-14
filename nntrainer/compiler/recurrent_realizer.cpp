@@ -15,6 +15,7 @@
 #include <common_properties.h>
 #include <input_layer.h>
 #include <layer_node.h>
+#include <lstm.h>
 #include <nntrainer_error.h>
 #include <node_exporter.h>
 #include <remap_realizer.h>
@@ -123,6 +124,28 @@ RecurrentRealizer::RecurrentRealizer(
                  });
 }
 
+/**
+ * @brief if node is of recurrent type, set time step and max time step
+ *
+ * @param node node
+ * @param time_step time step
+ * @param max_time_step max time step
+ */
+static void propagateTimestep(LayerNode *node, unsigned int time_step,
+                              unsigned int max_time_step) {
+
+  auto is_recurrent_type = [](LayerNode *node) {
+    return node->getType() == LSTMLayer::type;
+  };
+
+  if (is_recurrent_type(node)) {
+    node->setProperty({"max_timestep=" + std::to_string(max_time_step),
+                       "timestep=" + std::to_string(time_step)});
+  }
+
+  return;
+}
+
 RecurrentRealizer::RecurrentRealizer(
   const char *ini_path, const std::vector<std::string> &external_input_layers) {
   /// @todo delegate to RecurrentRealizer(
@@ -155,7 +178,7 @@ RecurrentRealizer::realize(const GraphRepresentation &reference) {
    *
    */
   auto step1_connect_external_input =
-    [this](const GraphRepresentation &reference_) {
+    [this](const GraphRepresentation &reference_, unsigned max_idx) {
       RemapRealizer input_mapper([this](std::string &id) {
         if (auto iter = id_map.find(id); iter != id_map.end()) {
           id = iter->second;
@@ -164,15 +187,20 @@ RecurrentRealizer::realize(const GraphRepresentation &reference) {
         }
       });
 
-      return input_mapper.realize(reference_);
+      auto nodes = input_mapper.realize(reference_);
+      for (auto &node : nodes) {
+        propagateTimestep(node.get(), 0, max_idx);
+      }
+
+      return nodes;
     };
 
   /**
    * @brief Create a single time step. Used inside step2_unroll.
    *
    */
-  auto create_step = [this](const GraphRepresentation &reference_,
-                            unsigned idx) {
+  auto create_step = [this](const GraphRepresentation &reference_, unsigned idx,
+                            unsigned max_idx) {
     GraphRepresentation step;
     auto &input = std::get<props::RecurrentInput>(*recurrent_props);
     auto &output = std::get<props::RecurrentOutput>(*recurrent_props);
@@ -202,6 +230,8 @@ RecurrentRealizer::realize(const GraphRepresentation &reference) {
 
       /// 3. set shared_from
       new_node->setProperty({"shared_from=" + node->getName()});
+      /// 4. if recurrent layer type set timestep property
+      propagateTimestep(new_node.get(), idx, max_idx);
 
       step.push_back(std::move(new_node));
     }
@@ -218,7 +248,7 @@ RecurrentRealizer::realize(const GraphRepresentation &reference) {
     processed.reserve(reference_.size() * unroll_for_);
 
     for (unsigned int i = 1; i < unroll_for_; ++i) {
-      auto step = create_step(reference_, i);
+      auto step = create_step(reference_, i, unroll_for_);
       processed.insert(processed.end(), step.begin(), step.end());
     }
 
@@ -285,7 +315,7 @@ RecurrentRealizer::realize(const GraphRepresentation &reference) {
 
   auto unroll_for = std::get<props::UnrollFor>(*recurrent_props).get();
   step0_verify_and_prepare();
-  auto processed = step1_connect_external_input(reference);
+  auto processed = step1_connect_external_input(reference, unroll_for);
   processed = step2_unroll(processed, unroll_for);
   return step3_connect_output(processed, unroll_for);
 }

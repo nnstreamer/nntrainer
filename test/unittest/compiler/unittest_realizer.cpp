@@ -81,24 +81,28 @@ TEST(RecurrentRealizer, recurrent_return_sequence_p) {
 
   RecurrentRealizer r({"unroll_for=3", "return_sequences=true",
                        "input_layers=initial_source", "output_layers=fc_out",
-                       "recurrent_input=fc_in", "recurrent_output=fc_out"},
+                       "recurrent_input=lstm", "recurrent_output=fc_out"},
                       {"out_source"});
 
   std::vector<LayerRepresentation> before = {
-    {"fully_connected", {"name=fc_in", "input_layers=initial_source"}},
-    {"fully_connected", {"name=fc_out", "input_layers=fc_in"}}};
+    {"lstm", {"name=lstm", "input_layers=initial_source"}},
+    {"fully_connected", {"name=fc_out", "input_layers=lstm"}}};
 
   std::vector<LayerRepresentation> expected = {
-    {"fully_connected", {"name=fc_in/0", "input_layers=out_source"}},
-    {"fully_connected", {"name=fc_out/0", "input_layers=fc_in/0"}},
+    {"lstm",
+     {"name=lstm/0", "input_layers=out_source", "max_timestep=3",
+      "timestep=0"}},
+    {"fully_connected", {"name=fc_out/0", "input_layers=lstm/0"}},
+    {"lstm",
+     {"name=lstm/1", "input_layers=fc_out/0", "shared_from=lstm/0",
+      "max_timestep=3", "timestep=1"}},
     {"fully_connected",
-     {"name=fc_in/1", "input_layers=fc_out/0", "shared_from=fc_in/0"}},
+     {"name=fc_out/1", "input_layers=lstm/1", "shared_from=fc_out/0"}},
+    {"lstm",
+     {"name=lstm/2", "input_layers=fc_out/1", "shared_from=lstm/0",
+      "max_timestep=3", "timestep=2"}},
     {"fully_connected",
-     {"name=fc_out/1", "input_layers=fc_in/1", "shared_from=fc_out/0"}},
-    {"fully_connected",
-     {"name=fc_in/2", "input_layers=fc_out/1", "shared_from=fc_in/0"}},
-    {"fully_connected",
-     {"name=fc_out/2", "input_layers=fc_in/2", "shared_from=fc_out/0"}},
+     {"name=fc_out/2", "input_layers=lstm/2", "shared_from=fc_out/0"}},
     {"concat", {"name=fc_out", "input_layers=fc_out/0,fc_out/1,fc_out/2"}},
   };
 
