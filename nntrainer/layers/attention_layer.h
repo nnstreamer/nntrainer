@@ -84,6 +84,11 @@ public:
    */
   const std::string getType() const override { return AttentionLayer::type; };
 
+  /**
+   * @copydoc Layer::setBatch(RunLayerContext &context, unsigned int batch)
+   */
+  void setBatch(RunLayerContext &context, unsigned int batch) override;
+
   inline static const std::string type = "attention";
 
 private:
