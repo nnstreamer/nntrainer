@@ -349,6 +349,20 @@ public:
     tensor_pool.setExternalTensor(name, t);
   }
 
+  /**
+   * @brief Get the tensor of the given name
+   *
+   * @return ptr to the tensor with the given
+   * @throws if no tensor is found with the given name
+   */
+  Tensor *getTensor(const std::string &name) {
+    try {
+      return tensor_pool.getTensor(name);
+    } catch (...) {
+      return weight_pool.getTensor(name);
+    }
+  }
+
 private:
   /** @todo: merge this list to one */
   std::vector<std::unique_ptr<Weight>>

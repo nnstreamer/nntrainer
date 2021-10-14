@@ -636,17 +636,12 @@ int NeuralNetwork::train_run() {
     epoch_idx = 0;
     iter = 0;
   }
-  auto const &first_layer_node = model_graph.getSortedLayerNode(0);
-  auto const &last_layer_node =
-    model_graph.getSortedLayerNode(model_graph.size() - 1);
 
   auto batch_size = std::get<props::TrainingBatchSize>(model_flex_props);
 
-  auto &output = last_layer_node->getOutput(0);
-
-  /** @todo use model_graph.getInputDimensions() and getOutputDimensions() */
-  auto in_dims = first_layer_node->getInputDimensions();
-  auto label_dims = last_layer_node->getOutputDimensions();
+  auto const &outputs = model_graph.getOutputTensors();
+  auto in_dims = model_graph.getInputDimension();
+  auto label_dims = model_graph.getOutputDimension();
 
   auto &[train_buffer, valid_buffer, test_buffer] = data_buffers;
 
@@ -665,7 +660,7 @@ int NeuralNetwork::train_run() {
    * @param on_epoch_end function that will recieve reference to stat,
    * buffer which will be called on the epoch end
    */
-  auto run_epoch = [this, &in_dims, &label_dims, &output, batch_size](
+  auto run_epoch = [this, &in_dims, &label_dims, &outputs, batch_size](
                      DataBuffer *buffer, bool shuffle,
                      auto &&on_iteration_fetch, auto &&on_iteration_update_stat,
                      auto &&on_epoch_end) {
@@ -690,7 +685,7 @@ int NeuralNetwork::train_run() {
       model_graph.setInputsLabels(inputs, labels);
 
       on_iteration_fetch(stat, *buffer);
-      on_iteration_update_stat(stat, {output}, labels);
+      on_iteration_update_stat(stat, outputs, labels);
     }
     future_iq.get();
     on_epoch_end(stat, *buffer);
