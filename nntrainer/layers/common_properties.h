@@ -648,7 +648,17 @@ public:
  */
 class OutputLayer : public Name {
 public:
+  /**
+   * @brief Construct a new Output Layer object
+   *
+   */
   OutputLayer();
+
+  /**
+   * @brief Construct a new Output Layer object
+   *
+   * @param name name to set
+   */
   OutputLayer(const std::string &name);
   static constexpr const char *key = "output_layers";
   using prop_tag = str_prop_tag;
@@ -932,7 +942,7 @@ public:
  * should the lstm/gru/rnn layer do the operation for
  *
  */
-class Timestep : public PositiveIntegerProperty {
+class Timestep : public Property<unsigned> {
 public:
   static constexpr const char *key = "timestep"; /**< unique key to access */
   using prop_tag = uint_prop_tag;                /**< property type */
