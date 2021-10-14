@@ -878,6 +878,29 @@ public:
   static constexpr const char *key = "flip_direction";
 };
 
+/**
+ * @brief timestep property, timestep is used to identify for which timestep
+ * should the lstm/gru/rnn layer do the operation for
+ *
+ */
+class Timestep : public PositiveIntegerProperty {
+public:
+  static constexpr const char *key = "timestep"; /**< unique key to access */
+  using prop_tag = uint_prop_tag;                /**< property type */
+};
+
+/**
+ * @brief maximum timestep property, timestep is used to identify for the
+ * maximum time unroll possible for lstm/gru/rnn layer
+ *
+ */
+class MaxTimestep : public PositiveIntegerProperty {
+public:
+  static constexpr const char *key =
+    "max_timestep";               /**< unique key to access */
+  using prop_tag = uint_prop_tag; /**< property type */
+};
+
 } // namespace props
 } // namespace nntrainer
 
