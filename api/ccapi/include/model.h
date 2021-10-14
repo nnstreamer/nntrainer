@@ -171,14 +171,18 @@ public:
    * @param reference a group of layers being referred to.
    * @param type type of reference layers
    * @param scope scope of added layers, identifier will be added
-   * @param external_input_layers external input layers which input layers will
-   * be remapped
+   * @param input_layers input layers which will be used to connect input layers
+   * @param start_layers start layers which will be used to specify start of the
+   * layers inside @a reference
+   * @param end_layers end layers which will be used to specify end of the
+   * layers inside @a reference
    * @param type_properties type dependent properties
    */
   virtual void addWithReferenceLayers(
     const std::vector<std::shared_ptr<Layer>> &reference,
-    ReferenceLayersType type, const std::string &scope,
-    const std::vector<std::string> &external_input_layers,
+    const std::string &scope, const std::vector<std::string> &input_layers,
+    const std::vector<std::string> &start_layers,
+    const std::vector<std::string> &end_layers, ReferenceLayersType type,
     const std::vector<std::string> &type_properties = {}) = 0;
 
   /**
