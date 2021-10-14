@@ -931,6 +931,8 @@ void NeuralNetwork::addWithReferenceLayers(
   const std::vector<std::string> &end_layers,
   ml::train::ReferenceLayersType type,
   const std::vector<std::string> &type_properties) {
+  /// @todo below configuration should be extracted as a free function to make
+  /// it more testable, and reused inside graph interpreter
   std::vector<std::shared_ptr<LayerNode>> nodes;
   nodes.reserve(reference.size());
   for (auto &node : reference) {
@@ -938,23 +940,32 @@ void NeuralNetwork::addWithReferenceLayers(
     nodes.push_back(lnode->cloneConfiguration());
   }
 
-  std::vector<std::unique_ptr<GraphRealizer>> realizers;
-  realizers.emplace_back(new SliceRealizer(start_layers, end_layers));
+  auto normalize = [](const std::vector<std::string> &names) {
+    std::vector<props::Name> prop_names(names.begin(), names.end());
+    return std::vector<std::string>(prop_names.begin(), prop_names.end());
+  };
 
-  if (!input_layers.empty()) {
-    realizers.emplace_back(new InputRealizer(start_layers, input_layers));
+  auto input_layers_ = normalize(input_layers);
+  auto start_layers_ = normalize(start_layers);
+  auto end_layers_ = normalize(end_layers);
+
+  std::vector<std::unique_ptr<GraphRealizer>> realizers;
+  realizers.emplace_back(new SliceRealizer(start_layers_, end_layers_));
+
+  if (!input_layers_.empty()) {
+    realizers.emplace_back(new InputRealizer(start_layers_, input_layers_));
   }
 
   if (type == ml::train::ReferenceLayersType::RECURRENT) {
     realizers.emplace_back(
-      new RecurrentRealizer(type_properties, input_layers, end_layers));
+      new RecurrentRealizer(type_properties, input_layers_, end_layers_));
   }
 
   if (!scope.empty()) {
     realizers.emplace_back(
-      new RemapRealizer([&scope, &input_layers](std::string &name) {
-        for (auto &i : input_layers) {
-          if (istrequal(i, name)) {
+      new RemapRealizer([&scope, &input_layers_](std::string &name) {
+        for (auto &i : input_layers_) {
+          if (i == name) {
             return;
           }
         }

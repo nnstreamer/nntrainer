@@ -467,6 +467,7 @@ public:
    * const std::vector<std::string> &start_layers,
    * const std::vector<std::string> &end_layers, ReferenceLayersType type,
    * const std::vector<std::string> &type_properties = {})
+   *
    */
   void addWithReferenceLayers(
     const std::vector<std::shared_ptr<ml::train::Layer>> &reference,
