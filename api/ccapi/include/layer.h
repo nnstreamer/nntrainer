@@ -341,6 +341,14 @@ CentroidKNN(const std::vector<std::string> &properties = {}) {
 }
 
 /**
+ * @brief Helper function to create Attention Layer
+ */
+inline std::unique_ptr<Layer>
+Attention(const std::vector<std::string> &properties = {}) {
+  return createLayer(LayerType::LAYER_ATTENTION, properties);
+}
+
+/**
  * @brief Helper function to create activation layer
  */
 inline std::unique_ptr<Layer>
