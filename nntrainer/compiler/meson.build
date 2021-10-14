@@ -3,7 +3,8 @@ compiler_sources = [
   'flatten_realizer.cpp',
   'recurrent_realizer.cpp',
   'remap_realizer.cpp',
-  'slice_realizer.cpp'
+  'slice_realizer.cpp',
+  'input_realizer.cpp'
 ]
 
 compiler_headers = []

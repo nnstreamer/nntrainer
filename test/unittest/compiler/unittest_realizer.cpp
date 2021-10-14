@@ -15,6 +15,7 @@
 #include <vector>
 
 #include <flatten_realizer.h>
+#include <input_realizer.h>
 #include <realizer.h>
 #include <recurrent_realizer.h>
 #include <remap_realizer.h>
@@ -172,5 +173,28 @@ TEST(SliceRealizer, slice_p) {
 
   SliceRealizer r({"a1", "b1", "b2"}, {"a1", "d1", "d2"});
 
+  realizeAndEqual(r, before, after);
+}
+
+TEST(InputRealizer, remap_p) {
+
+  std::vector<LayerRepresentation> before = {
+    {"fully_connected", {"name=fc1"}}, // no input_layers specified
+    {"fully_connected",
+     {"name=fc2", "input_layers=none1,fc1"}}, // single orphaned node
+    {"fully_connected",
+     {"name=fc3", "input_layers=none2,fc2,none3"}}, // multi orphaned node
+  };
+
+  std::vector<LayerRepresentation> after = {
+    {"fully_connected",
+     {"name=fc1", "input_layers=in1"}}, // no input_layers specified
+    {"fully_connected",
+     {"name=fc2", "input_layers=in2,fc1"}}, // single orphaned node
+    {"fully_connected",
+     {"name=fc3", "input_layers=in3,fc2,in4"}}, // multi orphaned node
+  };
+
+  InputRealizer r({"fc1", "fc2", "fc3"}, {"in1", "in2", "in3", "in4"});
   realizeAndEqual(r, before, after);
 }
