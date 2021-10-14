@@ -312,6 +312,37 @@ int NetworkGraph::checkCompiledGraph() {
   return ML_ERROR_NONE;
 }
 
+int NetworkGraph::checkInitializedGraph() {
+  /** accumulate all the nodes which must support backwarding */
+  std::unordered_set<std::string> must_support_backwarding;
+
+  /**
+   * if a node is trainable, then all the nodes ahead of it must support
+   * backwarding operation
+   */
+  for (auto iter = cbegin(); iter != cend(); iter++) {
+    auto lnode = (*iter);
+    if (lnode->getTrainable() ||
+        must_support_backwarding.find(lnode->getName()) !=
+          must_support_backwarding.end()) {
+      for (auto const &out_layer : lnode->getOutputLayers()) {
+        must_support_backwarding.insert(out_layer);
+      }
+    }
+  }
+
+  /** verify all the required nodes support backwarding */
+  for (auto const &node_name : must_support_backwarding) {
+    if (!LNODE(graph.getNode(node_name))->supportBackwarding()) {
+      ml_loge(
+        "Backwaring required from layer which doesn't support backwarding");
+      return ML_ERROR_INVALID_PARAMETER;
+    }
+  }
+
+  return ML_ERROR_NONE;
+}
+
 int NetworkGraph::realizeGraph() {
   int status = ML_ERROR_NONE;
 
@@ -883,7 +914,11 @@ int NetworkGraph::initialize(
                             identify_as_model_input);
   identify_external_tensors(model_label_names, is_label_node,
                             identify_as_model_label);
-  return status;
+
+  if (status != ML_ERROR_NONE)
+    return status;
+
+  return checkInitializedGraph();
 }
 
 void NetworkGraph::setExternalTensors(const std::vector<Tensor> &data,

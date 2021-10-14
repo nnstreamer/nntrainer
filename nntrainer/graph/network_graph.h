@@ -419,10 +419,17 @@ private:
 
   /**
    * @brief     check if the compiled graph is of correct form.
-   * @retval #ML_ERROR_NONE graph is ready to compile
-   * @retval #ML_ERROR_INVALID_PARAMETER not ready to compile.
+   * @retval #ML_ERROR_NONE graph is compiled correctly
+   * @retval #ML_ERROR_INVALID_PARAMETER did not compile correctly
    */
   int checkCompiledGraph();
+
+  /**
+   * @brief     check if the initialized graph is of correct form.
+   * @retval #ML_ERROR_NONE graph is initialized correctly
+   * @retval #ML_ERROR_INVALID_PARAMETER did not initialize correctly
+   */
+  int checkInitializedGraph();
 
   /**
    * @brief     Realize Graph Nodes
