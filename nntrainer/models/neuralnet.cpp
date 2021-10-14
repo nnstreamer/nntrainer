@@ -947,7 +947,7 @@ void NeuralNetwork::addWithReferenceLayers(
 
   if (type == ml::train::ReferenceLayersType::RECURRENT) {
     realizers.emplace_back(
-      new RecurrentRealizer(type_properties, input_layers));
+      new RecurrentRealizer(type_properties, input_layers, end_layers));
   }
 
   if (!scope.empty()) {

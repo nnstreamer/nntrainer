@@ -18,7 +18,7 @@
 #include <memory>
 #include <string>
 #include <tuple>
-#include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 namespace nntrainer {
@@ -51,14 +51,14 @@ public:
    * @param properties
    *        unroll_for = <int> // define timestep of unrolloing
    *        return_sequences = <bool> // return sequences
-   *        input_layers = <vector<std::string>> // internal input name
-   *        output_layers = <vector<std::string>> // internal output name
    *        recurrent_inputs = <vector<std::string>> // start of the loop
    *        recurrent_ouptuts = <vector<std::string>> // end of the loop
-   * @param external_input_layers input layer from outer side
+   * @param input_layers input layer from outer side
+   * @param end_layers end layers (output of the internal graph)
    */
   RecurrentRealizer(const std::vector<std::string> &properties,
-                    const std::vector<std::string> &external_input_layers);
+                    const std::vector<std::string> &input_layers,
+                    const std::vector<std::string> &end_layers);
 
   /**
    * @brief Construct a new Recurrent Realizer object
@@ -84,15 +84,12 @@ public:
   GraphRepresentation realize(const GraphRepresentation &reference) override;
 
 private:
-  using PropTypes =
-    std::tuple<std::vector<props::InputLayer>, std::vector<props::OutputLayer>,
-               props::RecurrentInput, props::RecurrentOutput,
-               props::ReturnSequences, props::UnrollFor>;
+  using PropTypes = std::tuple<props::RecurrentInput, props::RecurrentOutput,
+                               props::ReturnSequences, props::UnrollFor>;
 
-  std::unique_ptr<PropTypes> recurrent_props; /**< recurrent properties */
-
-  std::unordered_map<std::string, std::string>
-    id_map; /**< mapping from input layers -> external layers */
+  std::unordered_set<std::string> input_layers; /**< external input layers */
+  std::vector<std::string> end_layers;          /**< final output layers id */
+  std::unique_ptr<PropTypes> recurrent_props;   /**< recurrent properties */
 };
 
 } // namespace nntrainer
