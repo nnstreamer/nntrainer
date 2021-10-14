@@ -924,8 +924,10 @@ void NeuralNetwork::printPreset(std::ostream &out, unsigned int preset) {
 
 void NeuralNetwork::addWithReferenceLayers(
   const std::vector<std::shared_ptr<ml::train::Layer>> &reference,
-  ml::train::ReferenceLayersType type, const std::string &scope,
-  const std::vector<std::string> &external_input_layers,
+  const std::string &scope, const std::vector<std::string> &input_layers,
+  const std::vector<std::string> &start_layers,
+  const std::vector<std::string> &end_layers,
+  ml::train::ReferenceLayersType type,
   const std::vector<std::string> &type_properties) {
   std::vector<std::shared_ptr<LayerNode>> nodes;
   nodes.reserve(reference.size());
@@ -935,21 +937,23 @@ void NeuralNetwork::addWithReferenceLayers(
   }
 
   std::vector<std::unique_ptr<GraphRealizer>> realizers;
-  if (type == ml::train::ReferenceLayersType::RECURRENT) {
-    realizers.emplace_back(
-      new RecurrentRealizer(type_properties, external_input_layers));
+  if (!scope.empty()) {
+    realizers.emplace_back(new RemapRealizer(
+      [&scope](std::string &name) { name = scope + "/" + name; }));
   }
 
-  if (!scope.empty()) {
+  if (!start_layers.empty() || !end_layers.empty()) {
+    /// @todo add slice realizer
+    /// this will extract part of layers from start to end
+  }
+
+  if (input_layers.empty()) {
+    /// @todo add input setter realizer
+  }
+
+  if (type == ml::train::ReferenceLayersType::RECURRENT) {
     realizers.emplace_back(
-      new RemapRealizer([&scope, &external_input_layers](std::string &name) {
-        for (auto &i : external_input_layers) {
-          if (istrequal(i, name)) {
-            return;
-          }
-        }
-        name = scope + "/" + name;
-      }));
+      new RecurrentRealizer(type_properties, input_layers));
   }
 
   for (auto &realizer : realizers) {

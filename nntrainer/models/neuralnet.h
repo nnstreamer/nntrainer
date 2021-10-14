@@ -462,15 +462,18 @@ public:
 
   /**
    * @copydoc   void ml::train::Model::addWithReferenceLayers(
-   *  const std::vector<std::shared_ptr<Layer>> &reference,
-   *  ReferenceLayersType type, const std::string &scope,
-   *  const std::vector<std::string> &external_input_layers,
-   *  const std::vector<std::string> &type_properties = {})
+   * const std::vector<std::shared_ptr<Layer>> &reference,
+   * const std::string &scope, const std::vector<std::string> &input_layers,
+   * const std::vector<std::string> &start_layers,
+   * const std::vector<std::string> &end_layers, ReferenceLayersType type,
+   * const std::vector<std::string> &type_properties = {})
    */
   void addWithReferenceLayers(
     const std::vector<std::shared_ptr<ml::train::Layer>> &reference,
-    ml::train::ReferenceLayersType type, const std::string &scope,
-    const std::vector<std::string> &external_input_layers,
+    const std::string &scope, const std::vector<std::string> &input_layers,
+    const std::vector<std::string> &start_layers,
+    const std::vector<std::string> &end_layers,
+    ml::train::ReferenceLayersType type,
     const std::vector<std::string> &type_properties = {}) override;
 
 private:
