@@ -39,7 +39,7 @@ LSTMLayer::LSTMLayer() :
   LayerImpl(),
   lstm_props(props::Unit(), props::HiddenStateActivation(),
              props::RecurrentActivation(), props::ReturnSequences(),
-             props::DropOutRate()),
+             props::DropOutRate(), props::MaxTimestep(), props::Timestep()),
   wt_idx({0}),
   acti_func(ActivationType::ACT_NONE, true),
   recurrent_acti_func(ActivationType::ACT_NONE, true),
@@ -121,7 +121,14 @@ void LSTMLayer::finalize(InitLayerContext &context) {
     context.requestWeight(bias_dim, bias_initializer, WeightRegularizer::NONE,
                           1.0f, context.getName() + ":bias_h", true);
 
+  unsigned int max_timestep = input_dim.height();
+  if (!std::get<props::MaxTimestep>(lstm_props).empty())
+    max_timestep =
+      std::max(max_timestep, std::get<props::MaxTimestep>(lstm_props).get());
+  std::get<props::MaxTimestep>(lstm_props).set(max_timestep);
+
   TensorDim d = input_dim;
+  d.height(max_timestep);
   d.width(unit);
 
   wt_idx[LSTMParams::hidden_state] = context.requestTensor(
@@ -173,9 +180,31 @@ void LSTMLayer::forwarding(RunLayerContext &context, bool training) {
   Tensor &fgio = context.getTensor(wt_idx[LSTMParams::fgio]);
   const TensorDim &input_dim = input_.getDim();
 
-  hidden_.setZero();
-  m_cell_.setZero();
-  fgio.setZero();
+  unsigned int max_timestep = std::get<props::MaxTimestep>(lstm_props).get();
+  unsigned int start_timestep = 0;
+  unsigned int end_timestep = max_timestep;
+
+  auto ts = std::get<props::Timestep>(lstm_props);
+  if (!ts.empty()) {
+    auto cur_ts = ts.get();
+    if (cur_ts >= end_timestep)
+      throw std::runtime_error("Timestep to run exceeds input dimensions");
+
+    start_timestep = cur_ts;
+    end_timestep = cur_ts + 1;
+  }
+
+  if (start_timestep == 0) {
+    hidden_.setZero();
+    m_cell_.setZero();
+  }
+
+  /**
+   * @note when the recurrent realization happens, different instances of lstm
+   * will share the weights, hidden state, cell and fgio memory. However, they
+   * do not share the input, output and derivatives memory. The input/output
+   * will be contain a single timestep data only.
+   */
 
   for (unsigned int b = 0; b < input_dim.batch(); ++b) {
     Tensor islice = input_.getBatchSlice(b, 1);
@@ -183,9 +212,12 @@ void LSTMLayer::forwarding(RunLayerContext &context, bool training) {
     Tensor cell = m_cell_.getBatchSlice(b, 1);
     Tensor fgio_ = fgio.getBatchSlice(b, 1);
 
-    for (unsigned int t = 0; t < islice.height(); ++t) {
-      Tensor xs =
-        islice.getSharedDataTensor({islice.width()}, t * islice.width());
+    for (unsigned int t = start_timestep; t < end_timestep; ++t) {
+      Tensor xs;
+      if (islice.height() != 1)
+        xs = islice.getSharedDataTensor({islice.width()}, t * islice.width());
+      else
+        xs = islice;
 
       Tensor hs =
         oslice.getSharedDataTensor({oslice.width()}, t * oslice.width());
@@ -234,17 +266,17 @@ void LSTMLayer::forwarding(RunLayerContext &context, bool training) {
   }
 
   Tensor &output = context.getOutput(SINGLE_INOUT_IDX);
-  if (!return_sequences) {
+  if (start_timestep == 0 && end_timestep == max_timestep && return_sequences) {
+    std::copy(hidden_.getData(), hidden_.getData() + hidden_.size(),
+              output.getData());
+  } else {
     TensorDim d = hidden_.getDim();
     for (unsigned int b = 0; b < input_dim.batch(); ++b) {
       float *data = hidden_.getAddress(b * d.width() * d.height() +
-                                       (d.height() - 1) * d.width());
+                                       (end_timestep - 1) * d.width());
       float *rdata = output.getAddress(b * d.width());
       std::copy(data, data + d.width(), rdata);
     }
-  } else {
-    std::copy(hidden_.getData(), hidden_.getData() + hidden_.size(),
-              output.getData());
   }
 }
 
@@ -253,7 +285,48 @@ void LSTMLayer::calcDerivative(RunLayerContext &context) {
   Tensor &weight = context.getWeight(wt_idx[LSTMParams::weight_xh]);
   Tensor &ret_ = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
 
-  derivative_.dot(weight, ret_, false, true);
+  /** get the timestep values */
+  unsigned int max_timestep = std::get<props::MaxTimestep>(lstm_props).get();
+  unsigned int start_timestep = 0;
+  unsigned int end_timestep = max_timestep;
+
+  auto ts = std::get<props::Timestep>(lstm_props);
+  if (!ts.empty()) {
+    auto cur_ts = ts.get();
+    if (cur_ts >= end_timestep)
+      throw std::runtime_error("Timestep to run exceeds input dimensions");
+
+    start_timestep = cur_ts;
+    end_timestep = cur_ts + 1;
+  }
+
+  unsigned int timestep_diff = end_timestep - start_timestep;
+  if (start_timestep == 0 && end_timestep == max_timestep) {
+    /**
+     * this if is only for optimization purpose. The else calculates for
+     * this scenario as well.
+     */
+    derivative_.dot(weight, ret_, false, true);
+  } else {
+    for (unsigned int b = 0; b < derivative_.batch(); ++b) {
+      Tensor deriv_t = derivative_.getBatchSlice(b, 1);
+      Tensor ret_deriv_t = ret_.getBatchSlice(b, 1);
+      Tensor dt, rdt;
+
+      if (deriv_t.height() != 1) {
+        dt = deriv_t.getSharedDataTensor({timestep_diff, deriv_t.width()},
+                                         start_timestep * deriv_t.width());
+        rdt =
+          ret_deriv_t.getSharedDataTensor({timestep_diff, ret_deriv_t.width()},
+                                          start_timestep * ret_deriv_t.width());
+      } else {
+        dt = deriv_t;
+        rdt = ret_deriv_t;
+      }
+
+      dt.dot(weight, rdt, false, true);
+    }
+  }
 }
 
 void LSTMLayer::calcGradient(RunLayerContext &context) {
@@ -266,10 +339,6 @@ void LSTMLayer::calcGradient(RunLayerContext &context) {
   Tensor &djdb_h = context.getWeightGrad(wt_idx[LSTMParams::bias_h]);
   Tensor &weight_hh = context.getWeight(wt_idx[LSTMParams::weight_hh]);
 
-  djdw_x.setZero();
-  djdw_h.setZero();
-  djdb_h.setZero();
-
   Tensor &derivative_ = context.getTensorGrad(wt_idx[LSTMParams::hidden_state]);
   Tensor &hidden_ = context.getTensor(wt_idx[LSTMParams::hidden_state]);
   Tensor &incoming_deriv = context.getIncomingDerivative(SINGLE_INOUT_IDX);
@@ -280,22 +349,44 @@ void LSTMLayer::calcGradient(RunLayerContext &context) {
   Tensor &fgio = context.getTensor(wt_idx[LSTMParams::fgio]);
   Tensor &d_fgio = context.getTensorGrad(wt_idx[LSTMParams::fgio]);
 
-  dm_cell_.setZero();
-  derivative_.setZero();
-  d_fgio.setZero();
+  /** get the timestep values */
+  unsigned int max_timestep = std::get<props::MaxTimestep>(lstm_props).get();
+  unsigned int start_timestep = max_timestep - 1;
+  int end_timestep = -1;
 
-  if (!return_sequences) {
-    TensorDim d = derivative_.getDim();
-    for (unsigned int b = 0; b < input_dim.batch(); ++b) {
-      float *data = derivative_.getAddress(b * d.width() * d.height() +
-                                           (d.height() - 1) * d.width());
-      float *rdata = incoming_deriv.getAddress(b * d.width());
-      std::copy(rdata, rdata + d.width(), data);
-    }
-  } else {
+  auto ts = std::get<props::Timestep>(lstm_props);
+  if (!ts.empty()) {
+    auto cur_ts = ts.get();
+    if ((int)cur_ts >= end_timestep)
+      throw std::runtime_error("Timestep to run exceeds input dimensions");
+
+    start_timestep = cur_ts;
+    end_timestep = cur_ts - 1;
+  }
+
+  if (start_timestep == max_timestep - 1) {
+    djdw_x.setZero();
+    djdw_h.setZero();
+    djdb_h.setZero();
+
+    dm_cell_.setZero();
+    derivative_.setZero();
+    d_fgio.setZero();
+  }
+
+  if (start_timestep == max_timestep - 1 && end_timestep == -1 &&
+      return_sequences) {
     std::copy(incoming_deriv.getData(),
               incoming_deriv.getData() + incoming_deriv.size(),
               derivative_.getData());
+  } else {
+    TensorDim d = derivative_.getDim();
+    for (unsigned int b = 0; b < input_dim.batch(); ++b) {
+      float *data = derivative_.getAddress(b * d.width() * d.height() +
+                                           start_timestep * d.width());
+      float *rdata = incoming_deriv.getAddress(b * d.width());
+      std::copy(rdata, rdata + d.width(), data);
+    }
   }
 
   if (dropout_rate > epsilon) {
@@ -324,11 +415,21 @@ void LSTMLayer::calcGradient(RunLayerContext &context) {
     Tensor dfgio_ = d_fgio.getBatchSlice(b, 1);
     Tensor fgio_ = fgio.getBatchSlice(b, 1);
 
-    for (unsigned int t = deriv_t.height(); t-- > 0;) {
-      dh = deriv_t.getSharedDataTensor({deriv_t.width()}, t * deriv_t.width());
+    for (int t = start_timestep; t > end_timestep; t--) {
+      if (deriv_t.height() != 1)
+        dh =
+          deriv_t.getSharedDataTensor({deriv_t.width()}, t * deriv_t.width());
+      else
+        dh = deriv_t;
+
       dc =
         derivc_t.getSharedDataTensor({derivc_t.width()}, t * derivc_t.width());
-      xs = xs_t.getSharedDataTensor({xs_t.width()}, t * xs_t.width());
+
+      if (deriv_t.height() != 1)
+        xs = xs_t.getSharedDataTensor({xs_t.width()}, t * xs_t.width());
+      else
+        xs = xs_t;
+
       cs = cs_t.getSharedDataTensor({cs_t.width()}, t * cs_t.width());
 
       Tensor dfgio_t =
@@ -348,7 +449,7 @@ void LSTMLayer::calcGradient(RunLayerContext &context) {
           cs_t.getSharedDataTensor({cs_t.width()}, (t - 1) * cs_t.width());
       }
 
-      if (t < deriv_t.height() - 1) {
+      if ((unsigned int)t < deriv_t.height() - 1) {
         dh.add_i(dh_nx);
       }
 

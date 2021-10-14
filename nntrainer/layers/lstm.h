@@ -82,7 +82,7 @@ public:
   /**
    * @copydoc Layer::supportBackwarding()
    */
-  bool supportBackwarding() const { return true; }
+  bool supportBackwarding() const override { return true; }
 
   /**
    * @copydoc Layer::setProperty(const PropertyType type, const std::string
@@ -104,11 +104,12 @@ private:
    * RecurrentActivation: activation type for recurrent. default is sigmoid
    * ReturnSequence: option for return sequence
    * DropOutRate: dropout rate
+   * TimeStep: timestep for which lstm should operate
    *
    * */
   std::tuple<props::Unit, props::HiddenStateActivation,
              props::RecurrentActivation, props::ReturnSequences,
-             props::DropOutRate>
+             props::DropOutRate, props::MaxTimestep, props::Timestep>
     lstm_props;
   std::array<unsigned int, 7> wt_idx; /**< indices of the weights */
 
