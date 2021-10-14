@@ -39,6 +39,7 @@
 #include <profiler.h>
 #include <recurrent_realizer.h>
 #include <remap_realizer.h>
+#include <slice_realizer.h>
 #include <util_func.h>
 
 /**
@@ -937,23 +938,27 @@ void NeuralNetwork::addWithReferenceLayers(
   }
 
   std::vector<std::unique_ptr<GraphRealizer>> realizers;
-  if (!scope.empty()) {
-    realizers.emplace_back(new RemapRealizer(
-      [&scope](std::string &name) { name = scope + "/" + name; }));
-  }
+  realizers.emplace_back(new SliceRealizer(start_layers, end_layers));
 
-  if (!start_layers.empty() || !end_layers.empty()) {
-    /// @todo add slice realizer
-    /// this will extract part of layers from start to end
+  if (type == ml::train::ReferenceLayersType::RECURRENT) {
+    realizers.emplace_back(
+      new RecurrentRealizer(type_properties, input_layers));
   }
 
   if (input_layers.empty()) {
     /// @todo add input setter realizer
   }
 
-  if (type == ml::train::ReferenceLayersType::RECURRENT) {
+  if (!scope.empty()) {
     realizers.emplace_back(
-      new RecurrentRealizer(type_properties, input_layers));
+      new RemapRealizer([&scope, &input_layers](std::string &name) {
+        for (auto &i : input_layers) {
+          if (istrequal(i, name)) {
+            return;
+          }
+        }
+        name = scope + "/" + name;
+      }));
   }
 
   for (auto &realizer : realizers) {

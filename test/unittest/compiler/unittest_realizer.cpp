@@ -18,6 +18,7 @@
 #include <realizer.h>
 #include <recurrent_realizer.h>
 #include <remap_realizer.h>
+#include <slice_realizer.h>
 
 #include <compiler_test_util.h>
 
@@ -121,4 +122,55 @@ TEST(RemapRealizer, remap_p) {
     {"name=scoped/layer1", "flatten=true", "input_layers=scoped/1,scoped/2"}};
 
   realizeAndEqual(r, {input1}, {expected1});
+}
+
+TEST(SliceRealizer, slice_p) {
+  /**
+   * graph architecture
+   *
+   * a1  a2
+   *  |   |
+   * b1   b2    b3
+   *  \  /  \  /
+   *   c1    c2
+   *  / \
+   * d1   d2
+   */
+  std::vector<LayerRepresentation> before = {
+    {"fully_connected", {"name=a1"}},
+    {"fully_connected", {"name=a2"}},
+    {"fully_connected", {"name=b1", "input_layers=a1"}},
+    {"fully_connected", {"name=b2", "input_layers=a2"}},
+    {"fully_connected", {"name=b3"}},
+    {"fully_connected", {"name=c1", "input_layers=b1,b2"}},
+    {"fully_connected", {"name=c2", "input_layers=b2,b3"}},
+    {"fully_connected", {"name=d1", "input_layers=c1"}},
+    {"fully_connected", {"name=d2", "input_layers=c1"}},
+  };
+
+  /**
+   * graph architecture
+   * start_layer = a1, b1, b2
+   * end_layer = a1, d1, d2
+   *
+   * a1 (was input port)
+   *  |
+   * b1   b2 (orphaned)
+   *  \  /
+   *   c1
+   *  / \
+   * d1   d2
+   */
+  std::vector<LayerRepresentation> after = {
+    {"fully_connected", {"name=a1"}},
+    {"fully_connected", {"name=b1", "input_layers=a1"}},
+    {"fully_connected", {"name=c1", "input_layers=b1,b2"}},
+    {"fully_connected", {"name=d1", "input_layers=c1"}},
+    {"fully_connected", {"name=d2", "input_layers=c1"}},
+    {"fully_connected", {"name=b2", "input_layers=a2"}},
+  };
+
+  SliceRealizer r({"a1", "b1", "b2"}, {"a1", "d1", "d2"});
+
+  realizeAndEqual(r, before, after);
 }
