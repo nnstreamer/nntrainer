@@ -1630,10 +1630,9 @@ TEST(nntrainerModels, loadFromLayersBackbone_p) {
   };
 }
 
-TEST(nntrainerModels, DISABLED_loadFromLayersRecurrent_p) {
+TEST(nntrainerModels, loadFromLayersRecurrent_p) {
   std::vector<std::shared_ptr<ml::train::Layer>> reference;
-  reference.emplace_back(
-    ml::train::layer::FullyConnected({"name=fc1", "input_layers=init"}));
+  reference.emplace_back(ml::train::layer::FullyConnected({"name=fc1"}));
   reference.emplace_back(
     ml::train::layer::FullyConnected({"name=fc2", "input_layers=fc1"}));
 
@@ -1651,7 +1650,7 @@ TEST(nntrainerModels, DISABLED_loadFromLayersRecurrent_p) {
     "recurrent/fc1/0", "recurrent/fc2/0", "recurrent/fc1/1", "recurrent/fc2/1",
     "recurrent/fc1/2", "recurrent/fc2/2", "recurrent/fc2"};
   std::vector<std::string> expected_input_layers = {
-    "out_source" /**< input substituted with external_input */,
+    "out_source" /**< input added with external_input */,
     "recurrent/fc1/0",
     "recurrent/fc2/0",
     "recurrent/fc1/1",

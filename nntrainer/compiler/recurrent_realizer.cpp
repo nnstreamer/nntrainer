@@ -90,9 +90,13 @@ RecurrentOutput::RecurrentOutput(const std::string &name) { set(name); };
 
 RecurrentRealizer::RecurrentRealizer(
   const std::vector<std::string> &properties,
-  const std::vector<std::string> &external_input_layers) :
-  recurrent_props(new PropTypes({}, {}, {}, {}, props::ReturnSequences(false),
-                                props::UnrollFor(1))) {
+  const std::vector<std::string> &input_layers,
+  const std::vector<std::string> &end_layers) :
+  input_layers(input_layers.begin(), input_layers.end()),
+  end_layers(end_layers),
+  recurrent_props(
+    new PropTypes(props::RecurrentInput(), props::RecurrentOutput(),
+                  props::ReturnSequences(false), props::UnrollFor(1))) {
   auto left = loadProperties(properties, *recurrent_props);
 
   auto throw_if_empty = [](auto &&prop) {
@@ -107,21 +111,6 @@ RecurrentRealizer::RecurrentRealizer(
   throw_if_empty(std::get<3>(*recurrent_props));
   NNTR_THROW_IF(!left.empty(), std::invalid_argument)
     << "There is unparesed properties";
-
-  auto &input_layers =
-    std::get<std::vector<props::InputLayer>>(*recurrent_props);
-  auto external_layers = std::vector<props::Name>(external_input_layers.begin(),
-                                                  external_input_layers.end());
-  NNTR_THROW_IF(input_layers.size() != external_layers.size(),
-                std::invalid_argument)
-    << "input_layers and external input_layers size does not match: "
-    << to_string(input_layers) << " vs " << to_string(external_layers);
-
-  std::transform(input_layers.begin(), input_layers.end(),
-                 external_layers.begin(), std::inserter(id_map, id_map.end()),
-                 [](const std::string &key, const std::string &val) {
-                   return std::pair<std::string, std::string>(key, val);
-                 });
 }
 
 /**
@@ -160,9 +149,6 @@ GraphRepresentation
 RecurrentRealizer::realize(const GraphRepresentation &reference) {
   auto step0_verify_and_prepare = [this, &reference]() {
     for (auto &node : reference) {
-      NNTR_THROW_IF(node->getNumInputConnections() == 0, std::invalid_argument)
-        << "every node must have input connection defined";
-
       auto &input = std::get<props::RecurrentInput>(*recurrent_props);
       if (node->getName() == input.get()) {
         NNTR_THROW_IF(node->getNumInputConnections() != 1,
@@ -180,9 +166,7 @@ RecurrentRealizer::realize(const GraphRepresentation &reference) {
   auto step1_connect_external_input =
     [this](const GraphRepresentation &reference_, unsigned max_idx) {
       RemapRealizer input_mapper([this](std::string &id) {
-        if (auto iter = id_map.find(id); iter != id_map.end()) {
-          id = iter->second;
-        } else {
+        if (input_layers.count(id) == 0) {
           id += "/0";
         }
       });
@@ -206,9 +190,9 @@ RecurrentRealizer::realize(const GraphRepresentation &reference) {
     auto &output = std::get<props::RecurrentOutput>(*recurrent_props);
     step.reserve(reference_.size());
 
-    auto replace_idx = [](std::string &name, unsigned idx) {
+    auto replace_idx = [this](std::string &name, unsigned idx) {
       auto pos = name.find_last_of('/');
-      if (pos != std::string::npos) {
+      if (pos != std::string::npos && input_layers.count(name) == 0) {
         name.replace(pos + 1, std::string::npos, std::to_string(idx));
       }
     };
@@ -217,7 +201,7 @@ RecurrentRealizer::realize(const GraphRepresentation &reference) {
 
       /// 1. remap identifiers to $name/$idx
       new_node->remapIdentifiers([this, idx, replace_idx](std::string &id) {
-        if (auto iter = id_map.find(id); iter == id_map.end()) {
+        if (input_layers.count(id) == 0) {
           replace_idx(id, idx);
         }
       });
@@ -283,17 +267,15 @@ RecurrentRealizer::realize(const GraphRepresentation &reference) {
   auto concat_output = [this](const GraphRepresentation &reference_,
                               unsigned unroll_for) {
     GraphRepresentation processed(reference_.begin(), reference_.end());
-    auto output_layers =
-      std::get<std::vector<props::OutputLayer>>(*recurrent_props);
 
-    for (auto &output : output_layers) {
+    for (auto &end : end_layers) {
       std::vector<props::Name> names;
       for (unsigned int i = 0; i < unroll_for; ++i) {
-        names.push_back(output.get() + "/" + std::to_string(i));
+        names.push_back(end + "/" + std::to_string(i));
       }
       /// @todo have axis in concat layer
       auto node = createLayerNode(
-        "concat", {"name=" + output.get(), "input_layers=" + to_string(names)});
+        "concat", {"name=" + end, "input_layers=" + to_string(names)});
       processed.push_back(std::move(node));
     }
 
