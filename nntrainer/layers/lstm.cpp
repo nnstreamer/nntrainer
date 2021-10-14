@@ -386,4 +386,11 @@ void LSTMLayer::calcGradient(RunLayerContext &context) {
   }
 }
 
+void LSTMLayer::setBatch(RunLayerContext &context, unsigned int batch) {
+  context.updateTensor(wt_idx[LSTMParams::hidden_state], batch);
+  context.updateTensor(wt_idx[LSTMParams::mem_cell], batch);
+  context.updateTensor(wt_idx[LSTMParams::fgio], batch);
+  context.updateTensor(wt_idx[LSTMParams::dropout_mask], batch);
+}
+
 } // namespace nntrainer

@@ -433,4 +433,11 @@ void GRULayer::calcGradient(RunLayerContext &context) {
   }
 }
 
+void GRULayer::setBatch(RunLayerContext &context, unsigned int batch) {
+  context.updateTensor(wt_idx[GRUParams::hidden_state], batch);
+  context.updateTensor(wt_idx[GRUParams::zrg], batch);
+  context.updateTensor(wt_idx[GRUParams::h_prev], batch);
+  context.updateTensor(wt_idx[GRUParams::dropout_mask], batch);
+}
+
 } // namespace nntrainer

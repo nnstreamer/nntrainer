@@ -266,4 +266,9 @@ void RNNLayer::calcGradient(RunLayerContext &context) {
   }
 }
 
+void RNNLayer::setBatch(RunLayerContext &context, unsigned int batch) {
+  context.updateTensor(wt_idx[RNNParams::hidden_state], batch);
+  context.updateTensor(wt_idx[RNNParams::dropout_mask], batch);
+}
+
 } // namespace nntrainer
