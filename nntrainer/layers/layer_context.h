@@ -229,18 +229,6 @@ public:
   unsigned int getNumTensors() const { return tensors_spec.size(); }
 
   /**
-   * @brief Set the batch for the init context
-   *
-   * @param batch Updated batch size
-   */
-  void setBatch(unsigned int batch) {
-    for (auto &dim : input_dim)
-      dim.batch(batch);
-    for (auto &dim : output_dim)
-      dim.batch(batch);
-  }
-
-  /**
    * @brief Update the dimensions for a requested tensor
    *
    * @param idx index of the tensor (identifier)

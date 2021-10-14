@@ -110,13 +110,6 @@ public:
   }
 
   /**
-   * @copydoc Layer::setBatch(InitLayerContext &context, unsigned int batch)
-   */
-  void setBatch(InitLayerContext &context, unsigned int batch) override {
-    layerImpl->setBatch(context, batch);
-  }
-
-  /**
    * @copydoc Layer::setBatch(RunLayerContext &context, unsigned int batch)
    */
   void setBatch(RunLayerContext &context, unsigned int batch) override {

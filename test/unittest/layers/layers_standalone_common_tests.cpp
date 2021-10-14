@@ -88,8 +88,6 @@ TEST_P(LayerSemantics, setBatchValidate_p) {
 
   if (!must_fail) {
     EXPECT_NO_THROW(layer->finalize(init_context));
-    EXPECT_NO_THROW(layer->setBatch(
-      init_context, init_context.getInputDimensions()[0].batch() + 10));
   } else {
     EXPECT_THROW(layer->finalize(init_context),
                  nntrainer::exception::not_supported);
