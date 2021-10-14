@@ -129,4 +129,9 @@ void AttentionLayer::setProperty(const std::vector<std::string> &values) {
   }
 }
 
+void AttentionLayer::setBatch(RunLayerContext &context, unsigned int batch) {
+  context.updateTensor(wt_idx[AttentionParams::score], batch);
+  context.updateTensor(wt_idx[AttentionParams::weights], batch);
+}
+
 } /* namespace nntrainer */
