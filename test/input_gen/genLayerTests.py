@@ -136,5 +136,15 @@ if __name__ == "__main__":
                          return_state=False)
     record_single(gru, (3, 4, 7), "gru_multi_step_seq_act", input_type='float')
 
-inspect_file("gru_single_step_seq.nnlayergolden")
+    dropout = K.layers.Dropout(rate=0.2)
+    record_single(dropout, (2, 3, 2, 3), "dropout_20_training", {"training": True})
+    record_single(dropout, (2, 3, 2, 3), "dropout_20_inference", {"training": False})
+
+    dropout = K.layers.Dropout(rate=0.0)
+    record_single(dropout, (2, 3, 2, 3), "dropout_0_training", {"training": True})
+
+    dropout = K.layers.Dropout(rate=0.9999)
+    record_single(dropout, (2, 3, 2, 3), "dropout_100_training", {"training": True})
+
+inspect_file("dropout_20_training.nnlayergolden")
 

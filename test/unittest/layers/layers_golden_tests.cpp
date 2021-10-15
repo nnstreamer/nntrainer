@@ -147,10 +147,38 @@ static RunLayerContext prepareRunContext(const TensorPacks &packs) {
 }
 
 static void compareRunContext(RunLayerContext &rc, std::ifstream &file,
-                              bool skip_grad, bool skip_deriv) {
+                              bool skip_grad, bool skip_deriv,
+                              bool dropout_match) {
   file.seekg(0, std::ios::beg);
-  auto compare_tensors = [&file](unsigned length, auto tensor_getter, auto pred,
-                                 bool skip_compare, const std::string &name) {
+  auto compare_percentage_tensors = [](const Tensor &t1, const Tensor &t2,
+                                       unsigned int match_percentage) -> bool {
+    if (match_percentage == 100)
+      return t1 == t2;
+
+    if (t1.getDim() != t2.getDim())
+      return false;
+
+    unsigned int total = t1.size();
+    unsigned int weak_match = 0;
+    unsigned int strong_match = 0;
+
+    for (unsigned int idx = 0; idx < total; idx++) {
+      auto d1 = t1.getValue(idx);
+      auto d2 = t2.getValue(idx);
+      /** either both the values must be equal or 1 must be zero */
+      weak_match +=
+        std::min((d1 == d2) + (d1 == 0 && d2 != 0) + (d1 != 0 && d2 == 0), 1);
+      strong_match += (d1 == d2);
+    }
+
+    return (weak_match == total) &
+           (strong_match >= (total * match_percentage) / 100);
+  };
+
+  auto compare_tensors = [&file, compare_percentage_tensors](
+                           unsigned length, auto tensor_getter, auto pred,
+                           bool skip_compare, const std::string &name,
+                           unsigned int match_percentage = 100) {
     for (unsigned i = 0; i < length; ++i) {
       if (!pred(i)) {
         continue;
@@ -162,7 +190,8 @@ static void compareRunContext(RunLayerContext &rc, std::ifstream &file,
       if (skip_compare) {
         continue;
       }
-      EXPECT_EQ(tensor, answer) << name << " at " << std::to_string(i);
+      EXPECT_TRUE(compare_percentage_tensors(tensor, answer, match_percentage))
+        << name << " at " << std::to_string(i);
     }
   };
 
@@ -170,6 +199,10 @@ static void compareRunContext(RunLayerContext &rc, std::ifstream &file,
   auto only_read_trainable = [&rc](unsigned idx) {
     return rc.weightHasGradient(idx);
   };
+
+  int match_percentage = 100;
+  if (dropout_match)
+    match_percentage = 60;
 
   constexpr bool skip_compare = true;
 
@@ -181,7 +214,7 @@ static void compareRunContext(RunLayerContext &rc, std::ifstream &file,
                   !skip_compare, "inputs");
   compare_tensors(rc.getNumOutputs(),
                   [&rc](unsigned idx) { return rc.getOutput(idx); },
-                  always_read, !skip_compare, "outputs");
+                  always_read, !skip_compare, "outputs", match_percentage);
   compare_tensors(rc.getNumWeights(),
                   [&rc](unsigned idx) { return rc.getWeightGrad(idx); },
                   only_read_trainable, skip_grad, "gradients");
@@ -190,7 +223,7 @@ static void compareRunContext(RunLayerContext &rc, std::ifstream &file,
                   always_read, !skip_compare, "weights");
   compare_tensors(rc.getNumInputs(),
                   [&rc](unsigned idx) { return rc.getOutgoingDerivative(idx); },
-                  always_read, skip_deriv, "derivatives");
+                  always_read, skip_deriv, "derivatives", match_percentage);
 }
 
 LayerGoldenTest::~LayerGoldenTest() {}
@@ -198,6 +231,11 @@ LayerGoldenTest::~LayerGoldenTest() {}
 void LayerGoldenTest::SetUp() {}
 
 void LayerGoldenTest::TearDown() {}
+
+bool LayerGoldenTest::shouldMatchDropout60Percent() {
+  return std::get<int>(GetParam()) &
+         LayerGoldenTestParamOptions::DROPOUT_MATCH_60_PERCENT;
+}
 
 bool LayerGoldenTest::shouldForwardWithInferenceMode() {
   return std::get<int>(GetParam()) &
@@ -227,6 +265,7 @@ TEST_P(LayerGoldenTest, run) {
 
   bool skip_calc_grad = shouldSkipCalcGrad();
   bool skip_calc_deriv = shouldSkipCalcDeriv();
+  bool dropout_compare_60_percent = shouldMatchDropout60Percent();
 
   for (int i = 0; i < 4; ++i) {
     /// warm layer multiple times
@@ -241,7 +280,8 @@ TEST_P(LayerGoldenTest, run) {
     layer->calcDerivative(rc);
   }
 
-  compareRunContext(rc, golden_file, skip_calc_grad, skip_calc_deriv);
+  compareRunContext(rc, golden_file, skip_calc_grad, skip_calc_deriv,
+                    dropout_compare_60_percent);
 
   EXPECT_TRUE(true); // stub test for tcm
 }

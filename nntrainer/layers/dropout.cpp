@@ -39,16 +39,16 @@ void DropOutLayer::forwarding(RunLayerContext &context, bool training) {
   // buffer. So if the training is false, the output is the same with input. In
   // other words, there is nothing happen during inference.
 
-  if (training && rate_ > epsilon) {
-    for (unsigned int i = 0; i < context.getNumInputs(); ++i) {
-      Tensor &input_ = context.getInput(i);
-      Tensor &output_ = context.getOutput(i);
+  for (unsigned int i = 0; i < context.getNumInputs(); ++i) {
+    Tensor &input_ = context.getInput(i);
+    Tensor &output_ = context.getOutput(i);
+
+    /** @todo make this in-place */
+    if (training && rate_ > epsilon) {
       Tensor &mask_ = context.getTensor(mask_idx[i]);
-
       mask_ = input_.dropout_mask(rate_);
-      input_.multiply_i(mask_);
-
-      /** @todo: remove below once in_place support is ready from manager */
+      input_.multiply(mask_, output_);
+    } else {
       output_.fill(input_);
     }
   }
@@ -57,15 +57,16 @@ void DropOutLayer::forwarding(RunLayerContext &context, bool training) {
 void DropOutLayer::calcDerivative(RunLayerContext &context) {
   // Assume it is in-place calculation
   auto &rate_ = std::get<props::DropOutRate>(dropout_rate).get();
-  if (rate_ > epsilon) {
-    for (unsigned int i = 0; i < context.getNumInputs(); ++i) {
-      Tensor &derivative_ = context.getIncomingDerivative(i);
-      Tensor &ret_ = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
+
+  for (unsigned int i = 0; i < context.getNumInputs(); ++i) {
+    Tensor &derivative_ = context.getIncomingDerivative(i);
+    Tensor &ret_ = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
+
+    /** @todo make this in-place */
+    if (rate_ > epsilon) {
       Tensor &mask_ = context.getTensor(mask_idx[i]);
-
-      derivative_.multiply_i(mask_);
-
-      /** @todo: remove below once in_place support is ready from manager */
+      derivative_.multiply(mask_, ret_);
+    } else {
       ret_.fill(derivative_);
     }
   }

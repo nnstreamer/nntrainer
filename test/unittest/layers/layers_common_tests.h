@@ -90,6 +90,8 @@ typedef enum {
   FORWARD_MODE_INFERENCE =
     1 << 2, /**< set if layer should be forwarded with inference mode */
 
+  DROPOUT_MATCH_60_PERCENT = 1 << 3, /**< set if only 60 percentage output
+                               match is sufficient for dropout */
   DEFAULT =
     0, /**< default set up, compare forward, backward in training mode */
 } LayerGoldenTestParamOptions;
@@ -132,6 +134,14 @@ public:
    * @return bool layer should be forwarded with inference
    */
   bool shouldForwardWithInferenceMode();
+
+  /**
+   * @brief check if given test suite must compare results using with a percent
+   * match for the tensors enabled
+   *
+   * @return bool layer should be match approximately
+   */
+  bool shouldMatchDropout60Percent();
 
   /**
    * @brief check if given test suite should skip calculating derivative
