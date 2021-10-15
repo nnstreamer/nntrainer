@@ -362,7 +362,7 @@ Manager::requestTensors(const GraphNode &node,
         grad = tensor_pool.requestPrerequestedTensor(
           dim, grad_exec_order, tspan,
           name + Var_Grad::grad_suffix, /// name
-          shared_name,
+          shared_name + Var_Grad::grad_suffix,
           Tensor::Initializer::ZEROS /// tensor initializer
         );
       }
