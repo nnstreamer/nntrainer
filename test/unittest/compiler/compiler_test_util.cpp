@@ -16,8 +16,6 @@
 
 #include <gtest/gtest.h>
 
-static auto &ac = nntrainer::AppContext::Global();
-
 const std::string compilerPathResolver(const std::string &path) {
   return getResPath(path, {"test", "test_models", "models"});
 }
@@ -50,19 +48,4 @@ void graphEqual(const nntrainer::GraphRepresentation &lhs,
       is_node_equal(*lhs.get(), *rhs.get());
     }
   }
-}
-
-nntrainer::GraphRepresentation
-makeGraph(const std::vector<LayerRepresentation> &layer_reps) {
-  nntrainer::GraphRepresentation graph_rep;
-
-  for (const auto &layer_representation : layer_reps) {
-    /// @todo Use unique_ptr here
-    std::shared_ptr<nntrainer::LayerNode> layer = createLayerNode(
-      ac.createObject<nntrainer::Layer>(layer_representation.first),
-      layer_representation.second);
-    graph_rep.push_back(layer);
-  }
-
-  return graph_rep;
 }

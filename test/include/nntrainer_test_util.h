@@ -29,7 +29,9 @@
 #include <fstream>
 #include <string.h>
 #include <unordered_map>
+#include <utility>
 
+#include <compiler_fwd.h>
 #include <ini_wrapper.h>
 #include <neuralnet.h>
 #include <nntrainer_error.h>
@@ -193,6 +195,17 @@ int getSample(float **outVec, float **outLabel, bool *last, void *user_data);
 const std::string
 getResPath(const std::string &filename,
            const std::initializer_list<const char *> fallback_base = {});
+
+using LayerRepresentation = std::pair<std::string, std::vector<std::string>>;
+
+/**
+ * @brief make graph of a representation
+ *
+ * @param layer_reps layer representation (pair of type, properties)
+ * @return nntrainer::GraphRepresentation synthesized graph representation
+ */
+nntrainer::GraphRepresentation
+makeGraph(const std::vector<LayerRepresentation> &layer_reps);
 
 #endif /* __cplusplus */
 #endif /* __NNTRAINER_TEST_UTIL_H__ */

@@ -19,17 +19,6 @@
 #include <app_context.h>
 #include <interpreter.h>
 
-using LayerRepresentation = std::pair<std::string, std::vector<std::string>>;
-
-/**
- * @brief make graph of a representation
- *
- * @param layer_reps layer representation (pair of type, properties)
- * @return nntrainer::GraphRepresentation synthesized graph representation
- */
-nntrainer::GraphRepresentation
-makeGraph(const std::vector<LayerRepresentation> &layer_reps);
-
 /**
  * @brief resolve path for compiler test util
  * @see nntrainer::getResPath(const std::string&path) for how this works
