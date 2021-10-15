@@ -476,6 +476,22 @@ public:
     ml::train::ReferenceLayersType type,
     const std::vector<std::string> &type_properties = {}) override;
 
+  /**
+   * @copydoc   void ml::train::Model::addWithReferenceLayers(
+   * const std::vector<std::shared_ptr<Layer>> &reference,
+   * const std::string &scope, const std::vector<std::string> &input_layers,
+   * const std::vector<std::string> &start_layers,
+   * const std::vector<std::string> &end_layers, ReferenceLayersType type,
+   * const std::vector<std::string> &type_properties = {})
+   */
+  void addWithReferenceLayers(
+    const std::vector<std::shared_ptr<LayerNode>> &reference,
+    const std::string &scope, const std::vector<std::string> &input_layers,
+    const std::vector<std::string> &start_layers,
+    const std::vector<std::string> &end_layers,
+    ml::train::ReferenceLayersType type,
+    const std::vector<std::string> &type_properties = {});
+
 private:
   using FlexiblePropTypes =
     std::tuple<props::Epochs, props::TrainingBatchSize, props::SavePath,
@@ -598,7 +614,7 @@ private:
    */
   void backwarding(std::shared_ptr<LayerNode> node, int iteration,
                    bool calc_derivative);
-};
+}; // namespace nntrainer
 
 } /* namespace nntrainer */
 
