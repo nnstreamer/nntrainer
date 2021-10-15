@@ -4,6 +4,7 @@ test_target = []
 
 models_targets = [
   'models_test_utils.cpp',
+  'models_golden_test.cpp',
   'unittest_models_recurrent.cpp',
 ]
 
