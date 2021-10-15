@@ -3,6 +3,7 @@ test_name = 'unittest_models'
 test_target = []
 
 models_targets = [
+  'models_test_utils.cpp',
   'unittest_models_recurrent.cpp',
 ]
 
@@ -10,6 +11,7 @@ test_target += models_targets
 exe = executable(
   test_name,
   test_target,
+  include_directories: include_directories('.'),
   dependencies: [
     nntrainer_test_main_deps,
     nntrainer_capi_dep

@@ -28,7 +28,8 @@ static nntrainer::IniSection sgd_base("optimizer", "Type = sgd");
 static nntrainer::IniSection constant_loss("loss",
                                            "type = constant_derivative");
 
-int getSample(float **outVec, float **outLabel, bool *last, void *user_data) {
+static int getSample_recurrent(float **outVec, float **outLabel, bool *last,
+                               void *user_data) {
   **outVec = 1;
   **outLabel = 1;
   *last = true;
@@ -57,7 +58,7 @@ TEST(FcOnly, fcHandUnrolled) {
   EXPECT_EQ(nn.initialize(), 0);
 
   auto db = ml::train::createDataset(ml::train::DatasetType::GENERATOR,
-                                     getSample, nullptr);
+                                     getSample_recurrent, nullptr);
 
   nn.setDataset(DatasetModeType::MODE_TRAIN, std::move(db));
   EXPECT_EQ(nn.train(), 0);

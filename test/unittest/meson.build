@@ -25,19 +25,19 @@ endforeach
 run_command(['cp', '-l', src_path / 'label.dat', dest_path / 'label.dat'])
 
 test_target = [
-  'unittest_nntrainer_activations',
-  'unittest_nntrainer_internal',
-  # 'unittest_nntrainer_layers',
-  'unittest_nntrainer_lazy_tensor',
-  'unittest_nntrainer_tensor',
-  'unittest_util_func',
-  'unittest_nntrainer_modelfile',
-  'unittest_nntrainer_models',
-  'unittest_nntrainer_graph',
-  'unittest_nntrainer_appcontext',
-  'unittest_base_properties',
-  'unittest_common_properties',
-  'unittest_nntrainer_tensor_pool'
+  ['unittest_nntrainer_activations', []],
+  ['unittest_nntrainer_internal', []],
+  # ['unittest_nntrainer_layers', []],
+  ['unittest_nntrainer_lazy_tensor', []],
+  ['unittest_nntrainer_tensor', []],
+  ['unittest_util_func', []],
+  ['unittest_nntrainer_modelfile', []],
+  ['unittest_nntrainer_models', ['models' / 'models_test_utils.cpp']],
+  ['unittest_nntrainer_graph', []],
+  ['unittest_nntrainer_appcontext', []],
+  ['unittest_base_properties', []],
+  ['unittest_common_properties', []],
+  ['unittest_nntrainer_tensor_pool', []],
 ]
 
 if get_option('enable-profile')
@@ -46,13 +46,15 @@ endif
 
 foreach target: test_target
   exe = executable(
-    target,
-    target + '.cpp',
+    target[0],
+    [target[0] + '.cpp'] + target[1],
+    # below is temporary measure, we will eventually remove unittest_nntrainer_models
+    include_directories: include_directories('models'),
     dependencies: unittest_nntrainer_deps,
     install: get_option('enable-test'),
     install_dir: application_install_dir
   )
-  test(target, exe, args: ['--gtest_output=xml:@0@/@1@.xml'.format(meson.build_root(), target)] )
+  test(target[0], exe, args: ['--gtest_output=xml:@0@/@1@.xml'.format(meson.build_root(), target[0])] )
 endforeach
 
 unittest_inc = include_directories('.')
