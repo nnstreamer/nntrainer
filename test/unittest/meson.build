@@ -32,7 +32,9 @@ test_target = [
   ['unittest_nntrainer_tensor', []],
   ['unittest_util_func', []],
   ['unittest_nntrainer_modelfile', []],
-  ['unittest_nntrainer_models', ['models' / 'models_test_utils.cpp']],
+  ['unittest_nntrainer_models', [
+    'models' / 'models_test_utils.cpp', 'models' / 'models_golden_test.cpp'
+  ]],
   ['unittest_nntrainer_graph', []],
   ['unittest_nntrainer_appcontext', []],
   ['unittest_base_properties', []],
