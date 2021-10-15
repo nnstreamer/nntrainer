@@ -134,7 +134,7 @@ if __name__ == "__main__":
                          activation="sigmoid",
                          return_sequences=True,
                          return_state=False)
-    record_single(gru, (3, 4, 7), "gru_multi_step_seq_act")
+    record_single(gru, (3, 4, 7), "gru_multi_step_seq_act", input_type='float')
 
 inspect_file("gru_single_step_seq.nnlayergolden")
 
