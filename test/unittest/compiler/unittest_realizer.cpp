@@ -22,6 +22,7 @@
 #include <slice_realizer.h>
 
 #include <compiler_test_util.h>
+#include <nntrainer_test_util.h>
 
 using namespace nntrainer;
 

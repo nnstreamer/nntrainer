@@ -33,6 +33,7 @@
 
 #include <app_context.h>
 #include <compiler_test_util.h>
+#include <nntrainer_test_util.h>
 
 using LayerRepresentation = std::pair<std::string, std::vector<std::string>>;
 

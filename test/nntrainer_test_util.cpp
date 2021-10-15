@@ -22,8 +22,10 @@
  */
 
 #include "nntrainer_test_util.h"
+#include <app_context.h>
 #include <climits>
 #include <iostream>
+#include <layer_node.h>
 #include <nntrainer_error.h>
 #include <random>
 #include <regex>
@@ -198,4 +200,20 @@ getResPath(const std::string &filename,
   ss << '/' << filename;
 
   return ss.str();
+}
+
+nntrainer::GraphRepresentation
+makeGraph(const std::vector<LayerRepresentation> &layer_reps) {
+  static auto &ac = nntrainer::AppContext::Global();
+  nntrainer::GraphRepresentation graph_rep;
+
+  for (const auto &layer_representation : layer_reps) {
+    /// @todo Use unique_ptr here
+    std::shared_ptr<nntrainer::LayerNode> layer = nntrainer::createLayerNode(
+      ac.createObject<nntrainer::Layer>(layer_representation.first),
+      layer_representation.second);
+    graph_rep.push_back(layer);
+  }
+
+  return graph_rep;
 }
