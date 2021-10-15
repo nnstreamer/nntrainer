@@ -38,7 +38,7 @@ IniSection::IniSection(IniSection &from, const std::string &section_name,
   }
 }
 
-void IniSection::print(std::ostream &out) {
+void IniSection::print(std::ostream &out) const {
   out << '[' << section_name << ']' << std::endl;
   for (auto &it : entry)
     out << it.first << " = " << it.second << std::endl;
@@ -114,9 +114,9 @@ void IniWrapper::updateSections(const Sections &sections_) {
   }
 }
 
-void IniWrapper::save_ini() { save_ini(getIniName()); }
+void IniWrapper::save_ini() const { save_ini(getIniName()); }
 
-void IniWrapper::save_ini(const std::string &ini_name) {
+void IniWrapper::save_ini(const std::string &ini_name) const {
   auto out = checkedOpenStream<std::ofstream>(ini_name, std::ios_base::app);
 
   for (auto &it : sections) {

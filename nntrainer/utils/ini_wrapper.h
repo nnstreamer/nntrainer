@@ -174,7 +174,7 @@ public:
    *
    * @param out ostream to print
    */
-  void print(std::ostream &out);
+  void print(std::ostream &out) const;
 
   /**
    * @brief Get the Name object
@@ -344,7 +344,7 @@ public:
    *
    * @return std::string ini name with extension appended
    */
-  std::string getIniName() { return name + ".ini"; }
+  std::string getIniName() const { return name + ".ini"; }
 
   /**
    * @brief Get the Name
@@ -356,20 +356,20 @@ public:
   /**
    * @brief save ini to a file, (getIniName() is used to save)
    */
-  void save_ini();
+  void save_ini() const;
 
   /**
    * @brief save ini by ini_name
    *
    * @param ini_name ini name to svae
    */
-  void save_ini(const std::string &ini_name);
+  void save_ini(const std::string &ini_name) const;
 
   /**
    * @brief erase ini
    *
    */
-  void erase_ini() noexcept {
+  void erase_ini() const noexcept {
     if (remove(getIniName().c_str())) {
       std::cerr << "remove ini " << getIniName()
                 << "failed, reason: " << strerror(errno);

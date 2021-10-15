@@ -15,6 +15,7 @@
 #include <models_test_utils.h>
 
 #include <gtest/gtest.h>
+#include <neuralnet.h>
 
 /**
  * @brief check given ini is failing/suceeding at unoptimized running
@@ -26,11 +27,11 @@ TEST_P(nntrainerModelTest, model_test) {
   }
   /** Check model with all optimizations off */
 
-  GraphWatcher g_unopt(getIniName(), false);
+  GraphWatcher g_unopt(createModel(), false);
   g_unopt.compareFor(getGoldenName(), getLabelDim(), getIteration());
 
   /// add stub test for tcm
-  EXPECT_EQ(std::get<0>(GetParam()), std::get<0>(GetParam()));
+  EXPECT_TRUE(true);
 }
 
 /**
@@ -43,11 +44,11 @@ TEST_P(nntrainerModelTest, model_test_optimized) {
   }
   /** Check model with all optimizations on */
 
-  GraphWatcher g_opt(getIniName(), true);
+  GraphWatcher g_opt(createModel(), true);
   g_opt.compareFor(getGoldenName(), getLabelDim(), getIteration());
 
   /// add stub test for tcm
-  EXPECT_EQ(std::get<0>(GetParam()), std::get<0>(GetParam()));
+  EXPECT_TRUE(true);
 }
 
 /**
@@ -55,11 +56,11 @@ TEST_P(nntrainerModelTest, model_test_optimized) {
  */
 TEST_P(nntrainerModelTest, model_test_validate) {
   /** Check model with all optimizations on */
-  GraphWatcher g_opt(getIniName(), true);
+  GraphWatcher g_opt(createModel(), true);
   g_opt.validateFor(getLabelDim());
 
   /// add stub test for tcm
-  EXPECT_EQ(std::get<0>(GetParam()), std::get<0>(GetParam()));
+  EXPECT_TRUE(true);
 }
 
 TEST_P(nntrainerModelTest, model_test_save_load_compare) {
@@ -68,17 +69,16 @@ TEST_P(nntrainerModelTest, model_test_save_load_compare) {
     return;
   }
 
-  auto nn = nntrainer::NeuralNetwork();
-  EXPECT_NO_THROW(nn.loadFromConfig(getIniName()));
-  EXPECT_NO_THROW(nn.compile());
-  EXPECT_NO_THROW(nn.initialize());
+  auto nn = createModel();
+  EXPECT_NO_THROW(nn->compile());
+  EXPECT_NO_THROW(nn->initialize());
 
   auto saved_ini_name = getName() + "_saved.ini";
   if (remove(saved_ini_name.c_str())) {
     /// do nothing
   }
   EXPECT_NO_THROW(
-    nn.save(saved_ini_name, ml::train::ModelFormat::MODEL_FORMAT_INI));
+    nn->save(saved_ini_name, ml::train::ModelFormat::MODEL_FORMAT_INI));
 
   GraphWatcher g(saved_ini_name, false);
   g.compareFor(getGoldenName(), getLabelDim(), getIteration());
@@ -94,17 +94,15 @@ TEST_P(nntrainerModelTest, model_test_save_load_verify) {
     return;
   }
 
-  auto nn = nntrainer::NeuralNetwork();
-
-  EXPECT_NO_THROW(nn.loadFromConfig(getIniName()));
-  EXPECT_NO_THROW(nn.compile());
-  EXPECT_NO_THROW(nn.initialize());
+  auto nn = createModel();
+  EXPECT_NO_THROW(nn->compile());
+  EXPECT_NO_THROW(nn->initialize());
 
   auto saved_ini_name = getName() + "_saved.ini";
   if (remove(saved_ini_name.c_str())) {
     /// do nothing
   }
-  nn.save(saved_ini_name, ml::train::ModelFormat::MODEL_FORMAT_INI);
+  nn->save(saved_ini_name, ml::train::ModelFormat::MODEL_FORMAT_INI);
 
   GraphWatcher g(saved_ini_name, true);
   g.validateFor(getLabelDim());
@@ -114,11 +112,20 @@ TEST_P(nntrainerModelTest, model_test_save_load_verify) {
   }
 }
 
-std::tuple<const nntrainer::IniWrapper, const nntrainer::TensorDim,
-           const unsigned int, ModelTestOption>
-mkModelTc(const nntrainer::IniWrapper &ini, const std::string &label_dim,
-          const unsigned int iteration, ModelTestOption options) {
-  return std::tuple<const nntrainer::IniWrapper, const nntrainer::TensorDim,
-                    const unsigned int, ModelTestOption>(
-    ini, nntrainer::TensorDim(label_dim), iteration, options);
+ModelGoldenTestParamType mkModelIniTc(const nntrainer::IniWrapper &ini,
+                                      const std::string &label_dim,
+                                      const unsigned int iteration,
+                                      ModelTestOption options) {
+  auto generator = [ini]() mutable {
+    std::unique_ptr<nntrainer::NeuralNetwork> nn(
+      new nntrainer::NeuralNetwork());
+    ini.save_ini();
+    nn->load(ini.getIniName(), ml::train::ModelFormat::MODEL_FORMAT_INI);
+    ini.erase_ini();
+    return nn;
+  };
+
+  return ModelGoldenTestParamType(generator, ini.getName(),
+                                  nntrainer::TensorDim(label_dim), iteration,
+                                  options);
 }
