@@ -277,6 +277,11 @@ void NeuralNetwork::backwarding(std::shared_ptr<LayerNode> node, int iteration,
  *            No need to call at first Input Layer (No data to be updated)
  */
 void NeuralNetwork::backwarding(int iteration) {
+
+#ifdef DEBUG
+  NNTR_THROW_IF(!opt, std::invalid_argument) << "optimizer is null!";
+#endif
+
   /**
    * last layer backwarding is run out of this loop
    */
@@ -926,13 +931,28 @@ void NeuralNetwork::addWithReferenceLayers(
   const std::vector<std::string> &end_layers,
   ml::train::ReferenceLayersType type,
   const std::vector<std::string> &type_properties) {
+  std::vector<NodeType> casted_reference;
+  casted_reference.reserve(reference.size());
+  for (auto &node : reference) {
+    casted_reference.emplace_back(std::static_pointer_cast<LayerNode>(node));
+  }
+
+  addWithReferenceLayers(casted_reference, scope, input_layers, start_layers,
+                         end_layers, type, type_properties);
+}
+void NeuralNetwork::addWithReferenceLayers(
+  const std::vector<std::shared_ptr<LayerNode>> &reference,
+  const std::string &scope, const std::vector<std::string> &input_layers,
+  const std::vector<std::string> &start_layers,
+  const std::vector<std::string> &end_layers,
+  ml::train::ReferenceLayersType type,
+  const std::vector<std::string> &type_properties) {
   /// @todo below configuration should be extracted as a free function to make
   /// it more testable, and reused inside graph interpreter
   std::vector<std::shared_ptr<LayerNode>> nodes;
   nodes.reserve(reference.size());
   for (auto &node : reference) {
-    auto lnode = static_cast<LayerNode *>(node.get());
-    nodes.push_back(lnode->cloneConfiguration());
+    nodes.push_back(node->cloneConfiguration());
   }
 
   auto normalize = [](const std::vector<std::string> &names) {
