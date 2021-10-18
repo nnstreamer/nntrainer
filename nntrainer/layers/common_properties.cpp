@@ -182,9 +182,9 @@ Padding2D::compute(const TensorDim &input, const TensorDim &kernel,
     };
 
     auto pad_horizontal =
-      calculate_padding(input.width(), kernel.width(), strides[0]);
+      calculate_padding(input.width(), kernel.width(), strides[1]);
     auto pad_vertical =
-      calculate_padding(input.height(), kernel.height(), strides[1]);
+      calculate_padding(input.height(), kernel.height(), strides[0]);
 
     auto pad_top = pad_vertical / 2;
     auto pad_left = pad_horizontal / 2;
