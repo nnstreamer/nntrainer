@@ -36,6 +36,7 @@ test_target = [
   'unittest_layers_fully_connected.cpp',
   'unittest_layers_batch_normalization.cpp',
   'unittest_layers_convolution2d.cpp',
+  'unittest_layers_convolution1d.cpp',
   'unittest_layers_pooling2d.cpp',
   'unittest_layers_flatten.cpp',
   'unittest_layers_activation.cpp',

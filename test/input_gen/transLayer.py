@@ -106,7 +106,9 @@ class ChannelLastTransLayer(AbstractTransLayer):
     # TO_CHANNELS_LAST = (0, 2, 3, 1)
     TO_CHANNELS_LAST = (2, 3, 1)
     # height, width, channel, filter_size -> filter_size, channel, height, width
-    TO_NNTR_KERNEL = (3, 2, 0, 1)
+    TO_NNTR_KERNEL_4D = (3, 2, 0, 1)
+    # width, channel, filter_size -> filter_size, channel, width
+    TO_NNTR_KERNEL_3D = (2, 1, 0)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -138,7 +140,9 @@ class ChannelLastTransLayer(AbstractTransLayer):
     @classmethod
     def _nntr_kernel(cls, tensor):
         if tf.rank(tensor).numpy() == 4:
-            return tf.transpose(tensor, perm=cls.TO_NNTR_KERNEL)
+            return tf.transpose(tensor, perm=cls.TO_NNTR_KERNEL_4D)
+        elif tf.rank(tensor).numpy() == 3:
+            return tf.transpose(tensor, perm=cls.TO_NNTR_KERNEL_3D)
         return tensor
 
     def to_nntr_trainable_weights(self, weights):
@@ -150,6 +154,7 @@ class ChannelLastTransLayer(AbstractTransLayer):
 
 CHANNEL_LAST_LAYERS = (
     K.layers.Conv2D,
+    K.layers.Conv1D,
     K.layers.AveragePooling2D,
     K.layers.AvgPool2D,
     K.layers.MaxPooling2D,
