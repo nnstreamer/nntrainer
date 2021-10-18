@@ -153,8 +153,10 @@ static void compareRunContext(RunLayerContext &rc, std::ifstream &file,
   file.seekg(0, std::ios::beg);
   auto compare_percentage_tensors = [](const Tensor &t1, const Tensor &t2,
                                        unsigned int match_percentage) -> bool {
-    if (match_percentage == 100)
+    if (match_percentage == 100) {
+      EXPECT_EQ(t1, t2);
       return t1 == t2;
+    }
 
     if (t1.getDim() != t2.getDim())
       return false;
