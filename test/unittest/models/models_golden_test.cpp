@@ -129,3 +129,11 @@ ModelGoldenTestParamType mkModelIniTc(const nntrainer::IniWrapper &ini,
                                   nntrainer::TensorDim(label_dim), iteration,
                                   options);
 }
+
+ModelGoldenTestParamType
+mkModelTc(std::function<std::unique_ptr<nntrainer::NeuralNetwork>()> generator,
+          const std::string &name, const std::string &label_dim,
+          const unsigned int iteration, ModelTestOption options) {
+  return ModelGoldenTestParamType(generator, name, label_dim, iteration,
+                                  options);
+}

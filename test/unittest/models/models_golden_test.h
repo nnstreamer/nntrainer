@@ -170,4 +170,20 @@ mkModelIniTc(const nntrainer::IniWrapper &ini, const std::string &label_dim,
              const unsigned int iteration,
              ModelTestOption options = ModelTestOption::ALL);
 
+/**
+ * @brief helper function to generate tcs
+ *
+ * @param generator generator
+ * @param name name
+ * @param label_dim label dimenion
+ * @param iteration iteration
+ * @param options options
+ * @return ModelGoldenTestParamType
+ */
+ModelGoldenTestParamType
+mkModelTc(std::function<std::unique_ptr<nntrainer::NeuralNetwork>()> generator,
+          const std::string &name, const std::string &label_dim,
+          const unsigned int iteration,
+          ModelTestOption options = ModelTestOption::ALL);
+
 #endif // __MODELS_GOLDEN_TEST_H__

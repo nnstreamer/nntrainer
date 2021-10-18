@@ -614,7 +614,7 @@ private:
    */
   void backwarding(std::shared_ptr<LayerNode> node, int iteration,
                    bool calc_derivative);
-}; // namespace nntrainer
+};
 
 } /* namespace nntrainer */
 
