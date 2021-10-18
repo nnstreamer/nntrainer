@@ -43,7 +43,7 @@ test_target = [
 ]
 
 if get_option('enable-profile')
-  test_target += 'unittest_nntrainer_profiler'
+  test_target += [['unittest_nntrainer_profiler', []]]
 endif
 
 foreach target: test_target

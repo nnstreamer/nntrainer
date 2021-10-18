@@ -60,6 +60,9 @@ void LSTMLayer::finalize(InitLayerContext &context) {
     std::get<props::WeightInitializer>(*layer_impl_props);
   auto &bias_initializer = std::get<props::BiasInitializer>(*layer_impl_props);
 
+  NNTR_THROW_IF(std::get<props::Unit>(lstm_props).empty(),
+                std::invalid_argument)
+    << "unit property missing for lstm layer";
   auto unit = std::get<props::Unit>(lstm_props).get();
   auto &hidden_state_activation_type =
     std::get<props::HiddenStateActivation>(lstm_props);
@@ -316,11 +319,15 @@ void LSTMLayer::calcDerivative(RunLayerContext &context) {
       if (deriv_t.height() != 1) {
         dt = deriv_t.getSharedDataTensor({timestep_diff, deriv_t.width()},
                                          start_timestep * deriv_t.width());
+      } else {
+        dt = deriv_t;
+      }
+
+      if (ret_deriv_t.height() != 1) {
         rdt =
           ret_deriv_t.getSharedDataTensor({timestep_diff, ret_deriv_t.width()},
                                           start_timestep * ret_deriv_t.width());
       } else {
-        dt = deriv_t;
         rdt = ret_deriv_t;
       }
 
@@ -357,9 +364,9 @@ void LSTMLayer::calcGradient(RunLayerContext &context) {
   auto ts = std::get<props::Timestep>(lstm_props);
   if (!ts.empty()) {
     auto cur_ts = ts.get();
-    if ((int)cur_ts >= end_timestep)
-      throw std::runtime_error("Timestep to run exceeds input dimensions");
-
+    NNTR_THROW_IF(cur_ts > start_timestep, std::runtime_error)
+      << "Timestep to run exceeds input dimension current timestep" << cur_ts
+      << "start_timestep" << start_timestep;
     start_timestep = cur_ts;
     end_timestep = cur_ts - 1;
   }
@@ -425,7 +432,7 @@ void LSTMLayer::calcGradient(RunLayerContext &context) {
       dc =
         derivc_t.getSharedDataTensor({derivc_t.width()}, t * derivc_t.width());
 
-      if (deriv_t.height() != 1)
+      if (xs_t.height() != 1)
         xs = xs_t.getSharedDataTensor({xs_t.width()}, t * xs_t.width());
       else
         xs = xs_t;
