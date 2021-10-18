@@ -15,6 +15,7 @@
 #define __CONV1D_LAYER_H_
 #ifdef __cplusplus
 
+#include <conv2d_layer.h>
 #include <layer_impl.h>
 #include <memory.h>
 
@@ -96,10 +97,11 @@ public:
 private:
   std::array<unsigned int, 2> padding;
   std::tuple<props::FilterSize, props::KernelSize, props::Stride,
-             props::Padding1D>
+             props::Padding2D>
     conv_props;
 
   std::array<unsigned int, 5> wt_idx; /**< indices of the weights and tensors */
+  std::unique_ptr<Conv2DLayer> conv2d_layer; /**< conv2d layer instance */
 };
 
 } // namespace nntrainer
