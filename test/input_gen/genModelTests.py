@@ -32,7 +32,7 @@ with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=FutureWarning)
     import numpy as np
     import tensorflow as tf
-    from tensorflow.python import keras as K
+    import tensorflow.keras as K
 
 from transLayer import attach_trans_layer as TL
 from transLayer import MultiOutLayer
@@ -436,7 +436,7 @@ if __name__ == "__main__":
             else:
                 ret_array = [a0, a1, a2, a3, a4, b0, o1, o2, o3]
             return ret_array
-            
+
 
         # x -> [a, b] -> c
         x = K.Input(shape=input_shape, name="x")
