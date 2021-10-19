@@ -467,7 +467,9 @@ void NetworkGraph::applyGradientsOnLastAccess(
 sharedConstTensors NetworkGraph::forwarding(bool training) const {
   for (auto iter = cbegin(); iter != cend(); iter++) {
     auto const &ln = *iter;
+    START_PROFILE(profile_keys.at(ln->getType()));
     ln->forwarding(training);
+    END_PROFILE(profile_keys.at(ln->getType()));
   }
 
   sharedConstTensors out;
@@ -504,17 +506,22 @@ void NetworkGraph::backwarding(
 
   auto iter = iter_begin;
   for (; iter != iter_end - 1; iter++) {
-    backwarding_op(*iter, iteration, (*iter)->supportBackwarding());
+    auto &ln = *iter;
+    START_PROFILE(profile_keys.at(ln->getType()));
+    backwarding_op(ln, iteration, ln->supportBackwarding());
+    END_PROFILE(profile_keys.at(ln->getType()));
   }
 
   /**
    * The last trainable layer need not calculate the derivatives
    */
+  START_PROFILE(profile_keys.at((*iter)->getType()));
 #ifdef ENABLE_TEST
   backwarding_op(*iter, iteration, (*iter)->supportBackwarding());
 #else
   backwarding_op(*iter, iteration, false);
 #endif
+  END_PROFILE(profile_keys.at((*iter)->getType()));
 }
 
 std::vector<TensorDim> NetworkGraph::getInputDimension() const {
@@ -811,6 +818,12 @@ int NetworkGraph::initialize(
     std::vector<Var_Grad *> inputs = {};
     auto const &lnode = getSortedLayerNode(idx);
     ml_logd("layer name : %s", lnode->getName().c_str());
+
+    if (profile_keys.find(lnode->getType()) == profile_keys.end()) {
+      int event_key = 0;
+      REGISTER_EVENT(lnode->getType(), event_key);
+      profile_keys[lnode->getType()] = event_key;
+    }
 
     /**
      * Set input dimension for all the layers.

@@ -407,6 +407,9 @@ private:
   ExecutionMode exec_mode; /**< execution mode with which the graph has been
                               currently set or previously set */
 
+  std::unordered_map<std::string, int>
+    profile_keys; /**< profile keys based on the layer type */
+
   /**
    * @brief     topological sort
    * @param[in] ith index of LayerNode
