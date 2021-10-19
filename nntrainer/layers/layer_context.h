@@ -504,6 +504,14 @@ public:
   bool isWeightDependent(unsigned int idx) const;
 
   /**
+   * @brief check current graident is first access
+   *
+   * @param idx index
+   * @return bool true if last access
+   */
+  bool isGradientFirstAccess(unsigned int idx) const;
+
+  /**
    * @brief Get the tensor name
    *
    * @param idx Identifier of the tensor

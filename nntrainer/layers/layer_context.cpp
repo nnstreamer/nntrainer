@@ -258,6 +258,10 @@ bool RunLayerContext::isWeightDependent(unsigned int idx) const {
   return weights[idx]->isDependent();
 }
 
+bool RunLayerContext::isGradientFirstAccess(unsigned int idx) const {
+  return weights[idx]->isGradientFirstAccess();
+}
+
 /**
  * @brief Get the tensor name
  *

@@ -113,18 +113,18 @@ void FullyConnectedLayer::calcGradient(RunLayerContext &context) {
   Tensor &derivative_ = context.getIncomingDerivative(SINGLE_INOUT_IDX);
   Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
 
-  if (context.isWeightDependent(weight_idx[FCParams::bias])) {
+  if (context.isGradientFirstAccess(weight_idx[FCParams::bias])) {
+    derivative_.sum({0, 1, 2}, djdb);
+  } else {
     /// @todo optimize below by adding beta to Tensor::sum
     Tensor t = derivative_.sum({0, 1, 2});
     djdb.add_i(t);
-  } else {
-    derivative_.sum({0, 1, 2}, djdb);
   }
 
-  if (context.isWeightDependent(weight_idx[FCParams::weight])) {
-    input_.dot(derivative_, djdw, true, false, 1.0f);
-  } else {
+  if (context.isGradientFirstAccess(weight_idx[FCParams::weight])) {
     input_.dot(derivative_, djdw, true, false, 0.0f);
+  } else {
+    input_.dot(derivative_, djdw, true, false, 1.0f);
   }
 }
 

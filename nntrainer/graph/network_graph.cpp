@@ -815,6 +815,20 @@ int NetworkGraph::initialize(
     }
   }
 
+  for (unsigned int idx = 0; idx < graph.size(); ++idx) {
+    auto const &lnode = getSortedLayerNode(idx);
+    auto &rc = lnode->getRunContext();
+    auto first_grad_access = std::get<1>(lnode->getExecutionOrder());
+    for (unsigned i = 0; i < rc.getNumWeights(); ++i) {
+      if (!rc.weightHasGradient(i)) {
+        continue;
+      }
+      if (tensor_manager->isFirstAccess(rc.getWeightGrad(i).getName(),
+                                        first_grad_access)) {
+        rc.getWeightObject(i).setAsGradientFirstAccess();
+      }
+    }
+  }
   /**** identify model input / output to be set externally later ****/
   auto identify_as_model_input = [this](LayerNode *node) {
     auto num_input = node->getNumInputs();
