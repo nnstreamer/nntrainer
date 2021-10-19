@@ -481,6 +481,42 @@ sharedConstTensors NetworkGraph::forwarding(bool training) const {
   return out;
 }
 
+void NetworkGraph::backwarding(
+  int iteration,
+  std::function<void(std::shared_ptr<LayerNode>, int, bool)> &backwarding_op)
+  const {
+  /**
+   * last layer backwarding is run out of this loop
+   */
+  auto iter_begin = getBackwardingBeginIter();
+  auto iter_end = getBackwardingEndIter();
+
+  /// there is no layer to train, so backwarding is essentially noop
+  if (iter_begin == iter_end) {
+    return;
+  }
+
+  auto const &lptr_begin = (*iter_begin);
+
+  if (lptr_begin->requireLabel() == false)
+    throw std::runtime_error(
+      "Error: last layer does not accept label, we can't train");
+
+  auto iter = iter_begin;
+  for (; iter != iter_end - 1; iter++) {
+    backwarding_op(*iter, iteration, (*iter)->supportBackwarding());
+  }
+
+  /**
+   * The last trainable layer need not calculate the derivatives
+   */
+#ifdef ENABLE_TEST
+  backwarding_op(*iter, iteration, (*iter)->supportBackwarding());
+#else
+  backwarding_op(*iter, iteration, false);
+#endif
+}
+
 std::vector<TensorDim> NetworkGraph::getInputDimension() const {
   NNTR_THROW_IF(input_dims.empty(), std::invalid_argument)
     << "[NetworkGraph] the graph has no node identified as input!";

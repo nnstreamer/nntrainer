@@ -604,16 +604,6 @@ private:
    * @retval true if matches, false is error
    */
   bool validateInput(sharedConstTensors X);
-
-  /**
-   * @brief     Backward Propagation for the layer
-   * @param[in] layer Layer to backpropagate
-   * @param[in] iteration Iteration Number for the optimizer
-   * @param[in] calc_derivative If the derivative for previous layer must be
-   * calculated
-   */
-  void backwarding(std::shared_ptr<LayerNode> node, int iteration,
-                   bool calc_derivative);
 };
 
 } /* namespace nntrainer */
