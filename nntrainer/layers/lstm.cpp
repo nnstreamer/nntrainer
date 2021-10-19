@@ -395,6 +395,7 @@ void LSTMLayer::calcGradient(RunLayerContext &context) {
       Tensor rdata =
         incoming_deriv.getSharedDataTensor({d.width()}, b * d.width());
       /// @note this is not copying from start ~ end but only start time step
+      // This is copying for self rolling as well as last recurrent unrolled.
       if ((unsigned)start_timestep + 1 == max_timestep) {
         data.fill(rdata);
       } else {
@@ -471,7 +472,8 @@ void LSTMLayer::calcGradient(RunLayerContext &context) {
         acti_func.run_prime_fn(cs, dc, dh);
         dc.multiply_i(ho);
       } else {
-        /// @todo optimize this by updating run_prime_fn to accumulate
+        /// @todo optimize this by updating run_prime_fn to accumulate or make
+        /// it inplace somehow
         Tensor dc_temp(dc.getDim());
         acti_func.run_prime_fn(cs, dc_temp, dh);
         dc_temp.multiply_i(ho);

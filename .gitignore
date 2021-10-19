@@ -43,6 +43,7 @@ Applications/**/*.bin
 *.a
 *.o.d
 *.nnlayergolden
+*.nnmodelgolden
 
 # log files
 *.log

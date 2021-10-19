@@ -10,10 +10,15 @@
 
 import os
 import random
-import torch
+import torch  # torch used here is torch==1.9.1
 import numpy as np
 
 from transLayer_v2 import params_translated
+
+if torch.__version__ != "1.9.1":
+    print(
+        "the script was tested at version 1.9.1 it might not work if torch version is different"
+    )
 
 SEED = 1234
 random.seed(SEED)
@@ -44,6 +49,7 @@ def _rand_like(*shapes, scale=1, rand="int"):
     np_array = map(shape_to_np, shapes)
     return [torch.tensor(t * scale) for t in np_array]
 
+
 ##
 # @brief record a torch model
 # @param iteration number of iteration to record
@@ -63,8 +69,6 @@ def record_v2(model, iteration, input_dims, label_dims, name):
         print("Warning: the file %s is being truncated and overwritten" % file_name)
 
     optimizer = torch.optim.SGD(model.parameters(), lr=0.1)
-
-    print(*(model.named_parameters()))
 
     def record_iteration(write_fn):
         inputs = _rand_like(*input_dims, rand="float")
