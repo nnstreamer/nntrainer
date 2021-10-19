@@ -226,51 +226,6 @@ sharedConstTensors NeuralNetwork::forwarding(sharedConstTensors input,
   return forwarding(training);
 }
 
-void NeuralNetwork::backwarding(std::shared_ptr<LayerNode> node, int iteration,
-                                bool calc_derivative) {
-  /**
-   * Do not change this order:
-   * 1. calcGradient
-   * 2. calcDerivative
-   * 3. applyGradientsOnLastAccess
-   */
-
-  bool apply_gradient = true;
-  /** If gradient optimization mode, then calculate gradient first */
-  if (dynamic_training_opt.isGradientMode())
-    node->calcGradient();
-
-  /**
-   * If optimization off, or gradient must be applied, then this will be true
-   * @todo This apply gradient should be passed to the each weight and later be
-   * queried when updating gradient at once. (after moving apply_gradient out of
-   * this function)
-   *
-   */
-  // auto &layer = node->getObject();
-  // apply_gradient = dynamic_training_opt.checkIfApply(
-  //   layer->getWeightsRef(), layer->net_input[0], layer->net_hidden[0], opt,
-  //   iteration);
-
-  /** If gradient must be applied and its not gradient mode, calculate gradient
-   */
-  if (!dynamic_training_opt.isGradientMode() && apply_gradient)
-    node->calcGradient();
-
-  if (calc_derivative)
-    node->calcDerivative();
-
-  if (apply_gradient) {
-    /// Apply gradient only at the end of the last shared weight access
-    model_graph.applyGradientsOnLastAccess(
-      node.get(), [iteration, opt_ = opt.get()](Weight &w) {
-        w.calcRegularizationGradient();
-        RunOptimizerContext opt_context(&w, iteration);
-        opt_->applyGradient(opt_context);
-      });
-  }
-}
-
 /**
  * @brief     back propagation
  *            Call backwarding function of layer in reverse order
@@ -282,36 +237,54 @@ void NeuralNetwork::backwarding(int iteration) {
   NNTR_THROW_IF(!opt, std::invalid_argument) << "optimizer is null!";
 #endif
 
-  /**
-   * last layer backwarding is run out of this loop
-   */
-  auto iter_begin = model_graph.getBackwardingBeginIter();
-  auto iter_end = model_graph.getBackwardingEndIter();
+  std::function<void(std::shared_ptr<LayerNode>, int, bool)> backwarding_op =
+    [this](std::shared_ptr<LayerNode> node, int iteration,
+           bool calc_derivative) -> void {
+    /**
+     * Do not change this order:
+     * 1. calcGradient
+     * 2. calcDerivative
+     * 3. applyGradientsOnLastAccess
+     */
 
-  /// there is no layer to train, so backwarding is essentially noop
-  if (iter_begin == iter_end) {
-    return;
-  }
+    bool apply_gradient = true;
+    /** If gradient optimization mode, then calculate gradient first */
+    if (dynamic_training_opt.isGradientMode())
+      node->calcGradient();
 
-  auto const &lptr_begin = (*iter_begin);
+    /**
+     * If optimization off, or gradient must be applied, then this will be true
+     * @todo This apply gradient should be passed to the each weight and later
+     * be queried when updating gradient at once. (after moving apply_gradient
+     * out of this function)
+     *
+     */
+    // auto &layer = node->getObject();
+    // apply_gradient = dynamic_training_opt.checkIfApply(
+    //   layer->getWeightsRef(), layer->net_input[0], layer->net_hidden[0], opt,
+    //   iteration);
 
-  if (lptr_begin->requireLabel() == false)
-    throw std::runtime_error(
-      "Error: last layer does not accept label, we can't train");
+    /** If gradient must be applied and its not gradient mode, calculate
+     * gradient
+     */
+    if (!dynamic_training_opt.isGradientMode() && apply_gradient)
+      node->calcGradient();
 
-  auto iter = iter_begin;
-  for (; iter != iter_end - 1; iter++) {
-    backwarding(*iter, iteration, (*iter)->supportBackwarding());
-  }
+    if (calc_derivative)
+      node->calcDerivative();
 
-  /**
-   * The last trainable layer need not calculate the derivatives
-   */
-#ifdef ENABLE_TEST
-  backwarding(*iter, iteration, (*iter)->supportBackwarding());
-#else
-  backwarding(*iter, iteration, false);
-#endif
+    if (apply_gradient) {
+      /// Apply gradient only at the end of the last shared weight access
+      model_graph.applyGradientsOnLastAccess(
+        node.get(), [iteration, opt_ = opt.get()](Weight &w) {
+          w.calcRegularizationGradient();
+          RunOptimizerContext opt_context(&w, iteration);
+          opt_->applyGradient(opt_context);
+        });
+    }
+  };
+
+  model_graph.backwarding(iteration, backwarding_op);
 }
 
 void NeuralNetwork::save(const std::string &file_path,

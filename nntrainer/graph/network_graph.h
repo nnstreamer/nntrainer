@@ -160,11 +160,19 @@ public:
 
   /**
    * @brief     forwarding network graph
-   * @param[in] input data
    * @param[in] training true if forwarding is on training
    * @retval output tensors
    */
   sharedConstTensors forwarding(bool training = false) const;
+
+  /**
+   * @brief     backwarding the network graph
+   * @param[in] iteration current iteration number
+   * @param[in] backwarding_op operation for the backwarding
+   */
+  void backwarding(int iteration,
+                   std::function<void(std::shared_ptr<LayerNode>, int, bool)>
+                     &backwarding_op) const;
 
   /**
    * @brief     get begin iterator for the graph
