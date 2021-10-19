@@ -217,3 +217,13 @@ makeGraph(const std::vector<LayerRepresentation> &layer_reps) {
 
   return graph_rep;
 }
+
+void sizeCheckedReadTensor(nntrainer::Tensor &t, std::ifstream &file,
+                           const std::string &error_msg) {
+  unsigned int sz = 0;
+  nntrainer::checkedRead(file, (char *)&sz, sizeof(unsigned));
+  NNTR_THROW_IF(t.getDim().getDataLen() != sz, std::invalid_argument)
+    << "[ReadFail] dimension does not match at " << error_msg << " sz: " << sz
+    << " dimsize: " << t.getDim().getDataLen() << '\n';
+  t.read(file);
+}

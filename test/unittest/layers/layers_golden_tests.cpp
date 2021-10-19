@@ -31,22 +31,6 @@ using TensorPacks = std::tuple<
   std::vector<Var_Grad> /**< out */, std::vector<Var_Grad> /**< tensors */>;
 
 /**
- * @brief read Tensor with size check
- *
- * @param t tensor to read
- * @param file file stream
- */
-static void sizeCheckedReadTensor(Tensor &t, std::ifstream &file,
-                                  const std::string &error_msg = "") {
-  unsigned int sz = 0;
-  checkedRead(file, (char *)&sz, sizeof(unsigned));
-  NNTR_THROW_IF(t.getDim().getDataLen() != sz, std::invalid_argument)
-    << "[ReadFail] dimension does not match at " << error_msg << " sz: " << sz
-    << " dimsize: " << t.getDim().getDataLen() << '\n';
-  t.read(file);
-}
-
-/**
  * @brief Get the layer Path object
  *
  * @param file_name file name
