@@ -204,6 +204,13 @@ public:
       throw std::invalid_argument(
         "Cannot set external tensor for non-zero lifespan");
 
+    if (t.size() == 0 && t.getData())
+      throw std::invalid_argument(
+        "Error: setting invalid external tensor size 0 for " + name);
+    if (t.size() != 0 && t.size() < spec.tensor->size())
+      throw std::invalid_argument(
+        "Error: setting external tensor of smaller size for " + name);
+
     spec.tensor->setData(t.getData());
   }
 
