@@ -176,6 +176,18 @@ public:
    */
   void validateFor(const nntrainer::TensorDim &label_shape);
 
+  /**
+   * @brief compare values given the golden file format v2
+   *
+   * @param reference reference file name
+   */
+  void compareFor_V2(const std::string &reference);
+
+  /**
+   * @brief   Validate the running of the graph without any errors
+   */
+  void validateFor_V2();
+
 private:
   /**
    * @brief read and prepare the image & label data
