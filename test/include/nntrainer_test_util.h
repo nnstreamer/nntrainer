@@ -207,5 +207,15 @@ using LayerRepresentation = std::pair<std::string, std::vector<std::string>>;
 nntrainer::GraphRepresentation
 makeGraph(const std::vector<LayerRepresentation> &layer_reps);
 
+/**
+ * @brief read tensor after reading tensor size
+ *
+ * @param t tensor to fill
+ * @param file file name
+ * @param error_msg error msg
+ */
+void sizeCheckedReadTensor(nntrainer::Tensor &t, std::ifstream &file,
+                           const std::string &error_msg = "");
+
 #endif /* __cplusplus */
 #endif /* __NNTRAINER_TEST_UTIL_H__ */
