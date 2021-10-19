@@ -90,28 +90,11 @@ public:
  * (practically, std::array<InputShape> is used)
  *
  */
-class InputShape : public Property<TensorDim> {
+class InputShape : public GenericShape {
 
 public:
   static constexpr const char *key = "input_shape"; /**< unique key to access */
   using prop_tag = dimension_prop_tag;              /**< property type */
-
-  /**
-   * @brief Input shape setter
-   *
-   * @param value value to set
-   */
-  void set(const TensorDim &value) override {
-    TensorDim ret = value;
-    ret.setDynDimFlag(0b1000);
-    if (ret.batch() != 1) {
-      ml_logw("Batch size set with input dimension %u is ignored."
-              "Use batchsize property for the model to update batchsize.",
-              ret.batch());
-      ret.batch(1);
-    }
-    Property<TensorDim>::set(ret);
-  }
 };
 
 /**

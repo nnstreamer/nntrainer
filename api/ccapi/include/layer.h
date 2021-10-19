@@ -67,6 +67,7 @@ enum LayerType {
   LAYER_BACKBONE_TFLITE,                   /**< Backbone using TFLite */
   LAYER_ATTENTION,                         /**< Attention Layer type */
   LAYER_CONV1D,                            /**< Convolution 1D Layer type */
+  LAYER_RESHAPE,                           /**< Reshape Layer type */
   LAYER_LOSS_MSE = 500,             /**< Mean Squared Error Loss Layer type */
   LAYER_LOSS_CROSS_ENTROPY_SIGMOID, /**< Cross Entropy with Sigmoid Loss Layer
                                        type */
@@ -242,6 +243,14 @@ Pooling2D(const std::vector<std::string> &properties = {}) {
 inline std::unique_ptr<Layer>
 Flatten(const std::vector<std::string> &properties = {}) {
   return createLayer(LayerType::LAYER_FLATTEN, properties);
+}
+
+/**
+ * @brief Helper function to create reshape layer
+ */
+inline std::unique_ptr<Layer>
+Reshape(const std::vector<std::string> &properties = {}) {
+  return createLayer(LayerType::LAYER_RESHAPE, properties);
 }
 
 /**
