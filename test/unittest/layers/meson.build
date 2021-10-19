@@ -51,6 +51,7 @@ test_target = [
   'unittest_layers_permute.cpp',
   'unittest_layers_attention.cpp',
   'unittest_layers_dropout.cpp',
+  'unittest_layers_reshape.cpp',
 ]
 
 if get_option('enable-tflite-backbone')

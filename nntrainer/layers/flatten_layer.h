@@ -15,7 +15,7 @@
 #define __FLATTEN_LAYER_H__
 #ifdef __cplusplus
 
-#include <layer_devel.h>
+#include <reshape_layer.h>
 
 namespace nntrainer {
 
@@ -23,12 +23,12 @@ namespace nntrainer {
  * @class   Flatten Layer
  * @brief   Flatten Layer
  */
-class FlattenLayer : public Layer {
+class FlattenLayer : public ReshapeLayer {
 public:
   /**
    * @brief     Constructor of Flatten Layer
    */
-  FlattenLayer() : Layer() {}
+  FlattenLayer() : ReshapeLayer() {}
 
   /**
    * @brief     Destructor of Flatten Layer
@@ -53,35 +53,9 @@ public:
   void finalize(InitLayerContext &context) override;
 
   /**
-   * @copydoc Layer::forwarding(RunLayerContext &context, bool training)
-   */
-  void forwarding(RunLayerContext &context, bool training) override;
-
-  /**
-   * @copydoc Layer::calcDerivative(RunLayerContext &context)
-   */
-  void calcDerivative(RunLayerContext &context) override;
-
-  /**
    * @copydoc Layer::setProperty(const std::vector<std::string> &values)
    */
   void setProperty(const std::vector<std::string> &values) override;
-
-  /**
-   * @copydoc bool supportBackwarding() const
-   */
-  bool supportBackwarding() const override { return true; };
-
-  /**
-   * @copydoc Layer::supportInPlace()
-   */
-  bool supportInPlace() const override { return true; }
-
-  /**
-   * @copydoc Layer::exportTo(Exporter &exporter, ExportMethods method)
-   */
-  void exportTo(Exporter &exporter,
-                const ExportMethods &method) const override {}
 
   /**
    * @copydoc Layer::getType()

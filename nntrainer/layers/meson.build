@@ -30,7 +30,8 @@ layer_sources = [
   'gru.cpp',
   'dropout.cpp',
   'centroid_knn.cpp',
-  'layer_context.cpp'
+  'layer_context.cpp',
+  'reshape_layer.cpp'
 ]
 
 layer_headers = [

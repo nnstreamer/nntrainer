@@ -960,6 +960,42 @@ public:
   using prop_tag = uint_prop_tag; /**< property type */
 };
 
+/**
+ * @brief generic shape property which saves a single tensor shape
+ * (practically, std::array<GenericShape> is used)
+ *
+ * @note batch dimension is ignored with this dimension. Setting of batch must
+ * be done with the model.
+ *
+ */
+class GenericShape : public Property<TensorDim> {
+
+public:
+  static constexpr const char *key =
+    "generic_shape";                   /**< unique key to access */
+  using prop_tag = dimension_prop_tag; /**< property type */
+
+  /**
+   * @brief Input shape setter
+   *
+   * @param value value to set
+   */
+  void set(const TensorDim &value) override;
+};
+
+/**
+ * @brief target shape property which saves a single tensor shape
+ * (practically, std::array<TargetShape> is used)
+ *
+ */
+class TargetShape : public GenericShape {
+
+public:
+  static constexpr const char *key =
+    "target_shape";                    /**< unique key to access */
+  using prop_tag = dimension_prop_tag; /**< property type */
+};
+
 } // namespace props
 } // namespace nntrainer
 

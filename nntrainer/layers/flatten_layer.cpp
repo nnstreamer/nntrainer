@@ -21,35 +21,14 @@ namespace nntrainer {
 static constexpr size_t SINGLE_INOUT_IDX = 0;
 
 void FlattenLayer::finalize(InitLayerContext &context) {
-  if (context.getNumInputs() != 1) {
-    throw std::invalid_argument("input_shape keyword is only for one input");
-  }
+  ReshapeLayer::setProperty({"target_shape=-1"});
+  /** @note the output dimension is in invalid state till finalize of
+   * reshape_layer is finished */
+  ReshapeLayer::finalize(context);
 
-  TensorDim out_dim;
   const TensorDim &in_dim = context.getInputDimensions()[0];
   if (in_dim.channel() == 1 && in_dim.height() == 1) {
     ml_logw("Warning: the flatten layer is redundant");
-  }
-
-  out_dim.batch(in_dim.batch());
-  out_dim.channel(1);
-  out_dim.height(1);
-  out_dim.width(in_dim.getFeatureLen());
-
-  context.setOutputDimensions({out_dim});
-}
-
-void FlattenLayer::forwarding(RunLayerContext &context, bool training) {
-  if (!context.executeInPlace()) {
-    context.getOutput(SINGLE_INOUT_IDX)
-      .copyData(context.getInput(SINGLE_INOUT_IDX));
-  }
-}
-
-void FlattenLayer::calcDerivative(RunLayerContext &context) {
-  if (!context.executeInPlace()) {
-    context.getOutgoingDerivative(SINGLE_INOUT_IDX)
-      .copyData(context.getIncomingDerivative(SINGLE_INOUT_IDX));
   }
 }
 

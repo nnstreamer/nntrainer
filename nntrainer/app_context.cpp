@@ -224,6 +224,8 @@ static void add_default_object(AppContext &ac) {
                      Pooling2DLayer::type, LayerType::LAYER_POOLING2D);
   ac.registerFactory(nntrainer::createLayer<FlattenLayer>, FlattenLayer::type,
                      LayerType::LAYER_FLATTEN);
+  ac.registerFactory(nntrainer::createLayer<ReshapeLayer>, ReshapeLayer::type,
+                     LayerType::LAYER_RESHAPE);
   ac.registerFactory(nntrainer::createLayer<ActivationLayer>,
                      ActivationLayer::type, LayerType::LAYER_ACTIVATION);
   ac.registerFactory(nntrainer::createLayer<AdditionLayer>, AdditionLayer::type,

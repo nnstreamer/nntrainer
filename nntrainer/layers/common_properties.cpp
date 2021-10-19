@@ -13,6 +13,7 @@
 #include <common_properties.h>
 
 #include <nntrainer_error.h>
+#include <nntrainer_log.h>
 #include <tensor_dim.h>
 
 #include <regex>
@@ -303,6 +304,19 @@ bool WeightRegularizer::isValid(
 }
 
 FlipDirection::FlipDirection(FlipDirectionInfo::Enum value) { set(value); }
+
+void GenericShape::set(const TensorDim &value) {
+  TensorDim ret = value;
+  ret.setDynDimFlag(0b1000);
+  if (ret.batch() != 1) {
+    ml_logw("Batch size set with dimension %u is ignored."
+            "Use batchsize property for the model to update batchsize.",
+            ret.batch());
+    ret.batch(1);
+  }
+  Property<TensorDim>::set(ret);
+}
+
 } // namespace props
 
 static const std::vector<std::pair<char, std::string>>
