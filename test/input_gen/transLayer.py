@@ -13,7 +13,7 @@ with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=FutureWarning)
     import numpy as np
     import tensorflow as tf
-    from tensorflow.python import keras as K
+    import tensorflow.keras as K
 
 import inspect
 from inspect import signature
@@ -24,7 +24,7 @@ from inspect import signature
 # input, output, weights are reinterpreted to be in nntrainer_layer layout
 class AbstractTransLayer(K.layers.Layer):
     def __init__(self, tf_layer, *args, **kwargs):
-        if not isinstance(tf_layer, K.engine.base_layer.Layer):
+        if not isinstance(tf_layer, K.layers.Layer):
             raise ValueError("tf_layer must be type of keras layer")
         super().__init__(*args, **kwargs, name=tf_layer.name + "/translated")
         self.tf_layer = tf_layer
@@ -213,9 +213,8 @@ class MultiOutLayer(IdentityTransLayer):
 # @brief A factory function to attach translayer to existing layer
 # if nothing should be attached, it does not attach the layer
 def attach_trans_layer(layer):
-    if isinstance(
-        layer,
-        (K.layers.BatchNormalization, K.layers.normalization_v2.BatchNormalization),
+    if isinstance(layer,
+        (K.layers.BatchNormalization),
     ):
         return BatchNormTransLayer(layer)
 

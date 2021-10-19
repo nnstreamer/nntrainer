@@ -19,7 +19,7 @@ with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=FutureWarning)
     import numpy as np
     import tensorflow as tf
-    from tensorflow.python import keras as K
+    import tensorflow.keras as K
 
 from transLayer import attach_trans_layer, MultiOutLayer
 

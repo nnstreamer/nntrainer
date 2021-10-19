@@ -27,7 +27,7 @@ with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=FutureWarning)
     import numpy as np
     import tensorflow as tf
-    from tensorflow.python import keras as K
+    import tensorflow.keras as K
 
 ##
 # @brief inpsect if file is created correctly
@@ -104,7 +104,7 @@ if __name__ == "__main__":
                          return_sequences=True,
                          return_state=False)
     record_single(lstm, (3, 1, 7), "lstm_single_step_seq")
-    record_single(lstm, (3, 4, 7), "lstm_multi_step_seq")
+    record_single(lstm, (3, 4, 7), "lstm_multi_step_seq", input_type='float')
 
     lstm = K.layers.LSTM(units=5,
                          recurrent_activation="tanh",
@@ -113,7 +113,7 @@ if __name__ == "__main__":
                          return_state=False)
     record_single(lstm, (3, 4, 7), "lstm_multi_step_seq_act")
 
-    gru = K.layers.GRU(units=5,
+    gru = K.layers.GRU(units=5, reset_after=False,
                          recurrent_activation="sigmoid",
                          activation="tanh",
                          return_sequences=False,
@@ -121,7 +121,7 @@ if __name__ == "__main__":
     record_single(gru, (3, 1, 7), "gru_single_step")
     record_single(gru, (3, 4, 7), "gru_multi_step")
 
-    gru = K.layers.GRU(units=5,
+    gru = K.layers.GRU(units=5, reset_after=False,
                          recurrent_activation="sigmoid",
                          activation="tanh",
                          return_sequences=True,
@@ -129,7 +129,7 @@ if __name__ == "__main__":
     record_single(gru, (3, 1, 7), "gru_single_step_seq")
     record_single(gru, (3, 4, 7), "gru_multi_step_seq", input_type='float')
 
-    gru = K.layers.GRU(units=5,
+    gru = K.layers.GRU(units=5, reset_after=False,
                          recurrent_activation="tanh",
                          activation="sigmoid",
                          return_sequences=True,
