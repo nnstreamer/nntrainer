@@ -21,6 +21,7 @@
 #include <ini_wrapper.h>
 #include <tensor_dim.h>
 
+inline constexpr const char *DIM_UNUSED = "1:1:1";
 namespace nntrainer {
 class NeuralNetwork;
 }
@@ -33,6 +34,8 @@ typedef enum {
   COMPARE = 1 << 0,           /**< Set this to compare the numbers */
   SAVE_AND_LOAD_INI = 1 << 1, /**< Set this to check if saving and constructing
                                  a new model works okay (without weights) */
+  COMPARE_V2 = 1 << 2,        /**< compare with v2 model format */
+
   NO_THROW_RUN = 0, /**< no comparison, only validate execution without throw */
   ALL = COMPARE | SAVE_AND_LOAD_INI /**< Set every option */
 } ModelTestOption;
@@ -109,15 +112,6 @@ protected:
   std::string getName() { return name; }
 
   /**
-   * @brief Get the Golden Name object
-   *
-   * @return std::string
-   */
-  std::string getGoldenName() {
-    return name.substr(0, name.find("__")) + ".info";
-  }
-
-  /**
    * @brief Get the number of iteration
    *
    * @return int integer
@@ -137,7 +131,7 @@ protected:
    * @return bool true if test should be done
    */
   bool shouldCompare() {
-    return (options & ModelTestOption::COMPARE) == ModelTestOption::COMPARE;
+    return options & (ModelTestOption::COMPARE | ModelTestOption::COMPARE_V2);
   }
 
   /**
@@ -149,7 +143,39 @@ protected:
     return options & ModelTestOption::SAVE_AND_LOAD_INI;
   }
 
+  /**
+   * @brief compare for the value
+   *
+   * @param opt set if compare while optimized
+   */
+  void compare(bool opt);
+
+  /**
+   * @brief validate for the value
+   *
+   * @param opt set if validate while optimized
+   */
+  void validate(bool opt);
+
 private:
+  /**
+   * @brief Get the Golden Name object
+   *
+   * @return std::string
+   */
+  std::string getGoldenName() {
+    return name.substr(0, name.find("__")) + ".info";
+  }
+
+  /**
+   * @brief Get the GoldenName V2 object
+   *
+   * @return std::string
+   */
+  std::string getGoldenName_V2() {
+    return name.substr(0, name.find("__")) + ".nnmodelgolden";
+  }
+
   std::function<std::unique_ptr<nntrainer::NeuralNetwork>()> nn_creator;
   nntrainer::TensorDim label_dim;
   int iteration;
@@ -185,5 +211,17 @@ mkModelTc(std::function<std::unique_ptr<nntrainer::NeuralNetwork>()> generator,
           const std::string &name, const std::string &label_dim,
           const unsigned int iteration,
           ModelTestOption options = ModelTestOption::ALL);
+
+/**
+ * @brief helper function to generate tcs
+ *
+ * @param generator generator
+ * @param name name
+ * @param options options
+ * @return ModelGoldenTestParamType
+ */
+ModelGoldenTestParamType mkModelTc_V2(
+  std::function<std::unique_ptr<nntrainer::NeuralNetwork>()> generator,
+  const std::string &name, ModelTestOption options = ModelTestOption::ALL);
 
 #endif // __MODELS_GOLDEN_TEST_H__

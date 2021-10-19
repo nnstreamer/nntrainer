@@ -17,6 +17,24 @@
 #include <gtest/gtest.h>
 #include <neuralnet.h>
 
+void nntrainerModelTest::compare(bool opt) {
+  GraphWatcher g(createModel(), opt);
+  if (options & (ModelTestOption::COMPARE_V2)) {
+    g.compareFor_V2(getGoldenName_V2());
+  } else {
+    g.compareFor(getGoldenName(), getLabelDim(), getIteration());
+  }
+}
+
+void nntrainerModelTest::validate(bool opt) {
+  GraphWatcher g(createModel(), opt);
+  if (options & (ModelTestOption::COMPARE_V2)) {
+    g.validateFor_V2();
+  } else {
+    g.validateFor(getLabelDim());
+  }
+}
+
 /**
  * @brief check given ini is failing/suceeding at unoptimized running
  */
@@ -26,9 +44,7 @@ TEST_P(nntrainerModelTest, model_test) {
     return;
   }
   /** Check model with all optimizations off */
-
-  GraphWatcher g_unopt(createModel(), false);
-  g_unopt.compareFor(getGoldenName(), getLabelDim(), getIteration());
+  compare(false);
 
   /// add stub test for tcm
   EXPECT_TRUE(true);
@@ -44,8 +60,7 @@ TEST_P(nntrainerModelTest, model_test_optimized) {
   }
   /** Check model with all optimizations on */
 
-  GraphWatcher g_opt(createModel(), true);
-  g_opt.compareFor(getGoldenName(), getLabelDim(), getIteration());
+  compare(true);
 
   /// add stub test for tcm
   EXPECT_TRUE(true);
@@ -55,10 +70,7 @@ TEST_P(nntrainerModelTest, model_test_optimized) {
  * @brief check given ini is failing/suceeding at validation
  */
 TEST_P(nntrainerModelTest, model_test_validate) {
-  /** Check model with all optimizations on */
-  GraphWatcher g_opt(createModel(), true);
-  g_opt.validateFor(getLabelDim());
-
+  validate(true);
   /// add stub test for tcm
   EXPECT_TRUE(true);
 }
@@ -80,12 +92,7 @@ TEST_P(nntrainerModelTest, model_test_save_load_compare) {
   EXPECT_NO_THROW(
     nn->save(saved_ini_name, ml::train::ModelFormat::MODEL_FORMAT_INI));
 
-  GraphWatcher g(saved_ini_name, false);
-  g.compareFor(getGoldenName(), getLabelDim(), getIteration());
-  if (remove(saved_ini_name.c_str())) {
-    std::cerr << "remove ini " << saved_ini_name
-              << "failed, reason: " << strerror(errno);
-  }
+  compare(false);
 }
 
 TEST_P(nntrainerModelTest, model_test_save_load_verify) {
@@ -136,4 +143,11 @@ mkModelTc(std::function<std::unique_ptr<nntrainer::NeuralNetwork>()> generator,
           const unsigned int iteration, ModelTestOption options) {
   return ModelGoldenTestParamType(generator, name, label_dim, iteration,
                                   options);
+}
+
+ModelGoldenTestParamType mkModelTc_V2(
+  std::function<std::unique_ptr<nntrainer::NeuralNetwork>()> generator,
+  const std::string &name, ModelTestOption options) {
+  /** iteration and label_dim is not used */
+  return ModelGoldenTestParamType(generator, name, DIM_UNUSED, 1, options);
 }
