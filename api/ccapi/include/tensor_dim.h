@@ -34,6 +34,13 @@ public:
   static constexpr const size_t MAXDIM = 4;
 
   /**
+   * @brief Get the Num Dim object
+   *
+   * @return unsigned int fixed value of MAXDIM
+   */
+  static unsigned int getNumDim();
+
+  /**
    * @brief Construct a new Tensor Dim object
    *
    * @param eff_dim_flag_ effective dimension flag (1 means it's effective)
@@ -229,13 +236,6 @@ public:
    * @return const unsigned int* array of size[MAXDIM]
    */
   const unsigned int *getDim() const;
-
-  /**
-   * @brief Get the Num Dim object
-   *
-   * @return unsigned int fixed value of MAXDIM
-   */
-  unsigned int getNumDim() const;
 
   /**
    * @brief calculate tranposed dimension

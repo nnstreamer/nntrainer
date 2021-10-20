@@ -78,7 +78,33 @@ public:
    */
   void setProperty(const std::vector<std::string> &values) override;
 
+  /**
+   * @copydoc Layer::setBatch(RunLayerContext &context, unsigned int batch)
+   */
+  void setBatch(RunLayerContext &context, unsigned int batch) override {
+    setBatch(batch);
+  }
+
   inline static const std::string type = "concat";
+
+private:
+  unsigned int leading_helper_dim; /**< batch dimension of helper dimension not
+                                containing the actual batch */
+  std::vector<TensorDim>
+    input_reshape_helper;          /** helper dimension to reshape inputs */
+  TensorDim output_reshape_helper; /** helper dimension to reshape outputs */
+  std::tuple<props::ConcatDimension> concat_props;
+
+  /**
+   * @brief set batch for the internal variables
+   *
+   * @param batch update batch size
+   */
+  void setBatch(unsigned int batch) {
+    for (auto &irh : input_reshape_helper)
+      irh.batch(batch * leading_helper_dim);
+    output_reshape_helper.batch(batch * leading_helper_dim);
+  }
 };
 
 } // namespace nntrainer

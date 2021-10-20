@@ -22,3 +22,22 @@ auto semantic_concat =
 
 INSTANTIATE_TEST_CASE_P(Concat, LayerSemantics,
                         ::testing::Values(semantic_concat));
+
+auto concat_dim3 = LayerGoldenTestParamType(
+  nntrainer::createLayer<nntrainer::ConcatLayer>, {"axis=3"},
+  "2:3:3:2, 2:3:3:3", "concat_dim3.nnlayergolden",
+  LayerGoldenTestParamOptions::DEFAULT);
+
+auto concat_dim2 = LayerGoldenTestParamType(
+  nntrainer::createLayer<nntrainer::ConcatLayer>, {"axis=2"},
+  "2:3:2:3, 2:3:3:3", "concat_dim2.nnlayergolden",
+  LayerGoldenTestParamOptions::DEFAULT);
+
+auto concat_dim1 = LayerGoldenTestParamType(
+  nntrainer::createLayer<nntrainer::ConcatLayer>, {"axis=1"},
+  "2:2:3:3, 2:3:3:3", "concat_dim1.nnlayergolden",
+  LayerGoldenTestParamOptions::DEFAULT);
+
+INSTANTIATE_TEST_CASE_P(Concat, LayerGoldenTest,
+                        ::testing::Values(concat_dim3, concat_dim2,
+                                          concat_dim1));

@@ -2502,7 +2502,7 @@ TEST_F(nntrainer_SplitLayer, init_01_p) {
 
   for (unsigned int idx = 1; idx < nntrainer::MAXDIM; idx++) {
     std::stringstream ss;
-    ss << "split_dimension=" << idx;
+    ss << "axis=" << idx;
     EXPECT_EQ(ML_ERROR_NONE, layer.setProperty({ss.str()}));
     ss.clear();
     layer.initialize(manager);
@@ -2528,7 +2528,7 @@ TEST_F(nntrainer_SplitLayer, init_01_p) {
 TEST_F(nntrainer_SplitLayer, init_02_n) {
   nntrainer::TensorDim out_dim_expect;
   layer.setBatch(9);
-  layer.setProperty({"split_dimension=0"});
+  layer.setProperty({"axis=0"});
   EXPECT_EQ(ML_ERROR_INVALID_PARAMETER, layer.initialize(manager));
 }
 
@@ -2538,9 +2538,9 @@ TEST_F(nntrainer_SplitLayer, init_02_n) {
 TEST_F(nntrainer_SplitLayer, init_03_n) {
   nntrainer::TensorDim out_dim_expect;
   layer.setBatch(9);
-  layer.setProperty({"split_dimension=5"});
+  layer.setProperty({"axis=5"});
   EXPECT_EQ(ML_ERROR_INVALID_PARAMETER, layer.initialize(manager));
-  layer.setProperty({"split_dimension=8"});
+  layer.setProperty({"axis=8"});
   EXPECT_EQ(ML_ERROR_INVALID_PARAMETER, layer.initialize(manager));
 }
 
@@ -2560,7 +2560,7 @@ TEST_F(nntrainer_SplitLayer, forwarding_backwarding_01_p) {
     EXPECT_EQ(ML_ERROR_NONE, concat.setProperty({ss.str()}));
     ss.str(std::string());
 
-    ss << "split_dimension=" << idx;
+    ss << "axis=" << idx;
     layer.setProperty({ss.str()});
     EXPECT_EQ(ML_ERROR_NONE, layer.setProperty({ss.str()}));
 

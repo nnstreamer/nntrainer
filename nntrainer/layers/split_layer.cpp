@@ -38,10 +38,9 @@ void SplitLayer::finalize(InitLayerContext &context) {
   /**
    * The split is only done along the split_dimension dimension.
    * For example, consider input dimension [b,c,h,w],
-   * 1. split_dimension = 0, output_dim = [1,c,h,w], num_outputs = b
-   * 2. split_dimension = 1, output_dim = [b,1,h,w], num_outputs = c
-   * 3. split_dimension = 2, output_dim = [b,c,1,w], num_outputs = h
-   * 4. split_dimension = 3, output_dim = [b,c,h,1], num_outputs = w
+   * 1. axis = 1, output_dim = [b,1,h,w], num_outputs = c
+   * 2. axis = 2, output_dim = [b,c,1,w], num_outputs = h
+   * 3. axis = 3, output_dim = [b,c,h,1], num_outputs = w
    */
   const TensorDim &in_dim = context.getInputDimensions()[0];
   if (in_dim.getTensorDim(split_dimension) != context.getNumOutputs())
