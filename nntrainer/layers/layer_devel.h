@@ -85,7 +85,7 @@ public:
    *            30. out_dim : int ( output dimesion for embedding layer )
    *            31. recurrent_activation :  string (type) - lstm
    *            32. distribute : bool
-   *            33. split_dimension : string (type)
+   *            33. axis : string (type)
    *            34. return_sequences :  bool (type) - lstm
    *            35. hidden_state_activation :  string (type) - lstm
    *            36. dropout : bool
@@ -124,7 +124,7 @@ public:
     out_dim = 30,
     recurrent_activation = 31,
     distribute = 32,
-    split_dimension = 33,
+    axis = 33,
     return_sequences = 34,
     hidden_state_activation = 35,
     dropout = 36,

@@ -295,26 +295,49 @@ public:
 };
 
 /**
+ * @brief Axis property, idx in the dimension
+ *
+ */
+class Axis : public nntrainer::PositiveIntegerProperty {
+public:
+  static constexpr const char *key = "axis"; /**< unique key to access */
+  using prop_tag = uint_prop_tag;            /**< property type */
+
+  /**
+   * @brief check if given value is valid
+   *
+   * @param v value to check
+   * @retval true if it is greater equal to 0 and smaller than
+   * ml::train::TensorDim::MAXDIM
+   * @retval false if it is samller than 0 or greater than
+   * ml::train::TensorDim::MAXDIM
+   */
+  bool isValid(const unsigned int &value) const override;
+};
+
+/**
  * @brief SplitDimension property, dimension along which to split the input
  *
  */
-class SplitDimension : public nntrainer::PositiveIntegerProperty {
+class SplitDimension : public Axis {
 public:
-  static constexpr const char *key =
-    "split_dimension";            /**< unique key to access */
-  using prop_tag = uint_prop_tag; /**< property type */
-
   /**
    * @brief check if given value is valid
    *
    * @param v value to check
    * @retval true if it is greater than 0 and smaller than
    * ml::train::TensorDim::MAXDIM
-   * @retval false if it is samller than 0 or greate than
+   * @retval false if it is samller or equal to 0 or greate than
    * ml::train::TensorDim::MAXDIM
    */
   bool isValid(const unsigned int &value) const override;
 };
+
+/**
+ * @brief ConcatDimension property, dimension along which to concat the input
+ *
+ */
+class ConcatDimension : public SplitDimension {};
 
 /**
  * @brief FilterSize property, filter size is used to measure how many filters

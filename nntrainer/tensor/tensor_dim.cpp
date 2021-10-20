@@ -185,7 +185,7 @@ void TensorDim::width(unsigned int w) { setTensorDim(3, w); }
 
 const unsigned int *TensorDim::getDim() const { return dim; }
 
-unsigned int TensorDim::getNumDim() const { return MAXDIM; }
+unsigned int TensorDim::getNumDim() { return MAXDIM; }
 
 TensorDim TensorDim::transpose(const std::string &direction) const {
   int dirs[MAXDIM - 1];

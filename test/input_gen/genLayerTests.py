@@ -170,5 +170,14 @@ if __name__ == "__main__":
     record_single(conv, (1, 2, 1, 5), "conv1d_sb_1x1_kernel")
     record_single(conv, (3, 2, 1, 5), "conv1d_mb_1x1_kernel")
 
+    concat = K.layers.Concatenate(axis=3)
+    record_single(concat, [(2,3,3,2), (2, 3, 3, 3)], "concat_dim3")
+
+    concat = K.layers.Concatenate(axis=2)
+    record_single(concat, [(2,3,2,3), (2, 3, 3, 3)], "concat_dim2")
+
+    concat = K.layers.Concatenate(axis=1)
+    record_single(concat, [(2,2,3,3), (2, 3, 3, 3)], "concat_dim1")
+
 inspect_file("dropout_20_training.nnlayergolden")
 
