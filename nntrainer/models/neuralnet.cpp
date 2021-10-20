@@ -450,9 +450,7 @@ void NeuralNetwork::saveModelIni(const std::string &file_path) {
 }
 
 bool NeuralNetwork::validateInput(sharedConstTensors X) {
-
-  auto const &first_layer_node = model_graph.getSortedLayerNode(0);
-  auto input_dim = first_layer_node->getInputDimensions();
+  auto input_dim = getInputDimension();
   if (X.size() != input_dim.size()) {
     ml_loge("Error: provided number of inputs %d, required %d", (int)X.size(),
             (int)input_dim.size());
