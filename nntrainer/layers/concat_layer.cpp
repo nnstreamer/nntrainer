@@ -32,7 +32,11 @@ void ConcatLayer::finalize(InitLayerContext &context) {
 
   auto &concat_dimension_prop = std::get<props::ConcatDimension>(concat_props);
   /** for backward compatibility, default concat dimension will be channel */
-  unsigned int concat_dimension = 1;
+  /// @todo this is hacky way to force concat dimension to width if channel
+  /// dimension is taken, this is because recurrent realizer, return sequence
+  /// exploits concat layer but have no control over where to stack/axis
+  unsigned int concat_dimension =
+    context.getInputDimensions().front().channel() > 1 ? 3 : 1;
   if (!concat_dimension_prop.empty())
     concat_dimension = concat_dimension_prop.get();
 
