@@ -29,7 +29,10 @@ __all__ = ["record_v2", "inspect_file"]
 
 
 def _get_writer(file):
-    def write_fn(*items):
+    def write_fn(items):
+        if not isinstance(items, (list, tuple)):
+            items = [items]
+
         for item in items:
             np.array([item.numel()], dtype="int32").tofile(file)
             item.detach().cpu().numpy().tofile(file)
@@ -74,9 +77,9 @@ def record_v2(model, iteration, input_dims, label_dims, name):
         inputs = _rand_like(*input_dims, rand="float")
         labels = _rand_like(*label_dims, rand="float")
         output, loss = model(inputs, labels)
-        write_fn(*inputs)
-        write_fn(*labels)
-        write_fn(*(t for _, t in params_translated(model)))
+        write_fn(inputs)
+        write_fn(labels)
+        write_fn(list(t for _, t in params_translated(model)))
         write_fn(output)
 
         optimizer.zero_grad()
@@ -96,7 +99,7 @@ def record_v2(model, iteration, input_dims, label_dims, name):
 # @brief inpsect if file is created correctly
 # @note this just checks if offset is corretly set, The result have to inspected
 # manually
-def inspect_file(file_name):
+def inspect_file(file_name, show_content=True):
     with open(file_name, "rb") as f:
         sz = int.from_bytes(f.read(4), byteorder="little")
         if not sz:
@@ -107,5 +110,7 @@ def inspect_file(file_name):
             if not sz:
                 break
             print("size: ", sz)
-            print(np.fromfile(f, dtype="float32", count=sz))
+            t = np.fromfile(f, dtype="float32", count=sz)
+            if show_content:
+                print(t)
 
