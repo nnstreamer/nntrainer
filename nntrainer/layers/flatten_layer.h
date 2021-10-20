@@ -58,6 +58,11 @@ public:
   void setProperty(const std::vector<std::string> &values) override;
 
   /**
+   * @copydoc Layer::exportTo(Exporter &exporter, ExportMethods method)
+   */
+  void exportTo(Exporter &exporter, const ExportMethods &method) const override;
+
+  /**
    * @copydoc Layer::getType()
    */
   const std::string getType() const override { return FlattenLayer::type; };

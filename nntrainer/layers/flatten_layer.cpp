@@ -39,4 +39,8 @@ void FlattenLayer::setProperty(const std::vector<std::string> &values) {
     throw exception::not_supported(msg);
   }
 }
+
+void FlattenLayer::exportTo(Exporter &exporter,
+                            const ExportMethods &method) const {}
+
 } /* namespace nntrainer */

@@ -69,4 +69,10 @@ void ReshapeLayer::setProperty(const std::vector<std::string> &values) {
     throw exception::not_supported(msg);
   }
 }
+
+void ReshapeLayer::exportTo(Exporter &exporter,
+                            const ExportMethods &method) const {
+  exporter.saveResult(reshape_props, method, this);
+}
+
 } /* namespace nntrainer */
