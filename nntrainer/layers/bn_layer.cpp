@@ -44,14 +44,13 @@ enum BNParams {
   t_full
 };
 
-BatchNormalizationLayer::BatchNormalizationLayer(int axis_) :
+BatchNormalizationLayer::BatchNormalizationLayer() :
   Layer(),
-  axis(axis_),
   divider(0),
   wt_idx({0}),
   bn_props(props::Epsilon(), props::BNPARAMS_MU_INIT(),
            props::BNPARAMS_VAR_INIT(), props::BNPARAMS_BETA_INIT(),
-           props::BNPARAMS_GAMMA_INIT(), props::Momentum()) {}
+           props::BNPARAMS_GAMMA_INIT(), props::Momentum(), props::Axis()) {}
 
 /// @todo add multiple axis support
 void BatchNormalizationLayer::finalize(InitLayerContext &context) {
@@ -74,8 +73,12 @@ void BatchNormalizationLayer::finalize(InitLayerContext &context) {
   TensorDim dim;
 
   /// @note this logic cannot tell channel is actually 1 or it is just not used.
-  if (axis == -1)
+  auto &axis_prop = std::get<props::Axis>(bn_props);
+  unsigned int axis;
+  if (axis_prop.empty())
     axis = in_dim.channel() > 1 ? 1 : 3;
+  else
+    axis = axis_prop.get();
 
   /**
    * @todo This can be speedup by employing transpose for convolution. With
@@ -87,7 +90,7 @@ void BatchNormalizationLayer::finalize(InitLayerContext &context) {
   dim.setTensorDim(axis, in_dim.getTensorDim(axis));
 
   divider = 1;
-  for (int i = 0; i < 4; ++i) {
+  for (unsigned int i = 0; i < 4; ++i) {
     if (axis != i) {
       axes_to_reduce.push_back(i);
       divider *= in_dim.getTensorDim(i);
