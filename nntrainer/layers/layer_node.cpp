@@ -636,6 +636,8 @@ std::unique_ptr<LayerNode> LayerNode::cloneConfiguration() {
     << "It is prohibited to clone configuration";
   Exporter e;
   exportTo(e, ExportMethods::METHOD_STRINGVECTOR);
+  e.saveResult(*layer_node_props_realization,
+               ExportMethods::METHOD_STRINGVECTOR, this);
   auto props = e.getResult<ExportMethods::METHOD_STRINGVECTOR>();
 
   std::vector<std::string> key_val_props;
