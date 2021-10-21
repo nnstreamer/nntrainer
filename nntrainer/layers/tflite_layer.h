@@ -64,7 +64,7 @@ public:
   /**
    * @copydoc Layer::supportBackwarding()
    */
-  bool supportBackwarding() const { return false; }
+  bool supportBackwarding() const override { return false; }
 
   /**
    * @copydoc Layer::setProperty(const PropertyType type, const std::string

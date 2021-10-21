@@ -52,6 +52,18 @@ public:
   virtual ~LayerImpl() = default;
 
   /**
+   *  @brief  Move constructor of LayerImpl Layer.
+   *  @param[in] LayerImpl &&
+   */
+  LayerImpl(LayerImpl &&rhs) noexcept = default;
+
+  /**
+   * @brief  Move assignment operator.
+   * @parma[in] rhs LayerImpl to be moved.
+   */
+  LayerImpl &operator=(LayerImpl &&rhs) = default;
+
+  /**
    * @copydoc Layer::setProperty(const std::vector<std::string> &values)
    */
   virtual void setProperty(const std::vector<std::string> &values) override;

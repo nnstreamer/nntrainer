@@ -80,7 +80,7 @@ public:
    *
    * @return const std::string type representation
    */
-  const std::string getType() const;
+  const std::string getType() const override;
 
   /**
    * @brief     set Property of layer
@@ -112,7 +112,9 @@ public:
    *
    * @param[in] name Name of the layer
    */
-  void setName(const std::string &name) { setProperty({"name=" + name}); }
+  void setName(const std::string &name) override {
+    setProperty({"name=" + name});
+  }
 
   /**
    * @brief     Get the input connections for this node
@@ -137,14 +139,14 @@ public:
    *
    * @retval    the execution order/location of this node
    */
-  ExecutionOrder getExecutionOrder() const { return exec_order; }
+  ExecutionOrder getExecutionOrder() const override { return exec_order; }
 
   /**
    * @brief     set the execution order/location of this node
    *
    * @param     exec_order the execution order/location of this node
    */
-  void setExecutionOrder(ExecutionOrder exec_order_) {
+  void setExecutionOrder(ExecutionOrder exec_order_) override {
     exec_order = exec_order_;
   }
 

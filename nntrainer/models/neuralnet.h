@@ -111,19 +111,19 @@ public:
    * @brief     Get Loss from the previous ran batch of data
    * @retval    loss value
    */
-  float getLoss();
+  float getLoss() override;
 
   /**
    * @brief     Get Loss from the previous epoch of training data
    * @retval    loss value
    */
-  float getTrainingLoss() { return training.loss; }
+  float getTrainingLoss() override { return training.loss; }
 
   /**
    * @brief     Get Loss from the previous epoch of validation data
    * @retval    loss value
    */
-  float getValidationLoss() { return validation.loss; }
+  float getValidationLoss() override { return validation.loss; }
 
   /**
    * @brief     Get Learning rate
@@ -137,14 +137,14 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int loadFromConfig(const std::string &config);
+  int loadFromConfig(const std::string &config) override;
 
   /**
    * @brief     Compile the graph in the model
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int compile();
+  int compile() override;
 
   /**
    * @brief     set Property of Network
@@ -160,7 +160,7 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int initialize();
+  int initialize() override;
 
   /**
    * @brief     Allocate memory for the model. This should be called after
@@ -279,7 +279,7 @@ public:
    */
   std::vector<float *> inference(unsigned int batch,
                                  std::vector<float *> &input,
-                                 std::vector<float *> &label);
+                                 std::vector<float *> &label) override;
 
   /**
    * @brief     Run NeuralNetwork train with callback function by user
@@ -289,7 +289,7 @@ public:
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
   int setDataset(const DatasetModeType &dt,
-                 std::shared_ptr<ml::train::Dataset> dataset);
+                 std::shared_ptr<ml::train::Dataset> dataset) override;
 
   /**
    * @brief     Run NeuralNetwork train with callback function by user
@@ -307,7 +307,7 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int addLayer(std::shared_ptr<ml::train::Layer> layer) {
+  int addLayer(std::shared_ptr<ml::train::Layer> layer) override {
     return addLayer(std::static_pointer_cast<LayerNode>(layer));
   }
 
@@ -333,7 +333,7 @@ public:
    * @retval #ML_ERROR_NONE Successful.
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
-  int setOptimizer(std::shared_ptr<ml::train::Optimizer> optimizer);
+  int setOptimizer(std::shared_ptr<ml::train::Optimizer> optimizer) override;
 
   /**
    * @brief     get layer by name from neural network model
@@ -343,7 +343,7 @@ public:
    * @retval #ML_ERROR_INVALID_PARAMETER invalid parameter.
    */
   virtual int getLayer(const char *name,
-                       std::shared_ptr<ml::train::Layer> *layer);
+                       std::shared_ptr<ml::train::Layer> *layer) override;
 
   /**
    * @brief     get layer by name from neural network model
@@ -367,7 +367,7 @@ public:
    * @brief     get input dimension of neural network
    * @retval std::vector<TensorDim> input dimension
    */
-  std::vector<TensorDim> getInputDimension() {
+  std::vector<TensorDim> getInputDimension() override {
     if (!compiled) {
       throw std::logic_error("model should be compiled before get dimension");
     }
@@ -378,7 +378,7 @@ public:
    * @brief     get output dimension of neural network
    * @retval std::vector<TensorDim> output dimension
    */
-  std::vector<TensorDim> getOutputDimension() {
+  std::vector<TensorDim> getOutputDimension() override {
     if (!compiled) {
       throw std::logic_error("model should be compiled before get dimension");
     }
@@ -427,7 +427,8 @@ public:
    * @param out std::ostream to get the model summary
    * @param verbosity verbosity of the summary
    */
-  virtual void summarize(std::ostream &out, ml_train_summary_type_e verbosity) {
+  virtual void summarize(std::ostream &out,
+                         ml_train_summary_type_e verbosity) override {
     printPreset(out, (unsigned int)verbosity);
   }
 

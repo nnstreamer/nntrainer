@@ -87,7 +87,9 @@ public:
   /**
    * @copydoc Layer::supportBackwarding()
    */
-  bool supportBackwarding() const { return dist_layer->supportBackwarding(); }
+  bool supportBackwarding() const override {
+    return dist_layer->supportBackwarding();
+  }
 
   /**
    * @copydoc Layer::setBatch(RunLayerContext &context, unsigned int batch)
@@ -110,12 +112,14 @@ public:
   /**
    * @copydoc Layer::supportInPlace()
    */
-  virtual bool supportInPlace() const { return false; }
+  virtual bool supportInPlace() const override { return false; }
 
   /**
    * @copydoc Layer::requireLabel()
    */
-  virtual bool requireLabel() const { return dist_layer->requireLabel(); }
+  virtual bool requireLabel() const override {
+    return dist_layer->requireLabel();
+  }
 
   /**
    * @brief     set distribute layer

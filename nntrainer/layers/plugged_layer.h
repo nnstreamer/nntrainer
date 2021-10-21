@@ -124,12 +124,14 @@ public:
   /**
    * @copydoc Layer::requireLabel()
    */
-  bool requireLabel() const { return layerImpl->requireLabel(); }
+  bool requireLabel() const override { return layerImpl->requireLabel(); }
 
   /**
    * @copydoc Layer::supportBackwarding()
    */
-  bool supportBackwarding() const { return layerImpl->supportBackwarding(); }
+  bool supportBackwarding() const override {
+    return layerImpl->supportBackwarding();
+  }
 
 private:
   nntrainer::Layer *layerImpl;
