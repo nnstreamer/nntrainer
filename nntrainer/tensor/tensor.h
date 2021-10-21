@@ -738,37 +738,80 @@ public:
    * @brief Apply instantly to the element
    *
    * @param f function to apply
+   * @param[in] unseq_par can be unsequentially parallelized, otherwise will be
+   * sequentially parallelized
+   *
    * @return int ML_ERROR_NONE if successful
+   *
+   * @note apply is expected to run in parallel and caller must ensure that the
+   * operations to be performed are independent
    */
-  int apply_i(std::function<float(float)> f);
+  int apply_i(std::function<float(float)> f, bool unseq_par = true);
 
   /**
    * @brief     Apply function element by element
+   *
    * @param[in] *function function pointer applied
+   * @param[in] unseq_par can be unsequentially parallelized, otherwise will be
+   * sequentially parallelized
+   *
    * @retval    Tensor
+   *
+   * @note apply is expected to run in parallel and caller must ensure that the
+   * operations to be performed are independent
    */
-  Tensor apply(std::function<float(float)> f) const;
+  Tensor apply(std::function<float(float)> f, bool unseq_par = true) const;
 
   /**
    * @brief     Apply function element by element
+   *
+   * @param[in] *function function pointer applied
+   * @param[in] unseq_par can be unsequentially parallelized, otherwise will be
+   * sequentially parallelized
+   *
+   * @retval    Tensor
+   *
+   * @note apply is expected to run in parallel and caller must ensure that the
+   * operations to be performed are independent
+   */
+  Tensor applySequential(std::function<float(float)> f) const;
+
+  /**
+   * @brief     Apply function element by element
+   *
    * @param[in] *function function pointer applied
    * @param[out] output output tensor
+   * @param[in] unseq_par can be unsequentially parallelized, otherwise will be
+   * sequentially parallelized
+   *
    * @retval    Tensor
+   *
+   * @note apply is expected to run in parallel and caller must ensure that the
+   * operations to be performed are independent
    */
-  Tensor &apply(std::function<float(float)> f, Tensor &output) const;
+  Tensor &apply(std::function<float(float)> f, Tensor &output,
+                bool unseq_par = true) const;
 
   /**
    * @brief     Apply function to Tensor
+   *
    * @param[in] *function function pointer applied
    * @retval    Tensor
+   *
+   * @note apply is expected to run in parallel and caller must ensure that the
+   * operations to be performed are independent
    */
   Tensor apply(std::function<Tensor(Tensor)> f) const;
 
   /**
    * @brief     Apply function to Tensor
+   *
    * @param[in] *function function pointer applied
    * @param[out] output output tensor
    * @retval    Tensor
+   *
+   * @note apply is expected to run in parallel and caller must ensure that the
+   * operations to be performed are independent
    */
   Tensor &apply(std::function<Tensor &(Tensor, Tensor &)> f,
                 Tensor &output) const;
@@ -1251,6 +1294,22 @@ private:
    * @param axis2 second axis to merge
    */
   void mergeAxis(unsigned int axis1, unsigned int axis2);
+
+  /**
+   * @brief     Apply function element by element
+   *
+   * @param[in] *function function pointer applied
+   * @param[out] output output tensor
+   * @param[in] unseq_par can be unsequentially parallelized, otherwise will be
+   * sequentially parallelized
+   *
+   * @retval    Tensor
+   *
+   * @note apply is expected to run in parallel and caller must ensure that the
+   * operations to be performed are independent
+   */
+  Tensor &apply(std::function<float(float)> f, Tensor &output, bool parallel,
+                bool unseq) const;
 }; // namespace nntrainer
 
 /**

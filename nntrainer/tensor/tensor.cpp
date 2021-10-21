@@ -21,8 +21,9 @@
  *
  */
 
-#include <assert.h>
+#include <cassert>
 #include <cmath>
+#include <cstdio>
 #include <cstring>
 #include <fstream>
 #include <iomanip>
@@ -30,7 +31,10 @@
 #include <random>
 #include <regex>
 #include <sstream>
-#include <stdio.h>
+
+#ifdef ENABLE_PARALLEL
+#include <execution>
+#endif
 
 #include <blas_interface.h>
 #include <lazy_tensor.h>
@@ -1023,19 +1027,30 @@ void Tensor::dropout_mask(float dropout) {
   }
 }
 
-int Tensor::apply_i(std::function<float(float)> f) {
+int Tensor::apply_i(std::function<float(float)> f, bool par_unseq) {
   Tensor result = *this;
-  apply(f, result);
+  apply(f, result, par_unseq);
 
   return ML_ERROR_NONE;
 }
 
-Tensor Tensor::apply(std::function<float(float)> f) const {
+Tensor Tensor::apply(std::function<float(float)> f, bool par_unseq) const {
   Tensor result;
-  return apply(f, result);
+  return apply(f, result, par_unseq);
 }
 
-Tensor &Tensor::apply(std::function<float(float)> f, Tensor &output) const {
+Tensor &Tensor::apply(std::function<float(float)> f, Tensor &output,
+                      bool unseq_par) const {
+  return apply(f, output, true, unseq_par);
+}
+
+Tensor Tensor::applySequential(std::function<float(float)> f) const {
+  Tensor result;
+  return apply(f, result, false, false);
+}
+
+Tensor &Tensor::apply(std::function<float(float)> f, Tensor &output,
+                      bool parallel, bool unseq) const {
   CREATE_IF_EMPTY_DIMS(output, dim);
 
   if (dim != output.dim) {
@@ -1047,7 +1062,14 @@ Tensor &Tensor::apply(std::function<float(float)> f, Tensor &output) const {
   if (contiguous && output.contiguous) {
     const float *data = getData();
     float *rdata = output.getData();
-    std::transform(data, data + size(), rdata, f);
+#ifdef ENABLE_PARALLEL
+    if (parallel && unseq)
+      std::transform(std::execution::par_unseq, data, data + size(), rdata, f);
+    else if (parallel)
+      std::transform(std::execution::par, data, data + size(), rdata, f);
+    else
+#endif
+      std::transform(data, data + size(), rdata, f);
   } else {
     /** @todo optimize this with a tensor iterator */
     for (unsigned int b = 0; b < batch(); ++b) {
@@ -1235,8 +1257,8 @@ void Tensor::fill(const Tensor &from, bool alloc) {
   }
 
   if (strides != from.getStrides()) {
-    /// @todo length does not represent buffer size, there should be way to get
-    /// the buffer size
+    /// @todo length does not represent buffer size, there should be way to
+    /// get the buffer size
     throw std::invalid_argument("[Tensor::fill] buffer size must be the same");
   }
 

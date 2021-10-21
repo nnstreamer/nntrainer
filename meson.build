@@ -14,6 +14,7 @@ extra_defines = ['-DMIN_CPP_VERSION=201703L']
 
 cc = meson.get_compiler('c')
 cxx = meson.get_compiler('cpp')
+compiler_version = cxx.version()
 
 if get_option('platform') == 'tizen'
   # Pass __TIZEN__ to the compiler
@@ -135,6 +136,14 @@ endif
 openmp_dep = dummy_dep
 if get_option('enable-openmp')
   openmp_dep = dependency('openmp')
+endif
+
+tbb_dep = dependency('tbb', required: false)
+# parallel execution is only enabled since gcc9
+if tbb_dep.found() and compiler_version.version_compare('>=9')
+  add_project_arguments('-DENABLE_PARALLEL=1', language:['c', 'cpp'])
+else
+  message('Parallel execution not enabled')
 endif
 
 if get_option('enable-profile')

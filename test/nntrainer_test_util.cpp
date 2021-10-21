@@ -169,7 +169,7 @@ nntrainer::Tensor ranged(unsigned int batch, unsigned int channel,
                          unsigned int height, unsigned int width) {
   nntrainer::Tensor t(batch, channel, height, width);
   unsigned int i = 0;
-  return t.apply([&](float in) { return i++; });
+  return t.applySequential([&](float in) { return i++; });
 }
 
 nntrainer::Tensor randUniform(unsigned int batch, unsigned int channel,

@@ -19,6 +19,10 @@
 #include <iostream>
 #include <vector>
 
+#ifdef ENABLE_PARALLEL
+#include <execution>
+#endif
+
 #include <acti_func.h>
 #include <blas_interface.h>
 #include <lazy_tensor.h>
@@ -179,9 +183,15 @@ Tensor &ActiFunc::softmax(Tensor const &t, Tensor &output) {
 
   for (unsigned int k = 0; k < fixed_dim; k++) {
     int index = k * feat_len;
+#ifdef ENABLE_PARALLEL
+    std::transform(
+      std::execution::par_unseq, rp + index, rp + index + feat_len, rp + index,
+      std::bind(std::divides<float>(), std::placeholders::_1, sum.getValue(k)));
+#else
     std::transform(
       rp + index, rp + index + feat_len, rp + index,
       std::bind(std::divides<float>(), std::placeholders::_1, sum.getValue(k)));
+#endif
   }
 
   return output;

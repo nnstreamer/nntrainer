@@ -1697,7 +1697,7 @@ TEST(nntrainer_Tensor, average_p) {
   EXPECT_EQ(actual, expected);
 
   int idx = 0;
-  t = t.apply([&](float in) { return idx++ % 2; });
+  t = t.applySequential([&](float in) { return idx++ % 2; });
 
   actual = t.average();
   expected = constant(0.5, 1, 1, 1, 1);
@@ -1708,20 +1708,20 @@ TEST(nntrainer_Tensor, average_axis_p) {
   nntrainer::Tensor t = constant(1.0, 2, 2, 2, 2);
   int idx = 0;
   std::function<float(float)> f = [&](float in) { return idx++ % 2; };
-  t = t.apply(f);
+  t = t.applySequential(f);
 
   nntrainer::Tensor actual, expected;
 
   actual = t.average(0);
-  expected = constant(0, 1, 2, 2, 2).apply(f);
+  expected = constant(0, 1, 2, 2, 2).applySequential(f);
   EXPECT_EQ(actual, expected);
 
   actual = t.average(1);
-  expected = constant(0, 2, 1, 2, 2).apply(f);
+  expected = constant(0, 2, 1, 2, 2).applySequential(f);
   EXPECT_EQ(actual, expected);
 
   actual = t.average(2);
-  expected = constant(0, 2, 2, 1, 2).apply(f);
+  expected = constant(0, 2, 2, 1, 2).applySequential(f);
   EXPECT_EQ(actual, expected);
 
   actual = t.average(3);
