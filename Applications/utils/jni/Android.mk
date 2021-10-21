@@ -15,7 +15,6 @@ UTILS_INCLUDES := $(NNTRAINER_APPLICATION)/utils/jni/includes
 LOCAL_ARM_NEON      := true
 LOCAL_CFLAGS        += -pthread -fexceptions -fopenmp
 LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions
-LOCAL_LDFLAGS       += -fuse-ld=bfd
 LOCAL_MODULE_TAGS   := optional
 
 LOCAL_LDLIBS        := -llog -landroid -fopenmp
