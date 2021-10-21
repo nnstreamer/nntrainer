@@ -21,6 +21,7 @@
 #include <util_func.h>
 
 namespace nntrainer {
+ConcatLayer::ConcatLayer() : Layer(), leading_helper_dim(1) {}
 
 static constexpr size_t SINGLE_INOUT_IDX = 0;
 
