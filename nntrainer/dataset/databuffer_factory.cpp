@@ -53,10 +53,12 @@ std::unique_ptr<DataBuffer> createDataBuffer(DatasetType type,
     break;
   case DatasetType::UNKNOWN:
     [[fallthrough]];
-  default:
-    throw std::invalid_argument(
-      "Unsupported constructor type for the dataset of type: " +
-      static_cast<int>(type));
+  default: {
+    std::stringstream ss;
+    ss << "Unsupported constructor type for the dataset of type: "
+       << static_cast<int>(type);
+    throw std::invalid_argument(ss.str().c_str());
+  }
   };
 
   return std::make_unique<DataBuffer>(std::move(dp));
@@ -75,10 +77,12 @@ std::unique_ptr<DataBuffer> createDataBuffer(DatasetType type, datagen_cb cb,
     break;
   case DatasetType::UNKNOWN:
     [[fallthrough]];
-  default:
-    throw std::invalid_argument(
-      "Unsupported constructor type for the dataset of type: " +
-      static_cast<int>(type));
+  default: {
+    std::stringstream ss;
+    ss << "Unsupported constructor type for the dataset of type: "
+       << static_cast<int>(type);
+    throw std::invalid_argument(ss.str().c_str());
+  }
   };
 
   return std::make_unique<DataBuffer>(std::move(dp));
