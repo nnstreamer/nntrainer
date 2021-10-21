@@ -76,10 +76,10 @@ def record_v2(model, iteration, input_dims, label_dims, name):
     def record_iteration(write_fn):
         inputs = _rand_like(*input_dims, rand="float")
         labels = _rand_like(*label_dims, rand="float")
-        output, loss = model(inputs, labels)
         write_fn(inputs)
         write_fn(labels)
         write_fn(list(t for _, t in params_translated(model)))
+        output, loss = model(inputs, labels)
         write_fn(output)
 
         optimizer.zero_grad()
