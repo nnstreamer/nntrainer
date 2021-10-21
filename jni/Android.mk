@@ -231,7 +231,6 @@ INIPARSER_INCLUDES := $(INIPARSER_ROOT)/src
 LOCAL_ARM_NEON      := true
 LOCAL_CFLAGS        += -pthread -fexceptions -fopenmp
 LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions
-LOCAL_LDFLAGS       += -fuse-ld=bfd
 LOCAL_MODULE_TAGS   := optional
 
 LOCAL_LDLIBS        := -llog -landroid -fopenmp
@@ -281,7 +280,6 @@ LOCAL_SHARED_LIBRARIES := nntrainer
 LOCAL_ARM_NEON      := true
 LOCAL_CFLAGS        += -pthread -fexceptions -fopenmp
 LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions
-LOCAL_LDFLAGS       += -fuse-ld=bfd
 LOCAL_MODULE_TAGS   := optional
 
 LOCAL_LDLIBS        := -llog -landroid -fopenmp
@@ -306,7 +304,6 @@ LOCAL_SHARED_LIBRARIES := ccapi-nntrainer ml-api-inference nntrainer
 LOCAL_ARM_NEON      := true
 LOCAL_CFLAGS        += -pthread -fexceptions -fopenmp
 LOCAL_CXXFLAGS      += -std=c++17 -frtti -fexceptions
-LOCAL_LDFLAGS       += -fuse-ld=bfd
 LOCAL_MODULE_TAGS   := optional
 
 LOCAL_LDLIBS        := -llog -landroid -fopenmp
