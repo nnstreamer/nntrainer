@@ -46,6 +46,13 @@ def fc_translate(model):
     new_params = [transpose_(params[0]), params[1]]
     yield from new_params
 
+@register_for_(torch.nn.BatchNorm1d)
+def bn1d_translate(model):
+    gamma, beta = [(name, tensor.detach()) for name, tensor in model.named_parameters()]
+    mu, var, _ = [(name, tensor.detach()) for name, tensor in model.named_buffers()]
+    yield from [mu, var, gamma, beta]
+
+
 @register_for_(torch.nn.LSTMCell)
 def lstm_translate(model):
     params = [(name, tensor.detach()) for name, tensor in model.named_parameters()]
