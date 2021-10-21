@@ -73,17 +73,17 @@ public:
   /**
    * @copydoc applyGradient(RunOptimizerContext &context)
    */
-  void applyGradient(RunOptimizerContext &context);
+  void applyGradient(RunOptimizerContext &context) override;
 
   /**
    * @copydoc Optimizer::getType()
    */
-  const std::string getType() const { return Adam::type; }
+  const std::string getType() const override { return Adam::type; }
 
   /**
    * @copydoc   getLearningRate(int iteration)
    */
-  double getLearningRate(size_t iteration) const;
+  double getLearningRate(size_t iteration) const override;
 
   /**
    * @copydoc Optimizer::getOptimizerVariableDim(const TensorDim &dim)

@@ -96,12 +96,12 @@ public:
    * @param[in] iteration Iteration for the learning rate
    * @retval    Learning rate
    */
-  double getLearningRate(size_t iteration) const;
+  double getLearningRate(size_t iteration) const override;
 
   /**
    * @copydoc Optimizer::setProperty(const std::vector<std::string> &values)
    */
-  virtual void setProperty(const std::vector<std::string> &values);
+  void setProperty(const std::vector<std::string> &values) override;
 
   /**
    * @copydoc Optimizer::exportTo(Exporter &exporter, const ExportMethods&
