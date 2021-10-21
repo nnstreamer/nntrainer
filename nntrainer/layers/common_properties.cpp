@@ -117,7 +117,7 @@ bool Momentum::isValid(const float &value) const {
 }
 
 bool Axis::isValid(const unsigned int &value) const {
-  return value >= 0 && value < ml::train::TensorDim::MAXDIM;
+  return value < ml::train::TensorDim::MAXDIM;
 }
 
 bool SplitDimension::isValid(const unsigned int &value) const {

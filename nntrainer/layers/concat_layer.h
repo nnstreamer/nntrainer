@@ -28,7 +28,7 @@ public:
   /**
    * @brief     Constructor of Concat Layer
    */
-  ConcatLayer() : Layer() {}
+  ConcatLayer();
 
   /**
    * @brief     Destructor of Concat Layer
