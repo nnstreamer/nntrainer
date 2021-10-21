@@ -29,12 +29,12 @@ public:
   /**
    * @brief     Constructor of Attention Layer
    */
-  AttentionLayer() : Layer() {}
+  AttentionLayer();
 
   /**
    * @brief     Destructor of Attention Layer
    */
-  ~AttentionLayer() {}
+  ~AttentionLayer();
 
   /**
    *  @brief  Move constructor of AttentionLayer.

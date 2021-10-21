@@ -17,6 +17,10 @@
 
 namespace nntrainer {
 
+AttentionLayer::AttentionLayer() : wt_idx({0}) {}
+
+AttentionLayer::~AttentionLayer() {}
+
 static constexpr size_t SINGLE_INOUT_IDX = 0;
 
 enum AttentionParams { query = 0, value = 1, key = 2, score, weights };
