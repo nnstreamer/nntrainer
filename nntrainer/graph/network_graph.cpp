@@ -802,7 +802,7 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
 int NetworkGraph::initialize(
   const std::vector<std::string> &model_input_names,
   const std::vector<std::string> &model_label_names) {
-  int status = ML_ERROR_NONE;
+
   /**
    * this contains the map from node name to its input tensor names
    * @note: these input tensors have already been allocated
@@ -946,9 +946,6 @@ int NetworkGraph::initialize(
                             identify_as_model_input);
   identify_external_tensors(model_label_names, is_label_node,
                             identify_as_model_label);
-
-  if (status != ML_ERROR_NONE)
-    return status;
 
   return checkInitializedGraph();
 }
