@@ -269,25 +269,37 @@ subdir('nntrainer')
 subdir('api')
 
 if get_option('enable-test')
-  if gtest_dep.found()
-    subdir('test')
+  if get_option('platform') == 'android'
+    warning('test is not supported in android build, test skipped')
   else
-    error('test enabled but gtest not found')
+    if gtest_dep.found()
+      subdir('test')
+    else
+      error('test enabled but gtest not found')
+    endif
   endif
 endif
 
 if get_option('enable-app')
-  jsoncpp_dep = dependency('jsoncpp') # jsoncpp
-  libcurl_dep = dependency('libcurl')
-  if not tflite_dep.found()
-    error('Tensorflow-Lite dependency not found')
+  if get_option('platform') == 'android'
+    warning('android app is not supported for now, building app skipped')
+  else
+    jsoncpp_dep = dependency('jsoncpp') # jsoncpp
+    libcurl_dep = dependency('libcurl')
+    if not tflite_dep.found()
+      error('Tensorflow-Lite dependency not found')
+    endif
+    subdir('Applications')
   endif
-  subdir('Applications')
 endif
 
 if get_option('enable-nnstreamer-tensor-filter')
-  nnstreamer_dep = dependency('nnstreamer', required: true)
-  subdir('nnstreamer/tensor_filter')
+  if get_option('platform') == 'android'
+    warning('android nnstreamer-filter is not yet supported, building nnstreamer-filter skipped')
+  else
+    nnstreamer_dep = dependency('nnstreamer', required: true)
+    subdir('nnstreamer/tensor_filter')
+  endif
 endif
 
 if get_option('enable-android')
