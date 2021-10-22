@@ -18,26 +18,30 @@ ccapi_deps = [
   nntrainer_dep
 ]
 
-shared_library('ccapi-nntrainer',
-  ccapi_src,
-  dependencies: ccapi_deps,
-  include_directories: ccapi_inc,
-  install: true,
-  install_dir: nntrainer_libdir,
-)
+if get_option('platform') == 'android'
+  nntrainer_ccapi_dep = found_dummy_dep
+else
+  shared_library('ccapi-nntrainer',
+    ccapi_src,
+    dependencies: ccapi_deps,
+    include_directories: ccapi_inc,
+    install: true,
+    install_dir: nntrainer_libdir,
+  )
 
-nntrainer_ccapi_lib = static_library('ccapi-nntrainer',
-  ccapi_src,
-  dependencies: ccapi_deps,
-  include_directories: ccapi_inc,
-  install: true,
-  install_dir: nntrainer_libdir,
-)
+  nntrainer_ccapi_lib = static_library('ccapi-nntrainer',
+    ccapi_src,
+    dependencies: ccapi_deps,
+    include_directories: ccapi_inc,
+    install: true,
+    install_dir: nntrainer_libdir,
+  )
 
-nntrainer_ccapi_dep = declare_dependency(link_with: nntrainer_ccapi_lib,
-  dependencies: ccapi_deps,
-  include_directories: ccapi_inc,
-)
+  nntrainer_ccapi_dep = declare_dependency(link_with: nntrainer_ccapi_lib,
+    dependencies: ccapi_deps,
+    include_directories: ccapi_inc,
+  )
+endif
 
 configure_file(input: 'ccapi-ml-training.pc.in', output: 'ccapi-ml-training.pc',
   install_dir: nntrainer_libdir / 'pkgconfig',

@@ -48,32 +48,36 @@ foreach s : nntrainer_common_sources
   nntrainer_sources += meson.current_source_dir() / s
 endforeach
 
-# Build libraries
-nntrainer_shared = shared_library('nntrainer',
-  nntrainer_sources,
-  dependencies: nntrainer_base_deps,
-  include_directories: nntrainer_inc,
-  install: true,
-  install_dir: nntrainer_libdir
-)
+if get_option('platform') == 'android'
+  nntrainer_dep = found_dummy_dep
+else
+  # Build libraries
+  nntrainer_shared = shared_library('nntrainer',
+    nntrainer_sources,
+    dependencies: nntrainer_base_deps,
+    include_directories: nntrainer_inc,
+    install: true,
+    install_dir: nntrainer_libdir
+  )
 
-nntrainer_static = static_library('nntrainer',
-  nntrainer_sources,
-  dependencies: nntrainer_base_deps,
-  include_directories: nntrainer_inc,
-  install: true,
-  install_dir: nntrainer_libdir
-)
+  nntrainer_static = static_library('nntrainer',
+    nntrainer_sources,
+    dependencies: nntrainer_base_deps,
+    include_directories: nntrainer_inc,
+    install: true,
+    install_dir: nntrainer_libdir
+  )
 
-nntrainer_lib = nntrainer_shared
-if get_option('default_library') == 'static'
-  nntrainer_lib = nntrainer_static
+  nntrainer_lib = nntrainer_shared
+  if get_option('default_library') == 'static'
+    nntrainer_lib = nntrainer_static
+  endif
+
+  nntrainer_dep = declare_dependency(link_with: nntrainer_lib,
+    dependencies: nntrainer_base_deps,
+    include_directories: nntrainer_inc
+  )
 endif
-
-nntrainer_dep = declare_dependency(link_with: nntrainer_lib,
-  dependencies: nntrainer_base_deps,
-  include_directories: nntrainer_inc
-)
 
 # Install headers
 install_headers(nntrainer_headers,
