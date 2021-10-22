@@ -953,20 +953,21 @@ Tensor Tensor::transpose(const std::string &direction) const {
 
 Tensor Tensor::dropout_mask(float dropout) const {
   Tensor result(dim);
-  result.setValue(1.0);
-  Tensor rand_temp(dim);
-  rand_temp.setRandUniform(0.0, 1.0);
-  float scale = 1.0 / (1 - dropout);
-
-  float *mask = result.getData();
-  float *random = rand_temp.getData();
-  for (unsigned int i = 0; i < size(); ++i) {
-    if (random[i] >= dropout)
-      mask[i] = mask[i] * scale;
-    else
-      mask[i] = 0.0;
-  }
+  result.dropout_mask(dropout);
   return result;
+}
+
+void Tensor::dropout_mask(float dropout) {
+  setRandUniform(0.0, 1.0);
+  float scale = 1.0 / (1 - dropout);
+  float *data_ = getData();
+
+  for (unsigned int i = 0; i < size(); ++i) {
+    if (data_[i] >= dropout)
+      data_[i] = scale;
+    else
+      data_[i] = 0.0;
+  }
 }
 
 int Tensor::apply_i(std::function<float(float)> f) {

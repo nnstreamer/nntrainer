@@ -212,9 +212,10 @@ void GRULayer::forwarding(RunLayerContext &context, bool training) {
       Tensor xs =
         islice.getSharedDataTensor({islice.width()}, t * islice.width());
 
-      if (dropout_rate > 0.0 && training) {
-        xs.multiply_i(xs.dropout_mask(dropout_rate));
-      }
+      /** @todo verify this dropout working */
+      // if (dropout_rate > 0.0 && training) {
+      //   xs.multiply_i(xs.dropout_mask(dropout_rate));
+      // }
       hs = oslice.getSharedDataTensor({oslice.width()}, t * oslice.width());
       Tensor zrg_t =
         zrg_.getSharedDataTensor({unit * NUM_GATE}, unit * t * NUM_GATE);
@@ -265,7 +266,7 @@ void GRULayer::forwarding(RunLayerContext &context, bool training) {
                          .getBatchSlice(b, 1);
         Tensor msk =
           mask_.getSharedDataTensor({mask_.width()}, t * mask_.width());
-        msk = hs.dropout_mask(dropout_rate);
+        msk.dropout_mask(dropout_rate);
         hs.multiply_i(msk);
       }
     }
