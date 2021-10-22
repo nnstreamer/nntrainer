@@ -10,6 +10,7 @@
 #
 # usage: ./prepare_ml-api-common.sh target
 
+set -e
 TARGET=$1
 # Note: zip name can be nnstreamer-native-*.zip but this file is heavier to download
 FILE_PREFIX=nnstreamer-lite-native

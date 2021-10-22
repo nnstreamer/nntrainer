@@ -96,6 +96,7 @@ nntrainer_conf.set('INCLUDE_INSTALL_DIR', nntrainer_includedir)
 nntrainer_conf.set('CAPI_ML_COMMON_DEP', get_option('capi-ml-common-actual'))
 
 dummy_dep = dependency('', required: false)
+found_dummy_dep = declare_dependency() # dummy dep to use if found
 
 blas_dep = dummy_dep
 # Dependencies
@@ -107,6 +108,10 @@ if get_option('enable-blas')
   add_project_arguments('-DUSE_BLAS=1', language:['c','cpp'])
   if get_option('platform') == 'tizen' or get_option('platform') == 'yocto'
     blas_dep = dependency('openblas')
+  elif get_option('platform') == 'android'
+    message('preparing blas')
+    run_command(meson.source_root() / 'jni' / 'prepare_openblas.sh', meson.build_root(), check: true)
+    blas_dep = found_dummy_dep
   else
     blas_dep = dependency('blas-openblas', required:false)
     # for Ubuntu 20.04
@@ -150,6 +155,12 @@ libdl_dep = cxx.find_library('dl') # DL library
 thread_dep = dependency('threads') # pthread for tensorflow-lite
 
 iniparser_dep = dependency('iniparser', required : false, version : '>=4.1') # iniparser
+if get_option('platform') == 'android'
+  message('preparing iniparser')
+  run_command(meson.source_root() / 'jni' / 'prepare_iniparser.sh', meson.build_root(), check: true)
+  iniparser_dep = found_dummy_dep
+endif
+
 if not iniparser_dep.found()
   message('falling back to find libiniparser library and header files')
   libiniparser_dep = cxx.find_library('iniparser')
@@ -187,13 +198,30 @@ if nnstreamer_capi_dep.found()
   endif
 endif
 
-ml_api_common_dep = dependency(get_option('capi-ml-common-actual'), required: true)
+ml_api_common_dep = dummy_dep
+
+if get_option('platform') != 'android'
+  ml_api_common_dep = dependency(get_option('capi-ml-common-actual'), required: true)
+else
+  message('preparing ml api')
+  run_command(meson.source_root() / 'jni' / 'prepare_ml-api.sh', meson.build_root(), check: true)
+  ml_api_common_dep = found_dummy_dep
+endif
 
 if get_option('enable-nnstreamer-backbone')
   add_project_arguments('-DENABLE_NNSTREAMER_BACKBONE=1', language:['c','cpp'])
 endif
 
-tflite_dep = dependency('tensorflow2-lite', required: false)
+tflite_dep = dummy_dep
+
+if get_option('platform') != 'android'
+  tflite_dep = dependency('tensorflow2-lite', required: false)
+else
+  message('preparing tflite')
+  run_command(meson.source_root() / 'jni' / 'prepare_tflite.sh', '2.3.0', meson.build_root(), check: true)
+  tflite_dep = found_dummy_dep
+endif
+
 if get_option('enable-tflite-backbone')
   add_project_arguments('-DENABLE_TFLITE_BACKBONE=1', language:['c','cpp'])
 endif
@@ -297,4 +325,12 @@ if get_option('enable-android')
     command: ndk_build_command
   )
 
+endif
+
+if get_option('platform') == 'android'
+  subdir('jni')
+endif
+
+if get_option('platform') != 'none'
+  message('building for ' + get_option('platform'))
 endif

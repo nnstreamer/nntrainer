@@ -1,4 +1,4 @@
-option('platform', type: 'combo', choices: ['none', 'tizen', 'yocto'], value: 'none')
+option('platform', type: 'combo', choices: ['none', 'tizen', 'yocto', 'android'], value: 'none')
 option('enable-app', type: 'boolean', value: true)
 option('install-app', type: 'boolean', value: true)
 option('use_gym', type: 'boolean', value: false)
