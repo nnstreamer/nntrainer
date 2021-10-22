@@ -116,6 +116,11 @@ if get_option('enable-blas')
   endif
 endif
 
+openmp_dep = dummy_dep
+if get_option('enable-openmp')
+  openmp_dep = dependency('openmp')
+endif
+
 if get_option('enable-profile')
   add_project_arguments('-DPROFILE=1', language:['c', 'cpp'])
 endif

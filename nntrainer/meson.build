@@ -15,7 +15,8 @@ nntrainer_base_deps=[
   ml_api_common_dep,
   libm_dep,
   libdl_dep,
-  thread_dep
+  thread_dep,
+  openmp_dep
 ]
 
 if get_option('platform') == 'tizen'

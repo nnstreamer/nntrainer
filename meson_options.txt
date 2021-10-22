@@ -1,6 +1,4 @@
 option('platform', type: 'combo', choices: ['none', 'tizen', 'yocto'], value: 'none')
-option('enable-blas', type: 'boolean', value: true)
-option('enable-cublas', type: 'boolean', value: false)
 option('enable-app', type: 'boolean', value: true)
 option('install-app', type: 'boolean', value: true)
 option('use_gym', type: 'boolean', value: false)
@@ -26,3 +24,9 @@ option('capi-ml-common-actual', type: 'string', value: 'capi-ml-common',
 # test related option
 option('reduce-tolerance', type: 'boolean', value: true)
 option('enable-long-test', type: 'boolean', value: false)
+
+# backend options
+option('enable-blas', type: 'boolean', value: true)
+option('enable-cublas', type: 'boolean', value: false)
+option('enable-openmp', type: 'boolean', value: true)
+
