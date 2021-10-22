@@ -71,14 +71,14 @@ nntrainer_prefix = get_option('prefix')
 if get_option('platform') != 'android'
   nntrainer_libdir = nntrainer_prefix / get_option('libdir')
   nntrainer_bindir = nntrainer_prefix / get_option('bindir')
-  nntrainer_includedir = nntrainer_prefix / get_option('includedir')
+  nntrainer_includedir = nntrainer_prefix / get_option('includedir') / 'nntrainer'
   nntrainer_confdir = get_option('sysconfdir')
   application_install_dir = nntrainer_bindir / 'applications'
 else
   nntrainer_prefix = meson.build_root() / 'android_build_result'
   # @todo arch has to be option
   nntrainer_libdir = nntrainer_prefix / 'lib' / 'arm64-v8a'
-  nntrainer_includedir = nntrainer_prefix / 'include'
+  nntrainer_includedir = nntrainer_prefix / 'include' / 'nntrainer'
   nntrainer_bindir = nntrainer_prefix / 'bin'
   nntrainer_confdir = nntrainer_prefix / 'conf'
   application_install_dir = nntrainer_prefix / 'examples'
