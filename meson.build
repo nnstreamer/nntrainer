@@ -112,6 +112,7 @@ if get_option('enable-blas')
     message('preparing blas')
     run_command(meson.source_root() / 'jni' / 'prepare_openblas.sh', meson.build_root(), check: true)
     blas_dep = found_dummy_dep
+    blas_root = meson.build_root() / 'openblas'
   else
     blas_dep = dependency('blas-openblas', required:false)
     # for Ubuntu 20.04
@@ -158,6 +159,7 @@ iniparser_dep = dependency('iniparser', required : false, version : '>=4.1') # i
 if get_option('platform') == 'android'
   message('preparing iniparser')
   run_command(meson.source_root() / 'jni' / 'prepare_iniparser.sh', meson.build_root(), check: true)
+  iniparser_root = meson.build_root() / 'iniparser'
   iniparser_dep = found_dummy_dep
 endif
 
@@ -194,7 +196,6 @@ if nnstreamer_capi_dep.found()
   supported_nnstreamer_capi = nnstreamer_capi_dep.version().version_compare('>=1.7.0')
   if not supported_nnstreamer_capi
     extra_defines += '-DUNSUPPORTED_NNSTREAMER=1'
-
     warning('capi-nnstreamer version is too old, we do not know if it works with older nnstreamer version')
   endif
 endif
@@ -205,7 +206,8 @@ if get_option('platform') != 'android'
   ml_api_common_dep = dependency(get_option('capi-ml-common-actual'), required: true)
 else
   message('preparing ml api')
-  run_command(meson.source_root() / 'jni' / 'prepare_ml-api.sh', meson.build_root(), check: true)
+  run_command(meson.source_root() / 'jni' / 'prepare_ml-api.sh', meson.build_root() / 'ml-api-inference', check: true)
+  ml_api_common_root = meson.build_root() / 'ml-api-inference'
   ml_api_common_dep = found_dummy_dep
 endif
 
@@ -220,6 +222,7 @@ if get_option('platform') != 'android'
 else
   message('preparing tflite')
   run_command(meson.source_root() / 'jni' / 'prepare_tflite.sh', '2.3.0', meson.build_root(), check: true)
+  tflite_root = meson.build_root() / 'tensorflow-2.3.0' / 'tensorflow-lite'
   tflite_dep = found_dummy_dep
 endif
 
@@ -234,15 +237,19 @@ endif
 gtest_dep = dependency('gtest', static: true, main: false, required: false)
 gtest_main_dep = dependency('gtest', static: true, main: true, required: false)
 
-opencv_dep = dependency('opencv', required: false)
-if not opencv_dep.found()
-  opencv_dep = dependency('opencv4', required: false)
+opencv_dep = dummy_dep
+
+if get_option('platform') != 'android'
+  opencv_dep = dependency('opencv', required: false)
   if not opencv_dep.found()
-    opencv_dep = dependency('opencv3', required: false)
+    opencv_dep = dependency('opencv4', required: false)
+    if not opencv_dep.found()
+      opencv_dep = dependency('opencv3', required: false)
+    endif
   endif
-endif
-if opencv_dep.found()
-  extra_defines += '-DENABLE_DATA_AUGMENTATION_OPENCV=1'
+  if opencv_dep.found()
+    extra_defines += '-DENABLE_DATA_AUGMENTATION_OPENCV=1'
+  endif
 endif
 flatc_prog = find_program('flatc', required: false)
 
@@ -262,7 +269,9 @@ configure_file(
 nntrainer_conf_abs_path = get_option('prefix') / nntrainer_confdir / 'nntrainer.ini'
 message('NNTRAINER_CONF_PATH=@0@'.format(nntrainer_conf_abs_path))
 
-extra_defines += '-DNNTRAINER_CONF_PATH="@0@"'.format(nntrainer_conf_abs_path)
+if get_option('platform') != 'android'
+  extra_defines += '-DNNTRAINER_CONF_PATH="@0@"'.format(nntrainer_conf_abs_path)
+endif
 
 message('extra defines are:' + ' '.join(extra_defines))
 foreach defs: extra_defines

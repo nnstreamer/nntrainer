@@ -1,7 +1,10 @@
 ccapi_inc = []
 ccapi_inc += include_directories('include')
 ccapi_inc += include_directories('..')
-
+ccapi_inc_abs = [
+  meson.current_source_dir() / 'include',
+  meson.current_source_dir() / '..',
+]
 
 ccapi_src = []
 ccapi_src += meson.current_source_dir() / 'src' / 'factory.cpp'

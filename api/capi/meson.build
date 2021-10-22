@@ -1,6 +1,11 @@
 capi_inc = []
 capi_inc += include_directories('include')
 capi_inc += include_directories('..')
+capi_inc_abs = [
+  meson.current_source_dir() / 'include',
+  meson.current_source_dir() / '..'
+]
+
 capi_src = []
 capi_src += meson.current_source_dir() / 'src' / 'nntrainer.cpp'
 

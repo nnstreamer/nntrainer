@@ -9,7 +9,7 @@ fi
 pushd ${TARGET}
 
 # Get Iniparser
-if [ ! -d "iniparer" ]; then
+if [ ! -d "iniparser" ]; then
     echo "PREPARING ini parser at ${TARGET}"
     git clone https://github.com/ndevilla/iniparser.git iniparser
 fi
