@@ -22,7 +22,9 @@ if get_option('enable-tflite-interpreter')
                                output: 'tf_schema_generated.h',
                                command: [flatc_prog, '-o', '@CURRENT_SOURCE_DIR@', '-c', '@INPUT@'])
 
-  flat_header_dep = declare_dependency(sources : [flat_header])
+  nntrainer_inc_abs += meson.current_build_dir()
+
+  flat_header_dep = declare_dependency(sources : flat_header)
 
   nntrainer_base_deps += flat_header_dep
   compiler_sources += [

@@ -13,7 +13,7 @@ fi
 
 pushd $TARGET
 
-if [ !d builddir ]; then
+if [ ! -d builddir ]; then
   meson builddir -Dplatform=android
 else
   echo "warning: $TARGET/builddir has already been taken, this script tries to reconfigure and try building"

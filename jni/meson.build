@@ -72,6 +72,7 @@ ndk_build_command += ndk_additional_flags
 ndk_result = custom_target('ndk-build',
                            output: outputs,
                            build_by_default: true,
+                           depends: flat_header,
                            install: true,
                            install_dir: nntrainer_libdir,
                            command: [ndk_build_command])
