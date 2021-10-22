@@ -218,6 +218,13 @@ else
   message('preparing ml api')
   run_command(meson.source_root() / 'jni' / 'prepare_ml-api.sh', meson.build_root() / 'ml-api-inference', check: true)
   ml_api_common_root = meson.build_root() / 'ml-api-inference'
+  ml_api_inc = ml_api_common_root / 'include'
+  meson.add_install_script(
+    'sh', '-c', 'cp @0@ ${DESTDIR}@1@'.format(ml_api_inc / 'ml-api-common.h', nntrainer_includedir)
+  )
+  meson.add_install_script(
+    'sh', '-c', 'cp @0@ ${DESTDIR}@1@'.format(ml_api_inc / 'tizen_error.h', nntrainer_includedir)
+  )
   ml_api_common_dep = found_dummy_dep
 endif
 
