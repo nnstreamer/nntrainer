@@ -55,3 +55,6 @@ __pycache__/
 
 # flatbuffer compiled header
 *_generated.h
+
+# android build
+nntrainer_for_android.tar.gz
