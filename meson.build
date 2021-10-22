@@ -219,10 +219,9 @@ else
   run_command(meson.source_root() / 'jni' / 'prepare_ml-api.sh', meson.build_root() / 'ml-api-inference', check: true)
   ml_api_common_root = meson.build_root() / 'ml-api-inference'
   ml_api_common_dep = found_dummy_dep
-  nnstreamer_capi_dep = found_dummy_dep
 endif
 
-if get_option('enable-nnstreamer-backbone')
+if get_option('enable-nnstreamer-backbone') and get_option('platform') != 'android'
   extra_defines += '-DENABLE_NNSTREAMER_BACKBONE=1'
 endif
 
@@ -311,6 +310,7 @@ if get_option('enable-app')
   if get_option('platform') == 'android'
     warning('android app is not supported for now, building app skipped')
   else
+    # this is needed for reinforcement application. We can move this to reinforecement app dependency
     jsoncpp_dep = dependency('jsoncpp') # jsoncpp
     libcurl_dep = dependency('libcurl')
     if not tflite_dep.found()

@@ -44,7 +44,8 @@ layer_headers = [
 
 layer_deps = []
 
-if get_option('enable-nnstreamer-backbone')
+# for android, it is disabled until we have support for the nnstreamer package
+if get_option('enable-nnstreamer-backbone') and get_option('platform') != 'android'
   if not nnstreamer_capi_dep.found()
     error('NNStreamer CAPI dependency not found')
   endif
