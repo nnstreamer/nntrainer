@@ -153,7 +153,7 @@ if get_option('enable-logging')
   extra_defines += '-D__LOGGING__=1'
 endif
 
-if get_option('enable-test') and get_option('platform') != 'android'
+if get_option('enable-test') # and get_option('platform') != 'android'
   extra_defines += '-DENABLE_TEST=1'
 endif
 
