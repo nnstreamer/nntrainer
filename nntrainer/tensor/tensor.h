@@ -554,6 +554,12 @@ public:
   Tensor dropout_mask(float dropout) const;
 
   /**
+   * @brief Calculate Drop Out Mask : x * 1.0/(1.0-rate) inplace
+   * @param dropout drop out rate
+   */
+  void dropout_mask(float dropout);
+
+  /**
    * @brief     sum all the Tensor elements according to the batch
    * @retval    Calculated Tensor(batch, 1, 1, 1)
    */

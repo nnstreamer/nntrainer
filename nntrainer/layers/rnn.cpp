@@ -172,7 +172,7 @@ void RNNLayer::forwarding(RunLayerContext &context, bool training) {
                          .getBatchSlice(b, 1);
         Tensor msk =
           mask_.getSharedDataTensor({mask_.width()}, t * mask_.width());
-        msk = hs.dropout_mask(dropout_rate);
+        msk.dropout_mask(dropout_rate);
         hs.multiply_i(msk);
       }
     }
