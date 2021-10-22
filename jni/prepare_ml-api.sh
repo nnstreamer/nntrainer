@@ -52,7 +52,7 @@ function _cleanup_ml_api {
   find lib ! \( -name 'libnnstreamer-native.so' -or -name 'libgstreamer_android.so' \) -type f -exec rm -f {} +
 }
 
-[ ! -d "${FILE_PREFIX}" ] && _download_ml_api && _extract_ml_api \
+[ ! -d "${TARGET}" ] && _download_ml_api && _extract_ml_api \
   && _cleanup_ml_api
 
 popd

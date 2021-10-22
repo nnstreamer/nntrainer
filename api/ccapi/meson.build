@@ -52,5 +52,6 @@ configure_file(input: 'ccapi-ml-training.pc.in', output: 'ccapi-ml-training.pc',
 )
 
 install_headers(ccapi_headers,
-  subdir: 'nntrainer'
+  subdir: 'nntrainer',
+  install_dir: nntrainer_includedir,
 )
