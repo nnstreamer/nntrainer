@@ -91,7 +91,6 @@ endif
 
 # Install headers
 install_headers(nntrainer_headers,
-  subdir: 'nntrainer',
   install_dir: nntrainer_includedir,
 )
 

@@ -43,8 +43,8 @@ function _extract_ml_api {
 function _cleanup_ml_api {
   echo "[ml_api] cleanup ml_api \n"
   # move include to the target location
-  mv ${FILE_PREFIX}/main/jni/nnstreamer/include .
-  mv ${FILE_PREFIX}/main/jni/nnstreamer/lib .
+  mv -f ${FILE_PREFIX}/main/jni/nnstreamer/include .
+  mv -f ${FILE_PREFIX}/main/jni/nnstreamer/lib .
   # remove all untarred directories/files
   rm -rf ${FILE_PREFIX}
   # cleanup all files other than ml_api and tizen_error
@@ -52,7 +52,7 @@ function _cleanup_ml_api {
   find lib ! \( -name 'libnnstreamer-native.so' -or -name 'libgstreamer_android.so' \) -type f -exec rm -f {} +
 }
 
-[ ! -d "${TARGET}" ] && _download_ml_api && _extract_ml_api \
+[ ! -d "${TARGET}/include" ] && _download_ml_api && _extract_ml_api \
   && _cleanup_ml_api
 
 popd
