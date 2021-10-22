@@ -73,6 +73,7 @@ configure_file(input: 'capi-ml-training.pc.in', output: 'capi-ml-training.pc',
 )
 
 install_headers(capi_headers,
-  subdir: 'nntrainer'
+  subdir: 'nntrainer',
+  install_dir: nntrainer_includedir,
 )
 

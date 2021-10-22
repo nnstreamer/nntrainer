@@ -39,9 +39,38 @@ configure_file(input: 'Application.mk', output: 'Application.mk',
   copy: true
 )
 
+outputs= [
+  'libc++_shared.so',
+  'libcapi-nntrainer.so',
+  'libccapi-nntrainer.so',
+  'libnnstreamer-native.so',
+  'libnntrainer.so'
+]
+
+
 ndk_build = find_program('ndk-build', required : true)
+
+ndk_args = {
+  'TARGET_OUT': meson.current_build_dir(),
+}
+
+num_threads = run_command('grep', '-c', '^processor', '/proc/cpuinfo').stdout().strip()
+message('num processor are: ' + num_threads)
+
+thread_opt_flag = '-j' + num_threads
+
+ndk_additional_flags = [thread_opt_flag]
+
+ndk_build_command = [ndk_build]
+foreach key, val : ndk_args
+  ndk_build_command += '@0@=@1@'.format(key, val)
+endforeach
+ndk_build_command += ndk_additional_flags
+
 ndk_result = custom_target('ndk-build',
-                           output: 'libs',
+                           output: outputs,
                            build_by_default: true,
-                           command: [ndk_build])
+                           install: true,
+                           install_dir: nntrainer_libdir,
+                           command: [ndk_build_command])
 
