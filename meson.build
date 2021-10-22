@@ -10,7 +10,7 @@ project('nntrainer', 'c', 'cpp',
     'buildtype=release'
   ]
 )
-add_project_arguments('-DMIN_CPP_VERSION=201703L', language:['c','cpp'])
+extra_defines = ['-DMIN_CPP_VERSION=201703L']
 
 cc = meson.get_compiler('c')
 cxx = meson.get_compiler('cpp')
@@ -101,11 +101,11 @@ found_dummy_dep = declare_dependency() # dummy dep to use if found
 blas_dep = dummy_dep
 # Dependencies
 if get_option('enable-cublas')
-   add_project_arguments('-DUSE_CUBLAS=1', language:['c','cpp'])
+  extra_defines += '-DUSE_CUBLAS=1'
 endif
 
 if get_option('enable-blas')
-  add_project_arguments('-DUSE_BLAS=1', language:['c','cpp'])
+  extra_defines += '-DUSE_BLAS=1'
   if get_option('platform') == 'tizen' or get_option('platform') == 'yocto'
     blas_dep = dependency('openblas')
   elif get_option('platform') == 'android'
@@ -127,27 +127,27 @@ if get_option('enable-openmp')
 endif
 
 if get_option('enable-profile')
-  add_project_arguments('-DPROFILE=1', language:['c', 'cpp'])
+  extra_defines += '-DPROFILE=1'
 endif
 
 if get_option('enable-debug')
-  add_project_arguments('-DDEBUG=1', language:['c', 'cpp'])
+  extra_defines += '-DDEBUG=1'
 endif
 
 if get_option('use_gym')
-   add_project_arguments('-DUSE_GYM=1', language:['c','cpp'])
+  extra_defines += '-DUSE_GYM=1'
 endif
 
 if get_option('enable-logging')
-   add_project_arguments('-D__LOGGING__=1', language:['c','cpp'])
+  extra_defines += '-D__LOGGING__=1'
 endif
 
-if get_option('enable-test')
-  add_project_arguments('-DENABLE_TEST=1', language:['c','cpp'])
+if get_option('enable-test') and get_option('platform') != 'android'
+  extra_defines += '-DENABLE_TEST=1'
 endif
 
 if get_option('reduce-tolerance')
-  add_project_arguments('-DREDUCE_TOLERANCE=1', language:['c', 'cpp'])
+  extra_defines += '-DREDUCE_TOLERANCE=1'
 endif
 
 libm_dep = cxx.find_library('m') # cmath library
@@ -189,11 +189,12 @@ endif
 
 nnstreamer_capi_dep = dependency(get_option('capi-ml-inference-actual'), required:false)
 if nnstreamer_capi_dep.found()
-  add_project_arguments('-DNNSTREAMER_AVAILABLE=1', language:['c','cpp'])
+  extra_defines += '-DNNSTREAMER_AVAILABLE=1'
   # accessing this variable when dep_.not_found() remains hard error on purpose
   supported_nnstreamer_capi = nnstreamer_capi_dep.version().version_compare('>=1.7.0')
   if not supported_nnstreamer_capi
-    add_project_arguments('-DUNSUPPORTED_NNSTREAMER=1', language:['c','cpp'])
+    extra_defines += '-DUNSUPPORTED_NNSTREAMER=1'
+
     warning('capi-nnstreamer version is too old, we do not know if it works with older nnstreamer version')
   endif
 endif
@@ -209,7 +210,7 @@ else
 endif
 
 if get_option('enable-nnstreamer-backbone')
-  add_project_arguments('-DENABLE_NNSTREAMER_BACKBONE=1', language:['c','cpp'])
+  extra_defines += '-DENABLE_NNSTREAMER_BACKBONE=1'
 endif
 
 tflite_dep = dummy_dep
@@ -223,7 +224,11 @@ else
 endif
 
 if get_option('enable-tflite-backbone')
-  add_project_arguments('-DENABLE_TFLITE_BACKBONE=1', language:['c','cpp'])
+  extra_defines += '-DENABLE_TFLITE_BACKBONE=1'
+endif
+
+if get_option('enable-tflite-interpreter')
+  extra_defines += '-DENABLE_TFLITE_INTERPRETER=1'
 endif
 
 gtest_dep = dependency('gtest', static: true, main: false, required: false)
@@ -237,7 +242,7 @@ if not opencv_dep.found()
   endif
 endif
 if opencv_dep.found()
-  add_project_arguments('-DENABLE_DATA_AUGMENTATION_OPENCV=1', language:['c','cpp'])
+  extra_defines += '-DENABLE_DATA_AUGMENTATION_OPENCV=1'
 endif
 flatc_prog = find_program('flatc', required: false)
 
@@ -257,10 +262,12 @@ configure_file(
 nntrainer_conf_abs_path = get_option('prefix') / nntrainer_confdir / 'nntrainer.ini'
 message('NNTRAINER_CONF_PATH=@0@'.format(nntrainer_conf_abs_path))
 
-add_project_arguments(
-  '-DNNTRAINER_CONF_PATH="@0@"'.format(nntrainer_conf_abs_path),
-  language: ['c', 'cpp']
-)
+extra_defines += '-DNNTRAINER_CONF_PATH="@0@"'.format(nntrainer_conf_abs_path)
+
+message('extra defines are:' + ' '.join(extra_defines))
+foreach defs: extra_defines
+  add_project_arguments(defs, language: ['c', 'cpp'])
+endforeach
 
 # Build nntrainer
 subdir('nntrainer')
