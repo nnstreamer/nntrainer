@@ -41,11 +41,12 @@ configure_file(input: 'Application.mk', output: 'Application.mk',
   copy: true
 )
 
+# below is list of file that meson acknowledges this is the output of custom target so that
+# this has to be installed by meson
 outputs= [
   'libc++_shared.so',
   'libcapi-nntrainer.so',
   'libccapi-nntrainer.so',
-  'libnnstreamer-native.so',
   'libnntrainer.so'
 ]
 
