@@ -35,6 +35,8 @@ configure_file(input: 'Android.mk.in', output: 'Android.mk',
   configuration: and_conf
 )
 
+install_data(sources: 'Android-prebuilt.mk', rename: 'Android.mk', install_dir: nntrainer_prefix)
+
 configure_file(input: 'Application.mk', output: 'Application.mk',
   copy: true
 )
