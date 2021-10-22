@@ -17,8 +17,6 @@ if get_option('enable-tflite-interpreter')
     error('flatc executable not found')
   endif
 
-  add_project_arguments('-DENABLE_TFLITE_INTERPRETER=1', language:['c','cpp'])
-
   flat_header = custom_target('tflite-schema',
                                input: 'tf_schema.fbs',
                                output: 'tf_schema_generated.h',
