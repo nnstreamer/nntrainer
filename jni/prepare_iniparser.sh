@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 TARGET=$1
+set -e
 
 if [ ! -d ${TARGET} ]; then
   mkdir -p ${TARGET}

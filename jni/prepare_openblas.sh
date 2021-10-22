@@ -10,6 +10,7 @@
 #
 # usage: ./prepare_openblas.sh target
 
+set -e
 TARGET=$1
 TAR_PREFIX=openblas
 TAR_NAME=${TAR_PREFIX}-0.2.20.tar.gz

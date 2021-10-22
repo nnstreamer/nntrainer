@@ -2,6 +2,7 @@
 VERSION=$1
 TARGET=$2
 
+set -e
 echo "PREPARING TENSORFLOW ${VERSION} at ${TARGET}"
 
 if [ ! -d ${TARGET} ]; then
