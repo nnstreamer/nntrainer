@@ -314,7 +314,7 @@ Tensor::Tensor(
   strides = dim.computeStrides();
   data = std::shared_ptr<float>(new float[dim.getDataLen()],
                                 std::default_delete<float[]>());
-  is_contiguous = true;
+  contiguous = true;
   initializer = Initializer::NONE;
 
   for (unsigned int i = 0; i < dim.batch(); ++i)
@@ -322,6 +322,43 @@ Tensor::Tensor(
       for (unsigned int k = 0; k < dim.height(); ++k)
         for (unsigned int l = 0; l < dim.width(); ++l)
           this->setValue(i, j, k, l, d[i][j][k][l]);
+}
+
+int Tensor::multiply_i_strided(Tensor const &m) {
+  try {
+    this->multiply_strided(m, *this);
+  } catch (std::exception &err) {
+    ml_loge("%s %s", typeid(err).name(), err.what());
+    return ML_ERROR_INVALID_PARAMETER;
+  }
+
+  return ML_ERROR_NONE;
+}
+
+Tensor Tensor::multiply_strided(Tensor const &m) const {
+  Tensor t;
+  return this->multiply_strided(m, t);
+}
+
+Tensor &Tensor::multiply_strided(Tensor const &m, Tensor &output) const {
+  CREATE_IF_EMPTY_DIMS(output, dim);
+
+  if (size() != m.size() || size() != output.size())
+    throw std::invalid_argument(
+      "Strided multiplication does not support broadcasting");
+  /** @todo optimize this with a tensor iterator */
+  for (unsigned int b = 0; b < batch(); ++b) {
+    for (unsigned int c = 0; c < channel(); ++c) {
+      for (unsigned int h = 0; h < height(); ++h) {
+        for (unsigned int w = 0; w < width(); ++w) {
+          output.setValue(b, c, h, w,
+                          getValue(b, c, h, w) * m.getValue(b, c, h, w));
+        }
+      }
+    }
+  }
+
+  return output;
 }
 
 int Tensor::multiply_i(float const &value) {
@@ -362,15 +399,24 @@ Tensor Tensor::multiply(Tensor const &m) const {
 }
 
 Tensor &Tensor::multiply(Tensor const &m, Tensor &output) const {
+  /**
+   * @note this does not work correctly with differently strided inputs.
+   * Use multiply_strided alternatively
+   */
   auto f = [&](const BroadcastInfo &e, const float *buf, const float *m_buf,
                float *out_buf) {
     for (unsigned int i = 0; i < e.buffer_size; ++i) {
       *out_buf = *buf * *m_buf;
       buf += strides[3];
       m_buf += e.strides[3];
-      out_buf += strides[3];
+      out_buf += output.strides[3];
     }
   };
+
+  if ((size() == m.size() && strides != m.strides) ||
+      (size() == output.size() && strides != output.strides))
+    throw std::invalid_argument(
+      "Use multiply_strided for multiplying strided tensors");
 
   apply_broadcast(m, f, output);
   return output;
@@ -571,6 +617,12 @@ Tensor Tensor::getSharedDataTensor(const TensorDim dim_, unsigned int offset,
 
   if (reset_stride)
     ret.strides = ret.dim.computeStrides();
+
+  TensorDim new_match_dim = dim_;
+  new_match_dim.batch(dim.batch());
+  if (new_match_dim != dim && !reset_stride)
+    // throw std::runtime_error("non contiguous tensor");
+    ret.contiguous = false;
 
   /**
    * In this case, its the caller's responsibility to ensure that allocate() is
@@ -971,9 +1023,8 @@ void Tensor::dropout_mask(float dropout) {
 }
 
 int Tensor::apply_i(std::function<float(float)> f) {
-  float *data = getData();
-
-  std::transform(data, data + size(), data, f);
+  Tensor result = *this;
+  apply(f, result);
 
   return ML_ERROR_NONE;
 }
@@ -986,16 +1037,28 @@ Tensor Tensor::apply(std::function<float(float)> f) const {
 Tensor &Tensor::apply(std::function<float(float)> f, Tensor &output) const {
   CREATE_IF_EMPTY_DIMS(output, dim);
 
-  const float *data = getData();
-  float *rdata = output.getData();
-
   if (dim != output.dim) {
     /// @todo add unittest
     throw std::invalid_argument(
       "[Tensor::apply] output dimension does not match");
   }
 
-  std::transform(data, data + size(), rdata, f);
+  if (contiguous && output.contiguous) {
+    const float *data = getData();
+    float *rdata = output.getData();
+    std::transform(data, data + size(), rdata, f);
+  } else {
+    /** @todo optimize this with a tensor iterator */
+    for (unsigned int b = 0; b < batch(); ++b) {
+      for (unsigned int c = 0; c < channel(); ++c) {
+        for (unsigned int h = 0; h < height(); ++h) {
+          for (unsigned int w = 0; w < width(); ++w) {
+            output.setValue(b, c, h, w, f(getValue(b, c, h, w)));
+          }
+        }
+      }
+    }
+  }
 
   return output;
 }
@@ -1113,7 +1176,7 @@ void Tensor::copy_with_stride(const Tensor &from) {
 
 void Tensor::copy(const Tensor &from) {
   // todo: enable copy to non-contiguous tensor
-  if (!is_contiguous) {
+  if (!contiguous) {
     throw std::runtime_error("Cannot copy non-contiguous tensor");
   }
 
@@ -1128,7 +1191,7 @@ void Tensor::copy(const Tensor &from) {
 
 void Tensor::copyData(const Tensor &from) {
   // todo: enable copy to non-contiguous tensor
-  if (!is_contiguous) {
+  if (!contiguous) {
     throw std::runtime_error("Cannot copy non-contiguous tensor");
   }
 
@@ -1160,7 +1223,7 @@ void Tensor::fill(const Tensor &from, bool alloc) {
     return;
   }
 
-  if (!from.is_contiguous || !is_contiguous) {
+  if (!from.contiguous || !contiguous) {
     /// @todo enable this if needed
     throw nntrainer::exception::not_supported(
       "[Tensor::fill] non-contiguous tensors are not supported");
@@ -1416,4 +1479,5 @@ Tensor::BroadcastInfo Tensor::computeBroadcastInfo(const Tensor &m) const {
 
   return e;
 }
+
 } /* namespace nntrainer */

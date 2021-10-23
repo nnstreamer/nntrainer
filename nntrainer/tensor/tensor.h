@@ -76,7 +76,7 @@ public:
   Tensor(std::string name_ = "") :
     dim(TensorDim()),
     strides(dim.computeStrides()),
-    is_contiguous(true),
+    contiguous(true),
     initializer(Initializer::NONE),
     name(name_),
     data(nullptr),
@@ -211,7 +211,7 @@ public:
   friend void swap(Tensor &lhs, Tensor &rhs) noexcept {
     std::swap(lhs.dim, rhs.dim);
     std::swap(lhs.strides, rhs.strides);
-    std::swap(lhs.is_contiguous, rhs.is_contiguous);
+    std::swap(lhs.contiguous, rhs.contiguous);
     std::swap(lhs.initializer, rhs.initializer);
     std::swap(lhs.data, rhs.data);
     std::swap(lhs.name, rhs.name);
@@ -344,6 +344,43 @@ public:
    * @retval    Calculated Tensor
    */
   Tensor &multiply(Tensor const &m, Tensor &output) const;
+
+  /**
+   * @brief     Multiply Tensor Elementwise
+   * @param[in] m Tensor to be multiplied
+   * @retval    #ML_ERROR_NONE successful
+   *
+   * @note support different strided inputs and output
+   * @note does not support broadcasting
+   *
+   * @todo merge this to multiply_i
+   */
+  int multiply_i_strided(Tensor const &m);
+
+  /**
+   * @brief     Multiply Tensor Element by Element ( Not the MxM )
+   * @param[in] m Tensor to be multiplied
+   * @retval    Calculated Tensor
+   *
+   * @note support different strided inputs and output
+   * @note does not support broadcasting
+   *
+   * @todo merge this to multiply
+   */
+  Tensor multiply_strided(Tensor const &m) const;
+
+  /**
+   * @brief     Multiply Tensor Element by Element ( Not the MxM )
+   * @param[in] m Tensor to be multiplied
+   * @param[out] output Tensor to store the result
+   * @retval    Calculated Tensor
+   *
+   * @note support different strided inputs and output
+   * @note does not support broadcasting
+   *
+   * @todo merge this to multiply
+   */
+  Tensor &multiply_strided(Tensor const &m, Tensor &output) const;
 
   /**
    * @brief     Divide value element by element immediately
@@ -1101,14 +1138,13 @@ public:
    * @return initializer of the tensor
    */
   Tensor::Initializer getInitializer() const { return initializer; }
-
   static constexpr float epsilon = 1e-5;
 
 private:
   /**< handle the data as a std::shared_ptr<float> type */
   TensorDim dim;
   std::array<unsigned int, TensorDim::MAXDIM> strides;
-  bool is_contiguous;
+  bool contiguous;
   Tensor::Initializer initializer;
   std::string name; /**< name of the tensor */
 
