@@ -46,6 +46,7 @@
 #include <gru.h>
 #include <input_layer.h>
 #include <lstm.h>
+#include <lstmcell.h>
 #include <mse_loss_layer.h>
 #include <multiout_layer.h>
 #include <nntrainer_error.h>
@@ -240,6 +241,8 @@ static void add_default_object(AppContext &ac) {
                      LayerType::LAYER_RNN);
   ac.registerFactory(nntrainer::createLayer<LSTMLayer>, LSTMLayer::type,
                      LayerType::LAYER_LSTM);
+  ac.registerFactory(nntrainer::createLayer<LSTMCellLayer>, LSTMCellLayer::type,
+                     LayerType::LAYER_LSTMCELL);
   ac.registerFactory(nntrainer::createLayer<SplitLayer>, SplitLayer::type,
                      LayerType::LAYER_SPLIT);
   ac.registerFactory(nntrainer::createLayer<GRULayer>, GRULayer::type,

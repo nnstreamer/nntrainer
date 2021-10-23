@@ -52,7 +52,7 @@ int ActiFunc::setActivation(
                             Tensor const &derivative) -> Tensor & {
       /** @todo update this based on supportInPlace */
       ret_derivative = activation_prime_fn(x, ret_derivative);
-      ret_derivative.multiply_i(derivative);
+      ret_derivative.multiply_i_strided(derivative);
 
       return ret_derivative;
     };
@@ -61,7 +61,7 @@ int ActiFunc::setActivation(
       [activation_prime_fn](Tensor &x, Tensor &ret_derivative,
                             Tensor const &derivative) -> Tensor & {
       x = activation_prime_fn(x, x);
-      ret_derivative = derivative.multiply(x, ret_derivative);
+      ret_derivative = derivative.multiply_strided(x, ret_derivative);
 
       return ret_derivative;
     };
@@ -82,7 +82,7 @@ int ActiFunc::setActivation(
                             Tensor const &derivative) -> Tensor & {
       /** @todo update this based on supportInPlace */
       x.apply(activation_prime_fn, ret_derivative);
-      ret_derivative.multiply_i(derivative);
+      ret_derivative.multiply_i_strided(derivative);
 
       return ret_derivative;
     };
@@ -91,7 +91,7 @@ int ActiFunc::setActivation(
       [activation_prime_fn](Tensor &x, Tensor &ret_derivative,
                             Tensor const &derivative) -> Tensor & {
       x = x.apply(activation_prime_fn, x);
-      ret_derivative = derivative.multiply(x, ret_derivative);
+      ret_derivative = derivative.multiply_strided(x, ret_derivative);
 
       return ret_derivative;
     };

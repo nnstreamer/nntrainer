@@ -44,6 +44,7 @@ test_target = [
   'unittest_layers_multiout.cpp',
   'unittest_layers_rnn.cpp',
   'unittest_layers_lstm.cpp',
+  'unittest_layers_lstmcell.cpp',
   'unittest_layers_gru.cpp',
   'unittest_layers_preprocess_flip.cpp',
   'unittest_layers_split.cpp',

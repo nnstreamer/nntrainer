@@ -31,7 +31,8 @@ layer_sources = [
   'dropout.cpp',
   'centroid_knn.cpp',
   'layer_context.cpp',
-  'reshape_layer.cpp'
+  'reshape_layer.cpp',
+  'lstmcell.cpp'
 ]
 
 layer_headers = [
