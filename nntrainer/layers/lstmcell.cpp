@@ -82,7 +82,7 @@ void LSTMCellLayer::finalize(InitLayerContext &context) {
   // input_dim = [ batch, 1, 1, feature_size ]
   TensorDim output_dim;
   const TensorDim &input_dim = context.getInputDimensions()[0];
-  if (input_dim.height() != 1)
+  if (input_dim.height() != 1 && input_dim.channel() != 1)
     throw std::invalid_argument(
       "Input must be single time dimension for LSTMCell");
   // output_dim = [ batch, 1, 1, hidden_size (unit)]
@@ -281,25 +281,24 @@ void LSTMCellLayer::calcGradient(RunLayerContext &context) {
     d_fgio.setZero();
   }
 
-  std::copy(incoming_deriv.getData(),
-            incoming_deriv.getData() + incoming_deriv.size(),
-            derivative_.getData());
+  Tensor dh = derivative_.getBatchSlice(start_timestep, 1);
+  dh.reshape(incoming_deriv.getDim());
+  if (start_timestep + 1 == max_timestep) {
+    dh.copyData(incoming_deriv);
+  } else {
+    dh.add_i(incoming_deriv);
+  }
+  dh = derivative_.getBatchSlice(start_timestep, 1);
 
   if (dropout_rate > epsilon) {
     derivative_.multiply_i(context.getTensor(wt_idx[LSTMParams::dropout_mask]));
   }
-
-  Tensor dh = derivative_.getBatchSlice(start_timestep, 1);
-
-  std::copy(incoming_deriv.getData(),
-            incoming_deriv.getData() + incoming_deriv.size(), dh.getData());
 
   Tensor dc = dm_cell_.getBatchSlice(start_timestep, 1);
   Tensor xs = input_;
   Tensor hs_t = hidden_.getBatchSlice(start_timestep, 1);
   Tensor cs = m_cell_.getBatchSlice(start_timestep, 1);
 
-  Tensor hs_prev;
   Tensor dfgio_t = d_fgio.getBatchSlice(start_timestep, 1);
   Tensor fgio_t = fgio.getBatchSlice(start_timestep, 1);
 

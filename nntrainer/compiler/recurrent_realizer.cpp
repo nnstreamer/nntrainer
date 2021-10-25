@@ -16,10 +16,12 @@
 #include <input_layer.h>
 #include <layer_node.h>
 #include <lstm.h>
+#include <lstmcell.h>
 #include <nntrainer_error.h>
 #include <node_exporter.h>
 #include <remap_realizer.h>
 #include <util_func.h>
+
 namespace nntrainer {
 
 namespace props {
@@ -123,8 +125,10 @@ RecurrentRealizer::RecurrentRealizer(
 static void propagateTimestep(LayerNode *node, unsigned int time_step,
                               unsigned int max_time_step) {
 
+  /** @todo add an interface to check if a layer supports a property */
   auto is_recurrent_type = [](LayerNode *node) {
-    return node->getType() == LSTMLayer::type;
+    return node->getType() == LSTMLayer::type ||
+           node->getType() == LSTMCellLayer::type;
   };
 
   if (is_recurrent_type(node)) {

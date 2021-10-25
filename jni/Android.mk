@@ -170,6 +170,7 @@ NNTRAINER_SRCS := $(NNTRAINER_ROOT)/nntrainer/models/neuralnet.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/embedding.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/rnn.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/lstm.cpp \
+                  $(NNTRAINER_ROOT)/nntrainer/layers/lstmcell.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/gru.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/time_dist.cpp \
                   $(NNTRAINER_ROOT)/nntrainer/layers/dropout.cpp \
