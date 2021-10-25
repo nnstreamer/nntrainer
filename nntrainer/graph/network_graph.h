@@ -350,11 +350,14 @@ public:
     std::function<std::vector<TensorDim>(const TensorDim &)> cb,
     bool request_only_trainable = true) {
     for (auto const &w : tensor_manager->getWeights()) {
-      const TensorDim &dim = w->getDim();
-      std::vector<TensorDim> dims = cb(dim);
-      w->setOptimizerVariables(tensor_manager->requestWeightOptimizerVariables(
-        dims, w->getName(), TensorLifespan::MAX_LIFESPAN,
-        Tensor::Initializer::ZEROS));
+      if (!w->isDependent()) {
+        const TensorDim &dim = w->getDim();
+        std::vector<TensorDim> dims = cb(dim);
+        w->setOptimizerVariables(
+          tensor_manager->requestWeightOptimizerVariables(
+            dims, w->getName(), TensorLifespan::MAX_LIFESPAN,
+            Tensor::Initializer::ZEROS));
+      }
     }
   }
 
