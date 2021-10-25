@@ -341,6 +341,7 @@ Tensor Tensor::multiply_strided(Tensor const &m) const {
 }
 
 Tensor &Tensor::multiply_strided(Tensor const &m, Tensor &output) const {
+  /** TODO: throw than create new dimenions */
   CREATE_IF_EMPTY_DIMS(output, dim);
 
   if (size() != m.size() || size() != output.size())
@@ -413,8 +414,9 @@ Tensor &Tensor::multiply(Tensor const &m, Tensor &output) const {
     }
   };
 
-  if ((size() == m.size() && strides != m.strides) ||
-      (size() == output.size() && strides != output.strides))
+  if (output.size() > 0 &&
+      ((size() == m.size() && strides != m.strides) ||
+       (size() == output.size() && strides != output.strides)))
     throw std::invalid_argument(
       "Use multiply_strided for multiplying strided tensors");
 
@@ -621,7 +623,6 @@ Tensor Tensor::getSharedDataTensor(const TensorDim dim_, unsigned int offset,
   TensorDim new_match_dim = dim_;
   new_match_dim.batch(dim.batch());
   if (new_match_dim != dim && !reset_stride)
-    // throw std::runtime_error("non contiguous tensor");
     ret.contiguous = false;
 
   /**
