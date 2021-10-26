@@ -227,7 +227,7 @@ void LSTMCellLayer::forwarding(RunLayerContext &context, bool training) {
 
   if (dropout_rate > epsilon && training) {
     Tensor &mask_ = context.getTensor(wt_idx[LSTMParams::dropout_mask]);
-    mask_ = hs.dropout_mask(dropout_rate);
+    hs.dropout_mask(dropout_rate);
     hs.multiply_i(mask_);
   }
 
