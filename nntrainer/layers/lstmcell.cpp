@@ -138,6 +138,13 @@ void LSTMCellLayer::finalize(InitLayerContext &context) {
     d, context.getName() + ":mem_cell", Tensor::Initializer::NONE, true,
     TensorLifespan::ITERATION_LIFESPAN);
 
+  /**
+   * TODO: make this independent of time dimension once recurrent realizer
+   * supports requesting tensors which are not always shared
+   *
+   * TODO: reorder to ifgo for better performance. This will require change in
+   * stored weights in the test
+   */
   d.width(unit * NUM_GATE);
   wt_idx[LSTMParams::fgio] = context.requestTensor(
     d, context.getName() + ":fgio", Tensor::Initializer::NONE, true,
@@ -205,13 +212,13 @@ void LSTMCellLayer::forwarding(RunLayerContext &context, bool training) {
     hs_prev.dot(weight_hh, fgio_t, false, false, 1.0);
   }
 
+  Tensor hif = fgio_t.getSharedDataTensor({batch, unit * 2}, 0, false);
   Tensor hi = fgio_t.getSharedDataTensor({batch, unit}, 0, false);
   Tensor hf = fgio_t.getSharedDataTensor({batch, unit}, unit, false);
   Tensor hg = fgio_t.getSharedDataTensor({batch, unit}, unit * 2, false);
   Tensor ho = fgio_t.getSharedDataTensor({batch, unit}, unit * 3, false);
 
-  recurrent_acti_func.run_fn(hf, hf);
-  recurrent_acti_func.run_fn(hi, hi);
+  recurrent_acti_func.run_fn(hif, hif);
   recurrent_acti_func.run_fn(ho, ho);
   acti_func.run_fn(hg, hg);
 
@@ -302,11 +309,13 @@ void LSTMCellLayer::calcGradient(RunLayerContext &context) {
   Tensor dfgio_t = d_fgio.getBatchSlice(start_timestep, 1);
   Tensor fgio_t = fgio.getBatchSlice(start_timestep, 1);
 
+  Tensor dhif = dfgio_t.getSharedDataTensor({batch, unit * 2}, 0, false);
   Tensor dhi = dfgio_t.getSharedDataTensor({batch, unit}, 0, false);
   Tensor dhf = dfgio_t.getSharedDataTensor({batch, unit}, unit, false);
   Tensor dhg = dfgio_t.getSharedDataTensor({batch, unit}, unit * 2, false);
   Tensor dho = dfgio_t.getSharedDataTensor({batch, unit}, unit * 3, false);
 
+  Tensor hif = fgio_t.getSharedDataTensor({batch, unit * 2}, 0, false);
   Tensor hi = fgio_t.getSharedDataTensor({batch, unit}, 0, false);
   Tensor hf = fgio_t.getSharedDataTensor({batch, unit}, unit, false);
   Tensor hg = fgio_t.getSharedDataTensor({batch, unit}, unit * 2, false);
@@ -339,8 +348,7 @@ void LSTMCellLayer::calcGradient(RunLayerContext &context) {
   dc.multiply_strided(hi, dhg);
 
   recurrent_acti_func.run_prime_fn(ho, dho, dho);
-  recurrent_acti_func.run_prime_fn(hf, dhf, dhf);
-  recurrent_acti_func.run_prime_fn(hi, dhi, dhi);
+  recurrent_acti_func.run_prime_fn(hif, dhif, dhif);
   acti_func.run_prime_fn(hg, dhg, dhg);
   djdb_h.add_i(dfgio_t.sum(2));
   djdw_x.add_i(xs.dot(dfgio_t, true, false));
