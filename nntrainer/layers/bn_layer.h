@@ -110,6 +110,11 @@ public:
    */
   bool supportInPlace() const override { return true; }
 
+  /**
+   * @copydoc Layer::setBatch(RunLayerContext &context, unsigned int batch)
+   */
+  void setBatch(RunLayerContext &context, unsigned int batch) override;
+
   inline static const std::string type = "batch_normalization";
 
 private:

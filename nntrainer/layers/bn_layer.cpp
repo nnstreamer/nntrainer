@@ -255,4 +255,10 @@ void BatchNormalizationLayer::exportTo(Exporter &exporter,
   exporter.saveResult(bn_props, method, this);
 }
 
+void BatchNormalizationLayer::setBatch(RunLayerContext &context,
+                                       unsigned int batch) {
+  context.updateTensor(wt_idx[BNParams::deviation], batch);
+  context.updateTensor(wt_idx[BNParams::t_full], batch);
+}
+
 } /* namespace nntrainer */
