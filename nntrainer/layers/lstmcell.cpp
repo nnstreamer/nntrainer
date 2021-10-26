@@ -126,8 +126,9 @@ void LSTMCellLayer::finalize(InitLayerContext &context) {
   unsigned int max_timestep = std::get<props::MaxTimestep>(lstm_props);
 
   TensorDim d = input_dim;
-  d.height(d.batch());
-  d.batch(max_timestep);
+  // d.height(d.batch());
+  d.height(1);
+  d.batch(max_timestep * d.batch());
   d.width(unit);
 
   /** hidden dim = [ UnrollLength, 1, Batch, Units ] */
@@ -194,6 +195,11 @@ void LSTMCellLayer::forwarding(RunLayerContext &context, bool training) {
     cell_.setZero();
   }
 
+  unsigned int max_timestep = std::get<props::MaxTimestep>(lstm_props);
+  hidden_.reshape({max_timestep, 1, batch, hidden_.width()});
+  cell_.reshape({max_timestep, 1, batch, cell_.width()});
+  fgio.reshape({max_timestep, 1, batch, fgio.width()});
+
   /**
    * @note when the recurrent realization happens, different instances of lstm
    * will share the weights, hidden state, cell and fgio memory. However, they
@@ -247,6 +253,9 @@ void LSTMCellLayer::calcDerivative(RunLayerContext &context) {
   Tensor &weight = context.getWeight(wt_idx[LSTMParams::weight_xh]);
   Tensor &ret_ = context.getOutgoingDerivative(SINGLE_INOUT_IDX);
 
+  unsigned int max_timestep = std::get<props::MaxTimestep>(lstm_props);
+  derivative_.reshape({max_timestep, 1, ret_.batch(), derivative_.width()});
+
   /** get the timestep values */
   unsigned int start_timestep = std::get<props::Timestep>(lstm_props);
 
@@ -264,6 +273,10 @@ void LSTMCellLayer::calcGradient(RunLayerContext &context) {
   Tensor &weight_hh = context.getWeight(wt_idx[LSTMParams::weight_hh]);
 
   Tensor &derivative_ = context.getTensorGrad(wt_idx[LSTMParams::hidden_state]);
+  /**
+   * TODO: hidden_ is only used from the previous timestep. Once it is supported
+   * as input, no need to cache the hidden_ itself
+   */
   Tensor &hidden_ = context.getTensor(wt_idx[LSTMParams::hidden_state]);
   Tensor &incoming_deriv = context.getIncomingDerivative(SINGLE_INOUT_IDX);
   Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
@@ -277,6 +290,13 @@ void LSTMCellLayer::calcGradient(RunLayerContext &context) {
   /** get the timestep values */
   unsigned int max_timestep = std::get<props::MaxTimestep>(lstm_props);
   unsigned int start_timestep = std::get<props::Timestep>(lstm_props);
+
+  derivative_.reshape({max_timestep, 1, batch, derivative_.width()});
+  hidden_.reshape({max_timestep, 1, batch, hidden_.width()});
+  m_cell_.reshape({max_timestep, 1, batch, m_cell_.width()});
+  dm_cell_.reshape({max_timestep, 1, batch, dm_cell_.width()});
+  fgio.reshape({max_timestep, 1, batch, fgio.width()});
+  d_fgio.reshape({max_timestep, 1, batch, d_fgio.width()});
 
   if (start_timestep + 1 == max_timestep) {
     djdw_x.setZero();
@@ -361,9 +381,10 @@ void LSTMCellLayer::calcGradient(RunLayerContext &context) {
 }
 
 void LSTMCellLayer::setBatch(RunLayerContext &context, unsigned int batch) {
-  context.updateTensor(wt_idx[LSTMParams::hidden_state], batch);
-  context.updateTensor(wt_idx[LSTMParams::mem_cell], batch);
-  context.updateTensor(wt_idx[LSTMParams::fgio], batch);
+  unsigned int max_timestep = std::get<props::MaxTimestep>(lstm_props);
+  context.updateTensor(wt_idx[LSTMParams::hidden_state], batch * max_timestep);
+  context.updateTensor(wt_idx[LSTMParams::mem_cell], batch * max_timestep);
+  context.updateTensor(wt_idx[LSTMParams::fgio], batch * max_timestep);
   context.updateTensor(wt_idx[LSTMParams::dropout_mask], batch);
 }
 
