@@ -102,7 +102,7 @@ nntrainer_conf.set('PREFIX', nntrainer_prefix)
 nntrainer_conf.set('EXEC_PREFIX', nntrainer_bindir)
 nntrainer_conf.set('LIB_INSTALL_DIR', nntrainer_libdir)
 nntrainer_conf.set('PLUGIN_INSTALL_PREFIX', nntrainer_libdir / 'nntrainer')
-nntrainer_conf.set('INCLUDE_INSTALL_DIR', nntrainer_includedir)
+nntrainer_conf.set('INCLUDE_INSTALL_DIR', nntrainer_includedir / '..')
 nntrainer_conf.set('CAPI_ML_COMMON_DEP', get_option('capi-ml-common-actual'))
 
 dummy_dep = dependency('', required: false)
