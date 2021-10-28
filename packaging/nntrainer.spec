@@ -67,6 +67,8 @@ BuildRequires:	iniparser-devel >= 4.1
 BuildRequires:	gtest-devel
 BuildRequires:	python3
 BuildRequires:	python3-numpy
+# for c++17 parallel execution
+BuildRequires:	libtbb-devel
 
 BuildRequires:	%{capi_machine_learning_common}-devel
 BuildRequires:	%{capi_machine_learning_inference}-devel
