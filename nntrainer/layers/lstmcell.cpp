@@ -33,8 +33,6 @@ enum LSTMParams {
   dropout_mask
 };
 
-#define NUM_GATE 4
-
 LSTMCellLayer::LSTMCellLayer() :
   LayerImpl(),
   lstm_props(props::Unit(), props::HiddenStateActivation(),
@@ -110,7 +108,7 @@ void LSTMCellLayer::finalize(InitLayerContext &context) {
   dim_hh.width(unit * NUM_GATE);
   dim_hh.batch(1);
 
-  // weight_initializer can be set sepeartely. weight_xh initializer,
+  // weight_initializer can be set seperately. weight_xh initializer,
   // weight_hh initializer kernel initializer & recurrent_initializer in keras
   // for now, it is set same way.
   wt_idx[LSTMParams::weight_xh] =
