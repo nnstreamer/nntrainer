@@ -93,7 +93,7 @@ GenericProfileListener::result(const int event) {
 }
 
 void GenericProfileListener::report(std::ostream &out) const {
-  std::vector<unsigned int> column_size = {10, 23, 23, 23, 23};
+  std::vector<unsigned int> column_size = {20, 23, 23, 23, 23, 23};
 
   for (auto &entry : time_taken) {
     auto title = profiler->eventToStr(entry.first);
@@ -107,13 +107,20 @@ void GenericProfileListener::report(std::ostream &out) const {
     out << "warm up: " << warmups << '\n';
   }
 
+  auto end = std::chrono::steady_clock::now();
+  auto duration =
+    std::chrono::duration_cast<std::chrono::microseconds>(end - start_time);
+
+  out << "profiled for " << duration.count() << '\n';
+
   /// creating header
   // clang-format off
   out << std::setw(column_size[0]) << "key"
       << std::setw(column_size[1]) << "avg"
       << std::setw(column_size[2]) << "min"
       << std::setw(column_size[3]) << "max"
-      << std::setw(column_size[4]) << "sum" << '\n';
+      << std::setw(column_size[4]) << "sum"
+      << std::setw(column_size[5]) << "pct" << '\n';
   // clang-format on
 
   // seperator
@@ -139,13 +146,17 @@ void GenericProfileListener::report(std::ostream &out) const {
         return;
       }
 
+      out_.setf(std::ios::fixed);
+      out_.precision(2);
       // clang-format off
-    out_ << std::setw(column_size[0]) << title
-        << std::setw(column_size[1]) << sum_.count() / (cnt_ - warmups)
-        << std::setw(column_size[2]) << min_.count()
-        << std::setw(column_size[3]) << max_.count()
-        << std::setw(column_size[4]) << sum_.count() << '\n';
+      out_ << std::setw(column_size[0]) << title
+          << std::setw(column_size[1]) << sum_.count() / (cnt_ - warmups)
+          << std::setw(column_size[2]) << min_.count()
+          << std::setw(column_size[3]) << max_.count()
+          << std::setw(column_size[4]) << sum_.count()
+          << std::setw(column_size[5]) << sum_.count() / (double)duration.count() * 100 << '\n';
       // clang-format on
+      out_.unsetf(std::ios::fixed);
     };
     ordered_report[-entry.first] = func;
   }

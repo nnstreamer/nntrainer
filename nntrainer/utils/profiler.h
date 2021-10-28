@@ -112,6 +112,10 @@ protected:
   Profiler *profiler;
 };
 
+/**
+ * @brief Generic Profiler Listener
+ *
+ */
 class GenericProfileListener : public ProfileListener {
 public:
   /**
@@ -123,6 +127,7 @@ public:
   GenericProfileListener(Profiler *profiler, std::vector<int> events = {},
                          int warmups_ = 0) :
     ProfileListener(profiler, events),
+    start_time(std::chrono::steady_clock::now()),
     warmups(warmups_) {
     for (auto &event : events) {
       reset(event);
@@ -158,6 +163,7 @@ public:
   virtual void report(std::ostream &out) const override;
 
 private:
+  std::chrono::time_point<std::chrono::steady_clock> start_time;
   unsigned int warmups;
 
   static constexpr int CUR = 0;
@@ -173,7 +179,11 @@ private:
                                      unsigned int /** CNT */>>
     time_taken;
 
-  decltype(time_taken)::iterator time_iter; /**< iterator for the time_taken */
+  /**
+   * @brief iterator for the time_taken
+   *
+   */
+  decltype(time_taken)::iterator time_iter;
 };
 
 /**
@@ -187,12 +197,23 @@ std::ostream &operator<<(std::ostream &out, T &l) {
   return out;
 }
 
+/**
+ * @brief Profiler object
+ *
+ */
 class Profiler {
 public:
+  /**
+   * @brief Construct a new Profiler object
+   *
+   */
   Profiler() {}
 
+  /**
+   * @brief Deleted constructor
+   *
+   */
   Profiler(const Profiler &) = delete;
-
   Profiler &operator=(const Profiler &) = delete;
 
   /**
