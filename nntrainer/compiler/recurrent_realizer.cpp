@@ -20,7 +20,6 @@
 #include <nntrainer_error.h>
 #include <node_exporter.h>
 #include <remap_realizer.h>
-#include <rnn.h>
 #include <rnncell.h>
 #include <util_func.h>
 

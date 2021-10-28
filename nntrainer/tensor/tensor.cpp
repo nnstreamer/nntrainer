@@ -120,8 +120,7 @@ public:
   SrcSharedTensor() : src(nullptr), off(0) {}
 
   SrcSharedTensor(const Tensor *tensor, unsigned int offset) :
-    src(tensor),
-    off(offset) {}
+    src(tensor), off(offset) {}
 
   /**
    * @brief   Get the allocated src tensor
@@ -755,9 +754,9 @@ Tensor Tensor::sum_by_batch() const {
 /**
  * @brief Calculate sum according to the axis.
  */
-Tensor Tensor::sum(unsigned int axis, float alpha, float beta) const {
+Tensor Tensor::sum(unsigned int axis, float alpha) const {
   Tensor ret;
-  return sum(axis, ret, alpha, beta);
+  return sum(axis, ret, alpha, 0);
 }
 Tensor &Tensor::sum(unsigned int axis, Tensor &ret, float alpha,
                     float beta) const {
@@ -766,7 +765,7 @@ Tensor &Tensor::sum(unsigned int axis, Tensor &ret, float alpha,
   if (axis >= 4)
     throw std::out_of_range("Error: axis is invalid");
 
-  if (dim.getDim()[axis] == 1 and alpha == 1.0) {
+  if (dim.getDim()[axis] == 1 and alpha == 1.0 and !beta) {
     CREATE_IF_EMPTY_DIMS(ret, dim);
     ret.copy(this->getData());
     return ret;

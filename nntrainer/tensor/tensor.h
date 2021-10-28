@@ -620,7 +620,7 @@ public:
    * @param[in] alpha Scale the sum by this value
    * @retval    Calculated Tensor
    */
-  Tensor sum(unsigned int axis, float alpha = 1.0, float beta = 0.0) const;
+  Tensor sum(unsigned int axis, float alpha = 1.0) const;
 
   /**
    * @brief     sum all the Tensor elements according to the axis
@@ -1114,8 +1114,8 @@ public:
    * @brief     return current stride of tensor.
    * @retval    int[MAXDIM] strides
    */
-  const std::array<unsigned int, TensorDim::MAXDIM> getStrides() const
-    noexcept {
+  const std::array<unsigned int, TensorDim::MAXDIM>
+  getStrides() const noexcept {
     return strides;
   }
   /**

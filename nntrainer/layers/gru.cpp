@@ -19,7 +19,7 @@
  *          |  |     |d16    | d7              |d8
  *          |  |    [+]      [+]              [+]
  *          |  |    / \d16   |  \ d7          / \ d8
- *          |  |  Wxhr Whhr Wxhz Whhz       Wxhg Whhg
+ *          |  |  Whhr Wxhr Whhz Wxhz       Whhg Wxhg
  *          |  |  |d17  |d13 |d12 |d11       |d10 | d9
  *          +- |--+------|---+    |          |    |
  *             +---------|--------|----------+    |
@@ -48,8 +48,6 @@ enum GRUParams {
   dropout_mask
 };
 
-#define NUM_GATE 3
-
 GRULayer::GRULayer() :
   LayerImpl(),
   gru_props(props::Unit(), props::HiddenStateActivation(),
@@ -61,11 +59,11 @@ GRULayer::GRULayer() :
   epsilon(1e-3) {}
 
 // - weight_xh ( input to hidden )
-//  : [1, 1, input_size, unit (hidden_size) x NUM_GATE] -> f, g, i, o
+//  : [1, 1, input_size, unit (hidden_size) x NUM_GATE] -> z, r, g
 // - weight_hh ( hidden to hidden )
-//  : [1, 1, unit (hidden_size) , unit (hidden_size) x NUM_GATE] -> f, g, i, o
+//  : [1, 1, unit (hidden_size) , unit (hidden_size) x NUM_GATE] -> z, r, g
 // - bias_h ( hidden bias )
-//  : [1, 1, 1, unit (hidden_size) x NUM_GATE] -> f, g, i, o
+//  : [1, 1, 1, unit (hidden_size) x NUM_GATE] -> z, r, g
 void GRULayer::finalize(InitLayerContext &context) {
   auto &weight_regularizer =
     std::get<props::WeightRegularizer>(*layer_impl_props);
@@ -100,7 +98,7 @@ void GRULayer::finalize(InitLayerContext &context) {
 
   if (dropout_rate > epsilon) {
     wt_idx[GRUParams::dropout_mask] = context.requestTensor(
-      output_dim, "GRU:dropout_mask", Tensor::Initializer::NONE, false,
+      output_dim, "dropout_mask", Tensor::Initializer::NONE, false,
       TensorLifespan::ITERATION_LIFESPAN);
   }
 
@@ -123,7 +121,7 @@ void GRULayer::finalize(InitLayerContext &context) {
   dim_hh.width(unit * NUM_GATE);
   dim_hh.batch(1);
 
-  // weight_initializer can be set sepeartely. weight_xh initializer,
+  // weight_initializer can be set seperately. weight_xh initializer,
   // weight_hh initializer kernel initializer & recurrent_initializer in keras
   // for now, it is set same way.
   wt_idx[GRUParams::weight_xh] =

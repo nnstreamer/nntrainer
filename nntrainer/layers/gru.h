@@ -98,6 +98,8 @@ public:
   inline static const std::string type = "gru";
 
 private:
+  static constexpr unsigned int NUM_GATE = 3;
+
   /**
    * Unit: number of output neurons
    * HiddenStateActivation: activation type for hidden state. default is tanh
@@ -123,7 +125,7 @@ private:
   ActiFunc recurrent_acti_func;
 
   /**
-   * @brief     to pretect overflow
+   * @brief     to protect overflow
    */
   float epsilon;
 };

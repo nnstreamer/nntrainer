@@ -38,17 +38,12 @@ class RNNCellStacked(torch.nn.Module):
             ]
         )
         for rnn in self.rnns:
-            rnn.bias_ih.data.fill_(0.0)
-            rnn.bias_ih.requires_grad=False
+            rnn.bias_hh.data.fill_(0.0)
+            rnn.bias_hh.requires_grad=False
         self.unroll_for = unroll_for
         self.loss = torch.nn.MSELoss()
 
     def forward(self, inputs, labels):
-        # second bias is always set to make it always zero grad.
-        # this is because that we are only keeping one bias
-        for rnn in self.rnns:
-            rnn.bias_ih.data.fill_(0.0)
-
         hs = [torch.zeros_like(inputs[0]) for _ in self.rnns]
         out = inputs[0]
         ret = []
@@ -72,21 +67,13 @@ class LSTMStacked(torch.nn.Module):
                 for _ in range(num_lstm)
             ]
         )
-        # self.lstm.weight_hh.data.fill_(1.0)
-        # self.lstm.weight_ih.data.fill_(1.0)
-        # self.lstm.bias_hh.data.fill_(1.0)
         for lstm in self.lstms:
-            lstm.bias_ih.data.fill_(0.0)
-            lstm.bias_ih.requires_grad=False
+            lstm.bias_hh.data.fill_(0.0)
+            lstm.bias_hh.requires_grad=False
         self.unroll_for = unroll_for
         self.loss = torch.nn.MSELoss()
 
     def forward(self, inputs, labels):
-        # second bias is always set to make it always zero grad.
-        # this is because that we are only keeping one bias
-        for lstm in self.lstms:
-            lstm.bias_ih.data.fill_(0.0)
-
         hs = [torch.zeros_like(inputs[0]) for _ in self.lstms]
         cs = [torch.zeros_like(inputs[0]) for _ in self.lstms]
         out = inputs[0]
