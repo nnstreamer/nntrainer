@@ -424,11 +424,17 @@ Tensor &Tensor::multiply(Tensor const &m, Tensor &output,
    */
   auto f = [&](const BroadcastInfo &e, const float *buf, const float *m_buf,
                float *out_buf) {
-    for (unsigned int i = 0; i < e.buffer_size; ++i) {
-      *out_buf = *buf * *m_buf + beta * *out_buf;
-      buf += strides[3];
-      m_buf += e.strides[3];
-      out_buf += output.strides[3];
+    if (e.strides[3] == 1 && output.strides[3] == 1 && strides[3] == 1 &&
+        beta == 0.0) {
+      std::transform(buf, buf + e.buffer_size, m_buf, out_buf,
+                     std::multiplies<float>());
+    } else {
+      for (unsigned int i = 0; i < e.buffer_size; ++i) {
+        *out_buf = *buf * *m_buf + beta * *out_buf;
+        buf += strides[3];
+        m_buf += e.strides[3];
+        out_buf += output.strides[3];
+      }
     }
   };
 
@@ -485,11 +491,16 @@ Tensor Tensor::divide(Tensor const &m) const {
 Tensor &Tensor::divide(Tensor const &m, Tensor &output) const {
   auto f = [&](const BroadcastInfo &e, const float *buf, const float *m_buf,
                float *out_buf) {
-    for (unsigned int i = 0; i < e.buffer_size; ++i) {
-      *out_buf = *buf / *m_buf;
-      buf += strides[3];
-      m_buf += e.strides[3];
-      out_buf += strides[3];
+    if (e.strides[3] == 1 && output.strides[3] == 1 && strides[3] == 1) {
+      std::transform(buf, buf + e.buffer_size, m_buf, out_buf,
+                     std::divides<float>());
+    } else {
+      for (unsigned int i = 0; i < e.buffer_size; ++i) {
+        *out_buf = *buf / *m_buf;
+        buf += strides[3];
+        m_buf += e.strides[3];
+        out_buf += output.strides[3];
+      }
     }
   };
 
@@ -536,20 +547,25 @@ Tensor Tensor::add(Tensor const &m, float const alpha) const {
   return this->add(m, t, alpha);
 }
 
-Tensor &Tensor::add(Tensor const &m, Tensor &out, float const alpha) const {
+Tensor &Tensor::add(Tensor const &m, Tensor &output, float const alpha) const {
   auto f = [&](const BroadcastInfo &e, const float *buf, const float *m_buf,
                float *out_buf) {
-    for (unsigned int i = 0; i < e.buffer_size; ++i) {
-      *out_buf = *buf + *m_buf * alpha;
-      buf += strides[3];
-      m_buf += e.strides[3];
-      out_buf += strides[3];
+    if (e.strides[3] == 1 && strides[3] == 1 && strides[3] == 1 && alpha == 0) {
+      std::transform(buf, buf + e.buffer_size, m_buf, out_buf,
+                     std::plus<float>());
+    } else {
+      for (unsigned int i = 0; i < e.buffer_size; ++i) {
+        *out_buf = *buf + *m_buf * alpha;
+        buf += strides[3];
+        m_buf += e.strides[3];
+        out_buf += strides[3];
+      }
     }
   };
 
-  apply_broadcast(m, f, out);
+  apply_broadcast(m, f, output);
 
-  return out;
+  return output;
 }
 
 int Tensor::subtract_i(float const &value) {
