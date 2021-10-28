@@ -60,6 +60,18 @@ foreach target: test_target
   test(target[0], exe, args: ['--gtest_output=xml:@0@/@1@.xml'.format(meson.build_root(), target[0])] )
 endforeach
 
+exe = executable(
+  'unittest_ruy_test',
+  ['unittest_ruy_test' + '.cpp'],
+  # below is temporary measure, we will eventually remove unittest_nntrainer_models
+  include_directories: ruy_inc,
+  link_args: ruy_deps,
+  dependencies: nntrainer_dep,
+  install: get_option('enable-test'),
+  install_dir: application_install_dir
+)
+test('unittest_ruy_test', exe, args: ['--gtest_output=xml:@0@/@1@.xml'.format(meson.build_root(), 'unittest_test')] )
+
 unittest_inc = include_directories('.')
 
 subdir('memory')

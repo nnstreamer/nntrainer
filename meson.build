@@ -24,6 +24,42 @@ if get_option('platform') == 'tizen'
   endif
 endif
 
+ruy_inc = include_directories('/data/ruy')
+ruy_deps = [
+'/data/ruy/build/ruy/libruy_context_get_ctx.a',
+'/data/ruy/build/ruy/libruy_context.a',
+'/data/ruy/build/ruy/libruy_frontend.a',
+'/data/ruy/build/ruy/libruy_kernel_arm.a',
+'/data/ruy/build/ruy/libruy_kernel_avx.a',
+'/data/ruy/build/ruy/libruy_kernel_avx2_fma.a',
+'/data/ruy/build/ruy/libruy_kernel_avx512.a',
+'/data/ruy/build/ruy/libruy_apply_multiplier.a',
+'/data/ruy/build/ruy/libruy_pack_arm.a',
+'/data/ruy/build/ruy/libruy_pack_avx.a',
+'/data/ruy/build/ruy/libruy_pack_avx2_fma.a',
+'/data/ruy/build/ruy/libruy_pack_avx512.a',
+'/data/ruy/build/ruy/libruy_prepare_packed_matrices.a',
+'/data/ruy/build/ruy/libruy_trmul.a',
+'/data/ruy/build/ruy/libruy_ctx.a',
+'/data/ruy/build/ruy/libruy_allocator.a',
+'/data/ruy/build/ruy/libruy_prepacked_cache.a',
+'/data/ruy/build/ruy/libruy_system_aligned_alloc.a',
+'/data/ruy/build/ruy/libruy_have_built_path_for_avx.a',
+'/data/ruy/build/ruy/libruy_have_built_path_for_avx2_fma.a',
+'/data/ruy/build/ruy/libruy_have_built_path_for_avx512.a',
+'/data/ruy/build/ruy/libruy_thread_pool.a',
+'/data/ruy/build/ruy/libruy_blocking_counter.a',
+'/data/ruy/build/ruy/libruy_wait.a',
+'/data/ruy/build/ruy/libruy_denormal.a',
+'/data/ruy/build/ruy/libruy_block_map.a',
+'/data/ruy/build/ruy/libruy_tune.a',
+'/data/ruy/build/ruy/libruy_cpuinfo.a',
+'/data/ruy/build/third_party/cpuinfo/libcpuinfo.a',
+'/data/ruy/build/third_party/cpuinfo/deps/clog/libclog.a',
+'/data/ruy/build/ruy/profiler/libruy_profiler_instrumentation.a',
+]
+
+
 warning_flags = [
   '-Wredundant-decls',
   '-Wwrite-strings',

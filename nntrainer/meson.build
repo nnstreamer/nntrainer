@@ -1,6 +1,7 @@
 nntrainer_inc = [
   include_directories('.'),
-  include_directories('../api', '../api/ccapi/include')
+  include_directories('../api', '../api/ccapi/include'),
+  ruy_inc
 ]
 
 # meson provides include_directories. But there is no support to get the absolute path from the object.
@@ -64,6 +65,7 @@ else
   # Build libraries
   nntrainer_shared = shared_library('nntrainer',
     nntrainer_sources,
+    link_args: ruy_deps,
     dependencies: nntrainer_base_deps,
     include_directories: nntrainer_inc,
     install: true,
@@ -72,6 +74,7 @@ else
 
   nntrainer_static = static_library('nntrainer',
     nntrainer_sources,
+    link_args: ruy_deps,
     dependencies: nntrainer_base_deps,
     include_directories: nntrainer_inc,
     install: true,

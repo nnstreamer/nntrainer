@@ -7,12 +7,12 @@ option('enable-ccapi', type: 'boolean', value: true)
 option('enable-test', type: 'boolean', value: true)
 option('enable-logging', type: 'boolean', value: true)
 option('enable-tizen-feature-check', type: 'boolean', value: true)
-option('enable-nnstreamer-tensor-filter', type: 'boolean', value: true)
-option('enable-nnstreamer-backbone', type: 'boolean', value: true)
-option('enable-tflite-backbone', type: 'boolean', value: true)
+option('enable-nnstreamer-tensor-filter', type: 'boolean', value: false)
+option('enable-nnstreamer-backbone', type: 'boolean', value: false)
+option('enable-tflite-backbone', type: 'boolean', value: false)
 option('enable-profile', type: 'boolean', value: false)
 option('enable-debug', type: 'boolean', value: false)
-option('enable-tflite-interpreter', type: 'boolean', value: true)
+option('enable-tflite-interpreter', type: 'boolean', value: false)
 
 # dependency conflict resolution
 option('capi-ml-inference-actual', type: 'string', value: 'capi-ml-inference',

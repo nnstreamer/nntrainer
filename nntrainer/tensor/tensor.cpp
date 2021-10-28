@@ -36,6 +36,7 @@
 #include <lazy_tensor.h>
 #include <nntrainer_error.h>
 #include <nntrainer_log.h>
+#include <ruy/ruy.h>
 #include <tensor.h>
 #include <util_func.h>
 
@@ -908,6 +909,8 @@ Tensor &Tensor::dot(Tensor const &m, Tensor &result, bool trans, bool trans_m,
     M = dim2;
     CREATE_IF_EMPTY_DIMS(result, 1, 1, M, N);
   }
+  // M K K N
+
   lda = dim2;
   ldb = mdim2;
   ldc = result.width();
@@ -942,13 +945,60 @@ Tensor &Tensor::dot(Tensor const &m, Tensor &result, bool trans, bool trans_m,
     sgemv(CblasRowMajor, transB, mdim1, mdim2, alpha, mdata, ldb, data, 1, beta,
           rdata, 1);
   }
+  // Tensor c;
+  // Tensor d;
+  // if (trans) {
+  //    c = transpose("0:2:1");
+  //    data = c.data.get();
+  // }
+  // if (trans_m) {
+  //   d = transpose("0:2:1");
+  //   mdata = d.data.get();
+  // }
   /// case others: use gemm
   else {
-    sgemm(CblasRowMajor, transA, transB, M, N, K, alpha, data, lda, mdata, ldb,
-          beta, rdata, ldc);
-  }
+    static ruy::Matrix<float> lhs;
+    if (trans) {
+      ruy::MakeSimpleLayout(dim2, dim1, ruy::Order::kColMajor,
+                            lhs.mutable_layout());
+    } else {
+      ruy::MakeSimpleLayout(dim1, dim2, ruy::Order::kRowMajor,
+                            lhs.mutable_layout());
+    }
+    lhs.set_data(data);
 
+    static ruy::Matrix<float> rhs;
+    if (trans_m) {
+      ruy::MakeSimpleLayout(mdim2, mdim1, ruy::Order::kColMajor,
+                            rhs.mutable_layout());
+    } else {
+      ruy::MakeSimpleLayout(mdim1, mdim2, ruy::Order::kRowMajor,
+                            rhs.mutable_layout());
+    }
+    rhs.set_data(mdata);
+
+    static ruy::Matrix<float> dst;
+    auto a1 = trans ? dim2 : dim1;
+    auto a2 = trans_m ? mdim1 : mdim2;
+    ruy::MakeSimpleLayout(a1, a2, ruy::Order::kRowMajor, dst.mutable_layout());
+    dst.set_data(rdata);
+
+    static ruy::MulParams<float, float> mul_params;
+    static std::unique_ptr<ruy::Context> context = [] {
+      std::unique_ptr<ruy::Context> ctx(new ruy::Context);
+      ctx->set_max_num_threads(4);
+      return ctx;
+    }();
+    ruy::Mul(lhs, rhs, mul_params, context.get(), &dst);
+    ldc++;
+
+    return result;
+  }
   return result;
+  // sgemm(CblasRowMajor, transA, transB, M, N, K, alpha, data, lda, mdata, ldb,
+  //       beta, rdata, ldc);
+
+  // return result;
 }
 
 Tensor &Tensor::transpose(const std::string &direction, Tensor &out) const {
