@@ -324,9 +324,9 @@ Tensor::Tensor(
           this->setValue(i, j, k, l, d[i][j][k][l]);
 }
 
-int Tensor::multiply_i_strided(Tensor const &m) {
+int Tensor::multiply_i_strided(Tensor const &m, const float beta) {
   try {
-    this->multiply_strided(m, *this);
+    this->multiply_strided(m, *this, beta);
   } catch (std::exception &err) {
     ml_loge("%s %s", typeid(err).name(), err.what());
     return ML_ERROR_INVALID_PARAMETER;
@@ -335,12 +335,13 @@ int Tensor::multiply_i_strided(Tensor const &m) {
   return ML_ERROR_NONE;
 }
 
-Tensor Tensor::multiply_strided(Tensor const &m) const {
+Tensor Tensor::multiply_strided(Tensor const &m, const float beta) const {
   Tensor t;
-  return this->multiply_strided(m, t);
+  return this->multiply_strided(m, t, beta);
 }
 
-Tensor &Tensor::multiply_strided(Tensor const &m, Tensor &output) const {
+Tensor &Tensor::multiply_strided(Tensor const &m, Tensor &output,
+                                 const float beta) const {
   /** TODO: throw than create new dimenions */
   CREATE_IF_EMPTY_DIMS(output, dim);
 
@@ -348,13 +349,14 @@ Tensor &Tensor::multiply_strided(Tensor const &m, Tensor &output) const {
     throw std::invalid_argument(
       "Strided multiplication does not support broadcasting");
 
-  if (strides[3] != 1 || m.strides[3] != 1 || output.strides[3] != 1) {
+  if (strides[3] != 1 || m.strides[3] != 1 || output.strides[3] != 1 ||
+      beta != 0.0) {
     for (unsigned int b = 0; b < batch(); ++b) {
       for (unsigned int c = 0; c < channel(); ++c) {
         for (unsigned int h = 0; h < height(); ++h) {
           for (unsigned int w = 0; w < width(); ++w) {
-            output.setValue(b, c, h, w,
-                            getValue(b, c, h, w) * m.getValue(b, c, h, w));
+            output.addValue(
+              b, c, h, w, getValue(b, c, h, w) * m.getValue(b, c, h, w), beta);
           }
         }
       }
@@ -398,9 +400,9 @@ Tensor &Tensor::multiply(float const &value, Tensor &out) const {
   return apply(f, out);
 }
 
-int Tensor::multiply_i(Tensor const &m) {
+int Tensor::multiply_i(Tensor const &m, const float beta) {
   try {
-    this->multiply(m, *this);
+    this->multiply(m, *this, beta);
   } catch (std::exception &err) {
     ml_loge("%s %s", typeid(err).name(), err.what());
     return ML_ERROR_INVALID_PARAMETER;
@@ -409,12 +411,13 @@ int Tensor::multiply_i(Tensor const &m) {
   return ML_ERROR_NONE;
 }
 
-Tensor Tensor::multiply(Tensor const &m) const {
+Tensor Tensor::multiply(Tensor const &m, const float beta) const {
   Tensor t;
-  return this->multiply(m, t);
+  return this->multiply(m, t, beta);
 }
 
-Tensor &Tensor::multiply(Tensor const &m, Tensor &output) const {
+Tensor &Tensor::multiply(Tensor const &m, Tensor &output,
+                         const float beta) const {
   /**
    * @note this does not work correctly with differently strided inputs.
    * Use multiply_strided alternatively
@@ -422,7 +425,7 @@ Tensor &Tensor::multiply(Tensor const &m, Tensor &output) const {
   auto f = [&](const BroadcastInfo &e, const float *buf, const float *m_buf,
                float *out_buf) {
     for (unsigned int i = 0; i < e.buffer_size; ++i) {
-      *out_buf = *buf * *m_buf;
+      *out_buf = *buf * *m_buf + beta * *out_buf;
       buf += strides[3];
       m_buf += e.strides[3];
       out_buf += output.strides[3];

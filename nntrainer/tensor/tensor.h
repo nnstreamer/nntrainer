@@ -326,28 +326,33 @@ public:
   /**
    * @brief     Multiply Tensor Elementwise
    * @param[in] m Tensor to be multiplied
+   * @param[in] beta scalar to multiply output with and add
    * @retval    #ML_ERROR_NONE successful
    */
-  int multiply_i(Tensor const &m);
+  int multiply_i(Tensor const &m, const float beta = 0.0);
 
   /**
    * @brief     Multiply Tensor Element by Element ( Not the MxM )
    * @param[in] m Tensor to be multiplied
+   * @param[in] beta scalar to multiply output with and add
    * @retval    Calculated Tensor
    */
-  Tensor multiply(Tensor const &m) const;
+  Tensor multiply(Tensor const &m, const float beta = 0.0) const;
 
   /**
    * @brief     Multiply Tensor Element by Element ( Not the MxM )
    * @param[in] m Tensor to be multiplied
    * @param[out] output Tensor to store the result
+   * @param[in] beta scalar to multiply output with and add
    * @retval    Calculated Tensor
    */
-  Tensor &multiply(Tensor const &m, Tensor &output) const;
+  Tensor &multiply(Tensor const &m, Tensor &output,
+                   const float beta = 0.0) const;
 
   /**
    * @brief     Multiply Tensor Elementwise
    * @param[in] m Tensor to be multiplied
+   * @param[in] beta scalar to multiply output with and add
    * @retval    #ML_ERROR_NONE successful
    *
    * @note support different strided inputs and output
@@ -355,11 +360,12 @@ public:
    *
    * @todo merge this to multiply_i
    */
-  int multiply_i_strided(Tensor const &m);
+  int multiply_i_strided(Tensor const &m, const float beta = 0.0);
 
   /**
    * @brief     Multiply Tensor Element by Element ( Not the MxM )
    * @param[in] m Tensor to be multiplied
+   * @param[in] beta scalar to multiply output with and add
    * @retval    Calculated Tensor
    *
    * @note support different strided inputs and output
@@ -367,12 +373,13 @@ public:
    *
    * @todo merge this to multiply
    */
-  Tensor multiply_strided(Tensor const &m) const;
+  Tensor multiply_strided(Tensor const &m, const float beta = 0.0) const;
 
   /**
    * @brief     Multiply Tensor Element by Element ( Not the MxM )
    * @param[in] m Tensor to be multiplied
    * @param[out] output Tensor to store the result
+   * @param[in] beta scalar to multiply output with and add
    * @retval    Calculated Tensor
    *
    * @note support different strided inputs and output
@@ -380,7 +387,8 @@ public:
    *
    * @todo merge this to multiply
    */
-  Tensor &multiply_strided(Tensor const &m, Tensor &output) const;
+  Tensor &multiply_strided(Tensor const &m, Tensor &output,
+                           const float beta = 0.0) const;
 
   /**
    * @brief     Divide value element by element immediately
@@ -810,6 +818,21 @@ public:
   void setValue(unsigned int batch, unsigned int c, unsigned int h,
                 unsigned int w, float value) noexcept {
     data.get()[getIndex(batch, c, h, w)] = value;
+  }
+
+  /**
+   * @brief     add the element value to the location
+   * @param[in] batch batch location
+   * @param[in] c channel location
+   * @param[in] h height location
+   * @param[in] w width location
+   * @param[in] value value to be stored
+   * @param[in] beta scalar to multiply output with and add
+   */
+  void addValue(unsigned int batch, unsigned int c, unsigned int h,
+                unsigned int w, float value, float beta) noexcept {
+    auto const &idx = getIndex(batch, c, h, w);
+    data.get()[idx] = value + data.get()[idx] * beta;
   }
 
   /**

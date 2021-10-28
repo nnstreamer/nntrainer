@@ -232,8 +232,7 @@ void LSTMCellLayer::forwarding(RunLayerContext &context, bool training) {
     Tensor cs_prev = cell_.getBatchSlice(start_timestep - 1, 1);
     hf.multiply_strided(cs_prev, cs);
   }
-  Tensor temp1 = hg.multiply_strided(hi);
-  cs.add_i(temp1);
+  hg.multiply_strided(hi, cs, 1.0);
 
   acti_func.run_fn(cs, hs);
   hs.multiply_i_strided(ho);
@@ -349,8 +348,7 @@ void LSTMCellLayer::calcGradient(RunLayerContext &context) {
     /// it inplace somehow
     Tensor dc_temp(dc.getDim());
     acti_func.run_prime_fn(cs, dc_temp, dh);
-    dc_temp.multiply_i_strided(ho);
-    dc.add_i(dc_temp);
+    dc_temp.multiply_strided(ho, dc, 1.0);
   }
 
   if (start_timestep > 0) {
