@@ -237,10 +237,12 @@ tflite_dep = dummy_dep
 if get_option('platform') != 'android'
   tflite_dep = dependency('tensorflow2-lite', required: false)
 else
-  message('preparing tflite')
-  run_command(meson.source_root() / 'jni' / 'prepare_tflite.sh', '2.3.0', meson.build_root(), check: true)
-  tflite_root = meson.build_root() / 'tensorflow-2.3.0' / 'tensorflow-lite'
-  tflite_dep = found_dummy_dep
+  if get_option('enable-tflite-backbone') or get_option('enable-tflite-interpreter')
+    message('preparing tflite, because either tflite backbone or interpreter is enabled')
+    run_command(meson.source_root() / 'jni' / 'prepare_tflite.sh', '2.3.0', meson.build_root(), check: true)
+    tflite_root = meson.build_root() / 'tensorflow-2.3.0' / 'tensorflow-lite'
+    tflite_dep = found_dummy_dep
+  endif
 endif
 
 if get_option('enable-tflite-backbone')

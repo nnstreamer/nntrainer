@@ -15,6 +15,8 @@ endif
 if tflite_dep.found()
   and_conf.set('MESON_HAS_TFLITE', 1)
   and_conf.set('MESON_TFLITE_ROOT', tflite_root)
+else
+  and_conf.set('MESON_HAS_TFLITE', 0)
 endif
 
 if blas_dep.found()
@@ -70,10 +72,21 @@ foreach key, val : ndk_args
 endforeach
 ndk_build_command += ndk_additional_flags
 
+ndk_depends = []
+ndk_input = []
+foreach src: nntrainer_sources
+  ndk_input += files(src)
+endforeach
+
+if get_option('enable-tflite-interpreter')
+  ndk_depends += flat_header
+endif
+
 ndk_result = custom_target('ndk-build',
+                           input: ndk_input,
                            output: outputs,
                            build_by_default: true,
-                           depends: flat_header,
+                           depends: ndk_depends,
                            install: true,
                            install_dir: nntrainer_libdir,
                            command: [ndk_build_command])
