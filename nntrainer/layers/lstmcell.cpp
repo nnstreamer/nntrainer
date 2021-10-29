@@ -336,9 +336,8 @@ void LSTMCellLayer::calcGradient(RunLayerContext &context) {
   Tensor hg = fgio_t.getSharedDataTensor({batch, unit}, unit * 2, false);
   Tensor ho = fgio_t.getSharedDataTensor({batch, unit}, unit * 3, false);
 
-  acti_func.run_fn(cs, dho);
-  dho.multiply_i_strided(dh);
   acti_func.run_fn(cs, cs);
+  cs.multiply_strided(dh, dho);
 
   if (start_timestep + 1 == max_timestep) {
     acti_func.run_prime_fn(cs, dc, dh);
