@@ -125,7 +125,7 @@ int ml_train_model_construct_with_conf(const char *model_conf,
  * optimizer/dataset of the model will not be permitted.
  * @since_tizen 6.0
  * @param[in] model The NNTrainer model handle.
- * @param[in] ... hyperparmeters for compiling the model
+ * @param[in] ... hyperparameters for compiling the model
  * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
  * @retval #ML_ERROR_NOT_SUPPORTED Not supported.
@@ -140,7 +140,7 @@ int ml_train_model_compile(ml_train_model_h model, ...);
  * training, along with requested validation and testing, is completed.
  * @since_tizen 6.0
  * @param[in] model The NNTrainer model handle.
- * @param[in] ...  Hyperparmeters for train model.
+ * @param[in] ...  Hyperparameters for train model.
  * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
  * @retval #ML_ERROR_NOT_SUPPORTED Not supported.
@@ -245,7 +245,7 @@ int ml_train_model_set_dataset(ml_train_model_h model,
  *
  * @param[in] model The NNTrainer model handle.
  * @param[out] info The tensors information handle.
- * @return @c 0 on successs. Otherwise a negative error value.
+ * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
  * @retval #ML_ERROR_NOT_SUPPORTED Not supported.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
@@ -267,7 +267,7 @@ int ml_train_model_get_input_tensors_info(ml_train_model_h model,
  *
  * @param[in] model The NNTrainer model handle.
  * @param[out] info The tensors information handle.
- * @return @c 0 on successs. Otherwise a negative error value.
+ * @return @c 0 on success. Otherwise a negative error value.
  * @retval #ML_ERROR_NONE Successful.
  * @retval #ML_ERROR_NOT_SUPPORTED Not supported.
  * @retval #ML_ERROR_INVALID_PARAMETER Invalid parameter.
@@ -327,7 +327,7 @@ int ml_train_layer_destroy(ml_train_layer_h layer);
  *    return status;
  * }
  *
- * // Many of these hyperparmeters are optional
+ * // Many of these hyperparameters are optional
  * status = ml_train_layer_set_property(handle, "input_shape=1:1:6270",
  *      "unit=10", "bias_initializer=zeros", "activation=sigmoid",
  *      "weight_regularizer=l2_norm", "weight_initializer=he_uniform", NULL);
@@ -517,7 +517,7 @@ int ml_train_dataset_destroy(ml_train_dataset_h dataset);
  * @details Use this function to set dataset property.
  * @since_tizen 6.0
  * @remarks the same property is applied over train, valid, testsets that are
- * added to the @a dataset, it is recommened to use
+ * added to the @a dataset, it is recommended to use
  * ml_train_dataset_set_property_for_mode() instead.
  * @param[in] dataset The NNTrainer dataset handle.
  * @param[in]  ... Property values with NULL for termination.
