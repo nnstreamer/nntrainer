@@ -58,6 +58,7 @@
 #include <preprocess_l2norm_layer.h>
 #include <preprocess_translate_layer.h>
 #include <rnn.h>
+#include <rnncell.h>
 #include <split_layer.h>
 #include <time_dist.h>
 
@@ -239,6 +240,8 @@ static void add_default_object(AppContext &ac) {
                      EmbeddingLayer::type, LayerType::LAYER_EMBEDDING);
   ac.registerFactory(nntrainer::createLayer<RNNLayer>, RNNLayer::type,
                      LayerType::LAYER_RNN);
+  ac.registerFactory(nntrainer::createLayer<RNNCellLayer>, RNNCellLayer::type,
+                     LayerType::LAYER_RNNCELL);
   ac.registerFactory(nntrainer::createLayer<LSTMLayer>, LSTMLayer::type,
                      LayerType::LAYER_LSTM);
   ac.registerFactory(nntrainer::createLayer<LSTMCellLayer>, LSTMCellLayer::type,

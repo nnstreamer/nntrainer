@@ -21,6 +21,7 @@ layer_sources = [
   'preprocess_l2norm_layer.cpp',
   'embedding.cpp',
   'rnn.cpp',
+  'rnncell.cpp',
   'acti_func.cpp',
   'lstm.cpp',
   'lstmcell.cpp',
