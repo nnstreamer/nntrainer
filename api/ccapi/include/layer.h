@@ -68,6 +68,7 @@ enum LayerType {
   LAYER_ATTENTION,                         /**< Attention Layer type */
   LAYER_CONV1D,                            /**< Convolution 1D Layer type */
   LAYER_RESHAPE,                           /**< Reshape Layer type */
+  LAYER_RNNCELL,                           /**< RNN Cell Layer type */
   LAYER_LSTMCELL,                          /**< LSTM Cell Layer type */
   LAYER_LOSS_MSE = 500,             /**< Mean Squared Error Loss Layer type */
   LAYER_LOSS_CROSS_ENTROPY_SIGMOID, /**< Cross Entropy with Sigmoid Loss Layer
@@ -308,6 +309,14 @@ Embedding(const std::vector<std::string> &properties = {}) {
 inline std::unique_ptr<Layer>
 RNN(const std::vector<std::string> &properties = {}) {
   return createLayer(LayerType::LAYER_RNN, properties);
+}
+
+/**
+ * @brief Helper function to create RNNCell layer
+ */
+inline std::unique_ptr<Layer>
+RNNCell(const std::vector<std::string> &properties = {}) {
+  return createLayer(LayerType::LAYER_RNNCELL, properties);
 }
 
 /**
