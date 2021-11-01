@@ -384,13 +384,8 @@ void GraphWatcher::compareFor(const std::string &reference,
       nn->backwarding(iteration);
 
       for (auto it = nodes.rbegin(); it != nodes.rend(); it++) {
-        if (it == nodes.rend() - 1) {
-          /** check last layer backwarding only when not input layers */
-          if (it->supportBackwarding())
-            it->backward(iteration, true, !optimize);
-        } else {
+        if (it->needsBackwarding())
           it->backward(iteration, !optimize, !optimize);
-        }
       }
     } else {
       EXPECT_THROW(nn->backwarding(iteration), std::runtime_error);

@@ -237,9 +237,8 @@ void NeuralNetwork::backwarding(int iteration) {
   NNTR_THROW_IF(!opt, std::invalid_argument) << "optimizer is null!";
 #endif
 
-  std::function<void(std::shared_ptr<LayerNode>, int, bool)> backwarding_op =
-    [this](std::shared_ptr<LayerNode> node, int iteration,
-           bool calc_derivative) -> void {
+  std::function<void(std::shared_ptr<LayerNode>, int)> backwarding_op =
+    [this](std::shared_ptr<LayerNode> node, int iteration) -> void {
     /**
      * Do not change this order:
      * 1. calcGradient
@@ -270,7 +269,11 @@ void NeuralNetwork::backwarding(int iteration) {
     if (!dynamic_training_opt.isGradientMode() && apply_gradient)
       node->calcGradient();
 
-    if (calc_derivative)
+#ifdef ENABLE_TEST
+    if (node->supportBackwarding())
+#else
+    if (node->needsBackwarding())
+#endif
       node->calcDerivative();
 
     if (apply_gradient) {

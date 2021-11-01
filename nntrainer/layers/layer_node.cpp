@@ -150,6 +150,7 @@ createLayerNode(std::unique_ptr<nntrainer::Layer> &&layer,
 LayerNode::LayerNode(std::unique_ptr<nntrainer::Layer> &&l) :
   layer(std::move(l)),
   inplace(false),
+  needs_backwarding(false),
   run_context(nullptr),
   layer_node_props(new PropsType(props::Name(), props::Distribute(),
                                  props::Trainable(), {}, {},

@@ -127,11 +127,11 @@ public:
   bool supportInPlace() { return node->supportInPlace(); }
 
   /**
-   * @brief support backwarding operation
+   * @brief needs backwarding operation
    *
-   * @return true if support backwarding else false
+   * @return true if needs backwarding else false
    */
-  bool supportBackwarding() { return node->supportBackwarding(); }
+  bool needsBackwarding() { return node->needsBackwarding(); }
 
 private:
   NodeType node;
