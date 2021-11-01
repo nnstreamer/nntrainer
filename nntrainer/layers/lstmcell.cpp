@@ -354,6 +354,8 @@ void LSTMCellLayer::calcGradient(RunLayerContext &context) {
     dc.multiply_strided(hf, dc_nx);
     Tensor cs_prev = m_cell_.getBatchSlice(start_timestep - 1, 1);
     dc.multiply_strided(cs_prev, dhf);
+  } else {
+    dhf.setZero();
   }
 
   dc.multiply_strided(hg, dhi);
