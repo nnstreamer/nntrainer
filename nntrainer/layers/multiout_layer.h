@@ -8,8 +8,6 @@
  * @author      Jijoong Moon <jijoong.moon@samsung.com>
  * @bug         No known bugs except for NYI items
  * @brief       This is Multi Output Layer Class for Neural Network
- *
- * @todo        Support inplace for this layer
  */
 
 #ifndef __MULTIOUT_LAYER_H__
@@ -67,6 +65,11 @@ public:
    * @copydoc bool supportBackwarding() const
    */
   bool supportBackwarding() const override { return true; };
+
+  /**
+   * @copydoc Layer::supportInPlace()
+   */
+  bool supportInPlace() const override { return true; }
 
   /**
    * @copydoc Layer::exportTo(Exporter &exporter, ExportMethods method)

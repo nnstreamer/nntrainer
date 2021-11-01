@@ -671,6 +671,12 @@ bool NetworkGraph::canExecuteInPlace(const std::shared_ptr<LayerNode> &lnode) {
     return lnode->getType() == FlattenLayer::type;
   };
 
+  /** layers which behave as a no-op but shares memory among parallel nodes -
+   * multiout */
+  auto no_op_shared = [](const std::shared_ptr<LayerNode> &lnode) {
+    return lnode->getType() == MultiOutLayer::type;
+  };
+
   /**
    * layers whose backwarding is not dependent on input/output but only its
    * derivatives and weights, if any - batch normalization
@@ -687,7 +693,7 @@ bool NetworkGraph::canExecuteInPlace(const std::shared_ptr<LayerNode> &lnode) {
    * 2. if the layer is not supporting backwarding, there is no dependency
    * requirement with other nodes for backwarding.
    */
-  if (no_op(lnode) || !lnode->supportBackwarding())
+  if (no_op(lnode) || no_op_shared(lnode) || !lnode->supportBackwarding())
     return true;
 
   /**
@@ -699,9 +705,14 @@ bool NetworkGraph::canExecuteInPlace(const std::shared_ptr<LayerNode> &lnode) {
    * - if any of the input layer is already operating in-place (where it
    *   modifies its input in-place), then this layer cannot operate in-place.
    *
-   * @todo @note This logic is prone to change as more layers are allowed to
+   * @note This logic is prone to change as more layers are allowed to
    * work in-place such as multi-out layer, concat layer, split layer, addition
    * layer, dropout layer, etc.
+   *
+   * @todo This logic sets layers to in-place one-by-one as they arrive. However
+   * setting some layers to in-place can save more memory than others (like
+   * multiout layer vs activaiton layer). The layers need to sorted based on the
+   * memory save they provide and then make them in-place in that order.
    */
   if (lnode->getType() == ActivationLayer::type ||
       lnode->getType() == BatchNormalizationLayer::type) {
@@ -724,6 +735,25 @@ void NetworkGraph::inPlaceOptimize() {
   for (unsigned int idx = 0; idx < graph.size(); ++idx) {
     auto const &lnode = getSortedLayerNode(idx);
     lnode->executeInPlace(optimize_memory & canExecuteInPlace(lnode));
+  }
+}
+
+/**
+ * @brief Set the Inplace Shared Memory Config By Layer object
+ *
+ * @param lnode layer node object
+ * @param shared_var if the variable should be shared
+ * @param shared_grad if the gradient should be shared
+ */
+static void
+setInplaceSharedMemoryConfigByLayer(const std::shared_ptr<LayerNode> &lnode,
+                                    bool &shared_var, bool &shared_grad) {
+  if (lnode->getType() == MultiOutLayer::type) {
+    shared_var = true;
+    shared_grad = false;
+  } else {
+    shared_var = true;
+    shared_grad = true;
   }
 }
 
@@ -755,10 +785,12 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
 
   /** In-Place optimizations */
   std::vector<std::string> inputs_name;
+  bool shared_var = false, shared_grad = false;
   if (lnode->executeInPlace()) {
     std::transform(inputs.begin(), inputs.end(),
                    std::back_inserter(inputs_name),
                    [](const Var_Grad *val) { return val->getName(); });
+    setInplaceSharedMemoryConfigByLayer(lnode, shared_var, shared_grad);
   }
 
   /**
@@ -766,8 +798,9 @@ NetworkGraph::finalizeContext(const std::shared_ptr<LayerNode> &lnode,
    * allocated input. This is necesary for manager to know when this output node
    * is going to be used with in-place optimizations.
    */
-  const std::vector<Var_Grad *> &outputs = tensor_manager->requestOutputs(
-    gnode, init_context.getOutputDimensions(), inputs_name);
+  const std::vector<Var_Grad *> &outputs =
+    tensor_manager->requestOutputs(gnode, init_context.getOutputDimensions(),
+                                   inputs_name, shared_var, shared_grad);
 
   /** create shared weight names if requested */
   std::vector<std::string> shared_weight_names;
