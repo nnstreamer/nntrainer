@@ -47,10 +47,13 @@ public:
     input_dim(dim),
     in_place(in_place_),
     num_outputs(num_out),
-    name(n) {
+    name(n),
+    prefix("") {
     NNTR_THROW_IF(!validate(), std::invalid_argument)
       << "Invalid init context name: " << name
       << " num inputs: " << getNumInputs();
+    if (prefix.empty())
+      prefix = name; // default prefix is the name
   }
 
   /**
@@ -143,7 +146,7 @@ public:
                              const WeightRegularizer reg, const float reg_const,
                              const std::string &name, bool trainable = true) {
     weights_spec.emplace_back(dim, init, reg, reg_const, trainable,
-                              getName() + ":" + name);
+                              prefix + ":" + name);
     return weights_spec.size() - 1;
   }
 
@@ -178,7 +181,7 @@ public:
                 const Tensor::Initializer init = Tensor::Initializer::NONE,
                 bool trainable = false,
                 TensorLifespan lifespan = TensorLifespan::ITERATION_LIFESPAN) {
-    tensors_spec.emplace_back(dim, init, trainable, getName() + ":" + name,
+    tensors_spec.emplace_back(dim, init, trainable, prefix + ":" + name,
                               lifespan);
     return tensors_spec.size() - 1;
   }
@@ -284,6 +287,7 @@ private:
 
   unsigned int num_outputs; /**< number of outputs for the layer */
   std::string name;         /**< name of the layer */
+  std::string prefix;       /**< prefix of the layer */
 };
 
 /**
