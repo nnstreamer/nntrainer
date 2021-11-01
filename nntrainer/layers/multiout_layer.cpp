@@ -30,9 +30,11 @@ void MultiOutLayer::finalize(InitLayerContext &context) {
 }
 
 void MultiOutLayer::forwarding(RunLayerContext &context, bool training) {
-  const Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
-  for (unsigned int idx = 0; idx < context.getNumOutputs(); ++idx) {
-    context.getOutput(idx).fill(input_);
+  if (!context.executeInPlace()) {
+    const Tensor &input_ = context.getInput(SINGLE_INOUT_IDX);
+    for (unsigned int idx = 0; idx < context.getNumOutputs(); ++idx) {
+      context.getOutput(idx).fill(input_);
+    }
   }
 }
 

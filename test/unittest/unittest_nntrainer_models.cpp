@@ -724,6 +724,23 @@ INI multiple_output_model(
   }
 );
 
+INI multiout_model(
+  "multiout_model",
+  {
+    nn_base + "loss=mse | batch_size=3",
+    sgd_base + "learning_rate = 0.1",
+    I("x") + input_base + "input_shape = 1:10",
+    I("fc") + fc_base + "unit = 2",
+    I("fc1") + fc_base
+      + "unit=2 | input_layers=fc",
+    I("fc2") + fc_base
+      + "unit=2 | input_layers=fc",
+    I("add1", "type=addition | input_layers=fc1, fc2"),
+    I("fc3") + fc_base + "unit=3",
+    I("sm") + softmax_base
+  }
+);
+
 /**
  * @brief helper function to make model testcase
  *
@@ -859,6 +876,9 @@ INSTANTIATE_TEST_CASE_P(
 
       /**< Addition test */
       mkModelIniTc(addition_resnet_like, "3:1:1:10", 10, ModelTestOption::COMPARE), // Todo: Enable option to ALL
+
+      /** Multiout test */
+      mkModelIniTc(multiout_model, "3:1:1:3", 10, ModelTestOption::COMPARE), // Todo: Enable option to ALL
 
       /// #1192 time distribution inference bug
       mkModelIniTc(fc_softmax_mse_distribute, "3:1:5:3", 1, ModelTestOption::NO_THROW_RUN),

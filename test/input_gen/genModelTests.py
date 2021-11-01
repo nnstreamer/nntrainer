@@ -620,3 +620,29 @@ if __name__ == "__main__":
     )
     multi_gru_layer_tc(1,2)(file_name="multi_gru_return_sequence.info")
     multi_gru_layer_tc(2,2)(file_name="multi_gru_return_sequence_with_batch.info")
+
+    def multiout_test():
+        # x -> [a, b] -> c
+        x = K.Input(shape=(1, 10), name="x")
+        fc = K.layers.Dense(2, name="fc")(x)
+        b0, a0 = MultiOutLayer(num_output=2)(fc)
+        fc1 = K.layers.Dense(2, name="fc1")(a0)
+        fc2 = K.layers.Dense(2, name="fc2")(b0)
+        add1 = K.layers.Add(name="add_1")([fc1, fc2]) # [a, b] -> c
+        fc3 = K.layers.Dense(3, name="fc3")(add1)
+        sm = K.layers.Activation("softmax", name="sm")(fc3)
+
+        return x, [x, fc, b0, a0, fc1, fc2, add1, fc3, sm]
+
+    x, y = multiout_test()
+    record(
+        loss_fn_str="mse",
+        file_name="multiout_model.info",
+        input_shape=(3, 10),
+        label_shape=(3, 3),
+        optimizer=opt.SGD(learning_rate=0.1),
+        iteration=10,
+        inputs=x,
+        outputs=y,
+        # debug=["name", "summary", "output", "initial_weights"],
+    )

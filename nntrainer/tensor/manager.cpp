@@ -34,6 +34,7 @@
 #include <bn_layer.h>
 #include <layer_node.h>
 #include <manager.h>
+#include <multiout_layer.h>
 #include <nntrainer_log.h>
 #include <optimized_v1_planner.h>
 #include <util_func.h>
@@ -400,6 +401,10 @@ Manager::requestInputs(const GraphNode &node,
     node.getExecutionOrder();
   std::vector<unsigned int> var_exec_order(
     {forwarding_order, calcGradient_order});
+
+  if (node.getType() == MultiOutLayer::type)
+    var_exec_order = {forwarding_order};
+
   std::vector<unsigned int> grad_exec_order({calcDerivative_order});
 
   /** batch normalization layer uses input in forwarding only */
@@ -488,7 +493,8 @@ Manager::requestInputs(const GraphNode &node,
 std::vector<Var_Grad *>
 Manager::requestOutputs(const GraphNode &node,
                         const std::vector<TensorDim> &outputs_dim,
-                        const std::vector<std::string> &inputs_name) {
+                        const std::vector<std::string> &inputs_name,
+                        bool shared_var, bool shared_grad) {
   const auto [forwarding_order, calcGradient_order, calcDerivative_order] =
     node.getExecutionOrder();
   std::vector<unsigned int> var_exec_order({forwarding_order});
@@ -503,46 +509,51 @@ Manager::requestOutputs(const GraphNode &node,
 
   std::vector<Var_Grad *> ret;
   size_t current_size = outputs_v2.size();
+  shared_var = shared_var & !inputs_name.empty();
+  shared_grad = shared_grad & !inputs_name.empty();
 
   for (unsigned int idx = 0; idx < outputs_dim.size(); idx++) {
     auto const &dim = outputs_dim[idx];
     Tensor *var = nullptr, *grad = nullptr;
     const std::string &var_name =
       node.getName() + std::string(":output") + std::to_string(idx);
-    if (!inputs_name.empty()) {
+    std::string shared_name = "";
+    if (inputs_name.size() == 1)
+      shared_name = inputs_name[0];
+    else if (inputs_name.size() == 1)
+      shared_name = inputs_name[idx];
+
+    if (shared_var) {
+      /** request shared tensor for variable */
       var = tensor_pool.requestPrerequestedTensor(
         dim, /// tensor dim
         var_exec_order, var_ls, var_name,
-        inputs_name[idx],         /// name
+        shared_name,              /// name
         Tensor::Initializer::NONE /// tensor initializer
       );
-
-      /** skip requesting tensor for label */
-      if (!node.getOutputConnections().empty()) {
-        grad = tensor_pool.requestPrerequestedTensor(
-          dim, /// tensor dim
-          grad_exec_order, grad_ls,
-          var_name + Var_Grad::grad_suffix,         /// name
-          inputs_name[idx] + Var_Grad::grad_suffix, /// shared name
-          Tensor::Initializer::ZEROS                /// tensor initializer
-        );
-      } else {
-        /** requesting externally allocated tensor for label */
-        grad = tensor_pool.requestExternallyAllocateTensor(
-          dim,                              /// tensor dim
-          var_name + Var_Grad::grad_suffix, /// name
-          Tensor::Initializer::ZEROS        /// tensor initializer
-        );
-      }
     } else {
+      /** request new tensor for variable */
       var = tensor_pool.requestTensor(
         dim, /// tensor dim
         var_exec_order, var_ls,
         var_name,                 /// name
         Tensor::Initializer::NONE /// tensor initializer
       );
+    }
 
+    if (shared_grad) {
+      /** request share tensor for gradient */
+      grad = tensor_pool.requestPrerequestedTensor(
+        dim, /// tensor dim
+        grad_exec_order, grad_ls,
+        var_name + Var_Grad::grad_suffix,    /// name
+        shared_name + Var_Grad::grad_suffix, /// shared name
+        Tensor::Initializer::ZEROS           /// tensor initializer
+      );
+    } else {
+      /** request new tensor for gradient */
       if (!node.getOutputConnections().empty()) {
+        /** request a simple tensor */
         grad = tensor_pool.requestTensor(
           dim, /// tensor dim
           grad_exec_order, grad_ls,
