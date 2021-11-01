@@ -1367,7 +1367,12 @@ void Tensor::setValue(float val) {
   std::fill(data, data + size(), val);
 }
 
-void Tensor::setZero() { sscal(size(), 0, getData(), 1); }
+void Tensor::setZero() {
+  if (contiguous)
+    sscal(size(), 0, getData(), 1);
+  else
+    apply_i([](float val) -> float { return 0; });
+}
 
 std::vector<unsigned int> Tensor::argmax() const {
   const float *data = getData();
