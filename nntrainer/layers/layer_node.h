@@ -661,11 +661,31 @@ public:
    */
   std::unique_ptr<LayerNode> cloneConfiguration();
 
+  /**
+   * @brief Set if the layer needs to do backwarding
+   *
+   * @param nb true if the layer needs to do backwarding, else false
+   */
+  void needsBackwarding(bool nb) {
+    NNTR_THROW_IF(nb && !supportBackwarding(), std::invalid_argument)
+      << "[Layer] " << getName()
+      << " does not support backwarding but is needed";
+    needs_backwarding = nb;
+  }
+
+  /**
+   * @brief Get the layer needs to do backwarding
+   *
+   * @return true if the layer needs to do backwarding, else false
+   */
+  bool needsBackwarding() { return needs_backwarding; }
+
 private:
   std::unique_ptr<nntrainer::Layer>
     layer; /**< The actual object in the graph node */
 
   bool inplace; /**< store if the current layer is going to operate in-place */
+  bool needs_backwarding; /**< cache if this layer needs to do backwarding */
 
   std::vector<std::string> input_layers;  /**< input layer names */
   std::vector<std::string> output_layers; /**< output layer names */

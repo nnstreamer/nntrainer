@@ -59,7 +59,6 @@ int NetworkGraph::compile(const std::string &loss_type) {
 
   graph.topologicalSort();
 
-  countNonTrainableLayersAtBegin();
   setExecutionOrder();
 
   inPlaceOptimize();
@@ -112,19 +111,6 @@ void NetworkGraph::addDefaultInputLayers() {
 
 void NetworkGraph::addLayerNode(std::unique_ptr<Layer> layer) {
   graph.addNode(std::make_unique<LayerNode>(std::move(layer)));
-}
-
-void NetworkGraph::countNonTrainableLayersAtBegin() {
-  for (auto iter = cbegin(); iter != cend(); iter++) {
-    // TODO: check if getTrainable() was set and if trainable weights exist,
-    // then throw
-    if ((*iter)->getTrainable() && (*iter)->supportBackwarding()) {
-      skip_non_trainable_layers = iter - cbegin();
-      return;
-    }
-  }
-
-  skip_non_trainable_layers = graph.size();
 }
 
 int NetworkGraph::realizeActivationType(
@@ -334,12 +320,14 @@ int NetworkGraph::checkInitializedGraph() {
   }
 
   /** verify all the required nodes support backwarding */
-  for (auto const &node_name : must_support_backwarding) {
-    if (!LNODE(graph.getNode(node_name))->supportBackwarding()) {
-      ml_loge(
-        "Backwaring required from layer which doesn't support backwarding");
-      return ML_ERROR_INVALID_PARAMETER;
-    }
+  try {
+    for (auto const &node_name : must_support_backwarding)
+      LNODE(graph.getNode(node_name))->needsBackwarding(true);
+  } catch (std::exception &e) {
+    ml_loge(
+      "Backwaring required from layer which doesn't support backwarding: %s",
+      e.what());
+    return ML_ERROR_INVALID_PARAMETER;
   }
 
   return ML_ERROR_NONE;
@@ -485,8 +473,7 @@ sharedConstTensors NetworkGraph::forwarding(bool training) const {
 
 void NetworkGraph::backwarding(
   int iteration,
-  std::function<void(std::shared_ptr<LayerNode>, int, bool)> &backwarding_op)
-  const {
+  std::function<void(std::shared_ptr<LayerNode>, int)> &backwarding_op) const {
   /**
    * last layer backwarding is run out of this loop
    */
@@ -504,24 +491,12 @@ void NetworkGraph::backwarding(
     throw std::runtime_error(
       "Error: last layer does not accept label, we can't train");
 
-  auto iter = iter_begin;
-  for (; iter != iter_end - 1; iter++) {
+  for (auto iter = iter_begin; iter != iter_end; iter++) {
     auto &ln = *iter;
     START_PROFILE(profile_keys.at(ln->getType()));
-    backwarding_op(ln, iteration, ln->supportBackwarding());
+    backwarding_op(ln, iteration);
     END_PROFILE(profile_keys.at(ln->getType()));
   }
-
-  /**
-   * The last trainable layer need not calculate the derivatives
-   */
-  START_PROFILE(profile_keys.at((*iter)->getType()));
-#ifdef ENABLE_TEST
-  backwarding_op(*iter, iteration, (*iter)->supportBackwarding());
-#else
-  backwarding_op(*iter, iteration, false);
-#endif
-  END_PROFILE(profile_keys.at((*iter)->getType()));
 }
 
 std::vector<TensorDim> NetworkGraph::getInputDimension() const {
@@ -648,7 +623,7 @@ void NetworkGraph::addLayer(std::shared_ptr<LayerNode> layer) {
 }
 
 bool NetworkGraph::canExecuteInPlace(const std::shared_ptr<LayerNode> &lnode) {
-  if (!optimize_memory || !lnode->supportInPlace())
+  if (!lnode->supportInPlace())
     return false;
 
   /** layers which behave as a no-op - flatten */
@@ -708,7 +683,7 @@ bool NetworkGraph::canExecuteInPlace(const std::shared_ptr<LayerNode> &lnode) {
 void NetworkGraph::inPlaceOptimize() {
   for (unsigned int idx = 0; idx < graph.size(); ++idx) {
     auto const &lnode = getSortedLayerNode(idx);
-    lnode->executeInPlace(canExecuteInPlace(lnode));
+    lnode->executeInPlace(optimize_memory & canExecuteInPlace(lnode));
   }
 }
 

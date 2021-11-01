@@ -42,7 +42,6 @@ public:
   NetworkGraph() :
     tensor_manager(std::make_shared<Manager>()),
     graph(),
-    skip_non_trainable_layers(0),
     compiled(false),
     batch_size(0),
     optimize_memory(true),
@@ -100,7 +99,6 @@ public:
     using std::swap;
 
     swap(lhs.graph, rhs.graph);
-    swap(lhs.skip_non_trainable_layers, rhs.skip_non_trainable_layers);
   }
 
   /**
@@ -170,9 +168,9 @@ public:
    * @param[in] iteration current iteration number
    * @param[in] backwarding_op operation for the backwarding
    */
-  void backwarding(int iteration,
-                   std::function<void(std::shared_ptr<LayerNode>, int, bool)>
-                     &backwarding_op) const;
+  void backwarding(
+    int iteration,
+    std::function<void(std::shared_ptr<LayerNode>, int)> &backwarding_op) const;
 
   /**
    * @brief     get begin iterator for the graph
@@ -219,9 +217,7 @@ public:
    * @retval    const reverse iterator marking the end of backwarding
    */
   graph_const_reverse_iterator<LayerNode> getBackwardingEndIter() const {
-    auto iter = crend();
-    iter -= skip_non_trainable_layers;
-    return iter;
+    return crend();
   }
 
   /**
@@ -250,7 +246,6 @@ public:
    */
   NetworkGraph &copy(NetworkGraph &from) {
     graph.copy(from.graph);
-    skip_non_trainable_layers = from.skip_non_trainable_layers;
     return *this;
   }
 
@@ -391,12 +386,9 @@ private:
                    input and output layer name of subgraph */
   std::shared_ptr<Manager> tensor_manager;       /**< tensors manager */
 
-  GraphCore graph; /** core graph object */
-  unsigned int
-    skip_non_trainable_layers; /**< denotes the number of non-trainable layers
-                                  at the start of the graph */
-  bool compiled;               /**< if the model graph is compiled */
-  unsigned int batch_size;     /**< current batch_size */
+  GraphCore graph;         /** core graph object */
+  bool compiled;           /**< if the model graph is compiled */
+  unsigned int batch_size; /**< current batch_size */
 
   /// @note *_list and *_dims must be synced at all times. Consider put it as a
   /// structure
@@ -509,11 +501,6 @@ private:
    * @param to update name to @a to
    */
   void updateConnectionName(const std::string &from, const std::string &to);
-
-  /**
-   * @brief Calculate the number of non-trainable layers at the start
-   */
-  void countNonTrainableLayersAtBegin();
 
   /**
    * @brief finalize already added loss layers
