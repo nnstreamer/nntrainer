@@ -66,13 +66,12 @@ void FullyConnectedLayer::finalize(InitLayerContext &context) {
   TensorDim bias_dim(1, 1, 1, unit, 0b0001);
   TensorDim weight_dim(1, 1, in_dim.width(), unit, 0b0011);
 
-  weight_idx[FCParams::weight] = context.requestWeight(
-    weight_dim, weight_initializer, weight_regularizer,
-    weight_regularizer_constant, context.getName() + ":weight", true);
+  weight_idx[FCParams::weight] =
+    context.requestWeight(weight_dim, weight_initializer, weight_regularizer,
+                          weight_regularizer_constant, "weight", true);
 
-  weight_idx[FCParams::bias] =
-    context.requestWeight(bias_dim, bias_initializer, WeightRegularizer::NONE,
-                          1.0f, context.getName() + ":bias", true);
+  weight_idx[FCParams::bias] = context.requestWeight(
+    bias_dim, bias_initializer, WeightRegularizer::NONE, 1.0f, "bias", true);
 }
 
 void FullyConnectedLayer::exportTo(Exporter &exporter,

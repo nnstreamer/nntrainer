@@ -49,13 +49,13 @@ void AttentionLayer::finalize(InitLayerContext &context) {
 
   auto weights_dim = query_dim;
   weights_dim.width(value_dim.height());
-  wt_idx[AttentionParams::weights] = context.requestTensor(
-    weights_dim, context.getName() + ":weights", Tensor::Initializer::NONE,
-    false, TensorLifespan::ITERATION_LIFESPAN);
+  wt_idx[AttentionParams::weights] =
+    context.requestTensor(weights_dim, "weights", Tensor::Initializer::NONE,
+                          false, TensorLifespan::ITERATION_LIFESPAN);
 
-  wt_idx[AttentionParams::score] = context.requestTensor(
-    weights_dim, context.getName() + ":score", Tensor::Initializer::NONE, false,
-    TensorLifespan::FORWARD_FUNC_LIFESPAN);
+  wt_idx[AttentionParams::score] =
+    context.requestTensor(weights_dim, "score", Tensor::Initializer::NONE,
+                          false, TensorLifespan::FORWARD_FUNC_LIFESPAN);
 
   context.setOutputDimensions({query_dim});
 }

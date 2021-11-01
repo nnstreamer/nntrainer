@@ -61,15 +61,13 @@ void CentroidKNN::finalize(nntrainer::InitLayerContext &context) {
   /// samples seen for the current run to calculate the centroid
   auto samples_seen = nntrainer::TensorDim({num_class});
 
-  weight_idx[KNNParams::map] =
-    context.requestWeight(map_dim, nntrainer::Tensor::Initializer::ZEROS,
-                          nntrainer::WeightRegularizer::NONE, 1.0f,
-                          context.getName() + ":map", false);
+  weight_idx[KNNParams::map] = context.requestWeight(
+    map_dim, nntrainer::Tensor::Initializer::ZEROS,
+    nntrainer::WeightRegularizer::NONE, 1.0f, "map", false);
 
-  weight_idx[KNNParams::num_samples] =
-    context.requestWeight(samples_seen, nntrainer::Tensor::Initializer::ZEROS,
-                          nntrainer::WeightRegularizer::NONE, 1.0f,
-                          context.getName() + ":num_samples", false);
+  weight_idx[KNNParams::num_samples] = context.requestWeight(
+    samples_seen, nntrainer::Tensor::Initializer::ZEROS,
+    nntrainer::WeightRegularizer::NONE, 1.0f, "num_samples", false);
 }
 
 void CentroidKNN::forwarding(nntrainer::RunLayerContext &context,

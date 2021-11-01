@@ -142,7 +142,8 @@ public:
                              const Tensor::Initializer init,
                              const WeightRegularizer reg, const float reg_const,
                              const std::string &name, bool trainable = true) {
-    weights_spec.emplace_back(dim, init, reg, reg_const, trainable, name);
+    weights_spec.emplace_back(dim, init, reg, reg_const, trainable,
+                              getName() + ":" + name);
     return weights_spec.size() - 1;
   }
 
@@ -177,7 +178,8 @@ public:
                 const Tensor::Initializer init = Tensor::Initializer::NONE,
                 bool trainable = false,
                 TensorLifespan lifespan = TensorLifespan::ITERATION_LIFESPAN) {
-    tensors_spec.emplace_back(dim, init, trainable, name, lifespan);
+    tensors_spec.emplace_back(dim, init, trainable, getName() + ":" + name,
+                              lifespan);
     return tensors_spec.size() - 1;
   }
 

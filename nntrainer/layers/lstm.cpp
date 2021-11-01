@@ -88,8 +88,8 @@ void LSTMLayer::finalize(InitLayerContext &context) {
 
   if (dropout_rate > epsilon) {
     wt_idx[LSTMParams::dropout_mask] = context.requestTensor(
-      output_dim, context.getName() + ":dropout_mask",
-      Tensor::Initializer::NONE, false, TensorLifespan::ITERATION_LIFESPAN);
+      output_dim, "dropout_mask", Tensor::Initializer::NONE, false,
+      TensorLifespan::ITERATION_LIFESPAN);
   }
 
   if (!return_sequences) {
@@ -114,15 +114,14 @@ void LSTMLayer::finalize(InitLayerContext &context) {
   // weight_initializer can be set sepeartely. weight_xh initializer,
   // weight_hh initializer kernel initializer & recurrent_initializer in keras
   // for now, it is set same way.
-  wt_idx[LSTMParams::weight_xh] = context.requestWeight(
-    dim_xh, weight_initializer, weight_regularizer, weight_regularizer_constant,
-    context.getName() + ":weight_xh", true);
-  wt_idx[LSTMParams::weight_hh] = context.requestWeight(
-    dim_hh, weight_initializer, weight_regularizer, weight_regularizer_constant,
-    context.getName() + ":weight_hh", true);
-  wt_idx[LSTMParams::bias_h] =
-    context.requestWeight(bias_dim, bias_initializer, WeightRegularizer::NONE,
-                          1.0f, context.getName() + ":bias_h", true);
+  wt_idx[LSTMParams::weight_xh] =
+    context.requestWeight(dim_xh, weight_initializer, weight_regularizer,
+                          weight_regularizer_constant, "weight_xh", true);
+  wt_idx[LSTMParams::weight_hh] =
+    context.requestWeight(dim_hh, weight_initializer, weight_regularizer,
+                          weight_regularizer_constant, "weight_hh", true);
+  wt_idx[LSTMParams::bias_h] = context.requestWeight(
+    bias_dim, bias_initializer, WeightRegularizer::NONE, 1.0f, "bias_h", true);
 
   unsigned int max_timestep = input_dim.height();
   if (!std::get<props::MaxTimestep>(lstm_props).empty())
@@ -134,17 +133,17 @@ void LSTMLayer::finalize(InitLayerContext &context) {
   d.height(max_timestep);
   d.width(unit);
 
-  wt_idx[LSTMParams::hidden_state] = context.requestTensor(
-    d, context.getName() + ":hidden_state", Tensor::Initializer::NONE, true,
-    TensorLifespan::ITERATION_LIFESPAN);
-  wt_idx[LSTMParams::mem_cell] = context.requestTensor(
-    d, context.getName() + ":mem_cell", Tensor::Initializer::NONE, true,
-    TensorLifespan::ITERATION_LIFESPAN);
+  wt_idx[LSTMParams::hidden_state] =
+    context.requestTensor(d, "hidden_state", Tensor::Initializer::NONE, true,
+                          TensorLifespan::ITERATION_LIFESPAN);
+  wt_idx[LSTMParams::mem_cell] =
+    context.requestTensor(d, "mem_cell", Tensor::Initializer::NONE, true,
+                          TensorLifespan::ITERATION_LIFESPAN);
 
   d.width(unit * NUM_GATE);
-  wt_idx[LSTMParams::fgio] = context.requestTensor(
-    d, context.getName() + ":fgio", Tensor::Initializer::NONE, true,
-    TensorLifespan::ITERATION_LIFESPAN);
+  wt_idx[LSTMParams::fgio] =
+    context.requestTensor(d, "fgio", Tensor::Initializer::NONE, true,
+                          TensorLifespan::ITERATION_LIFESPAN);
 
   if (hidden_state_activation_type.get() == ActivationType::ACT_NONE) {
     hidden_state_activation_type.set(ActivationType::ACT_TANH);
